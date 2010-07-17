@@ -1503,6 +1503,18 @@ comptypes (tree t1, tree t2, int strict)
     return structural_comptypes (t1, t2, strict);
 }
 
+/* Returns nonzero iff TYPE1 and TYPE2 are the same type, ignoring
+   top-level qualifiers.  */
+
+bool
+same_type_ignoring_top_level_qualifiers_p (tree type1, tree type2)
+{
+  if (type1 == error_mark_node || type2 == error_mark_node)
+    return false;
+
+  return same_type_p (TYPE_MAIN_VARIANT (type1), TYPE_MAIN_VARIANT (type2));
+}
+
 /* Returns 1 if TYPE1 is at least as qualified as TYPE2.  */
 
 bool
@@ -2136,7 +2148,7 @@ lookup_anon_field (tree t, tree type)
 {
   tree field;
 
-  for (field = TYPE_FIELDS (t); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (t); field; field = DECL_CHAIN (field))
     {
       if (TREE_STATIC (field))
 	continue;
@@ -6988,7 +7000,7 @@ build_ptrmemfunc1 (tree type, tree delta, tree pfn)
 
   /* Pull the FIELD_DECLs out of the type.  */
   pfn_field = TYPE_FIELDS (type);
-  delta_field = TREE_CHAIN (pfn_field);
+  delta_field = DECL_CHAIN (pfn_field);
 
   /* Make sure DELTA has the type we want.  */
   delta = convert_and_check (delta_type_node, delta);

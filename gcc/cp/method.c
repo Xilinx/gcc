@@ -103,7 +103,7 @@ make_thunk (tree function, bool this_adjusting,
   /* See if we already have the thunk in question.  For this_adjusting
      thunks VIRTUAL_OFFSET will be an INTEGER_CST, for covariant thunks it
      will be a BINFO.  */
-  for (thunk = DECL_THUNKS (function); thunk; thunk = TREE_CHAIN (thunk))
+  for (thunk = DECL_THUNKS (function); thunk; thunk = DECL_CHAIN (thunk))
     if (DECL_THIS_THUNK_P (thunk) == this_adjusting
 	&& THUNK_FIXED_OFFSET (thunk) == d
 	&& !virtual_offset == !THUNK_VIRTUAL_OFFSET (thunk)
@@ -156,7 +156,7 @@ make_thunk (tree function, bool this_adjusting,
   DECL_TEMPLATE_INFO (thunk) = NULL;
 
   /* Add it to the list of thunks associated with FUNCTION.  */
-  TREE_CHAIN (thunk) = DECL_THUNKS (function);
+  DECL_CHAIN (thunk) = DECL_THUNKS (function);
   DECL_THUNKS (function) = thunk;
 
   return thunk;
@@ -188,7 +188,7 @@ finish_thunk (tree thunk)
       tree cov_probe;
 
       for (cov_probe = DECL_THUNKS (function);
-	   cov_probe; cov_probe = TREE_CHAIN (cov_probe))
+	   cov_probe; cov_probe = DECL_CHAIN (cov_probe))
 	if (DECL_NAME (cov_probe) == name)
 	  {
 	    gcc_assert (!DECL_THUNKS (thunk));
@@ -364,10 +364,10 @@ use_thunk (tree thunk_fndecl, bool emit_p)
 
   /* Set up cloned argument trees for the thunk.  */
   t = NULL_TREE;
-  for (a = DECL_ARGUMENTS (function); a; a = TREE_CHAIN (a))
+  for (a = DECL_ARGUMENTS (function); a; a = DECL_CHAIN (a))
     {
       tree x = copy_node (a);
-      TREE_CHAIN (x) = t;
+      DECL_CHAIN (x) = t;
       DECL_CONTEXT (x) = thunk_fndecl;
       SET_DECL_RTL (x, NULL);
       DECL_HAS_VALUE_EXPR_P (x) = 0;
@@ -529,7 +529,7 @@ do_build_copy_constructor (tree fndecl)
 			 member_init_list);
 	}
 
-      for (; fields; fields = TREE_CHAIN (fields))
+      for (; fields; fields = DECL_CHAIN (fields))
 	{
 	  tree field = fields;
 	  tree expr_type;
@@ -545,7 +545,8 @@ do_build_copy_constructor (tree fndecl)
 	    }
 	  else if (ANON_AGGR_TYPE_P (expr_type) && TYPE_FIELDS (expr_type))
 	    /* Just use the field; anonymous types can't have
-	       nontrivial copy ctors or assignment ops.  */;
+	       nontrivial copy ctors or assignment ops or this
+	       function would be deleted.  */;
 	  else
 	    continue;
 
@@ -578,7 +579,7 @@ do_build_copy_constructor (tree fndecl)
 static void
 do_build_copy_assign (tree fndecl)
 {
-  tree parm = TREE_CHAIN (DECL_ARGUMENTS (fndecl));
+  tree parm = DECL_CHAIN (DECL_ARGUMENTS (fndecl));
   tree compound_stmt;
   bool move_p = move_fn_p (fndecl);
   bool trivial = trivial_fn_p (fndecl);
@@ -629,7 +630,7 @@ do_build_copy_assign (tree fndecl)
       /* Assign to each of the non-static data members.  */
       for (fields = TYPE_FIELDS (current_class_type);
 	   fields;
-	   fields = TREE_CHAIN (fields))
+	   fields = DECL_CHAIN (fields))
 	{
 	  tree comp = current_class_ref;
 	  tree init = parm;
@@ -663,7 +664,8 @@ do_build_copy_assign (tree fndecl)
 	  else if (ANON_AGGR_TYPE_P (expr_type)
 		   && TYPE_FIELDS (expr_type) != NULL_TREE)
 	    /* Just use the field; anonymous types can't have
-	       nontrivial copy ctors or assignment ops.  */;
+	       nontrivial copy ctors or assignment ops or this
+	       function would be deleted.  */;
 	  else
 	    continue;
 
@@ -912,8 +914,19 @@ process_subob_fn (tree fn, bool move_p, tree *spec_p, bool *trivial_p,
       *spec_p = merge_exception_specifiers (*spec_p, raises);
     }
 
-  if (trivial_p && !trivial_fn_p (fn))
-    *trivial_p = false;
+  if (!trivial_fn_p (fn))
+    {
+      if (trivial_p)
+	*trivial_p = false;
+      if (TREE_CODE (arg) == FIELD_DECL
+	  && TREE_CODE (DECL_CONTEXT (arg)) == UNION_TYPE)
+	{
+	  if (deleted_p)
+	    *deleted_p = true;
+	  if (msg)
+	    error ("union member %q+D with non-trivial %qD", arg, fn);
+	}
+    }
 
   if (move_p && !move_fn_p (fn) && !trivial_fn_p (fn))
     {
@@ -929,6 +942,99 @@ process_subob_fn (tree fn, bool move_p, tree *spec_p, bool *trivial_p,
     *deleted_p = true;
 }
 
+/* Subroutine of synthesized_method_walk to allow recursion into anonymous
+   aggregates.  */
+
+static void
+walk_field_subobs (tree fields, tree fnname, special_function_kind sfk,
+		   int quals, bool copy_arg_p, bool move_p,
+		   bool assign_p, tree *spec_p, bool *trivial_p,
+		   bool *deleted_p, const char *msg,
+		   int flags, tsubst_flags_t complain)
+{
+  tree field;
+  for (field = fields; field; field = DECL_CHAIN (field))
+    {
+      tree mem_type, argtype, rval;
+
+      if (TREE_CODE (field) != FIELD_DECL
+	  || DECL_ARTIFICIAL (field))
+	continue;
+
+      mem_type = strip_array_types (TREE_TYPE (field));
+      if (assign_p)
+	{
+	  bool bad = true;
+	  if (CP_TYPE_CONST_P (mem_type) && !CLASS_TYPE_P (mem_type))
+	    {
+	      if (msg)
+		error ("non-static const member %q#D, can't use default "
+		       "assignment operator", field);
+	    }
+	  else if (TREE_CODE (mem_type) == REFERENCE_TYPE)
+	    {
+	      if (msg)
+		error ("non-static reference member %q#D, can't use "
+		       "default assignment operator", field);
+	    }
+	  else
+	    bad = false;
+
+	  if (bad && deleted_p)
+	    *deleted_p = true;
+	}
+      else if (sfk == sfk_constructor)
+	{
+	  bool bad = true;
+	  if (CP_TYPE_CONST_P (mem_type)
+	      && (!CLASS_TYPE_P (mem_type)
+		  || !type_has_user_provided_default_constructor (mem_type)))
+	    {
+	      if (msg)
+		error ("uninitialized non-static const member %q#D",
+		       field);
+	    }
+	  else if (TREE_CODE (mem_type) == REFERENCE_TYPE)
+	    {
+	      if (msg)
+		error ("uninitialized non-static reference member %q#D",
+		       field);
+	    }
+	  else
+	    bad = false;
+
+	  if (bad && deleted_p)
+	    *deleted_p = true;
+	}
+
+      if (!CLASS_TYPE_P (mem_type))
+	continue;
+
+      if (ANON_AGGR_TYPE_P (mem_type))
+	{
+	  walk_field_subobs (TYPE_FIELDS (mem_type), fnname, sfk, quals,
+			     copy_arg_p, move_p, assign_p, spec_p, trivial_p,
+			     deleted_p, msg, flags, complain);
+	  continue;
+	}
+
+      if (copy_arg_p)
+	{
+	  int mem_quals = cp_type_quals (mem_type) | quals;
+	  if (DECL_MUTABLE_P (field))
+	    mem_quals &= ~TYPE_QUAL_CONST;
+	  argtype = build_stub_type (mem_type, mem_quals, move_p);
+	}
+      else
+	argtype = NULL_TREE;
+
+      rval = locate_fn_flags (mem_type, fnname, argtype, flags, complain);
+
+      process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
+			msg, field);
+    }
+}
+
 /* The caller wants to generate an implicit declaration of SFK for CTYPE
    which is const if relevant and CONST_P is set.  If spec_p, trivial_p and
    deleted_p are non-null, set their referent appropriately.  If diag is
@@ -940,7 +1046,7 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 			 tree *spec_p, bool *trivial_p, bool *deleted_p,
 			 bool diag)
 {
-  tree binfo, base_binfo, field, scope, fnname, rval, argtype;
+  tree binfo, base_binfo, scope, fnname, rval, argtype;
   bool move_p, copy_arg_p, assign_p, expected_trivial, check_vdtor;
   VEC(tree,gc) *vbases;
   int i, quals, flags;
@@ -1004,6 +1110,7 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 #endif
 
   assign_p = false;
+  check_vdtor = false;
   switch (sfk)
     {
     case sfk_move_assignment:
@@ -1051,6 +1158,15 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
     quals = TYPE_UNQUALIFIED;
   argtype = NULL_TREE;
 
+  if (!diag)
+    msg = NULL;
+  else if (assign_p)
+    msg = ("base %qT does not have a move assignment operator or trivial "
+	   "copy assignment operator");
+  else
+    msg = ("base %qT does not have a move constructor or trivial "
+	   "copy constructor");
+
   for (binfo = TYPE_BINFO (ctype), i = 0;
        BINFO_BASE_ITERATE (binfo, i, base_binfo); ++i)
     {
@@ -1058,15 +1174,6 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
       if (copy_arg_p)
 	argtype = build_stub_type (basetype, quals, move_p);
       rval = locate_fn_flags (base_binfo, fnname, argtype, flags, complain);
-
-      if (!diag)
-	msg = NULL;
-      else if (assign_p)
-	msg = ("base %qT does not have a move assignment operator or trivial "
-	       "copy assignment operator");
-      else
-	msg = ("base %qT does not have a move constructor or trivial "
-	       "copy constructor");
 
       process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
 			msg, BINFO_TYPE (base_binfo));
@@ -1093,105 +1200,31 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 	*deleted_p = true;
     }
   else if (!assign_p)
-    for (i = 0; VEC_iterate (tree, vbases, i, base_binfo); ++i)
-      {
-	if (copy_arg_p)
-	  argtype = build_stub_type (BINFO_TYPE (base_binfo), quals, move_p);
-	rval = locate_fn_flags (base_binfo, fnname, argtype, flags, complain);
-
-	if (!diag)
-	  msg = NULL;
-	else if (assign_p)
-	  msg = ("virtual base %qT does not have a move assignment "
-		 "operator or trivial copy assignment operator");
-	else
-	  msg = ("virtual base %qT does not have a move constructor "
-		 "or trivial copy constructor");
-
-	process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
-			  msg, BINFO_TYPE (base_binfo));
-      }
-
-  for (field = TYPE_FIELDS (ctype); field; field = TREE_CHAIN (field))
     {
-      tree mem_type;
-
-      if (TREE_CODE (field) != FIELD_DECL
-	  || DECL_ARTIFICIAL (field))
-	continue;
-
-      mem_type = strip_array_types (TREE_TYPE (field));
-      if (assign_p)
+      if (diag)
+	msg = ("virtual base %qT does not have a move constructor "
+	       "or trivial copy constructor");
+      for (i = 0; VEC_iterate (tree, vbases, i, base_binfo); ++i)
 	{
-	  bool bad = true;
-	  if (CP_TYPE_CONST_P (mem_type) && !CLASS_TYPE_P (mem_type))
-	    {
-	      if (diag)
-		error ("non-static const member %q#D, can't use default "
-		       "assignment operator", field);
-	    }
-	  else if (TREE_CODE (mem_type) == REFERENCE_TYPE)
-	    {
-	      if (diag)
-		error ("non-static reference member %q#D, can't use "
-		       "default assignment operator", field);
-	    }
-	  else
-	    bad = false;
+	  if (copy_arg_p)
+	    argtype = build_stub_type (BINFO_TYPE (base_binfo), quals, move_p);
+	  rval = locate_fn_flags (base_binfo, fnname, argtype, flags, complain);
 
-	  if (bad && deleted_p)
-	    *deleted_p = true;
+	  process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
+			    msg, BINFO_TYPE (base_binfo));
 	}
-      else if (sfk == sfk_constructor)
-	{
-	  bool bad = true;
-	  if (CP_TYPE_CONST_P (mem_type)
-	      && (!CLASS_TYPE_P (mem_type)
-		  || !type_has_user_provided_default_constructor (mem_type)))
-	    {
-	      if (diag)
-		error ("uninitialized non-static const member %q#D",
-		       field);
-	    }
-	  else if (TREE_CODE (mem_type) == REFERENCE_TYPE)
-	    {
-	      if (diag)
-		error ("uninitialized non-static reference member %q#D",
-		       field);
-	    }
-	  else
-	    bad = false;
-
-	  if (bad && deleted_p)
-	    *deleted_p = true;
-	}
-
-      if (!CLASS_TYPE_P (mem_type)
-	  || ANON_AGGR_TYPE_P (mem_type))
-	continue;
-
-      if (copy_arg_p)
-	{
-	  int mem_quals = cp_type_quals (mem_type) | quals;
-	  if (DECL_MUTABLE_P (field))
-	    mem_quals &= ~TYPE_QUAL_CONST;
-	  argtype = build_stub_type (mem_type, mem_quals, move_p);
-	}
-
-      rval = locate_fn_flags (mem_type, fnname, argtype, flags, complain);
-
-      if (!diag)
-	msg = NULL;
-      else if (assign_p)
-	msg = ("non-static data member %qD does not have a move "
-	       "assignment operator or trivial copy assignment operator");
-      else
-	msg = ("non-static data member %qD does not have a move "
-	       "constructor or trivial copy constructor");
-
-      process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
-			msg, field);
     }
+  if (!diag)
+    /* Leave msg null. */;
+  else if (assign_p)
+    msg = ("non-static data member %qD does not have a move "
+	   "assignment operator or trivial copy assignment operator");
+  else
+    msg = ("non-static data member %qD does not have a move "
+	   "constructor or trivial copy constructor");
+  walk_field_subobs (TYPE_FIELDS (ctype), fnname, sfk, quals,
+		     copy_arg_p, move_p, assign_p, spec_p, trivial_p,
+		     deleted_p, msg, flags, complain);
 
   pop_scope (scope);
 
@@ -1399,7 +1432,7 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
     }
   /* Add the "this" parameter.  */
   this_parm = build_this_parm (fn_type, TYPE_UNQUALIFIED);
-  TREE_CHAIN (this_parm) = DECL_ARGUMENTS (fn);
+  DECL_CHAIN (this_parm) = DECL_ARGUMENTS (fn);
   DECL_ARGUMENTS (fn) = this_parm;
 
   grokclassfn (type, fn, kind == sfk_destructor ? DTOR_FLAG : NO_SPECIAL);
@@ -1592,7 +1625,7 @@ lazily_declare_fn (special_function_kind sfk, tree type)
 		 "and may change in a future version of GCC due to "
 		 "implicit virtual destructor",
 		 type);
-      TREE_CHAIN (fn) = TYPE_METHODS (type);
+      DECL_CHAIN (fn) = TYPE_METHODS (type);
       TYPE_METHODS (type) = fn;
     }
   maybe_add_class_template_decl_list (type, fn, /*friend_p=*/0);

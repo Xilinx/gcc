@@ -1083,7 +1083,7 @@ issue_prefetch_ref (struct mem_ref *ref, unsigned unroll_factor, unsigned ahead)
   addr_base = force_gimple_operand_gsi (&bsi, unshare_expr (addr_base),
 					true, NULL, true, GSI_SAME_STMT);
   write_p = ref->write_p ? integer_one_node : integer_zero_node;
-  local = build_int_cst (integer_type_node, nontemporal ? 0 : 3);
+  local = nontemporal ? integer_zero_node : integer_three_node;
 
   for (ap = 0; ap < n_prefetches; ap++)
     {
@@ -1903,10 +1903,8 @@ tree_ssa_prefetch_arrays (void)
 
   if (!built_in_decls[BUILT_IN_PREFETCH])
     {
-      tree type = build_function_type (void_type_node,
-				       tree_cons (NULL_TREE,
-						  const_ptr_type_node,
-						  NULL_TREE));
+      tree type = build_function_type_list (void_type_node,
+					    const_ptr_type_node, NULL_TREE);
       tree decl = add_builtin_function ("__builtin_prefetch", type,
 					BUILT_IN_PREFETCH, BUILT_IN_NORMAL,
 					NULL, NULL_TREE);

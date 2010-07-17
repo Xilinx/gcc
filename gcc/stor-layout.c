@@ -234,10 +234,11 @@ self_referential_size (tree size)
 {
   static unsigned HOST_WIDE_INT fnno = 0;
   VEC (tree, heap) *self_refs = NULL;
-  tree param_type_list = NULL, param_decl_list = NULL, arg_list = NULL;
+  tree param_type_list = NULL, param_decl_list = NULL;
   tree t, ref, return_type, fntype, fnname, fndecl;
   unsigned int i;
   char buf[128];
+  VEC(tree,gc) *args = NULL;
 
   /* Do not factor out simple operations.  */
   t = skip_simple_arithmetic (size);
@@ -256,6 +257,7 @@ self_referential_size (tree size)
 
   /* Build the parameter and argument lists in parallel; also
      substitute the former for the latter in the expression.  */
+  args = VEC_alloc (tree, gc, VEC_length (tree, self_refs));
   for (i = 0; VEC_iterate (tree, self_refs, i, ref); i++)
     {
       tree subst, param_name, param_type, param_decl;
@@ -291,7 +293,7 @@ self_referential_size (tree size)
 
       param_type_list = tree_cons (NULL_TREE, param_type, param_type_list);
       param_decl_list = chainon (param_decl, param_decl_list);
-      arg_list = tree_cons (NULL_TREE, ref, arg_list);
+      VEC_quick_push (tree, args, ref);
     }
 
   VEC_free (tree, heap, self_refs);
@@ -302,7 +304,6 @@ self_referential_size (tree size)
   /* The 3 lists have been created in reverse order.  */
   param_type_list = nreverse (param_type_list);
   param_decl_list = nreverse (param_decl_list);
-  arg_list = nreverse (arg_list);
 
   /* Build the function type.  */
   return_type = TREE_TYPE (size);
@@ -312,7 +313,7 @@ self_referential_size (tree size)
   sprintf (buf, "SZ"HOST_WIDE_INT_PRINT_UNSIGNED, fnno++);
   fnname = get_file_function_name (buf);
   fndecl = build_decl (input_location, FUNCTION_DECL, fnname, fntype);
-  for (t = param_decl_list; t; t = TREE_CHAIN (t))
+  for (t = param_decl_list; t; t = DECL_CHAIN (t))
     DECL_CONTEXT (t) = fndecl;
   DECL_ARGUMENTS (fndecl) = param_decl_list;
   DECL_RESULT (fndecl)
@@ -343,7 +344,7 @@ self_referential_size (tree size)
   VEC_safe_push (tree, gc, size_functions, fndecl);
 
   /* Replace the original expression with a call to the size function.  */
-  return build_function_call_expr (UNKNOWN_LOCATION, fndecl, arg_list);
+  return build_call_expr_loc_vec (input_location, fndecl, args);
 }
 
 /* Take, queue and compile all the size functions.  It is essential that
@@ -1428,8 +1429,8 @@ place_field (record_layout_info rli, tree field)
 
       /* If we ended a bitfield before the full length of the type then
 	 pad the struct out to the full length of the last type.  */
-      if ((TREE_CHAIN (field) == NULL
-	   || TREE_CODE (TREE_CHAIN (field)) != FIELD_DECL)
+      if ((DECL_CHAIN (field) == NULL
+	   || TREE_CODE (DECL_CHAIN (field)) != FIELD_DECL)
 	  && DECL_BIT_FIELD_TYPE (field)
 	  && !integer_zerop (DECL_SIZE (field)))
 	rli->bitpos = size_binop (PLUS_EXPR, rli->bitpos,
@@ -1550,7 +1551,7 @@ compute_record_mode (tree type)
   /* A record which has any BLKmode members must itself be
      BLKmode; it can't go in a register.  Unless the member is
      BLKmode only because it isn't aligned.  */
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
     {
       if (TREE_CODE (field) != FIELD_DECL)
 	continue;
@@ -1745,8 +1746,8 @@ finish_builtin_struct (tree type, const char *name, tree fields,
   for (tail = NULL_TREE; fields; tail = fields, fields = next)
     {
       DECL_FIELD_CONTEXT (fields) = type;
-      next = TREE_CHAIN (fields);
-      TREE_CHAIN (fields) = tail;
+      next = DECL_CHAIN (fields);
+      DECL_CHAIN (fields) = tail;
     }
   TYPE_FIELDS (type) = tail;
 
@@ -2060,7 +2061,7 @@ layout_type (tree type)
 	  TYPE_FIELDS (type) = nreverse (TYPE_FIELDS (type));
 
 	/* Place all the fields.  */
-	for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+	for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
 	  place_field (rli, field);
 
 	if (TREE_CODE (type) == QUAL_UNION_TYPE)

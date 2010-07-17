@@ -3998,7 +3998,8 @@ gfc_conv_intrinsic_strcmp (gfc_se * se, gfc_expr * expr, enum tree_code op)
 
   se->expr
     = gfc_build_compare_string (args[0], args[1], args[2], args[3],
-				expr->value.function.actual->expr->ts.kind);
+				expr->value.function.actual->expr->ts.kind,
+				op);
   se->expr = fold_build2 (op, gfc_typenode_for_spec (&expr->ts), se->expr,
 			  build_int_cst (TREE_TYPE (se->expr), 0));
 }
@@ -4621,10 +4622,10 @@ static void
 gfc_conv_intrinsic_sr_kind (gfc_se *se, gfc_expr *expr)
 {
   gfc_actual_arglist *actual;
-  tree args, type;
+  tree type;
   gfc_se argse;
+  VEC(tree,gc) *args = NULL;
 
-  args = NULL_TREE;
   for (actual = expr->value.function.actual; actual; actual = actual->next)
     {
       gfc_init_se (&argse, se);
@@ -4649,13 +4650,13 @@ gfc_conv_intrinsic_sr_kind (gfc_se *se, gfc_expr *expr)
 
       gfc_add_block_to_block (&se->pre, &argse.pre);
       gfc_add_block_to_block (&se->post, &argse.post);
-      args = gfc_chainon_list (args, argse.expr);
+      VEC_safe_push (tree, gc, args, argse.expr);
     }
 
   /* Convert it to the required type.  */
   type = gfc_typenode_for_spec (&expr->ts);
-  se->expr = build_function_call_expr (input_location,
-				       gfor_fndecl_sr_kind, args);
+  se->expr = build_call_expr_loc_vec (input_location,
+				      gfor_fndecl_sr_kind, args);
   se->expr = fold_convert (type, se->expr);
 }
 

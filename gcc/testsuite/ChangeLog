@@ -1,3 +1,127 @@
+2010-07-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/32505
+	* g++.dg/template/partial8.C: New.
+
+2010-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/guality/guality.exp: Run also c-c++-common/guality/ tests.
+	* gcc.dg/guality/guality.h: Include unistd.h.  Make the header usable
+	in C++.
+	(gualcvt): New overloaded inline.
+	(GUALCVT): Use it for C++.
+	* g++.dg/guality/guality.exp: New.
+	* g++.dg/guality/guality.h: New.
+	* g++.dg/guality/redeclaration1.C: New test.
+	* g++.dg/dg.exp: Prune also guality/* tests.
+	* gcc.dg/guality/pr43141.c: Moved to...
+	* c-c++-common/guality/pr43141.c: ... here.
+
+2010-07-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/37077
+	* gfortran.dg/char4_iunit_2.f03: New test.
+
+2010-07-16  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* lib/plugin-support.exp (plugin-test-execute):
+	Add ${gcc_objdir}/intl to includes.
+	
+2010-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/44942
+	* gcc.c-torture/execute/pr44942.c: New test.
+	* gcc.target/i386/pr44942.c: New test.
+
+2010-07-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44909
+	* g++.dg/cpp0x/implicit7.C: New.
+	* g++.dg/cpp0x/implicit8.C: New.
+
+2010-07-15  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	Disable float tests for __SPU__ targets due to lack of signed zero:
+	* c-c++-common/torture/complex-sign-add.c (check_add_float).
+	* c-c++-common/torture/complex-sign-sub.c (check_sub_float).
+	* c-c++-common/torture/complex-sign-mul.c (check_mul_float).
+	* c-c++-common/torture/complex-sign-mul-one.c (check_mul_float).
+	* c-c++-common/torture/complex-sign-mul-minus-one.c (check_mul_float).
+	* c-c++-common/torture/complex-sign-mixed-add.c (check_add_float).
+	* c-c++-common/torture/complex-sign-mixed-sub.c (check_sub_float).
+	* c-c++-common/torture/complex-sign-mixed-mul.c (check_mul_float).
+	* c-c++-common/torture/complex-sign-mixed-div.c (check_div_float).
+
+2010-07-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* gfortran.dg/select_char_2.f90: New test.
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* g++.dg/plugin/attribute_plugin.c: Carefully replace TREE_CHAIN
+	with DECL_CHAIN.
+
+2010-07-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44936
+	* gfortran.dg/typebound_generic_9.f03: New.
+
+2010-07-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44946
+	* gcc.c-torture/compile/pr44946.c: New testcase.
+
+2010-07-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/40206
+	* gfortran.dg/select_char_3.f90: New test.
+
+2010-07-15  Magnus Granberg  <zorry@gentoo.org>
+	    Kevin F. Quinn  <kevquinn@gentoo.org>
+
+        * gcc.dg/Wtrampolines.c: New.
+
+2010-07-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/44934
+	* gfortran.dg/endfile_2.f90: Fix to unformatted file type.
+
+2010-07-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44810
+	* g++.dg/torture/pr36745.C: Avoid undefined behavior.
+
+	Implement C++0x unrestricted unions (N2544)
+	* g++.dg/cpp0x/union1.C: New.
+	* g++.dg/cpp0x/union2.C: New.
+	* g++.dg/cpp0x/union3.C: New.
+	* g++.dg/cpp0x/defaulted2.C: Adjust.
+	* g++.old-deja/g++.bugs/900121_02.C: Adjust.
+	* g++.old-deja/g++.ext/anon2.C: Adjust.
+	* g++.old-deja/g++.mike/misc6.C: Adjust.
+
+2010-07-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44925
+	* gfortran.dg/c_loc_tests_15.f90: New.
+
+2010-07-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44909
+	* g++.dg/cpp0x/implicit6.C: New.
+
+2010-07-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44540
+	* g++.dg/abi/noreturn1.C: New.
+	* g++.dg/abi/noreturn2.C: New.
+
+2010-07-13  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR other/44874
+	PR debug/44832
+	* c-c++-common/pr44832.c: New test.
+
 2010-07-13  Iain Sandoe  <iains@gcc.gnu.org>
 
 	PR objc/44488
@@ -15,6 +139,16 @@
 	PR c++/44908
 	* g++.dg/template/sfinae21.C: New.
 	* g++.dg/template/sfinae22.C: Likewise.
+
+2010-07-16  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR testsuite/42843
+	* gcc.dg/plugin/selfassign.c: Include diagnostic.h.
+	* gcc.dg/plugin/ggcplug.c: Likewise.
+	* g++.dg/plugin/selfassign.c: Likewise.
+	* g++.dg/plugin/attribute_plugin.c: Likewise.
+	* g++.dg/plugin/dumb_plugin.c: Likewise.
+	* g++.dg/plugin/pragma_plugin.c: Likewise.
 
 2010-07-13  Kaz Kojima  <kkojima@gcc.gnu.org>
 

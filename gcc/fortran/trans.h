@@ -258,6 +258,29 @@ typedef struct
 gfc_saved_var;
 
 
+/* Store information about a block of code together with special
+   initialization and clean-up code.  This can be used to incrementally add
+   init and cleanup, and in the end put everything together to a
+   try-finally expression.  */
+typedef struct
+{
+  tree init;
+  tree cleanup;
+  tree code;
+}
+gfc_wrapped_block;
+
+
+/* Initialize an init/cleanup block.  */
+void gfc_start_wrapped_block (gfc_wrapped_block* block, tree code);
+/* Add a pair of init/cleanup code to the block.  Each one might be a
+   NULL_TREE if not required.  */
+void gfc_add_init_cleanup (gfc_wrapped_block* block, tree init, tree cleanup);
+/* Finalize the block, that is, create a single expression encapsulating the
+   original code together with init and clean-up code.  */
+tree gfc_finish_wrapped_block (gfc_wrapped_block* block);
+
+
 /* Advance the SS chain to the next term.  */
 void gfc_advance_se_ss_chain (gfc_se *);
 
@@ -279,7 +302,7 @@ void gfc_make_safe_expr (gfc_se * se);
 void gfc_conv_string_parameter (gfc_se * se);
 
 /* Compare two strings.  */
-tree gfc_build_compare_string (tree, tree, tree, tree, int);
+tree gfc_build_compare_string (tree, tree, tree, tree, int, enum tree_code);
 
 /* Add an item to the end of TREE_LIST.  */
 tree gfc_chainon_list (tree, tree);
@@ -299,6 +322,7 @@ void gfc_conv_expr_type (gfc_se * se, gfc_expr *, tree);
 
 /* trans-expr.c */
 void gfc_conv_scalar_char_value (gfc_symbol *sym, gfc_se *se, gfc_expr **expr);
+tree gfc_string_to_single_character (tree len, tree str, int kind);
 
 /* Find the decl containing the auxiliary variables for assigned variables.  */
 void gfc_conv_label_variable (gfc_se * se, gfc_expr * expr);
@@ -403,7 +427,7 @@ tree gfc_get_symbol_decl (gfc_symbol *);
 tree gfc_conv_initializer (gfc_expr *, gfc_typespec *, tree, bool, bool);
 
 /* Assign a default initializer to a derived type.  */
-tree gfc_init_default_dt (gfc_symbol *, tree, bool);
+void gfc_init_default_dt (gfc_symbol *, stmtblock_t *, bool);
 
 /* Substitute a temporary variable in place of the real one.  */
 void gfc_shadow_sym (gfc_symbol *, tree, gfc_saved_var *);
@@ -502,6 +526,8 @@ void gfc_trans_io_runtime_check (tree, tree, int, const char *, stmtblock_t *);
 void gfc_build_io_library_fndecls (void);
 /* Build a function decl for a library function.  */
 tree gfc_build_library_function_decl (tree, tree, int, ...);
+tree gfc_build_library_function_decl_with_spec (tree name, const char *spec,
+						tree rettype, int nargs, ...);
 
 /* Process the local variable decls of a block construct.  */
 void gfc_process_block_locals (gfc_namespace*);

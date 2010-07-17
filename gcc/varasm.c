@@ -246,7 +246,7 @@ default_emutls_var_fields (tree type, tree *name ATTRIBUTE_UNUSED)
 		      FIELD_DECL, get_identifier ("__offset"),
 		      ptr_type_node);
   DECL_CONTEXT (field) = type;
-  TREE_CHAIN (field) = next_field;
+  DECL_CHAIN (field) = next_field;
   next_field = field;
 
   word_type_node = lang_hooks.types.type_for_mode (word_mode, 1);
@@ -254,13 +254,13 @@ default_emutls_var_fields (tree type, tree *name ATTRIBUTE_UNUSED)
 		      FIELD_DECL, get_identifier ("__align"),
 		      word_type_node);
   DECL_CONTEXT (field) = type;
-  TREE_CHAIN (field) = next_field;
+  DECL_CHAIN (field) = next_field;
   next_field = field;
 
   field = build_decl (UNKNOWN_LOCATION,
 		      FIELD_DECL, get_identifier ("__size"), word_type_node);
   DECL_CONTEXT (field) = type;
-  TREE_CHAIN (field) = next_field;
+  DECL_CHAIN (field) = next_field;
 
   return field;
 }
@@ -429,7 +429,7 @@ static int
 emutls_common_1 (void **loc, void *xstmts)
 {
   struct tree_map *h = *(struct tree_map **) loc;
-  tree args, x, *pstmts = (tree *) xstmts;
+  tree x, *pstmts = (tree *) xstmts;
   tree word_type_node;
 
   if (! DECL_COMMON (h->base.from)
@@ -443,17 +443,14 @@ emutls_common_1 (void **loc, void *xstmts)
      do this and there is an initializer, -fanchor_section loses,
      because it would be too late to ensure the template is
      output.  */
-  x = null_pointer_node;
-  args = tree_cons (NULL, x, NULL);
-  x = build_int_cst (word_type_node, DECL_ALIGN_UNIT (h->base.from));
-  args = tree_cons (NULL, x, args);
-  x = fold_convert (word_type_node, DECL_SIZE_UNIT (h->base.from));
-  args = tree_cons (NULL, x, args);
-  x = build_fold_addr_expr (h->to);
-  args = tree_cons (NULL, x, args);
-
   x = built_in_decls[BUILT_IN_EMUTLS_REGISTER_COMMON];
-  x = build_function_call_expr (UNKNOWN_LOCATION, x, args);
+  x = build_call_expr (x, 4,
+		       build_fold_addr_expr (h->to),
+		       fold_convert (word_type_node,
+				     DECL_SIZE_UNIT (h->base.from)),
+		       build_int_cst (word_type_node,
+				      DECL_ALIGN_UNIT (h->base.from)),
+		       null_pointer_node);
 
   append_to_statement_list (x, pstmts);
   return 1;
@@ -2117,18 +2114,18 @@ default_emutls_var_init (tree to, tree decl, tree proxy)
   elt->value = fold_convert (TREE_TYPE (field), DECL_SIZE_UNIT (decl));
 
   elt = VEC_quick_push (constructor_elt, v, NULL);
-  field = TREE_CHAIN (field);
+  field = DECL_CHAIN (field);
   elt->index = field;
   elt->value = build_int_cst (TREE_TYPE (field),
 			      DECL_ALIGN_UNIT (decl));
 
   elt = VEC_quick_push (constructor_elt, v, NULL);
-  field = TREE_CHAIN (field);
+  field = DECL_CHAIN (field);
   elt->index = field;
   elt->value = null_pointer_node;
 
   elt = VEC_quick_push (constructor_elt, v, NULL);
-  field = TREE_CHAIN (field);
+  field = DECL_CHAIN (field);
   elt->index = field;
   elt->value = proxy;
 
@@ -2152,6 +2149,9 @@ assemble_variable (tree decl, int top_level ATTRIBUTE_UNUSED,
   const char *name;
   rtx decl_rtl, symbol;
   section *sect;
+
+  /* This function is supposed to handle VARIABLES.  Ensure we have one.  */
+  gcc_assert (TREE_CODE (decl) == VAR_DECL);
 
   if (! targetm.have_tls
       && TREE_CODE (decl) == VAR_DECL
@@ -2189,12 +2189,6 @@ assemble_variable (tree decl, int top_level ATTRIBUTE_UNUSED,
      when a declaration is first seen.  */
 
   if (DECL_EXTERNAL (decl))
-    return;
-
-  /* Output no assembler code for a function declaration.
-     Only definitions of functions output anything.  */
-
-  if (TREE_CODE (decl) == FUNCTION_DECL)
     return;
 
   /* Do nothing for global register variables.  */
@@ -2329,7 +2323,7 @@ contains_pointers_p (tree type)
       {
 	tree fields;
 	/* For a type that has fields, see if the fields have pointers.  */
-	for (fields = TYPE_FIELDS (type); fields; fields = TREE_CHAIN (fields))
+	for (fields = TYPE_FIELDS (type); fields; fields = DECL_CHAIN (fields))
 	  if (TREE_CODE (fields) == FIELD_DECL
 	      && contains_pointers_p (TREE_TYPE (fields)))
 	    return 1;
@@ -4914,7 +4908,7 @@ array_size_for_constructor (tree val)
   tmp = TYPE_MIN_VALUE (TYPE_DOMAIN (TREE_TYPE (val)));
   i = size_binop (MINUS_EXPR, fold_convert (sizetype, max_index),
 		  fold_convert (sizetype, tmp));
-  i = size_binop (PLUS_EXPR, i, build_int_cst (sizetype, 1));
+  i = size_binop (PLUS_EXPR, i, size_one_node);
 
   /* Multiply by the array element unit size to find number of bytes.  */
   i = size_binop (MULT_EXPR, i, TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (val))));
@@ -5044,7 +5038,7 @@ output_constructor_regular_field (oc_local_state *local)
 	  fieldsize = array_size_for_constructor (local->val);
 	  /* Given a non-empty initialization, this field had
 	     better be last.  */
-	  gcc_assert (!fieldsize || !TREE_CHAIN (local->field));
+	  gcc_assert (!fieldsize || !DECL_CHAIN (local->field));
 	}
       else if (DECL_SIZE_UNIT (local->field))
 	{
@@ -5309,7 +5303,7 @@ output_constructor (tree exp, unsigned HOST_WIDE_INT size,
 
   for (cnt = 0;
        VEC_iterate (constructor_elt, CONSTRUCTOR_ELTS (exp), cnt, ce);
-       cnt++, local.field = local.field ? TREE_CHAIN (local.field) : 0)
+       cnt++, local.field = local.field ? DECL_CHAIN (local.field) : 0)
     {
       local.val = ce->value;
       local.index = NULL_TREE;

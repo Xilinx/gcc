@@ -2440,10 +2440,11 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
 {
   char name[GFC_MAX_SYMBOL_LEN + 1];
   char binding_label[GFC_MAX_BINDING_LABEL_LEN + 1];
-  int optional_arg = 0, is_pointer = 0;
+  int optional_arg = 0;
   gfc_try retval = SUCCESS;
   gfc_symbol *args_sym;
   gfc_typespec *arg_ts;
+  symbol_attribute arg_attr;
 
   if (args->expr->expr_type == EXPR_CONSTANT
       || args->expr->expr_type == EXPR_OP
@@ -2460,8 +2461,7 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
      and not necessarily that of the expr symbol (args_sym), because
      the actual expression could be a part-ref of the expr symbol.  */
   arg_ts = &(args->expr->ts);
-
-  is_pointer = gfc_is_data_pointer (args->expr);
+  arg_attr = gfc_expr_attr (args->expr);
     
   if (sym->intmod_sym_id == ISOCBINDING_ASSOCIATED)
     {
@@ -2504,7 +2504,7 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
       else if (sym->intmod_sym_id == ISOCBINDING_LOC)
         {
           /* Make sure we have either the target or pointer attribute.  */
-	  if (!args_sym->attr.target && !is_pointer)
+	  if (!arg_attr.target && !arg_attr.pointer)
             {
               gfc_error_now ("Parameter '%s' to '%s' at %L must be either "
                              "a TARGET or an associated pointer",
@@ -2587,7 +2587,7 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
 			  }
                     }
                 }
-              else if (is_pointer
+              else if (arg_attr.pointer
 		       && is_scalar_expr_ptr (args->expr) != SUCCESS)
                 {
                   /* Case 1c, section 15.1.2.5, J3/04-007: an associated
@@ -2622,6 +2622,13 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
                                  &(args->expr->where));
                   retval = FAILURE;
                 }
+	      else if (arg_ts->type == BT_CLASS)
+		{
+		  gfc_error_now ("Parameter '%s' to '%s' at %L must not be "
+				 "polymorphic", args_sym->name, sym->name,
+				 &(args->expr->where));
+		  retval = FAILURE;
+		}
             }
         }
       else if (sym->intmod_sym_id == ISOCBINDING_FUNLOC)
@@ -5329,10 +5336,11 @@ resolve_typebound_generic_call (gfc_expr* e, const char **name)
 	  if (matches)
 	    {
 	      e->value.compcall.tbp = g->specific;
+	      genname = g->specific_st->name;
 	      /* Pass along the name for CLASS methods, where the vtab
 		 procedure pointer component has to be referenced.  */
 	      if (name)
-		*name = g->specific_st->name;
+		*name = genname;
 	      goto success;
 	    }
 	}
@@ -5345,12 +5353,6 @@ resolve_typebound_generic_call (gfc_expr* e, const char **name)
 
 success:
   /* Make sure that we have the right specific instance for the name.  */
-  genname = e->value.compcall.tbp->u.specific->name;
-
-  /* Is the symtree name a "unique name".  */
-  if (*genname == '@')
-    genname = e->value.compcall.tbp->u.specific->n.sym->name;
-
   derived = get_declared_from_expr (NULL, NULL, e);
 
   st = gfc_find_typebound_proc (derived, NULL, genname, false, &e->where);
@@ -5532,8 +5534,6 @@ resolve_typebound_function (gfc_expr* e)
 static gfc_try
 resolve_typebound_subroutine (gfc_code *code)
 {
-  gfc_symbol *declared;
-  gfc_component *c;
   gfc_ref *new_ref;
   gfc_ref *class_ref;
   gfc_symtree *st;
@@ -5548,7 +5548,7 @@ resolve_typebound_subroutine (gfc_code *code)
     return FAILURE;
 
   /* Get the CLASS declared type.  */
-  declared = get_declared_from_expr (&class_ref, &new_ref, code->expr1);
+  get_declared_from_expr (&class_ref, &new_ref, code->expr1);
 
   /* Weed out cases of the ultimate component being a derived type.  */
   if ((class_ref && class_ref->u.c.component->ts.type == BT_DERIVED)
@@ -5556,10 +5556,7 @@ resolve_typebound_subroutine (gfc_code *code)
     {
       gfc_free_ref_list (new_ref);
       return resolve_typebound_call (code, NULL);
-    } 
-
-  c = gfc_find_component (declared, "$data", true, true);
-  declared = c->ts.u.derived;
+    }
 
   if (resolve_typebound_call (code, &name) == FAILURE)
     return FAILURE;

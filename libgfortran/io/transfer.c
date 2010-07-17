@@ -202,7 +202,17 @@ read_sf_internal (st_parameter_dt *dtp, int * length)
     }
 
   lorig = *length;
-  base = mem_alloc_r (dtp->u.p.current_unit->s, length);
+  if (is_char4_unit(dtp))
+    {
+      int i;
+      gfc_char4_t *p = (gfc_char4_t *) mem_alloc_r4 (dtp->u.p.current_unit->s,
+			length);
+      base = fbuf_alloc (dtp->u.p.current_unit, lorig);
+      for (i = 0; i < *length; i++, p++)
+	base[i] = *p > 255 ? '?' : (unsigned char) *p;
+    }
+  else
+    base = mem_alloc_r (dtp->u.p.current_unit->s, length);
 
   if (unlikely (lorig > *length))
     {
@@ -430,7 +440,7 @@ read_block_form (st_parameter_dt *dtp, int * nbytes)
     dtp->u.p.size_used += (GFC_IO_INT) *nbytes;
 
   if (norig != *nbytes)
-    {				
+    {
       /* Short read, this shouldn't happen.  */
       if (!dtp->u.p.current_unit->pad_status == PAD_YES)
 	{
@@ -440,6 +450,52 @@ read_block_form (st_parameter_dt *dtp, int * nbytes)
     }
 
   dtp->u.p.current_unit->strm_pos += (gfc_offset) *nbytes;
+
+  return source;
+}
+
+
+/* Read a block from a character(kind=4) internal unit, to be transferred into
+   a character(kind=4) variable.  Note: Portions of this code borrowed from
+   read_sf_internal.  */
+void *
+read_block_form4 (st_parameter_dt *dtp, int * nbytes)
+{
+  static gfc_char4_t *empty_string[0];
+  gfc_char4_t *source;
+  int lorig;
+
+  if (dtp->u.p.current_unit->bytes_left < (gfc_offset) *nbytes)
+    *nbytes = dtp->u.p.current_unit->bytes_left;
+
+  /* Zero size array gives internal unit len of 0.  Nothing to read. */
+  if (dtp->internal_unit_len == 0
+      && dtp->u.p.current_unit->pad_status == PAD_NO)
+    hit_eof (dtp);
+
+  /* If we have seen an eor previously, return a length of 0.  The
+     caller is responsible for correctly padding the input field.  */
+  if (dtp->u.p.sf_seen_eor)
+    {
+      *nbytes = 0;
+      /* Just return something that isn't a NULL pointer, otherwise the
+         caller thinks an error occured.  */
+      return empty_string;
+    }
+
+  lorig = *nbytes;
+  source = (gfc_char4_t *) mem_alloc_r4 (dtp->u.p.current_unit->s, nbytes);
+
+  if (unlikely (lorig > *nbytes))
+    {
+      hit_eof (dtp);
+      return NULL;
+    }
+
+  dtp->u.p.current_unit->bytes_left -= *nbytes;
+
+  if ((dtp->common.flags & IOPARM_DT_HAS_SIZE) != 0)
+    dtp->u.p.size_used += (GFC_IO_INT) *nbytes;
 
   return source;
 }
@@ -561,7 +617,6 @@ read_block_direct (st_parameter_dt *dtp, void *buf, size_t nbytes)
       have_read_record += have_read_subrecord;
 
       if (unlikely (to_read_subrecord != have_read_subrecord))
-			
 	{
 	  /* Short read, e.g. if we hit EOF.  This means the record
 	     structure has been corrupted, or the trailing record
@@ -640,7 +695,7 @@ write_block (st_parameter_dt *dtp, int length)
 
   if (is_internal_unit (dtp))
     {
-      if (dtp->common.unit) /* char4 internal unit.  */
+      if (dtp->common.unit) /* char4 internel unit.  */
 	dest = mem_alloc_w4 (dtp->u.p.current_unit->s, &length);
       else
 	dest = mem_alloc_w (dtp->u.p.current_unit->s, &length);
@@ -658,10 +713,10 @@ write_block (st_parameter_dt *dtp, int length)
     {
       dest = fbuf_alloc (dtp->u.p.current_unit, length);
       if (dest == NULL)
-        {
-          generate_error (&dtp->common, LIBERROR_OS, NULL);
-          return NULL;
-        }
+	{
+	  generate_error (&dtp->common, LIBERROR_OS, NULL);
+	  return NULL;
+	}
     }
     
   if ((dtp->common.flags & IOPARM_DT_HAS_SIZE) != 0)
@@ -1258,7 +1313,7 @@ formatted_transfer_scalar_read (st_parameter_dt *dtp, bt type, void *p, int kind
 	  consume_data_flag = 0;
 	  dtp->u.p.current_unit->decimal_status = DECIMAL_POINT;
 	  break;
-	
+
 	case FMT_RC:
 	  consume_data_flag = 0;
 	  dtp->u.p.current_unit->round_status = ROUND_COMPATIBLE;
@@ -1539,7 +1594,7 @@ formatted_transfer_scalar_write (st_parameter_dt *dtp, bt type, void *p, int kin
 		write_i (dtp, f, p, kind);
 		break;
 	      case BT_LOGICAL:
-		write_l (dtp, f, p, kind);	
+		write_l (dtp, f, p, kind);
 		break;
 	      case BT_CHARACTER:
 		if (kind == 4)
@@ -2136,49 +2191,49 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
 
   dtp->u.p.current_unit = get_unit (dtp, 1);
   if (dtp->u.p.current_unit->s == NULL)
-  {  /* Open the unit with some default flags.  */
-     st_parameter_open opp;
-     unit_convert conv;
+    {  /* Open the unit with some default flags.  */
+       st_parameter_open opp;
+       unit_convert conv;
 
-    if (dtp->common.unit < 0)
-      {
-	close_unit (dtp->u.p.current_unit);
-	dtp->u.p.current_unit = NULL;
-	generate_error (&dtp->common, LIBERROR_BAD_OPTION,
-			"Bad unit number in statement");
-	return;
-      }
-    memset (&u_flags, '\0', sizeof (u_flags));
-    u_flags.access = ACCESS_SEQUENTIAL;
-    u_flags.action = ACTION_READWRITE;
+      if (dtp->common.unit < 0)
+	{
+	  close_unit (dtp->u.p.current_unit);
+	  dtp->u.p.current_unit = NULL;
+	  generate_error (&dtp->common, LIBERROR_BAD_OPTION,
+			  "Bad unit number in statement");
+	  return;
+	}
+      memset (&u_flags, '\0', sizeof (u_flags));
+      u_flags.access = ACCESS_SEQUENTIAL;
+      u_flags.action = ACTION_READWRITE;
 
-    /* Is it unformatted?  */
-    if (!(cf & (IOPARM_DT_HAS_FORMAT | IOPARM_DT_LIST_FORMAT
-		| IOPARM_DT_IONML_SET)))
-      u_flags.form = FORM_UNFORMATTED;
-    else
-      u_flags.form = FORM_UNSPECIFIED;
+      /* Is it unformatted?  */
+      if (!(cf & (IOPARM_DT_HAS_FORMAT | IOPARM_DT_LIST_FORMAT
+		  | IOPARM_DT_IONML_SET)))
+	u_flags.form = FORM_UNFORMATTED;
+      else
+	u_flags.form = FORM_UNSPECIFIED;
 
-    u_flags.delim = DELIM_UNSPECIFIED;
-    u_flags.blank = BLANK_UNSPECIFIED;
-    u_flags.pad = PAD_UNSPECIFIED;
-    u_flags.decimal = DECIMAL_UNSPECIFIED;
-    u_flags.encoding = ENCODING_UNSPECIFIED;
-    u_flags.async = ASYNC_UNSPECIFIED;
-    u_flags.round = ROUND_UNSPECIFIED;
-    u_flags.sign = SIGN_UNSPECIFIED;
+      u_flags.delim = DELIM_UNSPECIFIED;
+      u_flags.blank = BLANK_UNSPECIFIED;
+      u_flags.pad = PAD_UNSPECIFIED;
+      u_flags.decimal = DECIMAL_UNSPECIFIED;
+      u_flags.encoding = ENCODING_UNSPECIFIED;
+      u_flags.async = ASYNC_UNSPECIFIED;
+      u_flags.round = ROUND_UNSPECIFIED;
+      u_flags.sign = SIGN_UNSPECIFIED;
 
-    u_flags.status = STATUS_UNKNOWN;
+      u_flags.status = STATUS_UNKNOWN;
 
-    conv = get_unformatted_convert (dtp->common.unit);
+      conv = get_unformatted_convert (dtp->common.unit);
 
-    if (conv == GFC_CONVERT_NONE)
-      conv = compile_options.convert;
+      if (conv == GFC_CONVERT_NONE)
+	conv = compile_options.convert;
 
-    /* We use big_endian, which is 0 on little-endian machines
-       and 1 on big-endian machines.  */
-    switch (conv)
-      {
+      /* We use big_endian, which is 0 on little-endian machines
+	 and 1 on big-endian machines.  */
+      switch (conv)
+	{
 	case GFC_CONVERT_NATIVE:
 	case GFC_CONVERT_SWAP:
 	  break;
@@ -2194,18 +2249,18 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
 	default:
 	  internal_error (&opp.common, "Illegal value for CONVERT");
 	  break;
-      }
+	}
 
-     u_flags.convert = conv;
+      u_flags.convert = conv;
 
-     opp.common = dtp->common;
-     opp.common.flags &= IOPARM_COMMON_MASK;
-     dtp->u.p.current_unit = new_unit (&opp, dtp->u.p.current_unit, &u_flags);
-     dtp->common.flags &= ~IOPARM_COMMON_MASK;
-     dtp->common.flags |= (opp.common.flags & IOPARM_COMMON_MASK);
-     if (dtp->u.p.current_unit == NULL)
-       return;
-  }
+      opp.common = dtp->common;
+      opp.common.flags &= IOPARM_COMMON_MASK;
+      dtp->u.p.current_unit = new_unit (&opp, dtp->u.p.current_unit, &u_flags);
+      dtp->common.flags &= ~IOPARM_COMMON_MASK;
+      dtp->common.flags |= (opp.common.flags & IOPARM_COMMON_MASK);
+      if (dtp->u.p.current_unit == NULL)
+	return;
+    }
 
   /* Check the action.  */
 
