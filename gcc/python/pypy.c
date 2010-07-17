@@ -359,13 +359,10 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym, tree * block )
       TREE_PUBLIC( gpy_eval_expr_decl ) = 1;
       
       gcc_assert( sym->op_a_t == TYPE_INTEGER );
-      append_to_statement_list( build_call_expr( gpy_eval_expr_decl, 1,
-						 build_int_cst( integer_type_node,
-								sym->op_a.integer )
-						 ),
-				block
+      retval = build_call_expr( gpy_eval_expr_decl, 1,
+				build_int_cst( integer_type_node,
+					       sym->op_a.integer )
 				);
-      retval = resdecl;
     }
   else if( sym->type == SYMBOL_REFERENCE )
     {

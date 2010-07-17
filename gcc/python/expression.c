@@ -86,6 +86,9 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
       
       retval = build2( MODIFY_EXPR, ptr_type_node,
 		       decl, rhs_tree );
+
+      debug_tree( retval );
+
       debug("built assignment for <%s>!\n", opa->op_a.string );
     }
   else
@@ -132,12 +135,10 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
   switch( operation )
     {
     case OP_BIN_ADDITION:
-      append_to_statement_list( build_call_expr( gpy_eval_expr_decl, 3, t1, t2,
-						 build_int_cst( integer_type_node,
-								OP_BIN_ADDITION )
-						 ),
-				block
-				);
+      retval =  build_call_expr( gpy_eval_expr_decl, 3, t1, t2,
+				 build_int_cst( integer_type_node,
+						OP_BIN_ADDITION )
+				 );
       break;
 
     default:
@@ -145,8 +146,6 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
       retval = NULL;
       break;
     }
-
-  retval = resdecl;
 
   debug_tree( retval );
 

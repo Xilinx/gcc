@@ -174,6 +174,8 @@ c_gimplify_expr (tree *expr_p, gimple_seq *pre_p ATTRIBUTE_UNUSED,
 {
   enum tree_code code = TREE_CODE (*expr_p);
 
+  debug_tree( (*expr_p) );
+
   /* This is handled mostly by gimplify.c, but we have to deal with
      not warning about int x = x; as it is a GCC extension to turn off
      this warning but only if warn_init_self is zero.  */
