@@ -3177,13 +3177,19 @@ get_constraint_for_component_ref (tree t, VEC(ce_s, heap) **results,
 	      cexpr.var = curr->id;
 	      VEC_safe_push (ce_s, heap, *results, &cexpr);
 	    }
-	  else
+	  else if (VEC_length (ce_s, *results) == 0)
 	    /* Assert that we found *some* field there. The user couldn't be
 	       accessing *only* padding.  */
 	    /* Still the user could access one past the end of an array
 	       embedded in a struct resulting in accessing *only* padding.  */
-	    gcc_assert (VEC_length (ce_s, *results) >= 1
-			|| ref_contains_array_ref (orig_t));
+	    /* Or accessing only padding via type-punning to a type
+	       that has a filed just in padding space.  */
+	    {
+	      cexpr.type = SCALAR;
+	      cexpr.var = anything_id;
+	      cexpr.offset = 0;
+	      VEC_safe_push (ce_s, heap, *results, &cexpr);
+	    }
 	}
       else if (bitmaxsize == 0)
 	{
@@ -4981,7 +4987,7 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
   if (VEC_length (fieldoff_s, *fieldstack) > MAX_FIELDS_FOR_FIELD_SENSITIVE)
     return false;
 
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
     if (TREE_CODE (field) == FIELD_DECL)
       {
 	bool push = false;
@@ -5059,7 +5065,7 @@ count_num_arguments (tree decl, bool *is_varargs)
 
   /* Capture named arguments for K&R functions.  They do not
      have a prototype and thus no TYPE_ARG_TYPES.  */
-  for (t = DECL_ARGUMENTS (decl); t; t = TREE_CHAIN (t))
+  for (t = DECL_ARGUMENTS (decl); t; t = DECL_CHAIN (t))
     ++num;
 
   /* Check if the function has variadic arguments.  */
@@ -5217,7 +5223,7 @@ create_function_info_for (tree decl, const char *name)
       if (arg)
 	{
 	  insert_vi_for_tree (arg, argvi);
-	  arg = TREE_CHAIN (arg);
+	  arg = DECL_CHAIN (arg);
 	}
     }
 
@@ -5489,7 +5495,7 @@ intra_create_variable_infos (void)
   /* For each incoming pointer argument arg, create the constraint ARG
      = NONLOCAL or a dummy variable if it is a restrict qualified
      passed-by-reference argument.  */
-  for (t = DECL_ARGUMENTS (current_function_decl); t; t = TREE_CHAIN (t))
+  for (t = DECL_ARGUMENTS (current_function_decl); t; t = DECL_CHAIN (t))
     {
       varinfo_t p;
 

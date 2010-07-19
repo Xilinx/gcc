@@ -2810,7 +2810,6 @@ void gfc_global_used (gfc_gsymbol *, locus *);
 
 /* dependency.c */
 int gfc_dep_compare_expr (gfc_expr *, gfc_expr *);
-int gfc_is_data_pointer (gfc_expr *);
 
 /* check.c */
 gfc_try gfc_check_same_strlen (const gfc_expr*, const gfc_expr*, const char*);
@@ -2820,7 +2819,7 @@ void gfc_add_component_ref (gfc_expr *, const char *);
 gfc_expr *gfc_class_null_initializer (gfc_typespec *);
 gfc_try gfc_build_class_symbol (gfc_typespec *, symbol_attribute *,
 				gfc_array_spec **, bool);
-gfc_symbol *gfc_find_derived_vtab (gfc_symbol *, bool);
+gfc_symbol *gfc_find_derived_vtab (gfc_symbol *);
 gfc_symtree* gfc_find_typebound_proc (gfc_symbol*, gfc_try*,
 				      const char*, bool, locus*);
 gfc_symtree* gfc_find_typebound_user_op (gfc_symbol*, gfc_try*,

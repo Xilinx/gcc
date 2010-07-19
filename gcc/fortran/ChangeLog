@@ -1,3 +1,164 @@
+2010-07-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* trans.h (gfc_string_to_single_character): New prototype.
+	* trans-expr.c (string_to_single_character): Renamed to ...
+	(gfc_string_to_single_character): ... this.  No longer static.
+	(gfc_conv_scalar_char_value, gfc_build_compare_string,
+	gfc_trans_string_copy): Adjust callers.
+	* config-lang.in (gtfiles): Add fortran/trans-stmt.c.
+	* trans-stmt.c: Include ggc.h and gt-fortran-trans-stmt.h.
+	(select_struct): Move to toplevel, add GTY(()).
+	(gfc_trans_character_select): Optimize SELECT CASE
+	with character length 1.
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* f95-lang.c: Carefully replace TREE_CHAIN with DECL_CHAIN.
+	* trans-common.c: Likewise.
+	* trans-decl.c: Likewise.
+	* trans-types.c: Likewise.
+	* trans.c: Likewise.
+
+2010-07-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44936
+	* resolve.c (resolve_typebound_generic_call): Resolve generic
+	non-polymorphic type-bound procedure calls to the correct specific
+	procedure.
+	(resolve_typebound_subroutine): Remove superfluous code.
+
+2010-07-15  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/44709
+	* trans.h (struct gfc_wrapped_block): New struct.
+	(gfc_start_wrapped_block), (gfc_add_init_cleanup): New methods.
+	(gfc_finish_wrapped_block): New method.
+	(gfc_init_default_dt): Add new init code to block rather than
+	returning it.
+	* trans-array.h (gfc_trans_auto_array_allocation): Use gfc_wrapped_block
+	(gfc_trans_dummy_array_bias): Ditto.
+	(gfc_trans_g77_array): Ditto.
+	(gfc_trans_deferred_array): Ditto.
+	* trans.c (gfc_add_expr_to_block): Call add_expr_to_chain.
+	(add_expr_to_chain): New method based on old gfc_add_expr_to_block.
+	(gfc_start_wrapped_block), (gfc_add_init_cleanup): New methods.
+	(gfc_finish_wrapped_block): New method.
+	* trans-array.c (gfc_trans_auto_array_allocation): use gfc_wrapped_block
+	(gfc_trans_g77_array), (gfc_trans_dummy_array_bias): Ditto.
+	(gfc_trans_deferred_array): Ditto.
+	* trans-decl.c (gfc_trans_dummy_character): Ditto.
+	(gfc_trans_auto_character_variable), (gfc_trans_assign_aux_var): Ditto.
+	(init_intent_out_dt): Ditto.
+	(gfc_init_default_dt): Add new init code to block rather than
+	returning it.
+	(gfc_trans_deferred_vars): Use gfc_wrapped_block to collect all init
+	and cleanup code and put it all together.
+
+2010-07-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* trans.h (gfc_build_compare_string): Add CODE argument.
+	* trans-intrinsic.c (gfc_conv_intrinsic_strcmp): Pass OP to
+	gfc_build_compare_string.
+	* trans-expr.c (gfc_conv_expr_op): Pass CODE to
+	gfc_build_compare_string.
+	(string_to_single_character): Rename len variable to length.
+	(gfc_optimize_len_trim): New function.
+	(gfc_build_compare_string): Add CODE argument.  If it is EQ_EXPR
+	or NE_EXPR and one of the strings is string literal with LEN_TRIM
+	bigger than the length of the other string, they compare unequal.
+
+	PR fortran/40206
+	* trans-stmt.c (gfc_trans_character_select): Always use NULL for high
+	in CASE_LABEL_EXPR and use NULL for low for the default case.
+
+2010-07-14  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_conv_section_upper_bound): Remove
+	(gfc_conv_section_startstride): Don't set the upper bound in the 
+	vector subscript case. 
+	(gfc_conv_loop_setup): Don't use gfc_conv_section_upper_bound
+
+2010-07-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44925
+	* gfortran.h (gfc_is_data_pointer): Remove prototype.
+	* dependency.c (gfc_is_data_pointer): Make it static.
+	* intrinsic.texi: Update documentation on C_LOC.
+	* resolve.c (gfc_iso_c_func_interface): Fix pointer and target checks
+	and add a check for polymorphic variables.
+
+2010-07-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* trans-expr.c (string_to_single_character): Also optimize
+	string literals containing a single char followed only by spaces.
+	(gfc_trans_string_copy): Remove redundant string_to_single_character
+	calls.
+
+	* trans-decl.c (gfc_build_intrinsic_function_decls,
+	gfc_build_builtin_function_decls): Mark functions as
+	DECL_PURE_P or TREE_READONLY.
+
+2010-07-13  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* trans-decl.c (build_entry_thunks): Call build_call_expr_loc_vec
+	instead of build_function_call_expr.
+	* trans-intrinsic.c (gfc_conv_intrinsic_sr_kind): Likewise.
+
+2010-07-13  Tobias Burnus  <burnus@net-b.de>
+	    Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/43665
+	* trans.h (gfc_build_library_function_decl_with_spec): New prototype.
+	* trans-decl.c (gfc_build_library_function_decl_with_spec): Removed
+	static.
+	* trans-io (gfc_build_io_library_fndecls): Add "fn spec" annotations.
+
+2010-07-13  Daniel Franke  <franke.daniel@gmail.com>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43665
+	* trans-decl.c (gfc_build_intrinsic_function_decls): Add
+	noclobber/noescape annotations to function calls.
+	(gfc_build_builtin_function_decls): Likewise.
+
+2010-07-13  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44434
+	PR fortran/44565
+	PR fortran/43945
+	PR fortran/44869
+	* gfortran.h (gfc_find_derived_vtab): Modified prototype.
+	* class.c (gfc_build_class_symbol): Modified call to
+	'gfc_find_derived_vtab'.
+	(add_proc_component): Removed, moved code into 'add_proc_comp'.
+	(add_proc_comps): Renamed to 'add_proc_comp', removed treatment of
+	generics.
+	(add_procs_to_declared_vtab1): Removed unnecessary argument 'resolved'.
+	Removed treatment of generics.
+	(copy_vtab_proc_comps): Removed unnecessary argument 'resolved'.
+	Call 'add_proc_comp' instead of duplicating code.
+	(add_procs_to_declared_vtab): Removed unnecessary arguments 'resolved'
+	and 'declared'.
+	(add_generic_specifics,add_generics_to_declared_vtab): Removed.
+	(gfc_find_derived_vtab): Removed unnecessary argument 'resolved'.
+	Removed treatment of generics.
+	* iresolve.c (gfc_resolve_extends_type_of): Modified call to
+	'gfc_find_derived_vtab'.
+	* resolve.c (resolve_typebound_function,resolve_typebound_subroutine):
+	Removed treatment of generics.
+	(resolve_select_type,resolve_fl_derived): Modified call to
+	'gfc_find_derived_vtab'.
+	* trans-decl.c (gfc_get_symbol_decl): Ditto.
+	* trans-expr.c (gfc_conv_derived_to_class,gfc_trans_class_assign):
+	Ditto.
+	* trans-stmt.c (gfc_trans_allocate): Ditto.
+
+2010-07-12  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/37077
+	* trans-io.c (build_dt): Set common.unit to flag chracter(kind=4)
+	internal unit.
+
 2010-07-12  Mikael Morin  <mikael@gcc.gnu.org>
 
 	* expr.c (gfc_get_int_expr): Don't initialize mpfr data twice.

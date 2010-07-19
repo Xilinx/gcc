@@ -838,17 +838,6 @@ enum tree_node_structure_enum {
 				 __FILE__, __LINE__, __FUNCTION__);	\
     &__t->exp.operands[__i]; }))
 
-#define TREE_RTL_OPERAND_CHECK(T, CODE, I) __extension__		\
-(*(rtx *)								\
- ({__typeof (T) const __t = (T);					\
-    const int __i = (I);						\
-    if (TREE_CODE (__t) != (CODE))					\
-      tree_check_failed (__t, __FILE__, __LINE__, __FUNCTION__, (CODE), 0); \
-    if (__i < 0 || __i >= TREE_OPERAND_LENGTH (__t))			\
-      tree_operand_check_failed (__i, __t,				\
-				 __FILE__, __LINE__, __FUNCTION__);	\
-    &__t->exp.operands[__i]; }))
-
 /* Nodes are chained together for many purposes.
    Types are chained together to record them for being output to the debugger
    (see the function `chain_type').
@@ -930,7 +919,6 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 #define TREE_VEC_ELT_CHECK(T, I)		((T)->vec.a[I])
 #define TREE_OPERAND_CHECK(T, I)		((T)->exp.operands[I])
 #define TREE_OPERAND_CHECK_CODE(T, CODE, I)	((T)->exp.operands[I])
-#define TREE_RTL_OPERAND_CHECK(T, CODE, I)  (*(rtx *) &((T)->exp.operands[I]))
 #define OMP_CLAUSE_ELT_CHECK(T, i)	        ((T)->omp_clause.ops[i])
 #define OMP_CLAUSE_RANGE_CHECK(T, CODE1, CODE2)	(T)
 #define OMP_CLAUSE_SUBCODE_CHECK(T, CODE)	(T)
@@ -2494,6 +2482,7 @@ enum symbol_visibility
 
 struct function;
 
+#define DECL_CHAIN(NODE) (TREE_CHAIN (DECL_MINIMAL_CHECK (NODE)))
 
 /* This is the name of the object as written by the user.
    It is an IDENTIFIER_NODE.  */
@@ -3526,6 +3515,7 @@ enum tree_index
 
   TI_INTEGER_ZERO,
   TI_INTEGER_ONE,
+  TI_INTEGER_THREE,
   TI_INTEGER_MINUS_ONE,
   TI_NULL_POINTER,
 
@@ -3680,6 +3670,7 @@ extern GTY(()) tree global_trees[TI_MAX];
 
 #define integer_zero_node		global_trees[TI_INTEGER_ZERO]
 #define integer_one_node		global_trees[TI_INTEGER_ONE]
+#define integer_three_node              global_trees[TI_INTEGER_THREE]
 #define integer_minus_one_node		global_trees[TI_INTEGER_MINUS_ONE]
 #define size_zero_node			global_trees[TI_SIZE_ZERO]
 #define size_one_node			global_trees[TI_SIZE_ONE]
@@ -5023,8 +5014,9 @@ extern tree fold_builtin_strncpy_chk (location_t, tree, tree, tree, tree, tree);
 extern tree fold_builtin_snprintf_chk (location_t, tree, tree, enum built_in_function);
 extern bool fold_builtin_next_arg (tree, bool);
 extern enum built_in_function builtin_mathfn_code (const_tree);
-extern tree build_function_call_expr (location_t, tree, tree);
 extern tree fold_builtin_call_array (location_t, tree, tree, int, tree *);
+extern tree build_call_expr_loc_array (location_t, tree, int, tree *);
+extern tree build_call_expr_loc_vec (location_t, tree, VEC(tree,gc) *);
 extern tree build_call_expr_loc (location_t, tree, int, ...);
 extern tree build_call_expr (tree, int, ...);
 extern tree mathfn_built_in (tree, enum built_in_function fn);

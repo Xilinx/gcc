@@ -1326,6 +1326,7 @@ struct GTY(()) lang_type_class {
   unsigned lazy_move_assign : 1;
   unsigned has_complex_move_ctor : 1;
   unsigned has_complex_move_assign : 1;
+  unsigned has_user_opeq : 1;
 
   /* When adding a flag here, consider whether or not it ought to
      apply to a template instance if it applies to the template.  If
@@ -1334,7 +1335,7 @@ struct GTY(()) lang_type_class {
   /* There are some bits left to fill out a 32-bit word.  Keep track
      of this by updating the size of this bitfield whenever you add or
      remove a flag.  */
-  unsigned dummy : 4;
+  unsigned dummy : 3;
 
   tree primary_base;
   VEC(tree_pair_s,gc) *vcall_indices;
@@ -2091,9 +2092,9 @@ struct GTY((variable_size)) lang_decl {
   if (TREE_CODE (FN) == FUNCTION_DECL			\
       && (DECL_MAYBE_IN_CHARGE_CONSTRUCTOR_P (FN)	\
 	  || DECL_MAYBE_IN_CHARGE_DESTRUCTOR_P (FN)))	\
-     for (CLONE = TREE_CHAIN (FN);			\
+     for (CLONE = DECL_CHAIN (FN);			\
 	  CLONE && DECL_CLONED_FUNCTION_P (CLONE);	\
-	  CLONE = TREE_CHAIN (CLONE))
+	  CLONE = DECL_CHAIN (CLONE))
 
 /* Nonzero if NODE has DECL_DISCRIMINATOR and not DECL_ACCESS.  */
 #define DECL_DISCRIMINATOR_P(NODE)	\
@@ -3142,6 +3143,10 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    user-declared constructor.  */
 #define TYPE_HAS_USER_CONSTRUCTOR(NODE) (TYPE_LANG_FLAG_1 (NODE))
 
+/* ...or a user-declared operator=.  */
+#define TYPE_HAS_USER_OPEQ(NODE) \
+  (LANG_TYPE_CLASS_CHECK (NODE)->has_user_opeq)
+
 /* When appearing in an INDIRECT_REF, it means that the tree structure
    underneath is actually a call to a constructor.  This is needed
    when the constructor must initialize local storage (which can
@@ -4001,7 +4006,6 @@ typedef enum base_kind {
 
 /* For building calls to `delete'.  */
 extern GTY(()) tree integer_two_node;
-extern GTY(()) tree integer_three_node;
 
 /* The number of function bodies which we are currently processing.
    (Zero if we are at namespace scope, one inside the body of a
@@ -5488,7 +5492,8 @@ extern int comp_ptr_ttypes			(tree, tree);
 extern bool comp_ptr_ttypes_const		(tree, tree);
 extern bool error_type_p			(const_tree);
 extern int ptr_reasonably_similar		(const_tree, const_tree);
-extern tree build_ptrmemfunc			(tree, tree, int, bool);
+extern tree build_ptrmemfunc			(tree, tree, int, bool,
+						 tsubst_flags_t);
 extern int cp_type_quals			(const_tree);
 extern int type_memfn_quals			(const_tree);
 extern tree apply_memfn_quals			(tree, cp_cv_quals);
@@ -5517,7 +5522,8 @@ extern tree non_reference			(tree);
 extern tree lookup_anon_field			(tree, tree);
 extern bool invalid_nonstatic_memfn_p		(const_tree, tsubst_flags_t);
 extern tree convert_member_func_to_ptr		(tree, tree);
-extern tree convert_ptrmem			(tree, tree, bool, bool);
+extern tree convert_ptrmem			(tree, tree, bool, bool,
+						 tsubst_flags_t);
 extern int lvalue_or_else			(tree, enum lvalue_use,
                                                  tsubst_flags_t);
 extern void check_template_keyword		(tree);

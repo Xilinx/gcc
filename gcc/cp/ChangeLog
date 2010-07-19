@@ -1,3 +1,84 @@
+2010-07-15  Anatoly Sokolov  <aesok@post.ru>
+
+	* decl.c (integer_three_node): Remove.
+	(cxx_init_decl_processing): Do not initialize the integer_three_node.
+	* cp-tree.h (integer_three_node): Remove.
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cp-tree.h: Carefully replace TREE_CHAIN with DECL_CHAIN.
+	* call.c: Likewise.
+	* class.c: Likewise.
+	* cp-gimplify.c: Likewise.
+	* decl.c: Likewise.
+	* decl2.c: Likewise.
+	* init.c: Likewise.
+	* mangle.c: Likewise.
+	* name-lookup.c: Likewise.
+	* optimize.c: Likewise.
+	* parser.c: Likewise.
+	* pt.c: Likewise.
+	* rtti.c: Likewise.
+	* search.c: Likewise.
+	* semantics.c: Likewise.
+	* typeck.c: Likewise.
+	* typeck2.c: Likewise.
+
+2010-07-14  Jason Merrill  <jason@redhat.com>
+
+	* init.c (sort_mem_initializers): Rename "field_type" to "ctx".
+	(build_field_list): Cache field type.
+
+	Implement C++0x unrestricted unions (N2544)
+	* class.c (check_field_decl): Loosen union handling in C++0x.
+	* method.c (walk_field_subobs): Split out from...
+	(synthesized_method_walk): ...here.  Set msg before loops.
+	(process_subob_fn): Check for triviality in union members.
+	* init.c (sort_mem_initializers): Splice out uninitialized
+	anonymous unions and union members.
+	(push_base_cleanups): Don't automatically destroy anonymous unions
+	and union members.
+
+2010-07-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44909
+	* cp-tree.h (struct lang_type_class): Add has_user_opeq.
+	(TYPE_HAS_USER_OPEQ): New.
+	* decl.c (grok_special_member_properties): Set it.
+	* class.c (add_implicitly_declared_members): Don't lazily declare
+	constructors/operator= if a base or member has a user-declared one.
+	(check_bases_and_members, check_bases): Adjust.
+	(check_field_decls, check_field_decl): Adjust.
+	* method.c (synthesized_method_walk): Initialize check_vdtor.
+
+	PR c++/44540
+	* mangle.c (write_type): Canonicalize.
+	(canonicalize_for_substitution): Retain cv-quals on FUNCTION_TYPE.
+	(write_CV_qualifiers_for_type): Ignore them in abi>=5.
+
+2010-07-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44908
+	* call.c (convert_like_real): Adjust convert_ptrmem call, pass
+	complain argument.
+	* typeck.c (get_delta_difference): Update prototype, add a
+	tsubst_flags_t parameter; update get_delta_difference_1 calls and
+	add checks for error_mark_node.
+	(get_delta_difference_1): Update prototype, add a tsubst_flags_t
+	parameter; update lookup_base call.
+	(build_ptrmemfunc): Update prototype, add a tsubst_flags_t
+	parameter; update get_delta_difference call and add check for
+	error_mark_node.
+	(convert_ptrmem): Update prototype, add a tsubst_flags_t
+	parameter; update get_delta_difference call and add check for
+	error_mark_node;  update build_ptrmemfunc call.
+	(build_static_cast_1): Adjust convert_ptrmem call.
+	(expand_ptrmemfunc_cst): Adjust get_delta_difference call.
+	(cp_build_unary_op): Adjust build_ptrmemfunc call.
+	* cvt.c (cp_convert_to_pointer, convert_force): Adjust convert_ptrmem
+	and build_ptrmemfunc calls.
+	* cp-tree.h: Update build_ptrmemfunc and convert_ptrmem prototypes.
+
 2010-07-12  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/44907

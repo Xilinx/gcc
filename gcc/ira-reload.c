@@ -439,8 +439,9 @@ static void
 create_new_allocno_for_spilling (int nreg, int oreg)
 {
   ira_allocno_t to, from, a;
+  ira_object_t o;
   ira_allocno_iterator ai;
-  ira_allocno_conflict_iterator aci;
+  ira_object_conflict_iterator oci;
   unsigned int conflicts;
   live_range_t prev, range, r;
 
@@ -487,8 +488,8 @@ create_new_allocno_for_spilling (int nreg, int oreg)
   ALLOCNO_NEXT_REGNO_ALLOCNO (to) = NULL;
 
   /* We recompute these fields after we have localized an entire block.  */
-  CLEAR_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (to));
-  CLEAR_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (to));
+  CLEAR_HARD_REG_SET (OBJECT_CONFLICT_HARD_REGS (ALLOCNO_OBJECT (to)));
+  CLEAR_HARD_REG_SET (OBJECT_TOTAL_CONFLICT_HARD_REGS (ALLOCNO_OBJECT (to)));
 
   /* ?!? This is a hack.
      If the original allocno conflicts will all hard registers, then it must
@@ -500,11 +501,11 @@ create_new_allocno_for_spilling (int nreg, int oreg)
   {
     HARD_REG_SET x;
 
-    COMPL_HARD_REG_SET (x, ALLOCNO_CONFLICT_HARD_REGS (from));
+    COMPL_HARD_REG_SET (x, OBJECT_CONFLICT_HARD_REGS (ALLOCNO_OBJECT (from)));
     if (hard_reg_set_empty_p (x))
       {
-	COPY_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (to), ALLOCNO_CONFLICT_HARD_REGS (from));
-	COPY_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (to), ALLOCNO_TOTAL_CONFLICT_HARD_REGS (from));
+	COPY_HARD_REG_SET (OBJECT_CONFLICT_HARD_REGS (ALLOCNO_OBJECT (to)), OBJECT_CONFLICT_HARD_REGS (ALLOCNO_OBJECT (from)));
+	COPY_HARD_REG_SET (OBJECT_TOTAL_CONFLICT_HARD_REGS (ALLOCNO_OBJECT (to)), OBJECT_TOTAL_CONFLICT_HARD_REGS (ALLOCNO_OBJECT (from)));
       }
   }
   
@@ -515,12 +516,12 @@ create_new_allocno_for_spilling (int nreg, int oreg)
      allocno should have fewer conflicts than the original as the new allocno
      is only live in BB and thus only conflicts with objects live in BB.  */
   conflicts = 0;
-  FOR_EACH_ALLOCNO_CONFLICT (from, a, aci)
+  FOR_EACH_OBJECT_CONFLICT (ALLOCNO_OBJECT (from), o, oci)
     conflicts++;
 
-  ALLOCNO_MIN (to) = ALLOCNO_MIN (from);
-  ALLOCNO_MAX (to) = ALLOCNO_MAX (from);
-  ira_allocate_allocno_conflicts (to, conflicts);
+  OBJECT_MIN (ALLOCNO_OBJECT (to)) = OBJECT_MIN (ALLOCNO_OBJECT (from));
+  OBJECT_MAX (ALLOCNO_OBJECT (to)) = OBJECT_MAX (ALLOCNO_OBJECT (from));
+  ira_allocate_object_conflicts (ALLOCNO_OBJECT (to), conflicts);
 
   /* For now we copy the live range from the original allocno to the new
      allocno.  This is very suboptimal.  Consider if we have some allocno A
@@ -528,18 +529,18 @@ create_new_allocno_for_spilling (int nreg, int oreg)
      stack slots because the live ranges conflict (they were copied from A
      verbatim) -- however, in reality each new allocno A0..A100 has a
      distinct, non-conflicting live range.  */
-  for (prev = NULL, r = ALLOCNO_LIVE_RANGES (from);
+  for (prev = NULL, r = OBJECT_LIVE_RANGES (ALLOCNO_OBJECT (from));
        r != NULL;
        r = r->next, prev = range)
     {
-      range = ira_create_allocno_live_range (to, r->start, r->finish, NULL);
+      range = ira_create_live_range (ALLOCNO_OBJECT (to), r->start, r->finish, NULL);
       /* ?!? This may not be necessary.  */
       range->start_next = NULL;
       range->finish_next = NULL;
       if (prev)
 	prev->next = range;
       else
-	ALLOCNO_LIVE_RANGES (to) = range;
+	OBJECT_LIVE_RANGES (ALLOCNO_OBJECT (to)) = range;
     }
 }
 
@@ -560,16 +561,16 @@ maybe_add_conflict (int reg1, int reg2, int limit)
   if (reg1 < FIRST_PSEUDO_REGISTER)
     {
       ira_allocno_t a = ira_regno_allocno_map[reg2];
-      SET_HARD_REG_BIT (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (a), reg1);
-      SET_HARD_REG_BIT (ALLOCNO_CONFLICT_HARD_REGS (a), reg1);
+      SET_HARD_REG_BIT (OBJECT_TOTAL_CONFLICT_HARD_REGS (ALLOCNO_OBJECT (a)), reg1);
+      SET_HARD_REG_BIT (OBJECT_CONFLICT_HARD_REGS (ALLOCNO_OBJECT (a)), reg1);
       return;
     }
 
   if (reg2 < FIRST_PSEUDO_REGISTER)
     {
       ira_allocno_t a = ira_regno_allocno_map[reg1];
-      SET_HARD_REG_BIT (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (a), reg2);
-      SET_HARD_REG_BIT (ALLOCNO_CONFLICT_HARD_REGS (a), reg2);
+      SET_HARD_REG_BIT (OBJECT_TOTAL_CONFLICT_HARD_REGS (ALLOCNO_OBJECT (a)), reg2);
+      SET_HARD_REG_BIT (OBJECT_CONFLICT_HARD_REGS (ALLOCNO_OBJECT (a)), reg2);
       return;
     }
 
@@ -579,8 +580,8 @@ maybe_add_conflict (int reg1, int reg2, int limit)
       != ira_class_translate[reg_preferred_class (reg2)])
     return;
 
-  ira_add_allocno_conflict (ira_regno_allocno_map[reg1],
-			    ira_regno_allocno_map[reg2]);
+  ira_add_conflict (ALLOCNO_OBJECT (ira_regno_allocno_map[reg1]),
+		    ALLOCNO_OBJECT (ira_regno_allocno_map[reg2]));
 }
 
 static void
@@ -1102,7 +1103,7 @@ ira_reload (void)
       EXECUTE_IF_SET_IN_BITMAP (pseudos_to_localize,
 				FIRST_PSEUDO_REGISTER, i, bi)
 	{
-	  remove_from_all_conflicts (ira_regno_allocno_map[i]);
+	  remove_from_all_conflicts (ALLOCNO_OBJECT (ira_regno_allocno_map[i]));
 	  SET_REG_N_REFS (i, 0);
 	  SET_REG_N_SETS (i, 0);
 	}

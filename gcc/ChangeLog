@@ -1,3 +1,488 @@
+2010-07-15  Anatoly Sokolov  <aesok@post.ru>
+
+	* tree.h (enum tree_index): Add TI_INTEGER_THREE.
+	(integer_three_node): Add.
+	* tree.c (build_common_tree_nodes_2): Use integer_type_node insead of
+	NULL_TREE in build_int_cst calls. Initialize the integer_three_node.
+	* builtins.c (expand_builtin_prefetch): Use common tree nodes instead
+	of call build_int_cst.
+	* tree-ssa-sccvn.c (copy_reference_ops_from_ref): Ditto.
+	* tree-ssa-loop-ivopts.c (idx_find_step): Ditto.
+	(find_interesting_uses_address): Ditto.
+	* tree-ssa-alias.c (ao_ref_init_from_ptr_and_size): Ditto.
+	* tree-eh.c (lower_eh_constructs_2): Ditto.
+	* tree-vect-loop.c (get_initial_def_for_induction): Ditto.
+	* c-typeck.c (really_start_incremental_init, push_init_level): Ditto.
+	* expmed.c (expand_divmod): Ditto.
+	* tree-mudflap.c (mx_register_decls): Ditto.
+	* varasm.c (array_size_for_constructor): Ditto.
+	* tree-ssa-loop-prefetch.c (issue_prefetch_ref): Ditto.
+	* c-parser.c (c_parser_postfix_expression): Ditto.
+
+2010-07-15  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* postreload.c (last_label_ruid, first_index_reg, last_index_reg):
+	New static variables.
+	(reload_combine_recognize_pattern): New static function, broken out
+	of reload_combine.
+	(reload_combine): Use it.  Only initialize first_index_reg and
+	last_index_reg once.
+
+2010-07-15  Richard Henderson  <rth@redhat.com>
+
+	* cgraphunit.c (cgraph_build_static_cdtor): Clear current_function_decl
+	when done.
+
+2010-07-15  Jan Hubicka  <jh@suse.cz>
+
+	* lto-symtab.c (lto_symtab_resolve_symbols): Remove hack handling comdats
+	for broken gold.
+	(lto_sy	mtab_merge_decls_1): Set used_from_object_file correctly. 
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.h (TREE_RTL_OPERAND_CHECK): Delete.
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.h (DECL_CHAIN): Define.
+	* alias.c: Carefully replace TREE_CHAIN with DECL_CHAIN.
+	* c-decl.c: Likewise.
+	* c-parser.c: Likewise.
+	* c-typeck.c: Likewise.
+	* cfgexpand.c: Likewise.
+	* cgraph.c: Likewise.
+	* cgraphunit.c: Likewise.
+	* combine.c: Likewise.
+	* config/alpha/alpha.c: Likewise.
+	* config/arm/arm.c: Likewise.
+	* config/frv/frv.c: Likewise.
+	* config/i386/i386.c: Likewise.
+	* config/i386/winnt-cxx.c: Likewise.
+	* config/ia64/ia64.c: Likewise.
+	* config/iq2000/iq2000.c: Likewise.
+	* config/mep/mep.c: Likewise.
+	* config/mips/mips.c: Likewise.
+	* config/pa/som.h: Likewise.
+	* config/rs6000/rs6000.c: Likewise.
+	* config/s390/s390.c: Likewise.
+	* config/sh/sh.c: Likewise.
+	* config/sh/symbian-cxx.c: Likewise.
+	* config/sparc/sparc.c: Likewise.
+	* config/spu/spu.c: Likewise.
+	* config/stormy16/stormy16.c: Likewise.
+	* config/vxworks.c: Likewise.
+	* config/xtensa/xtensa.c: Likewise.
+	* coverage.c: Likewise.
+	* dbxout.c: Likewise.
+	* dwarf2out.c: Likewise.
+	* emit-rtl.c: Likewise.
+	* expr.c: Likewise.
+	* function.c: Likewise.
+	* gimple-low.c: Likewise.
+	* gimple-pretty-print.c: Likewise.
+	* gimplify.c: Likewise.
+	* integrate.c: Likewise.
+	* ipa-inline.c: Likewise.
+	* ipa-prop.c: Likewise.
+	* ipa-split.c: Likewise.
+	* ipa-struct-reorg.c: Likewise.
+	* ipa-type-escape.c: Likewise.
+	* langhooks.c: Likewise.
+	* lto-cgraph.c: Likewise.
+	* omp-low.c: Likewise.
+	* stor-layout.c: Likewise.
+	* tree-cfg.c: Likewise.
+	* tree-complex.c: Likewise.
+	* tree-dfa.c: Likewise.
+	* tree-dump.c: Likewise.
+	* tree-inline.c: Likewise.
+	* tree-mudflap.c: Likewise.
+	* tree-nested.c: Likewise.
+	* tree-object-size.c: Likewise.
+	* tree-pretty-print.c: Likewise.
+	* tree-sra.c: Likewise.
+	* tree-ssa-live.c: Likewise.
+	* tree-ssa-loop-niter.c: Likewise.
+	* tree-ssa-math-opts.c: Likewise.
+	* tree-ssa-reassoc.c: Likewise.
+	* tree-ssa-sccvn.c: Likewise.
+	* tree-ssa-structalias.c: Likewise.
+	* tree-tailcall.c: Likewise.
+	* tree-vrp.c: Likewise.
+	* tree.c: Likewise.
+	* var-tracking.c: Likewise.
+	* varasm.c: Likewise.
+
+2010-07-15  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR target/44877
+	* config/spu/spu.c (spu_expand_builtin_1): Allow references
+	(as well as pointers) as argument to mask_for_load builtins.
+
+2010-07-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44946
+	* tree-ssa-structalias.c (get_constraint_for_component_ref): Deal
+	with accessing only padding properly.
+
+2010-07-15  Jan Hubicka  <jh@suse.cz>
+
+	* ipa.c (function_and_variable_visibility): Variables marked as used
+	should not be localized.
+
+2010-07-15  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c: Include lto-streamer.h
+	(change_decl_assembler_name): Work when assembler name hash is at place.
+	(cgraph_make_decl_local): When localizing COMDAT symbol at WPA stage, be
+	sure to rename it to avoid name clash.
+	* ipa.c (cgraph_externally_visible_p, function_and_variable_visibility):
+	Localize hidden symbols only when locally defined.
+
+2010-07-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.h (SHIFT_COUNT_TRUNCATED): Expand comment.
+
+2010-07-15  Magnus Granberg  <zorry@gentoo.org>
+	    Kevin F. Quinn  <kevquinn@gentoo.org>
+
+	* builtins.c (expand_builtin_init_trampoline): Warn for -Wtrampolines.
+	* common.opt: Add -Wtrampolines.
+	* doc/invoke.texi: Add -Wtrampolines.
+
+2010-07-15  Jie Zhang  <jie@codesourcery.com>
+
+	* config/arm/cortex-a8.md (cortex_a8_load_store_2): Reserve
+	cortex_a8_issue_ls.
+
+2010-07-15  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* config/i386/cygwin.h (LIBGCJ_SONAME): Update.
+	* config/i386/mingw32.h (LIBGCJ_SONAME): Likewise.
+
+2010-07-14  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.c (reg_names): Remove prototype.
+	(call_used_regs): Likewise.
+
+2010-07-14  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* config/i386/cygming-crtend.c (__FRAME_END__): Replace attribute
+	"unused" with attribute "used".
+	(__JCR_END__): Likewise.
+	* config/i386/cygming-crtbegin.c (__EH_FRAME_BEGIN__): Add missing
+	"used" attribute.
+	(__JCR_LIST__): Replace attribute "unused" with attribute "used".
+
+2010-07-14  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer-in.c (maybe_fixup_handled_component): Remove.
+	(maybe_fixup_decls): Likewise.
+	(input_gimple_stmt): Do not fixup anything.
+	* lto-streamer-out.c (output_gimple_stmt): Make sure all
+	non-automatic variable uses are wrapped inside a MEM_REF.
+
+2010-07-14  Richard Henderson  <rth@redhat.com>
+
+	* passes.c (rest_of_decl_compilation): Do not call assemble_variable
+	for functions.
+	* varasm.c (assemble_variable): Remove early exit for functions;
+	assert that we're given a variable.
+
+2010-07-14  Jie Zhang  <jie@codesourcery.com>
+
+	* config/arm/cortex-a8.md (cortex_a8_alu): Don't use
+	cortex_a8_default when neon_type is not none.
+
+2010-07-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* lower-subreg.c (subreg_context): New static bitmap.
+	(decompose_multiword_subregs): Allocate and free it.
+	(find_decomposable_subregs): Set a bit in it for a register that
+	occurs in a subreg that changes mode but not size.
+	(can_decompose_p): Test it instead of non_decomposable_context.
+
+2010-07-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44824
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr_1): Use
+	is_gimple_mem_ref_addr.
+	(tree_ssa_forward_propagate_single_use_vars): Do not propagate
+	non-decl_address_invariant_p addresses.
+
+2010-07-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* reload.c (find_reloads): Revert code to penalize small register
+	classes that was brought in with the IRA merge.
+
+2010-07-14  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-ccp.c (fold_const_aggregate_ref): Handle MEM_REF
+	as base of ARRAY_REFs.
+
+2010-07-14  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44930
+	* tree-pretty-print.c (do_niy): Do not print a newline.
+
+2010-07-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* ira-int.h (struct ira_object): New.
+	(ira_object_t): New typedef.  Add DEF_VEC_P and DEF_VEC_ALLOC_P for it.
+	(struct ira_allocno): Remove members min, max,
+	conflict_allocno_array, conflict_id, conflict_allocno_array_size,
+	conflict_allocnos_num and conflict_vec_p.  Add new member object.
+	(OBJECT_CONFLICT_ARRAY, OBJECT_CONFLICT_VEC_P,
+	OBJECT_NUM_CONFLICTS, OBJECT_CONFLICT_ARRAY_SIZE,
+	OBJECT_CONFLICT_HARD_REGS, OBJECT_TOTAL_CONFLICT_HARD_REGS,
+	OBJECT_MIN, OBJECT_MAX, OBJECT_CONFLICT_ID): Renamed from
+	ALLOCNO_CONFLICT_ALLOCNO_ARRAY, ALLOCNO_CONFLICT_VEC_P,
+	ALLOCNO_CONFLICT_ALLOCNOS_NUM, ALLOCNO_CONFLICT_ALLOCNO_ARRAY_SIZE,
+	ALLOCNO_CONFLICT_HARD_REGS, ALLOCNO_TOTAL_CONFLICT_HARD_REGS)
+	ALLOCNO_MIN, ALLOCNO_MAX, and ALLOCNO_CONFLICT_ID; now operate on
+	an ira_object_t rather than ira_allocno_t.  All uses changed.
+	(ira_object_id_map): Renamed from ira_conflict_id_allocno_map; now
+	contains a vector of ira_object_t; all uses changed.
+	(ira_objects_num): Declare variable.
+	(ira_create_allocno_object): Declare function.
+	(ira_conflict_vector_profitable_p): Adjust prototype.
+	(ira_allocate_conflict_vec): Renamed from
+	ira_allocate_allocno_conflict_vec; first arg now ira_object_t.
+	(ira_allocate_object_conflicts): Renamed from
+	ira_allocate_allocno_conflicts; first arg now ira_object_t.
+	(struct ira_object_iterator): New.
+	(ira_object_iter_init, ira_object_iter_cond, FOR_EACH_OBJECT): New.
+	(ira_allocno_conflict_iterator): Renamed member allocno_conflict_vec_p
+	to conflict_vec_p.  All uses changed.
+	(ira_allocno_conflict_iter_init, ira_allocno_conflict_iter_cond):
+	Changed to take into account that conflicts are now tracked for
+	objects.
+	* ira-conflicts.c (OBJECTS_CONFLICT_P): Renamed from CONFLICT_ALLOCNO_P.
+	Args changed to accept ira_object_t.  All uses changed.
+	(allocnos_conflict_p): New static function.
+	(collected_conflict_objects): Renamed from collected_allocno_objects;
+	now a vector of ira_object_t.  All uses changed.
+	(build_conflict_bit_table): Changed to take into account that
+	conflicts are now tracked for objects.
+	(process_regs_for_copy, propagate_copies, build_allocno_conflicts)
+	(print_allocno_conflicts, ira_build_conflicts): Likewise.
+	* ira-color.c (assign_hard_reg, setup_allocno_available_regs_num)
+	setup_allocno_left_conflicts_size, allocno_reload_assign,
+	fast_allocation): Likewise.
+	* ira-lives.c (make_hard_regno_born, make_allocno_born)
+	process_single_reg_class_operands, process_bb_node_lives): Likewise.
+	* ira-emit.c (modify_move_list, add_range_and_copies_from_move_list):
+	Likewise.
+	* ira-build.c (ira_objects_num): New variable.
+	(ira_object_id_map): Renamed from ira_conflict_id_allocno_map; now
+	contains a vector of ira_object_t; all uses changed.
+	(ira_object_id_map_vec): Corresponding change.
+	(object_pool): New static variable.
+	(initiate_allocnos): Initialize it.
+	(finish_allocnos): Free it.
+	(ira_create_object, ira_create_allocno_object, create_allocno_objects):
+	New functions.
+	(ira_create_allocno): Don't set members that were removed.
+	(ira_set_allocno_cover_class): Don't change conflict hard regs.
+	(merge_hard_reg_conflicts): Changed to take into account that
+	conflicts are now tracked for objects.
+	(ira_conflict_vector_profitable_p, ira_allocate_conflict_vec,
+	allocate_conflict_bit_vec, ira_allocate_object_conflicts,
+	compress_conflict_vecs, remove_low_level_allocnos, ira_flattening,
+	setup_min_max_allocno_live_range_point, allocno_range_compare_func,
+	setup_min_max_conflict_allocno_ids, ):  Likewise.
+	(add_to_conflicts): Renamed from add_to_allocno_conflicts, args changed
+	to ira_object_t; all callers changed.
+	(ira_add_conflict): Renamed from ira_add_allocno_conflict, args changed
+	to ira_object_t, all callers changed.
+	(clear_conflicts): Renamed from clear_allocno_conflicts, arg changed
+	to ira_object_t, all callers changed.
+	(conflict_check, curr_conflict_check_tick): Renamed from
+	allocno_conflict_check and curr_allocno_conflict_check_tick; all uses
+	changed.
+	(compress_conflict_vec): Renamed from compress_allocno_conflict_vec,
+	arg changed to ira_object_t, all callers changed.
+	(create_cap_allocno): Call ira_create_allocno_object.
+	(finish_allocno): Free the corresponding object.
+	(sort_conflict_id_map): Renamed from sort_conflict_id_allocno_map; all
+	callers changed.  Adjusted for dealing with objects.
+	(ira_build): Call create_allocno_objects after ira_costs.  Adjusted for
+	dealing with objects.
+	* ira.c (ira_bad_reload_regno_1): Adjusted for dealing with objects.
+
+	* ira-int.h (struct live_range): Rename allocno member to object
+	and change type to ira_object_t.
+	(struct ira_object): New member live_ranges.
+	(struct ira_allocno): Remove member live_ranges.
+	(ALLOCNO_LIVE_RANGES): Remove.
+	(OBJECT_LIVE_RANGES): New macro.
+	(ira_create_live_range, ira_copy_live_range_list,
+	ira_merge_live_range_list, ira_live_ranges_intersect_p,
+	ira_finish_live_range, ira_finish_live_range_list): Adjust declarations.
+	* ira-build.c (ira_create_object): Initialize live ranges here.
+	(ira_create_allocno): Not here.
+	(ira_create_live_range): Rename from ira_create_allocno_live_range, arg
+	changed to ira_object_t, all callers changed.
+	(copy_live_range): Rename from copy_allocno_live_range, all callers
+	changed.
+	(ira_copy_live_range_list): Rename from
+	ira_copy_allocno_live_range_list, all callers changed.
+	(ira_merge_live_ranges): Rename from ira_merge_allocno_live_range_list,
+	all callers changed.
+	(ira_live_ranges_intersect_p): Rename from
+	ira_allocno_live_ranges_intersect_p, all callers changed.
+	(ira_finish_live_range): Rename from ira_finish_allocno_live_range, all
+	callers changed.
+	(ira_finish_live_range_list): Rename from
+	ira_finish_allocno_live_range_list, all callers changed.
+	(change_object_in_range_list): Rename from change_allocno_in_range_list,
+	last arg changed to ira_object_t, all callers changed.
+	(finish_allocno): Changed to expect live ranges in the allocno's object.
+	(move_allocno_live_ranges, copy_allocno_live_ranges,
+	update_bad_spill_attribute, setup_min_max_allocno_live_range_point,
+	ira_flattening, ira_build): Likewise.
+	* ira-color.c (allocnos_have_intersected_live_ranges_p,
+	slot_coalesced_allocno_live_ranges_intersect,
+	setup_slot_coalesced_allocno_live_ranges, fast_allocation): Likewise.
+	* ira-conflicts.c (build_conflict_bit_table): Likewise.
+	* ira-emit.c (add_range_and_copies_from_move_list): Likewise.
+	* ira-lives.c (make_allocno_born, update_allocno_pressure_excess_length,
+	make_allocno_dead, create_start_finish_chains,
+	remove_some_program_points_and_update_live_ranges,
+	ira_debug_live_range_list): Likewise.
+
+	* ira-int.h (ira_object_conflict_iterator): Rename from
+	ira_allocno_conflict_iterator.
+	(ira_object_conflict_iter_init): Rename from
+	ira_allocno_conflict_iter_init, second arg changed to
+	* ira.c (check_allocation): Use FOR_EACH_OBJECT_CONFLICT rather than
+	FOR_EACH_ALLOCNO_CONFLICT.
+	* ira-color.c (assign_hard_reg, push_allocno_to_stack)
+	setup_allocno_left_conflicts_size, coalesced_allocno_conflict_p,
+	ira_reassign_conflict_allocnos, ira_reassign_pseudos): Likewise.
+	* ira-conflicts.c (print_allocno_conflicts): Likewise.
+
+2010-07-13  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR other/44874
+	* tree-dump.c (dump_options): Add enumerate_locals entry.
+	Add TDF_NOID exclusion to all entry.
+	* tree-dump.h (dump_enumerated_decls): Declare.
+	* tree-pretty-print.c (dump_generic_node): For TDF_NOID,
+	Don't display type uid.
+	(print_declaration): Don't crash on TREE_TYPE (t) == 0.
+	* tree-pass.h (TDF_ENUMERATE_LOCALS): Define.
+	* tree-ssa-live.c: Include gimple.h.
+	(numbered_tree_d): New struct.
+	(numbered_tree): New typedef.
+	(DEF_VEC_O (numbered_tree): New.
+	(DEF_VEC_ALLOC_O (numbered_tree, heap)): Likewise.
+	(compare_decls_by_uid, dump_enumerated_decls_push): New functions.
+	(dump_enumerated_decls): Likewise.
+	* tree-optimize.c (execute_cleanup_cfg_post_optimizing): If comparing
+	debug info and flag_dump_final_insns, call dump_enumerated_decls.
+	* tree-cfg.c (dump_function_to_file): Call dump_enumerated_decls.
+	* Makefile.in (tree-ssa-live.o): Depend on $(GIMPLE_H).
+
+2010-07-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* expmed.h (MAX_BITS_PER_WORD): Move to...
+	* defaults.h (MAX_BITS_PER_WORD): ...here.
+
+2010-07-13  DJ Delorie  <dj@redhat.com>
+
+	* config/h8300/h8300.c (h8300_init_once): Default to
+	-fstrict_volatile_bitfields.
+
+	* config/sh/sh.c (sh_override_options): Default to
+	-fstrict_volatile_bitfields.
+
+	* config/rx/rx.c (rx_option_override): New.
+
+	* config/m32c/m32c.c (m32c_override_options): Default to
+	-fstrict_volatile_bitfields.
+
+2010-07-13  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.h (build_function_call_expr): Delete.
+	(build_call_expr_loc_array): New function.
+	(build_call_expr_loc_vec): New function.
+	* tree-flow.h (struct omp_region): Change type of ws_args field
+	to a VEC.
+	* builtins.c (build_function_call_expr): Delete.
+	(build_call_expr_loc_array): New function.
+	(build_call_expr_loc): Call it.  Use XALLOCAVEC.
+	(build_call_expr): Likewise.
+	(build_call_expr_loc_vec): New function.
+	* cgraphunit.c (build_cdtor): Call build_call_expr instead of
+	build_function_call_expr.
+	* expr.c (emutls_var_address): Likewise.
+	* varasm.c (emutls_common_1): Likewise.
+	* omp-low.c (expand_omp_atomic_mutex): Likewise.
+	(expand_omp_taskreg): Adjust for new type of region->ws_args.
+	(get_ws_args_for): Return a VEC instead of a tree.
+	(expand_parallel_call): Call build_call_expr_loc_vec instead of
+	build_function_call_expr.
+	* stor-layout.c (self_referential_size): Likewise.
+
+2010-07-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/44701
+	* recog.c (constrain_operands): Allow side-effects in memory
+	operands if either < or > constraint is used, rather than if
+	both < and > is used.
+
+2010-07-13  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44911
+	* tree-pretty-print.c (dump_generic_node): Use TDF_SLIM for
+	MEM_REF pointer type dumping.  Avoid recursing for TYPE_DECLs
+	without name.
+
+2010-07-13  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/44761
+	* mode-switching.c (optimize_mode_switching): Add ATTRIBUTE_UNUSED
+	to variable emited.
+	* config/sh/sh.c (sh_expand_epilogue): Remove unused variable.
+	* config/sh/sh.md (symGOT_load): Likewise.
+	(symDTPOFF2reg): Likewise.
+	(symTPOFF2reg): Likewise.
+
+2010-07-13  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* expmed.c (MAX_BITS_PER_WORD): Moved to expmed.h.
+	* expmed.h (MAX_BITS_PER_WORD): Moved from expmed.c.
+
+2010-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/i386/sol2-unwind.h (x86_64_fallback_frame_state): Correct
+	explanation.
+	Find ucontext_t * on Solaris 11.
+	(x86_fallback_frame_state): Handle Solaris 9 multi-threaded pattern.
+	Handle new Solaris 11 __sighndlr patterns.
+
+2010-07-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/44901
+	* vec.h (VEC_block_remove): Fix comment.
+	* tree-ssa-live.c (remove_unused_locals): Don't use
+	VEC_unordered_remove on local_decls, instead replace a single
+	vector element in each iteration if at least one element had
+	to be removed and VEC_truncate at the end.
+	* omp-low.c (expand_omp_taskreg): Likewise.
+
+2010-07-13  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c-decl.c (finish_function): Fix typo in comment.
+	
+2010-07-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/44921
+	* postreload.c (move2add_use_add3_insn): Silence gcc warning
+	on min_regno.
+
 2010-07-12  Jakub Jelinek  <jakub@redhat.com>
 
 	* tree-vrp.c (simplify_bit_ops_using_ranges): New function.
@@ -66,8 +551,7 @@
 	(can_copy_p): Remove can_copy_init_p.
 	* target-globals.h (this_target_gcse): Declare.
 	(target_globals): Add a gcse field.
-	(restore_target_globals): Copy the gcse field to
-	this_target_gcse.
+	(restore_target_globals): Copy the gcse field to this_target_gcse.
 	* target-globals.c: Include gcse.h.
 	(default_target_globals): Initialize the gcse field.
 	(save_target_globals): Likewise.
@@ -323,9 +807,9 @@
 
 2010-07-12  Richard Sandiford  <rdsandiford@googlemail.com>
 
-	* regs.h (target_regs): Add x_hard_regs_of_mode, x_contains_reg_of_mode,
-	x_move_cost, x_may_move_in_cost, x_may_move_out_cost and
-	x_last_mode_for_init_move_cost.
+	* regs.h (target_regs): Add x_hard_regs_of_mode,
+	x_contains_reg_of_mode, x_move_cost, x_may_move_in_cost,
+	x_may_move_out_cost and x_last_mode_for_init_move_cost.
 	(have_regs_of_mode, contains_reg_of_mode, move_cost)
 	(may_move_in_cost, may_move_out_cost): Redefine as macros.
 	* reginfo.c (have_regs_of_mode, contains_reg_of_mode, move_cost)

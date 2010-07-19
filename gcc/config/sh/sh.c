@@ -973,6 +973,10 @@ sh_override_options (void)
 
   if (sh_fixed_range_str)
     sh_fix_range (sh_fixed_range_str);
+
+  /* This target defaults to strict volatile bitfields.  */
+  if (flag_strict_volatile_bitfields < 0)
+    flag_strict_volatile_bitfields = 1;
 }
 
 /* Print the operand address in x to the stream.  */
@@ -6861,13 +6865,12 @@ sh_expand_prologue (void)
 	  for (i = 0; i < NPARM_REGS(SImode); i++)
 	    {
 	      int rn = NPARM_REGS(SImode) + FIRST_PARM_REG - i - 1;
-	      rtx insn;
 
 	      if (i >= (NPARM_REGS(SImode)
 			- crtl->args.info.arg_count[(int) SH_ARG_INT]
 			))
 		break;
-	      insn = push (rn);
+	      push (rn);
 	    }
 	}
     }
@@ -7232,7 +7235,7 @@ sh_expand_epilogue (bool sibcall_p)
 	{
 	  enum machine_mode mode = (enum machine_mode) entry->mode;
 	  int reg = entry->reg;
-	  rtx reg_rtx, mem_rtx, post_inc = NULL_RTX, insn;
+	  rtx reg_rtx, mem_rtx, post_inc = NULL_RTX;
 
 	  offset = offset_base + entry->offset;
 	  reg_rtx = gen_rtx_REG (mode, reg);
@@ -7305,7 +7308,7 @@ sh_expand_epilogue (bool sibcall_p)
 	  if ((reg == PR_REG || SPECIAL_REGISTER_P (reg))
 	      && mem_rtx != post_inc)
 	    {
-	      insn = emit_move_insn (r0, mem_rtx);
+	      emit_move_insn (r0, mem_rtx);
 	      mem_rtx = r0;
 	    }
 	  else if (TARGET_REGISTER_P (reg))
@@ -7314,13 +7317,13 @@ sh_expand_epilogue (bool sibcall_p)
 
 	      /* Give the scheduler a bit of freedom by using up to
 		 MAX_TEMPS registers in a round-robin fashion.  */
-	      insn = emit_move_insn (tmp_reg, mem_rtx);
+	      emit_move_insn (tmp_reg, mem_rtx);
 	      mem_rtx = tmp_reg;
 	      if (*++tmp_pnt < 0)
 		tmp_pnt = schedule.temps;
 	    }
 
-	  insn = emit_move_insn (reg_rtx, mem_rtx);
+	  emit_move_insn (reg_rtx, mem_rtx);
 	}
 
       gcc_assert (entry->offset + offset_base == d + d_rounding);
@@ -7691,10 +7694,10 @@ sh_build_builtin_va_list (void)
   TREE_CHAIN (record) = type_decl;
   TYPE_NAME (record) = type_decl;
   TYPE_FIELDS (record) = f_next_o;
-  TREE_CHAIN (f_next_o) = f_next_o_limit;
-  TREE_CHAIN (f_next_o_limit) = f_next_fp;
-  TREE_CHAIN (f_next_fp) = f_next_fp_limit;
-  TREE_CHAIN (f_next_fp_limit) = f_next_stack;
+  DECL_CHAIN (f_next_o) = f_next_o_limit;
+  DECL_CHAIN (f_next_o_limit) = f_next_fp;
+  DECL_CHAIN (f_next_fp) = f_next_fp_limit;
+  DECL_CHAIN (f_next_fp_limit) = f_next_stack;
 
   layout_type (record);
 
@@ -7726,10 +7729,10 @@ sh_va_start (tree valist, rtx nextarg)
     }
 
   f_next_o = TYPE_FIELDS (va_list_type_node);
-  f_next_o_limit = TREE_CHAIN (f_next_o);
-  f_next_fp = TREE_CHAIN (f_next_o_limit);
-  f_next_fp_limit = TREE_CHAIN (f_next_fp);
-  f_next_stack = TREE_CHAIN (f_next_fp_limit);
+  f_next_o_limit = DECL_CHAIN (f_next_o);
+  f_next_fp = DECL_CHAIN (f_next_o_limit);
+  f_next_fp_limit = DECL_CHAIN (f_next_fp);
+  f_next_stack = DECL_CHAIN (f_next_fp_limit);
 
   next_o = build3 (COMPONENT_REF, TREE_TYPE (f_next_o), valist, f_next_o,
 		   NULL_TREE);
@@ -7788,7 +7791,7 @@ find_sole_member (tree type)
 {
   tree field, member = NULL_TREE;
 
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
     {
       if (TREE_CODE (field) != FIELD_DECL)
 	continue;
@@ -7831,10 +7834,10 @@ sh_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
       tree member;
 
       f_next_o = TYPE_FIELDS (va_list_type_node);
-      f_next_o_limit = TREE_CHAIN (f_next_o);
-      f_next_fp = TREE_CHAIN (f_next_o_limit);
-      f_next_fp_limit = TREE_CHAIN (f_next_fp);
-      f_next_stack = TREE_CHAIN (f_next_fp_limit);
+      f_next_o_limit = DECL_CHAIN (f_next_o);
+      f_next_fp = DECL_CHAIN (f_next_o_limit);
+      f_next_fp_limit = DECL_CHAIN (f_next_fp);
+      f_next_stack = DECL_CHAIN (f_next_fp_limit);
 
       next_o = build3 (COMPONENT_REF, TREE_TYPE (f_next_o), valist, f_next_o,
 		       NULL_TREE);

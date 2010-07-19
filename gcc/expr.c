@@ -5054,7 +5054,7 @@ count_type_elements (const_tree type, bool allow_flexarr)
 	HOST_WIDE_INT n = 0, t;
 	tree f;
 
-	for (f = TYPE_FIELDS (type); f ; f = TREE_CHAIN (f))
+	for (f = TYPE_FIELDS (type); f ; f = DECL_CHAIN (f))
 	  if (TREE_CODE (f) == FIELD_DECL)
 	    {
 	      t = count_type_elements (TREE_TYPE (f), false);
@@ -5063,7 +5063,7 @@ count_type_elements (const_tree type, bool allow_flexarr)
 		  /* Check for structures with flexible array member.  */
 		  tree tf = TREE_TYPE (f);
 		  if (allow_flexarr
-		      && TREE_CHAIN (f) == NULL
+		      && DECL_CHAIN (f) == NULL
 		      && TREE_CODE (tf) == ARRAY_TYPE
 		      && TYPE_DOMAIN (tf)
 		      && TYPE_MIN_VALUE (TYPE_DOMAIN (tf))
@@ -6827,8 +6827,7 @@ emutls_var_address (tree var)
   tree emuvar = emutls_decl (var);
   tree fn = built_in_decls [BUILT_IN_EMUTLS_GET_ADDRESS];
   tree arg = build_fold_addr_expr_with_type (emuvar, ptr_type_node);
-  tree arglist = build_tree_list (NULL_TREE, arg);
-  tree call = build_function_call_expr (UNKNOWN_LOCATION, fn, arglist);
+  tree call = build_call_expr (fn, 1, arg);
   return fold_convert (build_pointer_type (TREE_TYPE (var)), call);
 }
 
