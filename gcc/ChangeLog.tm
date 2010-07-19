@@ -1,3 +1,11 @@
+2010-07-16  Aldy Hernandez  <aldyh@redhat.com>
+
+	* cp/except.c (do_begin_catch): Do not build TM library call if
+	already defined.
+	(do_end_catch): Same.
+	(do_allocate_exception): Same.
+	(build_throw): Same.
+
 2010-07-16  Richard Henderson  <rth@redhat.com>
 
 	* cp/except.c (do_begin_catch): Mark _ITM_cxa_begin_catch tm_pure.
