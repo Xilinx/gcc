@@ -93,13 +93,13 @@ gpy_rr_eval_expression( gpy_object_state_t * x,
   char * op_str = NULL;
   gpy_object_state_t * retval = NULL;
 
-  if( x->definition->binary_protocol->init )
+  if( x->definition->binary_protocol.init )
     {
       binary_op o = NULL;
       switch( op )
 	{
 	case OP_BIN_ADDITION:
-	  o = x->definition->binary_protocol->n_add;
+	  o = x->definition->binary_protocol.n_add;
 	  op_str = " + ";
 	  break;
 
@@ -120,7 +120,7 @@ gpy_rr_eval_expression( gpy_object_state_t * x,
       if( retval )
 	{
 	  fprintf(stdout, "evaluated to: ");
-	  retval->definition->print_hook( retval->self );
+	  retval->definition->print_hook( retval->self, stderr, false );
 	  fprintf(stdout, "!\n");
 	}
 #endif
@@ -128,7 +128,7 @@ gpy_rr_eval_expression( gpy_object_state_t * x,
   else
     {
       fatal("object type <%s> has no binary protocol!\n",
-	    x->identifier );
+	    x->obj_t_ident );
     }
  
   return retval;

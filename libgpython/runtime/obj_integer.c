@@ -123,7 +123,7 @@ struct gpy_type_obj_def_t integer_obj = {
   &gpy_obj_integer_init,
   &gpy_obj_integer_destroy,
   &gpy_obj_integer_print,
-  &integer_binary_ops,
+  integer_binary_ops,
 };
 
 void gpy_obj_integer_mod_init( gpy_vector_t * const vec )

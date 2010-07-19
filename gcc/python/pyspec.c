@@ -50,9 +50,6 @@ void lang_specific_driver( int *in_argc , const char *const ** in_argv,
   /* If nonzero, the user gave us the `-p' or `-pg' flag.  */
   int saw_profile_flag = 0;
 
-  /* If nonzero, the user gave us the `-v' flag.  */
-  int saw_verbose_flag = 0;
-
   /* This is a tristate:
      -1 means we should not link in libgo
      0  means we should link in libgo if it is needed
@@ -137,8 +134,6 @@ void lang_specific_driver( int *in_argc , const char *const ** in_argv,
 	    args[i] |= WITHLIBC;
 	  else if (strcmp (argv[i], "-pg") == 0 || strcmp (argv[i], "-p") == 0)
 	    saw_profile_flag++;
-	  else if (strcmp (argv[i], "-v") == 0)
-	    saw_verbose_flag = 1;
 	  else if (strncmp (argv[i], "-x", 2) == 0)
 	    {
 	      const char * arg;
