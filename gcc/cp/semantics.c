@@ -5264,7 +5264,6 @@ constexpr_fundef_equal (const void *p, const void *q)
   return lhs->decl == rhs->decl;
 }
 
-
 /* Utility function used for managing the constexpr function table.
    Return a hash value for the entry pointed to by Q.  */
 
@@ -5283,7 +5282,7 @@ retrieve_constexpr_fundef (tree fun)
   constexpr_fundef fundef = { NULL, NULL, NULL };
   if (constexpr_fundef_table == NULL)
     return NULL;
-  
+
   fundef.decl = fun;
   return (constexpr_fundef *) htab_find (constexpr_fundef_table, &fundef);
 }
@@ -5416,7 +5415,7 @@ tree
 register_constexpr_fundef (tree fun, tree body)
 {
   constexpr_fundef *fundef = retrieve_constexpr_fundef (fun);
-  gcc_assert (fundef != NULL && fundef->body == NULL); 
+  gcc_assert (fundef != NULL && fundef->body == NULL);
 
   if (DECL_CONSTRUCTOR_P (fun))
     body = build_constexpr_constructor_member_initializers
@@ -5697,7 +5696,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t)
       error ("%qD is not a constexpr function", fun);
       return error_mark_node;
     }
-  
+
   /* If in direct recursive call, optimize definition search.  */
   if (old_call != NULL && old_call->fundef->decl == fun)
     new_call.fundef = old_call->fundef;
@@ -5712,8 +5711,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t)
     }
   if (!cxx_bind_parameters_in_call (old_call, t, &new_call))
     return error_mark_node;
-    
-  
+
   /* If we have seen this call before, we are done.  */
   maybe_initialize_constexpr_call_table ();
   slot = (constexpr_call **)
@@ -5909,7 +5907,6 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t)
   return t;
 }
 
-
 /* Return true if the expression T is an implicit pointer dereference.  */
 
 static bool
@@ -5937,7 +5934,7 @@ implicit_address_p (tree t)
     {
     case ADDR_EXPR:
       return true;
-        
+
     case CONVERT_EXPR:
       {
 	tree x = TREE_OPERAND (TREE_OPERAND (t, 0), 0);
@@ -6186,7 +6183,7 @@ morally_constexpr_builtin_function_p (tree decl)
    6 An expression is a potential constant expression if it is
      a constant expression where all occurences of function
      parameters are replaced by arbitrary constant expressions
-     of the appropriate type. 
+     of the appropriate type.
 
    2  A conditional expression is a constant expression unless it
       involves one of the following as a potentially evaluated
@@ -6207,7 +6204,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     }
   if (CONSTANT_CLASS_P (t))
     return true;
-  
+
   switch (TREE_CODE (t))
     {
     case FUNCTION_DECL:
@@ -6334,7 +6331,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
           }
         return potential_constant_expression (from, flags);
       }
-      
+
     case ADDR_EXPR:
       /* -- a unary operator & that is applied to an lvalue that
             designates an object with thread or automatic storage
@@ -6365,7 +6362,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
           return potential_constant_expression (x, flags);
         return true;
       }
-      
+
     case LAMBDA_EXPR:
     case DYNAMIC_CAST_EXPR:
     case PSEUDO_DTOR_EXPR:

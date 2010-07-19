@@ -8713,7 +8713,7 @@ grokdeclarator (const cp_declarator *declarator,
 	      }
 
             /* A constexpr non-static member function is implicitly const.  */
-            if (constexpr_p && staticp == 0 && decl_context == FIELD 
+            if (constexpr_p && staticp == 0 && decl_context == FIELD
                 && sfk != sfk_constructor && sfk != sfk_destructor)
               memfn_quals |= TYPE_QUAL_CONST;
 
@@ -9413,7 +9413,7 @@ grokdeclarator (const cp_declarator *declarator,
             if (constexpr_p && !staticp && !friendp
                 && sfk != sfk_constructor && sfk != sfk_destructor)
               memfn_quals |= TYPE_QUAL_CONST;
-            
+
 	    if (friendp == 0)
 	      {
 		if (ctype == NULL_TREE)

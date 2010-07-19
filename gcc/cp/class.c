@@ -4448,7 +4448,6 @@ type_requires_array_cookie (tree type)
   return has_two_argument_delete_p;
 }
 
-
 /* Finish computing the `literal type' property of class type T.
 
    At this point, we have already processed base classes and
