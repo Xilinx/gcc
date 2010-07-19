@@ -1,3 +1,75 @@
+2010-07-18  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/44353
+	* gfortran.dg/data_implied_do_2.f03 : New test.
+
+2010-07-18  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/cache-1.c: Allow 0 instead of 0x0.
+
+2010-07-18  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips.exp (mips_option_groups): Add -mflip-mips16
+	to the "mips16" group.
+	(mips_using_mips16_p): New procedure.
+	(mips-dg-options): Use it.
+
+2010-07-18  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips16-attributes-4.c: New test.
+
+2010-07-17  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR testsuite/44418
+	* gcc.target/powerpc/recip-1.c: Do not run for powerpc*-apple-darwin*
+	* gcc.target/powerpc/recip-2.c: Ditto.
+	* gcc.target/powerpc/recip-3.c: Ditto.
+
+2010-07-17  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* gcc.target/arm/pr42235.c: New test.
+
+2010-07-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/32505
+	* g++.dg/template/partial8.C: New.
+
+2010-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/guality/guality.exp: Run also c-c++-common/guality/ tests.
+	* gcc.dg/guality/guality.h: Include unistd.h.  Make the header usable
+	in C++.
+	(gualcvt): New overloaded inline.
+	(GUALCVT): Use it for C++.
+	* g++.dg/guality/guality.exp: New.
+	* g++.dg/guality/guality.h: New.
+	* g++.dg/guality/redeclaration1.C: New test.
+	* g++.dg/dg.exp: Prune also guality/* tests.
+	* gcc.dg/guality/pr43141.c: Moved to...
+	* c-c++-common/guality/pr43141.c: ... here.
+
+2010-07-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/37077
+	* gfortran.dg/char4_iunit_2.f03: New test.
+
+2010-07-16  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* lib/plugin-support.exp (plugin-test-execute):
+	Add ${gcc_objdir}/intl to includes.
+	
+2010-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/44942
+	* gcc.c-torture/execute/pr44942.c: New test.
+	* gcc.target/i386/pr44942.c: New test.
+
+2010-07-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44909
+	* g++.dg/cpp0x/implicit7.C: New.
+	* g++.dg/cpp0x/implicit8.C: New.
+
 2010-07-15  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	Disable float tests for __SPU__ targets due to lack of signed zero:
@@ -98,6 +170,16 @@
 	PR c++/44908
 	* g++.dg/template/sfinae21.C: New.
 	* g++.dg/template/sfinae22.C: Likewise.
+
+2010-07-16  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR testsuite/42843
+	* gcc.dg/plugin/selfassign.c: Include diagnostic.h.
+	* gcc.dg/plugin/ggcplug.c: Likewise.
+	* g++.dg/plugin/selfassign.c: Likewise.
+	* g++.dg/plugin/attribute_plugin.c: Likewise.
+	* g++.dg/plugin/dumb_plugin.c: Likewise.
+	* g++.dg/plugin/pragma_plugin.c: Likewise.
 
 2010-07-13  Kaz Kojima  <kkojima@gcc.gnu.org>
 

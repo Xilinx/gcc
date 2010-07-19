@@ -1,3 +1,34 @@
+2010-07-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/32505
+	* pt.c (process_partial_specialization): Diagnose partial
+	specialization after instantiation.
+	(most_specialized_class): Add complain parm.
+
+	* ptree.c (cxx_print_xnode): Handle TEMPLATE_INFO.
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* init.c (build_new_1): Use cp_build_function_call_nary instead of
+	cp_build_function_call.
+
+2010-07-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44909
+	* call.c (add_function_candidate): If we're working on an implicit
+	declaration, don't consider candidates that won't match.
+	* typeck.c (same_type_ignoring_top_level_qualifiers_p): Now a fn.
+	* cp-tree.h (same_type_ignoring_top_level_qualifiers_p): Adjust.
+
+	Revert:
+	* cp-tree.h (struct lang_type_class): Add has_user_opeq.
+	(TYPE_HAS_USER_OPEQ): New.
+	* decl.c (grok_special_member_properties): Set it.
+	* class.c (add_implicitly_declared_members): Don't lazily declare
+	constructors/operator= if a base or member has a user-declared one.
+	(check_bases_and_members, check_bases): Adjust.
+	(check_field_decls, check_field_decl): Adjust.
+
 2010-07-15  Anatoly Sokolov  <aesok@post.ru>
 
 	* decl.c (integer_three_node): Remove.

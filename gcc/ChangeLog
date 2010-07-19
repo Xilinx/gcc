@@ -1,3 +1,108 @@
+2010-07-18  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips16_build_call_stub): Zero-extend the
+	low half of a single-register SCmode return value before ORing
+	it with the high half.
+	* config/mips/mips16.S (MERGE_GPRf): Likewise.
+
+2010-07-17  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/44805
+	* config/pa/pa.h (CONSTANT_ALIGNMENT): Align strings to BITS_PER_WORD
+	on all targets.
+
+Index: config/pa/pa.h
+===================================================================
+--- config/pa/pa.h	(revision 162277)
++++ config/pa/pa.h	(working copy)
+@@ -316,8 +316,9 @@
+ #define BIGGEST_ALIGNMENT (2 * BITS_PER_WORD)
+ 
+ /* Get around hp-ux assembler bug, and make strcpy of constants fast.  */
+-#define CONSTANT_ALIGNMENT(CODE, TYPEALIGN) \
+-  ((TYPEALIGN) < 32 ? 32 : (TYPEALIGN))
++#define CONSTANT_ALIGNMENT(EXP, ALIGN)		\
++  (TREE_CODE (EXP) == STRING_CST		\
++   && (ALIGN) < BITS_PER_WORD ? BITS_PER_WORD : (ALIGN))
+ 
+ /* Make arrays of chars word-aligned for the same reasons.  */
+ #define DATA_ALIGNMENT(TYPE, ALIGN)		\
+2010-07-17  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/42235
+	* postreload.c (reload_cse_move2add): Return bool, true if anything.
+	changed.  All callers changed.
+	(move2add_use_add2_insn): Likewise.
+	(move2add_use_add3_insn): Likewise.
+	(reload_cse_regs): If reload_cse_move2add changed anything, rerun
+	reload_combine.
+	(RELOAD_COMBINE_MAX_USES): Bump to 16.
+	(last_jump_ruid): New static variable.
+	(struct reg_use): New members CONTAINING_MEM and RUID.
+	(reg_state): New members ALL_OFFSETS_MATCH and REAL_STORE_RUID.
+	(reload_combine_split_one_ruid, reload_combine_split_ruids,
+	reload_combine_purge_insn_uses, reload_combine_closest_single_use
+	reload_combine_purge_reg_uses_after_ruid,
+	reload_combine_recognize_const_pattern): New static functions.
+	(reload_combine_recognize_pattern): Verify that ALL_OFFSETS_MATCH
+	is true for our reg and that we have available index regs.
+	(reload_combine_note_use): New args RUID and CONTAINING_MEM.  All
+	callers changed.  Use them to initialize fields in struct reg_use.
+	(reload_combine): Initialize last_jump_ruid.  Be careful when to
+	take PREV_INSN of the scanned insn.  Update REAL_STORE_RUID fields.
+	Call reload_combine_recognize_const_pattern.
+	(reload_combine_note_store): Update REAL_STORE_RUID field.
+
+2010-07-16  Jason Merrill  <jason@redhat.com>
+
+	* Makefile.in (opts-common.o): Depend on options.h.
+
+2010-07-16  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.c (build_common_builtin_nodes): Use build_function_type_list
+	instead of build_function_type.
+	* tree-ssa-loop-prefetch.c (tree_ssa_prefetch_arrays): Likewise.
+	* cgraphunit.c (cgraph_build_static_cdtor): Likewise.
+
+2010-07-16  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/rs6000.c (rs6000_emit_sISEL): Let rs6000_emit_int_cmove
+	do all the work.
+	(rs6000_emit_int_cmove): Use function pointers for insn generation.
+	Don't force values into registers unnecessarily.
+	(output_isel): Assert that we're not given conditions we can't handle.
+	Delete corresponding code.
+	* config/rs6000/rs6000.md (isel_signed_<mode>): Use
+	scc_comparison_operator constraint.  Permit 0 for the consequent
+	operand.  Permit any GPR for the alternative operand.
+	(isel_unsigned_<mode>): Likewise.
+
+2010-07-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/44942
+	* config/i386/i386-protos.h (ix86_function_arg_boundary): Change second
+	argument to const_tree.
+	* config/i386/i386.c (function_arg_advance): If padding needs to be
+	inserted before argument, increment cum->words by number of padding
+	words as well.
+	(contains_aligned_value_p): Change argument to const_tree.
+	(ix86_function_arg_boundary): Change second argument to const_tree.
+
+2010-07-16  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/42235
+	* function.c (record_hard_reg_sets): New static function.
+	(assign_parm_setup_reg): If an optab for extending exists and the
+	generated code clobbbers no hard regs, emit the insn directly and
+	create a REG_EQUIV note.
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-decl.c (detect_field_duplicates): Use DECL_CHAIN insted of
+	TREE_CHAIN.
+	* c-typeck.c (push_init_level): Likewise.
+	(process_init_element): Likewise.
+
 2010-07-15  Anatoly Sokolov  <aesok@post.ru>
 
 	* tree.h (enum tree_index): Add TI_INTEGER_THREE.
