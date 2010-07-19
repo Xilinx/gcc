@@ -64,11 +64,10 @@
 					p1 = XEXP (const0, 1);
 
 					if ( (GET_CODE(p0) == SYMBOL_REF ||
-						GET_CODE (p1) == LABEL_REF) &&
+						GET_CODE (p0) == LABEL_REF) &&
 					      GET_CODE(p1) == CONST_INT )
 					  {
-						/* REVISIT: Should be arith_plus_operand ? */
-						return arith_operand (p0, GET_MODE(p0));
+						return arith_plus_operand (p0, GET_MODE(p0));
 					  }
 				}
 			}
