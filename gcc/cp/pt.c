@@ -5033,6 +5033,13 @@ convert_nontype_argument (tree type, tree expr)
      (_conv.integral_) are applied.  */
   if (INTEGRAL_OR_ENUMERATION_TYPE_P (type))
     {
+      if (CLASS_TYPE_P (expr_type)
+	  && CLASSTYPE_LITERAL_P (expr_type))
+	{
+	  expr = build_user_type_conversion (type, expr, LOOKUP_IMPLICIT);
+	  expr = cxx_constant_value (expr);
+	  expr_type = TREE_TYPE (expr);
+	}
       if (!INTEGRAL_OR_ENUMERATION_TYPE_P (expr_type))
 	return error_mark_node;
 

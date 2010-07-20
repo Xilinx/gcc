@@ -9,27 +9,15 @@
 struct A {
   constexpr A(int i) : val(i) { }
   constexpr operator int() { return val; }
-  constexpr operator long() { return 43; }
+  constexpr operator long() { return -1; }
 private:
   int val;
 };
 
-template<int> struct X { };
+template<int I> struct X { static const int i = I; };
 constexpr A a = 42;
 
-X<a> x;            // OK: unique conversion to int
-int ary[a];        // error: ambiguous conversion
-
-// p 5
-struct Z {
-  operator int() const { return 42; }
-  operator unsigned char() const { return 43; }
-};
-const Z z = { };
-const int n = z; // OK: n is initialized with 42
-const long m = z; // error: ambiguous conversion
-enum E { v1 = 2, v2 = 10 };
-E operator+(E, E);
-float array[v1 + v2];   // error: v1+v2 not constant
-
+X<a> x;	    // OK: unique conversion to int
+int ar[X<a>::i]; // also OK
+int ary[a]; // { dg-error "ambiguous|conversion|array" } ambiguous conversion
 

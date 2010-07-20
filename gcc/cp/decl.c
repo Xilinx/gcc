@@ -7433,6 +7433,17 @@ compute_array_index_type (tree name, tree size)
     return error_mark_node;
 
   type = TREE_TYPE (size);
+  if (!dependent_type_p (type)
+      && CLASS_TYPE_P (type)
+      && CLASSTYPE_LITERAL_P (type))
+    {
+      tree conv = build_expr_type_conversion (WANT_INT, size, true);
+      if (conv != error_mark_node)
+	{
+	  size = cxx_constant_value (conv);
+	  type = TREE_TYPE (size);
+	}
+    }
   /* The array bound must be an integer type.  */
   if (!dependent_type_p (type) && !INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (type))
     {
