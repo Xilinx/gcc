@@ -1665,8 +1665,22 @@
   $v = meltgc_new_real ((meltobject_ptr_t) MELT_PREDEF (DISCR_REAL), 
                        TREE_REAL_CST(($tr))); }#
 )
-  
 
+(defcmatcher tree_string_cst
+  (:tree tr)
+  (:value v)
+  treestringc
+  ;; test expander
+  #{   /* $treestringc ? */
+       (($tr) && TREE_CODE ($tr) == STRING_CST)
+  }#
+  ;; fill expander
+  #{   /* $treestringc ! */
+       $v = meltgc_new_string_raw_len ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING),
+				       TREE_STRING_POINTER ($tr),
+				       TREE_STRING_LENGTH ($tr));
+  }#)
+       
 ;;; pattern for pointer types
 (defcmatcher tree_pointer_type_p
   (:tree tr)
@@ -2713,7 +2727,9 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_of_type
  tree_pointer_type_p
  tree_parm_decl
+ tree_real_cst
  tree_ssa_name 
+ tree_string_cst
  tree_type
  tree_type_declaration
  tree_uid

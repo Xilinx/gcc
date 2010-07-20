@@ -1,3 +1,7 @@
+2010-07-20  jeremie Salvucci  <jeremie.salvucci@free.fr>
+	* xtramelt-ana-base.melt (tree_string_cst) : Added.
+	  (tree_real_cst) : Exported.
+
 2010-07-15  jeremie Salvucci  <jeremie.salvucci@free.fr>
 	* xtramelt-ana-base.melt (gimple_nb_succ) : Exported.
 
