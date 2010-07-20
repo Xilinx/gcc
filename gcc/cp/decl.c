@@ -5341,11 +5341,28 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
       if (type == error_mark_node)
 	return NULL_TREE;
 
-      if (TYPE_NEEDS_CONSTRUCTING (type)
-	  || (CLASS_TYPE_P (type)
-	      && !BRACE_ENCLOSED_INITIALIZER_P (init)))
+      if (literal_type_p (type))
+	{
+	  /* For literal types we want to do static initialization, and we
+	     don't need to worry about non-trivial copy or destruction.  So
+	     don't go through build_aggr_init, and do convert a list of
+	     constructor args into a TARGET_EXPR initializer.  */
+	  /* FIXME what about non-literal classes with constexpr
+	     constructors?  */
+	  if (CLASS_TYPE_P (type)
+	      && TREE_CODE (init) == TREE_LIST)
+	    {
+	      init = build_functional_cast (type, init, tf_warning_or_error);
+	      if (init != error_mark_node)
+		TARGET_EXPR_DIRECT_INIT_P (init) = true;
+	    }
+	}
+      else if (TYPE_NEEDS_CONSTRUCTING (type)
+	       || (CLASS_TYPE_P (type)
+		   && !BRACE_ENCLOSED_INITIALIZER_P (init)))
 	return build_aggr_init_full_exprs (decl, init, flags);
-      else if (TREE_CODE (init) != TREE_VEC)
+
+      if (TREE_CODE (init) != TREE_VEC)
 	{
 	  init_code = store_init_value (decl, init, flags);
 	  if (pedantic && TREE_CODE (type) == ARRAY_TYPE
@@ -6407,8 +6424,9 @@ expand_static_init (tree decl, tree init)
 
   /* Some variables require no initialization.  */
   if (!init
-      && !TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (decl))
-      && TYPE_HAS_TRIVIAL_DESTRUCTOR (TREE_TYPE (decl)))
+      && ((!TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (decl))
+	   && TYPE_HAS_TRIVIAL_DESTRUCTOR (TREE_TYPE (decl)))
+	  || literal_type_p (TREE_TYPE (decl))))
     return;
 
   if (DECL_FUNCTION_SCOPE_P (decl))

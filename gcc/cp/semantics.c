@@ -6066,6 +6066,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
     case INDIRECT_REF:
       {
         tree x = TREE_OPERAND (t, 0);
+	STRIP_NOPS (x);
         if (is_this_parameter (x))
           return lookup_parameter_binding (call, x);
         return cxx_eval_constant_expression (call, x);
@@ -6258,7 +6259,8 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
                 && !DECL_CONSTRUCTOR_P (fun))
               {
                 gcc_assert (TREE_CODE (x) == ADDR_EXPR);
-                if (!potential_constant_expression (x, flags))
+                if (!potential_constant_expression (TREE_OPERAND (x, 0),
+						    flags))
                   return false;
               }
             else if (!potential_constant_expression (x, flags))
