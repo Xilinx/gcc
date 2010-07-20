@@ -1317,20 +1317,84 @@ canonicalize_loop_closed_ssa_form (void)
 #endif
 }
 
+/* Check if STMT in BB can be represented by the polyhedral model.
+   The function is currently incomplete as it requires the data
+   reference and SCEV representation checks added.  */
+
+static bool
+is_valid_stmt_p (refined_region_p region ATTRIBUTE_UNUSED,
+		 basic_block bb ATTRIBUTE_UNUSED, gimple stmt)
+{
+  return !gimple_has_volatile_ops (stmt)
+    && gimple_code (stmt) != GIMPLE_ASM
+    && (gimple_code (stmt) != GIMPLE_CALL
+	|| gimple_call_flags (stmt) & (ECF_CONST | ECF_PURE));
+}
+
+/* Check if BB can be represented in the polyhedral model as part
+   of REGION.  Only single-exit loops are currently supported.  */
+
+static bool
+is_valid_bb_p (refined_region_p region, basic_block bb)
+{
+  int succ_len = VEC_length (edge, bb->succs);
+  gimple_stmt_iterator gsi;
+
+  /* Perform the control flow graph validity check.  */
+
+  /* TODO: Is there only well structured control flow in the region?
+   * All loops have just one exit?
+   * All loops are detected by gcc's loop detection?
+   * All conditions are well nested?  */
+
+  /* BBs without successors or with more than 2 predecessors are currently
+     unsupported.  */
+  if (succ_len > 2 || succ_len == 0)
+    return false;
+
+  /* Is BB the exiting block of a single-exit loop?  */
+  if (succ_len == 2)
+    {
+      struct loop *loop = bb->loop_father;
+
+      /* Single exit loops only.  */
+      if (!single_exit (loop)
+	  || !loop_exits_from_bb_p (loop, bb))
+	return false;
+    }
+
+  /* Are there any harmful bbs in the region? (TODO)  */
+
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    if (!is_valid_stmt_p (region, bb, gsi_stmt (gsi)))
+      return false;
+
+  return true;
+}
+
+
 /* Check if REGION is a valid SCoP.  */
 
 static bool
-is_scop_p (refined_region_p region ATTRIBUTE_UNUSED)
+is_scop_p (refined_region_p region)
 {
-  /* TODO: Are there any harmful bbs in the region?  */
-  /* TODO: Do all loops have a number of iterations that can be expressed
-	   by an affine linear function.  */
-  /* TODO: Is there only well structured control flow in the region?
-	   * All loops have just one exit?
-	   * All loops are detected by gcc's loop detection?
-	   * All conditions are well nested?  */
+  VEC (basic_block, heap) *bblist = NULL;
+  int i;
+  basic_block bb_iter;
 
-  return false;
+  get_bbs_in_region (region, &bblist);
+
+  for (i = 0; VEC_iterate (basic_block, bblist, i, bb_iter); i++)
+    {
+      if (!is_valid_bb_p (region, bb_iter))
+	return false;
+
+      /* TODO: Do all loops have a number of iterations that can be expressed
+	 by an affine linear function.  */
+      /* ??? */
+    }
+
+  return true;
 }
 
 /* Find in a structured way Static Control Parts (SCoP) in the current
@@ -1339,7 +1403,6 @@ is_scop_p (refined_region_p region ATTRIBUTE_UNUSED)
 static void
 build_scops_new (void)
 {
-
   VEC (refined_region_p, heap) *scops = VEC_alloc (refined_region_p, heap, 3);
   VEC (refined_region_p, heap) *check = VEC_alloc (refined_region_p, heap, 3);
 
