@@ -70,7 +70,7 @@ typedef struct gpy_type_obj_def_t {
   void * (*init_hook)( gpy_literal_t * );
   void (*destroy_hook)( void * );
   void (*print_hook)( void * , FILE * , bool );
-  struct gpy_number_prot_t binary_protocol;
+  struct gpy_number_prot_t * binary_protocol;
 } gpy_type_obj_def_t ;
 
 

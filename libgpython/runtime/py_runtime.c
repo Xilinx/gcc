@@ -77,6 +77,7 @@ gpy_object_state_t * gpy_rr_fold_integer( int x )
   retval->obj_t_ident = gpy_strdup( Int_def->identifier );
   retval->ref_count++;
   retval->self = Int_def->init_hook( &i );
+  retval->definition = Int_def;
 
   debug("initilized integer object <%p> to <%i>!\n",
 	(void*)retval, x );
@@ -93,13 +94,18 @@ gpy_rr_eval_expression( gpy_object_state_t * x,
   char * op_str = NULL;
   gpy_object_state_t * retval = NULL;
 
-  if( x->definition->binary_protocol.init )
+
+  struct gpy_type_obj_def_t * def = x->definition;
+  struct gpy_number_prot_t * binops = (*def).binary_protocol;
+  struct gpy_number_prot_t  binops_l = (*binops);
+
+  if( binops_l.init )
     {
       binary_op o = NULL;
       switch( op )
 	{
 	case OP_BIN_ADDITION:
-	  o = x->definition->binary_protocol.n_add;
+	  o = binops_l.n_add;
 	  op_str = " + ";
 	  break;
 
@@ -120,7 +126,7 @@ gpy_rr_eval_expression( gpy_object_state_t * x,
       if( retval )
 	{
 	  fprintf(stdout, "evaluated to: ");
-	  retval->definition->print_hook( retval->self, stderr, false );
+	  retval->definition->print_hook( retval->self, stdout, false );
 	  fprintf(stdout, "!\n");
 	}
 #endif

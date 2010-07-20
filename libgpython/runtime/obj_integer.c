@@ -100,7 +100,8 @@ gpy_obj_integer_add( gpy_object_state_t * o1, gpy_object_state_t * o2 )
   return retval;
 }
 
-struct gpy_number_prot_t integer_binary_ops = {
+
+static struct gpy_number_prot_t integer_binary_ops = {
   true,
   &gpy_obj_integer_add,
   NULL,
@@ -117,13 +118,13 @@ struct gpy_number_prot_t integer_binary_ops = {
   NULL,
 };
 
-struct gpy_type_obj_def_t integer_obj = {
+static struct gpy_type_obj_def_t integer_obj = {
   "Int",
   sizeof(struct gpy_obj_integer_t),
-  &gpy_obj_integer_init,
-  &gpy_obj_integer_destroy,
-  &gpy_obj_integer_print,
-  integer_binary_ops,
+  gpy_obj_integer_init,
+  gpy_obj_integer_destroy,
+  gpy_obj_integer_print,
+  &integer_binary_ops,
 };
 
 void gpy_obj_integer_mod_init( gpy_vector_t * const vec )
