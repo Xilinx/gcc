@@ -26,9 +26,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "timevar.h"
 #include "bitmap.h"
-
-#include "refined-regions.h"
 #include "domwalk.h"
+#include "tree-pass.h"
+#include "refined-regions.h"
 
 /* Auxiliary function for qsort () that compares two basic blocks
    according to the values of their indices.  */
@@ -619,4 +619,161 @@ free_region_tree (refined_region_p region)
 
   VEC_free (refined_region_p, heap, region->children);
   free (region);
+}
+
+/* Pretty print to FILE all the REGIONS in DOT format and mark them with
+   different colors.  The behavior is the same as in dot_all_scops_1.  */
+
+static void
+dot_regions_1 (FILE *file, VEC (refined_region_p, heap) *regions)
+{
+  basic_block bb;
+  edge e;
+  edge_iterator ei;
+  refined_region_p region;
+  const char* color;
+  int i;
+
+  /* Disable debugging while printing graph.  */
+  int tmp_dump_flags = dump_flags;
+  dump_flags = 0;
+
+  fprintf (file, "digraph all {\n");
+
+  FOR_ALL_BB (bb)
+    {
+      int part_of_scop = false;
+
+      /* Use HTML for every bb label.  So we are able to print bbs
+         which are part of two different SCoPs, with two different
+         background colors.  */
+      fprintf (file, "%d [label=<\n  <TABLE BORDER=\"0\" CELLBORDER=\"1\" ",
+	       bb->index);
+      fprintf (file, "CELLSPACING=\"0\">\n");
+
+      /* Select color for SCoP.  */
+      for (i = 0; VEC_iterate (refined_region_p, regions, i, region); i++)
+	{
+	  if (refined_region_contains_bb_p (region, bb)
+	      || (region->exit == bb)
+	      || (region->entry == bb))
+	    {
+	      switch (i % 17)
+		{
+		case 0: /* red */
+		  color = "#e41a1c";
+		  break;
+		case 1: /* blue */
+		  color = "#377eb8";
+		  break;
+		case 2: /* green */
+		  color = "#4daf4a";
+		  break;
+		case 3: /* purple */
+		  color = "#984ea3";
+		  break;
+		case 4: /* orange */
+		  color = "#ff7f00";
+		  break;
+		case 5: /* yellow */
+		  color = "#ffff33";
+		  break;
+		case 6: /* brown */
+		  color = "#a65628";
+		  break;
+		case 7: /* rose */
+		  color = "#f781bf";
+		  break;
+		case 8:
+		  color = "#8dd3c7";
+		  break;
+		case 9:
+		  color = "#ffffb3";
+		  break;
+		case 10:
+		  color = "#bebada";
+		  break;
+		case 11:
+		  color = "#fb8072";
+		  break;
+		case 12:
+		  color = "#80b1d3";
+		  break;
+		case 13:
+		  color = "#fdb462";
+		  break;
+		case 14:
+		  color = "#b3de69";
+		  break;
+		case 15:
+		  color = "#fccde5";
+		  break;
+		case 16:
+		  color = "#bc80bd";
+		  break;
+		default: /* gray */
+		  color = "#999999";
+		}
+
+	      fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"%s\">", color);
+
+	      if (!refined_region_contains_bb_p (region, bb))
+		fprintf (file, " (");
+
+	      if (bb == region->entry
+		  && bb == region->exit)
+		fprintf (file, " %d*# ", bb->index);
+	      else if (bb == region->entry)
+		fprintf (file, " %d* ", bb->index);
+	      else if (bb == region->exit)
+		fprintf (file, " %d# ", bb->index);
+	      else
+		fprintf (file, " %d ", bb->index);
+
+	      if (!refined_region_contains_bb_p (region, bb))
+		fprintf (file, ")");
+
+	      fprintf (file, "</TD></TR>\n");
+	      part_of_scop  = true;
+	    }
+	}
+
+      if (!part_of_scop)
+	{
+	  fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"#ffffff\">");
+	  fprintf (file, " %d </TD></TR>\n", bb->index);
+	}
+      fprintf (file, "  </TABLE>>, shape=box, style=\"setlinewidth(0)\"]\n");
+    }
+
+  FOR_ALL_BB (bb)
+  {
+    FOR_EACH_EDGE (e, ei, bb->succs)
+      fprintf (file, "%d -> %d;\n", bb->index, e->dest->index);
+  }
+
+  fputs ("}\n\n", file);
+
+  /* Enable debugging again.  */
+  dump_flags = tmp_dump_flags;
+}
+
+/* Display refined REGIONS using dotty.  */
+
+void
+dot_regions (VEC (refined_region_p, heap) *regions)
+{
+  /* When debugging, enable the following code.  This cannot be used
+     in production compilers because it calls "system".  */
+#if 1
+  FILE *stream = fopen ("/tmp/regions.dot", "w");
+  gcc_assert (stream);
+
+  dot_regions_1 (stream, regions);
+  fclose (stream);
+
+  system ("dotty /tmp/regions.dot &");
+#else
+  dot_all_scops_1 (stderr, regions);
+#endif
 }

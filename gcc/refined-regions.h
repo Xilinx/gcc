@@ -92,5 +92,6 @@ extern bool refined_region_contains_region_p (refined_region_p,
 extern void print_refined_region (FILE*, refined_region_p, int, bool);
 extern void debug_refined_region (refined_region_p);
 extern void get_bbs_in_region (refined_region_p, VEC (basic_block, heap) **);
+extern void dot_regions (VEC (refined_region_p, heap) *);
 
 #endif  /* GCC_REFINED_REGIONS_H */
