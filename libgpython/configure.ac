@@ -1,8 +1,28 @@
+#   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
+#   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+#   Free Software Foundation, Inc.
+#
+# This file is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
+
+##############################################################################
+### WARNING: this file contains embedded tabs.  Do not run untabify on this file.
 # Process this file with autoconf to produce a configure script, like so:
 # aclocal && autoconf && autoheader && automake
 
 AC_PREREQ(2.64)
-AC_INIT([GNU Python Runtime Library], 0.1,,[libgpy])
+AC_INIT([GNU Python Runtime Library], 0.1,,[libgpython])
 AC_CONFIG_HEADER(config.h)
 GCC_TOPLEV_SUBDIRS
 
