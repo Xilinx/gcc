@@ -1,3 +1,211 @@
+2010-07-21  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/45018
+	* g++.dg/lto/20100721-1_0.C: New testcase.
+
+2010-07-21  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/44900
+	* g++.dg/torture/pr44900.C: New test.
+
+2010-07-21  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR middle-end/44738
+	* c-c++-common/uninit-17.c: Correct expected error.
+
+2010-07-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/guality/asm-1.c: New test.
+
+	PR debug/45003
+	* gcc.dg/guality/pr45003-2.c: New test.
+	* gcc.dg/guality/pr45003-3.c: New test.
+
+2010-07-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/44697
+	* gfortran.dg/ftell_3.f90: Take care of cr-lf record endings.
+
+2010-07-20  Jeffrey Yasskin  <jyasskin@google.com>
+
+	* lib/scanasm.exp (dg-function-on-line): Test that a function is
+	defined on the current line.
+	* g++.dg/debug/dwarf2/lineno-simple1.C: New. Line number sanity test.
+	* g++.dg/debug/dwarf2/pr44641.C: New.
+
+2010-07-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.target/powerpc/block-move-1.c: New test.
+	* gcc.target/powerpc/block-move-2.c: New test.
+
+2010-07-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44967
+	* g++.dg/cpp0x/sfinae2.C: New.
+
+2010-07-20  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42696
+	* gcc.dg/lto/20100720-4_0.c: New testcase.
+
+2010-07-20  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43221
+	* gcc.dg/lto/20100720-2_0.c: New testcase.
+	* gcc.dg/lto/20100720-2_1.c: Likewise.
+
+2010-07-20  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43208
+	* gcc.dg/lto/20100720-1_0.c: New testcase.
+	* gcc.dg/lto/20100720-1_1.c: Likewise.
+
+2010-07-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45003
+	* gcc.dg/guality/pr45003-1.c: New test.
+
+2010-07-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44977
+	* gcc.dg/torture/pr44977.c: New testcase.
+
+2010-07-20  Bingfeng Mei  <bmei@broadcom.com>
+
+	* gcc.dg/lto/20090313_0.c: Use dg-require-effective-target
+	sync_char_short
+
+2010-07-20  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44971
+	PR middle-end/44988
+	* gcc.dg/pr44971.c: New testcase.
+	* gcc.c-torture/compile/pr44988.c: Likewise.
+
+2010-07-19  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/44929
+	* gfortran.dg/allocate_with_typespec.f90: New test.
+	* gfortran.dg/allocate_derived_1.f90: Update error message.
+
+2010-07-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44996
+	* g++.dg/cpp0x/decltype23.C: New.
+
+2010-07-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/42385
+	* gfortran.dg/class_defined_operator_1.f03 : New test.
+
+2010-07-19  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* gcc.dg/vect/slp-perm-1.c (main): Make sure loops aren't vectorized.
+	* gcc.dg/vect/slp-perm-2.c (main): Likewise.
+	* gcc.dg/vect/slp-perm-3.c (main): Likewise.  Fix loop limit.
+	* gcc.dg/vect/slp-perm-4.c (main): Fix loop limit.
+
+2010-07-19  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44941
+	* gcc.c-torture/compile/pr44941.c: New testcase.
+
+2010-07-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44969
+	* g++.dg/template/sfinae24.C: New.
+
+2010-07-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR fortran/44353
+	* gfortran.dg/data_implied_do_2.f90: Removed.
+
+2010-07-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44969
+	* g++.dg/template/sfinae23.C: New.
+
+2010-07-19  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/target-supports.exp (check_sse_os_support_available): New
+	proc.
+	(check_sse_hw_available): New proc.
+	(check_effective_target_sse_runtime): New proc.
+	(check_effective_target_sse2_runtime): New proc.
+	* lib/fortran-torture.exp (get-fortran-torture-options): Only add
+	-msse2 if check_sse_os_support_available.
+	* g++.dg/vect/vect.exp: Only run -msse2 tests if
+	check_sse_os_support_available.
+	* gcc.dg/vect/vect.exp: Likewise.
+	* gfortran.dg/vect/vect.exp: Likewise.
+	* gcc.target/i386/sol2-check: Renamed to ...
+	* gcc.target/i386/sse-os-support.h: ... this.
+	(sol2_check): Renamed to ...
+	(sse_os_support): ... this.
+	Only test movss with xmm registers.
+	* gcc.target/i386/sse-check.h: Reflect new header and function names.
+	Removed ILL_INSN, ILL_INSN_LEN.
+	* gcc.target/i386/sse2-check.h: Likewise.
+	* gcc.target/i386/sse3-check.h: Likewise.
+	* gcc.dg/pr40550.c: Use dg-require-effective-target sse_runtime.
+	Removed cpuid.h, __get_cpuid test.
+	* g++.dg/other/i386-1.C: Use dg-require-effective-target sse2_runtime.
+	Removed cpuid.h, __get_cpuid test.
+	* g++.dg/other/pr40446.C: Likewise.
+	* gcc.dg/compat/union-m128-1_main.c: Likewise.
+	* gcc.dg/compat/vector-1a_main.c: Likewise.
+	* gcc.dg/compat/vector-2a_main.c: Likewise.
+	* gcc.dg/pr36584.c: Likewise.
+	* gcc.dg/pr37544.c: Likewise.
+	* gcc.dg/torture/pr16104-1.c: Likewise.
+	* gcc.dg/torture/stackalign/alloca-2.c: Likewise.
+	* gcc.dg/torture/stackalign/alloca-3.c: Likewise.
+	* gcc.dg/torture/stackalign/push-1.c: Likewise.
+	* gcc.dg/torture/stackalign/vararg-3.c: Likewise.
+	* gcc.dg/torture/pr35771.h: Removed cpuid.h, __get_cpuid test.
+	* gcc.dg/torture/pr35771-1.c: Use dg-require-effective-target
+	sse2_runtime.
+	* gcc.dg/torture/pr35771-2.c: Likewise.
+	* gcc.dg/torture/pr35771-3.c: Likewise.
+	* gcc.target/i386/pr39315-2.c: Likewise.
+	* gcc.target/i386/pr39315-4.c: Likewise.
+	* gcc.target/i386/vperm-v2df.c: Likewise.
+	* gcc.target/i386/vperm-v2di.c: Likewise.
+	* gcc.target/i386/vperm-v4si-1.c: Likewise.
+	* gcc.target/i386/vperm-v4sf-1.c: Use dg-require-effective-target
+	sse_runtime.
+
+2010-07-18  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/44353
+	* gfortran.dg/data_implied_do_2.f90: New test.
+
+2010-07-18  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/cache-1.c: Allow 0 instead of 0x0.
+
+2010-07-18  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips.exp (mips_option_groups): Add -mflip-mips16
+	to the "mips16" group.
+	(mips_using_mips16_p): New procedure.
+	(mips-dg-options): Use it.
+
+2010-07-18  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips16-attributes-4.c: New test.
+
+2010-07-17  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR testsuite/44418
+	* gcc.target/powerpc/recip-1.c: Do not run for powerpc*-apple-darwin*
+	* gcc.target/powerpc/recip-2.c: Ditto.
+	* gcc.target/powerpc/recip-3.c: Ditto.
+
+2010-07-17  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* gcc.target/arm/pr42235.c: New test.
+
 2010-07-16  Jason Merrill  <jason@redhat.com>
 
 	PR c++/32505

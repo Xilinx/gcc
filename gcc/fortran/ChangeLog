@@ -1,3 +1,70 @@
+2010-07-21  Daniel Kraft  <d@domob.eu>
+
+	* trans.h (gfc_get_return_label): Removed.
+	(gfc_generate_return): New method.
+	(gfc_trans_deferred_vars): Update gfc_wrapped_block rather than
+	returning a tree directly.
+	* trans-stmt.c (gfc_trans_return): Use `gfc_generate_return'.
+	(gfc_trans_block_construct): Update for new interface to
+	`gfc_trans_deferred_vars'.
+	* trans-decl.c (current_function_return_label): Removed.
+	(current_procedure_symbol): New variable.
+	(gfc_get_return_label): Removed.
+	(gfc_trans_deferred_vars): Update gfc_wrapped_block rather than
+	returning a tree directly.
+	(get_proc_result), (gfc_generate_return): New methods.
+	(gfc_generate_function_code): Clean up and do init/cleanup here
+	also with gfc_wrapped_block.  Remove return-label but rather
+	return directly.
+
+2010-07-19  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/44929
+	* fortran/match.c (match_type_spec): Check for derived type before
+	intrinsic types.
+
+2010-07-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/42385
+	* interface.c (matching_typebound_op): Add argument for the
+	return of the generic name for the procedure.
+	(build_compcall_for_operator): Add an argument for the generic
+	name of an operator procedure and supply it to the expression.
+	(gfc_extend_expr, gfc_extend_assign): Use the generic name in
+	calls to the above procedures.
+	* resolve.c (resolve_typebound_function): Catch procedure
+	component calls for CLASS objects, check that the vtable is
+	complete and insert the $vptr and procedure components, to make
+	the call.
+	(resolve_typebound_function): The same.
+	* trans-decl.c (gfc_trans_deferred_vars): Do not deallocate
+	an allocatable scalar if it is a result.
+
+2010-07-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/44353
+	* match.c (gfc_match_iterator): Reverted.
+
+2010-07-18  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/44353
+	* match.c (gfc_match_iterator): Remove error that iterator
+	cannot be INTENT(IN).
+
+2010-07-17  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_free_ss): Don't free beyond ss rank.
+	Access subscript through the "dim" field index.
+	(gfc_trans_create_temp_array): Access ss info through the "dim" field
+	index.
+	(gfc_conv_array_index_offset): Ditto.
+	(gfc_conv_loop_setup): Ditto.
+	(gfc_conv_expr_descriptor): Ditto.
+	(gfc_conv_ss_startstride): Ditto.  Update call to
+	gfc_conv_section_startstride.
+	(gfc_conv_section_startstride): Set values along the array dimension.
+	Get array dimension directly from the argument.
+
 2010-07-15  Jakub Jelinek  <jakub@redhat.com>
 
 	* trans.h (gfc_string_to_single_character): New prototype.
@@ -75,7 +142,7 @@
 
 	* trans-array.c (gfc_conv_section_upper_bound): Remove
 	(gfc_conv_section_startstride): Don't set the upper bound in the 
-	vector subscript case. 
+	vector subscript case.
 	(gfc_conv_loop_setup): Don't use gfc_conv_section_upper_bound
 
 2010-07-14  Janus Weil  <janus@gcc.gnu.org>
@@ -200,11 +267,11 @@
 	* trans-stmt.c (ADD_FIELD): Ditto.
 	* trans-types.c
 	(gfc_get_derived_type): Ditto. Don't create backend_decl for C_PTR's
-	C_ADDRESS field. 
+	C_ADDRESS field.
 	(gfc_add_field_to_struct_1): Set TYPE_FIELDS(context) instead of
 	fieldlist, remove fieldlist from argument list.
 	(gfc_add_field_to_struct): Update call to gfc_add_field_to_struct_1
-	and remove fieldlist from argument list. 
+	and remove fieldlist from argument list.
 	(gfc_get_desc_dim_type, gfc_get_array_descriptor_base,
 	gfc_get_mixed_entry_union): Move setting
 	TYPE_FIELDS to gfc_add_field_to_struct_1 and update calls to it.

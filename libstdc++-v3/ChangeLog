@@ -1,3 +1,30 @@
+2010-07-19  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/appendix_contributing.xml: Update for new reality.
+	* doc/Makefile.am (doc-xml): New default rule for XML output.
+	(doc-xml-single-doxygen): Standardize output names.
+	* doc/Makefile.in: Regenerate.
+
+	* doc/doxygen/user.cfg.in: Tweak.
+
+2010-07-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* libsupc++/unwind-cxx.h: Minor formatting / stylistic tweaks.
+
+2010-07-20  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR libstdc++/44902
+	* libsupc++/unwind-cxx.h (__cxa_type_match): Correct prototype.
+	(__cxa_begin_cleanup): Likewise.
+
+2010-07-19  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/Makefile.am (doc-texinfo): New rule.
+	(doc-texinfo-docbook): New rule.
+	(DB2TEXI_FLAGS): New.
+	(doc-xml-single-docbook): Just the manual, not the set. Tweak flags.
+	* doc/Makefile.in: Regenerate.
+
 2010-07-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* doc/xml/manual/shared_ptr.xml: Update.
