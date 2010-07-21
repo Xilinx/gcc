@@ -453,6 +453,7 @@ create_new_allocno_for_spilling (int nreg, int oreg)
 
   /* First create the allocno.  */
   to = ira_create_allocno (nreg, true, ira_curr_loop_tree_node);
+  ira_create_allocno_object (to);
   ALLOCNO_REG (to) = regno_reg_rtx[nreg];
 
   /* Now lengthen the regno->allocno map.  */
