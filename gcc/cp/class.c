@@ -4463,6 +4463,8 @@ finalize_literal_type_property (tree t)
     CLASSTYPE_LITERAL_P (t) = false;
   if (!TYPE_HAS_TRIVIAL_COPY_CTOR (t))
     CLASSTYPE_LITERAL_P (t) = false;
+  if (TYPE_HAS_COMPLEX_MOVE_CTOR (t))
+    CLASSTYPE_LITERAL_P (t) = false;
   if (CLASSTYPE_LITERAL_P (t) && !TYPE_HAS_TRIVIAL_DFLT (t)
       && CLASSTYPE_METHOD_VEC (t) != NULL)
     {
