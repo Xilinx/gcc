@@ -5219,7 +5219,7 @@ extern tree cxx_constant_value (tree);
 
 /* True if C++0x-style conctant expresions are allowed.  */
 #define generalized_constant_expression_allowed() \
-  ((cxx_dialect != cxx98) || in_system_header)
+  ((cxx_dialect >= cxx0x) || in_system_header)
 
 enum {
   BCS_NO_SCOPE = 1,

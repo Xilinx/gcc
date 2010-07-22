@@ -5231,7 +5231,7 @@ tree
 ensure_literal_type_for_constexpr_object (tree decl)
 {
   tree type = TREE_TYPE (decl);
-  if (VAR_DECL_P (decl) && DECL_DECLARED_CONSTEXPR_P (decl)
+  if (TREE_CODE (decl) == VAR_DECL && DECL_DECLARED_CONSTEXPR_P (decl)
       && !processing_template_decl && !literal_type_p (type))
     {
       error ("the type %qT of constexpr variable %qD is not literal",

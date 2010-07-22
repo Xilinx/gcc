@@ -6424,8 +6424,9 @@ expand_static_init (tree decl, tree init)
 
   /* Some variables require no initialization.  */
   if (!init
-      && ((!TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (decl))
-	   && TYPE_HAS_TRIVIAL_DESTRUCTOR (TREE_TYPE (decl)))
+      && TYPE_HAS_TRIVIAL_DESTRUCTOR (TREE_TYPE (decl))
+      /* FIXME type_needs_nonconstant_init?  */
+      && (!TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (decl))
 	  || literal_type_p (TREE_TYPE (decl))))
     return;
 
@@ -8742,7 +8743,7 @@ grokdeclarator (const cp_declarator *declarator,
 	      }
 
             /* A constexpr non-static member function is implicitly const.  */
-            if (constexpr_p && staticp == 0 && decl_context == FIELD
+            if (constexpr_p && decl_context == FIELD && staticp == 0
                 && sfk != sfk_constructor && sfk != sfk_destructor)
               memfn_quals |= TYPE_QUAL_CONST;
 
