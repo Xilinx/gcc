@@ -1,3 +1,63 @@
+2010-07-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.dg/lto/20100722-1_0.c: Replace dg-require-lto-plugin
+	with dg-require-linker-plugin.
+
+2010-07-22  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43850
+	* g++.dg/lto/20100722-1_0.C: New testcase.
+
+2010-07-22  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42451
+	* gcc.dg/lto/20100720-3_0.c: New testcase.
+	* gcc.dg/lto/20100720-3_1.c: Likewise.
+
+2010-07-22  Richard Guenther  <rguenther@suse.de>
+
+	* lib/target-supports-dg.exp (dg-require-linker-plugin): New proc.
+	* lib/target-supports.exp (check_linker_plugin_available): Likewise.
+
+	PR lto/43373
+	* gcc.dg/lto/20100722-1_0.c: New testcase.
+
+2010-07-22  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/44891
+	* testsuite/gcc.c-torture/compile/pr44891.c: New test.
+
+2010-07-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45017
+	* gcc.c-torture/execute/pr45017.c: New testcase.
+
+2010-07-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45019
+	* gfortran.dg/aliasing_dummy_5.f90: New.
+
+2010-07-22  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	PR target/43698
+	* gcc.target/arm/pr43698.c: New test.
+
+2010-07-21  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/44929
+	* Revert my commit r162325 for this PR.
+
+2010-07-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45015
+	* gcc.target/m68k/pr45015.c: New test.
+
+2010-07-21  Jeffrey Yasskin  <jyasskin@google.com>
+
+	PR c++/44641
+	* lib/scanasm.exp (dg-function-on-line): Fix regex for IA64's
+	comments.
+
 2010-07-21  Richard Guenther  <rguenther@suse.de>
 
 	PR lto/45018
