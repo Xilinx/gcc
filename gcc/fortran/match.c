@@ -978,6 +978,13 @@ gfc_match_iterator (gfc_iterator *iter, int init_flag)
       goto cleanup;
     }
 
+  if (var->symtree->n.sym->attr.intent == INTENT_IN)
+    {
+      gfc_error ("Loop variable '%s' at %C cannot be INTENT(IN)",
+		 var->symtree->n.sym->name);
+      goto cleanup;
+    }
+
   gfc_match_char ('=');
 
   var->symtree->n.sym->attr.implied_index = 1;
@@ -2699,6 +2706,25 @@ match_type_spec (gfc_typespec *ts)
   gfc_clear_ts (ts);
   old_locus = gfc_current_locus;
 
+  m = match_derived_type_spec (ts);
+  if (m == MATCH_YES)
+    {
+      old_locus = gfc_current_locus;
+      if (gfc_match (" :: ") != MATCH_YES)
+	return MATCH_ERROR;
+      gfc_current_locus = old_locus;
+      /* Enfore F03:C401.  */
+      if (ts->u.derived->attr.abstract)
+	{
+	  gfc_error ("Derived type '%s' at %L may not be ABSTRACT",
+		     ts->u.derived->name, &old_locus);
+	  return MATCH_ERROR;
+	}
+      return MATCH_YES;
+    }
+
+  gfc_current_locus = old_locus;
+
   if (gfc_match ("integer") == MATCH_YES)
     {
       ts->type = BT_INTEGER;
@@ -2739,25 +2765,6 @@ match_type_spec (gfc_typespec *ts)
       ts->kind = gfc_default_logical_kind;
       goto kind_selector;
     }
-
-  m = match_derived_type_spec (ts);
-  if (m == MATCH_YES)
-    {
-      old_locus = gfc_current_locus;
-      if (gfc_match (" :: ") != MATCH_YES)
-	return MATCH_ERROR;
-      gfc_current_locus = old_locus;
-      /* Enfore F03:C401.  */
-      if (ts->u.derived->attr.abstract)
-	{
-	  gfc_error ("Derived type '%s' at %L may not be ABSTRACT",
-		     ts->u.derived->name, &old_locus);
-	  return MATCH_ERROR;
-	}
-      return MATCH_YES;
-    }
-  else if (m == MATCH_ERROR && gfc_match (" :: ") == MATCH_YES)
-    return MATCH_ERROR;
 
   /* If a type is not matched, simply return MATCH_NO.  */
   gfc_current_locus = old_locus;

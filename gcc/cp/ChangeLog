@@ -1,3 +1,47 @@
+2010-07-21  Jason Merrill  <jason@redhat.com>
+
+	* tree.c (cp_tree_equal): Fix CONSTRUCTOR handling.
+
+	* parser.c (cp_parser_init_declarator): Pass LOOKUP_NORMAL
+	to cp_finish_decl.
+
+2010-07-20  Jeffrey Yasskin  <jyasskin@google.com>
+
+	PR c++/44641
+	* pt.c (instantiate_class_template): Propagate the template's
+	location to its instance.
+
+2010-07-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44967
+	* pt.c (tsubst_copy_and_build): Rework last change.
+
+	PR c++/44967
+	* pt.c (tsubst_copy_and_build): Handle partial substitution of
+	CALL_EXPR.
+
+2010-07-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44996
+	* semantics.c (finish_decltype_type): Correct decltype
+	of parenthesized rvalue reference variable.
+
+	PR c++/44969
+	* tree.c (cp_tree_equal): Compare type of *CAST_EXPR.
+	* pt.c (iterative_hash_template_arg): Hash type of *CAST_EXPR.
+
+2010-07-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44969
+	* typeck.c (build_x_compound_expr_from_list): Add tsubst_flags_t
+	parameter.
+	* cp-tree.h: Adjust declaration.
+	* init.c (perform_member_init): Adjust caller.
+	* decl.c (grok_reference_init, cp_finish_decl): Likewise.
+	* typeck2.c (store_init_value): Likewise.
+	(build_functional_cast): Pass complain argument to
+	build_x_compound_expr_from_list.
+
 2010-07-16  Jason Merrill  <jason@redhat.com>
 
 	PR c++/32505

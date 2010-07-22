@@ -1,3 +1,50 @@
+2010-07-21  Daniel Kraft  <d@domob.eu>
+
+	* trans.h (gfc_get_return_label): Removed.
+	(gfc_generate_return): New method.
+	(gfc_trans_deferred_vars): Update gfc_wrapped_block rather than
+	returning a tree directly.
+	* trans-stmt.c (gfc_trans_return): Use `gfc_generate_return'.
+	(gfc_trans_block_construct): Update for new interface to
+	`gfc_trans_deferred_vars'.
+	* trans-decl.c (current_function_return_label): Removed.
+	(current_procedure_symbol): New variable.
+	(gfc_get_return_label): Removed.
+	(gfc_trans_deferred_vars): Update gfc_wrapped_block rather than
+	returning a tree directly.
+	(get_proc_result), (gfc_generate_return): New methods.
+	(gfc_generate_function_code): Clean up and do init/cleanup here
+	also with gfc_wrapped_block.  Remove return-label but rather
+	return directly.
+
+2010-07-19  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/44929
+	* fortran/match.c (match_type_spec): Check for derived type before
+	intrinsic types.
+
+2010-07-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/42385
+	* interface.c (matching_typebound_op): Add argument for the
+	return of the generic name for the procedure.
+	(build_compcall_for_operator): Add an argument for the generic
+	name of an operator procedure and supply it to the expression.
+	(gfc_extend_expr, gfc_extend_assign): Use the generic name in
+	calls to the above procedures.
+	* resolve.c (resolve_typebound_function): Catch procedure
+	component calls for CLASS objects, check that the vtable is
+	complete and insert the $vptr and procedure components, to make
+	the call.
+	(resolve_typebound_function): The same.
+	* trans-decl.c (gfc_trans_deferred_vars): Do not deallocate
+	an allocatable scalar if it is a result.
+
+2010-07-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/44353
+	* match.c (gfc_match_iterator): Reverted.
+
 2010-07-18  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/44353

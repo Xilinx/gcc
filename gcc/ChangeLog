@@ -1,3 +1,178 @@
+2010-07-21  Changpeng Fang  <changpeng.fang@amd.com>
+
+	* tree-ssa-loop-prefetch.c (analyze_ref): Strip off the real
+	and imagine parts of a complex, so that they can have the same
+	base and fall into the same group.
+
+2010-07-21  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/45018
+	* tree.c (find_decls_types_r): Do not follow TREE_CHAIN
+	of TYPE_DECLs.  Do not follow TYPE_NEXT_VARIANT,
+	TYPE_NEXT_PTR_TO, nor TYPE_NEXT_REF_TO or TYPE_CANONICAL.
+
+2010-07-21  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/44900
+	* tree-sra.c (load_assign_lhs_subreplacements): Updated comments.
+	(sra_modify_assign): Move gsi to the next statmenent unconditionally.
+
+2010-07-21  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR middle-end/44738
+	* tree-ssa.c (warn_uninit): Avoid emitting an unnecessary message.
+
+2010-07-21  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45013
+	* tree-ssa.c (useless_type_conversion_p): Dispatch to
+	gimple_types_compatible_p only when in lto.
+	* gimple.c (gimple_types_compatible_p): Use canonical types
+	to speed up comparison.
+
+2010-07-21  Richard Guenther  <rguenther@suse.de>
+
+	* tree-flow.h (referenced_var): Move define ...
+	* tree-flow-inline.h (referenced_var): ... here as an inline
+	function.  Assert here ...
+	* tree-dfa.c (referenced_var_lookup): ... instead of here.
+	* tree-ssa.c (maybe_optimize_var): Check if the variable
+	is in referenced vars.
+	(execute_update_addresses_taken): Remove old broken check.
+	* gimple-pretty-print.c (pp_points_to_solution): Use
+	referenced_var_lookup.
+	* tree-into-ssa.c (dump_decl_set): Likewise.
+
+2010-07-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45003
+	* var-tracking.c (reverse_op): Also handle {SIGN,ZERO}_EXTEND of
+	a MEM.
+	* dwarf2out.c (loc_descriptor): Don't handle SIGN_EXTEND nor
+	ZERO_EXTEND here.
+
+2010-07-20  Richard Henderson  <rth@redhat.com>
+
+	* vxworks.c (vxworks_emutls_var_fields): Pass locus to build_decls.
+
+2010-07-20  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* config/arm/arm.md (thumb1_addsi3): Add alternative and split for
+	computing the sum of the stack pointer and a large constant.
+	* config/arm/constraints.md (M): Remove superfluous parentheses.
+	(Pc): New constraint.
+
+2010-07-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45006
+	* cfgexpand.c (expand_debug_expr): Only look at TYPE_UNSIGNED of
+	operand's type if exp is tcc_unary class tree.
+
+2010-07-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/rs6000.md (abs<mode>2_isel, nabs<mode>2_isel):
+	Reverse sense of if_then_else condition.
+
+2010-07-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/rs6000.opt (mblock-move-inline-limit): New option.
+	* config/rs6000/rs6000.c (rs6000_override_options): Set
+	rs6000_block_move_inline_limit appropriately.
+	(expand_block_move): Use rs6000_block_move_inline_limit.
+	* doc/invoke.texi (mblock-move-inline-limit): Document.
+
+2010-07-20  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* postreload.c (fixup_debug_insns): Remove arg REGNO.  New args
+	FROM and TO.  All callers changed.  Don't look for tracked uses,
+	just scan the RTL for DEBUG_INSNs and substitute.
+	(reload_combine_recognize_pattern): Call fixup_debug_insns.
+	(reload_combine): Ignore DEBUG_INSNs.
+
+2010-07-20  Jakub Jelinek  <jakub@redhat.com>
+
+	* var-tracking.c (vt_expand_loc, vt_expand_loc_dummy): Bump maximum
+	depth to 8 from 5.
+
+	PR debug/45003
+	* cfgexpand.c (expand_debug_expr) <case NOP_EXPR>: Use ZERO_EXTEND
+	or SIGN_EXTEND depending on TYPE_UNSIGNED of the operand's type
+	instead of the result's type.
+
+2010-07-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44977
+	* tree-ssa-dom.c (propagate_rhs_into_lhs): Do not create invalid
+	SSA form.
+
+2010-07-20  Richard Guenther  <rguenther@suse.de>
+
+	* lto-symtab.c (lto_symtab_merge): Use gimple_types_compatible_p.
+	(lto_symtab_merge_decls_2): Likewise.
+	* gimple.h (gimple_types_compatible_p): Declare.
+	* gimple.c (gimple_queue_type_fixup): Remove.
+	(gimple_fixup_complete_and_incomplete_subtype_p): Likewise.
+	(gimple_compatible_complete_and_incomplete_type_p): New
+	function.
+	(gimple_types_compatible_p): Adjust.
+	(gimple_register_type): Remove type fixup code.
+	(print_gimple_types_stats): Adjust.
+	(free_gimple_type_tables): Likewise.
+	* lto-streamer-in.c (input_gimple_stmt): Use gimple_types_compatible_p.
+	* tree-ssa.c (useless_type_conversion_p): Likewise.
+
+2010-07-20  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44971
+	PR middle-end/44988
+	* tree-ssa.c (maybe_optimize_var): New function split out from ...
+	(execute_update_addresses_taken): ... here.
+	(non_rewritable_mem_ref_base): Likewise.
+	(execute_update_addresses_taken): Do not iterate over all referenced
+	vars but just all local decls and parms.
+	Properly check call and asm arguments and rewrite call arguments.
+
+2010-07-20  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config.gcc (LIBC_GLIBC, LIBC_UCLIBC, LIBC_BIONIC): Move constants
+	to top level.
+	* config/linux.h (LINUX_TARGET_OS_CPP_BUILTINS): Move Android-specific
+	definitions ...
+	* config/linux-android.h (ANDROID_TARGET_OS_CPP_BUILTINS): ... here.
+	New macro.
+	* config/arm/linux-eabi.h (TARGET_OS_CPP_BUILTINS): Use it.
+
+2010-07-19  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gengtype.c (start_root_entry): New function, split out from
+	write_root.  Check whether V is null and raise an error if so.
+	(write_field_root): Check for V being null.  Don't raise an error here;
+	set V to null instead.
+	(write_root): Update comment above function.  Use start_root_entry.
+
+2010-07-19  Xinliang David Li  <davidxl@google.com>
+
+	PR testsuite/44932
+	* tree-ssa-uninit.c (collect_phi_def_edges): Fix bug collecting def edges.
+	(find_uninit_use): Add dump.
+	(is_use_properly_guarded): Ditto.
+	(warn_uninitialized_phi): Ditto.
+	(execute_late_warn_uninitialized): Ditto.
+
+2010-07-19  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/44941
+	* expr.c (emit_block_move_hints): Move zero size check first.
+	Move asserts to more useful places.
+	* calls.c (load_register_parameters): Check for zero size.
+
+2010-07-19  Richard Henderson  <rth@redhat.com>
+
+	* tree-optimize.c (execute_all_early_local_passes): New.  Change
+	cgraph_state here ...
+	(execute_early_local_optimizations): ... not here.  Remove.
+	(pass_early_local_passes, pass_all_early_optimizations): Update.
+
 2010-07-19  Bernd Schmidt  <bernds@codesourcery.com>
 
 	* postreload.c (reload_combine_closest_single_use): Ignore the
@@ -11,6 +186,7 @@
 	(reload_combine): Use control_flow_insn_p rather than JUMP_P.
 
 2010-07-19  Bingfeng Mei  <bmei@broadcom.com>
+
 	* ddg.c (create_ddg): Exclude nodes of debug_insn in counting nodes
         of a loop.
         * loop-doloop.c (doloop_condition_get): Skip possible debug_insn.
@@ -58,22 +234,6 @@
 	* config/pa/pa.h (CONSTANT_ALIGNMENT): Align strings to BITS_PER_WORD
 	on all targets.
 
-Index: config/pa/pa.h
-===================================================================
---- config/pa/pa.h	(revision 162277)
-+++ config/pa/pa.h	(working copy)
-@@ -316,8 +316,9 @@
- #define BIGGEST_ALIGNMENT (2 * BITS_PER_WORD)
- 
- /* Get around hp-ux assembler bug, and make strcpy of constants fast.  */
--#define CONSTANT_ALIGNMENT(CODE, TYPEALIGN) \
--  ((TYPEALIGN) < 32 ? 32 : (TYPEALIGN))
-+#define CONSTANT_ALIGNMENT(EXP, ALIGN)		\
-+  (TREE_CODE (EXP) == STRING_CST		\
-+   && (ALIGN) < BITS_PER_WORD ? BITS_PER_WORD : (ALIGN))
- 
- /* Make arrays of chars word-aligned for the same reasons.  */
- #define DATA_ALIGNMENT(TYPE, ALIGN)		\
 2010-07-17  Bernd Schmidt  <bernds@codesourcery.com>
 
 	PR target/42235

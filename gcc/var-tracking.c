@@ -5187,16 +5187,19 @@ reverse_op (rtx val, const_rtx expr)
     case XOR:
     case NOT:
     case NEG:
+      if (!REG_P (XEXP (src, 0)))
+	return NULL_RTX;
+      break;
     case SIGN_EXTEND:
     case ZERO_EXTEND:
+      if (!REG_P (XEXP (src, 0)) && !MEM_P (XEXP (src, 0)))
+	return NULL_RTX;
       break;
     default:
       return NULL_RTX;
     }
 
-  if (!REG_P (XEXP (src, 0))
-      || !SCALAR_INT_MODE_P (GET_MODE (src))
-      || XEXP (src, 0) == cfa_base_rtx)
+  if (!SCALAR_INT_MODE_P (GET_MODE (src)) || XEXP (src, 0) == cfa_base_rtx)
     return NULL_RTX;
 
   v = cselib_lookup (XEXP (src, 0), GET_MODE (XEXP (src, 0)), 0);
@@ -7043,7 +7046,7 @@ vt_expand_loc (rtx loc, htab_t vars)
   data.vars = vars;
   data.dummy = false;
   data.cur_loc_changed = false;
-  loc = cselib_expand_value_rtx_cb (loc, scratch_regs, 5,
+  loc = cselib_expand_value_rtx_cb (loc, scratch_regs, 8,
 				    vt_expand_loc_callback, &data);
 
   if (loc && MEM_P (loc))
@@ -7064,7 +7067,7 @@ vt_expand_loc_dummy (rtx loc, htab_t vars, bool *pcur_loc_changed)
   data.vars = vars;
   data.dummy = true;
   data.cur_loc_changed = false;
-  ret = cselib_dummy_expand_value_rtx_cb (loc, scratch_regs, 5,
+  ret = cselib_dummy_expand_value_rtx_cb (loc, scratch_regs, 8,
 					  vt_expand_loc_callback, &data);
   *pcur_loc_changed = data.cur_loc_changed;
   return ret;
