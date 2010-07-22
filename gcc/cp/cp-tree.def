@@ -261,7 +261,8 @@ DEFTREECODE (NOEXCEPT_EXPR, "noexcept_expr", tcc_unary, 1)
 DEFTREECODE (NON_DEPENDENT_EXPR, "non_dependent_expr", tcc_expression, 1)
 
 /* CTOR_INITIALIZER is a placeholder in template code for a call to
-   setup_vtbl_pointer (and appears in all functions, not just ctors).  */
+   setup_vtbl_pointer (and appears in all functions, not just ctors).
+   FIXME talk about constexpr.  */
 DEFTREECODE (CTOR_INITIALIZER, "ctor_initializer", tcc_expression, 1)
 
 DEFTREECODE (TRY_BLOCK, "try_block", tcc_statement, 2)

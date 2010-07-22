@@ -2207,6 +2207,7 @@ struct GTY((variable_size)) lang_decl {
 
    The standard does not require that the expression be non-volatile.
    G++ implements the proposed correction in DR 457.  */
+/* FIXME adjust for c++0x -- include constexpr, other types.  */
 #define DECL_INTEGRAL_CONSTANT_VAR_P(NODE)		\
   (TREE_CODE (NODE) == VAR_DECL				\
    && CP_TYPE_CONST_NON_VOLATILE_P (TREE_TYPE (NODE))	\

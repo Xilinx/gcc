@@ -1126,7 +1126,7 @@ check_redeclaration_exception_specification (tree new_decl,
     }
 }
 
-/* Return true if both OLD_DECL and NEW_DECL agrees on constexprnes.
+/* Return true if OLD_DECL and NEW_DECL agree on constexprness.
    Otherwise issue diagnostics.  */
 
 static bool
@@ -5679,6 +5679,9 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
   int saved_processing_template_decl;
   tree auto_node;
 
+  /* FIXME for c++0x set init_const_expr_p based on
+     potential_constant_expression.  */
+
   if (decl == error_mark_node)
     return;
   else if (! decl)
@@ -5776,6 +5779,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  DECL_INITIAL (decl) = NULL_TREE;
 	}
 
+      /* See FIXME above.  Also refactor this and the dupe below.  */
       if (init
           && (init_const_expr_p || DECL_DECLARED_CONSTEXPR_P (decl))
           && VAR_DECL_P (decl))
@@ -5910,6 +5914,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  if (init)
 	    {
 	      DECL_NONTRIVIALLY_INITIALIZED_P (decl) = 1;
+	      /* See FIXME above.  */
 	      if (init_const_expr_p || DECL_DECLARED_CONSTEXPR_P (decl))
 		{
 		  DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl) = 1;

@@ -773,7 +773,7 @@ check_narrowing (tree type, tree init)
   bool ok = true;
   REAL_VALUE_TYPE d;
 
-  if (DECL_P (init))
+  if (DECL_P (init)) /* FIXME maybe_constant_value */
     init = decl_constant_value (init);
 
   if (TREE_CODE (type) == INTEGER_TYPE

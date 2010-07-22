@@ -3042,8 +3042,7 @@ finish_id_expression (tree id_expression,
 	 been handled above.  */
       if (integral_constant_expression_p
 	  && ! DECL_INTEGRAL_CONSTANT_VAR_P (decl)
-	  /* Temporary hack; should include plain const vars as well.
-	     Moreover, should overhaul for c++0x constant expr rules.  */
+	  /* FIXME should change DECL_INTEGRAL_CONSTANT_VAR_P instead.  */
 	  && ! (TREE_CODE (decl) == VAR_DECL
 		&& DECL_DECLARED_CONSTEXPR_P (decl))
 	  && ! builtin_valid_in_constant_expr_p (decl))
@@ -5245,6 +5244,8 @@ ensure_literal_type_for_constexpr_object (tree decl)
 
 typedef struct GTY(()) constexpr_fundef {
   tree decl;
+  /* FIXME why store parms rather than get them from decl? Because a later
+     redecl could mess them up?  Fix that in duplicate_decls if so.  */
   tree parms;
   tree body;
 } constexpr_fundef;
@@ -5385,7 +5386,7 @@ build_data_member_initialization (tree t, tree inits)
   member = TREE_OPERAND (t, 0);
   if (TREE_CODE (member) == COMPONENT_REF)
     member = TREE_OPERAND (member, 1);
-  return  tree_cons (member, unshare_expr (TREE_OPERAND (t, 1)), inits);
+  return tree_cons (member, unshare_expr (TREE_OPERAND (t, 1)), inits);
 }
 
 /* Build compile-time evalable representations of member-initializer list
@@ -5467,13 +5468,13 @@ typedef struct GTY(()) constexpr_call {
   /* Parameter bindings enironment.  A TREE_LIST where each TREE_PURPOSE
      is a parameter _DECL and the TREE_VALUE is the value of the parameter.
      Note: This arrangement is made to accomodate the use of
-     iterative_hash_template_args (see pt.c).  If you change this
+     iterative_hash_template_arg (see pt.c).  If you change this
      representation, also change the implementation of the function
      hash_constexpr_args.  */
   tree bindings;
   /* Result of the call.
        NULL means the call is being evaluated.
-       error_mark_node means that the evaluation was erroneous
+       error_mark_node means that the evaluation was erroneous;
        otherwise, the actuall value of the call.  */
   tree result;
 } constexpr_call;
@@ -5495,8 +5496,8 @@ constexpr_call_hash (const void *p)
                               constexpr_fundef_hash (info->fundef));
 }
 
-/* Return 1 if the objects pointed to by P and Q represent the same
-   call to a constexpr function with same set of argument list.
+/* Return 1 if the objects pointed to by P and Q represent calls
+   to the same constexpr function with the same arguments.
    Otherwise, return 0.  */
 
 static int
@@ -5525,7 +5526,7 @@ constexpr_call_equal (const void *p, const void *q)
   return lhs_bindings == rhs_bindings;
 }
 
-/* Initialized the constexpr call table, if needed.  */
+/* Initialize the constexpr call table, if needed.  */
 
 static void
 maybe_initialize_constexpr_call_table (void)
@@ -5537,17 +5538,20 @@ maybe_initialize_constexpr_call_table (void)
                                             ggc_free);
 }
 
-/* Return true if T designate the implied `this' parameter.  */
+/* Return true if T designates the implied `this' parameter.  */
 
 static inline bool
 is_this_parameter (tree t)
 {
+  /* FIXME can we just use current_class_ptr?  */
   return DECL_P (t) && DECL_NAME (t) == this_identifier;
 }
 
 /* We have an expression tree T that represents a call, either CALL_EXPR
    or AGGR_INIT_EXPR.  If the call is lexically to a named function,
-   retrun the _DECL for that function.  */
+   retrun the _DECL for that function.
+
+   FIXME refactor get_callee_fndecl?  */
 
 static tree
 get_function_named_in_call (tree t)
@@ -5588,7 +5592,7 @@ get_nth_callarg (tree t, int n)
       return AGGR_INIT_EXPR_ARG (t, n);
 
     default:
-      gcc_unreachable();
+      gcc_unreachable ();
       return NULL;
     }
 }
@@ -5601,7 +5605,7 @@ static tree
 lookup_parameter_binding (const constexpr_call *call, tree t)
 {
   tree b = purpose_member (t, call->bindings);
-  gcc_assert(b != NULL);
+  gcc_assert (b != NULL);
   return TREE_VALUE (b);
 }
 
@@ -5661,6 +5665,7 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
           else
             {
               if (TREE_CODE (x) == ADDR_EXPR)
+		/* FIXME only for ref parm?  */
                 x = TREE_OPERAND (x, 0);
               arg = cxx_eval_constant_expression (old_call, x);
             }
@@ -5733,6 +5738,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t)
     }
   new_call.result =
     cxx_eval_constant_expression (&new_call, new_call.fundef->body);
+  /* FIXME shouldn't this happen before eval?  */
   *slot = ggc_alloc_constexpr_call ();
   **slot = new_call;
   return new_call.result;
@@ -5759,6 +5765,7 @@ cxx_eval_unary_expression (const constexpr_call *call, tree t)
   if (arg == error_mark_node)
     return arg;
   arg = fold_if_not_in_template (build1 (TREE_CODE (t), TREE_TYPE (t), arg));
+  /* FIXME assert? */
   if (valid_for_static_initialization_p (arg))
     return arg;
   sorry ("could not evaluate %qE to a value", arg);
@@ -5777,6 +5784,7 @@ cxx_eval_binary_expression (const constexpr_call *call, tree t)
     return error_mark_node;
   t = fold_if_not_in_template
     (build2 (TREE_CODE (t), TREE_TYPE (t), lhs, rhs));
+  /* FIXME assert? */
   if (valid_for_static_initialization_p (t))
     return t;
   sorry ("could not evaluate %qE to a value", t);
@@ -5813,7 +5821,10 @@ cxx_eval_array_reference (const constexpr_call *call, tree t)
   index = cxx_eval_constant_expression (call, TREE_OPERAND (t, 1));
   if (index == error_mark_node)
     return index;
-  /* FIXME: For the time being, refuse to index into a too big arrary.  */
+  /* FIXME: For the time being, refuse to index into a too big array.
+     Actually, CONSTRUCTOR_NELTS is only an unsigned, not an unsigned
+     HOST_WIDE_INT.  What does the C front end do about extremely large
+     initializers? */
   if (!host_integerp (index, 0))
     {
       error ("array subscript too big");
@@ -5883,6 +5894,7 @@ cxx_eval_object_construction (const constexpr_call *call, tree t)
       tree v = cxx_eval_constant_expression (call, TREE_VALUE (inits));
       if (v == error_mark_node)
         return v;
+      /* FIXME build VEC instead of list.  */
       subobjects = tree_cons (TREE_PURPOSE (inits), v, subobjects);
     }
   t = build_constructor_from_list (TREE_TYPE (t), nreverse (subobjects));
@@ -5900,7 +5912,7 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t)
   VEC(constructor_elt, gc) *v = CONSTRUCTOR_ELTS (t);
   constructor_elt *ce;
   HOST_WIDE_INT i;
-  for (i = 0; VEC_iterate(constructor_elt, v, i, ce); ++i)
+  for (i = 0; VEC_iterate (constructor_elt, v, i, ce); ++i)
     {
       tree elt = cxx_eval_constant_expression (call, ce->value);
       if (elt == error_mark_node)
@@ -5911,7 +5923,8 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t)
   return t;
 }
 
-/* Return true if the expression T is an implicit pointer dereference.  */
+/* Return true if the expression T is an implicit pointer dereference.
+   FIXME just check for ref type.  */
 
 static bool
 implicit_dereference_p (tree t)
@@ -5926,7 +5939,7 @@ implicit_dereference_p (tree t)
 }
 
 /* Return true if the expression T is an implicit address, resulting
-   from passing an lvalue expression by reference.   */
+   from passing an lvalue expression by reference.   FIXME just check for ref type.  */
 
 static bool
 implicit_address_p (tree t)
@@ -5952,9 +5965,9 @@ implicit_address_p (tree t)
     }
 }
 
-
-/* Attempt to reduced the expression tree T to a compile time value.
-   On failure, issue diagnostic and return error_mark_node.  */
+/* Attempt to reduce the expression T to a constant value.
+   On failure, issue diagnostic and return error_mark_node.
+   FIXME we shouldn't get here if it will fail, right?  */
 
 static tree
 cxx_eval_constant_expression (const constexpr_call *call, tree t)
@@ -6070,6 +6083,8 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
     case INDIRECT_REF:
       {
         tree x = TREE_OPERAND (t, 0);
+	/* FIXME gaby removed this strip_nops earlier; why? He left it
+	   alone in potential_constant_expression.  */
 	STRIP_NOPS (x);
         if (is_this_parameter (x))
           return lookup_parameter_binding (call, x);
@@ -6101,15 +6116,18 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
               }
             return cxx_eval_constant_expression (call, t);
           }
+	/* FIXME fold_convert?  */
         return cp_convert
           (TREE_TYPE (t),
            cxx_eval_constant_expression (call, TREE_OPERAND (t, 0)));
       }
-      
+
     case CONVERT_EXPR:
-      t =  cp_convert
+      /* FIXME fold_convert?  */
+      t = cp_convert
         (TREE_TYPE (t),
          cxx_eval_constant_expression (call, TREE_OPERAND (t, 0)));
+      /* FIXME can this lead to infinite recursion?  */
       return cxx_eval_constant_expression (call, t);
 
     default:
@@ -6132,7 +6150,10 @@ cxx_constant_value (tree t)
     : error_mark_node;
 }
 
-/* Return true if DECL has automatic or thread local storage.   */
+/* Return true if DECL has automatic or thread local storage.
+
+   FIXME decl_linkage == lk_none?  no, storage duration != linkage.
+   Should have decl_storage_duration function.  */
 
 static bool
 has_automatic_or_tls (tree decl)
@@ -6151,11 +6172,11 @@ has_automatic_or_tls (tree decl)
     }
 }
 
-
 /* Return true if the DECL designates a builtin function that is
-   morally constexpr in the sense that, its parameter types and
-   return type are literal types, and the compiler is allowed to
+   morally constexpr, in the sense that its parameter types and
+   return type are literal types and the compiler is allowed to
    fold its invocations.  */
+
 static bool
 morally_constexpr_builtin_function_p (tree decl)
 {
@@ -6173,10 +6194,9 @@ morally_constexpr_builtin_function_p (tree decl)
       if (!literal_type_p (TREE_VALUE (t)))
         return false;
     }
-  /* We don't want to mess with varargs functions, yet.  */
+  /* FIXME We don't want to mess with varargs functions, yet.  */
   return t != NULL;
 }
-
 
 /* Return true if T denotes a potential constant expressions.
    Issue diagnostic as appropriate under control of flags.  Variables
@@ -6242,6 +6262,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
               error ("%qE is not a function name", fun);
             return false;
           }
+	/* FIXME DECL_ORIGIN */
         if (DECL_CLONED_FUNCTION_P (fun))
           fun = DECL_CLONED_FUNCTION (fun);
         if (builtin_valid_in_constant_expr_p (fun))
@@ -6257,19 +6278,23 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
           {
             tree x = get_nth_callarg (t, i);
             /* A call to a non-static member function takes the
-               address of the implied object as first argument.
-               If this is an rvalue object, don't look into its storage.  */
+               address of the object as the first argument.
+               But in a constant expression the address will be folded
+	       away, so look through it now.  */
             if (i == 0 && DECL_NONSTATIC_MEMBER_P (fun)
                 && !DECL_CONSTRUCTOR_P (fun))
               {
+		/* FIXME what about calls via this?  */
                 gcc_assert (TREE_CODE (x) == ADDR_EXPR);
                 if (!potential_constant_expression (TREE_OPERAND (x, 0),
 						    flags))
+		  /* FIXME no error?  */
                   return false;
               }
             else if (!potential_constant_expression (x, flags))
               {
                 if (flags & tf_error)
+		  /* FIXME %qP */
                   error ("argument in position %qd is not a "
                          "potential constant expression", i);
                 return false;
@@ -6291,6 +6316,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
       return potential_constant_expression (TREE_OPERAND (t, 0), flags);
 
     case VAR_DECL:
+      /* FIXME combine macros */
       if (!DECL_INTEGRAL_CONSTANT_VAR_P (t)
           && !DECL_DECLARED_CONSTEXPR_P (t))
         {
@@ -6328,6 +6354,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
                      "expression", from);
             return false;
           }
+	/* FIXME this is obsolete, right?  */
         if ((INTEGRAL_TYPE_P (source) && !INTEGRAL_TYPE_P (target))
             || (!INTEGRAL_TYPE_P (source) && INTEGRAL_TYPE_P (target)))
           {
@@ -6343,6 +6370,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
             designates an object with thread or automatic storage
             duration;  */
       t = TREE_OPERAND (t, 0);
+      /* FIXME external -- should use storage duration function */
       if (VAR_DECL_P (t) && TREE_STATIC (t))
         return true;
       if (has_automatic_or_tls (t))
@@ -6358,6 +6386,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case BIT_FIELD_REF:
       /* -- a class member access unless its postfix-expression is
             of literal type or of pointer to literal type.  */
+      /* FIXME no test?  */
       return potential_constant_expression (TREE_OPERAND (t, 0), flags);
 
     case INDIRECT_REF:
@@ -6395,6 +6424,8 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case TYPEID_EXPR:
       /* -- a typeid expression whose operand is of polymorphic
             class type;  */
+      /* FIXME what about other typeids?  Just like naming a static
+	 variable; only ok if its address is taken.  */
       {
         tree e = TREE_OPERAND (t, 0);
         if (!TYPE_P (e) && TYPE_POLYMORPHIC_P (TREE_TYPE (e)))
@@ -6451,6 +6482,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case TRUTH_NOT_EXPR:
     case PAREN_EXPR:
     case FIXED_CONVERT_EXPR:
+      /* FIXME this only appears in templates? */
     case CONST_CAST_EXPR:
       /* For convenience.  */
     case RETURN_EXPR:
