@@ -2000,12 +2000,16 @@ match_exit_cycle (gfc_statement st, gfc_exec_op op)
   gfc_state_data *p, *o;
   gfc_symbol *sym;
   match m;
+  int cnt;
 
   if (gfc_match_eos () == MATCH_YES)
     sym = NULL;
   else
     {
-      m = gfc_match ("% %s%t", &sym);
+      char name[GFC_MAX_SYMBOL_LEN + 1];
+      gfc_symtree* stree;
+
+      m = gfc_match ("% %n%t", name);
       if (m == MATCH_ERROR)
 	return MATCH_ERROR;
       if (m == MATCH_NO)
@@ -2014,15 +2018,27 @@ match_exit_cycle (gfc_statement st, gfc_exec_op op)
 	  return MATCH_ERROR;
 	}
 
+      /* Find the corresponding symbol.  If there's a BLOCK statement
+	 between here and the label, it is not in gfc_current_ns but a parent
+	 namespace!  */
+      stree = gfc_find_symtree_in_proc (name, gfc_current_ns);
+      if (!stree)
+	{
+	  gfc_error ("Name '%s' in %s statement at %C is unknown",
+		     name, gfc_ascii_statement (st));
+	  return MATCH_ERROR;
+	}
+
+      sym = stree->n.sym;
       if (sym->attr.flavor != FL_LABEL)
 	{
 	  gfc_error ("Name '%s' in %s statement at %C is not a loop name",
-		     sym->name, gfc_ascii_statement (st));
+		     name, gfc_ascii_statement (st));
 	  return MATCH_ERROR;
 	}
     }
 
-  /* Find the loop mentioned specified by the label (or lack of a label).  */
+  /* Find the loop specified by the label (or lack of a label).  */
   for (o = NULL, p = gfc_state_stack; p; p = p->previous)
     if (p->state == COMP_DO && (sym == NULL || sym == p->sym))
       break;
@@ -2053,17 +2069,34 @@ match_exit_cycle (gfc_statement st, gfc_exec_op op)
 		 gfc_ascii_statement (st));
       return MATCH_ERROR;
     }
-  else if (st == ST_EXIT
-	   && p->previous != NULL
-	   && p->previous->state == COMP_OMP_STRUCTURED_BLOCK
-	   && (p->previous->head->op == EXEC_OMP_DO
-	       || p->previous->head->op == EXEC_OMP_PARALLEL_DO))
+
+  for (o = p, cnt = 0; o->state == COMP_DO && o->previous != NULL; cnt++)
+    o = o->previous;
+  if (cnt > 0
+      && o != NULL
+      && o->state == COMP_OMP_STRUCTURED_BLOCK
+      && (o->head->op == EXEC_OMP_DO
+	  || o->head->op == EXEC_OMP_PARALLEL_DO))
     {
-      gcc_assert (p->previous->head->next != NULL);
-      gcc_assert (p->previous->head->next->op == EXEC_DO
-		  || p->previous->head->next->op == EXEC_DO_WHILE);
-      gfc_error ("EXIT statement at %C terminating !$OMP DO loop");
-      return MATCH_ERROR;
+      int collapse = 1;
+      gcc_assert (o->head->next != NULL
+		  && (o->head->next->op == EXEC_DO
+		      || o->head->next->op == EXEC_DO_WHILE)
+		  && o->previous != NULL
+		  && o->previous->tail->op == o->head->op);
+      if (o->previous->tail->ext.omp_clauses != NULL
+	  && o->previous->tail->ext.omp_clauses->collapse > 1)
+	collapse = o->previous->tail->ext.omp_clauses->collapse;
+      if (st == ST_EXIT && cnt <= collapse)
+	{
+	  gfc_error ("EXIT statement at %C terminating !$OMP DO loop");
+	  return MATCH_ERROR;
+	}
+      if (st == ST_CYCLE && cnt < collapse)
+	{
+	  gfc_error ("CYCLE statement at %C to non-innermost collapsed !$OMP DO loop");
+	  return MATCH_ERROR;
+	}
     }
 
   /* Save the first statement in the loop - needed by the backend.  */
@@ -2878,7 +2911,7 @@ gfc_match_allocate (void)
 		|| tail->expr->ref->type == REF_ARRAY));
       if (sym && sym->ts.type == BT_CLASS)
 	b2 = !(CLASS_DATA (sym)->attr.allocatable
-	       || CLASS_DATA (sym)->attr.pointer);
+	       || CLASS_DATA (sym)->attr.class_pointer);
       else
 	b2 = sym && !(sym->attr.allocatable || sym->attr.pointer
 		      || sym->attr.proc_pointer);
@@ -3184,7 +3217,7 @@ gfc_match_deallocate (void)
 	       || tail->expr->ref->type == REF_ARRAY));
       if (sym && sym->ts.type == BT_CLASS)
 	b2 = !(CLASS_DATA (sym)->attr.allocatable
-	       || CLASS_DATA (sym)->attr.pointer);
+	       || CLASS_DATA (sym)->attr.class_pointer);
       else
 	b2 = sym && !(sym->attr.allocatable || sym->attr.pointer
 		      || sym->attr.proc_pointer);

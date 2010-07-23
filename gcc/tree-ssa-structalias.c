@@ -32,6 +32,7 @@
 #include "tree.h"
 #include "tree-flow.h"
 #include "tree-inline.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "gimple.h"
 #include "hashtab.h"
@@ -2836,7 +2837,8 @@ get_constraint_for_ssa_var (tree t, VEC(ce_s, heap) **results, bool address_p)
   /* For parameters, get at the points-to set for the actual parm
      decl.  */
   if (TREE_CODE (t) == SSA_NAME
-      && TREE_CODE (SSA_NAME_VAR (t)) == PARM_DECL
+      && (TREE_CODE (SSA_NAME_VAR (t)) == PARM_DECL
+	  || TREE_CODE (SSA_NAME_VAR (t)) == RESULT_DECL)
       && SSA_NAME_IS_DEFAULT_DEF (t))
     {
       get_constraint_for_ssa_var (SSA_NAME_VAR (t), results, address_p);
@@ -3107,7 +3109,8 @@ get_constraint_for_component_ref (tree t, VEC(ce_s, heap) **results,
      &0->a.b */
   forzero = t;
   while (handled_component_p (forzero)
-	 || INDIRECT_REF_P (forzero))
+	 || INDIRECT_REF_P (forzero)
+	 || TREE_CODE (forzero) == MEM_REF)
     forzero = TREE_OPERAND (forzero, 0);
 
   if (CONSTANT_CLASS_P (forzero) && integer_zerop (forzero))
@@ -3174,13 +3177,19 @@ get_constraint_for_component_ref (tree t, VEC(ce_s, heap) **results,
 	      cexpr.var = curr->id;
 	      VEC_safe_push (ce_s, heap, *results, &cexpr);
 	    }
-	  else
+	  else if (VEC_length (ce_s, *results) == 0)
 	    /* Assert that we found *some* field there. The user couldn't be
 	       accessing *only* padding.  */
 	    /* Still the user could access one past the end of an array
 	       embedded in a struct resulting in accessing *only* padding.  */
-	    gcc_assert (VEC_length (ce_s, *results) >= 1
-			|| ref_contains_array_ref (orig_t));
+	    /* Or accessing only padding via type-punning to a type
+	       that has a filed just in padding space.  */
+	    {
+	      cexpr.type = SCALAR;
+	      cexpr.var = anything_id;
+	      cexpr.offset = 0;
+	      VEC_safe_push (ce_s, heap, *results, &cexpr);
+	    }
 	}
       else if (bitmaxsize == 0)
 	{
@@ -3334,9 +3343,10 @@ get_constraint_for_1 (tree t, VEC (ce_s, heap) **results, bool address_p)
       {
 	switch (TREE_CODE (t))
 	  {
-	  case INDIRECT_REF:
+	  case MEM_REF:
 	    {
-	      get_constraint_for_1 (TREE_OPERAND (t, 0), results, address_p);
+	      get_constraint_for_ptr_offset (TREE_OPERAND (t, 0),
+					     TREE_OPERAND (t, 1), results);
 	      do_deref (results);
 	      return;
 	    }
@@ -3980,7 +3990,8 @@ get_fi_for_callee (gimple call)
   if (TREE_CODE (decl) == SSA_NAME)
     {
       if (TREE_CODE (decl) == SSA_NAME
-	  && TREE_CODE (SSA_NAME_VAR (decl)) == PARM_DECL
+	  && (TREE_CODE (SSA_NAME_VAR (decl)) == PARM_DECL
+	      || TREE_CODE (SSA_NAME_VAR (decl)) == RESULT_DECL)
 	  && SSA_NAME_IS_DEFAULT_DEF (decl))
 	decl = SSA_NAME_VAR (decl);
       return get_vi_for_tree (decl);
@@ -4393,6 +4404,14 @@ find_func_aliases (gimple origt)
 	  if (gimple_assign_rhs_code (t) == POINTER_PLUS_EXPR)
 	    get_constraint_for_ptr_offset (gimple_assign_rhs1 (t),
 					   gimple_assign_rhs2 (t), &rhsc);
+	  else if (gimple_assign_rhs_code (t) == BIT_AND_EXPR
+		   && TREE_CODE (gimple_assign_rhs2 (t)) == INTEGER_CST)
+	    {
+	      /* Aligning a pointer via a BIT_AND_EXPR is offsetting
+		 the pointer.  Handle it by offsetting it by UNKNOWN.  */
+	      get_constraint_for_ptr_offset (gimple_assign_rhs1 (t),
+					     NULL_TREE, &rhsc);
+	    }
 	  else if ((CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (t))
 		    && !(POINTER_TYPE_P (gimple_expr_type (t))
 			 && !POINTER_TYPE_P (TREE_TYPE (rhsop))))
@@ -4572,7 +4591,11 @@ find_func_clobbers (gimple origt)
 	tem = TREE_OPERAND (tem, 0);
       if ((DECL_P (tem)
 	   && !auto_var_in_fn_p (tem, cfun->decl))
-	  || INDIRECT_REF_P (tem))
+	  || INDIRECT_REF_P (tem)
+	  || (TREE_CODE (tem) == MEM_REF
+	      && !(TREE_CODE (TREE_OPERAND (tem, 0)) == ADDR_EXPR
+		   && auto_var_in_fn_p
+		        (TREE_OPERAND (TREE_OPERAND (tem, 0), 0), cfun->decl))))
 	{
 	  struct constraint_expr lhsc, *rhsp;
 	  unsigned i;
@@ -4596,7 +4619,11 @@ find_func_clobbers (gimple origt)
 	tem = TREE_OPERAND (tem, 0);
       if ((DECL_P (tem)
 	   && !auto_var_in_fn_p (tem, cfun->decl))
-	  || INDIRECT_REF_P (tem))
+	  || INDIRECT_REF_P (tem)
+	  || (TREE_CODE (tem) == MEM_REF
+	      && !(TREE_CODE (TREE_OPERAND (tem, 0)) == ADDR_EXPR
+		   && auto_var_in_fn_p
+		        (TREE_OPERAND (TREE_OPERAND (tem, 0), 0), cfun->decl))))
 	{
 	  struct constraint_expr lhs, *rhsp;
 	  unsigned i;
@@ -4960,7 +4987,7 @@ push_fields_onto_fieldstack (tree type, VEC(fieldoff_s,heap) **fieldstack,
   if (VEC_length (fieldoff_s, *fieldstack) > MAX_FIELDS_FOR_FIELD_SENSITIVE)
     return false;
 
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
     if (TREE_CODE (field) == FIELD_DECL)
       {
 	bool push = false;
@@ -5038,7 +5065,7 @@ count_num_arguments (tree decl, bool *is_varargs)
 
   /* Capture named arguments for K&R functions.  They do not
      have a prototype and thus no TYPE_ARG_TYPES.  */
-  for (t = DECL_ARGUMENTS (decl); t; t = TREE_CHAIN (t))
+  for (t = DECL_ARGUMENTS (decl); t; t = DECL_CHAIN (t))
     ++num;
 
   /* Check if the function has variadic arguments.  */
@@ -5196,7 +5223,7 @@ create_function_info_for (tree decl, const char *name)
       if (arg)
 	{
 	  insert_vi_for_tree (arg, argvi);
-	  arg = TREE_CHAIN (arg);
+	  arg = DECL_CHAIN (arg);
 	}
     }
 
@@ -5468,7 +5495,7 @@ intra_create_variable_infos (void)
   /* For each incoming pointer argument arg, create the constraint ARG
      = NONLOCAL or a dummy variable if it is a restrict qualified
      passed-by-reference argument.  */
-  for (t = DECL_ARGUMENTS (current_function_decl); t; t = TREE_CHAIN (t))
+  for (t = DECL_ARGUMENTS (current_function_decl); t; t = DECL_CHAIN (t))
     {
       varinfo_t p;
 
@@ -5733,7 +5760,8 @@ find_what_p_points_to (tree p)
   /* For parameters, get at the points-to set for the actual parm
      decl.  */
   if (TREE_CODE (p) == SSA_NAME
-      && TREE_CODE (SSA_NAME_VAR (p)) == PARM_DECL
+      && (TREE_CODE (SSA_NAME_VAR (p)) == PARM_DECL
+	  || TREE_CODE (SSA_NAME_VAR (p)) == RESULT_DECL)
       && SSA_NAME_IS_DEFAULT_DEF (p))
     lookup_p = SSA_NAME_VAR (p);
 
@@ -5797,6 +5825,17 @@ pt_solution_set (struct pt_solution *pt, bitmap vars,
   pt->vars = vars;
   pt->vars_contains_global = vars_contains_global;
   pt->vars_contains_restrict = vars_contains_restrict;
+}
+
+/* Set the points-to solution *PT to point only to the variable VAR.  */
+
+void
+pt_solution_set_var (struct pt_solution *pt, tree var)
+{
+  memset (pt, 0, sizeof (struct pt_solution));
+  pt->vars = BITMAP_GGC_ALLOC ();
+  bitmap_set_bit (pt->vars, DECL_UID (var));
+  pt->vars_contains_global = is_global_var (var);
 }
 
 /* Computes the union of the points-to solutions *DEST and *SRC and

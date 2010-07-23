@@ -28,7 +28,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"		/* For UNITS_PER_WORD.  */
 #include "tree.h"
 #include "ggc.h"
-#include "toplev.h"	/* For rest_of_decl_compilation/internal_error.  */
+#include "diagnostic-core.h"	/* For internal_error.  */
+#include "toplev.h"	/* For rest_of_decl_compilation.  */
 #include "flags.h"
 #include "gfortran.h"
 #include "arith.h"
@@ -1570,7 +1571,7 @@ static void
 gfc_conv_intrinsic_funcall (gfc_se * se, gfc_expr * expr)
 {
   gfc_symbol *sym;
-  tree append_args;
+  VEC(tree,gc) *append_args;
 
   gcc_assert (!se->ss || se->ss->expr == expr);
 
@@ -1583,7 +1584,7 @@ gfc_conv_intrinsic_funcall (gfc_se * se, gfc_expr * expr)
 
   /* Calls to libgfortran_matmul need to be appended special arguments,
      to be able to call the BLAS ?gemm functions if required and possible.  */
-  append_args = NULL_TREE;
+  append_args = NULL;
   if (expr->value.function.isym->id == GFC_ISYM_MATMUL
       && sym->ts.type != BT_LOGICAL)
     {
@@ -1611,19 +1612,19 @@ gfc_conv_intrinsic_funcall (gfc_se * se, gfc_expr * expr)
 		gemm_fndecl = gfor_fndecl_zgemm;
 	    }
 
-	  append_args = gfc_chainon_list (NULL_TREE, build_int_cst (cint, 1));
-	  append_args = gfc_chainon_list
-			  (append_args, build_int_cst
-					  (cint, gfc_option.blas_matmul_limit));
-	  append_args = gfc_chainon_list (append_args,
-					  gfc_build_addr_expr (NULL_TREE,
-							       gemm_fndecl));
+	  append_args = VEC_alloc (tree, gc, 3);
+	  VEC_quick_push (tree, append_args, build_int_cst (cint, 1));
+	  VEC_quick_push (tree, append_args,
+			  build_int_cst (cint, gfc_option.blas_matmul_limit));
+	  VEC_quick_push (tree, append_args,
+			  gfc_build_addr_expr (NULL_TREE, gemm_fndecl));
 	}
       else
 	{
-	  append_args = gfc_chainon_list (NULL_TREE, build_int_cst (cint, 0));
-	  append_args = gfc_chainon_list (append_args, build_int_cst (cint, 0));
-	  append_args = gfc_chainon_list (append_args, null_pointer_node);
+	  append_args = VEC_alloc (tree, gc, 3);
+	  VEC_quick_push (tree, append_args, build_int_cst (cint, 0));
+	  VEC_quick_push (tree, append_args, build_int_cst (cint, 0));
+	  VEC_quick_push (tree, append_args, null_pointer_node);
 	}
     }
 
@@ -3285,7 +3286,7 @@ conv_generic_with_optional_char_arg (gfc_se* se, gfc_expr* expr,
   unsigned cur_pos;
   gfc_actual_arglist* arg;
   gfc_symbol* sym;
-  tree append_args;
+  VEC(tree,gc) *append_args;
 
   /* Find the two arguments given as position.  */
   cur_pos = 0;
@@ -3309,13 +3310,14 @@ conv_generic_with_optional_char_arg (gfc_se* se, gfc_expr* expr,
 
   /* If we do have type CHARACTER and the optional argument is really absent,
      append a dummy 0 as string length.  */
-  append_args = NULL_TREE;
+  append_args = NULL;
   if (prim_arg->expr->ts.type == BT_CHARACTER && !opt_arg->expr)
     {
       tree dummy;
 
       dummy = build_int_cst (gfc_charlen_type_node, 0);
-      append_args = gfc_chainon_list (append_args, dummy);
+      append_args = VEC_alloc (tree, gc, 1);
+      VEC_quick_push (tree, append_args, dummy);
     }
 
   /* Build the call itself.  */
@@ -3883,6 +3885,9 @@ gfc_conv_intrinsic_sizeof (gfc_se *se, gfc_expr *expr)
 
   if (ss == gfc_ss_terminator)
     {
+      if (arg->ts.type == BT_CLASS)
+	gfc_add_component_ref (arg, "$data");
+
       gfc_conv_expr_reference (&argse, arg);
 
       type = TREE_TYPE (build_fold_indirect_ref_loc (input_location,
@@ -3932,6 +3937,56 @@ gfc_conv_intrinsic_sizeof (gfc_se *se, gfc_expr *expr)
 }
 
 
+static void
+gfc_conv_intrinsic_storage_size (gfc_se *se, gfc_expr *expr)
+{
+  gfc_expr *arg;
+  gfc_ss *ss;
+  gfc_se argse,eight;
+  tree type, result_type, tmp;
+
+  arg = expr->value.function.actual->expr;
+  gfc_init_se (&eight, NULL);
+  gfc_conv_expr (&eight, gfc_get_int_expr (expr->ts.kind, NULL, 8));
+  
+  gfc_init_se (&argse, NULL);
+  ss = gfc_walk_expr (arg);
+  result_type = gfc_get_int_type (expr->ts.kind);
+
+  if (ss == gfc_ss_terminator)
+    {
+      if (arg->ts.type == BT_CLASS)
+      {
+	gfc_add_component_ref (arg, "$vptr");
+	gfc_add_component_ref (arg, "$size");
+	gfc_conv_expr (&argse, arg);
+	tmp = fold_convert (result_type, argse.expr);
+	goto done;
+      }
+
+      gfc_conv_expr_reference (&argse, arg);
+      type = TREE_TYPE (build_fold_indirect_ref_loc (input_location, 
+						     argse.expr));
+    }
+  else
+    {
+      argse.want_pointer = 0;
+      gfc_conv_expr_descriptor (&argse, arg, ss);
+      type = gfc_get_element_type (TREE_TYPE (argse.expr));
+    }
+    
+  /* Obtain the argument's word length.  */
+  if (arg->ts.type == BT_CHARACTER)
+    tmp = size_of_string_in_bytes (arg->ts.kind, argse.string_length);
+  else
+    tmp = fold_convert (result_type, size_in_bytes (type)); 
+
+done:
+  se->expr = fold_build2 (MULT_EXPR, result_type, tmp, eight.expr);
+  gfc_add_block_to_block (&se->pre, &argse.pre);
+}
+
+
 /* Intrinsic string comparison functions.  */
 
 static void
@@ -3943,7 +3998,8 @@ gfc_conv_intrinsic_strcmp (gfc_se * se, gfc_expr * expr, enum tree_code op)
 
   se->expr
     = gfc_build_compare_string (args[0], args[1], args[2], args[3],
-				expr->value.function.actual->expr->ts.kind);
+				expr->value.function.actual->expr->ts.kind,
+				op);
   se->expr = fold_build2 (op, gfc_typenode_for_spec (&expr->ts), se->expr,
 			  build_int_cst (TREE_TYPE (se->expr), 0));
 }
@@ -4566,10 +4622,10 @@ static void
 gfc_conv_intrinsic_sr_kind (gfc_se *se, gfc_expr *expr)
 {
   gfc_actual_arglist *actual;
-  tree args, type;
+  tree type;
   gfc_se argse;
+  VEC(tree,gc) *args = NULL;
 
-  args = NULL_TREE;
   for (actual = expr->value.function.actual; actual; actual = actual->next)
     {
       gfc_init_se (&argse, se);
@@ -4594,13 +4650,13 @@ gfc_conv_intrinsic_sr_kind (gfc_se *se, gfc_expr *expr)
 
       gfc_add_block_to_block (&se->pre, &argse.pre);
       gfc_add_block_to_block (&se->post, &argse.post);
-      args = gfc_chainon_list (args, argse.expr);
+      VEC_safe_push (tree, gc, args, argse.expr);
     }
 
   /* Convert it to the required type.  */
   type = gfc_typenode_for_spec (&expr->ts);
-  se->expr = build_function_call_expr (input_location,
-				       gfor_fndecl_sr_kind, args);
+  se->expr = build_call_expr_loc_vec (input_location,
+				      gfor_fndecl_sr_kind, args);
   se->expr = fold_convert (type, se->expr);
 }
 
@@ -5268,7 +5324,12 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       break;
 
     case GFC_ISYM_SIZEOF:
+    case GFC_ISYM_C_SIZEOF:
       gfc_conv_intrinsic_sizeof (se, expr);
+      break;
+
+    case GFC_ISYM_STORAGE_SIZE:
+      gfc_conv_intrinsic_storage_size (se, expr);
       break;
 
     case GFC_ISYM_SPACING:

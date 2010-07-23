@@ -556,7 +556,7 @@ set_livein_block (tree var, basic_block bb)
 
 /* Return true if symbol SYM is marked for renaming.  */
 
-static inline bool
+bool
 symbol_marked_for_renaming (tree sym)
 {
   return bitmap_bit_p (SYMS_TO_RENAME (cfun), DECL_UID (sym));
@@ -1470,11 +1470,7 @@ dump_decl_set (FILE *file, bitmap set)
 
       EXECUTE_IF_SET_IN_BITMAP (set, 0, i, bi)
 	{
-	  struct tree_decl_minimal in;
-	  tree var;
-	  in.uid = i;
-	  var = (tree) htab_find_with_hash (gimple_referenced_vars (cfun),
-					    &in, i);
+	  tree var = referenced_var_lookup (i);
 	  if (var)
 	    print_generic_expr (file, var, 0);
 	  else

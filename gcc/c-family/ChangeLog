@@ -1,3 +1,40 @@
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-common.c: Carefully replace TREE_CHAIN with DECL_CHAIN.
+	* c-format.c: Likewise.
+
+2010-07-08  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c-common.h: Include diagnostic-core.h. Error if already
+	included.
+	* c-semantics.c: Do not define GCC_DIAG_STYLE here.
+
+2010-07-03  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c-family/c-common.c (IN_GCC_FRONTEND): Do not undef.
+	Do not include expr.h
+	(vector_mode_valid_p): Move here.
+
+2010-06-21  DJ Delorie  <dj@redhat.com>
+
+	* c-pragma.c (handle_pragma_diagnostic): Add push/pop,
+	allow these pragmas anywhere.
+
+2010-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/44509
+	* c-cppbuiltin.c: Include gt-c-family-c-cppbuiltin.h.
+	(lazy_hex_fp_values, lazy_hex_fp_value_count): Add GTY(()) markers.
+	(lazy_hex_fp_value, builtin_define_with_hex_fp_value): Use
+	ggc_strdup instead of xstrdup.
+
+2010-06-10  Jakub Jelinek  <jakub@redhat.com>
+
+	* c-cppbuiltin.c: Include cpp-id-data.h.
+	(lazy_hex_fp_values, lazy_hex_fp_value_count): New variables.
+	(lazy_hex_fp_value): New function.
+	(builtin_define_with_hex_fp_value): Provide definitions lazily.
+
 2010-06-30  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
 	* c-gimplify.c: Do not include tree-flow.h

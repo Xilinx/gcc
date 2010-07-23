@@ -89,6 +89,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "tree-affine.h"
 #include "target.h"
+#include "tree-ssa-propagate.h"
 
 /* FIXME: Expressions are expanded to RTL in this pass to determine the
    cost of different addressing modes.  This should be moved to a TBD
@@ -259,6 +260,9 @@ struct ivopts_data
 
   /* Are we optimizing for speed?  */
   bool speed;
+
+  /* Whether the loop body includes any function calls.  */
+  bool body_includes_call;
 };
 
 /* An assignment of iv candidates to uses.  */
@@ -813,7 +817,7 @@ determine_base_object (tree expr)
       if (!base)
 	return expr;
 
-      if (TREE_CODE (base) == INDIRECT_REF)
+      if (TREE_CODE (base) == MEM_REF)
 	return determine_base_object (TREE_OPERAND (base, 0));
 
       return fold_convert (ptr_type_node,
@@ -1359,8 +1363,7 @@ idx_find_step (tree base, tree *idx, void *data)
   tree step, iv_base, iv_step, lbound, off;
   struct loop *loop = dta->ivopts_data->current_loop;
 
-  if (TREE_CODE (base) == MISALIGNED_INDIRECT_REF
-      || TREE_CODE (base) == ALIGN_INDIRECT_REF)
+  if (TREE_CODE (base) == MISALIGNED_INDIRECT_REF)
     return false;
 
   /* If base is a component ref, require that the offset of the reference
@@ -1415,7 +1418,7 @@ idx_find_step (tree base, tree *idx, void *data)
     }
   else
     /* The step for pointer arithmetics already is 1 byte.  */
-    step = build_int_cst (sizetype, 1);
+    step = size_one_node;
 
   iv_base = iv->base;
   iv_step = iv->step;
@@ -1608,7 +1611,7 @@ may_be_nonaddressable_p (tree expr)
 static void
 find_interesting_uses_address (struct ivopts_data *data, gimple stmt, tree *op_p)
 {
-  tree base = *op_p, step = build_int_cst (sizetype, 0);
+  tree base = *op_p, step = size_zero_node;
   struct iv *civ;
   struct ifs_ivopts_data ifs_ivopts_data;
 
@@ -1666,13 +1669,12 @@ find_interesting_uses_address (struct ivopts_data *data, gimple stmt, tree *op_p
     {
       ifs_ivopts_data.ivopts_data = data;
       ifs_ivopts_data.stmt = stmt;
-      ifs_ivopts_data.step = build_int_cst (sizetype, 0);
+      ifs_ivopts_data.step = size_zero_node;
       if (!for_each_index (&base, idx_find_step, &ifs_ivopts_data)
 	  || integer_zerop (ifs_ivopts_data.step))
 	goto fail;
       step = ifs_ivopts_data.step;
 
-      gcc_assert (TREE_CODE (base) != ALIGN_INDIRECT_REF);
       gcc_assert (TREE_CODE (base) != MISALIGNED_INDIRECT_REF);
 
       /* Check that the base expression is addressable.  This needs
@@ -1694,9 +1696,11 @@ find_interesting_uses_address (struct ivopts_data *data, gimple stmt, tree *op_p
 	  tree *ref = &TREE_OPERAND (base, 0);
 	  while (handled_component_p (*ref))
 	    ref = &TREE_OPERAND (*ref, 0);
-	  if (TREE_CODE (*ref) == INDIRECT_REF)
+	  if (TREE_CODE (*ref) == MEM_REF)
 	    {
-	      tree tem = gimple_fold_indirect_ref (TREE_OPERAND (*ref, 0));
+	      tree tem = fold_binary (MEM_REF, TREE_TYPE (*ref),
+				      TREE_OPERAND (*ref, 0),
+				      TREE_OPERAND (*ref, 1));
 	      if (tem)
 		*ref = tem;
 	    }
@@ -2018,7 +2022,8 @@ strip_offset_1 (tree expr, bool inside_addr, bool top_compref,
       expr = build_fold_addr_expr (op0);
       return fold_convert (orig_type, expr);
 
-    case INDIRECT_REF:
+    case MEM_REF:
+      /* ???  Offset operand?  */
       inside_addr = false;
       break;
 
@@ -3889,7 +3894,7 @@ fallback:
       return infinite_cost;
 
     if (address_p)
-      comp = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (comp)), comp);
+      comp = build_simple_mem_ref (comp);
 
     return new_cost (computation_cost (comp, speed), 0);
   }
@@ -4429,7 +4434,8 @@ ivopts_global_cost_for_size (struct ivopts_data *data, unsigned size)
 {
   /* We add size to the cost, so that we prefer eliminating ivs
      if possible.  */
-  return size + estimate_reg_pressure_cost (size, data->regs_used, data->speed);
+  return size + estimate_reg_pressure_cost (size, data->regs_used, data->speed,
+					    data->body_includes_call);
 }
 
 /* For each size of the induction variable set determine the penalty.  */
@@ -4444,30 +4450,11 @@ determine_set_costs (struct ivopts_data *data)
   struct loop *loop = data->current_loop;
   bitmap_iterator bi;
 
-  /* We use the following model (definitely improvable, especially the
-     cost function -- TODO):
-
-     We estimate the number of registers available (using MD data), name it A.
-
-     We estimate the number of registers used by the loop, name it U.  This
-     number is obtained as the number of loop phi nodes (not counting virtual
-     registers and bivs) + the number of variables from outside of the loop.
-
-     We set a reserve R (free regs that are used for temporary computations,
-     etc.).  For now the reserve is a constant 3.
-
-     Let I be the number of induction variables.
-
-     -- if U + I + R <= A, the cost is I * SMALL_COST (just not to encourage
-	make a lot of ivs without a reason).
-     -- if A - R < U + I <= A, the cost is I * PRES_COST
-     -- if U + I > A, the cost is I * PRES_COST and
-        number of uses * SPILL_COST * (U + I - A) / (U + I) is added.  */
-
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "Global costs:\n");
       fprintf (dump_file, "  target_avail_regs %d\n", target_avail_regs);
+      fprintf (dump_file, "  target_clobbered_regs %d\n", target_clobbered_regs);
       fprintf (dump_file, "  target_reg_cost %d\n", target_reg_cost[data->speed]);
       fprintf (dump_file, "  target_spill_cost %d\n", target_spill_cost[data->speed]);
     }
@@ -5087,11 +5074,13 @@ iv_ca_prune (struct ivopts_data *data, struct iv_ca *ivs,
 }
 
 /* Tries to extend the sets IVS in the best possible way in order
-   to express the USE.  */
+   to express the USE.  If ORIGINALP is true, prefer candidates from
+   the original set of IVs, otherwise favor important candidates not
+   based on any memory object.  */
 
 static bool
 try_add_cand_for (struct ivopts_data *data, struct iv_ca *ivs,
-		  struct iv_use *use)
+		  struct iv_use *use, bool originalp)
 {
   comp_cost best_cost, act_cost;
   unsigned i;
@@ -5110,7 +5099,8 @@ try_add_cand_for (struct ivopts_data *data, struct iv_ca *ivs,
       iv_ca_set_no_cp (data, ivs, use);
     }
 
-  /* First try important candidates not based on any memory object.  Only if
+  /* If ORIGINALP is true, try to find the original IV for the use.  Otherwise
+     first try important candidates not based on any memory object.  Only if
      this fails, try the specific ones.  Rationale -- in loops with many
      variables the best choice often is to use just one generic biv.  If we
      added here many ivs specific to the uses, the optimization algorithm later
@@ -5122,7 +5112,10 @@ try_add_cand_for (struct ivopts_data *data, struct iv_ca *ivs,
     {
       cand = iv_cand (data, i);
 
-      if (cand->iv->base_object != NULL_TREE)
+      if (originalp && cand->pos !=IP_ORIGINAL)
+	continue;
+
+      if (!originalp && cand->iv->base_object != NULL_TREE)
 	continue;
 
       if (iv_ca_cand_used_p (ivs, cand))
@@ -5158,8 +5151,13 @@ try_add_cand_for (struct ivopts_data *data, struct iv_ca *ivs,
 	    continue;
 
 	  /* Already tried this.  */
-	  if (cand->important && cand->iv->base_object == NULL_TREE)
-	    continue;
+	  if (cand->important)
+	    {
+	      if (originalp && cand->pos == IP_ORIGINAL)
+		continue;
+	      if (!originalp && cand->iv->base_object == NULL_TREE)
+		continue;
+	    }
 
 	  if (iv_ca_cand_used_p (ivs, cand))
 	    continue;
@@ -5193,13 +5191,13 @@ try_add_cand_for (struct ivopts_data *data, struct iv_ca *ivs,
 /* Finds an initial assignment of candidates to uses.  */
 
 static struct iv_ca *
-get_initial_solution (struct ivopts_data *data)
+get_initial_solution (struct ivopts_data *data, bool originalp)
 {
   struct iv_ca *ivs = iv_ca_new (data);
   unsigned i;
 
   for (i = 0; i < n_iv_uses (data); i++)
-    if (!try_add_cand_for (data, ivs, iv_use (data, i)))
+    if (!try_add_cand_for (data, ivs, iv_use (data, i), originalp))
       {
 	iv_ca_free (&ivs);
 	return NULL;
@@ -5271,14 +5269,12 @@ try_improve_iv_set (struct ivopts_data *data, struct iv_ca *ivs)
    solution and remove the unused ivs while this improves the cost.  */
 
 static struct iv_ca *
-find_optimal_iv_set (struct ivopts_data *data)
+find_optimal_iv_set_1 (struct ivopts_data *data, bool originalp)
 {
-  unsigned i;
   struct iv_ca *set;
-  struct iv_use *use;
 
   /* Get the initial solution.  */
-  set = get_initial_solution (data);
+  set = get_initial_solution (data, originalp);
   if (!set)
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
@@ -5301,11 +5297,46 @@ find_optimal_iv_set (struct ivopts_data *data)
 	}
     }
 
+  return set;
+}
+
+static struct iv_ca *
+find_optimal_iv_set (struct ivopts_data *data)
+{
+  unsigned i;
+  struct iv_ca *set, *origset;
+  struct iv_use *use;
+  comp_cost cost, origcost;
+
+  /* Determine the cost based on a strategy that starts with original IVs,
+     and try again using a strategy that prefers candidates not based
+     on any IVs.  */
+  origset = find_optimal_iv_set_1 (data, true);
+  set = find_optimal_iv_set_1 (data, false);
+
+  if (!origset && !set)
+    return NULL;
+
+  origcost = origset ? iv_ca_cost (origset) : infinite_cost;
+  cost = set ? iv_ca_cost (set) : infinite_cost;
+
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
-      comp_cost cost = iv_ca_cost (set);
-      fprintf (dump_file, "Final cost %d (complexity %d)\n\n", cost.cost, cost.complexity);
+      fprintf (dump_file, "Original cost %d (complexity %d)\n\n",
+	       origcost.cost, origcost.complexity);
+      fprintf (dump_file, "Final cost %d (complexity %d)\n\n",
+	       cost.cost, cost.complexity);
     }
+
+  /* Choose the one with the best cost.  */
+  if (compare_costs (origcost, cost) <= 0)
+    {
+      if (set)
+	iv_ca_free (&set);
+      set = origset;
+    }
+  else if (origset)
+    iv_ca_free (&origset);
 
   for (i = 0; i < n_iv_uses (data); i++)
     {
@@ -5478,12 +5509,22 @@ rewrite_use_nonlinear_expr (struct ivopts_data *data,
       gcc_unreachable ();
     }
 
-  op = force_gimple_operand_gsi (&bsi, comp, false, SSA_NAME_VAR (tgt),
-				 true, GSI_SAME_STMT);
+  if (!valid_gimple_rhs_p (comp)
+      || (gimple_code (use->stmt) != GIMPLE_PHI
+	  /* We can't allow re-allocating the stmt as it might be pointed
+	     to still.  */
+	  && (get_gimple_rhs_num_ops (TREE_CODE (comp))
+	      >= gimple_num_ops (gsi_stmt (bsi)))))
+    {
+      comp = force_gimple_operand_gsi (&bsi, comp, true, NULL_TREE,
+				       true, GSI_SAME_STMT);
+      if (POINTER_TYPE_P (TREE_TYPE (tgt)))
+	duplicate_ssa_name_ptr_info (comp, SSA_NAME_PTR_INFO (tgt));
+    }
 
   if (gimple_code (use->stmt) == GIMPLE_PHI)
     {
-      ass = gimple_build_assign (tgt, op);
+      ass = gimple_build_assign (tgt, comp);
       gsi_insert_before (&bsi, ass, GSI_SAME_STMT);
 
       bsi = gsi_for_stmt (use->stmt);
@@ -5491,7 +5532,7 @@ rewrite_use_nonlinear_expr (struct ivopts_data *data,
     }
   else
     {
-      gimple_assign_set_rhs_from_tree (&bsi, op);
+      gimple_assign_set_rhs_from_tree (&bsi, comp);
       use->stmt = gsi_stmt (bsi);
     }
 }
@@ -5539,13 +5580,44 @@ unshare_and_remove_ssa_names (tree ref)
 static void
 copy_ref_info (tree new_ref, tree old_ref)
 {
-  if (TREE_CODE (old_ref) == TARGET_MEM_REF)
-    copy_mem_ref_info (new_ref, old_ref);
-  else
+  tree new_ptr_base = NULL_TREE;
+
+  if (TREE_CODE (old_ref) == TARGET_MEM_REF
+      && TREE_CODE (new_ref) == TARGET_MEM_REF)
+    TMR_ORIGINAL (new_ref) = TMR_ORIGINAL (old_ref);
+  else if (TREE_CODE (new_ref) == TARGET_MEM_REF)
+    TMR_ORIGINAL (new_ref) = unshare_and_remove_ssa_names (old_ref);
+
+  TREE_SIDE_EFFECTS (new_ref) = TREE_SIDE_EFFECTS (old_ref);
+  TREE_THIS_VOLATILE (new_ref) = TREE_THIS_VOLATILE (old_ref);
+
+  if (TREE_CODE (new_ref) == TARGET_MEM_REF)
+    new_ptr_base = TMR_BASE (new_ref);
+  else if (TREE_CODE (new_ref) == MEM_REF)
+    new_ptr_base = TREE_OPERAND (new_ref, 0);
+
+  /* We can transfer points-to information from an old pointer
+     or decl base to the new one.  */
+  if (new_ptr_base
+      && TREE_CODE (new_ptr_base) == SSA_NAME
+      && POINTER_TYPE_P (TREE_TYPE (new_ptr_base))
+      && !SSA_NAME_PTR_INFO (new_ptr_base))
     {
-      TMR_ORIGINAL (new_ref) = unshare_and_remove_ssa_names (old_ref);
-      TREE_SIDE_EFFECTS (new_ref) = TREE_SIDE_EFFECTS (old_ref);
-      TREE_THIS_VOLATILE (new_ref) = TREE_THIS_VOLATILE (old_ref);
+      tree base = get_base_address (old_ref);
+      if (!base)
+	;
+      else if ((INDIRECT_REF_P (base)
+		|| TREE_CODE (base) == MEM_REF)
+	       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
+	duplicate_ssa_name_ptr_info
+	  (new_ptr_base, SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0)));
+      else if (TREE_CODE (base) == VAR_DECL
+	       || TREE_CODE (base) == PARM_DECL
+	       || TREE_CODE (base) == RESULT_DECL)
+	{
+	  struct ptr_info_def *pi = get_ptr_info (new_ptr_base);
+	  pt_solution_set_var (&pi->pt, base);
+	}
     }
 }
 
@@ -5579,8 +5651,9 @@ rewrite_use_address (struct ivopts_data *data,
   if (cand->iv->base_object)
     base_hint = var_at_stmt (data->current_loop, cand, use->stmt);
 
-  ref = create_mem_ref (&bsi, TREE_TYPE (*use->op_p), &aff, base_hint,
-			data->speed);
+  ref = create_mem_ref (&bsi, TREE_TYPE (*use->op_p),
+			reference_alias_ptr_type (*use->op_p),
+			&aff, base_hint, data->speed);
   copy_ref_info (ref, *use->op_p);
   *use->op_p = ref;
 }
@@ -5793,6 +5866,25 @@ tree_ssa_iv_optimize_finalize (struct ivopts_data *data)
   VEC_free (iv_cand_p, heap, data->iv_candidates);
 }
 
+/* Returns true if the loop body BODY includes any function calls.  */
+
+static bool
+loop_body_includes_call (basic_block *body, unsigned num_nodes)
+{
+  gimple_stmt_iterator gsi;
+  unsigned i;
+
+  for (i = 0; i < num_nodes; i++)
+    for (gsi = gsi_start_bb (body[i]); !gsi_end_p (gsi); gsi_next (&gsi))
+      {
+	gimple stmt = gsi_stmt (gsi);
+	if (is_gimple_call (stmt)
+	    && !is_inexpensive_builtin (gimple_call_fndecl (stmt)))
+	  return true;
+      }
+  return false;
+}
+
 /* Optimizes the LOOP.  Returns true if anything changed.  */
 
 static bool
@@ -5824,6 +5916,7 @@ tree_ssa_iv_optimize_loop (struct ivopts_data *data, struct loop *loop)
     }
 
   body = get_loop_body (loop);
+  data->body_includes_call = loop_body_includes_call (body, loop->num_nodes);
   renumber_gimple_stmt_uids_in_blocks (body, loop->num_nodes);
   free (body);
 

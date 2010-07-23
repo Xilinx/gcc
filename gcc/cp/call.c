@@ -204,7 +204,7 @@ static void add_candidates (tree, tree, const VEC(tree,gc) *, tree, tree, bool,
 			    tree, tree, int, struct z_candidate **);
 static conversion *merge_conversion_sequences (conversion *, conversion *);
 static bool magic_varargs_p (tree);
-static tree build_temp (tree, tree, int, diagnostic_t *);
+static tree build_temp (tree, tree, int, diagnostic_t *, tsubst_flags_t);
 
 /* Returns nonzero iff the destructor name specified in NAME matches BASETYPE.
    NAME can take many forms...  */
@@ -641,7 +641,7 @@ build_aggr_conv (tree type, tree ctor, int flags)
   tree field = next_initializable_field (TYPE_FIELDS (type));
   tree empty_ctor = NULL_TREE;
 
-  for (; field; field = next_initializable_field (TREE_CHAIN (field)))
+  for (; field; field = next_initializable_field (DECL_CHAIN (field)))
     {
       if (i < CONSTRUCTOR_NELTS (ctor))
 	{
@@ -1044,6 +1044,9 @@ convert_class_to_reference (tree reference_type, tree s, tree expr, int flags)
   struct z_candidate *candidates;
   struct z_candidate *cand;
   bool any_viable_p;
+
+  if (!expr)
+    return NULL;
 
   conversions = lookup_conversions (s, /*lookup_template_convs_p=*/true);
   if (!conversions)
@@ -1597,6 +1600,27 @@ add_function_candidate (struct z_candidate **candidates,
   /* Make sure there are default args for the rest of the parms.  */
   else if (!sufficient_parms_p (parmnode))
     viable = 0;
+
+  /* Kludge: When looking for a function from a subobject while generating
+     an implicit copy/move constructor/operator=, don't consider anything
+     that takes (a reference to) a different type.  See c++/44909.  */
+  else if (flags & LOOKUP_SPECULATIVE)
+    {
+      if (DECL_CONSTRUCTOR_P (fn))
+	i = 1;
+      else if (DECL_ASSIGNMENT_OPERATOR_P (fn)
+	       && DECL_OVERLOADED_OPERATOR_P (fn) == NOP_EXPR)
+	i = 2;
+      else
+	i = 0;
+      if (i && len == i)
+	{
+	  parmnode = chain_index (i-1, parmlist);
+	  if (!(same_type_ignoring_top_level_qualifiers_p
+		(non_reference (TREE_VALUE (parmnode)), ctype)))
+	    viable = 0;
+	}
+    }
 
   if (! viable)
     goto out;
@@ -3863,8 +3887,8 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
       && same_type_p (arg2_type, arg3_type))
     {
       result_type = arg2_type;
-      mark_lvalue_use (arg2);
-      mark_lvalue_use (arg3);
+      arg2 = mark_lvalue_use (arg2);
+      arg3 = mark_lvalue_use (arg3);
       goto valid_operands;
     }
 
@@ -4853,7 +4877,7 @@ enforce_access (tree basetype_path, tree decl, tree diag_decl)
 
 static tree
 build_temp (tree expr, tree type, int flags,
-	    diagnostic_t *diagnostic_kind)
+	    diagnostic_t *diagnostic_kind, tsubst_flags_t complain)
 {
   int savew, savee;
   VEC(tree,gc) *args;
@@ -4861,7 +4885,7 @@ build_temp (tree expr, tree type, int flags,
   savew = warningcount, savee = errorcount;
   args = make_tree_vector_single (expr);
   expr = build_special_member_call (NULL_TREE, complete_ctor_identifier,
-				    &args, type, flags, tf_warning_or_error);
+				    &args, type, flags, complain);
   release_tree_vector (args);
   if (warningcount > savew)
     *diagnostic_kind = DK_WARNING;
@@ -5134,7 +5158,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	   conversion (i.e. the second step of copy-initialization), so
 	   don't allow any more.  */
 	flags |= LOOKUP_NO_CONVERSION;
-      expr = build_temp (expr, totype, flags, &diag_kind);
+      expr = build_temp (expr, totype, flags, &diag_kind, complain);
       if (diag_kind && fn)
 	{
 	  if ((complain & tf_error))
@@ -5248,7 +5272,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 
     case ck_pmem:
       return convert_ptrmem (totype, expr, /*allow_inverse_p=*/false,
-			     c_cast_p);
+			     c_cast_p, complain);
 
     default:
       break;
@@ -6097,7 +6121,7 @@ build_java_interface_fn_ref (tree fn, tree instance)
 
   /* Determine the itable index of FN.  */
   i = 1;
-  for (method = TYPE_METHODS (iface); method; method = TREE_CHAIN (method))
+  for (method = TYPE_METHODS (iface); method; method = DECL_CHAIN (method))
     {
       if (!DECL_VIRTUAL_P (method))
 	continue;
@@ -6229,7 +6253,7 @@ build_special_member_call (tree instance, tree name, VEC(tree,gc) **args,
       /* If the current function is a complete object constructor
 	 or destructor, then we fetch the VTT directly.
 	 Otherwise, we look it up using the VTT we were given.  */
-      vtt = TREE_CHAIN (CLASSTYPE_VTABLES (current_class_type));
+      vtt = DECL_CHAIN (CLASSTYPE_VTABLES (current_class_type));
       vtt = decay_conversion (vtt);
       vtt = build3 (COND_EXPR, TREE_TYPE (vtt),
 		    build2 (EQ_EXPR, boolean_type_node,
@@ -7955,6 +7979,10 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup,
 bool
 is_std_init_list (tree type)
 {
+  /* Look through typedefs.  */
+  if (!TYPE_P (type))
+    return false;
+  type = TYPE_MAIN_VARIANT (type);
   return (CLASS_TYPE_P (type)
 	  && CP_TYPE_CONTEXT (type) == std_node
 	  && strcmp (TYPE_NAME_STRING (type), "initializer_list") == 0);

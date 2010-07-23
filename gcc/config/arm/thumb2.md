@@ -467,7 +467,7 @@
           [(match_operator:SI 3 "shift_operator"
              [(match_operand:SI 4 "s_register_operand" "r")
               (match_operand:SI 5 "const_int_operand" "M")])
-           (match_operand:SI 2 "s_register_operand" "r")]))]
+           (match_operand:SI 2 "s_register_operand" "rk")]))]
   "TARGET_THUMB2"
   "%i1%?\\t%0, %2, %4%S3"
   [(set_attr "predicable" "yes")
@@ -597,42 +597,6 @@
    ite\\t%D2\;mov%D2\\t%0, %1\;orr%d2\\t%0, %1, #1"
   [(set_attr "conds" "use")
    (set_attr "length" "6,10")]
-)
-
-(define_insn "*thumb2_compare_scc"
-  [(set (match_operand:SI 0 "s_register_operand" "=r,r")
-	(match_operator:SI 1 "arm_comparison_operator"
-	 [(match_operand:SI 2 "s_register_operand" "r,r")
-	  (match_operand:SI 3 "arm_add_operand" "rI,L")]))
-   (clobber (reg:CC CC_REGNUM))]
-  "TARGET_THUMB2"
-  "*
-    if (operands[3] == const0_rtx)
-      {
-	if (GET_CODE (operands[1]) == LT)
-	  return \"lsr\\t%0, %2, #31\";
-
-	if (GET_CODE (operands[1]) == GE)
-	  return \"mvn\\t%0, %2\;lsr\\t%0, %0, #31\";
-
-	if (GET_CODE (operands[1]) == EQ)
-	  return \"rsbs\\t%0, %2, #1\;it\\tcc\;movcc\\t%0, #0\";
-      }
-
-    if (GET_CODE (operands[1]) == NE)
-      {
-        if (which_alternative == 1)
-	  return \"adds\\t%0, %2, #%n3\;it\\tne\;movne\\t%0, #1\";
-        return \"subs\\t%0, %2, %3\;it\\tne\;movne\\t%0, #1\";
-      }
-    if (which_alternative == 1)
-      output_asm_insn (\"cmn\\t%2, #%n3\", operands);
-    else
-      output_asm_insn (\"cmp\\t%2, %3\", operands);
-    return \"ite\\t%D1\;mov%D1\\t%0, #0\;mov%d1\\t%0, #1\";
-  "
-  [(set_attr "conds" "clob")
-   (set_attr "length" "14")]
 )
 
 (define_insn "*thumb2_cond_move"
@@ -1537,3 +1501,28 @@
 				VOIDmode, operands[0], const0_rtx);
   ")
 
+(define_peephole2
+  [(set (match_operand:CC_NOOV 0 "cc_register" "")
+	(compare:CC_NOOV (zero_extract:SI
+			  (match_operand:SI 1 "low_register_operand" "")
+			  (match_operand:SI 2 "const_int_operand" "")
+			  (const_int 0))
+			 (const_int 0)))
+   (match_scratch:SI 3 "l")
+   (set (pc)
+	(if_then_else (match_operator:CC_NOOV 4 "equality_operator"
+		       [(match_dup 0) (const_int 0)])
+		      (match_operand 5 "" "")
+		      (match_operand 6 "" "")))]
+  "TARGET_THUMB2
+   && (INTVAL (operands[2]) > 0 && INTVAL (operands[2]) < 32)"
+  [(parallel [(set (match_dup 0)
+		   (compare:CC_NOOV (ashift:SI (match_dup 1) (match_dup 2))
+				    (const_int 0)))
+	      (clobber (match_dup 3))])
+   (set (pc)
+	(if_then_else (match_op_dup 4 [(match_dup 0) (const_int 0)])
+		      (match_dup 5) (match_dup 6)))]
+  "
+  operands[2] = GEN_INT (32 - INTVAL (operands[2]));
+  ")

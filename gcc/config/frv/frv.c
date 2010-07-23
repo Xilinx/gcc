@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "function.h"
 #include "optabs.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "basic-block.h"
 #include "tm_p.h"
@@ -1181,7 +1182,7 @@ frv_stack_info (void)
       /* Find the last argument, and see if it is __builtin_va_alist.  */
       for (cur_arg = DECL_ARGUMENTS (fndecl); cur_arg != (tree)0; cur_arg = next_arg)
 	{
-	  next_arg = TREE_CHAIN (cur_arg);
+	  next_arg = DECL_CHAIN (cur_arg);
 	  if (next_arg == (tree)0)
 	    {
 	      if (DECL_NAME (cur_arg)
@@ -6510,8 +6511,9 @@ frv_secondary_reload (bool in_p, rtx x, reg_class_t reload_class_i,
 
   if (rclass != NO_REGS)
     {
-      enum insn_code icode = (in_p ? reload_in_optab[(int) reload_mode]
-			      : reload_out_optab[(int) reload_mode]);
+      enum insn_code icode
+	= direct_optab_handler (in_p ? reload_in_optab : reload_out_optab,
+				reload_mode);
       if (icode == 0)
 	{
 	  /* This happens when then the reload_[in|out]_optabs have
@@ -6632,7 +6634,7 @@ frv_adjust_field_align (tree field, int computed)
       tree prev = NULL_TREE;
       tree cur;
 
-      for (cur = TYPE_FIELDS (parent); cur && cur != field; cur = TREE_CHAIN (cur))
+      for (cur = TYPE_FIELDS (parent); cur && cur != field; cur = DECL_CHAIN (cur))
 	{
 	  if (TREE_CODE (cur) != FIELD_DECL)
 	    continue;

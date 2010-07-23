@@ -42,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "tree-pass.h"
 #include "df.h"
+#include "toplev.h" /* exact_log2 may be used by targets */
 
 #ifndef STACK_PUSH_CODE
 #ifdef STACK_GROWS_DOWNWARD
@@ -2741,7 +2742,7 @@ constrain_operands (int strict)
 			case PRE_MODIFY:
 			case POST_MODIFY:
 			  if (strchr (recog_data.constraints[opno], '<') == NULL
-			      || strchr (recog_data.constraints[opno], '>')
+			      && strchr (recog_data.constraints[opno], '>')
 				 == NULL)
 			    return 0;
 			  break;

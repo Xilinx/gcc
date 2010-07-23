@@ -286,7 +286,9 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   /* Set once the function has been instantiated and its callee
      lists created.  */
   unsigned analyzed : 1;
-  /* Set when function is available in the other LTRANS partition.  */
+  /* Set when function is available in the other LTRANS partition.  
+     During WPA output it is used to mark nodes that are present in
+     multiple partitions.  */
   unsigned in_other_partition : 1;
   /* Set when function is scheduled to be processed by local passes.  */
   unsigned process : 1;
@@ -497,7 +499,9 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) varpool_node {
   unsigned alias : 1;
   /* Set when variable is used from other LTRANS partition.  */
   unsigned used_from_other_partition : 1;
-  /* Set when variable is available in the other LTRANS partition.  */
+  /* Set when variable is available in the other LTRANS partition.
+     During WPA output it is used to mark nodes that are present in
+     multiple partitions.  */
   unsigned in_other_partition : 1;
 };
 
@@ -556,6 +560,7 @@ struct cgraph_edge *cgraph_create_edge (struct cgraph_node *,
 struct cgraph_edge *cgraph_create_indirect_edge (struct cgraph_node *, gimple, int,
 						 gcov_type, int, int);
 struct cgraph_node * cgraph_get_node (tree);
+struct cgraph_node * cgraph_get_node_or_alias (tree);
 struct cgraph_node *cgraph_node (tree);
 bool cgraph_same_body_alias (tree, tree);
 void cgraph_add_thunk (tree, tree, bool, HOST_WIDE_INT, HOST_WIDE_INT, tree, tree);
@@ -659,6 +664,8 @@ void cgraph_remove_node_duplication_hook (struct cgraph_2node_hook_list *);
 void cgraph_materialize_all_clones (void);
 gimple cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *);
 bool cgraph_propagate_frequency (struct cgraph_node *node);
+bool cgraph_will_be_removed_from_program_if_no_direct_calls
+  (struct cgraph_node *node);
 /* In cgraphbuild.c  */
 unsigned int rebuild_cgraph_edges (void);
 void cgraph_rebuild_references (void);

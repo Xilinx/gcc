@@ -154,7 +154,7 @@ ipa_populate_param_decls (struct cgraph_node *node,
   fndecl = node->decl;
   fnargs = DECL_ARGUMENTS (fndecl);
   param_num = 0;
-  for (parm = fnargs; parm; parm = TREE_CHAIN (parm))
+  for (parm = fnargs; parm; parm = DECL_CHAIN (parm))
     {
       info->params[param_num].decl = parm;
       param_num++;
@@ -169,7 +169,7 @@ count_formal_params_1 (tree fndecl)
   tree parm;
   int count = 0;
 
-  for (parm = DECL_ARGUMENTS (fndecl); parm; parm = TREE_CHAIN (parm))
+  for (parm = DECL_ARGUMENTS (fndecl); parm; parm = DECL_CHAIN (parm))
     count++;
 
   return count;
@@ -405,11 +405,12 @@ compute_complex_assign_jump_func (struct ipa_node_params *info,
   if (TREE_CODE (type) != RECORD_TYPE)
     return;
   op1 = get_ref_base_and_extent (op1, &offset, &size, &max_size);
-  if (TREE_CODE (op1) != INDIRECT_REF
+  if (TREE_CODE (op1) != MEM_REF
       /* If this is a varying address, punt.  */
       || max_size == -1
       || max_size != size)
     return;
+  offset += mem_ref_offset (op1).low * BITS_PER_UNIT;
   op1 = TREE_OPERAND (op1, 0);
   if (TREE_CODE (op1) != SSA_NAME
       || !SSA_NAME_IS_DEFAULT_DEF (op1))
@@ -481,11 +482,12 @@ compute_complex_ancestor_jump_func (struct ipa_node_params *info,
   expr = TREE_OPERAND (expr, 0);
   expr = get_ref_base_and_extent (expr, &offset, &size, &max_size);
 
-  if (TREE_CODE (expr) != INDIRECT_REF
+  if (TREE_CODE (expr) != MEM_REF
       /* If this is a varying address, punt.  */
       || max_size == -1
       || max_size != size)
     return;
+  offset += mem_ref_offset (expr).low * BITS_PER_UNIT;
   parm = TREE_OPERAND (expr, 0);
   if (TREE_CODE (parm) != SSA_NAME
       || !SSA_NAME_IS_DEFAULT_DEF (parm))
@@ -614,13 +616,13 @@ type_like_member_ptr_p (tree type, tree *method_ptr, tree *delta)
   if (method_ptr)
     *method_ptr = fld;
 
-  fld = TREE_CHAIN (fld);
+  fld = DECL_CHAIN (fld);
   if (!fld || INTEGRAL_TYPE_P (fld))
     return false;
   if (delta)
     *delta = fld;
 
-  if (TREE_CHAIN (fld))
+  if (DECL_CHAIN (fld))
     return false;
 
   return true;
@@ -1179,7 +1181,7 @@ ipa_analyze_virtual_call_uses (struct cgraph_node *node,
 	  obj = TREE_OPERAND (obj, 0);
 	}
       while (TREE_CODE (obj) == COMPONENT_REF);
-      if (TREE_CODE (obj) != INDIRECT_REF)
+      if (TREE_CODE (obj) != MEM_REF)
 	return;
       obj = TREE_OPERAND (obj, 0);
     }
@@ -1930,7 +1932,7 @@ ipa_get_vector_of_formal_parms (tree fndecl)
 
   count = count_formal_params_1 (fndecl);
   args = VEC_alloc (tree, heap, count);
-  for (parm = DECL_ARGUMENTS (fndecl); parm; parm = TREE_CHAIN (parm))
+  for (parm = DECL_ARGUMENTS (fndecl); parm; parm = DECL_CHAIN (parm))
     VEC_quick_push (tree, args, parm);
 
   return args;
@@ -2015,7 +2017,7 @@ ipa_modify_formal_parameters (tree fndecl, ipa_parm_adjustment_vec adjustments,
 							     adj->base_index),
 				       new_arg_types);
 	  *link = parm;
-	  link = &TREE_CHAIN (parm);
+	  link = &DECL_CHAIN (parm);
 	}
       else if (!adj->remove_param)
 	{
@@ -2048,7 +2050,7 @@ ipa_modify_formal_parameters (tree fndecl, ipa_parm_adjustment_vec adjustments,
 
 	  *link = new_parm;
 
-	  link = &TREE_CHAIN (new_parm);
+	  link = &DECL_CHAIN (new_parm);
 	}
     }
 

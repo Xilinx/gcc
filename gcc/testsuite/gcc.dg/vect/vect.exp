@@ -67,11 +67,8 @@ if  [istarget "powerpc-*paired*"]  {
 } elseif { [istarget  "spu-*-*"] } {
    set dg-do-what-default run
 } elseif { [istarget "i?86-*-*"] || [istarget "x86_64-*-*"] } {
-    if { ![check_effective_target_sse2] } then {
-	return
-    }
     lappend DEFAULT_VECTCFLAGS "-msse2"
-    if [check_sse2_hw_available] {
+    if { [check_effective_target_sse2_runtime] } {
 	set dg-do-what-default run
     } else {
 	set dg-do-what-default compile
@@ -105,6 +102,10 @@ if  [istarget "powerpc-*paired*"]  {
     set dg-do-what-default run
 } elseif [is-effective-target arm_neon_ok] {
     eval lappend DEFAULT_VECTCFLAGS [add_options_for_arm_neon ""]
+    # NEON does not support denormals, so is not used for vectorization by
+    # default to avoid loss of precision.  We must pass -ffast-math to test
+    # vectorization of float operations.
+    lappend DEFAULT_VECTCFLAGS "-ffast-math"
     if [is-effective-target arm_neon_hw] {
       set dg-do-what-default run
     } else {

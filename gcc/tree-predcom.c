@@ -925,7 +925,7 @@ add_ref_to_chain (chain_p chain, dref ref)
   double_int dist;
 
   gcc_assert (double_int_scmp (root->offset, ref->offset) <= 0);
-  dist = double_int_add (ref->offset, double_int_neg (root->offset));
+  dist = double_int_sub (ref->offset, root->offset);
   if (double_int_ucmp (uhwi_to_double_int (MAX_DISTANCE), dist) <= 0)
     {
       free (ref);
@@ -1199,8 +1199,7 @@ determine_roots_comp (struct loop *loop,
     {
       if (!chain || !DR_IS_READ (a->ref)
 	  || double_int_ucmp (uhwi_to_double_int (MAX_DISTANCE),
-			      double_int_add (a->offset,
-					      double_int_neg (last_ofs))) <= 0)
+			      double_int_sub (a->offset, last_ofs)) <= 0)
 	{
 	  if (nontrivial_chain_p (chain))
 	    {
@@ -1345,14 +1344,16 @@ ref_at_iteration (struct loop *loop, tree ref, int iter)
       if (!op0)
 	return NULL_TREE;
     }
-  else if (!INDIRECT_REF_P (ref))
+  else if (!INDIRECT_REF_P (ref)
+	   && TREE_CODE (ref) != MEM_REF)
     return unshare_expr (ref);
 
-  if (INDIRECT_REF_P (ref))
+  if (INDIRECT_REF_P (ref)
+      || TREE_CODE (ref) == MEM_REF)
     {
-      /* Take care for INDIRECT_REF and MISALIGNED_INDIRECT_REF at
+      /* Take care for MEM_REF and MISALIGNED_INDIRECT_REF at
          the same time.  */
-      ret = copy_node (ref);
+      ret = unshare_expr (ref);
       idx = TREE_OPERAND (ref, 0);
       idx_p = &TREE_OPERAND (ret, 0);
     }

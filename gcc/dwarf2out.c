@@ -2791,6 +2791,12 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
   insn = PATTERN (insn);
  found:
   dwarf2out_frame_debug_expr (insn, label);
+
+  /* Check again.  A parallel can save and update the same register.
+     We could probably check just once, here, but this is safer than
+     removing the check above.  */
+  if (clobbers_queued_reg_save (insn))
+    flush_queued_reg_saves ();
 }
 
 /* Determine if we need to save and restore CFI information around this
@@ -4928,10 +4934,28 @@ output_loc_operands (dw_loc_descr_ref loc)
       dw2_asm_output_data (2, val1->v.val_int, NULL);
       break;
     case DW_OP_const4u:
+      if (loc->dtprel)
+	{
+	  gcc_assert (targetm.asm_out.output_dwarf_dtprel);
+	  targetm.asm_out.output_dwarf_dtprel (asm_out_file, 4,
+					       val1->v.val_addr);
+	  fputc ('\n', asm_out_file);
+	  break;
+	}
+      /* FALLTHRU */
     case DW_OP_const4s:
       dw2_asm_output_data (4, val1->v.val_int, NULL);
       break;
     case DW_OP_const8u:
+      if (loc->dtprel)
+	{
+	  gcc_assert (targetm.asm_out.output_dwarf_dtprel);
+	  targetm.asm_out.output_dwarf_dtprel (asm_out_file, 8,
+					       val1->v.val_addr);
+	  fputc ('\n', asm_out_file);
+	  break;
+	}
+      /* FALLTHRU */
     case DW_OP_const8s:
       gcc_assert (HOST_BITS_PER_WIDE_INT >= 64);
       dw2_asm_output_data (8, val1->v.val_int, NULL);
@@ -6384,11 +6408,6 @@ static void gen_remaining_tmpl_value_param_die_attribute (void);
 #ifndef DEBUG_MACINFO_SECTION_LABEL
 #define DEBUG_MACINFO_SECTION_LABEL     "Ldebug_macinfo"
 #endif
-
-/* Mangled name attribute to use.  This used to be a vendor extension
-   until DWARF 4 standardized it.  */
-#define AT_linkage_name \
-  (dwarf_version >= 4 ? DW_AT_linkage_name : DW_AT_MIPS_linkage_name)
 
 
 /* Definitions of defaults for formats and names of various special
@@ -11230,6 +11249,8 @@ output_comdat_type_unit (comdat_type_node *node)
 static const char *
 dwarf2_name (tree decl, int scope)
 {
+  if (DECL_NAMELESS (decl))
+    return NULL;
   return lang_hooks.dwarf_name (decl, scope ? 1 : 0);
 }
 
@@ -11238,17 +11259,20 @@ dwarf2_name (tree decl, int scope)
 static void
 add_pubname_string (const char *str, dw_die_ref die)
 {
-  pubname_entry e;
+  if (targetm.want_debug_pub_sections)
+    {
+      pubname_entry e;
 
-  e.die = die;
-  e.name = xstrdup (str);
-  VEC_safe_push (pubname_entry, gc, pubname_table, &e);
+      e.die = die;
+      e.name = xstrdup (str);
+      VEC_safe_push (pubname_entry, gc, pubname_table, &e);
+    }
 }
 
 static void
 add_pubname (tree decl, dw_die_ref die)
 {
-  if (TREE_PUBLIC (decl))
+  if (targetm.want_debug_pub_sections && TREE_PUBLIC (decl))
     {
       const char *name = dwarf2_name (decl, 1);
       if (name)
@@ -11262,6 +11286,9 @@ static void
 add_pubtype (tree decl, dw_die_ref die)
 {
   pubname_entry e;
+
+  if (!targetm.want_debug_pub_sections)
+    return;
 
   e.name = NULL;
   if ((TREE_PUBLIC (decl)
@@ -12999,6 +13026,26 @@ reg_loc_descriptor (rtx rtl, enum var_init_status initialized)
   if (REGNO (rtl) >= FIRST_PSEUDO_REGISTER)
     return 0;
 
+  /* We only use "frame base" when we're sure we're talking about the
+     post-prologue local stack frame.  We do this by *not* running
+     register elimination until this point, and recognizing the special
+     argument pointer and soft frame pointer rtx's.
+     Use DW_OP_fbreg offset DW_OP_stack_value in this case.  */
+  if ((rtl == arg_pointer_rtx || rtl == frame_pointer_rtx)
+      && eliminate_regs (rtl, VOIDmode, NULL_RTX) != rtl)
+    {
+      dw_loc_descr_ref result = NULL;
+
+      if (dwarf_version >= 4 || !dwarf_strict)
+	{
+	  result = mem_loc_descriptor (rtl, VOIDmode, initialized);
+	  if (result)
+	    add_loc_descr (&result,
+			   new_loc_descr (DW_OP_stack_value, 0, 0));
+	}
+      return result;
+    }
+
   regs = targetm.dwarf_register_span (rtl);
 
   if (hard_regno_nregs[REGNO (rtl)][GET_MODE (rtl)] > 1 || regs)
@@ -13565,7 +13612,11 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	  if (!targetm.have_tls || !targetm.asm_out.output_dwarf_dtprel)
 	    break;
 
-	  temp = new_loc_descr (DW_OP_addr, 0, 0);
+	  /* We used to emit DW_OP_addr here, but that's wrong, since
+	     DW_OP_addr should be relocated by the debug info consumer,
+	     while DW_OP_GNU_push_tls_address operand should not.  */
+	  temp = new_loc_descr (DWARF2_ADDR_SIZE == 4
+				? DW_OP_const4u : DW_OP_const8u, 0, 0);
 	  temp->dw_loc_oprnd1.val_class = dw_val_class_addr;
 	  temp->dw_loc_oprnd1.v.val_addr = rtl;
 	  temp->dtprel = true;
@@ -14209,11 +14260,6 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 
     case REG:
       loc_result = reg_loc_descriptor (rtl, initialized);
-      break;
-
-    case SIGN_EXTEND:
-    case ZERO_EXTEND:
-      loc_result = loc_descriptor (XEXP (rtl, 0), mode, initialized);
       break;
 
     case MEM:
@@ -15050,10 +15096,13 @@ loc_list_from_tree (tree loc, int want_address)
 
 	       /* The way DW_OP_GNU_push_tls_address is specified, we
 	     	  can only look up addresses of objects in the current
-	     	  module.  */
+	     	  module.  We used DW_OP_addr as first op, but that's
+		  wrong, because DW_OP_addr is relocated by the debug
+		  info consumer, while DW_OP_GNU_push_tls_address
+		  operand shouldn't be.  */
 	      if (DECL_EXTERNAL (loc) && !targetm.binds_local_p (loc))
 		return 0;
-	      first_op = DW_OP_addr;
+	      first_op = DWARF2_ADDR_SIZE == 4 ? DW_OP_const4u : DW_OP_const8u;
 	      dtprel = true;
 	      second_op = DW_OP_GNU_push_tls_address;
 	    }
@@ -15160,8 +15209,12 @@ loc_list_from_tree (tree loc, int want_address)
       }
       break;
 
+    case MEM_REF:
+      /* ??? FIXME.  */
+      if (!integer_zerop (TREE_OPERAND (loc, 1)))
+	return 0;
+      /* Fallthru.  */
     case INDIRECT_REF:
-    case ALIGN_INDIRECT_REF:
     case MISALIGNED_INDIRECT_REF:
       list_ret = loc_list_from_tree (TREE_OPERAND (loc, 0), 0);
       have_address = 1;
@@ -15721,7 +15774,7 @@ field_byte_offset (const_tree decl)
 	 where the lowest addressed bit of the containing object must
 	 be.  */
       object_offset_in_bits
-	= double_int_add (deepest_bitpos, double_int_neg (type_size_in_bits));
+	= double_int_sub (deepest_bitpos, type_size_in_bits);
 
       /* Round up to type_align by default.  This works best for
 	 bitfields.  */
@@ -15731,8 +15784,7 @@ field_byte_offset (const_tree decl)
       if (double_int_ucmp (object_offset_in_bits, bitpos_int) > 0)
 	{
 	  object_offset_in_bits
-	    = double_int_add (deepest_bitpos,
-			      double_int_neg (type_size_in_bits));
+	    = double_int_sub (deepest_bitpos, type_size_in_bits);
 
 	  /* Round up to decl_align instead.  */
 	  object_offset_in_bits
@@ -16689,7 +16741,7 @@ native_encode_initializer (tree init, unsigned char *array, int size)
 
 	  for (cnt = 0;
 	       VEC_iterate (constructor_elt, CONSTRUCTOR_ELTS (init), cnt, ce);
-	       cnt++, field = field ? TREE_CHAIN (field) : 0)
+	       cnt++, field = field ? DECL_CHAIN (field) : 0)
 	    {
 	      tree val = ce->value;
 	      int pos, fieldsize;
@@ -17355,6 +17407,25 @@ add_pure_or_virtual_attribute (dw_die_ref die, tree func_decl)
     }
 }
 
+/* Add a DW_AT_linkage_name or DW_AT_MIPS_linkage_name attribute for the
+   given decl.  This used to be a vendor extension until after DWARF 4
+   standardized it.  */
+
+static void
+add_linkage_attr (dw_die_ref die, tree decl)
+{
+  const char *name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+
+  /* Mimic what assemble_name_raw does with a leading '*'.  */
+  if (name[0] == '*')
+    name = &name[1];
+
+  if (dwarf_version >= 4)
+    add_AT_string (die, DW_AT_linkage_name, name);
+  else
+    add_AT_string (die, DW_AT_MIPS_linkage_name, name);
+}
+
 /* Add source coordinate attributes for the given decl.  */
 
 static void
@@ -17389,8 +17460,7 @@ add_linkage_name (dw_die_ref die, tree decl)
 	  deferred_asm_name = asm_name;
 	}
       else if (DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl))
-	add_AT_string (die, AT_linkage_name,
-		       IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
+	add_linkage_attr (die, decl);
     }
 }
 
@@ -17523,9 +17593,13 @@ scope_die_for (tree t, dw_die_ref context_die)
 	{
 	  gcc_assert (debug_info_level <= DINFO_LEVEL_TERSE
 		      || TREE_ASM_WRITTEN (containing_scope));
+	  /*We are not in the middle of emitting the type
+	    CONTAINING_SCOPE. Let's see if it's emitted already.  */
+	  scope_die = lookup_type_die (containing_scope);
 
 	  /* If none of the current dies are suitable, we get file scope.  */
-	  scope_die = comp_unit_die;
+	  if (scope_die == NULL)
+	    scope_die = comp_unit_die;
 	}
       else
 	scope_die = lookup_type_die (containing_scope);
@@ -17645,7 +17719,8 @@ type_tag (const_tree type)
       tree t = 0;
 
       /* Find the IDENTIFIER_NODE for the type name.  */
-      if (TREE_CODE (TYPE_NAME (type)) == IDENTIFIER_NODE)
+      if (TREE_CODE (TYPE_NAME (type)) == IDENTIFIER_NODE
+	  && !TYPE_NAMELESS (type))
 	t = TYPE_NAME (type);
 
       /* The g++ front end makes the TYPE_NAME of *each* tagged type point to
@@ -17658,7 +17733,8 @@ type_tag (const_tree type)
 	     DECL_NAME isn't set.  The default hook for decl_printable_name
 	     doesn't like that, and in this context it's correct to return
 	     0, instead of "<anonymous>" or the like.  */
-	  if (DECL_NAME (TYPE_NAME (type)))
+	  if (DECL_NAME (TYPE_NAME (type))
+	      && !DECL_NAMELESS (TYPE_NAME (type)))
 	    name = lang_hooks.dwarf_name (TYPE_NAME (type), 2);
 	}
 
@@ -18228,7 +18304,7 @@ gen_formal_parameter_pack_die  (tree parm_pack,
   parm_pack_die = new_die (DW_TAG_GNU_formal_parameter_pack, subr_die, parm_pack);
   add_src_coords_attributes (parm_pack_die, parm_pack);
 
-  for (arg = pack_arg; arg; arg = TREE_CHAIN (arg))
+  for (arg = pack_arg; arg; arg = DECL_CHAIN (arg))
     {
       if (! lang_hooks.decls.function_parm_expanded_from_pack_p (arg,
 								 parm_pack))
@@ -18295,7 +18371,7 @@ gen_formal_types_die (tree function_or_method_type, dw_die_ref context_die)
 
       link = TREE_CHAIN (link);
       if (arg)
-	arg = TREE_CHAIN (arg);
+	arg = DECL_CHAIN (arg);
     }
 
   /* If this function type has an ellipsis, add a
@@ -18804,11 +18880,11 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	  else if (parm)
 	    {
 	      gen_decl_die (parm, NULL, subr_die);
-	      parm = TREE_CHAIN (parm);
+	      parm = DECL_CHAIN (parm);
 	    }
 
 	  if (generic_decl_parm)
-	    generic_decl_parm = TREE_CHAIN (generic_decl_parm);
+	    generic_decl_parm = DECL_CHAIN (generic_decl_parm);
 	}
 
       /* Decide whether we need an unspecified_parameters DIE at the end.
@@ -19510,7 +19586,7 @@ gen_member_die (tree type, dw_die_ref context_die)
     }
 
   /* Now output info about the data members and type members.  */
-  for (member = TYPE_FIELDS (type); member; member = TREE_CHAIN (member))
+  for (member = TYPE_FIELDS (type); member; member = DECL_CHAIN (member))
     {
       /* If we thought we were generating minimal debug info for TYPE
 	 and then changed our minds, some of the member declarations
@@ -19525,7 +19601,7 @@ gen_member_die (tree type, dw_die_ref context_die)
     }
 
   /* Now output info about the function members (if any).  */
-  for (member = TYPE_METHODS (type); member; member = TREE_CHAIN (member))
+  for (member = TYPE_METHODS (type); member; member = DECL_CHAIN (member))
     {
       /* Don't include clones in the member list.  */
       if (DECL_ABSTRACT_ORIGIN (member))
@@ -20091,7 +20167,7 @@ decls_for_scope (tree stmt, dw_die_ref context_die, int depth)
      declared directly within this block but not within any nested
      sub-blocks.  Also, nested function and tag DIEs have been
      generated with a parent of NULL; fix that up now.  */
-  for (decl = BLOCK_VARS (stmt); decl != NULL; decl = TREE_CHAIN (decl))
+  for (decl = BLOCK_VARS (stmt); decl != NULL; decl = DECL_CHAIN (decl))
     process_scope_var (stmt, decl, NULL_TREE, context_die);
   for (i = 0; i < BLOCK_NUM_NONLOCALIZED_VARS (stmt); i++)
     process_scope_var (stmt, NULL, BLOCK_NONLOCALIZED_VAR (stmt, i),
@@ -20872,7 +20948,7 @@ dwarf2out_ignore_block (const_tree block)
   tree decl;
   unsigned int i;
 
-  for (decl = BLOCK_VARS (block); decl; decl = TREE_CHAIN (decl))
+  for (decl = BLOCK_VARS (block); decl; decl = DECL_CHAIN (decl))
     if (TREE_CODE (decl) == FUNCTION_DECL
 	|| (TREE_CODE (decl) == TYPE_DECL && TYPE_DECL_IS_STUB (decl)))
       return 0;
@@ -21988,7 +22064,8 @@ move_linkage_attr (dw_die_ref die)
   unsigned ix = VEC_length (dw_attr_node, die->die_attr);
   dw_attr_node linkage = *VEC_index (dw_attr_node, die->die_attr, ix - 1);
 
-  gcc_assert (linkage.dw_attr == AT_linkage_name);
+  gcc_assert (linkage.dw_attr == DW_AT_linkage_name
+	      || linkage.dw_attr == DW_AT_MIPS_linkage_name);
 
   while (--ix > 0)
     {
@@ -22050,7 +22127,7 @@ static bool
 resolve_addr_in_expr (dw_loc_descr_ref loc)
 {
   for (; loc; loc = loc->dw_loc_next)
-    if ((loc->dw_loc_opc == DW_OP_addr
+    if (((loc->dw_loc_opc == DW_OP_addr || loc->dtprel)
 	 && resolve_one_addr (&loc->dw_loc_oprnd1.v.val_addr, NULL))
 	|| (loc->dw_loc_opc == DW_OP_implicit_value
 	    && loc->dw_loc_oprnd2.val_class == dw_val_class_addr
@@ -22221,8 +22298,7 @@ dwarf2out_finish (const char *filename)
       tree decl = node->created_for;
       if (DECL_ASSEMBLER_NAME (decl) != DECL_NAME (decl))
 	{
-	  add_AT_string (node->die, AT_linkage_name,
-			 IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
+	  add_linkage_attr (node->die, decl);
 	  move_linkage_attr (node->die);
 	}
     }

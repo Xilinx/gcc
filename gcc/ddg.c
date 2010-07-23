@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "rtl.h"
 #include "tm_p.h"
@@ -487,7 +488,7 @@ create_ddg (basic_block bb, int closing_branch_deps)
     }
 
   /* There is nothing to do for this BB.  */
-  if (num_nodes <= 1)
+  if ((num_nodes - g->num_debug) <= 1)
     {
       free (g);
       return NULL;

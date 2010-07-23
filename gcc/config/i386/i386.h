@@ -66,6 +66,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_AES	OPTION_ISA_AES
 #define TARGET_PCLMUL	OPTION_ISA_PCLMUL
 #define TARGET_CMPXCHG16B OPTION_ISA_CX16
+#define TARGET_FSGSBASE	OPTION_ISA_FSGSBASE
+#define TARGET_RDRND	OPTION_ISA_RDRND
+#define TARGET_F16C	OPTION_ISA_F16C
 
 
 /* SSE4.1 defines round instructions */
@@ -474,7 +477,13 @@ extern tree x86_mfence;
    redefines this to 1.  */
 #define TARGET_MACHO 0
 
-/* Likewise, for the Windows 64-bit ABI.  */
+/* Branch island 'stubs' are emitted for earlier versions of darwin.
+   This provides a default (over-ridden in darwin.h.)  */
+#ifndef TARGET_MACHO_BRANCH_ISLANDS
+#define TARGET_MACHO_BRANCH_ISLANDS 0
+#endif
+
+/* For the Windows 64-bit ABI.  */
 #define TARGET_64BIT_MS_ABI (TARGET_64BIT && ix86_cfun_abi () == MS_ABI)
 
 /* Available call abi.  */
@@ -1812,10 +1821,11 @@ typedef struct ix86_args {
 
 #define CLEAR_RATIO(speed) ((speed) ? MIN (6, ix86_cost->move_ratio) : 2)
 
-/* Define if shifts truncate the shift count
-   which implies one can omit a sign-extension or zero-extension
-   of a shift count.  */
-/* On i386, shifts do truncate the count.  But bit opcodes don't.  */
+/* Define if shifts truncate the shift count which implies one can
+   omit a sign-extension or zero-extension of a shift count.
+
+   On i386, shifts do truncate the count.  But bit test instructions
+   take the modulo of the bit offset operand.  */
 
 /* #define SHIFT_COUNT_TRUNCATED */
 
@@ -2078,6 +2088,13 @@ do {									\
         fprintf ((FILE), "\t.p2align %d,,%d\n", (LOG), (MAX_SKIP));	\
     }
 #endif
+
+/* Write the extra assembler code needed to declare a function
+   properly.  */
+
+#undef ASM_OUTPUT_FUNCTION_LABEL
+#define ASM_OUTPUT_FUNCTION_LABEL(FILE, NAME, DECL) \
+  ix86_asm_output_function_label (FILE, NAME, DECL)
 
 /* Under some conditions we need jump tables in the text section,
    because the assembler cannot handle label differences between

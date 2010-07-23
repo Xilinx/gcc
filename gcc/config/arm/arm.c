@@ -40,6 +40,7 @@
 #include "function.h"
 #include "expr.h"
 #include "optabs.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "recog.h"
 #include "cgraph.h"
@@ -3183,12 +3184,81 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
    immediate value easier to load.  */
 
 enum rtx_code
-arm_canonicalize_comparison (enum rtx_code code, enum machine_mode mode,
-			     rtx * op1)
+arm_canonicalize_comparison (enum rtx_code code, rtx *op0, rtx *op1)
 {
-  unsigned HOST_WIDE_INT i = INTVAL (*op1);
-  unsigned HOST_WIDE_INT maxval;
+  enum machine_mode mode;
+  unsigned HOST_WIDE_INT i, maxval;
+
+  mode = GET_MODE (*op0);
+  if (mode == VOIDmode)
+    mode = GET_MODE (*op1);
+
   maxval = (((unsigned HOST_WIDE_INT) 1) << (GET_MODE_BITSIZE(mode) - 1)) - 1;
+
+  /* For DImode, we have GE/LT/GEU/LTU comparisons.  In ARM mode
+     we can also use cmp/cmpeq for GTU/LEU.  GT/LE must be either
+     reversed or (for constant OP1) adjusted to GE/LT.  Similarly
+     for GTU/LEU in Thumb mode.  */
+  if (mode == DImode)
+    {
+      rtx tem;
+
+      /* To keep things simple, always use the Cirrus cfcmp64 if it is
+	 available.  */
+      if (TARGET_ARM && TARGET_HARD_FLOAT && TARGET_MAVERICK)
+	return code;
+
+      if (code == GT || code == LE
+	  || (!TARGET_ARM && (code == GTU || code == LEU)))
+	{
+	  /* Missing comparison.  First try to use an available
+	     comparison.  */
+	  if (GET_CODE (*op1) == CONST_INT)
+	    {
+	      i = INTVAL (*op1);
+	      switch (code)
+		{
+		case GT:
+		case LE:
+		  if (i != maxval
+		      && arm_const_double_by_immediates (GEN_INT (i + 1)))
+		    {
+		      *op1 = GEN_INT (i + 1);
+		      return code == GT ? GE : LT;
+		    }
+		  break;
+		case GTU:
+		case LEU:
+		  if (i != ~((unsigned HOST_WIDE_INT) 0)
+		      && arm_const_double_by_immediates (GEN_INT (i + 1)))
+		    {
+		      *op1 = GEN_INT (i + 1);
+		      return code == GTU ? GEU : LTU;
+		    }
+		  break;
+		default:
+		  gcc_unreachable ();
+		}
+	    }
+
+	  /* If that did not work, reverse the condition.  */
+	  tem = *op0;
+	  *op0 = *op1;
+	  *op1 = tem;
+	  return swap_condition (code);
+	}
+
+      return code;
+    }
+
+  /* Comparisons smaller than DImode.  Only adjust comparisons against
+     an out-of-range constant.  */
+  if (GET_CODE (*op1) != CONST_INT
+      || const_ok_for_arm (INTVAL (*op1))
+      || const_ok_for_arm (- INTVAL (*op1)))
+    return code;
+
+  i = INTVAL (*op1);
 
   switch (code)
     {
@@ -3466,7 +3536,7 @@ arm_return_in_memory (const_tree type, const_tree fntype)
 	 have been created by C++.  */
       for (field = TYPE_FIELDS (type);
 	   field && TREE_CODE (field) != FIELD_DECL;
-	   field = TREE_CHAIN (field))
+	   field = DECL_CHAIN (field))
 	continue;
 
       if (field == NULL)
@@ -3485,9 +3555,9 @@ arm_return_in_memory (const_tree type, const_tree fntype)
 
       /* Now check the remaining fields, if any.  Only bitfields are allowed,
 	 since they are not addressable.  */
-      for (field = TREE_CHAIN (field);
+      for (field = DECL_CHAIN (field);
 	   field;
-	   field = TREE_CHAIN (field))
+	   field = DECL_CHAIN (field))
 	{
 	  if (TREE_CODE (field) != FIELD_DECL)
 	    continue;
@@ -3507,7 +3577,7 @@ arm_return_in_memory (const_tree type, const_tree fntype)
 	 integral, or can be returned in an integer register.  */
       for (field = TYPE_FIELDS (type);
 	   field;
-	   field = TREE_CHAIN (field))
+	   field = DECL_CHAIN (field))
 	{
 	  if (TREE_CODE (field) != FIELD_DECL)
 	    continue;
@@ -3767,7 +3837,7 @@ aapcs_vfp_sub_candidate (const_tree type, enum machine_mode *modep)
 	if (!COMPLETE_TYPE_P(type))
 	  return -1;
 
-	for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+	for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
 	  {
 	    if (TREE_CODE (field) != FIELD_DECL)
 	      continue;
@@ -3799,7 +3869,7 @@ aapcs_vfp_sub_candidate (const_tree type, enum machine_mode *modep)
 	if (!COMPLETE_TYPE_P(type))
 	  return -1;
 
-	for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+	for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
 	  {
 	    if (TREE_CODE (field) != FIELD_DECL)
 	      continue;
@@ -6214,6 +6284,7 @@ static inline int
 thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
 {
   enum machine_mode mode = GET_MODE (x);
+  int total;
 
   switch (code)
     {
@@ -6312,24 +6383,20 @@ thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
 	return 14;
       return 2;
 
+    case SIGN_EXTEND:
     case ZERO_EXTEND:
-      /* XXX still guessing.  */
-      switch (GET_MODE (XEXP (x, 0)))
-	{
-	case QImode:
-	  return (1 + (mode == DImode ? 4 : 0)
-		  + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
+      total = mode == DImode ? COSTS_N_INSNS (1) : 0;
+      total += thumb1_rtx_costs (XEXP (x, 0), GET_CODE (XEXP (x, 0)), code);
 
-	case HImode:
-	  return (4 + (mode == DImode ? 4 : 0)
-		  + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
+      if (mode == SImode)
+	return total;
 
-	case SImode:
-	  return (1 + (GET_CODE (XEXP (x, 0)) == MEM ? 10 : 0));
+      if (arm_arch6)
+	return total + COSTS_N_INSNS (1);
 
-	default:
-	  return 99;
-	}
+      /* Assume a two-shift sequence.  Increase the cost slightly so
+	 we prefer actual shifts over an extend operation.  */
+      return total + 1 + COSTS_N_INSNS (2);
 
     default:
       return 99;
@@ -6798,44 +6865,39 @@ arm_rtx_costs_1 (rtx x, enum rtx_code outer, int* total, bool speed)
       return false;
 
     case SIGN_EXTEND:
-      if (GET_MODE_CLASS (mode) == MODE_INT)
-	{
-	  *total = 0;
-	  if (mode == DImode)
-	    *total += COSTS_N_INSNS (1);
-
-	  if (GET_MODE (XEXP (x, 0)) != SImode)
-	    {
-	      if (arm_arch6)
-		{
-		  if (GET_CODE (XEXP (x, 0)) != MEM)
-		    *total += COSTS_N_INSNS (1);
-		}
-	      else if (!arm_arch4 || GET_CODE (XEXP (x, 0)) != MEM)
-		*total += COSTS_N_INSNS (2);
-	    }
-
-	  return false;
-	}
-
-      /* Fall through */
     case ZERO_EXTEND:
       *total = 0;
       if (GET_MODE_CLASS (mode) == MODE_INT)
 	{
+	  rtx op = XEXP (x, 0);
+	  enum machine_mode opmode = GET_MODE (op);
+
 	  if (mode == DImode)
 	    *total += COSTS_N_INSNS (1);
 
-	  if (GET_MODE (XEXP (x, 0)) != SImode)
+	  if (opmode != SImode)
 	    {
-	      if (arm_arch6)
+	      if (MEM_P (op))
 		{
-		  if (GET_CODE (XEXP (x, 0)) != MEM)
-		    *total += COSTS_N_INSNS (1);
+		  /* If !arm_arch4, we use one of the extendhisi2_mem
+		     or movhi_bytes patterns for HImode.  For a QImode
+		     sign extension, we first zero-extend from memory
+		     and then perform a shift sequence.  */
+		  if (!arm_arch4 && (opmode != QImode || code == SIGN_EXTEND))
+		    *total += COSTS_N_INSNS (2);
 		}
-	      else if (!arm_arch4 || GET_CODE (XEXP (x, 0)) != MEM)
-		*total += COSTS_N_INSNS (GET_MODE (XEXP (x, 0)) == QImode ?
-					 1 : 2);
+	      else if (arm_arch6)
+		*total += COSTS_N_INSNS (1);
+
+	      /* We don't have the necessary insn, so we need to perform some
+		 other operation.  */
+	      else if (TARGET_ARM && code == ZERO_EXTEND && mode == QImode)
+		/* An and with constant 255.  */
+		*total += COSTS_N_INSNS (1);
+	      else
+		/* A shift sequence.  Increase costs slightly to avoid
+		   combining two shifts into an extend operation.  */
+		*total += COSTS_N_INSNS (2) + 1;
 	    }
 
 	  return false;
@@ -7191,41 +7253,8 @@ arm_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code,
       return false;
 
     case SIGN_EXTEND:
-      *total = 0;
-      if (GET_MODE_SIZE (GET_MODE (XEXP (x, 0))) < 4)
-	{
-	  if (!(arm_arch4 && MEM_P (XEXP (x, 0))))
-	    *total += COSTS_N_INSNS (arm_arch6 ? 1 : 2);
-	}
-      if (mode == DImode)
-	*total += COSTS_N_INSNS (1);
-      return false;
-
     case ZERO_EXTEND:
-      *total = 0;
-      if (!(arm_arch4 && MEM_P (XEXP (x, 0))))
-	{
-	  switch (GET_MODE (XEXP (x, 0)))
-	    {
-	    case QImode:
-	      *total += COSTS_N_INSNS (1);
-	      break;
-
-	    case HImode:
-	      *total += COSTS_N_INSNS (arm_arch6 ? 1 : 2);
-
-	    case SImode:
-	      break;
-
-	    default:
-	      *total += COSTS_N_INSNS (2);
-	    }
-	}
-
-      if (mode == DImode)
-	*total += COSTS_N_INSNS (1);
-
-      return false;
+      return arm_rtx_costs_1 (x, outer_code, total, 0);
 
     case CONST_INT:
       if (const_ok_for_arm (INTVAL (x)))
@@ -8250,8 +8279,7 @@ neon_vdup_constant (rtx vals)
      load.  */
 
   x = copy_to_mode_reg (inner_mode, XVECEXP (vals, 0, 0));
-  return gen_rtx_UNSPEC (mode, gen_rtvec (1, x),
-			 UNSPEC_VDUP_N);
+  return gen_rtx_VEC_DUPLICATE (mode, x);
 }
 
 /* Generate code to load VALS, which is a PARALLEL containing only
@@ -8347,8 +8375,7 @@ neon_expand_vector_init (rtx target, rtx vals)
     {
       x = copy_to_mode_reg (inner_mode, XVECEXP (vals, 0, 0));
       emit_insn (gen_rtx_SET (VOIDmode, target,
-			      gen_rtx_UNSPEC (mode, gen_rtvec (1, x),
-					      UNSPEC_VDUP_N)));
+			      gen_rtx_VEC_DUPLICATE (mode, x)));
       return;
     }
 
@@ -8357,7 +8384,7 @@ neon_expand_vector_init (rtx target, rtx vals)
   if (n_var == 1)
     {
       rtx copy = copy_rtx (vals);
-      rtvec ops;
+      rtx index = GEN_INT (one_var);
 
       /* Load constant part of vector, substitute neighboring value for
 	 varying element.  */
@@ -8366,9 +8393,38 @@ neon_expand_vector_init (rtx target, rtx vals)
 
       /* Insert variable.  */
       x = copy_to_mode_reg (inner_mode, XVECEXP (vals, 0, one_var));
-      ops = gen_rtvec (3, x, target, GEN_INT (one_var));
-      emit_insn (gen_rtx_SET (VOIDmode, target,
-			      gen_rtx_UNSPEC (mode, ops, UNSPEC_VSET_LANE)));
+      switch (mode)
+	{
+	case V8QImode:
+	  emit_insn (gen_neon_vset_lanev8qi (target, x, target, index));
+	  break;
+	case V16QImode:
+	  emit_insn (gen_neon_vset_lanev16qi (target, x, target, index));
+	  break;
+	case V4HImode:
+	  emit_insn (gen_neon_vset_lanev4hi (target, x, target, index));
+	  break;
+	case V8HImode:
+	  emit_insn (gen_neon_vset_lanev8hi (target, x, target, index));
+	  break;
+	case V2SImode:
+	  emit_insn (gen_neon_vset_lanev2si (target, x, target, index));
+	  break;
+	case V4SImode:
+	  emit_insn (gen_neon_vset_lanev4si (target, x, target, index));
+	  break;
+	case V2SFmode:
+	  emit_insn (gen_neon_vset_lanev2sf (target, x, target, index));
+	  break;
+	case V4SFmode:
+	  emit_insn (gen_neon_vset_lanev4sf (target, x, target, index));
+	  break;
+	case V2DImode:
+	  emit_insn (gen_neon_vset_lanev2di (target, x, target, index));
+	  break;
+	default:
+	  gcc_unreachable ();
+	}
       return;
     }
 
@@ -10028,6 +10084,55 @@ arm_select_cc_mode (enum rtx_code op, rtx x, rtx y)
       && (rtx_equal_p (XEXP (x, 0), y) || rtx_equal_p (XEXP (x, 1), y)))
     return CC_Cmode;
 
+  if (GET_MODE (x) == DImode || GET_MODE (y) == DImode)
+    {
+      /* To keep things simple, always use the Cirrus cfcmp64 if it is
+	 available.  */
+      if (TARGET_ARM && TARGET_HARD_FLOAT && TARGET_MAVERICK)
+	return CCmode;
+
+      switch (op)
+	{
+	case EQ:
+	case NE:
+	  /* A DImode comparison against zero can be implemented by
+	     or'ing the two halves together.  */
+	  if (y == const0_rtx)
+	    return CC_Zmode;
+
+	  /* We can do an equality test in three Thumb instructions.  */
+	  if (!TARGET_ARM)
+	    return CC_Zmode;
+
+	  /* FALLTHROUGH */
+
+	case LTU:
+	case LEU:
+	case GTU:
+	case GEU:
+	  /* DImode unsigned comparisons can be implemented by cmp +
+	     cmpeq without a scratch register.  Not worth doing in
+	     Thumb-2.  */
+	  if (TARGET_ARM)
+	    return CC_CZmode;
+
+	  /* FALLTHROUGH */
+
+	case LT:
+	case LE:
+	case GT:
+	case GE:
+	  /* DImode signed and unsigned comparisons can be implemented
+	     by cmp + sbcs with a scratch register, but that does not
+	     set the Z flag - we must reverse GT/LE/GTU/LEU.  */
+	  gcc_assert (op != EQ && op != NE);
+	  return CC_NCVmode;
+
+	default:
+	  gcc_unreachable ();
+	}
+    }
+
   return CCmode;
 }
 
@@ -10037,10 +10142,39 @@ arm_select_cc_mode (enum rtx_code op, rtx x, rtx y)
 rtx
 arm_gen_compare_reg (enum rtx_code code, rtx x, rtx y)
 {
-  enum machine_mode mode = SELECT_CC_MODE (code, x, y);
-  rtx cc_reg = gen_rtx_REG (mode, CC_REGNUM);
+  enum machine_mode mode;
+  rtx cc_reg;
+  int dimode_comparison = GET_MODE (x) == DImode || GET_MODE (y) == DImode;
 
-  emit_set_insn (cc_reg, gen_rtx_COMPARE (mode, x, y));
+  /* We might have X as a constant, Y as a register because of the predicates
+     used for cmpdi.  If so, force X to a register here.  */
+  if (dimode_comparison && !REG_P (x))
+    x = force_reg (DImode, x);
+
+  mode = SELECT_CC_MODE (code, x, y);
+  cc_reg = gen_rtx_REG (mode, CC_REGNUM);
+
+  if (dimode_comparison
+      && !(TARGET_HARD_FLOAT && TARGET_MAVERICK)
+      && mode != CC_CZmode)
+    {
+      rtx clobber, set;
+
+      /* To compare two non-zero values for equality, XOR them and
+	 then compare against zero.  Not used for ARM mode; there
+	 CC_CZmode is cheaper.  */
+      if (mode == CC_Zmode && y != const0_rtx)
+	{
+	  x = expand_binop (DImode, xor_optab, x, y, NULL_RTX, 0, OPTAB_WIDEN);
+	  y = const0_rtx;
+	}
+      /* A scratch register is required.  */
+      clobber = gen_rtx_CLOBBER (VOIDmode, gen_rtx_SCRATCH (SImode));
+      set = gen_rtx_SET (VOIDmode, cc_reg, gen_rtx_COMPARE (mode, x, y));
+      emit_insn (gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, set, clobber)));
+    }
+  else
+    emit_set_insn (cc_reg, gen_rtx_COMPARE (mode, x, y));
 
   return cc_reg;
 }
@@ -11367,6 +11501,34 @@ arm_const_double_by_parts (rtx val)
     return true;
 
   return false;
+}
+
+/* Return true if it is possible to inline both the high and low parts
+   of a 64-bit constant into 32-bit data processing instructions.  */
+bool
+arm_const_double_by_immediates (rtx val)
+{
+  enum machine_mode mode = GET_MODE (val);
+  rtx part;
+
+  if (mode == VOIDmode)
+    mode = DImode;
+
+  part = gen_highpart_mode (SImode, mode, val);
+
+  gcc_assert (GET_CODE (part) == CONST_INT);
+
+  if (!const_ok_for_arm (INTVAL (part)))
+    return false;
+
+  part = gen_lowpart (SImode, val);
+
+  gcc_assert (GET_CODE (part) == CONST_INT);
+
+  if (!const_ok_for_arm (INTVAL (part)))
+    return false;
+
+  return true;
 }
 
 /* Scan INSN and note any of its operands that need fixing.
@@ -12696,6 +12858,56 @@ output_move_neon (rtx *operands)
   output_asm_insn (buff, ops);
 
   return "";
+}
+
+/* Compute and return the length of neon_mov<mode>, where <mode> is
+   one of VSTRUCT modes: EI, OI, CI or XI.  */
+int
+arm_attr_length_move_neon (rtx insn)
+{
+  rtx reg, mem, addr;
+  int load;
+  enum machine_mode mode;
+
+  extract_insn_cached (insn);
+
+  if (REG_P (recog_data.operand[0]) && REG_P (recog_data.operand[1]))
+    {
+      mode = GET_MODE (recog_data.operand[0]);
+      switch (mode)
+	{
+	case EImode:
+	case OImode:
+	  return 8;
+	case CImode:
+	  return 12;
+	case XImode:
+	  return 16;
+	default:
+	  gcc_unreachable ();
+	}
+    }
+
+  load = REG_P (recog_data.operand[0]);
+  reg = recog_data.operand[!load];
+  mem = recog_data.operand[load];
+
+  gcc_assert (MEM_P (mem));
+
+  mode = GET_MODE (reg);
+  addr = XEXP (mem, 0);
+
+  /* Strip off const from addresses like (const (plus (...))).  */
+  if (GET_CODE (addr) == CONST && GET_CODE (XEXP (addr, 0)) == PLUS)
+    addr = XEXP (addr, 0);
+
+  if (GET_CODE (addr) == LABEL_REF || GET_CODE (addr) == PLUS)
+    {
+      int insns = HARD_REGNO_NREGS (REGNO (reg), mode) / 2;
+      return insns * 4;
+    }
+  else
+    return 4;
 }
 
 /* Output an ADD r, s, #n where n may be too big for one instruction.
@@ -14479,7 +14691,8 @@ arm_get_frame_offsets (void)
 	     generates better code on Thumb-2 by avoiding the need to
 	     use 32-bit push/pop instructions.  */
 	  if (!crtl->tail_call_emit
-	      && arm_size_return_regs () <= 12)
+	      && arm_size_return_regs () <= 12
+	      && (offsets->saved_regs_mask & (1 << 3)) == 0)
 	    {
 	      reg = 3;
 	    }
@@ -15270,8 +15483,18 @@ arm_print_operand (FILE *stream, rtx x, int code)
 	 the value being loaded is big-wordian or little-wordian.  The
 	 order of the two register loads can matter however, if the address
 	 of the memory location is actually held in one of the registers
-	 being overwritten by the load.  */
+	 being overwritten by the load.
+
+	 The 'Q' and 'R' constraints are also available for 64-bit
+	 constants.  */
     case 'Q':
+      if (GET_CODE (x) == CONST_INT || GET_CODE (x) == CONST_DOUBLE)
+	{
+	  rtx part = gen_lowpart (SImode, x);
+	  fprintf (stream, "#" HOST_WIDE_INT_PRINT_DEC, INTVAL (part));
+	  return;
+	}
+
       if (GET_CODE (x) != REG || REGNO (x) > LAST_ARM_REGNUM)
 	{
 	  output_operand_lossage ("invalid operand for code '%c'", code);
@@ -15282,6 +15505,18 @@ arm_print_operand (FILE *stream, rtx x, int code)
       return;
 
     case 'R':
+      if (GET_CODE (x) == CONST_INT || GET_CODE (x) == CONST_DOUBLE)
+	{
+	  enum machine_mode mode = GET_MODE (x);
+	  rtx part;
+
+	  if (mode == VOIDmode)
+	    mode = DImode;
+	  part = gen_highpart_mode (SImode, mode, x);
+	  fprintf (stream, "#" HOST_WIDE_INT_PRINT_DEC, INTVAL (part));
+	  return;
+	}
+
       if (GET_CODE (x) != REG || REGNO (x) > LAST_ARM_REGNUM)
 	{
 	  output_operand_lossage ("invalid operand for code '%c'", code);
@@ -16102,11 +16337,33 @@ get_arm_condition_code (rtx comparison)
 
     case CC_Cmode:
       switch (comp_code)
-      {
-      case LTU: return ARM_CS;
-      case GEU: return ARM_CC;
-      default: gcc_unreachable ();
-      }
+	{
+	case LTU: return ARM_CS;
+	case GEU: return ARM_CC;
+	default: gcc_unreachable ();
+	}
+
+    case CC_CZmode:
+      switch (comp_code)
+	{
+	case NE: return ARM_NE;
+	case EQ: return ARM_EQ;
+	case GEU: return ARM_CS;
+	case GTU: return ARM_HI;
+	case LEU: return ARM_LS;
+	case LTU: return ARM_CC;
+	default: gcc_unreachable ();
+	}
+
+    case CC_NCVmode:
+      switch (comp_code)
+	{
+	case GE: return ARM_GE;
+	case LT: return ARM_LT;
+	case GEU: return ARM_CS;
+	case LTU: return ARM_CC;
+	default: gcc_unreachable ();
+	}
 
     case CCmode:
       switch (comp_code)
@@ -19309,6 +19566,81 @@ is_called_in_ARM_mode (tree func)
 #endif
 }
 
+/* Given the stack offsets and register mask in OFFSETS, decide how
+   many additional registers to push instead of subtracting a constant
+   from SP.  For epilogues the principle is the same except we use pop.
+   FOR_PROLOGUE indicates which we're generating.  */
+static int
+thumb1_extra_regs_pushed (arm_stack_offsets *offsets, bool for_prologue)
+{
+  HOST_WIDE_INT amount;
+  unsigned long live_regs_mask = offsets->saved_regs_mask;
+  /* Extract a mask of the ones we can give to the Thumb's push/pop
+     instruction.  */
+  unsigned long l_mask = live_regs_mask & (for_prologue ? 0x40ff : 0xff);
+  /* Then count how many other high registers will need to be pushed.  */
+  unsigned long high_regs_pushed = bit_count (live_regs_mask & 0x0f00);
+  int n_free, reg_base;
+
+  if (!for_prologue && frame_pointer_needed)
+    amount = offsets->locals_base - offsets->saved_regs;
+  else
+    amount = offsets->outgoing_args - offsets->saved_regs;
+
+  /* If the stack frame size is 512 exactly, we can save one load
+     instruction, which should make this a win even when optimizing
+     for speed.  */
+  if (!optimize_size && amount != 512)
+    return 0;
+
+  /* Can't do this if there are high registers to push.  */
+  if (high_regs_pushed != 0)
+    return 0;
+
+  /* Shouldn't do it in the prologue if no registers would normally
+     be pushed at all.  In the epilogue, also allow it if we'll have
+     a pop insn for the PC.  */
+  if  (l_mask == 0
+       && (for_prologue
+	   || TARGET_BACKTRACE
+	   || (live_regs_mask & 1 << LR_REGNUM) == 0
+	   || TARGET_INTERWORK
+	   || crtl->args.pretend_args_size != 0))
+    return 0;
+
+  /* Don't do this if thumb_expand_prologue wants to emit instructions
+     between the push and the stack frame allocation.  */
+  if (for_prologue
+      && ((flag_pic && arm_pic_register != INVALID_REGNUM)
+	  || (!frame_pointer_needed && CALLER_INTERWORKING_SLOT_SIZE > 0)))
+    return 0;
+
+  reg_base = 0;
+  n_free = 0;
+  if (!for_prologue)
+    {
+      reg_base = arm_size_return_regs () / UNITS_PER_WORD;
+      live_regs_mask >>= reg_base;
+    }
+
+  while (reg_base + n_free < 8 && !(live_regs_mask & 1)
+	 && (for_prologue || call_used_regs[reg_base + n_free]))
+    {
+      live_regs_mask >>= 1;
+      n_free++;
+    }
+
+  if (n_free == 0)
+    return 0;
+  gcc_assert (amount / 4 * 4 == amount);
+
+  if (amount >= 512 && (amount - n_free * 4) < 512)
+    return (amount - 508) / 4;
+  if (amount <= n_free * 4)
+    return amount / 4;
+  return 0;
+}
+
 /* The bits which aren't usefully expanded as rtl.  */
 const char *
 thumb_unexpanded_epilogue (void)
@@ -19317,6 +19649,7 @@ thumb_unexpanded_epilogue (void)
   int regno;
   unsigned long live_regs_mask = 0;
   int high_regs_pushed = 0;
+  int extra_pop;
   int had_to_push_lr;
   int size;
 
@@ -19335,6 +19668,13 @@ thumb_unexpanded_epilogue (void)
      will be set if the register is ever used in the function, not just if
      the register is used to hold a return value.  */
   size = arm_size_return_regs ();
+
+  extra_pop = thumb1_extra_regs_pushed (offsets, false);
+  if (extra_pop > 0)
+    {
+      unsigned long extra_mask = (1 << extra_pop) - 1;
+      live_regs_mask |= extra_mask << (size / UNITS_PER_WORD);
+    }
 
   /* The prolog may have pushed some high registers to use as
      work registers.  e.g. the testsuite file:
@@ -19419,7 +19759,9 @@ thumb_unexpanded_epilogue (void)
 		       live_regs_mask);
 
       /* We have either just popped the return address into the
-	 PC or it is was kept in LR for the entire function.  */
+	 PC or it is was kept in LR for the entire function.
+	 Note that thumb_pushpop has already called thumb_exit if the
+	 PC was in the list.  */
       if (!had_to_push_lr)
 	thumb_exit (asm_out_file, LR_REGNUM);
     }
@@ -19565,51 +19907,6 @@ thumb_compute_initial_elimination_offset (unsigned int from, unsigned int to)
     }
 }
 
-/* Given the stack offsets and register mask in OFFSETS, decide
-   how many additional registers to push instead of subtracting
-   a constant from SP.  */
-static int
-thumb1_extra_regs_pushed (arm_stack_offsets *offsets)
-{
-  HOST_WIDE_INT amount = offsets->outgoing_args - offsets->saved_regs;
-  unsigned long live_regs_mask = offsets->saved_regs_mask;
-  /* Extract a mask of the ones we can give to the Thumb's push instruction.  */
-  unsigned long l_mask = live_regs_mask & 0x40ff;
-  /* Then count how many other high registers will need to be pushed.  */
-  unsigned long high_regs_pushed = bit_count (live_regs_mask & 0x0f00);
-  int n_free;
-
-  /* If the stack frame size is 512 exactly, we can save one load
-     instruction, which should make this a win even when optimizing
-     for speed.  */
-  if (!optimize_size && amount != 512)
-    return 0;
-
-  /* Can't do this if there are high registers to push, or if we
-     are not going to do a push at all.  */
-  if (high_regs_pushed != 0 || l_mask == 0)
-    return 0;
-
-  /* Don't do this if thumb1_expand_prologue wants to emit instructions
-     between the push and the stack frame allocation.  */
-  if ((flag_pic && arm_pic_register != INVALID_REGNUM)
-      || (!frame_pointer_needed && CALLER_INTERWORKING_SLOT_SIZE > 0))
-    return 0;
-
-  for (n_free = 0; n_free < 8 && !(live_regs_mask & 1); live_regs_mask >>= 1)
-    n_free++;
-
-  if (n_free == 0)
-    return 0;
-  gcc_assert (amount / 4 * 4 == amount);
-
-  if (amount >= 512 && (amount - n_free * 4) < 512)
-    return (amount - 508) / 4;
-  if (amount <= n_free * 4)
-    return amount / 4;
-  return 0;
-}
-
 /* Generate the rest of a function's prologue.  */
 void
 thumb1_expand_prologue (void)
@@ -19646,7 +19943,7 @@ thumb1_expand_prologue (void)
 		    stack_pointer_rtx);
 
   amount = offsets->outgoing_args - offsets->saved_regs;
-  amount -= 4 * thumb1_extra_regs_pushed (offsets);
+  amount -= 4 * thumb1_extra_regs_pushed (offsets, true);
   if (amount)
     {
       if (amount < 512)
@@ -19731,6 +20028,7 @@ thumb1_expand_epilogue (void)
       emit_insn (gen_movsi (stack_pointer_rtx, hard_frame_pointer_rtx));
       amount = offsets->locals_base - offsets->saved_regs;
     }
+  amount -= 4 * thumb1_extra_regs_pushed (offsets, false);
 
   gcc_assert (amount >= 0);
   if (amount)
@@ -19953,7 +20251,7 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 	   || (high_regs_pushed == 0 && l_mask))
     {
       unsigned long mask = l_mask;
-      mask |= (1 << thumb1_extra_regs_pushed (offsets)) - 1;
+      mask |= (1 << thumb1_extra_regs_pushed (offsets, true)) - 1;
       thumb_pushpop (f, mask, 1, &cfa_offset, mask);
     }
 

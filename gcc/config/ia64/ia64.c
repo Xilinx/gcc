@@ -42,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "basic-block.h"
 #include "libfuncs.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "sched-int.h"
 #include "timevar.h"
@@ -59,6 +60,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "dbgcnt.h"
 #include "tm-constrs.h"
 #include "sel-sched.h"
+#include "reload.h"
 
 /* This is used for communication between ASM_OUTPUT_LABEL and
    ASM_OUTPUT_LABELREF.  */
@@ -199,6 +201,7 @@ static rtx gen_movdi_x (rtx, rtx, rtx);
 static rtx gen_fr_spill_x (rtx, rtx, rtx);
 static rtx gen_fr_restore_x (rtx, rtx, rtx);
 
+static void ia64_option_override (void);
 static bool ia64_can_eliminate (const int, const int);
 static enum machine_mode hfa_element_mode (const_tree, bool);
 static void ia64_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode,
@@ -210,8 +213,10 @@ static bool ia64_return_in_memory (const_tree, const_tree);
 static rtx ia64_function_value (const_tree, const_tree, bool);
 static rtx ia64_libcall_value (enum machine_mode, const_rtx);
 static bool ia64_function_value_regno_p (const unsigned int);
-static int ia64_register_move_cost (enum machine_mode, enum reg_class,
-                                    enum reg_class);
+static int ia64_register_move_cost (enum machine_mode, reg_class_t,
+                                    reg_class_t);
+static int ia64_memory_move_cost (enum machine_mode mode, reg_class_t,
+				  bool);
 static bool ia64_rtx_costs (rtx, int, int, int *, bool);
 static int ia64_unspec_may_trap_p (const_rtx, unsigned);
 static void fix_range (const char *);
@@ -350,6 +355,9 @@ static const struct attribute_spec ia64_attribute_table[] =
 #undef TARGET_ASM_INTEGER
 #define TARGET_ASM_INTEGER ia64_assemble_integer
 
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE ia64_option_override
+
 #undef TARGET_ASM_FUNCTION_PROLOGUE
 #define TARGET_ASM_FUNCTION_PROLOGUE ia64_output_function_prologue
 #undef TARGET_ASM_FUNCTION_END_PROLOGUE
@@ -458,6 +466,8 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_REGISTER_MOVE_COST
 #define TARGET_REGISTER_MOVE_COST ia64_register_move_cost
+#undef TARGET_MEMORY_MOVE_COST
+#define TARGET_MEMORY_MOVE_COST ia64_memory_move_cost
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS ia64_rtx_costs
 #undef TARGET_ADDRESS_COST
@@ -4150,7 +4160,7 @@ hfa_element_mode (const_tree type, bool nested)
     case RECORD_TYPE:
     case UNION_TYPE:
     case QUAL_UNION_TYPE:
-      for (t = TYPE_FIELDS (type); t; t = TREE_CHAIN (t))
+      for (t = TYPE_FIELDS (type); t; t = DECL_CHAIN (t))
 	{
 	  if (TREE_CODE (t) != FIELD_DECL)
 	    continue;
@@ -5207,12 +5217,12 @@ ia64_rtx_costs (rtx x, int code, int outer_code, int *total,
    one in class TO, using MODE.  */
 
 static int
-ia64_register_move_cost (enum machine_mode mode, enum reg_class from_i,
-			 enum reg_class to_i)
+ia64_register_move_cost (enum machine_mode mode, reg_class_t from_i,
+			 reg_class_t to_i)
 {
   enum reg_class from = (enum reg_class) from_i;
   enum reg_class to = (enum reg_class) to_i;
-{
+
   /* ADDL_REGS is the same as GR_REGS for movement purposes.  */
   if (to == ADDL_REGS)
     to = GR_REGS;
@@ -5229,12 +5239,12 @@ ia64_register_move_cost (enum machine_mode mode, enum reg_class from_i,
 
   /* Moving from FR<->GR in XFmode must be more expensive than 2,
      so that we get secondary memory reloads.  Between FR_REGS,
-     we have to make this at least as expensive as MEMORY_MOVE_COST
+     we have to make this at least as expensive as memory_move_cost
      to avoid spectacularly poor register class preferencing.  */
   if (mode == XFmode || mode == RFmode)
     {
       if (to != GR_REGS || from != GR_REGS)
-        return MEMORY_MOVE_COST (mode, to, 0);
+        return memory_move_cost (mode, to, false);
       else
 	return 3;
     }
@@ -5247,20 +5257,20 @@ ia64_register_move_cost (enum machine_mode mode, enum reg_class from_i,
 	return 3;
       /* Moving between PR and anything but GR is impossible.  */
       if (from != GR_REGS)
-	return MEMORY_MOVE_COST (mode, to, 0);
+	return memory_move_cost (mode, to, false);
       break;
 
     case BR_REGS:
       /* Moving between BR and anything but GR is impossible.  */
       if (from != GR_REGS && from != GR_AND_BR_REGS)
-	return MEMORY_MOVE_COST (mode, to, 0);
+	return memory_move_cost (mode, to, false);
       break;
 
     case AR_I_REGS:
     case AR_M_REGS:
       /* Moving between AR and anything but GR is impossible.  */
       if (from != GR_REGS)
-	return MEMORY_MOVE_COST (mode, to, 0);
+	return memory_move_cost (mode, to, false);
       break;
 
     case GR_REGS:
@@ -5276,6 +5286,23 @@ ia64_register_move_cost (enum machine_mode mode, enum reg_class from_i,
     }
 
   return 2;
+}
+
+/* Calculate the cost of moving data of MODE from a register to or from
+   memory.  */
+
+static int
+ia64_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
+		       reg_class_t rclass,
+		       bool in ATTRIBUTE_UNUSED)
+{
+  if (rclass == GENERAL_REGS
+      || rclass == FR_REGS
+      || rclass == FP_REGS
+      || rclass == GR_AND_FR_REGS)
+    return 4;
+  else
+    return 10;
 }
 
 /* Implement PREFERRED_RELOAD_CLASS.  Place additional restrictions on RCLASS
@@ -5541,10 +5568,10 @@ ia64_handle_option (size_t code, const char *arg, int value)
     }
 }
 
-/* Implement OVERRIDE_OPTIONS.  */
+/* Implement TARGET_OPTION_OVERRIDE.  */
 
-void
-ia64_override_options (void)
+static void
+ia64_option_override (void)
 {
   if (TARGET_AUTO_PIC)
     target_flags |= MASK_CONST_GP;

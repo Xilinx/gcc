@@ -40,7 +40,7 @@ typedef unsigned char uchar;
 
 
 /* set_integer()-- All of the integer assignments come here to
- * actually place the value into memory.  */
+   actually place the value into memory.  */
 
 void
 set_integer (void *dest, GFC_INTEGER_LARGEST value, int length)
@@ -131,11 +131,10 @@ max_value (int length, int signed_flag)
 
 
 /* convert_real()-- Convert a character representation of a floating
- * point number to the machine number.  Returns nonzero if there is a
- * range problem during conversion.  Note: many architectures
- * (e.g. IA-64, HP-PA) require that the storage pointed to by the dest
- * argument is properly aligned for the type in question.  TODO:
- * handle not-a-numbers and infinities.  */
+   point number to the machine number.  Returns nonzero if there is a
+   range problem during conversion.  Note: many architectures
+   (e.g. IA-64, HP-PA) require that the storage pointed to by the dest
+   argument is properly aligned for the type in question.  */
 
 int
 convert_real (st_parameter_dt *dtp, void *dest, const char *buffer, int length)
@@ -384,26 +383,51 @@ read_utf8_char4 (st_parameter_dt *dtp, void *p, int len, int width)
 static void
 read_default_char4 (st_parameter_dt *dtp, char *p, int len, int width)
 {
-  char *s;
-  gfc_char4_t *dest;
   int m, n;
+  gfc_char4_t *dest;
 
-  s = read_block_form (dtp, &width);
-  
-  if (s == NULL)
-    return;
-  if (width > len)
-     s += (width - len);
+  if (is_char4_unit(dtp))
+    {
+      gfc_char4_t *s4;
 
-  m = ((int) width > len) ? len : (int) width;
-  
-  dest = (gfc_char4_t *) p;
-  
-  for (n = 0; n < m; n++, dest++, s++)
-    *dest = (unsigned char ) *s;
+      s4 = (gfc_char4_t *) read_block_form4 (dtp, &width);
 
-  for (n = 0; n < len - (int) width; n++, dest++)
-    *dest = (unsigned char) ' ';
+      if (s4 == NULL)
+	return;
+      if (width > len)
+	 s4 += (width - len);
+
+      m = ((int) width > len) ? len : (int) width;
+
+      dest = (gfc_char4_t *) p;
+
+      for (n = 0; n < m; n++)
+	*dest++ = *s4++;
+
+      for (n = 0; n < len - (int) width; n++)
+	*dest++ = (gfc_char4_t) ' ';
+    }
+  else
+    {
+      char *s;
+
+      s = read_block_form (dtp, &width);
+
+      if (s == NULL)
+	return;
+      if (width > len)
+	 s += (width - len);
+
+      m = ((int) width > len) ? len : (int) width;
+
+      dest = (gfc_char4_t *) p;
+
+      for (n = 0; n < m; n++, dest++, s++)
+	*dest = (unsigned char ) *s;
+
+      for (n = 0; n < len - (int) width; n++, dest++)
+	*dest = (unsigned char) ' ';
+    }
 }
 
 

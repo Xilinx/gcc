@@ -1155,13 +1155,10 @@ build_sym (const char *name, gfc_charlen *cl,
 
   sym->attr.implied_index = 0;
 
-  if (sym->ts.type == BT_CLASS)
-    {
-      sym->attr.class_ok = (sym->attr.dummy
-			      || sym->attr.pointer
-			      || sym->attr.allocatable) ? 1 : 0;
-      gfc_build_class_symbol (&sym->ts, &sym->attr, &sym->as, false);
-    }
+  if (sym->ts.type == BT_CLASS
+      && (sym->attr.class_ok = sym->attr.dummy || sym->attr.pointer
+			       || sym->attr.allocatable))
+    gfc_build_class_symbol (&sym->ts, &sym->attr, &sym->as, false);
 
   return SUCCESS;
 }
@@ -5874,7 +5871,7 @@ attr_decl1 (void)
   /* Update symbol table.  DIMENSION attribute is set in
      gfc_set_array_spec().  For CLASS variables, this must be applied
      to the first component, or '$data' field.  */
-  if (sym->ts.type == BT_CLASS)
+  if (sym->ts.type == BT_CLASS && sym->ts.u.derived->attr.is_class)
     {
       if (gfc_copy_attr (&CLASS_DATA (sym)->attr, &current_attr,&var_locus)
 	  == FAILURE)
@@ -5882,8 +5879,6 @@ attr_decl1 (void)
 	  m = MATCH_ERROR;
 	  goto cleanup;
 	}
-      sym->attr.class_ok = (sym->attr.class_ok || current_attr.allocatable
-			    || current_attr.pointer);
     }
   else
     {
@@ -5894,6 +5889,11 @@ attr_decl1 (void)
 	  goto cleanup;
 	}
     }
+    
+  if (sym->ts.type == BT_CLASS && !sym->attr.class_ok
+      && (sym->attr.class_ok = sym->attr.class_ok || current_attr.allocatable
+			       || current_attr.pointer))
+    gfc_build_class_symbol (&sym->ts, &sym->attr, &sym->as, false);
 
   if (gfc_set_array_spec (sym, as, &var_locus) == FAILURE)
     {
@@ -7697,8 +7697,8 @@ match_procedure_in_type (void)
     }
 
   /* Construct the data structure.  */
+  memset (&tb, 0, sizeof (tb));
   tb.where = gfc_current_locus;
-  tb.is_generic = 0;
 
   /* Match binding attributes.  */
   m = match_binding_attributes (&tb, false, false);
@@ -7855,6 +7855,9 @@ gfc_match_generic (void)
   block = gfc_state_stack->previous->sym;
   ns = block->f2k_derived;
   gcc_assert (block && ns);
+
+  memset (&tbattr, 0, sizeof (tbattr));
+  tbattr.where = gfc_current_locus;
 
   /* See if we get an access-specifier.  */
   m = match_binding_attributes (&tbattr, true, false);

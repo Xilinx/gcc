@@ -56,6 +56,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "expr.h"
 #include "output.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "function.h"
 #include "target.h"
@@ -315,16 +316,6 @@ hook_callee_copies_named (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
   return named;
 }
 
-/* Emit any directives required to unwind this instruction.  */
-
-void
-default_unwind_emit (FILE * stream ATTRIBUTE_UNUSED,
-		     rtx insn ATTRIBUTE_UNUSED)
-{
-  /* Should never happen.  */
-  gcc_unreachable ();
-}
-
 /* Emit to STREAM the assembler syntax for insn operand X.  */
 
 void
@@ -479,7 +470,9 @@ default_builtin_vectorized_conversion (unsigned int code ATTRIBUTE_UNUSED,
 /* Default vectorizer cost model values.  */
 
 int
-default_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
+default_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
+                                    tree vectype ATTRIBUTE_UNUSED,
+                                    int misalign ATTRIBUTE_UNUSED)
 {
   switch (type_of_cost)
     {
@@ -496,6 +489,7 @@ default_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
         return 1;
 
       case unaligned_load:
+      case unaligned_store:
         return 2;
 
       case cond_branch_taken:
@@ -846,8 +840,9 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 #endif
   if (rclass != NO_REGS)
     {
-      enum insn_code icode = (in_p ? reload_in_optab[(int) reload_mode]
-			      : reload_out_optab[(int) reload_mode]);
+      enum insn_code icode
+	= direct_optab_handler (in_p ? reload_in_optab : reload_out_optab,
+				reload_mode);
 
       if (icode != CODE_FOR_nothing
 	  && insn_data[(int) icode].operand[in_p].predicate
@@ -971,7 +966,7 @@ default_builtin_support_vector_misalignment (enum machine_mode mode,
 					     bool is_packed
 					     ATTRIBUTE_UNUSED)
 {
-  if (optab_handler (movmisalign_optab, mode)->insn_code != CODE_FOR_nothing)
+  if (optab_handler (movmisalign_optab, mode) != CODE_FOR_nothing)
     return true;
   return false;
 }

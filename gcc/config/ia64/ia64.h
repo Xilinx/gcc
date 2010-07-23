@@ -1,6 +1,6 @@
 /* Definitions of target machine GNU compiler.  IA-64 version.
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009 Free Software Foundation, Inc.
+   2009, 2010 Free Software Foundation, Inc.
    Contributed by James E. Wilson <wilson@cygnus.com> and
    		  David Mosberger <davidm@hpl.hp.com>.
 
@@ -115,13 +115,6 @@ enum processor_type
 };
 
 extern enum processor_type ia64_tune;
-
-/* Sometimes certain combinations of command options do not make sense on a
-   particular target machine.  You can define a macro `OVERRIDE_OPTIONS' to
-   take account of this.  This macro, if defined, is executed once just after
-   all the command options have been parsed.  */
-
-#define OVERRIDE_OPTIONS ia64_override_options ()
 
 /* Some machines may desire to change what optimizations are performed for
    various optimization levels.  This macro, if defined, is executed once just
@@ -1303,12 +1296,6 @@ do {									\
 
 
 /* Describing Relative Costs of Operations */
-
-/* A C expression for the cost of moving data of mode M between a
-   register and memory.  */
-#define MEMORY_MOVE_COST(MODE,CLASS,IN) \
-  ((CLASS) == GENERAL_REGS || (CLASS) == FR_REGS || (CLASS) == FP_REGS \
-   || (CLASS) == GR_AND_FR_REGS ? 4 : 10)
 
 /* A C expression for the cost of a branch instruction.  A value of 1 is the
    default; other values are interpreted relative to that.  Used by the

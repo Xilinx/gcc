@@ -84,6 +84,7 @@ struct nesting_info
 
   struct pointer_map_t *field_map;
   struct pointer_map_t *var_map;
+  struct pointer_set_t *mem_refs;
   bitmap suppress_expansion;
 
   tree context;
@@ -147,7 +148,7 @@ create_tmp_var_for (struct nesting_info *info, tree type, const char *prefix)
 
   tmp_var = create_tmp_var_raw (type, prefix);
   DECL_CONTEXT (tmp_var) = info->context;
-  TREE_CHAIN (tmp_var) = info->new_local_var_chain;
+  DECL_CHAIN (tmp_var) = info->new_local_var_chain;
   DECL_SEEN_IN_BIND_EXPR_P (tmp_var) = 1;
   if (TREE_CODE (type) == COMPLEX_TYPE
       || TREE_CODE (type) == VECTOR_TYPE)
@@ -197,11 +198,11 @@ insert_field_into_struct (tree type, tree field)
 
   DECL_CONTEXT (field) = type;
 
-  for (p = &TYPE_FIELDS (type); *p ; p = &TREE_CHAIN (*p))
+  for (p = &TYPE_FIELDS (type); *p ; p = &DECL_CHAIN (*p))
     if (DECL_ALIGN (field) >= DECL_ALIGN (*p))
       break;
 
-  TREE_CHAIN (field) = *p;
+  DECL_CHAIN (field) = *p;
   *p = field;
 
   /* Set correct alignment for frame struct type.  */
@@ -697,7 +698,7 @@ check_for_nested_with_variably_modified (tree fndecl, tree orig_fndecl)
 
   for (cgn = cgn->nested; cgn ; cgn = cgn->next_nested)
     {
-      for (arg = DECL_ARGUMENTS (cgn->decl); arg; arg = TREE_CHAIN (arg))
+      for (arg = DECL_ARGUMENTS (cgn->decl); arg; arg = DECL_CHAIN (arg))
 	if (variably_modified_type_p (TREE_TYPE (arg), orig_fndecl))
 	  return true;
 
@@ -717,6 +718,7 @@ create_nesting_tree (struct cgraph_node *cgn)
   struct nesting_info *info = XCNEW (struct nesting_info);
   info->field_map = pointer_map_create ();
   info->var_map = pointer_map_create ();
+  info->mem_refs = pointer_set_create ();
   info->suppress_expansion = BITMAP_ALLOC (&nesting_info_bitmap_obstack);
   info->context = cgn->decl;
 
@@ -758,7 +760,7 @@ get_static_chain (struct nesting_info *info, tree target_context,
 	{
 	  tree field = get_chain_field (i);
 
-	  x = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (x)), x);
+	  x = build_simple_mem_ref (x);
 	  x = build3 (COMPONENT_REF, TREE_TYPE (field), x, field, NULL_TREE);
 	  x = init_tmp_var (info, x, gsi);
 	}
@@ -793,12 +795,12 @@ get_frame_field (struct nesting_info *info, tree target_context,
 	{
 	  tree field = get_chain_field (i);
 
-	  x = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (x)), x);
+	  x = build_simple_mem_ref (x);
 	  x = build3 (COMPONENT_REF, TREE_TYPE (field), x, field, NULL_TREE);
 	  x = init_tmp_var (info, x, gsi);
 	}
 
-      x = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (x)), x);
+      x = build_simple_mem_ref (x);
     }
 
   x = build3 (COMPONENT_REF, TREE_TYPE (field), x, field, NULL_TREE);
@@ -841,16 +843,16 @@ get_nonlocal_debug_decl (struct nesting_info *info, tree decl)
       for (i = info->outer; i->context != target_context; i = i->outer)
 	{
 	  field = get_chain_field (i);
-	  x = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (x)), x);
+	  x = build_simple_mem_ref (x);
 	  x = build3 (COMPONENT_REF, TREE_TYPE (field), x, field, NULL_TREE);
 	}
-      x = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (x)), x);
+      x = build_simple_mem_ref (x);
     }
 
   field = lookup_field_for_decl (i, decl, INSERT);
   x = build3 (COMPONENT_REF, TREE_TYPE (field), x, field, NULL_TREE);
   if (use_pointer_in_frame (decl))
-    x = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (x)), x);
+    x = build_simple_mem_ref (x);
 
   /* ??? We should be remapping types as well, surely.  */
   new_decl = build_decl (DECL_SOURCE_LOCATION (decl),
@@ -873,7 +875,7 @@ get_nonlocal_debug_decl (struct nesting_info *info, tree decl)
   DECL_HAS_VALUE_EXPR_P (new_decl) = 1;
 
   *slot = new_decl;
-  TREE_CHAIN (new_decl) = info->debug_var_chain;
+  DECL_CHAIN (new_decl) = info->debug_var_chain;
   info->debug_var_chain = new_decl;
 
   if (!optimize
@@ -927,7 +929,7 @@ convert_nonlocal_reference_op (tree *tp, int *walk_subtrees, void *data)
 	      if (use_pointer_in_frame (t))
 		{
 		  x = init_tmp_var (info, x, &wi->gsi);
-		  x = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (x)), x);
+		  x = build_simple_mem_ref (x);
 		}
 	    }
 
@@ -1200,7 +1202,7 @@ note_nonlocal_block_vlas (struct nesting_info *info, tree block)
 {
   tree var;
 
-  for (var = BLOCK_VARS (block); var; var = TREE_CHAIN (var))
+  for (var = BLOCK_VARS (block); var; var = DECL_CHAIN (var))
     if (TREE_CODE (var) == VAR_DECL
 	&& variably_modified_type_p (TREE_TYPE (var), NULL)
 	&& DECL_HAS_VALUE_EXPR_P (var)
@@ -1365,7 +1367,7 @@ get_local_debug_decl (struct nesting_info *info, tree decl, tree field)
   DECL_HAS_VALUE_EXPR_P (new_decl) = 1;
   *slot = new_decl;
 
-  TREE_CHAIN (new_decl) = info->debug_var_chain;
+  DECL_CHAIN (new_decl) = info->debug_var_chain;
   info->debug_var_chain = new_decl;
 
   /* Do not emit debug info twice.  */
@@ -1495,6 +1497,21 @@ convert_local_reference_op (tree *tp, int *walk_subtrees, void *data)
 	}
       wi->val_only = false;
       walk_tree (tp, convert_local_reference_op, wi, NULL);
+      wi->val_only = save_val_only;
+      break;
+
+    case MEM_REF:
+      save_val_only = wi->val_only;
+      wi->val_only = true;
+      wi->is_lhs = false;
+      walk_tree (&TREE_OPERAND (t, 0), convert_local_reference_op,
+		 wi, NULL);
+      /* We need to re-fold the MEM_REF as component references as
+	 part of a ADDR_EXPR address are not allowed.  But we cannot
+	 fold here, as the chain record type is not yet finalized.  */
+      if (TREE_CODE (TREE_OPERAND (t, 0)) == ADDR_EXPR
+	  && !DECL_P (TREE_OPERAND (TREE_OPERAND (t, 0), 0)))
+	pointer_set_insert (info->mem_refs, tp);
       wi->val_only = save_val_only;
       break;
 
@@ -2179,7 +2196,7 @@ remap_vla_decls (tree block, struct nesting_info *root)
        subblock = BLOCK_CHAIN (subblock))
     remap_vla_decls (subblock, root);
 
-  for (var = BLOCK_VARS (block); var; var = TREE_CHAIN (var))
+  for (var = BLOCK_VARS (block); var; var = DECL_CHAIN (var))
     {
       if (TREE_CODE (var) == VAR_DECL
 	  && variably_modified_type_p (TREE_TYPE (var), NULL)
@@ -2200,7 +2217,7 @@ remap_vla_decls (tree block, struct nesting_info *root)
   id.cb.decl_map = pointer_map_create ();
   id.root = root;
 
-  for (; var; var = TREE_CHAIN (var))
+  for (; var; var = DECL_CHAIN (var))
     if (TREE_CODE (var) == VAR_DECL
 	&& variably_modified_type_p (TREE_TYPE (var), NULL)
 	&& DECL_HAS_VALUE_EXPR_P (var))
@@ -2247,6 +2264,15 @@ remap_vla_decls (tree block, struct nesting_info *root)
   pointer_map_destroy (id.cb.decl_map);
 }
 
+/* Fold the MEM_REF *E.  */
+static bool
+fold_mem_refs (const void *e, void *data ATTRIBUTE_UNUSED)
+{
+  tree *ref_p = CONST_CAST2(tree *, const tree *, (const tree *)e);
+  *ref_p = fold (*ref_p);
+  return true;
+}
+
 /* Do "everything else" to clean up or complete state collected by the
    various walking passes -- lay out the types and decls, generate code
    to initialize the frame decl, store critical expressions in the
@@ -2282,11 +2308,11 @@ finalize_nesting_tree_1 (struct nesting_info *root)
 	 expression get substituted in instantiate_virtual_regs().  */
       for (adjust = &root->new_local_var_chain;
 	   *adjust != root->frame_decl;
-	   adjust = &TREE_CHAIN (*adjust))
-	gcc_assert (TREE_CHAIN (*adjust));
-      *adjust = TREE_CHAIN (*adjust);
+	   adjust = &DECL_CHAIN (*adjust))
+	gcc_assert (DECL_CHAIN (*adjust));
+      *adjust = DECL_CHAIN (*adjust);
 
-      TREE_CHAIN (root->frame_decl) = NULL_TREE;
+      DECL_CHAIN (root->frame_decl) = NULL_TREE;
       declare_vars (root->frame_decl,
 		    gimple_seq_first_stmt (gimple_body (context)), true);
     }
@@ -2297,7 +2323,7 @@ finalize_nesting_tree_1 (struct nesting_info *root)
   if (root->any_parm_remapped)
     {
       tree p;
-      for (p = DECL_ARGUMENTS (context); p ; p = TREE_CHAIN (p))
+      for (p = DECL_ARGUMENTS (context); p ; p = DECL_CHAIN (p))
 	{
 	  tree field, x, y;
 
@@ -2402,7 +2428,7 @@ finalize_nesting_tree_1 (struct nesting_info *root)
       remap_vla_decls (DECL_INITIAL (root->context), root);
 
       for (debug_var = root->debug_var_chain; debug_var;
-	   debug_var = TREE_CHAIN (debug_var))
+	   debug_var = DECL_CHAIN (debug_var))
 	if (variably_modified_type_p (TREE_TYPE (debug_var), NULL))
 	  break;
 
@@ -2417,7 +2443,7 @@ finalize_nesting_tree_1 (struct nesting_info *root)
 	  id.cb.decl_map = pointer_map_create ();
 	  id.root = root;
 
-	  for (; debug_var; debug_var = TREE_CHAIN (debug_var))
+	  for (; debug_var; debug_var = DECL_CHAIN (debug_var))
 	    if (variably_modified_type_p (TREE_TYPE (debug_var), NULL))
 	      {
 		tree type = TREE_TYPE (debug_var);
@@ -2460,6 +2486,9 @@ finalize_nesting_tree_1 (struct nesting_info *root)
 	  = chainon (BLOCK_VARS (DECL_INITIAL (root->context)),
 		     root->debug_var_chain);
     }
+
+  /* Fold the rewritten MEM_REF trees.  */
+  pointer_set_traverse (root->mem_refs, fold_mem_refs, NULL);
 
   /* Dump the translated tree function.  */
   if (dump_file)
@@ -2514,6 +2543,7 @@ free_nesting_tree (struct nesting_info *root)
       next = iter_nestinfo_next (node);
       pointer_map_destroy (node->var_map);
       pointer_map_destroy (node->field_map);
+      pointer_set_destroy (node->mem_refs);
       free (node);
       node = next;
     }

@@ -879,7 +879,6 @@ tree gimple_get_lhs (const_gimple);
 void gimple_set_lhs (gimple, tree);
 void gimple_replace_lhs (gimple, tree);
 gimple gimple_copy (gimple);
-bool is_gimple_operand (const_tree);
 void gimple_set_modified (gimple, bool);
 void gimple_cond_get_ops_from_tree (tree, enum tree_code *, tree *, tree *);
 gimple gimple_build_cond_from_tree (tree, tree, tree);
@@ -933,6 +932,8 @@ extern bool is_gimple_ip_invariant (const_tree);
 extern bool is_gimple_val (tree);
 /* Returns true iff T is a GIMPLE asm statement input.  */
 extern bool is_gimple_asm_val (tree);
+/* Returns true iff T is a valid address operand of a MEM_REF.  */
+bool is_gimple_mem_ref_addr (tree);
 /* Returns true iff T is a valid rhs for a MODIFY_EXPR where the LHS is a
    GIMPLE temporary, a renamed user variable, or something else,
    respectively.  */
@@ -955,6 +956,8 @@ extern tree get_call_expr_in (tree t);
 extern void recalculate_side_effects (tree);
 extern bool gimple_compare_field_offset (tree, tree);
 extern tree gimple_register_type (tree);
+enum gtc_mode { GTC_MERGE = 0, GTC_DIAG = 1 };
+extern bool gimple_types_compatible_p (tree, tree, enum gtc_mode);
 extern void print_gimple_types_stats (void);
 extern void free_gimple_type_tables (void);
 extern tree gimple_unsigned_type (tree);
@@ -2037,7 +2040,18 @@ gimple_call_fndecl (const_gimple gs)
 {
   tree addr = gimple_call_fn (gs);
   if (TREE_CODE (addr) == ADDR_EXPR)
-    return TREE_OPERAND (addr, 0);
+    {
+      tree fndecl = TREE_OPERAND (addr, 0);
+      if (TREE_CODE (fndecl) == MEM_REF)
+	{
+	  if (TREE_CODE (TREE_OPERAND (fndecl, 0)) == ADDR_EXPR
+	      && integer_zerop (TREE_OPERAND (fndecl, 1)))
+	    return TREE_OPERAND (TREE_OPERAND (fndecl, 0), 0);
+	  else
+	    return NULL_TREE;
+	}
+      return TREE_OPERAND (addr, 0);
+    }
   return NULL_TREE;
 }
 
@@ -4857,8 +4871,8 @@ void gimplify_and_update_call_from_tree (gimple_stmt_iterator *, tree);
 tree gimple_fold_builtin (gimple);
 bool fold_stmt (gimple_stmt_iterator *);
 bool fold_stmt_inplace (gimple);
-tree maybe_fold_offset_to_reference (location_t, tree, tree, tree);
 tree maybe_fold_offset_to_address (location_t, tree, tree, tree);
+tree maybe_fold_offset_to_reference (location_t, tree, tree, tree);
 tree maybe_fold_stmt_addition (location_t, tree, tree, tree);
 tree get_symbol_constant_value (tree);
 bool may_propagate_address_into_dereference (tree, tree);

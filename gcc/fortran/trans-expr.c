@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "toplev.h"	/* For fatal_error.  */
+#include "diagnostic-core.h"	/* For fatal_error.  */
 #include "langhooks.h"
 #include "flags.h"
 #include "gfortran.h"
@@ -1365,7 +1365,8 @@ gfc_conv_expr_op (gfc_se * se, gfc_expr * expr)
 
       lse.expr = gfc_build_compare_string (lse.string_length, lse.expr,
 					   rse.string_length, rse.expr,
-					   expr->value.op.op1->ts.kind);
+					   expr->value.op.op1->ts.kind,
+					   code);
       rse.expr = build_int_cst (TREE_TYPE (lse.expr), 0);
       gfc_add_block_to_block (&lse.post, &rse.post);
     }
@@ -1388,17 +1389,45 @@ gfc_conv_expr_op (gfc_se * se, gfc_expr * expr)
 
 /* If a string's length is one, we convert it to a single character.  */
 
-static tree
-string_to_single_character (tree len, tree str, int kind)
+tree
+gfc_string_to_single_character (tree len, tree str, int kind)
 {
   gcc_assert (POINTER_TYPE_P (TREE_TYPE (str)));
 
-  if (INTEGER_CST_P (len) && TREE_INT_CST_LOW (len) == 1
-      && TREE_INT_CST_HIGH (len) == 0)
+  if (!INTEGER_CST_P (len) || TREE_INT_CST_HIGH (len) != 0)
+    return NULL_TREE;
+
+  if (TREE_INT_CST_LOW (len) == 1)
     {
       str = fold_convert (gfc_get_pchar_type (kind), str);
-      return build_fold_indirect_ref_loc (input_location,
-				      str);
+      return build_fold_indirect_ref_loc (input_location, str);
+    }
+
+  if (kind == 1
+      && TREE_CODE (str) == ADDR_EXPR
+      && TREE_CODE (TREE_OPERAND (str, 0)) == ARRAY_REF
+      && TREE_CODE (TREE_OPERAND (TREE_OPERAND (str, 0), 0)) == STRING_CST
+      && array_ref_low_bound (TREE_OPERAND (str, 0))
+	 == TREE_OPERAND (TREE_OPERAND (str, 0), 1)
+      && TREE_INT_CST_LOW (len) > 1
+      && TREE_INT_CST_LOW (len)
+	 == (unsigned HOST_WIDE_INT)
+	    TREE_STRING_LENGTH (TREE_OPERAND (TREE_OPERAND (str, 0), 0)))
+    {
+      tree ret = fold_convert (gfc_get_pchar_type (kind), str);
+      ret = build_fold_indirect_ref_loc (input_location, ret);
+      if (TREE_CODE (ret) == INTEGER_CST)
+	{
+	  tree string_cst = TREE_OPERAND (TREE_OPERAND (str, 0), 0);
+	  int i, length = TREE_STRING_LENGTH (string_cst);
+	  const char *ptr = TREE_STRING_POINTER (string_cst);
+
+	  for (i = 1; i < length; i++)
+	    if (ptr[i] != ' ')
+	      return NULL_TREE;
+
+	  return ret;
+	}
     }
 
   return NULL_TREE;
@@ -1446,7 +1475,7 @@ gfc_conv_scalar_char_value (gfc_symbol *sym, gfc_se *se, gfc_expr **expr)
         {
 	  if ((*expr)->ref == NULL)
 	    {
-	      se->expr = string_to_single_character
+	      se->expr = gfc_string_to_single_character
 		(build_int_cst (integer_type_node, 1),
 		 gfc_build_addr_expr (gfc_get_pchar_type ((*expr)->ts.kind),
 				      gfc_get_symbol_decl
@@ -1456,7 +1485,7 @@ gfc_conv_scalar_char_value (gfc_symbol *sym, gfc_se *se, gfc_expr **expr)
 	  else
 	    {
 	      gfc_conv_variable (se, *expr);
-	      se->expr = string_to_single_character
+	      se->expr = gfc_string_to_single_character
 		(build_int_cst (integer_type_node, 1),
 		 gfc_build_addr_expr (gfc_get_pchar_type ((*expr)->ts.kind),
 				      se->expr),
@@ -1466,47 +1495,91 @@ gfc_conv_scalar_char_value (gfc_symbol *sym, gfc_se *se, gfc_expr **expr)
     }
 }
 
+/* Helper function for gfc_build_compare_string.  Return LEN_TRIM value
+   if STR is a string literal, otherwise return -1.  */
+
+static int
+gfc_optimize_len_trim (tree len, tree str, int kind)
+{
+  if (kind == 1
+      && TREE_CODE (str) == ADDR_EXPR
+      && TREE_CODE (TREE_OPERAND (str, 0)) == ARRAY_REF
+      && TREE_CODE (TREE_OPERAND (TREE_OPERAND (str, 0), 0)) == STRING_CST
+      && array_ref_low_bound (TREE_OPERAND (str, 0))
+	 == TREE_OPERAND (TREE_OPERAND (str, 0), 1)
+      && TREE_INT_CST_LOW (len) >= 1
+      && TREE_INT_CST_LOW (len)
+	 == (unsigned HOST_WIDE_INT)
+	    TREE_STRING_LENGTH (TREE_OPERAND (TREE_OPERAND (str, 0), 0)))
+    {
+      tree folded = fold_convert (gfc_get_pchar_type (kind), str);
+      folded = build_fold_indirect_ref_loc (input_location, folded);
+      if (TREE_CODE (folded) == INTEGER_CST)
+	{
+	  tree string_cst = TREE_OPERAND (TREE_OPERAND (str, 0), 0);
+	  int length = TREE_STRING_LENGTH (string_cst);
+	  const char *ptr = TREE_STRING_POINTER (string_cst);
+
+	  for (; length > 0; length--)
+	    if (ptr[length - 1] != ' ')
+	      break;
+
+	  return length;
+	}
+    }
+  return -1;
+}
 
 /* Compare two strings. If they are all single characters, the result is the
    subtraction of them. Otherwise, we build a library call.  */
 
 tree
-gfc_build_compare_string (tree len1, tree str1, tree len2, tree str2, int kind)
+gfc_build_compare_string (tree len1, tree str1, tree len2, tree str2, int kind,
+			  enum tree_code code)
 {
   tree sc1;
   tree sc2;
-  tree tmp;
+  tree fndecl;
 
   gcc_assert (POINTER_TYPE_P (TREE_TYPE (str1)));
   gcc_assert (POINTER_TYPE_P (TREE_TYPE (str2)));
 
-  sc1 = string_to_single_character (len1, str1, kind);
-  sc2 = string_to_single_character (len2, str2, kind);
+  sc1 = gfc_string_to_single_character (len1, str1, kind);
+  sc2 = gfc_string_to_single_character (len2, str2, kind);
 
   if (sc1 != NULL_TREE && sc2 != NULL_TREE)
     {
       /* Deal with single character specially.  */
       sc1 = fold_convert (integer_type_node, sc1);
       sc2 = fold_convert (integer_type_node, sc2);
-      tmp = fold_build2 (MINUS_EXPR, integer_type_node, sc1, sc2);
+      return fold_build2 (MINUS_EXPR, integer_type_node, sc1, sc2);
     }
-  else
+
+  if ((code == EQ_EXPR || code == NE_EXPR)
+      && optimize
+      && INTEGER_CST_P (len1) && INTEGER_CST_P (len2))
     {
-      /* Build a call for the comparison.  */
-      tree fndecl;
-
-      if (kind == 1)
-	fndecl = gfor_fndecl_compare_string;
-      else if (kind == 4)
-	fndecl = gfor_fndecl_compare_string_char4;
-      else
-	gcc_unreachable ();
-
-      tmp = build_call_expr_loc (input_location,
-			     fndecl, 4, len1, str1, len2, str2);
+      /* If one string is a string literal with LEN_TRIM longer
+	 than the length of the second string, the strings
+	 compare unequal.  */
+      int len = gfc_optimize_len_trim (len1, str1, kind);
+      if (len > 0 && compare_tree_int (len2, len) < 0)
+	return integer_one_node;
+      len = gfc_optimize_len_trim (len2, str2, kind);
+      if (len > 0 && compare_tree_int (len1, len) < 0)
+	return integer_one_node;
     }
 
-  return tmp;
+  /* Build a call for the comparison.  */
+  if (kind == 1)
+    fndecl = gfor_fndecl_compare_string;
+  else if (kind == 4)
+    fndecl = gfor_fndecl_compare_string_char4;
+  else
+    gcc_unreachable ();
+
+  return build_call_expr_loc (input_location, fndecl, 4,
+			      len1, str1, len2, str2);
 }
 
 
@@ -2478,8 +2551,8 @@ gfc_conv_derived_to_class (gfc_se *parmse, gfc_expr *e,
 		       var, cmp->backend_decl, NULL_TREE);
 
   /* Remember the vtab corresponds to the derived type
-    not to the class declared type.  */
-  vtab = gfc_find_derived_vtab (e->ts.u.derived, true);
+     not to the class declared type.  */
+  vtab = gfc_find_derived_vtab (e->ts.u.derived);
   gcc_assert (vtab);
   gfc_trans_assign_vtab_procs (&parmse->pre, e->ts.u.derived, vtab);
   tmp = gfc_build_addr_expr (NULL_TREE, gfc_get_symbol_decl (vtab));
@@ -2653,7 +2726,6 @@ conv_isocbinding_procedure (gfc_se * se, gfc_symbol * sym,
   return 0;
 }
 
-
 /* Generate code for a procedure call.  Note can return se->post != NULL.
    If se->direct_byref is set then se->expr contains the return parameter.
    Return nonzero, if the call has alternate specifiers.
@@ -2662,11 +2734,11 @@ conv_isocbinding_procedure (gfc_se * se, gfc_symbol * sym,
 int
 gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 			 gfc_actual_arglist * arg, gfc_expr * expr,
-			 tree append_args)
+			 VEC(tree,gc) *append_args)
 {
   gfc_interface_mapping mapping;
-  tree arglist;
-  tree retargs;
+  VEC(tree,gc) *arglist;
+  VEC(tree,gc) *retargs;
   tree tmp;
   tree fntype;
   gfc_se parmse;
@@ -2677,7 +2749,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
   tree type;
   tree var;
   tree len;
-  tree stringargs;
+  VEC(tree,gc) *stringargs;
   tree result = NULL;
   gfc_formal_arglist *formal;
   int has_alternate_specifier = 0;
@@ -2690,10 +2762,11 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
   stmtblock_t post;
   enum {MISSING = 0, ELEMENTAL, SCALAR, SCALAR_POINTER, ARRAY};
   gfc_component *comp = NULL;
+  int arglen;
 
-  arglist = NULL_TREE;
-  retargs = NULL_TREE;
-  stringargs = NULL_TREE;
+  arglist = NULL;
+  retargs = NULL;
+  stringargs = NULL;
   var = NULL_TREE;
   len = NULL_TREE;
   gfc_clear_ts (&ts);
@@ -3136,9 +3209,9 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
       /* Character strings are passed as two parameters, a length and a
          pointer - except for Bind(c) which only passes the pointer.  */
       if (parmse.string_length != NULL_TREE && !sym->attr.is_bind_c)
-        stringargs = gfc_chainon_list (stringargs, parmse.string_length);
+	VEC_safe_push (tree, gc, stringargs, parmse.string_length);
 
-      arglist = gfc_chainon_list (arglist, parmse.expr);
+      VEC_safe_push (tree, gc, arglist, parmse.expr);
     }
   gfc_finish_interface_mapping (&mapping, &se->pre, &se->post);
 
@@ -3160,7 +3233,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	     For dummies, we have to look through the formal argument list for
 	     this function and use the character length found there.*/
 	  if (!sym->attr.dummy)
-	    cl.backend_decl = TREE_VALUE (stringargs);
+	    cl.backend_decl = VEC_index (tree, stringargs, 0);
 	  else
 	    {
 	      formal = sym->ns->proc_name->formal;
@@ -3213,7 +3286,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
 	  result = build_fold_indirect_ref_loc (input_location,
 						se->expr);
-	  retargs = gfc_chainon_list (retargs, se->expr);
+	  VEC_safe_push (tree, gc, retargs, se->expr);
 	}
       else if (comp && comp->attr.dimension)
 	{
@@ -3237,7 +3310,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	  /* Pass the temporary as the first argument.  */
 	  result = info->descriptor;
 	  tmp = gfc_build_addr_expr (NULL_TREE, result);
-	  retargs = gfc_chainon_list (retargs, tmp);
+	  VEC_safe_push (tree, gc, retargs, tmp);
 	}
       else if (!comp && sym->result->attr.dimension)
 	{
@@ -3261,7 +3334,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	  /* Pass the temporary as the first argument.  */
 	  result = info->descriptor;
 	  tmp = gfc_build_addr_expr (NULL_TREE, result);
-	  retargs = gfc_chainon_list (retargs, tmp);
+	  VEC_safe_push (tree, gc, retargs, tmp);
 	}
       else if (ts.type == BT_CHARACTER)
 	{
@@ -3288,7 +3361,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	  else
 	    var = gfc_conv_string_tmp (se, type, len);
 
-	  retargs = gfc_chainon_list (retargs, var);
+	  VEC_safe_push (tree, gc, retargs, var);
 	}
       else
 	{
@@ -3296,25 +3369,31 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
 	  type = gfc_get_complex_type (ts.kind);
 	  var = gfc_build_addr_expr (NULL_TREE, gfc_create_var (type, "cmplx"));
-	  retargs = gfc_chainon_list (retargs, var);
+	  VEC_safe_push (tree, gc, retargs, var);
 	}
 
       /* Add the string length to the argument list.  */
       if (ts.type == BT_CHARACTER)
-	retargs = gfc_chainon_list (retargs, len);
+	VEC_safe_push (tree, gc, retargs, len);
     }
   gfc_free_interface_mapping (&mapping);
 
+  /* We need to glom RETARGS + ARGLIST + STRINGARGS + APPEND_ARGS.  */
+  arglen = (VEC_length (tree, arglist)
+	    + VEC_length (tree, stringargs) + VEC_length (tree, append_args));
+  VEC_reserve_exact (tree, gc, retargs, arglen);
+
   /* Add the return arguments.  */
-  arglist = chainon (retargs, arglist);
+  VEC_splice (tree, retargs, arglist);
 
   /* Add the hidden string length parameters to the arguments.  */
-  arglist = chainon (arglist, stringargs);
+  VEC_splice (tree, retargs, stringargs);
 
   /* We may want to append extra arguments here.  This is used e.g. for
      calls to libgfortran_matmul_??, which need extra information.  */
-  if (append_args != NULL_TREE)
-    arglist = chainon (arglist, append_args);
+  if (!VEC_empty (tree, append_args))
+    VEC_splice (tree, retargs, append_args);
+  arglist = retargs;
 
   /* Generate the actual call.  */
   conv_function_val (se, sym, expr);
@@ -3338,7 +3417,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
     }
 
   fntype = TREE_TYPE (TREE_TYPE (se->expr));
-  se->expr = build_call_list (TREE_TYPE (fntype), se->expr, arglist);
+  se->expr = build_call_vec (TREE_TYPE (fntype), se->expr, arglist);
 
   /* If we have a pointer function, but we don't want a pointer, e.g.
      something like
@@ -3539,7 +3618,7 @@ gfc_trans_string_copy (stmtblock_t * block, tree dlength, tree dest,
   if (slength != NULL_TREE)
     {
       slen = fold_convert (size_type_node, gfc_evaluate_now (slength, block));
-      ssc = string_to_single_character (slen, src, skind);
+      ssc = gfc_string_to_single_character (slen, src, skind);
     }
   else
     {
@@ -3550,19 +3629,13 @@ gfc_trans_string_copy (stmtblock_t * block, tree dlength, tree dest,
   if (dlength != NULL_TREE)
     {
       dlen = fold_convert (size_type_node, gfc_evaluate_now (dlength, block));
-      dsc = string_to_single_character (slen, dest, dkind);
+      dsc = gfc_string_to_single_character (dlen, dest, dkind);
     }
   else
     {
       dlen = build_int_cst (size_type_node, 1);
       dsc =  dest;
     }
-
-  if (slength != NULL_TREE && POINTER_TYPE_P (TREE_TYPE (src)))
-    ssc = string_to_single_character (slen, src, skind);
-  if (dlength != NULL_TREE && POINTER_TYPE_P (TREE_TYPE (dest)))
-    dsc = string_to_single_character (dlen, dest, dkind);
-
 
   /* Assign directly if the types are compatible.  */
   if (dsc != NULL_TREE && ssc != NULL_TREE
@@ -3786,8 +3859,7 @@ gfc_conv_function_expr (gfc_se * se, gfc_expr * expr)
   if (!sym)
     sym = expr->symtree->n.sym;
 
-  gfc_conv_procedure_call (se, sym, expr->value.function.actual, expr,
-			  NULL_TREE);
+  gfc_conv_procedure_call (se, sym, expr->value.function.actual, expr, NULL);
 }
 
 
@@ -4973,6 +5045,11 @@ arrayfunc_assign_needs_temporary (gfc_expr * expr1, gfc_expr * expr2)
       if (!expr2->value.function.esym->attr.contained)
 	return false;
 
+      /* A temporary is not needed if the lhs has never been host
+	 associated and the procedure is contained.  */
+      else if (!sym->attr.host_assoc)
+	return false;
+
       /* A temporary is not needed if the variable is local and not
 	 a pointer, a target or a result.  */
       if (sym->ns->parent
@@ -5226,6 +5303,7 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
   bool l_is_temp;
   bool scalar_to_array;
   tree string_length;
+  int n;
 
   /* Assignment of the form lhs = rhs.  */
   gfc_start_block (&block);
@@ -5271,6 +5349,9 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
 
       /* Calculate the bounds of the scalarization.  */
       gfc_conv_ss_startstride (&loop);
+      /* Enable loop reversal.  */
+      for (n = 0; n < loop.dimen; n++)
+	loop.reverse[n] = GFC_REVERSE_NOT_SET;
       /* Resolve any data dependencies in the statement.  */
       gfc_conv_resolve_dependencies (&loop, lss, rss);
       /* Setup the scalarizing loops.  */
@@ -5631,7 +5712,7 @@ gfc_trans_class_assign (gfc_code *code)
 	{
 	  gfc_symbol *vtab;
 	  gfc_symtree *st;
-	  vtab = gfc_find_derived_vtab (code->expr2->ts.u.derived, true);
+	  vtab = gfc_find_derived_vtab (code->expr2->ts.u.derived);
 	  gcc_assert (vtab);
 	  gfc_trans_assign_vtab_procs (&block, code->expr2->ts.u.derived, vtab);
 	  rhs = gfc_get_expr ();

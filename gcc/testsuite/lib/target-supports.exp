@@ -569,6 +569,24 @@ proc check_effective_target_pcc_bitfield_type_matters { } {
     }]
 }
 
+# Add to FLAGS all the target-specific flags needed to use thread-local storage.
+
+proc add_options_for_tls { flags } {
+    # On Solaris 8 and 9, __tls_get_addr/___tls_get_addr only lives in
+    # libthread, so always pass -pthread for native TLS.
+    # Need to duplicate native TLS check from
+    # check_effective_target_tls_native to avoid recursion.
+    if { [istarget *-*-solaris2.\[89\]*] &&
+	 [check_no_messages_and_pattern tls_native "!emutls" assembly {
+	     __thread int i;
+	     int f (void) { return i; }
+	     void g (int j) { i = j; }
+	 }] } {
+	return "$flags -pthread"
+    }
+    return $flags
+}
+
 # Return 1 if thread local storage (TLS) is supported, 0 otherwise.
 
 proc check_effective_target_tls {} {
@@ -886,6 +904,12 @@ proc check_effective_target_static_libgfortran { } {
     } "-static"]
 }
 
+proc check_linker_plugin_available { } {
+  return [check_no_compiler_messages_nocache linker_plugin executable {
+     int main() { return 0; }
+  } "-flto -fuse-linker-plugin"]
+}
+
 # Return 1 if the target supports executing 750CL paired-single instructions, 0
 # otherwise.  Cache the result.
 
@@ -910,6 +934,53 @@ proc check_750cl_hw_available { } {
     }]
 }
 
+# Return 1 if the target OS supports running SSE executables, 0
+# otherwise.  Cache the result.
+
+proc check_sse_os_support_available { } {
+    return [check_cached_effective_target sse_os_support_available {
+	# If this is not the right target then we can skip the test.
+	if { !([istarget x86_64-*-*] || [istarget i?86-*-*]) } {
+	    expr 0
+	} elseif { [istarget i?86-*-solaris2*] } {
+	    # The Solaris 2 kernel doesn't save and restore SSE registers
+	    # before Solaris 9 4/04.  Before that, executables die with SIGILL.
+	    check_runtime_nocache sse_os_support_available {
+		int main ()
+		{
+		    __asm__ volatile ("movss %xmm2,%xmm1");
+		    return 0;
+		}
+	    } "-msse"
+	} else {
+	    expr 1
+	}
+    }]
+}
+
+# Return 1 if the target supports executing SSE instructions, 0
+# otherwise.  Cache the result.
+
+proc check_sse_hw_available { } {
+    return [check_cached_effective_target sse_hw_available {
+	# If this is not the right target then we can skip the test.
+	if { !([istarget x86_64-*-*] || [istarget i?86-*-*]) } {
+	    expr 0
+	} else {
+	    check_runtime_nocache sse_hw_available {
+		#include "cpuid.h"
+		int main ()
+		{
+		  unsigned int eax, ebx, ecx, edx;
+		  if (__get_cpuid (1, &eax, &ebx, &ecx, &edx))
+		    return !(edx & bit_SSE);
+		  return 1;
+		}
+	    } ""
+	}
+    }]
+}
+
 # Return 1 if the target supports executing SSE2 instructions, 0
 # otherwise.  Cache the result.
 
@@ -923,7 +994,7 @@ proc check_sse2_hw_available { } {
 		#include "cpuid.h"
 		int main ()
 		{
-		  unsigned int eax, ebx, ecx, edx = 0;
+		  unsigned int eax, ebx, ecx, edx;
 		  if (__get_cpuid (1, &eax, &ebx, &ecx, &edx))
 		    return !(edx & bit_SSE2);
 		  return 1;
@@ -931,6 +1002,62 @@ proc check_sse2_hw_available { } {
 	    } ""
 	}
     }]
+}
+
+# Return 1 if the target supports executing AVX instructions, 0
+# otherwise.  Cache the result.
+
+proc check_avx_hw_available { } {
+    return [check_cached_effective_target avx_hw_available {
+	# If this is not the right target then we can skip the test.
+	if { !([istarget x86_64-*-*] || [istarget i?86-*-*]) } {
+	    expr 0
+	} else {
+	    check_runtime_nocache avx_hw_available {
+		#include "cpuid.h"
+		int main ()
+		{
+		  unsigned int eax, ebx, ecx, edx;
+		  if (__get_cpuid (1, &eax, &ebx, &ecx, &edx))
+		    return ((ecx & (bit_AVX | bit_OSXSAVE))
+			    != (bit_AVX | bit_OSXSAVE));
+		  return 1;
+		}
+	    } ""
+	}
+    }]
+}
+
+# Return 1 if the target supports running SSE executables, 0 otherwise.
+
+proc check_effective_target_sse_runtime { } {
+    if { [check_effective_target_sse]
+	 && [check_sse_hw_available]
+	 && [check_sse_os_support_available] } {
+	return 1
+    }
+    return 0
+}
+
+# Return 1 if the target supports running SSE2 executables, 0 otherwise.
+
+proc check_effective_target_sse2_runtime { } {
+    if { [check_effective_target_sse2]
+	 && [check_sse2_hw_available]
+	 && [check_sse_os_support_available] } {
+	return 1
+    }
+    return 0
+}
+
+# Return 1 if the target supports running AVX executables, 0 otherwise.
+
+proc check_effective_target_avx_runtime { } {
+    if { [check_effective_target_avx]
+	 && [check_avx_hw_available] } {
+	return 1
+    }
+    return 0
 }
 
 # Return 1 if the target supports executing VSX instructions, 0
@@ -3261,6 +3388,17 @@ proc check_effective_target_avx { } {
     } "-O2 -mavx" ]
 }
 
+# Return 1 if sse instructions can be compiled.
+proc check_effective_target_sse { } {
+    return [check_no_compiler_messages sse object {
+	int main ()
+	{
+	    __builtin_ia32_stmxcsr ();
+	    return 0;
+	}
+    } "-O2 -msse" ]
+}
+
 # Return 1 if sse2 instructions can be compiled.
 proc check_effective_target_sse2 { } {
     return [check_no_compiler_messages sse2 object {
@@ -3271,6 +3409,19 @@ proc check_effective_target_sse2 { } {
 	    return (__m128i)__builtin_ia32_psrldqi128 (__A, 8);
 	}
     } "-O2 -msse2" ]
+}
+
+# Return 1 if F16C instructions can be compiled.
+
+proc check_effective_target_f16c { } {
+    return [check_no_compiler_messages f16c object {
+	#include "immintrin.h"
+	float
+	foo (unsigned short val)
+	{
+	  return _cvtsh_ss (val);
+	}
+    } "-O2 -mf16c" ]
 }
 
 # Return 1 if C wchar_t type is compatible with char16_t.

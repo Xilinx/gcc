@@ -80,7 +80,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Don't put any single quote (') in MOD_VERSION, 
    if yout want it to be recognized.  */
-#define MOD_VERSION "5"
+#define MOD_VERSION "6"
 
 
 /* Structure that describes a position within a module file.  */
@@ -1675,7 +1675,7 @@ typedef enum
   AB_POINTER_COMP, AB_PRIVATE_COMP, AB_VALUE, AB_VOLATILE, AB_PROTECTED,
   AB_IS_BIND_C, AB_IS_C_INTEROP, AB_IS_ISO_C, AB_ABSTRACT, AB_ZERO_COMP,
   AB_IS_CLASS, AB_PROCEDURE, AB_PROC_POINTER, AB_ASYNCHRONOUS, AB_CODIMENSION,
-  AB_COARRAY_COMP, AB_VTYPE, AB_VTAB, AB_CONTIGUOUS
+  AB_COARRAY_COMP, AB_VTYPE, AB_VTAB, AB_CONTIGUOUS, AB_CLASS_POINTER
 }
 ab_attribute;
 
@@ -1724,6 +1724,7 @@ static const mstring attr_bits[] =
     minit ("PROC_POINTER", AB_PROC_POINTER),
     minit ("VTYPE", AB_VTYPE),
     minit ("VTAB", AB_VTAB),
+    minit ("CLASS_POINTER", AB_CLASS_POINTER),
     minit (NULL, -1)
 };
 
@@ -1818,6 +1819,8 @@ mio_symbol_attribute (symbol_attribute *attr)
 	MIO_NAME (ab_attribute) (AB_OPTIONAL, attr_bits);
       if (attr->pointer)
 	MIO_NAME (ab_attribute) (AB_POINTER, attr_bits);
+      if (attr->class_pointer)
+	MIO_NAME (ab_attribute) (AB_CLASS_POINTER, attr_bits);
       if (attr->is_protected)
 	MIO_NAME (ab_attribute) (AB_PROTECTED, attr_bits);
       if (attr->value)
@@ -1932,6 +1935,9 @@ mio_symbol_attribute (symbol_attribute *attr)
 	      break;
 	    case AB_POINTER:
 	      attr->pointer = 1;
+	      break;
+	    case AB_CLASS_POINTER:
+	      attr->class_pointer = 1;
 	      break;
 	    case AB_PROTECTED:
 	      attr->is_protected = 1;
@@ -5195,53 +5201,6 @@ gfc_dump_module (const char *name, int dump_flag)
 }
 
 
-static void
-sort_iso_c_rename_list (void)
-{
-  gfc_use_rename *tmp_list = NULL;
-  gfc_use_rename *curr;
-  gfc_use_rename *kinds_used[ISOCBINDING_NUMBER] = {NULL};
-  int c_kind;
-  int i;
-
-  for (curr = gfc_rename_list; curr; curr = curr->next)
-    {
-      c_kind = get_c_kind (curr->use_name, c_interop_kinds_table);
-      if (c_kind == ISOCBINDING_INVALID || c_kind == ISOCBINDING_LAST)
-	{
-	  gfc_error ("Symbol '%s' referenced at %L does not exist in "
-		     "intrinsic module ISO_C_BINDING.", curr->use_name,
-		     &curr->where);
-	}
-      else
-	/* Put it in the list.  */
-	kinds_used[c_kind] = curr;
-    }
-
-  /* Make a new (sorted) rename list.  */
-  i = 0;
-  while (i < ISOCBINDING_NUMBER && kinds_used[i] == NULL)
-    i++;
-
-  if (i < ISOCBINDING_NUMBER)
-    {
-      tmp_list = kinds_used[i];
-
-      i++;
-      curr = tmp_list;
-      for (; i < ISOCBINDING_NUMBER; i++)
-	if (kinds_used[i] != NULL)
-	  {
-	    curr->next = kinds_used[i];
-	    curr = curr->next;
-	    curr->next = NULL;
-	  }
-    }
-
-  gfc_rename_list = tmp_list;
-}
-
-
 /* Import the intrinsic ISO_C_BINDING module, generating symbols in
    the current namespace for all named constants, pointer types, and
    procedures in the module unless the only clause was used or a rename
@@ -5255,7 +5214,6 @@ import_iso_c_binding_module (void)
   const char *iso_c_module_name = "__iso_c_binding";
   gfc_use_rename *u;
   int i;
-  char *local_name;
 
   /* Look only in the current namespace.  */
   mod_symtree = gfc_find_symtree (gfc_current_ns->sym_root, iso_c_module_name);
@@ -5280,57 +5238,32 @@ import_iso_c_binding_module (void)
 
   /* Generate the symbols for the named constants representing
      the kinds for intrinsic data types.  */
-  if (only_flag)
+  for (i = 0; i < ISOCBINDING_NUMBER; i++)
     {
-      /* Sort the rename list because there are dependencies between types
-	 and procedures (e.g., c_loc needs c_ptr).  */
-      sort_iso_c_rename_list ();
-      
+      bool found = false;
       for (u = gfc_rename_list; u; u = u->next)
-	{
-	  i = get_c_kind (u->use_name, c_interop_kinds_table);
+	if (strcmp (c_interop_kinds_table[i].name, u->use_name) == 0)
+	  {
+	    u->found = 1;
+	    found = true;
+	    generate_isocbinding_symbol (iso_c_module_name,
+					 (iso_c_binding_symbol) i,
+					 u->local_name);
+	  }
 
-	  if (i == ISOCBINDING_INVALID || i == ISOCBINDING_LAST)
-	    {
-	      gfc_error ("Symbol '%s' referenced at %L does not exist in "
-			 "intrinsic module ISO_C_BINDING.", u->use_name,
-			 &u->where);
-	      continue;
-	    }
-	  
-	  generate_isocbinding_symbol (iso_c_module_name,
-				       (iso_c_binding_symbol) i,
-				       u->local_name);
-	}
-    }
-  else
-    {
-      for (i = 0; i < ISOCBINDING_NUMBER; i++)
-	{
-	  local_name = NULL;
-	  for (u = gfc_rename_list; u; u = u->next)
-	    {
-	      if (strcmp (c_interop_kinds_table[i].name, u->use_name) == 0)
-		{
-		  local_name = u->local_name;
-		  u->found = 1;
-		  break;
-		}
-	    }
-	  generate_isocbinding_symbol (iso_c_module_name,
-				       (iso_c_binding_symbol) i,
-				       local_name);
-	}
+      if (!found && !only_flag)
+	generate_isocbinding_symbol (iso_c_module_name,
+				     (iso_c_binding_symbol) i, NULL);
+   }
 
-      for (u = gfc_rename_list; u; u = u->next)
-	{
-	  if (u->found)
-	    continue;
+   for (u = gfc_rename_list; u; u = u->next)
+     {
+      if (u->found)
+	continue;
 
-	  gfc_error ("Symbol '%s' referenced at %L not found in intrinsic "
-		     "module ISO_C_BINDING", u->use_name, &u->where);
-	}
-    }
+      gfc_error ("Symbol '%s' referenced at %L not found in intrinsic "
+		 "module ISO_C_BINDING", u->use_name, &u->where);
+     }
 }
 
 
@@ -5372,7 +5305,6 @@ static void
 use_iso_fortran_env_module (void)
 {
   static char mod[] = "iso_fortran_env";
-  const char *local_name;
   gfc_use_rename *u;
   gfc_symbol *mod_sym;
   gfc_symtree *mod_symtree;
@@ -5408,60 +5340,41 @@ use_iso_fortran_env_module (void)
 		 "non-intrinsic module name used previously", mod);
 
   /* Generate the symbols for the module integer named constants.  */
-  if (only_flag)
-    for (u = gfc_rename_list; u; u = u->next)
-      {
-	for (i = 0; symbol[i].name; i++)
-	  if (strcmp (symbol[i].name, u->use_name) == 0)
-	    break;
 
-	if (symbol[i].name == NULL)
-	  {
-	    gfc_error ("Symbol '%s' referenced at %L does not exist in "
-		       "intrinsic module ISO_FORTRAN_ENV", u->use_name,
-		       &u->where);
-	    continue;
-	  }
-
-	if ((gfc_option.flag_default_integer || gfc_option.flag_default_real)
-	    && symbol[i].id == ISOFORTRANENV_NUMERIC_STORAGE_SIZE)
-	  gfc_warning_now ("Use of the NUMERIC_STORAGE_SIZE named constant "
-			   "from intrinsic module ISO_FORTRAN_ENV at %L is "
-			   "incompatible with option %s", &u->where,
-			   gfc_option.flag_default_integer
-			     ? "-fdefault-integer-8" : "-fdefault-real-8");
-
-        if (gfc_notify_std (symbol[i].standard, "The symbol '%s', referrenced "
-			    "at %C, is not in the selected standard",
-			    symbol[i].name) == FAILURE)
-	  continue;
-
-	create_int_parameter (u->local_name[0] ? u->local_name
-					       : symbol[i].name,
-			      symbol[i].value, mod, INTMOD_ISO_FORTRAN_ENV,
-			      symbol[i].id);
-      }
-  else
+  for (i = 0; symbol[i].name; i++)
     {
-      for (i = 0; symbol[i].name; i++)
+      bool found = false;
+      for (u = gfc_rename_list; u; u = u->next)
 	{
-	  local_name = NULL;
-
-	  for (u = gfc_rename_list; u; u = u->next)
+	  if (strcmp (symbol[i].name, u->use_name) == 0)
 	    {
-	      if (strcmp (symbol[i].name, u->use_name) == 0)
-		{
-		  local_name = u->local_name;
-		  u->found = 1;
-		  break;
-		}
-	    }
+	      found = true;
+	      u->found = 1;
 
-	  if (u && gfc_notify_std (symbol[i].standard, "The symbol '%s', "
-				   "referrenced at %C, is not in the selected "
-				   "standard", symbol[i].name) == FAILURE)
-	    continue;
-	  else if ((gfc_option.allow_std & symbol[i].standard) == 0)
+	      if (gfc_notify_std (symbol[i].standard, "The symbol '%s', "
+				  "referrenced at %C, is not in the selected "
+				  "standard", symbol[i].name) == FAILURE)
+	        continue;
+
+	      if ((gfc_option.flag_default_integer || gfc_option.flag_default_real)
+		  && symbol[i].id == ISOFORTRANENV_NUMERIC_STORAGE_SIZE)
+		gfc_warning_now ("Use of the NUMERIC_STORAGE_SIZE named "
+				 "constant from intrinsic module "
+				 "ISO_FORTRAN_ENV at %C is incompatible with "
+				 "option %s",
+				 gfc_option.flag_default_integer
+				   ? "-fdefault-integer-8"
+				   : "-fdefault-real-8");
+
+	      create_int_parameter (u->local_name[0] ? u->local_name : u->use_name,
+				    symbol[i].value, mod,
+				    INTMOD_ISO_FORTRAN_ENV, symbol[i].id);
+	    }
+	}
+
+      if (!found && !only_flag)
+	{
+	  if ((gfc_option.allow_std & symbol[i].standard) == 0)
 	    continue;
 
 	  if ((gfc_option.flag_default_integer || gfc_option.flag_default_real)
@@ -5472,19 +5385,18 @@ use_iso_fortran_env_module (void)
 			     gfc_option.flag_default_integer
 				? "-fdefault-integer-8" : "-fdefault-real-8");
 
-	  create_int_parameter (local_name ? local_name : symbol[i].name,
-				symbol[i].value, mod, INTMOD_ISO_FORTRAN_ENV,
-				symbol[i].id);
+	  create_int_parameter (symbol[i].name, symbol[i].value, mod,
+				INTMOD_ISO_FORTRAN_ENV, symbol[i].id);
 	}
+    }
 
-      for (u = gfc_rename_list; u; u = u->next)
-	{
-	  if (u->found)
-	    continue;
+  for (u = gfc_rename_list; u; u = u->next)
+    {
+      if (u->found)
+	continue;
 
-	  gfc_error ("Symbol '%s' referenced at %L not found in intrinsic "
+      gfc_error ("Symbol '%s' referenced at %L not found in intrinsic "
 		     "module ISO_FORTRAN_ENV", u->use_name, &u->where);
-	}
     }
 }
 

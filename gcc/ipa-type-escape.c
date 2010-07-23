@@ -1048,7 +1048,7 @@ check_function_parameter_and_return_types (tree fn, bool escapes)
 	 from the TYPE_ARG_LIST. However, Geoff is wrong, this code
 	 does seem to be live.  */
 
-      for (arg = DECL_ARGUMENTS (fn); arg; arg = TREE_CHAIN (arg))
+      for (arg = DECL_ARGUMENTS (fn); arg; arg = DECL_CHAIN (arg))
 	{
 	  tree type = get_canon_type (TREE_TYPE (arg), false, false);
 	  if (escapes)
@@ -1676,12 +1676,11 @@ analyze_function (struct cgraph_node *fn)
   /* There may be const decls with interesting right hand sides.  */
   if (DECL_STRUCT_FUNCTION (decl))
     {
-      tree step;
-      for (step = DECL_STRUCT_FUNCTION (decl)->local_decls;
-	   step;
-	   step = TREE_CHAIN (step))
+      tree var;
+      unsigned ix;
+
+      FOR_EACH_LOCAL_DECL (DECL_STRUCT_FUNCTION (decl), ix, var)
 	{
-	  tree var = TREE_VALUE (step);
 	  if (TREE_CODE (var) == VAR_DECL
 	      && DECL_INITIAL (var)
 	      && !TREE_STATIC (var))
@@ -1768,7 +1767,7 @@ close_type_seen (tree type)
      subfields.  */
   for (field = TYPE_FIELDS (type);
        field;
-       field = TREE_CHAIN (field))
+       field = DECL_CHAIN (field))
     {
       tree field_type;
       if (TREE_CODE (field) != FIELD_DECL)

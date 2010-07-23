@@ -212,6 +212,10 @@ Wsystem-headers
 Common Var(warn_system_headers) Warning
 Do not suppress warnings from system headers
 
+Wtrampolines
+Common Var(warn_trampolines) Warning
+Warn whenever a trampoline is generated
+
 Wtype-limits
 Common Var(warn_type_limits) Init(-1) Warning
 Warn if a comparison is always true or always false due to the limited range of the data type
@@ -652,6 +656,10 @@ Perform conversion of conditional jumps to branchless equivalents
 fif-conversion2
 Common Report Var(flag_if_conversion2) Optimization
 Perform conversion of conditional jumps to conditional execution
+
+ftree-loop-if-convert
+Common Report Var(flag_tree_loop_if_convert) Init(-1) Optimization
+Convert conditional jumps in innermost loops to branchless equivalents
 
 ; -finhibit-size-directive inhibits output of .size for ELF.
 ; This is used only for compiling crtstuff.c,

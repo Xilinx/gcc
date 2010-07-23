@@ -32,6 +32,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "tree.h"
 #include "java-tree.h"
 #include "parse.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 
 static void mark_reference_fields (tree, double_int *, unsigned int,
@@ -62,10 +63,10 @@ mark_reference_fields (tree field,
 			     mask, ubit,
 			     pointer_after_end, all_bits_set,
 			     last_set_index, last_view_index);
-      field = TREE_CHAIN (field);
+      field = DECL_CHAIN (field);
     }
 
-  for (; field != NULL_TREE; field = TREE_CHAIN (field))
+  for (; field != NULL_TREE; field = DECL_CHAIN (field))
     {
       HOST_WIDE_INT offset;
       HOST_WIDE_INT size_bytes;

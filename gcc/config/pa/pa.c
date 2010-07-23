@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "reload.h"
 #include "integrate.h"
 #include "function.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "ggc.h"
 #include "recog.h"
@@ -5767,7 +5768,9 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
       /* Request a secondary reload with a general scratch register
 	 for everthing else.  ??? Could symbolic operands be handled
 	 directly when generating non-pic PA 2.0 code?  */
-      sri->icode = in_p ? reload_in_optab[mode] : reload_out_optab[mode];
+      sri->icode = (in_p
+		    ? direct_optab_handler (reload_in_optab, mode)
+		    : direct_optab_handler (reload_out_optab, mode));
       return NO_REGS;
     }
 
@@ -5775,7 +5778,9 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
      and anything other than a general register.  */
   if (rclass == SHIFT_REGS && (regno <= 0 || regno >= 32))
     {
-      sri->icode = in_p ? reload_in_optab[mode] : reload_out_optab[mode];
+      sri->icode = (in_p
+		    ? direct_optab_handler (reload_in_optab, mode)
+		    : direct_optab_handler (reload_out_optab, mode));
       return NO_REGS;
     }
 
@@ -5785,7 +5790,9 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
       && (REGNO_REG_CLASS (regno) == SHIFT_REGS
       && FP_REG_CLASS_P (rclass)))
     {
-      sri->icode = in_p ? reload_in_optab[mode] : reload_out_optab[mode];
+      sri->icode = (in_p
+		    ? direct_optab_handler (reload_in_optab, mode)
+		    : direct_optab_handler (reload_out_optab, mode));
       return NO_REGS;
     }
 
@@ -6040,11 +6047,10 @@ hppa_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
       u = fold_build1 (NEGATE_EXPR, sizetype, u);
       t = build2 (POINTER_PLUS_EXPR, valist_type, valist, u);
 
-      /* Copied from va-pa.h, but we probably don't need to align to
-	 word size, since we generate and preserve that invariant.  */
-      u = size_int (size > 4 ? -8 : -4);
-      t = fold_convert (sizetype, t);
-      t = build2 (BIT_AND_EXPR, sizetype, t, u);
+      /* Align to 4 or 8 byte boundary depending on argument size.  */
+
+      u = build_int_cst (TREE_TYPE (t), (HOST_WIDE_INT)(size > 4 ? -8 : -4));
+      t = build2 (BIT_AND_EXPR, TREE_TYPE (t), t, u);
       t = fold_convert (valist_type, t);
 
       t = build2 (MODIFY_EXPR, valist_type, valist, t);

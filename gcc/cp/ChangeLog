@@ -1,6 +1,261 @@
+2010-07-21  Jason Merrill  <jason@redhat.com>
+
+	* tree.c (cp_tree_equal): Fix CONSTRUCTOR handling.
+
+	* parser.c (cp_parser_init_declarator): Pass LOOKUP_NORMAL
+	to cp_finish_decl.
+
+2010-07-20  Jeffrey Yasskin  <jyasskin@google.com>
+
+	PR c++/44641
+	* pt.c (instantiate_class_template): Propagate the template's
+	location to its instance.
+
+2010-07-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44967
+	* pt.c (tsubst_copy_and_build): Rework last change.
+
+	PR c++/44967
+	* pt.c (tsubst_copy_and_build): Handle partial substitution of
+	CALL_EXPR.
+
+2010-07-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44996
+	* semantics.c (finish_decltype_type): Correct decltype
+	of parenthesized rvalue reference variable.
+
+	PR c++/44969
+	* tree.c (cp_tree_equal): Compare type of *CAST_EXPR.
+	* pt.c (iterative_hash_template_arg): Hash type of *CAST_EXPR.
+
+2010-07-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44969
+	* typeck.c (build_x_compound_expr_from_list): Add tsubst_flags_t
+	parameter.
+	* cp-tree.h: Adjust declaration.
+	* init.c (perform_member_init): Adjust caller.
+	* decl.c (grok_reference_init, cp_finish_decl): Likewise.
+	* typeck2.c (store_init_value): Likewise.
+	(build_functional_cast): Pass complain argument to
+	build_x_compound_expr_from_list.
+
+2010-07-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/32505
+	* pt.c (process_partial_specialization): Diagnose partial
+	specialization after instantiation.
+	(most_specialized_class): Add complain parm.
+
+	* ptree.c (cxx_print_xnode): Handle TEMPLATE_INFO.
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* init.c (build_new_1): Use cp_build_function_call_nary instead of
+	cp_build_function_call.
+
+2010-07-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44909
+	* call.c (add_function_candidate): If we're working on an implicit
+	declaration, don't consider candidates that won't match.
+	* typeck.c (same_type_ignoring_top_level_qualifiers_p): Now a fn.
+	* cp-tree.h (same_type_ignoring_top_level_qualifiers_p): Adjust.
+
+	Revert:
+	* cp-tree.h (struct lang_type_class): Add has_user_opeq.
+	(TYPE_HAS_USER_OPEQ): New.
+	* decl.c (grok_special_member_properties): Set it.
+	* class.c (add_implicitly_declared_members): Don't lazily declare
+	constructors/operator= if a base or member has a user-declared one.
+	(check_bases_and_members, check_bases): Adjust.
+	(check_field_decls, check_field_decl): Adjust.
+
+2010-07-15  Anatoly Sokolov  <aesok@post.ru>
+
+	* decl.c (integer_three_node): Remove.
+	(cxx_init_decl_processing): Do not initialize the integer_three_node.
+	* cp-tree.h (integer_three_node): Remove.
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cp-tree.h: Carefully replace TREE_CHAIN with DECL_CHAIN.
+	* call.c: Likewise.
+	* class.c: Likewise.
+	* cp-gimplify.c: Likewise.
+	* decl.c: Likewise.
+	* decl2.c: Likewise.
+	* init.c: Likewise.
+	* mangle.c: Likewise.
+	* name-lookup.c: Likewise.
+	* optimize.c: Likewise.
+	* parser.c: Likewise.
+	* pt.c: Likewise.
+	* rtti.c: Likewise.
+	* search.c: Likewise.
+	* semantics.c: Likewise.
+	* typeck.c: Likewise.
+	* typeck2.c: Likewise.
+
+2010-07-14  Jason Merrill  <jason@redhat.com>
+
+	* init.c (sort_mem_initializers): Rename "field_type" to "ctx".
+	(build_field_list): Cache field type.
+
+	Implement C++0x unrestricted unions (N2544)
+	* class.c (check_field_decl): Loosen union handling in C++0x.
+	* method.c (walk_field_subobs): Split out from...
+	(synthesized_method_walk): ...here.  Set msg before loops.
+	(process_subob_fn): Check for triviality in union members.
+	* init.c (sort_mem_initializers): Splice out uninitialized
+	anonymous unions and union members.
+	(push_base_cleanups): Don't automatically destroy anonymous unions
+	and union members.
+
+2010-07-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44909
+	* cp-tree.h (struct lang_type_class): Add has_user_opeq.
+	(TYPE_HAS_USER_OPEQ): New.
+	* decl.c (grok_special_member_properties): Set it.
+	* class.c (add_implicitly_declared_members): Don't lazily declare
+	constructors/operator= if a base or member has a user-declared one.
+	(check_bases_and_members, check_bases): Adjust.
+	(check_field_decls, check_field_decl): Adjust.
+	* method.c (synthesized_method_walk): Initialize check_vdtor.
+
+	PR c++/44540
+	* mangle.c (write_type): Canonicalize.
+	(canonicalize_for_substitution): Retain cv-quals on FUNCTION_TYPE.
+	(write_CV_qualifiers_for_type): Ignore them in abi>=5.
+
+2010-07-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44908
+	* call.c (convert_like_real): Adjust convert_ptrmem call, pass
+	complain argument.
+	* typeck.c (get_delta_difference): Update prototype, add a
+	tsubst_flags_t parameter; update get_delta_difference_1 calls and
+	add checks for error_mark_node.
+	(get_delta_difference_1): Update prototype, add a tsubst_flags_t
+	parameter; update lookup_base call.
+	(build_ptrmemfunc): Update prototype, add a tsubst_flags_t
+	parameter; update get_delta_difference call and add check for
+	error_mark_node.
+	(convert_ptrmem): Update prototype, add a tsubst_flags_t
+	parameter; update get_delta_difference call and add check for
+	error_mark_node;  update build_ptrmemfunc call.
+	(build_static_cast_1): Adjust convert_ptrmem call.
+	(expand_ptrmemfunc_cst): Adjust get_delta_difference call.
+	(cp_build_unary_op): Adjust build_ptrmemfunc call.
+	* cvt.c (cp_convert_to_pointer, convert_force): Adjust convert_ptrmem
+	and build_ptrmemfunc calls.
+	* cp-tree.h: Update build_ptrmemfunc and convert_ptrmem prototypes.
+
+2010-07-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44907
+	* call.c (build_temp): Add tsubst_flags_t complain parameter;
+	adjust build_special_member_call call, pass complain.
+	(convert_like_real): Adjust build_temp call, pass complain.
+
+2010-07-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43120
+	* cp-tree.h (BV_LOST_PRIMARY): New macro.
+	* class.c (update_vtable_entry_for_fn): Fix covariant thunk logic.
+	Set BV_LOST_PRIMARY.
+	(build_vtbl_initializer): Check BV_LOST_PRIMARY.
+
+2010-07-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43120
+	* class.c (update_vtable_entry_for_fn): Fix handling of dummy
+	virtual bases for covariant thunks.
+
+2010-07-08  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* cp-tree.h: Do not include toplev.h.
+
+2010-07-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44703
+	* call.c (is_std_init_list): Look through typedefs.
+
+	PR c++/44778
+	* init.c (build_offset_ref): If scope isn't dependent,
+	don't exit early.  Look at TYPE_MAIN_VARIANT.
+	* pt.c (tsubst_copy) [OFFSET_REF]: Do substitution.
+
+	* error.c (dump_function_decl): Don't crash on null DECL_NAME.
+
+2010-07-06  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* cp-tree.h (impl_conv_void): New type.
+	(convert_to_void): Adjust prototype.
+	* cvt.c (convert_to_void): Use impl_conv_void, emit and adjust the
+	diagnostic for easy translation. Change caller.
+	* typeck.c: Update call to convert_to_void.
+	* semantics.c: Likewise.
+	* init.c: Likewise.
+
+2010-07-05  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* decl.c (cp_finish_decl): Call add_local_decl.
+	* optimize.c (clone_body): Adjust for new type of cfun->local_decls.
+
+2010-07-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* pt.c (tsubst): Early declare code = TREE_CODE (t) and use it
+	throughout.
+
+2010-07-05  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	PR c++/22138
+	* parser.c (cp_parser_primary_expression): Error if local template is
+	declared.
+
+2010-07-02  Le-Chun Wu  <lcwu@google.com>
+
+	PR/44128
+	* name-lookup.c (pushdecl_maybe_friend): Warn when a local decl
+	(variable or type) shadows another type.
+
+2010-07-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/44780
+	* typeck.c (convert_for_assignment): When converting a convertible
+	vector type or objc++ types, call mark_rvalue_use.
+	* typeck2.c (build_m_component_ref): Use return values from
+	mark_rvalue_use or mark_lvalue_use.
+	* class.c (build_base_path): Likewise.
+	* call.c (build_conditional_expr): Likewise.
+
+2010-07-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44039
+	* pt.c (tsubst_baselink): Return error_mark_node if lookup_fnfields
+	returns NULL_TREE.
+
+2010-07-01  Richard Guenther  <rguenther@suse.de>
+
+	* cp-gimplify.c (cp_gimplify_expr): Open-code the rhs
+	predicate we are looking for, allow non-gimplified
+	INDIRECT_REFs.
+
+2010-06-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44628
+	* typeck.c (cp_build_unary_op): Early return error_mark_node when
+	arg is NULL_TREE too.
+	* call.c (convert_class_to_reference): Return error_mark_node when
+	expr is NULL_TREE.
+
 2010-06-30  Michael Matz  <matz@suse.de>
 
-	* repo.c ((finish_repo): Fix typo.
+	* repo.c (finish_repo): Fix typo.
 
 2010-06-30  Nathan Froyd  <froydnj@codesourcery.com>
 
@@ -17,7 +272,7 @@
 	* tree.c: Include gimple.h. Do not include tree-flow.h
 	* decl.c: Do not include tree-flow.h
 	* Make-lang.in: Adjust dependencies.
-	
+
 2010-06-29  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* decl.c (incomplete_var): Declare.  Declare VECs containing them.

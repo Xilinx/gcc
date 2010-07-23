@@ -2650,7 +2650,7 @@ cp_parser_diagnose_invalid_type_name (cp_parser *parser,
 		  base_type = CLASSTYPE_PRIMARY_TEMPLATE_TYPE (base_type);
 		  for (field = TYPE_FIELDS (base_type);
 		       field;
-		       field = TREE_CHAIN (field))
+		       field = DECL_CHAIN (field))
 		    if (TREE_CODE (field) == TYPE_DECL
 			&& DECL_NAME (field) == id)
 		      {
@@ -3754,6 +3754,16 @@ cp_parser_primary_expression (cp_parser *parser,
 	case RID_AT_SELECTOR:
 	  return cp_parser_objc_expression (parser);
 
+	case RID_TEMPLATE:
+	  if (parser->in_function_body
+	      && (cp_lexer_peek_nth_token (parser->lexer, 2)->type
+	      	  == CPP_LESS))
+	    {
+	      error_at (token->location,
+			"a template declaration cannot appear at block scope");
+	      cp_parser_skip_to_end_of_block_or_statement (parser);
+	      return error_mark_node;
+	    }
 	default:
 	  cp_parser_error (parser, "expected primary-expression");
 	  return error_mark_node;
@@ -7696,7 +7706,7 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
 
       /* The function parameters must be in scope all the way until after the
          trailing-return-type in case of decltype.  */
-      for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
+      for (t = current_binding_level->names; t; t = DECL_CHAIN (t))
 	pop_binding (DECL_NAME (t), t);
 
       leave_scope ();
@@ -14079,7 +14089,7 @@ cp_parser_init_declarator (cp_parser* parser,
 			 `explicit' constructor is OK.  Otherwise, an
 			 `explicit' constructor cannot be used.  */
 		      ((is_direct_init || !is_initialized)
-		       ? 0 : LOOKUP_ONLYCONVERTING));
+		       ? LOOKUP_NORMAL : LOOKUP_IMPLICIT));
     }
   else if ((cxx_dialect != cxx98) && friend_p
 	   && decl && TREE_CODE (decl) == FUNCTION_DECL)
@@ -14368,7 +14378,7 @@ cp_parser_direct_declarator (cp_parser* parser,
 		}
 
 	      /* Remove the function parms from scope.  */
-	      for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
+	      for (t = current_binding_level->names; t; t = DECL_CHAIN (t))
 		pop_binding (DECL_NAME (t), t);
 	      leave_scope();
 
@@ -19666,7 +19676,7 @@ cp_parser_late_parsing_default_args (cp_parser *parser, tree fn)
 	 parmdecl = DECL_ARGUMENTS (fn);
        parm && parm != void_list_node;
        parm = TREE_CHAIN (parm),
-	 parmdecl = TREE_CHAIN (parmdecl))
+	 parmdecl = DECL_CHAIN (parmdecl))
     {
       cp_token_cache *tokens;
       tree default_arg = TREE_PURPOSE (parm);

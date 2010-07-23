@@ -34,6 +34,7 @@
 #include "flags.h"
 #include "recog.h"
 #include "reload.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "obstack.h"
 #include "tree.h"
@@ -430,6 +431,10 @@ m32c_override_options (void)
 
   if (TARGET_A24)
     flag_ivopts = 0;
+
+  /* This target defaults to strict volatile bitfields.  */
+  if (flag_strict_volatile_bitfields < 0)
+    flag_strict_volatile_bitfields = 1;
 }
 
 /* Defining data structures for per-function information */
@@ -1789,9 +1794,9 @@ m32c_init_libfuncs (void)
      the right modes are found. */
   if (TARGET_A24)
     {
-      optab_handler (cstore_optab, QImode)->insn_code = CODE_FOR_cstoreqi4_24;
-      optab_handler (cstore_optab, HImode)->insn_code = CODE_FOR_cstorehi4_24;
-      optab_handler (cstore_optab, PSImode)->insn_code = CODE_FOR_cstorepsi4_24;
+      set_optab_handler (cstore_optab, QImode, CODE_FOR_cstoreqi4_24);
+      set_optab_handler (cstore_optab, HImode, CODE_FOR_cstorehi4_24);
+      set_optab_handler (cstore_optab, PSImode, CODE_FOR_cstorepsi4_24);
     }
 }
 
