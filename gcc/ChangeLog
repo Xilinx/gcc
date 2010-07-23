@@ -1,3 +1,261 @@
+2010-07-22  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* ira.c (check_allocation): Correctly handle the case where an allocno
+	with two objects was allocated to a single reg.
+
+2010-07-22  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* tree-ssa-math-opts.c (is_widening_mult_rhs_p): New function.
+	(is_widening_mult_p): Likewise.
+	(convert_to_widen): Use them.
+	(convert_plusminus_to_widen): Likewise.  Handle fixed-point types as
+	well as integer ones.
+
+2010-07-22  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* alias.c (true_dependence_1): New function, merged version of
+	true_dependence and canon_true_dependence.
+	(true_dependence): Simplify.
+	(canon_true_dependence): Simplify.
+
+2010-07-22  Richard Henderson  <rth@redhat.com>
+
+	PR target/45027
+	* config/i386/i386.c (setup_incoming_varargs_64): Force the use
+	of V4SFmode for the SSE saves; increase stack alignment if needed.
+	(ix86_gimplify_va_arg): Don't increase stack alignment here.
+
+2010-07-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/45028
+	* recgprop.c (copyprop_hardreg_forward_1): If changed is true,
+	call cprop_find_used_regs again via note_uses.
+
+2010-07-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* alias.c (get_alias_set): Fix formatting issues.
+
+2010-07-22  Steve Ellcey  <sje@cup.hp.com>
+
+	PR middle-end/44878
+	* stmt.c (expand_value_return):  Call promote_function_mode with
+	a for_return argument of 2 when returning by reference.
+
+2010-07-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/45024
+	* dwarf2out.c (scope_die_for): Don't fall back to the compilation
+	unit DIE if we can find the scope DIE.
+
+2010-07-22  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* ira-build.c (ira_create_object): New arg SUBWORD; all callers
+	changed.  Initialize OBJECT_SUBWORD.
+	(ira_create_allocno): Clear ALLOCNO_NUM_OBJECTS.
+	(ira_create_allocno_objects): Renamed from ira_create_allocno_object;
+	all callers changed.
+	(merge_hard_reg_conflicts): Iterate over allocno subobjects.
+	(finish_allocno): Likewise.
+	(move_allocno_live_ranges, copy_allocno_live_ranges): Likewise.
+	(remove_low_level_allocnos): Likewise.
+	(update_bad_spill_attribute): Likewise.
+	(setup_min_max_allocno_live_range_point): Likewise.
+	(sort_conflict_id_map): Likewise.
+	(ira_flattening): Likewise.  Use ior_hard_reg_conflicts.
+	(ior_hard_reg_conflicts): New function.
+	(ior_allocate_object_conflicts): Renamed first argument to OBJ.
+	(compress_conflict_vecs): Iterate over objects, not allocnos.
+	(ira_add_live_range_to_object): New function.
+	(object_range_compare_func): Renamed from allocno_range_compare_func.
+	All callers changed.
+	(setup_min_max_conflict_allocno_ids): For allocnos with multiple
+	subobjects, widen the min/max range of the lowest-order object to
+	potentially include all other such low-order objects.
+	* ira.c (ira_bad_reload_regno_1): Iterate over allocno subobjects.
+	(check_allocation): Likewise.  Use more fine-grained tests for register
+	conflicts.
+	* ira-color.c (allocnos_have_intersected_live_ranges_p): Iterate over
+	allocno subobjects.
+	(assign_hard_reg): Keep multiple sets of conflicts.  Make finer-grained
+	choices about which bits to set in each set.  Don't use
+	ira_hard_reg_not_in_set_p, perform a more elaborate test for conflicts
+	using the multiple sets we computed.
+	(push_allocno_to_stack): Iterate over allocno subobjects.
+	(all_conflicting_hard_regs_coalesced): New static function.
+	(setup_allocno_available_regs_num): Use it.
+	(setup_allocno_left_conflicts_size): Likewise.  Iterate over allocno
+	subobjects.
+	(coalesced_allocno_conflict): Test subobject 0 in each allocno.
+	(setup_allocno_priorities): Divide ALLOCNO_EXCESS_PRESSURE_POINTS_NUM
+	by ALLOCNO_NUM_OBJECTS.
+	(calculate_spill_cost): Likewise.
+	(color_pass): Express if statement in a more normal way.
+	(ira_reassign_conflict_allocnos): Iterate over allocno subobjects.
+	(slot_coalesced_allocno_live_ranges_intersect_p): Likewise.
+	(setup_slot_coalesced_allocno_live_ranges): Likewise.
+	(allocno_reload_assign): Likewise.
+	(ira_reassign_pseudos): Likewise.
+	(fast_allocation): Likewise.
+	* ira-conflicts.c (build_conflict_bit_table): Likewise.
+	(print_allocno_conflicts): Likewise.
+	(ira_build_conflicts): Likewise.
+	(allocnos_conflict_for_copy_p): Renamed from allocnos_conflict_p.  All
+	callers changed.  Test subword 0 of each allocno for conflicts.
+	(build_object_conflicts): Renamed from build_allocno_conflicts.  All
+	callers changed.  Iterate over allocno subobjects.
+	* ira-emit.c (modify_move_list): Iterate over allocno subobjects.
+	* ira-int.h (struct ira_allocno): New member: num_objects.
+	Rename object to objects and change it into an array.
+	(ALLOCNO_OBJECT): Add new argument N.
+	(ALLOCNO_NUM_OBJECTS, OBJECT_SUBWORD): New macros.
+	(ira_create_allocno_objects): Renamed from ira_create_allocno_object.
+	(ior_hard_reg_conflicts): Declare.
+	(ira_add_live_range_to_object): Declare.
+	(ira_allocno_object_iterator): New.
+	(ira_allocno_object_iter_init, ira_allocno_object_iter_cond): New.
+	(FOR_EACH_ALLOCNO_OBJECT): New macro.
+	* ira-lives.c (objects_live): Renamed from allocnos_live; all
+	uses changed.
+	(allocnos_processed): New sparseset.
+	(make_object_born): Renamed from make_allocno_born; take an
+	ira_object_t argument.  All callers changed.
+	(make_object_dead): Renamed from make_allocno_dead; take an
+	ira_object_t argument.  All callers changed.
+	(update_allocno_pressure_excess_length): Take an ira_obejct_t argument.
+	All callers changed.
+	(mark_pseudo_regno_live): Iterate over allocno subobjects.
+	(mark_pseudo_regno_dead): Likewise.
+	(mark_pseudo_regno_subword_live, mark_pseudo_regno_subword_dead): New
+	functions.
+	(mark_ref_live): Detect subword accesses and call
+	mark_pseudo_regno_subword_live as appropriate.
+	(mark_ref_dead): Likewise for mark_pseudo_regno_subword_dead.
+	(process_bb_nodes_live): Deal with object-related updates first; set
+	and test bits in allocnos_processed to avoid computing allocno
+	statistics more than once.
+	(create_start_finish_chains): Iterate over objects, not allocnos.
+	(print_object_live_ranges): New function.
+	(print_allocno_live_ranges): Use it.
+	(ira_create_allocno_live_ranges): Allocate and free allocnos_processed
+	and objects_live.
+
+2010-07-22  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42451
+	* gimple.c (gtc_next_dfs_num): New global.
+	(struct sccs): Make value a union, add integer same_p member.
+	(gtc_visit): New function.
+	(gimple_types_compatible_p_1): New function, split out from ...
+	(gimple_types_compatible_p): ... here.  Start a DFS walk here.
+	(iterative_hash_gimple_type): Adjust for sccs change.
+
+2010-07-22  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/44891
+	* tree-sra.c: Include gimple-pretty-print.h.
+	(replace_uses_with_default_def_ssa_name): Renamed to
+	get_repl_default_def_ssa_name, return the new SSA name instead of
+	replacing the old one.
+	(sra_modify_assign): Dump a message when removing a load, if the LHS
+	is an SSA_NAME, do not do any propagation, just set the RHS to a
+	default definition SSA NAME, type convert if necessary.
+	* Makefile.in (tree-sra.o): Add gimple-pretty-print.h to dependencies.
+
+2010-07-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45017
+	* tree-ssa-sccvn.c (vn_reference_eq): Make sure we honor
+	TYPE_PRECISION of integral types in addition to size.
+
+2010-07-22  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/rs6000/sysv4.h (CHOOSE_DYNAMIC_LINKER): Default to GLIBC
+	when no C library is specified.
+
+2010-07-22  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-prop.h (struct ipa_node_params): Updated comment.
+	(struct ipa_edge_args): Likewise.
+	* Makefile.in (ipa-prop.o): Remove bogus $(GIMPLE_FOLD_H) dependency.
+
+2010-07-22  Martin Jambor  <mjambor@suse.cz>
+
+	* cgraphunit.c (verify_edge_count_and_frequency): New function.
+	(verify_cgraph_node): Verify frequencies of indirect edges.
+	* tree-inline.c (tree_function_versioning): Update frequencies of
+	indirect edges.
+
+2010-07-22  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+ 	PR target/43698
+	* config/arm/arm.md: Split arm_rev into *arm_rev
+	and *thumb1_rev. Set *arm_rev to be predicable.
+
+2010-07-22  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/darwin.h (LINK_COMMAND_SPEC): Split into...
+	(LINK_COMMAND_SPEC_A): New.
+	(DSYMUTIL): New.
+	(DSYMUTIL_SPEC): New.
+	* config/darwin9.h (LINK_COMMAND_SPEC): Remove.
+	(DSYMUTIL_SPEC): Update for darwin >= 9 requirements.
+
+2010-07-22  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* calls.c (load_register_parameters): Move check for zero
+	sized items so that only the call to
+	mem_overlaps_already_clobbered_arg_p () is protected.
+
+2010-07-22  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-pure-const.c (varying_state): Break out from ...
+	(get_function_state): ... here; always return varying_state
+	when state would be NULL otherwise.
+	(remove_node_data): Do not free varying state.
+
+2010-07-22  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR bootstrap/44970
+	PR middle-end/45009
+	* postreload.c: Include "target.h".
+	(reload_combine_closest_single_use): Don't take DEBUG_INSNs
+	into account.
+	(fixup_debug_insns): Don't copy the rtx.
+	(reload_combine_recognize_const_pattern): DEBUG_INSNs can't
+	have uses.  Don't copy when replacing.  Call fixup_debug_insns
+	in the case where we merged one add with another.
+	(reload_combine_recognize_pattern): Fail if there aren't any
+	uses.  Try harder to determine whether we're picking a valid
+	index register.  Don't set store_ruid for an insn we're going
+	to scan in the next iteration.
+	(reload_combine): Remove unused code.
+	(reload_combine_note_use): When updating use information for
+	an old insn, ignore a use that occurs after store_ruid.
+	* Makefile.in (postreload.o): Update dependencies.
+
+	* function.c (record_hard_reg_sets): Restrict the previous change
+	to cases where the incoming nominal mode is the same as the
+	incoming promoted mode and everything happens in MODE_INT.
+
+2010-07-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45015
+	* var-tracking.c (adjust_mems): Ignore ASM_OPERANDS with non-zero
+	ASM_OPERANDS_OUTPUT_IDX.
+	(adjust_insn): For inline asm with multiple sets ensure first
+	ASM_OPERANDS vectors are used by all following ASM_OPERANDS in
+	the insn.
+
+2010-07-21  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (setup_incoming_varargs_64): Emit a simple
+	comparison for avoiding xmm register saves.  Emit the xmm register
+	saves explicitly.
+	* config/i386/i386.md (UNSPEC_SSE_PROLOGUE_SAVE): Remove.
+	(UNSPEC_SSE_PROLOGUE_SAVE_LOW): Remove.
+	(sse_prologue_save, sse_prologue_save_insn1, sse_prologue_save_insn):
+	Remove patterns and the associated splitters.
+
 2010-07-21  Changpeng Fang  <changpeng.fang@amd.com>
 
 	* tree-ssa-loop-prefetch.c (analyze_ref): Strip off the real
@@ -112,8 +370,7 @@
 	* gimple.h (gimple_types_compatible_p): Declare.
 	* gimple.c (gimple_queue_type_fixup): Remove.
 	(gimple_fixup_complete_and_incomplete_subtype_p): Likewise.
-	(gimple_compatible_complete_and_incomplete_type_p): New
-	function.
+	(gimple_compatible_complete_and_incomplete_type_p): New function.
 	(gimple_types_compatible_p): Adjust.
 	(gimple_register_type): Remove type fixup code.
 	(print_gimple_types_stats): Adjust.
@@ -153,7 +410,8 @@
 2010-07-19  Xinliang David Li  <davidxl@google.com>
 
 	PR testsuite/44932
-	* tree-ssa-uninit.c (collect_phi_def_edges): Fix bug collecting def edges.
+	* tree-ssa-uninit.c (collect_phi_def_edges): Fix bug collecting
+	def edges.
 	(find_uninit_use): Add dump.
 	(is_use_properly_guarded): Ditto.
 	(warn_uninitialized_phi): Ditto.
@@ -188,8 +446,8 @@
 2010-07-19  Bingfeng Mei  <bmei@broadcom.com>
 
 	* ddg.c (create_ddg): Exclude nodes of debug_insn in counting nodes
-        of a loop.
-        * loop-doloop.c (doloop_condition_get): Skip possible debug_insn.
+	of a loop.
+	* loop-doloop.c (doloop_condition_get): Skip possible debug_insn.
 
 2010-07-19  Iain Sandoe  <iains@gcc.gnu.org>
 
@@ -204,8 +462,8 @@
 	* config/rs6000/darwin.h: Define darwin_emit_branch_islands.
 	Remove out of date comment.
 	* config/rs6000/rs6000.c (print_operand): Adjust symbol.
-	DARWIN_LINKER_GENERATES_ISLANDS: Remove.
-	DARWIN_GENERATE_ISLANDS: Ditto.
+	(DARWIN_LINKER_GENERATES_ISLANDS): Remove.
+	(DARWIN_GENERATE_ISLANDS): Ditto.
 	(output_call):  Do not emit branch islands unless
 	darwin_emit_branch_islands is set.
 	* config/darwin.c: Declare darwin_emit_branch_islands.
@@ -213,8 +471,7 @@
 	darwin_emit_branch_islands is set.
 	(darwin_override_options): Set darwin_emit_branch_islands
 	where it is needed.
-	* config/darwin9.h
-	DARWIN_LINKER_GENERATES_ISLANDS: Remove.
+	* config/darwin9.h (DARWIN_LINKER_GENERATES_ISLANDS): Remove.
 
 2010-07-19  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
@@ -347,9 +604,9 @@
 
 2010-07-15  Jan Hubicka  <jh@suse.cz>
 
-	* lto-symtab.c (lto_symtab_resolve_symbols): Remove hack handling comdats
-	for broken gold.
-	(lto_sy	mtab_merge_decls_1): Set used_from_object_file correctly. 
+	* lto-symtab.c (lto_symtab_resolve_symbols): Remove hack handling
+	comdats for broken gold.
+	(lto_sy	mtab_merge_decls_1): Set used_from_object_file correctly.
 
 2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
 
@@ -447,8 +704,8 @@
 
 	* cgraph.c: Include lto-streamer.h
 	(change_decl_assembler_name): Work when assembler name hash is at place.
-	(cgraph_make_decl_local): When localizing COMDAT symbol at WPA stage, be
-	sure to rename it to avoid name clash.
+	(cgraph_make_decl_local): When localizing COMDAT symbol at WPA stage,
+	be sure to rename it to avoid name clash.
 	* ipa.c (cgraph_externally_visible_p, function_and_variable_visibility):
 	Localize hidden symbols only when locally defined.
 
@@ -1162,7 +1419,7 @@
 2010-07-12  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	* Makefile.in (target-globals.o): Depend on $(RTL_H).
-	* rtl.h: (target_rtl): New structure.
+	* rtl.h (target_rtl): New structure.
 	(default_target_rtl): Declare.
 	(this_target_rtl): Declare as a variable or define as a macro.
 	(global_rtl, pic_offset_table_rtx, return_address_pointer_rtx):
@@ -3215,7 +3472,7 @@
 	(get_asm_expr_operands): Pass opf_not_non_addressable.
 	(get_expr_operands): Handle opf_[not_]non_addressable.
 	Handle MEM_REF.  Remove INDIRECT_REF handling.
-	* tree-vrp.c: (check_array_ref): Handle MEM_REF.
+	* tree-vrp.c (check_array_ref): Handle MEM_REF.
 	(search_for_addr_array): Likewise.
 	(check_array_bounds): Likewise.
 	(vrp_stmt_computes_nonzero): Adjust for MEM_REF.
@@ -4029,7 +4286,7 @@
 	* targhooks.h (default_register_move_cost): Declare function.
 	* defaults.h (REGISTER_MOVE_COST): Delete.
 	* ira-int.h (ira_register_move_cost): Update comment.
-	* ira.c: (ira_register_move_cost): Update comment.
+	* ira.c (ira_register_move_cost): Update comment.
 	* reload.h (register_move_cost): Declare.
 	* reginfo.c (register_move_cost): New function.
 	(move_cost): Update comment.
@@ -4543,10 +4800,10 @@
 
 2010-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
 
-	* coretypes.h: (gimple_seq_node_d, gimple_seq_node)
+	* coretypes.h (gimple_seq_node_d, gimple_seq_node)
 	(const_gimple_seq_node): Removed typedefs.
 
-	* gimple.h: (gimple_seq_node_d, gimple_seq_node)
+	* gimple.h (gimple_seq_node_d, gimple_seq_node)
 	(const_gimple_seq_node): Added typedefs moved from coretypes.h.
 
 2010-06-23  H.J. Lu  <hongjiu.lu@intel.com>
@@ -7235,7 +7492,7 @@
 	* reginfo.c (memory_move_cost): New function.
 	(memory_move_secondary_cost): Change type of 'in' argument to bool.
 	* ira.h (ira_memory_move_cost): Update comment.
-	* ira.c: (ira_memory_move_cost): Update comment.
+	* ira.c (ira_memory_move_cost): Update comment.
 	(setup_class_subset_and_memory_move_costs): Replace MEMORY_MOVE_COST
 	with memory_move_cost.
 	* postreload.c (reload_cse_simplify_set): (Ditto.).
@@ -8015,7 +8272,7 @@
 	* sel-sched.c: Include emit-rtl.h.
 	* sel-sched-ir.c: Include emit-rtl.h.
 	* ira-build.c: Include emit-rtl.h.
-	* emit-rtl.c: (first_insn, last_insn): Remove defines.
+	* emit-rtl.c (first_insn, last_insn): Remove defines.
 	(get_insns, set_first_insn, get_last_insn, set_last_insn, get_max_uid):
 	Move to emit-rtl.h.
 	(set_new_first_and_last_insn, get_last_insn_anywhere,

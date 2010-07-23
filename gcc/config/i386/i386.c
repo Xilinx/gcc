@@ -7062,11 +7062,8 @@ static void
 setup_incoming_varargs_64 (CUMULATIVE_ARGS *cum)
 {
   rtx save_area, mem;
-  rtx label;
-  rtx tmp_reg;
-  rtx nsse_reg;
   alias_set_type set;
-  int i;
+  int i, max;
 
   /* GPR size of varargs save area.  */
   if (cfun->va_list_gpr_size)
@@ -7076,7 +7073,7 @@ setup_incoming_varargs_64 (CUMULATIVE_ARGS *cum)
 
   /* FPR size of varargs save area.  We don't need it if we don't pass
      anything in SSE registers.  */
-  if (cum->sse_nregs && cfun->va_list_fpr_size)
+  if (TARGET_SSE && cfun->va_list_fpr_size)
     ix86_varargs_fpr_size = X86_64_SSE_REGPARM_MAX * 16;
   else
     ix86_varargs_fpr_size = 0;
@@ -7087,10 +7084,11 @@ setup_incoming_varargs_64 (CUMULATIVE_ARGS *cum)
   save_area = frame_pointer_rtx;
   set = get_varargs_alias_set ();
 
-  for (i = cum->regno;
-       i < X86_64_REGPARM_MAX
-       && i < cum->regno + cfun->va_list_gpr_size / UNITS_PER_WORD;
-       i++)
+  max = cum->regno + cfun->va_list_gpr_size / UNITS_PER_WORD;
+  if (max > X86_64_REGPARM_MAX)
+    max = X86_64_REGPARM_MAX;
+
+  for (i = cum->regno; i < max; i++)
     {
       mem = gen_rtx_MEM (Pmode,
 			 plus_constant (save_area, i * UNITS_PER_WORD));
@@ -7102,33 +7100,42 @@ setup_incoming_varargs_64 (CUMULATIVE_ARGS *cum)
 
   if (ix86_varargs_fpr_size)
     {
+      enum machine_mode smode;
+      rtx label, test;
+
       /* Now emit code to save SSE registers.  The AX parameter contains number
-	 of SSE parameter registers used to call this function.  We use
-	 sse_prologue_save insn template that produces computed jump across
-	 SSE saves.  We need some preparation work to get this working.  */
+	 of SSE parameter registers used to call this function, though all we
+	 actually check here is the zero/non-zero status.  */
 
       label = gen_label_rtx ();
+      test = gen_rtx_EQ (VOIDmode, gen_rtx_REG (QImode, AX_REG), const0_rtx);
+      emit_jump_insn (gen_cbranchqi4 (test, XEXP (test, 0), XEXP (test, 1),
+				      label));
 
-      nsse_reg = gen_reg_rtx (Pmode);
-      emit_insn (gen_zero_extendqidi2 (nsse_reg, gen_rtx_REG (QImode, AX_REG)));
+      /* ??? If !TARGET_SSE_TYPELESS_STORES, would we perform better if
+	 we used movdqa (i.e. TImode) instead?  Perhaps even better would
+	 be if we could determine the real mode of the data, via a hook
+	 into pass_stdarg.  Ignore all that for now.  */
+      smode = V4SFmode;
+      if (crtl->stack_alignment_needed < GET_MODE_ALIGNMENT (smode))
+	crtl->stack_alignment_needed = GET_MODE_ALIGNMENT (smode);
 
-      /* Compute address of memory block we save into.  We always use pointer
-	 pointing 127 bytes after first byte to store - this is needed to keep
-	 instruction size limited by 4 bytes (5 bytes for AVX) with one
-	 byte displacement.  */
-      tmp_reg = gen_reg_rtx (Pmode);
-      emit_insn (gen_rtx_SET (VOIDmode, tmp_reg,
-			      plus_constant (save_area,
-					     ix86_varargs_gpr_size + 127)));
-      mem = gen_rtx_MEM (BLKmode, plus_constant (tmp_reg, -127));
-      MEM_NOTRAP_P (mem) = 1;
-      set_mem_alias_set (mem, set);
-      set_mem_align (mem, 64);
+      max = cum->sse_regno + cfun->va_list_fpr_size / 16;
+      if (max > X86_64_SSE_REGPARM_MAX)
+	max = X86_64_SSE_REGPARM_MAX;
 
-      /* And finally do the dirty job!  */
-      emit_insn (gen_sse_prologue_save (mem, nsse_reg,
-					GEN_INT (cum->sse_regno), label,
-					gen_reg_rtx (Pmode)));
+      for (i = cum->sse_regno; i < max; ++i)
+	{
+	  mem = plus_constant (save_area, i * 16 + ix86_varargs_gpr_size);
+	  mem = gen_rtx_MEM (smode, mem);
+	  MEM_NOTRAP_P (mem) = 1;
+	  set_mem_alias_set (mem, set);
+	  set_mem_align (mem, GET_MODE_ALIGNMENT (smode));
+
+	  emit_move_insn (mem, gen_rtx_REG (smode, SSE_REGNO (i)));
+	}
+
+      emit_label (label);
     }
 }
 
@@ -7543,8 +7550,7 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
     arg_boundary = MAX_SUPPORTED_STACK_ALIGNMENT;
 
   /* Care for on-stack alignment if needed.  */
-  if (arg_boundary <= 64
-      || integer_zerop (TYPE_SIZE (type)))
+  if (arg_boundary <= 64 || size == 0)
     t = ovf;
  else
     {
@@ -7555,9 +7561,8 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
       t = build2 (BIT_AND_EXPR, TREE_TYPE (t), t,
 		  size_int (-align));
       t = fold_convert (TREE_TYPE (ovf), t);
-      if (crtl->stack_alignment_needed < arg_boundary)
-	crtl->stack_alignment_needed = arg_boundary;
     }
+
   gimplify_expr (&t, pre_p, NULL, is_gimple_val, fb_rvalue);
   gimplify_assign (addr, t, pre_p);
 
