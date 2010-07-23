@@ -56,8 +56,28 @@ void gpy_obj_integer_print( void * self, FILE * fd, bool newline )
 {
   struct gpy_obj_integer_t * si = (struct gpy_obj_integer_t *) self;
   fprintf( fd, "%li", si->Int );
+
   if( newline )
     fprintf( fd, "\n" );
+}
+
+gpy_object_state_t *
+gpy_obj_integer_whoop_noargs( gpy_object_state_t * self )
+{
+  printf("inside whoop function!\n\n");
+  return NULL;
+}
+
+gpy_object_state_t *
+gpy_object_integer_whoop_varargs( gpy_object_state_t * self )
+{
+  return NULL;
+}
+
+gpy_object_state_t *
+gpy_object_integer_whoop_keyargs( gpy_object_state_t * self )
+{
+  return NULL;
 }
 
 gpy_object_state_t *
@@ -100,6 +120,15 @@ gpy_obj_integer_add( gpy_object_state_t * o1, gpy_object_state_t * o2 )
   return retval;
 }
 
+static gpy_method_def_t gpy_obj_integer_methods[] = {
+  { "whoop_noargs", (gpy_builtin_callback__)
+    &gpy_obj_integer_whoop_noargs, METH_NOARGS },
+  { "whoop_meth_varargs", (gpy_builtin_callback__)
+    &gpy_object_integer_whoop_varargs, METH_VARARGS },
+  { "whoop_meth_keyargs", (gpy_builtin_callback__)
+    &gpy_object_integer_whoop_keyargs, METH_VARARGS | METH_KEYWORDS },
+  { NULL, NULL, 0 }
+};
 
 static struct gpy_number_prot_t integer_binary_ops = {
   true,
@@ -125,6 +154,7 @@ static struct gpy_type_obj_def_t integer_obj = {
   gpy_obj_integer_destroy,
   gpy_obj_integer_print,
   &integer_binary_ops,
+  gpy_obj_integer_methods
 };
 
 void gpy_obj_integer_mod_init( gpy_vector_t * const vec )

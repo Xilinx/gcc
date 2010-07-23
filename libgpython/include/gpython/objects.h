@@ -40,8 +40,20 @@ typedef struct gpy_rr_object_state_t {
   struct gpy_type_obj_def_t * definition;
 } gpy_object_state_t ;
 
+#define METH_NOARGS      (1 << 0) /* 0x01 */
+#define METH_VARARGS     (1 << 1) /* 0x02 */
+#define METH_KEYWORDS    (1 << 2) /* 0x03 */
+
 typedef gpy_object_state_t * (*binary_op)( gpy_object_state_t *,
 					   gpy_object_state_t * );
+
+typedef gpy_object_state_t * (*gpy_builtin_callback__)( gpy_object_state_t * );
+
+typedef struct gpy_builtin_method_def_t {
+  char * identifer;
+  gpy_builtin_callback__ callback;
+  unsigned char args_type;
+} gpy_method_def_t ;
 
 typedef struct gpy_number_prot_t
 {
@@ -71,6 +83,7 @@ typedef struct gpy_type_obj_def_t {
   void (*destroy_hook)( void * );
   void (*print_hook)( void * , FILE * , bool );
   struct gpy_number_prot_t * binary_protocol;
+  struct gpy_builtin_method_def_t * methods;
 } gpy_type_obj_def_t ;
 
 

@@ -40,7 +40,7 @@ void gpy_rr_init_primitives( void )
   gpy_obj_integer_mod_init( gpy_primitives );
 }
 
-void gpy_rr_init_runtime ( void ) 
+void gpy_rr_init_runtime( void ) 
 {
   /*
     Setup runtime namespace
@@ -85,9 +85,18 @@ gpy_object_state_t * gpy_rr_fold_integer( int x )
   return retval;
 }
 
+void gpy_rr_eval_print(  )
+{
+}
+
 gpy_object_state_t *
-gpy_rr_eval_expression( gpy_object_state_t * x,
-			gpy_object_state_t * y,
+gpy_rr_eval_dot_operator( gpy_object_state_t * x, gpy_object_state_t * y )
+{
+  return NULL;
+}
+
+gpy_object_state_t *
+gpy_rr_eval_expression( gpy_object_state_t * x,	gpy_object_state_t * y,
 			gpy_opcode_t op )
 {
   debug("within evaluate epxression!\n");

@@ -33,15 +33,15 @@ FLEX_C_FLAGS := -g -O2 -fomit-frame-pointer -gtoggle -DIN_GCC -W -Wall -Wwrite-s
 GPY_CFLAGS := -std=gnu99
 
 lexer.o: $(srcdir)/python/lexer.l parser.o
-	$(FLEX) --outfile=$(srcdir)/python/lex.py.c $(srcdir)/python/lexer.l
+	$(FLEX) lex.py.c $(srcdir)/python/lexer.l
 	$(CC) $(GPY_CFLAGS) $(FLEX_C_FLAGS) $(INCLUDES) \
-	$(LDFLAGS) -c -o $@ $(srcdir)/python/lex.py.c
+	$(LDFLAGS) -c -o $@ lex.py.c
 
 parser.o: $(srcdir)/python/parser.y
-	$(BISON) --defines=$(srcdir)/python/y.py.h --output=$(srcdir)/python/y.py.c \
+	$(BISON) --defines=y.py.h --output=y.py.c \
 	$(srcdir)/python/parser.y
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
-	$(LDFLAGS) -c -o $@ $(srcdir)/python/y.py.c
+	$(LDFLAGS) -c -o $@ y.py.c
 
 py-lang.o: $(srcdir)/python/py-lang.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \

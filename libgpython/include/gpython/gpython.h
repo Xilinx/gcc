@@ -17,6 +17,9 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef __GCC_GPYTHON_H__
 #define __GCC_GPYTHON_H__
 
+#undef DEBUG
+#define DEBUG 1
+
 #if __STDC_VERSION__ < 199901L
 # if __GNUC__ >= 2
 #  define __func__ __FUNCTION__
