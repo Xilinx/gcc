@@ -1519,7 +1519,8 @@ Optional Packages:
   --with-pic              try to use only PIC/non-PIC objects @<:@default=use
                           both@:>@
   --with-gnu-ld           assume the C compiler uses GNU ld @<:@default=no@:>@
-  --with-debug=yes/no     With Debug symbols, default no.
+  --with-libgpython-debug=yes/no 
+                          With Debug symbols, default no.
 
 Some influential environment variables:
   CC          C compiler command
@@ -2670,7 +2671,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 ac_config_headers="$ac_config_headers config.h"
 
-GCC_TOPLEV_SUBDIRS
 
 ac_aux_dir=
 for ac_dir in config "$srcdir"/config; do
@@ -8049,6 +8049,10 @@ _lt_linker_boilerplate=`cat conftest.err`
 $RM -r conftest*
 
 
+## CAVEAT EMPTOR:
+## There is no encapsulation within the following macros, do not change
+## the running order or otherwise move them around unless you know exactly
+## what you are doing...
 if test -n "$compiler"; then
   
 lt_prog_compiler_no_builtin_flag=
@@ -14573,11 +14577,7 @@ fi
 if test "x$debug" == "xyes"; then
   
 $as_echo "@%:@define DEBUG 1" >>confdefs.h
-
-  #turn on extra debug compiler options :)
-  if test "x$CC" == "xgcc -std=gnu99"; then
-     CFLAGS="$CFLAGS -g -O2 -D_DEBUG -ggdb3 -pedantic -Wall -Wextra -fstrict-aliasing"
-  fi   
+  
 fi
 
 # a lang needs math functions...

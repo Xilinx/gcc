@@ -24,7 +24,6 @@
 AC_PREREQ(2.64)
 AC_INIT([GNU Python Runtime Library], 0.1,,[libgpython])
 AC_CONFIG_HEADER(config.h)
-GCC_TOPLEV_SUBDIRS
 
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_MACRO_DIR([m4])
@@ -57,15 +56,11 @@ AC_CANONICAL_HOST
 # Just to make sure we dont do debug on default!
 debug=no
 AC_ARG_WITH(debug,
-  [AS_HELP_STRING([--with-debug=yes/no],
+  [AS_HELP_STRING([--with-libgpython-debug=yes/no],
     [With Debug symbols, default no.])],
   [debug="$withval"])
 if test "x$debug" == "xyes"; then
-  AC_DEFINE([DEBUG], 1, [Debug Symbols Flag])
-  #turn on extra debug compiler options :)
-  if test "x$CC" == "xgcc -std=gnu99"; then
-     CFLAGS="$CFLAGS -g -O2 -D_DEBUG -ggdb3 -pedantic -Wall -Wextra -fstrict-aliasing"
-  fi   
+  AC_DEFINE([DEBUG], 1, [Debug Symbols Flag])  
 fi
 
 # a lang needs math functions...
