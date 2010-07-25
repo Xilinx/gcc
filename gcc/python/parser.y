@@ -128,10 +128,10 @@ declarations:
 	    }
             ;
 
-decl: expression ';'
+decl: expression DELIMITER
     | loop_while
     | function
-    | key_return ';'
+    | key_return DELIMITER
     ;
 
 key_return: RETURN expression

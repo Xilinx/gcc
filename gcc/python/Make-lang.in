@@ -30,10 +30,10 @@ FLEX_C_FLAGS := -g -O2 -fomit-frame-pointer -gtoggle -DIN_GCC -W -Wall -Wwrite-s
 -Wstrict-prototypes -Wmissing-prototypes -Wmissing-format-attribute -pedantic -Wno-long-long \
 -Wno-variadic-macros -Wno-overlength-strings -Wold-style-definition -Wc++-compat -fno-common -DHAVE_CONFIG_H
 
-GPY_CFLAGS := -std=gnu99
+GPY_CFLAGS := -std=gnu99 -I${srcdir}/python
 
 lexer.o: $(srcdir)/python/lexer.l parser.o
-	$(FLEX) lex.py.c $(srcdir)/python/lexer.l
+	$(FLEX) --outfile=lex.py.c $(srcdir)/python/lexer.l
 	$(CC) $(GPY_CFLAGS) $(FLEX_C_FLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ lex.py.c
 

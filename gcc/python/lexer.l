@@ -133,8 +133,7 @@ else                    {  return ELSE; }
                           return IDENTIFIER;
                         }
 
-[\n]                    ;
-[^f\n]                  ;
+[\n]                    { return DELIMITER; }
 
 %%
 
