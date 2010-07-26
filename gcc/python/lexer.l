@@ -93,6 +93,7 @@ else                    {  return ELSE; }
 "-"                     { return '-'; }
 "/"                     { return '/'; }
 "*"                     { return '*'; }
+"|"                     { return "|"; }
 
 "=="                    { return EQUAL; }
 
@@ -104,6 +105,7 @@ else                    {  return ELSE; }
 
 "or"                    { return OR; }
 "and"                   { return AND; }
+"not"                   { return NOT; }
 
 {qstring}               {
                           yylval.string= xstrdup( (yytext+1) );
@@ -133,7 +135,11 @@ else                    {  return ELSE; }
                           return IDENTIFIER;
                         }
 
-[\n]                    { return DELIMITER; }
+[\n]                    { return NEWLINE; }
+[\t]                    { return INDENT; }
+[\b]                    { return DEDENT; }
+
+.                       
 
 %%
 
