@@ -120,9 +120,10 @@ extern void yyerror( const char * );
 %type<symbol> decl
 %type<string> funcname
 
-%right "="
-%left "+" "-"
-%left "*" "/"
+%left '-' '+'
+%left '*' '/'
+%right '='
+%nonassoc UMINUS
 
 %start declarations
 
@@ -152,7 +153,7 @@ compound_stmt: funcdef
 funcname: IDENTIFIER
         ;
 
-funcdef: DEF funcname "(" ")" ":" suite
+funcdef: DEF funcname '(' ')' ':' suite
        {
 	 gpy_symbol_obj *sym;
 	 Gpy_Symbol_Init( sym );
@@ -168,17 +169,20 @@ funcdef: DEF funcname "(" ")" ":" suite
        ;
 
 suite: suite_statement_list DEDENT
-     { $$=NULL; }
+     { $$=$1; }
      ;
 
 suite_statement_list: suite_statement_list indent_stmt
-                   { $$ = NULL; }
+                   {
+		     $1->next = $2;
+		     $$ = $2;
+		   }
                    | indent_stmt
-                   { $$=NULL; }
+                   { $$=$1 }
                    ;
 
 indent_stmt: INDENT statement
-           { $$=NULL; }
+           { $$=$2; }
            ;
 
 statement: stmt_list NEWLINE
@@ -195,7 +199,20 @@ simple_stmt: assignment_stmt
 expression_stmt: expression_list
           ;
 
-assignment_stmt: target_list "=" expression_list
+assignment_stmt: target_list '=' expression_list
+               {
+		 gpy_symbol_obj* sym;
+		 Gpy_Symbol_Init( sym );
+
+		 sym->exp= OP_EXPRESS;
+		 sym->type= OP_ASSIGN_EVAL;
+		 sym->op_a_t= TYPE_SYMBOL;
+		 sym->op_b_t= TYPE_SYMBOL;
+		 
+		 sym->op_a.symbol_table= $1;
+		 sym->op_b.symbol_table= $3;
+		 $$= sym;
+	       }
                ;
   
 target_list: target
@@ -212,10 +229,6 @@ target: IDENTIFIER
 	sym->op_a.string= $1;
 	$$= sym;
       }
-      | "(" target_list ")"
-      { $$ = NULL; }
-      | "[" target_list "]"
-      { $$ = NULL; }
       ;
 
 expression_list: expression
@@ -232,7 +245,7 @@ u_expr: primary
        ;
 
 m_expr: u_expr
-      | m_expr "*" u_expr
+      | m_expr '*' u_expr
       {
 	gpy_symbol_obj* sym;
 	Gpy_Symbol_Init( sym );
@@ -246,7 +259,7 @@ m_expr: u_expr
 	sym->op_b.symbol_table= $3;
 	$$= sym;
       }
-      | m_expr "/" u_expr
+      | m_expr '/' u_expr
       {
 	gpy_symbol_obj* sym;
 	Gpy_Symbol_Init( sym );
@@ -263,7 +276,7 @@ m_expr: u_expr
       ;
   
 a_expr: m_expr
-      | a_expr "+" m_expr
+      | a_expr '+' m_expr
       {
 	gpy_symbol_obj* sym;
 	Gpy_Symbol_Init( sym );
@@ -277,7 +290,7 @@ a_expr: m_expr
 	sym->op_b.symbol_table= $3;
 	$$= sym;
       }
-      | a_expr "-" m_expr
+      | a_expr '-' m_expr
       {
 	gpy_symbol_obj* sym;
 	Gpy_Symbol_Init( sym );
@@ -312,30 +325,20 @@ literal: INTEGER
        }
        ;
 
-atom: IDENTIFIER
-    {
-      gpy_symbol_obj *sym;
-      Gpy_Symbol_Init( sym );
-	 
-      sym->type= SYMBOL_PRIMARY;
-      sym->op_a_t= TYPE_IDENTIFIER;
-	 
-      sym->op_a.string= $1;
-      $$= sym;
-    }
+atom: target
     | literal
     ;
 
-positional_arguments: positional_arguments "," expression
+positional_arguments: positional_arguments ',' expression
                     | expression
                     ;
 
 argument_list: positional_arguments
              ;
 
-call: IDENTIFIER "(" argument_list ")"
+call: IDENTIFIER '(' argument_list ')'
     { $$ = NULL; }
-    | IDENTIFIER "(" ")"
+    | IDENTIFIER '(' ')'
     { $$ = NULL; }
     ;
 
