@@ -42,6 +42,11 @@ typedef struct gpy_vector_t {
   signed long size, length;
 } gpy_ident_vector_t;
 
+enum OPERATOR_T {
+  LESS_OP, GREATER_OP, EQ_EQ_OP,
+  GREATER_EQ_OP, LESS_EQ_OP
+};
+
 typedef unsigned long gpy_hashval_t;
 typedef struct gpy_hash_entry {
   gpy_hashval_t hash;

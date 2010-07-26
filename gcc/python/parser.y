@@ -44,11 +44,6 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
-enum OPERATOR_T {
-  LESS_OP, GREATER_OP, EQ_EQ_OP,
-  GREATER_EQ_OP, LESS_EQ_OP
-};
-
 extern int yylineno;
 
 extern int yylex( void );
@@ -120,36 +115,44 @@ extern void yyerror( const char * );
 %type<symbol> expression
 %type<symbol> conditional_expression
 %type<symbol> call
-%type<symbol> or_test
-%type<symbol> and_test
-%type<symbol> not_test
-%type<symbol> or_expr
-%type<symbol> xor_expr
-%type<symbol> and_expr
 %type<symbol> shift_expr
 %type<symbol> comparison
-%type<symbol> comparison_list
-%type<symbol> comparison_comp
-%type<op> comp_operator
+%type<symbol> decl
+%type<string> funcname
+
+%right "="
+%left "+" "-"
+%left "*" "/"
 
 %start declarations
 
 %%
 
-declarations: declarations statement
+declarations:
+            | declarations decl
             {
-	      debug( "passing decl <%p> type <0x%x>!\n",
-		     (void*)$2, $2->type );
-
-	      gpy_process_decl( $2 );
+	      if( $2 )
+		{
+		  debug( "passing decl <%p> type <0x%x>!\n",
+			 (void*)$2, $2->type );
+		  
+		  gpy_process_decl( $2 ); 
+		}
 	    }
-            | NEWLINE
             ;
+
+decl: NEWLINE
+    { $$ = NULL; }
+    | statement
+    ;
 
 compound_stmt: funcdef
              ;
 
-funcdef: DEF IDENTIFIER "(" ")" ":" suite
+funcname: IDENTIFIER
+        ;
+
+funcdef: DEF funcname "(" ")" ":" suite
        {
 	 gpy_symbol_obj *sym;
 	 Gpy_Symbol_Init( sym );
@@ -177,13 +180,12 @@ suite_statement_list: suite_statement_list indent_stmt
 indent_stmt: INDENT statement
            { $$=NULL; }
            ;
-  
+
 statement: stmt_list NEWLINE
          | compound_stmt
          ;
 
-stmt_list: stmt_list ";" simple_stmt
-         | simple_stmt 
+stmt_list: simple_stmt 
          ;
 
 simple_stmt: assignment_stmt
@@ -196,8 +198,7 @@ expression_stmt: expression_list
 assignment_stmt: target_list "=" expression_list
                ;
   
-target_list: target_list "," target
-           | target
+target_list: target
            ;
   
 target: IDENTIFIER
@@ -211,35 +212,21 @@ target: IDENTIFIER
 	sym->op_a.string= $1;
 	$$= sym;
       }
+      | "(" target_list ")"
+      { $$ = NULL; }
+      | "[" target_list "]"
+      { $$ = NULL; }
       ;
 
-expression_list: expression_list "," expression
-               {
-		 $1->next = $3;
-		 $$ = $3;
-               }
-               | expression
+expression_list: expression
                { $$ = $1; }
                ;
 
 expression: conditional_expression
           ;
   
-conditional_expression: or_test
+conditional_expression: comparison
                       ;
-  
-or_test: and_test
-       | or_test OR and_test
-       ;
-  
-and_test: not_test
-        | and_test AND not_test
-        ;
-  
-not_test: comparison
-        | NOT not_test
-        { $$ = NULL; }
-        ;
 
 u_expr: primary
        ;
@@ -309,41 +296,8 @@ a_expr: m_expr
 shift_expr: a_expr
           ;
 
-and_expr: shift_expr
-        | and_expr AND shift_expr
-        ;
-  
-xor_expr: and_expr
-        | xor_expr "^" and_expr
-        ;
-  
-or_expr: xor_expr
-       | or_expr "|" xor_expr
-       ;
-
-comparison_comp: comp_operator or_expr
-               { $$ = $2; }
-               ;
-
-comparison_list: comparison_list comparison_comp
-               | comparison_comp
-               ;
-
-comparison: or_expr comparison_list
-          | or_expr
+comparison: shift_expr
           ;
-
-comp_operator: LESS
-             { $$ = LESS_OP; }
-             | GREATER
-	     { $$ = GREATER_OP; }
-             | EQUAL_EQUAL
-	     { $$ = EQ_EQ_OP; }
-             | GREATER_EQUAL
-	     { $$ = GREATER_EQ_OP; }
-             | LESS_EQUAL
-	     { $$ = LESS_EQ_OP; }
-             ;
 
 literal: INTEGER
        {
