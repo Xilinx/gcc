@@ -1,3 +1,10 @@
+2010-07-26  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (create_new_allocno_for_spilling): Changes to allow
+	an allocno to have > 1 underlying object.
+	(maybe_add_conflict): Likewise.
+	(ira_reload): Likewise.
+
 2010-07-21  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (create_new_allocno_for_spilling): Create the
