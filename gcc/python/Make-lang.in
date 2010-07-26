@@ -38,7 +38,7 @@ lexer.o: $(srcdir)/python/lexer.l parser.o
 	$(LDFLAGS) -c -o $@ lex.py.c
 
 parser.o: $(srcdir)/python/parser.y
-	$(BISON) --defines=y.py.h --output=y.py.c \
+	$(BISON) --debug --verbose --defines=y.py.h --output=y.py.c \
 	$(srcdir)/python/parser.y
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ y.py.c

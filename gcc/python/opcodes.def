@@ -46,7 +46,7 @@ along with GCC; see the file COPYING3.  If not see
 #define TYPE_LIST              0xF027
 #define TYPE_BOOLEAN           0xF028
 #define TYPE_OBJECT            0xF029
-#define TYPE_BUILTIN_CALLBACK  0xF02A
+#define TYPE_IDENTIFIER        0xF02A
 
 #define SYMBOL_REFERENCE       0xF02B
 #define SYMBOL_INDEX_REF       0xF02C

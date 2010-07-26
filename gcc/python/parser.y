@@ -44,7 +44,10 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
-static VEC( gpy_sym,gc ) * gpy_symbol_stack;
+enum OPERATOR_T {
+  LESS_OP, GREATER_OP, EQ_EQ_OP,
+  GREATER_EQ_OP, LESS_EQ_OP
+};
 
 extern int yylineno;
 
@@ -55,6 +58,7 @@ extern void yyerror( const char * );
 %union {
   char *string;
   long int integer;
+  enum OPERATOR_T op;
   gpy_symbol_obj *symbol;
 }
 
@@ -74,18 +78,20 @@ extern void yyerror( const char * );
 %token ELIF "elif"
 %token ELSE "else"
 
-%token EQUAL "=="
-%token NOT_EQUAL "!="
-%token LESS "<"
-%token LESS_EQUAL "<="
-%token GREATER ">"
-%token GREATER_EQUAL ">="
 %token OR "or"
 %token AND "and"
+%token NOT "not"
 
 %token NEWLINE
 %token INDENT
 %token DEDENT
+
+%token EQUAL_EQUAL
+%token NOT_EQUAL
+%token LESS
+%token GREATER
+%token LESS_EQUAL
+%token GREATER_EQUAL
 
 %token NONE
 %token<string> IDENTIFIER
@@ -105,24 +111,37 @@ extern void yyerror( const char * );
 %type<symbol> suite
 %type<symbol> suite_statement_list
 %type<symbol> indent_stmt
+%type<symbol> literal
+%type<symbol> m_expr
+%type<symbol> a_expr
+%type<symbol> u_expr
+%type<symbol> atom
+%type<symbol> primary
+%type<symbol> expression
+%type<symbol> conditional_expression
+%type<symbol> call
+%type<symbol> or_test
+%type<symbol> and_test
+%type<symbol> not_test
+%type<symbol> or_expr
+%type<symbol> xor_expr
+%type<symbol> and_expr
+%type<symbol> shift_expr
+%type<symbol> comparison
+%type<symbol> comparison_list
+%type<symbol> comparison_comp
+%type<op> comp_operator
 
 %start declarations
-
-%left '-' '+'
-%left '*' '/'
-%left LESS LESS_EQUAL
-%left GREATER GREATER_EQUAL
-%left NOT_EQUAL EQUAL
-%left AND OR
-%right '^' '='
-%nonassoc UMINUS
 
 %%
 
 declarations: declarations statement
             {
-	      if( $2 )
-		gpy_process_decl( $2 );
+	      debug( "passing decl <%p> type <0x%x>!\n",
+		     (void*)$2, $2->type );
+
+	      gpy_process_decl( $2 );
 	    }
             | NEWLINE
             ;
@@ -131,16 +150,26 @@ compound_stmt: funcdef
              ;
 
 funcdef: DEF IDENTIFIER "(" ")" ":" suite
-       { $$=NULL; }
+       {
+	 gpy_symbol_obj *sym;
+	 Gpy_Symbol_Init( sym );
+
+	 sym->identifier = $2;
+	 sym->type = STRUCTURE_FUNCTION_DEF;
+	 sym->op_a_t = TYPE_SYMBOL;
+	 sym->op_b_t = TYPE_SYMBOL_NIL;
+	  
+	 sym->op_a.symbol_table= $6;
+	 $$= sym;
+       }
        ;
 
-suite: stmt_list NEWLINE
-     { $$=NULL; }
-     | NEWLINE suite_statement_list DEDENT
+suite: suite_statement_list DEDENT
      { $$=NULL; }
      ;
 
 suite_statement_list: suite_statement_list indent_stmt
+                   { $$ = NULL; }
                    | indent_stmt
                    { $$=NULL; }
                    ;
@@ -158,6 +187,7 @@ stmt_list: stmt_list ";" simple_stmt
          ;
 
 simple_stmt: assignment_stmt
+           | expression_stmt
            ;
 
 expression_stmt: expression_list
@@ -171,17 +201,32 @@ target_list: target_list "," target
            ;
   
 target: IDENTIFIER
-      { $$=NULL; }
+      {
+	gpy_symbol_obj *sym;
+	Gpy_Symbol_Init( sym );
+	
+	sym->type= SYMBOL_PRIMARY;
+	sym->op_a_t= TYPE_IDENTIFIER;
+	
+	sym->op_a.string= $1;
+	$$= sym;
+      }
       ;
 
 expression_list: expression_list "," expression
+               {
+		 $1->next = $3;
+		 $$ = $3;
+               }
                | expression
+               { $$ = $1; }
                ;
 
 expression: conditional_expression
           ;
   
-conditional_expression: or_test ["if" or_test "else" expression]
+conditional_expression: or_test
+                      ;
   
 or_test: and_test
        | or_test OR and_test
@@ -193,32 +238,83 @@ and_test: not_test
   
 not_test: comparison
         | NOT not_test
+        { $$ = NULL; }
         ;
 
-u_expr: power
-       | "-" u_expr
-       | "+" u_expr
+u_expr: primary
        ;
 
 m_expr: u_expr
       | m_expr "*" u_expr
+      {
+	gpy_symbol_obj* sym;
+	Gpy_Symbol_Init( sym );
+
+	sym->exp= OP_EXPRESS;
+	sym->type= OP_BIN_MULTIPLY;
+	sym->op_a_t= TYPE_SYMBOL;
+	sym->op_b_t= TYPE_SYMBOL;
+	
+	sym->op_a.symbol_table= $1;
+	sym->op_b.symbol_table= $3;
+	$$= sym;
+      }
       | m_expr "/" u_expr
+      {
+	gpy_symbol_obj* sym;
+	Gpy_Symbol_Init( sym );
+
+	sym->exp= OP_EXPRESS;
+	sym->type= OP_BIN_DIVIDE;
+	sym->op_a_t= TYPE_SYMBOL;
+	sym->op_b_t= TYPE_SYMBOL;
+	
+	sym->op_a.symbol_table= $1;
+	sym->op_b.symbol_table= $3;
+	$$= sym;
+      }
       ;
   
 a_expr: m_expr
       | a_expr "+" m_expr
+      {
+	gpy_symbol_obj* sym;
+	Gpy_Symbol_Init( sym );
+
+	sym->exp= OP_EXPRESS;
+	sym->type= OP_BIN_ADDITION;
+	sym->op_a_t= TYPE_SYMBOL;
+	sym->op_b_t= TYPE_SYMBOL;
+	
+	sym->op_a.symbol_table= $1;
+	sym->op_b.symbol_table= $3;
+	$$= sym;
+      }
       | a_expr "-" m_expr
+      {
+	gpy_symbol_obj* sym;
+	Gpy_Symbol_Init( sym );
+
+	sym->exp= OP_EXPRESS;
+	sym->type= OP_BIN_SUBTRACTION;
+	sym->op_a_t= TYPE_SYMBOL;
+	sym->op_b_t= TYPE_SYMBOL;
+	
+	sym->op_a.symbol_table= $1;
+	sym->op_b.symbol_table= $3;
+	$$= sym;
+      }
       ;
 
 shift_expr: a_expr
           ;
 
 and_expr: shift_expr
-        | and_expr "\;SPMamp;" shift_expr
+        | and_expr AND shift_expr
         ;
   
 xor_expr: and_expr
-        | xor_expr "\textasciicircum" and_expr
+        | xor_expr "^" and_expr
         ;
   
 or_expr: xor_expr
@@ -226,22 +322,73 @@ or_expr: xor_expr
        ;
 
 comparison_comp: comp_operator or_expr
+               { $$ = $2; }
                ;
 
 comparison_list: comparison_list comparison_comp
                | comparison_comp
                ;
 
-comparison: or_expr
-          | or_expr comparison_list
+comparison: or_expr comparison_list
+          | or_expr
           ;
 
-comp_operator: "<"
-             | ">"
-             | "=="
-             | ">="
-             | "<="
+comp_operator: LESS
+             { $$ = LESS_OP; }
+             | GREATER
+	     { $$ = GREATER_OP; }
+             | EQUAL_EQUAL
+	     { $$ = EQ_EQ_OP; }
+             | GREATER_EQUAL
+	     { $$ = GREATER_EQ_OP; }
+             | LESS_EQUAL
+	     { $$ = LESS_EQ_OP; }
              ;
+
+literal: INTEGER
+       {
+	 gpy_symbol_obj *sym;
+	 Gpy_Symbol_Init( sym );
+	 
+	 sym->type= SYMBOL_PRIMARY;
+	 sym->op_a_t= TYPE_INTEGER;
+	 
+	 sym->op_a.integer= $1;
+	 $$= sym;
+       }
+       ;
+
+atom: IDENTIFIER
+    {
+      gpy_symbol_obj *sym;
+      Gpy_Symbol_Init( sym );
+	 
+      sym->type= SYMBOL_PRIMARY;
+      sym->op_a_t= TYPE_IDENTIFIER;
+	 
+      sym->op_a.string= $1;
+      $$= sym;
+    }
+    | literal
+    ;
+
+positional_arguments: positional_arguments "," expression
+                    | expression
+                    ;
+
+argument_list: positional_arguments
+             ;
+
+call: IDENTIFIER "(" argument_list ")"
+    { $$ = NULL; }
+    | IDENTIFIER "(" ")"
+    { $$ = NULL; }
+    ;
+
+primary: atom
+       | call
+       ;
+
 %%
 
 void yyerror( const char *msg )
