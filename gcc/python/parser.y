@@ -168,8 +168,9 @@ funcdef: DEF funcname '(' ')' ':' suite
        }
        ;
 
-suite: suite_statement_list DEDENT
-     { $$=$1; }
+suite: stmt_list NEWLINE
+     | NEWLINE suite_statement_list DEDENT
+     { $$=$2; }
      ;
 
 suite_statement_list: suite_statement_list indent_stmt
@@ -350,6 +351,6 @@ primary: atom
 
 void yyerror( const char *msg )
 {
-  error( "syntax error :: line %i:'%s'\n",
-	 yylineno, msg );
+  error( "%s at line %i\n",
+	 msg, yylineno );
 }

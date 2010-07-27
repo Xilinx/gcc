@@ -132,11 +132,9 @@ else                    {  return ELSE; }
                           return IDENTIFIER;
                         }
 
-[\n]                    { return NEWLINE; }
-[\t]                    { return INDENT; }
-[\b]                    { return DEDENT; }
-
-.                       
+"\n"                    { return NEWLINE; }
+"    "                  { printf("found indent!\n"); return INDENT; }
+"\b"                    { printf("found dedent!\n"); return DEDENT; }
 
 %%
 
