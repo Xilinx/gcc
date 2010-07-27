@@ -178,8 +178,6 @@ gpy_langhook_type_for_mode( enum machine_mode mode ATTRIBUTE_UNUSED,
 			    int unsignedp ATTRIBUTE_UNUSED )
 {
   debug("type for mode!\n");
-
-
   return NULL_TREE;
 }
 
@@ -227,8 +225,6 @@ gpy_langhook_gimplify_expr( tree *expr_p ATTRIBUTE_UNUSED,
 			    gimple_seq *pre_p ATTRIBUTE_UNUSED,
 			    gimple_seq *post_p ATTRIBUTE_UNUSED )
 {
-  debug("gimplify expression!\n");
-  debug_tree( (*expr_p) );
   return GS_UNHANDLED;
 }
 

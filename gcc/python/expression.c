@@ -79,15 +79,9 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
 		 opa->op_a.string );
 	}
       rhs_tree = gpy_process_expression( opb, block );
-
-      printf("opb->type = <0x%X>!\n", opb->type );
-      printf("RHS Tree!\n");
-      debug_tree( rhs_tree );
       
       retval = build2( MODIFY_EXPR, ptr_type_node,
 		       decl, rhs_tree );
-
-      debug_tree( retval );
 
       debug("built assignment for <%s>!\n", opa->op_a.string );
     }

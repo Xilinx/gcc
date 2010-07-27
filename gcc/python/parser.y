@@ -223,8 +223,8 @@ target: IDENTIFIER
 	gpy_symbol_obj *sym;
 	Gpy_Symbol_Init( sym );
 	
-	sym->type= SYMBOL_PRIMARY;
-	sym->op_a_t= TYPE_IDENTIFIER;
+	sym->type= SYMBOL_REFERENCE;
+	sym->op_a_t= TYPE_STRING;
 	
 	sym->op_a.string= $1;
 	$$= sym;

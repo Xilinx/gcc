@@ -604,7 +604,6 @@ void gpy_write_globals( void )
 	}
       else
 	{
-	  printf("whooop att to main!!\n");
 	  append_to_statement_list( x, &main_stmts );
 	}
     }
