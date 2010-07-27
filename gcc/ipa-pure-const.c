@@ -446,7 +446,6 @@ special_builtlin_state (enum pure_const_state_e *state, bool *looping,
 	case BUILT_IN_FRAME_ADDRESS:
 	case BUILT_IN_APPLY:
 	case BUILT_IN_APPLY_ARGS:
-	case BUILT_IN_ARGS_INFO:
 	  *looping = false;
 	  *state = IPA_CONST;
 	  return true;
@@ -650,6 +649,13 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
     {
       fprintf (dump_file, "  scanning: ");
       print_gimple_stmt (dump_file, stmt, 0, 0);
+    }
+
+  if (gimple_has_volatile_ops (stmt))
+    {
+      local->pure_const_state = IPA_NEITHER;
+      if (dump_file)
+	fprintf (dump_file, "    Volatile stmt is not const/pure\n");
     }
 
   /* Look for loads and stores.  */

@@ -1,3 +1,39 @@
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (c_common_handle_option): Update prototype and return
+	value type.
+	* c-opts.c (c_common_handle_option): Update prototype and return
+	value type.  Update calls to handle_option and
+	enable_warning_as_error.
+
+2010-07-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/45079
+	* c-pretty-print.c (pp_c_expression): Handle C_MAYBE_CONST_EXPR.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (c_common_missing_argument): Remove.
+	* c-opts.c (c_common_missing_argument): Remove.
+	* c.opt (A, D, F, I, MD, MMD, MQ, MT, U, fconstant-string-class=,
+	idirafter, imacros, include, isysroot, isystem, iquote): Add
+	MissingArgError.
+	* c-objc-common.h (LANG_HOOKS_MISSING_ARGUMENT): Remove.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (c_common_option_lang_mask,
+	c_common_initialize_diagnostics, c_common_complain_wrong_lang_p):
+	New.
+	(c_common_init_options): Update prototype.
+	* c-opts.c (c_common_option_lang_mask): New.
+	(c_common_initialize_diagnostics): Split out of
+	c_common_init_options.
+	(accept_all_c_family_options, c_common_complain_wrong_lang_p):
+	New.
+	(c_common_init_options): Update prototype.  Use decoded options in
+	search for -lang-asm.
+
 2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* c-common.c: Carefully replace TREE_CHAIN with DECL_CHAIN.

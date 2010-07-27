@@ -1,3 +1,21 @@
+2010-07-27  Jason Merrill  <jason@redhat.com>
+
+	* pt.c (tsubst_expr) [DECL_EXPR]: Handle getting an AGGR_INIT_EXPR
+	from build_value_init.
+	* init.c (build_value_init_noctor): Give error for unknown array
+	bound.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* cp-objcp-common.h (LANG_HOOKS_MISSING_ARGUMENT): Remove.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* cp-objcp-common.c (cxx_initialize_diagnostics): First call
+	c_common_initialize_diagnostics.
+	* cp-objcp-common.h (LANG_HOOKS_OPTION_LANG_MASK,
+	LANG_HOOKS_COMPLAIN_WRONG_LANG_P): Define.
+
 2010-07-21  Jason Merrill  <jason@redhat.com>
 
 	* tree.c (cp_tree_equal): Fix CONSTRUCTOR handling.

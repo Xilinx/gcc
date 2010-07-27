@@ -2081,7 +2081,7 @@ gnat_types_compatible_p (tree t1, tree t2)
     return 1;
 
   /* Array types are also compatible if they are constrained and have the same
-     domain and compatible component types.  */
+     domain(s) and the same component type.  */
   if (code == ARRAY_TYPE
       && (TYPE_DOMAIN (t1) == TYPE_DOMAIN (t2)
 	  || (TYPE_DOMAIN (t1)
@@ -2090,7 +2090,9 @@ gnat_types_compatible_p (tree t1, tree t2)
 				     TYPE_MIN_VALUE (TYPE_DOMAIN (t2)))
 	      && tree_int_cst_equal (TYPE_MAX_VALUE (TYPE_DOMAIN (t1)),
 				     TYPE_MAX_VALUE (TYPE_DOMAIN (t2)))))
-      && gnat_types_compatible_p (TREE_TYPE (t1), TREE_TYPE (t2)))
+      && (TREE_TYPE (t1) == TREE_TYPE (t2)
+	  || (TREE_CODE (TREE_TYPE (t1)) == ARRAY_TYPE
+	      && gnat_types_compatible_p (TREE_TYPE (t1), TREE_TYPE (t2)))))
     return 1;
 
   /* Padding record types are also compatible if they pad the same
@@ -3508,6 +3510,7 @@ update_pointer_to (tree old_type, tree new_type)
       DECL_FIELD_CONTEXT (bounds_field) = new_ptr;
       for (t = new_ptr; t; last = t, t = TYPE_NEXT_VARIANT (t))
 	TYPE_FIELDS (t) = TYPE_FIELDS (ptr);
+      TYPE_ALIAS_SET (new_ptr) = TYPE_ALIAS_SET (ptr);
 
       /* Chain PTR and its variants at the end.  */
       TYPE_NEXT_VARIANT (last) = TYPE_MAIN_VARIANT (ptr);

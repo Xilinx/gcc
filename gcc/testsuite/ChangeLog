@@ -1,3 +1,375 @@
+2010-07-27  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/variadic102.C: New.
+	* g++.dg/cpp0x/variadic103.C: New.
+
+2010-07-27  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR rtl-optimization/40956
+	PR target/42495
+	PR middle-end/42574
+	* gcc.target/arm/pr40956.c, gcc.target/arm/pr42495.c,
+	* gcc.target/arm/pr42574.c: Add tests.
+
+2010-07-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/gcc-dg.exp (cleanup-coverage-files): Remove options from
+	test name.
+	(cleanup-repo-files): Ditto.
+	(cleanup-saved-temps): Ditto.
+
+2010-07-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/44701
+	* gcc.target/powerpc/asm-es-2.c (f2): Add <> constraints.
+
+	PR c/45079
+	* gcc.dg/pr45079.c: New test.
+
+2010-07-27  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/44152
+	* gcc.dg/vect/fast-math-pr44152.c: New test.
+
+2010-07-27  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR ObjC/44140
+	* obj-c++.dg/torture/tls/thr-init-1.mm: Re-enable test.
+	* obj-c++.dg/torture/tls/thr-init-2.mm: Ditto.
+	* obj-c++.dg/torture/tls/thr-init-3.mm: Ditto.
+	* obj-c++.dg/torture/trivial.mm: Ditto.
+	* objc.dg/torture/tls/thr-init-2.m: Ditto.
+	* objc.dg/torture/tls/thr-init-3.m: Ditto.
+	* objc.dg/torture/tls/thr-init.m: Ditto.
+	* objc.dg/torture/trivial.m: Ditto.
+
+2010-07-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gfortran.dg/char4_iunit_1.f03: Add ieee options.
+	Skip on spu-*-* targets.
+
+2010-07-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/45083
+	* gcc.dg/pr45083.c: New test.
+
+2010-07-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40873
+	* gfortran.dg/whole_file_22.f90: New test.
+	* gfortran.dg/whole_file_23.f90: New test.
+
+2010-07-26  Iain Sandoe  <iains@gcc.gnu.org>
+	    Jack Howarth  <howarth@bromo.med.uc.edu>
+	    Richard Henderson  <rth@redhat.com>
+
+	PR target/44132
+	* gcc.dg/tls/thr-init-1.c: New.
+	* gcc.dg/tls/thr-init-2.c: New.
+	* gcc.dg/torture/tls New.
+	* gcc.dg/torture/tls/tls-test.c: New.
+	* gcc.dg/torture/tls/thr-init-1.c: New.
+	* gcc.dg/torture/tls/tls.exp: New.
+	* gcc.dg/torture/tls/thr-init-2.c: New.
+	* gcc.dg/tls/emutls-2.c: New test
+
+	* g++.dg/gomp/clause-3.C: Require tls, not tls_native.
+	* g++.dg/gomp/copyin-1.C, g++.dg/gomp/pr35244.C,
+	g++.dg/gomp/sharing-1.C, g++.dg/gomp/tls-1.C, g++.dg/gomp/tls-2.C,
+	g++.dg/gomp/tls-3.C, g++.dg/gomp/tls-4.C, g++.dg/tls/diag-1.C,
+	g++.dg/tls/diag-2.C, g++.dg/tls/diag-3.C, g++.dg/tls/diag-4.C,
+	g++.dg/tls/diag-5.C, g++.dg/tls/init-1.C, g++.dg/tls/init-2.C,
+	g++.dg/tls/trivial.C, gcc.dg/gomp/appendix-a/a.22.1.c,
+	gcc.dg/gomp/appendix-a/a.22.2.c, gcc.dg/gomp/appendix-a/a.24.1.c,
+	gcc.dg/gomp/appendix-a/a.32.1.c, gcc.dg/gomp/appendix-a/a.33.1.c,
+	gcc.dg/gomp/clause-1.c, gcc.dg/gomp/copyin-1.c, gcc.dg/gomp/pr35244.c,
+	gcc.dg/gomp/sharing-1.c, gcc.dg/gomp/tls-1.c, gcc.dg/gomp/tls-2.c,
+	gcc.dg/tls/opt-1.c, gcc.dg/tls/opt-13.c, gcc.dg/tls/opt-14.c,
+	gcc.dg/tls/opt-15.c, gcc.dg/tls/opt-2.c, gcc.dg/tls/opt-3.c,
+	gcc.dg/tls/opt-7.c, gfortran.dg/gomp/appendix-a/a.22.1.f90,
+	gfortran.dg/gomp/appendix-a/a.22.4.f90,
+	gfortran.dg/gomp/appendix-a/a.22.5.f90,
+	gfortran.dg/gomp/appendix-a/a.22.6.f90,
+	gfortran.dg/gomp/appendix-a/a.24.1.f90,
+	gfortran.dg/gomp/appendix-a/a.32.1.f90,
+	gfortran.dg/gomp/appendix-a/a.33.1.f90, gfortran.dg/gomp/crayptr2.f90,
+	gfortran.dg/gomp/fixed-1.f, gfortran.dg/gomp/free-1.f90,
+	gfortran.dg/gomp/omp_threadprivate1.f90,
+	gfortran.dg/gomp/omp_threadprivate2.f90,
+	gfortran.dg/gomp/reduction1.f90,
+	gfortran.dg/gomp/sharing-1.f90: Likewise.
+
+2010-07-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/torture/pr44900.C: Use dg-require-effective-target
+	sse_runtime.
+	* gcc.dg/attr-weak-hidden-1a.c: Use dg-require-weak,
+	dg-require-visibility.
+
+2010-07-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43784
+	* gcc.c-torture/execute/pr43784.c: New testcase.
+	* g++.dg/torture/pr43784.C: Likewise.
+
+2010-07-26  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45056
+	* g++.dg/pr45056.C: New testcase.
+
+2010-07-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45071
+	* gcc.dg/pr45071.c: New testcase.
+
+2010-07-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45066
+	* gfortran.dg/namelist_62.f90: New.
+
+2010-07-26  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/execute/pr45017.c: Move ...
+	* gcc.dg/torture/pr45017.c: ... here.  Restrict to i?86 and x86_64.
+
+2010-07-25  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/40628
+	* trim_optimize_1.f90:  New test.
+	* character_comparision_1.f90:  New test.
+
+2010-07-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/42852
+	* gfortran.dg/wtruncate_fix.f: New test.
+
+2010-07-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/45068
+	* g++.dg/debug/dwarf2/nested-2.C: Support "//" as comments.
+
+2010-07-24  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43788
+	* g++.dg/lto/20100724-1_0.C: New testcase.
+
+2010-07-24  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43212
+	* gcc.dg/lto/20100724-1_0.c: New testcase.
+	* gcc.dg/lto/20100724-1_1.c: Likewise.
+
+2010-07-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40011
+	* gfortran.dg/whole_file_21.f90: New.
+
+	* gfortran.dg/integer_exponentiation_3.F90: Use
+	-ffloat-store only for i?86/x86-64 -m32.
+
+2010-07-24  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/entry_13.f90: Use abs() > eps instead of "/=".
+	* gfortran.dg/integer_exponentiation_3.F90: Use -ffloat-store.
+
+2010-07-24  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/func_decl_4.f90: Split test into two ...
+	* gfortran.dg/func_decl_5.f90: ... parts.
+	* gfortran.dg/common_resize_1.f: xfail two warnings (cf. PR 45045).
+	* gfortran.dg/bounds_temporaries_1.f90: Add new dg-warning.
+	* gfortran.dg/global_references_1.f90: Add new dg-warning.
+	* gfortran.dg/generic_actual_arg.f90: Add new dg-warning.
+	* gfortran.dg/entry_17.f90: Remove no-longer needed dg-warning.
+	* gfortran.dg/used_before_typed_4.f90: Add new dg-warning.
+	* gfortran.dg/bounds_check_strlen_1.f90: Add new dg-warning.
+	* gfortran.dg/intrinsic_std_1.f90: Split by remove tree dump ...
+	* gfortran.dg/intrinsic_std_6.f90: ... and create a dump test.
+	* gfortran.dg/sizeof.f90: Make test valid.
+	* gfortran.dg/pr20865.f90: Add new dg-error.
+	* gfortran.dg/integer_exponentiation_2.f90: Add new dg-warnings.
+	* gfortran.dg/g77/19990218-0.f: Ditto.
+	* gfortran.dg/g77/19990218-1.f: Ditto.
+	* gfortran.dg/g77/970625-2.f: Ditto.
+	* gfortran.dg/pr37243.f: Fix function declaration.
+	* gfortran.dg/use_only_1.f90: Fix implicit typing.
+	* gfortran.dg/loc_1.f90: Fix pointer datatype.
+
+2010-07-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44945
+	* gfortran.dg/char_array_structure_constructor.f90: Add
+	-fwhole-file as dg-option as it otherwise fails on some
+	systems.
+
+2010-07-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/aggr16.ad[sb]: New test.
+	* gnat.dg/aggr16_pkg.ads: New helper.
+
+2010-07-23  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43071
+	* g++.dg/lto/20100723-1_0.C: New testcase.
+
+2010-07-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/aes-avx-check.h (main): Require OSXSAVE for
+	AVX support.
+	* gcc.target/i386/pclmul-avx-check.h (main): Likewise.
+	* gcc.target/x86_64/abi/avx/avx-check.h (main): Likewise.
+
+2010-07-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/target-supports.exp (add_options_for_tls): New proc.
+	* g++.dg/tls/static-1.C: Use dg-add-options tls.
+	* g++.dg/tls/static-1a.cc: Likewise.
+	* gcc.dg/tls/emutls-1.c: Likewise.
+	* gcc.dg/tls/opt-11.c: Likewise.
+	* gcc.dg/tls/opt-12.c: Likewise.
+	* gcc.dg/tls/pr24428-2.c: Likewise.
+	* gcc.dg/tls/pr24428.c: Likewise.
+	* obj-c++.dg/tls/static-1.mm: Likewise.
+	* obj-c++.dg/torture/tls/thr-init-1.mm: Likewise.
+	* obj-c++.dg/torture/tls/thr-init-2.mm: Likewise.
+	* obj-c++.dg/torture/tls/thr-init-3.mm: Likewise.
+	* objc.dg/torture/tls/thr-init-2.m: Likewise.
+	* objc.dg/torture/tls/thr-init-3.m: Likewise.
+	* objc.dg/torture/tls/thr-init.m: Likewise.
+	* gcc.dg/lto/20090210_0.c: Add -pthread for *-*-solaris2.[89].
+
+2010-07-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/tree-ssa/loadpre6.c: Cleanup fre dump file.
+	* gcc.dg/ipa/ipa-sra-6.c: Cleanup eipa_sra dump file.
+	* gcc.dg/ipa/pure-const-2.c: Cleanup local-pure-const1 and
+	optimized dump files.
+
+2010-07-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/45047
+	* gcc.c-torture/compile/pr45047.c: New test.
+
+2010-07-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/float-range-3.c: Use "dg-do compile" dejagnu directive
+	instead of dg-compile.
+	* gcc.dg/float-range-4.c: Ditto.
+	* gcc.dg/float-range-5.c: Ditto.
+	* gcc.dg/fold-overflow-1.c: Ditto.
+	* gcc.dg/gomp/sections-4.c: Ditto.
+	* gcc.dg/transparent-union-1.c: Ditto.
+	* gcc.dg/transparent-union-2.c: Ditto.
+	* gcc.target/i386/pr39315-check.c: Ditto.
+	* g++.dg/gomp/sections-4.C: Ditto.
+	* g++.dg/template/dtor7.C: Ditto.
+	* g++.dg/tree-ssa/pr19952.C: Ditto.
+	* gfortran.dg/derived_constructor_comps_3.f90: Ditto.
+	* gfortran.dg/graphite/pr42185.f90: Ditto.
+	* gfortran.dg/namelist_36.f90: Ditto.
+	* gnat.dg/noreturn1.adb: Ditto.
+	* gnat.dg/specs/small_alignment.ads: Ditto.
+
+2010-07-23  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/44915
+	* g++.dg/torture/pr44915.C: New test.
+
+2010-07-23  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/44914
+	* g++.dg/tree-ssa/pr44914.C: New test.
+
+2010-07-23  Jie Zhang  <jie@codesourcery.com>
+
+	PR target/44290
+	* gcc.dg/pr44290-1.c: New test.
+	* gcc.dg/pr44290-2.c: New test.
+
+2010-07-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45008
+	* g++.dg/abi/mangle44.C: New.
+
+2010-07-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/*.c: Do not require sse{,2,3,4} effective target
+	for compile-time only tests.
+	* gcc.target/i386/pr39315-2.c: Remove redundant sse2 effective
+	target check.
+	* gcc.target/i386/pr39315-4.c: Ditto.
+	* gcc.target/i386/vperm-v4si-1.c: Remove sse_runtime effective
+	target check.  Include sse-os-support.h.
+	(main): Call check_isa and sse_os_support.
+	* gcc.target/i386/vperm-v4sf-1.c: Ditto.
+	* gcc.target/i386/vperm-v4si-2.c (main): Call check_isa.
+	* gcc.target/i386/vperm-v4sf-2.c: Ditto.
+	* gcc.target/i386/vperm-v2di.c: Remove sse2_runtime effective
+	target check.  Include sse-os-support.h.
+	(main): Call check_isa and sse_os_support.
+	* gcc.target/i386/vperm-v2df.c: Ditto.
+
+2010-07-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/target-supports.exp (check_avx_hw_available): New procedure.
+	(check_effective_target_avx_runtime): New procedure.
+	(check_effective_target_sse2_runtime): Add check_effective_target_sse2.
+	(check_effective_target_sse_runtime): Add check_effective_target_sse.
+
+	* gcc.dg/compat/pr38736_main.c: Use avx_runtime effective target.
+	* gcc.dg/compat/vector-1b_main.c: Ditto.  Remove cpuid.h include
+	and __get_cpuid test.
+	* gcc.dg/compat/vector-2b_main.c: Ditto.
+
+	* gcc.target/i386/avx-check.h (main): Also check bit_OSXSAVE.
+
+	* gcc.dg/20020418-1.c: Do not require sse{,2} effective target
+	for compile-time only test.
+	* gcc.dg/pr32716.c: Ditto.
+	* gcc.dg/pr34856.c: Ditto.
+	* gcc.dg/pr36997.c: Ditto.
+	* gcc.dg/prefetch-loop-arrays-1.c: Ditto.
+	* gfortran.dg/pr28158.f90: Ditto.
+	* gfortran.dg/pr30667.f: Ditto.
+
+	* gcc.dg/vect/vect.exp: Use check_effective_target_sse2_runtime for
+	i?86-*-* and x86_64-*-* targets to disable execution on targets
+	without sse2 runtime support.
+	* g++.dg/vect/vect.exp: Ditto.
+	* gfortran.dg/vect/vect.exp: Ditto.
+
+	* gcc.dg/pr36584.c: Remove redundant sse{,2} effective target check.
+	* gcc.dg/pr37544.c: Ditto.
+	* gcc.dg/pr40550.c: Ditto.
+	* gcc.dg/compat/union-m128-1_main.c: Ditto.
+	* gcc.dg/compat/vector-1a_main.c: Ditto.
+	* gcc.dg/compat/vector-2a_main.c: Ditto.
+	* gcc.dg/torture/pr16104-1.c: Ditto.
+	* gcc.dg/torture/pr35771-1.c: Ditto.
+	* gcc.dg/torture/pr35771-2.c: Ditto.
+	* gcc.dg/torture/pr35771-3.c: Ditto.
+	* gcc.dg/torture/stackalign/alloca-2.c: Ditto.
+	* gcc.dg/torture/stackalign/alloca-3.c: Ditto.
+	* gcc.dg/torture/stackalign/push-1.c: Ditto.
+	* gcc.dg/torture/stackalign/vararg-3.c: Ditto.
+	* g++.dg/other/i386-1.C: Ditto.
+	* g++.dg/other/pr40446.C: Ditto.
+
+2010-07-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/pr43058.c: Use dg-timeout-factor 4.
+
+2010-07-23  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/44709
+	* gfortran.dg/exit_1.f08: New test.
+	* gfortran.dg/exit_2.f08: New test.
+
+2010-07-22  Sandra Loosemore  <sandra@codesourcery.com>
+
+	PR tree-optimization/39839
+	* gcc.target/arm/pr39839.c: New test case.
+
 2010-07-22  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gnat.dg/unchecked_convert5b.adb: New test.

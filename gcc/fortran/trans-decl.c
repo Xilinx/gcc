@@ -759,16 +759,16 @@ gfc_build_qualified_array (tree decl, gfc_symbol * sym)
 	  gtype = build_array_type (gtype, rtype);
 	  /* Ensure the bound variables aren't optimized out at -O0.
 	     For -O1 and above they often will be optimized out, but
-	     can be tracked by VTA.  Also clear the artificial
-	     lbound.N or ubound.N DECL_NAME, so that it doesn't end up
-	     in debug info.  */
+	     can be tracked by VTA.  Also set DECL_NAMELESS, so that
+	     the artificial lbound.N or ubound.N DECL_NAME doesn't
+	     end up in debug info.  */
 	  if (lbound && TREE_CODE (lbound) == VAR_DECL
 	      && DECL_ARTIFICIAL (lbound) && DECL_IGNORED_P (lbound))
 	    {
 	      if (DECL_NAME (lbound)
 		  && strstr (IDENTIFIER_POINTER (DECL_NAME (lbound)),
 			     "lbound") != 0)
-		DECL_NAME (lbound) = NULL_TREE;
+		DECL_NAMELESS (lbound) = 1;
 	      DECL_IGNORED_P (lbound) = 0;
 	    }
 	  if (ubound && TREE_CODE (ubound) == VAR_DECL
@@ -777,7 +777,7 @@ gfc_build_qualified_array (tree decl, gfc_symbol * sym)
 	      if (DECL_NAME (ubound)
 		  && strstr (IDENTIFIER_POINTER (DECL_NAME (ubound)),
 			     "ubound") != 0)
-		DECL_NAME (ubound) = NULL_TREE;
+		DECL_NAMELESS (ubound) = 1;
 	      DECL_IGNORED_P (ubound) = 0;
 	    }
 	}
@@ -879,6 +879,7 @@ gfc_build_dummy_array_decl (gfc_symbol * sym, tree dummy)
 		     VAR_DECL, get_identifier (name), type);
 
   DECL_ARTIFICIAL (decl) = 1;
+  DECL_NAMELESS (decl) = 1;
   TREE_PUBLIC (decl) = 0;
   TREE_STATIC (decl) = 0;
   DECL_EXTERNAL (decl) = 0;
@@ -1128,11 +1129,9 @@ gfc_get_symbol_decl (gfc_symbol * sym)
     return sym->backend_decl;
 
   /* If use associated and whole file compilation, use the module
-     declaration.  This is only needed for intrinsic types because
-     they are substituted for one another during optimization.  */
+     declaration.  */
   if (gfc_option.flag_whole_file
 	&& sym->attr.flavor == FL_VARIABLE
-	&& sym->ts.type != BT_DERIVED
 	&& sym->attr.use_assoc
 	&& sym->module)
     {
@@ -1146,9 +1145,13 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 	  gfc_find_symbol (sym->name, gsym->ns, 0, &s);
 	  if (s && s->backend_decl)
 	    {
+	      if (sym->ts.type == BT_DERIVED)
+		gfc_copy_dt_decls_ifequal (s->ts.u.derived, sym->ts.u.derived,
+					   true);
 	      if (sym->ts.type == BT_CHARACTER)
 		sym->ts.u.cl->backend_decl = s->ts.u.cl->backend_decl;
-	      return s->backend_decl;
+	      sym->backend_decl = s->backend_decl;
+	      return sym->backend_decl;
 	    }
 	}
     }
@@ -1410,8 +1413,26 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
 	&& !sym->backend_decl
 	&& gsym && gsym->ns
 	&& ((gsym->type == GSYM_SUBROUTINE) || (gsym->type == GSYM_FUNCTION))
-	&& gsym->ns->proc_name->backend_decl)
+	&& (gsym->ns->proc_name->backend_decl || !sym->attr.intrinsic))
     {
+      if (!gsym->ns->proc_name->backend_decl)
+	{
+	  /* By construction, the external function cannot be
+	     a contained procedure.  */
+	  locus old_loc;
+	  tree save_fn_decl = current_function_decl;
+
+	  current_function_decl = NULL_TREE;
+	  gfc_get_backend_locus (&old_loc);
+	  push_cfun (cfun);
+
+	  gfc_create_function_decl (gsym->ns, true);
+
+	  pop_cfun ();
+	  gfc_set_backend_locus (&old_loc);
+	  current_function_decl = save_fn_decl;
+	}
+
       /* If the namespace has entries, the proc_name is the
 	 entry master.  Find the entry and use its backend_decl.
 	 otherwise, use the proc_name backend_decl.  */
@@ -1571,7 +1592,7 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
    a master function with alternate entry points.  */
 
 static void
-build_function_decl (gfc_symbol * sym)
+build_function_decl (gfc_symbol * sym, bool global)
 {
   tree fndecl, type, attributes;
   symbol_attribute attr;
@@ -1679,7 +1700,11 @@ build_function_decl (gfc_symbol * sym)
 
   /* Layout the function declaration and put it in the binding level
      of the current function.  */
-  pushdecl (fndecl);
+
+  if (global)
+    pushdecl_top_level (fndecl);
+  else
+    pushdecl (fndecl);
 
   sym->backend_decl = fndecl;
 }
@@ -1952,7 +1977,7 @@ trans_function_start (gfc_symbol * sym)
 /* Create thunks for alternate entry points.  */
 
 static void
-build_entry_thunks (gfc_namespace * ns)
+build_entry_thunks (gfc_namespace * ns, bool global)
 {
   gfc_formal_arglist *formal;
   gfc_formal_arglist *thunk_formal;
@@ -1974,7 +1999,7 @@ build_entry_thunks (gfc_namespace * ns)
 
       thunk_sym = el->sym;
       
-      build_function_decl (thunk_sym);
+      build_function_decl (thunk_sym, global);
       create_function_arglist (thunk_sym);
 
       trans_function_start (thunk_sym);
@@ -2134,17 +2159,18 @@ build_entry_thunks (gfc_namespace * ns)
 
 
 /* Create a decl for a function, and create any thunks for alternate entry
-   points.  */
+   points. If global is true, generate the function in the global binding
+   level, otherwise in the current binding level (which can be global).  */
 
 void
-gfc_create_function_decl (gfc_namespace * ns)
+gfc_create_function_decl (gfc_namespace * ns, bool global)
 {
   /* Create a declaration for the master function.  */
-  build_function_decl (ns->proc_name);
+  build_function_decl (ns->proc_name, global);
 
   /* Compile the entry thunks.  */
   if (ns->entries)
-    build_entry_thunks (ns);
+    build_entry_thunks (ns, global);
 
   /* Now create the read argument list.  */
   create_function_arglist (ns->proc_name);
@@ -3725,7 +3751,7 @@ gfc_generate_contained_functions (gfc_namespace * parent)
       if (ns->parent != parent)
 	continue;
 
-      gfc_create_function_decl (ns);
+      gfc_create_function_decl (ns, false);
     }
 
   for (ns = parent->contained; ns; ns = ns->sibling)
@@ -4361,7 +4387,7 @@ gfc_generate_function_code (gfc_namespace * ns)
 
   /* Create the declaration for functions with global scope.  */
   if (!sym->backend_decl)
-    gfc_create_function_decl (ns);
+    gfc_create_function_decl (ns, false);
 
   fndecl = sym->backend_decl;
   old_context = current_function_decl;

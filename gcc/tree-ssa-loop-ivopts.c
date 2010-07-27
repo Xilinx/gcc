@@ -718,9 +718,10 @@ contains_abnormal_ssa_name_p (tree expr)
     EXIT of DATA->current_loop, or NULL if something goes wrong.  */
 
 static tree
-niter_for_exit (struct ivopts_data *data, edge exit)
+niter_for_exit (struct ivopts_data *data, edge exit,
+                struct tree_niter_desc **desc_p)
 {
-  struct tree_niter_desc desc;
+  struct tree_niter_desc* desc = NULL;
   tree niter;
   void **slot;
 
@@ -739,19 +740,24 @@ niter_for_exit (struct ivopts_data *data, edge exit)
 	 being zero).  Also, we cannot safely work with ssa names that
 	 appear in phi nodes on abnormal edges, so that we do not create
 	 overlapping life ranges for them (PR 27283).  */
+      desc = XNEW (struct tree_niter_desc);
       if (number_of_iterations_exit (data->current_loop,
-				     exit, &desc, true)
-	  && integer_zerop (desc.may_be_zero)
-     	  && !contains_abnormal_ssa_name_p (desc.niter))
-	niter = desc.niter;
+				     exit, desc, true)
+	  && integer_zerop (desc->may_be_zero)
+     	  && !contains_abnormal_ssa_name_p (desc->niter))
+	niter = desc->niter;
       else
 	niter = NULL_TREE;
 
-      *pointer_map_insert (data->niters, exit) = niter;
+      desc->niter = niter;
+      slot = pointer_map_insert (data->niters, exit);
+      *slot = desc;
     }
   else
-    niter = (tree) *slot;
+    niter = ((struct tree_niter_desc *) *slot)->niter;
 
+  if (desc_p)
+    *desc_p = (struct tree_niter_desc *) *slot;
   return niter;
 }
 
@@ -767,7 +773,7 @@ niter_for_single_dom_exit (struct ivopts_data *data)
   if (!exit)
     return NULL;
 
-  return niter_for_exit (data, exit);
+  return niter_for_exit (data, exit, NULL);
 }
 
 /* Initializes data structures used by the iv optimization pass, stored
@@ -4005,15 +4011,20 @@ iv_period (struct iv *iv)
 
   gcc_assert (step && TREE_CODE (step) == INTEGER_CST);
 
-  /* Period of the iv is gcd (step, type range).  Since type range is power
-     of two, it suffices to determine the maximum power of two that divides
-     step.  */
-  pow2div = num_ending_zeros (step);
   type = unsigned_type_for (TREE_TYPE (step));
+  /* Period of the iv is lcm (step, type_range)/step -1,
+     i.e., N*type_range/step - 1. Since type range is power
+     of two, N == (step >> num_of_ending_zeros_binary (step),
+     so the final result is
+
+       (type_range >> num_of_ending_zeros_binary (step)) - 1
+
+  */
+  pow2div = num_ending_zeros (step);
 
   period = build_low_bits_mask (type,
-				(TYPE_PRECISION (type)
-				 - tree_low_cst (pow2div, 1)));
+                                (TYPE_PRECISION (type)
+                                 - tree_low_cst (pow2div, 1)));
 
   return period;
 }
@@ -4047,6 +4058,7 @@ may_eliminate_iv (struct ivopts_data *data,
   tree nit, period;
   struct loop *loop = data->current_loop;
   aff_tree bnd;
+  struct tree_niter_desc *desc = NULL;
 
   if (TREE_CODE (cand->iv->step) != INTEGER_CST)
     return false;
@@ -4065,7 +4077,7 @@ may_eliminate_iv (struct ivopts_data *data,
   if (flow_bb_inside_loop_p (loop, exit->dest))
     return false;
 
-  nit = niter_for_exit (data, exit);
+  nit = niter_for_exit (data, exit, &desc);
   if (!nit)
     return false;
 
@@ -4077,26 +4089,45 @@ may_eliminate_iv (struct ivopts_data *data,
   /* If the number of iterations is constant, compare against it directly.  */
   if (TREE_CODE (nit) == INTEGER_CST)
     {
-      if (!tree_int_cst_lt (nit, period))
-	return false;
+      /* See cand_value_at.  */
+      if (stmt_after_increment (loop, cand, use->stmt))
+        {
+          if (!tree_int_cst_lt (nit, period))
+            return false;
+        }
+      else
+        {
+          if (tree_int_cst_lt (period, nit))
+            return false;
+        }
     }
 
   /* If not, and if this is the only possible exit of the loop, see whether
      we can get a conservative estimate on the number of iterations of the
      entire loop and compare against that instead.  */
-  else if (loop_only_exit_p (loop, exit))
+  else
     {
       double_int period_value, max_niter;
-      if (!estimated_loop_iterations (loop, true, &max_niter))
-	return false;
-      period_value = tree_to_double_int (period);
-      if (double_int_ucmp (max_niter, period_value) >= 0)
-	return false;
-    }
 
-  /* Otherwise, punt.  */
-  else
-    return false;
+      max_niter = desc->max;
+      if (stmt_after_increment (loop, cand, use->stmt))
+        max_niter = double_int_add (max_niter, double_int_one);
+      period_value = tree_to_double_int (period);
+      if (double_int_ucmp (max_niter, period_value) > 0)
+        {
+          /* See if we can take advantage of infered loop bound information.  */
+          if (loop_only_exit_p (loop, exit))
+            {
+              if (!estimated_loop_iterations (loop, true, &max_niter))
+                return false;
+              /* The loop bound is already adjusted by adding 1.  */
+              if (double_int_ucmp (max_niter, period_value) > 0)
+                return false;
+            }
+          else
+            return false;
+        }
+    }
 
   cand_value_at (loop, cand, use->stmt, nit, &bnd);
 
@@ -4107,6 +4138,7 @@ may_eliminate_iv (struct ivopts_data *data,
     return false;
   return true;
 }
+
 
 /* Determines cost of basing replacement of USE on CAND in a condition.  */
 
@@ -5604,11 +5636,13 @@ copy_ref_info (tree new_ref, tree old_ref)
       && !SSA_NAME_PTR_INFO (new_ptr_base))
     {
       tree base = get_base_address (old_ref);
-      if ((INDIRECT_REF_P (base)
-	   || TREE_CODE (base) == MEM_REF)
-	  && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
+      if (!base)
+	;
+      else if ((INDIRECT_REF_P (base)
+		|| TREE_CODE (base) == MEM_REF)
+	       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
 	duplicate_ssa_name_ptr_info
-	    (new_ptr_base, SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0)));
+	  (new_ptr_base, SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0)));
       else if (TREE_CODE (base) == VAR_DECL
 	       || TREE_CODE (base) == PARM_DECL
 	       || TREE_CODE (base) == RESULT_DECL)
@@ -5617,6 +5651,89 @@ copy_ref_info (tree new_ref, tree old_ref)
 	  pt_solution_set_var (&pi->pt, base);
 	}
     }
+}
+
+/* Performs a peephole optimization to reorder the iv update statement with
+   a mem ref to enable instruction combining in later phases. The mem ref uses
+   the iv value before the update, so the reordering transformation requires
+   adjustment of the offset. CAND is the selected IV_CAND.
+
+   Example:
+
+   t = MEM_REF (base, iv1, 8, 16);  // base, index, stride, offset
+   iv2 = iv1 + 1;
+
+   if (t < val)      (1)
+     goto L;
+   goto Head;
+
+
+   directly propagating t over to (1) will introduce overlapping live range
+   thus increase register pressure. This peephole transform it into:
+
+
+   iv2 = iv1 + 1;
+   t = MEM_REF (base, iv2, 8, 8);
+   if (t < val)
+     goto L;
+   goto Head;
+*/
+
+static void
+adjust_iv_update_pos (struct iv_cand *cand, struct iv_use *use)
+{
+  tree var_after;
+  gimple iv_update, stmt;
+  basic_block bb;
+  gimple_stmt_iterator gsi, gsi_iv;
+
+  if (cand->pos != IP_NORMAL)
+    return;
+
+  var_after = cand->var_after;
+  iv_update = SSA_NAME_DEF_STMT (var_after);
+
+  bb = gimple_bb (iv_update);
+  gsi = gsi_last_nondebug_bb (bb);
+  stmt = gsi_stmt (gsi);
+
+  /* Only handle conditional statement for now.  */
+  if (gimple_code (stmt) != GIMPLE_COND)
+    return;
+
+  gsi_prev_nondebug (&gsi);
+  stmt = gsi_stmt (gsi);
+  if (stmt != iv_update)
+    return;
+
+  gsi_prev_nondebug (&gsi);
+  if (gsi_end_p (gsi))
+    return;
+
+  stmt = gsi_stmt (gsi);
+  if (gimple_code (stmt) != GIMPLE_ASSIGN)
+    return;
+
+  if (stmt != use->stmt)
+    return;
+
+  if (TREE_CODE (gimple_assign_lhs (stmt)) != SSA_NAME)
+    return;
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    {
+      fprintf (dump_file, "Reordering \n");
+      print_gimple_stmt (dump_file, iv_update, 0, 0);
+      print_gimple_stmt (dump_file, use->stmt, 0, 0);
+      fprintf (dump_file, "\n");
+    }
+
+  gsi = gsi_for_stmt (use->stmt);
+  gsi_iv = gsi_for_stmt (iv_update);
+  gsi_move_before (&gsi_iv, &gsi);
+
+  cand->pos = IP_BEFORE_USE;
+  cand->incremented_at = use->stmt;
 }
 
 /* Rewrites USE (address that is an iv) using candidate CAND.  */
@@ -5631,6 +5748,7 @@ rewrite_use_address (struct ivopts_data *data,
   tree ref;
   bool ok;
 
+  adjust_iv_update_pos (cand, use);
   ok = get_computation_aff (data->current_loop, use, cand, use->stmt, &aff);
   gcc_assert (ok);
   unshare_aff_combination (&aff);
@@ -5777,6 +5895,19 @@ remove_unused_ivs (struct ivopts_data *data)
   BITMAP_FREE (toremove);
 }
 
+/* Frees memory occupied by struct tree_niter_desc in *VALUE. Callback
+   for pointer_map_traverse.  */
+
+static bool
+free_tree_niter_desc (const void *key ATTRIBUTE_UNUSED, void **value,
+                      void *data ATTRIBUTE_UNUSED)
+{
+  struct tree_niter_desc *const niter = (struct tree_niter_desc *) *value;
+
+  free (niter);
+  return true;
+}
+
 /* Frees data allocated by the optimization of a single loop.  */
 
 static void
@@ -5788,6 +5919,7 @@ free_loop_data (struct ivopts_data *data)
 
   if (data->niters)
     {
+      pointer_map_traverse (data->niters, free_tree_niter_desc, NULL);
       pointer_map_destroy (data->niters);
       data->niters = NULL;
     }

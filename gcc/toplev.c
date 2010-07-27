@@ -620,39 +620,6 @@ output_quoted_string (FILE *asm_file, const char *string)
 #endif
 }
 
-/* Output a file name in the form wanted by System V.  */
-
-void
-output_file_directive (FILE *asm_file, const char *input_name)
-{
-  int len;
-  const char *na;
-
-  if (input_name == NULL)
-    input_name = "<stdin>";
-  else
-    input_name = remap_debug_filename (input_name);
-
-  len = strlen (input_name);
-  na = input_name + len;
-
-  /* NA gets INPUT_NAME sans directory names.  */
-  while (na > input_name)
-    {
-      if (IS_DIR_SEPARATOR (na[-1]))
-	break;
-      na--;
-    }
-
-#ifdef ASM_OUTPUT_SOURCE_FILENAME
-  ASM_OUTPUT_SOURCE_FILENAME (asm_file, na);
-#else
-  fprintf (asm_file, "\t.file\t");
-  output_quoted_string (asm_file, na);
-  putc ('\n', asm_file);
-#endif
-}
-
 /* A subroutine of wrapup_global_declarations.  We've come to the end of
    the compilation unit.  All deferred variables should be undeferred,
    and all incomplete decls should be finalized.  */
@@ -999,11 +966,6 @@ compile_file (void)
       return;
     }
   printf("lets ouput some code!!!\n");
-
-  /* Ensure that emulated TLS control vars are finalized and build 
-     a static constructor for them, when it is required.  */
-  if (!targetm.have_tls)
-    emutls_finish ();
 
   varpool_assemble_pending_decls ();
   finish_aliases_2 ();

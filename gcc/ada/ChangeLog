@@ -1,3 +1,24 @@
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc-interface/misc.c (gnat_handle_option): Update prototype and
+	return value type.  Don't check for missing arguments here.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc-interface/misc.c (gnat_option_lang_mask): New.
+	(gnat_init_options): Update prototype.  Reconstruct argv array
+	from decoded options.
+
+2010-07-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interfaces/utils.c (update_pointer_to): In the unconstrained
+	array case, merge the alias set of the old pointer type.
+
+2010-07-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (gnat_types_compatible_p): Revert latest change
+	and recurse only for multidimensional array types instead.
+
 2010-07-22  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR ada/44892

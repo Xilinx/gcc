@@ -366,6 +366,9 @@ USER_H = $(srcdir)/ginclude/float.h \
 	 $(srcdir)/ginclude/stdfix.h \
 	 $(EXTRA_HEADERS)
 
+USER_H_INC_NEXT_PRE = @user_headers_inc_next_pre@
+USER_H_INC_NEXT_POST = @user_headers_inc_next_post@
+
 UNWIND_H = $(srcdir)/unwind-generic.h
 
 # The GCC to use for compiling crt*.o.
@@ -1354,6 +1357,7 @@ OBJS-common = \
 	tree-diagnostic.o \
 	tree-dump.o \
 	tree-eh.o \
+	tree-emutls.o \
 	tree-if-conv.o \
 	tree-into-ssa.o \
 	tree-iterator.o \
@@ -2802,7 +2806,7 @@ opts.o : opts.c opts.h options.h $(TOPLEV_H) $(DIAGNOSTIC_CORE_H) $(CONFIG_H) $(
    $(FLAGS_H) $(PARAMS_H) $(TREE_PASS_H) $(DBGCNT_H) debug.h \
    $(PLUGIN_H) $(EXCEPT_H) $(LTO_STREAMER_H) opts-diagnostic.h
 opts-common.o : opts-common.c opts.h options.h $(CONFIG_H) $(SYSTEM_H) \
-   coretypes.h intl.h
+   coretypes.h intl.h $(DIAGNOSTIC_H)
 targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
    $(EXPR_H) $(TM_H) $(RTL_H) $(TM_P_H) $(FUNCTION_H) output.h $(TOPLEV_H) $(DIAGNOSTIC_CORE_H) \
    $(MACHMODE_H) $(TARGET_DEF_H) $(TARGET_H) $(GGC_H) gt-targhooks.h \
@@ -3142,6 +3146,9 @@ tree-switch-conversion.o : tree-switch-conversion.c $(CONFIG_H) $(SYSTEM_H) \
 tree-complex.o : tree-complex.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
     $(TM_H) $(FLAGS_H) $(TREE_FLOW_H) $(GIMPLE_H) \
     tree-iterator.h $(TREE_PASS_H) tree-ssa-propagate.h $(DIAGNOSTIC_H)
+tree-emutls.o : tree-emutls.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
+    $(GIMPLE_H) $(TREE_PASS_H) $(TREE_FLOW_H) $(CGRAPH_H) langhooks.h \
+    $(TARGET_H) targhooks.h tree-iterator.h
 tree-vect-generic.o : tree-vect-generic.c $(CONFIG_H) $(SYSTEM_H) $(TREE_H) \
     $(TM_H) $(TREE_FLOW_H) $(GIMPLE_H) tree-iterator.h $(TREE_PASS_H) \
     $(FLAGS_H) $(OPTABS_H) $(MACHMODE_H) $(EXPR_H) \
@@ -4012,6 +4019,21 @@ stmp-int-hdrs: $(STMP_FIXINC) $(USER_H) $(UNWIND_H) fixinc_list
 	    rm -f include/$$realfile; \
 	    cp $$file include; \
 	    chmod a+r include/$$realfile; \
+	  fi; \
+	done
+	for file in .. $(USER_H_INC_NEXT_PRE); do \
+	  if [ X$$file != X.. ]; then \
+            mv include/$$file include/x_$$file; \
+            echo "#include_next <$$file>" >include/$$file; \
+            cat include/x_$$file >>include/$$file; \
+            rm -f include/x_$$file; \
+	    chmod a+r include/$$file; \
+	  fi; \
+	done
+	for file in .. $(USER_H_INC_NEXT_POST); do \
+	  if [ X$$file != X.. ]; then \
+	    echo "#include_next <$$file>" >>include/$$file; \
+	    chmod a+r include/$$file; \
 	  fi; \
 	done
 	rm -f include/unwind.h

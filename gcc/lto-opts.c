@@ -294,7 +294,7 @@ output_options (struct lto_output_stream *stream)
 void
 lto_write_options (void)
 {
-  char *const section_name = lto_get_section_name (LTO_section_opts, NULL);
+  char *const section_name = lto_get_section_name (LTO_section_opts, NULL, NULL);
   struct lto_output_stream stream;
   struct lto_simple_header header;
   struct lto_output_stream *header_stream;
@@ -356,6 +356,8 @@ lto_read_file_options (struct lto_file_decl_data *file_data)
   struct lto_input_block ib;
 
   data = lto_get_section_data (file_data, LTO_section_opts, NULL, &len);
+  if (!data)
+	  return;
   header = (const struct lto_simple_header *) data;
   opts_offset = sizeof (*header);
 

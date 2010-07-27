@@ -4355,9 +4355,6 @@ x86_64_elf_select_section (tree decl, int reloc,
 	  /* We don't split these for medium model.  Place them into
 	     default sections and hope for best.  */
 	  break;
-	case SECCAT_EMUTLS_VAR:
-	case SECCAT_EMUTLS_TMPL:
-	  gcc_unreachable ();
 	}
       if (sname)
 	{
@@ -4414,12 +4411,6 @@ x86_64_elf_unique_section (tree decl, int reloc)
 	case SECCAT_TBSS:
 	  /* We don't split these for medium model.  Place them into
 	     default sections and hope for best.  */
-	  break;
-	case SECCAT_EMUTLS_VAR:
-	  prefix = targetm.emutls.var_section;
-	  break;
-	case SECCAT_EMUTLS_TMPL:
-	  prefix = targetm.emutls.tmpl_section;
 	  break;
 	}
       if (prefix)
@@ -30012,7 +30003,7 @@ ix86_vectorize_builtin_vec_perm (tree vec_type, tree *mask_type)
   tree itype = TREE_TYPE (vec_type);
   bool u = TYPE_UNSIGNED (itype);
   enum machine_mode vmode = TYPE_MODE (vec_type);
-  enum ix86_builtins fcode = fcode; /* Silence bogus warning.  */
+  enum ix86_builtins fcode;
   bool ok = TARGET_SSE2;
 
   switch (vmode)

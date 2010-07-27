@@ -337,6 +337,30 @@ lhd_initialize_diagnostics (struct diagnostic_context *ctx ATTRIBUTE_UNUSED)
 {
 }
 
+/* Called to perform language-specific options initialization.  */
+void
+lhd_init_options (unsigned int decoded_options_count ATTRIBUTE_UNUSED,
+		  struct cl_decoded_option *decoded_options ATTRIBUTE_UNUSED)
+{
+}
+
+/* By default, always complain about options for the wrong language.  */
+bool
+lhd_complain_wrong_lang_p (const struct cl_option *option ATTRIBUTE_UNUSED)
+{
+  return true;
+}
+
+/* By default, no language-specific options are valid.  */
+bool
+lhd_handle_option (size_t code ATTRIBUTE_UNUSED,
+		   const char *arg ATTRIBUTE_UNUSED,
+		   int value ATTRIBUTE_UNUSED, int kind ATTRIBUTE_UNUSED,
+		   const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
+{
+  return false;
+}
+
 /* The default function to print out name of current function that caused
    an error.  */
 void
