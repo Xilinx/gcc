@@ -57,7 +57,7 @@ ppl_Constrain_System_number_of_constraints (ppl_const_Constraint_System_t pcs)
 static void
 oppose_constraint (CloogMatrix *m, int row)
 {
-  int k;
+  matrix_num_type k;
 
   /* Do not oppose the first column: it is the eq/ineq one.  */
   for (k = 1; k < m->NbColumns; k++)
@@ -168,7 +168,7 @@ new_Cloog_Matrix_from_ppl_Polyhedron (ppl_const_Polyhedron_t ph)
 static ppl_Constraint_t
 cloog_matrix_to_ppl_constraint (CloogMatrix *matrix, int row)
 {
-  int j;
+  matrix_num_type j;
   ppl_Constraint_t cstr;
   ppl_Coefficient_t coef;
   ppl_Linear_Expression_t expr;
@@ -203,7 +203,7 @@ static void
 new_Constraint_System_from_Cloog_Matrix (ppl_Constraint_System_t *pcs,
 					 CloogMatrix *matrix)
 {
-  int i;
+  matrix_num_type i;
 
   ppl_new_Constraint_System (pcs);
 

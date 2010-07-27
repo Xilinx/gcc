@@ -25,8 +25,10 @@ along with GCC; see the file COPYING3.  If not see
 /* Restore compatibility to CLooG Legacy.  */
 #ifdef CLOOG_ORG
 typedef const struct clast_expr *clast_name_p;
+typedef unsigned matrix_num_type;
 #else
 typedef const char *clast_name_p;
+typedef int matrix_num_type;
 #endif
 
 #ifdef CLOOG_ORG
