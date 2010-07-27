@@ -1,3 +1,7 @@
+2010-07-27  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (expand_call_tm): Handle return slot optimization.
+
 2010-07-16  Aldy Hernandez  <aldyh@redhat.com>
 
 	* cp/except.c (do_begin_catch): Do not build TM library call if

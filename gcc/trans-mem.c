@@ -2143,8 +2143,13 @@ expand_call_tm (struct tm_region *region,
       return true;
     }
 
-  /* Instrument the LHS load if needed.  */
-  if (lhs && requires_barrier (region->entry_block, lhs, stmt))
+  /* Instrument the store if needed.
+
+     If the assignment happens inside the function call (return slot
+     optimization), there is no instrumentation to be done, since
+     the callee should have done the right thing.  */
+  if (lhs && requires_barrier (region->entry_block, lhs, stmt)
+      && !gimple_call_return_slot_opt_p (stmt))
     {
       tree tmp = make_rename_temp (TREE_TYPE (lhs), NULL);
       location_t loc = gimple_location (stmt);
