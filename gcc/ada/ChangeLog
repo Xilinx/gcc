@@ -1,3 +1,25 @@
+2010-07-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interfaces/utils.c (update_pointer_to): In the unconstrained
+	array case, merge the alias set of the old pointer type.
+
+2010-07-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (gnat_types_compatible_p): Revert latest change
+	and recurse only for multidimensional array types instead.
+
+2010-07-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/44892
+	* gcc-interface/utils.c (convert): Fix thinko in test.
+	(unchecked_convert): When converting from a scalar type to a type with
+	a different size, pad to have the same size on both sides.
+
+2010-07-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (gnat_types_compatible_p): Don't require strict
+	equality for the component type of array types.
+
 2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* gcc-interface/decl.c: Carefully replace TREE_CHAIN with DECL_CHAIN.
@@ -7,10 +29,10 @@
 
 2010-07-13  Laurent GUERBY  <laurent@guerby.net>
 
-        PR bootstrap/44458
-        * gcc-interface/targtyps.c: Include tm_p.h.
-        * gcc-interface/Make-lang.in: Update dependencies.
-	
+	PR bootstrap/44458
+	* gcc-interface/targtyps.c: Include tm_p.h.
+	* gcc-interface/Make-lang.in: Update dependencies.
+
 2010-07-09  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/trans.c (gnat_gimplify_expr) <ADDR_EXPR>: Deal with

@@ -759,16 +759,16 @@ gfc_build_qualified_array (tree decl, gfc_symbol * sym)
 	  gtype = build_array_type (gtype, rtype);
 	  /* Ensure the bound variables aren't optimized out at -O0.
 	     For -O1 and above they often will be optimized out, but
-	     can be tracked by VTA.  Also clear the artificial
-	     lbound.N or ubound.N DECL_NAME, so that it doesn't end up
-	     in debug info.  */
+	     can be tracked by VTA.  Also set DECL_NAMELESS, so that
+	     the artificial lbound.N or ubound.N DECL_NAME doesn't
+	     end up in debug info.  */
 	  if (lbound && TREE_CODE (lbound) == VAR_DECL
 	      && DECL_ARTIFICIAL (lbound) && DECL_IGNORED_P (lbound))
 	    {
 	      if (DECL_NAME (lbound)
 		  && strstr (IDENTIFIER_POINTER (DECL_NAME (lbound)),
 			     "lbound") != 0)
-		DECL_NAME (lbound) = NULL_TREE;
+		DECL_NAMELESS (lbound) = 1;
 	      DECL_IGNORED_P (lbound) = 0;
 	    }
 	  if (ubound && TREE_CODE (ubound) == VAR_DECL
@@ -777,7 +777,7 @@ gfc_build_qualified_array (tree decl, gfc_symbol * sym)
 	      if (DECL_NAME (ubound)
 		  && strstr (IDENTIFIER_POINTER (DECL_NAME (ubound)),
 			     "ubound") != 0)
-		DECL_NAME (ubound) = NULL_TREE;
+		DECL_NAMELESS (ubound) = 1;
 	      DECL_IGNORED_P (ubound) = 0;
 	    }
 	}
@@ -879,6 +879,7 @@ gfc_build_dummy_array_decl (gfc_symbol * sym, tree dummy)
 		     VAR_DECL, get_identifier (name), type);
 
   DECL_ARTIFICIAL (decl) = 1;
+  DECL_NAMELESS (decl) = 1;
   TREE_PUBLIC (decl) = 0;
   TREE_STATIC (decl) = 0;
   DECL_EXTERNAL (decl) = 0;
@@ -1128,11 +1129,9 @@ gfc_get_symbol_decl (gfc_symbol * sym)
     return sym->backend_decl;
 
   /* If use associated and whole file compilation, use the module
-     declaration.  This is only needed for intrinsic types because
-     they are substituted for one another during optimization.  */
+     declaration.  */
   if (gfc_option.flag_whole_file
 	&& sym->attr.flavor == FL_VARIABLE
-	&& sym->ts.type != BT_DERIVED
 	&& sym->attr.use_assoc
 	&& sym->module)
     {
@@ -1146,9 +1145,13 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 	  gfc_find_symbol (sym->name, gsym->ns, 0, &s);
 	  if (s && s->backend_decl)
 	    {
+	      if (sym->ts.type == BT_DERIVED)
+		gfc_copy_dt_decls_ifequal (s->ts.u.derived, sym->ts.u.derived,
+					   true);
 	      if (sym->ts.type == BT_CHARACTER)
 		sym->ts.u.cl->backend_decl = s->ts.u.cl->backend_decl;
-	      return s->backend_decl;
+	      sym->backend_decl = s->backend_decl;
+	      return sym->backend_decl;
 	    }
 	}
     }
