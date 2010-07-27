@@ -3537,6 +3537,57 @@ decl_defined_p (tree decl)
     }
 }
 
+/* Nonzero for a VAR_DECL whose value can be used in a constant expression.
+
+      [expr.const]
+
+      An integral constant-expression can only involve ... const
+      variables of integral or enumeration types initialized with
+      constant expressions ...
+
+   The standard does not require that the expression be non-volatile.
+   G++ implements the proposed correction in DR 457.  */
+/* FIXME temporaries too? or is that covered by TARGET_EXPR?  */
+
+bool
+decl_constant_var_p (tree decl)
+{
+  bool ret;
+  tree type = TREE_TYPE (decl);
+  if (TREE_CODE (decl) != VAR_DECL)
+    return false;
+  if (cxx_dialect >= cxx0x && DECL_DECLARED_CONSTEXPR_P (decl))
+    ret = true;
+  else if (CP_TYPE_CONST_NON_VOLATILE_P (type)
+	   && INTEGRAL_OR_ENUMERATION_TYPE_P (type))
+    {
+      /* We don't know if a template static data member is initialized with
+	 a constant expression until we instantiate its initializer.  */
+      mark_used (decl);
+      ret = DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl);
+    }
+  else
+    ret = false;
+
+  gcc_assert (!ret || DECL_INITIAL (decl));
+  return ret;
+}
+
+/* Returns true if DECL could be a symbolic constant variable, depending on
+   its initializer.  */
+
+bool
+decl_maybe_constant_var_p (tree decl)
+{
+  tree type = TREE_TYPE (decl);
+  if (TREE_CODE (decl) != VAR_DECL)
+    return false;
+  if (cxx_dialect >= cxx0x && DECL_DECLARED_CONSTEXPR_P (decl))
+    return true;
+  return (CP_TYPE_CONST_NON_VOLATILE_P (type)
+	  && INTEGRAL_OR_ENUMERATION_TYPE_P (type));
+}
+
 /* Complain that DECL uses a type with no linkage but is never defined.  */
 
 static void
@@ -4146,7 +4197,7 @@ mark_used (tree decl)
      a constant, we need the value right now because a reference to
      such a data member is not value-dependent.  */
   if (TREE_CODE (decl) == VAR_DECL
-      && DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl)
+      && decl_maybe_constant_var_p (decl)
       && DECL_CLASS_SCOPE_P (decl))
     {
       /* Don't try to instantiate members of dependent types.  We

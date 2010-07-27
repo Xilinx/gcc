@@ -9597,8 +9597,9 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 		RETURN (error_mark_node);
 	      }
 	    type = complete_type (type);
-	    DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (r)
-	      = DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (t);
+	    /* Wait until cp_finish_decl to set this again, to handle
+	       circular dependency (template/instantiate6.C). */
+	    DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (r) = 0;
 	    type = check_var_type (DECL_NAME (r), type);
 
 	    if (DECL_HAS_VALUE_EXPR_P (t))
@@ -11628,10 +11629,10 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 
     case DECL_EXPR:
       {
-	tree decl;
+	tree decl, pattern_decl;
 	tree init;
 
-	decl = DECL_EXPR_DECL (t);
+	pattern_decl = decl = DECL_EXPR_DECL (t);
 	if (TREE_CODE (decl) == LABEL_DECL)
 	  finish_label_decl (DECL_NAME (decl));
 	else if (TREE_CODE (decl) == USING_DECL)
@@ -11668,6 +11669,7 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 		  finish_anon_union (decl);
 		else
 		  {
+		    int const_init = false;
 		    maybe_push_decl (decl);
 		    if (TREE_CODE (decl) == VAR_DECL
 			&& DECL_PRETTY_FUNCTION_P (decl))
@@ -11695,7 +11697,10 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 			  init = t;
 		      }
 
-		    cp_finish_decl (decl, init, false, NULL_TREE, 0);
+		    if (TREE_CODE (decl) == VAR_DECL)
+		      const_init = (DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P
+				    (pattern_decl));
+		    cp_finish_decl (decl, init, const_init, NULL_TREE, 0);
 		  }
 	      }
 	  }
@@ -16634,7 +16639,7 @@ always_instantiate_p (tree decl)
 	     their initializers are available in integral constant
 	     expressions.  */
 	  || (TREE_CODE (decl) == VAR_DECL
-	      && DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl)));
+	      && decl_maybe_constant_var_p (decl)));
 }
 
 /* Produce the definition of D, a _DECL generated from a template.  If
@@ -16814,6 +16819,7 @@ instantiate_decl (tree d, int defer_ok,
 	{
 	  tree ns;
 	  tree init;
+	  bool const_init = false;
 
 	  ns = decl_namespace_context (d);
 	  push_nested_namespace (ns);
@@ -16822,7 +16828,11 @@ instantiate_decl (tree d, int defer_ok,
 			      args,
 			      tf_warning_or_error, NULL_TREE,
 			      /*integral_constant_expression_p=*/false);
-	  cp_finish_decl (d, init, /*init_const_expr_p=*/false,
+	  /* Make sure the initializer is still constant, in case of
+	     circular dependency (template/instantiate6.C). */
+	  const_init
+	    = DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (code_pattern);
+	  cp_finish_decl (d, init, /*init_const_expr_p=*/const_init,
 			  /*asmspec_tree=*/NULL_TREE,
 			  LOOKUP_ONLYCONVERTING);
 	  pop_nested_class ();
@@ -16888,6 +16898,7 @@ instantiate_decl (tree d, int defer_ok,
   if (TREE_CODE (d) == VAR_DECL)
     {
       tree init;
+      bool const_init = false;
 
       /* Clear out DECL_RTL; whatever was there before may not be right
 	 since we've reset the type of the declaration.  */
@@ -16895,7 +16906,8 @@ instantiate_decl (tree d, int defer_ok,
       DECL_IN_AGGR_P (d) = 0;
 
       /* The initializer is placed in DECL_INITIAL by
-	 regenerate_decl_from_template.  Pull it out so that
+	 regenerate_decl_from_template so we don't need to
+	 push/pop_access_scope again here.  Pull it out so that
 	 cp_finish_decl can process it.  */
       init = DECL_INITIAL (d);
       DECL_INITIAL (d) = NULL_TREE;
@@ -16908,7 +16920,8 @@ instantiate_decl (tree d, int defer_ok,
 
       /* Enter the scope of D so that access-checking works correctly.  */
       push_nested_class (DECL_CONTEXT (d));
-      cp_finish_decl (d, init, false, NULL_TREE, 0);
+      const_init = DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (code_pattern);
+      cp_finish_decl (d, init, const_init, NULL_TREE, 0);
       pop_nested_class ();
     }
   else if (TREE_CODE (d) == FUNCTION_DECL)

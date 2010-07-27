@@ -7102,7 +7102,8 @@ cp_parser_constant_expression (cp_parser* parser,
   saved_non_integral_constant_expression_p = parser->non_integral_constant_expression_p;
   /* We are now parsing a constant-expression.  */
   parser->integral_constant_expression_p = true;
-  parser->allow_non_integral_constant_expression_p = allow_non_constant_p;
+  parser->allow_non_integral_constant_expression_p
+    = (allow_non_constant_p || cxx_dialect >= cxx0x);
   parser->non_integral_constant_expression_p = false;
   /* Although the grammar says "conditional-expression", we parse an
      "assignment-expression", which also permits "throw-expression"
@@ -7121,7 +7122,8 @@ cp_parser_constant_expression (cp_parser* parser,
     = saved_allow_non_integral_constant_expression_p;
   if (allow_non_constant_p)
     *non_constant_p = parser->non_integral_constant_expression_p;
-  else if (parser->non_integral_constant_expression_p)
+  else if (parser->non_integral_constant_expression_p
+	   && cxx_dialect < cxx0x)
     expression = error_mark_node;
   parser->non_integral_constant_expression_p
     = saved_non_integral_constant_expression_p;
@@ -14445,7 +14447,8 @@ cp_parser_direct_declarator (cp_parser* parser,
 		= cp_parser_constant_expression (parser,
 						 /*allow_non_constant=*/true,
 						 &non_constant_p);
-	      if (!non_constant_p)
+	      /* FIXME generalized_constant_expression_allowed */
+	      if (!non_constant_p || cxx_dialect >= cxx0x)
 		bounds = fold_non_dependent_expr (bounds);
 	      /* Normally, the array bound must be an integral constant
 		 expression.  However, as an extension, we allow VLAs

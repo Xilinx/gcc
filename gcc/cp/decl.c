@@ -5679,9 +5679,6 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
   int saved_processing_template_decl;
   tree auto_node;
 
-  /* FIXME for c++0x set init_const_expr_p based on
-     potential_constant_expression.  */
-
   if (decl == error_mark_node)
     return;
   else if (! decl)
@@ -5762,7 +5759,20 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	    DECL_INITIAL (decl) = NULL_TREE;
 	}
     }
-    
+
+  if (init && TREE_CODE (decl) == VAR_DECL)
+    {
+      DECL_NONTRIVIALLY_INITIALIZED_P (decl) = 1;
+      if (init_const_expr_p)
+	{
+	  /* Set these flags now for C++98 templates.  We'll update the
+	     flags in store_init_value for instantiations and C++0x.  */
+	  DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl) = 1;
+	  if (decl_maybe_constant_var_p (decl))
+	    TREE_CONSTANT (decl) = 1;
+	}
+    }
+
   if (processing_template_decl)
     {
       bool type_dependent_p;
@@ -5779,24 +5789,15 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  DECL_INITIAL (decl) = NULL_TREE;
 	}
 
-      /* See FIXME above.  Also refactor this and the dupe below.  */
-      if (init
-          && (init_const_expr_p || DECL_DECLARED_CONSTEXPR_P (decl))
-          && VAR_DECL_P (decl))
-	{
-	  DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl) = 1;
-	  if (DECL_INTEGRAL_CONSTANT_VAR_P (decl))
-	    TREE_CONSTANT (decl) = 1;
-	}
-
       /* Generally, initializers in templates are expanded when the
 	 template is instantiated.  But, if DECL is an integral
 	 constant static data member, then it can be used in future
 	 integral constant expressions, and its value must be
 	 available. */
+      /* FIXME make sure this works in c++0x */
       if (!(init
 	    && DECL_CLASS_SCOPE_P (decl)
-	    && DECL_INTEGRAL_CONSTANT_VAR_P (decl)
+	    && TREE_CONSTANT (decl)
 	    && !type_dependent_p
 	    && !value_dependent_init_p (init)))
 	{
@@ -5910,17 +5911,6 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 					(type, TREE_TYPE (TREE_TYPE (jclass))))
 		error ("Java object %qD not allocated with %<new%>", decl);
 	      init = NULL_TREE;
-	    }
-	  if (init)
-	    {
-	      DECL_NONTRIVIALLY_INITIALIZED_P (decl) = 1;
-	      /* See FIXME above.  */
-	      if (init_const_expr_p || DECL_DECLARED_CONSTEXPR_P (decl))
-		{
-		  DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl) = 1;
-		  if (DECL_INTEGRAL_CONSTANT_VAR_P (decl))
-		    TREE_CONSTANT (decl) = 1;
-		}
 	    }
 	  init = check_initializer (decl, init, flags, &cleanup);
 	  /* Thread-local storage cannot be dynamically initialized.  */

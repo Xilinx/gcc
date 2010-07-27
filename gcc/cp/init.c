@@ -1666,7 +1666,7 @@ constant_value_1 (tree decl, bool integral_p)
 {
   while (TREE_CODE (decl) == CONST_DECL
 	 || (integral_p
-	     ? DECL_INTEGRAL_CONSTANT_VAR_P (decl)
+	     ? decl_constant_var_p (decl)
 	     : (TREE_CODE (decl) == VAR_DECL
 		&& CP_TYPE_CONST_NON_VOLATILE_P (TREE_TYPE (decl)))))
     {
@@ -1716,7 +1716,7 @@ constant_value_1 (tree decl, bool integral_p)
 	init = TREE_VALUE (init);
       if (generalized_constant_expression_allowed ()
           && !processing_template_decl && init != NULL)
-        init = cxx_constant_value (init);
+        init = maybe_constant_value (init);
       if (!init
 	  || !TREE_TYPE (init)
 	  || (integral_p

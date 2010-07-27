@@ -2196,24 +2196,6 @@ struct GTY((variable_size)) lang_decl {
 #define DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P(NODE) \
   (TREE_LANG_FLAG_2 (VAR_DECL_CHECK (NODE)))
 
-/* Nonzero for a VAR_DECL that can be used in an integral constant
-   expression.
-
-      [expr.const]
-
-      An integral constant-expression can only involve ... const
-      variables of static or enumeration types initialized with
-      constant expressions ...
-
-   The standard does not require that the expression be non-volatile.
-   G++ implements the proposed correction in DR 457.  */
-/* FIXME adjust for c++0x -- include constexpr, other types.  */
-#define DECL_INTEGRAL_CONSTANT_VAR_P(NODE)		\
-  (TREE_CODE (NODE) == VAR_DECL				\
-   && CP_TYPE_CONST_NON_VOLATILE_P (TREE_TYPE (NODE))	\
-   && INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (NODE))	\
-   && DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (NODE))
-
 /* Nonzero if the DECL was initialized in the class definition itself,
    rather than outside the class.  This is used for both static member
    VAR_DECLS, and FUNCTION_DECLS that are defined in the class.  */
@@ -4849,6 +4831,8 @@ extern void constrain_class_visibility		(tree);
 extern void import_export_decl			(tree);
 extern tree build_cleanup			(tree);
 extern tree build_offset_ref_call_from_tree	(tree, VEC(tree,gc) **);
+extern bool decl_constant_var_p			(tree);
+extern bool decl_maybe_constant_var_p		(tree);
 extern void check_default_args			(tree);
 extern void mark_used				(tree);
 extern void finish_static_data_member_decl	(tree, tree, bool, tree, int);
@@ -5217,6 +5201,9 @@ extern tree validate_constexpr_fundecl (tree);
 extern tree register_constexpr_fundef (tree, tree);
 extern tree ensure_literal_type_for_constexpr_object (tree);
 extern tree cxx_constant_value (tree);
+extern tree maybe_constant_value (tree);
+extern bool constant_expression_p (tree);
+extern bool reduced_constant_expression_p (tree);
 
 /* True if C++0x-style conctant expresions are allowed.  */
 #define generalized_constant_expression_allowed() \
