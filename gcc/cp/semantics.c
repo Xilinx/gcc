@@ -5693,6 +5693,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t)
      FIXME:  check the standard.  */
   if (!DECL_P (fun))
     {
+      /* FIXME errors should be asserts */
       error ("expression %qE does not designate a constexpr function", fun);
       return error_mark_node;
     }
@@ -5978,9 +5979,11 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
   switch (TREE_CODE (t))
     {
     case VAR_DECL:
+    case CONST_DECL:
       return cxx_eval_constant_expression (call, DECL_INITIAL (t));
 
     case FUNCTION_DECL:
+    case LABEL_DECL:
        return t;
 
     case PARM_DECL:
@@ -6027,6 +6030,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
       /* Fall through.  */
     case COMPOUND_EXPR:
     case PLUS_EXPR:
+    case MINUS_EXPR:
     case MULT_EXPR:
     case TRUNC_DIV_EXPR:
     case CEIL_DIV_EXPR:
@@ -6062,10 +6066,14 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
     case COMPLEX_EXPR:
       return cxx_eval_binary_expression (call, t);
 
+      /* fold can introduce non-IF versions of these; still treat them as
+	 short-circuiting.  */
+    case TRUTH_AND_EXPR:
     case TRUTH_ANDIF_EXPR:
       return cxx_eval_logical_expression (call, t, boolean_false_node,
                                           boolean_true_node);
 
+    case TRUTH_OR_EXPR:
     case TRUTH_ORIF_EXPR:
       return cxx_eval_logical_expression (call, t, boolean_true_node,
                                           boolean_false_node);
@@ -6099,15 +6107,16 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
 
     case NOP_EXPR:
       {
+	tree op = TREE_OPERAND (t, 0);
         if (implicit_address_p (t))
           return cxx_eval_constant_expression
-            (call, TREE_OPERAND (TREE_OPERAND (t, 0), 0));
+            (call, TREE_OPERAND (op, 0));
         /* If this is a no-op conversion from pointer to reference
            representation, and that pointer was the result of a reference
            calling convention, go directly to the reference.  */
         if (implicit_dereference_p (t))
           {
-            t = TREE_OPERAND (t, 0);
+            t = op;
             if (TREE_CODE (t) == NOP_EXPR)
               {
                 STRIP_NOPS (t);
@@ -6116,19 +6125,16 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
               }
             return cxx_eval_constant_expression (call, t);
           }
-	/* FIXME fold_convert?  */
-        return cp_convert
+
+        return fold_convert
           (TREE_TYPE (t),
            cxx_eval_constant_expression (call, TREE_OPERAND (t, 0)));
       }
 
     case CONVERT_EXPR:
-      /* FIXME fold_convert?  */
-      t = cp_convert
+      return fold_convert
         (TREE_TYPE (t),
          cxx_eval_constant_expression (call, TREE_OPERAND (t, 0)));
-      /* FIXME can this lead to infinite recursion?  */
-      return cxx_eval_constant_expression (call, t);
 
     default:
       internal_error ("unexpected expression %qE of kind %s", t,
@@ -6233,7 +6239,9 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
   switch (TREE_CODE (t))
     {
     case FUNCTION_DECL:
-       return true;
+    case LABEL_DECL:
+    case CONST_DECL:
+      return true;
 
     case PARM_DECL:
       /* -- this (5.1) unless it appears as the postfix-expression in a
@@ -6417,6 +6425,10 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case OBJ_TYPE_REF:
     case WITH_CLEANUP_EXPR:
     case CLEANUP_POINT_EXPR:
+    case MUST_NOT_THROW_EXPR:
+    case TRY_CATCH_EXPR:
+    case STATEMENT_LIST:
+    case BIND_EXPR:
       if (flags & tf_error)
         error ("expression %qE is not a constant-expression", t);
       return false;
@@ -6527,7 +6539,10 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case BIT_IOR_EXPR:
     case BIT_XOR_EXPR:
     case BIT_AND_EXPR:
+      /* FIXME short-circuit  */
+    case TRUTH_AND_EXPR:
     case TRUTH_ANDIF_EXPR:
+    case TRUTH_OR_EXPR:
     case TRUTH_ORIF_EXPR:
     case TRUTH_XOR_EXPR:
     case UNLT_EXPR:
