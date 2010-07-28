@@ -4576,8 +4576,8 @@ finish_static_assert (tree condition, tree message, location_t location,
     }
 
   /* Fold the expression and convert it to a boolean value. */
-  condition = fold_non_dependent_expr (condition);
   condition = cp_convert (boolean_type_node, condition);
+  condition = fold_decl_constant_value (condition);
 
   if (TREE_CODE (condition) == INTEGER_CST && !integer_zerop (condition))
     /* Do nothing; the condition is satisfied. */
@@ -5373,18 +5373,30 @@ validate_constexpr_fundecl (tree fun)
 static tree
 build_data_member_initialization (tree t, tree inits)
 {
-  tree member;
+  tree member, init;
   gcc_assert (TREE_CODE (t) == CLEANUP_POINT_EXPR);
   t = TREE_OPERAND (t, 0);
   gcc_assert (TREE_CODE (t) == EXPR_STMT);
   t = TREE_OPERAND (t, 0);
-  gcc_assert (TREE_CODE (t) == CONVERT_EXPR);
-  t = TREE_OPERAND (t, 0);
-  gcc_assert (TREE_CODE (t) == INIT_EXPR);
-  member = TREE_OPERAND (t, 0);
+  if (TREE_CODE (t) == CONVERT_EXPR)
+    t = TREE_OPERAND (t, 0);
+  if (TREE_CODE (t) == INIT_EXPR)
+    {
+      member = TREE_OPERAND (t, 0);
+      init = unshare_expr (TREE_OPERAND (t, 1));
+    }
+  else
+    {
+      gcc_assert (TREE_CODE (t) == CALL_EXPR);
+      member = CALL_EXPR_ARG (t, 0);
+      gcc_assert (TREE_CODE (member) == ADDR_EXPR);
+      member = TREE_OPERAND (member, 0);
+      init = build_cplus_new (TYPE_MAIN_VARIANT (TREE_TYPE (member)),
+			      unshare_expr (t));
+    }
   if (TREE_CODE (member) == COMPONENT_REF)
     member = TREE_OPERAND (member, 1);
-  return tree_cons (member, unshare_expr (TREE_OPERAND (t, 1)), inits);
+  return tree_cons (member, init, inits);
 }
 
 /* Build compile-time evalable representations of member-initializer list
@@ -5896,17 +5908,19 @@ cxx_eval_logical_expression (const constexpr_call *call, tree t,
 static tree
 cxx_eval_object_construction (const constexpr_call *call, tree t)
 {
-  tree subobjects = NULL;
+  VEC(constructor_elt,gc) *vec = NULL;
   tree inits = TREE_OPERAND (t, 0);
   for (; inits != NULL; inits = TREE_CHAIN (inits))
     {
       tree v = cxx_eval_constant_expression (call, TREE_VALUE (inits));
       if (v == error_mark_node)
         return v;
-      /* FIXME build VEC instead of list.  */
-      subobjects = tree_cons (TREE_PURPOSE (inits), v, subobjects);
+      if (TREE_CODE (v) == TARGET_EXPR
+	  && TREE_CODE (TARGET_EXPR_INITIAL (v)) == CONSTRUCTOR)
+	v = TARGET_EXPR_INITIAL (v);
+      CONSTRUCTOR_APPEND_ELT (vec, TREE_PURPOSE (inits), v);
     }
-  t = build_constructor_from_list (TREE_TYPE (t), nreverse (subobjects));
+  t = build_constructor (TREE_TYPE (t), vec);
   TREE_CONSTANT (t) = true;
   return t;
 }
