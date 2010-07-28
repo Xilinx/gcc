@@ -768,6 +768,10 @@ store_init_value (tree decl, tree init, int flags)
        their initializers are constant expressions.  */
     value = maybe_constant_value (value);
 
+  if (TREE_CODE (value) == TARGET_EXPR
+      && TREE_CODE (TARGET_EXPR_INITIAL (value)) == CONSTRUCTOR)
+    value = TARGET_EXPR_INITIAL (value);
+
   /* If the initializer is not a constant, fill in DECL_INITIAL with
      the bits that are constant, and then return an expression that
      will perform the dynamic initialization.  */

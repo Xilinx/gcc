@@ -5860,6 +5860,8 @@ cxx_eval_component_reference (const constexpr_call *call, tree t)
   tree value;
   if (whole == error_mark_node)
     return whole;
+  if (TREE_CODE (whole) == TARGET_EXPR)
+    whole = TARGET_EXPR_INITIAL (whole);
   gcc_assert (TREE_CODE (whole) == CONSTRUCTOR);
   FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (whole), i, field, value)
     {
@@ -5924,6 +5926,9 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t)
       tree elt = cxx_eval_constant_expression (call, ce->value);
       if (elt == error_mark_node)
         return elt;
+      if (TREE_CODE (elt) == TARGET_EXPR
+	  && TREE_CODE (TARGET_EXPR_INITIAL (elt)) == CONSTRUCTOR)
+	elt = TARGET_EXPR_INITIAL (elt);
       ce->value = elt;
     }
   TREE_CONSTANT (t) = true;
@@ -6001,8 +6006,18 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
       return cxx_eval_call_expression (call, t);
 
     case INIT_EXPR:
-    case TARGET_EXPR:
       return cxx_eval_constant_expression (call, TREE_OPERAND (t, 1));
+
+    case TARGET_EXPR:
+      {
+	tree init = cxx_eval_constant_expression (call,
+						  TARGET_EXPR_INITIAL (t));
+	if (init == TARGET_EXPR_INITIAL (t)
+	    || TREE_CODE (init) != CONSTRUCTOR)
+	  return t;
+	else
+	  return get_target_expr (init);
+      }
 
     case RETURN_EXPR:
     case NON_LVALUE_EXPR:
