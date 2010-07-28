@@ -4044,7 +4044,7 @@ check_tag_decl (cp_decl_specifier_seq *declspecs)
       else if (saw_typedef)
 	warning (0, "%<typedef%> was ignored in this declaration");
       else if (declspecs->specs[(int) ds_constexpr])
-        error ("%<constexpr> cannot be used for type declarations");
+        error ("%<constexpr%> cannot be used for type declarations");
     }
 
   return declared_type;
@@ -8362,7 +8362,11 @@ grokdeclarator (const cp_declarator *declarator,
         type_quals |= TYPE_QUAL_CONST;
     }
   if (declspecs->specs[(int)ds_volatile])
-    type_quals |= TYPE_QUAL_VOLATILE;
+    {
+      if (constexpr_p)
+        error ("both %<volatile%> and %<constexpr%> cannot be used here");
+      type_quals |= TYPE_QUAL_VOLATILE;
+    }
   if (declspecs->specs[(int)ds_restrict])
     type_quals |= TYPE_QUAL_RESTRICT;
   if (sfk == sfk_conversion && type_quals != TYPE_UNQUALIFIED)
@@ -9840,6 +9844,9 @@ grokdeclarator (const cp_declarator *declarator,
 		storage_class = sc_none;
 	      }
 	  }
+	else if (constexpr_p && DECL_EXTERNAL (decl))
+	  error ("declaration of constexpr variable %qD is not a definition",
+		 decl);
       }
 
     if (storage_class == sc_extern && initialized && !funcdef_flag)
