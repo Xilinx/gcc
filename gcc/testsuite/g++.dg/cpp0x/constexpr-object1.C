@@ -13,19 +13,19 @@ constexpr int i1 = 1024;
 constexpr A1 a1 = A1();
 
 // error: not a definition
-extern constexpr int i2; // { dg-error "invalid" }
+extern constexpr int i2; // { dg-error "definition" }
 
 // error: missing initializer
 constexpr A1 a2; // { dg-error "missing initializer for constexpr" }
 
 // error: duplicate cv
-const constexpr A1 a3 = A1(); // { dg-error "both ‘const’ and ‘constexpr’ cannot" }
+const constexpr A1 a3 = A1(); // { dg-error "both .const. and .constexpr. cannot" }
 
-volatile constexpr A1 a4 = A1(); // { dg-error "both ‘volatile’ and ‘constexpr’ cannot" }
+volatile constexpr A1 a4 = A1(); // { dg-error "both .volatile. and .constexpr. cannot" }
 
 // error: on type declaration
-constexpr struct pixel // { dg-error "cannot be used for type declarations" }
+constexpr struct pixel
 {
   int x;
   int y;
-};
+};		     // { dg-error "cannot be used for type declarations" }

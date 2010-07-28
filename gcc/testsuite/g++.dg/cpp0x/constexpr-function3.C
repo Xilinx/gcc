@@ -27,4 +27,4 @@ template int square(int);
 class A { };
 template A square(A);
 
-template constexpr long square(long); // { dg-error "specifier cannot be used in a function declaration that is not a definition" }
+template constexpr long square(long);
