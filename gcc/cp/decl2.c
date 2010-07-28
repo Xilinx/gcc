@@ -936,6 +936,7 @@ grokfield (const cp_declarator *declarator,
 	init = NULL_TREE;
       else if (!processing_template_decl)
 	{
+	  /* FIXME */
 	  if (TREE_CODE (init) == CONSTRUCTOR)
 	    init = digest_init (TREE_TYPE (value), init);
 	  else

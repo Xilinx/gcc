@@ -4821,14 +4821,14 @@ fold_non_dependent_expr (tree expr)
    initializers can maintain a syntactic rather than semantic form
    (even if they are non-dependent, for access-checking purposes).  */
 
-static tree
+tree
 fold_decl_constant_value (tree expr)
 {
   tree const_expr = expr;
   do
     {
       expr = fold_non_dependent_expr (const_expr);
-      const_expr = integral_constant_value (expr);
+      const_expr = maybe_constant_value (expr);
     }
   while (expr != const_expr);
 
@@ -4972,7 +4972,7 @@ convert_nontype_argument (tree type, tree expr)
   if (TYPE_REF_OBJ_P (type)
       && has_value_dependent_address (expr))
     /* If we want the address and it's value-dependent, don't fold.  */;
-  else
+  else if (!type_unknown_p (expr))
     expr = fold_non_dependent_expr (expr);
   if (error_operand_p (expr))
     return error_mark_node;
@@ -5037,7 +5037,6 @@ convert_nontype_argument (tree type, tree expr)
 	  && CLASSTYPE_LITERAL_P (expr_type))
 	{
 	  expr = build_user_type_conversion (type, expr, LOOKUP_IMPLICIT);
-	  expr = cxx_constant_value (expr);
 	  expr_type = TREE_TYPE (expr);
 	}
       if (!INTEGRAL_OR_ENUMERATION_TYPE_P (expr_type))
@@ -8252,11 +8251,8 @@ tsubst_template_arg (tree t, tree args, tsubst_flags_t complain, tree in_decl)
   else if (TYPE_P (t))
     r = tsubst (t, args, complain, in_decl);
   else
-    {
-      r = tsubst_expr (t, args, complain, in_decl,
-		       /*integral_constant_expression_p=*/true);
-      r = fold_non_dependent_expr (r);
-    }
+    r = tsubst_expr (t, args, complain, in_decl,
+		     /*integral_constant_expression_p=*/true);
   return r;
 }
 
@@ -16675,7 +16671,8 @@ instantiate_decl (tree d, int defer_ok,
      case that an expression refers to the value of the variable --
      if the variable has a constant value the referring expression can
      take advantage of that fact.  */
-  if (TREE_CODE (d) == VAR_DECL)
+  if (TREE_CODE (d) == VAR_DECL
+      || DECL_DECLARED_CONSTEXPR_P (d))
     defer_ok = 0;
 
   /* Don't instantiate cloned functions.  Instead, instantiate the
@@ -17648,12 +17645,6 @@ value_dependent_expression_p (tree expression)
     case COMPONENT_REF:
       return (value_dependent_expression_p (TREE_OPERAND (expression, 0))
 	      || value_dependent_expression_p (TREE_OPERAND (expression, 1)));
-
-    case CALL_EXPR:
-      /* A CALL_EXPR may appear in a constant expression if it is a
-	 call to a builtin function, e.g., __builtin_constant_p.  All
-	 such calls are value-dependent.  */
-      return true;
 
     case NONTYPE_ARGUMENT_PACK:
       /* A NONTYPE_ARGUMENT_PACK is value-dependent if any packed argument

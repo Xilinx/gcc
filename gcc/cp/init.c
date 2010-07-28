@@ -1719,8 +1719,9 @@ constant_value_1 (tree decl, bool integral_p)
         init = maybe_constant_value (init);
       if (!init
 	  || !TREE_TYPE (init)
+	  || uses_template_parms (init)
 	  || (integral_p
-	      ? !INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (init))
+	      ? false
 	      : (!TREE_CONSTANT (init)
 		 /* Do not return an aggregate constant (of which
 		    string literals are a special case), as we do not

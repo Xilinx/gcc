@@ -1916,6 +1916,7 @@ decay_conversion (tree exp)
       return error_mark_node;
     }
 
+  /* FIXME remove? */
   exp = decl_constant_value (exp);
   if (error_operand_p (exp))
     return error_mark_node;

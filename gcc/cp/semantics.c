@@ -5984,15 +5984,17 @@ implicit_address_p (tree t)
 static tree
 cxx_eval_constant_expression (const constexpr_call *call, tree t)
 {
-  if (t == error_mark_node || CONSTANT_CLASS_P (t)
-      || reduced_constant_expression_p (t))
+  if (t == error_mark_node || CONSTANT_CLASS_P (t))
     return t;
+
+  if (reduced_constant_expression_p (t))
+    return fold (t);
 
   switch (TREE_CODE (t))
     {
     case VAR_DECL:
     case CONST_DECL:
-      return cxx_eval_constant_expression (call, DECL_INITIAL (t));
+      return integral_constant_value (t);
 
     case FUNCTION_DECL:
     case LABEL_DECL:
@@ -6045,12 +6047,23 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
     case FIXED_CONVERT_EXPR:
       return cxx_eval_unary_expression (call, t);
 
+    case COMPOUND_EXPR:
+      {
+	/* check_return_expr sometimes wraps a TARGET_EXPR in a
+	   COMPOUND_EXPR; don't get confused.  */
+	tree op0 = TREE_OPERAND (t, 0);
+	if (TREE_CODE (op0) == TARGET_EXPR
+	    && TREE_OPERAND (t, 1) == TARGET_EXPR_SLOT (op0))
+	  return cxx_eval_constant_expression (call, op0);
+	else
+	  goto binary;
+      }
+
     case POINTER_PLUS_EXPR:
       if (constant_expression_p (TREE_OPERAND (t, 0))
           && constant_expression_p (TREE_OPERAND (t, 1)))
         return t;
       /* Fall through.  */
-    case COMPOUND_EXPR:
     case PLUS_EXPR:
     case MINUS_EXPR:
     case MULT_EXPR:
@@ -6086,6 +6099,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t)
     case UNEQ_EXPR:
     case RANGE_EXPR:
     case COMPLEX_EXPR:
+    binary:
       return cxx_eval_binary_expression (call, t);
 
       /* fold can introduce non-IF versions of these; still treat them as
@@ -6181,7 +6195,8 @@ cxx_constant_value (tree t)
 tree
 maybe_constant_value (tree t)
 {
-  if (potential_constant_expression (t, tf_none) == cx_normal)
+  if (!uses_template_parms (t)
+      && potential_constant_expression (t, tf_none) == cx_normal)
     return cxx_eval_constant_expression (NULL, t);
   else
     return t;
@@ -6253,6 +6268,12 @@ morally_constexpr_builtin_function_p (tree decl)
       subexpression (3.2), but subexpressions of logical AND (5.14),
       logical OR (5.15), and conditional (5.16) operations that are
       not evaluated are not considered.   */
+/* FIXME limit this function to only dealing with potential constant
+   expressions, always fold normal constant expressions to catch division
+   by zero and such.
+
+   FIXME does this recognize that an integer parm can be a null pointer
+   constant? */
 
 static int
 potential_constant_expression (tree t, tsubst_flags_t flags)
@@ -6572,12 +6593,6 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
 	return ret;
       }
 
-    case ARRAY_REF:
-    case ARRAY_RANGE_REF:
-    case COMPOUND_EXPR:
-    case PLUS_EXPR:
-    case MULT_EXPR:
-    case POINTER_PLUS_EXPR:
     case TRUNC_DIV_EXPR:
     case CEIL_DIV_EXPR:
     case FLOOR_DIV_EXPR:
@@ -6585,6 +6600,29 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case TRUNC_MOD_EXPR:
     case CEIL_MOD_EXPR:
     case ROUND_MOD_EXPR:
+      /* FIXME this doesn't apply to potential CEs.  */
+      if (integer_zerop (maybe_constant_value (TREE_OPERAND (t, 1))))
+	return cx_none;
+      else
+	goto binary;
+
+    case COMPOUND_EXPR:
+      {
+	/* check_return_expr sometimes wraps a TARGET_EXPR in a
+	   COMPOUND_EXPR; don't get confused.  */
+	tree op0 = TREE_OPERAND (t, 0);
+	if (TREE_CODE (op0) == TARGET_EXPR
+	    && TREE_OPERAND (t, 1) == TARGET_EXPR_SLOT (op0))
+	  return potential_constant_expression (op0, flags);
+	else
+	  goto binary;
+      }
+
+    case ARRAY_REF:
+    case ARRAY_RANGE_REF:
+    case PLUS_EXPR:
+    case MULT_EXPR:
+    case POINTER_PLUS_EXPR:
     case RDIV_EXPR:
     case EXACT_DIV_EXPR:
     case MIN_EXPR:

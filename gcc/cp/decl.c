@@ -7440,12 +7440,10 @@ compute_array_index_type (tree name, tree size)
       && CLASS_TYPE_P (type)
       && CLASSTYPE_LITERAL_P (type))
     {
-      tree conv = build_expr_type_conversion (WANT_INT, size, true);
-      if (conv != error_mark_node)
-	{
-	  size = cxx_constant_value (conv);
-	  type = TREE_TYPE (size);
-	}
+      size = build_expr_type_conversion (WANT_INT, size, true);
+      if (size == error_mark_node)
+	return error_mark_node;
+      type = TREE_TYPE (size);
     }
   /* The array bound must be an integer type.  */
   if (!dependent_type_p (type) && !INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (type))
@@ -7491,7 +7489,7 @@ compute_array_index_type (tree name, tree size)
   size = mark_rvalue_use (size);
 
   /* It might be a const variable or enumeration constant.  */
-  size = integral_constant_value (size);
+  size = maybe_constant_value (size);
   if (error_operand_p (size))
     return error_mark_node;
 
@@ -11708,7 +11706,7 @@ build_enumerator (tree name, tree value, tree enumtype)
       /* Validate and default VALUE.  */
       if (value != NULL_TREE)
 	{
-	  value = integral_constant_value (value);
+	  value = cxx_constant_value (value);
 
 	  if (TREE_CODE (value) == INTEGER_CST)
 	    {
