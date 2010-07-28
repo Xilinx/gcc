@@ -1140,6 +1140,13 @@ validate_constexpr_redeclaration (tree old_decl, tree new_decl)
   if (DECL_DECLARED_CONSTEXPR_P (old_decl)
       == DECL_DECLARED_CONSTEXPR_P (new_decl))
     return true;
+  if (DECL_BUILT_IN (old_decl))
+    {
+      /* Hide a built-in declaration.  */
+      DECL_DECLARED_CONSTEXPR_P (old_decl)
+	= DECL_DECLARED_CONSTEXPR_P (new_decl);
+      return true;
+    }
   error ("redeclaration %qD differs in %<constexpr%>", new_decl);
   error ("from previous declaration %q+D", old_decl);
   return false;
@@ -11851,10 +11858,6 @@ check_function_type (tree decl, tree current_function_parms)
   /* In a function definition, arg types must be complete.  */
   require_complete_types_for_parms (current_function_parms);
 
-  /* constexpr functions must have literal argument types and
-     literal return type.  */
-  validate_constexpr_fundecl (decl);
-
   if (dependent_type_p (return_type))
     return;
   if (!COMPLETE_OR_VOID_TYPE_P (return_type)
@@ -12113,6 +12116,10 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
       if (!DECL_CONTEXT (decl1))
 	maybe_apply_pragma_weak (decl1);
     }
+
+  /* constexpr functions must have literal argument types and
+     literal return type.  */
+  validate_constexpr_fundecl (decl1);
 
   /* Reset this in case the call to pushdecl changed it.  */
   current_function_decl = decl1;
