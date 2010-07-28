@@ -1309,6 +1309,8 @@ maybe_explain_implicit_delete (tree decl)
    reference argument or a non-const reference.  Returns the
    FUNCTION_DECL for the implicitly declared function.  */
 
+/* FIXME constexpr */
+
 static tree
 implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
 {

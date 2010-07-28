@@ -3557,7 +3557,7 @@ decl_constant_var_p (tree decl)
   tree type = TREE_TYPE (decl);
   if (TREE_CODE (decl) != VAR_DECL)
     return false;
-  if (cxx_dialect >= cxx0x && DECL_DECLARED_CONSTEXPR_P (decl))
+  if (DECL_DECLARED_CONSTEXPR_P (decl))
     ret = true;
   else if (CP_TYPE_CONST_NON_VOLATILE_P (type)
 	   && INTEGRAL_OR_ENUMERATION_TYPE_P (type))
@@ -3583,7 +3583,7 @@ decl_maybe_constant_var_p (tree decl)
   tree type = TREE_TYPE (decl);
   if (TREE_CODE (decl) != VAR_DECL)
     return false;
-  if (cxx_dialect >= cxx0x && DECL_DECLARED_CONSTEXPR_P (decl))
+  if (DECL_DECLARED_CONSTEXPR_P (decl))
     return true;
   return (CP_TYPE_CONST_NON_VOLATILE_P (type)
 	  && INTEGRAL_OR_ENUMERATION_TYPE_P (type));

@@ -8355,23 +8355,8 @@ grokdeclarator (const cp_declarator *declarator,
   type_quals = TYPE_UNQUALIFIED;
   if (declspecs->specs[(int)ds_const])
     type_quals |= TYPE_QUAL_CONST;
-  /* A `constexpr' specifier used in an object declaration declares
-     the object as `const'.  */
-  if (constexpr_p)
-    {
-      if (innermost_code == cdk_function)
-        ;
-      else if (declspecs->specs[(int)ds_const] != 0)
-        error ("both %<const%> and %<constexpr%> cannot be used here");
-      else
-        type_quals |= TYPE_QUAL_CONST;
-    }
   if (declspecs->specs[(int)ds_volatile])
-    {
-      if (constexpr_p)
-        error ("both %<volatile%> and %<constexpr%> cannot be used here");
-      type_quals |= TYPE_QUAL_VOLATILE;
-    }
+    type_quals |= TYPE_QUAL_VOLATILE;
   if (declspecs->specs[(int)ds_restrict])
     type_quals |= TYPE_QUAL_RESTRICT;
   if (sfk == sfk_conversion && type_quals != TYPE_UNQUALIFIED)
@@ -8926,6 +8911,18 @@ grokdeclarator (const cp_declarator *declarator,
 	}
     }
 
+  /* A `constexpr' specifier used in an object declaration declares
+     the object as `const'.  */
+  if (constexpr_p && innermost_code != cdk_function)
+    {
+      if (type_quals & TYPE_QUAL_CONST)
+        error ("both %<const%> and %<constexpr%> cannot be used here");
+      if (type_quals & TYPE_QUAL_VOLATILE)
+        error ("both %<volatile%> and %<constexpr%> cannot be used here");
+      type_quals |= TYPE_QUAL_CONST;
+      type = cp_build_qualified_type (type, type_quals);
+    }
+
   if (unqualified_id && TREE_CODE (unqualified_id) == TEMPLATE_ID_EXPR
       && TREE_CODE (type) != FUNCTION_TYPE
       && TREE_CODE (type) != METHOD_TYPE)
@@ -9013,7 +9010,7 @@ grokdeclarator (const cp_declarator *declarator,
       else if (TREE_CODE (type) == FUNCTION_TYPE)
 	{
 	  tree sname = declarator->u.id.unqualified_name;
-          if (constexpr_p)
+          if (constexpr_p && sfk != sfk_constructor && sfk != sfk_destructor)
              memfn_quals |= TYPE_QUAL_CONST;
 
 	  if (current_class_type

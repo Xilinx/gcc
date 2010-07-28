@@ -5219,7 +5219,6 @@ literal_type_p (tree t)
   return false;
 }
 
-
 /* If DECL is a variable declared `constexpr', require its type
    be literal.  Return the DECL if OK, otherwise NULL.  */
 
@@ -5374,10 +5373,12 @@ static tree
 build_data_member_initialization (tree t, tree inits)
 {
   tree member, init;
-  gcc_assert (TREE_CODE (t) == CLEANUP_POINT_EXPR);
-  t = TREE_OPERAND (t, 0);
-  gcc_assert (TREE_CODE (t) == EXPR_STMT);
-  t = TREE_OPERAND (t, 0);
+  if (TREE_CODE (t) == CLEANUP_POINT_EXPR)
+    t = TREE_OPERAND (t, 0);
+  if (TREE_CODE (t) == EXPR_STMT)
+    t = TREE_OPERAND (t, 0);
+  if (t == error_mark_node)
+    return t;
   if (TREE_CODE (t) == CONVERT_EXPR)
     t = TREE_OPERAND (t, 0);
   if (TREE_CODE (t) == INIT_EXPR)
@@ -5415,7 +5416,11 @@ build_constexpr_constructor_member_initializers (tree type, tree body)
       tree_stmt_iterator i;
       gcc_assert (TREE_CODE (body) == STATEMENT_LIST);
       for (i = tsi_start (body); !tsi_end_p (i); tsi_next (&i))
-        inits = build_data_member_initialization (tsi_stmt (i), inits);
+	{
+	  inits = build_data_member_initialization (tsi_stmt (i), inits);
+	  if (inits == error_mark_node)
+	    return inits;
+	}
     }
   return build1 (CTOR_INITIALIZER, type, nreverse (inits));
 }
@@ -5607,7 +5612,6 @@ get_nth_callarg (tree t, int n)
     }
 }
 
-
 /* Look up the binding of the function parameter T in a constexpr
    function call context CALL.  */
 
@@ -5615,7 +5619,6 @@ static tree
 lookup_parameter_binding (const constexpr_call *call, tree t)
 {
   tree b = purpose_member (t, call->bindings);
-  gcc_assert (b != NULL);
   return TREE_VALUE (b);
 }
 
