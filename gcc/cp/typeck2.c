@@ -748,29 +748,25 @@ store_init_value (tree decl, tree init, int flags)
   /* In C++0x constant expression is a semantic, not syntactic, property.
      In C++98, make sure that what we thought was a constant expression at
      template definition time is still constant.  */
-  if (cxx_dialect >= cxx0x
-      || DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl))
+  if ((cxx_dialect >= cxx0x
+       || DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl))
+      && (decl_maybe_constant_var_p (decl)
+	  || TREE_STATIC (decl)))
     {
-      bool const_init = (DECL_DECLARED_CONSTEXPR_P (decl)
-			 || constant_expression_p (value)
-			 || error_operand_p (value));
+      bool const_init;
+      if (DECL_DECLARED_CONSTEXPR_P (decl))
+	/* constexpr variables need to have their initializers reduced.  */
+	value = cxx_constant_value (value);
+      else
+	value = maybe_constant_value (value);
+      if (TREE_CODE (value) == TARGET_EXPR
+	  && TREE_CODE (TARGET_EXPR_INITIAL (value)) == CONSTRUCTOR)
+	value = TARGET_EXPR_INITIAL (value);
+      const_init = (reduced_constant_expression_p (value)
+		    || error_operand_p (value));
       DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl) = const_init;
       TREE_CONSTANT (decl) = const_init && decl_maybe_constant_var_p (decl);
     }
-
-  if (value == error_mark_node)
-    /* Never mind.  */;
-  else if (DECL_DECLARED_CONSTEXPR_P (decl) && value != error_mark_node)
-    /* constexpr variables need to have their initializers reduced.  */
-    value = cxx_constant_value (value);
-  else if (TREE_CONSTANT (decl) || TREE_STATIC (decl))
-    /* As do (integral) const and static storage duration variables, if
-       their initializers are constant expressions.  */
-    value = maybe_constant_value (value);
-
-  if (TREE_CODE (value) == TARGET_EXPR
-      && TREE_CODE (TARGET_EXPR_INITIAL (value)) == CONSTRUCTOR)
-    value = TARGET_EXPR_INITIAL (value);
 
   /* If the initializer is not a constant, fill in DECL_INITIAL with
      the bits that are constant, and then return an expression that

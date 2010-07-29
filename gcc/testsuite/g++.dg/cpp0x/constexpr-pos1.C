@@ -41,7 +41,9 @@ private:
   int val;
 };
 
-constexpr Length l1;		// OK?
+// Marked XFAIL so I remember to check whether this should be an error at all
+// (if so, it should move to -neg1)
+constexpr Length l1;		// { dg-error "missing init" "" { xfail *-*-* } }
 constexpr Length l2(12);
 
 struct pixel2 {
@@ -55,5 +57,6 @@ constexpr const int* addr(const int& ir) { return &ir; } // OK
 static const int x = 5;
 extern constexpr const int* xp = addr(x); // OK: (const int*)&(const int&)x
 					  // is an address contant expression
-#define SA(X) static_assert (X, #X)
 SA(xp == &x);
+extern constexpr int x2 = *addr(5);
+SA(x2 == 5);

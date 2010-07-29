@@ -13,7 +13,7 @@ constexpr struct pixel {
 };				// { dg-error "constexpr" }
 constexpr pixel::pixel(int a)
 // OK: definition
-  : x(square(a)), y(square(a))
+  : x(square(a)), y(square(a))	// { dg-error "square" }
 { }
 
 // error: square not defined, so small(2) not constant (5.19), so constexpr
