@@ -5461,6 +5461,8 @@ register_constexpr_fundef (tree fun, tree body)
           DECL_DECLARED_CONSTEXPR_P (fun) = false;
           return NULL;
         }
+      if (TREE_CODE (body) == BIND_EXPR)
+	body = BIND_EXPR_BODY (body);
       if (TREE_CODE (body) == EH_SPEC_BLOCK)
         body = EH_SPEC_STMTS (body);
       if (TREE_CODE (body) == CLEANUP_POINT_EXPR)
@@ -5938,12 +5940,18 @@ cxx_eval_component_reference (const constexpr_call *call, tree t,
   tree field;
   tree value;
   tree part = TREE_OPERAND (t, 1);
-  tree whole = cxx_eval_constant_expression (call, TREE_OPERAND (t, 0),
+  tree orig_whole = TREE_OPERAND (t, 0);
+  tree whole = cxx_eval_constant_expression (call, orig_whole,
 					     allow_non_constant, addr,
 					     non_constant_p);
+  if (whole == orig_whole)
+    return t;
+  if (addr)
+    return fold_build3 (COMPONENT_REF, TREE_TYPE (t),
+			whole, part, NULL_TREE);
+  VERIFY_CONSTANT (whole);
   if (*non_constant_p)
     return t;
-  gcc_assert (TREE_CODE (whole) == CONSTRUCTOR);
   FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (whole), i, field, value)
     {
       if (field == part)
