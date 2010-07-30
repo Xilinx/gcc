@@ -222,7 +222,7 @@ namespace std
 	       enable_if<treat_as_floating_point<rep>::value 
 			 || (ratio_divide<_Period2, period>::type::den == 1
 			     && !treat_as_floating_point<_Rep2>::value)>::type>
-          constexpr duration(const duration<_Rep2, _Period2>& __d)
+	  duration(const duration<_Rep2, _Period2>& __d)
           : __r(duration_cast<duration>(__d).count()) { }
 
 	~duration() = default;
@@ -658,10 +658,12 @@ namespace std
             chrono::seconds(__t)));
       }
 
+#if 0
       static_assert(
         system_clock::duration::min() < 
         system_clock::duration::zero(), 
         "a clock's minimum duration cannot be less than its epoch");
+#endif
     };
 
 #ifdef _GLIBCXX_USE_CLOCK_MONOTONIC

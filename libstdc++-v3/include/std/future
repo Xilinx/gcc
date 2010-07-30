@@ -75,12 +75,12 @@ namespace std
   /// Overload for make_error_code.
   inline error_code 
   make_error_code(future_errc __errc)
-  { return error_code(static_cast<int>(__errc), *future_category); }
+  { return error_code(static_cast<int>(__errc), future_category()); }
 
   /// Overload for make_error_condition.
   inline error_condition 
   make_error_condition(future_errc __errc)
-  { return error_condition(static_cast<int>(__errc), *future_category); }
+  { return error_condition(static_cast<int>(__errc), future_category()); }
 
   /**
    *  @brief Exception type thrown by futures.

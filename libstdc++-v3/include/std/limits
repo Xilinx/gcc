@@ -1094,12 +1094,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     {
       static const bool is_specialized = true;
 
-      static long long min() throw()
+      static
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      constexpr
+#endif
+      long long min() throw()
       { return -__LONG_LONG_MAX__ - 1; }
       static long long max() throw()
       { return __LONG_LONG_MAX__; }
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-      static long long lowest() throw()
+      static constexpr long long lowest() throw()
       { return min(); }
 #endif
 

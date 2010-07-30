@@ -894,7 +894,7 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      static constexpr result_type
+      constexpr result_type
       min()
       { return _M_b.min(); }
 
@@ -903,7 +903,7 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      static constexpr result_type
+      constexpr result_type
       max()
       { return _M_b.max(); }
 
@@ -1109,7 +1109,7 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      static constexpr result_type
+      constexpr result_type
       min()
       { return 0U; }
 
@@ -1118,7 +1118,7 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      static constexpr result_type
+      constexpr result_type
       max()
       { return __detail::_Shift<_UIntType, __w>::__value - 1; }
 
@@ -1345,7 +1345,7 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      static constexpr result_type
+      constexpr result_type
       min()
       { return _M_b.min(); }
 
@@ -1354,7 +1354,7 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      static constexpr result_type
+      constexpr result_type
       max()
       { return _M_b.max(); }
 
@@ -1567,12 +1567,12 @@ namespace std
 
 #endif
 
-    static constexpr result_type
-    min()
+    result_type
+    min() const
     { return std::numeric_limits<result_type>::min(); }
 
-    static constexpr result_type
-    max()
+    result_type
+    max() const
     { return std::numeric_limits<result_type>::max(); }
 
     double
