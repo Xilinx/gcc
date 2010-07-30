@@ -166,12 +166,12 @@ namespace std
       typedef _UIntType result_type;
 
       /** The multiplier. */
-      static const result_type multiplier   = __a;
+      static constexpr result_type multiplier   = __a;
       /** An increment. */
-      static const result_type increment    = __c;
+      static constexpr result_type increment    = __c;
       /** The modulus. */
-      static const result_type modulus      = __m;
-      static const result_type default_seed = 1u;
+      static constexpr result_type modulus      = __m;
+      static constexpr result_type default_seed = 1u;
 
       /**
        * @brief Constructs a %linear_congruential_engine random number
@@ -225,8 +225,8 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      result_type
-      min() const
+      static constexpr result_type
+      min()
       { return __c == 0u ? 1u : 0u; }
 
       /**
@@ -234,8 +234,8 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      result_type
-      max() const
+      static constexpr result_type
+      max()
       { return __m - 1u; }
 
       /**
@@ -399,20 +399,20 @@ namespace std
       typedef _UIntType result_type;
 
       // parameter values
-      static const size_t      word_size                 = __w;
-      static const size_t      state_size                = __n;
-      static const size_t      shift_size                = __m;
-      static const size_t      mask_bits                 = __r;
-      static const result_type xor_mask                  = __a;
-      static const size_t      tempering_u               = __u;
-      static const result_type tempering_d               = __d;
-      static const size_t      tempering_s               = __s;
-      static const result_type tempering_b               = __b;
-      static const size_t      tempering_t               = __t;
-      static const result_type tempering_c               = __c;
-      static const size_t      tempering_l               = __l;
-      static const result_type initialization_multiplier = __f;
-      static const result_type default_seed = 5489u;
+      static constexpr size_t      word_size                 = __w;
+      static constexpr size_t      state_size                = __n;
+      static constexpr size_t      shift_size                = __m;
+      static constexpr size_t      mask_bits                 = __r;
+      static constexpr result_type xor_mask                  = __a;
+      static constexpr size_t      tempering_u               = __u;
+      static constexpr result_type tempering_d               = __d;
+      static constexpr size_t      tempering_s               = __s;
+      static constexpr result_type tempering_b               = __b;
+      static constexpr size_t      tempering_t               = __t;
+      static constexpr result_type tempering_c               = __c;
+      static constexpr size_t      tempering_l               = __l;
+      static constexpr result_type initialization_multiplier = __f;
+      static constexpr result_type default_seed = 5489u;
 
       // constructors and member function
       explicit
@@ -444,8 +444,8 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      result_type
-      min() const
+      static constexpr result_type
+      min()
       { return 0; };
 
       /**
@@ -453,8 +453,8 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      result_type
-      max() const
+      static constexpr result_type
+      max()
       { return __detail::_Shift<_UIntType, __w>::__value - 1; }
 
       /**
@@ -605,10 +605,10 @@ namespace std
       typedef _UIntType result_type;
 
       // parameter values
-      static const size_t      word_size    = __w;
-      static const size_t      short_lag    = __s;
-      static const size_t      long_lag     = __r;
-      static const result_type default_seed = 19780503u;
+      static constexpr size_t      word_size    = __w;
+      static constexpr size_t      short_lag    = __s;
+      static constexpr size_t      long_lag     = __r;
+      static constexpr result_type default_seed = 19780503u;
 
       /**
        * @brief Constructs an explicitly seeded % subtract_with_carry_engine
@@ -660,8 +660,8 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      result_type
-      min() const
+      static constexpr result_type
+      min()
       { return 0; }
 
       /**
@@ -670,8 +670,8 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      result_type
-      max() const
+      static constexpr result_type
+      max()
       { return __detail::_Shift<_UIntType, __w>::__value - 1; }
 
       /**
@@ -791,8 +791,8 @@ namespace std
       typedef typename _RandomNumberEngine::result_type result_type;
 
       // parameter values
-      static const size_t block_size = __p;
-      static const size_t used_block = __r;
+      static constexpr size_t block_size = __p;
+      static constexpr size_t used_block = __r;
 
       /**
        * @brief Constructs a default %discard_block_engine engine.
@@ -894,8 +894,8 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      result_type
-      min() const
+      static constexpr result_type
+      min()
       { return _M_b.min(); }
 
       /**
@@ -903,8 +903,8 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      result_type
-      max() const
+      static constexpr result_type
+      max()
       { return _M_b.max(); }
 
       /**
@@ -1109,8 +1109,8 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      result_type
-      min() const
+      static constexpr result_type
+      min()
       { return 0U; }
 
       /**
@@ -1118,8 +1118,8 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      result_type
-      max() const
+      static constexpr result_type
+      max()
       { return __detail::_Shift<_UIntType, __w>::__value - 1; }
 
       /**
@@ -1240,7 +1240,7 @@ namespace std
       /** The type of the generated random value. */
       typedef typename _RandomNumberEngine::result_type result_type;
 
-      static const size_t table_size = __k;
+      static constexpr size_t table_size = __k;
 
       /**
        * @brief Constructs a default %shuffle_order_engine engine.
@@ -1345,8 +1345,8 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      result_type
-      min() const
+      static constexpr result_type
+      min()
       { return _M_b.min(); }
 
       /**
@@ -1354,8 +1354,8 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      result_type
-      max() const
+      static constexpr result_type
+      max()
       { return _M_b.max(); }
 
       /**
@@ -1567,12 +1567,12 @@ namespace std
 
 #endif
 
-    result_type
-    min() const
+    static constexpr result_type
+    min()
     { return std::numeric_limits<result_type>::min(); }
 
-    result_type
-    max() const
+    static constexpr result_type
+    max()
     { return std::numeric_limits<result_type>::max(); }
 
     double
@@ -1614,7 +1614,7 @@ namespace std
    */
 
   /**
-   * @addtogroup random_distributions_uniform Uniform
+   * @addtogroup random_distributions_uniform Uniform Distributions
    * @ingroup random_distributions
    * @{
    */
@@ -1972,7 +1972,7 @@ namespace std
   /* @} */ // group random_distributions_uniform
 
   /**
-   * @addtogroup random_distributions_normal Normal
+   * @addtogroup random_distributions_normal Normal Distributions
    * @ingroup random_distributions
    * @{
    */
@@ -3226,7 +3226,7 @@ namespace std
   /* @} */ // group random_distributions_normal
 
   /**
-   * @addtogroup random_distributions_bernoulli Bernoulli
+   * @addtogroup random_distributions_bernoulli Bernoulli Distributions
    * @ingroup random_distributions
    * @{
    */
@@ -3957,7 +3957,7 @@ namespace std
   /* @} */ // group random_distributions_bernoulli
 
   /**
-   * @addtogroup random_distributions_poisson Poisson
+   * @addtogroup random_distributions_poisson Poisson Distributions
    * @ingroup random_distributions
    * @{
    */

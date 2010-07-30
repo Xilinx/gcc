@@ -89,7 +89,7 @@ namespace __atomic2
     atomic_address(const atomic_address&) = delete;
     atomic_address& operator=(const atomic_address&) volatile = delete;
 
-    atomic_address(void* __v) { _M_i = __v; }
+    constexpr atomic_address(void* __v) { _M_i = __v; }
 
     bool
     is_lock_free() const
@@ -233,7 +233,7 @@ namespace __atomic2
       __atomic_base& operator=(const __atomic_base&) volatile = delete;
 
       // Requires __integral_type convertible to _M_base._M_i.
-      __atomic_base(__integral_type __i) { _M_i = __i; }
+      constexpr __atomic_base(__integral_type __i) { _M_i = __i; }
 
       operator __integral_type() const
       { return load(); }
@@ -399,7 +399,7 @@ namespace __atomic2
     atomic_bool(const atomic_bool&) = delete;
     atomic_bool& operator=(const atomic_bool&) volatile = delete;
 
-    atomic_bool(bool __i) : _M_base(__i) { }
+    constexpr atomic_bool(bool __i) : _M_base(__i) { }
 
     bool
     operator=(bool __i)

@@ -1,6 +1,6 @@
 // -*- C++ -*- header.
 
-// Copyright (C) 2008, 2009
+// Copyright (C) 2008, 2009, 2010
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -111,7 +111,7 @@ namespace __atomic0
     atomic_address(const atomic_address&) = delete;
     atomic_address& operator=(const atomic_address&) volatile = delete;
 
-    atomic_address(void* __v) { _M_i = __v; }
+    constexpr atomic_address(void* __v) { _M_i = __v; }
 
     bool
     is_lock_free() const
@@ -255,7 +255,7 @@ namespace __atomic0
       __atomic_base& operator=(const __atomic_base&) volatile = delete;
 
       // Requires __integral_type convertible to _M_base._M_i.
-      __atomic_base(__integral_type __i) { _M_i = __i; }
+      constexpr __atomic_base(__integral_type __i) { _M_i = __i; }
 
       operator __integral_type() const
       { return load(); }
@@ -399,7 +399,7 @@ namespace __atomic0
     atomic_bool(const atomic_bool&) = delete;
     atomic_bool& operator=(const atomic_bool&) volatile = delete;
 
-    atomic_bool(bool __i) : _M_base(__i) { }
+    constexpr atomic_bool(bool __i) : _M_base(__i) { }
 
     bool
     operator=(bool __i)

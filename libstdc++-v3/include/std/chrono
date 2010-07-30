@@ -173,15 +173,15 @@ namespace std
     template<typename _Rep>
       struct duration_values
       {
-        static const _Rep
+        static constexpr _Rep
         zero()
         { return _Rep(0); }
         
-        static const _Rep
+        static constexpr _Rep
         max()
         { return numeric_limits<_Rep>::max(); }
         
-        static const _Rep
+        static constexpr _Rep
         min()
         { return numeric_limits<_Rep>::min(); }
       };
@@ -209,20 +209,20 @@ namespace std
         typedef _Period period;
         
         // 20.8.3.1 construction / copy / destroy
-	duration() = default;
+	constexpr duration() = default;
 
         template<typename _Rep2, typename = typename
 	       enable_if<is_convertible<_Rep2, rep>::value
 			 && (treat_as_floating_point<rep>::value
 			     || !treat_as_floating_point<_Rep2>::value)>::type>
-          explicit duration(const _Rep2& __rep)
+          constexpr explicit duration(const _Rep2& __rep)
           : __r(static_cast<rep>(__rep)) { }
 
         template<typename _Rep2, typename _Period2, typename = typename
 	       enable_if<treat_as_floating_point<rep>::value 
 			 || (ratio_divide<_Period2, period>::type::den == 1
 			     && !treat_as_floating_point<_Rep2>::value)>::type>
-          duration(const duration<_Rep2, _Period2>& __d)
+          constexpr duration(const duration<_Rep2, _Period2>& __d)
           : __r(duration_cast<duration>(__d).count()) { }
 
 	~duration() = default;
@@ -230,16 +230,16 @@ namespace std
 	duration& operator=(const duration&) = default;
 
         // 20.8.3.2 observer
-        rep
+        constexpr rep
         count() const
         { return __r; }
 
         // 20.8.3.3 arithmetic
-        duration
+        constexpr duration
         operator+() const 
         { return *this; }
 
-        duration
+        constexpr duration
         operator-() const
         { return duration(-__r); }
 
@@ -313,16 +313,15 @@ namespace std
 	  }
 
         // 20.8.3.4 special values
-        // TODO: These should be constexprs.
-        static const duration
+        static constexpr duration
         zero()
         { return duration(duration_values<rep>::zero()); }
 
-        static const duration
+        static constexpr duration
         min()
         { return duration(duration_values<rep>::min()); }
       
-        static const duration
+        static constexpr duration
         max()
         { return duration(duration_values<rep>::max()); }
 
@@ -530,12 +529,11 @@ namespace std
 	}
 	
 	// special values
-	// TODO: These should be constexprs.
-	static const time_point
+	static constexpr time_point
 	min()
 	{ return time_point(duration::min()); }
 	
-	static const time_point
+	static constexpr time_point
 	max()
 	{ return time_point(duration::max()); }
 	
@@ -660,13 +658,10 @@ namespace std
             chrono::seconds(__t)));
       }
 
-      // TODO: requires constexpr
-      /*  
       static_assert(
         system_clock::duration::min() < 
         system_clock::duration::zero(), 
         "a clock's minimum duration cannot be less than its epoch");
-      */
     };
 
 #ifdef _GLIBCXX_USE_CLOCK_MONOTONIC
