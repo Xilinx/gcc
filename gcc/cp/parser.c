@@ -15737,7 +15737,7 @@ cp_parser_function_body (cp_parser *parser)
 static bool
 cp_parser_ctor_initializer_opt_and_function_body (cp_parser *parser)
 {
-  tree body;
+  tree body, list;
   bool ctor_initializer_p;
   const bool check_body_p =
      DECL_CONSTRUCTOR_P (current_function_decl)
@@ -15755,13 +15755,21 @@ cp_parser_ctor_initializer_opt_and_function_body (cp_parser *parser)
      generated, so we can't just check that we have an empty block.
      Rather we take a snapshot of the outermost block, and check whether
      cp_parser_function_body changed its state.  */
-  if (check_body_p && TREE_CODE (body) == STATEMENT_LIST)
-    last = STATEMENT_LIST_TAIL (body)->stmt;
+  if (check_body_p)
+    {
+      list = body;
+      if (TREE_CODE (list) == BIND_EXPR)
+	list = BIND_EXPR_BODY (list);
+      if (TREE_CODE (list) == STATEMENT_LIST
+	  && STATEMENT_LIST_TAIL (list) != NULL)
+	last = STATEMENT_LIST_TAIL (list)->stmt;
+    }
   /* Parse the function-body.  */
   cp_parser_function_body (parser);
   if (check_body_p
-      && (TREE_CODE (body) != STATEMENT_LIST
-          || last != STATEMENT_LIST_TAIL (body)->stmt))
+      && (TREE_CODE (list) != STATEMENT_LIST
+	  || (last == NULL && STATEMENT_LIST_TAIL (list) != NULL)
+	  || last != STATEMENT_LIST_TAIL (list)->stmt))
     {
       error ("constexpr constructor does not have empty body");
       DECL_DECLARED_CONSTEXPR_P (current_function_decl) = false;

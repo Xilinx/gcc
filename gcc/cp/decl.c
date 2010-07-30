@@ -1140,7 +1140,7 @@ validate_constexpr_redeclaration (tree old_decl, tree new_decl)
   if (DECL_DECLARED_CONSTEXPR_P (old_decl)
       == DECL_DECLARED_CONSTEXPR_P (new_decl))
     return true;
-  if (DECL_BUILT_IN (old_decl))
+  if (TREE_CODE (old_decl) == FUNCTION_DECL && DECL_BUILT_IN (old_decl))
     {
       /* Hide a built-in declaration.  */
       DECL_DECLARED_CONSTEXPR_P (old_decl)
