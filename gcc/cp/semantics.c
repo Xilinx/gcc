@@ -5335,7 +5335,9 @@ validate_constexpr_fundecl (tree fun)
   for (; parm != NULL; parm = TREE_CHAIN (parm))
     if (!valid_type_in_constexpr_fundecl_p (TREE_TYPE (parm)))
       {
-        error ("invalid type for parameter %q#D of constexpr function", parm);
+	if (!DECL_TEMPLATE_INSTANTIATION (fun))
+	  error ("invalid type for parameter %q#D of constexpr function",
+		 parm);
         DECL_DECLARED_CONSTEXPR_P (fun) = false;
         return NULL;
       }
@@ -5345,8 +5347,9 @@ validate_constexpr_fundecl (tree fun)
       rettype = TREE_TYPE (TREE_TYPE (fun));
       if (!valid_type_in_constexpr_fundecl_p (rettype))
         {
-          error ("invalid return type %qT of constexpr function %qD",
-                 rettype, fun);
+	  if (!DECL_TEMPLATE_INSTANTIATION (fun))
+	    error ("invalid return type %qT of constexpr function %qD",
+		   rettype, fun);
           DECL_DECLARED_CONSTEXPR_P (fun) = false;
           return NULL;
         }
@@ -5418,6 +5421,8 @@ static tree
 build_constexpr_constructor_member_initializers (tree type, tree body)
 {
   tree inits = NULL;
+  if (TREE_CODE (body) == MUST_NOT_THROW_EXPR)
+    body = TREE_OPERAND (body, 0);
   if (TREE_CODE (body) == BIND_EXPR)
     body = BIND_EXPR_BODY (body);
   if (TREE_CODE (body) == CLEANUP_POINT_EXPR)
@@ -5476,7 +5481,8 @@ register_constexpr_fundef (tree fun, tree body)
       body = unshare_expr (TREE_OPERAND (body, 0));
     }
 
-  if (!potential_constant_expression (body, tf_error))
+  if (!potential_constant_expression (body, (DECL_TEMPLATE_INSTANTIATION (fun)
+					     ? tf_none : tf_error)))
     {
       DECL_DECLARED_CONSTEXPR_P (fun) = false;
       return NULL;
@@ -6700,6 +6706,10 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
         }
       goto binary;
 
+    case CTOR_INITIALIZER:
+      if (TREE_OPERAND (t, 0) == NULL_TREE)
+	return true;
+      /* else fall through */
     case REALPART_EXPR:
     case IMAGPART_EXPR:
     case CONJ_EXPR:
@@ -6712,9 +6722,6 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case TRUTH_NOT_EXPR:
     case PAREN_EXPR:
     case FIXED_CONVERT_EXPR:
-    case CTOR_INITIALIZER:
-      /* FIXME this only appears in templates? */
-    case CONST_CAST_EXPR:
       /* For convenience.  */
     case RETURN_EXPR:
       return potential_constant_expression (TREE_OPERAND (t, 0), flags);
