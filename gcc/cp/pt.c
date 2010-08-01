@@ -4820,7 +4820,7 @@ fold_non_dependent_expr (tree expr)
    integral_constant_value, which can be used also in templates where
    initializers can maintain a syntactic rather than semantic form
    (even if they are non-dependent, for access-checking purposes).  */
-
+/* FIXME when should we call this vs fold_non_dep vs maybe_constant_value?  */
 tree
 fold_decl_constant_value (tree expr)
 {

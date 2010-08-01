@@ -6068,6 +6068,7 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t,
 
 /* Attempt to reduce the expression T to a constant value.
    On failure, issue diagnostic and return error_mark_node.  */
+/* FIXME unify with c_fully_fold */
 
 static tree
 cxx_eval_constant_expression (const constexpr_call *call, tree t,
