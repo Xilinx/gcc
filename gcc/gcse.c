@@ -1471,6 +1471,7 @@ hash_scan_set (rtx pat, rtx insn, struct hash_table_d *table)
   else if (flag_gcse_las && REG_P (src) && MEM_P (dest))
       {
         unsigned int regno = REGNO (src);
+	int max_distance = 0;
 
         /* Do not do this for constant/copy propagation.  */
         if (! table->set_p
@@ -1482,7 +1483,7 @@ hash_scan_set (rtx pat, rtx insn, struct hash_table_d *table)
 	      do that easily for EH edges so disable GCSE on these for now.  */
 	   && !can_throw_internal (insn)
 	   /* Is SET_DEST something we want to gcse?  */
-	   && want_to_gcse_p (dest, NULL)
+	   && want_to_gcse_p (dest, &max_distance)
 	   /* Don't CSE a nop.  */
 	   && ! set_noop_p (pat)
 	   /* Don't GCSE if it has attached REG_EQUIV note.
@@ -1503,8 +1504,8 @@ hash_scan_set (rtx pat, rtx insn, struct hash_table_d *table)
 			     && ! JUMP_P (insn);
 
 	       /* Record the memory expression (DEST) in the hash table.  */
-	       insert_expr_in_table (dest, GET_MODE (dest), insn, 0,
-				     antic_p, avail_p, table);
+	       insert_expr_in_table (dest, GET_MODE (dest), insn,
+				     antic_p, avail_p, max_distance, table);
              }
       }
 }
@@ -4389,21 +4390,15 @@ hoist_code (void)
   FOR_EACH_BB (bb)
     {
       rtx insn;
-      rtx bb_end;
       int to_head;
 
-      insn = BB_HEAD (bb);
-      bb_end = BB_END (bb);
       to_head = 0;
-
-      while (insn != bb_end)
+      FOR_BB_INSNS (bb, insn)
 	{
 	  /* Don't count debug instructions to avoid them affecting
 	     decision choices.  */
 	  if (NONDEBUG_INSN_P (insn))
 	    to_bb_head[INSN_UID (insn)] = to_head++;
-
-	  insn = NEXT_INSN (insn);
 	}
 
       bb_size[bb->index] = to_head;

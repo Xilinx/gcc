@@ -2523,6 +2523,7 @@ gfc_symtree *gfc_get_unique_symtree (gfc_namespace *);
 gfc_user_op *gfc_get_uop (const char *);
 gfc_user_op *gfc_find_uop (const char *, gfc_namespace *);
 void gfc_free_symbol (gfc_symbol *);
+void gfc_release_symbol (gfc_symbol *);
 gfc_symbol *gfc_new_symbol (const char *, gfc_namespace *);
 gfc_symtree* gfc_find_symtree_in_proc (const char *, gfc_namespace *);
 int gfc_find_symbol (const char *, gfc_namespace *, int, gfc_symbol **);
@@ -2690,6 +2691,8 @@ bool gfc_is_coindexed (gfc_expr *);
 bool gfc_get_corank (gfc_expr *);
 bool gfc_has_ultimate_allocatable (gfc_expr *);
 bool gfc_has_ultimate_pointer (gfc_expr *);
+
+gfc_expr* gfc_build_intrinsic_call (const char*, locus, unsigned, ...);
 
 
 /* st.c */

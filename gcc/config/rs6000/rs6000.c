@@ -2335,6 +2335,8 @@ darwin_rs6000_override_options (void)
       {
         flag_pic = 2;
       }
+    if (TARGET_64BIT)
+      darwin_one_byte_bool = 1;
   }
   if (TARGET_64BIT && ! TARGET_POWERPC64)
     {
@@ -2795,13 +2797,13 @@ rs6000_override_options (const char *default_cpu)
 	TARGET_ALTIVEC_VRSAVE = rs6000_altivec_abi;
     }
 
-  /* Set the Darwin64 ABI as default for 64-bit Darwin.  */
-  if (DEFAULT_ABI == ABI_DARWIN && TARGET_64BIT)
+  /* Set the Darwin64 ABI as default for 64-bit Darwin.  
+     So far, the only darwin64 targets are also MACH-O.  */
+  if (TARGET_MACHO
+      && DEFAULT_ABI == ABI_DARWIN 
+      && TARGET_64BIT)
     {
       rs6000_darwin64_abi = 1;
-#if TARGET_MACHO
-      darwin_one_byte_bool = 1;
-#endif
       /* Default to natural alignment, for better performance.  */
       rs6000_alignment_flags = MASK_ALIGN_NATURAL;
     }
@@ -3780,6 +3782,11 @@ rs6000_handle_option (size_t code, const char *arg, int value)
 
   switch (code)
     {
+    case OPT_G:
+      g_switch_value = value;
+      g_switch_set = true;
+      break;
+
     case OPT_mno_power:
       target_flags &= ~(MASK_POWER | MASK_POWER2
 			| MASK_MULTIPLE | MASK_STRING);
@@ -7263,9 +7270,17 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
    function doing the returning, or @code{NULL} for libcalls.
 
    The AIX ABI for the RS/6000 specifies that all structures are
-   returned in memory.  The Darwin ABI does the same.  The SVR4 ABI
-   specifies that structures <= 8 bytes are returned in r3/r4, but a
-   draft put them in memory, and GCC used to implement the draft
+   returned in memory.  The Darwin ABI does the same.
+   
+   For the Darwin 64 Bit ABI, a function result can be returned in
+   registers or in memory, depending on the size of the return data
+   type.  If it is returned in registers, the value occupies the same
+   registers as it would if it were the first and only function
+   argument.  Otherwise, the function places its result in memory at
+   the location pointed to by GPR3.
+   
+   The SVR4 ABI specifies that structures <= 8 bytes are returned in r3/r4, 
+   but a draft put them in memory, and GCC used to implement the draft
    instead of the final standard.  Therefore, aix_struct_return
    controls this instead of DEFAULT_ABI; V.4 targets needing backward
    compatibility can change DRAFT_V4_STRUCT_RET to override the
@@ -7281,9 +7296,9 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
 static bool
 rs6000_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
-  /* In the darwin64 abi, try to use registers for larger structs
-     if possible.  */
-  if (rs6000_darwin64_abi
+  /* For the Darwin64 ABI, test if we can fit the return value in regs.  */
+  if (TARGET_MACHO
+      && rs6000_darwin64_abi
       && TREE_CODE (type) == RECORD_TYPE
       && int_size_in_bytes (type) > 0)
     {
@@ -7499,7 +7514,9 @@ function_arg_boundary (enum machine_mode mode, tree type)
 	   || (type && TREE_CODE (type) == VECTOR_TYPE
 	       && int_size_in_bytes (type) >= 16))
     return 128;
-  else if (rs6000_darwin64_abi && mode == BLKmode
+  else if (TARGET_MACHO
+ 	   && rs6000_darwin64_abi
+ 	   && mode == BLKmode
 	   && type && TYPE_ALIGN (type) > 64)
     return 128;
   else
@@ -7675,6 +7692,20 @@ rs6000_darwin64_record_arg_advance_recurse (CUMULATIVE_ARGS *cum,
       }
 }
 
+/* Check for an item that needs to be considered specially under the darwin 64
+   bit ABI.  These are record types where the mode is BLK or the structure is
+   8 bytes in size.  */
+static int
+rs6000_darwin64_struct_check_p (enum machine_mode mode, const_tree type)
+{
+  return rs6000_darwin64_abi
+	 && ((mode == BLKmode 
+	      && TREE_CODE (type) == RECORD_TYPE 
+	      && int_size_in_bytes (type) > 0)
+	  || (type && TREE_CODE (type) == RECORD_TYPE 
+	      && int_size_in_bytes (type) == 8)) ? 1 : 0;
+}
+
 /* Update the data in CUM to advance over an argument
    of mode MODE and data type TYPE.
    (TYPE is null for libcalls where that information may not be available.)
@@ -7687,7 +7718,6 @@ void
 function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 		      tree type, int named, int depth)
 {
-  int size;
 
   /* Only tick off an argument if we're not recursing.  */
   if (depth == 0)
@@ -7751,11 +7781,9 @@ function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 	   && cum->sysv_gregno <= GP_ARG_MAX_REG)
     cum->sysv_gregno++;
 
-  else if (rs6000_darwin64_abi
-	   && mode == BLKmode
-    	   && TREE_CODE (type) == RECORD_TYPE
-	   && (size = int_size_in_bytes (type)) > 0)
+  else if (TARGET_MACHO && rs6000_darwin64_struct_check_p (mode, type))
     {
+      int size = int_size_in_bytes (type);
       /* Variable sized types have size == -1 and are
 	 treated as if consisting entirely of ints.
 	 Pad to 16 byte boundary if needed.  */
@@ -7782,7 +7810,7 @@ function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 	      fprintf (stderr, "function_adv: words = %2d, align=%d, size=%d",
 		       cum->words, TYPE_ALIGN (type), size);
 	      fprintf (stderr, 
-	           "nargs = %4d, proto = %d, mode = %4s (darwin64 abi BLK)\n",
+	           "nargs = %4d, proto = %d, mode = %4s (darwin64 abi)\n",
 		       cum->nargs_prototype, cum->prototype,
 		       GET_MODE_NAME (mode));
 	    }
@@ -8262,8 +8290,7 @@ function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
       return GEN_INT (cum->call_cookie);
     }
 
-  if (rs6000_darwin64_abi && mode == BLKmode
-      && TREE_CODE (type) == RECORD_TYPE)
+  if (TARGET_MACHO && rs6000_darwin64_struct_check_p (mode, type))
     {
       rtx rslt = rs6000_darwin64_record_arg (cum, type, named, false);
       if (rslt != NULL_RTX)
@@ -8520,9 +8547,7 @@ rs6000_arg_partial_bytes (CUMULATIVE_ARGS *cum, enum machine_mode mode,
     return 0;
 
   /* In this complicated case we just disable the partial_nregs code.  */
-  if (rs6000_darwin64_abi && mode == BLKmode
-      && TREE_CODE (type) == RECORD_TYPE
-      && int_size_in_bytes (type) > 0)
+  if (TARGET_MACHO && rs6000_darwin64_struct_check_p (mode, type))
     return 0;
 
   align_words = rs6000_parm_start (mode, type, cum->words);
@@ -25465,7 +25490,11 @@ rs6000_rtx_costs (rtx x, int code, int outer_code, int *total,
       return false;
 
     case POPCOUNT:
-      *total = COSTS_N_INSNS (6);
+      *total = COSTS_N_INSNS (TARGET_POPCNTD ? 1 : 6);
+      return false;
+
+    case PARITY:
+      *total = COSTS_N_INSNS (TARGET_CMPB ? 2 : 6);
       return false;
 
     case NOT:
@@ -26101,7 +26130,7 @@ rs6000_emit_popcount (rtx dst, rtx src)
   if (TARGET_POPCNTD)
     {
       if (mode == SImode)
-	emit_insn (gen_popcntwsi2 (dst, src));
+	emit_insn (gen_popcntdsi2 (dst, src));
       else
 	emit_insn (gen_popcntddi2 (dst, src));
       return;
@@ -26140,6 +26169,23 @@ rs6000_emit_parity (rtx dst, rtx src)
   rtx tmp;
 
   tmp = gen_reg_rtx (mode);
+
+  /* Use the PPC ISA 2.05 prtyw/prtyd instruction if we can.  */
+  if (TARGET_CMPB)
+    {
+      if (mode == SImode)
+	{
+	  emit_insn (gen_popcntbsi2 (tmp, src));
+	  emit_insn (gen_paritysi2_cmpb (dst, tmp));
+	}
+      else
+	{
+	  emit_insn (gen_popcntbdi2 (tmp, src));
+	  emit_insn (gen_paritydi2_cmpb (dst, tmp));
+	}
+      return;
+    }
+
   if (mode == SImode)
     {
       /* Is mult+shift >= shift+xor+shift+xor?  */
@@ -26240,10 +26286,8 @@ rs6000_function_value (const_tree valtype,
   unsigned int regno;
 
   /* Special handling for structs in darwin64.  */
-  if (rs6000_darwin64_abi
-      && TYPE_MODE (valtype) == BLKmode
-      && TREE_CODE (valtype) == RECORD_TYPE
-      && int_size_in_bytes (valtype) > 0)
+  if (TARGET_MACHO 
+      && rs6000_darwin64_struct_check_p (TYPE_MODE (valtype), valtype))
     {
       CUMULATIVE_ARGS valcum;
       rtx valret;

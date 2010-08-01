@@ -1,3 +1,95 @@
+2010-07-30  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44929
+	* gfortran.dg/allocate_derived_3.f90: New.
+
+2010-07-30  Xinliang David Li  <davidxl@google.com>
+	PR tree-optimization/45121
+	* c-c++-common/uninit-17.c: Add -fno-ivops option.
+
+2010-07-30  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR c++/45112
+	* testsuite/g++.dg/pr45112.C: New test.
+
+2010-07-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45055
+	PR rtl-optimization/45137
+	* gcc.dg/pr45055.c: New test.
+
+2010-07-30  Alan Modra  <amodra@gmail.com>
+
+	* gfortran.dg/ltime_gmtime_1.f90: Tolerate half-hour timezones.
+	* gfortran.dg/ltime_gmtime_2.f90: Likewise.
+
+2010-07-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45087
+	PR fortran/45125
+	* gfortran.dg/whole_file_25.f90: New.
+	* gfortran.dg/whole_file_26.f90: New.
+	* gfortran.dg/whole_file_27.f90: New.
+
+2010-07-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44962
+	* gfortran.dg/typebound_proc_17.f03: New.
+
+2010-07-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45004
+	* gfortran.dg/move_alloc_2.f90: New.
+
+2010-07-29  Xinliang David Li  <davidxl@google.com>
+	PR tree-optimization/45121
+	* c-c++-common/uninit-17.c: Fix expected output.
+
+2010-07-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45120
+	* gcc.dg/ipa/ipa-pta-15.c: New testcase.
+
+2010-07-29  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/42051
+	PR fortran/44064
+	* gfortran.dg/pr42051.f03: New testcase.
+
+2010-07-29  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45034
+	* gcc.c-torture/execute/pr45034.c: New testcase.
+
+2010-07-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/45096
+	* g++.dg/cpp0x/auto3.C: Tweak dg-error string.
+
+2010-07-28  Daniel Kraft  <d@domob.eu>
+
+	* gfortran.dg/bound_8.f90: New test.
+
+2010-07-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45105
+	* gcc.dg/pr45105.c: New test.
+
+2010-07-28  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR rtl-optimization/45107
+	* gcc.dg/pr45107.c: New test.
+
+2010-07-28  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR rtl-optimization/45101
+	* gcc.dg/pr45101.c: New test.
+
+2010-07-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45077
+	* gfortran.dg/whole_file_24.f90: New.
+
 2010-07-27  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/variadic102.C: New.

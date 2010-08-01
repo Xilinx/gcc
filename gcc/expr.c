@@ -8664,7 +8664,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	set_mem_attributes (temp, TMR_ORIGINAL (exp), 0);
 	set_mem_addr_space (temp, as);
 	base = get_base_address (TMR_ORIGINAL (exp));
-	if (INDIRECT_REF_P (base)
+	if (base
+	    && INDIRECT_REF_P (base)
 	    && TMR_BASE (exp)
 	    && TREE_CODE (TMR_BASE (exp)) == SSA_NAME
 	    && POINTER_TYPE_P (TREE_TYPE (TMR_BASE (exp))))
@@ -8730,11 +8731,14 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  base = build2 (BIT_AND_EXPR, TREE_TYPE (base),
 			 gimple_assign_rhs1 (def_stmt),
 			 gimple_assign_rhs2 (def_stmt));
+	op0 = expand_expr (base, NULL_RTX, VOIDmode, EXPAND_NORMAL);
+	op0 = convert_memory_address_addr_space (address_mode, op0, as);
 	if (!integer_zerop (TREE_OPERAND (exp, 1)))
-	  base = build2 (POINTER_PLUS_EXPR, TREE_TYPE (base),
-			 base, double_int_to_tree (sizetype,
-						   mem_ref_offset (exp)));
-	op0 = expand_expr (base, NULL_RTX, address_mode, EXPAND_SUM);
+	  {
+	    rtx off
+	      = immed_double_int_const (mem_ref_offset (exp), address_mode);
+	    op0 = simplify_gen_binary (PLUS, address_mode, op0, off);
+	  }
 	op0 = memory_address_addr_space (mode, op0, as);
 	temp = gen_rtx_MEM (mode, op0);
 	set_mem_attributes (temp, exp, 0);

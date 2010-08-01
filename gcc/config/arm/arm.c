@@ -712,7 +712,7 @@ unsigned arm_pic_register = INVALID_REGNUM;
    the next function.  */
 static int after_arm_reorg = 0;
 
-static enum arm_pcs arm_pcs_default;
+enum arm_pcs arm_pcs_default;
 
 /* For an explanation of these variables, see final_prescan_insn below.  */
 int arm_ccfsm_state;
@@ -4487,10 +4487,6 @@ arm_function_arg (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
       && ARM_DOUBLEWORD_ALIGN
       && arm_needs_doubleword_align (mode, type))
     pcum->nregs++;
-
-  if (mode == VOIDmode)
-    /* Pick an arbitrary value for operand 2 of the call insn.  */
-    return const0_rtx;
 
   /* Only allow splitting an arg between regs and memory if all preceding
      args were allocated to regs.  For args passed by reference we only count

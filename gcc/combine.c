@@ -2601,7 +2601,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	  i = double_int_and (i, m);
 	  m = double_int_lshift (m, offset, HOST_BITS_PER_DOUBLE_INT, false);
 	  i = double_int_lshift (i, offset, HOST_BITS_PER_DOUBLE_INT, false);
-	  o = double_int_ior (double_int_and (o, double_int_not (m)), i);
+	  o = double_int_ior (double_int_and_not (o, m), i);
 
 	  combine_merges++;
 	  subst_insn = i3;
@@ -12654,29 +12654,6 @@ reg_bitfield_target_p (rtx x, rtx body)
 
   return 0;
 }
-
-/* Return the next insn after INSN that is neither a NOTE nor a
-   DEBUG_INSN.  This routine does not look inside SEQUENCEs.  */
-
-static rtx
-next_nonnote_nondebug_insn (rtx insn)
-{
-  while (insn)
-    {
-      insn = NEXT_INSN (insn);
-      if (insn == 0)
-	break;
-      if (NOTE_P (insn))
-	continue;
-      if (DEBUG_INSN_P (insn))
-	continue;
-      break;
-    }
-
-  return insn;
-}
-
-
 
 /* Given a chain of REG_NOTES originally from FROM_INSN, try to place them
    as appropriate.  I3 and I2 are the insns resulting from the combination
