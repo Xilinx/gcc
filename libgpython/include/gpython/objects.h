@@ -39,6 +39,19 @@ typedef struct gpy_rr_object_state_t {
   void * self;
   struct gpy_type_obj_def_t * definition;
 } gpy_object_state_t ;
+typedef gpy_object_state_t * gpy_object_t;
+
+#define Gpy_Incr_Ref( x )				  \
+  gpy_assert( x );					  \
+  debug("incrementing ref count on <%p>:<%i> to <%i>!\n", \
+	(void*) x, x->ref_count, (x->ref_count + 1));	  \
+  x->ref_count++;
+
+#define Gpy_Decr_Ref( x )				  \
+  gpy_assert( x );					  \
+  debug("decrementing ref count on <%p>:<%i> to <%i>!\n", \
+	(void*) x, x->ref_count, (x->ref_count - 1));	  \
+  x->ref_count--;
 
 #define METH_NOARGS      (1 << 0) /* 0x01 */
 #define METH_VARARGS     (1 << 1) /* 0x02 */

@@ -41,6 +41,13 @@ typedef struct gpy_rr_context_t {
   gpy_vector_t * symbols;
   /* ... maybe more things later date! */
 } gpy_context_t ;
+typedef gpy_context_t * gpy_ctx_t;
+
+#define Gpy_Vec_Head( V,T )			\
+  (T)(V->vector[V->length-1])
+
+#define Gpy_Namespace_Head			\
+  Gpy_Vec_Head(gpy_namespace_vec,gpy_ctx_t)
 
 extern gpy_hashval_t gpy_dd_hash_string( const char * );
 

@@ -22,6 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 #include <gpython/gpython.h>
 #include <gpython/objects.h>
@@ -85,8 +86,60 @@ gpy_object_state_t * gpy_rr_fold_integer( int x )
   return retval;
 }
 
-void gpy_rr_eval_print(  )
+void gpy_rr_eval_print( int fd, int count, ...  )
 {
+  va_list vl; int idx;
+  va_start( vl,count );
+
+  /* gpy_object_t is a typedef of gpy_object_state_t *
+     to keep stdarg.h happy
+  */
+  gpy_object_state_t * it = NULL;
+  for( idx = 0; idx<count; ++idx )
+    {
+      it = va_arg( vl, gpy_object_t );
+      gpy_assert( it );
+      (*it->definition).print_hook( it, stdout, false );
+    }
+  fprintf( stdout, "\n" );
+  va_end(vl);
+}
+
+inline
+void gpy_rr_incr_ref_count( gpy_object_state_t * x )
+{
+  gpy_assert( x );
+  debug("incrementing ref count on <%p>:<%i> to <%i>!\n",
+	(void*) x, x->ref_count, (x->ref_count + 1) );
+  x->ref_count++;
+}
+
+inline
+void gpy_rr_decr_ref_count( gpy_object_state_t * x )
+{
+  gpy_assert( x );
+  debug("decrementing ref count on <%p>:<%i> to <%i>!\n",
+	(void*) x, x->ref_count, (x->ref_count - 1) );
+  x->ref_count--;
+}
+
+inline
+void gpy_rr_push_context( void )
+{
+  gpy_context_t * ctx = (gpy_context_t *)
+    gpy_malloc( sizeof(gpy_context_t) );
+  ctx->symbols = (gpy_vector_t*)
+    gpy_malloc( sizeof(gpy_vector_t) );
+  gpy_vec_init( head->symbols );
+
+  gpy_vec_push( gpy_namespace_vec, ctx );
+}
+
+void gpy_rr_pop_context( void )
+{
+  gpy_context_t * head = Gpy_Namespace_Head;
+  
+  for( )
 }
 
 gpy_object_state_t *
@@ -103,10 +156,9 @@ gpy_rr_eval_expression( gpy_object_state_t * x,	gpy_object_state_t * y,
   char * op_str = NULL;
   gpy_object_state_t * retval = NULL;
 
-
   struct gpy_type_obj_def_t * def = x->definition;
   struct gpy_number_prot_t * binops = (*def).binary_protocol;
-  struct gpy_number_prot_t  binops_l = (*binops);
+  struct gpy_number_prot_t binops_l = (*binops);
 
   if( binops_l.init )
     {
