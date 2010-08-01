@@ -8731,11 +8731,6 @@ grokdeclarator (const cp_declarator *declarator,
 		  }
 	      }
 
-            /* A constexpr non-static member function is implicitly const.  */
-            if (constexpr_p && decl_context == FIELD && staticp == 0
-                && sfk != sfk_constructor && sfk != sfk_destructor)
-              memfn_quals |= TYPE_QUAL_CONST;
-
 	    arg_types = grokparms (declarator->u.function.parameters,
 				   &parms);
 
@@ -9009,10 +9004,6 @@ grokdeclarator (const cp_declarator *declarator,
 	return error_mark_node;
       else if (TREE_CODE (type) == FUNCTION_TYPE)
 	{
-	  tree sname = declarator->u.id.unqualified_name;
-          if (constexpr_p && sfk != sfk_constructor && sfk != sfk_destructor)
-             memfn_quals |= TYPE_QUAL_CONST;
-
 	  if (current_class_type
 	      && (!friendp || funcdef_flag))
 	    {
@@ -9022,14 +9013,6 @@ grokdeclarator (const cp_declarator *declarator,
 		     ctype, name, current_class_type);
 	      return error_mark_node;
 	    }
-
-	  if (TREE_CODE (sname) == IDENTIFIER_NODE
-	      && NEW_DELETE_OPNAME_P (sname))
-	    /* Overloaded operator new and operator delete
-	       are always static functions.  */
-	    ;
-	  else
-	    type = build_memfn_type (type, ctype, memfn_quals);
 	}
       else if (declspecs->specs[(int)ds_typedef]
 	       && current_class_type)
@@ -9039,6 +9022,15 @@ grokdeclarator (const cp_declarator *declarator,
 	  return error_mark_node;
 	}
     }
+
+  if (ctype == NULL_TREE && decl_context == FIELD && friendp == 0)
+    ctype = current_class_type;
+
+  /* A constexpr non-static member function is implicitly const.  */
+  if (constexpr_p && ctype && staticp == 0
+      && TREE_CODE (type) == FUNCTION_TYPE
+      && sfk != sfk_constructor && sfk != sfk_destructor)
+    memfn_quals |= TYPE_QUAL_CONST;
 
   /* Now TYPE has the actual type.  */
 
@@ -9403,6 +9395,10 @@ grokdeclarator (const cp_declarator *declarator,
 	type = build_pointer_type (type);
     }
 
+  if (ctype && TREE_CODE (type) == FUNCTION_TYPE && staticp < 2
+      && !NEW_DELETE_OPNAME_P (unqualified_id))
+    type = build_memfn_type (type, ctype, memfn_quals);
+
   {
     tree decl;
 
@@ -9436,26 +9432,15 @@ grokdeclarator (const cp_declarator *declarator,
 	    error ("invalid use of %<::%>");
 	    return error_mark_node;
 	  }
-	else if (TREE_CODE (type) == FUNCTION_TYPE)
+	else if (TREE_CODE (type) == FUNCTION_TYPE
+		 || TREE_CODE (type) == METHOD_TYPE)
 	  {
 	    int publicp = 0;
 	    tree function_context;
 
-            if (constexpr_p && !staticp && !friendp
-                && sfk != sfk_constructor && sfk != sfk_destructor)
-              memfn_quals |= TYPE_QUAL_CONST;
-
 	    if (friendp == 0)
 	      {
-		if (ctype == NULL_TREE)
-		  ctype = current_class_type;
-
-		if (ctype == NULL_TREE)
-		  {
-		    error ("can't make %qD into a method -- not in a class",
-			   unqualified_id);
-		    return error_mark_node;
-		  }
+		gcc_assert (ctype);
 
 		/* ``A union may [ ... ] not [ have ] virtual functions.''
 		   ARM 9.5 */
@@ -9476,8 +9461,6 @@ grokdeclarator (const cp_declarator *declarator,
 			virtualp = 0;
 		      }
 		  }
-		else if (staticp < 2)
-		  type = build_memfn_type (type, ctype, memfn_quals);
 	      }
 
 	    /* Check that the name used for a destructor makes sense.  */
@@ -9505,7 +9488,7 @@ grokdeclarator (const cp_declarator *declarator,
                     return error_mark_node;
                   }
 	      }
-	    else if (sfk == sfk_constructor && friendp)
+	    else if (sfk == sfk_constructor && friendp && !ctype)
 	      {
 		error ("expected qualified name in friend declaration "
 		       "for constructor %qD",
@@ -9546,25 +9529,6 @@ grokdeclarator (const cp_declarator *declarator,
 	       is called a converting constructor.  */
 	    if (explicitp == 2)
 	      DECL_NONCONVERTING_P (decl) = 1;
-	  }
-	else if (TREE_CODE (type) == METHOD_TYPE)
-	  {
-	    /* We only get here for friend declarations of
-	       members of other classes.  */
-	    /* All method decls are public, so tell grokfndecl to set
-	       TREE_PUBLIC, also.  */
-	    decl = grokfndecl (ctype, type,
-			       TREE_CODE (unqualified_id) != TEMPLATE_ID_EXPR
-			       ? unqualified_id : dname,
-			       parms,
-			       unqualified_id,
-			       virtualp, flags, memfn_quals, raises,
-			       friendp ? -1 : 0, friendp, 1, 0, sfk,
-			       funcdef_flag, template_count, in_namespace,
-			       attrlist,
-			       declarator->id_loc);
-	    if (decl == NULL_TREE)
-	      return error_mark_node;
 	  }
 	else if (!staticp && !dependent_type_p (type)
 		 && !COMPLETE_TYPE_P (complete_type (type))
@@ -9762,11 +9726,6 @@ grokdeclarator (const cp_declarator *declarator,
 		sfk = sfk_none;
 	      }
 	  }
-	else if (TREE_CODE (type) == FUNCTION_TYPE && staticp < 2
-		 && !NEW_DELETE_OPNAME_P (original_name))
-	  type = build_method_type_directly (ctype,
-					     TREE_TYPE (type),
-					     TYPE_ARG_TYPES (type));
 
 	/* Record presence of `static'.  */
 	publicp = (ctype != NULL_TREE
