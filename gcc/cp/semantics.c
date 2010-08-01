@@ -5383,8 +5383,8 @@ validate_constexpr_fundecl (tree fun)
    the data member with its initializer, and prepend that pair
    to the existing initialization pair INITS.  */
 
-static tree
-build_data_member_initialization (tree t, tree inits)
+static bool
+build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
 {
   tree member, init;
   if (TREE_CODE (t) == CLEANUP_POINT_EXPR)
@@ -5392,7 +5392,7 @@ build_data_member_initialization (tree t, tree inits)
   if (TREE_CODE (t) == EXPR_STMT)
     t = TREE_OPERAND (t, 0);
   if (t == error_mark_node)
-    return t;
+    return false;
   if (TREE_CODE (t) == CONVERT_EXPR)
     t = TREE_OPERAND (t, 0);
   if (TREE_CODE (t) == INIT_EXPR)
@@ -5411,7 +5411,8 @@ build_data_member_initialization (tree t, tree inits)
     }
   if (TREE_CODE (member) == COMPONENT_REF)
     member = TREE_OPERAND (member, 1);
-  return tree_cons (member, init, inits);
+  CONSTRUCTOR_APPEND_ELT (*vec, member, init);
+  return true;
 }
 
 /* Build compile-time evalable representations of member-initializer list
@@ -5420,25 +5421,29 @@ build_data_member_initialization (tree t, tree inits)
 static tree
 build_constexpr_constructor_member_initializers (tree type, tree body)
 {
-  tree inits = NULL;
+  VEC(constructor_elt,gc) *vec = NULL;
+  bool ok = true;
   if (TREE_CODE (body) == MUST_NOT_THROW_EXPR)
     body = TREE_OPERAND (body, 0);
   if (TREE_CODE (body) == BIND_EXPR)
     body = BIND_EXPR_BODY (body);
   if (TREE_CODE (body) == CLEANUP_POINT_EXPR)
-    inits = build_data_member_initialization (body, inits);
+    ok = build_data_member_initialization (body, &vec);
   else
     {
       tree_stmt_iterator i;
       gcc_assert (TREE_CODE (body) == STATEMENT_LIST);
       for (i = tsi_start (body); !tsi_end_p (i); tsi_next (&i))
 	{
-	  inits = build_data_member_initialization (tsi_stmt (i), inits);
-	  if (inits == error_mark_node)
-	    return inits;
+	  ok = build_data_member_initialization (tsi_stmt (i), &vec);
+	  if (!ok)
+	    break;
 	}
     }
-  return build1 (CTOR_INITIALIZER, type, nreverse (inits));
+  if (ok)
+    return build_constructor (type, vec);
+  else
+    return error_mark_node;
 }
 
 /* We are processing the definition of the constexpr function FUN.
@@ -5996,39 +6001,6 @@ cxx_eval_logical_expression (const constexpr_call *call, tree t,
 }
 
 /* Subroutine of cxx_eval_constant_expression.
-  Evaluate an object construction (CTOR_INITIALIZER) denoted by T,
-  in the context of contexpr CALL.  */
-
-static tree
-cxx_eval_object_construction (const constexpr_call *call, tree t,
-			      bool allow_non_constant, bool addr,
-			      bool *non_constant_p)
-{
-  tree inits = TREE_OPERAND (t, 0);
-  VEC(constructor_elt,gc) *vec = VEC_alloc (constructor_elt, gc,
-					    list_length (inits));
-  for (; inits != NULL; inits = TREE_CHAIN (inits))
-    {
-      tree v = cxx_eval_constant_expression (call, TREE_VALUE (inits),
-					     allow_non_constant, addr,
-					     non_constant_p);
-      VERIFY_CONSTANT (v);
-      if (allow_non_constant && *non_constant_p)
-	goto fail;
-      CONSTRUCTOR_APPEND_ELT (vec, TREE_PURPOSE (inits), v);
-    }
-  if (*non_constant_p)
-    {
-    fail:
-      VEC_free (constructor_elt, gc, vec);
-      return t;
-    }
-  t = build_constructor (TREE_TYPE (t), vec);
-  TREE_CONSTANT (t) = true;
-  return t;
-}
-
-/* Subroutine of cxx_eval_constant_expression.
    The expression tree T denotes a C-style array of a C-style
    aggregate.  Reduce it to a constant expression.  */
 
@@ -6267,11 +6239,6 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
     case VEC_COND_EXPR:
       r = cxx_eval_conditional_expression (call, t, allow_non_constant, addr,
 					   non_constant_p);
-      break;
-
-    case CTOR_INITIALIZER:
-      r = cxx_eval_object_construction (call, t, allow_non_constant, addr,
-					non_constant_p);
       break;
 
     case CONSTRUCTOR:
@@ -6707,10 +6674,6 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
         }
       goto binary;
 
-    case CTOR_INITIALIZER:
-      if (TREE_OPERAND (t, 0) == NULL_TREE)
-	return true;
-      /* else fall through */
     case REALPART_EXPR:
     case IMAGPART_EXPR:
     case CONJ_EXPR:
