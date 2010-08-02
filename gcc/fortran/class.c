@@ -178,6 +178,7 @@ gfc_build_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
 	  gcc_assert (vtab);
 	  c->ts.u.derived = vtab->ts.u.derived;
 	}
+      c->attr.access = ACCESS_PRIVATE;
       c->attr.pointer = 1;
     }
 
@@ -321,7 +322,7 @@ gfc_symbol *
 gfc_find_derived_vtab (gfc_symbol *derived)
 {
   gfc_namespace *ns;
-  gfc_symbol *vtab = NULL, *vtype = NULL;
+  gfc_symbol *vtab = NULL, *vtype = NULL, *found_sym = NULL;
   char name[2 * GFC_MAX_SYMBOL_LEN + 8];
 
   ns = gfc_current_ns;
@@ -343,6 +344,7 @@ gfc_find_derived_vtab (gfc_symbol *derived)
 	  vtab->attr.target = 1;
 	  vtab->attr.save = SAVE_EXPLICIT;
 	  vtab->attr.vtab = 1;
+	  vtab->attr.access = ACCESS_PUBLIC;
 	  vtab->refs++;
 	  gfc_set_sym_referenced (vtab);
 	  sprintf (name, "vtype$%s", derived->name);
@@ -356,13 +358,14 @@ gfc_find_derived_vtab (gfc_symbol *derived)
 	      gfc_get_symbol (name, ns, &vtype);
 	      if (gfc_add_flavor (&vtype->attr, FL_DERIVED,
 				  NULL, &gfc_current_locus) == FAILURE)
-		return NULL;
+		goto cleanup;
+	      vtype->attr.access = ACCESS_PUBLIC;
 	      vtype->refs++;
 	      gfc_set_sym_referenced (vtype);
 
 	      /* Add component '$hash'.  */
 	      if (gfc_add_component (vtype, "$hash", &c) == FAILURE)
-		return NULL;
+		goto cleanup;
 	      c->ts.type = BT_INTEGER;
 	      c->ts.kind = 4;
 	      c->attr.access = ACCESS_PRIVATE;
@@ -371,7 +374,7 @@ gfc_find_derived_vtab (gfc_symbol *derived)
 
 	      /* Add component '$size'.  */
 	      if (gfc_add_component (vtype, "$size", &c) == FAILURE)
-		return NULL;
+		goto cleanup;
 	      c->ts.type = BT_INTEGER;
 	      c->ts.kind = 4;
 	      c->attr.access = ACCESS_PRIVATE;
@@ -384,7 +387,7 @@ gfc_find_derived_vtab (gfc_symbol *derived)
 
 	      /* Add component $extends.  */
 	      if (gfc_add_component (vtype, "$extends", &c) == FAILURE)
-		return NULL;
+		goto cleanup;
 	      c->attr.pointer = 1;
 	      c->attr.access = ACCESS_PRIVATE;
 	      parent = gfc_get_derived_super_type (derived);
@@ -414,7 +417,17 @@ gfc_find_derived_vtab (gfc_symbol *derived)
 	}
     }
 
-  return vtab;
+  found_sym = vtab;
+
+cleanup:
+  /* It is unexpected to have some symbols added at resolution or code
+     generation time. We commit the changes in order to keep a clean state.  */
+  if (found_sym)
+    gfc_commit_symbols ();
+  else
+    gfc_undo_symbols ();
+
+  return found_sym;
 }
 
 

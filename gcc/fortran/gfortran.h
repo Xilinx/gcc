@@ -2355,8 +2355,11 @@ void gfc_done_2 (void);
 int get_c_kind (const char *, CInteropKind_t *);
 
 /* options.c */
-unsigned int gfc_init_options (unsigned int, const char **);
-int gfc_handle_option (size_t, const char *, int, int);
+unsigned int gfc_option_lang_mask (void);
+void gfc_init_options (unsigned int,
+		       struct cl_decoded_option *);
+bool gfc_handle_option (size_t, const char *, int, int,
+			const struct cl_option_handlers *);
 bool gfc_post_options (const char **);
 
 /* f95-lang.c */
@@ -2520,6 +2523,7 @@ gfc_symtree *gfc_get_unique_symtree (gfc_namespace *);
 gfc_user_op *gfc_get_uop (const char *);
 gfc_user_op *gfc_find_uop (const char *, gfc_namespace *);
 void gfc_free_symbol (gfc_symbol *);
+void gfc_release_symbol (gfc_symbol *);
 gfc_symbol *gfc_new_symbol (const char *, gfc_namespace *);
 gfc_symtree* gfc_find_symtree_in_proc (const char *, gfc_namespace *);
 int gfc_find_symbol (const char *, gfc_namespace *, int, gfc_symbol **);
@@ -2687,6 +2691,8 @@ bool gfc_is_coindexed (gfc_expr *);
 bool gfc_get_corank (gfc_expr *);
 bool gfc_has_ultimate_allocatable (gfc_expr *);
 bool gfc_has_ultimate_pointer (gfc_expr *);
+
+gfc_expr* gfc_build_intrinsic_call (const char*, locus, unsigned, ...);
 
 
 /* st.c */

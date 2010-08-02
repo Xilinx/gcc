@@ -338,6 +338,8 @@ void gfc_conv_intrinsic_function (gfc_se *, gfc_expr *);
 /* Does an intrinsic map directly to an external library call.  */
 int gfc_is_intrinsic_libcall (gfc_expr *);
 
+tree gfc_conv_intrinsic_move_alloc (gfc_code *);
+
 /* Used to call ordinary functions/subroutines
    and procedure pointer components.  */
 int gfc_conv_procedure_call (gfc_se *, gfc_symbol *, gfc_actual_arglist *,
@@ -449,7 +451,7 @@ void gfc_allocate_lang_decl (tree);
 tree gfc_advance_chain (tree, int);
 
 /* Create a decl for a function.  */
-void gfc_create_function_decl (gfc_namespace *);
+void gfc_create_function_decl (gfc_namespace *, bool);
 /* Generate the code for a function.  */
 void gfc_generate_function_code (gfc_namespace *);
 /* Output a BLOCK DATA program unit.  */
@@ -537,7 +539,7 @@ void gfc_process_block_locals (gfc_namespace*);
 /* Output initialization/clean-up code that was deferred.  */
 void gfc_trans_deferred_vars (gfc_symbol*, gfc_wrapped_block *);
 
-/* somewhere! */
+/* In f95-lang.c.  */
 tree pushdecl (tree);
 tree pushdecl_top_level (tree);
 void pushlevel (int);
@@ -545,6 +547,8 @@ tree poplevel (int, int, int);
 tree getdecls (void);
 tree gfc_truthvalue_conversion (tree);
 tree gfc_builtin_function (tree);
+
+/* In trans-types.c.  */
 struct array_descr_info;
 bool gfc_get_array_descr_info (const_tree, struct array_descr_info *);
 

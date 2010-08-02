@@ -1,3 +1,146 @@
+2010-08-01  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44912
+	* class.c (gfc_build_class_symbol): Make '$vptr' component private.
+	(gfc_find_derived_vtab): Make vtabs and vtypes public.
+	* module.c (read_module): When reading module files, always import
+	vtab and vtype symbols.
+
+2010-07-31  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/42051
+	PR fortran/44064
+	* symbol.c (changed_syms): Made non-static.
+	* parse.c (changed_syms): Declare new external. 
+	(next_statement): Assert changed_syms is NULL at the beginning.
+
+2010-07-30  Janus Weil  <janus@gcc.gnu.org>
+	    Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/44929
+	* match.c (match_type_spec): Try to parse derived types before
+	intrinsic types.
+
+2010-07-30  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* gfortran.h (gfc_release_symbol): New prototype.
+	* symbol.c (gfc_release_symbol): New. Code taken from free_sym_tree.
+	(gfc_undo_symbols, free_sym_tree, gfc_free_finalizer):
+	Use gfc_release_symbol.
+	* parse.c (gfc_fixup_sibling_symbols): Ditto.
+	* resolve.c (resolve_symbol): Ditto.
+
+2010-07-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45087
+	PR fortran/45125
+	* trans-decl.c (gfc_get_extern_function_decl): Correctly handle
+	external procedure declarations in modules.
+	(gfc_get_symbol_decl): Modify assert.
+
+2010-07-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44962
+	* resolve.c (resolve_fl_derived): Call gfc_resolve_array_spec.
+
+2010-07-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45004
+	* trans-stmt.h (gfc_trans_class_init_assign): New prototype.
+	(gfc_trans_class_assign): Modified prototype.
+	* trans.h (gfc_conv_intrinsic_move_alloc): New prototype.
+	* trans-expr.c (gfc_trans_class_init_assign): Split off from ...
+	(gfc_trans_class_assign): ... here. Modified actual arguments.
+	* trans-intrinsic.c (gfc_conv_intrinsic_move_alloc): New function to
+	handle the MOVE_ALLOC intrinsic with scalar and class arguments.
+	* trans.c (trans_code): Call 'gfc_conv_intrinsic_move_alloc'.
+
+2010-07-29  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/42051
+	PR fortran/44064
+	* class.c (gfc_find_derived_vtab): Accept or discard newly created
+	symbols before returning.
+
+2010-07-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (cpp): Remove Joined and Separate markers.
+	(cpp=): New internal option.
+	* lang-specs.h (F951_CPP_OPTIONS): Generate -cpp= option.
+	* cpp.c (gfc_cpp_handle_option): Handle OPT_cpp_ instead of
+	OPT_cpp.
+
+2010-07-29  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/45117
+	* array.c (resolve_array_bound): Fix error message to properly handle
+	non-variable expressions.
+
+2010-07-28  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* decl.c (free_value): Also free repeat field.
+	* data.c (gfc_assign_data_value): Always free offset before returning.
+
+2010-07-28  Daniel Kraft  <d@domob.eu>
+
+	* gfortran.h (gfc_build_intrinsic_call): New method.
+	* expr.c (gfc_build_intrinsic_call): New method.
+	* simplify.c (range_check): Ignore non-constant value.
+	(simplify_bound_dim): Handle non-variable expressions and
+	fix memory leak with non-free'ed expression.
+	(simplify_bound): Handle non-variable expressions.
+	(gfc_simplify_shape): Ditto.
+	(gfc_simplify_size): Ditto, but only in certain cases possible.
+
+2010-07-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* gfortranspec.c (SWITCH_TAKES_ARG, WORD_SWITCH_TAKES_ARG):
+	Remove.
+
+2010-07-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45077
+	* trans-types.c (gfc_get_derived_type): Fix DT declaration
+	from modules for whole-file mode.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* gfortran.h (gfc_handle_option): Update prototype and return
+	value type.
+	* options.c (gfc_handle_option): Update prototype and return value
+	type.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* cpp.c (gfc_cpp_init_options): Update prototype.  Use number of
+	decoded options in allocating deferred_opt.
+	* cpp.h (gfc_cpp_init_options): Update prototype.
+	* f95-lang.c (LANG_HOOKS_OPTION_LANG_MASK): Define.
+	* gfortran.h (gfc_option_lang_mask): New.
+	(gfc_init_options): Update prototype.
+	* options.c (gfc_option_lang_mask): New.
+	(gfc_init_options): Update prototype.  Pass new arguments to
+	gfc_cpp_init_options.
+
+2010-07-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40873
+	* trans-decl.c (gfc_get_extern_function_decl): Fix generation
+	for functions which are later in the same file.
+	(gfc_create_function_decl, build_function_decl,
+	build_entry_thunks): Add global argument.
+	* trans.c (gfc_generate_module_code): Update
+	gfc_create_function_decl call.
+	* trans.h (gfc_create_function_decl): Update prototype.
+	* resolve.c (resolve_global_procedure): Also resolve for
+	IFSRC_IFBODY.
+
+2010-07-26  Richard Henderson  <rth@redhat.com>
+
+	PR target/44132
+	* f95-lang.c (LANG_HOOKS_WRITE_GLOBALS): New.
+	(gfc_write_global_declarations): New.
+
 2010-07-26  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/45066

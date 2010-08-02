@@ -53,11 +53,21 @@ set_default_std_flags (void)
 }
 
 
+/* Return language mask for Fortran options.  */
+
+unsigned int
+gfc_option_lang_mask (void)
+{
+  return CL_Fortran;
+}
+
+
 /* Get ready for options handling. Keep in sync with
    libgfortran/runtime/compile_options.c (init_compile_options). */
 
-unsigned int
-gfc_init_options (unsigned int argc, const char **argv)
+void
+gfc_init_options (unsigned int decoded_options_count,
+		  struct cl_decoded_option *decoded_options)
 {
   gfc_source_file = NULL;
   gfc_option.module_dir = NULL;
@@ -143,9 +153,7 @@ gfc_init_options (unsigned int argc, const char **argv)
   flag_short_enums = targetm.default_short_enums ();
 
   /* Initialize cpp-related options.  */
-  gfc_cpp_init_options(argc, argv);
-
-  return CL_Fortran;
+  gfc_cpp_init_options (decoded_options_count, decoded_options);
 }
 
 
@@ -534,20 +542,21 @@ gfc_handle_runtime_check_option (const char *arg)
 /* Handle command-line options.  Returns 0 if unrecognized, 1 if
    recognized and handled.  */
 
-int
+bool
 gfc_handle_option (size_t scode, const char *arg, int value,
-		   int kind ATTRIBUTE_UNUSED)
+		   int kind ATTRIBUTE_UNUSED,
+		   const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
 {
-  int result = 1;
+  bool result = true;
   enum opt_code code = (enum opt_code) scode;
 
   if (gfc_cpp_handle_option (scode, arg, value) == 1)
-    return 1;
+    return true;
 
   switch (code)
     {
     default:
-      result = 0;
+      result = false;
       break;
 
     case OPT_Wall:

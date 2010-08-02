@@ -57,10 +57,6 @@ Common Separate
 -version
 Common
 
-G
-Common Joined Separate UInteger
--G<number>	Put global and static data smaller than <number> bytes into a special section (on some targets)
-
 O
 Common JoinedOrMissing Optimization
 -O<number>	Set optimization level to <number>
@@ -1584,7 +1580,7 @@ Common Joined Var(plugindir_string) Init(0)
 -iplugindir=<dir>	Set <dir> to be the default plugin directory
 
 o
-Common Joined Separate
+Common Joined Separate MissingArgError(missing filename after %qs)
 -o <file>	Place output into <file>
 
 p

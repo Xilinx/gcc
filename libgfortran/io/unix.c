@@ -131,31 +131,49 @@ typedef struct stat gfstat_t;
 #endif
 
 
+#ifndef HAVE_ACCESS
+
+#ifndef W_OK
+#define W_OK 2
+#endif
+
+#ifndef R_OK
+#define R_OK 4
+#endif
+
+#ifndef F_OK
+#define F_OK 0
+#endif
+
+/* Fallback implementation of access() on systems that don't have it.
+   Only modes R_OK, W_OK and F_OK are used in this file.  */
+
+static int
+fallback_access (const char *path, int mode)
+{
+  if ((mode & R_OK) && open (path, O_RDONLY) < 0)
+    return -1;
+
+  if ((mode & W_OK) && open (path, O_WRONLY) < 0)
+    return -1;
+
+  if (mode == F_OK)
+    {
+      gfstat_t st;
+      return stat (path, &st);
+    }
+
+  return 0;
+}
+
+#undef access
+#define access fallback_access
+#endif
+
+
 /* Unix and internal stream I/O module */
 
 static const int BUFFER_SIZE = 8192;
-
-typedef struct
-{
-  stream st;
-
-  gfc_offset buffer_offset;	/* File offset of the start of the buffer */
-  gfc_offset physical_offset;	/* Current physical file offset */
-  gfc_offset logical_offset;	/* Current logical file offset */
-  gfc_offset file_length;	/* Length of the file, -1 if not seekable. */
-
-  char *buffer;                 /* Pointer to the buffer.  */
-  int fd;                       /* The POSIX file descriptor.  */
-
-  int active;			/* Length of valid bytes in the buffer */
-
-  int prot;
-  int ndirty;			/* Dirty bytes starting at buffer_offset */
-
-  int special_file;		/* =1 if the fd refers to a special file */
-}
-unix_stream;
-
 
 /* fix_fd()-- Given a file descriptor, make sure it is not one of the
  * standard descriptors, returning a non-standard descriptor.  If the
@@ -1602,15 +1620,11 @@ int
 file_exists (const char *file, gfc_charlen_type file_len)
 {
   char path[PATH_MAX + 1];
-  gfstat_t statbuf;
 
   if (unpack_filename (path, file, file_len))
     return 0;
 
-  if (stat (path, &statbuf) < 0)
-    return 0;
-
-  return 1;
+  return !(access (path, F_OK));
 }
 
 
@@ -1715,36 +1729,6 @@ inquire_unformatted (const char *string, int len)
 {
   return inquire_formatted (string, len);
 }
-
-
-#ifndef HAVE_ACCESS
-
-#ifndef W_OK
-#define W_OK 2
-#endif
-
-#ifndef R_OK
-#define R_OK 4
-#endif
-
-/* Fallback implementation of access() on systems that don't have it.
-   Only modes R_OK and W_OK are used in this file.  */
-
-static int
-fallback_access (const char *path, int mode)
-{
-  if ((mode & R_OK) && open (path, O_RDONLY) < 0)
-    return -1;
-
-  if ((mode & W_OK) && open (path, O_WRONLY) < 0)
-    return -1;
-
-  return 0;
-}
-
-#undef access
-#define access fallback_access
-#endif
 
 
 /* inquire_access()-- Given a fortran string, determine if the file is

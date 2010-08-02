@@ -3297,8 +3297,7 @@ simplify_subreg_regno (unsigned int xregno, enum machine_mode xmode,
 
   /* We shouldn't simplify stack-related registers.  */
   if ((!reload_completed || frame_pointer_needed)
-      && (xregno == FRAME_POINTER_REGNUM
-	  || xregno == HARD_FRAME_POINTER_REGNUM))
+      && xregno == FRAME_POINTER_REGNUM)
     return -1;
 
   if (FRAME_POINTER_REGNUM != ARG_POINTER_REGNUM
@@ -4756,9 +4755,7 @@ canonicalize_condition (rtx insn, rtx cond, int reverse, rtx *earliest,
 	 stop if it isn't a single set or if it has a REG_INC note because
 	 we don't want to bother dealing with it.  */
 
-      do
-	prev = prev_nonnote_insn (prev);
-      while (prev && DEBUG_INSN_P (prev));
+      prev = prev_nonnote_nondebug_insn (prev);
 
       if (prev == 0
 	  || !NONJUMP_INSN_P (prev)

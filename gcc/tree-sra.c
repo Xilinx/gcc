@@ -3147,6 +3147,8 @@ find_param_candidates (void)
 
 	  if (TREE_CODE (type) == FUNCTION_TYPE
 	      || TYPE_VOLATILE (type)
+	      || (TREE_CODE (type) == ARRAY_TYPE
+		  && TYPE_NONALIASED_COMPONENT (type))
 	      || !is_gimple_reg (parm)
 	      || is_va_list_type (type)
 	      || ptr_parm_has_direct_uses (parm))
@@ -4310,13 +4312,6 @@ modify_function (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
 static bool
 ipa_sra_preliminary_function_checks (struct cgraph_node *node)
 {
-  if (!tree_versionable_function_p (current_function_decl))
-    {
-      if (dump_file)
-	fprintf (dump_file, "Function isn't allowed to be versioned.\n");
-      return false;
-    }
-
   if (!cgraph_node_can_be_local_p (node))
     {
       if (dump_file)
@@ -4451,7 +4446,7 @@ ipa_early_sra (void)
 static bool
 ipa_early_sra_gate (void)
 {
-  return flag_ipa_sra;
+  return flag_ipa_sra && dbg_cnt (eipa_sra);
 }
 
 struct gimple_opt_pass pass_early_ipa_sra =

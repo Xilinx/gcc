@@ -44,6 +44,7 @@ struct cl_option
 {
   const char *opt_text;
   const char *help;
+  const char *missing_argument_error;
   unsigned short back_chain;
   unsigned char opt_len;
   int neg_index;
@@ -117,6 +118,16 @@ struct cl_decoded_option
      -frecord-gcc-switches.  */
   const char *orig_option_with_args_text;
 
+  /* The canonical form of the option and its argument, for when it is
+     necessary to reconstruct argv elements (in particular, for
+     processing specs and passing options to subprocesses from the
+     driver).  */
+  const char *canonical_option[4];
+
+  /* The number of elements in the canonical form of the option and
+     arguments; always at least 1.  */
+  size_t canonical_option_num_elements;
+
   /* For a boolean option, 1 for the true case and 0 for the "no-"
      case.  For an unsigned integer option, the value of the
      argument.  1 in all other cases.  */
@@ -124,6 +135,47 @@ struct cl_decoded_option
 
   /* Any flags describing errors detected in this option.  */
   int errors;
+};
+
+/* Structure describing a single option-handling callback.  */
+
+struct cl_option_handler_func
+{
+  /* The function called to handle the option.  */
+  bool (*handler) (size_t opt_index, const char *arg, int value,
+		   unsigned int lang_mask, int kind,
+		   const struct cl_option_handlers *handlers);
+
+  /* The mask that must have some bit in common with the flags for the
+     option for this particular handler to be used.  */
+  unsigned int mask;
+};
+
+/* Structure describing the callbacks used in handling options.  */
+
+struct cl_option_handlers
+{
+  /* Callback for an unknown option to determine whether to give an
+     error for it, and possibly store information to diagnose the
+     option at a later point.  Return true if an error should be
+     given, false otherwise.  */
+  bool (*unknown_option_callback) (const char *opt);
+
+  /* Callback to handle, and possibly diagnose, an option for another
+     language.  */
+  void (*wrong_lang_callback) (const char *text,
+			       const struct cl_option *option,
+			       unsigned int lang_mask);
+
+  /* Callback to call after the successful handling of any option.  */
+  void (*post_handling_callback) (size_t opt_index, const char *arg,
+				  int value, unsigned int mask);
+
+  /* The number of individual handlers.  */
+  size_t num_handlers;
+
+  /* The handlers themselves.  */
+  struct cl_option_handler_func handlers[3];
 };
 
 /* Input file names.  */
@@ -148,10 +200,15 @@ extern void decode_options (unsigned int argc, const char **argv,
 extern int option_enabled (int opt_idx);
 extern bool get_option_state (int, struct cl_option_state *);
 extern void set_option (int opt_index, int value, const char *arg, int);
-bool handle_option (int opt_index, int value, const char *arg,
-		    unsigned int lang_mask, int kind);
+bool handle_option (size_t opt_index, const char *arg, int value,
+		    unsigned int lang_mask, int kind,
+		    const struct cl_option_handlers *handlers);
+extern void read_cmdline_option (struct cl_decoded_option *decoded,
+				 unsigned int lang_mask,
+				 const struct cl_option_handlers *handlers);
 extern void register_warning_as_error_callback (void (*callback) (int));
 extern void enable_warning_as_error (const char *arg, int value,
-				     unsigned int lang_mask);
+				     unsigned int lang_mask,
+				     const struct cl_option_handlers *handlers);
 extern void print_ignored_options (void);
 #endif
