@@ -5323,7 +5323,11 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
       if (BRACE_ENCLOSED_INITIALIZER_P (init))
 	{
 	  if (is_std_init_list (type))
-	    return build_init_list_var_init (decl, type, init, cleanup);
+	    {
+	      init_code = build_init_list_var_init (decl, type, init, cleanup);
+	      init = NULL_TREE;
+	      goto out;
+	    }
 	  else if (TYPE_NON_AGGREGATE_CLASS (type))
 	    {
 	      /* Don't reshape if the class has constructors.  */
@@ -5400,8 +5404,26 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
   else
     check_for_uninitialized_const_var (decl);
 
+ out:
+
   if (init && init != error_mark_node)
     init_code = build2 (INIT_EXPR, type, decl, init);
+
+  if (init_code && DECL_IN_AGGR_P (decl))
+    {
+      static int explained = 0;
+
+      if (cxx_dialect < cxx0x)
+	error ("initializer invalid for static member with constructor");
+      else
+	error ("non-constant in-class initialization invalid for static "
+	       "member %qD", decl);
+      if (!explained)
+	{
+	  error ("(an out of class initialization is required)");
+	  explained = 1;
+	}
+    }
 
   return init_code;
 }
@@ -7393,6 +7415,8 @@ build_ptrmem_type (tree class_type, tree member_type)
 int
 check_static_variable_definition (tree decl, tree type)
 {
+  if (DECL_P (decl) && DECL_DECLARED_CONSTEXPR_P (decl))
+    return 0;
   /* Motion 10 at San Diego: If a static const integral data member is
      initialized with an integral constant expression, the initializer
      may appear either in the declaration (within the class), or in
@@ -7404,10 +7428,6 @@ check_static_variable_definition (tree decl, tree type)
       error ("invalid in-class initialization of static data member "
 	     "of non-integral type %qT",
 	     type);
-      /* If we just return the declaration, crashes will sometimes
-	 occur.  We therefore return void_type_node, as if this were a
-	 friend declaration, to cause callers to completely ignore
-	 this declaration.  */
       return 1;
     }
   else if (!CP_TYPE_CONST_P (type))
@@ -7430,30 +7450,43 @@ compute_array_index_type (tree name, tree size)
 {
   tree type;
   tree itype;
+  tree osize = size;
   tree abi_1_itype = NULL_TREE;
 
   if (error_operand_p (size))
     return error_mark_node;
 
   type = TREE_TYPE (size);
-  if (!dependent_type_p (type)
-      && CLASS_TYPE_P (type)
-      && CLASSTYPE_LITERAL_P (type))
+  if (!dependent_type_p (type))
     {
-      size = build_expr_type_conversion (WANT_INT, size, true);
-      if (size == error_mark_node)
+      mark_rvalue_use (size);
+
+      if (CLASS_TYPE_P (type)
+	  && CLASSTYPE_LITERAL_P (type))
+	{
+	  size = build_expr_type_conversion (WANT_INT, size, true);
+	  if (size == error_mark_node)
+	    return error_mark_node;
+	  type = TREE_TYPE (size);
+	}
+
+      if (!(cxx_dialect < cxx0x && TREE_CODE (size) == NOP_EXPR
+	    && TREE_SIDE_EFFECTS (size)))
+	size = fold_decl_constant_value (size);
+
+      if (error_operand_p (size))
 	return error_mark_node;
-      type = TREE_TYPE (size);
-    }
-  /* The array bound must be an integer type.  */
-  if (!dependent_type_p (type) && !INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (type))
-    {
-      if (name)
-	error ("size of array %qD has non-integral type %qT", name, type);
-      else
-	error ("size of array has non-integral type %qT", type);
-      size = integer_one_node;
-      type = TREE_TYPE (size);
+
+      /* The array bound must be an integer type.  */
+      if (!INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (type))
+	{
+	  if (name)
+	    error ("size of array %qD has non-integral type %qT", name, type);
+	  else
+	    error ("size of array has non-integral type %qT", type);
+	  size = integer_one_node;
+	  type = TREE_TYPE (size);
+	}
     }
 
   /* We can only call value_dependent_expression_p on integral constant
@@ -7481,17 +7514,7 @@ compute_array_index_type (tree name, tree size)
        would have, but with TYPE_CANONICAL set to the "right"
        value that the current ABI would provide. */
     abi_1_itype = build_index_type (build_min (MINUS_EXPR, sizetype,
-					       size, integer_one_node));
-
-  /* The size might be the result of a cast.  */
-  STRIP_TYPE_NOPS (size);
-
-  size = mark_rvalue_use (size);
-
-  /* It might be a const variable or enumeration constant.  */
-  size = maybe_constant_value (size);
-  if (error_operand_p (size))
-    return error_mark_node;
+					       osize, integer_one_node));
 
   /* Normally, the array-bound will be a constant.  */
   if (TREE_CODE (size) == INTEGER_CST)
@@ -9608,14 +9631,24 @@ grokdeclarator (const cp_declarator *declarator,
 		       the rest of the compiler does not correctly
 		       handle the initialization unless the member is
 		       static so we make it static below.  */
-		    permerror (input_location, "ISO C++ forbids initialization of member %qD",
-			       unqualified_id);
-		    permerror (input_location, "making %qD static", unqualified_id);
-		    staticp = 1;
+		    if (cxx_dialect >= cxx0x)
+		      {
+			sorry ("non-static data member initializers");
+		      }
+		    else
+		      {
+			permerror (input_location, "ISO C++ forbids initialization of member %qD",
+				   unqualified_id);
+			permerror (input_location, "making %qD static", unqualified_id);
+			staticp = 1;
+		      }
 		  }
 
 		if (uses_template_parms (type))
 		  /* We'll check at instantiation time.  */
+		  ;
+		else if (constexpr_p)
+		  /* constexpr has the same requirements.  */
 		  ;
 		else if (check_static_variable_definition (unqualified_id,
 							   type))

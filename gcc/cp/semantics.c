@@ -5719,6 +5719,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
 {
   location_t loc = EXPR_LOCATION (t);
   tree fun = get_function_named_in_call (t);
+  tree result;
   constexpr_call new_call = { NULL, NULL, NULL };
   constexpr_call **slot;
   if (loc == UNKNOWN_LOCATION)
@@ -5774,22 +5775,33 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
          so that we can detect circular dependencies.  */
       if ((*slot)->result == NULL)
         {
-          error ("call to %qE has circular dependency", fun);
-          (*slot)->result = error_mark_node;
+	  if (!allow_non_constant)
+	    error ("call to %qE has circular dependency", fun);
+          *slot = NULL;
+	  result = t;
         }
+      else
+	result = (*slot)->result;
     }
   else
     {
       *slot = ggc_alloc_constexpr_call ();
       **slot = new_call;
-      (*slot)->result
+      result
 	= cxx_eval_constant_expression (&new_call, new_call.fundef->body,
 					allow_non_constant, addr,
 					non_constant_p);
-      if (*non_constant_p && !allow_non_constant)
-	error_at (loc, "in expansion of %qE", t);
+      if (*non_constant_p)
+	{
+	  if (!allow_non_constant)
+	    error_at (loc, "in expansion of %qE", t);
+	  *slot = NULL;
+	  result = t;
+	}
+      else
+	(*slot)->result = result;
     }
-  return (*slot)->result;
+  return result;
 }
 
 bool
@@ -6277,9 +6289,11 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
       break;
 
     default:
-      internal_error ("unexpected expression %qE of kind %s", t,
-                      tree_code_name[TREE_CODE (t)]);
-      return error_mark_node;
+      if (!allow_non_constant)
+	internal_error ("unexpected expression %qE of kind %s", t,
+			tree_code_name[TREE_CODE (t)]);
+      *non_constant_p = true;
+      break;
     }
 
   if (r == error_mark_node)
@@ -6334,15 +6348,16 @@ cxx_constant_value (tree t)
 tree
 maybe_constant_value (tree t)
 {
-  tree r;
-  if (uses_template_parms (t))
-    return t;
-  r = cxx_eval_outermost_constant_expr (t, true);
-  gcc_assert (r == t
-	      /* Folding away NOPs can produce something that cp_tree_equal
-		 thinks is the same.  */
-	      || TREE_CODE (t) == NOP_EXPR
-	      || !cp_tree_equal (r, t));
+  tree r = cxx_eval_outermost_constant_expr (t, true);
+#ifdef ENABLE_CHECKING
+  tree sr = r;
+  /* cp_tree_equal looks through NOPs, so use the stripped versions for
+     pointer comparision as well.  */
+  STRIP_NOPS (sr);
+  STRIP_NOPS (t);
+  gcc_assert (sr == t
+	      || !cp_tree_equal (sr, t));
+#endif
   return r;
 }
 

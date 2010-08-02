@@ -17608,7 +17608,8 @@ value_dependent_expression_p (tree expression)
 	    /* If there are no operands, it must be an expression such
 	       as "int()". This should not happen for aggregate types
 	       because it would form non-constant expressions.  */
-	    gcc_assert (INTEGRAL_OR_ENUMERATION_TYPE_P (type));
+	    gcc_assert (cxx_dialect >= cxx0x
+			|| INTEGRAL_OR_ENUMERATION_TYPE_P (type));
 
 	    return false;
 	  }

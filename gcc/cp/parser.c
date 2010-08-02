@@ -14449,7 +14449,7 @@ cp_parser_direct_declarator (cp_parser* parser,
 						 &non_constant_p);
 	      /* FIXME generalized_constant_expression_allowed */
 	      if (!non_constant_p || cxx_dialect >= cxx0x)
-		bounds = fold_non_dependent_expr (bounds);
+		/* OK */;
 	      /* Normally, the array bound must be an integral constant
 		 expression.  However, as an extension, we allow VLAs
 		 in function scopes as long as they aren't part of a
