@@ -1992,6 +1992,104 @@ lto_eh_personality (void)
   return lto_eh_personality_decl;
 }
 
+void 
+gimple_parse_expect_token (cpp_reader *p,int expected_token_type)
+{
+  const cpp_token *next_token;
+  FILE *fp;
+  next_token = cpp_get_token (p);
+  if(next_token->type != expected_token_type)
+    {
+      /* Report Error.  */
+      fp = fopen ("/tmp/error.txt","a");
+      fprintf (fp,"Reporting Error\n");
+      fclose (fp);
+    }
+}
+
+void 
+gimple_parse_assign_stmt (cpp_reader *p)
+{
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_GREATER);
+}
+
+void
+gimple_parse_cond_stmt (cpp_reader *p)
+{
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_GREATER);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_RSHIFT);
+}
+
+void
+gimple_parse_goto_stmt (cpp_reader *p)
+{
+  gimple_parse_expect_token (p,CPP_LSHIFT);
+  gimple_parse_expect_token (p,CPP_NAME);
+  gimple_parse_expect_token (p,CPP_RSHIFT);
+}
+
+void gimple_parse_label_stmt (cpp_reader *p)
+{
+  gimple_parse_expect_token (p,CPP_LSHIFT);
+  gimple_parse_expect_token (p,CPP_NAME);
+  gimple_parse_expect_token (p,CPP_RSHIFT);  
+}
+
+void 
+gimple_parse_stmt (cpp_reader *p,const cpp_token *tok)
+{
+  const char *text;
+  int i;
+  text = (const char *)cpp_token_as_text (p,tok);
+  for(i=0;i<LAST_AND_UNUSED_GIMPLE_CODE;i++)
+    if(!strcasecmp(text,gimple_code_name[i]))
+      break;
+
+  if(i==LAST_AND_UNUSED_GIMPLE_CODE)
+    {
+      /* Report Error.  */
+    }
+  else
+    {
+    switch (i)
+      {
+        case GIMPLE_ASSIGN:
+          gimple_parse_assign_stmt (p);
+          break;
+        case GIMPLE_COND:
+          gimple_parse_cond_stmt (p);
+          break;
+        case GIMPLE_LABEL:
+          gimple_parse_label_stmt (p);
+          break;
+        case GIMPLE_GOTO:
+          gimple_parse_goto_stmt (p);
+          break;
+        default:
+          break;
+      }
+    }
+}
 
 /* Main entry point for the GIMPLE front end.  This front end has
    three main personalities:
@@ -2024,9 +2122,36 @@ lto_main (int debug_p ATTRIBUTE_UNUSED)
 
   if (!seen_error ())
     {
+      if (flag_gimple_parser)
+        {
+          /* We invoke the parser here.  */
+          cpp_reader *p;
+          const cpp_token *tok;
+          const char *input_file = "/tmp/gimple.txt";
+          const char *output_file;
+
+          struct line_maps *line_tab;
+          line_tab = ggc_alloc_cleared_line_maps ();
+          linemap_init (line_tab);
+          p = cpp_create_reader (CLK_GNUC99,ident_hash,line_tab);
+          output_file = cpp_read_main_file (p,input_file);
+          if (output_file)
+            {
+              tok = cpp_get_token (p);
+              while (tok->type != CPP_EOF)
+                {
+                  gimple_parse_stmt (p,tok);
+                  tok = cpp_get_token (p);
+                }
+            }
+          cpp_finish (p,NULL);
+          cpp_destroy (p);   
+        }
+
       /* If WPA is enabled analyze the whole call graph and create an
 	 optimization plan.  Otherwise, read in all the function
 	 bodies and continue with optimization.  */
+
       if (flag_wpa)
 	do_whole_program_analysis ();
       else

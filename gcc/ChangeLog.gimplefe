@@ -1,0 +1,25 @@
+2010-08-02  Diego Novillo  <dnovillo@google.com>
+
+	* lto/lto.c (lto_main): Call ggc_alloc_cleared_line_maps
+	instead of GGC_NEW.
+
+2010-08-02  Sandeep Soni  <soni.sandeepb@gmail.com>
+
+	* lto/lto.c (gimple_parse_expect_token,
+	gimple_parse_assign_stmt, gimple_parse_cond_stmt,
+	gimple_parse_goto_stmt, gimple_parse_label_stmt,
+	gimple_parse_stmt): New.
+	(lto_main): Handle -fgimple-parser.
+	* lto/lto.h: Include cpplib.h.
+	* common.opt (fgimple-parser): New.
+
+Local Variables:
+mode: change-log
+End:
+
+
+Copyright (C) 2010 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

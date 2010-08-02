@@ -605,6 +605,11 @@ Perform global common subexpression elimination after register allocation
 has finished
 
 ; This option is not documented yet as its semantics will change.
+fgimple-parser
+Common Var(flag_gimple_parser)
+This option will be used to invoke the gimple text parser.
+
+; This option is not documented yet as its semantics will change.
 fgraphite
 Common Report Var(flag_graphite)
 Enable in and out of Graphite representation
