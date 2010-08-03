@@ -530,6 +530,9 @@ tree gpy_get_tree( gpy_symbol_obj * sym, tree * block )
 
 void gpy_write_globals( void )
 {
+  if( seen_error( ) )
+    return;
+
   tree *vec; 
 
   unsigned long decl_len = 0, vec_len = 0;

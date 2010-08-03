@@ -63,6 +63,10 @@ typedef struct gpy_id_t {
 } gpy_ident_t;
 typedef gpy_ident_t * gpy_ident;
 
+typedef int gpy_int;
+DEF_VEC_I( gpy_int );
+DEF_VEC_ALLOC_I( gpy_int,gc );
+
 DEF_VEC_P( gpy_ident );
 DEF_VEC_ALLOC_P( gpy_ident,gc );
 

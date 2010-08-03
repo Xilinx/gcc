@@ -48,6 +48,12 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
+/* Stack required for INDENT and DEDENT tokens @see
+ * - http://docs.python.org/reference/lexical_analysis.html
+ */
+
+static VEC(gpy_int,gc) * gpy_indent_stack;
+
 extern int yyparse( void );
 %}
 
@@ -133,8 +139,34 @@ else                    {  return ELSE; }
                         }
 
 "\n"                    { return NEWLINE; }
-"    "                  { printf("found indent!\n"); return INDENT; }
-"\b"                    { printf("found dedent!\n"); return DEDENT; }
+"    "+                 {
+                          int top_len = VEC_index( gpy_int, gpy_indent_stack,
+						   VEC_length( gpy_int, gpy_indent_stack )-1 );
+			  if( top_len <= yyleng )
+			    {
+			      if( top_len != yyleng )
+				VEC_safe_push( gpy_int, gc, gpy_indent_stack, yyleng );
+
+			      return INDENT;
+			    }
+			  else if( top_len > yyleng )
+			    {
+			      VEC_pop( gpy_int, gpy_indent_stack );
+			      return DEDENT;
+			    }
+                         }
+
+<<EOF>>                {
+                         int top_len = VEC_index( gpy_int, gpy_indent_stack,
+						  VEC_length( gpy_int, gpy_indent_stack )-1 );
+			 if( top_len != 0 )
+			   {
+			     VEC_pop( gpy_int, gpy_indent_stack );
+			     return DEDENT;
+			   }
+			 else
+			   return 0;
+                       }
 
 %%
 
@@ -145,6 +177,8 @@ int yywrap( void )
 
 int gpy_lex_parse( const char * gpy_in )
 {
+  VEC_safe_push( gpy_int, gc, gpy_indent_stack, 0 );
+
   int retval = 1;
   FILE * fd = fopen( gpy_in, "rb" );
   debug("trying to open <%s>!\n", gpy_in);

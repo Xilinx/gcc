@@ -21,6 +21,18 @@ extern gpy_vector_t * gpy_primitives;
 extern gpy_vector_t * gpy_namespace_vec;
 extern gpy_vector_t * gpy_garbage_vec;
 
+#define Gpy_Incr_Ref( x )				  \
+  gpy_assert( x );					  \
+  debug("incrementing ref count on <%p>:<%i> to <%i>!\n", \
+	(void*) x, x->ref_count, (x->ref_count + 1));	  \
+  x->ref_count++;
+
+#define Gpy_Decr_Ref( x )				  \
+  gpy_assert( x );					  \
+  debug("decrementing ref count on <%p>:<%i> to <%i>!\n", \
+	(void*) x, x->ref_count, (x->ref_count - 1));	  \
+  x->ref_count--;
+
 extern void gpy_rr_cleanup_final( void );
 
 extern void gpy_rr_pop_context( void );

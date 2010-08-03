@@ -15,7 +15,9 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-/* Grammar largely bassed on http://docs.python.org/release/2.5.2/ref/grammar.txt */
+/* Grammar largely bassed on
+ * - http://docs.python.org/release/2.5.2/ref/grammar.txt
+ */
 
 #include "config.h"
 #include "system.h"
