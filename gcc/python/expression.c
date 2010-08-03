@@ -89,6 +89,9 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
     {
       fatal_error("Invalid accessor for assignment <0x%x>!\n", opa->type );
     }
+
+  debug_tree( retval );
+
   return retval;
 }
 

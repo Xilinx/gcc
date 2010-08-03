@@ -101,24 +101,20 @@ bool gpy_langhook_init( void )
 }
 
 /* Initialize before parsing options.  */
-static unsigned int
-gpy_langhook_init_options( unsigned int argc ATTRIBUTE_UNUSED,
-			   const char** argv ATTRIBUTE_UNUSED )
+static void
+gpy_langhook_init_options( unsigned int decoded_options_count,
+			   struct cl_decoded_option *decoded_options )
 {
   flag_strict_aliasing = 1;
   debug("init options!\n");
 
-  mpfr_set_default_prec (128);
-
-  return 1;
+  mpfr_set_default_prec( 128 );
 }
 
 /* Handle gpy specific options.  Return 0 if we didn't do anything.  */
-static int
-gpy_langhook_handle_option( size_t scode,
-			    const char *arg ATTRIBUTE_UNUSED,
-			    int value ATTRIBUTE_UNUSED,
-			    int kind ATTRIBUTE_UNUSED )
+static bool
+gpy_langhook_handle_option( size_t scode, const char *arg, int value, int kind,
+			    const struct cl_option_handlers *handlers )
 {
   enum opt_code code = (enum opt_code) scode;
   int retval = 1;
