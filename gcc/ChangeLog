@@ -1,3 +1,205 @@
+2010-08-03  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.c (spu_emit_branch_hint): Do not access NOTE_KIND of
+	non-NOTE insns.
+
+2010-08-03  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-split.c (struct split_point): Add split_part_set_retval.
+	(find_retval): Forward declare.
+	(test_nonssa_use, mark_nonssa_use): Special case return by reference.
+	(consider_split): Compute current->split_part_set_retval.
+	(visit_bb): Do not look into return value.
+	(split_function): Handle !split_part_set_retval
+
+2010-08-03  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (completely_scalarize_record): New parameter REF, create
+	its own access->expr intead of using build_ref_for_offset.
+
+2010-08-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/alpha/alpha.h (SWITCH_TAKES_ARG): Define.
+	* config/alpha/osf5.h (LIB_SPEC): Don't handle -a.
+	* config/bfin/bfin.h (ASM_SPEC, LINK_SPEC): Don't pass -G*
+	options.
+	* config/darwin.h (WORD_SWITCH_TAKES_ARG): Handle -iframework.
+	* config/ia64/ia64.h (SWITCH_TAKES_ARG): Define.
+	* config/iq2000/iq2000.h (SWITCH_TAKES_ARG): Remove.
+	* config/rs6000/sysv4.h (SWITCH_TAKES_ARG): Define using
+	DEFAULT_SWITCH_TAKES_ARG.
+	* config/rx/rx.opt (-patch=): Remove option.
+	* config/rx/rx.c (rx_handle_option): Don't handle OPT_patch_.
+	* defaults.h (DEFAULT_WORD_SWITCH_TAKES_ARG): Handle -imultilib.
+	* doc/invoke.texi (RX Options): Remove -patch=.
+	* gcc.c (cc1_options): Pass -aux-info* instead of -a* options.
+	(option_map): Remove --profile-blocks, --quiet and --silent.
+
+2010-08-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.h (ix86_compare_op0, ix86_compare_op1): Remove.
+	* config/i386/i386.c (ix86_compare_op0, ix86_compare_op1): Remove.
+	(ix86_expand_branch): Add op0 and op1 arguments.  Do not access
+	ix86_compare_op0 and ix86_compare_op1, use op0 and op1 instead.
+	Update calls to ix86_expand_compare and ix86_expand_branch.
+	(ix86_expand_setcc): Add op0 and op1 arguments.  Update calls to
+	ix86_expand_compare.
+	(ix86_expand_compare): Add op0 and op1 arguments.  Do not access
+	ix86_compare_op0 and ix86_compare_op1, use op0 and op1 instead.
+	Make static.
+	(ix86_expand_carry_flag_compare): Do not set ix86_compare_op0
+	and ix86_compare_op1.  Update calls to ix86_expand_compare.
+	(ix86_expand_int_movcc): Ditto.
+	(ix86_expand_fp_movcc): Ditto.  Update calls to ix86_expand_setcc.
+	* config/i386/i386-protos.h (ix86_expand_branch): Update prototype.
+	(ix86_expand_setcc): Ditto.
+	(ix86_expand_compare): Remove prototype.
+	* config/i386/i386.md (cbranch<SDWIM:mode>4): Do not set
+	ix86_compare_op0 and ix86_compare_op1.  Update calls
+	to ix86_expand_branch to directly pass operands[1] and operands[2].
+	(cbranchxf4): Ditto.
+	(cbranch<MODEF:mode>4): Ditto.
+	(cbranchcc4): Ditto.
+	(cstore<SWIM:mode>4): Do not set ix86_compare_op0 and ix86_compare_op1.
+	Update calls to ix86_expand_setcc to directly pass operands[2] and
+	operands[3].
+	(cstorexf4): Ditto.
+	(cstore<MODEF:mode>4): Ditto.
+	(cstorecc4): Ditto.
+
+2010-08-02  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/45063
+	* caller-save.c (save_call_clobbered_regs): Remove regs from
+	hard_regs_saved when they are set.
+
+2010-08-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/41089
+	* config/alpha/alpha.c (alpha_build_builtin_va_list): Mark __offset
+	as volatile.
+
+2010-08-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* common.opt (ftree-loop-distribute-patterns): New.
+	* invoke.texi (-ftree-loop-distribute-patterns): Documented.
+	* opts.c (decode_options): Enable flag_tree_loop_distribute_patterns
+	at -O3.
+	* tree-data-ref.c (stores_zero_from_loop): New.
+	* tree-data-ref.h (stores_zero_from_loop): Declared.
+	* tree-loop-distribution.c (tree_loop_distribution): Call
+	stores_zero_from_loop.
+	(tree_loop_distribution): Check flag_tree_loop_distribute_patterns.
+
+2010-08-02  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* postreload.c (reload_cse_simplify_operands): Take attribute enabled
+	into account.
+
+	* final.c (final_scan_insn): Call CC_STATUS_INIT unconditionally.
+	* config/arm/arm.c (thumb1_code): New variable.
+	(arm_override_options): Set it.
+	(thumb1_final_prescan_insn): Keep track of condition code status.
+	(arm_adjust_cost): For Thumb, try to keep cc-setting insns next to
+	jumps that depend on them.
+	* config/arm/arm.h (thumb1_code): Declare variable.
+	(struct machine_function): Guard with #ifndef GENERATOR_FILE.  Add
+	members thumb1_cc_insn, thumb1_cc_op0, thumb1_cc_op1 and
+	thumb1_cc_mode.
+	(CC_STATUS_INIT): New macro.
+	* config/arm/constraints.md (Pd): New constraint.
+	* config/arm/predicates.md (noov_comparison_operator): New predicate.
+	* config/arm/arm.md (is_thumb1): New define_attr.
+	(conds): Set default to "clob" when generating Thumb1 code.
+	(thumb1_bicsi3): Renamed from bicsi3.  All uses changed.  Condition
+	code are set.  Use two-operand assembly syntax.
+	(thumb1_subsi3_insn): Condition codes are set.  Now a properly named
+	pattern.
+	(thumb1_andsi3_insn, thumb1_iorsi3_insn, thumb1_xorsi3_insn): Condition
+	codes are set.  Use two-operand assembly syntax.
+	(zero_extendhisi splitter): Remove constraints.
+	(thumb1_movsi_insn, thumb1_movhi_insn, thumb1_movqi_insn, thumb1_movhf,
+	thumb1_movsf_insn): Set conds attribute as appropriate.
+	(cbranchsi4_insn): Use condition code status from struct
+	machine_function to determine whether the comparison can be eliminated.
+	Discourage the alternative using high registers.
+	(movsi_cbranchsi4, andsi3_cbranch, orrsi3_cbranch_scratch,
+	orrsi3_cbranch, xorsi3_cbranch_scratch, xorsi3_cbranch,
+	bicsi3_cbranch_scratch, bicsi3_cbranch, subsi3_cbranch_scratch,
+	subsi3_cbranch): Delete.
+	(movsi_cbranchsi4 peepholes): Rewrite to generate a sequence of
+	one subtract and one cbranch insn.
+
+	* config/arm/thumb2.md (thumb2_movdi, thumb2_movsf_soft_insn,
+	thumb2_movdf_soft_insn): Delete patterns.
+	* config/arm/arm.md (arm_pool_range, thumb2_pool_range,
+	arm_neg_pool_range, thumb2_neg_pool_range): New attributes.
+	(pool_range, neg_pool_range): Use them to define defaults.
+	(movdi, arm_movsf_soft_insn, arm_movdf_soft_insn): Define them
+	and allow for TARGET_32BIT.
+
+	PR target/40457
+	* config/arm/arm.h (arm_regs_in_sequence): Declare.
+	* config/arm/arm-protos.h (emit_ldm_seq, emit_stm_seq,
+	load_multiple_sequence, store_multiple_sequence): Delete
+	declarations.
+	(arm_gen_load_multiple, arm_gen_store_multiple): Adjust
+	declarations.
+	* config/arm/ldmstm.md: New file.
+	* config/arm/arm.c (arm_regs_in_sequence): New array.
+	(load_multiple_sequence): Now static.  New args SAVED_ORDER,
+	CHECK_REGS.  All callers changed.
+	If SAVED_ORDER is nonnull, copy the computed order into it.
+	If CHECK_REGS is false, don't sort REGS.  Handle Thumb mode.
+	(store_multiple_sequence): Now static.  New args NOPS_TOTAL,
+	SAVED_ORDER, REG_RTXS and CHECK_REGS.  All callers changed.
+	If SAVED_ORDER is nonnull, copy the computed order into it.
+	If CHECK_REGS is false, don't sort REGS.  Set up REG_RTXS just
+	like REGS.  Handle Thumb mode.
+	(arm_gen_load_multiple_1): New function, broken out of
+	arm_gen_load_multiple.
+	(arm_gen_store_multiple_1): New function, broken out of
+	arm_gen_store_multiple.
+	(arm_gen_multiple_op): New function, with code from
+	arm_gen_load_multiple and arm_gen_store_multiple moved here.
+	(arm_gen_load_multiple, arm_gen_store_multiple): Now just
+	wrappers around arm_gen_multiple_op.  Remove argument UP, all callers
+	changed.
+	(gen_ldm_seq, gen_stm_seq, gen_const_stm_seq): New functions.
+	* config/arm/predicates.md (commutative_binary_operator): New.
+	(load_multiple_operation, store_multiple_operation): Handle more
+	variants of these patterns with different starting offsets.  Handle
+	Thumb-1.
+	* config/arm/arm.md: Include "ldmstm.md".
+	(ldmsi_postinc4, ldmsi_postinc4_thumb1, ldmsi_postinc3, ldmsi_postinc2,
+	ldmsi4, ldmsi3, ldmsi2, stmsi_postinc4, stmsi_postinc4_thumb1,
+	stmsi_postinc3, stmsi_postinc2, stmsi4, stmsi3, stmsi2 and related
+	peepholes): Delete.
+	* config/arm/ldmstm.md: New file.
+	* config/arm/arm-ldmstm.ml: New file.
+
+	* config/arm/arm.c (arm_rtx_costs_1): Remove second clause from the
+	if statement which adds extra costs to frame-related expressions.
+
+2010-08-02  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/arm.c (COSTS_N_INSNS): Remove definition.
+
+2010-08-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/45142
+	* config/i386/sse.md (vec_set<mode>_0): Do not set mode attribute for
+	alternative 2.
+	(vec_set<moode>_0 splitter): Use SSEMODE4S mode iterator to also
+	split V4SI operands.
+
+2010-08-01  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/mmix/mmix.h (ASM_OUTPUT_SOURCE_FILENAME): Remove macro.
+	* config/mmix/mmix-protos.h (mmix_asm_output_source_filename): Remove.
+	* config/mmix/mmix.c (mmix_asm_output_source_filename): Make static.
+	(TARGET_ASM_OUTPUT_SOURCE_FILENAME): Define.
+
 2010-07-31  Kai Tietz  <kai.tietz@onevision.com>
 
 	* cppdefault.c (cpp_include_defaults): Move GCC_INCLUDE_DIR before
@@ -46,8 +248,7 @@
 	* config/alpha/alpha.c (alpha_handle_option): Handle -G.
 	* config/frv/frv.c (frv_handle_option): Handle -G.
 	* config/ia64/ia64.c (ia64_handle_option): Handle -G.
-	* config/lm32/lm32.c (lm32_handle_option, TARGET_HANDLE_OPTION):
-	New.
+	* config/lm32/lm32.c (lm32_handle_option, TARGET_HANDLE_OPTION): New.
 	* config/m32r/m32r.c (m32r_handle_option): Handle -G.
 	* config/mips/mips.c (mips_handle_option): Handle -G.
 	* config/rs6000/rs6000.c (rs6000_handle_option) Handle -G.

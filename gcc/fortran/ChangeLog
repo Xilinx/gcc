@@ -1,3 +1,53 @@
+2010-08-03  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44584
+	PR fortran/45161
+	* class.c (add_procs_to_declared_vtab1): Don't add erroneous procedures.
+	* resolve.c (resolve_tb_generic_targets): Check for errors.
+
+2010-08-02  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45159
+	* depencency.c (gfc_dep_resolver):  Fix logic for when a loop
+	can be reversed.
+
+2010-08-02  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/36854
+	* dependency.h:  Add prototype for gfc_are_identical_variables.
+	* frontend-passes.c:  Include depencency.h.
+	(optimimize_equality):  Use gfc_are_identical_variables.
+	* dependency.c (identical_array_ref): New function.
+	(gfc_are_identical_variables):  New function.
+	(gfc_deb_compare_expr):  Use gfc_are_identical_variables.
+	* dependency.c (gfc_check_section_vs_section).  Rename gfc_
+	prefix from statc function.
+	(check_section_vs_section): Change arguments to gfc_array_ref,
+	adjust function body accordingly.
+
+2010-08-02  Mikael Morin  <mikael@gcc.gnu.org>
+	    Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42051
+	PR fortran/44064
+	PR fortran/45151
+	* intrinsic.c (gfc_get_intrinsic_sub_symbol): Commit changed symbol. 
+	* symbol.c (gen_cptr_param, gen_fptr_param, gen_shape_param,
+	gfc_copy_formal_args, gfc_copy_formal_args_intr,
+	gfc_copy_formal_args_ppc, generate_isocbinding_symbol): Ditto.
+	* parse.c (parse_derived_contains, parse_spec, parse_progunit): 
+	Call reject_statement in case of error. 
+	(match_deferred_characteritics): Call gfc_undo_symbols in case match
+	fails.
+
+2010-08-01  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44912
+	* class.c (gfc_build_class_symbol): Make '$vptr' component private.
+	(gfc_find_derived_vtab): Make vtabs and vtypes public.
+	* module.c (read_module): When reading module files, always import
+	vtab and vtype symbols.
+
 2010-07-31  Mikael Morin  <mikael@gcc.gnu.org>
 
 	PR fortran/42051
