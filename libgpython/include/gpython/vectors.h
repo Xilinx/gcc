@@ -21,7 +21,7 @@ along with GCC; see the file COPYING3.  If not see
 
 typedef struct gpy_vector_t {
   void ** vector;
-  signed long size, length;
+  unsigned int size, length;
 } gpy_vector_t;
 
 typedef gpy_vector_t * gpy_vec_t;

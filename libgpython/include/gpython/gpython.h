@@ -88,8 +88,7 @@ extern void * gpy_calloc( size_t , size_t );
   x = NULL;
 
 #ifdef HAVE_STRDUP
-# define gpy_strdup( x )			\
-  strdup( x )
+# define gpy_strdup( x ) strdup( x )
 #endif
 
 #ifdef DEBUG

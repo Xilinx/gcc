@@ -34,7 +34,7 @@ gpy_vector_t * gpy_namespace_vec;
 
 void gpy_rr_init_primitives( void )
 {
-  gpy_primitives = (gpy_vector_t*)
+  gpy_primitives = (gpy_vector_t *)
     gpy_malloc( sizeof(gpy_vector_t) );
   gpy_vec_init( gpy_primitives );
 
@@ -43,9 +43,8 @@ void gpy_rr_init_primitives( void )
 
 void gpy_rr_init_runtime( void ) 
 {
-  /*
-    Setup runtime namespace
-    Init builtin's
+  /* 
+     Setup runtime namespace Init builtin's
   */
   gpy_rr_init_primitives( );
 
@@ -60,6 +59,17 @@ void gpy_rr_init_runtime( void )
   gpy_vec_init( head->symbols );
 
   gpy_vec_push( gpy_namespace_vec, head );
+}
+
+void gpy_rr_cleanup_final( void )
+{
+  gpy_rr_pop_context( );
+
+  if( gpy_namespace_vec->length > 0 )
+    error( "<%i> un-free'd conexts!\n", gpy_namespace_vec->length );
+
+  gpy_vec_free( gpy_namespace_vec );
+  gpy_vec_free( gpy_primitives );
 }
 
 gpy_object_state_t * gpy_rr_fold_integer( int x )
@@ -130,7 +140,7 @@ void gpy_rr_push_context( void )
     gpy_malloc( sizeof(gpy_context_t) );
   ctx->symbols = (gpy_vector_t*)
     gpy_malloc( sizeof(gpy_vector_t) );
-  gpy_vec_init( head->symbols );
+  gpy_vec_init( ctx->symbols );
 
   gpy_vec_push( gpy_namespace_vec, ctx );
 }
@@ -138,8 +148,26 @@ void gpy_rr_push_context( void )
 void gpy_rr_pop_context( void )
 {
   gpy_context_t * head = Gpy_Namespace_Head;
-  
-  for( )
+  void ** vec = head->symbols->vector;
+
+  unsigned int idx = 0;
+  for( ; idx<(head->symbols->length); ++idx )
+    {
+      gpy_object_state_t * i = (gpy_object_state_t *) vec[ idx ];
+      Gpy_Decr_Ref( i );
+    }
+
+  gpy_garbage_invoke_sweep( gpy_namespace_vec );
+
+  /* Loop over for stragglers like returns which need pushed up a
+     context soo they can still be garbage collected....
+     --
+     straggler is something which will have a (ref_count > 0)
+  */
+
+  gpy_context_t * popd = gpy_vec_pop( gpy_namespace_vec );
+  gpy_vec_free( popd->symbols );
+  gpy_free( popd );
 }
 
 gpy_object_state_t *
@@ -152,7 +180,6 @@ gpy_object_state_t *
 gpy_rr_eval_expression( gpy_object_state_t * x,	gpy_object_state_t * y,
 			gpy_opcode_t op )
 {
-  debug("within evaluate epxression!\n");
   char * op_str = NULL;
   gpy_object_state_t * retval = NULL;
 
