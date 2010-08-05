@@ -1903,17 +1903,6 @@ do {							\
 #define REGISTER_MOVE_COST(MODE, CLASS1, CLASS2) \
    ix86_register_move_cost ((MODE), (CLASS1), (CLASS2))
 
-/* A C expression for the cost of moving data of mode M between a
-   register and memory.  A value of 2 is the default; this cost is
-   relative to those in `REGISTER_MOVE_COST'.
-
-   If moving between registers and memory is more expensive than
-   between two registers, you should define this macro to express the
-   relative cost.  */
-
-#define MEMORY_MOVE_COST(MODE, CLASS, IN)	\
-  ix86_memory_move_cost ((MODE), (CLASS), (IN))
-
 /* A C expression for the cost of a branch instruction.  A value of 1
    is the default; other values are interpreted relative to that.  */
 
@@ -1992,7 +1981,8 @@ do {							\
    For non floating point regs, the following are the HImode names.
 
    For float regs, the stack top is sometimes referred to as "%st(0)"
-   instead of just "%st".  PRINT_OPERAND handles this with the "y" code.  */
+   instead of just "%st".  TARGET_PRINT_OPERAND handles this with the
+   "y" code.  */
 
 #define HI_REGISTER_NAMES						\
 {"ax","dx","cx","bx","si","di","bp","sp",				\
@@ -2162,20 +2152,6 @@ do {									\
 	"call " CRT_MKSTR(__USER_LABEL_PREFIX__) #FUNC "\n"	\
 	TEXT_SECTION_ASM_OP);
 
-/* Print operand X (an rtx) in assembler syntax to file FILE.
-   CODE is a letter or dot (`z' in `%z0') or 0 if no letter was specified.
-   Effect of various CODE letters is described in i386.c near
-   print_operand function.  */
-
-#define PRINT_OPERAND_PUNCT_VALID_P(CODE) \
-  ((CODE) == '*' || (CODE) == '+' || (CODE) == '&' || (CODE) == ';')
-
-#define PRINT_OPERAND(FILE, X, CODE)  \
-  print_operand ((FILE), (X), (CODE))
-
-#define PRINT_OPERAND_ADDRESS(FILE, ADDR)  \
-  print_operand_address ((FILE), (ADDR))
-
 #define OUTPUT_ADDR_CONST_EXTRA(FILE, X, FAIL)	\
 do {						\
   if (! output_addr_const_extra (FILE, (X)))	\

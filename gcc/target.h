@@ -277,6 +277,16 @@ struct gcc_target
 
     /* Emit the trampoline template.  This hook may be NULL.  */
     void (*trampoline_template) (FILE *);
+
+    /* Emit a machine-specific insn operand.  */
+    void (*print_operand) (FILE *, rtx, int);
+
+    /* Emit a machine-specific memory address.  */
+    void (*print_operand_address) (FILE *, rtx);
+
+    /* Determine whether CODE is a valid punctuation character for the
+       `print_operand' hook.  */
+    bool (*print_operand_punct_valid_p)(unsigned char code);
   } asm_out;
 
   /* Functions relating to instruction scheduling.  */
@@ -780,6 +790,9 @@ struct gcc_target
      least some operations are supported; need to check optabs or builtins
      for further details.  */
   bool (* vector_mode_supported_p) (enum machine_mode mode);
+
+  /* Compute cost of moving registers to/from memory.  */
+  int (* memory_move_cost) (enum machine_mode, enum reg_class, bool);
 
   /* True for MODE if the target expects that registers in this mode will
      be allocated to registers in a small register class.  The compiler is
