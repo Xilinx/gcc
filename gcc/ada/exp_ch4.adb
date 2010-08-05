@@ -6917,8 +6917,8 @@ package body Exp_Ch4 is
                Rtyp := Typ;
             end if;
 
-            --  The proper unsigned type must have a size compatible with
-            --  the operand, to prevent misalignment..
+            --  The proper unsigned type must have a size compatible with the
+            --  operand, to prevent misalignment.
 
             if RM_Size (Rtyp) <= 8 then
                Utyp := RTE (RE_Unsigned_8);
@@ -6995,18 +6995,15 @@ package body Exp_Ch4 is
 
          begin
             if Safe_In_Place_Array_Op (Lhs, Op1, Op2) then
-               if N = Op1
-                 and then Nkind (Op2) = N_Op_Not
-               then
-                  --  (not A) op (not B) can be reduced to a single call
 
+               --  (not A) op (not B) can be reduced to a single call
+
+               if N = Op1 and then Nkind (Op2) = N_Op_Not then
                   return;
 
-               elsif N = Op2
-                 and then Nkind (Parent (N)) = N_Op_Xor
-               then
-                  --  A xor (not B) can also be special-cased
+               --  A xor (not B) can also be special-cased
 
+               elsif N = Op2 and then Nkind (Parent (N)) = N_Op_Xor then
                   return;
                end if;
             end if;
@@ -7035,10 +7032,10 @@ package body Exp_Ch4 is
             Make_Iteration_Scheme (Loc,
               Loop_Parameter_Specification =>
                 Make_Loop_Parameter_Specification (Loc,
-                  Defining_Identifier => J,
+                  Defining_Identifier         => J,
                   Discrete_Subtype_Definition =>
                     Make_Attribute_Reference (Loc,
-                      Prefix => Make_Identifier (Loc, Chars (A)),
+                      Prefix         => Make_Identifier (Loc, Chars (A)),
                       Attribute_Name => Name_Range))),
 
           Statements => New_List (
@@ -7070,12 +7067,11 @@ package body Exp_Ch4 is
               Statements => New_List (
                 Loop_Statement,
                 Make_Simple_Return_Statement (Loc,
-                  Expression =>
-                    Make_Identifier (Loc, Chars (B)))))));
+                  Expression => Make_Identifier (Loc, Chars (B)))))));
 
       Rewrite (N,
         Make_Function_Call (Loc,
-          Name => New_Reference_To (Func_Name, Loc),
+          Name                   => New_Reference_To (Func_Name, Loc),
           Parameter_Associations => New_List (Opnd)));
 
       Analyze_And_Resolve (N, Typ);
@@ -7096,9 +7092,9 @@ package body Exp_Ch4 is
 
       elsif Is_Boolean_Type (Etype (N)) then
 
-         --  Replace OR by OR ELSE if Short_Circuit_And_Or active and the
-         --  type is standard Boolean (do not mess with AND that uses a non-
-         --  standard Boolean type, because something strange is going on).
+         --  Replace OR by OR ELSE if Short_Circuit_And_Or active and the type
+         --  is standard Boolean (do not mess with AND that uses a non-standard
+         --  Boolean type, because something strange is going on).
 
          if Short_Circuit_And_Or and then Typ = Standard_Boolean then
             Rewrite (N,
@@ -7198,10 +7194,9 @@ package body Exp_Ch4 is
            Make_Conditional_Expression (Loc,
              Expressions => New_List (
                Make_Op_Eq (Loc,
-                 Left_Opnd => Duplicate_Subexpr (Right),
+                 Left_Opnd  => Duplicate_Subexpr (Right),
                  Right_Opnd =>
-                   Unchecked_Convert_To (Typ,
-                     Make_Integer_Literal (Loc, -1))),
+                   Unchecked_Convert_To (Typ, Make_Integer_Literal (Loc, -1))),
 
                Unchecked_Convert_To (Typ,
                  Make_Integer_Literal (Loc, Uint_0)),
@@ -7281,11 +7276,12 @@ package body Exp_Ch4 is
       --  Arithmetic overflow checks for signed integer/fixed point types
 
       if Is_Signed_Integer_Type (Typ)
-        or else Is_Fixed_Point_Type (Typ)
+           or else
+         Is_Fixed_Point_Type (Typ)
       then
          Apply_Arithmetic_Overflow_Check (N);
 
-      --  Vax floating-point types case
+      --  VAX floating-point types case
 
       elsif Vax_Float (Typ) then
          Expand_Vax_Arith (N);
@@ -7457,9 +7453,9 @@ package body Exp_Ch4 is
                null;
 
             --  Don't do this on the left hand of an assignment statement.
-            --  Normally one would think that references like this would
-            --  not occur, but they do in generated code, and mean that
-            --  we really do want to assign the discriminant!
+            --  Normally one would think that references like this would not
+            --  occur, but they do in generated code, and mean that we really
+            --  do want to assign the discriminant!
 
             elsif Nkind (Par) = N_Assignment_Statement
               and then Name (Par) = N
@@ -7467,12 +7463,24 @@ package body Exp_Ch4 is
                null;
 
             --  Don't do this optimization for the prefix of an attribute or
-            --  the operand of an object renaming declaration since these are
+            --  the name of an object renaming declaration since these are
             --  contexts where we do not want the value anyway.
 
             elsif (Nkind (Par) = N_Attribute_Reference
                      and then Prefix (Par) = N)
               or else Is_Renamed_Object (N)
+            then
+               null;
+
+            --  If this is a discriminant of a component of a mutable record,
+            --  or a renaming of such, no optimization is possible, and value
+            --  must be retrieved anew. Note that in the previous case we may
+            --  be dealing with a renaming declaration, while here we may have
+            --  a use of a renaming.
+
+            elsif Nkind (P) = N_Selected_Component
+              and then Is_Record_Type (Etype (Prefix (P)))
+              and then not Is_Constrained (Etype (Prefix (P)))
             then
                null;
 

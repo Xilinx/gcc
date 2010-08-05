@@ -1,3 +1,123 @@
+2010-08-05  Robert Dewar  <dewar@adacore.com>
+
+	* gnat1drv.adb: Minor reformatting.
+
+2010-08-05  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem.adb (Do_Unit_And_Dependents): If some parent unit is an
+	instantiation, process its body before the spec of the main unit,
+	because it may contain subprograms invoked in the spec of main.
+	* einfo.ads: Add documention of delayed freeze.
+
+2010-08-05  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Process_Linker): Take into account new values for
+	attribute Response_File_Format.
+	* prj.ads (Response_File_Format): New enumeration values GCC_GNU,
+	GCC_Object_List and GCC_Option_List.
+
+2010-08-05  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch4.adb (Expand_N_Selected_Component): Do not constant-fold a
+	selected component that denotes a discriminant if it is the
+	discriminant of a component of an unconstrained record type.
+
+2010-08-05  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_util.adb (Insert_Actions): If the action appears within a
+	conditional expression that is already analyzed, insert action further
+	out.
+
+2010-08-05  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb: Minor reformatting.
+
+2010-08-05  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_ch4.adb: Minor reformatting
+	* gnat1drv.adb: Minor reformatting.
+	Minor code reorganization (use Nkind_In).
+
+2010-08-05  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_util.ads, exp_util.adb (Needs_Constant_Address): New predicate to
+	determine whether the expression in an address clause for an
+	initialized object must be constant. Code moved from freeze.adb.
+	(Remove_Side_Effects): When the temporary is initialized with a
+	reference, indicate that the temporary is a constant as done in all
+	other cases.
+	* freeze.adb (Check_Address_Clause): use Needs_Constant_Address.
+	* exp_ch13.adb (Expand_N_Attribute_Definition_Clause, case 'Address):
+	If object does not need a constant address, remove side effects from
+	address expression, so it is elaborated at the point of the address
+	clause and not at the freeze point of the object, so that elaboration
+	order is respected.
+
+2010-08-05  Vincent Celier  <celier@adacore.com>
+
+	* prj.adb (Is_Compilable): Return False for header files of non Ada
+	languages.
+
+2010-08-05  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-nmsc.adb: The Missing_Source_Files flag also considers a missing
+	exec directory as a warning rather than an error.
+
+2010-08-05  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch6.adb, gnat1drv.adb, exp_ch6.adb, sem_eval.adb: Minor
+	reformatting.
+
+2010-08-05  Steve Baird  <baird@adacore.com>
+
+	* exp_util.adb (Remove_Side_Effects): An access value which designates
+	a volatile object of a nonvolatile type is prohibited.
+	Do not call Make_Reference to construct a reference to such an object.
+
+2010-08-05  Robert Dewar  <dewar@adacore.com>
+
+	* a-suezse.adb, a-suezse.ads, a-suezen.adb, a-suezen.ads: Removed.
+	* a-suewse.adb, a-suewse.ads, a-suesen.adb, a-suesen.ads,
+	a-suewen.adb, a-suewen.ads: New files.
+	* Makefile.rtl, impunit.adb: Update implementation of Ada 2012 string
+	encoding packages.
+	* sem_elab.adb: Minor reformatting.
+
+2010-08-05  Arnaud Charlet  <charlet@adacore.com>
+
+	* sem_ch8.adb (Use_One_Type): Protect against empty scopes.
+	* exp_util.adb (Component_May_Be_Bit_Aligned): Prevent assert failure
+	in case of null Comp.
+
+2010-08-05  Robert Dewar  <dewar@adacore.com>
+
+	* errout.adb, a-suewen.adb, a-suezen.adb: Minor reformatting.
+
+2010-08-05  Gary Dismukes  <dismukes@adacore.com>
+
+	* sem_ch4.adb (Analyze_Allocator): Flag errors on allocators of a
+	nested access type whose designated type has tasks or is a protected
+	object when the restrictions No_Task_Hierarchy or
+	No_Local_Protected_Objects apply. Add ??? comment.
+	* sem_ch9.adb (Analyze_Protected_Type): Give a warning when a protected
+	type is not a library-level type and No_Local_Protected_Objects applies.
+	(Analyze_Task_Type): Give a warning when a task type is not a
+	library-level type and No_Task_Hierarchy applies.
+
+2010-08-05  Arnaud Charlet  <charlet@adacore.com>
+
+	* sem.adb: Minor reformatting
+	* sem_ch4.adb (Analyze_Reference): Disable error message in CodePeer
+	mode, not useful.
+
+2010-08-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c: Do not undefine IN_GCC_FRONTEND and do not
+	include expr.h.
+	(gnat_to_gnu_entity) <object>: Force address of -1 at the tree level
+	for the debug-only entity.
+	* gcc-interface/Make-lang.in (ada/decl.o): Adjust dependencies.
+
 2010-08-03  Joseph Myers  <joseph@codesourcery.com>
 
 	* gcc-interface/lang-specs.h: Don't pass -a options.

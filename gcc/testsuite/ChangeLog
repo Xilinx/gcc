@@ -1,3 +1,63 @@
+2010-08-05  Martin Jambor  <mjambor@suse.cz>
+
+	PR testsuite/42855
+	* gcc.dg/tree-ssa/pr42585.c: Skip dump scan on powerpc and arm.
+
+2010-08-05  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/ipa/ipcp-ii-1.c: New test.
+	* g++.dg/ipa/ipcp-ivi-1.C: Likewise.
+
+2010-08-05  Martin Jambor  <mjambor@suse.cz>
+
+	* g++.dg/ipa/devirt-1.C: New test.
+	* g++.dg/ipa/devirt-2.C: Likewise.
+	* g++.dg/ipa/devirt-3.C: Likewise.
+	* g++.dg/ipa/devirt-4.C: Likewise.
+	* g++.dg/ipa/devirt-5.C: Likewise.
+	* gcc.dg/ipa/iinline-3.c: Likewise.
+
+2010-08-05  Jie Zhang  <jie@codesourcery.com>
+
+	PR tree-optimization/45144
+	* gcc.dg/tree-ssa/pr45144.c: New test.
+
+2010-08-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42207
+	PR fortran/44064
+	PR fortran/44065
+	* gfortran.dg/class_25.f03: New.
+	* gfortran.dg/class_26.f03: New.
+
+2010-08-04  Daniel Gutson  <dgutson@codesourcery.com>
+
+	* g++.dg/warn/miss-format-1.C: Update line number.
+
+2010-08-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR c++/44641
+	* lib/scanasm.exp (dg-function-on-line): Expand regex to also ignore
+	.frame and .mask assembler directives.
+
+2010-08-04  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/vrp35.c: Adjust.
+	* gcc.dg/tree-ssa/vrp36.c: Likewise.
+	* gcc.dg/tree-ssa/vrp50.c: Likewise.
+	* gcc.dg/tree-ssa/vrp52.c: Likewise.
+
+2010-08-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44857
+	* gfortran.dg/derived_constructor_char_1.f90: New.
+	* gfortran.dg/derived_constructor_char_2.f90: New.
+
+2010-08-03  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45159
+	* gfortran.dg/dependency_30.f90:  New test.
+
 2010-08-03  Jan Hubicka  <jh@suse.cz>
 
 	* gcc.c-torture/compile/pr45085.c: New testcase.

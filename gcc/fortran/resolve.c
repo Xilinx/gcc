@@ -901,6 +901,67 @@ resolve_structure_cons (gfc_expr *expr)
 	    t = gfc_convert_type (cons->expr, &comp->ts, 1);
 	}
 
+      /* For strings, the length of the constructor should be the same as
+	 the one of the structure, ensure this if the lengths are known at
+ 	 compile time and when we are dealing with PARAMETER or structure
+	 constructors.  */
+      if (cons->expr->ts.type == BT_CHARACTER && comp->ts.u.cl
+	  && comp->ts.u.cl->length
+	  && comp->ts.u.cl->length->expr_type == EXPR_CONSTANT
+	  && cons->expr->ts.u.cl && cons->expr->ts.u.cl->length
+	  && cons->expr->ts.u.cl->length->expr_type == EXPR_CONSTANT
+	  && mpz_cmp (cons->expr->ts.u.cl->length->value.integer,
+		      comp->ts.u.cl->length->value.integer) != 0)
+	{
+	  if (cons->expr->expr_type == EXPR_VARIABLE
+	      && cons->expr->symtree->n.sym->attr.flavor == FL_PARAMETER)
+	    {
+	      /* Wrap the parameter in an array constructor (EXPR_ARRAY)
+		 to make use of the gfc_resolve_character_array_constructor
+		 machinery.  The expression is later simplified away to
+		 an array of string literals.  */
+	      gfc_expr *para = cons->expr;
+	      cons->expr = gfc_get_expr ();
+	      cons->expr->ts = para->ts;
+	      cons->expr->where = para->where;
+	      cons->expr->expr_type = EXPR_ARRAY;
+	      cons->expr->rank = para->rank;
+	      cons->expr->shape = gfc_copy_shape (para->shape, para->rank);
+	      gfc_constructor_append_expr (&cons->expr->value.constructor,
+					   para, &cons->expr->where);
+	    }
+	  if (cons->expr->expr_type == EXPR_ARRAY)
+	    {
+	      gfc_constructor *p;
+	      p = gfc_constructor_first (cons->expr->value.constructor);
+	      if (cons->expr->ts.u.cl != p->expr->ts.u.cl)
+		{
+		  gfc_charlen *cl, *cl2;
+
+		  cl2 = NULL;
+		  for (cl = gfc_current_ns->cl_list; cl; cl = cl->next)
+		    {
+		      if (cl == cons->expr->ts.u.cl)
+			break;
+		      cl2 = cl;
+		    }
+
+		  gcc_assert (cl);
+
+		  if (cl2)
+		    cl2->next = cl->next;
+
+		  gfc_free_expr (cl->length);
+		  gfc_free (cl);
+		}
+
+	      cons->expr->ts.u.cl = gfc_new_charlen (gfc_current_ns, NULL);
+	      cons->expr->ts.u.cl->length_from_typespec = true;
+	      cons->expr->ts.u.cl->length = gfc_copy_expr (comp->ts.u.cl->length);
+	      gfc_resolve_character_array_constructor (cons->expr);
+	    }
+	}
+
       if (cons->expr->expr_type == EXPR_NULL
 	  && !(comp->attr.pointer || comp->attr.allocatable
 	       || comp->attr.proc_pointer
@@ -6506,6 +6567,18 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 	  init_st->next = code->next;
 	  code->next = init_st;
 	}
+    }
+
+  if (e->ts.type == BT_CLASS)
+    {
+      /* Make sure the vtab symbol is present when
+	 the module variables are generated.  */
+      gfc_typespec ts = e->ts;
+      if (code->expr3)
+	ts = code->expr3->ts;
+      else if (code->ext.alloc.ts.type == BT_DERIVED)
+	ts = code->ext.alloc.ts;
+      gfc_find_derived_vtab (ts.u.derived);
     }
 
   if (pointer || (dimension == 0 && codimension == 0))

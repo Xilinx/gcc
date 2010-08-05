@@ -4752,11 +4752,14 @@ store_expr (tree exp, rtx target, int call_param_p, bool nontemporal)
 	{
 	  int unsignedp = TYPE_UNSIGNED (TREE_TYPE (exp));
 	  if (GET_MODE (target) == BLKmode
-		   || GET_MODE (temp) == BLKmode)
+	      && GET_MODE (temp) == BLKmode)
 	    emit_block_move (target, temp, expr_size (exp),
 			     (call_param_p
 			      ? BLOCK_OP_CALL_PARM
 			      : BLOCK_OP_NORMAL));
+	  else if (GET_MODE (target) == BLKmode)
+	    store_bit_field (target, INTVAL (expr_size (exp)) * BITS_PER_UNIT,
+			     0, GET_MODE (temp), temp);
 	  else
 	    convert_move (target, temp, unsignedp);
 	}
@@ -8665,7 +8668,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	set_mem_addr_space (temp, as);
 	base = get_base_address (TMR_ORIGINAL (exp));
 	if (base
-	    && INDIRECT_REF_P (base)
+	    && (INDIRECT_REF_P (base) || TREE_CODE (base) == MEM_REF)
 	    && TMR_BASE (exp)
 	    && TREE_CODE (TMR_BASE (exp)) == SSA_NAME
 	    && POINTER_TYPE_P (TREE_TYPE (TMR_BASE (exp))))

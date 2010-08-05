@@ -1,3 +1,326 @@
+2010-08-05  Bernd Schmidt  <bernds@codesourcery.com>
+
+	From Martin Thuresson  <martint@google.com>
+	* postreload.c (reload_cse_simplify_operands): Use
+	SET_REGNO_RAW instead of SET_REGNO.
+	* caller-save.c (reg_save_code): Use SET_REGNO_RAW instead of
+	SET_REGNO.
+	* ira.c (setup_prohibited_mode_move_regs): Use SET_REGNO_RAW
+	instead of SET_REGNO.
+	* rtl.h (SET_REGNO_RAW): New macro.
+
+2010-08-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* rtlanal.c (nonzero_bits1): Use unsigned HOST_WIDE_INT in all mask
+	computations.  Fix formatting issues.
+	(num_sign_bit_copies1): Likewise.
+	(canonicalize_condition): Likewise.
+
+2010-08-05  Richard Henderson  <rth@redhat.com>
+
+	* toplev.h (ctz_hwi, clz_hwi, ffs_hwi): New.
+	(floor_log2): Use clz_hwi.
+	(exact_log2): Use ctz_hwi.
+	* toplev.c (ctz_hwi, clz_hwi, ffs_hwi): New.
+	* builtins.c (fold_builtin_bitop): Use them.
+	* simplify-rtx.c (simplify_const_unary_operation): Likewise.
+	* combine.c (get_pos_from_mask): Use ctz_hwi.
+	* double-int.c (double_int_ctz): Likewise.
+	* explow.c (force_reg): Likewise.
+	* tree.h (SET_DECL_OFFSET_ALIGN): Use ffs_hwi.
+
+2010-08-05  Richard Henderson  <rth@redhat.com>
+
+	PR target/45189
+	* config/i386/i386.c (ix86_emit_save_reg_using_mov): Make sure
+	the alignment constant is properly sign-extended.
+
+2010-08-05  Richard Guenther  <rguenther@suse.de>
+
+	* expr.c (store_expr): Use emit_block_move only if both
+	source and target are MEMs.  Use store_bit_field if only
+	the target is a MEM.
+
+2010-08-05  Richard Henderson  <rth@redhat.com>
+
+	PR debug/45188
+	* dwarf2out.c (DWARF2_UNWIND_INFO): Provide default definition.
+	(INCOMING_RETURN_ADDR_RTX): Likewise.
+	(dwarf2out_do_frame): Remove conditional compilation.
+	(dwarf2out_frame_init): Likewise.
+
+2010-08-05  Nicolas Setton  <setton@adacore.com>
+
+	* gcov.c (flag_display_progress): New static variable.
+	(main): Display progress info on standard output if requested.
+	(options): Add -d/--display-progress.
+	(print_usage): Print them.
+	(process_args): Handle them.
+	* doc/gcov.texi: Document them.
+
+2010-08-05  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-cp.c (ipcp_discover_new_direct_edges): New function.
+	(ipcp_insert_stage): Redirect only edges not flagged with
+	indirect_inlining_edge.  Call ipcp_discover_new_direct_edges for all
+	discovered constants.
+
+2010-08-05  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-prop.h (enum ipa_lattice_type): Changed comments.
+	(struct ipa_param_descriptor): New fields types and
+	cannot_devirtualize.
+	(ipa_param_cannot_devirtualize_p): New function.
+	(ipa_param_types_vec_empty): Likewise.
+	(ipa_make_edge_direct_to_target): Declare.
+	* ipa-cp.c: Fixed first stage driver name in initial comment,
+	described devirtualization there too.
+	(ipcp_analyze_node): Call ipa_analyze_params_uses.
+	(ipcp_print_all_lattices): Print devirtualization info.
+	(ipa_set_param_cannot_devirtualize): New function.
+	(ipcp_initialize_node_lattices): Set cannot_devirtualize when setting
+	lattice to BOTTOM.
+	(ipcp_init_stage): Merged into...
+	(ipcp_generate_summary): ...its caller.
+	(ipcp_change_tops_to_bottom): Also process type lists.
+	(ipcp_add_param_type): New function.
+	(ipcp_copy_types): Likewise.
+	(ipcp_propagate_types): Likewise.
+	(ipcp_propagate_stage): Also propagate types.
+	(ipcp_need_redirect_p): Variable jump_func moved to its scope block.
+	Also return true if propagated types require it.
+	(ipcp_update_callgraph): Dump redirection info.
+	(ipcp_process_devirtualization_opportunities): New function.
+	(ipcp_const_param_count): Include known type information.
+	(ipcp_insert_stage): Call ipcp_process_devirtualization_opportunities
+	on new node.  Fixed formatting.
+	* ipa-prop.c (make_edge_direct_to_target): Renamed to
+	ipa_make_edge_direct_to_target and changed all callers.  Made
+	externally visible.
+	(ipa_node_duplication_hook): Duplicate types vector.
+	* cgraphunit.c (cgraph_redirect_edge_call_stmt_to_callee): Also try to
+	redirect outgoing calls for which we can't get a decl from the
+	statement.  Check that we can get a decl from the call statement.
+	* ipa-inline.c (inline_indirect_intraprocedural_analysis): Call
+	ipa_analyze_params_uses only when ipa-cp is disabled.
+	* tree-inline.c (get_indirect_callee_fndecl): Removed.
+	(expand_call_inline): Do not call get_indirect_callee_fndecl.
+	* params.def (PARAM_DEVIRT_TYPE_LIST_SIZE): New parameter.
+	* Makefile.in (ipa-cp.o): Add gimple.h to dependencies.
+
+2010-08-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* expmed.c (expand_mult_const) <case alg_shift>: Expand shift into
+	temporary. Emit move from temporary to accum, so REG_EQUAL note will
+	be attached to this insn in correct mode.
+
+2010-08-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_decompose_address): Check for SI_REG
+	using REGNO of base_reg directly.
+
+2010-08-05  Jie Zhang  <jie@codesourcery.com>
+
+	PR tree-optimization/45144
+	* tree-sra.c (type_consists_of_records_p): Return false
+	if the record contains bit-field.
+
+2010-08-04  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (struct ix86_frame): Remove padding and
+	to_allocate members.
+	(ix86_compute_frame_layout): Don't store them.
+	(ix86_can_use_return_insn_p): Use a more direct and more obviously
+	correct condition for the position of the stack pointer.
+	(ix86_expand_prologue): Compute remaining stack allocation based
+	on the ultimate stack pointer offset.
+	(ix86_expand_epilogue): Use more obvious expressions testing for
+	the stack pointer already pointing to the saved registers.
+
+	* config/i386/i386.c (ix86_expand_epilogue): Eliminate code
+	duplication deconstructing the frame pointer.  Simplify
+	deallocation of the local stack frame.
+
+	* reg-notes.def (CFA_EXPRESSION): New.
+	* dwarf2out.c (dwarf2out_frame_debug): Handle it.
+	(dwarf2out_frame_debug_cfa_expression): New.
+	(dwarf2out_frame_debug_def_cfa): Handle simple MEMs.
+
+	* config/i386/i386.h (struct machine_frame_state): Add realigned flag.
+	* config/i386/i386.c (ix86_expand_prologue): Set it.
+	(ix86_expand_epilogue): Clear it.
+	(ix86_emit_save_reg_using_mov):	For registers saved in a realigned
+	context, add REG_CFA_EXPRESSION notes.
+
+	* config/i386/i386.h (struct machine_frame_state): Rename from
+	machine_cfa_state.  Add members tracking SP and FP regardless
+	of the current CFA register.
+	(ix86_cfa_state): Remove.
+	* config/i386/i386.c (struct ix86_frame): Add reg_save_offset
+	and sse_reg_save_offset members.
+	(ix86_compute_frame_layout): Set them.
+	(gen_push): Increment sp_offset too.
+	(choose_baseaddr_len, choose_baseaddr): New.
+	(ix86_emit_save_reg_using_mov): New.
+	(ix86_emit_save_regs_using_mov): Use it.
+	(ix86_emit_save_sse_regs_using_mov): Likewise.
+	(ix86_add_cfa_restore_note): Take cfa_offset not red_offset argument;
+	compare vs the saved red_zone_offset.
+	(pro_epilogue_adjust_stack): Adjust sp_offset.
+	(ix86_adjust_stack_and_probe): Likewise.
+	(ix86_expand_prologue): Set up, use, and validate the new
+	frame_state_info members.  Use gen_frame_mem.
+	(ix86_emit_restore_regs_using_pop): Remove red_offset parameter.
+	(ix86_emit_restore_reg_using_pop): Likewise.  Use and update the
+	new frame_state_info members.
+	(ix86_emit_leave): Likewise.
+	(ix86_emit_restore_regs_using_mov): Likewise.  Don't check for
+	out-of-range stack pointer offsets here.
+	(ix86_emit_restore_sse_regs_using_mov): Likewise.
+	(ix86_expand_epilogue): Use and validate the new frame_state_info
+	members.  Break up and simplify the logic selecting the
+	restore_regs_via_mov code path.  Ensure that there will be no
+	out-of-range stack pointer offsets.
+
+	* config/i386/cygming.h (TARGET_64BIT_MS_ABI): Remove.
+
+	* config/i386/i386.c (ix86_function_ms_hook_prologue): Fix
+	argument name to reflect the expected tree; fix indentation.
+	(ix86_asm_output_function_label): Output the entire 32-bit
+	ms_hook here as bytes ...
+	(ix86_expand_prologue): ... not here as insns.  Attach the
+	unwind info for the ms_hook to a blockage insn.
+	(ix86_handle_fndecl_attribute): Don't check HAVE_AS_IX86_SWAP.
+	(ix86_ms_bitfield_layout_p): Fix indentation.
+	* config/i386/i386.md (UNSPECV_VSWAPMOV, vswapmov): Remove.
+
+	* config/i386/i386.c (ix86_using_red_zone): New.
+	(ix86_compute_frame_layout, ix86_add_cfa_restore_note,
+	ix86_expand_prologue, ix86_force_to_memory): Use it.
+
+	* config/i386/i386.c (ix86_expand_prologue): Simplify logic
+	saving the int registers.
+
+	* dwarf2out.c: Remove most of the DWARF2_DEBUGGING_INFO
+	and DWARF2_UNWIND_INFO conditional compilation.
+
+2010-08-04  Richard Henderson  <rth@redhat.com>
+
+	PR debug/45171
+	* dwarf2out.c (gen_typedef_die): Don't re-generate the die of
+	an is_naming_typedef_decl.
+
+2010-08-04  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR rtl-optimization/45162
+	* df-problems.c (df_word_lr_bb_local_compute): Ignore DEBUG_INSNs.
+	* dce.c (word_dce_process_block): Likewise.
+
+2010-08-04  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/44583
+	* config/ia64/constraints.md (Z): New.
+	* config/ia64/predicates.md (fr_reg_or_signed_fp01_operand): New.
+	(xfreg_or_signed_fp01_operand): New.
+	* config/ia64/ia64.md (addsf3): Replace fr_reg_or_fp01_operand
+	with fr_reg_or_signed_fp01_operand and constraint G with Z.
+	(subsf3): Ditto.
+	(*maddsf4): Ditto.
+	(*msubsf4): Ditto.
+	(adddf3): Ditto.
+	(adddf3_trunc): Ditto.
+	(subdf3): Ditto.
+	(*subdf3_trunc): Ditto.
+	(*madddf4): Ditto.
+	(*madddf4_trunc): Ditto.
+	(*msubdf4): Ditto.
+	(*msubdf4_trunc): Ditto.
+	(addxf3): Replace xfreg_or_fp01_operand with
+	xfreg_or_signed_fp01_operand and constraint G with Z.
+	(*addxf3_truncsf): Ditto.
+	(*addxf3_truncdf): Ditto.
+	(subxf3): Ditto.
+	(*subxf3_truncsf): Ditto.
+	(*subxf3_truncdf): Ditto.
+	(*maddxf4): Ditto.
+	(*maddxf4_truncsf): Ditto.
+	(*maddxf4_truncdf): Ditto.
+	(*msubxf4): Ditto.
+	(*msubxf4_truncsf): Ditto.
+	(*msubxf4_truncdf): Ditto.
+
+2010-08-04  Richard Guenther  <rguenther@suse.de>
+
+	* alias.c (rtx_refs_may_alias_p): Do not resort to TBAA
+	if either alias-set is zero.
+
+2010-08-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-propagate.h (struct prop_value_d, prop_value_t): Move ...
+	* tree-ssa-ccp.c: ... here.
+	* tree-ssa-copy.c: ... and here.
+	* tree-ssa-propagate.h (enum value_range_type, struct value_range_d,
+	value_range_t): Move ...
+	* tree-vrp.c: ... here.
+	* tree-ssa-propagate.h (ssa_prop_get_value_fn): New typedef.
+	(substitute_and_fold): Adjust prototype.
+	* tree-ssa-propagate.c (replace_uses_in): Adjust.
+	(replace_phi_args_in): Likewise.
+	(substitute_and_fold): Take callback to query lattice instead
+	of pointer to lattice.  Replace SSA name defs with lattice
+	values first.
+	* tree-ssa-ccp.c (ccp_finalize): Adjust.
+	* tree-ssa-copy.c (copy_prop_visit_phi_node): Adjust.
+	(get_value): New function.
+	(fini_copy_prop): Adjust.
+	* tree-vrp.c (vrp_finalize): Adjust.
+
+2010-08-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45176
+	* expr.c (expand_expr_real_1): Also preserve TARGET_MEM_REF
+	points-to set for original MEM_REF.
+
+2010-08-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-ccp.c (get_constant_value): New function.
+	(get_rhs_assign_op_for_ccp): Remove.
+	(valueize_op): New function.
+	(ccp_fold): Use get_constant_value and valueize_op.
+	(fold_const_aggregate_ref): Likewise.
+	(ccp_fold_stmt): Likewise.
+	(visit_assignment): Simplify.
+
+2010-08-04  Richard Guenther  <rguenther@suse.de>
+
+	* Makefile.in (double-int.o): Add $(TOPLEV_H) dependency.
+	* double-int.h (double_int_ctz): Declare.
+	* double-int.c (double_int_ctz): New function.
+
+2010-08-04  Hariharan Sandanagobalane <hariharan@picochip.com>
+
+	* config/picochip/picochip.c (TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE):
+	Define.
+	picochip_expand_movmemhi : Expand movmem pattern.
+	* config/picochip/picochip-protos.h (picochip_expand_movmemhi) :
+	Declare.
+	* config/picochip/picochip.md (movmemhi) : New pattern.
+
+2010-08-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/unix.h (GLOBAL_ASM_OPS): Add tabs around .globl.
+
+2010-08-03  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* simplify-rtx.c (simplify_binary_operation_1): Try to simplify away
+	NEG as operand of a MULT by merging it with the other operand.
+	* combine.c (make_compound_operation): Use trunc_int_for_mode when
+	generating a MULT with constant.  Canonicalize PLUS and MINUS involving
+	MULT.
+	* config/arm/constraints.md (M): Examine only 32 bits of a
+	HOST_WIDE_INT.
+	* config/arm/predicates.md (power_of_two_operand): Likewise.
+
 2010-08-03  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	* config/spu/spu.c (spu_emit_branch_hint): Do not access NOTE_KIND of
@@ -21,8 +344,7 @@
 
 	* config/alpha/alpha.h (SWITCH_TAKES_ARG): Define.
 	* config/alpha/osf5.h (LIB_SPEC): Don't handle -a.
-	* config/bfin/bfin.h (ASM_SPEC, LINK_SPEC): Don't pass -G*
-	options.
+	* config/bfin/bfin.h (ASM_SPEC, LINK_SPEC): Don't pass -G* options.
 	* config/darwin.h (WORD_SWITCH_TAKES_ARG): Handle -iframework.
 	* config/ia64/ia64.h (SWITCH_TAKES_ARG): Define.
 	* config/iq2000/iq2000.h (SWITCH_TAKES_ARG): Remove.
