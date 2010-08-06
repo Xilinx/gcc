@@ -61,7 +61,6 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
 
       tree rhs_tree = NULL_TREE;
       tree decl = gpy_ctx_lookup_decl( opa->op_a.string, VAR );
-      debug("l = <%i>!\n", l);
 
       if( !decl )
 	{

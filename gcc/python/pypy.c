@@ -423,7 +423,7 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
 
   tree declare_vars = NULL_TREE;
   tree bind = NULL_TREE;
-  tree block = NULL_TREE;
+  tree block = alloc_stmt_list( );
   tree resdecl = NULL_TREE;
   tree restype = TREE_TYPE(retval);
 
@@ -457,6 +457,7 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
 	 and getting the respective tree's and creating the GENERIC block
        */
       tree x = gpy_get_tree( o, &block );
+      gpy_preserve_from_gc( x );
       gcc_assert( x );
       append_to_statement_list( x, &block );
       o = o->next;

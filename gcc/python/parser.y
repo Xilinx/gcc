@@ -46,6 +46,8 @@ along with GCC; see the file COPYING3.  If not see
 #include <gmp.h>
 #include <mpfr.h>
 
+static VEC( gpy_sym,gc ) * gpy_symbol_stack;
+
 extern int yylineno;
 
 extern int yylex( void );
@@ -172,7 +174,9 @@ funcdef: DEF funcname '(' ')' ':' suite
 
 suite: stmt_list NEWLINE
      | NEWLINE suite_statement_list DEDENT
-     { $$=$2; }
+     {
+       $$ = VEC_pop( gpy_sym, gpy_symbol_stack );
+     }
      ;
 
 suite_statement_list: suite_statement_list indent_stmt
@@ -181,7 +185,11 @@ suite_statement_list: suite_statement_list indent_stmt
 		     $$ = $2;
 		   }
                    | indent_stmt
-                   { $$=$1 }
+                   {
+		     VEC_safe_push( gpy_sym, gc,
+				    gpy_symbol_stack, $1 );
+		     $$=$1;
+		   }
                    ;
 
 indent_stmt: INDENT statement

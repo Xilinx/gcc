@@ -333,16 +333,19 @@ tree gpy_ctx_lookup_decl( const char * s, enum DECL_T T )
 {
   tree retval = NULL;
   unsigned int n_ctx = VEC_length( gpy_ctx_t,gpy_ctx_table );
-  unsigned int idx = 0; gpy_context_branch * it = NULL;
+  int idx = 0; gpy_context_branch * it = NULL;
 
   gpy_hashval_t h = gpy_dd_hash_string( s );
   debug( "trying to lookup <%s> : context table length = <%i>!\n",
 	 s, n_ctx );
 
-  for( ; VEC_iterate(gpy_ctx_t,gpy_ctx_table,idx,it); ++idx )
+  for( idx=(n_ctx-1); idx>=0; --idx )
     {
+      it = VEC_index( gpy_ctx_t, gpy_ctx_table, idx );
+
       gpy_hash_entry_t * o = NULL;
-      gpy_hash_tab_t* decl_table = NULL;
+      gpy_hash_tab_t * decl_table = NULL;
+
       if( T == VAR )
 	decl_table = it->var_decls;
       else
@@ -355,6 +358,7 @@ tree gpy_ctx_lookup_decl( const char * s, enum DECL_T T )
 	    {
 	      debug("found symbol <%s> in context <%p>!\n", s, (void*)it );
 	      retval = (tree) (o->data) ;
+	      break;
 	    }
 	}
     }
