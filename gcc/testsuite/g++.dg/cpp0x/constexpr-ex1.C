@@ -89,6 +89,6 @@ struct resource {
 };
 constexpr resource f(resource d) // { dg-error "resource" }
 { return d; }                  // error: copy-constructor not trivial
-constexpr resource d = f(9);
+constexpr resource d = f(9);   // { dg-error "resource" }
 
 // 4.4 floating-point constant expressions

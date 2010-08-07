@@ -4339,9 +4339,6 @@ start_decl (const cp_declarator *declarator,
 	  && !alias)
 	permerror (input_location, "declaration of %q#D outside of class is not definition",
 		   decl);
-
-      if (!ensure_literal_type_for_constexpr_object (decl))
-        return error_mark_node;
     }
 
   was_public = TREE_PUBLIC (decl);
@@ -4456,6 +4453,9 @@ start_decl_1 (tree decl, bool initialized)
 	 DECL an rtl we can live with: (mem (const_int 0)).  */
       type = TREE_TYPE (decl) = error_mark_node;
     }
+
+  if (!ensure_literal_type_for_constexpr_object (decl))
+    DECL_DECLARED_CONSTEXPR_P (decl) = 0;
 
   /* Create a new scope to hold this declaration if necessary.
      Whether or not a new scope is necessary cannot be determined
