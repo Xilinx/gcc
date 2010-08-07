@@ -1,3 +1,32 @@
+2010-08-07  Diego Novillo  <dnovillo@google.com>
+
+	* lto/lto.c (gimple_parse_expect_token,
+	gimple_parse_expect_subcode, gimple_parse_expect_lhs,
+	gimple_parse_expect_rhs1, gimple_parse_expect_rhs2,
+	gimple_parse_assign_stmt, gimple parse_expect_op1,
+	gimple_parse_expect_op2, gimple_parse_expect_true_label,
+	gimple_parse_expect_false_label, gimple_parse_cond_stmt,
+	gimple_parse_goto_stmt, gimple_parse_label_stmt,
+	gimple_parse_return_stmt, gimple_parse_stmt): Make
+	static.
+	(gimple_parse_stmt): Fix call to strcasecmp.
+	(gimple_parse_expect_subcode): Likewise.
+
+2010-08-06  Sandeep Soni  <soni.sandeepb@gmail.com>
+
+	* lto/lto.c (gimple_parse_expect_subcode,
+	gimple_parse_expect_lhs, gimple_parse_expect_rhs1,
+	gimple_parse_expect_op1, gimple_parse_expect_op2,
+	gimple_parse_expect_true_label,
+	gimple_parse_expect_false_label,
+	gimple_parse_return_stmt): New.
+	* lto/lto.c (gimple_parse_assign_stmt,
+	gimple_parse_cond_stmt): Changed body to suit the new
+	interface.
+	* lto/lto.c (gimple_parse_stmt) : Added case to handle
+	gimple_return tuple.
+	* lto/lto.h: Added function declarations.
+
 2010-08-02  Diego Novillo  <dnovillo@google.com>
 
 	* lto/lto.c (lto_main): Call ggc_alloc_cleared_line_maps

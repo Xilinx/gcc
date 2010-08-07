@@ -40,12 +40,6 @@ extern const char *resolution_file_name;
 extern tree lto_eh_personality (void);
 extern void lto_main (int);
 extern void lto_read_all_file_options (void);
-extern void gimple_parse_stmt (cpp_reader *p,const cpp_token *tok);
-extern void gimple_parse_assign_stmt (cpp_reader *p);
-extern void gimple_parse_cond_stmt (cpp_reader *p);
-extern void gimple_parse_label_stmt (cpp_reader *p);
-extern void gimple_parse_goto_stmt (cpp_reader *p);
-extern void gimple_parse_expect_token (cpp_reader *p,int expected_token_type);
  
 /* In lto-elf.c or lto-coff.c  */
 extern lto_file *lto_obj_file_open (const char *filename, bool writable);
