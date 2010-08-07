@@ -340,29 +340,8 @@ tree gpy_process_expression( const gpy_symbol_obj * const sym, tree * block )
   tree retval = NULL;
   if( sym->type == SYMBOL_PRIMARY )
     {
-      tree params = NULL_TREE;
-
-      chainon( params, tree_cons (NULL_TREE, integer_type_node, NULL_TREE) );
-      chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
-
-      tree fntype = build_function_type( ptr_type_node, params );
-      tree gpy_eval_expr_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
-					    get_identifier("gpy_rr_fold_integer"),
-					    fntype );
-      tree restype = TREE_TYPE(gpy_eval_expr_decl);
-      tree resdecl = build_decl( UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
-				 restype );
-      DECL_CONTEXT(resdecl) = gpy_eval_expr_decl;
-      DECL_RESULT(gpy_eval_expr_decl) = resdecl;
-      DECL_EXTERNAL( gpy_eval_expr_decl ) = 1;
-      TREE_PUBLIC( gpy_eval_expr_decl ) = 1;
-      
       gcc_assert( sym->op_a_t == TYPE_INTEGER );
-      retval = build_call_expr( gpy_eval_expr_decl, 1,
-				build_int_cst( integer_type_node,
-					       sym->op_a.integer )
-				);
-      debug("tree primary!\n");
+      retval = gpy_builtin_get_fold_int_call( sym->op_a.integer );
     }
   else if( sym->type == SYMBOL_REFERENCE )
     {

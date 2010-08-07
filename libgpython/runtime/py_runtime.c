@@ -133,7 +133,6 @@ void gpy_rr_decr_ref_count( gpy_object_state_t * x )
   x->ref_count--;
 }
 
-inline
 void gpy_rr_push_context( void )
 {
   gpy_context_t * ctx = (gpy_context_t *)

@@ -64,8 +64,7 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
 
       if( !decl )
 	{
-	  gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table,
-				   (l-1) );
+	  gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table, (l-1) );
 	  
 	  decl = build_decl( opa->loc, VAR_DECL,
 			     get_identifier( opa->op_a.string ),
@@ -73,23 +72,13 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
 	  
 	  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x, VAR )) )
 	    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );
-	  
-	  debug( "built the VAR_DECL <%p> for <%s>!\n", (void*)decl,
-		 opa->op_a.string );
 	}
-      rhs_tree = gpy_process_expression( opb, block );
-      
-      retval = build2( MODIFY_EXPR, ptr_type_node,
-		       decl, rhs_tree );
 
-      debug("built assignment for <%s>!\n", opa->op_a.string );
+      rhs_tree = gpy_process_expression( opb, block );
+      retval = build2( MODIFY_EXPR, ptr_type_node, decl, rhs_tree );
     }
   else
-    {
-      fatal_error("Invalid accessor for assignment <0x%x>!\n", opa->type );
-    }
-
-  debug_tree( retval );
+    fatal_error("Invalid accessor for assignment <0x%x>!\n", opa->type );
 
   return retval;
 }
@@ -99,25 +88,6 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
 {
   gpy_symbol_obj *opa, *opb; tree retval = NULL;
   tree t1 = NULL_TREE, t2 = NULL_TREE;
-
-  tree params = NULL_TREE;
-
-  chainon( params, tree_cons (NULL_TREE, ptr_type_node, NULL_TREE) );
-  chainon( params, tree_cons (NULL_TREE, ptr_type_node, NULL_TREE) );
-  chainon( params, tree_cons (NULL_TREE, integer_type_node, NULL_TREE) );
-  chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
-
-  tree fntype = build_function_type( ptr_type_node, params );
-  tree gpy_eval_expr_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
-					get_identifier("gpy_rr_eval_expression"),
-					fntype );
-  tree restype = TREE_TYPE(gpy_eval_expr_decl);
-  tree resdecl = build_decl( UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
-			     restype );
-  DECL_CONTEXT(resdecl) = gpy_eval_expr_decl;
-  DECL_RESULT(gpy_eval_expr_decl) = resdecl;
-  DECL_EXTERNAL( gpy_eval_expr_decl ) = 1;
-  TREE_PUBLIC( gpy_eval_expr_decl ) = 1;
 
   if( op_a && op_b ) { opa= *op_a; opb= *op_b; }
   else {
@@ -131,10 +101,7 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
   switch( operation )
     {
     case OP_BIN_ADDITION:
-      retval =  build_call_expr( gpy_eval_expr_decl, 3, t1, t2,
-				 build_int_cst( integer_type_node,
-						OP_BIN_ADDITION )
-				 );
+      retval = gpy_builtin_get_eval_expression_call( t1, t2, operation );
       break;
 
     default:
@@ -142,8 +109,6 @@ tree gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
       retval = NULL;
       break;
     }
-
-  debug_tree( retval );
 
   return retval;
 }
