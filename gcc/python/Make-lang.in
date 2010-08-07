@@ -67,18 +67,18 @@ hashtab.o: $(srcdir)/python/hashtab.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) --save-temps $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/hashtab.c
 
-builtins.o: $(srcdir)/python/builtins.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+py_builtins.o: $(srcdir)/python/py_builtins.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gt-python-py-lang.h gtype-python.h
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) --save-temps $(ALL_CPPFLAGS) $(INCLUDES) \
-	$(LDFLAGS) -c -o $@ $(srcdir)/python/builtins.c
+	$(LDFLAGS) -c -o $@ $(srcdir)/python/py_builtins.c
 
 GPY_OBJS = \
 	py-lang.o \
 	pypy.o \
 	expression.o \
 	hashtab.o \
-	builtins.o
+	py_builtins.o
 
 GCCPY_C_OBJS = parser.o lexer.o $(GPY_OBJS) $(BACKEND) $(LIBSDEPS) attribs.o
 gpy1$(exeext): $(GCCPY_C_OBJS)

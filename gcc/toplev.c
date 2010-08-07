@@ -975,23 +975,15 @@ compile_file (void)
   timevar_pop (TV_PARSE);
 
   if (flag_syntax_only || flag_wpa)
-    {
-      printf("returning!\n");
-      return;
-    }
+    return;
 
   ggc_protect_identifiers = false;
 
-  printf("write those globals!\n");
   /* This must also call cgraph_finalize_compilation_unit.  */
   lang_hooks.decls.final_write_globals ();
 
   if (seen_error ())
-    {
-      printf("seen error returning!\n");
-      return;
-    }
-  printf("lets ouput some code!!!\n");
+    return;
 
   varpool_assemble_pending_decls ();
   finish_aliases_2 ();
@@ -1009,8 +1001,6 @@ compile_file (void)
   /* This must be at the end before unwind and debug info.
      Some target ports emit PIC setup thunks here.  */
   targetm.asm_out.code_end ();
-
-  printf("whoop!\n");
 
   /* Do dbx symbols.  */
   timevar_push (TV_SYMOUT);

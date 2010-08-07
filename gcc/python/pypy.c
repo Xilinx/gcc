@@ -42,7 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gpy.h"
 #include "symbols.h"
 #include "opcodes.def"
-#include "y.py.h"
+#include "runtime.h"
 
 static VEC( gpy_sym,gc ) * gpy_decls;
 VEC(gpy_ctx_t,gc) * gpy_ctx_table;

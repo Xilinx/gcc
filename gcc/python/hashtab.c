@@ -41,7 +41,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "gpy.h"
 #include "symbols.h"
 #include "opcodes.def"
-#include "y.py.h"
 
 VEC( gpy_sym,gc ) * gpy_garbage_decls;
 

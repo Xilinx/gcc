@@ -43,7 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "symbols.h"
 #include "runtime.h"
 #include "opcodes.def"
-#include "y.py.h"
 
 tree gpy_builtin_get_init_call( void )
 {
