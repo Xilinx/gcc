@@ -138,8 +138,7 @@ tree gpy_builtin_get_fold_int_call( int val )
 	   );
 }
 
-tree gpy_builtin_get_eval_expression_call( tree t1, tree t2,
-					   gpy_opcode_t op )
+tree gpy_builtin_get_eval_expression_call( tree t1, tree t2, gpy_opcode_t op )
 {
   tree params = NULL_TREE;
 
