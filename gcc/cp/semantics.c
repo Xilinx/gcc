@@ -6321,9 +6321,9 @@ cxx_eval_outermost_constant_expr (tree t, bool allow_non_constant)
 
   if (non_constant_p && !allow_non_constant)
     return error_mark_node;
-  else if (non_constant_p)
+  else if (non_constant_p || r == t)
     return t;
-  else if (TREE_CODE (r) == CONSTRUCTOR)
+  else if (TREE_CODE (r) == CONSTRUCTOR && CLASS_TYPE_P (TREE_TYPE (r)))
     {
       if (TREE_CODE (t) == TARGET_EXPR
 	  && TARGET_EXPR_INITIAL (t) == r)

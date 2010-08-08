@@ -1398,8 +1398,19 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
   if (parms != NULL)
     release_tree_vector (parms);
 
+  if (exp == true_exp && TREE_CODE (rval) == CALL_EXPR)
+    {
+      tree fn = get_callee_fndecl (rval);
+      if (DECL_DECLARED_CONSTEXPR_P (fn))
+	{
+	  tree e = maybe_constant_value (rval);
+	  if (TREE_CODE (e) == TARGET_EXPR)
+	    rval = build2 (INIT_EXPR, type, exp, e);
+	}
+    }
+
   if (TREE_SIDE_EFFECTS (rval))
-    finish_expr_stmt (convert_to_void (rval, ICV_CAST, complain));
+    finish_expr_stmt (rval);
 }
 
 /* This function is responsible for initializing EXP with INIT
@@ -2828,6 +2839,8 @@ build_vec_init (tree base, tree maxindex, tree init,
   tree try_block = NULL_TREE;
   int num_initialized_elts = 0;
   bool is_global;
+  tree const_init = NULL_TREE;
+  tree obase = base;
 
   if (TREE_CODE (atype) == ARRAY_TYPE && TYPE_DOMAIN (atype))
     maxindex = array_type_nelts (atype);
@@ -2933,32 +2946,76 @@ build_vec_init (tree base, tree maxindex, tree init,
       try_block = begin_try_block ();
     }
 
+  /* FIXME pull out constant value when from_array? */
+
   if (init != NULL_TREE && TREE_CODE (init) == CONSTRUCTOR)
     {
       /* Do non-default initialization of non-trivial arrays resulting from
 	 brace-enclosed initializers.  */
       unsigned HOST_WIDE_INT idx;
-      tree elt;
+      tree field, elt;
+      bool try_const = (literal_type_p (type)
+			|| TYPE_HAS_CONSTEXPR_CTOR (inner_elt_type));
+      bool saw_non_const = false;
+      VEC(constructor_elt,gc) *new_vec;
       from_array = 0;
 
-      FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (init), idx, elt)
+      if (try_const)
+	new_vec = VEC_alloc (constructor_elt, gc, CONSTRUCTOR_NELTS (init));
+      else
+	new_vec = NULL;
+
+      FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (init), idx, field, elt)
 	{
 	  tree baseref = build1 (INDIRECT_REF, type, base);
+	  tree one_init;
 
 	  num_initialized_elts++;
 
 	  current_stmt_tree ()->stmts_are_full_exprs_p = 1;
 	  if (MAYBE_CLASS_TYPE_P (type) || TREE_CODE (type) == ARRAY_TYPE)
-	    finish_expr_stmt (build_aggr_init (baseref, elt, 0, complain));
+	    one_init = build_aggr_init (baseref, elt, 0, complain);
 	  else
-	    finish_expr_stmt (cp_build_modify_expr (baseref, NOP_EXPR,
-                                                    elt, complain));
+	    one_init = cp_build_modify_expr (baseref, NOP_EXPR,
+					     elt, complain);
+
+	  if (try_const)
+	    {
+	      tree e = one_init;
+	      if (TREE_CODE (e) == EXPR_STMT)
+		e = TREE_OPERAND (e, 0);
+	      if (TREE_CODE (e) == CONVERT_EXPR
+		  && VOID_TYPE_P (TREE_TYPE (e)))
+		e = TREE_OPERAND (e, 0);
+	      e = maybe_constant_value (e);
+	      /* FIXME */
+	      if (TREE_CODE (e) == TARGET_EXPR
+		  && TREE_CODE (TARGET_EXPR_INITIAL (e)) == CONSTRUCTOR)
+		e = TARGET_EXPR_INITIAL (e);
+	      if (reduced_constant_expression_p (e))
+		{
+		  CONSTRUCTOR_APPEND_ELT (new_vec, field, e);
+		  one_init = build2 (INIT_EXPR, type, baseref, e);
+		}
+	      else
+		saw_non_const = true;
+	    }
+
+	  finish_expr_stmt (one_init);
 	  current_stmt_tree ()->stmts_are_full_exprs_p = 0;
 
 	  finish_expr_stmt (cp_build_unary_op (PREINCREMENT_EXPR, base, 0,
                                                complain));
 	  finish_expr_stmt (cp_build_unary_op (PREDECREMENT_EXPR, iterator, 0,
                                                complain));
+	}
+
+      if (try_const)
+	{
+	  if (!saw_non_const)
+	    const_init = build_constructor (atype, new_vec);
+	  else
+	    VEC_free (constructor_elt, gc, new_vec);
 	}
 
       /* Clear out INIT so that we don't get confused below.  */
@@ -3099,6 +3156,9 @@ build_vec_init (tree base, tree maxindex, tree init,
     }
 
   current_stmt_tree ()->stmts_are_full_exprs_p = destroy_temps;
+
+  if (const_init)
+    return build2 (INIT_EXPR, atype, obase, const_init);
   return stmt_expr;
 }
 

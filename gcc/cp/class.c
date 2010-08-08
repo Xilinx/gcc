@@ -4465,26 +4465,8 @@ finalize_literal_type_property (tree t)
       || TYPE_HAS_COMPLEX_MOVE_CTOR (t))
     CLASSTYPE_LITERAL_P (t) = false;
   else if (CLASSTYPE_LITERAL_P (t) && !TYPE_HAS_TRIVIAL_DFLT (t)
-	   && CLASSTYPE_METHOD_VEC (t) != NULL)
-    {
-      tree ctors = CLASSTYPE_CONSTRUCTORS (t);
-      bool found_one = false;
-      for (; !found_one && ctors != NULL; ctors = OVL_NEXT (ctors))
-        {
-          tree ctor = OVL_CURRENT (ctors);
-          /* If this class a constexpr constructor template, then the class
-             is literal if at least one instantiation is 'constexpr'.
-             If no such instantiation exists, there is no way to use
-             the literalness of the class.  Consequently, we can accept
-             constexpr constructor template.  */
-          if (DECL_COPY_CONSTRUCTOR_P (ctor)
-              || DECL_CLONED_FUNCTION_P (ctor))
-            continue;
-          if (DECL_DECLARED_CONSTEXPR_P (STRIP_TEMPLATE (ctor)))
-            found_one = true;
-        }
-      CLASSTYPE_LITERAL_P (t) = found_one;
-    }
+	   && !TYPE_HAS_CONSTEXPR_CTOR (t))
+    CLASSTYPE_LITERAL_P (t) = false;
 }
 
 /* Check the validity of the bases and members declared in T.  Add any

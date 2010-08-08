@@ -714,9 +714,6 @@ store_init_value (tree decl, tree init, int flags)
 
   if (MAYBE_CLASS_TYPE_P (type))
     {
-      gcc_assert (!type_has_nontrivial_copy_init (type)
-		  || TREE_CODE (init) == CONSTRUCTOR);
-
       if (TREE_CODE (init) == TREE_LIST)
 	{
 	  error ("constructor syntax used, but no constructor declared "
@@ -742,8 +739,15 @@ store_init_value (tree decl, tree init, int flags)
 
   /* End of special C++ code.  */
 
-  /* Digest the specified initializer into an expression.  */
-  value = digest_init_flags (type, init, flags);
+  /* FIXME this is fragile.  */
+  if (TYPE_NEEDS_CONSTRUCTING (type)
+      || (CLASS_TYPE_P (type)
+	  && !BRACE_ENCLOSED_INITIALIZER_P (init)))
+    /* Already digested.  */
+    value = init;
+  else
+    /* Digest the specified initializer into an expression.  */
+    value = digest_init_flags (type, init, flags);
 
   /* In C++0x constant expression is a semantic, not syntactic, property.
      In C++98, make sure that what we thought was a constant expression at

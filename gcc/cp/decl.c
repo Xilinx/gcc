@@ -5314,13 +5314,17 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
       gcc_assert (init != NULL_TREE);
       init = NULL_TREE;
     }
-  else if (!DECL_EXTERNAL (decl) && TREE_CODE (type) == REFERENCE_TYPE)
+  else if (!init && DECL_REALLY_EXTERN (decl))
+    ;
+  else if (TREE_CODE (type) == REFERENCE_TYPE)
     init = grok_reference_init (decl, type, init, cleanup);
-  else if (init)
+  else if (init || TYPE_NEEDS_CONSTRUCTING (type))
     {
+      if (!init)
+	check_for_uninitialized_const_var (decl);
       /* Do not reshape constructors of vectors (they don't need to be
 	 reshaped.  */
-      if (BRACE_ENCLOSED_INITIALIZER_P (init))
+      else if (BRACE_ENCLOSED_INITIALIZER_P (init))
 	{
 	  if (is_std_init_list (type))
 	    {
@@ -5352,28 +5356,35 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
       if (type == error_mark_node)
 	return NULL_TREE;
 
-      if (literal_type_p (type))
+      if (TYPE_NEEDS_CONSTRUCTING (type)
+	  || (CLASS_TYPE_P (type)
+	      && !(init && BRACE_ENCLOSED_INITIALIZER_P (init))))
 	{
-	  /* For literal types we want to do static initialization, and we
-	     don't need to worry about non-trivial copy or destruction.  So
-	     don't go through build_aggr_init, and do convert a list of
-	     constructor args into a TARGET_EXPR initializer.  */
-	  /* FIXME what about non-literal classes with constexpr
-	     constructors?  */
-	  if (CLASS_TYPE_P (type)
-	      && TREE_CODE (init) == TREE_LIST)
+	  init_code = build_aggr_init_full_exprs (decl, init, flags);
+	  while (TREE_CODE (init_code) == EXPR_STMT
+		 || TREE_CODE (init_code) == CONVERT_EXPR)
+	    init_code = TREE_OPERAND (init_code, 0);
+	  if (TREE_CODE (init_code) == INIT_EXPR)
 	    {
-	      init = build_functional_cast (type, init, tf_warning_or_error);
-	      if (init != error_mark_node)
-		TARGET_EXPR_DIRECT_INIT_P (init) = true;
+	      init = TREE_OPERAND (init_code, 1);
+	      init_code = NULL_TREE;
 	    }
+	  else if (DECL_DECLARED_CONSTEXPR_P (decl))
+	    {
+	      /* Leave init set so store_init_value complains.  */
+	      if (CLASS_TYPE_P (type) && TREE_CODE (init) == TREE_LIST)
+		{
+		  init = build_functional_cast (type, init, tf_none);
+		  if (init != error_mark_node)
+		    TARGET_EXPR_DIRECT_INIT_P (init) = true;
+		}
+	      init_code = NULL_TREE;
+	    }
+	  else
+	    init = NULL_TREE;
 	}
-      else if (TYPE_NEEDS_CONSTRUCTING (type)
-	       || (CLASS_TYPE_P (type)
-		   && !BRACE_ENCLOSED_INITIALIZER_P (init)))
-	return build_aggr_init_full_exprs (decl, init, flags);
 
-      if (TREE_CODE (init) != TREE_VEC)
+      if (init && TREE_CODE (init) != TREE_VEC)
 	{
 	  init_code = store_init_value (decl, init, flags);
 	  if (pedantic && TREE_CODE (type) == ARRAY_TYPE
@@ -5385,24 +5396,16 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 	  init = NULL;
 	}
     }
-  else if (DECL_EXTERNAL (decl))
-    ;
-  else if (TYPE_P (type) && TYPE_NEEDS_CONSTRUCTING (type))
+  else
     {
-      check_for_uninitialized_const_var (decl);
-      return build_aggr_init_full_exprs (decl, init, flags);
-    }
-  else if (MAYBE_CLASS_TYPE_P (core_type = strip_array_types (type)))
-    {
-      if (CLASSTYPE_READONLY_FIELDS_NEED_INIT (core_type)
-	  || CLASSTYPE_REF_FIELDS_NEED_INIT (core_type))
+      if (CLASS_TYPE_P (core_type = strip_array_types (type))
+	  && (CLASSTYPE_READONLY_FIELDS_NEED_INIT (core_type)
+	      || CLASSTYPE_REF_FIELDS_NEED_INIT (core_type)))
 	diagnose_uninitialized_cst_or_ref_member (core_type, /*using_new=*/false,
 						  /*complain=*/true);
 
       check_for_uninitialized_const_var (decl);
     }
-  else
-    check_for_uninitialized_const_var (decl);
 
  out:
 
@@ -6448,10 +6451,7 @@ expand_static_init (tree decl, tree init)
 
   /* Some variables require no initialization.  */
   if (!init
-      && TYPE_HAS_TRIVIAL_DESTRUCTOR (TREE_TYPE (decl))
-      /* FIXME type_needs_nonconstant_init?  */
-      && (!TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (decl))
-	  || literal_type_p (TREE_TYPE (decl))))
+      && TYPE_HAS_TRIVIAL_DESTRUCTOR (TREE_TYPE (decl)))
     return;
 
   if (DECL_FUNCTION_SCOPE_P (decl))
@@ -10336,6 +10336,9 @@ grok_special_member_properties (tree decl)
 	TYPE_HAS_COMPLEX_MOVE_CTOR (class_type) = 1;
       else if (is_list_ctor (decl))
 	TYPE_HAS_LIST_CTOR (class_type) = 1;
+
+      if (DECL_DECLARED_CONSTEXPR_P (STRIP_TEMPLATE (decl)))
+	TYPE_HAS_CONSTEXPR_CTOR (class_type) = 1;
     }
   else if (DECL_OVERLOADED_OPERATOR_P (decl) == NOP_EXPR)
     {
