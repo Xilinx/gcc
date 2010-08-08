@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>. */
 
-#ifndef __RUNTIME_H_
+#ifndef __RUNTIME_H__
 #define __RUNTIME_H__
 
 extern tree gpy_builtin_get_init_call( void );
@@ -29,6 +29,12 @@ extern tree gpy_builtin_get_fold_int_call( int );
 
 extern tree gpy_builtin_get_eval_accessor_call( tree , tree );
 
+extern tree gpy_builtin_get_incr_ref_call( tree );
+
+extern tree gpy_builtin_get_decr_ref_call( tree );
+
+extern tree gpy_builtin_get_print_call( int , tree * );
+
 extern tree gpy_builtin_get_eval_expression_call( tree , tree , gpy_opcode_t );
 
-#endif /* __RUNTIME_H_ */
+#endif /* __RUNTIME_H__ */

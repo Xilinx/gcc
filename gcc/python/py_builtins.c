@@ -164,6 +164,90 @@ tree gpy_builtin_get_eval_expression_call( tree t1, tree t2, gpy_opcode_t op )
 	   );
 }
 
+tree gpy_builtin_get_incr_ref_call( tree x )
+{
+  tree params = NULL_TREE;
+
+  chainon( params, tree_cons (NULL_TREE, ptr_type_node, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
+
+  tree fntype = build_function_type( ptr_type_node, params );
+  tree gpy_incr_ref_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
+					get_identifier("gpy_rr_incr_ref_count"),
+					fntype );
+  tree restype = TREE_TYPE( gpy_incr_ref_decl );
+  tree resdecl = build_decl( UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
+			     restype );
+  DECL_CONTEXT( resdecl ) = gpy_incr_ref_decl;
+  DECL_RESULT( gpy_incr_ref_decl ) = resdecl;
+  DECL_EXTERNAL( gpy_incr_ref_decl ) = 1;
+  TREE_PUBLIC( gpy_incr_ref_decl ) = 1;
+
+  return ( build_call_expr( gpy_incr_ref_decl, 1, x ) );
+}
+
+tree gpy_builtin_get_decr_ref_call( tree x )
+{
+  tree params = NULL_TREE;
+
+  chainon( params, tree_cons (NULL_TREE, ptr_type_node, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
+
+  tree fntype = build_function_type( ptr_type_node, params );
+  tree gpy_decr_ref_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
+					get_identifier("gpy_rr_decr_ref_count"),
+					fntype );
+  tree restype = TREE_TYPE( gpy_decr_ref_decl );
+  tree resdecl = build_decl( UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
+			     restype );
+  DECL_CONTEXT( resdecl ) = gpy_decr_ref_decl;
+  DECL_RESULT( gpy_decr_ref_decl ) = resdecl;
+  DECL_EXTERNAL( gpy_decr_ref_decl ) = 1;
+  TREE_PUBLIC( gpy_decr_ref_decl ) = 1;
+
+  return ( build_call_expr( gpy_decr_ref_decl, 1, x ) );
+}
+
+tree gpy_builtin_get_print_call( int n, tree * args )
+{
+  tree params = NULL_TREE;
+
+  chainon( params, tree_cons (NULL_TREE, integer_type_node, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, integer_type_node, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, va_list_type_node, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
+
+  tree fntype = build_function_type( ptr_type_node, params );
+  tree gpy_eval_print_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
+					get_identifier("gpy_rr_eval_print"),
+					fntype );
+  tree restype = TREE_TYPE(gpy_eval_print_decl);
+  tree resdecl = build_decl( UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
+			     restype );
+  DECL_CONTEXT( resdecl ) = gpy_eval_print_decl;
+  DECL_RESULT( gpy_eval_print_decl ) = resdecl;
+  DECL_EXTERNAL( gpy_eval_print_decl ) = 1;
+  TREE_PUBLIC( gpy_eval_print_decl ) = 1;
+
+  tree * vec = XNEWVEC( tree, n+2 );
+
+  printf("n = <%i>!!\n\n", n );
+
+  vec[0] = build_int_cst( integer_type_node, 1 );
+  vec[1] = build_int_cst( integer_type_node, n );
+
+  int idx = 2, idy = 0;
+  for( ; idy<n; ++idy )
+    {
+      vec[idx] = args[idy];
+      idx++;
+    }
+
+  return ( build_call_expr_loc_array( UNKNOWN_LOCATION, gpy_eval_print_decl,
+				      n+2, vec )
+	   );
+}
+
 tree gpy_builtin_get_eval_accessor_call( tree t1, tree t2 )
 {
   fatal_error("Accessor's not implemented yet!\n");

@@ -122,6 +122,9 @@ extern void yyerror( const char * );
 %type<symbol> shift_expr
 %type<symbol> comparison
 %type<symbol> decl
+%type<symbol> argument_list
+%type<symbol> argument_list_stmt
+%type<symbol> print_stmt
 %type<string> funcname
 
 %left '-' '+'
@@ -205,7 +208,41 @@ stmt_list: simple_stmt
 
 simple_stmt: assignment_stmt
            | expression_stmt
+           | print_stmt
            ;
+
+argument_list_stmt:
+                  { $$ = NULL; }
+                  | argument_list
+                  { $$ = VEC_pop( gpy_sym, gpy_symbol_stack ); }
+		  ;
+
+argument_list: argument_list ',' expression
+             {
+	       $1->next = $3;
+	       $$ = $3;
+	     }
+             | expression
+             {
+	       VEC_safe_push( gpy_sym, gc,
+			      gpy_symbol_stack, $1 );
+	       $$ = $1;
+	     }
+             ;
+
+print_stmt: PRINT argument_list_stmt
+          {
+	    gpy_symbol_obj* sym;
+	    Gpy_Symbol_Init( sym );
+
+	    sym->type= KEY_PRINT;
+	    sym->op_a_t= TYPE_SYMBOL;
+	    
+	    sym->op_a.symbol_table= $2;
+	    $$= sym;
+	  }
+	  ;
+
 
 expression_stmt: expression_list
           ;
@@ -234,6 +271,7 @@ target: IDENTIFIER
 	gpy_symbol_obj *sym;
 	Gpy_Symbol_Init( sym );
 	
+	sym->exp = OP_EXPRESS;
 	sym->type= SYMBOL_REFERENCE;
 	sym->op_a_t= TYPE_STRING;
 	
@@ -328,6 +366,7 @@ literal: INTEGER
 	 gpy_symbol_obj *sym;
 	 Gpy_Symbol_Init( sym );
 	 
+	 sym->exp = OP_EXPRESS;
 	 sym->type= SYMBOL_PRIMARY;
 	 sym->op_a_t= TYPE_INTEGER;
 	 
@@ -340,16 +379,7 @@ atom: target
     | literal
     ;
 
-positional_arguments: positional_arguments ',' expression
-                    | expression
-                    ;
-
-argument_list: positional_arguments
-             ;
-
-call: IDENTIFIER '(' argument_list ')'
-    { $$ = NULL; }
-    | IDENTIFIER '(' ')'
+call: IDENTIFIER '(' argument_list_stmt ')'
     { $$ = NULL; }
     ;
 

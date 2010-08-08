@@ -126,6 +126,8 @@ extern tree gpy_get_tree( gpy_symbol_obj * , tree * );
 
 extern void gpy_process_decl( gpy_symbol_obj * );
 
+extern tree gpy_process_print( gpy_symbol_obj * );
+
 enum DECL_T { VAR, FUNC };
 
 extern tree gpy_ctx_lookup_decl( const char *, enum DECL_T );

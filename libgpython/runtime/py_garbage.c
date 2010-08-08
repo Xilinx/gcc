@@ -76,7 +76,7 @@ void gpy_garbage_invoke_sweep( gpy_vector_t * const context )
   signed long ctx_l = context->length;
   if( context )
     {
-      debug("sweeping context table for garbage length <%u>...\n", ctx_l);
+      debug("sweeping context table for garbage length <%i>...\n", ctx_l);
       gpy_context_t * ctx_idx = NULL; signed long idx = (ctx_l - 1);
 
       while( idx >= 0 )
@@ -84,14 +84,14 @@ void gpy_garbage_invoke_sweep( gpy_vector_t * const context )
 	  ctx_idx = context->vector[ idx ];
 	  void ** s_arr = ctx_idx->symbols->vector;
 
-	  int i = 0; long len = (ctx_idx->symbols->length);
-	  debug("vector length <%l>!\n", len );
+	  int i = 0; int len = (ctx_idx->symbols->length);
+	  debug("vector length <%i>!\n", len );
 	  for( ; i<len; ++i )
 	    {
 	      gpy_object_state_t * o = (gpy_object_state_t *) s_arr[ i ];
 	      if( o )
 		{
-		  debug( "object <%p> has ref count <%l>!\n",
+		  debug( "object <%p> has ref count <%i>!\n",
 			 (void *) o, o->ref_count );
 
 		  // If no references remain

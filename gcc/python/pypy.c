@@ -478,6 +478,40 @@ tree gpy_process_functor( const gpy_symbol_obj * const  functor )
   return retval;
 }
 
+tree gpy_process_print( gpy_symbol_obj *sym )
+{
+  tree retval = NULL_TREE;
+
+  gcc_assert( sym->op_a_t == TYPE_SYMBOL );
+  gpy_symbol_obj * argument_list = sym->op_a.symbol_table;
+
+  if( argument_list )
+    {
+      int len = 0;
+      gpy_symbol_obj * t = argument_list;
+      while( t )
+	{
+	  len++;
+	  t=t->next;
+	}
+      tree * args = XNEWVEC( tree, len );
+      int idx = 0; t = argument_list;
+      
+      for( ; idx<len; ++idx )
+	{
+	  tree it = gpy_get_tree( t, NULL );
+	  args[idx] = it;
+	  t = t->next;
+	}
+      
+      return ( gpy_builtin_get_print_call( len, args) );
+    }
+  else
+    error("print call without any arguments!\n");
+
+  return retval;
+}
+
 tree gpy_get_tree( gpy_symbol_obj * sym, tree * block )
 {
   tree retval_decl = NULL;
@@ -497,6 +531,10 @@ tree gpy_get_tree( gpy_symbol_obj * sym, tree * block )
 	{
 	case STRUCTURE_FUNCTION_DEF:
 	  retval_decl = gpy_process_functor( sym );
+	  break;
+
+	case KEY_PRINT:
+	  retval_decl = gpy_process_print( sym );
 	  break;
 	  
 	default:
@@ -557,22 +595,8 @@ void gpy_write_globals( void )
   tree main_stmts = alloc_stmt_list ();
 
   debug("decl_len <%lu>!\n", decl_len );
-  
-  tree fntype = build_function_type( void_type_node, void_list_node );
-  tree gpy_rr_init = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
-				 get_identifier("gpy_rr_init_runtime"),
-				 fntype );
-  tree restype = TREE_TYPE(gpy_rr_init);
-  tree resdecl = build_decl( UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
-			     restype );
-  DECL_CONTEXT(resdecl) = gpy_rr_init;
-  DECL_RESULT(gpy_rr_init) = resdecl;
-  DECL_EXTERNAL( gpy_rr_init ) = 1;
-  TREE_PUBLIC( gpy_rr_init ) = 1;
 
-  tree init_call = build_call_expr( gpy_rr_init, 0, NULL_TREE );
-
-  append_to_statement_list( init_call, &main_stmts );
+  append_to_statement_list( gpy_builtin_get_init_call( ), &main_stmts );
 
   for( idx= 0; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )
     {
@@ -590,6 +614,8 @@ void gpy_write_globals( void )
 	  append_to_statement_list( x, &main_stmts );
 	}
     }
+
+  append_to_statement_list( gpy_builtin_get_cleanup_final_call( ), &main_stmts );
 
   gpy_ident vit = NULL;
   for( idx = 0; VEC_iterate( gpy_ident,co->var_decl_t, idx, vit ); ++idx )

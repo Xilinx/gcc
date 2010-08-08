@@ -77,8 +77,9 @@ along with GCC; see the file COPYING3.  If not see
 #define KEY_BREAK              0xF041
 #define KEY_CONTINUE           0xF042
 #define KEY_RETURN             0xF043
+#define KEY_PRINT              0xF044
 
-#define SYMBOL_RET_BREAK       0xF044
-#define SYMBOL_RET_CONTINUE    0xF045
+#define SYMBOL_RET_BREAK       0xF045
+#define SYMBOL_RET_CONTINUE    0xF046
 
 #endif /* __OPCODES_H_ */

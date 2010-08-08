@@ -32,7 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include <gpython/garbage.h>
 
 struct gpy_obj_integer_t {
-  long int Int;
+  int Int;
 };
 
 void * gpy_obj_integer_init( gpy_literal_t * lit )
@@ -55,7 +55,7 @@ void gpy_obj_integer_destroy( void * self )
 void gpy_obj_integer_print( void * self, FILE * fd, bool newline )
 {
   struct gpy_obj_integer_t * si = (struct gpy_obj_integer_t *) self;
-  fprintf( fd, "%li", si->Int );
+  fprintf( fd, "%i ", si->Int );
 
   if( newline )
     fprintf( fd, "\n" );

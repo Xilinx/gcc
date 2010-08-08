@@ -162,8 +162,13 @@ void gpy_vec_push( gpy_vector_t * const v, void * const s )
 inline
 void * gpy_vec_pop( gpy_vector_t * const v )
 {
-  register void * retval = v->vector[ v->length-1 ];
-  v->length--;
+  register void * retval = NULL;
+  if( v->length > 0 )
+    {
+      retval = v->vector[ v->length-1 ];
+      v->length--;
+    }
+
   return retval;
 }
 

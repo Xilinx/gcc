@@ -96,6 +96,9 @@ gpy_object_state_t * gpy_rr_fold_integer( int x )
   return retval;
 }
 
+/**
+ * int fd: we could use numbers 1,2 to denote stdout or stderr
+ **/
 void gpy_rr_eval_print( int fd, int count, ...  )
 {
   va_list vl; int idx;
@@ -109,8 +112,22 @@ void gpy_rr_eval_print( int fd, int count, ...  )
     {
       it = va_arg( vl, gpy_object_t );
       gpy_assert( it );
-      (*it->definition).print_hook( it, stdout, false );
+      switch( fd )
+	{
+	case 1:
+	  (*it->definition).print_hook( it->self, stdout, false );
+	  break;
+
+	case 2:
+	  (*it->definition).print_hook( it->self, stderr, false );
+	  break;
+
+	default:
+	  fatal("invalid print file-descriptor <%i>!\n", fd );
+	  break;
+	}
     }
+
   fprintf( stdout, "\n" );
   va_end(vl);
 }
