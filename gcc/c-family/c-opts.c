@@ -36,7 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "options.h"
 #include "mkdeps.h"
-#include "target.h"
+#include "target.h"            /* For gcc_targetcm.  */
 #include "function.h"
 
 #ifndef DOLLARS_IN_IDENTIFIERS
@@ -1098,8 +1098,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_undef:
       flag_undef = 1;
-      break;
-
       break;
 
     case OPT_v:

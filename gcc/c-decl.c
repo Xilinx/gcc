@@ -45,8 +45,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "opts.h"
 #include "timevar.h"
-#include "c-common.h"
-#include "c-pragma.h"
+#include "c-family/c-common.h"
+#include "c-family/c-pragma.h"
 #include "c-lang.h"
 #include "langhooks.h"
 #include "tree-mudflap.h"
@@ -59,7 +59,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "l-ipo.h"
 #include "plugin.h"
-#include "c-ada-spec.h"
+#include "c-family/c-ada-spec.h"
 
 /* In grokdeclarator, distinguish syntactic contexts of declarators.  */
 enum decl_context
