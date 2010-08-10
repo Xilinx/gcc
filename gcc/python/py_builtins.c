@@ -248,6 +248,44 @@ tree gpy_builtin_get_print_call( int n, tree * args )
 	   );
 }
 
+tree gpy_builtin_get_finalize_block_call( int n, tree * args )
+{
+  tree params = NULL_TREE;
+
+  chainon( params, tree_cons (NULL_TREE, integer_type_node, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, va_list_type_node, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
+
+  tree fntype = build_function_type( ptr_type_node, params );
+  tree gpy_finalize_block_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
+					     get_identifier("gpy_rr_finalize_block_decls"),
+					     fntype );
+
+  tree restype = TREE_TYPE( gpy_finalize_block_decl );
+  tree resdecl = build_decl( UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
+			     restype );
+
+  DECL_CONTEXT( resdecl ) = gpy_finalize_block_decl;
+  DECL_RESULT( gpy_finalize_block_decl ) = resdecl;
+  DECL_EXTERNAL( gpy_finalize_block_decl ) = 1;
+  TREE_PUBLIC( gpy_finalize_block_decl ) = 1;
+
+  tree * vec = XNEWVEC( tree, n+1 );
+
+  vec[0] = build_int_cst( integer_type_node, n );
+
+  int idx = 1, idy = 0;
+  for( ; idy<n; ++idy )
+    {
+      vec[idx] = args[idy];
+      idx++;
+    }
+
+  return ( build_call_expr_loc_array( UNKNOWN_LOCATION, gpy_finalize_block_decl,
+				      n+1, vec )
+	   );
+}
+
 tree gpy_builtin_get_eval_accessor_call( tree t1, tree t2 )
 {
   fatal_error("Accessor's not implemented yet!\n");

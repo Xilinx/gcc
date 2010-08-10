@@ -42,7 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gpy.h"
 #include "symbols.h"
 #include "opcodes.def"
-#include "y.py.h"
+#include "runtime.h"
 
 tree gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
 			 tree * block)
@@ -75,7 +75,17 @@ tree gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
 	}
 
       rhs_tree = gpy_process_expression( opb, block );
-      retval = build2( MODIFY_EXPR, ptr_type_node, decl, rhs_tree );
+
+      tree address = build_decl( opa->loc, VAR_DECL,
+				 create_tmp_var_name("A"),
+				 build_pointer_type( void_type_node ) );
+
+      append_to_statement_list( build2( MODIFY_EXPR, ptr_type_node, address, rhs_tree ),
+				block );
+
+      append_to_statement_list( gpy_builtin_get_incr_ref_call( address ), block );
+
+      retval = build2( MODIFY_EXPR, ptr_type_node, decl, address );
     }
   else
     fatal_error("Invalid accessor for assignment <0x%x>!\n", opa->type );

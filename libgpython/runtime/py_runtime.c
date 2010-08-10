@@ -186,6 +186,24 @@ void gpy_rr_pop_context( void )
   gpy_free( popd );
 }
 
+void gpy_rr_finalize_block_decls( int n, ... )
+{
+  va_list vl; int idx;
+  va_start( vl,n );
+
+  /* gpy_object_t is a typedef of gpy_object_state_t *
+     to keep stdarg.h happy
+  */
+  gpy_object_state_t * it = NULL;
+  for( idx = 0; idx<n; ++idx )
+    {
+      it = va_arg( vl, gpy_object_t );
+      /* no assert this macro auto inserts an assert */
+      Gpy_Decr_Ref( it );
+    }
+  va_end(vl);
+}
+
 gpy_object_state_t *
 gpy_rr_eval_dot_operator( gpy_object_state_t * x, gpy_object_state_t * y )
 {
@@ -210,7 +228,7 @@ gpy_rr_eval_expression( gpy_object_state_t * x,	gpy_object_state_t * y,
 	{
 	case OP_BIN_ADDITION:
 	  o = binops_l.n_add;
-	  op_str = " + ";
+	  op_str = "+ ";
 	  break;
 
 	default:

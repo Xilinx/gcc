@@ -35,6 +35,8 @@ extern tree gpy_builtin_get_decr_ref_call( tree );
 
 extern tree gpy_builtin_get_print_call( int , tree * );
 
+extern tree gpy_builtin_get_finalize_block_call( int , tree * );
+
 extern tree gpy_builtin_get_eval_expression_call( tree , tree , gpy_opcode_t );
 
 #endif /* __RUNTIME_H__ */

@@ -35,6 +35,14 @@ struct gpy_obj_integer_t {
   int Int;
 };
 
+
+/* Represents a function __init__ of a class:
+
+   class foo:
+
+       def __init__( self, ... ):
+          <.....>
+*/
 void * gpy_obj_integer_init( gpy_literal_t * lit )
 {
   struct gpy_obj_integer_t *retval = (struct gpy_obj_integer_t *)
@@ -120,6 +128,10 @@ gpy_obj_integer_add( gpy_object_state_t * o1, gpy_object_state_t * o2 )
   return retval;
 }
 
+/*
+  The member methods table
+   - member fields can be handle'd in a similar fashion
+*/
 static gpy_method_def_t gpy_obj_integer_methods[] = {
   { "whoop_noargs", (gpy_builtin_callback__)
     &gpy_obj_integer_whoop_noargs, METH_NOARGS },
@@ -130,6 +142,7 @@ static gpy_method_def_t gpy_obj_integer_methods[] = {
   { NULL, NULL, 0 }
 };
 
+/* The binary protocol handles */
 static struct gpy_number_prot_t integer_binary_ops = {
   true,
   &gpy_obj_integer_add,
@@ -157,6 +170,9 @@ static struct gpy_type_obj_def_t integer_obj = {
   gpy_obj_integer_methods
 };
 
+/*
+  Should be used for handling any Field initilizers!
+*/
 void gpy_obj_integer_mod_init( gpy_vector_t * const vec )
 {
   gpy_vec_push( vec, &integer_obj );

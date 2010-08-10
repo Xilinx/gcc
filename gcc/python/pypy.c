@@ -504,7 +504,7 @@ tree gpy_process_print( gpy_symbol_obj *sym )
 	  t = t->next;
 	}
       
-      return ( gpy_builtin_get_print_call( len, args) );
+      return ( gpy_builtin_get_print_call( len, args ) );
     }
   else
     error("print call without any arguments!\n");
@@ -523,6 +523,7 @@ tree gpy_get_tree( gpy_symbol_obj * sym, tree * block )
     {
       sym = gpy_process_AST_Align( &sym );
       /*sym = gpy_process_AST_Split_Asigns( &sym );*/
+
       retval_decl = gpy_process_expression( sym, block );
     }
   else
@@ -600,7 +601,7 @@ void gpy_write_globals( void )
 
   for( idx= 0; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )
     {
-      tree x = gpy_get_tree( it , NULL );
+      tree x = gpy_get_tree( it , &main_stmts );
       gpy_preserve_from_gc( x );
       gcc_assert( x );
 
@@ -615,8 +616,7 @@ void gpy_write_globals( void )
 	}
     }
 
-  append_to_statement_list( gpy_builtin_get_cleanup_final_call( ), &main_stmts );
-
+  int block_decl_len = 0;
   gpy_ident vit = NULL;
   for( idx = 0; VEC_iterate( gpy_ident,co->var_decl_t, idx, vit ); ++idx )
     {
@@ -627,7 +627,29 @@ void gpy_write_globals( void )
 	    vit->ident, "main" );
       TREE_CHAIN( x ) = declare_vars;
       declare_vars = x;
+      block_decl_len++;
     }
+
+  if( block_decl_len > 0 )
+    {
+      tree * block_decl_vec = XNEWVEC( tree, block_decl_len );
+      int idy = 0;
+
+      for( idx = 0; VEC_iterate( gpy_ident,co->var_decl_t, idx, vit ); ++idx )
+	{
+	  tree x = gpy_ctx_lookup_decl( vit->ident, VAR );
+	  gcc_assert( TREE_CODE( x ) == VAR_DECL );
+
+	  block_decl_vec[ idy ] = x;
+	  idy++;
+	}
+
+      append_to_statement_list( gpy_builtin_get_finalize_block_call( block_decl_len,
+								     block_decl_vec ),
+				&main_stmts );
+    }
+
+  append_to_statement_list( gpy_builtin_get_cleanup_final_call( ), &main_stmts );
 
   tree main_set_ret = build2( MODIFY_EXPR, TREE_TYPE(main_ret),
 			      main_ret, build_int_cst(integer_type_node, 0));
