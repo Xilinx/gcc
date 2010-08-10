@@ -107,6 +107,7 @@ extern void yyerror( const char * );
 %type<symbol> target
 %type<symbol> expression_list
 %type<symbol> funcdef
+%type<symbol> classdef
 %type<symbol> suite
 %type<symbol> suite_statement_list
 %type<symbol> indent_stmt
@@ -124,8 +125,11 @@ extern void yyerror( const char * );
 %type<symbol> decl
 %type<symbol> argument_list
 %type<symbol> argument_list_stmt
+%type<symbol> parameter_list
+%type<symbol> parameter_list_stmt
 %type<symbol> print_stmt
 %type<string> funcname
+%type<string> classname
 
 %left '-' '+'
 %left '*' '/'
@@ -155,12 +159,49 @@ decl: NEWLINE
     ;
 
 compound_stmt: funcdef
+             | classdef
              ;
+
+classdef: CLASS classname ':' suite
+        {
+	   gpy_symbol_obj *sym;
+	   Gpy_Symbol_Init( sym );
+
+	   sym->identifier = $2;
+	   sym->type = STRUCTURE_OBJECT_DEF;
+	   sym->op_a_t = TYPE_SYMBOL;
+	  
+	   sym->op_a.symbol_table= $4;
+	   $$= sym;
+	}
+        ;
+
+classname: IDENTIFIER
+         ;
 
 funcname: IDENTIFIER
         ;
 
-funcdef: DEF funcname '(' ')' ':' suite
+parameter_list_stmt:
+                   { $$=NULL; }
+                   | parameter_list
+                   { $$ = VEC_pop( gpy_sym, gpy_symbol_stack ); }
+		   ;
+
+parameter_list: parameter_list ',' target
+              {
+		$1->next = $3;
+		$$ = $3;
+	      }
+              | target
+              {
+		VEC_safe_push( gpy_sym, gc,
+			       gpy_symbol_stack, $1 );
+		$$ = $1;
+	      }
+              ;
+
+funcdef: DEF funcname '(' parameter_list_stmt ')' ':' suite
        {
 	 gpy_symbol_obj *sym;
 	 Gpy_Symbol_Init( sym );
@@ -168,9 +209,11 @@ funcdef: DEF funcname '(' ')' ':' suite
 	 sym->identifier = $2;
 	 sym->type = STRUCTURE_FUNCTION_DEF;
 	 sym->op_a_t = TYPE_SYMBOL;
-	 sym->op_b_t = TYPE_SYMBOL_NIL;
+	 sym->op_b_t = TYPE_SYMBOL;
 	  
-	 sym->op_a.symbol_table= $6;
+	 sym->op_a.symbol_table= $7;
+	 sym->op_b.symbol_table = $4;
+
 	 $$= sym;
        }
        ;
@@ -179,6 +222,7 @@ suite: stmt_list NEWLINE
      | NEWLINE suite_statement_list DEDENT
      {
        $$ = VEC_pop( gpy_sym, gpy_symbol_stack );
+       printf("poping suite!\n");
      }
      ;
 

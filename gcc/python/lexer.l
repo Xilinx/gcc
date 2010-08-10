@@ -142,14 +142,17 @@ else                    {  return ELSE; }
 "    "+                 {
                           int top_len = VEC_index( gpy_int, gpy_indent_stack,
 						   VEC_length( gpy_int, gpy_indent_stack )-1 );
-			  if( top_len <= yyleng )
-			    {
-			      if( top_len != yyleng )
-				VEC_safe_push( gpy_int, gc, gpy_indent_stack, yyleng );
+			  int indent = yyleng/4;
 
+			  if( top_len <= indent )
+			    {
+			      if( top_len != indent )
+				{
+				  VEC_safe_push( gpy_int, gc, gpy_indent_stack, indent );
+				}
 			      return INDENT;
 			    }
-			  else if( top_len > yyleng )
+			  else if( top_len > indent )
 			    {
 			      VEC_pop( gpy_int, gpy_indent_stack );
 			      return DEDENT;
