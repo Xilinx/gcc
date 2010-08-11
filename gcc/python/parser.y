@@ -424,7 +424,20 @@ atom: target
     ;
 
 call: IDENTIFIER '(' argument_list_stmt ')'
-    { $$ = NULL; }
+    {
+      gpy_symbol_obj *sym= NULL;
+      Gpy_Symbol_Init( sym );
+
+      sym->exp = OP_EXPRESS;
+      sym->type= OP_CALL_GOTO;
+      sym->op_a_t= TYPE_STRING;
+      sym->op_b_t= TYPE_SYMBOL;
+
+      sym->op_a.string = $1;
+      sym->op_b.symbol_table = $3;
+
+      $$= sym;
+    }
     ;
 
 primary: atom
