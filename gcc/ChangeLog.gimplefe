@@ -1,3 +1,8 @@
+2010-08-08  Sandeep Soni   <soni.sandeepb@gmail.com>
+
+	* lto/lto.c (gimple_parse_expect_token): Changed 
+	argument type from int to enum cpp_ttype.
+
 2010-08-07  Diego Novillo  <dnovillo@google.com>
 
 	* lto/lto.c (gimple_parse_expect_token,

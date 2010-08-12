@@ -1996,7 +1996,7 @@ lto_eh_personality (void)
    are looking for. The token is obtained by reading it from the reader P.  */
  
 static const cpp_token * 
-gimple_parse_expect_token (cpp_reader *p, int expected_token_type)
+gimple_parse_expect_token (cpp_reader *p, enum cpp_ttype expected_token_type)
 {
   const cpp_token *next_token;
 
