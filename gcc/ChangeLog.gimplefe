@@ -1,3 +1,13 @@
+2010-08-10  Sandeep Soni  <soni.sandeepb@gmail.com>
+
+	* lto/lto.c (gimple_parse_switch_stmt,
+	gimple_parse_expect_function_name,
+	gimple_parse_expect_return_var,
+	gimple_parse_expect_argument,
+	gimple_parse_call_stmt): New.
+	(gimple_parse_stmt): Added case to handle
+	gimple_call and gimple_switch.
+
 2010-08-08  Sandeep Soni   <soni.sandeepb@gmail.com>
 
 	* lto/lto.c (gimple_parse_expect_token): Changed 

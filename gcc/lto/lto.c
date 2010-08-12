@@ -2245,6 +2245,125 @@ gimple_parse_label_stmt (cpp_reader *p)
   gimple_parse_expect_token (p, CPP_RSHIFT);  
 }
 
+/* Parse a gimple_switch tuple that is read from the reader P. For now we only 
+   recognize the tuple. Refer gimple.def for the format of this tuple.  */
+
+static void
+gimple_parse_switch_stmt (cpp_reader *p)
+{
+  const cpp_token *next_token;
+
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COLON);
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NAME);
+
+  for (;;)
+    {
+      next_token = cpp_peek_token (p, 0);
+      
+      if (next_token->type == CPP_GREATER)
+        {
+          next_token = cpp_get_token (p);
+          gimple_parse_expect_token (p, CPP_COMMA);
+          gimple_parse_expect_token (p, CPP_NAME);
+          gimple_parse_expect_token (p, CPP_NUMBER);
+          gimple_parse_expect_token (p, CPP_COLON);
+          gimple_parse_expect_token (p, CPP_LESS);
+          gimple_parse_expect_token (p, CPP_NAME);  
+        }
+      else if (next_token->type == CPP_RSHIFT)
+        {
+          next_token = cpp_get_token (p);
+          break;
+        }
+      else
+        error ("Incorrect use of the gimple_switch statement");
+    }
+}
+
+/* Helper for gimple_parse_call_stmt. The token read from reader P should
+   be the name of the function called.  */
+
+static void
+gimple_parse_expect_function_name (cpp_reader *p)
+{
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+}
+
+/* Helper for gimple_parse_call_stmt. The token read from reader P should
+   be the identifier in which the value is returned.  */
+
+static void
+gimple_parse_expect_return_var (cpp_reader *p)
+{
+  const cpp_token *next_token;
+
+  next_token = cpp_peek_token (p, 0);
+
+  if (next_token->type == CPP_NAME)
+    next_token = cpp_get_token (p);
+  
+  /* There may be no variable in which the return value is collected.
+     In that case this field in the tuple will contain NULL. We need 
+     to handle it too.  */
+}
+
+/* Helper for gimple_parse_call_stmt. The token read from reader P should
+   be the argument in the function call.  */
+
+static void
+gimple_parse_expect_argument (cpp_reader *p)
+{
+  const cpp_token *next_token;
+
+  next_token = cpp_peek_token (p, 0);
+
+  if (next_token->type == CPP_NUMBER)
+    next_token = cpp_get_token (p);
+  else if (next_token->type == CPP_NAME)
+    next_token = cpp_get_token (p);
+  else if (next_token->type == CPP_MULT)
+    {
+      next_token = cpp_get_token (p);
+      gimple_parse_expect_token (p, CPP_NAME);
+    }
+  else
+    error ("Incorrect way to specify an argument");
+}
+
+/* Parse a gimple_call tuple that is read from the reader P. For now we only 
+   recognize the tuple. Refer gimple.def for the format of this tuple.  */
+
+static void
+gimple_parse_call_stmt (cpp_reader *p)
+{
+  const cpp_token *next_token;
+
+  gimple_parse_expect_function_name (p);
+  gimple_parse_expect_return_var (p);
+  
+  for (;;)
+    {
+      next_token = cpp_peek_token (p, 0);
+      if (next_token->type == CPP_GREATER)
+        {
+          next_token = cpp_get_token (p);
+          break;
+        }
+      else if (next_token->type == CPP_COMMA)
+        {
+          next_token = cpp_get_token (p);
+          gimple_parse_expect_argument (p);
+        }
+    } 
+}
+
 /* Parse a gimple_return tuple that is read from the reader P. For now we only 
    recognize the tuple. Refer gimple.def for the format of this tuple.  */
 
@@ -2286,6 +2405,12 @@ gimple_parse_stmt (cpp_reader *p, const cpp_token *tok)
           break;
         case GIMPLE_GOTO:
           gimple_parse_goto_stmt (p);
+          break;
+        case GIMPLE_SWITCH:
+          gimple_parse_switch_stmt (p);
+          break;
+        case GIMPLE_CALL:
+          gimple_parse_call_stmt (p);
           break;
         case GIMPLE_RETURN:
           gimple_parse_return_stmt (p);
