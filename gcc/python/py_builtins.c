@@ -282,8 +282,7 @@ tree gpy_builtin_get_finalize_block_call( int n, tree * args )
     }
 
   return ( build_call_expr_loc_array( UNKNOWN_LOCATION, gpy_finalize_block_decl,
-				      n+1, vec )
-	   );
+				      n+1, vec ) );
 }
 
 tree gpy_builtin_get_eval_accessor_call( tree t1, tree t2 )

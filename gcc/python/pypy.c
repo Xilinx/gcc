@@ -553,7 +553,6 @@ void gpy_write_globals( void )
     return;
 
   tree *vec; 
-
   unsigned long decl_len = 0, vec_len = 0;
   unsigned int idx;
 
@@ -616,8 +615,7 @@ void gpy_write_globals( void )
 	}
     }
 
-  int block_decl_len = 0;
-  gpy_ident vit = NULL;
+  int block_decl_len = 0; gpy_ident vit = NULL;
   for( idx = 0; VEC_iterate( gpy_ident,co->var_decl_t, idx, vit ); ++idx )
     {
       /* get all block var_decls */
@@ -643,22 +641,26 @@ void gpy_write_globals( void )
 	  block_decl_vec[ idy ] = x;
 	  idy++;
 	}
+      // block_decl_vec[ idy ] = main_ret; idy++;
 
       append_to_statement_list( gpy_builtin_get_finalize_block_call( block_decl_len,
 								     block_decl_vec ),
 				&main_stmts );
     }
+  else
+    {
+      declare_vars = main_ret;
+    }
+
 
   append_to_statement_list( gpy_builtin_get_cleanup_final_call( ), &main_stmts );
 
   tree main_set_ret = build2( MODIFY_EXPR, TREE_TYPE(main_ret),
 			      main_ret, build_int_cst(integer_type_node, 0));
-  TREE_USED(main_set_ret) = true;
-  tree main_ret_expr = build1(RETURN_EXPR, void_type_node, main_set_ret);
+  tree main_ret_expr = build1( RETURN_EXPR, void_type_node, main_set_ret );
   append_to_statement_list( main_ret_expr, &main_stmts );
 
   tree bind = NULL_TREE;
-
   if( declare_vars != NULL_TREE )
     {
       tree bl = make_node(BLOCK);
@@ -666,8 +668,8 @@ void gpy_write_globals( void )
       DECL_INITIAL(main_fn_decl) = bl;
       BLOCK_VARS(bl) = declare_vars;
       TREE_USED(bl) = 1;
-      bind = build3(BIND_EXPR, void_type_node, BLOCK_VARS(bl),
-		    NULL_TREE, bl);
+      bind = build3( BIND_EXPR, void_type_node, BLOCK_VARS(bl),
+		     NULL_TREE, bl );
       TREE_SIDE_EFFECTS(bind) = 1;
     }
   BIND_EXPR_BODY(bind) = main_stmts;
@@ -677,11 +679,8 @@ void gpy_write_globals( void )
   vec[vec_len] = main_fn_decl;
   vec_len++;
 
-  /* =========================================== */
-
   VEC_pop( gpy_ctx_t, gpy_ctx_table );
   
-  /* Prepare the function for the GCC middle-end */
   gimplify_function_tree(main_fn_decl);
   cgraph_finalize_function(main_fn_decl, false);
 

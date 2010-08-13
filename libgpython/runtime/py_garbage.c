@@ -62,8 +62,8 @@ void gpy_garbage_mark_obj__( gpy_object_state_t * const sym )
         }
       else
         {
-          gpy_garbage_vec= (gpy_vector_t *)
-            gpy_malloc(sizeof(gpy_vector_t));
+          gpy_garbage_vec = (gpy_vector_t *)
+            gpy_malloc( sizeof(gpy_vector_t) );
           gpy_vec_init( gpy_garbage_vec );
 
           gpy_vec_push( gpy_garbage_vec, sym );
