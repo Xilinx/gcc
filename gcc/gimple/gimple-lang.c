@@ -1,6 +1,7 @@
-/* Language-dependent hooks for LTO.
-   Copyright 2009, 2010 Free Software Foundation, Inc.
-   Contributed by CodeSourcery, Inc.
+/* Language-dependent hooks for GIMPLE.
+
+   Copyright 2010 Free Software Foundation, Inc.
+   Contributed by Sandeep Soni and Diego Novillo
 
 This file is part of GCC.
 
@@ -28,12 +29,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "debug.h"
-#include "lto-tree.h"
-#include "lto.h"
-#include "tree-inline.h"
+#include "parser.h"
 #include "gimple.h"
 #include "diagnostic-core.h"
 #include "toplev.h"
+#include "gimple-tree.h"
 
 static tree handle_noreturn_attribute (tree *, tree, tree, int, bool *);
 static tree handle_const_attribute (tree *, tree, tree, int, bool *);
@@ -48,7 +48,7 @@ static tree handle_format_attribute (tree *, tree, tree, int, bool *);
 static tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
 
 /* Table of machine-independent attributes supported in GIMPLE.  */
-const struct attribute_spec lto_attribute_table[] =
+const struct attribute_spec gimple_attribute_table[] =
 {
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
   { "noreturn",               0, 0, true,  false, false,
@@ -76,7 +76,7 @@ const struct attribute_spec lto_attribute_table[] =
 /* Give the specifications for the format attributes, used by C and all
    descendants.  */
 
-const struct attribute_spec lto_format_attribute_table[] =
+const struct attribute_spec gimple_format_attribute_table[] =
 {
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
   { "format",                 3, 3, false, true,  true,
@@ -104,7 +104,7 @@ static GTY(()) tree built_in_attributes[(int) ATTR_LAST];
 
 /* Builtin types.  */
 
-enum lto_builtin_type
+enum gimple_builtin_type
 {
 #define DEF_PRIMITIVE_TYPE(NAME, VALUE) NAME,
 #define DEF_FUNCTION_TYPE_0(NAME, RETURN) NAME,
@@ -143,7 +143,7 @@ enum lto_builtin_type
   BT_LAST
 };
 
-typedef enum lto_builtin_type builtin_type;
+typedef enum gimple_builtin_type builtin_type;
 
 static GTY(()) tree builtin_types[(int) BT_LAST + 1];
 
@@ -492,7 +492,7 @@ def_builtin_1 (enum built_in_function fncode, const char *name,
 /* Initialize the attribute table for all the supported builtins.  */
 
 static void
-lto_init_attributes (void)
+gimple_init_attributes (void)
 {
   /* Fill in the built_in_attributes array.  */
 #define DEF_ATTR_NULL_TREE(ENUM)				\
@@ -517,7 +517,7 @@ lto_init_attributes (void)
    VA_LIST_ARG_TYPE_NODE are used in builtin-types.def.  */
 
 static void
-lto_define_builtins (tree va_list_ref_type_node ATTRIBUTE_UNUSED,
+gimple_define_builtins (tree va_list_ref_type_node ATTRIBUTE_UNUSED,
 		     tree va_list_arg_type_node ATTRIBUTE_UNUSED)
 {
 #define DEF_PRIMITIVE_TYPE(ENUM, VALUE) \
@@ -573,7 +573,7 @@ lto_define_builtins (tree va_list_ref_type_node ATTRIBUTE_UNUSED,
 #undef DEF_POINTER_TYPE
   builtin_types[(int) BT_LAST] = NULL_TREE;
 
-  lto_init_attributes ();
+  gimple_init_attributes ();
 
 #define DEF_BUILTIN(ENUM, NAME, CLASS, TYPE, LIBTYPE, BOTH_P, FALLBACK_P,\
 		    NONANSI_P, ATTRS, IMPLICIT, COND)			\
@@ -595,105 +595,28 @@ static GTY(()) tree registered_builtin_fndecls;
 /* Language hooks.  */
 
 static unsigned int
-lto_option_lang_mask (void)
+gimple_option_lang_mask (void)
 {
-  return CL_LTO;
-}
-
-static bool
-lto_complain_wrong_lang_p (const struct cl_option *option ATTRIBUTE_UNUSED)
-{
-  /* The LTO front end inherits all the options from the first front
-     end that was used.  However, not all the original front end
-     options make sense in LTO.
-
-     A real solution would be to filter this in collect2, but collect2
-     does not have access to all the option attributes to know what to
-     filter.  So, in lto1 we silently accept inherited flags and do
-     nothing about it.  */
-  return false;
+  return CL_GIMPLE;
 }
 
 static void
-lto_init_options (unsigned int decoded_options_count ATTRIBUTE_UNUSED,
+gimple_init_options (unsigned int decoded_options_count ATTRIBUTE_UNUSED,
 		  struct cl_decoded_option *decoded_options ATTRIBUTE_UNUSED)
 {
   /* By default, C99-like requirements for complex multiply and divide.
      ???  Until the complex method is encoded in the IL this is the only
-     safe choice.  This will pessimize Fortran code with LTO unless
+     safe choice.  This will pessimize Fortran code with GIMPLE unless
      people specify a complex method manually or use -ffast-math.  */
   flag_complex_method = 2;
 }
 
-/* Handle command-line option SCODE.  If the option takes an argument, it is
-   stored in ARG, which is otherwise NULL.  VALUE holds either a numerical
-   argument or a binary value indicating whether the positive or negative form
-   of the option was supplied.  */
-
-const char *resolution_file_name;
-static bool
-lto_handle_option (size_t scode, const char *arg,
-		   int value ATTRIBUTE_UNUSED, int kind ATTRIBUTE_UNUSED,
-		   const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
-{
-  enum opt_code code = (enum opt_code) scode;
-  bool result = true;
-
-  switch (code)
-    {
-    case OPT_fresolution_:
-      resolution_file_name = arg;
-      break;
-
-    case OPT_Wabi:
-      warn_psabi = value;
-      break;
-
-    default:
-      break;
-    }
-
-  return result;
-}
-
-/* Perform post-option processing.  Does additional initialization based on
-   command-line options.  PFILENAME is the main input filename.  Returns false
-   to enable subsequent back-end initialization.  */
-
-static bool
-lto_post_options (const char **pfilename ATTRIBUTE_UNUSED)
-{
-  /* -fltrans and -fwpa are mutually exclusive.  Check for that here.  */
-  if (flag_wpa && flag_ltrans)
-    error ("-fwpa and -fltrans are mutually exclusive");
-
-  if (flag_ltrans)
-    {
-      flag_generate_lto = 0;
-
-      /* During LTRANS, we are not looking at the whole program, only
-	 a subset of the whole callgraph.  */
-      flag_whole_program = 0;
-    }
-
-  if (flag_wpa)
-    flag_generate_lto = 1;
-
-  /* Excess precision other than "fast" requires front-end
-     support.  */
-  flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
-
-  lto_read_all_file_options ();
-
-  /* Initialize the compiler back end.  */
-  return false;
-}
 
 /* Return an integer type with PRECISION bits of precision,
    that is unsigned if UNSIGNEDP is nonzero, otherwise signed.  */
 
 static tree
-lto_type_for_size (unsigned precision, int unsignedp)
+gimple_type_for_size (unsigned precision, int unsignedp)
 {
   if (precision == TYPE_PRECISION (integer_type_node))
     return unsignedp ? unsigned_type_node : integer_type_node;
@@ -738,7 +661,7 @@ lto_type_for_size (unsigned precision, int unsignedp)
    then UNSIGNEDP selects between saturating and nonsaturating types.  */
 
 static tree
-lto_type_for_mode (enum machine_mode mode, int unsigned_p)
+gimple_type_for_mode (enum machine_mode mode, int unsigned_p)
 {
   tree t;
 
@@ -812,14 +735,14 @@ lto_type_for_mode (enum machine_mode mode, int unsigned_p)
 	return complex_integer_type_node;
 
       inner_mode = GET_MODE_INNER (mode);
-      inner_type = lto_type_for_mode (inner_mode, unsigned_p);
+      inner_type = gimple_type_for_mode (inner_mode, unsigned_p);
       if (inner_type != NULL_TREE)
 	return build_complex_type (inner_type);
     }
   else if (VECTOR_MODE_P (mode))
     {
       enum machine_mode inner_mode = GET_MODE_INNER (mode);
-      tree inner_type = lto_type_for_mode (inner_mode, unsigned_p);
+      tree inner_type = gimple_type_for_mode (inner_mode, unsigned_p);
       if (inner_type != NULL_TREE)
 	return build_vector_type_for_mode (inner_type, mode);
     }
@@ -928,13 +851,13 @@ lto_type_for_mode (enum machine_mode mode, int unsigned_p)
 }
 
 static int
-lto_global_bindings_p (void) 
+gimple_global_bindings_p (void) 
 {
   return cfun == NULL;
 }
 
 static void
-lto_set_decl_assembler_name (tree decl)
+gimple_set_decl_assembler_name (tree decl)
 {
   /* This is almost the same as lhd_set_decl_assembler_name, except that
      we need to uniquify file-scope names, even if they are not
@@ -956,31 +879,19 @@ lto_set_decl_assembler_name (tree decl)
 }
 
 static tree
-lto_pushdecl (tree t ATTRIBUTE_UNUSED)
+gimple_pushdecl (tree t ATTRIBUTE_UNUSED)
 {
-  /* Do nothing, since we get all information from DWARF and LTO
-     sections.  */
   return NULL_TREE;
 }
 
 static tree
-lto_getdecls (void)
+gimple_getdecls (void)
 {
   return registered_builtin_fndecls;
 }
 
-static void
-lto_write_globals (void)
-{
-  tree *vec = VEC_address (tree, lto_global_var_decls);
-  int len = VEC_length (tree, lto_global_var_decls);
-  wrapup_global_declarations (vec, len);
-  emit_debug_global_declarations (vec, len);
-  VEC_free (tree, gc, lto_global_var_decls);
-}
-
 static tree
-lto_builtin_function (tree decl)
+gimple_builtin_function (tree decl)
 {
   /* Record it.  */
   TREE_CHAIN (decl) = registered_builtin_fndecls;
@@ -990,7 +901,7 @@ lto_builtin_function (tree decl)
 }
 
 static void
-lto_register_builtin_type (tree type, const char *name)
+gimple_register_builtin_type (tree type, const char *name)
 {
   tree decl;
 
@@ -1006,7 +917,7 @@ lto_register_builtin_type (tree type, const char *name)
    for including builtin-types.def and ultimately builtins.def.  */
 
 static void
-lto_build_c_type_nodes (void)
+gimple_build_c_type_nodes (void)
 {
   gcc_assert (void_type_node);
 
@@ -1041,14 +952,11 @@ lto_build_c_type_nodes (void)
 }
 
 
-/* Perform LTO-specific initialization.  */
+/* Perform GIMPLE-specific initialization.  */
 
 static bool
-lto_init (void)
+gimple_init (void)
 {
-  /* We need to generate LTO if running in WPA mode.  */
-  flag_generate_lto = flag_wpa;
-
   /* Initialize libcpp line maps for gcc_assert to work.  */
   linemap_add (line_table, LC_RENAME, 0, NULL, 0);
   linemap_add (line_table, LC_RENAME, 0, NULL, 0);
@@ -1058,7 +966,7 @@ lto_init (void)
 
   /* Share char_type_node with whatever would be the default for the target.
      char_type_node will be used for internal types such as
-     va_list_type_node but will not be present in the lto stream.  */
+     va_list_type_node.  */
   /* ???  This breaks the more common case of consistent but non-standard
      setting of flag_signed_char, so share according to flag_signed_char.
      See PR42528.  */
@@ -1086,7 +994,7 @@ lto_init (void)
 
   /* The global tree for the main identifier is filled in by
      language-specific front-end initialization that is not run in the
-     LTO back-end.  It appears that all languages that perform such
+     GIMPLE front end.  It appears that all languages that perform such
      initialization currently do so in the same way, so we do it here.  */
   if (main_identifier_node == NULL_TREE)
     main_identifier_node = get_identifier ("main");
@@ -1094,104 +1002,83 @@ lto_init (void)
   /* In the C++ front-end, fileptr_type_node is defined as a variant
      copy of of ptr_type_node, rather than ptr_node itself.  The
      distinction should only be relevant to the front-end, so we
-     always use the C definition here in lto1.  */
+     always use the C definition here in gimple1.  */
   gcc_assert (fileptr_type_node == ptr_type_node);
 
   ptrdiff_type_node = integer_type_node;
 
   /* Create other basic types.  */
   build_common_tree_nodes_2 (/*short_double=*/false);
-  lto_build_c_type_nodes ();
+  gimple_build_c_type_nodes ();
   gcc_assert (va_list_type_node);
 
   if (TREE_CODE (va_list_type_node) == ARRAY_TYPE)
     {
       tree x = build_pointer_type (TREE_TYPE (va_list_type_node));
-      lto_define_builtins (x, x);
+      gimple_define_builtins (x, x);
     }
   else
     {
-      lto_define_builtins (va_list_type_node,
+      gimple_define_builtins (va_list_type_node,
 			   build_reference_type (va_list_type_node));
     }
 
   targetm.init_builtins ();
   build_common_builtin_nodes ();
 
-  /* Initialize LTO-specific data structures.  */
-  lto_global_var_decls = VEC_alloc (tree, gc, 256);
-  in_lto_p = true;
-
   return true;
 }
 
-/* Initialize tree structures required by the LTO front end.  */
+/* Initialize tree structures required by the GIMPLE front end.  */
 
-static void lto_init_ts (void)
+static void gimple_init_ts (void)
 {
   tree_contains_struct[NAMESPACE_DECL][TS_DECL_MINIMAL] = 1;
 }
 
 #undef LANG_HOOKS_NAME
-#define LANG_HOOKS_NAME "GNU GIMPLE BC"
+#define LANG_HOOKS_NAME "GNU GIMPLE"
 #undef LANG_HOOKS_OPTION_LANG_MASK
-#define LANG_HOOKS_OPTION_LANG_MASK lto_option_lang_mask
-#undef LANG_HOOKS_COMPLAIN_WRONG_LANG_P
-#define LANG_HOOKS_COMPLAIN_WRONG_LANG_P lto_complain_wrong_lang_p
+#define LANG_HOOKS_OPTION_LANG_MASK gimple_option_lang_mask
 #undef LANG_HOOKS_INIT_OPTIONS
-#define LANG_HOOKS_INIT_OPTIONS lto_init_options
-#undef LANG_HOOKS_HANDLE_OPTION
-#define LANG_HOOKS_HANDLE_OPTION lto_handle_option
-#undef LANG_HOOKS_POST_OPTIONS
-#define LANG_HOOKS_POST_OPTIONS lto_post_options
+#define LANG_HOOKS_INIT_OPTIONS gimple_init_options
 #undef LANG_HOOKS_GET_ALIAS_SET
 #define LANG_HOOKS_GET_ALIAS_SET gimple_get_alias_set
 #undef LANG_HOOKS_TYPE_FOR_MODE
-#define LANG_HOOKS_TYPE_FOR_MODE lto_type_for_mode
+#define LANG_HOOKS_TYPE_FOR_MODE gimple_type_for_mode
 #undef LANG_HOOKS_TYPE_FOR_SIZE
-#define LANG_HOOKS_TYPE_FOR_SIZE lto_type_for_size
+#define LANG_HOOKS_TYPE_FOR_SIZE gimple_type_for_size
 #undef LANG_HOOKS_SET_DECL_ASSEMBLER_NAME
-#define LANG_HOOKS_SET_DECL_ASSEMBLER_NAME lto_set_decl_assembler_name
+#define LANG_HOOKS_SET_DECL_ASSEMBLER_NAME gimple_set_decl_assembler_name
 #undef LANG_HOOKS_GLOBAL_BINDINGS_P
-#define LANG_HOOKS_GLOBAL_BINDINGS_P lto_global_bindings_p
+#define LANG_HOOKS_GLOBAL_BINDINGS_P gimple_global_bindings_p
 #undef LANG_HOOKS_PUSHDECL
-#define LANG_HOOKS_PUSHDECL lto_pushdecl
+#define LANG_HOOKS_PUSHDECL gimple_pushdecl
 #undef LANG_HOOKS_GETDECLS
-#define LANG_HOOKS_GETDECLS lto_getdecls
-#undef LANG_HOOKS_WRITE_GLOBALS
-#define LANG_HOOKS_WRITE_GLOBALS lto_write_globals
+#define LANG_HOOKS_GETDECLS gimple_getdecls
 #undef LANG_HOOKS_REGISTER_BUILTIN_TYPE
-#define LANG_HOOKS_REGISTER_BUILTIN_TYPE lto_register_builtin_type
+#define LANG_HOOKS_REGISTER_BUILTIN_TYPE gimple_register_builtin_type
 #undef LANG_HOOKS_BUILTIN_FUNCTION
-#define LANG_HOOKS_BUILTIN_FUNCTION lto_builtin_function
+#define LANG_HOOKS_BUILTIN_FUNCTION gimple_builtin_function
 #undef LANG_HOOKS_INIT
-#define LANG_HOOKS_INIT lto_init
+#define LANG_HOOKS_INIT gimple_init
 #undef LANG_HOOKS_PARSE_FILE
-#define LANG_HOOKS_PARSE_FILE lto_main
+#define LANG_HOOKS_PARSE_FILE gimple_main
 #undef LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION
 #define LANG_HOOKS_CALLGRAPH_EXPAND_FUNCTION tree_rest_of_compilation
 #undef LANG_HOOKS_REDUCE_BIT_FIELD_OPERATIONS
 #define LANG_HOOKS_REDUCE_BIT_FIELD_OPERATIONS true
 #undef LANG_HOOKS_TYPES_COMPATIBLE_P
 #define LANG_HOOKS_TYPES_COMPATIBLE_P NULL
-#undef LANG_HOOKS_EH_PERSONALITY
-#define LANG_HOOKS_EH_PERSONALITY lto_eh_personality
 
 /* Attribute hooks.  */
 #undef LANG_HOOKS_COMMON_ATTRIBUTE_TABLE
-#define LANG_HOOKS_COMMON_ATTRIBUTE_TABLE lto_attribute_table
+#define LANG_HOOKS_COMMON_ATTRIBUTE_TABLE gimple_attribute_table
 #undef LANG_HOOKS_FORMAT_ATTRIBUTE_TABLE
-#define LANG_HOOKS_FORMAT_ATTRIBUTE_TABLE lto_format_attribute_table
-
-#undef LANG_HOOKS_BEGIN_SECTION
-#define LANG_HOOKS_BEGIN_SECTION lto_obj_begin_section
-#undef LANG_HOOKS_APPEND_DATA
-#define LANG_HOOKS_APPEND_DATA lto_obj_append_data
-#undef LANG_HOOKS_END_SECTION
-#define LANG_HOOKS_END_SECTION lto_obj_end_section
+#define LANG_HOOKS_FORMAT_ATTRIBUTE_TABLE gimple_format_attribute_table
 
 #undef LANG_HOOKS_INIT_TS
-#define LANG_HOOKS_INIT_TS lto_init_ts
+#define LANG_HOOKS_INIT_TS gimple_init_ts
 
 struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
@@ -1205,12 +1092,12 @@ convert (tree type ATTRIBUTE_UNUSED, tree expr ATTRIBUTE_UNUSED)
 
 /* Tree walking support.  */
 
-static enum lto_tree_node_structure_enum
-lto_tree_node_structure (union lang_tree_node *t ATTRIBUTE_UNUSED)
+static enum gimple_tree_node_structure_enum
+gimple_tree_node_structure (union lang_tree_node *t ATTRIBUTE_UNUSED)
 {
-  return TS_LTO_GENERIC;
+  return TS_GIMPLE_GENERIC;
 }
 
 #include "ggc.h"
-#include "gtype-lto.h"
-#include "gt-lto-lto-lang.h"
+#include "gtype-gimple.h"
+#include "gt-gimple-gimple-lang.h"

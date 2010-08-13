@@ -1,0 +1,44 @@
+2010-08-12  Diego Novillo  <dnovillo@google.com>
+
+	* parser.c (gimple parse_expect_op1,
+	gimple_parse_assign_stmt,
+	gimple_parse_call_stmt,
+	gimple_parse_cond_stmt,
+	gimple_parse_expect_argument,
+	gimple_parse_expect_false_label,
+	gimple_parse_expect_function_name,
+	gimple_parse_expect_lhs,
+	gimple_parse_expect_op1,
+	gimple_parse_expect_op2,
+	gimple_parse_expect_return_var,
+	gimple_parse_expect_rhs1,
+	gimple_parse_expect_rhs2,
+	gimple_parse_expect_subcode,
+	gimple_parse_expect_token,
+	gimple_parse_expect_true_label,
+	gimple_parse_goto_stmt,
+	gimple_parse_label_stmt,
+	gimple_parse_return_stmt,
+	gimple_parse_stmt,
+	gimple_parse_switch_stmt): Move from ../lto/lto.c.
+
+2010-08-12  Diego Novillo  <dnovillo@google.com>
+
+	* Make-lang.in: New file.
+	* config-lang.in: New file.
+	* gimple-lang.c: New file.
+	* lang-specs.h: New file.
+	* lang.opt: New file.
+	* parser.c: New file.
+	* parser.h: New file.
+
+Local Variables:
+mode: change-log
+End:
+
+
+Copyright (C) 2010 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

@@ -1,3 +1,30 @@
+2010-08-13  Diego Novillo  <dnovillo@google.com>
+
+	* lto/lto-lang.c (LANG_HOOKS_NAME): Update.
+	* common.opt (fgimple-parser): Remove.
+	* lto/lto.c (lto_main): Do not handle flag_gimple_parser.
+	* lto/lto.c (gimple parse_expect_op1,
+	gimple_parse_assign_stmt,
+	gimple_parse_call_stmt,
+	gimple_parse_cond_stmt,
+	gimple_parse_expect_argument,
+	gimple_parse_expect_false_label,
+	gimple_parse_expect_function_name,
+	gimple_parse_expect_lhs,
+	gimple_parse_expect_op1,
+	gimple_parse_expect_op2,
+	gimple_parse_expect_return_var,
+	gimple_parse_expect_rhs1,
+	gimple_parse_expect_rhs2,
+	gimple_parse_expect_subcode,
+	gimple_parse_expect_token,
+	gimple_parse_expect_true_label,
+	gimple_parse_goto_stmt,
+	gimple_parse_label_stmt,
+	gimple_parse_return_stmt,
+	gimple_parse_stmt,
+	gimple_parse_switch_stmt): Move to gimple/parser.c.
+
 2010-08-10  Sandeep Soni  <soni.sandeepb@gmail.com>
 
 	* lto/lto.c (gimple_parse_switch_stmt,

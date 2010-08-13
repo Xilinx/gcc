@@ -1,0 +1,84 @@
+# Top level -*- makefile -*- fragment for GIMPLE
+#   Copyright (C) 2010
+#   Free Software Foundation, Inc.
+#
+# This file is part of GCC.
+#
+# GCC is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3, or (at your option)
+# any later version.
+#
+# GCC is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
+
+# Variables
+
+# The name of the GIMPLE compiler.
+GIMPLE_EXE = gimple1$(exeext)
+# The GIMPLE-specific object files inclued in $(GIMPLE_EXE).
+GIMPLE_OBJS = gimple/gimple-lang.o gimple/parser.o attribs.o
+GIMPLE_PARSER_H = gimple/parser.h
+GIMPLE_TREE_H = gimple/gimple-tree.h
+
+# Rules
+
+# These hooks are used by the main GCC Makefile.  Consult that
+# Makefile for documentation.
+gimple.all.cross: $(GIMPLE_EXE)
+gimple.start.encap: $(GIMPLE_EXE)
+gimple.rest.encap:
+gimple.tags:
+gimple.install-common:
+gimple.install-man:
+gimple.install-info:
+gimple.dvi:
+gimple.pdf:
+gimple.install-pdf:
+gimple.html:
+gimple.install-html:
+gimple.uninstall:
+gimple.info:
+gimple.man:
+gimple.srcextra:
+gimple.srcman:
+gimple.srcinfo:
+gimple.install-plugin:
+
+gimple.mostlyclean:
+	rm -f $(GIMPLE_OBJS) $(GIMPLE_EXE)
+
+gimple.clean:
+gimple.distclean:
+gimple.maintainer-clean:
+gimple.stage1:
+gimple.stage2:
+gimple.stage3:
+gimple.stage4:
+gimple.stageprofile:
+gimple.stagefeedback:
+
+# GIMPLE rules.
+
+# Use strict warnings for this front end.
+gimple-warn = $(STRICT_WARN)
+
+$(GIMPLE_EXE): $(GIMPLE_OBJS) $(BACKEND) $(LIBDEPS)
+	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
+		$(GIMPLE_OBJS) $(BACKEND) $(BACKENDLIBS) $(LIBS)
+
+# Dependencies
+gimple/gimple-lang.o: gimple/gimple-lang.c $(CONFIG_H) $(SYSTEM_H) \
+	coretypes.h flags.h $(TM_H) $(TREE_H) $(TARGET_H) \
+	langhooks.h $(LANGHOOKS_DEF_H) debug.h $(GIMPLE_PARSER_H) \
+	$(DIAGNOSTIC_CORE_H) $(TOPLEV_H) $(GIMPLE_TREE_H) \
+	$(GGC_H) gtype-gimple.h gt-gimple-gimple-lang.h
+gimple/parser.o: gimple/parser.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+	$(CPPLIB_H) $(INPUT_H) $(DIAGNOSTIC_H) $(TREE_H) $(GIMPLE_H) \
+	$(TOPLEV_H) $(GIMPLE_PARSER_H)
