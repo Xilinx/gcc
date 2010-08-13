@@ -13,8 +13,12 @@ include/gpython/objects.h
 
 libgpython_la_CFLAGS = -DPYHON -DSHARED
 libgpython_la_LDFLAGS = -release 0.0.1
-libgpython_la_SOURCES = runtime/py_runtime.c \
-runtime/py_garbage.c \
-runtime/vectors.c \
+libgpython_la_SOURCES = runtime/obj_boolean.c \
+runtime/obj_string.c \
+runtime/obj_float.c \
+runtime/obj_list.c \
 runtime/obj_integer.c \
-runtime/backend.c
+runtime/py_runtime.c \
+runtime/py_garbage.c \
+runtime/backend.c \
+runtime/vectors.c
