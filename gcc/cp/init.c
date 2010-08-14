@@ -2947,6 +2947,8 @@ build_vec_init (tree base, tree maxindex, tree init,
     }
 
   /* FIXME pull out constant value when from_array? */
+  /* FIXME handle constant init of some elements, non-constant init of
+     others */
 
   if (init != NULL_TREE && TREE_CODE (init) == CONSTRUCTOR)
     {
