@@ -1459,7 +1459,8 @@ get_mem_align_offset (rtx mem, unsigned int align)
   /* This function can't use
      if (!MEM_EXPR (mem) || !MEM_OFFSET (mem)
 	 || !CONST_INT_P (MEM_OFFSET (mem))
-	 || (get_object_alignment (MEM_EXPR (mem), MEM_ALIGN (mem), align)
+	 || (MAX (MEM_ALIGN (mem),
+	          get_object_alignment (MEM_EXPR (mem), align))
 	     < align))
        return -1;
      else
@@ -1587,29 +1588,31 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
   else if (TREE_CODE (t) == MEM_REF)
     {
       tree op0 = TREE_OPERAND (t, 0);
-      unsigned HOST_WIDE_INT aoff = BITS_PER_UNIT;
-      if (host_integerp (TREE_OPERAND (t, 1), 1))
+      if (TREE_CODE (op0) == ADDR_EXPR
+	  && (DECL_P (TREE_OPERAND (op0, 0))
+	      || CONSTANT_CLASS_P (TREE_OPERAND (op0, 0))))
 	{
-	  unsigned HOST_WIDE_INT ioff = TREE_INT_CST_LOW (TREE_OPERAND (t, 1));
-	  aoff = (ioff & -ioff) * BITS_PER_UNIT;
-	}
-      if (TREE_CODE (op0) == ADDR_EXPR && DECL_P (TREE_OPERAND (op0, 0)))
-	align = MAX (align, DECL_ALIGN (TREE_OPERAND (op0, 0)));
-      else if (TREE_CODE (op0) == ADDR_EXPR
-	       && CONSTANT_CLASS_P (TREE_OPERAND (op0, 0)))
-	{
-	  align = TYPE_ALIGN (TREE_TYPE (TREE_OPERAND (op0, 0)));
+	  if (DECL_P (TREE_OPERAND (op0, 0)))
+	    align = DECL_ALIGN (TREE_OPERAND (op0, 0));
+	  else if (CONSTANT_CLASS_P (TREE_OPERAND (op0, 0)))
+	    {
+	      align = TYPE_ALIGN (TREE_TYPE (TREE_OPERAND (op0, 0)));
 #ifdef CONSTANT_ALIGNMENT
-	  align = CONSTANT_ALIGNMENT (TREE_OPERAND (op0, 0), align);
+	      align = CONSTANT_ALIGNMENT (TREE_OPERAND (op0, 0), align);
 #endif
+	    }
+	  if (TREE_INT_CST_LOW (TREE_OPERAND (t, 1)) != 0)
+	    {
+	      unsigned HOST_WIDE_INT ioff
+		= TREE_INT_CST_LOW (TREE_OPERAND (t, 1));
+	      unsigned HOST_WIDE_INT aoff = (ioff & -ioff) * BITS_PER_UNIT;
+	      align = MIN (aoff, align);
+	    }
 	}
       else
 	/* ??? This isn't fully correct, we can't set the alignment from the
 	   type in all cases.  */
 	align = MAX (align, TYPE_ALIGN (type));
-
-      if (!integer_zerop (TREE_OPERAND (t, 1)) && aoff < align)
-	align = aoff;
     }
 
   else if (TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
@@ -1794,8 +1797,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 
       if (!align_computed && !INDIRECT_REF_P (t))
 	{
-	  unsigned int obj_align
-	    = get_object_alignment (t, align, BIGGEST_ALIGNMENT);
+	  unsigned int obj_align = get_object_alignment (t, BIGGEST_ALIGNMENT);
 	  align = MAX (align, obj_align);
 	}
     }

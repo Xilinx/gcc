@@ -1,3 +1,282 @@
+2010-08-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/hashtable.h (_Hashtable<>::operator=(const
+	_Hashtable&)): Move inline.
+	(operator=(_Hashtable&&)): Define.
+	* include/bits/unordered_map.h (unordered_map(unordered_map&&),
+	unordered_map(const unordered_map&), unordered_multimap
+	(unordered_multimap&&), unordered_multimap(const unordered_multimap&),
+	__unordered_map(__unordered_map&&), __unordered_map(const
+	__unordered_map&), __unordered_multimap(__unordered_multimap&&),
+	__unordered_multimap(const __unordered_multimap&)): Do not define,
+	leave implicit.
+	* include/bits/unordered_set.h (unordered_set(unordered_set&&),
+	unordered_set(const unordered_set&), unordered_multiset
+	(unordered_multiset&&), unordered_multiset(const unordered_multiset&),
+	__unordered_set(__unordered_set&&), __unordered_set(const
+	__unordered_set&), __unordered_multiset(__unordered_multiset&&),
+	__unordered_multiset(const __unordered_multiset&)): Likewise.
+
+	* include/bits/unordered_map.h (__unordered_map(initializer_list<>),
+	__unordered_map<>::operator=(initializer_list<>),
+	__unordered_multimap(initializer_list<>), __unordered_multimap<>::
+	operator=(initializer_list<>)): Add.
+	* include/bits/unordered_set.h (__unordered_set(initializer_list<>),
+	__unordered_set<>::operator=(initializer_list<>),
+	__unordered_multiset(initializer_list<>), __unordered_multiset<>::
+	operator=(initializer_list<>)): Likewise.
+
+	* include/bits/unordered_map.h (__unordered_map(_InputIterator,
+	_InputIterator, size_type __n), unordered_map(_InputIterator,
+	_InputIterator, size_type __n), unordered_map(initializer_list<>,
+	size_type __n), unordered_multimap(initializer_list<>, size_type __n)):
+	Fix __n default to 0.
+	* include/bits/unordered_set.h (__unordered_set(_InputIterator,
+	_InputIterator, size_type __n), unordered_set(_InputIterator,
+	_InputIterator, size_type __n), unordered_set(initializer_list<>,
+	size_type __n), unordered_multiset(initializer_list<>, size_type __n)):
+	Likewise.
+	* include/debug/unordered_map (unordered_map(_InputIterator,
+	_InputIterator, size_type __n), unordered_map(initializer_list<>,
+	size_type __n), unordered_map(_InputIterator, _InputIterator,
+	size_type __n), unordered_multimap(initializer_list<>, size_type __n)):
+	Likewise.
+	* include/debug/unordered_set (unordered_set(_InputIterator,
+	_InputIterator, size_type __n), unordered_set(initializer_list<>,
+	size_type __n), unordered_set(_InputIterator, _InputIterator,
+	size_type __n), unordered_multiset(initializer_list<>, size_type __n)):
+	Likewise.
+	* include/profile/unordered_map (unordered_map(_InputIterator,
+	_InputIterator, size_type __n), unordered_map(initializer_list<>,
+	size_type __n), unordered_map(_InputIterator, _InputIterator,
+	size_type __n), unordered_multimap(initializer_list<>, size_type __n)):
+	Likewise.
+	* include/profile/unordered_set (unordered_set(_InputIterator,
+	_InputIterator, size_type __n), unordered_set(initializer_list<>,
+	size_type __n), unordered_set(_InputIterator, _InputIterator,
+	size_type __n), unordered_multiset(initializer_list<>, size_type __n)):
+	Likewise.
+
+2010-08-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45281
+	* include/bits/stl_queue.h (queue(queue&&), operator=(queue&&),
+	priority_queue(priority_queue&&), operator=(priority_queue&&)):
+	Remove, per CH 15.
+
+2010-08-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/unordered_map/dr1189.cc: Move to...
+	* testsuite/23_containers/unordered_map/hash_policy/dr1189.cc:
+	... here.
+	* testsuite/23_containers/unordered_set/dr1189.cc: Move to...
+	* testsuite/23_containers/unordered_set/hash_policy/dr1189.cc:
+	... here.
+	* testsuite/23_containers/unordered_multimap/dr1189.cc: Move to...
+	* testsuite/23_containers/unordered_multimap/hash_policy/dr1189.cc:
+	... here.
+	* testsuite/23_containers/unordered_multiset/dr1189.cc: Move to...
+	* testsuite/23_containers/unordered_multiset/hash_policy/dr1189.cc:
+	... here.
+
+	* testsuite/23_containers/unordered_set/hash_policy/26132.cc: New.
+
+2010-08-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/ios_init.cc (ios_base::Init::~Init): Add back semicolon
+	at the end of the _GLIBCXX_SYNCHRONIZATION_HAPPENS_* macros,
+	removed by mistake.
+	* include/tr1_impl/boost_sp_counted_base.h: Likewise.
+	* include/ext/rc_string_base.h: Likewise.
+	* include/bits/locale_classes.h: Likewise.
+	* include/bits/basic_string.h: Likewise.
+	* include/bits/ios_base.h: Likewise.
+	* include/bits/c++config: Adjust comment.
+
+2010-08-12  Kostya Serebryany <kcc@google.com>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/c++config (_GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE,
+	_GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER): Add.
+	* src/ios_init.cc (ios_base::Init::~Init): Decorate with the
+	latter.
+	* include/tr1_impl/boost_sp_counted_base.h: Likewise.
+	* include/ext/rc_string_base.h: Likewise.
+	* include/bits/locale_classes.h: Likewise.
+	* include/bits/basic_string.h: Likewise.
+	* include/bits/ios_base.h: Likewise.
+	* testsuite/27_io/ios_base/cons/assign_neg.cc: Adjust dg-error
+	line number.
+	* testsuite/27_io/ios_base/cons/copy_neg.cc: Likewise.
+	* testsuite/ext/profile/mutex_extensions.cc: Likewise.
+
+2010-08-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/hashtable.h (_Hashtable<>::erase(const key_type&)):
+	Use std::__addressof.
+
+	* include/bits/forward_list.tcc (forward_list<>::remove): Deal
+	correctly with &__tmp->_M_value == &__val.
+	* testsuite/23_containers/forward_list/operations/remove_freed.cc:
+	New.
+
+2010-08-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_algo.h (shuffle): Change signature consistently
+	with random_shuffle (US 121).
+	* include/bits/algorithmfwd.h: Adjust.
+	* testsuite/25_algorithms/shuffle/requirements/
+	explicit_instantiation/2.cc: Likewise.
+	* testsuite/25_algorithms/shuffle/requirements/
+	explicit_instantiation/pod.cc: Likewise.
+
+2010-08-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/move.h (forward): Reinstate the N2835 version.
+
+2010-08-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/42925
+	* include/bits/unique_ptr.h (operator==(const unique_ptr<>&,
+	nullptr_t), operator==(nullptr_t, const unique_ptr<>&),
+	operator!=(const unique_ptr<>&, nullptr_t),
+	operator!=(nullptr_t, const unique_ptr<>&)): Add.
+	* include/bits/shared_ptr_base.h (operator==(const __shared_ptr<>&,
+	nullptr_t), operator==(nullptr_t, const __shared_ptr<>&),
+	operator!=(const __shared_ptr<>&, nullptr_t),
+	operator!=(nullptr_t, const __shared_ptr<>&)): Likewise.
+	* include/bits/shared_ptr.h (operator==(const shared_ptr<>&,
+	nullptr_t), operator==(nullptr_t, const shared_ptr<>&),
+	operator!=(const shared_ptr<>&, nullptr_t),
+	operator!=(nullptr_t, const shared_ptr<>&)): Likewise.
+	* testsuite/20_util/unique_ptr/comparison/42925.cc: New.
+	* testsuite/20_util/shared_ptr/comparison/42925.cc: Likewise.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust
+	dg-error line numbers.
+
+2010-08-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/unique_ptr.h: Replace _Tp_Deleter -> _Dp, and
+	_Up_Deleter -> _Ep.
+
+2010-08-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/shared_ptr_base.h: Remove a few now redundant
+	__glibcxx_function_requires(_ConvertibleConcept...).
+	* testsuite/20_util/shared_ptr/cons/43820.cc: Adjust dg-error
+	line number.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Likewise.
+
+2010-08-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/ext/stdio_sync_filebuf/char/1.cc: Avoid -Wall
+	warnings.
+	* testsuite/ext/stdio_sync_filebuf/wchar_t/1.cc: Likewise.
+
+2010-08-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/array/range_access.cc: Avoid -Wall
+	warnings.
+
+2010-08-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/20_util/ratio/cons/cons_overflow_neg.cc: Avoid -Wall
+	warnings.
+
+	* include/bits/shared_ptr.h (shared_ptr<>::shared_ptr
+	(const shared_ptr<>&), shared_ptr(shared_ptr<>&&), weak_ptr<>::
+	weak_ptr(const weak_ptr<>&), weak_ptr(const shared_ptr<>&)):
+	Constrain appropriately via std::is_convertible, etc.
+	* include/bits/shared_ptr_base.h: Likewise.
+	* include/bits/unique_ptr.h (default_delete<>::
+	default_delete(const default_delete<>&),
+	unique_ptr<>::unique_ptr(unique_ptr<>&&), operator=(unique_ptr<>&&)):
+	Likewise.
+
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust dg-error
+	line numbers.
+	* testsuite/20_util/shared_ptr/cons/43820.cc: Likewise.
+
+	* include/bits/unique_ptr.h (unique_ptr<>::unique_ptr(auto_ptr<>&&)):
+	Add.
+	* include/std/memory: Adjust includes order.
+	* testsuite/20_util/unique_ptr/cons/auto_ptr.cc: New.
+	* testsuite/20_util/unique_ptr/cons/auto_ptr_neg.cc: Likewise.
+	* testsuite/20_util/shared_ptr/cons/auto_ptr_neg.cc: Minor tweaks.
+
+2010-08-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45228
+	* include/std/tuple (tuple<typename... _Elements>): Constrain
+	converting constructors and assignment operators with
+	sizeof...(_UElements) == sizeof...(_Elements).
+	(tuple(tuple<_UElements...>&): Remove.
+	(tuple<typename _T1>): Add.
+	* testsuite/20_util/tuple/cons/45228.cc: New.
+	* testsuite/20_util/tuple/cons/converting.cc: Likewise.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust
+	dg-error line number.
+
+	* include/std/tuple (_Tuple_impl<>::_Tuple_impl(const _Tuple_impl&)):
+	Defaulted.
+
+	* include/std/tuple (tuple<typename _T1, typename _T2>
+	::operator=(pair<_U1, _U2>&&)): Use forward.
+
+2010-08-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/44963
+	* include/bits/stl_iterator.h (insert_iterator<>::
+	operator=(const typename _Container::value_type&,
+	back_insert_iterator<>::
+	operator=(const typename _Container::value_type&),
+	front_insert_iterator<>::
+	operator=(const typename _Container::value_type&))): Add
+	in C++0x mode.
+	* testsuite/ext/rope/44963.cc: New.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust
+	dg-error line number.
+
+2010-08-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/c_global/cmath: Implement US 136.
+	* include/tr1_impl/cmath: Do not bring fpclassify, etc from namespace
+	std, define namespace tr1.
+	* testsuite/26_numerics/headers/cmath/
+	c99_classification_macros_c++0x.cc: New.
+
+2010-08-06  David Malcolm  <dmalcolm@redhat.com>
+	    Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* python/hook.in: Rename variable dir to dir_.
+
+2010-08-06  Jason Merrill  <jason@redhat.com>
+
+	* include/std/thread: Add deleted thread(thread&).
+	* testsuite/30_threads/thread/cons/copy_neg.cc: Remove XFAIL.
+
+2010-08-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/tuple (pack_arguments): Rename to forward_as_tuple
+	and simplify, per US 98 and US 99.
+	* testsuite/20_util/tuple/creation_functions/pack_arguments.cc:
+	Rename to...
+	* testsuite/20_util/tuple/creation_functions/forward_as_tuple.cc:
+	... this, adjust.
+	* testsuite/20_util/pair/piecewise.cc: Adjust.
+
+2010-08-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/tuple (begin, end): Remove per GB 87.
+	* testsuite/20_util/tuple/range_access.cc: Remove.
+
+2010-08-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/ratio (ratio_less): Improve, use ratio_divide to avoid
+	more overflows.
+	* testsuite/20_util/ratio/comparisons/comp1.cc: Extend.
+	* testsuite/20_util/ratio/comparisons/comp2.cc: Likewise.
+
 2010-08-05  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/tr1_impl/utility (begin, end): Remove per GB 85.

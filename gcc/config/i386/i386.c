@@ -2979,32 +2979,6 @@ override_options (bool main_args_p)
   if (TARGET_MACHO && TARGET_64BIT)
     flag_pic = 2;
 
-  /* Set the default values for switches whose default depends on TARGET_64BIT
-     in case they weren't overwritten by command line options.  */
-  if (TARGET_64BIT)
-    {
-      if (flag_zee == 2)
-        flag_zee = 1;
-      /* Mach-O doesn't support omitting the frame pointer for now.  */
-      if (flag_omit_frame_pointer == 2)
-	flag_omit_frame_pointer = (TARGET_MACHO ? 0 : 1);
-      if (flag_asynchronous_unwind_tables == 2)
-	flag_asynchronous_unwind_tables = 1;
-      if (flag_pcc_struct_return == 2)
-	flag_pcc_struct_return = 0;
-    }
-  else
-    {
-      if (flag_zee == 2)
-        flag_zee = 0;
-      if (flag_omit_frame_pointer == 2)
-	flag_omit_frame_pointer = 0;
-      if (flag_asynchronous_unwind_tables == 2)
-	flag_asynchronous_unwind_tables = 0;
-      if (flag_pcc_struct_return == 2)
-	flag_pcc_struct_return = DEFAULT_PCC_STRUCT_RETURN;
-    }
-
   /* Need to check -mtune=generic first.  */
   if (ix86_tune_string)
     {
@@ -3292,6 +3266,35 @@ override_options (bool main_args_p)
   for (i = 0; i < X86_TUNE_LAST; ++i)
     ix86_tune_features[i] = !!(initial_ix86_tune_features[i] & ix86_tune_mask);
 
+#ifndef USE_IX86_FRAME_POINTER
+#define USE_IX86_FRAME_POINTER 0
+#endif
+
+  /* Set the default values for switches whose default depends on TARGET_64BIT
+     in case they weren't overwritten by command line options.  */
+  if (TARGET_64BIT)
+    {
+      if (flag_zee == 2)
+        flag_zee = 1;
+      if (flag_omit_frame_pointer == 2)
+	flag_omit_frame_pointer = 1;
+      if (flag_asynchronous_unwind_tables == 2)
+	flag_asynchronous_unwind_tables = 1;
+      if (flag_pcc_struct_return == 2)
+	flag_pcc_struct_return = 0;
+    }
+  else
+    {
+      if (flag_zee == 2)
+        flag_zee = 0;
+      if (flag_omit_frame_pointer == 2)
+	flag_omit_frame_pointer = !(USE_IX86_FRAME_POINTER || optimize_size);
+      if (flag_asynchronous_unwind_tables == 2)
+	flag_asynchronous_unwind_tables = !USE_IX86_FRAME_POINTER;
+      if (flag_pcc_struct_return == 2)
+	flag_pcc_struct_return = DEFAULT_PCC_STRUCT_RETURN;
+    }
+
   if (optimize_size)
     ix86_cost = &ix86_size_cost;
   else
@@ -3574,7 +3577,8 @@ override_options (bool main_args_p)
 	       prefix, suffix, sw);
     }
 
-  if ((x86_accumulate_outgoing_args & ix86_tune_mask)
+  if ((!USE_IX86_FRAME_POINTER
+       || (x86_accumulate_outgoing_args & ix86_tune_mask))
       && !(target_flags_explicit & MASK_ACCUMULATE_OUTGOING_ARGS)
       && !optimize_size)
     target_flags |= MASK_ACCUMULATE_OUTGOING_ARGS;
@@ -8404,10 +8408,6 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
 
   frame->hard_frame_pointer_offset = offset;
 
-  /* Set offset to aligned because the realigned frame starts from here.  */
-  if (stack_realign_fp)
-    offset = (offset + stack_alignment_needed -1) & -stack_alignment_needed;
-
   /* Register save area */
   offset += frame->nregs * UNITS_PER_WORD;
   frame->reg_save_offset = offset;
@@ -8415,10 +8415,21 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
   /* Align and set SSE register save area.  */
   if (frame->nsseregs)
     {
+      /* The only ABI that has saved SSE registers (Win64) also has a
+         16-byte aligned default stack, and thus we don't need to be
+	 within the re-aligned local stack frame to save them.  */
+      gcc_assert (INCOMING_STACK_BOUNDARY >= 128);
       offset = (offset + 16 - 1) & -16;
       offset += frame->nsseregs * 16;
     }
   frame->sse_reg_save_offset = offset;
+
+  /* The re-aligned stack starts here.  Values before this point are not
+     directly comparable with values below this point.  In order to make
+     sure that no value happens to be the same before and after, force
+     the alignment computation below to add a non-zero value.  */
+  if (stack_realign_fp)
+    offset = (offset + stack_alignment_needed) & -stack_alignment_needed;
 
   /* Va-arg area */
   frame->va_arg_size = ix86_varargs_gpr_size + ix86_varargs_fpr_size;
@@ -8621,7 +8632,9 @@ ix86_emit_save_reg_using_mov (enum machine_mode mode, unsigned int regno,
      any tricky guessing by dwarf2out.  */
   if (m->fs.realigned)
     {
-      if (stack_realign_drap && regno == REGNO (crtl->drap_reg))
+      gcc_checking_assert (stack_realign_drap);
+
+      if (regno == REGNO (crtl->drap_reg))
 	{
 	  /* A bit of a hack.  We force the DRAP register to be saved in
 	     the re-aligned stack frame, which provides us with a copy
@@ -8631,21 +8644,6 @@ ix86_emit_save_reg_using_mov (enum machine_mode mode, unsigned int regno,
 				cfun->machine->fs.fp_offset - cfa_offset);
 	  mem = gen_rtx_MEM (mode, addr);
 	  add_reg_note (insn, REG_CFA_DEF_CFA, mem);
-	}
-      else if (stack_realign_fp)
-	{
-	  /* The stack pointer may or may not be varying within the
-	     function.  If it is, then we can't use it as a stable
-	     reference to the locations within the frame.  Instead,
-	     simply compute the location of the aligned frame from
-	     the frame pointer.  */
-	  addr = GEN_INT (-(HOST_WIDE_INT)crtl->stack_alignment_needed
-			  / BITS_PER_UNIT);
-	  addr = gen_rtx_AND (Pmode, hard_frame_pointer_rtx, addr);
-	  addr = plus_constant (addr, -cfa_offset);
-	  mem = gen_rtx_MEM (mode, addr);
-	  add_reg_note (insn, REG_CFA_EXPRESSION,
-			gen_rtx_SET (VOIDmode, mem, reg));
 	}
       else
 	{
@@ -9391,7 +9389,7 @@ ix86_expand_prologue (void)
   bool pic_reg_used;
   struct ix86_frame frame;
   HOST_WIDE_INT allocate;
-  bool int_registers_saved = false;
+  bool int_registers_saved;
 
   ix86_finalize_stack_realign_flags ();
 
@@ -9560,33 +9558,59 @@ ix86_expand_prologue (void)
       m->fs.fp_valid = true;
     }
 
+  int_registers_saved = (frame.nregs == 0);
+
+  if (!int_registers_saved)
+    {
+      /* If saving registers via PUSH, do so now.  */
+      if (!frame.save_regs_using_mov)
+	{
+	  ix86_emit_save_regs ();
+	  int_registers_saved = true;
+	  gcc_assert (m->fs.sp_offset == frame.reg_save_offset);
+	}
+
+      /* When using red zone we may start register saving before allocating
+	 the stack frame saving one cycle of the prologue.  However, avoid
+	 doing this if we have to probe the stack; at least on x86_64 the
+	 stack probe can turn into a call that clobbers a red zone location. */
+      else if (ix86_using_red_zone ()
+	       && (! TARGET_STACK_PROBE
+		   || frame.stack_pointer_offset < CHECK_STACK_LIMIT))
+	{
+	  ix86_emit_save_regs_using_mov (frame.reg_save_offset);
+	  int_registers_saved = true;
+	}
+    }
+
   if (stack_realign_fp)
     {
       int align_bytes = crtl->stack_alignment_needed / BITS_PER_UNIT;
       gcc_assert (align_bytes > MIN_STACK_BOUNDARY / BITS_PER_UNIT);
 
+      /* The computation of the size of the re-aligned stack frame means
+	 that we must allocate the size of the register save area before
+	 performing the actual alignment.  Otherwise we cannot guarantee
+	 that there's enough storage above the realignment point.  */
+      if (m->fs.sp_offset != frame.sse_reg_save_offset)
+        pro_epilogue_adjust_stack (stack_pointer_rtx, stack_pointer_rtx,
+				   GEN_INT (m->fs.sp_offset
+					    - frame.sse_reg_save_offset),
+				   -1, false);
+
       /* Align the stack.  */
       insn = emit_insn (ix86_gen_andsp (stack_pointer_rtx,
 					stack_pointer_rtx,
 					GEN_INT (-align_bytes)));
-      RTX_FRAME_RELATED_P (insn) = 1;
 
-      /* For the purposes of register save area addressing, the frame
-         pointer is no longer valid.  */
-      /* ??? There's no need to place the register save area into the
-	 aligned local stack frame.  We should do this later, after
-	 the register saves.  */
-      m->fs.sp_offset = (m->fs.sp_offset + align_bytes - 1) & -align_bytes;
-      m->fs.fp_valid = false;
-      m->fs.realigned = true;
+      /* For the purposes of register save area addressing, the stack
+         pointer is no longer valid.  As for the value of sp_offset,
+	 see ix86_compute_frame_layout, which we need to match in order
+	 to pass verification of stack_pointer_offset at the end.  */
+      m->fs.sp_offset = (m->fs.sp_offset + align_bytes) & -align_bytes;
+      m->fs.sp_valid = false;
     }
 
-  if (!frame.save_regs_using_mov)
-    {
-      ix86_emit_save_regs ();
-      int_registers_saved = true;
-      gcc_assert (m->fs.sp_offset == frame.reg_save_offset);
-    }
   allocate = frame.stack_pointer_offset - m->fs.sp_offset;
 
   /* The stack has already been decremented by the instruction calling us
@@ -9615,21 +9639,10 @@ ix86_expand_prologue (void)
 	}
     }
 
-  /* When using red zone we may start register saving before allocating the
-     stack frame saving one cycle of the prologue.  However, avoid doing this
-     if we have to probe the stack; at least on x86_64 the stack probe can
-     turn into a call that clobbers a red zone location.  */
-  if (!int_registers_saved
-      && ix86_using_red_zone ()
-      && (! TARGET_STACK_PROBE || allocate < CHECK_STACK_LIMIT))
-    {
-      ix86_emit_save_regs_using_mov (frame.reg_save_offset);
-      int_registers_saved = true;
-    }
-
   if (allocate == 0)
     ;
-  else if (!ix86_target_stack_probe () || allocate < CHECK_STACK_LIMIT)
+  else if (!ix86_target_stack_probe ()
+	   || frame.stack_pointer_offset < CHECK_STACK_LIMIT)
     {
       pro_epilogue_adjust_stack (stack_pointer_rtx, stack_pointer_rtx,
 			         GEN_INT (-allocate), -1,
@@ -9918,19 +9931,14 @@ ix86_expand_epilogue (int style)
   ix86_finalize_stack_realign_flags ();
   ix86_compute_frame_layout (&frame);
 
-  /* When stack is realigned, SP must be valid.  */
   m->fs.sp_valid = (!frame_pointer_needed
-		    || current_function_sp_is_unchanging
-		    || stack_realign_fp);
+		    || (current_function_sp_is_unchanging
+			&& !stack_realign_fp));
   gcc_assert (!m->fs.sp_valid
 	      || m->fs.sp_offset == frame.stack_pointer_offset);
 
-  /* The FP must be valid if the frame pointer is present, but not
-     if the register save area is in the re-aligned local frame and
-     the FP points to the unaligned argument frame.  */
-  gcc_assert (frame_pointer_needed
-	      ? stack_realign_fp != m->fs.fp_valid
-	      : !m->fs.fp_valid);
+  /* The FP must be valid if the frame pointer is present.  */
+  gcc_assert (frame_pointer_needed == m->fs.fp_valid);
   gcc_assert (!m->fs.fp_valid
 	      || m->fs.fp_offset == frame.hard_frame_pointer_offset);
 
@@ -9955,10 +9963,10 @@ ix86_expand_epilogue (int style)
       /* The red-zone begins below the return address.  */
       m->fs.red_zone_offset = RED_ZONE_SIZE + UNITS_PER_WORD;
 
-      /* Since the register save area is in the aligned portion of
+      /* When the register save area is in the aligned portion of
          the stack, determine the maximum runtime displacement that
 	 matches up with the aligned frame.  */
-      if (crtl->stack_realign_needed)
+      if (stack_realign_drap)
 	m->fs.red_zone_offset -= (crtl->stack_alignment_needed / BITS_PER_UNIT
 				  + UNITS_PER_WORD);
     }
@@ -10030,7 +10038,7 @@ ix86_expand_epilogue (int style)
 	  rtx insn, sa = EH_RETURN_STACKADJ_RTX;
 
 	  /* Stack align doesn't work with eh_return.  */
-	  gcc_assert (!crtl->stack_realign_needed);
+	  gcc_assert (!stack_realign_drap);
 	  /* Neither does regparm nested functions.  */
 	  gcc_assert (!ix86_static_chain_on_stack);
 
@@ -10109,17 +10117,8 @@ ix86_expand_epilogue (int style)
 
   /* If we used a stack pointer and haven't already got rid of it,
      then do so now.  */
-  if (m->fs.fp_valid || stack_realign_fp)
+  if (m->fs.fp_valid)
     {
-      if (stack_realign_fp)
-	{
-	  /* We're re-defining what it means to be the local stack
-	     frame.  Thus the FP is suddenly valid and the SP isn't.  */
-	  m->fs.fp_valid = true;
-	  m->fs.sp_valid = false;
-	  m->fs.realigned = false;
-	}
-
       /* If the stack pointer is valid and pointing at the frame
 	 pointer store address, then we only need a pop.  */
       if (m->fs.sp_valid && m->fs.sp_offset == frame.hard_frame_pointer_offset)
@@ -12921,7 +12920,11 @@ ix86_print_operand (FILE *file, rtx x, int code)
 
       if (ASSEMBLER_DIALECT == ASM_ATT)
 	putc ('$', file);
-      fprintf (file, "0x%08lx", (long unsigned int) l);
+      /* Sign extend 32bit SFmode immediate to 8 bytes.  */
+      if (code == 'q')
+	fprintf (file, "0x%08llx", (unsigned long long) (int) l);
+      else
+	fprintf (file, "0x%08x", (unsigned int) l);
     }
 
   /* These float cases don't actually occur as immediate operands.  */
@@ -13125,8 +13128,10 @@ ix86_print_operand_address (FILE *file, rtx addr)
     }
 }
 
-bool
-output_addr_const_extra (FILE *file, rtx x)
+/* Implementation of TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA.  */
+
+static bool
+i386_asm_output_addr_const_extra (FILE *file, rtx x)
 {
   rtx op;
 
@@ -31540,6 +31545,8 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 #define TARGET_PRINT_OPERAND_ADDRESS ix86_print_operand_address
 #undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
 #define TARGET_PRINT_OPERAND_PUNCT_VALID_P ix86_print_operand_punct_valid_p
+#undef TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA
+#define TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA i386_asm_output_addr_const_extra 
 
 #undef TARGET_SCHED_ADJUST_COST
 #define TARGET_SCHED_ADJUST_COST ix86_adjust_cost

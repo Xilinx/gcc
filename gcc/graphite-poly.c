@@ -46,7 +46,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 
 #ifdef HAVE_cloog
-#include "cloog/cloog.h"
 #include "ppl_c.h"
 #include "sese.h"
 #include "graphite-ppl.h"
@@ -1019,7 +1018,7 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
       ppl_Linear_Expression_coefficient (expr, iter, coef);
       ppl_Coefficient_to_mpz_t (coef, val);
 
-      if (mpz_sgn (val))
+      if (mpz_sgn (val) == 0)
 	{
 	  ppl_delete_Linear_Expression (expr);
 	  continue;
@@ -1032,7 +1031,7 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
 	  ppl_Linear_Expression_coefficient (expr, scatter, coef);
 	  ppl_Coefficient_to_mpz_t (coef, val);
 
-	  if (value_notzero_p (val))
+	  if (mpz_sgn (val) != 0)
 	    {
 	      mpz_clear (val);
 	      ppl_delete_Linear_Expression (expr);
@@ -1285,7 +1284,7 @@ dot_lst (lst_p lst)
   fputs ("}\n\n", stream);
   fclose (stream);
 
-  x = system ("dotty /tmp/lst.dot");
+  x = system ("dotty /tmp/lst.dot &");
 #else
   fputs ("digraph all {\n", stderr);
   dot_lst_1 (stderr, lst);

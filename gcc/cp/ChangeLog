@@ -1,3 +1,76 @@
+2010-08-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45236
+	* pt.c (lookup_template_class): Don't re-coerce outer parms.
+
+2010-08-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* call.c (add_builtin_candidates): Use VECs for local variable
+	`types'.  Adjust remainder of function accordingly.
+
+2010-08-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* name-lookup.c (is_associated_namespace): Convert local variables
+	to be VECs instead of TREE_LISTs.
+
+2010-08-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.c (varargs_function_p): Use stdarg_p.
+
+2010-08-07  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* parser.c (cp_default_arg_entry): Declare.  Declare a VEC of it.
+	(cp_unparsed_functions_entry): Declare.  Declare a VEC of it.
+	(cp_parser) [unparsed_functions_queues]: Rename to unparsed_queues.
+	Change type to a VEC.
+	(unparsed_funs_with_default_args): Define.
+	(unparsed_funs_with_definitions): Define.
+	(push_unparsed_function_queues): New function.
+	(cp_parser_new): Call it.
+	(pop_unparsed_function_queues): New function.
+	(cp_parser_class_specifier): Adjust processing of unparsed functions.
+	(cp_parser_template_declaration_after_export): Use VEC_safe_push.
+	(cp_parser_save_member_function_body): Likewise.
+	(cp_parser_late_parsing_for_member): Call push_unparsed_function_queues
+	and pop_unparsed_function_queues.
+	(cp_parser_late_parsing_default_args): Likewise.
+	(cp_parser_save_default_args): Use VEC_safe_push.
+
+2010-08-07  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* name-lookup.h (cp_label_binding): Declare.  Declare a VEC type
+	containing it.
+	(cp_binding_level): Convert shadowed_labels and dead_vars_from_for
+	fields to VECs.
+	* decl.c (poplevel): Adjust for type changes.
+	(declare_local_label): Likewise.
+
+2010-08-06  Jason Merrill  <jason@redhat.com>
+
+	* typeck.c (complete_type_or_maybe_complain): Split out from...
+	(complete_type_or_else): Here.
+	(build_class_member_access_expr): Call it.
+	(finish_class_member_access_expr): Likewise.
+	* call.c (build_special_member_call): Likewise.
+	* cvt.c (build_expr_type_conversion): Likewise.
+	* init.c (build_new): Likewise.
+	* typeck2.c (build_functional_cast): Likewise.
+	* cp-tree.h: Declare it.
+
+	* init.c (build_value_init): Add complain parm.
+	(build_value_init_noctor): Likewise.
+	(perform_member_init): Pass it.
+	(expand_aggr_init_1): Likewise.
+	(build_new_1): Likewise.
+	(build_vec_init): Likewise.
+	* pt.c (tsubst_expr): Likewise.
+	* typeck2.c (build_functional_cast): Likewise.
+	* cp-tree.h: Adjust.
+	* tree.c (build_target_expr_with_type): Handle error_mark_node.
+
+	* typeck.c (decay_conversion): Any expression with type nullptr_t
+	decays to nullptr.
+
 2010-07-30  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	PR c++/45112

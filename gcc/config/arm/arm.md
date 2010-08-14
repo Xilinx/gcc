@@ -399,13 +399,7 @@
 ;;---------------------------------------------------------------------------
 ;; Mode iterators
 
-; A list of modes that are exactly 64 bits in size.  We use this to expand
-; some splits that are the same for all modes when operating on ARM 
-; registers.
-(define_mode_iterator ANY64 [DI DF V8QI V4HI V2SI V2SF])
-
-;; The integer modes up to word size
-(define_mode_iterator QHSI [QI HI SI])
+(include "iterators.md")
 
 ;;---------------------------------------------------------------------------
 ;; Predicates
@@ -865,10 +859,6 @@
    cmp%?\\t%0, #%n1"
   [(set_attr "conds" "set")]
 )
-
-(define_code_iterator LTUGEU [ltu geu])
-(define_code_attr cnb [(ltu "CC_C") (geu "CC")])
-(define_code_attr optab [(ltu "ltu") (geu "geu")])
 
 (define_insn "*addsi3_carryin_<optab>"
   [(set (match_operand:SI 0 "s_register_operand" "=r")
@@ -1947,9 +1937,17 @@
     {
       if (GET_CODE (operands[2]) == CONST_INT)
         {
-          arm_split_constant (AND, SImode, NULL_RTX,
-	                      INTVAL (operands[2]), operands[0],
-			      operands[1], optimize && can_create_pseudo_p ());
+	  if (INTVAL (operands[2]) == 255 && arm_arch6)
+	    {
+	      operands[1] = convert_to_mode (QImode, operands[1], 1);
+	      emit_insn (gen_thumb2_zero_extendqisi2_v6 (operands[0],
+							 operands[1]));
+	    }
+	  else
+	    arm_split_constant (AND, SImode, NULL_RTX,
+				INTVAL (operands[2]), operands[0],
+				operands[1],
+				optimize && can_create_pseudo_p ());
 
           DONE;
         }
@@ -4258,7 +4256,6 @@
   ""
 )
 
-(define_code_iterator ior_xor [ior xor])
 
 (define_split
   [(set (match_operand:SI 0 "s_register_operand" "")
@@ -7417,7 +7414,7 @@
 	(match_operator:SI 1 "arm_comparison_operator"
 	 [(match_operand:DF 2 "s_register_operand" "")
 	  (match_operand:DF 3 "arm_float_compare_operand" "")]))]
-  "TARGET_32BIT && TARGET_HARD_FLOAT"
+  "TARGET_32BIT && TARGET_HARD_FLOAT && !TARGET_VFP_SINGLE"
   "emit_insn (gen_cstore_cc (operands[0], operands[1],
 			     operands[2], operands[3])); DONE;"
 )

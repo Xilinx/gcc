@@ -1,3 +1,101 @@
+2010-08-13  Daniel Kraft  <d@domob.eu>
+
+	* gfortran.h (array_type): New type `AS_IMPLIED_SHAPE'.
+	* array.c (gfc_match_array_spec): Match implied-shape specification and
+	handle AS_IMPLIED_SHAPE correctly otherwise.
+	* decl.c (add_init_expr_to_sym): Set upper bounds for implied-shape.
+	(variable_decl): Some checks for implied-shape declaration.
+	* resolve.c (resolve_symbol): Assert that array-spec is no longer
+	AS_IMPLIED_SHAPE in any case.
+
+2010-08-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (MD, MMD): Change to MDX and MMDX.
+	* cpp.c (gfc_cpp_handle_option): Use OPT_MMD and OPT_MMDX.
+
+2010-08-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44595
+	* intrinsic.c (gfc_current_intrinsic_arg): Change type from 'char' to
+	'gfc_intrinsic_arg'.
+	(check_arglist,check_specific): Add reference to 'name' field.
+	(init_arglist): Remove reference to 'name' field.
+	* intrinsic.h (gfc_current_intrinsic_arg): Modify prototype.
+	* check.c (variable_check): Reverse order of checks. Respect intent of
+	formal arg.
+	(int_or_proc_check): New function.
+	(coarray_check): New function.
+	(allocatable_check): New function.
+	(gfc_check_allocated,gfc_check_move_alloc): Use 'allocatable_check'.
+	(gfc_check_complex): Use 'int_or_real_check'.
+	(gfc_check_lcobound,gfc_check_image_index,gfc_check_this_image,
+	gfc_check_ucobound): Use 'coarray_check'.
+	(gfc_check_pack): Use 'real_or_complex_check'.
+	(gfc_check_alarm_sub,gfc_check_signal,gfc_check_signal_sub): Use
+	'int_or_proc_check'.
+	(scalar_check,type_check,numeric_check,int_or_real_check,
+	real_or_complex_check,kind_check,double_check,logical_array_check,
+	array_check,same_type_check,rank_check,nonoptional_check,
+	kind_value_check,gfc_check_a_p,gfc_check_associated,gfc_check_cmplx,
+	gfc_check_cshift,gfc_check_dcmplx,gfc_check_dot_product,gfc_check_dprod,
+	gfc_check_eoshift,gfc_check_fn_rc2008,gfc_check_index,gfc_check_kind,
+	gfc_check_matmul,gfc_check_minloc_maxloc,check_reduction,gfc_check_null,
+	gfc_check_present,gfc_check_reshape,gfc_check_same_type_as,
+	gfc_check_spread,gfc_check_unpack,gfc_check_random_seed,
+	gfc_check_getarg,gfc_check_and,gfc_check_storage_size): Add reference
+	to 'name' field.
+
+2010-08-10  Daniel Kraft  <d@domob.eu>
+
+	* gfortran.texi (Interoperability with C): Fix ordering in menu
+	and add new subsection about pointers.
+	(Interoperable Subroutines and Functions): Split off the pointer part.
+	(working with Pointers): New subsection with extended discussion
+	of pointers (especially procedure pointers).
+
+2010-08-09  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/44235
+	* array.c (gfc_ref_dimen_size):  Add end argument.
+	If end is non-NULL, calculate it.
+	(ref_size):  Adjust call to gfc_ref_dimen_size.
+	(gfc_array_dimen_size):  Likewise.
+	(gfc_array_res_shape):  Likewise.
+	* gfortran.h:  Adjust prototype for gfc_ref_dimen_size.
+	* resolve.c (resolve_array_ref):  For stride not equal to -1,
+	fill in the lowest possible end.
+
+2010-08-09  Janus Weil  <janus@gcc.gnu.org>
+
+	* intrinsic.texi: Correct documentation of ASINH, ACOSH and ATANH.
+
+2010-08-07  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* interface.c (compare_actual_formal): Use XALLOCAVEC instead of
+	alloca.
+	(check_some_aliasing): Likewise.
+	* trans-intrinsic.c (gfc_conv_intrinsic_conversion): Likewise.
+	(gfc_conv_intrinsic_int): Likewise.
+	(gfc_conv_intrinsic_lib_function): Likewise.
+	(gfc_conv_intrinsic_cmplx): Likewise.
+	(gfc_conv_intrinsic_ctime): Likewise.
+	(gfc_conv_intrinsic_fdate): Likewise.
+	(gfc_conv_intrinsic_ttynam): Likewise.
+	(gfc_conv_intrinsic_minmax): Likewise.
+	(gfc_conv_intrinsic_minmax_char): Likewise.
+	(gfc_conv_intrinsic_ishftc): Likewise.
+	(gfc_conv_intrinsic_index_scan_verify): Likewise.
+	(gfc_conv_intrinsic_merge): Likewise.
+	(gfc_conv_intrinsic_trim): Likewise.
+	* trans.c (gfc_trans_runtime_error_vararg): Likewise.
+
+2010-08-06  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45159
+	* dependency.c (check_section_vs_section):  Handle cases where
+	the start expression coincides with the lower or upper
+	bound of the array.
+
 2010-08-04  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/42207

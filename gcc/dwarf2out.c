@@ -2456,6 +2456,10 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	     alignment.  */
           if (fde && XEXP (src, 0) == stack_pointer_rtx)
             {
+	      /* We interpret reg_save differently with stack_realign set.
+		 Thus we must flush whatever we have queued first.  */
+	      flush_queued_reg_saves ();
+
               gcc_assert (cfa_store.reg == REGNO (XEXP (src, 0)));
               fde->stack_realign = 1;
               fde->stack_realignment = INTVAL (XEXP (src, 1));
@@ -5672,7 +5676,6 @@ DEF_VEC_ALLOC_O(dw_attr_node,gc);
    die_sib.  die_child points to the node *before* the "first" child node.  */
 
 typedef struct GTY((chain_circular ("%h.die_sib"))) die_struct {
-  enum dwarf_tag die_tag;
   union die_symbol_or_type_node
     {
       char * GTY ((tag ("0"))) die_symbol;
@@ -5690,6 +5693,7 @@ typedef struct GTY((chain_circular ("%h.die_sib"))) die_struct {
   /* Die is used and must not be pruned as unused.  */
   int die_perennial_p;
   unsigned int decl_id;
+  enum dwarf_tag die_tag;
 }
 die_node;
 
@@ -18927,7 +18931,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
       if (fn_arg_types != NULL)
 	{
 	  /* This is the prototyped case, check for....  */
-	  if (TREE_VALUE (tree_last (fn_arg_types)) != void_type_node)
+	  if (stdarg_p (TREE_TYPE (decl)))
 	    gen_unspecified_parameters_die (decl, subr_die);
 	}
       else if (DECL_INITIAL (decl) == NULL_TREE)

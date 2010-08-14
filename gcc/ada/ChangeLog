@@ -1,3 +1,204 @@
+2010-08-10  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch8.adb, sem_ch8.ads: Change name Write_Scopes to ws.
+	* sem_util.adb: Minor reformatting.
+
+2010-08-10  Javier Miranda  <miranda@adacore.com>
+
+	* sem_aggr.adb (Resolve_Extension_Aggregate): Warn on the use of C++
+	constructors that leave the object partially initialized.
+	* exp_atag.ads, exp_atags.adb (Build_Inherit_CPP_Prims): New subprogram
+	that copies from parent of Typ the dispatch table slots of inherited
+	C++ primitives. It handles primary and secondary dispatch tables.
+	* einfo.adb (Related_Type): Moved from Node26 to Node27. Required to
+	use this attribute with E_Variable entities.
+	(Set_Is_Tag): Relax assertion to allow its use with variables that
+	store tags.
+	(Set_Related_Type): Relax assertion to allow its use with variables
+	that store the tag of a C++ class.
+	(Write_26_Field_Name): Remove Related_Type.
+	(Write_27_Field_Name): Add Related_Type.
+	* einfo.ads (Related_Type): Moved from Node26 to Node27. Available also
+	with E_Variable entities.
+	* sem_prag.adb (CPP_Constructor): Warn on duplicated occurrence of this
+	pragma.
+	* sem_util.adb (Search_Tag): Add missing support for CPP types.
+	(Enclosing_CPP_Parent): New subprogram.
+	(Has_Suffix): New subprogram.
+	* sem_util.ads (Enclosing_CPP_Parent): New subprogram that returns the
+	closest ancestor of a type that is a C++ type.
+	(Has_Suffix): New subprogram. Used in assertions to check the suffix of
+	internal entities.
+	* sem_attr.adb (Analyze_Access_Attribute): Check wrong use of current
+	instance in derivations of C++ types.
+	* exp_tss.adb (CPP_Init_Proc): New subprogram.
+	(Is_CPP_Init_Proc): New subprogram.
+	(Set_TSS): Handle new C++ init routines.
+	* exp_tss.ads (TSS_CPP_Init): New TSS name. For initialization of C++
+	dispatch tables.
+	(CPP_Init_Proc): New subprogram.
+	(Is_CPP_Init_Proc): New subprogram.
+	* exp_disp.adb (CPP_Num_Prims): New subprogram.
+	(Has_CPP_Constructors): New subprogram.
+	(Make_Secondary_DT, Make_DT): For derivations of CPP types, do not
+	initialize slots located in the C++ part of the dispatch table.
+	(Make_Tags): For CPP types declare variables used by the IP routine to
+	store the C++ tag values after the first invocation of the C++
+	constructor.
+	(Build_CPP_Init_DT): New subprogram.
+	(Set_CPP_Constructors): New implementation that builds an IP for each
+	CPP constructor. These IP are wrappers of the C++ constructors that,
+	after the first invocation of the constructor, read the C++ tags from
+	the object and save them locally. These copies of the C++ tags are used
+	by the IC routines to initialize tables of Ada derivations of CPP types.
+	(Write_DT): Indicate what primitives are imported from C++
+	* exp_disp.ads (CPP_Num_Prims): New subprogram.
+	(Has_CPP_Constructors): New subprogram.
+	* exp_aggr.adb (Build_Record_Aggr_Code): For derivations of C++ types
+	invoke the IC routine to inherit the slots of the parents.
+	* sem_ch13.adb (Analyze_Freeze_Entity): Add new warnings on CPP types.
+	* exp_ch3.adb (Is_Variable_Size_Array): New subprogram.
+	(Is_Variable_Size_Record): Factorize code calling
+	Is_Variable_Size_Array.
+	(Build_CPP_Init_Procedure): New subprogram that builds the tree
+	corresponding to the procedure that initializes the C++ part of the
+	dispatch table of an Ada tagged type that is a derivation of a CPP type.
+	(Build_Init_Procedure): Adding documentation plus code reorganization to
+	leave more clear the construction of the IP with C++ types.
+	(Expand_Freeze_Record_Type): Delay call to Set_CPP_Constructors because
+	it cannot be called after Make_Tags has been invoked.
+	(Inherit_CPP_Tag): Removed.
+	(Init_Secondary_Tags): For derivations of CPP types, warn on tags
+	located at variable offset.
+	* freeze.ads: Minor reformating.
+	* sem_ch8.adb (Write_Scopes): Add pragma export. Required to have it
+	available in gdb.
+	* gcc-interface/Make-lang.in: Update dependencies.
+
+2010-08-10  Robert Dewar  <dewar@adacore.com>
+
+	* a-chahan.ads: Add comments on handling of obsolescent entries.
+	* opt.ads: Add Ada_2005 and Ada_2012 renamings for versions.
+	* restrict.adb (Check_Obsolescent_2005_Entity): New procedure.
+	* restrict.ads (Check_Obsolescent_2005_Entity): New procedure.
+	* sem_attr.adb (Analyze_Access_Attribute): Call
+	Check_Obsolescent_2005_Entity to check for access to obsolescent
+	Ada.Characters.Handling subprogram.
+	(Analyze_Attribute, case Class): Applying Class to untagged incomplete
+	type is obsolescent in Ada 2005.
+	(Analyze_Attribute, case Constrained): Better placement of flag when
+	flagged as obsolescent feature.
+	(Analyze_Attribute, case Storage_Size): Use with tasks is obsolescent
+	* sem_ch10.adb (Analyze_With_Clause): With of renamings such as Text_IO
+	is an obsolescent feature.
+	* sem_ch11.adb (Analyze_Raise_Statement): Numeric_Error is obsolescent
+	feature.
+	* sem_ch8.adb (Analyze_Subprogram_Renaming): Call
+	Check_Obsolescent_2005_Entity to check for renaming obsolete
+	Ada.Characters.Handling subprogram.
+	* sem_prag.adb (Process_Restrictions_Or_Restriction_Warnings): Check
+	for obsolescent restrictions in Ada 2005.
+	(Analyze_Pragma, case Suppress): Entity arg is obsolescent in Ada 2005
+	(Analyze_Pragma, case Interface): Interface is obsolescent in Ada 2005
+	* sem_res.adb (Resolve_Call): Call Check_Obsolescent_2005_Entity to
+	check for obsolescent references to Ada.Characters.Handling subprograms
+
+2010-08-10  Robert Dewar  <dewar@adacore.com>
+
+	* einfo.adb, einfo.ads: Fix bad -gnatdt output for incomplete type.
+
+2010-08-10  Robert Dewar  <dewar@adacore.com>
+
+	* errout.ads: Add VMS table entries for 2005, 12, 2012 switches
+	* par-ch4.adb: Change wording of Ada 2012 messages
+	* vms_data.ads: Add VMS entries for /2005, /12, /2012
+
+2010-08-10  Robert Dewar  <dewar@adacore.com>
+
+	* a-suenco.adb (Convert): Fix bug in UTF-16 to UTF-8 conversion for
+	codes in the range 16#80#..16#7FF#.
+	* sem_ch10.adb: Minor reformatting.
+
+2010-08-10  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat1drv.adb (Scan_Front_End_Switches): Always perform semantics and
+	generate ali files in CodePeer mode, so that a gnatmake -c -k will
+	proceed further when possible
+	* freeze.adb (Freeze_Static_Object): Fix thinko. Do not generate error
+	messages when ignoring representation clauses (-gnatI).
+
+2010-08-10  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch4.adb (Expand_N_Selected_Component): Do not attempt to
+	constant-fold discriminant reference if the constraint is an object
+	with non-static expression. Expression may contain volatile references
+	in the presence of renamings.
+
+2010-08-10  Vincent Celier  <celier@adacore.com>
+
+	* prj-proc.adb (Get_Attribute_Index): If Index is All_Other_Names,
+	returns Index.
+	* prj-strt.adb (Attribute_Reference): Recognize 'others' as a valid
+	index for an associative array where it is allowed.
+
+2010-08-10  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_attr.adb: Add comments.
+
+2010-08-10  Jerome Lambourg  <lambourg@adacore.com>
+
+	* adaint.c (__gnat_get_file_names_case_sensitive): return 0 on darwin.
+
+2010-08-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc-interface/utils.c (gnat_poplevel): Use blocks_nreverse.
+
+2010-08-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (build_vms_descriptor32): Fix formatting.
+	(build_vms_descriptor): Likewise.
+
+2010-08-08  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc-interface/utils.c (make_descriptor_field): Add tree parameter.
+	(build_vms_descriptor32): Adjust calls to it for new parameter.
+	(build_vms_descriptor): Likewise.
+
+2010-08-08  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc-interface/decl.c (rec_variant):  Declare.  Declare a VEC of it.
+	(build_variant_list): Take and return a VEC instead of a tree.
+	(create_variant_part_from): Take a VEC instead of a tree for
+	variant_list.  Adjust accordingly.
+	(gnat_to_gnu_entity): Adjust for changes to previous functions.
+
+2010-08-07  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity): Use XALLOCAVEC instead
+	of alloca.
+	(components_to_record): Likewise.
+	* gcc-interface/trans.c (gnat_to_gnu): Likewise.
+	* gcc-interface/utils.c (max_size): Likewise.
+	(build_vms_descriptor32): Likewise.
+	(build_vms_descriptor): Likewise.
+
+2010-08-07  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc-interface/decl.c (subst_pair): Declare.  Declare a VEC of it.
+	(build_subst_list): Return a VEC instead of a tree.
+	(build_variant_list): Take a VEC for subst_list.  Adjust
+	accordingly.
+	(create_field_decl_from): Likewise.
+	(create_variant_part_from): Likewise.
+	(copy_and_substitute_in_size): Likewise.
+	(gnat_to_gnu_entity): Adjust for new interface to build_subst_list.
+	Free the built vector.
+
+2010-08-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <object>: Do not build an
+	allocator for large imported objects.
+
 2010-08-05  Robert Dewar  <dewar@adacore.com>
 
 	* gnat1drv.adb: Minor reformatting.

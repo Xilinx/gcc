@@ -398,9 +398,9 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       flag_no_output = 1;
       break;
 
-    case OPT_MD:
-    case OPT_MMD:
-      cpp_opts->deps.style = (code == OPT_MD ? DEPS_SYSTEM: DEPS_USER);
+    case OPT_MDX:
+    case OPT_MMDX:
+      cpp_opts->deps.style = (code == OPT_MDX ? DEPS_SYSTEM: DEPS_USER);
       cpp_opts->deps.need_preprocessor_output = true;
       deps_file = arg;
       break;
@@ -437,8 +437,8 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wall:
       warn_unused = value;
       set_Wformat (value);
-      handle_option (OPT_Wimplicit, NULL, value, c_family_lang_mask, kind,
-		     handlers);
+      handle_generated_option (OPT_Wimplicit, NULL, value,
+			       c_family_lang_mask, kind, handlers);
       warn_char_subscripts = value;
       warn_missing_braces = value;
       warn_parentheses = value;
@@ -539,11 +539,11 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wimplicit:
       gcc_assert (value == 0 || value == 1);
       if (warn_implicit_int == -1)
-	handle_option (OPT_Wimplicit_int, NULL, value,
-		       c_family_lang_mask, kind, handlers);
+	handle_generated_option (OPT_Wimplicit_int, NULL, value,
+				 c_family_lang_mask, kind, handlers);
       if (warn_implicit_function_declaration == -1)
-	handle_option (OPT_Wimplicit_function_declaration, NULL, value,
-		       c_family_lang_mask, kind, handlers);
+	handle_generated_option (OPT_Wimplicit_function_declaration, NULL,
+				 value, c_family_lang_mask, kind, handlers);
       break;
 
     case OPT_Wimport:

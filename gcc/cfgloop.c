@@ -339,7 +339,6 @@ alloc_loop (void)
   loop->exits = ggc_alloc_cleared_loop_exit ();
   loop->exits->next = loop->exits->prev = loop->exits;
   loop->can_be_parallel = false;
-  loop->single_iv = NULL_TREE;
 
   return loop;
 }
@@ -1621,15 +1620,30 @@ single_exit (const struct loop *loop)
     return NULL;
 }
 
-/* Returns true when BB has an edge exiting LOOP.  */
+/* Returns true when BB has an incoming edge exiting LOOP.  */
 
 bool
-is_loop_exit (struct loop *loop, basic_block bb)
+loop_exits_to_bb_p (struct loop *loop, basic_block bb)
 {
   edge e;
   edge_iterator ei;
 
   FOR_EACH_EDGE (e, ei, bb->preds)
+    if (loop_exit_edge_p (loop, e))
+      return true;
+
+  return false;
+}
+
+/* Returns true when BB has an outgoing edge exiting LOOP.  */
+
+bool
+loop_exits_from_bb_p (struct loop *loop, basic_block bb)
+{
+  edge e;
+  edge_iterator ei;
+
+  FOR_EACH_EDGE (e, ei, bb->succs)
     if (loop_exit_edge_p (loop, e))
       return true;
 
