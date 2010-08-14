@@ -31,16 +31,44 @@ along with GCC; see the file COPYING3.  If not see
 #include <gpython/vectors.h>
 #include <gpython/garbage.h>
 
+struct gpy_obj_boolean_t {
+  bool boolean;
+} ;
+
+void * gpy_obj_boolean_init( gpy_literal_t * lit )
+{
+  return NULL;
+}
+
+void gpy_obj_boolean_destroy( void * self )
+{
+  if( self )
+    gpy_free( self )
+}
+
+void gpy_obj_boolean_print( void * self, FILE * fd, bool newline )
+{
+  struct gpy_obj_boolean_t * si = (struct gpy_obj_boolean_t *) self;
+
+  if( si->boolean )
+    fprintf( fd, "True " );
+  else
+    fprintf( fd, "False " );
+
+  if( newline )
+    fprintf( fd, "\n" );
+}
+
 /*
   The member methods table
    - member fields can be handle'd in a similar fashion
 */
-static gpy_method_def_t gpy_obj_integer_methods[] = {
+static gpy_method_def_t gpy_obj_boolean_methods[] = {
   { NULL, NULL, 0 }
 };
 
 /* The binary protocol handles */
-static struct gpy_number_prot_t integer_binary_ops = {
+static struct gpy_number_prot_t boolean_binary_ops = {
   false,
   NULL,
   NULL,
