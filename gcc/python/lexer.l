@@ -59,9 +59,30 @@ along with GCC; see the file COPYING3.  If not see
 static VEC(gpy_int,gc) * gpy_indent_stack;
 
 extern int yyparse( void );
+
+static bool dedent = false;
+ 
+#define YY_USER_ACTION				\
+  printf("dedent = <%i>!\n", dedent);				\
+  if( dedent )							\
+    {								\
+      printf("user_action - yytext = <%s>!\n", yytext);		\
+      int i;							\
+      /* Copy yytext because unput() trashes yytext */		\
+      char *yycopy = xstrdup( yytext );				\
+      for ( i = yyleng - 1; i >= 0; --i )			\
+	unput( yycopy[i] );					\
+      free( yycopy );						\
+								\
+      dedent = false;						\
+      return DEDENT;						\
+    }
+  
+ 
 %}
 
 %option yylineno
+%option debug
 
 DIGIT    [0-9]
 ID       [_a-zA-Z][a-zA_Z0-9_$]*
@@ -141,11 +162,54 @@ else                    {  return ELSE; }
                         }
 
 {ID}                    {
+                          printf("IDENTIFIER!\n");
                           yylval.string= xstrdup( yytext );
                           return IDENTIFIER;
                         }
 
-"\n"                    { return NEWLINE; }
+"\n"                    {
+                          printf("newline rule!\n");
+                          int chk = yylex( );
+			  printf("chk = <%i>!\n", chk );
+			  if( chk != INDENT )
+			    {
+			      int top_len = VEC_index( gpy_int, gpy_indent_stack,
+						       VEC_length( gpy_int, gpy_indent_stack )-1 );
+			      printf("whoop not indent top_len = <%i>!\n", top_len );
+			      if( top_len != 0 )
+				{
+				  printf("pop and dedent!\n");
+				  VEC_pop( gpy_int, gpy_indent_stack );
+				  dedent = true;
+				}
+			    }
+			  else
+			    {
+			      int top_len = VEC_index( gpy_int, gpy_indent_stack,
+						       VEC_length( gpy_int, gpy_indent_stack )-1 );
+			      int indent = yyleng/4;
+
+			      if( top_len <= indent )
+				{
+				  if( top_len != indent )
+				    {
+				      VEC_pop( gpy_int, gpy_indent_stack );
+				    }
+				}
+			    }
+			  printf("yytext = <%s>!\n", yytext );
+
+			  int i;
+			  /* Copy yytext because unput() trashes yytext */
+			  char *yycopy = xstrdup( yytext );
+			  for ( i = yyleng - 1; i >= 0; --i )
+			    unput( yycopy[i] );
+			  free( yycopy );
+
+			  printf("newline!\n");
+                          return NEWLINE;
+                        }
+
 "    "+                 {
                           int top_len = VEC_index( gpy_int, gpy_indent_stack,
 						   VEC_length( gpy_int, gpy_indent_stack )-1 );
@@ -155,12 +219,15 @@ else                    {  return ELSE; }
 			    {
 			      if( top_len != indent )
 				{
+                                  printf("pushing indent <%i>!\n", indent);
 				  VEC_safe_push( gpy_int, gc, gpy_indent_stack, indent );
 				}
+                              printf("INDENT!\n");
 			      return INDENT;
 			    }
 			  else if( top_len > indent )
 			    {
+                              printf("DEDENT!\n");
 			      VEC_pop( gpy_int, gpy_indent_stack );
 			      return DEDENT;
 			    }
@@ -171,6 +238,7 @@ else                    {  return ELSE; }
 						  VEC_length( gpy_int, gpy_indent_stack )-1 );
 			 if( top_len != 0 )
 			   {
+                             printf("DEDENT EOF!\n");
 			     VEC_pop( gpy_int, gpy_indent_stack );
 			     return DEDENT;
 			   }

@@ -52,6 +52,8 @@ static VEC( gpy_sym,gc ) * gpy_symbol_stack;
 
 extern int yylineno;
 
+// yydebug = 1;
+
 extern int yylex( void );
 extern void yyerror( const char * );
 %}
@@ -64,6 +66,8 @@ extern void yyerror( const char * );
 }
 
 %error-verbose
+%start declarations
+%debug
 
 %token CLASS "class"
 %token DEF "def"
@@ -141,8 +145,6 @@ extern void yyerror( const char * );
 %left '*' '/'
 %right '='
 %nonassoc UMINUS
-
-%start declarations
 
 %%
 
@@ -489,6 +491,5 @@ primary: atom
 
 void yyerror( const char *msg )
 {
-  error( "%s at line %i\n",
-	 msg, yylineno );
+  error( "%s at line %i\n", msg, yylineno );
 }
