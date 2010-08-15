@@ -17,14 +17,22 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef __GCC_OBJECTS_H__
 #define __GCC_OBJECTS_H__
 
-enum GPY_LIT_T { TYPE_INTEGER, TYPE_STRING, TYPE_NONE };
+enum GPY_LIT_T {
+  TYPE_INTEGER,
+  TYPE_STRING,
+  TYPE_BOOLEAN,
+  TYPE_FLOAT,
+  TYPE_VECTOR,
+  TYPE_NONE,
+};
 
 typedef struct gpy_rr_literal_t {
   enum GPY_LIT_T type;
   union {
     int integer;
+    float decimal;
     char * string;
-    /* ... */
+    bool boolean;
   } literal ;
 } gpy_literal_t ;
 

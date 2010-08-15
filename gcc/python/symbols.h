@@ -78,6 +78,8 @@ typedef struct GTY(()) gpy_context_branch_t {
   VEC(tree,gc) * ctx_init;
 } gpy_context_branch ;
 
+enum DECL_T { VAR, FUNC };
+
 typedef gpy_symbol_obj *gpy_sym;
 typedef gpy_context_branch *gpy_ctx_t;
 
@@ -89,59 +91,7 @@ DEF_VEC_ALLOC_P( gpy_ctx_t,gc );
 
 extern VEC(gpy_ctx_t,gc) * gpy_ctx_table;
 extern VEC(gpy_sym,gc) * gpy_garbage_decls;
-			 
-extern void gpy_ident_vec_init( gpy_ident_vector_t * const v )
-     __attribute__((nonnull));
-
-extern void gpy_ident_vec_push( gpy_ident_vector_t * const v, void * s )
-     __attribute__((nonnull));
-
-extern void * gpy_ident_vec_pop( gpy_ident_vector_t * const v )
-     __attribute__((nonnull));
-
-extern gpy_hashval_t gpy_dd_hash_string( const char * );
-
-extern gpy_hash_entry_t * gpy_dd_hash_lookup_table( gpy_hash_tab_t *, gpy_hashval_t );
-
-extern void ** gpy_dd_hash_insert( gpy_hashval_t, void *, gpy_hash_tab_t * );
-
-extern void gpy_dd_hash_grow_table( gpy_hash_tab_t * );
-
-extern void gpy_dd_hash_init_table( gpy_hash_tab_t ** );
-
-extern void gpy_gg_invoke_garbage( void );
-
-extern void gpy_garbage_free_obj( gpy_symbol_obj ** );
-
-extern tree gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj **, tree * );
-
-extern tree gpy_process_bin_expression( gpy_symbol_obj ** , gpy_symbol_obj **,
-					gpy_opcode_t, tree * );
-
-extern tree gpy_process_expression( const gpy_symbol_obj * const, tree * );
-
-extern tree gpy_process_functor( const gpy_symbol_obj * const );
-
-extern tree gpy_get_tree( gpy_symbol_obj * , tree * );
-
-extern void gpy_process_decl( gpy_symbol_obj * );
-
-extern tree gpy_process_print( gpy_symbol_obj * );
-
-enum DECL_T { VAR, FUNC };
-
-extern tree gpy_ctx_lookup_decl( const char *, enum DECL_T );
-
-extern bool gpy_ctx_push_decl( tree, const char *, gpy_context_branch *,
-			       enum DECL_T );
-
-extern gpy_symbol_obj * gpy_symbol_obj_clone( gpy_symbol_obj *, bool );
-
-extern void gpy_symbol_init_ctx( gpy_symbol_obj * const )
-  __attribute__((nonnull));
-
-extern void gpy_init_ctx_branch( gpy_context_branch * const * )
-  __attribute__((nonnull));
+extern VEC(tree,gc) * global_decls;
 
 #define Gpy_Symbol_Init_Ctx( x )		\
   x->identifier = NULL;				\

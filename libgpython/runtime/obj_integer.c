@@ -42,6 +42,8 @@ struct gpy_obj_integer_t {
 
        def __init__( self, ... ):
           <.....>
+
+   Where you generate the TYPE which is part of the object state
 */
 void * gpy_obj_integer_init( gpy_literal_t * lit )
 {
@@ -82,6 +84,7 @@ gpy_object_integer_whoop_varargs( gpy_object_state_t * self )
   return NULL;
 }
 
+/* Key args NOT implemented yet! */
 gpy_object_state_t *
 gpy_object_integer_whoop_keyargs( gpy_object_state_t * self )
 {

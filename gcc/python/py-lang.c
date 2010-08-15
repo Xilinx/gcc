@@ -213,6 +213,10 @@ static void
 gpy_langhook_write_globals( void )
 {
   debug("write globals!\n");
+
+  if( seen_error( ) )
+    return;
+
   gpy_write_globals( );
 }
 
