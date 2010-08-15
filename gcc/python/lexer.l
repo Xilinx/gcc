@@ -38,15 +38,19 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks-def.h"
 #include "target.h"
 
-#include "vec.h"
-
-#include "gpy.h"
-#include "symbols.h"
-#include "opcodes.def"
-#include "y.py.h"
-
 #include <gmp.h>
 #include <mpfr.h>
+
+#include "vec.h"
+#include "hashtab.h"
+
+#include "gpy.h"
+#include "opcodes.def"
+#include "symbols.h"
+#include "pypy-tree.h"
+#include "runtime.h"
+
+#include "y.py.h"
 
 /* Stack required for INDENT and DEDENT tokens @see
  * - http://docs.python.org/reference/lexical_analysis.html
@@ -110,6 +114,9 @@ else                    {  return ELSE; }
 "and"                   { return AND; }
 "not"                   { return NOT; }
 
+"True"                  { return V_TRUE; }
+"False"                 { return V_FALSE; }
+
 {qstring}               {
                           yylval.string= xstrdup( (yytext+1) );
                           if( yylval.string[ yyleng-2 ] != '\"' ) {
@@ -126,7 +133,7 @@ else                    {  return ELSE; }
 			  mpfr_init2( x, 32 );
 			  if( mpfr_set_str( x, yytext, 10, GMP_RNDU) )
                             {
-                              error("error initilizing integer value <%s>!\n", yytext );
+                              fatal_error("error initilizing integer value <%s>!\n", yytext );
                             }
                           yylval.integer = mpfr_get_si( x, GMP_RNDU );
 			  mpfr_clear( x );

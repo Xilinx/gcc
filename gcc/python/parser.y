@@ -36,15 +36,17 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks-def.h"
 #include "target.h"
 
-#include "vec.h"
-
-#include "gpy.h"
-#include "symbols.h"
-#include "opcodes.def"
-#include "line-map.h"
-
 #include <gmp.h>
 #include <mpfr.h>
+
+#include "vec.h"
+#include "hashtab.h"
+
+#include "gpy.h"
+#include "opcodes.def"
+#include "symbols.h"
+#include "pypy-tree.h"
+#include "runtime.h"
 
 static VEC( gpy_sym,gc ) * gpy_symbol_stack;
 
@@ -81,6 +83,9 @@ extern void yyerror( const char * );
 %token AND "and"
 %token NOT "not"
 
+%token V_TRUE "True"
+%token V_FALSE "False"
+
 %token NEWLINE
 %token INDENT
 %token DEDENT
@@ -96,6 +101,7 @@ extern void yyerror( const char * );
 %token<string> IDENTIFIER
 %token<string> STRING
 %token<integer> INTEGER
+%token<decimal> DOUBLE
 
 %type<symbol> statement
 %type<symbol> compound_stmt
@@ -325,7 +331,6 @@ target: IDENTIFIER
       ;
 
 expression_list: expression
-               { $$ = $1; }
                ;
 
 expression: conditional_expression
@@ -415,6 +420,42 @@ literal: INTEGER
 	 sym->op_a_t= TYPE_INTEGER;
 	 
 	 sym->op_a.integer= $1;
+	 $$= sym;
+       }
+       | STRING
+       {
+	 gpy_symbol_obj *sym;
+	 Gpy_Symbol_Init( sym );
+	 
+	 sym->exp = OP_EXPRESS;
+	 sym->type= SYMBOL_PRIMARY;
+	 sym->op_a_t= TYPE_STRING;
+	 
+	 sym->op_a.string= $1;
+	 $$= sym;
+       }
+       | V_TRUE
+       {
+	 gpy_symbol_obj *sym;
+	 Gpy_Symbol_Init( sym );
+	 
+	 sym->exp = OP_EXPRESS;
+	 sym->type= SYMBOL_PRIMARY;
+	 sym->op_a_t= TYPE_BOOLEAN;
+	 
+	 sym->op_a.boolean= true;
+	 $$= sym;
+       }
+       | V_FALSE
+       {
+	 gpy_symbol_obj *sym;
+	 Gpy_Symbol_Init( sym );
+	 
+	 sym->exp = OP_EXPRESS;
+	 sym->type= SYMBOL_PRIMARY;
+	 sym->op_a_t= TYPE_BOOLEAN;
+	 
+	 sym->op_a.boolean= false;
 	 $$= sym;
        }
        ;

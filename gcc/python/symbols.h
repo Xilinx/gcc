@@ -25,13 +25,15 @@ typedef struct GTY(()) gpy_symbol_table_t {
   location_t loc;
   union {
     /* literal primitive semantic types! */
-    long int integer;
+    int integer;
     char * string;
+    bool boolean;
     struct gpy_symbol_table_t * symbol_table;
   } op_a;
   union {
-    long int integer;
+    int integer;
     char * string;
+    bool boolean;
     struct gpy_symbol_table_t * symbol_table;
   } op_b;
   struct gpy_symbol_table_t *next;
