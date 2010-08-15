@@ -527,26 +527,15 @@ VEC(tree,gc) * gpy_process_print( gpy_symbol_obj *sym )
 	  t=t->next;
 	}
      
-      int idx = 0; t = argument_list;
-      VEC(tree,gc) * args_stmt_vec = VEC_alloc(tree,gc,0);
-      for( ; idx<len; ++idx )
+      int idx, idy = 0; t = argument_list;
+      tree * args = XNEWVEC( tree,len );
+      for( idx=0; idx<len; ++idx )
 	{
 	  VEC(tree,gc) * x = gpy_get_tree( t );
-	  int itx = 0; tree xt;
-	  for( ; VEC_iterate(tree,x,itx,xt); ++itx )
-	    {
-	      gcc_assert( xt );
-	      VEC_safe_push(tree,gc,retval,xt);
-	    }
-	  t = t->next;
-	}
-
-      tree * args = XNEWVEC( tree, VEC_length(tree,args_stmt_vec) );
-      tree it = NULL_TREE; int idy = 0;
-      for( idx=0; VEC_iterate(tree,args_stmt_vec,idx,it); ++idx )
-	{
-	  args[ idy ] = it;
+	  gcc_assert( VEC_length(tree,x) == 1 );
+	  args[ idy ] = VEC_index(tree,x,0);
 	  idy++;
+	  t = t->next;
 	}
       
       VEC_safe_push( tree,gc,retval,gpy_builtin_get_print_call( len, args ) );
@@ -559,7 +548,8 @@ VEC(tree,gc) * gpy_process_print( gpy_symbol_obj *sym )
 
 VEC(tree,gc) * gpy_process_class( gpy_symbol_obj * const sym )
 {
-  return NULL;
+  VEC(tree,gc) * retval = NULL;
+  return retval;
 }
 
 VEC(tree,gc) * gpy_get_tree( gpy_symbol_obj * sym )
@@ -664,7 +654,6 @@ tree gpy_main_method_decl( VEC(tree,gc) * block, gpy_context_branch * co )
 	  idy++;
 	}
       // block_decl_vec[ idy ] = main_ret; idy++;
-
       append_to_statement_list( gpy_builtin_get_finalize_block_call( block_decl_len,
 								     block_decl_vec ),
 				&main_stmts );
