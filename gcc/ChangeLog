@@ -1,3 +1,194 @@
+2010-08-16  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* config/arm/thumb2.md (thumb2_notsi_shiftsi,
+	thumbsi_notsi_shiftsi_compare0, thumb2_not_shiftsi_compare0_scratch,
+	thumb2_cmpsi_shiftsi, thumb2_cmpsi_shiftsi_swp, thumb2_arith_shiftsi,
+	thumb2_arith_shiftsi splitter, thumb2_arith_shiftsi_compare0,
+	thumb2_arith_shiftsi_compare0_scratch, thumb2_sub_shiftsi,
+	thumb2_sub_shiftsi_compare0, thumb2_sub_shiftsi_compare0_scratch,
+	thumb2_iorsi3): Delete.
+	(orsi_notsi_si): No longer a named pattern.
+	(orsi_not_shiftsi_si): Renamed from thumb_orsi_not_shiftsi_si.
+	* config/arm/predicates.md (shift_amount_operand): New.
+	(mult_operator): New.
+	* config/arm/arm.md (attr arch, attr arch_enabled, attr insn_enabled,
+	attr enabled): New.
+	(iorsi3_insn): Renamed from arm_iorsi3.  Handle a new alternative if
+	arch matches t2.
+	(not_shiftsi): Renamed from arm_notsi_shiftsi.  Handle Thumb2 variant.
+	(not_shiftsi_compare0): Likewise, renamed from
+	arm_notsi_shiftsi_compare0.
+	(not_shiftsi_compare0_scratch): Likweise, renamed from
+	arm_notsi_shiftsi_compare0_scratch.
+	(cmpsi_shiftsi): Likewise, renamed from arm_cmpsi_shiftsi.
+	(cmpsi_shiftsi_swp): Likewise, renamed from arm_cmpsi_shiftsi_swp.
+	(arith_shiftsi): Handle Thumb2 variant.  Set insn_enabled attribute
+	so that the register alternative is disabled when the shift_operator
+	is MULT.  Use "M" as the constraint for constants.
+	(arith_shiftsi splitter): Enable for TARGET_32BIT.
+	(arith_shiftsi_compare0): Handle Thumb2 variant.  Use "M" as the
+	constraint for constants.
+	(arith_shiftsi_compare0_scratch): Likewise.
+	(sub_shiftsi, sub_shiftsi_compare0, sub_shiftsi_compare0_scratch):
+	Handle Thumb2 alternative.
+
+2010-08-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* doc/options.texi (NoDriverArg): Document.
+	* gcc.c (cpp_unique_options): Generate -MD and -MMD instead of
+	-MDX and -MMDX.
+	* opt-functions.awk (switch_flags): Handle NoDriverArg.
+	* opts-common.c (decode_cmdline_option): Ignore CL_SEPARATE
+	marking for CL_NO_DRIVER_ARG options when in the driver.
+	* opts.h (CL_NO_DRIVER_ARG): Define.
+	(CL_PARAMS, CL_WARNING, CL_OPTIMIZATION, CL_DRIVER, CL_TARGET,
+	CL_COMMON): Update values.
+
+2010-08-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt: Add driver options.
+	(auxbase, auxbase-strip, quiet, version): Mark RejectDriver.
+	* doc/options.texi (Driver, RejectDriver): Document.
+	* gcc.c (pass_exit_codes, print_search_dirs, print_file_name,
+	print_prog_name, print_multi_directory, print_sysroot,
+	print_multi_os_directory, print_multi_lib,
+	print_sysroot_headers_suffix, report_times, combine_flag,
+	use_pipes, wrapper_string): Remove.
+	(save_switch, driver_unknown_option_callback,
+	driver_wrong_lang_callback, driver_post_handling_callback,
+	driver_handle_option): New.
+	(spec_lang, last_language_n_infiles): Make file-scope static
+	instead of local to process_command.
+	(process_command): Use decode_cmdline_options_to_array and
+	read_cmdline_option for option processing.  Compute have_c in
+	prescan of decoded options.
+	* opt-functions.awk (switch_flags): Handle Driver and
+	RejectDriver.
+	(var_type, var_type_struct): Handle Separate options as generating
+	const char * variables.
+	* opts-common.c (decode_cmdline_option): Expect CL_COMMON and
+	CL_TARGET to be passed by caller if required.
+	(decode_cmdline_options_to_array): Update comment.
+	* opts.c (complain_wrong_lang): Handle options only valid for the
+	driver.
+	(decode_options): Update call to decode_cmdline_options_to_array.
+	(print_filtered_help): Ignore driver-only options.
+	(print_specific_help): Ignore CL_DRIVER.
+	(common_handle_option): Don't call print_specific_help for
+	CL_DRIVER.
+	* opts.h (CL_DRIVER, CL_REJECT_DRIVER): Define.
+	(CL_PARAMS, CL_WARNING, CL_OPTIMIZATION, CL_TARGET, CL_COMMON):
+	Update values.
+
+2010-08-16  Richard Guenther  <rguenther@suse.de>
+
+	* tree-cfg.c (verify_types_in_gimple_reference): Verify
+	TARGET_MEM_REF a bit.
+	* tree-ssa-address.c (addr_for_mem_ref): Adjust.
+	(create_mem_ref_raw): Always create TMR_OFFSET, store the
+	alias pointer type via it.
+	(copy_mem_ref_info): Adjust.
+	(maybe_fold_tmr): Likewise.
+	* tree.c (mem_ref_offset): Also handle TARGET_MEM_REF.
+	(reference_alias_ptr_type): Likewise.
+	* tree.def (TARGET_MEM_REF): Remove TMR_ORIGINAL operand,
+	adjust documentation of TMR_OFFSET operand.
+	* alias.c (get_alias_set): Do not look at TMR_ORIGINAL but
+	use the alias pointer type.
+	* expr.c (expand_expr_real_1): Do not use TMR_ORIGINAL to
+	initialize mem attrs but the TMR itself.
+	* tree-eh.c (tree_could_trap_p): Handle TARGET_MEM_REF
+	similar to MEM_REF.
+	* tree-pretty-print.c (dump_generic_node): Do not dump TMR_ORIGINAL.
+	* tree-ssa-loop-ivopts.c (idx_remove_ssa_names): Remove.
+	(unshare_and_remove_ssa_names): Likewise.
+	(copy_ref_info): Adjust.
+	* tree-ssa-pre.c (create_component_ref_by_pieces_1): Simplify
+	TARGET_MEM_REF case.
+	* tree-ssa-sccvn.c (copy_reference_ops_from_ref): Do not look
+	at TMR_ORIGINAL.
+	* tree.h (TMR_ORIGINAL): Remove.
+	* gimple.c (get_base_address): For TARGET_MEM_REF with a
+	symbol return that.
+	* tree-dfa.c (get_ref_base_and_extent): Handle TARGET_MEM_REF
+	with a symbol.
+	(get_addr_base_and_unit_offset): Likewise.
+	* tree-ssa-alias.c (indirect_ref_may_alias_decl_p): Handle
+	TARGET_MEM_REFs.
+	(indirect_ref_may_alias_decl_p): Likewise.
+	(refs_may_alias_p_1): Do not bail out for TARGET_MEM_REFs.
+
+2010-08-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	* doc/invoke.texi (-fomit-frame-pointer): Document that starting
+	with GCC version 4.6, the default setting (when not optimizing
+	for size) for 32-bit Linux x86 and 32-bit Darwin x86 targets has
+	been changed to -fomit-frame-pointer.
+
+2010-08-15  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/darwin.h (REAL_LIBGCC_SPEC): Remove libgcc_s.10.5 stub for
+	Darwin10.  Do not link libgcc.a for Darwin >= 9.
+
+2010-08-15  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/invoke.texi (Warning Options): Fix terminology and markup
+	in the description of how unknown warning options are handled.
+
+2010-08-15  Ira Rosen  <irar@il.ibm.com>
+
+	* tree-vect-data-refs.c (vect_setup_realignment): Support realignment
+	in basic blocks.
+	(vect_supportable_dr_alignment): Check alignment for basic blocks.
+	* tree-vect-slp.c (vect_build_slp_tree): Allow different codes for
+	data references.
+	(vect_bb_vectorization_profitable_p): New function.
+	(vect_slp_analyze_bb): Call vect_bb_vectorization_profitable_p() to
+	check if it's worthwhile to vectorize the basic block.
+
+2010-08-14  Anatoly Sokolov  <aesok@post.ru>
+
+	* reload.h (register_move_cost, memory_move_secondary_cost,
+	secondary_reload_class): Adjust prototype.
+	* rtl.h (reg_class_subset_p): Adjust prototype.
+	* reload.c (secondary_reload_class): Change arguments type from
+	enum reg_class to reg_class_t. Change result type to reg_class_t.
+	* reginfo.c (register_move_cost, reg_class_subset_p): Change
+	arguments type from enum reg_class to reg_class_t.
+	(memory_move_secondary_cost): Change arguments type from
+	enum reg_class to reg_class_t. Change type of saved_flags to
+	reg_class_t.
+
+	* config/mips/mips.h (REGISTER_MOVE_COST, MEMORY_MOVE_COST):
+	Remove macros.
+	(mips_cost): Remove.
+	(struct mips_rtx_cost_data): Moved to mips.c.
+	* config/mips/mips-protos.h (mips_register_move_cost): Remove.
+	* config/mips/mips.c (struct mips_rtx_cost_data): Moved from mips.h.
+	(mips_cost): Make static.
+	(mips_canonicalize_move_class): Change argument type to reg_class_t.
+	Change result type to reg_class_t.
+	(mips_move_to_gpr_cost, mips_move_from_gpr_cost): Change arguments
+	type from enum reg_class to reg_class_t.
+	(mips_register_move_cost): Make static. Change arguments
+	type from enum reg_class to reg_class_t.
+	(mips_memory_move_cost): New function.
+	(TARGET_REGISTER_MOVE_COST, TARGET_MEMORY_MOVE_COST): Define.
+
+2010-08-14  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR rtl-optimization/43358
+	* ira-lives.c (process_single_reg_class_operands): Adjust the costs
+	of a single hard register, using simplify_subreg_regno to decide
+	what that register should be.
+
+2010-08-14  Mingjie Xing  <mingjie.xing@gmail.com>
+
+	* config/mips/mips.c (CODE_FOR_loongson_pmullh): Define.
+	* config/mips/loongson.md (UNSPEC_LOONGSON_PMULL): Delete.
+	(loongson_pmull<V_suffix>): Rename to...
+	(mul<mode>3): ...this and use MULT instead of an UNSPEC.
+
 2010-08-13  Jack Howarth <howarth@bromo.med.uc.edu>
 
 	* gcc/configure.ac: Enable -fomit-frame-pointer on darwin
@@ -6,8 +197,7 @@
 
 2010-08-13  Jie Zhang  <jie@codesourcery.com>
 
-	* config/arm/arm.md (cstoredf4): Only valid when
-	!TARGET_VFP_SINGLE.
+	* config/arm/arm.md (cstoredf4): Only valid when !TARGET_VFP_SINGLE.
 
 2010-08-12  Joseph Myers  <joseph@codesourcery.com>
 
@@ -35,8 +225,7 @@
 
 2010-08-12  Jakub Jelinek  <jakub@redhat.com>
 
-	* builtins.c (fold_builtin_memory_op): Avoid -Wsign-compare
-	warning.
+	* builtins.c (fold_builtin_memory_op): Avoid -Wsign-compare warning.
 
 	PR middle-end/45262
 	* fold-const.c (make_range) <case NEGATE_EXPR>: Punt if
@@ -839,9 +1028,9 @@
 	(walk_mems_1): Moved from alias.c.
 	(insns_may_alias_p): New function, originally insn_alias_sets_conflict_p
 	in alias.c.
-        (add_inter_loop_mem_dep): Use insns_may_alias_p now.
-        * cse.c (cse_insn): New argument in calling nonoverlapping_memrefs_p.
-        * alias.c (walk_mems_2): Moved to ddg.c.
+	(add_inter_loop_mem_dep): Use insns_may_alias_p now.
+	* cse.c (cse_insn): New argument in calling nonoverlapping_memrefs_p.
+	* alias.c (walk_mems_2): Moved to ddg.c.
 	(walk_mems_1): Ditto.
 	(insn_alias_sets_conflict_p): Renamed to insns_may_alias_p and moved
 	to ddg.c.

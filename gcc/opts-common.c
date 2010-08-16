@@ -128,8 +128,9 @@ integral_argument (const char *arg)
 }
 
 /* Decode the switch beginning at ARGV for the language indicated by
-   LANG_MASK, into the structure *DECODED.  Returns the number of
-   switches consumed.  */
+   LANG_MASK (including CL_COMMON and CL_TARGET if applicable), into
+   the structure *DECODED.  Returns the number of switches
+   consumed.  */
 
 static unsigned int
 decode_cmdline_option (const char **argv, unsigned int lang_mask,
@@ -144,10 +145,12 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
   char *p;
   const struct cl_option *option;
   int errors = 0;
+  bool separate_arg_flag;
+  bool joined_arg_flag;
 
   opt = argv[0];
 
-  opt_index = find_opt (opt + 1, lang_mask | CL_COMMON | CL_TARGET);
+  opt_index = find_opt (opt + 1, lang_mask);
   if (opt_index == OPT_SPECIAL_unknown
       && (opt[1] == 'W' || opt[1] == 'f' || opt[1] == 'm')
       && opt[2] == 'n' && opt[3] == 'o' && opt[4] == '-')
@@ -161,7 +164,7 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
       memcpy (dup + 2, opt + 5, len - 2 + 1);
       opt = dup;
       value = 0;
-      opt_index = find_opt (opt + 1, lang_mask | CL_COMMON | CL_TARGET);
+      opt_index = find_opt (opt + 1, lang_mask);
     }
 
   if (opt_index == OPT_SPECIAL_unknown)
@@ -185,8 +188,15 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
   if (option->flags & CL_DISABLED)
     errors |= CL_ERR_DISABLED;
 
+  /* Determine whether there may be a separate argument based on
+     whether this option is being processed for the driver.  */
+  separate_arg_flag = ((option->flags & CL_SEPARATE)
+		       && !((option->flags & CL_NO_DRIVER_ARG)
+			    && (lang_mask & CL_DRIVER)));
+  joined_arg_flag = (option->flags & CL_JOINED) != 0;
+
   /* Sort out any argument the switch takes.  */
-  if (option->flags & CL_JOINED)
+  if (joined_arg_flag)
     {
       /* Have arg point to the original switch.  This is because
 	 some code, such as disable_builtin_function, expects its
@@ -197,7 +207,7 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
 
       if (*arg == '\0' && !(option->flags & CL_MISSING_OK))
 	{
-	  if (option->flags & CL_SEPARATE)
+	  if (separate_arg_flag)
 	    {
 	      arg = argv[1];
 	      result = 2;
@@ -209,7 +219,7 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
 	    arg = NULL;
 	}
     }
-  else if (option->flags & CL_SEPARATE)
+  else if (separate_arg_flag)
     {
       arg = argv[1];
       result = 2;
@@ -218,16 +228,16 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
     }
 
   /* Check if this is a switch for a different front end.  */
-  if (!(option->flags & (lang_mask | CL_COMMON | CL_TARGET)))
+  if (!(option->flags & lang_mask))
     errors |= CL_ERR_WRONG_LANG;
   else if ((option->flags & CL_TARGET)
-	   && (option->flags & CL_LANG_ALL)
-	   && !(option->flags & lang_mask))
+	   && (option->flags & (CL_LANG_ALL | CL_DRIVER))
+	   && !(option->flags & (lang_mask & ~CL_COMMON & ~CL_TARGET)))
     /* Complain for target flag language mismatches if any languages
        are specified.  */
       errors |= CL_ERR_WRONG_LANG;
 
-  if (arg == NULL && (option->flags & (CL_JOINED | CL_SEPARATE)))
+  if (arg == NULL && (separate_arg_flag || joined_arg_flag))
     errors |= CL_ERR_MISSING_ARG;
 
   /* If the switch takes an integer, convert it.  */
@@ -301,8 +311,9 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
    array and *DECODED_OPTIONS_COUNT to the number of entries in the
    array.  The first entry in the array is always one for the program
    name (OPT_SPECIAL_program_name).  LANG_MASK indicates the language
-   applicable for decoding.  Do not produce any diagnostics or set
-   state outside of these variables.  */
+   flags applicable for decoding (including CL_COMMON and CL_TARGET if
+   those options should be considered applicable).  Do not produce any
+   diagnostics or set state outside of these variables.  */
 
 void
 decode_cmdline_options_to_array (unsigned int argc, const char **argv, 

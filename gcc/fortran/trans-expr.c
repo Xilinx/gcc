@@ -123,7 +123,7 @@ gfc_make_safe_expr (gfc_se * se)
 tree
 gfc_conv_expr_present (gfc_symbol * sym)
 {
-  tree decl;
+  tree decl, cond;
 
   gcc_assert (sym->attr.dummy);
 
@@ -136,8 +136,26 @@ gfc_conv_expr_present (gfc_symbol * sym)
              || GFC_ARRAY_TYPE_P (TREE_TYPE (decl)));
       decl = GFC_DECL_SAVED_DESCRIPTOR (decl);
     }
-  return fold_build2 (NE_EXPR, boolean_type_node, decl,
+
+  cond = fold_build2 (NE_EXPR, boolean_type_node, decl,
 		      fold_convert (TREE_TYPE (decl), null_pointer_node));
+
+  /* Fortran 2008 allows to pass null pointers and non-associated pointers
+     as actual argument to denote absent dummies. For array descriptors,
+     we thus also need to check the array descriptor.  */
+  if (!sym->attr.pointer && !sym->attr.allocatable
+      && sym->as && sym->as->type == AS_ASSUMED_SHAPE
+      && (gfc_option.allow_std & GFC_STD_F2008) != 0)
+    {
+      tree tmp;
+      tmp = build_fold_indirect_ref_loc (input_location, decl);
+      tmp = gfc_conv_array_data (tmp);
+      tmp = fold_build2 (NE_EXPR, boolean_type_node, tmp,
+			 fold_convert (TREE_TYPE (tmp), null_pointer_node));
+      cond = fold_build2 (TRUTH_ANDIF_EXPR, boolean_type_node, cond, tmp);
+    }
+
+  return cond;
 }
 
 
@@ -2849,6 +2867,15 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	      if (arg->missing_arg_type == BT_CHARACTER)
 		parmse.string_length = build_int_cst (gfc_charlen_type_node, 0);
 	    }
+	}
+      else if (arg->expr->expr_type == EXPR_NULL && fsym && !fsym->attr.pointer)
+	{
+	  /* Pass a NULL pointer to denote an absent arg.  */
+	  gcc_assert (fsym->attr.optional && !fsym->attr.allocatable);
+	  gfc_init_se (&parmse, NULL);
+	  parmse.expr = null_pointer_node;
+	  if (arg->missing_arg_type == BT_CHARACTER)
+	    parmse.string_length = build_int_cst (gfc_charlen_type_node, 0);
 	}
       else if (fsym && fsym->ts.type == BT_CLASS
 		 && e->ts.type == BT_DERIVED)
@@ -5579,65 +5606,26 @@ void gfc_trans_assign_vtab_procs (stmtblock_t *block, gfc_symbol *dt,
 				  gfc_symbol *vtab)
 {
   gfc_component *cmp;
-  tree vtb;
-  tree ctree;
-  tree proc;
-  tree cond = NULL_TREE;
+  tree vtb, ctree, proc, cond = NULL_TREE;
   stmtblock_t body;
-  bool seen_extends;
 
   /* Point to the first procedure pointer.  */
   cmp = gfc_find_component (vtab->ts.u.derived, "$extends", true, true);
-
-  seen_extends = (cmp != NULL);
-
+  cmp = cmp->next;
+  if (!cmp)
+    return;
+  
   vtb = gfc_get_symbol_decl (vtab);
 
-  if (seen_extends)
-    {
-      cmp = cmp->next;
-      if (!cmp)
-	return;
-      ctree = fold_build3 (COMPONENT_REF, TREE_TYPE (cmp->backend_decl),
-		           vtb, cmp->backend_decl, NULL_TREE);
-      cond = fold_build2 (EQ_EXPR, boolean_type_node, ctree,
-			   build_int_cst (TREE_TYPE (ctree), 0));
-    }
-  else
-    {
-      cmp = vtab->ts.u.derived->components; 
-    }
+  ctree = fold_build3 (COMPONENT_REF, TREE_TYPE (cmp->backend_decl), vtb,
+		       cmp->backend_decl, NULL_TREE);
+  cond = fold_build2 (EQ_EXPR, boolean_type_node, ctree,
+		      build_int_cst (TREE_TYPE (ctree), 0));
 
   gfc_init_block (&body);
   for (; cmp; cmp = cmp->next)
     {
       gfc_symbol *target = NULL;
-      
-      /* Generic procedure - build its vtab.  */
-      if (cmp->ts.type == BT_DERIVED && !cmp->tb)
-	{
-	  gfc_symbol *vt = cmp->ts.interface;
-
-	  if (vt == NULL)
-	    {
-	      /* Use association loses the interface.  Obtain the vtab
-		 by name instead.  */
-	      char name[2 * GFC_MAX_SYMBOL_LEN + 8];
-	      sprintf (name, "vtab$%s$%s", vtab->ts.u.derived->name,
-		       cmp->name);
-	      gfc_find_symbol (name, vtab->ns, 0, &vt);
-	      if (vt == NULL)
-		continue;
-	    }
-
-	  gfc_trans_assign_vtab_procs (&body, dt, vt);
-	  ctree = fold_build3 (COMPONENT_REF, TREE_TYPE (cmp->backend_decl),
-			       vtb, cmp->backend_decl, NULL_TREE);
-	  proc = gfc_get_symbol_decl (vt);
-	  proc = gfc_build_addr_expr (TREE_TYPE (ctree), proc);
-	  gfc_add_modify (&body, ctree, proc);
-	  continue;
-	}
 
       /* This is required when typebound generic procedures are called
 	 with derived type targets.  The specific procedures do not get
@@ -5664,8 +5652,7 @@ void gfc_trans_assign_vtab_procs (stmtblock_t *block, gfc_symbol *dt,
 
   proc = gfc_finish_block (&body);
 
-  if (seen_extends)
-    proc = build3_v (COND_EXPR, cond, proc, build_empty_stmt (input_location));
+  proc = build3_v (COND_EXPR, cond, proc, build_empty_stmt (input_location));
 
   gfc_add_expr_to_block (block, proc);
 }

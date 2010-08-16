@@ -1368,6 +1368,11 @@ compare_pointer (gfc_symbol *formal, gfc_expr *actual)
   if (formal->attr.pointer)
     {
       attr = gfc_expr_attr (actual);
+
+      /* Fortran 2008 allows non-pointer actual arguments.  */
+      if (!attr.pointer && attr.target && formal->attr.intent == INTENT_IN)
+	return 2;
+
       if (!attr.pointer)
 	return 0;
     }
@@ -1584,7 +1589,8 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
   if (rank_check || ranks_must_agree
       || (formal->attr.pointer && actual->expr_type != EXPR_NULL)
       || (actual->rank != 0 && !(is_elemental || formal->attr.dimension))
-      || (actual->rank == 0 && formal->as->type == AS_ASSUMED_SHAPE)
+      || (actual->rank == 0 && formal->as->type == AS_ASSUMED_SHAPE
+	  && actual->expr_type != EXPR_NULL)
       || (actual->rank == 0 && formal->attr.dimension
 	  && gfc_is_coindexed (actual)))
     {
@@ -1999,6 +2005,20 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 		       "call at %L", where);
 	  return 0;
 	}
+
+      if (a->expr->expr_type == EXPR_NULL && !f->sym->attr.pointer
+	  && (f->sym->attr.allocatable || !f->sym->attr.optional
+	      || (gfc_option.allow_std & GFC_STD_F2008) == 0))
+	{
+	  if (where && (f->sym->attr.allocatable || !f->sym->attr.optional))
+	    gfc_error ("Unexpected NULL() intrinsic at %L to dummy '%s'",
+		       where, f->sym->name);
+	  else if (where)
+	    gfc_error ("Fortran 2008: Null pointer at %L to non-pointer "
+		       "dummy '%s'", where, f->sym->name);
+
+	  return 0;
+	}
       
       if (!compare_parameter (f->sym, a->expr, ranks_must_agree,
 			      is_elemental, where))
@@ -2112,6 +2132,17 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 		       f->sym->name, &a->expr->where);
 	  return 0;
 	}
+
+      if (a->expr->expr_type != EXPR_NULL
+	  && (gfc_option.allow_std & GFC_STD_F2008) == 0
+	  && compare_pointer (f->sym, a->expr) == 2)
+	{
+	  if (where)
+	    gfc_error ("Fortran 2008: Non-pointer actual argument at %L to "
+		       "pointer dummy '%s'", &a->expr->where,f->sym->name);
+	  return 0;
+	}
+	
 
       /* Fortran 2008, C1242.  */
       if (f->sym->attr.pointer && gfc_is_coindexed (a->expr))

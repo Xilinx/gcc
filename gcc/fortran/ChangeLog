@@ -1,3 +1,73 @@
+2010-08-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (MDX): Change back to MD.  Mark NoDriverArg instead of
+	RejectDriver.
+	(MMDX): Change back to MMD.  Mark NoDriverArg instead of
+	RejectDriver.
+	* cpp.c (gfc_cpp_handle_option): Use OPT_MD and OPT_MMD instead of
+	OPT_MDX and OPT_MMDX.
+
+2010-08-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (MDX, MMDX): Mark RejectDriver.
+
+2010-08-15  Janus Weil  <janus@gcc.gnu.org>
+
+	* trans-expr.c (gfc_trans_assign_vtab_procs): Clean up (we don't have
+	vtabs for generics any more).
+
+2010-08-15  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38936
+	* gfortran.h (gfc_find_proc_namespace): New method.
+	* expr.c (gfc_build_intrinsic_call): No need to build symtree messing
+	around with namespace.
+	* symbol.c (gfc_find_proc_namespace): New method.
+	* trans-decl.c (gfc_build_qualified_array): Use it for correct
+	value of nest.
+	* primary.c (gfc_match_varspec): Handle associate-names as arrays.
+	* parse.c (parse_associate): Removed assignment-generation here...
+	* resolve.c (resolve_block_construct): ...and added it here.
+	(resolve_variable): Handle names that are arrays but were not parsed
+	as such because of association.
+	(resolve_code): Fix BLOCK resolution.
+	(resolve_symbol): Generate array-spec for associate-names.
+
+2010-08-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45211
+	* decl.c (verify_c_interop_param): Remove superfluous space (" ").
+	(verify_c_interop): Handle unresolved DT with bind(C).
+
+2010-08-15  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-expr.c (gfc_conv_expr_present): Regard nullified
+	pointer arrays as absent.
+	(gfc_conv_procedure_call): Handle EXPR_NULL for non-pointer
+	dummys as absent argument.
+	* interface.c (compare_actual_formal,compare_parameter):
+	Ditto.
+
+2010-08-15  Tobias Burnus  <burnus@net-b.de>
+
+	* interface.c (compare_pointer, ): Allow passing TARGETs to pointers
+	dummies with intent(in).
+
+2010-08-15  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/45197
+	* decl.c (gfc_match_prefix): Match IMPURE prefix and mark ELEMENTAL
+	routines not IMPURE also as PURE.
+	* intrinsic.c (enum klass): New class `CLASS_PURE' and renamed
+	`NO_CLASS' in `CLASS_IMPURE'.
+	(add_sym): Set symbol-attributes `pure' and `elemental' correctly.
+	(add_sym_0s): Renamed `NO_CLASS' in `CLASS_IMPURE'.
+	(add_functions): Ditto.
+	(add_subroutines): Ditto and mark `MOVE_ALLOC' as CLASS_PURE.
+	* resolve.c (gfc_pure): Do not treat ELEMENTAL as automatically PURE.
+	(resolve_formal_arglist): Check that arguments to ELEMENTAL procedures
+	are not ALLOCATABLE and have their INTENT specified.
+
 2010-08-13  Daniel Kraft  <d@domob.eu>
 
 	* gfortran.h (array_type): New type `AS_IMPLIED_SHAPE'.
