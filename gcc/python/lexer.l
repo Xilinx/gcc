@@ -61,8 +61,9 @@ static VEC(gpy_int,gc) * gpy_indent_stack;
 extern int yyparse( void );
 
 static bool dedent = false;
+static bool eof = false;
  
-#define YY_USER_ACTION				\
+#define YY_USER_ACTION						\
   printf("dedent = <%i>!\n", dedent);				\
   if( dedent )							\
     {								\
@@ -171,7 +172,7 @@ else                    {  return ELSE; }
                           printf("newline rule!\n");
                           int chk = yylex( );
 			  printf("chk = <%i>!\n", chk );
-			  if( chk != INDENT )
+			  if( (chk != INDENT) && (eof == false ) )
 			    {
 			      int top_len = VEC_index( gpy_int, gpy_indent_stack,
 						       VEC_length( gpy_int, gpy_indent_stack )-1 );
@@ -183,7 +184,7 @@ else                    {  return ELSE; }
 				  dedent = true;
 				}
 			    }
-			  else
+			  else if( chk == INDENT )
 			    {
 			      int top_len = VEC_index( gpy_int, gpy_indent_stack,
 						       VEC_length( gpy_int, gpy_indent_stack )-1 );
@@ -197,6 +198,13 @@ else                    {  return ELSE; }
 				    }
 				}
 			    }
+			  else if( eof == true )
+			    {
+			      eof = false;
+			      if( chk == DEDENT )
+				dedent = true;
+			    }
+
 			  printf("yytext = <%s>!\n", yytext );
 
 			  int i;
@@ -234,6 +242,7 @@ else                    {  return ELSE; }
                          }
 
 <<EOF>>                {
+                         printf("EOF rule!\n"); eof = true;
                          int top_len = VEC_index( gpy_int, gpy_indent_stack,
 						  VEC_length( gpy_int, gpy_indent_stack )-1 );
 			 if( top_len != 0 )
