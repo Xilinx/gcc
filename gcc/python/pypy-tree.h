@@ -41,29 +41,30 @@ extern void gpy_gg_invoke_garbage( void );
 extern void gpy_garbage_free_obj( gpy_symbol_obj ** );
 
 /* expression.c */
-extern VEC(tree,gc) * gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj ** );
+extern VEC(tree,gc) * gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj **, VEC(gpy_ctx_t,gc) * );
 
 extern VEC(tree,gc) * gpy_process_bin_expression( gpy_symbol_obj ** , gpy_symbol_obj **,
-						  gpy_opcode_t );
+						  gpy_opcode_t, VEC(gpy_ctx_t,gc) * );
 
 extern VEC(tree,gc) * gpy_fold_primitive( const gpy_symbol_obj * const );
 
 /* ------- */
 
-extern VEC(tree,gc) * gpy_process_expression( const gpy_symbol_obj * const );
+extern VEC(tree,gc) * gpy_process_expression( const gpy_symbol_obj * const, VEC(gpy_ctx_t,gc) * );
 
-extern VEC(tree,gc) * gpy_process_class( gpy_symbol_obj * const );
+extern VEC(tree,gc) * gpy_process_class( gpy_symbol_obj * const, VEC(gpy_ctx_t,gc) * );
 
-extern VEC(tree,gc) * gpy_process_functor( const gpy_symbol_obj * const, const char * );
+extern VEC(tree,gc) * gpy_process_functor( const gpy_symbol_obj * const, const char *,
+					   VEC(gpy_ctx_t,gc) * );
 
-extern VEC(tree,gc) * gpy_get_tree( gpy_symbol_obj * );
+extern VEC(tree,gc) * gpy_get_tree( gpy_symbol_obj *, VEC(gpy_ctx_t,gc) * );
 
-extern VEC(tree,gc) * gpy_process_print( gpy_symbol_obj * );
+extern VEC(tree,gc) * gpy_process_print( gpy_symbol_obj *, VEC(gpy_ctx_t,gc) * );
 /* ------- */
 
 extern tree gpy_main_method_decl( VEC(tree,gc) * , gpy_context_branch * );
 
-extern tree gpy_ctx_lookup_decl( const char *, enum DECL_T );
+extern tree gpy_ctx_lookup_decl( VEC(gpy_ctx_t,gc) *, const char *, enum DECL_T );
 
 extern void gpy_process_decl( gpy_symbol_obj * );
 

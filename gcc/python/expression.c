@@ -63,7 +63,8 @@ VEC(tree,gc) * gpy_fold_primitive( const gpy_symbol_obj * const sym )
   return retval;
 }
 
-VEC(tree,gc) * gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b )
+VEC(tree,gc) * gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
+				   VEC(gpy_ctx_t,gc) * context )
 {
   VEC(tree,gc) * retval = NULL; 
   gpy_symbol_obj *opa, *opb;
@@ -76,14 +77,14 @@ VEC(tree,gc) * gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_
 
   if( opa->type == SYMBOL_REFERENCE )
     {
-      int l = (VEC_length( gpy_ctx_t, gpy_ctx_table));
+      int l = (VEC_length( gpy_ctx_t, context));
       VEC(tree,gc) * rhs_tree_vec = NULL; tree rhs_tree = NULL_TREE;
 
-      tree decl = gpy_ctx_lookup_decl( opa->op_a.string, VAR );
+      tree decl = gpy_ctx_lookup_decl( context, opa->op_a.string, VAR );
 
       if( !decl )
 	{
-	  gpy_ctx_t x = VEC_index( gpy_ctx_t, gpy_ctx_table, (l-1) );
+	  gpy_ctx_t x = VEC_index( gpy_ctx_t, context, (l-1) );
 	  
 	  decl = build_decl( opa->loc, VAR_DECL,
 			     get_identifier( opa->op_a.string ),
@@ -93,7 +94,7 @@ VEC(tree,gc) * gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_
 	    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );
 	}
 
-      rhs_tree_vec = gpy_process_expression( opb );
+      rhs_tree_vec = gpy_process_expression( opb, context );
       gcc_assert( VEC_length(tree,rhs_tree_vec) == 1 );
       rhs_tree = VEC_index(tree,rhs_tree_vec,0);
 
@@ -113,9 +114,8 @@ VEC(tree,gc) * gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_
   return retval;
 }
 
-VEC(tree,gc) * gpy_process_bin_expression( gpy_symbol_obj ** op_a,
-					   gpy_symbol_obj ** op_b,
-					   gpy_opcode_t operation )
+VEC(tree,gc) * gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
+					   gpy_opcode_t operation, VEC(gpy_ctx_t,gc) * context )
 {
   VEC(tree,gc) * retval = NULL;
   VEC(tree,gc) * t1 = NULL, * t2 = NULL;
@@ -128,8 +128,8 @@ VEC(tree,gc) * gpy_process_bin_expression( gpy_symbol_obj ** op_a,
     return NULL;
   }
 
-  t1 = gpy_process_expression( opa );
-  t2 = gpy_process_expression( opb );
+  t1 = gpy_process_expression( opa, context );
+  t2 = gpy_process_expression( opb, context );
   
   gcc_assert( (VEC_length(tree,t1) == 1) &&
 	      (VEC_length(tree,t2) == 1) );

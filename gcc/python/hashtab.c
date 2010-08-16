@@ -332,10 +332,10 @@ bool gpy_ctx_push_decl( tree decl, const char * s,
   return retval;
 }
 
-tree gpy_ctx_lookup_decl( const char * s, enum DECL_T T )
+tree gpy_ctx_lookup_decl( VEC(gpy_ctx_t,gc) * context, const char * s, enum DECL_T T )
 {
   tree retval = NULL;
-  unsigned int n_ctx = VEC_length( gpy_ctx_t,gpy_ctx_table );
+  unsigned int n_ctx = VEC_length( gpy_ctx_t,context );
   int idx = 0; gpy_context_branch * it = NULL;
 
   gpy_hashval_t h = gpy_dd_hash_string( s );
@@ -344,7 +344,7 @@ tree gpy_ctx_lookup_decl( const char * s, enum DECL_T T )
 
   for( idx=(n_ctx-1); idx>=0; --idx )
     {
-      it = VEC_index( gpy_ctx_t, gpy_ctx_table, idx );
+      it = VEC_index( gpy_ctx_t, context, idx );
 
       gpy_hash_entry_t * o = NULL;
       gpy_hash_tab_t * decl_table = NULL;
