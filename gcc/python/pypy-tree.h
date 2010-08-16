@@ -47,6 +47,7 @@ extern VEC(tree,gc) * gpy_process_bin_expression( gpy_symbol_obj ** , gpy_symbol
 						  gpy_opcode_t );
 
 extern VEC(tree,gc) * gpy_fold_primitive( const gpy_symbol_obj * const );
+
 /* ------- */
 
 extern VEC(tree,gc) * gpy_process_expression( const gpy_symbol_obj * const );
@@ -58,7 +59,6 @@ extern VEC(tree,gc) * gpy_process_functor( const gpy_symbol_obj * const, const c
 extern VEC(tree,gc) * gpy_get_tree( gpy_symbol_obj * );
 
 extern VEC(tree,gc) * gpy_process_print( gpy_symbol_obj * );
-
 /* ------- */
 
 extern tree gpy_main_method_decl( VEC(tree,gc) * , gpy_context_branch * );

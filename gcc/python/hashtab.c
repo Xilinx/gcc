@@ -39,11 +39,16 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 
 #include "gpy.h"
-#include "symbols.h"
 #include "opcodes.def"
+#include "symbols.h"
+#include "pypy-tree.h"
+#include "runtime.h"
 
+/*
+  This is just a basic garbage collection to free all IR symbols
+  created from the parser...
+ */
 VEC( gpy_sym,gc ) * gpy_garbage_decls;
-
 #define threshold_alloc(x) (((x)+16)*3/2)
 
 void gpy_gg_invoke_garbage( void )
@@ -122,7 +127,6 @@ void gpy_garbage_free_obj( gpy_symbol_obj ** sym )
  *  Eventualy look at using a sha1 may work better but may be too big
  *  a Digest.., but should avoid conflicts better
  **/
-inline
 gpy_hashval_t gpy_dd_hash_string( const char * s )
 {
   gpy_hashval_t hash =  0x811C9DC5;
