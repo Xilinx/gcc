@@ -1,11 +1,19 @@
-2010-07-20  jeremie Salvucci  <jeremie.salvucci@free.fr>
+2010-08-16  Jeremie salvucci  <jeremie.salvucci@free.fr>
+	* xtramelt-ana-base.melt (tree_void_type) : Pattern added for void type.
+	(tree_indirect_reference) : Pattern added for indirect reference.
+	(tree_address_expression) : Pattern added for address expression.
+	(tree_component_ref) : Pattern added for structure.
+	(tree_record_type) : Pattern added for structure fields.
+	(tree_field_declaration) : Pattern added for an access to a field declaration.
+
+2010-07-20  Jeremie Salvucci  <jeremie.salvucci@free.fr>
 	* xtramelt-ana-base.melt (tree_string_cst) : Added.
 	  (tree_real_cst) : Exported.
 
-2010-07-15  jeremie Salvucci  <jeremie.salvucci@free.fr>
+2010-07-15  Jeremie Salvucci  <jeremie.salvucci@free.fr>
 	* xtramelt-ana-base.melt (gimple_nb_succ) : Exported.
 
-2010-07-14  jeremie Salvucci  <jeremie.salvucci@free.fr>
+2010-07-14  Jeremie Salvucci  <jeremie.salvucci@free.fr>
 	* xtramelt-ana-base.melt (gimple_assign_unary_minus) : Added unary
 	minus matcher.
 	(gimple_cond_equal) : Added matcher on logical operator greater or

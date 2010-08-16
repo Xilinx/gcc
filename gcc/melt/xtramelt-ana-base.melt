@@ -1574,6 +1574,20 @@
    }# )
 
 
+;; pattern tree_void_type
+(defcmatcher tree_void_type
+  (:tree tr)
+  (:tree type)
+  treevt
+
+  #{
+       (($tr) && TREE_CODE ($tr) == VOID_TYPE)
+  }#
+
+  #{
+       $type = TYPE_NAME ($tr);
+  }#)
+
 ;;;;;;;;;;;;;;;;
 ;;; pattern tree_integer_type
 (defcmatcher tree_integer_type 
@@ -1694,6 +1708,80 @@
 ;  :doc #{The $TREE_POINTER_TYPE_P cmatchers matches pointer &
 ;  reference type trees.}#
 )
+
+;;; pattern for indirect references
+(defcmatcher tree_indirect_reference
+  (:tree tr)
+  (:tree type
+   :tree reference)
+  treeir
+
+  #{
+       (($tr) && INDIRECT_REF_P ($tr))
+  }#
+
+  #{
+       $type = TREE_TYPE ($tr);
+       $reference = TREE_OPERAND ($tr, 0);
+  }#)
+
+(defcmatcher tree_address_expression
+  (:tree tr)
+  (:tree type
+   :tree expression)
+  treeae
+
+  #{
+       (($tr) && TREE_CODE ($tr) == ADDR_EXPR)
+  }#
+
+  #{
+       $type = TREE_TYPE ($tr);
+       $expression = TREE_OPERAND ($tr, 0);
+  }#)
+
+(defcmatcher tree_component_ref
+  (:tree tr)
+  (:tree type
+   :tree arg0
+   :tree arg1)
+  treecr
+
+  #{
+       (($tr) && TREE_CODE ($tr) == COMPONENT_REF)
+  }#
+
+  #{
+       $type = TREE_TYPE ($tr);
+       $arg0 = TREE_OPERAND ($tr, 0);
+       $arg1 = TREE_OPERAND ($tr, 1);
+  }#)
+
+(defcmatcher tree_record_type
+  (:tree tr)
+  (:tree type)
+  treert
+
+  #{
+       (($tr) && TREE_CODE ($tr) == RECORD_TYPE)
+  }#
+
+  #{
+       $type = TYPE_NAME ($tr);
+  }#)
+
+(defcmatcher tree_field_declaration
+  (:tree tr)
+  (:tree name)
+  treefd
+
+  #{
+       (($tr) && TREE_CODE ($tr) == FIELD_DECL)
+  }#
+
+  #{
+       $name = DECL_NAME ($tr);
+  }#)
 
 ;;;; matcher for patter ssa_name
 (defcmatcher tree_ssa_name 
@@ -2714,13 +2802,16 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  raw_new_ppl_empty_constraint_system
  raw_new_ppl_unsatisfiable_constraint_system
  reveach_in_gimpleseq
- tree_real_type
+ tree_address_expression
  tree_block
+ tree_component_ref
  tree_content 
  tree_decl
+ tree_field_declaration
  tree_function_decl 
  tree_function_type
  tree_identifier
+ tree_indirect_reference
  tree_integer_cst
  tree_integer_type
  tree_list
@@ -2728,6 +2819,8 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_pointer_type_p
  tree_parm_decl
  tree_real_cst
+ tree_real_type
+ tree_record_type
  tree_ssa_name 
  tree_string_cst
  tree_type
@@ -2736,6 +2829,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_var_decl
  tree_var_decl_named
  tree_vec
+ tree_void_type
  warning_at_gimple
  warning_at_tree
 )
