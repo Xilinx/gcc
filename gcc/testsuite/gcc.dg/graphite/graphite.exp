@@ -44,6 +44,7 @@ set run_id_files      [lsort [glob -nocomplain $srcdir/$subdir/run-id-*.c ] ]
 set interchange_files [lsort [glob -nocomplain $srcdir/$subdir/interchange-*.c ] ]
 set block_files       [lsort [glob -nocomplain $srcdir/$subdir/block-*.c ] ]
 set vect_files        [lsort [glob -nocomplain $srcdir/$subdir/vect-*.c ] ]
+set openscop_id_files [lsort [glob -nocomplain $srcdir/$subdir/run-id-?.c ] ]
 
 # Tests to be compiled.
 set dg-do-what-default compile
@@ -56,6 +57,11 @@ set dg-do-what-default run
 dg-runtest $run_id_files      "" "-O2 -fgraphite-identity"
 dg-runtest $interchange_files "" "-O2 -floop-interchange -fno-loop-block -fno-loop-strip-mine -ffast-math -fdump-tree-graphite-all"
 dg-runtest $block_files       "" "-O2 -floop-block -fno-loop-strip-mine -fno-loop-interchange -ffast-math -fdump-tree-graphite-all"
+dg-runtest $openscop_id_files "" "-O2 -fgraphite -floop-block -fgraphite-write"
+dg-runtest $openscop_id_files "" "-O2 -fgraphite -fgraphite-read"
+
+# Clean up.
+remove-build-file "*.graphite"
 
 # The default action for the rest of the files is 'compile'.
 set dg-do-what-default compile
