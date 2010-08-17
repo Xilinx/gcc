@@ -4295,8 +4295,7 @@ extern tree build_variant_type_copy (tree);
 /* Finish up a builtin RECORD_TYPE. Give it a name and provide its
    fields. Optionally specify an alignment, and then lay it out.  */
 
-extern void finish_builtin_struct (tree, const char *,
-							 tree, tree);
+extern void finish_builtin_struct (tree, const char *, tree, tree);
 
 /* Given a ..._TYPE node, calculate the TYPE_SIZE, TYPE_SIZE_UNIT,
    TYPE_ALIGN and TYPE_MODE fields.  If called more than once on one

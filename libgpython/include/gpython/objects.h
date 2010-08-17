@@ -95,6 +95,12 @@ typedef struct gpy_type_obj_def_t {
   struct gpy_builtin_method_def_t * methods;
 } gpy_type_obj_def_t ;
 
+typedef gpy_object_state_t * (*__callable)( void );
+
+typedef struct gpy_callable_def_t {
+  char * ident; int n_args;
+  bool class; __callable call;
+} gpy_callable_def_t;
 
 #define Gpy_Object_State_Init( x )				\
   x = gpy_malloc( sizeof(struct gpy_rr_object_state_t) );	\
@@ -106,7 +112,7 @@ typedef struct gpy_type_obj_def_t {
   Gpy_Object_State_Init( x );					\
   gpy_vec_push( ((gpy_context_t*)(y->vector[y->length-1]))->symbols, x );
 
-#define NULL_OBJ_STATE  NULL
+#define NULL_OBJ_STATE (gpy_object_state_t*) NULL
 
 extern void gpy_rr_init_runtime( void );
 extern gpy_object_state_t * gpy_rr_fold_integer( int );

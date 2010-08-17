@@ -416,11 +416,17 @@ VEC(tree,gc) * gpy_get_tree( gpy_symbol_obj * sym, VEC(gpy_ctx_t,gc) * context )
       switch( sym->type )
 	{
 	case STRUCTURE_OBJECT_DEF:
-	  retval = gpy_process_class( sym, context );
+	  {
+	    VEC(gpy_ctx_t,gc) * class_ctx = VEC_alloc(gpy_ctx_t,gc,0);
+	    retval = gpy_process_class( sym, class_ctx );
+	  }
 	  break;
 	  
 	case STRUCTURE_FUNCTION_DEF:
-	  retval = gpy_process_functor( sym, NULL, context );
+	  {
+	    VEC(gpy_ctx_t,gc) * func_ctx = VEC_alloc(gpy_ctx_t,gc,0);
+	    retval = gpy_process_functor( sym, NULL, func_ctx );
+	  }
 	  break;
 
 	case KEY_PRINT:
@@ -556,7 +562,7 @@ void gpy_write_globals( void )
   for( idx= 0; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )
     {
       VEC(tree,gc) * x = gpy_get_tree( it, gpy_ctx_table );
-      int itx = 0; tree xt;
+      gcc_assert( x ); int itx = 0; tree xt;
       for( ; VEC_iterate(tree,x,itx,xt); ++itx )
 	{
 	  if( TREE_CODE(xt) == FUNCTION_DECL )

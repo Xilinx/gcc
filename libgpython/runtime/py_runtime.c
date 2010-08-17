@@ -204,6 +204,43 @@ void gpy_rr_finalize_block_decls( int n, ... )
   va_end(vl);
 }
 
+gpy_object_state_t * gpy_rr_fold_call( struct gpy_callable_def_t * callables, 
+				       const char * ident, int n_args, ... )
+{
+  gpy_object_state_t * retval = NULL_OBJ_STATE;
+  unsigned int idx = 0;
+  gpy_callable_def_t c = { NULL, 0, false, 0 };
+
+  debug("looking up callable <%s>!\n", ident );
+
+  while( callables[idx].ident != NULL )
+    {
+      debug("checking <%s>:<%s>!\n", ident, callables[idx].ident );
+      if( strcmp( ident,callables[idx].ident ) == 0 )
+	{
+	  if( n_args == c.n_args )
+	    {
+	      c = callables[idx];
+	      break;
+	    }
+	  else
+	    error("invalid number of arguments: <%i> were required <%i> were passed!\n",
+		  c.n_args, n_args );
+	}
+      idx++;
+    }
+
+  if( c.ident != NULL )
+    {
+      __callable o = c.call;
+      retval = o( );
+    }
+  else
+    fatal("undefined callable object <%s>!\n", ident);
+
+  return retval;
+}
+
 gpy_object_state_t *
 gpy_rr_eval_dot_operator( gpy_object_state_t * x, gpy_object_state_t * y )
 {
