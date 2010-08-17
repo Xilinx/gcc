@@ -385,8 +385,6 @@ static const param_info lang_independent_params[] = {
    and debugging dumps.  */
 
 FILE *asm_out_file;
-FILE *graphite_out_file;
-FILE *graphite_in_file;
 FILE *aux_info_file;
 FILE *dump_file = NULL;
 const char *dump_file_name;
@@ -1454,37 +1452,8 @@ init_asm_output (const char *name)
 	fatal_error ("can%'t open %s for writing: %m", asm_file_name);
     }
 
-  if (flag_graphite_read)
-    {
-      int len = strlen (dump_base_name);
-      char *dumpname = XNEWVEC (char, len + 10);
-
-      gcc_assert (!flag_graphite_write);
-
-      memcpy (dumpname, dump_base_name, len + 1);
-      strip_off_ending (dumpname, len);
-      strcat (dumpname, ".graphite");
-      graphite_in_file = fopen (dumpname, "r+b");
-      if (graphite_in_file == 0)
-	fatal_error ("can%'t open %s for writing: %m", dumpname);
-      free (dumpname);
-    }
-
-  if (flag_graphite_write)
-    {
-      int len = strlen (dump_base_name);
-      char *dumpname = XNEWVEC (char, len + 10);
-
-      gcc_assert (!flag_graphite_read);
-
-      memcpy (dumpname, dump_base_name, len + 1);
-      strip_off_ending (dumpname, len);
-      strcat (dumpname, ".graphite");
-      graphite_out_file = fopen (dumpname, "w+b");
-      if (graphite_out_file == 0)
-	fatal_error ("can%'t open %s for writing: %m", dumpname);
-      free (dumpname);
-    }
+  if (flag_graphite_read && flag_graphite_write)
+    fatal_error ("cannot read and write the Graphite representation at the same time");
 
   if (!flag_syntax_only)
     {
