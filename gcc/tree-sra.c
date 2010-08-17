@@ -90,6 +90,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "dbgcnt.h"
 #include "tree-inline.h"
+#include "gimple-pretty-print.h"
 
 /* Enumeration of all aggregate reductions we can do.  */
 enum sra_mode { SRA_MODE_EARLY_IPA,   /* early call regularization */
@@ -810,7 +811,7 @@ create_access (tree expr, gimple stmt, bool write)
 /* Return true iff TYPE is a RECORD_TYPE with fields that are either of gimple
    register types or (recursively) records with only these two kinds of fields.
    It also returns false if any of these records has a zero-size field as its
-   last field.  */
+   last field or has a bit-field.  */
 
 static bool
 type_consists_of_records_p (tree type)
@@ -825,6 +826,9 @@ type_consists_of_records_p (tree type)
     if (TREE_CODE (fld) == FIELD_DECL)
       {
 	tree ft = TREE_TYPE (fld);
+
+	if (DECL_BIT_FIELD (fld))
+	  return false;
 
 	if (!is_gimple_reg_type (ft)
 	    && !type_consists_of_records_p (ft))
@@ -842,10 +846,12 @@ type_consists_of_records_p (tree type)
 /* Create total_scalarization accesses for all scalar type fields in DECL that
    must be of a RECORD_TYPE conforming to type_consists_of_records_p.  BASE
    must be the top-most VAR_DECL representing the variable, OFFSET must be the
-   offset of DECL within BASE.  */
+   offset of DECL within BASE.  REF must be the memory reference expression for
+   the given decl.  */
 
 static void
-completely_scalarize_record (tree base, tree decl, HOST_WIDE_INT offset)
+completely_scalarize_record (tree base, tree decl, HOST_WIDE_INT offset,
+			     tree ref)
 {
   tree fld, decl_type = TREE_TYPE (decl);
 
@@ -854,28 +860,23 @@ completely_scalarize_record (tree base, tree decl, HOST_WIDE_INT offset)
       {
 	HOST_WIDE_INT pos = offset + int_bit_position (fld);
 	tree ft = TREE_TYPE (fld);
+	tree nref = build3 (COMPONENT_REF, TREE_TYPE (fld), ref, fld,
+			    NULL_TREE);
 
 	if (is_gimple_reg_type (ft))
 	  {
 	    struct access *access;
 	    HOST_WIDE_INT size;
-	    tree expr;
-	    bool ok;
 
 	    size = tree_low_cst (DECL_SIZE (fld), 1);
-	    expr = base;
-	    ok = build_ref_for_offset (&expr, TREE_TYPE (base), pos,
-				       ft, false);
-	    gcc_assert (ok);
-
 	    access = create_access_1 (base, pos, size);
-	    access->expr = expr;
+	    access->expr = nref;
 	    access->type = ft;
 	    access->total_scalarization = 1;
 	    /* Accesses for intraprocedural SRA can have their stmt NULL.  */
 	  }
 	else
-	  completely_scalarize_record (base, fld, pos);
+	  completely_scalarize_record (base, fld, pos, nref);
       }
 }
 
@@ -2066,7 +2067,7 @@ analyze_all_variable_accesses (void)
 		<= max_total_scalarization_size)
 	    && type_consists_of_records_p (TREE_TYPE (var)))
 	  {
-	    completely_scalarize_record (var, var, 0);
+	    completely_scalarize_record (var, var, 0, var);
 	    if (dump_file && (dump_flags & TDF_DETAILS))
 	      {
 		fprintf (dump_file, "Will attempt to totally scalarize ");
@@ -2416,9 +2417,11 @@ handle_unscalarized_data_in_subtree (struct access *top_racc, tree lhs,
    (sub)tree.  If that is not possible, refresh the TOP_RACC base aggregate and
    load the accesses from it.  LEFT_OFFSET is the offset of the left whole
    subtree being copied, RIGHT_OFFSET is the same thing for the right subtree.
-   GSI is stmt iterator used for statement insertions.  *REFRESHED is true iff
-   the rhs top aggregate has already been refreshed by contents of its scalar
-   reductions and is set to true if this function has to do it.  */
+   NEW_GSI is stmt iterator used for statement insertions after the original
+   assignment, OLD_GSI is used to insert statements before the assignment.
+   *REFRESHED keeps the information whether we have needed to refresh
+   replacements of the LHS and from which side of the assignments this takes
+   place.  */
 
 static void
 load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
@@ -2540,12 +2543,12 @@ sra_modify_constructor_assign (gimple *stmt, gimple_stmt_iterator *gsi)
     }
 }
 
-/* Create a new suitable default definition SSA_NAME and replace all uses of
-   SSA with it, RACC is access describing the uninitialized part of an
-   aggregate that is being loaded.  */
+/* Create and return a new suitable default definition SSA_NAME for RACC which
+   is an access describing an uninitialized part of an aggregate that is being
+   loaded.  */
 
-static void
-replace_uses_with_default_def_ssa_name (tree ssa, struct access *racc)
+static tree
+get_repl_default_def_ssa_name (struct access *racc)
 {
   tree repl, decl;
 
@@ -2558,7 +2561,7 @@ replace_uses_with_default_def_ssa_name (tree ssa, struct access *racc)
       set_default_def (decl, repl);
     }
 
-  replace_uses_by (ssa, repl);
+  return repl;
 }
 
 /* Examine both sides of the assignment statement pointed to by STMT, replace
@@ -2722,9 +2725,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 					   &orig_gsi, gsi, &refreshed, lhs);
 	  if (refreshed != SRA_UDH_RIGHT)
 	    {
-	      if (*stmt == gsi_stmt (*gsi))
-		gsi_next (gsi);
-
+	      gsi_next (gsi);
 	      unlink_stmt_vdef (*stmt);
 	      gsi_remove (&orig_gsi, true);
 	      sra_stats.deleted++;
@@ -2737,18 +2738,33 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 	    {
 	      if (!racc->grp_to_be_replaced && !racc->grp_unscalarized_data)
 		{
-		  if (racc->first_child)
-		    generate_subtree_copies (racc->first_child, lhs,
-					     racc->offset, 0, 0, gsi,
-					     false, false);
-		  gcc_assert (*stmt == gsi_stmt (*gsi));
-		  if (TREE_CODE (lhs) == SSA_NAME)
-		    replace_uses_with_default_def_ssa_name (lhs, racc);
+		  if (dump_file)
+		    {
+		      fprintf (dump_file, "Removing load: ");
+		      print_gimple_stmt (dump_file, *stmt, 0, 0);
+		    }
 
-		  unlink_stmt_vdef (*stmt);
-		  gsi_remove (gsi, true);
-		  sra_stats.deleted++;
-		  return SRA_AM_REMOVED;
+		  if (TREE_CODE (lhs) == SSA_NAME)
+		    {
+		      rhs = get_repl_default_def_ssa_name (racc);
+		      if (!useless_type_conversion_p (TREE_TYPE (lhs),
+						      TREE_TYPE (rhs)))
+			rhs = fold_build1_loc (loc, VIEW_CONVERT_EXPR,
+					       TREE_TYPE (lhs), rhs);
+		    }
+		  else
+		    {
+		      if (racc->first_child)
+			generate_subtree_copies (racc->first_child, lhs,
+						 racc->offset, 0, 0, gsi,
+						 false, false);
+
+		      gcc_assert (*stmt == gsi_stmt (*gsi));
+		      unlink_stmt_vdef (*stmt);
+		      gsi_remove (gsi, true);
+		      sra_stats.deleted++;
+		      return SRA_AM_REMOVED;
+		    }
 		}
 	      else if (racc->first_child)
 		generate_subtree_copies (racc->first_child, lhs,
@@ -2775,11 +2791,13 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 }
 
 /* Traverse the function body and all modifications as decided in
-   analyze_all_variable_accesses.  */
+   analyze_all_variable_accesses.  Return true iff the CFG has been
+   changed.  */
 
-static void
+static bool
 sra_modify_function_body (void)
 {
+  bool cfg_changed = false;
   basic_block bb;
 
   FOR_EACH_BB (bb)
@@ -2842,12 +2860,16 @@ sra_modify_function_body (void)
 	  if (modified)
 	    {
 	      update_stmt (stmt);
-	      maybe_clean_eh_stmt (stmt);
+	      if (maybe_clean_eh_stmt (stmt)
+		  && gimple_purge_dead_eh_edges (gimple_bb (stmt)))
+		cfg_changed = true;
 	    }
 	  if (!deleted)
 	    gsi_next (&gsi);
 	}
     }
+
+  return cfg_changed;
 }
 
 /* Generate statements initializing scalar replacements of parts of function
@@ -2907,7 +2929,10 @@ perform_intra_sra (void)
   if (!analyze_all_variable_accesses ())
     goto out;
 
-  sra_modify_function_body ();
+  if (sra_modify_function_body ())
+    ret = TODO_update_ssa | TODO_cleanup_cfg;
+  else
+    ret = TODO_update_ssa;
   initialize_parameter_reductions ();
 
   statistics_counter_event (cfun, "Scalar replacements created",
@@ -2920,8 +2945,6 @@ perform_intra_sra (void)
   statistics_counter_event (cfun, "Deleted stmts", sra_stats.deleted);
   statistics_counter_event (cfun, "Separate LHS and RHS handling",
 			    sra_stats.separate_lhs_rhs_handling);
-
-  ret = TODO_update_ssa;
 
  out:
   sra_deinitialize ();
@@ -3124,6 +3147,8 @@ find_param_candidates (void)
 
 	  if (TREE_CODE (type) == FUNCTION_TYPE
 	      || TYPE_VOLATILE (type)
+	      || (TREE_CODE (type) == ARRAY_TYPE
+		  && TYPE_NONALIASED_COMPONENT (type))
 	      || !is_gimple_reg (parm)
 	      || is_va_list_type (type)
 	      || ptr_parm_has_direct_uses (parm))
@@ -4048,17 +4073,17 @@ sra_ipa_modify_assign (gimple *stmt_ptr, gimple_stmt_iterator *gsi,
 }
 
 /* Traverse the function body and all modifications as described in
-   ADJUSTMENTS.  */
+   ADJUSTMENTS.  Return true iff the CFG has been changed.  */
 
-static void
+static bool
 ipa_sra_modify_function_body (ipa_parm_adjustment_vec adjustments)
 {
+  bool cfg_changed = false;
   basic_block bb;
 
   FOR_EACH_BB (bb)
     {
       gimple_stmt_iterator gsi;
-      bool bb_changed = false;
 
       for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	replace_removed_params_ssa_names (gsi_stmt (gsi), adjustments);
@@ -4120,15 +4145,16 @@ ipa_sra_modify_function_body (ipa_parm_adjustment_vec adjustments)
 
 	  if (modified)
 	    {
-	      bb_changed = true;
 	      update_stmt (stmt);
-	      maybe_clean_eh_stmt (stmt);
+	      if (maybe_clean_eh_stmt (stmt)
+		  && gimple_purge_dead_eh_edges (gimple_bb (stmt)))
+		cfg_changed = true;
 	    }
 	  gsi_next (&gsi);
 	}
-      if (bb_changed)
-	gimple_purge_dead_eh_edges (bb);
     }
+
+  return cfg_changed;
 }
 
 /* Call gimple_debug_bind_reset_value on all debug statements describing
@@ -4244,13 +4270,14 @@ convert_callers (struct cgraph_node *node, tree old_decl,
 }
 
 /* Perform all the modification required in IPA-SRA for NODE to have parameters
-   as given in ADJUSTMENTS.  */
+   as given in ADJUSTMENTS.  Return true iff the CFG has been changed.  */
 
-static void
+static bool
 modify_function (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
 {
   struct cgraph_node *new_node;
   struct cgraph_edge *cs;
+  bool cfg_changed;
   VEC (cgraph_edge_p, heap) * redirect_callers;
   int node_callers;
 
@@ -4271,11 +4298,11 @@ modify_function (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
   push_cfun (DECL_STRUCT_FUNCTION (new_node->decl));
 
   ipa_modify_formal_parameters (current_function_decl, adjustments, "ISRA");
-  ipa_sra_modify_function_body (adjustments);
+  cfg_changed = ipa_sra_modify_function_body (adjustments);
   sra_ipa_reset_debug_stmts (adjustments);
   convert_callers (new_node, node->decl, adjustments);
   cgraph_make_node_local (new_node);
-  return;
+  return cfg_changed;
 }
 
 /* Return false the function is apparently unsuitable for IPA-SRA based on it's
@@ -4295,7 +4322,7 @@ ipa_sra_preliminary_function_checks (struct cgraph_node *node)
   if (!tree_versionable_function_p (node->decl))
     {
       if (dump_file)
-	fprintf (dump_file, "Function not local to this compilation unit.\n");
+	fprintf (dump_file, "Function is not versionable.\n");
       return false;
     }
 
@@ -4392,9 +4419,11 @@ ipa_early_sra (void)
   if (dump_file)
     ipa_dump_param_adjustments (dump_file, adjustments, current_function_decl);
 
-  modify_function (node, adjustments);
+  if (modify_function (node, adjustments))
+    ret = TODO_update_ssa | TODO_cleanup_cfg;
+  else
+    ret = TODO_update_ssa;
   VEC_free (ipa_parm_adjustment_t, heap, adjustments);
-  ret = TODO_update_ssa;
 
   statistics_counter_event (cfun, "Unused parameters deleted",
 			    sra_stats.deleted_unused_parameters);
@@ -4417,7 +4446,7 @@ ipa_early_sra (void)
 static bool
 ipa_early_sra_gate (void)
 {
-  return flag_ipa_sra;
+  return flag_ipa_sra && dbg_cnt (eipa_sra);
 }
 
 struct gimple_opt_pass pass_early_ipa_sra =

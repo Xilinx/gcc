@@ -123,7 +123,7 @@ gfc_make_safe_expr (gfc_se * se)
 tree
 gfc_conv_expr_present (gfc_symbol * sym)
 {
-  tree decl;
+  tree decl, cond;
 
   gcc_assert (sym->attr.dummy);
 
@@ -136,8 +136,26 @@ gfc_conv_expr_present (gfc_symbol * sym)
              || GFC_ARRAY_TYPE_P (TREE_TYPE (decl)));
       decl = GFC_DECL_SAVED_DESCRIPTOR (decl);
     }
-  return fold_build2 (NE_EXPR, boolean_type_node, decl,
+
+  cond = fold_build2 (NE_EXPR, boolean_type_node, decl,
 		      fold_convert (TREE_TYPE (decl), null_pointer_node));
+
+  /* Fortran 2008 allows to pass null pointers and non-associated pointers
+     as actual argument to denote absent dummies. For array descriptors,
+     we thus also need to check the array descriptor.  */
+  if (!sym->attr.pointer && !sym->attr.allocatable
+      && sym->as && sym->as->type == AS_ASSUMED_SHAPE
+      && (gfc_option.allow_std & GFC_STD_F2008) != 0)
+    {
+      tree tmp;
+      tmp = build_fold_indirect_ref_loc (input_location, decl);
+      tmp = gfc_conv_array_data (tmp);
+      tmp = fold_build2 (NE_EXPR, boolean_type_node, tmp,
+			 fold_convert (TREE_TYPE (tmp), null_pointer_node));
+      cond = fold_build2 (TRUTH_ANDIF_EXPR, boolean_type_node, cond, tmp);
+    }
+
+  return cond;
 }
 
 
@@ -654,9 +672,10 @@ gfc_conv_variable (gfc_se * se, gfc_expr * expr)
 	    se->expr = build_fold_indirect_ref_loc (input_location,
 						se->expr);
 
-          /* Dereference non-character pointer variables. 
+	  /* Dereference non-character pointer variables. 
 	     These must be dummies, results, or scalars.  */
-	  if ((sym->attr.pointer || sym->attr.allocatable)
+	  if ((sym->attr.pointer || sym->attr.allocatable
+	       || gfc_is_associate_pointer (sym))
 	      && (sym->attr.dummy
 		  || sym->attr.function
 		  || sym->attr.result
@@ -2849,6 +2868,15 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	      if (arg->missing_arg_type == BT_CHARACTER)
 		parmse.string_length = build_int_cst (gfc_charlen_type_node, 0);
 	    }
+	}
+      else if (arg->expr->expr_type == EXPR_NULL && fsym && !fsym->attr.pointer)
+	{
+	  /* Pass a NULL pointer to denote an absent arg.  */
+	  gcc_assert (fsym->attr.optional && !fsym->attr.allocatable);
+	  gfc_init_se (&parmse, NULL);
+	  parmse.expr = null_pointer_node;
+	  if (arg->missing_arg_type == BT_CHARACTER)
+	    parmse.string_length = build_int_cst (gfc_charlen_type_node, 0);
 	}
       else if (fsym && fsym->ts.type == BT_CLASS
 		 && e->ts.type == BT_DERIVED)
@@ -5303,6 +5331,7 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
   bool l_is_temp;
   bool scalar_to_array;
   tree string_length;
+  int n;
 
   /* Assignment of the form lhs = rhs.  */
   gfc_start_block (&block);
@@ -5348,6 +5377,9 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
 
       /* Calculate the bounds of the scalarization.  */
       gfc_conv_ss_startstride (&loop);
+      /* Enable loop reversal.  */
+      for (n = 0; n < loop.dimen; n++)
+	loop.reverse[n] = GFC_REVERSE_NOT_SET;
       /* Resolve any data dependencies in the statement.  */
       gfc_conv_resolve_dependencies (&loop, lss, rss);
       /* Setup the scalarizing loops.  */
@@ -5575,65 +5607,26 @@ void gfc_trans_assign_vtab_procs (stmtblock_t *block, gfc_symbol *dt,
 				  gfc_symbol *vtab)
 {
   gfc_component *cmp;
-  tree vtb;
-  tree ctree;
-  tree proc;
-  tree cond = NULL_TREE;
+  tree vtb, ctree, proc, cond = NULL_TREE;
   stmtblock_t body;
-  bool seen_extends;
 
   /* Point to the first procedure pointer.  */
   cmp = gfc_find_component (vtab->ts.u.derived, "$extends", true, true);
-
-  seen_extends = (cmp != NULL);
-
+  cmp = cmp->next;
+  if (!cmp)
+    return;
+  
   vtb = gfc_get_symbol_decl (vtab);
 
-  if (seen_extends)
-    {
-      cmp = cmp->next;
-      if (!cmp)
-	return;
-      ctree = fold_build3 (COMPONENT_REF, TREE_TYPE (cmp->backend_decl),
-		           vtb, cmp->backend_decl, NULL_TREE);
-      cond = fold_build2 (EQ_EXPR, boolean_type_node, ctree,
-			   build_int_cst (TREE_TYPE (ctree), 0));
-    }
-  else
-    {
-      cmp = vtab->ts.u.derived->components; 
-    }
+  ctree = fold_build3 (COMPONENT_REF, TREE_TYPE (cmp->backend_decl), vtb,
+		       cmp->backend_decl, NULL_TREE);
+  cond = fold_build2 (EQ_EXPR, boolean_type_node, ctree,
+		      build_int_cst (TREE_TYPE (ctree), 0));
 
   gfc_init_block (&body);
   for (; cmp; cmp = cmp->next)
     {
       gfc_symbol *target = NULL;
-      
-      /* Generic procedure - build its vtab.  */
-      if (cmp->ts.type == BT_DERIVED && !cmp->tb)
-	{
-	  gfc_symbol *vt = cmp->ts.interface;
-
-	  if (vt == NULL)
-	    {
-	      /* Use association loses the interface.  Obtain the vtab
-		 by name instead.  */
-	      char name[2 * GFC_MAX_SYMBOL_LEN + 8];
-	      sprintf (name, "vtab$%s$%s", vtab->ts.u.derived->name,
-		       cmp->name);
-	      gfc_find_symbol (name, vtab->ns, 0, &vt);
-	      if (vt == NULL)
-		continue;
-	    }
-
-	  gfc_trans_assign_vtab_procs (&body, dt, vt);
-	  ctree = fold_build3 (COMPONENT_REF, TREE_TYPE (cmp->backend_decl),
-			       vtb, cmp->backend_decl, NULL_TREE);
-	  proc = gfc_get_symbol_decl (vt);
-	  proc = gfc_build_addr_expr (TREE_TYPE (ctree), proc);
-	  gfc_add_modify (&body, ctree, proc);
-	  continue;
-	}
 
       /* This is required when typebound generic procedures are called
 	 with derived type targets.  The specific procedures do not get
@@ -5660,10 +5653,36 @@ void gfc_trans_assign_vtab_procs (stmtblock_t *block, gfc_symbol *dt,
 
   proc = gfc_finish_block (&body);
 
-  if (seen_extends)
-    proc = build3_v (COND_EXPR, cond, proc, build_empty_stmt (input_location));
+  proc = build3_v (COND_EXPR, cond, proc, build_empty_stmt (input_location));
 
   gfc_add_expr_to_block (block, proc);
+}
+
+
+/* Special case for initializing a CLASS variable on allocation.
+   A MEMCPY is needed to copy the full data of the dynamic type,
+   which may be different from the declared type.  */
+
+tree
+gfc_trans_class_init_assign (gfc_code *code)
+{
+  stmtblock_t block;
+  tree tmp, memsz;
+  gfc_se dst,src;
+  
+  gfc_start_block (&block);
+  
+  gfc_init_se (&dst, NULL);
+  gfc_init_se (&src, NULL);
+  gfc_add_component_ref (code->expr1, "$data");
+  gfc_conv_expr (&dst, code->expr1);
+  gfc_conv_expr (&src, code->expr2);
+  gfc_add_block_to_block (&block, &src.pre);
+  memsz = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->expr2->ts));
+  tmp = gfc_build_memcpy_call (dst.expr, src.expr, memsz);
+  gfc_add_expr_to_block (&block, tmp);
+  
+  return gfc_finish_block (&block);
 }
 
 
@@ -5671,7 +5690,7 @@ void gfc_trans_assign_vtab_procs (stmtblock_t *block, gfc_symbol *dt,
    (pointer or ordinary assignment).  */
 
 tree
-gfc_trans_class_assign (gfc_code *code)
+gfc_trans_class_assign (gfc_expr *expr1, gfc_expr *expr2, gfc_exec_op op)
 {
   stmtblock_t block;
   tree tmp;
@@ -5679,45 +5698,26 @@ gfc_trans_class_assign (gfc_code *code)
   gfc_expr *rhs;
 
   gfc_start_block (&block);
-  
-  if (code->op == EXEC_INIT_ASSIGN)
-    {
-      /* Special case for initializing a CLASS variable on allocation.
-	 A MEMCPY is needed to copy the full data of the dynamic type,
-	 which may be different from the declared type.  */
-      gfc_se dst,src;
-      tree memsz;
-      gfc_init_se (&dst, NULL);
-      gfc_init_se (&src, NULL);
-      gfc_add_component_ref (code->expr1, "$data");
-      gfc_conv_expr (&dst, code->expr1);
-      gfc_conv_expr (&src, code->expr2);
-      gfc_add_block_to_block (&block, &src.pre);
-      memsz = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->expr2->ts));
-      tmp = gfc_build_memcpy_call (dst.expr, src.expr, memsz);
-      gfc_add_expr_to_block (&block, tmp);
-      return gfc_finish_block (&block);
-    }
 
-  if (code->expr2->ts.type != BT_CLASS)
+  if (expr2->ts.type != BT_CLASS)
     {
       /* Insert an additional assignment which sets the '$vptr' field.  */
-      lhs = gfc_copy_expr (code->expr1);
+      lhs = gfc_copy_expr (expr1);
       gfc_add_component_ref (lhs, "$vptr");
-      if (code->expr2->ts.type == BT_DERIVED)
+      if (expr2->ts.type == BT_DERIVED)
 	{
 	  gfc_symbol *vtab;
 	  gfc_symtree *st;
-	  vtab = gfc_find_derived_vtab (code->expr2->ts.u.derived);
+	  vtab = gfc_find_derived_vtab (expr2->ts.u.derived);
 	  gcc_assert (vtab);
-	  gfc_trans_assign_vtab_procs (&block, code->expr2->ts.u.derived, vtab);
+	  gfc_trans_assign_vtab_procs (&block, expr2->ts.u.derived, vtab);
 	  rhs = gfc_get_expr ();
 	  rhs->expr_type = EXPR_VARIABLE;
 	  gfc_find_sym_tree (vtab->name, NULL, 1, &st);
 	  rhs->symtree = st;
 	  rhs->ts = vtab->ts;
 	}
-      else if (code->expr2->expr_type == EXPR_NULL)
+      else if (expr2->expr_type == EXPR_NULL)
 	rhs = gfc_get_int_expr (gfc_default_integer_kind, NULL, 0);
       else
 	gcc_unreachable ();
@@ -5730,15 +5730,15 @@ gfc_trans_class_assign (gfc_code *code)
     }
 
   /* Do the actual CLASS assignment.  */
-  if (code->expr2->ts.type == BT_CLASS)
-    code->op = EXEC_ASSIGN;
+  if (expr2->ts.type == BT_CLASS)
+    op = EXEC_ASSIGN;
   else
-    gfc_add_component_ref (code->expr1, "$data");
+    gfc_add_component_ref (expr1, "$data");
 
-  if (code->op == EXEC_ASSIGN)
-    tmp = gfc_trans_assign (code);
-  else if (code->op == EXEC_POINTER_ASSIGN)
-    tmp = gfc_trans_pointer_assign (code);
+  if (op == EXEC_ASSIGN)
+    tmp = gfc_trans_assignment (expr1, expr2, false, true);
+  else if (op == EXEC_POINTER_ASSIGN)
+    tmp = gfc_trans_pointer_assignment (expr1, expr2);
   else
     gcc_unreachable();
 

@@ -56,6 +56,7 @@
 #include "df.h"
 #include "intl.h"
 #include "libfuncs.h"
+#include "params.h"
 
 /* Forward definitions of types.  */
 typedef struct minipool_node    Mnode;
@@ -227,6 +228,8 @@ static void arm_asm_trampoline_template (FILE *);
 static void arm_trampoline_init (rtx, tree, rtx);
 static rtx arm_trampoline_adjust_address (rtx);
 static rtx arm_pic_static_addr (rtx orig, rtx reg);
+static bool cortex_a9_sched_adjust_cost (rtx, rtx, rtx, int *);
+static bool xscale_sched_adjust_cost (rtx, rtx, rtx, int *);
 
 
 /* Table of machine attributes.  */
@@ -686,6 +689,9 @@ int arm_tune_cortex_a9 = 0;
 /* Nonzero if generating Thumb instructions.  */
 int thumb_code = 0;
 
+/* Nonzero if generating Thumb-1 instructions.  */
+int thumb1_code = 0;
+
 /* Nonzero if we should define __THUMB_INTERWORK__ in the
    preprocessor.
    XXX This is a bit of a hack, it's intended to help work around
@@ -711,12 +717,13 @@ unsigned arm_pic_register = INVALID_REGNUM;
    the next function.  */
 static int after_arm_reorg = 0;
 
-static enum arm_pcs arm_pcs_default;
+enum arm_pcs arm_pcs_default;
 
 /* For an explanation of these variables, see final_prescan_insn below.  */
 int arm_ccfsm_state;
 /* arm_current_cc is also used for Thumb-2 cond_exec blocks.  */
 enum arm_cond_code arm_current_cc;
+
 rtx arm_target_insn;
 int arm_target_label;
 /* The number of conditionally executed insns, including the current insn.  */
@@ -732,6 +739,12 @@ static const char * const arm_condition_codes[] =
 {
   "eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
   "hi", "ls", "ge", "lt", "gt", "le", "al", "nv"
+};
+
+/* The register numbers in sequence, for passing to arm_gen_load_multiple.  */
+int arm_regs_in_sequence[] =
+{
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
 };
 
 #define ARM_LSL_NAME (TARGET_UNIFIED_ASM ? "lsl" : "asl")
@@ -755,26 +768,38 @@ struct processors
 const struct tune_params arm_slowmul_tune =
 {
   arm_slowmul_rtx_costs,
+  NULL,
   3
 };
 
 const struct tune_params arm_fastmul_tune =
 {
   arm_fastmul_rtx_costs,
+  NULL,
   1
 };
 
 const struct tune_params arm_xscale_tune =
 {
   arm_xscale_rtx_costs,
+  xscale_sched_adjust_cost,
   2
 };
 
 const struct tune_params arm_9e_tune =
 {
   arm_9e_rtx_costs,
+  NULL,
   1
 };
+
+const struct tune_params arm_cortex_a9_tune =
+{
+  arm_9e_rtx_costs,
+  cortex_a9_sched_adjust_cost,
+  1
+};
+
 
 /* Not all of these give usefully different compilation alternatives,
    but there is no simple way of generalizing them.  */
@@ -1571,7 +1596,8 @@ arm_override_options (void)
 
   arm_ld_sched = (tune_flags & FL_LDSCHED) != 0;
   arm_tune_strongarm = (tune_flags & FL_STRONG) != 0;
-  thumb_code = (TARGET_ARM == 0);
+  thumb_code = TARGET_ARM == 0;
+  thumb1_code = TARGET_THUMB1 != 0;
   arm_tune_wbuf = (tune_flags & FL_WBUF) != 0;
   arm_tune_xscale = (tune_flags & FL_XSCALE) != 0;
   arm_arch_iwmmxt = (insn_flags & FL_IWMMXT) != 0;
@@ -1871,6 +1897,14 @@ arm_override_options (void)
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
+
+  if (!PARAM_SET_P (PARAM_GCSE_UNRESTRICTED_COST)
+      && flag_pic)
+    /* Hoisting PIC address calculations more aggressively provides a small,
+       but measurable, size reduction for PIC code.  Therefore, we decrease
+       the bar for unrestricted expression hoisting to the cost of PIC address
+       calculation, which is 2 instructions.  */
+    set_param_value ("gcse-unrestricted-cost", 2);
 
   /* Register global variables with the garbage collector.  */
   arm_add_gc_roots ();
@@ -3683,9 +3717,7 @@ arm_get_pcs_model (const_tree type, const_tree decl)
       /* Detect varargs functions.  These always use the base rules
 	 (no argument is ever a candidate for a co-processor
 	 register).  */
-      bool base_rules = (TYPE_ARG_TYPES (type) != 0
-			 && (TREE_VALUE (tree_last (TYPE_ARG_TYPES (type)))
-			     != void_type_node));
+      bool base_rules = stdarg_p (type);
       
       if (user_convention)
 	{
@@ -4479,10 +4511,6 @@ arm_function_arg (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
       && arm_needs_doubleword_align (mode, type))
     pcum->nregs++;
 
-  if (mode == VOIDmode)
-    /* Pick an arbitrary value for operand 2 of the call insn.  */
-    return const0_rtx;
-
   /* Only allow splitting an arg between regs and memory if all preceding
      args were allocated to regs.  For args passed by reference we only count
      the reference pointer.  */
@@ -4977,17 +5005,13 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
   if (GET_CODE (orig) == SYMBOL_REF
       || GET_CODE (orig) == LABEL_REF)
     {
-      rtx pic_ref, address;
       rtx insn;
 
       if (reg == 0)
 	{
 	  gcc_assert (can_create_pseudo_p ());
 	  reg = gen_reg_rtx (Pmode);
-	  address = gen_reg_rtx (Pmode);
 	}
-      else
-	address = reg;
 
       /* VxWorks does not impose a fixed gap between segments; the run-time
 	 gap can be different from the object-file gap.  We therefore can't
@@ -5003,18 +5027,21 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 	insn = arm_pic_static_addr (orig, reg);
       else
 	{
+	  rtx pat;
+	  rtx mem;
+
 	  /* If this function doesn't have a pic register, create one now.  */
 	  require_pic_register ();
 
-	  if (TARGET_32BIT)
-	    emit_insn (gen_pic_load_addr_32bit (address, orig));
-	  else /* TARGET_THUMB1 */
-	    emit_insn (gen_pic_load_addr_thumb1 (address, orig));
+	  pat = gen_calculate_pic_address (reg, cfun->machine->pic_reg, orig);
 
-	  pic_ref = gen_const_mem (Pmode,
-				   gen_rtx_PLUS (Pmode, cfun->machine->pic_reg,
-					         address));
-	  insn = emit_move_insn (reg, pic_ref);
+	  /* Make the MEM as close to a constant as possible.  */
+	  mem = SET_SRC (pat);
+	  gcc_assert (MEM_P (mem) && !MEM_VOLATILE_P (mem));
+	  MEM_READONLY_P (mem) = 1;
+	  MEM_NOTRAP_P (mem) = 1;
+
+	  insn = emit_insn (pat);
 	}
 
       /* Put a REG_EQUAL note on this insn, so that it can be optimized
@@ -5294,6 +5321,15 @@ pcrel_constant_p (rtx x)
   return FALSE;
 }
 
+/* Return true if X will surely end up in an index register after next
+   splitting pass.  */
+static bool
+will_be_in_index_register (const_rtx x)
+{
+  /* arm.md: calculate_pic_address will split this into a register.  */
+  return GET_CODE (x) == UNSPEC && XINT (x, 1) == UNSPEC_PIC_SYM;
+}
+
 /* Return nonzero if X is a valid ARM state address operand.  */
 int
 arm_legitimate_address_outer_p (enum machine_mode mode, rtx x, RTX_CODE outer,
@@ -5351,8 +5387,9 @@ arm_legitimate_address_outer_p (enum machine_mode mode, rtx x, RTX_CODE outer,
       rtx xop1 = XEXP (x, 1);
 
       return ((arm_address_register_rtx_p (xop0, strict_p)
-	       && GET_CODE(xop1) == CONST_INT
-	       && arm_legitimate_index_p (mode, xop1, outer, strict_p))
+	       && ((GET_CODE(xop1) == CONST_INT
+		    && arm_legitimate_index_p (mode, xop1, outer, strict_p))
+		   || (!strict_p && will_be_in_index_register (xop1))))
 	      || (arm_address_register_rtx_p (xop1, strict_p)
 		  && arm_legitimate_index_p (mode, xop0, outer, strict_p)));
     }
@@ -5438,7 +5475,8 @@ thumb2_legitimate_address_p (enum machine_mode mode, rtx x, int strict_p)
       rtx xop1 = XEXP (x, 1);
 
       return ((arm_address_register_rtx_p (xop0, strict_p)
-	       && thumb2_legitimate_index_p (mode, xop1, strict_p))
+	       && (thumb2_legitimate_index_p (mode, xop1, strict_p)
+		   || (!strict_p && will_be_in_index_register (xop1))))
 	      || (arm_address_register_rtx_p (xop1, strict_p)
 		  && thumb2_legitimate_index_p (mode, xop0, strict_p)));
     }
@@ -5741,7 +5779,8 @@ thumb1_legitimate_address_p (enum machine_mode mode, rtx x, int strict_p)
 	  && XEXP (x, 0) != frame_pointer_rtx
 	  && XEXP (x, 1) != frame_pointer_rtx
 	  && thumb1_index_register_rtx_p (XEXP (x, 0), strict_p)
-	  && thumb1_index_register_rtx_p (XEXP (x, 1), strict_p))
+	  && (thumb1_index_register_rtx_p (XEXP (x, 1), strict_p)
+	      || (!strict_p && will_be_in_index_register (XEXP (x, 1)))))
 	return 1;
 
       /* REG+const has 5-7 bit offset for non-SP registers.  */
@@ -6277,9 +6316,6 @@ arm_cannot_force_const_mem (rtx x)
 #define REG_OR_SUBREG_RTX(X)			\
    (GET_CODE (X) == REG ? (X) : SUBREG_REG (X))
 
-#ifndef COSTS_N_INSNS
-#define COSTS_N_INSNS(N) ((N) * 4 - 2)
-#endif
 static inline int
 thumb1_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
 {
@@ -6622,12 +6658,10 @@ arm_rtx_costs_1 (rtx x, enum rtx_code outer, int* total, bool speed)
 	 since then they might not be moved outside of loops.  As a compromise
 	 we allow integration with ops that have a constant as their second
 	 operand.  */
-      if ((REG_OR_SUBREG_REG (XEXP (x, 0))
-	   && ARM_FRAME_RTX (REG_OR_SUBREG_RTX (XEXP (x, 0)))
-	   && GET_CODE (XEXP (x, 1)) != CONST_INT)
-	  || (REG_OR_SUBREG_REG (XEXP (x, 0))
-	      && ARM_FRAME_RTX (REG_OR_SUBREG_RTX (XEXP (x, 0)))))
-	*total = 4;
+      if (REG_OR_SUBREG_REG (XEXP (x, 0))
+	  && ARM_FRAME_RTX (REG_OR_SUBREG_RTX (XEXP (x, 0)))
+	  && GET_CODE (XEXP (x, 1)) != CONST_INT)
+	*total = COSTS_N_INSNS (1);
 
       if (mode == DImode)
 	{
@@ -7002,7 +7036,11 @@ thumb1_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer)
       if (outer == SET)
         {
           if ((unsigned HOST_WIDE_INT) INTVAL (x) < 256)
-            return 0;
+            return COSTS_N_INSNS (1);
+	  /* See split "TARGET_THUMB1 && satisfies_constraint_J".  */
+	  if (INTVAL (x) >= -255 && INTVAL (x) <= -1)
+            return COSTS_N_INSNS (2);
+	  /* See split "TARGET_THUMB1 && satisfies_constraint_K".  */
           if (thumb_shiftable_const (INTVAL (x)))
             return COSTS_N_INSNS (2);
           return COSTS_N_INSNS (3);
@@ -7106,6 +7144,12 @@ arm_size_rtx_costs (rtx x, enum rtx_code code, enum rtx_code outer_code,
 	 a single register, otherwise it costs one insn per word.  */
       if (REG_P (XEXP (x, 0)))
 	*total = COSTS_N_INSNS (1);
+      else if (flag_pic
+	       && GET_CODE (XEXP (x, 0)) == PLUS
+	       && will_be_in_index_register (XEXP (XEXP (x, 0), 1)))
+	/* This will be split into two instructions.
+	   See arm.md:calculate_pic_address.  */
+	*total = COSTS_N_INSNS (2);
       else
 	*total = COSTS_N_INSNS (ARM_NUM_REGS (mode));
       return true;
@@ -7660,15 +7704,13 @@ arm_address_cost (rtx x, bool speed ATTRIBUTE_UNUSED)
   return TARGET_32BIT ? arm_arm_address_cost (x) : arm_thumb_address_cost (x);
 }
 
-static int
-arm_adjust_cost (rtx insn, rtx link, rtx dep, int cost)
+/* Adjust cost hook for XScale.  */
+static bool
+xscale_sched_adjust_cost (rtx insn, rtx link, rtx dep, int * cost)
 {
-  rtx i_pat, d_pat;
-
   /* Some true dependencies can have a higher cost depending
      on precisely how certain input operands are used.  */
-  if (arm_tune_xscale
-      && REG_NOTE_KIND (link) == 0
+  if (REG_NOTE_KIND(link) == 0
       && recog_memoized (insn) >= 0
       && recog_memoized (dep) >= 0)
     {
@@ -7702,9 +7744,115 @@ arm_adjust_cost (rtx insn, rtx link, rtx dep, int cost)
 
 	      if (reg_overlap_mentioned_p (recog_data.operand[opno],
 					   shifted_operand))
-		return 2;
+		{
+		  *cost = 2;
+		  return false;
+		}
 	    }
 	}
+    }
+  return true;
+}
+
+/* Adjust cost hook for Cortex A9.  */
+static bool
+cortex_a9_sched_adjust_cost (rtx insn, rtx link, rtx dep, int * cost)
+{
+  switch (REG_NOTE_KIND (link))
+    {
+    case REG_DEP_ANTI:
+      *cost = 0;
+      return false;
+
+    case REG_DEP_TRUE:
+    case REG_DEP_OUTPUT:
+	if (recog_memoized (insn) >= 0
+	    && recog_memoized (dep) >= 0)
+	  {
+	    if (GET_CODE (PATTERN (insn)) == SET)
+	      {
+		if (GET_MODE_CLASS 
+		    (GET_MODE (SET_DEST (PATTERN (insn)))) == MODE_FLOAT
+		  || GET_MODE_CLASS 
+		    (GET_MODE (SET_SRC (PATTERN (insn)))) == MODE_FLOAT)
+		  {
+		    enum attr_type attr_type_insn = get_attr_type (insn);
+		    enum attr_type attr_type_dep = get_attr_type (dep);
+
+		    /* By default all dependencies of the form
+		       s0 = s0 <op> s1
+		       s0 = s0 <op> s2
+		       have an extra latency of 1 cycle because
+		       of the input and output dependency in this
+		       case. However this gets modeled as an true
+		       dependency and hence all these checks.  */
+		    if (REG_P (SET_DEST (PATTERN (insn)))
+			&& REG_P (SET_DEST (PATTERN (dep)))
+			&& reg_overlap_mentioned_p (SET_DEST (PATTERN (insn)),
+						    SET_DEST (PATTERN (dep))))
+		      {
+			/* FMACS is a special case where the dependant
+			   instruction can be issued 3 cycles before
+			   the normal latency in case of an output 
+			   dependency.  */
+			if ((attr_type_insn == TYPE_FMACS
+			     || attr_type_insn == TYPE_FMACD)
+			    && (attr_type_dep == TYPE_FMACS
+				|| attr_type_dep == TYPE_FMACD))
+			  {
+			    if (REG_NOTE_KIND (link) == REG_DEP_OUTPUT)
+			      *cost = insn_default_latency (dep) - 3;
+			    else
+			      *cost = insn_default_latency (dep);
+			    return false;
+			  }
+			else
+			  {
+			    if (REG_NOTE_KIND (link) == REG_DEP_OUTPUT)
+			      *cost = insn_default_latency (dep) + 1;
+			    else
+			      *cost = insn_default_latency (dep);
+			  }
+			return false;
+		      }
+		  }
+	      }
+	  }
+	break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  return true;
+}
+
+/* This function implements the target macro TARGET_SCHED_ADJUST_COST.
+   It corrects the value of COST based on the relationship between
+   INSN and DEP through the dependence LINK.  It returns the new
+   value. There is a per-core adjust_cost hook to adjust scheduler costs
+   and the per-core hook can choose to completely override the generic 
+   adjust_cost function. Only put bits of code into arm_adjust_cost that 
+   are common across all cores.  */
+static int
+arm_adjust_cost (rtx insn, rtx link, rtx dep, int cost)
+{
+  rtx i_pat, d_pat;
+
+ /* When generating Thumb-1 code, we want to place flag-setting operations
+    close to a conditional branch which depends on them, so that we can
+    omit the comparison. */
+  if (TARGET_THUMB1
+      && REG_NOTE_KIND (link) == 0
+      && recog_memoized (insn) == CODE_FOR_cbranchsi4_insn
+      && recog_memoized (dep) >= 0
+      && get_attr_conds (dep) == CONDS_SET)
+    return 0;
+
+  if (current_tune->sched_adjust_cost != NULL)
+    {
+      if (!current_tune->sched_adjust_cost (insn, link, dep, &cost))
+	return cost;
     }
 
   /* XXX This is not strictly true for the FPA.  */
@@ -7728,7 +7876,8 @@ arm_adjust_cost (rtx insn, rtx link, rtx dep, int cost)
 	 constant pool are cached, and that others will miss.  This is a
 	 hack.  */
 
-      if ((GET_CODE (src_mem) == SYMBOL_REF && CONSTANT_POOL_ADDRESS_P (src_mem))
+      if ((GET_CODE (src_mem) == SYMBOL_REF 
+	   && CONSTANT_POOL_ADDRESS_P (src_mem))
 	  || reg_mentioned_p (stack_pointer_rtx, src_mem)
 	  || reg_mentioned_p (frame_pointer_rtx, src_mem)
 	  || reg_mentioned_p (hard_frame_pointer_rtx, src_mem))
@@ -9140,6 +9289,36 @@ multiple_operation_profitable_p (bool is_store ATTRIBUTE_UNUSED,
   if (nops == 2 && arm_ld_sched && add_offset != 0)
     return false;
 
+  /* XScale has load-store double instructions, but they have stricter
+     alignment requirements than load-store multiple, so we cannot
+     use them.
+
+     For XScale ldm requires 2 + NREGS cycles to complete and blocks
+     the pipeline until completion.
+
+	NREGS		CYCLES
+	  1		  3
+	  2		  4
+	  3		  5
+	  4		  6
+
+     An ldr instruction takes 1-3 cycles, but does not block the
+     pipeline.
+
+	NREGS		CYCLES
+	  1		 1-3
+	  2		 2-6
+	  3		 3-9
+	  4		 4-12
+
+     Best case ldr will always win.  However, the more ldr instructions
+     we issue, the less likely we are to be able to schedule them well.
+     Using ldr instructions also increases code size.
+
+     As a compromise, we use ldr for counts of 1 or 2 regs, and ldm
+     for counts of 3 or 4 regs.  */
+  if (nops <= 2 && arm_tune_xscale && !optimize_size)
+    return false;
   return true;
 }
 
@@ -9183,13 +9362,29 @@ compute_offset_order (int nops, HOST_WIDE_INT *unsorted_offsets, int *order,
   return true;
 }
 
-int
-load_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
-			HOST_WIDE_INT *load_offset)
+/* Used to determine in a peephole whether a sequence of load
+   instructions can be changed into a load-multiple instruction.
+   NOPS is the number of separate load instructions we are examining.  The
+   first NOPS entries in OPERANDS are the destination registers, the
+   next NOPS entries are memory operands.  If this function is
+   successful, *BASE is set to the common base register of the memory
+   accesses; *LOAD_OFFSET is set to the first memory location's offset
+   from that base register.
+   REGS is an array filled in with the destination register numbers.
+   SAVED_ORDER (if nonnull), is an array filled in with an order that maps
+   insn numbers to to an ascending order of stores.  If CHECK_REGS is true,
+   the sequence of registers in REGS matches the loads from ascending memory
+   locations, and the function verifies that the register numbers are
+   themselves ascending.  If CHECK_REGS is false, the register numbers
+   are stored in the order they are found in the operands.  */
+static int
+load_multiple_sequence (rtx *operands, int nops, int *regs, int *saved_order,
+			int *base, HOST_WIDE_INT *load_offset, bool check_regs)
 {
   int unsorted_regs[MAX_LDM_STM_OPS];
   HOST_WIDE_INT unsorted_offsets[MAX_LDM_STM_OPS];
   int order[MAX_LDM_STM_OPS];
+  rtx base_reg_rtx = NULL;
   int base_reg = -1;
   int i, ldm_case;
 
@@ -9233,13 +9428,16 @@ load_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
 		  == CONST_INT)))
 	{
 	  if (i == 0)
-	    base_reg = REGNO (reg);
-	  else
 	    {
-	      if (base_reg != (int) REGNO (reg))
-		/* Not addressed from the same base register.  */
+	      base_reg = REGNO (reg);
+	      base_reg_rtx = reg;
+	      if (TARGET_THUMB1 && base_reg > LAST_LO_REGNUM)
 		return 0;
 	    }
+	  else if (base_reg != (int) REGNO (reg))
+	    /* Not addressed from the same base register.  */
+	    return 0;
+
 	  unsorted_regs[i] = (GET_CODE (operands[i]) == REG
 			      ? REGNO (operands[i])
 			      : REGNO (SUBREG_REG (operands[i])));
@@ -9247,7 +9445,9 @@ load_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
 	  /* If it isn't an integer register, or if it overwrites the
 	     base register but isn't the last insn in the list, then
 	     we can't do this.  */
-	  if (unsorted_regs[i] < 0 || unsorted_regs[i] > 14
+	  if (unsorted_regs[i] < 0
+	      || (TARGET_THUMB1 && unsorted_regs[i] > LAST_LO_REGNUM)
+	      || unsorted_regs[i] > 14
 	      || (i != nops - 1 && unsorted_regs[i] == base_reg))
 	    return 0;
 
@@ -9265,18 +9465,26 @@ load_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
      order[0] has been set to the lowest offset in the list.  Sort
      the offsets into order, verifying that they are adjacent, and
      check that the register numbers are ascending.  */
-  if (!compute_offset_order (nops, unsorted_offsets, order, unsorted_regs))
+  if (!compute_offset_order (nops, unsorted_offsets, order,
+			     check_regs ? unsorted_regs : NULL))
     return 0;
+
+  if (saved_order)
+    memcpy (saved_order, order, sizeof order);
 
   if (base)
     {
       *base = base_reg;
 
       for (i = 0; i < nops; i++)
-	regs[i] = unsorted_regs[order[i]];
+	regs[i] = unsorted_regs[check_regs ? order[i] : i];
 
       *load_offset = unsorted_offsets[order[0]];
     }
+
+  if (TARGET_THUMB1
+      && !peep2_reg_dead_p (nops, base_reg_rtx))
+    return 0;
 
   if (unsorted_offsets[order[0]] == 0)
     ldm_case = 1; /* ldmia */
@@ -9284,7 +9492,7 @@ load_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
     ldm_case = 2; /* ldmib */
   else if (TARGET_ARM && unsorted_offsets[order[nops - 1]] == 0)
     ldm_case = 3; /* ldmda */
-  else if (unsorted_offsets[order[nops - 1]] == -4)
+  else if (TARGET_32BIT && unsorted_offsets[order[nops - 1]] == -4)
     ldm_case = 4; /* ldmdb */
   else if (const_ok_for_arm (unsorted_offsets[order[0]])
 	   || const_ok_for_arm (-unsorted_offsets[order[0]]))
@@ -9300,72 +9508,34 @@ load_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
   return ldm_case;
 }
 
-const char *
-emit_ldm_seq (rtx *operands, int nops)
-{
-  int regs[MAX_LDM_STM_OPS];
-  int base_reg;
-  HOST_WIDE_INT offset;
-  char buf[100];
-  int i;
-
-  switch (load_multiple_sequence (operands, nops, regs, &base_reg, &offset))
-    {
-    case 1:
-      strcpy (buf, "ldm%(ia%)\t");
-      break;
-
-    case 2:
-      strcpy (buf, "ldm%(ib%)\t");
-      break;
-
-    case 3:
-      strcpy (buf, "ldm%(da%)\t");
-      break;
-
-    case 4:
-      strcpy (buf, "ldm%(db%)\t");
-      break;
-
-    case 5:
-      if (offset >= 0)
-	sprintf (buf, "add%%?\t%s%s, %s%s, #%ld", REGISTER_PREFIX,
-		 reg_names[regs[0]], REGISTER_PREFIX, reg_names[base_reg],
-		 (long) offset);
-      else
-	sprintf (buf, "sub%%?\t%s%s, %s%s, #%ld", REGISTER_PREFIX,
-		 reg_names[regs[0]], REGISTER_PREFIX, reg_names[base_reg],
-		 (long) -offset);
-      output_asm_insn (buf, operands);
-      base_reg = regs[0];
-      strcpy (buf, "ldm%(ia%)\t");
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-
-  sprintf (buf + strlen (buf), "%s%s, {%s%s", REGISTER_PREFIX,
-	   reg_names[base_reg], REGISTER_PREFIX, reg_names[regs[0]]);
-
-  for (i = 1; i < nops; i++)
-    sprintf (buf + strlen (buf), ", %s%s", REGISTER_PREFIX,
-	     reg_names[regs[i]]);
-
-  strcat (buf, "}\t%@ phole ldm");
-
-  output_asm_insn (buf, operands);
-  return "";
-}
-
-int
-store_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
-			 HOST_WIDE_INT * load_offset)
+/* Used to determine in a peephole whether a sequence of store instructions can
+   be changed into a store-multiple instruction.
+   NOPS is the number of separate store instructions we are examining.
+   NOPS_TOTAL is the total number of instructions recognized by the peephole
+   pattern.
+   The first NOPS entries in OPERANDS are the source registers, the next
+   NOPS entries are memory operands.  If this function is successful, *BASE is
+   set to the common base register of the memory accesses; *LOAD_OFFSET is set
+   to the first memory location's offset from that base register.  REGS is an
+   array filled in with the source register numbers, REG_RTXS (if nonnull) is
+   likewise filled with the corresponding rtx's.
+   SAVED_ORDER (if nonnull), is an array filled in with an order that maps insn
+   numbers to to an ascending order of stores.
+   If CHECK_REGS is true, the sequence of registers in *REGS matches the stores
+   from ascending memory locations, and the function verifies that the register
+   numbers are themselves ascending.  If CHECK_REGS is false, the register
+   numbers are stored in the order they are found in the operands.  */
+static int
+store_multiple_sequence (rtx *operands, int nops, int nops_total,
+			 int *regs, rtx *reg_rtxs, int *saved_order, int *base,
+			 HOST_WIDE_INT *load_offset, bool check_regs)
 {
   int unsorted_regs[MAX_LDM_STM_OPS];
+  rtx unsorted_reg_rtxs[MAX_LDM_STM_OPS];
   HOST_WIDE_INT unsorted_offsets[MAX_LDM_STM_OPS];
   int order[MAX_LDM_STM_OPS];
   int base_reg = -1;
+  rtx base_reg_rtx = NULL;
   int i, stm_case;
 
   /* Can only handle up to MAX_LDM_STM_OPS insns at present, though could be
@@ -9407,17 +9577,27 @@ store_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
 	      && (GET_CODE (offset = XEXP (XEXP (operands[nops + i], 0), 1))
 		  == CONST_INT)))
 	{
-	  unsorted_regs[i] = (GET_CODE (operands[i]) == REG
-			      ? REGNO (operands[i])
-			      : REGNO (SUBREG_REG (operands[i])));
+	  unsorted_reg_rtxs[i] = (GET_CODE (operands[i]) == REG
+				  ? operands[i] : SUBREG_REG (operands[i]));
+	  unsorted_regs[i] = REGNO (unsorted_reg_rtxs[i]);
+
 	  if (i == 0)
-	    base_reg = REGNO (reg);
+	    {
+	      base_reg = REGNO (reg);
+	      base_reg_rtx = reg;
+	      if (TARGET_THUMB1 && base_reg > LAST_LO_REGNUM)
+		return 0;
+	    }
 	  else if (base_reg != (int) REGNO (reg))
 	    /* Not addressed from the same base register.  */
 	    return 0;
 
 	  /* If it isn't an integer register, then we can't do this.  */
-	  if (unsorted_regs[i] < 0 || unsorted_regs[i] > 14)
+	  if (unsorted_regs[i] < 0
+	      || (TARGET_THUMB1 && unsorted_regs[i] > LAST_LO_REGNUM)
+	      || (TARGET_THUMB2 && unsorted_regs[i] == base_reg)
+	      || (TARGET_THUMB2 && unsorted_regs[i] == SP_REGNUM)
+	      || unsorted_regs[i] > 14)
 	    return 0;
 
 	  unsorted_offsets[i] = INTVAL (offset);
@@ -9434,18 +9614,30 @@ store_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
      order[0] has been set to the lowest offset in the list.  Sort
      the offsets into order, verifying that they are adjacent, and
      check that the register numbers are ascending.  */
-  if (!compute_offset_order (nops, unsorted_offsets, order, unsorted_regs))
+  if (!compute_offset_order (nops, unsorted_offsets, order,
+			     check_regs ? unsorted_regs : NULL))
     return 0;
+
+  if (saved_order)
+    memcpy (saved_order, order, sizeof order);
 
   if (base)
     {
       *base = base_reg;
 
       for (i = 0; i < nops; i++)
-	regs[i] = unsorted_regs[order[i]];
+	{
+	  regs[i] = unsorted_regs[check_regs ? order[i] : i];
+	  if (reg_rtxs)
+	    reg_rtxs[i] = unsorted_reg_rtxs[check_regs ? order[i] : i];
+	}
 
       *load_offset = unsorted_offsets[order[0]];
     }
+
+  if (TARGET_THUMB1
+      && !peep2_reg_dead_p (nops_total, base_reg_rtx))
+    return 0;
 
   if (unsorted_offsets[order[0]] == 0)
     stm_case = 1; /* stmia */
@@ -9453,7 +9645,7 @@ store_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
     stm_case = 2; /* stmib */
   else if (TARGET_ARM && unsorted_offsets[order[nops - 1]] == 0)
     stm_case = 3; /* stmda */
-  else if (unsorted_offsets[order[nops - 1]] == -4)
+  else if (TARGET_32BIT && unsorted_offsets[order[nops - 1]] == -4)
     stm_case = 4; /* stmdb */
   else
     return 0;
@@ -9463,110 +9655,33 @@ store_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
 
   return stm_case;
 }
-
-const char *
-emit_stm_seq (rtx *operands, int nops)
-{
-  int regs[MAX_LDM_STM_OPS];
-  int base_reg;
-  HOST_WIDE_INT offset;
-  char buf[100];
-  int i;
-
-  switch (store_multiple_sequence (operands, nops, regs, &base_reg, &offset))
-    {
-    case 1:
-      strcpy (buf, "stm%(ia%)\t");
-      break;
-
-    case 2:
-      strcpy (buf, "stm%(ib%)\t");
-      break;
-
-    case 3:
-      strcpy (buf, "stm%(da%)\t");
-      break;
-
-    case 4:
-      strcpy (buf, "stm%(db%)\t");
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-
-  sprintf (buf + strlen (buf), "%s%s, {%s%s", REGISTER_PREFIX,
-	   reg_names[base_reg], REGISTER_PREFIX, reg_names[regs[0]]);
-
-  for (i = 1; i < nops; i++)
-    sprintf (buf + strlen (buf), ", %s%s", REGISTER_PREFIX,
-	     reg_names[regs[i]]);
-
-  strcat (buf, "}\t%@ phole stm");
-
-  output_asm_insn (buf, operands);
-  return "";
-}
 
 /* Routines for use in generating RTL.  */
 
-rtx
-arm_gen_load_multiple (int base_regno, int count, rtx from, int up,
-		       int write_back, rtx basemem, HOST_WIDE_INT *offsetp)
+/* Generate a load-multiple instruction.  COUNT is the number of loads in
+   the instruction; REGS and MEMS are arrays containing the operands.
+   BASEREG is the base register to be used in addressing the memory operands.
+   WBACK_OFFSET is nonzero if the instruction should update the base
+   register.  */
+
+static rtx
+arm_gen_load_multiple_1 (int count, int *regs, rtx *mems, rtx basereg,
+			 HOST_WIDE_INT wback_offset)
 {
-  HOST_WIDE_INT offset = *offsetp;
   int i = 0, j;
   rtx result;
-  int sign = up ? 1 : -1;
-  rtx mem, addr;
 
-  /* XScale has load-store double instructions, but they have stricter
-     alignment requirements than load-store multiple, so we cannot
-     use them.
-
-     For XScale ldm requires 2 + NREGS cycles to complete and blocks
-     the pipeline until completion.
-
-	NREGS		CYCLES
-	  1		  3
-	  2		  4
-	  3		  5
-	  4		  6
-
-     An ldr instruction takes 1-3 cycles, but does not block the
-     pipeline.
-
-	NREGS		CYCLES
-	  1		 1-3
-	  2		 2-6
-	  3		 3-9
-	  4		 4-12
-
-     Best case ldr will always win.  However, the more ldr instructions
-     we issue, the less likely we are to be able to schedule them well.
-     Using ldr instructions also increases code size.
-
-     As a compromise, we use ldr for counts of 1 or 2 regs, and ldm
-     for counts of 3 or 4 regs.  */
-  if (arm_tune_xscale && count <= 2 && ! optimize_size)
+  if (!multiple_operation_profitable_p (false, count, 0))
     {
       rtx seq;
 
       start_sequence ();
 
       for (i = 0; i < count; i++)
-	{
-	  addr = plus_constant (from, i * 4 * sign);
-	  mem = adjust_automodify_address (basemem, SImode, addr, offset);
-	  emit_move_insn (gen_rtx_REG (SImode, base_regno + i), mem);
-	  offset += 4 * sign;
-	}
+	emit_move_insn (gen_rtx_REG (SImode, regs[i]), mems[i]);
 
-      if (write_back)
-	{
-	  emit_move_insn (from, plus_constant (from, count * 4 * sign));
-	  *offsetp = offset;
-	}
+      if (wback_offset != 0)
+	emit_move_insn (basereg, plus_constant (basereg, wback_offset));
 
       seq = get_insns ();
       end_sequence ();
@@ -9575,61 +9690,50 @@ arm_gen_load_multiple (int base_regno, int count, rtx from, int up,
     }
 
   result = gen_rtx_PARALLEL (VOIDmode,
-			     rtvec_alloc (count + (write_back ? 1 : 0)));
-  if (write_back)
+			     rtvec_alloc (count + (wback_offset != 0 ? 1 : 0)));
+  if (wback_offset != 0)
     {
       XVECEXP (result, 0, 0)
-	= gen_rtx_SET (VOIDmode, from, plus_constant (from, count * 4 * sign));
+	= gen_rtx_SET (VOIDmode, basereg,
+		       plus_constant (basereg, wback_offset));
       i = 1;
       count++;
     }
 
   for (j = 0; i < count; i++, j++)
-    {
-      addr = plus_constant (from, j * 4 * sign);
-      mem = adjust_automodify_address_nv (basemem, SImode, addr, offset);
-      XVECEXP (result, 0, i)
-	= gen_rtx_SET (VOIDmode, gen_rtx_REG (SImode, base_regno + j), mem);
-      offset += 4 * sign;
-    }
-
-  if (write_back)
-    *offsetp = offset;
+    XVECEXP (result, 0, i)
+      = gen_rtx_SET (VOIDmode, gen_rtx_REG (SImode, regs[j]), mems[j]);
 
   return result;
 }
 
-rtx
-arm_gen_store_multiple (int base_regno, int count, rtx to, int up,
-			int write_back, rtx basemem, HOST_WIDE_INT *offsetp)
+/* Generate a store-multiple instruction.  COUNT is the number of stores in
+   the instruction; REGS and MEMS are arrays containing the operands.
+   BASEREG is the base register to be used in addressing the memory operands.
+   WBACK_OFFSET is nonzero if the instruction should update the base
+   register.  */
+
+static rtx
+arm_gen_store_multiple_1 (int count, int *regs, rtx *mems, rtx basereg,
+			  HOST_WIDE_INT wback_offset)
 {
-  HOST_WIDE_INT offset = *offsetp;
   int i = 0, j;
   rtx result;
-  int sign = up ? 1 : -1;
-  rtx mem, addr;
 
-  /* See arm_gen_load_multiple for discussion of
-     the pros/cons of ldm/stm usage for XScale.  */
-  if (arm_tune_xscale && count <= 2 && ! optimize_size)
+  if (GET_CODE (basereg) == PLUS)
+    basereg = XEXP (basereg, 0);
+
+  if (!multiple_operation_profitable_p (false, count, 0))
     {
       rtx seq;
 
       start_sequence ();
 
       for (i = 0; i < count; i++)
-	{
-	  addr = plus_constant (to, i * 4 * sign);
-	  mem = adjust_automodify_address (basemem, SImode, addr, offset);
-	  emit_move_insn (mem, gen_rtx_REG (SImode, base_regno + i));
-	  offset += 4 * sign;
-	}
+	emit_move_insn (mems[i], gen_rtx_REG (SImode, regs[i]));
 
-      if (write_back)
-	{
-	  emit_move_insn (to, plus_constant (to, count * 4 * sign));
-	  *offsetp = offset;
-	}
+      if (wback_offset != 0)
+	emit_move_insn (basereg, plus_constant (basereg, wback_offset));
 
       seq = get_insns ();
       end_sequence ();
@@ -9638,29 +9742,319 @@ arm_gen_store_multiple (int base_regno, int count, rtx to, int up,
     }
 
   result = gen_rtx_PARALLEL (VOIDmode,
-			     rtvec_alloc (count + (write_back ? 1 : 0)));
-  if (write_back)
+			     rtvec_alloc (count + (wback_offset != 0 ? 1 : 0)));
+  if (wback_offset != 0)
     {
       XVECEXP (result, 0, 0)
-	= gen_rtx_SET (VOIDmode, to,
-		       plus_constant (to, count * 4 * sign));
+	= gen_rtx_SET (VOIDmode, basereg,
+		       plus_constant (basereg, wback_offset));
       i = 1;
       count++;
     }
 
   for (j = 0; i < count; i++, j++)
+    XVECEXP (result, 0, i)
+      = gen_rtx_SET (VOIDmode, mems[j], gen_rtx_REG (SImode, regs[j]));
+
+  return result;
+}
+
+/* Generate either a load-multiple or a store-multiple instruction.  This
+   function can be used in situations where we can start with a single MEM
+   rtx and adjust its address upwards.
+   COUNT is the number of operations in the instruction, not counting a
+   possible update of the base register.  REGS is an array containing the
+   register operands.
+   BASEREG is the base register to be used in addressing the memory operands,
+   which are constructed from BASEMEM.
+   WRITE_BACK specifies whether the generated instruction should include an
+   update of the base register.
+   OFFSETP is used to pass an offset to and from this function; this offset
+   is not used when constructing the address (instead BASEMEM should have an
+   appropriate offset in its address), it is used only for setting
+   MEM_OFFSET.  It is updated only if WRITE_BACK is true.*/
+
+static rtx
+arm_gen_multiple_op (bool is_load, int *regs, int count, rtx basereg,
+		     bool write_back, rtx basemem, HOST_WIDE_INT *offsetp)
+{
+  rtx mems[MAX_LDM_STM_OPS];
+  HOST_WIDE_INT offset = *offsetp;
+  int i;
+
+  gcc_assert (count <= MAX_LDM_STM_OPS);
+
+  if (GET_CODE (basereg) == PLUS)
+    basereg = XEXP (basereg, 0);
+
+  for (i = 0; i < count; i++)
     {
-      addr = plus_constant (to, j * 4 * sign);
-      mem = adjust_automodify_address_nv (basemem, SImode, addr, offset);
-      XVECEXP (result, 0, i)
-	= gen_rtx_SET (VOIDmode, mem, gen_rtx_REG (SImode, base_regno + j));
-      offset += 4 * sign;
+      rtx addr = plus_constant (basereg, i * 4);
+      mems[i] = adjust_automodify_address_nv (basemem, SImode, addr, offset);
+      offset += 4;
     }
 
   if (write_back)
     *offsetp = offset;
 
-  return result;
+  if (is_load)
+    return arm_gen_load_multiple_1 (count, regs, mems, basereg,
+				    write_back ? 4 * count : 0);
+  else
+    return arm_gen_store_multiple_1 (count, regs, mems, basereg,
+				     write_back ? 4 * count : 0);
+}
+
+rtx
+arm_gen_load_multiple (int *regs, int count, rtx basereg, int write_back,
+		       rtx basemem, HOST_WIDE_INT *offsetp)
+{
+  return arm_gen_multiple_op (TRUE, regs, count, basereg, write_back, basemem,
+			      offsetp);
+}
+
+rtx
+arm_gen_store_multiple (int *regs, int count, rtx basereg, int write_back,
+			rtx basemem, HOST_WIDE_INT *offsetp)
+{
+  return arm_gen_multiple_op (FALSE, regs, count, basereg, write_back, basemem,
+			      offsetp);
+}
+
+/* Called from a peephole2 expander to turn a sequence of loads into an
+   LDM instruction.  OPERANDS are the operands found by the peephole matcher;
+   NOPS indicates how many separate loads we are trying to combine.  SORT_REGS
+   is true if we can reorder the registers because they are used commutatively
+   subsequently.
+   Returns true iff we could generate a new instruction.  */
+
+bool
+gen_ldm_seq (rtx *operands, int nops, bool sort_regs)
+{
+  int regs[MAX_LDM_STM_OPS], mem_order[MAX_LDM_STM_OPS];
+  rtx mems[MAX_LDM_STM_OPS];
+  int i, j, base_reg;
+  rtx base_reg_rtx;
+  HOST_WIDE_INT offset;
+  int write_back = FALSE;
+  int ldm_case;
+  rtx addr;
+
+  ldm_case = load_multiple_sequence (operands, nops, regs, mem_order,
+				     &base_reg, &offset, !sort_regs);
+
+  if (ldm_case == 0)
+    return false;
+
+  if (sort_regs)
+    for (i = 0; i < nops - 1; i++)
+      for (j = i + 1; j < nops; j++)
+	if (regs[i] > regs[j])
+	  {
+	    int t = regs[i];
+	    regs[i] = regs[j];
+	    regs[j] = t;
+	  }
+  base_reg_rtx = gen_rtx_REG (Pmode, base_reg);
+
+  if (TARGET_THUMB1)
+    {
+      gcc_assert (peep2_reg_dead_p (nops, base_reg_rtx));
+      gcc_assert (ldm_case == 1 || ldm_case == 5);
+      write_back = TRUE;
+    }
+
+  if (ldm_case == 5)
+    {
+      rtx newbase = TARGET_THUMB1 ? base_reg_rtx : gen_rtx_REG (SImode, regs[0]);
+      emit_insn (gen_addsi3 (newbase, base_reg_rtx, GEN_INT (offset)));
+      offset = 0;
+      if (!TARGET_THUMB1)
+	{
+	  base_reg = regs[0];
+	  base_reg_rtx = newbase;
+	}
+    }
+
+  for (i = 0; i < nops; i++)
+    {
+      addr = plus_constant (base_reg_rtx, offset + i * 4);
+      mems[i] = adjust_automodify_address_nv (operands[nops + mem_order[i]],
+					      SImode, addr, 0);
+    }
+  emit_insn (arm_gen_load_multiple_1 (nops, regs, mems, base_reg_rtx,
+				      write_back ? offset + i * 4 : 0));
+  return true;
+}
+
+/* Called from a peephole2 expander to turn a sequence of stores into an
+   STM instruction.  OPERANDS are the operands found by the peephole matcher;
+   NOPS indicates how many separate stores we are trying to combine.
+   Returns true iff we could generate a new instruction.  */
+
+bool
+gen_stm_seq (rtx *operands, int nops)
+{
+  int i;
+  int regs[MAX_LDM_STM_OPS], mem_order[MAX_LDM_STM_OPS];
+  rtx mems[MAX_LDM_STM_OPS];
+  int base_reg;
+  rtx base_reg_rtx;
+  HOST_WIDE_INT offset;
+  int write_back = FALSE;
+  int stm_case;
+  rtx addr;
+  bool base_reg_dies;
+
+  stm_case = store_multiple_sequence (operands, nops, nops, regs, NULL,
+				      mem_order, &base_reg, &offset, true);
+
+  if (stm_case == 0)
+    return false;
+
+  base_reg_rtx = gen_rtx_REG (Pmode, base_reg);
+
+  base_reg_dies = peep2_reg_dead_p (nops, base_reg_rtx);
+  if (TARGET_THUMB1)
+    {
+      gcc_assert (base_reg_dies);
+      write_back = TRUE;
+    }
+
+  if (stm_case == 5)
+    {
+      gcc_assert (base_reg_dies);
+      emit_insn (gen_addsi3 (base_reg_rtx, base_reg_rtx, GEN_INT (offset)));
+      offset = 0;
+    }
+
+  addr = plus_constant (base_reg_rtx, offset);
+
+  for (i = 0; i < nops; i++)
+    {
+      addr = plus_constant (base_reg_rtx, offset + i * 4);
+      mems[i] = adjust_automodify_address_nv (operands[nops + mem_order[i]],
+					      SImode, addr, 0);
+    }
+  emit_insn (arm_gen_store_multiple_1 (nops, regs, mems, base_reg_rtx,
+				       write_back ? offset + i * 4 : 0));
+  return true;
+}
+
+/* Called from a peephole2 expander to turn a sequence of stores that are
+   preceded by constant loads into an STM instruction.  OPERANDS are the
+   operands found by the peephole matcher; NOPS indicates how many
+   separate stores we are trying to combine; there are 2 * NOPS
+   instructions in the peephole.
+   Returns true iff we could generate a new instruction.  */
+
+bool
+gen_const_stm_seq (rtx *operands, int nops)
+{
+  int regs[MAX_LDM_STM_OPS], sorted_regs[MAX_LDM_STM_OPS];
+  int reg_order[MAX_LDM_STM_OPS], mem_order[MAX_LDM_STM_OPS];
+  rtx reg_rtxs[MAX_LDM_STM_OPS], orig_reg_rtxs[MAX_LDM_STM_OPS];
+  rtx mems[MAX_LDM_STM_OPS];
+  int base_reg;
+  rtx base_reg_rtx;
+  HOST_WIDE_INT offset;
+  int write_back = FALSE;
+  int stm_case;
+  rtx addr;
+  bool base_reg_dies;
+  int i, j;
+  HARD_REG_SET allocated;
+
+  stm_case = store_multiple_sequence (operands, nops, 2 * nops, regs, reg_rtxs,
+				      mem_order, &base_reg, &offset, false);
+
+  if (stm_case == 0)
+    return false;
+
+  memcpy (orig_reg_rtxs, reg_rtxs, sizeof orig_reg_rtxs);
+
+  /* If the same register is used more than once, try to find a free
+     register.  */
+  CLEAR_HARD_REG_SET (allocated);
+  for (i = 0; i < nops; i++)
+    {
+      for (j = i + 1; j < nops; j++)
+	if (regs[i] == regs[j])
+	  {
+	    rtx t = peep2_find_free_register (0, nops * 2,
+					      TARGET_THUMB1 ? "l" : "r",
+					      SImode, &allocated);
+	    if (t == NULL_RTX)
+	      return false;
+	    reg_rtxs[i] = t;
+	    regs[i] = REGNO (t);
+	  }
+    }
+
+  /* Compute an ordering that maps the register numbers to an ascending
+     sequence.  */
+  reg_order[0] = 0;
+  for (i = 0; i < nops; i++)
+    if (regs[i] < regs[reg_order[0]])
+      reg_order[0] = i;
+
+  for (i = 1; i < nops; i++)
+    {
+      int this_order = reg_order[i - 1];
+      for (j = 0; j < nops; j++)
+	if (regs[j] > regs[reg_order[i - 1]]
+	    && (this_order == reg_order[i - 1]
+		|| regs[j] < regs[this_order]))
+	  this_order = j;
+      reg_order[i] = this_order;
+    }
+
+  /* Ensure that registers that must be live after the instruction end
+     up with the correct value.  */
+  for (i = 0; i < nops; i++)
+    {
+      int this_order = reg_order[i];
+      if ((this_order != mem_order[i]
+	   || orig_reg_rtxs[this_order] != reg_rtxs[this_order])
+	  && !peep2_reg_dead_p (nops * 2, orig_reg_rtxs[this_order]))
+	return false;
+    }
+
+  /* Load the constants.  */
+  for (i = 0; i < nops; i++)
+    {
+      rtx op = operands[2 * nops + mem_order[i]];
+      sorted_regs[i] = regs[reg_order[i]];
+      emit_move_insn (reg_rtxs[reg_order[i]], op);
+    }
+
+  base_reg_rtx = gen_rtx_REG (Pmode, base_reg);
+
+  base_reg_dies = peep2_reg_dead_p (nops * 2, base_reg_rtx);
+  if (TARGET_THUMB1)
+    {
+      gcc_assert (base_reg_dies);
+      write_back = TRUE;
+    }
+
+  if (stm_case == 5)
+    {
+      gcc_assert (base_reg_dies);
+      emit_insn (gen_addsi3 (base_reg_rtx, base_reg_rtx, GEN_INT (offset)));
+      offset = 0;
+    }
+
+  addr = plus_constant (base_reg_rtx, offset);
+
+  for (i = 0; i < nops; i++)
+    {
+      addr = plus_constant (base_reg_rtx, offset + i * 4);
+      mems[i] = adjust_automodify_address_nv (operands[nops + mem_order[i]],
+					      SImode, addr, 0);
+    }
+  emit_insn (arm_gen_store_multiple_1 (nops, sorted_regs, mems, base_reg_rtx,
+				       write_back ? offset + i * 4 : 0));
+  return true;
 }
 
 int
@@ -9696,20 +10090,21 @@ arm_gen_movmemqi (rtx *operands)
   for (i = 0; in_words_to_go >= 2; i+=4)
     {
       if (in_words_to_go > 4)
-	emit_insn (arm_gen_load_multiple (0, 4, src, TRUE, TRUE,
-					  srcbase, &srcoffset));
+	emit_insn (arm_gen_load_multiple (arm_regs_in_sequence, 4, src,
+					  TRUE, srcbase, &srcoffset));
       else
-	emit_insn (arm_gen_load_multiple (0, in_words_to_go, src, TRUE,
-					  FALSE, srcbase, &srcoffset));
+	emit_insn (arm_gen_load_multiple (arm_regs_in_sequence, in_words_to_go,
+					  src, FALSE, srcbase,
+					  &srcoffset));
 
       if (out_words_to_go)
 	{
 	  if (out_words_to_go > 4)
-	    emit_insn (arm_gen_store_multiple (0, 4, dst, TRUE, TRUE,
-					       dstbase, &dstoffset));
+	    emit_insn (arm_gen_store_multiple (arm_regs_in_sequence, 4, dst,
+					       TRUE, dstbase, &dstoffset));
 	  else if (out_words_to_go != 1)
-	    emit_insn (arm_gen_store_multiple (0, out_words_to_go,
-					       dst, TRUE,
+	    emit_insn (arm_gen_store_multiple (arm_regs_in_sequence,
+					       out_words_to_go, dst,
 					       (last_bytes == 0
 						? FALSE : TRUE),
 					       dstbase, &dstoffset));
@@ -19451,14 +19846,45 @@ thumb_exit (FILE *f, int reg_containing_return_addr)
   /* Return to caller.  */
   asm_fprintf (f, "\tbx\t%r\n", reg_containing_return_addr);
 }
-
 
+/* Scan INSN just before assembler is output for it.
+   For Thumb-1, we track the status of the condition codes; this
+   information is used in the cbranchsi4_insn pattern.  */
 void
 thumb1_final_prescan_insn (rtx insn)
 {
   if (flag_print_asm_name)
     asm_fprintf (asm_out_file, "%@ 0x%04x\n",
 		 INSN_ADDRESSES (INSN_UID (insn)));
+  /* Don't overwrite the previous setter when we get to a cbranch.  */
+  if (INSN_CODE (insn) != CODE_FOR_cbranchsi4_insn)
+    {
+      enum attr_conds conds;
+
+      if (cfun->machine->thumb1_cc_insn)
+	{
+	  if (modified_in_p (cfun->machine->thumb1_cc_op0, insn)
+	      || modified_in_p (cfun->machine->thumb1_cc_op1, insn))
+	    CC_STATUS_INIT;
+	}
+      conds = get_attr_conds (insn);
+      if (conds == CONDS_SET)
+	{
+	  rtx set = single_set (insn);
+	  cfun->machine->thumb1_cc_insn = insn;
+	  cfun->machine->thumb1_cc_op0 = SET_DEST (set);
+	  cfun->machine->thumb1_cc_op1 = const0_rtx;
+	  cfun->machine->thumb1_cc_mode = CC_NOOVmode;
+	  if (INSN_CODE (insn) == CODE_FOR_thumb1_subsi3_insn)
+	    {
+	      rtx src1 = XEXP (SET_SRC (set), 1);
+	      if (src1 == const0_rtx)
+		cfun->machine->thumb1_cc_mode = CCmode;
+	    }
+	}
+      else if (conds != CONDS_NOCOND)
+	cfun->machine->thumb1_cc_insn = NULL_RTX;
+    }
 }
 
 int

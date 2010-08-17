@@ -1154,7 +1154,7 @@ static rtx rs6000_complex_function_value (enum machine_mode);
 static rtx rs6000_spe_function_arg (CUMULATIVE_ARGS *,
 				    enum machine_mode, tree);
 static void rs6000_darwin64_record_arg_advance_flush (CUMULATIVE_ARGS *,
-						      HOST_WIDE_INT);
+						      HOST_WIDE_INT, int);
 static void rs6000_darwin64_record_arg_advance_recurse (CUMULATIVE_ARGS *,
 							tree, HOST_WIDE_INT);
 static void rs6000_darwin64_record_arg_flush (CUMULATIVE_ARGS *,
@@ -2335,6 +2335,8 @@ darwin_rs6000_override_options (void)
       {
         flag_pic = 2;
       }
+    if (TARGET_64BIT)
+      darwin_one_byte_bool = 1;
   }
   if (TARGET_64BIT && ! TARGET_POWERPC64)
     {
@@ -2696,6 +2698,18 @@ rs6000_override_options (const char *default_cpu)
   else if (TARGET_ALTIVEC)
     target_flags |= (MASK_PPC_GFXOPT & ~target_flags_explicit);
 
+  /* E500mc does "better" if we inline more aggressively.  Respect the
+     user's opinion, though.  */
+  if (rs6000_block_move_inline_limit == 0
+      && (rs6000_cpu == PROCESSOR_PPCE500MC
+	  || rs6000_cpu == PROCESSOR_PPCE500MC64))
+    rs6000_block_move_inline_limit = 128;
+
+  /* store_one_arg depends on expand_block_move to handle at least the
+     size of reg_parm_stack_space.  */
+  if (rs6000_block_move_inline_limit < (TARGET_POWERPC64 ? 64 : 32))
+    rs6000_block_move_inline_limit = (TARGET_POWERPC64 ? 64 : 32);
+
   /* Set debug flags */
   if (rs6000_debug_name)
     {
@@ -2783,13 +2797,13 @@ rs6000_override_options (const char *default_cpu)
 	TARGET_ALTIVEC_VRSAVE = rs6000_altivec_abi;
     }
 
-  /* Set the Darwin64 ABI as default for 64-bit Darwin.  */
-  if (DEFAULT_ABI == ABI_DARWIN && TARGET_64BIT)
+  /* Set the Darwin64 ABI as default for 64-bit Darwin.  
+     So far, the only darwin64 targets are also MACH-O.  */
+  if (TARGET_MACHO
+      && DEFAULT_ABI == ABI_DARWIN 
+      && TARGET_64BIT)
     {
       rs6000_darwin64_abi = 1;
-#if TARGET_MACHO
-      darwin_one_byte_bool = 1;
-#endif
       /* Default to natural alignment, for better performance.  */
       rs6000_alignment_flags = MASK_ALIGN_NATURAL;
     }
@@ -3768,6 +3782,11 @@ rs6000_handle_option (size_t code, const char *arg, int value)
 
   switch (code)
     {
+    case OPT_G:
+      g_switch_value = value;
+      g_switch_set = true;
+      break;
+
     case OPT_mno_power:
       target_flags &= ~(MASK_POWER | MASK_POWER2
 			| MASK_MULTIPLE | MASK_STRING);
@@ -7251,9 +7270,17 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
    function doing the returning, or @code{NULL} for libcalls.
 
    The AIX ABI for the RS/6000 specifies that all structures are
-   returned in memory.  The Darwin ABI does the same.  The SVR4 ABI
-   specifies that structures <= 8 bytes are returned in r3/r4, but a
-   draft put them in memory, and GCC used to implement the draft
+   returned in memory.  The Darwin ABI does the same.
+   
+   For the Darwin 64 Bit ABI, a function result can be returned in
+   registers or in memory, depending on the size of the return data
+   type.  If it is returned in registers, the value occupies the same
+   registers as it would if it were the first and only function
+   argument.  Otherwise, the function places its result in memory at
+   the location pointed to by GPR3.
+   
+   The SVR4 ABI specifies that structures <= 8 bytes are returned in r3/r4, 
+   but a draft put them in memory, and GCC used to implement the draft
    instead of the final standard.  Therefore, aix_struct_return
    controls this instead of DEFAULT_ABI; V.4 targets needing backward
    compatibility can change DRAFT_V4_STRUCT_RET to override the
@@ -7269,9 +7296,9 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
 static bool
 rs6000_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
-  /* In the darwin64 abi, try to use registers for larger structs
-     if possible.  */
-  if (rs6000_darwin64_abi
+  /* For the Darwin64 ABI, test if we can fit the return value in regs.  */
+  if (TARGET_MACHO
+      && rs6000_darwin64_abi
       && TREE_CODE (type) == RECORD_TYPE
       && int_size_in_bytes (type) > 0)
     {
@@ -7342,10 +7369,7 @@ init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
   cum->call_cookie = ((DEFAULT_ABI == ABI_V4 && libcall)
 		      ? CALL_LIBCALL : CALL_NORMAL);
   cum->sysv_gregno = GP_ARG_MIN_REG;
-  cum->stdarg = fntype
-    && (TYPE_ARG_TYPES (fntype) != 0
-	&& (TREE_VALUE (tree_last  (TYPE_ARG_TYPES (fntype)))
-	    != void_type_node));
+  cum->stdarg = stdarg_p (fntype);
 
   cum->nargs_prototype = 0;
   if (incoming || cum->prototype)
@@ -7487,7 +7511,9 @@ function_arg_boundary (enum machine_mode mode, tree type)
 	   || (type && TREE_CODE (type) == VECTOR_TYPE
 	       && int_size_in_bytes (type) >= 16))
     return 128;
-  else if (rs6000_darwin64_abi && mode == BLKmode
+  else if (TARGET_MACHO
+ 	   && rs6000_darwin64_abi
+ 	   && mode == BLKmode
 	   && type && TYPE_ALIGN (type) > 64)
     return 128;
   else
@@ -7530,17 +7556,31 @@ rs6000_arg_size (enum machine_mode mode, tree type)
 
 static void
 rs6000_darwin64_record_arg_advance_flush (CUMULATIVE_ARGS *cum,
-					  HOST_WIDE_INT bitpos)
+					  HOST_WIDE_INT bitpos, int final)
 {
   unsigned int startbit, endbit;
   int intregs, intoffset;
   enum machine_mode mode;
+
+  /* Handle the situations where a float is taking up the first half
+     of the GPR, and the other half is empty (typically due to
+     alignment restrictions). We can detect this by a 8-byte-aligned
+     int field, or by seeing that this is the final flush for this
+     argument. Count the word and continue on.  */
+  if (cum->floats_in_gpr == 1
+      && (cum->intoffset % 64 == 0
+	  || (cum->intoffset == -1 && final)))
+    {
+      cum->words++;
+      cum->floats_in_gpr = 0;
+    }
 
   if (cum->intoffset == -1)
     return;
 
   intoffset = cum->intoffset;
   cum->intoffset = -1;
+  cum->floats_in_gpr = 0;
 
   if (intoffset % BITS_PER_WORD != 0)
     {
@@ -7560,6 +7600,12 @@ rs6000_darwin64_record_arg_advance_flush (CUMULATIVE_ARGS *cum,
   endbit = (bitpos + BITS_PER_WORD - 1) & -BITS_PER_WORD;
   intregs = (endbit - startbit) / BITS_PER_WORD;
   cum->words += intregs;
+  /* words should be unsigned. */
+  if ((unsigned)cum->words < (endbit/BITS_PER_WORD))
+    {
+      int pad = (endbit/BITS_PER_WORD) - cum->words;
+      cum->words += pad;
+    }
 }
 
 /* The darwin64 ABI calls for us to recurse down through structs,
@@ -7594,19 +7640,67 @@ rs6000_darwin64_record_arg_advance_recurse (CUMULATIVE_ARGS *cum,
 	  rs6000_darwin64_record_arg_advance_recurse (cum, ftype, bitpos);
 	else if (USE_FP_FOR_ARG_P (cum, mode, ftype))
 	  {
-	    rs6000_darwin64_record_arg_advance_flush (cum, bitpos);
+	    rs6000_darwin64_record_arg_advance_flush (cum, bitpos, 0);
 	    cum->fregno += (GET_MODE_SIZE (mode) + 7) >> 3;
-	    cum->words += (GET_MODE_SIZE (mode) + 7) >> 3;
+	    /* Single-precision floats present a special problem for
+	       us, because they are smaller than an 8-byte GPR, and so
+	       the structure-packing rules combined with the standard
+	       varargs behavior mean that we want to pack float/float
+	       and float/int combinations into a single register's
+	       space. This is complicated by the arg advance flushing,
+	       which works on arbitrarily large groups of int-type
+	       fields.  */
+	    if (mode == SFmode)
+	      {
+		if (cum->floats_in_gpr == 1)
+		  {
+		    /* Two floats in a word; count the word and reset
+		       the float count.  */
+		    cum->words++;
+		    cum->floats_in_gpr = 0;
+		  }
+		else if (bitpos % 64 == 0)
+		  {
+		    /* A float at the beginning of an 8-byte word;
+		       count it and put off adjusting cum->words until
+		       we see if a arg advance flush is going to do it
+		       for us.  */
+		    cum->floats_in_gpr++;
+		  }
+		else
+		  {
+		    /* The float is at the end of a word, preceded
+		       by integer fields, so the arg advance flush
+		       just above has already set cum->words and
+		       everything is taken care of.  */
+		  }
+	      }
+	    else
+	      cum->words += (GET_MODE_SIZE (mode) + 7) >> 3;
 	  }
 	else if (USE_ALTIVEC_FOR_ARG_P (cum, mode, type, 1))
 	  {
-	    rs6000_darwin64_record_arg_advance_flush (cum, bitpos);
+	    rs6000_darwin64_record_arg_advance_flush (cum, bitpos, 0);
 	    cum->vregno++;
 	    cum->words += 2;
 	  }
 	else if (cum->intoffset == -1)
 	  cum->intoffset = bitpos;
       }
+}
+
+/* Check for an item that needs to be considered specially under the darwin 64
+   bit ABI.  These are record types where the mode is BLK or the structure is
+   8 bytes in size.  */
+static int
+rs6000_darwin64_struct_check_p (enum machine_mode mode, const_tree type)
+{
+  return rs6000_darwin64_abi
+	 && ((mode == BLKmode 
+	      && TREE_CODE (type) == RECORD_TYPE 
+	      && int_size_in_bytes (type) > 0)
+	  || (type && TREE_CODE (type) == RECORD_TYPE 
+	      && int_size_in_bytes (type) == 8)) ? 1 : 0;
 }
 
 /* Update the data in CUM to advance over an argument
@@ -7621,7 +7715,6 @@ void
 function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 		      tree type, int named, int depth)
 {
-  int size;
 
   /* Only tick off an argument if we're not recursing.  */
   if (depth == 0)
@@ -7685,11 +7778,9 @@ function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 	   && cum->sysv_gregno <= GP_ARG_MAX_REG)
     cum->sysv_gregno++;
 
-  else if (rs6000_darwin64_abi
-	   && mode == BLKmode
-    	   && TREE_CODE (type) == RECORD_TYPE
-	   && (size = int_size_in_bytes (type)) > 0)
+  else if (TARGET_MACHO && rs6000_darwin64_struct_check_p (mode, type))
     {
+      int size = int_size_in_bytes (type);
       /* Variable sized types have size == -1 and are
 	 treated as if consisting entirely of ints.
 	 Pad to 16 byte boundary if needed.  */
@@ -7706,10 +7797,20 @@ function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 	     { int; double; int; } [powerpc alignment].  We have to
 	     grovel through the fields for these too.  */
 	  cum->intoffset = 0;
+	  cum->floats_in_gpr = 0;
 	  rs6000_darwin64_record_arg_advance_recurse (cum, type, 0);
 	  rs6000_darwin64_record_arg_advance_flush (cum,
-						    size * BITS_PER_UNIT);
+						    size * BITS_PER_UNIT, 1);
 	}
+	  if (TARGET_DEBUG_ARG)
+	    {
+	      fprintf (stderr, "function_adv: words = %2d, align=%d, size=%d",
+		       cum->words, TYPE_ALIGN (type), size);
+	      fprintf (stderr, 
+	           "nargs = %4d, proto = %d, mode = %4s (darwin64 abi)\n",
+		       cum->nargs_prototype, cum->prototype,
+		       GET_MODE_NAME (mode));
+	    }
     }
   else if (DEFAULT_ABI == ABI_V4)
     {
@@ -8186,8 +8287,7 @@ function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
       return GEN_INT (cum->call_cookie);
     }
 
-  if (rs6000_darwin64_abi && mode == BLKmode
-      && TREE_CODE (type) == RECORD_TYPE)
+  if (TARGET_MACHO && rs6000_darwin64_struct_check_p (mode, type))
     {
       rtx rslt = rs6000_darwin64_record_arg (cum, type, named, false);
       if (rslt != NULL_RTX)
@@ -8444,9 +8544,7 @@ rs6000_arg_partial_bytes (CUMULATIVE_ARGS *cum, enum machine_mode mode,
     return 0;
 
   /* In this complicated case we just disable the partial_nregs code.  */
-  if (rs6000_darwin64_abi && mode == BLKmode
-      && TREE_CODE (type) == RECORD_TYPE
-      && int_size_in_bytes (type) > 0)
+  if (TARGET_MACHO && rs6000_darwin64_struct_check_p (mode, type))
     return 0;
 
   align_words = rs6000_parm_start (mode, type, cum->words);
@@ -8917,6 +9015,50 @@ rs6000_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
     {
       t = rs6000_gimplify_va_arg (valist, ptrtype, pre_p, post_p);
       return build_va_arg_indirect_ref (t);
+    }
+
+  /* We need to deal with the fact that the darwin ppc64 ABI is defined by an
+     earlier version of gcc, with the property that it always applied alignment
+     adjustments to the va-args (even for zero-sized types).  The cheapest way
+     to deal with this is to replicate the effect of the part of 
+     std_gimplify_va_arg_expr that carries out the align adjust, for the case 
+     of relevance.  
+     We don't need to check for pass-by-reference because of the test above.
+     We can return a simplifed answer, since we know there's no offset to add.  */
+
+  if (TARGET_MACHO
+      && rs6000_darwin64_abi 
+      && integer_zerop (TYPE_SIZE (type)))
+    {
+      unsigned HOST_WIDE_INT align, boundary;
+      tree valist_tmp = get_initialized_tmp_var (valist, pre_p, NULL);
+      align = PARM_BOUNDARY / BITS_PER_UNIT;
+      boundary = FUNCTION_ARG_BOUNDARY (TYPE_MODE (type), type);
+      if (boundary > MAX_SUPPORTED_STACK_ALIGNMENT)
+	boundary = MAX_SUPPORTED_STACK_ALIGNMENT;
+      boundary /= BITS_PER_UNIT;
+      if (boundary > align)
+	{
+	  tree t ;
+	  /* This updates arg ptr by the amount that would be necessary
+	     to align the zero-sized (but not zero-alignment) item.  */
+	  t = build2 (MODIFY_EXPR, TREE_TYPE (valist), valist_tmp,
+		  fold_build2 (POINTER_PLUS_EXPR,
+			       TREE_TYPE (valist),
+			       valist_tmp, size_int (boundary - 1)));
+	  gimplify_and_add (t, pre_p);
+
+	  t = fold_convert (sizetype, valist_tmp);
+	  t = build2 (MODIFY_EXPR, TREE_TYPE (valist), valist_tmp,
+		  fold_convert (TREE_TYPE (valist),
+				fold_build2 (BIT_AND_EXPR, sizetype, t,
+					     size_int (-boundary))));
+	  t = build2 (MODIFY_EXPR, TREE_TYPE (valist), valist, t);
+	  gimplify_and_add (t, pre_p);
+	}
+      /* Since it is zero-sized there's no increment for the item itself. */
+      valist_tmp = fold_convert (build_pointer_type (type), valist_tmp);
+      return build_va_arg_indirect_ref (valist_tmp);
     }
 
   if (DEFAULT_ABI != ABI_V4)
@@ -13208,9 +13350,7 @@ expand_block_move (rtx operands[])
   if (bytes <= 0)
     return 1;
 
-  /* store_one_arg depends on expand_block_move to handle at least the size of
-     reg_parm_stack_space.  */
-  if (bytes > (TARGET_POWERPC64 ? 64 : 32))
+  if (bytes > rs6000_block_move_inline_limit)
     return 0;
 
   for (offset = 0; bytes > 0; offset += move_bytes, bytes -= move_bytes)
@@ -15392,7 +15532,8 @@ print_operand (FILE *file, rtx x, int code)
 	{
 	  const char *name = XSTR (x, 0);
 #if TARGET_MACHO
-	  if (MACHOPIC_INDIRECT
+	  if (darwin_emit_branch_islands
+	      && MACHOPIC_INDIRECT
 	      && machopic_classify_symbol (x) == MACHOPIC_UNDEFINED_FUNCTION)
 	    name = machopic_indirection_name (x, /*stub_p=*/true);
 #endif
@@ -15997,53 +16138,12 @@ rs6000_generate_compare (rtx cmp, enum machine_mode mode)
 }
 
 
-/* Emit the RTL for an sCOND pattern.  */
+/* Emit the RTL for an sISEL pattern.  */
 
 void
-rs6000_emit_sISEL (enum machine_mode mode, rtx operands[])
+rs6000_emit_sISEL (enum machine_mode mode ATTRIBUTE_UNUSED, rtx operands[])
 {
-  rtx condition_rtx;
-  enum machine_mode op_mode;
-  enum rtx_code cond_code;
-  rtx result = operands[0];
-
-  condition_rtx = rs6000_generate_compare (operands[1], mode);
-  cond_code = GET_CODE (condition_rtx);
-
-  op_mode = GET_MODE (XEXP (operands[1], 0));
-  if (op_mode == VOIDmode)
-    op_mode = GET_MODE (XEXP (operands[1], 1));
-
-  if (TARGET_POWERPC64 && GET_MODE (result) == DImode)
-    {
-      PUT_MODE (condition_rtx, DImode);
-      if (cond_code == GEU || cond_code == GTU || cond_code == LEU
-         || cond_code == LTU)
-       emit_insn (gen_isel_unsigned_di (result, condition_rtx,
-					force_reg (DImode, const1_rtx),
-					force_reg (DImode, const0_rtx),
-					XEXP (condition_rtx, 0)));
-      else
-       emit_insn (gen_isel_signed_di (result, condition_rtx,
-				      force_reg (DImode, const1_rtx),
-				      force_reg (DImode, const0_rtx),
-				      XEXP (condition_rtx, 0)));
-    }
-  else
-    {
-      PUT_MODE (condition_rtx, SImode);
-      if (cond_code == GEU || cond_code == GTU || cond_code == LEU
-	 || cond_code == LTU)
-       emit_insn (gen_isel_unsigned_si (result, condition_rtx,
-					force_reg (SImode, const1_rtx),
-					force_reg (SImode, const0_rtx),
-					XEXP (condition_rtx, 0)));
-      else
-       emit_insn (gen_isel_signed_si (result, condition_rtx,
-				      force_reg (SImode, const1_rtx),
-				      force_reg (SImode, const0_rtx),
-				      XEXP (condition_rtx, 0)));
-    }
+  rs6000_emit_int_cmove (operands[0], operands[1], const1_rtx, const0_rtx);
 }
 
 void
@@ -16710,6 +16810,9 @@ rs6000_emit_int_cmove (rtx dest, rtx op, rtx true_cond, rtx false_cond)
 {
   rtx condition_rtx, cr;
   enum machine_mode mode = GET_MODE (dest);
+  enum rtx_code cond_code;
+  rtx (*isel_func) (rtx, rtx, rtx, rtx, rtx);
+  bool signedp;
 
   if (mode != SImode && (!TARGET_POWERPC64 || mode != DImode))
     return 0;
@@ -16718,26 +16821,36 @@ rs6000_emit_int_cmove (rtx dest, rtx op, rtx true_cond, rtx false_cond)
      compare, it just looks at the CRx bits set by a previous compare
      instruction.  */
   condition_rtx = rs6000_generate_compare (op, mode);
+  cond_code = GET_CODE (condition_rtx);
   cr = XEXP (condition_rtx, 0);
+  signedp = GET_MODE (cr) == CCmode;
 
-  if (mode == SImode)
+  isel_func = (mode == SImode
+	       ? (signedp ? gen_isel_signed_si : gen_isel_unsigned_si)
+	       : (signedp ? gen_isel_signed_di : gen_isel_unsigned_di));
+
+  switch (cond_code)
     {
-      if (GET_MODE (cr) == CCmode)
-	emit_insn (gen_isel_signed_si (dest, condition_rtx,
-				       true_cond, false_cond, cr));
-      else
-	emit_insn (gen_isel_unsigned_si (dest, condition_rtx,
-					 true_cond, false_cond, cr));
+    case LT: case GT: case LTU: case GTU: case EQ:
+      /* isel handles these directly.  */
+      break;
+
+    default:
+      /* We need to swap the sense of the comparison.  */
+      {
+	rtx t = true_cond;
+	true_cond = false_cond;
+	false_cond = t;
+	PUT_CODE (condition_rtx, reverse_condition (cond_code));
+      }
+      break;
     }
-  else
-    {
-      if (GET_MODE (cr) == CCmode)
-	emit_insn (gen_isel_signed_di (dest, condition_rtx,
-				       true_cond, false_cond, cr));
-      else
-	emit_insn (gen_isel_unsigned_di (dest, condition_rtx,
-					 true_cond, false_cond, cr));
-    }
+
+  false_cond = force_reg (mode, false_cond);
+  if (true_cond != const0_rtx)
+    true_cond = force_reg (mode, true_cond);
+
+  emit_insn (isel_func (dest, condition_rtx, true_cond, false_cond, cr));
 
   return 1;
 }
@@ -16748,13 +16861,10 @@ output_isel (rtx *operands)
   enum rtx_code code;
 
   code = GET_CODE (operands[1]);
-  if (code == GE || code == GEU || code == LE || code == LEU || code == NE)
-    {
-      PUT_CODE (operands[1], reverse_condition (code));
-      return "isel %0,%3,%2,%j1";
-    }
-  else
-    return "isel %0,%2,%3,%j1";
+
+  gcc_assert (!(code == GE || code == GEU || code == LE || code == LEU || code == NE));
+
+  return "isel %0,%2,%3,%j1";
 }
 
 void
@@ -24386,7 +24496,16 @@ rs6000_fatal_bad_address (rtx op)
 
 #if TARGET_MACHO
 
-static tree branch_island_list = 0;
+typedef struct branch_island_d {
+  tree function_name;
+  tree label_name;
+  int line_number;
+} branch_island;
+
+DEF_VEC_O(branch_island);
+DEF_VEC_ALLOC_O(branch_island,gc);
+
+static VEC(branch_island,gc) *branch_islands;
 
 /* Remember to generate a branch island for far calls to the given
    function.  */
@@ -24395,37 +24514,29 @@ static void
 add_compiler_branch_island (tree label_name, tree function_name,
 			    int line_number)
 {
-  tree branch_island = build_tree_list (function_name, label_name);
-  TREE_TYPE (branch_island) = build_int_cst (NULL_TREE, line_number);
-  TREE_CHAIN (branch_island) = branch_island_list;
-  branch_island_list = branch_island;
+  branch_island *bi = VEC_safe_push (branch_island, gc, branch_islands, NULL);
+
+  bi->function_name = function_name;
+  bi->label_name = label_name;
+  bi->line_number = line_number;
 }
 
-#define BRANCH_ISLAND_LABEL_NAME(BRANCH_ISLAND)     TREE_VALUE (BRANCH_ISLAND)
-#define BRANCH_ISLAND_FUNCTION_NAME(BRANCH_ISLAND)  TREE_PURPOSE (BRANCH_ISLAND)
-#define BRANCH_ISLAND_LINE_NUMBER(BRANCH_ISLAND)    \
-		TREE_INT_CST_LOW (TREE_TYPE (BRANCH_ISLAND))
-
-/* Generate far-jump branch islands for everything on the
-   branch_island_list.  Invoked immediately after the last instruction
-   of the epilogue has been emitted; the branch-islands must be
-   appended to, and contiguous with, the function body.  Mach-O stubs
-   are generated in machopic_output_stub().  */
+/* Generate far-jump branch islands for everything recorded in
+   branch_islands.  Invoked immediately after the last instruction of
+   the epilogue has been emitted; the branch islands must be appended
+   to, and contiguous with, the function body.  Mach-O stubs are
+   generated in machopic_output_stub().  */
 
 static void
 macho_branch_islands (void)
 {
   char tmp_buf[512];
-  tree branch_island;
 
-  for (branch_island = branch_island_list;
-       branch_island;
-       branch_island = TREE_CHAIN (branch_island))
+  while (!VEC_empty (branch_island, branch_islands))
     {
-      const char *label =
-	IDENTIFIER_POINTER (BRANCH_ISLAND_LABEL_NAME (branch_island));
-      const char *name  =
-	IDENTIFIER_POINTER (BRANCH_ISLAND_FUNCTION_NAME (branch_island));
+      branch_island *bi = VEC_last (branch_island, branch_islands);
+      const char *label = IDENTIFIER_POINTER (bi->label_name);
+      const char *name = IDENTIFIER_POINTER (bi->function_name);
       char name_buf[512];
       /* Cheap copy of the details from the Darwin ASM_OUTPUT_LABELREF().  */
       if (name[0] == '*' || name[0] == '&')
@@ -24439,7 +24550,7 @@ macho_branch_islands (void)
       strcat (tmp_buf, label);
 #if defined (DBX_DEBUGGING_INFO) || defined (XCOFF_DEBUGGING_INFO)
       if (write_symbols == DBX_DEBUG || write_symbols == XCOFF_DEBUG)
-	dbxout_stabd (N_SLINE, BRANCH_ISLAND_LINE_NUMBER (branch_island));
+	dbxout_stabd (N_SLINE, bi->line_number);
 #endif /* DBX_DEBUGGING_INFO || XCOFF_DEBUGGING_INFO */
       if (flag_pic)
 	{
@@ -24476,11 +24587,10 @@ macho_branch_islands (void)
       output_asm_insn (tmp_buf, 0);
 #if defined (DBX_DEBUGGING_INFO) || defined (XCOFF_DEBUGGING_INFO)
       if (write_symbols == DBX_DEBUG || write_symbols == XCOFF_DEBUG)
-	dbxout_stabd (N_SLINE, BRANCH_ISLAND_LINE_NUMBER (branch_island));
+	dbxout_stabd (N_SLINE, bi->line_number);
 #endif /* DBX_DEBUGGING_INFO || XCOFF_DEBUGGING_INFO */
+      VEC_pop (branch_island, branch_islands);
     }
-
-  branch_island_list = 0;
 }
 
 /* NO_PREVIOUS_DEF checks in the link list whether the function name is
@@ -24489,11 +24599,11 @@ macho_branch_islands (void)
 static int
 no_previous_def (tree function_name)
 {
-  tree branch_island;
-  for (branch_island = branch_island_list;
-       branch_island;
-       branch_island = TREE_CHAIN (branch_island))
-    if (function_name == BRANCH_ISLAND_FUNCTION_NAME (branch_island))
+  branch_island *bi;
+  unsigned ix;
+
+  for (ix = 0; VEC_iterate (branch_island, branch_islands, ix, bi); ix++)
+    if (function_name == bi->function_name)
       return 0;
   return 1;
 }
@@ -24504,22 +24614,14 @@ no_previous_def (tree function_name)
 static tree
 get_prev_label (tree function_name)
 {
-  tree branch_island;
-  for (branch_island = branch_island_list;
-       branch_island;
-       branch_island = TREE_CHAIN (branch_island))
-    if (function_name == BRANCH_ISLAND_FUNCTION_NAME (branch_island))
-      return BRANCH_ISLAND_LABEL_NAME (branch_island);
-  return 0;
+  branch_island *bi;
+  unsigned ix;
+
+  for (ix = 0; VEC_iterate (branch_island, branch_islands, ix, bi); ix++)
+    if (function_name == bi->function_name)
+      return bi->label_name;
+  return NULL_TREE;
 }
-
-#ifndef DARWIN_LINKER_GENERATES_ISLANDS
-#define DARWIN_LINKER_GENERATES_ISLANDS 0
-#endif
-
-/* KEXTs still need branch islands.  */
-#define DARWIN_GENERATE_ISLANDS (!DARWIN_LINKER_GENERATES_ISLANDS \
-				 || flag_mkernel || flag_apple_kext)
 
 /* INSN is either a function call or a millicode call.  It may have an
    unconditional jump in its delay slot.
@@ -24531,7 +24633,7 @@ output_call (rtx insn, rtx *operands, int dest_operand_number,
 	     int cookie_operand_number)
 {
   static char buf[256];
-  if (DARWIN_GENERATE_ISLANDS
+  if (darwin_emit_branch_islands
       && GET_CODE (operands[dest_operand_number]) == SYMBOL_REF
       && (INTVAL (operands[cookie_operand_number]) & CALL_LONG))
     {
@@ -25385,7 +25487,11 @@ rs6000_rtx_costs (rtx x, int code, int outer_code, int *total,
       return false;
 
     case POPCOUNT:
-      *total = COSTS_N_INSNS (6);
+      *total = COSTS_N_INSNS (TARGET_POPCNTD ? 1 : 6);
+      return false;
+
+    case PARITY:
+      *total = COSTS_N_INSNS (TARGET_CMPB ? 2 : 6);
       return false;
 
     case NOT:
@@ -26021,7 +26127,7 @@ rs6000_emit_popcount (rtx dst, rtx src)
   if (TARGET_POPCNTD)
     {
       if (mode == SImode)
-	emit_insn (gen_popcntwsi2 (dst, src));
+	emit_insn (gen_popcntdsi2 (dst, src));
       else
 	emit_insn (gen_popcntddi2 (dst, src));
       return;
@@ -26060,6 +26166,23 @@ rs6000_emit_parity (rtx dst, rtx src)
   rtx tmp;
 
   tmp = gen_reg_rtx (mode);
+
+  /* Use the PPC ISA 2.05 prtyw/prtyd instruction if we can.  */
+  if (TARGET_CMPB)
+    {
+      if (mode == SImode)
+	{
+	  emit_insn (gen_popcntbsi2 (tmp, src));
+	  emit_insn (gen_paritysi2_cmpb (dst, tmp));
+	}
+      else
+	{
+	  emit_insn (gen_popcntbdi2 (tmp, src));
+	  emit_insn (gen_paritydi2_cmpb (dst, tmp));
+	}
+      return;
+    }
+
   if (mode == SImode)
     {
       /* Is mult+shift >= shift+xor+shift+xor?  */
@@ -26160,10 +26283,8 @@ rs6000_function_value (const_tree valtype,
   unsigned int regno;
 
   /* Special handling for structs in darwin64.  */
-  if (rs6000_darwin64_abi
-      && TYPE_MODE (valtype) == BLKmode
-      && TREE_CODE (valtype) == RECORD_TYPE
-      && int_size_in_bytes (valtype) > 0)
+  if (TARGET_MACHO 
+      && rs6000_darwin64_struct_check_p (TYPE_MODE (valtype), valtype))
     {
       CUMULATIVE_ARGS valcum;
       rtx valret;

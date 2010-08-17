@@ -2601,7 +2601,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	  i = double_int_and (i, m);
 	  m = double_int_lshift (m, offset, HOST_BITS_PER_DOUBLE_INT, false);
 	  i = double_int_lshift (i, offset, HOST_BITS_PER_DOUBLE_INT, false);
-	  o = double_int_ior (double_int_and (o, double_int_not (m)), i);
+	  o = double_int_ior (double_int_and_not (o, m), i);
 
 	  combine_merges++;
 	  subst_insn = i3;
@@ -2662,8 +2662,8 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	     as I2 will not cause a problem.  */
 
 	  i1 = gen_rtx_INSN (VOIDmode, INSN_UID (i2), NULL_RTX, i2,
-			     BLOCK_FOR_INSN (i2), INSN_LOCATOR (i2),
-			     XVECEXP (PATTERN (i2), 0, 1), -1, NULL_RTX);
+			     BLOCK_FOR_INSN (i2), XVECEXP (PATTERN (i2), 0, 1),
+			     INSN_LOCATOR (i2), -1, NULL_RTX);
 
 	  SUBST (PATTERN (i2), XVECEXP (PATTERN (i2), 0, 0));
 	  SUBST (XEXP (SET_SRC (PATTERN (i2)), 0),
@@ -7093,7 +7093,9 @@ make_compound_operation (rtx x, enum rtx_code in_code)
      address, we stay there.  If we have a comparison, set to COMPARE,
      but once inside, go back to our default of SET.  */
 
-  next_code = (code == MEM || code == PLUS || code == MINUS ? MEM
+  next_code = (code == MEM ? MEM
+	       : ((code == PLUS || code == MINUS)
+		  && SCALAR_INT_MODE_P (mode)) ? MEM
 	       : ((code == COMPARE || COMPARISON_P (x))
 		  && XEXP (x, 1) == const0_rtx) ? COMPARE
 	       : in_code == COMPARE ? SET : in_code);
@@ -7110,12 +7112,78 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 	  && INTVAL (XEXP (x, 1)) < HOST_BITS_PER_WIDE_INT
 	  && INTVAL (XEXP (x, 1)) >= 0)
 	{
+	  HOST_WIDE_INT count = INTVAL (XEXP (x, 1));
+	  HOST_WIDE_INT multval = (HOST_WIDE_INT) 1 << count;
+
 	  new_rtx = make_compound_operation (XEXP (x, 0), next_code);
-	  new_rtx = gen_rtx_MULT (mode, new_rtx,
-			      GEN_INT ((HOST_WIDE_INT) 1
-				       << INTVAL (XEXP (x, 1))));
+	  if (GET_CODE (new_rtx) == NEG)
+	    {
+	      new_rtx = XEXP (new_rtx, 0);
+	      multval = -multval;
+	    }
+	  multval = trunc_int_for_mode (multval, mode);
+	  new_rtx = gen_rtx_MULT (mode, new_rtx, GEN_INT (multval));
 	}
       break;
+
+    case PLUS:
+      lhs = XEXP (x, 0);
+      rhs = XEXP (x, 1);
+      lhs = make_compound_operation (lhs, next_code);
+      rhs = make_compound_operation (rhs, next_code);
+      if (GET_CODE (lhs) == MULT && GET_CODE (XEXP (lhs, 0)) == NEG
+	  && SCALAR_INT_MODE_P (mode))
+	{
+	  tem = simplify_gen_binary (MULT, mode, XEXP (XEXP (lhs, 0), 0),
+				     XEXP (lhs, 1));
+	  new_rtx = simplify_gen_binary (MINUS, mode, rhs, tem);
+	}
+      else if (GET_CODE (lhs) == MULT
+	       && (CONST_INT_P (XEXP (lhs, 1)) && INTVAL (XEXP (lhs, 1)) < 0))
+	{
+	  tem = simplify_gen_binary (MULT, mode, XEXP (lhs, 0),
+				     simplify_gen_unary (NEG, mode,
+							 XEXP (lhs, 1),
+							 mode));
+	  new_rtx = simplify_gen_binary (MINUS, mode, rhs, tem);
+	}
+      else
+	{
+	  SUBST (XEXP (x, 0), lhs);
+	  SUBST (XEXP (x, 1), rhs);
+	  goto maybe_swap;
+	}
+      x = gen_lowpart (mode, new_rtx);
+      goto maybe_swap;
+
+    case MINUS:
+      lhs = XEXP (x, 0);
+      rhs = XEXP (x, 1);
+      lhs = make_compound_operation (lhs, next_code);
+      rhs = make_compound_operation (rhs, next_code);
+      if (GET_CODE (rhs) == MULT && GET_CODE (XEXP (rhs, 0)) == NEG
+	  && SCALAR_INT_MODE_P (mode))
+	{
+	  tem = simplify_gen_binary (MULT, mode, XEXP (XEXP (rhs, 0), 0),
+				     XEXP (rhs, 1));
+	  new_rtx = simplify_gen_binary (PLUS, mode, tem, lhs);
+	}
+      else if (GET_CODE (rhs) == MULT
+	       && (CONST_INT_P (XEXP (rhs, 1)) && INTVAL (XEXP (rhs, 1)) < 0))
+	{
+	  tem = simplify_gen_binary (MULT, mode, XEXP (rhs, 0),
+				     simplify_gen_unary (NEG, mode,
+							 XEXP (rhs, 1),
+							 mode));
+	  new_rtx = simplify_gen_binary (PLUS, mode, tem, lhs);
+	}
+      else
+	{
+	  SUBST (XEXP (x, 0), lhs);
+	  SUBST (XEXP (x, 1), rhs);
+	  return x;
+	}
+      return gen_lowpart (mode, new_rtx);
 
     case AND:
       /* If the second operand is not a constant, we can't do anything
@@ -7345,6 +7413,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 	  SUBST (XVECEXP (x, i, j), new_rtx);
 	}
 
+ maybe_swap:
   /* If this is a commutative operation, the changes to the operands
      may have made it noncanonical.  */
   if (COMMUTATIVE_ARITH_P (x)
@@ -7369,7 +7438,7 @@ static int
 get_pos_from_mask (unsigned HOST_WIDE_INT m, unsigned HOST_WIDE_INT *plen)
 {
   /* Get the bit number of the first 1 bit from the right, -1 if none.  */
-  int pos = exact_log2 (m & -m);
+  int pos = m ? ctz_hwi (m) : -1;
   int len = 0;
 
   if (pos >= 0)
@@ -12654,29 +12723,6 @@ reg_bitfield_target_p (rtx x, rtx body)
 
   return 0;
 }
-
-/* Return the next insn after INSN that is neither a NOTE nor a
-   DEBUG_INSN.  This routine does not look inside SEQUENCEs.  */
-
-static rtx
-next_nonnote_nondebug_insn (rtx insn)
-{
-  while (insn)
-    {
-      insn = NEXT_INSN (insn);
-      if (insn == 0)
-	break;
-      if (NOTE_P (insn))
-	continue;
-      if (DEBUG_INSN_P (insn))
-	continue;
-      break;
-    }
-
-  return insn;
-}
-
-
 
 /* Given a chain of REG_NOTES originally from FROM_INSN, try to place them
    as appropriate.  I3 and I2 are the insns resulting from the combination

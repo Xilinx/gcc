@@ -304,8 +304,8 @@ gfc_cpp_temporary_file (void)
 }
 
 void
-gfc_cpp_init_options (unsigned int argc,
-		      const char **argv ATTRIBUTE_UNUSED)
+gfc_cpp_init_options (unsigned int decoded_options_count,
+		      struct cl_decoded_option *decoded_options ATTRIBUTE_UNUSED)
 {
   /* Do not create any objects from libcpp here. If no
      preprocessing is requested, this would be wasted
@@ -337,7 +337,8 @@ gfc_cpp_init_options (unsigned int argc,
   gfc_cpp_option.prefix = NULL;
   gfc_cpp_option.sysroot = NULL;
 
-  gfc_cpp_option.deferred_opt = XNEWVEC (gfc_cpp_deferred_opt_t, argc);
+  gfc_cpp_option.deferred_opt = XNEWVEC (gfc_cpp_deferred_opt_t,
+					 decoded_options_count);
   gfc_cpp_option.deferred_opt_count = 0;
 }
 
@@ -353,7 +354,7 @@ gfc_cpp_handle_option (size_t scode, const char *arg, int value ATTRIBUTE_UNUSED
       result = 0;
       break;
 
-    case OPT_cpp:
+    case OPT_cpp_:
       gfc_cpp_option.temporary_filename = arg;
       break;
 

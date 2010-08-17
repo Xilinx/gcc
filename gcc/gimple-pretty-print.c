@@ -534,11 +534,7 @@ pp_points_to_solution (pretty_printer *buffer, struct pt_solution *pt)
       pp_string (buffer, "{ ");
       EXECUTE_IF_SET_IN_BITMAP (pt->vars, 0, i, bi)
 	{
-	  struct tree_decl_minimal in;
-	  tree var;
-	  in.uid = i;
-	  var = (tree) htab_find_with_hash (gimple_referenced_vars (cfun),
-					    &in, i);
+	  tree var = referenced_var_lookup (i);
 	  if (var)
 	    {
 	      dump_generic_node (buffer, var, 0, dump_flags, false);
@@ -1367,8 +1363,13 @@ dump_gimple_phi (pretty_printer *buffer, gimple phi, int spc, int flags)
       && POINTER_TYPE_P (TREE_TYPE (lhs))
       && SSA_NAME_PTR_INFO (lhs))
     {
+      struct ptr_info_def *pi = SSA_NAME_PTR_INFO (lhs);
       pp_string (buffer, "PT = ");
-      pp_points_to_solution (buffer, &SSA_NAME_PTR_INFO (lhs)->pt);
+      pp_points_to_solution (buffer, &pi->pt);
+      newline_and_indent (buffer, spc);
+      if (pi->align != 1)
+	pp_printf (buffer, "# ALIGN = %u, MISALIGN = %u",
+		   pi->align, pi->misalign);
       newline_and_indent (buffer, spc);
       pp_string (buffer, "# ");
     }
@@ -1654,9 +1655,16 @@ dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)
 	  && POINTER_TYPE_P (TREE_TYPE (lhs))
 	  && SSA_NAME_PTR_INFO (lhs))
 	{
+	  struct ptr_info_def *pi = SSA_NAME_PTR_INFO (lhs);
 	  pp_string (buffer, "# PT = ");
-	  pp_points_to_solution (buffer, &SSA_NAME_PTR_INFO (lhs)->pt);
+	  pp_points_to_solution (buffer, &pi->pt);
 	  newline_and_indent (buffer, spc);
+	  if (pi->align != 1)
+	    {
+	      pp_printf (buffer, "# ALIGN = %u, MISALIGN = %u",
+			 pi->align, pi->misalign);
+	      newline_and_indent (buffer, spc);
+	    }
 	}
     }
 

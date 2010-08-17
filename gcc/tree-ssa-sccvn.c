@@ -498,6 +498,21 @@ vn_reference_eq (const void *p1, const void *p2)
   if (!expressions_equal_p (TYPE_SIZE (vr1->type), TYPE_SIZE (vr2->type)))
     return false;
 
+  if (INTEGRAL_TYPE_P (vr1->type)
+      && INTEGRAL_TYPE_P (vr2->type))
+    {
+      if (TYPE_PRECISION (vr1->type) != TYPE_PRECISION (vr2->type))
+	return false;
+    }
+  else if (INTEGRAL_TYPE_P (vr1->type)
+	   && (TYPE_PRECISION (vr1->type)
+	       != TREE_INT_CST_LOW (TYPE_SIZE (vr1->type))))
+    return false;
+  else if (INTEGRAL_TYPE_P (vr2->type)
+	   && (TYPE_PRECISION (vr2->type)
+	       != TREE_INT_CST_LOW (TYPE_SIZE (vr2->type))))
+    return false;
+
   i = 0;
   j = 0;
   do
@@ -580,7 +595,6 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
       temp.type = NULL_TREE;
       temp.opcode = TREE_CODE (base);
       temp.op0 = base;
-      temp.op1 = TMR_ORIGINAL (ref);
       temp.off = -1;
       VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
       return;
@@ -1035,11 +1049,9 @@ vn_reference_maybe_forwprop_address (VEC (vn_reference_op_s, heap) **ops,
   else
     mem_op->off = -1;
   if (TREE_CODE (op->op0) == SSA_NAME)
-    {
-      op->op0 = SSA_VAL (op->op0);
-      if (TREE_CODE (op->op0) != SSA_NAME)
-	op->opcode = TREE_CODE (op->op0);
-    }
+    op->op0 = SSA_VAL (op->op0);
+  if (TREE_CODE (op->op0) != SSA_NAME)
+    op->opcode = TREE_CODE (op->op0);
 
   /* And recurse.  */
   if (TREE_CODE (op->op0) == SSA_NAME)

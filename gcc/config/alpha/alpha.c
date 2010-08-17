@@ -215,6 +215,11 @@ alpha_handle_option (size_t code, const char *arg, int value)
 {
   switch (code)
     {
+    case OPT_G:
+      g_switch_value = value;
+      g_switch_set = true;
+      break;
+
     case OPT_mfp_regs:
       if (value == 0)
 	target_flags |= MASK_SOFT_FP;
@@ -5945,6 +5950,10 @@ alpha_build_builtin_va_list (void)
 		    integer_type_node);
   DECL_FIELD_CONTEXT (ofs) = record;
   DECL_CHAIN (ofs) = space;
+  /* ??? This is a hack, __offset is marked volatile to prevent
+     DCE that confuses stdarg optimization and results in
+     gcc.c-torture/execute/stdarg-1.c failure.  See PR 41089.  */
+  TREE_THIS_VOLATILE (ofs) = 1;
 
   base = build_decl (BUILTINS_LOCATION,
 		     FIELD_DECL, get_identifier ("__base"),

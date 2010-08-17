@@ -1672,10 +1672,12 @@ load_register_parameters (struct arg_data *args, int num_actuals,
 	    {
 	      rtx mem = validize_mem (args[i].value);
 
-	      /* Check for overlap with already clobbered argument area.  */
+	      /* Check for overlap with already clobbered argument area,
+	         providing that this has non-zero size.  */
 	      if (is_sibcall
-		  && mem_overlaps_already_clobbered_arg_p (XEXP (args[i].value, 0),
-							   size))
+		  && (size == 0
+		      || mem_overlaps_already_clobbered_arg_p 
+					   (XEXP (args[i].value, 0), size)))
 		*sibcall_failure = 1;
 
 	      /* Handle a BLKmode that needs shifting.  */

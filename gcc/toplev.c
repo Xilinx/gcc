@@ -484,9 +484,9 @@ set_random_seed (const char *val)
 
 #if GCC_VERSION < 3004
 
-/* The functions floor_log2 and exact_log2 are defined as inline
-   functions in toplev.h if GCC_VERSION >= 3004.  The definitions here
-   are used for older versions of gcc.  */
+/* The functions clz_hwi, ctz_hwi, ffs_hwi, floor_log2 and exact_log2
+   are defined as inline functions in toplev.h if GCC_VERSION >= 3004.
+   The definitions here are used for older versions of gcc.  */
 
 /* Given X, an unsigned number, return the largest int Y such that 2**Y <= X.
    If X is 0, return -1.  */
@@ -528,6 +528,32 @@ exact_log2 (unsigned HOST_WIDE_INT x)
   if (x != (x & -x))
     return -1;
   return floor_log2 (x);
+}
+
+/* Given X, an unsigned number, return the number of least significant bits
+   that are zero.  When X == 0, the result is the word size.  */
+
+int
+ctz_hwi (unsigned HOST_WIDE_INT x)
+{
+  return x ? floor_log2 (x & -x) : HOST_BITS_PER_WIDE_INT;
+}
+
+/* Similarly for most significant bits.  */
+
+int
+clz_hwi (unsigned HOST_WIDE_INT x)
+{
+  return HOST_BITS_PER_WIDE_INT - 1 - floor_log2(x);
+}
+
+/* Similar to ctz_hwi, except that the least significant bit is numbered
+   starting from 1, and X == 0 yields 0.  */
+
+int
+ffs_hwi (unsigned HOST_WIDE_INT x)
+{
+  return 1 + floor_log2 (x & -x);
 }
 
 #endif /* GCC_VERSION < 3004 */
@@ -617,39 +643,6 @@ output_quoted_string (FILE *asm_file, const char *string)
 	fprintf (asm_file, "\\%03o", (unsigned char) c);
     }
   putc ('\"', asm_file);
-#endif
-}
-
-/* Output a file name in the form wanted by System V.  */
-
-void
-output_file_directive (FILE *asm_file, const char *input_name)
-{
-  int len;
-  const char *na;
-
-  if (input_name == NULL)
-    input_name = "<stdin>";
-  else
-    input_name = remap_debug_filename (input_name);
-
-  len = strlen (input_name);
-  na = input_name + len;
-
-  /* NA gets INPUT_NAME sans directory names.  */
-  while (na > input_name)
-    {
-      if (IS_DIR_SEPARATOR (na[-1]))
-	break;
-      na--;
-    }
-
-#ifdef ASM_OUTPUT_SOURCE_FILENAME
-  ASM_OUTPUT_SOURCE_FILENAME (asm_file, na);
-#else
-  fprintf (asm_file, "\t.file\t");
-  output_quoted_string (asm_file, na);
-  putc ('\n', asm_file);
 #endif
 }
 
@@ -991,11 +984,6 @@ compile_file (void)
 
   if (seen_error ())
     return;
-
-  /* Ensure that emulated TLS control vars are finalized and build 
-     a static constructor for them, when it is required.  */
-  if (!targetm.have_tls)
-    emutls_finish ();
 
   varpool_assemble_pending_decls ();
   finish_aliases_2 ();

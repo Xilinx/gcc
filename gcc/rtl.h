@@ -757,15 +757,17 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 #define NEXT_INSN(INSN)	XEXP (INSN, 2)
 
 #define BLOCK_FOR_INSN(INSN) XBBDEF (INSN, 3)
-#define INSN_LOCATOR(INSN) XINT (INSN, 4)
+
+/* The body of an insn.  */
+#define PATTERN(INSN)	XEXP (INSN, 4)
+
+#define INSN_LOCATOR(INSN) XINT (INSN, 5)
 /* LOCATION of an RTX if relevant.  */
 #define RTL_LOCATION(X) (INSN_P (X) ? \
 			 locator_location (INSN_LOCATOR (X)) \
 			 : UNKNOWN_LOCATION)
 /* LOCATION of current INSN.  */
 #define CURR_INSN_LOCATION (locator_location (curr_insn_locator ()))
-/* The body of an insn.  */
-#define PATTERN(INSN)	XEXP (INSN, 5)
 
 /* Code number of instruction, from when it was recognized.
    -1 means this instruction has not been recognized yet.  */
@@ -971,7 +973,7 @@ extern const char * const note_insn_name[NOTE_INSN_MAX];
 
 /* In jump.c, each label contains a count of the number
    of LABEL_REFs that point at it, so unused labels can be deleted.  */
-#define LABEL_NUSES(RTX) XCINT (RTX, 4, CODE_LABEL)
+#define LABEL_NUSES(RTX) XCINT (RTX, 5, CODE_LABEL)
 
 /* Labels carry a two-bit field composed of the ->jump and ->call
    bits.  This field indicates whether the label is an alternate
@@ -1031,12 +1033,13 @@ enum label_kind
 /* Once basic blocks are found, each CODE_LABEL starts a chain that
    goes through all the LABEL_REFs that jump to that label.  The chain
    eventually winds up at the CODE_LABEL: it is circular.  */
-#define LABEL_REFS(LABEL) XCEXP (LABEL, 5, CODE_LABEL)
+#define LABEL_REFS(LABEL) XCEXP (LABEL, 4, CODE_LABEL)
 
 /* For a REG rtx, REGNO extracts the register number.  REGNO can only
    be used on RHS.  Use SET_REGNO to change the value.  */
 #define REGNO(RTX) (rhs_regno(RTX))
 #define SET_REGNO(RTX,N) (df_ref_change_reg_with_loc (REGNO(RTX), N, RTX), XCUINT (RTX, 0, REG) = N)
+#define SET_REGNO_RAW(RTX,N) (XCUINT (RTX, 0, REG) = N)
 
 /* ORIGINAL_REGNO holds the number the register originally had; for a
    pseudo register turned into a hard reg this will hold the old pseudo
@@ -1691,6 +1694,8 @@ extern rtx next_nonnote_insn (rtx);
 extern rtx next_nonnote_insn_bb (rtx);
 extern rtx prev_nondebug_insn (rtx);
 extern rtx next_nondebug_insn (rtx);
+extern rtx prev_nonnote_nondebug_insn (rtx);
+extern rtx next_nonnote_nondebug_insn (rtx);
 extern rtx prev_real_insn (rtx);
 extern rtx next_real_insn (rtx);
 extern rtx prev_active_insn (rtx);
@@ -2366,7 +2371,7 @@ extern void mark_elimination (int, int);
 
 /* In reginfo.c */
 extern int reg_classes_intersect_p (reg_class_t, reg_class_t);
-extern int reg_class_subset_p (enum reg_class, enum reg_class);
+extern int reg_class_subset_p (reg_class_t, reg_class_t);
 extern void globalize_reg (int);
 extern void init_reg_modes_target (void);
 extern void init_regs (void);
@@ -2419,6 +2424,7 @@ extern int canon_true_dependence (const_rtx, enum machine_mode, rtx, const_rtx,
 extern int read_dependence (const_rtx, const_rtx);
 extern int anti_dependence (const_rtx, const_rtx);
 extern int output_dependence (const_rtx, const_rtx);
+extern int may_alias_p (const_rtx, const_rtx);
 extern void init_alias_target (void);
 extern void init_alias_analysis (void);
 extern void end_alias_analysis (void);

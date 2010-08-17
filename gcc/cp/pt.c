@@ -158,7 +158,7 @@ static tree tsubst_template_arg (tree, tree, tsubst_flags_t, tree);
 static tree tsubst_template_args (tree, tree, tsubst_flags_t, tree);
 static tree tsubst_template_parms (tree, tree, tsubst_flags_t);
 static void regenerate_decl_from_template (tree, tree);
-static tree most_specialized_class (tree, tree);
+static tree most_specialized_class (tree, tree, tsubst_flags_t);
 static tree tsubst_aggr_type (tree, tree, tsubst_flags_t, tree, int);
 static tree tsubst_arg_types (tree, tree, tsubst_flags_t, tree);
 static tree tsubst_function_type (tree, tree, tsubst_flags_t, tree);
@@ -1566,31 +1566,43 @@ iterative_hash_template_arg (tree arg, hashval_t val)
       gcc_assert (seen_error ());
       return val;
 
+    case CAST_EXPR:
+    case STATIC_CAST_EXPR:
+    case REINTERPRET_CAST_EXPR:
+    case CONST_CAST_EXPR:
+    case DYNAMIC_CAST_EXPR:
+    case NEW_EXPR:
+      val = iterative_hash_template_arg (TREE_TYPE (arg), val);
+      /* Now hash operands as usual.  */
+      break;
+
     default:
-      switch (tclass)
-	{
-	case tcc_type:
-	  if (TYPE_CANONICAL (arg))
-	    return iterative_hash_object (TYPE_HASH (TYPE_CANONICAL (arg)),
-					  val);
-	  else if (TREE_CODE (arg) == DECLTYPE_TYPE)
-	    return iterative_hash_template_arg (DECLTYPE_TYPE_EXPR (arg), val);
-	  /* Otherwise just compare the types during lookup.  */
-	  return val;
+      break;
+    }
 
-	case tcc_declaration:
-	case tcc_constant:
-	  return iterative_hash_expr (arg, val);
+  switch (tclass)
+    {
+    case tcc_type:
+      if (TYPE_CANONICAL (arg))
+	return iterative_hash_object (TYPE_HASH (TYPE_CANONICAL (arg)),
+				      val);
+      else if (TREE_CODE (arg) == DECLTYPE_TYPE)
+	return iterative_hash_template_arg (DECLTYPE_TYPE_EXPR (arg), val);
+      /* Otherwise just compare the types during lookup.  */
+      return val;
 
-	default:
-	  gcc_assert (IS_EXPR_CODE_CLASS (tclass));
-	  {
-	    unsigned n = TREE_OPERAND_LENGTH (arg);
-	    for (i = 0; i < n; ++i)
-	      val = iterative_hash_template_arg (TREE_OPERAND (arg, i), val);
-	    return val;
-	  }
-	}
+    case tcc_declaration:
+    case tcc_constant:
+      return iterative_hash_expr (arg, val);
+
+    default:
+      gcc_assert (IS_EXPR_CODE_CLASS (tclass));
+      {
+	unsigned n = TREE_OPERAND_LENGTH (arg);
+	for (i = 0; i < n; ++i)
+	  val = iterative_hash_template_arg (TREE_OPERAND (arg, i), val);
+	return val;
+      }
     }
   gcc_unreachable ();
   return 0;
@@ -3840,6 +3852,7 @@ process_partial_specialization (tree decl)
   tree inner_args = INNERMOST_TEMPLATE_ARGS (specargs);
   tree main_inner_parms = DECL_INNERMOST_TEMPLATE_PARMS (maintmpl);
   tree inner_parms;
+  tree inst;
   int nargs = TREE_VEC_LENGTH (inner_args);
   int ntparms;
   int  i;
@@ -4054,6 +4067,22 @@ process_partial_specialization (tree decl)
     = tree_cons (specargs, inner_parms,
                  DECL_TEMPLATE_SPECIALIZATIONS (maintmpl));
   TREE_TYPE (DECL_TEMPLATE_SPECIALIZATIONS (maintmpl)) = type;
+
+  for (inst = DECL_TEMPLATE_INSTANTIATIONS (maintmpl); inst;
+       inst = TREE_CHAIN (inst))
+    {
+      tree inst_type = TREE_VALUE (inst);
+      if (COMPLETE_TYPE_P (inst_type)
+	  && CLASSTYPE_IMPLICIT_INSTANTIATION (inst_type))
+	{
+	  tree spec = most_specialized_class (inst_type, maintmpl, tf_none);
+	  if (spec && TREE_TYPE (spec) == type)
+	    permerror (input_location,
+		       "partial specialization of %qT after instantiation "
+		       "of %qT", type, inst_type);
+	}
+    }
+
   return decl;
 }
 
@@ -6526,11 +6555,16 @@ lookup_template_class (tree d1,
 	       i > 0 && t != NULL_TREE;
 	       --i, t = TREE_CHAIN (t))
 	    {
-	      tree a = coerce_template_parms (TREE_VALUE (t),
-					      arglist, gen_tmpl,
-					      complain,
-					      /*require_all_args=*/true,
-					      /*use_default_args=*/true);
+	      tree a;
+	      if (i == saved_depth)
+		a = coerce_template_parms (TREE_VALUE (t),
+					   arglist, gen_tmpl,
+					   complain,
+					   /*require_all_args=*/true,
+					   /*use_default_args=*/true);
+	      else
+		/* Outer levels should have already been coerced.  */
+		a = TMPL_ARGS_LEVEL (arglist, i);
 
 	      /* Don't process further if one of the levels fails.  */
 	      if (a == error_mark_node)
@@ -7764,7 +7798,7 @@ instantiate_class_template (tree type)
 
   /* Determine what specialization of the original template to
      instantiate.  */
-  t = most_specialized_class (type, templ);
+  t = most_specialized_class (type, templ, tf_warning_or_error);
   if (t == error_mark_node)
     {
       TYPE_BEING_DEFINED (type) = 1;
@@ -7818,7 +7852,8 @@ instantiate_class_template (tree type)
   /* Set the input location to the most specialized template definition.
      This is needed if tsubsting causes an error.  */
   typedecl = TYPE_MAIN_DECL (pattern);
-  input_location = DECL_SOURCE_LOCATION (typedecl);
+  input_location = DECL_SOURCE_LOCATION (TYPE_NAME (type)) =
+    DECL_SOURCE_LOCATION (typedecl);
 
   TYPE_HAS_USER_CONSTRUCTOR (type) = TYPE_HAS_USER_CONSTRUCTOR (pattern);
   TYPE_HAS_NEW_OPERATOR (type) = TYPE_HAS_NEW_OPERATOR (pattern);
@@ -11681,14 +11716,19 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 			tree t = RECUR (init);
 
 			if (init && !t)
-			  /* If we had an initializer but it
-			     instantiated to nothing,
-			     value-initialize the object.  This will
-			     only occur when the initializer was a
-			     pack expansion where the parameter packs
-			     used in that expansion were of length
-			     zero.  */
-			  init = build_value_init (TREE_TYPE (decl));
+			  {
+			    /* If we had an initializer but it
+			       instantiated to nothing,
+			       value-initialize the object.  This will
+			       only occur when the initializer was a
+			       pack expansion where the parameter packs
+			       used in that expansion were of length
+			       zero.  */
+			    init = build_value_init (TREE_TYPE (decl),
+						     complain);
+			    if (TREE_CODE (init) == AGGR_INIT_EXPR)
+			      init = get_target_expr (init);
+			  }
 			else
 			  init = t;
 		      }
@@ -12519,15 +12559,24 @@ tsubst_copy_and_build (tree t,
 	  ret = build_offset_ref_call_from_tree (function, &call_args);
 	else if (TREE_CODE (function) == COMPONENT_REF)
 	  {
-	    if (!BASELINK_P (TREE_OPERAND (function, 1)))
+	    tree instance = TREE_OPERAND (function, 0);
+	    tree fn = TREE_OPERAND (function, 1);
+
+	    if (processing_template_decl
+		&& (type_dependent_expression_p (instance)
+		    || (!BASELINK_P (fn)
+			&& TREE_CODE (fn) != FIELD_DECL)
+		    || type_dependent_expression_p (fn)
+		    || any_type_dependent_arguments_p (call_args)))
+	      ret = build_nt_call_vec (function, call_args);
+	    else if (!BASELINK_P (fn))
 	      ret = finish_call_expr (function, &call_args,
 				       /*disallow_virtual=*/false,
 				       /*koenig_p=*/false,
 				       complain);
 	    else
 	      ret = (build_new_method_call
-		      (TREE_OPERAND (function, 0),
-		       TREE_OPERAND (function, 1),
+		      (instance, fn,
 		       &call_args, NULL_TREE,
 		       qualified_p ? LOOKUP_NONVIRTUAL : LOOKUP_NORMAL,
 		       /*fn_p=*/NULL,
@@ -15991,7 +16040,7 @@ most_general_template (tree decl)
    returned.  */
 
 static tree
-most_specialized_class (tree type, tree tmpl)
+most_specialized_class (tree type, tree tmpl, tsubst_flags_t complain)
 {
   tree list = NULL_TREE;
   tree t;
@@ -16111,6 +16160,8 @@ most_specialized_class (tree type, tree tmpl)
     {
       const char *str;
       char *spaces = NULL;
+      if (!(complain & tf_error))
+	return error_mark_node;
       error ("ambiguous class template instantiation for %q#T", type);
       str = TREE_CHAIN (list) ? _("candidates are:") : _("candidate is:");
       for (t = list; t; t = TREE_CHAIN (t))

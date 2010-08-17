@@ -397,8 +397,9 @@ struct GTY(()) tree_base {
   unsigned visited : 1;
   unsigned packed_flag : 1;
   unsigned user_align : 1;
+  unsigned nameless_flag : 1;
 
-  unsigned spare : 13;
+  unsigned spare : 12;
 
   /* This field is only used with type nodes; the only reason it is present
      in tree_base instead of tree_type is to save space.  The size of the
@@ -1631,7 +1632,6 @@ extern void protected_set_expr_location (tree, location_t);
 #define TMR_INDEX(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 2))
 #define TMR_STEP(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 3))
 #define TMR_OFFSET(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 4))
-#define TMR_ORIGINAL(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 5))
 
 /* The operands of a BIND_EXPR.  */
 #define BIND_EXPR_VARS(NODE) (TREE_OPERAND (BIND_EXPR_CHECK (NODE), 0))
@@ -2190,6 +2190,9 @@ extern enum machine_mode vector_type_mode (const_tree);
    the term.  */
 #define TYPE_RESTRICT(NODE) (TYPE_CHECK (NODE)->type.restrict_flag)
 
+/* If nonzero, type's name shouldn't be emitted into debug info.  */
+#define TYPE_NAMELESS(NODE) (TYPE_CHECK (NODE)->base.nameless_flag)
+
 /* The address space the type is in.  */
 #define TYPE_ADDR_SPACE(NODE) (TYPE_CHECK (NODE)->base.address_space)
 
@@ -2539,6 +2542,10 @@ struct function;
 #define DECL_CONTEXT(NODE) (DECL_MINIMAL_CHECK (NODE)->decl_minimal.context)
 #define DECL_FIELD_CONTEXT(NODE) \
   (FIELD_DECL_CHECK (NODE)->decl_minimal.context)
+
+/* If nonzero, decl's name shouldn't be emitted into debug info.  */
+#define DECL_NAMELESS(NODE) (DECL_MINIMAL_CHECK (NODE)->base.nameless_flag)
+
 struct GTY(()) tree_decl_minimal {
   struct tree_common common;
   location_t locus;
@@ -2852,9 +2859,7 @@ struct GTY(()) tree_decl_with_rtl {
 
 /* Specify that DECL_ALIGN(NODE) is a multiple of X.  */
 #define SET_DECL_OFFSET_ALIGN(NODE, X) \
-  (FIELD_DECL_CHECK (NODE)->decl_common.off_align = exact_log2 ((X) & -(X)))
-/* 1 if the alignment for this type was requested by "aligned" attribute,
-   0 if it is the default for this type.  */
+  (FIELD_DECL_CHECK (NODE)->decl_common.off_align = ffs_hwi (X) - 1)
 
 /* For FIELD_DECLS, DECL_FCONTEXT is the *first* baseclass in
    which this FIELD_DECL is defined.  This information is needed when
@@ -5037,10 +5042,10 @@ extern tree build_string_literal (int, const char *);
 extern bool validate_arglist (const_tree, ...);
 extern rtx builtin_memset_read_str (void *, HOST_WIDE_INT, enum machine_mode);
 extern bool can_trust_pointer_alignment (void);
-extern int get_pointer_alignment (tree, unsigned int);
+extern unsigned int get_pointer_alignment (tree, unsigned int);
 extern bool is_builtin_name (const char *);
 extern bool is_builtin_fn (tree);
-extern int get_object_alignment (tree, unsigned int, unsigned int);
+extern unsigned int get_object_alignment (tree, unsigned int);
 extern tree fold_call_stmt (gimple, bool);
 extern tree gimple_fold_builtin_snprintf_chk (gimple, tree, enum built_in_function);
 extern tree make_range (tree, int *, tree *, tree *, bool *);
@@ -5259,7 +5264,6 @@ extern void set_user_assembler_name (tree, const char *);
 extern void process_pending_assemble_externals (void);
 extern void finish_aliases_1 (void);
 extern void finish_aliases_2 (void);
-extern tree emutls_decl (tree);
 extern void remove_unreachable_alias_pairs (void);
 
 /* In stmt.c */
@@ -5351,8 +5355,6 @@ typedef enum
   e_kind,
   c_kind,
   id_kind,
-  perm_list_kind,
-  temp_list_kind,
   vec_kind,
   binfo_kind,
   ssa_name_kind,

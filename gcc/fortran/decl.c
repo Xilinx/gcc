@@ -134,6 +134,7 @@ free_value (gfc_data_value *p)
   for (; p; p = q)
     {
       q = p->next;
+      mpz_clear (p->repeat);
       gfc_free_expr (p->expr);
       gfc_free (p);
     }
@@ -990,7 +991,7 @@ verify_c_interop_param (gfc_symbol *sym)
 	      /* Make personalized messages to give better feedback.  */
 	      if (sym->ts.type == BT_DERIVED)
 		gfc_error ("Type '%s' at %L is a parameter to the BIND(C) "
-			   " procedure '%s' but is not C interoperable "
+			   "procedure '%s' but is not C interoperable "
 			   "because derived type '%s' is not C interoperable",
 			   sym->name, &(sym->declared_at),
 			   sym->ns->proc_name->name, 
@@ -1377,6 +1378,51 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 	    }
 	}
 
+      /* If sym is implied-shape, set its upper bounds from init.  */
+      if (sym->attr.flavor == FL_PARAMETER && sym->attr.dimension
+	  && sym->as->type == AS_IMPLIED_SHAPE)
+	{
+	  int dim;
+
+	  if (init->rank == 0)
+	    {
+	      gfc_error ("Can't initialize implied-shape array at %L"
+			 " with scalar", &sym->declared_at);
+	      return FAILURE;
+	    }
+	  gcc_assert (sym->as->rank == init->rank);
+
+	  /* Shape should be present, we get an initialization expression.  */
+	  gcc_assert (init->shape);
+
+	  for (dim = 0; dim < sym->as->rank; ++dim)
+	    {
+	      int k;
+	      gfc_expr* lower;
+	      gfc_expr* e;
+	      
+	      lower = sym->as->lower[dim];
+	      if (lower->expr_type != EXPR_CONSTANT)
+		{
+		  gfc_error ("Non-constant lower bound in implied-shape"
+			     " declaration at %L", &lower->where);
+		  return FAILURE;
+		}
+
+	      /* All dimensions must be without upper bound.  */
+	      gcc_assert (!sym->as->upper[dim]);
+
+	      k = lower->ts.kind;
+	      e = gfc_get_constant_expr (BT_INTEGER, k, &sym->declared_at);
+	      mpz_add (e->value.integer,
+		       lower->value.integer, init->shape[dim]);
+	      mpz_sub_ui (e->value.integer, e->value.integer, 1);
+	      sym->as->upper[dim] = e;
+	    }
+
+	  sym->as->type = AS_EXPLICIT;
+	}
+
       /* Need to check if the expression we initialized this
 	 to was one of the iso_c_binding named constants.  If so,
 	 and we're a parameter (constant), let it be iso_c.
@@ -1648,6 +1694,34 @@ variable_decl (int elem)
     as = gfc_copy_array_spec (current_as);
   else if (current_as)
     merge_array_spec (current_as, as, true);
+
+  /* At this point, we know for sure if the symbol is PARAMETER and can thus
+     determine (and check) whether it can be implied-shape.  If it
+     was parsed as assumed-size, change it because PARAMETERs can not
+     be assumed-size.  */
+  if (as)
+    {
+      if (as->type == AS_IMPLIED_SHAPE && current_attr.flavor != FL_PARAMETER)
+	{
+	  m = MATCH_ERROR;
+	  gfc_error ("Non-PARAMETER symbol '%s' at %L can't be implied-shape",
+		     name, &var_locus);
+	  goto cleanup;
+	}
+
+      if (as->type == AS_ASSUMED_SIZE && as->rank == 1
+	  && current_attr.flavor == FL_PARAMETER)
+	as->type = AS_IMPLIED_SHAPE;
+
+      if (as->type == AS_IMPLIED_SHAPE
+	  && gfc_notify_std (GFC_STD_F2008,
+			     "Fortran 2008: Implied-shape array at %L",
+			     &var_locus) == FAILURE)
+	{
+	  m = MATCH_ERROR;
+	  goto cleanup;
+	}
+    }
 
   char_len = NULL;
   cl = NULL;
@@ -3538,7 +3612,8 @@ gfc_try
 verify_c_interop (gfc_typespec *ts)
 {
   if (ts->type == BT_DERIVED && ts->u.derived != NULL)
-    return (ts->u.derived->ts.is_c_interop ? SUCCESS : FAILURE);
+    return (ts->u.derived->ts.is_c_interop || ts->u.derived->attr.is_bind_c)
+	   ? SUCCESS : FAILURE;
   else if (ts->is_c_interop != 1)
     return FAILURE;
   
@@ -3978,45 +4053,81 @@ match
 gfc_match_prefix (gfc_typespec *ts)
 {
   bool seen_type;
+  bool seen_impure;
+  bool found_prefix;
 
   gfc_clear_attr (&current_attr);
-  seen_type = 0;
+  seen_type = false;
+  seen_impure = false;
 
   gcc_assert (!gfc_matching_prefix);
   gfc_matching_prefix = true;
 
-loop:
-  if (!seen_type && ts != NULL
-      && gfc_match_decl_type_spec (ts, 0) == MATCH_YES
-      && gfc_match_space () == MATCH_YES)
+  do
     {
+      found_prefix = false;
 
-      seen_type = 1;
-      goto loop;
+      if (!seen_type && ts != NULL
+	  && gfc_match_decl_type_spec (ts, 0) == MATCH_YES
+	  && gfc_match_space () == MATCH_YES)
+	{
+
+	  seen_type = true;
+	  found_prefix = true;
+	}
+
+      if (gfc_match ("elemental% ") == MATCH_YES)
+	{
+	  if (gfc_add_elemental (&current_attr, NULL) == FAILURE)
+	    goto error;
+
+	  found_prefix = true;
+	}
+
+      if (gfc_match ("pure% ") == MATCH_YES)
+	{
+	  if (gfc_add_pure (&current_attr, NULL) == FAILURE)
+	    goto error;
+
+	  found_prefix = true;
+	}
+
+      if (gfc_match ("recursive% ") == MATCH_YES)
+	{
+	  if (gfc_add_recursive (&current_attr, NULL) == FAILURE)
+	    goto error;
+
+	  found_prefix = true;
+	}
+
+      /* IMPURE is a somewhat special case, as it needs not set an actual
+	 attribute but rather only prevents ELEMENTAL routines from being
+	 automatically PURE.  */
+      if (gfc_match ("impure% ") == MATCH_YES)
+	{
+	  if (gfc_notify_std (GFC_STD_F2008,
+			      "Fortran 2008: IMPURE procedure at %C")
+		== FAILURE)
+	    goto error;
+
+	  seen_impure = true;
+	  found_prefix = true;
+	}
+    }
+  while (found_prefix);
+
+  /* IMPURE and PURE must not both appear, of course.  */
+  if (seen_impure && current_attr.pure)
+    {
+      gfc_error ("PURE and IMPURE must not appear both at %C");
+      goto error;
     }
 
-  if (gfc_match ("elemental% ") == MATCH_YES)
-    {
-      if (gfc_add_elemental (&current_attr, NULL) == FAILURE)
-	goto error;
-
-      goto loop;
-    }
-
-  if (gfc_match ("pure% ") == MATCH_YES)
+  /* If IMPURE it not seen but the procedure is ELEMENTAL, mark it as PURE.  */
+  if (!seen_impure && current_attr.elemental && !current_attr.pure)
     {
       if (gfc_add_pure (&current_attr, NULL) == FAILURE)
 	goto error;
-
-      goto loop;
-    }
-
-  if (gfc_match ("recursive% ") == MATCH_YES)
-    {
-      if (gfc_add_recursive (&current_attr, NULL) == FAILURE)
-	goto error;
-
-      goto loop;
     }
 
   /* At this point, the next item is not a prefix.  */

@@ -1183,13 +1183,13 @@ gfc_is_nodesc_array (gfc_symbol * sym)
   if (sym->attr.pointer || sym->attr.allocatable)
     return 0;
 
+  /* We want a descriptor for associate-name arrays that do not have an
+     explicitely known shape already.  */
+  if (sym->assoc && sym->as->type != AS_EXPLICIT)
+    return 0;
+
   if (sym->attr.dummy)
-    {
-      if (sym->as->type != AS_ASSUMED_SHAPE)
-        return 1;
-      else
-        return 0;
-    }
+    return sym->as->type != AS_ASSUMED_SHAPE;
 
   if (sym->attr.result || sym->attr.function)
     return 0;
@@ -1546,6 +1546,7 @@ gfc_get_array_descriptor_base (int dimen, int codimen, bool restricted)
 
   sprintf (name, "array_descriptor" GFC_RANK_PRINTF_FORMAT, dimen + codimen);
   TYPE_NAME (fat_type) = get_identifier (name);
+  TYPE_NAMELESS (fat_type) = 1;
 
   /* Add the data member as the first element of the descriptor.  */
   decl = gfc_add_field_to_struct_1 (fat_type,
@@ -1616,6 +1617,7 @@ gfc_get_array_type_bounds (tree etype, int dimen, int codimen, tree * lbound,
   sprintf (name, "array" GFC_RANK_PRINTF_FORMAT "_%.*s", dimen + codimen,
 	   GFC_MAX_SYMBOL_LEN, type_name);
   TYPE_NAME (fat_type) = get_identifier (name);
+  TYPE_NAMELESS (fat_type) = 1;
 
   GFC_DESCRIPTOR_TYPE_P (fat_type) = 1;
   TYPE_LANG_SPECIFIC (fat_type)
@@ -1796,7 +1798,8 @@ gfc_sym_type (gfc_symbol * sym)
     }
   else
     {
-      if (sym->attr.allocatable || sym->attr.pointer)
+      if (sym->attr.allocatable || sym->attr.pointer
+	  || gfc_is_associate_pointer (sym))
 	type = gfc_build_pointer_type (sym, type);
       if (sym->attr.pointer || sym->attr.cray_pointee)
 	GFC_POINTER_TYPE_P (type) = 1;
@@ -1882,8 +1885,8 @@ gfc_add_field_to_struct (tree context, tree name, tree type, tree **chain)
    the two derived type symbols are "equal", as described
    in 4.4.2 and resolved by gfc_compare_derived_types.  */
 
-static int
-copy_dt_decls_ifequal (gfc_symbol *from, gfc_symbol *to,
+int
+gfc_copy_dt_decls_ifequal (gfc_symbol *from, gfc_symbol *to,
 		       bool from_gsym)
 {
   gfc_component *to_cm;
@@ -1992,9 +1995,11 @@ gfc_get_derived_type (gfc_symbol * derived)
 	  gfc_symbol *s;
 	  s = NULL;
 	  gfc_find_symbol (derived->name, gsym->ns, 0, &s);
-	  if (s && s->backend_decl)
+	  if (s)
 	    {
-	      copy_dt_decls_ifequal (s, derived, true);
+	      if (!s->backend_decl)
+		s->backend_decl = gfc_get_derived_type (s);
+	      gfc_copy_dt_decls_ifequal (s, derived, true);
 	      goto copy_derived_types;
 	    }
 	}
@@ -2014,7 +2019,7 @@ gfc_get_derived_type (gfc_symbol * derived)
 	  dt = ns->derived_types;
 	  for (; dt && !canonical; dt = dt->next)
 	    {
-	      copy_dt_decls_ifequal (dt->derived, derived, true);
+	      gfc_copy_dt_decls_ifequal (dt->derived, derived, true);
 	      if (derived->backend_decl)
 		got_canonical = true;
 	    }
@@ -2181,7 +2186,7 @@ gfc_get_derived_type (gfc_symbol * derived)
 copy_derived_types:
 
   for (dt = gfc_derived_types; dt; dt = dt->next)
-    copy_dt_decls_ifequal (derived, dt->derived, false);
+    gfc_copy_dt_decls_ifequal (derived, dt->derived, false);
 
   return derived->backend_decl;
 }

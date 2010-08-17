@@ -65,6 +65,7 @@ extern bool hook_callee_copies_named
 extern void default_print_operand (FILE *, rtx, int);
 extern void default_print_operand_address (FILE *, rtx);
 extern bool default_print_operand_punct_valid_p (unsigned char);
+extern bool default_asm_output_addr_const_extra (FILE *, rtx);
 
 extern bool default_scalar_mode_supported_p (enum machine_mode);
 extern bool default_decimal_float_supported_p (void);
@@ -150,3 +151,4 @@ extern int default_memory_move_cost (enum machine_mode, reg_class_t, bool);
 extern int default_register_move_cost (enum machine_mode, reg_class_t,
 				       reg_class_t);
 
+extern bool default_profile_before_prologue (void);

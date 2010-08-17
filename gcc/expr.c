@@ -1120,6 +1120,11 @@ emit_block_move_hints (rtx x, rtx y, rtx size, enum block_op_methods method,
   rtx retval = 0;
   unsigned int align;
 
+  gcc_assert (size);
+  if (CONST_INT_P (size)
+      && INTVAL (size) == 0)
+    return 0;
+
   switch (method)
     {
     case BLOCK_OP_NORMAL:
@@ -1143,12 +1148,9 @@ emit_block_move_hints (rtx x, rtx y, rtx size, enum block_op_methods method,
       gcc_unreachable ();
     }
 
+  gcc_assert (MEM_P (x) && MEM_P (y));
   align = MIN (MEM_ALIGN (x), MEM_ALIGN (y));
   gcc_assert (align >= BITS_PER_UNIT);
-
-  gcc_assert (MEM_P (x));
-  gcc_assert (MEM_P (y));
-  gcc_assert (size);
 
   /* Make sure we've got BLKmode addresses; store_one_arg can decide that
      block copy is more efficient for other large modes, e.g. DCmode.  */
@@ -1159,9 +1161,6 @@ emit_block_move_hints (rtx x, rtx y, rtx size, enum block_op_methods method,
      can be incorrect is coming from __builtin_memcpy.  */
   if (CONST_INT_P (size))
     {
-      if (INTVAL (size) == 0)
-	return 0;
-
       x = shallow_copy_rtx (x);
       y = shallow_copy_rtx (y);
       set_mem_size (x, size);
@@ -4753,11 +4752,14 @@ store_expr (tree exp, rtx target, int call_param_p, bool nontemporal)
 	{
 	  int unsignedp = TYPE_UNSIGNED (TREE_TYPE (exp));
 	  if (GET_MODE (target) == BLKmode
-		   || GET_MODE (temp) == BLKmode)
+	      && GET_MODE (temp) == BLKmode)
 	    emit_block_move (target, temp, expr_size (exp),
 			     (call_param_p
 			      ? BLOCK_OP_CALL_PARM
 			      : BLOCK_OP_NORMAL));
+	  else if (GET_MODE (target) == BLKmode)
+	    store_bit_field (target, INTVAL (expr_size (exp)) * BITS_PER_UNIT,
+			     0, GET_MODE (temp), temp);
 	  else
 	    convert_move (target, temp, unsignedp);
 	}
@@ -6819,19 +6821,6 @@ highest_pow2_factor_for_target (const_tree target, const_tree exp)
   return MAX (factor, talign);
 }
 
-/* Return &VAR expression for emulated thread local VAR.  */
-
-static tree
-emutls_var_address (tree var)
-{
-  tree emuvar = emutls_decl (var);
-  tree fn = built_in_decls [BUILT_IN_EMUTLS_GET_ADDRESS];
-  tree arg = build_fold_addr_expr_with_type (emuvar, ptr_type_node);
-  tree call = build_call_expr (fn, 1, arg);
-  return fold_convert (build_pointer_type (TREE_TYPE (var)), call);
-}
-
-
 /* Subroutine of expand_expr.  Expand the two operands of a binary
    expression EXP0 and EXP1 placing the results in OP0 and OP1.
    The value may be stored in TARGET if TARGET is nonzero.  The
@@ -6933,18 +6922,6 @@ expand_expr_addr_expr_1 (tree exp, rtx target, enum machine_mode tmode,
       bitpos = GET_MODE_BITSIZE (TYPE_MODE (TREE_TYPE (exp)));
       inner = TREE_OPERAND (exp, 0);
       break;
-
-    case VAR_DECL:
-      /* TLS emulation hook - replace __thread VAR's &VAR with
-	 __emutls_get_address (&_emutls.VAR).  */
-      if (! targetm.have_tls
-	  && TREE_CODE (exp) == VAR_DECL
-	  && DECL_THREAD_LOCAL_P (exp))
-	{
-	  exp = emutls_var_address (exp);
-	  return expand_expr (exp, target, tmode, modifier);
-	}
-      /* Fall through.  */
 
     default:
       /* If the object is a DECL, then expand it for its rtl.  Don't bypass
@@ -8383,16 +8360,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  && (TREE_STATIC (exp) || DECL_EXTERNAL (exp)))
 	layout_decl (exp, 0);
 
-      /* TLS emulation hook - replace __thread vars with
-	 *__emutls_get_address (&_emutls.var).  */
-      if (! targetm.have_tls
-	  && TREE_CODE (exp) == VAR_DECL
-	  && DECL_THREAD_LOCAL_P (exp))
-	{
-	  exp = build_fold_indirect_ref_loc (loc, emutls_var_address (exp));
-	  return expand_expr_real_1 (exp, target, tmode, modifier, NULL);
-	}
-
       /* ... fall through ...  */
 
     case FUNCTION_DECL:
@@ -8691,24 +8658,13 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       {
 	addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (exp));
 	struct mem_address addr;
-	tree base;
 
 	get_address_description (exp, &addr);
 	op0 = addr_for_mem_ref (&addr, as, true);
 	op0 = memory_address_addr_space (mode, op0, as);
 	temp = gen_rtx_MEM (mode, op0);
-	set_mem_attributes (temp, TMR_ORIGINAL (exp), 0);
+	set_mem_attributes (temp, exp, 0);
 	set_mem_addr_space (temp, as);
-	base = get_base_address (TMR_ORIGINAL (exp));
-	if (INDIRECT_REF_P (base)
-	    && TMR_BASE (exp)
-	    && TREE_CODE (TMR_BASE (exp)) == SSA_NAME
-	    && POINTER_TYPE_P (TREE_TYPE (TMR_BASE (exp))))
-	  {
-	    set_mem_expr (temp, build1 (INDIRECT_REF,
-					TREE_TYPE (exp), TMR_BASE (exp)));
-	    set_mem_offset (temp, NULL_RTX);
-	  }
       }
       return temp;
 
@@ -8766,11 +8722,14 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  base = build2 (BIT_AND_EXPR, TREE_TYPE (base),
 			 gimple_assign_rhs1 (def_stmt),
 			 gimple_assign_rhs2 (def_stmt));
+	op0 = expand_expr (base, NULL_RTX, VOIDmode, EXPAND_NORMAL);
+	op0 = convert_memory_address_addr_space (address_mode, op0, as);
 	if (!integer_zerop (TREE_OPERAND (exp, 1)))
-	  base = build2 (POINTER_PLUS_EXPR, TREE_TYPE (base),
-			 base, double_int_to_tree (sizetype,
-						   mem_ref_offset (exp)));
-	op0 = expand_expr (base, NULL_RTX, address_mode, EXPAND_SUM);
+	  {
+	    rtx off
+	      = immed_double_int_const (mem_ref_offset (exp), address_mode);
+	    op0 = simplify_gen_binary (PLUS, address_mode, op0, off);
+	  }
 	op0 = memory_address_addr_space (mode, op0, as);
 	temp = gen_rtx_MEM (mode, op0);
 	set_mem_attributes (temp, exp, 0);

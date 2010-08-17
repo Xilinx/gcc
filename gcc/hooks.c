@@ -1,5 +1,5 @@
 /* General-purpose hooks.
-   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify it
@@ -119,13 +119,6 @@ hook_bool_const_tree_hwi_hwi_const_tree_true (const_tree a ATTRIBUTE_UNUSED,
 }
 
 bool
-hook_bool_constcharptr_size_t_false (const char *a ATTRIBUTE_UNUSED,
-				     size_t b ATTRIBUTE_UNUSED)
-{
-  return false;
-}
-
-bool
 hook_bool_size_t_constcharptr_int_true (size_t a ATTRIBUTE_UNUSED,
 					const char *b ATTRIBUTE_UNUSED,
 					int c ATTRIBUTE_UNUSED)
@@ -167,17 +160,8 @@ hook_int_rtx_bool_0 (rtx a ATTRIBUTE_UNUSED, bool b ATTRIBUTE_UNUSED)
   return 0;
 }
 
-int
-hook_int_size_t_constcharptr_int_0 (size_t a ATTRIBUTE_UNUSED,
-				    const char *b ATTRIBUTE_UNUSED,
-				    int c ATTRIBUTE_UNUSED)
-{
-  return 0;
-}
-
 unsigned int
-hook_uint_uint_constcharptrptr_0 (unsigned int a ATTRIBUTE_UNUSED,
-				  const char **b ATTRIBUTE_UNUSED)
+hook_uint_void_0 (void)
 {
   return 0;
 }

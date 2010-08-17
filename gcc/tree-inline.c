@@ -3687,21 +3687,24 @@ add_local_variables (struct function *callee, struct function *caller,
 	  add_local_decl (caller, var);
       }
     else if (!can_be_nonlocal (var, id))
-      add_local_decl (caller, remap_decl (var, id));
-}
+      {
+        tree new_var = remap_decl (var, id);
 
-/* Fetch callee declaration from the call graph edge going from NODE and
-   associated with STMR call statement.  Return NULL_TREE if not found.  */
-static tree
-get_indirect_callee_fndecl (struct cgraph_node *node, gimple stmt)
-{
-  struct cgraph_edge *cs;
-
-  cs = cgraph_edge (node, stmt);
-  if (cs && !cs->indirect_unknown_callee)
-    return cs->callee->decl;
-
-  return NULL_TREE;
+        /* Remap debug-expressions.  */
+	if (TREE_CODE (new_var) == VAR_DECL
+	    && DECL_DEBUG_EXPR_IS_FROM (new_var)
+	    && new_var != var)
+	  {
+	    tree tem = DECL_DEBUG_EXPR (var);
+	    bool old_regimplify = id->regimplify;
+	    id->remapping_type_depth++;
+	    walk_tree (&tem, copy_tree_body_r, id, NULL);
+	    id->remapping_type_depth--;
+	    id->regimplify = old_regimplify;
+	    SET_DECL_DEBUG_EXPR (new_var, tem);
+	  }
+	add_local_decl (caller, new_var);
+      }
 }
 
 /* If STMT is a GIMPLE_CALL, replace it with its inline expansion.  */
@@ -3737,11 +3740,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
      If we cannot, then there is no hope of inlining the function.  */
   fn = gimple_call_fndecl (stmt);
   if (!fn)
-    {
-      fn = get_indirect_callee_fndecl (id->dst_node, stmt);
-      if (!fn)
-	goto egress;
-    }
+    goto egress;
 
   /* Turn forward declarations into real ones.  */
   fn = cgraph_node (fn)->decl;
@@ -5184,7 +5183,15 @@ tree_function_versioning (tree old_decl, tree new_decl,
       for (e = new_version_node->callees; e; e = e->next_callee)
 	{
 	  basic_block bb = gimple_bb (e->call_stmt);
-	  e->frequency = compute_call_stmt_bb_frequency (current_function_decl, bb);
+	  e->frequency = compute_call_stmt_bb_frequency (current_function_decl,
+							 bb);
+	  e->count = bb->count;
+	}
+      for (e = new_version_node->indirect_calls; e; e = e->next_callee)
+	{
+	  basic_block bb = gimple_bb (e->call_stmt);
+	  e->frequency = compute_call_stmt_bb_frequency (current_function_decl,
+							 bb);
 	  e->count = bb->count;
 	}
     }

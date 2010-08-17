@@ -3219,12 +3219,13 @@ Support for FreeBSD 1 was discontinued in GCC 3.2.  Support for
 FreeBSD 2 (and any mutant a.out variants of FreeBSD 3) was
 discontinued in GCC 4.0.
 
-In GCC 4.5, we enabled the use of @code{dl_iterate_phdr} inside boehm-gc on
-FreeBSD 7 or later.  In order to better match the configuration of the
-FreeBSD system compiler: We also enabled the check to see if libc
-provides SSP support (which it does on FreeBSD 7), the use of
-@code{dl_iterate_phdr} inside @file{libgcc_s.so.1} (on FreeBSD 7 or later)
-and the use of @code{__cxa_atexit} by default (on FreeBSD 6 or later).
+In order to better utilize FreeBSD base system functionality and match
+the configuration of the system compiler, GCC 4.5 and above as well as
+GCC 4.4 past 2010-06-20 leverage SSP support in libc (which is present
+on FreeBSD 7 or later) and the use of @code{__cxa_atexit} by default
+(on FreeBSD 6 or later).  The use of @code{dl_iterate_phdr} inside
+@file{libgcc_s.so.1} and boehm-gc (on FreeBSD 7 or later) is enabled
+by GCC 4.5 and above.
 
 We support FreeBSD using the ELF file format with DWARF 2 debugging
 for all CPU architectures.  You may use @option{-gstabs} instead of
@@ -4164,6 +4165,29 @@ testsuite failures appear.
 There are patches for Solaris 8 (117350-12 or newer for SPARC,
 117351-12 or newer for Intel) and Solaris 9 (117171-11 or newer for
 SPARC, 117172-11 or newer for Intel) that address this problem.
+
+Solaris~8 provides an alternate implementation of the thread libraries,
+@samp{libpthread} and @samp{libthread}.  They are required for TLS
+support and have been made the default in Solaris~9, so they are always
+used on Solaris~8.
+
+Thread-local storage (TLS) is supported in Solaris~8 and 9, but requires
+some patches.  The @samp{libthread} patches provide the
+@code{__tls_get_addr} (SPARC, 64-bit x86) resp.@ @code{___tls_get_addr}
+(32-bit x86) functions.  On Solaris~8, you need 108993-26 or newer on
+SPARC, 108994-26 or newer on Intel.  On Solaris~9, the necessary support
+on SPARC is present since FCS, while 114432-05 or newer is reqired on
+Intel.  Additionally, on Solaris~8, patch 109147-14 or newer on SPARC or
+109148-22 or newer on Intel are required for the Sun @command{ld} and
+runtime linker (@command{ld.so.1}) support.  Again, Solaris~9/SPARC
+works since FCS, while 113986-02 is required on Intel.  The linker
+patches must be installed even if GNU @command{ld} is used. Sun
+@command{as} in Solaris~8 and 9 doesn't support the necessary
+relocations, so GNU @command{as} must be used.  The @command{configure}
+script checks for those prerequisites and automatically enables TLS
+support if they are met.  Although those minimal patch versions should
+work, it is recommended to use the latest patch versions which include
+additional bug fixes.
 
 @html
 <hr />

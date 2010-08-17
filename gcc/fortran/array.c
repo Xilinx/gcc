@@ -300,10 +300,14 @@ resolve_array_bound (gfc_expr *e, int check_constant)
       || gfc_specification_expr (e) == FAILURE)
     return FAILURE;
 
-  if (check_constant && gfc_is_constant_expr (e) == 0)
+  if (check_constant && !gfc_is_constant_expr (e))
     {
-      gfc_error ("Variable '%s' at %L in this context must be constant",
-		 e->symtree->n.sym->name, &e->where);
+      if (e->expr_type == EXPR_VARIABLE)
+	gfc_error ("Variable '%s' at %L in this context must be constant",
+		   e->symtree->n.sym->name, &e->where);
+      else
+	gfc_error ("Expression at %L in this context must be constant",
+		   &e->where);
       return FAILURE;
     }
 
@@ -459,6 +463,12 @@ gfc_match_array_spec (gfc_array_spec **asp, bool match_dim, bool match_codim)
       as->rank++;
       current_type = match_array_element_spec (as);
 
+      /* Note that current_type == AS_ASSUMED_SIZE for both assumed-size
+	 and implied-shape specifications.  If the rank is at least 2, we can
+	 distinguish between them.  But for rank 1, we currently return
+	 ASSUMED_SIZE; this gets adjusted later when we know for sure
+	 whether the symbol parsed is a PARAMETER or not.  */
+
       if (as->rank == 1)
 	{
 	  if (current_type == AS_UNKNOWN)
@@ -470,6 +480,15 @@ gfc_match_array_spec (gfc_array_spec **asp, bool match_dim, bool match_codim)
 	  {		/* See how current spec meshes with the existing.  */
 	  case AS_UNKNOWN:
 	    goto cleanup;
+
+	  case AS_IMPLIED_SHAPE:
+	    if (current_type != AS_ASSUMED_SHAPE)
+	      {
+		gfc_error ("Bad array specification for implied-shape"
+			   " array at %C");
+		goto cleanup;
+	      }
+	    break;
 
 	  case AS_EXPLICIT:
 	    if (current_type == AS_ASSUMED_SIZE)
@@ -509,6 +528,12 @@ gfc_match_array_spec (gfc_array_spec **asp, bool match_dim, bool match_codim)
 	    goto cleanup;
 
 	  case AS_ASSUMED_SIZE:
+	    if (as->rank == 2 && current_type == AS_ASSUMED_SIZE)
+	      {
+		as->type = AS_IMPLIED_SHAPE;
+		break;
+	      }
+
 	    gfc_error ("Bad specification for assumed size array at %C");
 	    goto cleanup;
 	  }
@@ -566,6 +591,7 @@ coarray:
       else
 	switch (as->cotype)
 	  { /* See how current spec meshes with the existing.  */
+	    case AS_IMPLIED_SHAPE:
 	    case AS_UNKNOWN:
 	      goto cleanup;
 
@@ -1203,7 +1229,7 @@ gfc_check_iter_variable (gfc_expr *expr)
 
   sym = expr->symtree->n.sym;
 
-  for (c = base; c; c = c->previous)
+  for (c = base; c && c->iterator; c = c->previous)
     if (sym == c->iterator->var->symtree->n.sym)
       return SUCCESS;
 
@@ -1825,7 +1851,7 @@ got_charlen:
 	      has_ts = (expr->ts.u.cl && expr->ts.u.cl->length_from_typespec);
 
 	      if (! cl
-		  || (current_length != -1 && current_length < found_length))
+		  || (current_length != -1 && current_length != found_length))
 		gfc_set_constant_character_len (found_length, p->expr,
 						has_ts ? -1 : found_length);
 	    }
@@ -1936,10 +1962,11 @@ spec_size (gfc_array_spec *as, mpz_t *result)
 }
 
 
-/* Get the number of elements in an array section.  */
+/* Get the number of elements in an array section. Optionally, also supply
+   the end value.  */
 
 gfc_try
-gfc_ref_dimen_size (gfc_array_ref *ar, int dimen, mpz_t *result)
+gfc_ref_dimen_size (gfc_array_ref *ar, int dimen, mpz_t *result, mpz_t *end)
 {
   mpz_t upper, lower, stride;
   gfc_try t;
@@ -2012,6 +2039,15 @@ gfc_ref_dimen_size (gfc_array_ref *ar, int dimen, mpz_t *result)
 	mpz_set_ui (*result, 0);
       t = SUCCESS;
 
+      if (end)
+	{
+	  mpz_init (*end);
+
+	  mpz_sub_ui (*end, *result, 1UL);
+	  mpz_mul (*end, *end, stride);
+	  mpz_add (*end, *end, lower);
+	}
+
     cleanup:
       mpz_clear (upper);
       mpz_clear (lower);
@@ -2036,7 +2072,7 @@ ref_size (gfc_array_ref *ar, mpz_t *result)
 
   for (d = 0; d < ar->dimen; d++)
     {
-      if (gfc_ref_dimen_size (ar, d, &size) == FAILURE)
+      if (gfc_ref_dimen_size (ar, d, &size, NULL) == FAILURE)
 	{
 	  mpz_clear (*result);
 	  return FAILURE;
@@ -2082,7 +2118,7 @@ gfc_array_dimen_size (gfc_expr *array, int dimen, mpz_t *result)
 		if (ref->u.ar.dimen_type[i] != DIMEN_ELEMENT)
 		  dimen--;
 
-	      return gfc_ref_dimen_size (&ref->u.ar, i - 1, result);
+	      return gfc_ref_dimen_size (&ref->u.ar, i - 1, result, NULL);
 	    }
 	}
 
@@ -2218,7 +2254,7 @@ gfc_array_ref_shape (gfc_array_ref *ar, mpz_t *shape)
 	{
 	  if (ar->dimen_type[i] != DIMEN_ELEMENT)
 	    {
-	      if (gfc_ref_dimen_size (ar, i, &shape[d]) == FAILURE)
+	      if (gfc_ref_dimen_size (ar, i, &shape[d], NULL) == FAILURE)
 		goto cleanup;
 	      d++;
 	    }

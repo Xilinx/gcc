@@ -356,6 +356,21 @@ default_print_operand_punct_valid_p (unsigned char code ATTRIBUTE_UNUSED)
 #endif
 }
 
+/* The default implementation of TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA.  */
+
+bool
+default_asm_output_addr_const_extra (FILE *file ATTRIBUTE_UNUSED,
+				     rtx x ATTRIBUTE_UNUSED)
+{
+#ifdef OUTPUT_ADDR_CONST_EXTRA
+  OUTPUT_ADDR_CONST_EXTRA (file, x, fail);
+  return true;
+
+fail:
+#endif
+  return false;
+}
+
 /* True if MODE is valid for the target.  By "valid", we mean able to
    be manipulated in non-trivial ways.  In particular, this means all
    the arithmetic is supported.
@@ -1194,6 +1209,16 @@ default_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
   return 2;
 #else
   return REGISTER_MOVE_COST (mode, (enum reg_class) from, (enum reg_class) to);
+#endif
+}
+
+bool
+default_profile_before_prologue (void)
+{
+#ifdef PROFILE_BEFORE_PROLOGUE
+  return true;
+#else
+  return false;
 #endif
 }
 

@@ -42,6 +42,38 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-chrec.h"
 
 
+/* Type of value ranges.  See value_range_d for a description of these
+   types.  */
+enum value_range_type { VR_UNDEFINED, VR_RANGE, VR_ANTI_RANGE, VR_VARYING };
+
+/* Range of values that can be associated with an SSA_NAME after VRP
+   has executed.  */
+struct value_range_d
+{
+  /* Lattice value represented by this range.  */
+  enum value_range_type type;
+
+  /* Minimum and maximum values represented by this range.  These
+     values should be interpreted as follows:
+
+	- If TYPE is VR_UNDEFINED or VR_VARYING then MIN and MAX must
+	  be NULL.
+
+	- If TYPE == VR_RANGE then MIN holds the minimum value and
+	  MAX holds the maximum value of the range [MIN, MAX].
+
+	- If TYPE == ANTI_RANGE the variable is known to NOT
+	  take any values in the range [MIN, MAX].  */
+  tree min;
+  tree max;
+
+  /* Set of SSA names whose value ranges are equivalent to this one.
+     This set is only valid when TYPE is VR_RANGE or VR_ANTI_RANGE.  */
+  bitmap equiv;
+};
+
+typedef struct value_range_d value_range_t;
+
 /* Set of SSA names found live during the RPO traversal of the function
    for still active basic-blocks.  */
 static sbitmap *live;
@@ -6953,15 +6985,13 @@ simplify_bit_ops_using_ranges (gimple_stmt_iterator *gsi, gimple stmt)
   switch (gimple_assign_rhs_code (stmt))
     {
     case BIT_AND_EXPR:
-      mask = double_int_and (may_be_nonzero0,
-			     double_int_not (must_be_nonzero1));
+      mask = double_int_and_not (may_be_nonzero0, must_be_nonzero1);
       if (double_int_zero_p (mask))
 	{
 	  op = op0;
 	  break;
 	}
-      mask = double_int_and (may_be_nonzero1,
-			     double_int_not (must_be_nonzero0));
+      mask = double_int_and_not (may_be_nonzero1, must_be_nonzero0);
       if (double_int_zero_p (mask))
 	{
 	  op = op1;
@@ -6969,15 +6999,13 @@ simplify_bit_ops_using_ranges (gimple_stmt_iterator *gsi, gimple stmt)
 	}
       break;
     case BIT_IOR_EXPR:
-      mask = double_int_and (may_be_nonzero0,
-			     double_int_not (must_be_nonzero1));
+      mask = double_int_and_not (may_be_nonzero0, must_be_nonzero1);
       if (double_int_zero_p (mask))
 	{
 	  op = op1;
 	  break;
 	}
-      mask = double_int_and (may_be_nonzero1,
-			     double_int_not (must_be_nonzero0));
+      mask = double_int_and_not (may_be_nonzero1, must_be_nonzero0);
       if (double_int_zero_p (mask))
 	{
 	  op = op0;
@@ -7530,8 +7558,6 @@ static void
 vrp_finalize (void)
 {
   size_t i;
-  prop_value_t *single_val_range;
-  bool do_value_subst_p;
   unsigned num = num_ssa_names;
 
   if (dump_file)
@@ -7541,31 +7567,8 @@ vrp_finalize (void)
       fprintf (dump_file, "\n");
     }
 
-  /* We may have ended with ranges that have exactly one value.  Those
-     values can be substituted as any other const propagated
-     value using substitute_and_fold.  */
-  single_val_range = XCNEWVEC (prop_value_t, num);
-
-  do_value_subst_p = false;
-  for (i = 0; i < num; i++)
-    if (vr_value[i]
-	&& vr_value[i]->type == VR_RANGE
-	&& vr_value[i]->min == vr_value[i]->max
-	&& is_gimple_min_invariant (vr_value[i]->min))
-      {
-	single_val_range[i].value = vr_value[i]->min;
-	do_value_subst_p = true;
-      }
-
-  if (!do_value_subst_p)
-    {
-      /* We found no single-valued ranges, don't waste time trying to
-	 do single value substitution in substitute_and_fold.  */
-      free (single_val_range);
-      single_val_range = NULL;
-    }
-
-  substitute_and_fold (single_val_range, vrp_fold_stmt, false);
+  substitute_and_fold (op_with_constant_singleton_value_range,
+		       vrp_fold_stmt, false);
 
   if (warn_array_bounds)
     check_all_array_refs ();
@@ -7582,7 +7585,6 @@ vrp_finalize (void)
 	free (vr_value[i]);
       }
 
-  free (single_val_range);
   free (vr_value);
   free (vr_phi_edge_counts);
 

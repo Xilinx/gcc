@@ -543,6 +543,8 @@ poplevel (int keep, int reverse, int functionbody)
   tree decl;
   int leaving_for_scope;
   scope_kind kind;
+  unsigned ix;
+  cp_label_binding *label_bind;
 
   timevar_push (TV_NAME_LOOKUP);
  restart:
@@ -687,10 +689,9 @@ poplevel (int keep, int reverse, int functionbody)
 	      /* Add it to the list of dead variables in the next
 		 outermost binding to that we can remove these when we
 		 leave that binding.  */
-	      current_binding_level->level_chain->dead_vars_from_for
-		= tree_cons (NULL_TREE, link,
-			     current_binding_level->level_chain->
-			     dead_vars_from_for);
+	      VEC_safe_push (tree, gc,
+			     current_binding_level->level_chain->dead_vars_from_for,
+			     link);
 
 	      /* Although we don't pop the cxx_binding, we do clear
 		 its SCOPE since the scope is going away now.  */
@@ -719,9 +720,10 @@ poplevel (int keep, int reverse, int functionbody)
 
   /* Remove declarations for any `for' variables from inner scopes
      that we kept around.  */
-  for (link = current_binding_level->dead_vars_from_for;
-       link; link = TREE_CHAIN (link))
-    pop_binding (DECL_NAME (TREE_VALUE (link)), TREE_VALUE (link));
+  for (ix = VEC_length (tree, current_binding_level->dead_vars_from_for) - 1;
+       VEC_iterate (tree, current_binding_level->dead_vars_from_for, ix, decl);
+       ix--)
+    pop_binding (DECL_NAME (decl), decl);
 
   /* Restore the IDENTIFIER_TYPE_VALUEs.  */
   for (link = current_binding_level->type_shadowed;
@@ -729,10 +731,12 @@ poplevel (int keep, int reverse, int functionbody)
     SET_IDENTIFIER_TYPE_VALUE (TREE_PURPOSE (link), TREE_VALUE (link));
 
   /* Restore the IDENTIFIER_LABEL_VALUEs for local labels.  */
-  for (link = current_binding_level->shadowed_labels;
-       link;
-       link = TREE_CHAIN (link))
-    pop_local_label (TREE_VALUE (link), TREE_PURPOSE (link));
+  for (ix = VEC_length (cp_label_binding,
+			current_binding_level->shadowed_labels) - 1;
+       VEC_iterate (cp_label_binding, current_binding_level->shadowed_labels,
+		    ix, label_bind);
+       ix--)
+    pop_local_label (label_bind->label, label_bind->prev_value);
 
   /* There may be OVERLOADs (wrapped in TREE_LISTs) on the BLOCK_VARs
      list if a `using' declaration put them there.  The debugging
@@ -2142,6 +2146,10 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
       SET_DECL_INIT_PRIORITY (olddecl, DECL_INIT_PRIORITY (newdecl));
       DECL_HAS_INIT_PRIORITY_P (olddecl) = 1;
     }
+  /* Likewise for DECL_USER_ALIGN and DECL_PACKED.  */
+  DECL_USER_ALIGN (olddecl) = DECL_USER_ALIGN (newdecl);
+  if (TREE_CODE (newdecl) == FIELD_DECL)
+    DECL_PACKED (olddecl) = DECL_PACKED (newdecl);
 
   /* The DECL_LANG_SPECIFIC information in OLDDECL will be replaced
      with that from NEWDECL below.  */
@@ -2533,16 +2541,17 @@ lookup_label (tree id)
 tree
 declare_local_label (tree id)
 {
-  tree decl, shadow;
+  tree decl;
+  cp_label_binding *bind;
 
   /* Add a new entry to the SHADOWED_LABELS list so that when we leave
      this scope we can restore the old value of IDENTIFIER_TYPE_VALUE.  */
-  shadow = tree_cons (IDENTIFIER_LABEL_VALUE (id), NULL_TREE,
-		      current_binding_level->shadowed_labels);
-  current_binding_level->shadowed_labels = shadow;
+  bind = VEC_safe_push (cp_label_binding, gc,
+			current_binding_level->shadowed_labels, NULL);
+  bind->prev_value = IDENTIFIER_LABEL_VALUE (id);
 
   decl = make_label_decl (id, /*local_p=*/1);
-  TREE_VALUE (shadow) = decl;
+  bind->label = decl;
 
   return decl;
 }
@@ -4491,7 +4500,8 @@ grok_reference_init (tree decl, tree type, tree init, tree *cleanup)
     }
 
   if (TREE_CODE (init) == TREE_LIST)
-    init = build_x_compound_expr_from_list (init, ELK_INIT);
+    init = build_x_compound_expr_from_list (init, ELK_INIT,
+					    tf_warning_or_error);
 
   if (TREE_CODE (TREE_TYPE (type)) != ARRAY_TYPE
       && TREE_CODE (TREE_TYPE (init)) == ARRAY_TYPE)
@@ -5754,7 +5764,8 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  return;
 	}
       if (TREE_CODE (init) == TREE_LIST)
-	init = build_x_compound_expr_from_list (init, ELK_INIT);
+	init = build_x_compound_expr_from_list (init, ELK_INIT,
+						tf_warning_or_error);
       if (describable_type (init))
 	{
 	  type = TREE_TYPE (decl) = do_auto_deduction (type, init, auto_node);

@@ -236,9 +236,7 @@ decode_statement (void)
   match m;
   char c;
 
-#ifdef GFC_DEBUG
-  gfc_symbol_state ();
-#endif
+  gfc_enforce_clean_symbol_state ();
 
   gfc_clear_error ();	/* Clear any pending errors.  */
   gfc_clear_warning ();	/* Clear any pending warnings.  */
@@ -484,9 +482,7 @@ decode_omp_directive (void)
   locus old_locus;
   char c;
 
-#ifdef GFC_DEBUG
-  gfc_symbol_state ();
-#endif
+  gfc_enforce_clean_symbol_state ();
 
   gfc_clear_error ();	/* Clear any pending errors.  */
   gfc_clear_warning ();	/* Clear any pending warnings.  */
@@ -588,9 +584,7 @@ decode_gcc_attribute (void)
 {
   locus old_locus;
 
-#ifdef GFC_DEBUG
-  gfc_symbol_state ();
-#endif
+  gfc_enforce_clean_symbol_state ();
 
   gfc_clear_error ();	/* Clear any pending errors.  */
   gfc_clear_warning ();	/* Clear any pending warnings.  */
@@ -889,9 +883,12 @@ next_statement (void)
   gfc_statement st;
   locus old_locus;
 
+  gfc_enforce_clean_symbol_state ();
+
   gfc_new_block = NULL;
 
   gfc_current_ns->old_cl_list = gfc_current_ns->cl_list;
+  gfc_current_ns->old_equiv = gfc_current_ns->equiv;
   for (;;)
     {
       gfc_statement_label = NULL;
@@ -1651,6 +1648,9 @@ reject_statement (void)
   gfc_free_charlen (gfc_current_ns->cl_list, gfc_current_ns->old_cl_list);
   gfc_current_ns->cl_list = gfc_current_ns->old_cl_list;
 
+  gfc_free_equiv_until (gfc_current_ns->equiv, gfc_current_ns->old_equiv);
+  gfc_current_ns->equiv = gfc_current_ns->old_equiv;
+
   gfc_new_block = NULL;
   gfc_undo_symbols ();
   gfc_clear_warning ();
@@ -1884,13 +1884,12 @@ parse_derived_contains (void)
 
 	case ST_DATA_DECL:
 	  gfc_error ("Components in TYPE at %C must precede CONTAINS");
-	  error_flag = true;
-	  break;
+	  goto error;
 
 	case ST_PROCEDURE:
 	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003:  Type-bound"
 					     " procedure at %C") == FAILURE)
-	    error_flag = true;
+	    goto error;
 
 	  accept_statement (ST_PROCEDURE);
 	  seen_comps = true;
@@ -1899,7 +1898,7 @@ parse_derived_contains (void)
 	case ST_GENERIC:
 	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003:  GENERIC binding"
 					     " at %C") == FAILURE)
-	    error_flag = true;
+	    goto error;
 
 	  accept_statement (ST_GENERIC);
 	  seen_comps = true;
@@ -1909,7 +1908,7 @@ parse_derived_contains (void)
 	  if (gfc_notify_std (GFC_STD_F2003,
 			      "Fortran 2003:  FINAL procedure declaration"
 			      " at %C") == FAILURE)
-	    error_flag = true;
+	    goto error;
 
 	  accept_statement (ST_FINAL);
 	  seen_comps = true;
@@ -1922,7 +1921,7 @@ parse_derived_contains (void)
 	      && (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Derived type "
 				  "definition at %C with empty CONTAINS "
 				  "section") == FAILURE))
-	    error_flag = true;
+	    goto error;
 
 	  /* ST_END_TYPE is accepted by parse_derived after return.  */
 	  break;
@@ -1932,22 +1931,20 @@ parse_derived_contains (void)
 	    {
 	      gfc_error ("PRIVATE statement in TYPE at %C must be inside "
 			 "a MODULE");
-	      error_flag = true;
-	      break;
+	      goto error;
 	    }
 
 	  if (seen_comps)
 	    {
 	      gfc_error ("PRIVATE statement at %C must precede procedure"
 			 " bindings");
-	      error_flag = true;
-	      break;
+	      goto error;
 	    }
 
 	  if (seen_private)
 	    {
 	      gfc_error ("Duplicate PRIVATE statement at %C");
-	      error_flag = true;
+	      goto error;
 	    }
 
 	  accept_statement (ST_PRIVATE);
@@ -1957,18 +1954,22 @@ parse_derived_contains (void)
 
 	case ST_SEQUENCE:
 	  gfc_error ("SEQUENCE statement at %C must precede CONTAINS");
-	  error_flag = true;
-	  break;
+	  goto error;
 
 	case ST_CONTAINS:
 	  gfc_error ("Already inside a CONTAINS block at %C");
-	  error_flag = true;
-	  break;
+	  goto error;
 
 	default:
 	  unexpected_statement (st);
 	  break;
 	}
+
+      continue;
+
+error:
+      error_flag = true;
+      reject_statement ();
     }
 
   pop_state ();
@@ -2387,7 +2388,10 @@ match_deferred_characteristics (gfc_typespec * ts)
       gfc_commit_symbols ();
     }
   else
-    gfc_error_check ();
+    {
+      gfc_error_check ();
+      gfc_undo_symbols ();
+    }
 
   gfc_current_locus =loc;
   return m;
@@ -2459,6 +2463,7 @@ loop:
 	case ST_STATEMENT_FUNCTION:
 	  gfc_error ("%s statement is not allowed inside of BLOCK at %C",
 		     gfc_ascii_statement (st));
+	  reject_statement ();
 	  break;
 
 	default:
@@ -2545,6 +2550,7 @@ declSt:
 	    {
 	      gfc_error ("%s statement must appear in a MODULE",
 			 gfc_ascii_statement (st));
+	      reject_statement ();
 	      break;
 	    }
 
@@ -2552,6 +2558,7 @@ declSt:
 	    {
 	      gfc_error ("%s statement at %C follows another accessibility "
 			 "specification", gfc_ascii_statement (st));
+	      reject_statement ();
 	      break;
 	    }
 
@@ -3199,7 +3206,6 @@ parse_associate (void)
   gfc_state_data s;
   gfc_statement st;
   gfc_association_list* a;
-  gfc_code* assignTail;
 
   gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ASSOCIATE construct at %C");
 
@@ -3209,46 +3215,22 @@ parse_associate (void)
   new_st.ext.block.ns = my_ns;
   gcc_assert (new_st.ext.block.assoc);
 
-  /* Add all associations to expressions as BLOCK variables, and create
-     assignments to them giving their values.  */
+  /* Add all associate-names as BLOCK variables.  Creating them is enough
+     for now, they'll get their values during trans-* phase.  */
   gfc_current_ns = my_ns;
-  assignTail = NULL;
   for (a = new_st.ext.block.assoc; a; a = a->next)
-    if (!a->variable)
-      {
-	gfc_code* newAssign;
+    {
+      gfc_symbol* sym;
 
-	if (gfc_get_sym_tree (a->name, NULL, &a->st, false))
-	  gcc_unreachable ();
+      if (gfc_get_sym_tree (a->name, NULL, &a->st, false))
+	gcc_unreachable ();
 
-	/* Note that in certain cases, the target-expression's type is not yet
-	   known and so we have to adapt the symbol's ts also during resolution
-	   for these cases.  */
-	a->st->n.sym->ts = a->target->ts;
-	a->st->n.sym->attr.flavor = FL_VARIABLE;
-	a->st->n.sym->assoc = a;
-	gfc_set_sym_referenced (a->st->n.sym);
-
-	/* Create the assignment to calculate the expression and set it.  */
-	newAssign = gfc_get_code ();
-	newAssign->op = EXEC_ASSIGN;
-	newAssign->loc = gfc_current_locus;
-	newAssign->expr1 = gfc_get_variable_expr (a->st);
-	newAssign->expr2 = a->target;
-
-	/* Hang it in.  */
-	if (assignTail)
-	  assignTail->next = newAssign;
-	else
-	  gfc_current_ns->code = newAssign;
-	assignTail = newAssign;
-      }
-    else
-      {
-	gfc_error ("Association to variables is not yet supported at %C");
-	return;
-      }
-  gcc_assert (assignTail);
+      sym = a->st->n.sym;
+      sym->attr.flavor = FL_VARIABLE;
+      sym->assoc = a;
+      sym->declared_at = a->where;
+      gfc_set_sym_referenced (sym);
+    }
 
   accept_statement (ST_ASSOCIATE);
   push_state (&s, COMP_ASSOCIATE, my_ns->proc_name);
@@ -3262,7 +3244,7 @@ loop:
 
     case_end:
       accept_statement (st);
-      assignTail->next = gfc_state_stack->head;
+      my_ns->code = gfc_state_stack->head;
       break;
 
     default:
@@ -3788,10 +3770,7 @@ gfc_fixup_sibling_symbols (gfc_symbol *sym, gfc_namespace *siblings)
 	  st->n.sym = sym;
 	  sym->refs++;
 
-	  /* Free the old (local) symbol.  */
-	  old_sym->refs--;
-	  if (old_sym->refs == 0)
-	    gfc_free_symbol (old_sym);
+	  gfc_release_symbol (old_sym);
 	}
 
 fixup_contained:
@@ -3999,6 +3978,7 @@ contains:
     {
       gfc_error ("CONTAINS statement at %C is already in a contained "
 		 "program unit");
+      reject_statement ();
       st = next_statement ();
       goto loop;
     }
@@ -4414,7 +4394,11 @@ prog_units:
      later and all their interfaces resolved.  */
   gfc_current_ns->code = s.head;
   if (next)
-    next->sibling = gfc_current_ns;
+    {
+      for (; next->sibling; next = next->sibling)
+	;
+      next->sibling = gfc_current_ns;
+    }
   else
     gfc_global_ns_list = gfc_current_ns;
 

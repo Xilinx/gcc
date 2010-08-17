@@ -1,3 +1,87 @@
+2010-08-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/44931
+	* io/inquire.c (inquire_via_unit): Add special case for __MINGW32__ to
+	return special file names CONIN$, CONOUT$, and CONERR$.
+
+2010-08-07  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/45143
+	* io/format.c: Remove fnode storage structure definitions, moving these
+	to format.h. (parse_format_list): Add check for data descriptors,
+	taking care of nested formats. Adjust calling parameters to pass a
+	check flag. (parse_format): Likewise.
+	* io/format.h: Add structures moved from format.c.
+	
+2010-08-02  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* io/unit.c (update_position): Don't update the position flag for
+	non-seekable files, check for stell() error.
+
+2010-08-01  Janne Blomqvist  <jb@gcc.gnu.org>
+
+        * io/unix.c (file_exists): Use access(2) instead of stat(2) to
+        test file existence.
+	(fallback_access): Move up in file, implement F_OK.
+
+2010-07-31  David Edelsohn  <edelsohn@gnu.org>
+
+	* io/inquire.c: Include io.h before string.h.
+
+2010-07-28  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/44931
+	* io/inquire.c (inquire_via_unit): Use ttyname to return actual device
+	file name for stdin, stdout, and stderr.  If ttyname does not succeed
+	fall back to default names for these units. Include string.h to allow
+	using strlen function.
+	* unix.c: Remove typedef of unix_stream structure, move to unix.h.
+	* unix.h: Add typedef of unix_stream structure so that it is
+	accessible to inquire.c.
+
+2010-07-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/44953
+	* io/unix.c (mem_alloc_w4): Return gfc_char4_t instead of char type
+	pointer. (mem_write4): Remove cast to gfc_char4_t.
+	* io/transfer.c (write_block): Use a gfc_char4_t pointer.
+	(memset4): New helper function. (next_record_w): Use new helper
+	function rather than sset for internal units.  Don't attempt to pad
+	with spaces if it is not needed.
+	* io/unix.h: Update prototype for mem_alloc_w4.
+	* io/write.c (memset4): Use gfc_char4_t pointer and chracter type.
+	Don't use multiply by 4 to compute offset. (memcpy4): Likewise.
+	(write_default_char4): Use a gfc_char4_t pointer and update memset4
+	and memcpy calls. (write_a): Likewise. (write_l): Likewise.
+	(write_boz): Likewise. (write_decimal): Likewise. (write_x): Likewise.
+	(write_char): Add support for character(kind=4) internal units that
+	was previously missed. (write_integer): Use a gfc_char4_t pointer and
+	update memset4 and memcpy calls. (write_character): Likewise.
+	(write_separator): Add support for character(kind=4) internal units
+	that was previously missed.
+	* write_float.def (output_float): Use a gfc_char4_t pointer and
+	update memset4 and memcpy calls. (write_infnan): Likewise.
+	(output_float_FMT_G_): Likewise.
+
+2010-07-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/37077
+	* io/read.c (read_default_char4): Add support for reading into a
+	kind-4 character variable from a character(kind=4) internal unit.
+	* io/io.h (read_block_form4): Add prototype.
+	* io/unit.c (get_internal_unit): Add call to fbuf_init.
+	(free_internal_unit): Add call to fbuf_destroy. (get_unit): Fix
+	whitespace.
+	* io/transfer.c (read_sf_internal): Use fbuf_alloc to allocate a string
+	to recieve the wide characters translated to single byte chracters.
+	(read_block_form): Fix whitespace. (read_block_form4): New function to
+	read from a character(kind=4) internal unit into a character(kind=4)
+	variable. (read_block_direct): Fix whitespace. (write_block): Fix
+	whitespace. (formatted_transfer_scalar_read): Likewise.
+	(formatted_transfer_scalar_write): Likewise.
+	* io/write.c (write_character): Add support for list directed write of
+	a kind=1 character string to a character(kind=4) internal unit.
+
 2010-07-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libfortran/44934

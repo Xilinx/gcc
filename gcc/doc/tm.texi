@@ -5007,33 +5007,8 @@ to use them for its own purposes.
 @c 10feb93
 @end defmac
 
-@defmac __builtin_args_info (@var{category})
-Use this built-in function to find the first anonymous arguments in
-registers.
-
-In general, a machine may have several categories of registers used for
-arguments, each for a particular category of data types.  (For example,
-on some machines, floating-point registers are used for floating-point
-arguments while other arguments are passed in the general registers.)
-To make non-varargs functions use the proper calling convention, you
-have defined the @code{CUMULATIVE_ARGS} data type to record how many
-registers in each category have been used so far
-
-@code{__builtin_args_info} accesses the same data structure of type
-@code{CUMULATIVE_ARGS} after the ordinary argument layout is finished
-with it, with @var{category} specifying which word to access.  Thus, the
-value indicates the first unused register in a given category.
-
-Normally, you would use @code{__builtin_args_info} in the implementation
-of @code{va_start}, accessing each category just once and storing the
-value in the @code{va_list} object.  This is because @code{va_list} will
-have to update the values, and there is no way to alter the
-values accessed by @code{__builtin_args_info}.
-@end defmac
-
 @defmac __builtin_next_arg (@var{lastarg})
-This is the equivalent of @code{__builtin_args_info}, for stack
-arguments.  It returns the address of the first anonymous stack
+This builtin returns the address of the first anonymous stack
 argument, as type @code{void *}.  If @code{ARGS_GROW_DOWNWARD}, it
 returns the address of the location above the first anonymous stack
 argument.  Use it in @code{va_start} to initialize the pointer for
@@ -7101,6 +7076,13 @@ Contains the value true if the target places read-only
 ``small data'' into a separate section.  The default value is false.
 @end deftypevr
 
+@deftypefn {Target Hook} bool TARGET_PROFILE_BEFORE_PROLOGUE (void)
+It returns true if target wants profile code emitted before prologue.
+
+The default version of this hook use the target macro
+@code{PROFILE_BEFORE_PROLOGUE}.
+@end deftypefn
+
 @deftypefn {Target Hook} bool TARGET_BINDS_LOCAL_P (const_tree @var{exp})
 Returns true if @var{exp} names an object for which name resolution
 rules must resolve to the current ``module'' (dynamic shared library
@@ -7287,6 +7269,12 @@ This macro need not be defined if the standard form of output
 for the file format in use is appropriate.
 @end defmac
 
+@deftypefn {Target Hook} void TARGET_ASM_OUTPUT_SOURCE_FILENAME (FILE *@var{file}, const char *@var{name})
+Output COFF information or DWARF debugging information which indicates that filename @var{name} is the current source file to the stdio stream @var{file}.
+ 
+ This target hook need not be defined if the standard form of output for the file format in use is appropriate.
+@end deftypefn
+
 @defmac OUTPUT_QUOTED_STRING (@var{stream}, @var{string})
 A C statement to output the string @var{string} to the stdio stream
 @var{stream}.  If you do not call the function @code{output_quoted_string}
@@ -7420,6 +7408,18 @@ split the object into smaller parts.
 The default implementation of this hook will use the
 @code{TARGET_ASM_BYTE_OP} family of strings, returning @code{false}
 when the relevant string is @code{NULL}.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA (FILE *@var{file}, rtx @var{x})
+A target hook to recognize @var{rtx} patterns that @code{output_addr_const}
+can't deal with, and output assembly code to @var{file} corresponding to
+the pattern @var{x}.  This may be used to allow machine-dependent
+@code{UNSPEC}s to appear within constants.
+
+If target hook fails to recognize a pattern, it must return @code{false},
+so that a standard error message is printed.  If it prints an error message
+itself, by calling, for example, @code{output_operand_lossage}, it may just
+return @code{true}.
 @end deftypefn
 
 @defmac OUTPUT_ADDR_CONST_EXTRA (@var{stream}, @var{x}, @var{fail})

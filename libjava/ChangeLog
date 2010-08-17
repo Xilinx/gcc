@@ -1,3 +1,21 @@
+2010-08-17  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* include/posix.h: Make substitution of 
+	_darwin10_Unwind_FindEnclosingFunction conditional on 
+	OSX >= 10.6 (Darwin10).
+	
+2010-08-12  Tom Tromey  <tromey@redhat.com>
+
+	* gnu/java/security/jce/prng/natVMSecureRandomWin32.cc
+	(natGenerateSeed): Add missing "::".
+
+2010-07-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (*-*-solaris2.8): Use alternate thread library.
+	Add libthread.
+	(*-*-solaris2.9): Use libthread.
+	* configure: Regenerate.
+
 2010-07-15  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* include/sparc-signal.h: Renamed to ...

@@ -135,7 +135,7 @@ complete_type (tree type)
    Returns NULL_TREE if the type cannot be made complete.  */
 
 tree
-complete_type_or_else (tree type, tree value)
+complete_type_or_maybe_complain (tree type, tree value, tsubst_flags_t complain)
 {
   type = complete_type (type);
   if (type == error_mark_node)
@@ -143,11 +143,18 @@ complete_type_or_else (tree type, tree value)
     return NULL_TREE;
   else if (!COMPLETE_TYPE_P (type))
     {
-      cxx_incomplete_type_diagnostic (value, type, DK_ERROR);
+      if (complain & tf_error)
+	cxx_incomplete_type_diagnostic (value, type, DK_ERROR);
       return NULL_TREE;
     }
   else
     return type;
+}
+
+tree
+complete_type_or_else (tree type, tree value)
+{
+  return complete_type_or_maybe_complain (type, value, tf_warning_or_error);
 }
 
 /* Return truthvalue of whether type of EXP is instantiated.  */
@@ -2210,7 +2217,7 @@ build_class_member_access_expr (tree object, tree member,
      complete type).  */
   object_type = TREE_TYPE (object);
   if (!currently_open_class (object_type)
-      && !complete_type_or_else (object_type, object))
+      && !complete_type_or_maybe_complain (object_type, object, complain))
     return error_mark_node;
   if (!CLASS_TYPE_P (object_type))
     {
@@ -2586,7 +2593,7 @@ finish_class_member_access_expr (tree object, tree name, bool template_p,
      The type of the first expression shall be "class object" (of a
      complete type).  */
   if (!currently_open_class (object_type)
-      && !complete_type_or_else (object_type, object))
+      && !complete_type_or_maybe_complain (object_type, object, complain))
     return error_mark_node;
   if (!CLASS_TYPE_P (object_type))
     {
@@ -5506,14 +5513,16 @@ build_x_conditional_expr (tree ifexp, tree op1, tree op2,
    that performs them all and returns the value of the last of them.  */
 
 tree
-build_x_compound_expr_from_list (tree list, expr_list_kind exp)
+build_x_compound_expr_from_list (tree list, expr_list_kind exp,
+				 tsubst_flags_t complain)
 {
   tree expr = TREE_VALUE (list);
 
   if (TREE_CHAIN (list))
     {
-      switch (exp)
-	{
+      if (complain & tf_error)
+	switch (exp)
+	  {
 	  case ELK_INIT:
 	    permerror (input_location, "expression list treated as compound "
 				       "expression in initializer");
@@ -5528,11 +5537,11 @@ build_x_compound_expr_from_list (tree list, expr_list_kind exp)
 	    break;
 	  default:
 	    gcc_unreachable ();
-	}
+	  }
 
       for (list = TREE_CHAIN (list); list; list = TREE_CHAIN (list))
 	expr = build_x_compound_expr (expr, TREE_VALUE (list), 
-                                      tf_warning_or_error);
+                                      complain);
     }
 
   return expr;

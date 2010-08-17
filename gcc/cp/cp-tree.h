@@ -4911,8 +4911,8 @@ extern tree build_aggr_init			(tree, tree, int,
 extern int is_class_type			(tree, int);
 extern tree get_type_value			(tree);
 extern tree build_zero_init			(tree, tree, bool);
-extern tree build_value_init			(tree);
-extern tree build_value_init_noctor		(tree);
+extern tree build_value_init			(tree, tsubst_flags_t);
+extern tree build_value_init_noctor		(tree, tsubst_flags_t);
 extern tree build_offset_ref			(tree, tree, bool);
 extern tree build_new				(VEC(tree,gc) **, tree, tree,
 						 VEC(tree,gc) **, int,
@@ -5427,6 +5427,7 @@ extern tree condition_conversion		(tree);
 extern tree require_complete_type		(tree);
 extern tree complete_type			(tree);
 extern tree complete_type_or_else		(tree, tree);
+extern tree complete_type_or_maybe_complain	(tree, tree, tsubst_flags_t);
 extern int type_unknown_p			(const_tree);
 enum { ce_derived, ce_normal, ce_exact };
 extern bool comp_except_specs			(const_tree, const_tree, int);
@@ -5470,7 +5471,8 @@ extern tree cp_build_unary_op                   (enum tree_code, tree, int,
 extern tree unary_complex_lvalue		(enum tree_code, tree);
 extern tree build_x_conditional_expr		(tree, tree, tree, 
                                                  tsubst_flags_t);
-extern tree build_x_compound_expr_from_list	(tree, expr_list_kind);
+extern tree build_x_compound_expr_from_list	(tree, expr_list_kind,
+						 tsubst_flags_t);
 extern tree build_x_compound_expr_from_vec	(VEC(tree,gc) *, const char *);
 extern tree build_x_compound_expr		(tree, tree, tsubst_flags_t);
 extern tree build_compound_expr                 (location_t, tree, tree);

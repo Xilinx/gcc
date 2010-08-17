@@ -114,8 +114,8 @@ typedef struct gfc_ss_info
   tree stride[GFC_MAX_DIMENSIONS];
   tree delta[GFC_MAX_DIMENSIONS];
 
-  /* Translation from scalarizer dimensions to actual dimensions.
-     actual = dim[scalarizer]  */
+  /* Translation from loop dimensions to actual dimensions.
+     actual_dim = dim[loop_dim]  */
   int dim[GFC_MAX_DIMENSIONS];
 }
 gfc_ss_info;
@@ -240,6 +240,9 @@ typedef struct gfc_loopinfo
   /* Order in which the dimensions should be looped, innermost first.  */
   int order[GFC_MAX_DIMENSIONS];
 
+  /* Enum to control loop reversal.  */
+  gfc_reverse reverse[GFC_MAX_DIMENSIONS];
+
   /* The number of dimensions for which a temporary is used.  */
   int temp_dim;
 
@@ -335,6 +338,8 @@ void gfc_conv_intrinsic_function (gfc_se *, gfc_expr *);
 /* Does an intrinsic map directly to an external library call.  */
 int gfc_is_intrinsic_libcall (gfc_expr *);
 
+tree gfc_conv_intrinsic_move_alloc (gfc_code *);
+
 /* Used to call ordinary functions/subroutines
    and procedure pointer components.  */
 int gfc_conv_procedure_call (gfc_se *, gfc_symbol *, gfc_actual_arglist *,
@@ -408,9 +413,6 @@ tree gfc_build_label_decl (tree);
    Do not use if the function has an explicit result variable.  */
 tree gfc_get_fake_result_decl (gfc_symbol *, int);
 
-/* Get the return label for the current function.  */
-tree gfc_get_return_label (void);
-
 /* Add a decl to the binding level for the current function.  */
 void gfc_add_decl_to_function (tree);
 
@@ -449,13 +451,15 @@ void gfc_allocate_lang_decl (tree);
 tree gfc_advance_chain (tree, int);
 
 /* Create a decl for a function.  */
-void gfc_create_function_decl (gfc_namespace *);
+void gfc_create_function_decl (gfc_namespace *, bool);
 /* Generate the code for a function.  */
 void gfc_generate_function_code (gfc_namespace *);
 /* Output a BLOCK DATA program unit.  */
 void gfc_generate_block_data (gfc_namespace *);
 /* Output a decl for a module variable.  */
 void gfc_generate_module_vars (gfc_namespace *);
+/* Get the appropriate return statement for a procedure.  */
+tree gfc_generate_return (void);
 
 struct GTY(()) module_htab_entry {
   const char *name;
@@ -533,9 +537,9 @@ tree gfc_build_library_function_decl_with_spec (tree name, const char *spec,
 void gfc_process_block_locals (gfc_namespace*);
 
 /* Output initialization/clean-up code that was deferred.  */
-tree gfc_trans_deferred_vars (gfc_symbol*, tree);
+void gfc_trans_deferred_vars (gfc_symbol*, gfc_wrapped_block *);
 
-/* somewhere! */
+/* In f95-lang.c.  */
 tree pushdecl (tree);
 tree pushdecl_top_level (tree);
 void pushlevel (int);
@@ -543,6 +547,8 @@ tree poplevel (int, int, int);
 tree getdecls (void);
 tree gfc_truthvalue_conversion (tree);
 tree gfc_builtin_function (tree);
+
+/* In trans-types.c.  */
 struct array_descr_info;
 bool gfc_get_array_descr_info (const_tree, struct array_descr_info *);
 
