@@ -310,6 +310,7 @@ Objective-C and Objective-C++ Dialects}.
 -feliminate-dwarf2-dups -feliminate-unused-debug-types @gol
 -feliminate-unused-debug-symbols -femit-class-debug-always @gol
 -fenable-icf-debug @gol
+-fgraphite-read -fgraphite-write @gol
 -fmem-report -fpre-ipa-mem-report -fpost-ipa-mem-report -fprofile-arcs @gol
 -frandom-seed=@var{string} -fsched-verbose=@var{n} @gol
 -fsel-sched-verbose -fsel-sched-dump-cfg -fsel-sched-pipelining-verbose @gol
@@ -6793,7 +6794,8 @@ potentially creating at each access a cache miss.  This optimization
 applies to all the languages supported by GCC and is not limited to
 Fortran.  To use this code transformation, GCC has to be configured
 with @option{--with-ppl} and @option{--with-cloog} to enable the
-Graphite loop transformation infrastructure.
+Graphite loop transformation infrastructure.  This option is disabled
+when @option{-fgraphite-read} is used.
 
 @item -floop-strip-mine
 Perform loop strip mining transformations on loops.  Strip mining
@@ -6818,7 +6820,8 @@ ENDDO
 This optimization applies to all the languages supported by GCC and is
 not limited to Fortran.  To use this code transformation, GCC has to
 be configured with @option{--with-ppl} and @option{--with-cloog} to
-enable the Graphite loop transformation infrastructure.
+enable the Graphite loop transformation infrastructure.  This option is
+disabled when @option{-fgraphite-read} is used.
 
 @item -floop-block
 Perform loop blocking transformations on loops.  Blocking strip mines
@@ -6851,7 +6854,8 @@ that can be kept in the caches.  This optimization applies to all the
 languages supported by GCC and is not limited to Fortran.  To use this
 code transformation, GCC has to be configured with @option{--with-ppl}
 and @option{--with-cloog} to enable the Graphite loop transformation
-infrastructure.
+infrastructure.  This option is disabled when @option{-fgraphite-read}
+is used.
 
 @item -fgraphite-identity
 @opindex fgraphite-identity
@@ -6861,6 +6865,20 @@ the polyhedral representation and transform it back to gimple.  Using
 GIMPLE -> GRAPHITE -> GIMPLE transformation.  Some minimal optimizations
 are also performed by the code generator CLooG, like index splitting and
 dead code elimination in loops.
+
+@item -fgraphite-read
+@opindex fgraphite-read
+Enable graphite to read a scop from an external file.  Each scop in
+the program is described in a separate file.  This flag disables all
+graphite loop optimizations (@option{-floop-block},
+@option{-floop-strip-mine}, and @option{-floop-iterchange}).
+
+@item -fgraphite-write
+@opindex fgraphite-write
+Enable graphite to dump a scop to an external file.  Each scop in the
+program is described in a separate file.  For a program @code{file.c}
+that has 3 scops, the dumped files are named @code{file.0.graphite},
+@code{file.1.graphite}, and @code{file.2.graphite}.
 
 @item -floop-parallelize-all
 Use the Graphite data dependence analysis to identify loops that can
