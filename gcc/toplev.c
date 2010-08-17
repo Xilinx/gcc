@@ -1871,6 +1871,15 @@ process_options (void)
     sorry ("Graphite loop optimizations cannot be used");
 #endif
 
+  /* Disable graphite loop optimizations when -fgraphite-read is
+     used.  */
+  if (flag_graphite_read)
+    {
+      flag_loop_block = 0;
+      flag_loop_interchange = 0;
+      flag_loop_strip_mine = 0;
+    }
+
   /* Unrolling all loops implies that standard loop unrolling must also
      be done.  */
   if (flag_unroll_all_loops)
