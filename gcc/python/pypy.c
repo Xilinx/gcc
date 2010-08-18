@@ -576,6 +576,9 @@ void gpy_write_globals( void )
 	}
     }
 
+  /* Need to generate table of gpy_callable_def_t[] and gpy_type_obj_def_t[] */
+  // .....
+
   /* Add in the main method decl! */
   VEC_safe_push( tree,gc,global_decls,gpy_main_method_decl( main_stmts_vec,co ) );
 
