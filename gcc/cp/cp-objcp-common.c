@@ -234,7 +234,7 @@ cp_lipo_dup_lang_type (tree src, tree dest)
 {
   struct lang_type *lang_type_clone = 0;
   /* TODO check size.  */
-  lang_type_clone = GGC_CNEW (struct lang_type);
+  lang_type_clone = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
   *lang_type_clone = *TYPE_LANG_SPECIFIC (src);
   TYPE_LANG_SPECIFIC (dest) = lang_type_clone;
 
@@ -662,7 +662,7 @@ decl_shadowed_for_var_insert (tree from, tree to)
   struct tree_decl_map *h;
   void **loc;
 
-  h = GGC_NEW (struct tree_decl_map);
+  h = ggc_alloc_tree_decl_map ();
   h->base.from = from;
   h->to = to;
   loc = htab_find_slot_with_hash (shadowed_var_for_decl, h, DECL_UID (from),

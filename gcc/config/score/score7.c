@@ -29,6 +29,7 @@
 #include "conditions.h"
 #include "insn-attr.h"
 #include "recog.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "output.h"
 #include "tree.h"
@@ -1174,7 +1175,7 @@ score7_output_external (FILE *file ATTRIBUTE_UNUSED,
 
   if (score7_in_small_data_p (decl))
     {
-      p = (struct extern_list *) ggc_alloc (sizeof (struct extern_list));
+      p = ggc_alloc_extern_list ();
       p->next = extern_head;
       p->name = name;
       p->size = int_size_in_bytes (TREE_TYPE (decl));

@@ -503,7 +503,6 @@ enum reg_class
 
 #define PUSH_ARGS 1
 #define PUSH_ROUNDING(N) m32c_push_rounding (N)
-#define RETURN_POPS_ARGS(D,T,S) 0
 #define CALL_POPS_ARGS(C) 0
 
 /* Passing Arguments in Registers */
@@ -643,6 +642,13 @@ typedef struct m32c_cumulative_args
 
 #define ASM_OUTPUT_REG_PUSH(S,R) m32c_output_reg_push (S, R)
 #define ASM_OUTPUT_REG_POP(S,R) m32c_output_reg_pop (S, R)
+
+#define ASM_OUTPUT_ALIGNED_DECL_COMMON(STREAM, DECL, NAME, SIZE, ALIGNMENT) \
+	m32c_output_aligned_common (STREAM, DECL, NAME, SIZE, ALIGNMENT, 1)
+
+#define ASM_OUTPUT_ALIGNED_DECL_LOCAL(STREAM, DECL, NAME, SIZE, ALIGNMENT) \
+	m32c_output_aligned_common (STREAM, DECL, NAME, SIZE, ALIGNMENT, 0)
+
 
 /* Output of Dispatch Tables */
 

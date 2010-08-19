@@ -36,7 +36,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "options.h"
 #include "mkdeps.h"
-#include "target.h"            /* For gcc_targetcm.  */
+#include "target.h"		/* For gcc_targetcm.  */
+#include "tm_p.h"		/* For C_COMMON_OVERRIDE_OPTIONS.  */
 #include "function.h"
 
 #ifndef DOLLARS_IN_IDENTIFIERS
@@ -396,10 +397,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       defer_opt (code, arg);
       break;
 
-    case OPT_E:
-      flag_preprocess_only = 1;
-      break;
-
     case OPT_H:
       cpp_opts->print_include_names = 1;
       break;
@@ -461,10 +458,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_P:
       flag_no_line_commands = 1;
-      break;
-
-    case OPT_fworking_directory:
-      flag_working_directory = value;
       break;
 
     case OPT_U:
@@ -615,10 +608,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       warn_return_type = value;
       break;
 
-    case OPT_Wstrict_null_sentinel:
-      warn_strict_null_sentinel = value;
-      break;
-
     case OPT_Wtraditional:
       cpp_opts->warn_traditional = value;
       break;
@@ -694,18 +683,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       warning (0, "switch %qs is no longer supported", option->opt_text);
       break;
 
-    case OPT_faccess_control:
-      flag_access_control = value;
-      break;
-
-    case OPT_fasm:
-      flag_no_asm = !value;
-      break;
-
-    case OPT_fbuiltin:
-      flag_no_builtin = !value;
-      break;
-
     case OPT_fbuiltin_:
       if (value)
 	result = 0;
@@ -729,68 +706,16 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       flag_no_builtin = !value;
       break;
 
-    case OPT_fshort_double:
-      flag_short_double = value;
-      break;
-
-    case OPT_fshort_enums:
-      flag_short_enums = value;
-      break;
-
-    case OPT_fshort_wchar:
-      flag_short_wchar = value;
-      break;
-
-    case OPT_fsigned_bitfields:
-      flag_signed_bitfields = value;
-      break;
-
-    case OPT_fsigned_char:
-      flag_signed_char = value;
-      break;
-
-    case OPT_funsigned_bitfields:
-      flag_signed_bitfields = !value;
-      break;
-
-    case OPT_funsigned_char:
-      flag_signed_char = !value;
-      break;
-
-    case OPT_fcheck_new:
-      flag_check_new = value;
-      break;
-
-    case OPT_fconserve_space:
-      flag_conserve_space = value;
-      break;
-
     case OPT_fconstant_string_class_:
       constant_string_class_name = arg;
       break;
 
     case OPT_fdefault_inline:
-      flag_default_inline = value;
-      break;
-
-    case OPT_felide_constructors:
-      flag_elide_constructors = value;
-      break;
-
-    case OPT_fenforce_eh_specs:
-      flag_enforce_eh_specs = value;
+      /* Ignore.  */
       break;
 
     case OPT_fextended_identifiers:
       cpp_opts->extended_identifiers = value;
-      break;
-
-    case OPT_ffor_scope:
-      flag_new_for_scope = value;
-      break;
-
-    case OPT_fgnu_keywords:
-      flag_no_gnu_keywords = !value;
       break;
 
     case OPT_fgnu_runtime:
@@ -802,36 +727,8 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       flag_exceptions = value;
       break;
 
-    case OPT_fimplement_inlines:
-      flag_implement_inlines = value;
-      break;
-
-    case OPT_fimplicit_inline_templates:
-      flag_implicit_inline_templates = value;
-      break;
-
-    case OPT_fimplicit_templates:
-      flag_implicit_templates = value;
-      break;
-
-    case OPT_flax_vector_conversions:
-      flag_lax_vector_conversions = value;
-      break;
-
-    case OPT_fms_extensions:
-      flag_ms_extensions = value;
-      break;
-
     case OPT_fnext_runtime:
       flag_next_runtime = value;
-      break;
-
-    case OPT_fnil_receivers:
-      flag_nil_receivers = value;
-      break;
-
-    case OPT_fnonansi_builtins:
-      flag_no_nonansi_builtin = !value;
       break;
 
     case OPT_foperator_names:
@@ -839,7 +736,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_foptional_diags:
-      flag_optional_diags = value;
+      /* Ignore.  */
       break;
 
     case OPT_fpch_deps:
@@ -859,26 +756,10 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       cpp_opts->preprocessed = value;
       break;
 
-    case OPT_freplace_objc_classes:
-      flag_replace_objc_classes = value;
-      break;
-
     case OPT_frepo:
       flag_use_repository = value;
       if (value)
 	flag_implicit_templates = 0;
-      break;
-
-    case OPT_frtti:
-      flag_rtti = value;
-      break;
-
-    case OPT_fshow_column:
-      cpp_opts->show_column = value;
-      break;
-
-    case OPT_fstats:
-      flag_detailed_statistics = value;
       break;
 
     case OPT_ftabstop_:
@@ -905,36 +786,8 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       max_tinst_depth = value;
       break;
 
-    case OPT_fuse_cxa_atexit:
-      flag_use_cxa_atexit = value;
-      break;
-
-    case OPT_fuse_cxa_get_exception_ptr:
-      flag_use_cxa_get_exception_ptr = value;
-      break;
-
     case OPT_fvisibility_inlines_hidden:
       visibility_options.inlines_hidden = value;
-      break;
-
-    case OPT_fweak:
-      flag_weak = value;
-      break;
-
-    case OPT_fthreadsafe_statics:
-      flag_threadsafe_statics = value;
-      break;
-
-    case OPT_fpretty_templates:
-      flag_pretty_templates = value;
-      break;
-
-    case OPT_fzero_link:
-      flag_zero_link = value;
-      break;
-
-    case OPT_gen_decls:
-      flag_gen_declaration = 1;
       break;
 
     case OPT_femit_struct_debug_baseonly:
@@ -989,10 +842,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_lang_asm:
       cpp_set_lang (parse_in, CLK_ASM);
       cpp_opts->dollars_in_ident = false;
-      break;
-
-    case OPT_lang_objc:
-      cpp_opts->objc = 1;
       break;
 
     case OPT_nostdinc:
@@ -1094,10 +943,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_traditional_cpp:
       cpp_opts->traditional = 1;
-      break;
-
-    case OPT_undef:
-      flag_undef = 1;
       break;
 
     case OPT_v:

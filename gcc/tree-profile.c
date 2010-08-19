@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "function.h"
 #include "basic-block.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "coverage.h"
 #include "tree.h"
@@ -413,7 +414,7 @@ tree_gen_ic_func_profiler (void)
   basic_block bb;
   edge_iterator ei;
   gimple stmt1, stmt2;
-  tree tree_uid, cur_func;
+  tree tree_uid, cur_func, counter_ptr, ptr_var;
 
   if (cgraph_only_called_directly_p (c_node))
     return;
@@ -431,13 +432,16 @@ tree_gen_ic_func_profiler (void)
 					   build_addr (current_function_decl,
 						       current_function_decl),
 					   true, NULL_TREE,
-					   true, GSI_SAME_STMT);
+					   true, GSI_NEW_STMT);
+      counter_ptr = force_gimple_operand_gsi (&gsi, ic_gcov_type_ptr_var,
+					      true, NULL_TREE, false,
+					      GSI_NEW_STMT);
+      ptr_var = force_gimple_operand_gsi (&gsi, ic_void_ptr_var,
+					  true, NULL_TREE, false,
+					  GSI_NEW_STMT);
       tree_uid = build_int_cst (gcov_type_node, c_node->pid);
       stmt1 = gimple_build_call (tree_indirect_call_profiler_fn, 4,
-				 ic_gcov_type_ptr_var,
-				 tree_uid,
-				 cur_func,
-				 ic_void_ptr_var);
+				 counter_ptr, tree_uid, cur_func, ptr_var);
       gsi_insert_after (&gsi, stmt1, GSI_NEW_STMT);
       gcc_assert (EDGE_COUNT (bb->succs) == 1);
       bb = split_edge (EDGE_I (bb->succs, 0));
@@ -677,6 +681,10 @@ tree_profiling (void)
      function body from being deleted) won't be needed.  */
 
   cgraph_need_artificial_indirect_call_edges = 0;
+
+  /* Don't profile functions produced for builtin stuff.  */
+  if (DECL_SOURCE_LOCATION (current_function_decl) == BUILTINS_LOCATION)
+    return 0;
 
   /* Re-set global shared temporary variable for edge-counters.  */
   gcov_type_tmp_var = NULL_TREE;

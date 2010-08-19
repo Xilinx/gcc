@@ -798,8 +798,9 @@ adjust_mems (rtx loc, const_rtx old_rtx, void *data)
   switch (GET_CODE (loc))
     {
     case REG:
-      /* Don't do any sp or fp replacements outside of MEM addresses.  */
-      if (amd->mem_mode == VOIDmode)
+      /* Don't do any sp or fp replacements outside of MEM addresses
+         on the LHS.  */
+      if (amd->mem_mode == VOIDmode && amd->store)
 	return loc;
       if (loc == stack_pointer_rtx
 	  && !frame_pointer_needed)
@@ -1167,7 +1168,7 @@ variable_htab_free (void *elem)
   variable var = (variable) elem;
   location_chain node, next;
 
-  gcc_assert (var->refcount > 0);
+  gcc_checking_assert (var->refcount > 0);
 
   var->refcount--;
   if (var->refcount > 0)
@@ -1370,7 +1371,7 @@ shared_hash_copy (shared_hash vars)
 static void
 shared_hash_destroy (shared_hash vars)
 {
-  gcc_assert (vars->refcount > 0);
+  gcc_checking_assert (vars->refcount > 0);
   if (--vars->refcount == 0)
     {
       htab_delete (vars->htab);
@@ -2479,125 +2480,81 @@ dv_changed_p (decl_or_value dv)
 
 /* Return a location list node whose loc is rtx_equal to LOC, in the
    location list of a one-part variable or value VAR, or in that of
-   any values recursively mentioned in the location lists.  */
+   any values recursively mentioned in the location lists.  VARS must
+   be in star-canonical form.  */
 
 static location_chain
 find_loc_in_1pdv (rtx loc, variable var, htab_t vars)
 {
   location_chain node;
   enum rtx_code loc_code;
-  location_chain ret = NULL;
-  int unmark_self = 0;
-#ifdef ENABLE_CHECKING
-  static int mark_count;
-#endif
 
   if (!var)
-    return ret;
+    return NULL;
 
 #ifdef ENABLE_CHECKING
   gcc_assert (dv_onepart_p (var->dv));
 #endif
 
   if (!var->n_var_parts)
-    return ret;
+    return NULL;
 
 #ifdef ENABLE_CHECKING
   gcc_assert (var->var_part[0].offset == 0);
+  gcc_assert (loc != dv_as_opaque (var->dv));
 #endif
 
   loc_code = GET_CODE (loc);
   for (node = var->var_part[0].loc_chain; node; node = node->next)
     {
+      decl_or_value dv;
+      variable rvar;
+
       if (GET_CODE (node->loc) != loc_code)
 	{
 	  if (GET_CODE (node->loc) != VALUE)
 	    continue;
 	}
       else if (loc == node->loc)
-	{
-	  ret = node;
-	  break;
-	}
+	return node;
       else if (loc_code != VALUE)
 	{
 	  if (rtx_equal_p (loc, node->loc))
+	    return node;
+	  continue;
+	}
+
+      /* Since we're in star-canonical form, we don't need to visit
+	 non-canonical nodes: one-part variables and non-canonical
+	 values would only point back to the canonical node.  */
+      if (dv_is_value_p (var->dv)
+	  && !canon_value_cmp (node->loc, dv_as_value (var->dv)))
+	{
+	  /* Skip all subsequent VALUEs.  */
+	  while (node->next && GET_CODE (node->next->loc) == VALUE)
 	    {
-	      ret = node;
-	      break;
+	      node = node->next;
+#ifdef ENABLE_CHECKING
+	      gcc_assert (!canon_value_cmp (node->loc,
+					    dv_as_value (var->dv)));
+#endif
+	      if (loc == node->loc)
+		return node;
 	    }
 	  continue;
 	}
-      if (!VALUE_RECURSED_INTO (node->loc))
-	{
-	  decl_or_value dv = dv_from_value (node->loc);
-	  variable rvar = (variable)
-	    htab_find_with_hash (vars, dv, dv_htab_hash (dv));
-
-	  if (rvar)
-	    {
-	      location_chain where;
-
-	      if (!unmark_self)
-		{
-		  if (dv_is_value_p (var->dv)
-		      && !VALUE_RECURSED_INTO (dv_as_value (var->dv)))
-		    {
-		      unmark_self = 1;
-#ifdef ENABLE_CHECKING
-		      mark_count++;
-#endif
-		      VALUE_RECURSED_INTO (dv_as_value (var->dv)) = true;
-		    }
-		  else
-		    unmark_self = -1;
-		}
 
 #ifdef ENABLE_CHECKING
-	      mark_count++;
-	      /* The recursion count is bounded because we're
-		 searching in a star-canonicalized set, i.e., each
-		 equivalence set of values is arranged so that the
-		 canonical value has all locations and equivalent
-		 values, whereas equivalent values only point back to
-		 the canonical.  So, if we start at the canonical
-		 value, we'll recurse at most into each sibling, so
-		 the recurse limit will be 2.  If we start at a
-		 non-canonical value, we'll recurse into the
-		 canonical, and from there to other siblings, so
-		 recurse limit will be 3.  If we start at a one-part
-		 variable, we add one level of recursion, but we don't
-		 count it.  */
-	      gcc_assert (mark_count <= 3);
+      gcc_assert (node == var->var_part[0].loc_chain);
+      gcc_assert (!node->next);
 #endif
-	      VALUE_RECURSED_INTO (node->loc) = true;
-	      if ((where = find_loc_in_1pdv (loc, rvar, vars)))
-		{
-#ifdef ENABLE_CHECKING
-		  mark_count--;
-#endif
-		  VALUE_RECURSED_INTO (node->loc) = false;
-		  ret = where;
-		  break;
-		}
-	      VALUE_RECURSED_INTO (node->loc) = false;
-#ifdef ENABLE_CHECKING
-	      mark_count--;
-#endif
-	    }
-	}
+
+      dv = dv_from_value (node->loc);
+      rvar = (variable) htab_find_with_hash (vars, dv, dv_htab_hash (dv));
+      return find_loc_in_1pdv (loc, rvar, vars);
     }
 
-  if (unmark_self > 0)
-    {
-      VALUE_RECURSED_INTO (dv_as_value (var->dv)) = false;
-#ifdef ENABLE_CHECKING
-      mark_count--;
-      gcc_assert (mark_count == 0);
-#endif
-    }
-
-  return ret;
+  return NULL;
 }
 
 /* Hash table iteration argument passed to variable_merge.  */
@@ -3110,7 +3067,7 @@ canonicalize_values_mark (void **slot, void *data)
   if (!dv_is_value_p (dv))
     return 1;
 
-  gcc_assert (var->n_var_parts == 1);
+  gcc_checking_assert (var->n_var_parts == 1);
 
   val = dv_as_value (dv);
 
@@ -3153,7 +3110,7 @@ canonicalize_values_star (void **slot, void *data)
   if (!dv_onepart_p (dv))
     return 1;
 
-  gcc_assert (var->n_var_parts == 1);
+  gcc_checking_assert (var->n_var_parts == 1);
 
   if (dv_is_value_p (dv))
     {
@@ -3343,8 +3300,8 @@ canonicalize_values_star (void **slot, void *data)
 
   /* Variable may have been unshared.  */
   var = (variable)*slot;
-  gcc_assert (var->n_var_parts && var->var_part[0].loc_chain->loc == cval
-	      && var->var_part[0].loc_chain->next == NULL);
+  gcc_checking_assert (var->n_var_parts && var->var_part[0].loc_chain->loc == cval
+		       && var->var_part[0].loc_chain->next == NULL);
 
   if (VALUE_RECURSED_INTO (cval))
     goto restart_with_cval;
@@ -3433,14 +3390,14 @@ variable_merge_over_cur (variable s1var, struct dfset_merge *dsm)
   /* If the incoming onepart variable has an empty location list, then
      the intersection will be just as empty.  For other variables,
      it's always union.  */
-  gcc_assert (s1var->n_var_parts
-	      && s1var->var_part[0].loc_chain);
+  gcc_checking_assert (s1var->n_var_parts
+		       && s1var->var_part[0].loc_chain);
 
   if (!onepart)
     return variable_union (s1var, dst);
 
-  gcc_assert (s1var->n_var_parts == 1
-	      && s1var->var_part[0].offset == 0);
+  gcc_checking_assert (s1var->n_var_parts == 1
+		       && s1var->var_part[0].offset == 0);
 
   dvhash = dv_htab_hash (dv);
   if (dv_is_value_p (dv))
@@ -4031,6 +3988,12 @@ variable_post_merge_perm_vals (void **pslot, void *info)
   var = shared_hash_find (set->vars, dv);
   if (var)
     {
+      /* Although variable_post_merge_new_vals may have made decls
+	 non-star-canonical, values that pre-existed in canonical form
+	 remain canonical, and newly-created values reference a single
+	 REG, so they are canonical as well.  Since VAR has the
+	 location list for a VALUE, using find_loc_in_1pdv for it is
+	 fine, since VALUEs don't map back to DECLs.  */
       if (find_loc_in_1pdv (pnode->loc, var, shared_hash_htab (set->vars)))
 	return 1;
       val_reset (set, dv);
@@ -5231,7 +5194,9 @@ reverse_op (rtx val, const_rtx expr)
       return NULL_RTX;
     }
 
-  if (!REG_P (XEXP (src, 0)) || !SCALAR_INT_MODE_P (GET_MODE (src)))
+  if (!REG_P (XEXP (src, 0))
+      || !SCALAR_INT_MODE_P (GET_MODE (src))
+      || XEXP (src, 0) == cfa_base_rtx)
     return NULL_RTX;
 
   v = cselib_lookup (XEXP (src, 0), GET_MODE (XEXP (src, 0)), 0);
@@ -6027,6 +5992,7 @@ vt_find_locations (void)
   int htabmax = PARAM_VALUE (PARAM_MAX_VARTRACK_SIZE);
   bool success = true;
 
+  timevar_push (TV_VAR_TRACKING_DATAFLOW);
   /* Compute reverse completion order of depth first search of the CFG
      so that the data-flow runs faster.  */
   rc_order = XNEWVEC (int, n_basic_blocks - NUM_FIXED_BLOCKS);
@@ -6062,6 +6028,7 @@ vt_find_locations (void)
 	{
 	  bb = (basic_block) fibheap_extract_min (worklist);
 	  RESET_BIT (in_worklist, bb->index);
+	  gcc_assert (!TEST_BIT (visited, bb->index));
 	  if (!TEST_BIT (visited, bb->index))
 	    {
 	      bool changed;
@@ -6214,6 +6181,7 @@ vt_find_locations (void)
   sbitmap_free (in_worklist);
   sbitmap_free (in_pending);
 
+  timevar_pop (TV_VAR_TRACKING_DATAFLOW);
   return success;
 }
 
@@ -8201,7 +8169,7 @@ vt_init_cfa_base (void)
   val = cselib_lookup_from_insn (cfa_base_rtx, GET_MODE (cfa_base_rtx), 1,
 				 get_insns ());
   preserve_value (val);
-  cselib_preserve_cfa_base_value (val);
+  cselib_preserve_cfa_base_value (val, REGNO (cfa_base_rtx));
   var_reg_decl_set (&VTI (ENTRY_BLOCK_PTR)->out, cfa_base_rtx,
 		    VAR_INIT_STATUS_INITIALIZED, dv_from_value (val->val_rtx),
 		    0, NULL_RTX, INSERT);
@@ -8569,7 +8537,9 @@ variable_tracking_main_1 (void)
       dump_flow_info (dump_file, dump_flags);
     }
 
+  timevar_push (TV_VAR_TRACKING_EMIT);
   vt_emit_notes ();
+  timevar_pop (TV_VAR_TRACKING_EMIT);
 
   vt_finalize ();
   vt_debug_insns_local (false);

@@ -35,6 +35,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "jcf.h"
 #include "java-except.h"
 #include "parse.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "ggc.h"
 #include "tree-iterator.h"
@@ -463,7 +464,7 @@ add_type_assertion (tree klass, int assertion_code, tree op1, tree op2)
   if (*as_pp)
     return;
 
-  *as_pp = ggc_alloc (sizeof (type_assertion));
+  *as_pp = ggc_alloc_type_assertion ();
   **(type_assertion **)as_pp = as;
 }
 

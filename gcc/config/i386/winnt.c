@@ -30,6 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "flags.h"
 #include "tm_p.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "hashtab.h"
 #include "langhooks.h"
@@ -576,7 +577,7 @@ i386_pe_record_external_function (tree decl, const char *name)
 {
   struct extern_list *p;
 
-  p = (struct extern_list *) ggc_alloc (sizeof *p);
+  p = ggc_alloc_extern_list ();
   p->next = extern_head;
   p->decl = decl;
   p->name = name;
@@ -617,7 +618,7 @@ i386_pe_maybe_record_exported_symbol (tree decl, const char *name, int is_data)
 
   gcc_assert (TREE_PUBLIC (decl));
 
-  p = (struct export_list *) ggc_alloc (sizeof *p);
+  p = ggc_alloc_export_list ();
   p->next = export_head;
   p->name = name;
   p->is_data = is_data;

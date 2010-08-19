@@ -173,21 +173,12 @@ static void
 ipcp_init_cloned_node (struct cgraph_node *orig_node,
 		       struct cgraph_node *new_node)
 {
-  ipa_check_create_node_params ();
-  ipa_initialize_node_params (new_node);
+  gcc_checking_assert (ipa_node_params_vector
+		       && (VEC_length (ipa_node_params_t,
+				       ipa_node_params_vector)
+			   > (unsigned) cgraph_max_uid));
+  gcc_checking_assert (IPA_NODE_REF (new_node)->params);
   IPA_NODE_REF (new_node)->ipcp_orig_node = orig_node;
-}
-
-/* Perform intraprocedrual analysis needed for ipcp.  */
-static void
-ipcp_analyze_node (struct cgraph_node *node)
-{
-  /* Unreachable nodes should have been eliminated before ipcp.  */
-  gcc_assert (node->needed || node->reachable);
-
-  node->local.versionable = tree_versionable_function_p (node->decl);
-  ipa_initialize_node_params (node);
-  ipa_detect_param_modifications (node);
 }
 
 /* Return scale for NODE.  */
@@ -612,6 +603,7 @@ ipcp_compute_node_scale (struct cgraph_node *node)
 /* Initialization and computation of IPCP data structures.  This is the initial
    intraprocedural analysis of functions, which gathers information to be
    propagated later on.  */
+
 static void
 ipcp_init_stage (void)
 {
@@ -619,16 +611,13 @@ ipcp_init_stage (void)
 
   for (node = cgraph_nodes; node; node = node->next)
     if (node->analyzed)
-      ipcp_analyze_node (node);
-  for (node = cgraph_nodes; node; node = node->next)
-    {
-      if (!node->analyzed)
-	continue;
+      {
+	/* Unreachable nodes should have been eliminated before ipcp.  */
+	gcc_assert (node->needed || node->reachable);
 
-      ipa_analyze_params_uses (node);
-      /* building jump functions  */
-      ipa_compute_jump_functions (node);
-    }
+	node->local.versionable = tree_versionable_function_p (node->decl);
+	ipa_analyze_node (node);
+      }
 }
 
 /* Return true if there are some formal parameters whose value is IPA_TOP (in
@@ -839,7 +828,7 @@ ipcp_create_replace_map (tree parm_tree, struct ipcp_lattice *lat)
   struct ipa_replace_map *replace_map;
   tree const_val;
 
-  replace_map = GGC_NEW (struct ipa_replace_map);
+  replace_map = ggc_alloc_ipa_replace_map ();
   const_val = build_const_val (lat, TREE_TYPE (parm_tree));
   if (dump_file)
     {
@@ -969,7 +958,8 @@ ipcp_estimate_growth (struct cgraph_node *node)
   struct cgraph_edge *cs;
   int redirectable_node_callers = 0;
   int removable_args = 0;
-  bool need_original = !cgraph_only_called_directly_p (node);
+  bool need_original
+     = !cgraph_will_be_removed_from_program_if_no_direct_calls (node);
   struct ipa_node_params *info;
   int i, count;
   int growth;
@@ -1156,7 +1146,7 @@ ipcp_insert_stage (void)
       if (!dbg_cnt (clone))
         break;
 
-      if (!cs && cgraph_only_called_directly_p (node))
+      if (!cs && cgraph_will_be_removed_from_program_if_no_direct_calls (node))
 	bitmap_set_bit (dead_nodes, node->uid);
 
       info = IPA_NODE_REF (node);

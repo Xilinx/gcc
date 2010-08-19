@@ -1894,7 +1894,7 @@ gfc_simplify_expr (gfc_expr *p, int type)
 
       if (p->expr_type == EXPR_ARRAY && p->ref && p->ref->type == REF_ARRAY
 	  && p->ref->u.ar.type == AR_FULL)
-	  gfc_expand_constructor (p);
+	  gfc_expand_constructor (p, false);
 
       if (simplify_const_ref (p) == FAILURE)
 	return FAILURE;
@@ -2573,7 +2573,7 @@ check_init_expr (gfc_expr *e)
       if (t == FAILURE)
 	break;
 
-      t = gfc_expand_constructor (e);
+      t = gfc_expand_constructor (e, true);
       if (t == FAILURE)
 	break;
 
@@ -2609,7 +2609,7 @@ gfc_reduce_init_expr (gfc_expr *expr)
     {
       if (gfc_check_constructor_type (expr) == FAILURE)
 	return FAILURE;
-      if (gfc_expand_constructor (expr) == FAILURE)
+      if (gfc_expand_constructor (expr, true) == FAILURE)
 	return FAILURE;
     }
 
@@ -4022,6 +4022,22 @@ gfc_is_coindexed (gfc_expr *e)
 }
 
 
+bool
+gfc_get_corank (gfc_expr *e)
+{
+  int corank;
+  gfc_ref *ref;
+  corank = e->symtree->n.sym->as ? e->symtree->n.sym->as->corank : 0;
+  for (ref = e->ref; ref; ref = ref->next)
+    {
+      if (ref->type == REF_ARRAY)
+	corank = ref->u.ar.as->corank;
+      gcc_assert (ref->type != REF_SUBSTRING);
+    }
+  return corank;
+}
+
+
 /* Check whether the expression has an ultimate allocatable component.
    Being itself allocatable does not count.  */
 bool
@@ -4079,4 +4095,106 @@ gfc_has_ultimate_pointer (gfc_expr *e)
     return e->ts.u.derived->attr.pointer_comp;
   else
     return false;
+}
+
+
+/* Check whether an expression is "simply contiguous", cf. F2008, 6.5.4.
+   Note: A scalar is not regarded as "simply contiguous" by the standard.
+   if bool is not strict, some futher checks are done - for instance,
+   a "(::1)" is accepted.  */
+
+bool
+gfc_is_simply_contiguous (gfc_expr *expr, bool strict)
+{
+  bool colon;
+  int i;
+  gfc_array_ref *ar = NULL;
+  gfc_ref *ref, *part_ref = NULL;
+
+  if (expr->expr_type == EXPR_FUNCTION)
+    return expr->value.function.esym
+	   ? expr->value.function.esym->result->attr.contiguous : false;
+  else if (expr->expr_type != EXPR_VARIABLE)
+    return false;
+
+  if (expr->rank == 0)
+    return false;
+
+  for (ref = expr->ref; ref; ref = ref->next)
+    {
+      if (ar)
+	return false; /* Array shall be last part-ref. */
+
+      if (ref->type == REF_COMPONENT)
+	part_ref  = ref;
+      else if (ref->type == REF_SUBSTRING)
+	return false;
+      else if (ref->u.ar.type != AR_ELEMENT)
+	ar = &ref->u.ar;
+    }
+
+  if ((part_ref && !part_ref->u.c.component->attr.contiguous
+       && part_ref->u.c.component->attr.pointer)
+      || (!part_ref && !expr->symtree->n.sym->attr.contiguous
+	  && (expr->symtree->n.sym->attr.pointer
+	      || expr->symtree->n.sym->as->type == AS_ASSUMED_SHAPE)))
+    return false;
+
+  if (!ar || ar->type == AR_FULL)
+    return true;
+
+  gcc_assert (ar->type == AR_SECTION);
+
+  /* Check for simply contiguous array */
+  colon = true;
+  for (i = 0; i < ar->dimen; i++)
+    {
+      if (ar->dimen_type[i] == DIMEN_VECTOR)
+	return false;
+
+      if (ar->dimen_type[i] == DIMEN_ELEMENT)
+	{
+	  colon = false;
+	  continue;
+	}
+
+      gcc_assert (ar->dimen_type[i] == DIMEN_RANGE);
+
+
+      /* If the previous section was not contiguous, that's an error,
+	 unless we have effective only one element and checking is not
+	 strict.  */
+      if (!colon && (strict || !ar->start[i] || !ar->end[i]
+		     || ar->start[i]->expr_type != EXPR_CONSTANT
+		     || ar->end[i]->expr_type != EXPR_CONSTANT
+		     || mpz_cmp (ar->start[i]->value.integer,
+				 ar->end[i]->value.integer) != 0))
+	return false;
+
+      /* Following the standard, "(::1)" or - if known at compile time -
+	 "(lbound:ubound)" are not simply contigous; if strict
+	 is false, they are regarded as simply contiguous.  */
+      if (ar->stride[i] && (strict || ar->stride[i]->expr_type != EXPR_CONSTANT
+			    || ar->stride[i]->ts.type != BT_INTEGER
+			    || mpz_cmp_si (ar->stride[i]->value.integer, 1) != 0))
+	return false;
+
+      if (ar->start[i]
+	  && (strict || ar->start[i]->expr_type != EXPR_CONSTANT
+	      || !ar->as->lower[i]
+	      || ar->as->lower[i]->expr_type != EXPR_CONSTANT
+	      || mpz_cmp (ar->start[i]->value.integer,
+			  ar->as->lower[i]->value.integer) != 0))
+	colon = false;
+
+      if (ar->end[i]
+	  && (strict || ar->end[i]->expr_type != EXPR_CONSTANT
+	      || !ar->as->upper[i]
+	      || ar->as->upper[i]->expr_type != EXPR_CONSTANT
+	      || mpz_cmp (ar->end[i]->value.integer,
+			  ar->as->upper[i]->value.integer) != 0))
+	colon = false;
+    }
+  
+  return true;
 }

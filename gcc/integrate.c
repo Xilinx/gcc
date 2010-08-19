@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "integrate.h"
 #include "except.h"
 #include "function.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "intl.h"
 #include "params.h"
@@ -246,10 +247,10 @@ get_hard_reg_initial_val (enum machine_mode mode, unsigned int regno)
   ivs = crtl->hard_reg_initial_vals;
   if (ivs == 0)
     {
-      ivs = GGC_NEW (initial_value_struct);
+      ivs = ggc_alloc_initial_value_struct ();
       ivs->num_entries = 0;
       ivs->max_entries = 5;
-      ivs->entries = GGC_NEWVEC (initial_value_pair, 5);
+      ivs->entries = ggc_alloc_vec_initial_value_pair (5);
       crtl->hard_reg_initial_vals = ivs;
     }
 

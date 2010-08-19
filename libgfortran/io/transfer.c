@@ -4,7 +4,7 @@
    Namelist transfer functions contributed by Paul Thomas
    F2003 I/O support contributed by Jerry DeLisle
 
-This file is part of the GNU Fortran 95 runtime library (libgfortran).
+This file is part of the GNU Fortran runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -1042,7 +1042,7 @@ formatted_transfer_scalar_read (st_parameter_dt *dtp, bt type, void *p, int kind
 	case FMT_B:
 	  if (n == 0)
 	    goto need_read_data;
-	  if (compile_options.allow_std < GFC_STD_GNU
+	  if (!(compile_options.allow_std & GFC_STD_GNU)
               && require_type (dtp, BT_INTEGER, type, f))
 	    return;
 	  read_radix (dtp, f, p, kind, 2);
@@ -1051,7 +1051,7 @@ formatted_transfer_scalar_read (st_parameter_dt *dtp, bt type, void *p, int kind
 	case FMT_O:
 	  if (n == 0)
 	    goto need_read_data; 
-	  if (compile_options.allow_std < GFC_STD_GNU
+	  if (!(compile_options.allow_std & GFC_STD_GNU)
               && require_type (dtp, BT_INTEGER, type, f))
 	    return;
 	  read_radix (dtp, f, p, kind, 8);
@@ -1060,7 +1060,7 @@ formatted_transfer_scalar_read (st_parameter_dt *dtp, bt type, void *p, int kind
 	case FMT_Z:
 	  if (n == 0)
 	    goto need_read_data;
-	  if (compile_options.allow_std < GFC_STD_GNU
+	  if (!(compile_options.allow_std & GFC_STD_GNU)
               && require_type (dtp, BT_INTEGER, type, f))
 	    return;
 	  read_radix (dtp, f, p, kind, 16);
@@ -1443,7 +1443,7 @@ formatted_transfer_scalar_write (st_parameter_dt *dtp, bt type, void *p, int kin
 	case FMT_B:
 	  if (n == 0)
 	    goto need_data;
-	  if (compile_options.allow_std < GFC_STD_GNU
+	  if (!(compile_options.allow_std & GFC_STD_GNU)
               && require_type (dtp, BT_INTEGER, type, f))
 	    return;
 	  write_b (dtp, f, p, kind);
@@ -1452,7 +1452,7 @@ formatted_transfer_scalar_write (st_parameter_dt *dtp, bt type, void *p, int kin
 	case FMT_O:
 	  if (n == 0)
 	    goto need_data; 
-	  if (compile_options.allow_std < GFC_STD_GNU
+	  if (!(compile_options.allow_std & GFC_STD_GNU)
               && require_type (dtp, BT_INTEGER, type, f))
 	    return;
 	  write_o (dtp, f, p, kind);
@@ -1461,7 +1461,7 @@ formatted_transfer_scalar_write (st_parameter_dt *dtp, bt type, void *p, int kin
 	case FMT_Z:
 	  if (n == 0)
 	    goto need_data;
-	  if (compile_options.allow_std < GFC_STD_GNU
+	  if (!(compile_options.allow_std & GFC_STD_GNU)
               && require_type (dtp, BT_INTEGER, type, f))
 	    return;
 	  write_z (dtp, f, p, kind);
@@ -2267,15 +2267,25 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
       return;
     }
 
-  if (dtp->u.p.current_unit->flags.access == ACCESS_SEQUENTIAL
-      && (cf & IOPARM_DT_HAS_REC) != 0)
+  if (dtp->u.p.current_unit->flags.access == ACCESS_SEQUENTIAL)
     {
-      generate_error (&dtp->common, LIBERROR_OPTION_CONFLICT,
-		      "Record number not allowed for sequential access "
-		      "data transfer");
-      return;
-    }
+      if ((cf & IOPARM_DT_HAS_REC) != 0)
+	{
+	  generate_error (&dtp->common, LIBERROR_OPTION_CONFLICT,
+			"Record number not allowed for sequential access "
+			"data transfer");
+	  return;
+	}
 
+      if (dtp->u.p.current_unit->endfile == AFTER_ENDFILE)
+      	{
+	  generate_error (&dtp->common, LIBERROR_OPTION_CONFLICT,
+			"Sequential READ or WRITE not allowed after "
+			"EOF marker, possibly use REWIND or BACKSPACE");
+	  return;
+	}
+
+    }
   /* Process the ADVANCE option.  */
 
   dtp->u.p.advance_status

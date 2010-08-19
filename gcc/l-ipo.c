@@ -94,7 +94,7 @@ get_module_scope (unsigned mod_id)
   module_scope = *slot;
   if (!module_scope)
     {
-      module_scope = GGC_CNEW (struct saved_module_scope);
+      module_scope = ggc_alloc_cleared_saved_module_scope ();
       module_scope->module_id = mod_id;
       *slot = module_scope;
     }
@@ -108,7 +108,7 @@ alloc_lang_decl (tree t)
 {
   size_t size;
   size = lang_hooks.l_ipo.get_lang_decl_size (t);
-  return GGC_CNEWVAR (struct lang_decl, size);
+  return ggc_alloc_cleared_lang_decl (size);
 }
 
 /* Return a cloned copy of tree SRC.  */
@@ -132,7 +132,7 @@ lipo_save_decl (tree src)
       DECL_LANG_SPECIFIC (saved) = ls;
       if (tc == FUNCTION_DECL && DECL_STRUCT_FUNCTION (src))
         {
-          func = GGC_CNEW (struct function);
+          func = ggc_alloc_cleared_function ();
           *func = *(DECL_STRUCT_FUNCTION (src));
           DECL_STRUCT_FUNCTION (saved) = func;
         }
@@ -193,7 +193,7 @@ lipo_restore_decl (tree dest, tree saved)
           if (DECL_STRUCT_FUNCTION (saved))
             {
               if (!oldfunc)
-                oldfunc = GGC_CNEW (struct function);
+                oldfunc = ggc_alloc_cleared_function ();
               *oldfunc = *(DECL_STRUCT_FUNCTION (saved));
               DECL_STRUCT_FUNCTION (dest) = oldfunc;
             }
@@ -991,7 +991,7 @@ type_eq_process (void **slot, void *data ATTRIBUTE_UNUSED)
           htab_find_slot (l_ipo_type_tab, &key, INSERT);
       tent = *slot2;
       gcc_assert (!tent);
-      tent = GGC_CNEW (struct type_ent);
+      tent = ggc_alloc_cleared_type_ent ();
       tent->type = key.type;
       tent->eq_id = l_ipo_eq_id;
       *slot2 = tent;
@@ -1259,7 +1259,7 @@ add_define_module (struct cgraph_sym *sym, tree decl)
                                                     &mi, INSERT);
   if (!*slot)
     {
-      *slot = GGC_CNEW (struct cgraph_mod_info);
+      *slot = ggc_alloc_cleared_cgraph_mod_info ();
       (*slot)->module_id = module_id;
     }
   else
@@ -1506,7 +1506,7 @@ cgraph_link_node (struct cgraph_node *node)
     resolve_cgraph_node ((struct cgraph_sym **) slot, node);
   else
     {
-      struct cgraph_sym *sym = GGC_CNEW (struct cgraph_sym);
+      struct cgraph_sym *sym = ggc_alloc_cleared_cgraph_sym ();
       sym->rep_node = node;
       sym->rep_decl = node->decl;
       sym->assembler_name = name;

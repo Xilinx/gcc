@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "tree-inline.h"
 #include "tree-scalar-evolution.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "tree-vectorizer.h"
 
@@ -600,7 +601,7 @@ tree_ssa_loop_prefetch (void)
 static bool
 gate_tree_ssa_loop_prefetch (void)
 {
-  return flag_prefetch_loop_arrays != 0;
+  return flag_prefetch_loop_arrays > 0;
 }
 
 struct gimple_opt_pass pass_loop_prefetch =

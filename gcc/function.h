@@ -503,14 +503,8 @@ struct GTY(()) function {
      pointer.  */
   tree nonlocal_goto_save_area;
 
-  /* Function's module id.  */
-  unsigned module_id;
-
-  /* Function sequence number for profiling, debugging, etc.  */
-  int funcdef_no;
-
-  /* List of function local variables, functions, types and constants.  */
-  tree local_decls;
+  /* Vector of function local variables, functions, types and constants.  */
+  VEC(tree,gc) *local_decls;
 
   /* For md files.  */
 
@@ -525,6 +519,12 @@ struct GTY(()) function {
 
   /* Last statement uid.  */
   int last_stmt_uid;
+
+  /* Function's module id.  */
+  unsigned module_id;
+
+  /* Function sequence number for profiling, debugging, etc.  */
+  int funcdef_no;
 
   /* Line number of the start of the function for debugging purposes.  */
   location_t function_start_locus;
@@ -647,6 +647,17 @@ struct GTY(()) function {
 #define FUNC_LABEL_ID(func) ((FUNC_DECL_MODULE_ID (func) << 17) +\
                              (func)->funcdef_no)
 
+/* Add the decl D to the local_decls list of FUN.  */
+
+static inline void
+add_local_decl (struct function *fun, tree d)
+{
+  VEC_safe_push (tree, gc, fun->local_decls, d);
+}
+
+#define FOR_EACH_LOCAL_DECL(FUN, I, D)		\
+  FOR_EACH_VEC_ELT_REVERSE (tree, (FUN)->local_decls, I, D)
+
 /* If va_list_[gf]pr_size is set to this, it means we don't know how
    many units need to be saved.  */
 #define VA_LIST_MAX_GPR_SIZE	255
@@ -683,9 +694,9 @@ hashval_t types_used_by_vars_do_hash (const void*);
 int types_used_by_vars_eq (const void *, const void *);
 void types_used_by_var_decl_insert (tree type, tree var_decl);
 
-/* During parsing of a global variable, this linked list points to
-   the list of types referenced by the global variable.  */
-extern GTY(()) tree types_used_by_cur_var_decl;
+/* During parsing of a global variable, this vector contains the types
+   referenced by the global variable.  */
+extern GTY(()) VEC(tree,gc) *types_used_by_cur_var_decl;
 
 
 /* cfun shouldn't be set directly; use one of these functions instead.  */

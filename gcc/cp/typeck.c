@@ -44,7 +44,7 @@ along with GCC; see the file COPYING3.  If not see
 
 static tree pfn_from_ptrmemfunc (tree);
 static tree delta_from_ptrmemfunc (tree);
-static tree convert_for_assignment (tree, tree, const char *, tree, int,
+static tree convert_for_assignment (tree, tree, impl_conv_rhs, tree, int,
 				    tsubst_flags_t, int);
 static tree cp_pointer_int_sum (enum tree_code, tree, tree);
 static tree rationalize_conditional_expr (enum tree_code, tree, 
@@ -993,35 +993,37 @@ comp_except_specs (const_tree t1, const_tree t2, int exact)
   const_tree probe;
   const_tree base;
   int  length = 0;
-  const_tree noexcept_spec = NULL_TREE;
-  const_tree other_spec;
 
   if (t1 == t2)
     return true;
 
-  /* First test noexcept compatibility.  */
-  if (t1 && TREE_PURPOSE (t1))
-    noexcept_spec = t1, other_spec = t2;
-  else if (t2 && TREE_PURPOSE (t2))
-    noexcept_spec = t2, other_spec = t1;
-  if (noexcept_spec)
+  /* First handle noexcept.  */
+  if (exact < ce_exact)
     {
-      tree p = TREE_PURPOSE (noexcept_spec);
-      /* Two noexcept-specs are equivalent iff their exprs are.  */
-      if (other_spec && TREE_PURPOSE (other_spec))
-	return cp_tree_equal (p, TREE_PURPOSE (other_spec));
-      /* noexcept(true) is compatible with throw().  */
-      else if (exact < ce_exact && p == boolean_true_node)
-	return nothrow_spec_p (other_spec);
-      /* noexcept(false) is compatible with any throwing
-	 dynamic-exception-spec.  */
-      else if (exact < ce_exact && p == boolean_false_node)
-	return !nothrow_spec_p (other_spec);
-      /* A dependent noexcept-spec is not compatible with any
-	 dynamic-exception-spec.  */
-      else
-	return false;
+      /* noexcept(false) is compatible with any throwing dynamic-exc-spec
+	 and stricter than any spec.  */
+      if (t1 == noexcept_false_spec)
+	return !nothrow_spec_p (t2) || exact == ce_derived;
+      /* Even a derived noexcept(false) is compatible with a throwing
+	 dynamic spec.  */
+      if (t2 == noexcept_false_spec)
+	return !nothrow_spec_p (t1);
+
+      /* Otherwise, if we aren't looking for an exact match, noexcept is
+	 equivalent to throw().  */
+      if (t1 == noexcept_true_spec)
+	t1 = empty_except_spec;
+      if (t2 == noexcept_true_spec)
+	t2 = empty_except_spec;
     }
+
+  /* If any noexcept is left, it is only comparable to itself;
+     either we're looking for an exact match or we're redeclaring a
+     template with dependent noexcept.  */
+  if ((t1 && TREE_PURPOSE (t1))
+      || (t2 && TREE_PURPOSE (t2)))
+    return (t1 && t2
+	    && cp_tree_equal (TREE_PURPOSE (t1), TREE_PURPOSE (t2)));
 
   if (t1 == NULL_TREE)			   /* T1 is ...  */
     return t2 == NULL_TREE || exact == ce_derived;
@@ -3493,7 +3495,7 @@ convert_arguments (tree typelist, VEC(tree,gc) **values, tree fndecl,
 	    {
 	      parmval = convert_for_initialization
 		(NULL_TREE, type, val, flags,
-		 "argument passing", fndecl, i, complain);
+		 ICR_ARGPASS, fndecl, i, complain);
 	      parmval = convert_for_arg_passing (type, parmval);
 	    }
 
@@ -4779,7 +4781,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
   tree val;
   const char *invalid_op_diag;
 
-  if (error_operand_p (arg))
+  if (!arg || error_operand_p (arg))
     return error_mark_node;
 
   if ((invalid_op_diag
@@ -5486,14 +5488,30 @@ build_x_conditional_expr (tree ifexp, tree op1, tree op2,
 /* Given a list of expressions, return a compound expression
    that performs them all and returns the value of the last of them.  */
 
-tree build_x_compound_expr_from_list (tree list, const char *msg)
+tree
+build_x_compound_expr_from_list (tree list, expr_list_kind exp)
 {
   tree expr = TREE_VALUE (list);
 
   if (TREE_CHAIN (list))
     {
-      if (msg)
-	permerror (input_location, "%s expression list treated as compound expression", msg);
+      switch (exp)
+	{
+	  case ELK_INIT:
+	    permerror (input_location, "expression list treated as compound "
+				       "expression in initializer");
+	    break;
+	  case ELK_MEM_INIT:
+	    permerror (input_location, "expression list treated as compound "
+				       "expression in mem-initializer");
+	    break;
+	  case ELK_FUNC_CAST:
+	    permerror (input_location, "expression list treated as compound "
+				       "expression in functional cast");
+	    break;
+	  default:
+	    gcc_unreachable ();
+	}
 
       for (list = TREE_CHAIN (list); list; list = TREE_CHAIN (list))
 	expr = build_x_compound_expr (expr, TREE_VALUE (list), 
@@ -5573,7 +5591,7 @@ build_compound_expr (location_t loc ATTRIBUTE_UNUSED, tree lhs, tree rhs)
 tree
 cp_build_compound_expr (tree lhs, tree rhs, tsubst_flags_t complain)
 {
-  lhs = convert_to_void (lhs, "left-hand operand of comma", complain);
+  lhs = convert_to_void (lhs, ICV_LEFT_OF_COMMA, complain);
 
   if (lhs == error_mark_node || rhs == error_mark_node)
     return error_mark_node;
@@ -5840,7 +5858,7 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
 
      Any expression can be explicitly converted to type cv void.  */
   if (TREE_CODE (type) == VOID_TYPE)
-    return convert_to_void (expr, /*implicit=*/NULL, complain);
+    return convert_to_void (expr, ICV_CAST, complain);
 
   /* [expr.static.cast]
 
@@ -6767,10 +6785,10 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
     /* Calls with INIT_EXPR are all direct-initialization, so don't set
        LOOKUP_ONLYCONVERTING.  */
     newrhs = convert_for_initialization (lhs, olhstype, newrhs, LOOKUP_NORMAL,
-					 "initialization", NULL_TREE, 0,
+					 ICR_INIT, NULL_TREE, 0,
                                          complain);
   else
-    newrhs = convert_for_assignment (olhstype, newrhs, "assignment",
+    newrhs = convert_for_assignment (olhstype, newrhs, ICR_ASSIGN,
 				     NULL_TREE, 0, complain, LOOKUP_IMPLICIT);
 
   if (!same_type_p (lhstype, olhstype))
@@ -7170,14 +7188,15 @@ delta_from_ptrmemfunc (tree t)
 }
 
 /* Convert value RHS to type TYPE as preparation for an assignment to
-   an lvalue of type TYPE.  ERRTYPE is a string to use in error
-   messages: "assignment", "return", etc.  If FNDECL is non-NULL, we
-   are doing the conversion in order to pass the PARMNUMth argument of
-   FNDECL.  */
+   an lvalue of type TYPE.  ERRTYPE indicates what kind of error the
+   implicit conversion is.  If FNDECL is non-NULL, we are doing the
+   conversion in order to pass the PARMNUMth argument of FNDECL.
+   If FNDECL is NULL, we are doing the conversion in function pointer
+   argument passing, conversion in initialization, etc. */
 
 static tree
 convert_for_assignment (tree type, tree rhs,
-			const char *errtype, tree fndecl, int parmnum,
+			impl_conv_rhs errtype, tree fndecl, int parmnum,
 			tsubst_flags_t complain, int flags)
 {
   tree rhstype;
@@ -7192,7 +7211,10 @@ convert_for_assignment (tree type, tree rhs,
 
   if (TREE_CODE (type) == VECTOR_TYPE && coder == VECTOR_TYPE
       && vector_types_convertible_p (type, rhstype, true))
-    return convert (type, rhs);
+    {
+      rhs = mark_rvalue_use (rhs);
+      return convert (type, rhs);
+    }
 
   if (rhs == error_mark_node || rhstype == error_mark_node)
     return error_mark_node;
@@ -7214,27 +7236,32 @@ convert_for_assignment (tree type, tree rhs,
   if (c_dialect_objc ())
     {
       int parmno;
+      tree selector;
       tree rname = fndecl;
 
-      if (!strcmp (errtype, "assignment"))
-	parmno = -1;
-      else if (!strcmp (errtype, "initialization"))
-	parmno = -2;
-      else
-	{
-	  tree selector = objc_message_selector ();
-
-	  parmno = parmnum;
-
-	  if (selector && parmno > 1)
-	    {
-	      rname = selector;
-	      parmno -= 1;
-	    }
+      switch (errtype)
+        {
+	  case ICR_ASSIGN:
+	    parmno = -1;
+	    break;
+	  case ICR_INIT:
+	    parmno = -2;
+	    break;
+	  default:
+	    selector = objc_message_selector ();
+	    parmno = parmnum;
+	    if (selector && parmno > 1)
+	      {
+		rname = selector;
+		parmno -= 1;
+	      }
 	}
 
       if (objc_compare_types (type, rhstype, parmno, rname))
-	return convert (type, rhs);
+	{
+	  rhs = mark_rvalue_use (rhs);
+	  return convert (type, rhs);
+	}
     }
 
   /* [expr.ass]
@@ -7267,8 +7294,35 @@ convert_for_assignment (tree type, tree rhs,
 		error ("cannot convert %qT to %qT for argument %qP to %qD",
 		       rhstype, type, parmnum, fndecl);
 	      else
-		error ("cannot convert %qT to %qT in %s", rhstype, type,
-		       errtype);
+		switch (errtype)
+		  {
+		    case ICR_DEFAULT_ARGUMENT:
+		      error ("cannot convert %qT to %qT in default argument",
+			     rhstype, type);
+		      break;
+		    case ICR_ARGPASS:
+		      error ("cannot convert %qT to %qT in argument passing",
+			     rhstype, type);
+		      break;
+		    case ICR_CONVERTING:
+		      error ("cannot convert %qT to %qT",
+			     rhstype, type);
+		      break;
+		    case ICR_INIT:
+		      error ("cannot convert %qT to %qT in initialization",
+			     rhstype, type);
+		      break;
+		    case ICR_RETURN:
+		      error ("cannot convert %qT to %qT in return",
+			     rhstype, type);
+		      break;
+		    case ICR_ASSIGN:
+		      error ("cannot convert %qT to %qT in assignment",
+			     rhstype, type);
+		      break;
+		    default:
+		      gcc_unreachable();
+		  }
 	    }
 	  return error_mark_node;
 	}
@@ -7280,9 +7334,42 @@ convert_for_assignment (tree type, tree rhs,
 	  && coder == codel
 	  && check_missing_format_attribute (type, rhstype)
 	  && (complain & tf_warning))
-	warning (OPT_Wmissing_format_attribute,
-		 "%s might be a candidate for a format attribute",
-		 errtype);
+	switch (errtype)
+	  {
+	    case ICR_ARGPASS:
+	    case ICR_DEFAULT_ARGUMENT:
+	      if (fndecl)
+		warning (OPT_Wmissing_format_attribute,
+			 "parameter %qP of %qD might be a candidate "
+			 "for a format attribute", parmnum, fndecl);
+	      else
+		warning (OPT_Wmissing_format_attribute,
+			 "parameter might be a candidate "
+			 "for a format attribute");
+	      break;
+	    case ICR_CONVERTING:
+	      warning (OPT_Wmissing_format_attribute,
+		       "target of conversion might be might be a candidate "
+		       "for a format attribute");
+	      break;
+	    case ICR_INIT:
+	      warning (OPT_Wmissing_format_attribute,
+		       "target of initialization might be a candidate "
+		       "for a format attribute");
+	      break;
+	    case ICR_RETURN:
+	      warning (OPT_Wmissing_format_attribute,
+		       "return type might be a candidate "
+		       "for a format attribute");
+	      break;
+	    case ICR_ASSIGN:
+	      warning (OPT_Wmissing_format_attribute,
+		       "left-hand side of assignment might be a candidate "
+		       "for a format attribute");
+	      break;
+	    default:
+	      gcc_unreachable();
+	  }
     }
 
   /* If -Wparentheses, warn about a = b = c when a has type bool and b
@@ -7308,7 +7395,7 @@ convert_for_assignment (tree type, tree rhs,
 
 /* Convert RHS to be of type TYPE.
    If EXP is nonzero, it is the target of the initialization.
-   ERRTYPE is a string to use in error messages.
+   ERRTYPE indicates what kind of error the implicit conversion is.
 
    Two major differences between the behavior of
    `convert_for_assignment' and `convert_for_initialization'
@@ -7324,7 +7411,7 @@ convert_for_assignment (tree type, tree rhs,
 
 tree
 convert_for_initialization (tree exp, tree type, tree rhs, int flags,
-			    const char *errtype, tree fndecl, int parmnum,
+			    impl_conv_rhs errtype, tree fndecl, int parmnum,
                             tsubst_flags_t complain)
 {
   enum tree_code codel = TREE_CODE (type);
@@ -7715,7 +7802,7 @@ check_return_expr (tree retval, bool *no_warning)
 	 to the type of return value's location to handle the
 	 case that functype is smaller than the valtype.  */
       retval = convert_for_initialization
-	(NULL_TREE, functype, retval, flags, "return", NULL_TREE, 0,
+	(NULL_TREE, functype, retval, flags, ICR_RETURN, NULL_TREE, 0,
          tf_warning_or_error);
       retval = convert (valtype, retval);
 

@@ -72,11 +72,11 @@
 @c Part 2 Summary Description and Copyright
 @copying
 Copyright @copyright{} 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
-1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-2008 Free Software Foundation, Inc.
+1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+2010 Free Software Foundation, Inc.
 @sp 1
 Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.2 or
+under the terms of the GNU Free Documentation License, Version 1.3 or
 any later version published by the Free Software Foundation; with no
 Invariant Sections, the Front-Cover texts being (a) (see below), and
 with the Back-Cover Texts being (b) (see below).  A copy of the
@@ -456,8 +456,13 @@ snapshots of the development sources are also available via FTP@.
 Necessary when regenerating @file{Makefile} dependencies in libiberty.
 Necessary when regenerating @file{libiberty/functions.texi}.
 Necessary when generating manpages from Texinfo manuals.
-Necessary when targetting Darwin, building libstdc++,
+Necessary when targetting Darwin, building @samp{libstdc++},
 and not using @option{--disable-symvers}.
+Necessary when targetting Solaris 2 with Sun @command{ld}, building
+@samp{libstdc++}, and not using @option{--disable-symvers}.  A helper
+scripts needs @samp{Glob.pm}, which is missing from @command{perl} 5.005
+included in Solaris~8.  The bundled @command{perl} in Solaris~9 and up
+works.
 Used by various scripts to generate some files included in SVN (mainly
 Unicode-related and rarely changing) from source tables.
 
@@ -2150,6 +2155,11 @@ Removes any @option{-O}-started option from @code{BOOT_CFLAGS}, and adds
 @item @samp{bootstrap-O3}
 Analogous to @code{bootstrap-O1}.
 
+@item @samp{bootstrap-lto}
+Enables Link-Time Optimization for host tools during bootstrapping.
+@samp{BUILD_CONFIG=bootstrap-lto} is equivalent to adding
+@option{-flto} to @samp{BOOT_CFLAGS}.
+
 @item @samp{bootstrap-debug}
 Verifies that the compiler generates the same executable code, whether
 or not it is asked to emit debug information.  To this end, this
@@ -2301,7 +2311,7 @@ and network filesystems.
 @section Building the Ada compiler
 
 In order to build GNAT, the Ada compiler, you need a working GNAT
-compiler (GCC version 3.4 or later).
+compiler (GCC version 4.0 or later).
 This includes GNAT tools such as @command{gnatmake} and
 @command{gnatlink}, since the Ada front end is written in Ada and
 uses some GNAT-specific extensions.
@@ -4103,6 +4113,12 @@ GNU @command{ld} usually works as well, although the version included in
 Solaris 10 cannot be used due to several bugs.  Again, the current
 version (2.20.1) is known to work, but generally lacks platform specific
 features, so better stay with Sun @command{ld}.
+
+To enable symbol versioning in @samp{libstdc++} with Sun @command{ld},
+you need to have any version of GNU @command{c++filt}, which is part of
+GNU binutils.  @samp{libstdc++} symbol versioning will be disabled if no
+appropriate version is found.  Sun @command{c++filt} from the Sun Studio
+compilers does @emph{not} work.
 
 Sun bug 4296832 turns up when compiling X11 headers with GCC 2.95 or
 newer: @command{g++} will complain that types are missing.  These headers

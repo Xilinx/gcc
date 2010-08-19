@@ -74,6 +74,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "parse.h" /* FIXME */
 #include "md5.h"
 #include "constructor.h"
+#include "cpp.h"
 
 #define MODULE_EXTENSION ".mod"
 
@@ -1674,7 +1675,7 @@ typedef enum
   AB_POINTER_COMP, AB_PRIVATE_COMP, AB_VALUE, AB_VOLATILE, AB_PROTECTED,
   AB_IS_BIND_C, AB_IS_C_INTEROP, AB_IS_ISO_C, AB_ABSTRACT, AB_ZERO_COMP,
   AB_IS_CLASS, AB_PROCEDURE, AB_PROC_POINTER, AB_ASYNCHRONOUS, AB_CODIMENSION,
-  AB_COARRAY_COMP, AB_VTYPE, AB_VTAB
+  AB_COARRAY_COMP, AB_VTYPE, AB_VTAB, AB_CONTIGUOUS
 }
 ab_attribute;
 
@@ -1684,6 +1685,7 @@ static const mstring attr_bits[] =
     minit ("ASYNCHRONOUS", AB_ASYNCHRONOUS),
     minit ("DIMENSION", AB_DIMENSION),
     minit ("CODIMENSION", AB_CODIMENSION),
+    minit ("CONTIGUOUS", AB_CONTIGUOUS),
     minit ("EXTERNAL", AB_EXTERNAL),
     minit ("INTRINSIC", AB_INTRINSIC),
     minit ("OPTIONAL", AB_OPTIONAL),
@@ -1806,6 +1808,8 @@ mio_symbol_attribute (symbol_attribute *attr)
 	MIO_NAME (ab_attribute) (AB_DIMENSION, attr_bits);
       if (attr->codimension)
 	MIO_NAME (ab_attribute) (AB_CODIMENSION, attr_bits);
+      if (attr->contiguous)
+	MIO_NAME (ab_attribute) (AB_CONTIGUOUS, attr_bits);
       if (attr->external)
 	MIO_NAME (ab_attribute) (AB_EXTERNAL, attr_bits);
       if (attr->intrinsic)
@@ -1913,6 +1917,9 @@ mio_symbol_attribute (symbol_attribute *attr)
 	      break;
 	    case AB_CODIMENSION:
 	      attr->codimension = 1;
+	      break;
+	    case AB_CONTIGUOUS:
+	      attr->contiguous = 1;
 	      break;
 	    case AB_EXTERNAL:
 	      attr->external = 1;
@@ -3323,7 +3330,7 @@ mio_typebound_proc (gfc_typebound_proc** proc)
 
   if (iomode == IO_INPUT)
     {
-      *proc = gfc_get_typebound_proc ();
+      *proc = gfc_get_typebound_proc (NULL);
       (*proc)->where = gfc_current_locus;
     }
   gcc_assert (*proc);
@@ -5119,6 +5126,9 @@ gfc_dump_module (const char *name, int dump_flag)
       unlink (filename);
       return;
     }
+
+  if (gfc_cpp_makedep ())
+    gfc_cpp_add_target (filename);
 
   /* Write the module to the temporary file.  */
   module_fp = fopen (filename_tmp, "w");

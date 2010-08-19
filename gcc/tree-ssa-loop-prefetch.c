@@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "tree-chrec.h"
 #include "tree-scalar-evolution.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "params.h"
 #include "langhooks.h"
@@ -228,13 +229,13 @@ struct mem_ref_group
 
 /* Do not generate a prefetch if the unroll factor is significantly less
    than what is required by the prefetch.  This is to avoid redundant
-   prefetches.  For example, if prefetch_mod is 16 and unroll_factor is
-   1, this means prefetching requires unrolling the loop 16 times, but
-   the loop is not going to be unrolled.  In this case (ratio = 16),
+   prefetches.  For example, when prefetch_mod is 16 and unroll_factor is
+   2, prefetching requires unrolling the loop 16 times, but
+   the loop is actually unrolled twice.  In this case (ratio = 8),
    prefetching is not likely to be beneficial.  */
 
 #ifndef PREFETCH_MOD_TO_UNROLL_FACTOR_RATIO
-#define PREFETCH_MOD_TO_UNROLL_FACTOR_RATIO 8
+#define PREFETCH_MOD_TO_UNROLL_FACTOR_RATIO 4
 #endif
 
 /* The memory reference.  */
@@ -404,8 +405,7 @@ idx_analyze_ref (tree base, tree *index, void *data)
   HOST_WIDE_INT idelta = 0, imult = 1;
   affine_iv iv;
 
-  if (TREE_CODE (base) == MISALIGNED_INDIRECT_REF
-      || TREE_CODE (base) == ALIGN_INDIRECT_REF)
+  if (TREE_CODE (base) == MISALIGNED_INDIRECT_REF)
     return false;
 
   if (!simple_iv (ar_data->loop, loop_containing_stmt (ar_data->stmt),
@@ -511,6 +511,10 @@ gather_memory_references_ref (struct loop *loop, struct mem_ref_group **refs,
     return false;
   /* If analyze_ref fails the default is a NULL_TREE.  We can stop here.  */
   if (step == NULL_TREE)
+    return false;
+
+  /* Limit non-constant step prefetching only to the innermost loops.  */
+  if (!cst_and_fits_in_hwi (step) && loop->inner != NULL)
     return false;
 
   /* Now we know that REF = &BASE + STEP * iter + DELTA, where DELTA and STEP
@@ -636,22 +640,29 @@ ddown (HOST_WIDE_INT x, unsigned HOST_WIDE_INT by)
 /* Given a CACHE_LINE_SIZE and two inductive memory references
    with a common STEP greater than CACHE_LINE_SIZE and an address
    difference DELTA, compute the probability that they will fall
-   in different cache lines.  DISTINCT_ITERS is the number of
-   distinct iterations after which the pattern repeats itself.
+   in different cache lines.  Return true if the computed miss rate
+   is not greater than the ACCEPTABLE_MISS_RATE.  DISTINCT_ITERS is the
+   number of distinct iterations after which the pattern repeats itself.
    ALIGN_UNIT is the unit of alignment in bytes.  */
 
-static int
-compute_miss_rate (unsigned HOST_WIDE_INT cache_line_size,
+static bool
+is_miss_rate_acceptable (unsigned HOST_WIDE_INT cache_line_size,
 		   HOST_WIDE_INT step, HOST_WIDE_INT delta,
 		   unsigned HOST_WIDE_INT distinct_iters,
 		   int align_unit)
 {
   unsigned align, iter;
-  int total_positions, miss_positions, miss_rate;
+  int total_positions, miss_positions, max_allowed_miss_positions;
   int address1, address2, cache_line1, cache_line2;
 
-  total_positions = 0;
+  /* It always misses if delta is greater than or equal to the cache
+     line size.  */
+  if (delta >= (HOST_WIDE_INT) cache_line_size)
+    return false;
+
   miss_positions = 0;
+  total_positions = (cache_line_size / align_unit) * distinct_iters;
+  max_allowed_miss_positions = (ACCEPTABLE_MISS_RATE * total_positions) / 1000;
 
   /* Iterate through all possible alignments of the first
      memory reference within its cache line.  */
@@ -664,12 +675,14 @@ compute_miss_rate (unsigned HOST_WIDE_INT cache_line_size,
 	address2 = address1 + delta;
 	cache_line1 = address1 / cache_line_size;
 	cache_line2 = address2 / cache_line_size;
-	total_positions += 1;
 	if (cache_line1 != cache_line2)
-	  miss_positions += 1;
+	  {
+	    miss_positions += 1;
+            if (miss_positions > max_allowed_miss_positions)
+	      return false;
+          }
       }
-  miss_rate = 1000 * miss_positions / total_positions;
-  return miss_rate;
+  return true;
 }
 
 /* Prune the prefetch candidate REF using the reuse with BY.
@@ -685,7 +698,6 @@ prune_ref_by_group_reuse (struct mem_ref *ref, struct mem_ref *by,
   HOST_WIDE_INT delta = delta_b - delta_r;
   HOST_WIDE_INT hit_from;
   unsigned HOST_WIDE_INT prefetch_before, prefetch_block;
-  int miss_rate;
   HOST_WIDE_INT reduced_step;
   unsigned HOST_WIDE_INT reduced_prefetch_block;
   tree ref_type;
@@ -784,9 +796,8 @@ prune_ref_by_group_reuse (struct mem_ref *ref, struct mem_ref *by,
   delta %= step;
   ref_type = TREE_TYPE (ref->mem);
   align_unit = TYPE_ALIGN (ref_type) / 8;
-  miss_rate = compute_miss_rate(prefetch_block, step, delta,
-				reduced_prefetch_block, align_unit);
-  if (miss_rate <= ACCEPTABLE_MISS_RATE)
+  if (is_miss_rate_acceptable (prefetch_block, step, delta,
+			       reduced_prefetch_block, align_unit))
     {
       /* Do not reduce prefetch_before if we meet beyond cache size.  */
       if (prefetch_before > L2_CACHE_SIZE_BYTES / PREFETCH_BLOCK)
@@ -800,9 +811,8 @@ prune_ref_by_group_reuse (struct mem_ref *ref, struct mem_ref *by,
   /* Try also the following iteration.  */
   prefetch_before++;
   delta = step - delta;
-  miss_rate = compute_miss_rate(prefetch_block, step, delta,
-				reduced_prefetch_block, align_unit);
-  if (miss_rate <= ACCEPTABLE_MISS_RATE)
+  if (is_miss_rate_acceptable (prefetch_block, step, delta,
+			       reduced_prefetch_block, align_unit))
     {
       if (prefetch_before < ref->prefetch_before)
 	ref->prefetch_before = prefetch_before;
@@ -990,18 +1000,40 @@ schedule_prefetches (struct mem_ref_group *groups, unsigned unroll_factor,
   return any;
 }
 
-/* Estimate the number of prefetches in the given GROUPS.  */
+/* Return TRUE if no prefetch is going to be generated in the given
+   GROUPS.  */
 
-static int
-estimate_prefetch_count (struct mem_ref_group *groups)
+static bool
+nothing_to_prefetch_p (struct mem_ref_group *groups)
 {
   struct mem_ref *ref;
+
+  for (; groups; groups = groups->next)
+    for (ref = groups->refs; ref; ref = ref->next)
+      if (should_issue_prefetch_p (ref))
+	return false;
+
+  return true;
+}
+
+/* Estimate the number of prefetches in the given GROUPS.
+   UNROLL_FACTOR is the factor by which LOOP was unrolled.  */
+
+static int
+estimate_prefetch_count (struct mem_ref_group *groups, unsigned unroll_factor)
+{
+  struct mem_ref *ref;
+  unsigned n_prefetches;
   int prefetch_count = 0;
 
   for (; groups; groups = groups->next)
     for (ref = groups->refs; ref; ref = ref->next)
       if (should_issue_prefetch_p (ref))
-	  prefetch_count++;
+	{
+	  n_prefetches = ((unroll_factor + ref->prefetch_mod - 1)
+			  / ref->prefetch_mod);
+	  prefetch_count += n_prefetches;
+	}
 
   return prefetch_count;
 }
@@ -1104,7 +1136,7 @@ nontemporal_store_p (struct mem_ref *ref)
   if (mode == BLKmode)
     return false;
 
-  code = optab_handler (storent_optab, mode)->insn_code;
+  code = optab_handler (storent_optab, mode);
   return code != CODE_FOR_nothing;
 }
 
@@ -1712,8 +1744,7 @@ loop_prefetch_arrays (struct loop *loop)
   /* Step 2: estimate the reuse effects.  */
   prune_by_reuse (refs);
 
-  prefetch_count = estimate_prefetch_count (refs);
-  if (prefetch_count == 0)
+  if (nothing_to_prefetch_p (refs))
     goto fail;
 
   determine_loop_nest_reuse (loop, refs, no_other_refs);
@@ -1729,6 +1760,12 @@ loop_prefetch_arrays (struct loop *loop)
   ninsns = tree_num_loop_insns (loop, &eni_size_weights);
   unroll_factor = determine_unroll_factor (loop, refs, ninsns, &desc,
 					   est_niter);
+
+  /* Estimate prefetch count for the unrolled loop.  */
+  prefetch_count = estimate_prefetch_count (refs, unroll_factor);
+  if (prefetch_count == 0)
+    goto fail;
+
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "Ahead %d, unroll factor %d, trip count "
 	     HOST_WIDE_INT_PRINT_DEC "\n"

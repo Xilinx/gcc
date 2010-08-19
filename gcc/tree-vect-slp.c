@@ -421,8 +421,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
 					   optab_vector);
 
 	      if (!optab
-		  || (optab->handlers[(int) vec_mode].insn_code
-		      == CODE_FOR_nothing))
+		  || optab_handler (optab, vec_mode) == CODE_FOR_nothing)
 		{
 		  /* No vector/vector shift, try for a vector/scalar shift.  */
 		  optab = optab_for_tree_code (rhs_code, vectype,
@@ -434,7 +433,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
 			fprintf (vect_dump, "Build SLP failed: no optab.");
 		      return false;
 		    }
-		  icode = (int) optab->handlers[(int) vec_mode].insn_code;
+		  icode = (int) optab_handler (optab, vec_mode);
 		  if (icode == CODE_FOR_nothing)
 		    {
 		      if (vect_print_dump_info (REPORT_SLP))
@@ -560,7 +559,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
               if (first_load == stmt)
                 {
                   first_dr = STMT_VINFO_DATA_REF (vinfo_for_stmt (stmt));
-                  if (vect_supportable_dr_alignment (first_dr)
+                  if (vect_supportable_dr_alignment (first_dr, false)
                       == dr_unaligned_unsupported)
                     {
                       if (vect_print_dump_info (REPORT_SLP))
@@ -645,7 +644,9 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
       if (permutation)
         {
           VEC_safe_push (slp_tree, heap, *loads, *node);
-          *inside_cost += TARG_VEC_PERMUTE_COST * group_size;
+          *inside_cost 
+            += targetm.vectorize.builtin_vectorization_cost (vec_perm, NULL, 0) 
+               * group_size;
         }
 
       return true;
@@ -1660,13 +1661,16 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
              break;
 
           case MULT_EXPR:
-          case BIT_AND_EXPR:
              if (SCALAR_FLOAT_TYPE_P (TREE_TYPE (op)))
                neutral_op = build_real (TREE_TYPE (op), dconst1);
              else
                neutral_op = build_int_cst (TREE_TYPE (op), 1);
 
              break;
+
+          case BIT_AND_EXPR:
+            neutral_op = build_int_cst (TREE_TYPE (op), -1);
+            break;
 
           default:
              neutral_op = NULL;

@@ -54,7 +54,7 @@ const char *lto_section_name[LTO_N_SECTION_TYPES] =
   "cgraph",
   "varpool",
   "refs",
-  "jump_funcs"
+  "jump_funcs",
   "ipa_pure_const",
   "ipa_reference",
   "symtab",
@@ -433,11 +433,7 @@ lto_get_decl_name_mapping (struct lto_file_decl_data *decl_data,
 struct lto_in_decl_state *
 lto_new_in_decl_state (void)
 {
-  struct lto_in_decl_state *state;
-
-  state = ((struct lto_in_decl_state *) ggc_alloc (sizeof (*state)));
-  memset (state, 0, sizeof (*state));
-  return state;
+  return ggc_alloc_cleared_lto_in_decl_state ();
 }
 
 /* Delete STATE and its components. */

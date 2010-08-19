@@ -158,7 +158,7 @@ lto_read_in_decl_state (struct data_in *data_in, const uint32_t *data,
   for (i = 0; i < LTO_N_DECL_STREAMS; i++)
     {
       uint32_t size = *data++;
-      tree *decls = GGC_NEWVEC (tree, size);
+      tree *decls = ggc_alloc_vec_tree (size);
 
       for (j = 0; j < size; j++)
 	{
@@ -317,7 +317,7 @@ lto_resolution_read (FILE *resolution, lto_file *file)
       int t;
       unsigned index;
       char r_str[27];
-      enum ld_plugin_symbol_resolution r;
+      enum ld_plugin_symbol_resolution r = (enum ld_plugin_symbol_resolution) 0;
       unsigned int j;
       unsigned int lto_resolution_str_len =
 	sizeof (lto_resolution_str) / sizeof (char *);
@@ -364,7 +364,7 @@ lto_file_read (lto_file *file, FILE *resolution_file)
   
   resolutions = lto_resolution_read (resolution_file, file);
 
-  file_data = GGC_NEW (struct lto_file_decl_data);
+  file_data = ggc_alloc_lto_file_decl_data ();
   file_data->file_name = file->filename;
   file_data->section_hash_table = lto_obj_build_section_table (file);
   file_data->renaming_hash_table = lto_create_renaming_table ();
@@ -525,11 +525,14 @@ DEF_VEC_ALLOC_P(ltrans_partition,gc);
 
 static GTY (()) VEC(ltrans_partition, gc) *ltrans_partitions;
 
+static void add_cgraph_node_to_partition (ltrans_partition part, struct cgraph_node *node);
+static void add_varpool_node_to_partition (ltrans_partition part, struct varpool_node *vnode);
+
 /* Create new partition with name NAME.  */
 static ltrans_partition
 new_partition (const char *name)
 {
-  ltrans_partition part = GGC_NEW (struct ltrans_partition_def);
+  ltrans_partition part = ggc_alloc_ltrans_partition_def ();
   part->cgraph_set = cgraph_node_set_new ();
   part->varpool_set = varpool_node_set_new ();
   part->name = name;
@@ -538,17 +541,77 @@ new_partition (const char *name)
   return part;
 }
 
-/* Add NODE to partition as well as the inline callees into partition PART. */
+/* See all references that go to comdat objects and bring them into partition too.  */
+static void
+add_references_to_partition (ltrans_partition part, struct ipa_ref_list *refs)
+{
+  int i;
+  struct ipa_ref *ref;
+  for (i = 0; ipa_ref_list_reference_iterate (refs, i, ref); i++)
+    {
+      if (ref->refered_type == IPA_REF_CGRAPH
+	  && DECL_COMDAT (ipa_ref_node (ref)->decl)
+	  && !cgraph_node_in_set_p (ipa_ref_node (ref), part->cgraph_set))
+	add_cgraph_node_to_partition (part, ipa_ref_node (ref));
+      else
+	if (ref->refered_type == IPA_REF_VARPOOL
+	    && DECL_COMDAT (ipa_ref_varpool_node (ref)->decl)
+	    && !varpool_node_in_set_p (ipa_ref_varpool_node (ref), part->varpool_set))
+	  add_varpool_node_to_partition (part, ipa_ref_varpool_node (ref));
+    }
+}
+
+/* Add NODE to partition as well as the inline callees and referred comdats into partition PART. */
 
 static void
 add_cgraph_node_to_partition (ltrans_partition part, struct cgraph_node *node)
 {
   struct cgraph_edge *e;
+
   part->insns += node->local.inline_summary.self_size;
+
+  if (node->aux)
+    {
+      gcc_assert (node->aux != part);
+      node->in_other_partition = 1;
+    }
+  else
+    node->aux = part;
+
   cgraph_node_set_add (part->cgraph_set, node);
+
   for (e = node->callees; e; e = e->next_callee)
-    if (!e->inline_failed)
+    if ((!e->inline_failed || DECL_COMDAT (e->callee->decl))
+	&& !cgraph_node_in_set_p (e->callee, part->cgraph_set))
       add_cgraph_node_to_partition (part, e->callee);
+
+  add_references_to_partition (part, &node->ref_list);
+
+  if (node->same_comdat_group
+      && !cgraph_node_in_set_p (node->same_comdat_group, part->cgraph_set))
+    add_cgraph_node_to_partition (part, node->same_comdat_group);
+}
+
+/* Add VNODE to partition as well as comdat references partition PART. */
+
+static void
+add_varpool_node_to_partition (ltrans_partition part, struct varpool_node *vnode)
+{
+  varpool_node_set_add (part->varpool_set, vnode);
+
+  if (vnode->aux)
+    {
+      gcc_assert (vnode->aux != part);
+      vnode->in_other_partition = 1;
+    }
+  else
+    vnode->aux = part;
+
+  add_references_to_partition (part, &vnode->ref_list);
+
+  if (vnode->same_comdat_group
+      && !varpool_node_in_set_p (vnode->same_comdat_group, part->varpool_set))
+    add_varpool_node_to_partition (part, vnode->same_comdat_group);
 }
 
 /* Group cgrah nodes by input files.  This is used mainly for testing
@@ -577,6 +640,10 @@ lto_1_to_1_map (void)
       /* Nodes without a body do not need partitioning.  */
       if (!node->analyzed)
 	continue;
+      /* Extern inlines and comdat are always only in partitions they are needed.  */
+      if (DECL_EXTERNAL (node->decl)
+	  || DECL_COMDAT (node->decl))
+	continue;
 
       file_data = node->local.lto_file_data;
       gcc_assert (!node->same_body_alias && file_data);
@@ -599,6 +666,10 @@ lto_1_to_1_map (void)
     {
       if (vnode->alias || !vnode->needed)
 	continue;
+      /* Constant pool and comdat are always only in partitions they are needed.  */
+      if (DECL_IN_CONSTANT_POOL (vnode->decl)
+	  || DECL_COMDAT (vnode->decl))
+	continue;
       file_data = vnode->lto_file_data;
       slot = pointer_map_contains (pmap, file_data);
       if (slot)
@@ -611,8 +682,12 @@ lto_1_to_1_map (void)
 	  npartitions++;
 	}
 
-      varpool_node_set_add (partition->varpool_set, vnode);
+      add_varpool_node_to_partition (partition, vnode);
     }
+  for (node = cgraph_nodes; node; node = node->next)
+    node->aux = NULL;
+  for (vnode = varpool_nodes; vnode; vnode = vnode->next)
+    vnode->aux = NULL;
 
   /* If the cgraph is empty, create one cgraph node set so that there is still
      an output file for any variables that need to be exported in a DSO.  */
@@ -704,7 +779,7 @@ lto_promote_cross_file_statics (void)
 	    continue;
 	  if (node->global.inlined_to)
 	    continue;
-	  if (!DECL_EXTERNAL (node->decl)
+	  if ((!DECL_EXTERNAL (node->decl) && !DECL_COMDAT (node->decl))
 	      && (referenced_from_other_partition_p (&node->ref_list, set, vset)
 		  || reachable_from_other_partition_p (node, set)))
 	    promote_fn (node);
@@ -715,10 +790,10 @@ lto_promote_cross_file_statics (void)
 	  /* Constant pool references use internal labels and thus can not
 	     be made global.  It is sensible to keep those ltrans local to
 	     allow better optimization.  */
-	  if (!DECL_IN_CONSTANT_POOL (vnode->decl)
-	     && !vnode->externally_visible && vnode->analyzed
-	     && referenced_from_other_partition_p (&vnode->ref_list,
-						   set, vset))
+	  if (!DECL_IN_CONSTANT_POOL (vnode->decl) && !DECL_COMDAT (vnode->decl)
+	      && !vnode->externally_visible && vnode->analyzed
+	      && referenced_from_other_partition_p (&vnode->ref_list,
+						    set, vset))
 	    promote_var (vnode);
 	}
 
@@ -1087,7 +1162,11 @@ lto_fixup_type (tree t, void *data)
       else
 	LTO_FIXUP_SUBTREE (TYPE_CONTEXT (t));
     }
-  LTO_REGISTER_TYPE_AND_FIXUP_SUBTREE (TYPE_CANONICAL (t));
+
+  /* TYPE_CANONICAL does not need to be fixed up, instead it should
+     always point to ourselves at this time as we never fixup
+     non-canonical ones.  */
+  gcc_assert (TYPE_CANONICAL (t) == t);
 
   /* The following re-creates proper variant lists while fixing up
      the variant leaders.  We do not stream TYPE_NEXT_VARIANT so the
@@ -1431,11 +1510,13 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
   struct cgraph_node *node;
 
   lto_stats.num_input_files = nfiles;
+  init_cgraph ();
 
-  timevar_push (TV_IPA_LTO_DECL_IO);
+  timevar_push (TV_IPA_LTO_DECL_IN);
 
   /* Set the hooks so that all of the ipa passes can read in their data.  */
-  all_file_decl_data = GGC_CNEWVEC (struct lto_file_decl_data *, nfiles + 1);
+  all_file_decl_data
+    = ggc_alloc_cleared_vec_lto_file_decl_data_ptr (nfiles + 1);
   lto_set_in_hooks (all_file_decl_data, get_section_data, free_section_data);
 
   /* Read the resolution file.  */
@@ -1493,7 +1574,7 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
   /* Set the hooks so that all of the ipa passes can read in their data.  */
   lto_set_in_hooks (all_file_decl_data, get_section_data, free_section_data);
 
-  timevar_pop (TV_IPA_LTO_DECL_IO);
+  timevar_pop (TV_IPA_LTO_DECL_IN);
 
   if (!quiet_flag)
     fprintf (stderr, "\nReading the callgraph\n");
@@ -1529,6 +1610,12 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
 
   /* Finally merge the cgraph according to the decl merging decisions.  */
   timevar_push (TV_IPA_LTO_CGRAPH_MERGE);
+  if (cgraph_dump_file)
+    {
+      fprintf (cgraph_dump_file, "Before merging:\n");
+      dump_cgraph (cgraph_dump_file);
+      dump_varpool (cgraph_dump_file);
+    }
   lto_symtab_merge_cgraph_nodes ();
   ggc_collect ();
 
@@ -1585,7 +1672,7 @@ materialize_cgraph (void)
 
   /* Now that we have input the cgraph, we need to clear all of the aux
      nodes and read the functions if we are not running in WPA mode.  */
-  timevar_push (TV_IPA_LTO_GIMPLE_IO);
+  timevar_push (TV_IPA_LTO_GIMPLE_IN);
 
   for (node = cgraph_nodes; node; node = node->next)
     {
@@ -1606,7 +1693,7 @@ materialize_cgraph (void)
 	}
     }
 
-  timevar_pop (TV_IPA_LTO_GIMPLE_IO);
+  timevar_pop (TV_IPA_LTO_GIMPLE_IN);
 
   /* Start the appropriate timer depending on the mode that we are
      operating in.  */

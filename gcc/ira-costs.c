@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-config.h"
 #include "recog.h"
 #include "reload.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "target.h"
 #include "params.h"
@@ -156,7 +157,8 @@ copy_cost (rtx x, enum machine_mode mode, enum reg_class rclass, bool to_p,
      copy it.  */
   sri.prev_sri = prev_sri;
   sri.extra_cost = 0;
-  secondary_class = targetm.secondary_reload (to_p, x, rclass, mode, &sri);
+  secondary_class
+    = (enum reg_class) targetm.secondary_reload (to_p, x, rclass, mode, &sri);
 
   if (secondary_class != NO_REGS)
     {

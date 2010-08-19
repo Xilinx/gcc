@@ -467,7 +467,7 @@
           [(match_operator:SI 3 "shift_operator"
              [(match_operand:SI 4 "s_register_operand" "r")
               (match_operand:SI 5 "const_int_operand" "M")])
-           (match_operand:SI 2 "s_register_operand" "r")]))]
+           (match_operand:SI 2 "s_register_operand" "rk")]))]
   "TARGET_THUMB2"
   "%i1%?\\t%0, %2, %4%S3"
   [(set_attr "predicable" "yes")
@@ -597,42 +597,6 @@
    ite\\t%D2\;mov%D2\\t%0, %1\;orr%d2\\t%0, %1, #1"
   [(set_attr "conds" "use")
    (set_attr "length" "6,10")]
-)
-
-(define_insn "*thumb2_compare_scc"
-  [(set (match_operand:SI 0 "s_register_operand" "=r,r")
-	(match_operator:SI 1 "arm_comparison_operator"
-	 [(match_operand:SI 2 "s_register_operand" "r,r")
-	  (match_operand:SI 3 "arm_add_operand" "rI,L")]))
-   (clobber (reg:CC CC_REGNUM))]
-  "TARGET_THUMB2"
-  "*
-    if (operands[3] == const0_rtx)
-      {
-	if (GET_CODE (operands[1]) == LT)
-	  return \"lsr\\t%0, %2, #31\";
-
-	if (GET_CODE (operands[1]) == GE)
-	  return \"mvn\\t%0, %2\;lsr\\t%0, %0, #31\";
-
-	if (GET_CODE (operands[1]) == EQ)
-	  return \"rsbs\\t%0, %2, #1\;it\\tcc\;movcc\\t%0, #0\";
-      }
-
-    if (GET_CODE (operands[1]) == NE)
-      {
-        if (which_alternative == 1)
-	  return \"adds\\t%0, %2, #%n3\;it\\tne\;movne\\t%0, #1\";
-        return \"subs\\t%0, %2, %3\;it\\tne\;movne\\t%0, #1\";
-      }
-    if (which_alternative == 1)
-      output_asm_insn (\"cmn\\t%2, #%n3\", operands);
-    else
-      output_asm_insn (\"cmp\\t%2, %3\", operands);
-    return \"ite\\t%D1\;mov%D1\\t%0, #0\;mov%d1\\t%0, #1\";
-  "
-  [(set_attr "conds" "clob")
-   (set_attr "length" "14")]
 )
 
 (define_insn "*thumb2_cond_move"
@@ -1082,29 +1046,6 @@
   }"
 )
 
-;; Peepholes and insns for 16-bit flag clobbering instructions.
-;; The conditional forms of these instructions do not clobber CC.
-;; However by the time peepholes are run it is probably too late to do
-;; anything useful with this information.
-(define_peephole2
-  [(set (match_operand:SI          0 "low_register_operand" "")
-        (match_operator:SI 3 "thumb_16bit_operator"
-	 [(match_operand:SI 1  "low_register_operand" "")
-	  (match_operand:SI 2 "low_register_operand" "")]))]
-  "TARGET_THUMB2
-   && (rtx_equal_p(operands[0], operands[1])
-       || GET_CODE(operands[3]) == PLUS
-       || GET_CODE(operands[3]) == MINUS)
-   && peep2_regno_dead_p(0, CC_REGNUM)"
-  [(parallel
-    [(set (match_dup 0)
-	  (match_op_dup 3
-	   [(match_dup 1)
-	    (match_dup 2)]))
-     (clobber (reg:CC CC_REGNUM))])]
-  ""
-)
-
 (define_insn "*thumb2_alusi3_short"
   [(set (match_operand:SI          0 "s_register_operand" "=l")
         (match_operator:SI 3 "thumb_16bit_operator"
@@ -1252,6 +1193,32 @@
   "sub%!\\t%0, %1, %2"
   [(set_attr "predicable" "yes")
    (set_attr "length" "2")]
+)
+
+(define_peephole2
+  [(set (match_operand:CC 0 "cc_register" "")
+	(compare:CC (match_operand:SI 1 "low_register_operand" "")
+		    (match_operand:SI 2 "const_int_operand" "")))]
+  "TARGET_THUMB2
+   && peep2_reg_dead_p (1, operands[1])
+   && satisfies_constraint_Pw (operands[2])"
+  [(parallel
+    [(set (match_dup 0) (compare:CC (match_dup 1) (match_dup 2)))
+     (set (match_dup 1) (plus:SI (match_dup 1) (match_dup 3)))])]
+  "operands[3] = GEN_INT (- INTVAL (operands[2]));"
+)
+
+(define_peephole2
+  [(match_scratch:SI 3 "l")
+   (set (match_operand:CC 0 "cc_register" "")
+	(compare:CC (match_operand:SI 1 "low_register_operand" "")
+		    (match_operand:SI 2 "const_int_operand" "")))]
+  "TARGET_THUMB2
+   && satisfies_constraint_Px (operands[2])"
+  [(parallel
+    [(set (match_dup 0) (compare:CC (match_dup 1) (match_dup 2)))
+     (set (match_dup 3) (plus:SI (match_dup 1) (match_dup 4)))])]
+  "operands[4] = GEN_INT (- INTVAL (operands[2]));"
 )
 
 (define_insn "*thumb2_addsi3_compare0"
@@ -1506,88 +1473,56 @@
    (set_attr "predicable" "yes")]
 )
 
-(define_insn "*thumb2_tlobits_cbranch"
-  [(set (pc)
-	(if_then_else
-	 (match_operator 0 "equality_operator"
-	  [(zero_extract:SI (match_operand:SI 1 "s_register_operand" "l,h,h")
-			    (match_operand:SI 2 "const_int_operand" "i,Pu,i")
-			    (const_int 0))
-	   (const_int 0)])
-	 (label_ref (match_operand 3 "" ""))
-	 (pc)))
-   (clobber (match_scratch:SI 4 "=l,X,r"))
-   (clobber (reg:CC CC_REGNUM))]
-  "TARGET_THUMB2"
-  "*
-  {
-  if (which_alternative == 0)
-    {
-      rtx op[3];
-      op[0] = operands[4];
-      op[1] = operands[1];
-      op[2] = GEN_INT (32 - INTVAL (operands[2]));
+(define_peephole2
+  [(set (match_operand:CC_NOOV 0 "cc_register" "")
+	(compare:CC_NOOV (zero_extract:SI
+			  (match_operand:SI 1 "low_register_operand" "")
+			  (const_int 1)
+			  (match_operand:SI 2 "const_int_operand" ""))
+			 (const_int 0)))
+   (match_scratch:SI 3 "l")
+   (set (pc)
+	(if_then_else (match_operator:CC_NOOV 4 "equality_operator"
+		       [(match_dup 0) (const_int 0)])
+		      (match_operand 5 "" "")
+		      (match_operand 6 "" "")))]
+  "TARGET_THUMB2
+   && (INTVAL (operands[2]) >= 0 && INTVAL (operands[2]) < 32)"
+  [(parallel [(set (match_dup 0)
+		   (compare:CC_NOOV (ashift:SI (match_dup 1) (match_dup 2))
+				    (const_int 0)))
+	      (clobber (match_dup 3))])
+   (set (pc)
+	(if_then_else (match_op_dup 4 [(match_dup 0) (const_int 0)])
+		      (match_dup 5) (match_dup 6)))]
+  "
+  operands[2] = GEN_INT (31 - INTVAL (operands[2]));
+  operands[4] = gen_rtx_fmt_ee (GET_CODE (operands[4]) == NE ? LT : GE,
+				VOIDmode, operands[0], const0_rtx);
+  ")
 
-      output_asm_insn (\"lsls\\t%0, %1, %2\", op);
-      switch (get_attr_length (insn))
-	{
-	  case 4:  return \"b%d0\\t%l3\";
-	  case 6:  return \"b%D0\\t.LCB%=\;b\\t%l3\\t%@long jump\\n.LCB%=:\";
-	  default: return \"b%D0\\t.LCB%=\;bl\\t%l3\\t%@far jump\\n.LCB%=:\";
-	}
-    }
-  else
-    {
-      rtx op[3];
-
-      if (which_alternative == 1)
-	{
-	  op[0] = operands[1];
-	  op[1] = GEN_INT ((1 << INTVAL (operands[2])) - 1);
-	  output_asm_insn (\"tst\\t%0, %1\", op);
-	}
-      else
-	{
-	  op[0] = operands[4];
-	  op[1] = operands[1];
-	  op[2] = GEN_INT (32 - INTVAL (operands[2]));
-	  output_asm_insn (\"lsls\\t%0, %1, %2\", op);
-	}
-
-      switch (get_attr_length (insn))
-	{
-	  case 6:  return \"b%d0\\t%l3\";
-	  case 8:  return \"b%D0\\t.LCB%=\;b\\t%l3\\t%@long jump\\n.LCB%=:\";
-	  default: return \"b%D0\\t.LCB%=\;bl\\t%l3\\t%@far jump\\n.LCB%=:\";
-	}
-    }
-  }"
-  [(set (attr "far_jump")
-	(if_then_else
-	    (and (ge (minus (match_dup 3) (pc)) (const_int -2040))
-		 (le (minus (match_dup 3) (pc)) (const_int 2048)))
-	    (const_string "no")
-	    (const_string "yes")))
-   (set (attr "length")
-	(if_then_else
-	  (eq (symbol_ref ("which_alternative"))
+(define_peephole2
+  [(set (match_operand:CC_NOOV 0 "cc_register" "")
+	(compare:CC_NOOV (zero_extract:SI
+			  (match_operand:SI 1 "low_register_operand" "")
+			  (match_operand:SI 2 "const_int_operand" "")
 			  (const_int 0))
-	  (if_then_else
-	    (and (ge (minus (match_dup 3) (pc)) (const_int -250))
-		 (le (minus (match_dup 3) (pc)) (const_int 256)))
-	    (const_int 4)
-	    (if_then_else
-		(and (ge (minus (match_dup 3) (pc)) (const_int -2040))
-		     (le (minus (match_dup 3) (pc)) (const_int 2048)))
-		(const_int 6)
-		(const_int 8)))
-	  (if_then_else
-	    (and (ge (minus (match_dup 3) (pc)) (const_int -250))
-		 (le (minus (match_dup 3) (pc)) (const_int 256)))
-	    (const_int 6)
-	    (if_then_else
-		(and (ge (minus (match_dup 3) (pc)) (const_int -2040))
-		     (le (minus (match_dup 3) (pc)) (const_int 2048)))
-		(const_int 8)
-		(const_int 10)))))]
-)
+			 (const_int 0)))
+   (match_scratch:SI 3 "l")
+   (set (pc)
+	(if_then_else (match_operator:CC_NOOV 4 "equality_operator"
+		       [(match_dup 0) (const_int 0)])
+		      (match_operand 5 "" "")
+		      (match_operand 6 "" "")))]
+  "TARGET_THUMB2
+   && (INTVAL (operands[2]) > 0 && INTVAL (operands[2]) < 32)"
+  [(parallel [(set (match_dup 0)
+		   (compare:CC_NOOV (ashift:SI (match_dup 1) (match_dup 2))
+				    (const_int 0)))
+	      (clobber (match_dup 3))])
+   (set (pc)
+	(if_then_else (match_op_dup 4 [(match_dup 0) (const_int 0)])
+		      (match_dup 5) (match_dup 6)))]
+  "
+  operands[2] = GEN_INT (32 - INTVAL (operands[2]));
+  ")

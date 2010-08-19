@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "rtl.h"
 #include "tree.h"
@@ -341,7 +342,7 @@ get_mem_attrs (alias_set_type alias, tree expr, rtx offset, rtx size,
   slot = htab_find_slot (mem_attrs_htab, &attrs, INSERT);
   if (*slot == 0)
     {
-      *slot = ggc_alloc (sizeof (mem_attrs));
+      *slot = ggc_alloc_mem_attrs ();
       memcpy (*slot, &attrs, sizeof (mem_attrs));
     }
 
@@ -390,7 +391,7 @@ get_reg_attrs (tree decl, int offset)
   slot = htab_find_slot (reg_attrs_htab, &attrs, INSERT);
   if (*slot == 0)
     {
-      *slot = ggc_alloc (sizeof (reg_attrs));
+      *slot = ggc_alloc_reg_attrs ();
       memcpy (*slot, &attrs, sizeof (reg_attrs));
     }
 
@@ -1610,19 +1611,45 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 
   /* We can set the alignment from the type if we are making an object,
      this is an INDIRECT_REF, or if TYPE_ALIGN_OK.  */
-  if (objectp || TREE_CODE (t) == INDIRECT_REF
-      || TREE_CODE (t) == ALIGN_INDIRECT_REF
-      || TYPE_ALIGN_OK (type))
+  if (objectp || TREE_CODE (t) == INDIRECT_REF || TYPE_ALIGN_OK (type))
     align = MAX (align, TYPE_ALIGN (type));
-  else
-    if (TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
-      {
-	if (integer_zerop (TREE_OPERAND (t, 1)))
-	  /* We don't know anything about the alignment.  */
-	  align = BITS_PER_UNIT;
-	else
-	  align = tree_low_cst (TREE_OPERAND (t, 1), 1);
-      }
+
+  else if (TREE_CODE (t) == MEM_REF)
+    {
+      tree op0 = TREE_OPERAND (t, 0);
+      unsigned HOST_WIDE_INT aoff = BITS_PER_UNIT;
+      if (host_integerp (TREE_OPERAND (t, 1), 1))
+	{
+	  unsigned HOST_WIDE_INT ioff = TREE_INT_CST_LOW (TREE_OPERAND (t, 1));
+	  aoff = (ioff & -ioff) * BITS_PER_UNIT;
+	}
+      if (TREE_CODE (op0) == ADDR_EXPR && DECL_P (TREE_OPERAND (op0, 0)))
+	align = MAX (align, DECL_ALIGN (TREE_OPERAND (op0, 0)));
+      else if (TREE_CODE (op0) == ADDR_EXPR
+	       && CONSTANT_CLASS_P (TREE_OPERAND (op0, 0)))
+	{
+	  align = TYPE_ALIGN (TREE_TYPE (TREE_OPERAND (op0, 0)));
+#ifdef CONSTANT_ALIGNMENT
+	  align = CONSTANT_ALIGNMENT (TREE_OPERAND (op0, 0), align);
+#endif
+	}
+      else
+	/* ??? This isn't fully correct, we can't set the alignment from the
+	   type in all cases.  */
+	align = MAX (align, TYPE_ALIGN (type));
+
+      if (!integer_zerop (TREE_OPERAND (t, 1)) && aoff < align)
+	align = aoff;
+    }
+
+  else if (TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
+    {
+      if (integer_zerop (TREE_OPERAND (t, 1)))
+	/* We don't know anything about the alignment.  */
+	align = BITS_PER_UNIT;
+      else
+	align = tree_low_cst (TREE_OPERAND (t, 1), 1);
+    }
 
   /* If the size is known, we can set that.  */
   if (TYPE_SIZE_UNIT (type) && host_integerp (TYPE_SIZE_UNIT (type), 1))
@@ -1654,6 +1681,9 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	     || TREE_CODE (base) == BIT_FIELD_REF)
 	base = TREE_OPERAND (base, 0);
 
+      if (TREE_CODE (base) == MEM_REF
+	  && TREE_CODE (TREE_OPERAND (base, 0)) == ADDR_EXPR)
+	base = TREE_OPERAND (TREE_OPERAND (base, 0), 0);
       if (DECL_P (base))
 	{
 	  if (CODE_CONTAINS_STRUCT (TREE_CODE (base), TS_DECL_WITH_VIS))
@@ -1668,12 +1698,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
       if (base && DECL_P (base)
 	  && TREE_READONLY (base)
 	  && (TREE_STATIC (base) || DECL_EXTERNAL (base)))
-	{
-	  tree base_type = TREE_TYPE (base);
-	  gcc_assert (!(base_type && TYPE_NEEDS_CONSTRUCTING (base_type))
-		      || DECL_ARTIFICIAL (base));
-	  MEM_READONLY_P (ref) = 1;
-	}
+	MEM_READONLY_P (ref) = 1;
 
       /* If this expression uses it's parent's alias set, mark it such
 	 that we won't change it.  */
@@ -1779,7 +1804,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	    }
 
 	  /* If this is an indirect reference, record it.  */
-	  else if (TREE_CODE (t) == INDIRECT_REF
+	  else if (TREE_CODE (t) == MEM_REF 
 		   || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
 	    {
 	      expr = t;
@@ -1789,7 +1814,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	}
 
       /* If this is an indirect reference, record it.  */
-      else if (TREE_CODE (t) == INDIRECT_REF
+      else if (TREE_CODE (t) == MEM_REF 
 	       || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
 	{
 	  expr = t;
@@ -1813,14 +1838,6 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
       offset = plus_constant (offset, -(apply_bitpos / BITS_PER_UNIT));
       if (size)
 	size = plus_constant (size, apply_bitpos / BITS_PER_UNIT);
-    }
-
-  if (TREE_CODE (t) == ALIGN_INDIRECT_REF)
-    {
-      /* Force EXPR and OFFSET to NULL, since we don't know exactly what
-	 we're overlapping.  */
-      offset = NULL;
-      expr = NULL;
     }
 
   /* Now set the attributes we computed above.  */
@@ -5240,7 +5257,7 @@ start_sequence (void)
       free_sequence_stack = tem->next;
     }
   else
-    tem = GGC_NEW (struct sequence_stack);
+    tem = ggc_alloc_sequence_stack ();
 
   tem->next = seq_stack;
   tem->first = get_insns ();
@@ -5555,8 +5572,7 @@ init_emit (void)
   crtl->emit.regno_pointer_align
     = XCNEWVEC (unsigned char, crtl->emit.regno_pointer_align_length);
 
-  regno_reg_rtx
-    = GGC_NEWVEC (rtx, crtl->emit.regno_pointer_align_length);
+  regno_reg_rtx = ggc_alloc_vec_rtx (crtl->emit.regno_pointer_align_length);
 
   /* Put copies of all the hard registers into regno_reg_rtx.  */
   memcpy (regno_reg_rtx,

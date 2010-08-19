@@ -37,10 +37,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "optabs.h"
 #include "params.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "tree-chrec.h"
 #include "tree-scalar-evolution.h"
 #include "tree-vectorizer.h"
+#include "target.h"
 
 /* Loop Vectorization Pass.
 
@@ -131,7 +133,7 @@ along with GCC; see the file COPYING3.  If not see
         Since we only vectorize operations which vector form can be
    expressed using existing tree codes, to verify that an operation is
    supported, the vectorizer checks the relevant optab at the relevant
-   machine_mode (e.g, optab_handler (add_optab, V8HImode)->insn_code). If
+   machine_mode (e.g, optab_handler (add_optab, V8HImode)). If
    the value found is CODE_FOR_nothing, then there's no target support, and
    we can't vectorize the stmt.
 
@@ -754,6 +756,7 @@ new_loop_vec_info (struct loop *loop)
   LOOP_VINFO_REDUCTIONS (res) = VEC_alloc (gimple, heap, 10);
   LOOP_VINFO_SLP_INSTANCES (res) = VEC_alloc (slp_instance, heap, 10);
   LOOP_VINFO_SLP_UNROLLING_FACTOR (res) = 1;
+  LOOP_VINFO_PEELING_HTAB (res) = NULL;
 
   return res;
 }
@@ -843,6 +846,9 @@ destroy_loop_vec_info (loop_vec_info loop_vinfo, bool clean_stmts)
   VEC_free (slp_instance, heap, LOOP_VINFO_SLP_INSTANCES (loop_vinfo));
   VEC_free (gimple, heap, LOOP_VINFO_STRIDED_STORES (loop_vinfo));
   VEC_free (gimple, heap, LOOP_VINFO_REDUCTIONS (loop_vinfo));
+
+  if (LOOP_VINFO_PEELING_HTAB (loop_vinfo))
+    htab_delete (LOOP_VINFO_PEELING_HTAB (loop_vinfo));
 
   free (loop_vinfo);
   loop->aux = NULL;
@@ -1116,6 +1122,19 @@ vect_analyze_loop_form (struct loop *loop)
 }
 
 
+/* Get cost by calling cost target builtin.  */
+
+static inline 
+int vect_get_cost (enum vect_cost_for_stmt type_of_cost)
+{
+  tree dummy_type = NULL;
+  int dummy = 0;
+
+  return targetm.vectorize.builtin_vectorization_cost (type_of_cost,
+                                                       dummy_type, dummy);
+}
+
+ 
 /* Function vect_analyze_loop_operations.
 
    Scan the loop stmts and make sure they are all vectorizable.  */
@@ -1488,6 +1507,18 @@ vect_analyze_loop (struct loop *loop)
       return NULL;
     }
 
+  /* This pass will decide on using loop versioning and/or loop peeling in
+     order to enhance the alignment of data references in the loop.  */
+
+  ok = vect_enhance_data_refs_alignment (loop_vinfo);
+  if (!ok)
+    {
+      if (vect_print_dump_info (REPORT_DETAILS))
+        fprintf (vect_dump, "bad data alignment.");
+      destroy_loop_vec_info (loop_vinfo, true);
+      return NULL;
+    }
+
   /* Check the SLP opportunities in the loop, analyze and build SLP trees.  */
   ok = vect_analyze_slp (loop_vinfo, NULL);
   if (ok)
@@ -1497,18 +1528,6 @@ vect_analyze_loop (struct loop *loop)
 
       /* Find stmts that need to be both vectorized and SLPed.  */
       vect_detect_hybrid_slp (loop_vinfo);
-    }
-
-  /* This pass will decide on using loop versioning and/or loop peeling in
-     order to enhance the alignment of data references in the loop.  */
-
-  ok = vect_enhance_data_refs_alignment (loop_vinfo);
-  if (!ok)
-    {
-      if (vect_print_dump_info (REPORT_DETAILS))
-	fprintf (vect_dump, "bad data alignment.");
-      destroy_loop_vec_info (loop_vinfo, true);
-      return NULL;
     }
 
   /* Scan all the operations in the loop and make sure they are
@@ -1994,6 +2013,102 @@ vect_force_simple_reduction (loop_vec_info loop_info, gimple phi,
 				     double_reduc, true);
 }
 
+/* Calculate the cost of one scalar iteration of the loop.  */
+int
+vect_get_single_scalar_iteraion_cost (loop_vec_info loop_vinfo)
+{
+  struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
+  basic_block *bbs = LOOP_VINFO_BBS (loop_vinfo);
+  int nbbs = loop->num_nodes, factor, scalar_single_iter_cost = 0;
+  int innerloop_iters, i, stmt_cost;
+
+  /* Count statements in scalar loop. Using this as scalar cost for a single
+     iteration for now.
+
+     TODO: Add outer loop support.
+
+     TODO: Consider assigning different costs to different scalar
+     statements.  */
+
+  /* FORNOW.  */
+  if (loop->inner)
+    innerloop_iters = 50; /* FIXME */
+
+  for (i = 0; i < nbbs; i++)
+    {
+      gimple_stmt_iterator si;
+      basic_block bb = bbs[i];
+
+      if (bb->loop_father == loop->inner)
+        factor = innerloop_iters;
+      else
+        factor = 1;
+
+      for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
+        {
+          gimple stmt = gsi_stmt (si);
+          stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
+
+          if (!is_gimple_assign (stmt) && !is_gimple_call (stmt))
+            continue;
+
+          /* Skip stmts that are not vectorized inside the loop.  */
+          if (stmt_info
+              && !STMT_VINFO_RELEVANT_P (stmt_info)
+              && (!STMT_VINFO_LIVE_P (stmt_info)
+                  || STMT_VINFO_DEF_TYPE (stmt_info) != vect_reduction_def))
+            continue;
+
+          if (STMT_VINFO_DATA_REF (vinfo_for_stmt (stmt)))
+            {
+              if (DR_IS_READ (STMT_VINFO_DATA_REF (vinfo_for_stmt (stmt))))
+               stmt_cost = vect_get_cost (scalar_load);
+             else
+               stmt_cost = vect_get_cost (scalar_store);
+            }
+          else
+            stmt_cost = vect_get_cost (scalar_stmt);
+
+          scalar_single_iter_cost += stmt_cost * factor;
+        }
+    }
+  return scalar_single_iter_cost;
+}
+
+/* Calculate cost of peeling the loop PEEL_ITERS_PROLOGUE times.  */
+int
+vect_get_known_peeling_cost (loop_vec_info loop_vinfo, int peel_iters_prologue,
+                             int *peel_iters_epilogue,
+                             int scalar_single_iter_cost)
+{
+  int peel_guard_costs = 0;
+  int vf = LOOP_VINFO_VECT_FACTOR (loop_vinfo);
+
+  if (!LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo))
+    {
+      *peel_iters_epilogue = vf/2;
+      if (vect_print_dump_info (REPORT_COST))
+        fprintf (vect_dump, "cost model: "
+                            "epilogue peel iters set to vf/2 because "
+                            "loop iterations are unknown .");
+
+      /* If peeled iterations are known but number of scalar loop
+         iterations are unknown, count a taken branch per peeled loop.  */
+      peel_guard_costs =  2 * vect_get_cost (cond_branch_taken);
+    }
+  else
+    {
+      int niters = LOOP_VINFO_INT_NITERS (loop_vinfo);
+      peel_iters_prologue = niters < peel_iters_prologue ?
+                            niters : peel_iters_prologue;
+      *peel_iters_epilogue = (niters - peel_iters_prologue) % vf;
+    }
+
+   return (peel_iters_prologue * scalar_single_iter_cost)
+            + (*peel_iters_epilogue * scalar_single_iter_cost)
+           + peel_guard_costs;
+}
+
 /* Function vect_estimate_min_profitable_iters
 
    Return the number of iterations required for the vector version of the
@@ -2018,7 +2133,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
   basic_block *bbs = LOOP_VINFO_BBS (loop_vinfo);
   int nbbs = loop->num_nodes;
-  int byte_misalign = LOOP_PEELING_FOR_ALIGNMENT (loop_vinfo);
+  int npeel = LOOP_PEELING_FOR_ALIGNMENT (loop_vinfo);
   int peel_guard_costs = 0;
   int innerloop_iters = 0, factor;
   VEC (slp_instance, heap) *slp_instances;
@@ -2056,7 +2171,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
 
   if (LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT (loop_vinfo)
       || LOOP_REQUIRES_VERSIONING_FOR_ALIAS (loop_vinfo))
-    vec_outside_cost += TARG_COND_TAKEN_BRANCH_COST;
+    vec_outside_cost += vect_get_cost (cond_branch_taken); 
 
   /* Count statements in scalar loop.  Using this as scalar cost for a single
      iteration for now.
@@ -2089,13 +2204,14 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
 	      && (!STMT_VINFO_LIVE_P (stmt_info)
 		  || STMT_VINFO_DEF_TYPE (stmt_info) != vect_reduction_def))
 	    continue;
-	  scalar_single_iter_cost += cost_for_stmt (stmt) * factor;
 	  vec_inside_cost += STMT_VINFO_INSIDE_OF_LOOP_COST (stmt_info) * factor;
 	  /* FIXME: for stmts in the inner-loop in outer-loop vectorization,
 	     some of the "outside" costs are generated inside the outer-loop.  */
 	  vec_outside_cost += STMT_VINFO_OUTSIDE_OF_LOOP_COST (stmt_info);
 	}
     }
+
+  scalar_single_iter_cost = vect_get_single_scalar_iteraion_cost (loop_vinfo);
 
   /* Add additional cost for the peeled instructions in prologue and epilogue
      loop.
@@ -2106,7 +2222,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
      TODO: Build an expression that represents peel_iters for prologue and
      epilogue to be used in a run-time test.  */
 
-  if (byte_misalign < 0)
+  if (npeel  < 0)
     {
       peel_iters_prologue = vf/2;
       if (vect_print_dump_info (REPORT_COST))
@@ -2125,48 +2241,19 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
          branch per peeled loop. Even if scalar loop iterations are known,
          vector iterations are not known since peeled prologue iterations are
          not known. Hence guards remain the same.  */
-      peel_guard_costs +=  2 * (TARG_COND_TAKEN_BRANCH_COST
-                              + TARG_COND_NOT_TAKEN_BRANCH_COST);
+      peel_guard_costs +=  2 * (vect_get_cost (cond_branch_taken)
+                                + vect_get_cost (cond_branch_not_taken));
+      vec_outside_cost += (peel_iters_prologue * scalar_single_iter_cost)
+                           + (peel_iters_epilogue * scalar_single_iter_cost)
+                           + peel_guard_costs;
     }
   else
     {
-      if (byte_misalign)
-	{
-	  struct data_reference *dr = LOOP_VINFO_UNALIGNED_DR (loop_vinfo);
-	  int element_size = GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (DR_REF (dr))));
-	  tree vectype = STMT_VINFO_VECTYPE (vinfo_for_stmt (DR_STMT (dr)));
-	  int nelements = TYPE_VECTOR_SUBPARTS (vectype);
-
-	  peel_iters_prologue = nelements - (byte_misalign / element_size);
-	}
-      else
-	peel_iters_prologue = 0;
-
-      if (!LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo))
-        {
-          peel_iters_epilogue = vf/2;
-          if (vect_print_dump_info (REPORT_COST))
-            fprintf (vect_dump, "cost model: "
-                     "epilogue peel iters set to vf/2 because "
-                     "loop iterations are unknown .");
-
-	  /* If peeled iterations are known but number of scalar loop
-	     iterations are unknown, count a taken branch per peeled loop.  */
-	  peel_guard_costs +=  2 * TARG_COND_TAKEN_BRANCH_COST;
-
-        }
-      else
-	{
-	  int niters = LOOP_VINFO_INT_NITERS (loop_vinfo);
-	  peel_iters_prologue = niters < peel_iters_prologue ?
-					niters : peel_iters_prologue;
-	  peel_iters_epilogue = (niters - peel_iters_prologue) % vf;
-	}
+      peel_iters_prologue = npeel;
+      vec_outside_cost += vect_get_known_peeling_cost (loop_vinfo,
+                                    peel_iters_prologue, &peel_iters_epilogue,
+                                    scalar_single_iter_cost);
     }
-
-  vec_outside_cost += (peel_iters_prologue * scalar_single_iter_cost)
-                      + (peel_iters_epilogue * scalar_single_iter_cost)
-                      + peel_guard_costs;
 
   /* FORNOW: The scalar outside cost is incremented in one of the
      following ways:
@@ -2228,16 +2315,16 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
       /* Cost model check occurs at versioning.  */
       if (LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT (loop_vinfo)
           || LOOP_REQUIRES_VERSIONING_FOR_ALIAS (loop_vinfo))
-	scalar_outside_cost += TARG_COND_NOT_TAKEN_BRANCH_COST;
+	scalar_outside_cost += vect_get_cost (cond_branch_not_taken);
       else
 	{
 	  /* Cost model check occurs at prologue generation.  */
 	  if (LOOP_PEELING_FOR_ALIGNMENT (loop_vinfo) < 0)
-	    scalar_outside_cost += 2 * TARG_COND_TAKEN_BRANCH_COST
-	      + TARG_COND_NOT_TAKEN_BRANCH_COST;
+	    scalar_outside_cost += 2 * vect_get_cost (cond_branch_taken)
+                                   + vect_get_cost (cond_branch_not_taken); 
 	  /* Cost model check occurs at epilogue generation.  */
 	  else
-	    scalar_outside_cost += 2 * TARG_COND_TAKEN_BRANCH_COST;
+	    scalar_outside_cost += 2 * vect_get_cost (cond_branch_taken); 
 	}
     }
 
@@ -2347,7 +2434,8 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
 
 
   /* Cost of reduction op inside loop.  */
-  STMT_VINFO_INSIDE_OF_LOOP_COST (stmt_info) += ncopies * TARG_VEC_STMT_COST;
+  STMT_VINFO_INSIDE_OF_LOOP_COST (stmt_info) 
+    += ncopies * vect_get_cost (vector_stmt);
 
   stmt = STMT_VINFO_STMT (stmt_info);
 
@@ -2387,7 +2475,7 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
   code = gimple_assign_rhs_code (orig_stmt);
 
   /* Add in cost for initial definition.  */
-  outer_cost += TARG_SCALAR_TO_VEC_COST;
+  outer_cost += vect_get_cost (scalar_to_vec);
 
   /* Determine cost of epilogue code.
 
@@ -2397,7 +2485,8 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
   if (!nested_in_vect_loop_p (loop, orig_stmt))
     {
       if (reduc_code != ERROR_MARK)
-	outer_cost += TARG_VEC_STMT_COST + TARG_VEC_TO_SCALAR_COST;
+	outer_cost += vect_get_cost (vector_stmt) 
+                      + vect_get_cost (vec_to_scalar); 
       else
 	{
 	  int vec_size_in_bits = tree_low_cst (TYPE_SIZE (vectype), 1);
@@ -2410,16 +2499,18 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
 
 	  /* We have a whole vector shift available.  */
 	  if (VECTOR_MODE_P (mode)
-	      && optab_handler (optab, mode)->insn_code != CODE_FOR_nothing
-	      && optab_handler (vec_shr_optab, mode)->insn_code != CODE_FOR_nothing)
+	      && optab_handler (optab, mode) != CODE_FOR_nothing
+	      && optab_handler (vec_shr_optab, mode) != CODE_FOR_nothing)
 	    /* Final reduction via vector shifts and the reduction operator. Also
 	       requires scalar extract.  */
-	    outer_cost += ((exact_log2(nelements) * 2) * TARG_VEC_STMT_COST
-				+ TARG_VEC_TO_SCALAR_COST);
+	    outer_cost += ((exact_log2(nelements) * 2) 
+              * vect_get_cost (vector_stmt) 
+  	      + vect_get_cost (vec_to_scalar));
 	  else
 	    /* Use extracts and reduction op for final reduction.  For N elements,
                we have N extracts and N-1 reduction ops.  */
-	    outer_cost += ((nelements + nelements - 1) * TARG_VEC_STMT_COST);
+	    outer_cost += ((nelements + nelements - 1) 
+              * vect_get_cost (vector_stmt));
 	}
     }
 
@@ -2442,9 +2533,11 @@ static void
 vect_model_induction_cost (stmt_vec_info stmt_info, int ncopies)
 {
   /* loop cost for vec_loop.  */
-  STMT_VINFO_INSIDE_OF_LOOP_COST (stmt_info) = ncopies * TARG_VEC_STMT_COST;
+  STMT_VINFO_INSIDE_OF_LOOP_COST (stmt_info) 
+    = ncopies * vect_get_cost (vector_stmt);
   /* prologue cost for vec_init and vec_step.  */
-  STMT_VINFO_OUTSIDE_OF_LOOP_COST (stmt_info) = 2 * TARG_SCALAR_TO_VEC_COST;
+  STMT_VINFO_OUTSIDE_OF_LOOP_COST (stmt_info)  
+    = 2 * vect_get_cost (scalar_to_vec);
 
   if (vect_print_dump_info (REPORT_COST))
     fprintf (vect_dump, "vect_model_induction_cost: inside_cost = %d, "
@@ -2856,11 +2949,14 @@ get_initial_def_for_reduction (gimple stmt, tree init_val,
               *adjustment_def = init_val;
           }
 
-        if (code == MULT_EXPR || code == BIT_AND_EXPR)
+        if (code == MULT_EXPR)
           {
             real_init_val = dconst1;
             int_init_val = 1;
           }
+
+        if (code == BIT_AND_EXPR)
+          int_init_val = -1;
 
         if (SCALAR_FLOAT_TYPE_P (scalar_type))
           def_for_init = build_real (scalar_type, real_init_val);
@@ -3246,7 +3342,7 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
       int vec_size_in_bits = tree_low_cst (TYPE_SIZE (vectype), 1);
       tree vec_temp;
 
-      if (optab_handler (vec_shr_optab, mode)->insn_code != CODE_FOR_nothing)
+      if (optab_handler (vec_shr_optab, mode) != CODE_FOR_nothing)
         shift_code = VEC_RSHIFT_EXPR;
       else
         have_whole_vector_shift = false;
@@ -3262,7 +3358,7 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
       else
         {
           optab optab = optab_for_tree_code (code, vectype, optab_default);
-          if (optab_handler (optab, mode)->insn_code == CODE_FOR_nothing)
+          if (optab_handler (optab, mode) == CODE_FOR_nothing)
             have_whole_vector_shift = false;
         }
 
@@ -3921,7 +4017,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
           return false;
         }
 
-      if (optab_handler (optab, vec_mode)->insn_code == CODE_FOR_nothing)
+      if (optab_handler (optab, vec_mode) == CODE_FOR_nothing)
         {
           if (vect_print_dump_info (REPORT_DETAILS))
             fprintf (vect_dump, "op not supported by target.");
@@ -3969,11 +4065,12 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
           2. The type (mode) we use to check available target support
              for the vector operation to be created in the *epilog*, is
              determined by the type of the reduction variable (in the example
-             above we'd check this: plus_optab[vect_int_mode]).
+             above we'd check this: optab_handler (plus_optab, vect_int_mode])).
              However the type (mode) we use to check available target support
              for the vector operation to be created *inside the loop*, is
              determined by the type of the other arguments to STMT (in the
-             example we'd check this: widen_sum_optab[vect_short_mode]).
+             example we'd check this: optab_handler (widen_sum_optab,
+	     vect_short_mode)).
 
           This is contrary to "regular" reductions, in which the types of all
           the arguments are the same as the type of the reduction variable.
@@ -4026,8 +4123,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
         }
 
       if (reduc_optab
-          && optab_handler (reduc_optab, vec_mode)->insn_code
-              == CODE_FOR_nothing)
+          && optab_handler (reduc_optab, vec_mode) == CODE_FOR_nothing)
         {
           if (vect_print_dump_info (REPORT_DETAILS))
             fprintf (vect_dump, "reduc op not supported by target.");

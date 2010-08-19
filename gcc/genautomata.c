@@ -3314,15 +3314,18 @@ finish_alt_states (void)
 /* Set bit number bitno in the bit string.  The macro is not side
    effect proof.  */
 #define SET_BIT(bitstring, bitno)					  \
-  (((char *) (bitstring)) [(bitno) / CHAR_BIT] |= 1 << (bitno) % CHAR_BIT)
+  ((bitstring)[(bitno) / (sizeof (*(bitstring)) * CHAR_BIT)] |=		  \
+	(HOST_WIDE_INT)1 << (bitno) % (sizeof (*(bitstring)) * CHAR_BIT))
 
 #define CLEAR_BIT(bitstring, bitno)					  \
-  (((char *) (bitstring)) [(bitno) / CHAR_BIT] &= ~(1 << (bitno) % CHAR_BIT))
+  ((bitstring)[(bitno) / (sizeof (*(bitstring)) * CHAR_BIT)] &=		  \
+	~((HOST_WIDE_INT)1 << (bitno) % (sizeof (*(bitstring)) * CHAR_BIT)))
 
 /* Test if bit number bitno in the bitstring is set.  The macro is not
    side effect proof.  */
-#define TEST_BIT(bitstring, bitno)                                        \
-  (((char *) (bitstring)) [(bitno) / CHAR_BIT] >> (bitno) % CHAR_BIT & 1)
+#define TEST_BIT(bitstring, bitno)					  \
+  ((bitstring)[(bitno) / (sizeof (*(bitstring)) * CHAR_BIT)] >>		  \
+	(bitno) % (sizeof (*(bitstring)) * CHAR_BIT) & 1)
 
 
 
@@ -7851,12 +7854,15 @@ output_automata_list_min_issue_delay_code (automata_list_el_t automata_list)
 	{
 	  fprintf (output_file, ") / %d];\n",
 		   automaton->min_issue_delay_table_compression_factor);
-	  fprintf (output_file, "      %s = (%s >> (8 - (",
+	  fprintf (output_file, "      %s = (%s >> (8 - ((",
 		   TEMPORARY_VARIABLE_NAME, TEMPORARY_VARIABLE_NAME);
 	  output_translate_vect_name (output_file, automaton);
+	  fprintf (output_file, " [%s] + ", INTERNAL_INSN_CODE_NAME);
+	  fprintf (output_file, "%s->", CHIP_PARAMETER_NAME);
+	  output_chip_member_name (output_file, automaton);
+	  fprintf (output_file, " * %d)", automaton->insn_equiv_classes_num);
 	  fprintf
-	    (output_file, " [%s] %% %d + 1) * %d)) & %d;\n",
-	     INTERNAL_INSN_CODE_NAME,
+	    (output_file, " %% %d + 1) * %d)) & %d;\n",
 	     automaton->min_issue_delay_table_compression_factor,
 	     8 / automaton->min_issue_delay_table_compression_factor,
 	     (1 << (8 / automaton->min_issue_delay_table_compression_factor))
@@ -9464,7 +9470,7 @@ main (int argc, char **argv)
 
   progname = "genautomata";
 
-  if (init_md_reader_args (argc, argv) != SUCCESS_EXIT_CODE)
+  if (!init_rtx_reader_args (argc, argv))
     return (FATAL_EXIT_CODE);
 
   initiate_automaton_gen (argc, argv);
@@ -9553,7 +9559,7 @@ main (int argc, char **argv)
 		"#include \"regs.h\"\n"
 		"#include \"output.h\"\n"
 		"#include \"insn-attr.h\"\n"
-		"#include \"toplev.h\"\n"
+                "#include \"diagnostic-core.h\"\n"
 		"#include \"flags.h\"\n"
 		"#include \"function.h\"\n"
 		"#include \"emit-rtl.h\"\n");

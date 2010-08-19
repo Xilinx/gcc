@@ -21,6 +21,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "lto.h"
 #include "tm.h"
@@ -770,12 +771,14 @@ coff_write_object_file (lto_coff_file *coff_file)
       if (!write_err)
 	write_err = (write (coff_file->fd, outlen, 4) != 4);
       if (stringsec)
-	COFF_FOR_ALL_DATA(stringsec, data)
-	  if (!write_err)
-	write_err = (write (coff_file->fd, data->d_buf, data->d_size)
-			!= data->d_size);
-	else
-	  break;
+	{
+	  COFF_FOR_ALL_DATA(stringsec, data)
+	    if (!write_err)
+	      write_err = (write (coff_file->fd, data->d_buf, data->d_size)
+			   != data->d_size);
+	    else
+	      break;
+	}
     }
 
   return write_err;

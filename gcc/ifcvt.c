@@ -35,6 +35,7 @@
 #include "expr.h"
 #include "output.h"
 #include "optabs.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "tm_p.h"
 #include "cfgloop.h"
@@ -3156,7 +3157,7 @@ find_if_header (basic_block test_bb, int pass)
     goto success;
 
   if (HAVE_trap
-      && optab_handler (ctrap_optab, word_mode)->insn_code != CODE_FOR_nothing
+      && optab_handler (ctrap_optab, word_mode) != CODE_FOR_nothing
       && find_cond_trap (test_bb, then_edge, else_edge))
     goto success;
 

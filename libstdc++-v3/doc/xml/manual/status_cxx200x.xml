@@ -2007,10 +2007,11 @@ particular release.
       <entry></entry>
     </row>
     <row>
+      <?dbhtml bgcolor="#B0B0B0" ?>
       <entry>27.5</entry>
       <entry>Iostreams base classes</entry>
-      <entry>Y</entry>
-      <entry></entry>
+      <entry>Partial</entry>
+      <entry>Missing move and swap operations</entry>
     </row>
     <row>
       <entry>27.6</entry>
@@ -2019,22 +2020,25 @@ particular release.
       <entry></entry>
     </row>
     <row>
+      <?dbhtml bgcolor="#B0B0B0" ?>
       <entry>27.7</entry>
       <entry>Formatting and manipulators</entry>
-      <entry>Y</entry>
-      <entry></entry>
+      <entry>Partial</entry>
+      <entry>Missing move and swap operations</entry>
     </row>
     <row>
+      <?dbhtml bgcolor="#B0B0B0" ?>
       <entry>27.8</entry>
       <entry>String-based streams</entry>
-      <entry>Y</entry>
-      <entry></entry>
+      <entry>Partial</entry>
+      <entry>Missing move and swap operations</entry>
     </row>
     <row>
+      <?dbhtml bgcolor="#B0B0B0" ?>
       <entry>27.9</entry>
       <entry>File-based streams</entry>
-      <entry>Y</entry>
-      <entry></entry>
+      <entry>Partial</entry>
+      <entry>Missing move and swap operations</entry>
     </row>
     <row>
       <entry>
@@ -2264,7 +2268,7 @@ particular release.
       <entry>30.4.1.1</entry>
       <entry>Class <code>mutex</code></entry>
       <entry>Y</entry>
-      <entry></entry>
+      <entry>Missing constexpr</entry>
     </row>
     <row>
       <entry>30.4.1.2</entry>
@@ -2333,10 +2337,11 @@ particular release.
       <entry></entry>
     </row>
     <row>
+      <?dbhtml bgcolor="#B0B0B0" ?>
       <entry>30.5</entry>
       <entry>Condition variables</entry>
-      <entry></entry>
-      <entry></entry>
+      <entry>Partial</entry>
+      <entry>Missing notify_all_at_thread_exit</entry>
     </row>
     <row>
       <entry>30.5.1</entry>
@@ -2385,19 +2390,21 @@ particular release.
       <entry>30.6.5</entry>
       <entry>Class template <code>promise</code></entry>
       <entry>Partial</entry>
-      <entry>Missing <code>allocator_arg_t</code></entry>
+      <entry>Missing <code>allocator_arg_t</code> and set_*_at_thread_exit</entry>
     </row>
     <row>
+      <?dbhtml bgcolor="#B0B0B0" ?>
       <entry>30.6.6</entry>
       <entry>Class template <code>future</code></entry>
-      <entry>Y</entry>
-      <entry></entry>
+      <entry>Partial</entry>
+      <entry>Missing future_status</entry>
     </row>
     <row>
+      <?dbhtml bgcolor="#B0B0B0" ?>
       <entry>30.6.7</entry>
       <entry>Class template <code>shared_future</code></entry>
-      <entry>Y</entry>
-      <entry></entry>
+      <entry>Partial</entry>
+      <entry>Missing future_status</entry>
     </row>
     <row>
       <?dbhtml bgcolor="#C8B0B0" ?>
@@ -2417,7 +2424,7 @@ particular release.
       <entry>30.6.10</entry>
       <entry>Class template <code>packaged_task</code></entry>
       <entry>Partial</entry>
-      <entry>Missing <code>allocator_arg_t</code></entry>
+      <entry>Missing <code>allocator_arg_t</code> and make_ready_at_thread_exit</entry>
     </row>
     <row>
       <entry>

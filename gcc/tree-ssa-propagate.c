@@ -639,7 +639,7 @@ valid_gimple_rhs_p (tree expr)
    as a single GIMPLE_CALL statement.  If the arguments require
    further gimplification, return false.  */
 
-bool
+static bool
 valid_gimple_call_p (tree expr)
 {
   unsigned i, nargs;
@@ -649,8 +649,17 @@ valid_gimple_call_p (tree expr)
 
   nargs = call_expr_nargs (expr);
   for (i = 0; i < nargs; i++)
-    if (! is_gimple_operand (CALL_EXPR_ARG (expr, i)))
-      return false;
+    {
+      tree arg = CALL_EXPR_ARG (expr, i);
+      if (is_gimple_reg_type (arg))
+	{
+	  if (!is_gimple_val (arg))
+	    return false;
+	}
+      else
+	if (!is_gimple_lvalue (arg))
+	  return false;
+    }
 
   return true;
 }
@@ -964,10 +973,13 @@ replace_phi_args_in (gimple phi, prop_value_t *prop_value)
    If FOLD_FN is non-NULL the function will be invoked on all statements
    before propagating values for pass specific simplification.
 
+   DO_DCE is true if trivially dead stmts can be removed.
+
    Return TRUE when something changed.  */
 
 bool
-substitute_and_fold (prop_value_t *prop_value, ssa_prop_fold_stmt_fn fold_fn)
+substitute_and_fold (prop_value_t *prop_value, ssa_prop_fold_stmt_fn fold_fn,
+		     bool do_dce)
 {
   basic_block bb;
   bool something_changed = false;
@@ -1012,8 +1024,12 @@ substitute_and_fold (prop_value_t *prop_value, ssa_prop_fold_stmt_fn fold_fn)
 	    continue;
 
 	  /* No point propagating into a stmt whose result is not used,
-	     but instead we might be able to remove a trivially dead stmt.  */
-	  if (gimple_get_lhs (stmt)
+	     but instead we might be able to remove a trivially dead stmt.
+	     Don't do this when called from VRP, since the SSA_NAME which
+	     is going to be released could be still referenced in VRP
+	     ranges.  */
+	  if (do_dce
+	      && gimple_get_lhs (stmt)
 	      && TREE_CODE (gimple_get_lhs (stmt)) == SSA_NAME
 	      && has_zero_uses (gimple_get_lhs (stmt))
 	      && !stmt_could_throw_p (stmt)

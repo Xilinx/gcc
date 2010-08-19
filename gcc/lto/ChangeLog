@@ -1,3 +1,53 @@
+2010-07-08  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* lto-coff.c: Include diagnostic-core.h in every file that
+	includes toplev.h.
+	* lto-elf.c: Likewise.
+	* lto-lang.c: Likewise.
+	* lto-macho.c: Likewise.
+
+2010-07-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* lto-elf.c (ELFOSABI_NONE, ELFOSABI_LINUX): Define if not defined.
+	(validate_file): Allow merging of ELFOSABI_NONE with ELFOSABI_LINUX
+	objects.
+
+2010-07-05  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (add_cgraph_node_to_partition): Forward declare; walk also
+	nodes from same comdat group as well as all comdat functions referenced
+	here.
+	(add_varpool_node_to_partition, add_references_to_partition): New function.
+	(lto_1_1_map): Skip COMDAT fnctions/variables; use add_varpool_node_to_partition;
+	clear aux flags when done.
+	(lto_promote_cross_file_statics): Do not promote stuff that gets duplicated to
+	each ltrans.
+
+2010-07-04  Jan Hubicka  <jh@suse.cz>
+
+        * lto.c (read_cgraph_and_symbols): Dump cgraph before merging.
+
+2010-06-13  Richard Guenther  <rguenther@suse.de>
+
+	* lto.c (lto_fixup_type): Do not register or fixup TYPE_CANONICAL.
+
+2010-06-09  Kai Tietz  <kai.tietz@onevision.com>
+
+	* lto.c (lto_resolution_read):  Pre-initialize local variable r.
+	* lto-coff.c (coff_write_object_file): Add braces to if.
+
+2010-06-08  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* lto.c (lto_read_in_decl_state): Use typed GC allocation.
+	(lto_file_read): Likewise.
+	(new_partition): Likewise.
+	(read_cgraph_and_symbols): Likewise.
+
+2010-06-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* lto-lang.c (flag_no_builtin, flag_no_nonansi_builtin): Remove.
+	(lto_handle_option): Don't set flag_signed_char here.
+
 2010-06-04  Richard Guenther  <rguenther@suse.de>
 
 	PR lto/41584

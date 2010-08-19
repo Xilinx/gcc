@@ -19,10 +19,6 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-/* FIXME: Still need to include rtl.h here (via expr.h) in a front-end file.
-   Pretend this is a back-end file.  */
-#undef IN_GCC_FRONTEND
-
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -49,8 +45,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "target-def.h"
 #include "libfuncs.h"
-
-#include "expr.h" /* For vector_mode_valid_p */
 
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
@@ -169,10 +163,6 @@ tree c_global_trees[CTI_MAX];
 
 /* Switches common to the C front ends.  */
 
-/* Nonzero if preprocessing only.  */
-
-int flag_preprocess_only;
-
 /* Nonzero means don't output line number information.  */
 
 char flag_no_line_commands;
@@ -203,42 +193,6 @@ const char *pch_file;
    user's namespace.  */
 int flag_iso;
 
-/* Nonzero if -undef was given.  It suppresses target built-in macros
-   and assertions.  */
-int flag_undef;
-
-/* Nonzero means don't recognize the non-ANSI builtin functions.  */
-
-int flag_no_builtin;
-
-/* Nonzero means don't recognize the non-ANSI builtin functions.
-   -ansi sets this.  */
-
-int flag_no_nonansi_builtin;
-
-/* Nonzero means give `double' the same size as `float'.  */
-
-int flag_short_double;
-
-/* Nonzero means give `wchar_t' the same size as `short'.  */
-
-int flag_short_wchar;
-
-/* Nonzero means allow implicit conversions between vectors with
-   differing numbers of subparts and/or differing element types.  */
-int flag_lax_vector_conversions;
-
-/* Nonzero means allow Microsoft extensions without warnings or errors.  */
-int flag_ms_extensions;
-
-/* Nonzero means don't recognize the keyword `asm'.  */
-
-int flag_no_asm;
-
-/* Nonzero means to treat bitfields as signed unless they say `unsigned'.  */
-
-int flag_signed_bitfields = 1;
-
 /* Warn about #pragma directives that are not recognized.  */
 
 int warn_unknown_pragmas; /* Tri state variable.  */
@@ -247,27 +201,6 @@ int warn_unknown_pragmas; /* Tri state variable.  */
    (*printf, *scanf, strftime, strfmon, etc.).  */
 
 int warn_format;
-
-/* Warn about using __null (as NULL in C++) as sentinel.  For code compiled
-   with GCC this doesn't matter as __null is guaranteed to have the right
-   size.  */
-
-int warn_strict_null_sentinel;
-
-/* Zero means that faster, ...NonNil variants of objc_msgSend...
-   calls will be used in ObjC; passing nil receivers to such calls
-   will most likely result in crashes.  */
-int flag_nil_receivers = 1;
-
-/* Nonzero means that code generation will be altered to support
-   "zero-link" execution.  This currently affects ObjC only, but may
-   affect other languages in the future.  */
-int flag_zero_link = 0;
-
-/* Nonzero means emit an '__OBJC, __image_info' for the current translation
-   unit.  It will inform the ObjC runtime that class definition(s) herein
-   contained are to replace one(s) previously loaded.  */
-int flag_replace_objc_classes = 0;
 
 /* C/ObjC language option variables.  */
 
@@ -297,11 +230,6 @@ int flag_hosted = 1;
 /* ObjC language option variables.  */
 
 
-/* Open and close the file for outputting class declarations, if
-   requested (ObjC).  */
-
-int flag_gen_declaration;
-
 /* Tells the compiler that this is a special run.  Do not perform any
    compiling, instead we are to test some platform dependent features
    and output a C header file with appropriate definitions.  */
@@ -316,118 +244,14 @@ const char *constant_string_class_name;
 /* C++ language option variables.  */
 
 
-/* Nonzero means don't recognize any extension keywords.  */
-
-int flag_no_gnu_keywords;
-
-/* Nonzero means do emit exported implementations of functions even if
-   they can be inlined.  */
-
-int flag_implement_inlines = 1;
-
-/* Nonzero means that implicit instantiations will be emitted if needed.  */
-
-int flag_implicit_templates = 1;
-
-/* Nonzero means that implicit instantiations of inline templates will be
-   emitted if needed, even if instantiations of non-inline templates
-   aren't.  */
-
-int flag_implicit_inline_templates = 1;
-
 /* Nonzero means generate separate instantiation control files and
    juggle them at link time.  */
 
 int flag_use_repository;
 
-/* Nonzero if we want to issue diagnostics that the standard says are not
-   required.  */
-
-int flag_optional_diags = 1;
-
-/* Nonzero means we should attempt to elide constructors when possible.  */
-
-int flag_elide_constructors = 1;
-
-/* Nonzero means that member functions defined in class scope are
-   inline by default.  */
-
-int flag_default_inline = 1;
-
-/* Controls whether compiler generates 'type descriptor' that give
-   run-time type information.  */
-
-int flag_rtti = 1;
-
-/* Nonzero if we want to conserve space in the .o files.  We do this
-   by putting uninitialized data and runtime initialized data into
-   .common instead of .data at the expense of not flagging multiple
-   definitions.  */
-
-int flag_conserve_space;
-
-/* Nonzero if we want to obey access control semantics.  */
-
-int flag_access_control = 1;
-
-/* Nonzero if we want to check the return value of new and avoid calling
-   constructors if it is a null pointer.  */
-
-int flag_check_new;
-
 /* The C++ dialect being used. C++98 is the default.  */
 
 enum cxx_dialect cxx_dialect = cxx98;
-
-/* Nonzero if we want the new ISO rules for pushing a new scope for `for'
-   initialization variables.
-   0: Old rules, set by -fno-for-scope.
-   2: New ISO rules, set by -ffor-scope.
-   1: Try to implement new ISO rules, but with backup compatibility
-   (and warnings).  This is the default, for now.  */
-
-int flag_new_for_scope = 1;
-
-/* Nonzero if we want to emit defined symbols with common-like linkage as
-   weak symbols where possible, in order to conform to C++ semantics.
-   Otherwise, emit them as local symbols.  */
-
-int flag_weak = 1;
-
-/* 0 means we want the preprocessor to not emit line directives for
-   the current working directory.  1 means we want it to do it.  -1
-   means we should decide depending on whether debugging information
-   is being emitted or not.  */
-
-int flag_working_directory = -1;
-
-/* Nonzero to use __cxa_atexit, rather than atexit, to register
-   destructors for local statics and global objects.  '2' means it has been
-   set nonzero as a default, not by a command-line flag.  */
-
-int flag_use_cxa_atexit = DEFAULT_USE_CXA_ATEXIT;
-
-/* Nonzero to use __cxa_get_exception_ptr in C++ exception-handling
-   code.  '2' means it has not been set explicitly on the command line.  */
-
-int flag_use_cxa_get_exception_ptr = 2;
-
-/* Nonzero means to implement standard semantics for exception
-   specifications, calling unexpected if an exception is thrown that
-   doesn't match the specification.  Zero means to treat them as
-   assertions and optimize accordingly, but not check them.  */
-
-int flag_enforce_eh_specs = 1;
-
-/* Nonzero means to generate thread-safe code for initializing local
-   statics.  */
-
-int flag_threadsafe_statics = 1;
-
-/* Nonzero if we want to pretty-print template specializations as the
-   template signature followed by the arguments.  */
-
-int flag_pretty_templates = 1;
 
 /* Maximum template instantiation depth.  This limit exists to limit the
    time it takes to notice infinite template instantiations; the default
@@ -2008,6 +1832,8 @@ conversion_warning (tree type, tree expr)
   int i;
   const int expr_num_operands = TREE_OPERAND_LENGTH (expr);
   tree expr_type = TREE_TYPE (expr);
+  location_t loc = EXPR_HAS_LOCATION (expr)
+    ? EXPR_LOCATION (expr) : input_location;
 
   if (!warn_conversion && !warn_sign_conversion)
     return;
@@ -2039,8 +1865,8 @@ conversion_warning (tree type, tree expr)
 	 can hold the values 0 and -1) doesn't lose information - but
 	 it does change the value.  */
       if (TYPE_PRECISION (type) == 1 && !TYPE_UNSIGNED (type))
-	warning (OPT_Wconversion,
-                 "conversion to %qT from boolean expression", type);
+	warning_at (loc, OPT_Wconversion,
+		    "conversion to %qT from boolean expression", type);
       return;
 
     case REAL_CST:
@@ -2061,11 +1887,11 @@ conversion_warning (tree type, tree expr)
         {
           if (TYPE_UNSIGNED (type) && !TYPE_UNSIGNED (expr_type)
 	      && tree_int_cst_sgn (expr) < 0)
-	    warning (OPT_Wsign_conversion,
-		     "negative integer implicitly converted to unsigned type");
+	    warning_at (loc, OPT_Wsign_conversion, "negative integer"
+			" implicitly converted to unsigned type");
           else if (!TYPE_UNSIGNED (type) && TYPE_UNSIGNED (expr_type))
-	    warning (OPT_Wsign_conversion,  "conversion of unsigned constant "
-		     "value to negative integer");
+	    warning_at (loc, OPT_Wsign_conversion, "conversion of unsigned"
+			" constant value to negative integer");
 	  else
 	    give_warning = true;
         }
@@ -2090,9 +1916,9 @@ conversion_warning (tree type, tree expr)
         }
 
       if (give_warning)
-        warning (OPT_Wconversion,
-                 "conversion to %qT alters %qT constant value",
-                 type, expr_type);
+        warning_at (loc, OPT_Wconversion,
+		    "conversion to %qT alters %qT constant value",
+		    type, expr_type);
 
       return;
 
@@ -2183,9 +2009,9 @@ conversion_warning (tree type, tree expr)
 		      unsigned but expr is signed, then negative values
 		      will be changed.  */
 		   || (TYPE_UNSIGNED (type) && !TYPE_UNSIGNED (expr_type)))
-	    warning (OPT_Wsign_conversion, "conversion to %qT from %qT "
-		     "may change the sign of the result",
-		     type, expr_type);
+	    warning_at (loc, OPT_Wsign_conversion, "conversion to %qT from %qT "
+			"may change the sign of the result",
+			type, expr_type);
         }
 
       /* Warn for integer types converted to real types if and only if
@@ -2219,9 +2045,9 @@ conversion_warning (tree type, tree expr)
 
 
       if (give_warning)
-        warning (OPT_Wconversion,
-                 "conversion to %qT from %qT may alter its value",
-                 type, expr_type);
+        warning_at (loc, OPT_Wconversion,
+		    "conversion to %qT from %qT may alter its value",
+		    type, expr_type);
     }
 }
 
@@ -3529,9 +3355,8 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
 	  /* Convert primop1 to target type, but do not introduce
 	     additional overflow.  We know primop1 is an int_cst.  */
 	  primop1 = force_fit_type_double (*restype_ptr,
-					   TREE_INT_CST_LOW (primop1),
-					   TREE_INT_CST_HIGH (primop1), 0,
-					   TREE_OVERFLOW (primop1));
+					   tree_to_double_int (primop1),
+					   0, TREE_OVERFLOW (primop1));
 	}
       if (type != *restype_ptr)
 	{
@@ -3993,23 +3818,7 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 			inner);
 	    return truthvalue_true_node;
 	  }
-
-	/* If we still have a decl, it is possible for its address to
-	   be NULL, so we cannot optimize.  */
-	if (DECL_P (inner))
-	  {
-	    gcc_assert (DECL_WEAK (inner));
-	    break;
-	  }
-
-	if (TREE_SIDE_EFFECTS (inner))
-	  {
-	    expr = build2 (COMPOUND_EXPR, truthvalue_type_node,
-			   inner, truthvalue_true_node);
-	    goto ret;
-	  }
-	else
-	  return truthvalue_true_node;
+	break;
       }
 
     case COMPLEX_EXPR:
@@ -5091,13 +4900,13 @@ c_common_nodes_and_builtins (void)
     (build_decl (UNKNOWN_LOCATION,
 		 TYPE_DECL, get_identifier ("__builtin_va_list"),
 		 va_list_type_node));
-  if (targetm.enum_va_list)
+  if (targetm.enum_va_list_p)
     {
       int l;
       const char *pname;
       tree ptype;
 
-      for (l = 0; targetm.enum_va_list (l, &pname, &ptype); ++l)
+      for (l = 0; targetm.enum_va_list_p (l, &pname, &ptype); ++l)
 	{
 	  lang_hooks.decls.pushdecl
 	    (build_decl (UNKNOWN_LOCATION,
@@ -6433,6 +6242,40 @@ handle_destructor_attribute (tree *node, tree name, tree args,
 
   return NULL_TREE;
 }
+
+/* Nonzero if the mode is a valid vector mode for this architecture.
+   This returns nonzero even if there is no hardware support for the
+   vector mode, but we can emulate with narrower modes.  */
+
+static int
+vector_mode_valid_p (enum machine_mode mode)
+{
+  enum mode_class mclass = GET_MODE_CLASS (mode);
+  enum machine_mode innermode;
+
+  /* Doh!  What's going on?  */
+  if (mclass != MODE_VECTOR_INT
+      && mclass != MODE_VECTOR_FLOAT
+      && mclass != MODE_VECTOR_FRACT
+      && mclass != MODE_VECTOR_UFRACT
+      && mclass != MODE_VECTOR_ACCUM
+      && mclass != MODE_VECTOR_UACCUM)
+    return 0;
+
+  /* Hardware support.  Woo hoo!  */
+  if (targetm.vector_mode_supported_p (mode))
+    return 1;
+
+  innermode = GET_MODE_INNER (mode);
+
+  /* We should probably return 1 if requesting V4DI and we have no DI,
+     but we have V2DI, but this is probably very unlikely.  */
+
+  /* If we have support for the inner mode, we can safely emulate it.
+     We may not have V2DI, but me can emulate with a pair of DIs.  */
+  return targetm.scalar_mode_supported_p (innermode);
+}
+
 
 /* Handle a "mode" attribute; arguments as in
    struct attribute_spec.handler.  */
@@ -7808,6 +7651,8 @@ parse_optimize_options (tree args, bool attr_p)
   unsigned i;
   int saved_flag_strict_aliasing;
   const char **opt_argv;
+  struct cl_decoded_option *decoded_options;
+  unsigned int decoded_options_count;
   tree ap;
 
   /* Build up argv vector.  Just in case the string is stored away, use garbage
@@ -7854,7 +7699,7 @@ parse_optimize_options (tree args, bool attr_p)
 		  next_p = NULL;
 		}
 
-	      r = q = (char *) ggc_alloc (len2 + 3);
+	      r = q = (char *) ggc_alloc_atomic (len2 + 3);
 
 	      /* If the user supplied -Oxxx or -fxxx, only allow -Oxxx or -fxxx
 		 options.  */
@@ -7900,7 +7745,8 @@ parse_optimize_options (tree args, bool attr_p)
   saved_flag_strict_aliasing = flag_strict_aliasing;
 
   /* Now parse the options.  */
-  decode_options (opt_argc, opt_argv);
+  decode_options (opt_argc, opt_argv, &decoded_options,
+		  &decoded_options_count);
 
   targetm.override_options_after_change();
 
@@ -8585,6 +8431,18 @@ fold_offsetof (tree expr, tree stop_ref)
   /* Convert back from the internal sizetype to size_t.  */
   return convert (size_type_node, fold_offsetof_1 (expr, stop_ref));
 }
+
+/* Warn for A ?: C expressions (with B omitted) where A is a boolean 
+   expression, because B will always be true. */
+
+void
+warn_for_omitted_condop (location_t location, tree cond) 
+{ 
+  if (truth_value_p (TREE_CODE (cond))) 
+      warning_at (location, OPT_Wparentheses, 
+		"the omitted middle operand in ?: will always be %<true%>, "
+		"suggest explicit middle operand");
+} 
 
 /* Print an error message for an invalid lvalue.  USE says
    how the lvalue is being used and so selects the error message.  */
@@ -9364,15 +9222,6 @@ set_underlying_type (tree x)
     }
 }
 
-/* Returns true if X is a typedef decl.  */
-
-bool
-is_typedef_decl (tree x)
-{
-  return (x && TREE_CODE (x) == TYPE_DECL
-          && DECL_ORIGINAL_TYPE (x) != NULL_TREE);
-}
-
 /* Record the types used by the current global variable declaration
    being parsed, so that we can decide later to emit their debug info.
    Those types are in types_used_by_cur_var_decl, and we are going to
@@ -9384,17 +9233,10 @@ record_types_used_by_current_var_decl (tree decl)
 {
   gcc_assert (decl && DECL_P (decl) && TREE_STATIC (decl));
 
-  if (types_used_by_cur_var_decl)
+  while (!VEC_empty (tree, types_used_by_cur_var_decl))
     {
-      tree node;
-      for (node = types_used_by_cur_var_decl;
-	   node;
-	   node = TREE_CHAIN (node))
-      {
-	tree type = TREE_PURPOSE (node);
-	types_used_by_var_decl_insert (type, decl);
-      }
-      types_used_by_cur_var_decl = NULL;
+      tree type = VEC_pop (tree, types_used_by_cur_var_decl);
+      types_used_by_var_decl_insert (type, decl);
     }
 }
 

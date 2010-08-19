@@ -24,6 +24,7 @@ extern void override_options (bool);
 extern void optimization_options (int, int);
 extern void ix86_conditional_register_usage (void);
 
+extern bool ix86_target_stack_probe (void);
 extern int ix86_can_use_return_insn_p (void);
 extern void ix86_setup_frame_addresses (void);
 
@@ -71,6 +72,8 @@ extern const char *output_387_binary_op (rtx, rtx*);
 extern const char *output_387_reg_move (rtx, rtx*);
 extern const char *output_fix_trunc (rtx, rtx*, int);
 extern const char *output_fp_compare (rtx, rtx*, int, int);
+extern const char *output_adjust_stack_and_probe (rtx);
+extern const char *output_probe_stack_range (rtx, rtx);
 
 extern void ix86_expand_clear (rtx);
 extern void ix86_expand_move (enum machine_mode, rtx[]);
@@ -136,6 +139,7 @@ extern enum machine_mode ix86_fp_compare_mode (enum rtx_code);
 
 extern rtx ix86_libcall_value (enum machine_mode);
 extern bool ix86_function_arg_regno_p (int);
+extern void ix86_asm_output_function_label (FILE *, const char *, tree);
 extern int ix86_function_arg_boundary (enum machine_mode, tree);
 extern bool ix86_sol10_return_in_memory (const_tree,const_tree);
 extern rtx ix86_force_to_memory (enum machine_mode, rtx);
@@ -149,8 +153,6 @@ extern void ix86_split_fp_branch (enum rtx_code code, rtx, rtx,
 				  rtx, rtx, rtx, rtx);
 extern bool ix86_hard_regno_mode_ok (int, enum machine_mode);
 extern bool ix86_modes_tieable_p (enum machine_mode, enum machine_mode);
-extern int ix86_register_move_cost (enum machine_mode, enum reg_class,
-				    enum reg_class);
 extern int ix86_secondary_memory_needed (enum reg_class, enum reg_class,
 					 enum machine_mode, int);
 extern bool ix86_cannot_change_mode_class (enum machine_mode,
@@ -182,16 +184,11 @@ extern void ix86_expand_truncdf_32 (rtx, rtx);
 
 #ifdef TREE_CODE
 extern void init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree);
-extern rtx function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
-extern void function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
-				  tree, int);
 #endif	/* TREE_CODE  */
 
 #endif	/* RTX_CODE  */
 
 #ifdef TREE_CODE
-extern int ix86_return_pops_args (tree, tree, int);
-
 extern int ix86_data_alignment (tree, int);
 extern unsigned int ix86_local_alignment (tree, enum machine_mode,
 					  unsigned int);
