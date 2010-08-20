@@ -81,6 +81,7 @@ enum tree_dump_index
 					   holding this gimple statement.  */
 #define TDF_NOUID	(1 << 20)	/* omit UIDs from dumps.  */
 #define TDF_ALIAS	(1 << 21)	/* display alias information  */
+#define TDF_ENUMERATE_LOCALS (1 << 22)	/* Enumerate locals by uid.  */
 
 
 /* In tree-dump.c */
@@ -372,6 +373,7 @@ extern struct gimple_opt_pass pass_iv_canon;
 extern struct gimple_opt_pass pass_scev_cprop;
 extern struct gimple_opt_pass pass_empty_loop;
 extern struct gimple_opt_pass pass_record_bounds;
+extern struct gimple_opt_pass pass_graphite;
 extern struct gimple_opt_pass pass_graphite_transforms;
 extern struct gimple_opt_pass pass_if_conversion;
 extern struct gimple_opt_pass pass_loop_distribution;
@@ -445,6 +447,7 @@ extern struct gimple_opt_pass pass_warn_unused_result;
 extern struct gimple_opt_pass pass_split_functions;
 
 /* IPA Passes */
+extern struct simple_ipa_opt_pass pass_ipa_lower_emutls;
 extern struct simple_ipa_opt_pass pass_ipa_function_and_variable_visibility;
 extern struct simple_ipa_opt_pass pass_ipa_early_inline;
 

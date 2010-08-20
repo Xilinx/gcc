@@ -64,6 +64,13 @@ typedef struct gfc_se
      pointer assignments.  */
   unsigned direct_byref:1;
 
+  /* If direct_byref is set, do work out the descriptor as in that case but
+     do still create a new descriptor variable instead of using an
+     existing one.  This is useful for special pointer assignments like
+     rank remapping where we have to process the descriptor before
+     assigning to final one.  */
+  unsigned byref_noassign:1;
+
   /* Ignore absent optional arguments.  Used for some intrinsics.  */
   unsigned ignore_optional:1;
 
@@ -114,8 +121,8 @@ typedef struct gfc_ss_info
   tree stride[GFC_MAX_DIMENSIONS];
   tree delta[GFC_MAX_DIMENSIONS];
 
-  /* Translation from scalarizer dimensions to actual dimensions.
-     actual = dim[scalarizer]  */
+  /* Translation from loop dimensions to actual dimensions.
+     actual_dim = dim[loop_dim]  */
   int dim[GFC_MAX_DIMENSIONS];
 }
 gfc_ss_info;
@@ -240,6 +247,9 @@ typedef struct gfc_loopinfo
   /* Order in which the dimensions should be looped, innermost first.  */
   int order[GFC_MAX_DIMENSIONS];
 
+  /* Enum to control loop reversal.  */
+  gfc_reverse reverse[GFC_MAX_DIMENSIONS];
+
   /* The number of dimensions for which a temporary is used.  */
   int temp_dim;
 
@@ -256,6 +266,29 @@ typedef struct
   tree decl;
 }
 gfc_saved_var;
+
+
+/* Store information about a block of code together with special
+   initialization and clean-up code.  This can be used to incrementally add
+   init and cleanup, and in the end put everything together to a
+   try-finally expression.  */
+typedef struct
+{
+  tree init;
+  tree cleanup;
+  tree code;
+}
+gfc_wrapped_block;
+
+
+/* Initialize an init/cleanup block.  */
+void gfc_start_wrapped_block (gfc_wrapped_block* block, tree code);
+/* Add a pair of init/cleanup code to the block.  Each one might be a
+   NULL_TREE if not required.  */
+void gfc_add_init_cleanup (gfc_wrapped_block* block, tree init, tree cleanup);
+/* Finalize the block, that is, create a single expression encapsulating the
+   original code together with init and clean-up code.  */
+tree gfc_finish_wrapped_block (gfc_wrapped_block* block);
 
 
 /* Advance the SS chain to the next term.  */
@@ -279,7 +312,7 @@ void gfc_make_safe_expr (gfc_se * se);
 void gfc_conv_string_parameter (gfc_se * se);
 
 /* Compare two strings.  */
-tree gfc_build_compare_string (tree, tree, tree, tree, int);
+tree gfc_build_compare_string (tree, tree, tree, tree, int, enum tree_code);
 
 /* Add an item to the end of TREE_LIST.  */
 tree gfc_chainon_list (tree, tree);
@@ -299,6 +332,7 @@ void gfc_conv_expr_type (gfc_se * se, gfc_expr *, tree);
 
 /* trans-expr.c */
 void gfc_conv_scalar_char_value (gfc_symbol *sym, gfc_se *se, gfc_expr **expr);
+tree gfc_string_to_single_character (tree len, tree str, int kind);
 
 /* Find the decl containing the auxiliary variables for assigned variables.  */
 void gfc_conv_label_variable (gfc_se * se, gfc_expr * expr);
@@ -311,10 +345,12 @@ void gfc_conv_intrinsic_function (gfc_se *, gfc_expr *);
 /* Does an intrinsic map directly to an external library call.  */
 int gfc_is_intrinsic_libcall (gfc_expr *);
 
+tree gfc_conv_intrinsic_move_alloc (gfc_code *);
+
 /* Used to call ordinary functions/subroutines
    and procedure pointer components.  */
 int gfc_conv_procedure_call (gfc_se *, gfc_symbol *, gfc_actual_arglist *,
-			    gfc_expr *, tree);
+			     gfc_expr *, VEC(tree,gc) *);
 
 void gfc_conv_subref_array_arg (gfc_se *, gfc_expr *, int, sym_intent, bool);
 
@@ -384,9 +420,6 @@ tree gfc_build_label_decl (tree);
    Do not use if the function has an explicit result variable.  */
 tree gfc_get_fake_result_decl (gfc_symbol *, int);
 
-/* Get the return label for the current function.  */
-tree gfc_get_return_label (void);
-
 /* Add a decl to the binding level for the current function.  */
 void gfc_add_decl_to_function (tree);
 
@@ -403,7 +436,7 @@ tree gfc_get_symbol_decl (gfc_symbol *);
 tree gfc_conv_initializer (gfc_expr *, gfc_typespec *, tree, bool, bool);
 
 /* Assign a default initializer to a derived type.  */
-tree gfc_init_default_dt (gfc_symbol *, tree, bool);
+void gfc_init_default_dt (gfc_symbol *, stmtblock_t *, bool);
 
 /* Substitute a temporary variable in place of the real one.  */
 void gfc_shadow_sym (gfc_symbol *, tree, gfc_saved_var *);
@@ -425,13 +458,15 @@ void gfc_allocate_lang_decl (tree);
 tree gfc_advance_chain (tree, int);
 
 /* Create a decl for a function.  */
-void gfc_create_function_decl (gfc_namespace *);
+void gfc_create_function_decl (gfc_namespace *, bool);
 /* Generate the code for a function.  */
 void gfc_generate_function_code (gfc_namespace *);
 /* Output a BLOCK DATA program unit.  */
 void gfc_generate_block_data (gfc_namespace *);
 /* Output a decl for a module variable.  */
 void gfc_generate_module_vars (gfc_namespace *);
+/* Get the appropriate return statement for a procedure.  */
+tree gfc_generate_return (void);
 
 struct GTY(()) module_htab_entry {
   const char *name;
@@ -502,14 +537,16 @@ void gfc_trans_io_runtime_check (tree, tree, int, const char *, stmtblock_t *);
 void gfc_build_io_library_fndecls (void);
 /* Build a function decl for a library function.  */
 tree gfc_build_library_function_decl (tree, tree, int, ...);
+tree gfc_build_library_function_decl_with_spec (tree name, const char *spec,
+						tree rettype, int nargs, ...);
 
 /* Process the local variable decls of a block construct.  */
 void gfc_process_block_locals (gfc_namespace*);
 
 /* Output initialization/clean-up code that was deferred.  */
-tree gfc_trans_deferred_vars (gfc_symbol*, tree);
+void gfc_trans_deferred_vars (gfc_symbol*, gfc_wrapped_block *);
 
-/* somewhere! */
+/* In f95-lang.c.  */
 tree pushdecl (tree);
 tree pushdecl_top_level (tree);
 void pushlevel (int);
@@ -517,6 +554,8 @@ tree poplevel (int, int, int);
 tree getdecls (void);
 tree gfc_truthvalue_conversion (tree);
 tree gfc_builtin_function (tree);
+
+/* In trans-types.c.  */
 struct array_descr_info;
 bool gfc_get_array_descr_info (const_tree, struct array_descr_info *);
 

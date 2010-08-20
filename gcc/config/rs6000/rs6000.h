@@ -160,6 +160,7 @@
 %{mcpu=e500mc: -me500mc} \
 %{mcpu=e500mc64: -me500mc64} \
 %{maltivec: -maltivec} \
+%{mvsx: -mvsx %{!maltivec: -maltivec} %{!mcpu*: %(asm_cpu_power7)}} \
 -many"
 
 #define CPP_DEFAULT_SPEC ""
@@ -1172,16 +1173,6 @@ extern unsigned rs6000_pointer_size;
 #define HARD_REGNO_RENAME_OK(SRC, DST) \
   (! ALTIVEC_REGNO_P (DST) || df_regs_ever_live_p (DST))
 
-/* A C expression returning the cost of moving data from a register of class
-   CLASS1 to one of CLASS2.  */
-
-#define REGISTER_MOVE_COST rs6000_register_move_cost
-
-/* A C expressions returning the cost of moving data of MODE from a register to
-   or from memory.  */
-
-#define MEMORY_MOVE_COST rs6000_memory_move_cost
-
 /* Specify the cost of a branch insn; roughly the number of extra insns that
    should be added to avoid a branch.
 
@@ -1682,6 +1673,8 @@ typedef struct rs6000_args
   int sysv_gregno;		/* next available GP register */
   int intoffset;		/* running offset in struct (darwin64) */
   int use_stack;		/* any part of struct on stack (darwin64) */
+  int floats_in_gpr;		/* count of SFmode floats taking up
+				   GPR space (darwin64) */
   int named;			/* false for varargs params */
 } CUMULATIVE_ARGS;
 

@@ -21,6 +21,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include <gelf.h>
 #include "lto.h"
@@ -36,6 +37,13 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef EM_SPARC32PLUS
 # define EM_SPARC32PLUS 18
+#endif
+
+#ifndef ELFOSABI_NONE
+# define ELFOSABI_NONE 0
+#endif
+#ifndef ELFOSABI_LINUX
+# define ELFOSABI_LINUX 3
 #endif
 
 
@@ -150,31 +158,6 @@ lto_elf_free_shdr (Elf64_Shdr *shdr)
     free (shdr);
 }
 
-
-/* Returns a hash code for P.  */
-
-static hashval_t
-hash_name (const void *p)
-{
-  const struct lto_section_slot *ds = (const struct lto_section_slot *) p;
-  return (hashval_t) htab_hash_string (ds->name);
-}
-
-
-/* Returns nonzero if P1 and P2 are equal.  */
-
-static int
-eq_name (const void *p1, const void *p2)
-{
-  const struct lto_section_slot *s1 =
-    (const struct lto_section_slot *) p1;
-  const struct lto_section_slot *s2 =
-    (const struct lto_section_slot *) p2;
-
-  return strcmp (s1->name, s2->name) == 0;
-}
-
-
 /* Build a hash table whose key is the section names and whose data is
    the start and size of each section in the .o file.  */
 
@@ -186,7 +169,7 @@ lto_obj_build_section_table (lto_file *lto_file)
   Elf_Scn *section;
   size_t base_offset;
 
-  section_hash_table = htab_create (37, hash_name, eq_name, free);
+  section_hash_table = lto_obj_create_section_hash_table ();
 
   base_offset = elf_getbase (elf_file->elf);
   /* We are reasonably sure that elf_getbase does not fail at this
@@ -519,10 +502,28 @@ validate_file (lto_elf_file *elf_file)
       memcpy (cached_file_attrs.elf_ident, elf_ident,
 	      sizeof cached_file_attrs.elf_ident);
     }
+  else
+    {
+      char elf_ident_buf[EI_NIDENT];
 
-  if (memcmp (elf_ident, cached_file_attrs.elf_ident,
-	      sizeof cached_file_attrs.elf_ident))
-    return false;
+      memcpy (elf_ident_buf, elf_ident, sizeof elf_ident_buf);
+
+      if (elf_ident_buf[EI_OSABI] != cached_file_attrs.elf_ident[EI_OSABI])
+	{
+	  /* Allow mixing ELFOSABI_NONE with ELFOSABI_LINUX, with the result
+	     ELFOSABI_LINUX.  */
+	  if (elf_ident_buf[EI_OSABI] == ELFOSABI_NONE
+	      && cached_file_attrs.elf_ident[EI_OSABI] == ELFOSABI_LINUX)
+	    elf_ident_buf[EI_OSABI] = cached_file_attrs.elf_ident[EI_OSABI];
+	  else if (elf_ident_buf[EI_OSABI] == ELFOSABI_LINUX
+		   && cached_file_attrs.elf_ident[EI_OSABI] == ELFOSABI_NONE)
+	    cached_file_attrs.elf_ident[EI_OSABI] = elf_ident_buf[EI_OSABI];
+	}
+
+      if (memcmp (elf_ident_buf, cached_file_attrs.elf_ident,
+		  sizeof cached_file_attrs.elf_ident))
+	return false;
+    }
 
   /* Check that the input file is a relocatable object file with the correct
      architecture.  */

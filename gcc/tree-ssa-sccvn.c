@@ -498,6 +498,21 @@ vn_reference_eq (const void *p1, const void *p2)
   if (!expressions_equal_p (TYPE_SIZE (vr1->type), TYPE_SIZE (vr2->type)))
     return false;
 
+  if (INTEGRAL_TYPE_P (vr1->type)
+      && INTEGRAL_TYPE_P (vr2->type))
+    {
+      if (TYPE_PRECISION (vr1->type) != TYPE_PRECISION (vr2->type))
+	return false;
+    }
+  else if (INTEGRAL_TYPE_P (vr1->type)
+	   && (TYPE_PRECISION (vr1->type)
+	       != TREE_INT_CST_LOW (TYPE_SIZE (vr1->type))))
+    return false;
+  else if (INTEGRAL_TYPE_P (vr2->type)
+	   && (TYPE_PRECISION (vr2->type)
+	       != TREE_INT_CST_LOW (TYPE_SIZE (vr2->type))))
+    return false;
+
   i = 0;
   j = 0;
   do
@@ -564,7 +579,7 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
 
       base = TMR_SYMBOL (ref) ? TMR_SYMBOL (ref) : TMR_BASE (ref);
       if (!base)
-	base = build_int_cst (ptr_type_node, 0);
+	base = null_pointer_node;
 
       memset (&temp, 0, sizeof (temp));
       /* We do not care for spurious type qualifications.  */
@@ -580,7 +595,6 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
       temp.type = NULL_TREE;
       temp.opcode = TREE_CODE (base);
       temp.op0 = base;
-      temp.op1 = TMR_ORIGINAL (ref);
       temp.off = -1;
       VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
       return;
@@ -600,10 +614,6 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
 
       switch (temp.opcode)
 	{
-	case ALIGN_INDIRECT_REF:
-	  /* The only operand is the address, which gets its own
-	     vn_reference_op_s structure.  */
-	  break;
 	case MISALIGNED_INDIRECT_REF:
 	  temp.op0 = TREE_OPERAND (ref, 1);
 	  break;
@@ -789,11 +799,6 @@ ao_ref_init_from_vn_reference (ao_ref *ref,
 	  return false;
 
 	/* Record the base objects.  */
-	case ALIGN_INDIRECT_REF:
-	  *op0_p = build1 (op->opcode, op->type, NULL_TREE);
-	  op0_p = &TREE_OPERAND (*op0_p, 0);
-	  break;
-
 	case MISALIGNED_INDIRECT_REF:
 	  *op0_p = build2 (MISALIGNED_INDIRECT_REF, op->type,
 			   NULL_TREE, op->op0);
@@ -981,6 +986,80 @@ vn_reference_fold_indirect (VEC (vn_reference_op_s, heap) **ops,
     }
 }
 
+/* Fold *& at position *I_P in a vn_reference_op_s vector *OPS.  Updates
+   *I_P to point to the last element of the replacement.  */
+static void
+vn_reference_maybe_forwprop_address (VEC (vn_reference_op_s, heap) **ops,
+				     unsigned int *i_p)
+{
+  unsigned int i = *i_p;
+  vn_reference_op_t op = VEC_index (vn_reference_op_s, *ops, i);
+  vn_reference_op_t mem_op = VEC_index (vn_reference_op_s, *ops, i - 1);
+  gimple def_stmt;
+  enum tree_code code;
+  double_int off;
+
+  def_stmt = SSA_NAME_DEF_STMT (op->op0);
+  if (!is_gimple_assign (def_stmt))
+    return;
+
+  code = gimple_assign_rhs_code (def_stmt);
+  if (code != ADDR_EXPR
+      && code != POINTER_PLUS_EXPR)
+    return;
+
+  off = tree_to_double_int (mem_op->op0);
+  off = double_int_sext (off, TYPE_PRECISION (TREE_TYPE (mem_op->op0)));
+
+  /* The only thing we have to do is from &OBJ.foo.bar add the offset
+     from .foo.bar to the preceeding MEM_REF offset and replace the
+     address with &OBJ.  */
+  if (code == ADDR_EXPR)
+    {
+      tree addr, addr_base;
+      HOST_WIDE_INT addr_offset;
+
+      addr = gimple_assign_rhs1 (def_stmt);
+      addr_base = get_addr_base_and_unit_offset (TREE_OPERAND (addr, 0),
+						 &addr_offset);
+      if (!addr_base
+	  || TREE_CODE (addr_base) != MEM_REF)
+	return;
+
+      off = double_int_add (off, shwi_to_double_int (addr_offset));
+      off = double_int_add (off, mem_ref_offset (addr_base));
+      op->op0 = TREE_OPERAND (addr_base, 0);
+    }
+  else
+    {
+      tree ptr, ptroff;
+      ptr = gimple_assign_rhs1 (def_stmt);
+      ptroff = gimple_assign_rhs2 (def_stmt);
+      if (TREE_CODE (ptr) != SSA_NAME
+	  || TREE_CODE (ptroff) != INTEGER_CST)
+	return;
+
+      off = double_int_add (off, tree_to_double_int (ptroff));
+      op->op0 = ptr;
+    }
+
+  mem_op->op0 = double_int_to_tree (TREE_TYPE (mem_op->op0), off);
+  if (host_integerp (mem_op->op0, 0))
+    mem_op->off = TREE_INT_CST_LOW (mem_op->op0);
+  else
+    mem_op->off = -1;
+  if (TREE_CODE (op->op0) == SSA_NAME)
+    op->op0 = SSA_VAL (op->op0);
+  if (TREE_CODE (op->op0) != SSA_NAME)
+    op->opcode = TREE_CODE (op->op0);
+
+  /* And recurse.  */
+  if (TREE_CODE (op->op0) == SSA_NAME)
+    vn_reference_maybe_forwprop_address (ops, i_p);
+  else if (TREE_CODE (op->op0) == ADDR_EXPR)
+    vn_reference_fold_indirect (ops, i_p);
+}
+
 /* Optimize the reference REF to a constant if possible or return
    NULL_TREE if not.  */
 
@@ -1084,6 +1163,11 @@ valueize_refs (VEC (vn_reference_op_s, heap) *orig)
 	  && VEC_index (vn_reference_op_s,
 			orig, i - 1)->opcode == MEM_REF)
 	vn_reference_fold_indirect (&orig, &i);
+      else if (i > 0
+	       && vro->opcode == SSA_NAME
+	       && VEC_index (vn_reference_op_s,
+			     orig, i - 1)->opcode == MEM_REF)
+	vn_reference_maybe_forwprop_address (&orig, &i);
       /* If it transforms a non-constant ARRAY_REF into a constant
 	 one, adjust the constant offset.  */
       else if (vro->opcode == ARRAY_REF
@@ -1211,6 +1295,23 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
   tree fndecl;
   tree base;
   HOST_WIDE_INT offset, maxsize;
+
+  /* First try to disambiguate after value-replacing in the definitions LHS.  */
+  if (is_gimple_assign (def_stmt))
+    {
+      tree lhs = gimple_assign_lhs (def_stmt);
+      ao_ref ref1;
+      VEC (vn_reference_op_s, heap) *operands = NULL;
+      bool res = true;
+      copy_reference_ops_from_ref (lhs, &operands);
+      operands = valueize_refs (operands);
+      if (ao_ref_init_from_vn_reference (&ref1, get_alias_set (lhs),
+					 TREE_TYPE (lhs), operands))
+	res = refs_may_alias_p_1 (ref, &ref1, true);
+      VEC_free (vn_reference_op_s, heap, operands);
+      if (!res)
+	return NULL;
+    }
 
   base = ao_ref_base (ref);
   offset = ref->offset;
@@ -3385,7 +3486,7 @@ run_scc_vn (void)
 
   for (param = DECL_ARGUMENTS (current_function_decl);
        param;
-       param = TREE_CHAIN (param))
+       param = DECL_CHAIN (param))
     {
       if (gimple_default_def (cfun, param) != NULL)
 	{

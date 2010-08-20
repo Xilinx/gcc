@@ -261,7 +261,6 @@ extern HOST_WIDE_INT mips_debugger_offset (rtx, HOST_WIDE_INT);
 extern void mips_push_asm_switch (struct mips_asm_switch *);
 extern void mips_pop_asm_switch (struct mips_asm_switch *);
 extern void mips_output_external (FILE *, tree, const char *);
-extern void mips_output_filename (FILE *, const char *);
 extern void mips_output_ascii (FILE *, const char *, size_t);
 extern void mips_output_aligned_decl_common (FILE *, tree, const char *,
 					     unsigned HOST_WIDE_INT,
@@ -296,8 +295,6 @@ extern enum reg_class mips_secondary_reload_class (enum reg_class,
 						   enum machine_mode,
 						   rtx, bool);
 extern int mips_class_max_nregs (enum reg_class, enum machine_mode);
-extern int mips_register_move_cost (enum machine_mode, enum reg_class,
-				    enum reg_class);
 
 extern int mips_adjust_insn_length (rtx, int);
 extern void mips_output_load_label (rtx);

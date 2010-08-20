@@ -757,15 +757,17 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
 #define NEXT_INSN(INSN)	XEXP (INSN, 2)
 
 #define BLOCK_FOR_INSN(INSN) XBBDEF (INSN, 3)
-#define INSN_LOCATOR(INSN) XINT (INSN, 4)
+
+/* The body of an insn.  */
+#define PATTERN(INSN)	XEXP (INSN, 4)
+
+#define INSN_LOCATOR(INSN) XINT (INSN, 5)
 /* LOCATION of an RTX if relevant.  */
 #define RTL_LOCATION(X) (INSN_P (X) ? \
 			 locator_location (INSN_LOCATOR (X)) \
 			 : UNKNOWN_LOCATION)
 /* LOCATION of current INSN.  */
 #define CURR_INSN_LOCATION (locator_location (curr_insn_locator ()))
-/* The body of an insn.  */
-#define PATTERN(INSN)	XEXP (INSN, 5)
 
 /* Code number of instruction, from when it was recognized.
    -1 means this instruction has not been recognized yet.  */
@@ -971,7 +973,7 @@ extern const char * const note_insn_name[NOTE_INSN_MAX];
 
 /* In jump.c, each label contains a count of the number
    of LABEL_REFs that point at it, so unused labels can be deleted.  */
-#define LABEL_NUSES(RTX) XCINT (RTX, 4, CODE_LABEL)
+#define LABEL_NUSES(RTX) XCINT (RTX, 5, CODE_LABEL)
 
 /* Labels carry a two-bit field composed of the ->jump and ->call
    bits.  This field indicates whether the label is an alternate
@@ -1031,12 +1033,13 @@ enum label_kind
 /* Once basic blocks are found, each CODE_LABEL starts a chain that
    goes through all the LABEL_REFs that jump to that label.  The chain
    eventually winds up at the CODE_LABEL: it is circular.  */
-#define LABEL_REFS(LABEL) XCEXP (LABEL, 5, CODE_LABEL)
+#define LABEL_REFS(LABEL) XCEXP (LABEL, 4, CODE_LABEL)
 
 /* For a REG rtx, REGNO extracts the register number.  REGNO can only
    be used on RHS.  Use SET_REGNO to change the value.  */
 #define REGNO(RTX) (rhs_regno(RTX))
 #define SET_REGNO(RTX,N) (df_ref_change_reg_with_loc (REGNO(RTX), N, RTX), XCUINT (RTX, 0, REG) = N)
+#define SET_REGNO_RAW(RTX,N) (XCUINT (RTX, 0, REG) = N)
 
 /* ORIGINAL_REGNO holds the number the register originally had; for a
    pseudo register turned into a hard reg this will hold the old pseudo
@@ -1691,6 +1694,8 @@ extern rtx next_nonnote_insn (rtx);
 extern rtx next_nonnote_insn_bb (rtx);
 extern rtx prev_nondebug_insn (rtx);
 extern rtx next_nondebug_insn (rtx);
+extern rtx prev_nonnote_nondebug_insn (rtx);
+extern rtx next_nonnote_nondebug_insn (rtx);
 extern rtx prev_real_insn (rtx);
 extern rtx next_real_insn (rtx);
 extern rtx prev_active_insn (rtx);
@@ -2006,8 +2011,62 @@ enum global_rtl_index
   GR_MAX
 };
 
-/* Pointers to standard pieces of rtx are stored here.  */
-extern GTY(()) rtx global_rtl[GR_MAX];
+/* Target-dependent globals.  */
+struct GTY(()) target_rtl {
+  /* All references to the hard registers in global_rtl_index go through
+     these unique rtl objects.  On machines where the frame-pointer and
+     arg-pointer are the same register, they use the same unique object.
+
+     After register allocation, other rtl objects which used to be pseudo-regs
+     may be clobbered to refer to the frame-pointer register.
+     But references that were originally to the frame-pointer can be
+     distinguished from the others because they contain frame_pointer_rtx.
+
+     When to use frame_pointer_rtx and hard_frame_pointer_rtx is a little
+     tricky: until register elimination has taken place hard_frame_pointer_rtx
+     should be used if it is being set, and frame_pointer_rtx otherwise.  After
+     register elimination hard_frame_pointer_rtx should always be used.
+     On machines where the two registers are same (most) then these are the
+     same.  */
+  rtx x_global_rtl[GR_MAX];
+
+  /* A unique representation of (REG:Pmode PIC_OFFSET_TABLE_REGNUM).  */
+  rtx x_pic_offset_table_rtx;
+
+  /* A unique representation of (REG:Pmode RETURN_ADDRESS_POINTER_REGNUM).
+     This is used to implement __builtin_return_address for some machines;
+     see for instance the MIPS port.  */
+  rtx x_return_address_pointer_rtx;
+
+  /* Commonly used RTL for hard registers.  These objects are not
+     necessarily unique, so we allocate them separately from global_rtl.
+     They are initialized once per compilation unit, then copied into
+     regno_reg_rtx at the beginning of each function.  */
+  rtx x_initial_regno_reg_rtx[FIRST_PSEUDO_REGISTER];
+
+  /* A sample (mem:M stack_pointer_rtx) rtx for each mode M.  */
+  rtx x_top_of_stack[MAX_MACHINE_MODE];
+
+  /* Static hunks of RTL used by the aliasing code; these are treated
+     as persistent to avoid unnecessary RTL allocations.  */
+  rtx x_static_reg_base_value[FIRST_PSEUDO_REGISTER];
+};
+
+extern GTY(()) struct target_rtl default_target_rtl;
+#if SWITCHABLE_TARGET
+extern struct target_rtl *this_target_rtl;
+#else
+#define this_target_rtl (&default_target_rtl)
+#endif
+
+#define global_rtl				\
+  (this_target_rtl->x_global_rtl)
+#define pic_offset_table_rtx \
+  (this_target_rtl->x_pic_offset_table_rtx)
+#define return_address_pointer_rtx \
+  (this_target_rtl->x_return_address_pointer_rtx)
+#define top_of_stack \
+  (this_target_rtl->x_top_of_stack)
 
 /* Standard pieces of rtx, to be substituted directly into things.  */
 #define pc_rtx                  (global_rtl[GR_PC])
@@ -2020,9 +2079,6 @@ extern GTY(()) rtx global_rtl[GR_MAX];
 #define frame_pointer_rtx       (global_rtl[GR_FRAME_POINTER])
 #define hard_frame_pointer_rtx	(global_rtl[GR_HARD_FRAME_POINTER])
 #define arg_pointer_rtx		(global_rtl[GR_ARG_POINTER])
-
-extern GTY(()) rtx pic_offset_table_rtx;
-extern GTY(()) rtx return_address_pointer_rtx;
 
 /* Include the RTL generation functions.  */
 
@@ -2314,8 +2370,8 @@ extern HARD_REG_SET eliminable_regset;
 extern void mark_elimination (int, int);
 
 /* In reginfo.c */
-extern int reg_classes_intersect_p (enum reg_class, enum reg_class);
-extern int reg_class_subset_p (enum reg_class, enum reg_class);
+extern int reg_classes_intersect_p (reg_class_t, reg_class_t);
+extern int reg_class_subset_p (reg_class_t, reg_class_t);
 extern void globalize_reg (int);
 extern void init_reg_modes_target (void);
 extern void init_regs (void);
@@ -2368,6 +2424,7 @@ extern int canon_true_dependence (const_rtx, enum machine_mode, rtx, const_rtx,
 extern int read_dependence (const_rtx, const_rtx);
 extern int anti_dependence (const_rtx, const_rtx);
 extern int output_dependence (const_rtx, const_rtx);
+extern int may_alias_p (const_rtx, const_rtx);
 extern void init_alias_target (void);
 extern void init_alias_analysis (void);
 extern void end_alias_analysis (void);

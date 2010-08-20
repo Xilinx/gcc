@@ -1206,10 +1206,7 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
 	  for ( ; c != ')'; c = next_char (dtp))
 	    if (is_separator (c))
 	      goto bad;
-	    else
-	      push_char (dtp, c);
 
-	  push_char (dtp, ')');
 	  c = next_char (dtp);
 	  if (is_separator (c))
 	    unget_char (dtp, c);
@@ -2962,21 +2959,11 @@ find_nml_name:
       if (nml_get_obj_data (dtp, &prev_nl, nml_err_msg, sizeof nml_err_msg)
 			    == FAILURE)
 	{
-	  gfc_unit *u;
-
 	  if (dtp->u.p.current_unit->unit_number != options.stdin_unit)
 	    goto nml_err_ret;
-
-	  u = find_unit (options.stderr_unit);
-	  st_printf ("%s\n", nml_err_msg);
-	  if (u != NULL)
-	    {
-	      sflush (u->s);
-	      unlock_unit (u);
-	    }
+	  generate_error (&dtp->common, LIBERROR_READ_VALUE, nml_err_msg);
         }
-
-   }
+    }
 
   dtp->u.p.eof_jump = NULL;
   free_saved (dtp);

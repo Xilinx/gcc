@@ -215,7 +215,7 @@ gfc_get_int_expr (int kind, locus *where, int value)
   p = gfc_get_constant_expr (BT_INTEGER, kind,
 			     where ? where : &gfc_current_locus);
 
-  mpz_init_set_si (p->value.integer, value);
+  mpz_set_si (p->value.integer, value);
 
   return p;
 }
@@ -1894,7 +1894,7 @@ gfc_simplify_expr (gfc_expr *p, int type)
 
       if (p->expr_type == EXPR_ARRAY && p->ref && p->ref->type == REF_ARRAY
 	  && p->ref->u.ar.type == AR_FULL)
-	  gfc_expand_constructor (p);
+	  gfc_expand_constructor (p, false);
 
       if (simplify_const_ref (p) == FAILURE)
 	return FAILURE;
@@ -2573,7 +2573,7 @@ check_init_expr (gfc_expr *e)
       if (t == FAILURE)
 	break;
 
-      t = gfc_expand_constructor (e);
+      t = gfc_expand_constructor (e, true);
       if (t == FAILURE)
 	break;
 
@@ -2609,7 +2609,7 @@ gfc_reduce_init_expr (gfc_expr *expr)
     {
       if (gfc_check_constructor_type (expr) == FAILURE)
 	return FAILURE;
-      if (gfc_expand_constructor (expr) == FAILURE)
+      if (gfc_expand_constructor (expr, true) == FAILURE)
 	return FAILURE;
     }
 
@@ -3232,7 +3232,7 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 {
   symbol_attribute attr;
   gfc_ref *ref;
-  int is_pure;
+  bool is_pure, rank_remap;
   int pointer, check_intent_in, proc_pointer;
 
   if (lvalue->symtree->n.sym->ts.type == BT_UNKNOWN
@@ -3260,6 +3260,7 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
   pointer = lvalue->symtree->n.sym->attr.pointer;
   proc_pointer = lvalue->symtree->n.sym->attr.proc_pointer;
 
+  rank_remap = false;
   for (ref = lvalue->ref; ref; ref = ref->next)
     {
       if (pointer)
@@ -3273,6 +3274,8 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 
       if (ref->type == REF_ARRAY && ref->next == NULL)
 	{
+	  int dim;
+
 	  if (ref->u.ar.type == AR_FULL)
 	    break;
 
@@ -3285,16 +3288,41 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 
 	  if (gfc_notify_std (GFC_STD_F2003,"Fortran 2003: Bounds "
 			      "specification for '%s' in pointer assignment "
-                              "at %L", lvalue->symtree->n.sym->name,
+			      "at %L", lvalue->symtree->n.sym->name,
 			      &lvalue->where) == FAILURE)
-            return FAILURE;
+	    return FAILURE;
 
-	  gfc_error ("Pointer bounds remapping at %L is not yet implemented "
-		     "in gfortran", &lvalue->where);
-	  /* TODO: See PR 29785. Add checks that all lbounds are specified and
-	     either never or always the upper-bound; strides shall not be
-	     present.  */
-	  return FAILURE;
+	  /* When bounds are given, all lbounds are necessary and either all
+	     or none of the upper bounds; no strides are allowed.  If the
+	     upper bounds are present, we may do rank remapping.  */
+	  for (dim = 0; dim < ref->u.ar.dimen; ++dim)
+	    {
+	      if (!ref->u.ar.start[dim])
+		{
+		  gfc_error ("Lower bound has to be present at %L",
+			     &lvalue->where);
+		  return FAILURE;
+		}
+	      if (ref->u.ar.stride[dim])
+		{
+		  gfc_error ("Stride must not be present at %L",
+			     &lvalue->where);
+		  return FAILURE;
+		}
+
+	      if (dim == 0)
+		rank_remap = (ref->u.ar.end[dim] != NULL);
+	      else
+		{
+		  if ((rank_remap && !ref->u.ar.end[dim])
+		      || (!rank_remap && ref->u.ar.end[dim]))
+		    {
+		      gfc_error ("Either all or none of the upper bounds"
+				 " must be specified at %L", &lvalue->where);
+		      return FAILURE;
+		    }
+		}
+	    }
 	}
     }
 
@@ -3306,7 +3334,8 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
     }
 
   if (!pointer && !proc_pointer
-	&& !(lvalue->ts.type == BT_CLASS && CLASS_DATA (lvalue)->attr.pointer))
+      && !(lvalue->ts.type == BT_CLASS
+	   && CLASS_DATA (lvalue)->attr.class_pointer))
     {
       gfc_error ("Pointer assignment to non-POINTER at %L", &lvalue->where);
       return FAILURE;
@@ -3455,11 +3484,45 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
       return FAILURE;
     }
 
-  if (lvalue->rank != rvalue->rank)
+  if (lvalue->rank != rvalue->rank && !rank_remap)
     {
-      gfc_error ("Different ranks in pointer assignment at %L",
-		 &lvalue->where);
+      gfc_error ("Different ranks in pointer assignment at %L", &lvalue->where);
       return FAILURE;
+    }
+
+  /* Check rank remapping.  */
+  if (rank_remap)
+    {
+      mpz_t lsize, rsize;
+
+      /* If this can be determined, check that the target must be at least as
+	 large as the pointer assigned to it is.  */
+      if (gfc_array_size (lvalue, &lsize) == SUCCESS
+	  && gfc_array_size (rvalue, &rsize) == SUCCESS
+	  && mpz_cmp (rsize, lsize) < 0)
+	{
+	  gfc_error ("Rank remapping target is smaller than size of the"
+		     " pointer (%ld < %ld) at %L",
+		     mpz_get_si (rsize), mpz_get_si (lsize),
+		     &lvalue->where);
+	  return FAILURE;
+	}
+
+      /* The target must be either rank one or it must be simply contiguous
+	 and F2008 must be allowed.  */
+      if (rvalue->rank != 1)
+	{
+	  if (!gfc_is_simply_contiguous (rvalue, true))
+	    {
+	      gfc_error ("Rank remapping target must be rank 1 or"
+			 " simply contiguous at %L", &rvalue->where);
+	      return FAILURE;
+	    }
+	  if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Rank remapping"
+			      " target is not rank 1 at %L", &rvalue->where)
+		== FAILURE)
+	    return FAILURE;
+	}
     }
 
   /* Now punt if we are dealing with a NULLIFY(X) or X = NULL(X).  */
@@ -3543,7 +3606,7 @@ gfc_check_assign_symbol (gfc_symbol *sym, gfc_expr *rvalue)
   lvalue.where = sym->declared_at;
 
   if (sym->attr.pointer || sym->attr.proc_pointer
-      || (sym->ts.type == BT_CLASS && CLASS_DATA (sym)->attr.pointer
+      || (sym->ts.type == BT_CLASS && CLASS_DATA (sym)->attr.class_pointer
 	  && rvalue->expr_type == EXPR_NULL))
     r = gfc_check_pointer_assign (&lvalue, rvalue);
   else
@@ -3551,7 +3614,35 @@ gfc_check_assign_symbol (gfc_symbol *sym, gfc_expr *rvalue)
 
   gfc_free (lvalue.symtree);
 
-  return r;
+  if (r == FAILURE)
+    return r;
+  
+  if (sym->attr.pointer && rvalue->expr_type != EXPR_NULL)
+    {
+      /* F08:C461. Additional checks for pointer initialization.  */
+      symbol_attribute attr;
+      attr = gfc_expr_attr (rvalue);
+      if (attr.allocatable)
+	{
+	  gfc_error ("Pointer initialization target at %C "
+	             "must not be ALLOCATABLE ");
+	  return FAILURE;
+	}
+      if (!attr.target)
+	{
+	  gfc_error ("Pointer initialization target at %C "
+		     "must have the TARGET attribute");
+	  return FAILURE;
+	}
+      if (!attr.save)
+	{
+	  gfc_error ("Pointer initialization target at %C "
+		     "must have the SAVE attribute");
+	  return FAILURE;
+	}
+    }
+
+  return SUCCESS;
 }
 
 
@@ -4022,6 +4113,22 @@ gfc_is_coindexed (gfc_expr *e)
 }
 
 
+bool
+gfc_get_corank (gfc_expr *e)
+{
+  int corank;
+  gfc_ref *ref;
+  corank = e->symtree->n.sym->as ? e->symtree->n.sym->as->corank : 0;
+  for (ref = e->ref; ref; ref = ref->next)
+    {
+      if (ref->type == REF_ARRAY)
+	corank = ref->u.ar.as->corank;
+      gcc_assert (ref->type != REF_SUBSTRING);
+    }
+  return corank;
+}
+
+
 /* Check whether the expression has an ultimate allocatable component.
    Being itself allocatable does not count.  */
 bool
@@ -4181,4 +4288,47 @@ gfc_is_simply_contiguous (gfc_expr *expr, bool strict)
     }
   
   return true;
+}
+
+
+/* Build call to an intrinsic procedure.  The number of arguments has to be
+   passed (rather than ending the list with a NULL value) because we may
+   want to add arguments but with a NULL-expression.  */
+
+gfc_expr*
+gfc_build_intrinsic_call (const char* name, locus where, unsigned numarg, ...)
+{
+  gfc_expr* result;
+  gfc_actual_arglist* atail;
+  gfc_intrinsic_sym* isym;
+  va_list ap;
+  unsigned i;
+
+  isym = gfc_find_function (name);
+  gcc_assert (isym);
+  
+  result = gfc_get_expr ();
+  result->expr_type = EXPR_FUNCTION;
+  result->ts = isym->ts;
+  result->where = where;
+  result->value.function.name = name;
+  result->value.function.isym = isym;
+
+  va_start (ap, numarg);
+  atail = NULL;
+  for (i = 0; i < numarg; ++i)
+    {
+      if (atail)
+	{
+	  atail->next = gfc_get_actual_arglist ();
+	  atail = atail->next;
+	}
+      else
+	atail = result->value.function.actual = gfc_get_actual_arglist ();
+
+      atail->expr = va_arg (ap, gfc_expr*);
+    }
+  va_end (ap);
+
+  return result;
 }

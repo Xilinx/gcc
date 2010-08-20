@@ -318,7 +318,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
   gimple stmt = VEC_index (gimple, stmts, 0);
   enum vect_def_type first_stmt_dt0 = vect_uninitialized_def;
   enum vect_def_type first_stmt_dt1 = vect_uninitialized_def;
-  enum tree_code first_stmt_code = ERROR_MARK, rhs_code;
+  enum tree_code first_stmt_code = ERROR_MARK, rhs_code = ERROR_MARK;
   tree first_stmt_def1_type = NULL_TREE, first_stmt_def0_type = NULL_TREE;
   tree lhs;
   bool stop_recursion = false, need_same_oprnds = false;
@@ -421,8 +421,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
 					   optab_vector);
 
 	      if (!optab
-		  || (optab->handlers[(int) vec_mode].insn_code
-		      == CODE_FOR_nothing))
+		  || optab_handler (optab, vec_mode) == CODE_FOR_nothing)
 		{
 		  /* No vector/vector shift, try for a vector/scalar shift.  */
 		  optab = optab_for_tree_code (rhs_code, vectype,
@@ -434,7 +433,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
 			fprintf (vect_dump, "Build SLP failed: no optab.");
 		      return false;
 		    }
-		  icode = (int) optab->handlers[(int) vec_mode].insn_code;
+		  icode = (int) optab_handler (optab, vec_mode);
 		  if (icode == CODE_FOR_nothing)
 		    {
 		      if (vect_print_dump_info (REPORT_SLP))
@@ -457,7 +456,12 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
 	      && (first_stmt_code != IMAGPART_EXPR
 		  || rhs_code != REALPART_EXPR)
 	      && (first_stmt_code != REALPART_EXPR
-		  || rhs_code != IMAGPART_EXPR))
+		  || rhs_code != IMAGPART_EXPR)
+              && !(STMT_VINFO_STRIDED_ACCESS (vinfo_for_stmt (stmt))
+                   && (first_stmt_code == ARRAY_REF
+                       || first_stmt_code == INDIRECT_REF
+                       || first_stmt_code == COMPONENT_REF
+                       || first_stmt_code == MEM_REF)))
 	    {
 	      if (vect_print_dump_info (REPORT_SLP))
 		{
@@ -560,7 +564,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
               if (first_load == stmt)
                 {
                   first_dr = STMT_VINFO_DATA_REF (vinfo_for_stmt (stmt));
-                  if (vect_supportable_dr_alignment (first_dr)
+                  if (vect_supportable_dr_alignment (first_dr, false)
                       == dr_unaligned_unsupported)
                     {
                       if (vect_print_dump_info (REPORT_SLP))
@@ -646,8 +650,15 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
         {
           VEC_safe_push (slp_tree, heap, *loads, *node);
           *inside_cost 
-            += targetm.vectorize.builtin_vectorization_cost (vec_perm) 
+            += targetm.vectorize.builtin_vectorization_cost (vec_perm, NULL, 0) 
                * group_size;
+        }
+      else
+        { 
+          /* We don't check here complex numbers chains, so we keep them in
+	     LOADS for further check in vect_supported_load_permutation_p.  */ 
+          if (rhs_code == REALPART_EXPR || rhs_code == IMAGPART_EXPR)
+            VEC_safe_push (slp_tree, heap, *loads, *node);
         }
 
       return true;
@@ -869,8 +880,9 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
   int i = 0, j, prev = -1, next, k, number_of_groups;
   bool supported, bad_permutation = false;
   sbitmap load_index;
-  slp_tree node;
-  gimple stmt;
+  slp_tree node, other_complex_node;
+  gimple stmt, first = NULL, other_node_first;
+  unsigned complex_numbers = 0;
 
   /* FORNOW: permutations are only supported in SLP.  */
   if (!slp_instn)
@@ -894,10 +906,71 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
   for (i = 0;
        VEC_iterate (slp_tree, SLP_INSTANCE_LOADS (slp_instn), i, node);
        i++)
-    if (VEC_length (gimple, SLP_TREE_SCALAR_STMTS (node))
-        != (unsigned) group_size)
-      return false;
-     
+    {
+      if (VEC_length (gimple, SLP_TREE_SCALAR_STMTS (node))
+          != (unsigned) group_size)
+        return false;
+
+      stmt = VEC_index (gimple, SLP_TREE_SCALAR_STMTS (node), 0);
+      if (is_gimple_assign (stmt) 
+          && (gimple_assign_rhs_code (stmt) == REALPART_EXPR
+              || gimple_assign_rhs_code (stmt) == IMAGPART_EXPR))
+        complex_numbers++;
+    }
+
+  /* Complex operands can be swapped as following:
+      real_c = real_b + real_a;
+      imag_c = imag_a + imag_b;
+     i.e., we have {real_b, imag_a} and {real_a, imag_b} instead of 
+     {real_a, imag_a} and {real_b, imag_b}. We check here that if interleaving
+     chains are mixed, they match the above pattern.  */
+  if (complex_numbers)
+    {
+      for (i = 0;
+           VEC_iterate (slp_tree, SLP_INSTANCE_LOADS (slp_instn), i, node);
+           i++)
+        {
+          for (j = 0;
+               VEC_iterate (gimple, SLP_TREE_SCALAR_STMTS (node), j, stmt);
+               j++)
+            {
+              if (j == 0)
+                first = stmt;
+              else
+                {
+                  if (DR_GROUP_FIRST_DR (vinfo_for_stmt (stmt)) != first)
+                    {
+                      if (complex_numbers != 2)
+                        return false;
+
+                      if (i == 0)
+                        k = 1;
+                      else
+                        k = 0;
+ 
+                      other_complex_node = VEC_index (slp_tree, 
+                                            SLP_INSTANCE_LOADS (slp_instn), k);
+                      other_node_first = VEC_index (gimple, 
+                                SLP_TREE_SCALAR_STMTS (other_complex_node), 0);
+
+                      if (DR_GROUP_FIRST_DR (vinfo_for_stmt (stmt)) 
+                          != other_node_first)
+                       return false;
+                    }
+                }
+            }
+        }
+    }
+
+  /* We checked that this case ok, so there is no need to proceed with 
+     permutation tests.  */
+  if (complex_numbers == 2)
+    {
+      VEC_free (slp_tree, heap, SLP_INSTANCE_LOADS (slp_instn));
+      VEC_free (int, heap, SLP_INSTANCE_LOAD_PERMUTATION (slp_instn));
+      return true;
+    }
+                   
   node = SLP_INSTANCE_TREE (slp_instn);
   stmt = VEC_index (gimple, SLP_TREE_SCALAR_STMTS (node), 0);
   /* LOAD_PERMUTATION is a list of indices of all the loads of the SLP
@@ -1441,7 +1514,75 @@ vect_slp_analyze_operations (bb_vec_info bb_vinfo)
 }
 
 
-/* Cheick if the basic block can be vectorized.  */
+/* Check if vectorization of the basic block is profitable.  */
+
+static bool
+vect_bb_vectorization_profitable_p (bb_vec_info bb_vinfo)
+{
+  VEC (slp_instance, heap) *slp_instances = BB_VINFO_SLP_INSTANCES (bb_vinfo);
+  slp_instance instance;
+  int i;
+  unsigned int vec_outside_cost = 0, vec_inside_cost = 0, scalar_cost = 0;
+  unsigned int stmt_cost;
+  gimple stmt;
+  gimple_stmt_iterator si;
+  basic_block bb = BB_VINFO_BB (bb_vinfo);
+  stmt_vec_info stmt_info = NULL;
+  tree dummy_type = NULL;
+  int dummy = 0;
+
+  /* Calculate vector costs.  */
+  for (i = 0; VEC_iterate (slp_instance, slp_instances, i, instance); i++)
+    {
+      vec_outside_cost += SLP_INSTANCE_OUTSIDE_OF_LOOP_COST (instance);
+      vec_inside_cost += SLP_INSTANCE_INSIDE_OF_LOOP_COST (instance);
+    }
+
+  /* Calculate scalar cost.  */
+  for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
+    {
+      stmt = gsi_stmt (si);
+      stmt_info = vinfo_for_stmt (stmt);
+
+      if (!stmt_info || !STMT_VINFO_VECTORIZABLE (stmt_info)
+          || !PURE_SLP_STMT (stmt_info))
+        continue;
+
+      if (STMT_VINFO_DATA_REF (stmt_info))
+        {
+          if (DR_IS_READ (STMT_VINFO_DATA_REF (stmt_info)))
+            stmt_cost = targetm.vectorize.builtin_vectorization_cost 
+                          (scalar_load, dummy_type, dummy);
+          else
+            stmt_cost = targetm.vectorize.builtin_vectorization_cost
+                          (scalar_store, dummy_type, dummy);
+        }
+      else
+        stmt_cost = targetm.vectorize.builtin_vectorization_cost
+                      (scalar_stmt, dummy_type, dummy);
+
+      scalar_cost += stmt_cost;
+    }
+
+  if (vect_print_dump_info (REPORT_COST))
+    {
+      fprintf (vect_dump, "Cost model analysis: \n");
+      fprintf (vect_dump, "  Vector inside of basic block cost: %d\n",
+               vec_inside_cost);
+      fprintf (vect_dump, "  Vector outside of basic block cost: %d\n",
+               vec_outside_cost);
+      fprintf (vect_dump, "  Scalar cost of basic block: %d", scalar_cost);
+    }
+
+  /* Vectorization is profitable if its cost is less than the cost of scalar
+     version.  */
+  if (vec_outside_cost + vec_inside_cost >= scalar_cost)
+    return false;
+
+  return true;
+}
+
+/* Check if the basic block can be vectorized.  */
 
 bb_vec_info
 vect_slp_analyze_bb (basic_block bb)
@@ -1568,6 +1709,18 @@ vect_slp_analyze_bb (basic_block bb)
     {
       if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
         fprintf (vect_dump, "not vectorized: bad operation in basic block.\n");
+
+      destroy_bb_vec_info (bb_vinfo);
+      return NULL;
+    }
+
+  /* Cost model: check if the vectorization is worthwhile.  */
+  if (flag_vect_cost_model
+      && !vect_bb_vectorization_profitable_p (bb_vinfo))
+    {
+      if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
+        fprintf (vect_dump, "not vectorized: vectorization is not "
+                            "profitable.\n");
 
       destroy_bb_vec_info (bb_vinfo);
       return NULL;

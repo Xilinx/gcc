@@ -63,6 +63,8 @@ extern void emit_tfmode_cvt (enum rtx_code, rtx *);
 extern bool legitimate_constant_p (rtx);
 extern bool constant_address_p (rtx);
 extern bool legitimate_pic_operand_p (rtx);
+extern rtx sparc_legitimize_reload_address (rtx, enum machine_mode, int, int,
+					    int, int *win);
 extern void sparc_emit_call_insn (rtx, rtx);
 extern void sparc_defer_case_vector (rtx, rtx, int);
 extern bool sparc_expand_move (enum machine_mode, rtx *);
@@ -75,6 +77,7 @@ extern const char *output_return (rtx);
 extern const char *output_sibcall (rtx, rtx);
 extern const char *output_v8plus_shift (rtx *, rtx, const char *);
 extern const char *output_v9branch (rtx, rtx, int, int, int, int, rtx);
+extern const char *output_probe_stack_range (rtx, rtx);
 extern bool emit_scc_insn (rtx []);
 extern void emit_conditional_branch_insn (rtx []);
 extern void print_operand (FILE *, rtx, int);

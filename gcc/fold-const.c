@@ -53,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "tm_p.h"
 #include "target.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "intl.h"
 #include "ggc.h"
@@ -2041,8 +2042,8 @@ maybe_lvalue_p (const_tree x)
   case SSA_NAME:
 
   case COMPONENT_REF:
+  case MEM_REF:
   case INDIRECT_REF:
-  case ALIGN_INDIRECT_REF:
   case MISALIGNED_INDIRECT_REF:
   case ARRAY_REF:
   case ARRAY_RANGE_REF:
@@ -2586,7 +2587,6 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
       switch (TREE_CODE (arg0))
 	{
 	case INDIRECT_REF:
-	case ALIGN_INDIRECT_REF:
 	case MISALIGNED_INDIRECT_REF:
 	case REALPART_EXPR:
 	case IMAGPART_EXPR:
@@ -3985,9 +3985,9 @@ make_range (tree exp, int *pin_p, tree *plow, tree *phigh,
 	  n_high = range_binop (MINUS_EXPR, exp_type,
 				build_int_cst (exp_type, 0),
 				0, low, 0);
-	  low = n_low, high = n_high;
-	  exp = arg0;
-	  continue;
+	  if (n_high != 0 && TREE_OVERFLOW (n_high))
+	    break;
+	  goto normalize;
 
 	case BIT_NOT_EXPR:
 	  /* ~ X -> -X - 1  */
@@ -4021,6 +4021,7 @@ make_range (tree exp, int *pin_p, tree *plow, tree *phigh,
 	  if (TYPE_OVERFLOW_UNDEFINED (arg0_type))
 	    *strict_overflow_p = true;
 
+	normalize:
 	  /* Check for an unsigned range which has wrapped around the maximum
 	     value thus making n_high < n_low, and normalize it.  */
 	  if (n_low && n_high && tree_int_cst_lt (n_high, n_low))
@@ -7596,7 +7597,6 @@ build_fold_addr_expr_with_type_loc (location_t loc, tree t, tree ptrtype)
   if (TREE_CODE (t) == WITH_SIZE_EXPR)
     t = TREE_OPERAND (t, 0);
 
-  /* Note: doesn't apply to ALIGN_INDIRECT_REF */
   if (TREE_CODE (t) == INDIRECT_REF
       || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
     {
@@ -8683,6 +8683,7 @@ fold_comparison (location_t loc, enum tree_code code, tree type,
       else if (TREE_CODE (arg0) == POINTER_PLUS_EXPR)
 	{
 	  base0 = TREE_OPERAND (arg0, 0);
+	  STRIP_SIGN_NOPS (base0);
 	  if (TREE_CODE (base0) == ADDR_EXPR)
 	    {
 	      base0 = TREE_OPERAND (base0, 0);
@@ -8705,6 +8706,7 @@ fold_comparison (location_t loc, enum tree_code code, tree type,
       else if (TREE_CODE (arg1) == POINTER_PLUS_EXPR)
 	{
 	  base1 = TREE_OPERAND (arg1, 0);
+	  STRIP_SIGN_NOPS (base1);
 	  if (TREE_CODE (base1) == ADDR_EXPR)
 	    {
 	      base1 = TREE_OPERAND (base1, 0);

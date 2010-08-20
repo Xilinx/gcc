@@ -21,6 +21,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "tree.h"
 #include "gimple.h"
@@ -206,6 +207,24 @@ lto_cgraph_replace_node (struct cgraph_node *node,
 			 struct cgraph_node *prevailing_node)
 {
   struct cgraph_edge *e, *next;
+  bool no_aliases_please = false;
+
+  if (cgraph_dump_file)
+    {
+      fprintf (cgraph_dump_file, "Replacing cgraph node %s/%i by %s/%i"
+ 	       " for symbol %s\n",
+	       cgraph_node_name (node), node->uid,
+	       cgraph_node_name (prevailing_node),
+	       prevailing_node->uid,
+	       IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (node->decl)));
+    }
+
+  if (prevailing_node->same_body_alias)
+    {
+      if (prevailing_node->thunk.thunk_p)
+	no_aliases_please = true;
+      prevailing_node = prevailing_node->same_body;
+    }
 
   /* Merge node flags.  */
   if (node->needed)
@@ -227,27 +246,37 @@ lto_cgraph_replace_node (struct cgraph_node *node,
   /* Redirect incomming references.  */
   ipa_clone_refering (prevailing_node, NULL, &node->ref_list);
 
-  if (node->same_body)
+  /* If we have aliases, redirect them to the prevailing node.  */
+  if (!node->same_body_alias && node->same_body)
     {
-      struct cgraph_node *alias;
+      struct cgraph_node *alias, *last;
+      /* We prevail aliases/tunks by a thunk.  This is doable but
+         would need thunk combination.  Hopefully no ABI changes will
+         every be crazy enough.  */
+      gcc_assert (!no_aliases_please);
 
       for (alias = node->same_body; alias; alias = alias->next)
-	if (DECL_ASSEMBLER_NAME_SET_P (alias->decl))
-	  {
-	    lto_symtab_entry_t se
-	      = lto_symtab_get (DECL_ASSEMBLER_NAME (alias->decl));
-
-	    for (; se; se = se->next)
-	      if (se->node == node)
-		{
-		  se->node = NULL;
-		  break;
-		}
-	  }
+	{
+	  last = alias;
+	  gcc_assert (alias->same_body_alias);
+	  alias->same_body = prevailing_node;
+	  alias->thunk.alias = prevailing_node->decl;
+	}
+      last->next = prevailing_node->same_body;
+      /* Node with aliases is prevailed by alias.
+	 We could handle this, but combining thunks together will be tricky.
+	 Hopefully this does not happen.  */
+      if (prevailing_node->same_body)
+	prevailing_node->same_body->previous = last;
+      prevailing_node->same_body = node->same_body;
+      node->same_body = NULL;
     }
 
   /* Finally remove the replaced node.  */
-  cgraph_remove_node (node);
+  if (node->same_body_alias)
+    cgraph_remove_same_body_alias (node);
+  else
+    cgraph_remove_node (node);
 }
 
 /* Replace the cgraph node NODE with PREVAILING_NODE in the cgraph, merging
@@ -319,7 +348,8 @@ lto_symtab_merge (lto_symtab_entry_t prevailing, lto_symtab_entry_t entry)
 
   if (TREE_CODE (decl) == FUNCTION_DECL)
     {
-      if (TREE_TYPE (prevailing_decl) != TREE_TYPE (decl))
+      if (!gimple_types_compatible_p (TREE_TYPE (prevailing_decl),
+				      TREE_TYPE (decl), GTC_DIAG))
 	/* If we don't have a merged type yet...sigh.  The linker
 	   wouldn't complain if the types were mismatched, so we
 	   probably shouldn't either.  Just use the type from
@@ -352,7 +382,7 @@ lto_symtab_merge (lto_symtab_entry_t prevailing, lto_symtab_entry_t entry)
      fixup process didn't yet run.  */
   prevailing_type = gimple_register_type (prevailing_type);
   type = gimple_register_type (type);
-  if (prevailing_type != type)
+  if (!gimple_types_compatible_p (prevailing_type, type, GTC_DIAG))
     {
       if (COMPLETE_TYPE_P (type))
 	return false;
@@ -377,7 +407,9 @@ lto_symtab_merge (lto_symtab_entry_t prevailing, lto_symtab_entry_t entry)
 	  if (TREE_CODE (tem1) != TREE_CODE (tem2))
 	    return false;
 
-	  if (gimple_register_type (tem1) != gimple_register_type (tem2))
+	  if (!gimple_types_compatible_p (gimple_register_type (tem1),
+					  gimple_register_type (tem2),
+					  GTC_DIAG))
 	    return false;
 	}
 
@@ -433,7 +465,9 @@ lto_symtab_resolve_can_prevail_p (lto_symtab_entry_t e)
 
   /* For functions we need a non-discarded body.  */
   if (TREE_CODE (e->decl) == FUNCTION_DECL)
-    return (e->node && e->node->analyzed);
+    return (e->node
+	    && (e->node->analyzed
+	        || (e->node->same_body_alias && e->node->same_body->analyzed)));
 
   /* A variable should have a size.  */
   else if (TREE_CODE (e->decl) == VAR_DECL)
@@ -461,15 +495,9 @@ lto_symtab_resolve_symbols (void **slot)
   for (e = (lto_symtab_entry_t) *slot; e; e = e->next)
     {
       if (TREE_CODE (e->decl) == FUNCTION_DECL)
-	e->node = cgraph_get_node (e->decl);
+	e->node = cgraph_get_node_or_alias (e->decl);
       else if (TREE_CODE (e->decl) == VAR_DECL)
-	{
-	  e->vnode = varpool_get_node (e->decl);
-	  /* The LTO plugin for gold doesn't handle common symbols
-	     properly.  Let us choose manually.  */
-	  if (DECL_COMMON (e->decl))
-	    e->resolution = LDPR_UNKNOWN;
-	}
+	e->vnode = varpool_get_node (e->decl);
     }
 
   e = (lto_symtab_entry_t) *slot;
@@ -575,7 +603,8 @@ lto_symtab_merge_decls_2 (void **slot)
   /* Diagnose all mismatched re-declarations.  */
   for (i = 0; VEC_iterate (tree, mismatches, i, decl); ++i)
     {
-      if (TREE_TYPE (prevailing->decl) != TREE_TYPE (decl))
+      if (!gimple_types_compatible_p (TREE_TYPE (prevailing->decl),
+				      TREE_TYPE (decl), GTC_DIAG))
 	diagnosed_p |= warning_at (DECL_SOURCE_LOCATION (decl), 0,
 				   "type of %qD does not match original "
 				   "declaration", decl);
@@ -618,8 +647,12 @@ lto_symtab_merge_decls_1 (void **slot, void *data ATTRIBUTE_UNUSED)
   /* Assert it's the only one.  */
   if (prevailing)
     for (e = prevailing->next; e; e = e->next)
-      gcc_assert (e->resolution != LDPR_PREVAILING_DEF_IRONLY
-		  && e->resolution != LDPR_PREVAILING_DEF);
+      {
+	if (e->resolution == LDPR_PREVAILING_DEF_IRONLY
+	    || e->resolution == LDPR_PREVAILING_DEF)
+	  fatal_error ("multiple prevailing defs for %qE",
+		       DECL_NAME (prevailing->decl));
+      }
 
   /* If there's not a prevailing symbol yet it's an external reference.
      Happens a lot during ltrans.  Choose the first symbol with a
@@ -707,23 +740,26 @@ lto_symtab_merge_decls_1 (void **slot, void *data ATTRIBUTE_UNUSED)
       && TREE_CODE (prevailing->decl) != VAR_DECL)
     prevailing->next = NULL;
 
-  /* Set externally_visible flags for declaration of LDPR_PREVAILING_DEF */
-  if (flag_whole_program)
+  /* Set used_from_object_file flags.  */
+  if (prevailing->resolution == LDPR_PREVAILING_DEF
+      || prevailing->resolution == LDPR_PREEMPTED_REG
+      || prevailing->resolution == LDPR_RESOLVED_EXEC
+      || prevailing->resolution == LDPR_RESOLVED_DYN)
     {
-      if (prevailing->resolution == LDPR_PREVAILING_DEF)
-        {
-          if (TREE_CODE (prevailing->decl) == FUNCTION_DECL)
-            prevailing->node->local.used_from_object_file = true;
-          else
-            prevailing->vnode->used_from_object_file = true;
-        }
-      else if (prevailing->resolution == LDPR_PREVAILING_DEF_IRONLY)
-        {
-          if (TREE_CODE (prevailing->decl) == FUNCTION_DECL)
-            prevailing->node->local.used_from_object_file = false;
-          else
-            prevailing->vnode->used_from_object_file = false;
-        }
+      if (TREE_CODE (prevailing->decl) == FUNCTION_DECL)
+	{
+	  if (prevailing->node->same_body_alias)
+	    prevailing->node->same_body->local.used_from_object_file = true;
+	  else
+	    prevailing->node->local.used_from_object_file = true;
+	}
+      else
+	{
+	  if (prevailing->vnode->alias)
+	    prevailing->vnode->extra_name->used_from_object_file = true;
+	  else
+	    prevailing->vnode->used_from_object_file = true;
+	}
     }
   return 1;
 }
@@ -751,22 +787,7 @@ lto_symtab_merge_cgraph_nodes_1 (void **slot, void *data ATTRIBUTE_UNUSED)
   for (e = prevailing->next; e; e = e->next)
     {
       if (e->node != NULL)
-	{
-	  if (e->node->decl != e->decl && e->node->same_body)
-	    {
-	      struct cgraph_node *alias;
-
-	      for (alias = e->node->same_body; alias; alias = alias->next)
-		if (alias->decl == e->decl)
-		  break;
-	      if (alias)
-		{
-		  cgraph_remove_same_body_alias (alias);
-		  continue;
-		}
-	    }
-	  lto_cgraph_replace_node (e->node, prevailing->node);
-	}
+	lto_cgraph_replace_node (e->node, prevailing->node);
       if (e->vnode != NULL)
 	lto_varpool_replace_node (e->vnode, prevailing->vnode);
     }

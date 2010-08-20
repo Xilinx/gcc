@@ -319,13 +319,15 @@ referenced_from_other_partition_p (struct ipa_ref_list *list, cgraph_node_set se
     {
       if (ref->refering_type == IPA_REF_CGRAPH)
 	{
-	  if (!cgraph_node_in_set_p (ipa_ref_refering_node (ref), set))
+	  if (ipa_ref_refering_node (ref)->in_other_partition
+	      || !cgraph_node_in_set_p (ipa_ref_refering_node (ref), set))
 	    return true;
 	}
       else
 	{
-	  if (!varpool_node_in_set_p (ipa_ref_refering_varpool_node (ref),
-				      vset))
+	  if (ipa_ref_refering_varpool_node (ref)->in_other_partition
+	      || !varpool_node_in_set_p (ipa_ref_refering_varpool_node (ref),
+				         vset))
 	    return true;
 	}
     }
@@ -343,7 +345,8 @@ reachable_from_other_partition_p (struct cgraph_node *node, cgraph_node_set set)
   if (node->global.inlined_to)
     return false;
   for (e = node->callers; e; e = e->next_caller)
-    if (!cgraph_node_in_set_p (e->caller, set))
+    if (e->caller->in_other_partition
+	|| !cgraph_node_in_set_p (e->caller, set))
       return true;
   return false;
 }
@@ -503,6 +506,7 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
   bp_pack_value (&bp, node->abstract_and_needed, 1);
   bp_pack_value (&bp, tag == LTO_cgraph_analyzed_node
 		 && !DECL_EXTERNAL (node->decl)
+		 && !DECL_COMDAT (node->decl)
 		 && (reachable_from_other_partition_p (node, set)
 		     || referenced_from_other_partition_p (&node->ref_list, set, vset)), 1);
   bp_pack_value (&bp, node->lowered, 1);
@@ -576,7 +580,8 @@ lto_output_varpool_node (struct lto_simple_output_block *ob, struct varpool_node
   /* Constant pool initializers can be de-unified into individual ltrans units.
      FIXME: Alternatively at -Os we may want to avoid generating for them the local
      labels and share them across LTRANS partitions.  */
-  if (DECL_IN_CONSTANT_POOL (node->decl))
+  if (DECL_IN_CONSTANT_POOL (node->decl)
+      && !DECL_COMDAT (node->decl))
     {
       bp_pack_value (&bp, 0, 1);  /* used_from_other_parition.  */
       bp_pack_value (&bp, 0, 1);  /* in_other_partition.  */
@@ -841,6 +846,7 @@ output_cgraph (cgraph_node_set set, varpool_node_set vset)
   lto_cgraph_encoder_t encoder;
   lto_varpool_encoder_t varpool_encoder;
   struct cgraph_asm_node *can;
+  static bool asm_nodes_output = false;
 
   if (flag_wpa)
     output_cgraph_opt_summary ();
@@ -876,14 +882,21 @@ output_cgraph (cgraph_node_set set, varpool_node_set vset)
 
   lto_output_uleb128_stream (ob->main_stream, 0);
 
-  /* Emit toplevel asms.  */
-  for (can = cgraph_asm_nodes; can; can = can->next)
+  /* Emit toplevel asms.
+     When doing WPA we must output every asm just once.  Since we do not partition asm
+     nodes at all, output them to first output.  This is kind of hack, but should work
+     well.  */
+  if (!asm_nodes_output)
     {
-      int len = TREE_STRING_LENGTH (can->asm_str);
-      lto_output_uleb128_stream (ob->main_stream, len);
-      for (i = 0; i < len; ++i)
-	lto_output_1_stream (ob->main_stream,
-			     TREE_STRING_POINTER (can->asm_str)[i]);
+      asm_nodes_output = true;
+      for (can = cgraph_asm_nodes; can; can = can->next)
+	{
+	  int len = TREE_STRING_LENGTH (can->asm_str);
+	  lto_output_uleb128_stream (ob->main_stream, len);
+	  for (i = 0; i < len; ++i)
+	    lto_output_1_stream (ob->main_stream,
+				 TREE_STRING_POINTER (can->asm_str)[i]);
+	}
     }
 
   lto_output_uleb128_stream (ob->main_stream, 0);
@@ -1158,7 +1171,6 @@ input_edge (struct lto_input_block *ib, VEC(cgraph_node_ptr, heap) *nodes,
   unsigned int nest;
   cgraph_inline_failed_t inline_failed;
   struct bitpack_d bp;
-  enum ld_plugin_symbol_resolution caller_resolution;
   int ecf_flags = 0;
 
   caller = VEC_index (cgraph_node_ptr, nodes, lto_input_sleb128 (ib));
@@ -1182,13 +1194,6 @@ input_edge (struct lto_input_block *ib, VEC(cgraph_node_ptr, heap) *nodes,
 							    HOST_BITS_PER_INT);
   freq = (int) bp_unpack_value (&bp, HOST_BITS_PER_INT);
   nest = (unsigned) bp_unpack_value (&bp, 30);
-
-  /* If the caller was preempted, don't create the edge.
-     ???  Should we ever have edges from a preempted caller?  */
-  caller_resolution = lto_symtab_get_resolution (caller->decl);
-  if (caller_resolution == LDPR_PREEMPTED_REG
-      || caller_resolution == LDPR_PREEMPTED_IR)
-    return;
 
   if (indirect)
     edge = cgraph_create_indirect_edge (caller, NULL, 0, count, freq, nest);
@@ -1482,7 +1487,7 @@ output_node_opt_summary (struct output_block *ob,
       tree parm;
 
       for (parm_num = 0, parm = DECL_ARGUMENTS (node->decl); parm;
-	   parm = TREE_CHAIN (parm), parm_num++)
+	   parm = DECL_CHAIN (parm), parm_num++)
 	if (map->old_tree == parm)
 	  break;
       /* At the moment we assume all old trees to be PARM_DECLs, because we have no
@@ -1566,7 +1571,7 @@ input_node_opt_summary (struct cgraph_node *node,
 
       VEC_safe_push (ipa_replace_map_p, gc, node->clone.tree_map, map);
       for (parm_num = 0, parm = DECL_ARGUMENTS (node->decl); parm_num;
-	   parm = TREE_CHAIN (parm))
+	   parm = DECL_CHAIN (parm))
 	parm_num --;
       map->parm_num = lto_input_uleb128 (ib_main);
       map->old_tree = NULL;

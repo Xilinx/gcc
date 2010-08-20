@@ -56,6 +56,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "expr.h"
 #include "output.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "function.h"
 #include "target.h"
@@ -315,16 +316,6 @@ hook_callee_copies_named (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
   return named;
 }
 
-/* Emit any directives required to unwind this instruction.  */
-
-void
-default_unwind_emit (FILE * stream ATTRIBUTE_UNUSED,
-		     rtx insn ATTRIBUTE_UNUSED)
-{
-  /* Should never happen.  */
-  gcc_unreachable ();
-}
-
 /* Emit to STREAM the assembler syntax for insn operand X.  */
 
 void
@@ -363,6 +354,21 @@ default_print_operand_punct_valid_p (unsigned char code ATTRIBUTE_UNUSED)
 #else
   return false;
 #endif
+}
+
+/* The default implementation of TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA.  */
+
+bool
+default_asm_output_addr_const_extra (FILE *file ATTRIBUTE_UNUSED,
+				     rtx x ATTRIBUTE_UNUSED)
+{
+#ifdef OUTPUT_ADDR_CONST_EXTRA
+  OUTPUT_ADDR_CONST_EXTRA (file, x, fail);
+  return true;
+
+fail:
+#endif
+  return false;
 }
 
 /* True if MODE is valid for the target.  By "valid", we mean able to
@@ -479,7 +485,9 @@ default_builtin_vectorized_conversion (unsigned int code ATTRIBUTE_UNUSED,
 /* Default vectorizer cost model values.  */
 
 int
-default_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
+default_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
+                                    tree vectype ATTRIBUTE_UNUSED,
+                                    int misalign ATTRIBUTE_UNUSED)
 {
   switch (type_of_cost)
     {
@@ -496,6 +504,7 @@ default_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost)
         return 1;
 
       case unaligned_load:
+      case unaligned_store:
         return 2;
 
       case cond_branch_taken:
@@ -559,28 +568,26 @@ default_function_arg_advance (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 }
 
 rtx
-default_function_arg (const CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+default_function_arg (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 		      enum machine_mode mode ATTRIBUTE_UNUSED,
 		      const_tree type ATTRIBUTE_UNUSED,
 		      bool named ATTRIBUTE_UNUSED)
 {
 #ifdef FUNCTION_ARG
-  return FUNCTION_ARG (*(CONST_CAST (CUMULATIVE_ARGS *, ca)), mode,
-		       CONST_CAST_TREE (type), named);
+  return FUNCTION_ARG (*ca, mode, CONST_CAST_TREE (type), named);
 #else
   gcc_unreachable ();
 #endif
 }
 
 rtx
-default_function_incoming_arg (const CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+default_function_incoming_arg (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 			       enum machine_mode mode ATTRIBUTE_UNUSED,
 			       const_tree type ATTRIBUTE_UNUSED,
 			       bool named ATTRIBUTE_UNUSED)
 {
 #ifdef FUNCTION_INCOMING_ARG
-  return FUNCTION_INCOMING_ARG (*(CONST_CAST (CUMULATIVE_ARGS *, ca)), mode,
-				CONST_CAST_TREE (type), named);
+  return FUNCTION_INCOMING_ARG (*ca, mode, CONST_CAST_TREE (type), named);
 #else
   gcc_unreachable ();
 #endif
@@ -846,8 +853,9 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 #endif
   if (rclass != NO_REGS)
     {
-      enum insn_code icode = (in_p ? reload_in_optab[(int) reload_mode]
-			      : reload_out_optab[(int) reload_mode]);
+      enum insn_code icode
+	= direct_optab_handler (in_p ? reload_in_optab : reload_out_optab,
+				reload_mode);
 
       if (icode != CODE_FOR_nothing
 	  && insn_data[(int) icode].operand[in_p].predicate
@@ -971,7 +979,7 @@ default_builtin_support_vector_misalignment (enum machine_mode mode,
 					     bool is_packed
 					     ATTRIBUTE_UNUSED)
 {
-  if (optab_handler (movmisalign_optab, mode)->insn_code != CODE_FOR_nothing)
+  if (optab_handler (movmisalign_optab, mode) != CODE_FOR_nothing)
     return true;
   return false;
 }
@@ -1199,6 +1207,16 @@ default_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
   return 2;
 #else
   return REGISTER_MOVE_COST (mode, (enum reg_class) from, (enum reg_class) to);
+#endif
+}
+
+bool
+default_profile_before_prologue (void)
+{
+#ifdef PROFILE_BEFORE_PROLOGUE
+  return true;
+#else
+  return false;
 #endif
 }
 

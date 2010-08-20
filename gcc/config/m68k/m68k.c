@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "insn-attr.h"
 #include "recog.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "expr.h"
 #include "reload.h"
@@ -1042,7 +1043,7 @@ void
 m68k_expand_prologue (void)
 {
   HOST_WIDE_INT fsize_with_regs;
-  rtx limit, src, dest, insn;
+  rtx limit, src, dest;
 
   m68k_compute_frame_layout ();
 
@@ -1185,7 +1186,7 @@ m68k_expand_prologue (void)
 
   if (!TARGET_SEP_DATA
       && crtl->uses_pic_offset_table)
-    insn = emit_insn (gen_load_got (pic_offset_table_rtx));
+    emit_insn (gen_load_got (pic_offset_table_rtx));
 }
 
 /* Return true if a simple (return) instruction is sufficient for this
@@ -6539,9 +6540,7 @@ m68k_return_pops_args (tree fundecl, tree funtype, int size)
   return ((TARGET_RTD
 	   && (!fundecl
 	       || TREE_CODE (fundecl) != IDENTIFIER_NODE)
-	   && (TYPE_ARG_TYPES (funtype) == 0
-	       || (TREE_VALUE (tree_last (TYPE_ARG_TYPES (funtype)))
-		   == void_type_node)))
+	   && (!stdarg_p (funtype)))
 	  ? size : 0);
 }
 

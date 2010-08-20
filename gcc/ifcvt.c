@@ -35,6 +35,7 @@
 #include "expr.h"
 #include "output.h"
 #include "optabs.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "tm_p.h"
 #include "cfgloop.h"
@@ -2367,9 +2368,7 @@ noce_process_if_block (struct noce_if_info *if_info)
     }
   else
     {
-      insn_b = prev_nonnote_insn (if_info->cond_earliest);
-      while (insn_b && DEBUG_INSN_P (insn_b))
-	insn_b = prev_nonnote_insn (insn_b);
+      insn_b = prev_nonnote_nondebug_insn (if_info->cond_earliest);
       /* We're going to be moving the evaluation of B down from above
 	 COND_EARLIEST to JUMP.  Make sure the relevant data is still
 	 intact.  */
@@ -3156,7 +3155,7 @@ find_if_header (basic_block test_bb, int pass)
     goto success;
 
   if (HAVE_trap
-      && optab_handler (ctrap_optab, word_mode)->insn_code != CODE_FOR_nothing
+      && optab_handler (ctrap_optab, word_mode) != CODE_FOR_nothing
       && find_cond_trap (test_bb, then_edge, else_edge))
     goto success;
 

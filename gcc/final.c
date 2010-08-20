@@ -99,8 +99,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "sdbout.h"
 #endif
 
-/* If we aren't using cc0, CC_STATUS_INIT shouldn't exist.  So define a
-   null default for it to save conditionalization later.  */
+/* Most ports that aren't using cc0 don't need to define CC_STATUS_INIT.
+   So define a null default for it to save conditionalization later.  */
 #ifndef CC_STATUS_INIT
 #define CC_STATUS_INIT
 #endif
@@ -1546,10 +1546,8 @@ final_start_function (rtx first ATTRIBUTE_UNUSED, FILE *file,
 
   /* The Sun386i and perhaps other machines don't work right
      if the profiling code comes after the prologue.  */
-#ifdef PROFILE_BEFORE_PROLOGUE
-  if (crtl->profile)
+  if (targetm.profile_before_prologue () && crtl->profile)
     profile_function (file);
-#endif /* PROFILE_BEFORE_PROLOGUE */
 
 #if defined (DWARF2_UNWIND_INFO) && defined (HAVE_prologue)
   if (dwarf2out_do_frame ())
@@ -1591,10 +1589,8 @@ final_start_function (rtx first ATTRIBUTE_UNUSED, FILE *file,
 static void
 profile_after_prologue (FILE *file ATTRIBUTE_UNUSED)
 {
-#ifndef PROFILE_BEFORE_PROLOGUE
-  if (crtl->profile)
+  if (!targetm.profile_before_prologue () && crtl->profile)
     profile_function (file);
-#endif /* not PROFILE_BEFORE_PROLOGUE */
 }
 
 static void
@@ -1850,9 +1846,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	  break;
 
 	case NOTE_INSN_BASIC_BLOCK:
-#ifdef TARGET_UNWIND_INFO
-	  targetm.asm_out.unwind_emit (asm_out_file, insn);
-#endif
+	  if (targetm.asm_out.unwind_emit)
+	    targetm.asm_out.unwind_emit (asm_out_file, insn);
 
 	  if (flag_debug_asm)
 	    fprintf (asm_out_file, "\t%s basic block %d\n",
@@ -2044,9 +2039,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 #endif
 	    }
 	}
-#ifdef HAVE_cc0
       CC_STATUS_INIT;
-#endif
 
       if (!DECL_IGNORED_P (current_function_decl) && LABEL_NAME (insn))
 	debug_hooks->label (insn);
@@ -2659,12 +2652,11 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    return new_rtx;
 	  }
 
-#ifdef TARGET_UNWIND_INFO
 	/* ??? This will put the directives in the wrong place if
 	   get_insn_template outputs assembly directly.  However calling it
 	   before get_insn_template breaks if the insns is split.  */
-	targetm.asm_out.unwind_emit (asm_out_file, insn);
-#endif
+	if (targetm.asm_out.unwind_emit)
+	  targetm.asm_out.unwind_emit (asm_out_file, insn);
 
 	if (CALL_P (insn))
 	  {
@@ -3628,12 +3620,9 @@ output_addr_const (FILE *file, rtx x)
       break;
 
     default:
-#ifdef OUTPUT_ADDR_CONST_EXTRA
-      OUTPUT_ADDR_CONST_EXTRA (file, x, fail);
-      break;
+      if (targetm.asm_out.output_addr_const_extra (file, x))
+	break;
 
-    fail:
-#endif
       output_operand_lossage ("invalid expression as operand");
     }
 }

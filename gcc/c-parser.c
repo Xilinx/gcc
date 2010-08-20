@@ -194,7 +194,6 @@ typedef struct GTY(()) c_parser {
 
 static GTY (()) c_parser *the_parser;
 
-
 /* Read in and lex a single token, storing it in *TOKEN.  */
 
 static void
@@ -2229,7 +2228,7 @@ c_parser_struct_declaration (c_parser *parser)
 			 declarator, specs, width, &all_prefix_attrs);
 	  decl_attributes (&d, chainon (postfix_attrs,
 					all_prefix_attrs), 0);
-	  TREE_CHAIN (d) = decls;
+	  DECL_CHAIN (d) = decls;
 	  decls = d;
 	  if (c_parser_next_token_is_keyword (parser, RID_ATTRIBUTE))
 	    all_prefix_attrs = chainon (c_parser_attributes (parser),
@@ -2672,13 +2671,8 @@ c_parser_parms_declarator (c_parser *parser, bool id_list_ok, tree attrs)
 	}
       if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
 	{
-	  struct c_arg_info *ret = XOBNEW (&parser_obstack, struct c_arg_info);
-	  ret->parms = 0;
-	  ret->tags = 0;
+	  struct c_arg_info *ret = build_arg_info ();
 	  ret->types = list;
-	  ret->others = 0;
-	  ret->pending_sizes = 0;
-	  ret->had_vla_unspec = 0;
 	  c_parser_consume_token (parser);
 	  pop_scope ();
 	  return ret;
@@ -2715,24 +2709,13 @@ c_parser_parms_list_declarator (c_parser *parser, tree attrs)
      declarations.  */
   if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
     {
-      struct c_arg_info *ret = XOBNEW (&parser_obstack, struct c_arg_info);
-      ret->parms = 0;
-      ret->tags = 0;
-      ret->types = 0;
-      ret->others = 0;
-      ret->pending_sizes = 0;
-      ret->had_vla_unspec = 0;
+      struct c_arg_info *ret = build_arg_info ();
       c_parser_consume_token (parser);
       return ret;
     }
   if (c_parser_next_token_is (parser, CPP_ELLIPSIS))
     {
-      struct c_arg_info *ret = XOBNEW (&parser_obstack, struct c_arg_info);
-      ret->parms = 0;
-      ret->tags = 0;
-      ret->others = 0;
-      ret->pending_sizes = 0;
-      ret->had_vla_unspec = 0;
+      struct c_arg_info *ret = build_arg_info ();
       /* Suppress -Wold-style-definition for this case.  */
       ret->types = error_mark_node;
       error_at (c_parser_peek_token (parser)->location,
@@ -5847,9 +5830,8 @@ c_parser_postfix_expression (c_parser *parser)
 	    e1 = TYPE_MAIN_VARIANT (groktypename (t1, NULL, NULL));
 	    e2 = TYPE_MAIN_VARIANT (groktypename (t2, NULL, NULL));
 
-	    expr.value = comptypes (e1, e2)
-	      ? build_int_cst (NULL_TREE, 1)
-	      : build_int_cst (NULL_TREE, 0);
+	    expr.value
+	      = comptypes (e1, e2) ? integer_one_node : integer_zero_node;
 	  }
 	  break;
 	case RID_AT_SELECTOR:
@@ -6431,7 +6413,7 @@ c_parser_objc_class_instance_variables (c_parser *parser)
 	/* Comma-separated instance variables are chained together in
 	   reverse order; add them one by one.  */
 	tree ivar = nreverse (decls);
-	for (; ivar; ivar = TREE_CHAIN (ivar))
+	for (; ivar; ivar = DECL_CHAIN (ivar))
 	  objc_add_instance_variable (copy_node (ivar));
       }
       c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");

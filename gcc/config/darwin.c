@@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "target.h"
 #include "tm_p.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "hashtab.h"
 #include "df.h"
@@ -78,6 +79,12 @@ along with GCC; see the file COPYING3.  If not see
    of MACHO_SYMBOL_STATIC for the code that handles @code{static}
    symbol indirection.  */
 
+/* For darwin >= 9  (OSX 10.5) the linker is capable of making the necessary
+   branch islands and we no longer need to emit darwin stubs.
+   However, if we are generating code for earlier systems (or for use in the 
+   kernel) the stubs might still be required, and this will be set true.  */
+int darwin_emit_branch_islands = false;
+
 /* Section names.  */
 section * darwin_sections[NUM_DARWIN_SECTIONS];
 
@@ -98,6 +105,7 @@ output_objc_section_asm_op (const void *directive)
      section is requested.  */
   if (! been_here)
     {
+      section *saved_in_section = in_section;
       static const enum darwin_section_enum tomark[] =
 	{
 	  /* written, cold -> hot */
@@ -128,6 +136,7 @@ output_objc_section_asm_op (const void *directive)
       been_here = true;
       for (i = 0; i < ARRAY_SIZE (tomark); i++)
 	switch_to_section (darwin_sections[tomark[i]]);
+      switch_to_section (saved_in_section);
     }
   output_section_asm_op (directive);
 }
@@ -622,6 +631,9 @@ machopic_indirect_data_reference (rtx orig, rtx reg)
 rtx
 machopic_indirect_call_target (rtx target)
 {
+  if (! darwin_emit_branch_islands)
+    return target;
+
   if (GET_CODE (target) != MEM)
     return target;
 
@@ -1885,12 +1897,19 @@ darwin_override_options (void)
       flag_exceptions = 0;
       /* No -fnon-call-exceptions data in kexts.  */
       flag_non_call_exceptions = 0;
+      /* We still need to emit branch islands for kernel context.  */
+      darwin_emit_branch_islands = true;
     }
   if (flag_var_tracking
       && strverscmp (darwin_macosx_version_min, "10.5") >= 0
       && debug_info_level >= DINFO_LEVEL_NORMAL
       && debug_hooks->var_location != do_nothing_debug_hooks.var_location)
     flag_var_tracking_uninit = 1;
+
+  /* It is assumed that branch island stubs are needed for earlier systems.  */
+  if (darwin_macosx_version_min
+      && strverscmp (darwin_macosx_version_min, "10.5") < 0)
+    darwin_emit_branch_islands = true;
 }
 
 /* Add $LDBL128 suffix to long double builtins.  */

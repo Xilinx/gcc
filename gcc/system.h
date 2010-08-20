@@ -779,7 +779,8 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	LANG_HOOKS_PUSHLEVEL LANG_HOOKS_SET_BLOCK \
 	LANG_HOOKS_MAYBE_BUILD_CLEANUP LANG_HOOKS_UPDATE_DECL_AFTER_SAVING \
 	LANG_HOOKS_POPLEVEL LANG_HOOKS_TRUTHVALUE_CONVERSION \
-	TARGET_PROMOTE_FUNCTION_ARGS TARGET_PROMOTE_FUNCTION_RETURN
+	TARGET_PROMOTE_FUNCTION_ARGS TARGET_PROMOTE_FUNCTION_RETURN \
+	LANG_HOOKS_MISSING_ARGUMENT
 
 /* Miscellaneous macros that are no longer used.  */
  #pragma GCC poison USE_MAPPED_LOCATION
@@ -800,7 +801,7 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 /* Front ends should never have to include middle-end headers.  Enforce
    this by poisoning the header double-include protection defines.  */
 #ifdef IN_GCC_FRONTEND
-#pragma GCC poison GCC_RTL_H GCC_EXCEPT_H
+#pragma GCC poison GCC_RTL_H GCC_EXCEPT_H GCC_EXPR_H
 #endif
 
 /* Note: not all uses of the `index' token (e.g. variable names and

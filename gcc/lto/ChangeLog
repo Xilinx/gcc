@@ -1,3 +1,77 @@
+2010-07-27  Andi Kleen <ak@linux.intel.com>
+
+	* Make-lang.in (lto.o): Add dependency to splay-tree.h
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* lto-lang.c (lto_handle_option): Update prototype and return
+	value type.  Remove duplicate assignment to result.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* lto-lang.c (lto_option_lang_mask, lto_complain_wrong_lang_p):
+	New.
+	(lto_init_options): Update prototype.
+	(LANG_HOOKS_OPTION_LANG_MASK, LANG_HOOKS_COMPLAIN_WRONG_LANG_P):
+	Define.
+
+2010-07-10   Andi Kleen <ak@linux.intel.com>
+
+	PR lto/44992
+        * lto.c: Include splay-tree.h
+	(lto_resolution_read): Change to walk file_ids tree and parse
+	extra file_id in resolution file.
+	(lto_section_with_id): Add.
+	(create_subid_section_table): Add.
+	(lwstate): Add.
+	(lto_create_files_from_ids): Add.
+	(lto_file_read): Change to handle sub file ids and create list
+	of file_datas. Add output argument for count.
+	(get_section_data): Pass file_data to lto_get_section_name.
+	(lto_flatten_file): Add.
+	(read_cgraph_and_symbols): Handle linked lists of file_datas.
+
+2010-07-10  Andi Kleen <ak@linux.intel.com>
+
+	* lto-coff.c (hash_name, eq_name): Move.
+	(lto_obj_build_section_table): Call lto_obj_create_section_hash_table.
+	* lto-elf.c: (hash_name, eq_name): Move.
+	(lto_obj_build_section_table): Call lto_obj_create_section_hash_table.
+	* lto-macho.c: (hash_name, eq_name): Move.
+	(lto_obj_build_section_table): Call lto_obj_create_section_hash_table.
+	* lto.c: (hash_name, eq_name): Move from lto-*.c
+	(lto_obj_create_section_hash_table): Add.
+	(free_with_string): Add.
+
+2010-07-08  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* lto-coff.c: Include diagnostic-core.h in every file that
+	includes toplev.h.
+	* lto-elf.c: Likewise.
+	* lto-lang.c: Likewise.
+	* lto-macho.c: Likewise.
+
+2010-07-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* lto-elf.c (ELFOSABI_NONE, ELFOSABI_LINUX): Define if not defined.
+	(validate_file): Allow merging of ELFOSABI_NONE with ELFOSABI_LINUX
+	objects.
+
+2010-07-05  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (add_cgraph_node_to_partition): Forward declare; walk also
+	nodes from same comdat group as well as all comdat functions referenced
+	here.
+	(add_varpool_node_to_partition, add_references_to_partition): New function.
+	(lto_1_1_map): Skip COMDAT fnctions/variables; use add_varpool_node_to_partition;
+	clear aux flags when done.
+	(lto_promote_cross_file_statics): Do not promote stuff that gets duplicated to
+	each ltrans.
+
+2010-07-04  Jan Hubicka  <jh@suse.cz>
+
+        * lto.c (read_cgraph_and_symbols): Dump cgraph before merging.
+
 2010-06-13  Richard Guenther  <rguenther@suse.de>
 
 	* lto.c (lto_fixup_type): Do not register or fixup TYPE_CANONICAL.

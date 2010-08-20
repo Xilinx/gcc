@@ -30,7 +30,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"	/* For iso-c-bindings.def.  */
 #include "target.h"
 #include "ggc.h"
-#include "toplev.h"	/* For rest_of_decl_compilation/fatal_error.  */
+#include "diagnostic-core.h"  /* For fatal_error.  */
+#include "toplev.h"	/* For rest_of_decl_compilation.  */
 #include "gfortran.h"
 #include "trans.h"
 #include "trans-types.h"
@@ -86,6 +87,7 @@ gfc_character_info gfc_character_kinds[MAX_CHARACTER_KINDS + 1];
 static GTY(()) tree gfc_character_types[MAX_CHARACTER_KINDS + 1];
 static GTY(()) tree gfc_pcharacter_types[MAX_CHARACTER_KINDS + 1];
 
+static tree gfc_add_field_to_struct_1 (tree, tree, tree, tree **);
 
 /* The integer kind to use for array indices.  This will be set to the
    proper value based on target information from the backend.  */
@@ -1181,13 +1183,13 @@ gfc_is_nodesc_array (gfc_symbol * sym)
   if (sym->attr.pointer || sym->attr.allocatable)
     return 0;
 
+  /* We want a descriptor for associate-name arrays that do not have an
+     explicitely known shape already.  */
+  if (sym->assoc && sym->as->type != AS_EXPLICIT)
+    return 0;
+
   if (sym->attr.dummy)
-    {
-      if (sym->as->type != AS_ASSUMED_SHAPE)
-        return 1;
-      else
-        return 0;
-    }
+    return sym->as->type != AS_ASSUMED_SHAPE;
 
   if (sym->attr.result || sym->attr.function)
     return 0;
@@ -1232,8 +1234,7 @@ static tree
 gfc_get_desc_dim_type (void)
 {
   tree type;
-  tree decl;
-  tree fieldlist;
+  tree decl, *chain = NULL;
 
   if (gfc_desc_dim_type)
     return gfc_desc_dim_type;
@@ -1245,30 +1246,22 @@ gfc_get_desc_dim_type (void)
   TYPE_PACKED (type) = 1;
 
   /* Consists of the stride, lbound and ubound members.  */
-  decl = build_decl (input_location,
-		     FIELD_DECL,
-		     get_identifier ("stride"), gfc_array_index_type);
-  DECL_CONTEXT (decl) = type;
+  decl = gfc_add_field_to_struct_1 (type,
+				    get_identifier ("stride"),
+				    gfc_array_index_type, &chain);
   TREE_NO_WARNING (decl) = 1;
-  fieldlist = decl;
 
-  decl = build_decl (input_location,
-		     FIELD_DECL,
-		     get_identifier ("lbound"), gfc_array_index_type);
-  DECL_CONTEXT (decl) = type;
+  decl = gfc_add_field_to_struct_1 (type,
+				    get_identifier ("lbound"),
+				    gfc_array_index_type, &chain);
   TREE_NO_WARNING (decl) = 1;
-  fieldlist = chainon (fieldlist, decl);
 
-  decl = build_decl (input_location,
-		     FIELD_DECL,
-		     get_identifier ("ubound"), gfc_array_index_type);
-  DECL_CONTEXT (decl) = type;
+  decl = gfc_add_field_to_struct_1 (type,
+				    get_identifier ("ubound"),
+				    gfc_array_index_type, &chain);
   TREE_NO_WARNING (decl) = 1;
-  fieldlist = chainon (fieldlist, decl);
 
   /* Finish off the type.  */
-  TYPE_FIELDS (type) = fieldlist;
-
   gfc_finish_type (type);
   TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type)) = 1;
 
@@ -1540,7 +1533,7 @@ gfc_get_nodesc_array_type (tree etype, gfc_array_spec * as, gfc_packed packed,
 static tree
 gfc_get_array_descriptor_base (int dimen, int codimen, bool restricted)
 {
-  tree fat_type, fieldlist, decl, arraytype;
+  tree fat_type, decl, arraytype, *chain = NULL;
   char name[16 + 2*GFC_RANK_DIGITS + 1 + 1];
   int idx = 2 * (codimen + dimen - 1) + restricted;
 
@@ -1553,30 +1546,26 @@ gfc_get_array_descriptor_base (int dimen, int codimen, bool restricted)
 
   sprintf (name, "array_descriptor" GFC_RANK_PRINTF_FORMAT, dimen + codimen);
   TYPE_NAME (fat_type) = get_identifier (name);
+  TYPE_NAMELESS (fat_type) = 1;
 
   /* Add the data member as the first element of the descriptor.  */
-  decl = build_decl (input_location,
-		     FIELD_DECL, get_identifier ("data"),
-		     restricted ? prvoid_type_node : ptr_type_node);
-
-  DECL_CONTEXT (decl) = fat_type;
-  fieldlist = decl;
+  decl = gfc_add_field_to_struct_1 (fat_type,
+				    get_identifier ("data"),
+				    (restricted
+				     ? prvoid_type_node
+				     : ptr_type_node), &chain);
 
   /* Add the base component.  */
-  decl = build_decl (input_location,
-		     FIELD_DECL, get_identifier ("offset"),
-		     gfc_array_index_type);
-  DECL_CONTEXT (decl) = fat_type;
+  decl = gfc_add_field_to_struct_1 (fat_type,
+				    get_identifier ("offset"),
+				    gfc_array_index_type, &chain);
   TREE_NO_WARNING (decl) = 1;
-  fieldlist = chainon (fieldlist, decl);
 
   /* Add the dtype component.  */
-  decl = build_decl (input_location,
-		     FIELD_DECL, get_identifier ("dtype"),
-		     gfc_array_index_type);
-  DECL_CONTEXT (decl) = fat_type;
+  decl = gfc_add_field_to_struct_1 (fat_type,
+				    get_identifier ("dtype"),
+				    gfc_array_index_type, &chain);
   TREE_NO_WARNING (decl) = 1;
-  fieldlist = chainon (fieldlist, decl);
 
   /* Build the array type for the stride and bound components.  */
   arraytype =
@@ -1585,15 +1574,12 @@ gfc_get_array_descriptor_base (int dimen, int codimen, bool restricted)
 					gfc_index_zero_node,
 					gfc_rank_cst[codimen + dimen - 1]));
 
-  decl = build_decl (input_location,
-		     FIELD_DECL, get_identifier ("dim"), arraytype);
-  DECL_CONTEXT (decl) = fat_type;
+  decl = gfc_add_field_to_struct_1 (fat_type,
+				    get_identifier ("dim"),
+				    arraytype, &chain);
   TREE_NO_WARNING (decl) = 1;
-  fieldlist = chainon (fieldlist, decl);
 
   /* Finish off the type.  */
-  TYPE_FIELDS (fat_type) = fieldlist;
-
   gfc_finish_type (fat_type);
   TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (fat_type)) = 1;
 
@@ -1631,6 +1617,7 @@ gfc_get_array_type_bounds (tree etype, int dimen, int codimen, tree * lbound,
   sprintf (name, "array" GFC_RANK_PRINTF_FORMAT "_%.*s", dimen + codimen,
 	   GFC_MAX_SYMBOL_LEN, type_name);
   TYPE_NAME (fat_type) = get_identifier (name);
+  TYPE_NAMELESS (fat_type) = 1;
 
   GFC_DESCRIPTOR_TYPE_P (fat_type) = 1;
   TYPE_LANG_SPECIFIC (fat_type)
@@ -1811,7 +1798,8 @@ gfc_sym_type (gfc_symbol * sym)
     }
   else
     {
-      if (sym->attr.allocatable || sym->attr.pointer)
+      if (sym->attr.allocatable || sym->attr.pointer
+	  || gfc_is_associate_pointer (sym))
 	type = gfc_build_pointer_type (sym, type);
       if (sym->attr.pointer || sym->attr.cray_pointee)
 	GFC_POINTER_TYPE_P (type) = 1;
@@ -1853,26 +1841,41 @@ gfc_finish_type (tree type)
 }
 
 /* Add a field of given NAME and TYPE to the context of a UNION_TYPE
-   or RECORD_TYPE pointed to by STYPE.  The new field is chained
-   to the fieldlist pointed to by FIELDLIST.
+   or RECORD_TYPE pointed to by CONTEXT.  The new field is chained
+   to the end of the field list pointed to by *CHAIN.
 
    Returns a pointer to the new field.  */
 
-tree
-gfc_add_field_to_struct (tree *fieldlist, tree context,
-			 tree name, tree type)
+static tree
+gfc_add_field_to_struct_1 (tree context, tree name, tree type, tree **chain)
 {
-  tree decl;
-
-  decl = build_decl (input_location,
-		     FIELD_DECL, name, type);
+  tree decl = build_decl (input_location, FIELD_DECL, name, type);
 
   DECL_CONTEXT (decl) = context;
+  DECL_CHAIN (decl) = NULL_TREE;
+  if (TYPE_FIELDS (context) == NULL_TREE)
+    TYPE_FIELDS (context) = decl;
+  if (chain != NULL)
+    {
+      if (*chain != NULL)
+	**chain = decl;
+      *chain = &DECL_CHAIN (decl);
+    }
+
+  return decl;
+}
+
+/* Like `gfc_add_field_to_struct_1', but adds alignment
+   information.  */
+
+tree
+gfc_add_field_to_struct (tree context, tree name, tree type, tree **chain)
+{
+  tree decl = gfc_add_field_to_struct_1 (context, name, type, chain);
+
   DECL_INITIAL (decl) = 0;
   DECL_ALIGN (decl) = 0;
   DECL_USER_ALIGN (decl) = 0;
-  TREE_CHAIN (decl) = NULL_TREE;
-  *fieldlist = chainon (*fieldlist, decl);
 
   return decl;
 }
@@ -1882,8 +1885,8 @@ gfc_add_field_to_struct (tree *fieldlist, tree context,
    the two derived type symbols are "equal", as described
    in 4.4.2 and resolved by gfc_compare_derived_types.  */
 
-static int
-copy_dt_decls_ifequal (gfc_symbol *from, gfc_symbol *to,
+int
+gfc_copy_dt_decls_ifequal (gfc_symbol *from, gfc_symbol *to,
 		       bool from_gsym)
 {
   gfc_component *to_cm;
@@ -1948,8 +1951,9 @@ gfc_get_ppc_type (gfc_component* c)
 tree
 gfc_get_derived_type (gfc_symbol * derived)
 {
-  tree typenode = NULL, field = NULL, field_type = NULL, fieldlist = NULL;
+  tree typenode = NULL, field = NULL, field_type = NULL;
   tree canonical = NULL_TREE;
+  tree *chain = NULL;
   bool got_canonical = false;
   gfc_component *c;
   gfc_dt_list *dt;
@@ -1968,14 +1972,6 @@ gfc_get_derived_type (gfc_symbol * derived)
 	derived->backend_decl = ptr_type_node;
       else
 	derived->backend_decl = pfunc_type_node;
-
-      /* Create a backend_decl for the __c_ptr_c_address field.  */
-      derived->components->backend_decl =
-	gfc_add_field_to_struct (&(derived->backend_decl->type.values),
-				 derived->backend_decl,
-				 get_identifier (derived->components->name),
-				 gfc_typenode_for_spec (
-				   &(derived->components->ts)));
 
       derived->ts.kind = gfc_index_integer_kind;
       derived->ts.type = BT_INTEGER;
@@ -1999,9 +1995,11 @@ gfc_get_derived_type (gfc_symbol * derived)
 	  gfc_symbol *s;
 	  s = NULL;
 	  gfc_find_symbol (derived->name, gsym->ns, 0, &s);
-	  if (s && s->backend_decl)
+	  if (s)
 	    {
-	      copy_dt_decls_ifequal (s, derived, true);
+	      if (!s->backend_decl)
+		s->backend_decl = gfc_get_derived_type (s);
+	      gfc_copy_dt_decls_ifequal (s, derived, true);
 	      goto copy_derived_types;
 	    }
 	}
@@ -2021,7 +2019,7 @@ gfc_get_derived_type (gfc_symbol * derived)
 	  dt = ns->derived_types;
 	  for (; dt && !canonical; dt = dt->next)
 	    {
-	      copy_dt_decls_ifequal (dt->derived, derived, true);
+	      gfc_copy_dt_decls_ifequal (dt->derived, derived, true);
 	      if (derived->backend_decl)
 		got_canonical = true;
 	    }
@@ -2098,7 +2096,6 @@ gfc_get_derived_type (gfc_symbol * derived)
 
   /* Build the type member list. Install the newly created RECORD_TYPE
      node as DECL_CONTEXT of each FIELD_DECL.  */
-  fieldlist = NULL_TREE;
   for (c = derived->components; c; c = c->next)
     {
       if (c->attr.proc_pointer)
@@ -2145,8 +2142,14 @@ gfc_get_derived_type (gfc_symbol * derived)
 	       && !c->attr.proc_pointer)
 	field_type = build_pointer_type (field_type);
 
-      field = gfc_add_field_to_struct (&fieldlist, typenode,
-				       get_identifier (c->name), field_type);
+      /* vtype fields can point to different types to the base type.  */
+      if (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.vtype)
+	  field_type = build_pointer_type_for_mode (TREE_TYPE (field_type),
+						    ptr_mode, true);
+
+      field = gfc_add_field_to_struct (typenode,
+				       get_identifier (c->name),
+				       field_type, &chain);
       if (c->loc.lb)
 	gfc_set_decl_location (field, &c->loc);
       else if (derived->declared_at.lb)
@@ -2159,9 +2162,7 @@ gfc_get_derived_type (gfc_symbol * derived)
 	c->backend_decl = field;
     }
 
-  /* Now we have the final fieldlist.  Record it, then lay out the
-     derived type, including the fields.  */
-  TYPE_FIELDS (typenode) = fieldlist;
+  /* Now lay out the derived type, including the fields.  */
   if (canonical)
     TYPE_CANONICAL (typenode) = canonical;
 
@@ -2185,7 +2186,7 @@ gfc_get_derived_type (gfc_symbol * derived)
 copy_derived_types:
 
   for (dt = gfc_derived_types; dt; dt = dt->next)
-    copy_dt_decls_ifequal (derived, dt->derived, false);
+    gfc_copy_dt_decls_ifequal (derived, dt->derived, false);
 
   return derived->backend_decl;
 }
@@ -2224,8 +2225,7 @@ static tree
 gfc_get_mixed_entry_union (gfc_namespace *ns)
 {
   tree type;
-  tree decl;
-  tree fieldlist;
+  tree *chain = NULL;
   char name[GFC_MAX_SYMBOL_LEN + 1];
   gfc_entry_list *el, *el2;
 
@@ -2238,7 +2238,6 @@ gfc_get_mixed_entry_union (gfc_namespace *ns)
   type = make_node (UNION_TYPE);
 
   TYPE_NAME (type) = get_identifier (name);
-  fieldlist = NULL;
 
   for (el = ns->entries; el; el = el->next)
     {
@@ -2248,19 +2247,12 @@ gfc_get_mixed_entry_union (gfc_namespace *ns)
 	  break;
 
       if (el == el2)
-	{
-	  decl = build_decl (input_location,
-			     FIELD_DECL,
-			     get_identifier (el->sym->result->name),
-			     gfc_sym_type (el->sym->result));
-	  DECL_CONTEXT (decl) = type;
-	  fieldlist = chainon (fieldlist, decl);
-	}
+	gfc_add_field_to_struct_1 (type,
+				   get_identifier (el->sym->result->name),
+				   gfc_sym_type (el->sym->result), &chain);
     }
 
   /* Finish off the type.  */
-  TYPE_FIELDS (type) = fieldlist;
-
   gfc_finish_type (type);
   TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type)) = 1;
   return type;
@@ -2365,7 +2357,9 @@ gfc_get_function_type (gfc_symbol * sym)
     typelist = gfc_chainon_list (typelist, gfc_charlen_type_node);
 
   if (typelist)
-    typelist = gfc_chainon_list (typelist, void_type_node);
+    typelist = chainon (typelist, void_list_node);
+  else if (sym->attr.is_main_program)
+    typelist = void_list_node;
 
   if (alternate_return)
     type = integer_type_node;
@@ -2552,16 +2546,16 @@ gfc_get_array_descr_info (const_tree type, struct array_descr_info *info)
     elem_size = fold_convert (gfc_array_index_type, TYPE_SIZE_UNIT (etype));
   field = TYPE_FIELDS (TYPE_MAIN_VARIANT (type));
   data_off = byte_position (field);
-  field = TREE_CHAIN (field);
-  field = TREE_CHAIN (field);
-  field = TREE_CHAIN (field);
+  field = DECL_CHAIN (field);
+  field = DECL_CHAIN (field);
+  field = DECL_CHAIN (field);
   dim_off = byte_position (field);
   dim_size = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (field)));
   field = TYPE_FIELDS (TREE_TYPE (TREE_TYPE (field)));
   stride_suboff = byte_position (field);
-  field = TREE_CHAIN (field);
+  field = DECL_CHAIN (field);
   lower_suboff = byte_position (field);
-  field = TREE_CHAIN (field);
+  field = DECL_CHAIN (field);
   upper_suboff = byte_position (field);
 
   t = base_decl;

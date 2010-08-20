@@ -783,11 +783,9 @@ extern void link_block (basic_block, basic_block);
 extern void unlink_block (basic_block);
 extern void compact_blocks (void);
 extern basic_block alloc_block (void);
-extern void alloc_aux_for_block (basic_block, int);
 extern void alloc_aux_for_blocks (int);
 extern void clear_aux_for_blocks (void);
 extern void free_aux_for_blocks (void);
-extern void alloc_aux_for_edge (edge, int);
 extern void alloc_aux_for_edges (int);
 extern void clear_aux_for_edges (void);
 extern void free_aux_for_edges (void);
@@ -854,6 +852,8 @@ extern VEC (basic_block, heap) *get_dominated_by (enum cdi_direction, basic_bloc
 extern VEC (basic_block, heap) *get_dominated_by_region (enum cdi_direction,
 							 basic_block *,
 							 unsigned);
+extern VEC (basic_block, heap) *get_dominated_to_depth (enum cdi_direction,
+							basic_block, int);
 extern VEC (basic_block, heap) *get_all_dominated_blocks (enum cdi_direction,
 							  basic_block);
 extern void add_to_dominance_info (enum cdi_direction, basic_block);

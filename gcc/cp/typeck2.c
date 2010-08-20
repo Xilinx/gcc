@@ -737,7 +737,8 @@ store_init_value (tree decl, tree init, int flags)
 	}
       else
 	/* We get here with code like `int a (2);' */
-	init = build_x_compound_expr_from_list (init, ELK_INIT);
+	init = build_x_compound_expr_from_list (init, ELK_INIT,
+						tf_warning_or_error);
     }
 
   /* End of special C++ code.  */
@@ -1115,7 +1116,7 @@ process_init_constructor_record (tree type, tree init)
   /* Generally, we will always have an index for each initializer (which is
      a FIELD_DECL, put by reshape_init), but compound literals don't go trough
      reshape_init. So we need to handle both cases.  */
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
     {
       tree next;
       tree type;
@@ -1478,8 +1479,8 @@ build_m_component_ref (tree datum, tree component)
   if (error_operand_p (datum) || error_operand_p (component))
     return error_mark_node;
 
-  mark_lvalue_use (datum);
-  mark_rvalue_use (component);
+  datum = mark_lvalue_use (datum);
+  component = mark_rvalue_use (component);
 
   ptrmem_type = TREE_TYPE (component);
   if (!TYPE_PTR_TO_MEMBER_P (ptrmem_type))
@@ -1594,7 +1595,7 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
 	return cp_convert (type, integer_zero_node);
 
       /* This must build a C cast.  */
-      parms = build_x_compound_expr_from_list (parms, ELK_FUNC_CAST);
+      parms = build_x_compound_expr_from_list (parms, ELK_FUNC_CAST, complain);
       return cp_build_c_cast (type, parms, complain);
     }
 
@@ -1605,7 +1606,7 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
 
      then the slot being initialized will be filled in.  */
 
-  if (!complete_type_or_else (type, NULL_TREE))
+  if (!complete_type_or_maybe_complain (type, NULL_TREE, complain))
     return error_mark_node;
   if (abstract_virtuals_error (NULL_TREE, type))
     return error_mark_node;
@@ -1630,7 +1631,7 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
 	 just calling the constructor, so fall through.  */
       && !TYPE_HAS_USER_CONSTRUCTOR (type))
     {
-      exp = build_value_init (type);
+      exp = build_value_init (type, complain);
       return get_target_expr (exp);
     }
 

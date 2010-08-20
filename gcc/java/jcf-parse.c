@@ -34,6 +34,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "input.h"
 #include "javaop.h"
 #include "java-tree.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "parse.h"
 #include "ggc.h"
@@ -1570,7 +1571,7 @@ parse_class_file (void)
   gen_indirect_dispatch_tables (current_class);
 
   for (method = TYPE_METHODS (current_class);
-       method != NULL_TREE; method = TREE_CHAIN (method))
+       method != NULL_TREE; method = DECL_CHAIN (method))
     {
       JCF *jcf = current_jcf;
 

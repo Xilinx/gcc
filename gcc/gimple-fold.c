@@ -853,8 +853,11 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
 	  gsi_next (si_p);
 	}
       new_stmt = gsi_stmt (i);
-      find_new_referenced_vars (new_stmt);
-      mark_symbols_for_renaming (new_stmt);
+      if (gimple_in_ssa_p (cfun))
+	{
+	  find_new_referenced_vars (new_stmt);
+	  mark_symbols_for_renaming (new_stmt);
+	}
       /* If the new statement has a VUSE, update it with exact SSA name we
          know will reach this one.  */
       if (gimple_vuse (new_stmt))
@@ -892,7 +895,7 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
 	    SSA_NAME_DEF_STMT (gimple_vdef (stmt)) = laststore;
 	  update_stmt (laststore);
 	}
-      else
+      else if (gimple_in_ssa_p (cfun))
 	{
 	  unlink_stmt_vdef (stmt);
 	  release_defs (stmt);
@@ -1001,9 +1004,8 @@ get_maxval_strlen (tree arg, tree *length, bitmap visited, int type)
     }
 
   /* If we were already here, break the infinite cycle.  */
-  if (bitmap_bit_p (visited, SSA_NAME_VERSION (arg)))
+  if (!bitmap_set_bit (visited, SSA_NAME_VERSION (arg)))
     return true;
-  bitmap_set_bit (visited, SSA_NAME_VERSION (arg));
 
   var = arg;
   def_stmt = SSA_NAME_DEF_STMT (var);
@@ -1156,7 +1158,7 @@ gimple_fold_builtin (gimple stmt)
               fold_convert (TREE_TYPE (gimple_call_lhs (stmt)), val[0]);
 
 	  /* If the result is not a valid gimple value, or not a cast
-	     of a valid gimple value, then we can not use the result.  */
+	     of a valid gimple value, then we cannot use the result.  */
 	  if (is_gimple_val (new_val)
 	      || (is_gimple_cast (new_val)
 		  && is_gimple_val (TREE_OPERAND (new_val, 0))))
@@ -1351,6 +1353,7 @@ gimple_fold_obj_type_ref_known_binfo (HOST_WIDE_INT token, tree known_binfo)
 {
   HOST_WIDE_INT i;
   tree v, fndecl;
+  struct cgraph_node *node;
 
   v = BINFO_VIRTUALS (known_binfo);
   i = 0;
@@ -1362,6 +1365,14 @@ gimple_fold_obj_type_ref_known_binfo (HOST_WIDE_INT token, tree known_binfo)
     }
 
   fndecl = TREE_VALUE (v);
+  node = cgraph_get_node (fndecl);
+  /* When cgraph node is missing and function is not public, we cannot
+     devirtualize.  This can happen in WHOPR when the actual method
+     ends up in other partition, because we found devirtualization
+     possibility too late.  */
+  if ((!node || (!node->analyzed && !node->in_other_partition))
+      && (!TREE_PUBLIC (fndecl) || DECL_COMDAT (fndecl)))
+    return NULL;
   return build_fold_addr_expr (fndecl);
 }
 
@@ -1517,6 +1528,23 @@ fold_stmt_1 (gimple_stmt_iterator *gsi, bool inplace)
 	    {
 	      TREE_VALUE (link) = op;
 	      changed = true;
+	    }
+	}
+      break;
+
+    case GIMPLE_DEBUG:
+      if (gimple_debug_bind_p (stmt))
+	{
+	  tree val = gimple_debug_bind_get_value (stmt);
+	  if (val
+	      && REFERENCE_CLASS_P (val))
+	    {
+	      tree tem = maybe_fold_reference (val, false);
+	      if (tem)
+		{
+		  gimple_debug_bind_set_value (stmt, tem);
+		  changed = true;
+		}
 	    }
 	}
       break;

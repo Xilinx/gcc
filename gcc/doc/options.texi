@@ -1,4 +1,4 @@
-@c Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+@c Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -102,12 +102,20 @@ The option is available for all languages and targets.
 @item Target
 The option is available for all languages but is target-specific.
 
+@item Driver
+The option is handled by the compiler driver using code not shared
+with the compilers proper (@file{cc1} etc.).
+
 @item @var{language}
 The option is available when compiling for the given language.
 
 It is possible to specify several different languages for the same
 option.  Each @var{language} must have been declared by an earlier
 @code{Language} record.  @xref{Option file format}.
+
+@item RejectDriver
+The option is only handled by the compilers proper (@file{cc1} etc.)@:
+and should not be accepted by the driver.
 
 @item RejectNegative
 The option does not have a ``no-'' form.  All options beginning with
@@ -135,6 +143,14 @@ it will be part of the same @code{argv} entry as the option itself.
 
 This property cannot be used alongside @code{Joined} or @code{Separate}.
 
+@item MissingArgError(@var{message})
+For an option marked @code{Joined} or @code{Separate}, the message
+@var{message} will be used as an error message if the mandatory
+argument is missing; for options without @code{MissingArgError}, a
+generic error message is used.  @var{message} should contain a single
+@samp{%qs} format, which will be used to format the name of the option
+passed.
+
 @item UInteger
 The option's argument is a non-negative integer.  The option parser
 will check and convert the argument before passing it to the relevant
@@ -142,6 +158,12 @@ option handler.  @code{UInteger} should also be used on options like
 @code{-falign-loops} where both @code{-falign-loops} and
 @code{-falign-loops}=@var{n} are supported to make sure the saved
 options are given a full integer.
+
+@item NoDriverArg
+For an option marked @code{Separate}, the option only takes an
+argument in the compiler proper, not in the driver.  This is for
+compatibility with existing options that are used both directly and
+via @option{-Wp,}; new options should not have this property.
 
 @item Var(@var{var})
 The state of this option should be stored in variable @var{var}.

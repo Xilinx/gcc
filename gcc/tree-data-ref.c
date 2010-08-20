@@ -1452,7 +1452,14 @@ initialize_data_dependence_relation (struct data_reference *a,
       return res;
     }
 
-  gcc_assert (DR_NUM_DIMENSIONS (a) == DR_NUM_DIMENSIONS (b));
+  /* If the number of dimensions of the access to not agree we can have
+     a pointer access to a component of the array element type and an
+     array access while the base-objects are still the same.  Punt.  */
+  if (DR_NUM_DIMENSIONS (a) != DR_NUM_DIMENSIONS (b))
+    {
+      DDR_ARE_DEPENDENT (res) = chrec_dont_know;
+      return res;
+    }
 
   DDR_AFFINE_P (res) = true;
   DDR_ARE_DEPENDENT (res) = NULL_TREE;
@@ -5027,6 +5034,32 @@ stores_from_loop (struct loop *loop, VEC (gimple, heap) **stmts)
 	if (gimple_vdef (gsi_stmt (bsi)))
 	  VEC_safe_push (gimple, heap, *stmts, gsi_stmt (bsi));
     }
+
+  free (bbs);
+}
+
+/* Initialize STMTS with all the statements of LOOP that contain a
+   store to memory of the form "A[i] = 0".  */
+
+void
+stores_zero_from_loop (struct loop *loop, VEC (gimple, heap) **stmts)
+{
+  unsigned int i;
+  basic_block bb;
+  gimple_stmt_iterator si;
+  gimple stmt;
+  tree op;
+  basic_block *bbs = get_loop_body_in_dom_order (loop);
+
+  for (i = 0; i < loop->num_nodes; i++)
+    for (bb = bbs[i], si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
+      if ((stmt = gsi_stmt (si))
+	  && gimple_vdef (stmt)
+	  && is_gimple_assign (stmt)
+	  && gimple_assign_rhs_code (stmt) == INTEGER_CST
+	  && (op = gimple_assign_rhs1 (stmt))
+	  && (integer_zerop (op) || real_zerop (op)))
+	VEC_safe_push (gimple, heap, *stmts, gsi_stmt (si));
 
   free (bbs);
 }

@@ -1,3 +1,72 @@
+2010-08-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (MD_, MMD_, version): Mark RejectDriver.
+
+2010-08-05  David Daney  <ddaney@caviumnetworks.com>
+
+	* class.c (build_utf8_ref): Fix code formatting from previous commit.
+
+2010-08-05  David Daney  <ddaney@caviumnetworks.com>
+
+	* class.c (build_utf8_ref): Make decl DECL_USER_ALIGN.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.c (java_handle_option): Update prototype and return value
+	type.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.c (java_option_lang_mask): New.
+	(java_init_options): Update prototype.
+	(LANG_HOOKS_OPTION_LANG_MASK): Define.
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* java-tree.h: Carefully replace TREE_CHAIN with DECL_CHAIN.
+	* boehm.c: Likewise.
+	* class.c: Likewise.
+	* decl.c: Likewise.
+	* expr.c: Likewise.
+	* jcf-parse.c: Likewise.
+	* typeck.c: Likewise.
+	* verify-glue.c: Likewise.
+
+2010-07-08  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* boehm.c: Include diagnostic-core.h in every file that includes
+	toplev.h.
+	* class.c: Likewise.
+	* constants.c: Likewise.
+	* decl.c: Likewise.
+	* except.c: Likewise.
+	* expr.c: Likewise.
+	* jcf-parse.c: Likewise.
+	* mangle.c: Likewise.
+	* mangle_name.c: Likewise.
+	* resource.c: Likewise.
+	* typeck.c: Likewise.
+	* verify-glue.c: Likewise.
+
+2010-07-05  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR bootstrap/44825
+	* class.c (make_class_data): Cast result of VEC_length calls to int.
+
+2010-07-05  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* constants.c (build_constants_constructor): Use build_constructor
+	instead of build_constructor_from_list.
+	* class.c (make_method_value): Likewise.
+	(get_dispatch_table): Likewise.
+	(make_class_data): Likewise.
+	(emit_indirect_register_classes): Likewise.
+	(emit_symbol_table): Likewise.
+	(add_assertion_table_entry): Likewise.
+	(emit_assertion_table): Likewise.
+	(make_field_value): Use build_constructor_single instead of
+	build_constructor_from_list.
+
 2010-06-28  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* java-tree.h (struct lang_type) [catch_classes]: Change type to a

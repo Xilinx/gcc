@@ -150,7 +150,7 @@ DEFHOOK
 (unwind_emit,
  "",
  void, (FILE *stream, rtx insn),
- default_unwind_emit)
+ NULL)
 
 /* Output an internal label.  */
 DEFHOOK
@@ -403,6 +403,23 @@ DEFHOOK
  "",
  void, (FILE *f),
  NULL)
+
+DEFHOOK
+(output_source_filename,
+ "Output COFF information or DWARF debugging information which indicates\
+ that filename @var{name} is the current source file to the stdio\
+ stream @var{file}.\n\
+ \n\
+ This target hook need not be defined if the standard form of output\
+ for the file format in use is appropriate.",
+ void ,(FILE *file, const char *name),
+ default_asm_output_source_filename)
+
+DEFHOOK
+(output_addr_const_extra,
+ "",
+ bool, (FILE *file, rtx x),
+ default_asm_output_addr_const_extra)
 
 /* ??? The TARGET_PRINT_OPERAND* hooks are part of the asm_out struct,
    even though that is not reflected in the macro name to override their
@@ -789,11 +806,13 @@ DEFHOOK
  "",
  tree, (tree x), NULL)
 
-/* Cost of different vector/scalar statements in vectorization cost model.  */
+/* Cost of different vector/scalar statements in vectorization cost
+   model. In case of misaligned vector loads and stores the cost depends
+   on the data type and misalignment value.  */
 DEFHOOK
 (builtin_vectorization_cost,
  "",
- int, (enum vect_cost_for_stmt type_of_cost),
+ int, (enum vect_cost_for_stmt type_of_cost, tree vectype, int misalign),
  default_builtin_vectorization_cost)
 
 /* Return true if vector alignment is reachable (by peeling N
@@ -1215,6 +1234,15 @@ DEFHOOK
  "",
  bool, (const_tree exp),
  default_binds_local_p)
+
+/* Check if profiling code is before or after prologue.  */
+DEFHOOK
+(profile_before_prologue,
+ "It returns true if target wants profile code emitted before prologue.\n\n\
+The default version of this hook use the target macro\n\
+@code{PROFILE_BEFORE_PROLOGUE}.",
+ bool, (void),
+ default_profile_before_prologue)
 
 /* Modify and return the identifier of a DECL's external name,
    originally identified by ID, as required by the target,
@@ -1760,7 +1788,7 @@ DEFHOOK_UNDOC
 DEFHOOK_UNDOC
 (function_arg,
  "",
- rtx, (const CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
+ rtx, (CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
        bool named),
  default_function_arg)
 
@@ -1770,7 +1798,7 @@ DEFHOOK_UNDOC
 DEFHOOK_UNDOC
 (function_incoming_arg,
  "",
- rtx, (const CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
+ rtx, (CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
        bool named),
  default_function_incoming_arg)
 
@@ -2333,6 +2361,13 @@ DEFHOOKPOD
 DEFHOOKPOD
 (arm_eabi_unwinder,
  "",
+ bool, false)
+
+DEFHOOKPOD
+(want_debug_pub_sections,
+ "True if the @code{.debug_pubtypes} and @code{.debug_pubnames} sections\
+ should be emitted.  These sections are not used on most platforms, and\
+ in particular GDB does not use them.",
  bool, false)
 
 /* Leave the boolean fields at the end.  */

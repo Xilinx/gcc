@@ -855,9 +855,8 @@ bitmap_set_replace_value (bitmap_set_t set, unsigned int lookfor,
   exprset = VEC_index (bitmap_set_t, value_expressions, lookfor);
   FOR_EACH_EXPR_ID_IN_SET (exprset, i, bi)
     {
-      if (bitmap_bit_p (&set->expressions, i))
+      if (bitmap_clear_bit (&set->expressions, i))
 	{
-	  bitmap_clear_bit (&set->expressions, i);
 	  bitmap_set_bit (&set->expressions, get_expression_id (expr));
 	  return;
 	}
@@ -1955,7 +1954,10 @@ bitmap_find_leader (bitmap_set_t set, unsigned int val, gimple stmt)
 	      gimple def_stmt = SSA_NAME_DEF_STMT (PRE_EXPR_NAME (val));
 	      if (gimple_code (def_stmt) != GIMPLE_PHI
 		  && gimple_bb (def_stmt) == gimple_bb (stmt)
-		  && gimple_uid (def_stmt) >= gimple_uid (stmt))
+		  /* PRE insertions are at the end of the basic-block
+		     and have UID 0.  */
+		  && (gimple_uid (def_stmt) == 0
+		      || gimple_uid (def_stmt) >= gimple_uid (stmt)))
 		continue;
 	    }
 	  return val;
@@ -2770,8 +2772,6 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
       break;
     case TARGET_MEM_REF:
       {
-	vn_reference_op_t nextop = VEC_index (vn_reference_op_s, ref->operands,
-					      *operand);
 	pre_expr op0expr;
 	tree genop0 = NULL_TREE;
 	tree baseop = create_component_ref_by_pieces_1 (block, ref, operand,
@@ -2787,15 +2787,13 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	      return NULL_TREE;
 	  }
 	if (DECL_P (baseop))
-	  return build6 (TARGET_MEM_REF, currop->type,
+	  return build5 (TARGET_MEM_REF, currop->type,
 			 baseop, NULL_TREE,
-			 genop0, currop->op1, currop->op2,
-			 unshare_expr (nextop->op1));
+			 genop0, currop->op1, currop->op2);
 	else
-	  return build6 (TARGET_MEM_REF, currop->type,
+	  return build5 (TARGET_MEM_REF, currop->type,
 			 NULL_TREE, baseop,
-			 genop0, currop->op1, currop->op2,
-			 unshare_expr (nextop->op1));
+			 genop0, currop->op1, currop->op2);
       }
       break;
     case ADDR_EXPR:
@@ -2820,7 +2818,6 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	return folded;
       }
       break;
-    case ALIGN_INDIRECT_REF:
     case MISALIGNED_INDIRECT_REF:
       {
 	tree folded;
@@ -3021,9 +3018,10 @@ find_or_generate_expression (basic_block block, pre_expr expr,
     }
 
   /* If it's still NULL, it must be a complex expression, so generate
-     it recursively.  Not so for FRE though.  */
+     it recursively.  Not so if inserting expressions for values generated
+     by SCCVN.  */
   if (genop == NULL
-      && !in_fre)
+      && !domstmt)
     {
       bitmap_set_t exprset;
       unsigned int lookfor = get_expr_value_id (expr);
@@ -4737,8 +4735,7 @@ init_pre (bool do_fre)
   postorder = XNEWVEC (int, n_basic_blocks - NUM_FIXED_BLOCKS);
   my_rev_post_order_compute (postorder, false);
 
-  FOR_ALL_BB (bb)
-    bb->aux = XCNEWVEC (struct bb_bitmap_sets, 1);
+  alloc_aux_for_blocks (sizeof (struct bb_bitmap_sets));
 
   calculate_dominance_info (CDI_POST_DOMINATORS);
   calculate_dominance_info (CDI_DOMINATORS);
@@ -4770,8 +4767,6 @@ init_pre (bool do_fre)
 static void
 fini_pre (bool do_fre)
 {
-  basic_block bb;
-
   free (postorder);
   VEC_free (bitmap_set_t, heap, value_expressions);
   BITMAP_FREE (inserted_exprs);
@@ -4783,11 +4778,7 @@ fini_pre (bool do_fre)
   htab_delete (expression_to_id);
   VEC_free (unsigned, heap, name_to_id);
 
-  FOR_ALL_BB (bb)
-    {
-      free (bb->aux);
-      bb->aux = NULL;
-    }
+  free_aux_for_blocks ();
 
   free_dominance_info (CDI_POST_DOMINATORS);
 

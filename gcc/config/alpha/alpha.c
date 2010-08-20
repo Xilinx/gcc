@@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "obstack.h"
 #include "except.h"
 #include "function.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "ggc.h"
 #include "integrate.h"
@@ -214,6 +215,11 @@ alpha_handle_option (size_t code, const char *arg, int value)
 {
   switch (code)
     {
+    case OPT_G:
+      g_switch_value = value;
+      g_switch_set = true;
+      break;
+
     case OPT_mfp_regs:
       if (value == 0)
 	target_flags |= MASK_SOFT_FP;
@@ -1584,10 +1590,10 @@ alpha_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 	  if (in_p)
 	    {
 	      if (!aligned_memory_operand (x, mode))
-		sri->icode = reload_in_optab[mode];
+		sri->icode = direct_optab_handler (reload_in_optab, mode);
 	    }
 	  else
-	    sri->icode = reload_out_optab[mode];
+	    sri->icode = direct_optab_handler (reload_out_optab, mode);
 	  return NO_REGS;
 	}
     }
@@ -5943,13 +5949,17 @@ alpha_build_builtin_va_list (void)
 		    FIELD_DECL, get_identifier ("__offset"),
 		    integer_type_node);
   DECL_FIELD_CONTEXT (ofs) = record;
-  TREE_CHAIN (ofs) = space;
+  DECL_CHAIN (ofs) = space;
+  /* ??? This is a hack, __offset is marked volatile to prevent
+     DCE that confuses stdarg optimization and results in
+     gcc.c-torture/execute/stdarg-1.c failure.  See PR 41089.  */
+  TREE_THIS_VOLATILE (ofs) = 1;
 
   base = build_decl (BUILTINS_LOCATION,
 		     FIELD_DECL, get_identifier ("__base"),
 		     ptr_type_node);
   DECL_FIELD_CONTEXT (base) = record;
-  TREE_CHAIN (base) = ofs;
+  DECL_CHAIN (base) = ofs;
 
   TYPE_FIELDS (record) = base;
   layout_type (record);
@@ -6303,7 +6313,7 @@ alpha_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   else
     {
       base_field = TYPE_FIELDS (TREE_TYPE (valist));
-      offset_field = TREE_CHAIN (base_field);
+      offset_field = DECL_CHAIN (base_field);
 
       base_field = build3 (COMPONENT_REF, TREE_TYPE (base_field),
 			   valist, base_field, NULL_TREE);
@@ -6407,7 +6417,7 @@ alpha_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
     return std_gimplify_va_arg_expr (valist, type, pre_p, post_p);
 
   base_field = TYPE_FIELDS (va_list_type_node);
-  offset_field = TREE_CHAIN (base_field);
+  offset_field = DECL_CHAIN (base_field);
   base_field = build3 (COMPONENT_REF, TREE_TYPE (base_field),
 		       valist, base_field, NULL_TREE);
   offset_field = build3 (COMPONENT_REF, TREE_TYPE (offset_field),

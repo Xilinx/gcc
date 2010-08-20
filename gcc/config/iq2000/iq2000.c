@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "optabs.h"
 #include "libfuncs.h"
 #include "recog.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "reload.h"
 #include "ggc.h"
@@ -1273,7 +1274,7 @@ function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, const_tree type,
 	{
 	  tree field;
 
-	  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+	  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
 	    if (TREE_CODE (field) == FIELD_DECL
 		&& TREE_CODE (TREE_TYPE (field)) == REAL_TYPE
 		&& TYPE_PRECISION (TREE_TYPE (field)) == BITS_PER_WORD
@@ -1310,7 +1311,7 @@ function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, const_tree type,
 		{
 		  rtx reg;
 
-		  for (; field; field = TREE_CHAIN (field))
+		  for (; field; field = DECL_CHAIN (field))
 		    if (TREE_CODE (field) == FIELD_DECL
 			&& int_bit_position (field) >= bitpos)
 		      break;
@@ -1900,7 +1901,7 @@ iq2000_expand_prologue (void)
 					      PARM_DECL, NULL_TREE, type);
 
       DECL_ARG_TYPE (function_result_decl) = type;
-      TREE_CHAIN (function_result_decl) = fnargs;
+      DECL_CHAIN (function_result_decl) = fnargs;
       fnargs = function_result_decl;
     }
 
@@ -1929,7 +1930,7 @@ iq2000_expand_prologue (void)
       entry_parm = FUNCTION_ARG (args_so_far, passed_mode, passed_type, 1);
 
       FUNCTION_ARG_ADVANCE (args_so_far, passed_mode, passed_type, 1);
-      next_arg = TREE_CHAIN (cur_arg);
+      next_arg = DECL_CHAIN (cur_arg);
 
       if (entry_parm && store_args_on_stack)
 	{
@@ -1995,9 +1996,7 @@ iq2000_expand_prologue (void)
   /* If this function is a varargs function, store any registers that
      would normally hold arguments ($4 - $7) on the stack.  */
   if (store_args_on_stack
-      && ((TYPE_ARG_TYPES (fntype) != 0
-	   && (TREE_VALUE (tree_last (TYPE_ARG_TYPES (fntype)))
-	       != void_type_node))
+      && (stdarg_p (fntype)
 	  || last_arg_is_vararg_marker))
     {
       int offset = (regno - GP_ARG_FIRST) * UNITS_PER_WORD;

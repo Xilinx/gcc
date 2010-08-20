@@ -62,10 +62,10 @@ extern bool hook_pass_by_reference_must_pass_in_stack
 extern bool hook_callee_copies_named
   (CUMULATIVE_ARGS *ca, enum machine_mode, const_tree, bool);
 
-extern void default_unwind_emit (FILE *, rtx);
 extern void default_print_operand (FILE *, rtx, int);
 extern void default_print_operand_address (FILE *, rtx);
 extern bool default_print_operand_punct_valid_p (unsigned char);
+extern bool default_asm_output_addr_const_extra (FILE *, rtx);
 
 extern bool default_scalar_mode_supported_p (enum machine_mode);
 extern bool default_decimal_float_supported_p (void);
@@ -77,7 +77,7 @@ extern tree default_builtin_vectorized_function (tree, tree, tree);
 
 extern tree default_builtin_vectorized_conversion (unsigned int, tree, tree);
 
-extern int default_builtin_vectorization_cost (enum vect_cost_for_stmt);
+extern int default_builtin_vectorization_cost (enum vect_cost_for_stmt, tree, int);
 
 extern tree default_builtin_reciprocal (unsigned int, bool, bool);
 
@@ -104,9 +104,9 @@ extern const char *hook_invalid_arg_for_unprototyped_fn
 extern void default_function_arg_advance
   (CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
 extern rtx default_function_arg
-  (const CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
+  (CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
 extern rtx default_function_incoming_arg
-  (const CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
+  (CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
 extern bool hook_bool_const_rtx_commutative_p (const_rtx, int);
 extern rtx default_function_value (const_tree, const_tree, bool);
 extern rtx default_libcall_value (enum machine_mode, const_rtx);
@@ -151,3 +151,4 @@ extern int default_memory_move_cost (enum machine_mode, reg_class_t, bool);
 extern int default_register_move_cost (enum machine_mode, reg_class_t,
 				       reg_class_t);
 
+extern bool default_profile_before_prologue (void);

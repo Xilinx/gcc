@@ -30,6 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "flags.h"
 #include "tm_p.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "hashtab.h"
 #include "langhooks.h"
@@ -722,7 +723,7 @@ i386_pe_file_end (void)
       drectve_section ();
       for (q = export_head; q != NULL; q = q->next)
 	{
-	  fprintf (asm_out_file, "\t.ascii \" -export:%s%s\"\n",
+	  fprintf (asm_out_file, "\t.ascii \" -export:\\\"%s\\\"%s\"\n",
 		   default_strip_name_encoding (q->name),
 		   (q->is_data ? ",data" : ""));
 	}

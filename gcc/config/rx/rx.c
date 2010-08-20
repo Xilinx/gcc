@@ -40,6 +40,7 @@
 #include "optabs.h"
 #include "libfuncs.h"
 #include "recog.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "reload.h"
 #include "df.h"
@@ -2129,7 +2130,6 @@ rx_handle_option (size_t code, const char *  arg ATTRIBUTE_UNUSED, int value)
       return value >= 0 && value <= 4;
 
     case OPT_mcpu_:
-    case OPT_patch_:
       if (strcasecmp (arg, "RX610") == 0)
 	rx_cpu_type = RX610;
       else if (strcasecmp (arg, "RX200") == 0)
@@ -2187,6 +2187,14 @@ rx_set_optimization_options (void)
       if (saved_allow_rx_fpu != ALLOW_RX_FPU_INSNS)
 	error ("Changing the FPU insns/math optimizations pairing is not supported");
     }
+}
+
+static void
+rx_option_override (void)
+{
+  /* This target defaults to strict volatile bitfields.  */
+  if (flag_strict_volatile_bitfields < 0)
+    flag_strict_volatile_bitfields = 1;
 }
 
 
@@ -2776,6 +2784,9 @@ rx_memory_move_cost (enum machine_mode mode, enum reg_class regclass, bool in)
 
 #undef  TARGET_MEMORY_MOVE_COST
 #define TARGET_MEMORY_MOVE_COST			rx_memory_move_cost
+
+#undef  TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE			rx_option_override
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

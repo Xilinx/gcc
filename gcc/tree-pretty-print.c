@@ -71,7 +71,7 @@ do_niy (pretty_printer *buffer, const_tree node)
 	}
     }
 
-  pp_string (buffer, " >>>\n");
+  pp_string (buffer, " >>>");
 }
 
 /* Debugging function to print out a generic expression.  */
@@ -757,6 +757,8 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	  pp_string (buffer, str);
 	  if (TYPE_NAME (node) && DECL_NAME (TYPE_NAME (node)))
 	    dump_decl_name (buffer, TYPE_NAME (node), flags);
+	  else if (flags & TDF_NOUID)
+	    pp_printf (buffer, "<Txxxx>");
 	  else
 	    pp_printf (buffer, "<T%x>", TYPE_UID (node));
 
@@ -828,7 +830,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	    pp_string (buffer, "MEM[");
 	    pp_string (buffer, "(");
 	    dump_generic_node (buffer, TREE_TYPE (TREE_OPERAND (node, 1)),
-			       spc, flags, false);
+			       spc, flags | TDF_SLIM, false);
 	    pp_string (buffer, ")");
 	    dump_generic_node (buffer, TREE_OPERAND (node, 0),
 			       spc, flags, false);
@@ -891,13 +893,6 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	    dump_generic_node (buffer, tmp, spc, flags, false);
 	  }
 	pp_string (buffer, "]");
-	if (flags & TDF_DETAILS)
-	  {
-	    pp_string (buffer, "{");
-	    dump_generic_node (buffer, TMR_ORIGINAL (node), spc, flags,
-			       false);
-	    pp_string (buffer, "}");
-	  }
       }
       break;
 
@@ -1081,6 +1076,8 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	}
       if (TYPE_NAME (node) && DECL_NAME (TYPE_NAME (node)))
 	dump_decl_name (buffer, TYPE_NAME (node), flags);
+      else if (flags & TDF_NOUID)
+	pp_printf (buffer, "<Txxxx>");
       else
 	pp_printf (buffer, "<T%x>", TYPE_UID (node));
       dump_function_declaration (buffer, node, spc, flags);
@@ -1113,7 +1110,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	}
       if (DECL_NAME (node))
 	dump_decl_name (buffer, node, flags);
-      else
+      else if (TYPE_NAME (TREE_TYPE (node)) != node)
 	{
 	  if ((TREE_CODE (TREE_TYPE (node)) == RECORD_TYPE
 	       || TREE_CODE (TREE_TYPE (node)) == UNION_TYPE)
@@ -1132,6 +1129,8 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	      dump_generic_node (buffer, TREE_TYPE (node), spc, flags, false);
 	    }
 	}
+      else
+	pp_string (buffer, "<anon>");
       break;
 
     case VAR_DECL:
@@ -1426,7 +1425,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	    {
 	      pp_newline (buffer);
 
-	      for (op0 = BIND_EXPR_VARS (node); op0; op0 = TREE_CHAIN (op0))
+	      for (op0 = BIND_EXPR_VARS (node); op0; op0 = DECL_CHAIN (op0))
 		{
 		  print_declaration (buffer, op0, spc+2, flags);
 		  pp_newline (buffer);
@@ -1586,7 +1585,6 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
     case ADDR_EXPR:
     case PREDECREMENT_EXPR:
     case PREINCREMENT_EXPR:
-    case ALIGN_INDIRECT_REF:
     case MISALIGNED_INDIRECT_REF:
     case INDIRECT_REF:
       if (TREE_CODE (node) == ADDR_EXPR
@@ -2311,7 +2309,7 @@ print_declaration (pretty_printer *buffer, tree t, int spc, int flags)
     pp_string (buffer, "static ");
 
   /* Print the type and name.  */
-  if (TREE_CODE (TREE_TYPE (t)) == ARRAY_TYPE)
+  if (TREE_TYPE (t) && TREE_CODE (TREE_TYPE (t)) == ARRAY_TYPE)
     {
       tree tmp;
 
@@ -2427,7 +2425,7 @@ print_struct_decl (pretty_printer *buffer, const_tree node, int spc, int flags)
 	    print_declaration (buffer, tmp, spc+2, flags);
 	    pp_newline (buffer);
 	  }
-	tmp = TREE_CHAIN (tmp);
+	tmp = DECL_CHAIN (tmp);
       }
   }
   INDENT (spc);
@@ -2549,7 +2547,6 @@ op_code_prio (enum tree_code code)
     case PREINCREMENT_EXPR:
     case PREDECREMENT_EXPR:
     case NEGATE_EXPR:
-    case ALIGN_INDIRECT_REF:
     case MISALIGNED_INDIRECT_REF:
     case INDIRECT_REF:
     case ADDR_EXPR:
@@ -2719,9 +2716,6 @@ op_symbol_code (enum tree_code code)
     case MULT_EXPR:
     case INDIRECT_REF:
       return "*";
-
-    case ALIGN_INDIRECT_REF:
-      return "A*";
 
     case MISALIGNED_INDIRECT_REF:
       return "M*";

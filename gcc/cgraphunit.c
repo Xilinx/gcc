@@ -210,15 +210,15 @@ build_cdtor (bool ctor_p, tree *cdtors, size_t len)
       do
 	{
 	  priority_type p;
+	  tree call;
 	  fn = cdtors[i];
 	  p = ctor_p ? DECL_INIT_PRIORITY (fn) : DECL_FINI_PRIORITY (fn);
 	  if (!body)
 	    priority = p;
 	  else if (p != priority)
 	    break;
-	  append_to_statement_list (build_function_call_expr (UNKNOWN_LOCATION,
-							      fn, 0),
-				    &body);
+	  call = build_call_expr (fn, 0);
+	  append_to_statement_list (call, &body);
 	  ++i;
 	}
       while (i < len);
@@ -570,6 +570,42 @@ clone_of_p (struct cgraph_node *node, struct cgraph_node *node2)
 }
 #endif
 
+/* Verify edge E count and frequency.  */
+
+static bool
+verify_edge_count_and_frequency (struct cgraph_edge *e)
+{
+  bool error_found = false;
+  if (e->count < 0)
+    {
+      error ("caller edge count is negative");
+      error_found = true;
+    }
+  if (e->frequency < 0)
+    {
+      error ("caller edge frequency is negative");
+      error_found = true;
+    }
+  if (e->frequency > CGRAPH_FREQ_MAX)
+    {
+      error ("caller edge frequency is too large");
+      error_found = true;
+    }
+  if (gimple_has_body_p (e->caller->decl)
+      && !e->caller->global.inlined_to
+      && (e->frequency
+	  != compute_call_stmt_bb_frequency (e->caller->decl,
+					     gimple_bb (e->call_stmt))))
+    {
+      error ("caller edge frequency %i does not match BB freqency %i",
+	     e->frequency,
+	     compute_call_stmt_bb_frequency (e->caller->decl,
+					     gimple_bb (e->call_stmt)));
+      error_found = true;
+    }
+  return error_found;
+}
+
 /* Verify cgraph nodes of given cgraph node.  */
 DEBUG_FUNCTION void
 verify_cgraph_node (struct cgraph_node *node)
@@ -635,33 +671,8 @@ verify_cgraph_node (struct cgraph_node *node)
     }
   for (e = node->callers; e; e = e->next_caller)
     {
-      if (e->count < 0)
-	{
-	  error ("caller edge count is negative");
-	  error_found = true;
-	}
-      if (e->frequency < 0)
-	{
-	  error ("caller edge frequency is negative");
-	  error_found = true;
-	}
-      if (e->frequency > CGRAPH_FREQ_MAX)
-	{
-	  error ("caller edge frequency is too large");
-	  error_found = true;
-	}
-      if (gimple_has_body_p (e->caller->decl)
-          && !e->caller->global.inlined_to
-          && (e->frequency
-	      != compute_call_stmt_bb_frequency (e->caller->decl,
-						 gimple_bb (e->call_stmt))))
-	{
-	  error ("caller edge frequency %i does not match BB freqency %i",
-	  	 e->frequency,
-		 compute_call_stmt_bb_frequency (e->caller->decl,
-						 gimple_bb (e->call_stmt)));
-	  error_found = true;
-	}
+      if (verify_edge_count_and_frequency (e))
+	error_found = true;
       if (!e->inline_failed)
 	{
 	  if (node->global.inlined_to
@@ -684,6 +695,9 @@ verify_cgraph_node (struct cgraph_node *node)
 	    error_found = true;
 	  }
     }
+  for (e = node->indirect_calls; e; e = e->next_callee)
+    if (verify_edge_count_and_frequency (e))
+      error_found = true;
   if (!node->callers && node->global.inlined_to)
     {
       error ("inlined_to pointer is set but no predecessors found");
@@ -1520,14 +1534,14 @@ assemble_thunk (struct cgraph_node *node)
 	  if (!is_gimple_reg_type (restype))
 	    {
 	      restmp = resdecl;
-	      cfun->local_decls = tree_cons (NULL_TREE, restmp, cfun->local_decls);
+	      add_local_decl (cfun, restmp);
 	      BLOCK_VARS (DECL_INITIAL (current_function_decl)) = restmp;
 	    }
 	  else
             restmp = create_tmp_var_raw (restype, "retval");
 	}
 
-      for (arg = a; arg; arg = TREE_CHAIN (arg))
+      for (arg = a; arg; arg = DECL_CHAIN (arg))
         nargs++;
       vargs = VEC_alloc (tree, heap, nargs);
       if (this_adjusting)
@@ -1537,7 +1551,7 @@ assemble_thunk (struct cgraph_node *node)
 				      virtual_offset));
       else
         VEC_quick_push (tree, vargs, a);
-      for (i = 1, arg = TREE_CHAIN (a); i < nargs; i++, arg = TREE_CHAIN (arg))
+      for (i = 1, arg = DECL_CHAIN (a); i < nargs; i++, arg = DECL_CHAIN (arg))
         VEC_quick_push (tree, vargs, arg);
       call = gimple_build_call_vec (build_fold_addr_expr_loc (0, alias), vargs);
       VEC_free (tree, heap, vargs);
@@ -2017,7 +2031,7 @@ cgraph_build_static_cdtor (char which, tree body, int priority)
   name = get_file_function_name (which_buf);
 
   decl = build_decl (input_location, FUNCTION_DECL, name,
-		     build_function_type (void_type_node, void_list_node));
+		     build_function_type_list (void_type_node, NULL_TREE));
   current_function_decl = decl;
 
   resdecl = build_decl (input_location,
@@ -2064,13 +2078,16 @@ cgraph_build_static_cdtor (char which, tree body, int priority)
 
   cgraph_add_new_function (decl, false);
   cgraph_mark_needed_node (cgraph_node (decl));
+
   set_cfun (NULL);
+  current_function_decl = NULL;
 }
 
 void
 init_cgraph (void)
 {
-  cgraph_dump_file = dump_begin (TDI_cgraph, NULL);
+  if (!cgraph_dump_file)
+    cgraph_dump_file = dump_begin (TDI_cgraph, NULL);
 }
 
 /* The edges representing the callers of the NEW_VERSION node were
@@ -2345,14 +2362,18 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
   struct cgraph_node *node;
 #endif
 
-  if (!decl || decl == e->callee->decl
+  if (e->indirect_unknown_callee
+      || decl == e->callee->decl
       /* Don't update call from same body alias to the real function.  */
-      || cgraph_get_node (decl) == cgraph_get_node (e->callee->decl))
+      || (decl && cgraph_get_node (decl) == cgraph_get_node (e->callee->decl)))
     return e->call_stmt;
 
 #ifdef ENABLE_CHECKING
-  node = cgraph_get_node (decl);
-  gcc_assert (!node || !node->clone.combined_args_to_skip);
+  if (decl)
+    {
+      node = cgraph_get_node (decl);
+      gcc_assert (!node || !node->clone.combined_args_to_skip);
+    }
 #endif
 
   if (cgraph_dump_file)

@@ -1,3 +1,661 @@
+2010-08-18  Kostya Serebryany <kcc@google.com>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45276
+	* doc/xml/manual/debug.xml ([debug.races]): Add.
+
+2010-08-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45300
+	* include/c_std/cwchar: Replace 'restrict' -> '__restrict'.
+	* include/c_global/cwchar: Likewise.
+
+2010-08-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45300
+	* include/c_std/cstdlib: Replace 'restrict' -> '__restrict'.
+	* include/c_std/cstdio: Likewise.
+	* include/c_global/cstdlib: Likewise.
+	* include/c_global/cstdio: Likewise.
+
+2010-08-16  Chris Moller  <cmoller@redhat.com>
+
+	http://sourceware.org/bugzilla/show_bug.cgi?id=11874
+	* python/libstdcxx/v6/printers.py (StdVectorPrinter): Added stuff
+	to handle pretty-printing of std::vector<bool>.
+
+2010-08-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/45283
+	* testsuite/performance/30_threads/future/polling.cc: Replace calls to
+	shared_future::is_ready.
+
+2010-08-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/hashtable.h (_Hashtable<>::operator=(const
+	_Hashtable&)): Move inline.
+	(operator=(_Hashtable&&)): Define.
+	* include/bits/unordered_map.h (unordered_map(unordered_map&&),
+	unordered_map(const unordered_map&), unordered_multimap
+	(unordered_multimap&&), unordered_multimap(const unordered_multimap&),
+	__unordered_map(__unordered_map&&), __unordered_map(const
+	__unordered_map&), __unordered_multimap(__unordered_multimap&&),
+	__unordered_multimap(const __unordered_multimap&)): Do not define,
+	leave implicit.
+	* include/bits/unordered_set.h (unordered_set(unordered_set&&),
+	unordered_set(const unordered_set&), unordered_multiset
+	(unordered_multiset&&), unordered_multiset(const unordered_multiset&),
+	__unordered_set(__unordered_set&&), __unordered_set(const
+	__unordered_set&), __unordered_multiset(__unordered_multiset&&),
+	__unordered_multiset(const __unordered_multiset&)): Likewise.
+
+	* include/bits/unordered_map.h (__unordered_map(initializer_list<>),
+	__unordered_map<>::operator=(initializer_list<>),
+	__unordered_multimap(initializer_list<>), __unordered_multimap<>::
+	operator=(initializer_list<>)): Add.
+	* include/bits/unordered_set.h (__unordered_set(initializer_list<>),
+	__unordered_set<>::operator=(initializer_list<>),
+	__unordered_multiset(initializer_list<>), __unordered_multiset<>::
+	operator=(initializer_list<>)): Likewise.
+
+	* include/bits/unordered_map.h (__unordered_map(_InputIterator,
+	_InputIterator, size_type __n), unordered_map(_InputIterator,
+	_InputIterator, size_type __n), unordered_map(initializer_list<>,
+	size_type __n), unordered_multimap(initializer_list<>, size_type __n)):
+	Fix __n default to 0.
+	* include/bits/unordered_set.h (__unordered_set(_InputIterator,
+	_InputIterator, size_type __n), unordered_set(_InputIterator,
+	_InputIterator, size_type __n), unordered_set(initializer_list<>,
+	size_type __n), unordered_multiset(initializer_list<>, size_type __n)):
+	Likewise.
+	* include/debug/unordered_map (unordered_map(_InputIterator,
+	_InputIterator, size_type __n), unordered_map(initializer_list<>,
+	size_type __n), unordered_map(_InputIterator, _InputIterator,
+	size_type __n), unordered_multimap(initializer_list<>, size_type __n)):
+	Likewise.
+	* include/debug/unordered_set (unordered_set(_InputIterator,
+	_InputIterator, size_type __n), unordered_set(initializer_list<>,
+	size_type __n), unordered_set(_InputIterator, _InputIterator,
+	size_type __n), unordered_multiset(initializer_list<>, size_type __n)):
+	Likewise.
+	* include/profile/unordered_map (unordered_map(_InputIterator,
+	_InputIterator, size_type __n), unordered_map(initializer_list<>,
+	size_type __n), unordered_map(_InputIterator, _InputIterator,
+	size_type __n), unordered_multimap(initializer_list<>, size_type __n)):
+	Likewise.
+	* include/profile/unordered_set (unordered_set(_InputIterator,
+	_InputIterator, size_type __n), unordered_set(initializer_list<>,
+	size_type __n), unordered_set(_InputIterator, _InputIterator,
+	size_type __n), unordered_multiset(initializer_list<>, size_type __n)):
+	Likewise.
+
+2010-08-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45281
+	* include/bits/stl_queue.h (queue(queue&&), operator=(queue&&),
+	priority_queue(priority_queue&&), operator=(priority_queue&&)):
+	Remove, per CH 15.
+
+2010-08-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/unordered_map/dr1189.cc: Move to...
+	* testsuite/23_containers/unordered_map/hash_policy/dr1189.cc:
+	... here.
+	* testsuite/23_containers/unordered_set/dr1189.cc: Move to...
+	* testsuite/23_containers/unordered_set/hash_policy/dr1189.cc:
+	... here.
+	* testsuite/23_containers/unordered_multimap/dr1189.cc: Move to...
+	* testsuite/23_containers/unordered_multimap/hash_policy/dr1189.cc:
+	... here.
+	* testsuite/23_containers/unordered_multiset/dr1189.cc: Move to...
+	* testsuite/23_containers/unordered_multiset/hash_policy/dr1189.cc:
+	... here.
+
+	* testsuite/23_containers/unordered_set/hash_policy/26132.cc: New.
+
+2010-08-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/ios_init.cc (ios_base::Init::~Init): Add back semicolon
+	at the end of the _GLIBCXX_SYNCHRONIZATION_HAPPENS_* macros,
+	removed by mistake.
+	* include/tr1_impl/boost_sp_counted_base.h: Likewise.
+	* include/ext/rc_string_base.h: Likewise.
+	* include/bits/locale_classes.h: Likewise.
+	* include/bits/basic_string.h: Likewise.
+	* include/bits/ios_base.h: Likewise.
+	* include/bits/c++config: Adjust comment.
+
+2010-08-12  Kostya Serebryany <kcc@google.com>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/c++config (_GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE,
+	_GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER): Add.
+	* src/ios_init.cc (ios_base::Init::~Init): Decorate with the
+	latter.
+	* include/tr1_impl/boost_sp_counted_base.h: Likewise.
+	* include/ext/rc_string_base.h: Likewise.
+	* include/bits/locale_classes.h: Likewise.
+	* include/bits/basic_string.h: Likewise.
+	* include/bits/ios_base.h: Likewise.
+	* testsuite/27_io/ios_base/cons/assign_neg.cc: Adjust dg-error
+	line number.
+	* testsuite/27_io/ios_base/cons/copy_neg.cc: Likewise.
+	* testsuite/ext/profile/mutex_extensions.cc: Likewise.
+
+2010-08-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/hashtable.h (_Hashtable<>::erase(const key_type&)):
+	Use std::__addressof.
+
+	* include/bits/forward_list.tcc (forward_list<>::remove): Deal
+	correctly with &__tmp->_M_value == &__val.
+	* testsuite/23_containers/forward_list/operations/remove_freed.cc:
+	New.
+
+2010-08-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_algo.h (shuffle): Change signature consistently
+	with random_shuffle (US 121).
+	* include/bits/algorithmfwd.h: Adjust.
+	* testsuite/25_algorithms/shuffle/requirements/
+	explicit_instantiation/2.cc: Likewise.
+	* testsuite/25_algorithms/shuffle/requirements/
+	explicit_instantiation/pod.cc: Likewise.
+
+2010-08-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/move.h (forward): Reinstate the N2835 version.
+
+2010-08-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/42925
+	* include/bits/unique_ptr.h (operator==(const unique_ptr<>&,
+	nullptr_t), operator==(nullptr_t, const unique_ptr<>&),
+	operator!=(const unique_ptr<>&, nullptr_t),
+	operator!=(nullptr_t, const unique_ptr<>&)): Add.
+	* include/bits/shared_ptr_base.h (operator==(const __shared_ptr<>&,
+	nullptr_t), operator==(nullptr_t, const __shared_ptr<>&),
+	operator!=(const __shared_ptr<>&, nullptr_t),
+	operator!=(nullptr_t, const __shared_ptr<>&)): Likewise.
+	* include/bits/shared_ptr.h (operator==(const shared_ptr<>&,
+	nullptr_t), operator==(nullptr_t, const shared_ptr<>&),
+	operator!=(const shared_ptr<>&, nullptr_t),
+	operator!=(nullptr_t, const shared_ptr<>&)): Likewise.
+	* testsuite/20_util/unique_ptr/comparison/42925.cc: New.
+	* testsuite/20_util/shared_ptr/comparison/42925.cc: Likewise.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust
+	dg-error line numbers.
+
+2010-08-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/unique_ptr.h: Replace _Tp_Deleter -> _Dp, and
+	_Up_Deleter -> _Ep.
+
+2010-08-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/shared_ptr_base.h: Remove a few now redundant
+	__glibcxx_function_requires(_ConvertibleConcept...).
+	* testsuite/20_util/shared_ptr/cons/43820.cc: Adjust dg-error
+	line number.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Likewise.
+
+2010-08-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/ext/stdio_sync_filebuf/char/1.cc: Avoid -Wall
+	warnings.
+	* testsuite/ext/stdio_sync_filebuf/wchar_t/1.cc: Likewise.
+
+2010-08-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/array/range_access.cc: Avoid -Wall
+	warnings.
+
+2010-08-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/20_util/ratio/cons/cons_overflow_neg.cc: Avoid -Wall
+	warnings.
+
+	* include/bits/shared_ptr.h (shared_ptr<>::shared_ptr
+	(const shared_ptr<>&), shared_ptr(shared_ptr<>&&), weak_ptr<>::
+	weak_ptr(const weak_ptr<>&), weak_ptr(const shared_ptr<>&)):
+	Constrain appropriately via std::is_convertible, etc.
+	* include/bits/shared_ptr_base.h: Likewise.
+	* include/bits/unique_ptr.h (default_delete<>::
+	default_delete(const default_delete<>&),
+	unique_ptr<>::unique_ptr(unique_ptr<>&&), operator=(unique_ptr<>&&)):
+	Likewise.
+
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust dg-error
+	line numbers.
+	* testsuite/20_util/shared_ptr/cons/43820.cc: Likewise.
+
+	* include/bits/unique_ptr.h (unique_ptr<>::unique_ptr(auto_ptr<>&&)):
+	Add.
+	* include/std/memory: Adjust includes order.
+	* testsuite/20_util/unique_ptr/cons/auto_ptr.cc: New.
+	* testsuite/20_util/unique_ptr/cons/auto_ptr_neg.cc: Likewise.
+	* testsuite/20_util/shared_ptr/cons/auto_ptr_neg.cc: Minor tweaks.
+
+2010-08-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45228
+	* include/std/tuple (tuple<typename... _Elements>): Constrain
+	converting constructors and assignment operators with
+	sizeof...(_UElements) == sizeof...(_Elements).
+	(tuple(tuple<_UElements...>&): Remove.
+	(tuple<typename _T1>): Add.
+	* testsuite/20_util/tuple/cons/45228.cc: New.
+	* testsuite/20_util/tuple/cons/converting.cc: Likewise.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust
+	dg-error line number.
+
+	* include/std/tuple (_Tuple_impl<>::_Tuple_impl(const _Tuple_impl&)):
+	Defaulted.
+
+	* include/std/tuple (tuple<typename _T1, typename _T2>
+	::operator=(pair<_U1, _U2>&&)): Use forward.
+
+2010-08-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/44963
+	* include/bits/stl_iterator.h (insert_iterator<>::
+	operator=(const typename _Container::value_type&,
+	back_insert_iterator<>::
+	operator=(const typename _Container::value_type&),
+	front_insert_iterator<>::
+	operator=(const typename _Container::value_type&))): Add
+	in C++0x mode.
+	* testsuite/ext/rope/44963.cc: New.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust
+	dg-error line number.
+
+2010-08-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/c_global/cmath: Implement US 136.
+	* include/tr1_impl/cmath: Do not bring fpclassify, etc from namespace
+	std, define namespace tr1.
+	* testsuite/26_numerics/headers/cmath/
+	c99_classification_macros_c++0x.cc: New.
+
+2010-08-06  David Malcolm  <dmalcolm@redhat.com>
+	    Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* python/hook.in: Rename variable dir to dir_.
+
+2010-08-06  Jason Merrill  <jason@redhat.com>
+
+	* include/std/thread: Add deleted thread(thread&).
+	* testsuite/30_threads/thread/cons/copy_neg.cc: Remove XFAIL.
+
+2010-08-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/tuple (pack_arguments): Rename to forward_as_tuple
+	and simplify, per US 98 and US 99.
+	* testsuite/20_util/tuple/creation_functions/pack_arguments.cc:
+	Rename to...
+	* testsuite/20_util/tuple/creation_functions/forward_as_tuple.cc:
+	... this, adjust.
+	* testsuite/20_util/pair/piecewise.cc: Adjust.
+
+2010-08-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/tuple (begin, end): Remove per GB 87.
+	* testsuite/20_util/tuple/range_access.cc: Remove.
+
+2010-08-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/ratio (ratio_less): Improve, use ratio_divide to avoid
+	more overflows.
+	* testsuite/20_util/ratio/comparisons/comp1.cc: Extend.
+	* testsuite/20_util/ratio/comparisons/comp2.cc: Likewise.
+
+2010-08-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/utility (begin, end): Remove per GB 85.
+	* testsuite/20_util/pair/range_access.cc: Remove.
+
+	* include/std/functional (function<>::function()): Remove explicit,
+	per JP 3.
+
+2010-08-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/move.h (forward): Update to N3092.
+	(identity): Remove (US 92 is NAD).
+	* include/debug/set.h: Fix move constructor to simply use move.
+	* include/debug/unordered_map: Likewise.
+	* include/debug/multiset.h: Likewise.
+	* include/debug/vector: Likewise.
+	* include/debug/unordered_set: Likewise.
+	* include/debug/deque: Likewise.
+	* include/debug/map.h: Likewise.
+	* include/debug/string: Likewise.
+	* include/debug/list: Likewise.
+	* include/debug/multimap.h: Likewise.
+	* include/profile/set.h: Likewise.
+	* include/profile/unordered_map: Likewise.
+	* include/profile/multiset.h: Likewise.
+	* include/profile/unordered_set: Likewise.
+	* include/profile/vector: Likewise.
+	* include/profile/deque: Likewise.
+	* include/profile/map.h: Likewise.
+	* include/profile/list: Likewise.
+	* include/profile/multimap.h: Likewise.
+	* include/ext/vstring.h: Likewise.
+	* include/bits/stl_list.h: Likewise.
+	* include/bits/stl_map.h: Likewise.
+	* include/bits/stl_set.h: Likewise.
+	* include/bits/forward_list.h: Likewise.
+	* include/bits/stl_multimap.h: Likewise.
+	* include/bits/unordered_map.h: Likewise.
+	* include/bits/stl_vector.h: Likewise.
+	* include/bits/stl_deque.h: Likewise.
+	* include/bits/stl_multiset.h: Likewise.
+	* include/bits/unordered_set.h: Likewise.
+	* include/bits/stl_bvector.h: Likewise.
+	* testsuite/20_util/identity/value.cc: Remove
+	* testsuite/20_util/identity/requirements/typedefs.cc: Likewise.
+	* testsuite/20_util/identity/requirements/explicit_instantiation.cc:
+	Likewise.
+
+2010-07-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* acinclude.m4 ([GLIBCXX_COMPUTE_STDIO_INTEGER_CONSTANTS]): Fix
+	messages.
+	* configure: Regenerate.
+
+2010-07-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/ext/vstring_util.h: Include bits/range_access.h.
+	* testsuite/ext/vstring/range_access.cc: New test.
+
+2010-07-27  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/bits/range_access.h: New.
+	* include/Makefile.in: Add bits/range_access.h.
+	* include/Makefile.am: Regenerate.
+	* include/std/array: Include bits/range_access.h.
+	* include/std/deque: Ditto.
+	* include/std/forward_list: Ditto.
+	* include/std/iterator: Ditto.
+	* include/std/list: Ditto.
+	* include/std/map: Ditto.
+	* include/std/regex: Ditto.
+	* include/std/set: Ditto.
+	* include/std/string: Ditto.
+	* include/std/unordered_map: Ditto.
+	* include/std/unordered_set: Ditto.
+	* include/std/vector: Ditto.
+	* include/std/valarray: Add begin() and end().
+	* libsupc++/initializer_list: Ditto.
+	* include/tr1_impl/utility: Add begin() and end().
+	* include/std/tuple: Ditto.
+	* testsuite/24_iterators/headers/iterator/range_access.cc: New test.
+	* testsuite/24_iterators/range_access.cc: Ditto.
+	* testsuite/28_regex/range_access.cc: Ditto.
+	* testsuite/18_support/initializer_list/range_access.cc: Ditto.
+	* testsuite/21_strings/basic_string/range_access.cc: Ditto.
+	* testsuite/26_numerics/valarray/range_access.cc: Ditto.
+	* testsuite/23_containers/unordered_map/range_access.cc: Ditto.
+	* testsuite/23_containers/multimap/range_access.cc: Ditto.
+	* testsuite/23_containers/set/range_access.cc: Ditto.
+	* testsuite/23_containers/unordered_multimap/range_access.cc: Ditto.
+	* testsuite/23_containers/forward_list/range_access.cc: Ditto.
+	* testsuite/23_containers/unordered_set/range_access.cc: Ditto.
+	* testsuite/23_containers/vector/range_access.cc: Ditto.
+	* testsuite/23_containers/deque/range_access.cc: Ditto.
+	* testsuite/23_containers/multiset/range_access.cc: Ditto.
+	* testsuite/23_containers/list/range_access.cc: Ditto.
+	* testsuite/23_containers/unordered_multiset/range_access.cc: Ditto.
+	* testsuite/23_containers/map/range_access.cc: Ditto.
+	* testsuite/23_containers/array/range_access.cc: Ditto.
+	* testsuite/20_util/tuple/range_access.cc: Ditto.
+	* testsuite/20_util/pair/range_access.cc: Ditto.
+
+2010-07-27  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* acinclude.m4 ([GLIBCXX_CHECK_STDIO_MACROS]): Remove.
+	([GLIBCXX_COMPUTE_STDIO_INTEGER_CONSTANTS]): Add, actually
+	compute the constants via AC_COMPUTE_INT.
+	* configure.ac: Call the latter.
+	* include/bits/ios_base.h: Adjust.
+	* include/bits/char_traits.h: Likewise.
+	* testsuite/27_io/ios_base/cons/assign_neg.cc: Adjust dg-error
+	line number.
+	* testsuite/27_io/ios_base/cons/copy_neg.cc: Likewise.
+	* config.h.in: Regenerate.
+	* configure: Likewise.
+
+2010-07-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* config/io/c_io_stdio.h: Do not include <cstddef>.
+
+2010-07-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* testsuite/22_locale/num_put/put/char/14220.cc: XFAIL on Solaris
+	9/x86, 32-bit Solaris 10/x86 and 64-bit Solaris 10/SPARC.
+	* testsuite/22_locale/num_put/put/wchar_t/14220.cc: XFAIL on
+	Solaris 9/x86 and 32-bit Solaris 10/x86.
+
+	* testsuite/27_io/basic_istream/extractors_arithmetic/char/12.cc:
+	Only XFAIL on Solaris 8 and 9.
+	* testsuite/27_io/basic_istream/extractors_arithmetic/wchar_t/12.cc:
+	Likewise.
+
+	* testsuite/ext/enc_filebuf/char/13598.cc: XFAIL before Solaris 11.
+
+2010-07-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/45060
+	* include/bits/hashtable.h (_Hashtable::_Hashtable(_Hashtable&&)):
+	Reorder mem-initializers.
+
+2010-07-22  Benjamin Kosnik  <bkoz@redhat.com>
+
+	DocBook 4.5 to 5.0 transition.
+	* doc/xml/authors.xml: Update markup to DocBook 5.0.
+	* doc/xml/faq.xml: Same.
+	* doc/xml/api.xml: Same.
+	* doc/xml/class.txml
+	* doc/xml/gnu/gpl-3.0.xml: Same.
+	* doc/xml/gnu/fdl-1.2.xml: Same.
+	* doc/xml/gnu/fdl-1.3.xml: Same.
+	* doc/xml/gnu/gpl-2.0.xml: Same.
+	* doc/xml/chapter.txml: Same.
+	* doc/xml/manual/mt_allocator.xml: Same.
+	* doc/xml/manual/allocator.xml: Same.
+	* doc/xml/manual/ctype.xml: Same.
+	* doc/xml/manual/numerics.xml: Same.
+	* doc/xml/manual/codecvt.xml: Same.
+	* doc/xml/manual/backwards_compatibility.xml: Same.
+	* doc/xml/manual/concurrency.xml: Same.
+	* doc/xml/manual/intro.xml: Same.
+	* doc/xml/manual/abi.xml: Same.
+	* doc/xml/manual/shared_ptr.xml: Same.
+	* doc/xml/manual/status_cxxtr1.xml: Same.
+	* doc/xml/manual/auto_ptr.xml: Same.
+	* doc/xml/manual/internals.xml: Same.
+	* doc/xml/manual/atomics.xml: Same.
+	* doc/xml/manual/parallel_mode.xml: Same.
+	* doc/xml/manual/status_cxx1998.xml: Same.
+	* doc/xml/manual/profile_mode.xml: Same.
+	* doc/xml/manual/containers.xml: Same.
+	* doc/xml/manual/io.xml: Same.
+	* doc/xml/manual/concurrency_extensions.xml: Same.
+	* doc/xml/manual/appendix_porting.xml: Same.
+	* doc/xml/manual/utilities.xml: Same.
+	* doc/xml/manual/support.xml: Same.
+	* doc/xml/manual/bitmap_allocator.xml: Same.
+	* doc/xml/manual/configure.xml: Same.
+	* doc/xml/manual/build_hacking.xml: Same.
+	* doc/xml/manual/evolution.xml: Same.
+	* doc/xml/manual/using.xml: Same.
+	* doc/xml/manual/using_exceptions.xml: Same.
+	* doc/xml/manual/debug.xml: Same.
+	* doc/xml/manual/localization.xml: Same.
+	* doc/xml/manual/strings.xml: Same.
+	* doc/xml/manual/debug_mode.xml: Same.
+	* doc/xml/manual/locale.xml: Same.
+	* doc/xml/manual/extensions.xml: Same.
+	* doc/xml/manual/appendix_contributing.xml: Same.
+	* doc/xml/manual/prerequisites.xml: Same.
+	* doc/xml/manual/messages.xml: Same.
+	* doc/xml/manual/diagnostics.xml: Same.
+	* doc/xml/manual/algorithms.xml: Same.
+	* doc/xml/manual/appendix_free.xml: Same.
+	* doc/xml/manual/iterators.xml: Same.
+	* doc/xml/manual/spine.xml: Same.
+	* doc/xml/manual/status_cxxtr24733.xml: Same.
+	* doc/xml/manual/status_cxx200x.xml: Same.
+	* doc/xml/manual/test.xml: Same.
+	* doc/xml/book.txml: Same.
+	* doc/xml/spine.xml: Same.
+	* doc/Makefile.am: Same.
+	* doc/Makefile.in: Regenerate.
+
+2010-07-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/appendix_contributing.xml: Update for new reality.
+	* doc/Makefile.am (doc-xml): New default rule for XML output.
+	(doc-xml-single-doxygen): Standardize output names.
+	* doc/Makefile.in: Regenerate.
+
+	* doc/doxygen/user.cfg.in: Tweak.
+
+2010-07-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* libsupc++/unwind-cxx.h: Minor formatting / stylistic tweaks.
+
+2010-07-20  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR libstdc++/44902
+	* libsupc++/unwind-cxx.h (__cxa_type_match): Correct prototype.
+	(__cxa_begin_cleanup): Likewise.
+
+2010-07-19  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/Makefile.am (doc-texinfo): New rule.
+	(doc-texinfo-docbook): New rule.
+	(DB2TEXI_FLAGS): New.
+	(doc-xml-single-docbook): Just the manual, not the set. Tweak flags.
+	* doc/Makefile.in: Regenerate.
+
+2010-07-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/shared_ptr.xml: Update.
+	* doc/html/*: Regenerate.
+
+2010-07-13  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/Makefile.am: Edit pdf rules.
+	(doc-man, doc-pdf, doc-html): Expand default rules.
+	* doc/Makefile.in: Regenerate.
+	* doc/doxygen/user.cfg.in: Update to Doxygen 1.7.1.
+
+2010-07-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/type_traits (is_convertible): Use SFINAE.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Likewise.
+	* testsuite/20_util/declval/requirements/1_neg.cc: Likewise.
+
+2010-07-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/44875
+	* doc/xml/manual/status_cxx200x.xml: Corrections to status.
+	* doc/html/*: Regenerate.
+
+2010-07-08  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/stl_heap.h: Update markup.
+	* include/bits/move.h: Same.
+	* include/bits/algorithmfwd.h: Same.
+	* include/bits/regex.h: Same.
+	* include/bits/random.h: Same.
+	* doc/doxygen/doxygroups.cc: Same.
+	* doc/doxygen/user.cfg.in: Remove include/tr1_impl/regex from
+	input file list.
+	* doc/Makefile.am (doc-pdf-doxygen): Add comment, put generated
+	pdf in location consistent with docbook pdf generation.
+	* doc/Makefile.in: Regenerate.
+
+2010-07-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx200x.xml: Add some missing features.
+	* doc/html/*: Regenerate.
+
+2010-07-03  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/regex_compiler.h: Fix filename in doxygen comment.
+	* include/bits/regex_constants.h: Likewise.
+	* include/bits/regex_error.h: Likewise.
+	* include/bits/regex_grep_matcher.h: Likewise.
+	* include/bits/regex_grep_matcher.tcc: Likewise.
+	* include/bits/regex_nfa.tcc: Likewise.
+
+2010-07-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* acinclude.m4 (symvers_renaming): Define
+	HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT instead of
+	_GLIBCXX_HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT.
+	Fix syntax error.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+
+2010-07-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* acinclude.m4 (GLIBCXX_ENABLE_SYMVERS): Handle sun style.
+	Require GCC_PROG_GNU_CXXFILT.
+	(_GLIBCXX_HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT): Define
+	unless targetting solaris2*.
+	Include ../config/gc++filt.m4.
+	* configure.host (i?86-*-solaris2*): Set abi_baseline_pair.
+	(sparc-*-solaris2*): Likewise.
+	* src/Makefile.am [ENABLE_SYMVERS_SUN] (version_dep, version_arg):
+	New variables.
+	(libstdc++-symbols.ver-sun): New target.
+	* configure: Regenerate.
+	* config.h.in: Regenerate.
+	* Makefile.in: Likewise.
+	* doc/Makefile.in: Likewise.
+	* include/Makefile.in: Likewise.
+	* libsupc++/Makefile.in: Likewise.
+	* po/Makefile.in: Likewise.
+	* python/Makefile.in: Likewise.
+	* src/Makefile.in: Likewise.
+	* src/atomic.cc: Only define/use _GLIBCXX_ASM_SYMVER if
+	_GLIBCXX_HAVE_SYMVER_RENAMING_RUNTIME_SUPPORT.
+	* src/compatibility.cc: Likewise.
+	* testsuite/Makefile.am (baseline_subdir): Define.
+	(baseline_symbols): Use it.
+	(new-abi-baseline): Likewise.
+	* testsuite/Makefile.in: Regenerate.
+
+	* config/abi/pre/gnu.ver (GLIBCXX_3.4.5): Enclose duplicates in
+	#ifdef HAVE_SYMVER_RENAMING_RUNTIME_SUPPORT.
+	(GLIBCXX_3.4.6): Likewise.
+
+	* doc/xml/manual/configure.xml (--enable-symvers): Document sun
+	style.
+
+	* doc/xml/manual/abi.xml: Fix grammar.
+	(Symbol versioning on the libstdc++.so binary): Fix mapfile path.
+	(Incremental bumping of a library pre-defined macro): Fix
+	c++config path.
+	(Incremental bumping of a library pre-defined macro,
+	_GLIBCPP_VERSION): Likewise.
+	(Matching each specific C++ compiler release to a specific set of
+	C++ include files): Fix acinclude.m4 path.
+	(Prerequisites): Allow for Sun linker on Solaris 2.5+.
+	Use proper link to Configuring.
+	Fix acinclude.m4 path.
+	(Checking Active): Allow for additional symbol versioning styles.
+	Provide Solaris 2 example with pvs -r.
+	(Bibliography): Update Linker and Libraries Guide, C++ Migration
+	Guide entries.
+
 2010-06-29  Jason Merrill  <jason@redhat.com>
 
 	Enable implicitly declared move constructor/operator= (N3053).

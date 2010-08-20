@@ -40,6 +40,7 @@
 #include "target.h"
 #include "target-def.h"
 #include "expr.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "recog.h"
 #include "optabs.h"
@@ -4397,14 +4398,13 @@ bfin_discover_loop (loop_info loop, basic_block tail_bb, rtx tail_insn)
 	  break;
 	}
 
-      if (bitmap_bit_p (loop->block_bitmap, bb->index))
+      if (!bitmap_set_bit (loop->block_bitmap, bb->index))
 	continue;
 
       /* We've not seen this block before.  Add it to the loop's
 	 list and then add each successor to the work list.  */
 
       VEC_safe_push (basic_block, heap, loop->blocks, bb);
-      bitmap_set_bit (loop->block_bitmap, bb->index);
 
       if (bb != tail_bb)
 	{

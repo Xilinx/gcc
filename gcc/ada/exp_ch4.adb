@@ -6917,8 +6917,8 @@ package body Exp_Ch4 is
                Rtyp := Typ;
             end if;
 
-            --  The proper unsigned type must have a size compatible with
-            --  the operand, to prevent misalignment..
+            --  The proper unsigned type must have a size compatible with the
+            --  operand, to prevent misalignment.
 
             if RM_Size (Rtyp) <= 8 then
                Utyp := RTE (RE_Unsigned_8);
@@ -6995,18 +6995,15 @@ package body Exp_Ch4 is
 
          begin
             if Safe_In_Place_Array_Op (Lhs, Op1, Op2) then
-               if N = Op1
-                 and then Nkind (Op2) = N_Op_Not
-               then
-                  --  (not A) op (not B) can be reduced to a single call
 
+               --  (not A) op (not B) can be reduced to a single call
+
+               if N = Op1 and then Nkind (Op2) = N_Op_Not then
                   return;
 
-               elsif N = Op2
-                 and then Nkind (Parent (N)) = N_Op_Xor
-               then
-                  --  A xor (not B) can also be special-cased
+               --  A xor (not B) can also be special-cased
 
+               elsif N = Op2 and then Nkind (Parent (N)) = N_Op_Xor then
                   return;
                end if;
             end if;
@@ -7035,10 +7032,10 @@ package body Exp_Ch4 is
             Make_Iteration_Scheme (Loc,
               Loop_Parameter_Specification =>
                 Make_Loop_Parameter_Specification (Loc,
-                  Defining_Identifier => J,
+                  Defining_Identifier         => J,
                   Discrete_Subtype_Definition =>
                     Make_Attribute_Reference (Loc,
-                      Prefix => Make_Identifier (Loc, Chars (A)),
+                      Prefix         => Make_Identifier (Loc, Chars (A)),
                       Attribute_Name => Name_Range))),
 
           Statements => New_List (
@@ -7070,12 +7067,11 @@ package body Exp_Ch4 is
               Statements => New_List (
                 Loop_Statement,
                 Make_Simple_Return_Statement (Loc,
-                  Expression =>
-                    Make_Identifier (Loc, Chars (B)))))));
+                  Expression => Make_Identifier (Loc, Chars (B)))))));
 
       Rewrite (N,
         Make_Function_Call (Loc,
-          Name => New_Reference_To (Func_Name, Loc),
+          Name                   => New_Reference_To (Func_Name, Loc),
           Parameter_Associations => New_List (Opnd)));
 
       Analyze_And_Resolve (N, Typ);
@@ -7096,9 +7092,9 @@ package body Exp_Ch4 is
 
       elsif Is_Boolean_Type (Etype (N)) then
 
-         --  Replace OR by OR ELSE if Short_Circuit_And_Or active and the
-         --  type is standard Boolean (do not mess with AND that uses a non-
-         --  standard Boolean type, because something strange is going on).
+         --  Replace OR by OR ELSE if Short_Circuit_And_Or active and the type
+         --  is standard Boolean (do not mess with AND that uses a non-standard
+         --  Boolean type, because something strange is going on).
 
          if Short_Circuit_And_Or and then Typ = Standard_Boolean then
             Rewrite (N,
@@ -7198,10 +7194,9 @@ package body Exp_Ch4 is
            Make_Conditional_Expression (Loc,
              Expressions => New_List (
                Make_Op_Eq (Loc,
-                 Left_Opnd => Duplicate_Subexpr (Right),
+                 Left_Opnd  => Duplicate_Subexpr (Right),
                  Right_Opnd =>
-                   Unchecked_Convert_To (Typ,
-                     Make_Integer_Literal (Loc, -1))),
+                   Unchecked_Convert_To (Typ, Make_Integer_Literal (Loc, -1))),
 
                Unchecked_Convert_To (Typ,
                  Make_Integer_Literal (Loc, Uint_0)),
@@ -7281,11 +7276,12 @@ package body Exp_Ch4 is
       --  Arithmetic overflow checks for signed integer/fixed point types
 
       if Is_Signed_Integer_Type (Typ)
-        or else Is_Fixed_Point_Type (Typ)
+           or else
+         Is_Fixed_Point_Type (Typ)
       then
          Apply_Arithmetic_Overflow_Check (N);
 
-      --  Vax floating-point types case
+      --  VAX floating-point types case
 
       elsif Vax_Float (Typ) then
          Expand_Vax_Arith (N);
@@ -7362,6 +7358,7 @@ package body Exp_Ch4 is
       Disc  : Entity_Id;
       New_N : Node_Id;
       Dcon  : Elmt_Id;
+      Dval  : Node_Id;
 
       function In_Left_Hand_Side (Comp : Node_Id) return Boolean;
       --  Gigi needs a temporary for prefixes that depend on a discriminant,
@@ -7457,9 +7454,9 @@ package body Exp_Ch4 is
                null;
 
             --  Don't do this on the left hand of an assignment statement.
-            --  Normally one would think that references like this would
-            --  not occur, but they do in generated code, and mean that
-            --  we really do want to assign the discriminant!
+            --  Normally one would think that references like this would not
+            --  occur, but they do in generated code, and mean that we really
+            --  do want to assign the discriminant!
 
             elsif Nkind (Par) = N_Assignment_Statement
               and then Name (Par) = N
@@ -7467,7 +7464,7 @@ package body Exp_Ch4 is
                null;
 
             --  Don't do this optimization for the prefix of an attribute or
-            --  the operand of an object renaming declaration since these are
+            --  the name of an object renaming declaration since these are
             --  contexts where we do not want the value anyway.
 
             elsif (Nkind (Par) = N_Attribute_Reference
@@ -7493,7 +7490,9 @@ package body Exp_Ch4 is
 
                Disc := First_Discriminant (Ptyp);
                Dcon := First_Elmt (Discriminant_Constraint (Ptyp));
+
                Discr_Loop : while Present (Dcon) loop
+                  Dval := Node (Dcon);
 
                   --  Check if this is the matching discriminant
 
@@ -7504,9 +7503,30 @@ package body Exp_Ch4 is
                      --  constrained by an outer discriminant, which cannot
                      --  be optimized away.
 
-                     if
-                       Denotes_Discriminant
-                        (Node (Dcon), Check_Concurrent => True)
+                     if Denotes_Discriminant
+                          (Dval, Check_Concurrent => True)
+                     then
+                        exit Discr_Loop;
+
+                     elsif Nkind (Original_Node (Dval)) = N_Selected_Component
+                       and then
+                         Denotes_Discriminant
+                           (Selector_Name (Original_Node (Dval)), True)
+                     then
+                        exit Discr_Loop;
+
+                     --  Do not retrieve value if constraint is not static. It
+                     --  is generally not useful, and the constraint may be a
+                     --  rewritten outer discriminant in which case it is in
+                     --  fact incorrect.
+
+                     elsif Is_Entity_Name (Dval)
+                       and then Nkind (Parent (Entity (Dval)))
+                         = N_Object_Declaration
+                       and then Present (Expression (Parent (Entity (Dval))))
+                       and then
+                         not Is_Static_Expression
+                           (Expression (Parent (Entity (Dval))))
                      then
                         exit Discr_Loop;
 
@@ -7516,14 +7536,14 @@ package body Exp_Ch4 is
                      --  missing cases.
 
                      elsif Nkind (Parent (N)) = N_Case_Statement
-                       and then Etype (Node (Dcon)) /= Etype (Disc)
+                       and then Etype (Dval) /= Etype (Disc)
                      then
                         Rewrite (N,
                           Make_Qualified_Expression (Loc,
                             Subtype_Mark =>
                               New_Occurrence_Of (Etype (Disc), Loc),
                             Expression   =>
-                              New_Copy_Tree (Node (Dcon))));
+                              New_Copy_Tree (Dval)));
                         Analyze_And_Resolve (N, Etype (Disc));
 
                         --  In case that comes out as a static expression,
@@ -7540,7 +7560,7 @@ package body Exp_Ch4 is
                      --  yet, and this must be done now.
 
                      else
-                        Rewrite (N, New_Copy_Tree (Node (Dcon)));
+                        Rewrite (N, New_Copy_Tree (Dval));
                         Analyze_And_Resolve (N);
                         Set_Is_Static_Expression (N, False);
                         return;

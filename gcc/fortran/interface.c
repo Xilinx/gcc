@@ -1368,6 +1368,11 @@ compare_pointer (gfc_symbol *formal, gfc_expr *actual)
   if (formal->attr.pointer)
     {
       attr = gfc_expr_attr (actual);
+
+      /* Fortran 2008 allows non-pointer actual arguments.  */
+      if (!attr.pointer && attr.target && formal->attr.intent == INTENT_IN)
+	return 2;
+
       if (!attr.pointer)
 	return 0;
     }
@@ -1423,6 +1428,11 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
       && actual->ts.u.derived && actual->ts.u.derived->ts.is_iso_c)
     return 1;
 
+  if (formal->ts.type == BT_CLASS)
+    /* Make sure the vtab symbol is present when
+       the module variables are generated.  */
+    gfc_find_derived_vtab (formal->ts.u.derived);
+
   if (actual->ts.type == BT_PROCEDURE)
     {
       char err[200];
@@ -1470,6 +1480,7 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
     }
 
   if ((actual->expr_type != EXPR_NULL || actual->ts.type != BT_UNKNOWN)
+      && actual->ts.type != BT_HOLLERITH
       && !gfc_compare_types (&formal->ts, &actual->ts))
     {
       if (where)
@@ -1578,7 +1589,8 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
   if (rank_check || ranks_must_agree
       || (formal->attr.pointer && actual->expr_type != EXPR_NULL)
       || (actual->rank != 0 && !(is_elemental || formal->attr.dimension))
-      || (actual->rank == 0 && formal->as->type == AS_ASSUMED_SHAPE)
+      || (actual->rank == 0 && formal->as->type == AS_ASSUMED_SHAPE
+	  && actual->expr_type != EXPR_NULL)
       || (actual->rank == 0 && formal->attr.dimension
 	  && gfc_is_coindexed (actual)))
     {
@@ -1925,7 +1937,7 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
   for (f = formal; f; f = f->next)
     n++;
 
-  new_arg = (gfc_actual_arglist **) alloca (n * sizeof (gfc_actual_arglist *));
+  new_arg = XALLOCAVEC (gfc_actual_arglist *, n);
 
   for (i = 0; i < n; i++)
     new_arg[i] = NULL;
@@ -1991,6 +2003,20 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 	  if (where)
 	    gfc_error ("Unexpected alternate return spec in subroutine "
 		       "call at %L", where);
+	  return 0;
+	}
+
+      if (a->expr->expr_type == EXPR_NULL && !f->sym->attr.pointer
+	  && (f->sym->attr.allocatable || !f->sym->attr.optional
+	      || (gfc_option.allow_std & GFC_STD_F2008) == 0))
+	{
+	  if (where && (f->sym->attr.allocatable || !f->sym->attr.optional))
+	    gfc_error ("Unexpected NULL() intrinsic at %L to dummy '%s'",
+		       where, f->sym->name);
+	  else if (where)
+	    gfc_error ("Fortran 2008: Null pointer at %L to non-pointer "
+		       "dummy '%s'", where, f->sym->name);
+
 	  return 0;
 	}
       
@@ -2106,6 +2132,17 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 		       f->sym->name, &a->expr->where);
 	  return 0;
 	}
+
+      if (a->expr->expr_type != EXPR_NULL
+	  && (gfc_option.allow_std & GFC_STD_F2008) == 0
+	  && compare_pointer (f->sym, a->expr) == 2)
+	{
+	  if (where)
+	    gfc_error ("Fortran 2008: Non-pointer actual argument at %L to "
+		       "pointer dummy '%s'", &a->expr->where,f->sym->name);
+	  return 0;
+	}
+	
 
       /* Fortran 2008, C1242.  */
       if (f->sym->attr.pointer && gfc_is_coindexed (a->expr))
@@ -2433,7 +2470,7 @@ check_some_aliasing (gfc_formal_arglist *f, gfc_actual_arglist *a)
     }
   if (n == 0)
     return t;
-  p = (argpair *) alloca (n * sizeof (argpair));
+  p = XALLOCAVEC (argpair, n);
 
   for (i = 0, f1 = f, a1 = a; i < n; i++, f1 = f1->next, a1 = a1->next)
     {
@@ -2779,12 +2816,14 @@ gfc_find_sym_in_symtree (gfc_symbol *sym)
 /* See if the arglist to an operator-call contains a derived-type argument
    with a matching type-bound operator.  If so, return the matching specific
    procedure defined as operator-target as well as the base-object to use
-   (which is the found derived-type argument with operator).  */
+   (which is the found derived-type argument with operator).  The generic
+   name, if any, is transmitted to the final expression via 'gname'.  */
 
 static gfc_typebound_proc*
 matching_typebound_op (gfc_expr** tb_base,
 		       gfc_actual_arglist* args,
-		       gfc_intrinsic_op op, const char* uop)
+		       gfc_intrinsic_op op, const char* uop,
+		       const char ** gname)
 {
   gfc_actual_arglist* base;
 
@@ -2850,6 +2889,7 @@ matching_typebound_op (gfc_expr** tb_base,
 		if (matches)
 		  {
 		    *tb_base = base->expr;
+		    *gname = g->specific_st->name;
 		    return g->specific;
 		  }
 	      }
@@ -2868,11 +2908,12 @@ matching_typebound_op (gfc_expr** tb_base,
 
 static void
 build_compcall_for_operator (gfc_expr* e, gfc_actual_arglist* actual,
-			     gfc_expr* base, gfc_typebound_proc* target)
+			     gfc_expr* base, gfc_typebound_proc* target,
+			     const char *gname)
 {
   e->expr_type = EXPR_COMPCALL;
   e->value.compcall.tbp = target;
-  e->value.compcall.name = "operator"; /* Should not matter.  */
+  e->value.compcall.name = gname ? gname : "$op";
   e->value.compcall.actual = actual;
   e->value.compcall.base_object = base;
   e->value.compcall.ignore_pass = 1;
@@ -2898,6 +2939,7 @@ gfc_extend_expr (gfc_expr *e, bool *real_error)
   gfc_namespace *ns;
   gfc_user_op *uop;
   gfc_intrinsic_op i;
+  const char *gname;
 
   sym = NULL;
 
@@ -2905,6 +2947,7 @@ gfc_extend_expr (gfc_expr *e, bool *real_error)
   actual->expr = e->value.op.op1;
 
   *real_error = false;
+  gname = NULL;
 
   if (e->value.op.op2 != NULL)
     {
@@ -2970,7 +3013,7 @@ gfc_extend_expr (gfc_expr *e, bool *real_error)
       /* See if we find a matching type-bound operator.  */
       if (i == INTRINSIC_USER)
 	tbo = matching_typebound_op (&tb_base, actual,
-				     i, e->value.op.uop->name);
+				     i, e->value.op.uop->name, &gname);
       else
 	switch (i)
 	  {
@@ -2978,10 +3021,10 @@ gfc_extend_expr (gfc_expr *e, bool *real_error)
   case INTRINSIC_##comp: \
   case INTRINSIC_##comp##_OS: \
     tbo = matching_typebound_op (&tb_base, actual, \
-				 INTRINSIC_##comp, NULL); \
+				 INTRINSIC_##comp, NULL, &gname); \
     if (!tbo) \
       tbo = matching_typebound_op (&tb_base, actual, \
-				   INTRINSIC_##comp##_OS, NULL); \
+				   INTRINSIC_##comp##_OS, NULL, &gname); \
     break;
 	    CHECK_OS_COMPARISON(EQ)
 	    CHECK_OS_COMPARISON(NE)
@@ -2992,7 +3035,7 @@ gfc_extend_expr (gfc_expr *e, bool *real_error)
 #undef CHECK_OS_COMPARISON
 
 	    default:
-	      tbo = matching_typebound_op (&tb_base, actual, i, NULL);
+	      tbo = matching_typebound_op (&tb_base, actual, i, NULL, &gname);
 	      break;
 	  }
 	      
@@ -3003,7 +3046,7 @@ gfc_extend_expr (gfc_expr *e, bool *real_error)
 	  gfc_try result;
 
 	  gcc_assert (tb_base);
-	  build_compcall_for_operator (e, actual, tb_base, tbo);
+	  build_compcall_for_operator (e, actual, tb_base, tbo, gname);
 
 	  result = gfc_resolve_expr (e);
 	  if (result == FAILURE)
@@ -3050,6 +3093,9 @@ gfc_extend_assign (gfc_code *c, gfc_namespace *ns)
   gfc_actual_arglist *actual;
   gfc_expr *lhs, *rhs;
   gfc_symbol *sym;
+  const char *gname;
+
+  gname = NULL;
 
   lhs = c->expr1;
   rhs = c->expr2;
@@ -3085,7 +3131,7 @@ gfc_extend_assign (gfc_code *c, gfc_namespace *ns)
 
       /* See if we find a matching type-bound assignment.  */
       tbo = matching_typebound_op (&tb_base, actual,
-				   INTRINSIC_ASSIGN, NULL);
+				   INTRINSIC_ASSIGN, NULL, &gname);
 	      
       /* If there is one, replace the expression with a call to it and
 	 succeed.  */
@@ -3093,7 +3139,7 @@ gfc_extend_assign (gfc_code *c, gfc_namespace *ns)
 	{
 	  gcc_assert (tb_base);
 	  c->expr1 = gfc_get_expr ();
-	  build_compcall_for_operator (c->expr1, actual, tb_base, tbo);
+	  build_compcall_for_operator (c->expr1, actual, tb_base, tbo, gname);
 	  c->expr1->value.compcall.assign = 1;
 	  c->expr2 = NULL;
 	  c->op = EXEC_COMPCALL;

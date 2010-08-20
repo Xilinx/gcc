@@ -194,8 +194,6 @@ rest_of_decl_compilation (tree decl,
 	    ;
 	  else if (TREE_CODE (decl) != FUNCTION_DECL)
 	    varpool_finalize_decl (decl);
-	  else
-	    assemble_variable (decl, top_level, at_end, 0);
 	}
 
 #ifdef ASM_FINISH_DECLARE_OBJECT
@@ -806,6 +804,7 @@ init_optimization_passes (void)
     }
   NEXT_PASS (pass_ipa_increase_alignment);
   NEXT_PASS (pass_ipa_matrix_reorg);
+  NEXT_PASS (pass_ipa_lower_emutls);
   *p = NULL;
 
   p = &all_regular_ipa_passes;
@@ -901,9 +900,12 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_check_data_deps);
 	  NEXT_PASS (pass_loop_distribution);
 	  NEXT_PASS (pass_linear_transform);
-	  NEXT_PASS (pass_graphite_transforms);
+	  NEXT_PASS (pass_copy_prop);
+	  NEXT_PASS (pass_graphite);
 	    {
-	      struct opt_pass **p = &pass_graphite_transforms.pass.sub;
+	      struct opt_pass **p = &pass_graphite.pass.sub;
+	      NEXT_PASS (pass_copy_prop);
+	      NEXT_PASS (pass_graphite_transforms);
 	      NEXT_PASS (pass_copy_prop);
 	      NEXT_PASS (pass_dce_loop);
 	      NEXT_PASS (pass_lim);

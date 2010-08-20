@@ -1064,6 +1064,23 @@ case "$THREADS" in
 	THREADLIBS='-lpthread -lrt'
 	THREADSPEC='-lpthread -lrt'
 	;;
+     *-*-solaris2.8)
+	# Always use alternate thread library on Solaris 8.  Need libthread
+	# for TLS support.
+	# Need -Wl,-R to get it through libtool ...
+	THREADLIBS='-L/usr/lib/lwp$(MULTISUBDIR) -Wl,-R -Wl,/usr/lib/lwp$(MULTISUBDIR) -lpthread -lthread'
+	# ... while ld only accepts -R.
+	THREADSPEC='-L/usr/lib/lwp%{m64:/64} -R/usr/lib/lwp%{m64:/64} -lpthread -lthread'
+        ;;
+     *-*-solaris2.9)
+	# As on Solaris 8, need libthread for TLS support.
+	THREADLIBS='-lpthread -lthread'
+	THREADSPEC='-lpthread -lthread'
+	;;
+     *-*-darwin*)
+	# Don't set THREADLIBS or THREADSPEC as Darwin already
+	# provides pthread via libSystem.
+	;;
      *)
 	THREADLIBS=-lpthread
 	THREADSPEC=-lpthread
@@ -1432,6 +1449,8 @@ else
 	    # libgcj.spec is used, so override here
 	    SYSTEMSPEC="$SYSTEMSPEC %{!mabi=64:-ldl}"
 	  ;;
+	  *-*-darwin*)
+	  ;;
 	  *)
             AC_CHECK_LIB(dl, main, SYSTEMSPEC="$SYSTEMSPEC -ldl")
 	  ;;
@@ -1680,8 +1699,8 @@ case "${host}" in
  i?86-*-linux*)
     SIGNAL_HANDLER=include/i386-signal.h
     ;;
- sparc*-sun-solaris*)
-    SIGNAL_HANDLER=include/sparc-signal.h
+ *-*-solaris2*)
+    SIGNAL_HANDLER=include/solaris-signal.h
     ;;
 # ia64-*)
 #    SYSDEP_SOURCES=sysdep/ia64.c
@@ -1767,13 +1786,28 @@ AC_CACHE_CHECK([whether ld supports anonymous version scripts],
   [libjava_cv_anon_version_script],
   [save_CFLAGS="$CFLAGS"; save_LDFLAGS="$LDFLAGS"
    libjava_cv_anon_version_script=no
-   CFLAGS="$CFLAGS -fPIC"; LDFLAGS="$LDFLAGS -shared -Wl,--version-script,conftest.map"
+   CFLAGS="$CFLAGS -fPIC";
+   LDFLAGS="$LDFLAGS -shared -Wl,--version-script,conftest.map"
    echo '{ global: globalsymb*; local: *; };' > conftest.map
    AC_TRY_LINK(void globalsymbol (void) {} void localsymbol (void) {},,
-	       [libjava_cv_anon_version_script=yes], [])
+	       [libjava_cv_anon_version_script=gnu], [])
+   if test x$libjava_cv_anon_version_script = xno; then
+     case "$target_os" in
+       solaris2*)
+         LDFLAGS="$save_LDFLAGS"
+         LDFLAGS="$LDFLAGS -shared -Wl,-M,conftest.map"
+         # Sun ld doesn't understand wildcards here.
+         echo '{ global: globalsymbol; local: *; };' > conftest.map
+         AC_TRY_LINK(void globalsymbol (void) {} void localsymbol (void) {},,
+	 	     [libjava_cv_anon_version_script=sun], [])
+         ;;
+     esac
+   fi
    CFLAGS="$save_CFLAGS"; LDFLAGS="$save_LDFLAGS"
   ])
-AM_CONDITIONAL(ANONVERSCRIPT, test "$libjava_cv_anon_version_script" = yes)
+AM_CONDITIONAL(ANONVERSCRIPT, test "$libjava_cv_anon_version_script" != no)
+AM_CONDITIONAL(ANONVERSCRIPT_GNU, test "$libjava_cv_anon_version_script" = gnu)
+AM_CONDITIONAL(ANONVERSCRIPT_SUN, test "$libjava_cv_anon_version_script" = sun)
 
 # Check if linker supports static linking on a per library basis
 LD_START_STATIC_SPEC=

@@ -1,4 +1,4 @@
-/* Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 
    This file is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
@@ -446,12 +446,6 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 #define ASM_APP_OFF ""
 
-#define ASM_OUTPUT_SOURCE_FILENAME(STREAM, NAME) \
-  do {	fprintf (STREAM, "\t.file\t");			\
-	output_quoted_string (STREAM, NAME);		\
-	fprintf (STREAM, "\n");				\
-  } while (0)
-
 
 /* Uninitialized Data */
 #define ASM_OUTPUT_COMMON(FILE, NAME, SIZE, ROUNDED)  \
@@ -570,7 +564,7 @@ enum spu_builtin_type
   B_INTERNAL
 };
 
-struct GTY(()) spu_builtin_description
+struct spu_builtin_description
 {
   int fcode;
   int icode;
@@ -580,8 +574,6 @@ struct GTY(()) spu_builtin_description
   /* The first element of parm is always the return type.  The rest
      are a zero terminated list of parameters.  */
   int parm[5];
-
-  tree fndecl;
 };
 
 extern struct spu_builtin_description spu_builtins[];

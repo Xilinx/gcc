@@ -35,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "expr.h"
 #include "toplev.h"
+#include "diagnostic-core.h"
 #include "output.h"
 #include "ggc.h"
 #include "target.h"
@@ -1009,6 +1010,31 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 	  && GET_MODE_SIZE (mode) <= GET_MODE_SIZE (GET_MODE (XEXP (op, 0))))
 	return rtl_hooks.gen_lowpart_no_emit (mode, op);
 
+      /* (sign_extend:M (sign_extend:N <X>)) is (sign_extend:M <X>).  */
+      if (GET_CODE (op) == SIGN_EXTEND)
+	return simplify_gen_unary (SIGN_EXTEND, mode, XEXP (op, 0),
+				   GET_MODE (XEXP (op, 0)));
+
+      /* (sign_extend:M (ashiftrt:N (ashift <X> (const_int I)) (const_int I)))
+	 is (sign_extend:M (subreg:O <X>)) if there is mode with
+	 GET_MODE_BITSIZE (N) - I bits.  */
+      if (GET_CODE (op) == ASHIFTRT
+	  && GET_CODE (XEXP (op, 0)) == ASHIFT
+	  && CONST_INT_P (XEXP (op, 1))
+	  && XEXP (XEXP (op, 0), 1) == XEXP (op, 1)
+	  && GET_MODE_BITSIZE (GET_MODE (op)) > INTVAL (XEXP (op, 1)))
+	{
+	  enum machine_mode tmode
+	    = mode_for_size (GET_MODE_BITSIZE (GET_MODE (op))
+			     - INTVAL (XEXP (op, 1)), MODE_INT, 1);
+	  if (tmode != BLKmode)
+	    {
+	      rtx inner =
+		rtl_hooks.gen_lowpart_no_emit (tmode, XEXP (XEXP (op, 0), 0));
+	      return simplify_gen_unary (SIGN_EXTEND, mode, inner, tmode);
+	    }
+	}
+
 #if defined(POINTERS_EXTEND_UNSIGNED) && !defined(HAVE_ptr_extend)
       /* As we do not know which address space the pointer is refering to,
 	 we can do this only if the target does not support different pointer
@@ -1034,6 +1060,11 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 	  && SUBREG_PROMOTED_UNSIGNED_P (op) > 0
 	  && GET_MODE_SIZE (mode) <= GET_MODE_SIZE (GET_MODE (XEXP (op, 0))))
 	return rtl_hooks.gen_lowpart_no_emit (mode, op);
+
+      /* (zero_extend:M (zero_extend:N <X>)) is (zero_extend:M <X>).  */
+      if (GET_CODE (op) == ZERO_EXTEND)
+	return simplify_gen_unary (ZERO_EXTEND, mode, XEXP (op, 0),
+				   GET_MODE (XEXP (op, 0)));
 
 #if defined(POINTERS_EXTEND_UNSIGNED) && !defined(HAVE_ptr_extend)
       /* As we do not know which address space the pointer is refering to,
@@ -1196,10 +1227,8 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	  break;
 
 	case FFS:
-	  /* Don't use ffs here.  Instead, get low order bit and then its
-	     number.  If arg0 is zero, this will return 0, as desired.  */
 	  arg0 &= GET_MODE_MASK (mode);
-	  val = exact_log2 (arg0 & (- arg0)) + 1;
+	  val = ffs_hwi (arg0);
 	  break;
 
 	case CLZ:
@@ -1220,7 +1249,7 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 		val = GET_MODE_BITSIZE (mode);
 	    }
 	  else
-	    val = exact_log2 (arg0 & -arg0);
+	    val = ctz_hwi (arg0);
 	  break;
 
 	case POPCOUNT:
@@ -1350,15 +1379,12 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 
 	case FFS:
 	  hv = 0;
-	  if (l1 == 0)
-	    {
-	      if (h1 == 0)
-		lv = 0;
-	      else
-		lv = HOST_BITS_PER_WIDE_INT + exact_log2 (h1 & -h1) + 1;
-	    }
+	  if (l1 != 0)
+	    lv = ffs_hwi (l1);
+	  else if (h1 != 0)
+	    lv = HOST_BITS_PER_WIDE_INT + ffs_hwi (h1);
 	  else
-	    lv = exact_log2 (l1 & -l1) + 1;
+	    lv = 0;
 	  break;
 
 	case CLZ:
@@ -1375,9 +1401,9 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	case CTZ:
 	  hv = 0;
 	  if (l1 != 0)
-	    lv = exact_log2 (l1 & -l1);
+	    lv = ctz_hwi (l1);
 	  else if (h1 != 0)
-	    lv = HOST_BITS_PER_WIDE_INT + exact_log2 (h1 & -h1);
+	    lv = HOST_BITS_PER_WIDE_INT + ctz_hwi (h1);
 	  else if (! CTZ_DEFINED_VALUE_AT_ZERO (mode, lv))
 	    lv = GET_MODE_BITSIZE (mode);
 	  break;
@@ -2107,6 +2133,19 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
     case MULT:
       if (trueop1 == constm1_rtx)
 	return simplify_gen_unary (NEG, mode, op0, mode);
+
+      if (GET_CODE (op0) == NEG)
+	{
+	  rtx temp = simplify_unary_operation (NEG, mode, op1, mode);
+	  if (temp)
+	    return simplify_gen_binary (MULT, mode, XEXP (op0, 0), temp);
+	}
+      if (GET_CODE (op1) == NEG)
+	{
+	  rtx temp = simplify_unary_operation (NEG, mode, op0, mode);
+	  if (temp)
+	    return simplify_gen_binary (MULT, mode, temp, XEXP (op1, 0));
+	}
 
       /* Maybe simplify x * 0 to 0.  The reduction is not valid if
 	 x is NaN, since x * 0 is then also NaN.  Nor is it valid

@@ -1,6 +1,6 @@
 /* Definitions for c-common.c.
    Copyright (C) 1987, 1993, 1994, 1995, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -28,9 +28,15 @@ along with GCC; see the file COPYING3.  If not see
 
 /* In order for the format checking to accept the C frontend
    diagnostic framework extensions, you must include this file before
-   toplev.h, not after.  The C front end formats are a subset of those
+   diagnostic-core.h, not after.  The C front end formats are a subset of those
    for C++, so they are the appropriate set to use in common code;
    cp-tree.h overrides this for C++.  */
+#if defined(GCC_DIAGNOSTIC_CORE_H)
+#error \
+In order for the format checking to accept the C front end diagnostic \
+framework extensions, you must include this file before diagnostic-core.h \
+never after.
+#endif
 #ifndef GCC_DIAG_STYLE
 #define GCC_DIAG_STYLE __gcc_cdiag__
 #endif
@@ -652,8 +658,8 @@ extern void set_Wformat (int);
 extern tree handle_format_attribute (tree *, tree, tree, int, bool *);
 extern tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
 extern bool attribute_takes_identifier_p (const_tree);
-extern int c_common_handle_option (size_t code, const char *arg, int value, int kind);
-extern bool c_common_missing_argument (const char *opt, size_t code);
+extern bool c_common_handle_option (size_t, const char *, int, int,
+				    const struct cl_option_handlers *);
 extern tree c_common_type_for_mode (enum machine_mode, int);
 extern tree c_common_type_for_size (unsigned int, int);
 extern tree c_common_fixed_point_type_for_size (unsigned int, unsigned int,
@@ -718,7 +724,12 @@ extern void set_compound_literal_name (tree decl);
 
 extern tree build_va_arg (location_t, tree, tree);
 
-extern unsigned int c_common_init_options (unsigned int, const char **);
+struct diagnostic_context;
+
+extern unsigned int c_common_option_lang_mask (void);
+extern void c_common_initialize_diagnostics (struct diagnostic_context *);
+extern bool c_common_complain_wrong_lang_p (const struct cl_option *);
+extern void c_common_init_options (unsigned int, struct cl_decoded_option *);
 extern bool c_common_post_options (const char **);
 extern bool c_common_init (void);
 extern void c_common_finish (void);
