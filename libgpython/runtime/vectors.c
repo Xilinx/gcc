@@ -172,6 +172,21 @@ void * gpy_vec_pop( gpy_vector_t * const v )
   return retval;
 }
 
+void * gpy_vec_index( int idx, gpy_vector_t * const v )
+{
+  void * retval = NULL;
+  if( v )
+    {
+      if( (idx >= 0) && (idx < v->length) )
+	{
+	  retval = v->vector[ idx ];
+	}
+      else
+	fatal("vector index <%i> out of bounds!\n", idx );
+    }
+  return retval;
+}
+
 void gpy_vec_free( gpy_vector_t * v )
 {
   if( v )
@@ -183,17 +198,3 @@ void gpy_vec_free( gpy_vector_t * v )
   v = NULL;
 }
 
-void gpy_vec_frees( gpy_vector_t * x , ... )
-{
-  va_list args;
-  va_start( args, x );
-
-  gpy_vector_t *val = NULL;
-
-  while( (val= va_arg(args,gpy_vec_t)) )
-    {
-      gpy_vec_free( val );
-    }
-
-  va_end(args);
-}

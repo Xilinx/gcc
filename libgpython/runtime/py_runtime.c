@@ -32,6 +32,9 @@ along with GCC; see the file COPYING3.  If not see
 gpy_vector_t * gpy_primitives;
 gpy_vector_t * gpy_namespace_vec;
 
+/* Used for stack-traces ... */
+gpy_vector_t * gpy_call_stack;
+
 void gpy_rr_init_primitives( void )
 {
   gpy_primitives = (gpy_vector_t *)
@@ -52,8 +55,13 @@ void gpy_rr_init_runtime( void )
     gpy_malloc( sizeof(gpy_vector_t) );
   gpy_vec_init( gpy_namespace_vec );
 
+  gpy_call_stack = (gpy_vector_t*)
+    gpy_malloc(sizeof(gpy_vector_t));
+  gpy_vec_init( gpy_call_stack );
+
   gpy_context_t * head = (gpy_context_t *)
     gpy_malloc( sizeof(gpy_context_t) );
+
   head->symbols = (gpy_vector_t*)
     gpy_malloc( sizeof(gpy_vector_t) );
   gpy_vec_init( head->symbols );
@@ -70,6 +78,7 @@ void gpy_rr_cleanup_final( void )
 
   gpy_vec_free( gpy_namespace_vec );
   gpy_vec_free( gpy_primitives );
+  gpy_vec_free( gpy_call_stack );
 }
 
 gpy_object_state_t * gpy_rr_fold_integer( int x )
@@ -178,7 +187,8 @@ void gpy_rr_pop_context( void )
   /* Loop over for stragglers like returns which need pushed up a
      context soo they can still be garbage collected....
      --
-     straggler is something which will have a (ref_count > 0)
+     straggler is something which will have a (ref_count > 0) after
+     this set of decreasing references...
   */
 
   gpy_context_t * popd = gpy_vec_pop( gpy_namespace_vec );

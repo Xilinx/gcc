@@ -113,9 +113,10 @@ void gpy_garbage_free_obj( gpy_object_state_t * x )
   debug("deleting garbage object <%p>!\n", (void*)x );
   if( x )
     {
+      gpy_free( x->obj_t_ident );
+      (*x->definition).destroy_hook( x->self );
       gpy_free( x );
     }
-  return;
 }
 
 /* Cleanup the program for exit! */
