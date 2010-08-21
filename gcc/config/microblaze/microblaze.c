@@ -1437,19 +1437,8 @@ int legitimate_pic_operand_p (rtx x)
 
   if (flag_pic == 2 && (symbol_mentioned_p(x) || label_mentioned_p(x) ))
     return 0;
-   /* Handle Case of (const (plus symbol const_int)) */
-   if (GET_CODE (x) == CONST && GET_CODE (XEXP (x,0)) == PLUS) 
-     {
-        rtx p0, p1;
 
-        p0 = XEXP( XEXP (x, 0), 0 );
-        p1 = XEXP( XEXP (x, 0), 1 );
-
-        if (GET_CODE(p1) == CONST_INT)
-          {
-            /* Check similar to pic_operand needs scratch */
-          }
-      }
+  return 1;
 }
 
 int
