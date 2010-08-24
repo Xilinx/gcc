@@ -194,8 +194,6 @@ rest_of_decl_compilation (tree decl,
 	    ;
 	  else if (TREE_CODE (decl) != FUNCTION_DECL)
 	    varpool_finalize_decl (decl);
-	  else
-	    assemble_variable (decl, top_level, at_end, 0);
 	}
 
 #ifdef ASM_FINISH_DECLARE_OBJECT
@@ -795,6 +793,10 @@ init_optimization_passes (void)
           NEXT_PASS (pass_cleanup_eh);
           NEXT_PASS (pass_profile);
           NEXT_PASS (pass_local_pure_const);
+	  /* Split functions creates parts that are not run through
+	     early optimizations again.  It is thus good idea to do this
+	     late.  */
+          NEXT_PASS (pass_split_functions);
 	}
       NEXT_PASS (pass_release_ssa_names);
       NEXT_PASS (pass_rebuild_cgraph_edges);
@@ -802,12 +804,14 @@ init_optimization_passes (void)
     }
   NEXT_PASS (pass_ipa_increase_alignment);
   NEXT_PASS (pass_ipa_matrix_reorg);
+  NEXT_PASS (pass_ipa_lower_emutls);
   *p = NULL;
 
   p = &all_regular_ipa_passes;
   NEXT_PASS (pass_ipa_whole_program_visibility);
   NEXT_PASS (pass_ipa_profile);
   NEXT_PASS (pass_ipa_cp);
+  NEXT_PASS (pass_ipa_cdtor_merge);
   NEXT_PASS (pass_ipa_inline);
   NEXT_PASS (pass_ipa_pure_const);
   NEXT_PASS (pass_ipa_reference);
@@ -1123,7 +1127,7 @@ do_per_function (void (*callback) (void *data), void *data)
    keep the array visible to garbage collector to avoid reading collected
    out nodes.  */
 static int nnodes;
-static GTY ((length ("nnodes"))) struct cgraph_node **order;
+static GTY ((length ("nnodes"))) cgraph_node_ptr *order;
 
 /* If we are in IPA mode (i.e., current_function_decl is NULL), call
    function CALLBACK for every function in the call graph.  Otherwise,
@@ -1139,7 +1143,7 @@ do_per_function_toporder (void (*callback) (void *data), void *data)
   else
     {
       gcc_assert (!order);
-      order = GGC_NEWVEC (struct cgraph_node *, cgraph_n_nodes);
+      order = ggc_alloc_vec_cgraph_node_ptr (cgraph_n_nodes);
       nnodes = cgraph_postorder (order);
       for (i = nnodes - 1; i >= 0; i--)
         order[i]->process = 1;
@@ -1177,8 +1181,6 @@ execute_function_todo (void *data)
   flags &= ~cfun->last_verified;
   if (!flags)
     return;
-
-  statistics_fini_pass ();
 
   /* Always cleanup the CFG before trying to update SSA.  */
   if (flags & TODO_cleanup_cfg)
@@ -1244,22 +1246,7 @@ execute_function_todo (void *data)
     }
 
   if (flags & TODO_rebuild_frequencies)
-    {
-      if (profile_status == PROFILE_GUESSED)
-	{
-	  loop_optimizer_init (0);
-	  add_noreturn_fake_exit_edges ();
-	  mark_irreducible_loops ();
-	  connect_infinite_loops_to_exit ();
-	  estimate_bb_frequencies ();
-	  remove_fake_exit_edges ();
-	  loop_optimizer_finalize ();
-	}
-      else if (profile_status == PROFILE_READ)
-	counts_to_freqs ();
-      else
-	gcc_unreachable ();
-    }
+    rebuild_frequencies ();
 
 #if defined ENABLE_CHECKING
   if (flags & TODO_verify_ssa
@@ -1290,6 +1277,8 @@ execute_todo (unsigned int flags)
 
   /* Inform the pass whether it is the first time it is run.  */
   first_pass_instance = (flags & TODO_mark_first_instance) != 0;
+
+  statistics_fini_pass ();
 
   do_per_function (execute_function_todo, (void *)(size_t) flags);
 
@@ -1804,9 +1793,26 @@ void
 ipa_write_optimization_summaries (cgraph_node_set set, varpool_node_set vset)
 {
   struct lto_out_decl_state *state = lto_new_out_decl_state ();
+  cgraph_node_set_iterator csi;
   compute_ltrans_boundary (state, set, vset);
 
   lto_push_out_decl_state (state);
+  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
+    {
+      struct cgraph_node *node = csi_node (csi);
+      /* When streaming out references to statements as part of some IPA
+	 pass summary, the statements need to have uids assigned.
+
+	 For functions newly born at WPA stage we need to initialize
+	 the uids here.  */
+      if (node->analyzed
+	  && gimple_has_body_p (node->decl))
+	{
+	  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+	  renumber_gimple_stmt_uids ();
+	  pop_cfun ();
+	}
+    }
 
   gcc_assert (flag_wpa);
   ipa_write_optimization_summaries_1 (all_regular_ipa_passes, set, vset, state);

@@ -22,8 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_C_TREE_H
 #define GCC_C_TREE_H
 
-#include "c-common.h"
-#include "toplev.h"
+#include "c-family/c-common.h"
 #include "diagnostic.h"
 
 /* struct lang_identifier is private to c-decl.c, but langhooks.c needs to
@@ -296,12 +295,22 @@ enum c_declarator_kind {
   cdk_attrs
 };
 
+typedef struct GTY(()) c_arg_tag_d {
+  /* The argument name.  */
+  tree id;
+  /* The type of the argument.  */
+  tree type;
+} c_arg_tag;
+
+DEF_VEC_O(c_arg_tag);
+DEF_VEC_ALLOC_O(c_arg_tag,gc);
+
 /* Information about the parameters in a function declarator.  */
 struct c_arg_info {
   /* A list of parameter decls.  */
   tree parms;
   /* A list of structure, union and enum tags defined.  */
-  tree tags;
+  VEC(c_arg_tag,gc) *tags;
   /* A list of argument types to go in the FUNCTION_TYPE.  */
   tree types;
   /* A list of non-parameter decls (notably enumeration constants)
@@ -435,6 +444,7 @@ extern tree finish_enum (tree, tree, tree);
 extern void finish_function (void);
 extern tree finish_struct (location_t, tree, tree, tree,
 			   struct c_struct_parse_info *);
+extern struct c_arg_info *build_arg_info (void);
 extern struct c_arg_info *get_parm_info (bool);
 extern tree grokfield (location_t, struct c_declarator *,
 		       struct c_declspecs *, tree, tree *);
@@ -489,11 +499,6 @@ extern bool c_missing_noreturn_ok_p (tree);
 extern bool c_warn_unused_global_decl (const_tree);
 extern void c_initialize_diagnostics (diagnostic_context *);
 extern bool c_vla_unspec_p (tree x, tree fn);
-
-#define c_build_type_variant(TYPE, CONST_P, VOLATILE_P)		  \
-  c_build_qualified_type ((TYPE),				  \
-			  ((CONST_P) ? TYPE_QUAL_CONST : 0) |	  \
-			  ((VOLATILE_P) ? TYPE_QUAL_VOLATILE : 0))
 
 /* in c-typeck.c */
 extern bool in_late_binary_op;

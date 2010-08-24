@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "cp-tree.h"
-#include "c-common.h"
+#include "c-family/c-common.h"
 #include "toplev.h"
 #include "tree-iterator.h"
 #include "gimple.h"
@@ -51,7 +51,7 @@ static tree
 begin_bc_block (enum bc_t bc)
 {
   tree label = create_artificial_label (input_location);
-  TREE_CHAIN (label) = bc_label[bc];
+  DECL_CHAIN (label) = bc_label[bc];
   bc_label[bc] = label;
   return label;
 }
@@ -73,8 +73,8 @@ finish_bc_block (enum bc_t bc, tree label, gimple_seq body)
       gimple_seq_add_stmt (&body, gimple_build_label (label));
     }
 
-  bc_label[bc] = TREE_CHAIN (label);
-  TREE_CHAIN (label) = NULL_TREE;
+  bc_label[bc] = DECL_CHAIN (label);
+  DECL_CHAIN (label) = NULL_TREE;
   return body;
 }
 
@@ -575,15 +575,18 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 	  TREE_OPERAND (*expr_p, 1) = build1 (VIEW_CONVERT_EXPR,
 					      TREE_TYPE (op0), op1);
 
-	else if ((rhs_predicate_for (op0)) (op1)
-		 && !(TREE_CODE (op1) == CALL_EXPR
-		      && CALL_EXPR_RETURN_SLOT_OPT (op1))
+	else if ((is_gimple_lvalue (op1) || INDIRECT_REF_P (op1)
+		  || (TREE_CODE (op1) == CONSTRUCTOR
+		      && CONSTRUCTOR_NELTS (op1) == 0)
+		  || (TREE_CODE (op1) == CALL_EXPR
+		      && !CALL_EXPR_RETURN_SLOT_OPT (op1)))
 		 && is_really_empty_class (TREE_TYPE (op0)))
 	  {
 	    /* Remove any copies of empty classes.  We check that the RHS
-	       has a simple form so that TARGET_EXPRs and CONSTRUCTORs get
-	       reduced properly, and we leave the return slot optimization
-	       alone because it isn't a copy.
+	       has a simple form so that TARGET_EXPRs and non-empty
+	       CONSTRUCTORs get reduced properly, and we leave the return
+	       slot optimization alone because it isn't a copy (FIXME so it
+	       shouldn't be represented as one).
 
 	       Also drop volatile variables on the RHS to avoid infinite
 	       recursion from gimplify_expr trying to load the value.  */
@@ -893,7 +896,7 @@ cp_genericize_r (tree *stmt_p, int *walk_subtrees, void *data)
 
 	  IMPORTED_DECL_ASSOCIATED_DECL (using_directive)
 	    = TREE_OPERAND (stmt, 0);
-	  TREE_CHAIN (using_directive) = BLOCK_VARS (block);
+	  DECL_CHAIN (using_directive) = BLOCK_VARS (block);
 	  BLOCK_VARS (block) = using_directive;
 	}
       /* The USING_STMT won't appear in GENERIC.  */
@@ -921,7 +924,7 @@ cp_genericize (tree fndecl)
   struct cp_genericize_data wtd;
 
   /* Fix up the types of parms passed by invisible reference.  */
-  for (t = DECL_ARGUMENTS (fndecl); t; t = TREE_CHAIN (t))
+  for (t = DECL_ARGUMENTS (fndecl); t; t = DECL_CHAIN (t))
     if (TREE_ADDRESSABLE (TREE_TYPE (t)))
       {
 	/* If a function's arguments are copied to create a thunk,
@@ -981,7 +984,7 @@ cxx_omp_clause_apply_fn (tree fn, tree arg1, tree arg2)
     return NULL;
 
   nargs = list_length (DECL_ARGUMENTS (fn));
-  argarray = (tree *) alloca (nargs * sizeof (tree));
+  argarray = XALLOCAVEC (tree, nargs);
 
   defparm = TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (fn)));
   if (arg2)
@@ -1178,7 +1181,7 @@ cxx_omp_predetermined_sharing (tree decl)
 	  tree var;
 
 	  if (outer)
-	    for (var = BLOCK_VARS (outer); var; var = TREE_CHAIN (var))
+	    for (var = BLOCK_VARS (outer); var; var = DECL_CHAIN (var))
 	      if (DECL_NAME (decl) == DECL_NAME (var)
 		  && (TYPE_MAIN_VARIANT (type)
 		      == TYPE_MAIN_VARIANT (TREE_TYPE (var))))

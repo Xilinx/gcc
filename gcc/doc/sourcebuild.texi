@@ -1324,11 +1324,6 @@ Target supports hardware vectors of @code{float}.
 @item vect_int
 Target supports hardware vectors of @code{int}.
 
-@item vect_int_mult
-Target supports a vector widening multiplication of @code{short} operands
-into an @code{int} result, or supports promotion (unpacking) from
-@code{short} to @code{int} and a non-widening multiplication of @code{int}.
-
 @item vect_long
 Target supports hardware vectors of @code{long}.
 
@@ -1604,8 +1599,17 @@ Target uses a ColdFire FPU.
 @item hard_float
 Target supports FPU instructions.
 
+@item sse
+Target supports compiling @code{sse} instructions.
+
+@item sse_runtime
+Target supports the execution of @code{sse} instructions.
+
 @item sse2
 Target supports compiling @code{sse2} instructions.
+
+@item sse2_runtime
+Target supports the execution of @code{sse2} instructions.
 
 @item sync_char_short
 Target supports atomic operations on @code{char} and @code{short}.
@@ -1733,6 +1737,9 @@ Target supports @option{-freorder-blocks-and-partition}.
 
 @item fstack_protector
 Target supports @option{-fstack-protector}.
+
+@item gas
+Target uses GNU @command{as}.
 
 @item gc_sections
 Target supports @option{--gc-sections}.
@@ -1867,6 +1874,16 @@ The supported values of @var{feature} for directive @code{dg-add-options}
 are:
 
 @table @code
+@item arm_neon
+NEON support.  Only ARM targets support this feature, and only then
+in certain modes; see the @ref{arm_neon_ok,,arm_neon_ok effective target
+keyword}.
+
+@item arm_neon_fp16
+NEON and half-precision floating point support.  Only ARM targets
+support this feature, and only then in certain modes; see
+the @ref{arm_neon_ok,,arm_neon_fp16_ok effective target keyword}.
+
 @item bind_pic_locally
 Add the target-specific flags needed to enable functions to bind
 locally when using pic/PIC passes in the testsuite.
@@ -1882,15 +1899,8 @@ compliance mode.
 @code{mips16} function attributes.
 Only MIPS targets support this feature, and only then in certain modes.
 
-@item arm_neon
-NEON support.  Only ARM targets support this feature, and only then
-in certain modes; see the @ref{arm_neon_ok,,arm_neon_ok effective target
-keyword}.
-
-@item arm_neon_fp16
-NEON and half-precision floating point support.  Only ARM targets
-support this feature, and only then in certain modes; see
-the @ref{arm_neon_ok,,arm_neon_fp16_ok effective target keyword}.
+@item tls
+Add the target-specific flags needed to use thread-local storage.
 @end table
 
 @node Require Support

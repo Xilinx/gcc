@@ -230,6 +230,9 @@ struct recog_data
   /* The number of alternatives in the constraints for the insn.  */
   char n_alternatives;
 
+  /* True if insn is ASM_OPERANDS.  */
+  bool is_asm;
+
   /* Specifies whether an insn alternative is enabled using the
      `enabled' attribute in the insn pattern definition.  For back
      ends not using the `enabled' attribute the array fields are
@@ -275,7 +278,7 @@ struct insn_operand_data
 #define INSN_OUTPUT_FORMAT_MULTI	2	/* const char * const * */
 #define INSN_OUTPUT_FORMAT_FUNCTION	3	/* const char * (*)(...) */
 
-struct insn_data
+struct insn_data_d
 {
   const char *const name;
 #if HAVE_DESIGNATED_INITIALIZERS
@@ -300,5 +303,5 @@ struct insn_data
   const char output_format;
 };
 
-extern const struct insn_data insn_data[];
+extern const struct insn_data_d insn_data[];
 extern int peep2_current_count;

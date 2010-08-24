@@ -25,7 +25,7 @@
 
 /* This file contains parts of the compiler that are required for interfacing
    with GCC but otherwise do nothing and parts of Gigi that need to know
-   about RTL.  */
+   about GIMPLE.  */
 
 #include "config.h"
 #include "system.h"
@@ -44,7 +44,6 @@
 #include "options.h"
 #include "plugin.h"
 #include "function.h"	/* For pass_by_reference.  */
-#include "except.h"	/* For USING_SJLJ_EXCEPTIONS.  */
 
 #include "ada.h"
 #include "adadecode.h"
@@ -62,8 +61,11 @@
 #include "gigi.h"
 
 static bool gnat_init			(void);
-static unsigned int gnat_init_options	(unsigned int, const char **);
-static int gnat_handle_option		(size_t, const char *, int, int);
+static unsigned int gnat_option_lang_mask (void);
+static void gnat_init_options		(unsigned int,
+					 struct cl_decoded_option *);
+static bool gnat_handle_option		(size_t, const char *, int, int,
+					 const struct cl_option_handlers *);
 static bool gnat_post_options		(const char **);
 static alias_set_type gnat_get_alias_set (tree);
 static void gnat_print_decl		(FILE *, tree, int);
@@ -86,6 +88,8 @@ static tree gnat_eh_personality		(void);
 #define LANG_HOOKS_IDENTIFIER_SIZE	sizeof (struct tree_identifier)
 #undef  LANG_HOOKS_INIT
 #define LANG_HOOKS_INIT			gnat_init
+#undef  LANG_HOOKS_OPTION_LANG_MASK
+#define LANG_HOOKS_OPTION_LANG_MASK	gnat_option_lang_mask
 #undef  LANG_HOOKS_INIT_OPTIONS
 #define LANG_HOOKS_INIT_OPTIONS		gnat_init_options
 #undef  LANG_HOOKS_HANDLE_OPTION
@@ -135,6 +139,9 @@ static tree gnat_eh_personality		(void);
 
 struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
+/* This symbol needs to be defined for the front-end.  */
+void *callgraph_info_file = NULL;
+
 /* How much we want of our DWARF extensions.  Some of our dwarf+ extensions
    are incompatible with regular GDB versions, so we must make sure to only
    produce them on explicit request.  This is eventually reflected into the
@@ -180,39 +187,22 @@ gnat_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 
 /* Decode all the language specific options that cannot be decoded by GCC.
    The option decoding phase of GCC calls this routine on the flags that
-   it cannot decode.  Return the number of consecutive arguments from ARGV
-   that have been successfully decoded or 0 on failure.  */
+   are marked as Ada-specific.  Return true on success or false on failure.  */
 
-static int
-gnat_handle_option (size_t scode, const char *arg, int value,
-		    int kind ATTRIBUTE_UNUSED)
+static bool
+gnat_handle_option (size_t scode, const char *arg ATTRIBUTE_UNUSED, int value,
+		    int kind ATTRIBUTE_UNUSED,
+		    const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
 {
-  const struct cl_option *option = &cl_options[scode];
   enum opt_code code = (enum opt_code) scode;
-  char *q;
-
-  if (arg == NULL && (option->flags & (CL_JOINED | CL_SEPARATE)))
-    {
-      error ("missing argument to \"-%s\"", option->opt_text);
-      return 1;
-    }
 
   switch (code)
     {
-    case OPT_I:
-      q = XNEWVEC (char, sizeof("-I") + strlen (arg));
-      strcpy (q, "-I");
-      strcat (q, arg);
-      gnat_argv[gnat_argc] = q;
-      gnat_argc++;
-      break;
-
     case OPT_Wall:
       warn_unused = value;
       warn_uninitialized = value;
       break;
 
-      /* These are used in the GCC Makefile.  */
     case OPT_Wmissing_prototypes:
     case OPT_Wstrict_prototypes:
     case OPT_Wwrite_strings:
@@ -221,15 +211,7 @@ gnat_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wold_style_definition:
     case OPT_Wmissing_format_attribute:
     case OPT_Woverlength_strings:
-      break;
-
-      /* This is handled by the front-end.  */
-    case OPT_nostdinc:
-      break;
-
-    case OPT_nostdlib:
-      gnat_argv[gnat_argc] = xstrdup ("-nostdlib");
-      gnat_argc++;
+      /* These are used in the GCC Makefile.  */
       break;
 
     case OPT_feliminate_unused_debug_types:
@@ -240,9 +222,8 @@ gnat_handle_option (size_t scode, const char *arg, int value,
       flag_eliminate_unused_debug_types = -value;
       break;
 
-    case OPT_fRTS_:
-      gnat_argv[gnat_argc] = xstrdup ("-fRTS");
-      gnat_argc++;
+    case OPT_gdwarfplus:
+      gnat_dwarf_extensions = 1;
       break;
 
     case OPT_gant:
@@ -251,48 +232,63 @@ gnat_handle_option (size_t scode, const char *arg, int value,
       /* ... fall through ... */
 
     case OPT_gnat:
-      /* Recopy the switches without the 'gnat' prefix.  */
-      gnat_argv[gnat_argc] = XNEWVEC (char, strlen (arg) + 2);
-      gnat_argv[gnat_argc][0] = '-';
-      strcpy (gnat_argv[gnat_argc] + 1, arg);
-      gnat_argc++;
-      break;
-
     case OPT_gnatO:
-      gnat_argv[gnat_argc] = xstrdup ("-O");
-      gnat_argc++;
-      gnat_argv[gnat_argc] = xstrdup (arg);
-      gnat_argc++;
-      break;
-
-    case OPT_gdwarfplus:
-      gnat_dwarf_extensions = 1;
+    case OPT_fRTS_:
+    case OPT_I:
+    case OPT_nostdinc:
+    case OPT_nostdlib:
+      /* These are handled by the front-end.  */
       break;
 
     default:
       gcc_unreachable ();
     }
 
-  return 1;
+  return true;
+}
+
+/* Return language mask for option processing.  */
+
+static unsigned int
+gnat_option_lang_mask (void)
+{
+  return CL_Ada;
 }
 
 /* Initialize for option processing.  */
 
-static unsigned int
-gnat_init_options (unsigned int argc, const char **argv)
+static void
+gnat_init_options (unsigned int decoded_options_count,
+		   struct cl_decoded_option *decoded_options)
 {
-  /* Initialize gnat_argv with save_argv size.  */
-  gnat_argv = (char **) xmalloc ((argc + 1) * sizeof (argv[0]));
-  gnat_argv[0] = xstrdup (argv[0]);     /* name of the command */
-  gnat_argc = 1;
+  /* Reconstruct an argv array for use of back_end.adb.
 
-  save_argc = argc;
-  save_argv = argv;
+     ??? back_end.adb should not rely on this; instead, it should work
+     with decoded options without such reparsing, to ensure
+     consistency in how options are decoded.  */
+  unsigned int i;
+
+  save_argv = XNEWVEC (const char *, 2 * decoded_options_count + 1);
+  save_argc = 0;
+  for (i = 0; i < decoded_options_count; i++)
+    {
+      if (decoded_options[i].errors
+	  || decoded_options[i].opt_index == OPT_SPECIAL_unknown)
+	continue;
+      gcc_assert (decoded_options[i].canonical_option_num_elements >= 1
+		  && decoded_options[i].canonical_option_num_elements <= 2);
+      save_argv[save_argc++] = decoded_options[i].canonical_option[0];
+      if (decoded_options[i].canonical_option_num_elements >= 2)
+	save_argv[save_argc++] = decoded_options[i].canonical_option[1];
+    }
+  save_argv[save_argc] = NULL;
+
+  gnat_argv = (char **) xmalloc (sizeof (save_argv[0]));
+  gnat_argv[0] = xstrdup (save_argv[0]);     /* name of the command */
+  gnat_argc = 1;
 
   /* Uninitialized really means uninitialized in Ada.  */
   flag_zero_initialized_in_bss = 0;
-
-  return CL_Ada;
 }
 
 /* Post-switch processing.  */
@@ -420,14 +416,6 @@ gnat_init (void)
 
   /* Show that REFERENCE_TYPEs are internal and should be Pmode.  */
   internal_reference_types ();
-
-  /* Add the input filename as the last argument.  */
-  if (main_input_filename)
-    {
-      gnat_argv[gnat_argc] = xstrdup (main_input_filename);
-      gnat_argc++;
-      gnat_argv[gnat_argc] = NULL;
-    }
 
   /* Register our internal error function.  */
   global_dc->internal_error = &internal_error_function;
@@ -574,7 +562,7 @@ static const char *
 gnat_printable_name (tree decl, int verbosity)
 {
   const char *coded_name = IDENTIFIER_POINTER (DECL_NAME (decl));
-  char *ada_name = (char *) ggc_alloc (strlen (coded_name) * 2 + 60);
+  char *ada_name = (char *) ggc_alloc_atomic (strlen (coded_name) * 2 + 60);
 
   __gnat_decode (coded_name, ada_name, 0);
 

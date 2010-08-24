@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hard-reg-set.h"
 #include "regs.h"
 #include "output.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "hashtab.h"
 #include "ggc.h"
@@ -185,320 +186,6 @@ static GTY(()) int anchor_labelno;
 /* A pool of constants that can be shared between functions.  */
 static GTY(()) struct rtx_constant_pool *shared_constant_pool;
 
-/* TLS emulation.  */
-
-static GTY ((if_marked ("tree_map_marked_p"), param_is (struct tree_map)))
-     htab_t emutls_htab;
-static GTY (()) tree emutls_object_type;
-/* Emulated TLS objects have the TLS model TLS_MODEL_EMULATED.  This
-   macro can be used on them to distinguish the control variable from
-   the initialization template.  */
-#define DECL_EMUTLS_VAR_P(D)  (TREE_TYPE (D) == emutls_object_type)
-
-#if !defined (NO_DOT_IN_LABEL)
-# define EMUTLS_SEPARATOR	"."
-#elif !defined (NO_DOLLAR_IN_LABEL)
-# define EMUTLS_SEPARATOR	"$"
-#else
-# define EMUTLS_SEPARATOR	"_"
-#endif
-
-/* Create an IDENTIFIER_NODE by prefixing PREFIX to the
-   IDENTIFIER_NODE NAME's name.  */
-
-static tree
-prefix_name (const char *prefix, tree name)
-{
-  unsigned plen = strlen (prefix);
-  unsigned nlen = strlen (IDENTIFIER_POINTER (name));
-  char *toname = (char *) alloca (plen + nlen + 1);
-
-  memcpy (toname, prefix, plen);
-  memcpy (toname + plen, IDENTIFIER_POINTER (name), nlen + 1);
-
-  return get_identifier (toname);
-}
-
-/* Create an identifier for the struct __emutls_object, given an identifier
-   of the DECL_ASSEMBLY_NAME of the original object.  */
-
-static tree
-get_emutls_object_name (tree name)
-{
-  const char *prefix = (targetm.emutls.var_prefix
-			? targetm.emutls.var_prefix
-			: "__emutls_v" EMUTLS_SEPARATOR);
-  return prefix_name (prefix, name);
-}
-
-tree
-default_emutls_var_fields (tree type, tree *name ATTRIBUTE_UNUSED)
-{
-  tree word_type_node, field, next_field;
-
-  field = build_decl (UNKNOWN_LOCATION,
-		      FIELD_DECL, get_identifier ("__templ"), ptr_type_node);
-  DECL_CONTEXT (field) = type;
-  next_field = field;
-
-  field = build_decl (UNKNOWN_LOCATION,
-		      FIELD_DECL, get_identifier ("__offset"),
-		      ptr_type_node);
-  DECL_CONTEXT (field) = type;
-  TREE_CHAIN (field) = next_field;
-  next_field = field;
-
-  word_type_node = lang_hooks.types.type_for_mode (word_mode, 1);
-  field = build_decl (UNKNOWN_LOCATION,
-		      FIELD_DECL, get_identifier ("__align"),
-		      word_type_node);
-  DECL_CONTEXT (field) = type;
-  TREE_CHAIN (field) = next_field;
-  next_field = field;
-
-  field = build_decl (UNKNOWN_LOCATION,
-		      FIELD_DECL, get_identifier ("__size"), word_type_node);
-  DECL_CONTEXT (field) = type;
-  TREE_CHAIN (field) = next_field;
-
-  return field;
-}
-
-/* Create the structure for struct __emutls_object.  This should match the
-   structure at the top of emutls.c, modulo the union there.  */
-
-static tree
-get_emutls_object_type (void)
-{
-  tree type, type_name, field;
-
-  type = emutls_object_type;
-  if (type)
-    return type;
-
-  emutls_object_type = type = lang_hooks.types.make_type (RECORD_TYPE);
-  type_name = NULL;
-  field = targetm.emutls.var_fields (type, &type_name);
-  if (!type_name)
-    type_name = get_identifier ("__emutls_object");
-  type_name = build_decl (UNKNOWN_LOCATION,
-			  TYPE_DECL, type_name, type);
-  TYPE_NAME (type) = type_name;
-  TYPE_FIELDS (type) = field;
-  layout_type (type);
-
-  return type;
-}
-
-/* Create a read-only variable like DECL, with the same DECL_INITIAL.
-   This will be used for initializing the emulated tls data area.  */
-
-static tree
-get_emutls_init_templ_addr (tree decl)
-{
-  tree name, to;
-
-  if (targetm.emutls.register_common && !DECL_INITIAL (decl)
-      && !DECL_SECTION_NAME (decl))
-    return null_pointer_node;
-
-  name = DECL_ASSEMBLER_NAME (decl);
-  if (!targetm.emutls.tmpl_prefix || targetm.emutls.tmpl_prefix[0])
-    {
-      const char *prefix = (targetm.emutls.tmpl_prefix
-			    ? targetm.emutls.tmpl_prefix
-			    : "__emutls_t" EMUTLS_SEPARATOR);
-      name = prefix_name (prefix, name);
-    }
-
-  to = build_decl (DECL_SOURCE_LOCATION (decl),
-		   VAR_DECL, name, TREE_TYPE (decl));
-  SET_DECL_ASSEMBLER_NAME (to, DECL_NAME (to));
-
-  DECL_ARTIFICIAL (to) = 1;
-  TREE_USED (to) = TREE_USED (decl);
-  TREE_READONLY (to) = 1;
-  DECL_IGNORED_P (to) = 1;
-  DECL_CONTEXT (to) = DECL_CONTEXT (decl);
-  DECL_SECTION_NAME (to) = DECL_SECTION_NAME (decl);
-  DECL_PRESERVE_P (to) = DECL_PRESERVE_P (decl);
-
-  DECL_WEAK (to) = DECL_WEAK (decl);
-  if (DECL_ONE_ONLY (decl))
-    {
-      make_decl_one_only (to, DECL_ASSEMBLER_NAME (to));
-      TREE_STATIC (to) = TREE_STATIC (decl);
-      TREE_PUBLIC (to) = TREE_PUBLIC (decl);
-      DECL_VISIBILITY (to) = DECL_VISIBILITY (decl);
-    }
-  else
-    TREE_STATIC (to) = 1;
-
-  DECL_VISIBILITY_SPECIFIED (to) = DECL_VISIBILITY_SPECIFIED (decl);
-  DECL_INITIAL (to) = DECL_INITIAL (decl);
-  DECL_INITIAL (decl) = NULL;
-
-  varpool_finalize_decl (to);
-  return build_fold_addr_expr (to);
-}
-
-/* When emulating tls, we use a control structure for use by the runtime.
-   Create and return this structure.  */
-
-tree
-emutls_decl (tree decl)
-{
-  tree name, to;
-  struct tree_map *h, in;
-  void **loc;
-
-  if (targetm.have_tls || decl == NULL || decl == error_mark_node
-      || TREE_CODE (decl) != VAR_DECL || ! DECL_THREAD_LOCAL_P (decl))
-    return decl;
-
-  /* Look up the object in the hash; return the control structure if
-     it has already been created.  */
-  if (! emutls_htab)
-    emutls_htab = htab_create_ggc (512, tree_map_hash, tree_map_eq, 0);
-
-  name = DECL_ASSEMBLER_NAME (decl);
-
-  /* Note that we use the hash of the decl's name, rather than a hash
-     of the decl's pointer.  In emutls_finish we iterate through the
-     hash table, and we want this traversal to be predictable.  */
-  in.hash = IDENTIFIER_HASH_VALUE (name);
-  in.base.from = decl;
-  loc = htab_find_slot_with_hash (emutls_htab, &in, in.hash, INSERT);
-  h = (struct tree_map *) *loc;
-  if (h != NULL)
-    to = h->to;
-  else
-    {
-      to = build_decl (DECL_SOURCE_LOCATION (decl),
-		       VAR_DECL, get_emutls_object_name (name),
-		       get_emutls_object_type ());
-
-      h = GGC_NEW (struct tree_map);
-      h->hash = in.hash;
-      h->base.from = decl;
-      h->to = to;
-      *(struct tree_map **) loc = h;
-
-      DECL_TLS_MODEL (to) = TLS_MODEL_EMULATED;
-      DECL_ARTIFICIAL (to) = 1;
-      DECL_IGNORED_P (to) = 1;
-      /* FIXME: work around PR44132.  */
-      DECL_PRESERVE_P (to) = 1;
-      TREE_READONLY (to) = 0;
-      SET_DECL_ASSEMBLER_NAME (to, DECL_NAME (to));
-      if (DECL_ONE_ONLY (decl))
-	make_decl_one_only (to, DECL_ASSEMBLER_NAME (to));
-      DECL_CONTEXT (to) = DECL_CONTEXT (decl);
-      if (targetm.emutls.var_align_fixed)
-	/* If we're not allowed to change the proxy object's
-	   alignment, pretend it's been set by the user.  */
-	DECL_USER_ALIGN (to) = 1;
-    }
-
-  /* Note that these fields may need to be updated from time to time from
-     the original decl.  Consider:
-	extern __thread int i;
-	int foo() { return i; }
-	__thread int i = 1;
-     in which I goes from external to locally defined and initialized.  */
-  DECL_DLLIMPORT_P (to) = DECL_DLLIMPORT_P (decl);
-  DECL_ATTRIBUTES (to) = targetm.merge_decl_attributes (decl, to);
-
-  TREE_STATIC (to) = TREE_STATIC (decl);
-  TREE_USED (to) = TREE_USED (decl);
-  TREE_PUBLIC (to) = TREE_PUBLIC (decl);
-  DECL_EXTERNAL (to) = DECL_EXTERNAL (decl);
-  DECL_COMMON (to) = DECL_COMMON (decl);
-  DECL_WEAK (to) = DECL_WEAK (decl);
-  DECL_VISIBILITY (to) = DECL_VISIBILITY (decl);
-  DECL_VISIBILITY_SPECIFIED (to) = DECL_VISIBILITY_SPECIFIED (decl);
-  
-  /* Fortran might pass this to us.  */
-  DECL_RESTRICTED_P (to) = DECL_RESTRICTED_P (decl);
-
-  return to;
-}
-
-static int
-emutls_common_1 (void **loc, void *xstmts)
-{
-  struct tree_map *h = *(struct tree_map **) loc;
-  tree args, x, *pstmts = (tree *) xstmts;
-  tree word_type_node;
-
-  if (! DECL_COMMON (h->base.from)
-      || (DECL_INITIAL (h->base.from)
-	  && DECL_INITIAL (h->base.from) != error_mark_node))
-    return 1;
-
-  word_type_node = lang_hooks.types.type_for_mode (word_mode, 1);
-
-  /* The idea was to call get_emutls_init_templ_addr here, but if we
-     do this and there is an initializer, -fanchor_section loses,
-     because it would be too late to ensure the template is
-     output.  */
-  x = null_pointer_node;
-  args = tree_cons (NULL, x, NULL);
-  x = build_int_cst (word_type_node, DECL_ALIGN_UNIT (h->base.from));
-  args = tree_cons (NULL, x, args);
-  x = fold_convert (word_type_node, DECL_SIZE_UNIT (h->base.from));
-  args = tree_cons (NULL, x, args);
-  x = build_fold_addr_expr (h->to);
-  args = tree_cons (NULL, x, args);
-
-  x = built_in_decls[BUILT_IN_EMUTLS_REGISTER_COMMON];
-  x = build_function_call_expr (UNKNOWN_LOCATION, x, args);
-
-  append_to_statement_list (x, pstmts);
-  return 1;
-}
-
-/* Callback to finalize one emutls control variable.  */
-
-static int
-emutls_finalize_control_var (void **loc, 
-				void *unused ATTRIBUTE_UNUSED)
-{
-  struct tree_map *h = *(struct tree_map **) loc;
-  if (h != NULL) 
-    {
-      struct varpool_node *node = varpool_node (h->to);
-      /* Because varpool_finalize_decl () has side-effects,
-         only apply to un-finalized vars.  */
-      if (node && !node->finalized) 
-	varpool_finalize_decl (h->to);
-    }
-  return 1;
-}
-
-/* Finalize emutls control vars and add a static constructor if
-   required.  */
-
-void
-emutls_finish (void)
-{
-  if (emutls_htab == NULL)
-    return;
-  htab_traverse_noresize (emutls_htab, 
-			  emutls_finalize_control_var, NULL);
-
-  if (targetm.emutls.register_common)
-    {
-      tree body = NULL_TREE;
-
-      htab_traverse_noresize (emutls_htab, emutls_common_1, &body);
-      if (body == NULL_TREE)
-	return;
-
-      cgraph_build_static_cdtor ('I', body, DEFAULT_INIT_PRIORITY);
-    }
-}
-
 /* Helper routines for maintaining section_htab.  */
 
 static int
@@ -553,7 +240,7 @@ get_unnamed_section (unsigned int flags, void (*callback) (const void *),
 {
   section *sect;
 
-  sect = GGC_NEW (section);
+  sect = ggc_alloc_section ();
   sect->unnamed.common.flags = flags | SECTION_UNNAMED;
   sect->unnamed.callback = callback;
   sect->unnamed.data = data;
@@ -570,7 +257,7 @@ get_noswitch_section (unsigned int flags, noswitch_section_callback callback)
 {
   section *sect;
 
-  sect = GGC_NEW (section);
+  sect = ggc_alloc_section ();
   sect->noswitch.common.flags = flags | SECTION_NOSWITCH;
   sect->noswitch.callback = callback;
 
@@ -591,7 +278,7 @@ get_section (const char *name, unsigned int flags, tree decl)
   flags |= SECTION_NAMED;
   if (*slot == NULL)
     {
-      sect = GGC_NEW (section);
+      sect = ggc_alloc_section ();
       sect->named.common.flags = flags;
       sect->named.name = ggc_strdup (name);
       sect->named.decl = decl;
@@ -640,8 +327,7 @@ get_block_for_section (section *sect)
   block = (struct object_block *) *slot;
   if (block == NULL)
     {
-      block = (struct object_block *)
-	ggc_alloc_cleared (sizeof (struct object_block));
+      block = ggc_alloc_cleared_object_block ();
       block->sect = sect;
       *slot = block;
     }
@@ -661,7 +347,7 @@ create_block_symbol (const char *label, struct object_block *block,
 
   /* Create the extended SYMBOL_REF.  */
   size = RTX_HDR_SIZE + sizeof (struct block_symbol);
-  symbol = (rtx) ggc_alloc_zone (size, &rtl_zone);
+  symbol = ggc_alloc_zone_rtx_def (size, &rtl_zone);
 
   /* Initialize the normal SYMBOL_REF fields.  */
   memset (symbol, 0, size);
@@ -1213,11 +899,6 @@ get_variable_section (tree decl, bool prefer_noswitch_p)
 		  && ADDR_SPACE_GENERIC_P (as));
       if (DECL_THREAD_LOCAL_P (decl))
 	return tls_comm_section;
-      /* This cannot be common bss for an emulated TLS object without
-	 a register_common hook.  */
-      else if (DECL_TLS_MODEL (decl) == TLS_MODEL_EMULATED
-	       && !targetm.emutls.register_common)
-	;
       else if (TREE_PUBLIC (decl) && bss_initializer_p (decl))
 	return comm_section;
     }
@@ -1865,7 +1546,7 @@ assemble_start_function (tree decl, const char *fnname)
   ASM_DECLARE_FUNCTION_NAME (asm_out_file, fnname, current_function_decl);
 #else
   /* Standard thing is just output label for the function.  */
-  ASM_OUTPUT_LABEL (asm_out_file, fnname);
+  ASM_OUTPUT_FUNCTION_LABEL (asm_out_file, fnname, current_function_decl);
 #endif /* ASM_DECLARE_FUNCTION_NAME */
 }
 
@@ -2101,40 +1782,6 @@ assemble_variable_contents (tree decl, const char *name,
     }
 }
 
-/* Initialize emulated tls object TO, which refers to TLS variable
-   DECL and is initialized by PROXY.  */
-
-tree
-default_emutls_var_init (tree to, tree decl, tree proxy)
-{
-  VEC(constructor_elt,gc) *v = VEC_alloc (constructor_elt, gc, 4);
-  constructor_elt *elt;
-  tree type = TREE_TYPE (to);
-  tree field = TYPE_FIELDS (type);
-
-  elt = VEC_quick_push (constructor_elt, v, NULL);
-  elt->index = field;
-  elt->value = fold_convert (TREE_TYPE (field), DECL_SIZE_UNIT (decl));
-
-  elt = VEC_quick_push (constructor_elt, v, NULL);
-  field = TREE_CHAIN (field);
-  elt->index = field;
-  elt->value = build_int_cst (TREE_TYPE (field),
-			      DECL_ALIGN_UNIT (decl));
-
-  elt = VEC_quick_push (constructor_elt, v, NULL);
-  field = TREE_CHAIN (field);
-  elt->index = field;
-  elt->value = null_pointer_node;
-
-  elt = VEC_quick_push (constructor_elt, v, NULL);
-  field = TREE_CHAIN (field);
-  elt->index = field;
-  elt->value = proxy;
-
-  return build_constructor (type, v);
-}
-
 /* Assemble everything that is needed for a variable or function declaration.
    Not used for automatic variables, and not used for function definitions.
    Should not be called for variables of incomplete structure type.
@@ -2153,35 +1800,12 @@ assemble_variable (tree decl, int top_level ATTRIBUTE_UNUSED,
   rtx decl_rtl, symbol;
   section *sect;
 
-  if (! targetm.have_tls
-      && TREE_CODE (decl) == VAR_DECL
-      && DECL_THREAD_LOCAL_P (decl))
-    {
-      tree to = emutls_decl (decl);
+  /* This function is supposed to handle VARIABLES.  Ensure we have one.  */
+  gcc_assert (TREE_CODE (decl) == VAR_DECL);
 
-      /* If this variable is defined locally, then we need to initialize the
-         control structure with size and alignment information.  We do this
-	 at the last moment because tentative definitions can take a locally
-	 defined but uninitialized variable and initialize it later, which
-	 would result in incorrect contents.  */
-      if (! DECL_EXTERNAL (to)
-	  && (! DECL_COMMON (to)
-	      || (DECL_INITIAL (decl)
-		  && DECL_INITIAL (decl) != error_mark_node)))
-	{
-	  DECL_INITIAL (to) = targetm.emutls.var_init
-	    (to, decl, get_emutls_init_templ_addr (decl));
-
-	  /* Make sure the template is marked as needed early enough.
-	     Without this, if the variable is placed in a
-	     section-anchored block, the template will only be marked
-	     when it's too late.  */
-	  record_references_in_initializer (to, false);
-	}
-
-      decl = to;
-    }
-
+  /* Emulated TLS had better not get this far.  */
+  gcc_checking_assert (targetm.have_tls || !DECL_THREAD_LOCAL_P (decl));
+              
   last_assemble_variable_decl = 0;
 
   /* Normally no need to say anything here for external references,
@@ -2189,12 +1813,6 @@ assemble_variable (tree decl, int top_level ATTRIBUTE_UNUSED,
      when a declaration is first seen.  */
 
   if (DECL_EXTERNAL (decl))
-    return;
-
-  /* Output no assembler code for a function declaration.
-     Only definitions of functions output anything.  */
-
-  if (TREE_CODE (decl) == FUNCTION_DECL)
     return;
 
   /* Do nothing for global register variables.  */
@@ -2329,7 +1947,7 @@ contains_pointers_p (tree type)
       {
 	tree fields;
 	/* For a type that has fields, see if the fields have pointers.  */
-	for (fields = TYPE_FIELDS (type); fields; fields = TREE_CHAIN (fields))
+	for (fields = TYPE_FIELDS (type); fields; fields = DECL_CHAIN (fields))
 	  if (TREE_CODE (fields) == FIELD_DECL
 	      && contains_pointers_p (TREE_TYPE (fields)))
 	    return 1;
@@ -2462,9 +2080,9 @@ assemble_external_libcall (rtx fun)
 /* Assemble a label named NAME.  */
 
 void
-assemble_label (const char *name)
+assemble_label (FILE *file, const char *name)
 {
-  ASM_OUTPUT_LABEL (asm_out_file, name);
+  ASM_OUTPUT_LABEL (file, name);
 }
 
 /* Set the symbol_referenced flag for ID.  */
@@ -3324,7 +2942,7 @@ build_constant_desc (tree exp)
   int labelno;
   tree decl;
 
-  desc = GGC_NEW (struct constant_descriptor_tree);
+  desc = ggc_alloc_constant_descriptor_tree ();
   desc->value = copy_constant (exp);
 
   /* Propagate marked-ness to copied constant.  */
@@ -3476,12 +3094,7 @@ assemble_constant_contents (tree exp, const char *label, unsigned int align)
   size = get_constant_size (exp);
 
   /* Do any machine/system dependent processing of the constant.  */
-#ifdef ASM_DECLARE_CONSTANT_NAME
-  ASM_DECLARE_CONSTANT_NAME (asm_out_file, label, exp, size);
-#else
-  /* Standard thing is just output label for the constant.  */
-  ASM_OUTPUT_LABEL (asm_out_file, label);
-#endif /* ASM_DECLARE_CONSTANT_NAME */
+  targetm.asm_out.declare_constant_name (asm_out_file, label, exp, size);
 
   /* Output the value of EXP.  */
   output_constant (exp, size, align);
@@ -3724,7 +3337,7 @@ create_constant_pool (void)
 {
   struct rtx_constant_pool *pool;
 
-  pool = GGC_NEW (struct rtx_constant_pool);
+  pool = ggc_alloc_rtx_constant_pool ();
   pool->const_rtx_htab = htab_create_ggc (31, const_desc_rtx_hash,
 					  const_desc_rtx_eq, NULL);
   pool->first = NULL;
@@ -3790,7 +3403,7 @@ force_const_mem (enum machine_mode mode, rtx x)
     return copy_rtx (desc->mem);
 
   /* Otherwise, create a new descriptor.  */
-  desc = GGC_NEW (struct constant_descriptor_rtx);
+  desc = ggc_alloc_constant_descriptor_rtx ();
   *slot = desc;
 
   /* Align the location counter as required by EXP's data type.  */
@@ -4919,7 +4532,7 @@ array_size_for_constructor (tree val)
   tmp = TYPE_MIN_VALUE (TYPE_DOMAIN (TREE_TYPE (val)));
   i = size_binop (MINUS_EXPR, fold_convert (sizetype, max_index),
 		  fold_convert (sizetype, tmp));
-  i = size_binop (PLUS_EXPR, i, build_int_cst (sizetype, 1));
+  i = size_binop (PLUS_EXPR, i, size_one_node);
 
   /* Multiply by the array element unit size to find number of bytes.  */
   i = size_binop (MULT_EXPR, i, TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (val))));
@@ -5049,7 +4662,7 @@ output_constructor_regular_field (oc_local_state *local)
 	  fieldsize = array_size_for_constructor (local->val);
 	  /* Given a non-empty initialization, this field had
 	     better be last.  */
-	  gcc_assert (!fieldsize || !TREE_CHAIN (local->field));
+	  gcc_assert (!fieldsize || !DECL_CHAIN (local->field));
 	}
       else if (DECL_SIZE_UNIT (local->field))
 	{
@@ -5314,7 +4927,7 @@ output_constructor (tree exp, unsigned HOST_WIDE_INT size,
 
   for (cnt = 0;
        VEC_iterate (constructor_elt, CONSTRUCTOR_ELTS (exp), cnt, ce);
-       cnt++, local.field = local.field ? TREE_CHAIN (local.field) : 0)
+       cnt++, local.field = local.field ? DECL_CHAIN (local.field) : 0)
     {
       local.val = ce->value;
       local.index = NULL_TREE;
@@ -5696,6 +5309,11 @@ find_decl_and_mark_needed (tree decl, tree target)
 static void
 do_assemble_alias (tree decl, tree target)
 {
+  /* Emulated TLS had better not get this var.  */
+  gcc_assert(!(!targetm.have_tls
+	       && TREE_CODE (decl) == VAR_DECL
+	       && DECL_THREAD_LOCAL_P (decl)));
+
   if (TREE_ASM_WRITTEN (decl))
     return;
 
@@ -5709,14 +5327,6 @@ do_assemble_alias (tree decl, tree target)
   if (lookup_attribute ("weakref", DECL_ATTRIBUTES (decl)))
     {
       ultimate_transparent_alias_target (&target);
-
-      if (!targetm.have_tls
-	  && TREE_CODE (decl) == VAR_DECL
-	  && DECL_THREAD_LOCAL_P (decl))
-	{
-	  decl = emutls_decl (decl);
-	  target = get_emutls_object_name (target);
-	}
 
       if (!TREE_SYMBOL_REFERENCED (target))
 	weakref_targets = tree_cons (decl, target, weakref_targets);
@@ -5734,14 +5344,6 @@ do_assemble_alias (tree decl, tree target)
 	}
 #endif
       return;
-    }
-
-  if (!targetm.have_tls
-      && TREE_CODE (decl) == VAR_DECL
-      && DECL_THREAD_LOCAL_P (decl))
-    {
-      decl = emutls_decl (decl);
-      target = get_emutls_object_name (target);
     }
 
 #ifdef ASM_OUTPUT_DEF
@@ -5835,26 +5437,34 @@ finish_aliases_1 (void)
   unsigned i;
   alias_pair *p;
 
-  for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); i++)
+  FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
     {
       tree target_decl;
 
       target_decl = find_decl_and_mark_needed (p->decl, p->target);
       if (target_decl == NULL)
 	{
-	  if (! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
-	    error ("%q+D aliased to undefined symbol %qE",
-		   p->decl, p->target);
+	  if (! (p->emitted_diags & ALIAS_DIAG_TO_UNDEF)
+	      && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
+	    {
+	      error ("%q+D aliased to undefined symbol %qE",
+		     p->decl, p->target);
+	      p->emitted_diags |= ALIAS_DIAG_TO_UNDEF;
+	    }
 	}
-      else if (DECL_EXTERNAL (target_decl)
- 	       /* We use local aliases for C++ thunks to force the tailcall
- 		  to bind locally.  Of course this is a hack - to keep it
- 		  working do the following (which is not strictly correct).  */
- 	       && (! TREE_CODE (target_decl) == FUNCTION_DECL
- 		   || ! DECL_VIRTUAL_P (target_decl))
+      else if (! (p->emitted_diags & ALIAS_DIAG_TO_EXTERN)
+	       && DECL_EXTERNAL (target_decl)
+	       /* We use local aliases for C++ thunks to force the tailcall
+		  to bind locally.  This is a hack - to keep it working do
+		  the following (which is not strictly correct).  */
+	       && (! TREE_CODE (target_decl) == FUNCTION_DECL
+		   || ! DECL_VIRTUAL_P (target_decl))
 	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
-	error ("%q+D aliased to external symbol %qE",
-	       p->decl, p->target);
+	{
+	  error ("%q+D aliased to external symbol %qE",
+		 p->decl, p->target);	  
+	  p->emitted_diags |= ALIAS_DIAG_TO_EXTERN;
+	}
     }
 }
 
@@ -5868,7 +5478,7 @@ finish_aliases_2 (void)
   unsigned i;
   alias_pair *p;
 
-  for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); i++)
+  FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
     do_assemble_alias (p->decl, p->target);
 
   VEC_truncate (alias_pair, alias_pairs, 0);
@@ -5947,6 +5557,7 @@ assemble_alias (tree decl, tree target)
       alias_pair *p = VEC_safe_push (alias_pair, gc, alias_pairs, NULL);
       p->decl = decl;
       p->target = target;
+      p->emitted_diags = ALIAS_DIAG_NONE;
     }
 }
 
@@ -5985,7 +5596,7 @@ maybe_assemble_visibility (tree decl)
 
   if (vis != VISIBILITY_DEFAULT)
     {
-      targetm.asm_out.visibility (decl, vis);
+      targetm.asm_out.assemble_visibility (decl, vis);
       return 1;
     }
   else
@@ -6411,24 +6022,11 @@ categorize_decl_for_section (const_tree decl, int reloc)
     ret = SECCAT_RODATA;
 
   /* There are no read-only thread-local sections.  */
-  if (TREE_CODE (decl) == VAR_DECL && DECL_TLS_MODEL (decl))
+  if (TREE_CODE (decl) == VAR_DECL && DECL_THREAD_LOCAL_P (decl))
     {
-      if (DECL_TLS_MODEL (decl) == TLS_MODEL_EMULATED)
-	{
-	  if (DECL_EMUTLS_VAR_P (decl))
-	    {
-	      if (targetm.emutls.var_section)
-		ret = SECCAT_EMUTLS_VAR;
-	    }
-	  else
-	    {
-	      if (targetm.emutls.tmpl_prefix)
-		ret = SECCAT_EMUTLS_TMPL;
-	    }
-	}
       /* Note that this would be *just* SECCAT_BSS, except that there's
 	 no concept of a read-only thread-local-data section.  */
-      else if (ret == SECCAT_BSS
+      if (ret == SECCAT_BSS
 	       || (flag_zero_initialized_in_bss
 		   && initializer_zerop (DECL_INITIAL (decl))))
 	ret = SECCAT_TBSS;
@@ -6522,12 +6120,6 @@ default_elf_select_section (tree decl, int reloc,
     case SECCAT_TBSS:
       sname = ".tbss";
       break;
-    case SECCAT_EMUTLS_VAR:
-      sname = targetm.emutls.var_section;
-      break;
-    case SECCAT_EMUTLS_TMPL:
-      sname = targetm.emutls.tmpl_section;
-      break;
     default:
       gcc_unreachable ();
     }
@@ -6591,12 +6183,6 @@ default_unique_section (tree decl, int reloc)
       break;
     case SECCAT_TBSS:
       prefix = one_only ? ".tb" : ".tbss";
-      break;
-    case SECCAT_EMUTLS_VAR:
-      prefix = targetm.emutls.var_section;
-      break;
-    case SECCAT_EMUTLS_TMPL:
-      prefix = targetm.emutls.tmpl_section;
       break;
     default:
       gcc_unreachable ();
@@ -6708,8 +6294,7 @@ default_encode_section_info (tree decl, rtx rtl, int first ATTRIBUTE_UNUSED)
     flags |= SYMBOL_FLAG_FUNCTION;
   if (targetm.binds_local_p (decl))
     flags |= SYMBOL_FLAG_LOCAL;
-  if (TREE_CODE (decl) == VAR_DECL && DECL_THREAD_LOCAL_P (decl)
-      && DECL_TLS_MODEL (decl) != TLS_MODEL_EMULATED)
+  if (TREE_CODE (decl) == VAR_DECL && DECL_THREAD_LOCAL_P (decl))
     flags |= DECL_TLS_MODEL (decl) << SYMBOL_FLAG_TLS_SHIFT;
   else if (targetm.in_small_data_p (decl))
     flags |= SYMBOL_FLAG_SMALL;
@@ -6895,16 +6480,27 @@ default_internal_label (FILE *stream, const char *prefix,
   ASM_OUTPUT_INTERNAL_LABEL (stream, buf);
 }
 
+
+/* The default implementation of ASM_DECLARE_CONSTANT_NAME.  */
+
+void
+default_asm_declare_constant_name (FILE *file, const char *name,
+				   const_tree exp ATTRIBUTE_UNUSED,
+				   HOST_WIDE_INT size ATTRIBUTE_UNUSED)
+{
+  assemble_label (file, name);
+}
+
 /* This is the default behavior at the beginning of a file.  It's
    controlled by two other target-hook toggles.  */
 void
 default_file_start (void)
 {
-  if (targetm.file_start_app_off
+  if (targetm.asm_file_start_app_off
       && !(flag_verbose_asm || flag_debug_asm || flag_dump_rtl_in_asm))
     fputs (ASM_APP_OFF, asm_out_file);
 
-  if (targetm.file_start_file_directive)
+  if (targetm.asm_file_start_file_directive)
     output_file_directive (asm_out_file, main_input_filename);
 }
 
@@ -7128,12 +6724,12 @@ output_object_block (struct object_block *block)
 
   /* Define the values of all anchors relative to the current section
      position.  */
-  for (i = 0; VEC_iterate (rtx, block->anchors, i, symbol); i++)
+  FOR_EACH_VEC_ELT (rtx, block->anchors, i, symbol)
     targetm.asm_out.output_anchor (symbol);
 
   /* Output the objects themselves.  */
   offset = 0;
-  for (i = 0; VEC_iterate (rtx, block->objects, i, symbol); i++)
+  FOR_EACH_VEC_ELT (rtx, block->objects, i, symbol)
     {
       /* Move to the object's offset, padding with zeros if necessary.  */
       assemble_zeros (SYMBOL_REF_BLOCK_OFFSET (symbol) - offset);
@@ -7194,50 +6790,11 @@ output_object_blocks (void)
 int
 elf_record_gcc_switches (print_switch_type type, const char * name)
 {
-  static char buffer[1024];
-
-  /* This variable is used as part of a simplistic heuristic to detect
-     command line switches which take an argument:
-
-       "If a command line option does not start with a dash then
-        it is an argument for the previous command line option."
-
-     This fails in the case of the command line option which is the name
-     of the file to compile, but otherwise it is pretty reasonable.  */
-  static bool previous_name_held_back = FALSE;
-
   switch (type)
     {
     case SWITCH_TYPE_PASSED:
-      if (* name != '-')
-	{
-	  if (previous_name_held_back)
-	    {
-	      unsigned int len = strlen (buffer);
-
-	      snprintf (buffer + len, sizeof buffer - len, " %s", name);
-	      ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-	      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-	      previous_name_held_back = FALSE;
-	    }
-	  else
-	    {
-	      strncpy (buffer, name, sizeof buffer);
-	      ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-	      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-	    }
-	}
-      else
-	{
-	  if (previous_name_held_back)
-	    {
-	      ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-	      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-	    }
-
-	  strncpy (buffer, name, sizeof buffer);
-	  previous_name_held_back = TRUE;
-	}
+      ASM_OUTPUT_ASCII (asm_out_file, name, strlen (name));
+      ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
       break;
 
     case SWITCH_TYPE_DESCRIPTIVE:
@@ -7246,15 +6803,7 @@ elf_record_gcc_switches (print_switch_type type, const char * name)
 	  /* Distinguish between invocations where name is NULL.  */
 	  static bool started = false;
 
-	  if (started)
-	    {
-	      if (previous_name_held_back)
-		{
-		  ASM_OUTPUT_ASCII (asm_out_file, buffer, strlen (buffer));
-		  ASM_OUTPUT_SKIP (asm_out_file, (unsigned HOST_WIDE_INT) 1);
-		}
-	    }
-	  else
+	  if (!started)
 	    {
 	      section * sec;
 
@@ -7292,6 +6841,47 @@ default_elf_asm_output_external (FILE *file ATTRIBUTE_UNUSED,
   if (TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl))
       && targetm.binds_local_p (decl))
     maybe_assemble_visibility (decl);
+}
+
+/* The default hook for TARGET_ASM_OUTPUT_SOURCE_FILENAME.  */
+
+void
+default_asm_output_source_filename (FILE *file, const char *name)
+{
+#ifdef ASM_OUTPUT_SOURCE_FILENAME
+  ASM_OUTPUT_SOURCE_FILENAME (file, name);
+#else
+  fprintf (file, "\t.file\t");
+  output_quoted_string (file, name);
+  putc ('\n', file);
+#endif
+}
+
+/* Output a file name in the form wanted by System V.  */
+
+void
+output_file_directive (FILE *asm_file, const char *input_name)
+{
+  int len;
+  const char *na;
+
+  if (input_name == NULL)
+    input_name = "<stdin>";
+  else
+    input_name = remap_debug_filename (input_name);
+
+  len = strlen (input_name);
+  na = input_name + len;
+
+  /* NA gets INPUT_NAME sans directory names.  */
+  while (na > input_name)
+    {
+      if (IS_DIR_SEPARATOR (na[-1]))
+	break;
+      na--;
+    }
+
+  targetm.asm_out.output_source_filename (asm_file, na);
 }
 
 /* Create a DEBUG_EXPR_DECL / DEBUG_EXPR pair from RTL expression

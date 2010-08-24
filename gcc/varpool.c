@@ -139,7 +139,7 @@ varpool_node (tree decl)
     htab_find_slot (varpool_hash, &key, INSERT);
   if (*slot)
     return *slot;
-  node = GGC_CNEW (struct varpool_node);
+  node = ggc_alloc_cleared_varpool_node ();
   node->decl = decl;
   node->order = cgraph_order++;
   node->next = varpool_nodes;
@@ -345,17 +345,6 @@ decide_is_variable_needed (struct varpool_node *node, tree decl)
       && !DECL_COMDAT (decl)
       && !DECL_EXTERNAL (decl))
     return true;
-
-  /* When emulating tls, we actually see references to the control
-     variable, rather than the user-level variable.  */
-  if (!targetm.have_tls
-      && TREE_CODE (decl) == VAR_DECL
-      && DECL_THREAD_LOCAL_P (decl))
-    {
-      tree control = emutls_decl (decl);
-      if (decide_is_variable_needed (varpool_node (control), control))
-	return true;
-    }
 
   /* When not reordering top level variables, we have to assume that
      we are going to keep everything.  */
@@ -651,7 +640,7 @@ varpool_extra_name_alias (tree alias, tree decl)
   if (*slot)
     return false;
 
-  alias_node = GGC_CNEW (struct varpool_node);
+  alias_node = ggc_alloc_cleared_varpool_node ();
   alias_node->decl = alias;
   alias_node->alias = 1;
   alias_node->extra_name = decl_node;

@@ -187,21 +187,21 @@ struct find_regions_global_data {
   htab_t bbmap;
 
   /* An array that contains for each basic block its dominance frontier.  */
-  bitmap *dfs;
+  bitmap_head *frontiers;
 };
 
-/* Check that ENTRY and EXIT form a refined region.  DFS contains the dominance
-   frontier for all basic blocks.  */
+/* Check that ENTRY and EXIT form a refined region.  FRONTIERS
+   contains the dominance frontier for all basic blocks.  */
 
 static bool
-is_region (basic_block entry, basic_block exit, bitmap *dfs)
+is_region (basic_block entry, basic_block exit, bitmap_head *frontiers)
 {
   bitmap df_entry = BITMAP_ALLOC (NULL);
   bitmap df_exit = BITMAP_ALLOC (NULL);
   bitmap_iterator bi;
   unsigned bit = 0;
 
-  bitmap_copy (df_entry, dfs[entry->index]);
+  bitmap_copy (df_entry, &frontiers[entry->index]);
 
   bitmap_clear_bit (df_entry, entry->index);
   bitmap_clear_bit (df_entry, exit->index);
@@ -215,7 +215,7 @@ is_region (basic_block entry, basic_block exit, bitmap *dfs)
   if (!dominated_by_p (CDI_DOMINATORS, exit, entry))
     return bitmap_count_bits (df_entry) == 0;
 
-  bitmap_copy (df_exit, dfs[exit->index]);
+  bitmap_copy (df_exit, &frontiers[exit->index]);
   bitmap_clear_bit (df_exit, entry->index);
   bitmap_clear_bit (df_exit, exit->index);
 
@@ -426,8 +426,7 @@ create_region (basic_block entry, basic_block exit)
   return r;
 }
 
-/* Find all regions that start at ENTRY.  DFS is an array containing
-   the dominance frontier for each basic block.  GD the global dom walk data
+/* Find all regions that start at ENTRY.  GD the global dom walk data
    storing some further information.  */
 
 static void
@@ -440,7 +439,7 @@ find_regions_with_entry (basic_block entry, struct find_regions_global_data *gd)
   while ((exit = get_next_postdom (exit, gd->shortcut)))
     {
 
-      if (is_region (entry, exit, gd->dfs))
+      if (is_region (entry, exit, gd->frontiers))
 	{
 	  refined_region_p new_region = create_region (entry, exit);
 
@@ -482,18 +481,18 @@ find_regions_adc (struct dom_walk_data *dwd, basic_block bb)
   find_regions_with_entry (bb, gd);
 }
 
-/* Find all regions in the current function.  DFS is an array
-   containing the dominance frontiers of all basic blocks.  BBMAP will contain
-   the surrounding regions for all region header basic blocks.  */
+/* Find all regions in the current function.  FRONTIERS is an array
+   containing the dominance frontiers of all basic blocks.  BBMAP will
+   contain the surrounding regions for all region header basic blocks.  */
 
 static void
-find_regions (bitmap *dfs, htab_t bbmap)
+find_regions (bitmap_head *frontiers, htab_t bbmap)
 {
   struct dom_walk_data dwd;
   struct find_regions_global_data gd;
   gd.shortcut = htab_create (32, &bb_bb_map_hash, &eq_bb_bb_map, free);
   gd.bbmap = bbmap;
-  gd.dfs = dfs;
+  gd.frontiers = frontiers;
 
   /* Initialize the domtree walk.  */
   dwd.dom_direction = CDI_DOMINATORS;
@@ -563,7 +562,7 @@ build_regions_tree (basic_block bb, refined_region_p outer_region, htab_t bbmap)
 refined_region_p
 calculate_region_tree (void)
 {
-  bitmap *dfs;
+  bitmap_head *frontiers;
   basic_block bb;
   refined_region_p outermost_region;
   htab_t bbmap =  htab_create (32, &bb_reg_map_hash, &eq_bb_reg_map, free);
@@ -572,9 +571,9 @@ calculate_region_tree (void)
   timevar_push (TV_REFINED_REGIONS);
 
   /* Initialize dominance frontier.  */
-  dfs = XNEWVEC (bitmap, last_basic_block);
-  FOR_EACH_BB (bb)
-    dfs[bb->index] = BITMAP_ALLOC (NULL);
+  frontiers = XNEWVEC (bitmap_head, last_basic_block);
+  FOR_ALL_BB (bb)
+    bitmap_initialize (&frontiers[bb->index], &bitmap_default_obstack);
 
   /* Required analysis */
   dom_available = dom_info_available_p (CDI_DOMINATORS);
@@ -582,16 +581,16 @@ calculate_region_tree (void)
 
   calculate_dominance_info (CDI_DOMINATORS);
   calculate_dominance_info (CDI_POST_DOMINATORS);
-  compute_dominance_frontiers (dfs);
+  compute_dominance_frontiers (frontiers);
 
-  find_regions (dfs, bbmap);
+  find_regions (frontiers, bbmap);
   outermost_region = create_region (ENTRY_BLOCK_PTR, 0);
   build_regions_tree (ENTRY_BLOCK_PTR, outermost_region, bbmap);
 
   /* Free dominance frontier */
-  FOR_EACH_BB (bb)
-    BITMAP_FREE (dfs[bb->index]);
-  free (dfs);
+  FOR_ALL_BB (bb)
+    bitmap_clear (&frontiers[bb->index]);
+  free (frontiers);
 
   if (!dom_available)
     free_dominance_info (CDI_DOMINATORS);

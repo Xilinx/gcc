@@ -119,6 +119,18 @@ struct GTY(()) ptr_info_def
 {
   /* The points-to solution.  */
   struct pt_solution pt;
+
+  /* Alignment and misalignment of the pointer in bytes.  Together
+     align and misalign specify low known bits of the pointer.
+     ptr & (align - 1) == misalign.  */
+
+  /* The power-of-two byte alignment of the object this pointer
+     points into.  This is usually DECL_ALIGN_UNIT for decls and
+     MALLOC_ABI_ALIGNMENT for allocated storage.  */
+  unsigned int align;
+
+  /* The byte offset this pointer differs from the above alignment.  */
+  unsigned int misalign;
 };
 
 
@@ -147,29 +159,6 @@ enum need_phi_state {
 };
 
 
-/* The "no alias" attribute allows alias analysis to make more
-   aggressive assumptions when assigning alias sets, computing
-   points-to information and memory partitions.  These attributes
-   are the result of user annotations or flags (e.g.,
-   -fargument-noalias).  */
-enum noalias_state {
-    /* Default state.  No special assumptions can be made about this
-       symbol.  */
-    MAY_ALIAS = 0,
-
-    /* The symbol does not alias with other symbols that have a
-       NO_ALIAS* attribute.  */
-    NO_ALIAS,
-
-    /* The symbol does not alias with other symbols that have a
-       NO_ALIAS*, and it may not alias with global symbols.  */
-    NO_ALIAS_GLOBAL,
-
-    /* The symbol does not alias with any other symbols.  */
-    NO_ALIAS_ANYTHING
-};
-
-
 struct GTY(()) var_ann_d {
   /* Used when building base variable structures in a var_map.  */
   unsigned base_var_processed : 1;
@@ -186,11 +175,6 @@ struct GTY(()) var_ann_d {
   /* True for HEAP artificial variables.  These variables represent
      the memory area allocated by a call to malloc.  */
   unsigned is_heapvar : 1;
-
-  /* This field describes several "no alias" attributes that some
-     symbols are known to have.  See the enum's definition for more
-     information on each attribute.  */
-  ENUM_BITFIELD (noalias_state) noalias_state : 2;
 
   /* Used by var_map for the base index of ssa base variables.  */
   unsigned base_index;
@@ -349,7 +333,6 @@ typedef struct
 extern tree referenced_var_lookup (unsigned int);
 extern bool referenced_var_check_and_insert (tree);
 #define num_referenced_vars htab_elements (gimple_referenced_vars (cfun))
-#define referenced_var(i) referenced_var_lookup (i)
 
 #define num_ssa_names (VEC_length (tree, cfun->gimple_df->ssa_names))
 #define ssa_name(i) (VEC_index (tree, cfun->gimple_df->ssa_names, (i)))
@@ -396,7 +379,7 @@ struct omp_region
   /* If this is a combined parallel+workshare region, this is a list
      of additional arguments needed by the combined parallel+workshare
      library call.  */
-  tree ws_args;
+  VEC(tree,gc) *ws_args;
 
   /* The code for the omp directive of this region.  */
   enum gimple_code type;
@@ -486,7 +469,6 @@ extern void end_recording_case_labels (void);
 extern basic_block move_sese_region_to_fn (struct function *, basic_block,
 				           basic_block, tree);
 void remove_edge_and_dominated_blocks (edge);
-void mark_virtual_ops_in_bb (basic_block);
 bool tree_node_can_be_shared (tree);
 
 /* In tree-cfgcleanup.c  */
@@ -520,6 +502,7 @@ extern tree gimple_default_def (struct function *, tree);
 extern bool stmt_references_abnormal_ssa_name (gimple);
 extern tree get_ref_base_and_extent (tree, HOST_WIDE_INT *,
 				     HOST_WIDE_INT *, HOST_WIDE_INT *);
+extern tree get_addr_base_and_unit_offset (tree, HOST_WIDE_INT *);
 extern void find_referenced_vars_in (gimple);
 
 /* In tree-phinodes.c  */
@@ -541,7 +524,6 @@ extern void phinodes_print_statistics (void);
 /* In gimple-low.c  */
 extern void record_vars_into (tree, tree);
 extern void record_vars (tree);
-extern bool block_may_fallthru (const_tree);
 extern bool gimple_seq_may_fallthru (gimple_seq);
 extern bool gimple_stmt_may_fallthru (gimple);
 extern bool gimple_check_call_args (gimple);
@@ -602,6 +584,7 @@ void release_ssa_name_after_update_ssa (tree);
 void compute_global_livein (bitmap, bitmap);
 void mark_sym_for_renaming (tree);
 void mark_set_for_renaming (bitmap);
+bool symbol_marked_for_renaming (tree);
 tree get_current_def (tree);
 void set_current_def (tree, tree);
 
@@ -779,7 +762,6 @@ char *get_lsm_tmp_name (tree, unsigned);
 static inline void set_is_used (tree);
 static inline bool unmodifiable_var_p (const_tree);
 static inline bool ref_contains_array_ref (const_tree);
-static inline bool array_ref_contains_indirect_ref (const_tree);
 
 /* In tree-eh.c  */
 extern void make_eh_edges (gimple);
@@ -835,6 +817,7 @@ bool stmt_invariant_in_loop_p (struct loop *, gimple);
 bool multiplier_allowed_in_address_p (HOST_WIDE_INT, enum machine_mode,
 				      addr_space_t);
 unsigned multiply_by_cost (HOST_WIDE_INT, enum machine_mode, bool);
+bool may_be_nonaddressable_p (tree expr);
 
 /* In tree-ssa-threadupdate.c.  */
 extern bool thread_through_all_blocks (bool);
@@ -863,7 +846,7 @@ struct mem_address
 
 struct affine_tree_combination;
 tree create_mem_ref (gimple_stmt_iterator *, tree,
-		     struct affine_tree_combination *, tree, bool);
+		     struct affine_tree_combination *, tree, tree, tree, bool);
 rtx addr_for_mem_ref (struct mem_address *, addr_space_t, bool);
 void get_address_description (tree, struct mem_address *);
 tree maybe_fold_tmr (tree);
@@ -871,6 +854,9 @@ tree maybe_fold_tmr (tree);
 unsigned int execute_free_datastructures (void);
 unsigned int execute_fixup_cfg (void);
 bool fixup_noreturn_call (gimple stmt);
+
+/* In ipa-pure-const.c  */
+void warn_function_noreturn (tree);
 
 #include "tree-flow-inline.h"
 

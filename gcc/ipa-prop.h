@@ -133,11 +133,12 @@ struct GTY (()) ipa_jump_func
    computed by the interprocedural stage of IPCP.
    There are three main values of the lattice:
    IPA_TOP - unknown,
-   IPA_BOTTOM - non constant,
+   IPA_BOTTOM - variable,
    IPA_CONST_VALUE - simple scalar constant,
-   Cval of formal f will have a constant value if all callsites to this
-   function have the same constant value passed to f.
-   Integer and real constants are represented as IPA_CONST_VALUE.  */
+
+   We also use this type to propagate types accross the call graph for the
+   purpose of devirtualization.  In that case, IPA_CONST_VALUE denotes a known
+   type, rather than a constant.  */
 enum ipa_lattice_type
 {
   IPA_BOTTOM,
@@ -161,10 +162,14 @@ struct ipa_param_descriptor
   struct ipcp_lattice ipcp_lattice;
   /* PARAM_DECL of this parameter.  */
   tree decl;
-  /* Whether the value parameter has been modified within the function.  */
-  unsigned modified : 1;
+  /* Vector of BINFOs of types that this argument might encounter.  NULL
+     basically means a top value, bottom is marked by the cannot_devirtualize
+     flag below.*/
+  VEC (tree, heap) *types;
   /* The parameter is used.  */
   unsigned used : 1;
+  /* Set when parameter type cannot be used for devirtualization.  */
+  unsigned cannot_devirtualize : 1;
 };
 
 /* ipa_node_params stores information related to formal parameters of functions
@@ -172,15 +177,12 @@ struct ipa_param_descriptor
    parameters (such as ipa-cp).  */
 struct ipa_node_params
 {
-  /* Number of formal parameters of this function.  When set to 0,
-     this function's parameters would not be analyzed by the different
-     stages of IPA CP.  */
+  /* Number of formal parameters of this function.  When set to 0, this
+     function's parameters would not be analyzed by IPA CP.  */
   int param_count;
   /* Whether this function is called with variable number of actual
      arguments.  */
   unsigned called_with_var_arguments : 1;
-  /* Whether the modification analysis has already been performed. */
-  unsigned modification_analysis_done : 1;
   /* Whether the param uses analysis has already been performed.  */
   unsigned uses_analysis_done : 1;
   /* Whether the function is enqueued in an ipa_func_list.  */
@@ -228,17 +230,6 @@ ipa_get_param (struct ipa_node_params *info, int i)
   return info->params[i].decl;
 }
 
-/* Return the modification flag corresponding to the Ith formal parameter of
-   the function associated with INFO.  Note that there is no setter method as
-   the goal is to set all flags when building the array in
-   ipa_detect_param_modifications.  */
-
-static inline bool
-ipa_is_param_modified (struct ipa_node_params *info, int i)
-{
-  return info->params[i].modified;
-}
-
 /* Return the used flag corresponding to the Ith formal parameter of
    the function associated with INFO.  */
 
@@ -246,6 +237,25 @@ static inline bool
 ipa_is_param_used (struct ipa_node_params *info, int i)
 {
   return info->params[i].used;
+}
+
+/* Return the cannot_devirtualize flag corresponding to the Ith formal
+   parameter of the function associated with INFO.  The corresponding function
+   to set the flag is ipa_set_param_cannot_devirtualize.  */
+
+static inline bool
+ipa_param_cannot_devirtualize_p (struct ipa_node_params *info, int i)
+{
+  return info->params[i].cannot_devirtualize;
+}
+
+/* Return true iff the vector of possible types of the Ith formal parameter of
+   the function associated with INFO is empty.  */
+
+static inline bool
+ipa_param_types_vec_empty (struct ipa_node_params *info, int i)
+{
+  return info->params[i].types == NULL;
 }
 
 /* Flag this node as having callers with variable number of arguments.  */
@@ -266,9 +276,8 @@ ipa_is_called_with_var_arguments (struct ipa_node_params *info)
 
 
 
-/* ipa_edge_args stores information related to a callsite and particularly
-   its arguments. It is pointed to by a field in the
-   callsite's corresponding cgraph_edge.  */
+/* ipa_edge_args stores information related to a callsite and particularly its
+   arguments.  It can be accessed by the IPA_EDGE_REF macro.  */
 typedef struct GTY(()) ipa_edge_args
 {
   /* Number of actual arguments in this callsite.  When set to 0,
@@ -412,16 +421,16 @@ ipa_push_func_to_list (struct ipa_func_list **wl, struct cgraph_node *node)
     ipa_push_func_to_list_1 (wl, node, info);
 }
 
-/* Callsite related calculations.  */
-void ipa_compute_jump_functions (struct cgraph_node *);
-void ipa_count_arguments (struct cgraph_edge *);
+void ipa_analyze_node (struct cgraph_node *);
 
 /* Function formal parameters related computations.  */
 void ipa_initialize_node_params (struct cgraph_node *node);
-void ipa_detect_param_modifications (struct cgraph_node *);
-void ipa_analyze_params_uses (struct cgraph_node *);
 bool ipa_propagate_indirect_call_infos (struct cgraph_edge *cs,
 					VEC (cgraph_edge_p, heap) **new_edges);
+
+/* Indirect edge and binfo processing.  */
+struct cgraph_edge *ipa_make_edge_direct_to_target (struct cgraph_edge *, tree);
+
 
 /* Debugging interface.  */
 void ipa_print_node_params (FILE *, struct cgraph_node *node);

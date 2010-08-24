@@ -798,8 +798,9 @@ adjust_mems (rtx loc, const_rtx old_rtx, void *data)
   switch (GET_CODE (loc))
     {
     case REG:
-      /* Don't do any sp or fp replacements outside of MEM addresses.  */
-      if (amd->mem_mode == VOIDmode)
+      /* Don't do any sp or fp replacements outside of MEM addresses
+         on the LHS.  */
+      if (amd->mem_mode == VOIDmode && amd->store)
 	return loc;
       if (loc == stack_pointer_rtx
 	  && !frame_pointer_needed)
@@ -909,6 +910,16 @@ adjust_mems (rtx loc, const_rtx old_rtx, void *data)
 	return use_narrower_mode (SUBREG_REG (tem), GET_MODE (tem),
 				  GET_MODE (SUBREG_REG (tem)));
       return tem;
+    case ASM_OPERANDS:
+      /* Don't do any replacements in second and following
+	 ASM_OPERANDS of inline-asm with multiple sets.
+	 ASM_OPERANDS_INPUT_VEC, ASM_OPERANDS_INPUT_CONSTRAINT_VEC
+	 and ASM_OPERANDS_LABEL_VEC need to be equal between
+	 all the ASM_OPERANDs in the insn and adjust_insn will
+	 fix this up.  */
+      if (ASM_OPERANDS_OUTPUT_IDX (loc) != 0)
+	return loc;
+      break;
     default:
       break;
     }
@@ -959,7 +970,54 @@ adjust_insn (basic_block bb, rtx insn)
   note_stores (PATTERN (insn), adjust_mem_stores, &amd);
 
   amd.store = false;
-  note_uses (&PATTERN (insn), adjust_mem_uses, &amd);
+  if (GET_CODE (PATTERN (insn)) == PARALLEL
+      && asm_noperands (PATTERN (insn)) > 0
+      && GET_CODE (XVECEXP (PATTERN (insn), 0, 0)) == SET)
+    {
+      rtx body, set0;
+      int i;
+
+      /* inline-asm with multiple sets is tiny bit more complicated,
+	 because the 3 vectors in ASM_OPERANDS need to be shared between
+	 all ASM_OPERANDS in the instruction.  adjust_mems will
+	 not touch ASM_OPERANDS other than the first one, asm_noperands
+	 test above needs to be called before that (otherwise it would fail)
+	 and afterwards this code fixes it up.  */
+      note_uses (&PATTERN (insn), adjust_mem_uses, &amd);
+      body = PATTERN (insn);
+      set0 = XVECEXP (body, 0, 0);
+      gcc_checking_assert (GET_CODE (set0) == SET
+			   && GET_CODE (SET_SRC (set0)) == ASM_OPERANDS
+			   && ASM_OPERANDS_OUTPUT_IDX (SET_SRC (set0)) == 0);
+      for (i = 1; i < XVECLEN (body, 0); i++)
+	if (GET_CODE (XVECEXP (body, 0, i)) != SET)
+	  break;
+	else
+	  {
+	    set = XVECEXP (body, 0, i);
+	    gcc_checking_assert (GET_CODE (SET_SRC (set)) == ASM_OPERANDS
+				 && ASM_OPERANDS_OUTPUT_IDX (SET_SRC (set))
+				    == i);
+	    if (ASM_OPERANDS_INPUT_VEC (SET_SRC (set))
+		!= ASM_OPERANDS_INPUT_VEC (SET_SRC (set0))
+		|| ASM_OPERANDS_INPUT_CONSTRAINT_VEC (SET_SRC (set))
+		   != ASM_OPERANDS_INPUT_CONSTRAINT_VEC (SET_SRC (set0))
+		|| ASM_OPERANDS_LABEL_VEC (SET_SRC (set))
+		   != ASM_OPERANDS_LABEL_VEC (SET_SRC (set0)))
+	      {
+		rtx newsrc = shallow_copy_rtx (SET_SRC (set));
+		ASM_OPERANDS_INPUT_VEC (newsrc)
+		  = ASM_OPERANDS_INPUT_VEC (SET_SRC (set0));
+		ASM_OPERANDS_INPUT_CONSTRAINT_VEC (newsrc)
+		  = ASM_OPERANDS_INPUT_CONSTRAINT_VEC (SET_SRC (set0));
+		ASM_OPERANDS_LABEL_VEC (newsrc)
+		  = ASM_OPERANDS_LABEL_VEC (SET_SRC (set0));
+		validate_change (NULL_RTX, &SET_SRC (set), newsrc, true);
+	      }
+	  }
+    }
+  else
+    note_uses (&PATTERN (insn), adjust_mem_uses, &amd);
 
   /* For read-only MEMs containing some constant, prefer those
      constants.  */
@@ -1167,7 +1225,7 @@ variable_htab_free (void *elem)
   variable var = (variable) elem;
   location_chain node, next;
 
-  gcc_assert (var->refcount > 0);
+  gcc_checking_assert (var->refcount > 0);
 
   var->refcount--;
   if (var->refcount > 0)
@@ -1370,7 +1428,7 @@ shared_hash_copy (shared_hash vars)
 static void
 shared_hash_destroy (shared_hash vars)
 {
-  gcc_assert (vars->refcount > 0);
+  gcc_checking_assert (vars->refcount > 0);
   if (--vars->refcount == 0)
     {
       htab_delete (vars->htab);
@@ -2479,7 +2537,8 @@ dv_changed_p (decl_or_value dv)
 
 /* Return a location list node whose loc is rtx_equal to LOC, in the
    location list of a one-part variable or value VAR, or in that of
-   any values recursively mentioned in the location lists.  */
+   any values recursively mentioned in the location lists.  VARS must
+   be in star-canonical form.  */
 
 static location_chain
 find_loc_in_1pdv (rtx loc, variable var, htab_t vars)
@@ -2499,11 +2558,15 @@ find_loc_in_1pdv (rtx loc, variable var, htab_t vars)
 
 #ifdef ENABLE_CHECKING
   gcc_assert (var->var_part[0].offset == 0);
+  gcc_assert (loc != dv_as_opaque (var->dv));
 #endif
 
   loc_code = GET_CODE (loc);
   for (node = var->var_part[0].loc_chain; node; node = node->next)
     {
+      decl_or_value dv;
+      variable rvar;
+
       if (GET_CODE (node->loc) != loc_code)
 	{
 	  if (GET_CODE (node->loc) != VALUE)
@@ -2517,24 +2580,35 @@ find_loc_in_1pdv (rtx loc, variable var, htab_t vars)
 	    return node;
 	  continue;
 	}
-      if (!VALUE_RECURSED_INTO (node->loc))
-	{
-	  decl_or_value dv = dv_from_value (node->loc);
-	  variable var = (variable)
-			 htab_find_with_hash (vars, dv, dv_htab_hash (dv));
 
-	  if (var)
+      /* Since we're in star-canonical form, we don't need to visit
+	 non-canonical nodes: one-part variables and non-canonical
+	 values would only point back to the canonical node.  */
+      if (dv_is_value_p (var->dv)
+	  && !canon_value_cmp (node->loc, dv_as_value (var->dv)))
+	{
+	  /* Skip all subsequent VALUEs.  */
+	  while (node->next && GET_CODE (node->next->loc) == VALUE)
 	    {
-	      location_chain where;
-	      VALUE_RECURSED_INTO (node->loc) = true;
-	      if ((where = find_loc_in_1pdv (loc, var, vars)))
-		{
-		  VALUE_RECURSED_INTO (node->loc) = false;
-		  return where;
-		}
-	      VALUE_RECURSED_INTO (node->loc) = false;
+	      node = node->next;
+#ifdef ENABLE_CHECKING
+	      gcc_assert (!canon_value_cmp (node->loc,
+					    dv_as_value (var->dv)));
+#endif
+	      if (loc == node->loc)
+		return node;
 	    }
+	  continue;
 	}
+
+#ifdef ENABLE_CHECKING
+      gcc_assert (node == var->var_part[0].loc_chain);
+      gcc_assert (!node->next);
+#endif
+
+      dv = dv_from_value (node->loc);
+      rvar = (variable) htab_find_with_hash (vars, dv, dv_htab_hash (dv));
+      return find_loc_in_1pdv (loc, rvar, vars);
     }
 
   return NULL;
@@ -3050,7 +3124,7 @@ canonicalize_values_mark (void **slot, void *data)
   if (!dv_is_value_p (dv))
     return 1;
 
-  gcc_assert (var->n_var_parts == 1);
+  gcc_checking_assert (var->n_var_parts == 1);
 
   val = dv_as_value (dv);
 
@@ -3093,7 +3167,7 @@ canonicalize_values_star (void **slot, void *data)
   if (!dv_onepart_p (dv))
     return 1;
 
-  gcc_assert (var->n_var_parts == 1);
+  gcc_checking_assert (var->n_var_parts == 1);
 
   if (dv_is_value_p (dv))
     {
@@ -3283,8 +3357,8 @@ canonicalize_values_star (void **slot, void *data)
 
   /* Variable may have been unshared.  */
   var = (variable)*slot;
-  gcc_assert (var->n_var_parts && var->var_part[0].loc_chain->loc == cval
-	      && var->var_part[0].loc_chain->next == NULL);
+  gcc_checking_assert (var->n_var_parts && var->var_part[0].loc_chain->loc == cval
+		       && var->var_part[0].loc_chain->next == NULL);
 
   if (VALUE_RECURSED_INTO (cval))
     goto restart_with_cval;
@@ -3373,14 +3447,14 @@ variable_merge_over_cur (variable s1var, struct dfset_merge *dsm)
   /* If the incoming onepart variable has an empty location list, then
      the intersection will be just as empty.  For other variables,
      it's always union.  */
-  gcc_assert (s1var->n_var_parts
-	      && s1var->var_part[0].loc_chain);
+  gcc_checking_assert (s1var->n_var_parts
+		       && s1var->var_part[0].loc_chain);
 
   if (!onepart)
     return variable_union (s1var, dst);
 
-  gcc_assert (s1var->n_var_parts == 1
-	      && s1var->var_part[0].offset == 0);
+  gcc_checking_assert (s1var->n_var_parts == 1
+		       && s1var->var_part[0].offset == 0);
 
   dvhash = dv_htab_hash (dv);
   if (dv_is_value_p (dv))
@@ -3971,6 +4045,12 @@ variable_post_merge_perm_vals (void **pslot, void *info)
   var = shared_hash_find (set->vars, dv);
   if (var)
     {
+      /* Although variable_post_merge_new_vals may have made decls
+	 non-star-canonical, values that pre-existed in canonical form
+	 remain canonical, and newly-created values reference a single
+	 REG, so they are canonical as well.  Since VAR has the
+	 location list for a VALUE, using find_loc_in_1pdv for it is
+	 fine, since VALUEs don't map back to DECLs.  */
       if (find_loc_in_1pdv (pnode->loc, var, shared_hash_htab (set->vars)))
 	return 1;
       val_reset (set, dv);
@@ -5164,14 +5244,19 @@ reverse_op (rtx val, const_rtx expr)
     case XOR:
     case NOT:
     case NEG:
+      if (!REG_P (XEXP (src, 0)))
+	return NULL_RTX;
+      break;
     case SIGN_EXTEND:
     case ZERO_EXTEND:
+      if (!REG_P (XEXP (src, 0)) && !MEM_P (XEXP (src, 0)))
+	return NULL_RTX;
       break;
     default:
       return NULL_RTX;
     }
 
-  if (!REG_P (XEXP (src, 0)) || !SCALAR_INT_MODE_P (GET_MODE (src)))
+  if (!SCALAR_INT_MODE_P (GET_MODE (src)) || XEXP (src, 0) == cfa_base_rtx)
     return NULL_RTX;
 
   v = cselib_lookup (XEXP (src, 0), GET_MODE (XEXP (src, 0)), 0);
@@ -5673,7 +5758,7 @@ compute_bb_dataflow (basic_block bb)
   dataflow_set_copy (&old_out, out);
   dataflow_set_copy (out, in);
 
-  for (i = 0; VEC_iterate (micro_operation, VTI (bb)->mos, i, mo); i++)
+  FOR_EACH_VEC_ELT (micro_operation, VTI (bb)->mos, i, mo)
     {
       rtx insn = mo->insn;
 
@@ -5967,6 +6052,7 @@ vt_find_locations (void)
   int htabmax = PARAM_VALUE (PARAM_MAX_VARTRACK_SIZE);
   bool success = true;
 
+  timevar_push (TV_VAR_TRACKING_DATAFLOW);
   /* Compute reverse completion order of depth first search of the CFG
      so that the data-flow runs faster.  */
   rc_order = XNEWVEC (int, n_basic_blocks - NUM_FIXED_BLOCKS);
@@ -6002,6 +6088,7 @@ vt_find_locations (void)
 	{
 	  bb = (basic_block) fibheap_extract_min (worklist);
 	  RESET_BIT (in_worklist, bb->index);
+	  gcc_assert (!TEST_BIT (visited, bb->index));
 	  if (!TEST_BIT (visited, bb->index))
 	    {
 	      bool changed;
@@ -6154,6 +6241,7 @@ vt_find_locations (void)
   sbitmap_free (in_worklist);
   sbitmap_free (in_pending);
 
+  timevar_pop (TV_VAR_TRACKING_DATAFLOW);
   return success;
 }
 
@@ -7015,7 +7103,7 @@ vt_expand_loc (rtx loc, htab_t vars)
   data.vars = vars;
   data.dummy = false;
   data.cur_loc_changed = false;
-  loc = cselib_expand_value_rtx_cb (loc, scratch_regs, 5,
+  loc = cselib_expand_value_rtx_cb (loc, scratch_regs, 8,
 				    vt_expand_loc_callback, &data);
 
   if (loc && MEM_P (loc))
@@ -7036,7 +7124,7 @@ vt_expand_loc_dummy (rtx loc, htab_t vars, bool *pcur_loc_changed)
   data.vars = vars;
   data.dummy = true;
   data.cur_loc_changed = false;
-  ret = cselib_dummy_expand_value_rtx_cb (loc, scratch_regs, 5,
+  ret = cselib_dummy_expand_value_rtx_cb (loc, scratch_regs, 8,
 					  vt_expand_loc_callback, &data);
   *pcur_loc_changed = data.cur_loc_changed;
   return ret;
@@ -7595,7 +7683,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
   dataflow_set_clear (set);
   dataflow_set_copy (set, &VTI (bb)->in);
 
-  for (i = 0; VEC_iterate (micro_operation, VTI (bb)->mos, i, mo); i++)
+  FOR_EACH_VEC_ELT (micro_operation, VTI (bb)->mos, i, mo)
     {
       rtx insn = mo->insn;
 
@@ -7890,7 +7978,7 @@ vt_emit_notes (void)
       unsigned int i;
       rtx val;
 
-      for (i = 0; VEC_iterate (rtx, preserved_values, i, val); i++)
+      FOR_EACH_VEC_ELT (rtx, preserved_values, i, val)
 	add_cselib_value_chains (dv_from_value (val));
       changed_variables_stack = VEC_alloc (variable, heap, 40);
       changed_values_stack = VEC_alloc (rtx, heap, 40);
@@ -7920,7 +8008,7 @@ vt_emit_notes (void)
       unsigned int i;
       rtx val;
 
-      for (i = 0; VEC_iterate (rtx, preserved_values, i, val); i++)
+      FOR_EACH_VEC_ELT (rtx, preserved_values, i, val)
 	remove_cselib_value_chains (dv_from_value (val));
       gcc_assert (htab_elements (value_chains) == 0);
     }
@@ -7974,7 +8062,7 @@ vt_add_function_parameters (void)
   tree parm;
 
   for (parm = DECL_ARGUMENTS (current_function_decl);
-       parm; parm = TREE_CHAIN (parm))
+       parm; parm = DECL_CHAIN (parm))
     {
       rtx decl_rtl = DECL_RTL_IF_SET (parm);
       rtx incoming = DECL_INCOMING_RTL (parm);
@@ -8141,7 +8229,7 @@ vt_init_cfa_base (void)
   val = cselib_lookup_from_insn (cfa_base_rtx, GET_MODE (cfa_base_rtx), 1,
 				 get_insns ());
   preserve_value (val);
-  cselib_preserve_cfa_base_value (val);
+  cselib_preserve_cfa_base_value (val, REGNO (cfa_base_rtx));
   var_reg_decl_set (&VTI (ENTRY_BLOCK_PTR)->out, cfa_base_rtx,
 		    VAR_INIT_STATUS_INITIALIZED, dv_from_value (val->val_rtx),
 		    0, NULL_RTX, INSERT);
@@ -8509,7 +8597,9 @@ variable_tracking_main_1 (void)
       dump_flow_info (dump_file, dump_flags);
     }
 
+  timevar_push (TV_VAR_TRACKING_EMIT);
   vt_emit_notes ();
+  timevar_pop (TV_VAR_TRACKING_EMIT);
 
   vt_finalize ();
   vt_debug_insns_local (false);

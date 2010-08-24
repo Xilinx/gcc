@@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "libfuncs.h"
 #include "recog.h"
 #include "machmode.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "output.h"
 #include "ggc.h"
@@ -1319,7 +1320,7 @@ resolve_asm_operand_names (tree string, tree outputs, tree inputs, tree labels)
 	break;
       else
 	{
-	  c += 1;
+	  c += 1 + (c[1] == '%');
 	  continue;
 	}
     }
@@ -1341,7 +1342,7 @@ resolve_asm_operand_names (tree string, tree outputs, tree inputs, tree labels)
 	    p += 2;
 	  else
 	    {
-	      p += 1;
+	      p += 1 + (p[1] == '%');
 	      continue;
 	    }
 
@@ -1594,8 +1595,11 @@ expand_value_return (rtx val)
       tree type = TREE_TYPE (decl);
       int unsignedp = TYPE_UNSIGNED (type);
       enum machine_mode old_mode = DECL_MODE (decl);
-      enum machine_mode mode = promote_function_mode (type, old_mode,
-						      &unsignedp, funtype, 1);
+      enum machine_mode mode;
+      if (DECL_BY_REFERENCE (decl))
+        mode = promote_function_mode (type, old_mode, &unsignedp, funtype, 2);
+      else
+        mode = promote_function_mode (type, old_mode, &unsignedp, funtype, 1);
 
       if (mode != old_mode)
 	val = convert_modes (mode, old_mode, val, unsignedp);
@@ -2071,7 +2075,7 @@ add_case_node (struct case_node *head, tree type, tree low, tree high,
 
 /* By default, enable case bit tests on targets with ashlsi3.  */
 #ifndef CASE_USE_BIT_TESTS
-#define CASE_USE_BIT_TESTS  (optab_handler (ashl_optab, word_mode)->insn_code \
+#define CASE_USE_BIT_TESTS  (optab_handler (ashl_optab, word_mode) \
 			     != CODE_FOR_nothing)
 #endif
 
@@ -2334,11 +2338,8 @@ expand_case (gimple stmt)
 	  /* If we have not seen this label yet, then increase the
 	     number of unique case node targets seen.  */
 	  lab = label_rtx (n->code_label);
-	  if (!bitmap_bit_p (label_bitmap, CODE_LABEL_NUMBER (lab)))
-	    {
-	      bitmap_set_bit (label_bitmap, CODE_LABEL_NUMBER (lab));
-	      uniq++;
-	    }
+	  if (bitmap_set_bit (label_bitmap, CODE_LABEL_NUMBER (lab)))
+	    uniq++;
 	}
 
       BITMAP_FREE (label_bitmap);

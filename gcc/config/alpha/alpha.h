@@ -96,6 +96,9 @@ along with GCC; see the file COPYING3.  If not see
   while (0)
 #endif
 
+#define SWITCH_TAKES_ARG(CHAR)						\
+  (DEFAULT_SWITCH_TAKES_ARG (CHAR) || (CHAR) == 'G')
+
 #define WORD_SWITCH_TAKES_ARG(STR)		\
  (!strcmp (STR, "rpath") || DEFAULT_WORD_SWITCH_TAKES_ARG(STR))
 
@@ -702,15 +705,6 @@ extern int alpha_memory_latency;
 /* Define this if stack space is still allocated for a parameter passed
    in a register.  */
 /* #define REG_PARM_STACK_SPACE */
-
-/* Value is the number of bytes of arguments automatically
-   popped when returning from a subroutine call.
-   FUNDECL is the declaration node of the function (as a tree),
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.
-   SIZE is the number of bytes of arguments passed on the stack.  */
-
-#define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
 
 /* Define how to find the value returned by a function.
    VALTYPE is the data type of the value (as a tree).

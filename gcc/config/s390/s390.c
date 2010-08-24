@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "expr.h"
 #include "reload.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "basic-block.h"
 #include "integrate.h"
@@ -1453,7 +1454,7 @@ s390_narrow_logical_operator (enum rtx_code code, rtx *memop, rtx *immop)
 static struct machine_function *
 s390_init_machine_status (void)
 {
-  return GGC_CNEW (struct machine_function);
+  return ggc_alloc_cleared_machine_function ();
 }
 
 /* Change optimizations to be performed, depending on the
@@ -1675,8 +1676,9 @@ override_options (void)
     set_param_value ("simultaneous-prefetches", 6);
 
   /* This cannot reside in optimization_options since HAVE_prefetch
-     requires the arch flags to be evaluated already.  */
-  if (HAVE_prefetch && optimize >= 3)
+     requires the arch flags to be evaluated already.  Since prefetching
+     is beneficial on s390, we enable it if available.  */
+  if (flag_prefetch_loop_arrays < 0 && HAVE_prefetch && optimize >= 3)
     flag_prefetch_loop_arrays = 1;
 }
 
@@ -2957,10 +2959,12 @@ s390_reload_symref_address (rtx reg, rtx mem, rtx scratch, bool tomem)
    RCLASS requires an extra scratch or immediate register.  Return the class
    needed for the immediate register.  */
 
-static enum reg_class
-s390_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
+static reg_class_t
+s390_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 		       enum machine_mode mode, secondary_reload_info *sri)
 {
+  enum reg_class rclass = (enum reg_class) rclass_i;
+
   /* Intermediate register needed.  */
   if (reg_classes_intersect_p (CC_REGS, rclass))
     return GENERAL_REGS;
@@ -8279,7 +8283,7 @@ s390_function_arg_float (enum machine_mode mode, tree type)
     {
       tree field, single = NULL_TREE;
 
-      for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+      for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
 	{
 	  if (TREE_CODE (field) != FIELD_DECL)
 	    continue;
@@ -8587,9 +8591,9 @@ s390_build_builtin_va_list (void)
   TREE_CHAIN (record) = type_decl;
   TYPE_NAME (record) = type_decl;
   TYPE_FIELDS (record) = f_gpr;
-  TREE_CHAIN (f_gpr) = f_fpr;
-  TREE_CHAIN (f_fpr) = f_ovf;
-  TREE_CHAIN (f_ovf) = f_sav;
+  DECL_CHAIN (f_gpr) = f_fpr;
+  DECL_CHAIN (f_fpr) = f_ovf;
+  DECL_CHAIN (f_ovf) = f_sav;
 
   layout_type (record);
 
@@ -8619,9 +8623,9 @@ s390_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   tree gpr, fpr, ovf, sav, t;
 
   f_gpr = TYPE_FIELDS (TREE_TYPE (va_list_type_node));
-  f_fpr = TREE_CHAIN (f_gpr);
-  f_ovf = TREE_CHAIN (f_fpr);
-  f_sav = TREE_CHAIN (f_ovf);
+  f_fpr = DECL_CHAIN (f_gpr);
+  f_ovf = DECL_CHAIN (f_fpr);
+  f_sav = DECL_CHAIN (f_ovf);
 
   valist = build_va_arg_indirect_ref (valist);
   gpr = build3 (COMPONENT_REF, TREE_TYPE (f_gpr), valist, f_gpr, NULL_TREE);
@@ -8717,9 +8721,9 @@ s390_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
   tree lab_false, lab_over, addr;
 
   f_gpr = TYPE_FIELDS (TREE_TYPE (va_list_type_node));
-  f_fpr = TREE_CHAIN (f_gpr);
-  f_ovf = TREE_CHAIN (f_fpr);
-  f_sav = TREE_CHAIN (f_ovf);
+  f_fpr = DECL_CHAIN (f_gpr);
+  f_ovf = DECL_CHAIN (f_fpr);
+  f_sav = DECL_CHAIN (f_ovf);
 
   valist = build_va_arg_indirect_ref (valist);
   gpr = build3 (COMPONENT_REF, TREE_TYPE (f_gpr), valist, f_gpr, NULL_TREE);

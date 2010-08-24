@@ -5,7 +5,7 @@ This is part of the GNU Fortran manual.
 For copying conditions, see the file gfortran.texi.
 
 Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.2 or
+under the terms of the GNU Free Documentation License, Version 1.3 or
 any later version published by the Free Software Foundation; with the
 Invariant Sections being ``Funding Free Software'', the Front-Cover
 Texts being (a) (see below), and with the Back-Cover Texts being (b)
@@ -44,7 +44,7 @@ Some basic guidelines for editing this document:
 * @code{ACCESS}:        ACCESS,    Checks file access modes
 * @code{ACHAR}:         ACHAR,     Character in @acronym{ASCII} collating sequence
 * @code{ACOS}:          ACOS,      Arccosine function
-* @code{ACOSH}:         ACOSH,     Hyperbolic arccosine function
+* @code{ACOSH}:         ACOSH,     Inverse hyperbolic cosine function
 * @code{ADJUSTL}:       ADJUSTL,   Left adjust a string
 * @code{ADJUSTR}:       ADJUSTR,   Right adjust a string
 * @code{AIMAG}:         AIMAG,     Imaginary part of complex number
@@ -56,11 +56,11 @@ Some basic guidelines for editing this document:
 * @code{ANINT}:         ANINT,     Nearest whole number
 * @code{ANY}:           ANY,       Determine if any values are true
 * @code{ASIN}:          ASIN,      Arcsine function
-* @code{ASINH}:         ASINH,     Hyperbolic arcsine function
+* @code{ASINH}:         ASINH,     Inverse hyperbolic sine function
 * @code{ASSOCIATED}:    ASSOCIATED, Status of a pointer or pointer/target pair
 * @code{ATAN}:          ATAN,      Arctangent function
 * @code{ATAN2}:         ATAN2,     Arctangent function
-* @code{ATANH}:         ATANH,     Hyperbolic arctangent function
+* @code{ATANH}:         ATANH,     Inverse hyperbolic tangent function
 * @code{BESSEL_J0}:     BESSEL_J0, Bessel function of the first kind of order 0
 * @code{BESSEL_J1}:     BESSEL_J1, Bessel function of the first kind of order 1
 * @code{BESSEL_JN}:     BESSEL_JN, Bessel function of the first kind
@@ -107,6 +107,7 @@ Some basic guidelines for editing this document:
 * @code{EXIT}:          EXIT,      Exit the program with status.
 * @code{EXP}:           EXP,       Exponential function
 * @code{EXPONENT}:      EXPONENT,  Exponent function
+* @code{EXTENDS_TYPE_OF}: EXTENDS_TYPE_OF,  Query dynamic type for extension
 * @code{FDATE}:         FDATE,     Subroutine (or function) to get the current time as a string
 * @code{FGET}:          FGET,      Read a single character in stream mode from stdin
 * @code{FGETC}:         FGETC,     Read a single character in stream mode
@@ -223,6 +224,7 @@ Some basic guidelines for editing this document:
 * @code{RESHAPE}:       RESHAPE,   Function to reshape an array
 * @code{RRSPACING}:     RRSPACING, Reciprocal of the relative spacing
 * @code{RSHIFT}:        RSHIFT,    Right shift bits
+* @code{SAME_TYPE_AS}:  SAME_TYPE_AS,  Query dynamic types for equality
 * @code{SCALE}:         SCALE,     Scale a real value
 * @code{SCAN}:          SCAN,      Scan a string for the presence of a set of characters
 * @code{SECNDS}:        SECNDS,    Time function
@@ -244,6 +246,7 @@ Some basic guidelines for editing this document:
 * @code{SQRT}:          SQRT,      Square-root function
 * @code{SRAND}:         SRAND,     Reinitialize the random number generator
 * @code{STAT}:          STAT,      Get file status
+* @code{STORAGE_SIZE}:  STORAGE_SIZE, Storage size in bits
 * @code{SUM}:           SUM,       Sum of array elements
 * @code{SYMLNK}:        SYMLNK,    Create a symbolic link
 * @code{SYSTEM}:        SYSTEM,    Execute a shell command
@@ -576,18 +579,17 @@ Inverse function: @ref{COS}
 
 
 @node ACOSH
-@section @code{ACOSH} --- Hyperbolic arccosine function
+@section @code{ACOSH} --- Inverse hyperbolic cosine function
 @fnindex ACOSH
 @fnindex DACOSH
 @cindex area hyperbolic cosine
-@cindex hyperbolic arccosine
+@cindex inverse hyperbolic cosine
 @cindex hyperbolic function, cosine, inverse
 @cindex cosine, hyperbolic, inverse
 
 @table @asis
 @item @emph{Description}:
-@code{ACOSH(X)} computes the hyperbolic arccosine of @var{X} (inverse of
-@code{COSH(X)}).
+@code{ACOSH(X)} computes the inverse hyperbolic cosine of @var{X}.
 
 @item @emph{Standard}:
 Fortran 2008 and later
@@ -1224,17 +1226,17 @@ Inverse function: @ref{SIN}
 
 
 @node ASINH
-@section @code{ASINH} --- Hyperbolic arcsine function
+@section @code{ASINH} --- Inverse hyperbolic sine function
 @fnindex ASINH
 @fnindex DASINH
 @cindex area hyperbolic sine
-@cindex hyperbolic arcsine
+@cindex inverse hyperbolic sine
 @cindex hyperbolic function, sine, inverse
 @cindex sine, hyperbolic, inverse
 
 @table @asis
 @item @emph{Description}:
-@code{ASINH(X)} computes the hyperbolic arcsine of @var{X} (inverse of @code{SINH(X)}).
+@code{ASINH(X)} computes the inverse hyperbolic sine of @var{X}.
 
 @item @emph{Standard}:
 Fortran 2008 and later
@@ -1468,18 +1470,17 @@ end program test_atan2
 
 
 @node ATANH
-@section @code{ATANH} --- Hyperbolic arctangent function
-@fnindex ASINH
-@fnindex DASINH
+@section @code{ATANH} --- Inverse hyperbolic tangent function
+@fnindex ATANH
+@fnindex DATANH
 @cindex area hyperbolic tangent
-@cindex hyperbolic arctangent
+@cindex inverse hyperbolic tangent
 @cindex hyperbolic function, tangent, inverse
 @cindex tangent, hyperbolic, inverse
 
 @table @asis
 @item @emph{Description}:
-@code{ATANH(X)} computes the hyperbolic arctangent of @var{X} (inverse
-of @code{TANH(X)}).
+@code{ATANH(X)} computes the inverse hyperbolic tangent of @var{X}.
 
 @item @emph{Standard}:
 Fortran 2008 and later
@@ -1629,28 +1630,40 @@ end program test_besj1
 @item @emph{Description}:
 @code{BESSEL_JN(N, X)} computes the Bessel function of the first kind of
 order @var{N} of @var{X}. This function is available under the name
-@code{BESJN} as a GNU extension.
+@code{BESJN} as a GNU extension.  If @var{N} and @var{X} are arrays,
+their ranks and shapes shall conform.  
 
-If both arguments are arrays, their ranks and shapes shall conform.
+@code{BESSEL_JN(N1, N2, X)} returns an array with the Bessel functions
+of the first kind of the orders @var{N1} to @var{N2}.
 
 @item @emph{Standard}:
-Fortran 2008 and later
+Fortran 2008 and later, negative @var{N} is allowed as GNU extension
 
 @item @emph{Class}:
-Elemental function
+Elemental function, except for the tranformational function
+@code{BESSEL_JN(N1, N2, X)}
 
 @item @emph{Syntax}:
 @code{RESULT = BESSEL_JN(N, X)}
+@code{RESULT = BESSEL_JN(N1, N2, X)}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
 @item @var{N} @tab Shall be a scalar or an array of type  @code{INTEGER}.
-@item @var{X} @tab Shall be a scalar or an array of type  @code{REAL}.
+@item @var{N1} @tab Shall be a non-negative scalar of type  @code{INTEGER}.
+@item @var{N2} @tab Shall be a non-negative scalar of type  @code{INTEGER}.
+@item @var{X} @tab Shall be a scalar or an array of type  @code{REAL};
+for @code{BESSEL_JN(N1, N2, X)} it shall be scalar.
 @end multitable
 
 @item @emph{Return value}:
 The return value is a scalar of type @code{REAL}. It has the same
 kind as @var{X}.
+
+@item @emph{Note}:
+The transformational function uses a recurrence algorithm which might,
+for some values of @var{X}, lead to different results than calls to
+the elemental function.
 
 @item @emph{Example}:
 @smallexample
@@ -1777,28 +1790,40 @@ end program test_besy1
 @item @emph{Description}:
 @code{BESSEL_YN(N, X)} computes the Bessel function of the second kind of
 order @var{N} of @var{X}. This function is available under the name
-@code{BESYN} as a GNU extension.
+@code{BESYN} as a GNU extension.  If @var{N} and @var{X} are arrays,
+their ranks and shapes shall conform.  
 
-If both arguments are arrays, their ranks and shapes shall conform.
+@code{BESSEL_YN(N1, N2, X)} returns an array with the Bessel functions
+of the first kind of the orders @var{N1} to @var{N2}.
 
 @item @emph{Standard}:
-Fortran 2008 and later
+Fortran 2008 and later, negative @var{N} is allowed as GNU extension
 
 @item @emph{Class}:
-Elemental function
+Elemental function, except for the tranformational function
+@code{BESSEL_YN(N1, N2, X)}
 
 @item @emph{Syntax}:
 @code{RESULT = BESSEL_YN(N, X)}
+@code{RESULT = BESSEL_YN(N1, N2, X)}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{N} @tab Shall be a scalar or an array of type  @code{INTEGER}.
-@item @var{X} @tab Shall be a scalar or an array of type  @code{REAL}.
+@item @var{N} @tab Shall be a scalar or an array of type  @code{INTEGER} .
+@item @var{N1} @tab Shall be a non-negative scalar of type  @code{INTEGER}.
+@item @var{N2} @tab Shall be a non-negative scalar of type  @code{INTEGER}.
+@item @var{X} @tab Shall be a scalar or an array of type  @code{REAL};
+for @code{BESSEL_YN(N1, N2, X)} it shall be scalar.
 @end multitable
 
 @item @emph{Return value}:
 The return value is a scalar of type @code{REAL}. It has the same
 kind as @var{X}.
+
+@item @emph{Note}:
+The transformational function uses a recurrence algorithm which might,
+for some values of @var{X}, lead to different results than calls to
+the elemental function.
 
 @item @emph{Example}:
 @smallexample
@@ -2139,9 +2164,9 @@ Inquiry function
 @code{RESULT = C_LOC(X)}
 
 @item @emph{Arguments}:
-@multitable @columnfractions .15 .70
-@item @var{X} @tab Associated scalar pointer or interoperable scalar
-or allocated allocatable variable with @code{TARGET} attribute.
+@multitable @columnfractions .10 .75
+@item @var{X} @tab  Shall have either the POINTER or TARGET attribute. It shall not be a coindexed object. It shall either be a variable with interoperable type and kind type parameters, or be a scalar, nonpolymorphic variable with no length type parameters.
+
 @end multitable
 
 @item @emph{Return value}:
@@ -2187,7 +2212,7 @@ Intrinsic function
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{X} @tab The argument shall be of any type, rank or shape.
+@item @var{X} @tab The argument shall be an interoperable data entity.
 @end multitable
 
 @item @emph{Return value}:
@@ -2211,7 +2236,7 @@ The example will print @code{.TRUE.} unless you are using a platform
 where default @code{REAL} variables are unusually padded.
 
 @item @emph{See also}:
-@ref{SIZEOF}
+@ref{SIZEOF}, @ref{STORAGE_SIZE}
 @end table
 
 
@@ -3927,6 +3952,42 @@ end program test_exponent
 
 
 
+@node EXTENDS_TYPE_OF
+@section @code{EXTENDS_TYPE_OF} ---  Query dynamic type for extension
+@fnindex EXTENDS_TYPE_OF
+
+@table @asis
+@item @emph{Description}:
+Query dynamic type for extension.
+
+@item @emph{Standard}:
+Fortran 2003 and later
+
+@item @emph{Class}:
+Inquiry function
+
+@item @emph{Syntax}:
+@code{RESULT = EXTENDS_TYPE_OF(A, MOLD)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{A} @tab Shall be an object of extensible declared type or
+unlimited polymorphic. 
+@item @var{MOLD} @tab Shall be an object of extensible declared type or
+unlimited polymorphic. 
+@end multitable
+
+@item @emph{Return value}:
+The return value is a scalar of type default logical. It is true if and only if
+the dynamic type of A is an extension type of the dynamic type of MOLD.
+
+
+@item @emph{See also}:
+@ref{SAME_TYPE_AS}
+@end table
+
+
+
 @node FDATE
 @section @code{FDATE} --- Get the current time as a string
 @fnindex FDATE
@@ -4184,6 +4245,44 @@ Subroutine
 @item @emph{Note}:
 Beginning with the Fortran 2003 standard, there is a @code{FLUSH}
 statement that should be preferred over the @code{FLUSH} intrinsic.
+
+The @code{FLUSH} intrinsic and the Fortran 2003 @code{FLUSH} statement
+have identical effect: they flush the runtime library's I/O buffer so
+that the data becomes visible to other processes. This does not guarantee
+that the data is committed to disk.
+
+On POSIX systems, you can request that all data is transferred  to  the
+storage device by calling the @code{fsync} function, with the POSIX file
+descriptor of the I/O unit as argument (retrieved with GNU intrinsic
+@code{FNUM}). The following example shows how:
+
+@smallexample
+  ! Declare the interface for POSIX fsync function
+  interface
+    function fsync (fd) bind(c,name="fsync")
+    use iso_c_binding, only: c_int
+      integer(c_int), value :: fd
+      integer(c_int) :: fsync
+    end function fsync
+  end interface
+
+  ! Variable declaration
+  integer :: ret
+
+  ! Opening unit 10
+  open (10,file="foo")
+
+  ! ...
+  ! Perform I/O on unit 10
+  ! ...
+
+  ! Flush and sync
+  flush(10)
+  ret = fsync(fnum(10))
+
+  ! Handle possible error
+  if (ret /= 0) stop "Error calling FSYNC"
+@end smallexample
 
 @end table
 
@@ -8678,6 +8777,9 @@ Inquiry function
 The return value is of type @code{INTEGER} and of the default integer
 kind.
 
+@item @emph{See also}:
+@ref{SELECTED_REAL_KIND}, @ref{RANGE}
+
 @item @emph{Example}:
 @smallexample
 program prec_and_range
@@ -8822,6 +8924,9 @@ Inquiry function
 @item @emph{Return value}:
 The return value is a scalar of type @code{INTEGER} and of the default
 integer kind.
+
+@item @emph{See also}:
+@ref{SELECTED_REAL_KIND}
 
 @item @emph{Example}:
 @smallexample
@@ -9059,6 +9164,9 @@ or @code{COMPLEX}.
 @item @emph{Return value}:
 The return value is of type @code{INTEGER} and of the default integer
 kind.
+
+@item @emph{See also}:
+@ref{SELECTED_REAL_KIND}, @ref{PRECISION}
 
 @item @emph{Example}:
 See @code{PRECISION} for an example.
@@ -9358,6 +9466,42 @@ The return value is of type @code{INTEGER} and of the same kind as
 
 
 
+@node SAME_TYPE_AS
+@section @code{SAME_TYPE_AS} ---  Query dynamic types for equality
+@fnindex SAME_TYPE_AS
+
+@table @asis
+@item @emph{Description}:
+Query dynamic types for equality.
+
+@item @emph{Standard}:
+Fortran 2003 and later
+
+@item @emph{Class}:
+Inquiry function
+
+@item @emph{Syntax}:
+@code{RESULT = SAME_TYPE_AS(A, B)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{A} @tab Shall be an object of extensible declared type or
+unlimited polymorphic.
+@item @var{B} @tab Shall be an object of extensible declared type or
+unlimited polymorphic.
+@end multitable
+
+@item @emph{Return value}:
+The return value is a scalar of type default logical. It is true if and
+only if the dynamic type of A is the same as the dynamic type of B.
+
+@item @emph{See also}:
+@ref{EXTENDS_TYPE_OF}
+
+@end table
+
+
+
 @node SCALE
 @section @code{SCALE} --- Scale a real value
 @fnindex SCALE
@@ -9557,7 +9701,8 @@ seconds.
 @code{SELECTED_CHAR_KIND(NAME)} returns the kind value for the character
 set named @var{NAME}, if a character set with such a name is supported,
 or @math{-1} otherwise. Currently, supported character sets include
-``ASCII'' and ``DEFAULT'', which are equivalent.
+``ASCII'' and ``DEFAULT'', which are equivalent, and ``ISO_10646''
+(Universal Character Set, UCS-4) which is commonly known as Unicode.
 
 @item @emph{Standard}:
 Fortran 2003 and later
@@ -9575,13 +9720,25 @@ Transformational function
 
 @item @emph{Example}:
 @smallexample
-program ascii_kind
-  integer,parameter :: ascii = selected_char_kind("ascii")
-  character(kind=ascii, len=26) :: s
+program character_kind
+  use iso_fortran_env
+  implicit none
+  integer, parameter :: ascii = selected_char_kind ("ascii")
+  integer, parameter :: ucs4  = selected_char_kind ('ISO_10646')
 
-  s = ascii_"abcdefghijklmnopqrstuvwxyz"
-  print *, s
-end program ascii_kind
+  character(kind=ascii, len=26) :: alphabet
+  character(kind=ucs4,  len=30) :: hello_world
+
+  alphabet = ascii_"abcdefghijklmnopqrstuvwxyz"
+  hello_world = ucs4_'Hello World and Ni Hao -- ' &
+                // char (int (z'4F60'), ucs4)     &
+                // char (int (z'597D'), ucs4)
+
+  write (*,*) alphabet
+
+  open (output_unit, encoding='UTF-8')
+  write (*,*) trim (hello_world)
+end program character_kind
 @end smallexample
 @end table
 
@@ -9638,44 +9795,57 @@ end program large_integers
 @fnindex SELECTED_REAL_KIND
 @cindex real kind
 @cindex kind, real
+@cindex radix, real
 
 @table @asis
 @item @emph{Description}:
 @code{SELECTED_REAL_KIND(P,R)} returns the kind value of a real data type
-with decimal precision of at least @code{P} digits and exponent
-range greater at least @code{R}. 
+with decimal precision of at least @code{P} digits, exponent range of
+at least @code{R}, and with a radix of @code{RADIX}.
 
 @item @emph{Standard}:
-Fortran 95 and later
+Fortran 95 and later, with @code{RADIX} Fortran 2008 or later
 
 @item @emph{Class}:
 Transformational function
 
 @item @emph{Syntax}:
-@code{RESULT = SELECTED_REAL_KIND([P, R])}
+@code{RESULT = SELECTED_REAL_KIND([P, R, RADIX])}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
 @item @var{P} @tab (Optional) shall be a scalar and of type @code{INTEGER}.
 @item @var{R} @tab (Optional) shall be a scalar and of type @code{INTEGER}.
+@item @var{RADIX} @tab (Optional) shall be a scalar and of type @code{INTEGER}.
 @end multitable
-At least one argument shall be present.
+Before Fortran 2008, at least one of the arguments @var{R} or @var{P} shall
+be present; since Fortran 2008, they are assumed to be zero if absent.
 
 @item @emph{Return value}:
 
 @code{SELECTED_REAL_KIND} returns the value of the kind type parameter of
-a real data type with decimal precision of at least @code{P} digits and a
-decimal exponent range of at least @code{R}. If more than one real data
-type meet the criteria, the kind of the data type with the smallest
-decimal precision is returned. If no real data type matches the criteria,
-the result is
+a real data type with decimal precision of at least @code{P} digits, a
+decimal exponent range of at least @code{R}, and with the requested
+@code{RADIX}. If the @code{RADIX} parameter is absent, real kinds with
+any radix can be returned. If more than one real data type meet the
+criteria, the kind of the data type with the smallest decimal precision
+is returned. If no real data type matches the criteria, the result is
 @table @asis
 @item -1 if the processor does not support a real data type with a
-precision greater than or equal to @code{P}
+precision greater than or equal to @code{P}, but the @code{R} and
+@code{RADIX} requirements can be fulfilled
 @item -2 if the processor does not support a real type with an exponent
-range greater than or equal to @code{R}
-@item -3 if neither is supported.
+range greater than or equal to @code{R}, but @code{P} and @code{RADIX}
+are fulfillable
+@item -3 if @code{RADIX} but not @code{P} and @code{R} requirements
+are fulfillable
+@item -4 if @code{RADIX} and either @code{P} or @code{R} requirements
+are fulfillable
+@item -5 if there is no real type with the given @code{RADIX}
 @end table
+
+@item @emph{See also}:
+@ref{PRECISION}, @ref{RANGE}, @ref{RADIX}
 
 @item @emph{Example}:
 @smallexample
@@ -10086,7 +10256,8 @@ number of bytes occupied by the argument.  If the argument has the
 @code{POINTER} attribute, the number of bytes of the storage area pointed
 to is returned.  If the argument is of a derived type with @code{POINTER}
 or @code{ALLOCATABLE} components, the return value doesn't account for
-the sizes of the data pointed to by these components.
+the sizes of the data pointed to by these components. If the argument is
+polymorphic, the size according to the declared type is returned.
 
 @item @emph{Example}:
 @smallexample
@@ -10099,7 +10270,7 @@ The example will print @code{.TRUE.} unless you are using a platform
 where default @code{REAL} variables are unusually padded.
 
 @item @emph{See also}:
-@ref{C_SIZEOF}
+@ref{C_SIZEOF}, @ref{STORAGE_SIZE}
 @end table
 
 
@@ -10418,6 +10589,37 @@ To stat an open file: @ref{FSTAT}, to stat a link: @ref{LSTAT}
 
 
 
+@node STORAGE_SIZE
+@section @code{STORAGE_SIZE} --- Storage size in bits
+@fnindex STORAGE_SIZE
+@cindex storage size
+
+@table @asis
+@item @emph{Description}:
+Returns the storage size of argument @var{A} in bits.
+@item @emph{Standard}:
+Fortran 2008 and later
+@item @emph{Class}:
+Inquiry function
+@item @emph{Syntax}:
+@code{RESULT = STORAGE_SIZE(A [, KIND])}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{A} @tab Shall be a scalar or array of any type.
+@item @var{KIND} @tab (Optional) shall be a scalar integer constant expression.
+@end multitable
+
+@item @emph{Return Value}:
+The result is a scalar integer with the kind type parameter speciﬁed by KIND (or default integer type if KIND is missing). The result value is the size expressed in bits for an element of an array that
+has the dynamic type and type parameters of A.
+
+@item @emph{See also}:
+@ref{C_SIZEOF}, @ref{SIZEOF}
+@end table
+
+
+
 @node SUM
 @section @code{SUM} --- Sum of array elements
 @fnindex SUM
@@ -10459,7 +10661,7 @@ The result is of the same type as @var{ARRAY}.
 
 If @var{DIM} is absent, a scalar with the sum of all elements in @var{ARRAY}
 is returned. Otherwise, an array of rank n-1, where n equals the rank of 
-@var{ARRAY},and a shape similar to that of @var{ARRAY} with dimension @var{DIM} 
+@var{ARRAY}, and a shape similar to that of @var{ARRAY} with dimension @var{DIM} 
 dropped is returned.
 
 @item @emph{Example}:
@@ -10587,7 +10789,6 @@ Subroutine
 @item @emph{Syntax}:
 @code{CALL SYSTEM_CLOCK([COUNT, COUNT_RATE, COUNT_MAX])}
 
-@item @emph{Arguments}:
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
 @item @var{COUNT}      @tab (Optional) shall be a scalar of type default 
@@ -11597,6 +11798,16 @@ are defined.
 @item @code{C_HORIZONTAL_TAB}  @tab horizontal tab  @tab @code{'\t'}
 @item @code{C_VERTICAL_TAB}    @tab vertical tab    @tab @code{'\v'}
 @end multitable
+
+Moreover, the following two named constants are defined:
+
+@multitable @columnfractions .20 .80
+@item Name                 @tab Type
+@item @code{C_NULL_PTR}    @tab @code{C_PTR}
+@item @code{C_NULL_FUNPTR} @tab @code{C_FUNPTR}
+@end multitable
+
+Both are equivalent to the value @code{NULL} in C.
 
 @node OpenMP Modules OMP_LIB and OMP_LIB_KINDS
 @section OpenMP Modules @code{OMP_LIB} and @code{OMP_LIB_KINDS}

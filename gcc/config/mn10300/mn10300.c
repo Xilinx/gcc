@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "optabs.h"
 #include "function.h"
 #include "obstack.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "tm_p.h"
 #include "target.h"
@@ -1492,9 +1493,7 @@ mn10300_builtin_saveregs (void)
 {
   rtx offset, mem;
   tree fntype = TREE_TYPE (current_function_decl);
-  int argadj = ((!(TYPE_ARG_TYPES (fntype) != 0
-                   && (TREE_VALUE (tree_last (TYPE_ARG_TYPES (fntype)))
-                       != void_type_node)))
+  int argadj = ((!stdarg_p (fntype))
                 ? UNITS_PER_WORD : 0);
   alias_set_type set = get_varargs_alias_set ();
 

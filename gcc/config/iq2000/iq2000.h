@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.  
    Vitesse IQ2000 processors
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -20,10 +20,6 @@
    <http://www.gnu.org/licenses/>.  */
 
 /* Driver configuration.  */
-
-#undef  SWITCH_TAKES_ARG
-#define SWITCH_TAKES_ARG(CHAR)						\
-  (DEFAULT_SWITCH_TAKES_ARG (CHAR) || (CHAR) == 'G')
 
 /* The svr4.h LIB_SPEC with -leval and --*group tacked on */
 #undef  LIB_SPEC
@@ -365,8 +361,6 @@ enum reg_class
 
 #define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 1
 
-#define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
-
 
 /* Function Arguments in Registers.  */
 
@@ -570,13 +564,6 @@ typedef struct iq2000_args
 
 #define FINAL_PRESCAN_INSN(INSN, OPVEC, NOPERANDS)			\
   final_prescan_insn (INSN, OPVEC, NOPERANDS)
-
-/* See iq2000.c for the IQ2000 specific codes.  */
-#define PRINT_OPERAND(FILE, X, CODE) print_operand (FILE, X, CODE)
-
-#define PRINT_OPERAND_PUNCT_VALID_P(CODE) iq2000_print_operand_punct[CODE]
-
-#define PRINT_OPERAND_ADDRESS(FILE, ADDR) print_operand_address (FILE, ADDR)
 
 #define DBR_OUTPUT_SEQEND(STREAM)					\
 do									\
@@ -920,9 +907,6 @@ enum processor_type
 #define SDATA_SECTION_ASM_OP	"\t.sdata"	/* Small data.  */
 
 
-/* List of all IQ2000 punctuation characters used by print_operand.  */
-extern char iq2000_print_operand_punct[256];
-
 /* The target cpu for optimization and scheduling.  */
 extern enum processor_type iq2000_tune;
 

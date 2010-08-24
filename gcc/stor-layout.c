@@ -31,6 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "expr.h"
 #include "output.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "ggc.h"
 #include "target.h"
@@ -233,10 +234,11 @@ self_referential_size (tree size)
 {
   static unsigned HOST_WIDE_INT fnno = 0;
   VEC (tree, heap) *self_refs = NULL;
-  tree param_type_list = NULL, param_decl_list = NULL, arg_list = NULL;
+  tree param_type_list = NULL, param_decl_list = NULL;
   tree t, ref, return_type, fntype, fnname, fndecl;
   unsigned int i;
   char buf[128];
+  VEC(tree,gc) *args = NULL;
 
   /* Do not factor out simple operations.  */
   t = skip_simple_arithmetic (size);
@@ -255,7 +257,8 @@ self_referential_size (tree size)
 
   /* Build the parameter and argument lists in parallel; also
      substitute the former for the latter in the expression.  */
-  for (i = 0; VEC_iterate (tree, self_refs, i, ref); i++)
+  args = VEC_alloc (tree, gc, VEC_length (tree, self_refs));
+  FOR_EACH_VEC_ELT (tree, self_refs, i, ref)
     {
       tree subst, param_name, param_type, param_decl;
 
@@ -290,7 +293,7 @@ self_referential_size (tree size)
 
       param_type_list = tree_cons (NULL_TREE, param_type, param_type_list);
       param_decl_list = chainon (param_decl, param_decl_list);
-      arg_list = tree_cons (NULL_TREE, ref, arg_list);
+      VEC_quick_push (tree, args, ref);
     }
 
   VEC_free (tree, heap, self_refs);
@@ -301,7 +304,6 @@ self_referential_size (tree size)
   /* The 3 lists have been created in reverse order.  */
   param_type_list = nreverse (param_type_list);
   param_decl_list = nreverse (param_decl_list);
-  arg_list = nreverse (arg_list);
 
   /* Build the function type.  */
   return_type = TREE_TYPE (size);
@@ -311,7 +313,7 @@ self_referential_size (tree size)
   sprintf (buf, "SZ"HOST_WIDE_INT_PRINT_UNSIGNED, fnno++);
   fnname = get_file_function_name (buf);
   fndecl = build_decl (input_location, FUNCTION_DECL, fnname, fntype);
-  for (t = param_decl_list; t; t = TREE_CHAIN (t))
+  for (t = param_decl_list; t; t = DECL_CHAIN (t))
     DECL_CONTEXT (t) = fndecl;
   DECL_ARGUMENTS (fndecl) = param_decl_list;
   DECL_RESULT (fndecl)
@@ -342,7 +344,7 @@ self_referential_size (tree size)
   VEC_safe_push (tree, gc, size_functions, fndecl);
 
   /* Replace the original expression with a call to the size function.  */
-  return build_function_call_expr (input_location, fndecl, arg_list);
+  return build_call_expr_loc_vec (input_location, fndecl, args);
 }
 
 /* Take, queue and compile all the size functions.  It is essential that
@@ -369,10 +371,6 @@ finalize_size_functions (void)
   VEC_free (tree, gc, size_functions);
 }
 
-#ifndef MAX_FIXED_MODE_SIZE
-#define MAX_FIXED_MODE_SIZE GET_MODE_BITSIZE (DImode)
-#endif
-
 /* Return the machine mode to use for a nonscalar of SIZE bits.  The
    mode must be in class MCLASS, and have exactly that many value bits;
    it may have padding as well.  If LIMIT is nonzero, modes of wider
@@ -747,7 +745,7 @@ start_record_layout (tree t)
   rli->offset = size_zero_node;
   rli->bitpos = bitsize_zero_node;
   rli->prev_field = 0;
-  rli->pending_statics = 0;
+  rli->pending_statics = NULL;
   rli->packed_maybe_necessary = 0;
   rli->remaining_in_alignment = 0;
 
@@ -831,10 +829,10 @@ debug_rli (record_layout_info rli)
   if (rli->packed_maybe_necessary)
     fprintf (stderr, "packed may be necessary\n");
 
-  if (rli->pending_statics)
+  if (!VEC_empty (tree, rli->pending_statics))
     {
       fprintf (stderr, "pending statics:\n");
-      debug_tree (rli->pending_statics);
+      debug_vec_tree (rli->pending_statics);
     }
 }
 
@@ -1045,8 +1043,7 @@ place_field (record_layout_info rli, tree field)
      it *after* the record is laid out.  */
   if (TREE_CODE (field) == VAR_DECL)
     {
-      rli->pending_statics = tree_cons (NULL_TREE, field,
-					rli->pending_statics);
+      VEC_safe_push (tree, gc, rli->pending_statics, field);
       return;
     }
 
@@ -1432,8 +1429,8 @@ place_field (record_layout_info rli, tree field)
 
       /* If we ended a bitfield before the full length of the type then
 	 pad the struct out to the full length of the last type.  */
-      if ((TREE_CHAIN (field) == NULL
-	   || TREE_CODE (TREE_CHAIN (field)) != FIELD_DECL)
+      if ((DECL_CHAIN (field) == NULL
+	   || TREE_CODE (DECL_CHAIN (field)) != FIELD_DECL)
 	  && DECL_BIT_FIELD_TYPE (field)
 	  && !integer_zerop (DECL_SIZE (field)))
 	rli->bitpos = size_binop (PLUS_EXPR, rli->bitpos,
@@ -1554,7 +1551,7 @@ compute_record_mode (tree type)
   /* A record which has any BLKmode members must itself be
      BLKmode; it can't go in a register.  Unless the member is
      BLKmode only because it isn't aligned.  */
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
     {
       if (TREE_CODE (field) != FIELD_DECL)
 	continue;
@@ -1722,15 +1719,15 @@ finish_record_layout (record_layout_info rli, int free_p)
 
   /* Lay out any static members.  This is done now because their type
      may use the record's type.  */
-  while (rli->pending_statics)
-    {
-      layout_decl (TREE_VALUE (rli->pending_statics), 0);
-      rli->pending_statics = TREE_CHAIN (rli->pending_statics);
-    }
+  while (!VEC_empty (tree, rli->pending_statics))
+    layout_decl (VEC_pop (tree, rli->pending_statics), 0);
 
   /* Clean up.  */
   if (free_p)
-    free (rli);
+    {
+      VEC_free (tree, gc, rli->pending_statics);
+      free (rli);
+    }
 }
 
 
@@ -1749,8 +1746,8 @@ finish_builtin_struct (tree type, const char *name, tree fields,
   for (tail = NULL_TREE; fields; tail = fields, fields = next)
     {
       DECL_FIELD_CONTEXT (fields) = type;
-      next = TREE_CHAIN (fields);
-      TREE_CHAIN (fields) = tail;
+      next = DECL_CHAIN (fields);
+      DECL_CHAIN (fields) = tail;
     }
   TYPE_FIELDS (type) = tail;
 
@@ -2064,7 +2061,7 @@ layout_type (tree type)
 	  TYPE_FIELDS (type) = nreverse (TYPE_FIELDS (type));
 
 	/* Place all the fields.  */
-	for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+	for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
 	  place_field (rli, field);
 
 	if (TREE_CODE (type) == QUAL_UNION_TYPE)

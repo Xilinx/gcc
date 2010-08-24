@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
   do						\
     {						\
       builtin_define ("__ppc");			\
+      builtin_define ("__PPC__");		\
       builtin_define ("__EABI__");		\
       builtin_define ("__ELF__");		\
       builtin_define ("__vxworks");		\
@@ -113,10 +114,17 @@ VXWORKS_ADDITIONAL_CPP_SPEC
 #undef SDATA_DEFAULT_SIZE
 #define SDATA_DEFAULT_SIZE (TARGET_VXWORKS_RTP ? 8 : 0)
 
+/* Enforce 16bytes alignment for the stack pointer, to permit general
+   compliance with e.g. Altivec instructions requirements.  Make sure
+   this isn't overruled by the EABI constraints.  */
+
 #undef  STACK_BOUNDARY
 #define STACK_BOUNDARY (16*BITS_PER_UNIT)
-/* Override sysv4.h, reset to the default.  */
+
 #undef  PREFERRED_STACK_BOUNDARY
+#define PREFERRED_STACK_BOUNDARY STACK_BOUNDARY
+
+#undef  ABI_STACK_BOUNDARY
 
 /* Make -mcpu=8540 imply SPE.  ISEL is automatically enabled, the
    others must be done by hand.  Handle -mrtp.  Disable -fPIC

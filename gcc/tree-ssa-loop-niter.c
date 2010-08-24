@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-data-ref.h"
 #include "params.h"
 #include "flags.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "tree-inline.h"
 #include "gmp.h"
@@ -1374,6 +1375,10 @@ simplify_replace_tree (tree expr, tree old, tree new_tree)
   if (!expr)
     return NULL_TREE;
 
+  /* Do not bother to replace constants.  */
+  if (CONSTANT_CLASS_P (old))
+    return expr;
+
   if (expr == old
       || operand_equal_p (expr, old, 0))
     return unshare_expr (new_tree);
@@ -1902,7 +1907,7 @@ find_loop_niter (struct loop *loop, edge *exit)
   struct tree_niter_desc desc;
 
   *exit = NULL;
-  for (i = 0; VEC_iterate (edge, exits, i, ex); i++)
+  FOR_EACH_VEC_ELT (edge, exits, i, ex)
     {
       if (!just_once_each_iteration_p (loop, ex->src))
 	continue;
@@ -1979,7 +1984,7 @@ finite_loop_p (struct loop *loop)
     }
 
   exits = get_loop_exit_edges (loop);
-  for (i = 0; VEC_iterate (edge, exits, i, ex); i++)
+  FOR_EACH_VEC_ELT (edge, exits, i, ex)
     {
       if (!just_once_each_iteration_p (loop, ex->src))
 	continue;
@@ -2259,7 +2264,7 @@ find_loop_niter_by_eval (struct loop *loop, edge *exit)
       && VEC_length (edge, exits) > 1)
     return chrec_dont_know;
 
-  for (i = 0; VEC_iterate (edge, exits, i, ex); i++)
+  FOR_EACH_VEC_ELT (edge, exits, i, ex)
     {
       if (!just_once_each_iteration_p (loop, ex->src))
 	continue;
@@ -2393,7 +2398,7 @@ derive_constant_upper_bound_ops (tree type, tree op0,
 	  /* OP0 + CST.  We need to check that
 	     BND <= MAX (type) - CST.  */
 
-	  mmax = double_int_add (max, double_int_neg (cst));
+	  mmax = double_int_sub (max, cst);
 	  if (double_int_ucmp (bnd, mmax) > 0)
 	    return max;
 
@@ -2425,7 +2430,7 @@ derive_constant_upper_bound_ops (tree type, tree op0,
 		return max;
 	    }
 
-	  bnd = double_int_add (bnd, double_int_neg (cst));
+	  bnd = double_int_sub (bnd, cst);
 	}
 
       return bnd;
@@ -2521,7 +2526,7 @@ record_estimate (struct loop *loop, tree bound, double_int i_bound,
      list.  */
   if (upper)
     {
-      struct nb_iter_bound *elt = GGC_NEW (struct nb_iter_bound);
+      struct nb_iter_bound *elt = ggc_alloc_nb_iter_bound ();
 
       elt->bound = i_bound;
       elt->stmt = at_stmt;
@@ -2621,7 +2626,7 @@ array_at_struct_end_p (tree ref)
 
   /* Unless the reference is through a pointer, the size of the array matches
      its declaration.  */
-  if (!base || !INDIRECT_REF_P (base))
+  if (!base || (!INDIRECT_REF_P (base) && TREE_CODE (base) != MEM_REF))
     return false;
 
   for (;handled_component_p (ref); ref = parent)
@@ -2636,7 +2641,7 @@ array_at_struct_end_p (tree ref)
 
 	  /* Unless the field is at the end of the struct, we are done.  */
 	  field = TREE_OPERAND (ref, 1);
-	  if (TREE_CHAIN (field))
+	  if (DECL_CHAIN (field))
 	    return false;
 	}
 
@@ -2647,7 +2652,6 @@ array_at_struct_end_p (tree ref)
 	 Therefore, continue checking.  */
     }
 
-  gcc_assert (INDIRECT_REF_P (ref));
   return true;
 }
 
@@ -2916,7 +2920,7 @@ estimate_numbers_of_iterations_loop (struct loop *loop)
   loop->any_estimate = false;
 
   exits = get_loop_exit_edges (loop);
-  for (i = 0; VEC_iterate (edge, exits, i, ex); i++)
+  FOR_EACH_VEC_ELT (edge, exits, i, ex)
     {
       if (!number_of_iterations_exit (loop, ex, &niter_desc, false))
 	continue;

@@ -20,10 +20,11 @@
 #include "tm.h"
 #include "cpplib.h"
 #include "tree.h"
-#include "c-common.h"
-#include "c-pragma.h"
+#include "c-family/c-common.h"
+#include "c-family/c-pragma.h"
 #include "tm_p.h"
 #include "langhooks.h"
+#include "target.h"
 
 
 /* Keep the vector keywords handy for fast comparisons.  */
@@ -111,7 +112,7 @@ spu_resolve_overloaded_builtin (location_t loc, tree fndecl, void *passed_args)
   for (new_fcode = fcode + 1; spu_builtins[new_fcode].type == B_INTERNAL;
        new_fcode++)
     {
-      tree decl = spu_builtins[new_fcode].fndecl;
+      tree decl = targetm.builtin_decl (new_fcode, true);
       tree params = TYPE_ARG_TYPES (TREE_TYPE (decl));
       tree param;
       bool all_scalar;

@@ -8,9 +8,26 @@ gcc_version := $(shell cat $(top_srcdir)/../gcc/BASE-VER)
 
 ## Symbol versioning (copied from libssp).
 if LIBGFOR_USE_SYMVER
+if LIBGFOR_USE_SYMVER_GNU
 version_arg = -Wl,--version-script=$(srcdir)/gfortran.map
+version_dep = $(srcdir)/gfortran.map
+endif
+if LIBGFOR_USE_SYMVER_SUN
+version_arg = -Wl,-M,gfortran.map-sun
+version_dep = gfortran.map-sun
+gfortran.map-sun : $(srcdir)/gfortran.map \
+		$(top_srcdir)/../contrib/make_sunver.pl \
+		$(libgfortran_la_OBJECTS) $(libgfortran_la_LIBADD)
+	perl $(top_srcdir)/../contrib/make_sunver.pl \
+	  $(srcdir)/gfortran.map \
+	  $(libgfortran_la_OBJECTS:%.lo=.libs/%.o) \
+	 `echo $(libgfortran_la_LIBADD) | \
+	    sed 's,/\([^/.]*\)\.la,/.libs/\1.a,g'` \
+	 > $@ || (rm -f $@ ; exit 1)
+endif
 else
 version_arg =
+version_dep =
 endif
 
 LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS)) \
@@ -19,6 +36,7 @@ LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS)) \
 toolexeclib_LTLIBRARIES = libgfortran.la
 libgfortran_la_LINK = $(LINK) $(libgfortran_la_LDFLAGS)
 libgfortran_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` $(LTLDFLAGS) -lm $(extra_ldflags_libgfortran) $(version_arg)
+libgfortran_la_DEPENDENCIES = $(version_dep)
 
 myexeclib_LTLIBRARIES = libgfortranbegin.la
 myexeclibdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)$(MULTISUBDIR)
@@ -156,6 +174,12 @@ $(srcdir)/generated/any_l2.c \
 $(srcdir)/generated/any_l4.c \
 $(srcdir)/generated/any_l8.c \
 $(srcdir)/generated/any_l16.c
+
+i_bessel_c= \
+$(srcdir)/generated/bessel_r4.c \
+$(srcdir)/generated/bessel_r8.c \
+$(srcdir)/generated/bessel_r10.c \
+$(srcdir)/generated/bessel_r16.c
 
 i_count_c= \
 $(srcdir)/generated/count_1_l.c \
@@ -565,11 +589,11 @@ m4_files= m4/iparm.m4 m4/ifunction.m4 m4/iforeach.m4 m4/all.m4 \
     m4/transpose.m4 m4/eoshift1.m4 m4/eoshift3.m4 m4/exponent.m4 \
     m4/fraction.m4 m4/nearest.m4 m4/set_exponent.m4 m4/pow.m4 \
     m4/misc_specifics.m4 m4/rrspacing.m4 m4/spacing.m4 m4/pack.m4 \
-    m4/unpack.m4 m4/spread.m4
+    m4/unpack.m4 m4/spread.m4 m4/bessel.m4
 
 gfor_built_src= $(i_all_c) $(i_any_c) $(i_count_c) $(i_maxloc0_c) \
     $(i_maxloc1_c) $(i_maxval_c) $(i_minloc0_c) $(i_minloc1_c) $(i_minval_c) \
-    $(i_product_c) $(i_sum_c) \
+    $(i_product_c) $(i_sum_c) $(i_bessel_c) \
     $(i_matmul_c) $(i_matmull_c) $(i_transpose_c) $(i_shape_c) $(i_eoshift1_c) \
     $(i_eoshift3_c) $(i_cshift1_c) $(i_reshape_c) $(in_pack_c) $(in_unpack_c) \
     $(i_exponent_c) $(i_fraction_c) $(i_nearest_c) $(i_set_exponent_c) \
@@ -802,6 +826,9 @@ fpu-target.h: $(srcdir)/$(FPU_HOST_HEADER)
 if MAINTAINER_MODE
 $(i_all_c): m4/all.m4 $(I_M4_DEPS2)
 	$(M4) -Dfile=$@ -I$(srcdir)/m4 all.m4 > $@
+
+$(i_bessel_c): m4/bessel.m4 $(I_M4_DEPS)
+	$(M4) -Dfile=$@ -I$(srcdir)/m4 bessel.m4 > $@
 
 $(i_any_c): m4/any.m4 $(I_M4_DEPS2)
 	$(M4) -Dfile=$@ -I$(srcdir)/m4 any.m4 > $@

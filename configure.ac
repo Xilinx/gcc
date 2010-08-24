@@ -967,13 +967,7 @@ case "${target}" in
   v810-*-*)
     noconfigdirs="$noconfigdirs bfd binutils gas gcc gdb ld target-libstdc++-v3 opcodes target-libgloss ${libgcj}"
     ;;
-  v850-*-*)
-    noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
-    ;;
-  v850e-*-*)
-    noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
-    ;;
-  v850ea-*-*)
+  v850*-*-*)
     noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
     ;;
   vax-*-vms)
@@ -1354,7 +1348,7 @@ fi
 if test "x$with_gmp$with_gmp_include$with_gmp_lib" = x && test -d ${srcdir}/gmp; then
   gmplibs='-L$$r/$(HOST_SUBDIR)/gmp/'"$lt_cv_objdir $gmplibs"
   gmpinc='-I$$r/$(HOST_SUBDIR)/gmp -I$$s/gmp '"$gmpinc"
-  extra_mpfr_configure_flags='--with-gmp-build=$$r/$(HOST_SUBDIR)/gmp'
+  extra_mpfr_configure_flags='--with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-gmp-lib=$$r/$(HOST_SUBDIR)/gmp/'"$lt_cv_objdir"
   extra_mpc_gmp_configure_flags='--with-gmp-include=$$r/$(HOST_SUBDIR)/gmp --with-gmp-lib=$$r/$(HOST_SUBDIR)/gmp/'"$lt_cv_objdir"
   # Do not test the gmp version.  Assume that it is sufficient, since
   # it is in the source tree, and the library has not been built yet

@@ -314,7 +314,7 @@ new_scev_info_str (basic_block instantiated_below, tree var)
 {
   struct scev_info_str *res;
 
-  res = GGC_NEW (struct scev_info_str);
+  res = ggc_alloc_scev_info_str ();
   res->var = var;
   res->chrec = chrec_not_analyzed_yet;
   res->instantiated_below = instantiated_below;
@@ -1166,6 +1166,24 @@ follow_ssa_edge_expr (struct loop *loop, gimple at_stmt, tree expr,
       STRIP_USELESS_TYPE_CONVERSION (rhs1);
       res = follow_ssa_edge_binary (loop, at_stmt, type, rhs0, code, rhs1,
 				    halting_phi, evolution_of_loop, limit);
+      break;
+
+    case ADDR_EXPR:
+      /* Handle &MEM[ptr + CST] which is equivalent to POINTER_PLUS_EXPR.  */
+      if (TREE_CODE (TREE_OPERAND (expr, 0)) == MEM_REF)
+	{
+	  expr = TREE_OPERAND (expr, 0);
+	  rhs0 = TREE_OPERAND (expr, 0);
+	  rhs1 = TREE_OPERAND (expr, 1);
+	  type = TREE_TYPE (rhs0);
+	  STRIP_USELESS_TYPE_CONVERSION (rhs0);
+	  STRIP_USELESS_TYPE_CONVERSION (rhs1);
+	  res = follow_ssa_edge_binary (loop, at_stmt, type,
+					rhs0, POINTER_PLUS_EXPR, rhs1,
+					halting_phi, evolution_of_loop, limit);
+	}
+      else
+	res = t_false;
       break;
 
     case ASSERT_EXPR:
@@ -2833,7 +2851,7 @@ number_of_iterations_for_all_loops (VEC(gimple,heap) **exit_conditions)
   unsigned nb_static_loops = 0;
   gimple cond;
 
-  for (i = 0; VEC_iterate (gimple, *exit_conditions, i, cond); i++)
+  FOR_EACH_VEC_ELT (gimple, *exit_conditions, i, cond)
     {
       tree res = number_of_latch_executions (loop_containing_stmt (cond));
       if (chrec_contains_undetermined (res))
@@ -2987,7 +3005,7 @@ analyze_scalar_evolution_for_all_loop_phi_nodes (VEC(gimple,heap) **exit_conditi
 
   reset_chrecs_counters (&stats);
 
-  for (i = 0; VEC_iterate (gimple, *exit_conditions, i, cond); i++)
+  FOR_EACH_VEC_ELT (gimple, *exit_conditions, i, cond)
     {
       struct loop *loop;
       basic_block bb;
@@ -3072,12 +3090,9 @@ scev_initialize (void)
   loop_iterator li;
   struct loop *loop;
 
-  scalar_evolution_info = htab_create_alloc (100,
-					     hash_scev_info,
-					     eq_scev_info,
-					     del_scev_info,
-					     ggc_calloc,
-					     ggc_free);
+
+  scalar_evolution_info = htab_create_ggc (100, hash_scev_info, eq_scev_info,
+					   del_scev_info);
 
   initialize_scalar_evolutions_analyzer ();
 

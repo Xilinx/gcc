@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hard-reg-set.h"
 #include "output.h"
 #include "insn-attr.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "recog.h"
 #include "integrate.h"
@@ -198,6 +199,9 @@ static tree sh2a_handle_function_vector_handler_attribute (tree *, tree,
 static tree sh_handle_sp_switch_attribute (tree *, tree, tree, int, bool *);
 static tree sh_handle_trap_exit_attribute (tree *, tree, tree, int, bool *);
 static tree sh_handle_renesas_attribute (tree *, tree, tree, int, bool *);
+static void sh_print_operand (FILE *, rtx, int);
+static void sh_print_operand_address (FILE *, rtx);
+static bool sh_print_operand_punct_valid_p (unsigned char code);
 static void sh_output_function_epilogue (FILE *, HOST_WIDE_INT);
 static void sh_insert_attributes (tree, tree *);
 static const char *sh_check_pch_target_flags (int);
@@ -222,7 +226,7 @@ static int sh_variable_issue (FILE *, int, rtx, int);
 static bool sh_function_ok_for_sibcall (tree, tree);
 
 static bool sh_cannot_modify_jumps_p (void);
-static enum reg_class sh_target_reg_class (void);
+static reg_class_t sh_target_reg_class (void);
 static bool sh_optimize_target_register_callee_saved (bool);
 static bool sh_ms_bitfield_layout_p (const_tree);
 
@@ -325,6 +329,13 @@ static const struct attribute_spec sh_attribute_table[] =
 #define TARGET_ASM_UNALIGNED_DI_OP "\t.uaquad\t"
 #undef TARGET_ASM_ALIGNED_DI_OP
 #define TARGET_ASM_ALIGNED_DI_OP "\t.quad\t"
+
+#undef TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND sh_print_operand
+#undef TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS sh_print_operand_address
+#undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P sh_print_operand_punct_valid_p
 
 #undef TARGET_ASM_FUNCTION_EPILOGUE
 #define TARGET_ASM_FUNCTION_EPILOGUE sh_output_function_epilogue
@@ -962,12 +973,16 @@ sh_override_options (void)
 
   if (sh_fixed_range_str)
     sh_fix_range (sh_fixed_range_str);
+
+  /* This target defaults to strict volatile bitfields.  */
+  if (flag_strict_volatile_bitfields < 0)
+    flag_strict_volatile_bitfields = 1;
 }
 
 /* Print the operand address in x to the stream.  */
 
-void
-print_operand_address (FILE *stream, rtx x)
+static void
+sh_print_operand_address (FILE *stream, rtx x)
 {
   switch (GET_CODE (x))
     {
@@ -1045,8 +1060,8 @@ print_operand_address (FILE *stream, rtx x)
    'u'  prints the lowest 16 bits of CONST_INT, as an unsigned value.
    'o'  output an operator.  */
 
-void
-print_operand (FILE *stream, rtx x, int code)
+static void
+sh_print_operand (FILE *stream, rtx x, int code)
 {
   int regno;
   enum machine_mode mode;
@@ -1120,7 +1135,7 @@ print_operand (FILE *stream, rtx x, int code)
       else if (MEM_P (x))
 	{
 	  x = adjust_address (x, SImode, 4 * LSW);
-	  print_operand_address (stream, XEXP (x, 0));
+	  sh_print_operand_address (stream, XEXP (x, 0));
 	}
       else
 	{
@@ -1132,7 +1147,7 @@ print_operand (FILE *stream, rtx x, int code)
 	  if (GET_MODE_SIZE (mode) >= 8)
 	    sub = simplify_subreg (SImode, x, mode, 4 * LSW);
 	  if (sub)
-	    print_operand (stream, sub, 0);
+	    sh_print_operand (stream, sub, 0);
 	  else
 	    output_operand_lossage ("invalid operand to %%R");
 	}
@@ -1147,7 +1162,7 @@ print_operand (FILE *stream, rtx x, int code)
       else if (MEM_P (x))
 	{
 	  x = adjust_address (x, SImode, 4 * MSW);
-	  print_operand_address (stream, XEXP (x, 0));
+	  sh_print_operand_address (stream, XEXP (x, 0));
 	}
       else
 	{
@@ -1159,7 +1174,7 @@ print_operand (FILE *stream, rtx x, int code)
 	  if (GET_MODE_SIZE (mode) >= 8)
 	    sub = simplify_subreg (SImode, x, mode, 4 * MSW);
 	  if (sub)
-	    print_operand (stream, sub, 0);
+	    sh_print_operand (stream, sub, 0);
 	  else
 	    output_operand_lossage ("invalid operand to %%S");
 	}
@@ -1175,7 +1190,7 @@ print_operand (FILE *stream, rtx x, int code)
 	  if (GET_CODE (XEXP (x, 0)) != PRE_DEC
 	      && GET_CODE (XEXP (x, 0)) != POST_INC)
 	    x = adjust_address (x, SImode, 4);
-	  print_operand_address (stream, XEXP (x, 0));
+	  sh_print_operand_address (stream, XEXP (x, 0));
 	  break;
 	default:
 	  break;
@@ -1189,7 +1204,7 @@ print_operand (FILE *stream, rtx x, int code)
 	{
 	case REG:
 	case SUBREG:
-	  print_operand (stream, x, 0);
+	  sh_print_operand (stream, x, 0);
 	  break;
 	default:
 	  break;
@@ -1248,14 +1263,14 @@ print_operand (FILE *stream, rtx x, int code)
 	{
 	case REG:
 	case SUBREG:
-	  print_operand (stream, x, 0);
+	  sh_print_operand (stream, x, 0);
 	  fputs (", 0", stream);
 	  break;
 
 	case PLUS:
-	  print_operand (stream, XEXP (x, 0), 0);
+	  sh_print_operand (stream, XEXP (x, 0), 0);
 	  fputs (", ", stream);
-	  print_operand (stream, XEXP (x, 1), 0);
+	  sh_print_operand (stream, XEXP (x, 1), 0);
 	  break;
 
 	default:
@@ -1397,6 +1412,13 @@ print_operand (FILE *stream, rtx x, int code)
 	}
       break;
     }
+}
+
+static bool
+sh_print_operand_punct_valid_p (unsigned char code)
+{
+  return (code == '.' || code == '#' || code == '@' || code == ','
+          || code == '$' || code == '\'' || code == '>');
 }
 
 
@@ -6843,13 +6865,12 @@ sh_expand_prologue (void)
 	  for (i = 0; i < NPARM_REGS(SImode); i++)
 	    {
 	      int rn = NPARM_REGS(SImode) + FIRST_PARM_REG - i - 1;
-	      rtx insn;
 
 	      if (i >= (NPARM_REGS(SImode)
 			- crtl->args.info.arg_count[(int) SH_ARG_INT]
 			))
 		break;
-	      insn = push (rn);
+	      push (rn);
 	    }
 	}
     }
@@ -7214,7 +7235,7 @@ sh_expand_epilogue (bool sibcall_p)
 	{
 	  enum machine_mode mode = (enum machine_mode) entry->mode;
 	  int reg = entry->reg;
-	  rtx reg_rtx, mem_rtx, post_inc = NULL_RTX, insn;
+	  rtx reg_rtx, mem_rtx, post_inc = NULL_RTX;
 
 	  offset = offset_base + entry->offset;
 	  reg_rtx = gen_rtx_REG (mode, reg);
@@ -7287,7 +7308,7 @@ sh_expand_epilogue (bool sibcall_p)
 	  if ((reg == PR_REG || SPECIAL_REGISTER_P (reg))
 	      && mem_rtx != post_inc)
 	    {
-	      insn = emit_move_insn (r0, mem_rtx);
+	      emit_move_insn (r0, mem_rtx);
 	      mem_rtx = r0;
 	    }
 	  else if (TARGET_REGISTER_P (reg))
@@ -7296,13 +7317,13 @@ sh_expand_epilogue (bool sibcall_p)
 
 	      /* Give the scheduler a bit of freedom by using up to
 		 MAX_TEMPS registers in a round-robin fashion.  */
-	      insn = emit_move_insn (tmp_reg, mem_rtx);
+	      emit_move_insn (tmp_reg, mem_rtx);
 	      mem_rtx = tmp_reg;
 	      if (*++tmp_pnt < 0)
 		tmp_pnt = schedule.temps;
 	    }
 
-	  insn = emit_move_insn (reg_rtx, mem_rtx);
+	  emit_move_insn (reg_rtx, mem_rtx);
 	}
 
       gcc_assert (entry->offset + offset_base == d + d_rounding);
@@ -7636,13 +7657,15 @@ static tree
 sh_build_builtin_va_list (void)
 {
   tree f_next_o, f_next_o_limit, f_next_fp, f_next_fp_limit, f_next_stack;
-  tree record;
+  tree record, type_decl;
 
   if (TARGET_SH5 || (! TARGET_SH2E && ! TARGET_SH4)
       || TARGET_HITACHI || sh_cfun_attr_renesas_p ())
     return ptr_type_node;
 
   record = (*lang_hooks.types.make_type) (RECORD_TYPE);
+  type_decl = build_decl (BUILTINS_LOCATION,
+			  TYPE_DECL, get_identifier ("__va_list_tag"), record);
 
   f_next_o = build_decl (BUILTINS_LOCATION,
 			 FIELD_DECL, get_identifier ("__va_next_o"),
@@ -7668,11 +7691,13 @@ sh_build_builtin_va_list (void)
   DECL_FIELD_CONTEXT (f_next_fp_limit) = record;
   DECL_FIELD_CONTEXT (f_next_stack) = record;
 
+  TREE_CHAIN (record) = type_decl;
+  TYPE_NAME (record) = type_decl;
   TYPE_FIELDS (record) = f_next_o;
-  TREE_CHAIN (f_next_o) = f_next_o_limit;
-  TREE_CHAIN (f_next_o_limit) = f_next_fp;
-  TREE_CHAIN (f_next_fp) = f_next_fp_limit;
-  TREE_CHAIN (f_next_fp_limit) = f_next_stack;
+  DECL_CHAIN (f_next_o) = f_next_o_limit;
+  DECL_CHAIN (f_next_o_limit) = f_next_fp;
+  DECL_CHAIN (f_next_fp) = f_next_fp_limit;
+  DECL_CHAIN (f_next_fp_limit) = f_next_stack;
 
   layout_type (record);
 
@@ -7704,10 +7729,10 @@ sh_va_start (tree valist, rtx nextarg)
     }
 
   f_next_o = TYPE_FIELDS (va_list_type_node);
-  f_next_o_limit = TREE_CHAIN (f_next_o);
-  f_next_fp = TREE_CHAIN (f_next_o_limit);
-  f_next_fp_limit = TREE_CHAIN (f_next_fp);
-  f_next_stack = TREE_CHAIN (f_next_fp_limit);
+  f_next_o_limit = DECL_CHAIN (f_next_o);
+  f_next_fp = DECL_CHAIN (f_next_o_limit);
+  f_next_fp_limit = DECL_CHAIN (f_next_fp);
+  f_next_stack = DECL_CHAIN (f_next_fp_limit);
 
   next_o = build3 (COMPONENT_REF, TREE_TYPE (f_next_o), valist, f_next_o,
 		   NULL_TREE);
@@ -7766,7 +7791,7 @@ find_sole_member (tree type)
 {
   tree field, member = NULL_TREE;
 
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
     {
       if (TREE_CODE (field) != FIELD_DECL)
 	continue;
@@ -7809,10 +7834,10 @@ sh_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
       tree member;
 
       f_next_o = TYPE_FIELDS (va_list_type_node);
-      f_next_o_limit = TREE_CHAIN (f_next_o);
-      f_next_fp = TREE_CHAIN (f_next_o_limit);
-      f_next_fp_limit = TREE_CHAIN (f_next_fp);
-      f_next_stack = TREE_CHAIN (f_next_fp_limit);
+      f_next_o_limit = DECL_CHAIN (f_next_o);
+      f_next_fp = DECL_CHAIN (f_next_o_limit);
+      f_next_fp_limit = DECL_CHAIN (f_next_fp);
+      f_next_stack = DECL_CHAIN (f_next_fp_limit);
 
       next_o = build3 (COMPONENT_REF, TREE_TYPE (f_next_o), valist, f_next_o,
 		       NULL_TREE);
@@ -7865,7 +7890,7 @@ sh_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
       lab_false = create_artificial_label (UNKNOWN_LOCATION);
       lab_over = create_artificial_label (UNKNOWN_LOCATION);
 
-      valist = build1 (INDIRECT_REF, ptr_type_node, addr);
+      valist = build_simple_mem_ref (addr);
 
       if (pass_as_float)
 	{
@@ -10498,7 +10523,7 @@ sh_cannot_modify_jumps_p (void)
   return (TARGET_SHMEDIA && (reload_in_progress || reload_completed));
 }
 
-static enum reg_class
+static reg_class_t
 sh_target_reg_class (void)
 {
   return TARGET_SHMEDIA ? TARGET_REGS : NO_REGS;
@@ -12137,10 +12162,12 @@ shmedia_prepare_call_address (rtx fnaddr, int is_sibcall)
   return fnaddr;
 }
 
-enum reg_class
-sh_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
+reg_class_t
+sh_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 		     enum machine_mode mode, secondary_reload_info *sri)
 {
+  enum reg_class rclass = (enum reg_class) rclass_i;
+
   if (in_p)
     {
       if (REGCLASS_HAS_FP_REG (rclass)

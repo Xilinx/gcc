@@ -181,7 +181,7 @@ build_sese_loop_nests (sese region)
   /* Make sure that the loops in the SESE_LOOP_NEST are ordered.  It
      can be the case that an inner loop is inserted before an outer
      loop.  To avoid this, semi-sort once.  */
-  for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop0); i++)
+  FOR_EACH_VEC_ELT (loop_p, SESE_LOOP_NEST (region), i, loop0)
     {
       if (VEC_length (loop_p, SESE_LOOP_NEST (region)) == i + 1)
 	break;
@@ -679,7 +679,7 @@ if_region_set_false_region (ifsese if_region, sese region)
 
   if (slot)
     {
-      struct loop_exit *loop_exit = GGC_CNEW (struct loop_exit);
+      struct loop_exit *loop_exit = ggc_alloc_cleared_loop_exit ();
 
       memcpy (loop_exit, *((struct loop_exit **) slot), sizeof (struct loop_exit));
       htab_clear_slot (current_loops->exits, slot);

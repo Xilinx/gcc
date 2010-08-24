@@ -170,6 +170,21 @@ DEF_VEC_ALLOC_P(slp_instance, heap);
 #define SLP_TREE_OUTSIDE_OF_LOOP_COST(S)         (S)->cost.outside_of_loop
 #define SLP_TREE_INSIDE_OF_LOOP_COST(S)          (S)->cost.inside_of_loop
 
+
+typedef struct _vect_peel_info
+{
+  int npeel;
+  struct data_reference *dr;
+  unsigned int count;
+} *vect_peel_info;
+
+typedef struct _vect_peel_extended_info
+{
+  struct _vect_peel_info peel_info;
+  unsigned int inside_cost;
+  unsigned int outside_cost;
+} *vect_peel_extended_info;
+
 /*-----------------------------------------------------------------*/
 /* Info on vectorized loops.                                       */
 /*-----------------------------------------------------------------*/
@@ -245,6 +260,10 @@ typedef struct _loop_vec_info {
 
   /* Reduction cycles detected in the loop. Used in loop-aware SLP.  */
   VEC (gimple, heap) *reductions;
+
+  /* Hash table used to choose the best peeling option.  */
+  htab_t peeling_htab;
+
 } *loop_vec_info;
 
 /* Access Functions.  */
@@ -270,6 +289,7 @@ typedef struct _loop_vec_info {
 #define LOOP_VINFO_SLP_INSTANCES(L)        (L)->slp_instances
 #define LOOP_VINFO_SLP_UNROLLING_FACTOR(L) (L)->slp_unrolling_factor
 #define LOOP_VINFO_REDUCTIONS(L)           (L)->reductions
+#define LOOP_VINFO_PEELING_HTAB(L)         (L)->peeling_htab
 
 #define LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT(L) \
 VEC_length (gimple, (L)->may_misalign_stmts) > 0
@@ -543,69 +563,7 @@ typedef struct _stmt_vec_info {
 #define PURE_SLP_STMT(S)                  ((S)->slp_type == pure_slp)
 #define STMT_SLP_TYPE(S)                   (S)->slp_type
 
-/* These are some defines for the initial implementation of the vectorizer's
-   cost model.  These will later be target specific hooks.  */
-
-/* Cost of conditional taken branch.  */
-#ifndef TARG_COND_TAKEN_BRANCH_COST
-#define TARG_COND_TAKEN_BRANCH_COST        3
-#endif
-
-/* Cost of conditional not taken branch.  */
-#ifndef TARG_COND_NOT_TAKEN_BRANCH_COST
-#define TARG_COND_NOT_TAKEN_BRANCH_COST        1
-#endif
-
-/* Cost of any scalar operation, excluding load and store.  */
-#ifndef TARG_SCALAR_STMT_COST
-#define TARG_SCALAR_STMT_COST           1
-#endif
-
-/* Cost of scalar load.  */
-#ifndef TARG_SCALAR_LOAD_COST
-#define TARG_SCALAR_LOAD_COST           1
-#endif
-
-/* Cost of scalar store.  */
-#ifndef TARG_SCALAR_STORE_COST
-#define TARG_SCALAR_STORE_COST           1
-#endif
-
-/* Cost of any vector operation, excluding load, store or vector to scalar
-   operation.  */
-#ifndef TARG_VEC_STMT_COST
-#define TARG_VEC_STMT_COST           1
-#endif
-
-/* Cost of vector to scalar operation.  */
-#ifndef TARG_VEC_TO_SCALAR_COST
-#define TARG_VEC_TO_SCALAR_COST      1
-#endif
-
-/* Cost of scalar to vector operation.  */
-#ifndef TARG_SCALAR_TO_VEC_COST
-#define TARG_SCALAR_TO_VEC_COST      1
-#endif
-
-/* Cost of aligned vector load.  */
-#ifndef TARG_VEC_LOAD_COST
-#define TARG_VEC_LOAD_COST           1
-#endif
-
-/* Cost of misaligned vector load.  */
-#ifndef TARG_VEC_UNALIGNED_LOAD_COST
-#define TARG_VEC_UNALIGNED_LOAD_COST 2
-#endif
-
-/* Cost of vector store.  */
-#ifndef TARG_VEC_STORE_COST
-#define TARG_VEC_STORE_COST          1
-#endif
-
-/* Cost of vector permutation.  */
-#ifndef TARG_VEC_PERMUTE_COST
-#define TARG_VEC_PERMUTE_COST          1
-#endif
+#define VECT_MAX_COST 1000
 
 /* The maximum number of intermediate steps required in multi-step type
    conversion.  */
@@ -631,7 +589,6 @@ vinfo_for_stmt (gimple stmt)
   if (uid == 0)
     return NULL;
 
-  gcc_assert (uid <= VEC_length (vec_void_p, stmt_vec_info_vec));
   return (stmt_vec_info) VEC_index (vec_void_p, stmt_vec_info_vec, uid - 1);
 }
 
@@ -641,7 +598,7 @@ set_vinfo_for_stmt (gimple stmt, stmt_vec_info info)
   unsigned int uid = gimple_uid (stmt);
   if (uid == 0)
     {
-      gcc_assert (info);
+      gcc_checking_assert (info);
       uid = VEC_length (vec_void_p, stmt_vec_info_vec) + 1;
       gimple_set_uid (stmt, uid);
       VEC_safe_push (vec_void_p, heap, stmt_vec_info_vec, (vec_void_p) info);
@@ -667,8 +624,8 @@ get_earlier_stmt (gimple stmt1, gimple stmt2)
   if (uid1 == 0 || uid2 == 0)
     return NULL;
 
-  gcc_assert (uid1 <= VEC_length (vec_void_p, stmt_vec_info_vec));
-  gcc_assert (uid2 <= VEC_length (vec_void_p, stmt_vec_info_vec));
+  gcc_checking_assert (uid1 <= VEC_length (vec_void_p, stmt_vec_info_vec)
+		       && uid2 <= VEC_length (vec_void_p, stmt_vec_info_vec));
 
   if (uid1 < uid2)
     return stmt1;
@@ -696,7 +653,7 @@ is_loop_header_bb_p (basic_block bb)
 {
   if (bb == (bb->loop_father)->header)
     return true;
-  gcc_assert (EDGE_COUNT (bb->preds) == 1);
+  gcc_checking_assert (EDGE_COUNT (bb->preds) == 1);
   return false;
 }
 
@@ -808,11 +765,14 @@ extern void vect_remove_stores (gimple);
 extern bool vect_analyze_stmt (gimple, bool *, slp_tree);
 extern bool vectorizable_condition (gimple, gimple_stmt_iterator *, gimple *,
                                     tree, int);
+extern void vect_get_load_cost (struct data_reference *, int, bool,
+                                unsigned int *, unsigned int *);
+extern void vect_get_store_cost (struct data_reference *, int, unsigned int *);
 
 /* In tree-vect-data-refs.c.  */
 extern bool vect_can_force_dr_alignment_p (const_tree, unsigned int);
 extern enum dr_alignment_support vect_supportable_dr_alignment
-                                           (struct data_reference *);
+                                           (struct data_reference *, bool);
 extern tree vect_get_smallest_scalar_type (gimple, HOST_WIDE_INT *,
                                            HOST_WIDE_INT *);
 extern bool vect_analyze_data_ref_dependences (loop_vec_info, bb_vec_info,
@@ -860,7 +820,8 @@ extern bool vectorizable_induction (gimple, gimple_stmt_iterator *, gimple *);
 extern int vect_estimate_min_profitable_iters (loop_vec_info);
 extern tree get_initial_def_for_reduction (gimple, tree, tree *);
 extern int vect_min_worthwhile_factor (enum tree_code);
-
+extern int vect_get_known_peeling_cost (loop_vec_info, int, int *, int);
+extern int vect_get_single_scalar_iteraion_cost (loop_vec_info);
 
 /* In tree-vect-slp.c.  */
 extern void vect_free_slp_instance (slp_instance);

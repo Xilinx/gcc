@@ -1,5 +1,5 @@
 /* Target Definitions for R8C/M16C/M32C
-   Copyright (C) 2005, 2007, 2008, 2009
+   Copyright (C) 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Red Hat.
 
@@ -95,8 +95,6 @@ extern int target_memregs;
 #define TARGET_A24	(TARGET_M32CM || TARGET_M32C)
 
 #define TARGET_VERSION fprintf (stderr, " (m32c)");
-
-#define OVERRIDE_OPTIONS m32c_override_options ()
 
 /* Defining data structures for per-function information */
 
@@ -503,7 +501,6 @@ enum reg_class
 
 #define PUSH_ARGS 1
 #define PUSH_ROUNDING(N) m32c_push_rounding (N)
-#define RETURN_POPS_ARGS(D,T,S) 0
 #define CALL_POPS_ARGS(C) 0
 
 /* Passing Arguments in Registers */
@@ -530,10 +527,6 @@ typedef struct m32c_cumulative_args
 	m32c_function_arg_advance (&(CA),MODE,TYPE,NAMED)
 #define FUNCTION_ARG_BOUNDARY(MODE,TYPE) (TARGET_A16 ? 8 : 16)
 #define FUNCTION_ARG_REGNO_P(r) m32c_function_arg_regno_p (r)
-
-/* How Scalar Function Values Are Returned */
-
-#define FUNCTION_VALUE_REGNO_P(r) m32c_function_value_regno_p (r)
 
 /* How Large Values Are Returned */
 
@@ -643,6 +636,13 @@ typedef struct m32c_cumulative_args
 
 #define ASM_OUTPUT_REG_PUSH(S,R) m32c_output_reg_push (S, R)
 #define ASM_OUTPUT_REG_POP(S,R) m32c_output_reg_pop (S, R)
+
+#define ASM_OUTPUT_ALIGNED_DECL_COMMON(STREAM, DECL, NAME, SIZE, ALIGNMENT) \
+	m32c_output_aligned_common (STREAM, DECL, NAME, SIZE, ALIGNMENT, 1)
+
+#define ASM_OUTPUT_ALIGNED_DECL_LOCAL(STREAM, DECL, NAME, SIZE, ALIGNMENT) \
+	m32c_output_aligned_common (STREAM, DECL, NAME, SIZE, ALIGNMENT, 0)
+
 
 /* Output of Dispatch Tables */
 

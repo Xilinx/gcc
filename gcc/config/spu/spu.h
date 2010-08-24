@@ -1,4 +1,4 @@
-/* Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 
    This file is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
@@ -334,8 +334,6 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 #define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 1
 
-#define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) (0)
-
 
 /* Register Arguments */
 
@@ -448,12 +446,6 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 #define ASM_APP_OFF ""
 
-#define ASM_OUTPUT_SOURCE_FILENAME(STREAM, NAME) \
-  do {	fprintf (STREAM, "\t.file\t");			\
-	output_quoted_string (STREAM, NAME);		\
-	fprintf (STREAM, "\n");				\
-  } while (0)
-
 
 /* Uninitialized Data */
 #define ASM_OUTPUT_COMMON(FILE, NAME, SIZE, ROUNDED)  \
@@ -524,57 +516,6 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
   do { if (LOG!=0) fprintf (FILE, "\t.align\t%d\n", (LOG)); } while (0)
 
 
-/* Model costs for the vectorizer.  */
-
-/* Cost of conditional branch.  */
-#ifndef TARG_COND_BRANCH_COST
-#define TARG_COND_BRANCH_COST        6
-#endif
-
-/* Cost of any scalar operation, excluding load and store.  */
-#ifndef TARG_SCALAR_STMT_COST
-#define TARG_SCALAR_STMT_COST        1
-#endif
-
-/* Cost of scalar load. */
-#undef TARG_SCALAR_LOAD_COST
-#define TARG_SCALAR_LOAD_COST        2 /* load + rotate */
-
-/* Cost of scalar store.  */
-#undef TARG_SCALAR_STORE_COST
-#define TARG_SCALAR_STORE_COST       10
-
-/* Cost of any vector operation, excluding load, store,
-   or vector to scalar operation.  */
-#undef TARG_VEC_STMT_COST
-#define TARG_VEC_STMT_COST           1
-
-/* Cost of vector to scalar operation.  */
-#undef TARG_VEC_TO_SCALAR_COST
-#define TARG_VEC_TO_SCALAR_COST      1
-
-/* Cost of scalar to vector operation.  */
-#undef TARG_SCALAR_TO_VEC_COST
-#define TARG_SCALAR_TO_VEC_COST      1
-
-/* Cost of aligned vector load.  */
-#undef TARG_VEC_LOAD_COST
-#define TARG_VEC_LOAD_COST           1
-
-/* Cost of misaligned vector load.  */
-#undef TARG_VEC_UNALIGNED_LOAD_COST
-#define TARG_VEC_UNALIGNED_LOAD_COST 2
-
-/* Cost of vector store.  */
-#undef TARG_VEC_STORE_COST
-#define TARG_VEC_STORE_COST          1
-
-/* Cost of vector permutation.  */
-#ifndef TARG_VEC_PERMUTE_COST
-#define TARG_VEC_PERMUTE_COST        1 
-#endif
-
-
 /* Misc */
 
 #define CASE_VECTOR_MODE SImode
@@ -623,7 +564,7 @@ enum spu_builtin_type
   B_INTERNAL
 };
 
-struct GTY(()) spu_builtin_description
+struct spu_builtin_description
 {
   int fcode;
   int icode;
@@ -633,8 +574,6 @@ struct GTY(()) spu_builtin_description
   /* The first element of parm is always the return type.  The rest
      are a zero terminated list of parameters.  */
   int parm[5];
-
-  tree fndecl;
 };
 
 extern struct spu_builtin_description spu_builtins[];

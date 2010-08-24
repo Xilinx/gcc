@@ -160,6 +160,7 @@
 %{mcpu=e500mc: -me500mc} \
 %{mcpu=e500mc64: -me500mc64} \
 %{maltivec: -maltivec} \
+%{mvsx: -mvsx %{!maltivec: -maltivec} %{!mcpu*: %(asm_cpu_power7)}} \
 -many"
 
 #define CPP_DEFAULT_SPEC ""
@@ -293,6 +294,18 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define TARGET_SECURE_PLT 0
 #endif
 
+/* Code model for 64-bit linux.
+   small: 16-bit toc offsets.
+   large: 32-bit toc offsets.  */
+enum rs6000_cmodel {
+  CMODEL_SMALL,
+  CMODEL_LARGE
+};
+
+#ifndef TARGET_CMODEL
+#define TARGET_CMODEL CMODEL_SMALL
+#endif
+
 #define TARGET_32BIT		(! TARGET_64BIT)
 
 #ifndef HAVE_AS_TLS
@@ -348,7 +361,8 @@ enum processor_type
    PROCESSOR_POWER6,
    PROCESSOR_POWER7,
    PROCESSOR_CELL,
-   PROCESSOR_PPCA2
+   PROCESSOR_PPCA2,
+   PROCESSOR_TITAN
 };
 
 /* FPU operations supported. 
@@ -1159,16 +1173,6 @@ extern unsigned rs6000_pointer_size;
 #define HARD_REGNO_RENAME_OK(SRC, DST) \
   (! ALTIVEC_REGNO_P (DST) || df_regs_ever_live_p (DST))
 
-/* A C expression returning the cost of moving data from a register of class
-   CLASS1 to one of CLASS2.  */
-
-#define REGISTER_MOVE_COST rs6000_register_move_cost
-
-/* A C expressions returning the cost of moving data of MODE from a register to
-   or from memory.  */
-
-#define MEMORY_MOVE_COST rs6000_memory_move_cost
-
 /* Specify the cost of a branch insn; roughly the number of extra insns that
    should be added to avoid a branch.
 
@@ -1565,15 +1569,6 @@ extern enum rs6000_abi rs6000_current_abi;	/* available for use by subtarget */
    found in the variable crtl->outgoing_args_size.  */
 #define ACCUMULATE_OUTGOING_ARGS 1
 
-/* Value is the number of bytes of arguments automatically
-   popped when returning from a subroutine call.
-   FUNDECL is the declaration node of the function (as a tree),
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.
-   SIZE is the number of bytes of arguments passed on the stack.  */
-
-#define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
-
 /* Define how to find the value returned by a library function
    assuming the value has mode MODE.  */
 
@@ -1678,6 +1673,8 @@ typedef struct rs6000_args
   int sysv_gregno;		/* next available GP register */
   int intoffset;		/* running offset in struct (darwin64) */
   int use_stack;		/* any part of struct on stack (darwin64) */
+  int floats_in_gpr;		/* count of SFmode floats taking up
+				   GPR space (darwin64) */
   int named;			/* false for varargs params */
 } CUMULATIVE_ARGS;
 

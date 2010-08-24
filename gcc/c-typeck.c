@@ -39,7 +39,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "target.h"
 #include "tree-iterator.h"
-#include "tree-flow.h"
+#include "bitmap.h"
+#include "gimple.h"
 
 /* Possible cases of implicit bad conversions.  Used to select
    diagnostic messages in convert_for_assignment.  */
@@ -554,7 +555,7 @@ composite_type (tree t1, tree t2)
 		    && TREE_CODE (mv2) != ARRAY_TYPE)
 		  mv2 = TYPE_MAIN_VARIANT (mv2);
 		for (memb = TYPE_FIELDS (TREE_VALUE (p1));
-		     memb; memb = TREE_CHAIN (memb))
+		     memb; memb = DECL_CHAIN (memb))
 		  {
 		    tree mv3 = TREE_TYPE (memb);
 		    if (mv3 && mv3 != error_mark_node
@@ -579,7 +580,7 @@ composite_type (tree t1, tree t2)
 		    && TREE_CODE (mv1) != ARRAY_TYPE)
 		  mv1 = TYPE_MAIN_VARIANT (mv1);
 		for (memb = TYPE_FIELDS (TREE_VALUE (p2));
-		     memb; memb = TREE_CHAIN (memb))
+		     memb; memb = DECL_CHAIN (memb))
 		  {
 		    tree mv3 = TREE_TYPE (memb);
 		    if (mv3 && mv3 != error_mark_node
@@ -1433,7 +1434,7 @@ tagged_types_tu_compatible_p (const_tree t1, const_tree t2,
 
 	/*  Speed up the common case where the fields are in the same order. */
 	for (s1 = TYPE_FIELDS (t1), s2 = TYPE_FIELDS (t2); s1 && s2;
-	     s1 = TREE_CHAIN (s1), s2 = TREE_CHAIN (s2))
+	     s1 = DECL_CHAIN (s1), s2 = DECL_CHAIN (s2))
 	  {
 	    int result;
 
@@ -1466,11 +1467,11 @@ tagged_types_tu_compatible_p (const_tree t1, const_tree t2,
 	    return tu->val;
 	  }
 
-	for (s1 = TYPE_FIELDS (t1); s1; s1 = TREE_CHAIN (s1))
+	for (s1 = TYPE_FIELDS (t1); s1; s1 = DECL_CHAIN (s1))
 	  {
 	    bool ok = false;
 
-	    for (s2 = TYPE_FIELDS (t2); s2; s2 = TREE_CHAIN (s2))
+	    for (s2 = TYPE_FIELDS (t2); s2; s2 = DECL_CHAIN (s2))
 	      if (DECL_NAME (s1) == DECL_NAME (s2))
 		{
 		  int result;
@@ -1513,7 +1514,7 @@ tagged_types_tu_compatible_p (const_tree t1, const_tree t2,
 
 	for (s1 = TYPE_FIELDS (t1), s2 = TYPE_FIELDS (t2);
 	     s1 && s2;
-	     s1 = TREE_CHAIN (s1), s2 = TREE_CHAIN (s2))
+	     s1 = DECL_CHAIN (s1), s2 = DECL_CHAIN (s2))
 	  {
 	    int result;
 	    if (TREE_CODE (s1) != TREE_CODE (s2)
@@ -1683,7 +1684,7 @@ type_lists_compatible_p (const_tree args1, const_tree args2,
 	    {
 	      tree memb;
 	      for (memb = TYPE_FIELDS (a1);
-		   memb; memb = TREE_CHAIN (memb))
+		   memb; memb = DECL_CHAIN (memb))
 		{
 		  tree mv3 = TREE_TYPE (memb);
 		  if (mv3 && mv3 != error_mark_node
@@ -1705,7 +1706,7 @@ type_lists_compatible_p (const_tree args1, const_tree args2,
 	    {
 	      tree memb;
 	      for (memb = TYPE_FIELDS (a2);
-		   memb; memb = TREE_CHAIN (memb))
+		   memb; memb = DECL_CHAIN (memb))
 		{
 		  tree mv3 = TREE_TYPE (memb);
 		  if (mv3 && mv3 != error_mark_node
@@ -1841,6 +1842,7 @@ mark_exp_read (tree exp)
       mark_exp_read (TREE_OPERAND (exp, 0));
       break;
     case COMPOUND_EXPR:
+    case C_MAYBE_CONST_EXPR:
       mark_exp_read (TREE_OPERAND (exp, 1));
       break;
     default:
@@ -2079,7 +2081,7 @@ lookup_field (tree type, tree component)
     }
   else
     {
-      for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+      for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
 	{
 	  if (DECL_NAME (field) == NULL_TREE
 	      && (TREE_CODE (TREE_TYPE (field)) == RECORD_TYPE
@@ -3744,14 +3746,24 @@ build_unary_op (location_t location,
       argtype = TREE_TYPE (arg);
 
       /* If the lvalue is const or volatile, merge that into the type
-	 to which the address will point.  Note that you can't get a
-	 restricted pointer by taking the address of something, so we
-	 only have to deal with `const' and `volatile' here.  */
+	 to which the address will point.  This should only be needed
+	 for function types.  */
       if ((DECL_P (arg) || REFERENCE_CLASS_P (arg))
 	  && (TREE_READONLY (arg) || TREE_THIS_VOLATILE (arg)))
-	  argtype = c_build_type_variant (argtype,
-					  TREE_READONLY (arg),
-					  TREE_THIS_VOLATILE (arg));
+	{
+	  int orig_quals = TYPE_QUALS (strip_array_types (argtype));
+	  int quals = orig_quals;
+
+	  if (TREE_READONLY (arg))
+	    quals |= TYPE_QUAL_CONST;
+	  if (TREE_THIS_VOLATILE (arg))
+	    quals |= TYPE_QUAL_VOLATILE;
+
+	  gcc_assert (quals == orig_quals
+		      || TREE_CODE (argtype) == FUNCTION_TYPE);
+
+	  argtype = c_build_qualified_type (argtype, quals);
+	}
 
       if (!c_mark_addressable (arg))
 	return error_mark_node;
@@ -4402,12 +4414,13 @@ build_compound_expr (location_t loc, tree expr1, tree expr2)
 
 /* Issue -Wcast-qual warnings when appropriate.  TYPE is the type to
    which we are casting.  OTYPE is the type of the expression being
-   cast.  Both TYPE and OTYPE are pointer types.  -Wcast-qual appeared
-   on the command line.  Named address space qualifiers are not handled
-   here, because they result in different warnings.  */
+   cast.  Both TYPE and OTYPE are pointer types.  LOC is the location
+   of the cast.  -Wcast-qual appeared on the command line.  Named
+   address space qualifiers are not handled here, because they result
+   in different warnings.  */
 
 static void
-handle_warn_cast_qual (tree type, tree otype)
+handle_warn_cast_qual (location_t loc, tree type, tree otype)
 {
   tree in_type = type;
   tree in_otype = otype;
@@ -4440,13 +4453,15 @@ handle_warn_cast_qual (tree type, tree otype)
 	 && TREE_CODE (in_otype) == POINTER_TYPE);
 
   if (added)
-    warning (OPT_Wcast_qual, "cast adds new qualifiers to function type");
+    warning_at (loc, OPT_Wcast_qual,
+		"cast adds %q#v qualifier to function type", added);
 
   if (discarded)
     /* There are qualifiers present in IN_OTYPE that are not present
        in IN_TYPE.  */
-    warning (OPT_Wcast_qual,
-	     "cast discards qualifiers from pointer target type");
+    warning_at (loc, OPT_Wcast_qual,
+		"cast discards %q#v qualifier from pointer target type",
+		discarded);
 
   if (added || discarded)
     return;
@@ -4479,9 +4494,10 @@ handle_warn_cast_qual (tree type, tree otype)
       if ((TYPE_QUALS (in_type) &~ TYPE_QUALS (in_otype)) != 0
 	  && !is_const)
 	{
-	  warning (OPT_Wcast_qual,
-		   ("new qualifiers in middle of multi-level non-const cast "
-		    "are unsafe"));
+	  warning_at (loc, OPT_Wcast_qual,
+		      "to be safe all intermediate pointers in cast from "
+                      "%qT to %qT must be %<const%> qualified",
+		      otype, type);
 	  break;
 	}
       if (is_const)
@@ -4544,7 +4560,7 @@ build_c_cast (location_t loc, tree type, tree expr)
     {
       tree field;
 
-      for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+      for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
 	if (TREE_TYPE (field) != error_mark_node
 	    && comptypes (TYPE_MAIN_VARIANT (TREE_TYPE (field)),
 			  TYPE_MAIN_VARIANT (TREE_TYPE (value))))
@@ -4585,7 +4601,7 @@ build_c_cast (location_t loc, tree type, tree expr)
       if (warn_cast_qual
 	  && TREE_CODE (type) == POINTER_TYPE
 	  && TREE_CODE (otype) == POINTER_TYPE)
-	handle_warn_cast_qual (type, otype);
+	handle_warn_cast_qual (loc, type, otype);
 
       /* Warn about conversions between pointers to disjoint
 	 address spaces.  */
@@ -4997,10 +5013,40 @@ convert_for_assignment (location_t location, tree type, tree rhs,
         pedwarn (LOCATION, OPT, AS);                                     \
         break;                                                           \
       case ic_init:                                                      \
-        pedwarn (LOCATION, OPT, IN);                                     \
+        pedwarn_init (LOCATION, OPT, IN);                                \
         break;                                                           \
       case ic_return:                                                    \
         pedwarn (LOCATION, OPT, RE);                                 	 \
+        break;                                                           \
+      default:                                                           \
+        gcc_unreachable ();                                              \
+      }                                                                  \
+  } while (0)
+
+  /* This macro is used to emit diagnostics to ensure that all format
+     strings are complete sentences, visible to gettext and checked at
+     compile time.  It is the same as WARN_FOR_ASSIGNMENT but with an
+     extra parameter to enumerate qualifiers.  */
+
+#define WARN_FOR_QUALIFIERS(LOCATION, OPT, AR, AS, IN, RE, QUALS)        \
+  do {                                                                   \
+    switch (errtype)                                                     \
+      {                                                                  \
+      case ic_argpass:                                                   \
+        if (pedwarn (LOCATION, OPT, AR, parmnum, rname, QUALS))          \
+          inform ((fundecl && !DECL_IS_BUILTIN (fundecl))	         \
+	      	  ? DECL_SOURCE_LOCATION (fundecl) : LOCATION,		 \
+                  "expected %qT but argument is of type %qT",            \
+                  type, rhstype);                                        \
+        break;                                                           \
+      case ic_assign:                                                    \
+        pedwarn (LOCATION, OPT, AS, QUALS);                          \
+        break;                                                           \
+      case ic_init:                                                      \
+        pedwarn (LOCATION, OPT, IN, QUALS);                          \
+        break;                                                           \
+      case ic_return:                                                    \
+        pedwarn (LOCATION, OPT, RE, QUALS);                        	 \
         break;                                                           \
       default:                                                           \
         gcc_unreachable ();                                              \
@@ -5146,7 +5192,7 @@ convert_for_assignment (location_t location, tree type, tree rhs,
     {
       tree memb, marginal_memb = NULL_TREE;
 
-      for (memb = TYPE_FIELDS (type); memb ; memb = TREE_CHAIN (memb))
+      for (memb = TYPE_FIELDS (type); memb ; memb = DECL_CHAIN (memb))
 	{
 	  tree memb_type = TREE_TYPE (memb);
 
@@ -5214,30 +5260,32 @@ convert_for_assignment (location_t location, tree type, tree rhs,
 		     vice-versa.  */
 		  if (TYPE_QUALS_NO_ADDR_SPACE (ttl)
 		      & ~TYPE_QUALS_NO_ADDR_SPACE (ttr))
-		    WARN_FOR_ASSIGNMENT (location, 0,
+		    WARN_FOR_QUALIFIERS (location, 0,
 					 G_("passing argument %d of %qE "
-					    "makes qualified function "
+					    "makes %q#v qualified function "
 					    "pointer from unqualified"),
-					 G_("assignment makes qualified "
+					 G_("assignment makes %q#v qualified "
 					    "function pointer from "
 					    "unqualified"),
-					 G_("initialization makes qualified "
+					 G_("initialization makes %q#v qualified "
 					    "function pointer from "
 					    "unqualified"),
-					 G_("return makes qualified function "
-					    "pointer from unqualified"));
+					 G_("return makes %q#v qualified function "
+					    "pointer from unqualified"),
+					 TYPE_QUALS (ttl) & ~TYPE_QUALS (ttr));
 		}
 	      else if (TYPE_QUALS_NO_ADDR_SPACE (ttr)
 		       & ~TYPE_QUALS_NO_ADDR_SPACE (ttl))
-		WARN_FOR_ASSIGNMENT (location, 0,
+		WARN_FOR_QUALIFIERS (location, 0,
 				     G_("passing argument %d of %qE discards "
-					"qualifiers from pointer target type"),
-				     G_("assignment discards qualifiers "
+					"%qv qualifier from pointer target type"),
+				     G_("assignment discards %qv qualifier "
 					"from pointer target type"),
-				     G_("initialization discards qualifiers "
+				     G_("initialization discards %qv qualifier "
 					"from pointer target type"),
-				     G_("return discards qualifiers from "
-					"pointer target type"));
+				     G_("return discards %qv qualifier from "
+					"pointer target type"),
+				     TYPE_QUALS (ttr) & ~TYPE_QUALS (ttl));
 
 	      memb = marginal_memb;
 	    }
@@ -5383,15 +5431,16 @@ convert_for_assignment (location_t location, tree type, tree rhs,
 		     qualifier are acceptable if the 'volatile' has been added
 		     in by the Objective-C EH machinery.  */
 		  if (!objc_type_quals_match (ttl, ttr))
-		    WARN_FOR_ASSIGNMENT (location, 0,
+		    WARN_FOR_QUALIFIERS (location, 0,
 					 G_("passing argument %d of %qE discards "
-					    "qualifiers from pointer target type"),
-					 G_("assignment discards qualifiers "
+					    "%qv qualifier from pointer target type"),
+					 G_("assignment discards %qv qualifier "
 					    "from pointer target type"),
-					 G_("initialization discards qualifiers "
+					 G_("initialization discards %qv qualifier "
 					    "from pointer target type"),
-					 G_("return discards qualifiers from "
-					    "pointer target type"));
+					 G_("return discards %qv qualifier from "
+					    "pointer target type"),
+					 TYPE_QUALS (ttr) & ~TYPE_QUALS (ttl));
 		}
 	      /* If this is not a case of ignoring a mismatch in signedness,
 		 no warning.  */
@@ -5419,16 +5468,17 @@ convert_for_assignment (location_t location, tree type, tree rhs,
 		 where an ordinary one is wanted, but not vice-versa.  */
 	      if (TYPE_QUALS_NO_ADDR_SPACE (ttl)
 		  & ~TYPE_QUALS_NO_ADDR_SPACE (ttr))
-		WARN_FOR_ASSIGNMENT (location, 0,
+		WARN_FOR_QUALIFIERS (location, 0,
 				     G_("passing argument %d of %qE makes "
-					"qualified function pointer "
+					"%q#v qualified function pointer "
 					"from unqualified"),
-				     G_("assignment makes qualified function "
+				     G_("assignment makes %q#v qualified function "
 					"pointer from unqualified"),
-				     G_("initialization makes qualified "
+				     G_("initialization makes %q#v qualified "
 					"function pointer from unqualified"),
-				     G_("return makes qualified function "
-					"pointer from unqualified"));
+				     G_("return makes %q#v qualified function "
+					"pointer from unqualified"),
+				     TYPE_QUALS (ttl) & ~TYPE_QUALS (ttr));
 	    }
 	}
       else
@@ -5737,15 +5787,16 @@ print_spelling (char *buffer)
 }
 
 /* Issue an error message for a bad initializer component.
-   MSGID identifies the message.
+   GMSGID identifies the message.
    The component name is taken from the spelling stack.  */
 
 void
-error_init (const char *msgid)
+error_init (const char *gmsgid)
 {
   char *ofwhat;
 
-  error ("%s", _(msgid));
+  /* The gmsgid may be a format string with %< and %>. */
+  error (gmsgid);
   ofwhat = print_spelling ((char *) alloca (spelling_length () + 1));
   if (*ofwhat)
     error ("(near initialization for %qs)", ofwhat);
@@ -5753,15 +5804,16 @@ error_init (const char *msgid)
 
 /* Issue a pedantic warning for a bad initializer component.  OPT is
    the option OPT_* (from options.h) controlling this warning or 0 if
-   it is unconditionally given.  MSGID identifies the message.  The
+   it is unconditionally given.  GMSGID identifies the message.  The
    component name is taken from the spelling stack.  */
 
 void
-pedwarn_init (location_t location, int opt, const char *msgid)
+pedwarn_init (location_t location, int opt, const char *gmsgid)
 {
   char *ofwhat;
-
-  pedwarn (location, opt, "%s", _(msgid));
+  
+  /* The gmsgid may be a format string with %< and %>. */
+  pedwarn (location, opt, gmsgid);
   ofwhat = print_spelling ((char *) alloca (spelling_length () + 1));
   if (*ofwhat)
     pedwarn (location, opt, "(near initialization for %qs)", ofwhat);
@@ -5770,15 +5822,16 @@ pedwarn_init (location_t location, int opt, const char *msgid)
 /* Issue a warning for a bad initializer component.
 
    OPT is the OPT_W* value corresponding to the warning option that
-   controls this warning.  MSGID identifies the message.  The
+   controls this warning.  GMSGID identifies the message.  The
    component name is taken from the spelling stack.  */
 
 static void
-warning_init (int opt, const char *msgid)
+warning_init (int opt, const char *gmsgid)
 {
   char *ofwhat;
 
-  warning (opt, "%s", _(msgid));
+  /* The gmsgid may be a format string with %< and %>. */
+  warning (opt, gmsgid);
   ofwhat = print_spelling ((char *) alloca (spelling_length () + 1));
   if (*ofwhat)
     warning (opt, "(near initialization for %qs)", ofwhat);
@@ -6430,7 +6483,7 @@ really_start_incremental_init (tree type)
       /* Skip any nameless bit fields at the beginning.  */
       while (constructor_fields != 0 && DECL_C_BIT_FIELD (constructor_fields)
 	     && DECL_NAME (constructor_fields) == 0)
-	constructor_fields = TREE_CHAIN (constructor_fields);
+	constructor_fields = DECL_CHAIN (constructor_fields);
 
       constructor_unfilled_fields = constructor_fields;
       constructor_bit_index = bitsize_zero_node;
@@ -6445,14 +6498,14 @@ really_start_incremental_init (tree type)
 	  /* Detect non-empty initializations of zero-length arrays.  */
 	  if (constructor_max_index == NULL_TREE
 	      && TYPE_SIZE (constructor_type))
-	    constructor_max_index = build_int_cst (NULL_TREE, -1);
+	    constructor_max_index = integer_minus_one_node;
 
 	  /* constructor_max_index needs to be an INTEGER_CST.  Attempts
 	     to initialize VLAs will cause a proper error; avoid tree
 	     checking errors as well by setting a safe value.  */
 	  if (constructor_max_index
 	      && TREE_CODE (constructor_max_index) != INTEGER_CST)
-	    constructor_max_index = build_int_cst (NULL_TREE, -1);
+	    constructor_max_index = integer_minus_one_node;
 
 	  constructor_index
 	    = convert (bitsizetype,
@@ -6630,7 +6683,7 @@ push_init_level (int implicit, struct obstack * braced_init_obstack)
       /* Skip any nameless bit fields at the beginning.  */
       while (constructor_fields != 0 && DECL_C_BIT_FIELD (constructor_fields)
 	     && DECL_NAME (constructor_fields) == 0)
-	constructor_fields = TREE_CHAIN (constructor_fields);
+	constructor_fields = DECL_CHAIN (constructor_fields);
 
       constructor_unfilled_fields = constructor_fields;
       constructor_bit_index = bitsize_zero_node;
@@ -6653,14 +6706,14 @@ push_init_level (int implicit, struct obstack * braced_init_obstack)
 	  /* Detect non-empty initializations of zero-length arrays.  */
 	  if (constructor_max_index == NULL_TREE
 	      && TYPE_SIZE (constructor_type))
-	    constructor_max_index = build_int_cst (NULL_TREE, -1);
+	    constructor_max_index = integer_minus_one_node;
 
 	  /* constructor_max_index needs to be an INTEGER_CST.  Attempts
 	     to initialize VLAs will cause a proper error; avoid tree
 	     checking errors as well by setting a safe value.  */
 	  if (constructor_max_index
 	      && TREE_CODE (constructor_max_index) != INTEGER_CST)
-	    constructor_max_index = build_int_cst (NULL_TREE, -1);
+	    constructor_max_index = integer_minus_one_node;
 
 	  constructor_index
 	    = convert (bitsizetype,
@@ -6749,7 +6802,7 @@ pop_init_level (int implicit, struct obstack * braced_init_obstack)
 	  /* We have already issued an error message for the existence
 	     of a flexible array member not at the end of the structure.
 	     Discard the initializer so that we do not die later.  */
-	  if (TREE_CHAIN (constructor_fields) != NULL_TREE)
+	  if (DECL_CHAIN (constructor_fields) != NULL_TREE)
 	    constructor_type = NULL_TREE;
 	}
     }
@@ -6764,7 +6817,7 @@ pop_init_level (int implicit, struct obstack * braced_init_obstack)
 	while (constructor_unfilled_fields
 	       && (!DECL_SIZE (constructor_unfilled_fields)
 		   || integer_zerop (DECL_SIZE (constructor_unfilled_fields))))
-	  constructor_unfilled_fields = TREE_CHAIN (constructor_unfilled_fields);
+	  constructor_unfilled_fields = DECL_CHAIN (constructor_unfilled_fields);
 
 	/* Do not warn if this level of the initializer uses member
 	   designators; it is likely to be deliberate.  */
@@ -7597,7 +7650,7 @@ output_init_element (tree value, tree origtype, bool strict_string, tree type,
 	  || (COMPLETE_TYPE_P (TREE_TYPE (field))
 	      && integer_zerop (TYPE_SIZE (TREE_TYPE (field)))
 	      && (TREE_CODE (constructor_type) == ARRAY_TYPE
-		  || TREE_CHAIN (field)))))
+		  || DECL_CHAIN (field)))))
     return;
 
   if (semantic_type)
@@ -7685,14 +7738,14 @@ output_init_element (tree value, tree origtype, bool strict_string, tree type,
   else if (TREE_CODE (constructor_type) == RECORD_TYPE)
     {
       constructor_unfilled_fields
-	= TREE_CHAIN (constructor_unfilled_fields);
+	= DECL_CHAIN (constructor_unfilled_fields);
 
       /* Skip any nameless bit fields.  */
       while (constructor_unfilled_fields != 0
 	     && DECL_C_BIT_FIELD (constructor_unfilled_fields)
 	     && DECL_NAME (constructor_unfilled_fields) == 0)
 	constructor_unfilled_fields =
-	  TREE_CHAIN (constructor_unfilled_fields);
+	  DECL_CHAIN (constructor_unfilled_fields);
     }
   else if (TREE_CODE (constructor_type) == UNION_TYPE)
     constructor_unfilled_fields = 0;
@@ -7961,7 +8014,7 @@ process_init_element (struct c_expr value, bool implicit,
 	  if (fieldcode == ARRAY_TYPE
 	      && !require_constant_value
 	      && TYPE_SIZE (fieldtype) == NULL_TREE
-	      && TREE_CHAIN (constructor_fields) == NULL_TREE)
+	      && DECL_CHAIN (constructor_fields) == NULL_TREE)
 	    {
 	      error_init ("non-static initialization of a flexible array member");
 	      break;
@@ -8009,22 +8062,22 @@ process_init_element (struct c_expr value, bool implicit,
 		 it isn't now, so update.  */
 	      if (constructor_unfilled_fields == constructor_fields)
 		{
-		  constructor_unfilled_fields = TREE_CHAIN (constructor_fields);
+		  constructor_unfilled_fields = DECL_CHAIN (constructor_fields);
 		  /* Skip any nameless bit fields.  */
 		  while (constructor_unfilled_fields != 0
 			 && DECL_C_BIT_FIELD (constructor_unfilled_fields)
 			 && DECL_NAME (constructor_unfilled_fields) == 0)
 		    constructor_unfilled_fields =
-		      TREE_CHAIN (constructor_unfilled_fields);
+		      DECL_CHAIN (constructor_unfilled_fields);
 		}
 	    }
 
-	  constructor_fields = TREE_CHAIN (constructor_fields);
+	  constructor_fields = DECL_CHAIN (constructor_fields);
 	  /* Skip any nameless bit fields at the beginning.  */
 	  while (constructor_fields != 0
 		 && DECL_C_BIT_FIELD (constructor_fields)
 		 && DECL_NAME (constructor_fields) == 0)
-	    constructor_fields = TREE_CHAIN (constructor_fields);
+	    constructor_fields = DECL_CHAIN (constructor_fields);
 	}
       else if (TREE_CODE (constructor_type) == UNION_TYPE)
 	{
@@ -8091,7 +8144,7 @@ process_init_element (struct c_expr value, bool implicit,
 	       directly output as a constructor.  */
 	    {
 	      constructor_bit_index = DECL_SIZE (constructor_fields);
-	      constructor_unfilled_fields = TREE_CHAIN (constructor_fields);
+	      constructor_unfilled_fields = DECL_CHAIN (constructor_fields);
 	    }
 
 	  constructor_fields = 0;

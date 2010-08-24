@@ -356,15 +356,15 @@ static bool in_fre = false;
    expressions.  */
 typedef struct bitmap_set
 {
-  bitmap expressions;
-  bitmap values;
+  bitmap_head expressions;
+  bitmap_head values;
 } *bitmap_set_t;
 
 #define FOR_EACH_EXPR_ID_IN_SET(set, id, bi)		\
-  EXECUTE_IF_SET_IN_BITMAP((set)->expressions, 0, (id), (bi))
+  EXECUTE_IF_SET_IN_BITMAP(&(set)->expressions, 0, (id), (bi))
 
 #define FOR_EACH_VALUE_ID_IN_SET(set, id, bi)		\
-  EXECUTE_IF_SET_IN_BITMAP((set)->values, 0, (id), (bi))
+  EXECUTE_IF_SET_IN_BITMAP(&(set)->values, 0, (id), (bi))
 
 /* Mapping from value id to expressions with that value_id.  */
 DEF_VEC_P (bitmap_set_t);
@@ -615,8 +615,8 @@ static bitmap_set_t
 bitmap_set_new (void)
 {
   bitmap_set_t ret = (bitmap_set_t) pool_alloc (bitmap_set_pool);
-  ret->expressions = BITMAP_ALLOC (&grand_bitmap_obstack);
-  ret->values = BITMAP_ALLOC (&grand_bitmap_obstack);
+  bitmap_initialize (&ret->expressions, &grand_bitmap_obstack);
+  bitmap_initialize (&ret->values, &grand_bitmap_obstack);
   return ret;
 }
 
@@ -657,8 +657,8 @@ bitmap_remove_from_set (bitmap_set_t set, pre_expr expr)
   unsigned int val  = get_expr_value_id (expr);
   if (!value_id_constant_p (val))
     {
-      bitmap_clear_bit (set->values, val);
-      bitmap_clear_bit (set->expressions, get_expression_id (expr));
+      bitmap_clear_bit (&set->values, val);
+      bitmap_clear_bit (&set->expressions, get_expression_id (expr));
     }
 }
 
@@ -670,8 +670,8 @@ bitmap_insert_into_set_1 (bitmap_set_t set, pre_expr expr,
     {
       /* We specifically expect this and only this function to be able to
 	 insert constants into a set.  */
-      bitmap_set_bit (set->values, val);
-      bitmap_set_bit (set->expressions, get_or_alloc_expression_id (expr));
+      bitmap_set_bit (&set->values, val);
+      bitmap_set_bit (&set->expressions, get_or_alloc_expression_id (expr));
     }
 }
 
@@ -688,8 +688,8 @@ bitmap_insert_into_set (bitmap_set_t set, pre_expr expr)
 static void
 bitmap_set_copy (bitmap_set_t dest, bitmap_set_t orig)
 {
-  bitmap_copy (dest->expressions, orig->expressions);
-  bitmap_copy (dest->values, orig->values);
+  bitmap_copy (&dest->expressions, &orig->expressions);
+  bitmap_copy (&dest->values, &orig->values);
 }
 
 
@@ -697,8 +697,8 @@ bitmap_set_copy (bitmap_set_t dest, bitmap_set_t orig)
 static void
 bitmap_set_free (bitmap_set_t set)
 {
-  BITMAP_FREE (set->expressions);
-  BITMAP_FREE (set->values);
+  bitmap_clear (&set->expressions);
+  bitmap_clear (&set->values);
 }
 
 
@@ -712,7 +712,7 @@ sorted_array_from_bitmap_set (bitmap_set_t set)
   VEC(pre_expr, heap) *result;
 
   /* Pre-allocate roughly enough space for the array.  */
-  result = VEC_alloc (pre_expr, heap, bitmap_count_bits (set->values));
+  result = VEC_alloc (pre_expr, heap, bitmap_count_bits (&set->values));
 
   FOR_EACH_VALUE_ID_IN_SET (set, i, bi)
     {
@@ -729,7 +729,7 @@ sorted_array_from_bitmap_set (bitmap_set_t set)
       bitmap_set_t exprset = VEC_index (bitmap_set_t, value_expressions, i);
       FOR_EACH_EXPR_ID_IN_SET (exprset, j, bj)
 	{
-	  if (bitmap_bit_p (set->expressions, j))
+	  if (bitmap_bit_p (&set->expressions, j))
 	    VEC_safe_push (pre_expr, heap, result, expression_for_id (j));
         }
     }
@@ -747,18 +747,19 @@ bitmap_set_and (bitmap_set_t dest, bitmap_set_t orig)
 
   if (dest != orig)
     {
-      bitmap temp = BITMAP_ALLOC (&grand_bitmap_obstack);
+      bitmap_head temp;
+      bitmap_initialize (&temp, &grand_bitmap_obstack);
 
-      bitmap_and_into (dest->values, orig->values);
-      bitmap_copy (temp, dest->expressions);
-      EXECUTE_IF_SET_IN_BITMAP (temp, 0, i, bi)
+      bitmap_and_into (&dest->values, &orig->values);
+      bitmap_copy (&temp, &dest->expressions);
+      EXECUTE_IF_SET_IN_BITMAP (&temp, 0, i, bi)
 	{
 	  pre_expr expr = expression_for_id (i);
 	  unsigned int value_id = get_expr_value_id (expr);
-	  if (!bitmap_bit_p (dest->values, value_id))
-	    bitmap_clear_bit (dest->expressions, i);
+	  if (!bitmap_bit_p (&dest->values, value_id))
+	    bitmap_clear_bit (&dest->expressions, i);
 	}
-      BITMAP_FREE (temp);
+      bitmap_clear (&temp);
     }
 }
 
@@ -771,14 +772,14 @@ bitmap_set_subtract (bitmap_set_t dest, bitmap_set_t orig)
   bitmap_iterator bi;
   unsigned int i;
 
-  bitmap_and_compl (result->expressions, dest->expressions,
-		    orig->expressions);
+  bitmap_and_compl (&result->expressions, &dest->expressions,
+		    &orig->expressions);
 
   FOR_EACH_EXPR_ID_IN_SET (result, i, bi)
     {
       pre_expr expr = expression_for_id (i);
       unsigned int value_id = get_expr_value_id (expr);
-      bitmap_set_bit (result->values, value_id);
+      bitmap_set_bit (&result->values, value_id);
     }
 
   return result;
@@ -791,16 +792,18 @@ bitmap_set_subtract_values (bitmap_set_t a, bitmap_set_t b)
 {
   unsigned int i;
   bitmap_iterator bi;
-  bitmap temp = BITMAP_ALLOC (&grand_bitmap_obstack);
+  bitmap_head temp;
 
-  bitmap_copy (temp, a->expressions);
-  EXECUTE_IF_SET_IN_BITMAP (temp, 0, i, bi)
+  bitmap_initialize (&temp, &grand_bitmap_obstack);
+
+  bitmap_copy (&temp, &a->expressions);
+  EXECUTE_IF_SET_IN_BITMAP (&temp, 0, i, bi)
     {
       pre_expr expr = expression_for_id (i);
       if (bitmap_set_contains_value (b, get_expr_value_id (expr)))
 	bitmap_remove_from_set (a, expr);
     }
-  BITMAP_FREE (temp);
+  bitmap_clear (&temp);
 }
 
 
@@ -812,16 +815,16 @@ bitmap_set_contains_value (bitmap_set_t set, unsigned int value_id)
   if (value_id_constant_p (value_id))
     return true;
 
-  if (!set || bitmap_empty_p (set->expressions))
+  if (!set || bitmap_empty_p (&set->expressions))
     return false;
 
-  return bitmap_bit_p (set->values, value_id);
+  return bitmap_bit_p (&set->values, value_id);
 }
 
 static inline bool
 bitmap_set_contains_expr (bitmap_set_t set, const pre_expr expr)
 {
-  return bitmap_bit_p (set->expressions, get_expression_id (expr));
+  return bitmap_bit_p (&set->expressions, get_expression_id (expr));
 }
 
 /* Replace an instance of value LOOKFOR with expression EXPR in SET.  */
@@ -852,10 +855,9 @@ bitmap_set_replace_value (bitmap_set_t set, unsigned int lookfor,
   exprset = VEC_index (bitmap_set_t, value_expressions, lookfor);
   FOR_EACH_EXPR_ID_IN_SET (exprset, i, bi)
     {
-      if (bitmap_bit_p (set->expressions, i))
+      if (bitmap_clear_bit (&set->expressions, i))
 	{
-	  bitmap_clear_bit (set->expressions, i);
-	  bitmap_set_bit (set->expressions, get_expression_id (expr));
+	  bitmap_set_bit (&set->expressions, get_expression_id (expr));
 	  return;
 	}
     }
@@ -866,7 +868,7 @@ bitmap_set_replace_value (bitmap_set_t set, unsigned int lookfor,
 static bool
 bitmap_set_equal (bitmap_set_t a, bitmap_set_t b)
 {
-  return bitmap_equal_p (a->values, b->values);
+  return bitmap_equal_p (&a->values, &b->values);
 }
 
 /* Replace an instance of EXPR's VALUE with EXPR in SET if it exists,
@@ -900,8 +902,8 @@ bitmap_value_insert_into_set (bitmap_set_t set, pre_expr expr)
     return;
 
   /* If the value membership changed, add the expression.  */
-  if (bitmap_set_bit (set->values, val))
-    bitmap_set_bit (set->expressions, expr->id);
+  if (bitmap_set_bit (&set->values, val))
+    bitmap_set_bit (&set->expressions, expr->id);
 }
 
 /* Print out EXPR to outfile.  */
@@ -1626,12 +1628,28 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	    newop.op0 = op0;
 	    newop.op1 = op1;
 	    newop.op2 = op2;
+	    /* If it transforms a non-constant ARRAY_REF into a constant
+	       one, adjust the constant offset.  */
+	    if (newop.opcode == ARRAY_REF
+		&& newop.off == -1
+		&& TREE_CODE (op0) == INTEGER_CST
+		&& TREE_CODE (op1) == INTEGER_CST
+		&& TREE_CODE (op2) == INTEGER_CST)
+	      {
+		double_int off = tree_to_double_int (op0);
+		off = double_int_add (off,
+				      double_int_neg
+				        (tree_to_double_int (op1)));
+		off = double_int_mul (off, tree_to_double_int (op2));
+		if (double_int_fits_in_shwi_p (off))
+		  newop.off = off.low;
+	      }
 	    VEC_replace (vn_reference_op_s, newoperands, j, &newop);
 	    /* If it transforms from an SSA_NAME to an address, fold with
 	       a preceding indirect reference.  */
 	    if (j > 0 && op0 && TREE_CODE (op0) == ADDR_EXPR
 		&& VEC_index (vn_reference_op_s,
-			      newoperands, j - 1)->opcode == INDIRECT_REF)
+			      newoperands, j - 1)->opcode == MEM_REF)
 	      vn_reference_fold_indirect (&newoperands, &j);
 	  }
 	if (i != VEC_length (vn_reference_op_s, operands))
@@ -1658,6 +1676,7 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	  {
 	    unsigned int new_val_id;
 	    pre_expr constant;
+	    bool converted = false;
 
 	    tree result = vn_reference_lookup_pieces (newvuse, ref->set,
 						      ref->type,
@@ -1665,6 +1684,13 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 						      &newref, true);
 	    if (result)
 	      VEC_free (vn_reference_op_s, heap, newoperands);
+
+	    if (result
+		&& !useless_type_conversion_p (ref->type, TREE_TYPE (result)))
+	      {
+		result = fold_build1 (VIEW_CONVERT_EXPR, ref->type, result);
+		converted = true;
+	      }
 
 	    if (result && is_gimple_min_invariant (result))
 	      {
@@ -1676,7 +1702,54 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	    expr->kind = REFERENCE;
 	    expr->id = 0;
 
-	    if (newref)
+	    if (converted)
+	      {
+		vn_nary_op_t nary;
+		tree nresult;
+
+		gcc_assert (CONVERT_EXPR_P (result)
+			    || TREE_CODE (result) == VIEW_CONVERT_EXPR);
+
+		nresult = vn_nary_op_lookup_pieces (1, TREE_CODE (result),
+						    TREE_TYPE (result),
+						    TREE_OPERAND (result, 0),
+						    NULL_TREE, NULL_TREE,
+						    NULL_TREE,
+						    &nary);
+		if (nresult && is_gimple_min_invariant (nresult))
+		  return get_or_alloc_expr_for_constant (nresult);
+
+		expr->kind = NARY;
+		if (nary)
+		  {
+		    PRE_EXPR_NARY (expr) = nary;
+		    constant = fully_constant_expression (expr);
+		    if (constant != expr)
+		      return constant;
+
+		    new_val_id = nary->value_id;
+		    get_or_alloc_expression_id (expr);
+		  }
+		else
+		  {
+		    new_val_id = get_next_value_id ();
+		    VEC_safe_grow_cleared (bitmap_set_t, heap,
+					   value_expressions,
+					   get_max_value_id() + 1);
+		    nary = vn_nary_op_insert_pieces (1, TREE_CODE (result),
+						     TREE_TYPE (result),
+						     TREE_OPERAND (result, 0),
+						     NULL_TREE, NULL_TREE,
+						     NULL_TREE, NULL_TREE,
+						     new_val_id);
+		    PRE_EXPR_NARY (expr) = nary;
+		    constant = fully_constant_expression (expr);
+		    if (constant != expr)
+		      return constant;
+		    get_or_alloc_expression_id (expr);
+		  }
+	      }
+	    else if (newref)
 	      {
 		PRE_EXPR_REFERENCE (expr) = newref;
 		constant = fully_constant_expression (expr);
@@ -1813,7 +1886,7 @@ phi_translate_set (bitmap_set_t dest, bitmap_set_t set, basic_block pred,
     }
 
   exprs = sorted_array_from_bitmap_set (set);
-  for (i = 0; VEC_iterate (pre_expr, exprs, i, expr); i++)
+  FOR_EACH_VEC_ELT (pre_expr, exprs, i, expr)
     {
       pre_expr translated;
       translated = phi_translate (expr, set, NULL, pred, phiblock);
@@ -1870,8 +1943,8 @@ bitmap_find_leader (bitmap_set_t set, unsigned int val, gimple stmt)
       bitmap_iterator bi;
       bitmap_set_t exprset = VEC_index (bitmap_set_t, value_expressions, val);
 
-      EXECUTE_IF_AND_IN_BITMAP (exprset->expressions,
-				set->expressions, 0, i, bi)
+      EXECUTE_IF_AND_IN_BITMAP (&exprset->expressions,
+				&set->expressions, 0, i, bi)
 	{
 	  pre_expr val = expression_for_id (i);
 	  /* At the point where stmt is not null, there should always
@@ -1881,7 +1954,10 @@ bitmap_find_leader (bitmap_set_t set, unsigned int val, gimple stmt)
 	      gimple def_stmt = SSA_NAME_DEF_STMT (PRE_EXPR_NAME (val));
 	      if (gimple_code (def_stmt) != GIMPLE_PHI
 		  && gimple_bb (def_stmt) == gimple_bb (stmt)
-		  && gimple_uid (def_stmt) >= gimple_uid (stmt))
+		  /* PRE insertions are at the end of the basic-block
+		     and have UID 0.  */
+		  && (gimple_uid (def_stmt) == 0
+		      || gimple_uid (def_stmt) >= gimple_uid (stmt)))
 		continue;
 	    }
 	  return val;
@@ -2074,7 +2150,7 @@ valid_in_sets (bitmap_set_t set1, bitmap_set_t set2, pre_expr expr,
 	vn_reference_op_t vro;
 	unsigned int i;
 
-	for (i = 0; VEC_iterate (vn_reference_op_s, ref->operands, i, vro); i++)
+	FOR_EACH_VEC_ELT (vn_reference_op_s, ref->operands, i, vro)
 	  {
 	    if (!vro_valid_in_sets (set1, set2, vro))
 	      return false;
@@ -2108,7 +2184,7 @@ dependent_clean (bitmap_set_t set1, bitmap_set_t set2, basic_block block)
   pre_expr expr;
   int i;
 
-  for (i = 0; VEC_iterate (pre_expr, exprs, i, expr); i++)
+  FOR_EACH_VEC_ELT (pre_expr, exprs, i, expr)
     {
       if (!valid_in_sets (set1, set2, expr, block))
 	bitmap_remove_from_set (set1, expr);
@@ -2127,7 +2203,7 @@ clean (bitmap_set_t set, basic_block block)
   pre_expr expr;
   int i;
 
-  for (i = 0; VEC_iterate (pre_expr, exprs, i, expr); i++)
+  FOR_EACH_VEC_ELT (pre_expr, exprs, i, expr)
     {
       if (!valid_in_sets (set, NULL, expr, block))
 	bitmap_remove_from_set (set, expr);
@@ -2261,7 +2337,7 @@ compute_antic_aux (basic_block block, bool block_has_abnormal_pred_edge)
       else
 	bitmap_set_copy (ANTIC_OUT, ANTIC_IN (first));
 
-      for (i = 0; VEC_iterate (basic_block, worklist, i, bprime); i++)
+      FOR_EACH_VEC_ELT (basic_block, worklist, i, bprime)
 	{
 	  if (!gimple_seq_empty_p (phi_nodes (bprime)))
 	    {
@@ -2291,8 +2367,7 @@ compute_antic_aux (basic_block block, bool block_has_abnormal_pred_edge)
 
   clean (ANTIC_IN (block), block);
 
-  /* !old->expressions can happen when we deferred a block.  */
-  if (!old->expressions || !bitmap_set_equal (old, ANTIC_IN (block)))
+  if (!bitmap_set_equal (old, ANTIC_IN (block)))
     {
       changed = true;
       SET_BIT (changed_blocks, block->index);
@@ -2367,7 +2442,7 @@ compute_partial_antic_aux (basic_block block,
      before the translation starts.  */
   if (max_pa
       && single_succ_p (block)
-      && bitmap_count_bits (PA_IN (single_succ (block))->values) > max_pa)
+      && bitmap_count_bits (&PA_IN (single_succ (block))->values) > max_pa)
     goto maybe_dump_sets;
 
   old_PA_IN = PA_IN (block);
@@ -2405,7 +2480,7 @@ compute_partial_antic_aux (basic_block block,
 	}
       if (VEC_length (basic_block, worklist) > 0)
 	{
-	  for (i = 0; VEC_iterate (basic_block, worklist, i, bprime); i++)
+	  FOR_EACH_VEC_ELT (basic_block, worklist, i, bprime)
 	    {
 	      unsigned int i;
 	      bitmap_iterator bi;
@@ -2437,8 +2512,8 @@ compute_partial_antic_aux (basic_block block,
 
   /* For partial antic, we want to put back in the phi results, since
      we will properly avoid making them partially antic over backedges.  */
-  bitmap_ior_into (PA_IN (block)->values, PHI_GEN (block)->values);
-  bitmap_ior_into (PA_IN (block)->expressions, PHI_GEN (block)->expressions);
+  bitmap_ior_into (&PA_IN (block)->values, &PHI_GEN (block)->values);
+  bitmap_ior_into (&PA_IN (block)->expressions, &PHI_GEN (block)->expressions);
 
   /* PA_IN[block] = PA_IN[block] - ANTIC_IN[block] */
   bitmap_set_subtract_values (PA_IN (block), ANTIC_IN (block));
@@ -2596,7 +2671,7 @@ can_PRE_operation (tree op)
   return UNARY_CLASS_P (op)
     || BINARY_CLASS_P (op)
     || COMPARISON_CLASS_P (op)
-    || TREE_CODE (op) == INDIRECT_REF
+    || TREE_CODE (op) == MEM_REF 
     || TREE_CODE (op) == COMPONENT_REF
     || TREE_CODE (op) == VIEW_CONVERT_EXPR
     || TREE_CODE (op) == CALL_EXPR
@@ -2672,10 +2747,31 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	return folded;
       }
       break;
+    case MEM_REF:
+      {
+	tree baseop = create_component_ref_by_pieces_1 (block, ref, operand,
+							stmts, domstmt);
+	tree offset = currop->op0;
+	if (!baseop)
+	  return NULL_TREE;
+	if (TREE_CODE (baseop) == ADDR_EXPR
+	    && handled_component_p (TREE_OPERAND (baseop, 0)))
+	  {
+	    HOST_WIDE_INT off;
+	    tree base;
+	    base = get_addr_base_and_unit_offset (TREE_OPERAND (baseop, 0),
+						  &off);
+	    gcc_assert (base);
+	    offset = int_const_binop (PLUS_EXPR, offset,
+				      build_int_cst (TREE_TYPE (offset),
+						     off), 0);
+	    baseop = build_fold_addr_expr (base);
+	  }
+	return fold_build2 (MEM_REF, currop->type, baseop, offset);
+      }
+      break;
     case TARGET_MEM_REF:
       {
-	vn_reference_op_t nextop = VEC_index (vn_reference_op_s, ref->operands,
-					      *operand);
 	pre_expr op0expr;
 	tree genop0 = NULL_TREE;
 	tree baseop = create_component_ref_by_pieces_1 (block, ref, operand,
@@ -2691,15 +2787,13 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	      return NULL_TREE;
 	  }
 	if (DECL_P (baseop))
-	  return build6 (TARGET_MEM_REF, currop->type,
+	  return build5 (TARGET_MEM_REF, currop->type,
 			 baseop, NULL_TREE,
-			 genop0, currop->op1, currop->op2,
-			 unshare_expr (nextop->op1));
+			 genop0, currop->op1, currop->op2);
 	else
-	  return build6 (TARGET_MEM_REF, currop->type,
+	  return build5 (TARGET_MEM_REF, currop->type,
 			 NULL_TREE, baseop,
-			 genop0, currop->op1, currop->op2,
-			 unshare_expr (nextop->op1));
+			 genop0, currop->op1, currop->op2);
       }
       break;
     case ADDR_EXPR:
@@ -2724,9 +2818,7 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	return folded;
       }
       break;
-    case ALIGN_INDIRECT_REF:
     case MISALIGNED_INDIRECT_REF:
-    case INDIRECT_REF:
       {
 	tree folded;
 	tree genop1 = create_component_ref_by_pieces_1 (block, ref,
@@ -2878,7 +2970,7 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 }
 
 /* For COMPONENT_REF's and ARRAY_REF's, we can't have any intermediates for the
-   COMPONENT_REF or INDIRECT_REF or ARRAY_REF portion, because we'd end up with
+   COMPONENT_REF or MEM_REF or ARRAY_REF portion, because we'd end up with
    trying to rename aggregates into ssa form directly, which is a no no.
 
    Thus, this routine doesn't create temporaries, it just builds a
@@ -2926,9 +3018,10 @@ find_or_generate_expression (basic_block block, pre_expr expr,
     }
 
   /* If it's still NULL, it must be a complex expression, so generate
-     it recursively.  Not so for FRE though.  */
+     it recursively.  Not so if inserting expressions for values generated
+     by SCCVN.  */
   if (genop == NULL
-      && !in_fre)
+      && !domstmt)
     {
       bitmap_set_t exprset;
       unsigned int lookfor = get_expr_value_id (expr);
@@ -3129,7 +3222,7 @@ create_expression_by_pieces (basic_block block, pre_expr expr,
   VN_INFO (name)->value_id = value_id;
   nameexpr = get_or_alloc_expr_for_name (name);
   add_to_value (value_id, nameexpr);
-  if (!in_fre)
+  if (NEW_SETS (block))
     bitmap_value_replace_in_set (NEW_SETS (block), nameexpr);
   bitmap_value_replace_in_set (AVAIL_OUT (block), nameexpr);
 
@@ -3166,7 +3259,7 @@ inhibit_phi_insertion (basic_block bb, pre_expr expr)
      memory reference is a simple induction variable.  In other
      cases the vectorizer won't do anything anyway (either it's
      loop invariant or a complicated expression).  */
-  for (i = 0; VEC_iterate (vn_reference_op_s, ops, i, op); ++i)
+  FOR_EACH_VEC_ELT (vn_reference_op_s, ops, i, op)
     {
       switch (op->opcode)
 	{
@@ -3308,6 +3401,8 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
 		      avail[bprime->index] = get_or_alloc_expr_for_name (forcedexpr);
 		    }
 		}
+	      else
+		avail[bprime->index] = get_or_alloc_expr_for_constant (builtexpr);
 	    }
 	}
       else if (eprime->kind == NAME)
@@ -3451,7 +3546,7 @@ do_regular_insertion (basic_block block, basic_block dom)
   pre_expr expr;
   int i;
 
-  for (i = 0; VEC_iterate (pre_expr, exprs, i, expr); i++)
+  FOR_EACH_VEC_ELT (pre_expr, exprs, i, expr)
     {
       if (expr->kind != NAME)
 	{
@@ -3597,7 +3692,7 @@ do_partial_partial_insertion (basic_block block, basic_block dom)
   pre_expr expr;
   int i;
 
-  for (i = 0; VEC_iterate (pre_expr, exprs, i, expr); i++)
+  FOR_EACH_VEC_ELT (pre_expr, exprs, i, expr)
     {
       if (expr->kind != NAME)
 	{
@@ -4328,7 +4423,14 @@ eliminate (void)
 	      else
 		gcc_unreachable ();
 	    }
-	  if (!sprimeexpr
+	  if (!sprime && is_gimple_min_invariant (VN_INFO (res)->valnum))
+	    {
+	      sprime = VN_INFO (res)->valnum;
+	      if (!useless_type_conversion_p (TREE_TYPE (res),
+					      TREE_TYPE (sprime)))
+		sprime = fold_convert (TREE_TYPE (res), sprime);
+	    }
+	  if (!sprime
 	      || sprime == res)
 	    {
 	      gsi_next (&gsi);
@@ -4371,7 +4473,7 @@ eliminate (void)
   /* We cannot remove stmts during BB walk, especially not release SSA
      names there as this confuses the VN machinery.  The stmts ending
      up in to_remove are either stores or simple copies.  */
-  for (i = 0; VEC_iterate (gimple, to_remove, i, stmt); ++i)
+  FOR_EACH_VEC_ELT (gimple, to_remove, i, stmt)
     {
       tree lhs = gimple_assign_lhs (stmt);
       tree rhs = gimple_assign_rhs1 (stmt);
@@ -4633,8 +4735,7 @@ init_pre (bool do_fre)
   postorder = XNEWVEC (int, n_basic_blocks - NUM_FIXED_BLOCKS);
   my_rev_post_order_compute (postorder, false);
 
-  FOR_ALL_BB (bb)
-    bb->aux = XCNEWVEC (struct bb_bitmap_sets, 1);
+  alloc_aux_for_blocks (sizeof (struct bb_bitmap_sets));
 
   calculate_dominance_info (CDI_POST_DOMINATORS);
   calculate_dominance_info (CDI_DOMINATORS);
@@ -4666,8 +4767,6 @@ init_pre (bool do_fre)
 static void
 fini_pre (bool do_fre)
 {
-  basic_block bb;
-
   free (postorder);
   VEC_free (bitmap_set_t, heap, value_expressions);
   BITMAP_FREE (inserted_exprs);
@@ -4679,11 +4778,7 @@ fini_pre (bool do_fre)
   htab_delete (expression_to_id);
   VEC_free (unsigned, heap, name_to_id);
 
-  FOR_ALL_BB (bb)
-    {
-      free (bb->aux);
-      bb->aux = NULL;
-    }
+  free_aux_for_blocks ();
 
   free_dominance_info (CDI_POST_DOMINATORS);
 
@@ -4714,7 +4809,7 @@ execute_pre (bool do_fre)
   if (!do_fre)
     loop_optimizer_init (LOOPS_NORMAL);
 
-  if (!run_scc_vn (do_fre))
+  if (!run_scc_vn ())
     {
       if (!do_fre)
 	loop_optimizer_finalize ();

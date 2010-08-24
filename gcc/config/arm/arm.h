@@ -94,7 +94,13 @@ extern char arm_arch_name[];
 	if (arm_arch_iwmmxt)				\
 	  builtin_define ("__IWMMXT__");		\
 	if (TARGET_AAPCS_BASED)				\
-	  builtin_define ("__ARM_EABI__");		\
+	  {						\
+	    if (arm_pcs_default == ARM_PCS_AAPCS_VFP)	\
+	      builtin_define ("__ARM_PCS_VFP");		\
+	    else if (arm_pcs_default == ARM_PCS_AAPCS)	\
+	      builtin_define ("__ARM_PCS");		\
+	    builtin_define ("__ARM_EABI__");		\
+	  }						\
     } while (0)
 
 /* The various ARM cores.  */
@@ -119,6 +125,24 @@ enum target_cpus
 
 /* The processor for which instructions should be scheduled.  */
 extern enum processor_type arm_tune;
+
+enum arm_sync_generator_tag
+  {
+    arm_sync_generator_omn,
+    arm_sync_generator_omrn
+  };
+
+/* Wrapper to pass around a polymorphic pointer to a sync instruction
+   generator and.  */
+struct arm_sync_generator
+{
+  enum arm_sync_generator_tag op;
+  union
+  {
+    rtx (* omn) (rtx, rtx, rtx);
+    rtx (* omrn) (rtx, rtx, rtx, rtx);
+  } u;
+};
 
 typedef enum arm_cond_code
 {
@@ -264,6 +288,20 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
    for Thumb-2.  */
 #define TARGET_UNIFIED_ASM TARGET_THUMB2
 
+/* Nonzero if this chip provides the DMB instruction.  */
+#define TARGET_HAVE_DMB		(arm_arch7)
+
+/* Nonzero if this chip implements a memory barrier via CP15.  */
+#define TARGET_HAVE_DMB_MCR	(arm_arch6k && ! TARGET_HAVE_DMB)
+
+/* Nonzero if this chip implements a memory barrier instruction.  */
+#define TARGET_HAVE_MEMORY_BARRIER (TARGET_HAVE_DMB || TARGET_HAVE_DMB_MCR)
+
+/* Nonzero if this chip supports ldrex and strex */
+#define TARGET_HAVE_LDREX	((arm_arch6 && TARGET_ARM) || arm_arch7)
+
+/* Nonzero if this chip supports ldrex{bhd} and strex{bhd}.  */
+#define TARGET_HAVE_LDREXBHD	((arm_arch6k && TARGET_ARM) || arm_arch7)
 
 /* True iff the full BPABI is being used.  If TARGET_BPABI is true,
    then TARGET_AAPCS_BASED must be true -- but the converse does not
@@ -397,6 +435,12 @@ extern int arm_arch5e;
 /* Nonzero if this chip supports the ARM Architecture 6 extensions.  */
 extern int arm_arch6;
 
+/* Nonzero if this chip supports the ARM Architecture 6k extensions.  */
+extern int arm_arch6k;
+
+/* Nonzero if this chip supports the ARM Architecture 7 extensions.  */
+extern int arm_arch7;
+
 /* Nonzero if instructions not present in the 'M' profile can be used.  */
 extern int arm_arch_notm;
 
@@ -406,8 +450,11 @@ extern int arm_arch7em;
 /* Nonzero if this chip can benefit from load scheduling.  */
 extern int arm_ld_sched;
 
-/* Nonzero if generating thumb code.  */
+/* Nonzero if generating Thumb code, either Thumb-1 or Thumb-2.  */
 extern int thumb_code;
+
+/* Nonzero if generating Thumb-1 code.  */
+extern int thumb1_code;
 
 /* Nonzero if this chip is a StrongARM.  */
 extern int arm_tune_strongarm;
@@ -1087,6 +1134,9 @@ extern int arm_structure_size_boundary;
   ((MODE) == TImode || (MODE) == EImode || (MODE) == OImode \
    || (MODE) == CImode || (MODE) == XImode)
 
+/* The register numbers in sequence, for passing to arm_gen_load_multiple.  */
+extern int arm_regs_in_sequence[];
+
 /* The order in which register should be allocated.  It is good to use ip
    since no saving is required (though calls clobber it) and it never contains
    function parameters.  It is quite good to use lr since other calls may
@@ -1498,17 +1548,6 @@ do {									      \
 /* Offset of first parameter from the argument pointer register value.  */
 #define FIRST_PARM_OFFSET(FNDECL)  (TARGET_ARM ? 4 : 0)
 
-/* Value is the number of byte of arguments automatically
-   popped when returning from a subroutine call.
-   FUNDECL is the declaration node of the function (as a tree),
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.
-   SIZE is the number of bytes of arguments passed on the stack.
-
-   On the ARM, the caller does not pop any of its arguments that were passed
-   on the stack.  */
-#define RETURN_POPS_ARGS(FUNDECL, FUNTYPE, SIZE)  0
-
 /* Define how to find the value returned by a library function
    assuming the value has mode MODE.  */
 #define LIBCALL_VALUE(MODE)  						\
@@ -1598,6 +1637,7 @@ typedef struct GTY(()) arm_stack_offsets
 }
 arm_stack_offsets;
 
+#ifndef GENERATOR_FILE
 /* A C structure for machine-specific, per-function data.
    This is added to the cfun structure.  */
 typedef struct GTY(()) machine_function
@@ -1628,8 +1668,16 @@ typedef struct GTY(()) machine_function
   /* Set to 1 when a return insn is output, this means that the epilogue
      is not needed.  */
   int return_used_this_function;
+  /* When outputting Thumb-1 code, record the last insn that provides
+     information about condition codes, and the comparison operands.  */
+  rtx thumb1_cc_insn;
+  rtx thumb1_cc_op0;
+  rtx thumb1_cc_op1;
+  /* Also record the CC mode that is supported.  */
+  enum machine_mode thumb1_cc_mode;
 }
 machine_function;
+#endif
 
 /* As in the machine_function, a global set of call-via labels, for code 
    that is in text_section.  */
@@ -1651,6 +1699,9 @@ enum arm_pcs
   ARM_PCS_APCS,		/* APCS (legacy Linux etc).  */
   ARM_PCS_UNKNOWN
 };
+
+/* Default procedure calling standard of current compilation unit. */
+extern enum arm_pcs arm_pcs_default;
 
 /* A C type for declaring a variable that is used as the first argument of
    `FUNCTION_ARG' and other related values.  */
@@ -2255,24 +2306,15 @@ extern int making_const_table;
    : reverse_condition (code))
 
 #define CANONICALIZE_COMPARISON(CODE, OP0, OP1)				\
-  do									\
-    {									\
-      if (GET_CODE (OP1) == CONST_INT					\
-          && ! (const_ok_for_arm (INTVAL (OP1))				\
-	        || (const_ok_for_arm (- INTVAL (OP1)))))		\
-        {								\
-          rtx const_op = OP1;						\
-          CODE = arm_canonicalize_comparison ((CODE), GET_MODE (OP0),	\
-					      &const_op);		\
-          OP1 = const_op;						\
-        }								\
-    }									\
-  while (0)
+  (CODE) = arm_canonicalize_comparison (CODE, &(OP0), &(OP1))
 
 /* The arm5 clz instruction returns 32.  */
 #define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE)  ((VALUE) = 32, 1)
 #define CTZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE)  ((VALUE) = 32, 1)
 
+#define CC_STATUS_INIT \
+  do { cfun->machine->thumb1_cc_insn = NULL_RTX; } while (0)
+
 #undef  ASM_APP_OFF
 #define ASM_APP_OFF (TARGET_THUMB1 ? "\t.code\t16\n" : \
 		     TARGET_THUMB2 ? "\t.thumb\n" : "")
@@ -2414,17 +2456,6 @@ extern int making_const_table;
   else if (TARGET_THUMB1)				\
     thumb1_final_prescan_insn (INSN)
 
-#define PRINT_OPERAND_PUNCT_VALID_P(CODE)	\
-  (CODE == '@' || CODE == '|' || CODE == '.'	\
-   || CODE == '(' || CODE == ')' || CODE == '#'	\
-   || (TARGET_32BIT && (CODE == '?'))		\
-   || (TARGET_THUMB2 && (CODE == '!'))		\
-   || (TARGET_THUMB && (CODE == '_')))
-
-/* Output an operand of an instruction.  */
-#define PRINT_OPERAND(STREAM, X, CODE)  \
-  arm_print_operand (STREAM, X, CODE)
-
 #define ARM_SIGN_EXTEND(x)  ((HOST_WIDE_INT)			\
   (HOST_BITS_PER_WIDE_INT <= 32 ? (unsigned HOST_WIDE_INT) (x)	\
    : ((((unsigned HOST_WIDE_INT)(x)) & (unsigned HOST_WIDE_INT) 0xffffffff) |\
@@ -2432,131 +2463,6 @@ extern int making_const_table;
        ? ((~ (unsigned HOST_WIDE_INT) 0)			\
 	  & ~ (unsigned HOST_WIDE_INT) 0xffffffff)		\
        : 0))))
-
-/* Output the address of an operand.  */
-#define ARM_PRINT_OPERAND_ADDRESS(STREAM, X)				\
-{									\
-    int is_minus = GET_CODE (X) == MINUS;				\
-									\
-    if (GET_CODE (X) == REG)						\
-      asm_fprintf (STREAM, "[%r, #0]", REGNO (X));			\
-    else if (GET_CODE (X) == PLUS || is_minus)				\
-      {									\
-	rtx base = XEXP (X, 0);						\
-	rtx index = XEXP (X, 1);					\
-	HOST_WIDE_INT offset = 0;					\
-	if (GET_CODE (base) != REG					\
-	    || (GET_CODE (index) == REG && REGNO (index) == SP_REGNUM))	\
-	  {								\
-	    /* Ensure that BASE is a register.  */			\
-            /* (one of them must be).  */				\
-	    /* Also ensure the SP is not used as in index register.  */ \
-	    rtx temp = base;						\
-	    base = index;						\
-	    index = temp;						\
-	  }								\
-	switch (GET_CODE (index))					\
-	  {								\
-	  case CONST_INT:						\
-	    offset = INTVAL (index);					\
-	    if (is_minus)						\
-	      offset = -offset;						\
-	    asm_fprintf (STREAM, "[%r, #%wd]",				\
-		         REGNO (base), offset);				\
-	    break;							\
-									\
-	  case REG:							\
-	    asm_fprintf (STREAM, "[%r, %s%r]",				\
-		     REGNO (base), is_minus ? "-" : "",			\
-		     REGNO (index));					\
-	    break;							\
-									\
-	  case MULT:							\
-	  case ASHIFTRT:						\
-	  case LSHIFTRT:						\
-	  case ASHIFT:							\
-	  case ROTATERT:						\
-	  {								\
-	    asm_fprintf (STREAM, "[%r, %s%r",				\
-		         REGNO (base), is_minus ? "-" : "",		\
-                         REGNO (XEXP (index, 0)));			\
-	    arm_print_operand (STREAM, index, 'S');			\
-	    fputs ("]", STREAM);					\
-	    break;							\
-	  }								\
-									\
-	  default:							\
-	    gcc_unreachable ();						\
-	}								\
-    }									\
-  else if (GET_CODE (X) == PRE_INC || GET_CODE (X) == POST_INC		\
-	   || GET_CODE (X) == PRE_DEC || GET_CODE (X) == POST_DEC)	\
-    {									\
-      extern enum machine_mode output_memory_reference_mode;		\
-									\
-      gcc_assert (GET_CODE (XEXP (X, 0)) == REG);			\
-									\
-      if (GET_CODE (X) == PRE_DEC || GET_CODE (X) == PRE_INC)		\
-	asm_fprintf (STREAM, "[%r, #%s%d]!",				\
-		     REGNO (XEXP (X, 0)),				\
-		     GET_CODE (X) == PRE_DEC ? "-" : "",		\
-		     GET_MODE_SIZE (output_memory_reference_mode));	\
-      else								\
-	asm_fprintf (STREAM, "[%r], #%s%d",				\
-		     REGNO (XEXP (X, 0)),				\
-		     GET_CODE (X) == POST_DEC ? "-" : "",		\
-		     GET_MODE_SIZE (output_memory_reference_mode));	\
-    }									\
-  else if (GET_CODE (X) == PRE_MODIFY)					\
-    {									\
-      asm_fprintf (STREAM, "[%r, ", REGNO (XEXP (X, 0)));		\
-      if (GET_CODE (XEXP (XEXP (X, 1), 1)) == CONST_INT)		\
-	asm_fprintf (STREAM, "#%wd]!", 					\
-		     INTVAL (XEXP (XEXP (X, 1), 1)));			\
-      else								\
-	asm_fprintf (STREAM, "%r]!", 					\
-		     REGNO (XEXP (XEXP (X, 1), 1)));			\
-    }									\
-  else if (GET_CODE (X) == POST_MODIFY)					\
-    {									\
-      asm_fprintf (STREAM, "[%r], ", REGNO (XEXP (X, 0)));		\
-      if (GET_CODE (XEXP (XEXP (X, 1), 1)) == CONST_INT)		\
-	asm_fprintf (STREAM, "#%wd", 					\
-		     INTVAL (XEXP (XEXP (X, 1), 1)));			\
-      else								\
-	asm_fprintf (STREAM, "%r", 					\
-		     REGNO (XEXP (XEXP (X, 1), 1)));			\
-    }									\
-  else output_addr_const (STREAM, X);					\
-}
-
-#define THUMB_PRINT_OPERAND_ADDRESS(STREAM, X)		\
-{							\
-  if (GET_CODE (X) == REG)				\
-    asm_fprintf (STREAM, "[%r]", REGNO (X));		\
-  else if (GET_CODE (X) == POST_INC)			\
-    asm_fprintf (STREAM, "%r!", REGNO (XEXP (X, 0)));	\
-  else if (GET_CODE (X) == PLUS)			\
-    {							\
-      gcc_assert (GET_CODE (XEXP (X, 0)) == REG);	\
-      if (GET_CODE (XEXP (X, 1)) == CONST_INT)		\
-	asm_fprintf (STREAM, "[%r, #%wd]", 		\
-		     REGNO (XEXP (X, 0)),		\
-		     INTVAL (XEXP (X, 1)));		\
-      else						\
-	asm_fprintf (STREAM, "[%r, %r]",		\
-		     REGNO (XEXP (X, 0)),		\
-		     REGNO (XEXP (X, 1)));		\
-    }							\
-  else							\
-    output_addr_const (STREAM, X);			\
-}
-
-#define PRINT_OPERAND_ADDRESS(STREAM, X)	\
-  if (TARGET_32BIT)				\
-    ARM_PRINT_OPERAND_ADDRESS (STREAM, X)	\
-  else						\
-    THUMB_PRINT_OPERAND_ADDRESS (STREAM, X)
 
 #define OUTPUT_ADDR_CONST_EXTRA(file, x, fail)		\
   if (arm_output_addr_const_extra (file, x) == FALSE)	\

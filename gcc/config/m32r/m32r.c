@@ -1,6 +1,6 @@
 /* Subroutines used for code generation on the Renesas M32R cpu.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2005, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -34,6 +34,7 @@
 #include "expr.h"
 #include "function.h"
 #include "recog.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "ggc.h"
 #include "integrate.h"
@@ -44,7 +45,7 @@
 #include "tm-constrs.h"
 
 /* Array of valid operand punctuation characters.  */
-char m32r_punct_chars[256];
+static char m32r_punct_chars[256];
 
 /* Selected code model.  */
 enum m32r_model m32r_model = M32R_MODEL_DEFAULT;
@@ -67,6 +68,9 @@ static void  block_move_call (rtx, rtx, rtx);
 static int   m32r_is_insn (rtx);
 static rtx   m32r_legitimize_address (rtx, rtx, enum machine_mode);
 static tree  m32r_handle_model_attribute (tree *, tree, tree, int, bool *);
+static void  m32r_print_operand (FILE *, rtx, int);
+static void  m32r_print_operand_address (FILE *, rtx);
+static bool  m32r_print_operand_punct_valid_p (unsigned char code);
 static void  m32r_output_function_prologue (FILE *, HOST_WIDE_INT);
 static void  m32r_output_function_epilogue (FILE *, HOST_WIDE_INT);
 
@@ -110,6 +114,13 @@ static const struct attribute_spec m32r_attribute_table[] =
 #define TARGET_ASM_ALIGNED_HI_OP "\t.hword\t"
 #undef  TARGET_ASM_ALIGNED_SI_OP
 #define TARGET_ASM_ALIGNED_SI_OP "\t.word\t"
+
+#undef  TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND m32r_print_operand
+#undef  TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS m32r_print_operand_address
+#undef  TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P m32r_print_operand_punct_valid_p
 
 #undef  TARGET_ASM_FUNCTION_PROLOGUE
 #define TARGET_ASM_FUNCTION_PROLOGUE m32r_output_function_prologue
@@ -167,6 +178,11 @@ m32r_handle_option (size_t code, const char *arg, int value)
 {
   switch (code)
     {
+    case OPT_G:
+      g_switch_value = value;
+      g_switch_set = true;
+      return true;
+
     case OPT_m32r:
       target_flags &= ~(MASK_M32R2 | MASK_M32RX);
       return true;
@@ -216,7 +232,7 @@ m32r_init (void)
 {
   init_reg_tables ();
 
-  /* Initialize array for PRINT_OPERAND_PUNCT_VALID_P.  */
+  /* Initialize array for TARGET_PRINT_OPERAND_PUNCT_VALID_P.  */
   memset (m32r_punct_chars, 0, sizeof (m32r_punct_chars));
   m32r_punct_chars['#'] = 1;
   m32r_punct_chars['@'] = 1; /* ??? no longer used */
@@ -1933,7 +1949,7 @@ m32r_file_start (void)
    CODE is a letter or dot (`z' in `%z0') or 0 if no letter was specified.
    For `%' followed by punctuation, CODE is the punctuation and X is null.  */
 
-void
+static void
 m32r_print_operand (FILE * file, rtx x, int code)
 {
   rtx addr;
@@ -2160,7 +2176,7 @@ m32r_print_operand (FILE * file, rtx x, int code)
 
 /* Print a memory address as an operand to reference that memory location.  */
 
-void
+static void
 m32r_print_operand_address (FILE * file, rtx addr)
 {
   rtx base;
@@ -2246,6 +2262,12 @@ m32r_print_operand_address (FILE * file, rtx addr)
       output_addr_const (file, addr);
       break;
     }
+}
+
+static bool
+m32r_print_operand_punct_valid_p (unsigned char code)
+{
+  return m32r_punct_chars[code];
 }
 
 /* Return true if the operands are the constants 0 and 1.  */

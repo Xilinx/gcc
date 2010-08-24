@@ -24,7 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "c-tree.h"
 #include "intl.h"
-#include "c-pretty-print.h"
+#include "c-family/c-pretty-print.h"
 #include "flags.h"
 #include "diagnostic.h"
 #include "tree-pretty-print.h"
@@ -79,21 +79,22 @@ c_objc_common_init (void)
    %E: an identifier or expression,
    %F: a function declaration,
    %T: a type.
+   %V: a list of type qualifiers from a tree.
+   %v: an explicit list of type qualifiers
+   %#v: an explicit list of type qualifiers of a function type.
 
-   These format specifiers form a subset of the format specifiers set used
-   by the C++ front-end.
    Please notice when called, the `%' part was already skipped by the
    diagnostic machinery.  */
 static bool
 c_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
 		int precision, bool wide, bool set_locus, bool hash)
 {
-  tree t;
+  tree t = NULL_TREE;
   tree name;
   c_pretty_printer *cpp = (c_pretty_printer *) pp;
   pp->padding = pp_none;
 
-  if (precision != 0 || wide || hash)
+  if (precision != 0 || wide)
     return false;
 
   if (*spec == 'K')
@@ -102,10 +103,12 @@ c_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
       return true;
     }
 
-  t = va_arg (*text->args_ptr, tree);
-
-  if (set_locus && text->locus)
-    *text->locus = DECL_SOURCE_LOCATION (t);
+  if (*spec != 'v')
+    {
+      t = va_arg (*text->args_ptr, tree);
+      if (set_locus && text->locus)
+	*text->locus = DECL_SOURCE_LOCATION (t);
+    }
 
   switch (*spec)
     {
@@ -155,6 +158,14 @@ c_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
 	pp_expression (cpp, t);
       return true;
 
+    case 'V':
+      pp_c_type_qualifier_list (cpp, t);
+      return true;
+
+    case 'v':
+      pp_c_cv_qualifiers (cpp, va_arg (*text->args_ptr, int), hash);
+      return true;
+
     default:
       return false;
     }
@@ -173,8 +184,13 @@ has_c_linkage (const_tree decl ATTRIBUTE_UNUSED)
 void
 c_initialize_diagnostics (diagnostic_context *context)
 {
-  pretty_printer *base = context->printer;
-  c_pretty_printer *pp = XNEW (c_pretty_printer);
+  pretty_printer *base;
+  c_pretty_printer *pp;
+
+  c_common_initialize_diagnostics (context);
+
+  base = context->printer;
+  pp = XNEW (c_pretty_printer);
   memcpy (pp_base (pp), base, sizeof (pretty_printer));
   pp_c_pretty_printer_init (pp);
   context->printer = (pretty_printer *) pp;

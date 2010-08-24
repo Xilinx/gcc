@@ -37,23 +37,22 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "decl.h"
 #include "output.h"
-#include "except.h"
 #include "toplev.h"
 #include "timevar.h"
 #include "cpplib.h"
 #include "target.h"
-#include "c-common.h"
+#include "c-family/c-common.h"
 #include "tree-mudflap.h"
 #include "cgraph.h"
 #include "tree-inline.h"
-#include "c-pragma.h"
+#include "c-family/c-pragma.h"
 #include "tree-dump.h"
 #include "intl.h"
 #include "gimple.h"
 #include "pointer-set.h"
 #include "splay-tree.h"
 #include "langhooks.h"
-#include "c-ada-spec.h"
+#include "c-family/c-ada-spec.h"
 
 extern cpp_reader *parse_in;
 
@@ -243,7 +242,7 @@ maybe_retrofit_in_chrg (tree fn)
   basetype = TREE_TYPE (TREE_VALUE (arg_types));
   arg_types = TREE_CHAIN (arg_types);
 
-  parms = TREE_CHAIN (DECL_ARGUMENTS (fn));
+  parms = DECL_CHAIN (DECL_ARGUMENTS (fn));
 
   /* If this is a subobject constructor or destructor, our caller will
      pass us a pointer to our VTT.  */
@@ -252,7 +251,7 @@ maybe_retrofit_in_chrg (tree fn)
       parm = build_artificial_parm (vtt_parm_identifier, vtt_parm_type);
 
       /* First add it to DECL_ARGUMENTS between 'this' and the real args...  */
-      TREE_CHAIN (parm) = parms;
+      DECL_CHAIN (parm) = parms;
       parms = parm;
 
       /* ...and then to TYPE_ARG_TYPES.  */
@@ -263,12 +262,12 @@ maybe_retrofit_in_chrg (tree fn)
 
   /* Then add the in-charge parm (before the VTT parm).  */
   parm = build_artificial_parm (in_charge_identifier, integer_type_node);
-  TREE_CHAIN (parm) = parms;
+  DECL_CHAIN (parm) = parms;
   parms = parm;
   arg_types = hash_tree_chain (integer_type_node, arg_types);
 
   /* Insert our new parameter(s) into the list.  */
-  TREE_CHAIN (DECL_ARGUMENTS (fn)) = parms;
+  DECL_CHAIN (DECL_ARGUMENTS (fn)) = parms;
 
   /* And rebuild the function type.  */
   fntype = build_method_type_directly (basetype, TREE_TYPE (TREE_TYPE (fn)),
@@ -1322,7 +1321,7 @@ build_anon_union_vars (tree type, tree object)
 
   for (field = TYPE_FIELDS (type);
        field != NULL_TREE;
-       field = TREE_CHAIN (field))
+       field = DECL_CHAIN (field))
     {
       tree decl;
       tree ref;
@@ -1827,7 +1826,7 @@ maybe_emit_vtables (tree ctype)
     determine_key_method (ctype);
 
   /* See if any of the vtables are needed.  */
-  for (vtbl = CLASSTYPE_VTABLES (ctype); vtbl; vtbl = TREE_CHAIN (vtbl))
+  for (vtbl = CLASSTYPE_VTABLES (ctype); vtbl; vtbl = DECL_CHAIN (vtbl))
     {
       import_export_decl (vtbl);
       if (DECL_NOT_REALLY_EXTERN (vtbl) && decl_needed_p (vtbl))
@@ -1846,7 +1845,7 @@ maybe_emit_vtables (tree ctype)
 
   /* The ABI requires that we emit all of the vtables if we emit any
      of them.  */
-  for (vtbl = CLASSTYPE_VTABLES (ctype); vtbl; vtbl = TREE_CHAIN (vtbl))
+  for (vtbl = CLASSTYPE_VTABLES (ctype); vtbl; vtbl = DECL_CHAIN (vtbl))
     {
       /* Mark entities references from the virtual table as used.  */
       mark_vtable_entries (vtbl);
@@ -2243,7 +2242,7 @@ constrain_class_visibility (tree type)
   if (CLASSTYPE_VISIBILITY_SPECIFIED (type))
     vis = VISIBILITY_INTERNAL;
 
-  for (t = TYPE_FIELDS (type); t; t = TREE_CHAIN (t))
+  for (t = TYPE_FIELDS (type); t; t = DECL_CHAIN (t))
     if (TREE_CODE (t) == FIELD_DECL && TREE_TYPE (t) != error_mark_node)
       {
 	tree ftype = strip_pointer_or_array_types (TREE_TYPE (t));
@@ -2725,8 +2724,8 @@ start_objects (int method_type, int initp)
 
   fndecl = build_lang_decl (FUNCTION_DECL,
 			    get_file_function_name (type),
-			    build_function_type (void_type_node,
-						 void_list_node));
+			    build_function_type_list (void_type_node,
+						      NULL_TREE));
   start_preparsed_function (fndecl, /*attrs=*/NULL_TREE, SF_PRE_PARSED);
 
   TREE_PUBLIC (current_function_decl) = 0;
@@ -2818,7 +2817,6 @@ static splay_tree priority_info_map;
 static tree
 start_static_storage_duration_function (unsigned count)
 {
-  tree parm_types;
   tree type;
   tree body;
   char id[sizeof (SSDF_IDENTIFIER) + 1 /* '\0' */ + 32];
@@ -2827,11 +2825,9 @@ start_static_storage_duration_function (unsigned count)
      SSDF_IDENTIFIER_<number>.  */
   sprintf (id, "%s_%u", SSDF_IDENTIFIER, count);
 
-  /* Create the parameters.  */
-  parm_types = void_list_node;
-  parm_types = tree_cons (NULL_TREE, integer_type_node, parm_types);
-  parm_types = tree_cons (NULL_TREE, integer_type_node, parm_types);
-  type = build_function_type (void_type_node, parm_types);
+  type = build_function_type_list (void_type_node,
+				   integer_type_node, integer_type_node,
+				   NULL_TREE);
 
   /* Create the FUNCTION_DECL itself.  */
   ssdf_decl = build_lang_decl (FUNCTION_DECL,
@@ -2872,7 +2868,7 @@ start_static_storage_duration_function (unsigned count)
   DECL_CONTEXT (priority_decl) = ssdf_decl;
   TREE_USED (priority_decl) = 1;
 
-  TREE_CHAIN (initialize_p_decl) = priority_decl;
+  DECL_CHAIN (initialize_p_decl) = priority_decl;
   DECL_ARGUMENTS (ssdf_decl) = initialize_p_decl;
 
   /* Put the function in the global scope.  */
@@ -2970,7 +2966,7 @@ fix_temporary_vars_context_r (tree *node,
     {
       tree var;
 
-      for (var = BIND_EXPR_VARS (*node); var; var = TREE_CHAIN (var))
+      for (var = BIND_EXPR_VARS (*node); var; var = DECL_CHAIN (var))
 	if (TREE_CODE (var) == VAR_DECL
 	  && !DECL_NAME (var)
 	  && DECL_ARTIFICIAL (var)
@@ -3304,7 +3300,7 @@ generate_ctor_or_dtor_function (bool constructor_p, int priority,
 
   /* Call the static storage duration function with appropriate
      arguments.  */
-  for (i = 0; VEC_iterate (tree, ssdf_decls, i, fndecl); ++i)
+  FOR_EACH_VEC_ELT (tree, ssdf_decls, i, fndecl)
     {
       /* Calls to pure or const functions will expand to nothing.  */
       if (! (flags_from_decl_or_type (fndecl) & (ECF_CONST | ECF_PURE)))
@@ -3589,7 +3585,8 @@ cp_write_global_declarations (void)
   at_eof = 1;
 
   /* Bad parse errors.  Just forget about it.  */
-  if (! global_bindings_p () || current_class_type || decl_namespace_list)
+  if (! global_bindings_p () || current_class_type
+      || !VEC_empty (tree,decl_namespace_list))
     return;
 
   if (pch_file)
@@ -3745,7 +3742,7 @@ cp_write_global_declarations (void)
       /* Go through the set of inline functions whose bodies have not
 	 been emitted yet.  If out-of-line copies of these functions
 	 are required, emit them.  */
-      for (i = 0; VEC_iterate (tree, deferred_fns, i, decl); ++i)
+      FOR_EACH_VEC_ELT (tree, deferred_fns, i, decl)
 	{
 	  /* Does it need synthesizing?  */
 	  if (DECL_DEFAULTED_FN (decl) && ! DECL_INITIAL (decl)
@@ -3847,7 +3844,7 @@ cp_write_global_declarations (void)
 	reconsider = true;
 
       /* Static data members are just like namespace-scope globals.  */
-      for (i = 0; VEC_iterate (tree, pending_statics, i, decl); ++i)
+      FOR_EACH_VEC_ELT (tree, pending_statics, i, decl)
 	{
 	  if (var_finalized_p (decl) || DECL_REALLY_EXTERN (decl)
 	      /* Don't write it out if we haven't seen a definition.  */
@@ -3869,7 +3866,7 @@ cp_write_global_declarations (void)
   while (reconsider);
 
   /* All used inline functions must have a definition at this point.  */
-  for (i = 0; VEC_iterate (tree, deferred_fns, i, decl); ++i)
+  FOR_EACH_VEC_ELT (tree, deferred_fns, i, decl)
     {
       if (/* Check online inline functions that were actually used.  */
 	  DECL_ODR_USED (decl) && DECL_DECLARED_INLINE_P (decl)
@@ -3891,7 +3888,7 @@ cp_write_global_declarations (void)
     }
 
   /* So must decls that use a type with no linkage.  */
-  for (i = 0; VEC_iterate (tree, no_linkage_decls, i, decl); ++i)
+  FOR_EACH_VEC_ELT (tree, no_linkage_decls, i, decl)
     if (!decl_defined_p (decl))
       no_linkage_error (decl);
 
@@ -3936,6 +3933,8 @@ cp_write_global_declarations (void)
       emit_debug_global_declarations (VEC_address (tree, pending_statics),
 				      VEC_length (tree, pending_statics));
     }
+
+  perform_deferred_noexcept_checks ();
 
   /* Generate hidden aliases for Java.  */
   if (candidates)
@@ -4113,8 +4112,9 @@ mark_used (tree decl)
 	      return;
 	    }
 	}
-      error ("deleted function %q+D", decl);
-      error ("used here");
+      error ("use of deleted function %qD", decl);
+      if (!maybe_explain_implicit_delete (decl))
+	error_at (DECL_SOURCE_LOCATION (decl), "declared here");
       return;
     }
   /* If we don't need a value, then we don't need to synthesize DECL.  */

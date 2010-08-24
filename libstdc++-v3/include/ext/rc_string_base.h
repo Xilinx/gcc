@@ -199,9 +199,16 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       void
       _M_dispose()
       {
+	// Be race-detector-friendly.  For more info see bits/c++config.
+	_GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(&_M_rep()->_M_info.
+						_M_refcount);
 	if (__exchange_and_add_dispatch(&_M_rep()->_M_info._M_refcount,
 					-1) <= 0)
-	  _M_rep()->_M_destroy(_M_get_allocator());
+	  {
+	    _GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER(&_M_rep()->_M_info.
+						   _M_refcount);
+	    _M_rep()->_M_destroy(_M_get_allocator());
+	  }
       }  // XXX MT
 
       bool
@@ -554,7 +561,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	// NB: Not required, but considered best practice.
 	if (__is_null_pointer(__beg) && __beg != __end)
 	  std::__throw_logic_error(__N("__rc_string_base::"
-				       "_S_construct NULL not valid"));
+				       "_S_construct null not valid"));
 
 	const size_type __dnew = static_cast<size_type>(std::distance(__beg,
 								      __end));

@@ -38,8 +38,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "function.h"
 #include "optabs.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
-#include "c-pragma.h"
+#include "c-family/c-pragma.h"	/* ??? */
 #include "tm_p.h"
 #include "ggc.h"
 #include "target.h"
@@ -402,6 +403,10 @@ h8300_init_once (void)
 	 restore er6 though, so bump up the cost.  */
       h8300_move_ratio = 6;
     }
+
+  /* This target defaults to strict volatile bitfields.  */
+  if (flag_strict_volatile_bitfields < 0)
+    flag_strict_volatile_bitfields = 1;
 }
 
 /* Implement REG_CLASS_FROM_LETTER.

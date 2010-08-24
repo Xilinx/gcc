@@ -35,6 +35,7 @@
 #include "expr.h"
 #include "output.h"
 #include "optabs.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "tm_p.h"
 #include "cfgloop.h"
@@ -2367,9 +2368,7 @@ noce_process_if_block (struct noce_if_info *if_info)
     }
   else
     {
-      insn_b = prev_nonnote_insn (if_info->cond_earliest);
-      while (insn_b && DEBUG_INSN_P (insn_b))
-	insn_b = prev_nonnote_insn (insn_b);
+      insn_b = prev_nonnote_nondebug_insn (if_info->cond_earliest);
       /* We're going to be moving the evaluation of B down from above
 	 COND_EARLIEST to JUMP.  Make sure the relevant data is still
 	 intact.  */
@@ -2761,7 +2760,7 @@ cond_move_process_if_block (struct noce_if_info *if_info)
      source register does not change after the assignment.  Also count
      the number of registers set in only one of the blocks.  */
   c = 0;
-  for (i = 0; VEC_iterate (int, then_regs, i, reg); i++)
+  FOR_EACH_VEC_ELT (int, then_regs, i, reg)
     {
       if (!then_vals[reg] && !else_vals[reg])
 	continue;
@@ -2782,7 +2781,7 @@ cond_move_process_if_block (struct noce_if_info *if_info)
     }
 
   /* Finish off c for MAX_CONDITIONAL_EXECUTE.  */
-  for (i = 0; VEC_iterate (int, else_regs, i, reg); ++i)
+  FOR_EACH_VEC_ELT (int, else_regs, i, reg)
     if (!then_vals[reg])
       ++c;
 
@@ -3156,7 +3155,7 @@ find_if_header (basic_block test_bb, int pass)
     goto success;
 
   if (HAVE_trap
-      && optab_handler (ctrap_optab, word_mode)->insn_code != CODE_FOR_nothing
+      && optab_handler (ctrap_optab, word_mode) != CODE_FOR_nothing
       && find_cond_trap (test_bb, then_edge, else_edge))
     goto success;
 

@@ -1,7 +1,7 @@
 /* Subroutines used for code generation on the Lattice Mico32 architecture.
    Contributed by Jon Beniston <jon@beniston.com>
 
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -40,6 +40,7 @@
 #include "reload.h"
 #include "tm_p.h"
 #include "function.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "optabs.h"
 #include "libfuncs.h"
@@ -74,7 +75,10 @@ static bool lm32_can_eliminate (const int, const int);
 static bool
 lm32_legitimate_address_p (enum machine_mode mode, rtx x, bool strict);
 static HOST_WIDE_INT lm32_compute_frame_size (int size);
+static bool lm32_handle_option (size_t code, const char *arg, int value);
 
+#undef TARGET_HANDLE_OPTION
+#define TARGET_HANDLE_OPTION lm32_handle_option
 #undef TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST hook_int_rtx_bool_0
 #undef TARGET_RTX_COSTS
@@ -652,14 +656,10 @@ lm32_setup_incoming_varargs (CUMULATIVE_ARGS * cum, enum machine_mode mode,
 {
   int first_anon_arg;
   tree fntype;
-  int stdarg_p;
 
   fntype = TREE_TYPE (current_function_decl);
-  stdarg_p = (TYPE_ARG_TYPES (fntype) != 0
-	      && (TREE_VALUE (tree_last (TYPE_ARG_TYPES (fntype)))
-		  != void_type_node));
 
-  if (stdarg_p)
+  if (stdarg_p (fntype))
     first_anon_arg = *cum + LM32_FIRST_ARG_REG;
   else
     {
@@ -692,6 +692,23 @@ lm32_setup_incoming_varargs (CUMULATIVE_ARGS * cum, enum machine_mode mode,
       move_block_from_reg (first_reg_offset, regblock, size);
 
       *pretend_size = size * UNITS_PER_WORD;
+    }
+}
+
+/* Implement TARGET_HANDLE_OPTION.  */
+
+static bool
+lm32_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED, int value)
+{
+  switch (code)
+    {
+    case OPT_G:
+      g_switch_value = value;
+      g_switch_set = true;
+      return true;
+
+    default:
+      return true;
     }
 }
 

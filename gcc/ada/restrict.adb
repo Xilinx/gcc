@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,6 +34,7 @@ with Opt;      use Opt;
 with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
 with Snames;   use Snames;
+with Stand;    use Stand;
 with Uname;    use Uname;
 
 package body Restrict is
@@ -120,6 +121,46 @@ package body Restrict is
    begin
       Check_Restriction (No_Implicit_Heap_Allocations, N);
    end Check_No_Implicit_Heap_Alloc;
+
+   -----------------------------------
+   -- Check_Obsolescent_2005_Entity --
+   -----------------------------------
+
+   procedure Check_Obsolescent_2005_Entity (E : Entity_Id; N : Node_Id) is
+      function Chars_Is (E : Entity_Id; S : String) return Boolean;
+      --  Return True iff Chars (E) matches S (given in lower case)
+
+      function Chars_Is (E : Entity_Id; S : String) return Boolean is
+         Nam : constant Name_Id := Chars (E);
+      begin
+         if Length_Of_Name (Nam) /= S'Length then
+            return False;
+         else
+            return Get_Name_String (Nam) = S;
+         end if;
+      end Chars_Is;
+
+   --  Start of processing for Check_Obsolescent_2005_Entity
+
+   begin
+      if Ada_Version >= Ada_2005
+        and then Restriction_Active (No_Obsolescent_Features)
+        and then Chars_Is (Scope (E),                 "handling")
+        and then Chars_Is (Scope (Scope (E)),         "characters")
+        and then Chars_Is (Scope (Scope (Scope (E))), "ada")
+        and then Scope (Scope (Scope (Scope (E)))) = Standard_Standard
+      then
+         if Chars_Is (E, "is_character")      or else
+            Chars_Is (E, "is_string")         or else
+            Chars_Is (E, "to_character")      or else
+            Chars_Is (E, "to_string")         or else
+            Chars_Is (E, "to_wide_character") or else
+            Chars_Is (E, "to_wide_string")
+         then
+            Check_Restriction (No_Obsolescent_Features, N);
+         end if;
+      end if;
+   end Check_Obsolescent_2005_Entity;
 
    ---------------------------
    -- Check_Restricted_Unit --
@@ -256,6 +297,14 @@ package body Restrict is
    --  Start of processing for Check_Restriction
 
    begin
+      --  In CodePeer mode, we do not want to check for any restriction, or
+      --  set additional restrictions than those already set in gnat1drv.adb
+      --  so that we have consistency between each compilation.
+
+      if CodePeer_Mode then
+         return;
+      end if;
+
       if UI_Is_In_Int_Range (V) then
          VV := Integer (UI_To_Int (V));
       else

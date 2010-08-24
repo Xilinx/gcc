@@ -730,7 +730,7 @@ data_desc:
       t = format_lex ();
       if (t == FMT_ERROR)
 	goto fail;
-      if (gfc_option.allow_std < GFC_STD_F2003 && t != FMT_COMMA
+      if (!(gfc_option.allow_std & GFC_STD_F2003) && t != FMT_COMMA
 	  && t != FMT_F && t != FMT_E && t != FMT_EN && t != FMT_ES
 	  && t != FMT_D && t != FMT_G && t != FMT_RPAREN && t != FMT_SLASH)
 	{
@@ -1493,6 +1493,14 @@ resolve_tag (const io_tag *tag, gfc_expr *e)
     {
       if (gfc_notify_std (GFC_STD_F2003, "Fortran 95 requires default "
 			  "INTEGER in %s tag at %L", tag->name, &e->where)
+	  == FAILURE)
+	return FAILURE;
+    }
+
+  if (tag == &tag_exist && e->ts.kind != gfc_default_logical_kind)
+    {
+      if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Nondefault LOGICAL "
+			  "in %s tag at %L", tag->name, &e->where)
 	  == FAILURE)
 	return FAILURE;
     }

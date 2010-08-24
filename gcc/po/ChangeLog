@@ -1,3 +1,12 @@
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* exgettext: Also extract MissingArgError texts from .opt files.
+
+2010-06-29  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR other/44034
+	* EXCLUDES: Add genhooks.c.
+
 2010-05-01  Joseph Myers  <joseph@codesourcery.com>
 
 	* sv.po: Update.

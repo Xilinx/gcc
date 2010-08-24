@@ -1,5 +1,5 @@
 /* Subroutines for insn-output.c for Tensilica's Xtensa architecture.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Bob Wilson (bwilson@tensilica.com) at Tensilica.
 
@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "reload.h"
 #include "tm_p.h"
 #include "function.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "optabs.h"
 #include "libfuncs.h"
@@ -1281,7 +1282,7 @@ xtensa_expand_nonlocal_goto (rtx *operands)
 static struct machine_function *
 xtensa_init_machine_status (void)
 {
-  return GGC_CNEW (struct machine_function);
+  return ggc_alloc_cleared_machine_function ();
 }
 
 
@@ -2684,8 +2685,8 @@ xtensa_build_builtin_va_list (void)
   TREE_CHAIN (record) = type_decl;
   TYPE_NAME (record) = type_decl;
   TYPE_FIELDS (record) = f_stk;
-  TREE_CHAIN (f_stk) = f_reg;
-  TREE_CHAIN (f_reg) = f_ndx;
+  DECL_CHAIN (f_stk) = f_reg;
+  DECL_CHAIN (f_reg) = f_ndx;
 
   layout_type (record);
   return record;
@@ -2739,8 +2740,8 @@ xtensa_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   arg_words = crtl->args.info.arg_words;
 
   f_stk = TYPE_FIELDS (va_list_type_node);
-  f_reg = TREE_CHAIN (f_stk);
-  f_ndx = TREE_CHAIN (f_reg);
+  f_reg = DECL_CHAIN (f_stk);
+  f_ndx = DECL_CHAIN (f_reg);
 
   stk = build3 (COMPONENT_REF, TREE_TYPE (f_stk), valist, f_stk, NULL_TREE);
   reg = build3 (COMPONENT_REF, TREE_TYPE (f_reg), unshare_expr (valist),
@@ -2809,8 +2810,8 @@ xtensa_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
     }
 
   f_stk = TYPE_FIELDS (va_list_type_node);
-  f_reg = TREE_CHAIN (f_stk);
-  f_ndx = TREE_CHAIN (f_reg);
+  f_reg = DECL_CHAIN (f_stk);
+  f_ndx = DECL_CHAIN (f_reg);
 
   stk = build3 (COMPONENT_REF, TREE_TYPE (f_stk), valist,
 		f_stk, NULL_TREE);
@@ -3089,8 +3090,8 @@ xtensa_preferred_reload_class (rtx x, enum reg_class rclass, int isoutput)
 }
 
 
-enum reg_class
-xtensa_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
+reg_class_t
+xtensa_secondary_reload (bool in_p, rtx x, reg_class_t rclass,
 			 enum machine_mode mode, secondary_reload_info *sri)
 {
   int regno;

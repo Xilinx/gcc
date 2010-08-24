@@ -27,7 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cp-tree.h"
 #include "intl.h"
-#include "c-pragma.h"
+#include "c-family/c-pragma.h"
 #include "decl.h"
 #include "flags.h"
 #include "diagnostic-core.h"
@@ -35,7 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "target.h"
 #include "cgraph.h"
-#include "c-common.h"
+#include "c-family/c-common.h"
 #include "plugin.h"
 
 
@@ -393,7 +393,7 @@ cp_lexer_new_main (void)
   c_common_no_more_pch ();
 
   /* Allocate the memory.  */
-  lexer = GGC_CNEW (cp_lexer);
+  lexer = ggc_alloc_cleared_cp_lexer ();
 
 #ifdef ENABLE_CHECKING
   /* Initially we are not debugging.  */
@@ -404,7 +404,7 @@ cp_lexer_new_main (void)
 
   /* Create the buffer.  */
   alloc = CP_LEXER_BUFFER_SIZE;
-  buffer = GGC_NEWVEC (cp_token, alloc);
+  buffer = ggc_alloc_vec_cp_token (alloc);
 
   /* Put the first token in the buffer.  */
   space = alloc;
@@ -445,7 +445,7 @@ cp_lexer_new_from_tokens (cp_token_cache *cache)
 {
   cp_token *first = cache->first;
   cp_token *last = cache->last;
-  cp_lexer *lexer = GGC_CNEW (cp_lexer);
+  cp_lexer *lexer = ggc_alloc_cleared_cp_lexer ();
 
   /* We do not own the buffer.  */
   lexer->buffer = NULL;
@@ -946,7 +946,7 @@ cp_lexer_stop_debugging (cp_lexer* lexer)
 static cp_token_cache *
 cp_token_cache_new (cp_token *first, cp_token *last)
 {
-  cp_token_cache *cache = GGC_NEW (cp_token_cache);
+  cp_token_cache *cache = ggc_alloc_cp_token_cache ();
   cache->first = first;
   cache->last = last;
   return cache;
@@ -1496,7 +1496,7 @@ cp_parser_context_new (cp_parser_context* next)
       memset (context, 0, sizeof (*context));
     }
   else
-    context = GGC_CNEW (cp_parser_context);
+    context = ggc_alloc_cleared_cp_parser_context ();
 
   /* No errors have occurred yet in this context.  */
   context->status = CP_PARSER_STATUS_KIND_NO_ERROR;
@@ -1513,6 +1513,34 @@ cp_parser_context_new (cp_parser_context* next)
 
   return context;
 }
+
+/* An entry in a queue of function arguments that require post-processing.  */
+
+typedef struct GTY(()) cp_default_arg_entry_d {
+  /* The current_class_type when we parsed this arg.  */
+  tree class_type;
+
+  /* The function decl itself.  */
+  tree decl;
+} cp_default_arg_entry;
+
+DEF_VEC_O(cp_default_arg_entry);
+DEF_VEC_ALLOC_O(cp_default_arg_entry,gc);
+
+/* An entry in a stack for member functions of local classes.  */
+
+typedef struct GTY(()) cp_unparsed_functions_entry_d {
+  /* Functions with default arguments that require post-processing.
+     Functions appear in this list in declaration order.  */
+  VEC(cp_default_arg_entry,gc) *funs_with_default_args;
+
+  /* Functions with defintions that require post-processing.  Functions
+     appear in this list in declaration order.  */
+  VEC(tree,gc) *funs_with_definitions;
+} cp_unparsed_functions_entry;
+
+DEF_VEC_O(cp_unparsed_functions_entry);
+DEF_VEC_ALLOC_O(cp_unparsed_functions_entry,gc);
 
 /* The cp_parser structure represents the C++ parser.  */
 
@@ -1640,21 +1668,10 @@ typedef struct GTY(()) cp_parser {
      issued as an error message if a type is defined.  */
   const char *type_definition_forbidden_message;
 
-  /* A list of lists. The outer list is a stack, used for member
-     functions of local classes. At each level there are two sub-list,
-     one on TREE_VALUE and one on TREE_PURPOSE. Each of those
-     sub-lists has a FUNCTION_DECL or TEMPLATE_DECL on their
-     TREE_VALUE's. The functions are chained in reverse declaration
-     order.
-
-     The TREE_PURPOSE sublist contains those functions with default
-     arguments that need post processing, and the TREE_VALUE sublist
-     contains those functions with definitions that need post
-     processing.
-
-     These lists can only be processed once the outermost class being
-     defined is complete.  */
-  tree unparsed_functions_queues;
+  /* A stack used for member functions of local classes.  The lists
+     contained in an individual entry can only be processed once the
+     outermost class being defined is complete.  */
+  VEC(cp_unparsed_functions_entry,gc) *unparsed_queues;
 
   /* The number of classes whose definitions are currently in
      progress.  */
@@ -1664,6 +1681,29 @@ typedef struct GTY(()) cp_parser {
      current declaration.  */
   unsigned num_template_parameter_lists;
 } cp_parser;
+
+/* Managing the unparsed function queues.  */
+
+#define unparsed_funs_with_default_args \
+  VEC_last (cp_unparsed_functions_entry, parser->unparsed_queues)->funs_with_default_args
+#define unparsed_funs_with_definitions \
+  VEC_last (cp_unparsed_functions_entry, parser->unparsed_queues)->funs_with_definitions
+
+static void
+push_unparsed_function_queues (cp_parser *parser)
+{
+  VEC_safe_push (cp_unparsed_functions_entry, gc,
+		 parser->unparsed_queues, NULL);
+  unparsed_funs_with_default_args = NULL;
+  unparsed_funs_with_definitions = make_tree_vector ();
+}
+
+static void
+pop_unparsed_function_queues (cp_parser *parser)
+{
+  release_tree_vector (unparsed_funs_with_definitions);
+  VEC_pop (cp_unparsed_functions_entry, parser->unparsed_queues);
+}
 
 /* Prototypes.  */
 
@@ -2650,7 +2690,7 @@ cp_parser_diagnose_invalid_type_name (cp_parser *parser,
 		  base_type = CLASSTYPE_PRIMARY_TEMPLATE_TYPE (base_type);
 		  for (field = TYPE_FIELDS (base_type);
 		       field;
-		       field = TREE_CHAIN (field))
+		       field = DECL_CHAIN (field))
 		    if (TREE_CODE (field) == TYPE_DECL
 			&& DECL_NAME (field) == id)
 		      {
@@ -3093,7 +3133,7 @@ cp_parser_new (void)
   cp_lexer *lexer;
   unsigned i;
 
-  /* cp_lexer_new_main is called before calling ggc_alloc because
+  /* cp_lexer_new_main is called before doing GC allocation because
      cp_lexer_new_main might load a PCH file.  */
   lexer = cp_lexer_new_main ();
 
@@ -3102,7 +3142,7 @@ cp_parser_new (void)
   for (i = 0; i < sizeof (binops) / sizeof (binops[0]); i++)
     binops_by_token[binops[i].token_type] = binops[i];
 
-  parser = GGC_CNEW (cp_parser);
+  parser = ggc_alloc_cleared_cp_parser ();
   parser->lexer = lexer;
   parser->context = cp_parser_context_new (NULL);
 
@@ -3151,7 +3191,7 @@ cp_parser_new (void)
   parser->in_function_body = false;
 
   /* The unparsed function queue is empty.  */
-  parser->unparsed_functions_queues = build_tree_list (NULL_TREE, NULL_TREE);
+  push_unparsed_function_queues (parser);
 
   /* There are no classes being defined.  */
   parser->num_classes_being_defined = 0;
@@ -3754,6 +3794,16 @@ cp_parser_primary_expression (cp_parser *parser,
 	case RID_AT_SELECTOR:
 	  return cp_parser_objc_expression (parser);
 
+	case RID_TEMPLATE:
+	  if (parser->in_function_body
+	      && (cp_lexer_peek_nth_token (parser->lexer, 2)->type
+	      	  == CPP_LESS))
+	    {
+	      error_at (token->location,
+			"a template declaration cannot appear at block scope");
+	      cp_parser_skip_to_end_of_block_or_statement (parser);
+	      return error_mark_node;
+	    }
 	default:
 	  cp_parser_error (parser, "expected primary-expression");
 	  return error_mark_node;
@@ -4605,7 +4655,7 @@ cp_parser_nested_name_specifier_opt (cp_parser *parser,
       token->type = CPP_NESTED_NAME_SPECIFIER;
       /* Retrieve any deferred checks.  Do not pop this access checks yet
 	 so the memory will not be reclaimed during token replacing below.  */
-      token->u.tree_check_value = GGC_CNEW (struct tree_check);
+      token->u.tree_check_value = ggc_alloc_cleared_tree_check ();
       token->u.tree_check_value->value = parser->scope;
       token->u.tree_check_value->checks = get_deferred_access_checks ();
       token->u.tree_check_value->qualifying_scope =
@@ -5841,6 +5891,51 @@ cp_parser_unary_expression (cp_parser *parser, bool address_p, bool cast_p,
 	  }
 	  break;
 
+	case RID_NOEXCEPT:
+	  {
+	    tree expr;
+	    const char *saved_message;
+	    bool saved_integral_constant_expression_p;
+	    bool saved_non_integral_constant_expression_p;
+	    bool saved_greater_than_is_operator_p;
+
+	    cp_lexer_consume_token (parser->lexer);
+	    cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN);
+
+	    saved_message = parser->type_definition_forbidden_message;
+	    parser->type_definition_forbidden_message
+	      = G_("types may not be defined in %<noexcept%> expressions");
+
+	    saved_integral_constant_expression_p
+	      = parser->integral_constant_expression_p;
+	    saved_non_integral_constant_expression_p
+	      = parser->non_integral_constant_expression_p;
+	    parser->integral_constant_expression_p = false;
+
+	    saved_greater_than_is_operator_p
+	      = parser->greater_than_is_operator_p;
+	    parser->greater_than_is_operator_p = true;
+
+	    ++cp_unevaluated_operand;
+	    ++c_inhibit_evaluation_warnings;
+	    expr = cp_parser_expression (parser, false, NULL);
+	    --c_inhibit_evaluation_warnings;
+	    --cp_unevaluated_operand;
+
+	    parser->greater_than_is_operator_p
+	      = saved_greater_than_is_operator_p;
+
+	    parser->integral_constant_expression_p
+	      = saved_integral_constant_expression_p;
+	    parser->non_integral_constant_expression_p
+	      = saved_non_integral_constant_expression_p;
+
+	    parser->type_definition_forbidden_message = saved_message;
+
+	    cp_parser_require (parser, CPP_CLOSE_PAREN, RT_CLOSE_PAREN);
+	    return finish_noexcept_expr (expr, tf_warning_or_error);
+	  }
+
 	default:
 	  break;
 	}
@@ -6770,15 +6865,20 @@ cp_parser_question_colon_clause (cp_parser* parser, tree logical_or_expr)
 {
   tree expr;
   tree assignment_expr;
+  struct cp_token *token;
 
   /* Consume the `?' token.  */
   cp_lexer_consume_token (parser->lexer);
+  token = cp_lexer_peek_token (parser->lexer);
   if (cp_parser_allow_gnu_extensions_p (parser)
-      && cp_lexer_next_token_is (parser->lexer, CPP_COLON))
+      && token->type == CPP_COLON)
     {
+      pedwarn (token->location, OPT_pedantic, 
+               "ISO C++ does not allow ?: with omitted middle operand");
       /* Implicit true clause.  */
       expr = NULL_TREE;
       c_inhibit_evaluation_warnings += logical_or_expr == truthvalue_true_node;
+      warn_for_omitted_condop (token->location, logical_or_expr);
     }
   else
     {
@@ -7646,7 +7746,7 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
 
       /* The function parameters must be in scope all the way until after the
          trailing-return-type in case of decltype.  */
-      for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
+      for (t = current_binding_level->names; t; t = DECL_CHAIN (t))
 	pop_binding (DECL_NAME (t), t);
 
       leave_scope ();
@@ -11087,14 +11187,10 @@ cp_parser_template_id (cp_parser *parser,
       access_check = check_value->checks;
       if (access_check)
 	{
-	  for (i = 0 ;
-	       VEC_iterate (deferred_access_check, access_check, i, chk) ;
-	       ++i)
-	    {
-	      perform_or_defer_access_check (chk->binfo,
-					     chk->decl,
-					     chk->diag_decl);
-	    }
+	  FOR_EACH_VEC_ELT (deferred_access_check, access_check, i, chk)
+	    perform_or_defer_access_check (chk->binfo,
+					   chk->decl,
+					   chk->diag_decl);
 	}
       /* Return the stored value.  */
       return check_value->value;
@@ -11230,7 +11326,7 @@ cp_parser_template_id (cp_parser *parser,
       token->type = CPP_TEMPLATE_ID;
       /* Retrieve any deferred checks.  Do not pop this access checks yet
 	 so the memory will not be reclaimed during token replacing below.  */
-      token->u.tree_check_value = GGC_CNEW (struct tree_check);
+      token->u.tree_check_value = ggc_alloc_cleared_tree_check ();
       token->u.tree_check_value->value = template_id;
       token->u.tree_check_value->checks = get_deferred_access_checks ();
       token->keyword = RID_MAX;
@@ -14029,7 +14125,7 @@ cp_parser_init_declarator (cp_parser* parser,
 			 `explicit' constructor is OK.  Otherwise, an
 			 `explicit' constructor cannot be used.  */
 		      ((is_direct_init || !is_initialized)
-		       ? 0 : LOOKUP_ONLYCONVERTING));
+		       ? LOOKUP_NORMAL : LOOKUP_IMPLICIT));
     }
   else if ((cxx_dialect != cxx98) && friend_p
 	   && decl && TREE_CODE (decl) == FUNCTION_DECL)
@@ -14318,7 +14414,7 @@ cp_parser_direct_declarator (cp_parser* parser,
 		}
 
 	      /* Remove the function parms from scope.  */
-	      for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
+	      for (t = current_binding_level->names; t; t = DECL_CHAIN (t))
 		pop_binding (DECL_NAME (t), t);
 	      leave_scope();
 
@@ -16203,10 +16299,11 @@ cp_parser_class_specifier (cp_parser* parser)
      there is no need to delay the parsing of `A::B::f'.  */
   if (--parser->num_classes_being_defined == 0)
     {
-      tree queue_entry;
       tree fn;
       tree class_type = NULL_TREE;
       tree pushed_scope = NULL_TREE;
+      unsigned ix;
+      cp_default_arg_entry *e;
 
       /* In a first pass, parse default arguments to the functions.
 	 Then, in a second pass, parse the bodies of the functions.
@@ -16218,20 +16315,17 @@ cp_parser_class_specifier (cp_parser* parser)
 	    };
 
 	 */
-      for (TREE_PURPOSE (parser->unparsed_functions_queues)
-	     = nreverse (TREE_PURPOSE (parser->unparsed_functions_queues));
-	   (queue_entry = TREE_PURPOSE (parser->unparsed_functions_queues));
-	   TREE_PURPOSE (parser->unparsed_functions_queues)
-	     = TREE_CHAIN (TREE_PURPOSE (parser->unparsed_functions_queues)))
+      FOR_EACH_VEC_ELT (cp_default_arg_entry, unparsed_funs_with_default_args,
+			ix, e)
 	{
-	  fn = TREE_VALUE (queue_entry);
+	  fn = e->decl;
 	  /* If there are default arguments that have not yet been processed,
 	     take care of them now.  */
-	  if (class_type != TREE_PURPOSE (queue_entry))
+	  if (class_type != e->class_type)
 	    {
 	      if (pushed_scope)
 		pop_scope (pushed_scope);
-	      class_type = TREE_PURPOSE (queue_entry);
+	      class_type = e->class_type;
 	      pushed_scope = push_scope (class_type);
 	    }
 	  /* Make sure that any template parameters are in scope.  */
@@ -16243,18 +16337,11 @@ cp_parser_class_specifier (cp_parser* parser)
 	}
       if (pushed_scope)
 	pop_scope (pushed_scope);
+      VEC_truncate (cp_default_arg_entry, unparsed_funs_with_default_args, 0);
       /* Now parse the body of the functions.  */
-      for (TREE_VALUE (parser->unparsed_functions_queues)
-	     = nreverse (TREE_VALUE (parser->unparsed_functions_queues));
-	   (queue_entry = TREE_VALUE (parser->unparsed_functions_queues));
-	   TREE_VALUE (parser->unparsed_functions_queues)
-	     = TREE_CHAIN (TREE_VALUE (parser->unparsed_functions_queues)))
-	{
-	  /* Figure out which function we need to process.  */
-	  fn = TREE_VALUE (queue_entry);
-	  /* Parse the function.  */
-	  cp_parser_late_parsing_for_member (parser, fn);
-	}
+      FOR_EACH_VEC_ELT (tree, unparsed_funs_with_definitions, ix, fn)
+	cp_parser_late_parsing_for_member (parser, fn);
+      VEC_truncate (tree, unparsed_funs_with_definitions, 0);
     }
 
   /* Put back any saved access checks.  */
@@ -17489,12 +17576,49 @@ cp_parser_exception_specification_opt (cp_parser* parser)
 {
   cp_token *token;
   tree type_id_list;
+  const char *saved_message;
 
   /* Peek at the next token.  */
   token = cp_lexer_peek_token (parser->lexer);
+
+  /* Is it a noexcept-specification?  */
+  if (cp_parser_is_keyword (token, RID_NOEXCEPT))
+    {
+      tree expr;
+      cp_lexer_consume_token (parser->lexer);
+
+      if (cp_lexer_peek_token (parser->lexer)->type == CPP_OPEN_PAREN)
+	{
+	  cp_lexer_consume_token (parser->lexer);
+
+	  /* Types may not be defined in an exception-specification.  */
+	  saved_message = parser->type_definition_forbidden_message;
+	  parser->type_definition_forbidden_message
+	    = G_("types may not be defined in an exception-specification");
+
+	  expr = cp_parser_constant_expression (parser, false, NULL);
+
+	  /* Restore the saved message.  */
+	  parser->type_definition_forbidden_message = saved_message;
+
+	  cp_parser_require (parser, CPP_CLOSE_PAREN, RT_CLOSE_PAREN);
+	}
+      else
+	expr = boolean_true_node;
+
+      return build_noexcept_spec (expr, tf_warning_or_error);
+    }
+
   /* If it's not `throw', then there's no exception-specification.  */
   if (!cp_parser_is_keyword (token, RID_THROW))
     return NULL_TREE;
+
+#if 0
+  /* Enable this once a lot of code has transitioned to noexcept?  */
+  if (cxx_dialect == cxx0x && !in_system_header)
+    warning (OPT_Wdeprecated, "dynamic exception specifications are "
+	     "deprecated in C++0x; use %<noexcept%> instead.");
+#endif
 
   /* Consume the `throw'.  */
   cp_lexer_consume_token (parser->lexer);
@@ -17507,8 +17631,6 @@ cp_parser_exception_specification_opt (cp_parser* parser)
   /* If it's not a `)', then there is a type-id-list.  */
   if (token->type != CPP_CLOSE_PAREN)
     {
-      const char *saved_message;
-
       /* Types may not be defined in an exception-specification.  */
       saved_message = parser->type_definition_forbidden_message;
       parser->type_definition_forbidden_message
@@ -18285,6 +18407,14 @@ cp_parser_lookup_name (cp_parser *parser, tree name,
 	  if (dependent_p)
 	    pushed_scope = push_scope (parser->scope);
 
+	  /* If the PARSER->SCOPE is a template specialization, it
+	     may be instantiated during name lookup.  In that case,
+	     errors may be issued.  Even if we rollback the current
+	     tentative parse, those errors are valid.  */
+	  decl = lookup_qualified_name (parser->scope, name,
+					tag_type != none_type,
+					/*complain=*/true);
+
 	  /* 3.4.3.1: In a lookup in which the constructor is an acceptable
 	     lookup result and the nested-name-specifier nominates a class C:
 	       * if the name specified after the nested-name-specifier, when
@@ -18300,17 +18430,11 @@ cp_parser_lookup_name (cp_parser *parser, tree name,
 	     shall be used only in the declarator-id of a declaration that
 	     names a constructor or in a using-declaration.  */
 	  if (tag_type == none_type
-	      && CLASS_TYPE_P (parser->scope)
-	      && constructor_name_p (name, parser->scope))
-	    name = ctor_identifier;
-
-	  /* If the PARSER->SCOPE is a template specialization, it
-	     may be instantiated during name lookup.  In that case,
-	     errors may be issued.  Even if we rollback the current
-	     tentative parse, those errors are valid.  */
-	  decl = lookup_qualified_name (parser->scope, name,
-					tag_type != none_type,
-					/*complain=*/true);
+	      && DECL_SELF_REFERENCE_P (decl)
+	      && same_type_p (DECL_CONTEXT (decl), parser->scope))
+	    decl = lookup_qualified_name (parser->scope, ctor_identifier,
+					  tag_type != none_type,
+					  /*complain=*/true);
 
 	  /* If we have a single function from a using decl, pull it out.  */
 	  if (TREE_CODE (decl) == OVERLOAD
@@ -19070,9 +19194,7 @@ cp_parser_template_declaration_after_export (cp_parser* parser, bool member_p)
   if (member_p && decl
       && (TREE_CODE (decl) == FUNCTION_DECL
 	  || DECL_FUNCTION_TEMPLATE_P (decl)))
-    TREE_VALUE (parser->unparsed_functions_queues)
-      = tree_cons (NULL_TREE, decl,
-		   TREE_VALUE (parser->unparsed_functions_queues));
+    VEC_safe_push (tree, gc, unparsed_funs_with_definitions, decl);
 }
 
 /* Perform the deferred access checks from a template-parameter-list.
@@ -19342,9 +19464,7 @@ cp_parser_save_member_function_body (cp_parser* parser,
   DECL_INITIALIZED_IN_CLASS_P (fn) = 1;
 
   /* Add FN to the queue of functions to be parsed later.  */
-  TREE_VALUE (parser->unparsed_functions_queues)
-    = tree_cons (NULL_TREE, fn,
-		 TREE_VALUE (parser->unparsed_functions_queues));
+  VEC_safe_push (tree, gc, unparsed_funs_with_definitions, fn);
 
   return fn;
 }
@@ -19475,8 +19595,7 @@ cp_parser_late_parsing_for_member (cp_parser* parser, tree member_function)
      classes.  We want to handle them right away, but we don't want
      them getting mixed up with functions that are currently in the
      queue.  */
-  parser->unparsed_functions_queues
-    = tree_cons (NULL_TREE, NULL_TREE, parser->unparsed_functions_queues);
+  push_unparsed_function_queues (parser);
 
   /* Make sure that any template parameters are in scope.  */
   maybe_begin_member_template_processing (member_function);
@@ -19528,8 +19647,7 @@ cp_parser_late_parsing_for_member (cp_parser* parser, tree member_function)
   maybe_end_member_template_processing ();
 
   /* Restore the queue.  */
-  parser->unparsed_functions_queues
-    = TREE_CHAIN (parser->unparsed_functions_queues);
+  pop_unparsed_function_queues (parser);
 }
 
 /* If DECL contains any default args, remember it on the unparsed
@@ -19545,9 +19663,11 @@ cp_parser_save_default_args (cp_parser* parser, tree decl)
        probe = TREE_CHAIN (probe))
     if (TREE_PURPOSE (probe))
       {
-	TREE_PURPOSE (parser->unparsed_functions_queues)
-	  = tree_cons (current_class_type, decl,
-		       TREE_PURPOSE (parser->unparsed_functions_queues));
+	cp_default_arg_entry *entry
+	  = VEC_safe_push (cp_default_arg_entry, gc,
+			   unparsed_funs_with_default_args, NULL);
+	entry->class_type = current_class_type;
+	entry->decl = decl;
 	break;
       }
 }
@@ -19567,8 +19687,7 @@ cp_parser_late_parsing_default_args (cp_parser *parser, tree fn)
      statement expression extension) encounter more classes.  We want
      to handle them right away, but we don't want them getting mixed
      up with default args that are currently in the queue.  */
-  parser->unparsed_functions_queues
-    = tree_cons (NULL_TREE, NULL_TREE, parser->unparsed_functions_queues);
+  push_unparsed_function_queues (parser);
 
   /* Local variable names (and the `this' keyword) may not appear
      in a default argument.  */
@@ -19579,7 +19698,7 @@ cp_parser_late_parsing_default_args (cp_parser *parser, tree fn)
 	 parmdecl = DECL_ARGUMENTS (fn);
        parm && parm != void_list_node;
        parm = TREE_CHAIN (parm),
-	 parmdecl = TREE_CHAIN (parmdecl))
+	 parmdecl = DECL_CHAIN (parmdecl))
     {
       cp_token_cache *tokens;
       tree default_arg = TREE_PURPOSE (parm);
@@ -19640,8 +19759,7 @@ cp_parser_late_parsing_default_args (cp_parser *parser, tree fn)
   parser->local_variables_forbidden_p = saved_local_variables_forbidden_p;
 
   /* Restore the queue.  */
-  parser->unparsed_functions_queues
-    = TREE_CHAIN (parser->unparsed_functions_queues);
+  pop_unparsed_function_queues (parser);
 }
 
 /* Parse the operand of `sizeof' (or a similar operator).  Returns
@@ -20343,14 +20461,10 @@ cp_parser_pre_parsed_nested_name_specifier (cp_parser *parser)
   checks = check_value->checks;
   if (checks)
     {
-      for (i = 0 ;
-	   VEC_iterate (deferred_access_check, checks, i, chk) ;
-	   ++i)
-	{
-	  perform_or_defer_access_check (chk->binfo,
-					 chk->decl,
-					 chk->diag_decl);
-	}
+      FOR_EACH_VEC_ELT (deferred_access_check, checks, i, chk)
+	perform_or_defer_access_check (chk->binfo,
+				       chk->decl,
+				       chk->diag_decl);
     }
   /* Set the scope from the stored value.  */
   parser->scope = check_value->value;
@@ -22618,11 +22732,12 @@ static tree
 cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 {
   tree init, cond, incr, body, decl, pre_body = NULL_TREE, ret;
-  tree for_block = NULL_TREE, real_decl, initv, condv, incrv, declv;
+  tree real_decl, initv, condv, incrv, declv;
   tree this_pre_body, cl;
   location_t loc_first;
   bool collapse_err = false;
   int i, collapse = 1, nbraces = 0;
+  VEC(tree,gc) *for_block = make_tree_vector ();
 
   for (cl = clauses; cl; cl = OMP_CLAUSE_CHAIN (cl))
     if (OMP_CLAUSE_CODE (cl) == OMP_CLAUSE_COLLAPSE)
@@ -22741,8 +22856,7 @@ cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 				      LOOKUP_ONLYCONVERTING);
 		      if (CLASS_TYPE_P (TREE_TYPE (decl)))
 			{
-			  for_block
-			    = tree_cons (NULL, this_pre_body, for_block);
+			  VEC_safe_push (tree, gc, for_block, this_pre_body);
 			  init = NULL_TREE;
 			}
 		      else
@@ -22996,11 +23110,9 @@ cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 	}
     }
 
-  while (for_block)
-    {
-      add_stmt (pop_stmt_list (TREE_VALUE (for_block)));
-      for_block = TREE_CHAIN (for_block);
-    }
+  while (!VEC_empty (tree, for_block))
+    add_stmt (pop_stmt_list (VEC_pop (tree, for_block)));
+  release_tree_vector (for_block);
 
   return ret;
 }

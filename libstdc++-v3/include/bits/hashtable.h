@@ -212,7 +212,22 @@ namespace std
       _Hashtable(_Hashtable&&);
       
       _Hashtable&
-      operator=(const _Hashtable&);
+      operator=(const _Hashtable& __ht)
+      {
+	_Hashtable __tmp(__ht);
+	this->swap(__tmp);
+	return *this;
+      }
+
+      _Hashtable&
+      operator=(_Hashtable&& __ht)
+      {
+	// NB: DR 1204.
+	// NB: DR 675.
+	this->clear();
+	this->swap(__ht);
+	return *this;
+      }
 
       ~_Hashtable();
 
@@ -651,31 +666,16 @@ namespace std
 				_H1, _H2, _Hash, __chc>(__ht),
       __detail::_Map_base<_Key, _Value, _ExtractKey, __uk, _Hashtable>(__ht),
       _M_node_allocator(__ht._M_node_allocator),
+      _M_buckets(__ht._M_buckets),
       _M_bucket_count(__ht._M_bucket_count),
       _M_element_count(__ht._M_element_count),
-      _M_rehash_policy(__ht._M_rehash_policy),
-      _M_buckets(__ht._M_buckets)
+      _M_rehash_policy(__ht._M_rehash_policy)
     {
       size_type __n_bkt = __ht._M_rehash_policy._M_next_bkt(0);
       __ht._M_buckets = __ht._M_allocate_buckets(__n_bkt);
       __ht._M_bucket_count = __n_bkt;
       __ht._M_element_count = 0;
       __ht._M_rehash_policy = _RehashPolicy();
-    }
-
-  template<typename _Key, typename _Value, 
-	   typename _Allocator, typename _ExtractKey, typename _Equal,
-	   typename _H1, typename _H2, typename _Hash, typename _RehashPolicy,
-	   bool __chc, bool __cit, bool __uk>
-    _Hashtable<_Key, _Value, _Allocator, _ExtractKey, _Equal,
-	       _H1, _H2, _Hash, _RehashPolicy, __chc, __cit, __uk>&
-    _Hashtable<_Key, _Value, _Allocator, _ExtractKey, _Equal,
-	       _H1, _H2, _Hash, _RehashPolicy, __chc, __cit, __uk>::
-    operator=(const _Hashtable& __ht)
-    {
-      _Hashtable __tmp(__ht);
-      this->swap(__tmp);
-      return *this;
     }
 
   template<typename _Key, typename _Value, 
@@ -1079,7 +1079,8 @@ namespace std
 	  // _GLIBCXX_RESOLVE_LIB_DEFECTS
 	  // 526. Is it undefined if a function in the standard changes
 	  // in parameters?
-	  if (&this->_M_extract((*__slot)->_M_v) != &__k)
+	  if (std::__addressof(this->_M_extract((*__slot)->_M_v))
+	      != std::__addressof(__k))
 	    {
               _Node* __p = *__slot;
               *__slot = __p->_M_next;

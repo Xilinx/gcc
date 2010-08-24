@@ -33,9 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #define PREFERRED_DEBUGGING_TYPE DBX_DEBUG
 #endif
 
-#undef TARGET_64BIT_MS_ABI
-#define TARGET_64BIT_MS_ABI (!cfun ? ix86_abi == MS_ABI : TARGET_64BIT && cfun->machine->call_abi == MS_ABI)
-
 #undef DEFAULT_ABI
 #define DEFAULT_ABI (TARGET_64BIT ? MS_ABI : SYSV_ABI)
 
@@ -48,7 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef ASM_GENERATE_INTERNAL_LABEL
 #define ASM_GENERATE_INTERNAL_LABEL(BUF,PREFIX,NUMBER)  \
-  sprintf ((BUF), "%s%s%ld", LOCAL_LABEL_PREFIX, \
+  sprintf ((BUF), "*%s%s%ld", LOCAL_LABEL_PREFIX, \
 	   (PREFIX), (long)(NUMBER))
 
 #undef LPREFIX
@@ -276,7 +273,7 @@ do {						\
       i386_pe_maybe_record_exported_symbol (DECL, NAME, 0);		\
       if (write_symbols != SDB_DEBUG)					\
 	i386_pe_declare_function_type (FILE, NAME, TREE_PUBLIC (DECL));	\
-      ASM_OUTPUT_LABEL (FILE, NAME);					\
+      ASM_OUTPUT_FUNCTION_LABEL (FILE, NAME, DECL);			\
     }									\
   while (0)
 
@@ -428,6 +425,9 @@ do {						\
 #define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P i386_pe_valid_dllimport_attribute_p
 #define TARGET_CXX_ADJUST_CLASS_AT_DEFINITION i386_pe_adjust_class_at_definition
 #define TARGET_MANGLE_DECL_ASSEMBLER_NAME i386_pe_mangle_decl_assembler_name
+
+/* Static stack checking is supported by means of probes.  */
+#define STACK_CHECK_STATIC_BUILTIN 1
 
 #undef TREE
 

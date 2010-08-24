@@ -35,7 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "langhooks.h"
 #include "ggc.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "gimple.h"
 #include "target.h"
 
@@ -96,7 +96,7 @@ add_stmt_to_eh_lp_fn (struct function *ifun, gimple t, int num)
 
   gcc_assert (num != 0);
 
-  n = GGC_NEW (struct throw_stmt_node);
+  n = ggc_alloc_throw_stmt_node ();
   n->stmt = t;
   n->lp_nr = num;
 
@@ -847,9 +847,8 @@ emit_eh_dispatch (gimple_seq *seq, eh_region region)
 static void
 note_eh_region_may_contain_throw (eh_region region)
 {
-  while (!bitmap_bit_p (eh_region_may_contain_throw_map, region->index))
+  while (bitmap_set_bit (eh_region_may_contain_throw_map, region->index))
     {
-      bitmap_set_bit (eh_region_may_contain_throw_map, region->index);
       region = region->outer;
       if (region == NULL)
 	break;
@@ -951,12 +950,12 @@ lower_try_finally_fallthru_label (struct leh_tf_state *tf)
   return label;
 }
 
-/* A subroutine of lower_try_finally.  If lang_protect_cleanup_actions
-   returns non-null, then the language requires that the exception path out
-   of a try_finally be treated specially.  To wit: the code within the
-   finally block may not itself throw an exception.  We have two choices here.
-   First we can duplicate the finally block and wrap it in a must_not_throw
-   region.  Second, we can generate code like
+/* A subroutine of lower_try_finally.  If the eh_protect_cleanup_actions
+   langhook returns non-null, then the language requires that the exception
+   path out of a try_finally be treated specially.  To wit: the code within
+   the finally block may not itself throw an exception.  We have two choices
+   here. First we can duplicate the finally block and wrap it in a
+   must_not_throw region.  Second, we can generate code like
 
 	try {
 	  finally_block;
@@ -983,9 +982,9 @@ honor_protect_cleanup_actions (struct leh_state *outer_state,
   gimple x;
 
   /* First check for nothing to do.  */
-  if (lang_protect_cleanup_actions == NULL)
+  if (lang_hooks.eh_protect_cleanup_actions == NULL)
     return;
-  protect_cleanup_actions = lang_protect_cleanup_actions ();
+  protect_cleanup_actions = lang_hooks.eh_protect_cleanup_actions ();
   if (protect_cleanup_actions == NULL)
     return;
 
@@ -1877,7 +1876,7 @@ lower_eh_constructs_2 (struct leh_state *state, gimple_stmt_iterator *gsi)
 	      else
 		{
 		  /* The user has dome something silly.  Remove it.  */
-		  rhs = build_int_cst (ptr_type_node, 0);
+		  rhs = null_pointer_node;
 		  goto do_replace;
 		}
 	      break;
@@ -2405,11 +2404,10 @@ tree_could_trap_p (tree expr)
   switch (code)
     {
     case TARGET_MEM_REF:
-      /* For TARGET_MEM_REFs use the information based on the original
-	 reference.  */
-      expr = TMR_ORIGINAL (expr);
-      code = TREE_CODE (expr);
-      goto restart;
+      if (TMR_SYMBOL (expr)
+	  && !TMR_INDEX (expr))
+	return false;
+      return !TREE_THIS_NOTRAP (expr);
 
     case COMPONENT_REF:
     case REALPART_EXPR:
@@ -2437,8 +2435,11 @@ tree_could_trap_p (tree expr)
 	return false;
       return !in_array_bounds_p (expr);
 
+    case MEM_REF:
+      if (TREE_CODE (TREE_OPERAND (expr, 0)) == ADDR_EXPR)
+	return false;
+      /* Fallthru.  */
     case INDIRECT_REF:
-    case ALIGN_INDIRECT_REF:
     case MISALIGNED_INDIRECT_REF:
       return !TREE_THIS_NOTRAP (expr);
 

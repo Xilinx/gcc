@@ -30,10 +30,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "cp-tree.h"
-#include "c-common.h"
+#include "c-family/c-common.h"
 #include "tree-inline.h"
 #include "tree-mudflap.h"
-#include "except.h"
 #include "toplev.h"
 #include "flags.h"
 #include "output.h"
@@ -233,14 +232,10 @@ pop_to_parent_deferring_access_checks (void)
 	  int i, j;
 	  deferred_access_check *chk, *probe;
 
-	  for (i = 0 ;
-	       VEC_iterate (deferred_access_check, checks, i, chk) ;
-	       ++i)
+	  FOR_EACH_VEC_ELT (deferred_access_check, checks, i, chk)
 	    {
-	      for (j = 0 ;
-		   VEC_iterate (deferred_access_check,
-				ptr->deferred_access_checks, j, probe) ;
-		   ++j)
+	      FOR_EACH_VEC_ELT (deferred_access_check,
+				ptr->deferred_access_checks, j, probe)
 		{
 		  if (probe->binfo == chk->binfo &&
 		      probe->decl == chk->decl &&
@@ -269,7 +264,7 @@ perform_access_checks (VEC (deferred_access_check,gc)* checks)
   if (!checks)
     return;
 
-  for (i = 0 ; VEC_iterate (deferred_access_check, checks, i, chk) ; ++i)
+  FOR_EACH_VEC_ELT (deferred_access_check, checks, i, chk)
     enforce_access (chk->binfo, chk->decl, chk->diag_decl);
 }
 
@@ -324,10 +319,8 @@ perform_or_defer_access_check (tree binfo, tree decl, tree diag_decl)
     }
 
   /* See if we are already going to perform this check.  */
-  for (i = 0 ;
-       VEC_iterate (deferred_access_check,
-		    ptr->deferred_access_checks, i, chk) ;
-       ++i)
+  FOR_EACH_VEC_ELT  (deferred_access_check,
+		     ptr->deferred_access_checks, i, chk)
     {
       if (chk->decl == decl && chk->binfo == binfo &&
 	  chk->diag_decl == diag_decl)
@@ -608,10 +601,10 @@ finish_expr_stmt (tree expr)
 	{
 	  if (warn_sequence_point)
 	    verify_sequence_points (expr);
-	  expr = convert_to_void (expr, "statement", tf_warning_or_error);
+	  expr = convert_to_void (expr, ICV_STATEMENT, tf_warning_or_error);
 	}
       else if (!type_dependent_expression_p (expr))
-	convert_to_void (build_non_dependent_expr (expr), "statement", 
+	convert_to_void (build_non_dependent_expr (expr), ICV_STATEMENT, 
                          tf_warning_or_error);
 
       if (check_for_bare_parameter_packs (expr))
@@ -869,11 +862,11 @@ finish_for_expr (tree expr, tree for_stmt)
     {
       if (warn_sequence_point)
 	verify_sequence_points (expr);
-      expr = convert_to_void (expr, "3rd expression in for",
+      expr = convert_to_void (expr, ICV_THIRD_IN_FOR,
                               tf_warning_or_error);
     }
   else if (!type_dependent_expression_p (expr))
-    convert_to_void (build_non_dependent_expr (expr), "3rd expression in for",
+    convert_to_void (build_non_dependent_expr (expr), ICV_THIRD_IN_FOR,
                      tf_warning_or_error);
   expr = maybe_cleanup_point_expr_void (expr);
   if (check_for_bare_parameter_packs (expr))
@@ -1219,7 +1212,7 @@ finish_asm_stmt (int volatile_p, tree string, tree output_operands,
       tree operand;
       int i;
 
-      oconstraints = (const char **) alloca (noutputs * sizeof (char *));
+      oconstraints = XALLOCAVEC (const char *, noutputs);
 
       string = resolve_asm_operand_names (string, output_operands,
 					  input_operands, labels);
@@ -2419,7 +2412,7 @@ finish_member_declaration (tree decl)
     return;
 
   /* We should see only one DECL at a time.  */
-  gcc_assert (TREE_CHAIN (decl) == NULL_TREE);
+  gcc_assert (DECL_CHAIN (decl) == NULL_TREE);
 
   /* Set up access control for DECL.  */
   TREE_PRIVATE (decl)
@@ -2461,7 +2454,7 @@ finish_member_declaration (tree decl)
 	 CLASSTYPE_METHOD_VEC.  */
       if (add_method (current_class_type, decl, NULL_TREE))
 	{
-	  TREE_CHAIN (decl) = TYPE_METHODS (current_class_type);
+	  DECL_CHAIN (decl) = TYPE_METHODS (current_class_type);
 	  TYPE_METHODS (current_class_type) = decl;
 
 	  maybe_add_class_template_decl_list (current_class_type, decl,
@@ -2494,7 +2487,7 @@ finish_member_declaration (tree decl)
 	  = chainon (TYPE_FIELDS (current_class_type), decl);
       else
 	{
-	  TREE_CHAIN (decl) = TYPE_FIELDS (current_class_type);
+	  DECL_CHAIN (decl) = TYPE_FIELDS (current_class_type);
 	  TYPE_FIELDS (current_class_type) = decl;
 	}
 
@@ -3098,7 +3091,13 @@ finish_id_expression (tree id_expression,
 	    {
 	      tree r = convert_from_reference (decl);
 
-	      if (processing_template_decl && TYPE_P (scope))
+	      /* In a template, return a SCOPE_REF for most qualified-ids
+		 so that we can check access at instantiation time.  But if
+		 we're looking at a member of the current instantiation, we
+		 know we have access and building up the SCOPE_REF confuses
+		 non-type template argument handling.  */
+	      if (processing_template_decl && TYPE_P (scope)
+		  && !currently_open_class (scope))
 		r = build_qualified_name (TREE_TYPE (r),
 					  scope, decl,
 					  template_p);
@@ -3255,6 +3254,7 @@ simplify_aggr_init_expr (tree *tp)
 				    fn,
 				    aggr_init_expr_nargs (aggr_init_expr),
 				    AGGR_INIT_EXPR_ARGP (aggr_init_expr));
+  TREE_NOTHROW (call_expr) = TREE_NOTHROW (aggr_init_expr);
 
   if (style == ctor)
     {
@@ -3313,7 +3313,7 @@ emit_associated_thunks (tree fn)
     {
       tree thunk;
 
-      for (thunk = DECL_THUNKS (fn); thunk; thunk = TREE_CHAIN (thunk))
+      for (thunk = DECL_THUNKS (fn); thunk; thunk = DECL_CHAIN (thunk))
 	{
 	  if (!THUNK_ALIAS (thunk))
 	    {
@@ -3323,7 +3323,7 @@ emit_associated_thunks (tree fn)
 		  tree probe;
 
 		  for (probe = DECL_THUNKS (thunk);
-		       probe; probe = TREE_CHAIN (probe))
+		       probe; probe = DECL_CHAIN (probe))
 		    use_thunk (probe, /*emit_p=*/1);
 		}
 	    }
@@ -3521,31 +3521,6 @@ finalize_nrv (tree *tp, tree var, tree result)
   htab_delete (data.visited);
 }
 
-/* Return the declaration for the function called by CALL_EXPR T,
-   TYPE is the class type of the clause decl.  */
-
-static tree
-omp_clause_info_fndecl (tree t, tree type)
-{
-  tree ret = get_callee_fndecl (t);
-
-  if (ret)
-    return ret;
-
-  gcc_assert (TREE_CODE (t) == CALL_EXPR);
-  t = CALL_EXPR_FN (t);
-  STRIP_NOPS (t);
-  if (TREE_CODE (t) == OBJ_TYPE_REF)
-    {
-      t = cp_fold_obj_type_ref (t, type);
-      if (TREE_CODE (t) == ADDR_EXPR
-	  && TREE_CODE (TREE_OPERAND (t, 0)) == FUNCTION_DECL)
-	return TREE_OPERAND (t, 0);
-    }
-
-  return NULL_TREE;
-}
-
 /* Create CP_OMP_CLAUSE_INFO for clause C.  Returns true if it is invalid.  */
 
 bool
@@ -3563,80 +3538,27 @@ cxx_omp_create_clause_info (tree c, tree type, bool need_default_ctor,
   info = make_tree_vec (3);
   CP_OMP_CLAUSE_INFO (c) = info;
 
-  if (need_default_ctor
-      || (need_copy_ctor && !TYPE_HAS_TRIVIAL_INIT_REF (type)))
+  if (need_default_ctor || need_copy_ctor)
     {
-      VEC(tree,gc) *vec;
-
       if (need_default_ctor)
-	vec = NULL;
+	t = get_default_ctor (type);
       else
-	{
-	  t = build_int_cst (build_pointer_type (type), 0);
-	  t = build1 (INDIRECT_REF, type, t);
-	  vec = make_tree_vector_single (t);
-	}
-      t = build_special_member_call (NULL_TREE, complete_ctor_identifier,
-				     &vec, type, LOOKUP_NORMAL,
-				     tf_warning_or_error);
+	t = get_copy_ctor (type);
 
-      if (vec != NULL)
-	release_tree_vector (vec);
-
-      if (targetm.cxx.cdtor_returns_this () || errorcount)
-	/* Because constructors and destructors return this,
-	   the call will have been cast to "void".  Remove the
-	   cast here.  We would like to use STRIP_NOPS, but it
-	   wouldn't work here because TYPE_MODE (t) and
-	   TYPE_MODE (TREE_OPERAND (t, 0)) are different.
-	   They are VOIDmode and Pmode, respectively.  */
-	if (TREE_CODE (t) == NOP_EXPR)
-	  t = TREE_OPERAND (t, 0);
-
-      TREE_VEC_ELT (info, 0) = get_callee_fndecl (t);
+      if (t && !trivial_fn_p (t))
+	TREE_VEC_ELT (info, 0) = t;
     }
 
   if ((need_default_ctor || need_copy_ctor)
       && TYPE_HAS_NONTRIVIAL_DESTRUCTOR (type))
+    TREE_VEC_ELT (info, 1) = get_dtor (type);
+
+  if (need_copy_assignment)
     {
-      t = build_int_cst (build_pointer_type (type), 0);
-      t = build1 (INDIRECT_REF, type, t);
-      t = build_special_member_call (t, complete_dtor_identifier,
-				     NULL, type, LOOKUP_NORMAL,
-				     tf_warning_or_error);
+      t = get_copy_assign (type);
 
-      if (targetm.cxx.cdtor_returns_this () || errorcount)
-	/* Because constructors and destructors return this,
-	   the call will have been cast to "void".  Remove the
-	   cast here.  We would like to use STRIP_NOPS, but it
-	   wouldn't work here because TYPE_MODE (t) and
-	   TYPE_MODE (TREE_OPERAND (t, 0)) are different.
-	   They are VOIDmode and Pmode, respectively.  */
-	if (TREE_CODE (t) == NOP_EXPR)
-	  t = TREE_OPERAND (t, 0);
-
-      TREE_VEC_ELT (info, 1) = omp_clause_info_fndecl (t, type);
-    }
-
-  if (need_copy_assignment && !TYPE_HAS_TRIVIAL_ASSIGN_REF (type))
-    {
-      VEC(tree,gc) *vec;
-
-      t = build_int_cst (build_pointer_type (type), 0);
-      t = build1 (INDIRECT_REF, type, t);
-      vec = make_tree_vector_single (t);
-      t = build_special_member_call (t, ansi_assopname (NOP_EXPR),
-				     &vec, type, LOOKUP_NORMAL,
-				     tf_warning_or_error);
-      release_tree_vector (vec);
-
-      /* We'll have called convert_from_reference on the call, which
-	 may well have added an indirect_ref.  It's unneeded here,
-	 and in the way, so kill it.  */
-      if (TREE_CODE (t) == INDIRECT_REF)
-	t = TREE_OPERAND (t, 0);
-
-      TREE_VEC_ELT (info, 2) = omp_clause_info_fndecl (t, type);
+      if (t && !trivial_fn_p (t))
+	TREE_VEC_ELT (info, 2) = t;
     }
 
   return errorcount != save_errorcount;
@@ -4971,8 +4893,9 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
                 type = TYPE_MAIN_VARIANT (type);
               else if (real_lvalue_p (expr))
                 {
-                  if (TREE_CODE (type) != REFERENCE_TYPE)
-                    type = build_reference_type (type);
+                  if (TREE_CODE (type) != REFERENCE_TYPE
+		      || TYPE_REF_IS_RVALUE (type))
+                    type = build_reference_type (non_reference (type));
                 }
               else
                 type = non_reference (type);
@@ -5005,7 +4928,7 @@ classtype_has_nothrow_assign_or_copy_p (tree type, bool assign_p)
 	return false;
       fns = VEC_index (tree, CLASSTYPE_METHOD_VEC (type), ix);
     } 
-  else if (TYPE_HAS_INIT_REF (type))
+  else if (TYPE_HAS_COPY_CTOR (type))
     {
       /* If construction of the copy constructor was postponed, create
 	 it now.  */
@@ -5064,13 +4987,13 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
       return (!CP_TYPE_CONST_P (type1) && type_code1 != REFERENCE_TYPE
 	      && (trivial_type_p (type1)
 		    || (CLASS_TYPE_P (type1)
-			&& TYPE_HAS_TRIVIAL_ASSIGN_REF (type1))));
+			&& TYPE_HAS_TRIVIAL_COPY_ASSIGN (type1))));
 
     case CPTK_HAS_NOTHROW_CONSTRUCTOR:
       type1 = strip_array_types (type1);
       return (trait_expr_value (CPTK_HAS_TRIVIAL_CONSTRUCTOR, type1, type2) 
 	      || (CLASS_TYPE_P (type1)
-		  && (t = locate_ctor (type1, NULL))
+		  && (t = locate_ctor (type1))
 		  && TYPE_NOTHROW_P (TREE_TYPE (t))));
 
     case CPTK_HAS_TRIVIAL_CONSTRUCTOR:
@@ -5089,7 +5012,7 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
 	 type" wording for this trait.  */
       type1 = strip_array_types (type1);
       return (trivial_type_p (type1) || type_code1 == REFERENCE_TYPE
-	      || (CLASS_TYPE_P (type1) && TYPE_HAS_TRIVIAL_INIT_REF (type1)));
+	      || (CLASS_TYPE_P (type1) && TYPE_HAS_TRIVIAL_COPY_CTOR (type1)));
 
     case CPTK_HAS_TRIVIAL_DESTRUCTOR:
       type1 = strip_array_types (type1);
@@ -5098,8 +5021,7 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
 		  && TYPE_HAS_TRIVIAL_DESTRUCTOR (type1)));
 
     case CPTK_HAS_VIRTUAL_DESTRUCTOR:
-      return (CLASS_TYPE_P (type1)
-	      && (t = locate_dtor (type1, NULL)) && DECL_VIRTUAL_P (t));
+      return type_has_virtual_destructor (type1);
 
     case CPTK_IS_ABSTRACT:
       return (CLASS_TYPE_P (type1) && CLASSTYPE_PURE_VIRTUALS (type1));
@@ -5151,7 +5073,8 @@ check_trait_type (tree type)
   if (COMPLETE_TYPE_P (type))
     return true;
 
-  if (TREE_CODE (type) == ARRAY_TYPE && !TYPE_DOMAIN (type))
+  if (TREE_CODE (type) == ARRAY_TYPE && !TYPE_DOMAIN (type)
+      && COMPLETE_TYPE_P (TREE_TYPE (type)))
     return true;
 
   if (VOID_TYPE_P (type))
@@ -5922,8 +5845,8 @@ maybe_add_lambda_conv_op (tree type)
   DECL_NOT_REALLY_EXTERN (fn) = 1;
   DECL_DECLARED_INLINE_P (fn) = 1;
   DECL_STATIC_FUNCTION_P (fn) = 1;
-  DECL_ARGUMENTS (fn) = copy_list (TREE_CHAIN (DECL_ARGUMENTS (callop)));
-  for (arg = DECL_ARGUMENTS (fn); arg; arg = TREE_CHAIN (arg))
+  DECL_ARGUMENTS (fn) = copy_list (DECL_CHAIN (DECL_ARGUMENTS (callop)));
+  for (arg = DECL_ARGUMENTS (fn); arg; arg = DECL_CHAIN (arg))
     DECL_CONTEXT (arg) = fn;
   if (nested)
     DECL_INTERFACE_KNOWN (fn) = 1;
@@ -5956,7 +5879,7 @@ maybe_add_lambda_conv_op (tree type)
 		null_pointer_node);
   argvec = make_tree_vector ();
   VEC_quick_push (tree, argvec, arg);
-  for (arg = DECL_ARGUMENTS (statfn); arg; arg = TREE_CHAIN (arg))
+  for (arg = DECL_ARGUMENTS (statfn); arg; arg = DECL_CHAIN (arg))
     VEC_safe_push (tree, gc, argvec, arg);
   call = build_call_a (callop, VEC_length (tree, argvec),
 		       VEC_address (tree, argvec));

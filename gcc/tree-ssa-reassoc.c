@@ -1016,7 +1016,7 @@ undistribute_ops_list (enum tree_code opcode,
   candidates = sbitmap_alloc (length);
   sbitmap_zero (candidates);
   nr_candidates = 0;
-  for (i = 0; VEC_iterate (operand_entry_t, *ops, i, oe1); ++i)
+  FOR_EACH_VEC_ELT (operand_entry_t, *ops, i, oe1)
     {
       enum tree_code dcode;
       gimple oe1def;
@@ -1067,7 +1067,7 @@ undistribute_ops_list (enum tree_code opcode,
       linearize_expr_tree (&subops[i], oedef,
 			   associative_tree_code (oecode), false);
 
-      for (j = 0; VEC_iterate (operand_entry_t, subops[i], j, oe1); ++j)
+      FOR_EACH_VEC_ELT (operand_entry_t, subops[i], j, oe1)
 	{
 	  oecount c;
 	  void **slot;
@@ -1100,7 +1100,7 @@ undistribute_ops_list (enum tree_code opcode,
     {
       oecount *c;
       fprintf (dump_file, "Candidates:\n");
-      for (j = 0; VEC_iterate (oecount, cvec, j, c); ++j)
+      FOR_EACH_VEC_ELT (oecount, cvec, j, c)
 	{
 	  fprintf (dump_file, "  %u %s: ", c->cnt,
 		   c->oecode == MULT_EXPR
@@ -1139,7 +1139,7 @@ undistribute_ops_list (enum tree_code opcode,
 	  if (oecode != c->oecode)
 	    continue;
 
-	  for (j = 0; VEC_iterate (operand_entry_t, subops[i], j, oe1); ++j)
+	  FOR_EACH_VEC_ELT (operand_entry_t, subops[i], j, oe1)
 	    {
 	      if (oe1->op == c->op)
 		{
@@ -1261,23 +1261,27 @@ eliminate_redundant_comparison (enum tree_code opcode,
       rcode = gimple_assign_rhs_code (def2);
       if (TREE_CODE_CLASS (rcode) != tcc_comparison)
 	continue;
-      if (operand_equal_p (op1, gimple_assign_rhs1 (def2), 0)
-	  && operand_equal_p (op2, gimple_assign_rhs2 (def2), 0))
-	;
-      else if (operand_equal_p (op1, gimple_assign_rhs2 (def2), 0)
-	       && operand_equal_p (op2, gimple_assign_rhs1 (def2), 0))
-	rcode = swap_tree_comparison (rcode);
-      else
-	continue;
 
       /* If we got here, we have a match.  See if we can combine the
 	 two comparisons.  */
-      t = combine_comparisons (UNKNOWN_LOCATION,
-			       (opcode == BIT_IOR_EXPR
-				? TRUTH_OR_EXPR : TRUTH_AND_EXPR),
-			       lcode, rcode, TREE_TYPE (curr->op), op1, op2);
+      if (opcode == BIT_IOR_EXPR)
+	t = maybe_fold_or_comparisons (lcode, op1, op2,
+				       rcode, gimple_assign_rhs1 (def2),
+				       gimple_assign_rhs2 (def2));
+      else
+	t = maybe_fold_and_comparisons (lcode, op1, op2,
+					rcode, gimple_assign_rhs1 (def2),
+					gimple_assign_rhs2 (def2));
       if (!t)
 	continue;
+
+      /* maybe_fold_and_comparisons and maybe_fold_or_comparisons
+	 always give us a boolean_type_node value back.  If the original
+	 BIT_AND_EXPR or BIT_IOR_EXPR was of a wider integer type,
+	 we need to convert.  */
+      if (!useless_type_conversion_p (TREE_TYPE (curr->op), TREE_TYPE (t)))
+	t = fold_convert (TREE_TYPE (curr->op), t);
+
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
 	  fprintf (dump_file, "Equivalence: ");
@@ -1303,7 +1307,7 @@ eliminate_redundant_comparison (enum tree_code opcode,
 	  VEC_ordered_remove (operand_entry_t, *ops, currindex);
 	  add_to_ops_vec (ops, t);
 	}
-      else if (TREE_CODE (t) != lcode)
+      else if (!operand_equal_p (t, curr->op, 0))
 	{
 	  tree tmpvar;
 	  gimple sum;
@@ -1860,7 +1864,7 @@ repropagate_negates (void)
   unsigned int i = 0;
   tree negate;
 
-  for (i = 0; VEC_iterate (tree, plus_negates, i, negate); i++)
+  FOR_EACH_VEC_ELT (tree, plus_negates, i, negate)
     {
       gimple user = get_single_immediate_use (negate);
 
@@ -1945,7 +1949,7 @@ static bool
 can_reassociate_p (tree op)
 {
   tree type = TREE_TYPE (op);
-  if (INTEGRAL_TYPE_P (type)
+  if ((INTEGRAL_TYPE_P (type) && TYPE_OVERFLOW_WRAPS (type))
       || NON_SAT_FIXED_POINT_TYPE_P (type)
       || (flag_associative_math && FLOAT_TYPE_P (type)))
     return true;
@@ -2061,9 +2065,16 @@ reassociate_bb (basic_block bb)
 	  rhs1 = gimple_assign_rhs1 (stmt);
 	  rhs2 = gimple_assign_rhs2 (stmt);
 
-	  if (!can_reassociate_p (lhs)
-	      || !can_reassociate_p (rhs1)
-	      || !can_reassociate_p (rhs2))
+	  /* For non-bit or min/max operations we can't associate
+	     all types.  Verify that here.  */
+	  if (rhs_code != BIT_IOR_EXPR
+	      && rhs_code != BIT_AND_EXPR
+	      && rhs_code != BIT_XOR_EXPR
+	      && rhs_code != MIN_EXPR
+	      && rhs_code != MAX_EXPR
+	      && (!can_reassociate_p (lhs)
+		  || !can_reassociate_p (rhs1)
+		  || !can_reassociate_p (rhs2)))
 	    continue;
 
 	  if (associative_tree_code (rhs_code))
@@ -2137,7 +2148,7 @@ dump_ops_vector (FILE *file, VEC (operand_entry_t, heap) *ops)
   operand_entry_t oe;
   unsigned int i;
 
-  for (i = 0; VEC_iterate (operand_entry_t, ops, i, oe); i++)
+  FOR_EACH_VEC_ELT (operand_entry_t, ops, i, oe)
     {
       fprintf (file, "Op %d -> rank: %d, tree: ", i, oe->rank);
       print_generic_expr (file, oe->op, 0);
@@ -2188,7 +2199,7 @@ init_reassoc (void)
   /* Give each argument a distinct rank.   */
   for (param = DECL_ARGUMENTS (current_function_decl);
        param;
-       param = TREE_CHAIN (param))
+       param = DECL_CHAIN (param))
     {
       if (gimple_default_def (cfun, param) != NULL)
 	{

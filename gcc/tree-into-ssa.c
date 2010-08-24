@@ -452,9 +452,8 @@ static void
 mark_block_for_update (basic_block bb)
 {
   gcc_assert (blocks_to_update != NULL);
-  if (bitmap_bit_p (blocks_to_update, bb->index))
+  if (!bitmap_set_bit (blocks_to_update, bb->index))
     return;
-  bitmap_set_bit (blocks_to_update, bb->index);
   initialize_flags_in_bb (bb);
 }
 
@@ -557,7 +556,7 @@ set_livein_block (tree var, basic_block bb)
 
 /* Return true if symbol SYM is marked for renaming.  */
 
-static inline bool
+bool
 symbol_marked_for_renaming (tree sym)
 {
   return bitmap_bit_p (SYMS_TO_RENAME (cfun), DECL_UID (sym));
@@ -961,11 +960,10 @@ prune_unused_phi_nodes (bitmap phis, bitmap kills, bitmap uses)
 	}
 
       /* If the phi node is already live, there is nothing to do.  */
-      if (bitmap_bit_p (live_phis, p))
+      if (!bitmap_set_bit (live_phis, p))
 	continue;
 
-      /* Mark the phi as live, and add the new uses to the worklist.  */
-      bitmap_set_bit (live_phis, p);
+      /* Add the new uses to the worklist.  */
       def_bb = BASIC_BLOCK (p);
       FOR_EACH_EDGE (e, ei, def_bb->preds)
 	{
@@ -1144,7 +1142,7 @@ insert_phi_nodes_for (tree var, bitmap phi_insertion_points, bool update_p)
    the flowgraph.  */
 
 static void
-insert_phi_nodes (bitmap *dfs)
+insert_phi_nodes (bitmap_head *dfs)
 {
   referenced_var_iterator rvi;
   bitmap_iterator bi;
@@ -1471,11 +1469,7 @@ dump_decl_set (FILE *file, bitmap set)
 
       EXECUTE_IF_SET_IN_BITMAP (set, 0, i, bi)
 	{
-	  struct tree_decl_minimal in;
-	  tree var;
-	  in.uid = i;
-	  var = (tree) htab_find_with_hash (gimple_referenced_vars (cfun),
-					    &in, i);
+	  tree var = referenced_var_lookup (i);
 	  if (var)
 	    print_generic_expr (file, var, 0);
 	  else
@@ -1998,7 +1992,7 @@ rewrite_update_phi_arguments (basic_block bb)
 	continue;
 
       phis = VEC_index (gimple_vec, phis_to_rewrite, e->dest->index);
-      for (i = 0; VEC_iterate (gimple, phis, i, phi); i++)
+      FOR_EACH_VEC_ELT (gimple, phis, i, phi)
 	{
 	  tree arg, lhs_sym, reaching_def = NULL;
 	  use_operand_p arg_p;
@@ -2350,7 +2344,7 @@ fini_ssa_renamer (void)
 static unsigned int
 rewrite_into_ssa (void)
 {
-  bitmap *dfs;
+  bitmap_head *dfs;
   basic_block bb;
 
   timevar_push (TV_TREE_SSA_OTHER);
@@ -2368,9 +2362,9 @@ rewrite_into_ssa (void)
   sbitmap_zero (interesting_blocks);
 
   /* Initialize dominance frontier.  */
-  dfs = XNEWVEC (bitmap, last_basic_block);
+  dfs = XNEWVEC (bitmap_head, last_basic_block);
   FOR_EACH_BB (bb)
-    dfs[bb->index] = BITMAP_ALLOC (NULL);
+    bitmap_initialize (&dfs[bb->index], &bitmap_default_obstack);
 
   /* 1- Compute dominance frontiers.  */
   calculate_dominance_info (CDI_DOMINATORS);
@@ -2387,7 +2381,7 @@ rewrite_into_ssa (void)
 
   /* Free allocated memory.  */
   FOR_EACH_BB (bb)
-    BITMAP_FREE (dfs[bb->index]);
+    bitmap_clear (&dfs[bb->index]);
   free (dfs);
 
   sbitmap_free (interesting_blocks);
@@ -3006,7 +3000,7 @@ release_ssa_name_after_update_ssa (tree name)
      names is not pruned.  PHI nodes are inserted at every IDF block.  */
 
 static void
-insert_updated_phi_nodes_for (tree var, bitmap *dfs, bitmap blocks,
+insert_updated_phi_nodes_for (tree var, bitmap_head *dfs, bitmap blocks,
                               unsigned update_flags)
 {
   basic_block entry;
@@ -3333,13 +3327,13 @@ update_ssa (unsigned update_flags)
      and for symbols in SYMS_TO_RENAME.  */
   if (insert_phi_p)
     {
-      bitmap *dfs;
+      bitmap_head *dfs;
 
       /* If the caller requested PHI nodes to be added, compute
 	 dominance frontiers.  */
-      dfs = XNEWVEC (bitmap, last_basic_block);
+      dfs = XNEWVEC (bitmap_head, last_basic_block);
       FOR_EACH_BB (bb)
-	dfs[bb->index] = BITMAP_ALLOC (NULL);
+	bitmap_initialize (&dfs[bb->index], &bitmap_default_obstack);
       compute_dominance_frontiers (dfs);
 
       if (sbitmap_first_set_bit (old_ssa_names) >= 0)
@@ -3364,7 +3358,7 @@ update_ssa (unsigned update_flags)
 	                              update_flags);
 
       FOR_EACH_BB (bb)
-	BITMAP_FREE (dfs[bb->index]);
+	bitmap_clear (&dfs[bb->index]);
       free (dfs);
 
       /* Insertion of PHI nodes may have added blocks to the region.

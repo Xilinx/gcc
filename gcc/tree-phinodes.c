@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "basic-block.h"
 #include "tree-flow.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "gimple.h"
 
@@ -153,7 +154,7 @@ allocate_phi_node (size_t len)
     }
   else
     {
-      phi = (gimple) ggc_alloc (size);
+      phi = ggc_alloc_gimple_statement_d (size);
 #ifdef GATHER_STATISTICS
       phi_nodes_created++;
 	{

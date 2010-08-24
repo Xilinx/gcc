@@ -586,8 +586,6 @@ enum reg_class
 
 #define ACCUMULATE_OUTGOING_ARGS 1
 
-#define RETURN_POPS_ARGS(FUNDECL, FUNTYPE, STACKSIZE) 0
-
 
 /* Node: Register Arguments */
 #define FUNCTION_ARG(CUM, MODE, TYPE, NAMED)	\
@@ -727,9 +725,6 @@ typedef struct { int regs; int lib; } CUMULATIVE_ARGS;
 /* These aren't currently functional.  We just keep them as markers.  */
 #define ASM_APP_ON "%APP\n"
 #define ASM_APP_OFF "%NO_APP\n"
-
-#define ASM_OUTPUT_SOURCE_FILENAME(STREAM, NAME) \
- mmix_asm_output_source_filename (STREAM, NAME)
 
 #define OUTPUT_QUOTED_STRING(STREAM, STRING) \
  mmix_output_quoted_string (STREAM, STRING, strlen (STRING))

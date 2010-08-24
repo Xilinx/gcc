@@ -1045,7 +1045,7 @@ tree_transform_and_unroll_loop (struct loop *loop, unsigned factor,
   free (wont_exit);
   gcc_assert (ok);
 
-  for (i = 0; VEC_iterate (edge, to_remove, i, e); i++)
+  FOR_EACH_VEC_ELT (edge, to_remove, i, e)
     {
       ok = remove_path (e);
       gcc_assert (ok);
@@ -1081,7 +1081,7 @@ tree_transform_and_unroll_loop (struct loop *loop, unsigned factor,
 
   /* Finally create the new counter for number of iterations and add the new
      exit instruction.  */
-  bsi = gsi_last_bb (exit_bb);
+  bsi = gsi_last_nondebug_bb (exit_bb);
   exit_if = gsi_stmt (bsi);
   create_iv (exit_base, exit_step, NULL_TREE, loop,
 	     &bsi, false, &ctr_before, &ctr_after);
@@ -1217,7 +1217,7 @@ canonicalize_loop_ivs (struct loop *loop, tree *nit, bool bump_in_latch)
 	gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
     }
 
-  gsi = gsi_last_bb (bump_in_latch ? loop->latch : loop->header);
+  gsi = gsi_last_nondebug_bb (bump_in_latch ? loop->latch : loop->header);
   create_iv (build_int_cst_type (type, 0), build_int_cst (type, 1), NULL_TREE,
 	     loop, &gsi, bump_in_latch, &var_before, NULL);
 

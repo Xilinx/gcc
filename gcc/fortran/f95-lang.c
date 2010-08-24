@@ -88,6 +88,7 @@ static void gfc_init_builtin_functions (void);
 /* Each front end provides its own.  */
 static bool gfc_init (void);
 static void gfc_finish (void);
+static void gfc_write_global_declarations (void);
 static void gfc_print_identifier (FILE *, tree, int);
 void do_function_end (void);
 int global_bindings_p (void);
@@ -99,6 +100,8 @@ static void gfc_init_ts (void);
 #undef LANG_HOOKS_NAME
 #undef LANG_HOOKS_INIT
 #undef LANG_HOOKS_FINISH
+#undef LANG_HOOKS_WRITE_GLOBALS
+#undef LANG_HOOKS_OPTION_LANG_MASK
 #undef LANG_HOOKS_INIT_OPTIONS
 #undef LANG_HOOKS_HANDLE_OPTION
 #undef LANG_HOOKS_POST_OPTIONS
@@ -111,6 +114,7 @@ static void gfc_init_ts (void);
 #undef LANG_HOOKS_INIT_TS
 #undef LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE
 #undef LANG_HOOKS_OMP_PREDETERMINED_SHARING
+#undef LANG_HOOKS_OMP_REPORT_DECL
 #undef LANG_HOOKS_OMP_CLAUSE_DEFAULT_CTOR
 #undef LANG_HOOKS_OMP_CLAUSE_COPY_CTOR
 #undef LANG_HOOKS_OMP_CLAUSE_ASSIGN_OP
@@ -126,6 +130,8 @@ static void gfc_init_ts (void);
 #define LANG_HOOKS_NAME                 "GNU Fortran"
 #define LANG_HOOKS_INIT                 gfc_init
 #define LANG_HOOKS_FINISH               gfc_finish
+#define LANG_HOOKS_WRITE_GLOBALS	gfc_write_global_declarations
+#define LANG_HOOKS_OPTION_LANG_MASK	gfc_option_lang_mask
 #define LANG_HOOKS_INIT_OPTIONS         gfc_init_options
 #define LANG_HOOKS_HANDLE_OPTION        gfc_handle_option
 #define LANG_HOOKS_POST_OPTIONS		gfc_post_options
@@ -137,6 +143,7 @@ static void gfc_init_ts (void);
 #define LANG_HOOKS_INIT_TS		gfc_init_ts
 #define LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE	gfc_omp_privatize_by_reference
 #define LANG_HOOKS_OMP_PREDETERMINED_SHARING	gfc_omp_predetermined_sharing
+#define LANG_HOOKS_OMP_REPORT_DECL		gfc_omp_report_decl
 #define LANG_HOOKS_OMP_CLAUSE_DEFAULT_CTOR	gfc_omp_clause_default_ctor
 #define LANG_HOOKS_OMP_CLAUSE_COPY_CTOR		gfc_omp_clause_copy_ctor
 #define LANG_HOOKS_OMP_CLAUSE_ASSIGN_OP		gfc_omp_clause_assign_op
@@ -280,6 +287,33 @@ gfc_finish (void)
   return;
 }
 
+/* ??? This is something of a hack.
+
+   Emulated tls lowering needs to see all TLS variables before we call
+   cgraph_finalize_compilation_unit.  The C/C++ front ends manage this
+   by calling decl_rest_of_compilation on each global and static variable
+   as they are seen.  The Fortran front end waits until this hook.
+
+   A Correct solution is for cgraph_finalize_compilation_unit not to be
+   called during the WRITE_GLOBALS langhook, and have that hook only do what
+   its name suggests and write out globals.  But the C++ and Java front ends
+   have (unspecified) problems with aliases that gets in the way.  It has
+   been suggested that these problems would be solved by completing the
+   conversion to cgraph-based aliases.  */
+
+static void
+gfc_write_global_declarations (void)
+{
+  tree decl;
+
+  /* Finalize all of the globals.  */
+  for (decl = getdecls(); decl ; decl = DECL_CHAIN (decl))
+    rest_of_decl_compilation (decl, true, true);
+
+  write_global_declarations ();
+}
+
+
 static void
 gfc_print_identifier (FILE * file ATTRIBUTE_UNUSED,
 		      tree node ATTRIBUTE_UNUSED,
@@ -308,7 +342,7 @@ struct GTY(())
 binding_level {
   /* A chain of ..._DECL nodes for all variables, constants, functions,
      parameters and type declarations.  These ..._DECL nodes are chained
-     through the TREE_CHAIN field. Note that these ..._DECL nodes are stored
+     through the DECL_CHAIN field. Note that these ..._DECL nodes are stored
      in the reverse of the order supplied to be compatible with the
      back-end.  */
   tree names;
@@ -350,8 +384,7 @@ getdecls (void)
 void
 pushlevel (int ignore ATTRIBUTE_UNUSED)
 {
-  struct binding_level *newlevel
-    = (struct binding_level *) ggc_alloc (sizeof (struct binding_level));
+  struct binding_level *newlevel = ggc_alloc_binding_level ();
 
   *newlevel = clear_binding_level;
 
@@ -408,7 +441,7 @@ poplevel (int keep, int reverse, int functionbody)
   /* Clear out the meanings of the local variables of this level.  */
 
   for (subblock_node = decl_chain; subblock_node;
-       subblock_node = TREE_CHAIN (subblock_node))
+       subblock_node = DECL_CHAIN (subblock_node))
     if (DECL_NAME (subblock_node) != 0)
       /* If the identifier was used or addressed via a local extern decl,
          don't forget that fact.  */
@@ -466,7 +499,7 @@ pushdecl (tree decl)
      order. The list will be reversed later if necessary.  This needs to be
      this way for compatibility with the back-end.  */
 
-  TREE_CHAIN (decl) = current_binding_level->names;
+  DECL_CHAIN (decl) = current_binding_level->names;
   current_binding_level->names = decl;
 
   /* For the declaration of a type, set its name if it is not already set.  */
@@ -754,10 +787,11 @@ gfc_init_builtin_functions (void)
   func_longdouble_longdoublep_longdoublep =
     build_function_type_list (void_type_node, ptype, ptype, NULL_TREE);
 
+/* Non-math builtins are defined manually, so they're not included here.  */
+#define OTHER_BUILTIN(ID,NAME,TYPE)
+
 #include "mathbuiltins.def"
 
-  /* We define these separately as the fortran versions have different
-     semantics (they return an integer type) */
   gfc_define_builtin ("__builtin_roundl", mfunc_longdouble[0], 
 		      BUILT_IN_ROUNDL, "roundl", true);
   gfc_define_builtin ("__builtin_round", mfunc_double[0], 

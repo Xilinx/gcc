@@ -34,6 +34,7 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "input.h"
 #include "javaop.h"
 #include "java-tree.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "parse.h"
 #include "ggc.h"
@@ -1570,7 +1571,7 @@ parse_class_file (void)
   gen_indirect_dispatch_tables (current_class);
 
   for (method = TYPE_METHODS (current_class);
-       method != NULL_TREE; method = TREE_CHAIN (method))
+       method != NULL_TREE; method = DECL_CHAIN (method))
     {
       JCF *jcf = current_jcf;
 
@@ -1682,7 +1683,7 @@ predefined_filename_p (tree node)
   unsigned ix;
   tree f;
 
-  for (ix = 0; VEC_iterate (tree, predefined_filenames, ix, f); ix++)
+  FOR_EACH_VEC_ELT (tree, predefined_filenames, ix, f)
     if (f == node)
       return 1;
 
@@ -1868,7 +1869,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
     }
 
   current_jcf = main_jcf;
-  for (ix = 0; VEC_iterate (tree, current_file_list, ix, node); ix++)
+  FOR_EACH_VEC_ELT (tree, current_file_list, ix, node)
     {
       unsigned char magic_string[4];
       char *real_path;
@@ -1906,8 +1907,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
       if (magic == 0xcafebabe)
 	{
 	  CLASS_FILE_P (node) = 1;
-	  current_jcf = GGC_NEW (JCF);
-	  JCF_ZERO (current_jcf);
+	  current_jcf = ggc_alloc_cleared_JCF ();
 	  current_jcf->read_state = finput;
 	  current_jcf->filbuf = jcf_filbuf_from_stdio;
 	  jcf_parse (current_jcf);
@@ -1924,8 +1924,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	}
       else if (magic == (JCF_u4)ZIPMAGIC)
 	{
-	  main_jcf = GGC_NEW (JCF);
-	  JCF_ZERO (main_jcf);
+	  main_jcf = ggc_alloc_cleared_JCF ();
 	  main_jcf->read_state = finput;
 	  main_jcf->filbuf = jcf_filbuf_from_stdio;
 	  linemap_add (line_table, LC_ENTER, false, filename, 0);
@@ -1957,7 +1956,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	}
     }
 
-  for (ix = 0; VEC_iterate (tree, current_file_list, ix, node); ix++)
+  FOR_EACH_VEC_ELT (tree, current_file_list, ix, node)
     {
       input_location = DECL_SOURCE_LOCATION (node);
       if (CLASS_FILE_P (node))
@@ -2181,8 +2180,7 @@ process_zip_dir (FILE *finput)
 
       class_name = compute_class_name (zdir);
       file_name  = XNEWVEC (char, zdir->filename_length+1);
-      jcf = GGC_NEW (JCF);
-      JCF_ZERO (jcf);
+      jcf = ggc_alloc_cleared_JCF ();
 
       strncpy (file_name, class_name_in_zip_dir, zdir->filename_length);
       file_name [zdir->filename_length] = '\0';

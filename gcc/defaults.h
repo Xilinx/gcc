@@ -32,13 +32,37 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define GET_ENVIRONMENT(VALUE, NAME) do { (VALUE) = getenv (NAME); } while (0)
 #endif
 
-#define obstack_chunk_alloc	((void *(*) (long)) xmalloc)
-#define obstack_chunk_free	((void (*) (void *)) free)
-#define OBSTACK_CHUNK_SIZE	0
-#define gcc_obstack_init(OBSTACK)			\
-  _obstack_begin ((OBSTACK), OBSTACK_CHUNK_SIZE, 0,	\
-		  obstack_chunk_alloc,			\
-		  obstack_chunk_free)
+/* This defines which switch letters take arguments.  */
+
+#define DEFAULT_SWITCH_TAKES_ARG(CHAR) \
+  ((CHAR) == 'D' || (CHAR) == 'U' || (CHAR) == 'o' \
+   || (CHAR) == 'e' || (CHAR) == 'T' || (CHAR) == 'u' \
+   || (CHAR) == 'I' || (CHAR) == 'J' || (CHAR) == 'm' \
+   || (CHAR) == 'x' || (CHAR) == 'L' || (CHAR) == 'A' \
+   || (CHAR) == 'B' )
+
+/* This defines which multi-letter switches take arguments.  */
+
+#define DEFAULT_WORD_SWITCH_TAKES_ARG(STR)		\
+ (!strcmp (STR, "Tdata") || !strcmp (STR, "Ttext")	\
+  || !strcmp (STR, "Tbss") || !strcmp (STR, "include")	\
+  || !strcmp (STR, "imacros") || !strcmp (STR, "aux-info") \
+  || !strcmp (STR, "idirafter") || !strcmp (STR, "iprefix") \
+  || !strcmp (STR, "iwithprefix") || !strcmp (STR, "iwithprefixbefore") \
+  || !strcmp (STR, "iquote") || !strcmp (STR, "isystem") \
+  || !strcmp (STR, "isysroot") || !strcmp (STR, "imultilib") \
+  || !strcmp (STR, "-param") || !strcmp (STR, "specs") \
+  || !strcmp (STR, "MF") || !strcmp (STR, "MT") || !strcmp (STR, "MQ") \
+  || !strcmp (STR, "fintrinsic-modules-path") \
+  || !strcmp (STR, "dumpbase") || !strcmp (STR, "dumpdir"))
+
+#ifndef SWITCH_TAKES_ARG
+#define SWITCH_TAKES_ARG(CHAR) DEFAULT_SWITCH_TAKES_ARG (CHAR)
+#endif
+
+#ifndef WORD_SWITCH_TAKES_ARG
+#define WORD_SWITCH_TAKES_ARG(STR) DEFAULT_WORD_SWITCH_TAKES_ARG (STR)
+#endif
 
 /* Store in OUTPUT a string (made with alloca) containing an
    assembler-name for a local static variable or function named NAME.
@@ -141,11 +165,19 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #endif
 
 /* This is how to output the definition of a user-level label named
-   NAME, such as the label on a static function or variable NAME.  */
+   NAME, such as the label on variable NAME.  */
 
 #ifndef ASM_OUTPUT_LABEL
 #define ASM_OUTPUT_LABEL(FILE,NAME) \
   do { assemble_name ((FILE), (NAME)); fputs (":\n", (FILE)); } while (0)
+#endif
+
+/* This is how to output the definition of a user-level label named
+   NAME, such as the label on a function.  */
+
+#ifndef ASM_OUTPUT_FUNCTION_LABEL
+#define ASM_OUTPUT_FUNCTION_LABEL(FILE, NAME, DECL) \
+  ASM_OUTPUT_LABEL ((FILE), (NAME))
 #endif
 
 /* Output the definition of a compiler-generated label named NAME.  */
@@ -690,6 +722,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define PIC_OFFSET_TABLE_REGNUM INVALID_REGNUM
 #endif
 
+#ifndef PIC_OFFSET_TABLE_REG_CALL_CLOBBERED
+#define PIC_OFFSET_TABLE_REG_CALL_CLOBBERED 0
+#endif
+
 #ifndef TARGET_DLLIMPORT_DECL_ATTRIBUTES
 #define TARGET_DLLIMPORT_DECL_ATTRIBUTES 0
 #endif
@@ -989,10 +1025,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #endif /* old constraint mechanism in use */
 
-#ifndef REGISTER_MOVE_COST
-#define REGISTER_MOVE_COST(m, x, y) 2
-#endif
-
 /* Determine whether the entire c99 runtime
    is present in the runtime library.  */
 #ifndef TARGET_C99_FUNCTIONS
@@ -1027,6 +1059,18 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #ifndef MOVE_MAX_PIECES
 #define MOVE_MAX_PIECES   MOVE_MAX
+#endif
+
+#ifndef MAX_MOVE_MAX
+#define MAX_MOVE_MAX MOVE_MAX
+#endif
+
+#ifndef MIN_UNITS_PER_WORD
+#define MIN_UNITS_PER_WORD UNITS_PER_WORD
+#endif
+
+#ifndef MAX_BITS_PER_WORD
+#define MAX_BITS_PER_WORD BITS_PER_WORD
 #endif
 
 #ifndef STACK_POINTER_OFFSET
@@ -1165,6 +1209,18 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define CONSTANT_ADDRESS_P(X)   (CONSTANT_P (X) && GET_CODE (X) != CONST_DOUBLE)
 #endif
 
+#ifndef MAX_FIXED_MODE_SIZE
+#define MAX_FIXED_MODE_SIZE GET_MODE_BITSIZE (DImode)
+#endif
+
+/* Nonzero if structures and unions should be returned in memory.
+
+   This should only be defined if compatibility with another compiler or
+   with an ABI is needed, because it results in slower code.  */
+
+#ifndef DEFAULT_PCC_STRUCT_RETURN
+#define DEFAULT_PCC_STRUCT_RETURN 1
+#endif
 
 #ifdef GCC_INSN_FLAGS_H
 /* Dependent default target macro definitions
@@ -1362,6 +1418,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    controllable by the user at some point.  */
 #ifndef STACK_CHECK_MAX_VAR_SIZE
 #define STACK_CHECK_MAX_VAR_SIZE (STACK_CHECK_MAX_FRAME_SIZE / 100)
+#endif
+
+#ifndef SWITCHABLE_TARGET
+#define SWITCHABLE_TARGET 0
 #endif
 
 #endif /* GCC_INSN_FLAGS_H  */

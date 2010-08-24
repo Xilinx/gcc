@@ -131,31 +131,49 @@ typedef struct stat gfstat_t;
 #endif
 
 
+#ifndef HAVE_ACCESS
+
+#ifndef W_OK
+#define W_OK 2
+#endif
+
+#ifndef R_OK
+#define R_OK 4
+#endif
+
+#ifndef F_OK
+#define F_OK 0
+#endif
+
+/* Fallback implementation of access() on systems that don't have it.
+   Only modes R_OK, W_OK and F_OK are used in this file.  */
+
+static int
+fallback_access (const char *path, int mode)
+{
+  if ((mode & R_OK) && open (path, O_RDONLY) < 0)
+    return -1;
+
+  if ((mode & W_OK) && open (path, O_WRONLY) < 0)
+    return -1;
+
+  if (mode == F_OK)
+    {
+      gfstat_t st;
+      return stat (path, &st);
+    }
+
+  return 0;
+}
+
+#undef access
+#define access fallback_access
+#endif
+
+
 /* Unix and internal stream I/O module */
 
 static const int BUFFER_SIZE = 8192;
-
-typedef struct
-{
-  stream st;
-
-  gfc_offset buffer_offset;	/* File offset of the start of the buffer */
-  gfc_offset physical_offset;	/* Current physical file offset */
-  gfc_offset logical_offset;	/* Current logical file offset */
-  gfc_offset file_length;	/* Length of the file, -1 if not seekable. */
-
-  char *buffer;                 /* Pointer to the buffer.  */
-  int fd;                       /* The POSIX file descriptor.  */
-
-  int active;			/* Length of valid bytes in the buffer */
-
-  int prot;
-  int ndirty;			/* Dirty bytes starting at buffer_offset */
-
-  int special_file;		/* =1 if the fd refers to a special file */
-}
-unix_stream;
-
 
 /* fix_fd()-- Given a file descriptor, make sure it is not one of the
  * standard descriptors, returning a non-standard descriptor.  If the
@@ -405,6 +423,10 @@ buf_flush (unix_stream * s)
   if (s->ndirty != 0)
     return -1;
 
+#ifdef _WIN32
+  _commit (s->fd);
+#endif
+
   return 0;
 }
 
@@ -594,7 +616,6 @@ buf_init (unix_stream * s)
 
 *********************************************************************/
 
-
 char *
 mem_alloc_r (stream * strm, int * len)
 {
@@ -612,6 +633,26 @@ mem_alloc_r (stream * strm, int * len)
   s->logical_offset = where + *len;
 
   return s->buffer + (where - s->buffer_offset);
+}
+
+
+char *
+mem_alloc_r4 (stream * strm, int * len)
+{
+  unix_stream * s = (unix_stream *) strm;
+  gfc_offset n;
+  gfc_offset where = s->logical_offset;
+
+  if (where < s->buffer_offset || where > s->buffer_offset + s->active)
+    return NULL;
+
+  n = s->buffer_offset + s->active - where;
+  if (*len > n)
+    *len = n;
+
+  s->logical_offset = where + *len;
+
+  return s->buffer + (where - s->buffer_offset) * 4;
 }
 
 
@@ -636,7 +677,28 @@ mem_alloc_w (stream * strm, int * len)
 }
 
 
-/* Stream read function for internal units.  */
+gfc_char4_t *
+mem_alloc_w4 (stream * strm, int * len)
+{
+  unix_stream * s = (unix_stream *) strm;
+  gfc_offset m;
+  gfc_offset where = s->logical_offset;
+  gfc_char4_t *result = (gfc_char4_t *) s->buffer;
+
+  m = where + *len;
+
+  if (where < s->buffer_offset)
+    return NULL;
+
+  if (m > s->file_length)
+    return NULL;
+
+  s->logical_offset = m;
+  return &result[where - s->buffer_offset];
+}
+
+
+/* Stream read function for character(kine=1) internal units.  */
 
 static ssize_t
 mem_read (stream * s, void * buf, ssize_t nbytes)
@@ -655,9 +717,26 @@ mem_read (stream * s, void * buf, ssize_t nbytes)
 }
 
 
-/* Stream write function for internal units. This is not actually used
-   at the moment, as all internal IO is formatted and the formatted IO
-   routines use mem_alloc_w_at.  */
+/* Stream read function for chracter(kind=4) internal units.  */
+
+static ssize_t
+mem_read4 (stream * s, void * buf, ssize_t nbytes)
+{
+  void *p;
+  int nb = nbytes;
+
+  p = mem_alloc_r (s, &nb);
+  if (p)
+    {
+      memcpy (buf, p, nb);
+      return (ssize_t) nb;
+    }
+  else
+    return 0;
+}
+
+
+/* Stream write function for character(kind=1) internal units.  */
 
 static ssize_t
 mem_write (stream * s, const void * buf, ssize_t nbytes)
@@ -670,6 +749,26 @@ mem_write (stream * s, const void * buf, ssize_t nbytes)
     {
       memcpy (p, buf, nb);
       return (ssize_t) nb;
+    }
+  else
+    return 0;
+}
+
+
+/* Stream write function for character(kind=4) internal units.  */
+
+static ssize_t
+mem_write4 (stream * s, const void * buf, ssize_t nwords)
+{
+  gfc_char4_t *p;
+  int nw = nwords;
+
+  p = mem_alloc_w4 (s, &nw);
+  if (p)
+    {
+      while (nw--)
+	*p++ = (gfc_char4_t) *((char *) buf);
+      return nwords;
     }
   else
     return 0;
@@ -759,7 +858,8 @@ empty_internal_buffer(stream *strm)
   memset(s->buffer, ' ', s->file_length);
 }
 
-/* open_internal()-- Returns a stream structure from an internal file */
+/* open_internal()-- Returns a stream structure from a character(kind=1)
+   internal file */
 
 stream *
 open_internal (char *base, int length, gfc_offset offset)
@@ -781,6 +881,34 @@ open_internal (char *base, int length, gfc_offset offset)
   s->st.trunc = (void *) mem_truncate;
   s->st.read = (void *) mem_read;
   s->st.write = (void *) mem_write;
+  s->st.flush = (void *) mem_flush;
+
+  return (stream *) s;
+}
+
+/* open_internal4()-- Returns a stream structure from a character(kind=4)
+   internal file */
+
+stream *
+open_internal4 (char *base, int length, gfc_offset offset)
+{
+  unix_stream *s;
+
+  s = get_mem (sizeof (unix_stream));
+  memset (s, '\0', sizeof (unix_stream));
+
+  s->buffer = base;
+  s->buffer_offset = offset;
+
+  s->logical_offset = 0;
+  s->active = s->file_length = length;
+
+  s->st.close = (void *) mem_close;
+  s->st.seek = (void *) mem_seek;
+  s->st.tell = (void *) mem_tell;
+  s->st.trunc = (void *) mem_truncate;
+  s->st.read = (void *) mem_read4;
+  s->st.write = (void *) mem_write4;
   s->st.flush = (void *) mem_flush;
 
   return (stream *) s;
@@ -1492,15 +1620,11 @@ int
 file_exists (const char *file, gfc_charlen_type file_len)
 {
   char path[PATH_MAX + 1];
-  gfstat_t statbuf;
 
   if (unpack_filename (path, file, file_len))
     return 0;
 
-  if (stat (path, &statbuf) < 0)
-    return 0;
-
-  return 1;
+  return !(access (path, F_OK));
 }
 
 
@@ -1605,36 +1729,6 @@ inquire_unformatted (const char *string, int len)
 {
   return inquire_formatted (string, len);
 }
-
-
-#ifndef HAVE_ACCESS
-
-#ifndef W_OK
-#define W_OK 2
-#endif
-
-#ifndef R_OK
-#define R_OK 4
-#endif
-
-/* Fallback implementation of access() on systems that don't have it.
-   Only modes R_OK and W_OK are used in this file.  */
-
-static int
-fallback_access (const char *path, int mode)
-{
-  if ((mode & R_OK) && open (path, O_RDONLY) < 0)
-    return -1;
-
-  if ((mode & W_OK) && open (path, O_WRONLY) < 0)
-    return -1;
-
-  return 0;
-}
-
-#undef access
-#define access fallback_access
-#endif
 
 
 /* inquire_access()-- Given a fortran string, determine if the file is

@@ -376,8 +376,6 @@ enum reg_class {
    for POST_DEC targets (PR27386).  */
 /*#define PUSH_ROUNDING(NPUSHED) (NPUSHED)*/
 
-#define RETURN_POPS_ARGS(FUNDECL, FUNTYPE, STACK_SIZE) 0
-
 #define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) (function_arg (&(CUM), MODE, TYPE, NAMED))
 
 typedef struct avr_args {
@@ -782,7 +780,7 @@ mmcu=*:-mmcu=%*}"
 #define LIB_SPEC \
   "%{!mmcu=at90s1*:%{!mmcu=attiny11:%{!mmcu=attiny12:%{!mmcu=attiny15:%{!mmcu=attiny28: -lc }}}}}"
 
-#define LIBSTDCXX "-lgcc"
+#define LIBSTDCXX "gcc"
 /* No libstdc++ for now.  Empty string doesn't work.  */
 
 #define LIBGCC_SPEC \

@@ -66,6 +66,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_AES	OPTION_ISA_AES
 #define TARGET_PCLMUL	OPTION_ISA_PCLMUL
 #define TARGET_CMPXCHG16B OPTION_ISA_CX16
+#define TARGET_FSGSBASE	OPTION_ISA_FSGSBASE
+#define TARGET_RDRND	OPTION_ISA_RDRND
+#define TARGET_F16C	OPTION_ISA_F16C
 
 
 /* SSE4.1 defines round instructions */
@@ -474,7 +477,13 @@ extern tree x86_mfence;
    redefines this to 1.  */
 #define TARGET_MACHO 0
 
-/* Likewise, for the Windows 64-bit ABI.  */
+/* Branch island 'stubs' are emitted for earlier versions of darwin.
+   This provides a default (over-ridden in darwin.h.)  */
+#ifndef TARGET_MACHO_BRANCH_ISLANDS
+#define TARGET_MACHO_BRANCH_ISLANDS 0
+#endif
+
+/* For the Windows 64-bit ABI.  */
 #define TARGET_64BIT_MS_ABI (TARGET_64BIT && ix86_cfun_abi () == MS_ABI)
 
 /* Available call abi.  */
@@ -652,10 +661,9 @@ enum target_cpu_default
 
 #define SHORT_TYPE_SIZE 16
 #define INT_TYPE_SIZE 32
-#define FLOAT_TYPE_SIZE 32
-#define LONG_TYPE_SIZE BITS_PER_WORD
-#define DOUBLE_TYPE_SIZE 64
 #define LONG_LONG_TYPE_SIZE 64
+#define FLOAT_TYPE_SIZE 32
+#define DOUBLE_TYPE_SIZE 64
 #define LONG_DOUBLE_TYPE_SIZE 80
 
 #define WIDEST_HARDWARE_FP_SIZE LONG_DOUBLE_TYPE_SIZE
@@ -730,10 +738,6 @@ enum target_cpu_default
 
 /* C++ stores the virtual bit in the lowest bit of function pointers.  */
 #define TARGET_PTRMEMFUNC_VBIT_LOCATION ptrmemfunc_vbit_in_pfn
-
-/* Alignment of field after `int : 0' in a structure.  */
-
-#define EMPTY_FIELD_BOUNDARY BITS_PER_WORD
 
 /* Minimum size in bits of the largest boundary to which any
    and all fundamental data types supported by the hardware
@@ -1094,6 +1098,12 @@ enum target_cpu_default
    : (MODE) == HImode && !TARGET_PARTIAL_REG_STALL ? SImode		\
    : (MODE) == QImode && (REGNO) > BX_REG && !TARGET_64BIT ? SImode 	\
    : (MODE))
+
+/* The only ABI that saves SSE registers across calls is Win64 (thus no
+   need to check the current ABI here), and with AVX enabled Win64 only
+   guarantees that the low 16 bytes are saved.  */
+#define HARD_REGNO_CALL_PART_CLOBBERED(REGNO, MODE)             \
+  (SSE_REGNO_P (REGNO) && GET_MODE_SIZE (MODE) > 16)
 
 /* Specify the registers used for certain standard purposes.
    The values of these macros are register numbers.  */
@@ -1542,26 +1552,6 @@ enum reg_class
 #define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) \
   (ix86_function_type_abi (FNTYPE) == MS_ABI)
 
-/* Value is the number of bytes of arguments automatically
-   popped when returning from a subroutine call.
-   FUNDECL is the declaration node of the function (as a tree),
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.
-   SIZE is the number of bytes of arguments passed on the stack.
-
-   On the 80386, the RTD insn may be used to pop them if the number
-     of args is fixed, but if the number is variable then the caller
-     must pop them all.  RTD can't be used for library calls now
-     because the library is compiled with the Unix compiler.
-   Use of RTD is a selectable option, since it is incompatible with
-   standard Unix calling sequences.  If the option is not selected,
-   the caller must always pop the args.
-
-   The attribute stdcall is equivalent to RTD on a per module basis.  */
-
-#define RETURN_POPS_ARGS(FUNDECL, FUNTYPE, SIZE) \
-  ix86_return_pops_args ((FUNDECL), (FUNTYPE), (SIZE))
-
 /* Define how to find the value returned by a library function
    assuming the value has mode MODE.  */
 
@@ -1611,35 +1601,14 @@ typedef struct ix86_args {
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, FNDECL, N_NAMED_ARGS) \
   init_cumulative_args (&(CUM), (FNTYPE), (LIBNAME), (FNDECL))
 
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  */
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED) \
-  function_arg_advance (&(CUM), (MODE), (TYPE), (NAMED))
-
-/* Define where to put the arguments to a function.
-   Value is zero to push the argument on the stack,
-   or a hard register in which to store the argument.
-
-   MODE is the argument's machine mode.
-   TYPE is the data type of the argument (as a tree).
-    This is null for libcalls where that information may
-    not be available.
-   CUM is a variable of type CUMULATIVE_ARGS which gives info about
-    the preceding args and about the function being called.
-   NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).  */
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  function_arg (&(CUM), (MODE), (TYPE), (NAMED))
-
 /* Output assembler code to FILE to increment profiler label # LABELNO
    for profiling a function entry.  */
 
 #define FUNCTION_PROFILER(FILE, LABELNO) x86_function_profiler (FILE, LABELNO)
 
 #define MCOUNT_NAME "_mcount"
+
+#define MCOUNT_NAME_BEFORE_PROLOGUE "__fentry__"
 
 #define PROFILE_COUNT_REGISTER "edx"
 
@@ -1855,10 +1824,11 @@ typedef struct ix86_args {
 
 #define CLEAR_RATIO(speed) ((speed) ? MIN (6, ix86_cost->move_ratio) : 2)
 
-/* Define if shifts truncate the shift count
-   which implies one can omit a sign-extension or zero-extension
-   of a shift count.  */
-/* On i386, shifts do truncate the count.  But bit opcodes don't.  */
+/* Define if shifts truncate the shift count which implies one can
+   omit a sign-extension or zero-extension of a shift count.
+
+   On i386, shifts do truncate the count.  But bit test instructions
+   take the modulo of the bit offset operand.  */
 
 /* #define SHIFT_COUNT_TRUNCATED */
 
@@ -1891,28 +1861,6 @@ do {							\
    so give the MEM rtx a byte's mode.  */
 #define FUNCTION_MODE QImode
 
-/* A C expression for the cost of moving data from a register in class FROM to
-   one in class TO.  The classes are expressed using the enumeration values
-   such as `GENERAL_REGS'.  A value of 2 is the default; other values are
-   interpreted relative to that.
-
-   It is not required that the cost always equal 2 when FROM is the same as TO;
-   on some machines it is expensive to move between registers if they are not
-   general registers.  */
-
-#define REGISTER_MOVE_COST(MODE, CLASS1, CLASS2) \
-   ix86_register_move_cost ((MODE), (CLASS1), (CLASS2))
-
-/* A C expression for the cost of moving data of mode M between a
-   register and memory.  A value of 2 is the default; this cost is
-   relative to those in `REGISTER_MOVE_COST'.
-
-   If moving between registers and memory is more expensive than
-   between two registers, you should define this macro to express the
-   relative cost.  */
-
-#define MEMORY_MOVE_COST(MODE, CLASS, IN)	\
-  ix86_memory_move_cost ((MODE), (CLASS), (IN))
 
 /* A C expression for the cost of a branch instruction.  A value of 1
    is the default; other values are interpreted relative to that.  */
@@ -1992,7 +1940,8 @@ do {							\
    For non floating point regs, the following are the HImode names.
 
    For float regs, the stack top is sometimes referred to as "%st(0)"
-   instead of just "%st".  PRINT_OPERAND handles this with the "y" code.  */
+   instead of just "%st".  TARGET_PRINT_OPERAND handles this with the
+   "y" code.  */
 
 #define HI_REGISTER_NAMES						\
 {"ax","dx","cx","bx","si","di","bp","sp",				\
@@ -2143,6 +2092,13 @@ do {									\
     }
 #endif
 
+/* Write the extra assembler code needed to declare a function
+   properly.  */
+
+#undef ASM_OUTPUT_FUNCTION_LABEL
+#define ASM_OUTPUT_FUNCTION_LABEL(FILE, NAME, DECL) \
+  ix86_asm_output_function_label (FILE, NAME, DECL)
+
 /* Under some conditions we need jump tables in the text section,
    because the assembler cannot handle label differences between
    sections.  This is the case for x86_64 on Mach-O for example.  */
@@ -2161,26 +2117,6 @@ do {									\
    asm (SECTION_OP "\n\t"					\
 	"call " CRT_MKSTR(__USER_LABEL_PREFIX__) #FUNC "\n"	\
 	TEXT_SECTION_ASM_OP);
-
-/* Print operand X (an rtx) in assembler syntax to file FILE.
-   CODE is a letter or dot (`z' in `%z0') or 0 if no letter was specified.
-   Effect of various CODE letters is described in i386.c near
-   print_operand function.  */
-
-#define PRINT_OPERAND_PUNCT_VALID_P(CODE) \
-  ((CODE) == '*' || (CODE) == '+' || (CODE) == '&' || (CODE) == ';')
-
-#define PRINT_OPERAND(FILE, X, CODE)  \
-  print_operand ((FILE), (X), (CODE))
-
-#define PRINT_OPERAND_ADDRESS(FILE, ADDR)  \
-  print_operand_address ((FILE), (ADDR))
-
-#define OUTPUT_ADDR_CONST_EXTRA(FILE, X, FAIL)	\
-do {						\
-  if (! output_addr_const_extra (FILE, (X)))	\
-    goto FAIL;					\
-} while (0);
 
 /* Which processor to schedule for. The cpu attribute defines a list that
    mirrors this list, so changes to i386.md must be made at the same time.  */
@@ -2256,9 +2192,6 @@ extern int ix86_branch_cost, ix86_section_threshold;
 
 /* Smallest class containing REGNO.  */
 extern enum reg_class const regclass_map[FIRST_PSEUDO_REGISTER];
-
-extern rtx ix86_compare_op0;	/* operand 0 for comparisons */
-extern rtx ix86_compare_op1;	/* operand 1 for comparisons */
 
 enum ix86_fpcmp_strategy {
   IX86_FPCMP_SAHF,
@@ -2354,13 +2287,42 @@ enum ix86_stack_slot
 
 #define FASTCALL_PREFIX '@'
 
-/* Machine specific CFA tracking during prologue/epilogue generation.  */
+/* Machine specific frame tracking during prologue/epilogue generation.  */
 
 #ifndef USED_FOR_TARGET
-struct GTY(()) machine_cfa_state
+struct GTY(()) machine_frame_state
 {
-  rtx reg;
-  HOST_WIDE_INT offset;
+  /* This pair tracks the currently active CFA as reg+offset.  When reg
+     is drap_reg, we don't bother trying to record here the real CFA when
+     it might really be a DW_CFA_def_cfa_expression.  */
+  rtx cfa_reg;
+  HOST_WIDE_INT cfa_offset;
+
+  /* The current offset (canonically from the CFA) of ESP and EBP.
+     When stack frame re-alignment is active, these may not be relative
+     to the CFA.  However, in all cases they are relative to the offsets
+     of the saved registers stored in ix86_frame.  */
+  HOST_WIDE_INT sp_offset;
+  HOST_WIDE_INT fp_offset;
+
+  /* The size of the red-zone that may be assumed for the purposes of
+     eliding register restore notes in the epilogue.  This may be zero
+     if no red-zone is in effect, or may be reduced from the real
+     red-zone value by a maximum runtime stack re-alignment value.  */
+  int red_zone_offset;
+
+  /* Indicate whether each of ESP, EBP or DRAP currently holds a valid
+     value within the frame.  If false then the offset above should be
+     ignored.  Note that DRAP, if valid, *always* points to the CFA and
+     thus has an offset of zero.  */
+  BOOL_BITFIELD sp_valid : 1;
+  BOOL_BITFIELD fp_valid : 1;
+  BOOL_BITFIELD drap_valid : 1;
+
+  /* Indicate whether the local stack frame has been re-aligned.  When
+     set, the SP/FP offsets above are relative to the aligned frame
+     and not the CFA.  */
+  BOOL_BITFIELD realigned : 1;
 };
 
 struct GTY(()) machine_function {
@@ -2403,8 +2365,9 @@ struct GTY(()) machine_function {
      stack below the return address.  */
   BOOL_BITFIELD static_chain_on_stack : 1;
 
-  /* The CFA state at the end of the prologue.  */
-  struct machine_cfa_state cfa;
+  /* During prologue/epilogue generation, the current frame state.
+     Otherwise, the frame state at the end of the prologue.  */
+  struct machine_frame_state fs;
 };
 #endif
 
@@ -2422,7 +2385,6 @@ struct GTY(()) machine_function {
    REG_SP is live.  */
 #define ix86_current_function_calls_tls_descriptor \
   (ix86_tls_descriptor_calls_expanded_in_cfun && df_regs_ever_live_p (SP_REG))
-#define ix86_cfa_state (&cfun->machine->cfa)
 #define ix86_static_chain_on_stack (cfun->machine->static_chain_on_stack)
 
 /* Control behavior of x86_file_start.  */
@@ -2443,57 +2405,6 @@ struct GTY(()) machine_function {
 #define SYMBOL_FLAG_DLLEXPORT		(SYMBOL_FLAG_MACH_DEP << 2)
 #define SYMBOL_REF_DLLEXPORT_P(X) \
 	((SYMBOL_REF_FLAGS (X) & SYMBOL_FLAG_DLLEXPORT) != 0)
-
-/* Model costs for vectorizer.  */
-
-/* Cost of conditional branch.  */
-#undef TARG_COND_BRANCH_COST
-#define TARG_COND_BRANCH_COST           ix86_cost->branch_cost
-
-/* Cost of any scalar operation, excluding load and store.  */
-#undef TARG_SCALAR_STMT_COST
-#define TARG_SCALAR_STMT_COST           ix86_cost->scalar_stmt_cost
-
-/* Cost of scalar load.  */
-#undef TARG_SCALAR_LOAD_COST
-#define TARG_SCALAR_LOAD_COST           ix86_cost->scalar_load_cost
-
-/* Cost of scalar store.  */
-#undef TARG_SCALAR_STORE_COST
-#define TARG_SCALAR_STORE_COST          ix86_cost->scalar_store_cost
-
-/* Cost of any vector operation, excluding load, store or vector to scalar
-   operation.  */
-#undef TARG_VEC_STMT_COST
-#define TARG_VEC_STMT_COST              ix86_cost->vec_stmt_cost
-
-/* Cost of vector to scalar operation.  */
-#undef TARG_VEC_TO_SCALAR_COST
-#define TARG_VEC_TO_SCALAR_COST         ix86_cost->vec_to_scalar_cost
-
-/* Cost of scalar to vector operation.  */
-#undef TARG_SCALAR_TO_VEC_COST
-#define TARG_SCALAR_TO_VEC_COST         ix86_cost->scalar_to_vec_cost
-
-/* Cost of aligned vector load.  */
-#undef TARG_VEC_LOAD_COST
-#define TARG_VEC_LOAD_COST              ix86_cost->vec_align_load_cost
-
-/* Cost of misaligned vector load.  */
-#undef TARG_VEC_UNALIGNED_LOAD_COST
-#define TARG_VEC_UNALIGNED_LOAD_COST    ix86_cost->vec_unalign_load_cost
-
-/* Cost of vector store.  */
-#undef TARG_VEC_STORE_COST
-#define TARG_VEC_STORE_COST             ix86_cost->vec_store_cost
-
-/* Cost of conditional taken branch for vectorizer cost model.  */
-#undef TARG_COND_TAKEN_BRANCH_COST
-#define TARG_COND_TAKEN_BRANCH_COST     ix86_cost->cond_taken_branch_cost
-
-/* Cost of conditional not taken branch for vectorizer cost model.  */
-#undef TARG_COND_NOT_TAKEN_BRANCH_COST
-#define TARG_COND_NOT_TAKEN_BRANCH_COST ix86_cost->cond_not_taken_branch_cost
 
 /*
 Local variables:

@@ -1,3 +1,51 @@
+2010-08-21  Richard Henderson  <rth@redhat.com>
+	    Andi Kleen <ak@linux.intel.com>
+	    David S. Miller  <davem@davemloft.net>
+
+	* configure.ac (AC_C_BIGENDIAN, AC_TYPE_UINTPTR_T): New tests.
+	(ssize_t): Check via AC_TYPE_SSIZE_T instead of AC_CHECK_TYPE.
+	(ptrdiff_t): Check via AC_CHECK_TYPE.
+	* config.in, configure: Rebuild.
+	* system.h: Include stdint.h, if available.
+	* lex.c (WORDS_BIGENDIAN): Provide default.
+	(acc_char_mask_misalign, acc_char_replicate, acc_char_cmp,
+	acc_char_index, search_line_acc_char, repl_chars, search_line_mmx,
+	search_line_sse2, search_line_sse42, init_vectorized_lexer,
+	search_line_fast): New.
+	(_cpp_clean_line): Use search_line_fast.  Restructure the fast
+	loop to make it clear when we're leaving the loop.  Stay in the
+	fast loop for non-trigraph '?'.
+
+2010-06-11  Jakub Jelinek  <jakub@redhat.com>
+
+	* include/cpplib.h (struct cpp_callbacks): Add user_builtin_macro
+	callback.
+	(enum cpp_builtin_type): Add BT_FIRST_USER and BT_LAST_USER.
+	(cpp_macro_definition): Remove const qual from second argument.
+	* macro.c (enter_macro_context): Call user_builtin_macro callback for
+	NODE_BUILTIN !NODE_USED macros.
+	(warn_of_redefinition): Likewise.  Remove const qual from second
+	argument.
+	(cpp_macro_definition): Likewise.
+	* pch.c (write_macdef, save_macros): Call user_builtin_macro callback
+	for NODE_BUILTIN !NODE_USED macros.
+
+2010-06-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* include/cpplib.h (struct cpp_options): Remove show_column.
+	* init.c (cpp_create_reader, post_options): Don't set show_column.
+
+2010-06-09  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR bootstrap/44432
+	* configure.ac: Before using ZW_PROG_COMPILER_DEPENDENCIES for C++,
+	check that C++ compiler works.
+	* configure: Regenerate.
+
+2010-06-08  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* include/symtab.h (ht_identifier_ptr): New.
+
 2010-06-03  Joern Rennecke <joern.rennecke@embecosm.com>
 	    Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 

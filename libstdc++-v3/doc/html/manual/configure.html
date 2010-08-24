@@ -59,8 +59,7 @@
      </p><p>If not explicitly specified, the configure proccess tries
       to guess the most suitable package from the choices above. The
       default is 'generic'. On glibc-based systems of sufficient
-      vintage (2.2.5 and newer) and capability (with installed DE and
-      FR locale data), 'gnu' is automatically selected. This option
+      vintage (2.3 and newer), 'gnu' is automatically selected. This option
       can change the library ABI.
      </p></dd><dt><span class="term"><code class="code">--enable-libstdcxx-allocator</code></span></dt><dd><p>This is an abbreviated form of
 	<code class="code">'--enable-libstdcxx-allocator=auto'</code> (described
@@ -160,8 +159,8 @@
      </p></dd><dt><span class="term"><code class="code">--enable-symvers[=style]</code></span></dt><dd><p>In 3.1 and later, tries to turn on symbol versioning in the
 	shared library (if a shared library has been
 	requested). Values for 'style' that are currently supported
-	are 'gnu', 'gnu-versioned-namespace', 'darwin', and
-	'darwin-export'. Both gnu- options require that a recent
+	are 'gnu', 'gnu-versioned-namespace', 'darwin',
+	'darwin-export', and 'sun'. Both gnu- options require that a recent
 	version of the GNU linker be in use. Both darwin options are
 	equivalent. With no style given, the configure script will try
 	to guess correct defaults for the host system, probe to see if

@@ -140,43 +140,8 @@ int is_cpp_driver;
 /* Flag set to nonzero if an @file argument has been supplied to gcc.  */
 static bool at_file_supplied;
 
-/* Flag saying to pass the greatest exit code returned by a sub-process
-   to the calling program.  */
-static int pass_exit_codes;
-
 /* Definition of string containing the arguments given to configure.  */
 #include "configargs.h"
-
-/* Flag saying to print the directories gcc will search through looking for
-   programs, libraries, etc.  */
-
-static int print_search_dirs;
-
-/* Flag saying to print the full filename of this file
-   as found through our usual search mechanism.  */
-
-static const char *print_file_name = NULL;
-
-/* As print_file_name, but search for executable file.  */
-
-static const char *print_prog_name = NULL;
-
-/* Flag saying to print the relative path we'd use to
-   find libgcc.a given the current compiler flags.  */
-
-static int print_multi_directory;
-
-static int print_sysroot;
-
-/* Flag saying to print the relative path we'd use to
-   find OS libraries given the current compiler flags.  */
-
-static int print_multi_os_directory;
-
-/* Flag saying to print the list of subdirectories and
-   compiler flags used to select them in a standard form.  */
-
-static int print_multi_lib;
 
 /* Flag saying to print the command line options understood by gcc and its
    sub-processes.  */
@@ -186,11 +151,6 @@ static int print_help_list;
 /* Flag saying to print the version of gcc and its sub-processes.  */
 
 static int print_version;
-
-/* Flag saying to print the sysroot suffix used for searching for
-   headers.  */
-
-static int print_sysroot_headers_suffix;
 
 /* Flag indicating whether we should print the command and arguments */
 
@@ -206,11 +166,6 @@ static int verbose_only_flag;
 /* Flag indicating how to print command line options of sub-processes.  */
 
 static int print_subprocess_help;
-
-/* Flag indicating whether we should report subprocess execution times
-   (if this is supported by the system - see pexecute.c).  */
-
-static int report_times;
 
 /* Whether we should report subprocess execution times to a file.  */
 
@@ -250,15 +205,6 @@ static enum save_temps {
 static char *save_temps_prefix = 0;
 static size_t save_temps_length = 0;
 
-/* Nonzero means pass multiple source files to the compiler at one time.  */
-
-static int combine_flag = 0;
-
-/* Nonzero means use pipes to communicate between subprocesses.
-   Overridden by either of the above two flags.  */
-
-static int use_pipes;
-
 /* The compiler version.  */
 
 static const char *compiler_version;
@@ -280,23 +226,6 @@ static const char *cross_compile = "1";
 static const char *cross_compile = "0";
 #endif
 
-#ifdef MODIFY_TARGET_NAME
-
-/* Information on how to alter the target name based on a command-line
-   switch.  The only case we support now is simply appending or deleting a
-   string to or from the end of the first part of the configuration name.  */
-
-enum add_del {ADD, DELETE};
-
-static const struct modify_target
-{
-  const char *const sw;
-  const enum add_del add_del;
-  const char *const str;
-}
-modify_target[] = MODIFY_TARGET_NAME;
-#endif
-
 /* Greatest exit code of sub-processes that has been encountered up to
    now.  */
 static int greatest_status = 1;
@@ -311,14 +240,6 @@ static struct obstack obstack;
    and destructors.  */
 
 static struct obstack collect_obstack;
-
-/* This is a list of a wrapper program and its arguments.
-   e.g. wrapper_string of "strace,-c"
-   will cause all programs to run as
-       strace -c program arguments
-   instead of just
-       program arguments */
-static const char  *wrapper_string;
 
 /* Forward declaration for prototypes.  */
 struct path_prefix;
@@ -396,9 +317,11 @@ static const char *getenv_spec_function (int, const char **);
 static const char *if_exists_spec_function (int, const char **);
 static const char *if_exists_else_spec_function (int, const char **);
 static const char *replace_outfile_spec_function (int, const char **);
+static const char *remove_outfile_spec_function (int, const char **);
 static const char *version_compare_spec_function (int, const char **);
 static const char *include_spec_function (int, const char **);
 static const char *find_file_spec_function (int, const char **);
+static const char *find_plugindir_spec_function (int, const char **);
 static const char *print_asm_header_spec_function (int, const char **);
 static const char *compare_debug_dump_opt_spec_function (int, const char **);
 static const char *compare_debug_self_opt_spec_function (int, const char **);
@@ -680,18 +603,6 @@ proper position among the other output files.  */
   "%{!shared:%{pg:gcrt0%O%s}%{!pg:%{p:mcrt0%O%s}%{!p:crt0%O%s}}}"
 #endif
 
-/* config.h can define SWITCHES_NEED_SPACES to control which options
-   require spaces between the option and the argument.
-
-   We define SWITCHES_NEED_SPACES to include "o" by default.  This
-   causes "-ofoo.o" to be split into "-o foo.o" during the initial
-   processing of the command-line, before being seen by the specs
-   machinery.  This makes sure we record "foo.o" as the temporary file
-   to be deleted in the case of error, rather than "-ofoo.o".  */
-#ifndef SWITCHES_NEED_SPACES
-#define SWITCHES_NEED_SPACES "o"
-#endif
-
 /* config.h can define ENDFILE_SPEC to override the default crtn files.  */
 #ifndef ENDFILE_SPEC
 #define ENDFILE_SPEC ""
@@ -780,6 +691,7 @@ proper position among the other output files.  */
     %{static|static-libgcc:-plugin-opt=-pass-through=%(lto_libgcc)}	\
     %{static:-plugin-opt=-pass-through=-lc}	\
     } \
+    %{flto:%<fcompare-debug*} %{fwhopr*:%<fcompare-debug*} \
     %{flto} %{fwhopr*} %l " LINK_PIE_SPEC \
    "%X %{o*} %{A} %{d} %{e*} %{m} %{N} %{n} %{r}\
     %{s} %{t} %{u*} %{x} %{z} %{Z} %{!A:%{!nostdlib:%{!nostartfiles:%S}}}\
@@ -827,7 +739,6 @@ static const char *link_gomp_spec = "";
 static const char *libgcc_spec = LIBGCC_SPEC;
 static const char *endfile_spec = ENDFILE_SPEC;
 static const char *startfile_spec = STARTFILE_SPEC;
-static const char *switches_need_spaces = SWITCHES_NEED_SPACES;
 static const char *linker_name_spec = LINKER_NAME;
 static const char *linker_plugin_file_spec = "";
 static const char *lto_wrapper_spec = "";
@@ -862,7 +773,7 @@ static const char *cpp_unique_options =
  %{M} %{MM} %{MF*} %{MG} %{MP} %{MQ*} %{MT*}\
  %{!E:%{!M:%{!MM:%{!MT:%{!MQ:%{MD|MMD:%{o*:-MQ %*}}}}}}}\
  %{remap} %{g3|ggdb3|gstabs3|gcoff3|gxcoff3|gvms3:-dD}\
- %{!iplugindir*:%{fplugin*:-iplugindir=%:find-file(plugin)}}\
+ %{!iplugindir*:%{fplugin*:%:find-plugindir()}}\
  %{H} %C %{D*&U*&A*} %{i*} %Z %i\
  %{fmudflap:-D_MUDFLAP -include mf-runtime.h}\
  %{fmudflapth:-D_MUDFLAP -D_MUDFLAPTH -include mf-runtime.h}\
@@ -885,8 +796,8 @@ static const char *cpp_debug_options = "%{d*}";
 /* NB: This is shared amongst all front-ends, except for Ada.  */
 static const char *cc1_options =
 "%{pg:%{fomit-frame-pointer:%e-pg and -fomit-frame-pointer are incompatible}}\
- %{!iplugindir*:%{fplugin*:-iplugindir=%:find-file(plugin)}}\
- %1 %{!Q:-quiet} %{!dumpbase:-dumpbase %B} %{d*} %{m*} %{a*}\
+ %{!iplugindir*:%{fplugin*:%:find-plugindir()}}\
+ %1 %{!Q:-quiet} %{!dumpbase:-dumpbase %B} %{d*} %{m*} %{aux-info*}\
  %{fcompare-debug-second:%:compare-debug-auxbase-opt(%b)} \
  %{!fcompare-debug-second:%{c|S:%{o*:-auxbase-strip %*}%{!o*:-auxbase %b}}}%{!c:%{!S:-auxbase %b}} \
  %{g*} %{O*} %{W*&pedantic*} %{w} %{std*&ansi&trigraphs}\
@@ -974,13 +885,6 @@ struct user_specs
 
 static struct user_specs *user_specs_head, *user_specs_tail;
 
-#ifndef SWITCH_TAKES_ARG
-#define SWITCH_TAKES_ARG(CHAR) DEFAULT_SWITCH_TAKES_ARG(CHAR)
-#endif
-
-#ifndef WORD_SWITCH_TAKES_ARG
-#define WORD_SWITCH_TAKES_ARG(STR) DEFAULT_WORD_SWITCH_TAKES_ARG (STR)
-#endif
 
 #ifdef HAVE_TARGET_EXECUTABLE_SUFFIX
 /* This defines which switches stop a full compilation.  */
@@ -1234,12 +1138,9 @@ static const struct option_map option_map[] =
    {"--print-sysroot", "-print-sysroot", 0},
    {"--print-sysroot-headers-suffix", "-print-sysroot-headers-suffix", 0},
    {"--profile", "-p", 0},
-   {"--profile-blocks", "-a", 0},
-   {"--quiet", "-q", 0},
    {"--resource", "-fcompile-resource=", "aj"},
    {"--save-temps", "-save-temps", 0},
    {"--shared", "-shared", 0},
-   {"--silent", "-q", 0},
    {"--specs", "-specs=", "aj"},
    {"--static", "-static", 0},
    {"--std", "-std=", "aj"},
@@ -1392,7 +1293,7 @@ translate_options (int *argcp, const char *const **argvp)
 
 		  else if (strchr (arginfo, '*') != 0)
 		    {
-		      error ("incomplete '%s' option", option_map[j].name);
+		      error ("incomplete %qs option", option_map[j].name);
 		      break;
 		    }
 
@@ -1403,7 +1304,7 @@ translate_options (int *argcp, const char *const **argvp)
 			{
 			  if (i + 1 == argc)
 			    {
-			      error ("missing argument to '%s' option",
+			      error ("missing argument to %qs option",
 				     option_map[j].name);
 			      break;
 			    }
@@ -1416,7 +1317,7 @@ translate_options (int *argcp, const char *const **argvp)
 		  else if (strchr (arginfo, 'o') == 0)
 		    {
 		      if (arg != 0)
-			error ("extraneous argument to '%s' option",
+			error ("extraneous argument to %qs option",
 			       option_map[j].name);
 		      arg = 0;
 		    }
@@ -1467,6 +1368,16 @@ translate_options (int *argcp, const char *const **argvp)
 	  if (nskip + i > argc)
 	    nskip = argc - i;
 
+	  /* Convert -d with a separate argument to
+	     -foutput-class-dir= for Java.  */
+	  if (c == 'd' && p[1] == 0 && argv[i + 1] != NULL)
+	    {
+	      newv[newindex++] = concat ("-foutput-class-dir=", argv[i + 1],
+					 NULL);
+	      nskip = 0;
+	      i += 2;
+	    }
+
 	  while (nskip > 0)
 	    {
 	      newv[newindex++] = argv[i++];
@@ -1474,7 +1385,7 @@ translate_options (int *argcp, const char *const **argvp)
 	    }
 	}
       else
-	/* Ordinary operands, or +e options.  */
+	/* Ordinary operands.  */
 	newv[newindex++] = argv[i++];
     }
 
@@ -1667,7 +1578,6 @@ static struct spec_list static_specs[] =
   INIT_STATIC_SPEC ("link_gomp",		&link_gomp_spec),
   INIT_STATIC_SPEC ("libgcc",			&libgcc_spec),
   INIT_STATIC_SPEC ("startfile",		&startfile_spec),
-  INIT_STATIC_SPEC ("switches_need_spaces",	&switches_need_spaces),
   INIT_STATIC_SPEC ("cross_compile",		&cross_compile),
   INIT_STATIC_SPEC ("version",			&compiler_version),
   INIT_STATIC_SPEC ("multilib",			&multilib_select),
@@ -1716,9 +1626,11 @@ static const struct spec_function static_spec_functions[] =
   { "if-exists",		if_exists_spec_function },
   { "if-exists-else",		if_exists_else_spec_function },
   { "replace-outfile",		replace_outfile_spec_function },
+  { "remove-outfile",		remove_outfile_spec_function },
   { "version-compare",		version_compare_spec_function },
   { "include",			include_spec_function },
   { "find-file",		find_file_spec_function },
+  { "find-plugindir",		find_plugindir_spec_function },
   { "print-asm-header",		print_asm_header_spec_function },
   { "compare-debug-dump-opt",	compare_debug_dump_opt_spec_function },
   { "compare-debug-self-opt",	compare_debug_self_opt_spec_function },
@@ -2281,8 +2193,8 @@ read_specs (const char *filename, int main_p)
 
 	      for (newsl = specs; newsl; newsl = newsl->next)
 		if (strcmp (newsl->name, p2) == 0)
-		  fatal_error ("%s: attempt to rename spec '%s' to "
-			       "already defined spec '%s'",
+		  fatal_error ("%s: attempt to rename spec %qs to "
+			       "already defined spec %qs",
 		    filename, p1, p2);
 
 	      if (verbose_flag)
@@ -2907,7 +2819,7 @@ add_sysrooted_prefix (struct path_prefix *pprefix, const char *prefix,
 		      int require_machine_suffix, int os_multilib)
 {
   if (!IS_ABSOLUTE_PATH (prefix))
-    fatal_error ("system path '%s' is not absolute", prefix);
+    fatal_error ("system path %qs is not absolute", prefix);
 
   if (target_system_root)
     {
@@ -3095,7 +3007,7 @@ execute (void)
 				   ? PEX_RECORD_TIMES : 0),
 		  progname, temp_filename);
   if (pex == NULL)
-    pfatal_with_name (_("pex_init failed"));
+    fatal_error ("pex_init failed: %m");
 
   for (i = 0; i < n_commands; i++)
     {
@@ -3134,13 +3046,13 @@ execute (void)
 
     statuses = (int *) alloca (n_commands * sizeof (int));
     if (!pex_get_status (pex, n_commands, statuses))
-      pfatal_with_name (_("failed to get exit status"));
+      fatal_error ("failed to get exit status: %m");
 
     if (report_times || report_times_to_file)
       {
 	times = (struct pex_time *) alloca (n_commands * sizeof (struct pex_time));
 	if (!pex_get_times (pex, n_commands, times))
-	  pfatal_with_name (_("failed to get process times"));
+	  fatal_error ("failed to get process times: %m");
       }
 
     pex_free (pex);
@@ -3266,6 +3178,8 @@ static struct switchstr *switches;
 
 static int n_switches;
 
+static int n_switches_alloc;
+
 /* Set to zero if -fcompare-debug is disabled, positive if it's
    enabled and we're running the first compilation, negative if it's
    enabled and we're running the second compilation.  For most of the
@@ -3310,6 +3224,8 @@ struct infile
 static struct infile *infiles;
 
 int n_infiles;
+
+static int n_infiles_alloc;
 
 /* True if multiple input files are being compiled to a single
    assembly file.  */
@@ -3495,6 +3411,490 @@ add_linker_option (const char *option, int len)
   linker_options [n_linker_options - 1] = save_string (option, len);
 }
 
+/* Allocate space for an input file in infiles.  */
+
+static void
+alloc_infile (void)
+{
+  if (n_infiles_alloc == 0)
+    {
+      n_infiles_alloc = 16;
+      infiles = XNEWVEC (struct infile, n_infiles_alloc);
+    }
+  else if (n_infiles_alloc == n_infiles)
+    {
+      n_infiles_alloc *= 2;
+      infiles = XRESIZEVEC (struct infile, infiles, n_infiles_alloc);
+    }
+}
+
+/* Store an input file with the given NAME and LANGUAGE in
+   infiles.  */
+
+static void
+add_infile (const char *name, const char *language)
+{
+  alloc_infile ();
+  infiles[n_infiles].name = name;
+  infiles[n_infiles++].language = language;
+}
+
+/* Allocate space for a switch in switches.  */
+
+static void
+alloc_switch (void)
+{
+  if (n_switches_alloc == 0)
+    {
+      n_switches_alloc = 16;
+      switches = XNEWVEC (struct switchstr, n_switches_alloc);
+    }
+  else if (n_switches_alloc == n_switches)
+    {
+      n_switches_alloc *= 2;
+      switches = XRESIZEVEC (struct switchstr, switches, n_switches_alloc);
+    }
+}
+
+/* Save an option OPT with N_ARGS arguments in array ARGS, marking it
+   as validated if VALIDATED.  */
+
+static void
+save_switch (const char *opt, size_t n_args, const char *const *args,
+	     bool validated)
+{
+  alloc_switch ();
+  switches[n_switches].part1 = opt + 1;
+  if (n_args == 0)
+    switches[n_switches].args = 0;
+  else
+    {
+      switches[n_switches].args = XNEWVEC (const char *, n_args + 1);
+      memcpy (switches[n_switches].args, args, n_args * sizeof (const char *));
+      switches[n_switches].args[n_args] = NULL;
+    }
+
+  switches[n_switches].live_cond = 0;
+  switches[n_switches].validated = validated;
+  switches[n_switches].ordering = 0;
+  n_switches++;
+}
+
+/* Handle an option DECODED that is unknown to the option-processing
+   machinery, but may be known to specs.  */
+
+static bool
+driver_unknown_option_callback (const struct cl_decoded_option *decoded)
+{
+  save_switch (decoded->canonical_option[0],
+	       decoded->canonical_option_num_elements - 1,
+	       &decoded->canonical_option[1], false);
+
+  return false;
+}
+
+/* Handle an option DECODED that is not marked as CL_DRIVER.
+   LANG_MASK will always be CL_DRIVER.  */
+
+static void
+driver_wrong_lang_callback (const struct cl_decoded_option *decoded,
+			    unsigned int lang_mask ATTRIBUTE_UNUSED)
+{
+  /* At this point, non-driver options are accepted (and expected to
+     be passed down by specs) unless marked to be rejected by the
+     driver.  Options to be rejected by the driver but accepted by the
+     compilers proper are treated just like completely unknown
+     options.  */
+  const struct cl_option *option = &cl_options[decoded->opt_index];
+
+  if (option->flags & CL_REJECT_DRIVER)
+    error ("unrecognized command line option %qs",
+	   decoded->orig_option_with_args_text);
+  else
+    driver_unknown_option_callback (decoded);
+}
+
+/* Note that an option (index OPT_INDEX, argument ARG, value VALUE)
+   has been successfully handled with a handler for mask MASK.  */
+
+static void
+driver_post_handling_callback (const struct cl_decoded_option *decoded ATTRIBUTE_UNUSED,
+			       unsigned int mask ATTRIBUTE_UNUSED)
+{
+  /* Nothing to do here.  */
+}
+
+static const char *spec_lang = 0;
+static int last_language_n_infiles;
+
+/* Handle a driver option; arguments and return value as for
+   handle_option.  */
+
+static bool
+driver_handle_option (const struct cl_decoded_option *decoded,
+		      unsigned int lang_mask ATTRIBUTE_UNUSED, int kind,
+		      const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
+{
+  size_t opt_index = decoded->opt_index;
+  const char *arg = decoded->arg;
+  const char *compare_debug_replacement_opt;
+  int value = decoded->value;
+  bool validated = false;
+  bool do_save = true;
+
+  gcc_assert (kind == DK_UNSPECIFIED);
+
+  switch (opt_index)
+    {
+    case OPT_dumpspecs:
+      {
+	struct spec_list *sl;
+	init_spec ();
+	for (sl = specs; sl; sl = sl->next)
+	  printf ("*%s:\n%s\n\n", sl->name, *(sl->ptr_spec));
+	if (link_command_spec)
+	  printf ("*link_command:\n%s\n\n", link_command_spec);
+	exit (0);
+      }
+
+    case OPT_dumpversion:
+      printf ("%s\n", spec_version);
+      exit (0);
+
+    case OPT_dumpmachine:
+      printf ("%s\n", spec_machine);
+      exit (0);
+
+    case OPT_fversion:
+      /* translate_options () has turned --version into -fversion.  */
+      print_version = 1;
+
+      /* CPP driver cannot obtain switch from cc1_options.  */
+      if (is_cpp_driver)
+	add_preprocessor_option ("--version", strlen ("--version"));
+      add_assembler_option ("--version", strlen ("--version"));
+      add_linker_option ("--version", strlen ("--version"));
+      break;
+
+    case OPT_fhelp:
+      /* translate_options () has turned --help into -fhelp.  */
+      print_help_list = 1;
+
+      /* CPP driver cannot obtain switch from cc1_options.  */
+      if (is_cpp_driver)
+	add_preprocessor_option ("--help", 6);
+      add_assembler_option ("--help", 6);
+      add_linker_option ("--help", 6);
+      break;
+
+    case OPT_fhelp_:
+      /* translate_options () has turned --help into -fhelp.  */
+      print_subprocess_help = 2;
+      break;
+
+    case OPT_ftarget_help:
+      /* translate_options() has turned --target-help into -ftarget-help.  */
+      print_subprocess_help = 1;
+
+      /* CPP driver cannot obtain switch from cc1_options.  */
+      if (is_cpp_driver)
+	add_preprocessor_option ("--target-help", 13);
+      add_assembler_option ("--target-help", 13);
+      add_linker_option ("--target-help", 13);
+      break;
+
+    case OPT_pass_exit_codes:
+    case OPT_print_search_dirs:
+    case OPT_print_file_name_:
+    case OPT_print_prog_name_:
+    case OPT_print_multi_lib:
+    case OPT_print_multi_directory:
+    case OPT_print_sysroot:
+    case OPT_print_multi_os_directory:
+    case OPT_print_sysroot_headers_suffix:
+    case OPT_time:
+    case OPT_wrapper:
+      /* These options set the variables specified in common.opt
+	 automatically, and do not need to be saved for spec
+	 processing.  */
+      do_save = false;
+      break;
+
+    case OPT_print_libgcc_file_name:
+      print_file_name = "libgcc.a";
+      do_save = false;
+      break;
+
+    case OPT_fcompare_debug_second:
+      compare_debug_second = 1;
+      break;
+
+    case OPT_fcompare_debug:
+      switch (value)
+	{
+	case 0:
+	  compare_debug_replacement_opt = "-fcompare-debug=";
+	  arg = "";
+	  goto compare_debug_with_arg;
+
+	case 1:
+	  compare_debug_replacement_opt = "-fcompare-debug=-gtoggle";
+	  arg = "-gtoggle";
+	  goto compare_debug_with_arg;
+
+	default:
+	  gcc_unreachable ();
+	}
+      break;
+
+    case OPT_fcompare_debug_:
+      compare_debug_replacement_opt = decoded->canonical_option[0];
+    compare_debug_with_arg:
+      gcc_assert (decoded->canonical_option_num_elements == 1);
+      gcc_assert (arg != NULL);
+      if (arg)
+	compare_debug = 1;
+      else
+	compare_debug = -1;
+      if (compare_debug < 0)
+	compare_debug_opt = NULL;
+      else
+	compare_debug_opt = arg;
+      save_switch (compare_debug_replacement_opt, 0, NULL, validated);
+      return true;
+
+    case OPT_Wa_:
+      {
+	int prev, j;
+	/* Pass the rest of this option to the assembler.  */
+
+	/* Split the argument at commas.  */
+	prev = 0;
+	for (j = 0; arg[j]; j++)
+	  if (arg[j] == ',')
+	    {
+	      add_assembler_option (arg + prev, j - prev);
+	      prev = j + 1;
+	    }
+
+	/* Record the part after the last comma.  */
+	add_assembler_option (arg + prev, j - prev);
+      }
+      do_save = false;
+      break;
+
+    case OPT_Wp_:
+      {
+	int prev, j;
+	/* Pass the rest of this option to the preprocessor.  */
+
+	/* Split the argument at commas.  */
+	prev = 0;
+	for (j = 0; arg[j]; j++)
+	  if (arg[j] == ',')
+	    {
+	      add_preprocessor_option (arg + prev, j - prev);
+	      prev = j + 1;
+	    }
+
+	/* Record the part after the last comma.  */
+	add_preprocessor_option (arg + prev, j - prev);
+      }
+      do_save = false;
+      break;
+
+    case OPT_Wl_:
+      {
+	int prev, j;
+	/* Split the argument at commas.  */
+	prev = 0;
+	for (j = 0; arg[j]; j++)
+	  if (arg[j] == ',')
+	    {
+	      add_infile (save_string (arg + prev, j - prev), "*");
+	      prev = j + 1;
+	    }
+	/* Record the part after the last comma.  */
+	add_infile (arg + prev, "*");
+      }
+      do_save = false;
+      break;
+
+    case OPT_Xlinker:
+      add_infile (arg, "*");
+      do_save = false;
+      break;
+
+    case OPT_Xpreprocessor:
+      add_preprocessor_option (arg, strlen (arg));
+      do_save = false;
+      break;
+
+    case OPT_Xassembler:
+      add_assembler_option (arg, strlen (arg));
+      do_save = false;
+      break;
+
+    case OPT_l:
+      /* POSIX allows separation of -l and the lib arg; canonicalize
+	 by concatenating -l with its arg */
+      add_infile (concat ("-l", arg, NULL), "*");
+      do_save = false;
+      break;
+
+    case OPT_save_temps:
+      save_temps_flag = SAVE_TEMPS_CWD;
+      validated = true;
+      break;
+
+    case OPT_save_temps_:
+      if (strcmp (arg, "cwd") == 0)
+	save_temps_flag = SAVE_TEMPS_CWD;
+      else if (strcmp (arg, "obj") == 0
+	       || strcmp (arg, "object") == 0)
+	save_temps_flag = SAVE_TEMPS_OBJ;
+      else
+	fatal_error ("%qs is an unknown -save-temps option",
+		     decoded->orig_option_with_args_text);
+      break;
+
+    case OPT_no_canonical_prefixes:
+      /* Already handled as a special case, so ignored here.  */
+      do_save = false;
+      break;
+
+    case OPT_pipe:
+      validated = true;
+      /* Fall through.  */
+    case OPT_combine:
+      /* These options set the variables specified in common.opt
+	 automatically, but do need to be saved for spec
+	 processing.  */
+      break;
+
+    case OPT_specs:
+    case OPT_specs_:
+      {
+	struct user_specs *user = XNEW (struct user_specs);
+
+	user->next = (struct user_specs *) 0;
+	user->filename = arg;
+	if (user_specs_tail)
+	  user_specs_tail->next = user;
+	else
+	  user_specs_head = user;
+	user_specs_tail = user;
+      }
+      do_save = false;
+      break;
+
+    case OPT__sysroot_:
+      target_system_root = arg;
+      target_system_root_changed = 1;
+      do_save = false;
+      break;
+
+    case OPT_time_:
+      if (report_times_to_file)
+	fclose (report_times_to_file);
+      report_times_to_file = fopen (arg, "a");
+      do_save = false;
+      break;
+
+    case OPT____:
+      /* "-###"
+	 This is similar to -v except that there is no execution
+	 of the commands and the echoed arguments are quoted.  It
+	 is intended for use in shell scripts to capture the
+	 driver-generated command line.  */
+      verbose_only_flag++;
+      verbose_flag++;
+      do_save = false;
+      break;
+
+    case OPT_B:
+      {
+	size_t len = strlen (arg);
+
+	/* Catch the case where the user has forgotten to append a
+	   directory separator to the path.  Note, they may be using
+	   -B to add an executable name prefix, eg "i386-elf-", in
+	   order to distinguish between multiple installations of
+	   GCC in the same directory.  Hence we must check to see
+	   if appending a directory separator actually makes a
+	   valid directory name.  */
+	if (!IS_DIR_SEPARATOR (arg[len - 1])
+	    && is_directory (arg, false))
+	  {
+	    char *tmp = XNEWVEC (char, len + 2);
+	    strcpy (tmp, arg);
+	    tmp[len] = DIR_SEPARATOR;
+	    tmp[++len] = 0;
+	    arg = tmp;
+	  }
+
+	add_prefix (&exec_prefixes, arg, NULL,
+		    PREFIX_PRIORITY_B_OPT, 0, 0);
+	add_prefix (&startfile_prefixes, arg, NULL,
+		    PREFIX_PRIORITY_B_OPT, 0, 0);
+	add_prefix (&include_prefixes, arg, NULL,
+		    PREFIX_PRIORITY_B_OPT, 0, 0);
+      }
+      validated = true;
+      break;
+
+    case OPT_v:	/* Print our subcommands and print versions.  */
+      verbose_flag++;
+      break;
+
+    case OPT_x:
+      spec_lang = arg;
+      if (!strcmp (spec_lang, "none"))
+	/* Suppress the warning if -xnone comes after the last input
+	   file, because alternate command interfaces like g++ might
+	   find it useful to place -xnone after each input file.  */
+	spec_lang = 0;
+      else
+	last_language_n_infiles = n_infiles;
+      do_save = false;
+      break;
+
+    case OPT_o:
+      have_o = 1;
+#if defined(HAVE_TARGET_EXECUTABLE_SUFFIX) || defined(HAVE_TARGET_OBJECT_SUFFIX)
+      arg = convert_filename (arg, ! have_c, 0);
+#endif
+      /* Save the output name in case -save-temps=obj was used.  */
+      save_temps_prefix = xstrdup (arg);
+      /* On some systems, ld cannot handle "-o" without a space.  So
+	 split the option from its argument.  */
+      save_switch ("-o", 1, &arg, validated);
+      return true;
+
+    case OPT_static_libgcc:
+    case OPT_shared_libgcc:
+    case OPT_static_libgfortran:
+    case OPT_static_libstdc__:
+      /* These are always valid, since gcc.c itself understands the
+	 first two, gfortranspec.c understands -static-libgfortran and
+	 g++spec.c understands -static-libstdc++ */
+      validated = true;
+      break;
+
+    default:
+      /* Various driver options need no special processing at this
+	 point, having been handled in a prescan above or being
+	 handled by specs.  */
+      break;
+    }
+
+  if (do_save)
+    save_switch (decoded->canonical_option[0],
+		 decoded->canonical_option_num_elements - 1,
+		 &decoded->canonical_option[1], validated);
+  return true;
+}
+
 /* Create the vector `switches' and its contents.
    Store its length in `n_switches'.  */
 
@@ -3504,16 +3904,12 @@ process_command (int argc, const char **argv)
   int i;
   const char *temp;
   char *temp1;
-  const char *spec_lang = 0;
-  int last_language_n_infiles;
-  int lang_n_infiles = 0;
-#ifdef MODIFY_TARGET_NAME
-  int is_modify_target_name;
-  unsigned int j;
-#endif
   const char *tooldir_prefix;
   char *(*get_relative_prefix) (const char *, const char *,
 				const char *) = NULL;
+  struct cl_option_handlers handlers;
+  struct cl_decoded_option *decoded_options;
+  unsigned int decoded_options_count, j;
 
   GET_ENVIRONMENT (gcc_exec_prefix, "GCC_EXEC_PREFIX");
 
@@ -3594,10 +3990,11 @@ process_command (int argc, const char **argv)
      is relocated. The toolchain was either relocated using GCC_EXEC_PREFIX
      or an automatically created GCC_EXEC_PREFIX from argv[0].  */
 
+  decode_cmdline_options_to_array (argc, argv, CL_DRIVER,
+				   &decoded_options, &decoded_options_count);
+
   /* Do language-specific adjustment/addition of flags.  */
-  lang_specific_driver (&argc,
-			CONST_CAST2 (const char *const **, const char ***,
-				     &argv),
+  lang_specific_driver (&decoded_options, &decoded_options_count,
 			&added_libraries);
 
   if (gcc_exec_prefix)
@@ -3724,467 +4121,76 @@ process_command (int argc, const char **argv)
 	}
     }
 
-  /* Scan argv twice.  Here, the first time, just count how many switches
-     there will be in their vector, and how many input files in theirs.
-     Here we also parse the switches that cc itself uses (e.g. -v).  */
+  /* Process the options and store input files and switches in their
+     vectors.  */
 
-  for (i = 1; i < argc; i++)
+  last_language_n_infiles = -1;
+
+  handlers.unknown_option_callback = driver_unknown_option_callback;
+  handlers.wrong_lang_callback = driver_wrong_lang_callback;
+  handlers.post_handling_callback = driver_post_handling_callback;
+  handlers.num_handlers = 1;
+  handlers.handlers[0].handler = driver_handle_option;
+  handlers.handlers[0].mask = CL_DRIVER;
+
+  for (j = 1; j < decoded_options_count; j++)
     {
-      if (! strcmp (argv[i], "-dumpspecs"))
+      switch (decoded_options[j].opt_index)
 	{
-	  struct spec_list *sl;
-	  init_spec ();
-	  for (sl = specs; sl; sl = sl->next)
-	    printf ("*%s:\n%s\n\n", sl->name, *(sl->ptr_spec));
-	  if (link_command_spec)
-	    printf ("*link_command:\n%s\n\n", link_command_spec);
-	  exit (0);
+	case OPT_S:
+	case OPT_c:
+	case OPT_E:
+	  have_c = 1;
+	  break;
 	}
-      else if (! strcmp (argv[i], "-dumpversion"))
-	{
-	  printf ("%s\n", spec_version);
-	  exit (0);
-	}
-      else if (! strcmp (argv[i], "-dumpmachine"))
-	{
-	  printf ("%s\n", spec_machine);
-	  exit (0);
-	}
-      else if (strcmp (argv[i], "-fversion") == 0)
-	{
-	  /* translate_options () has turned --version into -fversion.  */
-	  print_version = 1;
+      if (have_c)
+	break;
+    }
 
-	  /* We will be passing a dummy file on to the sub-processes.  */
-	  n_infiles++;
-	  n_switches++;
-
-	  /* CPP driver cannot obtain switch from cc1_options.  */
-	  if (is_cpp_driver)
-	    add_preprocessor_option ("--version", strlen ("--version"));
-	  add_assembler_option ("--version", strlen ("--version"));
-	  add_linker_option ("--version", strlen ("--version"));
-	}
-      else if (strcmp (argv[i], "-fhelp") == 0)
+  for (j = 1; j < decoded_options_count; j++)
+    {
+      if (decoded_options[j].opt_index == OPT_SPECIAL_input_file)
 	{
-	  /* translate_options () has turned --help into -fhelp.  */
-	  print_help_list = 1;
-
-	  /* We will be passing a dummy file on to the sub-processes.  */
-	  n_infiles++;
-	  n_switches++;
-
-	  /* CPP driver cannot obtain switch from cc1_options.  */
-	  if (is_cpp_driver)
-	    add_preprocessor_option ("--help", 6);
-	  add_assembler_option ("--help", 6);
-	  add_linker_option ("--help", 6);
-	}
-      else if (strncmp (argv[i], "-fhelp=", 7) == 0)
-	{
-	  /* translate_options () has turned --help into -fhelp.  */
-	  print_subprocess_help = 2;
-
-	  /* We will be passing a dummy file on to the sub-processes.  */
-	  n_infiles++;
-	  n_switches++;
-	}
-      else if (strcmp (argv[i], "-ftarget-help") == 0)
-	{
-	  /* translate_options() has turned --target-help into -ftarget-help.  */
-	  print_subprocess_help = 1;
-
-	  /* We will be passing a dummy file on to the sub-processes.  */
-	  n_infiles++;
-	  n_switches++;
-
-	  /* CPP driver cannot obtain switch from cc1_options.  */
-	  if (is_cpp_driver)
-	    add_preprocessor_option ("--target-help", 13);
-	  add_assembler_option ("--target-help", 13);
-	  add_linker_option ("--target-help", 13);
-	}
-      else if (! strcmp (argv[i], "-pass-exit-codes"))
-	{
-	  pass_exit_codes = 1;
-	  n_switches++;
-	}
-      else if (! strcmp (argv[i], "-print-search-dirs"))
-	print_search_dirs = 1;
-      else if (! strcmp (argv[i], "-print-libgcc-file-name"))
-	print_file_name = "libgcc.a";
-      else if (! strncmp (argv[i], "-print-file-name=", 17))
-	print_file_name = argv[i] + 17;
-      else if (! strncmp (argv[i], "-print-prog-name=", 17))
-	print_prog_name = argv[i] + 17;
-      else if (! strcmp (argv[i], "-print-multi-lib"))
-	print_multi_lib = 1;
-      else if (! strcmp (argv[i], "-print-multi-directory"))
-	print_multi_directory = 1;
-      else if (! strcmp (argv[i], "-print-sysroot"))
-	print_sysroot = 1;
-      else if (! strcmp (argv[i], "-print-multi-os-directory"))
-	print_multi_os_directory = 1;
-      else if (! strcmp (argv[i], "-print-sysroot-headers-suffix"))
-	print_sysroot_headers_suffix = 1;
-      else if (! strcmp (argv[i], "-fcompare-debug-second"))
-	{
-	  compare_debug_second = 1;
-	  n_switches++;
-	}
-      else if (! strcmp (argv[i], "-fno-compare-debug"))
-	{
-	  argv[i] = "-fcompare-debug=";
-	  goto compare_debug_with_arg;
-	}
-      else if (! strcmp (argv[i], "-fcompare-debug"))
-	{
-	  argv[i] = "-fcompare-debug=-gtoggle";
-	  goto compare_debug_with_arg;
-	}
-#define OPT "-fcompare-debug="
-      else if (! strncmp (argv[i], OPT, sizeof (OPT) - 1))
-	{
-	  const char *opt;
-	compare_debug_with_arg:
-	  opt = argv[i] + sizeof (OPT) - 1;
-#undef OPT
-	  if (*opt)
-	    compare_debug = 1;
-	  else
-	    compare_debug = -1;
-	  if (compare_debug < 0)
-	    compare_debug_opt = NULL;
-	  else
-	    compare_debug_opt = opt;
-	  n_switches++;
-	}
-      else if (! strncmp (argv[i], "-Wa,", 4))
-	{
-	  int prev, j;
-	  /* Pass the rest of this option to the assembler.  */
-
-	  /* Split the argument at commas.  */
-	  prev = 4;
-	  for (j = 4; argv[i][j]; j++)
-	    if (argv[i][j] == ',')
-	      {
-		add_assembler_option (argv[i] + prev, j - prev);
-		prev = j + 1;
-	      }
-
-	  /* Record the part after the last comma.  */
-	  add_assembler_option (argv[i] + prev, j - prev);
-	}
-      else if (! strncmp (argv[i], "-Wp,", 4))
-	{
-	  int prev, j;
-	  /* Pass the rest of this option to the preprocessor.  */
-
-	  /* Split the argument at commas.  */
-	  prev = 4;
-	  for (j = 4; argv[i][j]; j++)
-	    if (argv[i][j] == ',')
-	      {
-		add_preprocessor_option (argv[i] + prev, j - prev);
-		prev = j + 1;
-	      }
-
-	  /* Record the part after the last comma.  */
-	  add_preprocessor_option (argv[i] + prev, j - prev);
-	}
-      else if (argv[i][0] == '+' && argv[i][1] == 'e')
-	/* The +e options to the C++ front-end.  */
-	n_switches++;
-      else if (strncmp (argv[i], "-Wl,", 4) == 0)
-	{
-	  int j;
-	  /* Split the argument at commas.  */
-	  for (j = 3; argv[i][j]; j++)
-	    n_infiles += (argv[i][j] == ',');
-	}
-      else if (strcmp (argv[i], "-Xlinker") == 0)
-	{
-	  if (i + 1 == argc)
-	    fatal_error ("argument to '-Xlinker' is missing");
-
-	  n_infiles++;
-	  i++;
-	}
-      else if (strcmp (argv[i], "-Xpreprocessor") == 0)
-	{
-	  if (i + 1 == argc)
-	    fatal_error ("argument to '-Xpreprocessor' is missing");
-
-	  add_preprocessor_option (argv[i+1], strlen (argv[i+1]));
-	}
-      else if (strcmp (argv[i], "-Xassembler") == 0)
-	{
-	  if (i + 1 == argc)
-	    fatal_error ("argument to '-Xassembler' is missing");
-
-	  add_assembler_option (argv[i+1], strlen (argv[i+1]));
-	}
-      else if (strcmp (argv[i], "-l") == 0)
-	{
-	  if (i + 1 == argc)
-	    fatal_error ("argument to '-l' is missing");
-
-	  n_infiles++;
-	  i++;
-	}
-      else if (strncmp (argv[i], "-l", 2) == 0)
-	n_infiles++;
-      else if (strcmp (argv[i], "-save-temps") == 0)
-	{
-	  save_temps_flag = SAVE_TEMPS_CWD;
-	  n_switches++;
-	}
-      else if (strncmp (argv[i], "-save-temps=", 12) == 0)
-	{
-	  n_switches++;
-	  if (strcmp (argv[i]+12, "cwd") == 0)
-	    save_temps_flag = SAVE_TEMPS_CWD;
-	  else if (strcmp (argv[i]+12, "obj") == 0
-		   || strcmp (argv[i]+12, "object") == 0)
-	    save_temps_flag = SAVE_TEMPS_OBJ;
-	  else
-	    fatal_error ("'%s' is an unknown -save-temps option", argv[i]);
-	}
-      else if (strcmp (argv[i], "-no-canonical-prefixes") == 0)
-	/* Already handled as a special case, so ignored here.  */
-	;
-      else if (strcmp (argv[i], "-combine") == 0)
-	{
-	  combine_flag = 1;
-	  n_switches++;
-	}
-      else if (strcmp (argv[i], "-specs") == 0)
-	{
-	  struct user_specs *user = XNEW (struct user_specs);
-	  if (++i >= argc)
-	    fatal_error ("argument to '-specs' is missing");
-
-	  user->next = (struct user_specs *) 0;
-	  user->filename = argv[i];
-	  if (user_specs_tail)
-	    user_specs_tail->next = user;
-	  else
-	    user_specs_head = user;
-	  user_specs_tail = user;
-	}
-      else if (strncmp (argv[i], "-specs=", 7) == 0)
-	{
-	  struct user_specs *user = XNEW (struct user_specs);
-	  if (strlen (argv[i]) == 7)
-	    fatal_error ("argument to '-specs=' is missing");
-
-	  user->next = (struct user_specs *) 0;
-	  user->filename = argv[i] + 7;
-	  if (user_specs_tail)
-	    user_specs_tail->next = user;
-	  else
-	    user_specs_head = user;
-	  user_specs_tail = user;
-	}
-      else if (strcmp (argv[i], "-time") == 0)
-	report_times = 1;
-      else if (strncmp (argv[i], "-time=", sizeof ("-time=") - 1) == 0)
-	{
-	  if (report_times_to_file)
-	    fclose (report_times_to_file);
-	  report_times_to_file = fopen (argv[i] + sizeof ("-time=") - 1, "a");
-	}
-      else if (strcmp (argv[i], "-pipe") == 0)
-	{
-	  /* -pipe has to go into the switches array as well as
-	     setting a flag.  */
-	  use_pipes = 1;
-	  n_switches++;
-	}
-      else if (strcmp (argv[i], "-wrapper") == 0)
-        {
-	  if (++i >= argc)
-	    fatal_error ("argument to '-wrapper' is missing");
-
-          wrapper_string = argv[i];
-	  n_switches++;
-	  n_switches++;
-        }
-      else if (strcmp (argv[i], "-###") == 0)
-	{
-	  /* This is similar to -v except that there is no execution
-	     of the commands and the echoed arguments are quoted.  It
-	     is intended for use in shell scripts to capture the
-	     driver-generated command line.  */
-	  verbose_only_flag++;
-	  verbose_flag++;
-	}
-      else if (argv[i][0] == '-' && argv[i][1] != 0)
-	{
-	  const char *p = &argv[i][1];
-	  int c = *p;
-
-	  switch (c)
+	  const char *arg = decoded_options[j].arg;
+          const char *p = strrchr (arg, '@');
+          char *fname;
+	  long offset;
+	  int consumed;
+#ifdef HAVE_TARGET_OBJECT_SUFFIX
+	  arg = convert_filename (arg, 0, access (arg, F_OK));
+#endif
+	  /* For LTO static archive support we handle input file
+	     specifications that are composed of a filename and
+	     an offset like FNAME@OFFSET.  */
+	  if (p
+	      && p != arg
+	      && sscanf (p, "@%li%n", &offset, &consumed) >= 1
+	      && strlen (p) == (unsigned int)consumed)
 	    {
-	    case 'B':
-	      {
-		const char *value;
-		int len;
-
-		if (p[1] == 0 && i + 1 == argc)
-		  fatal_error ("argument to '-B' is missing");
-		if (p[1] == 0)
-		  value = argv[++i];
-		else
-		  value = p + 1;
-
-		len = strlen (value);
-
-		/* Catch the case where the user has forgotten to append a
-		   directory separator to the path.  Note, they may be using
-		   -B to add an executable name prefix, eg "i386-elf-", in
-		   order to distinguish between multiple installations of
-		   GCC in the same directory.  Hence we must check to see
-		   if appending a directory separator actually makes a
-		   valid directory name.  */
-		if (! IS_DIR_SEPARATOR (value [len - 1])
-		    && is_directory (value, false))
-		  {
-		    char *tmp = XNEWVEC (char, len + 2);
-		    strcpy (tmp, value);
-		    tmp[len] = DIR_SEPARATOR;
-		    tmp[++ len] = 0;
-		    value = tmp;
-		  }
-
-		add_prefix (&exec_prefixes, value, NULL,
-			    PREFIX_PRIORITY_B_OPT, 0, 0);
-		add_prefix (&startfile_prefixes, value, NULL,
-			    PREFIX_PRIORITY_B_OPT, 0, 0);
-		add_prefix (&include_prefixes, value, NULL,
-			    PREFIX_PRIORITY_B_OPT, 0, 0);
-		n_switches++;
-	      }
-	      break;
-
-	    case 'v':	/* Print our subcommands and print versions.  */
-	      n_switches++;
-	      /* If they do anything other than exactly `-v', don't set
-		 verbose_flag; rather, continue on to give the error.  */
-	      if (p[1] != 0)
-		break;
-	      verbose_flag++;
-	      break;
-
-	    case 'S':
-	    case 'c':
-	    case 'E':
-	      if (p[1] == 0)
+              fname = (char *)xmalloc (p - arg + 1);
+              memcpy (fname, arg, p - arg);
+              fname[p - arg] = '\0';
+	      /* Only accept non-stdin and existing FNAME parts, otherwise
+		 try with the full name.  */
+	      if (strcmp (fname, "-") == 0 || access (fname, F_OK) < 0)
 		{
-		  have_c = 1;
-		  n_switches++;
-		  break;
+		  free (fname);
+		  fname = xstrdup (arg);
 		}
-	      goto normal_switch;
-
-	    case 'o':
-	      have_o = 1;
-#if defined(HAVE_TARGET_EXECUTABLE_SUFFIX)
-	      if (! have_c)
-		{
-		  int skip;
-
-		  /* Forward scan, just in case -S, -E or -c is specified
-		     after -o.  */
-		  int j = i + 1;
-		  if (p[1] == 0)
-		    ++j;
-		  while (j < argc)
-		    {
-		      if (argv[j][0] == '-')
-			{
-			  if (SWITCH_CURTAILS_COMPILATION (argv[j][1])
-			      && argv[j][2] == 0)
-			    {
-			      have_c = 1;
-			      break;
-			    }
-			  else if ((skip = SWITCH_TAKES_ARG (argv[j][1])))
-			    j += skip - (argv[j][2] != 0);
-			  else if ((skip = WORD_SWITCH_TAKES_ARG (argv[j] + 1)))
-			    j += skip;
-			}
-		      j++;
-		    }
-		}
-#endif
-#if defined(HAVE_TARGET_EXECUTABLE_SUFFIX) || defined(HAVE_TARGET_OBJECT_SUFFIX)
-	      if (p[1] == 0)
-		argv[i + 1] = convert_filename (argv[i + 1], ! have_c, 0);
-	      else
-		argv[i] = convert_filename (argv[i], ! have_c, 0);
-#endif
-	      /* Save the output name in case -save-temps=obj was used.  */
-	      if ((p[1] == 0) && argv[i + 1])
-		save_temps_prefix = xstrdup(argv[i + 1]);
-	      else
-		save_temps_prefix = xstrdup(argv[i] + 1);
-	      goto normal_switch;
-
-	    default:
-	    normal_switch:
-
-#ifdef MODIFY_TARGET_NAME
-	      is_modify_target_name = 0;
-
-	      for (j = 0; j < ARRAY_SIZE (modify_target); j++)
-		if (! strcmp (argv[i], modify_target[j].sw))
-		  {
-		    char *new_name = XNEWVEC (char, strlen (modify_target[j].str)
-					      + strlen (spec_machine));
-		    const char *p, *r;
-		    char *q;
-		    int made_addition = 0;
-
-		    is_modify_target_name = 1;
-		    for (p = spec_machine, q = new_name; *p != 0; )
-		      {
-			if (modify_target[j].add_del == DELETE
-			    && (! strncmp (q, modify_target[j].str,
-					   strlen (modify_target[j].str))))
-			  p += strlen (modify_target[j].str);
-			else if (modify_target[j].add_del == ADD
-				 && ! made_addition && *p == '-')
-			  {
-			    for (r = modify_target[j].str; *r != 0; )
-			      *q++ = *r++;
-			    made_addition = 1;
-			  }
-
-			*q++ = *p++;
-		      }
-
-		    spec_machine = new_name;
-		  }
-
-	      if (is_modify_target_name)
-		break;
-#endif
-
-	      n_switches++;
-
-	      if (SWITCH_TAKES_ARG (c) > (p[1] != 0))
-		i += SWITCH_TAKES_ARG (c) - (p[1] != 0);
-	      else if (WORD_SWITCH_TAKES_ARG (p))
-		i += WORD_SWITCH_TAKES_ARG (p);
 	    }
+	  else
+	    fname = xstrdup (arg);
+ 
+          if (strcmp (fname, "-") != 0 && access (fname, F_OK) < 0)
+	    perror_with_name (fname);
+          else
+	    add_infile (arg, spec_lang);
+
+          free (fname);
+	  continue;
 	}
-      else
-	{
-	  n_infiles++;
-	  lang_n_infiles++;
-	}
+
+      read_cmdline_option (decoded_options + j, CL_DRIVER, &handlers);
     }
 
   /* If -save-temps=obj and -o name, create the prefix to use for %b.
@@ -4222,13 +4228,11 @@ process_command (int argc, const char **argv)
 	{
 	  compare_debug = 2;
 	  compare_debug_opt = gcd;
-	  n_switches++;
 	}
       else if (gcd && *gcd && strcmp (gcd, "0"))
 	{
 	  compare_debug = 3;
 	  compare_debug_opt = "-gtoggle";
-	  n_switches++;
 	}
     }
   else if (compare_debug < 0)
@@ -4281,7 +4285,7 @@ process_command (int argc, const char **argv)
      then consider it to relocate with the rest of the GCC installation
      if GCC_EXEC_PREFIX is set.
      ``make_relative_prefix'' is not compiled for VMS, so don't call it.  */
-  if (target_system_root && gcc_exec_prefix)
+  if (target_system_root && !target_system_root_changed && gcc_exec_prefix)
     {
       char *tmp_prefix = get_relative_prefix (argv[0],
 					      standard_bindir_prefix,
@@ -4297,256 +4301,12 @@ process_command (int argc, const char **argv)
   /* More prefixes are enabled in main, after we read the specs file
      and determine whether this is cross-compilation or not.  */
 
-  /* Then create the space for the vectors and scan again.  */
-
-  switches = XNEWVEC (struct switchstr, n_switches + 1);
-  infiles = XNEWVEC (struct infile, n_infiles + 1);
-  n_switches = 0;
-  n_infiles = 0;
-  last_language_n_infiles = -1;
-
-  /* This, time, copy the text of each switch and store a pointer
-     to the copy in the vector of switches.
-     Store all the infiles in their vector.  */
-
-  for (i = 1; i < argc; i++)
-    {
-      /* Just skip the switches that were handled by the preceding loop.  */
-#ifdef MODIFY_TARGET_NAME
-      is_modify_target_name = 0;
-
-      for (j = 0; j < ARRAY_SIZE (modify_target); j++)
-	if (! strcmp (argv[i], modify_target[j].sw))
-	  is_modify_target_name = 1;
-
-      if (is_modify_target_name)
-	;
-      else
-#endif
-      if (! strncmp (argv[i], "-Wa,", 4))
-	;
-      else if (! strncmp (argv[i], "-Wp,", 4))
-	;
-      else if (! strcmp (argv[i], "-no-canonical-prefixes"))
-	;
-      else if (! strcmp (argv[i], "-pass-exit-codes"))
-	;
-      else if (! strcmp (argv[i], "-print-search-dirs"))
-	;
-      else if (! strcmp (argv[i], "-print-libgcc-file-name"))
-	;
-      else if (! strncmp (argv[i], "-print-file-name=", 17))
-	;
-      else if (! strncmp (argv[i], "-print-prog-name=", 17))
-	;
-      else if (! strcmp (argv[i], "-print-multi-lib"))
-	;
-      else if (! strcmp (argv[i], "-print-multi-directory"))
-	;
-      else if (! strcmp (argv[i], "-print-sysroot"))
-	;
-      else if (! strcmp (argv[i], "-print-multi-os-directory"))
-	;
-      else if (! strcmp (argv[i], "-print-sysroot-headers-suffix"))
-	;
-      else if (! strncmp (argv[i], "--sysroot=", strlen ("--sysroot=")))
-	{
-	  target_system_root = argv[i] + strlen ("--sysroot=");
-	  target_system_root_changed = 1;
-	}
-      else if (argv[i][0] == '+' && argv[i][1] == 'e')
-	{
-	  /* Compensate for the +e options to the C++ front-end;
-	     they're there simply for cfront call-compatibility.  We do
-	     some magic in default_compilers to pass them down properly.
-	     Note we deliberately start at the `+' here, to avoid passing
-	     -e0 or -e1 down into the linker.  */
-	  switches[n_switches].part1 = &argv[i][0];
-	  switches[n_switches].args = 0;
-	  switches[n_switches].live_cond = 0;
-	  switches[n_switches].validated = 0;
-	  n_switches++;
-	}
-      else if (strncmp (argv[i], "-Wl,", 4) == 0)
-	{
-	  int prev, j;
-	  /* Split the argument at commas.  */
-	  prev = 4;
-	  for (j = 4; argv[i][j]; j++)
-	    if (argv[i][j] == ',')
-	      {
-		infiles[n_infiles].language = "*";
-		infiles[n_infiles++].name
-		  = save_string (argv[i] + prev, j - prev);
-		prev = j + 1;
-	      }
-	  /* Record the part after the last comma.  */
-	  infiles[n_infiles].language = "*";
-	  infiles[n_infiles++].name = argv[i] + prev;
-	}
-      else if (strcmp (argv[i], "-Xlinker") == 0)
-	{
-	  infiles[n_infiles].language = "*";
-	  infiles[n_infiles++].name = argv[++i];
-	}
-      /* Xassembler and Xpreprocessor were already handled in the first argv
-	 scan, so all we need to do here is ignore them and their argument.  */
-      else if (strcmp (argv[i], "-Xassembler") == 0)
-	i++;
-      else if (strcmp (argv[i], "-Xpreprocessor") == 0)
-	i++;
-      else if (strcmp (argv[i], "-l") == 0)
-	{ /* POSIX allows separation of -l and the lib arg;
-	     canonicalize by concatenating -l with its arg */
-	  infiles[n_infiles].language = "*";
-	  infiles[n_infiles++].name = concat ("-l", argv[++i], NULL);
-	}
-      else if (strncmp (argv[i], "-l", 2) == 0)
-	{
-	  infiles[n_infiles].language = "*";
-	  infiles[n_infiles++].name = argv[i];
-	}
-      else if (strcmp (argv[i], "-wrapper") == 0)
-        i++;
-      else if (strcmp (argv[i], "-specs") == 0)
-	i++;
-      else if (strncmp (argv[i], "-specs=", 7) == 0)
-	;
-      else if (strcmp (argv[i], "-time") == 0)
-	;
-      else if (strncmp (argv[i], "-time=", sizeof ("-time=") - 1) == 0)
-	;
-      else if (strcmp (argv[i], "-###") == 0)
-	;
-      else if (argv[i][0] == '-' && argv[i][1] != 0)
-	{
-	  const char *p = &argv[i][1];
-	  int c = *p;
-
-	  if (c == 'x')
-	    {
-	      if (p[1] == 0 && i + 1 == argc)
-		fatal_error ("argument to '-x' is missing");
-	      if (p[1] == 0)
-		spec_lang = argv[++i];
-	      else
-		spec_lang = p + 1;
-	      if (! strcmp (spec_lang, "none"))
-		/* Suppress the warning if -xnone comes after the last input
-		   file, because alternate command interfaces like g++ might
-		   find it useful to place -xnone after each input file.  */
-		spec_lang = 0;
-	      else
-		last_language_n_infiles = n_infiles;
-	      continue;
-	    }
-	  switches[n_switches].part1 = p;
-	  /* Deal with option arguments in separate argv elements.  */
-	  if ((SWITCH_TAKES_ARG (c) > (p[1] != 0))
-	      || WORD_SWITCH_TAKES_ARG (p))
-	    {
-	      int j = 0;
-	      int n_args = WORD_SWITCH_TAKES_ARG (p);
-
-	      if (n_args == 0)
-		{
-		  /* Count only the option arguments in separate argv elements.  */
-		  n_args = SWITCH_TAKES_ARG (c) - (p[1] != 0);
-		}
-	      if (i + n_args >= argc)
-		fatal_error ("argument to '-%s' is missing", p);
-	      switches[n_switches].args
-		= XNEWVEC (const char *, n_args + 1);
-	      while (j < n_args)
-		switches[n_switches].args[j++] = argv[++i];
-	      /* Null-terminate the vector.  */
-	      switches[n_switches].args[j] = 0;
-	    }
-	  else if (strchr (switches_need_spaces, c))
-	    {
-	      /* On some systems, ld cannot handle some options without
-		 a space.  So split the option from its argument.  */
-	      char *part1 = XNEWVEC (char, 2);
-	      part1[0] = c;
-	      part1[1] = '\0';
-
-	      switches[n_switches].part1 = part1;
-	      switches[n_switches].args = XNEWVEC (const char *, 2);
-	      switches[n_switches].args[0] = xstrdup (p+1);
-	      switches[n_switches].args[1] = 0;
-	    }
-	  else
-	    switches[n_switches].args = 0;
-
-	  switches[n_switches].live_cond = 0;
-	  switches[n_switches].validated = 0;
-	  switches[n_switches].ordering = 0;
-	  /* These are always valid, since gcc.c itself understands the
-	     first four, gfortranspec.c understands -static-libgfortran
-	     and g++spec.c understands -static-libstdc++ */
-	  if (!strcmp (p, "save-temps")
-	      || !strcmp (p, "static-libgcc")
-	      || !strcmp (p, "shared-libgcc")
-	      || !strcmp (p, "pipe")
-	      || !strcmp (p, "static-libgfortran")
-	      || !strcmp (p, "static-libstdc++"))
-	    switches[n_switches].validated = 1;
-	  else
-	    {
-	      char ch = switches[n_switches].part1[0];
-	      if (ch == 'B')
-		switches[n_switches].validated = 1;
-	    }
-	  n_switches++;
-	}
-      else
-	{
-          const char *p = strrchr (argv[i], '@');
-          char *fname;
-	  long offset;
-	  int consumed;
-#ifdef HAVE_TARGET_OBJECT_SUFFIX
-	  argv[i] = convert_filename (argv[i], 0, access (argv[i], F_OK));
-#endif
-	  /* For LTO static archive support we handle input file
-	     specifications that are composed of a filename and
-	     an offset like FNAME@OFFSET.  */
-	  if (p
-	      && p != argv[i]
-	      && sscanf (p, "@%li%n", &offset, &consumed) >= 1
-	      && strlen (p) == (unsigned int)consumed)
-	    {
-              fname = (char *)xmalloc (p - argv[i] + 1);
-              memcpy (fname, argv[i], p - argv[i]);
-              fname[p - argv[i]] = '\0';
-	      /* Only accept non-stdin and existing FNAME parts, otherwise
-		 try with the full name.  */
-	      if (strcmp (fname, "-") == 0 || access (fname, F_OK) < 0)
-		{
-		  free (fname);
-		  fname = xstrdup (argv[i]);
-		}
-	    }
-	  else
-	    fname = xstrdup (argv[i]);
- 
-          if (strcmp (fname, "-") != 0 && access (fname, F_OK) < 0)
-	    perror_with_name (fname);
-          else
-            {
-              infiles[n_infiles].language = spec_lang;
-              infiles[n_infiles++].name = argv[i];
-            }
-
-          free (fname);
-	}
-    }
-
   if (n_infiles == last_language_n_infiles && spec_lang != 0)
-    warning (0, "'-x %s' after last input file has no effect", spec_lang);
+    warning (0, "%<-x %s%> after last input file has no effect", spec_lang);
 
   if (compare_debug == 2 || compare_debug == 3)
     {
+      alloc_switch ();
       switches[n_switches].part1 = concat ("fcompare-debug=",
 					   compare_debug_opt,
 					   NULL);
@@ -4561,15 +4321,16 @@ process_command (int argc, const char **argv)
   /* Ensure we only invoke each subprocess once.  */
   if (print_subprocess_help || print_help_list || print_version)
     {
-      n_infiles = 1;
+      n_infiles = 0;
 
       /* Create a dummy input file, so that we can pass
 	 the help option on to the various sub-processes.  */
-      infiles[0].language = "c";
-      infiles[0].name   = "help-dummy";
+      add_infile ("help-dummy", "c");
     }
 
+  alloc_switch ();
   switches[n_switches].part1 = 0;
+  alloc_infile ();
   infiles[n_infiles].name = 0;
 }
 
@@ -4706,7 +4467,7 @@ end_going_arg (void)
 
 	  if (full_script_path == NULL)
 	    {
-	      error ("unable to locate default linker script '%s' in the library search paths", string);
+	      error ("unable to locate default linker script %qs in the library search paths", string);
 	      /* Script was not found on search path.  */
 	      return;
 	    }
@@ -4894,7 +4655,7 @@ do_self_spec (const char *spec)
 
 	  /* Each switch should start with '-'.  */
 	  if (c != '-')
-	    fatal_error ("switch '%s' does not start with '-'", argbuf[i]);
+	    fatal_error ("switch %qs does not start with %<-%>", argbuf[i]);
 
 	  p++;
 	  c = *p;
@@ -4918,7 +4679,7 @@ do_self_spec (const char *spec)
 		  n_args = SWITCH_TAKES_ARG (c) - (p[1] != 0);
 		}
 	      if (i + n_args >= argbuf_index)
-		fatal_error ("argument to '-%s' is missing", p);
+		fatal_error ("argument to %<-%s%> is missing", p);
 	      sw->args
 		= XNEWVEC (const char *, n_args + 1);
 	      while (j < n_args)
@@ -4926,9 +4687,9 @@ do_self_spec (const char *spec)
 	      /* Null-terminate the vector.  */
 	      sw->args[j] = 0;
 	    }
-	  else if (strchr (switches_need_spaces, c))
+	  else if (c == 'o')
 	    {
-	      /* On some systems, ld cannot handle some options without
+	      /* On some systems, ld cannot handle "-o" without
 		 a space.  So split the option from its argument.  */
 	      char *part1 = XNEWVEC (char, 2);
 	      part1[0] = c;
@@ -5124,7 +4885,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	switch (c = *p++)
 	  {
 	  case 0:
-	    fatal_error ("spec '%s' invalid", spec);
+	    fatal_error ("spec %qs invalid", spec);
 
 	  case 'b':
 	    if (save_temps_length)
@@ -5273,7 +5034,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 		    p += 2;
 		    /* We don't support extra suffix characters after %O.  */
 		    if (*p == '.' || ISALNUM ((unsigned char) *p))
-		      fatal_error ("spec '%s' has invalid '%%0%c'", spec, *p);
+		      fatal_error ("spec %qs has invalid %<%%0%c%>", spec, *p);
 		    if (suffix_length == 0)
 		      suffix = TARGET_OBJECT_SUFFIX;
 		    else
@@ -5584,7 +5345,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	      int cur_index = argbuf_index;
 	      /* Handle the {...} following the %W.  */
 	      if (*p != '{')
-		fatal_error ("spec '%s' has invalid '%%W%c", spec, *p);
+		fatal_error ("spec %qs has invalid %<%%W%c%>", spec, *p);
 	      p = handle_braces (p + 1);
 	      if (p == 0)
 		return -1;
@@ -5604,7 +5365,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 
 	      /* Skip past the option value and make a copy.  */
 	      if (*p != '{')
-		fatal_error ("spec '%s' has invalid '%%x%c'", spec, *p);
+		fatal_error ("spec %qs has invalid %<%%x%c%>", spec, *p);
 	      while (*p++ != '}')
 		;
 	      string = save_string (p1 + 1, p - p1 - 2);
@@ -5799,7 +5560,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	      /* Catch the case where a spec string contains something like
 		 '%{foo:%*}'.  i.e. there is no * in the pattern on the left
 		 hand side of the :.  */
-	      error ("spec failure: '%%*' has not been initialized by pattern match");
+	      error ("spec failure: %<%%*%> has not been initialized by pattern match");
 	    break;
 
 	    /* Process a string found as the value of a spec given by name.
@@ -5889,7 +5650,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	    break;
 
 	  default:
-	    error ("spec failure: unrecognized spec option '%c'", c);
+	    error ("spec failure: unrecognized spec option %qc", c);
 	    break;
 	  }
 	break;
@@ -5951,7 +5712,7 @@ eval_spec_function (const char *func, const char *args)
 
   sf = lookup_spec_function (func);
   if (sf == NULL)
-    fatal_error ("unknown spec function '%s'", func);
+    fatal_error ("unknown spec function %qs", func);
 
   /* Push the spec processing context.  */
   save_argbuf_index = argbuf_index;
@@ -5971,7 +5732,7 @@ eval_spec_function (const char *func, const char *args)
 
   alloc_args ();
   if (do_spec_2 (args) < 0)
-    fatal_error ("error in args to spec function '%s'", func);
+    fatal_error ("error in args to spec function %qs", func);
 
   /* argbuf_index is an index for the next argument to be inserted, and
      so contains the count of the args already inserted.  */
@@ -6288,7 +6049,7 @@ handle_braces (const char *p)
   return p;
 
  invalid:
-  fatal_error ("braced spec '%s' is invalid at '%c'", orig, *p);
+  fatal_error ("braced spec %qs is invalid at %qc", orig, *p);
 
 #undef SKIP_WHITE
 }
@@ -6376,7 +6137,7 @@ process_brace_body (const char *p, const char *atom, const char *end_atom,
   return p;
 
  invalid:
-  fatal_error ("braced spec body '%s' is invalid", body);
+  fatal_error ("braced spec body %qs is invalid", body);
 }
 
 /* Return 0 iff switch number SWITCHNUM is obsoleted by a later switch
@@ -7074,7 +6835,7 @@ main (int argc, char **argv)
 
   for (i = 0; (int) i < n_switches; i++)
     if (! switches[i].validated)
-      error ("unrecognized option '-%s'", switches[i].part1);
+      error ("unrecognized option %<-%s%>", switches[i].part1);
 
   /* Obey some of the options.  */
 
@@ -7317,7 +7078,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 		  value = do_spec (input_file_compiler->spec);
 		  infiles[i].preprocessed = true;
 		  if (!have_o_argbuf_index)
-		    fatal_error ("spec '%s' is invalid",
+		    fatal_error ("spec %qs is invalid",
 				 input_file_compiler->spec);
 		  infiles[i].name = argbuf[have_o_argbuf_index];
 		  infiles[i].incompiler
@@ -7654,7 +7415,7 @@ pfatal_with_name (const char *name)
 static void
 perror_with_name (const char *name)
 {
-  error ("%s: %s", name, xstrerror (errno));
+  error ("%s: %m", name);
 }
 
 static inline void
@@ -7809,7 +7570,7 @@ used_arg (const char *p, int len)
 	      if (*q == '\0')
 		{
 		invalid_matches:
-		  fatal_error ("multilib spec '%s' is invalid",
+		  fatal_error ("multilib spec %qs is invalid",
 			       multilib_matches);
 		}
 	      q++;
@@ -8001,7 +7762,7 @@ set_multilib_dir (void)
 	  if (*p == '\0')
 	    {
 	    invalid_exclusions:
-	      fatal_error ("multilib exclusions '%s' is invalid",
+	      fatal_error ("multilib exclusions %qs is invalid",
 			   multilib_exclusions);
 	    }
 
@@ -8059,7 +7820,7 @@ set_multilib_dir (void)
 	  if (*p == '\0')
 	    {
 	    invalid_select:
-	      fatal_error ("multilib select '%s' is invalid",
+	      fatal_error ("multilib select %qs is invalid",
 			   multilib_select);
 	    }
 	  ++p;
@@ -8200,7 +7961,7 @@ print_multilib_info (void)
 	  if (*p == '\0')
 	    {
 	    invalid_select:
-	      fatal_error ("multilib select '%s' is invalid", multilib_select);
+	      fatal_error ("multilib select %qs is invalid", multilib_select);
 	    }
 
 	  ++p;
@@ -8238,7 +7999,7 @@ print_multilib_info (void)
 		if (*e == '\0')
 		  {
 		  invalid_exclusion:
-		    fatal_error ("multilib exclusion '%s' is invalid",
+		    fatal_error ("multilib exclusion %qs is invalid",
 				 multilib_exclusions);
 		  }
 
@@ -8444,7 +8205,7 @@ getenv_spec_function (int argc, const char **argv)
 
   value = getenv (argv[0]);
   if (!value)
-    fatal_error ("environment variable \"%s\" not defined", argv[0]);
+    fatal_error ("environment variable %qs not defined", argv[0]);
 
   /* We have to escape every character of the environment variable so
      they are not interpreted as active spec characters.  A
@@ -8520,6 +8281,27 @@ replace_outfile_spec_function (int argc, const char **argv)
   return NULL;
 }
 
+/* remove-outfile built-in spec function.
+ *
+ *    This looks for the first argument in the outfiles array's name and
+ *       removes it.  */
+
+static const char *
+remove_outfile_spec_function (int argc, const char **argv)
+{
+  int i;
+  /* Must have exactly one argument.  */
+  if (argc != 1)
+    abort ();
+
+  for (i = 0; i < n_infiles; i++)
+    {
+      if (outfiles[i] && !strcmp (outfiles[i], argv[0]))
+        outfiles[i] = NULL;
+    }
+  return NULL;
+}
+
 /* Given two version numbers, compares the two numbers.
    A version number must match the regular expression
    ([1-9][0-9]*|0)(\.([1-9][0-9]*|0))*
@@ -8535,12 +8317,12 @@ compare_version_strings (const char *v1, const char *v2)
     abort ();
   rresult = regexec (&r, v1, 0, NULL, 0);
   if (rresult == REG_NOMATCH)
-    fatal_error ("invalid version number `%s'", v1);
+    fatal_error ("invalid version number %qs", v1);
   else if (rresult != 0)
     abort ();
   rresult = regexec (&r, v2, 0, NULL, 0);
   if (rresult == REG_NOMATCH)
-    fatal_error ("invalid version number `%s'", v2);
+    fatal_error ("invalid version number %qs", v2);
   else if (rresult != 0)
     abort ();
 
@@ -8630,7 +8412,7 @@ version_compare_spec_function (int argc, const char **argv)
       break;
 
     default:
-      fatal_error ("unknown operator '%s' in %%:version-compare", argv[0]);
+      fatal_error ("unknown operator %qs in %%:version-compare", argv[0]);
     }
   if (! result)
     return NULL;
@@ -8657,11 +8439,11 @@ include_spec_function (int argc, const char **argv)
   return NULL;
 }
 
-/* %:find-file spec function.  This function replace its argument by
+/* %:find-file spec function.  This function replaces its argument by
     the file found thru find_file, that is the -print-file-name gcc
     program option. */
 static const char *
-find_file_spec_function (int argc, const char**argv)
+find_file_spec_function (int argc, const char **argv)
 {
   const char *file;
 
@@ -8670,6 +8452,22 @@ find_file_spec_function (int argc, const char**argv)
 
   file = find_file (argv[0]);
   return file;
+}
+
+
+/* %:find-plugindir spec function.  This function replaces its argument
+    by the -iplugindir=<dir> option.  `dir' is found thru find_file, that
+    is the -print-file-name gcc program option. */
+static const char *
+find_plugindir_spec_function (int argc, const char **argv ATTRIBUTE_UNUSED)
+{
+  const char *option;
+
+  if (argc != 0)
+    abort ();
+
+  option = concat ("-iplugindir=", find_file ("plugin"), NULL);
+  return option;
 }
 
 

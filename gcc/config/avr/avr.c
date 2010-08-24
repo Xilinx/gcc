@@ -34,6 +34,7 @@
 #include "tree.h"
 #include "output.h"
 #include "expr.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "obstack.h"
 #include "function.h"
@@ -243,8 +244,7 @@ static const enum reg_class reg_class_tab[]={
 static struct machine_function *
 avr_init_machine_status (void)
 {
-  return ((struct machine_function *) 
-          ggc_alloc_cleared (sizeof (struct machine_function)));
+  return ggc_alloc_cleared_machine_function ();
 }
 
 /* Return register class for register R.  */
@@ -1530,14 +1530,8 @@ init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype, rtx libname,
 {
   cum->nregs = 18;
   cum->regno = FIRST_CUM_REG;
-  if (!libname && fntype)
-    {
-      int stdarg = (TYPE_ARG_TYPES (fntype) != 0
-                    && (TREE_VALUE (tree_last (TYPE_ARG_TYPES (fntype)))
-                        != void_type_node));
-      if (stdarg)
-        cum->nregs = 0;
-    }
+  if (!libname && stdarg_p (fntype))
+    cum->nregs = 0;
 }
 
 /* Returns the number of registers to allocate for a function argument.  */

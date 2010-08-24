@@ -102,6 +102,9 @@ struct GTY(()) cgraph_local_info {
   /* Set when function is visible by other units.  */
   unsigned externally_visible : 1;
 
+  /* Set when resolver determines that function is visible by other units.  */
+  unsigned used_from_object_file : 1;
+  
   /* Set once it has been finalized so we consider it to be output.  */
   unsigned finalized : 1;
 
@@ -283,7 +286,9 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   /* Set once the function has been instantiated and its callee
      lists created.  */
   unsigned analyzed : 1;
-  /* Set when function is available in the other LTRANS partition.  */
+  /* Set when function is available in the other LTRANS partition.  
+     During WPA output it is used to mark nodes that are present in
+     multiple partitions.  */
   unsigned in_other_partition : 1;
   /* Set when function is scheduled to be processed by local passes.  */
   unsigned process : 1;
@@ -466,6 +471,8 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) varpool_node {
   /* Circular list of nodes in the same comdat group if non-NULL.  */
   struct varpool_node *same_comdat_group;
   struct ipa_ref_list ref_list;
+  /* File stream where this node is being written to.  */
+  struct lto_file_decl_data * lto_file_data;
   PTR GTY ((skip)) aux;
   /* Ordering of all cgraph nodes.  */
   int order;
@@ -485,12 +492,16 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) varpool_node {
   unsigned output : 1;
   /* Set when function is visible by other units.  */
   unsigned externally_visible : 1;
+  /* Set when resolver determines that variable is visible by other units.  */
+  unsigned used_from_object_file : 1;
   /* Set for aliases once they got through assemble_alias.  Also set for
      extra name aliases in varpool_extra_name_alias.  */
   unsigned alias : 1;
   /* Set when variable is used from other LTRANS partition.  */
   unsigned used_from_other_partition : 1;
-  /* Set when variable is available in the other LTRANS partition.  */
+  /* Set when variable is available in the other LTRANS partition.
+     During WPA output it is used to mark nodes that are present in
+     multiple partitions.  */
   unsigned in_other_partition : 1;
 };
 
@@ -549,6 +560,7 @@ struct cgraph_edge *cgraph_create_edge (struct cgraph_node *,
 struct cgraph_edge *cgraph_create_indirect_edge (struct cgraph_node *, gimple, int,
 						 gcov_type, int, int);
 struct cgraph_node * cgraph_get_node (tree);
+struct cgraph_node * cgraph_get_node_or_alias (tree);
 struct cgraph_node *cgraph_node (tree);
 bool cgraph_same_body_alias (tree, tree);
 void cgraph_add_thunk (tree, tree, bool, HOST_WIDE_INT, HOST_WIDE_INT, tree, tree);
@@ -596,6 +608,10 @@ void cgraph_set_looping_const_or_pure_flag (struct cgraph_node *, bool);
 tree clone_function_name (tree decl, const char *);
 bool cgraph_node_cannot_return (struct cgraph_node *);
 bool cgraph_edge_cannot_lead_to_return (struct cgraph_edge *);
+bool cgraph_will_be_removed_from_program_if_no_direct_calls
+  (struct cgraph_node *node);
+bool cgraph_can_remove_if_no_direct_calls_and_refs_p
+  (struct cgraph_node *node);
 
 /* In cgraphunit.c  */
 extern FILE *cgraph_dump_file;
@@ -722,7 +738,7 @@ varpool_first_static_initializer (void)
   struct varpool_node *node;
   for (node = varpool_nodes_queue; node; node = node->next_needed)
     {
-      gcc_assert (TREE_CODE (node->decl) == VAR_DECL);
+      gcc_checking_assert (TREE_CODE (node->decl) == VAR_DECL);
       if (DECL_INITIAL (node->decl))
 	return node;
     }
@@ -735,7 +751,7 @@ varpool_next_static_initializer (struct varpool_node *node)
 {
   for (node = node->next_needed; node; node = node->next_needed)
     {
-      gcc_assert (TREE_CODE (node->decl) == VAR_DECL);
+      gcc_checking_assert (TREE_CODE (node->decl) == VAR_DECL);
       if (DECL_INITIAL (node->decl))
 	return node;
     }
@@ -889,17 +905,11 @@ varpool_node_set_nonempty_p (varpool_node_set set)
 static inline bool
 cgraph_only_called_directly_p (struct cgraph_node *node)
 {
-  return !node->needed && !node->address_taken && !node->local.externally_visible;
-}
-
-/* Return true when function NODE can be removed from callgraph
-   if all direct calls are eliminated.  */
-
-static inline bool
-cgraph_can_remove_if_no_direct_calls_and_refs_p (struct cgraph_node *node)
-{
-  return (!node->needed && !node->reachable_from_other_partition
-  	  && (DECL_COMDAT (node->decl) || !node->local.externally_visible));
+  return (!node->needed && !node->address_taken
+	  && !node->reachable_from_other_partition
+	  && !DECL_STATIC_CONSTRUCTOR (node->decl)
+	  && !DECL_STATIC_DESTRUCTOR (node->decl)
+	  && !node->local.externally_visible);
 }
 
 /* Return true when function NODE can be removed from callgraph

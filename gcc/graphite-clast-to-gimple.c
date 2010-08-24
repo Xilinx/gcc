@@ -957,6 +957,7 @@ translate_clast_user (sese region, struct clast_user_stmt *stmt, edge next_e,
 
 /* Creates a new if region protecting the loop to be executed, if the execution
    count is zero (lb > ub).  */
+
 static edge
 graphite_create_new_loop_guard (sese region, edge entry_edge,
 				struct clast_for *stmt,
@@ -974,17 +975,14 @@ graphite_create_new_loop_guard (sese region, edge entry_edge,
 				     newivs_index, params_index);
   tree ub = clast_to_gcc_expression (type, stmt->UB, region, newivs,
 				     newivs_index, params_index);
-  tree ub_one;
-
+  tree one = POINTER_TYPE_P (type) ? size_one_node
+    : fold_convert (type, integer_one_node);
   /* Adding +1 and using LT_EXPR helps with loop latches that have a
      loop iteration count of "PARAMETER - 1".  For PARAMETER == 0 this becomes
      2^{32|64}, and the condition lb <= ub is true, even if we do not want this.
      However lb < ub + 1 is false, as expected.  */
-  if (POINTER_TYPE_P (type))
-    ub_one = fold_build2 (POINTER_PLUS_EXPR, type, ub, size_one_node);
-  else
-    ub_one = fold_build2 (PLUS_EXPR, type, ub,
-			  fold_convert (type, integer_one_node));
+  tree ub_one = fold_build2 (POINTER_TYPE_P (type) ? POINTER_PLUS_EXPR
+			     : PLUS_EXPR, type, ub, one);
 
   /* When ub + 1 wraps around, use lb <= ub.  */
   if (integer_zerop (ub_one))
@@ -1242,7 +1240,7 @@ build_cloog_prog (scop_p scop, CloogProgram *prog,
   cloog_program_set_nb_scattdims (prog, nbs);
   initialize_cloog_names (scop, prog);
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
     {
       CloogStatement *stmt;
       CloogBlock *block;

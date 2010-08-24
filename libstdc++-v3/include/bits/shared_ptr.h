@@ -123,6 +123,23 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	shared_ptr(_Tp1* __p, _Deleter __d) : __shared_ptr<_Tp>(__p, __d) { }
 
       /**
+       *  @brief  Construct a %shared_ptr that owns a null pointer
+       *          and the deleter @a __d.
+       *  @param  __p  A null pointer constant.
+       *  @param  __d  A deleter.
+       *  @post   use_count() == 1 && get() == __p
+       *  @throw  std::bad_alloc, in which case @a __d(__p) is called.
+       *
+       *  Requirements: _Deleter's copy constructor and destructor must
+       *  not throw
+       *
+       *  The last owner will call __d(__p)
+       */
+      template<typename _Deleter>
+	shared_ptr(nullptr_t __p, _Deleter __d)
+        : __shared_ptr<_Tp>(__p, __d) { }
+
+      /**
        *  @brief  Construct a %shared_ptr that owns the pointer @a __p
        *          and the deleter @a __d.
        *  @param  __p  A pointer.
@@ -139,6 +156,25 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        */
       template<typename _Tp1, typename _Deleter, typename _Alloc>
 	shared_ptr(_Tp1* __p, _Deleter __d, const _Alloc& __a)
+	: __shared_ptr<_Tp>(__p, __d, __a) { }
+
+      /**
+       *  @brief  Construct a %shared_ptr that owns a null pointer
+       *          and the deleter @a __d.
+       *  @param  __p  A null pointer constant.
+       *  @param  __d  A deleter.
+       *  @param  __a  An allocator.
+       *  @post   use_count() == 1 && get() == __p
+       *  @throw  std::bad_alloc, in which case @a __d(__p) is called.
+       *
+       *  Requirements: _Deleter's copy constructor and destructor must
+       *  not throw _Alloc's copy constructor and destructor must not
+       *  throw.
+       *
+       *  The last owner will call __d(__p)
+       */
+      template<typename _Deleter, typename _Alloc>
+	shared_ptr(nullptr_t __p, _Deleter __d, const _Alloc& __a)
 	: __shared_ptr<_Tp>(__p, __d, __a) { }
 
       // Aliasing constructor
@@ -170,8 +206,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  @param  __r  A %shared_ptr.
        *  @post   get() == __r.get() && use_count() == __r.use_count()
        */
-      template<typename _Tp1>
-	shared_ptr(const shared_ptr<_Tp1>& __r) : __shared_ptr<_Tp>(__r) { }
+      template<typename _Tp1, typename = typename
+	       std::enable_if<std::is_convertible<_Tp1*, _Tp*>::value>::type>
+	shared_ptr(const shared_ptr<_Tp1>& __r)
+        : __shared_ptr<_Tp>(__r) { }
 
       /**
        *  @brief  Move-constructs a %shared_ptr instance from @a __r.
@@ -186,7 +224,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  @param  __r  A %shared_ptr rvalue.
        *  @post   *this contains the old value of @a __r, @a __r is empty.
        */
-      template<typename _Tp1>
+      template<typename _Tp1, typename = typename
+	       std::enable_if<std::is_convertible<_Tp1*, _Tp*>::value>::type>
 	shared_ptr(shared_ptr<_Tp1>&& __r)
 	: __shared_ptr<_Tp>(std::move(__r)) { }
 
@@ -211,6 +250,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       template<typename _Tp1, typename _Del>
 	shared_ptr(std::unique_ptr<_Tp1, _Del>&& __r)
 	: __shared_ptr<_Tp>(std::move(__r)) { }
+
+      /**
+       *  @brief  Construct an empty %shared_ptr.
+       *  @param  __p  A null pointer constant.
+       *  @post   use_count() == 0 && get() == nullptr
+       */
+      shared_ptr(nullptr_t __p) : __shared_ptr<_Tp>(__p) { }
 
       template<typename _Tp1>
 	shared_ptr&
@@ -271,10 +317,30 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     operator==(const shared_ptr<_Tp1>& __a, const shared_ptr<_Tp2>& __b)
     { return __a.get() == __b.get(); }
 
+  template<typename _Tp>
+    inline bool
+    operator==(const shared_ptr<_Tp>& __a, nullptr_t)
+    { return __a.get() == nullptr; }
+
+  template<typename _Tp>
+    inline bool
+    operator==(nullptr_t, const shared_ptr<_Tp>& __b)
+    { return nullptr == __b.get(); }
+
   template<typename _Tp1, typename _Tp2>
     inline bool
     operator!=(const shared_ptr<_Tp1>& __a, const shared_ptr<_Tp2>& __b)
     { return __a.get() != __b.get(); }
+
+  template<typename _Tp>
+    inline bool
+    operator!=(const shared_ptr<_Tp>& __a, nullptr_t)
+    { return __a.get() != nullptr; }
+
+  template<typename _Tp>
+    inline bool
+    operator!=(nullptr_t, const shared_ptr<_Tp>& __b)
+    { return nullptr != __b.get(); }
 
   template<typename _Tp1, typename _Tp2>
     inline bool
@@ -323,11 +389,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     public:
       weak_ptr() : __weak_ptr<_Tp>() { }
 
-      template<typename _Tp1>
+      template<typename _Tp1, typename = typename
+	       std::enable_if<std::is_convertible<_Tp1*, _Tp*>::value>::type>
 	weak_ptr(const weak_ptr<_Tp1>& __r)
 	: __weak_ptr<_Tp>(__r) { }
 
-      template<typename _Tp1>
+      template<typename _Tp1, typename = typename
+	       std::enable_if<std::is_convertible<_Tp1*, _Tp*>::value>::type>
 	weak_ptr(const shared_ptr<_Tp1>& __r)
 	: __weak_ptr<_Tp>(__r) { }
 
@@ -470,6 +538,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return allocate_shared<_Tp>(std::allocator<_Tp_nc>(),
 				  std::forward<_Args>(__args)...);
     }
+
+  /// std::hash specialization for shared_ptr.
+  template<typename _Tp>
+    struct hash<shared_ptr<_Tp>>
+    : public std::unary_function<shared_ptr<_Tp>, size_t>
+    {
+      size_t
+      operator()(const shared_ptr<_Tp>& __s) const
+      { return std::hash<_Tp*>()(__s.get()); }
+    };
 
   // @} group pointer_abstractions
 

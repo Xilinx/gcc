@@ -33,7 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gfortran.h"
 #include "target.h"
 #include "cpp.h"
-#include "toplev.h"	/* For sorry.  */
+#include "diagnostic-core.h"	/* For sorry.  */
 #include "tm.h"
 
 gfc_option_t gfc_option;
@@ -48,16 +48,26 @@ set_default_std_flags (void)
 {
   gfc_option.allow_std = GFC_STD_F95_OBS | GFC_STD_F95_DEL
     | GFC_STD_F2003 | GFC_STD_F2008 | GFC_STD_F95 | GFC_STD_F77
-    | GFC_STD_GNU | GFC_STD_LEGACY;
+    | GFC_STD_F2008_OBS | GFC_STD_GNU | GFC_STD_LEGACY;
   gfc_option.warn_std = GFC_STD_F95_DEL | GFC_STD_LEGACY;
+}
+
+
+/* Return language mask for Fortran options.  */
+
+unsigned int
+gfc_option_lang_mask (void)
+{
+  return CL_Fortran;
 }
 
 
 /* Get ready for options handling. Keep in sync with
    libgfortran/runtime/compile_options.c (init_compile_options). */
 
-unsigned int
-gfc_init_options (unsigned int argc, const char **argv)
+void
+gfc_init_options (unsigned int decoded_options_count,
+		  struct cl_decoded_option *decoded_options)
 {
   gfc_source_file = NULL;
   gfc_option.module_dir = NULL;
@@ -96,7 +106,7 @@ gfc_init_options (unsigned int argc, const char **argv)
   gfc_option.flag_default_real = 0;
   gfc_option.flag_dollar_ok = 0;
   gfc_option.flag_underscoring = 1;
-  gfc_option.flag_whole_file = 0;
+  gfc_option.flag_whole_file = 1;
   gfc_option.flag_f2c = 0;
   gfc_option.flag_second_underscore = -1;
   gfc_option.flag_implicit_none = 0;
@@ -143,9 +153,7 @@ gfc_init_options (unsigned int argc, const char **argv)
   flag_short_enums = targetm.default_short_enums ();
 
   /* Initialize cpp-related options.  */
-  gfc_cpp_init_options(argc, argv);
-
-  return CL_Fortran;
+  gfc_cpp_init_options (decoded_options_count, decoded_options);
 }
 
 
@@ -534,24 +542,21 @@ gfc_handle_runtime_check_option (const char *arg)
 /* Handle command-line options.  Returns 0 if unrecognized, 1 if
    recognized and handled.  */
 
-int
+bool
 gfc_handle_option (size_t scode, const char *arg, int value,
-		   int kind ATTRIBUTE_UNUSED)
+		   int kind ATTRIBUTE_UNUSED,
+		   const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
 {
-  int result = 1;
+  bool result = true;
   enum opt_code code = (enum opt_code) scode;
 
-  /* Ignore file names.  */
-  if (code == N_OPTS)
-    return 1;
-
   if (gfc_cpp_handle_option (scode, arg, value) == 1)
-    return 1;
+    return true;
 
   switch (code)
     {
     default:
-      result = 0;
+      result = false;
       break;
 
     case OPT_Wall:
@@ -861,7 +866,8 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_std_f95:
-      gfc_option.allow_std = GFC_STD_F95_OBS | GFC_STD_F95 | GFC_STD_F77;
+      gfc_option.allow_std = GFC_STD_F95_OBS | GFC_STD_F95 | GFC_STD_F77
+			     | GFC_STD_F2008_OBS;
       gfc_option.warn_std = GFC_STD_F95_OBS;
       gfc_option.max_continue_fixed = 19;
       gfc_option.max_continue_free = 39;
@@ -872,7 +878,7 @@ gfc_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_std_f2003:
       gfc_option.allow_std = GFC_STD_F95_OBS | GFC_STD_F77 
-	| GFC_STD_F2003 | GFC_STD_F95;
+	| GFC_STD_F2003 | GFC_STD_F95 | GFC_STD_F2008_OBS;
       gfc_option.warn_std = GFC_STD_F95_OBS;
       gfc_option.max_identifier_length = 63;
       gfc_option.warn_ampersand = 1;
@@ -881,8 +887,8 @@ gfc_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_std_f2008:
       gfc_option.allow_std = GFC_STD_F95_OBS | GFC_STD_F77 
-	| GFC_STD_F2003 | GFC_STD_F95 | GFC_STD_F2008;
-      gfc_option.warn_std = GFC_STD_F95_OBS;
+	| GFC_STD_F2003 | GFC_STD_F95 | GFC_STD_F2008 | GFC_STD_F2008_OBS;
+      gfc_option.warn_std = GFC_STD_F95_OBS | GFC_STD_F2008_OBS;
       gfc_option.max_identifier_length = 63;
       gfc_option.warn_ampersand = 1;
       gfc_option.warn_tabs = 0;
@@ -902,7 +908,7 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_fshort_enums:
-      flag_short_enums = 1;
+      /* Handled in language-independent code.  */
       break;
 
     case OPT_fconvert_little_endian:
@@ -938,7 +944,7 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_frecursive:
-      gfc_option.flag_recursive = 1;
+      gfc_option.flag_recursive = value;
       break;
 
     case OPT_falign_commons:

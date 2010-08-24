@@ -35,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "expr.h"
 #include "toplev.h"
+#include "diagnostic-core.h"
 #include "output.h"
 #include "ggc.h"
 #include "target.h"
@@ -208,10 +209,11 @@ avoid_constant_pool_reference (rtx x)
 rtx
 delegitimize_mem_from_attrs (rtx x)
 {
+  /* MEMs without MEM_OFFSETs may have been offset, so we can't just
+     use their base addresses as equivalent.  */
   if (MEM_P (x)
       && MEM_EXPR (x)
-      && (!MEM_OFFSET (x)
-	  || GET_CODE (MEM_OFFSET (x)) == CONST_INT))
+      && MEM_OFFSET (x))
     {
       tree decl = MEM_EXPR (x);
       enum machine_mode mode = GET_MODE (x);
@@ -264,8 +266,7 @@ delegitimize_mem_from_attrs (rtx x)
 	{
 	  rtx newx;
 
-	  if (MEM_OFFSET (x))
-	    offset += INTVAL (MEM_OFFSET (x));
+	  offset += INTVAL (MEM_OFFSET (x));
 
 	  newx = DECL_RTL (decl);
 
@@ -1009,6 +1010,42 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 	  && GET_MODE_SIZE (mode) <= GET_MODE_SIZE (GET_MODE (XEXP (op, 0))))
 	return rtl_hooks.gen_lowpart_no_emit (mode, op);
 
+      /* (sign_extend:M (sign_extend:N <X>)) is (sign_extend:M <X>).
+	 (sign_extend:M (zero_extend:N <X>)) is (zero_extend:M <X>).  */
+      if (GET_CODE (op) == SIGN_EXTEND || GET_CODE (op) == ZERO_EXTEND)
+	{
+	  gcc_assert (GET_MODE_BITSIZE (mode)
+		      > GET_MODE_BITSIZE (GET_MODE (op)));
+	  return simplify_gen_unary (GET_CODE (op), mode, XEXP (op, 0),
+				     GET_MODE (XEXP (op, 0)));
+	}
+
+      /* (sign_extend:M (ashiftrt:N (ashift <X> (const_int I)) (const_int I)))
+	 is (sign_extend:M (subreg:O <X>)) if there is mode with
+	 GET_MODE_BITSIZE (N) - I bits.
+	 (sign_extend:M (lshiftrt:N (ashift <X> (const_int I)) (const_int I)))
+	 is similarly (zero_extend:M (subreg:O <X>)).  */
+      if ((GET_CODE (op) == ASHIFTRT || GET_CODE (op) == LSHIFTRT)
+	  && GET_CODE (XEXP (op, 0)) == ASHIFT
+	  && CONST_INT_P (XEXP (op, 1))
+	  && XEXP (XEXP (op, 0), 1) == XEXP (op, 1)
+	  && GET_MODE_BITSIZE (GET_MODE (op)) > INTVAL (XEXP (op, 1)))
+	{
+	  enum machine_mode tmode
+	    = mode_for_size (GET_MODE_BITSIZE (GET_MODE (op))
+			     - INTVAL (XEXP (op, 1)), MODE_INT, 1);
+	  gcc_assert (GET_MODE_BITSIZE (mode)
+		      > GET_MODE_BITSIZE (GET_MODE (op)));
+	  if (tmode != BLKmode)
+	    {
+	      rtx inner =
+		rtl_hooks.gen_lowpart_no_emit (tmode, XEXP (XEXP (op, 0), 0));
+	      return simplify_gen_unary (GET_CODE (op) == ASHIFTRT
+					 ? SIGN_EXTEND : ZERO_EXTEND,
+					 mode, inner, tmode);
+	    }
+	}
+
 #if defined(POINTERS_EXTEND_UNSIGNED) && !defined(HAVE_ptr_extend)
       /* As we do not know which address space the pointer is refering to,
 	 we can do this only if the target does not support different pointer
@@ -1034,6 +1071,31 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 	  && SUBREG_PROMOTED_UNSIGNED_P (op) > 0
 	  && GET_MODE_SIZE (mode) <= GET_MODE_SIZE (GET_MODE (XEXP (op, 0))))
 	return rtl_hooks.gen_lowpart_no_emit (mode, op);
+
+      /* (zero_extend:M (zero_extend:N <X>)) is (zero_extend:M <X>).  */
+      if (GET_CODE (op) == ZERO_EXTEND)
+	return simplify_gen_unary (ZERO_EXTEND, mode, XEXP (op, 0),
+				   GET_MODE (XEXP (op, 0)));
+
+      /* (zero_extend:M (lshiftrt:N (ashift <X> (const_int I)) (const_int I)))
+	 is (zero_extend:M (subreg:O <X>)) if there is mode with
+	 GET_MODE_BITSIZE (N) - I bits.  */
+      if (GET_CODE (op) == LSHIFTRT
+	  && GET_CODE (XEXP (op, 0)) == ASHIFT
+	  && CONST_INT_P (XEXP (op, 1))
+	  && XEXP (XEXP (op, 0), 1) == XEXP (op, 1)
+	  && GET_MODE_BITSIZE (GET_MODE (op)) > INTVAL (XEXP (op, 1)))
+	{
+	  enum machine_mode tmode
+	    = mode_for_size (GET_MODE_BITSIZE (GET_MODE (op))
+			     - INTVAL (XEXP (op, 1)), MODE_INT, 1);
+	  if (tmode != BLKmode)
+	    {
+	      rtx inner =
+		rtl_hooks.gen_lowpart_no_emit (tmode, XEXP (XEXP (op, 0), 0));
+	      return simplify_gen_unary (ZERO_EXTEND, mode, inner, tmode);
+	    }
+	}
 
 #if defined(POINTERS_EXTEND_UNSIGNED) && !defined(HAVE_ptr_extend)
       /* As we do not know which address space the pointer is refering to,
@@ -1196,10 +1258,8 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	  break;
 
 	case FFS:
-	  /* Don't use ffs here.  Instead, get low order bit and then its
-	     number.  If arg0 is zero, this will return 0, as desired.  */
 	  arg0 &= GET_MODE_MASK (mode);
-	  val = exact_log2 (arg0 & (- arg0)) + 1;
+	  val = ffs_hwi (arg0);
 	  break;
 
 	case CLZ:
@@ -1220,7 +1280,7 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 		val = GET_MODE_BITSIZE (mode);
 	    }
 	  else
-	    val = exact_log2 (arg0 & -arg0);
+	    val = ctz_hwi (arg0);
 	  break;
 
 	case POPCOUNT:
@@ -1350,15 +1410,12 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 
 	case FFS:
 	  hv = 0;
-	  if (l1 == 0)
-	    {
-	      if (h1 == 0)
-		lv = 0;
-	      else
-		lv = HOST_BITS_PER_WIDE_INT + exact_log2 (h1 & -h1) + 1;
-	    }
+	  if (l1 != 0)
+	    lv = ffs_hwi (l1);
+	  else if (h1 != 0)
+	    lv = HOST_BITS_PER_WIDE_INT + ffs_hwi (h1);
 	  else
-	    lv = exact_log2 (l1 & -l1) + 1;
+	    lv = 0;
 	  break;
 
 	case CLZ:
@@ -1375,9 +1432,9 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	case CTZ:
 	  hv = 0;
 	  if (l1 != 0)
-	    lv = exact_log2 (l1 & -l1);
+	    lv = ctz_hwi (l1);
 	  else if (h1 != 0)
-	    lv = HOST_BITS_PER_WIDE_INT + exact_log2 (h1 & -h1);
+	    lv = HOST_BITS_PER_WIDE_INT + ctz_hwi (h1);
 	  else if (! CTZ_DEFINED_VALUE_AT_ZERO (mode, lv))
 	    lv = GET_MODE_BITSIZE (mode);
 	  break;
@@ -2107,6 +2164,19 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
     case MULT:
       if (trueop1 == constm1_rtx)
 	return simplify_gen_unary (NEG, mode, op0, mode);
+
+      if (GET_CODE (op0) == NEG)
+	{
+	  rtx temp = simplify_unary_operation (NEG, mode, op1, mode);
+	  if (temp)
+	    return simplify_gen_binary (MULT, mode, XEXP (op0, 0), temp);
+	}
+      if (GET_CODE (op1) == NEG)
+	{
+	  rtx temp = simplify_unary_operation (NEG, mode, op0, mode);
+	  if (temp)
+	    return simplify_gen_binary (MULT, mode, temp, XEXP (op1, 0));
+	}
 
       /* Maybe simplify x * 0 to 0.  The reduction is not valid if
 	 x is NaN, since x * 0 is then also NaN.  Nor is it valid
@@ -3268,141 +3338,124 @@ simplify_const_binary_operation (enum rtx_code code, enum machine_mode mode,
 
   /* We can fold some multi-word operations.  */
   if (GET_MODE_CLASS (mode) == MODE_INT
-      && width == HOST_BITS_PER_WIDE_INT * 2
-      && (GET_CODE (op0) == CONST_DOUBLE || CONST_INT_P (op0))
-      && (GET_CODE (op1) == CONST_DOUBLE || CONST_INT_P (op1)))
+      && width == HOST_BITS_PER_DOUBLE_INT
+      && (CONST_DOUBLE_P (op0) || CONST_INT_P (op0))
+      && (CONST_DOUBLE_P (op1) || CONST_INT_P (op1)))
     {
-      unsigned HOST_WIDE_INT l1, l2, lv, lt;
-      HOST_WIDE_INT h1, h2, hv, ht;
+      double_int o0, o1, res, tmp;
 
-      if (GET_CODE (op0) == CONST_DOUBLE)
-	l1 = CONST_DOUBLE_LOW (op0), h1 = CONST_DOUBLE_HIGH (op0);
-      else
-	l1 = INTVAL (op0), h1 = HWI_SIGN_EXTEND (l1);
-
-      if (GET_CODE (op1) == CONST_DOUBLE)
-	l2 = CONST_DOUBLE_LOW (op1), h2 = CONST_DOUBLE_HIGH (op1);
-      else
-	l2 = INTVAL (op1), h2 = HWI_SIGN_EXTEND (l2);
+      o0 = rtx_to_double_int (op0);
+      o1 = rtx_to_double_int (op1);
 
       switch (code)
 	{
 	case MINUS:
 	  /* A - B == A + (-B).  */
-	  neg_double (l2, h2, &lv, &hv);
-	  l2 = lv, h2 = hv;
+	  o1 = double_int_neg (o1);
 
 	  /* Fall through....  */
 
 	case PLUS:
-	  add_double (l1, h1, l2, h2, &lv, &hv);
+	  res = double_int_add (o0, o1);
 	  break;
 
 	case MULT:
-	  mul_double (l1, h1, l2, h2, &lv, &hv);
+	  res = double_int_mul (o0, o1);
 	  break;
 
 	case DIV:
-	  if (div_and_round_double (TRUNC_DIV_EXPR, 0, l1, h1, l2, h2,
-				    &lv, &hv, &lt, &ht))
+	  if (div_and_round_double (TRUNC_DIV_EXPR, 0,
+				    o0.low, o0.high, o1.low, o1.high,
+				    &res.low, &res.high,
+				    &tmp.low, &tmp.high))
 	    return 0;
 	  break;
 
 	case MOD:
-	  if (div_and_round_double (TRUNC_DIV_EXPR, 0, l1, h1, l2, h2,
-				    &lt, &ht, &lv, &hv))
+	  if (div_and_round_double (TRUNC_DIV_EXPR, 0,
+				    o0.low, o0.high, o1.low, o1.high,
+				    &tmp.low, &tmp.high,
+				    &res.low, &res.high))
 	    return 0;
 	  break;
 
 	case UDIV:
-	  if (div_and_round_double (TRUNC_DIV_EXPR, 1, l1, h1, l2, h2,
-				    &lv, &hv, &lt, &ht))
+	  if (div_and_round_double (TRUNC_DIV_EXPR, 1,
+				    o0.low, o0.high, o1.low, o1.high,
+				    &res.low, &res.high,
+				    &tmp.low, &tmp.high))
 	    return 0;
 	  break;
 
 	case UMOD:
-	  if (div_and_round_double (TRUNC_DIV_EXPR, 1, l1, h1, l2, h2,
-				    &lt, &ht, &lv, &hv))
+	  if (div_and_round_double (TRUNC_DIV_EXPR, 1,
+				    o0.low, o0.high, o1.low, o1.high,
+				    &tmp.low, &tmp.high,
+				    &res.low, &res.high))
 	    return 0;
 	  break;
 
 	case AND:
-	  lv = l1 & l2, hv = h1 & h2;
+	  res = double_int_and (o0, o1);
 	  break;
 
 	case IOR:
-	  lv = l1 | l2, hv = h1 | h2;
+	  res = double_int_ior (o0, o1);
 	  break;
 
 	case XOR:
-	  lv = l1 ^ l2, hv = h1 ^ h2;
+	  res = double_int_xor (o0, o1);
 	  break;
 
 	case SMIN:
-	  if (h1 < h2
-	      || (h1 == h2
-		  && ((unsigned HOST_WIDE_INT) l1
-		      < (unsigned HOST_WIDE_INT) l2)))
-	    lv = l1, hv = h1;
-	  else
-	    lv = l2, hv = h2;
+	  res = double_int_smin (o0, o1);
 	  break;
 
 	case SMAX:
-	  if (h1 > h2
-	      || (h1 == h2
-		  && ((unsigned HOST_WIDE_INT) l1
-		      > (unsigned HOST_WIDE_INT) l2)))
-	    lv = l1, hv = h1;
-	  else
-	    lv = l2, hv = h2;
+	  res = double_int_smax (o0, o1);
 	  break;
 
 	case UMIN:
-	  if ((unsigned HOST_WIDE_INT) h1 < (unsigned HOST_WIDE_INT) h2
-	      || (h1 == h2
-		  && ((unsigned HOST_WIDE_INT) l1
-		      < (unsigned HOST_WIDE_INT) l2)))
-	    lv = l1, hv = h1;
-	  else
-	    lv = l2, hv = h2;
+	  res = double_int_umin (o0, o1);
 	  break;
 
 	case UMAX:
-	  if ((unsigned HOST_WIDE_INT) h1 > (unsigned HOST_WIDE_INT) h2
-	      || (h1 == h2
-		  && ((unsigned HOST_WIDE_INT) l1
-		      > (unsigned HOST_WIDE_INT) l2)))
-	    lv = l1, hv = h1;
-	  else
-	    lv = l2, hv = h2;
+	  res = double_int_umax (o0, o1);
 	  break;
 
 	case LSHIFTRT:   case ASHIFTRT:
 	case ASHIFT:
 	case ROTATE:     case ROTATERT:
-	  if (SHIFT_COUNT_TRUNCATED)
-	    l2 &= (GET_MODE_BITSIZE (mode) - 1), h2 = 0;
+	  {
+	    unsigned HOST_WIDE_INT cnt;
 
-	  if (h2 != 0 || l2 >= GET_MODE_BITSIZE (mode))
-	    return 0;
+	    if (SHIFT_COUNT_TRUNCATED)
+	      o1 = double_int_zext (o1, GET_MODE_BITSIZE (mode));
 
-	  if (code == LSHIFTRT || code == ASHIFTRT)
-	    rshift_double (l1, h1, l2, GET_MODE_BITSIZE (mode), &lv, &hv,
-			   code == ASHIFTRT);
-	  else if (code == ASHIFT)
-	    lshift_double (l1, h1, l2, GET_MODE_BITSIZE (mode), &lv, &hv, 1);
-	  else if (code == ROTATE)
-	    lrotate_double (l1, h1, l2, GET_MODE_BITSIZE (mode), &lv, &hv);
-	  else /* code == ROTATERT */
-	    rrotate_double (l1, h1, l2, GET_MODE_BITSIZE (mode), &lv, &hv);
+	    if (!double_int_fits_in_uhwi_p (o1)
+	        || double_int_to_uhwi (o1) >= GET_MODE_BITSIZE (mode))
+	      return 0;
+
+	    cnt = double_int_to_uhwi (o1);
+
+	    if (code == LSHIFTRT || code == ASHIFTRT)
+	      res = double_int_rshift (o0, cnt, GET_MODE_BITSIZE (mode),
+				       code == ASHIFTRT);
+	    else if (code == ASHIFT)
+	      res = double_int_lshift (o0, cnt, GET_MODE_BITSIZE (mode),
+				       true);
+	    else if (code == ROTATE)
+	      res = double_int_lrotate (o0, cnt, GET_MODE_BITSIZE (mode));
+	    else /* code == ROTATERT */
+	      res = double_int_rrotate (o0, cnt, GET_MODE_BITSIZE (mode));
+	  }
 	  break;
 
 	default:
 	  return 0;
 	}
 
-      return immed_double_const (lv, hv, mode);
+      return immed_double_int_const (res, mode);
     }
 
   if (CONST_INT_P (op0) && CONST_INT_P (op1)
