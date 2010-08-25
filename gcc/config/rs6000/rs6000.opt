@@ -115,6 +115,10 @@ mpopcntd
 Target Report Mask(POPCNTD)
 Use PowerPC V2.06 popcntd instruction
 
+mveclibabi=
+Target RejectNegative Joined Var(rs6000_veclibabi_name)
+Vector library ABI to use
+
 mvsx
 Target Report Mask(VSX)
 Use vector/scalar (VSX) instructions

@@ -299,6 +299,7 @@ tree_mem_ref_addr (tree type, tree mem_ref)
 
   if (offset && !integer_zerop (offset))
     {
+      offset = fold_convert (sizetype, offset);
       if (addr_off)
 	addr_off = fold_build2 (PLUS_EXPR, sizetype, addr_off, offset);
       else
@@ -356,8 +357,7 @@ create_mem_ref_raw (tree type, tree alias_ptr_type, struct mem_address *addr)
 
   /* If possible use a plain MEM_REF instead of a TARGET_MEM_REF.  */
   if (alias_ptr_type
-      && !addr->index
-      && !addr->step
+      && (!addr->index || integer_zerop (addr->index))
       && (!addr->base || POINTER_TYPE_P (TREE_TYPE (addr->base))))
     {
       tree base;

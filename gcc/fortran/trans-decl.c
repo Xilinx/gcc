@@ -1034,6 +1034,9 @@ add_attributes_to_decl (symbol_attribute sym_attr, tree list)
 }
 
 
+static void build_function_decl (gfc_symbol * sym, bool global);
+
+
 /* Return the decl for a gfc_symbol, create it if it doesn't already
    exist.  */
 
@@ -1160,12 +1163,21 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 	}
     }
 
-  /* Catch function declarations.  Only used for actual parameters and
-     procedure pointers.  */
   if (sym->attr.flavor == FL_PROCEDURE)
     {
-      decl = gfc_get_extern_function_decl (sym);
-      gfc_set_decl_location (decl, &sym->declared_at);
+      /* Catch function declarations. Only used for actual parameters,
+	 procedure pointers and procptr initialization targets.  */
+      if (sym->attr.external || sym->attr.use_assoc || sym->attr.intrinsic)
+	{
+	  decl = gfc_get_extern_function_decl (sym);
+	  gfc_set_decl_location (decl, &sym->declared_at);
+	}
+      else
+	{
+	  if (!sym->backend_decl)
+	    build_function_decl (sym, false);
+	  decl = sym->backend_decl;
+	}
       return decl;
     }
 
@@ -1281,8 +1293,11 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 	 every time the procedure is entered. The TREE_STATIC is
 	 in this case due to -fmax-stack-var-size=.  */
       DECL_INITIAL (decl) = gfc_conv_initializer (sym->value, &sym->ts,
-	  TREE_TYPE (decl), sym->attr.dimension,
-	  sym->attr.pointer || sym->attr.allocatable);
+						  TREE_TYPE (decl),
+						  sym->attr.dimension,
+						  sym->attr.pointer
+						  || sym->attr.allocatable,
+						  sym->attr.proc_pointer);
     }
 
   if (!TREE_STATIC (decl)
@@ -1369,9 +1384,9 @@ get_proc_pointer_decl (gfc_symbol *sym)
     {
       /* Add static initializer.  */
       DECL_INITIAL (decl) = gfc_conv_initializer (sym->value, &sym->ts,
-	  TREE_TYPE (decl),
-	  sym->attr.proc_pointer ? false : sym->attr.dimension,
-	  sym->attr.proc_pointer);
+						  TREE_TYPE (decl),
+						  sym->attr.dimension,
+						  false, true);
     }
 
   attributes = add_attributes_to_decl (sym->attr, NULL_TREE);
@@ -1608,8 +1623,10 @@ build_function_decl (gfc_symbol * sym, bool global)
   tree result_decl;
   gfc_formal_arglist *f;
 
-  gcc_assert (!sym->backend_decl);
   gcc_assert (!sym->attr.external);
+
+  if (sym->backend_decl)
+    return;
 
   /* Set the line and filename.  sym->declared_at seems to point to the
      last statement for subroutines, but it'll do for now.  */
@@ -2427,35 +2444,41 @@ gfc_build_intrinsic_function_decls (void)
 	integer_type_node, 4, gfc_charlen_type_node, pchar1_type_node,
 	gfc_charlen_type_node, pchar1_type_node);
   DECL_PURE_P (gfor_fndecl_compare_string) = 1;
+  TREE_NOTHROW (gfor_fndecl_compare_string) = 1;
 
   gfor_fndecl_concat_string = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("concat_string")), "..W.R.R",
 	void_type_node, 6, gfc_charlen_type_node, pchar1_type_node,
 	gfc_charlen_type_node, pchar1_type_node,
 	gfc_charlen_type_node, pchar1_type_node);
+  TREE_NOTHROW (gfor_fndecl_concat_string) = 1;
 
   gfor_fndecl_string_len_trim = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("string_len_trim")), "..R",
 	gfc_charlen_type_node, 2, gfc_charlen_type_node, pchar1_type_node);
   DECL_PURE_P (gfor_fndecl_string_len_trim) = 1;
+  TREE_NOTHROW (gfor_fndecl_string_len_trim) = 1;
 
   gfor_fndecl_string_index = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("string_index")), "..R.R.",
 	gfc_charlen_type_node, 5, gfc_charlen_type_node, pchar1_type_node,
 	gfc_charlen_type_node, pchar1_type_node, gfc_logical4_type_node);
   DECL_PURE_P (gfor_fndecl_string_index) = 1;
+  TREE_NOTHROW (gfor_fndecl_string_index) = 1;
 
   gfor_fndecl_string_scan = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("string_scan")), "..R.R.",
 	gfc_charlen_type_node, 5, gfc_charlen_type_node, pchar1_type_node,
 	gfc_charlen_type_node, pchar1_type_node, gfc_logical4_type_node);
   DECL_PURE_P (gfor_fndecl_string_scan) = 1;
+  TREE_NOTHROW (gfor_fndecl_string_scan) = 1;
 
   gfor_fndecl_string_verify = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("string_verify")), "..R.R.",
 	gfc_charlen_type_node, 5, gfc_charlen_type_node, pchar1_type_node,
 	gfc_charlen_type_node, pchar1_type_node, gfc_logical4_type_node);
   DECL_PURE_P (gfor_fndecl_string_verify) = 1;
+  TREE_NOTHROW (gfor_fndecl_string_verify) = 1;
 
   gfor_fndecl_string_trim = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("string_trim")), ".Ww.R",
@@ -2473,52 +2496,61 @@ gfc_build_intrinsic_function_decls (void)
 	get_identifier (PREFIX("adjustl")), ".W.R",
 	void_type_node, 3, pchar1_type_node, gfc_charlen_type_node,
 	pchar1_type_node);
+  TREE_NOTHROW (gfor_fndecl_adjustl) = 1;
 
   gfor_fndecl_adjustr = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("adjustr")), ".W.R",
 	void_type_node, 3, pchar1_type_node, gfc_charlen_type_node,
 	pchar1_type_node);
+  TREE_NOTHROW (gfor_fndecl_adjustr) = 1;
 
   gfor_fndecl_select_string =  gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("select_string")), ".R.R.",
 	integer_type_node, 4, pvoid_type_node, integer_type_node,
 	pchar1_type_node, gfc_charlen_type_node);
   DECL_PURE_P (gfor_fndecl_select_string) = 1;
+  TREE_NOTHROW (gfor_fndecl_select_string) = 1;
 
   gfor_fndecl_compare_string_char4 = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("compare_string_char4")), "..R.R",
 	integer_type_node, 4, gfc_charlen_type_node, pchar4_type_node,
 	gfc_charlen_type_node, pchar4_type_node);
   DECL_PURE_P (gfor_fndecl_compare_string_char4) = 1;
+  TREE_NOTHROW (gfor_fndecl_compare_string_char4) = 1;
 
   gfor_fndecl_concat_string_char4 = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("concat_string_char4")), "..W.R.R",
 	void_type_node, 6, gfc_charlen_type_node, pchar4_type_node,
 	gfc_charlen_type_node, pchar4_type_node, gfc_charlen_type_node,
 	pchar4_type_node);
+  TREE_NOTHROW (gfor_fndecl_concat_string_char4) = 1;
 
   gfor_fndecl_string_len_trim_char4 = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("string_len_trim_char4")), "..R",
 	gfc_charlen_type_node, 2, gfc_charlen_type_node, pchar4_type_node);
   DECL_PURE_P (gfor_fndecl_string_len_trim_char4) = 1;
+  TREE_NOTHROW (gfor_fndecl_string_len_trim_char4) = 1;
 
   gfor_fndecl_string_index_char4 = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("string_index_char4")), "..R.R.",
 	gfc_charlen_type_node, 5, gfc_charlen_type_node, pchar4_type_node,
 	gfc_charlen_type_node, pchar4_type_node, gfc_logical4_type_node);
   DECL_PURE_P (gfor_fndecl_string_index_char4) = 1;
+  TREE_NOTHROW (gfor_fndecl_string_index_char4) = 1;
 
   gfor_fndecl_string_scan_char4 = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("string_scan_char4")), "..R.R.",
 	gfc_charlen_type_node, 5, gfc_charlen_type_node, pchar4_type_node,
 	gfc_charlen_type_node, pchar4_type_node, gfc_logical4_type_node);
   DECL_PURE_P (gfor_fndecl_string_scan_char4) = 1;
+  TREE_NOTHROW (gfor_fndecl_string_scan_char4) = 1;
 
   gfor_fndecl_string_verify_char4 = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("string_verify_char4")), "..R.R.",
 	gfc_charlen_type_node, 5, gfc_charlen_type_node, pchar4_type_node,
 	gfc_charlen_type_node, pchar4_type_node, gfc_logical4_type_node);
   DECL_PURE_P (gfor_fndecl_string_verify_char4) = 1;
+  TREE_NOTHROW (gfor_fndecl_string_verify_char4) = 1;
 
   gfor_fndecl_string_trim_char4 = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("string_trim_char4")), ".Ww.R",
@@ -2536,17 +2568,20 @@ gfc_build_intrinsic_function_decls (void)
 	get_identifier (PREFIX("adjustl_char4")), ".W.R",
 	void_type_node, 3, pchar4_type_node, gfc_charlen_type_node,
 	pchar4_type_node);
+  TREE_NOTHROW (gfor_fndecl_adjustl_char4) = 1;
 
   gfor_fndecl_adjustr_char4 = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("adjustr_char4")), ".W.R",
 	void_type_node, 3, pchar4_type_node, gfc_charlen_type_node,
 	pchar4_type_node);
+  TREE_NOTHROW (gfor_fndecl_adjustr_char4) = 1;
 
   gfor_fndecl_select_string_char4 = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("select_string_char4")), ".R.R.",
 	integer_type_node, 4, pvoid_type_node, integer_type_node,
 	pvoid_type_node, gfc_charlen_type_node);
   DECL_PURE_P (gfor_fndecl_select_string_char4) = 1;
+  TREE_NOTHROW (gfor_fndecl_select_string_char4) = 1;
 
 
   /* Conversion between character kinds.  */
@@ -2581,17 +2616,20 @@ gfc_build_intrinsic_function_decls (void)
 	get_identifier (PREFIX("selected_char_kind")), "..R",
 	gfc_int4_type_node, 2, gfc_charlen_type_node, pchar_type_node);
   DECL_PURE_P (gfor_fndecl_sc_kind) = 1;
+  TREE_NOTHROW (gfor_fndecl_sc_kind) = 1;
 
   gfor_fndecl_si_kind = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("selected_int_kind")), ".R",
 	gfc_int4_type_node, 1, pvoid_type_node);
   DECL_PURE_P (gfor_fndecl_si_kind) = 1;
+  TREE_NOTHROW (gfor_fndecl_si_kind) = 1;
 
   gfor_fndecl_sr_kind = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("selected_real_kind2008")), ".RR",
 	gfc_int4_type_node, 3, pvoid_type_node, pvoid_type_node,
 	pvoid_type_node);
   DECL_PURE_P (gfor_fndecl_sr_kind) = 1;
+  TREE_NOTHROW (gfor_fndecl_sr_kind) = 1;
 
   /* Power functions.  */
   {
@@ -2618,6 +2656,7 @@ gfc_build_intrinsic_function_decls (void)
 		  gfc_build_library_function_decl (get_identifier (name),
 		    jtype, 2, jtype, itype);
 		TREE_READONLY (gfor_fndecl_math_powi[jkind][ikind].integer) = 1;
+		TREE_NOTHROW (gfor_fndecl_math_powi[jkind][ikind].integer) = 1;
 	      }
 	  }
 
@@ -2632,6 +2671,7 @@ gfc_build_intrinsic_function_decls (void)
 		  gfc_build_library_function_decl (get_identifier (name),
 		    rtype, 2, rtype, itype);
 		TREE_READONLY (gfor_fndecl_math_powi[rkind][ikind].real) = 1;
+		TREE_NOTHROW (gfor_fndecl_math_powi[rkind][ikind].real) = 1;
 	      }
 
 	    ctype = gfc_get_complex_type (rkinds[rkind]);
@@ -2643,6 +2683,7 @@ gfc_build_intrinsic_function_decls (void)
 		  gfc_build_library_function_decl (get_identifier (name),
 		    ctype, 2,ctype, itype);
 		TREE_READONLY (gfor_fndecl_math_powi[rkind][ikind].cmplx) = 1;
+		TREE_NOTHROW (gfor_fndecl_math_powi[rkind][ikind].cmplx) = 1;
 	      }
 	  }
       }
@@ -2654,17 +2695,25 @@ gfc_build_intrinsic_function_decls (void)
 	get_identifier (PREFIX("ishftc4")),
 	gfc_int4_type_node, 3, gfc_int4_type_node, gfc_int4_type_node,
 	gfc_int4_type_node);
+  TREE_READONLY (gfor_fndecl_math_ishftc4) = 1;
+  TREE_NOTHROW (gfor_fndecl_math_ishftc4) = 1;
 	
   gfor_fndecl_math_ishftc8 = gfc_build_library_function_decl (
 	get_identifier (PREFIX("ishftc8")),
 	gfc_int8_type_node, 3, gfc_int8_type_node, gfc_int4_type_node,
 	gfc_int4_type_node);
+  TREE_READONLY (gfor_fndecl_math_ishftc8) = 1;
+  TREE_NOTHROW (gfor_fndecl_math_ishftc8) = 1;
 
   if (gfc_int16_type_node)
-    gfor_fndecl_math_ishftc16 = gfc_build_library_function_decl (
+    {
+      gfor_fndecl_math_ishftc16 = gfc_build_library_function_decl (
 	get_identifier (PREFIX("ishftc16")),
 	gfc_int16_type_node, 3, gfc_int16_type_node, gfc_int4_type_node,
 	gfc_int4_type_node);
+      TREE_READONLY (gfor_fndecl_math_ishftc16) = 1;
+      TREE_NOTHROW (gfor_fndecl_math_ishftc16) = 1;
+    }
 
   /* BLAS functions.  */
   {
@@ -2714,14 +2763,17 @@ gfc_build_intrinsic_function_decls (void)
 	get_identifier (PREFIX("size0")), ".R",
 	gfc_array_index_type, 1, pvoid_type_node);
   DECL_PURE_P (gfor_fndecl_size0) = 1;
+  TREE_NOTHROW (gfor_fndecl_size0) = 1;
 
   gfor_fndecl_size1 = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("size1")), ".R",
 	gfc_array_index_type, 2, pvoid_type_node, gfc_array_index_type);
   DECL_PURE_P (gfor_fndecl_size1) = 1;
+  TREE_NOTHROW (gfor_fndecl_size1) = 1;
 
   gfor_fndecl_iargc = gfc_build_library_function_decl (
 	get_identifier (PREFIX ("iargc")), gfc_int4_type_node, 0);
+  TREE_NOTHROW (gfor_fndecl_iargc) = 1;
 
   if (gfc_type_for_size (128, true))
     {
@@ -2730,10 +2782,12 @@ gfc_build_intrinsic_function_decls (void)
       gfor_fndecl_clz128 = gfc_build_library_function_decl (
 	get_identifier (PREFIX ("clz128")), integer_type_node, 1, uint128);
       TREE_READONLY (gfor_fndecl_clz128) = 1;
+      TREE_NOTHROW (gfor_fndecl_clz128) = 1;
 
       gfor_fndecl_ctz128 = gfc_build_library_function_decl (
 	get_identifier (PREFIX ("ctz128")), integer_type_node, 1, uint128);
       TREE_READONLY (gfor_fndecl_ctz128) = 1;
+      TREE_NOTHROW (gfor_fndecl_ctz128) = 1;
     }
 }
 
@@ -2843,6 +2897,7 @@ gfc_build_builtin_function_decls (void)
 	get_identifier (PREFIX("associated")), ".RR",
 	integer_type_node, 2, ppvoid_type_node, ppvoid_type_node);
   DECL_PURE_P (gfor_fndecl_associated) = 1;
+  TREE_NOTHROW (gfor_fndecl_associated) = 1;
 
   gfc_build_intrinsic_function_decls ();
   gfc_build_intrinsic_lib_fndecls ();
@@ -3806,9 +3861,10 @@ gfc_emit_parameter_debug_info (gfc_symbol *sym)
   TREE_USED (decl) = 1;
   if (DECL_CONTEXT (decl) && TREE_CODE (DECL_CONTEXT (decl)) == NAMESPACE_DECL)
     TREE_PUBLIC (decl) = 1;
-  DECL_INITIAL (decl)
-    = gfc_conv_initializer (sym->value, &sym->ts, TREE_TYPE (decl),
-			    sym->attr.dimension, 0);
+  DECL_INITIAL (decl) = gfc_conv_initializer (sym->value, &sym->ts,
+					      TREE_TYPE (decl),
+					      sym->attr.dimension,
+					      false, false);
   debug_hooks->global_decl (decl);
 }
 

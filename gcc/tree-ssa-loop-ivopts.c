@@ -1640,7 +1640,7 @@ may_be_unaligned_p (tree ref, tree step)
 
 /* Return true if EXPR may be non-addressable.   */
 
-static bool
+bool
 may_be_nonaddressable_p (tree expr)
 {
   switch (TREE_CODE (expr))
@@ -6247,7 +6247,7 @@ free_loop_data (struct ivopts_data *data)
 
   data->max_inv_id = 0;
 
-  for (i = 0; VEC_iterate (tree, decl_rtl_to_reset, i, obj); i++)
+  FOR_EACH_VEC_ELT (tree, decl_rtl_to_reset, i, obj)
     SET_DECL_RTL (obj, NULL_RTX);
 
   VEC_truncate (tree, decl_rtl_to_reset, 0);

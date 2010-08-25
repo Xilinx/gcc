@@ -69,6 +69,9 @@ Driver Joined Separate
 E
 Driver
 
+L
+Driver Joined Separate
+
 O
 Common JoinedOrMissing Optimization
 -O<number>	Set optimization level to <number>
@@ -708,6 +711,10 @@ Perform conversion of conditional jumps to conditional execution
 ftree-loop-if-convert
 Common Report Var(flag_tree_loop_if_convert) Init(-1) Optimization
 Convert conditional jumps in innermost loops to branchless equivalents
+
+ftree-loop-if-convert-stores
+Common Report Var(flag_tree_loop_if_convert_stores) Optimization
+Also if-convert conditional jumps containing memory writes
 
 ; -finhibit-size-directive inhibits output of .size for ELF.
 ; This is used only for compiling crtstuff.c,
@@ -1645,6 +1652,12 @@ Driver Joined Separate
 no-canonical-prefixes
 Driver
 
+nodefaultlibs
+Driver
+
+nostdlib
+Driver
+
 o
 Common Driver Joined Separate MissingArgError(missing filename after %qs)
 -o <file>	Place output into <file>
@@ -1663,6 +1676,9 @@ Issue warnings needed for strict compliance to the standard
 pedantic-errors
 Common
 Like -pedantic but issue them as errors
+
+pg
+Driver
 
 pipe
 Driver Var(use_pipes)
@@ -1739,6 +1755,9 @@ Driver Separate
 
 specs=
 Driver Joined
+
+static
+Driver
 
 static-libgcc
 Driver

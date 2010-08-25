@@ -1615,6 +1615,11 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	align = MAX (align, TYPE_ALIGN (type));
     }
 
+  else if (TREE_CODE (t) == TARGET_MEM_REF)
+    /* ??? This isn't fully correct, we can't set the alignment from the
+       type in all cases.  */
+    align = MAX (align, TYPE_ALIGN (type));
+
   else if (TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
     {
       if (integer_zerop (TREE_OPERAND (t, 1)))
@@ -1788,6 +1793,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 
       /* If this is an indirect reference, record it.  */
       else if (TREE_CODE (t) == MEM_REF 
+	       || TREE_CODE (t) == TARGET_MEM_REF
 	       || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
 	{
 	  expr = t;

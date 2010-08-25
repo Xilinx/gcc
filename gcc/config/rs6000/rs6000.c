@@ -949,6 +949,9 @@ static const enum rs6000_btc builtin_classify[(int)RS6000_BUILTIN_COUNT] =
 #undef RS6000_BUILTIN
 #undef RS6000_BUILTIN_EQUATE
 
+/* Support for -mveclibabi=<xxx> to control which vector library to use.  */
+static tree (*rs6000_veclib_handler) (tree, tree, tree);
+
 
 static bool rs6000_function_ok_for_sibcall (tree, tree);
 static const char *rs6000_invalid_within_doloop (const_rtx);
@@ -989,6 +992,7 @@ static rtx rs6000_emit_stack_reset (rs6000_stack_t *, rtx, rtx, int, bool);
 static rtx rs6000_make_savres_rtx (rs6000_stack_t *, rtx, int,
 				   enum machine_mode, bool, bool, bool);
 static bool rs6000_reg_live_or_pic_offset_p (int);
+static tree rs6000_builtin_vectorized_libmass (tree, tree, tree);
 static tree rs6000_builtin_vectorized_function (tree, tree, tree);
 static int rs6000_savres_strategy (rs6000_stack_t *, bool, int, int);
 static void rs6000_restore_saved_cr (rtx, int);
@@ -2771,6 +2775,15 @@ rs6000_override_options (const char *default_cpu)
 	       rs6000_traceback_name);
     }
 
+  if (rs6000_veclibabi_name)
+    {
+      if (strcmp (rs6000_veclibabi_name, "mass") == 0)
+	rs6000_veclib_handler = rs6000_builtin_vectorized_libmass;
+      else
+	error ("unknown vectorization library ABI type (%s) for "
+	       "-mveclibabi= switch", rs6000_veclibabi_name);
+    }
+
   if (!rs6000_explicit_options.long_double)
     rs6000_long_double_type_size = RS6000_DEFAULT_LONG_DOUBLE_SIZE;
 
@@ -3602,6 +3615,145 @@ rs6000_parse_fpu_option (const char *option)
   return FPU_NONE;
 }
 
+
+/* Handler for the Mathematical Acceleration Subsystem (mass) interface to a
+   library with vectorized intrinsics.  */
+
+static tree
+rs6000_builtin_vectorized_libmass (tree fndecl, tree type_out, tree type_in)
+{
+  char name[32];
+  const char *suffix = NULL;
+  tree fntype, new_fndecl, bdecl = NULL_TREE;
+  int n_args = 1;
+  const char *bname;
+  enum machine_mode el_mode, in_mode;
+  int n, in_n;
+
+  /* Libmass is suitable for unsafe math only as it does not correctly support
+     parts of IEEE with the required precision such as denormals.  Only support
+     it if we have VSX to use the simd d2 or f4 functions.
+     XXX: Add variable length support.  */
+  if (!flag_unsafe_math_optimizations || !TARGET_VSX)
+    return NULL_TREE;
+
+  el_mode = TYPE_MODE (TREE_TYPE (type_out));
+  n = TYPE_VECTOR_SUBPARTS (type_out);
+  in_mode = TYPE_MODE (TREE_TYPE (type_in));
+  in_n = TYPE_VECTOR_SUBPARTS (type_in);
+  if (el_mode != in_mode
+      || n != in_n)
+    return NULL_TREE;
+
+  if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+    {
+      enum built_in_function fn = DECL_FUNCTION_CODE (fndecl);
+      switch (fn)
+	{
+	case BUILT_IN_ATAN2:
+	case BUILT_IN_HYPOT:
+	case BUILT_IN_POW:
+	  n_args = 2;
+	  /* fall through */
+
+	case BUILT_IN_ACOS:
+	case BUILT_IN_ACOSH:
+	case BUILT_IN_ASIN:
+	case BUILT_IN_ASINH:
+	case BUILT_IN_ATAN:
+	case BUILT_IN_ATANH:
+	case BUILT_IN_CBRT:
+	case BUILT_IN_COS:
+	case BUILT_IN_COSH:
+	case BUILT_IN_ERF:
+	case BUILT_IN_ERFC:
+	case BUILT_IN_EXP2:
+	case BUILT_IN_EXP:
+	case BUILT_IN_EXPM1:
+	case BUILT_IN_LGAMMA:
+	case BUILT_IN_LOG10:
+	case BUILT_IN_LOG1P:
+	case BUILT_IN_LOG2:
+	case BUILT_IN_LOG:
+	case BUILT_IN_SIN:
+	case BUILT_IN_SINH:
+	case BUILT_IN_SQRT:
+	case BUILT_IN_TAN:
+	case BUILT_IN_TANH:
+	  bdecl = implicit_built_in_decls[fn];
+	  suffix = "d2";				/* pow -> powd2 */
+	  if (el_mode != DFmode
+	      || n != 2)
+	    return NULL_TREE;
+	  break;
+
+	case BUILT_IN_ATAN2F:
+	case BUILT_IN_HYPOTF:
+	case BUILT_IN_POWF:
+	  n_args = 2;
+	  /* fall through */
+
+	case BUILT_IN_ACOSF:
+	case BUILT_IN_ACOSHF:
+	case BUILT_IN_ASINF:
+	case BUILT_IN_ASINHF:
+	case BUILT_IN_ATANF:
+	case BUILT_IN_ATANHF:
+	case BUILT_IN_CBRTF:
+	case BUILT_IN_COSF:
+	case BUILT_IN_COSHF:
+	case BUILT_IN_ERFF:
+	case BUILT_IN_ERFCF:
+	case BUILT_IN_EXP2F:
+	case BUILT_IN_EXPF:
+	case BUILT_IN_EXPM1F:
+	case BUILT_IN_LGAMMAF:
+	case BUILT_IN_LOG10F:
+	case BUILT_IN_LOG1PF:
+	case BUILT_IN_LOG2F:
+	case BUILT_IN_LOGF:
+	case BUILT_IN_SINF:
+	case BUILT_IN_SINHF:
+	case BUILT_IN_SQRTF:
+	case BUILT_IN_TANF:
+	case BUILT_IN_TANHF:
+	  bdecl = implicit_built_in_decls[fn];
+	  suffix = "4";					/* powf -> powf4 */
+	  if (el_mode != SFmode
+	      || n != 4)
+	    return NULL_TREE;
+	  break;
+
+	default:
+	  return NULL_TREE;
+	}
+    }
+  else
+    return NULL_TREE;
+
+  gcc_assert (suffix != NULL);
+  bname = IDENTIFIER_POINTER (DECL_NAME (bdecl));
+  strcpy (name, bname + sizeof ("__builtin_") - 1);
+  strcat (name, suffix);
+
+  if (n_args == 1)
+    fntype = build_function_type_list (type_out, type_in, NULL);
+  else if (n_args == 2)
+    fntype = build_function_type_list (type_out, type_in, type_in, NULL);
+  else
+    gcc_unreachable ();
+
+  /* Build a function declaration for the vectorized function.  */
+  new_fndecl = build_decl (BUILTINS_LOCATION,
+			   FUNCTION_DECL, get_identifier (name), fntype);
+  TREE_PUBLIC (new_fndecl) = 1;
+  DECL_EXTERNAL (new_fndecl) = 1;
+  DECL_IS_NOVOPS (new_fndecl) = 1;
+  TREE_READONLY (new_fndecl) = 1;
+
+  return new_fndecl;
+}
+
 /* Returns a function decl for a vectorized version of the builtin function
    with builtin function code FN and the result vector type TYPE, or NULL_TREE
    if it is not available.  */
@@ -3767,6 +3919,10 @@ rs6000_builtin_vectorized_function (tree fndecl, tree type_out,
 	  break;
 	}
     }
+
+  /* Generate calls to libmass if appropriate.  */
+  if (rs6000_veclib_handler)
+    return rs6000_veclib_handler (fndecl, type_out, type_in);
 
   return NULL_TREE;
 }
@@ -18788,6 +18944,137 @@ rs6000_emit_allocate_stack (HOST_WIDE_INT size, rtx copy_reg)
 					   GEN_INT (-size))));
 }
 
+#define PROBE_INTERVAL (1 << STACK_CHECK_PROBE_INTERVAL_EXP)
+
+#if PROBE_INTERVAL > 32768
+#error Cannot use indexed addressing mode for stack probing
+#endif
+
+/* Emit code to probe a range of stack addresses from FIRST to FIRST+SIZE,
+   inclusive.  These are offsets from the current stack pointer.  */
+
+static void
+rs6000_emit_probe_stack_range (HOST_WIDE_INT first, HOST_WIDE_INT size)
+{
+  /* See if we have a constant small number of probes to generate.  If so,
+     that's the easy case.  */
+  if (first + size <= 32768)
+    {
+      HOST_WIDE_INT i;
+
+      /* Probe at FIRST + N * PROBE_INTERVAL for values of N from 1 until
+	 it exceeds SIZE.  If only one probe is needed, this will not
+	 generate any code.  Then probe at FIRST + SIZE.  */
+      for (i = PROBE_INTERVAL; i < size; i += PROBE_INTERVAL)
+	emit_stack_probe (plus_constant (stack_pointer_rtx, -(first + i)));
+
+      emit_stack_probe (plus_constant (stack_pointer_rtx, -(first + size)));
+    }
+
+  /* Otherwise, do the same as above, but in a loop.  Note that we must be
+     extra careful with variables wrapping around because we might be at
+     the very top (or the very bottom) of the address space and we have
+     to be able to handle this case properly; in particular, we use an
+     equality test for the loop condition.  */
+  else
+    {
+      HOST_WIDE_INT rounded_size;
+      rtx r12 = gen_rtx_REG (Pmode, 12);
+      rtx r0 = gen_rtx_REG (Pmode, 0);
+
+      /* Sanity check for the addressing mode we're going to use.  */
+      gcc_assert (first <= 32768);
+
+      /* Step 1: round SIZE to the previous multiple of the interval.  */
+
+      rounded_size = size & -PROBE_INTERVAL;
+
+
+      /* Step 2: compute initial and final value of the loop counter.  */
+
+      /* TEST_ADDR = SP + FIRST.  */
+      emit_insn (gen_rtx_SET (VOIDmode, r12,
+			      plus_constant (stack_pointer_rtx, -first)));
+
+      /* LAST_ADDR = SP + FIRST + ROUNDED_SIZE.  */
+      if (rounded_size > 32768)
+	{
+	  emit_move_insn (r0, GEN_INT (-rounded_size));
+	  emit_insn (gen_rtx_SET (VOIDmode, r0,
+				  gen_rtx_PLUS (Pmode, r12, r0)));
+	}
+      else
+	emit_insn (gen_rtx_SET (VOIDmode, r0,
+			        plus_constant (r12, -rounded_size)));
+
+
+      /* Step 3: the loop
+
+	 while (TEST_ADDR != LAST_ADDR)
+	   {
+	     TEST_ADDR = TEST_ADDR + PROBE_INTERVAL
+	     probe at TEST_ADDR
+	   }
+
+	 probes at FIRST + N * PROBE_INTERVAL for values of N from 1
+	 until it is equal to ROUNDED_SIZE.  */
+
+      if (TARGET_64BIT)
+	emit_insn (gen_probe_stack_rangedi (r12, r12, r0));
+      else
+	emit_insn (gen_probe_stack_rangesi (r12, r12, r0));
+
+
+      /* Step 4: probe at FIRST + SIZE if we cannot assert at compile-time
+	 that SIZE is equal to ROUNDED_SIZE.  */
+
+      if (size != rounded_size)
+	emit_stack_probe (plus_constant (r12, rounded_size - size));
+    }
+}
+
+/* Probe a range of stack addresses from REG1 to REG2 inclusive.  These are
+   absolute addresses.  */
+
+const char *
+output_probe_stack_range (rtx reg1, rtx reg2)
+{
+  static int labelno = 0;
+  char loop_lab[32], end_lab[32];
+  rtx xops[2];
+
+  ASM_GENERATE_INTERNAL_LABEL (loop_lab, "LPSRL", labelno);
+  ASM_GENERATE_INTERNAL_LABEL (end_lab, "LPSRE", labelno++);
+
+  ASM_OUTPUT_INTERNAL_LABEL (asm_out_file, loop_lab);
+
+  /* Jump to END_LAB if TEST_ADDR == LAST_ADDR.  */
+  xops[0] = reg1;
+  xops[1] = reg2;
+  if (TARGET_64BIT)
+    output_asm_insn ("{cmp|cmpd} 0,%0,%1", xops);
+  else
+    output_asm_insn ("{cmp|cmpw} 0,%0,%1", xops);
+
+  fputs ("\tbeq 0,", asm_out_file);
+  assemble_name_raw (asm_out_file, end_lab);
+  fputc ('\n', asm_out_file);
+
+  /* TEST_ADDR = TEST_ADDR + PROBE_INTERVAL.  */
+  xops[1] = GEN_INT (-PROBE_INTERVAL);
+  output_asm_insn ("{cal %0,%1(%0)|addi %0,%0,%1}", xops);
+
+  /* Probe at TEST_ADDR and branch.  */
+  output_asm_insn ("{st|stw} 0,0(%0)", xops);
+  fprintf (asm_out_file, "\tb ");
+  assemble_name_raw (asm_out_file, loop_lab);
+  fputc ('\n', asm_out_file);
+
+  ASM_OUTPUT_INTERNAL_LABEL (asm_out_file, end_lab);
+
+  return "";
+}
+
 /* Add to 'insn' a note which is PATTERN (INSN) but with REG replaced
    with (plus:P (reg 1) VAL), and with REG2 replaced with RREG if REG2
    is not NULL.  It would be nice if dwarf2out_frame_debug_expr could
@@ -19399,6 +19686,9 @@ rs6000_emit_prologue (void)
                               && df_regs_ever_live_p (STATIC_CHAIN_REGNUM)
 			      && call_used_regs[STATIC_CHAIN_REGNUM]);
   HOST_WIDE_INT sp_offset = 0;
+
+  if (flag_stack_check == STATIC_BUILTIN_STACK_CHECK && info->total_size)
+    rs6000_emit_probe_stack_range (STACK_CHECK_PROTECT, info->total_size);
 
   if (TARGET_FIX_AND_CONTINUE)
     {
@@ -24602,7 +24892,7 @@ no_previous_def (tree function_name)
   branch_island *bi;
   unsigned ix;
 
-  for (ix = 0; VEC_iterate (branch_island, branch_islands, ix, bi); ix++)
+  FOR_EACH_VEC_ELT (branch_island, branch_islands, ix, bi)
     if (function_name == bi->function_name)
       return 0;
   return 1;
@@ -24617,7 +24907,7 @@ get_prev_label (tree function_name)
   branch_island *bi;
   unsigned ix;
 
-  for (ix = 0; VEC_iterate (branch_island, branch_islands, ix, bi); ix++)
+  FOR_EACH_VEC_ELT (branch_island, branch_islands, ix, bi)
     if (function_name == bi->function_name)
       return bi->label_name;
   return NULL_TREE;

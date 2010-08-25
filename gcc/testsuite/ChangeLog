@@ -1,3 +1,135 @@
+2010-08-25  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/alias-8.c: Adjust.
+
+2010-08-25  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* gcc.target/i386/combine-mul.c: New test.
+
+2010-08-25  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/44562
+	* gcc.dg/graphite/id-27.c: New testcase.
+	* gcc.dg/lto/20100825-1_0.c: Likewise.
+
+2010-08-25  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45316
+	* g++.dg/opt/pr45316.C: New testcase.
+
+2010-08-25  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45393
+	* g++.dg/torture/pr45393.C: New testcase.
+
+2010-08-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/45059
+	* gcc.c-torture/compile/pr45059.c: New test.
+
+2010-08-25  Tejas Belagod  <tejas.belagod@arm.com>
+
+	* lib/target-supports.exp (check_effective_target_vect_unpack):
+	Set vect_unpack supported flag to true for neon.
+	
+2010-08-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/tree-ssa/ifc-5.c: New.
+
+2010-08-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/tree-ssa/ifc-4.c: New.
+	* gcc.dg/tree-ssa/ifc-7.c: New.
+
+2010-08-24  Mingjie Xing  <mingjie.xing@gmail.com>
+
+	* gcc.dg/vect/vect.exp: Check loongson targets
+	* g++.dg/vect/vect.exp: Likewise
+	* gfortran.dg/vect/vect.exp: Likewise
+
+2010-08-23  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/vsx-mass-1.c: New file, test
+	-mveclibabi=mass.
+
+2010-08-23  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45366
+	* gfortran.dg/proc_ptr_29.f90: New.
+
+2010-08-22  Tobias Burnus  <burnus@net-b.de>
+	    Dominique d'Humieres <dominiq@lps.ens.fr>
+
+	PR fortran/45367
+	* gfortran.dg/bessel_6.f90: Further reduce required accuracy.
+
+2010-08-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45367
+	* gfortran.dg/bessel_6.f90: Fix numeric tolerence.
+
+2010-08-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36158
+	* gfortran.dg/bessel_7.f90: Disable accidently enabled debug output.
+
+2010-08-22  Tobias Burnus  <burnus@net-b.de>
+	    Dominique d'Humieres <dominiq@lps.ens.fr>
+
+	PR fortran/45367
+	PR fortran/36158
+	* gfortran.dg/bessel_6.f90: Increase numeric tolerence.
+	* gfortran.dg/bessel_7.f90: Increase numeric tolerence.
+
+2010-08-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44863
+	PR fortran/45271
+	PR fortran/45290
+	* gfortran.dg/dynamic_dispatch_10.f03: New (PR 44863 comment #1).
+	* gfortran.dg/pointer_init_5.f90: New (PR 45290 comment #6).
+	* gfortran.dg/typebound_call_18.f03: New (PR 45271 comment #3).
+
+2010-08-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36158
+	PR fortran/33197
+	* gfortran.dg/bessel_6.f90: New.
+	* gfortran.dg/bessel_7.f90: New.
+
+2010-08-20  Jan Hubicka  <jh@suse.cz>
+
+	PR c++/45307
+	PR c++/17736
+	* gcc.dg/ipa/ctor-empty-1.c: Add testcase.
+	* g++.dg/tree-ssa/empty-2.C: Check that constructor got optimized out.
+
+2010-08-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/45336
+	* gcc.target/i386/pr45336-1.c: New.
+	* gcc.target/i386/pr45336-2.c: Likewise.
+	* gcc.target/i386/pr45336-3.c: Likewise.
+	* gcc.target/i386/pr45336-4.c: Likewise.
+
+2010-08-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/45361
+	* gcc.target/i386/volatile-2.c: Update scan strings to also
+	include (%rip) for the memory reference on x86_64.
+
+2010-08-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/44974
+	* gcc.dg/pr44974.c: New test.
+
+	PR rtl-optimization/45353
+	* gcc.dg/pr45353.c: New test.
+
+2010-08-20  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* gcc.target/i386/volatile-2.c: New.
+
 2010-08-19  Andrey Belevantsev  <abel@ispras.ru>
 
 	PR rtl-optimization/44691
@@ -10,11 +142,8 @@
 2010-08-19  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/init/synth3.C: New.
-
 	* g++.dg/init/value8.C: New.
-
 	* g++.dg/tree-ssa/empty-2.C: New.
-
 	* g++.dg/cpp0x/noexcept09.C: New.
 
 2010-08-19  Daniel Kraft  <d@domob.eu>
@@ -107,7 +236,7 @@
 	(check_effective_target_function_sections): New.
 	* gcc.dg/debug/dwarf2/aranges-fnsec-1.c: Check that the target supports
 	function sections before proceding.
-	
+
 2010-08-17  Jakub Jelinek  <jakub@redhat.com>
 
 	PR fortran/45308
