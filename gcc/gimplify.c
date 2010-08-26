@@ -3328,7 +3328,7 @@ gimplify_init_ctor_preeval (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
       constructor_elt *ce;
       VEC(constructor_elt,gc) *v = CONSTRUCTOR_ELTS (*expr_p);
 
-      for (ix = 0; VEC_iterate (constructor_elt, v, ix, ce); ix++)
+      FOR_EACH_VEC_ELT (constructor_elt, v, ix, ce)
 	gimplify_init_ctor_preeval (&ce->value, pre_p, post_p, data);
 
       return;
@@ -3957,7 +3957,7 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 
 	/* Vector types use CONSTRUCTOR all the way through gimple
 	  compilation as a general initializer.  */
-	for (ix = 0; VEC_iterate (constructor_elt, elts, ix, ce); ix++)
+	FOR_EACH_VEC_ELT (constructor_elt, elts, ix, ce)
 	  {
 	    enum gimplify_status tret;
 	    tret = gimplify_expr (&ce->value, pre_p, post_p, is_gimple_val,
@@ -4237,6 +4237,10 @@ gimplify_modify_expr_rhs (tree *expr_p, tree *from_p, tree *to_p,
 	  break;
 
 	case CONSTRUCTOR:
+	  /* If we already made some changes, let the front end have a
+	     crack at this before we break it down.  */
+	  if (ret != GS_UNHANDLED)
+	    break;
 	  /* If we're initializing from a CONSTRUCTOR, break this into
 	     individual MODIFY_EXPRs.  */
 	  return gimplify_init_constructor (expr_p, pre_p, post_p, want_value,
@@ -4572,6 +4576,9 @@ gimplify_modify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
       SET_DECL_DEBUG_EXPR (*from_p, *to_p);
    }
 
+  if (want_value && TREE_THIS_VOLATILE (*to_p))
+    *from_p = get_initialized_tmp_var (*from_p, pre_p, post_p);
+
   if (TREE_CODE (*from_p) == CALL_EXPR)
     {
       /* Since the RHS is a CALL_EXPR, we need to create a GIMPLE_CALL
@@ -4599,7 +4606,7 @@ gimplify_modify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 
   if (want_value)
     {
-      *expr_p = unshare_expr (*to_p);
+      *expr_p = TREE_THIS_VOLATILE (*to_p) ? *from_p : unshare_expr (*to_p);
       return GS_OK;
     }
   else
@@ -6911,14 +6918,11 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  if (fallback == fb_none)
 	    {
 	      unsigned HOST_WIDE_INT ix;
-	      constructor_elt *ce;
+	      tree val;
 	      tree temp = NULL_TREE;
-	      for (ix = 0;
-		   VEC_iterate (constructor_elt, CONSTRUCTOR_ELTS (*expr_p),
-				ix, ce);
-		   ix++)
-		if (TREE_SIDE_EFFECTS (ce->value))
-		  append_to_statement_list (ce->value, &temp);
+	      FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (*expr_p), ix, val)
+		if (TREE_SIDE_EFFECTS (val))
+		  append_to_statement_list (val, &temp);
 
 	      *expr_p = temp;
 	      ret = temp ? GS_OK : GS_ALL_DONE;

@@ -422,6 +422,7 @@ enum gfc_isym_id
   GFC_ISYM_J0,
   GFC_ISYM_J1,
   GFC_ISYM_JN,
+  GFC_ISYM_JN2,
   GFC_ISYM_KILL,
   GFC_ISYM_KIND,
   GFC_ISYM_LBOUND,
@@ -531,7 +532,8 @@ enum gfc_isym_id
   GFC_ISYM_XOR,
   GFC_ISYM_Y0,
   GFC_ISYM_Y1,
-  GFC_ISYM_YN
+  GFC_ISYM_YN,
+  GFC_ISYM_YN2
 };
 typedef enum gfc_isym_id gfc_isym_id;
 
@@ -1538,7 +1540,7 @@ typedef struct gfc_intrinsic_arg
   char name[GFC_MAX_SYMBOL_LEN + 1];
 
   gfc_typespec ts;
-  int optional;
+  unsigned optional:1, value:1;
   ENUM_BITFIELD (sym_intent) intent:2;
   gfc_actual_arglist *actual;
 
@@ -2005,8 +2007,16 @@ typedef struct gfc_association_list
      lvalue.  */
   unsigned variable:1;
 
+  /* True if this struct is currently only linked to from a gfc_symbol rather
+     than as part of a real list in gfc_code->ext.block.assoc.  This may
+     happen for SELECT TYPE temporaries and must be considered
+     for memory handling.  */
+  unsigned dangling:1;
+
   char name[GFC_MAX_SYMBOL_LEN + 1];
   gfc_symtree *st; /* Symtree corresponding to name.  */
+  locus where;
+
   gfc_expr *target;
 }
 gfc_association_list;
@@ -2464,7 +2474,7 @@ gfc_try gfc_add_cray_pointee (symbol_attribute *, locus *);
 match gfc_mod_pointee_as (gfc_array_spec *);
 gfc_try gfc_add_protected (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_result (symbol_attribute *, const char *, locus *);
-gfc_try gfc_add_save (symbol_attribute *, const char *, locus *);
+gfc_try gfc_add_save (symbol_attribute *, save_state, const char *, locus *);
 gfc_try gfc_add_threadprivate (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_saved_common (symbol_attribute *, locus *);
 gfc_try gfc_add_target (symbol_attribute *, locus *);
@@ -2578,6 +2588,8 @@ void gfc_free_finalizer (gfc_finalizer *el); /* Needed in resolve.c, too  */
 
 gfc_try gfc_check_symbol_typed (gfc_symbol*, gfc_namespace*, bool, locus);
 gfc_namespace* gfc_find_proc_namespace (gfc_namespace*);
+
+bool gfc_is_associate_pointer (gfc_symbol*);
 
 /* intrinsic.c -- true if working in an init-expr, false otherwise.  */
 extern bool gfc_init_expr_flag;
@@ -2825,6 +2837,7 @@ void gfc_dump_parse_tree (gfc_namespace *, FILE *);
 /* parse.c */
 gfc_try gfc_parse_file (void);
 void gfc_global_used (gfc_gsymbol *, locus *);
+gfc_namespace* gfc_build_block_ns (gfc_namespace *);
 
 /* dependency.c */
 int gfc_dep_compare_expr (gfc_expr *, gfc_expr *);

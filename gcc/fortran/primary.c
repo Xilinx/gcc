@@ -2088,6 +2088,7 @@ gfc_variable_attr (gfc_expr *expr, gfc_typespec *ts)
   attr.pointer = pointer;
   attr.allocatable = allocatable;
   attr.target = target;
+  attr.save = sym->attr.save;
 
   return attr;
 }
@@ -2982,12 +2983,8 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
 	  gfc_error ("Assigning to PROTECTED variable at %C");
 	  return MATCH_ERROR;
 	}
-      if (sym->assoc && !sym->assoc->variable)
-	{
-	  gfc_error ("'%s' associated to expression can't appear in a variable"
-		     " definition context at %C", sym->name);
-	  return MATCH_ERROR;
-	}
+      if (sym->assoc)
+	sym->assoc->variable = 1;
       break;
 
     case FL_UNKNOWN:

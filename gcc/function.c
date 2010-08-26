@@ -2171,7 +2171,7 @@ split_complex_args (VEC(tree, heap) **args)
   unsigned i;
   tree p;
 
-  for (i = 0; VEC_iterate (tree, *args, i, p); ++i)
+  FOR_EACH_VEC_ELT (tree, *args, i, p)
     {
       tree type = TREE_TYPE (p);
       if (TREE_CODE (type) == COMPLEX_TYPE
@@ -3295,7 +3295,7 @@ assign_parms (tree fndecl)
   assign_parms_initialize_all (&all);
   fnargs = assign_parms_augmented_arg_list (&all);
 
-  for (i = 0; VEC_iterate (tree, fnargs, i, parm); ++i)
+  FOR_EACH_VEC_ELT (tree, fnargs, i, parm)
     {
       struct assign_parm_data_one data;
 
@@ -3523,7 +3523,7 @@ gimplify_parameters (void)
   assign_parms_initialize_all (&all);
   fnargs = assign_parms_augmented_arg_list (&all);
 
-  for (i = 0; VEC_iterate (tree, fnargs, i, parm); ++i)
+  FOR_EACH_VEC_ELT (tree, fnargs, i, parm)
     {
       struct assign_parm_data_one data;
 
@@ -3953,6 +3953,46 @@ generate_setjmp_warnings (void)
 }
 
 
+/* Reverse the order of elements in the fragment chain T of blocks,
+   and return the new head of the chain (old last element).  */
+
+static tree
+block_fragments_nreverse (tree t)
+{
+  tree prev = 0, block, next;
+  for (block = t; block; block = next)
+    {
+      next = BLOCK_FRAGMENT_CHAIN (block);
+      BLOCK_FRAGMENT_CHAIN (block) = prev;
+      prev = block;
+    }
+  return prev;
+}
+
+/* Reverse the order of elements in the chain T of blocks,
+   and return the new head of the chain (old last element).
+   Also do the same on subblocks and reverse the order of elements
+   in BLOCK_FRAGMENT_CHAIN as well.  */
+
+static tree
+blocks_nreverse_all (tree t)
+{
+  tree prev = 0, block, next;
+  for (block = t; block; block = next)
+    {
+      next = BLOCK_CHAIN (block);
+      BLOCK_CHAIN (block) = prev;
+      BLOCK_SUBBLOCKS (block) = blocks_nreverse_all (BLOCK_SUBBLOCKS (block));
+      if (BLOCK_FRAGMENT_CHAIN (block)
+	  && BLOCK_FRAGMENT_ORIGIN (block) == NULL_TREE)
+	BLOCK_FRAGMENT_CHAIN (block)
+	  = block_fragments_nreverse (BLOCK_FRAGMENT_CHAIN (block));
+      prev = block;
+    }
+  return prev;
+}
+
+
 /* Identify BLOCKs referenced by more than one NOTE_INSN_BLOCK_{BEG,END},
    and create duplicate blocks.  */
 /* ??? Need an option to either create block fragments or to create
@@ -3979,7 +4019,7 @@ reorder_blocks (void)
 
   /* Recreate the block tree from the note nesting.  */
   reorder_blocks_1 (get_insns (), block, &block_stack);
-  BLOCK_SUBBLOCKS (block) = blocks_nreverse (BLOCK_SUBBLOCKS (block));
+  BLOCK_SUBBLOCKS (block) = blocks_nreverse_all (BLOCK_SUBBLOCKS (block));
 
   VEC_free (tree, heap, block_stack);
 }
@@ -4011,9 +4051,8 @@ reorder_blocks_1 (rtx insns, tree current_block, VEC(tree,heap) **p_block_stack)
 	      tree block = NOTE_BLOCK (insn);
 	      tree origin;
 
-	      origin = (BLOCK_FRAGMENT_ORIGIN (block)
-			? BLOCK_FRAGMENT_ORIGIN (block)
-			: block);
+	      gcc_assert (BLOCK_FRAGMENT_ORIGIN (block) == NULL_TREE);
+	      origin = block;
 
 	      /* If we have seen this block before, that means it now
 		 spans multiple address regions.  Create a new fragment.  */
@@ -4050,8 +4089,6 @@ reorder_blocks_1 (rtx insns, tree current_block, VEC(tree,heap) **p_block_stack)
 	  else if (NOTE_KIND (insn) == NOTE_INSN_BLOCK_END)
 	    {
 	      NOTE_BLOCK (insn) = VEC_pop (tree, *p_block_stack);
-	      BLOCK_SUBBLOCKS (current_block)
-		= blocks_nreverse (BLOCK_SUBBLOCKS (current_block));
 	      current_block = BLOCK_SUPERCONTEXT (current_block);
 	    }
 	}
@@ -4064,12 +4101,12 @@ reorder_blocks_1 (rtx insns, tree current_block, VEC(tree,heap) **p_block_stack)
 tree
 blocks_nreverse (tree t)
 {
-  tree prev = 0, decl, next;
-  for (decl = t; decl; decl = next)
+  tree prev = 0, block, next;
+  for (block = t; block; block = next)
     {
-      next = BLOCK_CHAIN (decl);
-      BLOCK_CHAIN (decl) = prev;
-      prev = decl;
+      next = BLOCK_CHAIN (block);
+      BLOCK_CHAIN (block) = prev;
+      prev = block;
     }
   return prev;
 }

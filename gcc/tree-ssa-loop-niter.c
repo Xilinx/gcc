@@ -1907,7 +1907,7 @@ find_loop_niter (struct loop *loop, edge *exit)
   struct tree_niter_desc desc;
 
   *exit = NULL;
-  for (i = 0; VEC_iterate (edge, exits, i, ex); i++)
+  FOR_EACH_VEC_ELT (edge, exits, i, ex)
     {
       if (!just_once_each_iteration_p (loop, ex->src))
 	continue;
@@ -1970,12 +1970,12 @@ finite_loop_p (struct loop *loop)
   edge ex;
   struct tree_niter_desc desc;
   bool finite = false;
+  int flags;
 
   if (flag_unsafe_loop_optimizations)
     return true;
-  if ((TREE_READONLY (current_function_decl)
-       || DECL_PURE_P (current_function_decl))
-      && !DECL_LOOPING_CONST_OR_PURE_P (current_function_decl))
+  flags = flags_from_decl_or_type (current_function_decl);
+  if ((flags & (ECF_CONST|ECF_PURE)) && !(flags & ECF_LOOPING_CONST_OR_PURE))
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "Found loop %i to be finite: it is within pure or const function.\n",
@@ -1984,7 +1984,7 @@ finite_loop_p (struct loop *loop)
     }
 
   exits = get_loop_exit_edges (loop);
-  for (i = 0; VEC_iterate (edge, exits, i, ex); i++)
+  FOR_EACH_VEC_ELT (edge, exits, i, ex)
     {
       if (!just_once_each_iteration_p (loop, ex->src))
 	continue;
@@ -2264,7 +2264,7 @@ find_loop_niter_by_eval (struct loop *loop, edge *exit)
       && VEC_length (edge, exits) > 1)
     return chrec_dont_know;
 
-  for (i = 0; VEC_iterate (edge, exits, i, ex); i++)
+  FOR_EACH_VEC_ELT (edge, exits, i, ex)
     {
       if (!just_once_each_iteration_p (loop, ex->src))
 	continue;
@@ -2920,7 +2920,7 @@ estimate_numbers_of_iterations_loop (struct loop *loop)
   loop->any_estimate = false;
 
   exits = get_loop_exit_edges (loop);
-  for (i = 0; VEC_iterate (edge, exits, i, ex); i++)
+  FOR_EACH_VEC_ELT (edge, exits, i, ex)
     {
       if (!number_of_iterations_exit (loop, ex, &niter_desc, false))
 	continue;

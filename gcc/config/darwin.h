@@ -303,6 +303,9 @@ extern GTY(()) int darwin_ms_struct;
    so put a * after their names so all of them get passed.  */
 #define LINK_SPEC  \
   "%{static}%{!static:-dynamic} \
+   %:remove-outfile(-ldl) \
+   %:remove-outfile(-lm) \
+   %:remove-outfile(-lpthread) \
    %{fgnu-runtime: %{static|static-libgcc: \
                      %:replace-outfile(-lobjc libobjc-gnu.a%s); \
                     :%:replace-outfile(-lobjc -lobjc-gnu ) } }\
@@ -409,12 +412,12 @@ extern GTY(()) int darwin_ms_struct;
        %:version-compare(>< 10.5 10.6 mmacosx-version-min= -lgcc_s.10.5)   \
        %:version-compare(!> 10.5 mmacosx-version-min= -lgcc_ext.10.4)	   \
        %:version-compare(>= 10.5 mmacosx-version-min= -lgcc_ext.10.5)	   \
-       %:version-compare(< 10.5 mmacosx-version-min= -lgcc) ;		   \
+       -lgcc ;								   \
       :%:version-compare(>< 10.3.9 10.5 mmacosx-version-min= -lgcc_s.10.4) \
        %:version-compare(>< 10.5 10.6 mmacosx-version-min= -lgcc_s.10.5)   \
        %:version-compare(!> 10.5 mmacosx-version-min= -lgcc_ext.10.4)	   \
        %:version-compare(>= 10.5 mmacosx-version-min= -lgcc_ext.10.5)	   \
-       %:version-compare(< 10.5 mmacosx-version-min= -lgcc) }"
+       -lgcc }"
 
 /* We specify crt0.o as -lcrt0.o so that ld will search the library path.
 

@@ -1630,28 +1630,40 @@ end program test_besj1
 @item @emph{Description}:
 @code{BESSEL_JN(N, X)} computes the Bessel function of the first kind of
 order @var{N} of @var{X}. This function is available under the name
-@code{BESJN} as a GNU extension.
+@code{BESJN} as a GNU extension.  If @var{N} and @var{X} are arrays,
+their ranks and shapes shall conform.  
 
-If both arguments are arrays, their ranks and shapes shall conform.
+@code{BESSEL_JN(N1, N2, X)} returns an array with the Bessel functions
+of the first kind of the orders @var{N1} to @var{N2}.
 
 @item @emph{Standard}:
-Fortran 2008 and later
+Fortran 2008 and later, negative @var{N} is allowed as GNU extension
 
 @item @emph{Class}:
-Elemental function
+Elemental function, except for the tranformational function
+@code{BESSEL_JN(N1, N2, X)}
 
 @item @emph{Syntax}:
 @code{RESULT = BESSEL_JN(N, X)}
+@code{RESULT = BESSEL_JN(N1, N2, X)}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
 @item @var{N} @tab Shall be a scalar or an array of type  @code{INTEGER}.
-@item @var{X} @tab Shall be a scalar or an array of type  @code{REAL}.
+@item @var{N1} @tab Shall be a non-negative scalar of type  @code{INTEGER}.
+@item @var{N2} @tab Shall be a non-negative scalar of type  @code{INTEGER}.
+@item @var{X} @tab Shall be a scalar or an array of type  @code{REAL};
+for @code{BESSEL_JN(N1, N2, X)} it shall be scalar.
 @end multitable
 
 @item @emph{Return value}:
 The return value is a scalar of type @code{REAL}. It has the same
 kind as @var{X}.
+
+@item @emph{Note}:
+The transformational function uses a recurrence algorithm which might,
+for some values of @var{X}, lead to different results than calls to
+the elemental function.
 
 @item @emph{Example}:
 @smallexample
@@ -1778,28 +1790,40 @@ end program test_besy1
 @item @emph{Description}:
 @code{BESSEL_YN(N, X)} computes the Bessel function of the second kind of
 order @var{N} of @var{X}. This function is available under the name
-@code{BESYN} as a GNU extension.
+@code{BESYN} as a GNU extension.  If @var{N} and @var{X} are arrays,
+their ranks and shapes shall conform.  
 
-If both arguments are arrays, their ranks and shapes shall conform.
+@code{BESSEL_YN(N1, N2, X)} returns an array with the Bessel functions
+of the first kind of the orders @var{N1} to @var{N2}.
 
 @item @emph{Standard}:
-Fortran 2008 and later
+Fortran 2008 and later, negative @var{N} is allowed as GNU extension
 
 @item @emph{Class}:
-Elemental function
+Elemental function, except for the tranformational function
+@code{BESSEL_YN(N1, N2, X)}
 
 @item @emph{Syntax}:
 @code{RESULT = BESSEL_YN(N, X)}
+@code{RESULT = BESSEL_YN(N1, N2, X)}
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{N} @tab Shall be a scalar or an array of type  @code{INTEGER}.
-@item @var{X} @tab Shall be a scalar or an array of type  @code{REAL}.
+@item @var{N} @tab Shall be a scalar or an array of type  @code{INTEGER} .
+@item @var{N1} @tab Shall be a non-negative scalar of type  @code{INTEGER}.
+@item @var{N2} @tab Shall be a non-negative scalar of type  @code{INTEGER}.
+@item @var{X} @tab Shall be a scalar or an array of type  @code{REAL};
+for @code{BESSEL_YN(N1, N2, X)} it shall be scalar.
 @end multitable
 
 @item @emph{Return value}:
 The return value is a scalar of type @code{REAL}. It has the same
 kind as @var{X}.
+
+@item @emph{Note}:
+The transformational function uses a recurrence algorithm which might,
+for some values of @var{X}, lead to different results than calls to
+the elemental function.
 
 @item @emph{Example}:
 @smallexample
@@ -9677,7 +9701,8 @@ seconds.
 @code{SELECTED_CHAR_KIND(NAME)} returns the kind value for the character
 set named @var{NAME}, if a character set with such a name is supported,
 or @math{-1} otherwise. Currently, supported character sets include
-``ASCII'' and ``DEFAULT'', which are equivalent.
+``ASCII'' and ``DEFAULT'', which are equivalent, and ``ISO_10646''
+(Universal Character Set, UCS-4) which is commonly known as Unicode.
 
 @item @emph{Standard}:
 Fortran 2003 and later
@@ -9695,13 +9720,25 @@ Transformational function
 
 @item @emph{Example}:
 @smallexample
-program ascii_kind
-  integer,parameter :: ascii = selected_char_kind("ascii")
-  character(kind=ascii, len=26) :: s
+program character_kind
+  use iso_fortran_env
+  implicit none
+  integer, parameter :: ascii = selected_char_kind ("ascii")
+  integer, parameter :: ucs4  = selected_char_kind ('ISO_10646')
 
-  s = ascii_"abcdefghijklmnopqrstuvwxyz"
-  print *, s
-end program ascii_kind
+  character(kind=ascii, len=26) :: alphabet
+  character(kind=ucs4,  len=30) :: hello_world
+
+  alphabet = ascii_"abcdefghijklmnopqrstuvwxyz"
+  hello_world = ucs4_'Hello World and Ni Hao -- ' &
+                // char (int (z'4F60'), ucs4)     &
+                // char (int (z'597D'), ucs4)
+
+  write (*,*) alphabet
+
+  open (output_unit, encoding='UTF-8')
+  write (*,*) trim (hello_world)
+end program character_kind
 @end smallexample
 @end table
 

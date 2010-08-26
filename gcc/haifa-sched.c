@@ -3613,9 +3613,8 @@ fix_inter_tick (rtx head, rtx tail)
 	  gcc_assert (tick >= MIN_TICK);
 
 	  /* Fix INSN_TICK of instruction from just scheduled block.  */
-	  if (!bitmap_bit_p (&processed, INSN_LUID (head)))
+	  if (bitmap_set_bit (&processed, INSN_LUID (head)))
 	    {
-	      bitmap_set_bit (&processed, INSN_LUID (head));
 	      tick -= next_clock;
 
 	      if (tick < MIN_TICK)
@@ -3635,9 +3634,8 @@ fix_inter_tick (rtx head, rtx tail)
 		  /* If NEXT has its INSN_TICK calculated, fix it.
 		     If not - it will be properly calculated from
 		     scratch later in fix_tick_ready.  */
-		  && !bitmap_bit_p (&processed, INSN_LUID (next)))
+		  && bitmap_set_bit (&processed, INSN_LUID (next)))
 		{
-		  bitmap_set_bit (&processed, INSN_LUID (next));
 		  tick -= next_clock;
 
 		  if (tick < MIN_TICK)
@@ -4756,11 +4754,8 @@ fix_recovery_deps (basic_block rec)
 	    {
 	      sd_delete_dep (sd_it);
 
-	      if (!bitmap_bit_p (&in_ready, INSN_LUID (consumer)))
-		{
-		  ready_list = alloc_INSN_LIST (consumer, ready_list);
-		  bitmap_set_bit (&in_ready, INSN_LUID (consumer));
-		}
+	      if (bitmap_set_bit (&in_ready, INSN_LUID (consumer)))
+		ready_list = alloc_INSN_LIST (consumer, ready_list);
 	    }
 	  else
 	    {
@@ -5098,7 +5093,7 @@ calc_priorities (rtx_vec_t roots)
   int i;
   rtx insn;
 
-  for (i = 0; VEC_iterate (rtx, roots, i, insn); i++)
+  FOR_EACH_VEC_ELT (rtx, roots, i, insn)
     priority (insn);
 }
 
@@ -5326,7 +5321,7 @@ sched_scan (const struct sched_scan_info_def *ssi,
 	  unsigned i;
 	  basic_block x;
 
-	  for (i = 0; VEC_iterate (basic_block, bbs, i, x); i++)
+	  FOR_EACH_VEC_ELT (basic_block, bbs, i, x)
 	    init_bb (x);
 	}
 
@@ -5341,7 +5336,7 @@ sched_scan (const struct sched_scan_info_def *ssi,
       unsigned i;
       basic_block x;
 
-      for (i = 0; VEC_iterate (basic_block, bbs, i, x); i++)
+      FOR_EACH_VEC_ELT (basic_block, bbs, i, x)
 	init_insns_in_bb (x);
     }
 
@@ -5353,7 +5348,7 @@ sched_scan (const struct sched_scan_info_def *ssi,
       unsigned i;
       rtx x;
 
-      for (i = 0; VEC_iterate (rtx, insns, i, x); i++)
+      FOR_EACH_VEC_ELT (rtx, insns, i, x)
 	init_insn (x);
     }
 
@@ -5483,7 +5478,7 @@ haifa_finish_h_i_d (void)
   haifa_insn_data_t data;
   struct reg_use_data *use, *next;
 
-  for (i = 0; VEC_iterate (haifa_insn_data_def, h_i_d, i, data); i++)
+  FOR_EACH_VEC_ELT (haifa_insn_data_def, h_i_d, i, data)
     {
       if (data->reg_pressure != NULL)
 	free (data->reg_pressure);

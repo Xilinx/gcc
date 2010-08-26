@@ -103,6 +103,7 @@
    (UNSPEC_RBIT 26)       ; rbit operation.
    (UNSPEC_SYMBOL_OFFSET 27) ; The offset of the start of the symbol from
                              ; another symbolic address.
+   (UNSPEC_MEMORY_BARRIER 28) ; Represent a memory barrier.
   ]
 )
 
@@ -137,6 +138,11 @@
    (VUNSPEC_WCMP_GT  14) ; Used by the iwMMXT WCMPGT instructions
    (VUNSPEC_EH_RETURN 20); Use to override the return address for exception
 			 ; handling.
+   (VUNSPEC_SYNC_COMPARE_AND_SWAP 21)	; Represent an atomic compare swap.
+   (VUNSPEC_SYNC_LOCK             22)	; Represent a sync_lock_test_and_set.
+   (VUNSPEC_SYNC_OP               23)	; Represent a sync_<op>
+   (VUNSPEC_SYNC_NEW_OP           24)	; Represent a sync_new_<op>
+   (VUNSPEC_SYNC_OLD_OP           25)	; Represent a sync_old_<op>
   ]
 )
 
@@ -164,8 +170,21 @@
 (define_attr "fpu" "none,fpa,fpe2,fpe3,maverick,vfp"
   (const (symbol_ref "arm_fpu_attr")))
 
+(define_attr "sync_result"          "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_memory"          "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_required_value"  "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_new_value"       "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_t1"              "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_t2"              "none,0,1,2,3,4,5" (const_string "none"))
+(define_attr "sync_release_barrier" "yes,no"           (const_string "yes"))
+(define_attr "sync_op"              "none,add,sub,ior,xor,and,nand"
+                                    (const_string "none"))
+
 ; LENGTH of an instruction (in bytes)
-(define_attr "length" "" (const_int 4))
+(define_attr "length" ""
+  (cond [(not (eq_attr "sync_memory" "none"))
+ 	   (symbol_ref "arm_sync_loop_insns (insn, operands) * 4")
+	] (const_int 4)))
 
 ; The architecture which supports the instruction (or alternative).
 ; This can be "a" for ARM, "t" for either of the Thumbs, "32" for
@@ -476,7 +495,7 @@
 
 (define_attr "generic_sched" "yes,no"
   (const (if_then_else 
-          (ior (eq_attr "tune" "arm926ejs,arm1020e,arm1026ejs,arm1136js,arm1136jfs,cortexa8,cortexa9")
+          (ior (eq_attr "tune" "arm926ejs,arm1020e,arm1026ejs,arm1136js,arm1136jfs,cortexa5,cortexa8,cortexa9")
 	      (eq_attr "tune_cortexr4" "yes"))
           (const_string "no")
           (const_string "yes"))))
@@ -484,7 +503,7 @@
 (define_attr "generic_vfp" "yes,no"
   (const (if_then_else
 	  (and (eq_attr "fpu" "vfp")
-	       (eq_attr "tune" "!arm1020e,arm1022e,cortexa8,cortexa9")
+	       (eq_attr "tune" "!arm1020e,arm1022e,cortexa5,cortexa8,cortexa9")
 	       (eq_attr "tune_cortexr4" "no"))
 	  (const_string "yes")
 	  (const_string "no"))))
@@ -494,6 +513,7 @@
 (include "arm1020e.md")
 (include "arm1026ejs.md")
 (include "arm1136jfs.md")
+(include "cortex-a5.md")
 (include "cortex-a8.md")
 (include "cortex-a9.md")
 (include "cortex-r4.md")
@@ -10657,4 +10677,5 @@
 (include "thumb2.md")
 ;; Neon patterns
 (include "neon.md")
-
+;; Synchronization Primitives
+(include "sync.md")

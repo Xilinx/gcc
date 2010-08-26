@@ -1,3 +1,241 @@
+2010-08-26  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38936
+	PR fortran/44047
+	PR fortran/45384
+	* gfortran.h (struct gfc_association_list): New flag `dangling'.
+	(gfc_build_block_ns): Declared here...
+	* parse.h (gfc_build_block_ns): ...instead of here.
+	* trans.h (gfc_process_block_locals): Expect additionally the
+	gfc_association_list of BLOCK (if present).
+	* match.c (select_type_set_tmp): Create sym->assoc for temporary.
+	* resolve.c (resolve_variable): Only check for invalid *array*
+	references on associate-names.
+	(resolve_assoc_var): New method with code previously in resolve_symbol.
+	(resolve_select_type): Use association to give the selector and
+	temporaries their values instead of ordinary assignment.
+	(resolve_fl_var_and_proc): Allow CLASS associate-names.
+	(resolve_symbol): Use new `resolve_assoc_var' instead of inlining here.
+	* trans-stmt.c (gfc_trans_block_construct): Pass association-list
+	to `gfc_process_block_locals' to match new interface.
+	* trans-decl.c (gfc_get_symbol_decl): Don't defer associate-names
+	here automatically.
+	(gfc_process_block_locals): Defer them rather here when linked to
+	from the BLOCK's association list.
+
+2010-08-25  Jakub Jelinek  <jakub@redhat.com>
+
+	* trans-decl.c (gfc_build_intrinsic_function_decls): Set
+	TREE_NOTHROW on fndecls that can't throw.  Set
+	TREE_READONLY on gfor_fndecl_math_ishftc{4,8,16}.
+	(gfc_build_builtin_function_decls): Set TREE_NOTHROW on
+	gfor_fndecl_associated.
+
+2010-08-23  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/45380
+	* frontend-passes.c (optimize_equality): Don't optimize array equality
+
+2010-08-23  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45366
+	* resolve.c (resolve_procedure_interface): New function split off from
+	'resolve_symbol'.
+	(resolve_formal_arglist): Call it here ...
+	(resolve_symbol): ... and here.
+
+2010-08-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (gfortranspec.o): Update dependencies.
+	* gfortranspec.c: Include coretypes.h before gcc.h.  Include
+	opts.h.
+	(MATH_LIBRARY, FORTRAN_LIBRARY): Remove initial "-l".
+	(ADD_ARG_LIBGFORTRAN, Option, lookup_option): Remove.
+	(g77_xargc): Make unsigned.
+	(g77_xargv): Change to g77_x_decoded_options.
+	(g77_newargc): Make unsigned.
+	(g77_newargv): Change to g77_new_decoded_options.
+	(strings_same, options_same): New.
+	(append_arg): Use cl_decoded_option structures.
+	(append_option): New.
+	(add_arg_libgfortran): New.
+	(lang_specific_driver): Use cl_decoded_option structures.
+
+2010-08-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45271
+	PR fortran/45290
+	* class.c (add_proc_comp): Add static initializer for PPCs.
+	(add_procs_to_declared_vtab): Modified comment.
+	* module.c (mio_component): Add argument 'vtype'. Don't read/write the
+	initializer if the component is part of a vtype.
+	(mio_component_list): Add argument 'vtype', pass it on to
+	'mio_component'.
+	(mio_symbol): Modified call to 'mio_component_list'.
+	* trans.h (gfc_conv_initializer): Modified prototype.
+	(gfc_trans_assign_vtab_procs): Removed.
+	* trans-common.c (create_common): Modified call to
+	'gfc_conv_initializer'.
+	* trans-decl.c (gfc_get_symbol_decl,get_proc_pointer_decl,
+	gfc_emit_parameter_debug_info): Modified call to
+	'gfc_conv_initializer'.
+	(build_function_decl): Remove assertion.
+	* trans-expr.c (gfc_conv_derived_to_class,gfc_trans_class_assign):
+	Removed call to 'gfc_trans_assign_vtab_procs'.
+	(gfc_conv_initializer): Add argument 'procptr'.
+	(gfc_conv_structure): Modified call to 'gfc_conv_initializer'.
+	(gfc_trans_assign_vtab_procs): Removed.
+	* trans-stmt.c (gfc_trans_allocate): Removed call to
+	'gfc_trans_assign_vtab_procs'.
+
+2010-08-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36158
+	PR fortran/33197
+	* intrinsic.c (add_sym): Init value attribute.
+	(set_attr_value): New function.
+	(add_functions) Use it and add JN/YN resolvers.
+	* symbol.c (gfc_copy_formal_args_intr): Copy value attr.
+	* intrinsic.h (gfc_resolve_bessel_n2): New prototype.
+	* gfortran.h (gfc_intrinsic_arg): Add value attribute.
+	* iresolve.c (gfc_resolve_bessel_n2): New function.
+	* trans-intrinsic.c (gfc_get_symbol_for_expr): Create
+	formal arg list.
+	(gfc_conv_intrinsic_function,gfc_is_intrinsic_libcall):
+	Add GFC_ISYM_JN2/GFC_ISYM_YN2 as case value.
+	* simplify.c (): For YN set to -INF if previous values
+	was -INF.
+	* trans-expr.c (gfc_conv_procedure_call): Don't crash
+	if sym->as is NULL.
+	* iresolve.c (gfc_resolve_extends_type_of): Set the
+	type of the dummy argument to the one of the actual.
+
+2010-08-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (MD, MMD): Use NoDriverArg instead of NoArgDriver.
+
+2010-08-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* gfortranspec.c (lang_specific_driver): Refer to -lgfortran in
+	comment, not -lg2c.
+
+2010-08-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* trans-openmp.c: Use FOR_EACH_VEC_ELT.
+
+2010-08-19  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/29785
+	PR fortran/45016
+	* trans.h (struct gfc_se): New flag `byref_noassign'.
+	* trans-array.h (gfc_conv_shift_descriptor_lbound): New method.
+	(gfc_conv_array_extent_dim), (gfc_conv_descriptor_size): New methods.
+	* expr.c (gfc_check_pointer_assign): Allow bounds and rank remapping
+	and check for compile-time errors with those.
+	* trans-decl.c (trans_associate_var): Use new routine
+	`gfc_conv_shift_descriptor_lbound' instead of doing it manually.
+	* trans-array.c (gfc_conv_shift_descriptor_lbound): New method.
+	(gfc_conv_array_extent_dim), (gfc_conv_descriptor_size): New methods.
+	(gfc_array_init_size): Use new `gfc_conv_array_extent_dim'.
+	(gfc_conv_expr_descriptor): Handle new flag `byref_noassign'.
+	* trans-expr.c (gfc_trans_pointer_assignment): Handle bounds and
+	rank remapping for assignment.
+
+2010-08-19  Tobias Burnus  <burnus@net-b.de>
+
+	* intrinsic.texi (Bessel_jn, Bessel_yn): Fix typo.
+	* * simplify.c (gfc_simplify_bessel_yn): Change recursive
+	into recurrence.
+
+2010-08-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36158
+	PR fortran/33197
+	* check.c (gfc_check_bessel_n2): New function.
+	* gfortran.h (gfc_isym_id): Add GFC_ISYM_JN2 and GFC_ISYM_YN2.
+	* intrinsic.c (add_functions): Add transformational version
+	of the Bessel_jn/yn intrinsics.
+	* intrinsic.h (gfc_check_bessel_n2,gfc_simplify_bessel_jn2,
+	gfc_simplify_bessel_yn2): New prototypes.
+	* intrinsic.texi (Bessel_jn, Bessel_yn): Document
+	transformational variant.
+	* simplify.c (gfc_simplify_bessel_jn, gfc_simplify_bessel_yn):
+	Check for negative order.
+	(gfc_simplify_bessel_n2,gfc_simplify_bessel_jn2,
+	gfc_simplify_bessel_yn2): New functions.
+
+2010-08-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/41859
+	* resolve.c (resolve_transfer): Traverse operands and set expression
+	to be checked to a non EXPR_OP type.
+
+2010-08-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45290
+	* gfortran.h (gfc_add_save): Modified prototype.
+	* decl.c (add_init_expr_to_sym): Defer checking of proc pointer init.
+	(match_pointer_init): New function to match F08 pointer initialization.
+	(variable_decl,match_procedure_decl,match_ppc_decl): Use
+	'match_pointer_init'.
+	(match_attr_spec): Module variables are implicitly SAVE.
+	(gfc_match_save): Modified call to 'gfc_add_save'.
+	* expr.c (gfc_check_assign_symbol): Extra checks for pointer
+	initialization.
+	* primary.c (gfc_variable_attr): Handle SAVE attribute.
+	* resolve.c (resolve_structure_cons): Add new argument and do pointer
+	initialization checks.
+	(gfc_resolve_expr): Modified call to 'resolve_structure_cons'.
+	(resolve_values): Call 'resolve_structure_cons' directly with init arg.
+	(resolve_fl_variable): Handle SAVE_IMPLICIT.
+	* symbol.c (gfc_add_save,gfc_copy_attr,save_symbol): Handle
+	SAVE_IMPLICIT.
+	* trans-decl.c (gfc_create_module_variable): Module variables with
+	TARGET can already exist.
+	* trans-expr.c (gfc_conv_variable): Check for 'current_function_decl'.
+	(gfc_conv_initializer): Implement non-NULL pointer
+	initialization.
+
+2010-08-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45295
+	* intrinsic.texi (selected_char_kind): Document ISO_10646
+	support.
+
+2010-08-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/45304
+	* trans-decl.c (build_library_function_decl_1): Chain on
+	void_list_node instead of creating a new TREE_LIST.
+	* trans-intrinsic.c (gfc_get_intrinsic_lib_fndecl): Likewise.
+	* trans-types.c (gfc_get_function_type): Likewise.  Set
+	typelist to void_list_node for the main program.
+
+2010-08-17  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38936
+	* gfortran.h (struct gfc_association_list): New member `where'.
+	(gfc_is_associate_pointer) New method.
+	* match.c (gfc_match_associate): Remember locus for each associate
+	name matched and do not try to set variable flag.
+	* parse.c (parse_associate): Use remembered locus for symbols.
+	* primary.c (match_variable): Instead of variable-flag check for
+	associate names set it for all such names used.
+	* symbol.c (gfc_is_associate_pointer): New method.
+	* resolve.c (resolve_block_construct): Don't generate assignments
+	to give associate-names their values.
+	(resolve_fl_var_and_proc): Allow associate-names to be deferred-shape.
+	(resolve_symbol): Set some more attributes for associate variables,
+	set variable flag here and check it and don't try to build an
+	explicitely shaped array-spec for array associate variables.
+	* trans-expr.c (gfc_conv_variable): Dereference in case of association
+	to scalar variable.
+	* trans-types.c (gfc_is_nodesc_array): Handle array association symbols.
+	(gfc_sym_type): Return pointer type for association to scalar vars.
+	* trans-decl.c (gfc_get_symbol_decl): Defer association symbols.
+	(trans_associate_var): New method.
+	(gfc_trans_deferred_vars): Handle association symbols.
+
 2010-08-16  Joseph Myers  <joseph@codesourcery.com>
 
 	* lang.opt (MDX): Change back to MD.  Mark NoDriverArg instead of

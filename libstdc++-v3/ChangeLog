@@ -1,3 +1,33 @@
+2010-08-21  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2010-08-18  Kostya Serebryany <kcc@google.com>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45276
+	* doc/xml/manual/debug.xml ([debug.races]): Add.
+
+2010-08-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45300
+	* include/c_std/cwchar: Replace 'restrict' -> '__restrict'.
+	* include/c_global/cwchar: Likewise.
+
+2010-08-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45300
+	* include/c_std/cstdlib: Replace 'restrict' -> '__restrict'.
+	* include/c_std/cstdio: Likewise.
+	* include/c_global/cstdlib: Likewise.
+	* include/c_global/cstdio: Likewise.
+
+2010-08-16  Chris Moller  <cmoller@redhat.com>
+
+	http://sourceware.org/bugzilla/show_bug.cgi?id=11874
+	* python/libstdcxx/v6/printers.py (StdVectorPrinter): Added stuff
+	to handle pretty-printing of std::vector<bool>.
+
 2010-08-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	PR libstdc++/45283

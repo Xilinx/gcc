@@ -2048,7 +2048,7 @@ get_vcall_index (tree fn, tree type)
   tree_pair_p p;
   unsigned ix;
 
-  for (ix = 0; VEC_iterate (tree_pair_s, indices, ix, p); ix++)
+  FOR_EACH_VEC_ELT (tree_pair_s, indices, ix, p)
     if ((DECL_DESTRUCTOR_P (fn) && DECL_DESTRUCTOR_P (p->purpose))
 	|| same_signature_p (fn, p->purpose))
       return p->value;
@@ -6807,7 +6807,13 @@ note_name_declared_in_class (tree name, tree decl)
     = current_class_stack[current_class_depth - 1].names_used;
   if (!names_used)
     return;
-
+  /* The C language allows members to be declared with a type of the same
+     name, and the C++ standard says this diagnostic is not required.  So
+     allow it in extern "C" blocks unless predantic is specified.
+     Allow it in all cases if -ms-extensions is specified.  */
+  if ((!pedantic && current_lang_name == lang_name_c)
+      || flag_ms_extensions)
+    return;
   n = splay_tree_lookup (names_used, (splay_tree_key) name);
   if (n)
     {
@@ -8119,7 +8125,7 @@ add_vcall_offset (tree orig_fn, tree binfo, vtbl_init_data *vid)
      signature as FN, then we do not need a second vcall offset.
      Check the list of functions already present in the derived
      class vtable.  */
-  for (i = 0; VEC_iterate (tree, vid->fns, i, derived_entry); ++i)
+  FOR_EACH_VEC_ELT (tree, vid->fns, i, derived_entry)
     {
       if (same_signature_p (derived_entry, orig_fn)
 	  /* We only use one vcall offset for virtual destructors,
