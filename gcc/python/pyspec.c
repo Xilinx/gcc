@@ -16,279 +16,386 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "config.h"
 #include "system.h"
-#include "gcc.h"
-
 #include "coretypes.h"
+#include "gcc.h"
+#include "opts.h"
+
 #include "tm.h"
 #include "intl.h"
 
-/* This bit is set if we saw a `-xfoo' language specification.  */
-#define LANGSPEC	(1<<1)
-/* This bit is set if they did `-lm' or `-lmath'.  */
-#define MATHLIB		(1<<2)
-/* This bit is set if they did `-lc'.  */
-#define WITHLIBC	(1<<3)
-/* Skip this option.  */
-#define SKIPOPT		(1<<4)
-
 #ifndef MATH_LIBRARY
-#define MATH_LIBRARY "-lm"
-#endif
-#ifndef MATH_LIBRARY_PROFILE
-#define MATH_LIBRARY_PROFILE MATH_LIBRARY
+#define MATH_LIBRARY "m"
 #endif
 
-#ifndef LIBPY
-#define LIBPY "-lgpython"
+#ifndef PYTHON_LIBRARY
+#define PYTHON_LIBRARY "gpython"
 #endif
 
-void lang_specific_driver( int *in_argc , const char *const ** in_argv,
-			   int *in_added_libraries )
+#define DEBUG 1
+
+/* The original argument list and related info is copied here.  */
+static unsigned int gpy_xargc;
+static const struct cl_decoded_option *gpy_x_decoded_options;
+static void append_arg (const struct cl_decoded_option *);
+
+/* The new argument list will be built here.  */
+static unsigned int gpy_newargc;
+static struct cl_decoded_option *gpy_new_decoded_options;
+
+/* Return whether strings S1 and S2 are both NULL or both the same
+   string.  */
+
+static bool
+strings_same (const char *s1, const char *s2)
 {
-  int i, j;
+  return s1 == s2 || (s1 != NULL && s2 != NULL && strcmp (s1, s2) == 0);
+}
 
-  /* If nonzero, the user gave us the `-p' or `-pg' flag.  */
-  int saw_profile_flag = 0;
+/* Return whether decoded option structures OPT1 and OPT2 are the
+   same.  */
 
-  /* This is a tristate:
-     -1 means we should not link in libgo
-     0  means we should link in libgo if it is needed
-     1  means libgo is needed and should be linked in.
-     2  means libgo is needed and should be linked statically.  */
-  int library = 0;
+static bool
+options_same (const struct cl_decoded_option *opt1,
+	      const struct cl_decoded_option *opt2)
+{
+  return (opt1->opt_index == opt2->opt_index
+	  && strings_same (opt1->arg, opt2->arg)
+	  && strings_same (opt1->orig_option_with_args_text,
+			   opt2->orig_option_with_args_text)
+	  && strings_same (opt1->canonical_option[0],
+			   opt2->canonical_option[0])
+	  && strings_same (opt1->canonical_option[1],
+			   opt2->canonical_option[1])
+	  && strings_same (opt1->canonical_option[2],
+			   opt2->canonical_option[2])
+	  && strings_same (opt1->canonical_option[3],
+			   opt2->canonical_option[3])
+	  && (opt1->canonical_option_num_elements
+	      == opt2->canonical_option_num_elements)
+	  && opt1->value == opt2->value
+	  && opt1->errors == opt2->errors);
+}
 
-  /* Used to track options that take arguments.  */
-  const char *quote = NULL;
+/* Append another argument to the list being built.  As long as it is
+   identical to the corresponding arg in the original list, just increment
+   the new arg count.  Otherwise allocate a new list, etc.  */
 
-  /* The new argument list will be contained in this.  */
-  const char **arglist;
+static void
+append_arg (const struct cl_decoded_option *arg)
+{
+  static unsigned int newargsize;
 
-  /* Nonzero if we saw a `-xfoo' language specification on the command
-     line.  */
+#if 0
+  fprintf (stderr, "`%s'\n", arg);
+#endif
+
+  if (gpy_new_decoded_options == gpy_x_decoded_options
+      && gpy_newargc < gpy_xargc
+      && options_same (arg, &gpy_x_decoded_options[gpy_newargc]))
+    {
+      ++gpy_newargc;
+      return;			/* Nothing new here.  */
+    }
+
+  if (gpy_new_decoded_options == gpy_x_decoded_options)
+    {				/* Make new arglist.  */
+      unsigned int i;
+
+      newargsize = (gpy_xargc << 2) + 20;	/* This should handle all.  */
+      gpy_new_decoded_options = XNEWVEC (struct cl_decoded_option, newargsize);
+
+      /* Copy what has been done so far.  */
+      for (i = 0; i < gpy_newargc; ++i)
+	gpy_new_decoded_options[i] = gpy_x_decoded_options[i];
+    }
+
+  if (gpy_newargc == newargsize)
+    fatal_error ("overflowed output arg list for %qs",
+		 arg->orig_option_with_args_text);
+
+  gpy_new_decoded_options[gpy_newargc++] = *arg;
+}
+
+/* Append an option described by OPT_INDEX, ARG and VALUE to the list
+   being built.  */
+static void
+append_option (size_t opt_index, const char *arg, int value)
+{
+  struct cl_decoded_option decoded;
+
+  generate_option (opt_index, arg, value, CL_DRIVER, &decoded);
+  append_arg (&decoded);
+}
+
+/* Append a libgpython argument to the list being built.  If
+   FORCE_STATIC, ensure the library is linked statically.  */
+
+static void
+add_arg_libgpython (bool force_static ATTRIBUTE_UNUSED)
+{
+#ifdef HAVE_LD_STATIC_DYNAMIC
+  if (force_static)
+    append_option (OPT_Wl_, "-Bstatic", 1);
+#endif
+  append_option (OPT_l, PYTHON_LIBRARY, 1);
+#ifdef HAVE_LD_STATIC_DYNAMIC
+  if (force_static)
+    append_option (OPT_Wl_, "-Bdynamic", 1);
+#endif
+}
+
+/* Modeled closely of gcc/fortran/gfortranspec.c */
+
+void lang_specific_driver( struct cl_decoded_option **in_decoded_options,
+			   unsigned int *in_decoded_options_count,
+			   int *in_added_libraries ATTRIBUTE_UNUSED )
+{
+  unsigned int i = 0;
+  unsigned int argc = *in_decoded_options_count;
+  struct cl_decoded_option *decoded_options = *in_decoded_options;
+
+  int verbose = 0;
+
+  /* This will be NULL if we encounter a situation where we should not
+     link in libf2c.  */
+  const char *library = PYTHON_LIBRARY;
+
+  /* 0 => -xnone in effect.
+     1 => -xfoo in effect.  */
   int saw_speclang = 0;
 
-  /* "-lm" or "-lmath" if it appears on the command line.  */
-  const char *saw_math = 0;
-
-  /* "-lc" if it appears on the command line.  */
-  const char *saw_libc = 0;
-
-  /* An array used to flag each argument that needs a bit set for
-     LANGSPEC, MATHLIB, or WITHLIBC.  */
-  int *args;
+  /* 0 => initial/reset state
+     1 => last arg was -l<library>
+     2 => last two args were -l<library> -lm.  */
+  int saw_library = 0;
 
   /* By default, we throw on the math library if we have one.  */
   int need_math = (MATH_LIBRARY[0] != '\0');
 
-  /* True if we saw -static.  */
-  int static_link = 0;
+  /* Whether we should link a static libgpython. */
+  int static_lib = 0; 
 
-  /* True if we should add -shared-libgcc to the command-line.  */
-  int shared_libgcc = 1;
+  /* Whether we need to link statically.  */
+  int static_linking = 0;
 
-  /* The total number of arguments with the new stuff.  */
-  int argc;
+  /* The number of input and output files in the incoming arg list.  */
+  int n_infiles = 0;
+  int n_outfiles = 0;
 
-  /* The argument list.  */
-  const char *const *argv;
+#if DEBUG
+  fprintf (stderr, "Incoming:");
+  for (i = 0; i < argc; i++)
+    fprintf (stderr, " %s", decoded_options[i].orig_option_with_args_text);
+  fprintf (stderr, "\n");
+#endif
 
-  /* The number of libraries added in.  */
-  int added_libraries;
+  gpy_xargc = argc;
+  gpy_x_decoded_options = decoded_options;
+  gpy_newargc = 0;
+  gpy_new_decoded_options = decoded_options;
 
-  /* The total number of arguments with the new stuff.  */
-  int num_args = 1;
-
-  argc = *in_argc;
-  argv = *in_argv;
-  added_libraries = *in_added_libraries;
-
-  args = XCNEWVEC (int, argc);
-
-  for (i = 1; i < argc; i++)
+  for( i=1; i<argc; ++i )
     {
-      /* If the previous option took an argument, we swallow it here.  */
-      if (quote)
+      switch( decoded_options[i].opt_index )
 	{
-	  quote = NULL;
+	case OPT_SPECIAL_input_file:
+	  ++n_infiles;
+	  continue;
+
+	case OPT_nostdlib:
+	case OPT_nodefaultlibs:
+	case OPT_c:
+	case OPT_S:
+	case OPT_fsyntax_only:
+	case OPT_E:
+	  /* These options disable linking entirely or linking of the
+	     standard libraries.  */
+	  library = 0;
+	  break;
+
+	  /*
+	case OPT_static_libgpython:
+#ifdef HAVE_LD_STATIC_DYNAMIC
+	  static_lib = 1;
+#endif
+	  break;
+	  */
+
+	case OPT_static:
+#ifdef HAVE_LD_STATIC_DYNAMIC
+	  static_linking = 1;
+#endif
+	  break;
+
+	case OPT_l:
+	  ++n_infiles;
+	  break;
+
+	case OPT_o:
+	  ++n_outfiles;
+	  break;
+
+	case OPT_v:
+	  verbose = 1;
+	  break;
+
+	case OPT_fversion:
+	  printf ("GNU Python %s%s\n", pkgversion_string, version_string);
+	  printf ("Copyright %s 2010 Free Software Foundation, Inc.\n\n",
+		  _("(C)"));
+	  printf (_("GNU Python comes with NO WARRANTY, to the extent permitted by law.\n\
+You may redistribute copies of GNU Python\n\
+under the terms of the GNU General Public License.\n\
+For more information about these matters, see the file named COPYING\n\n"));
+	  exit (0);
+	  break;
+
+	case OPT_fhelp:
+	  /* Let gcc.c handle this, as it has a really
+	     cool facility for handling --help and --verbose --help.  */
+	  return;
+
+	default:
+	  break;
+	}
+    }
+
+  if( (n_outfiles != 0) && (n_infiles == 0) )
+    fatal_error ("no input files; unwilling to write output files");
+
+    /* If there are no input files, no need for the library.  */
+  if (n_infiles == 0)
+    library = 0;
+
+ /* Second pass through arglist, transforming arguments as appropriate.  */
+
+  append_arg (&decoded_options[0]); /* Start with command name, of course.  */
+
+  for (i = 1; i < argc; ++i)
+    {
+      if (decoded_options[i].errors & CL_ERR_MISSING_ARG)
+	{
+	  append_arg (&decoded_options[i]);
 	  continue;
 	}
 
-      /* We don't do this anymore, since we don't get them with minus
-	 signs on them.  */
-      if (argv[i][0] == '\0' || argv[i][1] == '\0')
-	continue;
-
-      if (argv[i][0] == '-')
+      if (decoded_options[i].opt_index == OPT_SPECIAL_input_file
+	  && decoded_options[i].arg[0] == '\0')
 	{
-	  if (strcmp (argv[i], "-nostdlib") == 0
-	      || strcmp (argv[i], "-nodefaultlibs") == 0)
-	    {
-	      library = -1;
-	    }
-	  else if (strcmp (argv[i], MATH_LIBRARY) == 0)
-	    {
-	      args[i] |= MATHLIB;
-	      need_math = 0;
-	    }
-	  else if (strcmp (argv[i], "-lc") == 0)
-	    args[i] |= WITHLIBC;
-	  else if (strcmp (argv[i], "-pg") == 0 || strcmp (argv[i], "-p") == 0)
-	    saw_profile_flag++;
-	  else if (strncmp (argv[i], "-x", 2) == 0)
-	    {
-	      const char * arg;
-	      if (argv[i][2] != '\0')
-		arg = argv[i]+2;
-	      else if ((argv[i+1]) != NULL)
-		/* We need to swallow arg on next loop.  */
-		quote = arg = argv[i+1];
-  	      else  /* Error condition, message will be printed later.  */
-		arg = "";
-	      if (library == 0 && strcmp (arg, "go") == 0)
-		library = 1;
-
-	      saw_speclang = 1;
-	    }
-	  /* Arguments that go directly to the linker might be .o files,
-	     or something, and so might cause libgo to be needed.  */
-	  else if (strcmp (argv[i], "-Xlinker") == 0)
-	    {
-	      quote = argv[i];
-	      if (library == 0)
-		library = 1;
-	    }
-	  else if (strncmp (argv[i], "-Wl,", 4) == 0)
-	    library = (library == 0) ? 1 : library;
-	  /* Unrecognized libraries (e.g. -lfoo) may require libgo.  */
-	  else if (strncmp (argv[i], "-l", 2) == 0)
-	    library = (library == 0) ? 1 : library;
-	  else if (((argv[i][2] == '\0'
-		     && strchr ("bBVDUoeTuIYmLiA", argv[i][1]) != NULL)
-		    || strcmp (argv[i], "-Tdata") == 0))
-	    quote = argv[i];
-	  else if ((argv[i][2] == '\0'
-		    && strchr ("cSEM", argv[i][1]) != NULL)
-		   || strcmp (argv[i], "-MM") == 0
-		   || strcmp (argv[i], "-fsyntax-only") == 0)
-	    {
-	      /* Don't specify libraries if we won't link, since that would
-		 cause a warning.  */
-	      library = -1;
-	    }
-	  else if (strcmp (argv[i], "-static") == 0)
-	    static_link = 1;
-	  else if (strcmp (argv[i], "-static-libgcc") == 0)
-	    shared_libgcc = 0;
-	  else if (strcmp (argv[i], "-static-libgo") == 0)
-	    {
-	      library = library >= 0 ? 2 : library;
-	      args[i] |= SKIPOPT;
-	    }
-	  else if (DEFAULT_WORD_SWITCH_TAKES_ARG (&argv[i][1]))
-	    i++;
-	  else
-	    /* Pass other options through.  */
-	    continue;
+	  /* Interesting.  Just append as is.  */
+	  append_arg (&decoded_options[i]);
+	  continue;
 	}
-      else
+
+      if (decoded_options[i].opt_index != OPT_l
+	  && (decoded_options[i].opt_index != OPT_SPECIAL_input_file
+	      || strcmp (decoded_options[i].arg, "-") == 0))
 	{
-	  if (saw_speclang)
+	  /* Not a filename or library.  */
+
+	  if (saw_library == 1 && need_math)	/* -l<library>.  */
+	    append_option (OPT_l, MATH_LIBRARY, 1);
+
+	  saw_library = 0;
+
+	  if (decoded_options[i].opt_index == OPT_SPECIAL_input_file)
 	    {
-	      saw_speclang = 0;
+	      append_arg (&decoded_options[i]);	/* "-" == Standard input.  */
 	      continue;
 	    }
 
-	  if (library == 0)
-	    library = 1;
+	  if (decoded_options[i].opt_index == OPT_x)
+	    {
+	      /* Track input language.  */
+	      const char *lang = decoded_options[i].arg;
+
+	      saw_speclang = (strcmp (lang, "none") != 0);
+	    }
+
+	  append_arg (&decoded_options[i]);
+
+	  continue;
+	}
+
+      /* A filename/library, not an option.  */
+
+      if (saw_speclang)
+	saw_library = 0;	/* -xfoo currently active.  */
+      else
+	{			/* -lfoo or filename.  */
+	  if (decoded_options[i].opt_index == OPT_l
+	      && strcmp (decoded_options[i].arg, MATH_LIBRARY) == 0)
+	    {
+	      if (saw_library == 1)
+		saw_library = 2;	/* -l<library> -lm.  */
+	      else
+		add_arg_libgpython (static_lib && !static_linking);
+	    }
+	  else if (decoded_options[i].opt_index == OPT_l
+	      && strcmp (decoded_options[i].arg, PYTHON_LIBRARY) == 0)
+	    {
+	      saw_library = 1;	/* -l<library>.  */
+	      add_arg_libgpython (static_lib && !static_linking);
+	      continue;
+	    }
+	  else
+	    {			/* Other library, or filename.  */
+	      if (saw_library == 1 && need_math)
+		append_option (OPT_l, MATH_LIBRARY, 1);
+	      saw_library = 0;
+	    }
+	}
+      append_arg (&decoded_options[i]);
+    }
+
+  /* Append `-lgpython -lm' as necessary.  */
+
+  if (library)
+    {				/* Doing a link and no -nostdlib.  */
+      if (saw_speclang)
+	append_option (OPT_x, "none", 1);
+
+      switch (saw_library)
+	{
+	case 0:
+	  add_arg_libgpython (static_lib && !static_linking);
+	  /* Fall through.  */
+
+	case 1:
+	  if (need_math)
+	    append_option (OPT_l, MATH_LIBRARY, 1);
+	default:
+	  break;
 	}
     }
 
-  if (quote)
-    fatal_error ("argument to '%s' missing\n", quote);
+#ifdef ENABLE_SHARED_LIBGCC
+  if (library)
+    {
+      unsigned int i;
 
-  /* There's no point adding -shared-libgcc if we don't have a shared
-     libgcc.  */
-#ifndef ENABLE_SHARED_LIBGCC
-  shared_libgcc = 0;
+      for (i = 1; i < gpy_newargc; i++)
+	if (gpy_new_decoded_options[i].opt_index == OPT_static_libgcc
+	    || gpy_new_decoded_options[i].opt_index == OPT_static)
+	  break;
+
+      if (i == gpy_newargc)
+	append_option (OPT_shared_libgcc, NULL, 1);
+    }
+
 #endif
 
-  /* Make sure to have room for the trailing NULL argument.  */
-  num_args = argc + need_math + shared_libgcc + (library > 0) * 5 + 5;
-  arglist = XNEWVEC (const char *, num_args);
-
-  i = 0;
-  j = 0;
-
-  /* Copy the 0th argument, i.e., the name of the program itself.  */
-  arglist[i++] = argv[j++];
-
-  /* We always combine all input files.  */
-  arglist[j++] = "-combine";
-
-  /* If we are going to link in libgo, force __go_register_types to be
-     pulled in.  This will let the runtime support code find the type
-     descriptors.  */
-  if (library > 0)
-    arglist[j++] = "-Wl,-u,__go_register_types";
-
-  /* NOTE: We start at 1 now, not 0.  */
-  while (i < argc)
+  if (verbose && gpy_new_decoded_options != gpy_x_decoded_options)
     {
-      arglist[j] = argv[i];
-
-      /* Make sure -lgo is before the math library, since libgo itself
-	 uses those math routines.  */
-      if (!saw_math && (args[i] & MATHLIB) && library > 0)
-	{
-	  --j;
-	  saw_math = argv[i];
-	}
-
-      if (!saw_libc && (args[i] & WITHLIBC) && library > 0)
-	{
-	  --j;
-	  saw_libc = argv[i];
-	}
-
-      if ((args[i] & SKIPOPT) != 0)
-	--j;
-
-      i++;
-      j++;
+      fprintf (stderr, _("Driving:"));
+      for (i = 0; i < gpy_newargc; i++)
+	fprintf (stderr, " %s",
+		 gpy_new_decoded_options[i].orig_option_with_args_text);
+      fprintf (stderr, "\n");
     }
 
-  /* Add `-lgo' if we haven't already done so.  */
-  if (library > 0)
-    {
-      arglist[j] = LIBPY;
-      if (arglist[j][0] != '-' || arglist[j][1] == 'l')
-	added_libraries++;
-      j++;
-      if (library > 1 && !static_link)
-	{
-	  arglist[j] = "-Wl,-Bdynamic";
-	  j++;
-	}
-    }
-  if (saw_math)
-    arglist[j++] = saw_math;
-  else if (library > 0 && need_math)
-    {
-      arglist[j] = saw_profile_flag ? MATH_LIBRARY_PROFILE : MATH_LIBRARY;
-      if (arglist[j][0] != '-' || arglist[j][1] == 'l')
-	added_libraries++;
-      j++;
-    }
-  if (saw_libc)
-    arglist[j++] = saw_libc;
-  if (shared_libgcc && !static_link)
-    arglist[j++] = "-shared-libgcc";
-
-  arglist[j] = NULL;
-
-  *in_argc = j;
-  *in_argv = arglist;
-  *in_added_libraries = added_libraries;
+  *in_decoded_options_count = gpy_newargc;
+  *in_decoded_options = gpy_new_decoded_options;
 }
 
 /* Called before linking.  Returns 0 on success and -1 on failure.  */
