@@ -31,8 +31,6 @@ along with GCC; see the file COPYING3.  If not see
 #define PYTHON_LIBRARY "gpython"
 #endif
 
-#define DEBUG 1
-
 /* The original argument list and related info is copied here.  */
 static unsigned int gpy_xargc;
 static const struct cl_decoded_option *gpy_x_decoded_options;
@@ -182,9 +180,9 @@ void lang_specific_driver( struct cl_decoded_option **in_decoded_options,
   int n_infiles = 0;
   int n_outfiles = 0;
 
-#if DEBUG
+#if 0
   fprintf (stderr, "Incoming:");
-  for (i = 0; i < argc; i++)
+  for( i=0; i<argc; ++i )
     fprintf (stderr, " %s", decoded_options[i].orig_option_with_args_text);
   fprintf (stderr, "\n");
 #endif
