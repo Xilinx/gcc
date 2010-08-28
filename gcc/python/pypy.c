@@ -569,6 +569,10 @@ void gpy_write_globals( void )
 	    {
 	      VEC_safe_push( tree,gc,global_decls,xt );
 	    }
+	  else if( TREE_CODE(xt) == VAR_DECL )
+	    {
+	      VEC_safe_push( tree,gc,global_decls,xt );
+	    }
 	  else
 	    {
 	      VEC_safe_push( tree,gc,main_stmts_vec,xt );
@@ -576,7 +580,7 @@ void gpy_write_globals( void )
 	}
     }
 
-  /* Need to generate table of gpy_callable_def_t[] and gpy_type_obj_def_t[] */
+  /* Need to generate table of gpy_callable_def_t [] and gpy_type_obj_def_t[] */
   // .....
 
   /* Add in the main method decl! */
