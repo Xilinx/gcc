@@ -4467,6 +4467,19 @@ finalize_literal_type_property (tree t)
   else if (CLASSTYPE_LITERAL_P (t) && !TYPE_HAS_TRIVIAL_DFLT (t)
 	   && !TYPE_HAS_CONSTEXPR_CTOR (t))
     CLASSTYPE_LITERAL_P (t) = false;
+
+  if (!CLASSTYPE_LITERAL_P (t) && !CLASSTYPE_TEMPLATE_INSTANTIATION (t))
+    {
+      tree fn;
+      for (fn = TYPE_METHODS (t); fn; fn = DECL_CHAIN (fn))
+	if (DECL_DECLARED_CONSTEXPR_P (fn)
+	    && DECL_NONSTATIC_MEMBER_FUNCTION_P (fn)
+	    && !DECL_CONSTRUCTOR_P (fn))
+	  {
+	    error ("enclosing class of %q+D is not a literal type", fn);
+	    DECL_DECLARED_CONSTEXPR_P (fn) = false;
+	  }
+    }
 }
 
 /* Check the validity of the bases and members declared in T.  Add any

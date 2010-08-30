@@ -12654,18 +12654,7 @@ maybe_save_function_definition (tree fun)
   if (!processing_template_decl
       && DECL_DECLARED_CONSTEXPR_P (fun)
       && !DECL_CLONED_FUNCTION_P (fun))
-    {
-      if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fun)
-          && !DECL_CONSTRUCTOR_P (fun)
-          && !literal_type_p (DECL_CONTEXT (fun)))
-        {
-          error ("containing class of %qD is not a literal type",
-                 DECL_CONTEXT (fun));
-          DECL_DECLARED_CONSTEXPR_P (fun) = false;
-          return;
-        }
-      register_constexpr_fundef (fun, DECL_SAVED_TREE (fun));
-    }
+    register_constexpr_fundef (fun, DECL_SAVED_TREE (fun));
 }
 
 /* Finish up a function declaration and compile that function

@@ -5464,14 +5464,6 @@ register_constexpr_fundef (tree fun, tree body)
       (DECL_CONTEXT (fun), body);
   else
     {
-      if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fun)
-          && !literal_type_p (DECL_CONTEXT (fun)))
-        {
-          error ("enclosing class %qT of non-static member function "
-                 "is not a literal type", DECL_CONTEXT (fun));
-          DECL_DECLARED_CONSTEXPR_P (fun) = false;
-          return NULL;
-        }
       if (TREE_CODE (body) == BIND_EXPR)
 	body = BIND_EXPR_BODY (body);
       if (TREE_CODE (body) == EH_SPEC_BLOCK)

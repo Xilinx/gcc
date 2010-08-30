@@ -2321,7 +2321,7 @@ struct GTY((variable_size)) lang_decl {
 
 /* True if DECL is declared 'constexpr'.  */
 #define DECL_DECLARED_CONSTEXPR_P(DECL) \
-  DECL_LANG_FLAG_8 (VAR_OR_FUNCTION_DECL_CHECK (DECL))
+  DECL_LANG_FLAG_8 (VAR_OR_FUNCTION_DECL_CHECK (STRIP_TEMPLATE (DECL)))
 
 /* Nonzero if this DECL is the __PRETTY_FUNCTION__ variable in a
    template function.  */
