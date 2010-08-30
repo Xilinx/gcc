@@ -1,3 +1,85 @@
+2010-08-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42769
+	* gfortran.dg/dynamic_dispatch_11.f03: New.
+
+2010-08-29  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44991
+	* g++.dg/parse/defarg15.C: New.
+
+2010-08-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45439
+	* gfortran.dg/select_type_16.f03: New.
+
+2010-08-28  Steven G. Kargl  <kargl@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/bessel_7.f90: Decrease required precision.
+
+2010-08-27  Naveen H.S  <naveen.S@kpitcummins.com>
+	    Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gcc.dg/attr-isr.c: Skip test for -m2a.  Don't	run on sh2a*-*-*.
+
+2010-08-23  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-fpconv-1.c: New test for integer to
+	floating point conversion code generation.
+	* gcc.target/powerpc/ppc-fpconv-2.c: Ditto.
+	* gcc.target/powerpc/ppc-fpconv-3.c: Ditto.
+	* gcc.target/powerpc/ppc-fpconv-4.c: Ditto.
+	* gcc.target/powerpc/ppc-fpconv-5.c: New test for floating point
+	to integer conversion code generation.
+	* gcc.target/powerpc/ppc-fpconv-6.c: Ditto.
+	* gcc.target/powerpc/ppc-fpconv-7.c: Ditto.
+	* gcc.target/powerpc/ppc-fpconv-8.c: Ditto.
+	* gcc.target/powerpc/ppc-fpconv-9.c: Ditto.
+
+2010-08-27  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/32049
+	* gfortran.dg/random_seed_1.f90: Adjust test.
+	* gfortran.dg/float128_1.f90: New test.
+
+2010-08-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/33197
+	* gcc/testsuite/gfortran.dg/norm2_1.f90: New.
+	* gcc/testsuite/gfortran.dg/norm2_2.f90: New.
+	* gcc/testsuite/gfortran.dg/norm2_3.f90: New.
+	* gcc/testsuite/gfortran.dg/norm2_4.f90: New.
+	* gcc/testsuite/gfortran.dg/parity_1.f90: New.
+	* gcc/testsuite/gfortran.dg/parity_2.f90: New.
+	* gcc/testsuite/gfortran.dg/parity_3.f90: New.
+
+2010-08-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45420
+	* gfortran.dg/select_type_15.f03: New.
+
+2010-08-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43217
+	* gfortran.dg/hollerith8.f90: New test.
+
+2010-08-27  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45159
+	* gfortran.dg/dependency_33.f90:  New test.
+
+2010-08-27  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/graphite/scop-1.c: Fix out-of-bound array accesses.
+	* gcc.dg/graphite/scop-2.c: Likewise.
+	* gcc.dg/graphite/scop-20.c: Likewise.
+	* gcc.dg/vect/slp-25.c: Likewise.
+
+2010-08-27  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/dse_step.ads, dse_step.adb, test_dse_step.adb: New test.
+
 2010-08-26  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/38936

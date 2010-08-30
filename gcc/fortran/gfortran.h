@@ -464,11 +464,13 @@ enum gfc_isym_id
   GFC_ISYM_NEAREST,
   GFC_ISYM_NEW_LINE,
   GFC_ISYM_NINT,
+  GFC_ISYM_NORM2,
   GFC_ISYM_NOT,
   GFC_ISYM_NULL,
   GFC_ISYM_NUMIMAGES,
   GFC_ISYM_OR,
   GFC_ISYM_PACK,
+  GFC_ISYM_PARITY,
   GFC_ISYM_PERROR,
   GFC_ISYM_PRECISION,
   GFC_ISYM_PRESENT,
@@ -880,6 +882,7 @@ typedef struct
   {
     struct gfc_symbol *derived;	/* For derived types only.  */
     gfc_charlen *cl;		/* For character types only.  */
+    int pad;			/* For hollerith types only.  */
   }
   u;
 
@@ -1819,6 +1822,7 @@ typedef struct
   unsigned int c_float : 1;
   unsigned int c_double : 1;
   unsigned int c_long_double : 1;
+  unsigned int c_float128 : 1;
 }
 gfc_real_info;
 

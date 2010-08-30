@@ -1,3 +1,105 @@
+2010-08-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42769
+	* resolve.c (resolve_structure_cons): For derived types, make sure the
+	type has been resolved.
+	(resolve_typebound_procedures): Make sure the vtab has been generated.
+
+2010-08-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45439
+	* match.c (gfc_match_select_type): Give the associate-name the
+	FL_VARIABLE attribute.
+
+2010-08-28  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* simplify.c (gfc_simplify_bessel_n2): Fix indention
+	and argument type.
+
+2010-08-28  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/45436
+	* trans-types.c (gfc_init_kinds): Disable TFmode.
+
+2010-08-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45432
+	* match.c (gfc_match_allocate): Avoid double free on error.
+
+2010-08-27  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/32049
+	* gfortran.h (gfc_real_info): Add c_float128 field.
+	* mathbuiltins.def: Indicate which builtins are const.
+	* trans-types.h (float128_type_node, complex_float128_type_node,
+	gfc_real16_is_float128): New variables.
+	* trans-types.c (float128_type_node, complex_float128_type_node,
+	gfc_real16_is_float128): New variables.
+	(gfc_init_kinds): Allow TFmode.
+	(gfc_build_real_type): Mark __float128 types as such.
+	(gfc_init_types): Initialize float128_type_node and
+	complex_float128_type_node
+	* f95-lang.c (gfc_init_builtin_functions): Adjust for new
+	argument of OTHER_BUILTIN macro.
+	* trans-intrinsic.c (gfc_intrinsic_map_t): Likewise.
+	(builtin_decl_for_precision): Special case for __float128.
+	(builtin_decl_for_float_kind): Likewise.
+	(define_quad_builtin): New function.
+	(gfc_build_intrinsic_lib_fndecls): Create all __float128
+	library decls if necessary. Store them in the real16_decl and
+	complex16_decl builtin map fields.
+	(gfc_get_intrinsic_lib_fndecl): Handle q-suffixed __float128
+	library function names.
+
+2010-08-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/33197
+	* gcc/fortran/intrinsic.c (add_functions): Add norm2 and parity.
+	* gcc/fortran/intrinsic.h (gfc_check_norm2, gfc_check_parity):
+	gfc_simplify_norm2, gfc_simplify_parity, gfc_resolve_norm2,
+	gfc_resolve_parity): New prototypes.
+	* gcc/fortran/gfortran.h (gfc_isym_id): New enum items
+	GFC_ISYM_NORM2 and GFC_ISYM_PARITY.
+	* gcc/fortran/iresolve.c (gfc_resolve_norm2,
+	gfc_resolve_parity): New functions.
+	* gcc/fortran/check.c (gfc_check_norm2, gfc_check_parity):
+	New functions.
+	* gcc/fortran/trans-intrinsic.c (gfc_conv_intrinsic_arith,
+	gfc_conv_intrinsic_function): Handle NORM2 and PARITY.
+	* gcc/fortran/intrinsic.texi (NORM2, PARITY): Add.
+	* gcc/fortran/simplify.c (simplify_transformation_to_array):
+	Add post-processing opterator.
+	(gfc_simplify_all, gfc_simplify_any, gfc_simplify_count,
+	gfc_simplify_product, gfc_simplify_sum): Update call.
+	(add_squared, do_sqrt, gfc_simplify_norm2, do_xor,
+	gfc_simplify_parity): New functions.
+
+2010-08-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45420
+	* match.c (select_type_set_tmp): Add the possibility to reset the
+	temporary to NULL.
+	(gfc_match_class_is): Reset the temporary in CLASS DEFAULT clauses.
+
+2010-08-27  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45159
+	* dependency.c (check_section_vs_section):  Single test for
+	identical strides which takes into account that only one
+	of the strides may be NULL.
+
+2010-08-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/43217
+	* primary.c (match_hollerith_constant): Calculate padding needed to
+	fill default integer and allocate string for that size.  Set pad bytes
+	to ' '.
+	* gfortran.h: Add hollerith pad value to type spec union.
+	* data.c (create_character_initializer): Fix spelling of function name.
+	Use hollerith pad value to calculate length.
+	* arith.c (hollerith2representation); Use hollerith pad value to
+	calculate length.
+
 2010-08-26  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/38936
