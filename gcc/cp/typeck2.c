@@ -763,6 +763,7 @@ store_init_value (tree decl, tree init, int flags)
       if (DECL_DECLARED_CONSTEXPR_P (decl))
 	/* Diagnose a non-constant initializer for constexpr.  */
 	value = cxx_constant_value (value);
+      /* FIXME maybe_constant_init */
       if (TREE_CODE (value) == TARGET_EXPR
 	  && TREE_CODE (TARGET_EXPR_INITIAL (value)) == CONSTRUCTOR)
 	value = TARGET_EXPR_INITIAL (value);

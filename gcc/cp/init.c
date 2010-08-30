@@ -3002,11 +3002,7 @@ build_vec_init (tree base, tree maxindex, tree init,
 	      if (TREE_CODE (e) == CONVERT_EXPR
 		  && VOID_TYPE_P (TREE_TYPE (e)))
 		e = TREE_OPERAND (e, 0);
-	      e = maybe_constant_value (e);
-	      /* FIXME */
-	      if (TREE_CODE (e) == TARGET_EXPR
-		  && TREE_CODE (TARGET_EXPR_INITIAL (e)) == CONSTRUCTOR)
-		e = TARGET_EXPR_INITIAL (e);
+	      e = maybe_constant_init (e);
 	      if (reduced_constant_expression_p (e))
 		{
 		  CONSTRUCTOR_APPEND_ELT (new_vec, field, e);
