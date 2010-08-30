@@ -5686,7 +5686,7 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
   tree parms = new_call->fundef->parms;
   tree fun = new_call->fundef->decl;
   int i;
-  for (i = 0; i < nargs; ++i, parms = TREE_CHAIN (parms))
+  for (i = 0; parms && i < nargs; ++i, parms = TREE_CHAIN (parms))
     {
       tree x, arg;
       /* For member function, the first argument is a pointer to the implied
