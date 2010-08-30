@@ -1338,17 +1338,17 @@
 	PR debug/44832
 	* c-c++-common/pr44832.c: New test.
 
-2010-07-13  Richard Guenther  <rguenther@suse.de>
-
-	PR tree-optimization/36960
-	* g++.dg/torture/pr36960.C: New testcase.
-
 2010-07-13  Iain Sandoe  <iains@gcc.gnu.org>
 
 	PR objc/44488
 	* lib/objc-torture.exp (objc-set-runtime-options): Base runtime list
 	on the target.  Make sure that we can assemble the emitted asm when
 	the test type is 'compile'.
+
+2010-07-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/36960
+	* g++.dg/torture/pr36960.C: New testcase.
 
 2010-07-13  Paolo Carlini  <paolo.carlini@oracle.com>
 
