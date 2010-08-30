@@ -4463,9 +4463,6 @@ start_decl_1 (tree decl, bool initialized)
       type = TREE_TYPE (decl) = error_mark_node;
     }
 
-  if (!ensure_literal_type_for_constexpr_object (decl))
-    DECL_DECLARED_CONSTEXPR_P (decl) = 0;
-
   /* Create a new scope to hold this declaration if necessary.
      Whether or not a new scope is necessary cannot be determined
      until after the type has been completed; if the type is a
@@ -5775,7 +5772,10 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
     }
 
   if (FUNCTION_DECL_P (decl))
-     validate_constexpr_fundecl (decl);
+    validate_constexpr_fundecl (decl);
+
+  else if (!ensure_literal_type_for_constexpr_object (decl))
+    DECL_DECLARED_CONSTEXPR_P (decl) = 0;
 
   if (init && TREE_CODE (decl) == FUNCTION_DECL)
     {
