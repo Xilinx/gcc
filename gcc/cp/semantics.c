@@ -6428,13 +6428,12 @@ morally_constexpr_builtin_function_p (tree decl)
       subexpression (3.2), but subexpressions of logical AND (5.14),
       logical OR (5.15), and conditional (5.16) operations that are
       not evaluated are not considered.   */
-/* FIXME does this recognize that an integer parm can be a null pointer
-   constant? */
-/* FIXME don't really need the flags parm anymore */
+
 static bool
 potential_constant_expression (tree t, tsubst_flags_t flags)
 {
   int i;
+  tree tmp;
   if (t == error_mark_node)
     return false;
   if (TREE_THIS_VOLATILE (t))
@@ -6756,6 +6755,22 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
 	  goto binary;
       }
 
+      /* If the first operand is the non-short-circuit constant, look at
+	 the second operand; otherwise we only care about the first one for
+	 potentiality.  */
+    case TRUTH_AND_EXPR:
+    case TRUTH_ANDIF_EXPR:
+      tmp = boolean_true_node;
+      goto truth;
+    case TRUTH_OR_EXPR:
+    case TRUTH_ORIF_EXPR:
+      tmp = boolean_false_node;
+    truth:
+      if (TREE_OPERAND (t, 0) == tmp)
+	return potential_constant_expression (TREE_OPERAND (t, 1), flags);
+      else
+	return potential_constant_expression (TREE_OPERAND (t, 0), flags);
+
     case ARRAY_REF:
     case ARRAY_RANGE_REF:
     case PLUS_EXPR:
@@ -6772,12 +6787,6 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case BIT_IOR_EXPR:
     case BIT_XOR_EXPR:
     case BIT_AND_EXPR:
-      /* FIXME short-circuit  */
-    case TRUTH_AND_EXPR:
-    case TRUTH_ANDIF_EXPR:
-    case TRUTH_OR_EXPR:
-    case TRUTH_ORIF_EXPR:
-    case TRUTH_XOR_EXPR:
     case UNLT_EXPR:
     case UNLE_EXPR:
     case UNGT_EXPR:
@@ -6792,14 +6801,24 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
 	  return false;
       return true;
 
-      /* FIXME short-circuit */
     case COND_EXPR:
     case VEC_COND_EXPR:
-      for (i = 0; i < 3; ++i)
-	if (!potential_constant_expression (TREE_OPERAND (t, i),
-					    flags))
-	  return false;
-      return true;
+      /* If the condition is a known constant, we know which of the legs we
+	 care about; otherwise we only require that the condition and
+	 either of the legs be potentially constant.  */
+      tmp = TREE_OPERAND (t, 0);
+      if (!potential_constant_expression (tmp, flags))
+	return false;
+      else if (tmp == boolean_true_node)
+	return potential_constant_expression (TREE_OPERAND (t, 1), flags);
+      else if (tmp == boolean_false_node)
+	return potential_constant_expression (TREE_OPERAND (t, 2), flags);
+      for (i = 1; i < 3; ++i)
+	if (potential_constant_expression (TREE_OPERAND (t, i), tf_none))
+	  return true;
+      if (flags & tf_error)
+        error ("expression %qE is not a constant-expression", t);
+      return false;
 
     default:
       sorry ("unexpected ast of kind %s", tree_code_name[TREE_CODE (t)]);
