@@ -27,4 +27,4 @@ template int square(int);
 class A { };
 template A square(A);
 
-template constexpr long square(long);
+template long square(long);

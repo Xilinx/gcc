@@ -11968,6 +11968,13 @@ cp_parser_explicit_instantiation (cp_parser* parser)
 						       decl_specifiers.type_location);
       if (declarator != cp_error_declarator)
 	{
+	  if (decl_specifiers.specs[(int)ds_inline])
+	    permerror (input_location, "explicit instantiation shall not use"
+		       " %<inline%> specifier");
+	  if (decl_specifiers.specs[(int)ds_constexpr])
+	    permerror (input_location, "explicit instantiation shall not use"
+		       "%<constexpr%> specifier");
+
 	  decl = grokdeclarator (declarator, &decl_specifiers,
 				 NORMAL, 0, &decl_specifiers.attributes);
 	  /* Turn access control back on for names used during
