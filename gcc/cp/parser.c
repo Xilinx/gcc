@@ -1323,7 +1323,10 @@ enum
   CP_PARSER_FLAGS_NO_USER_DEFINED_TYPES = 0x2,
   /* When parsing a type-specifier, do not try to parse a class-specifier
      or enum-specifier.  */
-  CP_PARSER_FLAGS_NO_TYPE_DEFINITIONS = 0x4
+  CP_PARSER_FLAGS_NO_TYPE_DEFINITIONS = 0x4,
+  /* When parsing a decl-specifier-seq, only allow type-specifier or
+     constexpr.  */
+  CP_PARSER_FLAGS_ONLY_TYPE_OR_CONSTEXPR = 0x8
 };
 
 /* This type is used for parameters and variables which hold
@@ -8481,6 +8484,7 @@ cp_parser_condition (cp_parser* parser)
 {
   cp_decl_specifier_seq type_specifiers;
   const char *saved_message;
+  int declares_class_or_enum;
 
   /* Try the declaration first.  */
   cp_parser_parse_tentatively (parser);
@@ -8490,9 +8494,10 @@ cp_parser_condition (cp_parser* parser)
   parser->type_definition_forbidden_message
     = G_("types may not be defined in conditions");
   /* Parse the type-specifier-seq.  */
-  cp_parser_type_specifier_seq (parser, /*is_declaration==*/true,
-				/*is_trailing_return=*/false,
-				&type_specifiers);
+  cp_parser_decl_specifier_seq (parser,
+				CP_PARSER_FLAGS_ONLY_TYPE_OR_CONSTEXPR,
+				&type_specifiers,
+				&declares_class_or_enum);
   /* Restore the saved message.  */
   parser->type_definition_forbidden_message = saved_message;
   /* If all is well, we might be looking at a declaration.  */
@@ -9573,6 +9578,11 @@ cp_parser_decl_specifier_seq (cp_parser* parser,
 	  found_decl_spec = false;
 	  break;
 	}
+
+      if (found_decl_spec
+	  && (flags & CP_PARSER_FLAGS_ONLY_TYPE_OR_CONSTEXPR)
+	  && token->keyword != RID_CONSTEXPR)
+	error ("decl-specifier invalid in condition");
 
       /* Constructors are a special case.  The `S' in `S()' is not a
 	 decl-specifier; it is the beginning of the declarator.  */
