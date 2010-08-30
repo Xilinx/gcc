@@ -5468,6 +5468,8 @@ register_constexpr_fundef (tree fun, tree body)
 	body = BIND_EXPR_BODY (body);
       if (TREE_CODE (body) == EH_SPEC_BLOCK)
         body = EH_SPEC_STMTS (body);
+      if (TREE_CODE (body) == MUST_NOT_THROW_EXPR)
+	body = TREE_OPERAND (body, 0);
       if (TREE_CODE (body) == CLEANUP_POINT_EXPR)
         body = TREE_OPERAND (body, 0);
       if (TREE_CODE (body) != RETURN_EXPR)
