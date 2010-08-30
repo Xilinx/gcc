@@ -5307,10 +5307,7 @@ retrieve_constexpr_fundef (tree fun)
 static bool
 valid_type_in_constexpr_fundecl_p (tree t)
 {
-  if (TREE_CODE (t) == REFERENCE_TYPE)
-    return CP_TYPE_CONST_P (TREE_TYPE (t))
-      && literal_type_p (TREE_TYPE (t));
-  return literal_type_p (t);
+  return literal_type_p (non_reference (t));
 }
 
 /* Return non-null if FUN certainly designates a valid constexpr function
@@ -5336,6 +5333,8 @@ validate_constexpr_fundecl (tree fun)
   for (; parm != NULL; parm = TREE_CHAIN (parm))
     if (!valid_type_in_constexpr_fundecl_p (TREE_TYPE (parm)))
       {
+	/* FIXME explain for template inst if we get "not a constexpr fn"
+	   error in cxx_eval_call_expression */
 	if (!DECL_TEMPLATE_INSTANTIATION (fun))
 	  error ("invalid type for parameter %q#D of constexpr function",
 		 parm);
