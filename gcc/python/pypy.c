@@ -546,6 +546,28 @@ tree gpy_main_method_decl( VEC(tree,gc) * block, gpy_context_branch * co )
   return retval;
 }
 
+/* @see coverage.c build_fn_info_type ( unsigned int )
+   for more examples on RECORD_TYPE's
+ */
+static
+tree gpy_build_callable_record_type( void )
+{
+  tree type = lang_hooks.types.make_type ( RECORD_TYPE );
+  tree field, fields;
+
+  fields = build_decl( BUILTINS_LOCATION,
+		       FIELD_DECL, NULL_TREE, void );
+
+  field = build_decl( BUILTINS_LOCATION,
+		      FIELD_DECL, NULL_TREE, integer_type_node );
+
+  DECL_CHAIN( field ) = fields;
+  fields = field;
+
+  fields = build_decl( BUILTINS_LOCATION,
+		       FIELD_DECL, NULL_TREE, void )
+}
+
 void gpy_write_globals( void )
 {
   gpy_context_branch *co = NULL;
@@ -580,7 +602,7 @@ void gpy_write_globals( void )
 	}
     }
 
-  /* Need to generate table of gpy_callable_def_t [] and gpy_type_obj_def_t[] */
+  /* Need to generate table of gpy_callable_def_t[] and gpy_type_obj_def_t[] */
   // .....
 
   /* Add in the main method decl! */
