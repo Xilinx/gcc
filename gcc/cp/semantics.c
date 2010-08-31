@@ -5985,6 +5985,14 @@ cxx_eval_component_reference (const constexpr_call *call, tree t,
       if (field == part)
         return value;
     }
+  if (TREE_CODE (TREE_TYPE (whole)) == UNION_TYPE)
+    {
+      if (!allow_non_constant)
+	error ("accessing %qD member instead of initialized %qD member in "
+	       "constant expression", part, CONSTRUCTOR_ELT (whole, 0)->index);
+      *non_constant_p = true;
+      return t;
+    }
   gcc_unreachable();
   return error_mark_node;
 }
