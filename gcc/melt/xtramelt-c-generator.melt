@@ -1,0 +1,930 @@
+(comment "***
+    Copyright 2010 Free Software Foundation, Inc.
+    Contributed by Jeremie Salvucci  <jeremie.salvucci@free.fr>
+
+    This file is part of GCC.
+
+    GCC is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3, or (at your option)
+    any later version.
+
+    GCC is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.
+***")
+
+;  Generation of C code from the GIMPLE representation.
+;
+;  Beta status !
+;
+;  TODO list :
+;
+;  - Handler for structures declaration
+;  - Handler for unions declaration
+;  - Handler for #pragma
+;  - ...
+;
+;  The main idea of this program is to build a representation between GIMPLE
+;  and generated C code. We need a middle representation because GCC make 
+;  changes in place. So if we use the at_finish_unit_last hook, we can not be
+;  sure to get what we want.
+;
+;  The first part is about MELT objects useful to copy the GIMPLE representation.
+;  We need to find a place for our pass. We choose the Control Flo Graph one. At
+;  this step, the code has been linearized.
+;
+;  Objects needed :
+;
+;  - function,
+;  - header,
+;  - body,
+;  - block (basic_block),
+;  - typed element (variables, ...),
+;  - fields (useful for structures, unions, ...),
+;  - structures,
+;  - expressions,
+;  - conditions,
+;  - ...
+;
+(defclass class_c_generator_generator
+  :super class_proped
+  :fields ())
+
+(defclass class_c_generator_sets
+  :super class_proped
+  :fields (sets_header
+	   sets_variables
+	   sets_labels
+	   sets_structures))
+
+(defclass class_c_generator_functions
+  :super class_c_generator_generator
+  :fields (functions_root
+	   structures_declarations))
+
+(defclass class_c_generator_function
+  :super class_c_generator_generator
+  :fields (function_header
+	   function_local_variables
+	   function_blocks))
+
+(defclass class_c_generator_typed_element
+  :super class_c_generator_generator
+  :fields (element_type
+	   element_name))
+
+(defclass class_c_generator_header
+  :super class_c_generator_typed_element
+  :fields (header_parameters))
+
+(defclass class_c_generator_declaration
+  :super class_c_generator_typed_element
+  :fields ())
+
+(defclass class_c_generator_field
+  :super class_c_generator_typed_element
+  :fields ())
+
+(defclass class_c_generator_structure
+  :super class_c_generator_typed_element
+  :fields (structure_fields))
+
+(defclass class_c_generator_expression
+  :super class_c_generator_generator
+  :fields (expression_operand1
+	   expression_operator
+	   expression_operand2))
+
+(defclass class_c_generator_call
+  :super class_c_generator_typed_element
+  :fields (call_lvalue
+	   call_parameters))
+
+(defclass class_c_generator_assignment
+  :super class_c_generator_expression
+  :fields (assignment_lvalue))
+
+(defclass class_c_generator_condition
+  :super class_c_generator_expression
+  :fields (condition_iftrue
+	   condition_iffalse))
+
+(defclass class_c_generator_goto
+  :super class_c_generator_generator
+  :fields (goto_value))
+
+(defclass class_c_generator_return
+  :super class_c_generator_generator
+  :fields (return_value))
+
+(defclass class_c_generator_block
+  :super class_c_generator_generator
+  :fields (block_id
+	   block_successors
+	   block_id_successor
+	   block_instructions))
+
+(defclass class_c_generator_body
+  :super class_c_generator_generator
+  :fields (body_blocks))
+
+(defselector add_to_buffer class_selector
+  :formals (object buffer))
+
+(defselector add_prototype_to_buffer class_selector
+  :formals (object buffer))
+
+(defprimitive basic_block_index (:basic_block b) :long
+  #{
+       (($b) ? ($b)->index : -1)
+  }#)
+
+(defprimitive is_gimple_cond (:gimple g) :long
+  #{
+       (($g) ? gimple_code ($g) == GIMPLE_COND : 0)
+  }#)
+
+(defprimitive is_gimple_assign (:gimple g) :long
+  #{
+       (($g) ? gimple_code ($g) == GIMPLE_ASSIGN : 0)
+  }#)
+
+(defprimitive is_gimple_return (:gimple g) :long
+  #{
+       (($g) ? gimple_code ($g) == GIMPLE_RETURN : 0)
+  }#)
+
+(defprimitive is_gimple_call (:gimple g) :long
+  #{
+       (($g) ? gimple_code ($g) == GIMPLE_CALL : 0)
+  }#)
+
+(defprimitive is_gimple_goto (:gimple g) :long
+  #{
+       (($g) ? gimple_code ($g) == GIMPLE_GOTO : 0)
+  }#)
+
+;; Traverse tree
+
+(defun traverse_header_parameters_function (parameters)
+  (foreach_in_list
+   (parameters)
+   (pair parameter)
+   (let ((type (get_field :element_type parameter))
+	 (name (get_field :element_name parameter)))
+     (debug_msg type "Type : ")
+     (debug_msg name "Name : ")
+     (debug_msg '1 ","))))
+
+(defun traverse_header_function (header)
+  (let ((type (get_field :element_type header))
+	(name (get_field :element_name header))
+	(parameters (get_field :header_parameters header)))
+    (debug_msg '1 "Header : ")
+    (debug_msg type "Type : ")
+    (debug_msg name "Name : ")
+    (traverse_header_parameters_function parameters)))
+
+(defun traverse_local_variables_function (local_variables)
+  (debug_msg local_variables "Local variables :")
+  (foreach_in_list
+   (local_variables)
+   (pair declaration)
+   (let ((type (get_field :element_type declaration))
+	 (name (get_field :element_name declaration)))
+     (debug_msg type "Type : ")
+     (debug_msg name "Name : "))))
+
+(defun traverse_block_instructions_function (_block_)
+  (let ((id (get_field :block_id _block_))
+	(instructions (get_field :block_instructions _block_)))
+    (foreach_in_list 
+     (instructions)
+     (pair instruction)
+     (debug_msg instruction "Instruction : "))))
+
+(defun traverse_blocks_function (blocks)
+  (foreach_in_list
+   (blocks)
+   (pair block)
+   (traverse_block_instructions_function block)))
+
+(defun traverse_function_structure (function)
+  (let ((header (get_field :function_header function))
+	(local_variables (get_field :function_local_variables function))
+	(blocks (get_field :function_blocks function)))
+    (traverse_header_function header)
+    (traverse_local_variables_function local_variables)
+    (traverse_blocks_function blocks)))
+
+(defun traverse_main_structure (structure)
+  (foreach_in_list
+   (structure)
+   (pair node)
+   (traverse_function_structure node)))
+
+;  We build a tree thanks to previous objects. Each object has its own method
+;  add_to_buffer. For example, when we have a condition node, the method adds
+;
+;  if <condition> {
+;     <goto label>
+;  }
+;  else {
+;     <goto label>
+;  }
+;
+;  Following functions are useful to get C code.
+;
+
+;; Get structures
+
+(defun add_structure_declaration_to_buffer (structure buffer)
+  (let ((name (get_field :element_name structure))
+	(fields (get_field :structure_fields structure)))
+    (add2sbuf_strconst buffer "struct ")
+    (add2sbuf_string buffer name)
+    (add2sbuf_strconst buffer "{")
+    (foreach_in_list
+     (fields)
+     (pair current_element)
+     (let ((field_type (get_field :element_type current_element))
+	   (field_name (get_field :element_name current_element)))
+       (add2sbuf_string buffer field_type)
+       (add2sbuf_strconst buffer " ")
+       (add2sbuf_string buffer field_name)
+       (add2sbuf_strconst buffer ";")))
+    (add2sbuf_strconst buffer "};")))
+
+(install_method class_c_generator_structure add_to_buffer add_structure_declaration_to_buffer)
+
+(defun add_structures_declarations_to_buffer (structures buffer)
+  (foreach_in_list
+   (structures)
+   (pair current_element)
+   (debug_msg current_element "Current : ")
+   (add_to_buffer current_element buffer)))
+
+;; Get prototypes
+
+(defun add_function_prototype_to_buffer (function buffer)
+  (let ((header (get_field :function_header function)))
+    (add_to_buffer header buffer)
+    (add2sbuf_strconst buffer ";")))
+
+(install_method class_c_generator_function add_prototype_to_buffer add_function_prototype_to_buffer)
+
+(defun add_functions_prototypes_to_buffer (root buffer)
+  (let ((functions (get_field :functions_root root)))
+    (foreach_in_list
+     (functions)
+     (pair current_element)
+     (add_prototype_to_buffer current_element buffer))))
+
+(install_method class_c_generator_functions add_prototype_to_buffer add_functions_prototypes_to_buffer)
+
+;; Get code
+
+(defun add_functions_to_buffer (root buffer)
+  (let ((functions (get_field :functions_root root)))
+    (foreach_in_list
+     (functions)
+     (pair current_element)
+     (add_to_buffer current_element buffer))))
+
+(install_method class_c_generator_functions add_to_buffer add_functions_to_buffer)
+
+(defun add_local_variables_to_buffer (local_variables buffer)
+  (foreach_in_list
+   (local_variables)
+   (pair current_element)
+   (let ((type (get_field :element_type current_element))
+	 (name (get_field :element_name current_element)))
+     (add2sbuf_string buffer type)
+     (add2sbuf_strconst buffer " ")
+     (add2sbuf_string buffer name)
+     (add2sbuf_strconst buffer ";"))))
+
+(defun add_blocks_to_buffer (blocks buffer)
+  (foreach_in_list
+   (blocks)
+   (pair current_element)
+   (add2sbuf_string buffer (add_to_buffer current_element buffer))))
+
+(defun add_function_to_buffer (function buffer)
+  (let ((header (get_field :function_header function))
+	(local_variables (get_field :function_local_variables function))
+	(body (get_field :function_blocks function)))
+    (add_to_buffer header buffer)
+    (add2sbuf_strconst buffer "{")
+    (add_local_variables_to_buffer local_variables buffer)
+    (add_blocks_to_buffer body buffer)
+    (add2sbuf_strconst buffer "}")))
+
+(install_method class_c_generator_function add_to_buffer add_function_to_buffer)
+
+(defun add_parameters_to_buffer (parameters buffer)
+  (let ((count (make_integerbox discr_integer 0)))
+    (foreach_in_list
+     (parameters)
+     (pair current_node)
+     (let ((type (get_field :element_type current_node))
+	   (name (get_field :element_name current_node)))
+       (if (>i (get_int count) 0)
+	   (add2sbuf_strconst buffer ","))
+       (add2sbuf_string buffer type)
+       (add2sbuf_strconst buffer " ")
+       (add2sbuf_string buffer name)
+       (put_int count (+i 1 (get_int count)))))))
+
+(defun add_header_to_buffer (header buffer)
+  (let ((return_type (get_field :element_type header))
+	(name (get_field :element_name header))
+	(parameters (get_field :header_parameters header)))
+    (add2sbuf_string buffer return_type)
+    (add2sbuf_strconst buffer " ")
+    (add2sbuf_string buffer name)
+    (add2sbuf_strconst buffer "(")
+    (add_parameters_to_buffer parameters buffer)
+    (add2sbuf_strconst buffer ")")))
+
+(install_method class_c_generator_header add_to_buffer add_header_to_buffer)
+
+(defun add_block_to_buffer (block_s buffer)
+  (let ((id (get_field :block_id block_s))
+	(successors (get_field :block_successors block_s))
+	(successor_id (get_field :block_id_successor block_s))
+	(instructions (get_field :block_instructions block_s))
+	(count (make_integerbox discr_integer 0)))
+    (add2sbuf_strconst buffer "melt_label_")
+    (add2sbuf_longdec buffer (get_int id))
+    (add2sbuf_strconst buffer ":")
+    (foreach_in_list 
+     (instructions)
+     (pair current_element)
+     (add2sbuf_string buffer (add_to_buffer current_element buffer))
+     (put_int count (+i 1 (get_int count))))
+    (if (==i 0 (get_int count))
+	(progn
+    	  (add2sbuf_strconst buffer "goto melt_label_")
+    	  (add2sbuf_longdec buffer (get_int successor_id))
+    	  (add2sbuf_strconst buffer ";")))))
+
+(install_method class_c_generator_block add_to_buffer add_block_to_buffer)
+
+(defun add_variable_declaration_to_buffer (declaration buffer)
+  (let ((type (get_field :element_type declaration))
+	(name (get_field :element_name declaration)))
+    (add2sbuf_string buffer type)
+    (add2sbuf_strconst buffer " ")
+    (add2sbuf_string buffer name)
+    (add2sbuf_strconst buffer ";")))
+
+(install_method class_c_generator_declaration add_to_buffer add_variable_declaration_to_buffer)
+
+(defun add_assignment_to_buffer (assignment buffer)
+  (let ((lvalue (get_field :assignment_lvalue assignment))
+	(operand1 (get_field :expression_operand1 assignment))
+	(operand2 (get_field :expression_operand2 assignment))
+	(operator (get_field :expression_operator assignment)))
+    (add2sbuf_string buffer lvalue)
+    (add2sbuf_strconst buffer "=")
+    (add2sbuf_string buffer operand1)
+    (add2sbuf_string buffer operator)
+    (add2sbuf_string buffer operand2)
+    (add2sbuf_strconst buffer ";")))
+
+(install_method class_c_generator_assignment add_to_buffer add_assignment_to_buffer)
+
+(defun add_condition_to_buffer (condition buffer)
+  (let ((left (get_field :expression_operand1 condition))
+	(right (get_field :expression_operand2 condition))
+	(operator (get_field :expression_operator condition))
+	(true_branch (get_field :condition_iftrue condition))
+	(false_branch (get_field :condition_iffalse condition)))
+    (add2sbuf_strconst buffer "if(")
+    (add2sbuf_string buffer left)
+    (add2sbuf_string buffer operator)
+    (add2sbuf_string buffer right)
+    (add2sbuf_strconst buffer "){")
+    (add2sbuf_strconst buffer "goto ")
+    (add2sbuf_string buffer true_branch)
+    (add2sbuf_strconst buffer";}else{goto ")
+    (add2sbuf_string buffer false_branch)
+    (add2sbuf_strconst buffer ";}")))
+
+(install_method class_c_generator_condition add_to_buffer add_condition_to_buffer)
+
+(defun add_return_to_buffer (return_i buffer)
+  (let ((value (get_field :return_value return_i)))
+    (add2sbuf_strconst buffer "return ")
+    (add2sbuf_string buffer value)
+    (add2sbuf_strconst buffer ";")))
+
+(install_method class_c_generator_return add_to_buffer add_return_to_buffer)
+
+(defun add_call_parameters_to_buffer (parameters buffer)
+  (let ((count (make_integerbox discr_integer 0)))
+    (foreach_in_list
+     (parameters)
+     (pair current_node)
+     (let ((type (get_field :element_type current_node))
+	   (name (get_field :element_name current_node)))
+       (if (>i (get_int count) 0)
+	   (add2sbuf_strconst buffer ","))
+       (add2sbuf_string buffer name)
+       (put_int count (+i 1 (get_int count)))))))
+
+(defun add_call_to_buffer (call buffer)
+  (let ((lvalue (get_field :call_lvalue call))
+	(type (get_field :element_type call))
+	(name (get_field :element_name call))
+	(parameters (get_field :call_parameters call)))
+    (if lvalue
+	(progn
+	  (add2sbuf_string buffer lvalue)
+	  (add2sbuf_strconst buffer "=")))
+    (add2sbuf_string buffer name)
+    (add2sbuf_strconst buffer "(")
+    (add_call_parameters_to_buffer parameters buffer)
+    (add2sbuf_strconst buffer ");")))
+
+(install_method class_c_generator_call add_to_buffer add_call_to_buffer)
+
+; Build tree
+
+; Following functions get informations from tree and gimple structures.
+; They copy useful content in new MELT structures. The main technique
+; used here is the pattern matching.
+;
+
+
+(defun get_function_type (function :tree header)
+  (match header
+	 (?(tree_function_type ?(tree_void_type
+				 ?(tree_type_declaration
+				   ?(tree_identifier ?name))))
+	   (make_stringconst discr_string name))			       
+	 (?(tree_function_type ?(tree_integer_type
+				 ?(tree_type_declaration
+				   ?(tree_identifier ?name)) ?_ ?_ ?_))
+	   (make_stringconst discr_string name))
+	 (?(tree_function_type ?(tree_real_type
+				 ?(tree_type_declaration
+				   ?(tree_identifier ?name)) ?_))
+	   (make_stringconst discr_string name))
+	 (?_ )))
+
+(defun get_function_name (function :tree header)
+  (match header
+	 (?(tree_function_decl ?name ?_)
+	   (make_stringconst discr_string name))
+	 (?_)))
+
+(defun build_pointer_parameter (parameter buffer :tree type)
+  (match type
+	 (?(tree_pointer_type_p ?sub_type)
+	   (add2sbuf_strconst buffer "*")
+	   (build_pointer_parameter parameter buffer sub_type))
+	 (?(tree_integer_type 
+	    ?(tree_type_declaration 
+	      ?(tree_identifier ?type_name)) ?_ ?_ ?_)
+	   (let ((type_buffer (make_strbuf discr_strbuf)))
+	     (add2sbuf_strconst type_buffer type_name)
+	     (add2sbuf_sbuf type_buffer buffer)
+	     (add2sbuf_strconst type_buffer " ")
+	     (put_fields parameter :element_type (strbuf2string discr_string type_buffer))))
+	 (?(tree_real_type
+	    ?(tree_type_declaration
+	      ?(tree_identifier ?type_name)) ?_)
+	   (let ((type_buffer (make_strbuf discr_strbuf)))
+	     (add2sbuf_strconst type_buffer type_name)
+	     (add2sbuf_sbuf type_buffer buffer)
+	     (add2sbuf_strconst type_buffer " ")
+	     (put_fields parameter :element_type (strbuf2string discr_string type_buffer))))))
+
+(defun build_parameter (function :tree type :cstring name)
+  (let ((parameter (instance class_c_generator_typed_element
+		     :element_type ()
+		     :element_name ())))
+      (match type
+	     (?(tree_integer_type 
+		?(tree_type_declaration 
+		  ?(tree_identifier ?type_name)) ?_ ?_ ?_)
+	       (put_fields parameter :element_type (make_stringconst discr_string type_name)))
+	     (?(tree_real_type 
+		?(tree_type_declaration
+		  ?(tree_identifier ?type_name)) ?_)
+	       (put_fields parameter :element_type (make_stringconst discr_string type_name)))
+	     (?(tree_pointer_type_p ?_)
+	       (let ((buffer (make_strbuf discr_strbuf)))
+		 (build_pointer_parameter parameter buffer type)))
+	     (?(tree_record_type 
+		?(tree_type_declaration 
+		  ?(tree_identifier ?type_name)))
+	       (put_fields parameter :element_type (make_stringconst discr_string type_name)))
+	     (?_ (debugtree "Type : " type)))
+      (put_fields parameter :element_name (make_stringconst discr_string name))
+      (return parameter)))
+
+(defun get_function_parameters (function :tree header)
+  (let ((parameters (list)))
+    (each_param_in_fundecl
+     (header)
+     (:tree parameter)
+     (match parameter
+	    (?(tree_parm_decl ?type ?_ ?name)
+	      (let ((boxed_parameter (build_parameter function type name)))
+		(list_append parameters boxed_parameter)))
+	    (?_ )))
+    (return parameters)))
+  
+(defun build_header (datas function :tree header)
+  (let ((type (get_function_type function (tree_type header)))
+	(name (get_function_name function header))
+	(parameters (get_function_parameters function header)))
+    (instance class_c_generator_header
+	      :element_type type
+	      :element_name name
+	      :header_parameters parameters)))
+
+(defun traverse_function_header (datas function sets :tree header)
+  (let ((header_set (get_field :sets_header sets))
+	(m (maptree_get header_set header)))
+    (if m
+	()
+      (progn
+	(maptree_put header_set header '1)
+	(put_fields function :function_header (build_header datas function header))))))
+
+; Getting type of a tree required a recursion for some case. For 
+; example, when you get a pointer to int, you have to know this
+; is a pointer and which is pointed type.
+
+(defun get_tree_type_rec (buffer accumulator :tree type)
+  (match type
+	 (?(tree_integer_type 
+	    ?(tree_type_declaration 
+	      ?(tree_identifier ?name)) ?_ ?_ ?_)
+	   (add2sbuf_strconst buffer name)
+	   (add2sbuf_strconst buffer " ")
+	   (add2sbuf_sbuf buffer accumulator))
+	 (?(tree_real_type 
+	    ?(tree_type_declaration
+	      ?(tree_identifier ?name)) ?_)
+	   (add2sbuf_strconst buffer name)
+	   (add2sbuf_strconst buffer " ")
+	   (add2sbuf_sbuf buffer accumulator))
+	 (?(tree_pointer_type_p ?sub_type)
+	   (add2sbuf_strconst accumulator "*")
+	   (get_tree_type_rec buffer accumulator sub_type))
+	 (?(tree_record_type
+	    ?(tree_identifier ?name))
+	   (add2sbuf_strconst buffer "struct ")
+	   (add2sbuf_strconst buffer name)
+	   (debug_msg buffer "Debug msg : ")
+	   (add2sbuf_sbuf buffer accumulator))
+	 (?_ )))
+
+(defun get_tree_type (value :tree type)
+  (let ((buffer (make_strbuf discr_strbuf))
+	(accumulator (make_strbuf discr_strbuf)))
+    (get_tree_type_rec buffer accumulator type)
+    (strbuf2string discr_string buffer)))
+
+
+(defun handle_variables_declaration (function sets 
+				     :tree decl type 
+				     :cstring name 
+				     :long uid)
+  (let ((m (maptree_get (get_field :sets_variables sets) decl))
+	(buffer (make_strbuf discr_strbuf)))
+    (if m
+	()
+      (let ((declaration (instance class_c_generator_declaration
+			   :element_type (get_tree_type '1 type)
+			   :element_name ())))
+	(if name 
+	    (add2sbuf_strconst buffer name)
+	  (progn
+	    (add2sbuf_strconst buffer "melt_tmp_")
+	    (add2sbuf_longdec buffer uid)))
+	(put_fields declaration :element_name (strbuf2string discr_string buffer))
+	(maptree_put (get_field :sets_variables sets) decl '1)
+	(list_append (get_field :function_local_variables function) declaration)))))
+
+; TODO !
+;
+; We need to add the structure object to the list of structure declarations.
+
+(defun handle_structure_declaration (datas function sets :tree value type arg0 arg1)
+  (let ((m (maptree_get (get_field :sets_structures sets) type)))
+    (if m
+	()
+      (let ((structures (get_field :structures_declarations datas))
+	    (structure (instance class_c_generator_structure 
+				 :element_type (get_tree_type '1 type)
+				 :element_name ()
+				 :structure_fields (list))))
+	(foreach_field_in_record_type
+	 (arg1)
+	 (:tree current_field)
+	 (let ((field (instance class_c_generator_field
+				:element_type (get_tree_type '1 current_field)
+				:element_name ()))
+	       (tmp (get_field :element_type field)))
+	   (list_append (get_field :structure_fields structure) field)))
+	(maptree_put (get_field :sets_structures sets) value '1)
+	(list_append (get_field :structures_declarations datas) structure)))))
+
+; For the same reason that pointer type, we need a recursive examination of
+; value. When you have a record type, you need to have an access to a field.
+
+(defun get_tree_value_rec (datas function sets buffer :tree value)
+  (match value
+	 (?(tree_var_decl ?type ?name ?uid)
+	   (handle_variables_declaration function sets value type name uid)
+	   (if name
+	       (add2sbuf_strconst buffer name)
+	     (progn
+	       (add2sbuf_strconst buffer "melt_tmp_")
+	       (add2sbuf_longdec buffer uid))))
+	 (?(tree_parm_decl ?_ ?_ ?name)
+	   (add2sbuf_strconst buffer name))
+	 (?(tree_integer_cst ?integer)
+	   (add2sbuf_longdec buffer integer))
+	 (?(tree_indirect_reference ?_ ?reference)
+	   (add2sbuf_strconst buffer "*")
+	   (get_tree_value_rec function sets buffer reference))
+	 (?(tree_address_expression ?_ ?expression)
+	   (add2sbuf_strconst buffer "&")
+	   (get_tree_value_rec function sets buffer expression))
+	 (?(tree_component_ref ?type ?arg0 ?arg1)
+	   (match type
+		  (?(tree_record_type ?_)
+		     (handle_structure_declaration datas function sets value type arg0 arg1))
+		  (?_ ))
+	   (get_tree_value_rec datas function sets buffer arg0)
+	   (add2sbuf_strconst buffer ".")
+	   (get_tree_value_rec datas function sets buffer arg1))
+	 (?(tree_field_declaration ?(tree_identifier ?name))
+	   (add2sbuf_strconst buffer name))
+	 (?_ 
+	  (debugtree "Unknown tree : " value))))
+
+(defun get_tree_value (datas function sets :tree value)
+  (let ((buffer (make_strbuf discr_strbuf)))
+    (get_tree_value_rec datas function sets buffer value)
+    (strbuf2string discr_string buffer)))
+
+(defun get_edge_value (melt_value :edge edge)
+  (let ((buffer (make_strbuf discr_strbuf)))
+    (add2sbuf_strconst buffer "melt_label_")
+    (add2sbuf_longdec buffer (basic_block_index (edge_dest_bb edge)))
+    (return (strbuf2string discr_string buffer))))
+
+(defun get_gimple_call_parameters (function :gimple instruction)
+  (let ((parameters (list)))
+    (foreach_argument_of_gimple_call
+     (instruction)
+     (:tree argument)
+     (match argument
+	    (?(tree_parm_decl ?type ?_ ?name)
+	      (let ((boxed_parameter (build_parameter function type name)))
+		(list_append parameters boxed_parameter)))
+	    (?_ )))
+    (return parameters)))
+
+(defun fill_instruction_gimple_call (datas function sets call 
+				     :tree left declaration 
+				     :gimple instruction)
+  (let ((lvalue (get_tree_value datas function sets left))
+	(type (get_function_type function (tree_type declaration)))
+	(name (get_function_name function declaration)))
+    (put_fields call :call_lvalue lvalue
+                     :element_type type
+		     :element_name name
+		     :call_parameters (get_gimple_call_parameters function instruction))))
+
+(defun build_instruction_gimple_call (datas function sets :gimple instruction)
+  (let ((build (instance class_c_generator_call 
+		 :call_lvalue ()
+		 :element_type ()
+		 :element_name ()
+		 :call_parameters ())))
+    (match instruction
+	   (?(gimple_call ?left ?declaration ?_)
+	     (fill_instruction_gimple_call datas function sets build left declaration instruction))
+	   (?_ ))
+    (return build)))
+
+(defun build_instruction_goto (datas function sets :gimple instruction)
+  (let ((build (instance class_c_generator_goto
+		 :goto_value ())))
+    (match instruction
+	   (?(gimple_goto ?label)
+	     (debugtree "Label : " label))
+	   (?_ ))))
+
+(defun fill_instruction_assignment (datas function sets assignment 
+				    :tree left right1 right2 
+				    :cstring operator)
+  (let ((operand1 (get_tree_value datas function sets right1))
+	(operand2 (get_tree_value datas function sets right2)))
+  (put_fields assignment :assignment_lvalue (get_tree_value datas function sets left)
+	                 :expression_operand1 operand1
+			 :expression_operator (make_stringconst discr_string operator)
+			 :expression_operand2 operand2)))
+
+(defun build_instruction_assignment (datas function sets :gimple instruction)
+  (let ((build (instance class_c_generator_assignment
+		 :assignment_lvalue ()
+		 :expression_operand1 ()
+		 :expression_operator ()
+		 :expression_operand2 ())))
+    (match instruction
+	   (?(gimple_assign_unary_minus ?left ?right)
+	     (fill_instruction_assignment function sets build left (null_tree) right "-"))
+	   (?(gimple_assign_single ?left ?right)
+	     (debugtree "Right : " right)
+	     (fill_instruction_assignment datas function sets build left right))
+	   (?(gimple_assign_plus ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "+"))
+	   (?(gimple_assign_minus ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "-"))
+	   (?(gimple_assign_mult ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "*"))
+	   (?(gimple_assign_trunc_div ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "/"))
+	   (?(gimple_assign_ceil_div ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "/"))
+	   (?(gimple_assign_floor_div ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "/"))
+	   (?(gimple_assign_round_div ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "/"))
+	   (?(gimple_assign_rdiv ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "/"))
+	   (?(gimple_assign_exact_div ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "/"))
+	   (?(gimple_assign_trunc_mod ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "%"))
+	   (?(gimple_assign_ceil_mod ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "%"))
+	   (?(gimple_assign_floor_mod ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "%"))
+	   (?(gimple_assign_round_mod ?left ?right1 ?right2)
+	     (fill_instruction_assignment datas function sets build left right1 right2 "%"))
+	   (?_ ))
+    (return build)))
+
+(defun fill_instruction_condition (datas function sets condition 
+				   :tree lhs rhs 
+				   :edge iftrue iffalse 
+				   :cstring op)
+  (put_fields condition :expression_operand1 (get_tree_value datas function sets lhs)
+		        :expression_operator (make_stringconst discr_string op)
+			:expression_operand2 (get_tree_value datas function sets rhs)
+			:condition_iftrue (get_edge_value '1 iftrue)
+			:condition_iffalse (get_edge_value '1 iffalse)))
+
+(defun build_instruction_condition (datas function sets :gimple instruction)
+  (let ((build (instance class_c_generator_condition
+		 :expression_operand1 ()
+		 :expression_operator ()
+		 :expression_operand2 ()
+		 :condition_iftrue ()
+		 :condition_iffalse ())))
+    (match instruction
+	   (?(and ?(gimple_cond_less ?lhs ?rhs)
+		  ?(gimple_cond_with_edges ?iftrue ?iffalse))
+	     (fill_instruction_condition datas function sets build lhs rhs iftrue iffalse "<"))
+	   (?(and ?(gimple_cond_lessequal ?lhs ?rhs)
+		  ?(gimple_cond_with_edges ?iftrue ?iffalse))
+	     (fill_instruction_condition datas function sets build lhs rhs iftrue iffalse "<="))
+	   (?(and ?(gimple_cond_notequal ?lhs ?rhs)
+		  ?(gimple_cond_with_edges ?iftrue ?iffalse))
+	     (fill_instruction_condition datas function sets build lhs rhs iftrue iffalse "!="))
+	   (?(and ?(gimple_cond_equal ?lhs ?rhs)
+		  ?(gimple_cond_with_edges ?iftrue ?iffalse))
+	     (fill_instruction_condition datas function sets build lhs rhs iftrue iffalse "=="))
+	   (?(and ?(gimple_cond_greater ?lhs ?rhs)
+		  ?(gimple_cond_with_edges ?iftrue ?iffalse))
+	     (fill_instruction_condition datas function sets build lhs rhs iftrue iffalse ">"))
+	   (?(and ?(gimple_cond_greater_or_equal ?lhs ?rhs)
+		  ?(gimple_cond_with_edges ?iftrue ?iffalse))
+	     (fill_instruction_condition datas function sets build lhs rhs iftrue iffalse ">="))
+	   (?_ ))
+    (return build)))
+
+(defun fill_instruction_return (datas function sets return_i :tree value)
+  (put_fields return_i :return_value (get_tree_value datas function sets value)))
+
+(defun build_instruction_return (datas function sets :gimple instruction)
+  (let ((build (instance class_c_generator_return
+		 :return_value ())))
+    (match instruction
+	   (?(gimple_return ?value)
+	     (fill_instruction_return datas function sets build value))
+	   (?_ ))
+    (return build)))
+
+(defun build_instruction (datas function sets :gimple instruction)
+  (cond ((is_gimple_call instruction)
+	 (build_instruction_gimple_call datas function sets instruction))
+	((is_gimple_assign instruction) 
+	 (build_instruction_assignment datas function sets instruction))
+	((is_gimple_cond instruction) 
+	 (build_instruction_condition datas function sets instruction))
+	((is_gimple_return instruction)
+	 (build_instruction_return datas function sets instruction))
+	((is_gimple_goto instruction)
+	 (build_instruction_goto datas function sets instruction))))
+
+(defun traverse_function_body (datas function sets :basic_block body)
+  (let ((successor (basicblock_single_succ body))
+	(successor_index (make_integerbox discr_integer (basic_block_index successor)))
+	(function_block (instance class_c_generator_block
+			  :block_id (make_integerbox discr_integer (basic_block_index body))
+			  :block_successors (make_integerbox discr_integer (basicblock_nb_succ body))
+			  :block_id_successor successor_index
+			  :block_instructions (list)))
+	(instructions_list (get_field :block_instructions function_block))
+	(:gimple_seq instructions (gimple_seq_of_basic_block body)))
+    (each_in_gimpleseq
+     (instructions)
+     (:gimple instruction)
+     (list_append instructions_list (build_instruction datas function sets instruction)))
+    (list_append (get_field :function_blocks function) function_block)))
+
+(defun traverse_function (datas function sets :tree header :basic_block body)
+  (progn
+    (traverse_function_header datas function sets header)
+    (traverse_function_body datas function sets body)))
+
+; This is the main function, it allows us to traverse all basic blocks which
+; composed the source program.
+
+(defun traverse (datas)
+  (let ((header_set (make_maptree discr_map_trees 100))
+	(variables_set (make_maptree discr_map_trees 100))
+	(labels_set (make_mapbasicblock discr_map_basic_blocks 100))
+	(structures_set (make_maptree discr_map_trees 100))
+	(function (instance class_c_generator_function
+		    :function_header ()
+		    :function_local_variables (list)
+		    :function_blocks (list)))
+	(sets (instance class_c_generator_sets
+	       :sets_header header_set
+	       :sets_variables variables_set
+	       :sets_labels labels_set
+	       :sets_structures structures_set))
+	(structures (get_field :structures_declarations datas)))
+    (each_bb_cfun
+     ()
+     (:basic_block body :tree header)
+     (traverse_function datas function sets header body))
+    (list_append (get_field :functions_root (get_field :gccpass_data datas)) function)))
+
+(defun generator_gate (value)
+  value)
+
+(defun generator_exec (datas)
+  (traverse datas))
+
+; Here we use a hook because the pass is called once on each function, so we need
+; to collect datas for building a tree representation. But to start traverseing the 
+; tree and make treatments, we need a function called at the end of the pass. This
+; function is at_finish_unit_last.
+
+(defun generator_run (cmd datas)
+  (let ((generator (instance class_gcc_gimple_pass
+		     :named_name '"melt_generator_pass"
+		     :gccpass_gate generator_gate
+		     :gccpass_exec generator_exec
+		     :gccpass_data (instance class_c_generator_functions
+				     :functions_root (list)
+				     :structures_declarations (list))
+		     :gccpass_properties_required ())))
+      (install_melt_gcc_pass generator "after" "cfg" 0)
+      (at_finish_unit_last
+       (lambda ()
+	 (let ((root (get_field :gccpass_data generator))
+	       (structures (get_field :structures_declarations root))
+	       (buffer (make_strbuf discr_strbuf)))
+	   (add_structures_declarations_to_buffer structures buffer)
+	   (add_prototype_to_buffer root buffer)
+	   (add_to_buffer root buffer)
+	   (output_sbuf_strconst buffer "./generated_file"))))
+      (return generator)))
+
+(definstance generator_mode class_melt_mode
+  :named_name '"generator"
+  :meltmode_help '"MELT C generator"
+  :meltmode_fun generator_run)
+(install_melt_mode generator_mode)
+

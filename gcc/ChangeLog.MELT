@@ -1,3 +1,7 @@
+2010-08-31  Jeremie salvucci  <jeremie.salvucci@free.fr>
+	* xtramelt-ana-base.melt (gimple_iterator): Iterator added for gimple.
+	* xtramelt-c-generator.melt: Added new file.
+
 2010-08-16  Jeremie salvucci  <jeremie.salvucci@free.fr>
 	* xtramelt-ana-base.melt (tree_void_type) : Pattern added for void type.
 	(tree_indirect_reference) : Pattern added for indirect reference.
