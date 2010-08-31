@@ -1525,7 +1525,7 @@
   (:cstring name)
   treeident
   #{ /*$TREEIDENT ?*/ $TR && TREE_CODE ($TR) == IDENTIFIER_NODE }#
-  #{ /*$TREEIDENT !*/ $NAME = IDENTIFIER_POINTER ($TR) }#
+  #{ /*$TREEIDENT !*/ $NAME = (const char*) IDENTIFIER_POINTER ($TR) }#
 )
 
 ;;; pattern tree_list matches any tree list node
@@ -2560,6 +2560,39 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
    }/*end eachparaminfunctiondecl*/
   }# )
 
+;;; iterate on fields of a structure
+(defciterator foreach_field_in_record_type
+  (:tree first_field)
+  efirt
+  (:tree field)
+
+  #{
+       if ($first_field && TREE_CODE ($first_field) == FIELD_DECL)
+       {
+           tree $efirt#_current;
+	   for ($efirt#_current = $first_field; 
+		$efirt#_current != NULL;
+		$efirt#_current = TREE_CHAIN ($efirt#_current))
+	   {
+	       $field = $efirt#_current;
+  }#
+
+  #{
+           }
+       }
+  }#)
+
+;;; gimple iterator
+(defun gimple_iterator (f data :gimple g)
+  (each_bb_cfun
+   ()
+   (:basic_block body :tree header)
+   (let ((instructions (gimple_seq_of_basic_block body)))
+     (each_in_gimpleseq
+      (instructions)
+      (:gimple instruction)
+      (f data instruction))))
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; loop related operations
@@ -2638,6 +2671,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  foreach_argument_of_gimple_call
  foreach_basicblock_succ_edge
  foreach_case_of_gimple_switch
+ foreach_field_in_record_type
  foreach_mapbasicblock
  foreach_mapgimple
  foreach_maptree
@@ -2696,6 +2730,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_debug_bind
  gimple_error_mark_or_nil
  gimple_goto
+ gimple_iterator
  gimple_label
  gimple_nop
  gimple_phi
