@@ -1,3 +1,218 @@
+2010-08-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR preprocessor/45457
+	* c-c++-common/cpp/pr45457.c: New test.
+
+2010-08-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/nested-func-8.c: New test.
+
+2010-08-31  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/38282
+	* gfortran.dg/popcnt_poppar_1.F90: New test.
+	* gfortran.dg/popcnt_poppar_2.F90: New test.
+
+2010-08-31  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/volatile-2.c: Require nonpic target.
+
+2010-08-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/45461
+	* gcc.dg/pr45461.c: New test.
+
+2010-08-31  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/45455
+	* gcc.dg/vect/vect-cond-4.c: Fix use of uninitialized variable.
+
+2010-08-31  Bingfeng Mei  <bmei@broadcom.com>
+
+	* gcc.dg/vect/pr43430-1.c: Requires vect_condition target.
+
+2010-08-30  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45456
+	* gfortran.dg/typebound_proc_18.f03: New.
+
+2010-08-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* lib/gcc-dg.exp (cleanup-stack-usage): New procedure.
+	* lib/scanasm.exp (scan-stack-usage): Likewise.
+	(scan-stack-usage-not): Likewise.
+	* gcc.dg/stack-usage-1.c: New test.
+	* gcc.target/i386/stack-usage-realign.c: Likewise.
+
+2010-08-30  Zdenek Dvorak  <ook@ucw.cz>
+
+	PR tree-optimization/45427
+	* gcc.dg/tree-ssa/pr45427.c: New test.
+
+2010-08-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/45043
+	* g++.dg/template/crash102.C: New.
+
+2010-08-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/45423
+	* gcc.dg/gomp/atomic-12.c: New test.
+	* gcc.dg/gomp/atomic-13.c: New test.
+	* gcc.dg/gomp/atomic-14.c: New test.
+	* g++.dg/gomp/atomic-11.C: New test.
+	* g++.dg/gomp/atomic-12.C: New test.
+	* g++.dg/gomp/atomic-13.C: New test.
+	* g++.dg/gomp/atomic-14.C: New test.
+
+2010-08-30  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/debug/dwarf2/nested-2.C: Allow for single / as comment
+	delimiter.
+
+2010-08-30  Thomas Quinot  <quinot@adacore.com>
+
+	* gnat.dg/discr24.adb: New test.
+
+2010-08-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45449
+	* gcc.dg/pr45449.c: New testcase.
+
+2010-08-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/opts-1.c: Expect errors, not warnings.
+
+2010-08-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42769
+	* gfortran.dg/dynamic_dispatch_11.f03: New.
+
+2010-08-29  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44991
+	* g++.dg/parse/defarg15.C: New.
+
+2010-08-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45439
+	* gfortran.dg/select_type_16.f03: New.
+
+2010-08-28  Steven G. Kargl  <kargl@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/bessel_7.f90: Decrease required precision.
+
+2010-08-27  Naveen H.S  <naveen.S@kpitcummins.com>
+	    Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gcc.dg/attr-isr.c: Skip test for -m2a.  Don't	run on sh2a*-*-*.
+
+2010-08-23  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-fpconv-1.c: New test for integer to
+	floating point conversion code generation.
+	* gcc.target/powerpc/ppc-fpconv-2.c: Ditto.
+	* gcc.target/powerpc/ppc-fpconv-3.c: Ditto.
+	* gcc.target/powerpc/ppc-fpconv-4.c: Ditto.
+	* gcc.target/powerpc/ppc-fpconv-5.c: New test for floating point
+	to integer conversion code generation.
+	* gcc.target/powerpc/ppc-fpconv-6.c: Ditto.
+	* gcc.target/powerpc/ppc-fpconv-7.c: Ditto.
+	* gcc.target/powerpc/ppc-fpconv-8.c: Ditto.
+	* gcc.target/powerpc/ppc-fpconv-9.c: Ditto.
+
+2010-08-27  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/32049
+	* gfortran.dg/random_seed_1.f90: Adjust test.
+	* gfortran.dg/float128_1.f90: New test.
+
+2010-08-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/33197
+	* gcc/testsuite/gfortran.dg/norm2_1.f90: New.
+	* gcc/testsuite/gfortran.dg/norm2_2.f90: New.
+	* gcc/testsuite/gfortran.dg/norm2_3.f90: New.
+	* gcc/testsuite/gfortran.dg/norm2_4.f90: New.
+	* gcc/testsuite/gfortran.dg/parity_1.f90: New.
+	* gcc/testsuite/gfortran.dg/parity_2.f90: New.
+	* gcc/testsuite/gfortran.dg/parity_3.f90: New.
+
+2010-08-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45420
+	* gfortran.dg/select_type_15.f03: New.
+
+2010-08-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/43217
+	* gfortran.dg/hollerith8.f90: New test.
+
+2010-08-27  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45159
+	* gfortran.dg/dependency_33.f90:  New test.
+
+2010-08-27  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/graphite/scop-1.c: Fix out-of-bound array accesses.
+	* gcc.dg/graphite/scop-2.c: Likewise.
+	* gcc.dg/graphite/scop-20.c: Likewise.
+	* gcc.dg/vect/slp-25.c: Likewise.
+
+2010-08-27  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/dse_step.ads, dse_step.adb, test_dse_step.adb: New test.
+
+2010-08-26  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38936
+	PR fortran/44047
+	PR fortran/45384
+	* gfortran.dg/associate_8.f03: New test.
+	* gfortran.dg/select_type_13.f03: New test.
+	* gfortran.dg/select_type_14.f03: New test.
+
+2010-08-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/44485
+	* gcc.dg/pr44485.c: New test.
+
+2010-08-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/tls/thr-init-2.c: Use dg-add-options tls.
+	* gcc.dg/torture/tls/thr-init-1.c: Likewise.
+	* gcc.dg/torture/tls/thr-init-2.c: Likewise.
+
+2010-08-26  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/graphite/scop-0.c: Fix out-of-bound array accesses.
+	* gcc.dg/graphite/scop-21.c: Likewise.
+
+2010-08-26  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/vect/vect-64.c: Fix out-of-bound array accesses.
+	* gcc.dg/vect/fast-math-slp-27.c: Likewise.
+	* gcc.dg/vect/no-section-anchors-vect-64.c: Likewise.
+	* gcc.dg/vect/vect-91.c: Likewise.
+	* gcc.dg/vect/vect-peel-1.c: Likewise.
+	* gcc.dg/vect/vect-peel-2.c: Likewise.
+	* gcc.dg/vect/vect-peel-4.c: Likewise.
+
+2010-08-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/41859
+	* gfortran.dg/der_io_4.f90: New test.
+
+2010-08-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/44858
+	* gcc.c-torture/execute/pr44858.c: New test.
+
+	PR rtl-optimization/45400
+	* g++.dg/other/i386-8.C: New test.
+
 2010-08-25  Richard Guenther  <rguenther@suse.de>
 
 	* gcc.dg/alias-8.c: Adjust.
@@ -31,7 +246,7 @@
 
 	* lib/target-supports.exp (check_effective_target_vect_unpack):
 	Set vect_unpack supported flag to true for neon.
-	
+
 2010-08-24  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* gcc.dg/tree-ssa/ifc-5.c: New.

@@ -2955,6 +2955,7 @@ alloc_opt_list:
 	    }
 
 	  stat = tmp;
+	  tmp = NULL;
 	  saw_stat = true;
 
 	  if (gfc_check_do_variable (stat->symtree))
@@ -2981,6 +2982,7 @@ alloc_opt_list:
 	    }
 
 	  errmsg = tmp;
+	  tmp = NULL;
 	  saw_errmsg = true;
 
 	  if (gfc_match_char (',') == MATCH_YES)
@@ -3019,6 +3021,7 @@ alloc_opt_list:
             }
 
 	  source = tmp;
+	  tmp = NULL;
 	  saw_source = true;
 
 	  if (gfc_match_char (',') == MATCH_YES)
@@ -3050,6 +3053,7 @@ alloc_opt_list:
 	    }
 
 	  mold = tmp;
+	  tmp = NULL;
 	  saw_mold = true;
 	  mold->mold = 1;
 
@@ -4460,6 +4464,12 @@ select_type_set_tmp (gfc_typespec *ts)
   char name[GFC_MAX_SYMBOL_LEN];
   gfc_symtree *tmp;
   
+  if (!ts)
+    {
+      select_type_stack->tmp = NULL;
+      return;
+    }
+  
   if (!gfc_type_is_extensible (ts->u.derived))
     return;
 
@@ -4478,6 +4488,12 @@ select_type_set_tmp (gfc_typespec *ts)
 			      &tmp->n.sym->as, false);
       tmp->n.sym->attr.class_ok = 1;
     }
+
+  /* Add an association for it, so the rest of the parser knows it is
+     an associate-name.  The target will be set during resolution.  */
+  tmp->n.sym->assoc = gfc_get_association_list ();
+  tmp->n.sym->assoc->dangling = 1;
+  tmp->n.sym->assoc->st = tmp;
 
   select_type_stack->tmp = tmp;
 }
@@ -4516,6 +4532,7 @@ gfc_match_select_type (void)
 	expr1->symtree->n.sym->attr.untyped = 1;
       else
 	expr1->symtree->n.sym->ts = expr2->ts;
+      expr1->symtree->n.sym->attr.flavor = FL_VARIABLE;
       expr1->symtree->n.sym->attr.referenced = 1;
       expr1->symtree->n.sym->attr.class_ok = 1;
     }
@@ -4702,6 +4719,7 @@ gfc_match_class_is (void)
       c->where = gfc_current_locus;
       c->ts.type = BT_UNKNOWN;
       new_st.ext.case_list = c;
+      select_type_set_tmp (NULL);
       return MATCH_YES;
     }
 

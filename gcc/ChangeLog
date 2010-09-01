@@ -1,3 +1,590 @@
+2010-08-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-nested.c (convert_all_function_calls): Iterate until after the
+	sum of static chains in the nest doesn't change.
+
+2010-08-31  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/m32c/m32c.c (classes_intersect): Remove.
+	(m32c_preferred_reload_class, m32c_secondary_reload_class): Use
+	reg_classes_intersect_p instead of classes_intersect.
+	(class_can_hold_mode): Change arguments type from enum reg_class to
+	reg_class_t.  Use reg_class_contents instead of class_contents.
+	(m32c_register_move_cost): Make static. Change arguments type from
+	enum reg_class to reg_class_t. Use reg_classes_intersect_p instead of
+	classes_intersect. Use reg_class_contents instead of class_contents.
+	(m32c_memory_move_cost): Make static. Change arguments type from
+	enum reg_class to reg_class_t.
+	(TARGET_REGISTER_MOVE_COST, TARGET_MEMORY_MOVE_COST): Define.
+	* config/m32c/m32c.h (REGISTER_MOVE_COST, MEMORY_MOVE_COST): Remove.
+	* config/m32c/m32c-protos.h (m32c_register_move_cost,
+	m32c_memory_move_cost): Remove.
+
+2010-08-31  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/arm/arm-protos.h (arm_function_arg_advance): Delete.
+	(arm_function_arg): Delete.
+	(arm_needs_doubleword_align): Take a const_tree.
+	* config/arm/arm.h (FUNCTION_ARG, FUNCTION_ARG_ADVANCE): Delete.
+	* config/arm/arm.c (aapcs_select_call_coproc): Take a const_tree.
+	(aapcs_layout_arg, arm_needs_doubleword_align): Likewise.
+	(arm_function_arg): Make static.  Take a const_tree and a bool.
+	(arm_function_arg_advance): Likewise.
+	(TARGET_FUNCTION_ARG, TARGET_FUNCTION_ARG_ADVANCE): Define.
+
+2010-08-31  Andi Kleen      <ak@linux.intel.com>
+
+	* common.opt (fwhopr=): Update for -fwhopr=jobserver
+	* doc/invoke.texi (fwhopr): Document -fwhopr=jobserver.
+	* lto-wrapper.c (run_gcc): Add jobserver mode.
+	* opts.c (common_handle_option): Fix OPT_fwhopr for non numeric
+	argument.
+
+2010-08-31  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (popdi1): Rewrite using POST_INC memory operand.
+	(popsi1): Ditto.
+	(*popdi1_epilogue): Ditto.
+	(*popsi1_epilogue): Ditto.
+	(popsi, popdi peephole2 patterns): Update peepholes for changed
+	pop{si,di}1 and *pop{si,di}1_epilogue patterns.
+
+	(pop<mode>1): Macroize insn from pop{si,di}1 using P code iterator.
+	(*pop<mode>1_epilogue): Ditto from *pop{si,di}1_epilogue.
+
+	* config/i386/i386.c (*ix86_gen_pop1): Remove indirect function.
+	(override_options): Do not initialize removed ix86_gen_pop1.
+	(gen_pop): New static function.
+	(ix86_expand_prologue): Use gen_pop instead of ix86_gen_pop1.
+	(release_scratch_register_on_entry): Ditto.
+	(ix86_restore_reg_using_pop): Ditto.
+	(ix86_expand_epilogue): Ditto.
+
+2010-08-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/45461
+	* builtins.c (dummy_object): Return a MEM_REF instead of INDIRECT_REF.
+
+2010-08-31  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/fr30/fr30.c (fr30_move_double): Delete `dregno' and extra
+	semicolons.
+
+2010-08-31  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* doc/extend.texi: Fix documentation of the return value of
+	__builtin_choose_expr.
+
+2010-08-31  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/v850/v850-protos.h (function_arg): Delete.
+	* config/v850/v850.h (FUNCTION_ARG): Delete.
+	(FUNCTION_ARG_ADVANCE): Move code to...
+	* config/v850/v850.c (v850_function_arg_advance): ...here.
+	(v850_function_arg): Make static.  Take a const_tree and a bool.
+	(TARGET_FUNCTION_ARG, TARGET_FUNCTION_ARG_ADVANCE): Define.
+
+2010-08-31  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/m32r/m32r.h (FUNCTION_ARG, FUNCTION_ARG_ADVANCE): Move
+	these...
+	(ROUND_ADVANCE, ROUND_ADVANCE_ARG, ROUND_ADVANCE_CUM, PASS_IN_REG_P):
+	...and these...
+	* config/m32r/m32r.c (m32r_function_arg, m32r_function_arg_advance):
+	..to here..
+	(ROUND_ADVANCE, ROUND_ADVANCE_ARG, ROUND_ADVANCE_CUM, PASS_IN_REG_P):
+	...and here.
+	(TARGET_FUNCTION_ARG, TARGET_FUNCTION_ARG_ADVANCE): Define.
+
+2010-08-31  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rx/rx-protos.h (rx_function_arg, rx_function_arg_size):
+	Delete.
+	* config/rx/rx.h (FUNCTION_ARG, FUNCTION_ARG_ADVANCE): Delete.
+	* config/rx/rx.c (rx_function_arg_size): Make static.
+	(rx_function_arg): Likewise.
+	(rx_function_arg_advance): New function.
+	(TARGET_FUNCTION_ARG, TARGET_FUNCTION_ARG_ADVANCE): Define.
+
+2010-08-31  John Tytgat  <John.Tytgat@aaug.net>
+
+	* config/arm/arm.c (arm_override_options): Remove superfluous test.
+	Fix indentation.
+
+2010-08-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* dwarf2out.c (gen_decl_die) <CONST_DECL>: Do not skip in Ada.
+	(dwarf2out_decl) <CONST_DECL>: Likewise.
+
+2010-08-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	Stack usage support
+	* common.opt (-fstack-usage): New option.
+	* doc/invoke.texi (Debugging options): Document it.
+	* builtins.c (expand_builtin_apply): Pass TRUE as 4th argument to
+	allocate_dynamic_stack_space.
+	(expand_builtin_alloca): Add 4th bool parameter CANNOT_ACCUMULATE
+	and propagate it to allocate_dynamic_stack_space.
+	(expand_builtin) <BUILT_IN_ALLOCA>: Adjust for above change.
+	* calls.c (initialize_argument_information): Pass TRUE as 4th
+	argument to allocate_dynamic_stack_space.
+	(expand_call): Set current_function_has_unbounded_dynamic_stack_size
+	to 1 when pushing a variable-sized argument onto the stack.  Pass
+	TRUE as 4th argument to allocate_dynamic_stack_space.
+	Update current_function_pushed_stack_size.
+	(emit_library_call_value_1): Likewise.
+	* explow.c (allocate_dynamic_stack_space): Add 4th bool parameter
+	CANNOT_ACCUMULATE.  If flag_stack_usage, look into the size and
+	attempt to find an upper bound.  Remove redundant code for the
+	SETJMP_VIA_SAVE_AREA case.
+	* expr.h (allocate_dynamic_stack_space): Add 4th bool parameter.
+	* function.h (struct stack_usage): New structure.
+	(current_function_static_stack_size): New macro.
+	(current_function_dynamic_stack_size): Likewise.
+	(current_function_pushed_stack_size): Likewise.
+	(current_function_dynamic_alloc_count): Likewise.
+	(current_function_has_unbounded_dynamic_stack_size): Likewise.
+	(current_function_allocates_dynamic_stack_space): Likewise.
+	(struct function): Add new field 'su'.
+	* function.c (instantiate_virtual_regs): If SETJMP_VIA_SAVE_AREA,
+	add the value of the dynamic offset to the dynamic stack usage.
+	(gimplify_parameters): Set ALLOCA_FOR_VAR_P on call to BUILT_IN_ALLOCA
+	for variable-sized objects.
+	(prepare_function_start): Allocate cfun->su if flag_stack_usage.
+	(rest_of_handle_thread_prologue_and_epilogue): Call output_stack_usage.
+	* gimplify.c (gimplify_decl_expr): Set ALLOCA_FOR_VAR_P on call to
+	BUILT_IN_ALLOCA for variable-sized objects.
+	* output.h (output_stack_usage): Declare.
+	* toplev.c (stack_usage_file): New file pointer.
+	(output_stack_usage): New function.
+	(open_auxiliary_file): Likewise.
+	(lang_dependent_init): Open file if flag_stack_usage is set.
+	(finalize): Close file if stack_usage_file is not null.
+	* tree.h (ALLOCA_FOR_VAR_P): New macro.
+	* config/alpha/alpha.c (compute_frame_size): New function.
+	(alpha_expand_prologue): Use it.
+	(alpha_start_function): Likewise.
+	(alpha_expand_epilogue): Likewise.  Set stack usage info.
+	* config/i386/i386.c (ix86_expand_prologue): Likewise.
+	* config/ia64/ia64.c (ia64_expand_prologue): Likewise.
+	* config/mips/mips.c (mips_expand_prologue): Likewise.
+	* config/pa/pa.c (hppa_expand_prologue): Likewise.
+	* config/rs6000/rs6000.c (rs6000_emit_prologue): Likewise.
+	* config/sparc/sparc.c (sparc_expand_prologue): Likewise.
+
+2010-08-30  Zdenek Dvorak  <ook@ucw.cz>
+
+	PR tree-optimization/45427
+	* tree-ssa-loop-niter.c (number_of_iterations_ne_max): Rewritten.
+	Handle the case that the exit is never taken correctly.
+	(number_of_iterations_ne): Pass exit_must_be_taken to
+	number_of_iterations_ne_max.
+
+2010-08-30  Catherine Moore  <clm@codesourcery.com>
+
+	* config/mips/mips.h (BASE_DRIVER_SELF_SPECS):
+	Infer -mdspr2 for the the 74K.
+
+2010-08-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45419
+	* tree-ssa-live.c (dump_enumerated_decls): Clear the whole wi variable.
+
+	PR middle-end/45423
+	* gimplify.c (goa_stabilize_expr): Handle TRUTH_NOT_EXPR
+	and TRUTH_{AND,OR,XOR}_EXPR.
+	* c-parser.c (c_parser_omp_atomic): Handle boolean
+	{PRE,POST}_{INC,DEC}REMENT.
+
+2010-08-30  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/xtensa/xtensa-protos.h (function_arg_advance): Delete.
+	(function_arg): Delete.
+	* config/xtensa/xtensa.h (FUNCTION_ARG, FUNCTION_ARG_ADVANCE): Delete.
+	(FUNCTION_INCOMING_ARG): Delete.
+	* config/xtensa/xtensa.c (function_arg_advance): Rename to...
+	(xtensa_function_arg_advance): ...this.  Make static.  Take a const_tree
+	and a bool.
+	(function_arg): Rename to...
+	(xtensa_function_arg_1): ...this.  Make static.  Take a const_tree and
+	a bool.
+	(xtensa_function_arg, xtensa_function_incoming_arg): Nex functions.
+	(TARGET_FUNCTION_ARG, TARGET_FUNCTION_ARG_ADVANCE): Define.
+	(TARGET_FUNCTION_INCOMING_ARG): Define.
+
+2010-08-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/21602
+	* builtins.c (fold_builtin_memory_op): Fold memmove to memcpy
+	using points-to information.
+
+2010-08-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/linux.h (TARGET_HAS_SINCOS): Replace | with ||.
+
+2010-08-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45449
+	* tree-ssa-live.c (remove_unused_locals): Also remove address-taken
+	variables.
+
+2010-08-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* opts.h (CL_ERR_NEGATIVE): Define.
+	* opts.c (unknown_option_callback): Don't postpone warnings for
+	options marked with CL_ERR_NEGATIVE.
+	* opts-common.c (decode_cmdline_option): Set CL_ERR_NEGATIVE error
+	for negative versions of CL_REJECT_NEGATIVE options.
+
+2010-08-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (zero_extendsidi2_1): Rename from
+	zero_extendsidi2_32.
+	(zero_extend<mode>di2): Macroize insn from zero_extend{qi,hi}di2
+	using SWI12 mode iterator.
+	(zero_extendhisi2_and): Merge insn pattern and corresponding spliter
+	to define_insn_and_split pattern.
+	(zero_extendqi<mode>2): Macroize expander from zero_extendqi{hi,si}2
+	using SWI24 mode iterator.
+	(*zero_extendqi<mode>2_and): Macroize insn from
+	*zero_extendqi{hi,si}2_and using SWI24 mode iterator.
+	(*zero_extendqi<mode>2_movzbl_and): Macroize insn from
+	*zero_extendqihi2_movzbw_and and *zero_extendqisi2_movzbl_and using
+	SWI24 mode iterator.
+	(*zero_extendqi<mode>2_movzbl): Ditto from
+	*zero_extendqi{hi,si}2_movzbl.
+	(extendsidi2_1): Rename from extendsidi2_32.
+	(extend<mode>di2): Macroize insn from extend{qi,hi}di2 using
+	SWI12 mode iterator.
+
+2010-08-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/ia64/ia64.h (HARD_REGNO_NREGS): Return 1 for CCImode in
+	general purpose registers.
+	(HARD_REGNO_MODE_OK): Accept CCImode in general purpose registers.
+	* config/ia64/ia64.md (*movcci): Change to named pattern.  Deal
+	with general purpose registers and memory operands.  Add associated
+	CCImode post-reload splitter.
+	* config/ia64/div.md: Change BImode to CCImode throughout.
+
+2010-08-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/ia64/ia64.md (cstorebi4): Fix thinko.
+
+2010-08-28  Hariharan Sandanagobalane <hariharan@picochip.com>
+
+	* config/picochip/picochip.c (reorder_var_tracking_notes): This
+	function was dropping debug insns which caused PR45299.
+
+2010-08-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (extsuffix): New code attribute.
+	(sse4_1_<code>v8qiv8hi2): Macroize insn from sse4_1_extendv8qiv8hi2
+	and sse4_1_zero_extendv8qiv8hi2 using any_extend code iterator.
+	(sse4_1_<code>v4qiv4si2): Ditto from sse4_1_extendv4qiv4si2
+	and sse4_1_zero_extendv4qiv4si2.
+	(sse4_1_<code>v2qiv2di2): Ditto from sse4_1_extendv2qiv2di2
+	and sse4_1_zero_extendv2qiv2di2.
+	(sse4_1_<code>v4hiv4si2): Ditto from sse4_1_extendv4hiv4si2
+	and sse4_1_zero_extendv4hiv4si2.
+	(sse4_1_<code>v2hiv2di2): Ditto from sse4_1_extendv2hiv2di2
+	and sse4_1_zero_extendv2hiv2di2.
+	(sse4_1_extendv2siv2di2): Ditto from sse4_1_extendv2siv2di2
+	and sse4_1_zero_extendv2siv2di2
+
+	(<s>mulv8hi3_highpart): Macroize expander from {u,s}mulv8hi3_highpart
+	using any_extend code iterator.
+	(*avx_<s>mulv8hi3_highpart): Macroize insn from
+	*avx_{u,s}mulv8hi3_highpart using any_extend code iterator.
+	(*<s>mulv8hi3_highpart): Ditto from *{u,s}mulv8hi3_highpart.
+
+	* config/i386/i386.c (ix86_expand_sse4_unpack): Update for renamed
+	gen_sse4_1_sign_extend* functions.
+	(struct builtin_description bdesc_args): Ditto.
+
+2010-08-27  Xinliang David Li  <davidxl@google.com>
+
+	PR/45422
+	* tree-ssa-loop-ivopts.c (iv_ca_get_num_inv_exprs): Remove.
+	(iv_ca_set_no_cp): Update used inv expr count.
+	(iv_ca_set_cp): Ditto.
+	(iv_ca_new): Initialize new member.
+	(iv_ca_free): Free memory.
+
+2010-08-27  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/sh/sh-protos.h (sh_function_arg): Delete.
+	(sh_function_arg_advance): Delete.
+	* config/sh/sh.h (FUNCTION_ARG, FUNCTION_ARG_ADVANCE): Delete.
+	(PASS_IN_REG_P): Eliminate cast.
+	* config/sh/sh.c (sh_function_arg_advance): Make static.  Take a
+	const_tree and a bool.
+	(sh_function_arg): Likewise.
+	(sh_output_mi_thunk): Call sh_function_arg_advance) and
+	sh_function_arg.
+	(TARGET_FUNCTION_ARG, TARGET_FUNCTION_ARG_ADVANCE): Define.
+
+2010-08-27  Naveen H.S  <naveen.S@kpitcummins.com>
+	    Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (push_regs): Emit movml for interrupt handler
+	when possible.
+	(sh_expand_epilogue): Likewise.
+	* config/sh/sh.md (movml_push_banked): New insn.
+	(movml_pop_banked): Likewise.
+
+2010-08-28  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* genautomata.c (gen_regexp_repeat, gen_regexp_allof,
+	gen_regexp_oneof, gen_regexp_sequence): Use the string found
+	in vector element 0 rather than the original string when there's
+	only one element.
+	(gen_regexp): Remove extra semicolon.
+
+	* config/arm/vfp.md (arm_movsi_vfp, thumb2_movsi_vfp, movsf_vfp,
+	thumb2_movsf_vfp): Set attribute "insn".
+	* config/arm/arm.md (arm_ashrdi3_1bit, arm_lshrdi3_1bit, not_shiftsi,
+	not_shiftsi_compare0, not_shiftsi_compare0_scratch, arm_one_cmplsi2,
+	thumb1_one_cmplsi2, notsi_compare0, notsi_compare0_scratch,
+	arm_zero_extendsidi2, arm_extendsidi2, thumb1_movdi_insn,
+	arm_movsi_insn, movhi_insn_arch4, movhi_bytes, arm_movqi_insn,
+	thumb1_movqi_insn arm32_movhf, thumb1_movhf, arm_movsf_soft_insn,
+	thumb1_movsf_insn, thumb_movdf_insn, mov_scc, mov_negscc, mov_notscc,
+	movsicc_insn, movsfcc_soft_insn, and_scc, cond_move, if_move_not,
+	if_not_move, if_shift_move, if_move_shift, if_shift_shift,
+	if_not_arith, if_arith_not, cond_move_not): Likewise.
+
+2010-08-23  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000-protos.h (rs6000_address_for_fpconvert):
+	New declaration.
+	(rs6000_allocate_stack_temp): Ditto.
+	(rs6000_expand_convert_si_to_sfdf): Ditto.
+
+	* config/rs6000/rs6000.c (rs6000_override_options): Adjust long
+	line.  Update the options set if power6 or power7 server/embedded
+	type options are used.  If we give a warning for no vsx under
+	-mcpu=power7 -mno-altivec, mark -mvsx as an explicit option.
+	(rs6000_allocate_stack_temp): New function to allocate a stack
+	tempoary and adjust the address so it meets either REG+OFFSET or
+	REG+REG addressing requirements.
+	(rs6000_address_for_fpconvert): Adjust REG+OFFSET addresses so
+	that they can be used with the LFIWAX/LFIWZX instrucitons.
+	(rs6000_expand_convert_si_to_sfdf): New helper funciton for
+	converting signed/unsigned SImode to either SFmode/DFmode.
+
+	* config/rs6000/rs6000.h (TARGET_FCFID): New macros to determine
+	whether certain instructions can be generated.
+	(TARGET_FCTIDZ): Ditto.
+	(TARGET_STFIWX): Ditto.
+	(TARGET_LFIWAX): Ditto.
+	(TARGET_LFIWZX): Ditto.
+	(TARGET_FCFIDS): Ditto.
+	(TARGET_FCFIDU): Ditto.
+	(TARGET_FCFIDUS): Ditto.
+	(TARGET_FCTIDUZ): Ditto.
+	(TARGET_FCTIWUZ): Ditto.
+
+	* config/rs6000/rs6000.md (UNSPEC_FCTIW): New unspec constants.
+	(UNSPEC_FCTID): Ditto.
+	(UNSPEC_LFIWAX): Ditto.
+	(UNSPEC_LFIWZX): Ditto.
+	(UNSPEC_FCTIWUZ): Ditto.
+	(rreg): Use correct constraints.
+	(SI_CONVERT_FP): New mode attribute for floating point conversion
+	tests.
+	(E500_CONVERT): Ditto.
+	(lfiwax): New insns for converting from integer to floating point
+	utilizing newer instructions.  Attempt to optimize conversions
+	that come from memory so that we don't load the value into a GPR,
+	spill it to the stack and reload it into a FPR.
+	(floatsi<mode>2_lfiwax): Ditto.
+	(floatsi<mode>2_lfiwax_mem): Ditto.
+	(floatsi<mode>2_lfiwax_mem2): Ditto.
+	(lfiwzx): Ditto.
+	(floatunssi<mode>2_lfiwzx): Ditto.
+	(floatunssi<mode>2_lfiwzx_mem): Ditto.
+	(floatunssi<mode>2_lfiwzx_mem2): Ditto.
+	(floatdidf2_mem): Ditto.
+	(floatunsdidf2_fcfidu): Ditto.
+	(floatunsdidf2_mem): Ditto.
+	(floatunsdisf2): Ditto.
+	(floatunsdisf2_fcfidus): Ditto.
+	(floatunsdisf2_mem): Ditto.
+	(floatsidf2): Add support for LFIWAX/LFIWZX/FCFIDS/FCFIDU/FCFIDUS.
+	Use FCFID on 32-bit hosts that support it.
+	(floatsidf2_internal): Ditto.
+	(floatunssisf2): Ditto.
+	(floatunssidf2): Ditto.
+	(floatunssidf2_internal): Ditto.
+	(floatsisf2): Ditto.
+	(floatdidf2): Ditto.
+	(floatdidf2_fpr): Ditto.
+	(floatunsdidf2): Ditto.
+	(floatdisf2): Ditto.
+	(floatdisf2_fcfids): Ditto.
+	(floatdisf2_internal1): Ditto.
+	(fixuns_truncsfsi2): Delete, merge into common pattern for both
+	SF/DF.  Add power7 support.
+	(fix_truncsfsi2): Ditto.
+	(fixuns_truncdfsi2): Ditto.
+	(fixuns_truncdfdi2): Ditto.
+	(fix_truncdfsi2): Ditto.
+	(fix_truncdfsi2_internal): Ditto.
+	(fix_truncdfsi2_internal_gfxopt): Ditto.
+	(fix_truncdfsi2_mfpgpr): Ditto.
+	(fctiwz): Ditto.
+	(btruncdf2): Ditto.
+	(btruncdf2_fpr): Ditto.
+	(btructsf2): Ditto.
+	(ceildf2): Ditto.
+	(ceildf2_fpr): Ditto.
+	(ceilsf2): Ditto.
+	(floordf2): Ditto.
+	(floordf2_fpr): Ditto.
+	(floorsf2): Ditto.
+	(rounddf2): Ditto.
+	(rounddf2_fpr): Ditto.
+	(roundsf2): Ditto.
+	(fix_trunc<mode>si2): Combine SF/DF conversion into one insn.
+	(fix_trunc<mode>di2): Ditto.
+	(fixuns_trunc<mode>si2): Ditto.
+	(fixuns_trunc<mode>di2): Ditto.
+	(fctiwz_<mode>): Ditto.
+	(btrunc<mode>2): Ditto.
+	(btrunc<mode>2_fpr): Ditto.
+	(ceil<mode>2): Ditto.
+	(ceil<mode>2_fpr): Ditto.
+	(floor<mode>2): Ditto.
+	(float<mode>2_fpr): Ditto.
+	(round<mode>2): Ditto.
+	(round<mode>2_fpr): Ditto.
+	(fix_trunc<mode>si2_stfiwx): New insn for machines with STFIWX.
+	(fixuns_trunc<mode>si2_stfiwx): Ditto.
+	(fix_truncdfsi2_internal): Ditto.
+	(fix_trunc<mode>si2_mem): Combiner pattern to eliminate storing
+	converted value on stack, loaded into GPR, and then stored into
+	the final destination.
+	(fix_trunc<mode>di2_fctidz): New pattern for targets supporting
+	FCTIDZ.
+	(lrint<mode>di2): New insn, provide the lrint builtin functions.
+	(ftruncdf2): Delete, unused.
+	(fix_trunctfsi2_internal): Use gen_fctiwz_df, not gen_fctiwz.
+
+	* config/rs6000/vsx.md (toplevel): Update copyright year.
+	(VSr2): Use "ws" contraint for DFmode, not "!r#r".
+	(VSr3): Ditto.
+
+2010-08-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Jeremie Salvucci  <jeremie.salvucci@free.fr>
+
+	* gengtype.c (output_type_enum): Test the right union member.
+
+2010-08-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/41484
+	* config/i386/sse.md (sse4_1_extendv8qiv8hi2): Also accept memory
+	operands for operand 1.
+	(sse4_1_extendv4qiv4si2): Ditto.
+	(sse4_1_extendv2qiv2di2): Ditto.
+	(sse4_1_extendv4hiv4si2): Ditto.
+	(sse4_1_extendv2hiv2di2): Ditto.
+	(sse4_1_extendv2siv2di2): Ditto.
+	(sse4_1_zero_extendv8qiv8hi2): Ditto.
+	(sse4_1_zero_extendv4qiv4si2): Ditto.
+	(sse4_1_zero_extendv2qiv2di2): Ditto.
+	(sse4_1_zero_extendv4hiv4si2): Ditto.
+	(sse4_1_zero_extendv2hiv2di2): Ditto.
+	(sse4_1_zero_extendv2siv2di2): Ditto.
+	(*sse4_1_extendv8qiv8hi2): Remove insn pattern.
+	(*sse4_1_extendv4qiv4si2): Ditto.
+	(*sse4_1_extendv2qiv2di2): Ditto.
+	(*sse4_1_extendv4hiv4si2): Ditto.
+	(*sse4_1_extendv2hiv2di2): Ditto.
+	(*sse4_1_extendv2siv2di2): Ditto.
+	(*sse4_1_zero_extendv8qiv8hi2): Ditto.
+	(*sse4_1_zero_extendv4qiv4si2): Ditto.
+	(*sse4_1_zero_extendv2qiv2di2): Ditto.
+	(*sse4_1_zero_extendv4hiv4si2): Ditto.
+	(*sse4_1_zero_extendv2hiv2di2): Ditto.
+	(*sse4_1_zero_extendv2siv2di2): Ditto.
+
+2010-08-27  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/mips/mips-protos.h (mips_function_arg_advance): Delete
+	(mips_function_arg): Delete.
+	(mips_function_arg_boundary): Take a const_tree.
+	* config/mips/mips.c (mips_function_arg_boundary): Likewise.
+	(mips_arg_info): Likewise.
+	(mips_setup_incoming_varargs): Call mips_function_arg_advance
+	instead of FUNCTION_ARG_ADVANCE.
+	(mips_function_arg_advance): Adjust prototype.  Make static.
+	(mips_function_arg): Likewise.
+	(TARGET_FUNCTION_ARG, TARGET_FUNCTION_ARG_ADVANCE): Define.
+	* config/mips/mips.h (FUNCTION_ARG_ADVANCE, FUNCTION_ARG): Delete.
+
+2010-08-27  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/rs6000.h (FUNCTION_ARG, FUNCTION_ARG_ADVANCE): Delete.
+	* config/rs6000/rs6000-protos.h (function_arg_advance): Delete.
+	(function_arg): Delete.
+	(function_arg_boundary): Take a const_tree.
+	* config/rs6000/rs6000.c (function_arg_boundary): Likewise.
+	(rs6000_spe_function_arg): Likewise.
+	(rs6000_parm_start): Likewise.
+	(rs6000_arg_size): Likewise.
+	(rs6000_darwin64_record_arg_advance_recurse): Likewise.
+	(rs6000_darwin64_record_arg): Likewise.  Take a bool instead of an int.
+	(rs6000_mixed_function_arg): Likewise.
+	(function_arg): Rename to...
+	(rs6000_function_arg): ...this.
+	(function_arg_advance): Rename to...
+	(rs6000_function_arg_advance_1): ...this
+	(rs6000_function_arg_advance): New function.  Call it.
+	(setup_incoming_varargs): Call rs6000_function_arg_advance_1.
+	(rs6000_return_in_memory): Adjust call to rs6000_darwin64_record_arg.
+	(rs6000_function_value): Likewise.
+	(TARGET_FUNCTION_ARG, TARGET_FUNCTION_ARG_ADVANCE): Define.
+
+2010-08-27  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/arm.md (enabled): Test the value of arch_enabled
+	rather than just using it.
+
+2010-08-27  Olivier Hainque  <hainque@adacore.com>
+	    Eric Botcazou  <ebotcazou@adacore.com>
+
+	* dse.c (group_info.base_mem, get_group_info): Use BLKmode to
+	cover all the possible offsets from this base.
+	(scan_reads_nospill): Pass base_mem's mode to canon_true_dependence.
+
+2010-08-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/44485
+	* calls.c (flags_from_decl_or_type): For const or pure
+	noreturn functions return ECF_LOOPING_CONST_OR_PURE|ECF_NORETURN
+	together with ECF_CONST resp. ECF_PURE.
+	* builtins.c (expand_builtin): Use flags_from_decl_or_type
+	instead of querying flags directly.
+	* tree-ssa-loop-niter.c (finite_loop_p): Likewise.
+	* tree-ssa-dce.c (find_obviously_necessary_stmts): Likewise.
+
+2010-08-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45255
+	* tree.c (decl_address_invariant_p): DECL_DLLIMPORT_P statics
+	and externals are also invariant.
+
+2010-08-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/44858
+	* combine.c (try_combine): If recog_for_combine added CLOBBERs to
+	newi2pat, make sure they don't affect newpat.
+
+	PR rtl-optimization/45400
+	* combine.c (simplify_shift_const_1) <case SUBREG>: Only use
+	SUBREG_REG if both modes are of MODE_INT class.
+
 2010-08-25  Julian Brown  <julian@codesourcery.com>
 
 	* config/arm/arm.c (arm_issue_rate): Return 2 for Cortex-A5.
@@ -8,8 +595,7 @@
 
 2010-08-25  Richard Guenther  <rguenther@suse.de>
 
-	* alias.c (get_alias_set): Assign a single alias-set to
-	all pointers.
+	* alias.c (get_alias_set): Assign a single alias-set to all pointers.
 	* gimple.c (gimple_get_alias_set): Remove special handling
 	for pointers.
 
@@ -59,8 +645,7 @@
 
 	* config/arm/iterators.md (VU, SE, V_widen_l): New.
 	(V_unpack, US): New.
-	* config/arm/neon.md (vec_unpack<US>_hi_<mode>): Expansion for
-	vmovl.
+	* config/arm/neon.md (vec_unpack<US>_hi_<mode>): Expansion for vmovl.
 	(vec_unpack<US>_lo_<mode>): Likewise.
 	(neon_vec_unpack<US>_hi_<mode>): Instruction pattern for vmovl.
 	(neon_vec_unpack<US>_lo_<mode>): Likewise.
@@ -162,8 +747,7 @@
 	TARGET_MEM_REF more properly.
 	(indirect_ref_may_alias_decl_p): Likewise.
 	* emit-rtl.c (set_mem_attributes_minus_bitpos): Keep TARGET_MEM_REFs.
-	* alias.c (ao_ref_from_mem): Handle TARGET_MEM_REF more
-	properly.
+	* alias.c (ao_ref_from_mem): Handle TARGET_MEM_REF more properly.
 
 2010-08-23  Anatoly Sokolov  <aesok@post.ru>
 
@@ -191,10 +775,10 @@
 	* tree-flow.h (may_be_nonaddressable_p): New definition. Make the
 	existing static function global.
 
-	*tree-ssa-loop-ivopts.c (may_be_nonaddressable_p): This function
+	* tree-ssa-loop-ivopts.c (may_be_nonaddressable_p): This function
 	is changed to global.
 
-	*tree-ssa-loop-prefetch.c (gather_memory_references_ref): Call
+	* tree-ssa-loop-prefetch.c (gather_memory_references_ref): Call
 	may_be_nonaddressable_p on base, and don't collect this reference
 	if the address of the base could not be taken.
 
@@ -298,9 +882,9 @@
 	(build_cdtor): Move to ipa.c; add code avoiding construction
 	when target have ctors/dtors and there is only one ctor/dtor at given
 	priority.
-	(compare_ctor, compare_dtor): Move to ipa.c; use DECL_UID to stabilize sort;
-	reverse order of constructors.
-	(cgraph_build_cdtor_fns):Move to ipa.c; rename to build_cdtor_fns.
+	(compare_ctor, compare_dtor): Move to ipa.c; use DECL_UID to stabilize
+	sort; reverse order of constructors.
+	(cgraph_build_cdtor_fns): Move to ipa.c; rename to build_cdtor_fns.
 	(cgraph_finalize_function): Do not call record_cdtor_fn.
 	(cgraph_finalize_compilation_unit): Do not call cgraph_build_cdtor_fns.
 	(cgraph_build_static_cdtor): Move to ipa.c.
@@ -310,7 +894,8 @@
 	build_cdtor_fns, ipa_cdtor_merge, gate_ipa_cdtor_merge,
 	pass_ipa_cdtor_merge): New.
 	* passes.c (init_optimization_passes): Enqueue pass_ipa_cdtor_merge.
-	* ipa-prop.c (update_indirect_edges_after_inlining): Avoid out of bounds access.
+	* ipa-prop.c (update_indirect_edges_after_inlining): Avoid out of
+	bounds access.
 
 2010-08-20  Jan Hubicka  <jh@suse.cz>
 
@@ -326,9 +911,11 @@
 
 2010-08-20  Jan Hubicka  <jh@suse.cz>
 
-	* lto-cgraph.c (lto_output_edge): Use gimple_has_body_p instead of flag_wpa.
+	* lto-cgraph.c (lto_output_edge): Use gimple_has_body_p instead of
+	flag_wpa.
 	* lto-streamer-out.c (lto_output): Likewise.
-	* passes.c (ipa_write_optimization_summaries): Initialize statement uids.
+	* passes.c (ipa_write_optimization_summaries): Initialize statement
+	uids.
 
 2010-08-20  Olivier Hainque  <hainque@adacore.com>
 
@@ -372,9 +959,9 @@
 
 	revert r163410, partially revert r163267.
 	* config/rs6000/darwin.h (LIB_SPEC): Remove.
-	* config/darwin.h (REAL_LIBGCC_SPEC): Link lgcc for all 
+	* config/darwin.h (REAL_LIBGCC_SPEC): Link lgcc for all
 	Darwin versions.
-	
+
 2010-08-20  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/44974
@@ -383,7 +970,7 @@
 
 2010-08-20  Uros Bizjak  <ubizjak@gmail.com>
 
-	* config/i386/i386.md (ashift RSP splitter): Remove splitter.
+	* config/i386/i386.md (ashift %rsp splitter): Remove splitter.
 	(pro_epilogue_adjust_stack_di_2): Use "l" constraint for
 	alternative 1 of operand 2.
 

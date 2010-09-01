@@ -482,7 +482,8 @@ unknown_option_callback (const struct cl_decoded_option *decoded)
 {
   const char *opt = decoded->arg;
 
-  if (opt[1] == 'W' && opt[2] == 'n' && opt[3] == 'o' && opt[4] == '-')
+  if (opt[1] == 'W' && opt[2] == 'n' && opt[3] == 'o' && opt[4] == '-'
+      && !(decoded->errors & CL_ERR_NEGATIVE))
     {
       /* We don't generate warnings for unknown -Wno-* options unless
 	 we issue diagnostics.  */
@@ -2088,7 +2089,7 @@ common_handle_option (const struct cl_decoded_option *decoded,
       break;
 
     case OPT_fwhopr:
-      flag_whopr = value;
+      flag_whopr = arg;
       break;
 
     case OPT_w:

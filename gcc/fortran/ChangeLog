@@ -1,33 +1,149 @@
-2010-09-01  Paul Thomas  <pault@gcc.gnu.org>
+2010-08-31  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
-	* trans-array.c : Define and subsequently undefine descriptor
-	SIZE_FIELD, SM_SUBFIELD and EXTENT_SUBFIELD. Change the offset
-	for DIMENSION_FIELD.
-	(gfc_data_field_from_base_field): New function.
-	(gfc_conv_descriptor_data_addr): Call it to maintain API.
-	(gfc_dimension_field_from_base_field): New function.
-	(gfc_conv_descriptor_dimension): Call it.
-	(gfc_conv_descriptor_stride_get): Compute the stride from the
-	'sm' field.
-	(gfc_conv_descriptor_stride_set): Compute and set 'sm' field.
-	(gfc_conv_descriptor_sm, gfc_conv_descriptor_sm_get,
-	gfc_conv_descriptor_sm_set): New functions.
-	(gfc_conv_descriptor_extent, gfc_conv_descriptor_extent_get,
-	gfc_conv_descriptor_extent_set): New functions.
-	(gfc_conv_descriptor_ubound_get): Compute the ubound from the
-	'extent' field.
-	(gfc_conv_descriptor_ubound_set): Compute and set 'extent'
-	field.
-	trans-array.h: New prototypes for gfc_conv_descriptor_sm_get,
-	gfc_conv_descriptor_extent_get, gfc_data_field_from_base_field,
-	gfc_dimension_field_from_base_field,gfc_conv_descriptor_sm_set,
-	and gfc_conv_descriptor_extent_set.
-	trans-types.c (gfc_get_desc_dim_type): Add 'sm' and 'extent'
-	fields.
-	(gfc_get_array_descriptor_base): Add 'size' field.
-	(gfc_get_array_descr_info): Call gfc_data_field_from_base_field
-	and gfc_dimension_field_from_base_field instead of using the
-	field offsets explicitly.
+	PR fortran/38282
+	* f95-lang.c (gfc_init_builtin_functions): Define popcount{,l,ll}
+	and parity{,l,ll} builtins.
+	* trans-intrinsic.c (gfc_conv_intrinsic_popcnt_poppar): New function.
+	(gfc_conv_intrinsic_function): Call above new functions.
+	* simplify.c (gfc_simplify_popcnt, gfc_simplify_poppar): New
+	functions.
+	* intrinsic.texi: Document POPCNT and POPPAR.
+
+2010-08-30  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45456
+	* resolve.c (resolve_structure_cons): Handle pointer-valued PPCs.
+
+2010-08-30  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* Make-lang.in: Add frontend-passes.o dependencies.
+
+2010-08-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42769
+	* resolve.c (resolve_structure_cons): For derived types, make sure the
+	type has been resolved.
+	(resolve_typebound_procedures): Make sure the vtab has been generated.
+
+2010-08-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45439
+	* match.c (gfc_match_select_type): Give the associate-name the
+	FL_VARIABLE attribute.
+
+2010-08-28  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* simplify.c (gfc_simplify_bessel_n2): Fix indention
+	and argument type.
+
+2010-08-28  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/45436
+	* trans-types.c (gfc_init_kinds): Disable TFmode.
+
+2010-08-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45432
+	* match.c (gfc_match_allocate): Avoid double free on error.
+
+2010-08-27  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/32049
+	* gfortran.h (gfc_real_info): Add c_float128 field.
+	* mathbuiltins.def: Indicate which builtins are const.
+	* trans-types.h (float128_type_node, complex_float128_type_node,
+	gfc_real16_is_float128): New variables.
+	* trans-types.c (float128_type_node, complex_float128_type_node,
+	gfc_real16_is_float128): New variables.
+	(gfc_init_kinds): Allow TFmode.
+	(gfc_build_real_type): Mark __float128 types as such.
+	(gfc_init_types): Initialize float128_type_node and
+	complex_float128_type_node
+	* f95-lang.c (gfc_init_builtin_functions): Adjust for new
+	argument of OTHER_BUILTIN macro.
+	* trans-intrinsic.c (gfc_intrinsic_map_t): Likewise.
+	(builtin_decl_for_precision): Special case for __float128.
+	(builtin_decl_for_float_kind): Likewise.
+	(define_quad_builtin): New function.
+	(gfc_build_intrinsic_lib_fndecls): Create all __float128
+	library decls if necessary. Store them in the real16_decl and
+	complex16_decl builtin map fields.
+	(gfc_get_intrinsic_lib_fndecl): Handle q-suffixed __float128
+	library function names.
+
+2010-08-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/33197
+	* gcc/fortran/intrinsic.c (add_functions): Add norm2 and parity.
+	* gcc/fortran/intrinsic.h (gfc_check_norm2, gfc_check_parity):
+	gfc_simplify_norm2, gfc_simplify_parity, gfc_resolve_norm2,
+	gfc_resolve_parity): New prototypes.
+	* gcc/fortran/gfortran.h (gfc_isym_id): New enum items
+	GFC_ISYM_NORM2 and GFC_ISYM_PARITY.
+	* gcc/fortran/iresolve.c (gfc_resolve_norm2,
+	gfc_resolve_parity): New functions.
+	* gcc/fortran/check.c (gfc_check_norm2, gfc_check_parity):
+	New functions.
+	* gcc/fortran/trans-intrinsic.c (gfc_conv_intrinsic_arith,
+	gfc_conv_intrinsic_function): Handle NORM2 and PARITY.
+	* gcc/fortran/intrinsic.texi (NORM2, PARITY): Add.
+	* gcc/fortran/simplify.c (simplify_transformation_to_array):
+	Add post-processing opterator.
+	(gfc_simplify_all, gfc_simplify_any, gfc_simplify_count,
+	gfc_simplify_product, gfc_simplify_sum): Update call.
+	(add_squared, do_sqrt, gfc_simplify_norm2, do_xor,
+	gfc_simplify_parity): New functions.
+
+2010-08-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45420
+	* match.c (select_type_set_tmp): Add the possibility to reset the
+	temporary to NULL.
+	(gfc_match_class_is): Reset the temporary in CLASS DEFAULT clauses.
+
+2010-08-27  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45159
+	* dependency.c (check_section_vs_section):  Single test for
+	identical strides which takes into account that only one
+	of the strides may be NULL.
+
+2010-08-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/43217
+	* primary.c (match_hollerith_constant): Calculate padding needed to
+	fill default integer and allocate string for that size.  Set pad bytes
+	to ' '.
+	* gfortran.h: Add hollerith pad value to type spec union.
+	* data.c (create_character_initializer): Fix spelling of function name.
+	Use hollerith pad value to calculate length.
+	* arith.c (hollerith2representation); Use hollerith pad value to
+	calculate length.
+
+2010-08-26  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38936
+	PR fortran/44047
+	PR fortran/45384
+	* gfortran.h (struct gfc_association_list): New flag `dangling'.
+	(gfc_build_block_ns): Declared here...
+	* parse.h (gfc_build_block_ns): ...instead of here.
+	* trans.h (gfc_process_block_locals): Expect additionally the
+	gfc_association_list of BLOCK (if present).
+	* match.c (select_type_set_tmp): Create sym->assoc for temporary.
+	* resolve.c (resolve_variable): Only check for invalid *array*
+	references on associate-names.
+	(resolve_assoc_var): New method with code previously in resolve_symbol.
+	(resolve_select_type): Use association to give the selector and
+	temporaries their values instead of ordinary assignment.
+	(resolve_fl_var_and_proc): Allow CLASS associate-names.
+	(resolve_symbol): Use new `resolve_assoc_var' instead of inlining here.
+	* trans-stmt.c (gfc_trans_block_construct): Pass association-list
+	to `gfc_process_block_locals' to match new interface.
+	* trans-decl.c (gfc_get_symbol_decl): Don't defer associate-names
+	here automatically.
+	(gfc_process_block_locals): Defer them rather here when linked to
+	from the BLOCK's association list.
 
 2010-08-25  Jakub Jelinek  <jakub@redhat.com>
 
