@@ -350,6 +350,8 @@ typedef struct descriptor_dimension
   index_type _stride;
   index_type _lbound;
   index_type _ubound;
+  index_type _sm;
+  index_type _extent;
 }
 
 descriptor_dimension;
@@ -359,6 +361,7 @@ struct {\
   type *data;\
   size_t offset;\
   index_type dtype;\
+  index_type size;\
   descriptor_dimension dim[r];\
 }
 

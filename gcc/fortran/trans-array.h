@@ -132,12 +132,19 @@ tree gfc_conv_descriptor_dtype (tree);
 tree gfc_conv_descriptor_stride_get (tree, tree);
 tree gfc_conv_descriptor_lbound_get (tree, tree);
 tree gfc_conv_descriptor_ubound_get (tree, tree);
+tree gfc_conv_descriptor_sm_get (tree, tree);
+tree gfc_conv_descriptor_extent_get (tree, tree);
+
+tree gfc_data_field_from_base_field (tree);
+tree gfc_dimension_field_from_base_field (tree);
 
 void gfc_conv_descriptor_data_set (stmtblock_t *, tree, tree);
 void gfc_conv_descriptor_offset_set (stmtblock_t *, tree, tree);
 void gfc_conv_descriptor_stride_set (stmtblock_t *, tree, tree, tree);
 void gfc_conv_descriptor_lbound_set (stmtblock_t *, tree, tree, tree);
 void gfc_conv_descriptor_ubound_set (stmtblock_t *, tree, tree, tree);
+void gfc_conv_descriptor_sm_set (stmtblock_t *, tree, tree, tree);
+void gfc_conv_descriptor_extent_set (stmtblock_t *, tree, tree, tree);
 
 /* Shift lower bound of descriptor, updating ubound and offset.  */
 void gfc_conv_shift_descriptor_lbound (stmtblock_t*, tree, int, tree);

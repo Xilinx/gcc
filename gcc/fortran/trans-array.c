@@ -127,11 +127,14 @@ gfc_array_dataptr_type (tree desc)
 #define DATA_FIELD 0
 #define OFFSET_FIELD 1
 #define DTYPE_FIELD 2
-#define DIMENSION_FIELD 3
+#define SIZE_FIELD 3
+#define DIMENSION_FIELD 4
 
 #define STRIDE_SUBFIELD 0
 #define LBOUND_SUBFIELD 1
 #define UBOUND_SUBFIELD 2
+#define SM_SUBFIELD 3
+#define EXTENT_SUBFIELD 4
 
 /* This provides READ-ONLY access to the data field.  The field itself
    doesn't have the proper type.  */
@@ -177,6 +180,16 @@ gfc_conv_descriptor_data_set (stmtblock_t *block, tree desc, tree value)
 }
 
 
+/* This is trivial but unifies the API.  */
+
+tree
+gfc_data_field_from_base_field (tree field)
+{
+  gcc_assert (DATA_FIELD == 0);
+  return gfc_advance_chain (field, DATA_FIELD);
+}
+
+
 /* This provides address access to the data field.  This should only be
    used by array allocation, passing this on to the runtime.  */
 
@@ -188,8 +201,7 @@ gfc_conv_descriptor_data_addr (tree desc)
   type = TREE_TYPE (desc);
   gcc_assert (GFC_DESCRIPTOR_TYPE_P (type));
 
-  field = TYPE_FIELDS (type);
-  gcc_assert (DATA_FIELD == 0);
+  field = gfc_data_field_from_base_field (TYPE_FIELDS (type));
 
   t = fold_build3 (COMPONENT_REF, TREE_TYPE (field), desc, field, NULL_TREE);
   return gfc_build_addr_expr (NULL_TREE, t);
@@ -242,6 +254,13 @@ gfc_conv_descriptor_dtype (tree desc)
 		      desc, field, NULL_TREE);
 }
 
+tree
+gfc_dimension_field_from_base_field (tree field)
+{
+  return gfc_advance_chain (field, DIMENSION_FIELD);
+}
+
+
 static tree
 gfc_conv_descriptor_dimension (tree desc, tree dim)
 {
@@ -252,7 +271,7 @@ gfc_conv_descriptor_dimension (tree desc, tree dim)
   type = TREE_TYPE (desc);
   gcc_assert (GFC_DESCRIPTOR_TYPE_P (type));
 
-  field = gfc_advance_chain (TYPE_FIELDS (type), DIMENSION_FIELD);
+  field = gfc_dimension_field_from_base_field (TYPE_FIELDS (type));
   gcc_assert (field != NULL_TREE
 	  && TREE_CODE (TREE_TYPE (field)) == ARRAY_TYPE
 	  && TREE_CODE (TREE_TYPE (TREE_TYPE (field))) == RECORD_TYPE);
@@ -282,7 +301,9 @@ gfc_conv_descriptor_stride (tree desc, tree dim)
 tree
 gfc_conv_descriptor_stride_get (tree desc, tree dim)
 {
+  tree tmp, size, cond;
   tree type = TREE_TYPE (desc);
+
   gcc_assert (GFC_DESCRIPTOR_TYPE_P (type));
   if (integer_zerop (dim)
       && (GFC_TYPE_ARRAY_AKIND (type) == GFC_ARRAY_ALLOCATABLE
@@ -290,16 +311,93 @@ gfc_conv_descriptor_stride_get (tree desc, tree dim)
 	  ||GFC_TYPE_ARRAY_AKIND (type) == GFC_ARRAY_POINTER_CONT))
     return gfc_index_one_node;
 
-  return gfc_conv_descriptor_stride (desc, dim);
+  tmp = gfc_get_element_type (type);
+  size = size_in_bytes (tmp);
+  size = fold_convert (gfc_array_index_type, size);
+  tmp = fold_build2 (FLOOR_DIV_EXPR, gfc_array_index_type,
+		     gfc_conv_descriptor_sm_get (desc, dim), size);
+  cond = fold_build2 (EQ_EXPR, boolean_type_node, size,
+		      gfc_index_zero_node);
+  tmp = fold_build3 (COND_EXPR, gfc_array_index_type, cond,
+		     gfc_index_zero_node, tmp);
+  return tmp;
 }
+
 
 void
 gfc_conv_descriptor_stride_set (stmtblock_t *block, tree desc,
 				tree dim, tree value)
 {
+  tree tmp;
   tree t = gfc_conv_descriptor_stride (desc, dim);
   gfc_add_modify (block, t, fold_convert (TREE_TYPE (t), value));
+  tmp = gfc_get_element_type (TREE_TYPE (desc));
+  tmp = size_in_bytes (tmp);
+  tmp = fold_build2 (MULT_EXPR, gfc_array_index_type,
+		     fold_convert (TREE_TYPE (t), value),
+		     fold_convert (TREE_TYPE (t), tmp));
+  gfc_conv_descriptor_sm_set (block, desc, dim, tmp);
 }
+
+static tree
+gfc_conv_descriptor_sm (tree desc, tree dim)
+{
+  tree tmp;
+  tree field;
+
+  tmp = gfc_conv_descriptor_dimension (desc, dim);
+  field = TYPE_FIELDS (TREE_TYPE (tmp));
+  field = gfc_advance_chain (field, SM_SUBFIELD);
+  gcc_assert (field != NULL_TREE && TREE_TYPE (field) == gfc_array_index_type);
+
+  tmp = fold_build3 (COMPONENT_REF, TREE_TYPE (field),
+		     tmp, field, NULL_TREE);
+  return tmp;
+}
+
+tree
+gfc_conv_descriptor_sm_get (tree desc, tree dim)
+{
+  return gfc_conv_descriptor_sm (desc, dim);
+}
+
+void
+gfc_conv_descriptor_sm_set (stmtblock_t *block, tree desc,
+				tree dim, tree value)
+{
+  tree t = gfc_conv_descriptor_sm (desc, dim);
+  gfc_add_modify (block, t, fold_convert (TREE_TYPE (t), value));
+}
+
+static tree
+gfc_conv_descriptor_extent (tree desc, tree dim)
+{
+  tree tmp;
+  tree field;
+  tmp = gfc_conv_descriptor_dimension (desc, dim);
+  field = TYPE_FIELDS (TREE_TYPE (tmp));
+  field = gfc_advance_chain (field, EXTENT_SUBFIELD);
+  gcc_assert (field != NULL_TREE && TREE_TYPE (field) == gfc_array_index_type);
+
+  tmp = fold_build3 (COMPONENT_REF, TREE_TYPE (field),
+		     tmp, field, NULL_TREE);
+  return tmp;
+}
+
+tree
+gfc_conv_descriptor_extent_get (tree desc, tree dim)
+{
+  return gfc_conv_descriptor_extent (desc, dim);
+}
+
+void
+gfc_conv_descriptor_extent_set (stmtblock_t *block, tree desc,
+				tree dim, tree value)
+{
+  tree t = gfc_conv_descriptor_extent (desc, dim);
+  gfc_add_modify (block, t, fold_convert (TREE_TYPE (t), value));
+}
+
 
 static tree
 gfc_conv_descriptor_lbound (tree desc, tree dim)
@@ -350,15 +448,32 @@ gfc_conv_descriptor_ubound (tree desc, tree dim)
 tree
 gfc_conv_descriptor_ubound_get (tree desc, tree dim)
 {
-  return gfc_conv_descriptor_ubound (desc, dim);
+  tree cond, size;
+  tree tmp = gfc_get_element_type (TREE_TYPE (desc));
+  size = size_in_bytes (tmp);
+  size = fold_convert (gfc_array_index_type, size);
+  tmp = fold_build2 (FLOOR_DIV_EXPR, gfc_array_index_type,
+		     gfc_conv_descriptor_extent_get (desc, dim), size);
+  cond = fold_build2 (EQ_EXPR, boolean_type_node, size,
+		      gfc_index_zero_node);
+  tmp = fold_build3 (COND_EXPR, gfc_array_index_type, cond,
+		     gfc_index_zero_node, tmp);
+  return tmp;
 }
 
 void
 gfc_conv_descriptor_ubound_set (stmtblock_t *block, tree desc,
 				tree dim, tree value)
 {
+  tree tmp;
   tree t = gfc_conv_descriptor_ubound (desc, dim);
   gfc_add_modify (block, t, fold_convert (TREE_TYPE (t), value));
+  tmp = gfc_get_element_type (TREE_TYPE (desc));
+  tmp = size_in_bytes (tmp);
+  tmp = fold_build2 (MULT_EXPR, gfc_array_index_type,
+		     fold_convert (TREE_TYPE (t), value),
+		     fold_convert (TREE_TYPE (t), tmp));
+  gfc_conv_descriptor_extent_set (block, desc, dim, tmp);
 }
 
 /* Build a null array descriptor constructor.  */
@@ -420,10 +535,13 @@ gfc_conv_shift_descriptor_lbound (stmtblock_t* block, tree desc,
 #undef DATA_FIELD
 #undef OFFSET_FIELD
 #undef DTYPE_FIELD
+#undef SIZE_FIELD
 #undef DIMENSION_FIELD
 #undef STRIDE_SUBFIELD
 #undef LBOUND_SUBFIELD
 #undef UBOUND_SUBFIELD
+#undef SM_SUBFIELD
+#undef EXTENT_SUBFIELD
 
 
 /* Mark a SS chain as used.  Flags specifies in which loops the SS is used.

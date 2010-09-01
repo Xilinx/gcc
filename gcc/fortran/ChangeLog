@@ -1,3 +1,34 @@
+2010-09-01  Paul Thomas  <pault@gcc.gnu.org>
+
+	* trans-array.c : Define and subsequently undefine descriptor
+	SIZE_FIELD, SM_SUBFIELD and EXTENT_SUBFIELD. Change the offset
+	for DIMENSION_FIELD.
+	(gfc_data_field_from_base_field): New function.
+	(gfc_conv_descriptor_data_addr): Call it to maintain API.
+	(gfc_dimension_field_from_base_field): New function.
+	(gfc_conv_descriptor_dimension): Call it.
+	(gfc_conv_descriptor_stride_get): Compute the stride from the
+	'sm' field.
+	(gfc_conv_descriptor_stride_set): Compute and set 'sm' field.
+	(gfc_conv_descriptor_sm, gfc_conv_descriptor_sm_get,
+	gfc_conv_descriptor_sm_set): New functions.
+	(gfc_conv_descriptor_extent, gfc_conv_descriptor_extent_get,
+	gfc_conv_descriptor_extent_set): New functions.
+	(gfc_conv_descriptor_ubound_get): Compute the ubound from the
+	'extent' field.
+	(gfc_conv_descriptor_ubound_set): Compute and set 'extent'
+	field.
+	trans-array.h: New prototypes for gfc_conv_descriptor_sm_get,
+	gfc_conv_descriptor_extent_get, gfc_data_field_from_base_field,
+	gfc_dimension_field_from_base_field,gfc_conv_descriptor_sm_set,
+	and gfc_conv_descriptor_extent_set.
+	trans-types.c (gfc_get_desc_dim_type): Add 'sm' and 'extent'
+	fields.
+	(gfc_get_array_descriptor_base): Add 'size' field.
+	(gfc_get_array_descr_info): Call gfc_data_field_from_base_field
+	and gfc_dimension_field_from_base_field instead of using the
+	field offsets explicitly.
+
 2010-08-25  Jakub Jelinek  <jakub@redhat.com>
 
 	* trans-decl.c (gfc_build_intrinsic_function_decls): Set

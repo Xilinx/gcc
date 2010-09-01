@@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "trans.h"
 #include "trans-types.h"
 #include "trans-const.h"
+#include "trans-array.h"
 #include "flags.h"
 #include "dwarf2out.h"	/* For struct array_descr_info.  */
 
@@ -1261,6 +1262,16 @@ gfc_get_desc_dim_type (void)
 				    gfc_array_index_type, &chain);
   TREE_NO_WARNING (decl) = 1;
 
+  decl = gfc_add_field_to_struct_1 (type,
+				    get_identifier ("sm"),
+				    gfc_array_index_type, &chain);
+  TREE_NO_WARNING (decl) = 1;
+  decl = gfc_add_field_to_struct_1 (type,
+				    get_identifier ("extent"),
+				    gfc_array_index_type, &chain);
+  TREE_NO_WARNING (decl) = 1;
+
+
   /* Finish off the type.  */
   gfc_finish_type (type);
   TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type)) = 1;
@@ -1566,6 +1577,13 @@ gfc_get_array_descriptor_base (int dimen, int codimen, bool restricted)
 				    get_identifier ("dtype"),
 				    gfc_array_index_type, &chain);
   TREE_NO_WARNING (decl) = 1;
+
+  /* Add the size component.  */
+  decl = gfc_add_field_to_struct_1 (fat_type,
+				    get_identifier ("size"),
+				    gfc_array_index_type, &chain);
+  TREE_NO_WARNING (decl) = 1;
+
 
   /* Build the array type for the stride and bound components.  */
   arraytype =
@@ -2492,6 +2510,7 @@ gfc_get_array_descr_info (const_tree type, struct array_descr_info *info)
   tree etype, ptype, field, t, base_decl;
   tree data_off, dim_off, dim_size, elem_size;
   tree lower_suboff, upper_suboff, stride_suboff;
+  tree type_fields;
 
   if (! GFC_DESCRIPTOR_TYPE_P (type))
     {
@@ -2544,11 +2563,10 @@ gfc_get_array_descr_info (const_tree type, struct array_descr_info *info)
     elem_size = GFC_TYPE_ARRAY_SPAN (type);
   else
     elem_size = fold_convert (gfc_array_index_type, TYPE_SIZE_UNIT (etype));
-  field = TYPE_FIELDS (TYPE_MAIN_VARIANT (type));
+  type_fields = TYPE_FIELDS (TYPE_MAIN_VARIANT (type));
+  field = gfc_data_field_from_base_field (type_fields);
   data_off = byte_position (field);
-  field = DECL_CHAIN (field);
-  field = DECL_CHAIN (field);
-  field = DECL_CHAIN (field);
+  field = gfc_dimension_field_from_base_field (type_fields);
   dim_off = byte_position (field);
   dim_size = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (field)));
   field = TYPE_FIELDS (TREE_TYPE (TREE_TYPE (field)));
