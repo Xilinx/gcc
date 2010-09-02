@@ -4841,29 +4841,6 @@ fold_non_dependent_expr (tree expr)
   return expr;
 }
 
-/* EXPR is an expression which is used in a constant-expression context.
-   For instance, it could be a VAR_DECL with a constant initializer.
-   Extract the innermost constant expression.
-
-   This is basically a more powerful version of
-   integral_constant_value, which can be used also in templates where
-   initializers can maintain a syntactic rather than semantic form
-   (even if they are non-dependent, for access-checking purposes).  */
-/* FIXME when should we call this vs fold_non_dep vs maybe_constant_value?  */
-tree
-fold_decl_constant_value (tree expr)
-{
-  tree const_expr = expr;
-  do
-    {
-      expr = fold_non_dependent_expr (const_expr);
-      const_expr = maybe_constant_value (expr);
-    }
-  while (expr != const_expr);
-
-  return expr;
-}
-
 /* Subroutine of convert_nontype_argument. Converts EXPR to TYPE, which
    must be a function or a pointer-to-function type, as specified
    in [temp.arg.nontype]: disambiguate EXPR if it is an overload set,
@@ -5071,7 +5048,8 @@ convert_nontype_argument (tree type, tree expr)
       if (!INTEGRAL_OR_ENUMERATION_TYPE_P (expr_type))
 	return error_mark_node;
 
-      expr = fold_decl_constant_value (expr);
+      expr = maybe_constant_value (expr);
+
       /* Notice that there are constant expressions like '4 % 0' which
 	 do not fold into integer constants.  */
       if (TREE_CODE (expr) != INTEGER_CST)
@@ -10117,8 +10095,6 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	    && TREE_SIDE_EFFECTS (omax)
 	    && !TREE_TYPE (max))
 	  TREE_TYPE (max) = TREE_TYPE (TREE_OPERAND (max, 0));
-
-	max = fold_decl_constant_value (max);
 
 	/* If we're in a partial instantiation, preserve the magic NOP_EXPR
 	   with TREE_SIDE_EFFECTS that indicates this is not an integral
@@ -17697,6 +17673,34 @@ value_dependent_expression_p (tree expression)
 	tree op = TREE_OPERAND (expression, 0);
 	return (value_dependent_expression_p (op)
 		|| has_value_dependent_address (op));
+      }
+
+    case CALL_EXPR:
+      {
+	tree fn = get_callee_fndecl (expression);
+	int i, nargs;
+	if (!fn && value_dependent_expression_p (CALL_EXPR_FN (expression)))
+	  return true;
+	nargs = call_expr_nargs (expression);
+	for (i = 0; i < nargs; ++i)
+	  {
+	    tree op = CALL_EXPR_ARG (expression, i);
+	    /* In a call to a constexpr member function, look through the
+	       implicit ADDR_EXPR on the object argument so that it doesn't
+	       cause the call to be considered value-dependent.  */
+	    /* FIXME maybe integrate value_dependent_expression_p with
+	       cxx_eval_constant_expression somehow?  Value dependency is
+	       only defined for constant expressions, so it's wrong to test it first.
+	       Really, what we are trying to find is the set of expressions that
+	       are both constant and not value-dependent.  */
+	    if (i == 0 && fn && DECL_DECLARED_CONSTEXPR_P (fn)
+		&& DECL_NONSTATIC_MEMBER_FUNCTION_P (fn)
+		&& TREE_CODE (op) == ADDR_EXPR)
+	      op = TREE_OPERAND (op, 0);
+	    if (value_dependent_expression_p (op))
+	      return true;
+	  }
+	return false;
       }
 
     default:

@@ -4588,8 +4588,9 @@ finish_static_assert (tree condition, tree message, location_t location,
     }
 
   /* Fold the expression and convert it to a boolean value. */
+  condition = fold_non_dependent_expr (condition);
   condition = cp_convert (boolean_type_node, condition);
-  condition = fold_decl_constant_value (condition);
+  condition = maybe_constant_value (condition);
 
   if (TREE_CODE (condition) == INTEGER_CST && !integer_zerop (condition))
     /* Do nothing; the condition is satisfied. */
@@ -6395,7 +6396,14 @@ cxx_constant_value (tree t)
 tree
 maybe_constant_value (tree t)
 {
-  tree r = cxx_eval_outermost_constant_expr (t, true);
+  tree r;
+
+  if (type_dependent_expression_p (t)
+      /* FIXME shouldn't check value-dependence first.  */
+      || value_dependent_expression_p (t))
+    return t;
+
+  r = cxx_eval_outermost_constant_expr (t, true);
 #ifdef ENABLE_CHECKING
   /* cp_tree_equal looks through NOPs, so allow them.  */
   gcc_assert (r == t

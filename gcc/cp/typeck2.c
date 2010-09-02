@@ -759,14 +759,11 @@ store_init_value (tree decl, tree init, int flags)
 	  || TREE_STATIC (decl)))
     {
       bool const_init;
-      value = fold_decl_constant_value (value);
+      value = fold_non_dependent_expr (value);
+      value = maybe_constant_init (value);
       if (DECL_DECLARED_CONSTEXPR_P (decl))
 	/* Diagnose a non-constant initializer for constexpr.  */
 	value = cxx_constant_value (value);
-      /* FIXME maybe_constant_init */
-      if (TREE_CODE (value) == TARGET_EXPR
-	  && TREE_CODE (TARGET_EXPR_INITIAL (value)) == CONSTRUCTOR)
-	value = TARGET_EXPR_INITIAL (value);
       const_init = (reduced_constant_expression_p (value)
 		    || error_operand_p (value));
       DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl) = const_init;
