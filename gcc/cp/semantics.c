@@ -5391,8 +5391,16 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
     }
   else
     {
+      tree memtype;
       gcc_assert (TREE_CODE (t) == CALL_EXPR);
       member = CALL_EXPR_ARG (t, 0);
+      memtype = TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (member)));
+      if (TREE_CODE (member) == NOP_EXPR)
+	{
+	  /* We don't put out anything for an empty base.  */
+	  gcc_assert (is_empty_class (memtype));
+	  return true;
+	}
       gcc_assert (TREE_CODE (member) == ADDR_EXPR);
       member = TREE_OPERAND (member, 0);
       init = build_cplus_new (TYPE_MAIN_VARIANT (TREE_TYPE (member)),
