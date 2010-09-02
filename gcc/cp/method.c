@@ -951,7 +951,7 @@ process_subob_fn (tree fn, bool move_p, tree *spec_p, bool *trivial_p,
 
 static void
 walk_field_subobs (tree fields, tree fnname, special_function_kind sfk,
-		   int quals, bool copy_arg_p, bool move_p,
+		   int quals, bool copy_arg_p, bool move_p, bool ctor_p,
 		   bool assign_p, tree *spec_p, bool *trivial_p,
 		   bool *deleted_p, bool *constexpr_p, const char *msg,
 		   int flags, tsubst_flags_t complain)
@@ -1017,8 +1017,9 @@ walk_field_subobs (tree fields, tree fnname, special_function_kind sfk,
       if (ANON_AGGR_TYPE_P (mem_type))
 	{
 	  walk_field_subobs (TYPE_FIELDS (mem_type), fnname, sfk, quals,
-			     copy_arg_p, move_p, assign_p, spec_p, trivial_p,
-			     deleted_p, constexpr_p, msg, flags, complain);
+			     copy_arg_p, move_p, ctor_p, assign_p, spec_p,
+			     trivial_p, deleted_p, constexpr_p, msg, flags,
+			     complain);
 	  continue;
 	}
 
@@ -1036,6 +1037,13 @@ walk_field_subobs (tree fields, tree fnname, special_function_kind sfk,
 
       process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
 			constexpr_p, msg, field);
+      if (ctor_p && TYPE_HAS_NONTRIVIAL_DESTRUCTOR (mem_type))
+	{
+	  rval = locate_fn_flags (mem_type, complete_dtor_identifier,
+				  NULL_TREE, flags, complain);
+	  process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
+			    constexpr_p, NULL, field);
+	}
     }
 }
 
@@ -1056,6 +1064,7 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
   int i, quals, flags;
   tsubst_flags_t complain;
   const char *msg;
+  bool ctor_p;
 
   if (spec_p)
     *spec_p = (cxx_dialect >= cxx0x
@@ -1119,6 +1128,7 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
     return;
 #endif
 
+  ctor_p = false;
   assign_p = false;
   check_vdtor = false;
   switch (sfk)
@@ -1139,6 +1149,7 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
     case sfk_constructor:
     case sfk_move_constructor:
     case sfk_copy_constructor:
+      ctor_p = true;
       fnname = complete_ctor_identifier;
       break;
 
@@ -1186,7 +1197,16 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
       rval = locate_fn_flags (base_binfo, fnname, argtype, flags, complain);
 
       process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
-			constexpr_p, msg, BINFO_TYPE (base_binfo));
+			constexpr_p, msg, basetype);
+      if (ctor_p && TYPE_HAS_NONTRIVIAL_DESTRUCTOR (basetype))
+	{
+	  /* In a constructor we also need to check the subobject
+	     destructors for cleanup of partially constructed objects.  */
+	  rval = locate_fn_flags (base_binfo, complete_dtor_identifier,
+				  NULL_TREE, flags, complain);
+	  process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
+			    constexpr_p, NULL, basetype);
+	}
 
       if (check_vdtor && type_has_virtual_destructor (basetype))
 	{
@@ -1196,6 +1216,7 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 	     to have a null rval (no class-specific op delete).  */
 	  if (rval && rval == error_mark_node && deleted_p)
 	    *deleted_p = true;
+	  check_vdtor = false;
 	}
     }
 
@@ -1216,12 +1237,20 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 	       "or trivial copy constructor");
       for (i = 0; VEC_iterate (tree, vbases, i, base_binfo); ++i)
 	{
+	  tree basetype = BINFO_TYPE (base_binfo);
 	  if (copy_arg_p)
-	    argtype = build_stub_type (BINFO_TYPE (base_binfo), quals, move_p);
+	    argtype = build_stub_type (basetype, quals, move_p);
 	  rval = locate_fn_flags (base_binfo, fnname, argtype, flags, complain);
 
 	  process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
-			    constexpr_p, msg, BINFO_TYPE (base_binfo));
+			    constexpr_p, msg, basetype);
+	  if (ctor_p && TYPE_HAS_NONTRIVIAL_DESTRUCTOR (basetype))
+	    {
+	      rval = locate_fn_flags (base_binfo, complete_dtor_identifier,
+				      NULL_TREE, flags, complain);
+	      process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
+				constexpr_p, NULL, basetype);
+	    }
 	}
     }
   if (!diag)
@@ -1233,7 +1262,7 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
     msg = ("non-static data member %qD does not have a move "
 	   "constructor or trivial copy constructor");
   walk_field_subobs (TYPE_FIELDS (ctype), fnname, sfk, quals,
-		     copy_arg_p, move_p, assign_p, spec_p, trivial_p,
+		     copy_arg_p, move_p, ctor_p, assign_p, spec_p, trivial_p,
 		     deleted_p, constexpr_p, msg, flags, complain);
 
   pop_scope (scope);
