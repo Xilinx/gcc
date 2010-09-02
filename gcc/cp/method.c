@@ -951,7 +951,7 @@ process_subob_fn (tree fn, bool move_p, tree *spec_p, bool *trivial_p,
 
 static void
 walk_field_subobs (tree fields, tree fnname, special_function_kind sfk,
-		   int quals, bool copy_arg_p, bool move_p, bool ctor_p,
+		   int quals, bool copy_arg_p, bool move_p,
 		   bool assign_p, tree *spec_p, bool *trivial_p,
 		   bool *deleted_p, bool *constexpr_p, const char *msg,
 		   int flags, tsubst_flags_t complain)
@@ -1017,9 +1017,8 @@ walk_field_subobs (tree fields, tree fnname, special_function_kind sfk,
       if (ANON_AGGR_TYPE_P (mem_type))
 	{
 	  walk_field_subobs (TYPE_FIELDS (mem_type), fnname, sfk, quals,
-			     copy_arg_p, move_p, ctor_p, assign_p, spec_p,
-			     trivial_p, deleted_p, constexpr_p, msg, flags,
-			     complain);
+			     copy_arg_p, move_p, assign_p, spec_p, trivial_p,
+			     deleted_p, constexpr_p, msg, flags, complain);
 	  continue;
 	}
 
@@ -1037,13 +1036,6 @@ walk_field_subobs (tree fields, tree fnname, special_function_kind sfk,
 
       process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
 			constexpr_p, msg, field);
-      if (ctor_p && TYPE_HAS_NONTRIVIAL_DESTRUCTOR (mem_type))
-	{
-	  rval = locate_fn_flags (mem_type, complete_dtor_identifier,
-				  NULL_TREE, flags, complain);
-	  process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
-			    constexpr_p, NULL, field);
-	}
     }
 }
 
@@ -1065,10 +1057,15 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
   tsubst_flags_t complain;
   const char *msg;
   bool ctor_p;
+  tree cleanup_spec;
+  bool cleanup_trivial = true;
+  bool cleanup_deleted = false;
+  bool cleanup_constexpr = true;
 
+  cleanup_spec
+    = (cxx_dialect >= cxx0x ? noexcept_true_spec : empty_except_spec);
   if (spec_p)
-    *spec_p = (cxx_dialect >= cxx0x
-	       ? noexcept_true_spec : empty_except_spec);
+    *spec_p = cleanup_spec;
 
   if (deleted_p)
     {
@@ -1204,8 +1201,9 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 	     destructors for cleanup of partially constructed objects.  */
 	  rval = locate_fn_flags (base_binfo, complete_dtor_identifier,
 				  NULL_TREE, flags, complain);
-	  process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
-			    constexpr_p, NULL, basetype);
+	  process_subob_fn (rval, false, &cleanup_spec, &cleanup_trivial,
+			    &cleanup_deleted, &cleanup_constexpr, NULL,
+			    basetype);
 	}
 
       if (check_vdtor && type_has_virtual_destructor (basetype))
@@ -1248,8 +1246,9 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 	    {
 	      rval = locate_fn_flags (base_binfo, complete_dtor_identifier,
 				      NULL_TREE, flags, complain);
-	      process_subob_fn (rval, move_p, spec_p, trivial_p, deleted_p,
-				constexpr_p, NULL, basetype);
+	      process_subob_fn (rval, false, &cleanup_spec, &cleanup_trivial,
+				&cleanup_deleted, &cleanup_constexpr, NULL,
+				basetype);
 	    }
 	}
     }
@@ -1262,13 +1261,30 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
     msg = ("non-static data member %qD does not have a move "
 	   "constructor or trivial copy constructor");
   walk_field_subobs (TYPE_FIELDS (ctype), fnname, sfk, quals,
-		     copy_arg_p, move_p, ctor_p, assign_p, spec_p, trivial_p,
+		     copy_arg_p, move_p, assign_p, spec_p, trivial_p,
 		     deleted_p, constexpr_p, msg, flags, complain);
+  if (ctor_p)
+    walk_field_subobs (TYPE_FIELDS (ctype), complete_dtor_identifier,
+		       sfk_destructor, TYPE_UNQUALIFIED, false,
+		       false, false, &cleanup_spec, &cleanup_trivial,
+		       &cleanup_deleted, &cleanup_constexpr,
+		       NULL, flags, complain);
 
   pop_scope (scope);
 
   --cp_unevaluated_operand;
   --c_inhibit_evaluation_warnings;
+
+  /* If the constructor isn't trivial, consider the subobject cleanups.  */
+  if (ctor_p && trivial_p && !*trivial_p)
+    {
+      if (deleted_p && cleanup_deleted)
+	*deleted_p = true;
+      if (constexpr_p && !cleanup_constexpr)
+	*constexpr_p = false;
+      if (spec_p)
+	*spec_p = merge_exception_specifiers (*spec_p, cleanup_spec);
+    }
 
 #ifdef ENABLE_CHECKING
   /* If we expected this to be trivial but it isn't, then either we're in
