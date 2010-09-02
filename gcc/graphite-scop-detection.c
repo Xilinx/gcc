@@ -1310,18 +1310,109 @@ canonicalize_loop_closed_ssa_form (void)
 #endif
 }
 
+/* Return true when EXPR can be represented in the polyhedral model
+   inside REGION.
+
+   This means an expression can be represented, if it is linear with
+   respect to the loops and the strides are non parametric.
+   LOOP is the place where the expr will be evaluated.  */
+
+static bool
+is_valid_expr_p (refined_region_p region, loop_p loop, tree expr)
+{
+  return graphite_can_represent_expr (region->entry, loop, expr);
+}
+
+/* Return true if LOOP can be represented in the polyhedral representation
+   inside REGION.  */
+
+static bool
+is_valid_loop_p (refined_region_p region, loop_p loop)
+{
+  tree niter = number_of_latch_executions (loop);
+
+  /* Single exit loops only.  */
+  if (!single_exit (loop))
+    return false;
+
+  /* Number of iterations unknown.  */
+  if (chrec_contains_undetermined (niter))
+    return false;
+
+  /* Number of iterations not affine.  */
+  if (!is_valid_expr_p (region, loop, niter))
+    return false;
+
+  return true;
+}
+
 /* Check if STMT in BB can be represented by the polyhedral model.
    The function is currently incomplete as it requires the data
    reference and SCEV representation checks added.  */
 
 static bool
-is_valid_stmt_p (refined_region_p region ATTRIBUTE_UNUSED,
-		 basic_block bb ATTRIBUTE_UNUSED, gimple stmt)
+is_valid_stmt_p (refined_region_p region, basic_block bb, gimple stmt)
 {
-  return !gimple_has_volatile_ops (stmt)
-    && gimple_code (stmt) != GIMPLE_ASM
-    && (gimple_code (stmt) != GIMPLE_CALL
-	|| gimple_call_flags (stmt) & (ECF_CONST | ECF_PURE));
+  struct loop *loop;
+  
+  loop = bb->loop_father;
+
+  if (gimple_has_volatile_ops (stmt)
+      || (gimple_code (stmt) == GIMPLE_CALL
+	  && !(gimple_call_flags (stmt) & (ECF_CONST | ECF_PURE)))
+      || (gimple_code (stmt) == GIMPLE_ASM))
+    return false;
+
+  if (is_gimple_debug (stmt))
+    return true;
+
+  /* Are data references simple?  */
+  if (!stmt_has_simple_data_refs_p (loop, stmt))
+    return false;
+
+  /* Perform operation specific checks.  */
+  switch (gimple_code (stmt))
+    {
+    case GIMPLE_RETURN:
+    case GIMPLE_LABEL:
+      return true;
+
+    case GIMPLE_COND:
+      {
+	tree op;
+	ssa_op_iter op_iter;
+        enum tree_code code = gimple_cond_code (stmt);
+
+	/* We can handle all binary comparisons.  Inequalities are
+	   also supported as they can be represented with union of
+	   polyhedra.  */
+        if (!(code == LT_EXPR
+	      || code == GT_EXPR
+	      || code == LE_EXPR
+	      || code == GE_EXPR
+	      || code == EQ_EXPR
+	      || code == NE_EXPR))
+          return false;
+
+	FOR_EACH_SSA_TREE_OPERAND (op, stmt, op_iter, SSA_OP_ALL_USES)
+	  if (!is_valid_expr_p (region, loop, op)
+	      /* We can not handle REAL_TYPE. Failed for pr39260.  */
+	      || TREE_CODE (TREE_TYPE (op)) == REAL_TYPE)
+	    return false;
+
+	return true;
+      }
+
+    case GIMPLE_ASSIGN:
+    case GIMPLE_CALL:
+      return true;
+
+    default:
+      /* These nodes cut a new scope.  */
+      return false;
+    }
+
+  return false;
 }
 
 /* Check if BB can be represented in the polyhedral model as part
@@ -1332,39 +1423,31 @@ is_valid_bb_p (refined_region_p region, basic_block bb)
 {
   int succ_len = VEC_length (edge, bb->succs);
   gimple_stmt_iterator gsi;
-
-  /* Perform the control flow graph validity check.  */
-
-  /* TODO: Is there only well structured control flow in the region?
-   * All loops have just one exit?
-   * All loops are detected by gcc's loop detection?
-   * All conditions are well nested?  */
+  struct loop *loop = bb->loop_father;
 
   /* BBs without successors or with more than 2 predecessors are currently
-     unsupported.  */
+     not supported.  */
   if (succ_len > 2 || succ_len == 0)
     return false;
 
-  /* Is BB the exiting block of a single-exit loop?  */
   if (succ_len == 2)
     {
-      struct loop *loop = bb->loop_father;
-
-      /* Single exit loops only.  */
-      if (!single_exit (loop)
-	  || !loop_exits_from_bb_p (loop, bb))
+      /* Is BB the exiting block of a loop?  */
+      if (!loop_exits_from_bb_p (loop, bb))
 	return false;
     }
 
-  /* Are there any harmful bbs in the region? (TODO)  */
+  /* BB is the header of a loop.  Do validity checks on it.  */
+  if (bb == bb->loop_father->header && !is_valid_loop_p (region, loop))
+    return false;
 
+  /* Are there any harmful BBs in the region?  */
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     if (!is_valid_stmt_p (region, bb, gsi_stmt (gsi)))
       return false;
 
   return true;
 }
-
 
 /* Check if REGION is a valid SCoP.  */
 
@@ -1387,19 +1470,23 @@ is_scop_p (refined_region_p region)
       /* ??? */
     }
 
+  /* Perform the control flow graph validity check.  */
+
+  /* TODO: Is there only well structured control flow in the region?
+     All loops are detected by gcc's loop detection?
+     All conditions are well nested?  */
+
   return true;
 }
 
 /* Find in a structured way Static Control Parts (SCoP) in the current
-   function.  */
+   function and write their entry and exit nodes into SD_REGIONS.  */
 
 static void
-build_scops_new (void)
+find_scops_new (VEC (sd_region, heap) **sd_scops)
 {
   VEC (refined_region_p, heap) *scops = VEC_alloc (refined_region_p, heap, 3);
   VEC (refined_region_p, heap) *check = VEC_alloc (refined_region_p, heap, 3);
-
-  /* TODO: Call canonicalize_loop_closed_ssa_form() at the right place.  */
 
   /* Build new region tree.  */
   refined_region_p new_region = calculate_region_tree ();
@@ -1421,7 +1508,15 @@ build_scops_new (void)
       VEC_pop (refined_region_p, check);
 
       if (is_scop_p (region))
-	VEC_safe_push (refined_region_p, heap, scops, region);
+	{
+	  sd_region sd;
+
+	  sd.entry = region->entry;
+	  sd.exit = region->exit;
+
+	  VEC_safe_push (sd_region, heap, *sd_scops, &sd);
+	  VEC_safe_push (refined_region_p, heap, scops, region);
+	}
       else
 	{
 	  int ix;
@@ -1435,15 +1530,36 @@ build_scops_new (void)
     }
 
   /* TODO: Check if we can create even bigger regions by combining
-	   canonical regions,  that are executed one after another.  */
-  /* TODO: Create sese edges.  */
-  /* TODO: Create graphite scops.  */
+     canonical regions,  that are executed one after another.  */
 
   VEC_free (refined_region_p, heap, check);
   VEC_free (refined_region_p, heap, scops);
   free_region_tree (new_region);
 }
 
+/* Find all valid SCoPs in a structured way and prepare them for Graphite
+   transformations.  */
+
+static void
+build_scops_new (VEC (scop_p, heap) **scops)
+{
+  VEC (sd_region, heap) *regions = VEC_alloc (sd_region, heap, 3);
+
+  canonicalize_loop_closed_ssa_form ();
+  find_scops_new (&regions);
+  create_sese_edges (regions);
+  build_graphite_scops (regions, scops);
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    print_graphite_statistics (dump_file, *scops);
+
+  limit_scops (scops);
+
+  VEC_free (sd_region, heap, regions);
+
+  /* TODO: Check if we can create even bigger regions by combining
+	   canonical regions,  that are executed one after another.  */
+}
 
 /* Find Static Control Parts (SCoP) in the current function and pushes
    them to SCOPS.  (Old version)  */
@@ -1465,10 +1581,6 @@ build_scops_old (VEC (scop_p, heap) **scops)
 
   limit_scops (scops);
   VEC_free (sd_region, heap, regions);
-
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    fprintf (dump_file, "\nnumber of SCoPs: %d\n",
-	     VEC_length (scop_p, *scops));
 }
 
 /* Find Static Control Parts (SCoP) in the current function and pushes
@@ -1477,9 +1589,27 @@ build_scops_old (VEC (scop_p, heap) **scops)
 void
 build_scops (VEC (scop_p, heap) **scops)
 {
+  bool use_new_scopdet = false;
+  VEC (scop_p, heap) *scops_old = NULL, *scops_new = NULL;
+
   /* Run the new version in parallel to check it.  */
-  build_scops_new ();
-  build_scops_old (scops);
+  build_scops_new (&scops_new);
+  build_scops_old (&scops_old);
+
+  if (use_new_scopdet)
+    {
+      *scops = scops_new;
+      free_scops (scops_old);
+    }
+  else
+    {
+      *scops = scops_old;
+      free_scops (scops_new);
+    }
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "\nnumber of SCoPs: %d\n",
+	     VEC_length (scop_p, *scops));
 }
 
 /* Pretty print to FILE all the SCoPs in DOT format and mark them with
