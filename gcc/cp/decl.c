@@ -9906,8 +9906,8 @@ grokdeclarator (const cp_declarator *declarator,
       DECL_THIS_STATIC (decl) = 1;
 
     /* Don't forget constexprness.  */
-    if (VAR_OR_FUNCTION_DECL_P (decl))
-      DECL_DECLARED_CONSTEXPR_P (decl) = constexpr_p;
+    if (constexpr_p)
+      DECL_DECLARED_CONSTEXPR_P (decl) = true;
 
     /* Record constancy and volatility on the DECL itself .  There's
        no need to do this when processing a template; we'll do this

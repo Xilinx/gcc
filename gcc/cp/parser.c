@@ -11973,7 +11973,7 @@ cp_parser_explicit_instantiation (cp_parser* parser)
 		       " %<inline%> specifier");
 	  if (decl_specifiers.specs[(int)ds_constexpr])
 	    permerror (input_location, "explicit instantiation shall not use"
-		       "%<constexpr%> specifier");
+		       " %<constexpr%> specifier");
 
 	  decl = grokdeclarator (declarator, &decl_specifiers,
 				 NORMAL, 0, &decl_specifiers.attributes);
