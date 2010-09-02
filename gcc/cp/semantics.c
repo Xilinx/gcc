@@ -6033,6 +6033,7 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t,
   HOST_WIDE_INT i;
   bool changed = false;
   tree type = TREE_TYPE (t);
+  gcc_assert (!BRACE_ENCLOSED_INITIALIZER_P (t));
   for (i = 0; VEC_iterate (constructor_elt, v, i, ce); ++i)
     {
       tree elt = cxx_eval_constant_expression (call, ce->value,
