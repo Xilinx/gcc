@@ -1319,8 +1319,6 @@ maybe_explain_implicit_delete (tree decl)
    reference argument or a non-const reference.  Returns the
    FUNCTION_DECL for the implicitly declared function.  */
 
-/* FIXME constexpr */
-
 static tree
 implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
 {
@@ -1503,12 +1501,23 @@ defaulted_late_check (tree fn)
     {
       tree eh_spec = TYPE_RAISES_EXCEPTIONS (TREE_TYPE (implicit_fn));
       TREE_TYPE (fn) = build_exception_variant (TREE_TYPE (fn), eh_spec);
+      if (DECL_DECLARED_CONSTEXPR_P (implicit_fn))
+	/* FIXME should we do this for out-of-class too? Should it be OK to
+	   add constexpr later like inline, rather than requiring
+	   declarations to match?  */
+	DECL_DECLARED_CONSTEXPR_P (fn) = true;
+    }
+
+  if (!DECL_DECLARED_CONSTEXPR_P (implicit_fn)
+      && DECL_DECLARED_CONSTEXPR_P (fn))
+    {
+      if (!CLASSTYPE_TEMPLATE_INSTANTIATION (ctx))
+	error ("%qD cannot be declared as constexpr", fn);
+      DECL_DECLARED_CONSTEXPR_P (fn) = false;
     }
 
   if (DECL_DELETED_FN (implicit_fn))
     DECL_DELETED_FN (fn) = 1;
-  if (DECL_DECLARED_CONSTEXPR_P (implicit_fn))
-    DECL_DECLARED_CONSTEXPR_P (fn) = true;
 }
 
 /* Returns true iff FN can be explicitly defaulted, and gives any
