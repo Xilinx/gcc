@@ -6369,7 +6369,11 @@ cxx_eval_outermost_constant_expr (tree t, bool allow_non_constant)
 	  && TARGET_EXPR_INITIAL (t) == r)
 	return t;
       else
-	return get_target_expr (r);
+	{
+	  r = get_target_expr (r);
+	  TREE_CONSTANT (r) = true;
+	  return r;
+	}
     }
   else
     return r;

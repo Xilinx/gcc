@@ -1659,7 +1659,10 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
       && !TYPE_HAS_USER_CONSTRUCTOR (type))
     {
       exp = build_value_init (type, complain);
-      return get_target_expr (exp);
+      exp = get_target_expr (exp);
+      if (literal_type_p (type))
+	TREE_CONSTANT (exp) = true;
+      return exp;
     }
 
   /* Call the constructor.  */
