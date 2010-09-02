@@ -6,3 +6,5 @@ struct HopefullyLiteral {
 
 constexpr HopefullyLiteral var1{}; // OK
 constexpr HopefullyLiteral var2 = HopefullyLiteral{}; // #1
+constexpr HopefullyLiteral var3 = HopefullyLiteral(); // #2
+constexpr HopefullyLiteral var4 = HopefullyLiteral(var3); // #3

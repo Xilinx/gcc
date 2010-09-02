@@ -5665,17 +5665,17 @@ cxx_eval_builtin_function_call (const constexpr_call *call, tree t,
 
 static void
 cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
-                             constexpr_call *new_call,
-			     bool allow_non_constant, bool addr,
-			     bool *non_constant_p)
+                             constexpr_call *new_call)
 {
   const int nargs = call_expr_nargs (t);
   tree parms = new_call->fundef->parms;
   tree fun = new_call->fundef->decl;
+  bool args_nonconstant = false;
   int i;
   for (i = 0; parms && i < nargs; ++i, parms = TREE_CHAIN (parms))
     {
       tree x, arg;
+      tree type = TREE_TYPE (parms);
       /* For member function, the first argument is a pointer to the implied
          object.  And for an object contruction, don't bind `this' before
          it is fully constructed.  */
@@ -5683,12 +5683,11 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
         continue;
       x = get_nth_callarg (t, i);
       /* Undo integral promotion done for the target's call ABI.  */
-      if (targetm.calls.promote_prototypes (TREE_TYPE (parms)))
-	x = fold_convert (TYPE_MAIN_VARIANT (TREE_TYPE (parms)), x);
-      arg = cxx_eval_constant_expression (old_call, x, allow_non_constant,
-					  addr, non_constant_p);
-      if (*non_constant_p && allow_non_constant)
-	return;
+      if (targetm.calls.promote_prototypes (type))
+	x = fold_convert (TYPE_MAIN_VARIANT (type), x);
+      arg = cxx_eval_constant_expression (old_call, x, /*allow_non*/true,
+					  TREE_CODE (type) == REFERENCE_TYPE,
+					  &args_nonconstant);
       new_call->bindings = tree_cons (parms, arg, new_call->bindings);
     }
 }
@@ -5745,10 +5744,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
           return t;
         }
     }
-  cxx_bind_parameters_in_call (old_call, t, &new_call,
-			       allow_non_constant, addr, non_constant_p);
-  if (*non_constant_p)
-    return t;
+  cxx_bind_parameters_in_call (old_call, t, &new_call);
 
   /* If we have seen this call before, we are done.  */
   maybe_initialize_constexpr_call_table ();
@@ -6528,7 +6524,6 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
             or a constexpr constructor.  */
       {
         tree fun = get_function_named_in_call (t);
-        const int nargs = call_expr_nargs (t);
 	/* FIXME constexpr function pointer? VIRT? */
         if (TREE_CODE (fun) != FUNCTION_DECL)
           {
@@ -6536,9 +6531,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
               error ("%qE is not a function name", fun);
             return false;
           }
-	/* FIXME DECL_ORIGIN */
-        if (DECL_CLONED_FUNCTION_P (fun))
-          fun = DECL_CLONED_FUNCTION (fun);
+	fun = DECL_ORIGIN (fun);
         if (builtin_valid_in_constant_expr_p (fun))
           return true;
         if (!DECL_DECLARED_CONSTEXPR_P (fun)
@@ -6548,31 +6541,8 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
               error ("%qD is not %<constexpr%>", fun);
             return false;
           }
-        for (i = 0; i < nargs; ++i)
-          {
-            tree x = get_nth_callarg (t, i);
-            /* A call to a non-static member function takes the
-               address of the object as the first argument.
-               But in a constant expression the address will be folded
-	       away, so look through it now.  */
-            if (i == 0 && DECL_NONSTATIC_MEMBER_P (fun)
-                && !DECL_CONSTRUCTOR_P (fun))
-              {
-		/* FIXME what about calls via this?  */
-                gcc_assert (TREE_CODE (x) == ADDR_EXPR);
-                if (!potential_constant_expression (TREE_OPERAND (x, 0),
-					      flags))
-		  /* FIXME no error for non-constant object parameter?  */
-		  return false;
-              }
-	    else if (!potential_constant_expression (x, flags))
-	      {
-		if (flags & tf_error)
-		  /* FIXME %qP */
-		  error ("argument in position %qd is not a "
-			 "potential constant expression", i);
-              }
-          }
+	/* Don't check arguments; they might not actually be used
+	   in the constexpr function.  */
         return true;
       }
 
