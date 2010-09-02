@@ -5694,6 +5694,9 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
       if (i == 0 && DECL_CONSTRUCTOR_P (fun))
         continue;
       x = get_nth_callarg (t, i);
+      /* Undo integral promotion done for the target's call ABI.  */
+      if (targetm.calls.promote_prototypes (TREE_TYPE (parms)))
+	x = fold_convert (TYPE_MAIN_VARIANT (TREE_TYPE (parms)), x);
       arg = cxx_eval_constant_expression (old_call, x, allow_non_constant,
 					  addr, non_constant_p);
       if (*non_constant_p && allow_non_constant)
