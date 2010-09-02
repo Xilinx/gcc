@@ -958,7 +958,7 @@ gfc_conv_power_op (gfc_se * se, gfc_expr * expr)
   int ikind;
   gfc_se lse;
   gfc_se rse;
-  tree fndecl;
+  tree fndecl = NULL;
 
   gfc_init_se (&lse, se);
   gfc_conv_expr_val (&lse, expr->value.op.op1);
@@ -1056,15 +1056,24 @@ gfc_conv_power_op (gfc_se * se, gfc_expr * expr)
 		  break;
 
 		case 2:
-		case 3:
 		  fndecl = built_in_decls[BUILT_IN_POWIL];
+		  break;
+
+		case 3:
+		  /* Use the __builtin_powil() only if real(kind=16) is 
+		     actually the C long double type.  */
+		  if (!gfc_real16_is_float128)
+		    fndecl = built_in_decls[BUILT_IN_POWIL];
 		  break;
 
 		default:
 		  gcc_unreachable ();
 		}
 	    }
-	  else
+
+	  /* If we don't have a good builtin for this, go for the 
+	     library function.  */
+	  if (!fndecl)
 	    fndecl = gfor_fndecl_math_powi[kind][ikind].real;
 	  break;
 
@@ -1078,39 +1087,11 @@ gfc_conv_power_op (gfc_se * se, gfc_expr * expr)
       break;
 
     case BT_REAL:
-      switch (kind)
-	{
-	case 4:
-	  fndecl = built_in_decls[BUILT_IN_POWF];
-	  break;
-	case 8:
-	  fndecl = built_in_decls[BUILT_IN_POW];
-	  break;
-	case 10:
-	case 16:
-	  fndecl = built_in_decls[BUILT_IN_POWL];
-	  break;
-	default:
-	  gcc_unreachable ();
-	}
+      fndecl = gfc_builtin_decl_for_float_kind (BUILT_IN_POW, kind);
       break;
 
     case BT_COMPLEX:
-      switch (kind)
-	{
-	case 4:
-	  fndecl = built_in_decls[BUILT_IN_CPOWF];
-	  break;
-	case 8:
-	  fndecl = built_in_decls[BUILT_IN_CPOW];
-	  break;
-	case 10:
-	case 16:
-	  fndecl = built_in_decls[BUILT_IN_CPOWL];
-	  break;
-	default:
-	  gcc_unreachable ();
-	}
+      fndecl = gfc_builtin_decl_for_float_kind (BUILT_IN_CPOW, kind);
       break;
 
     default:
@@ -5779,27 +5760,39 @@ gfc_trans_assign (gfc_code * code)
 }
 
 
-/* Special case for initializing a CLASS variable on allocation.
-   A MEMCPY is needed to copy the full data of the dynamic type,
-   which may be different from the declared type.  */
+/* Special case for initializing a polymorphic dummy with INTENT(OUT).
+   A MEMCPY is needed to copy the full data from the default initializer
+   of the dynamic type.  */
 
 tree
 gfc_trans_class_init_assign (gfc_code *code)
 {
   stmtblock_t block;
-  tree tmp, memsz;
-  gfc_se dst,src;
-  
+  tree tmp;
+  gfc_se dst,src,memsz;
+  gfc_expr *lhs,*rhs,*sz;
+
   gfc_start_block (&block);
-  
+
+  lhs = gfc_copy_expr (code->expr1);
+  gfc_add_component_ref (lhs, "$data");
+
+  rhs = gfc_copy_expr (code->expr1);
+  gfc_add_component_ref (rhs, "$vptr");
+  gfc_add_component_ref (rhs, "$def_init");
+
+  sz = gfc_copy_expr (code->expr1);
+  gfc_add_component_ref (sz, "$vptr");
+  gfc_add_component_ref (sz, "$size");
+
   gfc_init_se (&dst, NULL);
   gfc_init_se (&src, NULL);
-  gfc_add_component_ref (code->expr1, "$data");
-  gfc_conv_expr (&dst, code->expr1);
-  gfc_conv_expr (&src, code->expr2);
+  gfc_init_se (&memsz, NULL);
+  gfc_conv_expr (&dst, lhs);
+  gfc_conv_expr (&src, rhs);
+  gfc_conv_expr (&memsz, sz);
   gfc_add_block_to_block (&block, &src.pre);
-  memsz = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->expr2->ts));
-  tmp = gfc_build_memcpy_call (dst.expr, src.expr, memsz);
+  tmp = gfc_build_memcpy_call (dst.expr, src.expr, memsz.expr);
   gfc_add_expr_to_block (&block, tmp);
   
   return gfc_finish_block (&block);

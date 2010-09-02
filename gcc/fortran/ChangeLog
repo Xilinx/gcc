@@ -1,3 +1,56 @@
+2010-09-01  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44541
+	* class.c (gfc_find_derived_vtab): Add component '$def_init'.
+	* resolve.c (resolve_allocate_expr): Defer handling of default
+	initialization to 'gfc_trans_allocate'.
+	(apply_default_init,resolve_symbol): Handle polymorphic dummies.
+	(resolve_fl_derived): Suppress error messages for vtypes.
+	* trans-stmt.c (gfc_trans_allocate): Handle initialization via
+	polymorphic MOLD expression.
+	* trans-expr.c (gfc_trans_class_init_assign): Now only used for
+	dummy initialization.
+
+2010-09-01  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.texi (preprocessing): Update URL to COCO.
+
+2010-09-01  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* trans-intrinsic.c (gfc_build_intrinsic_lib_fndecls): Resize
+	array quad_decls. Remove unnecessary assignment.
+
+2010-09-01  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* trans-expr.c (gfc_conv_power_op): Handle floating-point types
+	other than long double.
+	* mathbuiltins.def: Add builtins from the POW and CPOW family.
+	* trans.h (gfc_builtin_decl_for_float_kind): New prototype.
+	* trans-intrinsic.c (gfc_builtin_decl_for_float_kind): Add gfc_
+	prefix to function name.
+	(gfc_build_intrinsic_lib_fndecls): Add cpow prototype.
+	(gfc_conv_intrinsic_aint): Use gfc_builtin_decl_for_float_kind
+	function name.
+	(gfc_conv_intrinsic_exponent): Likewise.
+	(gfc_conv_intrinsic_abs): Likewise.
+	(gfc_conv_intrinsic_mod): Likewise.
+	(gfc_conv_intrinsic_sign): Likewise.
+	(gfc_conv_intrinsic_arith): Likewise.
+	(gfc_conv_intrinsic_fraction): Likewise.
+	(gfc_conv_intrinsic_nearest): Likewise.
+	(gfc_conv_intrinsic_spacing): Likewise.
+	(gfc_conv_intrinsic_rrspacing): Likewise.
+	(gfc_conv_intrinsic_scale): Likewise.
+	(gfc_conv_intrinsic_set_exponent): Likewise.
+
+2010-09-01  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* intrinsic.c: Add EXECUTE_COMMAND_LINE intrinsic.
+	* intrinsic.h (gfc_resolve_execute_command_line): New function.
+	* iresolve.c (gfc_resolve_execute_command_line): New function.
+	* gfortran.h (GFC_ISYM_EXECUTE_COMMAND_LINE): New value.
+	* intrinsic.texi: Document EXECUTE_COMMAND_LINE.
+
 2010-08-31  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR fortran/38282

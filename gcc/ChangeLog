@@ -1,3 +1,197 @@
+2010-09-02  Ira Rosen  <irar@il.ibm.com>
+
+	* tree-vectorizer.h (get_later_stmt): New function.
+	(vect_analyze_data_ref_dependences): Add argument.
+	* tree-vect-loop.c (vect_analyze_loop): Update call to
+	vect_analyze_data_ref_dependences.
+	* tree-vect-data-refs.c (vect_drs_dependent_in_basic_block):
+	New function.
+	(vect_analyze_data_ref_dependence): Add argument for basic block
+	dependencies. Check dependencies in basic block vectorization.
+	(vect_analyze_data_ref_dependences): Add argument and update call to
+	vect_analyze_data_ref_dependences.
+	* tree-vect-slp.c (vect_find_last_store_in_slp_instance): New.
+	(vect_bb_vectorizable_with_dependencies): New.
+	(vect_slp_analyze_bb): Check dependencies in basic block.
+	(vect_schedule_slp_instance): Insert stores before the last store in
+	SLP instance.
+
+2010-09-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/45476
+	* config/i386/freebsd.h (LIBGCC2_HAS_TF_MODE,
+	LIBGCC2_TF_CEXT, TF_SIZE): New defines.
+
+2010-09-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/45458
+	* bb-reorder.c (add_labels_and_missing_jumps): Treat
+	bbs ending with throwing insns like blocks ending with a call.
+	(fix_up_fall_thru_edges): Likewise.
+
+2010-09-01  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/m32c/m32c-protos.h (m32c_function_arg): Delete.
+	(m32c_function_arg_advance): Delete.
+	* config/m32c/m32c.h (FUNCTION_ARG, FUNCTION_ARG_ADVANCE): Delete.
+	* config/m32c/m32c.c (m32c_function_arg): Make static.  Adjust
+	comments.  Take a const_tree and a bool.  Declare.
+	(m32c_function_arg_advance): Likewise.
+	(TARGET_FUNCTION_ARG, TARGET_FUNCTION_ARG_ADVANCE): Define.
+
+2010-09-01  Uros Bizjak  <ubizjak@gmail.com>
+
+        PR target/45476
+        * config/i386/cygming.h (LIBGCC2_HAS_TF_MODE,
+	LIBGCC2_TF_CEXT, TF_SIZE): Move from ...
+        * config/i386/mingw32.h: ... here.
+
+2010-09-01  Andi Kleen	<ak@linux.intel.com>
+
+	PR lto/45475
+	* lto-streamer-in.c (lto_input_ts_target_option): Add.
+	(lto_input_tree_pointers): Call lto_input_ts_target_option.
+	* lto-streamer-out: (lto_output_ts_target_option): Add.
+	(lto_output_tree_pointers): Call lto_output_ts_target_option.
+
+2010-09-01  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR/target 45452
+	* config/i386/cygwin.h: Change order of specified import libraries.
+	* config/i386/mingw32.h: Likewise.
+	* config/i386/t-cygwin: Likewise.
+	* config/i386/t-mingw32: Likewise.
+	* config/i386/t-mingw-w32: Likewise.
+	* config/i386/t-mingw-w64: Likewise.
+
+2010-09-01  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/neon-schedgen.ml (core): New type.
+	(allCores): List of supported cores.
+	(availability_table): Add supported cores.
+	(collate_bypasses): Accept core as a parameter.
+	(worst_case_latencies_and_bypasses): Accept core as a parameter.
+	(emit_insn_reservations): Accept core as a parameter.  Use tuneStr
+	and coreStr to get tune attribute and prefix for functional units.
+	(emit_bypasses): Accept core name and use it.
+	(calculate_per_core_availability_table): New.
+	(filter_core): New.
+	(calculate_core_availability_table): New.
+	(main): Use calculate_core_availablity_table.
+	* config/arm/cortex-a8-neon.md: Update copyright year.
+	Regenerated from ml file and merged in.
+	(neon_mrrc, neon_mrc): Rename to cortex_a8_neon_mrrc and
+	cortex_a8_neon_mrc.
+
+2010-09-01  Ian Bolton  <ian.bolton@arm.com>
+
+	* Makefile.in (tree-switch-conversion.o): Update dependencies.
+
+2010-09-01  Richard Guenther  <rguenther@suse.de>
+
+	* alias.c (ao_ref_from_mem): Adjust.
+	* builtins.c (get_object_alignment): Likewise.
+	* cfgexpand.c (expand_debug_expr): Likewise.
+	* gimple.c (get_base_address): Likewise.
+	* tree-dfa.c (get_ref_base_and_extent): Likewise.
+	(get_addr_base_and_unit_offset): Likewise.  Fix for
+	both TMR_SYMBOL and TMR_BASE being set.
+	* tree-eh.c (tree_could_trap_p): Likewise.
+	* gimplify.c (gimplify_expr): Do not attempt to gimplify
+	TMR_SYMBOL.  Always gimplify TMR_BASE.
+	* tree-cfg.c (verify_types_in_gimple_reference): Verify
+	TMR_BASE if there is a TMR_SYMBOL.
+	* tree-pretty-print.c (dump_generic_node): Adjust.
+	* tree-ssa-address.c (addr_for_mem_ref): Likewise.
+	(tree_mem_ref_addr): Likewise.
+	(create_mem_ref_raw): Likewise.
+	(move_fixed_address_to_symbol): Likewise.
+	(create_mem_ref): Likewise.
+	(dump_mem_address): Likewise.
+	* tree-ssa-alias.c (indirect_ref_may_alias_decl_p): Adjust.
+	Fix for both TMR_SYMBOL and TMR_BASE being set.
+	(indirect_refs_may_alias_p): Likewise.
+	* tree-ssa-operands.c (get_tmr_operands): Adjust.
+	* tree.def (TARGET_MEM_REF): Adjust documentation.
+
+2010-09-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.h (enum ix86_tune_indices) <X86_TUNE_SINGLE_POP>:
+	Rename from X86_TUNE_ADD_ESP_4.
+	<IX86_TUNE_DOUBLE_POP>: Rename from X86_TUNE_ADD_ESP_8.
+	<IX86_TUNE_SINGLE_PUSH>: Rename from X86_TUNE_SUB_ESP_4.
+	<IX86_TUNE_DOUBLE_PUSH>: Rename from X86_TUNE_SUB_ESP_8.
+	(TARGET_SINGLE_POP): Rename from TARGET_ADD_ESP_4.
+	(TARGET_DOUBLE_POP): Rename from TARGET_ADD_ESP_8.
+	(TARGET_SINGLE_PUSH): Rename from TARGET_SUB_ESP_4.
+	(TARGET_DOUBLE_POP): Rename from TARGET_SUB_ESP_8.
+	* config/i386/i386.c (initial_ix86_tune_features)
+	<X86_TUNE_SINGLE_POP>: Invert members.
+	<X86_TUNE_DOUBLE_POP>: Ditto.
+	<X86_TUNE_SINGLE_PUSH>: Ditto.
+	<X86_TUNE_DOUBLE_PUSH>: Ditto.
+	* config/i386/i386.md (*pop<mode>1): Rename from pop<mode>1.
+	No longer exported.
+	(push peephole2 patterns): Macroize peepholes using P mode iterator.
+	Adjust for renamed TARGET_{SINGLE,DOUBLE}_PUSH defines.
+	(pop peephole2 patterns): Macroize peepholes using P mode iterator.
+	Adjust for renamed TARGET_{SINGLE,DOUBLE}_POP defines.
+
+2010-09-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gimplify.c (gimplify_init_constructor): Do not create a temporary for
+	a volatile LHS if the constructor has only one element.
+
+2010-09-01  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR bootstrap/45321
+	* tree.c (stdarg_p): Make fntype parameter const.
+	* tree.h (stdarg_p): Likewise.
+	(function_args_iterator): Remove unused fntype field.
+	(function_args_iter_init): Do not initialize fntype
+	field.  Make fntype parameter const.
+
+2010-09-01  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vrp.c (adjust_range_with_scev): Use number of iteration
+	estimate.
+	(vrp_visit_phi_node): Delay using SCEV till we balloon the range.
+	(execute_vrp): Compute number of iteration estimates.
+	* cfgloop.h (estimate_numbers_of_iterations_loop): Adjust prototype.
+	* tree-flow.h (estimate_numbers_of_iterations): Likewise.
+	* tree-data-ref.c (estimated_loop_iterations): Adjust.
+	* tree-ssa-loop-niter.c (estimate_numbers_of_iterations_loop):
+	Infer loop bounds from undefined behavior based on a new parameter.
+	(estimate_numbers_of_iterations): Likewise.
+	(scev_probably_wraps_p): Adjust.
+	* tree-ssa-loop.c (tree_ssa_loop_bounds): Likewise.
+
+2010-09-01  Nick Clifton  <nickc@redhat.com>
+
+	* config/stormy16/stormy16.c: Use REG_P, MEM_P and CONST_INT_P
+	where appropriate.
+	(xstormy16_legitimate_address_p): Use true and false instead of 1
+	and 0.
+	(xstormy16_expand_prologue): Delete unused local variable 'insn'.
+	(xstormy16_function_arg): Use FIRST_ARGUMENT_REGNUM in place of
+	magic constant 2.
+	(xstormy16_expand_call): Fix comment at start of function.
+
+2010-09-01  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.c (rx_expand_prologue): Do not adjust frame size
+	when pushing accumulator register.
+	(rx_get_stack_layout): Always save call clobbered registers inside
+	interrupt handlers.
+	* config/rx/rx-modes.def: Fix descriptive comment at start of file.
+
+2010-09-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config.gcc (i[34567]86-*-freebsd*, x86_64-*-freebsd*): Add
+	i386/t-fprules-softfp and soft-fp/t-softfp to tmake_file.
+
+	* libgcc-std.ver (GCC_4.6.0): Define version.
+
 2010-08-31  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* tree-nested.c (convert_all_function_calls): Iterate until after the
@@ -32,7 +226,7 @@
 	(arm_function_arg_advance): Likewise.
 	(TARGET_FUNCTION_ARG, TARGET_FUNCTION_ARG_ADVANCE): Define.
 
-2010-08-31  Andi Kleen      <ak@linux.intel.com>
+2010-08-31  Andi Kleen  <ak@linux.intel.com>
 
 	* common.opt (fwhopr=): Update for -fwhopr=jobserver
 	* doc/invoke.texi (fwhopr): Document -fwhopr=jobserver.
@@ -203,7 +397,7 @@
 	* config/xtensa/xtensa.h (FUNCTION_ARG, FUNCTION_ARG_ADVANCE): Delete.
 	(FUNCTION_INCOMING_ARG): Delete.
 	* config/xtensa/xtensa.c (function_arg_advance): Rename to...
-	(xtensa_function_arg_advance): ...this.  Make static.  Take a const_tree
+	(xtensa_function_arg_advance): ...this.  Make static. Take a const_tree
 	and a bool.
 	(function_arg): Rename to...
 	(xtensa_function_arg_1): ...this.  Make static.  Take a const_tree and
