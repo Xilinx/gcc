@@ -5911,15 +5911,14 @@ cxx_eval_array_reference (const constexpr_call *call, tree t,
 					   allow_non_constant, addr,
 					   non_constant_p);
   tree index, r;
-  unsigned i;
+  unsigned i, len;
   if (*non_constant_p)
     return t;
-  gcc_assert (TREE_CODE (ary) == CONSTRUCTOR);
   index = cxx_eval_constant_expression (call, TREE_OPERAND (t, 1),
 					allow_non_constant, addr,
 					non_constant_p);
   VERIFY_CONSTANT (index);
-  if (*non_constant_p)
+  if (*non_constant_p || addr)
     return t;
   /* FIXME: For the time being, refuse to index into a too big array.
      Actually, CONSTRUCTOR_NELTS is only an unsigned, not an unsigned
@@ -5933,14 +5932,21 @@ cxx_eval_array_reference (const constexpr_call *call, tree t,
       return t;
     }
   i = tree_low_cst (index, 0);
-  if (i >= CONSTRUCTOR_NELTS (ary))
+  len = (TREE_CODE (ary) == CONSTRUCTOR
+	 ? CONSTRUCTOR_NELTS (ary)
+	 : (unsigned)TREE_STRING_LENGTH (ary));
+  if (i >= len)
     {
       if (!allow_non_constant)
 	error ("array subscript out of bound");
       *non_constant_p = true;
       return t;
     }
-  r = VEC_index (constructor_elt, CONSTRUCTOR_ELTS (ary), i)->value;
+  if (TREE_CODE (ary) == CONSTRUCTOR)
+    r = VEC_index (constructor_elt, CONSTRUCTOR_ELTS (ary), i)->value;
+  else
+    r = build_int_cst (cv_unqualified (TREE_TYPE (TREE_TYPE (ary))),
+		       TREE_STRING_POINTER (ary)[i]);
   VERIFY_CONSTANT (r);
   return r;
 }
