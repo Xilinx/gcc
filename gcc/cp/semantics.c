@@ -5383,24 +5383,15 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
     return false;
   if (TREE_CODE (t) == CONVERT_EXPR)
     t = TREE_OPERAND (t, 0);
-  if (TREE_CODE (t) == INIT_EXPR
-      || TREE_CODE (t) == MODIFY_EXPR)
+  if (TREE_CODE (t) == INIT_EXPR)
     {
       member = TREE_OPERAND (t, 0);
       init = unshare_expr (TREE_OPERAND (t, 1));
     }
   else
     {
-      tree memtype;
       gcc_assert (TREE_CODE (t) == CALL_EXPR);
       member = CALL_EXPR_ARG (t, 0);
-      memtype = TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (member)));
-      if (TREE_CODE (member) == NOP_EXPR)
-	{
-	  /* We don't put out anything for an empty base.  */
-	  gcc_assert (is_empty_class (memtype));
-	  return true;
-	}
       gcc_assert (TREE_CODE (member) == ADDR_EXPR);
       member = TREE_OPERAND (member, 0);
       init = build_cplus_new (TYPE_MAIN_VARIANT (TREE_TYPE (member)),
@@ -6032,7 +6023,6 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t,
   constructor_elt *ce;
   HOST_WIDE_INT i;
   bool changed = false;
-  tree type = TREE_TYPE (t);
   for (i = 0; VEC_iterate (constructor_elt, v, i, ce); ++i)
     {
       tree elt = cxx_eval_constant_expression (call, ce->value,
@@ -6043,24 +6033,7 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t,
 	goto fail;
       if (elt != ce->value)
 	changed = true;
-      if (DECL_CONTEXT (ce->index) != type)
-	{
-	  /* Push our vtable pointer down into the base where it belongs.  */
-	  tree vptr_base = DECL_CONTEXT (ce->index);
-	  tree base_ctor;
-	  gcc_assert (ce->index == TYPE_VFIELD (type));
-	  for (base_ctor = VEC_index (constructor_elt, n, 0)->value; ;
-	       base_ctor = CONSTRUCTOR_ELT (base_ctor, 0)->value)
-	    if (TREE_TYPE (base_ctor) == vptr_base)
-	      {
-		constructor_elt *p = CONSTRUCTOR_ELT (base_ctor, 0);
-		gcc_assert (p->index == ce->index);
-		p->value = elt;
-		break;
-	      }
-	}
-      else
-	CONSTRUCTOR_APPEND_ELT (n, ce->index, elt);
+      CONSTRUCTOR_APPEND_ELT (n, ce->index, elt);
     }
   if (*non_constant_p || !changed)
     {
