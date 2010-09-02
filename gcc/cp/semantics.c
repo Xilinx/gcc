@@ -5801,6 +5801,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
 bool
 reduced_constant_expression_p (tree t)
 {
+  /* FIXME try TREE_CONSTANT */
   return initializer_constant_valid_p (t, TREE_TYPE (t)) != NULL_TREE;
 }
 
@@ -6083,6 +6084,12 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
       if (TREE_CODE (r) == TARGET_EXPR
 	  && TREE_CODE (TARGET_EXPR_INITIAL (r)) == CONSTRUCTOR)
 	r = TARGET_EXPR_INITIAL (r);
+      if (DECL_P (r))
+	{
+	  if (!allow_non_constant)
+	    error ("%qD cannot appear in a constant expression", r);
+	  *non_constant_p = true;
+	}
       break;
 
     case FUNCTION_DECL:
@@ -6108,6 +6115,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 
     case TARGET_EXPR:
     case INIT_EXPR:
+    case SCOPE_REF:
       r = cxx_eval_constant_expression (call, TREE_OPERAND (t, 1),
 					allow_non_constant, addr,
 					non_constant_p);
@@ -6116,6 +6124,8 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
     case RETURN_EXPR:
     case NON_LVALUE_EXPR:
     case TRY_CATCH_EXPR:
+    case CLEANUP_POINT_EXPR:
+    case MUST_NOT_THROW_EXPR:
       r = cxx_eval_constant_expression (call, TREE_OPERAND (t, 0),
 					allow_non_constant, addr,
 					non_constant_p);
@@ -6207,6 +6217,8 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
     case GE_EXPR:
     case EQ_EXPR:
     case NE_EXPR:
+    case UNORDERED_EXPR:
+    case ORDERED_EXPR:
     case UNLT_EXPR:
     case UNLE_EXPR:
     case UNGT_EXPR:
@@ -6259,6 +6271,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
       break;
 
     case CONVERT_EXPR:
+    case VIEW_CONVERT_EXPR:
     case NOP_EXPR:
       {
 	tree oldop = TREE_OPERAND (t, 0);
@@ -6288,10 +6301,37 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
       }
       break;
 
-    default:
+    case LAMBDA_EXPR:
+    case DYNAMIC_CAST_EXPR:
+    case PSEUDO_DTOR_EXPR:
+    case PREINCREMENT_EXPR:
+    case POSTINCREMENT_EXPR:
+    case PREDECREMENT_EXPR:
+    case POSTDECREMENT_EXPR:
+    case NEW_EXPR:
+    case VEC_NEW_EXPR:
+    case DELETE_EXPR:
+    case VEC_DELETE_EXPR:
+    case THROW_EXPR:
+    case MODIFY_EXPR:
+    case MODOP_EXPR:
+      /* GCC internal stuff.  */
+    case VA_ARG_EXPR:
+    case OBJ_TYPE_REF:
+    case WITH_CLEANUP_EXPR:
+    case STATEMENT_LIST:
+    case BIND_EXPR:
+    case NON_DEPENDENT_EXPR:
+    case BASELINK:
       if (!allow_non_constant)
-	internal_error ("unexpected expression %qE of kind %s", t,
-			tree_code_name[TREE_CODE (t)]);
+        error_at (EXPR_LOC_OR_HERE (t),
+		  "expression %qE is not a constant-expression", t);
+      *non_constant_p = true;
+      break;
+
+    default:
+      internal_error ("unexpected expression %qE of kind %s", t,
+		      tree_code_name[TREE_CODE (t)]);
       *non_constant_p = true;
       break;
     }
@@ -6350,13 +6390,10 @@ maybe_constant_value (tree t)
 {
   tree r = cxx_eval_outermost_constant_expr (t, true);
 #ifdef ENABLE_CHECKING
-  tree sr = r;
-  /* cp_tree_equal looks through NOPs, so use the stripped versions for
-     pointer comparision as well.  */
-  STRIP_NOPS (sr);
-  STRIP_NOPS (t);
-  gcc_assert (sr == t
-	      || !cp_tree_equal (sr, t));
+  /* cp_tree_equal looks through NOPs, so allow them.  */
+  gcc_assert (r == t
+	      || CONVERT_EXPR_P (t)
+	      || !cp_tree_equal (r, t));
 #endif
   return r;
 }
