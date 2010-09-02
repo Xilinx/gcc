@@ -2283,7 +2283,7 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 	      tree arraytype, domain;
 	      vecinit = VEC_index (tree, *init, 0);
 	      if (TREE_CONSTANT (nelts))
-		domain = compute_array_index_type (NULL_TREE, nelts);
+		domain = compute_array_index_type (NULL_TREE, nelts, complain);
 	      else
 		{
 		  domain = NULL_TREE;

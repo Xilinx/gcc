@@ -7457,7 +7457,7 @@ check_static_variable_definition (tree decl, tree type)
    name of the thing being declared.  */
 
 tree
-compute_array_index_type (tree name, tree size)
+compute_array_index_type (tree name, tree size, tsubst_flags_t complain)
 {
   tree type;
   tree itype;
@@ -7472,18 +7472,25 @@ compute_array_index_type (tree name, tree size)
     {
       mark_rvalue_use (size);
 
-      if (CLASS_TYPE_P (type)
-	  && CLASSTYPE_LITERAL_P (type))
+      if (cxx_dialect < cxx0x && TREE_CODE (size) == NOP_EXPR
+	  && TREE_SIDE_EFFECTS (size))
+	/* In C++98, we mark a non-constant array bound with a magic
+	   NOP_EXPR with TREE_SIDE_EFFECTS; don't fold in that case.  */;
+      else
 	{
-	  size = build_expr_type_conversion (WANT_INT, size, true);
-	  if (size == error_mark_node)
-	    return error_mark_node;
-	  type = TREE_TYPE (size);
-	}
+	  size = fold_non_dependent_expr (size);
 
-      if (!(cxx_dialect < cxx0x && TREE_CODE (size) == NOP_EXPR
-	    && TREE_SIDE_EFFECTS (size)))
-	size = fold_decl_constant_value (size);
+	  if (CLASS_TYPE_P (type)
+	      && CLASSTYPE_LITERAL_P (type))
+	    {
+	      size = build_expr_type_conversion (WANT_INT, size, true);
+	      if (size == error_mark_node)
+		return error_mark_node;
+	      type = TREE_TYPE (size);
+	    }
+
+	  size = maybe_constant_value (size);
+	}
 
       if (error_operand_p (size))
 	return error_mark_node;
@@ -7491,6 +7498,8 @@ compute_array_index_type (tree name, tree size)
       /* The array bound must be an integer type.  */
       if (!INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (type))
 	{
+	  if (!(complain & tf_error))
+	    return error_mark_node;
 	  if (name)
 	    error ("size of array %qD has non-integral type %qT", name, type);
 	  else
@@ -7537,24 +7546,37 @@ compute_array_index_type (tree name, tree size)
       /* An array must have a positive number of elements.  */
       if (INT_CST_LT (size, integer_zero_node))
 	{
+	  if (!(complain & tf_error))
+	    return error_mark_node;
 	  if (name)
 	    error ("size of array %qD is negative", name);
 	  else
 	    error ("size of array is negative");
 	  size = integer_one_node;
 	}
-      /* As an extension we allow zero-sized arrays.  We always allow
-	 them in system headers because glibc uses them.  */
-      else if (integer_zerop (size) && !in_system_header)
+      /* As an extension we allow zero-sized arrays.  */
+      else if (integer_zerop (size))
 	{
-	  if (name)
+	  if (!(complain & tf_error))
+	    /* We must fail if performing argument deduction (as
+	       indicated by the state of complain), so that
+	       another substitution can be found.  */
+	    return error_mark_node;
+	  else if (in_system_header)
+	    /* Allow them in system headers because glibc uses them.  */;
+	  else if (name)
 	    pedwarn (input_location, OPT_pedantic, "ISO C++ forbids zero-size array %qD", name);
 	  else
 	    pedwarn (input_location, OPT_pedantic, "ISO C++ forbids zero-size array");
 	}
     }
-  else if (TREE_CONSTANT (size))
+  else if (TREE_CONSTANT (size)
+	   /* We don't allow VLAs at non-function scopes, or during
+	      tentative template substitution.  */
+	   || !at_function_scope_p () || !(complain & tf_error))
     {
+      if (!(complain & tf_error))
+	return error_mark_node;
       /* `(int) &fn' is not a valid array bound.  */
       if (name)
 	error ("size of array %qD is not an integral constant-expression",
@@ -7610,6 +7632,8 @@ compute_array_index_type (tree name, tree size)
       else if (TREE_CODE (itype) == INTEGER_CST
 	       && TREE_OVERFLOW (itype))
 	{
+	  if (!(complain & tf_error))
+	    return error_mark_node;
 	  error ("overflow in array dimension");
 	  TREE_OVERFLOW (itype) = 0;
 	}
@@ -7715,7 +7739,7 @@ create_array_type_for_decl (tree name, tree type, tree size)
 
   /* Figure out the index type for the array.  */
   if (size)
-    itype = compute_array_index_type (name, size);
+    itype = compute_array_index_type (name, size, tf_warning_or_error);
 
   /* [dcl.array]
      T is called the array element type; this type shall not be [...] an
@@ -9450,7 +9474,8 @@ grokdeclarator (const cp_declarator *declarator,
 	if (!staticp && TREE_CODE (type) == ARRAY_TYPE
 	    && TYPE_DOMAIN (type) == NULL_TREE)
 	  {
-	    tree itype = compute_array_index_type (dname, integer_zero_node);
+	    tree itype = compute_array_index_type (dname, integer_zero_node,
+						   tf_warning_or_error);
 	    type = build_cplus_array_type (TREE_TYPE (type), itype);
 	  }
 

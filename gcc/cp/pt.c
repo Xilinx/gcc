@@ -10130,38 +10130,7 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	    TREE_SIDE_EFFECTS (max) = 1;
 	  }
 
-	if (TREE_CODE (max) != INTEGER_CST
-	    && !at_function_scope_p ()
-	    && !TREE_SIDE_EFFECTS (max)
-	    && !value_dependent_expression_p (max))
-	  {
-	    if (complain & tf_error)
-	      error ("array bound is not an integer constant");
-	    return error_mark_node;
-	  }
-
-	/* [temp.deduct]
-
-	   Type deduction may fail for any of the following
-	   reasons:
-
-	     Attempting to create an array with a size that is
-	     zero or negative.  */
-	if (integer_zerop (max) && !(complain & tf_error))
-	  /* We must fail if performing argument deduction (as
-	     indicated by the state of complain), so that
-	     another substitution can be found.  */
-	  return error_mark_node;
-	else if (TREE_CODE (max) == INTEGER_CST
-		 && INT_CST_LT (max, integer_zero_node))
-	  {
-	    if (complain & tf_error)
-	      error ("creating array with negative size (%qE)", max);
-
-	    return error_mark_node;
-	  }
-
-	return compute_array_index_type (NULL_TREE, max);
+	return compute_array_index_type (NULL_TREE, max, complain);
       }
 
     case TEMPLATE_TYPE_PARM:
