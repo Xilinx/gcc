@@ -5799,7 +5799,10 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
 bool
 reduced_constant_expression_p (tree t)
 {
-  /* FIXME try TREE_CONSTANT */
+  if (cxx_dialect >= cxx0x && TREE_OVERFLOW_P (t))
+    /* In C++0x, integer overflow makes this not a constant expression.  */
+    return false;
+  /* FIXME try TREE_CONSTANT? */
   return initializer_constant_valid_p (t, TREE_TYPE (t)) != NULL_TREE;
 }
 
