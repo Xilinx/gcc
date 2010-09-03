@@ -6170,12 +6170,18 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 						non_constant_p);
 	if (op == oldop)
 	  return t;
-	STRIP_NOPS (op);
 	/* These functions do more aggressive folding than fold itself.  */
 	if (code == ADDR_EXPR)
 	  return build_fold_addr_expr_with_type (op, TREE_TYPE (t));
 	else
 	  {
+	    /* Strip NOPs that just mess with cv-quals.  We don't want to
+	       strip a NOP from pointer-to-array to pointer-to-element.  */
+	    while (CONVERT_EXPR_P (op)
+		   && (same_type_ignoring_top_level_qualifiers_p
+		       (TREE_TYPE (TREE_TYPE (op)),
+			TREE_TYPE (TREE_TYPE (TREE_OPERAND (op, 0))))))
+	      op = TREE_OPERAND (op, 0);
 	    r = build_fold_indirect_ref (op);
 	    if (TREE_CODE (r) != code)
 	      r = cxx_eval_constant_expression (call, r, allow_non_constant,
