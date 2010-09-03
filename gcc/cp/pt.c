@@ -16667,6 +16667,7 @@ instantiate_decl (tree d, int defer_ok,
      case that an expression refers to the value of the variable --
      if the variable has a constant value the referring expression can
      take advantage of that fact.  */
+  /* FIXME why do we need both this and the special handling below? */
   if (TREE_CODE (d) == VAR_DECL
       || DECL_DECLARED_CONSTEXPR_P (d))
     defer_ok = 0;
@@ -16849,6 +16850,11 @@ instantiate_decl (tree d, int defer_ok,
 	permerror (input_location,  "explicit instantiation of %qD "
 		   "but no definition available", d);
 
+      /* If we're in unevaluated context, we just wanted to get the
+	 constant value; this isn't an odr use, so don't queue
+	 a full instantiation.  */
+      if (cp_unevaluated_operand != 0)
+	goto out;
       /* ??? Historically, we have instantiated inline functions, even
 	 when marked as "extern template".  */
       if (!(external_p && TREE_CODE (d) == VAR_DECL))

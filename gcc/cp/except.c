@@ -1146,9 +1146,13 @@ type_throw_all_p (const_tree type)
 tree
 build_noexcept_spec (tree expr, int complain)
 {
-  expr = perform_implicit_conversion_flags (boolean_type_node, expr,
-					    complain,
-					    LOOKUP_NORMAL);
+  if (!type_dependent_expression_p (expr))
+    {
+      expr = maybe_constant_value (expr);
+      expr = perform_implicit_conversion_flags (boolean_type_node, expr,
+						complain,
+						LOOKUP_NORMAL);
+    }
   if (expr == boolean_true_node)
     return noexcept_true_spec;
   else if (expr == boolean_false_node)

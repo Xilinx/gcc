@@ -4113,8 +4113,6 @@ possibly_inlined_p (tree decl)
 void
 mark_used (tree decl)
 {
-  HOST_WIDE_INT saved_processing_template_decl = 0;
-
   /* If DECL is a BASELINK for a single function, then treat it just
      like the DECL for the function.  Otherwise, if the BASELINK is
      for an overloaded function, we don't know which function was
@@ -4152,6 +4150,19 @@ mark_used (tree decl)
 	error_at (DECL_SOURCE_LOCATION (decl), "declared here");
       return;
     }
+
+  /* Normally, we can wait until instantiation-time to synthesize
+     DECL.  However, if DECL is a static data member initialized with
+     a constant, we need the value right now because a reference to
+     such a data member is not value-dependent.  */
+  if (decl_maybe_constant_var_p (decl)
+      && !DECL_INITIAL (decl)
+      && DECL_LANG_SPECIFIC (decl)
+      && DECL_TEMPLATE_INSTANTIATION (decl)
+      && DECL_INITIAL (DECL_TEMPLATE_RESULT (DECL_TI_TEMPLATE (decl))))
+    instantiate_decl (decl, /*defer_ok=*/true,
+		      /*expl_inst_class_mem_p=*/false);
+
   /* If we don't need a value, then we don't need to synthesize DECL.  */
   if (cp_unevaluated_operand != 0)
     return;
@@ -4178,29 +4189,12 @@ mark_used (tree decl)
       return;
     }
 
-  /* Normally, we can wait until instantiation-time to synthesize
-     DECL.  However, if DECL is a static data member initialized with
-     a constant, we need the value right now because a reference to
-     such a data member is not value-dependent.  */
-  if (TREE_CODE (decl) == VAR_DECL
-      && decl_maybe_constant_var_p (decl)
-      && DECL_CLASS_SCOPE_P (decl))
-    {
-      /* Don't try to instantiate members of dependent types.  We
-	 cannot just use dependent_type_p here because this function
-	 may be called from fold_non_dependent_expr, and then we may
-	 see dependent types, even though processing_template_decl
-	 will not be set.  */
-      if (CLASSTYPE_TEMPLATE_INFO ((DECL_CONTEXT (decl)))
-	  && uses_template_parms (CLASSTYPE_TI_ARGS (DECL_CONTEXT (decl))))
-	return;
-      /* Pretend that we are not in a template, even if we are, so
-	 that the static data member initializer will be processed.  */
-      saved_processing_template_decl = processing_template_decl;
-      processing_template_decl = 0;
-    }
-
   if (processing_template_decl)
+    return;
+
+  /* Check this too in case we're within fold_non_dependent_expr.  */
+  if (DECL_TEMPLATE_INFO (decl)
+      && uses_template_parms (DECL_TI_ARGS (decl)))
     return;
 
   DECL_ODR_USED (decl) = 1;
@@ -4272,8 +4266,6 @@ mark_used (tree decl)
        need.  Therefore, we always try to defer instantiation.  */
     instantiate_decl (decl, /*defer_ok=*/true,
 		      /*expl_inst_class_mem_p=*/false);
-
-  processing_template_decl = saved_processing_template_decl;
 }
 
 #include "gt-cp-decl2.h"
