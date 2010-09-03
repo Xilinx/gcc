@@ -6108,7 +6108,11 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
       return t;
     }
   if (CONSTANT_CLASS_P (t))
-    return t;
+    {
+      if (TREE_CODE (t) == PTRMEM_CST)
+	t = cplus_expand_constant (t);
+      return t;
+    }
   if (TREE_CODE (t) != NOP_EXPR
       && reduced_constant_expression_p (t))
     return fold (t);
@@ -6198,7 +6202,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 			TREE_TYPE (TREE_TYPE (TREE_OPERAND (op, 0))))))
 	      op = TREE_OPERAND (op, 0);
 	    r = build_fold_indirect_ref (op);
-	    if (TREE_CODE (r) != code)
+	    if (TREE_CODE (r) != INDIRECT_REF)
 	      r = cxx_eval_constant_expression (call, r, allow_non_constant,
 						addr, non_constant_p);
 	  }
@@ -6324,13 +6328,13 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 	tree op = oldop;
 	tree to = TREE_TYPE (t);
 	tree source = TREE_TYPE (op);
-        if ((TYPE_PTR_P (source) || TYPE_PTRMEM_P (source))
-	    && ARITHMETIC_TYPE_P (to))
+        if (TYPE_PTR_P (source) && ARITHMETIC_TYPE_P (to)
+	    && !(TREE_CODE (op) == COMPONENT_REF
+		 && TYPE_PTRMEMFUNC_P (TREE_TYPE (TREE_OPERAND (op, 0)))))
           {
             if (!allow_non_constant)
-              error ("conversion of expression %qE of pointer or "
-                     "pointer-to-member type cannot yield a constant "
-                     "expression", op);
+              error ("conversion of expression %qE of pointer type "
+                     "cannot yield a constant expression", op);
 	    *non_constant_p = true;
 	    return t;
           }
@@ -6646,21 +6650,13 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
                      "expression", from);
             return false;
           }
-        if ((TYPE_PTR_P (source) || TYPE_PTRMEM_P (source))
-	    && ARITHMETIC_TYPE_P (target))
+        if (TYPE_PTR_P (source) && ARITHMETIC_TYPE_P (target)
+	    && !(TREE_CODE (from) == COMPONENT_REF
+		 && TYPE_PTRMEMFUNC_P (TREE_TYPE (TREE_OPERAND (from, 0)))))
           {
             if (flags & tf_error)
-              error ("conversion of expression %qE of pointer or "
-                     "pointer-to-member type cannot yield a constant "
-                     "expression", from);
-            return false;
-          }
-	/* FIXME this is obsolete, right?  */
-        if ((INTEGRAL_TYPE_P (source) && !INTEGRAL_TYPE_P (target))
-            || (!INTEGRAL_TYPE_P (source) && INTEGRAL_TYPE_P (target)))
-          {
-            if (flags & tf_error)
-              error ("invalid conversion in constant expression");
+              error ("conversion of expression %qE of pointer type "
+                     "cannot yield a constant expression", from);
             return false;
           }
         return potential_constant_expression (from, flags);
