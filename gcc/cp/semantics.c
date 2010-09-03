@@ -5909,19 +5909,24 @@ cxx_eval_array_reference (const constexpr_call *call, tree t,
 			  bool allow_non_constant, bool addr,
 			  bool *non_constant_p)
 {
-  tree ary = cxx_eval_constant_expression (call, TREE_OPERAND (t, 0),
+  tree oldary = TREE_OPERAND (t, 0);
+  tree ary = cxx_eval_constant_expression (call, oldary,
 					   allow_non_constant, addr,
 					   non_constant_p);
-  tree index, r;
+  tree index, r, oldidx;
   unsigned i, len;
   if (*non_constant_p)
     return t;
-  index = cxx_eval_constant_expression (call, TREE_OPERAND (t, 1),
-					allow_non_constant, addr,
+  oldidx = TREE_OPERAND (t, 1);
+  index = cxx_eval_constant_expression (call, oldidx,
+					allow_non_constant, false,
 					non_constant_p);
   VERIFY_CONSTANT (index);
-  if (*non_constant_p || addr)
+  if (*non_constant_p
+      || (addr && ary == oldary && index == oldidx))
     return t;
+  else if (addr)
+    return build4 (ARRAY_REF, TREE_TYPE (t), ary, index, NULL, NULL);
   /* FIXME: For the time being, refuse to index into a too big array.
      Actually, CONSTRUCTOR_NELTS is only an unsigned, not an unsigned
      HOST_WIDE_INT.  What does the C front end do about extremely large
