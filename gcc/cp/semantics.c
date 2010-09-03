@@ -5403,8 +5403,10 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
 	}
       gcc_assert (TREE_CODE (member) == ADDR_EXPR);
       member = TREE_OPERAND (member, 0);
-      init = build_cplus_new (TYPE_MAIN_VARIANT (TREE_TYPE (member)),
-			      unshare_expr (t));
+      /* We don't use build_cplus_new here because it complains about
+	 abstract bases.  T has the wrong type, but
+	 cxx_eval_constant_expression doesn't care.  */
+      init = unshare_expr (t);
     }
   if (TREE_CODE (member) == COMPONENT_REF)
     member = TREE_OPERAND (member, 1);
