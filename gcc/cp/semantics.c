@@ -6326,6 +6326,11 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
       }
       break;
 
+    case EMPTY_CLASS_EXPR:
+      /* This is good enough for a function argument that might not get
+	 used, and they can't do anything with it, so just return it.  */
+      return t;
+
     case LAMBDA_EXPR:
     case DYNAMIC_CAST_EXPR:
     case PSEUDO_DTOR_EXPR:
