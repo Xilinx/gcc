@@ -5721,7 +5721,14 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
     loc = input_location;
   if (TREE_CODE (fun) != FUNCTION_DECL)
     {
-      /* FIXME what about constexpr function pointers?  */
+      /* Might be a constexpr function pointer.  */
+      fun = cxx_eval_constant_expression (old_call, fun, allow_non_constant,
+					  /*addr*/false, non_constant_p);
+      if (TREE_CODE (fun) == ADDR_EXPR)
+	fun = TREE_OPERAND (fun, 0);
+    }
+  if (TREE_CODE (fun) != FUNCTION_DECL)
+    {
       if (!allow_non_constant)
 	error_at (loc, "expression %qE does not designate a constexpr "
 		  "function", fun);
@@ -6573,9 +6580,11 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
             or a constexpr constructor.  */
       {
         tree fun = get_function_named_in_call (t);
-	/* FIXME constexpr function pointer? VIRT? */
         if (TREE_CODE (fun) != FUNCTION_DECL)
           {
+	    if (potential_constant_expression (fun, flags))
+	      /* Might end up being a constant function pointer.  */
+	      return true;
             if (flags & tf_error)
               error ("%qE is not a function name", fun);
             return false;
