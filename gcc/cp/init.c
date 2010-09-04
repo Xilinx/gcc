@@ -1693,31 +1693,12 @@ constant_value_1 (tree decl, bool integral_p)
 		&& CP_TYPE_CONST_NON_VOLATILE_P (TREE_TYPE (decl)))))
     {
       tree init;
-      /* Static data members in template classes may have
-	 non-dependent initializers.  References to such non-static
-	 data members are not value-dependent, so we must retrieve the
-	 initializer here.  The DECL_INITIAL will have the right type,
-	 but will not have been folded because that would prevent us
-	 from performing all appropriate semantic checks at
-	 instantiation time.  */
-      if (DECL_CLASS_SCOPE_P (decl)
-	  && CLASSTYPE_TEMPLATE_INFO (DECL_CONTEXT (decl))
-	  && uses_template_parms (CLASSTYPE_TI_ARGS
-				  (DECL_CONTEXT (decl))))
-	{
-	  ++processing_template_decl;
-	  init = fold_non_dependent_expr (DECL_INITIAL (decl));
-	  --processing_template_decl;
-	}
-      else
-	{
-	  /* If DECL is a static data member in a template
-	     specialization, we must instantiate it here.  The
-	     initializer for the static data member is not processed
-	     until needed; we need it now.  */
-	  mark_used (decl);
-	  init = DECL_INITIAL (decl);
-	}
+      /* If DECL is a static data member in a template
+	 specialization, we must instantiate it here.  The
+	 initializer for the static data member is not processed
+	 until needed; we need it now.  */
+      mark_used (decl);
+      init = DECL_INITIAL (decl);
       if (init == error_mark_node)
 	{
 	  if (DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl))
