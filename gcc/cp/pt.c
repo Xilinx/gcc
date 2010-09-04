@@ -16662,14 +16662,10 @@ instantiate_decl (tree d, int defer_ok,
   gcc_assert (TREE_CODE (d) == FUNCTION_DECL
 	      || TREE_CODE (d) == VAR_DECL);
 
-  /* Variables are never deferred; if instantiation is required, they
-     are instantiated right away.  That allows for better code in the
-     case that an expression refers to the value of the variable --
-     if the variable has a constant value the referring expression can
-     take advantage of that fact.  */
-  /* FIXME why do we need both this and the special handling below? */
-  if (TREE_CODE (d) == VAR_DECL
-      || DECL_DECLARED_CONSTEXPR_P (d))
+  /* If this is a constexpr function, we need to instantiate it right away
+     so that we can use it in constant-expressions.  */
+  if (TREE_CODE (d) == FUNCTION_DECL
+      && DECL_DECLARED_CONSTEXPR_P (d))
     defer_ok = 0;
 
   /* Don't instantiate cloned functions.  Instead, instantiate the
