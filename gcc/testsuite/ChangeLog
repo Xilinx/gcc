@@ -1,3 +1,111 @@
+2010-09-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/opts-4.c: New test.
+
+2010-09-03  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc.dg/vect/vect-peel-3.c: XFAIL if vect_no_align.
+	* gcc.dg/vect/vect-peel-4.c: Ditto.
+
+2010-09-03  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/45525
+	* gfortran.dg/dummy_procedure_1.f90: Add -std=f2003 and adapt error.
+
+2010-09-03  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45159
+	* gfortran.dg/dependency_34.f90:  New test.
+
+2010-09-03  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc.dg/torture/pr44806.c: Add -std=c99 to access uint32_t.
+
+2010-09-03  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.target/x86_64/abi/avx/abi-avx.exp: Link with
+	gcc.target/i386/clearcap.map if supported.
+
+2010-09-03  Michael Matz  <matz@suse.de>
+
+	PR middle-end/45415
+	* gcc.dg/pr45415.c: New test.
+
+2010-09-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR tree-optimization/45506
+	* gcc.dg/pr45506.c: New.
+
+2010-09-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/45476
+	* gcc.target/i386/float128-1.c: Enable for all x86 targets.
+	* gcc.target/i386/float128-2.c: Ditto.
+
+2010-09-03  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/34162
+	* gfortran.dg/internal_dummy_1.f90: Add -std=f2003.
+	* gfortran.dg/internal_dummy_2.f08: New test.
+	* gfortran.dg/internal_dummy_3.f08: New test.
+	* gfortran.dg/internal_dummy_4.f08: New test.
+
+2010-09-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45500
+	* gcc.target/i386/pr45500.c: New test.
+
+2010-09-03  Mingjie Xing <mingjie.xing@gmail.com>
+
+	* gcc.target/mips/loongson-shift-count-truncated-1.c: New.
+
+2010-09-03  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/44602
+	* gfortran.dg/exit_2.f08; Adapt error messages.
+	* gfortran.dg/exit_3.f08: New test.
+	* gfortran.dg/exit_4.f08: New test.
+	* gfortran.dg/exit_5.f03: New test.
+
+2010-09-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gfortran.dg/ishft_4.f90: New test.
+
+2010-09-02  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-fpconv-10.c: New file to test generating
+	FRIZ/XSRIZ instruciton for (double)(long long)x.
+	* gcc.target/powerpc/ppc-fpconv-11.c: Ditto.
+
+2010-09-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* g++.dg/debug/dwarf2/nested-2.C: Allow for ! as comment delimiter.
+
+2010-09-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44937
+	PR tree-optimization/45412
+	* g++.dg/opt/pr45412.C: New testcase.
+	* gcc.c-torture/compile/pr45412.c: Likewise.
+	* gcc.c-torture/compile/pr44937.c: Likewise.
+
+2010-09-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/cpp/warn-comments-3.c: New.  Based on warn-comments-2.c
+	but using -Werror=comment.
+	* gcc.dg/cpp/warn-comments.c, gcc.dg/cpp/warn-comments-2.c: Adjust
+	expected error messages.
+
+2010-09-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/stack-usage-1.c: Adjust on i386/Darwin.
+	* gcc.target/i386/stack-usage-realign.c: Skip on i386/Darwin.
+
+2010-09-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45489
+	* gfortran.dg/initialization_27.f90: New.
+
 2010-09-02  Ira Rosen  <irar@il.ibm.com>
 
 	* gcc.dg/vect/bb-slp-8.c: Separate the interesting part and the

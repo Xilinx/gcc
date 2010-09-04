@@ -456,7 +456,7 @@ gfc_conv_intrinsic_aint (gfc_se * se, gfc_expr * expr, enum rounding_mode op)
   int kind;
 
   kind = expr->ts.kind;
-  nargs =  gfc_intrinsic_argument_list_length (expr);
+  nargs = gfc_intrinsic_argument_list_length (expr);
 
   decl = NULL_TREE;
   /* We have builtin functions for some cases.  */
@@ -1306,8 +1306,10 @@ gfc_conv_intrinsic_sign (gfc_se * se, gfc_expr * expr)
 	  zero = build_real_from_int_cst (TREE_TYPE (args[1]), integer_zero_node);
 	  cond = fold_build2 (EQ_EXPR, boolean_type_node, args[1], zero);
 	  se->expr = fold_build3 (COND_EXPR, TREE_TYPE (args[0]), cond,
-				  build_call_expr (abs, 1, args[0]),
-				  build_call_expr (tmp, 2, args[0], args[1]));
+				  build_call_expr_loc (input_location, abs, 1,
+						       args[0]),
+				  build_call_expr_loc (input_location, tmp, 2,
+						       args[0], args[1]));
 	}
       else
         se->expr = build_call_expr_loc (input_location, tmp, 2,
@@ -3235,6 +3237,10 @@ gfc_conv_intrinsic_ishft (gfc_se * se, gfc_expr * expr)
   tree rshift;
 
   gfc_conv_intrinsic_function_args (se, expr, args, 2);
+
+  args[0] = gfc_evaluate_now (args[0], &se->pre);
+  args[1] = gfc_evaluate_now (args[1], &se->pre);
+
   type = TREE_TYPE (args[0]);
   utype = unsigned_type_for (type);
 
@@ -3320,7 +3326,7 @@ gfc_conv_intrinsic_ishftc (gfc_se * se, gfc_expr * expr)
 	  gcc_unreachable ();
 	}
       se->expr = build_call_expr_loc (input_location,
-				  tmp, 3, args[0], args[1], args[2]);
+				      tmp, 3, args[0], args[1], args[2]);
       /* Convert the result back to the original type, if we extended
 	 the first argument's width above.  */
       if (expr->ts.kind < 4)
@@ -3329,6 +3335,10 @@ gfc_conv_intrinsic_ishftc (gfc_se * se, gfc_expr * expr)
       return;
     }
   type = TREE_TYPE (args[0]);
+
+  /* Evaluate arguments only once.  */
+  args[0] = gfc_evaluate_now (args[0], &se->pre);
+  args[1] = gfc_evaluate_now (args[1], &se->pre);
 
   /* Rotate left if positive.  */
   lrot = fold_build2 (LROTATE_EXPR, type, args[0], args[1]);
@@ -3404,7 +3414,8 @@ gfc_conv_intrinsic_leadz (gfc_se * se, gfc_expr * expr)
 
   /* Compute LEADZ for the case i .ne. 0.  */
   s = TYPE_PRECISION (arg_type) - argsize;
-  tmp = fold_convert (result_type, build_call_expr (func, 1, arg));
+  tmp = fold_convert (result_type, build_call_expr_loc (input_location, func,
+							1, arg));
   leadz = fold_build2 (MINUS_EXPR, result_type,
 		       tmp, build_int_cst (result_type, s));
 

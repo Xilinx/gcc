@@ -1590,8 +1590,11 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
 	  if (sym->attr.contained && !sym->attr.use_assoc
 	      && sym->ns->proc_name->attr.flavor != FL_MODULE)
 	    {
-	      gfc_error ("Internal procedure '%s' is not allowed as an "
-			 "actual argument at %L", sym->name, &e->where);
+	      if (gfc_notify_std (GFC_STD_F2008,
+				  "Fortran 2008: Internal procedure '%s' is"
+				  " used as actual argument at %L",
+				  sym->name, &e->where) == FAILURE)
+		return FAILURE;
 	    }
 
 	  if (sym->attr.elemental && !sym->attr.intrinsic)
@@ -7688,7 +7691,10 @@ resolve_select_type (gfc_code *code)
     return;
 
   /* Transform SELECT TYPE statement to BLOCK and associate selector to
-     target if present.  */
+     target if present.  If there are any EXIT statements referring to the
+     SELECT TYPE construct, this is no problem because the gfc_code
+     reference stays the same and EXIT is equally possible from the BLOCK
+     it is changed to.  */
   code->op = EXEC_BLOCK;
   if (code->expr2)
     {
@@ -9476,6 +9482,7 @@ apply_default_init (gfc_symbol *sym)
     return;
 
   build_init_assign (sym, init);
+  sym->attr.referenced = 1;
 }
 
 /* Build an initializer for a local integer, real, complex, logical, or
@@ -12148,7 +12155,6 @@ resolve_symbol (gfc_symbol *sym)
      described in 14.7.5, to those variables that have not already
      been assigned one.  */
   if (sym->ts.type == BT_DERIVED
-      && sym->attr.referenced
       && sym->ns == gfc_current_ns
       && !sym->value
       && !sym->attr.allocatable
@@ -12158,6 +12164,7 @@ resolve_symbol (gfc_symbol *sym)
 
       if ((!a->save && !a->dummy && !a->pointer
 	   && !a->in_common && !a->use_assoc
+	   && (a->referenced || a->result)
 	   && !(a->function && sym != sym->result))
 	  || (a->dummy && a->intent == INTENT_OUT && !a->pointer))
 	apply_default_init (sym);
@@ -12165,11 +12172,9 @@ resolve_symbol (gfc_symbol *sym)
 
   if (sym->ts.type == BT_CLASS && sym->ns == gfc_current_ns
       && sym->attr.dummy && sym->attr.intent == INTENT_OUT
-      && !sym->attr.pointer && !sym->attr.allocatable)
-    {
-      apply_default_init (sym);
-      gfc_set_sym_referenced (sym);
-    }
+      && !CLASS_DATA (sym)->attr.class_pointer
+      && !CLASS_DATA (sym)->attr.allocatable)
+    apply_default_init (sym);
 
   /* If this symbol has a type-spec, check it.  */
   if (sym->attr.flavor == FL_VARIABLE || sym->attr.flavor == FL_PARAMETER

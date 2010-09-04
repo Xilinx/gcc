@@ -1,3 +1,117 @@
+2010-09-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45186
+	* trans-intrinsic.c (gfc_conv_intrinsic_sign,
+	gfc_conv_intrinsic_leadz): Use build_call_expr_loc instead
+	of build_call_expr.
+	* trans-expr.c (gfc_conv_expr_present, gfc_conv_missing_dummy,
+	gfc_conv_string_length, gfc_conv_substring,
+	gfc_conv_component_ref, gfc_conv_unary_op, gfc_conv_powi,
+	gfc_conv_cst_int_power, gfc_conv_string_tmp, gfc_conv_concat_op,
+	gfc_conv_expr_op, gfc_build_compare_string,
+	gfc_set_interface_mapping_bounds, gfc_conv_subref_array_arg,
+	gfc_conv_derived_to_class, conv_isocbinding_procedure,
+	gfc_conv_procedure_call, fill_with_spaces,
+	gfc_trans_string_copy, gfc_trans_alloc_subarray_assign,
+	gfc_trans_structure_assign, gfc_trans_pointer_assignment,
+	gfc_trans_scalar_assign, gfc_trans_zero_assign,
+	gfc_trans_array_copy, gfc_trans_array_constructor_copy): Change
+	fold_build[0-9] to fold_build[0-9]_loc.
+	* trans-io.c (set_parameter_const, set_parameter_value,
+	set_parameter_ref, gfc_convert_array_to_string, set_string,
+	set_internal_unit, io_result, set_error_locus,
+	nml_get_addr_expr, build_dt): Ditto.
+	* trans-openmp.c (gfc_omp_clause_default_ctor,
+	gfc_omp_clause_copy_ctor, gfc_omp_clause_assign_op,
+	gfc_trans_omp_array_reduction, gfc_trans_omp_atomic,
+	gfc_trans_omp_do): Ditto.
+	* trans.c (gfc_add_modify, gfc_build_addr_expr,
+	gfc_build_array_ref, gfc_trans_runtime_error_vararg,
+	gfc_trans_runtime_check, gfc_call_malloc,
+	gfc_allocate_with_status, gfc_allocate_array_with_status,
+	gfc_call_free, gfc_deallocate_with_status,
+	gfc_call_realloc): Ditto.
+
+2010-09-03  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45159
+	* dependency.c (gfc_deb_compare_expr):  Compare equal for equal
+	arglists for pure user functions, or for those intrinsic
+	functions which are also pure.
+	* intrinsics.c (add_conv):  Mark conversion functions as pure.
+	(add_char_conversions):  Likewise.
+
+2010-09-03  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/34162
+	* resolve.c (resolve_actual_arglist): Allow internal procedure
+	as actual argument with Fortran 2008.
+
+2010-09-03  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/44602
+	* gfortran.h (struct gfc_code): Renamed `whichloop' to
+	`which_construct' as this is no longer restricted to loops.
+	* parse.h (struct gfc_state_data): New field `construct'.
+	* match.c (match_exit_cycle): Handle EXIT from non-loops.
+	* parse.c (push_state): Set `construct' field.
+	* resolve.c (resolve_select_type): Extend comment.
+	* trans-stmt.c (gfc_trans_if): Add exit label.
+	(gfc_trans_block_construct), (gfc_trans_select): Ditto.
+	(gfc_trans_simple_do): Store exit/cycle labels on the gfc_code itself.
+	(gfc_trans_do), (gfc_trans_do_while): Ditto.
+	(gfc_trans_exit): Use new name `which_construct' instead of `whichloop'.
+	(gfc_trans_cycle): Ditto.
+	(gfc_trans_if_1): Use fold_build3_loc instead of fold_build3.
+
+2010-09-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* trans-intrinsic.c (gfc_conv_intrinsic_aint): Fix whitespace.
+	(gfc_conv_intrinsic_ishft): Only evaluate arguments once.
+	(gfc_conv_intrinsic_ishftc): Only evaluate arguments once.
+	* intrinsic.texi (RSHIFT): Fix documentation.
+
+2010-09-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45186
+	* trans-common.c (create_common): Change build[0-9] to
+	build[0-9]_loc.
+	* trans-const.c (gfc_conv_constant_to_tree,
+	gfc_conv_constant_to_tree): Ditto.
+	* trans-decl.c (gfc_build_qualified_array, build_entry_thunks,
+	gfc_get_fake_result_decl, gfc_trans_auto_character_variable,
+	add_argument_checking, create_main_function,
+	gfc_generate_return): Ditto.
+	* trans-types.c (gfc_get_dtype, gfc_get_array_type_bounds): Ditto.
+	* trans-stmt.c (allocate_temp_for_forall_nest_1,
+	compute_inner_temp_size, compute_overall_iter_number,
+	generate_loop_for_rhs_to_temp, generate_loop_for_temp_to_lhs,
+	gfc_conv_elemental_dependencies, gfc_do_allocate,
+	gfc_evaluate_where_mask, gfc_trans_allocate,
+	gfc_trans_arithmetic_if, gfc_trans_call,
+	gfc_trans_character_select, gfc_trans_deallocate,
+	gfc_trans_do, gfc_trans_do_while, gfc_trans_forall_1,
+	gfc_trans_forall_loop, gfc_trans_goto, gfc_trans_if_1,
+	gfc_trans_integer_select, gfc_trans_logical_select,
+	gfc_trans_pointer_assign_need_temp, gfc_trans_return,
+	gfc_trans_simple_do, gfc_trans_sync, gfc_trans_where_2,
+	gfc_trans_where_assign) Ditto.
+
+2010-09-02  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44541
+	* resolve.c (resolve_symbol): Correct check for attributes of CLASS
+	variable.
+
+2010-09-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45489
+	* resolve.c (apply_default_init): Mark symbol as referenced,
+	if it is initialized.
+	(resolve_symbol): Change intialized check for BT_DERIVED such
+	that also function results get initialized; remove now obsolete
+	gfc_set_sym_referenced for BT_CLASS.
+
 2010-09-01  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/44541

@@ -38,9 +38,9 @@ along with GCC; see the file COPYING3.  If not see
 tree
 get_symbol_constant_value (tree sym)
 {
-  if (TREE_STATIC (sym)
-      && (TREE_READONLY (sym)
-	  || TREE_CODE (sym) == CONST_DECL))
+  if ((TREE_STATIC (sym) || DECL_EXTERNAL (sym))
+      && (TREE_CODE (sym) == CONST_DECL
+	  || varpool_get_node (sym)->const_value_known))
     {
       tree val = DECL_INITIAL (sym);
       if (val)
@@ -65,8 +65,6 @@ get_symbol_constant_value (tree sym)
 	 have zero as the initializer if they may not be
 	 overridden at link or run time.  */
       if (!val
-	  && !DECL_EXTERNAL (sym)
-	  && targetm.binds_local_p (sym)
           && (INTEGRAL_TYPE_P (TREE_TYPE (sym))
 	       || SCALAR_FLOAT_TYPE_P (TREE_TYPE (sym))))
 	return fold_convert (TREE_TYPE (sym), integer_zero_node);
@@ -528,6 +526,18 @@ maybe_fold_reference (tree expr, bool is_lhs)
 	  return expr;
 	}
     }
+  else if (TREE_CODE (*t) == TARGET_MEM_REF)
+    {
+      tree tem = maybe_fold_tmr (*t);
+      if (tem)
+	{
+	  *t = tem;
+	  tem = maybe_fold_reference (expr, is_lhs);
+	  if (tem)
+	    return tem;
+	  return expr;
+	}
+    }
   else if (!is_lhs
 	   && DECL_P (*t))
     {
@@ -601,9 +611,6 @@ fold_gimple_assign (gimple_stmt_iterator *si)
 	      result = fold_build3_loc (cond_loc, COND_EXPR, TREE_TYPE (rhs), tem,
 				    COND_EXPR_THEN (rhs), COND_EXPR_ELSE (rhs));
           }
-
-	else if (TREE_CODE (rhs) == TARGET_MEM_REF)
-	  return maybe_fold_tmr (rhs);
 
 	else if (REFERENCE_CLASS_P (rhs))
 	  return maybe_fold_reference (rhs, false);
