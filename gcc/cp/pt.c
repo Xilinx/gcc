@@ -5050,7 +5050,9 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
       if (CLASS_TYPE_P (expr_type)
 	  && CLASSTYPE_LITERAL_P (expr_type))
 	{
-	  expr = build_user_type_conversion (type, expr, LOOKUP_IMPLICIT);
+	  /* FIXME this probably allows conversion via double, while
+	     a plain double is not allowed.  */
+	  expr = perform_implicit_conversion (type, expr, complain);
 	  expr_type = TREE_TYPE (expr);
 	}
       if (!INTEGRAL_OR_ENUMERATION_TYPE_P (expr_type))
