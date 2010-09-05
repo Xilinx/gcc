@@ -5046,7 +5046,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	{
 	  int nelts = CONSTRUCTOR_NELTS (expr);
 	  if (nelts == 0)
-	    expr = build_value_init (totype, tf_none);
+	    expr = build_value_init (totype, tf_warning_or_error);
 	  else if (nelts == 1)
 	    expr = CONSTRUCTOR_ELT (expr, 0)->value;
 	  else
