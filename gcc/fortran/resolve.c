@@ -6714,6 +6714,34 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
       goto failure;
     }
 
+  if (!code->expr3)
+    {
+      /* Set up default initializer if needed.  */
+      gfc_typespec ts;
+
+      if (code->ext.alloc.ts.type == BT_DERIVED)
+	ts = code->ext.alloc.ts;
+      else
+	ts = e->ts;
+
+      if (ts.type == BT_CLASS)
+	ts = ts.u.derived->components->ts;
+
+      if (ts.type == BT_DERIVED)
+	{
+	  code->expr3 = gfc_default_initializer (&ts);
+	  gfc_resolve_expr (code->expr3);
+	}
+    }
+  else if (code->expr3->mold && code->expr3->ts.type == BT_DERIVED)
+    {
+      /* Default initialization via MOLD (non-polymorphic).  */
+      gfc_expr *rhs = gfc_default_initializer (&code->expr3->ts);
+      gfc_resolve_expr (rhs);
+      gfc_free_expr (code->expr3);
+      code->expr3 = rhs;
+    }
+
   if (e->ts.type == BT_CLASS)
     {
       /* Make sure the vtab symbol is present when
@@ -11538,6 +11566,46 @@ resolve_fl_namelist (gfc_symbol *sym)
   gfc_namelist *nl;
   gfc_symbol *nlsym;
 
+  for (nl = sym->namelist; nl; nl = nl->next)
+    {
+      /* Reject namelist arrays of assumed shape.  */
+      if (nl->sym->as && nl->sym->as->type == AS_ASSUMED_SHAPE
+	  && gfc_notify_std (GFC_STD_F2003, "NAMELIST array object '%s' "
+			     "must not have assumed shape in namelist "
+			     "'%s' at %L", nl->sym->name, sym->name,
+			     &sym->declared_at) == FAILURE)
+	    return FAILURE;
+
+      /* Reject namelist arrays that are not constant shape.  */
+      if (is_non_constant_shape_array (nl->sym))
+	{
+	  gfc_error ("NAMELIST array object '%s' must have constant "
+		     "shape in namelist '%s' at %L", nl->sym->name,
+		     sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+
+      /* Namelist objects cannot have allocatable or pointer components.  */
+      if (nl->sym->ts.type != BT_DERIVED)
+	continue;
+
+      if (nl->sym->ts.u.derived->attr.alloc_comp)
+	{
+	  gfc_error ("NAMELIST object '%s' in namelist '%s' at %L cannot "
+		     "have ALLOCATABLE components",
+		     nl->sym->name, sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+
+      if (nl->sym->ts.u.derived->attr.pointer_comp)
+	{
+	  gfc_error ("NAMELIST object '%s' in namelist '%s' at %L cannot "
+		     "have POINTER components", 
+		     nl->sym->name, sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+    }
+
   /* Reject PRIVATE objects in a PUBLIC namelist.  */
   if (gfc_check_access(sym->attr.access, sym->ns->default_access))
     {
@@ -11576,46 +11644,6 @@ resolve_fl_namelist (gfc_symbol *sym)
 			 nl->sym->name, sym->name, &sym->declared_at);
 	      return FAILURE;
 	    }
-	}
-    }
-
-  for (nl = sym->namelist; nl; nl = nl->next)
-    {
-      /* Reject namelist arrays of assumed shape.  */
-      if (nl->sym->as && nl->sym->as->type == AS_ASSUMED_SHAPE
-	  && gfc_notify_std (GFC_STD_F2003, "NAMELIST array object '%s' "
-			     "must not have assumed shape in namelist "
-			     "'%s' at %L", nl->sym->name, sym->name,
-			     &sym->declared_at) == FAILURE)
-	    return FAILURE;
-
-      /* Reject namelist arrays that are not constant shape.  */
-      if (is_non_constant_shape_array (nl->sym))
-	{
-	  gfc_error ("NAMELIST array object '%s' must have constant "
-		     "shape in namelist '%s' at %L", nl->sym->name,
-		     sym->name, &sym->declared_at);
-	  return FAILURE;
-	}
-
-      /* Namelist objects cannot have allocatable or pointer components.  */
-      if (nl->sym->ts.type != BT_DERIVED)
-	continue;
-
-      if (nl->sym->ts.u.derived->attr.alloc_comp)
-	{
-	  gfc_error ("NAMELIST object '%s' in namelist '%s' at %L cannot "
-		     "have ALLOCATABLE components",
-		     nl->sym->name, sym->name, &sym->declared_at);
-	  return FAILURE;
-	}
-
-      if (nl->sym->ts.u.derived->attr.pointer_comp)
-	{
-	  gfc_error ("NAMELIST object '%s' in namelist '%s' at %L cannot "
-		     "have POINTER components", 
-		     nl->sym->name, sym->name, &sym->declared_at);
-	  return FAILURE;
 	}
     }
 

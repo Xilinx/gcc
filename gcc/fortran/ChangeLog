@@ -1,3 +1,17 @@
+2010-09-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45530
+	* resolve.c (resolve_fl_namelist): Change constraint checking
+	order to prevent endless loop.
+
+2010-09-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45507
+	* resolve.c (resolve_allocate_expr): Generate default initializers
+	already at this point, resolve them and put them into expr3, ...
+	* trans-stmt.c (gfc_trans_allocate): ... instead of waiting until
+	translation stage.
+
 2010-09-03  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/45186
