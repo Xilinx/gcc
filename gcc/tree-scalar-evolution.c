@@ -2179,11 +2179,15 @@ instantiate_scev_name (basic_block instantiate_below,
      result again.  */
   res = analyze_scalar_evolution (def_loop, chrec);
 
-  /* Don't instantiate loop-closed-ssa phi nodes.  */
+  /* Don't instantiate default definitions.  */
   if (TREE_CODE (res) == SSA_NAME
-      && (loop_containing_stmt (SSA_NAME_DEF_STMT (res)) == NULL
-	  || (loop_depth (loop_containing_stmt (SSA_NAME_DEF_STMT (res)))
-	      > loop_depth (def_loop))))
+      && SSA_NAME_IS_DEFAULT_DEF (res))
+    ;
+
+  /* Don't instantiate loop-closed-ssa phi nodes.  */
+  else if (TREE_CODE (res) == SSA_NAME
+	   && loop_depth (loop_containing_stmt (SSA_NAME_DEF_STMT (res)))
+	   > loop_depth (def_loop))
     {
       if (res == chrec)
 	res = loop_closed_phi_def (chrec);
@@ -2213,7 +2217,6 @@ instantiate_scev_name (basic_block instantiate_below,
   /* Store the correct value to the cache.  */
   set_instantiated_value (cache, instantiate_below, chrec, res);
   return res;
-
 }
 
 /* Analyze all the parameters of the chrec, between INSTANTIATE_BELOW
@@ -2806,7 +2809,7 @@ number_of_iterations_for_all_loops (VEC(gimple,heap) **exit_conditions)
   unsigned nb_static_loops = 0;
   gimple cond;
 
-  for (i = 0; VEC_iterate (gimple, *exit_conditions, i, cond); i++)
+  FOR_EACH_VEC_ELT (gimple, *exit_conditions, i, cond)
     {
       tree res = number_of_latch_executions (loop_containing_stmt (cond));
       if (chrec_contains_undetermined (res))
@@ -2960,7 +2963,7 @@ analyze_scalar_evolution_for_all_loop_phi_nodes (VEC(gimple,heap) **exit_conditi
 
   reset_chrecs_counters (&stats);
 
-  for (i = 0; VEC_iterate (gimple, *exit_conditions, i, cond); i++)
+  FOR_EACH_VEC_ELT (gimple, *exit_conditions, i, cond)
     {
       struct loop *loop;
       basic_block bb;

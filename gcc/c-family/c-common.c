@@ -4087,37 +4087,6 @@ c_common_get_alias_set (tree t)
       if (t1 != t)
 	return get_alias_set (t1);
     }
-  else if (POINTER_TYPE_P (t))
-    {
-      tree t1;
-
-      /* Unfortunately, there is no canonical form of a pointer type.
-	 In particular, if we have `typedef int I', then `int *', and
-	 `I *' are different types.  So, we have to pick a canonical
-	 representative.  We do this below.
-
-	 Technically, this approach is actually more conservative that
-	 it needs to be.  In particular, `const int *' and `int *'
-	 should be in different alias sets, according to the C and C++
-	 standard, since their types are not the same, and so,
-	 technically, an `int **' and `const int **' cannot point at
-	 the same thing.
-
-	 But, the standard is wrong.  In particular, this code is
-	 legal C++:
-
-	    int *ip;
-	    int **ipp = &ip;
-	    const int* const* cipp = ipp;
-
-	 And, it doesn't make sense for that to be legal unless you
-	 can dereference IPP and CIPP.  So, we ignore cv-qualifiers on
-	 the pointed-to types.  This issue has been reported to the
-	 C++ committee.  */
-      t1 = build_type_no_quals (t);
-      if (t1 != t)
-	return get_alias_set (t1);
-    }
 
   /* Handle the case of multiple type nodes referring to "the same" type,
      which occurs with IMA.  These share an alias set.  FIXME:  Currently only
@@ -8390,8 +8359,8 @@ fold_offsetof_1 (tree expr, tree stop_ref)
 		    if (TREE_CODE (TREE_TYPE (TREE_OPERAND (v, 0)))
 			== RECORD_TYPE)
 		      {
-			tree fld_chain = TREE_CHAIN (TREE_OPERAND (v, 1));
-			for (; fld_chain; fld_chain = TREE_CHAIN (fld_chain))
+			tree fld_chain = DECL_CHAIN (TREE_OPERAND (v, 1));
+			for (; fld_chain; fld_chain = DECL_CHAIN (fld_chain))
 			  if (TREE_CODE (fld_chain) == FIELD_DECL)
 			    break;
 
@@ -9300,7 +9269,7 @@ make_tree_vector_copy (const VEC(tree,gc) *orig)
 
   ret = make_tree_vector ();
   VEC_reserve (tree, gc, ret, VEC_length (tree, orig));
-  for (ix = 0; VEC_iterate (tree, orig, ix, t); ++ix)
+  FOR_EACH_VEC_ELT (tree, orig, ix, t)
     VEC_quick_push (tree, ret, t);
   return ret;
 }

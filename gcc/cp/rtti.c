@@ -1211,7 +1211,7 @@ create_pseudo_type_info (int tk, const char *real_name, ...)
   /* Now add the derived fields.  */
   while ((field_decl = va_arg (ap, tree)))
     {
-      TREE_CHAIN (field_decl) = fields;
+      DECL_CHAIN (field_decl) = fields;
       fields = field_decl;
     }
 
@@ -1380,7 +1380,7 @@ create_tinfo_types (void)
 
     field = build_decl (BUILTINS_LOCATION,
 			FIELD_DECL, NULL_TREE, const_string_type_node);
-    TREE_CHAIN (field) = fields;
+    DECL_CHAIN (field) = fields;
     fields = field;
 
     ti = VEC_index (tinfo_s, tinfo_descs, TK_TYPE_INFO_TYPE);
@@ -1423,7 +1423,7 @@ create_tinfo_types (void)
 
     field = build_decl (BUILTINS_LOCATION,
 			FIELD_DECL, NULL_TREE, integer_types[itk_long]);
-    TREE_CHAIN (field) = fields;
+    DECL_CHAIN (field) = fields;
     fields = field;
 
     ti = VEC_index (tinfo_s, tinfo_descs, TK_BASE_TYPE);

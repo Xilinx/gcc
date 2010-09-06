@@ -154,7 +154,7 @@ ipa_populate_param_decls (struct cgraph_node *node,
   fndecl = node->decl;
   fnargs = DECL_ARGUMENTS (fndecl);
   param_num = 0;
-  for (parm = fnargs; parm; parm = TREE_CHAIN (parm))
+  for (parm = fnargs; parm; parm = DECL_CHAIN (parm))
     {
       info->params[param_num].decl = parm;
       param_num++;
@@ -169,7 +169,7 @@ count_formal_params_1 (tree fndecl)
   tree parm;
   int count = 0;
 
-  for (parm = DECL_ARGUMENTS (fndecl); parm; parm = TREE_CHAIN (parm))
+  for (parm = DECL_ARGUMENTS (fndecl); parm; parm = DECL_CHAIN (parm))
     count++;
 
   return count;
@@ -616,13 +616,13 @@ type_like_member_ptr_p (tree type, tree *method_ptr, tree *delta)
   if (method_ptr)
     *method_ptr = fld;
 
-  fld = TREE_CHAIN (fld);
+  fld = DECL_CHAIN (fld);
   if (!fld || INTEGRAL_TYPE_P (fld))
     return false;
   if (delta)
     *delta = fld;
 
-  if (TREE_CHAIN (fld))
+  if (DECL_CHAIN (fld))
     return false;
 
   return true;
@@ -1430,8 +1430,8 @@ update_jump_functions_after_inlining (struct cgraph_edge *cs,
 /* If TARGET is an addr_expr of a function declaration, make it the destination
    of an indirect edge IE and return the edge.  Otherwise, return NULL.  */
 
-static struct cgraph_edge *
-make_edge_direct_to_target (struct cgraph_edge *ie, tree target)
+struct cgraph_edge *
+ipa_make_edge_direct_to_target (struct cgraph_edge *ie, tree target)
 {
   struct cgraph_node *callee;
 
@@ -1484,7 +1484,7 @@ try_make_edge_direct_simple_call (struct cgraph_edge *ie,
   else
     return NULL;
 
-  return make_edge_direct_to_target (ie, target);
+  return ipa_make_edge_direct_to_target (ie, target);
 }
 
 /* Try to find a destination for indirect edge IE that corresponds to a
@@ -1525,7 +1525,7 @@ try_make_edge_direct_virtual_call (struct cgraph_edge *ie,
     return NULL;
 
   if (target)
-    return make_edge_direct_to_target (ie, target);
+    return ipa_make_edge_direct_to_target (ie, target);
   else
     return NULL;
 }
@@ -1541,11 +1541,12 @@ update_indirect_edges_after_inlining (struct cgraph_edge *cs,
 				      struct cgraph_node *node,
 				      VEC (cgraph_edge_p, heap) **new_edges)
 {
-  struct ipa_edge_args *top = IPA_EDGE_REF (cs);
+  struct ipa_edge_args *top;
   struct cgraph_edge *ie, *next_ie, *new_direct_edge;
   bool res = false;
 
   ipa_check_create_edge_args ();
+  top = IPA_EDGE_REF (cs);
 
   for (ie = node->indirect_calls; ie; ie = next_ie)
     {
@@ -1672,9 +1673,7 @@ ipa_free_all_edge_args (void)
   int i;
   struct ipa_edge_args *args;
 
-  for (i = 0;
-       VEC_iterate (ipa_edge_args_t, ipa_edge_args_vector, i, args);
-       i++)
+  FOR_EACH_VEC_ELT (ipa_edge_args_t, ipa_edge_args_vector, i, args)
     ipa_free_edge_args_substructures (args);
 
   VEC_free (ipa_edge_args_t, gc, ipa_edge_args_vector);
@@ -1701,9 +1700,7 @@ ipa_free_all_node_params (void)
   int i;
   struct ipa_node_params *info;
 
-  for (i = 0;
-       VEC_iterate (ipa_node_params_t, ipa_node_params_vector, i, info);
-       i++)
+  FOR_EACH_VEC_ELT (ipa_node_params_t, ipa_node_params_vector, i, info)
     ipa_free_node_params_substructures (info);
 
   VEC_free (ipa_node_params_t, heap, ipa_node_params_vector);
@@ -1794,7 +1791,7 @@ ipa_node_duplication_hook (struct cgraph_node *src, struct cgraph_node *dst,
 			   __attribute__((unused)) void *data)
 {
   struct ipa_node_params *old_info, *new_info;
-  int param_count;
+  int param_count, i;
 
   ipa_check_create_node_params ();
   old_info = IPA_NODE_REF (src);
@@ -1805,8 +1802,15 @@ ipa_node_duplication_hook (struct cgraph_node *src, struct cgraph_node *dst,
   new_info->params = (struct ipa_param_descriptor *)
     duplicate_array (old_info->params,
 		     sizeof (struct ipa_param_descriptor) * param_count);
+  for (i = 0; i < param_count; i++)
+    new_info->params[i].types = VEC_copy (tree, heap,
+ 					  old_info->params[i].types);
   new_info->ipcp_orig_node = old_info->ipcp_orig_node;
   new_info->count_scale = old_info->count_scale;
+
+  new_info->called_with_var_arguments = old_info->called_with_var_arguments;
+  new_info->uses_analysis_done = old_info->uses_analysis_done;
+  new_info->node_enqueued = old_info->node_enqueued;
 }
 
 /* Register our cgraph hooks if they are not already there.  */
@@ -1932,7 +1936,7 @@ ipa_get_vector_of_formal_parms (tree fndecl)
 
   count = count_formal_params_1 (fndecl);
   args = VEC_alloc (tree, heap, count);
-  for (parm = DECL_ARGUMENTS (fndecl); parm; parm = TREE_CHAIN (parm))
+  for (parm = DECL_ARGUMENTS (fndecl); parm; parm = DECL_CHAIN (parm))
     VEC_quick_push (tree, args, parm);
 
   return args;
@@ -2017,7 +2021,7 @@ ipa_modify_formal_parameters (tree fndecl, ipa_parm_adjustment_vec adjustments,
 							     adj->base_index),
 				       new_arg_types);
 	  *link = parm;
-	  link = &TREE_CHAIN (parm);
+	  link = &DECL_CHAIN (parm);
 	}
       else if (!adj->remove_param)
 	{
@@ -2050,7 +2054,7 @@ ipa_modify_formal_parameters (tree fndecl, ipa_parm_adjustment_vec adjustments,
 
 	  *link = new_parm;
 
-	  link = &TREE_CHAIN (new_parm);
+	  link = &DECL_CHAIN (new_parm);
 	}
     }
 
@@ -2077,7 +2081,7 @@ ipa_modify_formal_parameters (tree fndecl, ipa_parm_adjustment_vec adjustments,
        || (VEC_index (ipa_parm_adjustment_t, adjustments, 0)->copy_param
 	 && VEC_index (ipa_parm_adjustment_t, adjustments, 0)->base_index == 0))
     {
-      new_type = copy_node (orig_type);
+      new_type = build_distinct_type_copy (orig_type);
       TYPE_ARG_TYPES (new_type) = new_reversed;
     }
   else

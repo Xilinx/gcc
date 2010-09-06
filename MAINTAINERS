@@ -122,7 +122,6 @@ RTEMS Ports		Joel Sherrill		joel@oarcorp.com
 RTEMS Ports		Ralf Corsepius		ralf.corsepius@rtems.org
 VxWorks ports		Nathan Sidwell		nathan@codesourcery.com
 windows, cygwin, mingw	Christopher Faylor	cgf@gcc.gnu.org
-windows, cygwin, mingw	Danny Smith		dannysmith@users.sourceforge.net
 windows, cygwin, mingw	Kai Tietz		kai.tietz@onevision.com
 windows, cygwin, mingw	Dave Korn		dave.korn.cygwin@gmail.com
 
@@ -259,7 +258,7 @@ Fortran			Steven G. Kargl		sgk@troutmask.apl.washington.edu
 Fortran			Thomas König		tkoenig@gcc.gnu.org
 Fortran			Daniel Kraft		d@domob.eu
 Fortran			Toon Moene		toon@moene.org
-Fortran			Mikael Morin		mikael.morin@tele2.fr
+Fortran			Mikael Morin		mikael.morin@sfr.fr
 Fortran			Brooks Moses		brooks.moses@codesourcery.com
 Fortran			Tobias Schlüter		tobias.schlueter@physik.uni-muenchen.de
 Fortran			Paul Thomas		pault@gcc.gnu.org
@@ -335,6 +334,7 @@ Rafael Ávila de Espíndola			espindola@google.com
 Ansgar Esztermann				ansgar@thphy.uni-duesseldorf.de
 Doug Evans					dje@google.com
 Chris Fairles					cfairles@gcc.gnu.org
+Changpeng Fang					changpeng.fang@amd.com
 Li Feng						nemokingdom@gmail.com
 Thomas Fitzsimmons				fitzsim@redhat.com
 Brian Ford					ford@vss.fsi.com
@@ -376,6 +376,7 @@ Tim Josling					tej@melbpc.org.au
 Victor Kaplansky				victork@il.ibm.com
 Brendan Kehoe					brendan@zen.org
 Matthias Klose					doko@debian.org
+Andi Kleen					andi@firstfloor.org
 Jeff Knaggs					jknaggs@redhat.com
 Michael Koch					konqueror@gmx.de
 Matt Kraai					kraai@ftbfs.org
@@ -432,6 +433,7 @@ Fernando Pereira				pronesto@gmail.com
 Nicolas Pitre					nico@cam.org
 Antoniu Pop					antoniu.pop@gmail.com
 Vladimir Prus					vladimir@codesourcery.com
+Yao Qi						yao@codesourcery.com
 Jerry Quinn					jlquinn@optonline.net
 Ramana Radhakrishnan				ramana.radhakrishnan@arm.com
 Rolf Rasmussen					rolfwr@gcc.gnu.org
@@ -466,6 +468,7 @@ Mike Stump					mikestump@comcast.net
 Jeff Sturm					jsturm@gcc.gnu.org
 Gabriele Svelto					gabriele.svelto@st.com
 Sriraman Tallam					tmsriram@google.com
+Chung-Lin Tang					cltang@codesourcery.com
 Samuel Tardieu					sam@rfc1149.net
 Kresten Krab Thorup				krab@gcc.gnu.org
 Caroline Tice					ctice@apple.com
@@ -483,8 +486,11 @@ Ralf Wildenhues					Ralf.Wildenhues@gmx.de
 Kevin Williams					kevin.williams@inria.fr
 Carlo Wood					carlo@alinoe.com
 Le-Chun Wu					lcwu@google.com
+Mingjie Xing					mingjie.xing@gmail.com
 Canqun Yang					canqun@nudt.edu.cn
+Jeffrey Yasskin					jyasskin@google.com
 Joey Ye						joey.ye@intel.com
+David Yuste					david.yuste@gmail.com
 Kenneth Zadeck					zadeck@naturalbridge.com
 Shujing Zhao					pearly.zhao@oracle.com
 Jon Ziegler					jonz@apple.com

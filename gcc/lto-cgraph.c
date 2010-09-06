@@ -281,7 +281,8 @@ lto_output_edge (struct lto_simple_output_block *ob, struct cgraph_edge *edge,
   lto_output_sleb128_stream (ob->main_stream, edge->count);
 
   bp = bitpack_create (ob->main_stream);
-  uid = flag_wpa ? edge->lto_stmt_uid : gimple_uid (edge->call_stmt);
+  uid = (!gimple_has_body_p (edge->caller->decl)
+	 ? edge->lto_stmt_uid : gimple_uid (edge->call_stmt));
   bp_pack_value (&bp, uid, HOST_BITS_PER_INT);
   bp_pack_value (&bp, edge->inline_failed, HOST_BITS_PER_INT);
   bp_pack_value (&bp, edge->frequency, HOST_BITS_PER_INT);
@@ -1268,7 +1269,7 @@ input_cgraph_1 (struct lto_file_decl_data *file_data,
       len = lto_input_uleb128 (ib);
     }
 
-  for (i = 0; VEC_iterate (cgraph_node_ptr, nodes, i, node); i++)
+  FOR_EACH_VEC_ELT (cgraph_node_ptr, nodes, i, node)
     {
       int ref = (int) (intptr_t) node->global.inlined_to;
 
@@ -1307,7 +1308,7 @@ input_varpool_1 (struct lto_file_decl_data *file_data,
 		     input_varpool_node (file_data, ib));
       len--;
     }
-  for (i = 0; VEC_iterate (varpool_node_ptr, varpool, i, node); i++)
+  FOR_EACH_VEC_ELT (varpool_node_ptr, varpool, i, node)
     {
       int ref = (int) (intptr_t) node->same_comdat_group;
 
@@ -1481,13 +1482,13 @@ output_node_opt_summary (struct output_block *ob,
     lto_output_uleb128_stream (ob->main_stream, index);
   lto_output_uleb128_stream (ob->main_stream,
 		             VEC_length (ipa_replace_map_p, node->clone.tree_map));
-  for (i = 0; VEC_iterate (ipa_replace_map_p, node->clone.tree_map, i, map); i++)
+  FOR_EACH_VEC_ELT (ipa_replace_map_p, node->clone.tree_map, i, map)
     {
       int parm_num;
       tree parm;
 
       for (parm_num = 0, parm = DECL_ARGUMENTS (node->decl); parm;
-	   parm = TREE_CHAIN (parm), parm_num++)
+	   parm = DECL_CHAIN (parm), parm_num++)
 	if (map->old_tree == parm)
 	  break;
       /* At the moment we assume all old trees to be PARM_DECLs, because we have no
@@ -1571,7 +1572,7 @@ input_node_opt_summary (struct cgraph_node *node,
 
       VEC_safe_push (ipa_replace_map_p, gc, node->clone.tree_map, map);
       for (parm_num = 0, parm = DECL_ARGUMENTS (node->decl); parm_num;
-	   parm = TREE_CHAIN (parm))
+	   parm = DECL_CHAIN (parm))
 	parm_num --;
       map->parm_num = lto_input_uleb128 (ib_main);
       map->old_tree = NULL;

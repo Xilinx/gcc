@@ -115,6 +115,10 @@ mpopcntd
 Target Report Mask(POPCNTD)
 Use PowerPC V2.06 popcntd instruction
 
+mveclibabi=
+Target RejectNegative Joined Var(rs6000_veclibabi_name)
+Vector library ABI to use
+
 mvsx
 Target Report Mask(VSX)
 Use vector/scalar (VSX) instructions
@@ -244,6 +248,10 @@ Generate VRSAVE instructions when generating AltiVec code
 mvrsave=
 Target RejectNegative Joined
 -mvrsave=yes/no	Deprecated option.  Use -mvrsave/-mno-vrsave instead
+
+mblock-move-inline-limit=
+Target Report Var(rs6000_block_move_inline_limit) Init(0) RejectNegative Joined UInteger
+Specify how many bytes should be moved inline before calling out to memcpy/memmove
 
 misel
 Target Report Mask(ISEL)

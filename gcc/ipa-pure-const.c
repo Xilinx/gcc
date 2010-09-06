@@ -95,6 +95,11 @@ struct funct_state_d
   bool can_throw;
 };
 
+/* State used when we know nothing about function.  */
+static struct funct_state_d varying_state
+   = { IPA_NEITHER, IPA_NEITHER, true, true, true };
+
+
 typedef struct funct_state_d * funct_state;
 
 /* The storage of the funct_state is abstracted because there is the
@@ -212,13 +217,12 @@ has_function_state (struct cgraph_node *node)
 static inline funct_state
 get_function_state (struct cgraph_node *node)
 {
-  static struct funct_state_d varying
-    = { IPA_NEITHER, IPA_NEITHER, true, true, true };
   if (!funct_state_vec
-      || VEC_length (funct_state, funct_state_vec) <= (unsigned int)node->uid)
+      || VEC_length (funct_state, funct_state_vec) <= (unsigned int)node->uid
+      || !VEC_index (funct_state, funct_state_vec, node->uid))
     /* We might want to put correct previously_known state into varying.  */
-    return &varying;
-  return VEC_index (funct_state, funct_state_vec, node->uid);
+    return &varying_state;
+ return VEC_index (funct_state, funct_state_vec, node->uid);
 }
 
 /* Set the function state S for NODE.  */
@@ -423,7 +427,7 @@ worse_state (enum pure_const_state_e *state, bool *looping,
 /* Recognize special cases of builtins that are by themself not pure or const
    but function using them is.  */
 static bool
-special_builtlin_state (enum pure_const_state_e *state, bool *looping,
+special_builtin_state (enum pure_const_state_e *state, bool *looping,
 			tree callee)
 {
   if (DECL_BUILT_IN_CLASS (callee) == BUILT_IN_NORMAL)
@@ -442,7 +446,6 @@ special_builtlin_state (enum pure_const_state_e *state, bool *looping,
 	case BUILT_IN_FRAME_ADDRESS:
 	case BUILT_IN_APPLY:
 	case BUILT_IN_APPLY_ARGS:
-	case BUILT_IN_ARGS_INFO:
 	  *looping = false;
 	  *state = IPA_CONST;
 	  return true;
@@ -507,7 +510,7 @@ check_call (funct_state local, gimple call, bool ipa)
       enum pure_const_state_e call_state;
       bool call_looping;
 
-      if (special_builtlin_state (&call_state, &call_looping, callee_t))
+      if (special_builtin_state (&call_state, &call_looping, callee_t))
 	{
 	  worse_state (&local->pure_const_state, &local->looping,
 		       call_state, call_looping);
@@ -646,6 +649,13 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
     {
       fprintf (dump_file, "  scanning: ");
       print_gimple_stmt (dump_file, stmt, 0, 0);
+    }
+
+  if (gimple_has_volatile_ops (stmt))
+    {
+      local->pure_const_state = IPA_NEITHER;
+      if (dump_file)
+	fprintf (dump_file, "    Volatile stmt is not const/pure\n");
     }
 
   /* Look for loads and stores.  */
@@ -860,7 +870,9 @@ remove_node_data (struct cgraph_node *node, void *data ATTRIBUTE_UNUSED)
 {
   if (has_function_state (node))
     {
-      free (get_function_state (node));
+      funct_state l = get_function_state (node);
+      if (l != &varying_state)
+        free (l);
       set_function_state (node, NULL);
     }
 }
@@ -1191,7 +1203,7 @@ propagate_pure_const (void)
 		      edge_looping = y_l->looping;
 		    }
 		}
-	      else if (special_builtlin_state (&edge_state, &edge_looping,
+	      else if (special_builtin_state (&edge_state, &edge_looping,
 					       y->decl))
 		;
 	      else

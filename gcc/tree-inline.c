@@ -423,11 +423,11 @@ remap_type_1 (tree type, copy_body_data *id)
       {
 	tree f, nf = NULL;
 
-	for (f = TYPE_FIELDS (new_tree); f ; f = TREE_CHAIN (f))
+	for (f = TYPE_FIELDS (new_tree); f ; f = DECL_CHAIN (f))
 	  {
 	    t = remap_decl (f, id);
 	    DECL_CONTEXT (t) = new_tree;
-	    TREE_CHAIN (t) = nf;
+	    DECL_CHAIN (t) = nf;
 	    nf = t;
 	  }
 	TYPE_FIELDS (new_tree) = nreverse (nf);
@@ -538,7 +538,7 @@ remap_decls (tree decls, VEC(tree,gc) **nonlocalized_list, copy_body_data *id)
   tree new_decls = NULL_TREE;
 
   /* Remap its variables.  */
-  for (old_var = decls; old_var; old_var = TREE_CHAIN (old_var))
+  for (old_var = decls; old_var; old_var = DECL_CHAIN (old_var))
     {
       tree new_var;
 
@@ -574,7 +574,7 @@ remap_decls (tree decls, VEC(tree,gc) **nonlocalized_list, copy_body_data *id)
       else
 	{
 	  gcc_assert (DECL_P (new_var));
-	  TREE_CHAIN (new_var) = new_decls;
+	  DECL_CHAIN (new_var) = new_decls;
 	  new_decls = new_var;
  
 	  /* Also copy value-expressions.  */
@@ -1596,7 +1596,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 	      size_t nargs = gimple_call_num_args (id->gimple_call);
 	      size_t n;
 
-	      for (p = DECL_ARGUMENTS (id->src_fn); p; p = TREE_CHAIN (p))
+	      for (p = DECL_ARGUMENTS (id->src_fn); p; p = DECL_CHAIN (p))
 		nargs--;
 
 	      /* Create the new array of arguments.  */
@@ -1643,7 +1643,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 	      tree count, p;
 	      gimple new_stmt;
 
-	      for (p = DECL_ARGUMENTS (id->src_fn); p; p = TREE_CHAIN (p))
+	      for (p = DECL_ARGUMENTS (id->src_fn); p; p = DECL_CHAIN (p))
 		nargs--;
 
 	      count = build_int_cst (integer_type_node, nargs);
@@ -2372,7 +2372,7 @@ copy_debug_stmts (copy_body_data *id)
   if (!id->debug_stmts)
     return;
 
-  for (i = 0; VEC_iterate (gimple, id->debug_stmts, i, stmt); i++)
+  FOR_EACH_VEC_ELT (gimple, id->debug_stmts, i, stmt)
     copy_debug_stmt (stmt, id);
 
   VEC_free (gimple, heap, id->debug_stmts);
@@ -2555,7 +2555,7 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
     }
 
   /* Declare this new variable.  */
-  TREE_CHAIN (var) = *vars;
+  DECL_CHAIN (var) = *vars;
   *vars = var;
 
   /* Make gimplifier happy about this variable.  */
@@ -2685,7 +2685,7 @@ initialize_inlined_parameters (copy_body_data *id, gimple stmt,
 
   /* Loop through the parameter declarations, replacing each with an
      equivalent VAR_DECL, appropriately initialized.  */
-  for (p = parms, i = 0; p; p = TREE_CHAIN (p), i++)
+  for (p = parms, i = 0; p; p = DECL_CHAIN (p), i++)
     {
       tree val;
       val = i < gimple_call_num_args (stmt) ? gimple_call_arg (stmt, i) : NULL;
@@ -2695,7 +2695,7 @@ initialize_inlined_parameters (copy_body_data *id, gimple stmt,
      in a second loop over all parameters to appropriately remap
      variable sized arrays when the size is specified in a
      parameter following the array.  */
-  for (p = parms, i = 0; p; p = TREE_CHAIN (p), i++)
+  for (p = parms, i = 0; p; p = DECL_CHAIN (p), i++)
     {
       tree *varp = (tree *) pointer_map_contains (id->decl_map, p);
       if (varp
@@ -2905,7 +2905,10 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
 	  add_referenced_var (temp);
 	}
       insert_decl_map (id, result, temp);
-      temp = remap_ssa_name (gimple_default_def (id->src_cfun, result), id);
+      /* When RESULT_DECL is in SSA form, we need to use it's default_def
+	 SSA_NAME.  */
+      if (gimple_in_ssa_p (id->src_cfun) && gimple_default_def (id->src_cfun, result))
+        temp = remap_ssa_name (gimple_default_def (id->src_cfun, result), id);
       insert_init_stmt (id, entry_bb, gimple_build_assign (temp, var));
     }
   else
@@ -3482,104 +3485,12 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
 	if (POINTER_TYPE_P (funtype))
 	  funtype = TREE_TYPE (funtype);
 
-	if (decl && DECL_BUILT_IN_CLASS (decl) == BUILT_IN_MD)
+	if (is_simple_builtin (decl))
+	  return 0;
+	else if (is_inexpensive_builtin (decl))
 	  cost = weights->target_builtin_call_cost;
 	else
 	  cost = weights->call_cost;
-
-	if (decl && DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL)
-	  switch (DECL_FUNCTION_CODE (decl))
-	    {
-	    /* Builtins that expand to constants.  */
-	    case BUILT_IN_CONSTANT_P:
-	    case BUILT_IN_EXPECT:
-	    case BUILT_IN_OBJECT_SIZE:
-	    case BUILT_IN_UNREACHABLE:
-	    /* Simple register moves or loads from stack.  */
-	    case BUILT_IN_RETURN_ADDRESS:
-	    case BUILT_IN_EXTRACT_RETURN_ADDR:
-	    case BUILT_IN_FROB_RETURN_ADDR:
-	    case BUILT_IN_RETURN:
-	    case BUILT_IN_AGGREGATE_INCOMING_ADDRESS:
-	    case BUILT_IN_FRAME_ADDRESS:
-	    case BUILT_IN_VA_END:
-	    case BUILT_IN_STACK_SAVE:
-	    case BUILT_IN_STACK_RESTORE:
-	    /* Exception state returns or moves registers around.  */
-	    case BUILT_IN_EH_FILTER:
-	    case BUILT_IN_EH_POINTER:
-	    case BUILT_IN_EH_COPY_VALUES:
-	      return 0;
-
-	    /* builtins that are not expensive (that is they are most probably
-	       expanded inline into resonably simple code).  */
-	    case BUILT_IN_ABS:
-	    case BUILT_IN_ALLOCA:
-	    case BUILT_IN_BSWAP32:
-	    case BUILT_IN_BSWAP64:
-	    case BUILT_IN_CLZ:
-	    case BUILT_IN_CLZIMAX:
-	    case BUILT_IN_CLZL:
-	    case BUILT_IN_CLZLL:
-	    case BUILT_IN_CTZ:
-	    case BUILT_IN_CTZIMAX:
-	    case BUILT_IN_CTZL:
-	    case BUILT_IN_CTZLL:
-	    case BUILT_IN_FFS:
-	    case BUILT_IN_FFSIMAX:
-	    case BUILT_IN_FFSL:
-	    case BUILT_IN_FFSLL:
-	    case BUILT_IN_IMAXABS:
-	    case BUILT_IN_FINITE:
-	    case BUILT_IN_FINITEF:
-	    case BUILT_IN_FINITEL:
-	    case BUILT_IN_FINITED32:
-	    case BUILT_IN_FINITED64:
-	    case BUILT_IN_FINITED128:
-	    case BUILT_IN_FPCLASSIFY:
-	    case BUILT_IN_ISFINITE:
-	    case BUILT_IN_ISINF_SIGN:
-	    case BUILT_IN_ISINF:
-	    case BUILT_IN_ISINFF:
-	    case BUILT_IN_ISINFL:
-	    case BUILT_IN_ISINFD32:
-	    case BUILT_IN_ISINFD64:
-	    case BUILT_IN_ISINFD128:
-	    case BUILT_IN_ISNAN:
-	    case BUILT_IN_ISNANF:
-	    case BUILT_IN_ISNANL:
-	    case BUILT_IN_ISNAND32:
-	    case BUILT_IN_ISNAND64:
-	    case BUILT_IN_ISNAND128:
-	    case BUILT_IN_ISNORMAL:
-	    case BUILT_IN_ISGREATER:
-	    case BUILT_IN_ISGREATEREQUAL:
-	    case BUILT_IN_ISLESS:
-	    case BUILT_IN_ISLESSEQUAL:
-	    case BUILT_IN_ISLESSGREATER:
-	    case BUILT_IN_ISUNORDERED:
-	    case BUILT_IN_VA_ARG_PACK:
-	    case BUILT_IN_VA_ARG_PACK_LEN:
-	    case BUILT_IN_VA_COPY:
-	    case BUILT_IN_TRAP:
-	    case BUILT_IN_SAVEREGS:
-	    case BUILT_IN_POPCOUNTL:
-	    case BUILT_IN_POPCOUNTLL:
-	    case BUILT_IN_POPCOUNTIMAX:
-	    case BUILT_IN_POPCOUNT:
-	    case BUILT_IN_PARITYL:
-	    case BUILT_IN_PARITYLL:
-	    case BUILT_IN_PARITYIMAX:
-	    case BUILT_IN_PARITY:
-	    case BUILT_IN_LABS:
-	    case BUILT_IN_LLABS:
-	    case BUILT_IN_PREFETCH:
-	      cost = weights->target_builtin_call_cost;
-	      break;
-
-	    default:
-	      break;
-	    }
 
 	if (decl)
 	  funtype = TREE_TYPE (decl);
@@ -3601,7 +3512,7 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
 	if (decl && DECL_ARGUMENTS (decl) && !stdarg)
 	  {
 	    tree arg;
-	    for (arg = DECL_ARGUMENTS (decl); arg; arg = TREE_CHAIN (arg))
+	    for (arg = DECL_ARGUMENTS (decl); arg; arg = DECL_CHAIN (arg))
 	      if (!VOID_TYPE_P (TREE_TYPE (arg)))
 	        cost += estimate_move_cost (TREE_TYPE (arg));
 	  }
@@ -3783,21 +3694,24 @@ add_local_variables (struct function *callee, struct function *caller,
 	  add_local_decl (caller, var);
       }
     else if (!can_be_nonlocal (var, id))
-      add_local_decl (caller, remap_decl (var, id));
-}
+      {
+        tree new_var = remap_decl (var, id);
 
-/* Fetch callee declaration from the call graph edge going from NODE and
-   associated with STMR call statement.  Return NULL_TREE if not found.  */
-static tree
-get_indirect_callee_fndecl (struct cgraph_node *node, gimple stmt)
-{
-  struct cgraph_edge *cs;
-
-  cs = cgraph_edge (node, stmt);
-  if (cs && !cs->indirect_unknown_callee)
-    return cs->callee->decl;
-
-  return NULL_TREE;
+        /* Remap debug-expressions.  */
+	if (TREE_CODE (new_var) == VAR_DECL
+	    && DECL_DEBUG_EXPR_IS_FROM (new_var)
+	    && new_var != var)
+	  {
+	    tree tem = DECL_DEBUG_EXPR (var);
+	    bool old_regimplify = id->regimplify;
+	    id->remapping_type_depth++;
+	    walk_tree (&tem, copy_tree_body_r, id, NULL);
+	    id->remapping_type_depth--;
+	    id->regimplify = old_regimplify;
+	    SET_DECL_DEBUG_EXPR (new_var, tem);
+	  }
+	add_local_decl (caller, new_var);
+      }
 }
 
 /* If STMT is a GIMPLE_CALL, replace it with its inline expansion.  */
@@ -3833,11 +3747,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
      If we cannot, then there is no hope of inlining the function.  */
   fn = gimple_call_fndecl (stmt);
   if (!fn)
-    {
-      fn = get_indirect_callee_fndecl (id->dst_node, stmt);
-      if (!fn)
-	goto egress;
-    }
+    goto egress;
 
   /* Turn forward declarations into real ones.  */
   fn = cgraph_node (fn)->decl;
@@ -4776,7 +4686,7 @@ static void
 declare_inline_vars (tree block, tree vars)
 {
   tree t;
-  for (t = vars; t; t = TREE_CHAIN (t))
+  for (t = vars; t; t = DECL_CHAIN (t))
     {
       DECL_SEEN_IN_BIND_EXPR_P (t) = 1;
       gcc_assert (!TREE_STATIC (t) && !TREE_ASM_WRITTEN (t));
@@ -4925,13 +4835,13 @@ copy_arguments_for_versioning (tree orig_parm, copy_body_data * id,
 
   parg = &new_parm;
 
-  for (arg = orig_parm; arg; arg = TREE_CHAIN (arg), i++)
+  for (arg = orig_parm; arg; arg = DECL_CHAIN (arg), i++)
     if (!args_to_skip || !bitmap_bit_p (args_to_skip, i))
       {
         tree new_tree = remap_decl (arg, id);
         lang_hooks.dup_lang_specific_decl (new_tree);
         *parg = new_tree;
-	parg = &TREE_CHAIN (new_tree);
+	parg = &DECL_CHAIN (new_tree);
       }
     else if (!pointer_map_contains (id->decl_map, arg))
       {
@@ -4943,7 +4853,7 @@ copy_arguments_for_versioning (tree orig_parm, copy_body_data * id,
 	add_referenced_var (var);
 	insert_decl_map (id, arg, var);
         /* Declare this new variable.  */
-        TREE_CHAIN (var) = *vars;
+        DECL_CHAIN (var) = *vars;
         *vars = var;
       }
   return new_parm;
@@ -4956,11 +4866,11 @@ copy_static_chain (tree static_chain, copy_body_data * id)
   tree *chain_copy, *pvar;
 
   chain_copy = &static_chain;
-  for (pvar = chain_copy; *pvar; pvar = &TREE_CHAIN (*pvar))
+  for (pvar = chain_copy; *pvar; pvar = &DECL_CHAIN (*pvar))
     {
       tree new_tree = remap_decl (*pvar, id);
       lang_hooks.dup_lang_specific_decl (new_tree);
-      TREE_CHAIN (new_tree) = TREE_CHAIN (*pvar);
+      DECL_CHAIN (new_tree) = DECL_CHAIN (*pvar);
       *pvar = new_tree;
     }
   return static_chain;
@@ -5194,7 +5104,7 @@ tree_function_versioning (tree old_decl, tree new_decl,
 	      {
 		int i = replace_info->parm_num;
 		tree parm;
-		for (parm = DECL_ARGUMENTS (old_decl); i; parm = TREE_CHAIN (parm))
+		for (parm = DECL_ARGUMENTS (old_decl); i; parm = DECL_CHAIN (parm))
 		  i --;
 		replace_info->old_tree = parm;
 	      }
@@ -5297,7 +5207,15 @@ tree_function_versioning (tree old_decl, tree new_decl,
       for (e = new_version_node->callees; e; e = e->next_callee)
 	{
 	  basic_block bb = gimple_bb (e->call_stmt);
-	  e->frequency = compute_call_stmt_bb_frequency (current_function_decl, bb);
+	  e->frequency = compute_call_stmt_bb_frequency (current_function_decl,
+							 bb);
+	  e->count = bb->count;
+	}
+      for (e = new_version_node->indirect_calls; e; e = e->next_callee)
+	{
+	  basic_block bb = gimple_bb (e->call_stmt);
+	  e->frequency = compute_call_stmt_bb_frequency (current_function_decl,
+							 bb);
 	  e->count = bb->count;
 	}
     }
@@ -5333,7 +5251,7 @@ maybe_inline_call_in_expr (tree exp)
       /* Remap the parameters.  */
       for (param = DECL_ARGUMENTS (fn), arg = first_call_expr_arg (exp, &iter);
 	   param;
-	   param = TREE_CHAIN (param), arg = next_call_expr_arg (&iter))
+	   param = DECL_CHAIN (param), arg = next_call_expr_arg (&iter))
 	*pointer_map_insert (decl_map, param) = arg;
 
       memset (&id, 0, sizeof (id));

@@ -214,7 +214,6 @@ enum string_section
 };
 
 static tree add_objc_string (tree, enum string_section);
-static tree build_objc_string_decl (enum string_section);
 static void build_selector_table_decl (void);
 
 /* Protocol additions.  */
@@ -456,7 +455,7 @@ add_field_decl (tree type, const char *name, tree **chain)
 
   if (*chain != NULL)
     **chain = field;
-  *chain = &TREE_CHAIN (field);
+  *chain = &DECL_CHAIN (field);
 
   return field;
 }
@@ -852,9 +851,9 @@ objc_build_struct (tree klass, tree fields, tree super_name)
 			      FIELD_DECL, NULL_TREE, super);
       tree field = TYPE_FIELDS (super);
 
-      while (field && TREE_CHAIN (field)
-	     && TREE_CODE (TREE_CHAIN (field)) == FIELD_DECL)
-	field = TREE_CHAIN (field);
+      while (field && DECL_CHAIN (field)
+	     && TREE_CODE (DECL_CHAIN (field)) == FIELD_DECL)
+	field = DECL_CHAIN (field);
 
       /* For ObjC ABI purposes, the "packed" size of a base class is
 	 the sum of the offset and the size (in bits) of the last field
@@ -883,7 +882,7 @@ objc_build_struct (tree klass, tree fields, tree super_name)
       if (fields)
 	TREE_NO_WARNING (fields) = 1;	/* Suppress C++ ABI warnings -- we   */
 #endif					/* are following the ObjC ABI here.  */
-      TREE_CHAIN (base) = fields;
+      DECL_CHAIN (base) = fields;
       fields = base;
     }
 
@@ -1541,14 +1540,6 @@ static void
 finish_var_decl (tree var, tree initializer)
 {
   finish_decl (var, input_location, initializer, NULL_TREE, NULL_TREE);
-  /* Ensure that the variable actually gets output.  */
-  mark_decl_referenced (var);
-  /* Mark the decl to avoid "defined but not used" warning.  */
-  TREE_USED (var) = 1;
-  DECL_READ_P (var) = 1;
-  /* We reserve the right for the runtime to use/modify these variables
-     in ways that are opaque to us.  */
-  DECL_PRESERVE_P (var) = 1;
 }
 
 /* Find the decl for the constant string class reference.  This is only
@@ -1857,11 +1848,11 @@ check_string_class_template (void)
   if (!AT_LEAST_AS_LARGE_AS (field_decl, ptr_type_node))
     return 0;
 
-  field_decl = TREE_CHAIN (field_decl);
+  field_decl = DECL_CHAIN (field_decl);
   if (!AT_LEAST_AS_LARGE_AS (field_decl, ptr_type_node))
     return 0;
 
-  field_decl = TREE_CHAIN (field_decl);
+  field_decl = DECL_CHAIN (field_decl);
   return AT_LEAST_AS_LARGE_AS (field_decl, unsigned_type_node);
 
 #undef AT_LEAST_AS_LARGE_AS
@@ -1882,10 +1873,10 @@ objc_build_internal_const_str_type (void)
   tree field = build_decl (input_location,
 			   FIELD_DECL, NULL_TREE, ptr_type_node);
 
-  TREE_CHAIN (field) = fields; fields = field;
+  DECL_CHAIN (field) = fields; fields = field;
   field = build_decl (input_location,
 		      FIELD_DECL, NULL_TREE, unsigned_type_node);
-  TREE_CHAIN (field) = fields; fields = field;
+  DECL_CHAIN (field) = fields; fields = field;
   /* NB: The finish_builtin_struct() routine expects FIELD_DECLs in
      reverse order!  */
   finish_builtin_struct (type, "__builtin_ObjCString",
@@ -2012,11 +2003,11 @@ objc_build_string_object (tree string)
 			      ? build_unary_op (input_location,
 						ADDR_EXPR, string_class_decl, 0)
 			      : build_int_cst (NULL_TREE, 0));
-      fields = TREE_CHAIN (fields);
+      fields = DECL_CHAIN (fields);
       CONSTRUCTOR_APPEND_ELT (v, fields,
 			      build_unary_op (input_location,
 					      ADDR_EXPR, string, 1));
-      fields = TREE_CHAIN (fields);
+      fields = DECL_CHAIN (fields);
       CONSTRUCTOR_APPEND_ELT (v, fields, build_int_cst (NULL_TREE, length));
       constructor = objc_build_constructor (internal_const_str_type, v);
 
@@ -2188,7 +2179,7 @@ init_def_list (tree type)
 	expr = build_unary_op (input_location,
 			       ADDR_EXPR, static_instances_decl, 0);
       else
-	expr = build_int_cst (NULL_TREE, 0);
+	expr = integer_zero_node;
 
       CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, expr);
     }
@@ -2211,7 +2202,9 @@ init_objc_symtab (tree type)
   /* refs = { ..., _OBJC_SELECTOR_TABLE, ... } */
 
   if (flag_next_runtime || ! sel_ref_chain)
-    CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, build_int_cst (NULL_TREE, 0));
+    CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, convert (
+					build_pointer_type (objc_selector_type),
+							integer_zero_node));
   else
     {
       tree expr = build_unary_op (input_location, ADDR_EXPR,
@@ -2224,11 +2217,13 @@ init_objc_symtab (tree type)
 
   /* cls_def_cnt = { ..., 5, ... } */
 
-  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, build_int_cst (NULL_TREE, imp_count));
+  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, 
+			  build_int_cst (short_integer_type_node, imp_count));
 
   /* cat_def_cnt = { ..., 5, ... } */
 
-  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, build_int_cst (NULL_TREE, cat_count));
+  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, 
+			  build_int_cst (short_integer_type_node, cat_count));
 
   /* cls_def = { ..., { &Foo, &Bar, ...}, ... } */
 
@@ -2236,7 +2231,7 @@ init_objc_symtab (tree type)
     {
 
       tree field = TYPE_FIELDS (type);
-      field = TREE_CHAIN (TREE_CHAIN (TREE_CHAIN (TREE_CHAIN (field))));
+      field = DECL_CHAIN (DECL_CHAIN (DECL_CHAIN (DECL_CHAIN (field))));
 
       CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, init_def_list (TREE_TYPE (field)));
     }
@@ -2289,10 +2284,7 @@ forward_declare_categories (void)
 static void
 generate_objc_symtab_decl (void)
 {
-  /* forward declare categories */
-  if (cat_count)
-    forward_declare_categories ();
-
+ 
   build_objc_symtab_template ();
   UOBJC_SYMBOLS_decl = start_var_decl (objc_symtab_template, "_OBJC_SYMBOLS");
   finish_var_decl (UOBJC_SYMBOLS_decl,
@@ -2328,7 +2320,7 @@ init_module_descriptor (tree type)
     expr = build_unary_op (input_location,
 			   ADDR_EXPR, UOBJC_SYMBOLS_decl, 0);
   else
-    expr = build_int_cst (NULL_TREE, 0);
+    expr = null_pointer_node;
   CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, expr);
 
   return objc_build_constructor (type, v);
@@ -2367,6 +2359,9 @@ build_module_descriptor (void)
 
   /* Create an instance of "_objc_module".  */
   UOBJC_MODULES_decl = start_var_decl (objc_module_template, "_OBJC_MODULES");
+  /* This is the root of the metadata for defined classes and categories, it
+     is referenced by the runtime and, therefore, needed.  */
+  DECL_PRESERVE_P (UOBJC_MODULES_decl) = 1;
   finish_var_decl (UOBJC_MODULES_decl,
 		   init_module_descriptor (TREE_TYPE (UOBJC_MODULES_decl)));
 
@@ -2490,7 +2485,7 @@ generate_static_references (void)
   VEC(constructor_elt,gc) *decls = NULL;
 
   if (flag_next_runtime)
-    abort ();
+    gcc_unreachable ();
 
   for (cl_chain = objc_static_instances, num_class = 0;
        cl_chain; cl_chain = TREE_CHAIN (cl_chain), num_class++)
@@ -2574,12 +2569,65 @@ build_selector (tree ident)
 		  add_objc_string (ident, meth_var_names));
 }
 
+/* Used only by build_*_selector_translation_table (). */
 static void
-build_selector_translation_table (void)
+diagnose_missing_method (tree meth, location_t here)
+{
+  tree method_chain;
+  bool found = false;
+  for (method_chain = meth_var_names_chain;
+       method_chain;
+       method_chain = TREE_CHAIN (method_chain))
+    {
+      if (TREE_VALUE (method_chain) == meth)
+	{
+	  found = true;
+	  break;
+	}
+     }
+
+  if (!found)
+    warning_at (here, 0, "creating selector for nonexistent method %qE",
+			meth);
+}
+
+static void
+build_next_selector_translation_table (void)
 {
   tree chain;
-  int offset = 0;
-  tree decl = NULL_TREE;
+  for (chain = sel_ref_chain; chain; chain = TREE_CHAIN (chain))
+    {
+      tree expr;
+      tree decl = TREE_PURPOSE (chain);
+      if (warn_selector && objc_implementation_context)
+      	{
+	  location_t loc;
+      	  if (decl) 
+      	    loc = DECL_SOURCE_LOCATION (decl);
+      	  else
+      	    loc = input_location;
+	  diagnose_missing_method (TREE_VALUE (chain), loc);
+	}
+
+      expr = build_selector (TREE_VALUE (chain));
+
+      if (decl)
+	{
+	  /* Entries of this form are used for references to methods.
+	  The runtime re-writes these on start-up, but the compiler can't see 
+	  that and optimizes it away unless we force it.  */
+	  DECL_PRESERVE_P (decl) = 1;
+	  finish_var_decl (decl, expr);
+	}
+    }
+}
+
+static void
+build_gnu_selector_translation_table (void)
+{
+  tree chain;
+/*  int offset = 0;
+  tree decl = NULL_TREE;*/
   VEC(constructor_elt,gc) *inits = NULL;
 
   for (chain = sel_ref_chain; chain; chain = TREE_CHAIN (chain))
@@ -2587,41 +2635,12 @@ build_selector_translation_table (void)
       tree expr;
 
       if (warn_selector && objc_implementation_context)
-      {
-        tree method_chain;
-        bool found = false;
-        for (method_chain = meth_var_names_chain;
-             method_chain;
-             method_chain = TREE_CHAIN (method_chain))
-          {
-            if (TREE_VALUE (method_chain) == TREE_VALUE (chain))
-              {
-                found = true;
-                break;
-              }
-          }
-        if (!found)
-	  {
-	    location_t loc;
-	    if (flag_next_runtime && TREE_PURPOSE (chain))
-	      loc = DECL_SOURCE_LOCATION (TREE_PURPOSE (chain));
-	    else
-	      loc = input_location;
-	    warning_at (loc, 0, "creating selector for nonexistent method %qE",
-			TREE_VALUE (chain));
-	  }
-      }
+	diagnose_missing_method (TREE_VALUE (chain), input_location);
 
       expr = build_selector (TREE_VALUE (chain));
-      /* add one for the '\0' character */
-      offset += IDENTIFIER_LENGTH (TREE_VALUE (chain)) + 1;
+      /* add one for the '\0' character 
+      offset += IDENTIFIER_LENGTH (TREE_VALUE (chain)) + 1;*/
 
-      if (flag_next_runtime)
-	{
-	  decl = TREE_PURPOSE (chain);
-	  finish_var_decl (decl, expr);
-	}
-      else
 	{
 	  if (flag_typed_selectors)
 	    {
@@ -2634,9 +2653,8 @@ build_selector_translation_table (void)
 
 	  CONSTRUCTOR_APPEND_ELT (inits, NULL_TREE, expr);
 	}
-    }
+    } /* each element in the chain */
 
-  if (! flag_next_runtime)
     {
       /* Cause the selector table (previously forward-declared)
 	 to be actually output.	 */
@@ -2645,12 +2663,12 @@ build_selector_translation_table (void)
       if (flag_typed_selectors)
 	{
 	  VEC(constructor_elt,gc) *v = NULL;
-	  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, build_int_cst (NULL_TREE, 0));
-	  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, build_int_cst (NULL_TREE, 0));
+	  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, integer_zero_node);
+	  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, integer_zero_node);
 	  expr = objc_build_constructor (objc_selector_template, v);
 	}
       else
-	expr = build_int_cst (NULL_TREE, 0);
+	expr = integer_zero_node;
 
       CONSTRUCTOR_APPEND_ELT (inits, NULL_TREE, expr);
       expr = objc_build_constructor (TREE_TYPE (UOBJC_SELECTOR_TABLE_decl),
@@ -2854,19 +2872,34 @@ objc_get_class_reference (tree ident)
 /* For each string section we have a chain which maps identifier nodes
    to decls for the strings.  */
 
+static GTY(()) int class_names_idx;
+static GTY(()) int meth_var_names_idx;
+static GTY(()) int meth_var_types_idx;
+
 static tree
 add_objc_string (tree ident, enum string_section section)
 {
   tree *chain, decl, type, string_expr;
-
+  char buf[256];
+  
+  buf[0] = 0;
   if (section == class_names)
-    chain = &class_names_chain;
+    {
+      chain = &class_names_chain;
+      sprintf (buf, "_OBJC_CLASS_NAME_%d", class_names_idx++);
+    }
   else if (section == meth_var_names)
-    chain = &meth_var_names_chain;
+    {
+      chain = &meth_var_names_chain;
+      sprintf (buf, "_OBJC_METH_VAR_NAME_%d", meth_var_names_idx++);
+    }
   else if (section == meth_var_types)
-    chain = &meth_var_types_chain;
+    {
+      chain = &meth_var_types_chain;
+      sprintf (buf, "_OBJC_METH_VAR_TYPE_%d", meth_var_types_idx++);
+    }
   else
-    abort ();
+    gcc_unreachable ();
 
   while (*chain)
     {
@@ -2878,12 +2911,11 @@ add_objc_string (tree ident, enum string_section section)
       chain = &TREE_CHAIN (*chain);
     }
 
-  decl = build_objc_string_decl (section);
-
   type = build_sized_array_type (char_type_node, IDENTIFIER_LENGTH (ident) + 1);
-  decl = start_var_decl (type, IDENTIFIER_POINTER (DECL_NAME (decl)));
+  decl = start_var_decl (type, buf);
   string_expr = my_build_string (IDENTIFIER_LENGTH (ident) + 1,
 				 IDENTIFIER_POINTER (ident));
+  TREE_CONSTANT (decl) = 1;
   finish_var_decl (decl, string_expr);
 
   *chain = tree_cons (decl, ident, NULL_TREE);
@@ -2891,44 +2923,6 @@ add_objc_string (tree ident, enum string_section section)
   return convert (string_type_node, build_unary_op (input_location,
 						    ADDR_EXPR, decl, 1));
 }
-
-static GTY(()) int class_names_idx;
-static GTY(()) int meth_var_names_idx;
-static GTY(()) int meth_var_types_idx;
-
-static tree
-build_objc_string_decl (enum string_section section)
-{
-  tree decl, ident;
-  char buf[256];
-
-  if (section == class_names)
-    sprintf (buf, "_OBJC_CLASS_NAME_%d", class_names_idx++);
-  else if (section == meth_var_names)
-    sprintf (buf, "_OBJC_METH_VAR_NAME_%d", meth_var_names_idx++);
-  else if (section == meth_var_types)
-    sprintf (buf, "_OBJC_METH_VAR_TYPE_%d", meth_var_types_idx++);
-
-  ident = get_identifier (buf);
-
-  decl = build_decl (input_location,
-		     VAR_DECL, ident, build_array_type (char_type_node, 0));
-  DECL_EXTERNAL (decl) = 1;
-  TREE_PUBLIC (decl) = 0;
-  TREE_USED (decl) = 1;
-  TREE_CONSTANT (decl) = 1;
-  DECL_CONTEXT (decl) = 0;
-  DECL_ARTIFICIAL (decl) = 1;
-#ifdef OBJCPLUS
-  DECL_THIS_STATIC (decl) = 1; /* squash redeclaration errors */
-#endif
-
-  make_decl_rtl (decl);
-  pushdecl_top_level (decl);
-
-  return decl;
-}
-
 
 void
 objc_declare_alias (tree alias_ident, tree class_ident)
@@ -4259,7 +4253,7 @@ build_descriptor_table_initializer (tree type, tree entries)
       CONSTRUCTOR_APPEND_ELT (inits, NULL_TREE,
 			      objc_build_constructor (type, elts));
 
-      entries = TREE_CHAIN (entries);
+      entries = DECL_CHAIN (entries);
     }
   while (entries);
 
@@ -4362,7 +4356,7 @@ encode_method_prototype (tree method_decl)
   i = int_size_in_bytes (ptr_type_node);
   parm_offset = 2 * i;
   for (parms = METHOD_SEL_ARGS (method_decl); parms;
-       parms = TREE_CHAIN (parms))
+       parms = DECL_CHAIN (parms))
     {
       tree type = objc_method_parm_type (parms);
       int sz = objc_encoded_type_size (type);
@@ -4385,7 +4379,7 @@ encode_method_prototype (tree method_decl)
   /* Argument types.  */
   parm_offset = 2 * i;
   for (parms = METHOD_SEL_ARGS (method_decl); parms;
-       parms = TREE_CHAIN (parms))
+       parms = DECL_CHAIN (parms))
     {
       tree type = objc_method_parm_type (parms);
 
@@ -4701,7 +4695,7 @@ generate_protocols (void)
 	      encoding = encode_method_prototype (nst_methods);
 	      METHOD_ENCODING (nst_methods) = encoding;
 	    }
-	  nst_methods = TREE_CHAIN (nst_methods);
+	  nst_methods = DECL_CHAIN (nst_methods);
 	}
 
       while (cls_methods)
@@ -4712,7 +4706,7 @@ generate_protocols (void)
 	      METHOD_ENCODING (cls_methods) = encoding;
 	    }
 
-	  cls_methods = TREE_CHAIN (cls_methods);
+	  cls_methods = DECL_CHAIN (cls_methods);
 	}
       generate_method_descriptors (p);
 
@@ -5022,8 +5016,8 @@ check_ivars (tree inter, tree imp)
 			   intdecls);
 	}
 
-      intdecls = TREE_CHAIN (intdecls);
-      impdecls = TREE_CHAIN (impdecls);
+      intdecls = DECL_CHAIN (intdecls);
+      impdecls = DECL_CHAIN (impdecls);
     }
 }
 
@@ -5171,7 +5165,7 @@ build_ivar_list_initializer (tree type, tree field_decl)
       CONSTRUCTOR_APPEND_ELT (inits, NULL_TREE,
 			      objc_build_constructor (type, ivar));
       do
-	field_decl = TREE_CHAIN (field_decl);
+	field_decl = DECL_CHAIN (field_decl);
       while (field_decl && TREE_CODE (field_decl) != FIELD_DECL);
     }
   while (field_decl);
@@ -5204,7 +5198,7 @@ ivar_list_length (tree t)
 {
   int count = 0;
 
-  for (; t; t = TREE_CHAIN (t))
+  for (; t; t = DECL_CHAIN (t))
     if (TREE_CODE (t) == FIELD_DECL)
       ++count;
 
@@ -5287,7 +5281,7 @@ build_dispatch_table_initializer (tree type, tree entries)
       CONSTRUCTOR_APPEND_ELT (inits, NULL_TREE,
 			      objc_build_constructor (type, elems));
 
-      entries = TREE_CHAIN (entries);
+      entries = DECL_CHAIN (entries);
     }
   while (entries);
 
@@ -5334,8 +5328,8 @@ generate_dispatch_table (tree type, const char *name, int size, tree list)
   decl = start_var_decl (type, synth_id_with_class_suffix
 			       (name, objc_implementation_context));
 
-  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, build_int_cst (NULL_TREE, 0));
-  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, build_int_cst (NULL_TREE, size));
+  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, integer_zero_node);
+  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, build_int_cst (integer_type_node, size));
   CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, list);
 
   finish_var_decl (decl,
@@ -5356,14 +5350,14 @@ mark_referenced_methods (void)
       while (chain)
 	{
 	  cgraph_mark_needed_node (cgraph_node (METHOD_DEFINITION (chain)));
-	  chain = TREE_CHAIN (chain);
+	  chain = DECL_CHAIN (chain);
 	}
 
       chain = CLASS_NST_METHODS (impent->imp_context);
       while (chain)
 	{
 	  cgraph_mark_needed_node (cgraph_node (METHOD_DEFINITION (chain)));
-	  chain = TREE_CHAIN (chain);
+	  chain = DECL_CHAIN (chain);
 	}
     }
 }
@@ -5658,11 +5652,15 @@ lookup_category (tree klass, tree cat_name)
 /* static struct objc_category _OBJC_CATEGORY_<name> = { ... };  */
 
 static void
-generate_category (tree cat)
+generate_category (struct imp_entry *impent)
 {
-  tree decl;
   tree initlist, cat_name_expr, class_name_expr;
   tree protocol_decl, category;
+  tree cat = impent->imp_context;
+
+  implementation_template = impent->imp_template;
+  UOBJC_CLASS_decl = impent->class_decl;
+  UOBJC_METACLASS_decl = impent->meta_decl;
 
   add_class_reference (CLASS_NAME (cat));
   cat_name_expr = add_objc_string (CLASS_SUPER_NAME (cat), class_names);
@@ -5680,30 +5678,32 @@ generate_category (tree cat)
   else
     protocol_decl = 0;
 
-  decl = start_var_decl (objc_category_template,
-			 synth_id_with_class_suffix
-			 ("_OBJC_CATEGORY", objc_implementation_context));
-
-  initlist = build_category_initializer (TREE_TYPE (decl),
+  initlist = build_category_initializer (TREE_TYPE (UOBJC_CLASS_decl),
 					 cat_name_expr, class_name_expr,
 					 UOBJC_INSTANCE_METHODS_decl,
 					 UOBJC_CLASS_METHODS_decl,
 					 protocol_decl);
-
-  finish_var_decl (decl, initlist);
+  /* Finish and initialize the forward decl.  */
+  finish_var_decl (UOBJC_CLASS_decl, initlist);
 }
 
 /* static struct objc_class _OBJC_METACLASS_Foo={ ... };
    static struct objc_class _OBJC_CLASS_Foo={ ... };  */
 
 static void
-generate_shared_structures (int cls_flags)
+generate_shared_structures (struct imp_entry *impent)
 {
-  tree decl;
   tree name_expr, super_expr, root_expr;
-  tree my_root_id = NULL_TREE, my_super_id = NULL_TREE;
+  tree my_root_id, my_super_id;
   tree cast_type, initlist, protocol_decl;
-
+  int cls_flags;
+  
+  objc_implementation_context = impent->imp_context;
+  implementation_template = impent->imp_template;
+  UOBJC_CLASS_decl = impent->class_decl;
+  UOBJC_METACLASS_decl = impent->meta_decl;
+  cls_flags = impent->has_cxx_cdtors ? CLS_HAS_CXX_STRUCTORS : 0 ;
+  
   my_super_id = CLASS_SUPER_NAME (implementation_template);
   if (my_super_id)
     {
@@ -5734,13 +5734,12 @@ generate_shared_structures (int cls_flags)
 
   /* Install class `isa' and `super' pointers at runtime.  */
   if (my_super_id)
-    {
-      super_expr = add_objc_string (my_super_id, class_names);
-      super_expr = build_c_cast (input_location,
-				 cast_type, super_expr); /* cast! */
-    }
+    super_expr = add_objc_string (my_super_id, class_names);
   else
-    super_expr = build_int_cst (NULL_TREE, 0);
+    super_expr = integer_zero_node;
+    
+  super_expr = build_c_cast (input_location,
+				 cast_type, super_expr); /* cast! */
 
   root_expr = add_objc_string (my_root_id, class_names);
   root_expr = build_c_cast (input_location, cast_type, root_expr); /* cast! */
@@ -5756,13 +5755,9 @@ generate_shared_structures (int cls_flags)
 
   /* static struct objc_class _OBJC_METACLASS_Foo = { ... }; */
 
-  decl = start_var_decl (objc_class_template,
-			 IDENTIFIER_POINTER
-			 (DECL_NAME (UOBJC_METACLASS_decl)));
-
   initlist
     = build_shared_structure_initializer
-      (TREE_TYPE (decl),
+      (TREE_TYPE (UOBJC_METACLASS_decl),
        root_expr, super_expr, name_expr,
        convert (integer_type_node, TYPE_SIZE_UNIT (objc_class_template)),
        2 /*CLS_META*/,
@@ -5770,17 +5765,13 @@ generate_shared_structures (int cls_flags)
        UOBJC_CLASS_VARIABLES_decl,
        protocol_decl);
 
-  finish_var_decl (decl, initlist);
+  finish_var_decl (UOBJC_METACLASS_decl, initlist);
 
   /* static struct objc_class _OBJC_CLASS_Foo={ ... }; */
 
-  decl = start_var_decl (objc_class_template,
-			 IDENTIFIER_POINTER
-			 (DECL_NAME (UOBJC_CLASS_decl)));
-
   initlist
     = build_shared_structure_initializer
-      (TREE_TYPE (decl),
+      (TREE_TYPE (UOBJC_CLASS_decl),
        build_unary_op (input_location, ADDR_EXPR, UOBJC_METACLASS_decl, 0),
        super_expr, name_expr,
        convert (integer_type_node,
@@ -5791,7 +5782,7 @@ generate_shared_structures (int cls_flags)
        UOBJC_INSTANCE_VARIABLES_decl,
        protocol_decl);
 
-  finish_var_decl (decl, initlist);
+  finish_var_decl (UOBJC_CLASS_decl, initlist);
 }
 
 
@@ -5999,7 +5990,7 @@ get_arg_type_list (tree meth, int context, int superflag)
     return arglist;
 
   /* Build a list of argument types.  */
-  for (akey = METHOD_SEL_ARGS (meth); akey; akey = TREE_CHAIN (akey))
+  for (akey = METHOD_SEL_ARGS (meth); akey; akey = DECL_CHAIN (akey))
     {
       tree arg_type = TREE_VALUE (TREE_TYPE (akey));
 
@@ -6831,7 +6822,7 @@ lookup_method (tree mchain, tree method)
       if (METHOD_SEL_NAME (mchain) == key)
 	return mchain;
 
-      mchain = TREE_CHAIN (mchain);
+      mchain = DECL_CHAIN (mchain);
     }
   return NULL_TREE;
 }
@@ -6943,12 +6934,12 @@ objc_add_method (tree klass, tree method, int is_class)
       /* put method on list in reverse order */
       if (is_class)
 	{
-	  TREE_CHAIN (method) = CLASS_CLS_METHODS (klass);
+	  DECL_CHAIN (method) = CLASS_CLS_METHODS (klass);
 	  CLASS_CLS_METHODS (klass) = method;
 	}
       else
 	{
-	  TREE_CHAIN (method) = CLASS_NST_METHODS (klass);
+	  DECL_CHAIN (method) = CLASS_NST_METHODS (klass);
 	  CLASS_NST_METHODS (klass) = method;
 	}
     }
@@ -7160,7 +7151,7 @@ add_instance_variable (tree klass, int visibility, tree field_decl)
 static tree
 is_ivar (tree decl_chain, tree ident)
 {
-  for ( ; decl_chain; decl_chain = TREE_CHAIN (decl_chain))
+  for ( ; decl_chain; decl_chain = DECL_CHAIN (decl_chain))
     if (DECL_NAME (decl_chain) == ident)
       return decl_chain;
   return NULL_TREE;
@@ -7287,7 +7278,7 @@ check_methods (tree chain, tree list, int mtype)
 		   mtype, METHOD_SEL_NAME (chain));
 	}
 
-      chain = TREE_CHAIN (chain);
+      chain = DECL_CHAIN (chain);
     }
 
     return first;
@@ -7961,7 +7952,7 @@ encode_aggregate_fields (tree type, int pointed_to, int curtype, int format)
 {
   tree field = TYPE_FIELDS (type);
 
-  for (; field; field = TREE_CHAIN (field))
+  for (; field; field = DECL_CHAIN (field))
     {
 #ifdef OBJCPLUS
       /* C++ static members, and things that are not field at all,
@@ -8310,9 +8301,9 @@ objc_get_parm_info (int have_ellipsis)
   declare_parm_level ();
   while (parm_info)
     {
-      tree next = TREE_CHAIN (parm_info);
+      tree next = DECL_CHAIN (parm_info);
 
-      TREE_CHAIN (parm_info) = NULL_TREE;
+      DECL_CHAIN (parm_info) = NULL_TREE;
       parm_info = pushdecl (parm_info);
       finish_decl (parm_info, input_location, NULL_TREE, NULL_TREE, NULL_TREE);
       parm_info = next;
@@ -8390,7 +8381,7 @@ start_method_def (tree method)
       parm = build_decl (input_location,
 			 PARM_DECL, KEYWORD_ARG_NAME (parmlist), type);
       objc_push_parm (parm);
-      parmlist = TREE_CHAIN (parmlist);
+      parmlist = DECL_CHAIN (parmlist);
     }
 
   if (METHOD_ADD_ARGS (method))
@@ -8623,8 +8614,8 @@ really_start_method (tree method,
   /* Suppress unused warnings.  */
   TREE_USED (self_decl) = 1;
   DECL_READ_P (self_decl) = 1;
-  TREE_USED (TREE_CHAIN (self_decl)) = 1;
-  DECL_READ_P (TREE_CHAIN (self_decl)) = 1;
+  TREE_USED (DECL_CHAIN (self_decl)) = 1;
+  DECL_READ_P (DECL_CHAIN (self_decl)) = 1;
 #ifdef OBJCPLUS
   pop_lang_context ();
 #endif
@@ -8982,7 +8973,7 @@ gen_method_decl (tree method)
 	  strcat (errbuf, ")");
 
 	  strcat (errbuf, IDENTIFIER_POINTER (KEYWORD_ARG_NAME (chain)));
-	  if ((chain = TREE_CHAIN (chain)))
+	  if ((chain = DECL_CHAIN (chain)))
 	    strcat (errbuf, " ");
         }
       while (chain);
@@ -9176,14 +9167,16 @@ finish_objc (void)
   if (objc_static_instances)
     generate_static_references ();
 
-  if (imp_list || class_names_chain
-      || meth_var_names_chain || meth_var_types_chain || sel_ref_chain)
-    generate_objc_symtab_decl ();
+  /* forward declare categories */
+  if (cat_count)
+    forward_declare_categories ();
 
   for (impent = imp_list; impent; impent = impent->next)
     {
       objc_implementation_context = impent->imp_context;
       implementation_template = impent->imp_template;
+
+      /* FIXME: This needs reworking to be more obvious.  */
 
       UOBJC_CLASS_decl = impent->class_decl;
       UOBJC_METACLASS_decl = impent->meta_decl;
@@ -9202,27 +9195,34 @@ finish_objc (void)
 	  /* all of the following reference the string pool...  */
 	  generate_ivar_lists ();
 	  generate_dispatch_tables ();
-	  generate_shared_structures (impent->has_cxx_cdtors
-				      ? CLS_HAS_CXX_STRUCTORS
-				      : 0);
+	  generate_shared_structures (impent);
 	}
       else
 	{
 	  generate_dispatch_tables ();
-	  generate_category (objc_implementation_context);
+	  generate_category (impent);
 	}
+
+      impent->class_decl = UOBJC_CLASS_decl;
+      impent->meta_decl = UOBJC_METACLASS_decl;
     }
 
   /* If we are using an array of selectors, we must always
      finish up the array decl even if no selectors were used.  */
-  if (! flag_next_runtime || sel_ref_chain)
-    build_selector_translation_table ();
+  if (flag_next_runtime)
+    build_next_selector_translation_table ();
+  else
+    build_gnu_selector_translation_table ();
 
   if (protocol_chain)
     generate_protocols ();
 
-  if ((flag_replace_objc_classes && imp_list) || flag_objc_gc)
+  if (flag_next_runtime)
     generate_objc_image_info ();
+
+  if (imp_list || class_names_chain
+      || meth_var_names_chain || meth_var_types_chain || sel_ref_chain)
+    generate_objc_symtab_decl ();
 
   /* Arrange for ObjC data structures to be initialized at run time.  */
   if (objc_implementation_context || class_names_chain || objc_static_instances
@@ -9282,8 +9282,9 @@ generate_classref_translation_entry (tree chain)
   expr = add_objc_string (TREE_VALUE (chain), class_names);
   expr = convert (type, expr); /* cast! */
 
-  /* The decl that is the one that we
-     forward declared in build_class_reference.  */
+  /* This is a class reference.  It is re-written by the runtime,
+     but will be optimized away unless we force it.  */
+  DECL_PRESERVE_P (decl) = 1;
   finish_var_decl (decl, expr);
   return;
 }
@@ -9309,12 +9310,11 @@ handle_class_ref (tree chain)
 
   /* Make a decl for this name, so we can use its address in a tree.  */
   decl = build_decl (input_location,
-		     VAR_DECL, get_identifier (string), char_type_node);
+		     VAR_DECL, get_identifier (string), TREE_TYPE (integer_zero_node));
   DECL_EXTERNAL (decl) = 1;
   TREE_PUBLIC (decl) = 1;
-
   pushdecl (decl);
-  rest_of_decl_compilation (decl, 0, 0);
+  finish_var_decl (decl, 0);
 
   /* Make a decl for the address.  */
   sprintf (string, "%sobjc_class_ref_%s",
@@ -9322,15 +9322,17 @@ handle_class_ref (tree chain)
   exp = build1 (ADDR_EXPR, string_type_node, decl);
   decl = build_decl (input_location,
 		     VAR_DECL, get_identifier (string), string_type_node);
-  DECL_INITIAL (decl) = exp;
   TREE_STATIC (decl) = 1;
   TREE_USED (decl) = 1;
   DECL_READ_P (decl) = 1;
-  /* Force the output of the decl as this forces the reference of the class.  */
-  mark_decl_referenced (decl);
+  DECL_ARTIFICIAL (decl) = 1;
+  DECL_INITIAL (decl) = error_mark_node;
+ 
+  /* We must force the reference.  */
+  DECL_PRESERVE_P (decl) = 1;
 
   pushdecl (decl);
-  rest_of_decl_compilation (decl, 0, 0);
+  finish_var_decl (decl, exp);
 }
 
 static void
@@ -9381,17 +9383,21 @@ handle_impent (struct imp_entry *impent)
     {
       tree decl, init;
 
-      init = build_int_cst (c_common_type_for_size (BITS_PER_WORD, 1), 0);
+      init = integer_zero_node;
       decl = build_decl (input_location,
 			 VAR_DECL, get_identifier (string), TREE_TYPE (init));
       TREE_PUBLIC (decl) = 1;
       TREE_READONLY (decl) = 1;
       TREE_USED (decl) = 1;
       TREE_CONSTANT (decl) = 1;
-      DECL_CONTEXT (decl) = 0;
+      DECL_CONTEXT (decl) = NULL_TREE;
       DECL_ARTIFICIAL (decl) = 1;
-      DECL_INITIAL (decl) = init;
-      assemble_variable (decl, 1, 0, 0);
+      TREE_STATIC (decl) = 1;
+      DECL_INITIAL (decl) = error_mark_node; /* A real initializer is coming... */
+      /* We must force the reference.  */
+      DECL_PRESERVE_P (decl) = 1;
+
+      finish_var_decl(decl, init) ;
     }
 }
 
@@ -9406,16 +9412,24 @@ generate_objc_image_info (void)
 {
   tree decl;
   int flags
-    = ((flag_replace_objc_classes && imp_list ? 1 : 0)
+    = ((flag_replace_objc_classes && imp_count ? 1 : 0)
        | (flag_objc_gc ? 2 : 0));
   VEC(constructor_elt,gc) *v = NULL;
-  tree array_type = build_sized_array_type (integer_type_node, 2);
+  tree array_type;
+  
+   if (!flags)
+    return; /* No need for an image_info entry.  */
+  
+  array_type  = build_sized_array_type (integer_type_node, 2);
 
   decl = start_var_decl (array_type, "_OBJC_IMAGE_INFO");
 
-  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, build_int_cst (NULL_TREE, 0));
-  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, build_int_cst (NULL_TREE, flags));
-
+  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, integer_zero_node);
+  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, build_int_cst (integer_type_node, flags));
+  /* If we need this (determined above) it is because the runtime wants to
+     refer to it in a manner hidden from the compiler.  So we must force the 
+     output.  */
+  DECL_PRESERVE_P (decl) = 1;
   finish_var_decl (decl, objc_build_constructor (TREE_TYPE (decl), v));
 }
 

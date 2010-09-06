@@ -758,7 +758,7 @@ rx_round_up (unsigned int value, unsigned int alignment)
 /* Return the number of bytes in the argument registers
    occupied by an argument of type TYPE and mode MODE.  */
 
-unsigned int
+static unsigned int
 rx_function_arg_size (Mmode mode, const_tree type)
 {
   unsigned int num_bytes;
@@ -778,7 +778,7 @@ rx_function_arg_size (Mmode mode, const_tree type)
    parameter list, or the last named parameter before the start of a
    variable parameter list.  */
 
-rtx
+static rtx
 rx_function_arg (Fargs * cum, Mmode mode, const_tree type, bool named)
 {
   unsigned int next_reg;
@@ -813,6 +813,13 @@ rx_function_arg (Fargs * cum, Mmode mode, const_tree type, bool named)
   next_reg = (bytes_so_far / UNITS_PER_WORD) + 1;
 
   return gen_rtx_REG (mode, next_reg);
+}
+
+static void
+rx_function_arg_advance (Fargs * cum, Mmode mode, const_tree type,
+			 bool named ATTRIBUTE_UNUSED)
+{
+  *cum += rx_function_arg_size (mode, type);
 }
 
 /* Return an RTL describing where a function return value of type RET_TYPE
@@ -2130,7 +2137,6 @@ rx_handle_option (size_t code, const char *  arg ATTRIBUTE_UNUSED, int value)
       return value >= 0 && value <= 4;
 
     case OPT_mcpu_:
-    case OPT_patch_:
       if (strcasecmp (arg, "RX610") == 0)
 	rx_cpu_type = RX610;
       else if (strcasecmp (arg, "RX200") == 0)
@@ -2188,6 +2194,14 @@ rx_set_optimization_options (void)
       if (saved_allow_rx_fpu != ALLOW_RX_FPU_INSNS)
 	error ("Changing the FPU insns/math optimizations pairing is not supported");
     }
+}
+
+static void
+rx_option_override (void)
+{
+  /* This target defaults to strict volatile bitfields.  */
+  if (flag_strict_volatile_bitfields < 0)
+    flag_strict_volatile_bitfields = 1;
 }
 
 
@@ -2739,6 +2753,12 @@ rx_memory_move_cost (enum machine_mode mode, enum reg_class regclass, bool in)
 #undef  TARGET_FUNCTION_OK_FOR_SIBCALL
 #define TARGET_FUNCTION_OK_FOR_SIBCALL		rx_function_ok_for_sibcall
 
+#undef  TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG     		rx_function_arg
+
+#undef  TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE     	rx_function_arg_advance
+
 #undef  TARGET_SET_CURRENT_FUNCTION
 #define TARGET_SET_CURRENT_FUNCTION		rx_set_current_function
 
@@ -2777,6 +2797,9 @@ rx_memory_move_cost (enum machine_mode mode, enum reg_class regclass, bool in)
 
 #undef  TARGET_MEMORY_MOVE_COST
 #define TARGET_MEMORY_MOVE_COST			rx_memory_move_cost
+
+#undef  TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE			rx_option_override
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

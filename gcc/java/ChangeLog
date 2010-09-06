@@ -1,3 +1,54 @@
+2010-08-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (jvspec.o): Update dependencies.
+	* jvspec.c: Include opts.h.
+	(PARAM_ARG): Remove.
+	(find_spec_file): Do not add leading -specs=.
+	(lang_specific_driver): Use cl_decoded_option structures.
+	* lang.opt (C, CLASSPATH, D, bootclasspath, classpath, encoding,
+	extdirs, fmain=, s-bc-abi): New options.
+
+2010-08-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* class.c: Use FOR_EACH_VEC_ELT.
+	* expr.c: Likewise.
+	* jcf-parse.c: Likewise.
+	* resource.c: Likewise.
+
+2010-08-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (MD_, MMD_, version): Mark RejectDriver.
+
+2010-08-05  David Daney  <ddaney@caviumnetworks.com>
+
+	* class.c (build_utf8_ref): Fix code formatting from previous commit.
+
+2010-08-05  David Daney  <ddaney@caviumnetworks.com>
+
+	* class.c (build_utf8_ref): Make decl DECL_USER_ALIGN.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.c (java_handle_option): Update prototype and return value
+	type.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.c (java_option_lang_mask): New.
+	(java_init_options): Update prototype.
+	(LANG_HOOKS_OPTION_LANG_MASK): Define.
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* java-tree.h: Carefully replace TREE_CHAIN with DECL_CHAIN.
+	* boehm.c: Likewise.
+	* class.c: Likewise.
+	* decl.c: Likewise.
+	* expr.c: Likewise.
+	* jcf-parse.c: Likewise.
+	* typeck.c: Likewise.
+	* verify-glue.c: Likewise.
+
 2010-07-08  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
 	* boehm.c: Include diagnostic-core.h in every file that includes

@@ -122,10 +122,6 @@ static htab_t counts_hash = NULL;
 /* Trees representing the counter table arrays.  */
 static GTY(()) tree tree_ctr_tables[GCOV_COUNTERS];
 
-/* The names of the counter tables.  Not used if we're
-   generating counters at tree level.  */
-static GTY(()) rtx ctr_labels[GCOV_COUNTERS];
-
 /* The names of merge functions for counters.  */
 static const char *const ctr_merge_functions[GCOV_COUNTERS] = GCOV_MERGE_FUNCTIONS;
 static const char *const ctr_names[GCOV_COUNTERS] = GCOV_COUNTER_NAMES;
@@ -1011,7 +1007,7 @@ build_fn_info_type (unsigned int counters)
   /* checksum */
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
 
   /* dc offset */
@@ -1027,7 +1023,7 @@ build_fn_info_type (unsigned int counters)
   /* counters */
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, array_type);
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
 
   finish_builtin_struct (type, "__gcov_fn_info", fields, NULL_TREE);
@@ -1051,13 +1047,13 @@ build_fn_info_value (const struct function_list *function, tree type)
   CONSTRUCTOR_APPEND_ELT (v1, fields,
 			  build_int_cstu (get_gcov_unsigned_t (),
 					  function->ident));
-  fields = TREE_CHAIN (fields);
+  fields = DECL_CHAIN (fields);
 
   /* checksum */
   CONSTRUCTOR_APPEND_ELT (v1, fields,
 			  build_int_cstu (get_gcov_unsigned_t (),
 					  function->checksum));
-  fields = TREE_CHAIN (fields);
+  fields = DECL_CHAIN (fields);
 
   /* dc offset */
   CONSTRUCTOR_APPEND_ELT (v1, fields,
@@ -1091,13 +1087,13 @@ build_ctr_info_type (void)
   /* counters */
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
 
   /* values */
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, gcov_ptr_type);
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
 
   /* merge */
@@ -1108,7 +1104,7 @@ build_ctr_info_type (void)
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE,
 		      build_pointer_type (gcov_merge_fn_type));
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
 
   finish_builtin_struct (type, "__gcov_ctr_info", fields, NULL_TREE);
@@ -1131,7 +1127,7 @@ build_ctr_info_value (unsigned int counter, tree type)
   CONSTRUCTOR_APPEND_ELT (v, fields,
 			  build_int_cstu (get_gcov_unsigned_t (),
 					  prg_n_ctrs[counter]));
-  fields = TREE_CHAIN (fields);
+  fields = DECL_CHAIN (fields);
 
   if (prg_n_ctrs[counter])
     {
@@ -1154,7 +1150,7 @@ build_ctr_info_value (unsigned int counter, tree type)
     }
   else
     CONSTRUCTOR_APPEND_ELT (v, fields, null_pointer_node);
-  fields = TREE_CHAIN (fields);
+  fields = DECL_CHAIN (fields);
 
   fn = build_decl (BUILTINS_LOCATION,
 		   FUNCTION_DECL,
@@ -1470,7 +1466,7 @@ build_gcov_info (void)
   /* Version ident */
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
   CONSTRUCTOR_APPEND_ELT (v1, field,
 			  build_int_cstu (TREE_TYPE (field), GCOV_VERSION));
@@ -1488,14 +1484,14 @@ build_gcov_info (void)
   /* next -- NULL */
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, build_pointer_type (const_type));
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
   CONSTRUCTOR_APPEND_ELT (v1, field, null_pointer_node);
 
   /* stamp */
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
   CONSTRUCTOR_APPEND_ELT (v1, field,
 			  build_int_cstu (TREE_TYPE (field), local_tick));
@@ -1505,7 +1501,7 @@ build_gcov_info (void)
 						    TYPE_QUAL_CONST));
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, string_type);
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
   da_file_name_len = strlen (da_file_name);
   filename_string = build_string (da_file_name_len + 1, da_file_name);
@@ -1546,7 +1542,7 @@ build_gcov_info (void)
   /* number of functions */
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
   CONSTRUCTOR_APPEND_ELT (v1, field,
 			  build_int_cstu (get_gcov_unsigned_t (), n_fns));
@@ -1554,14 +1550,14 @@ build_gcov_info (void)
   /* fn_info table */
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, fn_info_ptr_type);
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
   CONSTRUCTOR_APPEND_ELT (v1, field, fn_info_value);
 
   /* counter_mask */
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
   CONSTRUCTOR_APPEND_ELT (v1, field, 
 			  build_int_cstu (get_gcov_unsigned_t (),
@@ -1581,7 +1577,7 @@ build_gcov_info (void)
 
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, ctr_info_ary_type);
-  TREE_CHAIN (field) = fields;
+  DECL_CHAIN (field) = fields;
   fields = field;
   CONSTRUCTOR_APPEND_ELT (v1, field, ctr_info_value);
 

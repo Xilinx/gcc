@@ -242,7 +242,7 @@ match_hollerith_constant (gfc_expr **result)
   locus old_loc;
   gfc_expr *e = NULL;
   const char *msg;
-  int num;
+  int num, pad;
   int i;  
 
   old_loc = gfc_current_locus;
@@ -279,7 +279,10 @@ match_hollerith_constant (gfc_expr **result)
 	  e = gfc_get_constant_expr (BT_HOLLERITH, gfc_default_character_kind,
 				     &gfc_current_locus);
 
-	  e->representation.string = XCNEWVEC (char, num + 1);
+	  /* Calculate padding needed to fit default integer memory.  */
+	  pad = gfc_default_integer_kind - (num % gfc_default_integer_kind);
+
+	  e->representation.string = XCNEWVEC (char, num + pad + 1);
 
 	  for (i = 0; i < num; i++)
 	    {
@@ -294,8 +297,13 @@ match_hollerith_constant (gfc_expr **result)
 	      e->representation.string[i] = (unsigned char) c;
 	    }
 
-	  e->representation.string[num] = '\0';
-	  e->representation.length = num;
+	  /* Now pad with blanks and end with a null char.  */
+	  for (i = 0; i < pad; i++)
+	    e->representation.string[num + i] = ' ';
+
+	  e->representation.string[num + i] = '\0';
+	  e->representation.length = num + pad;
+	  e->ts.u.pad = pad;
 
 	  *result = e;
 	  return MATCH_YES;
@@ -1748,6 +1756,13 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 	}
     }
 
+  /* For associate names, we may not yet know whether they are arrays or not.
+     Thus if we have one and parentheses follow, we have to assume that it
+     actually is one for now.  The final decision will be made at
+     resolution time, of course.  */
+  if (sym->assoc && gfc_peek_ascii_char () == '(')
+    sym->attr.dimension = 1;
+
   if ((equiv_flag && gfc_peek_ascii_char () == '(')
       || gfc_peek_ascii_char () == '[' || sym->attr.codimension
       || (sym->attr.dimension && !sym->attr.proc_pointer
@@ -1999,7 +2014,7 @@ gfc_variable_attr (gfc_expr *expr, gfc_typespec *ts)
   if (sym->ts.type == BT_CLASS)
     {
       dimension = CLASS_DATA (sym)->attr.dimension;
-      pointer = CLASS_DATA (sym)->attr.pointer;
+      pointer = CLASS_DATA (sym)->attr.class_pointer;
       allocatable = CLASS_DATA (sym)->attr.allocatable;
     }
   else
@@ -2059,7 +2074,7 @@ gfc_variable_attr (gfc_expr *expr, gfc_typespec *ts)
 
 	if (comp->ts.type == BT_CLASS)
 	  {
-	    pointer = CLASS_DATA (comp)->attr.pointer;
+	    pointer = CLASS_DATA (comp)->attr.class_pointer;
 	    allocatable = CLASS_DATA (comp)->attr.allocatable;
 	  }
 	else
@@ -2081,6 +2096,7 @@ gfc_variable_attr (gfc_expr *expr, gfc_typespec *ts)
   attr.pointer = pointer;
   attr.allocatable = allocatable;
   attr.target = target;
+  attr.save = sym->attr.save;
 
   return attr;
 }
@@ -2109,7 +2125,7 @@ gfc_expr_attr (gfc_expr *e)
 	  if (sym->ts.type == BT_CLASS)
 	    {
 	      attr.dimension = CLASS_DATA (sym)->attr.dimension;
-	      attr.pointer = CLASS_DATA (sym)->attr.pointer;
+	      attr.pointer = CLASS_DATA (sym)->attr.class_pointer;
 	      attr.allocatable = CLASS_DATA (sym)->attr.allocatable;
 	    }
 	}
@@ -2975,12 +2991,8 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
 	  gfc_error ("Assigning to PROTECTED variable at %C");
 	  return MATCH_ERROR;
 	}
-      if (sym->assoc && !sym->assoc->variable)
-	{
-	  gfc_error ("'%s' associated to expression can't appear in a variable"
-		     " definition context at %C", sym->name);
-	  return MATCH_ERROR;
-	}
+      if (sym->assoc)
+	sym->assoc->variable = 1;
       break;
 
     case FL_UNKNOWN:

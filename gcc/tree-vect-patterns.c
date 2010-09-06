@@ -255,6 +255,11 @@ vect_recog_dot_prod_pattern (gimple last_stmt, tree *type_in, tree *type_out)
 
   prod_type = half_type;
   stmt = SSA_NAME_DEF_STMT (oprnd0);
+
+  /* It could not be the dot_prod pattern if the stmt is outside the loop.  */
+  if (!flow_bb_inside_loop_p (loop, gimple_bb (stmt)))
+    return NULL;
+
   /* FORNOW.  Can continue analyzing the def-use chain when this stmt in a phi
      inside the loop (in case we are analyzing an outer-loop).  */
   if (!is_gimple_assign (stmt))
@@ -741,9 +746,7 @@ vect_pattern_recog_1 (
 
   /* Patterns cannot be vectorized using SLP, because they change the order of
      computation.  */
-  for (i = 0; VEC_iterate (gimple, LOOP_VINFO_REDUCTIONS (loop_vinfo), i,
-                           next);
-       i++)
+  FOR_EACH_VEC_ELT (gimple, LOOP_VINFO_REDUCTIONS (loop_vinfo), i, next)
     if (next == stmt)
       VEC_ordered_remove (gimple, LOOP_VINFO_REDUCTIONS (loop_vinfo), i); 
 }

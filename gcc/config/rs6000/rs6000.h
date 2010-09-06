@@ -1,6 +1,7 @@
 /* Definitions of target machine for GNU compiler, for IBM RS/6000.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+   2010
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -553,6 +554,25 @@ extern int rs6000_vector_align[];
 #define TARGET_E500_SINGLE 0
 #define TARGET_E500_DOUBLE 0
 #define CHECK_E500_OPTIONS do { } while (0)
+
+/* ISA 2.01 allowed FCFID to be done in 32-bit, previously it was 64-bit only.
+   Enable 32-bit fcfid's on any of the switches for newer ISA machines or
+   XILINX.  */
+#define TARGET_FCFID	(TARGET_POWERPC64 \
+			 || TARGET_POPCNTB	/* ISA 2.02 */ \
+			 || TARGET_CMPB		/* ISA 2.05 */ \
+			 || TARGET_POPCNTD	/* ISA 2.06 */ \
+			 || TARGET_XILINX_FPU)
+
+#define TARGET_FCTIDZ	TARGET_FCFID
+#define TARGET_STFIWX	TARGET_PPC_GFXOPT
+#define TARGET_LFIWAX	TARGET_CMPB
+#define TARGET_LFIWZX	TARGET_POPCNTD
+#define TARGET_FCFIDS	TARGET_POPCNTD
+#define TARGET_FCFIDU	TARGET_POPCNTD
+#define TARGET_FCFIDUS	TARGET_POPCNTD
+#define TARGET_FCTIDUZ	TARGET_POPCNTD
+#define TARGET_FCTIWUZ	TARGET_POPCNTD
 
 /* E500 processors only support plain "sync", not lwsync.  */
 #define TARGET_NO_LWSYNC TARGET_E500
@@ -1173,16 +1193,6 @@ extern unsigned rs6000_pointer_size;
 #define HARD_REGNO_RENAME_OK(SRC, DST) \
   (! ALTIVEC_REGNO_P (DST) || df_regs_ever_live_p (DST))
 
-/* A C expression returning the cost of moving data from a register of class
-   CLASS1 to one of CLASS2.  */
-
-#define REGISTER_MOVE_COST rs6000_register_move_cost
-
-/* A C expressions returning the cost of moving data of MODE from a register to
-   or from memory.  */
-
-#define MEMORY_MOVE_COST rs6000_memory_move_cost
-
 /* Specify the cost of a branch insn; roughly the number of extra insns that
    should be added to avoid a branch.
 
@@ -1683,6 +1693,8 @@ typedef struct rs6000_args
   int sysv_gregno;		/* next available GP register */
   int intoffset;		/* running offset in struct (darwin64) */
   int use_stack;		/* any part of struct on stack (darwin64) */
+  int floats_in_gpr;		/* count of SFmode floats taking up
+				   GPR space (darwin64) */
   int named;			/* false for varargs params */
 } CUMULATIVE_ARGS;
 
@@ -1703,38 +1715,6 @@ typedef struct rs6000_args
 
 #define INIT_CUMULATIVE_LIBCALL_ARGS(CUM, MODE, LIBNAME) \
   init_cumulative_args (&CUM, NULL_TREE, LIBNAME, FALSE, TRUE, 0)
-
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  */
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
-  function_arg_advance (&CUM, MODE, TYPE, NAMED, 0)
-
-/* Determine where to put an argument to a function.
-   Value is zero to push the argument on the stack,
-   or a hard register in which to store the argument.
-
-   MODE is the argument's machine mode.
-   TYPE is the data type of the argument (as a tree).
-    This is null for libcalls where that information may
-    not be available.
-   CUM is a variable of type CUMULATIVE_ARGS which gives info about
-    the preceding args and about the function being called.
-   NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).
-
-   On RS/6000 the first eight words of non-FP are normally in registers
-   and the rest are pushed.  The first 13 FP args are in registers.
-
-   If this is floating-point and no prototype is specified, we use
-   both an FP and integer register (or possibly FP reg and stack).  Library
-   functions (when TYPE is zero) always have the proper types for args,
-   so we can pass the FP value just in one register.  emit_library_function
-   doesn't support EXPR_LIST anyway.  */
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  function_arg (&CUM, MODE, TYPE, NAMED)
 
 /* If defined, a C expression which determines whether, and in which
    direction, to pad out an argument with extra space.  The value

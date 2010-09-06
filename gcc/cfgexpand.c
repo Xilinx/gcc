@@ -344,7 +344,7 @@ aggregate_contains_union_type (tree type)
   if (TREE_CODE (type) != RECORD_TYPE)
     return false;
 
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
     if (TREE_CODE (field) == FIELD_DECL)
       if (aggregate_contains_union_type (TREE_TYPE (field)))
 	return true;
@@ -713,7 +713,7 @@ static void
 expand_one_stack_var_at (tree decl, HOST_WIDE_INT offset)
 {
   /* Alignment is unsigned.   */
-  unsigned HOST_WIDE_INT align;
+  unsigned HOST_WIDE_INT align, max_align;
   rtx x;
 
   /* If this fails, we've overflowed the stack frame.  Error nicely?  */
@@ -730,10 +730,10 @@ expand_one_stack_var_at (tree decl, HOST_WIDE_INT offset)
       offset -= frame_phase;
       align = offset & -offset;
       align *= BITS_PER_UNIT;
-      if (align == 0)
-	align = STACK_BOUNDARY;
-      else if (align > MAX_SUPPORTED_STACK_ALIGNMENT)
-	align = MAX_SUPPORTED_STACK_ALIGNMENT;
+      max_align = MAX (crtl->max_used_stack_slot_alignment,
+		       PREFERRED_STACK_BOUNDARY);
+      if (align == 0 || align > max_align)
+	align = max_align;
 
       DECL_ALIGN (decl) = align;
       DECL_USER_ALIGN (decl) = 0;
@@ -938,6 +938,13 @@ expand_one_var (tree var, bool toplevel, bool really_expand)
 	align = MINIMUM_ALIGNMENT (TREE_TYPE (var),
 				   TYPE_MODE (TREE_TYPE (var)),
 				   TYPE_ALIGN (TREE_TYPE (var)));
+      else if (DECL_HAS_VALUE_EXPR_P (var)
+	       || (DECL_RTL_SET_P (var) && MEM_P (DECL_RTL (var))))
+	/* Don't consider debug only variables with DECL_HAS_VALUE_EXPR_P set
+	   or variables which were assigned a stack slot already by
+	   expand_one_stack_var_at - in the latter case DECL_ALIGN has been
+	   changed from the offset chosen to it.  */
+	align = crtl->stack_alignment_estimated;
       else
 	align = MINIMUM_ALIGNMENT (var, DECL_MODE (var), DECL_ALIGN (var));
 
@@ -1019,7 +1026,7 @@ expand_used_vars_for_block (tree block, bool toplevel)
   old_sv_num = toplevel ? 0 : stack_vars_num;
 
   /* Expand all variables at this level.  */
-  for (t = BLOCK_VARS (block); t ; t = TREE_CHAIN (t))
+  for (t = BLOCK_VARS (block); t ; t = DECL_CHAIN (t))
     if (TREE_USED (t))
       expand_one_var (t, toplevel, true);
 
@@ -1051,7 +1058,7 @@ clear_tree_used (tree block)
 {
   tree t;
 
-  for (t = BLOCK_VARS (block); t ; t = TREE_CHAIN (t))
+  for (t = BLOCK_VARS (block); t ; t = DECL_CHAIN (t))
     /* if (!TREE_STATIC (t) && !DECL_EXTERNAL (t)) */
       TREE_USED (t) = 0;
 
@@ -1210,7 +1217,7 @@ account_used_vars_for_block (tree block, bool toplevel)
   HOST_WIDE_INT size = 0;
 
   /* Expand all variables at this level.  */
-  for (t = BLOCK_VARS (block); t ; t = TREE_CHAIN (t))
+  for (t = BLOCK_VARS (block); t ; t = DECL_CHAIN (t))
     if (TREE_USED (t))
       size += expand_one_var (t, toplevel, false);
 
@@ -2427,7 +2434,9 @@ expand_debug_expr (tree exp)
 	  op0 = simplify_gen_subreg (mode, op0, inner_mode,
 				     subreg_lowpart_offset (mode,
 							    inner_mode));
-	else if (unsignedp)
+	else if (TREE_CODE_CLASS (TREE_CODE (exp)) == tcc_unary
+		 ? TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (exp, 0)))
+		 : unsignedp)
 	  op0 = gen_rtx_ZERO_EXTEND (mode, op0);
 	else
 	  op0 = gen_rtx_SIGN_EXTEND (mode, op0);

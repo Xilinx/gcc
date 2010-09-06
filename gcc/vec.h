@@ -190,6 +190,11 @@ along with GCC; see the file COPYING3.  If not see
 
 #define VEC_iterate(T,V,I,P)	(VEC_OP(T,base,iterate)(VEC_BASE(V),I,&(P)))
 
+/* Convenience macro for forward iteration.  */
+
+#define FOR_EACH_VEC_ELT(T, V, I, P)		\
+  for (I = 0; VEC_iterate (T, (V), (I), (P)); ++(I))
+
 /* Convenience macro for reverse iteration.  */
 
 #define FOR_EACH_VEC_ELT_REVERSE(T,V,I,P) \
@@ -424,7 +429,7 @@ along with GCC; see the file COPYING3.  If not see
    void VEC_T_block_remove (VEC(T) *v, unsigned ix, unsigned len);
 
    Remove LEN elements starting at the IXth.  Ordering is retained.
-   This is an O(1) operation.  */
+   This is an O(N) operation due to memmove.  */
 
 #define VEC_block_remove(T,V,I,L)	\
 	(VEC_OP(T,base,block_remove)(VEC_BASE(V),I,L VEC_CHECK_INFO))

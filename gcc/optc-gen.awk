@@ -73,6 +73,7 @@ print "#include " quote "intl.h" quote
 print ""
 print "#ifdef GCC_DRIVER"
 print "int target_flags;"
+print "int target_flags_explicit;"
 print "#else"
 print "#include " quote "flags.h" quote
 print "#include " quote "target.h" quote
@@ -194,6 +195,12 @@ for (i = 0; i < n_opts; i++) {
 	else
 		hlp = quote help[i] quote;
 
+	missing_arg_error = opt_args("MissingArgError", flags[i])
+	if (missing_arg_error == "")
+		missing_arg_error = "0"
+	else
+		missing_arg_error = quote missing_arg_error quote
+
 	neg = opt_args("Negative", flags[i]);
 	if (neg != "")
 		idx = indices[neg]
@@ -209,8 +216,9 @@ for (i = 0; i < n_opts; i++) {
 	}
 	# Split the printf after %u to work around an ia64-hp-hpux11.23
 	# awk bug.
-	printf("  { %c-%s%c,\n    %s,\n    %s, %u,",
-	       quote, opts[i], quote, hlp, back_chain[i], len)
+	printf("  { %c-%s%c,\n    %s,\n    %s,\n    %s, %u,",
+	       quote, opts[i], quote, hlp, missing_arg_error,
+	       back_chain[i], len)
 	printf(" %d,\n", idx)
 	condition = opt_args("Condition", flags[i])
 	cl_flags = switch_flags(flags[i])

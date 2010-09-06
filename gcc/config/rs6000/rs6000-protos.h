@@ -95,6 +95,7 @@ extern void rs6000_emit_sCOND (enum machine_mode, rtx[]);
 extern void rs6000_emit_cbranch (enum machine_mode, rtx[]);
 extern char * output_cbranch (rtx, const char *, int, rtx);
 extern char * output_e500_flip_gt_bit (rtx, rtx);
+extern const char * output_probe_stack_range (rtx, rtx);
 extern rtx rs6000_emit_set_const (rtx, enum machine_mode, rtx, int);
 extern int rs6000_emit_cmove (rtx, rtx, rtx, rtx);
 extern int rs6000_emit_vector_cond_expr (rtx, rtx, rtx, rtx, rtx, rtx);
@@ -128,6 +129,9 @@ extern void rs6000_emit_parity (rtx, rtx);
 
 extern rtx rs6000_machopic_legitimize_pic_address (rtx, enum machine_mode,
 						   rtx);
+extern rtx rs6000_address_for_fpconvert (rtx);
+extern rtx rs6000_allocate_stack_temp (enum machine_mode, bool, bool);
+extern void rs6000_expand_convert_si_to_sfdf (rtx, rtx, bool);
 #endif /* RTX_CODE */
 
 #ifdef TREE_CODE
@@ -135,10 +139,7 @@ extern unsigned int rs6000_special_round_type_align (tree, unsigned int,
 						     unsigned int);
 extern unsigned int darwin_rs6000_special_round_type_align (tree, unsigned int,
 							    unsigned int);
-extern void function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
-				  tree, int, int);
-extern int function_arg_boundary (enum machine_mode, tree);
-extern rtx function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
+extern int function_arg_boundary (enum machine_mode, const_tree);
 extern tree altivec_resolve_overloaded_builtin (location_t, tree, void *);
 extern rtx rs6000_libcall_value (enum machine_mode);
 extern rtx rs6000_va_arg (tree, tree);
@@ -170,9 +171,6 @@ extern unsigned int rs6000_dbx_register_number (unsigned int);
 extern void rs6000_emit_epilogue (int);
 extern void rs6000_emit_eh_reg_restore (rtx, rtx);
 extern const char * output_isel (rtx *);
-extern int rs6000_register_move_cost (enum machine_mode,
-				      enum reg_class, enum reg_class);
-extern int rs6000_memory_move_cost (enum machine_mode, enum reg_class, int);
 extern bool rs6000_tls_referenced_p (rtx);
 extern void rs6000_conditional_register_usage (void);
 

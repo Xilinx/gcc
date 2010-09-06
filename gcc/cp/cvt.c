@@ -176,7 +176,7 @@ cp_convert_to_pointer (tree type, tree expr)
   else if ((TYPE_PTRMEM_P (type) && TYPE_PTRMEM_P (intype))
 	   || (TYPE_PTRMEMFUNC_P (type) && TYPE_PTRMEMFUNC_P (intype)))
     return convert_ptrmem (type, expr, /*allow_inverse_p=*/false,
-			   /*c_cast_p=*/false);
+			   /*c_cast_p=*/false, tf_warning_or_error);
   else if (TYPE_PTRMEMFUNC_P (intype))
     {
       if (!warn_pmf2ptr)
@@ -200,7 +200,7 @@ cp_convert_to_pointer (tree type, tree expr)
     {
       if (TYPE_PTRMEMFUNC_P (type))
 	return build_ptrmemfunc (TYPE_PTRMEMFUNC_FN_TYPE (type), expr, 0,
-				 /*c_cast_p=*/false);
+				 /*c_cast_p=*/false, tf_warning_or_error);
 
       if (TYPE_PTRMEM_P (type))
 	{
@@ -1376,7 +1376,7 @@ convert_force (tree type, tree expr, int convtype)
       && TYPE_PTRMEMFUNC_P (type))
     /* compatible pointer to member functions.  */
     return build_ptrmemfunc (TYPE_PTRMEMFUNC_FN_TYPE (type), e, 1,
-			     /*c_cast_p=*/1);
+			     /*c_cast_p=*/1, tf_warning_or_error);
 
   return ocp_convert (type, e, CONV_C_CAST|convtype, LOOKUP_NORMAL);
 }
@@ -1468,7 +1468,7 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
 
   /* The code for conversions from class type is currently only used for
      delete expressions.  Other expressions are handled by build_new_op.  */
-  if (!complete_type_or_else (basetype, expr))
+  if (!complete_type_or_maybe_complain (basetype, expr, complain))
     return error_mark_node;
   if (!TYPE_HAS_CONVERSION (basetype))
     return NULL_TREE;

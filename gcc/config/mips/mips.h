@@ -28,23 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 
 /* MIPS external variables defined in mips.c.  */
 
-/* Costs of various operations on the different architectures.  */
-
-struct mips_rtx_cost_data
-{
-  unsigned short fp_add;
-  unsigned short fp_mult_sf;
-  unsigned short fp_mult_df;
-  unsigned short fp_div_sf;
-  unsigned short fp_div_df;
-  unsigned short int_mult_si;
-  unsigned short int_mult_di;
-  unsigned short int_div_si;
-  unsigned short int_div_di;
-  unsigned short branch_cost;
-  unsigned short memory_latency;
-};
-
 /* Which ABI to use.  ABI_32 (original 32, or o32), ABI_N32 (n32),
    ABI_64 (n64) are all defined by SGI.  ABI_O64 is o32 extended
    to work on a 64-bit machine.  */
@@ -778,7 +761,9 @@ enum mips_code_readable_setting {
 
 /* A spec that infers the -mdsp setting from an -march argument.  */
 #define BASE_DRIVER_SELF_SPECS \
-  "%{!mno-dsp:%{march=24ke*|march=34k*|march=74k*|march=1004k*: -mdsp}}"
+  "%{!mno-dsp: \
+     %{march=24ke*|march=34k*|march=1004k*: -mdsp} \
+     %{march=74k*:%{!mno-dspr2: -mdspr2 -mdsp}}}"
 
 #define DRIVER_SELF_SPECS BASE_DRIVER_SELF_SPECS
 
@@ -1089,8 +1074,6 @@ enum mips_code_readable_setting {
 #undef  SWITCH_TAKES_ARG
 #define SWITCH_TAKES_ARG(CHAR)						\
   (DEFAULT_SWITCH_TAKES_ARG (CHAR) || (CHAR) == 'G')
-
-#define OVERRIDE_OPTIONS mips_override_options ()
 
 #define CONDITIONAL_REGISTER_USAGE mips_conditional_register_usage ()
 
@@ -1538,7 +1521,7 @@ enum mips_code_readable_setting {
 
    Regarding coprocessor registers: without evidence to the contrary,
    it's best to assume that each coprocessor register has a unique
-   use.  This can be overridden, in, e.g., mips_override_options or
+   use.  This can be overridden, in, e.g., mips_option_override or
    CONDITIONAL_REGISTER_USAGE should the assumption be inappropriate
    for a particular target.  */
 
@@ -2268,29 +2251,6 @@ typedef struct mips_args {
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
   mips_init_cumulative_args (&CUM, FNTYPE)
 
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  */
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED) \
-  mips_function_arg_advance (&CUM, MODE, TYPE, NAMED)
-
-/* Determine where to put an argument to a function.
-   Value is zero to push the argument on the stack,
-   or a hard register in which to store the argument.
-
-   MODE is the argument's machine mode.
-   TYPE is the data type of the argument (as a tree).
-    This is null for libcalls where that information may
-    not be available.
-   CUM is a variable of type CUMULATIVE_ARGS which gives info about
-    the preceding args and about the function being called.
-   NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).  */
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  mips_function_arg (&CUM, MODE, TYPE, NAMED)
-
 #define FUNCTION_ARG_BOUNDARY mips_function_arg_boundary
 
 #define FUNCTION_ARG_PADDING(MODE, TYPE) \
@@ -2487,29 +2447,6 @@ typedef struct mips_args {
 #define FUNCTION_MODE SImode
 
 
-/* A C expression for the cost of moving data from a register in
-   class FROM to one in class TO.  The classes are expressed using
-   the enumeration values such as `GENERAL_REGS'.  A value of 2 is
-   the default; other values are interpreted relative to that.
-
-   It is not required that the cost always equal 2 when FROM is the
-   same as TO; on some machines it is expensive to move between
-   registers if they are not general registers.
-
-   If reload sees an insn consisting of a single `set' between two
-   hard registers, and if `REGISTER_MOVE_COST' applied to their
-   classes returns a value of 2, reload does not check to ensure
-   that the constraints of the insn are met.  Setting a cost of
-   other than 2 will allow reload to verify that the constraints are
-   met.  You should do this if the `movM' pattern's constraints do
-   not allow such copying.  */
-
-#define REGISTER_MOVE_COST(MODE, FROM, TO)				\
-  mips_register_move_cost (MODE, FROM, TO)
-
-#define MEMORY_MOVE_COST(MODE,CLASS,TO_P) \
-  (mips_cost->memory_latency	      		\
-   + memory_move_secondary_cost ((MODE), (CLASS), (TO_P)))
 
 /* Define if copies to/from condition code registers should be avoided.
 
@@ -2665,9 +2602,6 @@ do									\
     fputs ("\n", STREAM);						\
   }									\
 while (0)
-
-/* How to tell the debugger about changes of source files.  */
-#define ASM_OUTPUT_SOURCE_FILENAME mips_output_filename
 
 /* mips-tfile does not understand .stabd directives.  */
 #define DBX_OUTPUT_SOURCE_LINE(STREAM, LINE, COUNTER) do {	\
@@ -3022,9 +2956,9 @@ extern int mips_isa;			/* architectural level */
 extern int mips_abi;			/* which ABI to use */
 extern const struct mips_cpu_info *mips_arch_info;
 extern const struct mips_cpu_info *mips_tune_info;
-extern const struct mips_rtx_cost_data *mips_cost;
 extern bool mips_base_mips16;
 extern enum mips_code_readable_setting mips_code_readable;
+extern GTY(()) struct target_globals *mips16_globals;
 #endif
 
 /* Enable querying of DFA units.  */
@@ -3059,3 +2993,6 @@ extern enum mips_code_readable_setting mips_code_readable;
    support this feature.  */
 #define ASM_PREFERRED_EH_DATA_FORMAT(CODE,GLOBAL) \
   (((GLOBAL) ? DW_EH_PE_indirect : 0) | DW_EH_PE_absptr)
+
+/* For switching between MIPS16 and non-MIPS16 modes.  */
+#define SWITCHABLE_TARGET 1

@@ -59,6 +59,8 @@ struct gfc_unit;
 
 #define is_stream_io(dtp) ((dtp)->u.p.current_unit->flags.access == ACCESS_STREAM)
 
+#define is_char4_unit(dtp) ((dtp)->u.p.unit_is_internal && (dtp)->common.unit)
+
 /* The array_loop_spec contains the variables for the loops over index ranges
    that are encountered.  Since the variables can be negative, ssize_t
    is used.  */
@@ -641,6 +643,9 @@ internal_proto(type_name);
 
 extern void * read_block_form (st_parameter_dt *, int *);
 internal_proto(read_block_form);
+
+extern void * read_block_form4 (st_parameter_dt *, int *);
+internal_proto(read_block_form4);
 
 extern void *write_block (st_parameter_dt *, int);
 internal_proto(write_block);

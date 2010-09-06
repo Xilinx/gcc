@@ -1042,7 +1042,7 @@ lto_output_ts_block_tree_pointers (struct output_block *ob, tree expr,
   lto_output_chain (ob, BLOCK_VARS (expr), ref_p);
 
   output_uleb128 (ob, VEC_length (tree, BLOCK_NONLOCALIZED_VARS (expr)));
-  for (i = 0; VEC_iterate (tree, BLOCK_NONLOCALIZED_VARS (expr), i, t); i++)
+  FOR_EACH_VEC_ELT (tree, BLOCK_NONLOCALIZED_VARS (expr), i, t)
     lto_output_tree_or_ref (ob, t, ref_p);
 
   lto_output_tree_or_ref (ob, BLOCK_SUPERCONTEXT (expr), ref_p);
@@ -1067,7 +1067,7 @@ lto_output_ts_binfo_tree_pointers (struct output_block *ob, tree expr,
   /* Note that the number of BINFO slots has already been emitted in
      EXPR's header (see lto_output_tree_header) because this length
      is needed to build the empty BINFO node on the reader side.  */
-  for (i = 0; VEC_iterate (tree, BINFO_BASE_BINFOS (expr), i, t); i++)
+  FOR_EACH_VEC_ELT (tree, BINFO_BASE_BINFOS (expr), i, t)
     lto_output_tree_or_ref (ob, t, ref_p);
   output_zero (ob);
 
@@ -1077,7 +1077,7 @@ lto_output_ts_binfo_tree_pointers (struct output_block *ob, tree expr,
   lto_output_tree_or_ref (ob, BINFO_VPTR_FIELD (expr), ref_p);
 
   output_uleb128 (ob, VEC_length (tree, BINFO_BASE_ACCESSES (expr)));
-  for (i = 0; VEC_iterate (tree, BINFO_BASE_ACCESSES (expr), i, t); i++)
+  FOR_EACH_VEC_ELT (tree, BINFO_BASE_ACCESSES (expr), i, t)
     lto_output_tree_or_ref (ob, t, ref_p);
 
   lto_output_tree_or_ref (ob, BINFO_INHERITANCE_CHAIN (expr), ref_p);
@@ -1508,17 +1508,17 @@ output_eh_regions (struct output_block *ob, struct function *fn)
 
       /* Emit all the EH regions in the region array.  */
       output_sleb128 (ob, VEC_length (eh_region, fn->eh->region_array));
-      for (i = 0; VEC_iterate (eh_region, fn->eh->region_array, i, eh); i++)
+      FOR_EACH_VEC_ELT (eh_region, fn->eh->region_array, i, eh)
 	output_eh_region (ob, eh);
 
       /* Emit all landing pads.  */
       output_sleb128 (ob, VEC_length (eh_landing_pad, fn->eh->lp_array));
-      for (i = 0; VEC_iterate (eh_landing_pad, fn->eh->lp_array, i, lp); i++)
+      FOR_EACH_VEC_ELT (eh_landing_pad, fn->eh->lp_array, i, lp)
 	output_eh_lp (ob, lp);
 
       /* Emit all the runtime type data.  */
       output_sleb128 (ob, VEC_length (tree, fn->eh->ttype_data));
-      for (i = 0; VEC_iterate (tree, fn->eh->ttype_data, i, ttype); i++)
+      FOR_EACH_VEC_ELT (tree, fn->eh->ttype_data, i, ttype)
 	lto_output_tree_ref (ob, ttype);
 
       /* Emit the table of action chains.  */
@@ -1526,16 +1526,14 @@ output_eh_regions (struct output_block *ob, struct function *fn)
 	{
 	  tree t;
 	  output_sleb128 (ob, VEC_length (tree, fn->eh->ehspec_data.arm_eabi));
-	  for (i = 0;
-	       VEC_iterate (tree, fn->eh->ehspec_data.arm_eabi, i, t);
-	       i++)
+	  FOR_EACH_VEC_ELT (tree, fn->eh->ehspec_data.arm_eabi, i, t)
 	    lto_output_tree_ref (ob, t);
 	}
       else
 	{
 	  uchar c;
 	  output_sleb128 (ob, VEC_length (uchar, fn->eh->ehspec_data.other));
-	  for (i = 0; VEC_iterate (uchar, fn->eh->ehspec_data.other, i, c); i++)
+	  FOR_EACH_VEC_ELT (uchar, fn->eh->ehspec_data.other, i, c)
 	    lto_output_1_stream (ob->main_stream, c);
 	}
     }
@@ -1706,6 +1704,25 @@ output_gimple_stmt (struct output_block *ob, gimple stmt)
       for (i = 0; i < gimple_num_ops (stmt); i++)
 	{
 	  tree op = gimple_op (stmt, i);
+	  /* Wrap all uses of non-automatic variables inside MEM_REFs
+	     so that we do not have to deal with type mismatches on
+	     merged symbols during IL read in.  */
+	  if (op)
+	    {
+	      tree *basep = &op;
+	      if (handled_component_p (*basep))
+		basep = &TREE_OPERAND (*basep, 0);
+	      if (TREE_CODE (*basep) == VAR_DECL
+		  && !auto_var_in_fn_p (*basep, current_function_decl))
+		{
+		  bool volatilep = TREE_THIS_VOLATILE (*basep);
+		  *basep = build2 (MEM_REF, TREE_TYPE (*basep),
+				   build_fold_addr_expr (*basep),
+				   build_int_cst (build_pointer_type
+						  (TREE_TYPE (*basep)), 0));
+		  TREE_THIS_VOLATILE (*basep) = volatilep;
+		}
+	    }
 	  lto_output_tree_ref (ob, op);
 	}
       break;
@@ -1791,10 +1808,10 @@ produce_asm (struct output_block *ob, tree fn)
   if (section_type == LTO_section_function_body)
     {
       const char *name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (fn));
-      section_name = lto_get_section_name (section_type, name);
+      section_name = lto_get_section_name (section_type, name, NULL);
     }
   else
-    section_name = lto_get_section_name (section_type, NULL);
+    section_name = lto_get_section_name (section_type, NULL, NULL);
 
   lto_begin_section (section_name, !flag_wpa);
   free (section_name);
@@ -1889,7 +1906,7 @@ output_function (struct cgraph_node *node)
 
   /* Output all the local variables in the function.  */
   output_sleb128 (ob, VEC_length (tree, fn->local_decls));
-  for (i = 0; VEC_iterate (tree, fn->local_decls, i, t); i++)
+  FOR_EACH_VEC_ELT (tree, fn->local_decls, i, t)
     lto_output_tree_ref (ob, t);
 
   /* Output the head of the arguments list.  */
@@ -1994,7 +2011,7 @@ output_unreferenced_globals (cgraph_node_set set, varpool_node_set vset)
   output_zero (ob);
 
   /* Emit the alias pairs for the nodes in SET.  */
-  for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); i++)
+  FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
     {
       if (output_alias_pair_p (p, set, vset))
 	{
@@ -2022,7 +2039,7 @@ copy_function (struct cgraph_node *node)
   size_t len;
   const char *name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (function));
   char *section_name =
-    lto_get_section_name (LTO_section_function_body, name);
+    lto_get_section_name (LTO_section_function_body, name, NULL);
   size_t i, j;
   struct lto_in_decl_state *in_state;
   struct lto_out_decl_state *out_state = lto_get_out_decl_state ();
@@ -2105,7 +2122,7 @@ lto_output (cgraph_node_set set, varpool_node_set vset)
 #endif
 	  decl_state = lto_new_out_decl_state ();
 	  lto_push_out_decl_state (decl_state);
-	  if (!flag_wpa)
+	  if (gimple_has_body_p (node->decl))
 	    output_function (node);
 	  else
 	    copy_function (node);
@@ -2304,10 +2321,8 @@ write_symbol (struct lto_streamer_cache_d *cache,
   gcc_assert (slot_num >= 0);
 
   /* Avoid duplicate symbols. */
-  if (bitmap_bit_p (seen, slot_num))
+  if (!bitmap_set_bit (seen, slot_num))
     return;
-  else
-    bitmap_set_bit (seen, slot_num);
 
   if (DECL_EXTERNAL (t))
     {
@@ -2333,21 +2348,32 @@ write_symbol (struct lto_streamer_cache_d *cache,
 		      && cgraph_get_node (t)->analyzed));
     }
 
-  switch (DECL_VISIBILITY(t))
-    {
-    case VISIBILITY_DEFAULT:
-      visibility = GCCPV_DEFAULT;
-      break;
-    case VISIBILITY_PROTECTED:
-      visibility = GCCPV_PROTECTED;
-      break;
-    case VISIBILITY_HIDDEN:
-      visibility = GCCPV_HIDDEN;
-      break;
-    case VISIBILITY_INTERNAL:
-      visibility = GCCPV_INTERNAL;
-      break;
-    }
+  /* Imitate what default_elf_asm_output_external do.
+     When symbol is external, we need to output it with DEFAULT visibility
+     when compiling with -fvisibility=default, while with HIDDEN visibility
+     when symbol has attribute (visibility("hidden")) specified.
+     targetm.binds_local_p check DECL_VISIBILITY_SPECIFIED and gets this
+     right. */
+     
+  if (DECL_EXTERNAL (t)
+      && !targetm.binds_local_p (t))
+    visibility = GCCPV_DEFAULT;
+  else
+    switch (DECL_VISIBILITY(t))
+      {
+      case VISIBILITY_DEFAULT:
+	visibility = GCCPV_DEFAULT;
+	break;
+      case VISIBILITY_PROTECTED:
+	visibility = GCCPV_PROTECTED;
+	break;
+      case VISIBILITY_HIDDEN:
+	visibility = GCCPV_HIDDEN;
+	break;
+      case VISIBILITY_INTERNAL:
+	visibility = GCCPV_INTERNAL;
+	break;
+      }
 
   if (kind == GCCPK_COMMON
       && DECL_SIZE (t)
@@ -2379,7 +2405,7 @@ produce_symtab (struct output_block *ob,
 	        cgraph_node_set set, varpool_node_set vset)
 {
   struct lto_streamer_cache_d *cache = ob->writer_cache;
-  char *section_name = lto_get_section_name (LTO_section_symtab, NULL);
+  char *section_name = lto_get_section_name (LTO_section_symtab, NULL, NULL);
   bitmap seen;
   struct cgraph_node *node, *alias;
   struct varpool_node *vnode, *valias;
@@ -2399,6 +2425,8 @@ produce_symtab (struct output_block *ob,
   for (i = 0; i < lto_cgraph_encoder_size (encoder); i++)
     {
       node = lto_cgraph_encoder_deref (encoder, i);
+      if (node->alias)
+	continue;
       write_symbol (cache, &stream, node->decl, seen, false);
       for (alias = node->same_body; alias; alias = alias->next)
         write_symbol (cache, &stream, alias->decl, seen, true);
@@ -2408,13 +2436,15 @@ produce_symtab (struct output_block *ob,
   for (i = 0; i < lto_varpool_encoder_size (varpool_encoder); i++)
     {
       vnode = lto_varpool_encoder_deref (varpool_encoder, i);
+      if (vnode->alias)
+	continue;
       write_symbol (cache, &stream, vnode->decl, seen, false);
       for (valias = vnode->extra_name; valias; valias = valias->next)
         write_symbol (cache, &stream, valias->decl, seen, true);
     }
 
   /* Write all aliases.  */
-  for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); i++)
+  FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
     if (output_alias_pair_p (p, set, vset))
       write_symbol (cache, &stream, p->decl, seen, true);
 
@@ -2454,7 +2484,7 @@ produce_asm_for_decls (cgraph_node_set set, varpool_node_set vset)
 
   memset (&header, 0, sizeof (struct lto_decl_header));
 
-  section_name = lto_get_section_name (LTO_section_decls, NULL);
+  section_name = lto_get_section_name (LTO_section_decls, NULL, NULL);
   lto_begin_section (section_name, !flag_wpa);
   free (section_name);
 

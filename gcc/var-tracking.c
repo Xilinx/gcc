@@ -910,6 +910,16 @@ adjust_mems (rtx loc, const_rtx old_rtx, void *data)
 	return use_narrower_mode (SUBREG_REG (tem), GET_MODE (tem),
 				  GET_MODE (SUBREG_REG (tem)));
       return tem;
+    case ASM_OPERANDS:
+      /* Don't do any replacements in second and following
+	 ASM_OPERANDS of inline-asm with multiple sets.
+	 ASM_OPERANDS_INPUT_VEC, ASM_OPERANDS_INPUT_CONSTRAINT_VEC
+	 and ASM_OPERANDS_LABEL_VEC need to be equal between
+	 all the ASM_OPERANDs in the insn and adjust_insn will
+	 fix this up.  */
+      if (ASM_OPERANDS_OUTPUT_IDX (loc) != 0)
+	return loc;
+      break;
     default:
       break;
     }
@@ -960,7 +970,54 @@ adjust_insn (basic_block bb, rtx insn)
   note_stores (PATTERN (insn), adjust_mem_stores, &amd);
 
   amd.store = false;
-  note_uses (&PATTERN (insn), adjust_mem_uses, &amd);
+  if (GET_CODE (PATTERN (insn)) == PARALLEL
+      && asm_noperands (PATTERN (insn)) > 0
+      && GET_CODE (XVECEXP (PATTERN (insn), 0, 0)) == SET)
+    {
+      rtx body, set0;
+      int i;
+
+      /* inline-asm with multiple sets is tiny bit more complicated,
+	 because the 3 vectors in ASM_OPERANDS need to be shared between
+	 all ASM_OPERANDS in the instruction.  adjust_mems will
+	 not touch ASM_OPERANDS other than the first one, asm_noperands
+	 test above needs to be called before that (otherwise it would fail)
+	 and afterwards this code fixes it up.  */
+      note_uses (&PATTERN (insn), adjust_mem_uses, &amd);
+      body = PATTERN (insn);
+      set0 = XVECEXP (body, 0, 0);
+      gcc_checking_assert (GET_CODE (set0) == SET
+			   && GET_CODE (SET_SRC (set0)) == ASM_OPERANDS
+			   && ASM_OPERANDS_OUTPUT_IDX (SET_SRC (set0)) == 0);
+      for (i = 1; i < XVECLEN (body, 0); i++)
+	if (GET_CODE (XVECEXP (body, 0, i)) != SET)
+	  break;
+	else
+	  {
+	    set = XVECEXP (body, 0, i);
+	    gcc_checking_assert (GET_CODE (SET_SRC (set)) == ASM_OPERANDS
+				 && ASM_OPERANDS_OUTPUT_IDX (SET_SRC (set))
+				    == i);
+	    if (ASM_OPERANDS_INPUT_VEC (SET_SRC (set))
+		!= ASM_OPERANDS_INPUT_VEC (SET_SRC (set0))
+		|| ASM_OPERANDS_INPUT_CONSTRAINT_VEC (SET_SRC (set))
+		   != ASM_OPERANDS_INPUT_CONSTRAINT_VEC (SET_SRC (set0))
+		|| ASM_OPERANDS_LABEL_VEC (SET_SRC (set))
+		   != ASM_OPERANDS_LABEL_VEC (SET_SRC (set0)))
+	      {
+		rtx newsrc = shallow_copy_rtx (SET_SRC (set));
+		ASM_OPERANDS_INPUT_VEC (newsrc)
+		  = ASM_OPERANDS_INPUT_VEC (SET_SRC (set0));
+		ASM_OPERANDS_INPUT_CONSTRAINT_VEC (newsrc)
+		  = ASM_OPERANDS_INPUT_CONSTRAINT_VEC (SET_SRC (set0));
+		ASM_OPERANDS_LABEL_VEC (newsrc)
+		  = ASM_OPERANDS_LABEL_VEC (SET_SRC (set0));
+		validate_change (NULL_RTX, &SET_SRC (set), newsrc, true);
+	      }
+	  }
+    }
+  else
+    note_uses (&PATTERN (insn), adjust_mem_uses, &amd);
 
   /* For read-only MEMs containing some constant, prefer those
      constants.  */
@@ -5187,16 +5244,19 @@ reverse_op (rtx val, const_rtx expr)
     case XOR:
     case NOT:
     case NEG:
+      if (!REG_P (XEXP (src, 0)))
+	return NULL_RTX;
+      break;
     case SIGN_EXTEND:
     case ZERO_EXTEND:
+      if (!REG_P (XEXP (src, 0)) && !MEM_P (XEXP (src, 0)))
+	return NULL_RTX;
       break;
     default:
       return NULL_RTX;
     }
 
-  if (!REG_P (XEXP (src, 0))
-      || !SCALAR_INT_MODE_P (GET_MODE (src))
-      || XEXP (src, 0) == cfa_base_rtx)
+  if (!SCALAR_INT_MODE_P (GET_MODE (src)) || XEXP (src, 0) == cfa_base_rtx)
     return NULL_RTX;
 
   v = cselib_lookup (XEXP (src, 0), GET_MODE (XEXP (src, 0)), 0);
@@ -5698,7 +5758,7 @@ compute_bb_dataflow (basic_block bb)
   dataflow_set_copy (&old_out, out);
   dataflow_set_copy (out, in);
 
-  for (i = 0; VEC_iterate (micro_operation, VTI (bb)->mos, i, mo); i++)
+  FOR_EACH_VEC_ELT (micro_operation, VTI (bb)->mos, i, mo)
     {
       rtx insn = mo->insn;
 
@@ -7043,7 +7103,7 @@ vt_expand_loc (rtx loc, htab_t vars)
   data.vars = vars;
   data.dummy = false;
   data.cur_loc_changed = false;
-  loc = cselib_expand_value_rtx_cb (loc, scratch_regs, 5,
+  loc = cselib_expand_value_rtx_cb (loc, scratch_regs, 8,
 				    vt_expand_loc_callback, &data);
 
   if (loc && MEM_P (loc))
@@ -7064,7 +7124,7 @@ vt_expand_loc_dummy (rtx loc, htab_t vars, bool *pcur_loc_changed)
   data.vars = vars;
   data.dummy = true;
   data.cur_loc_changed = false;
-  ret = cselib_dummy_expand_value_rtx_cb (loc, scratch_regs, 5,
+  ret = cselib_dummy_expand_value_rtx_cb (loc, scratch_regs, 8,
 					  vt_expand_loc_callback, &data);
   *pcur_loc_changed = data.cur_loc_changed;
   return ret;
@@ -7623,7 +7683,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
   dataflow_set_clear (set);
   dataflow_set_copy (set, &VTI (bb)->in);
 
-  for (i = 0; VEC_iterate (micro_operation, VTI (bb)->mos, i, mo); i++)
+  FOR_EACH_VEC_ELT (micro_operation, VTI (bb)->mos, i, mo)
     {
       rtx insn = mo->insn;
 
@@ -7918,7 +7978,7 @@ vt_emit_notes (void)
       unsigned int i;
       rtx val;
 
-      for (i = 0; VEC_iterate (rtx, preserved_values, i, val); i++)
+      FOR_EACH_VEC_ELT (rtx, preserved_values, i, val)
 	add_cselib_value_chains (dv_from_value (val));
       changed_variables_stack = VEC_alloc (variable, heap, 40);
       changed_values_stack = VEC_alloc (rtx, heap, 40);
@@ -7948,7 +8008,7 @@ vt_emit_notes (void)
       unsigned int i;
       rtx val;
 
-      for (i = 0; VEC_iterate (rtx, preserved_values, i, val); i++)
+      FOR_EACH_VEC_ELT (rtx, preserved_values, i, val)
 	remove_cselib_value_chains (dv_from_value (val));
       gcc_assert (htab_elements (value_chains) == 0);
     }
@@ -8002,7 +8062,7 @@ vt_add_function_parameters (void)
   tree parm;
 
   for (parm = DECL_ARGUMENTS (current_function_decl);
-       parm; parm = TREE_CHAIN (parm))
+       parm; parm = DECL_CHAIN (parm))
     {
       rtx decl_rtl = DECL_RTL_IF_SET (parm);
       rtx incoming = DECL_INCOMING_RTL (parm);

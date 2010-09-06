@@ -1603,7 +1603,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	   and the dimension in the cache and create a new one on failure.  */
 	if (!optimize && Present (gnat_param))
 	  {
-	    for (i = 0; VEC_iterate (parm_attr, f_parm_attr_cache, i, pa); i++)
+	    FOR_EACH_VEC_ELT (parm_attr, f_parm_attr_cache, i, pa)
 	      if (pa->id == gnat_param && pa->dim == Dimension)
 		break;
 
@@ -2521,7 +2521,7 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
 
       start_stmt_group ();
 
-      for (i = 0; VEC_iterate (parm_attr, cache, i, pa); i++)
+      FOR_EACH_VEC_ELT (parm_attr, cache, i, pa)
 	{
 	  if (pa->first)
 	    add_stmt_with_node (pa->first, gnat_node);
@@ -2992,6 +2992,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
       if (gnu_target)
 	{
 	  Node_Id gnat_parent = Parent (gnat_node);
+	  tree gnu_result_type = TREE_TYPE (gnu_subprog_type);
 	  enum tree_code op_code;
 
 	  /* If range check is needed, emit code to generate it.  */
@@ -3002,11 +3003,15 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 
 	  /* ??? If the return type has non-constant size, then force the
 	     return slot optimization as we would not be able to generate
-	     a temporary.  That's what has been done historically.  */
-	  if (TREE_CONSTANT (TYPE_SIZE (TREE_TYPE (gnu_subprog_type))))
-	    op_code = MODIFY_EXPR;
-	  else
+	     a temporary.  Likewise if it was unconstrained as we would
+	     copy too much data.  That's what has been done historically.  */
+	  if (!TREE_CONSTANT (TYPE_SIZE (gnu_result_type))
+	      || (TYPE_IS_PADDING_P (gnu_result_type)
+		  && CONTAINS_PLACEHOLDER_P
+		     (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS (gnu_result_type))))))
 	    op_code = INIT_EXPR;
+	  else
+	    op_code = MODIFY_EXPR;
 
 	  gnu_result
 	    = build_binary_op (op_code, NULL_TREE, gnu_target, gnu_result);
@@ -4099,7 +4104,7 @@ gnat_to_gnu (Node_Id gnat_node)
 	     ndim++, gnu_type = TREE_TYPE (gnu_type))
 	  ;
 
-	gnat_expr_array = (Node_Id *) alloca (ndim * sizeof (Node_Id));
+	gnat_expr_array = XALLOCAVEC (Node_Id, ndim);
 
 	if (TYPE_CONVENTION_FORTRAN_P (TREE_TYPE (gnu_array_object)))
 	  for (i = ndim - 1, gnat_temp = First (Expressions (gnat_node));
@@ -5267,8 +5272,7 @@ gnat_to_gnu (Node_Id gnat_node)
 	  noutputs = list_length (gnu_outputs);
 	  gnu_inputs = nreverse (gnu_inputs);
 	  ninputs = list_length (gnu_inputs);
-	  oconstraints
-	    = (const char **) alloca (noutputs * sizeof (const char *));
+	  oconstraints = XALLOCAVEC (const char *, noutputs);
 
 	  for (i = 0, tail = gnu_outputs; tail; ++i, tail = TREE_CHAIN (tail))
 	    {
@@ -5988,33 +5992,31 @@ gnat_gimplify_expr (tree *expr_p, gimple_seq *pre_p,
     case ADDR_EXPR:
       op = TREE_OPERAND (expr, 0);
 
-      if (TREE_CODE (op) == CONSTRUCTOR)
+      /* If we are taking the address of a constant CONSTRUCTOR, make sure it
+	 is put into static memory.  We know that it's going to be read-only
+	 given the semantics we have and it must be in static memory when the
+	 reference is in an elaboration procedure.  */
+      if (TREE_CODE (op) == CONSTRUCTOR && TREE_CONSTANT (op))
 	{
-	  /* If we are taking the address of a constant CONSTRUCTOR, make sure
-	     it is put into static memory.  We know it's going to be read-only
-	     given the semantics we have and it must be in static memory when
-	     the reference is in an elaboration procedure.  */
-	  if (TREE_CONSTANT (op))
-	    {
-	      tree addr = build_fold_addr_expr (tree_output_constant_def (op));
-	      *expr_p = fold_convert (TREE_TYPE (expr), addr);
-	    }
+	  tree addr = build_fold_addr_expr (tree_output_constant_def (op));
+	  *expr_p = fold_convert (TREE_TYPE (expr), addr);
+	  return GS_ALL_DONE;
+	}
 
-	  /* Otherwise explicitly create the local temporary.  That's required
-	     if the type is passed by reference.  */
-	  else
-	    {
-	      tree mod, new_var = create_tmp_var_raw (TREE_TYPE (op), "C");
-	      TREE_ADDRESSABLE (new_var) = 1;
-	      gimple_add_tmp_var (new_var);
+      /* Otherwise, if we are taking the address of a non-constant CONSTRUCTOR
+	 or of a call, explicitly create the local temporary.  That's required
+	 if the type is passed by reference.  */
+      if (TREE_CODE (op) == CONSTRUCTOR || TREE_CODE (op) == CALL_EXPR)
+	{
+	  tree mod, new_var = create_tmp_var_raw (TREE_TYPE (op), "C");
+	  TREE_ADDRESSABLE (new_var) = 1;
+	  gimple_add_tmp_var (new_var);
 
-	      mod = build2 (INIT_EXPR, TREE_TYPE (new_var), new_var, op);
-	      gimplify_and_add (mod, pre_p);
+	  mod = build2 (INIT_EXPR, TREE_TYPE (new_var), new_var, op);
+	  gimplify_and_add (mod, pre_p);
 
-	      TREE_OPERAND (expr, 0) = new_var;
-	      recompute_tree_invariant_for_addr_expr (expr);
-	    }
-
+	  TREE_OPERAND (expr, 0) = new_var;
+	  recompute_tree_invariant_for_addr_expr (expr);
 	  return GS_ALL_DONE;
 	}
 
@@ -7364,7 +7366,7 @@ extract_values (tree values, tree record_type)
   tree field, tem;
   VEC(constructor_elt,gc) *v = NULL;
 
-  for (field = TYPE_FIELDS (record_type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (record_type); field; field = DECL_CHAIN (field))
     {
       tree value = 0;
 

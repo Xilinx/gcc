@@ -96,8 +96,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 	builtin_assert ("system=linux");			\
 	builtin_assert ("system=unix");				\
 	builtin_assert ("system=posix");			\
-	if (OPTION_ANDROID)					\
-	  builtin_define ("__ANDROID__");			\
     } while (0)
 
 #if defined(HAVE_LD_EH_FRAME_HDR)
@@ -162,6 +160,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_C99_FUNCTIONS (OPTION_GLIBC)
 
 /* Whether we have sincos that follows the GNU extension.  */
-#define TARGET_HAS_SINCOS (OPTION_GLIBC | OPTION_BIONIC)
+#define TARGET_HAS_SINCOS (OPTION_GLIBC || OPTION_BIONIC)
 
 #define TARGET_POSIX_IO

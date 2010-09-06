@@ -259,7 +259,6 @@ enum ira_region flag_ira_region = IRA_REGION_MIXED;
 /* Set the default for excess precision.  */
 
 enum excess_precision flag_excess_precision_cmdline = EXCESS_PRECISION_DEFAULT;
-enum excess_precision flag_excess_precision = EXCESS_PRECISION_DEFAULT;
 
 /* Nonzero means change certain warnings into errors.
    Usually these are warnings about failure to conform to some standard.  */
@@ -317,18 +316,12 @@ enum stack_check_type flag_stack_check = NO_STACK_CHECK;
 
 bool user_defined_section_attribute = false;
 
-/* Values of the -falign-* flags: how much to align labels in code.
-   0 means `use default', 1 means `don't align'.
-   For each variable, there is an _log variant which is the power
-   of two not less than the variable, for .align output.  */
-
-int align_loops_log;
-int align_loops_max_skip;
-int align_jumps_log;
-int align_jumps_max_skip;
-int align_labels_log;
-int align_labels_max_skip;
-int align_functions_log;
+struct target_flag_state default_target_flag_state;
+#if SWITCHABLE_TARGET
+struct target_flag_state *this_target_flag_state = &default_target_flag_state;
+#else
+#define this_target_flag_state (&default_target_flag_state)
+#endif
 
 typedef struct
 {
@@ -357,6 +350,7 @@ static const param_info lang_independent_params[] = {
 
 FILE *asm_out_file;
 FILE *aux_info_file;
+FILE *stack_usage_file = NULL;
 FILE *dump_file = NULL;
 const char *dump_file_name;
 
@@ -500,9 +494,9 @@ set_random_seed (const char *val)
 
 #if GCC_VERSION < 3004
 
-/* The functions floor_log2 and exact_log2 are defined as inline
-   functions in toplev.h if GCC_VERSION >= 3004.  The definitions here
-   are used for older versions of gcc.  */
+/* The functions clz_hwi, ctz_hwi, ffs_hwi, floor_log2 and exact_log2
+   are defined as inline functions in toplev.h if GCC_VERSION >= 3004.
+   The definitions here are used for older versions of gcc.  */
 
 /* Given X, an unsigned number, return the largest int Y such that 2**Y <= X.
    If X is 0, return -1.  */
@@ -544,6 +538,32 @@ exact_log2 (unsigned HOST_WIDE_INT x)
   if (x != (x & -x))
     return -1;
   return floor_log2 (x);
+}
+
+/* Given X, an unsigned number, return the number of least significant bits
+   that are zero.  When X == 0, the result is the word size.  */
+
+int
+ctz_hwi (unsigned HOST_WIDE_INT x)
+{
+  return x ? floor_log2 (x & -x) : HOST_BITS_PER_WIDE_INT;
+}
+
+/* Similarly for most significant bits.  */
+
+int
+clz_hwi (unsigned HOST_WIDE_INT x)
+{
+  return HOST_BITS_PER_WIDE_INT - 1 - floor_log2(x);
+}
+
+/* Similar to ctz_hwi, except that the least significant bit is numbered
+   starting from 1, and X == 0 yields 0.  */
+
+int
+ffs_hwi (unsigned HOST_WIDE_INT x)
+{
+  return 1 + floor_log2 (x & -x);
 }
 
 #endif /* GCC_VERSION < 3004 */
@@ -633,39 +653,6 @@ output_quoted_string (FILE *asm_file, const char *string)
 	fprintf (asm_file, "\\%03o", (unsigned char) c);
     }
   putc ('\"', asm_file);
-#endif
-}
-
-/* Output a file name in the form wanted by System V.  */
-
-void
-output_file_directive (FILE *asm_file, const char *input_name)
-{
-  int len;
-  const char *na;
-
-  if (input_name == NULL)
-    input_name = "<stdin>";
-  else
-    input_name = remap_debug_filename (input_name);
-
-  len = strlen (input_name);
-  na = input_name + len;
-
-  /* NA gets INPUT_NAME sans directory names.  */
-  while (na > input_name)
-    {
-      if (IS_DIR_SEPARATOR (na[-1]))
-	break;
-      na--;
-    }
-
-#ifdef ASM_OUTPUT_SOURCE_FILENAME
-  ASM_OUTPUT_SOURCE_FILENAME (asm_file, na);
-#else
-  fprintf (asm_file, "\t.file\t");
-  output_quoted_string (asm_file, na);
-  putc ('\n', asm_file);
 #endif
 }
 
@@ -1010,11 +997,6 @@ compile_file (void)
 
   if (flag_dyn_ipa)
     coverage_finish ();
-
-  /* Ensure that emulated TLS control vars are finalized and build 
-     a static constructor for them, when it is required.  */
-  if (!targetm.have_tls)
-    emutls_finish ();
 
   varpool_assemble_pending_decls ();
   finish_aliases_2 ();
@@ -1613,6 +1595,88 @@ static void *
 alloc_for_identifier_to_locale (size_t len)
 {
   return ggc_alloc_atomic (len);
+}
+
+/* Output stack usage information.  */
+void
+output_stack_usage (void)
+{
+  static bool warning_issued = false;
+  enum stack_usage_kind_type { STATIC = 0, DYNAMIC, DYNAMIC_BOUNDED };
+  const char *stack_usage_kind_str[] = {
+    "static",
+    "dynamic",
+    "dynamic,bounded"
+  };
+  HOST_WIDE_INT stack_usage = current_function_static_stack_size;
+  enum stack_usage_kind_type stack_usage_kind;
+  expanded_location loc;
+  const char *raw_id, *id;
+
+  if (stack_usage < 0)
+    {
+      if (!warning_issued)
+	{
+	  warning (0, "-fstack-usage not supported for this target");
+	  warning_issued = true;
+	}
+      return;
+    }
+
+  stack_usage_kind = STATIC;
+
+  /* Add the maximum amount of space pushed onto the stack.  */
+  if (current_function_pushed_stack_size > 0)
+    {
+      stack_usage += current_function_pushed_stack_size;
+      stack_usage_kind = DYNAMIC_BOUNDED;
+    }
+
+  /* Now on to the tricky part: dynamic stack allocation.  */
+  if (current_function_allocates_dynamic_stack_space)
+    {
+      if (current_function_has_unbounded_dynamic_stack_size)
+	stack_usage_kind = DYNAMIC;
+      else
+	stack_usage_kind = DYNAMIC_BOUNDED;
+
+      /* Add the size even in the unbounded case, this can't hurt.  */
+      stack_usage += current_function_dynamic_stack_size;
+    }
+
+  loc = expand_location (DECL_SOURCE_LOCATION (current_function_decl));
+
+  /* Strip the scope prefix if any.  */
+  raw_id = lang_hooks.decl_printable_name (current_function_decl, 2);
+  id = strrchr (raw_id, '.');
+  if (id)
+    id++;
+  else
+    id = raw_id;
+
+  fprintf (stack_usage_file,
+	   "%s:%d:%d:%s\t"HOST_WIDE_INT_PRINT_DEC"\t%s\n",
+	   basename (loc.file),
+	   loc.line,
+	   loc.column,
+	   id,
+	   stack_usage,
+	   stack_usage_kind_str[stack_usage_kind]);
+}
+
+/* Open an auxiliary output file.  */
+static FILE *
+open_auxiliary_file (const char *ext)
+{
+  char *filename;
+  FILE *file;
+
+  filename = concat (aux_base_name, ".", ext, NULL);
+  file = fopen (filename, "w");
+  if (!file)
+    fatal_error ("can't open %s for writing: %m", filename);
+  free (filename);
+  return file;
 }
 
 /* Initialization of the front end environment, before command line
@@ -2230,6 +2294,10 @@ lang_dependent_init (const char *name)
 
   init_asm_output (name);
 
+  /* If stack usage information is desired, open the output file.  */
+  if (flag_stack_usage)
+    stack_usage_file = open_auxiliary_file ("su");
+
   /* This creates various _DECL nodes, so needs to be called after the
      front end is initialized.  */
   init_eh ();
@@ -2310,6 +2378,9 @@ finalize (void)
       if (flag_wpa)
 	unlink_if_ordinary (asm_file_name);
     }
+
+  if (stack_usage_file)
+    fclose (stack_usage_file);
 
   statistics_fini ();
   finish_optimization_passes ();

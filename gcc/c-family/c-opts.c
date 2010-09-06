@@ -136,59 +136,6 @@ static struct deferred_opt
 static const unsigned int 
 c_family_lang_mask = (CL_C | CL_CXX | CL_ObjC | CL_ObjCXX);
 
-/* Complain that switch CODE expects an argument but none was
-   provided.  OPT was the command-line option.  Return FALSE to get
-   the default message in opts.c, TRUE if we provide a specialized
-   one.  */
-bool
-c_common_missing_argument (const char *opt, size_t code)
-{
-  switch (code)
-    {
-    default:
-      /* Pick up the default message.  */
-      return false;
-
-    case OPT_fconstant_string_class_:
-      error ("no class name specified with %qs", opt);
-      break;
-
-    case OPT_A:
-      error ("assertion missing after %qs", opt);
-      break;
-
-    case OPT_D:
-    case OPT_U:
-      error ("macro name missing after %qs", opt);
-      break;
-
-    case OPT_F:
-    case OPT_I:
-    case OPT_idirafter:
-    case OPT_isysroot:
-    case OPT_isystem:
-    case OPT_iquote:
-      error ("missing path after %qs", opt);
-      break;
-
-    case OPT_MF:
-    case OPT_MD:
-    case OPT_MMD:
-    case OPT_include:
-    case OPT_imacros:
-    case OPT_o:
-      error ("missing filename after %qs", opt);
-      break;
-
-    case OPT_MQ:
-    case OPT_MT:
-      error ("missing makefile target after %qs", opt);
-      break;
-    }
-
-  return true;
-}
-
 /* Defer option CODE with argument ARG.  */
 static void
 defer_opt (enum opt_code code, const char *arg)
@@ -282,14 +229,19 @@ warning_as_error_callback (int option_index)
     }
 }
 
-/* Common initialization before parsing options.  */
+/* Return language mask for option parsing.  */
 unsigned int
-c_common_init_options (unsigned int argc, const char **argv)
+c_common_option_lang_mask (void)
 {
   static const unsigned int lang_flags[] = {CL_C, CL_ObjC, CL_CXX, CL_ObjCXX};
-  unsigned int i, result;
-  struct cpp_callbacks *cb;
 
+  return lang_flags[c_language];
+}
+
+/* Common diagnostics initialization.  */
+void
+c_common_initialize_diagnostics (diagnostic_context *context)
+{
   /* Register callback for warnings enabled by -Werror=.  */
   register_warning_as_error_callback (warning_as_error_callback);
 
@@ -299,13 +251,37 @@ c_common_init_options (unsigned int argc, const char **argv)
     {
       /* By default wrap lines at 80 characters.  Is getenv
 	 ("COLUMNS") preferable?  */
-      diagnostic_line_cutoff (global_dc) = 80;
+      diagnostic_line_cutoff (context) = 80;
       /* By default, emit location information once for every
 	 diagnostic message.  */
-      diagnostic_prefixing_rule (global_dc) = DIAGNOSTICS_SHOW_PREFIX_ONCE;
+      diagnostic_prefixing_rule (context) = DIAGNOSTICS_SHOW_PREFIX_ONCE;
     }
 
-  global_dc->opt_permissive = OPT_fpermissive;
+  context->opt_permissive = OPT_fpermissive;
+}
+
+/* Whether options from all C-family languages should be accepted
+   quietly.  */
+static bool accept_all_c_family_options = false;
+
+/* Return whether to complain about a wrong-language option.  */
+bool
+c_common_complain_wrong_lang_p (const struct cl_option *option)
+{
+  if (accept_all_c_family_options
+      && (option->flags & c_family_lang_mask))
+    return false;
+
+  return true;
+}
+
+/* Common initialization before calling option handlers.  */
+void
+c_common_init_options (unsigned int decoded_options_count,
+		       struct cl_decoded_option *decoded_options)
+{
+  unsigned int i;
+  struct cpp_callbacks *cb;
 
   parse_in = cpp_create_reader (c_dialect_cxx () ? CLK_GNUCXX: CLK_GNUC89,
 				ident_hash, line_table);
@@ -328,36 +304,31 @@ c_common_init_options (unsigned int argc, const char **argv)
   /* By default, C99-like requirements for complex multiply and divide.  */
   flag_complex_method = 2;
 
-  deferred_opts = XNEWVEC (struct deferred_opt, argc);
-
-  result = lang_flags[c_language];
+  deferred_opts = XNEWVEC (struct deferred_opt, decoded_options_count);
 
   if (c_language == clk_c)
     {
       /* If preprocessing assembly language, accept any of the C-family
 	 front end options since the driver may pass them through.  */
-      for (i = 1; i < argc; i++)
-	if (! strcmp (argv[i], "-lang-asm"))
+      for (i = 1; i < decoded_options_count; i++)
+	if (decoded_options[i].opt_index == OPT_lang_asm)
 	  {
-	    result |= CL_C | CL_ObjC | CL_CXX | CL_ObjCXX;
+	    accept_all_c_family_options = true;
 	    break;
 	  }
     }
-
-  return result;
 }
 
 /* Handle switch SCODE with argument ARG.  VALUE is true, unless no-
-   form of an -f or -W option was given.  Returns 0 if the switch was
-   invalid, a negative number to prevent language-independent
-   processing in toplev.c (a hack necessary for the short-term).  */
-int
+   form of an -f or -W option was given.  Returns false if the switch was
+   invalid, true if valid.  Use HANDLERS in recursive handle_option calls.  */
+bool
 c_common_handle_option (size_t scode, const char *arg, int value,
-			int kind)
+			int kind, const struct cl_option_handlers *handlers)
 {
   const struct cl_option *option = &cl_options[scode];
   enum opt_code code = (enum opt_code) scode;
-  int result = 1;
+  bool result = true;
 
   /* Prevent resetting the language standard to a C dialect when the driver
      has already determined that we're looking at assembler input.  */
@@ -370,10 +341,10 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 	{
 	  if ((option->flags & CL_TARGET)
 	      && ! targetcm.handle_c_option (scode, arg, value))
-	    result = 0;
+	    result = false;
 	  break;
 	}
-      result = 0;
+      result = false;
       break;
 
     case OPT__output_pch_:
@@ -467,7 +438,8 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wall:
       warn_unused = value;
       set_Wformat (value);
-      handle_option (OPT_Wimplicit, value, NULL, c_family_lang_mask, kind);
+      handle_generated_option (OPT_Wimplicit, NULL, value,
+			       c_family_lang_mask, kind, handlers);
       warn_char_subscripts = value;
       warn_missing_braces = value;
       warn_parentheses = value;
@@ -554,7 +526,8 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Werror_implicit_function_declaration:
       /* For backward compatibility, this is the same as
 	 -Werror=implicit-function-declaration.  */
-      enable_warning_as_error ("implicit-function-declaration", value, CL_C | CL_ObjC);
+      enable_warning_as_error ("implicit-function-declaration", value,
+			       CL_C | CL_ObjC, handlers);
       break;
 
     case OPT_Wformat:
@@ -568,11 +541,11 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wimplicit:
       gcc_assert (value == 0 || value == 1);
       if (warn_implicit_int == -1)
-	handle_option (OPT_Wimplicit_int, value, NULL,
-		       c_family_lang_mask, kind);
+	handle_generated_option (OPT_Wimplicit_int, NULL, value,
+				 c_family_lang_mask, kind, handlers);
       if (warn_implicit_function_declaration == -1)
-	handle_option (OPT_Wimplicit_function_declaration, value, NULL,
-		       c_family_lang_mask, kind);
+	handle_generated_option (OPT_Wimplicit_function_declaration, NULL,
+				 value, c_family_lang_mask, kind, handlers);
       break;
 
     case OPT_Wimport:
@@ -685,7 +658,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_fbuiltin_:
       if (value)
-	result = 0;
+	result = false;
       else
 	disable_builtin_function (arg);
       break;
@@ -876,11 +849,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_print_objc_runtime_info:
       print_struct_values = 1;
-      break;
-
-    case OPT_print_pch_checksum:
-      c_common_print_pch_checksum (stdout);
-      exit_after_options = true;
       break;
 
     case OPT_remap:

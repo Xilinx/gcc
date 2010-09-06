@@ -73,6 +73,9 @@ range_check (gfc_expr *result, const char *name)
   if (result == NULL)
     return &gfc_bad_expr;
 
+  if (result->expr_type != EXPR_CONSTANT)
+    return result;
+
   switch (gfc_range_check (result))
     {
       case ARITH_OK:
@@ -485,11 +488,12 @@ simplify_transformation_to_scalar (gfc_expr *result, gfc_expr *array, gfc_expr *
      REAL, PARAMETER :: array(n, m) = ...
      REAL, PARAMETER :: s(n) = PROD(array, DIM=1)
 
-  where OP == gfc_multiply().  */
+  where OP == gfc_multiply(). The result might be post processed using post_op. */ 
 
 static gfc_expr *
 simplify_transformation_to_array (gfc_expr *result, gfc_expr *array, gfc_expr *dim,
-				  gfc_expr *mask, transformational_op op)
+				  gfc_expr *mask, transformational_op op,
+				  transformational_op post_op)
 {
   mpz_t size;
   int done, i, n, arraysize, resultsize, dim_index, dim_extent, dim_stride;
@@ -603,7 +607,10 @@ simplify_transformation_to_array (gfc_expr *result, gfc_expr *array, gfc_expr *d
   result_ctor = gfc_constructor_first (result->value.constructor);
   for (i = 0; i < resultsize; ++i)
     {
-      result_ctor->expr = resultvec[i];
+      if (post_op)
+	result_ctor->expr = post_op (result_ctor->expr, resultvec[i]);
+      else
+	result_ctor->expr = resultvec[i];
       result_ctor = gfc_constructor_next (result_ctor);
     }
 
@@ -893,7 +900,7 @@ gfc_simplify_all (gfc_expr *mask, gfc_expr *dim)
 
   return !dim || mask->rank == 1 ?
     simplify_transformation_to_scalar (result, mask, NULL, gfc_and) :
-    simplify_transformation_to_array (result, mask, dim, NULL, gfc_and);
+    simplify_transformation_to_array (result, mask, dim, NULL, gfc_and, NULL);
 }
 
 
@@ -979,7 +986,7 @@ gfc_simplify_any (gfc_expr *mask, gfc_expr *dim)
 
   return !dim || mask->rank == 1 ?
     simplify_transformation_to_scalar (result, mask, NULL, gfc_or) :
-    simplify_transformation_to_array (result, mask, dim, NULL, gfc_or);
+    simplify_transformation_to_array (result, mask, dim, NULL, gfc_or, NULL);
 }
 
 
@@ -1193,6 +1200,191 @@ gfc_simplify_bessel_jn (gfc_expr *order, gfc_expr *x)
 }
 
 
+/* Simplify transformational form of JN and YN.  */
+
+static gfc_expr *
+gfc_simplify_bessel_n2 (gfc_expr *order1, gfc_expr *order2, gfc_expr *x,
+			bool jn)
+{
+  gfc_expr *result;
+  gfc_expr *e;
+  long n1, n2;
+  int i;
+  mpfr_t x2rev, last1, last2;
+
+  if (x->expr_type != EXPR_CONSTANT || order1->expr_type != EXPR_CONSTANT
+      || order2->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  n1 = mpz_get_si (order1->value.integer);
+  n2 = mpz_get_si (order2->value.integer);
+  result = gfc_get_array_expr (x->ts.type, x->ts.kind, &x->where);
+  result->rank = 1;
+  result->shape = gfc_get_shape (1);
+  mpz_init_set_ui (result->shape[0], MAX (n2-n1+1, 0));
+
+  if (n2 < n1)
+    return result;
+
+  /* Special case: x == 0; it is J0(0.0) == 1, JN(N > 0, 0.0) == 0; and
+     YN(N, 0.0) = -Inf.  */
+
+  if (mpfr_cmp_ui (x->value.real, 0.0) == 0)
+    {
+      if (!jn && gfc_option.flag_range_check)
+	{
+	  gfc_error ("Result of BESSEL_YN is -INF at %L", &result->where);
+ 	  gfc_free_expr (result);
+	  return &gfc_bad_expr;
+	}
+
+      if (jn && n1 == 0)
+	{
+	  e = gfc_get_constant_expr (x->ts.type, x->ts.kind, &x->where);
+	  mpfr_set_ui (e->value.real, 1, GFC_RND_MODE);
+	  gfc_constructor_append_expr (&result->value.constructor, e,
+				       &x->where);
+	  n1++;
+	}
+
+      for (i = n1; i <= n2; i++)
+	{
+	  e = gfc_get_constant_expr (x->ts.type, x->ts.kind, &x->where);
+	  if (jn)
+	    mpfr_set_ui (e->value.real, 0, GFC_RND_MODE);
+	  else
+	    mpfr_set_inf (e->value.real, -1);
+	  gfc_constructor_append_expr (&result->value.constructor, e,
+				       &x->where);
+	}
+
+      return result;
+    }
+
+  /* Use the faster but more verbose recurrence algorithm. Bessel functions
+     are stable for downward recursion and Neumann functions are stable
+     for upward recursion. It is
+       x2rev = 2.0/x,
+       J(N-1, x) = x2rev * N * J(N, x) - J(N+1, x),
+       Y(N+1, x) = x2rev * N * Y(N, x) - Y(N-1, x).
+     Cf. http://dlmf.nist.gov/10.74#iv and http://dlmf.nist.gov/10.6#E1  */
+
+  gfc_set_model_kind (x->ts.kind);
+
+  /* Get first recursion anchor.  */
+
+  mpfr_init (last1);
+  if (jn)
+    mpfr_jn (last1, n2, x->value.real, GFC_RND_MODE);
+  else
+    mpfr_yn (last1, n1, x->value.real, GFC_RND_MODE);
+
+  e = gfc_get_constant_expr (x->ts.type, x->ts.kind, &x->where);
+  mpfr_set (e->value.real, last1, GFC_RND_MODE);
+  if (range_check (e, jn ? "BESSEL_JN" : "BESSEL_YN") == &gfc_bad_expr)
+    {
+      mpfr_clear (last1);
+      gfc_free_expr (e);
+      gfc_free_expr (result);
+      return &gfc_bad_expr;
+    }
+  gfc_constructor_append_expr (&result->value.constructor, e, &x->where);
+
+  if (n1 == n2)
+    {
+      mpfr_clear (last1);
+      return result;
+    }
+ 
+  /* Get second recursion anchor.  */
+
+  mpfr_init (last2);
+  if (jn)
+    mpfr_jn (last2, n2-1, x->value.real, GFC_RND_MODE);
+  else
+    mpfr_yn (last2, n1+1, x->value.real, GFC_RND_MODE);
+
+  e = gfc_get_constant_expr (x->ts.type, x->ts.kind, &x->where);
+  mpfr_set (e->value.real, last2, GFC_RND_MODE);
+  if (range_check (e, jn ? "BESSEL_JN" : "BESSEL_YN") == &gfc_bad_expr)
+    {
+      mpfr_clear (last1);
+      mpfr_clear (last2);
+      gfc_free_expr (e);
+      gfc_free_expr (result);
+      return &gfc_bad_expr;
+    }
+  if (jn)
+    gfc_constructor_insert_expr (&result->value.constructor, e, &x->where, -2);
+  else 
+    gfc_constructor_append_expr (&result->value.constructor, e, &x->where);
+
+  if (n1 + 1 == n2)
+    {
+      mpfr_clear (last1);
+      mpfr_clear (last2);
+      return result;
+    }
+
+  /* Start actual recursion.  */
+
+  mpfr_init (x2rev);
+  mpfr_ui_div (x2rev, 2, x->value.real, GFC_RND_MODE);
+ 
+  for (i = 2; i <= n2-n1; i++)
+    {
+      e = gfc_get_constant_expr (x->ts.type, x->ts.kind, &x->where);
+
+      /* Special case: For YN, if the previous N gave -INF, set
+	 also N+1 to -INF.  */
+      if (!jn && !gfc_option.flag_range_check && mpfr_inf_p (last2))
+	{
+	  mpfr_set_inf (e->value.real, -1);
+	  gfc_constructor_append_expr (&result->value.constructor, e,
+				       &x->where);
+	  continue;
+	}
+
+      mpfr_mul_si (e->value.real, x2rev, jn ? (n2-i+1) : (n1+i-1),
+		   GFC_RND_MODE);
+      mpfr_mul (e->value.real, e->value.real, last2, GFC_RND_MODE);
+      mpfr_sub (e->value.real, e->value.real, last1, GFC_RND_MODE);
+
+      if (range_check (e, jn ? "BESSEL_JN" : "BESSEL_YN") == &gfc_bad_expr)
+	goto error;
+
+      if (jn)
+	gfc_constructor_insert_expr (&result->value.constructor, e, &x->where,
+				     -i-1);
+      else
+	gfc_constructor_append_expr (&result->value.constructor, e, &x->where);
+
+      mpfr_set (last1, last2, GFC_RND_MODE);
+      mpfr_set (last2, e->value.real, GFC_RND_MODE);
+    }
+
+  mpfr_clear (last1);
+  mpfr_clear (last2);
+  mpfr_clear (x2rev);
+  return result;
+
+error:
+  mpfr_clear (last1);
+  mpfr_clear (last2);
+  mpfr_clear (x2rev);
+  gfc_free_expr (e);
+  gfc_free_expr (result);
+  return &gfc_bad_expr;
+}
+
+
+gfc_expr *
+gfc_simplify_bessel_jn2 (gfc_expr *order1, gfc_expr *order2, gfc_expr *x)
+{
+  return gfc_simplify_bessel_n2 (order1, order2, x, true);
+}
+
+
 gfc_expr *
 gfc_simplify_bessel_y0 (gfc_expr *x)
 {
@@ -1237,6 +1429,13 @@ gfc_simplify_bessel_yn (gfc_expr *order, gfc_expr *x)
   mpfr_yn (result->value.real, n, x->value.real, GFC_RND_MODE);
 
   return range_check (result, "BESSEL_YN");
+}
+
+
+gfc_expr *
+gfc_simplify_bessel_yn2 (gfc_expr *order1, gfc_expr *order2, gfc_expr *x)
+{
+  return gfc_simplify_bessel_n2 (order1, order2, x, false);
 }
 
 
@@ -1484,7 +1683,7 @@ gfc_simplify_count (gfc_expr *mask, gfc_expr *dim, gfc_expr *kind)
      Whenever gfc_count is called, '1' is added to the result.  */
   return !dim || mask->rank == 1 ?
     simplify_transformation_to_scalar (result, mask, mask, gfc_count) :
-    simplify_transformation_to_array (result, mask, dim, mask, gfc_count);
+    simplify_transformation_to_array (result, mask, dim, mask, gfc_count, NULL);
 }
 
 
@@ -2727,16 +2926,6 @@ simplify_bound_dim (gfc_expr *array, gfc_expr *kind, int d, int upper,
   gfc_expr *l, *u, *result;
   int k;
 
-  /* The last dimension of an assumed-size array is special.  */
-  if ((!coarray && d == as->rank && as->type == AS_ASSUMED_SIZE && !upper)
-      || (coarray && d == as->rank + as->corank))
-    {
-      if (as->lower[d-1]->expr_type == EXPR_CONSTANT)
-	return gfc_copy_expr (as->lower[d-1]);
-      else
-	return NULL;
-    }
-
   k = get_kind (BT_INTEGER, kind, upper ? "UBOUND" : "LBOUND",
 		gfc_default_integer_kind); 
   if (k == -1)
@@ -2744,6 +2933,44 @@ simplify_bound_dim (gfc_expr *array, gfc_expr *kind, int d, int upper,
 
   result = gfc_get_constant_expr (BT_INTEGER, k, &array->where);
 
+  /* For non-variables, LBOUND(expr, DIM=n) = 1 and
+     UBOUND(expr, DIM=n) = SIZE(expr, DIM=n).  */
+  if (!coarray && array->expr_type != EXPR_VARIABLE)
+    {
+      if (upper)
+	{
+	  gfc_expr* dim = result;
+	  mpz_set_si (dim->value.integer, d);
+
+	  result = gfc_simplify_size (array, dim, kind);
+	  gfc_free_expr (dim);
+	  if (!result)
+	    goto returnNull;
+	}
+      else
+	mpz_set_si (result->value.integer, 1);
+
+      goto done;
+    }
+
+  /* Otherwise, we have a variable expression.  */
+  gcc_assert (array->expr_type == EXPR_VARIABLE);
+  gcc_assert (as);
+
+  /* The last dimension of an assumed-size array is special.  */
+  if ((!coarray && d == as->rank && as->type == AS_ASSUMED_SIZE && !upper)
+      || (coarray && d == as->rank + as->corank))
+    {
+      if (as->lower[d-1]->expr_type == EXPR_CONSTANT)
+	{
+	  gfc_free_expr (result);
+	  return gfc_copy_expr (as->lower[d-1]);
+	}
+
+      goto returnNull;
+    }
+
+  result = gfc_get_constant_expr (BT_INTEGER, k, &array->where);
 
   /* Then, we need to know the extent of the given dimension.  */
   if (coarray || ref->u.ar.type == AR_FULL)
@@ -2753,7 +2980,7 @@ simplify_bound_dim (gfc_expr *array, gfc_expr *kind, int d, int upper,
 
       if (l->expr_type != EXPR_CONSTANT || u == NULL
 	  || u->expr_type != EXPR_CONSTANT)
-	return NULL;
+	goto returnNull;
 
       if (mpz_cmp (l->value.integer, u->value.integer) > 0)
 	{
@@ -2776,15 +3003,20 @@ simplify_bound_dim (gfc_expr *array, gfc_expr *kind, int d, int upper,
     {
       if (upper)
 	{
-	  if (gfc_ref_dimen_size (&ref->u.ar, d-1, &result->value.integer)
+	  if (gfc_ref_dimen_size (&ref->u.ar, d-1, &result->value.integer, NULL)
 	      != SUCCESS)
-	    return NULL;
+	    goto returnNull;
 	}
       else
 	mpz_set_si (result->value.integer, (long int) 1);
     }
 
+done:
   return range_check (result, upper ? "UBOUND" : "LBOUND");
+
+returnNull:
+  gfc_free_expr (result);
+  return NULL;
 }
 
 
@@ -2796,7 +3028,11 @@ simplify_bound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
   int d;
 
   if (array->expr_type != EXPR_VARIABLE)
-    return NULL;
+    {
+      as = NULL;
+      ref = NULL;
+      goto done;
+    }
 
   /* Follow any component references.  */
   as = array->symtree->n.sym->as;
@@ -2815,7 +3051,7 @@ simplify_bound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
 	      /* We're done because 'as' has already been set in the
 		 previous iteration.  */
 	      if (!ref->next)
-	        goto done;
+		goto done;
 
 	    /* Fall through.  */
 
@@ -2842,7 +3078,7 @@ simplify_bound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
 
  done:
 
-  if (as->type == AS_DEFERRED || as->type == AS_ASSUMED_SHAPE)
+  if (as && (as->type == AS_DEFERRED || as->type == AS_ASSUMED_SHAPE))
     return NULL;
 
   if (dim == NULL)
@@ -2853,7 +3089,7 @@ simplify_bound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
       int k;
 
       /* UBOUND(ARRAY) is not valid for an assumed-size array.  */
-      if (upper && as->type == AS_ASSUMED_SIZE)
+      if (upper && as && as->type == AS_ASSUMED_SIZE)
 	{
 	  /* An error message will be emitted in
 	     check_assumed_size_reference (resolve.c).  */
@@ -2904,8 +3140,8 @@ simplify_bound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
 
       d = mpz_get_si (dim->value.integer);
 
-      if (d < 1 || d > as->rank
-	  || (d == as->rank && as->type == AS_ASSUMED_SIZE && upper))
+      if (d < 1 || d > array->rank
+	  || (d == array->rank && as && as->type == AS_ASSUMED_SIZE && upper))
 	{
 	  gfc_error ("DIM argument at %L is out of bounds", &dim->where);
 	  return &gfc_bad_expr;
@@ -3816,6 +4052,65 @@ gfc_simplify_idnint (gfc_expr *e)
 }
 
 
+static gfc_expr *
+add_squared (gfc_expr *result, gfc_expr *e)
+{
+  mpfr_t tmp;
+
+  gcc_assert (e->ts.type == BT_REAL && e->expr_type == EXPR_CONSTANT);
+  gcc_assert (result->ts.type == BT_REAL
+	      && result->expr_type == EXPR_CONSTANT);
+
+  gfc_set_model_kind (result->ts.kind);
+  mpfr_init (tmp);
+  mpfr_pow_ui (tmp, e->value.real, 2, GFC_RND_MODE);
+  mpfr_add (result->value.real, result->value.real, tmp,
+	    GFC_RND_MODE);
+  mpfr_clear (tmp);
+
+  return result;
+}
+
+
+static gfc_expr *
+do_sqrt (gfc_expr *result, gfc_expr *e)
+{
+  gcc_assert (e->ts.type == BT_REAL && e->expr_type == EXPR_CONSTANT);
+  gcc_assert (result->ts.type == BT_REAL
+	      && result->expr_type == EXPR_CONSTANT);
+
+  mpfr_set (result->value.real, e->value.real, GFC_RND_MODE);
+  mpfr_sqrt (result->value.real, result->value.real, GFC_RND_MODE);
+  return result;
+}
+
+
+gfc_expr *
+gfc_simplify_norm2 (gfc_expr *e, gfc_expr *dim)
+{
+  gfc_expr *result;
+
+  if (!is_constant_array_expr (e)
+      || (dim != NULL && !gfc_is_constant_expr (dim)))
+    return NULL;
+
+  result = transformational_result (e, dim, e->ts.type, e->ts.kind, &e->where);
+  init_result_expr (result, 0, NULL);
+
+  if (!dim || e->rank == 1)
+    {
+      result = simplify_transformation_to_scalar (result, e, NULL,
+						  add_squared);
+      mpfr_sqrt (result->value.real, result->value.real, GFC_RND_MODE);
+    }
+  else
+    result = simplify_transformation_to_array (result, e, dim, NULL,
+					       add_squared, &do_sqrt);
+
+  return result;
+}
+
+
 gfc_expr *
 gfc_simplify_not (gfc_expr *e)
 {
@@ -3966,6 +4261,78 @@ gfc_simplify_pack (gfc_expr *array, gfc_expr *mask, gfc_expr *vector)
 }
 
 
+static gfc_expr *
+do_xor (gfc_expr *result, gfc_expr *e)
+{
+  gcc_assert (e->ts.type == BT_LOGICAL && e->expr_type == EXPR_CONSTANT);
+  gcc_assert (result->ts.type == BT_LOGICAL
+	      && result->expr_type == EXPR_CONSTANT);
+
+  result->value.logical = result->value.logical != e->value.logical;
+  return result;
+}
+
+
+
+gfc_expr *
+gfc_simplify_parity (gfc_expr *e, gfc_expr *dim)
+{
+  gfc_expr *result;
+
+  if (!is_constant_array_expr (e)
+      || (dim != NULL && !gfc_is_constant_expr (dim)))
+    return NULL;
+
+  result = transformational_result (e, dim, e->ts.type, e->ts.kind, &e->where);
+  init_result_expr (result, 0, NULL);
+
+  return (!dim || e->rank == 1)
+    ? simplify_transformation_to_scalar (result, e, NULL, do_xor)
+    : simplify_transformation_to_array (result, e, dim, NULL, do_xor, NULL);
+}
+
+
+gfc_expr *
+gfc_simplify_popcnt (gfc_expr *e)
+{
+  int res, k;
+  mpz_t x;
+
+  if (e->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  k = gfc_validate_kind (e->ts.type, e->ts.kind, false);
+
+  /* Convert argument to unsigned, then count the '1' bits.  */
+  mpz_init_set (x, e->value.integer);
+  convert_mpz_to_unsigned (x, gfc_integer_kinds[k].bit_size);
+  res = mpz_popcount (x);
+  mpz_clear (x);
+
+  return gfc_get_int_expr (gfc_default_integer_kind, &e->where, res);
+}
+
+
+gfc_expr *
+gfc_simplify_poppar (gfc_expr *e)
+{
+  gfc_expr *popcnt;
+  const char *s;
+  int i;
+
+  if (e->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  popcnt = gfc_simplify_popcnt (e);
+  gcc_assert (popcnt);
+
+  s = gfc_extract_int (popcnt, &i);
+  gcc_assert (!s);
+
+  return gfc_get_int_expr (gfc_default_integer_kind, &e->where, i % 2);
+}
+
+
 gfc_expr *
 gfc_simplify_precision (gfc_expr *e)
 {
@@ -3995,7 +4362,7 @@ gfc_simplify_product (gfc_expr *array, gfc_expr *dim, gfc_expr *mask)
 
   return !dim || array->rank == 1 ?
     simplify_transformation_to_scalar (result, array, mask, gfc_multiply) :
-    simplify_transformation_to_array (result, array, dim, mask, gfc_multiply);
+    simplify_transformation_to_array (result, array, dim, mask, gfc_multiply, NULL);
 }
 
 
@@ -4728,15 +5095,25 @@ gfc_simplify_shape (gfc_expr *source)
     return gfc_get_array_expr (BT_INTEGER, gfc_default_integer_kind,
 			       &source->where);
 
-  if (source->expr_type != EXPR_VARIABLE)
-    return NULL;
-
   result = gfc_get_array_expr (BT_INTEGER, gfc_default_integer_kind,
 			       &source->where);
 
-  ar = gfc_find_array_ref (source);
-
-  t = gfc_array_ref_shape (ar, shape);
+  if (source->expr_type == EXPR_VARIABLE)
+    {
+      ar = gfc_find_array_ref (source);
+      t = gfc_array_ref_shape (ar, shape);
+    }
+  else if (source->shape)
+    {
+      t = SUCCESS;
+      for (n = 0; n < source->rank; n++)
+	{
+	  mpz_init (shape[n]);
+	  mpz_set (shape[n], source->shape[n]);
+	}
+    }
+  else
+    t = FAILURE;
 
   for (n = 0; n < source->rank; n++)
     {
@@ -4760,9 +5137,7 @@ gfc_simplify_shape (gfc_expr *source)
 	      return NULL;
 	    }
 	  else
-	    {
-	      e = f;
-	    }
+	    e = f;
 	}
 
       gfc_constructor_append_expr (&result->value.constructor, e, NULL);
@@ -4781,6 +5156,56 @@ gfc_simplify_size (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 
   if (k == -1)
     return &gfc_bad_expr;
+
+  /* For unary operations, the size of the result is given by the size
+     of the operand.  For binary ones, it's the size of the first operand
+     unless it is scalar, then it is the size of the second.  */
+  if (array->expr_type == EXPR_OP && !array->value.op.uop)
+    {
+      gfc_expr* replacement;
+      gfc_expr* simplified;
+
+      switch (array->value.op.op)
+	{
+	  /* Unary operations.  */
+	  case INTRINSIC_NOT:
+	  case INTRINSIC_UPLUS:
+	  case INTRINSIC_UMINUS:
+	    replacement = array->value.op.op1;
+	    break;
+
+	  /* Binary operations.  If any one of the operands is scalar, take
+	     the other one's size.  If both of them are arrays, it does not
+	     matter -- try to find one with known shape, if possible.  */
+	  default:
+	    if (array->value.op.op1->rank == 0)
+	      replacement = array->value.op.op2;
+	    else if (array->value.op.op2->rank == 0)
+	      replacement = array->value.op.op1;
+	    else
+	      {
+		simplified = gfc_simplify_size (array->value.op.op1, dim, kind);
+		if (simplified)
+		  return simplified;
+
+		replacement = array->value.op.op2;
+	      }
+	    break;
+	}
+
+      /* Try to reduce it directly if possible.  */
+      simplified = gfc_simplify_size (replacement, dim, kind);
+
+      /* Otherwise, we build a new SIZE call.  This is hopefully at least
+	 simpler than the original one.  */
+      if (!simplified)
+	simplified = gfc_build_intrinsic_call ("size", array->where, 3,
+					       gfc_copy_expr (replacement),
+					       gfc_copy_expr (dim),
+					       gfc_copy_expr (kind));
+
+      return simplified;
+    }
 
   if (dim == NULL)
     {
@@ -5100,7 +5525,7 @@ gfc_simplify_sum (gfc_expr *array, gfc_expr *dim, gfc_expr *mask)
 
   return !dim || array->rank == 1 ?
     simplify_transformation_to_scalar (result, array, mask, gfc_add) :
-    simplify_transformation_to_array (result, array, dim, mask, gfc_add);
+    simplify_transformation_to_array (result, array, dim, mask, gfc_add, NULL);
 }
 
 

@@ -38,6 +38,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "df.h"
 #include "target.h"
+#include "expmed.h"
+
+struct target_expmed default_target_expmed;
+#if SWITCHABLE_TARGET
+struct target_expmed *this_target_expmed = &default_target_expmed;
+#endif
 
 static void store_fixed_bit_field (rtx, unsigned HOST_WIDE_INT,
 				   unsigned HOST_WIDE_INT,
@@ -59,25 +65,10 @@ static rtx expand_sdiv_pow2 (enum machine_mode, rtx, HOST_WIDE_INT);
 /* Test whether a value is zero of a power of two.  */
 #define EXACT_POWER_OF_2_OR_ZERO_P(x) (((x) & ((x) - 1)) == 0)
 
-/* Nonzero means divides or modulus operations are relatively cheap for
-   powers of two, so don't use branches; emit the operation instead.
-   Usually, this will mean that the MD file will emit non-branch
-   sequences.  */
-
-static bool sdiv_pow2_cheap[2][NUM_MACHINE_MODES];
-static bool smod_pow2_cheap[2][NUM_MACHINE_MODES];
-
 #ifndef SLOW_UNALIGNED_ACCESS
 #define SLOW_UNALIGNED_ACCESS(MODE, ALIGN) STRICT_ALIGNMENT
 #endif
 
-/* For compilers that support multiple targets with different word sizes,
-   MAX_BITS_PER_WORD contains the biggest value of BITS_PER_WORD.  An example
-   is the H8/300(H) compiler.  */
-
-#ifndef MAX_BITS_PER_WORD
-#define MAX_BITS_PER_WORD BITS_PER_WORD
-#endif
 
 /* Reduce conditional compilation elsewhere.  */
 #ifndef HAVE_insv
@@ -95,21 +86,6 @@ static bool smod_pow2_cheap[2][NUM_MACHINE_MODES];
 #define CODE_FOR_extzv	CODE_FOR_nothing
 #define gen_extzv(a,b,c,d) NULL_RTX
 #endif
-
-/* Cost of various pieces of RTL.  Note that some of these are indexed by
-   shift count and some by mode.  */
-static int zero_cost[2];
-static int add_cost[2][NUM_MACHINE_MODES];
-static int neg_cost[2][NUM_MACHINE_MODES];
-static int shift_cost[2][NUM_MACHINE_MODES][MAX_BITS_PER_WORD];
-static int shiftadd_cost[2][NUM_MACHINE_MODES][MAX_BITS_PER_WORD];
-static int shiftsub0_cost[2][NUM_MACHINE_MODES][MAX_BITS_PER_WORD];
-static int shiftsub1_cost[2][NUM_MACHINE_MODES][MAX_BITS_PER_WORD];
-static int mul_cost[2][NUM_MACHINE_MODES];
-static int sdiv_cost[2][NUM_MACHINE_MODES];
-static int udiv_cost[2][NUM_MACHINE_MODES];
-static int mul_widen_cost[2][NUM_MACHINE_MODES];
-static int mul_highpart_cost[2][NUM_MACHINE_MODES];
 
 void
 init_expmed (void)
@@ -277,6 +253,10 @@ init_expmed (void)
 	    }
 	}
     }
+  if (alg_hash_used_p)
+    memset (alg_hash, 0, sizeof (alg_hash));
+  else
+    alg_hash_used_p = true;
   default_rtl_profile ();
 }
 
@@ -2300,113 +2280,6 @@ expand_shift (enum tree_code code, enum machine_mode mode, rtx shifted,
   return temp;
 }
 
-enum alg_code {
-  alg_unknown,
-  alg_zero,
-  alg_m, alg_shift,
-  alg_add_t_m2,
-  alg_sub_t_m2,
-  alg_add_factor,
-  alg_sub_factor,
-  alg_add_t2_m,
-  alg_sub_t2_m,
-  alg_impossible
-};
-
-/* This structure holds the "cost" of a multiply sequence.  The
-   "cost" field holds the total rtx_cost of every operator in the
-   synthetic multiplication sequence, hence cost(a op b) is defined
-   as rtx_cost(op) + cost(a) + cost(b), where cost(leaf) is zero.
-   The "latency" field holds the minimum possible latency of the
-   synthetic multiply, on a hypothetical infinitely parallel CPU.
-   This is the critical path, or the maximum height, of the expression
-   tree which is the sum of rtx_costs on the most expensive path from
-   any leaf to the root.  Hence latency(a op b) is defined as zero for
-   leaves and rtx_cost(op) + max(latency(a), latency(b)) otherwise.  */
-
-struct mult_cost {
-  short cost;     /* Total rtx_cost of the multiplication sequence.  */
-  short latency;  /* The latency of the multiplication sequence.  */
-};
-
-/* This macro is used to compare a pointer to a mult_cost against an
-   single integer "rtx_cost" value.  This is equivalent to the macro
-   CHEAPER_MULT_COST(X,Z) where Z = {Y,Y}.  */
-#define MULT_COST_LESS(X,Y) ((X)->cost < (Y)	\
-			     || ((X)->cost == (Y) && (X)->latency < (Y)))
-
-/* This macro is used to compare two pointers to mult_costs against
-   each other.  The macro returns true if X is cheaper than Y.
-   Currently, the cheaper of two mult_costs is the one with the
-   lower "cost".  If "cost"s are tied, the lower latency is cheaper.  */
-#define CHEAPER_MULT_COST(X,Y)  ((X)->cost < (Y)->cost		\
-				 || ((X)->cost == (Y)->cost	\
-				     && (X)->latency < (Y)->latency))
-
-/* This structure records a sequence of operations.
-   `ops' is the number of operations recorded.
-   `cost' is their total cost.
-   The operations are stored in `op' and the corresponding
-   logarithms of the integer coefficients in `log'.
-
-   These are the operations:
-   alg_zero		total := 0;
-   alg_m		total := multiplicand;
-   alg_shift		total := total * coeff
-   alg_add_t_m2		total := total + multiplicand * coeff;
-   alg_sub_t_m2		total := total - multiplicand * coeff;
-   alg_add_factor	total := total * coeff + total;
-   alg_sub_factor	total := total * coeff - total;
-   alg_add_t2_m		total := total * coeff + multiplicand;
-   alg_sub_t2_m		total := total * coeff - multiplicand;
-
-   The first operand must be either alg_zero or alg_m.  */
-
-struct algorithm
-{
-  struct mult_cost cost;
-  short ops;
-  /* The size of the OP and LOG fields are not directly related to the
-     word size, but the worst-case algorithms will be if we have few
-     consecutive ones or zeros, i.e., a multiplicand like 10101010101...
-     In that case we will generate shift-by-2, add, shift-by-2, add,...,
-     in total wordsize operations.  */
-  enum alg_code op[MAX_BITS_PER_WORD];
-  char log[MAX_BITS_PER_WORD];
-};
-
-/* The entry for our multiplication cache/hash table.  */
-struct alg_hash_entry {
-  /* The number we are multiplying by.  */
-  unsigned HOST_WIDE_INT t;
-
-  /* The mode in which we are multiplying something by T.  */
-  enum machine_mode mode;
-
-  /* The best multiplication algorithm for t.  */
-  enum alg_code alg;
-
-  /* The cost of multiplication if ALG_CODE is not alg_impossible.
-     Otherwise, the cost within which multiplication by T is
-     impossible.  */
-  struct mult_cost cost;
-
-  /* OPtimized for speed? */
-  bool speed;
-};
-
-/* The number of cache/hash entries.  */
-#if HOST_BITS_PER_WIDE_INT == 64
-#define NUM_ALG_HASH_ENTRIES 1031
-#else
-#define NUM_ALG_HASH_ENTRIES 307
-#endif
-
-/* Each entry of ALG_HASH caches alg_code for some integer.  This is
-   actually a hash table.  If we have a collision, that the older
-   entry is kicked out.  */
-static struct alg_hash_entry alg_hash[NUM_ALG_HASH_ENTRIES];
-
 /* Indicates the type of fixup needed after a constant multiplication.
    BASIC_VARIANT means no fixup is needed, NEGATE_VARIANT means that
    the result should be negated, and ADD_VARIANT means that the
@@ -3031,9 +2904,11 @@ expand_mult_const (enum machine_mode mode, rtx op0, HOST_WIDE_INT val,
       switch (alg->op[opno])
 	{
 	case alg_shift:
-	  accum = expand_shift (LSHIFT_EXPR, mode, accum,
-				build_int_cst (NULL_TREE, log),
-				NULL_RTX, 0);
+	  tem = expand_shift (LSHIFT_EXPR, mode, accum,
+			      build_int_cst (NULL_TREE, log),
+			      NULL_RTX, 0);
+	  /* REG_EQUAL note will be attached to the following insn.  */
+	  emit_move_insn (accum, tem);
 	  val_so_far <<= log;
 	  break;
 
@@ -4191,10 +4066,8 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 			    t2 = force_operand (gen_rtx_MINUS (compute_mode,
 							       op0, t1),
 						NULL_RTX);
-			    t3 = expand_shift
-			      (RSHIFT_EXPR, compute_mode, t2,
-			       build_int_cst (NULL_TREE, 1),
-			       NULL_RTX,1);
+			    t3 = expand_shift (RSHIFT_EXPR, compute_mode, t2,
+					       integer_one_node, NULL_RTX, 1);
 			    t4 = force_operand (gen_rtx_PLUS (compute_mode,
 							      t1, t3),
 						NULL_RTX);
@@ -4878,8 +4751,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 	      }
 	    tem = plus_constant (op1, -1);
 	    tem = expand_shift (RSHIFT_EXPR, compute_mode, tem,
-				build_int_cst (NULL_TREE, 1),
-				NULL_RTX, 1);
+				integer_one_node, NULL_RTX, 1);
 	    do_cmp_and_jump (remainder, tem, LEU, compute_mode, label);
 	    expand_inc (quotient, const1_rtx);
 	    expand_dec (remainder, op1);
@@ -4904,8 +4776,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 	    abs_rem = expand_abs (compute_mode, remainder, NULL_RTX, 1, 0);
 	    abs_op1 = expand_abs (compute_mode, op1, NULL_RTX, 1, 0);
 	    tem = expand_shift (LSHIFT_EXPR, compute_mode, abs_rem,
-				build_int_cst (NULL_TREE, 1),
-				NULL_RTX, 1);
+				integer_one_node, NULL_RTX, 1);
 	    do_cmp_and_jump (tem, abs_op1, LTU, compute_mode, label);
 	    tem = expand_binop (compute_mode, xor_optab, op0, op1,
 				NULL_RTX, 0, OPTAB_WIDEN);

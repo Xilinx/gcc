@@ -2898,6 +2898,8 @@ information are.
 @item
 @uref{#ix86-x-linux,,i?86-*-linux*}
 @item
+@uref{#ix86-x-solaris289,,i?86-*-solaris2.[89]}
+@item
 @uref{#ix86-x-solaris210,,i?86-*-solaris2.10}
 @item
 @uref{#ia64-x-linux,,ia64-*-linux}
@@ -3217,12 +3219,13 @@ Support for FreeBSD 1 was discontinued in GCC 3.2.  Support for
 FreeBSD 2 (and any mutant a.out variants of FreeBSD 3) was
 discontinued in GCC 4.0.
 
-In GCC 4.5, we enabled the use of @code{dl_iterate_phdr} inside boehm-gc on
-FreeBSD 7 or later.  In order to better match the configuration of the
-FreeBSD system compiler: We also enabled the check to see if libc
-provides SSP support (which it does on FreeBSD 7), the use of
-@code{dl_iterate_phdr} inside @file{libgcc_s.so.1} (on FreeBSD 7 or later)
-and the use of @code{__cxa_atexit} by default (on FreeBSD 6 or later).
+In order to better utilize FreeBSD base system functionality and match
+the configuration of the system compiler, GCC 4.5 and above as well as
+GCC 4.4 past 2010-06-20 leverage SSP support in libc (which is present
+on FreeBSD 7 or later) and the use of @code{__cxa_atexit} by default
+(on FreeBSD 6 or later).  The use of @code{dl_iterate_phdr} inside
+@file{libgcc_s.so.1} and boehm-gc (on FreeBSD 7 or later) is enabled
+by GCC 4.5 and above.
 
 We support FreeBSD using the ELF file format with DWARF 2 debugging
 for all CPU architectures.  You may use @option{-gstabs} instead of
@@ -3469,6 +3472,26 @@ See @uref{http://gcc.gnu.org/PR10877,,bug 10877} for more information.
 If you receive Signal 11 errors when building on GNU/Linux, then it is
 possible you have a hardware problem.  Further information on this can be
 found on @uref{http://www.bitwizard.nl/sig11/,,www.bitwizard.nl}.
+
+@html
+<hr />
+@end html
+@heading @anchor{ix86-x-solaris289}i?86-*-solaris2.[89]
+The Sun assembler in Solaris 8 and 9 has several bugs and limitations.
+While GCC works around them, several features are missing, so it is
+@c FIXME: which ones?
+recommended to use the GNU assembler instead.  There is no bundled
+version, but the current version, from GNU binutils 2.20.1, is known to
+work.
+
+Solaris~2/x86 doesn't support the execution of SSE/SSE2 instructions
+before Solaris~9 4/04, even if the CPU supports them.  Programs will
+receive @code{SIGILL} if they try.  The fix is available both in
+Solaris~9 Update~6 and kernel patch 112234-12 or newer.  There is no
+corresponding patch for Solaris 8.  To avoid this problem,
+@option{-march} defaults to @samp{pentiumpro} on Solaris 8 and 9.  If
+you have the patch installed, you can configure GCC with an appropriate
+@option{--with-arch} option, but need GNU @command{as} for SSE2 support.
 
 @html
 <hr />
@@ -4142,6 +4165,29 @@ testsuite failures appear.
 There are patches for Solaris 8 (117350-12 or newer for SPARC,
 117351-12 or newer for Intel) and Solaris 9 (117171-11 or newer for
 SPARC, 117172-11 or newer for Intel) that address this problem.
+
+Solaris~8 provides an alternate implementation of the thread libraries,
+@samp{libpthread} and @samp{libthread}.  They are required for TLS
+support and have been made the default in Solaris~9, so they are always
+used on Solaris~8.
+
+Thread-local storage (TLS) is supported in Solaris~8 and 9, but requires
+some patches.  The @samp{libthread} patches provide the
+@code{__tls_get_addr} (SPARC, 64-bit x86) resp.@ @code{___tls_get_addr}
+(32-bit x86) functions.  On Solaris~8, you need 108993-26 or newer on
+SPARC, 108994-26 or newer on Intel.  On Solaris~9, the necessary support
+on SPARC is present since FCS, while 114432-05 or newer is reqired on
+Intel.  Additionally, on Solaris~8, patch 109147-14 or newer on SPARC or
+109148-22 or newer on Intel are required for the Sun @command{ld} and
+runtime linker (@command{ld.so.1}) support.  Again, Solaris~9/SPARC
+works since FCS, while 113986-02 is required on Intel.  The linker
+patches must be installed even if GNU @command{ld} is used. Sun
+@command{as} in Solaris~8 and 9 doesn't support the necessary
+relocations, so GNU @command{as} must be used.  The @command{configure}
+script checks for those prerequisites and automatically enables TLS
+support if they are met.  Although those minimal patch versions should
+work, it is recommended to use the latest patch versions which include
+additional bug fixes.
 
 @html
 <hr />

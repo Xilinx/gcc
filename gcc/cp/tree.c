@@ -477,7 +477,8 @@ build_target_expr_with_type (tree init, tree type)
 {
   gcc_assert (!VOID_TYPE_P (type));
 
-  if (TREE_CODE (init) == TARGET_EXPR)
+  if (TREE_CODE (init) == TARGET_EXPR
+      || init == error_mark_node)
     return init;
   else if (CLASS_TYPE_P (type) && type_has_nontrivial_copy_init (type)
 	   && !VOID_TYPE_P (TREE_TYPE (init))
@@ -2023,11 +2024,21 @@ cp_tree_equal (tree t1, tree t2)
       /* We need to do this when determining whether or not two
 	 non-type pointer to member function template arguments
 	 are the same.  */
-      if (!(same_type_p (TREE_TYPE (t1), TREE_TYPE (t2))
-	    /* The first operand is RTL.  */
-	    && TREE_OPERAND (t1, 0) == TREE_OPERAND (t2, 0)))
+      if (!same_type_p (TREE_TYPE (t1), TREE_TYPE (t2))
+	  || CONSTRUCTOR_NELTS (t1) != CONSTRUCTOR_NELTS (t2))
 	return false;
-      return cp_tree_equal (TREE_OPERAND (t1, 1), TREE_OPERAND (t2, 1));
+      {
+	tree field, value;
+	unsigned int i;
+	FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (t1), i, field, value)
+	  {
+	    constructor_elt *elt2 = CONSTRUCTOR_ELT (t2, i);
+	    if (!cp_tree_equal (field, elt2->index)
+		|| !cp_tree_equal (value, elt2->value))
+	      return false;
+	  }
+      }
+      return true;
 
     case TREE_LIST:
       if (!cp_tree_equal (TREE_PURPOSE (t1), TREE_PURPOSE (t2)))
@@ -2191,6 +2202,17 @@ cp_tree_equal (tree t1, tree t2)
       return same_type_p (TRAIT_EXPR_TYPE1 (t1), TRAIT_EXPR_TYPE1 (t2))
 	&& same_type_p (TRAIT_EXPR_TYPE2 (t1), TRAIT_EXPR_TYPE2 (t2));
 
+    case CAST_EXPR:
+    case STATIC_CAST_EXPR:
+    case REINTERPRET_CAST_EXPR:
+    case CONST_CAST_EXPR:
+    case DYNAMIC_CAST_EXPR:
+    case NEW_EXPR:
+      if (!same_type_p (TREE_TYPE (t1), TREE_TYPE (t2)))
+	return false;
+      /* Now compare operands as usual.  */
+      break;
+
     default:
       break;
     }
@@ -2262,11 +2284,7 @@ error_type (tree arg)
 int
 varargs_function_p (const_tree function)
 {
-  const_tree parm = TYPE_ARG_TYPES (TREE_TYPE (function));
-  for (; parm; parm = TREE_CHAIN (parm))
-    if (TREE_VALUE (parm) == void_type_node)
-      return 0;
-  return 1;
+  return stdarg_p (TREE_TYPE (function));
 }
 
 /* Returns 1 if decl is a member of a class.  */

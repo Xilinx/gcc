@@ -782,7 +782,7 @@ add_method_1 (tree this_class, int access_flags, tree name, tree function_type)
     DECL_FUNCTION_INITIALIZED_CLASS_TABLE (fndecl) =
       htab_create_ggc (50, htab_hash_pointer, htab_eq_pointer, NULL);
 
-  TREE_CHAIN (fndecl) = TYPE_METHODS (this_class);
+  DECL_CHAIN (fndecl) = TYPE_METHODS (this_class);
   TYPE_METHODS (this_class) = fndecl;
 
   /* If pointers to member functions use the least significant bit to
@@ -853,7 +853,7 @@ add_field (tree klass, tree name, tree field_type, int flags)
   tree field;
   field = build_decl (input_location,
 		      is_static ? VAR_DECL : FIELD_DECL, name, field_type);
-  TREE_CHAIN (field) = TYPE_FIELDS (klass);
+  DECL_CHAIN (field) = TYPE_FIELDS (klass);
   TYPE_FIELDS (klass) = field;
   DECL_CONTEXT (field) = klass;
   MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC (field);
@@ -983,6 +983,7 @@ build_utf8_ref (tree name)
   TREE_READONLY (decl) = 1;
   TREE_THIS_VOLATILE (decl) = 0;
   DECL_INITIAL (decl) = cinit;
+  DECL_USER_ALIGN (decl) = 1;
 
   if (HAVE_GAS_SHF_MERGE)
     {
@@ -1460,7 +1461,7 @@ make_field_value (tree fdecl)
       field_address = build_address_of (fdecl);
 
     index = (FIELD_STATIC (fdecl)
-	     ? TREE_CHAIN (TYPE_FIELDS (field_info_union_node))
+	     ? DECL_CHAIN (TYPE_FIELDS (field_info_union_node))
 	     : TYPE_FIELDS (field_info_union_node));
     value = (FIELD_STATIC (fdecl)
 	     ? field_address
@@ -1543,9 +1544,7 @@ make_method_value (tree mdecl)
 	e = VEC_index (constructor_elt, v, idx--);
 	e->value = null_pointer_node;
 
-	for (ix = 0;
-	     VEC_iterate (tree, DECL_FUNCTION_THROWS (mdecl), ix, t);
-	     ix++)
+	FOR_EACH_VEC_ELT (tree, DECL_FUNCTION_THROWS (mdecl), ix, t)
 	  {
 	    tree sig = DECL_NAME (TYPE_NAME (t));
 	    tree utf8
@@ -1599,7 +1598,7 @@ get_dispatch_vector (tree type)
 	}
 
       for (method = TYPE_METHODS (type);  method != NULL_TREE;
-	   method = TREE_CHAIN (method))
+	   method = DECL_CHAIN (method))
 	{
 	  tree method_index = get_method_index (method);
 	  if (method_index != NULL_TREE
@@ -1842,13 +1841,13 @@ make_class_data (tree type)
   /* Build Field array. */
   field = TYPE_FIELDS (type);
   while (field && DECL_ARTIFICIAL (field))
-    field = TREE_CHAIN (field);  /* Skip dummy fields.  */
+    field = DECL_CHAIN (field);  /* Skip dummy fields.  */
   if (field && DECL_NAME (field) == NULL_TREE)
-    field = TREE_CHAIN (field);  /* Skip dummy field for inherited data. */
+    field = DECL_CHAIN (field);  /* Skip dummy field for inherited data. */
   first_real_field = field;
 
   /* First count static and instance fields.  */
-  for ( ; field != NULL_TREE; field = TREE_CHAIN (field))
+  for ( ; field != NULL_TREE; field = DECL_CHAIN (field))
     {
       if (! DECL_ARTIFICIAL (field))
 	{
@@ -1877,7 +1876,7 @@ make_class_data (tree type)
 
     for (i = 0, field = first_real_field; 
 	 field != NULL_TREE; 
-	 field = TREE_CHAIN (field), i++)
+	 field = DECL_CHAIN (field), i++)
     {
       if (! DECL_ARTIFICIAL (field))
 	{
@@ -1894,7 +1893,7 @@ make_class_data (tree type)
   }
 
   for (field = first_real_field; field != NULL_TREE; 
-       field = TREE_CHAIN (field))
+       field = DECL_CHAIN (field))
     {
       if (! DECL_ARTIFICIAL (field))
 	{
@@ -1945,7 +1944,7 @@ make_class_data (tree type)
 
   /* Build Method array. */
   for (method = TYPE_METHODS (type);
-       method != NULL_TREE; method = TREE_CHAIN (method))
+       method != NULL_TREE; method = DECL_CHAIN (method))
     {
       tree init;
       if (METHOD_PRIVATE (method)
@@ -2390,7 +2389,7 @@ push_super_field (tree this_class, tree super_class)
   base_decl = build_decl (input_location,
 			  FIELD_DECL, NULL_TREE, super_class);
   DECL_IGNORED_P (base_decl) = 1;
-  TREE_CHAIN (base_decl) = TYPE_FIELDS (this_class);
+  DECL_CHAIN (base_decl) = TYPE_FIELDS (this_class);
   TYPE_FIELDS (this_class) = base_decl;
   DECL_SIZE (base_decl) = TYPE_SIZE (super_class);
   DECL_SIZE_UNIT (base_decl) = TYPE_SIZE_UNIT (super_class);
@@ -2550,7 +2549,7 @@ add_miranda_methods (tree base_class, tree search_class)
          will be correct.  This code must match similar layout code in the 
          runtime.  */
       for (method_decl = TYPE_METHODS (elt);
-	   method_decl; method_decl = TREE_CHAIN (method_decl))
+	   method_decl; method_decl = DECL_CHAIN (method_decl))
 	{
 	  tree sig, override;
 
@@ -2614,7 +2613,7 @@ layout_class_methods (tree this_class)
   TYPE_METHODS (this_class) = nreverse (TYPE_METHODS (this_class));
 
   for (method_decl = TYPE_METHODS (this_class);
-       method_decl; method_decl = TREE_CHAIN (method_decl))
+       method_decl; method_decl = DECL_CHAIN (method_decl))
     dtable_count = layout_class_method (this_class, super_class,
 					method_decl, dtable_count);
 
@@ -2629,7 +2628,7 @@ get_interface_method_index (tree method, tree interface)
   tree meth;
   int i = 1;
 
-  for (meth = TYPE_METHODS (interface); ; meth = TREE_CHAIN (meth))
+  for (meth = TYPE_METHODS (interface); ; meth = DECL_CHAIN (meth))
     {
       if (meth == method)
 	return i;
@@ -2761,7 +2760,7 @@ emit_indirect_register_classes (tree *list_p)
 			   VAR_DECL, get_identifier ("_Jv_CLS"),
 			   class_array_type);
   tree reg_class_list;
-  for (i = 0; VEC_iterate (tree, registered_class, i, klass); ++i)
+  FOR_EACH_VEC_ELT (tree, registered_class, i, klass)
     {
       t = fold_convert (ptr_type_node, build_static_class_ref (klass));
       CONSTRUCTOR_APPEND_ELT (init, NULL_TREE, t);
@@ -2833,7 +2832,7 @@ emit_register_classes (tree *list_p)
 #endif
       assemble_align (POINTER_SIZE);
 
-      for (i = 0; VEC_iterate (tree, registered_class, i, klass); ++i)
+      FOR_EACH_VEC_ELT (tree, registered_class, i, klass)
 	{
 	  t = build_fold_addr_expr (klass);
 	  output_constant (t, POINTER_SIZE / BITS_PER_UNIT, POINTER_SIZE);
@@ -2851,7 +2850,7 @@ emit_register_classes (tree *list_p)
       DECL_EXTERNAL (t) = 1;
       register_class_fn = t;
 
-      for (i = 0; VEC_iterate (tree, registered_class, i, klass); ++i)
+      FOR_EACH_VEC_ELT (tree, registered_class, i, klass)
 	{
 	  t = build_fold_addr_expr (klass);
 	  t = build_call_expr (register_class_fn, 1, t);
@@ -2927,7 +2926,7 @@ emit_symbol_table (tree name, tree the_table,
     return the_table;
 
   /* Build a list of _Jv_MethodSymbols for each entry in otable_methods. */
-  for (index = 0; VEC_iterate (method_entry, decl_table, index, e); index++)
+  FOR_EACH_VEC_ELT (method_entry, decl_table, index, e)
     CONSTRUCTOR_APPEND_ELT (v, NULL_TREE,
 			    build_symbol_entry (e->method, e->special));
 

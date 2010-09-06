@@ -119,6 +119,18 @@ struct GTY(()) ptr_info_def
 {
   /* The points-to solution.  */
   struct pt_solution pt;
+
+  /* Alignment and misalignment of the pointer in bytes.  Together
+     align and misalign specify low known bits of the pointer.
+     ptr & (align - 1) == misalign.  */
+
+  /* The power-of-two byte alignment of the object this pointer
+     points into.  This is usually DECL_ALIGN_UNIT for decls and
+     MALLOC_ABI_ALIGNMENT for allocated storage.  */
+  unsigned int align;
+
+  /* The byte offset this pointer differs from the above alignment.  */
+  unsigned int misalign;
 };
 
 
@@ -321,7 +333,6 @@ typedef struct
 extern tree referenced_var_lookup (unsigned int);
 extern bool referenced_var_check_and_insert (tree);
 #define num_referenced_vars htab_elements (gimple_referenced_vars (cfun))
-#define referenced_var(i) referenced_var_lookup (i)
 
 #define num_ssa_names (VEC_length (tree, cfun->gimple_df->ssa_names))
 #define ssa_name(i) (VEC_index (tree, cfun->gimple_df->ssa_names, (i)))
@@ -368,7 +379,7 @@ struct omp_region
   /* If this is a combined parallel+workshare region, this is a list
      of additional arguments needed by the combined parallel+workshare
      library call.  */
-  tree ws_args;
+  VEC(tree,gc) *ws_args;
 
   /* The code for the omp directive of this region.  */
   enum gimple_code type;
@@ -806,6 +817,7 @@ bool stmt_invariant_in_loop_p (struct loop *, gimple);
 bool multiplier_allowed_in_address_p (HOST_WIDE_INT, enum machine_mode,
 				      addr_space_t);
 unsigned multiply_by_cost (HOST_WIDE_INT, enum machine_mode, bool);
+bool may_be_nonaddressable_p (tree expr);
 
 /* In tree-ssa-threadupdate.c.  */
 extern bool thread_through_all_blocks (bool);
@@ -833,8 +845,8 @@ struct mem_address
 };
 
 struct affine_tree_combination;
-tree create_mem_ref (gimple_stmt_iterator *, tree, tree,
-		     struct affine_tree_combination *, tree, bool);
+tree create_mem_ref (gimple_stmt_iterator *, tree,
+		     struct affine_tree_combination *, tree, tree, tree, bool);
 rtx addr_for_mem_ref (struct mem_address *, addr_space_t, bool);
 void get_address_description (tree, struct mem_address *);
 tree maybe_fold_tmr (tree);

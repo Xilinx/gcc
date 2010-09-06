@@ -61,6 +61,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "target.h"
 
+struct target_rtl default_target_rtl;
+#if SWITCHABLE_TARGET
+struct target_rtl *this_target_rtl = &default_target_rtl;
+#endif
+
+#define initial_regno_reg_rtx (this_target_rtl->x_initial_regno_reg_rtx)
+
 /* Commonly used modes.  */
 
 enum machine_mode byte_mode;	/* Mode whose width is BITS_PER_UNIT.  */
@@ -84,19 +91,6 @@ rtx * regno_reg_rtx;
 
 static GTY(()) int label_num = 1;
 
-/* Commonly used rtx's, so that we only need space for one copy.
-   These are initialized once for the entire compilation.
-   All of these are unique; no other rtx-object will be equal to any
-   of these.  */
-
-rtx global_rtl[GR_MAX];
-
-/* Commonly used RTL for hard registers.  These objects are not necessarily
-   unique, so we allocate them separately from global_rtl.  They are
-   initialized once per compilation unit, then copied into regno_reg_rtx
-   at the beginning of each function.  */
-static GTY(()) rtx static_regno_reg_rtx[FIRST_PSEUDO_REGISTER];
-
 /* We record floating-point CONST_DOUBLEs in each floating-point mode for
    the values of 0, 1, and 2.  For the integer entries and VOIDmode, we
    record a copy of const[012]_rtx.  */
@@ -114,30 +108,6 @@ REAL_VALUE_TYPE dconsthalf;
 /* Record fixed-point constant 0 and 1.  */
 FIXED_VALUE_TYPE fconst0[MAX_FCONST0];
 FIXED_VALUE_TYPE fconst1[MAX_FCONST1];
-
-/* All references to the following fixed hard registers go through
-   these unique rtl objects.  On machines where the frame-pointer and
-   arg-pointer are the same register, they use the same unique object.
-
-   After register allocation, other rtl objects which used to be pseudo-regs
-   may be clobbered to refer to the frame-pointer register.
-   But references that were originally to the frame-pointer can be
-   distinguished from the others because they contain frame_pointer_rtx.
-
-   When to use frame_pointer_rtx and hard_frame_pointer_rtx is a little
-   tricky: until register elimination has taken place hard_frame_pointer_rtx
-   should be used if it is being set, and frame_pointer_rtx otherwise.  After
-   register elimination hard_frame_pointer_rtx should always be used.
-   On machines where the two registers are same (most) then these are the
-   same.
-
-   In an inline procedure, the stack and frame pointer rtxs may not be
-   used for anything else.  */
-rtx pic_offset_table_rtx;	/* (REG:Pmode PIC_OFFSET_TABLE_REGNUM) */
-
-/* This is used to implement __builtin_return_address for some machines.
-   See for instance the MIPS port.  */
-rtx return_address_pointer_rtx;	/* (REG:Pmode RETURN_ADDRESS_POINTER_REGNUM) */
 
 /* We make one copy of (const_int C) where C is in
    [- MAX_SAVED_CONST_INT, MAX_SAVED_CONST_INT]
@@ -1489,7 +1459,8 @@ get_mem_align_offset (rtx mem, unsigned int align)
   /* This function can't use
      if (!MEM_EXPR (mem) || !MEM_OFFSET (mem)
 	 || !CONST_INT_P (MEM_OFFSET (mem))
-	 || (get_object_alignment (MEM_EXPR (mem), MEM_ALIGN (mem), align)
+	 || (MAX (MEM_ALIGN (mem),
+	          get_object_alignment (MEM_EXPR (mem), align))
 	     < align))
        return -1;
      else
@@ -1617,30 +1588,37 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
   else if (TREE_CODE (t) == MEM_REF)
     {
       tree op0 = TREE_OPERAND (t, 0);
-      unsigned HOST_WIDE_INT aoff = BITS_PER_UNIT;
-      if (host_integerp (TREE_OPERAND (t, 1), 1))
+      if (TREE_CODE (op0) == ADDR_EXPR
+	  && (DECL_P (TREE_OPERAND (op0, 0))
+	      || CONSTANT_CLASS_P (TREE_OPERAND (op0, 0))))
 	{
-	  unsigned HOST_WIDE_INT ioff = TREE_INT_CST_LOW (TREE_OPERAND (t, 1));
-	  aoff = (ioff & -ioff) * BITS_PER_UNIT;
-	}
-      if (TREE_CODE (op0) == ADDR_EXPR && DECL_P (TREE_OPERAND (op0, 0)))
-	align = MAX (align, DECL_ALIGN (TREE_OPERAND (op0, 0)));
-      else if (TREE_CODE (op0) == ADDR_EXPR
-	       && CONSTANT_CLASS_P (TREE_OPERAND (op0, 0)))
-	{
-	  align = TYPE_ALIGN (TREE_TYPE (TREE_OPERAND (op0, 0)));
+	  if (DECL_P (TREE_OPERAND (op0, 0)))
+	    align = DECL_ALIGN (TREE_OPERAND (op0, 0));
+	  else if (CONSTANT_CLASS_P (TREE_OPERAND (op0, 0)))
+	    {
+	      align = TYPE_ALIGN (TREE_TYPE (TREE_OPERAND (op0, 0)));
 #ifdef CONSTANT_ALIGNMENT
-	  align = CONSTANT_ALIGNMENT (TREE_OPERAND (op0, 0), align);
+	      align = CONSTANT_ALIGNMENT (TREE_OPERAND (op0, 0), align);
 #endif
+	    }
+	  if (TREE_INT_CST_LOW (TREE_OPERAND (t, 1)) != 0)
+	    {
+	      unsigned HOST_WIDE_INT ioff
+		= TREE_INT_CST_LOW (TREE_OPERAND (t, 1));
+	      unsigned HOST_WIDE_INT aoff = (ioff & -ioff) * BITS_PER_UNIT;
+	      align = MIN (aoff, align);
+	    }
 	}
       else
 	/* ??? This isn't fully correct, we can't set the alignment from the
 	   type in all cases.  */
 	align = MAX (align, TYPE_ALIGN (type));
-
-      if (!integer_zerop (TREE_OPERAND (t, 1)) && aoff < align)
-	align = aoff;
     }
+
+  else if (TREE_CODE (t) == TARGET_MEM_REF)
+    /* ??? This isn't fully correct, we can't set the alignment from the
+       type in all cases.  */
+    align = MAX (align, TYPE_ALIGN (type));
 
   else if (TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
     {
@@ -1815,6 +1793,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 
       /* If this is an indirect reference, record it.  */
       else if (TREE_CODE (t) == MEM_REF 
+	       || TREE_CODE (t) == TARGET_MEM_REF
 	       || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
 	{
 	  expr = t;
@@ -1824,8 +1803,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 
       if (!align_computed && !INDIRECT_REF_P (t))
 	{
-	  unsigned int obj_align
-	    = get_object_alignment (t, align, BIGGEST_ALIGNMENT);
+	  unsigned int obj_align = get_object_alignment (t, BIGGEST_ALIGNMENT);
 	  align = MAX (align, obj_align);
 	}
     }
@@ -2405,7 +2383,7 @@ unshare_all_rtl_again (rtx insn)
   set_used_decls (DECL_INITIAL (cfun->decl));
 
   /* Make sure that virtual parameters are not shared.  */
-  for (decl = DECL_ARGUMENTS (cfun->decl); decl; decl = TREE_CHAIN (decl))
+  for (decl = DECL_ARGUMENTS (cfun->decl); decl; decl = DECL_CHAIN (decl))
     set_used_flags (DECL_RTL (decl));
 
   reset_used_flags (stack_slot_list);
@@ -2615,7 +2593,7 @@ set_used_decls (tree blk)
   tree t;
 
   /* Mark decls.  */
-  for (t = BLOCK_VARS (blk); t; t = TREE_CHAIN (t))
+  for (t = BLOCK_VARS (blk); t; t = DECL_CHAIN (t))
     if (DECL_RTL_SET_P (t))
       set_used_flags (DECL_RTL (t));
 
@@ -3159,6 +3137,38 @@ prev_nondebug_insn (rtx insn)
     {
       insn = PREV_INSN (insn);
       if (insn == 0 || !DEBUG_INSN_P (insn))
+	break;
+    }
+
+  return insn;
+}
+
+/* Return the next insn after INSN that is not a NOTE nor DEBUG_INSN.
+   This routine does not look inside SEQUENCEs.  */
+
+rtx
+next_nonnote_nondebug_insn (rtx insn)
+{
+  while (insn)
+    {
+      insn = NEXT_INSN (insn);
+      if (insn == 0 || (!NOTE_P (insn) && !DEBUG_INSN_P (insn)))
+	break;
+    }
+
+  return insn;
+}
+
+/* Return the previous insn before INSN that is not a NOTE nor DEBUG_INSN.
+   This routine does not look inside SEQUENCEs.  */
+
+rtx
+prev_nonnote_nondebug_insn (rtx insn)
+{
+  while (insn)
+    {
+      insn = PREV_INSN (insn);
+      if (insn == 0 || (!NOTE_P (insn) && !DEBUG_INSN_P (insn)))
 	break;
     }
 
@@ -5576,7 +5586,7 @@ init_emit (void)
 
   /* Put copies of all the hard registers into regno_reg_rtx.  */
   memcpy (regno_reg_rtx,
-	  static_regno_reg_rtx,
+	  initial_regno_reg_rtx,
 	  FIRST_PSEUDO_REGISTER * sizeof (rtx));
 
   /* Put copies of all the virtual register rtx into regno_reg_rtx.  */
@@ -5703,7 +5713,7 @@ init_emit_regs (void)
   /* Initialize RTL for commonly used hard registers.  These are
      copied into regno_reg_rtx as we begin to compile each function.  */
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
-    static_regno_reg_rtx[i] = gen_raw_REG (reg_raw_mode[i], i);
+    initial_regno_reg_rtx[i] = gen_raw_REG (reg_raw_mode[i], i);
 
 #ifdef RETURN_ADDRESS_POINTER_REGNUM
   return_address_pointer_rtx

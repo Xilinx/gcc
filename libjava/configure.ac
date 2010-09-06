@@ -394,7 +394,8 @@ NATIVE=yes
 # Which gcj and host gcj (for ecjx) do we use?
 which_gcj=default
 host_exeext=${ac_exeext}
-GCJ_FOR_ECJX=
+GCJ_FOR_ECJX='$(GCJ)'
+GCC_FOR_ECJX='$(CXX)'
 built_gcc_dir="`cd ${builddotdot}/../../${host_subdir}/gcc && ${PWDCMD-pwd}`"
 if test -n "${with_cross_host}"; then
   # We are being configured with a cross compiler. We can't
@@ -402,6 +403,7 @@ if test -n "${with_cross_host}"; then
   NATIVE=no
   cross_host_exeext=
   GCJ_FOR_ECJX="${with_cross_host}-gcj"
+  GCC_FOR_ECJX="${with_cross_host}-gcc"
   case "${with_cross_host}" in
      *mingw* | *cygwin*)
          cross_host_exeext=.exe
@@ -467,6 +469,7 @@ JAVAC="$GCJ -C"
 export JAVAC
 
 AC_SUBST(GCJ_FOR_ECJX)
+AC_SUBST(GCC_FOR_ECJX)
 AC_SUBST(GCJH)
 AC_SUBST(host_exeext)
 
@@ -1064,6 +1067,23 @@ case "$THREADS" in
 	THREADLIBS='-lpthread -lrt'
 	THREADSPEC='-lpthread -lrt'
 	;;
+     *-*-solaris2.8)
+	# Always use alternate thread library on Solaris 8.  Need libthread
+	# for TLS support.
+	# Need -Wl,-R to get it through libtool ...
+	THREADLIBS='-L/usr/lib/lwp$(MULTISUBDIR) -Wl,-R -Wl,/usr/lib/lwp$(MULTISUBDIR) -lpthread -lthread'
+	# ... while ld only accepts -R.
+	THREADSPEC='-L/usr/lib/lwp%{m64:/64} -R/usr/lib/lwp%{m64:/64} -lpthread -lthread'
+        ;;
+     *-*-solaris2.9)
+	# As on Solaris 8, need libthread for TLS support.
+	THREADLIBS='-lpthread -lthread'
+	THREADSPEC='-lpthread -lthread'
+	;;
+     *-*-darwin*)
+	# Don't set THREADLIBS or THREADSPEC as Darwin already
+	# provides pthread via libSystem.
+	;;
      *)
 	THREADLIBS=-lpthread
 	THREADSPEC=-lpthread
@@ -1432,6 +1452,8 @@ else
 	    # libgcj.spec is used, so override here
 	    SYSTEMSPEC="$SYSTEMSPEC %{!mabi=64:-ldl}"
 	  ;;
+	  *-*-darwin*)
+	  ;;
 	  *)
             AC_CHECK_LIB(dl, main, SYSTEMSPEC="$SYSTEMSPEC -ldl")
 	  ;;
@@ -1680,8 +1702,8 @@ case "${host}" in
  i?86-*-linux*)
     SIGNAL_HANDLER=include/i386-signal.h
     ;;
- sparc*-sun-solaris*)
-    SIGNAL_HANDLER=include/sparc-signal.h
+ *-*-solaris2*)
+    SIGNAL_HANDLER=include/solaris-signal.h
     ;;
 # ia64-*)
 #    SYSDEP_SOURCES=sysdep/ia64.c

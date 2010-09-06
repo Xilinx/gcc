@@ -327,9 +327,7 @@ new_class_binding (tree name, tree value, tree type, cxx_scope *scope)
 	  /* Fixup the current bindings, as they might have moved.  */
 	  size_t i;
 
-	  for (i = 0;
-	       VEC_iterate (cp_class_binding, scope->class_shadowed, i, cb);
-	       i++)
+	  FOR_EACH_VEC_ELT (cp_class_binding, scope->class_shadowed, i, cb)
 	    {
 	      cxx_binding **b;
 	      b = &IDENTIFIER_BINDING (cb->identifier);
@@ -542,7 +540,7 @@ add_decl_to_level (tree decl, cxx_scope *b)
   if (TREE_CODE (decl) == NAMESPACE_DECL
       && !DECL_NAMESPACE_ALIAS (decl))
     {
-      TREE_CHAIN (decl) = b->namespaces;
+      DECL_CHAIN (decl) = b->namespaces;
       b->namespaces = decl;
     }
   else
@@ -1691,9 +1689,7 @@ print_binding_level (struct cp_binding_level* lvl)
       size_t i;
       cp_class_binding *b;
       fprintf (stderr, " class-shadowed:");
-      for (i = 0;
-	   VEC_iterate(cp_class_binding, lvl->class_shadowed, i, b);
-	   ++i)
+      FOR_EACH_VEC_ELT (cp_class_binding, lvl->class_shadowed, i, b)
 	fprintf (stderr, " %s ", IDENTIFIER_POINTER (b->identifier));
       fprintf (stderr, "\n");
     }
@@ -1997,7 +1993,7 @@ push_using_decl (tree scope, tree name)
   timevar_push (TV_NAME_LOOKUP);
   gcc_assert (TREE_CODE (scope) == NAMESPACE_DECL);
   gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
-  for (decl = current_binding_level->usings; decl; decl = TREE_CHAIN (decl))
+  for (decl = current_binding_level->usings; decl; decl = DECL_CHAIN (decl))
     if (USING_DECL_SCOPE (decl) == scope && DECL_NAME (decl) == name)
       break;
   if (decl)
@@ -2005,7 +2001,7 @@ push_using_decl (tree scope, tree name)
 			    namespace_bindings_p () ? decl : NULL_TREE);
   decl = build_lang_decl (USING_DECL, name, NULL_TREE);
   USING_DECL_SCOPE (decl) = scope;
-  TREE_CHAIN (decl) = current_binding_level->usings;
+  DECL_CHAIN (decl) = current_binding_level->usings;
   current_binding_level->usings = decl;
   POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, decl);
 }
@@ -2648,9 +2644,7 @@ poplevel_class (void)
   /* Remove the bindings for all of the class-level declarations.  */
   if (level->class_shadowed)
     {
-      for (i = 0;
-	   VEC_iterate (cp_class_binding, level->class_shadowed, i, cb);
-	   ++i)
+      FOR_EACH_VEC_ELT (cp_class_binding, level->class_shadowed, i, cb)
 	IDENTIFIER_BINDING (cb->identifier) = cb->base.previous;
       ggc_free (level->class_shadowed);
       level->class_shadowed = NULL;
@@ -2730,7 +2724,7 @@ pushdecl_class_level (tree x)
 	 aggregate, for naming purposes.  */
       tree f;
 
-      for (f = TYPE_FIELDS (TREE_TYPE (x)); f; f = TREE_CHAIN (f))
+      for (f = TYPE_FIELDS (TREE_TYPE (x)); f; f = DECL_CHAIN (f))
 	{
 	  location_t save_location = input_location;
 	  input_location = DECL_SOURCE_LOCATION (f);
@@ -4052,7 +4046,7 @@ tree_vec_contains (VEC(tree,gc)* vec, tree target)
 {
   unsigned int i;
   tree elt;
-  for (i = 0; VEC_iterate(tree,vec,i,elt); ++i)
+  FOR_EACH_VEC_ELT (tree,vec,i,elt)
     if (elt == target)
       return true;
   return false;
@@ -4663,25 +4657,38 @@ add_function (struct arg_lookup *k, tree fn)
 bool
 is_associated_namespace (tree current, tree scope)
 {
-  tree seen = NULL_TREE;
-  tree todo = NULL_TREE;
+  VEC(tree,gc) *seen = make_tree_vector ();
+  VEC(tree,gc) *todo = make_tree_vector ();
   tree t;
+  bool ret;
+
   while (1)
     {
       if (scope == current)
-	return true;
-      seen = tree_cons (scope, NULL_TREE, seen);
-      for (t = DECL_NAMESPACE_ASSOCIATIONS (scope); t; t = TREE_CHAIN (t))
-	if (!purpose_member (TREE_PURPOSE (t), seen))
-	  todo = tree_cons (TREE_PURPOSE (t), NULL_TREE, todo);
-      if (todo)
 	{
-	  scope = TREE_PURPOSE (todo);
-	  todo = TREE_CHAIN (todo);
+	  ret = true;
+	  break;
+	}
+      VEC_safe_push (tree, gc, seen, scope);
+      for (t = DECL_NAMESPACE_ASSOCIATIONS (scope); t; t = TREE_CHAIN (t))
+	if (!vec_member (TREE_PURPOSE (t), seen))
+	  VEC_safe_push (tree, gc, todo, TREE_PURPOSE (t));
+      if (!VEC_empty (tree, todo))
+	{
+	  scope = VEC_last (tree, todo);
+	  VEC_pop (tree, todo);
 	}
       else
-	return false;
+	{
+	  ret = false;
+	  break;
+	}
     }
+
+  release_tree_vector (seen);
+  release_tree_vector (todo);
+
+  return ret;
 }
 
 /* Add functions of a namespace to the lookup structure.
@@ -4992,7 +4999,7 @@ arg_assoc_args_vec (struct arg_lookup *k, VEC(tree,gc) *args)
   unsigned int ix;
   tree arg;
 
-  for (ix = 0; VEC_iterate (tree, args, ix, arg); ++ix)
+  FOR_EACH_VEC_ELT (tree, args, ix, arg)
     if (arg_assoc (k, arg))
       return true;
   return false;
@@ -5475,7 +5482,7 @@ push_to_top_level (void)
 	SET_IDENTIFIER_TYPE_VALUE (TREE_PURPOSE (t), TREE_VALUE (t));
     }
 
-  for (i = 0; VEC_iterate (cxx_saved_binding, s->old_bindings, i, sb); ++i)
+  FOR_EACH_VEC_ELT (cxx_saved_binding, s->old_bindings, i, sb)
     IDENTIFIER_MARKED (sb->identifier) = 0;
 
   s->prev = scope_chain;
@@ -5512,7 +5519,7 @@ pop_from_top_level (void)
   current_lang_base = 0;
 
   scope_chain = s->prev;
-  for (i = 0; VEC_iterate (cxx_saved_binding, s->old_bindings, i, saved); ++i)
+  FOR_EACH_VEC_ELT (cxx_saved_binding, s->old_bindings, i, saved)
     {
       tree id = saved->identifier;
 

@@ -88,6 +88,7 @@ static void gfc_init_builtin_functions (void);
 /* Each front end provides its own.  */
 static bool gfc_init (void);
 static void gfc_finish (void);
+static void gfc_write_global_declarations (void);
 static void gfc_print_identifier (FILE *, tree, int);
 void do_function_end (void);
 int global_bindings_p (void);
@@ -99,6 +100,8 @@ static void gfc_init_ts (void);
 #undef LANG_HOOKS_NAME
 #undef LANG_HOOKS_INIT
 #undef LANG_HOOKS_FINISH
+#undef LANG_HOOKS_WRITE_GLOBALS
+#undef LANG_HOOKS_OPTION_LANG_MASK
 #undef LANG_HOOKS_INIT_OPTIONS
 #undef LANG_HOOKS_HANDLE_OPTION
 #undef LANG_HOOKS_POST_OPTIONS
@@ -127,6 +130,8 @@ static void gfc_init_ts (void);
 #define LANG_HOOKS_NAME                 "GNU Fortran"
 #define LANG_HOOKS_INIT                 gfc_init
 #define LANG_HOOKS_FINISH               gfc_finish
+#define LANG_HOOKS_WRITE_GLOBALS	gfc_write_global_declarations
+#define LANG_HOOKS_OPTION_LANG_MASK	gfc_option_lang_mask
 #define LANG_HOOKS_INIT_OPTIONS         gfc_init_options
 #define LANG_HOOKS_HANDLE_OPTION        gfc_handle_option
 #define LANG_HOOKS_POST_OPTIONS		gfc_post_options
@@ -282,6 +287,33 @@ gfc_finish (void)
   return;
 }
 
+/* ??? This is something of a hack.
+
+   Emulated tls lowering needs to see all TLS variables before we call
+   cgraph_finalize_compilation_unit.  The C/C++ front ends manage this
+   by calling decl_rest_of_compilation on each global and static variable
+   as they are seen.  The Fortran front end waits until this hook.
+
+   A Correct solution is for cgraph_finalize_compilation_unit not to be
+   called during the WRITE_GLOBALS langhook, and have that hook only do what
+   its name suggests and write out globals.  But the C++ and Java front ends
+   have (unspecified) problems with aliases that gets in the way.  It has
+   been suggested that these problems would be solved by completing the
+   conversion to cgraph-based aliases.  */
+
+static void
+gfc_write_global_declarations (void)
+{
+  tree decl;
+
+  /* Finalize all of the globals.  */
+  for (decl = getdecls(); decl ; decl = DECL_CHAIN (decl))
+    rest_of_decl_compilation (decl, true, true);
+
+  write_global_declarations ();
+}
+
+
 static void
 gfc_print_identifier (FILE * file ATTRIBUTE_UNUSED,
 		      tree node ATTRIBUTE_UNUSED,
@@ -310,7 +342,7 @@ struct GTY(())
 binding_level {
   /* A chain of ..._DECL nodes for all variables, constants, functions,
      parameters and type declarations.  These ..._DECL nodes are chained
-     through the TREE_CHAIN field. Note that these ..._DECL nodes are stored
+     through the DECL_CHAIN field. Note that these ..._DECL nodes are stored
      in the reverse of the order supplied to be compatible with the
      back-end.  */
   tree names;
@@ -409,7 +441,7 @@ poplevel (int keep, int reverse, int functionbody)
   /* Clear out the meanings of the local variables of this level.  */
 
   for (subblock_node = decl_chain; subblock_node;
-       subblock_node = TREE_CHAIN (subblock_node))
+       subblock_node = DECL_CHAIN (subblock_node))
     if (DECL_NAME (subblock_node) != 0)
       /* If the identifier was used or addressed via a local extern decl,
          don't forget that fact.  */
@@ -467,7 +499,7 @@ pushdecl (tree decl)
      order. The list will be reversed later if necessary.  This needs to be
      this way for compatibility with the back-end.  */
 
-  TREE_CHAIN (decl) = current_binding_level->names;
+  DECL_CHAIN (decl) = current_binding_level->names;
   current_binding_level->names = decl;
 
   /* For the declaration of a type, set its name if it is not already set.  */
@@ -756,7 +788,7 @@ gfc_init_builtin_functions (void)
     build_function_type_list (void_type_node, ptype, ptype, NULL_TREE);
 
 /* Non-math builtins are defined manually, so they're not included here.  */
-#define OTHER_BUILTIN(ID,NAME,TYPE)
+#define OTHER_BUILTIN(ID,NAME,TYPE,CONST)
 
 #include "mathbuiltins.def"
 
@@ -906,13 +938,17 @@ gfc_init_builtin_functions (void)
 		          BUILT_IN_SINCOSF, "sincosf", false);
     }
 
-  /* For LEADZ / TRAILZ.  */
+  /* For LEADZ, TRAILZ, POPCNT and POPPAR.  */
   ftype = build_function_type_list (integer_type_node,
                                     unsigned_type_node, NULL_TREE);
   gfc_define_builtin ("__builtin_clz", ftype, BUILT_IN_CLZ,
 		      "__builtin_clz", true);
   gfc_define_builtin ("__builtin_ctz", ftype, BUILT_IN_CTZ,
 		      "__builtin_ctz", true);
+  gfc_define_builtin ("__builtin_parity", ftype, BUILT_IN_PARITY,
+		      "__builtin_parity", true);
+  gfc_define_builtin ("__builtin_popcount", ftype, BUILT_IN_POPCOUNT,
+		      "__builtin_popcount", true);
 
   ftype = build_function_type_list (integer_type_node,
                                     long_unsigned_type_node, NULL_TREE);
@@ -920,6 +956,10 @@ gfc_init_builtin_functions (void)
 		      "__builtin_clzl", true);
   gfc_define_builtin ("__builtin_ctzl", ftype, BUILT_IN_CTZL,
 		      "__builtin_ctzl", true);
+  gfc_define_builtin ("__builtin_parityl", ftype, BUILT_IN_PARITYL,
+		      "__builtin_parityl", true);
+  gfc_define_builtin ("__builtin_popcountl", ftype, BUILT_IN_POPCOUNTL,
+		      "__builtin_popcountl", true);
 
   ftype = build_function_type_list (integer_type_node,
                                     long_long_unsigned_type_node, NULL_TREE);
@@ -927,6 +967,10 @@ gfc_init_builtin_functions (void)
 		      "__builtin_clzll", true);
   gfc_define_builtin ("__builtin_ctzll", ftype, BUILT_IN_CTZLL,
 		      "__builtin_ctzll", true);
+  gfc_define_builtin ("__builtin_parityll", ftype, BUILT_IN_PARITYLL,
+		      "__builtin_parityll", true);
+  gfc_define_builtin ("__builtin_popcountll", ftype, BUILT_IN_POPCOUNTLL,
+		      "__builtin_popcountll", true);
 
   /* Other builtin functions we use.  */
 

@@ -1,5 +1,5 @@
 /* Target Definitions for R8C/M16C/M32C
-   Copyright (C) 2005, 2007, 2008, 2009
+   Copyright (C) 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Red Hat.
 
@@ -95,8 +95,6 @@ extern int target_memregs;
 #define TARGET_A24	(TARGET_M32CM || TARGET_M32C)
 
 #define TARGET_VERSION fprintf (stderr, " (m32c)");
-
-#define OVERRIDE_OPTIONS m32c_override_options ()
 
 /* Defining data structures for per-function information */
 
@@ -530,10 +528,6 @@ typedef struct m32c_cumulative_args
 #define FUNCTION_ARG_BOUNDARY(MODE,TYPE) (TARGET_A16 ? 8 : 16)
 #define FUNCTION_ARG_REGNO_P(r) m32c_function_arg_regno_p (r)
 
-/* How Scalar Function Values Are Returned */
-
-#define FUNCTION_VALUE_REGNO_P(r) m32c_function_value_regno_p (r)
-
 /* How Large Values Are Returned */
 
 #define DEFAULT_PCC_STRUCT_RETURN 1
@@ -583,13 +577,6 @@ typedef struct m32c_cumulative_args
 /* Condition Code Status */
 
 #define REVERSIBLE_CC_MODE(MODE) 1
-
-/* Describing Relative Costs of Operations */
-
-#define REGISTER_MOVE_COST(MODE,FROM,TO) \
-	m32c_register_move_cost (MODE, FROM, TO)
-#define MEMORY_MOVE_COST(MODE,CLASS,IN) \
-	m32c_memory_move_cost (MODE, CLASS, IN)
 
 /* Dividing the Output into Sections (Texts, Data, ...) */
 

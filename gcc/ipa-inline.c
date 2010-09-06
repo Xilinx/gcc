@@ -337,7 +337,9 @@ cgraph_mark_inline_edge (struct cgraph_edge *e, bool update_original,
     overall_size += new_size - old_size;
   ncalls_inlined++;
 
-  if (flag_indirect_inlining)
+  /* FIXME: We should remove the optimize check after we ensure we never run
+     IPA passes when not optimizng.  */
+  if (flag_indirect_inlining && optimize)
     return ipa_propagate_indirect_call_infos (curr, new_edges);
   else
     return false;
@@ -749,9 +751,8 @@ update_caller_keys (fibheap_t heap, struct cgraph_node *node,
   if (!node->local.inlinable
       || node->global.inlined_to)
     return;
-  if (bitmap_bit_p (updated_nodes, node->uid))
+  if (!bitmap_set_bit (updated_nodes, node->uid))
     return;
-  bitmap_set_bit (updated_nodes, node->uid);
   node->global.estimated_growth = INT_MIN;
 
   /* See if there is something to do.  */
@@ -2080,7 +2081,7 @@ estimate_function_body_sizes (struct cgraph_node *node)
       time_inlining_benefit += cost;
       size_inlining_benefit += cost;
     }
-  for (arg = DECL_ARGUMENTS (node->decl); arg; arg = TREE_CHAIN (arg))
+  for (arg = DECL_ARGUMENTS (node->decl); arg; arg = DECL_CHAIN (arg))
     if (!VOID_TYPE_P (TREE_TYPE (arg)))
       {
         int cost = estimate_move_cost (TREE_TYPE (arg));
@@ -2178,7 +2179,9 @@ analyze_function (struct cgraph_node *node)
   current_function_decl = node->decl;
 
   compute_inline_parameters (node);
-  if (flag_indirect_inlining)
+  /* FIXME: We should remove the optimize check after we ensure we never run
+     IPA passes when not optimizng.  */
+  if (flag_indirect_inlining && optimize)
     inline_indirect_intraprocedural_analysis (node);
 
   current_function_decl = NULL;

@@ -1,5 +1,5 @@
 /* The lang_hooks data structure.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -324,29 +324,35 @@ struct lang_hooks
      on unrecognized codes.  */
   size_t (*tree_size) (enum tree_code);
 
-  /* The first callback made to the front end, for simple
-     initialization needed before any calls to handle_option.  Return
-     the language mask to filter the switch array with.  */
-  unsigned int (*init_options) (unsigned int argc, const char **argv);
+  /* Return the language mask used for converting argv into a sequence
+     of options.  */
+  unsigned int (*option_lang_mask) (void);
+
+  /* After the initialize_diagnostics hook is called, do any simple
+     initialization needed before any calls to handle_option.  */
+  void (*init_options) (unsigned int decoded_options_count,
+			struct cl_decoded_option *decoded_options);
 
   /* Callback used to perform language-specific initialization for the
      global diagnostic context structure.  */
   void (*initialize_diagnostics) (struct diagnostic_context *);
+
+  /* Return true if a warning should be given about option OPTION,
+     which is for the wrong language, false if it should be quietly
+     ignored.  */
+  bool (*complain_wrong_lang_p) (const struct cl_option *option);
 
   /* Handle the switch CODE, which has real type enum opt_code from
      options.h.  If the switch takes an argument, it is passed in ARG
      which points to permanent storage.  The handler is responsible for
      checking whether ARG is NULL, which indicates that no argument
      was in fact supplied.  For -f and -W switches, VALUE is 1 or 0
-     for the positive and negative forms respectively.
+     for the positive and negative forms respectively.  HANDLERS should
+     be passed to any recursive handle_option calls.
 
-     Return 1 if the switch is valid, 0 if invalid, and -1 if it's
-     valid and should not be treated as language-independent too.  */
-  int (*handle_option) (size_t code, const char *arg, int value, int kind);
-
-  /* Return false to use the default complaint about a missing
-     argument, otherwise output a complaint and return true.  */
-  bool (*missing_argument) (const char *opt, size_t code);
+     Return true if the switch is valid, false if invalid.  */
+  bool (*handle_option) (size_t code, const char *arg, int value, int kind,
+			 const struct cl_option_handlers *handlers);
 
   /* Called when all command line options have been parsed to allow
      further processing and initialization

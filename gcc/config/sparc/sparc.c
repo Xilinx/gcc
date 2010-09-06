@@ -51,6 +51,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfglayout.h"
 #include "gimple.h"
 #include "langhooks.h"
+#include "reload.h"
 #include "params.h"
 #include "df.h"
 #include "dwarf2out.h"
@@ -416,8 +417,8 @@ static void sparc_va_start (tree, rtx);
 static tree sparc_gimplify_va_arg (tree, tree, gimple_seq *, gimple_seq *);
 static bool sparc_vector_mode_supported_p (enum machine_mode);
 static bool sparc_tls_referenced_p (rtx);
-static rtx legitimize_tls_address (rtx);
-static rtx legitimize_pic_address (rtx, rtx);
+static rtx sparc_legitimize_tls_address (rtx);
+static rtx sparc_legitimize_pic_address (rtx, rtx);
 static rtx sparc_legitimize_address (rtx, rtx, enum machine_mode);
 static bool sparc_mode_dependent_address_p (const_rtx);
 static bool sparc_pass_by_reference (CUMULATIVE_ARGS *,
@@ -1006,7 +1007,7 @@ sparc_expand_move (enum machine_mode mode, rtx *operands)
       && CONSTANT_P (operands[1])
       && sparc_tls_referenced_p (operands [1]))
     {
-      operands[1] = legitimize_tls_address (operands[1]);
+      operands[1] = sparc_legitimize_tls_address (operands[1]);
       return false;
     }
 
@@ -1014,7 +1015,7 @@ sparc_expand_move (enum machine_mode mode, rtx *operands)
   if (flag_pic && CONSTANT_P (operands[1]))
     {
       if (pic_address_needs_scratch (operands[1]))
-	operands[1] = legitimize_pic_address (operands[1], NULL_RTX);
+	operands[1] = sparc_legitimize_pic_address (operands[1], NULL_RTX);
 
       /* VxWorks does not impose a fixed gap between segments; the run-time
 	 gap can be different from the object-file gap.  We therefore can't
@@ -1041,9 +1042,10 @@ sparc_expand_move (enum machine_mode mode, rtx *operands)
 
       if (symbolic_operand (operands[1], mode))
 	{
-	  operands[1] = legitimize_pic_address (operands[1],
-						reload_in_progress
-						? operands[0] : NULL_RTX);
+	  operands[1]
+	    = sparc_legitimize_pic_address (operands[1],
+					    reload_in_progress
+					    ? operands[0] : NULL_RTX);
 	  return false;
 	}
     }
@@ -3217,7 +3219,7 @@ sparc_tls_referenced_p (rtx x)
   if (GET_CODE (x) == SYMBOL_REF && SYMBOL_REF_TLS_MODEL (x))
     return true;
 
-  /* That's all we handle in legitimize_tls_address for now.  */
+  /* That's all we handle in sparc_legitimize_tls_address for now.  */
   return false;
 }
 
@@ -3225,7 +3227,7 @@ sparc_tls_referenced_p (rtx x)
    this (thread-local) address.  */
 
 static rtx
-legitimize_tls_address (rtx addr)
+sparc_legitimize_tls_address (rtx addr)
 {
   rtx temp1, temp2, temp3, ret, o0, got, insn;
 
@@ -3354,7 +3356,7 @@ legitimize_tls_address (rtx addr)
 
       gcc_assert (GET_CODE (XEXP (addr, 0)) == PLUS);
 
-      base = legitimize_tls_address (XEXP (XEXP (addr, 0), 0));
+      base = sparc_legitimize_tls_address (XEXP (XEXP (addr, 0), 0));
       offset = XEXP (XEXP (addr, 0), 1);
 
       base = force_operand (base, NULL_RTX);
@@ -3375,7 +3377,7 @@ legitimize_tls_address (rtx addr)
    necessary.  */
 
 static rtx
-legitimize_pic_address (rtx orig, rtx reg)
+sparc_legitimize_pic_address (rtx orig, rtx reg)
 {
   bool gotdata_op = false;
 
@@ -3424,10 +3426,12 @@ legitimize_pic_address (rtx orig, rtx reg)
       if (gotdata_op)
 	{
 	  if (TARGET_ARCH64)
-	    insn = emit_insn (gen_movdi_pic_gotdata_op (reg, pic_offset_table_rtx,
+	    insn = emit_insn (gen_movdi_pic_gotdata_op (reg,
+							pic_offset_table_rtx,
 							address, orig));
 	  else
-	    insn = emit_insn (gen_movsi_pic_gotdata_op (reg, pic_offset_table_rtx,
+	    insn = emit_insn (gen_movsi_pic_gotdata_op (reg,
+							pic_offset_table_rtx,
 							address, orig));
 	}
       else
@@ -3457,9 +3461,9 @@ legitimize_pic_address (rtx orig, rtx reg)
 	}
 
       gcc_assert (GET_CODE (XEXP (orig, 0)) == PLUS);
-      base = legitimize_pic_address (XEXP (XEXP (orig, 0), 0), reg);
-      offset = legitimize_pic_address (XEXP (XEXP (orig, 0), 1),
-			 	       base == reg ? NULL_RTX : reg);
+      base = sparc_legitimize_pic_address (XEXP (XEXP (orig, 0), 0), reg);
+      offset = sparc_legitimize_pic_address (XEXP (XEXP (orig, 0), 1),
+			 		     base == reg ? NULL_RTX : reg);
 
       if (GET_CODE (offset) == CONST_INT)
 	{
@@ -3515,9 +3519,9 @@ sparc_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
     return x;
 
   if (sparc_tls_referenced_p (x))
-    x = legitimize_tls_address (x);
+    x = sparc_legitimize_tls_address (x);
   else if (flag_pic)
-    x = legitimize_pic_address (x, NULL_RTX);
+    x = sparc_legitimize_pic_address (x, NULL_RTX);
   else if (GET_CODE (x) == PLUS && CONSTANT_ADDRESS_P (XEXP (x, 1)))
     x = gen_rtx_PLUS (Pmode, XEXP (x, 0),
 		      copy_to_mode_reg (Pmode, XEXP (x, 1)));
@@ -3529,6 +3533,55 @@ sparc_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 	   || GET_CODE (x) == LABEL_REF)
     x = copy_to_suggested_reg (x, NULL_RTX, Pmode);
 
+  return x;
+}
+
+/* SPARC implementation of LEGITIMIZE_RELOAD_ADDRESS.  Returns a value to
+   replace the input X, or the original X if no replacement is called for.
+   The output parameter *WIN is 1 if the calling macro should goto WIN,
+   0 if it should not.
+
+   For SPARC, we wish to handle addresses by splitting them into
+   HIGH+LO_SUM pairs, retaining the LO_SUM in the memory reference.
+   This cuts the number of extra insns by one.
+
+   Do nothing when generating PIC code and the address is a symbolic
+   operand or requires a scratch register.  */
+
+rtx
+sparc_legitimize_reload_address (rtx x, enum machine_mode mode,
+				 int opnum, int type,
+				 int ind_levels ATTRIBUTE_UNUSED, int *win)
+{
+  /* Decompose SImode constants into HIGH+LO_SUM.  */
+  if (CONSTANT_P (x)
+      && (mode != TFmode || TARGET_ARCH64)
+      && GET_MODE (x) == SImode
+      && GET_CODE (x) != LO_SUM
+      && GET_CODE (x) != HIGH
+      && sparc_cmodel <= CM_MEDLOW
+      && !(flag_pic
+	   && (symbolic_operand (x, Pmode) || pic_address_needs_scratch (x))))
+    {
+      x = gen_rtx_LO_SUM (GET_MODE (x), gen_rtx_HIGH (GET_MODE (x), x), x);
+      push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
+		   BASE_REG_CLASS, GET_MODE (x), VOIDmode, 0, 0,
+		   opnum, (enum reload_type)type);
+      *win = 1;
+      return x;
+    }
+
+  /* We have to recognize what we have already generated above.  */
+  if (GET_CODE (x) == LO_SUM && GET_CODE (XEXP (x, 0)) == HIGH)
+    {
+      push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
+		   BASE_REG_CLASS, GET_MODE (x), VOIDmode, 0, 0,
+		   opnum, (enum reload_type)type);
+      *win = 1;
+      return x;
+    }
+
+  *win = 0;
   return x;
 }
 
@@ -4349,6 +4402,9 @@ sparc_expand_prologue (void)
   /* Advertise that the data calculated just above are now valid.  */
   sparc_prologue_data_valid_p = true;
 
+  if (flag_stack_usage)
+    current_function_static_stack_size = actual_fsize;
+
   if (flag_stack_check == STATIC_BUILTIN_STACK_CHECK && actual_fsize)
     sparc_emit_probe_stack_range (STACK_CHECK_PROTECT, actual_fsize);
 
@@ -4474,11 +4530,11 @@ sparc_can_use_return_insn_p (void)
 static void
 sparc_asm_function_epilogue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 {
-  /* If code does not drop into the epilogue, we have to still output
-     a dummy nop for the sake of sane backtraces.  Otherwise, if the
-     last two instructions of a function were "call foo; dslot;" this
-     can make the return PC of foo (i.e. address of call instruction
-     plus 8) point to the first instruction in the next function.  */
+  /* If the last two instructions of a function are "call foo; dslot;"
+     the return address might point to the first instruction in the next
+     function and we have to output a dummy nop for the sake of sane
+     backtraces in such cases.  This is pointless for sibling calls since
+     the return address is explicitly adjusted.  */
 
   rtx insn, last_real_insn;
 
@@ -4490,7 +4546,9 @@ sparc_asm_function_epilogue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
       && GET_CODE (PATTERN (last_real_insn)) == SEQUENCE)
     last_real_insn = XVECEXP (PATTERN (last_real_insn), 0, 0);
 
-  if (last_real_insn && GET_CODE (last_real_insn) == CALL_INSN)
+  if (last_real_insn
+      && CALL_P (last_real_insn)
+      && !SIBLING_CALL_P (last_real_insn))
     fputs("\tnop\n", file);
 
   sparc_output_deferred_case_vectors ();
@@ -4873,7 +4931,7 @@ scan_record_type (tree type, int *intregs_p, int *fpregs_p, int *packed_p)
 {
   tree field;
 
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
     {
       if (TREE_CODE (field) == FIELD_DECL)
 	{
@@ -5093,7 +5151,7 @@ function_arg_record_value_1 (const_tree type, HOST_WIDE_INT startbitpos,
       }
 
   /* Compute how many registers we need.  */
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
     {
       if (TREE_CODE (field) == FIELD_DECL)
 	{
@@ -5232,7 +5290,7 @@ function_arg_record_value_2 (const_tree type, HOST_WIDE_INT startbitpos,
   tree field;
 
   if (! packed_p)
-    for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+    for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
       {
 	if (TREE_CODE (field) == FIELD_DECL && DECL_PACKED (field))
 	  {
@@ -5241,7 +5299,7 @@ function_arg_record_value_2 (const_tree type, HOST_WIDE_INT startbitpos,
 	  }
       }
 
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
     {
       if (TREE_CODE (field) == FIELD_DECL)
 	{
@@ -5756,14 +5814,13 @@ void
 function_arg_advance (struct sparc_args *cum, enum machine_mode mode,
 		      tree type, int named)
 {
-  int slotno, regno, padding;
+  int regno, padding;
 
   /* We pass 0 for incoming_p here, it doesn't matter.  */
-  slotno = function_arg_slotno (cum, mode, type, named, 0, &regno, &padding);
+  function_arg_slotno (cum, mode, type, named, 0, &regno, &padding);
 
-  /* If register required leading padding, add it.  */
-  if (slotno != -1)
-    cum->words += padding;
+  /* If argument requires leading padding, add it.  */
+  cum->words += padding;
 
   if (TARGET_ARCH32)
     {
@@ -9111,7 +9168,7 @@ sparc_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 	  /* Delay emitting the PIC helper function because it needs to
 	     change the section and we are emitting assembly code.  */
 	  load_pic_register ();  /* clobbers %o7 */
-	  scratch = legitimize_pic_address (funexp, scratch);
+	  scratch = sparc_legitimize_pic_address (funexp, scratch);
 	  seq = get_insns ();
 	  end_sequence ();
 	  emit_and_preserve (seq, spill_reg, spill_reg2);

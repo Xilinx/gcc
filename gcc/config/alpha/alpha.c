@@ -215,6 +215,11 @@ alpha_handle_option (size_t code, const char *arg, int value)
 {
   switch (code)
     {
+    case OPT_G:
+      g_switch_value = value;
+      g_switch_set = true;
+      break;
+
     case OPT_mfp_regs:
       if (value == 0)
 	target_flags |= MASK_SOFT_FP;
@@ -5944,13 +5949,17 @@ alpha_build_builtin_va_list (void)
 		    FIELD_DECL, get_identifier ("__offset"),
 		    integer_type_node);
   DECL_FIELD_CONTEXT (ofs) = record;
-  TREE_CHAIN (ofs) = space;
+  DECL_CHAIN (ofs) = space;
+  /* ??? This is a hack, __offset is marked volatile to prevent
+     DCE that confuses stdarg optimization and results in
+     gcc.c-torture/execute/stdarg-1.c failure.  See PR 41089.  */
+  TREE_THIS_VOLATILE (ofs) = 1;
 
   base = build_decl (BUILTINS_LOCATION,
 		     FIELD_DECL, get_identifier ("__base"),
 		     ptr_type_node);
   DECL_FIELD_CONTEXT (base) = record;
-  TREE_CHAIN (base) = ofs;
+  DECL_CHAIN (base) = ofs;
 
   TYPE_FIELDS (record) = base;
   layout_type (record);
@@ -6304,7 +6313,7 @@ alpha_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   else
     {
       base_field = TYPE_FIELDS (TREE_TYPE (valist));
-      offset_field = TREE_CHAIN (base_field);
+      offset_field = DECL_CHAIN (base_field);
 
       base_field = build3 (COMPONENT_REF, TREE_TYPE (base_field),
 			   valist, base_field, NULL_TREE);
@@ -6408,7 +6417,7 @@ alpha_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
     return std_gimplify_va_arg_expr (valist, type, pre_p, post_p);
 
   base_field = TYPE_FIELDS (va_list_type_node);
-  offset_field = TREE_CHAIN (base_field);
+  offset_field = DECL_CHAIN (base_field);
   base_field = build3 (COMPONENT_REF, TREE_TYPE (base_field),
 		       valist, base_field, NULL_TREE);
   offset_field = build3 (COMPONENT_REF, TREE_TYPE (offset_field),
@@ -7754,6 +7763,30 @@ emit_frame_store (unsigned int regno, rtx base_reg,
   emit_frame_store_1 (reg, base_reg, frame_bias, base_ofs, reg);
 }
 
+/* Compute the frame size.  SIZE is the size of the "naked" frame
+   and SA_SIZE is the size of the register save area.  */
+
+static HOST_WIDE_INT
+compute_frame_size (HOST_WIDE_INT size, HOST_WIDE_INT sa_size)
+{
+  if (TARGET_ABI_OPEN_VMS)
+    return ALPHA_ROUND (sa_size 
+			+ (alpha_procedure_type == PT_STACK ? 8 : 0)
+			+ size
+			+ crtl->args.pretend_args_size);
+  else if (TARGET_ABI_UNICOSMK)
+    /* We have to allocate space for the DSIB if we generate a frame.  */
+    return ALPHA_ROUND (sa_size
+			+ (alpha_procedure_type == PT_STACK ? 48 : 0))
+	   + ALPHA_ROUND (size
+			  + crtl->outgoing_args_size);
+  else
+    return ALPHA_ROUND (crtl->outgoing_args_size)
+	   + sa_size
+	   + ALPHA_ROUND (size
+			  + crtl->args.pretend_args_size);
+}
+
 /* Write function prologue.  */
 
 /* On vms we have two kinds of functions:
@@ -7787,24 +7820,10 @@ alpha_expand_prologue (void)
   int i;
 
   sa_size = alpha_sa_size ();
+  frame_size = compute_frame_size (get_frame_size (), sa_size);
 
-  frame_size = get_frame_size ();
-  if (TARGET_ABI_OPEN_VMS)
-    frame_size = ALPHA_ROUND (sa_size
-			      + (alpha_procedure_type == PT_STACK ? 8 : 0)
-			      + frame_size
-			      + crtl->args.pretend_args_size);
-  else if (TARGET_ABI_UNICOSMK)
-    /* We have to allocate space for the DSIB if we generate a frame.  */
-    frame_size = ALPHA_ROUND (sa_size
-			      + (alpha_procedure_type == PT_STACK ? 48 : 0))
-		 + ALPHA_ROUND (frame_size
-				+ crtl->outgoing_args_size);
-  else
-    frame_size = (ALPHA_ROUND (crtl->outgoing_args_size)
-		  + sa_size
-		  + ALPHA_ROUND (frame_size
-				 + crtl->args.pretend_args_size));
+  if (flag_stack_usage)
+    current_function_static_stack_size = frame_size;
 
   if (TARGET_ABI_OPEN_VMS)
     reg_offset = 8 + 8 * cfun->machine->uses_condition_handler;
@@ -8126,23 +8145,7 @@ alpha_start_function (FILE *file, const char *fnname,
 
   alpha_fnname = fnname;
   sa_size = alpha_sa_size ();
-
-  frame_size = get_frame_size ();
-  if (TARGET_ABI_OPEN_VMS)
-    frame_size = ALPHA_ROUND (sa_size
-			      + (alpha_procedure_type == PT_STACK ? 8 : 0)
-			      + frame_size
-			      + crtl->args.pretend_args_size);
-  else if (TARGET_ABI_UNICOSMK)
-    frame_size = ALPHA_ROUND (sa_size
-			      + (alpha_procedure_type == PT_STACK ? 48 : 0))
-		 + ALPHA_ROUND (frame_size
-			      + crtl->outgoing_args_size);
-  else
-    frame_size = (ALPHA_ROUND (crtl->outgoing_args_size)
-		  + sa_size
-		  + ALPHA_ROUND (frame_size
-				 + crtl->args.pretend_args_size));
+  frame_size = compute_frame_size (get_frame_size (), sa_size);
 
   if (TARGET_ABI_OPEN_VMS)
     reg_offset = 8 + 8 * cfun->machine->uses_condition_handler;
@@ -8344,23 +8347,7 @@ alpha_expand_epilogue (void)
   int i;
 
   sa_size = alpha_sa_size ();
-
-  frame_size = get_frame_size ();
-  if (TARGET_ABI_OPEN_VMS)
-    frame_size = ALPHA_ROUND (sa_size
-			      + (alpha_procedure_type == PT_STACK ? 8 : 0)
-			      + frame_size
-			      + crtl->args.pretend_args_size);
-  else if (TARGET_ABI_UNICOSMK)
-    frame_size = ALPHA_ROUND (sa_size
-			      + (alpha_procedure_type == PT_STACK ? 48 : 0))
-		 + ALPHA_ROUND (frame_size
-			      + crtl->outgoing_args_size);
-  else
-    frame_size = (ALPHA_ROUND (crtl->outgoing_args_size)
-		  + sa_size
-		  + ALPHA_ROUND (frame_size
-				 + crtl->args.pretend_args_size));
+  frame_size = compute_frame_size (get_frame_size (), sa_size);
 
   if (TARGET_ABI_OPEN_VMS)
     {

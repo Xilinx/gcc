@@ -1597,8 +1597,11 @@ expand_value_return (rtx val)
       tree type = TREE_TYPE (decl);
       int unsignedp = TYPE_UNSIGNED (type);
       enum machine_mode old_mode = DECL_MODE (decl);
-      enum machine_mode mode = promote_function_mode (type, old_mode,
-						      &unsignedp, funtype, 1);
+      enum machine_mode mode;
+      if (DECL_BY_REFERENCE (decl))
+        mode = promote_function_mode (type, old_mode, &unsignedp, funtype, 2);
+      else
+        mode = promote_function_mode (type, old_mode, &unsignedp, funtype, 1);
 
       if (mode != old_mode)
 	val = convert_modes (mode, old_mode, val, unsignedp);
@@ -2337,11 +2340,8 @@ expand_case (gimple stmt)
 	  /* If we have not seen this label yet, then increase the
 	     number of unique case node targets seen.  */
 	  lab = label_rtx (n->code_label);
-	  if (!bitmap_bit_p (label_bitmap, CODE_LABEL_NUMBER (lab)))
-	    {
-	      bitmap_set_bit (label_bitmap, CODE_LABEL_NUMBER (lab));
-	      uniq++;
-	    }
+	  if (bitmap_set_bit (label_bitmap, CODE_LABEL_NUMBER (lab)))
+	    uniq++;
 	}
 
       BITMAP_FREE (label_bitmap);

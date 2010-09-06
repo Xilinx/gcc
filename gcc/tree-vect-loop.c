@@ -840,7 +840,7 @@ destroy_loop_vec_info (loop_vec_info loop_vinfo, bool clean_stmts)
   VEC_free (gimple, heap, LOOP_VINFO_MAY_MISALIGN_STMTS (loop_vinfo));
   VEC_free (ddr_p, heap, LOOP_VINFO_MAY_ALIAS_DDRS (loop_vinfo));
   slp_instances = LOOP_VINFO_SLP_INSTANCES (loop_vinfo);
-  for (j = 0; VEC_iterate (slp_instance, slp_instances, j, instance); j++)
+  FOR_EACH_VEC_ELT (slp_instance, slp_instances, j, instance)
     vect_free_slp_instance (instance);
 
   VEC_free (slp_instance, heap, LOOP_VINFO_SLP_INSTANCES (loop_vinfo));
@@ -2031,6 +2031,7 @@ vect_get_single_scalar_iteraion_cost (loop_vec_info loop_vinfo)
      statements.  */
 
   /* FORNOW.  */
+  innerloop_iters = 1;
   if (loop->inner)
     innerloop_iters = 50; /* FIXME */
 
@@ -2330,7 +2331,7 @@ vect_estimate_min_profitable_iters (loop_vec_info loop_vinfo)
 
   /* Add SLP costs.  */
   slp_instances = LOOP_VINFO_SLP_INSTANCES (loop_vinfo);
-  for (i = 0; VEC_iterate (slp_instance, slp_instances, i, instance); i++)
+  FOR_EACH_VEC_ELT (slp_instance, slp_instances, i, instance)
     {
       vec_outside_cost += SLP_INSTANCE_OUTSIDE_OF_LOOP_COST (instance);
       vec_inside_cost += SLP_INSTANCE_INSIDE_OF_LOOP_COST (instance);
@@ -2608,7 +2609,7 @@ get_initial_def_for_induction (gimple iv_phi)
   if (INTEGRAL_TYPE_P (scalar_type))
     step_expr = build_int_cst (scalar_type, 0);
   else if (POINTER_TYPE_P (scalar_type))
-    step_expr = build_int_cst (sizetype, 0);
+    step_expr = size_zero_node;
   else
     step_expr = build_real (scalar_type, dconst0);
 
@@ -3101,8 +3102,8 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
   tree vec_initial_def = NULL;
   tree reduction_op, expr, def;
   tree orig_name, scalar_result;
-  imm_use_iterator imm_iter;
-  use_operand_p use_p;
+  imm_use_iterator imm_iter, phi_imm_iter;
+  use_operand_p use_p, phi_use_p;
   bool extract_scalar_result = false;
   gimple use_stmt, orig_stmt, reduction_phi = NULL;
   bool nested_in_vect_loop = false;
@@ -3179,7 +3180,7 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
     }
 
   /* Set phi nodes arguments.  */
-  for (i = 0; VEC_iterate (gimple, reduction_phis, i, phi); i++)
+  FOR_EACH_VEC_ELT (gimple, reduction_phis, i, phi)
     {
       tree vec_init_def = VEC_index (tree, vec_initial_defs, i);
       tree def = VEC_index (tree, vect_defs, i);
@@ -3245,7 +3246,7 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
   exit_bb = single_exit (loop)->dest;
   prev_phi_info = NULL;
   new_phis = VEC_alloc (gimple, heap, VEC_length (tree, vect_defs));
-  for (i = 0; VEC_iterate (tree, vect_defs, i, def); i++)
+  FOR_EACH_VEC_ELT (tree, vect_defs, i, def)
     {
       for (j = 0; j < ncopies; j++)
         {
@@ -3262,6 +3263,14 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
           SET_PHI_ARG_DEF (phi, single_exit (loop)->dest_idx, def);
           prev_phi_info = vinfo_for_stmt (phi);
         }
+    }
+
+  /* The epilogue is created for the outer-loop, i.e., for the loop being
+     vectorized.  */
+  if (double_reduc)
+    {
+      loop = outer_loop;
+      exit_bb = single_exit (loop)->dest;
     }
 
   exit_gsi = gsi_after_labels (exit_bb);
@@ -3416,7 +3425,7 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
             fprintf (vect_dump, "Reduce using scalar code. ");
 
           vec_size_in_bits = tree_low_cst (TYPE_SIZE (vectype), 1);
-          for (i = 0; VEC_iterate (gimple, new_phis, i, new_phi); i++)
+          FOR_EACH_VEC_ELT (gimple, new_phis, i, new_phi)
             {
               vec_temp = PHI_RESULT (new_phi);
               rhs = build3 (BIT_FIELD_REF, scalar_type, vec_temp, bitsize,
@@ -3518,6 +3527,9 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
     }
   
 vect_finalize_reduction:
+
+  if (double_reduc)
+    loop = loop->inner;
 
   /* 2.5 Adjust the final result by the initial value of the reduction
 	 variable. (When such adjustment is not needed, then
@@ -3636,7 +3648,7 @@ vect_finalize_reduction:
          form.  */
       gcc_assert (!VEC_empty (gimple, phis));
 
-      for (i = 0; VEC_iterate (gimple, phis, i, exit_phi); i++)
+      FOR_EACH_VEC_ELT (gimple, phis, i, exit_phi)
         {
           if (outer_loop)
             {
@@ -3738,7 +3750,45 @@ vect_finalize_reduction:
                     }
                 }
             }
+        }
 
+      VEC_free (gimple, heap, phis);
+      if (nested_in_vect_loop)
+        {
+          if (double_reduc)
+            loop = outer_loop;
+          else
+            continue;
+        }
+
+      phis = VEC_alloc (gimple, heap, 3);
+      /* Find the loop-closed-use at the loop exit of the original scalar
+         result. (The reduction result is expected to have two immediate uses -
+         one at the latch block, and one at the loop exit). For double 
+         reductions we are looking for exit phis of the outer loop.  */
+      FOR_EACH_IMM_USE_FAST (use_p, imm_iter, scalar_dest)
+        {
+          if (!flow_bb_inside_loop_p (loop, gimple_bb (USE_STMT (use_p))))
+            VEC_safe_push (gimple, heap, phis, USE_STMT (use_p));
+          else
+            {
+              if (double_reduc && gimple_code (USE_STMT (use_p)) == GIMPLE_PHI)
+                {
+                  tree phi_res = PHI_RESULT (USE_STMT (use_p));
+
+                  FOR_EACH_IMM_USE_FAST (phi_use_p, phi_imm_iter, phi_res)
+                    {
+                      if (!flow_bb_inside_loop_p (loop,
+                                             gimple_bb (USE_STMT (phi_use_p))))
+                        VEC_safe_push (gimple, heap, phis,
+                                       USE_STMT (phi_use_p));
+                    }
+                }
+            }
+        }
+
+      FOR_EACH_VEC_ELT (gimple, phis, i, exit_phi)
+        {
           /* Replace the uses:  */
           orig_name = PHI_RESULT (exit_phi);
           scalar_result = VEC_index (tree, scalar_results, k);
@@ -4297,7 +4347,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
           STMT_VINFO_RELATED_STMT (prev_phi_info) = new_phi;
         }
 
-      for (i = 0; VEC_iterate (tree, vec_oprnds0, i, def0); i++)
+      FOR_EACH_VEC_ELT (tree, vec_oprnds0, i, def0)
         {
           if (slp_node)
             reduc_def = PHI_RESULT (VEC_index (gimple, phis, i));

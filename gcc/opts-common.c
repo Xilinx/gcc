@@ -23,6 +23,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "opts.h"
 #include "options.h"
+#include "diagnostic.h"
+#include "tm.h" /* For SWITCH_TAKES_ARG and WORD_SWITCH_TAKES_ARG.  */
 
 /* Perform a binary search to find which option the command-line INPUT
    matches.  Returns its index in the option array, and
@@ -125,9 +127,27 @@ integral_argument (const char *arg)
   return -1;
 }
 
+/* Return whether OPTION is OK for the language given by
+   LANG_MASK.  */
+static bool
+option_ok_for_language (const struct cl_option *option,
+			unsigned int lang_mask)
+{
+  if (!(option->flags & lang_mask))
+    return false;
+  else if ((option->flags & CL_TARGET)
+	   && (option->flags & (CL_LANG_ALL | CL_DRIVER))
+	   && !(option->flags & (lang_mask & ~CL_COMMON & ~CL_TARGET)))
+    /* Complain for target flag language mismatches if any languages
+       are specified.  */
+    return false;
+  return true;
+}
+
 /* Decode the switch beginning at ARGV for the language indicated by
-   LANG_MASK, into the structure *DECODED.  Returns the number of
-   switches consumed.  */
+   LANG_MASK (including CL_COMMON and CL_TARGET if applicable), into
+   the structure *DECODED.  Returns the number of switches
+   consumed.  */
 
 static unsigned int
 decode_cmdline_option (const char **argv, unsigned int lang_mask,
@@ -137,13 +157,17 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
   const char *opt, *arg = 0;
   char *dup = 0;
   int value = 1;
-  unsigned int result = 1;
+  unsigned int result = 1, i;
+  size_t total_len;
+  char *p;
   const struct cl_option *option;
   int errors = 0;
+  bool separate_arg_flag;
+  bool joined_arg_flag;
 
   opt = argv[0];
 
-  opt_index = find_opt (opt + 1, lang_mask | CL_COMMON | CL_TARGET);
+  opt_index = find_opt (opt + 1, lang_mask);
   if (opt_index == OPT_SPECIAL_unknown
       && (opt[1] == 'W' || opt[1] == 'f' || opt[1] == 'm')
       && opt[2] == 'n' && opt[3] == 'o' && opt[4] == '-')
@@ -157,7 +181,7 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
       memcpy (dup + 2, opt + 5, len - 2 + 1);
       opt = dup;
       value = 0;
-      opt_index = find_opt (opt + 1, lang_mask | CL_COMMON | CL_TARGET);
+      opt_index = find_opt (opt + 1, lang_mask);
     }
 
   if (opt_index == OPT_SPECIAL_unknown)
@@ -173,6 +197,7 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
   if (!value && (option->flags & CL_REJECT_NEGATIVE))
     {
       opt_index = OPT_SPECIAL_unknown;
+      errors |= CL_ERR_NEGATIVE;
       arg = argv[0];
       goto done;
     }
@@ -181,8 +206,15 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
   if (option->flags & CL_DISABLED)
     errors |= CL_ERR_DISABLED;
 
+  /* Determine whether there may be a separate argument based on
+     whether this option is being processed for the driver.  */
+  separate_arg_flag = ((option->flags & CL_SEPARATE)
+		       && !((option->flags & CL_NO_DRIVER_ARG)
+			    && (lang_mask & CL_DRIVER)));
+  joined_arg_flag = (option->flags & CL_JOINED) != 0;
+
   /* Sort out any argument the switch takes.  */
-  if (option->flags & CL_JOINED)
+  if (joined_arg_flag)
     {
       /* Have arg point to the original switch.  This is because
 	 some code, such as disable_builtin_function, expects its
@@ -193,7 +225,7 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
 
       if (*arg == '\0' && !(option->flags & CL_MISSING_OK))
 	{
-	  if (option->flags & CL_SEPARATE)
+	  if (separate_arg_flag)
 	    {
 	      arg = argv[1];
 	      result = 2;
@@ -205,7 +237,7 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
 	    arg = NULL;
 	}
     }
-  else if (option->flags & CL_SEPARATE)
+  else if (separate_arg_flag)
     {
       arg = argv[1];
       result = 2;
@@ -214,16 +246,10 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
     }
 
   /* Check if this is a switch for a different front end.  */
-  if (!(option->flags & (lang_mask | CL_COMMON | CL_TARGET)))
+  if (!option_ok_for_language (option, lang_mask))
     errors |= CL_ERR_WRONG_LANG;
-  else if ((option->flags & CL_TARGET)
-	   && (option->flags & CL_LANG_ALL)
-	   && !(option->flags & lang_mask))
-    /* Complain for target flag language mismatches if any languages
-       are specified.  */
-      errors |= CL_ERR_WRONG_LANG;
 
-  if (arg == NULL && (option->flags & (CL_JOINED | CL_SEPARATE)))
+  if (arg == NULL && (separate_arg_flag || joined_arg_flag))
     errors |= CL_ERR_MISSING_ARG;
 
   /* If the switch takes an integer, convert it.  */
@@ -241,18 +267,54 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
   decoded->arg = arg;
   decoded->value = value;
   decoded->errors = errors;
-  switch (result)
+
+  if (opt_index == OPT_SPECIAL_unknown)
     {
-    case 1:
-      decoded->orig_option_with_args_text = argv[0];
-      break;
-    case 2:
-      decoded->orig_option_with_args_text = concat (argv[0], " ",
-						    argv[1], NULL);
-      break;
-    default:
-      gcc_unreachable ();
+      /* Skip the correct number of arguments for options handled
+	 through specs.  */
+      const char *popt = argv[0] + 1;
+      int c = *popt;
+
+      gcc_assert (result == 1);
+      if (SWITCH_TAKES_ARG (c) > (popt[1] != 0))
+	result += SWITCH_TAKES_ARG (c) - (popt[1] != 0);
+      else if (WORD_SWITCH_TAKES_ARG (popt))
+	result += WORD_SWITCH_TAKES_ARG (popt);
+      if (result > 1)
+	for (i = 1; i < result; i++)
+	  if (argv[i] == NULL)
+	    {
+	      result = i;
+	      break;
+	    }
     }
+
+  gcc_assert (result >= 1 && result <= ARRAY_SIZE (decoded->canonical_option));
+  decoded->canonical_option_num_elements = result;
+  total_len = 0;
+  for (i = 0; i < ARRAY_SIZE (decoded->canonical_option); i++)
+    {
+      if (i < result)
+	{
+	  decoded->canonical_option[i] = argv[i];
+	  total_len += strlen (argv[i]) + 1;
+	}
+      else
+	decoded->canonical_option[i] = NULL;
+    }
+  decoded->orig_option_with_args_text = p = XNEWVEC (char, total_len);
+  for (i = 0; i < result; i++)
+    {
+      size_t len = strlen (argv[i]);
+
+      memcpy (p, argv[i], len);
+      p += len;
+      if (i == result - 1)
+	*p++ = 0;
+      else
+	*p++ = ' ';
+    }
+
   return result;
 }
 
@@ -261,8 +323,9 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
    array and *DECODED_OPTIONS_COUNT to the number of entries in the
    array.  The first entry in the array is always one for the program
    name (OPT_SPECIAL_program_name).  LANG_MASK indicates the language
-   applicable for decoding.  Do not produce any diagnostics or set
-   state outside of these variables.  */
+   flags applicable for decoding (including CL_COMMON and CL_TARGET if
+   those options should be considered applicable).  Do not produce any
+   diagnostics or set state outside of these variables.  */
 
 void
 decode_cmdline_options_to_array (unsigned int argc, const char **argv, 
@@ -279,6 +342,11 @@ decode_cmdline_options_to_array (unsigned int argc, const char **argv,
   opt_array[0].opt_index = OPT_SPECIAL_program_name;
   opt_array[0].arg = argv[0];
   opt_array[0].orig_option_with_args_text = argv[0];
+  opt_array[0].canonical_option_num_elements = 1;
+  opt_array[0].canonical_option[0] = argv[0];
+  opt_array[0].canonical_option[1] = NULL;
+  opt_array[0].canonical_option[2] = NULL;
+  opt_array[0].canonical_option[3] = NULL;
   opt_array[0].value = 1;
   opt_array[0].errors = 0;
   num_decoded_options = 1;
@@ -290,11 +358,7 @@ decode_cmdline_options_to_array (unsigned int argc, const char **argv,
       /* Interpret "-" or a non-switch as a file name.  */
       if (opt[0] != '-' || opt[1] == '\0')
 	{
-	  opt_array[num_decoded_options].opt_index = OPT_SPECIAL_input_file;
-	  opt_array[num_decoded_options].arg = opt;
-	  opt_array[num_decoded_options].orig_option_with_args_text = opt;
-	  opt_array[num_decoded_options].value = 1;
-	  opt_array[num_decoded_options].errors = 0;
+	  generate_option_input_file (opt, &opt_array[num_decoded_options]);
 	  num_decoded_options++;
 	  n = 1;
 	  continue;
@@ -444,4 +508,218 @@ done:
     }
 
   free (options);
+}
+
+/* Handle option DECODED for the language indicated by LANG_MASK,
+   using the handlers in HANDLERS.  KIND is the diagnostic_t if this
+   is a diagnostics option, DK_UNSPECIFIED otherwise.  Returns false
+   if the switch was invalid.  */
+
+bool
+handle_option (const struct cl_decoded_option *decoded,
+	       unsigned int lang_mask, int kind,
+	       const struct cl_option_handlers *handlers)
+{
+  size_t opt_index = decoded->opt_index;
+  const char *arg = decoded->arg;
+  int value = decoded->value;
+  const struct cl_option *option = &cl_options[opt_index];
+  size_t i;
+
+  if (option->flag_var)
+    set_option (opt_index, value, arg, kind);
+
+  for (i = 0; i < handlers->num_handlers; i++)
+    if (option->flags & handlers->handlers[i].mask)
+      {
+	if (!handlers->handlers[i].handler (decoded,
+					    lang_mask, kind, handlers))
+	  return false;
+	else
+	  handlers->post_handling_callback (decoded,
+					    handlers->handlers[i].mask);
+      }
+  
+  return true;
+}
+
+/* Like handle_option, but OPT_INDEX, ARG and VALUE describe the
+   option instead of DECODED.  This is used for callbacks when one
+   option implies another instead of an option being decoded from the
+   command line.  */
+
+bool
+handle_generated_option (size_t opt_index, const char *arg, int value,
+			 unsigned int lang_mask, int kind,
+			 const struct cl_option_handlers *handlers)
+{
+  struct cl_decoded_option decoded;
+
+  generate_option (opt_index, arg, value, lang_mask, &decoded);
+  return handle_option (&decoded, lang_mask, kind, handlers);
+}
+
+/* Fill in *DECODED with an option described by OPT_INDEX, ARG and
+   VALUE for a front end using LANG_MASK.  This is used when the
+   compiler generates options internally.  */
+
+void
+generate_option (size_t opt_index, const char *arg, int value,
+		 unsigned int lang_mask, struct cl_decoded_option *decoded)
+{
+  const struct cl_option *option = &cl_options[opt_index];
+
+  decoded->opt_index = opt_index;
+  decoded->arg = arg;
+  decoded->canonical_option[2] = NULL;
+  decoded->canonical_option[3] = NULL;
+  decoded->value = value;
+  decoded->errors = (option_ok_for_language (option, lang_mask)
+		     ? 0
+		     : CL_ERR_WRONG_LANG);
+
+  if (arg)
+    {
+      if (option->flags & CL_SEPARATE)
+	{
+	  decoded->orig_option_with_args_text = concat (option->opt_text, " ",
+							arg, NULL);
+	  decoded->canonical_option[0] = option->opt_text;
+	  decoded->canonical_option[1] = arg;
+	  decoded->canonical_option_num_elements = 2;
+	}
+      else
+	{
+	  gcc_assert (option->flags & CL_JOINED);
+	  decoded->orig_option_with_args_text = concat (option->opt_text, arg,
+							NULL);
+	  decoded->canonical_option[0] = decoded->orig_option_with_args_text;
+	  decoded->canonical_option[1] = NULL;
+	  decoded->canonical_option_num_elements = 1;
+	}
+    }
+  else
+    {
+      decoded->orig_option_with_args_text = option->opt_text;
+      decoded->canonical_option[0] = option->opt_text;
+      decoded->canonical_option[1] = NULL;
+      decoded->canonical_option_num_elements = 1;
+    }
+}
+
+/* Fill in *DECODED with an option for input file FILE.  */
+
+void
+generate_option_input_file (const char *file,
+			    struct cl_decoded_option *decoded)
+{
+  decoded->opt_index = OPT_SPECIAL_input_file;
+  decoded->arg = file;
+  decoded->orig_option_with_args_text = file;
+  decoded->canonical_option_num_elements = 1;
+  decoded->canonical_option[0] = file;
+  decoded->canonical_option[1] = NULL;
+  decoded->canonical_option[2] = NULL;
+  decoded->canonical_option[3] = NULL;
+  decoded->value = 1;
+  decoded->errors = 0;
+}
+
+/* Handle the switch DECODED for the language indicated by LANG_MASK,
+   using the handlers in *HANDLERS.  */
+
+void
+read_cmdline_option (struct cl_decoded_option *decoded,
+		     unsigned int lang_mask,
+		     const struct cl_option_handlers *handlers)
+{
+  const struct cl_option *option;
+  const char *opt;
+
+  if (decoded->opt_index == OPT_SPECIAL_unknown)
+    {
+      if (handlers->unknown_option_callback (decoded))
+	error ("unrecognized command line option %qs", decoded->arg);
+      return;
+    }
+
+  option = &cl_options[decoded->opt_index];
+  opt = decoded->orig_option_with_args_text;
+
+  if (decoded->errors & CL_ERR_DISABLED)
+    {
+      error ("command line option %qs"
+	     " is not supported by this configuration", opt);
+      return;
+    }
+
+  if (decoded->errors & CL_ERR_WRONG_LANG)
+    {
+      handlers->wrong_lang_callback (decoded, lang_mask);
+      return;
+    }
+
+  if (decoded->errors & CL_ERR_MISSING_ARG)
+    {
+      if (option->missing_argument_error)
+	error (option->missing_argument_error, opt);
+      else
+	error ("missing argument to %qs", opt);
+      return;
+    }
+
+  if (decoded->errors & CL_ERR_UINT_ARG)
+    {
+      error ("argument to %qs should be a non-negative integer",
+	     option->opt_text);
+      return;
+    }
+
+  gcc_assert (!decoded->errors);
+
+  if (!handle_option (decoded, lang_mask, DK_UNSPECIFIED, handlers))
+    error ("unrecognized command line option %qs", opt);
+}
+
+/* Set any variable for option OPT_INDEX according to VALUE and ARG,
+   diagnostic kind KIND.  */
+
+void
+set_option (int opt_index, int value, const char *arg, int kind)
+{
+  const struct cl_option *option = &cl_options[opt_index];
+
+  if (!option->flag_var)
+    return;
+
+  switch (option->var_type)
+    {
+    case CLVC_BOOLEAN:
+	*(int *) option->flag_var = value;
+	break;
+
+    case CLVC_EQUAL:
+	*(int *) option->flag_var = (value
+				     ? option->var_value
+				     : !option->var_value);
+	break;
+
+    case CLVC_BIT_CLEAR:
+    case CLVC_BIT_SET:
+	if ((value != 0) == (option->var_type == CLVC_BIT_SET))
+	  *(int *) option->flag_var |= option->var_value;
+	else
+	  *(int *) option->flag_var &= ~option->var_value;
+	if (option->flag_var == &target_flags)
+	  target_flags_explicit |= option->var_value;
+	break;
+
+    case CLVC_STRING:
+	*(const char **) option->flag_var = arg;
+	break;
+    }
+
+  if ((diagnostic_t) kind != DK_UNSPECIFIED)
+    diagnostic_classify_diagnostic (global_dc, opt_index, (diagnostic_t) kind,
+				    UNKNOWN_LOCATION);
 }

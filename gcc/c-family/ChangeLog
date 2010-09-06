@@ -1,3 +1,109 @@
+2010-08-25  Richard Guenther  <rguenther@suse.de>
+
+	* c-common.c (c_common_get_alias_set): Remove special
+	handling for pointers.
+
+2010-08-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-common.c: Use FOR_EACH_VEC_ELT.
+	* c-gimplify.c: Likewise.
+	* c-pragma.c: Likewise.
+
+2010-08-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* c.opt (MDX): Change back to MD.  Mark NoDriverArg instead of
+	RejectDriver.
+	(MMDX): Change back to MMD.  Mark NoDriverArg instead of
+	RejectDriver.
+	* c-opts.c (c_common_handle_option): Use OPT_MD and OPT_MMD
+	instead of OPT_MDX and OPT_MMDX.
+
+2010-08-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* c.opt (MDX, MMDX, lang-asm): Mark RejectDriver.
+
+2010-08-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* c.opt (MD, MMD): Change to MDX and MMDX.
+	* c-opts.c (c_common_handle_option): Use OPT_MMD and OPT_MMDX.
+
+2010-08-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-opts.c (c_common_handle_option): Call handle_generated_option
+	instead of handle_option.
+
+2010-08-08  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-pragma.c (add_to_renaming_pragma_list): Fix call to VEC_safe_push.
+	(maybe_apply_renaming_pragma): Delete unneeded declarations.
+
+2010-08-08  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-pragma.c (pending_redefinition): Declare.  Declare a VEC of it.
+	(pending_redefine_extname): Change type to a VEC.
+	(add_to_renaming_pragma_list): Update for new type of
+	pending_redefine_extname.
+	(maybe_apply_renaming_pragma): Likewise.
+
+2010-08-04  Arnaud Charlet  <charlet@adacore.com>
+
+	* c-ada-spec.c (dump_ada_template): Mark underlying instance type as
+	visited.
+	(dump_generic_ada_node): Code clean up. Use TREE_VISITED flag to
+	decide whether a type has already been declared/seen.
+	Do not go to the original type.
+	(dump_nested_types): New parameter forward.
+	Generate forward declaration if needed and mark type as visited.
+	(print_ada_declaration): Call dump_nested_types if not already done.
+	Mark types as visited.
+
+2010-08-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* c.opt (-print-pch-checksum): Remove option.
+	* c-opts.c (c_common_handle_option): Don't handle
+	OPT_print_pch_checksum.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (c_common_handle_option): Update prototype and return
+	value type.
+	* c-opts.c (c_common_handle_option): Update prototype and return
+	value type.  Update calls to handle_option and
+	enable_warning_as_error.
+
+2010-07-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/45079
+	* c-pretty-print.c (pp_c_expression): Handle C_MAYBE_CONST_EXPR.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (c_common_missing_argument): Remove.
+	* c-opts.c (c_common_missing_argument): Remove.
+	* c.opt (A, D, F, I, MD, MMD, MQ, MT, U, fconstant-string-class=,
+	idirafter, imacros, include, isysroot, isystem, iquote): Add
+	MissingArgError.
+	* c-objc-common.h (LANG_HOOKS_MISSING_ARGUMENT): Remove.
+
+2010-07-27  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (c_common_option_lang_mask,
+	c_common_initialize_diagnostics, c_common_complain_wrong_lang_p):
+	New.
+	(c_common_init_options): Update prototype.
+	* c-opts.c (c_common_option_lang_mask): New.
+	(c_common_initialize_diagnostics): Split out of
+	c_common_init_options.
+	(accept_all_c_family_options, c_common_complain_wrong_lang_p):
+	New.
+	(c_common_init_options): Update prototype.  Use decoded options in
+	search for -lang-asm.
+
+2010-07-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-common.c: Carefully replace TREE_CHAIN with DECL_CHAIN.
+	* c-format.c: Likewise.
+
 2010-07-08  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
 	* c-common.h: Include diagnostic-core.h. Error if already

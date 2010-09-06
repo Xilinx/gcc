@@ -70,12 +70,15 @@ else
 fi
 
 # Checks for typedefs, structures, and compiler characteristics.
+AC_C_BIGENDIAN
 AC_C_CONST
 AC_C_INLINE
 AC_FUNC_OBSTACK
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
-AC_CHECK_TYPE(ssize_t, int)
+AC_TYPE_SSIZE_T
+AC_TYPE_UINTPTR_T
+AC_CHECK_TYPE(ptrdiff_t, int)
 AC_STRUCT_TM
 AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
@@ -180,6 +183,13 @@ m4_changequote([,])
 AC_DEFINE_UNQUOTED(HOST_WIDE_INT, $host_wide_int,
 [Define to the widest efficient host integer type at least
    as wide as the target's size_t type.])
+
+case $target in
+  i?86-* | x86_64-*)
+    AC_TRY_COMPILE([], [asm ("pcmpestri %0, %%xmm0, %%xmm1" : : "i"(0))],
+      [AC_DEFINE([HAVE_SSE4], [1],
+		 [Define to 1 if you can assemble SSE4 insns.])])
+esac
 
 # Output.
 

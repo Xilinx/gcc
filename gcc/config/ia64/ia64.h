@@ -53,6 +53,9 @@ do {						\
 
 #define ASM_EXTRA_SPEC ""
 
+#define SWITCH_TAKES_ARG(CHAR)						\
+  (DEFAULT_SWITCH_TAKES_ARG (CHAR) || (CHAR) == 'G')
+
 /* Variables which are this size or smaller are put in the sdata/sbss
    sections.  */
 extern unsigned int ia64_section_threshold;
@@ -643,7 +646,7 @@ while (0)
 #define HARD_REGNO_NREGS(REGNO, MODE)					\
   ((REGNO) == PR_REG (0) && (MODE) == DImode ? 64			\
    : PR_REGNO_P (REGNO) && (MODE) == BImode ? 2				\
-   : PR_REGNO_P (REGNO) && (MODE) == CCImode ? 1			\
+   : (PR_REGNO_P (REGNO) || GR_REGNO_P (REGNO)) && (MODE) == CCImode ? 1\
    : FR_REGNO_P (REGNO) && (MODE) == XFmode ? 1				\
    : FR_REGNO_P (REGNO) && (MODE) == RFmode ? 1				\
    : FR_REGNO_P (REGNO) && (MODE) == XCmode ? 2				\
@@ -661,7 +664,7 @@ while (0)
    : PR_REGNO_P (REGNO) ?					\
      (MODE) == BImode || GET_MODE_CLASS (MODE) == MODE_CC	\
    : GR_REGNO_P (REGNO) ?					\
-     (MODE) != CCImode && (MODE) != XFmode && (MODE) != XCmode && (MODE) != RFmode \
+     (MODE) != XFmode && (MODE) != XCmode && (MODE) != RFmode	\
    : AR_REGNO_P (REGNO) ? (MODE) == DImode			\
    : BR_REGNO_P (REGNO) ? (MODE) == DImode			\
    : 0)
@@ -1356,7 +1359,7 @@ do {									\
 /* Define this macro if the register defined by `PIC_OFFSET_TABLE_REGNUM' is
    clobbered by calls.  */
 
-#define PIC_OFFSET_TABLE_REG_CALL_CLOBBERED
+#define PIC_OFFSET_TABLE_REG_CALL_CLOBBERED 1
 
 
 /* The Overall Framework of an Assembler File.  */

@@ -282,6 +282,10 @@ static bool sh_callee_copies (CUMULATIVE_ARGS *, enum machine_mode,
 			      const_tree, bool);
 static int sh_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 			         tree, bool);
+static void sh_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+				     const_tree, bool);
+static rtx sh_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+			    const_tree, bool);
 static bool sh_scalar_mode_supported_p (enum machine_mode);
 static int sh_dwarf_calling_convention (const_tree);
 static void sh_encode_section_info (tree, rtx, int);
@@ -495,6 +499,10 @@ static const struct attribute_spec sh_attribute_table[] =
 #define TARGET_CALLEE_COPIES sh_callee_copies
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES sh_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG sh_function_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE sh_function_arg_advance
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST sh_build_builtin_va_list
@@ -973,6 +981,10 @@ sh_override_options (void)
 
   if (sh_fixed_range_str)
     sh_fix_range (sh_fixed_range_str);
+
+  /* This target defaults to strict volatile bitfields.  */
+  if (flag_strict_volatile_bitfields < 0)
+    flag_strict_volatile_bitfields = 1;
 }
 
 /* Print the operand address in x to the stream.  */
@@ -6403,9 +6415,50 @@ push_regs (HARD_REG_SET *mask, int interrupt_handler)
 
   /* Push banked registers last to improve delay slot opportunities.  */
   if (interrupt_handler)
-    for (i = FIRST_BANKED_REG; i <= LAST_BANKED_REG; i++)
-      if (TEST_HARD_REG_BIT (*mask, i))
-	push (i);
+    {
+      bool use_movml = false;
+
+      if (TARGET_SH2A)
+	{
+	  unsigned int count = 0;
+
+	  for (i = FIRST_BANKED_REG; i <= LAST_BANKED_REG; i++)
+	    if (TEST_HARD_REG_BIT (*mask, i))
+	      count++;
+	    else
+	      break;
+
+	  /* Use movml when all banked registers are pushed.  */
+	  if (count == LAST_BANKED_REG - FIRST_BANKED_REG + 1)
+	    use_movml = true;
+	}
+
+      if (use_movml)
+	{
+	  rtx x, mem, reg, set;
+	  rtx sp_reg = gen_rtx_REG (SImode, STACK_POINTER_REGNUM);
+
+	  /* We must avoid scheduling multiple store insn with another
+	     insns.  */
+	  emit_insn (gen_blockage ());
+	  x = gen_movml_push_banked (sp_reg);
+	  x = frame_insn (x);
+	  for (i = FIRST_BANKED_REG; i <= LAST_BANKED_REG; i++)
+	    {
+	      mem = gen_rtx_MEM (SImode, plus_constant (sp_reg, i * 4));
+	      reg = gen_rtx_REG (SImode, i);
+	      add_reg_note (x, REG_CFA_OFFSET, gen_rtx_SET (SImode, mem, reg));
+	    }
+
+	  set = gen_rtx_SET (SImode, sp_reg, plus_constant (sp_reg, - 32));
+	  add_reg_note (x, REG_CFA_ADJUST_CFA, set);
+	  emit_insn (gen_blockage ());
+	}
+      else
+	for (i = FIRST_BANKED_REG; i <= LAST_BANKED_REG; i++)
+	  if (TEST_HARD_REG_BIT (*mask, i))
+	    push (i);
+    }
 
   /* Don't push PR register for an ISR with RESBANK attribute assigned.  */
   if (TEST_HARD_REG_BIT (*mask, PR_REG) && !sh_cfun_resbank_handler_p ())
@@ -6861,13 +6914,12 @@ sh_expand_prologue (void)
 	  for (i = 0; i < NPARM_REGS(SImode); i++)
 	    {
 	      int rn = NPARM_REGS(SImode) + FIRST_PARM_REG - i - 1;
-	      rtx insn;
 
 	      if (i >= (NPARM_REGS(SImode)
 			- crtl->args.info.arg_count[(int) SH_ARG_INT]
 			))
 		break;
-	      insn = push (rn);
+	      push (rn);
 	    }
 	}
     }
@@ -7232,7 +7284,7 @@ sh_expand_epilogue (bool sibcall_p)
 	{
 	  enum machine_mode mode = (enum machine_mode) entry->mode;
 	  int reg = entry->reg;
-	  rtx reg_rtx, mem_rtx, post_inc = NULL_RTX, insn;
+	  rtx reg_rtx, mem_rtx, post_inc = NULL_RTX;
 
 	  offset = offset_base + entry->offset;
 	  reg_rtx = gen_rtx_REG (mode, reg);
@@ -7305,7 +7357,7 @@ sh_expand_epilogue (bool sibcall_p)
 	  if ((reg == PR_REG || SPECIAL_REGISTER_P (reg))
 	      && mem_rtx != post_inc)
 	    {
-	      insn = emit_move_insn (r0, mem_rtx);
+	      emit_move_insn (r0, mem_rtx);
 	      mem_rtx = r0;
 	    }
 	  else if (TARGET_REGISTER_P (reg))
@@ -7314,13 +7366,13 @@ sh_expand_epilogue (bool sibcall_p)
 
 	      /* Give the scheduler a bit of freedom by using up to
 		 MAX_TEMPS registers in a round-robin fashion.  */
-	      insn = emit_move_insn (tmp_reg, mem_rtx);
+	      emit_move_insn (tmp_reg, mem_rtx);
 	      mem_rtx = tmp_reg;
 	      if (*++tmp_pnt < 0)
 		tmp_pnt = schedule.temps;
 	    }
 
-	  insn = emit_move_insn (reg_rtx, mem_rtx);
+	  emit_move_insn (reg_rtx, mem_rtx);
 	}
 
       gcc_assert (entry->offset + offset_base == d + d_rounding);
@@ -7344,9 +7396,37 @@ sh_expand_epilogue (bool sibcall_p)
 	 delay slot. RTE switches banks before the ds instruction.  */
       if (current_function_interrupt)
 	{
-	  for (i = LAST_BANKED_REG; i >= FIRST_BANKED_REG; i--)
-	    if (TEST_HARD_REG_BIT (live_regs_mask, i))
-	      pop (i);
+	  bool use_movml = false;
+
+	  if (TARGET_SH2A)
+	    {
+	      unsigned int count = 0;
+
+	      for (i = FIRST_BANKED_REG; i <= LAST_BANKED_REG; i++)
+		if (TEST_HARD_REG_BIT (live_regs_mask, i))
+		  count++;
+		else
+		  break;
+
+	      /* Use movml when all banked register are poped.  */
+	      if (count == LAST_BANKED_REG - FIRST_BANKED_REG + 1)
+		use_movml = true;
+	    }
+
+	  if (use_movml)
+	    {
+	      rtx sp_reg = gen_rtx_REG (SImode, STACK_POINTER_REGNUM);
+
+	      /* We must avoid scheduling multiple load insn with another
+		 insns.  */
+	      emit_insn (gen_blockage ());
+	      emit_insn (gen_movml_pop_banked (sp_reg));
+	      emit_insn (gen_blockage ());
+	    }
+	  else
+	    for (i = LAST_BANKED_REG; i >= FIRST_BANKED_REG; i--)
+	      if (TEST_HARD_REG_BIT (live_regs_mask, i))
+		pop (i);
 
 	  last_reg = FIRST_PSEUDO_REGISTER - LAST_BANKED_REG - 1;
 	}
@@ -7691,10 +7771,10 @@ sh_build_builtin_va_list (void)
   TREE_CHAIN (record) = type_decl;
   TYPE_NAME (record) = type_decl;
   TYPE_FIELDS (record) = f_next_o;
-  TREE_CHAIN (f_next_o) = f_next_o_limit;
-  TREE_CHAIN (f_next_o_limit) = f_next_fp;
-  TREE_CHAIN (f_next_fp) = f_next_fp_limit;
-  TREE_CHAIN (f_next_fp_limit) = f_next_stack;
+  DECL_CHAIN (f_next_o) = f_next_o_limit;
+  DECL_CHAIN (f_next_o_limit) = f_next_fp;
+  DECL_CHAIN (f_next_fp) = f_next_fp_limit;
+  DECL_CHAIN (f_next_fp_limit) = f_next_stack;
 
   layout_type (record);
 
@@ -7726,10 +7806,10 @@ sh_va_start (tree valist, rtx nextarg)
     }
 
   f_next_o = TYPE_FIELDS (va_list_type_node);
-  f_next_o_limit = TREE_CHAIN (f_next_o);
-  f_next_fp = TREE_CHAIN (f_next_o_limit);
-  f_next_fp_limit = TREE_CHAIN (f_next_fp);
-  f_next_stack = TREE_CHAIN (f_next_fp_limit);
+  f_next_o_limit = DECL_CHAIN (f_next_o);
+  f_next_fp = DECL_CHAIN (f_next_o_limit);
+  f_next_fp_limit = DECL_CHAIN (f_next_fp);
+  f_next_stack = DECL_CHAIN (f_next_fp_limit);
 
   next_o = build3 (COMPONENT_REF, TREE_TYPE (f_next_o), valist, f_next_o,
 		   NULL_TREE);
@@ -7788,7 +7868,7 @@ find_sole_member (tree type)
 {
   tree field, member = NULL_TREE;
 
-  for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
+  for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
     {
       if (TREE_CODE (field) != FIELD_DECL)
 	continue;
@@ -7831,10 +7911,10 @@ sh_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
       tree member;
 
       f_next_o = TYPE_FIELDS (va_list_type_node);
-      f_next_o_limit = TREE_CHAIN (f_next_o);
-      f_next_fp = TREE_CHAIN (f_next_o_limit);
-      f_next_fp_limit = TREE_CHAIN (f_next_fp);
-      f_next_stack = TREE_CHAIN (f_next_fp_limit);
+      f_next_o_limit = DECL_CHAIN (f_next_o);
+      f_next_fp = DECL_CHAIN (f_next_o_limit);
+      f_next_fp_limit = DECL_CHAIN (f_next_fp);
+      f_next_stack = DECL_CHAIN (f_next_fp_limit);
 
       next_o = build3 (COMPONENT_REF, TREE_TYPE (f_next_o), valist, f_next_o,
 		       NULL_TREE);
@@ -8163,10 +8243,9 @@ sh_arg_partial_bytes (CUMULATIVE_ARGS *cum, enum machine_mode mode,
    NPARM_REGS words is at least partially passed in a register unless
    its data type forbids.  */
 
-
-rtx
+static rtx
 sh_function_arg (CUMULATIVE_ARGS *ca, enum machine_mode mode,
-		 tree type, int named)
+		 const_tree type, bool named)
 {
   if (! TARGET_SH5 && mode == VOIDmode)
     return GEN_INT (ca->renesas_abi ? 1 : 0);
@@ -8252,17 +8331,17 @@ sh_function_arg (CUMULATIVE_ARGS *ca, enum machine_mode mode,
    (TYPE is null for libcalls where that information may not be
    available.)  */
 
-void
+static void
 sh_function_arg_advance (CUMULATIVE_ARGS *ca, enum machine_mode mode,
-			 tree type, int named)
+			 const_tree type, bool named)
 {
   if (ca->force_mem)
     ca->force_mem = 0;
   else if (TARGET_SH5)
     {
-      tree type2 = (ca->byref && type
-		    ? TREE_TYPE (type)
-		    : type);
+      const_tree type2 = (ca->byref && type
+			  ? TREE_TYPE (type)
+			  : type);
       enum machine_mode mode2 = (ca->byref && type
 				 ? TYPE_MODE (type2)
 				 : mode);
@@ -11421,9 +11500,9 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
     {
       tree ptype = build_pointer_type (TREE_TYPE (funtype));
 
-      FUNCTION_ARG_ADVANCE (cum, Pmode, ptype, 1);
+      sh_function_arg_advance (&cum, Pmode, ptype, true);
     }
-  this_rtx = FUNCTION_ARG (cum, Pmode, ptr_type_node, 1);
+  this_rtx = sh_function_arg (&cum, Pmode, ptr_type_node, true);
 
   /* For SHcompact, we only have r0 for a scratch register: r1 is the
      static chain pointer (even if you can't have nested virtual functions

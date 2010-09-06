@@ -81,6 +81,14 @@ along with GCC; see the file COPYING3.  If not see
    fixing up each insn, and generating the new insns to copy values
    into the reload registers.  */
 
+struct target_reload default_target_reload;
+#if SWITCHABLE_TARGET
+struct target_reload *this_target_reload = &default_target_reload;
+#endif
+
+#define spill_indirect_levels			\
+  (this_target_reload->x_spill_indirect_levels)
+
 /* During reload_as_needed, element N contains a REG rtx for the hard reg
    into which reg N has been reloaded (perhaps for a previous insn).  */
 static rtx *reg_last_reload_reg;
@@ -230,22 +238,6 @@ static HARD_REG_SET used_spill_regs;
 /* Index of last register assigned as a spill register.  We allocate in
    a round-robin fashion.  */
 static int last_spill_reg;
-
-/* Nonzero if indirect addressing is supported on the machine; this means
-   that spilling (REG n) does not require reloading it into a register in
-   order to do (MEM (REG n)) or (MEM (PLUS (REG n) (CONST_INT c))).  The
-   value indicates the level of indirect addressing supported, e.g., two
-   means that (MEM (MEM (REG n))) is also valid if (REG n) does not get
-   a hard register.  */
-static char spill_indirect_levels;
-
-/* Nonzero if indirect addressing is supported when the innermost MEM is
-   of the form (MEM (SYMBOL_REF sym)).  It is assumed that the level to
-   which these are valid is the same as spill_indirect_levels, above.  */
-char indirect_symref_ok;
-
-/* Nonzero if an address (plus (reg frame_pointer) (reg ...)) is valid.  */
-char double_reg_address_ok;
 
 /* Record the stack slot for each spilled hard register.  */
 static rtx spill_stack_slot[FIRST_PSEUDO_REGISTER];
@@ -8821,6 +8813,8 @@ delete_output_reload (rtx insn, int j, int last_reload_reg, rtx new_reload_reg)
   int n_inherited = 0;
   rtx i1;
   rtx substed;
+  unsigned regno;
+  int nregs;
 
   /* It is possible that this reload has been only used to set another reload
      we eliminated earlier and thus deleted this instruction too.  */
@@ -8872,6 +8866,12 @@ delete_output_reload (rtx insn, int j, int last_reload_reg, rtx new_reload_reg)
   if (n_occurrences > n_inherited)
     return;
 
+  regno = REGNO (reg);
+  if (regno >= FIRST_PSEUDO_REGISTER)
+    nregs = 1;
+  else
+    nregs = hard_regno_nregs[regno][GET_MODE (reg)];
+
   /* If the pseudo-reg we are reloading is no longer referenced
      anywhere between the store into it and here,
      and we're within the same basic block, then the value can only
@@ -8883,7 +8883,7 @@ delete_output_reload (rtx insn, int j, int last_reload_reg, rtx new_reload_reg)
       if (NOTE_INSN_BASIC_BLOCK_P (i1))
 	return;
       if ((NONJUMP_INSN_P (i1) || CALL_P (i1))
-	  && reg_mentioned_p (reg, PATTERN (i1)))
+	  && refers_to_regno_p (regno, regno + nregs, PATTERN (i1), NULL))
 	{
 	  /* If this is USE in front of INSN, we only have to check that
 	     there are no more references than accounted for by inheritance.  */

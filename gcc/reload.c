@@ -518,9 +518,9 @@ push_secondary_reload (int in_p, rtx x, int opnum, int optional,
 /* If a secondary reload is needed, return its class.  If both an intermediate
    register and a scratch register is needed, we return the class of the
    intermediate register.  */
-enum reg_class
-secondary_reload_class (bool in_p, enum reg_class rclass,
-			enum machine_mode mode, rtx x)
+reg_class_t
+secondary_reload_class (bool in_p, reg_class_t rclass, enum machine_mode mode,
+			rtx x)
 {
   enum insn_code icode;
   secondary_reload_info sri;
@@ -2602,7 +2602,6 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
   char goal_alternative_earlyclobber[MAX_RECOG_OPERANDS];
   int goal_alternative_swapped;
   int best;
-  int best_small_class_operands_num;
   int commutative;
   char operands_match[MAX_RECOG_OPERANDS][MAX_RECOG_OPERANDS];
   rtx substed_operand[MAX_RECOG_OPERANDS];
@@ -2928,7 +2927,6 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
      all the operands together against the register constraints.  */
 
   best = MAX_RECOG_OPERANDS * 2 + 600;
-  best_small_class_operands_num = 0;
 
   swapped = 0;
   goal_alternative_swapped = 0;
@@ -3470,7 +3468,8 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 
 	  /* If this operand could be handled with a reg,
 	     and some reg is allowed, then this operand can be handled.  */
-	  if (winreg && this_alternative[i] != NO_REGS)
+	  if (winreg && this_alternative[i] != NO_REGS
+	      && (win || !class_only_fixed_regs[this_alternative[i]]))
 	    badop = 0;
 
 	  /* Record which operands fit this alternative.  */
@@ -3714,27 +3713,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 	 record it as the chosen goal for reloading.  */
       if (! bad)
 	{
-	  bool change_p = false;
-	  int small_class_operands_num = 0;
-
-	  if (best >= losers)
-	    {
-	      for (i = 0; i < noperands; i++)
-		small_class_operands_num
-		  += SMALL_REGISTER_CLASS_P (this_alternative[i]) ? 1 : 0;
-	      if (best > losers
-		  || (best == losers
-		      /* If the cost of the reloads is the same,
-			 prefer alternative which requires minimal
-			 number of small register classes for the
-			 operands.  This improves chances of reloads
-			 for insn requiring small register
-			 classes.  */
-		      && (small_class_operands_num
-			  < best_small_class_operands_num)))
-		change_p = true;
-	    }
-	  if (change_p)
+	  if (best > losers)
 	    {
 	      for (i = 0; i < noperands; i++)
 		{
@@ -3750,7 +3729,6 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 		}
 	      goal_alternative_swapped = swapped;
 	      best = losers;
-	      best_small_class_operands_num = small_class_operands_num;
 	      goal_alternative_number = this_alternative_number;
 	      goal_earlyclobber = this_earlyclobber;
 	    }

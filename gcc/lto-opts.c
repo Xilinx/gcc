@@ -128,7 +128,7 @@ clear_options (VEC(opt_t, heap) **opts_p)
   int i;
   opt_t *o;
 
-  for (i = 0; VEC_iterate (opt_t, *opts_p, i, o); i++)
+  FOR_EACH_VEC_ELT (opt_t, *opts_p, i, o)
     free (o->arg);
 
   VEC_free (opt_t, heap, *opts_p);
@@ -278,7 +278,7 @@ output_options (struct lto_output_stream *stream)
 
   output_data_stream (stream, &length, sizeof (length));
 
-  for (i = 0; VEC_iterate (opt_t, opts, i, o); i++)
+  FOR_EACH_VEC_ELT (opt_t, opts, i, o)
     {
       output_data_stream (stream, &o->type, sizeof (o->type));
       output_data_stream (stream, &o->code, sizeof (o->code));
@@ -294,7 +294,7 @@ output_options (struct lto_output_stream *stream)
 void
 lto_write_options (void)
 {
-  char *const section_name = lto_get_section_name (LTO_section_opts, NULL);
+  char *const section_name = lto_get_section_name (LTO_section_opts, NULL, NULL);
   struct lto_output_stream stream;
   struct lto_simple_header header;
   struct lto_output_stream *header_stream;
@@ -349,21 +349,39 @@ input_options (struct lto_input_block *ib)
 void
 lto_read_file_options (struct lto_file_decl_data *file_data)
 {
-  size_t len;
-  const char *data;
+  size_t len, l, skip;
+  const char *data, *p;
   const struct lto_simple_header *header;
   int32_t opts_offset;
   struct lto_input_block ib;
 
   data = lto_get_section_data (file_data, LTO_section_opts, NULL, &len);
-  header = (const struct lto_simple_header *) data;
-  opts_offset = sizeof (*header);
+  if (!data)
+	  return;
 
-  lto_check_version (header->lto_header.major_version,
-		     header->lto_header.minor_version);
+  /* Option could be multiple sections merged (through ld -r) 
+     Keep reading all options.  This is ok right now because
+     the options just get mashed together anyways.
+     This will have to be done differently once lto-opts knows
+     how to associate options with different files. */
+  l = len;
+  p = data;
+  do 
+    { 
+      header = (const struct lto_simple_header *) p;
+      opts_offset = sizeof (*header);
 
-  LTO_INIT_INPUT_BLOCK (ib, data + opts_offset, 0, header->main_size);
-  input_options (&ib);
+      lto_check_version (header->lto_header.major_version,
+			 header->lto_header.minor_version);
+      
+      LTO_INIT_INPUT_BLOCK (ib, p + opts_offset, 0, header->main_size);
+      input_options (&ib);
+      
+      skip = header->main_size + opts_offset;
+      l -= skip;
+      p += skip;
+    } 
+  while (l > 0);
 
   lto_free_section_data (file_data, LTO_section_opts, 0, data, len);
 }
@@ -379,7 +397,7 @@ lto_reissue_options (void)
   int i;
   opt_t *o;
 
-  for (i = 0; VEC_iterate (opt_t, opts, i, o); i++)
+  FOR_EACH_VEC_ELT (opt_t, opts, i, o)
     {
       const struct cl_option *option = &cl_options[o->code];
 

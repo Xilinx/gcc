@@ -853,8 +853,11 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
 	  gsi_next (si_p);
 	}
       new_stmt = gsi_stmt (i);
-      find_new_referenced_vars (new_stmt);
-      mark_symbols_for_renaming (new_stmt);
+      if (gimple_in_ssa_p (cfun))
+	{
+	  find_new_referenced_vars (new_stmt);
+	  mark_symbols_for_renaming (new_stmt);
+	}
       /* If the new statement has a VUSE, update it with exact SSA name we
          know will reach this one.  */
       if (gimple_vuse (new_stmt))
@@ -892,7 +895,7 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
 	    SSA_NAME_DEF_STMT (gimple_vdef (stmt)) = laststore;
 	  update_stmt (laststore);
 	}
-      else
+      else if (gimple_in_ssa_p (cfun))
 	{
 	  unlink_stmt_vdef (stmt);
 	  release_defs (stmt);
@@ -1001,9 +1004,8 @@ get_maxval_strlen (tree arg, tree *length, bitmap visited, int type)
     }
 
   /* If we were already here, break the infinite cycle.  */
-  if (bitmap_bit_p (visited, SSA_NAME_VERSION (arg)))
+  if (!bitmap_set_bit (visited, SSA_NAME_VERSION (arg)))
     return true;
-  bitmap_set_bit (visited, SSA_NAME_VERSION (arg));
 
   var = arg;
   def_stmt = SSA_NAME_DEF_STMT (var);
@@ -1526,6 +1528,23 @@ fold_stmt_1 (gimple_stmt_iterator *gsi, bool inplace)
 	    {
 	      TREE_VALUE (link) = op;
 	      changed = true;
+	    }
+	}
+      break;
+
+    case GIMPLE_DEBUG:
+      if (gimple_debug_bind_p (stmt))
+	{
+	  tree val = gimple_debug_bind_get_value (stmt);
+	  if (val
+	      && REFERENCE_CLASS_P (val))
+	    {
+	      tree tem = maybe_fold_reference (val, false);
+	      if (tem)
+		{
+		  gimple_debug_bind_set_value (stmt, tem);
+		  changed = true;
+		}
 	    }
 	}
       break;

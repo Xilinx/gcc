@@ -204,7 +204,7 @@ static void add_candidates (tree, tree, const VEC(tree,gc) *, tree, tree, bool,
 			    tree, tree, int, struct z_candidate **);
 static conversion *merge_conversion_sequences (conversion *, conversion *);
 static bool magic_varargs_p (tree);
-static tree build_temp (tree, tree, int, diagnostic_t *);
+static tree build_temp (tree, tree, int, diagnostic_t *, tsubst_flags_t);
 
 /* Returns nonzero iff the destructor name specified in NAME matches BASETYPE.
    NAME can take many forms...  */
@@ -641,7 +641,7 @@ build_aggr_conv (tree type, tree ctor, int flags)
   tree field = next_initializable_field (TYPE_FIELDS (type));
   tree empty_ctor = NULL_TREE;
 
-  for (; field; field = next_initializable_field (TREE_CHAIN (field)))
+  for (; field; field = next_initializable_field (DECL_CHAIN (field)))
     {
       if (i < CONSTRUCTOR_NELTS (ctor))
 	{
@@ -999,6 +999,9 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
 bool
 reference_related_p (tree t1, tree t2)
 {
+  if (t1 == error_mark_node || t2 == error_mark_node)
+    return false;
+
   t1 = TYPE_MAIN_VARIANT (t1);
   t2 = TYPE_MAIN_VARIANT (t2);
 
@@ -1595,6 +1598,29 @@ add_function_candidate (struct z_candidate **candidates,
   /* Make sure there are default args for the rest of the parms.  */
   else if (!sufficient_parms_p (parmnode))
     viable = 0;
+
+  /* Kludge: When looking for a function from a subobject while generating
+     an implicit copy/move constructor/operator=, don't consider anything
+     that takes (a reference to) an unrelated type.  See c++/44909.  */
+  else if ((flags & LOOKUP_SPECULATIVE)
+	   || (current_function_decl
+	       && DECL_DEFAULTED_FN (current_function_decl)))
+    {
+      if (DECL_CONSTRUCTOR_P (fn))
+	i = 1;
+      else if (DECL_ASSIGNMENT_OPERATOR_P (fn)
+	       && DECL_OVERLOADED_OPERATOR_P (fn) == NOP_EXPR)
+	i = 2;
+      else
+	i = 0;
+      if (i && len == i)
+	{
+	  parmnode = chain_index (i-1, parmlist);
+	  if (!reference_related_p (non_reference (TREE_VALUE (parmnode)),
+				    ctype))
+	    viable = 0;
+	}
+    }
 
   if (! viable)
     goto out;
@@ -2307,12 +2333,11 @@ add_builtin_candidates (struct z_candidate **candidates, enum tree_code code,
 {
   int ref1, i;
   int enum_p = 0;
-  tree type, argtypes[3];
+  tree type, argtypes[3], t;
   /* TYPES[i] is the set of possible builtin-operator parameter types
-     we will consider for the Ith argument.  These are represented as
-     a TREE_LIST; the TREE_VALUE of each node is the potential
-     parameter type.  */
-  tree types[2];
+     we will consider for the Ith argument.  */
+  VEC(tree,gc) *types[2];
+  unsigned ix;
 
   for (i = 0; i < 3; ++i)
     {
@@ -2374,7 +2399,8 @@ add_builtin_candidates (struct z_candidate **candidates, enum tree_code code,
       ref1 = 0;
     }
 
-  types[0] = types[1] = NULL_TREE;
+  types[0] = make_tree_vector ();
+  types[1] = make_tree_vector ();
 
   for (i = 0; i < 2; ++i)
     {
@@ -2393,11 +2419,11 @@ add_builtin_candidates (struct z_candidate **candidates, enum tree_code code,
 	  if (code == COND_EXPR)
 	    {
 	      if (real_lvalue_p (args[i]))
-		types[i] = tree_cons
-		  (NULL_TREE, build_reference_type (argtypes[i]), types[i]);
+		VEC_safe_push (tree, gc, types[i],
+			       build_reference_type (argtypes[i]));
 
-	      types[i] = tree_cons
-		(NULL_TREE, TYPE_MAIN_VARIANT (argtypes[i]), types[i]);
+	      VEC_safe_push (tree, gc, types[i],
+			     TYPE_MAIN_VARIANT (argtypes[i]));
 	    }
 
 	  else if (! convs)
@@ -2413,54 +2439,60 @@ add_builtin_candidates (struct z_candidate **candidates, enum tree_code code,
 		continue;
 
 	      if (code == COND_EXPR && TREE_CODE (type) == REFERENCE_TYPE)
-		types[i] = tree_cons (NULL_TREE, type, types[i]);
+		VEC_safe_push (tree, gc, types[i], type);
 
 	      type = non_reference (type);
 	      if (i != 0 || ! ref1)
 		{
 		  type = TYPE_MAIN_VARIANT (type_decays_to (type));
 		  if (enum_p && TREE_CODE (type) == ENUMERAL_TYPE)
-		    types[i] = tree_cons (NULL_TREE, type, types[i]);
+		    VEC_safe_push (tree, gc, types[i], type);
 		  if (INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (type))
 		    type = type_promotes_to (type);
 		}
 
-	      if (! value_member (type, types[i]))
-		types[i] = tree_cons (NULL_TREE, type, types[i]);
+	      if (! vec_member (type, types[i]))
+		VEC_safe_push (tree, gc, types[i], type);
 	    }
 	}
       else
 	{
 	  if (code == COND_EXPR && real_lvalue_p (args[i]))
-	    types[i] = tree_cons
-	      (NULL_TREE, build_reference_type (argtypes[i]), types[i]);
+	    VEC_safe_push (tree, gc, types[i],
+			   build_reference_type (argtypes[i]));
 	  type = non_reference (argtypes[i]);
 	  if (i != 0 || ! ref1)
 	    {
 	      type = TYPE_MAIN_VARIANT (type_decays_to (type));
 	      if (enum_p && UNSCOPED_ENUM_P (type))
-		types[i] = tree_cons (NULL_TREE, type, types[i]);
+		VEC_safe_push (tree, gc, types[i], type);
 	      if (INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (type))
 		type = type_promotes_to (type);
 	    }
-	  types[i] = tree_cons (NULL_TREE, type, types[i]);
+	  VEC_safe_push (tree, gc, types[i], type);
 	}
     }
 
   /* Run through the possible parameter types of both arguments,
      creating candidates with those parameter types.  */
-  for (; types[0]; types[0] = TREE_CHAIN (types[0]))
+  FOR_EACH_VEC_ELT_REVERSE (tree, types[0], ix, t)
     {
-      if (types[1])
-	for (type = types[1]; type; type = TREE_CHAIN (type))
+      unsigned jx;
+      tree u;
+
+      if (!VEC_empty (tree, types[1]))
+	FOR_EACH_VEC_ELT_REVERSE (tree, types[1], jx, u)
 	  add_builtin_candidate
-	    (candidates, code, code2, fnname, TREE_VALUE (types[0]),
-	     TREE_VALUE (type), args, argtypes, flags);
+	    (candidates, code, code2, fnname, t,
+	     u, args, argtypes, flags);
       else
 	add_builtin_candidate
-	  (candidates, code, code2, fnname, TREE_VALUE (types[0]),
+	  (candidates, code, code2, fnname, t,
 	   NULL_TREE, args, argtypes, flags);
     }
+
+  release_tree_vector (types[0]);
+  release_tree_vector (types[1]);
 }
 
 
@@ -3129,7 +3161,7 @@ resolve_args (VEC(tree,gc) *args)
   unsigned int ix;
   tree arg;
 
-  for (ix = 0; VEC_iterate (tree, args, ix, arg); ++ix)
+  FOR_EACH_VEC_ELT (tree, args, ix, arg)
     {
       if (error_operand_p (arg))
 	return NULL;
@@ -4851,7 +4883,7 @@ enforce_access (tree basetype_path, tree decl, tree diag_decl)
 
 static tree
 build_temp (tree expr, tree type, int flags,
-	    diagnostic_t *diagnostic_kind)
+	    diagnostic_t *diagnostic_kind, tsubst_flags_t complain)
 {
   int savew, savee;
   VEC(tree,gc) *args;
@@ -4859,7 +4891,7 @@ build_temp (tree expr, tree type, int flags,
   savew = warningcount, savee = errorcount;
   args = make_tree_vector_single (expr);
   expr = build_special_member_call (NULL_TREE, complete_ctor_identifier,
-				    &args, type, flags, tf_warning_or_error);
+				    &args, type, flags, complain);
   release_tree_vector (args);
   if (warningcount > savew)
     *diagnostic_kind = DK_WARNING;
@@ -5132,7 +5164,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	   conversion (i.e. the second step of copy-initialization), so
 	   don't allow any more.  */
 	flags |= LOOKUP_NO_CONVERSION;
-      expr = build_temp (expr, totype, flags, &diag_kind);
+      expr = build_temp (expr, totype, flags, &diag_kind, complain);
       if (diag_kind && fn)
 	{
 	  if ((complain & tf_error))
@@ -5246,7 +5278,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 
     case ck_pmem:
       return convert_ptrmem (totype, expr, /*allow_inverse_p=*/false,
-			     c_cast_p);
+			     c_cast_p, complain);
 
     default:
       break;
@@ -5391,7 +5423,7 @@ convert_default_arg (tree type, tree arg, tree fn, int parmnum)
     }
 
   /* Detect recursion.  */
-  for (i = 0; VEC_iterate (tree, default_arg_context, i, t); ++i)
+  FOR_EACH_VEC_ELT (tree, default_arg_context, i, t)
     if (t == fn)
       {
 	error ("recursive evaluation of default argument for %q#D", fn);
@@ -5588,7 +5620,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	  ++nargs;
 	  alcarray = XALLOCAVEC (tree, nargs);
 	  alcarray[0] = first_arg;
-	  for (ix = 0; VEC_iterate (tree, args, ix, arg); ++ix)
+	  FOR_EACH_VEC_ELT (tree, args, ix, arg)
 	    alcarray[ix + 1] = arg;
 	  argarray = alcarray;
 	}
@@ -6095,7 +6127,7 @@ build_java_interface_fn_ref (tree fn, tree instance)
 
   /* Determine the itable index of FN.  */
   i = 1;
-  for (method = TYPE_METHODS (iface); method; method = TREE_CHAIN (method))
+  for (method = TYPE_METHODS (iface); method; method = DECL_CHAIN (method))
     {
       if (!DECL_VIRTUAL_P (method))
 	continue;
@@ -6168,7 +6200,7 @@ build_special_member_call (tree instance, tree name, VEC(tree,gc) **args,
   if (TYPE_P (binfo))
     {
       /* Resolve the name.  */
-      if (!complete_type_or_else (binfo, NULL_TREE))
+      if (!complete_type_or_maybe_complain (binfo, NULL_TREE, complain))
 	return error_mark_node;
 
       binfo = TYPE_BINFO (binfo);
@@ -6227,7 +6259,7 @@ build_special_member_call (tree instance, tree name, VEC(tree,gc) **args,
       /* If the current function is a complete object constructor
 	 or destructor, then we fetch the VTT directly.
 	 Otherwise, we look it up using the VTT we were given.  */
-      vtt = TREE_CHAIN (CLASSTYPE_VTABLES (current_class_type));
+      vtt = DECL_CHAIN (CLASSTYPE_VTABLES (current_class_type));
       vtt = decay_conversion (vtt);
       vtt = build3 (COND_EXPR, TREE_TYPE (vtt),
 		    build2 (EQ_EXPR, boolean_type_node,

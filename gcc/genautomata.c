@@ -1603,7 +1603,7 @@ gen_regexp_repeat (const char *str)
       return regexp;
     }
   else
-    return gen_regexp_el (str);
+    return gen_regexp_el (repeat_vect[0]);
 }
 
 /* Parse reservation STR which possibly contains separator '+'.  */
@@ -1629,7 +1629,7 @@ gen_regexp_allof (const char *str)
       return allof;
     }
   else
-    return gen_regexp_repeat (str);
+    return gen_regexp_repeat (allof_vect[0]);
 }
 
 /* Parse reservation STR which possibly contains separator '|'.  */
@@ -1655,7 +1655,7 @@ gen_regexp_oneof (const char *str)
       return oneof;
     }
   else
-    return gen_regexp_allof (str);
+    return gen_regexp_allof (oneof_vect[0]);
 }
 
 /* Parse reservation STR which possibly contains separator ','.  */
@@ -1680,7 +1680,7 @@ gen_regexp_sequence (const char *str)
       return sequence;
     }
   else
-    return gen_regexp_oneof (str);
+    return gen_regexp_oneof (sequence_vect[0]);
 }
 
 /* Parse construction reservation STR.  */
@@ -1688,7 +1688,7 @@ static regexp_t
 gen_regexp (const char *str)
 {
   reserv_str = str;
-  return gen_regexp_sequence (str);;
+  return gen_regexp_sequence (str);
 }
 
 /* Process a DEFINE_RESERVATION.
@@ -9567,6 +9567,16 @@ main (int argc, char **argv)
 
 	  write_automata ();
 	}
+    }
+  else
+    {
+      puts ("/* Generated automatically by the program `genautomata'\n"
+	    "   from the machine description file `md'.  */\n\n"
+	    "/* There is no automaton, but ISO C forbids empty\n"
+	    "   translation units, so include a header file with some\n"
+	    "   declarations, and its pre-requisite header file.  */\n"
+	    "#include \"config.h\"\n"
+	    "#include \"system.h\"\n");
     }
 
   fflush (stdout);
