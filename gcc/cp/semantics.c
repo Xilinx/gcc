@@ -6165,6 +6165,13 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 
     case TARGET_EXPR:
     case INIT_EXPR:
+      /* Pass false for 'addr' because these codes indicate
+	 initialization of a temporary.  */
+      r = cxx_eval_constant_expression (call, TREE_OPERAND (t, 1),
+					allow_non_constant, false,
+					non_constant_p);
+      break;
+
     case SCOPE_REF:
       r = cxx_eval_constant_expression (call, TREE_OPERAND (t, 1),
 					allow_non_constant, addr,
