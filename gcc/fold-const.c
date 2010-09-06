@@ -15505,7 +15505,8 @@ fold_indirect_ref_1 (location_t loc, tree type, tree op0)
 		&& integer_zerop (DECL_FIELD_OFFSET (field))
 		&& (TYPE_MAIN_VARIANT (TREE_TYPE (field))
 		    == TYPE_MAIN_VARIANT (type)))
-	      return build3 (COMPONENT_REF, type, op, field, NULL_TREE);
+	      return fold_build3_loc (loc, COMPONENT_REF, type, op, field,
+				      NULL_TREE);
 	}
     }
 
@@ -15538,6 +15539,22 @@ fold_indirect_ref_1 (location_t loc, tree type, tree op0)
 					part_width, index);
 
 	    }
+	  /* ((foo *)&fooarray)[1] => fooarray[1] */
+	  else if (TREE_CODE (op00type) == ARRAY_TYPE
+		   && type == TREE_TYPE (op00type))
+	    {
+	      tree type_domain = TYPE_DOMAIN (op00type);
+	      tree min_val = size_zero_node;
+	      if (type_domain && TYPE_MIN_VALUE (type_domain))
+		min_val = TYPE_MIN_VALUE (type_domain);
+	      op01 = size_binop_loc (loc, EXACT_DIV_EXPR, op01,
+				     TYPE_SIZE_UNIT (type));
+	      op01 = size_binop_loc (loc, PLUS_EXPR, op01, min_val);
+	      op0 = build4 (ARRAY_REF, type, op00, op01,
+			    NULL_TREE, NULL_TREE);
+	      SET_EXPR_LOCATION (op0, loc);
+	      return op0;
+	    }
 	  /* ((foo *)&struct_with_foo_field)[1] => COMPONENT_REF */
 	  else if (RECORD_OR_UNION_TYPE_P (op00type))
 	    {
@@ -15547,7 +15564,8 @@ fold_indirect_ref_1 (location_t loc, tree type, tree op0)
 		    && tree_int_cst_equal (byte_position (field), op01)
 		    && (TYPE_MAIN_VARIANT (TREE_TYPE (field))
 			== TYPE_MAIN_VARIANT (type)))
-		  return build3 (COMPONENT_REF, type, op00, field, NULL_TREE);
+		  return fold_build3_loc (loc, COMPONENT_REF, type, op00,
+					  field, NULL_TREE);
 	    }
 	}
     }
