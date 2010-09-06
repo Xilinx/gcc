@@ -1788,7 +1788,7 @@ DEFHOOK_UNDOC
 DEFHOOK_UNDOC
 (function_arg,
  "",
- rtx, (const CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
+ rtx, (CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
        bool named),
  default_function_arg)
 
@@ -1798,7 +1798,7 @@ DEFHOOK_UNDOC
 DEFHOOK_UNDOC
 (function_incoming_arg,
  "",
- rtx, (const CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
+ rtx, (CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
        bool named),
  default_function_incoming_arg)
 
@@ -1970,6 +1970,12 @@ DEFHOOK
  (bool in_p, rtx x, reg_class_t reload_class, enum machine_mode reload_mode,
   secondary_reload_info *sri),
  default_secondary_reload)
+
+DEFHOOK
+(class_likely_spilled_p,
+ "",
+ bool, (reg_class_t rclass),
+ default_class_likely_spilled_p)
 
 /* This target hook allows the backend to perform additional
    processing while initializing for variable expansion.  */

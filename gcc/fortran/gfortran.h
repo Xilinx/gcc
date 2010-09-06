@@ -362,6 +362,7 @@ enum gfc_isym_id
   GFC_ISYM_ERFC,
   GFC_ISYM_ERFC_SCALED,
   GFC_ISYM_ETIME,
+  GFC_ISYM_EXECUTE_COMMAND_LINE,
   GFC_ISYM_EXIT,
   GFC_ISYM_EXP,
   GFC_ISYM_EXPONENT,
@@ -422,6 +423,7 @@ enum gfc_isym_id
   GFC_ISYM_J0,
   GFC_ISYM_J1,
   GFC_ISYM_JN,
+  GFC_ISYM_JN2,
   GFC_ISYM_KILL,
   GFC_ISYM_KIND,
   GFC_ISYM_LBOUND,
@@ -463,12 +465,16 @@ enum gfc_isym_id
   GFC_ISYM_NEAREST,
   GFC_ISYM_NEW_LINE,
   GFC_ISYM_NINT,
+  GFC_ISYM_NORM2,
   GFC_ISYM_NOT,
   GFC_ISYM_NULL,
   GFC_ISYM_NUMIMAGES,
   GFC_ISYM_OR,
   GFC_ISYM_PACK,
+  GFC_ISYM_PARITY,
   GFC_ISYM_PERROR,
+  GFC_ISYM_POPCNT,
+  GFC_ISYM_POPPAR,
   GFC_ISYM_PRECISION,
   GFC_ISYM_PRESENT,
   GFC_ISYM_PRODUCT,
@@ -531,7 +537,8 @@ enum gfc_isym_id
   GFC_ISYM_XOR,
   GFC_ISYM_Y0,
   GFC_ISYM_Y1,
-  GFC_ISYM_YN
+  GFC_ISYM_YN,
+  GFC_ISYM_YN2
 };
 typedef enum gfc_isym_id gfc_isym_id;
 
@@ -878,6 +885,7 @@ typedef struct
   {
     struct gfc_symbol *derived;	/* For derived types only.  */
     gfc_charlen *cl;		/* For character types only.  */
+    int pad;			/* For hollerith types only.  */
   }
   u;
 
@@ -1538,7 +1546,7 @@ typedef struct gfc_intrinsic_arg
   char name[GFC_MAX_SYMBOL_LEN + 1];
 
   gfc_typespec ts;
-  int optional;
+  unsigned optional:1, value:1;
   ENUM_BITFIELD (sym_intent) intent:2;
   gfc_actual_arglist *actual;
 
@@ -1817,6 +1825,7 @@ typedef struct
   unsigned int c_float : 1;
   unsigned int c_double : 1;
   unsigned int c_long_double : 1;
+  unsigned int c_float128 : 1;
 }
 gfc_real_info;
 
@@ -2005,6 +2014,12 @@ typedef struct gfc_association_list
      lvalue.  */
   unsigned variable:1;
 
+  /* True if this struct is currently only linked to from a gfc_symbol rather
+     than as part of a real list in gfc_code->ext.block.assoc.  This may
+     happen for SELECT TYPE temporaries and must be considered
+     for memory handling.  */
+  unsigned dangling:1;
+
   char name[GFC_MAX_SYMBOL_LEN + 1];
   gfc_symtree *st; /* Symtree corresponding to name.  */
   locus where;
@@ -2081,7 +2096,7 @@ typedef struct gfc_code
     gfc_wait *wait;
     gfc_dt *dt;
     gfc_forall_iterator *forall_iterator;
-    struct gfc_code *whichloop;
+    struct gfc_code *which_construct;
     int stop_code;
     gfc_entry_list *entry;
     gfc_omp_clauses *omp_clauses;
@@ -2091,7 +2106,7 @@ typedef struct gfc_code
   }
   ext;		/* Points to additional structures required by statement */
 
-  /* Cycle and break labels in do loops.  */
+  /* Cycle and break labels in constructs.  */
   tree cycle_label;
   tree exit_label;
 }
@@ -2466,7 +2481,7 @@ gfc_try gfc_add_cray_pointee (symbol_attribute *, locus *);
 match gfc_mod_pointee_as (gfc_array_spec *);
 gfc_try gfc_add_protected (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_result (symbol_attribute *, const char *, locus *);
-gfc_try gfc_add_save (symbol_attribute *, const char *, locus *);
+gfc_try gfc_add_save (symbol_attribute *, save_state, const char *, locus *);
 gfc_try gfc_add_threadprivate (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_saved_common (symbol_attribute *, locus *);
 gfc_try gfc_add_target (symbol_attribute *, locus *);
@@ -2829,6 +2844,7 @@ void gfc_dump_parse_tree (gfc_namespace *, FILE *);
 /* parse.c */
 gfc_try gfc_parse_file (void);
 void gfc_global_used (gfc_gsymbol *, locus *);
+gfc_namespace* gfc_build_block_ns (gfc_namespace *);
 
 /* dependency.c */
 int gfc_dep_compare_expr (gfc_expr *, gfc_expr *);

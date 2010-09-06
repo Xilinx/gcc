@@ -1,3 +1,41 @@
+2010-09-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (d): New.
+
+2010-09-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR java/45504
+	* jvgenmain.c (main): Check "-D XXX=YYY".
+
+2010-09-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* jvspec.c (jvgenmain_spec): Don't handle -fnew-verifier.
+
+2010-09-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (CLASSPATH, bootclasspath, classpath, encoding,
+	fCLASSPATH=): Mark as Java options and as aliases.
+	* jvspec.c (jvgenmain_spec): Don't handle -fCLASSPATH*.
+	(lang_specific_driver): Don't handle options marked as aliases.
+	* lang.c (java_handle_option): Don't handle OPT_fCLASSPATH_.
+
+2010-08-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (jvspec.o): Update dependencies.
+	* jvspec.c: Include opts.h.
+	(PARAM_ARG): Remove.
+	(find_spec_file): Do not add leading -specs=.
+	(lang_specific_driver): Use cl_decoded_option structures.
+	* lang.opt (C, CLASSPATH, D, bootclasspath, classpath, encoding,
+	extdirs, fmain=, s-bc-abi): New options.
+
+2010-08-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* class.c: Use FOR_EACH_VEC_ELT.
+	* expr.c: Likewise.
+	* jcf-parse.c: Likewise.
+	* resource.c: Likewise.
+
 2010-08-16  Joseph Myers  <joseph@codesourcery.com>
 
 	* lang.opt (MD_, MMD_, version): Mark RejectDriver.

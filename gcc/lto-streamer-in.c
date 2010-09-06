@@ -539,7 +539,7 @@ fixup_eh_region_pointers (struct function *fn, HOST_WIDE_INT root_region)
 
   /* Convert all the index numbers stored in pointer fields into
      pointers to the corresponding slots in the EH region array.  */
-  for (i = 0; VEC_iterate (eh_region, eh_array, i, r); i++)
+  FOR_EACH_VEC_ELT (eh_region, eh_array, i, r)
     {
       /* The array may contain NULL regions.  */
       if (r == NULL)
@@ -554,7 +554,7 @@ fixup_eh_region_pointers (struct function *fn, HOST_WIDE_INT root_region)
 
   /* Convert all the index numbers stored in pointer fields into
      pointers to the corresponding slots in the EH landing pad array.  */
-  for (i = 0; VEC_iterate (eh_landing_pad, lp_array, i, lp); i++)
+  FOR_EACH_VEC_ELT (eh_landing_pad, lp_array, i, lp)
     {
       /* The array may contain NULL landing pads.  */
       if (lp == NULL)
@@ -1168,6 +1168,10 @@ input_function (tree fn_decl, struct data_in *data_in,
   fn->calls_setjmp = bp_unpack_value (&bp, 1);
   fn->va_list_fpr_size = bp_unpack_value (&bp, 8);
   fn->va_list_gpr_size = bp_unpack_value (&bp, 8);
+
+  /* Input the function start and end loci.  */
+  fn->function_start_locus = lto_input_location (ib, data_in);
+  fn->function_end_locus = lto_input_location (ib, data_in);
 
   /* Input the current IL state of the function.  */
   fn->curr_properties = lto_input_uleb128 (ib);
@@ -2197,6 +2201,23 @@ lto_input_ts_constructor_tree_pointers (struct lto_input_block *ib,
 }
 
 
+/* Input a TS_TARGET_OPTION tree from IB into EXPR.  */
+
+static void
+lto_input_ts_target_option (struct lto_input_block *ib, tree expr)
+{
+  unsigned i, len;
+  struct bitpack_d bp;
+  struct cl_target_option *t = TREE_TARGET_OPTION (expr);
+
+  bp = lto_input_bitpack (ib);
+  len = sizeof (struct cl_target_option);
+  for (i = 0; i < len; i++)
+    ((unsigned char *)t)[i] = bp_unpack_value (&bp, 8);
+  if (bp_unpack_value (&bp, 32) != 0x12345678)
+    fatal_error ("cl_target_option size mismatch in LTO reader and writer");
+}
+
 /* Helper for lto_input_tree.  Read all pointer fields in EXPR from
    input block IB.  DATA_IN contains tables and descriptors for the
    file being read.  */
@@ -2281,9 +2302,7 @@ lto_input_tree_pointers (struct lto_input_block *ib, struct data_in *data_in,
     }
 
   if (CODE_CONTAINS_STRUCT (code, TS_TARGET_OPTION))
-    {
-      sorry ("target optimization options not supported yet");
-    }
+    lto_input_ts_target_option (ib, expr);
 }
 
 

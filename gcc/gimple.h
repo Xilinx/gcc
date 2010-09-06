@@ -886,6 +886,7 @@ void gimple_cond_set_condition_from_tree (gimple, tree);
 bool gimple_has_side_effects (const_gimple);
 bool gimple_rhs_has_side_effects (const_gimple);
 bool gimple_could_trap_p (gimple);
+bool gimple_could_trap_p_1 (gimple, bool, bool);
 bool gimple_assign_rhs_could_trap_p (gimple);
 void gimple_regimplify_operands (gimple, gimple_stmt_iterator *);
 bool empty_body_p (gimple_seq);
@@ -4875,6 +4876,7 @@ tree maybe_fold_offset_to_address (location_t, tree, tree, tree);
 tree maybe_fold_offset_to_reference (location_t, tree, tree, tree);
 tree maybe_fold_stmt_addition (location_t, tree, tree, tree);
 tree get_symbol_constant_value (tree);
+tree canonicalize_constructor_val (tree);
 bool may_propagate_address_into_dereference (tree, tree);
 extern tree maybe_fold_and_comparisons (enum tree_code, tree, tree, 
 					enum tree_code, tree, tree);

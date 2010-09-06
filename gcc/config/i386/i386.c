@@ -1480,21 +1480,21 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   /* X86_TUNE_PROMOTE_HI_REGS */
   m_PPRO,
 
-  /* X86_TUNE_ADD_ESP_4: Enable if add/sub is preferred over 1/2 push/pop.  */
-  m_ATOM | m_AMD_MULTIPLE | m_K6_GEODE | m_PENT4 | m_NOCONA
-  | m_CORE2 | m_GENERIC,
+  /* X86_TUNE_SINGLE_POP: Enable if single pop insn is preferred
+     over esp addition.  */
+  m_386 | m_486 | m_PENT | m_PPRO,
 
-  /* X86_TUNE_ADD_ESP_8 */
-  m_AMD_MULTIPLE | m_ATOM | m_PPRO | m_K6_GEODE | m_386
-  | m_486 | m_PENT4 | m_NOCONA | m_CORE2 | m_GENERIC,
+  /* X86_TUNE_DOUBLE_POP: Enable if double pop insn is preferred
+     over esp addition.  */
+  m_PENT,
 
-  /* X86_TUNE_SUB_ESP_4 */
-  m_AMD_MULTIPLE | m_ATOM | m_PPRO | m_PENT4 | m_NOCONA | m_CORE2
-  | m_GENERIC,
+  /* X86_TUNE_SINGLE_PUSH: Enable if single push insn is preferred
+     over esp subtraction.  */
+  m_386 | m_486 | m_PENT | m_K6_GEODE,
 
-  /* X86_TUNE_SUB_ESP_8 */
-  m_AMD_MULTIPLE | m_ATOM | m_PPRO | m_386 | m_486
-  | m_PENT4 | m_NOCONA | m_CORE2 | m_GENERIC,
+  /* X86_TUNE_DOUBLE_PUSH. Enable if double push insn is preferred
+     over esp subtraction.  */
+  m_PENT | m_K6_GEODE,
 
   /* X86_TUNE_INTEGER_DFMODE_MOVES: Enable if integer moves are preferred
      for DFmode copies */
@@ -1896,7 +1896,6 @@ static const char ix86_force_align_arg_pointer_string[]
   = "force_align_arg_pointer";
 
 static rtx (*ix86_gen_leave) (void);
-static rtx (*ix86_gen_pop1) (rtx);
 static rtx (*ix86_gen_add3) (rtx, rtx, rtx);
 static rtx (*ix86_gen_sub3) (rtx, rtx, rtx);
 static rtx (*ix86_gen_sub3_carry) (rtx, rtx, rtx, rtx, rtx);
@@ -3655,7 +3654,6 @@ override_options (bool main_args_p)
   if (TARGET_64BIT)
     {
       ix86_gen_leave = gen_leave_rex64;
-      ix86_gen_pop1 = gen_popdi1;
       ix86_gen_add3 = gen_adddi3;
       ix86_gen_sub3 = gen_subdi3;
       ix86_gen_sub3_carry = gen_subdi3_carry;
@@ -3669,7 +3667,6 @@ override_options (bool main_args_p)
   else
     {
       ix86_gen_leave = gen_leave;
-      ix86_gen_pop1 = gen_popsi1;
       ix86_gen_add3 = gen_addsi3;
       ix86_gen_sub3 = gen_subsi3;
       ix86_gen_sub3_carry = gen_subsi3_carry;
@@ -6466,7 +6463,7 @@ function_arg_ms_64 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
    ellipsis).  */
 
 static rtx
-ix86_function_arg (const CUMULATIVE_ARGS *cum, enum machine_mode omode,
+ix86_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode omode,
 		   const_tree type, bool named)
 {
   enum machine_mode mode = omode;
@@ -8122,13 +8119,7 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
       /* Ensure all queued register saves are flushed before the
 	 call.  */
       if (dwarf2out_do_frame ())
-	{
-	  rtx insn;
-	  start_sequence ();
-	  insn = emit_barrier ();
-	  end_sequence ();
-	  dwarf2out_frame_debug (insn, false);
-	}
+	dwarf2out_flush_queued_reg_saves ();
 #endif
       xops[2] = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (name));
       xops[2] = gen_rtx_MEM (QImode, xops[2]);
@@ -8171,6 +8162,18 @@ gen_push (rtx arg)
 				   gen_rtx_PRE_DEC (Pmode,
 						    stack_pointer_rtx)),
 		      arg);
+}
+
+/* Generate an "pop" pattern for input ARG.  */
+
+static rtx
+gen_pop (rtx arg)
+{
+  return gen_rtx_SET (VOIDmode,
+		      arg,
+		      gen_rtx_MEM (Pmode,
+				   gen_rtx_POST_INC (Pmode,
+						     stack_pointer_rtx)));
 }
 
 /* Return >= 0 if there is an unused call-clobbered register available
@@ -9052,7 +9055,7 @@ release_scratch_register_on_entry (struct scratch_reg *sr)
 {
   if (sr->saved)
     {
-      rtx x, insn = emit_insn (ix86_gen_pop1 (sr->reg));
+      rtx x, insn = emit_insn (gen_pop (sr->reg));
 
       /* The RTX_FRAME_RELATED_P mechanism doesn't know about pop.  */
       RTX_FRAME_RELATED_P (insn) = 1;
@@ -9478,7 +9481,7 @@ ix86_expand_prologue (void)
 	{
 	  /* The frame pointer is not needed so pop %ebp again.
 	     This leaves us with a pristine state.  */
-	  emit_insn (ix86_gen_pop1 (hard_frame_pointer_rtx));
+	  emit_insn (gen_pop (hard_frame_pointer_rtx));
 	}
     }
 
@@ -9612,6 +9615,29 @@ ix86_expand_prologue (void)
     }
 
   allocate = frame.stack_pointer_offset - m->fs.sp_offset;
+
+  if (flag_stack_usage)
+    {
+      /* We start to count from ARG_POINTER.  */
+      HOST_WIDE_INT stack_size = frame.stack_pointer_offset;
+
+      /* If it was realigned, take into account the fake frame.  */
+      if (stack_realign_drap)
+	{
+	  if (ix86_static_chain_on_stack)
+	    stack_size += UNITS_PER_WORD;
+
+	  if (!call_used_regs[REGNO (crtl->drap_reg)])
+	    stack_size += UNITS_PER_WORD;
+
+	  /* This over-estimates by 1 minimal-stack-alignment-unit but
+	     mitigates that by counting in the new return address slot.  */
+	  current_function_dynamic_stack_size
+	    += crtl->stack_alignment_needed / BITS_PER_UNIT;
+	}
+
+      current_function_static_stack_size = stack_size;
+    }
 
   /* The stack has already been decremented by the instruction calling us
      so we need to probe unconditionally to preserve the protection area.  */
@@ -9763,7 +9789,7 @@ static void
 ix86_emit_restore_reg_using_pop (rtx reg)
 {
   struct machine_function *m = cfun->machine;
-  rtx insn = emit_insn (ix86_gen_pop1 (reg));
+  rtx insn = emit_insn (gen_pop (reg));
 
   ix86_add_cfa_restore_note (insn, reg, m->fs.sp_offset);
   m->fs.sp_offset -= UNITS_PER_WORD;
@@ -9786,10 +9812,12 @@ ix86_emit_restore_reg_using_pop (rtx reg)
 
   if (m->fs.cfa_reg == stack_pointer_rtx)
     {
-      m->fs.cfa_offset -= UNITS_PER_WORD;
-      add_reg_note (insn, REG_CFA_ADJUST_CFA,
-		    copy_rtx (XVECEXP (PATTERN (insn), 0, 1)));
+      rtx x = plus_constant (stack_pointer_rtx, UNITS_PER_WORD);
+      x = gen_rtx_SET (VOIDmode, stack_pointer_rtx, x);
+      add_reg_note (insn, REG_CFA_ADJUST_CFA, x);
       RTX_FRAME_RELATED_P (insn) = 1;
+
+      m->fs.cfa_offset -= UNITS_PER_WORD;
     }
 
   /* When the frame pointer is the CFA, and we pop it, we are
@@ -10206,7 +10234,7 @@ ix86_expand_epilogue (int style)
 	  /* There is no "pascal" calling convention in any 64bit ABI.  */
 	  gcc_assert (!TARGET_64BIT);
 
-	  insn = emit_insn (gen_popsi1 (ecx));
+	  insn = emit_insn (gen_pop (ecx));
 	  m->fs.cfa_offset -= UNITS_PER_WORD;
 	  m->fs.sp_offset -= UNITS_PER_WORD;
 
@@ -14802,27 +14830,24 @@ distance_agu_use (unsigned int regno0, rtx insn)
 #define IX86_LEA_PRIORITY 2
 
 /* Return true if it is ok to optimize an ADD operation to LEA
-   operation to avoid flag register consumation.  For the processors
-   like ATOM, if the destination register of LEA holds an actual
-   address which will be used soon, LEA is better and otherwise ADD
-   is better.  */
+   operation to avoid flag register consumation.  For most processors,
+   ADD is faster than LEA.  For the processors like ATOM, if the
+   destination register of LEA holds an actual address which will be
+   used soon, LEA is better and otherwise ADD is better.  */
 
 bool
-ix86_lea_for_add_ok (enum rtx_code code ATTRIBUTE_UNUSED,
-                     rtx insn, rtx operands[])
+ix86_lea_for_add_ok (rtx insn, rtx operands[])
 {
   unsigned int regno0 = true_regnum (operands[0]);
   unsigned int regno1 = true_regnum (operands[1]);
-  unsigned int regno2;
-
-  if (!TARGET_OPT_AGU || optimize_function_for_size_p (cfun))
-    return regno0 != regno1;
-
-  regno2 = true_regnum (operands[2]);
+  unsigned int regno2 = true_regnum (operands[2]);
 
   /* If a = b + c, (a!=b && a!=c), must use lea form. */
   if (regno0 != regno1 && regno0 != regno2)
     return true;
+
+  if (!TARGET_OPT_AGU || optimize_function_for_size_p (cfun))
+    return false;
   else
     {
       int dist_define, dist_use;
@@ -17400,19 +17425,19 @@ ix86_expand_sse4_unpack (rtx operands[2], bool unsigned_p, bool high_p)
       if (unsigned_p)
 	unpack = gen_sse4_1_zero_extendv8qiv8hi2;
       else
-	unpack = gen_sse4_1_extendv8qiv8hi2;
+	unpack = gen_sse4_1_sign_extendv8qiv8hi2;
       break;
     case V8HImode:
       if (unsigned_p)
 	unpack = gen_sse4_1_zero_extendv4hiv4si2;
       else
-	unpack = gen_sse4_1_extendv4hiv4si2;
+	unpack = gen_sse4_1_sign_extendv4hiv4si2;
       break;
     case V4SImode:
       if (unsigned_p)
 	unpack = gen_sse4_1_zero_extendv2siv2di2;
       else
-	unpack = gen_sse4_1_extendv2siv2di2;
+	unpack = gen_sse4_1_sign_extendv2siv2di2;
       break;
     default:
       gcc_unreachable ();
@@ -23078,12 +23103,12 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_pblendvb, "__builtin_ia32_pblendvb128", IX86_BUILTIN_PBLENDVB128, UNKNOWN, (int) V16QI_FTYPE_V16QI_V16QI_V16QI },
   { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_pblendw, "__builtin_ia32_pblendw128", IX86_BUILTIN_PBLENDW128, UNKNOWN, (int) V8HI_FTYPE_V8HI_V8HI_INT },
 
-  { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_extendv8qiv8hi2, "__builtin_ia32_pmovsxbw128", IX86_BUILTIN_PMOVSXBW128, UNKNOWN, (int) V8HI_FTYPE_V16QI },
-  { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_extendv4qiv4si2, "__builtin_ia32_pmovsxbd128", IX86_BUILTIN_PMOVSXBD128, UNKNOWN, (int) V4SI_FTYPE_V16QI },
-  { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_extendv2qiv2di2, "__builtin_ia32_pmovsxbq128", IX86_BUILTIN_PMOVSXBQ128, UNKNOWN, (int) V2DI_FTYPE_V16QI },
-  { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_extendv4hiv4si2, "__builtin_ia32_pmovsxwd128", IX86_BUILTIN_PMOVSXWD128, UNKNOWN, (int) V4SI_FTYPE_V8HI },
-  { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_extendv2hiv2di2, "__builtin_ia32_pmovsxwq128", IX86_BUILTIN_PMOVSXWQ128, UNKNOWN, (int) V2DI_FTYPE_V8HI },
-  { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_extendv2siv2di2, "__builtin_ia32_pmovsxdq128", IX86_BUILTIN_PMOVSXDQ128, UNKNOWN, (int) V2DI_FTYPE_V4SI },
+  { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_sign_extendv8qiv8hi2, "__builtin_ia32_pmovsxbw128", IX86_BUILTIN_PMOVSXBW128, UNKNOWN, (int) V8HI_FTYPE_V16QI },
+  { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_sign_extendv4qiv4si2, "__builtin_ia32_pmovsxbd128", IX86_BUILTIN_PMOVSXBD128, UNKNOWN, (int) V4SI_FTYPE_V16QI },
+  { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_sign_extendv2qiv2di2, "__builtin_ia32_pmovsxbq128", IX86_BUILTIN_PMOVSXBQ128, UNKNOWN, (int) V2DI_FTYPE_V16QI },
+  { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_sign_extendv4hiv4si2, "__builtin_ia32_pmovsxwd128", IX86_BUILTIN_PMOVSXWD128, UNKNOWN, (int) V4SI_FTYPE_V8HI },
+  { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_sign_extendv2hiv2di2, "__builtin_ia32_pmovsxwq128", IX86_BUILTIN_PMOVSXWQ128, UNKNOWN, (int) V2DI_FTYPE_V8HI },
+  { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_sign_extendv2siv2di2, "__builtin_ia32_pmovsxdq128", IX86_BUILTIN_PMOVSXDQ128, UNKNOWN, (int) V2DI_FTYPE_V4SI },
   { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_zero_extendv8qiv8hi2, "__builtin_ia32_pmovzxbw128", IX86_BUILTIN_PMOVZXBW128, UNKNOWN, (int) V8HI_FTYPE_V16QI },
   { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_zero_extendv4qiv4si2, "__builtin_ia32_pmovzxbd128", IX86_BUILTIN_PMOVZXBD128, UNKNOWN, (int) V4SI_FTYPE_V16QI },
   { OPTION_MASK_ISA_SSE4_1, CODE_FOR_sse4_1_zero_extendv2qiv2di2, "__builtin_ia32_pmovzxbq128", IX86_BUILTIN_PMOVZXBQ128, UNKNOWN, (int) V2DI_FTYPE_V16QI },
@@ -26185,6 +26210,32 @@ ix86_secondary_reload (bool in_p, rtx x, reg_class_t rclass,
     }
 
   return NO_REGS;
+}
+
+/* Implement TARGET_CLASS_LIKELY_SPILLED_P.  */
+
+static bool
+ix86_class_likely_spilled_p (reg_class_t rclass)
+{
+  switch (rclass)
+    {
+      case AREG:
+      case DREG:
+      case CREG:
+      case BREG:
+      case AD_REGS:
+      case SIREG:
+      case DIREG:
+      case SSE_FIRST_REG:
+      case FP_TOP_REG:
+      case FP_SECOND_REG:
+	return true;
+
+      default:
+	break;
+    }
+
+  return false;
 }
 
 /* If we are copying between general and FP registers, we need a memory
@@ -31704,6 +31755,9 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD ix86_secondary_reload
+
+#undef TARGET_CLASS_LIKELY_SPILLED_P
+#define TARGET_CLASS_LIKELY_SPILLED_P ix86_class_likely_spilled_p
 
 #undef TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST \

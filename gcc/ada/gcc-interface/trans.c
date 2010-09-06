@@ -1603,7 +1603,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	   and the dimension in the cache and create a new one on failure.  */
 	if (!optimize && Present (gnat_param))
 	  {
-	    for (i = 0; VEC_iterate (parm_attr, f_parm_attr_cache, i, pa); i++)
+	    FOR_EACH_VEC_ELT (parm_attr, f_parm_attr_cache, i, pa)
 	      if (pa->id == gnat_param && pa->dim == Dimension)
 		break;
 
@@ -2521,7 +2521,7 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
 
       start_stmt_group ();
 
-      for (i = 0; VEC_iterate (parm_attr, cache, i, pa); i++)
+      FOR_EACH_VEC_ELT (parm_attr, cache, i, pa)
 	{
 	  if (pa->first)
 	    add_stmt_with_node (pa->first, gnat_node);
@@ -2992,6 +2992,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
       if (gnu_target)
 	{
 	  Node_Id gnat_parent = Parent (gnat_node);
+	  tree gnu_result_type = TREE_TYPE (gnu_subprog_type);
 	  enum tree_code op_code;
 
 	  /* If range check is needed, emit code to generate it.  */
@@ -3002,11 +3003,15 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 
 	  /* ??? If the return type has non-constant size, then force the
 	     return slot optimization as we would not be able to generate
-	     a temporary.  That's what has been done historically.  */
-	  if (TREE_CONSTANT (TYPE_SIZE (TREE_TYPE (gnu_subprog_type))))
-	    op_code = MODIFY_EXPR;
-	  else
+	     a temporary.  Likewise if it was unconstrained as we would
+	     copy too much data.  That's what has been done historically.  */
+	  if (!TREE_CONSTANT (TYPE_SIZE (gnu_result_type))
+	      || (TYPE_IS_PADDING_P (gnu_result_type)
+		  && CONTAINS_PLACEHOLDER_P
+		     (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS (gnu_result_type))))))
 	    op_code = INIT_EXPR;
+	  else
+	    op_code = MODIFY_EXPR;
 
 	  gnu_result
 	    = build_binary_op (op_code, NULL_TREE, gnu_target, gnu_result);

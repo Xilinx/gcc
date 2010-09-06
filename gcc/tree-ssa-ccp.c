@@ -1325,6 +1325,10 @@ fold_const_aggregate_ref (tree t)
   if (TREE_CODE_CLASS (TREE_CODE (t)) == tcc_declaration)
     return get_symbol_constant_value (t);
 
+  tem = fold_read_from_constant_string (t);
+  if (tem)
+    return tem;
+
   switch (TREE_CODE (t))
     {
     case ARRAY_REF:
@@ -1348,7 +1352,8 @@ fold_const_aggregate_ref (tree t)
 	case VAR_DECL:
 	  if (!TREE_READONLY (base)
 	      || TREE_CODE (TREE_TYPE (base)) != ARRAY_TYPE
-	      || !targetm.binds_local_p (base))
+	      || ((TREE_STATIC (base) || DECL_EXTERNAL (base))
+		  && !varpool_get_node (base)->const_value_known))
 	    return NULL_TREE;
 
 	  ctor = DECL_INITIAL (base);
@@ -1412,16 +1417,7 @@ fold_const_aggregate_ref (tree t)
       /* Whoo-hoo!  I'll fold ya baby.  Yeah!  */
       FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (ctor), cnt, cfield, cval)
 	if (tree_int_cst_equal (cfield, idx))
-	  {
-	    STRIP_NOPS (cval);
-	    if (TREE_CODE (cval) == ADDR_EXPR)
-	      {
-		tree base = get_base_address (TREE_OPERAND (cval, 0));
-		if (base && TREE_CODE (base) == VAR_DECL)
-		  add_referenced_var (base);
-	      }
-	    return cval;
-	  }
+	  return canonicalize_constructor_val (cval);
       break;
 
     case COMPONENT_REF:
@@ -1435,7 +1431,8 @@ fold_const_aggregate_ref (tree t)
 	case VAR_DECL:
 	  if (!TREE_READONLY (base)
 	      || TREE_CODE (TREE_TYPE (base)) != RECORD_TYPE
-	      || !targetm.binds_local_p (base))
+	      || ((TREE_STATIC (base) || DECL_EXTERNAL (base))
+		  && !varpool_get_node (base)->const_value_known))
 	    return NULL_TREE;
 
 	  ctor = DECL_INITIAL (base);
@@ -1461,16 +1458,7 @@ fold_const_aggregate_ref (tree t)
 	if (cfield == field
 	    /* FIXME: Handle bit-fields.  */
 	    && ! DECL_BIT_FIELD (cfield))
-	  {
-	    STRIP_NOPS (cval);
-	    if (TREE_CODE (cval) == ADDR_EXPR)
-	      {
-		tree base = get_base_address (TREE_OPERAND (cval, 0));
-		if (base && TREE_CODE (base) == VAR_DECL)
-		  add_referenced_var (base);
-	      }
-	    return cval;
-	  }
+	  return canonicalize_constructor_val (cval);
       break;
 
     case REALPART_EXPR:
@@ -1509,7 +1497,8 @@ fold_const_aggregate_ref (tree t)
 
 	  if (!TREE_READONLY (base)
 	      || TREE_CODE (TREE_TYPE (base)) != ARRAY_TYPE
-	      || !targetm.binds_local_p (base))
+	      || ((TREE_STATIC (base) || DECL_EXTERNAL (base))
+		  && !varpool_get_node (base)->const_value_known))
 	    return NULL_TREE;
 
 	  ctor = DECL_INITIAL (base);
@@ -1564,13 +1553,7 @@ fold_const_aggregate_ref (tree t)
 	  FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (ctor), cnt, cfield, cval)
 	    if (tree_int_cst_equal (cfield, idx))
 	      {
-		STRIP_NOPS (cval);
-		if (TREE_CODE (cval) == ADDR_EXPR)
-		  {
-		    tree base = get_base_address (TREE_OPERAND (cval, 0));
-		    if (base && TREE_CODE (base) == VAR_DECL)
-		      add_referenced_var (base);
-		  }
+		cval = canonicalize_constructor_val (cval);
 		if (useless_type_conversion_p (TREE_TYPE (t), TREE_TYPE (cval)))
 		  return cval;
 		else if (CONSTANT_CLASS_P (cval))

@@ -201,6 +201,46 @@ for (i = 0; i < n_opts; i++) {
 	else
 		missing_arg_error = quote missing_arg_error quote
 
+
+	warn_message = opt_args("Warn", flags[i])
+	if (warn_message == "")
+		warn_message = "0"
+	else
+		warn_message = quote warn_message quote
+
+	alias_arg = opt_args("Alias", flags[i])
+	if (alias_arg == "") {
+		if (flag_set_p("Ignore", flags[i]))
+			alias_data = "NULL, NULL, OPT_SPECIAL_ignore"
+		else
+			alias_data = "NULL, NULL, N_OPTS"
+	} else {
+		alias_opt = nth_arg(0, alias_arg)
+		alias_posarg = nth_arg(1, alias_arg)
+		alias_negarg = nth_arg(2, alias_arg)
+
+		if (var_ref(opts[i], flags[i]) != "0")
+			print "#error Alias setting variable"
+
+		if (alias_posarg != "" && alias_negarg == "") {
+			if (!flag_set_p("RejectNegative", flags[i]) \
+			    && opts[i] ~ "^[Wfm]")
+				print "#error Alias with single argument " \
+					"allowing negative form"
+		}
+
+		alias_opt = opt_enum(alias_opt)
+		if (alias_posarg == "")
+			alias_posarg = "NULL"
+		else
+			alias_posarg = quote alias_posarg quote
+		if (alias_negarg == "")
+			alias_negarg = "NULL"
+		else
+			alias_negarg = quote alias_negarg quote
+		alias_data = alias_posarg ", " alias_negarg ", " alias_opt
+	}
+
 	neg = opt_args("Negative", flags[i]);
 	if (neg != "")
 		idx = indices[neg]
@@ -216,9 +256,9 @@ for (i = 0; i < n_opts; i++) {
 	}
 	# Split the printf after %u to work around an ia64-hp-hpux11.23
 	# awk bug.
-	printf("  { %c-%s%c,\n    %s,\n    %s,\n    %s, %u,",
-	       quote, opts[i], quote, hlp, missing_arg_error,
-	       back_chain[i], len)
+	printf("  { %c-%s%c,\n    %s,\n    %s,\n    %s,\n    %s, %s, %u,",
+	       quote, opts[i], quote, hlp, missing_arg_error, warn_message,
+	       alias_data, back_chain[i], len)
 	printf(" %d,\n", idx)
 	condition = opt_args("Condition", flags[i])
 	cl_flags = switch_flags(flags[i])

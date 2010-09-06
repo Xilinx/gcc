@@ -1,5 +1,5 @@
 ;; VSX patterns.
-;; Copyright (C) 2009
+;; Copyright (C) 2009, 2010
 ;; Free Software Foundation, Inc.
 ;; Contributed by Michael Meissner <meissner@linux.vnet.ibm.com>
 
@@ -27,6 +27,9 @@
 
 ;; Iterator for the 2 32-bit vector types
 (define_mode_iterator VSX_W [V4SF V4SI])
+
+;; Iterator for the DF types
+(define_mode_iterator VSX_DF [V2DF DF])
 
 ;; Iterator for vector floating point types supported by VSX
 (define_mode_iterator VSX_F [V4SF V2DF])
@@ -73,11 +76,11 @@
 ;; Map the register class used for float<->int conversions
 (define_mode_attr VSr2	[(V2DF  "wd")
 			 (V4SF  "wf")
-			 (DF    "!f#r")])
+			 (DF    "ws")])
 
 (define_mode_attr VSr3	[(V2DF  "wa")
 			 (V4SF  "wa")
-			 (DF    "!f#r")])
+			 (DF    "ws")])
 
 ;; Map the register class for sp<->dp float conversions, destination
 (define_mode_attr VSr4	[(SF	"ws")
@@ -1053,6 +1056,22 @@
   "VECTOR_UNIT_VSX_P (V2DFmode)"
   "xvcvspuxds %x0,%x1"
   [(set_attr "type" "vecfloat")])
+
+;; Only optimize (float (fix x)) -> frz if we are in fast-math mode, since
+;; since the xsrdpiz instruction does not truncate the value if the floating
+;; point value is < LONG_MIN or > LONG_MAX.
+(define_insn "*vsx_float_fix_<mode>2"
+  [(set (match_operand:VSX_DF 0 "vsx_register_operand" "=<VSr>,?wa")
+	(float:VSX_DF
+	 (fix:<VSI>
+	  (match_operand:VSX_DF 1 "vsx_register_operand" "<VSr>,?wa"))))]
+  "TARGET_HARD_FLOAT && TARGET_FPRS && TARGET_DOUBLE_FLOAT
+   && VECTOR_UNIT_VSX_P (<MODE>mode) && flag_unsafe_math_optimizations
+   && !flag_trapping_math && TARGET_FRIZ"
+  "x<VSv>r<VSs>iz %x0,%x1"
+  [(set_attr "type" "<VStype_simple>")
+   (set_attr "fp_type" "<VSfptype_simple>")])
+
 
 ;; Logical and permute operations
 (define_insn "*vsx_and<mode>3"

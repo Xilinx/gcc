@@ -219,7 +219,8 @@ rest_of_decl_compilation (tree decl,
   /* Let cgraph know about the existence of variables.  */
   if (in_lto_p && !at_end)
     ;
-  else if (TREE_CODE (decl) == VAR_DECL && !DECL_EXTERNAL (decl))
+  else if (TREE_CODE (decl) == VAR_DECL && !DECL_EXTERNAL (decl)
+	   && TREE_STATIC (decl))
     varpool_node (decl);
 }
 
@@ -811,6 +812,7 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_whole_program_visibility);
   NEXT_PASS (pass_ipa_profile);
   NEXT_PASS (pass_ipa_cp);
+  NEXT_PASS (pass_ipa_cdtor_merge);
   NEXT_PASS (pass_ipa_inline);
   NEXT_PASS (pass_ipa_pure_const);
   NEXT_PASS (pass_ipa_reference);
@@ -1792,9 +1794,26 @@ void
 ipa_write_optimization_summaries (cgraph_node_set set, varpool_node_set vset)
 {
   struct lto_out_decl_state *state = lto_new_out_decl_state ();
+  cgraph_node_set_iterator csi;
   compute_ltrans_boundary (state, set, vset);
 
   lto_push_out_decl_state (state);
+  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
+    {
+      struct cgraph_node *node = csi_node (csi);
+      /* When streaming out references to statements as part of some IPA
+	 pass summary, the statements need to have uids assigned.
+
+	 For functions newly born at WPA stage we need to initialize
+	 the uids here.  */
+      if (node->analyzed
+	  && gimple_has_body_p (node->decl))
+	{
+	  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+	  renumber_gimple_stmt_uids ();
+	  pop_cfun ();
+	}
+    }
 
   gcc_assert (flag_wpa);
   ipa_write_optimization_summaries_1 (all_regular_ipa_passes, set, vset, state);

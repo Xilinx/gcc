@@ -165,9 +165,7 @@ constant_after_peeling (tree op, gimple stmt, struct loop *loop)
       if ((DECL_P (base)
       	   && TREE_STATIC (base)
 	   && TREE_READONLY (base)
-           && (DECL_INITIAL (base)
-	       || (!DECL_EXTERNAL (base)
-		   && targetm.binds_local_p (base))))
+	   && varpool_get_node (base)->const_value_known)
 	  || CONSTANT_CLASS_P (base))
 	{
 	  /* If so, see if we understand all the indices.  */
@@ -403,7 +401,7 @@ try_unroll_loop_completely (struct loop *loop,
 	  return false;
 	}
 
-      for (i = 0; VEC_iterate (edge, to_remove, i, e); i++)
+      FOR_EACH_VEC_ELT (edge, to_remove, i, e)
 	{
 	  bool ok = remove_path (e);
 	  gcc_assert (ok);

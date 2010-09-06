@@ -28,6 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 /* Forward declarations.  */
 
 static void strip_function_call (gfc_expr *);
+static void optimize_namespace (gfc_namespace *);
 static void optimize_assignment (gfc_code *);
 static void optimize_expr_0 (gfc_expr *);
 static bool optimize_expr (gfc_expr *);
@@ -41,10 +42,21 @@ static void optimize_actual_arglist (gfc_actual_arglist *);
    optimization pass is run.  */
 
 void
-gfc_run_passes (gfc_namespace * ns)
+gfc_run_passes (gfc_namespace *ns)
 {
   if (optimize)
-    optimize_code (ns->code);
+    optimize_namespace (ns);
+}
+
+/* Optimize a namespace, including all contained namespaces.  */
+
+static void
+optimize_namespace (gfc_namespace *ns)
+{
+  optimize_code (ns->code);
+
+  for (ns = ns->contained; ns; ns = ns->sibling)
+    optimize_namespace (ns);
 }
 
 static void
@@ -398,6 +410,13 @@ optimize_equality (gfc_expr *e, bool equal)
       optimize_equality (e, equal);
       return true;
     }
+
+  /* An expression of type EXPR_CONSTANT is only valid for scalars.  */
+  /* TODO: A scalar constant may be acceptable in some cases (the scalarizer
+     handles them well). However, there are also cases that need a non-scalar
+     argument. For example the any intrinsic. See PR 45380.  */
+  if (e->rank > 0)
+    return false;
 
   /* Check for direct comparison between identical variables.  Don't compare
      REAL or COMPLEX because of NaN checks.  */

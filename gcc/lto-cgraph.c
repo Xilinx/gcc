@@ -281,7 +281,8 @@ lto_output_edge (struct lto_simple_output_block *ob, struct cgraph_edge *edge,
   lto_output_sleb128_stream (ob->main_stream, edge->count);
 
   bp = bitpack_create (ob->main_stream);
-  uid = flag_wpa ? edge->lto_stmt_uid : gimple_uid (edge->call_stmt);
+  uid = (!gimple_has_body_p (edge->caller->decl)
+	 ? edge->lto_stmt_uid : gimple_uid (edge->call_stmt));
   bp_pack_value (&bp, uid, HOST_BITS_PER_INT);
   bp_pack_value (&bp, edge->inline_failed, HOST_BITS_PER_INT);
   bp_pack_value (&bp, edge->frequency, HOST_BITS_PER_INT);
@@ -574,6 +575,7 @@ lto_output_varpool_node (struct lto_simple_output_block *ob, struct varpool_node
   bp_pack_value (&bp, node->force_output, 1);
   bp_pack_value (&bp, node->finalized, 1);
   bp_pack_value (&bp, node->alias, 1);
+  bp_pack_value (&bp, node->const_value_known, 1);
   gcc_assert (!node->alias || !node->extra_name);
   gcc_assert (node->finalized || !node->analyzed);
   gcc_assert (node->needed);
@@ -951,6 +953,11 @@ input_overwrite_node (struct lto_file_decl_data *file_data,
   node->lowered = bp_unpack_value (bp, 1);
   node->analyzed = tag == LTO_cgraph_analyzed_node;
   node->in_other_partition = bp_unpack_value (bp, 1);
+  if (node->in_other_partition)
+    {
+      DECL_EXTERNAL (node->decl) = 1;
+      TREE_STATIC (node->decl) = 0;
+    }
   node->alias = bp_unpack_value (bp, 1);
   node->finalized_by_frontend = bp_unpack_value (bp, 1);
   node->frequency = (enum node_frequency)bp_unpack_value (bp, 2);
@@ -1105,9 +1112,15 @@ input_varpool_node (struct lto_file_decl_data *file_data,
   node->force_output = bp_unpack_value (&bp, 1);
   node->finalized = bp_unpack_value (&bp, 1);
   node->alias = bp_unpack_value (&bp, 1);
+  node->const_value_known = bp_unpack_value (&bp, 1);
   node->analyzed = node->finalized; 
   node->used_from_other_partition = bp_unpack_value (&bp, 1);
   node->in_other_partition = bp_unpack_value (&bp, 1);
+  if (node->in_other_partition)
+    {
+      DECL_EXTERNAL (node->decl) = 1;
+      TREE_STATIC (node->decl) = 0;
+    }
   aliases_p = bp_unpack_value (&bp, 1);
   if (node->finalized)
     varpool_mark_needed_node (node);
@@ -1268,7 +1281,7 @@ input_cgraph_1 (struct lto_file_decl_data *file_data,
       len = lto_input_uleb128 (ib);
     }
 
-  for (i = 0; VEC_iterate (cgraph_node_ptr, nodes, i, node); i++)
+  FOR_EACH_VEC_ELT (cgraph_node_ptr, nodes, i, node)
     {
       int ref = (int) (intptr_t) node->global.inlined_to;
 
@@ -1307,7 +1320,7 @@ input_varpool_1 (struct lto_file_decl_data *file_data,
 		     input_varpool_node (file_data, ib));
       len--;
     }
-  for (i = 0; VEC_iterate (varpool_node_ptr, varpool, i, node); i++)
+  FOR_EACH_VEC_ELT (varpool_node_ptr, varpool, i, node)
     {
       int ref = (int) (intptr_t) node->same_comdat_group;
 
@@ -1481,7 +1494,7 @@ output_node_opt_summary (struct output_block *ob,
     lto_output_uleb128_stream (ob->main_stream, index);
   lto_output_uleb128_stream (ob->main_stream,
 		             VEC_length (ipa_replace_map_p, node->clone.tree_map));
-  for (i = 0; VEC_iterate (ipa_replace_map_p, node->clone.tree_map, i, map); i++)
+  FOR_EACH_VEC_ELT (ipa_replace_map_p, node->clone.tree_map, i, map)
     {
       int parm_num;
       tree parm;

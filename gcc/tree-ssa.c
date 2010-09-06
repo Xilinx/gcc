@@ -938,6 +938,8 @@ verify_ssa (bool check_modified_stmt)
 	  gimple stmt = gsi_stmt (gsi);
 	  use_operand_p use_p;
 	  bool has_err;
+	  int count;
+	  unsigned i;
 
 	  if (check_modified_stmt && gimple_modified_p (stmt))
 	    {
@@ -1007,10 +1009,24 @@ verify_ssa (bool check_modified_stmt)
 	      goto err;
 	    }
 
+	  count = 0;
 	  FOR_EACH_SSA_TREE_OPERAND (op, stmt, iter, SSA_OP_USE|SSA_OP_DEF)
 	    {
 	      if (verify_ssa_name (op, false))
 		{
+		  error ("in statement");
+		  print_gimple_stmt (stderr, stmt, 0, TDF_VOPS|TDF_MEMSYMS);
+		  goto err;
+		}
+	      count++;
+	    }
+
+	  for (i = 0; i < gimple_num_ops (stmt); i++)
+	    {
+	      op = gimple_op (stmt, i);
+	      if (op && TREE_CODE (op) == SSA_NAME && --count < 0)
+		{
+		  error ("nr of operands and imm-links doesn't agree");
 		  error ("in statement");
 		  print_gimple_stmt (stderr, stmt, 0, TDF_VOPS|TDF_MEMSYMS);
 		  goto err;
@@ -2040,7 +2056,7 @@ execute_update_addresses_taken (bool do_optimize)
 	 differences for -g vs. -g0.  */
       for (var = DECL_ARGUMENTS (cfun->decl); var; var = DECL_CHAIN (var))
 	update_vops |= maybe_optimize_var (var, addresses_taken, not_reg_needs);
-      for (i = 0; VEC_iterate (tree, cfun->local_decls, i, var); ++i)
+      FOR_EACH_VEC_ELT (tree, cfun->local_decls, i, var)
 	update_vops |= maybe_optimize_var (var, addresses_taken, not_reg_needs);
     }
 

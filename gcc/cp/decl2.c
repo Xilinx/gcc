@@ -3286,7 +3286,7 @@ generate_ctor_or_dtor_function (bool constructor_p, int priority,
 
   /* Call the static storage duration function with appropriate
      arguments.  */
-  for (i = 0; VEC_iterate (tree, ssdf_decls, i, fndecl); ++i)
+  FOR_EACH_VEC_ELT (tree, ssdf_decls, i, fndecl)
     {
       /* Calls to pure or const functions will expand to nothing.  */
       if (! (flags_from_decl_or_type (fndecl) & (ECF_CONST | ECF_PURE)))
@@ -3779,7 +3779,7 @@ cp_write_global_declarations (void)
       /* Go through the set of inline functions whose bodies have not
 	 been emitted yet.  If out-of-line copies of these functions
 	 are required, emit them.  */
-      for (i = 0; VEC_iterate (tree, deferred_fns, i, decl); ++i)
+      FOR_EACH_VEC_ELT (tree, deferred_fns, i, decl)
 	{
 	  /* Does it need synthesizing?  */
 	  if (DECL_DEFAULTED_FN (decl) && ! DECL_INITIAL (decl)
@@ -3881,7 +3881,7 @@ cp_write_global_declarations (void)
 	reconsider = true;
 
       /* Static data members are just like namespace-scope globals.  */
-      for (i = 0; VEC_iterate (tree, pending_statics, i, decl); ++i)
+      FOR_EACH_VEC_ELT (tree, pending_statics, i, decl)
 	{
 	  if (var_finalized_p (decl) || DECL_REALLY_EXTERN (decl)
 	      /* Don't write it out if we haven't seen a definition.  */
@@ -3903,7 +3903,7 @@ cp_write_global_declarations (void)
   while (reconsider);
 
   /* All used inline functions must have a definition at this point.  */
-  for (i = 0; VEC_iterate (tree, deferred_fns, i, decl); ++i)
+  FOR_EACH_VEC_ELT (tree, deferred_fns, i, decl)
     {
       if (/* Check online inline functions that were actually used.  */
 	  DECL_ODR_USED (decl) && DECL_DECLARED_INLINE_P (decl)
@@ -3925,7 +3925,7 @@ cp_write_global_declarations (void)
     }
 
   /* So must decls that use a type with no linkage.  */
-  for (i = 0; VEC_iterate (tree, no_linkage_decls, i, decl); ++i)
+  FOR_EACH_VEC_ELT (tree, no_linkage_decls, i, decl)
     if (!decl_defined_p (decl))
       no_linkage_error (decl);
 
@@ -3970,6 +3970,8 @@ cp_write_global_declarations (void)
       emit_debug_global_declarations (VEC_address (tree, pending_statics),
 				      VEC_length (tree, pending_statics));
     }
+
+  perform_deferred_noexcept_checks ();
 
   /* Generate hidden aliases for Java.  */
   if (candidates)

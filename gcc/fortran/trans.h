@@ -64,6 +64,13 @@ typedef struct gfc_se
      pointer assignments.  */
   unsigned direct_byref:1;
 
+  /* If direct_byref is set, do work out the descriptor as in that case but
+     do still create a new descriptor variable instead of using an
+     existing one.  This is useful for special pointer assignments like
+     rank remapping where we have to process the descriptor before
+     assigning to final one.  */
+  unsigned byref_noassign:1;
+
   /* Ignore absent optional arguments.  Used for some intrinsics.  */
   unsigned ignore_optional:1;
 
@@ -332,6 +339,9 @@ void gfc_conv_label_variable (gfc_se * se, gfc_expr * expr);
 /* If the value is not constant, Create a temporary and copy the value.  */
 tree gfc_evaluate_now (tree, stmtblock_t *);
 
+/* Find the appropriate variant of a math intrinsic.  */
+tree gfc_builtin_decl_for_float_kind (enum built_in_function, int);
+
 /* Intrinsic function handling.  */
 void gfc_conv_intrinsic_function (gfc_se *, gfc_expr *);
 
@@ -426,7 +436,7 @@ void gfc_set_decl_location (tree, locus *);
 tree gfc_get_symbol_decl (gfc_symbol *);
 
 /* Build a static initializer.  */
-tree gfc_conv_initializer (gfc_expr *, gfc_typespec *, tree, bool, bool);
+tree gfc_conv_initializer (gfc_expr *, gfc_typespec *, tree, bool, bool, bool);
 
 /* Assign a default initializer to a derived type.  */
 void gfc_init_default_dt (gfc_symbol *, stmtblock_t *, bool);
@@ -520,9 +530,6 @@ tree gfc_trans_assignment (gfc_expr *, gfc_expr *, bool, bool);
 /* Generate code for a pointer assignment.  */
 tree gfc_trans_pointer_assignment (gfc_expr *, gfc_expr *);
 
-/* Generate code to assign typebound procedures to a derived vtab.  */
-void gfc_trans_assign_vtab_procs (stmtblock_t*, gfc_symbol*, gfc_symbol*);
-
 /* Initialize function decls for library functions.  */
 void gfc_build_intrinsic_lib_fndecls (void);
 /* Create function decls for IO library functions.  */
@@ -534,7 +541,7 @@ tree gfc_build_library_function_decl_with_spec (tree name, const char *spec,
 						tree rettype, int nargs, ...);
 
 /* Process the local variable decls of a block construct.  */
-void gfc_process_block_locals (gfc_namespace*);
+void gfc_process_block_locals (gfc_namespace*, gfc_association_list*);
 
 /* Output initialization/clean-up code that was deferred.  */
 void gfc_trans_deferred_vars (gfc_symbol*, gfc_wrapped_block *);

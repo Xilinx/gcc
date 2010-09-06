@@ -194,10 +194,21 @@ extern const char *const tree_code_name[];
    of an alias.  This requires that the decl have been defined.  Aliases
    that precede their definition have to be queued for later processing.  */
 
+/* The deferred processing proceeds in several passes.  We memorize the
+   diagnostics emitted for a pair to prevent repeating messages when the
+   queue gets re-scanned after possible updates.  */
+
+typedef enum {
+  ALIAS_DIAG_NONE      = 0x0,
+  ALIAS_DIAG_TO_UNDEF  = 0x1,
+  ALIAS_DIAG_TO_EXTERN = 0x2
+} alias_diag_flags;
+  
 typedef struct GTY(()) alias_pair
 {
   tree decl;
-  tree target;
+  tree target;  
+  int  emitted_diags;  /* alias_diags already emitted for this pair.  */
 } alias_pair;
 
 /* Define gc'd vector type.  */
@@ -521,7 +532,8 @@ struct GTY(()) tree_common {
            BLOCK
            all decls
 
-       CALL_FROM_THUNK_P in
+       CALL_FROM_THUNK_P and
+       ALLOCA_FOR_VAR_P in
            CALL_EXPR
 
    side_effects_flag:
@@ -1328,6 +1340,10 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    thunked-to function.  */
 #define CALL_FROM_THUNK_P(NODE) (CALL_EXPR_CHECK (NODE)->base.protected_flag)
 
+/* In a CALL_EXPR, if the function being called is BUILT_IN_ALLOCA, means that
+   it has been built for the declaration of a variable-sized object.  */
+#define ALLOCA_FOR_VAR_P(NODE) (CALL_EXPR_CHECK (NODE)->base.protected_flag)
+
 /* In a type, nonzero means that all objects of the type are guaranteed by the
    language or front-end to be properly aligned, so we can indicate that a MEM
    of this type is aligned at least to the alignment of the type, even if it
@@ -1627,12 +1643,13 @@ extern void protected_set_expr_location (tree, location_t);
 #define CASE_HIGH(NODE)         	TREE_OPERAND (CASE_LABEL_EXPR_CHECK (NODE), 1)
 #define CASE_LABEL(NODE)		TREE_OPERAND (CASE_LABEL_EXPR_CHECK (NODE), 2)
 
-/* The operands of a TARGET_MEM_REF.  */
-#define TMR_SYMBOL(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 0))
-#define TMR_BASE(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 1))
+/* The operands of a TARGET_MEM_REF.  Operands 0 and 1 have to match
+   corresponding MEM_REF operands.  */
+#define TMR_BASE(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 0))
+#define TMR_OFFSET(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 1))
 #define TMR_INDEX(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 2))
 #define TMR_STEP(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 3))
-#define TMR_OFFSET(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 4))
+#define TMR_INDEX2(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 4))
 
 /* The operands of a BIND_EXPR.  */
 #define BIND_EXPR_VARS(NODE) (TREE_OPERAND (BIND_EXPR_CHECK (NODE), 0))
@@ -4110,8 +4127,20 @@ extern int attribute_list_contained (const_tree, const_tree);
 extern int tree_int_cst_equal (const_tree, const_tree);
 extern int tree_int_cst_lt (const_tree, const_tree);
 extern int tree_int_cst_compare (const_tree, const_tree);
-extern int host_integerp (const_tree, int);
+extern int host_integerp (const_tree, int)
+#ifndef ENABLE_TREE_CHECKING
+  ATTRIBUTE_PURE /* host_integerp is pure only when checking is disabled.  */
+#endif
+  ;
 extern HOST_WIDE_INT tree_low_cst (const_tree, int);
+#if !defined ENABLE_TREE_CHECKING && (GCC_VERSION >= 4003)
+extern inline __attribute__ ((__gnu_inline__)) HOST_WIDE_INT
+tree_low_cst (const_tree t, int pos)
+{
+  gcc_assert (host_integerp (t, pos));
+  return TREE_INT_CST_LOW (t);
+}
+#endif
 extern int tree_int_cst_msb (const_tree);
 extern int tree_int_cst_sgn (const_tree);
 extern int tree_int_cst_sign_bit (const_tree);
@@ -4755,16 +4784,14 @@ extern GTY(()) const char * current_function_func_begin_label;
 
 /* Iterator for going through the function arguments.  */
 typedef struct {
-  tree fntype;			/* function type declaration */
   tree next;			/* TREE_LIST pointing to the next argument */
 } function_args_iterator;
 
 /* Initialize the iterator I with arguments from function FNDECL  */
 
 static inline void
-function_args_iter_init (function_args_iterator *i, tree fntype)
+function_args_iter_init (function_args_iterator *i, const_tree fntype)
 {
-  i->fntype = fntype;
   i->next = TYPE_ARG_TYPES (fntype);
 }
 
@@ -4836,7 +4863,7 @@ extern tree call_expr_arg (tree, int);
 extern tree *call_expr_argp (tree, int);
 extern tree create_artificial_label (location_t);
 extern const char *get_name (tree);
-extern bool stdarg_p (tree);
+extern bool stdarg_p (const_tree);
 extern bool prototype_p (tree);
 extern bool is_typedef_decl (tree x);
 extern bool typedef_variant_p (tree);

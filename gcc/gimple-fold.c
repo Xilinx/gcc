@@ -31,6 +31,30 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-propagate.h"
 #include "target.h"
 
+/* CVAL is value taken from DECL_INITIAL of variable.  Try to transorm it into
+   acceptable form for is_gimple_min_invariant.   */
+
+tree
+canonicalize_constructor_val (tree cval)
+{
+  STRIP_NOPS (cval);
+  if (TREE_CODE (cval) == POINTER_PLUS_EXPR)
+    {
+      tree t = maybe_fold_offset_to_address (EXPR_LOCATION (cval),
+					     TREE_OPERAND (cval, 0),
+					     TREE_OPERAND (cval, 1),
+					     TREE_TYPE (cval));
+      if (t)
+	cval = t;
+    }
+  if (TREE_CODE (cval) == ADDR_EXPR)
+    {
+      tree base = get_base_address (TREE_OPERAND (cval, 0));
+      if (base && TREE_CODE (base) == VAR_DECL)
+	add_referenced_var (base);
+    }
+  return cval;
+}
 
 /* If SYM is a constant variable with known value, return the value.
    NULL_TREE is returned otherwise.  */
@@ -38,35 +62,21 @@ along with GCC; see the file COPYING3.  If not see
 tree
 get_symbol_constant_value (tree sym)
 {
-  if (TREE_STATIC (sym)
-      && (TREE_READONLY (sym)
-	  || TREE_CODE (sym) == CONST_DECL))
+  if ((TREE_STATIC (sym) || DECL_EXTERNAL (sym))
+      && (TREE_CODE (sym) == CONST_DECL
+	  || varpool_get_node (sym)->const_value_known))
     {
       tree val = DECL_INITIAL (sym);
       if (val)
 	{
-	  STRIP_NOPS (val);
+	  val = canonicalize_constructor_val (val);
 	  if (is_gimple_min_invariant (val))
-	    {
-	      if (TREE_CODE (val) == ADDR_EXPR)
-		{
-		  tree base = get_base_address (TREE_OPERAND (val, 0));
-		  if (base && TREE_CODE (base) == VAR_DECL)
-		    {
-		      TREE_ADDRESSABLE (base) = 1;
-		      if (gimple_referenced_vars (cfun))
-			add_referenced_var (base);
-		    }
-		}
-	      return val;
-	    }
+	    return val;
 	}
       /* Variables declared 'const' without an initializer
 	 have zero as the initializer if they may not be
 	 overridden at link or run time.  */
       if (!val
-	  && !DECL_EXTERNAL (sym)
-	  && targetm.binds_local_p (sym)
           && (INTEGRAL_TYPE_P (TREE_TYPE (sym))
 	       || SCALAR_FLOAT_TYPE_P (TREE_TYPE (sym))))
 	return fold_convert (TREE_TYPE (sym), integer_zero_node);
@@ -464,14 +474,11 @@ static tree
 maybe_fold_reference (tree expr, bool is_lhs)
 {
   tree *t = &expr;
+  tree result;
 
-  if (TREE_CODE (expr) == ARRAY_REF
-      && !is_lhs)
-    {
-      tree tem = fold_read_from_constant_string (expr);
-      if (tem)
-	return tem;
-    }
+  if (!is_lhs
+      && (result = fold_const_aggregate_ref (expr)))
+    return result;
 
   /* ???  We might want to open-code the relevant remaining cases
      to avoid using the generic fold.  */
@@ -519,6 +526,18 @@ maybe_fold_reference (tree expr, bool is_lhs)
       tree tem = fold_binary (MEM_REF, TREE_TYPE (*t),
 			      TREE_OPERAND (*t, 0),
 			      TREE_OPERAND (*t, 1));
+      if (tem)
+	{
+	  *t = tem;
+	  tem = maybe_fold_reference (expr, is_lhs);
+	  if (tem)
+	    return tem;
+	  return expr;
+	}
+    }
+  else if (TREE_CODE (*t) == TARGET_MEM_REF)
+    {
+      tree tem = maybe_fold_tmr (*t);
       if (tem)
 	{
 	  *t = tem;
@@ -601,9 +620,6 @@ fold_gimple_assign (gimple_stmt_iterator *si)
 	      result = fold_build3_loc (cond_loc, COND_EXPR, TREE_TYPE (rhs), tem,
 				    COND_EXPR_THEN (rhs), COND_EXPR_ELSE (rhs));
           }
-
-	else if (TREE_CODE (rhs) == TARGET_MEM_REF)
-	  return maybe_fold_tmr (rhs);
 
 	else if (REFERENCE_CLASS_P (rhs))
 	  return maybe_fold_reference (rhs, false);
@@ -1004,9 +1020,8 @@ get_maxval_strlen (tree arg, tree *length, bitmap visited, int type)
     }
 
   /* If we were already here, break the infinite cycle.  */
-  if (bitmap_bit_p (visited, SSA_NAME_VERSION (arg)))
+  if (!bitmap_set_bit (visited, SSA_NAME_VERSION (arg)))
     return true;
-  bitmap_set_bit (visited, SSA_NAME_VERSION (arg));
 
   var = arg;
   def_stmt = SSA_NAME_DEF_STMT (var);

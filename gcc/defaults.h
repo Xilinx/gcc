@@ -39,7 +39,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    || (CHAR) == 'e' || (CHAR) == 'T' || (CHAR) == 'u' \
    || (CHAR) == 'I' || (CHAR) == 'J' || (CHAR) == 'm' \
    || (CHAR) == 'x' || (CHAR) == 'L' || (CHAR) == 'A' \
-   || (CHAR) == 'B' )
+   || (CHAR) == 'B' || (CHAR) == 'd')
 
 /* This defines which multi-letter switches take arguments.  */
 
@@ -720,6 +720,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #ifndef PIC_OFFSET_TABLE_REGNUM
 #define PIC_OFFSET_TABLE_REGNUM INVALID_REGNUM
+#endif
+
+#ifndef PIC_OFFSET_TABLE_REG_CALL_CLOBBERED
+#define PIC_OFFSET_TABLE_REG_CALL_CLOBBERED 0
 #endif
 
 #ifndef TARGET_DLLIMPORT_DECL_ATTRIBUTES

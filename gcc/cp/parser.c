@@ -11199,14 +11199,10 @@ cp_parser_template_id (cp_parser *parser,
       access_check = check_value->checks;
       if (access_check)
 	{
-	  for (i = 0 ;
-	       VEC_iterate (deferred_access_check, access_check, i, chk) ;
-	       ++i)
-	    {
-	      perform_or_defer_access_check (chk->binfo,
-					     chk->decl,
-					     chk->diag_decl);
-	    }
+	  FOR_EACH_VEC_ELT (deferred_access_check, access_check, i, chk)
+	    perform_or_defer_access_check (chk->binfo,
+					   chk->decl,
+					   chk->diag_decl);
 	}
       /* Return the stored value.  */
       return check_value->value;
@@ -15588,6 +15584,7 @@ cp_parser_parameter_declaration (cp_parser *parser,
 			 the default argument; otherwise the default
 			 argument continues.  */
 		      bool error = false;
+		      tree t;
 
 		      /* Set ITALP so cp_parser_parameter_declaration_list
 			 doesn't decide to commit to this parse.  */
@@ -15596,7 +15593,11 @@ cp_parser_parameter_declaration (cp_parser *parser,
 
 		      cp_parser_parse_tentatively (parser);
 		      cp_lexer_consume_token (parser->lexer);
+		      begin_scope (sk_function_parms, NULL_TREE);
 		      cp_parser_parameter_declaration_list (parser, &error);
+		      for (t = current_binding_level->names; t; t = DECL_CHAIN (t))
+			pop_binding (DECL_NAME (t), t);
+		      leave_scope ();
 		      if (!cp_parser_error_occurred (parser) && !error)
 			done = true;
 		      cp_parser_abort_tentative_parse (parser);
@@ -16367,10 +16368,8 @@ cp_parser_class_specifier (cp_parser* parser)
 	    };
 
 	 */
-      for (ix = 0;
-	   VEC_iterate (cp_default_arg_entry, unparsed_funs_with_default_args,
-			ix, e);
-	   ix++)
+      FOR_EACH_VEC_ELT (cp_default_arg_entry, unparsed_funs_with_default_args,
+			ix, e)
 	{
 	  fn = e->decl;
 	  /* If there are default arguments that have not yet been processed,
@@ -16393,9 +16392,7 @@ cp_parser_class_specifier (cp_parser* parser)
 	pop_scope (pushed_scope);
       VEC_truncate (cp_default_arg_entry, unparsed_funs_with_default_args, 0);
       /* Now parse the body of the functions.  */
-      for (ix = 0;
-	   VEC_iterate (tree, unparsed_funs_with_definitions, ix, fn);
-	   ix++)
+      FOR_EACH_VEC_ELT (tree, unparsed_funs_with_definitions, ix, fn)
 	cp_parser_late_parsing_for_member (parser, fn);
       VEC_truncate (tree, unparsed_funs_with_definitions, 0);
     }
@@ -20517,14 +20514,10 @@ cp_parser_pre_parsed_nested_name_specifier (cp_parser *parser)
   checks = check_value->checks;
   if (checks)
     {
-      for (i = 0 ;
-	   VEC_iterate (deferred_access_check, checks, i, chk) ;
-	   ++i)
-	{
-	  perform_or_defer_access_check (chk->binfo,
-					 chk->decl,
-					 chk->diag_decl);
-	}
+      FOR_EACH_VEC_ELT (deferred_access_check, checks, i, chk)
+	perform_or_defer_access_check (chk->binfo,
+				       chk->decl,
+				       chk->diag_decl);
     }
   /* Set the scope from the stored value.  */
   parser->scope = check_value->value;
@@ -22549,6 +22542,32 @@ cp_parser_omp_atomic (cp_parser *parser, cp_token *pragma_tok)
       rhs = integer_one_node;
       break;
 
+    case COMPOUND_EXPR:
+      if (TREE_CODE (TREE_OPERAND (lhs, 0)) == SAVE_EXPR
+	 && TREE_CODE (TREE_OPERAND (lhs, 1)) == COMPOUND_EXPR
+	 && TREE_CODE (TREE_OPERAND (TREE_OPERAND (lhs, 1), 0)) == MODIFY_EXPR
+	 && TREE_OPERAND (TREE_OPERAND (lhs, 1), 1) == TREE_OPERAND (lhs, 0)
+	 && TREE_CODE (TREE_TYPE (TREE_OPERAND (TREE_OPERAND
+					     (TREE_OPERAND (lhs, 1), 0), 0)))
+	    == BOOLEAN_TYPE)
+       /* Undo effects of boolean_increment for post {in,de}crement.  */
+       lhs = TREE_OPERAND (TREE_OPERAND (lhs, 1), 0);
+      /* FALLTHRU */
+    case MODIFY_EXPR:
+      if (TREE_CODE (lhs) == MODIFY_EXPR
+	 && TREE_CODE (TREE_TYPE (TREE_OPERAND (lhs, 0))) == BOOLEAN_TYPE)
+       {
+	 /* Undo effects of boolean_increment.  */
+	 if (integer_onep (TREE_OPERAND (lhs, 1)))
+	   {
+	     /* This is pre or post increment.  */
+	     rhs = TREE_OPERAND (lhs, 1);
+	     lhs = TREE_OPERAND (lhs, 0);
+	     code = NOP_EXPR;
+	     break;
+	   }
+       }
+      /* FALLTHRU */
     default:
       switch (cp_lexer_peek_token (parser->lexer)->type)
 	{

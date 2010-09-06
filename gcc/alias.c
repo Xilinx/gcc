@@ -283,6 +283,10 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
        || TREE_CODE (base) == MEM_REF)
       && TREE_CODE (TREE_OPERAND (base, 0)) != SSA_NAME)
     return false;
+  if (TREE_CODE (base) == TARGET_MEM_REF
+      && TMR_BASE (base)
+      && TREE_CODE (TMR_BASE (base)) != SSA_NAME)
+    return false;
 
   /* If this is a reference based on a partitioned decl replace the
      base with an INDIRECT_REF of the pointer representative we
@@ -293,6 +297,18 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
     {
       void *namep;
       namep = pointer_map_contains (cfun->gimple_df->decls_to_pointers, base);
+      if (namep)
+	ref->base = build_simple_mem_ref (*(tree *)namep);
+    }
+  else if (TREE_CODE (base) == TARGET_MEM_REF
+	   && TREE_CODE (TMR_BASE (base)) == ADDR_EXPR
+	   && TREE_CODE (TREE_OPERAND (TMR_BASE (base), 0)) == VAR_DECL
+	   && ! TREE_STATIC (TREE_OPERAND (TMR_BASE (base), 0))
+	   && cfun->gimple_df->decls_to_pointers != NULL)
+    {
+      void *namep;
+      namep = pointer_map_contains (cfun->gimple_df->decls_to_pointers,
+				    TREE_OPERAND (TMR_BASE (base), 0));
       if (namep)
 	ref->base = build_simple_mem_ref (*(tree *)namep);
     }
@@ -744,6 +760,62 @@ get_alias_set (tree t)
      type get the same alias set assigned.  */
   else if (TREE_CODE (t) == ARRAY_TYPE && !TYPE_NONALIASED_COMPONENT (t))
     set = get_alias_set (TREE_TYPE (t));
+
+  /* From the former common C and C++ langhook implementation:
+
+     Unfortunately, there is no canonical form of a pointer type.
+     In particular, if we have `typedef int I', then `int *', and
+     `I *' are different types.  So, we have to pick a canonical
+     representative.  We do this below.
+
+     Technically, this approach is actually more conservative that
+     it needs to be.  In particular, `const int *' and `int *'
+     should be in different alias sets, according to the C and C++
+     standard, since their types are not the same, and so,
+     technically, an `int **' and `const int **' cannot point at
+     the same thing.
+
+     But, the standard is wrong.  In particular, this code is
+     legal C++:
+
+     int *ip;
+     int **ipp = &ip;
+     const int* const* cipp = ipp;
+     And, it doesn't make sense for that to be legal unless you
+     can dereference IPP and CIPP.  So, we ignore cv-qualifiers on
+     the pointed-to types.  This issue has been reported to the
+     C++ committee.
+
+     In addition to the above canonicalization issue, with LTO
+     we should also canonicalize `T (*)[]' to `T *' avoiding
+     alias issues with pointer-to element types and pointer-to
+     array types.
+
+     Likewise we need to deal with the situation of incomplete
+     pointed-to types and make `*(struct X **)&a' and
+     `*(struct X {} **)&a' alias.  Otherwise we will have to
+     guarantee that all pointer-to incomplete type variants
+     will be replaced by pointer-to complete type variants if
+     they are available.
+
+     With LTO the convenient situation of using `void *' to
+     access and store any pointer type will also become
+     more apparent (and `void *' is just another pointer-to
+     incomplete type).  Assigning alias-set zero to `void *'
+     and all pointer-to incomplete types is a not appealing
+     solution.  Assigning an effective alias-set zero only
+     affecting pointers might be - by recording proper subset
+     relationships of all pointer alias-sets.
+
+     Pointer-to function types are another grey area which
+     needs caution.  Globbing them all into one alias-set
+     or the above effective zero set would work.
+
+     For now just assign the same alias-set to all pointers.
+     That's simple and avoids all the above problems.  */
+  else if (POINTER_TYPE_P (t)
+	   && t != ptr_type_node)
+    return get_alias_set (ptr_type_node);
 
   /* Otherwise make a new alias set for this type.  */
   else

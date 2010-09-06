@@ -614,6 +614,23 @@ proc check_effective_target_tls_native {} {
     }]
 }
 
+# Return 1 if *emulated* thread local storage (TLS) is supported, 0 otherwise.
+
+proc check_effective_target_tls_emulated {} {
+    # VxWorks uses emulated TLS machinery, but with non-standard helper
+    # functions, so we fail to automatically detect it.
+    global target_triplet
+    if { [regexp ".*-.*-vxworks.*" $target_triplet] } {
+	return 1
+    }
+    
+    return [check_no_messages_and_pattern tls_emulated "emutls" assembly {
+	__thread int i;
+	int f (void) { return i; }
+	void g (int j) { i = j; }
+    }]
+}
+
 # Return 1 if TLS executables can run correctly, 0 otherwise.
 
 proc check_effective_target_tls_runtime {} {
@@ -621,6 +638,20 @@ proc check_effective_target_tls_runtime {} {
 	__thread int thr = 0;
 	int main (void) { return thr; }
     }]
+}
+
+# Return 1 if -ffunction-sections is supported, 0 otherwise.
+
+proc check_effective_target_function_sections {} {
+    # Darwin has its own scheme and silently accepts -ffunction-sections.
+    global target_triplet
+    if { [regexp ".*-.*-darwin.*" $target_triplet] } {
+	return 0
+    }
+    
+    return [check_no_compiler_messages functionsections assembly {
+ 	void foo (void) { }
+    } "-ffunction-sections"]
 }
 
 # Return 1 if compilation with -fgraphite is error-free for trivial 
@@ -2609,7 +2640,8 @@ proc check_effective_target_vect_unpack { } {
         if { ([istarget powerpc*-*-*] && ![istarget powerpc-*paired*])
              || [istarget i?86-*-*]
              || [istarget x86_64-*-*] 
-             || [istarget spu-*-*] } {
+             || [istarget spu-*-*]
+             || ([istarget arm*-*-*] && [check_effective_target_arm_neon]) } {
             set et_vect_unpack_saved 1
         }
     }

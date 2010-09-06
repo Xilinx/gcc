@@ -949,6 +949,9 @@ static const enum rs6000_btc builtin_classify[(int)RS6000_BUILTIN_COUNT] =
 #undef RS6000_BUILTIN
 #undef RS6000_BUILTIN_EQUATE
 
+/* Support for -mveclibabi=<xxx> to control which vector library to use.  */
+static tree (*rs6000_veclib_handler) (tree, tree, tree);
+
 
 static bool rs6000_function_ok_for_sibcall (tree, tree);
 static const char *rs6000_invalid_within_doloop (const_rtx);
@@ -989,6 +992,7 @@ static rtx rs6000_emit_stack_reset (rs6000_stack_t *, rtx, rtx, int, bool);
 static rtx rs6000_make_savres_rtx (rs6000_stack_t *, rtx, int,
 				   enum machine_mode, bool, bool, bool);
 static bool rs6000_reg_live_or_pic_offset_p (int);
+static tree rs6000_builtin_vectorized_libmass (tree, tree, tree);
 static tree rs6000_builtin_vectorized_function (tree, tree, tree);
 static int rs6000_savres_strategy (rs6000_stack_t *, bool, int, int);
 static void rs6000_restore_saved_cr (rtx, int);
@@ -1151,20 +1155,25 @@ static int rs6000_tls_symbol_ref_1 (rtx *, void *);
 static const char *rs6000_get_some_local_dynamic_name (void);
 static int rs6000_get_some_local_dynamic_name_1 (rtx *, void *);
 static rtx rs6000_complex_function_value (enum machine_mode);
-static rtx rs6000_spe_function_arg (CUMULATIVE_ARGS *,
-				    enum machine_mode, tree);
+static rtx rs6000_spe_function_arg (const CUMULATIVE_ARGS *,
+				    enum machine_mode, const_tree);
 static void rs6000_darwin64_record_arg_advance_flush (CUMULATIVE_ARGS *,
 						      HOST_WIDE_INT, int);
 static void rs6000_darwin64_record_arg_advance_recurse (CUMULATIVE_ARGS *,
-							tree, HOST_WIDE_INT);
+							const_tree,
+							HOST_WIDE_INT);
 static void rs6000_darwin64_record_arg_flush (CUMULATIVE_ARGS *,
 					      HOST_WIDE_INT,
 					      rtx[], int *);
 static void rs6000_darwin64_record_arg_recurse (CUMULATIVE_ARGS *,
 						const_tree, HOST_WIDE_INT,
 						rtx[], int *);
-static rtx rs6000_darwin64_record_arg (CUMULATIVE_ARGS *, const_tree, int, bool);
-static rtx rs6000_mixed_function_arg (enum machine_mode, tree, int);
+static rtx rs6000_darwin64_record_arg (CUMULATIVE_ARGS *, const_tree, bool, bool);
+static rtx rs6000_mixed_function_arg (enum machine_mode, const_tree, int);
+static void rs6000_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+					 const_tree, bool);
+static rtx rs6000_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+				const_tree, bool);
 static void rs6000_move_block_from_reg (int regno, rtx x, int nregs);
 static void setup_incoming_varargs (CUMULATIVE_ARGS *,
 				    enum machine_mode, tree,
@@ -1550,6 +1559,10 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #define TARGET_PASS_BY_REFERENCE rs6000_pass_by_reference
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES rs6000_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE rs6000_function_arg_advance
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG rs6000_function_arg
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST rs6000_build_builtin_va_list
@@ -2497,10 +2510,10 @@ rs6000_override_options (const char *default_cpu)
 	  POWERPC_BASE_MASK | MASK_POWERPC64 | MASK_PPC_GPOPT | MASK_PPC_GFXOPT
 	  | MASK_MFCRF | MASK_POPCNTB | MASK_FPRND | MASK_CMPB | MASK_DFP
 	  | MASK_MFPGPR | MASK_RECIP_PRECISION},
-	 {"power7", PROCESSOR_POWER7,
+	 {"power7", PROCESSOR_POWER7,   /* Don't add MASK_ISEL by default */
 	  POWERPC_7400_MASK | MASK_POWERPC64 | MASK_PPC_GPOPT | MASK_MFCRF
 	  | MASK_POPCNTB | MASK_FPRND | MASK_CMPB | MASK_DFP | MASK_POPCNTD
-	  | MASK_VSX| MASK_RECIP_PRECISION},	/* Don't add MASK_ISEL by default */
+	  | MASK_VSX | MASK_RECIP_PRECISION},
 	 {"powerpc", PROCESSOR_POWERPC, POWERPC_BASE_MASK},
 	 {"powerpc64", PROCESSOR_POWERPC64,
 	  POWERPC_BASE_MASK | MASK_PPC_GFXOPT | MASK_POWERPC64},
@@ -2537,15 +2550,19 @@ rs6000_override_options (const char *default_cpu)
     ISA_2_1_MASKS = MASK_MFCRF,
     ISA_2_2_MASKS = (ISA_2_1_MASKS | MASK_POPCNTB | MASK_FPRND),
 
-    /* For ISA 2.05, do not add MFPGPR, since it isn't in ISA 2.06, and
-       don't add ALTIVEC, since in general it isn't a win on power6.  */
-    ISA_2_5_MASKS = (ISA_2_2_MASKS | MASK_CMPB | MASK_RECIP_PRECISION
-		     | MASK_DFP),
+    /* For ISA 2.05, do not add MFPGPR, since it isn't in ISA 2.06, and don't
+       add ALTIVEC, since in general it isn't a win on power6.  In ISA 2.04,
+       fsel, fre, fsqrt, etc. were no longer documented as optional.  Group
+       masks by server and embedded. */
+    ISA_2_5_MASKS_EMBEDDED = (ISA_2_2_MASKS | MASK_CMPB | MASK_RECIP_PRECISION
+			      | MASK_PPC_GFXOPT | MASK_PPC_GPOPT),
+    ISA_2_5_MASKS_SERVER = (ISA_2_5_MASKS_EMBEDDED | MASK_DFP),
 
     /* For ISA 2.06, don't add ISEL, since in general it isn't a win, but
        altivec is a win so enable it.  */
-    ISA_2_6_MASKS = (ISA_2_5_MASKS | MASK_ALTIVEC | MASK_POPCNTD
-		     | MASK_VSX | MASK_RECIP_PRECISION)
+    ISA_2_6_MASKS_EMBEDDED = (ISA_2_5_MASKS_EMBEDDED | MASK_POPCNTD),
+    ISA_2_6_MASKS_SERVER = (ISA_2_5_MASKS_SERVER | MASK_POPCNTD | MASK_ALTIVEC
+			    | MASK_VSX)
   };
 
   /* Numerous experiment shows that IRA based loop pressure
@@ -2686,15 +2703,22 @@ rs6000_override_options (const char *default_cpu)
 	{
 	  warning (0, msg);
 	  target_flags &= ~ MASK_VSX;
+	  target_flags_explicit |= MASK_VSX;
 	}
     }
 
   /* For the newer switches (vsx, dfp, etc.) set some of the older options,
      unless the user explicitly used the -mno-<option> to disable the code.  */
   if (TARGET_VSX)
-    target_flags |= (ISA_2_6_MASKS & ~target_flags_explicit);
+    target_flags |= (ISA_2_6_MASKS_SERVER & ~target_flags_explicit);
+  else if (TARGET_POPCNTD)
+    target_flags |= (ISA_2_6_MASKS_EMBEDDED & ~target_flags_explicit);
   else if (TARGET_DFP)
-    target_flags |= (ISA_2_5_MASKS & ~target_flags_explicit);
+    target_flags |= (ISA_2_5_MASKS_SERVER & ~target_flags_explicit);
+  else if (TARGET_CMPB)
+    target_flags |= (ISA_2_5_MASKS_EMBEDDED & ~target_flags_explicit);
+  else if (TARGET_POPCNTB || TARGET_FPRND)
+    target_flags |= (ISA_2_2_MASKS & ~target_flags_explicit);
   else if (TARGET_ALTIVEC)
     target_flags |= (MASK_PPC_GFXOPT & ~target_flags_explicit);
 
@@ -2769,6 +2793,15 @@ rs6000_override_options (const char *default_cpu)
       else
 	error ("unknown -mtraceback arg %qs; expecting %<full%>, %<partial%> or %<none%>",
 	       rs6000_traceback_name);
+    }
+
+  if (rs6000_veclibabi_name)
+    {
+      if (strcmp (rs6000_veclibabi_name, "mass") == 0)
+	rs6000_veclib_handler = rs6000_builtin_vectorized_libmass;
+      else
+	error ("unknown vectorization library ABI type (%s) for "
+	       "-mveclibabi= switch", rs6000_veclibabi_name);
     }
 
   if (!rs6000_explicit_options.long_double)
@@ -3602,6 +3635,145 @@ rs6000_parse_fpu_option (const char *option)
   return FPU_NONE;
 }
 
+
+/* Handler for the Mathematical Acceleration Subsystem (mass) interface to a
+   library with vectorized intrinsics.  */
+
+static tree
+rs6000_builtin_vectorized_libmass (tree fndecl, tree type_out, tree type_in)
+{
+  char name[32];
+  const char *suffix = NULL;
+  tree fntype, new_fndecl, bdecl = NULL_TREE;
+  int n_args = 1;
+  const char *bname;
+  enum machine_mode el_mode, in_mode;
+  int n, in_n;
+
+  /* Libmass is suitable for unsafe math only as it does not correctly support
+     parts of IEEE with the required precision such as denormals.  Only support
+     it if we have VSX to use the simd d2 or f4 functions.
+     XXX: Add variable length support.  */
+  if (!flag_unsafe_math_optimizations || !TARGET_VSX)
+    return NULL_TREE;
+
+  el_mode = TYPE_MODE (TREE_TYPE (type_out));
+  n = TYPE_VECTOR_SUBPARTS (type_out);
+  in_mode = TYPE_MODE (TREE_TYPE (type_in));
+  in_n = TYPE_VECTOR_SUBPARTS (type_in);
+  if (el_mode != in_mode
+      || n != in_n)
+    return NULL_TREE;
+
+  if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+    {
+      enum built_in_function fn = DECL_FUNCTION_CODE (fndecl);
+      switch (fn)
+	{
+	case BUILT_IN_ATAN2:
+	case BUILT_IN_HYPOT:
+	case BUILT_IN_POW:
+	  n_args = 2;
+	  /* fall through */
+
+	case BUILT_IN_ACOS:
+	case BUILT_IN_ACOSH:
+	case BUILT_IN_ASIN:
+	case BUILT_IN_ASINH:
+	case BUILT_IN_ATAN:
+	case BUILT_IN_ATANH:
+	case BUILT_IN_CBRT:
+	case BUILT_IN_COS:
+	case BUILT_IN_COSH:
+	case BUILT_IN_ERF:
+	case BUILT_IN_ERFC:
+	case BUILT_IN_EXP2:
+	case BUILT_IN_EXP:
+	case BUILT_IN_EXPM1:
+	case BUILT_IN_LGAMMA:
+	case BUILT_IN_LOG10:
+	case BUILT_IN_LOG1P:
+	case BUILT_IN_LOG2:
+	case BUILT_IN_LOG:
+	case BUILT_IN_SIN:
+	case BUILT_IN_SINH:
+	case BUILT_IN_SQRT:
+	case BUILT_IN_TAN:
+	case BUILT_IN_TANH:
+	  bdecl = implicit_built_in_decls[fn];
+	  suffix = "d2";				/* pow -> powd2 */
+	  if (el_mode != DFmode
+	      || n != 2)
+	    return NULL_TREE;
+	  break;
+
+	case BUILT_IN_ATAN2F:
+	case BUILT_IN_HYPOTF:
+	case BUILT_IN_POWF:
+	  n_args = 2;
+	  /* fall through */
+
+	case BUILT_IN_ACOSF:
+	case BUILT_IN_ACOSHF:
+	case BUILT_IN_ASINF:
+	case BUILT_IN_ASINHF:
+	case BUILT_IN_ATANF:
+	case BUILT_IN_ATANHF:
+	case BUILT_IN_CBRTF:
+	case BUILT_IN_COSF:
+	case BUILT_IN_COSHF:
+	case BUILT_IN_ERFF:
+	case BUILT_IN_ERFCF:
+	case BUILT_IN_EXP2F:
+	case BUILT_IN_EXPF:
+	case BUILT_IN_EXPM1F:
+	case BUILT_IN_LGAMMAF:
+	case BUILT_IN_LOG10F:
+	case BUILT_IN_LOG1PF:
+	case BUILT_IN_LOG2F:
+	case BUILT_IN_LOGF:
+	case BUILT_IN_SINF:
+	case BUILT_IN_SINHF:
+	case BUILT_IN_SQRTF:
+	case BUILT_IN_TANF:
+	case BUILT_IN_TANHF:
+	  bdecl = implicit_built_in_decls[fn];
+	  suffix = "4";					/* powf -> powf4 */
+	  if (el_mode != SFmode
+	      || n != 4)
+	    return NULL_TREE;
+	  break;
+
+	default:
+	  return NULL_TREE;
+	}
+    }
+  else
+    return NULL_TREE;
+
+  gcc_assert (suffix != NULL);
+  bname = IDENTIFIER_POINTER (DECL_NAME (bdecl));
+  strcpy (name, bname + sizeof ("__builtin_") - 1);
+  strcat (name, suffix);
+
+  if (n_args == 1)
+    fntype = build_function_type_list (type_out, type_in, NULL);
+  else if (n_args == 2)
+    fntype = build_function_type_list (type_out, type_in, type_in, NULL);
+  else
+    gcc_unreachable ();
+
+  /* Build a function declaration for the vectorized function.  */
+  new_fndecl = build_decl (BUILTINS_LOCATION,
+			   FUNCTION_DECL, get_identifier (name), fntype);
+  TREE_PUBLIC (new_fndecl) = 1;
+  DECL_EXTERNAL (new_fndecl) = 1;
+  DECL_IS_NOVOPS (new_fndecl) = 1;
+  TREE_READONLY (new_fndecl) = 1;
+
+  return new_fndecl;
+}
+
 /* Returns a function decl for a vectorized version of the builtin function
    with builtin function code FN and the result vector type TYPE, or NULL_TREE
    if it is not available.  */
@@ -3767,6 +3939,10 @@ rs6000_builtin_vectorized_function (tree fndecl, tree type_out,
 	  break;
 	}
     }
+
+  /* Generate calls to libmass if appropriate.  */
+  if (rs6000_veclib_handler)
+    return rs6000_veclib_handler (fndecl, type_out, type_in);
 
   return NULL_TREE;
 }
@@ -7310,7 +7486,7 @@ rs6000_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
       valcum.vregno = ALTIVEC_ARG_MIN_REG;
       /* Do a trial code generation as if this were going to be passed
 	 as an argument; if any part goes in memory, we return NULL.  */
-      valret = rs6000_darwin64_record_arg (&valcum, type, 1, true);
+      valret = rs6000_darwin64_record_arg (&valcum, type, true, true);
       if (valret)
 	return false;
       /* Otherwise fall through to more conventional ABI rules.  */
@@ -7494,7 +7670,7 @@ function_arg_padding (enum machine_mode mode, const_tree type)
    Quadword align large synthetic vector types.   */
 
 int
-function_arg_boundary (enum machine_mode mode, tree type)
+function_arg_boundary (enum machine_mode mode, const_tree type)
 {
   if (DEFAULT_ABI == ABI_V4
       && (GET_MODE_SIZE (mode) == 8
@@ -7524,7 +7700,8 @@ function_arg_boundary (enum machine_mode mode, tree type)
    the parameter area.  NWORDS of the parameter area are already used.  */
 
 static unsigned int
-rs6000_parm_start (enum machine_mode mode, tree type, unsigned int nwords)
+rs6000_parm_start (enum machine_mode mode, const_tree type,
+		   unsigned int nwords)
 {
   unsigned int align;
   unsigned int parm_offset;
@@ -7537,7 +7714,7 @@ rs6000_parm_start (enum machine_mode mode, tree type, unsigned int nwords)
 /* Compute the size (in words) of a function argument.  */
 
 static unsigned long
-rs6000_arg_size (enum machine_mode mode, tree type)
+rs6000_arg_size (enum machine_mode mode, const_tree type)
 {
   unsigned long size;
 
@@ -7615,7 +7792,7 @@ rs6000_darwin64_record_arg_advance_flush (CUMULATIVE_ARGS *cum,
 
 static void
 rs6000_darwin64_record_arg_advance_recurse (CUMULATIVE_ARGS *cum,
-					    tree type,
+					    const_tree type,
 					    HOST_WIDE_INT startbitpos)
 {
   tree f;
@@ -7711,9 +7888,9 @@ rs6000_darwin64_struct_check_p (enum machine_mode mode, const_tree type)
    with MODE and TYPE set to that of the pointer to the arg, not the arg
    itself.  */
 
-void
-function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-		      tree type, int named, int depth)
+static void
+rs6000_function_arg_advance_1 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			       const_tree type, bool named, int depth)
 {
 
   /* Only tick off an argument if we're not recursing.  */
@@ -7906,6 +8083,13 @@ function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
     }
 }
 
+static void
+rs6000_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			     const_tree type, bool named)
+{
+  rs6000_function_arg_advance_1 (cum, mode, type, named, 0);
+}
+
 static rtx
 spe_build_register_parallel (enum machine_mode mode, int gregno)
 {
@@ -7944,8 +8128,8 @@ spe_build_register_parallel (enum machine_mode mode, int gregno)
 
 /* Determine where to put a SIMD argument on the SPE.  */
 static rtx
-rs6000_spe_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-			 tree type)
+rs6000_spe_function_arg (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			 const_tree type)
 {
   int gregno = cum->sysv_gregno;
 
@@ -8140,7 +8324,7 @@ rs6000_darwin64_record_arg_recurse (CUMULATIVE_ARGS *cum, const_tree type,
 
 static rtx
 rs6000_darwin64_record_arg (CUMULATIVE_ARGS *orig_cum, const_tree type,
-			    int named, bool retval)
+			    bool named, bool retval)
 {
   rtx rvec[FIRST_PSEUDO_REGISTER];
   int k = 1, kbase = 1;
@@ -8185,7 +8369,8 @@ rs6000_darwin64_record_arg (CUMULATIVE_ARGS *orig_cum, const_tree type,
 /* Determine where to place an argument in 64-bit mode with 32-bit ABI.  */
 
 static rtx
-rs6000_mixed_function_arg (enum machine_mode mode, tree type, int align_words)
+rs6000_mixed_function_arg (enum machine_mode mode, const_tree type,
+			   int align_words)
 {
   int n_units;
   int i, k;
@@ -8256,9 +8441,9 @@ rs6000_mixed_function_arg (enum machine_mode mode, tree type, int align_words)
    with MODE and TYPE set to that of the pointer to the arg, not the arg
    itself.  */
 
-rtx
-function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-	      tree type, int named)
+static rtx
+rs6000_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		     const_tree type, bool named)
 {
   enum rs6000_abi abi = DEFAULT_ABI;
 
@@ -8705,7 +8890,7 @@ setup_incoming_varargs (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 
   /* Skip the last named argument.  */
   next_cum = *cum;
-  function_arg_advance (&next_cum, mode, type, 1, 0);
+  rs6000_function_arg_advance_1 (&next_cum, mode, type, true, 0);
 
   if (DEFAULT_ABI == ABI_V4)
     {
@@ -18788,6 +18973,137 @@ rs6000_emit_allocate_stack (HOST_WIDE_INT size, rtx copy_reg)
 					   GEN_INT (-size))));
 }
 
+#define PROBE_INTERVAL (1 << STACK_CHECK_PROBE_INTERVAL_EXP)
+
+#if PROBE_INTERVAL > 32768
+#error Cannot use indexed addressing mode for stack probing
+#endif
+
+/* Emit code to probe a range of stack addresses from FIRST to FIRST+SIZE,
+   inclusive.  These are offsets from the current stack pointer.  */
+
+static void
+rs6000_emit_probe_stack_range (HOST_WIDE_INT first, HOST_WIDE_INT size)
+{
+  /* See if we have a constant small number of probes to generate.  If so,
+     that's the easy case.  */
+  if (first + size <= 32768)
+    {
+      HOST_WIDE_INT i;
+
+      /* Probe at FIRST + N * PROBE_INTERVAL for values of N from 1 until
+	 it exceeds SIZE.  If only one probe is needed, this will not
+	 generate any code.  Then probe at FIRST + SIZE.  */
+      for (i = PROBE_INTERVAL; i < size; i += PROBE_INTERVAL)
+	emit_stack_probe (plus_constant (stack_pointer_rtx, -(first + i)));
+
+      emit_stack_probe (plus_constant (stack_pointer_rtx, -(first + size)));
+    }
+
+  /* Otherwise, do the same as above, but in a loop.  Note that we must be
+     extra careful with variables wrapping around because we might be at
+     the very top (or the very bottom) of the address space and we have
+     to be able to handle this case properly; in particular, we use an
+     equality test for the loop condition.  */
+  else
+    {
+      HOST_WIDE_INT rounded_size;
+      rtx r12 = gen_rtx_REG (Pmode, 12);
+      rtx r0 = gen_rtx_REG (Pmode, 0);
+
+      /* Sanity check for the addressing mode we're going to use.  */
+      gcc_assert (first <= 32768);
+
+      /* Step 1: round SIZE to the previous multiple of the interval.  */
+
+      rounded_size = size & -PROBE_INTERVAL;
+
+
+      /* Step 2: compute initial and final value of the loop counter.  */
+
+      /* TEST_ADDR = SP + FIRST.  */
+      emit_insn (gen_rtx_SET (VOIDmode, r12,
+			      plus_constant (stack_pointer_rtx, -first)));
+
+      /* LAST_ADDR = SP + FIRST + ROUNDED_SIZE.  */
+      if (rounded_size > 32768)
+	{
+	  emit_move_insn (r0, GEN_INT (-rounded_size));
+	  emit_insn (gen_rtx_SET (VOIDmode, r0,
+				  gen_rtx_PLUS (Pmode, r12, r0)));
+	}
+      else
+	emit_insn (gen_rtx_SET (VOIDmode, r0,
+			        plus_constant (r12, -rounded_size)));
+
+
+      /* Step 3: the loop
+
+	 while (TEST_ADDR != LAST_ADDR)
+	   {
+	     TEST_ADDR = TEST_ADDR + PROBE_INTERVAL
+	     probe at TEST_ADDR
+	   }
+
+	 probes at FIRST + N * PROBE_INTERVAL for values of N from 1
+	 until it is equal to ROUNDED_SIZE.  */
+
+      if (TARGET_64BIT)
+	emit_insn (gen_probe_stack_rangedi (r12, r12, r0));
+      else
+	emit_insn (gen_probe_stack_rangesi (r12, r12, r0));
+
+
+      /* Step 4: probe at FIRST + SIZE if we cannot assert at compile-time
+	 that SIZE is equal to ROUNDED_SIZE.  */
+
+      if (size != rounded_size)
+	emit_stack_probe (plus_constant (r12, rounded_size - size));
+    }
+}
+
+/* Probe a range of stack addresses from REG1 to REG2 inclusive.  These are
+   absolute addresses.  */
+
+const char *
+output_probe_stack_range (rtx reg1, rtx reg2)
+{
+  static int labelno = 0;
+  char loop_lab[32], end_lab[32];
+  rtx xops[2];
+
+  ASM_GENERATE_INTERNAL_LABEL (loop_lab, "LPSRL", labelno);
+  ASM_GENERATE_INTERNAL_LABEL (end_lab, "LPSRE", labelno++);
+
+  ASM_OUTPUT_INTERNAL_LABEL (asm_out_file, loop_lab);
+
+  /* Jump to END_LAB if TEST_ADDR == LAST_ADDR.  */
+  xops[0] = reg1;
+  xops[1] = reg2;
+  if (TARGET_64BIT)
+    output_asm_insn ("{cmp|cmpd} 0,%0,%1", xops);
+  else
+    output_asm_insn ("{cmp|cmpw} 0,%0,%1", xops);
+
+  fputs ("\tbeq 0,", asm_out_file);
+  assemble_name_raw (asm_out_file, end_lab);
+  fputc ('\n', asm_out_file);
+
+  /* TEST_ADDR = TEST_ADDR + PROBE_INTERVAL.  */
+  xops[1] = GEN_INT (-PROBE_INTERVAL);
+  output_asm_insn ("{cal %0,%1(%0)|addi %0,%0,%1}", xops);
+
+  /* Probe at TEST_ADDR and branch.  */
+  output_asm_insn ("{st|stw} 0,0(%0)", xops);
+  fprintf (asm_out_file, "\tb ");
+  assemble_name_raw (asm_out_file, loop_lab);
+  fputc ('\n', asm_out_file);
+
+  ASM_OUTPUT_INTERNAL_LABEL (asm_out_file, end_lab);
+
+  return "";
+}
+
 /* Add to 'insn' a note which is PATTERN (INSN) but with REG replaced
    with (plus:P (reg 1) VAL), and with REG2 replaced with RREG if REG2
    is not NULL.  It would be nice if dwarf2out_frame_debug_expr could
@@ -19399,6 +19715,12 @@ rs6000_emit_prologue (void)
                               && df_regs_ever_live_p (STATIC_CHAIN_REGNUM)
 			      && call_used_regs[STATIC_CHAIN_REGNUM]);
   HOST_WIDE_INT sp_offset = 0;
+
+  if (flag_stack_usage)
+    current_function_static_stack_size = info->total_size;
+
+  if (flag_stack_check == STATIC_BUILTIN_STACK_CHECK && info->total_size)
+    rs6000_emit_probe_stack_range (STACK_CHECK_PROTECT, info->total_size);
 
   if (TARGET_FIX_AND_CONTINUE)
     {
@@ -24602,7 +24924,7 @@ no_previous_def (tree function_name)
   branch_island *bi;
   unsigned ix;
 
-  for (ix = 0; VEC_iterate (branch_island, branch_islands, ix, bi); ix++)
+  FOR_EACH_VEC_ELT (branch_island, branch_islands, ix, bi)
     if (function_name == bi->function_name)
       return 0;
   return 1;
@@ -24617,7 +24939,7 @@ get_prev_label (tree function_name)
   branch_island *bi;
   unsigned ix;
 
-  for (ix = 0; VEC_iterate (branch_island, branch_islands, ix, bi); ix++)
+  FOR_EACH_VEC_ELT (branch_island, branch_islands, ix, bi)
     if (function_name == bi->function_name)
       return bi->label_name;
   return NULL_TREE;
@@ -26294,7 +26616,7 @@ rs6000_function_value (const_tree valtype,
       valcum.vregno = ALTIVEC_ARG_MIN_REG;
       /* Do a trial code generation as if this were going to be passed as
 	 an argument; if any part goes in memory, we return NULL.  */
-      valret = rs6000_darwin64_record_arg (&valcum, valtype, 1, true);
+      valret = rs6000_darwin64_record_arg (&valcum, valtype, true, true);
       if (valret)
 	return valret;
       /* Otherwise fall through to standard ABI rules.  */
@@ -26648,6 +26970,124 @@ rs6000_final_prescan_insn (rtx insn, rtx *operand ATTRIBUTE_UNUSED,
 	warning_at (location, OPT_mwarn_cell_microcode,
 		    "emitting conditional microcode insn %s\t[%s] #%d",
 		    temp, insn_data[INSN_CODE (insn)].name, INSN_UID (insn));
+    }
+}
+
+
+/* Allocate a stack temp and fixup the address so it meets the particular
+   memory requirements (either offetable or REG+REG addressing).  */
+
+rtx
+rs6000_allocate_stack_temp (enum machine_mode mode,
+			    bool offsettable_p,
+			    bool reg_reg_p)
+{
+  rtx stack = assign_stack_temp (mode, GET_MODE_SIZE (mode), 0);
+  rtx addr = XEXP (stack, 0);
+  int strict_p = (reload_in_progress || reload_completed);
+
+  if (!legitimate_indirect_address_p (addr, strict_p))
+    {
+      if (offsettable_p
+	  && !rs6000_legitimate_offset_address_p (mode, addr, strict_p))
+	stack = replace_equiv_address (stack, copy_addr_to_reg (addr));
+
+      else if (reg_reg_p && !legitimate_indexed_address_p (addr, strict_p))
+	stack = replace_equiv_address (stack, copy_addr_to_reg (addr));
+    }
+
+  return stack;
+}
+
+/* Given a memory reference, if it is not a reg or reg+reg addressing, convert
+   to such a form to deal with memory reference instructions like STFIWX that
+   only take reg+reg addressing.  */
+
+rtx
+rs6000_address_for_fpconvert (rtx x)
+{
+  int strict_p = (reload_in_progress || reload_completed);
+  rtx addr;
+
+  gcc_assert (MEM_P (x));
+  addr = XEXP (x, 0);
+  if (! legitimate_indirect_address_p (addr, strict_p)
+      && ! legitimate_indexed_address_p (addr, strict_p))
+    x = replace_equiv_address (x, copy_addr_to_reg (addr));
+
+  return x;
+}
+
+/* Expand 32-bit int -> floating point conversions.  Return true if
+   successful.  */
+
+void
+rs6000_expand_convert_si_to_sfdf (rtx dest, rtx src, bool unsigned_p)
+{
+  enum machine_mode dmode = GET_MODE (dest);
+  rtx (*func_si) (rtx, rtx, rtx, rtx);
+  rtx (*func_si_mem) (rtx, rtx);
+  rtx (*func_di) (rtx, rtx);
+  rtx reg, stack;
+
+  gcc_assert (GET_MODE (src) == SImode);
+
+  if (dmode == SFmode)
+    {
+      if (unsigned_p)
+	{
+	  gcc_assert (TARGET_FCFIDUS && TARGET_LFIWZX);
+	  func_si = gen_floatunssisf2_lfiwzx;
+	  func_si_mem = gen_floatunssisf2_lfiwzx_mem;
+	  func_di = gen_floatunsdisf2;
+	}
+      else
+	{
+	  gcc_assert (TARGET_FCFIDS && TARGET_LFIWAX);
+	  func_si = gen_floatsisf2_lfiwax;
+	  func_si_mem = gen_floatsisf2_lfiwax_mem;
+	  func_di = gen_floatdisf2;
+	}
+    }
+
+  else if (dmode == DFmode)
+    {
+      if (unsigned_p)
+	{
+	  gcc_assert (TARGET_FCFIDU && TARGET_LFIWZX);
+	  func_si = gen_floatunssidf2_lfiwzx;
+	  func_si_mem = gen_floatunssidf2_lfiwzx_mem;
+	  func_di = gen_floatunsdidf2;
+	}
+      else
+	{
+	  gcc_assert (TARGET_FCFID && TARGET_LFIWAX);
+	  func_si = gen_floatsidf2_lfiwax;
+	  func_si_mem = gen_floatsidf2_lfiwax_mem;
+	  func_di = gen_floatdidf2;
+	}
+    }
+
+  else
+    gcc_unreachable ();
+
+  if (MEM_P (src))
+    {
+      src = rs6000_address_for_fpconvert (src);
+      emit_insn (func_si_mem (dest, src));
+    }
+  else if (!TARGET_MFPGPR)
+    {
+      reg = gen_reg_rtx (DImode);
+      stack = rs6000_allocate_stack_temp (SImode, false, true);
+      emit_insn (func_si (dest, src, stack, reg));
+    }
+  else
+    {
+      if (!REG_P (src))
+	src = force_reg (SImode, src);
+      reg = convert_to_mode (DImode, src, unsigned_p);
+      emit_insn (func_di (dest, reg));
     }
 }
 

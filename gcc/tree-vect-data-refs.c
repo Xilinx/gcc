@@ -322,6 +322,64 @@ vect_equal_offsets (tree offset1, tree offset2)
 }
 
 
+/* Check dependence between DRA and DRB for basic block vectorization.  */
+
+static bool
+vect_drs_dependent_in_basic_block (struct data_reference *dra,
+                                   struct data_reference *drb)
+{
+  HOST_WIDE_INT type_size_a, type_size_b, init_a, init_b;
+  gimple earlier_stmt;
+
+  /* We only call this function for pairs of loads and stores, but we verify
+     it here.  */
+  if (DR_IS_READ (dra) == DR_IS_READ (drb))
+    {
+      if (DR_IS_READ (dra))
+        return false;
+      else
+        return true;
+    }
+
+  /* Check that the data-refs have same bases and offsets. If not, we can't
+     determine if they are dependent.  */
+  if ((DR_BASE_ADDRESS (dra) != DR_BASE_ADDRESS (drb)
+       && (TREE_CODE (DR_BASE_ADDRESS (dra)) != ADDR_EXPR
+           || TREE_CODE (DR_BASE_ADDRESS (drb)) != ADDR_EXPR
+           || TREE_OPERAND (DR_BASE_ADDRESS (dra), 0)
+           != TREE_OPERAND (DR_BASE_ADDRESS (drb),0)))
+      || !vect_equal_offsets (DR_OFFSET (dra), DR_OFFSET (drb)))
+    return true;
+
+  /* Check the types.  */
+  type_size_a = TREE_INT_CST_LOW (TYPE_SIZE_UNIT (TREE_TYPE (DR_REF (dra))));
+  type_size_b = TREE_INT_CST_LOW (TYPE_SIZE_UNIT (TREE_TYPE (DR_REF (drb))));
+
+  if (type_size_a != type_size_b
+      || !types_compatible_p (TREE_TYPE (DR_REF (dra)),
+                              TREE_TYPE (DR_REF (drb))))
+    return true;
+
+  init_a = TREE_INT_CST_LOW (DR_INIT (dra));
+  init_b = TREE_INT_CST_LOW (DR_INIT (drb));
+
+  /* Two different locations - no dependence.  */
+  if (init_a != init_b)
+    return false;
+
+  /* We have a read-write dependence. Check that the load is before the store.
+     When we vectorize basic blocks, vector load can be only before 
+     corresponding scalar load, and vector store can be only after its
+     corresponding scalar store. So the order of the acceses is preserved in 
+     case the load is before the store.  */
+  earlier_stmt = get_earlier_stmt (DR_STMT (dra), DR_STMT (drb));   
+  if (DR_IS_READ (STMT_VINFO_DATA_REF (vinfo_for_stmt (earlier_stmt))))
+    return false;
+
+  return true;
+}
+
+
 /* Function vect_check_interleaving.
 
    Check if DRA and DRB are a part of interleaving. In case they are, insert
@@ -495,7 +553,8 @@ vect_mark_for_runtime_alias_test (ddr_p ddr, loop_vec_info loop_vinfo)
 
 static bool
 vect_analyze_data_ref_dependence (struct data_dependence_relation *ddr,
-                                  loop_vec_info loop_vinfo, int *max_vf)
+                                  loop_vec_info loop_vinfo, int *max_vf,
+                                  bool *data_dependence_in_bb)
 {
   unsigned int i;
   struct loop *loop = NULL;
@@ -554,10 +613,14 @@ vect_analyze_data_ref_dependence (struct data_dependence_relation *ddr,
           print_generic_expr (vect_dump, DR_REF (drb), TDF_SLIM);
         }
 
-      /* Mark the statements as unvectorizable.  */
-      STMT_VINFO_VECTORIZABLE (stmtinfo_a) = false;
-      STMT_VINFO_VECTORIZABLE (stmtinfo_b) = false;
+      /* We do not vectorize basic blocks with write-write dependencies.  */
+      if (DR_IS_WRITE (dra) && DR_IS_WRITE (drb))
+        return true;
 
+      /* We deal with read-write dependencies in basic blocks later (by
+         verifying that all the loads in the basic block are before all the
+         stores).  */
+      *data_dependence_in_bb = true;
       return false;
     }
 
@@ -577,7 +640,12 @@ vect_analyze_data_ref_dependence (struct data_dependence_relation *ddr,
           print_generic_expr (vect_dump, DR_REF (drb), TDF_SLIM);
         }
 
-      return true;
+      /* Do not vectorize basic blcoks with write-write dependences.  */
+      if (DR_IS_WRITE (dra) && DR_IS_WRITE (drb))
+        return true;
+
+      /* Check if this dependence is allowed in basic block vectorization.  */ 
+      return vect_drs_dependent_in_basic_block (dra, drb);
     }
 
   /* Loop-based vectorization and known data dependence.  */
@@ -595,7 +663,7 @@ vect_analyze_data_ref_dependence (struct data_dependence_relation *ddr,
     }
 
   loop_depth = index_in_loop_nest (loop->num, DDR_LOOP_NEST (ddr));
-  for (i = 0; VEC_iterate (lambda_vector, DDR_DIST_VECTS (ddr), i, dist_v); i++)
+  FOR_EACH_VEC_ELT (lambda_vector, DDR_DIST_VECTS (ddr), i, dist_v)
     {
       int dist = dist_v[loop_depth];
 
@@ -678,7 +746,8 @@ vect_analyze_data_ref_dependence (struct data_dependence_relation *ddr,
 
 bool
 vect_analyze_data_ref_dependences (loop_vec_info loop_vinfo,
-                                   bb_vec_info bb_vinfo, int *max_vf)
+                                   bb_vec_info bb_vinfo, int *max_vf,
+                                   bool *data_dependence_in_bb)
 {
   unsigned int i;
   VEC (ddr_p, heap) *ddrs = NULL;
@@ -692,8 +761,9 @@ vect_analyze_data_ref_dependences (loop_vec_info loop_vinfo,
   else
     ddrs = BB_VINFO_DDRS (bb_vinfo);
 
-  for (i = 0; VEC_iterate (ddr_p, ddrs, i, ddr); i++)
-    if (vect_analyze_data_ref_dependence (ddr, loop_vinfo, max_vf))
+  FOR_EACH_VEC_ELT (ddr_p, ddrs, i, ddr)
+    if (vect_analyze_data_ref_dependence (ddr, loop_vinfo, max_vf,
+					  data_dependence_in_bb))
       return false;
 
   return true;
@@ -866,7 +936,7 @@ vect_compute_data_refs_alignment (loop_vec_info loop_vinfo,
   else
     datarefs = BB_VINFO_DATAREFS (bb_vinfo);
 
-  for (i = 0; VEC_iterate (data_reference_p, datarefs, i, dr); i++)
+  FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
     if (STMT_VINFO_VECTORIZABLE (vinfo_for_stmt (DR_STMT (dr)))
         && !vect_compute_data_ref_alignment (dr))
       {
@@ -915,7 +985,7 @@ vect_update_misalignment_for_peel (struct data_reference *dr,
      are aligned in the vector loop.  */
   same_align_drs
     = STMT_VINFO_SAME_ALIGN_REFS (vinfo_for_stmt (DR_STMT (dr_peel)));
-  for (i = 0; VEC_iterate (dr_p, same_align_drs, i, current_dr); i++)
+  FOR_EACH_VEC_ELT (dr_p, same_align_drs, i, current_dr)
     {
       if (current_dr != dr)
         continue;
@@ -960,7 +1030,7 @@ vect_verify_datarefs_alignment (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo)
   else
     datarefs = BB_VINFO_DATAREFS (bb_vinfo);
 
-  for (i = 0; VEC_iterate (data_reference_p, datarefs, i, dr); i++)
+  FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
     {
       gimple stmt = DR_STMT (dr);
       stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
@@ -1186,7 +1256,7 @@ vect_peeling_hash_get_lowest_cost (void **slot, void *data)
   VEC (data_reference_p, heap) *datarefs = LOOP_VINFO_DATAREFS (loop_vinfo);
   struct data_reference *dr;
 
-  for (i = 0; VEC_iterate (data_reference_p, datarefs, i, dr); i++)
+  FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
     {
       stmt = DR_STMT (dr);
       stmt_info = vinfo_for_stmt (stmt);
@@ -1397,7 +1467,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
      - The cost of peeling (the extra runtime checks, the increase
        in code size).  */
 
-  for (i = 0; VEC_iterate (data_reference_p, datarefs, i, dr); i++)
+  FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
     {
       stmt = DR_STMT (dr);
       stmt_info = vinfo_for_stmt (stmt);
@@ -1483,7 +1553,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
                       dr0 = dr;
                     }
 
-                  if (!first_store && !DR_IS_READ (dr))
+                  if (!first_store && DR_IS_WRITE (dr))
                     first_store = dr;
                 }
 
@@ -1495,7 +1565,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
               if (!supportable_dr_alignment)
                 {
                   dr0 = dr;
-                  if (!first_store && !DR_IS_READ (dr))
+                  if (!first_store && DR_IS_WRITE (dr))
                     first_store = dr;
                 }
             }
@@ -1643,7 +1713,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
         }
 
       /* Ensure that all data refs can be vectorized after the peel.  */
-      for (i = 0; VEC_iterate (data_reference_p, datarefs, i, dr); i++)
+      FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
         {
           int save_misalignment;
 
@@ -1688,7 +1758,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
              by the peeling factor times the element size of DR_i (MOD the
              vectorization factor times the size).  Otherwise, the
              misalignment of DR_i must be set to unknown.  */
-	  for (i = 0; VEC_iterate (data_reference_p, datarefs, i, dr); i++)
+	  FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
 	    if (dr != dr0)
 	      vect_update_misalignment_for_peel (dr, dr0, npeel);
 
@@ -1728,7 +1798,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
 
   if (do_versioning)
     {
-      for (i = 0; VEC_iterate (data_reference_p, datarefs, i, dr); i++)
+      FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
         {
 	  stmt = DR_STMT (dr);
 	  stmt_info = vinfo_for_stmt (stmt);
@@ -1797,7 +1867,7 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
       /* It can now be assumed that the data references in the statements
          in LOOP_VINFO_MAY_MISALIGN_STMTS will be aligned in the version
          of the loop being vectorized.  */
-      for (i = 0; VEC_iterate (gimple, may_misalign_stmts, i, stmt); i++)
+      FOR_EACH_VEC_ELT (gimple, may_misalign_stmts, i, stmt)
         {
           stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
           dr = STMT_VINFO_DATA_REF (stmt_info);
@@ -1860,7 +1930,7 @@ vect_find_same_alignment_drs (struct data_dependence_relation *ddr,
     return;
 
   loop_depth = index_in_loop_nest (loop->num, DDR_LOOP_NEST (ddr));
-  for (i = 0; VEC_iterate (lambda_vector, DDR_DIST_VECTS (ddr), i, dist_v); i++)
+  FOR_EACH_VEC_ELT (lambda_vector, DDR_DIST_VECTS (ddr), i, dist_v)
     {
       int dist = dist_v[loop_depth];
 
@@ -1908,7 +1978,7 @@ vect_analyze_data_refs_alignment (loop_vec_info loop_vinfo,
       struct data_dependence_relation *ddr;
       unsigned int i;
 
-      for (i = 0; VEC_iterate (ddr_p, ddrs, i, ddr); i++)
+      FOR_EACH_VEC_ELT (ddr_p, ddrs, i, ddr)
 	vect_find_same_alignment_drs (ddr, loop_vinfo);
     }
 
@@ -2008,7 +2078,7 @@ vect_analyze_group_access (struct data_reference *dr)
                                      DR_INIT (STMT_VINFO_DATA_REF (
 						   vinfo_for_stmt (next)))))
             {
-              if (!DR_IS_READ (data_ref))
+              if (DR_IS_WRITE (data_ref))
                 {
                   if (vect_print_dump_info (REPORT_DETAILS))
                     fprintf (vect_dump, "Two store stmts share the same dr.");
@@ -2053,7 +2123,7 @@ vect_analyze_group_access (struct data_reference *dr)
 	    {
 	      /* FORNOW: SLP of accesses with gaps is not supported.  */
 	      slp_impossible = true;
-	      if (!DR_IS_READ (data_ref))
+	      if (DR_IS_WRITE (data_ref))
 		{
 		  if (vect_print_dump_info (REPORT_DETAILS))
 		    fprintf (vect_dump, "interleaved store with gaps");
@@ -2145,7 +2215,7 @@ vect_analyze_group_access (struct data_reference *dr)
 
       /* SLP: create an SLP data structure for every interleaving group of
 	 stores for further analysis in vect_analyse_slp.  */
-      if (!DR_IS_READ (dr) && !slp_impossible)
+      if (DR_IS_WRITE (dr) && !slp_impossible)
         {
           if (loop_vinfo)
             VEC_safe_push (gimple, heap, LOOP_VINFO_STRIDED_STORES (loop_vinfo),
@@ -2254,7 +2324,7 @@ vect_analyze_data_ref_accesses (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo)
   else
     datarefs = BB_VINFO_DATAREFS (bb_vinfo);
 
-  for (i = 0; VEC_iterate (data_reference_p, datarefs, i, dr); i++)
+  FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
     if (STMT_VINFO_VECTORIZABLE (vinfo_for_stmt (DR_STMT (dr))) 
         && !vect_analyze_data_ref_access (dr))
       {
@@ -2415,7 +2485,7 @@ vect_analyze_data_refs (loop_vec_info loop_vinfo,
   /* Go through the data-refs, check that the analysis succeeded. Update pointer
      from stmt_vec_info struct to DR and vectype.  */
 
-  for (i = 0; VEC_iterate (data_reference_p, datarefs, i, dr); i++)
+  FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
     {
       gimple stmt;
       stmt_vec_info stmt_info;
@@ -3890,7 +3960,7 @@ vect_transform_strided_load (gimple stmt, VEC(tree,heap) *dr_chain, int size,
      corresponds the order of data-refs in RESULT_CHAIN.  */
   next_stmt = first_stmt;
   gap_count = 1;
-  for (i = 0; VEC_iterate (tree, result_chain, i, tmp_data_ref); i++)
+  FOR_EACH_VEC_ELT (tree, result_chain, i, tmp_data_ref)
     {
       if (!next_stmt)
 	break;

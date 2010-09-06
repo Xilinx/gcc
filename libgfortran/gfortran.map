@@ -1069,6 +1069,8 @@ GFORTRAN_1.1 {
     _gfortran_erfc_scaled_r16;
     _gfortran_erfc_scaled_r4;
     _gfortran_erfc_scaled_r8;
+    _gfortran_execute_command_line_i4;
+    _gfortran_execute_command_line_i8;
     _gfortran_pack_char4;
     _gfortran_pack_s_char4;
     _gfortran_reshape_char4;
@@ -1107,6 +1109,23 @@ GFORTRAN_1.4 {
   global:
     _gfortran_error_stop_numeric;
     _gfortran_selected_real_kind2008;
+    _gfortran_bessel_jn_r4;
+    _gfortran_bessel_jn_r8;
+    _gfortran_bessel_jn_r10;
+    _gfortran_bessel_jn_r16;
+    _gfortran_bessel_yn_r4;
+    _gfortran_bessel_yn_r8;
+    _gfortran_bessel_yn_r10;
+    _gfortran_bessel_yn_r16;
+    _gfortran_norm2_r4;
+    _gfortran_norm2_r8;
+    _gfortran_norm2_r10;
+    _gfortran_norm2_r16;
+    _gfortran_parity_l1;
+    _gfortran_parity_l2;
+    _gfortran_parity_l4;
+    _gfortran_parity_l8;
+    _gfortran_parity_l16;
 } GFORTRAN_1.3; 
 
 F2C_1.0 {

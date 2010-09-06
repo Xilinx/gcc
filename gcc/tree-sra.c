@@ -2783,6 +2783,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 				    true, GSI_SAME_STMT);
   if (gimple_assign_rhs1 (*stmt) != rhs)
     {
+      modify_this_stmt = true;
       gimple_assign_set_rhs_from_tree (&orig_gsi, rhs);
       gcc_assert (*stmt == gsi_stmt (orig_gsi));
     }
@@ -4233,11 +4234,8 @@ convert_callers (struct cgraph_node *node, tree old_decl,
     }
 
   for (cs = node->callers; cs; cs = cs->next_caller)
-    if (!bitmap_bit_p (recomputed_callers, cs->caller->uid))
-      {
-	compute_inline_parameters (cs->caller);
-	bitmap_set_bit (recomputed_callers, cs->caller->uid);
-      }
+    if (bitmap_set_bit (recomputed_callers, cs->caller->uid))
+      compute_inline_parameters (cs->caller);
   BITMAP_FREE (recomputed_callers);
 
   current_function_decl = old_cur_fndecl;

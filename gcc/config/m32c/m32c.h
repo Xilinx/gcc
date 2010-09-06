@@ -1,5 +1,5 @@
 /* Target Definitions for R8C/M16C/M32C
-   Copyright (C) 2005, 2007, 2008, 2009
+   Copyright (C) 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Red Hat.
 
@@ -95,8 +95,6 @@ extern int target_memregs;
 #define TARGET_A24	(TARGET_M32CM || TARGET_M32C)
 
 #define TARGET_VERSION fprintf (stderr, " (m32c)");
-
-#define OVERRIDE_OPTIONS m32c_override_options ()
 
 /* Defining data structures for per-function information */
 
@@ -423,8 +421,6 @@ enum reg_class
 
 #define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
 
-#define CLASS_LIKELY_SPILLED_P(C) m32c_class_likely_spilled_p (C)
-
 #define CLASS_MAX_NREGS(C,M) m32c_class_max_nregs (C, M)
 
 #define CANNOT_CHANGE_MODE_CLASS(F,T,C) m32c_cannot_change_mode_class(F,T,C)
@@ -507,9 +503,6 @@ enum reg_class
 
 /* Passing Arguments in Registers */
 
-#define FUNCTION_ARG(CA,MODE,TYPE,NAMED) \
-	m32c_function_arg (&(CA),MODE,TYPE,NAMED)
-
 typedef struct m32c_cumulative_args
 {
   /* For address of return value buffer (structures are returned by
@@ -525,14 +518,8 @@ typedef struct m32c_cumulative_args
 #define CUMULATIVE_ARGS m32c_cumulative_args
 #define INIT_CUMULATIVE_ARGS(CA,FNTYPE,LIBNAME,FNDECL,N_NAMED_ARGS) \
 	m32c_init_cumulative_args (&(CA),FNTYPE,LIBNAME,FNDECL,N_NAMED_ARGS)
-#define FUNCTION_ARG_ADVANCE(CA,MODE,TYPE,NAMED) \
-	m32c_function_arg_advance (&(CA),MODE,TYPE,NAMED)
 #define FUNCTION_ARG_BOUNDARY(MODE,TYPE) (TARGET_A16 ? 8 : 16)
 #define FUNCTION_ARG_REGNO_P(r) m32c_function_arg_regno_p (r)
-
-/* How Scalar Function Values Are Returned */
-
-#define FUNCTION_VALUE_REGNO_P(r) m32c_function_value_regno_p (r)
 
 /* How Large Values Are Returned */
 
@@ -583,13 +570,6 @@ typedef struct m32c_cumulative_args
 /* Condition Code Status */
 
 #define REVERSIBLE_CC_MODE(MODE) 1
-
-/* Describing Relative Costs of Operations */
-
-#define REGISTER_MOVE_COST(MODE,FROM,TO) \
-	m32c_register_move_cost (MODE, FROM, TO)
-#define MEMORY_MOVE_COST(MODE,CLASS,IN) \
-	m32c_memory_move_cost (MODE, CLASS, IN)
 
 /* Dividing the Output into Sections (Texts, Data, ...) */
 

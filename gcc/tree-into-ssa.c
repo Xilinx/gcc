@@ -960,11 +960,10 @@ prune_unused_phi_nodes (bitmap phis, bitmap kills, bitmap uses)
 	}
 
       /* If the phi node is already live, there is nothing to do.  */
-      if (bitmap_bit_p (live_phis, p))
+      if (!bitmap_set_bit (live_phis, p))
 	continue;
 
-      /* Mark the phi as live, and add the new uses to the worklist.  */
-      bitmap_set_bit (live_phis, p);
+      /* Add the new uses to the worklist.  */
       def_bb = BASIC_BLOCK (p);
       FOR_EACH_EDGE (e, ei, def_bb->preds)
 	{
@@ -1993,7 +1992,7 @@ rewrite_update_phi_arguments (basic_block bb)
 	continue;
 
       phis = VEC_index (gimple_vec, phis_to_rewrite, e->dest->index);
-      for (i = 0; VEC_iterate (gimple, phis, i, phi); i++)
+      FOR_EACH_VEC_ELT (gimple, phis, i, phi)
 	{
 	  tree arg, lhs_sym, reaching_def = NULL;
 	  use_operand_p arg_p;

@@ -847,9 +847,8 @@ emit_eh_dispatch (gimple_seq *seq, eh_region region)
 static void
 note_eh_region_may_contain_throw (eh_region region)
 {
-  while (!bitmap_bit_p (eh_region_may_contain_throw_map, region->index))
+  while (bitmap_set_bit (eh_region_may_contain_throw_map, region->index))
     {
-      bitmap_set_bit (eh_region_may_contain_throw_map, region->index);
       region = region->outer;
       if (region == NULL)
 	break;
@@ -2405,8 +2404,8 @@ tree_could_trap_p (tree expr)
   switch (code)
     {
     case TARGET_MEM_REF:
-      if (TMR_SYMBOL (expr)
-	  && !TMR_INDEX (expr))
+      if (TREE_CODE (TMR_BASE (expr)) == ADDR_EXPR
+	  && !TMR_INDEX (expr) && !TMR_INDEX2 (expr))
 	return false;
       return !TREE_THIS_NOTRAP (expr);
 

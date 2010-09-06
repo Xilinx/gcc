@@ -684,7 +684,7 @@ bool number_of_iterations_exit (struct loop *, edge,
 tree find_loop_niter (struct loop *, edge *);
 tree loop_niter_by_eval (struct loop *, edge);
 tree find_loop_niter_by_eval (struct loop *, edge *);
-void estimate_numbers_of_iterations (void);
+void estimate_numbers_of_iterations (bool);
 bool array_at_struct_end_p (tree);
 bool scev_probably_wraps_p (tree, tree, gimple, struct loop *, bool);
 bool convert_affine_scev (struct loop *, tree, tree *, tree *, gimple, bool);
@@ -817,13 +817,18 @@ bool stmt_invariant_in_loop_p (struct loop *, gimple);
 bool multiplier_allowed_in_address_p (HOST_WIDE_INT, enum machine_mode,
 				      addr_space_t);
 unsigned multiply_by_cost (HOST_WIDE_INT, enum machine_mode, bool);
+bool may_be_nonaddressable_p (tree expr);
 
 /* In tree-ssa-threadupdate.c.  */
 extern bool thread_through_all_blocks (bool);
 extern void register_jump_thread (edge, edge);
 
 /* In gimplify.c  */
+tree force_gimple_operand_1 (tree, gimple_seq *, gimple_predicate, tree);
 tree force_gimple_operand (tree, gimple_seq *, bool, tree);
+tree force_gimple_operand_gsi_1 (gimple_stmt_iterator *, tree,
+				 gimple_predicate, tree,
+				 bool, enum gsi_iterator_update);
 tree force_gimple_operand_gsi (gimple_stmt_iterator *, tree, bool, tree,
 			       bool, enum gsi_iterator_update);
 tree gimple_fold_indirect_ref (tree);

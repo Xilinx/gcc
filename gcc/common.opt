@@ -69,6 +69,9 @@ Driver Joined Separate
 E
 Driver
 
+L
+Driver Joined Separate
+
 O
 Common JoinedOrMissing Optimization
 -O<number>	Set optimization level to <number>
@@ -85,7 +88,7 @@ S
 Driver
 
 W
-Common RejectNegative Var(extra_warnings) Warning
+Common RejectNegative Warning Alias(Wextra)
 This switch is deprecated; use -Wextra instead
 
 Wa,
@@ -150,7 +153,7 @@ Common Var(warn_inline) Warning
 Warn when an inlined function cannot be inlined
 
 Wlarger-than-
-Common RejectNegative Joined UInteger Warning Undocumented
+Common RejectNegative Joined Warning Undocumented Alias(Wlarger-than=)
 
 Wlarger-than=
 Common RejectNegative Joined UInteger Warning
@@ -245,7 +248,7 @@ Common Var(warn_uninitialized) Init(-1) Warning
 Warn about uninitialized automatic variables
 
 Wunreachable-code
-Common
+Common Ignore
 Does nothing. Preserved for backward compatibility.
 
 Wunused
@@ -298,7 +301,7 @@ Common Separate
 -aux-info <file>	Emit declaration information into <file>
 
 aux-info=
-Common Joined
+Common Joined Alias(aux-info)
 
 auxbase
 Common Separate RejectDriver
@@ -384,19 +387,19 @@ falign-loops=
 Common RejectNegative Joined UInteger
 
 fargument-alias
-Common
+Common Ignore
 Does nothing. Preserved for backward compatibility.
 
 fargument-noalias
-Common
+Common Ignore
 Does nothing. Preserved for backward compatibility.
 
 fargument-noalias-global
-Common
+Common Ignore
 Does nothing. Preserved for backward compatibility.
 
 fargument-noalias-anything
-Common
+Common Ignore
 Does nothing. Preserved for backward compatibility.
 
 fasynchronous-unwind-tables
@@ -487,7 +490,7 @@ Common Report Var(flag_cse_follow_jumps) Optimization
 When running CSE, follow jumps to their targets
 
 fcse-skip-blocks
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 fcx-limited-range
@@ -539,6 +542,9 @@ Amend appropriate diagnostic messages with the command line option that controls
 fdump-
 Common Joined RejectNegative
 -fdump-<type>	Dump various compiler internals to a file
+
+fdump-final-insns
+Driver RejectNegative
 
 fdump-final-insns=
 Common RejectNegative Joined Var(flag_dump_final_insns)
@@ -616,7 +622,7 @@ Common Report Var(flag_float_store) Optimization
 Don't allocate floats and doubles in extended-precision registers
 
 fforce-addr
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 fforward-propagate
@@ -709,6 +715,10 @@ ftree-loop-if-convert
 Common Report Var(flag_tree_loop_if_convert) Init(-1) Optimization
 Convert conditional jumps in innermost loops to branchless equivalents
 
+ftree-loop-if-convert-stores
+Common Report Var(flag_tree_loop_if_convert_stores) Optimization
+Also if-convert conditional jumps containing memory writes
+
 ; -finhibit-size-directive inhibits output of .size for ELF.
 ; This is used only for compiling crtstuff.c,
 ; and it may be extended to other effects
@@ -743,7 +753,7 @@ Common Report Var(flag_inline_functions_called_once) Init(1) Optimization
 Integrate functions called once into their callers
 
 finline-limit-
-Common RejectNegative Joined UInteger
+Common RejectNegative Joined Alias(finline-limit=)
 
 finline-limit=
 Common RejectNegative Joined UInteger
@@ -845,7 +855,7 @@ Common Report Var(flag_leading_underscore) Init(-1)
 Give external symbols a leading underscore
 
 floop-optimize
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 flto
@@ -1091,7 +1101,7 @@ Common Report Var(flag_rerun_cse_after_loop) Init(2) Optimization
 Add a common subexpression elimination pass after loop optimizations
 
 frerun-loop-opt
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 frounding-math
@@ -1127,7 +1137,7 @@ Common Report Var(flag_sched2_use_superblocks) Optimization
 If scheduling post reload, do superblock scheduling
 
 fsched2-use-traces
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 fschedule-insns
@@ -1212,7 +1222,7 @@ Common Report Var(flag_section_anchors) Optimization
 Access data in the same section from shared anchor points
 
 fsee
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 fzee
@@ -1252,7 +1262,7 @@ Common Report RejectNegative Joined
 -fstack-check=[no|generic|specific]	Insert stack checking code into the program
 
 fstack-check
-Common Report
+Common Alias(fstack-check=, specific, no)
 Insert stack checking code into the program.  Same as -fstack-check=specific
 
 fstack-limit
@@ -1274,8 +1284,12 @@ fstack-protector-all
 Common Report RejectNegative Var(flag_stack_protect, 2) VarExists
 Use a stack protection method for every function
 
+fstack-usage
+Common RejectNegative Var(flag_stack_usage)
+Output stack usage information on a per-function basis
+
 fstrength-reduce
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 ; Nonzero if we should do (language-dependent) alias analysis.
@@ -1338,7 +1352,7 @@ Common Report Var(flag_tree_bit_ccp) Optimization
 Enable SSA-BIT-CCP optimization on trees
 
 ftree-store-ccp
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 ftree-ch
@@ -1354,7 +1368,7 @@ Common Report Var(flag_tree_copy_prop) Optimization
 Enable copy propagation on trees
 
 ftree-store-copy-prop
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 ftree-cselim
@@ -1430,7 +1444,7 @@ Common Report Var(flag_tree_reassoc) Init(1) Optimization
 Enable reassociation on tree level
 
 ftree-salias
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 ftree-sink
@@ -1568,8 +1582,8 @@ Common
 Enable partitioned link-time optimization
 
 fwhopr=
-Common RejectNegative UInteger Joined Var(flag_whopr)
-Enable partitioned link-time optimization with specified number of parallel jobs
+Common RejectNegative Joined Var(flag_whopr)
+Partitioned link-time optimization with number of parallel jobs or jobserver.
 
 ftree-builtin-call-dce
 Common Report Var(flag_tree_builtin_call_dce) Init(0) Optimization
@@ -1645,6 +1659,12 @@ Driver Joined Separate
 no-canonical-prefixes
 Driver
 
+nodefaultlibs
+Driver
+
+nostdlib
+Driver
+
 o
 Common Driver Joined Separate MissingArgError(missing filename after %qs)
 -o <file>	Place output into <file>
@@ -1663,6 +1683,9 @@ Issue warnings needed for strict compliance to the standard
 pedantic-errors
 Common
 Like -pedantic but issue them as errors
+
+pg
+Driver
 
 pipe
 Driver Var(use_pipes)
@@ -1735,10 +1758,13 @@ shared-libgcc
 Driver
 
 specs
-Driver Separate
+Driver Separate Alias(specs=)
 
 specs=
 Driver Joined
+
+static
+Driver
 
 static-libgcc
 Driver

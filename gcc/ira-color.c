@@ -83,6 +83,12 @@ static alloc_pool splay_tree_node_pool;
    more costly although simpler.  */
 static VEC(ira_allocno_t,heap) *removed_splay_allocno_vec;
 
+/* Helper for qsort comparison callbacks - return a positive integer if
+   X > Y, or a negative value otherwise.  Use a conditional expression
+   instead of a difference computation to insulate from possible overflow
+   issues, e.g. X - Y < 0 for some X > 0 and Y < 0.  */
+#define SORTGT(x,y) (((x) > (y)) ? 1 : -1)
+
 
 
 /* This page contains functions used to find conflicts using allocno
@@ -568,11 +574,9 @@ assign_hard_reg (ira_allocno_t allocno, bool retry_p)
 
 		  if (allocno_coalesced_p)
 		    {
-		      if (bitmap_bit_p (processed_coalesced_allocno_bitmap,
+		      if (!bitmap_set_bit (processed_coalesced_allocno_bitmap,
 					ALLOCNO_NUM (conflict_allocno)))
 			continue;
-		      bitmap_set_bit (processed_coalesced_allocno_bitmap,
-				      ALLOCNO_NUM (conflict_allocno));
 		    }
 
 		  ira_allocate_and_copy_costs
@@ -977,11 +981,9 @@ push_allocno_to_stack (ira_allocno_t allocno)
 		{
 		  conflict_obj = ALLOCNO_OBJECT (conflict_allocno,
 						 OBJECT_SUBWORD (conflict_obj));
-		  if (bitmap_bit_p (processed_coalesced_allocno_bitmap,
+		  if (!bitmap_set_bit (processed_coalesced_allocno_bitmap,
 				    OBJECT_CONFLICT_ID (conflict_obj)))
 		    continue;
-		  bitmap_set_bit (processed_coalesced_allocno_bitmap,
-				  OBJECT_CONFLICT_ID (conflict_obj));
 		}
 
 	      if (!ALLOCNO_IN_GRAPH_P (conflict_allocno)
@@ -1117,7 +1119,7 @@ ira_loop_edge_freq (ira_loop_tree_node_t loop_node, int regno, bool exit_p)
   else
     {
       edges = get_loop_exit_edges (loop_node->loop);
-      for (i = 0; VEC_iterate (edge, edges, i, e); i++)
+      FOR_EACH_VEC_ELT (edge, edges, i, e)
 	if (regno < 0
 	    || (bitmap_bit_p (DF_LR_OUT (e->src), regno)
 		&& bitmap_bit_p (DF_LR_IN (e->dest), regno)))
@@ -1552,11 +1554,9 @@ setup_allocno_left_conflicts_size (ira_allocno_t allocno)
 			    == ALLOCNO_COVER_CLASS (conflict_allocno));
 		if (allocno_coalesced_p)
 		  {
-		    if (bitmap_bit_p (processed_coalesced_allocno_bitmap,
-				      ALLOCNO_NUM (conflict_allocno)))
+		    if (!bitmap_set_bit (processed_coalesced_allocno_bitmap,
+					 ALLOCNO_NUM (conflict_allocno)))
 		      continue;
-		    bitmap_set_bit (processed_coalesced_allocno_bitmap,
-				    ALLOCNO_NUM (conflict_allocno));
 		  }
 
 		if (! ALLOCNO_ASSIGNED_P (conflict_allocno))
@@ -1864,8 +1864,8 @@ allocno_priority_compare_func (const void *v1p, const void *v2p)
 
   pri1 = allocno_priorities[ALLOCNO_NUM (a1)];
   pri2 = allocno_priorities[ALLOCNO_NUM (a2)];
-  if (pri2 - pri1)
-    return pri2 - pri1;
+  if (pri2 != pri1)
+    return SORTGT (pri2, pri1);
 
   /* If regs are equally good, sort by allocnos, so that the results of
      qsort leave nothing to chance.  */
@@ -2436,9 +2436,8 @@ ira_reassign_conflict_allocnos (int start_regno)
 	      ira_allocno_t conflict_a = OBJECT_ALLOCNO (conflict_obj);
 	      ira_assert (ira_reg_classes_intersect_p
 			  [cover_class][ALLOCNO_COVER_CLASS (conflict_a)]);
-	      if (bitmap_bit_p (allocnos_to_color, ALLOCNO_NUM (conflict_a)))
+	      if (!bitmap_set_bit (allocnos_to_color, ALLOCNO_NUM (conflict_a)))
 		continue;
-	      bitmap_set_bit (allocnos_to_color, ALLOCNO_NUM (conflict_a));
 	      sorted_allocnos[allocnos_to_color_num++] = conflict_a;
 	    }
 	}
@@ -3041,10 +3040,9 @@ ira_reassign_pseudos (int *spilled_pseudo_regs, int num,
 	      ira_allocno_t conflict_a = OBJECT_ALLOCNO (conflict_obj);
 	      if (ALLOCNO_HARD_REGNO (conflict_a) < 0
 		  && ! ALLOCNO_DONT_REASSIGN_P (conflict_a)
-		  && ! bitmap_bit_p (temp, ALLOCNO_REGNO (conflict_a)))
+		  && bitmap_set_bit (temp, ALLOCNO_REGNO (conflict_a)))
 		{
 		  spilled_pseudo_regs[num++] = ALLOCNO_REGNO (conflict_a);
-		  bitmap_set_bit (temp, ALLOCNO_REGNO (conflict_a));
 		  /* ?!? This seems wrong.  */
 		  bitmap_set_bit (consideration_allocno_bitmap,
 				  ALLOCNO_NUM (conflict_a));

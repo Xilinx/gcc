@@ -884,8 +884,44 @@ gfc_check_besn (gfc_expr *n, gfc_expr *x)
 {
   if (type_check (n, 0, BT_INTEGER) == FAILURE)
     return FAILURE;
+  if (n->expr_type == EXPR_CONSTANT)
+    {
+      int i;
+      gfc_extract_int (n, &i);
+      if (i < 0 && gfc_notify_std (GFC_STD_GNU, "Extension: Negative argument "
+				   "N at %L", &n->where) == FAILURE)
+	return FAILURE;
+    }
 
   if (type_check (x, 1, BT_REAL) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+/* Transformational version of the Bessel JN and YN functions.  */
+
+gfc_try
+gfc_check_bessel_n2 (gfc_expr *n1, gfc_expr *n2, gfc_expr *x)
+{
+  if (type_check (n1, 0, BT_INTEGER) == FAILURE)
+    return FAILURE;
+  if (scalar_check (n1, 0) == FAILURE)
+    return FAILURE;
+  if (nonnegative_check("N1", n1) == FAILURE)
+    return FAILURE;
+
+  if (type_check (n2, 1, BT_INTEGER) == FAILURE)
+    return FAILURE;
+  if (scalar_check (n2, 1) == FAILURE)
+    return FAILURE;
+  if (nonnegative_check("N2", n2) == FAILURE)
+    return FAILURE;
+
+  if (type_check (x, 2, BT_REAL) == FAILURE)
+    return FAILURE;
+  if (scalar_check (x, 2) == FAILURE)
     return FAILURE;
 
   return SUCCESS;
@@ -2396,6 +2432,21 @@ gfc_check_new_line (gfc_expr *a)
 
 
 gfc_try
+gfc_check_norm2 (gfc_expr *array, gfc_expr *dim)
+{
+  if (type_check (array, 0, BT_REAL) == FAILURE)
+    return FAILURE;
+
+  if (array_check (array, 0) == FAILURE)
+    return FAILURE;
+
+  if (dim_rank_check (dim, array, false) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+gfc_try
 gfc_check_null (gfc_expr *mold)
 {
   symbol_attribute attr;
@@ -2498,6 +2549,22 @@ gfc_check_pack (gfc_expr *array, gfc_expr *mask, gfc_expr *vector)
       if (have_vector_size)
 	mpz_clear (vector_size);
     }
+
+  return SUCCESS;
+}
+
+
+gfc_try
+gfc_check_parity (gfc_expr *mask, gfc_expr *dim)
+{
+  if (type_check (mask, 0, BT_LOGICAL) == FAILURE)
+    return FAILURE;
+
+  if (array_check (mask, 0) == FAILURE)
+    return FAILURE;
+
+  if (dim_rank_check (dim, mask, false) == FAILURE)
+    return FAILURE;
 
   return SUCCESS;
 }

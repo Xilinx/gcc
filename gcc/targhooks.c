@@ -568,28 +568,26 @@ default_function_arg_advance (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 }
 
 rtx
-default_function_arg (const CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+default_function_arg (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 		      enum machine_mode mode ATTRIBUTE_UNUSED,
 		      const_tree type ATTRIBUTE_UNUSED,
 		      bool named ATTRIBUTE_UNUSED)
 {
 #ifdef FUNCTION_ARG
-  return FUNCTION_ARG (*(CONST_CAST (CUMULATIVE_ARGS *, ca)), mode,
-		       CONST_CAST_TREE (type), named);
+  return FUNCTION_ARG (*ca, mode, CONST_CAST_TREE (type), named);
 #else
   gcc_unreachable ();
 #endif
 }
 
 rtx
-default_function_incoming_arg (const CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+default_function_incoming_arg (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 			       enum machine_mode mode ATTRIBUTE_UNUSED,
 			       const_tree type ATTRIBUTE_UNUSED,
 			       bool named ATTRIBUTE_UNUSED)
 {
 #ifdef FUNCTION_INCOMING_ARG
-  return FUNCTION_INCOMING_ARG (*(CONST_CAST (CUMULATIVE_ARGS *, ca)), mode,
-				CONST_CAST_TREE (type), named);
+  return FUNCTION_INCOMING_ARG (*ca, mode, CONST_CAST_TREE (type), named);
 #else
   gcc_unreachable ();
 #endif
@@ -1219,6 +1217,18 @@ default_profile_before_prologue (void)
   return true;
 #else
   return false;
+#endif
+}
+
+/* The default implementation of TARGET_CLASS_LIKELY_SPILLED_P.  */
+
+bool
+default_class_likely_spilled_p (reg_class_t rclass)
+{
+#ifndef CLASS_LIKELY_SPILLED_P
+  return (reg_class_size[(int) rclass] == 1);
+#else
+  return CLASS_LIKELY_SPILLED_P ((enum reg_class) rclass);
 #endif
 }
 

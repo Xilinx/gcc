@@ -330,6 +330,7 @@ add_sym (const char *name, gfc_isym_id id, enum klass cl, int actual_ok, bt type
 	  next_arg->ts.type = type;
 	  next_arg->ts.kind = kind;
 	  next_arg->optional = optional;
+	  next_arg->value = 0;
 	  next_arg->intent = intent;
 	}
     }
@@ -1065,6 +1066,30 @@ make_noreturn (void)
     next_sym[-1].noreturn = 1;
 }
 
+/* Set the attr.value of the current procedure.  */
+
+static void
+set_attr_value (int n, ...)
+{
+  gfc_intrinsic_arg *arg;
+  va_list argp;
+  int i;
+
+  if (sizing != SZ_NOTHING)
+    return;
+
+  va_start (argp, n);
+  arg = next_sym[-1].formal;
+
+  for (i = 0; i < n; i++)
+    {
+      gcc_assert (arg != NULL);
+      arg->value = va_arg (argp, int);
+      arg = arg->next;
+    }
+  va_end (argp);
+}
+
 
 /* Add intrinsic functions.  */
 
@@ -1317,6 +1342,12 @@ add_functions (void)
 	     gfc_check_besn, gfc_simplify_bessel_jn, gfc_resolve_besn,
 	     n, BT_INTEGER, di, REQUIRED, x, BT_REAL, dd, REQUIRED);
 
+  add_sym_3 ("bessel_jn", GFC_ISYM_JN2, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F2008,
+	     gfc_check_bessel_n2, gfc_simplify_bessel_jn2, gfc_resolve_bessel_n2,
+	     "n1", BT_INTEGER, di, REQUIRED,"n2", BT_INTEGER, di, REQUIRED,
+	     x, BT_REAL, dr, REQUIRED);
+  set_attr_value (3, true, true, true);
+
   make_generic ("bessel_jn", GFC_ISYM_JN, GFC_STD_F2008);
 
   add_sym_1 ("besy0", GFC_ISYM_Y0, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_GNU,
@@ -1352,6 +1383,12 @@ add_functions (void)
   add_sym_2 ("dbesyn", GFC_ISYM_YN, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dd, GFC_STD_GNU,
 	     gfc_check_besn, gfc_simplify_bessel_yn, gfc_resolve_besn,
 	     n, BT_INTEGER, di, REQUIRED, x, BT_REAL, dd, REQUIRED);
+
+  add_sym_3 ("bessel_yn", GFC_ISYM_YN2, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F2008,
+	     gfc_check_bessel_n2, gfc_simplify_bessel_yn2, gfc_resolve_bessel_n2,
+	     "n1", BT_INTEGER, di, REQUIRED,"n2", BT_INTEGER, di, REQUIRED,
+	      x, BT_REAL, dr, REQUIRED);
+  set_attr_value (3, true, true, true);
 
   make_generic ("bessel_yn", GFC_ISYM_YN, GFC_STD_F2008);
 
@@ -2231,6 +2268,13 @@ add_functions (void)
 
   make_generic ("not", GFC_ISYM_NOT, GFC_STD_F95);
 
+  add_sym_2 ("norm2", GFC_ISYM_NORM2, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr,
+	     GFC_STD_F2008, gfc_check_norm2, gfc_simplify_norm2, gfc_resolve_norm2,
+	     x, BT_REAL, dr, REQUIRED,
+	     dm, BT_INTEGER, ii, OPTIONAL);
+
+  make_generic ("norm2", GFC_ISYM_NORM2, GFC_STD_F2008);
+
   add_sym_1 ("null", GFC_ISYM_NULL, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_INTEGER, di, GFC_STD_F95,
 	     gfc_check_null, gfc_simplify_null, NULL,
 	     mo, BT_INTEGER, di, OPTIONAL);
@@ -2246,6 +2290,28 @@ add_functions (void)
 	     v, BT_REAL, dr, OPTIONAL);
 
   make_generic ("pack", GFC_ISYM_PACK, GFC_STD_F95);
+
+
+  add_sym_2 ("parity", GFC_ISYM_PARITY, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_LOGICAL, dl,
+	     GFC_STD_F2008, gfc_check_parity, gfc_simplify_parity, gfc_resolve_parity,
+	     msk, BT_LOGICAL, dl, REQUIRED,
+	     dm, BT_INTEGER, ii, OPTIONAL);
+
+  make_generic ("parity", GFC_ISYM_PARITY, GFC_STD_F2008);
+
+  add_sym_1 ("popcnt", GFC_ISYM_POPCNT, CLASS_ELEMENTAL, ACTUAL_NO,
+	     BT_INTEGER, di, GFC_STD_F2008,
+	     gfc_check_i, gfc_simplify_popcnt, NULL,
+	     i, BT_INTEGER, di, REQUIRED);
+
+  make_generic ("popcnt", GFC_ISYM_POPCNT, GFC_STD_F2008);
+
+  add_sym_1 ("poppar", GFC_ISYM_POPPAR, CLASS_ELEMENTAL, ACTUAL_NO,
+	     BT_INTEGER, di, GFC_STD_F2008,
+	     gfc_check_i, gfc_simplify_poppar, NULL,
+	     i, BT_INTEGER, di, REQUIRED);
+
+  make_generic ("poppar", GFC_ISYM_POPPAR, GFC_STD_F2008);
 
   add_sym_1 ("precision", GFC_ISYM_PRECISION, CLASS_INQUIRY, ACTUAL_NO, BT_INTEGER, di, GFC_STD_F95,
 	     gfc_check_precision, gfc_simplify_precision, NULL,
@@ -2746,6 +2812,15 @@ add_subroutines (void)
 	      gfc_check_dtime_etime_sub, NULL, gfc_resolve_dtime_sub,
 	      vl, BT_REAL, 4, REQUIRED, tm, BT_REAL, 4, REQUIRED);
 
+  add_sym_5s ("execute_command_line", GFC_ISYM_EXECUTE_COMMAND_LINE,
+	      CLASS_IMPURE , BT_UNKNOWN, 0, GFC_STD_F2008,
+	      NULL, NULL, gfc_resolve_execute_command_line,
+	      "command", BT_CHARACTER, dc, REQUIRED, INTENT_IN,
+	      "wait", BT_LOGICAL, dl, OPTIONAL, INTENT_IN,
+	      "exitstat", BT_INTEGER, di, OPTIONAL, INTENT_INOUT,
+	      "cmdstat", BT_INTEGER, di, OPTIONAL, INTENT_OUT,
+	      "cmdmsg", BT_CHARACTER, dc, OPTIONAL, INTENT_INOUT);
+
   add_sym_1s ("fdate", GFC_ISYM_FDATE, CLASS_IMPURE, BT_UNKNOWN, 0, GFC_STD_GNU,
 	      gfc_check_fdate_sub, NULL, gfc_resolve_fdate_sub,
 	      dt, BT_CHARACTER, dc, REQUIRED);
@@ -2985,6 +3060,7 @@ add_conv (bt from_type, int from_kind, bt to_type, int to_kind, int standard)
   sym->simplify.cc = gfc_convert_constant;
   sym->standard = standard;
   sym->elemental = 1;
+  sym->pure = 1;
   sym->conversion = 1;
   sym->ts = to;
   sym->id = GFC_ISYM_CONVERSION;
@@ -3135,6 +3211,7 @@ add_char_conversions (void)
 	char_conversions[n].simplify.cc = gfc_convert_char_constant;
 	char_conversions[n].standard = GFC_STD_F2003;
 	char_conversions[n].elemental = 1;
+	char_conversions[n].pure = 1;
 	char_conversions[n].conversion = 0;
 	char_conversions[n].ts = to;
 	char_conversions[n].id = GFC_ISYM_CONVERSION;

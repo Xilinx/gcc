@@ -126,6 +126,24 @@ enum target_cpus
 /* The processor for which instructions should be scheduled.  */
 extern enum processor_type arm_tune;
 
+enum arm_sync_generator_tag
+  {
+    arm_sync_generator_omn,
+    arm_sync_generator_omrn
+  };
+
+/* Wrapper to pass around a polymorphic pointer to a sync instruction
+   generator and.  */
+struct arm_sync_generator
+{
+  enum arm_sync_generator_tag op;
+  union
+  {
+    rtx (* omn) (rtx, rtx, rtx);
+    rtx (* omrn) (rtx, rtx, rtx, rtx);
+  } u;
+};
+
 typedef enum arm_cond_code
 {
   ARM_EQ = 0, ARM_NE, ARM_CS, ARM_CC, ARM_MI, ARM_PL, ARM_VS, ARM_VC,
@@ -270,6 +288,20 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
    for Thumb-2.  */
 #define TARGET_UNIFIED_ASM TARGET_THUMB2
 
+/* Nonzero if this chip provides the DMB instruction.  */
+#define TARGET_HAVE_DMB		(arm_arch7)
+
+/* Nonzero if this chip implements a memory barrier via CP15.  */
+#define TARGET_HAVE_DMB_MCR	(arm_arch6k && ! TARGET_HAVE_DMB)
+
+/* Nonzero if this chip implements a memory barrier instruction.  */
+#define TARGET_HAVE_MEMORY_BARRIER (TARGET_HAVE_DMB || TARGET_HAVE_DMB_MCR)
+
+/* Nonzero if this chip supports ldrex and strex */
+#define TARGET_HAVE_LDREX	((arm_arch6 && TARGET_ARM) || arm_arch7)
+
+/* Nonzero if this chip supports ldrex{bhd} and strex{bhd}.  */
+#define TARGET_HAVE_LDREXBHD	((arm_arch6k && TARGET_ARM) || arm_arch7)
 
 /* True iff the full BPABI is being used.  If TARGET_BPABI is true,
    then TARGET_AAPCS_BASED must be true -- but the converse does not
@@ -402,6 +434,12 @@ extern int arm_arch5e;
 
 /* Nonzero if this chip supports the ARM Architecture 6 extensions.  */
 extern int arm_arch6;
+
+/* Nonzero if this chip supports the ARM Architecture 6k extensions.  */
+extern int arm_arch6k;
+
+/* Nonzero if this chip supports the ARM Architecture 7 extensions.  */
+extern int arm_arch7;
 
 /* Nonzero if instructions not present in the 'M' profile can be used.  */
 extern int arm_arch_notm;
@@ -1699,27 +1737,6 @@ typedef struct
   MACHMODE aapcs_vfp_rmode;
 } CUMULATIVE_ARGS;
 
-/* Define where to put the arguments to a function.
-   Value is zero to push the argument on the stack,
-   or a hard register in which to store the argument.
-
-   MODE is the argument's machine mode.
-   TYPE is the data type of the argument (as a tree).
-    This is null for libcalls where that information may
-    not be available.
-   CUM is a variable of type CUMULATIVE_ARGS which gives info about
-    the preceding args and about the function being called.
-   NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).
-
-   On the ARM, normally the first 16 bytes are passed in registers r0-r3; all
-   other arguments are passed on the stack.  If (NAMED == 0) (which happens
-   only in assign_parms, since TARGET_SETUP_INCOMING_VARARGS is
-   defined), say it is passed in the stack (function_prologue will
-   indeed make it pass in the stack if necessary).  */
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  arm_function_arg (&(CUM), (MODE), (TYPE), (NAMED))
-
 #define FUNCTION_ARG_PADDING(MODE, TYPE) \
   (arm_pad_arg_upward (MODE, TYPE) ? upward : downward)
 
@@ -1737,12 +1754,6 @@ typedef struct
    On the ARM, the offset starts at 0.  */
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, FNDECL, N_NAMED_ARGS) \
   arm_init_cumulative_args (&(CUM), (FNTYPE), (LIBNAME), (FNDECL))
-
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  */
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
-  arm_function_arg_advance (&(CUM), (MODE), (TYPE), (NAMED))
 
 /* If defined, a C expression that gives the alignment boundary, in bits, of an
    argument with the specified mode and type.  If it is not defined,

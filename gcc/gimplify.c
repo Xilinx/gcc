@@ -1329,6 +1329,8 @@ gimplify_vla_decl (tree decl, gimple_seq *seq_p)
 
   t = built_in_decls[BUILT_IN_ALLOCA];
   t = build_call_expr (t, 1, DECL_SIZE_UNIT (decl));
+  /* The call has been built for a variable-sized object.  */
+  ALLOCA_FOR_VAR_P (t) = 1;
   t = fold_convert (ptr_type, t);
   t = build2 (MODIFY_EXPR, TREE_TYPE (addr), addr, t);
 
@@ -3328,7 +3330,7 @@ gimplify_init_ctor_preeval (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
       constructor_elt *ce;
       VEC(constructor_elt,gc) *v = CONSTRUCTOR_ELTS (*expr_p);
 
-      for (ix = 0; VEC_iterate (constructor_elt, v, ix, ce); ix++)
+      FOR_EACH_VEC_ELT (constructor_elt, v, ix, ce)
 	gimplify_init_ctor_preeval (&ce->value, pre_p, post_p, data);
 
       return;
@@ -3822,11 +3824,12 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	      }
 	  }
 
-	/* If the target is volatile and we have non-zero elements
-	   initialize the target from a temporary.  */
+	/* If the target is volatile, we have non-zero elements and more than
+	   one field to assign, initialize the target from a temporary.  */
 	if (TREE_THIS_VOLATILE (object)
 	    && !TREE_ADDRESSABLE (type)
-	    && num_nonzero_elements > 0)
+	    && num_nonzero_elements > 0
+	    && VEC_length (constructor_elt, elts) > 1)
 	  {
 	    tree temp = create_tmp_var (TYPE_MAIN_VARIANT (type), NULL);
 	    TREE_OPERAND (*expr_p, 0) = temp;
@@ -3957,7 +3960,7 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 
 	/* Vector types use CONSTRUCTOR all the way through gimple
 	  compilation as a general initializer.  */
-	for (ix = 0; VEC_iterate (constructor_elt, elts, ix, ce); ix++)
+	FOR_EACH_VEC_ELT (constructor_elt, elts, ix, ce)
 	  {
 	    enum gimplify_status tret;
 	    tret = gimplify_expr (&ce->value, pre_p, post_p, is_gimple_val,
@@ -4237,6 +4240,10 @@ gimplify_modify_expr_rhs (tree *expr_p, tree *from_p, tree *to_p,
 	  break;
 
 	case CONSTRUCTOR:
+	  /* If we already made some changes, let the front end have a
+	     crack at this before we break it down.  */
+	  if (ret != GS_UNHANDLED)
+	    break;
 	  /* If we're initializing from a CONSTRUCTOR, break this into
 	     individual MODIFY_EXPRs.  */
 	  return gimplify_init_constructor (expr_p, pre_p, post_p, want_value,
@@ -4572,6 +4579,9 @@ gimplify_modify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
       SET_DECL_DEBUG_EXPR (*from_p, *to_p);
    }
 
+  if (want_value && TREE_THIS_VOLATILE (*to_p))
+    *from_p = get_initialized_tmp_var (*from_p, pre_p, post_p);
+
   if (TREE_CODE (*from_p) == CALL_EXPR)
     {
       /* Since the RHS is a CALL_EXPR, we need to create a GIMPLE_CALL
@@ -4599,7 +4609,7 @@ gimplify_modify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 
   if (want_value)
     {
-      *expr_p = unshare_expr (*to_p);
+      *expr_p = TREE_THIS_VOLATILE (*to_p) ? *from_p : unshare_expr (*to_p);
       return GS_OK;
     }
   else
@@ -6398,8 +6408,12 @@ goa_stabilize_expr (tree *expr_p, gimple_seq *pre_p, tree lhs_addr,
 	{
 	case TRUTH_ANDIF_EXPR:
 	case TRUTH_ORIF_EXPR:
+	case TRUTH_AND_EXPR:
+	case TRUTH_OR_EXPR:
+	case TRUTH_XOR_EXPR:
 	  saw_lhs |= goa_stabilize_expr (&TREE_OPERAND (expr, 1), pre_p,
 					 lhs_addr, lhs_var);
+	case TRUTH_NOT_EXPR:
 	  saw_lhs |= goa_stabilize_expr (&TREE_OPERAND (expr, 0), pre_p,
 					 lhs_addr, lhs_var);
 	  break;
@@ -6911,14 +6925,11 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  if (fallback == fb_none)
 	    {
 	      unsigned HOST_WIDE_INT ix;
-	      constructor_elt *ce;
+	      tree val;
 	      tree temp = NULL_TREE;
-	      for (ix = 0;
-		   VEC_iterate (constructor_elt, CONSTRUCTOR_ELTS (*expr_p),
-				ix, ce);
-		   ix++)
-		if (TREE_SIDE_EFFECTS (ce->value))
-		  append_to_statement_list (ce->value, &temp);
+	      FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (*expr_p), ix, val)
+		if (TREE_SIDE_EFFECTS (val))
+		  append_to_statement_list (val, &temp);
 
 	      *expr_p = temp;
 	      ret = temp ? GS_OK : GS_ALL_DONE;
@@ -6966,14 +6977,14 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  {
 	    enum gimplify_status r0 = GS_ALL_DONE, r1 = GS_ALL_DONE;
 
-	    if (TMR_SYMBOL (*expr_p))
-	      r0 = gimplify_expr (&TMR_SYMBOL (*expr_p), pre_p,
-				  post_p, is_gimple_lvalue, fb_either);
-	    else if (TMR_BASE (*expr_p))
+	    if (TMR_BASE (*expr_p))
 	      r0 = gimplify_expr (&TMR_BASE (*expr_p), pre_p,
-				  post_p, is_gimple_val, fb_either);
+				  post_p, is_gimple_mem_ref_addr, fb_either);
 	    if (TMR_INDEX (*expr_p))
 	      r1 = gimplify_expr (&TMR_INDEX (*expr_p), pre_p,
+				  post_p, is_gimple_val, fb_rvalue);
+	    if (TMR_INDEX2 (*expr_p))
+	      r1 = gimplify_expr (&TMR_INDEX2 (*expr_p), pre_p,
 				  post_p, is_gimple_val, fb_rvalue);
 	    /* TMR_STEP and TMR_OFFSET are always integer constants.  */
 	    ret = MIN (r0, r1);
@@ -7997,25 +8008,22 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
 }
 
 
-/* Expands EXPR to list of gimple statements STMTS.  If SIMPLE is true,
-   force the result to be either ssa_name or an invariant, otherwise
-   just force it to be a rhs expression.  If VAR is not NULL, make the
+/* Expands EXPR to list of gimple statements STMTS.  GIMPLE_TEST_F specifies
+   the predicate that will hold for the result.  If VAR is not NULL, make the
    base variable of the final destination be VAR if suitable.  */
 
 tree
-force_gimple_operand (tree expr, gimple_seq *stmts, bool simple, tree var)
+force_gimple_operand_1 (tree expr, gimple_seq *stmts,
+			gimple_predicate gimple_test_f, tree var)
 {
   tree t;
   enum gimplify_status ret;
-  gimple_predicate gimple_test_f;
   struct gimplify_ctx gctx;
 
   *stmts = NULL;
 
   if (is_gimple_val (expr))
     return expr;
-
-  gimple_test_f = simple ? is_gimple_val : is_gimple_reg_rhs;
 
   push_gimplify_context (&gctx);
   gimplify_ctxp->into_ssa = gimple_in_ssa_p (cfun);
@@ -8045,20 +8053,34 @@ force_gimple_operand (tree expr, gimple_seq *stmts, bool simple, tree var)
   return expr;
 }
 
-/* Invokes force_gimple_operand for EXPR with parameters SIMPLE_P and VAR.  If
-   some statements are produced, emits them at GSI.  If BEFORE is true.
-   the statements are appended before GSI, otherwise they are appended after
-   it.  M specifies the way GSI moves after insertion (GSI_SAME_STMT or
-   GSI_CONTINUE_LINKING are the usual values).  */
+/* Expands EXPR to list of gimple statements STMTS.  If SIMPLE is true,
+   force the result to be either ssa_name or an invariant, otherwise
+   just force it to be a rhs expression.  If VAR is not NULL, make the
+   base variable of the final destination be VAR if suitable.  */
 
 tree
-force_gimple_operand_gsi (gimple_stmt_iterator *gsi, tree expr,
-			  bool simple_p, tree var, bool before,
-			  enum gsi_iterator_update m)
+force_gimple_operand (tree expr, gimple_seq *stmts, bool simple, tree var)
+{
+  return force_gimple_operand_1 (expr, stmts,
+				 simple ? is_gimple_val : is_gimple_reg_rhs,
+				 var);
+}
+
+/* Invokes force_gimple_operand_1 for EXPR with parameters GIMPLE_TEST_F
+   and VAR.  If some statements are produced, emits them at GSI.
+   If BEFORE is true.  the statements are appended before GSI, otherwise
+   they are appended after it.  M specifies the way GSI moves after
+   insertion (GSI_SAME_STMT or GSI_CONTINUE_LINKING are the usual values).  */
+
+tree
+force_gimple_operand_gsi_1 (gimple_stmt_iterator *gsi, tree expr,
+			    gimple_predicate gimple_test_f,
+			    tree var, bool before,
+			    enum gsi_iterator_update m)
 {
   gimple_seq stmts;
 
-  expr = force_gimple_operand (expr, &stmts, simple_p, var);
+  expr = force_gimple_operand_1 (expr, &stmts, gimple_test_f, var);
 
   if (!gimple_seq_empty_p (stmts))
     {
@@ -8078,5 +8100,25 @@ force_gimple_operand_gsi (gimple_stmt_iterator *gsi, tree expr,
 
   return expr;
 }
+
+/* Invokes force_gimple_operand_1 for EXPR with parameter VAR.
+   If SIMPLE is true, force the result to be either ssa_name or an invariant,
+   otherwise just force it to be a rhs expression.  If some statements are
+   produced, emits them at GSI.  If BEFORE is true, the statements are
+   appended before GSI, otherwise they are appended after it.  M specifies
+   the way GSI moves after insertion (GSI_SAME_STMT or GSI_CONTINUE_LINKING
+   are the usual values).  */
+
+tree
+force_gimple_operand_gsi (gimple_stmt_iterator *gsi, tree expr,
+			  bool simple_p, tree var, bool before,
+			  enum gsi_iterator_update m)
+{
+  return force_gimple_operand_gsi_1 (gsi, expr,
+				     simple_p
+				     ? is_gimple_val : is_gimple_reg_rhs,
+				     var, before, m);
+}
+
 
 #include "gt-gimplify.h"
