@@ -4153,22 +4153,6 @@ mark_used (tree decl)
       return;
     }
 
-  /* FIXME WRONG - SHOULD FIX NOEXCEPT TEST BY CLEARING
-     cp_unevaluated_operand when instantiating function decl.  */
-  /* Normally, we can wait until instantiation-time to synthesize
-     DECL.  However, if DECL is a static data member initialized with
-     a constant, we need the value right now because a reference to
-     such a data member is not value-dependent.  */
-  if ((decl_maybe_constant_var_p (decl)
-       || (TREE_CODE (decl) == FUNCTION_DECL
-	   && DECL_DECLARED_CONSTEXPR_P (decl)))
-      && !DECL_INITIAL (decl)
-      && DECL_LANG_SPECIFIC (decl)
-      && DECL_TEMPLATE_INSTANTIATION (decl)
-      && DECL_INITIAL (DECL_TEMPLATE_RESULT (DECL_TI_TEMPLATE (decl))))
-    instantiate_decl (decl, /*defer_ok=*/true,
-		      /*expl_inst_class_mem_p=*/false);
-
   /* If we don't need a value, then we don't need to synthesize DECL.  */
   if (cp_unevaluated_operand != 0)
     return;
@@ -4194,6 +4178,20 @@ mark_used (tree decl)
       VEC_safe_push (tree, gc, deferred_mark_used_calls, decl);
       return;
     }
+
+  /* Normally, we can wait until instantiation-time to synthesize
+     DECL.  However, if DECL is a static data member initialized with
+     a constant, we need the value right now because a reference to
+     such a data member is not value-dependent.  */
+  if ((decl_maybe_constant_var_p (decl)
+       || (TREE_CODE (decl) == FUNCTION_DECL
+	   && DECL_DECLARED_CONSTEXPR_P (decl)))
+      && !DECL_INITIAL (decl)
+      && DECL_LANG_SPECIFIC (decl)
+      && DECL_TEMPLATE_INSTANTIATION (decl)
+      && DECL_INITIAL (DECL_TEMPLATE_RESULT (DECL_TI_TEMPLATE (decl))))
+    instantiate_decl (decl, /*defer_ok=*/true,
+		      /*expl_inst_class_mem_p=*/false);
 
   if (processing_template_decl)
     return;
