@@ -17576,6 +17576,10 @@ dependent_scope_p (tree scope)
    [temp.dep.constexpr].  EXPRESSION is already known to be a constant
    expression.  */
 
+/* FIXME this predicate is not appropriate for general expressions; we want
+   a potentially-constant-and-not-value-dependent predicate and an
+   instantiation-dependent predicate to use on general exprs.  */
+
 bool
 value_dependent_expression_p (tree expression)
 {

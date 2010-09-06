@@ -5769,30 +5769,42 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
       if ((*slot)->result == NULL)
         {
 	  if (!allow_non_constant)
-	    error ("call to %qE has circular dependency", fun);
-          *slot = NULL;
-	  result = t;
+	    error ("call has circular dependency");
+	  (*slot)->result = result = error_mark_node;
         }
       else
-	result = (*slot)->result;
+	{
+	  result = (*slot)->result;
+	  if (result == error_mark_node && !allow_non_constant)
+	    /* Re-evaluate to get the error.  */
+	    cxx_eval_constant_expression (&new_call, new_call.fundef->body,
+					  allow_non_constant, addr,
+					  non_constant_p);
+	}
     }
   else
     {
-      *slot = ggc_alloc_constexpr_call ();
-      **slot = new_call;
+      /* We need to keep a pointer to the entry, not just the slot, as the
+	 slot can move in the call to cxx_eval_builtin_function_call.  */
+      constexpr_call *entry = ggc_alloc_constexpr_call ();
+      *entry = new_call;
+      *slot = entry;
       result
 	= cxx_eval_constant_expression (&new_call, new_call.fundef->body,
 					allow_non_constant, addr,
 					non_constant_p);
       if (*non_constant_p)
-	{
-	  if (!allow_non_constant)
-	    error_at (loc, "in expansion of %qE", t);
-	  *slot = NULL;
-	  result = t;
-	}
+	entry->result = result = error_mark_node;
       else
-	(*slot)->result = result;
+	entry->result = result;
+    }
+
+  if (result == error_mark_node)
+    {
+      if (!allow_non_constant)
+	error_at (loc, "in expansion of %qE", t);
+      *non_constant_p = true;
+      result = t;
     }
   return result;
 }
