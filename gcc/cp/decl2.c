@@ -4155,7 +4155,9 @@ mark_used (tree decl)
      DECL.  However, if DECL is a static data member initialized with
      a constant, we need the value right now because a reference to
      such a data member is not value-dependent.  */
-  if (decl_maybe_constant_var_p (decl)
+  if ((decl_maybe_constant_var_p (decl)
+       || (TREE_CODE (decl) == FUNCTION_DECL
+	   && DECL_DECLARED_CONSTEXPR_P (decl)))
       && !DECL_INITIAL (decl)
       && DECL_LANG_SPECIFIC (decl)
       && DECL_TEMPLATE_INSTANTIATION (decl)
