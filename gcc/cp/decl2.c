@@ -4151,6 +4151,8 @@ mark_used (tree decl)
       return;
     }
 
+  /* FIXME WRONG - SHOULD FIX NOEXCEPT TEST BY CLEARING
+     cp_unevaluated_operand when instantiating function decl.  */
   /* Normally, we can wait until instantiation-time to synthesize
      DECL.  However, if DECL is a static data member initialized with
      a constant, we need the value right now because a reference to
