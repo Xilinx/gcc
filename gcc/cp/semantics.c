@@ -6230,7 +6230,8 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 	   COMPOUND_EXPR; don't get confused.  */
 	tree op0 = TREE_OPERAND (t, 0);
 	if (TREE_CODE (op0) == TARGET_EXPR
-	    && TREE_OPERAND (t, 1) == TARGET_EXPR_SLOT (op0))
+	    && (TREE_OPERAND (t, 1) == TARGET_EXPR_SLOT (op0)
+		|| TREE_CODE (TREE_OPERAND (t, 1)) == EMPTY_CLASS_EXPR))
 	  r = cxx_eval_constant_expression (call, op0, allow_non_constant,
 					    addr, non_constant_p);
 	else
