@@ -466,15 +466,19 @@ null_ptr_cst_p (tree t)
      A null pointer constant is an integral constant expression
      (_expr.const_) rvalue of integer type that evaluates to zero or
      an rvalue of type std::nullptr_t. */
-  /* FIXME */
-  t = integral_constant_value (t);
-  if (t == null_node
-      || NULLPTR_TYPE_P (TREE_TYPE (t)))
+  if (NULLPTR_TYPE_P (TREE_TYPE (t)))
     return true;
-  if (CP_INTEGRAL_TYPE_P (TREE_TYPE (t)) && integer_zerop (t))
+  if (CP_INTEGRAL_TYPE_P (TREE_TYPE (t)))
     {
+      if (cxx_dialect >= cxx0x)
+	{
+	  t = fold_non_dependent_expr (t);
+	  t = maybe_constant_value (t);
+	}
+      else
+	t = integral_constant_value (t);
       STRIP_NOPS (t);
-      if (!TREE_OVERFLOW (t))
+      if (integer_zerop (t) && !TREE_OVERFLOW (t))
 	return true;
     }
   return false;
