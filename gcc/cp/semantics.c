@@ -6147,7 +6147,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
       return t;
 
     case PARM_DECL:
-      if (call)
+      if (call && DECL_CONTEXT (t) == call->fundef->decl)
 	r = lookup_parameter_binding (call, t);
       else
 	{
