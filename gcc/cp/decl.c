@@ -5379,7 +5379,9 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 	  else if (DECL_DECLARED_CONSTEXPR_P (decl))
 	    {
 	      /* Leave init set so store_init_value complains.  */
-	      if (CLASS_TYPE_P (type) && TREE_CODE (init) == TREE_LIST)
+	      if (BRACE_ENCLOSED_INITIALIZER_P (init))
+		init = finish_compound_literal (type, init);
+	      else if (CLASS_TYPE_P (type) && TREE_CODE (init) == TREE_LIST)
 		{
 		  init = build_functional_cast (type, init, tf_none);
 		  if (init != error_mark_node)
