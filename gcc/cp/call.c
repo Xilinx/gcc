@@ -7803,9 +7803,22 @@ set_up_extended_ref_temp (tree decl, tree expr, tree *cleanup, tree *initp)
      VAR.  */
   if (TREE_CODE (expr) != TARGET_EXPR)
     expr = get_target_expr (expr);
-  /* Create the INIT_EXPR that will initialize the temporary
-     variable.  */
-  init = build2 (INIT_EXPR, type, var, expr);
+
+  init = maybe_constant_init (expr);
+  if (TREE_CODE (init) != TARGET_EXPR)
+    {
+      if (literal_type_p (type))
+	{
+	  DECL_DECLARED_CONSTEXPR_P (var) = true;
+	  TREE_CONSTANT (var) = true;
+	}
+      DECL_INITIAL (var) = init;
+      init = NULL_TREE;
+    }
+  else
+    /* Create the INIT_EXPR that will initialize the temporary
+       variable.  */
+    init = build2 (INIT_EXPR, type, var, expr);
   if (at_function_scope_p ())
     {
       add_decl_expr (var);
@@ -7963,7 +7976,8 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup,
 					build_pointer_type (base_conv_type),
 					/*check_access=*/true,
 					/*nonnull=*/true, complain);
-	      expr = build2 (COMPOUND_EXPR, TREE_TYPE (expr), init, expr);
+	      if (init)
+		expr = build2 (COMPOUND_EXPR, TREE_TYPE (expr), init, expr);
 	    }
 	  else
 	    /* Take the address of EXPR.  */

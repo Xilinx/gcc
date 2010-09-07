@@ -4540,7 +4540,8 @@ grok_reference_init (tree decl, tree type, tree init, tree *cleanup)
    grok_reference_init.  */
 
 static tree
-build_init_list_var_init (tree decl, tree type, tree init, tree *cleanup)
+build_init_list_var_init (tree decl, tree type, tree init, tree *array_init,
+			  tree *cleanup)
 {
   tree aggr_init, array, arrtype;
   init = perform_implicit_conversion (type, init, tf_warning_or_error);
@@ -4548,8 +4549,6 @@ build_init_list_var_init (tree decl, tree type, tree init, tree *cleanup)
     return error_mark_node;
 
   aggr_init = TARGET_EXPR_INITIAL (init);
-  init = build2 (INIT_EXPR, type, decl, init);
-
   array = AGGR_INIT_EXPR_ARG (aggr_init, 1);
   arrtype = TREE_TYPE (array);
   STRIP_NOPS (array);
@@ -4559,12 +4558,10 @@ build_init_list_var_init (tree decl, tree type, tree init, tree *cleanup)
      static variable and we don't need to do anything here.  */
   if (decl && TREE_CODE (array) == TARGET_EXPR)
     {
-      tree subinit;
-      tree var = set_up_extended_ref_temp (decl, array, cleanup, &subinit);
+      tree var = set_up_extended_ref_temp (decl, array, cleanup, array_init);
       var = build_address (var);
       var = convert (arrtype, var);
       AGGR_INIT_EXPR_ARG (aggr_init, 1) = var;
-      init = build2 (COMPOUND_EXPR, TREE_TYPE (init), subinit, init);
     }
   return init;
 }
@@ -5268,6 +5265,7 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 {
   tree type = TREE_TYPE (decl);
   tree init_code = NULL;
+  tree extra_init = NULL_TREE;
   tree core_type;
 
   /* Things that are going to be initialized need to have complete
@@ -5335,11 +5333,8 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
       else if (BRACE_ENCLOSED_INITIALIZER_P (init))
 	{
 	  if (is_std_init_list (type))
-	    {
-	      init_code = build_init_list_var_init (decl, type, init, cleanup);
-	      init = NULL_TREE;
-	      goto out;
-	    }
+	    init = build_init_list_var_init (decl, type, init,
+					     &extra_init, cleanup);
 	  else if (TYPE_NON_AGGREGATE_CLASS (type))
 	    {
 	      /* Don't reshape if the class has constructors.  */
@@ -5417,10 +5412,11 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
       check_for_uninitialized_const_var (decl);
     }
 
- out:
-
   if (init && init != error_mark_node)
     init_code = build2 (INIT_EXPR, type, decl, init);
+
+  if (extra_init)
+    init_code = add_stmt_to_compound (extra_init, init_code);
 
   if (init_code && DECL_IN_AGGR_P (decl))
     {
