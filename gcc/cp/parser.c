@@ -1068,6 +1068,7 @@ make_pointer_declarator (cp_cv_quals cv_qualifiers, cp_declarator *target)
   declarator->u.pointer.class_type = NULL_TREE;
   if (target)
     {
+      declarator->id_loc = target->id_loc;
       declarator->parameter_pack_p = target->parameter_pack_p;
       target->parameter_pack_p = false;
     }
@@ -1091,6 +1092,7 @@ make_reference_declarator (cp_cv_quals cv_qualifiers, cp_declarator *target,
   declarator->u.reference.rvalue_ref = rvalue_ref;
   if (target)
     {
+      declarator->id_loc = target->id_loc;
       declarator->parameter_pack_p = target->parameter_pack_p;
       target->parameter_pack_p = false;
     }
@@ -1147,6 +1149,7 @@ make_call_declarator (cp_declarator *target,
   declarator->u.function.late_return_type = late_return_type;
   if (target)
     {
+      declarator->id_loc = target->id_loc;
       declarator->parameter_pack_p = target->parameter_pack_p;
       target->parameter_pack_p = false;
     }
@@ -1169,6 +1172,7 @@ make_array_declarator (cp_declarator *element, tree bounds)
   declarator->u.array.bounds = bounds;
   if (element)
     {
+      declarator->id_loc = element->id_loc;
       declarator->parameter_pack_p = element->parameter_pack_p;
       element->parameter_pack_p = false;
     }
@@ -13131,6 +13135,11 @@ cp_parser_enumerator_definition (cp_parser* parser, tree type)
 {
   tree identifier;
   tree value;
+  location_t loc;
+
+  /* Save the input location because we are interested in the location
+     of the identifier and not the location of the explicit value.  */
+  loc = cp_lexer_peek_token (parser->lexer)->location;
 
   /* Look for the identifier.  */
   identifier = cp_parser_identifier (parser);
@@ -13156,7 +13165,7 @@ cp_parser_enumerator_definition (cp_parser* parser, tree type)
     value = error_mark_node;
 
   /* Create the enumerator.  */
-  build_enumerator (identifier, value, type);
+  build_enumerator (identifier, value, type, loc);
 }
 
 /* Parse a namespace-name.
@@ -14010,6 +14019,13 @@ cp_parser_init_declarator (cp_parser* parser,
       decl = start_decl (declarator, decl_specifiers,
 			 is_initialized, attributes, prefix_attributes,
 			 &pushed_scope);
+      /* Adjust location of decl if declarator->id_loc is more appropriate:
+	 set, and decl wasn't merged with another decl, in which case its
+	 location would be different from input_location, and more accurate.  */
+      if (DECL_P (decl)
+	  && declarator->id_loc != UNKNOWN_LOCATION
+	  && DECL_SOURCE_LOCATION (decl) == input_location)
+	DECL_SOURCE_LOCATION (decl) = declarator->id_loc;
     }
   else if (scope)
     /* Enter the SCOPE.  That way unqualified names appearing in the
@@ -22494,6 +22510,32 @@ cp_parser_omp_atomic (cp_parser *parser, cp_token *pragma_tok)
       rhs = integer_one_node;
       break;
 
+    case COMPOUND_EXPR:
+      if (TREE_CODE (TREE_OPERAND (lhs, 0)) == SAVE_EXPR
+	 && TREE_CODE (TREE_OPERAND (lhs, 1)) == COMPOUND_EXPR
+	 && TREE_CODE (TREE_OPERAND (TREE_OPERAND (lhs, 1), 0)) == MODIFY_EXPR
+	 && TREE_OPERAND (TREE_OPERAND (lhs, 1), 1) == TREE_OPERAND (lhs, 0)
+	 && TREE_CODE (TREE_TYPE (TREE_OPERAND (TREE_OPERAND
+					     (TREE_OPERAND (lhs, 1), 0), 0)))
+	    == BOOLEAN_TYPE)
+       /* Undo effects of boolean_increment for post {in,de}crement.  */
+       lhs = TREE_OPERAND (TREE_OPERAND (lhs, 1), 0);
+      /* FALLTHRU */
+    case MODIFY_EXPR:
+      if (TREE_CODE (lhs) == MODIFY_EXPR
+	 && TREE_CODE (TREE_TYPE (TREE_OPERAND (lhs, 0))) == BOOLEAN_TYPE)
+       {
+	 /* Undo effects of boolean_increment.  */
+	 if (integer_onep (TREE_OPERAND (lhs, 1)))
+	   {
+	     /* This is pre or post increment.  */
+	     rhs = TREE_OPERAND (lhs, 1);
+	     lhs = TREE_OPERAND (lhs, 0);
+	     code = NOP_EXPR;
+	     break;
+	   }
+       }
+      /* FALLTHRU */
     default:
       switch (cp_lexer_peek_token (parser->lexer)->type)
 	{

@@ -732,6 +732,8 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 		pp_decimal_int (buffer, TYPE_PRECISION (node));
 		pp_string (buffer, ">");
 	      }
+	    else if (TREE_CODE (node) == VOID_TYPE)
+	      pp_string (buffer, "void");
 	    else
               pp_string (buffer, "<unnamed type>");
 	  }
@@ -852,15 +854,22 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 
 	pp_string (buffer, "MEM[");
 
-	tmp = TMR_SYMBOL (node);
-	if (tmp)
+	if (TREE_CODE (TMR_BASE (node)) == ADDR_EXPR)
 	  {
 	    pp_string (buffer, sep);
 	    sep = ", ";
 	    pp_string (buffer, "symbol: ");
-	    dump_generic_node (buffer, tmp, spc, flags, false);
+	    dump_generic_node (buffer, TREE_OPERAND (TMR_BASE (node), 0),
+			       spc, flags, false);
 	  }
-	tmp = TMR_BASE (node);
+	else
+	  {
+	    pp_string (buffer, sep);
+	    sep = ", ";
+	    pp_string (buffer, "base: ");
+	    dump_generic_node (buffer, TMR_BASE (node), spc, flags, false);
+	  }
+	tmp = TMR_INDEX2 (node);
 	if (tmp)
 	  {
 	    pp_string (buffer, sep);
@@ -1585,7 +1594,6 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
     case ADDR_EXPR:
     case PREDECREMENT_EXPR:
     case PREINCREMENT_EXPR:
-    case MISALIGNED_INDIRECT_REF:
     case INDIRECT_REF:
       if (TREE_CODE (node) == ADDR_EXPR
 	  && (TREE_CODE (TREE_OPERAND (node, 0)) == STRING_CST
@@ -1602,13 +1610,6 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	}
       else
 	dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
-
-      if (TREE_CODE (node) == MISALIGNED_INDIRECT_REF)
-        {
-          pp_string (buffer, "{misalignment: ");
-          dump_generic_node (buffer, TREE_OPERAND (node, 1), spc, flags, false);
-          pp_character (buffer, '}');
-        }
       break;
 
     case POSTDECREMENT_EXPR:
@@ -2547,7 +2548,6 @@ op_code_prio (enum tree_code code)
     case PREINCREMENT_EXPR:
     case PREDECREMENT_EXPR:
     case NEGATE_EXPR:
-    case MISALIGNED_INDIRECT_REF:
     case INDIRECT_REF:
     case ADDR_EXPR:
     case FLOAT_EXPR:
@@ -2716,9 +2716,6 @@ op_symbol_code (enum tree_code code)
     case MULT_EXPR:
     case INDIRECT_REF:
       return "*";
-
-    case MISALIGNED_INDIRECT_REF:
-      return "M*";
 
     case TRUNC_DIV_EXPR:
     case RDIV_EXPR:

@@ -1083,7 +1083,8 @@ resolve_structure_cons (gfc_expr *expr, int init)
 		     comp->name);
 	}
 
-      if (!comp->attr.pointer || cons->expr->expr_type == EXPR_NULL)
+      if (!comp->attr.pointer || comp->attr.proc_pointer
+	  || cons->expr->expr_type == EXPR_NULL)
 	continue;
 
       a = gfc_expr_attr (cons->expr);
@@ -1589,8 +1590,11 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
 	  if (sym->attr.contained && !sym->attr.use_assoc
 	      && sym->ns->proc_name->attr.flavor != FL_MODULE)
 	    {
-	      gfc_error ("Internal procedure '%s' is not allowed as an "
-			 "actual argument at %L", sym->name, &e->where);
+	      if (gfc_notify_std (GFC_STD_F2008,
+				  "Fortran 2008: Internal procedure '%s' is"
+				  " used as actual argument at %L",
+				  sym->name, &e->where) == FAILURE)
+		return FAILURE;
 	    }
 
 	  if (sym->attr.elemental && !sym->attr.intrinsic)
@@ -6709,36 +6713,33 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 		 sym->name, &e->where);
       goto failure;
     }
-    
-  if (!code->expr3 || code->expr3->mold)
+
+  if (!code->expr3)
     {
-      /* Add default initializer for those derived types that need them.  */
-      gfc_expr *init_e = NULL;
+      /* Set up default initializer if needed.  */
       gfc_typespec ts;
 
       if (code->ext.alloc.ts.type == BT_DERIVED)
 	ts = code->ext.alloc.ts;
-      else if (code->expr3)
-	ts = code->expr3->ts;
       else
 	ts = e->ts;
 
-      if (ts.type == BT_DERIVED)
-	init_e = gfc_default_initializer (&ts);
-      /* FIXME: Use default init of dynamic type (cf. PR 44541).  */
-      else if (e->ts.type == BT_CLASS)
-	init_e = gfc_default_initializer (&ts.u.derived->components->ts);
+      if (ts.type == BT_CLASS)
+	ts = ts.u.derived->components->ts;
 
-      if (init_e)
+      if (ts.type == BT_DERIVED)
 	{
-	  gfc_code *init_st = gfc_get_code ();
-	  init_st->loc = code->loc;
-	  init_st->op = EXEC_INIT_ASSIGN;
-	  init_st->expr1 = gfc_expr_to_initialize (e);
-	  init_st->expr2 = init_e;
-	  init_st->next = code->next;
-	  code->next = init_st;
+	  code->expr3 = gfc_default_initializer (&ts);
+	  gfc_resolve_expr (code->expr3);
 	}
+    }
+  else if (code->expr3->mold && code->expr3->ts.type == BT_DERIVED)
+    {
+      /* Default initialization via MOLD (non-polymorphic).  */
+      gfc_expr *rhs = gfc_default_initializer (&code->expr3->ts);
+      gfc_resolve_expr (rhs);
+      gfc_free_expr (code->expr3);
+      code->expr3 = rhs;
     }
 
   if (e->ts.type == BT_CLASS)
@@ -7718,7 +7719,10 @@ resolve_select_type (gfc_code *code)
     return;
 
   /* Transform SELECT TYPE statement to BLOCK and associate selector to
-     target if present.  */
+     target if present.  If there are any EXIT statements referring to the
+     SELECT TYPE construct, this is no problem because the gfc_code
+     reference stays the same and EXIT is equally possible from the BLOCK
+     it is changed to.  */
   code->op = EXEC_BLOCK;
   if (code->expr2)
     {
@@ -9502,10 +9506,11 @@ apply_default_init (gfc_symbol *sym)
   if (sym->ts.type == BT_DERIVED && sym->ts.u.derived)
     init = gfc_default_initializer (&sym->ts);
 
-  if (init == NULL)
+  if (init == NULL && sym->ts.type != BT_CLASS)
     return;
 
   build_init_assign (sym, init);
+  sym->attr.referenced = 1;
 }
 
 /* Build an initializer for a local integer, real, complex, logical, or
@@ -11428,7 +11433,7 @@ resolve_fl_derived (gfc_symbol *sym)
 	}
 
       /* Check type-spec if this is not the parent-type component.  */
-      if ((!sym->attr.extension || c != sym->components)
+      if ((!sym->attr.extension || c != sym->components) && !sym->attr.vtype
 	  && resolve_typespec_used (&c->ts, &c->loc, c->name) == FAILURE)
 	return FAILURE;
 
@@ -11487,8 +11492,8 @@ resolve_fl_derived (gfc_symbol *sym)
 	    }
 	}
 
-      if (!sym->attr.is_class && c->ts.type == BT_DERIVED && c->attr.pointer
-	  && c->ts.u.derived->components == NULL
+      if (!sym->attr.is_class && c->ts.type == BT_DERIVED && !sym->attr.vtype
+	  && c->attr.pointer && c->ts.u.derived->components == NULL
 	  && !c->ts.u.derived->attr.zero_comp)
 	{
 	  gfc_error ("The pointer component '%s' of '%s' at %L is a type "
@@ -11561,6 +11566,46 @@ resolve_fl_namelist (gfc_symbol *sym)
   gfc_namelist *nl;
   gfc_symbol *nlsym;
 
+  for (nl = sym->namelist; nl; nl = nl->next)
+    {
+      /* Reject namelist arrays of assumed shape.  */
+      if (nl->sym->as && nl->sym->as->type == AS_ASSUMED_SHAPE
+	  && gfc_notify_std (GFC_STD_F2003, "NAMELIST array object '%s' "
+			     "must not have assumed shape in namelist "
+			     "'%s' at %L", nl->sym->name, sym->name,
+			     &sym->declared_at) == FAILURE)
+	    return FAILURE;
+
+      /* Reject namelist arrays that are not constant shape.  */
+      if (is_non_constant_shape_array (nl->sym))
+	{
+	  gfc_error ("NAMELIST array object '%s' must have constant "
+		     "shape in namelist '%s' at %L", nl->sym->name,
+		     sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+
+      /* Namelist objects cannot have allocatable or pointer components.  */
+      if (nl->sym->ts.type != BT_DERIVED)
+	continue;
+
+      if (nl->sym->ts.u.derived->attr.alloc_comp)
+	{
+	  gfc_error ("NAMELIST object '%s' in namelist '%s' at %L cannot "
+		     "have ALLOCATABLE components",
+		     nl->sym->name, sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+
+      if (nl->sym->ts.u.derived->attr.pointer_comp)
+	{
+	  gfc_error ("NAMELIST object '%s' in namelist '%s' at %L cannot "
+		     "have POINTER components", 
+		     nl->sym->name, sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+    }
+
   /* Reject PRIVATE objects in a PUBLIC namelist.  */
   if (gfc_check_access(sym->attr.access, sym->ns->default_access))
     {
@@ -11599,46 +11644,6 @@ resolve_fl_namelist (gfc_symbol *sym)
 			 nl->sym->name, sym->name, &sym->declared_at);
 	      return FAILURE;
 	    }
-	}
-    }
-
-  for (nl = sym->namelist; nl; nl = nl->next)
-    {
-      /* Reject namelist arrays of assumed shape.  */
-      if (nl->sym->as && nl->sym->as->type == AS_ASSUMED_SHAPE
-	  && gfc_notify_std (GFC_STD_F2003, "NAMELIST array object '%s' "
-			     "must not have assumed shape in namelist "
-			     "'%s' at %L", nl->sym->name, sym->name,
-			     &sym->declared_at) == FAILURE)
-	    return FAILURE;
-
-      /* Reject namelist arrays that are not constant shape.  */
-      if (is_non_constant_shape_array (nl->sym))
-	{
-	  gfc_error ("NAMELIST array object '%s' must have constant "
-		     "shape in namelist '%s' at %L", nl->sym->name,
-		     sym->name, &sym->declared_at);
-	  return FAILURE;
-	}
-
-      /* Namelist objects cannot have allocatable or pointer components.  */
-      if (nl->sym->ts.type != BT_DERIVED)
-	continue;
-
-      if (nl->sym->ts.u.derived->attr.alloc_comp)
-	{
-	  gfc_error ("NAMELIST object '%s' in namelist '%s' at %L cannot "
-		     "have ALLOCATABLE components",
-		     nl->sym->name, sym->name, &sym->declared_at);
-	  return FAILURE;
-	}
-
-      if (nl->sym->ts.u.derived->attr.pointer_comp)
-	{
-	  gfc_error ("NAMELIST object '%s' in namelist '%s' at %L cannot "
-		     "have POINTER components", 
-		     nl->sym->name, sym->name, &sym->declared_at);
-	  return FAILURE;
 	}
     }
 
@@ -12178,7 +12183,6 @@ resolve_symbol (gfc_symbol *sym)
      described in 14.7.5, to those variables that have not already
      been assigned one.  */
   if (sym->ts.type == BT_DERIVED
-      && sym->attr.referenced
       && sym->ns == gfc_current_ns
       && !sym->value
       && !sym->attr.allocatable
@@ -12188,10 +12192,17 @@ resolve_symbol (gfc_symbol *sym)
 
       if ((!a->save && !a->dummy && !a->pointer
 	   && !a->in_common && !a->use_assoc
+	   && (a->referenced || a->result)
 	   && !(a->function && sym != sym->result))
 	  || (a->dummy && a->intent == INTENT_OUT && !a->pointer))
 	apply_default_init (sym);
     }
+
+  if (sym->ts.type == BT_CLASS && sym->ns == gfc_current_ns
+      && sym->attr.dummy && sym->attr.intent == INTENT_OUT
+      && !CLASS_DATA (sym)->attr.class_pointer
+      && !CLASS_DATA (sym)->attr.allocatable)
+    apply_default_init (sym);
 
   /* If this symbol has a type-spec, check it.  */
   if (sym->attr.flavor == FL_VARIABLE || sym->attr.flavor == FL_PARAMETER

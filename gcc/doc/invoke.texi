@@ -235,8 +235,8 @@ Objective-C and Objective-C++ Dialects}.
 -Wchar-subscripts -Wclobbered  -Wcomment @gol
 -Wconversion  -Wcoverage-mismatch  -Wcpp  -Wno-deprecated  @gol
 -Wno-deprecated-declarations -Wdisabled-optimization  @gol
--Wno-div-by-zero -Wempty-body  -Wenum-compare -Wno-endif-labels @gol
--Werror  -Werror=* @gol
+-Wno-div-by-zero -Wdouble-promotion -Wempty-body  -Wenum-compare @gol
+-Wno-endif-labels -Werror  -Werror=* @gol
 -Wfatal-errors  -Wfloat-equal  -Wformat  -Wformat=2 @gol
 -Wno-format-contains-nul -Wno-format-extra-args -Wformat-nonliteral @gol
 -Wformat-security  -Wformat-y2k @gol
@@ -313,7 +313,7 @@ Objective-C and Objective-C++ Dialects}.
 -fmem-report -fpre-ipa-mem-report -fpost-ipa-mem-report -fprofile-arcs @gol
 -frandom-seed=@var{string} -fsched-verbose=@var{n} @gol
 -fsel-sched-verbose -fsel-sched-dump-cfg -fsel-sched-pipelining-verbose @gol
--ftest-coverage  -ftime-report -fvar-tracking @gol
+-fstack-usage  -ftest-coverage  -ftime-report -fvar-tracking @gol
 -fvar-tracking-assignments  -fvar-tracking-assignments-toggle @gol
 -g  -g@var{level}  -gtoggle  -gcoff  -gdwarf-@var{version} @gol
 -ggdb  -gstabs  -gstabs+  -gstrict-dwarf  -gno-strict-dwarf @gol
@@ -789,7 +789,7 @@ See RS/6000 and PowerPC Options.
 -msdata=@var{opt}  -mvxworks  -G @var{num}  -pthread @gol
 -mrecip -mrecip=@var{opt} -mno-recip -mrecip-precision
 -mno-recip-precision @gol
--mveclibabi=@var{type}}
+-mveclibabi=@var{type} -mfriz -mno-friz}
 
 @emph{RX Options}
 @gccoptlist{-m64bit-doubles  -m32bit-doubles  -fpu  -nofpu@gol
@@ -3053,6 +3053,30 @@ This warning is enabled by @option{-Wall}.
 
 Suppress warning messages emitted by @code{#warning} directives.
 
+@item -Wdouble-promotion @r{(C, C++, Objective-C and Objective-C++ only)}
+@opindex Wdouble-promotion
+@opindex Wno-double-promotion
+Give a warning when a value of type @code{float} is implicitly
+promoted to @code{double}.  CPUs with a 32-bit ``single-precision''
+floating-point unit implement @code{float} in hardware, but emulate
+@code{double} in software.  On such a machine, doing computations
+using @code{double} values is much more expensive because of the
+overhead required for software emulation.  
+
+It is easy to accidentally do computations with @code{double} because
+floating-point literals are implicitly of type @code{double}.  For
+example, in:
+@smallexample
+@group
+float area(float radius)
+@{
+   return 3.14159 * radius * radius;        
+@}
+@end group
+@end smallexample
+the compiler will perform the entire computation with @code{double}
+because the floating-point literal is a @code{double}.
+
 @item -Wformat
 @opindex Wformat
 @opindex Wno-format
@@ -4851,6 +4875,39 @@ allocation when it finishes.
 @opindex fpost-ipa-mem-report
 Makes the compiler print some statistics about permanent memory
 allocation before or after interprocedural optimization.
+
+@item -fstack-usage
+@opindex fstack-usage
+Makes the compiler output stack usage information for the program, on a
+per-function basis.  The filename for the dump is made by appending
+@file{.su} to the AUXNAME.  AUXNAME is generated from the name of
+the output file, if explicitly specified and it is not an executable,
+otherwise it is the basename of the source file.  An entry is made up
+of three fields:
+
+@itemize
+@item
+The name of the function.
+@item
+A number of bytes.
+@item
+One or more qualifiers: @code{static}, @code{dynamic}, @code{bounded}.
+@end itemize
+
+The qualifier @code{static} means that the function manipulates the stack
+statically: a fixed number of bytes are allocated for the frame on function
+entry and released on function exit; no stack adjustments are otherwise made
+in the function.  The second field is this fixed number of bytes.
+
+The qualifier @code{dynamic} means that the function manipulates the stack
+dynamically: in addition to the static allocation described above, stack
+adjustments are made in the body of the function, for example to push/pop
+arguments around function calls.  If the qualifier @code{bounded} is also
+present, the amount of these adjustments is bounded at compile-time and
+the second field is an upper bound of the total amount of stack used by
+the function.  If it is not present, the amount of these adjustments is
+not bounded at compile-time and the second field only represents the
+bounded part.
 
 @item -fprofile-arcs
 @opindex fprofile-arcs
@@ -7585,6 +7642,13 @@ If you specify the optional @var{n} the link stage is executed in
 parallel using @var{n} parallel jobs by utilizing an installed
 @command{make} program.  The environment variable @env{MAKE} may be
 used to override the program used.
+
+You can also specify @option{-fwhopr=jobserver} to use GNU make's 
+job server mode to determine the number of parallel jobs. This 
+is useful when the Makefile calling GCC is already parallel.
+The parent Makefile will need a @samp{+} prepended to the command recipe
+for this to work. This will likely only work if @env{MAKE} is 
+GNU make.
 
 Disabled by default.
 
@@ -15891,6 +15955,15 @@ GCC will currently emit calls to @code{acosd2}, @code{acosf4},
 for power7.  Both @option{-ftree-vectorize} and
 @option{-funsafe-math-optimizations} have to be enabled.  The MASS
 libraries will have to be specified at link time.
+
+@item -mfriz
+@itemx -mno-friz
+@opindex mfriz
+Generate (do not generate) the @code{friz} instruction when the
+@option{-funsafe-math-optimizations} option is used to optimize
+rounding a floating point value to 64-bit integer and back to floating
+point.  The @code{friz} instruction does not return the same value if
+the floating point number is too large to fit in an integer.
 @end table
 
 @node RX Options

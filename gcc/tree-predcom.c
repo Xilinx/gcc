@@ -829,7 +829,7 @@ suitable_component_p (struct loop *loop, struct component *comp)
       gcc_assert (dominated_by_p (CDI_DOMINATORS, ba, bp));
       bp = ba;
 
-      if (!DR_IS_READ (a->ref))
+      if (DR_IS_WRITE (a->ref))
 	has_write = true;
     }
 
@@ -1197,7 +1197,7 @@ determine_roots_comp (struct loop *loop,
 
   FOR_EACH_VEC_ELT (dref, comp->refs, i, a)
     {
-      if (!chain || !DR_IS_READ (a->ref)
+      if (!chain || DR_IS_WRITE (a->ref)
 	  || double_int_ucmp (uhwi_to_double_int (MAX_DISTANCE),
 			      double_int_sub (a->offset, last_ofs)) <= 0)
 	{
@@ -1348,11 +1348,8 @@ ref_at_iteration (struct loop *loop, tree ref, int iter)
 	   && TREE_CODE (ref) != MEM_REF)
     return unshare_expr (ref);
 
-  if (INDIRECT_REF_P (ref)
-      || TREE_CODE (ref) == MEM_REF)
+  if (TREE_CODE (ref) == MEM_REF)
     {
-      /* Take care for MEM_REF and MISALIGNED_INDIRECT_REF at
-         the same time.  */
       ret = unshare_expr (ref);
       idx = TREE_OPERAND (ref, 0);
       idx_p = &TREE_OPERAND (ret, 0);
@@ -1611,7 +1608,7 @@ execute_load_motion (struct loop *loop, chain_p chain, bitmap tmp_vars)
   gcc_assert (chain->type == CT_INVARIANT);
   gcc_assert (!chain->combined);
   FOR_EACH_VEC_ELT (dref, chain->refs, i, a)
-    if (!DR_IS_READ (a->ref))
+    if (DR_IS_WRITE (a->ref))
       n_writes++;
 
   /* If there are no reads in the loop, there is nothing to do.  */
@@ -1627,7 +1624,7 @@ execute_load_motion (struct loop *loop, chain_p chain, bitmap tmp_vars)
       bool is_read = DR_IS_READ (a->ref);
       mark_virtual_ops_for_renaming (a->stmt);
 
-      if (!DR_IS_READ (a->ref))
+      if (DR_IS_WRITE (a->ref))
 	{
 	  n_writes--;
 	  if (n_writes)

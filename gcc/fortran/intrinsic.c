@@ -1777,6 +1777,20 @@ add_functions (void)
 
   make_generic ("and", GFC_ISYM_AND, GFC_STD_GNU);
 
+  add_sym_3red ("iall", GFC_ISYM_IALL, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F2008,
+		gfc_check_transf_bit_intrins, gfc_simplify_iall, gfc_resolve_iall,
+		ar, BT_REAL, dr, REQUIRED, dm, BT_INTEGER, ii, OPTIONAL,
+		msk, BT_LOGICAL, dl, OPTIONAL);
+
+  make_generic ("iall", GFC_ISYM_IALL, GFC_STD_F2008);
+
+  add_sym_3red ("iany", GFC_ISYM_IANY, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F2008,
+		gfc_check_transf_bit_intrins, gfc_simplify_iany, gfc_resolve_iany,
+		ar, BT_REAL, dr, REQUIRED, dm, BT_INTEGER, ii, OPTIONAL,
+		msk, BT_LOGICAL, dl, OPTIONAL);
+
+  make_generic ("iany", GFC_ISYM_IANY, GFC_STD_F2008);
+
   add_sym_0 ("iargc", GFC_ISYM_IARGC, CLASS_IMPURE, ACTUAL_NO, BT_INTEGER,
 	     di, GFC_STD_GNU, NULL, NULL, NULL);
 
@@ -1884,6 +1898,13 @@ add_functions (void)
 	     i, BT_UNKNOWN, 0, REQUIRED, j, BT_UNKNOWN, 0, REQUIRED);
 
   make_generic ("or", GFC_ISYM_OR, GFC_STD_GNU);
+
+  add_sym_3red ("iparity", GFC_ISYM_IPARITY, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F2008,
+		gfc_check_transf_bit_intrins, gfc_simplify_iparity, gfc_resolve_iparity,
+		ar, BT_REAL, dr, REQUIRED, dm, BT_INTEGER, ii, OPTIONAL,
+		msk, BT_LOGICAL, dl, OPTIONAL);
+
+  make_generic ("iparity", GFC_ISYM_IPARITY, GFC_STD_F2008);
 
   /* The following function is for G77 compatibility.  */
   add_sym_1 ("irand", GFC_ISYM_IRAND, CLASS_IMPURE, ACTUAL_NO, BT_INTEGER,
@@ -2298,6 +2319,20 @@ add_functions (void)
 	     dm, BT_INTEGER, ii, OPTIONAL);
 
   make_generic ("parity", GFC_ISYM_PARITY, GFC_STD_F2008);
+
+  add_sym_1 ("popcnt", GFC_ISYM_POPCNT, CLASS_ELEMENTAL, ACTUAL_NO,
+	     BT_INTEGER, di, GFC_STD_F2008,
+	     gfc_check_i, gfc_simplify_popcnt, NULL,
+	     i, BT_INTEGER, di, REQUIRED);
+
+  make_generic ("popcnt", GFC_ISYM_POPCNT, GFC_STD_F2008);
+
+  add_sym_1 ("poppar", GFC_ISYM_POPPAR, CLASS_ELEMENTAL, ACTUAL_NO,
+	     BT_INTEGER, di, GFC_STD_F2008,
+	     gfc_check_i, gfc_simplify_poppar, NULL,
+	     i, BT_INTEGER, di, REQUIRED);
+
+  make_generic ("poppar", GFC_ISYM_POPPAR, GFC_STD_F2008);
 
   add_sym_1 ("precision", GFC_ISYM_PRECISION, CLASS_INQUIRY, ACTUAL_NO, BT_INTEGER, di, GFC_STD_F95,
 	     gfc_check_precision, gfc_simplify_precision, NULL,
@@ -2798,6 +2833,15 @@ add_subroutines (void)
 	      gfc_check_dtime_etime_sub, NULL, gfc_resolve_dtime_sub,
 	      vl, BT_REAL, 4, REQUIRED, tm, BT_REAL, 4, REQUIRED);
 
+  add_sym_5s ("execute_command_line", GFC_ISYM_EXECUTE_COMMAND_LINE,
+	      CLASS_IMPURE , BT_UNKNOWN, 0, GFC_STD_F2008,
+	      NULL, NULL, gfc_resolve_execute_command_line,
+	      "command", BT_CHARACTER, dc, REQUIRED, INTENT_IN,
+	      "wait", BT_LOGICAL, dl, OPTIONAL, INTENT_IN,
+	      "exitstat", BT_INTEGER, di, OPTIONAL, INTENT_INOUT,
+	      "cmdstat", BT_INTEGER, di, OPTIONAL, INTENT_OUT,
+	      "cmdmsg", BT_CHARACTER, dc, OPTIONAL, INTENT_INOUT);
+
   add_sym_1s ("fdate", GFC_ISYM_FDATE, CLASS_IMPURE, BT_UNKNOWN, 0, GFC_STD_GNU,
 	      gfc_check_fdate_sub, NULL, gfc_resolve_fdate_sub,
 	      dt, BT_CHARACTER, dc, REQUIRED);
@@ -3037,6 +3081,7 @@ add_conv (bt from_type, int from_kind, bt to_type, int to_kind, int standard)
   sym->simplify.cc = gfc_convert_constant;
   sym->standard = standard;
   sym->elemental = 1;
+  sym->pure = 1;
   sym->conversion = 1;
   sym->ts = to;
   sym->id = GFC_ISYM_CONVERSION;
@@ -3187,6 +3232,7 @@ add_char_conversions (void)
 	char_conversions[n].simplify.cc = gfc_convert_char_constant;
 	char_conversions[n].standard = GFC_STD_F2003;
 	char_conversions[n].elemental = 1;
+	char_conversions[n].pure = 1;
 	char_conversions[n].conversion = 0;
 	char_conversions[n].ts = to;
 	char_conversions[n].id = GFC_ISYM_CONVERSION;
@@ -3712,6 +3758,9 @@ check_specific (gfc_intrinsic_sym *specific, gfc_expr *expr, int error_flag)
     /* Same here. The difference to the previous case is that we allow a
        general numeric type.  */
     t = gfc_check_product_sum (*ap);
+  else if (specific->check.f3red == gfc_check_transf_bit_intrins)
+    /* Same as for PRODUCT and SUM, but different checks.  */
+    t = gfc_check_transf_bit_intrins (*ap);
   else
      {
        if (specific->check.f1 == NULL)

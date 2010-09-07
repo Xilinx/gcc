@@ -620,6 +620,30 @@ simplify_transformation_to_array (gfc_expr *result, gfc_expr *array, gfc_expr *d
 }
 
 
+static gfc_expr *
+simplify_transformation (gfc_expr *array, gfc_expr *dim, gfc_expr *mask,
+			 int init_val, transformational_op op)
+{
+  gfc_expr *result;
+
+  if (!is_constant_array_expr (array)
+      || !gfc_is_constant_expr (dim))
+    return NULL;
+
+  if (mask
+      && !is_constant_array_expr (mask)
+      && mask->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  result = transformational_result (array, dim, array->ts.type,
+				    array->ts.kind, &array->where);
+  init_result_expr (result, init_val, NULL);
+
+  return !dim || array->rank == 1 ?
+    simplify_transformation_to_scalar (result, array, mask, op) :
+    simplify_transformation_to_array (result, array, dim, mask, op, NULL);
+}
+
 
 /********************** Simplification functions *****************************/
 
@@ -888,19 +912,7 @@ gfc_simplify_aint (gfc_expr *e, gfc_expr *k)
 gfc_expr *
 gfc_simplify_all (gfc_expr *mask, gfc_expr *dim)
 {
-  gfc_expr *result;
-
-  if (!is_constant_array_expr (mask)
-      || !gfc_is_constant_expr (dim))
-    return NULL;
-
-  result = transformational_result (mask, dim, mask->ts.type,
-				    mask->ts.kind, &mask->where);
-  init_result_expr (result, true, NULL);
-
-  return !dim || mask->rank == 1 ?
-    simplify_transformation_to_scalar (result, mask, NULL, gfc_and) :
-    simplify_transformation_to_array (result, mask, dim, NULL, gfc_and, NULL);
+  return simplify_transformation (mask, dim, NULL, true, gfc_and);
 }
 
 
@@ -974,19 +986,7 @@ gfc_simplify_and (gfc_expr *x, gfc_expr *y)
 gfc_expr *
 gfc_simplify_any (gfc_expr *mask, gfc_expr *dim)
 {
-  gfc_expr *result;
-
-  if (!is_constant_array_expr (mask)
-      || !gfc_is_constant_expr (dim))
-    return NULL;
-
-  result = transformational_result (mask, dim, mask->ts.type,
-				    mask->ts.kind, &mask->where);
-  init_result_expr (result, false, NULL);
-
-  return !dim || mask->rank == 1 ?
-    simplify_transformation_to_scalar (result, mask, NULL, gfc_or) :
-    simplify_transformation_to_array (result, mask, dim, NULL, gfc_or, NULL);
+  return simplify_transformation (mask, dim, NULL, false, gfc_or);
 }
 
 
@@ -2231,6 +2231,44 @@ gfc_simplify_iachar (gfc_expr *e, gfc_expr *kind)
 }
 
 
+static gfc_expr *
+do_bit_and (gfc_expr *result, gfc_expr *e)
+{
+  gcc_assert (e->ts.type == BT_INTEGER && e->expr_type == EXPR_CONSTANT);
+  gcc_assert (result->ts.type == BT_INTEGER
+	      && result->expr_type == EXPR_CONSTANT);
+
+  mpz_and (result->value.integer, result->value.integer, e->value.integer);
+  return result;
+}
+
+
+gfc_expr *
+gfc_simplify_iall (gfc_expr *array, gfc_expr *dim, gfc_expr *mask)
+{
+  return simplify_transformation (array, dim, mask, -1, do_bit_and);
+}
+
+
+static gfc_expr *
+do_bit_ior (gfc_expr *result, gfc_expr *e)
+{
+  gcc_assert (e->ts.type == BT_INTEGER && e->expr_type == EXPR_CONSTANT);
+  gcc_assert (result->ts.type == BT_INTEGER
+	      && result->expr_type == EXPR_CONSTANT);
+
+  mpz_ior (result->value.integer, result->value.integer, e->value.integer);
+  return result;
+}
+
+
+gfc_expr *
+gfc_simplify_iany (gfc_expr *array, gfc_expr *dim, gfc_expr *mask)
+{
+  return simplify_transformation (array, dim, mask, 0, do_bit_ior);
+}
+
+
 gfc_expr *
 gfc_simplify_iand (gfc_expr *x, gfc_expr *y)
 {
@@ -2681,6 +2719,26 @@ gfc_simplify_ior (gfc_expr *x, gfc_expr *y)
 
   return range_check (result, "IOR");
 }
+
+
+static gfc_expr *
+do_bit_xor (gfc_expr *result, gfc_expr *e)
+{
+  gcc_assert (e->ts.type == BT_INTEGER && e->expr_type == EXPR_CONSTANT);
+  gcc_assert (result->ts.type == BT_INTEGER
+	      && result->expr_type == EXPR_CONSTANT);
+
+  mpz_xor (result->value.integer, result->value.integer, e->value.integer);
+  return result;
+}
+
+
+gfc_expr *
+gfc_simplify_iparity (gfc_expr *array, gfc_expr *dim, gfc_expr *mask)
+{
+  return simplify_transformation (array, dim, mask, 0, do_bit_xor);
+}
+
 
 
 gfc_expr *
@@ -4277,18 +4335,48 @@ do_xor (gfc_expr *result, gfc_expr *e)
 gfc_expr *
 gfc_simplify_parity (gfc_expr *e, gfc_expr *dim)
 {
-  gfc_expr *result;
+  return simplify_transformation (e, dim, NULL, 0, do_xor);
+}
 
-  if (!is_constant_array_expr (e)
-      || (dim != NULL && !gfc_is_constant_expr (dim)))
+
+gfc_expr *
+gfc_simplify_popcnt (gfc_expr *e)
+{
+  int res, k;
+  mpz_t x;
+
+  if (e->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  result = transformational_result (e, dim, e->ts.type, e->ts.kind, &e->where);
-  init_result_expr (result, 0, NULL);
+  k = gfc_validate_kind (e->ts.type, e->ts.kind, false);
 
-  return (!dim || e->rank == 1)
-    ? simplify_transformation_to_scalar (result, e, NULL, do_xor)
-    : simplify_transformation_to_array (result, e, dim, NULL, do_xor, NULL);
+  /* Convert argument to unsigned, then count the '1' bits.  */
+  mpz_init_set (x, e->value.integer);
+  convert_mpz_to_unsigned (x, gfc_integer_kinds[k].bit_size);
+  res = mpz_popcount (x);
+  mpz_clear (x);
+
+  return gfc_get_int_expr (gfc_default_integer_kind, &e->where, res);
+}
+
+
+gfc_expr *
+gfc_simplify_poppar (gfc_expr *e)
+{
+  gfc_expr *popcnt;
+  const char *s;
+  int i;
+
+  if (e->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  popcnt = gfc_simplify_popcnt (e);
+  gcc_assert (popcnt);
+
+  s = gfc_extract_int (popcnt, &i);
+  gcc_assert (!s);
+
+  return gfc_get_int_expr (gfc_default_integer_kind, &e->where, i % 2);
 }
 
 
@@ -4304,24 +4392,7 @@ gfc_simplify_precision (gfc_expr *e)
 gfc_expr *
 gfc_simplify_product (gfc_expr *array, gfc_expr *dim, gfc_expr *mask)
 {
-  gfc_expr *result;
-
-  if (!is_constant_array_expr (array)
-      || !gfc_is_constant_expr (dim))
-    return NULL;
-
-  if (mask
-      && !is_constant_array_expr (mask)
-      && mask->expr_type != EXPR_CONSTANT)
-    return NULL;
-
-  result = transformational_result (array, dim, array->ts.type,
-				    array->ts.kind, &array->where);
-  init_result_expr (result, 1, NULL);
-
-  return !dim || array->rank == 1 ?
-    simplify_transformation_to_scalar (result, array, mask, gfc_multiply) :
-    simplify_transformation_to_array (result, array, dim, mask, gfc_multiply, NULL);
+  return simplify_transformation (array, dim, mask, 1, gfc_multiply);
 }
 
 
@@ -5467,24 +5538,7 @@ gfc_simplify_sqrt (gfc_expr *e)
 gfc_expr *
 gfc_simplify_sum (gfc_expr *array, gfc_expr *dim, gfc_expr *mask)
 {
-  gfc_expr *result;
-
-  if (!is_constant_array_expr (array)
-      || !gfc_is_constant_expr (dim))
-    return NULL;
-
-  if (mask
-      && !is_constant_array_expr (mask)
-      && mask->expr_type != EXPR_CONSTANT)
-    return NULL;
-
-  result = transformational_result (array, dim, array->ts.type,
-				    array->ts.kind, &array->where);
-  init_result_expr (result, 0, NULL);
-
-  return !dim || array->rank == 1 ?
-    simplify_transformation_to_scalar (result, array, mask, gfc_add) :
-    simplify_transformation_to_array (result, array, dim, mask, gfc_add, NULL);
+  return simplify_transformation (array, dim, mask, 0, gfc_add);
 }
 
 

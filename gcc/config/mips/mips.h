@@ -761,7 +761,9 @@ enum mips_code_readable_setting {
 
 /* A spec that infers the -mdsp setting from an -march argument.  */
 #define BASE_DRIVER_SELF_SPECS \
-  "%{!mno-dsp:%{march=24ke*|march=34k*|march=74k*|march=1004k*: -mdsp}}"
+  "%{!mno-dsp: \
+     %{march=24ke*|march=34k*|march=1004k*: -mdsp} \
+     %{march=74k*:%{!mno-dspr2: -mdspr2 -mdsp}}}"
 
 #define DRIVER_SELF_SPECS BASE_DRIVER_SELF_SPECS
 
@@ -2421,9 +2423,10 @@ typedef struct mips_args {
    (often extended) would be needed for byte accesses.  */
 #define SLOW_BYTE_ACCESS (!TARGET_MIPS16)
 
-/* Define this to be nonzero if shift instructions ignore all but the low-order
-   few bits.  */
-#define SHIFT_COUNT_TRUNCATED 1
+/* Standard MIPS integer shifts truncate the shift amount to the
+   width of the shifted operand.  However, Loongson vector shifts
+   do not truncate the shift amount at all.  */
+#define SHIFT_COUNT_TRUNCATED (!TARGET_LOONGSON_2EF)
 
 /* Value is 1 if truncating an integer of INPREC bits to OUTPREC bits
    is done just by pretending it is already truncated.  */

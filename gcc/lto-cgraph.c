@@ -575,6 +575,7 @@ lto_output_varpool_node (struct lto_simple_output_block *ob, struct varpool_node
   bp_pack_value (&bp, node->force_output, 1);
   bp_pack_value (&bp, node->finalized, 1);
   bp_pack_value (&bp, node->alias, 1);
+  bp_pack_value (&bp, node->const_value_known, 1);
   gcc_assert (!node->alias || !node->extra_name);
   gcc_assert (node->finalized || !node->analyzed);
   gcc_assert (node->needed);
@@ -952,6 +953,11 @@ input_overwrite_node (struct lto_file_decl_data *file_data,
   node->lowered = bp_unpack_value (bp, 1);
   node->analyzed = tag == LTO_cgraph_analyzed_node;
   node->in_other_partition = bp_unpack_value (bp, 1);
+  if (node->in_other_partition)
+    {
+      DECL_EXTERNAL (node->decl) = 1;
+      TREE_STATIC (node->decl) = 0;
+    }
   node->alias = bp_unpack_value (bp, 1);
   node->finalized_by_frontend = bp_unpack_value (bp, 1);
   node->frequency = (enum node_frequency)bp_unpack_value (bp, 2);
@@ -1106,9 +1112,15 @@ input_varpool_node (struct lto_file_decl_data *file_data,
   node->force_output = bp_unpack_value (&bp, 1);
   node->finalized = bp_unpack_value (&bp, 1);
   node->alias = bp_unpack_value (&bp, 1);
+  node->const_value_known = bp_unpack_value (&bp, 1);
   node->analyzed = node->finalized; 
   node->used_from_other_partition = bp_unpack_value (&bp, 1);
   node->in_other_partition = bp_unpack_value (&bp, 1);
+  if (node->in_other_partition)
+    {
+      DECL_EXTERNAL (node->decl) = 1;
+      TREE_STATIC (node->decl) = 0;
+    }
   aliases_p = bp_unpack_value (&bp, 1);
   if (node->finalized)
     varpool_mark_needed_node (node);

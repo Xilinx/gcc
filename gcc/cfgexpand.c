@@ -2450,7 +2450,6 @@ expand_debug_expr (tree exp)
 	return NULL;
       /* Fallthru.  */
     case INDIRECT_REF:
-    case MISALIGNED_INDIRECT_REF:
       op0 = expand_debug_expr (TREE_OPERAND (exp, 0));
       if (!op0)
 	return NULL;
@@ -2468,7 +2467,8 @@ expand_debug_expr (tree exp)
       return op0;
 
     case TARGET_MEM_REF:
-      if (TMR_SYMBOL (exp) && !DECL_RTL_SET_P (TMR_SYMBOL (exp)))
+      if (TREE_CODE (TMR_BASE (exp)) == ADDR_EXPR
+	  && !DECL_RTL_SET_P (TREE_OPERAND (TMR_BASE (exp), 0)))
 	return NULL;
 
       op0 = expand_debug_expr

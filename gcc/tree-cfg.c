@@ -230,10 +230,6 @@ build_gimple_cfg (gimple_seq seq)
 	dump_end (TDI_vcg, vcg_file);
       }
   }
-
-#ifdef ENABLE_CHECKING
-  verify_stmts ();
-#endif
 }
 
 static unsigned int
@@ -2852,8 +2848,7 @@ verify_types_in_gimple_min_lval (tree expr)
   if (is_gimple_id (expr))
     return false;
 
-  if (TREE_CODE (expr) != MISALIGNED_INDIRECT_REF
-      && TREE_CODE (expr) != TARGET_MEM_REF
+  if (TREE_CODE (expr) != TARGET_MEM_REF
       && TREE_CODE (expr) != MEM_REF)
     {
       error ("invalid expression for min lvalue");
@@ -2990,6 +2985,12 @@ verify_types_in_gimple_reference (tree expr, bool require_lvalue)
     }
   else if (TREE_CODE (expr) == TARGET_MEM_REF)
     {
+      if (!TMR_BASE (expr)
+	  || !is_gimple_mem_ref_addr (TMR_BASE (expr)))
+	{
+	  error ("Invalid address operand in in TARGET_MEM_REF.");
+	  return true;
+	}
       if (!TMR_OFFSET (expr)
 	  || TREE_CODE (TMR_OFFSET (expr)) != INTEGER_CST
 	  || !POINTER_TYPE_P (TREE_TYPE (TMR_OFFSET (expr))))
@@ -3717,7 +3718,6 @@ verify_gimple_assign_single (gimple stmt)
 
     case COMPONENT_REF:
     case BIT_FIELD_REF:
-    case MISALIGNED_INDIRECT_REF:
     case ARRAY_REF:
     case ARRAY_RANGE_REF:
     case VIEW_CONVERT_EXPR:

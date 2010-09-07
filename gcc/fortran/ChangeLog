@@ -1,3 +1,338 @@
+2010-09-07  Tobias Burnus <burnus@net-b.de>
+	
+	PR fortran/45583
+	* intrinsic.texi (COS): Remove superfluous "n".
+
+2010-09-07  Tobias Burnus <burnus@net-b.de>
+
+	PR fortran/45186
+	* trans-array.c (gfc_conv_descriptor_data_get,
+	gfc_conv_descriptor_data_set, gfc_conv_descriptor_data_addr,
+	gfc_conv_descriptor_offset, gfc_conv_descriptor_dtype,
+	gfc_conv_descriptor_dimension, gfc_conv_descriptor_stride,
+	gfc_conv_descriptor_lbound, gfc_conv_descriptor_ubound,
+	gfc_conv_shift_descriptor_lbound,
+	gfc_set_loop_bounds_from_array_spec,
+	gfc_trans_allocate_array_storage, gfc_trans_create_temp_array,
+	gfc_conv_array_transpose, gfc_get_iteration_count,
+	gfc_grow_array, gfc_trans_array_ctor_element,
+	gfc_trans_array_constructor_subarray,
+	gfc_trans_array_constructor_value,
+	constant_array_constructor_loop_size, gfc_trans_array_constructor,
+	gfc_set_vector_loop_bounds, gfc_trans_array_bound_check,
+	gfc_conv_array_index_offset, gfc_conv_scalarized_array_ref,
+	gfc_conv_array_ref, gfc_trans_preloop_setup,
+	gfc_trans_scalarized_loop_end, gfc_conv_ss_startstride,
+	gfc_conv_loop_setup, gfc_conv_array_extent_dim,
+	gfc_conv_descriptor_size, gfc_array_init_size,
+	gfc_array_allocate, gfc_array_deallocate,
+	gfc_trans_array_bounds, gfc_trans_auto_array_allocation,
+	gfc_trans_dummy_array_bias, gfc_get_dataptr_offset,
+	get_array_charlen, gfc_conv_expr_descriptor,
+	array_parameter_size, gfc_conv_array_parameter,
+	gfc_trans_dealloc_allocated, get_full_array_size,
+	duplicate_allocatable,
+	structure_alloc_comps): Change fold_build[0-9] to
+	fold_build[0-9]_loc.
+	(duplicate_allocatable, structure_alloc_comps,
+	gfc_duplicate_allocatable): Add space after function name.
+
+2010-09-07  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-stmt.c (gfc_trans_character_select): Be conversion-safe while
+	checking string length value.
+	* trans-intrinsic.c (gfc_conv_intrinsic_char): Build integer using
+	gfc_charlen_type_node type.
+
+	PR fortran/45564
+	* trans-intrinsic.c (gfc_conv_intrinsic_transfer): Convert string
+	length to gfc_charlen_type_node.
+
+2010-09-06  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/36931
+	* frontend-passes.c (optimize_binop_array_assignment):  New
+	function.
+	(optimize_assignment):  Call it.
+
+2010-09-06  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/34145
+	* trans-expr.c (gfc_conv_substring):  If start and end
+	of the string reference are equal, set the length to one.
+
+2010-09-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45560
+	* dump-parse-tree.c (gfc_debug_expr): Use stderr instead of stdout.
+
+2010-09-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45560
+	* dump-parse-tree.c (gfc_debug_expr): New function.
+
+2010-09-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/38282
+	* intrinsic.c (add_functions): Support IALL, IANY, IPARITY.
+	(check_specific): Special case for those intrinsics.
+	* gfortran.h (gfc_isym_id): Add new intrinsics
+	* intrinsic.h (gfc_check_transf_bit_intrins,
+	gfc_simplify_iall, gfc_simplify_iany, gfc_simplify_iparity,
+	gfc_resolve_iall, gfc_resolve_iany, gfc_resolve_iparity):
+	New prototypes.
+	* iresolve.c (gfc_resolve_iall, gfc_resolve_iany,
+	gfc_resolve_iparity, resolve_transformational): New functions.
+	(gfc_resolve_product, gfc_resolve_sum,
+	gfc_resolve_parity): Use resolve_transformational.
+	* check.c (gfc_check_transf_bit_intrins): New function.
+	* simplify.c (gfc_simplify_iall, gfc_simplify_iany,
+	gfc_simplify_iparity, do_bit_any, do_bit_ior,
+	do_bit_xor, simplify_transformation): New functions.
+	(gfc_simplify_all, gfc_simplify_any, gfc_simplify_parity,
+	gfc_simplify_sum, gfc_simplify_product): Use simplify_transformation.
+	* trans-intrinsic.c (gfc_conv_intrinsic_arith,
+	gfc_conv_intrinsic_function, gfc_is_intrinsic_libcall):
+	Handle IALL, IANY and IPARITY intrinsics.	
+	* intrinsic.texi (IMAGE_INDEX): Move up to fix alphabetic
+	order.
+	(IALL, IANY, IPARITY): Document new intrinsics.
+
+2010-09-05  Tobias Burnus <burnus@net-b.de>
+
+	PR fortran/45186
+	* f95-lang.c (gfc_truthvalue_conversion): Use
+	fold_build[0-9]_loc instead of fold_build[0-9].
+	* convert.c (convert): Ditto.
+	* trans-intrinsic.c (gfc_conv_intrinsic_conversion,
+	build_fixbound_expr, build_fix_expr, gfc_conv_intrinsic_aint,
+	gfc_conv_intrinsic_int, gfc_conv_intrinsic_imagpart,
+	gfc_conv_intrinsic_conjg, gfc_trans_same_strlen_check,
+	gfc_conv_intrinsic_bound, gfc_conv_intrinsic_abs,
+	gfc_conv_intrinsic_cmplx, gfc_conv_intrinsic_mod,
+	gfc_conv_intrinsic_dim, gfc_conv_intrinsic_sign,
+	gfc_conv_intrinsic_dprod, gfc_conv_intrinsic_char,
+	gfc_conv_intrinsic_ctime, gfc_conv_intrinsic_fdate,
+	gfc_conv_intrinsic_ttynam, gfc_conv_intrinsic_minmax,
+	gfc_conv_intrinsic_minmax_char, gfc_conv_intrinsic_anyall,
+	gfc_conv_intrinsic_count, gfc_conv_intrinsic_arith,
+	gfc_conv_intrinsic_dot_product, gfc_conv_intrinsic_minmaxloc,
+	gfc_conv_intrinsic_minmaxval, gfc_conv_intrinsic_btest,
+	gfc_conv_intrinsic_bitop, gfc_conv_intrinsic_not,
+	gfc_conv_intrinsic_singlebitop, gfc_conv_intrinsic_ibits,
+	gfc_conv_intrinsic_rlshift, gfc_conv_intrinsic_ishft,
+	gfc_conv_intrinsic_ishftc, gfc_conv_intrinsic_leadz,
+	gfc_conv_intrinsic_trailz, gfc_conv_intrinsic_popcnt_poppar,
+	gfc_conv_intrinsic_ichar, gfc_conv_has_intvalue,
+	gfc_conv_intrinsic_merge, gfc_conv_intrinsic_spacing,
+	gfc_conv_intrinsic_rrspacing, gfc_conv_intrinsic_size,
+	size_of_string_in_bytes, gfc_conv_intrinsic_sizeof,
+	gfc_conv_intrinsic_storage_size, gfc_conv_intrinsic_strcmp,
+	gfc_conv_intrinsic_transfer, gfc_conv_allocated,
+	gfc_conv_associated, gfc_conv_same_type_as,
+	gfc_conv_intrinsic_trim, gfc_conv_intrinsic_repeat): Ditto.
+
+2010-09-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45530
+	* resolve.c (resolve_fl_namelist): Change constraint checking
+	order to prevent endless loop.
+
+2010-09-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45507
+	* resolve.c (resolve_allocate_expr): Generate default initializers
+	already at this point, resolve them and put them into expr3, ...
+	* trans-stmt.c (gfc_trans_allocate): ... instead of waiting until
+	translation stage.
+
+2010-09-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45186
+	* trans-intrinsic.c (gfc_conv_intrinsic_sign,
+	gfc_conv_intrinsic_leadz): Use build_call_expr_loc instead
+	of build_call_expr.
+	* trans-expr.c (gfc_conv_expr_present, gfc_conv_missing_dummy,
+	gfc_conv_string_length, gfc_conv_substring,
+	gfc_conv_component_ref, gfc_conv_unary_op, gfc_conv_powi,
+	gfc_conv_cst_int_power, gfc_conv_string_tmp, gfc_conv_concat_op,
+	gfc_conv_expr_op, gfc_build_compare_string,
+	gfc_set_interface_mapping_bounds, gfc_conv_subref_array_arg,
+	gfc_conv_derived_to_class, conv_isocbinding_procedure,
+	gfc_conv_procedure_call, fill_with_spaces,
+	gfc_trans_string_copy, gfc_trans_alloc_subarray_assign,
+	gfc_trans_structure_assign, gfc_trans_pointer_assignment,
+	gfc_trans_scalar_assign, gfc_trans_zero_assign,
+	gfc_trans_array_copy, gfc_trans_array_constructor_copy): Change
+	fold_build[0-9] to fold_build[0-9]_loc.
+	* trans-io.c (set_parameter_const, set_parameter_value,
+	set_parameter_ref, gfc_convert_array_to_string, set_string,
+	set_internal_unit, io_result, set_error_locus,
+	nml_get_addr_expr, build_dt): Ditto.
+	* trans-openmp.c (gfc_omp_clause_default_ctor,
+	gfc_omp_clause_copy_ctor, gfc_omp_clause_assign_op,
+	gfc_trans_omp_array_reduction, gfc_trans_omp_atomic,
+	gfc_trans_omp_do): Ditto.
+	* trans.c (gfc_add_modify, gfc_build_addr_expr,
+	gfc_build_array_ref, gfc_trans_runtime_error_vararg,
+	gfc_trans_runtime_check, gfc_call_malloc,
+	gfc_allocate_with_status, gfc_allocate_array_with_status,
+	gfc_call_free, gfc_deallocate_with_status,
+	gfc_call_realloc): Ditto.
+
+2010-09-03  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45159
+	* dependency.c (gfc_deb_compare_expr):  Compare equal for equal
+	arglists for pure user functions, or for those intrinsic
+	functions which are also pure.
+	* intrinsics.c (add_conv):  Mark conversion functions as pure.
+	(add_char_conversions):  Likewise.
+
+2010-09-03  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/34162
+	* resolve.c (resolve_actual_arglist): Allow internal procedure
+	as actual argument with Fortran 2008.
+
+2010-09-03  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/44602
+	* gfortran.h (struct gfc_code): Renamed `whichloop' to
+	`which_construct' as this is no longer restricted to loops.
+	* parse.h (struct gfc_state_data): New field `construct'.
+	* match.c (match_exit_cycle): Handle EXIT from non-loops.
+	* parse.c (push_state): Set `construct' field.
+	* resolve.c (resolve_select_type): Extend comment.
+	* trans-stmt.c (gfc_trans_if): Add exit label.
+	(gfc_trans_block_construct), (gfc_trans_select): Ditto.
+	(gfc_trans_simple_do): Store exit/cycle labels on the gfc_code itself.
+	(gfc_trans_do), (gfc_trans_do_while): Ditto.
+	(gfc_trans_exit): Use new name `which_construct' instead of `whichloop'.
+	(gfc_trans_cycle): Ditto.
+	(gfc_trans_if_1): Use fold_build3_loc instead of fold_build3.
+
+2010-09-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* trans-intrinsic.c (gfc_conv_intrinsic_aint): Fix whitespace.
+	(gfc_conv_intrinsic_ishft): Only evaluate arguments once.
+	(gfc_conv_intrinsic_ishftc): Only evaluate arguments once.
+	* intrinsic.texi (RSHIFT): Fix documentation.
+
+2010-09-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45186
+	* trans-common.c (create_common): Change build[0-9] to
+	build[0-9]_loc.
+	* trans-const.c (gfc_conv_constant_to_tree,
+	gfc_conv_constant_to_tree): Ditto.
+	* trans-decl.c (gfc_build_qualified_array, build_entry_thunks,
+	gfc_get_fake_result_decl, gfc_trans_auto_character_variable,
+	add_argument_checking, create_main_function,
+	gfc_generate_return): Ditto.
+	* trans-types.c (gfc_get_dtype, gfc_get_array_type_bounds): Ditto.
+	* trans-stmt.c (allocate_temp_for_forall_nest_1,
+	compute_inner_temp_size, compute_overall_iter_number,
+	generate_loop_for_rhs_to_temp, generate_loop_for_temp_to_lhs,
+	gfc_conv_elemental_dependencies, gfc_do_allocate,
+	gfc_evaluate_where_mask, gfc_trans_allocate,
+	gfc_trans_arithmetic_if, gfc_trans_call,
+	gfc_trans_character_select, gfc_trans_deallocate,
+	gfc_trans_do, gfc_trans_do_while, gfc_trans_forall_1,
+	gfc_trans_forall_loop, gfc_trans_goto, gfc_trans_if_1,
+	gfc_trans_integer_select, gfc_trans_logical_select,
+	gfc_trans_pointer_assign_need_temp, gfc_trans_return,
+	gfc_trans_simple_do, gfc_trans_sync, gfc_trans_where_2,
+	gfc_trans_where_assign) Ditto.
+
+2010-09-02  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44541
+	* resolve.c (resolve_symbol): Correct check for attributes of CLASS
+	variable.
+
+2010-09-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45489
+	* resolve.c (apply_default_init): Mark symbol as referenced,
+	if it is initialized.
+	(resolve_symbol): Change intialized check for BT_DERIVED such
+	that also function results get initialized; remove now obsolete
+	gfc_set_sym_referenced for BT_CLASS.
+
+2010-09-01  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44541
+	* class.c (gfc_find_derived_vtab): Add component '$def_init'.
+	* resolve.c (resolve_allocate_expr): Defer handling of default
+	initialization to 'gfc_trans_allocate'.
+	(apply_default_init,resolve_symbol): Handle polymorphic dummies.
+	(resolve_fl_derived): Suppress error messages for vtypes.
+	* trans-stmt.c (gfc_trans_allocate): Handle initialization via
+	polymorphic MOLD expression.
+	* trans-expr.c (gfc_trans_class_init_assign): Now only used for
+	dummy initialization.
+
+2010-09-01  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.texi (preprocessing): Update URL to COCO.
+
+2010-09-01  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* trans-intrinsic.c (gfc_build_intrinsic_lib_fndecls): Resize
+	array quad_decls. Remove unnecessary assignment.
+
+2010-09-01  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* trans-expr.c (gfc_conv_power_op): Handle floating-point types
+	other than long double.
+	* mathbuiltins.def: Add builtins from the POW and CPOW family.
+	* trans.h (gfc_builtin_decl_for_float_kind): New prototype.
+	* trans-intrinsic.c (gfc_builtin_decl_for_float_kind): Add gfc_
+	prefix to function name.
+	(gfc_build_intrinsic_lib_fndecls): Add cpow prototype.
+	(gfc_conv_intrinsic_aint): Use gfc_builtin_decl_for_float_kind
+	function name.
+	(gfc_conv_intrinsic_exponent): Likewise.
+	(gfc_conv_intrinsic_abs): Likewise.
+	(gfc_conv_intrinsic_mod): Likewise.
+	(gfc_conv_intrinsic_sign): Likewise.
+	(gfc_conv_intrinsic_arith): Likewise.
+	(gfc_conv_intrinsic_fraction): Likewise.
+	(gfc_conv_intrinsic_nearest): Likewise.
+	(gfc_conv_intrinsic_spacing): Likewise.
+	(gfc_conv_intrinsic_rrspacing): Likewise.
+	(gfc_conv_intrinsic_scale): Likewise.
+	(gfc_conv_intrinsic_set_exponent): Likewise.
+
+2010-09-01  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* intrinsic.c: Add EXECUTE_COMMAND_LINE intrinsic.
+	* intrinsic.h (gfc_resolve_execute_command_line): New function.
+	* iresolve.c (gfc_resolve_execute_command_line): New function.
+	* gfortran.h (GFC_ISYM_EXECUTE_COMMAND_LINE): New value.
+	* intrinsic.texi: Document EXECUTE_COMMAND_LINE.
+
+2010-08-31  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/38282
+	* f95-lang.c (gfc_init_builtin_functions): Define popcount{,l,ll}
+	and parity{,l,ll} builtins.
+	* trans-intrinsic.c (gfc_conv_intrinsic_popcnt_poppar): New function.
+	(gfc_conv_intrinsic_function): Call above new functions.
+	* simplify.c (gfc_simplify_popcnt, gfc_simplify_poppar): New
+	functions.
+	* intrinsic.texi: Document POPCNT and POPPAR.
+
+2010-08-30  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45456
+	* resolve.c (resolve_structure_cons): Handle pointer-valued PPCs.
+
+2010-08-30  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* Make-lang.in: Add frontend-passes.o dependencies.
+
 2010-08-29  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/42769

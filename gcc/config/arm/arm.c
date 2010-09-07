@@ -164,6 +164,10 @@ static void emit_constant_insn (rtx cond, rtx pattern);
 static rtx emit_set_insn (rtx, rtx);
 static int arm_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				  tree, bool);
+static rtx arm_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+			     const_tree, bool);
+static void arm_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+				      const_tree, bool);
 static rtx aapcs_allocate_return_reg (enum machine_mode, const_tree,
 				      const_tree);
 static int aapcs_select_return_coproc (const_tree, const_tree);
@@ -377,6 +381,10 @@ static const struct attribute_spec arm_attribute_table[] =
 #define TARGET_PASS_BY_REFERENCE arm_pass_by_reference
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES arm_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG arm_function_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE arm_function_arg_advance
 
 #undef  TARGET_SETUP_INCOMING_VARARGS
 #define TARGET_SETUP_INCOMING_VARARGS arm_setup_incoming_varargs
@@ -1403,7 +1411,7 @@ arm_override_options (void)
 	  arm_selected_cpu = &all_cores[SUBTARGET_CPU_DEFAULT];
 #endif
 	  /* Default to ARM6.  */
-	  if (arm_selected_cpu->name)
+	  if (!arm_selected_cpu->name)
 	    arm_selected_cpu = &all_cores[arm6];
 	}
 
@@ -1545,7 +1553,7 @@ arm_override_options (void)
   /* Callee super interworking implies thumb interworking.  Adding
      this to the flags here simplifies the logic elsewhere.  */
   if (TARGET_THUMB && TARGET_CALLEE_INTERWORKING)
-      target_flags |= MASK_INTERWORK;
+    target_flags |= MASK_INTERWORK;
 
   /* TARGET_BACKTRACE calls leaf_function_p, which causes a crash if done
      from here where no function is being compiled currently.  */
@@ -1554,9 +1562,6 @@ arm_override_options (void)
 
   if (TARGET_ARM && TARGET_CALLEE_INTERWORKING)
     warning (0, "enabling callee interworking support is only meaningful when compiling for the Thumb");
-
-  if (TARGET_ARM && TARGET_CALLER_INTERWORKING)
-    warning (0, "enabling caller interworking support is only meaningful when compiling for the Thumb");
 
   if (TARGET_APCS_STACK && !TARGET_APCS_FRAME)
     {
@@ -4181,7 +4186,7 @@ static struct
 
 static int
 aapcs_select_call_coproc (CUMULATIVE_ARGS *pcum, enum machine_mode mode, 
-			  tree type)
+			  const_tree type)
 {
   int i;
 
@@ -4293,7 +4298,7 @@ aapcs_libcall_value (enum machine_mode mode)
    numbers referred to here are those in the AAPCS.  */
 static void
 aapcs_layout_arg (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
-		  tree type, int named)
+		  const_tree type, bool named)
 {
   int nregs, nregs2;
   int ncrn;
@@ -4458,7 +4463,7 @@ arm_init_cumulative_args (CUMULATIVE_ARGS *pcum, tree fntype,
 
 /* Return true if mode/type need doubleword alignment.  */
 bool
-arm_needs_doubleword_align (enum machine_mode mode, tree type)
+arm_needs_doubleword_align (enum machine_mode mode, const_tree type)
 {
   return (GET_MODE_ALIGNMENT (mode) > PARM_BOUNDARY
 	  || (type && TYPE_ALIGN (type) > PARM_BOUNDARY));
@@ -4476,11 +4481,17 @@ arm_needs_doubleword_align (enum machine_mode mode, tree type)
    CUM is a variable of type CUMULATIVE_ARGS which gives info about
     the preceding args and about the function being called.
    NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).  */
+    (otherwise it is an extra parameter matching an ellipsis).
 
-rtx
+   On the ARM, normally the first 16 bytes are passed in registers r0-r3; all
+   other arguments are passed on the stack.  If (NAMED == 0) (which happens
+   only in assign_parms, since TARGET_SETUP_INCOMING_VARARGS is
+   defined), say it is passed in the stack (function_prologue will
+   indeed make it pass in the stack if necessary).  */
+
+static rtx
 arm_function_arg (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
-		  tree type, int named)
+		  const_tree type, bool named)
 {
   int nregs;
 
@@ -4553,9 +4564,13 @@ arm_arg_partial_bytes (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
   return 0;
 }
 
-void
+/* Update the data in PCUM to advance over an argument
+   of mode MODE and data type TYPE.
+   (TYPE is null for libcalls where that information may not be available.)  */
+
+static void
 arm_function_arg_advance (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
-			  tree type, bool named)
+			  const_tree type, bool named)
 {
   if (pcum->pcs_variant <= ARM_PCS_AAPCS_LOCAL)
     {

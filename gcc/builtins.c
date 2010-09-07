@@ -132,7 +132,7 @@ static rtx expand_builtin_memset (tree, rtx, enum machine_mode);
 static rtx expand_builtin_memset_args (tree, tree, tree, rtx, enum machine_mode, tree);
 static rtx expand_builtin_bzero (tree);
 static rtx expand_builtin_strlen (tree, rtx, enum machine_mode);
-static rtx expand_builtin_alloca (tree, rtx);
+static rtx expand_builtin_alloca (tree, rtx, bool);
 static rtx expand_builtin_unop (enum machine_mode, tree, rtx, rtx, optab);
 static rtx expand_builtin_frame_address (tree, tree);
 static tree stabilize_va_list_loc (location_t, tree, int);
@@ -301,11 +301,6 @@ get_object_alignment (tree exp, unsigned int max_align)
     align = TYPE_ALIGN (TREE_TYPE (exp));
   else if (TREE_CODE (exp) == INDIRECT_REF)
     align = TYPE_ALIGN (TREE_TYPE (exp));
-  else if (TREE_CODE (exp) == MISALIGNED_INDIRECT_REF)
-    {
-      tree op1 = TREE_OPERAND (exp, 1);
-      align = integer_zerop (op1) ? BITS_PER_UNIT : TREE_INT_CST_LOW (op1);
-    }
   else if (TREE_CODE (exp) == MEM_REF)
     {
       tree addr = TREE_OPERAND (exp, 0);
@@ -331,9 +326,7 @@ get_object_alignment (tree exp, unsigned int max_align)
 						  max_align));
       bitpos += mem_ref_offset (exp).low * BITS_PER_UNIT;
     }
-  else if (TREE_CODE (exp) == TARGET_MEM_REF
-	   && TMR_BASE (exp)
-	   && POINTER_TYPE_P (TREE_TYPE (TMR_BASE (exp))))
+  else if (TREE_CODE (exp) == TARGET_MEM_REF)
     {
       struct ptr_info_def *pi;
       tree addr = TMR_BASE (exp);
@@ -365,19 +358,7 @@ get_object_alignment (tree exp, unsigned int max_align)
 	}
       else if (TMR_INDEX (exp))
 	align = BITS_PER_UNIT;
-    }
-  else if (TREE_CODE (exp) == TARGET_MEM_REF
-	   && TMR_SYMBOL (exp))
-    {
-      align = get_object_alignment (TMR_SYMBOL (exp), max_align);
-      if (TMR_OFFSET (exp))
-        bitpos += TREE_INT_CST_LOW (TMR_OFFSET (exp)) * BITS_PER_UNIT;
-      if (TMR_INDEX (exp) && TMR_STEP (exp))
-	{
-	  unsigned HOST_WIDE_INT step = TREE_INT_CST_LOW (TMR_STEP (exp));
-	  align = MIN (align, (step & -step) * BITS_PER_UNIT);
-	}
-      else if (TMR_INDEX (exp))
+      if (TMR_INDEX2 (exp))
 	align = BITS_PER_UNIT;
     }
   else
@@ -1588,8 +1569,10 @@ expand_builtin_apply (rtx function, rtx arguments, rtx argsize)
     emit_stack_save (SAVE_BLOCK, &old_stack_level, NULL_RTX);
 
   /* Allocate a block of memory onto the stack and copy the memory
-     arguments to the outgoing arguments address.  */
-  allocate_dynamic_stack_space (argsize, 0, BITS_PER_UNIT);
+     arguments to the outgoing arguments address.  We can pass TRUE
+     as the 4th argument because we just saved the stack pointer
+     and will restore it right after the call.  */
+  allocate_dynamic_stack_space (argsize, 0, BITS_PER_UNIT, TRUE);
 
   /* Set DRAP flag to true, even though allocate_dynamic_stack_space
      may have already set current_function_calls_alloca to true.
@@ -4739,7 +4722,7 @@ static tree
 dummy_object (tree type)
 {
   tree t = build_int_cst (build_pointer_type (type), 0);
-  return build1 (INDIRECT_REF, type, t);
+  return build2 (MEM_REF, type, t, t);
 }
 
 /* Gimplify __builtin_va_arg, aka VA_ARG_EXPR, which is not really a
@@ -4949,12 +4932,13 @@ expand_builtin_frame_address (tree fndecl, tree exp)
     }
 }
 
-/* Expand EXP, a call to the alloca builtin.  Return NULL_RTX if
-   we failed and the caller should emit a normal call, otherwise try to get
-   the result in TARGET, if convenient.  */
+/* Expand EXP, a call to the alloca builtin.  Return NULL_RTX if we
+   failed and the caller should emit a normal call, otherwise try to
+   get the result in TARGET, if convenient.  CANNOT_ACCUMULATE is the
+   same as for allocate_dynamic_stack_space.  */
 
 static rtx
-expand_builtin_alloca (tree exp, rtx target)
+expand_builtin_alloca (tree exp, rtx target, bool cannot_accumulate)
 {
   rtx op0;
   rtx result;
@@ -4970,7 +4954,8 @@ expand_builtin_alloca (tree exp, rtx target)
   op0 = expand_normal (CALL_EXPR_ARG (exp, 0));
 
   /* Allocate the desired space.  */
-  result = allocate_dynamic_stack_space (op0, target, BITS_PER_UNIT);
+  result = allocate_dynamic_stack_space (op0, target, BITS_PER_UNIT,
+					 cannot_accumulate);
   result = convert_memory_address (ptr_mode, result);
 
   return result;
@@ -6009,7 +5994,9 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 	return XEXP (DECL_RTL (DECL_RESULT (current_function_decl)), 0);
 
     case BUILT_IN_ALLOCA:
-      target = expand_builtin_alloca (exp, target);
+      /* If the allocation stems from the declaration of a variable-sized
+	 object, it cannot accumulate.  */
+      target = expand_builtin_alloca (exp, target, ALLOCA_FOR_VAR_P (exp));
       if (target)
 	return target;
       break;
@@ -8467,6 +8454,27 @@ fold_builtin_memory_op (location_t loc, tree dest, tree src,
 		return NULL_TREE;
 	      return build_call_expr_loc (loc, fn, 3, dest, src, len);
 	    }
+
+	  /* If the destination and source do not alias optimize into
+	     memcpy as well.  */
+	  if ((is_gimple_min_invariant (dest)
+	       || TREE_CODE (dest) == SSA_NAME)
+	      && (is_gimple_min_invariant (src)
+		  || TREE_CODE (src) == SSA_NAME))
+	    {
+	      ao_ref destr, srcr;
+	      ao_ref_init_from_ptr_and_size (&destr, dest, len);
+	      ao_ref_init_from_ptr_and_size (&srcr, src, len);
+	      if (!refs_may_alias_p_1 (&destr, &srcr, false))
+		{
+		  tree fn;
+		  fn = implicit_built_in_decls[BUILT_IN_MEMCPY];
+		  if (!fn)
+		    return NULL_TREE;
+		  return build_call_expr_loc (loc, fn, 3, dest, src, len);
+		}
+	    }
+
 	  return NULL_TREE;
 	}
 

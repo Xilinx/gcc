@@ -111,7 +111,8 @@ varpool_get_node (tree decl)
 {
   struct varpool_node key, **slot;
 
-  gcc_assert (DECL_P (decl) && TREE_CODE (decl) != FUNCTION_DECL);
+  gcc_assert (TREE_CODE (decl) == VAR_DECL
+	      && (TREE_STATIC (decl) || DECL_EXTERNAL (decl)));
 
   if (!varpool_hash)
     return NULL;
@@ -129,7 +130,8 @@ varpool_node (tree decl)
 {
   struct varpool_node key, *node, **slot;
 
-  gcc_assert (DECL_P (decl) && TREE_CODE (decl) != FUNCTION_DECL);
+  gcc_assert (TREE_CODE (decl) == VAR_DECL
+	      && (TREE_STATIC (decl) || DECL_EXTERNAL (decl)));
 
   if (!varpool_hash)
     varpool_hash = htab_create_ggc (10, hash_varpool_node,
@@ -357,6 +359,37 @@ decide_is_variable_needed (struct varpool_node *node, tree decl)
   return true;
 }
 
+/* Return if NODE is constant and its initial value is known (so we can do
+   constant folding).  The decision depends on whole program decisions
+   and can not be recomputed at ltrans stage for variables from other
+   partitions.  For this reason the new value should be always combined
+   with the previous knowledge.  */
+
+bool
+varpool_decide_const_value_known (struct varpool_node *node)
+{
+  tree decl = node->decl;
+
+  gcc_assert (TREE_STATIC (decl) || DECL_EXTERNAL (decl));
+  gcc_assert (TREE_CODE (decl) == VAR_DECL);
+  if (!TREE_READONLY (decl))
+    return false;
+  /* Variables declared 'const' without an initializer
+     have zero as the initializer if they may not be
+     overridden at link or run time.  */
+  if (!DECL_INITIAL (decl)
+      && (DECL_EXTERNAL (decl)
+	  || DECL_REPLACEABLE_P (decl)))
+    return false;
+
+  /* Variables declared `const' with an initializer are considered
+     to not be overwritable with different initializer by default. 
+
+     ??? Previously we behaved so for scalar variables but not for array
+     accesses.  */
+  return true;
+}
+
 /* Mark DECL as finalized.  By finalizing the declaration, frontend instruct the
    middle end to output the variable to asm file, if needed or externally
    visible.  */
@@ -364,6 +397,8 @@ void
 varpool_finalize_decl (tree decl)
 {
   struct varpool_node *node = varpool_node (decl);
+
+  gcc_assert (TREE_STATIC (decl));
 
   /* The first declaration of a variable that comes through this function
      decides whether it is global (in C, has external linkage)
@@ -388,6 +423,7 @@ varpool_finalize_decl (tree decl)
      there.  */
   else if (TREE_PUBLIC (decl) && !DECL_COMDAT (decl) && !DECL_EXTERNAL (decl))
     varpool_mark_needed_node (node);
+  node->const_value_known |= varpool_decide_const_value_known (node);
   if (cgraph_global_info_ready)
     varpool_assemble_pending_decls ();
 }

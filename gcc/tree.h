@@ -117,8 +117,7 @@ extern const enum tree_code_class tree_code_type[];
    ascending code order.  */
 
 #define INDIRECT_REF_P(CODE)\
-  (TREE_CODE (CODE) == INDIRECT_REF \
-   || TREE_CODE (CODE) == MISALIGNED_INDIRECT_REF)
+  (TREE_CODE (CODE) == INDIRECT_REF)
 
 /* Nonzero if CODE represents a reference.  */
 
@@ -522,7 +521,8 @@ struct GTY(()) tree_common {
            BLOCK
            all decls
 
-       CALL_FROM_THUNK_P in
+       CALL_FROM_THUNK_P and
+       ALLOCA_FOR_VAR_P in
            CALL_EXPR
 
    side_effects_flag:
@@ -601,7 +601,7 @@ struct GTY(()) tree_common {
            all types
 
        TREE_THIS_NOTRAP in
-          (ALIGN/MISALIGNED_)INDIRECT_REF, ARRAY_REF, ARRAY_RANGE_REF
+          INDIRECT_REF, ARRAY_REF, ARRAY_RANGE_REF
 
    deprecated_flag:
 
@@ -1249,8 +1249,7 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 /* Nonzero means this node will not trap.  In an INDIRECT_REF, means
    accessing the memory pointed to won't generate a trap.  However,
    this only applies to an object when used appropriately: it doesn't
-   mean that writing a READONLY mem won't trap. Similarly for
-   MISALIGNED_INDIRECT_REF.
+   mean that writing a READONLY mem won't trap.
 
    In ARRAY_REF and ARRAY_RANGE_REF means that we know that the index
    (or slice of the array) always belongs to the range of the array.
@@ -1328,6 +1327,10 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 /* In a CALL_EXPR, means that the call is the jump from a thunk to the
    thunked-to function.  */
 #define CALL_FROM_THUNK_P(NODE) (CALL_EXPR_CHECK (NODE)->base.protected_flag)
+
+/* In a CALL_EXPR, if the function being called is BUILT_IN_ALLOCA, means that
+   it has been built for the declaration of a variable-sized object.  */
+#define ALLOCA_FOR_VAR_P(NODE) (CALL_EXPR_CHECK (NODE)->base.protected_flag)
 
 /* In a type, nonzero means that all objects of the type are guaranteed by the
    language or front-end to be properly aligned, so we can indicate that a MEM
@@ -1627,12 +1630,13 @@ extern void protected_set_expr_location (tree, location_t);
 #define CASE_HIGH(NODE)         	TREE_OPERAND (CASE_LABEL_EXPR_CHECK (NODE), 1)
 #define CASE_LABEL(NODE)		TREE_OPERAND (CASE_LABEL_EXPR_CHECK (NODE), 2)
 
-/* The operands of a TARGET_MEM_REF.  */
-#define TMR_SYMBOL(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 0))
-#define TMR_BASE(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 1))
+/* The operands of a TARGET_MEM_REF.  Operands 0 and 1 have to match
+   corresponding MEM_REF operands.  */
+#define TMR_BASE(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 0))
+#define TMR_OFFSET(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 1))
 #define TMR_INDEX(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 2))
 #define TMR_STEP(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 3))
-#define TMR_OFFSET(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 4))
+#define TMR_INDEX2(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 4))
 
 /* The operands of a BIND_EXPR.  */
 #define BIND_EXPR_VARS(NODE) (TREE_OPERAND (BIND_EXPR_CHECK (NODE), 0))
@@ -4300,6 +4304,10 @@ extern tree get_qualified_type (tree, int);
 
 extern tree build_qualified_type (tree, int);
 
+/* Create a variant of type T with alignment ALIGN.  */
+
+extern tree build_aligned_type (tree, unsigned int);
+
 /* Like build_qualified_type, but only deals with the `const' and
    `volatile' qualifiers.  This interface is retained for backwards
    compatibility with the various front-ends; new code should use
@@ -4766,16 +4774,14 @@ extern GTY(()) const char * current_function_func_begin_label;
 
 /* Iterator for going through the function arguments.  */
 typedef struct {
-  tree fntype;			/* function type declaration */
   tree next;			/* TREE_LIST pointing to the next argument */
 } function_args_iterator;
 
 /* Initialize the iterator I with arguments from function FNDECL  */
 
 static inline void
-function_args_iter_init (function_args_iterator *i, tree fntype)
+function_args_iter_init (function_args_iterator *i, const_tree fntype)
 {
-  i->fntype = fntype;
   i->next = TYPE_ARG_TYPES (fntype);
 }
 
@@ -4847,7 +4853,7 @@ extern tree call_expr_arg (tree, int);
 extern tree *call_expr_argp (tree, int);
 extern tree create_artificial_label (location_t);
 extern const char *get_name (tree);
-extern bool stdarg_p (tree);
+extern bool stdarg_p (const_tree);
 extern bool prototype_p (tree);
 extern bool is_typedef_decl (tree x);
 extern bool typedef_variant_p (tree);

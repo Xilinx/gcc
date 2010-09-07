@@ -15,7 +15,8 @@ main1 (unsigned int x, unsigned int y, unsigned int *pin, unsigned int *pout)
   int i;
   unsigned int a0, a1, a2, a3;
  
-  /* pin and pout may alias.  */
+  /* pin and pout may alias. But since all the loads are before the first store
+     the basic block is vectorizable.  */
   a0 = *pin++ + 23;
   a1 = *pin++ + 142;
   a2 = *pin++ + 2;
@@ -25,6 +26,9 @@ main1 (unsigned int x, unsigned int y, unsigned int *pin, unsigned int *pout)
   *pout++ = a1 * y;
   *pout++ = a2 * x;
   *pout++ = a3 * y;
+
+  if (i)
+    __asm__ volatile ("" : : : "memory");
 
   /* Check results.  */
   if (out[0] != (in[0] + 23) * x
@@ -45,6 +49,6 @@ int main (void)
   return 0;
 }
 
-/* { dg-final { scan-tree-dump-times "basic block vectorized using SLP" 0 "slp" } } */
+/* { dg-final { scan-tree-dump-times "basic block vectorized using SLP" 1 "slp"  { target vect_hw_misalign } } } */
 /* { dg-final { cleanup-tree-dump "slp" } } */
   

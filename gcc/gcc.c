@@ -1085,7 +1085,7 @@ static const struct option_map option_map[] =
    {"--debug", "-g", "oj"},
    {"--define-macro", "-D", "aj"},
    {"--dependencies", "-M", 0},
-   {"--dump", "-d", "a"},
+   {"--dump", "-d", "aj"},
    {"--dumpbase", "-dumpbase", "a"},
    {"--dumpdir", "-dumpdir", "a"},
    {"--encoding", "-fencoding=", "aj"},
@@ -1367,16 +1367,6 @@ translate_options (int *argcp, const char *const **argvp)
 	     command line.  */
 	  if (nskip + i > argc)
 	    nskip = argc - i;
-
-	  /* Convert -d with a separate argument to
-	     -foutput-class-dir= for Java.  */
-	  if (c == 'd' && p[1] == 0 && argv[i + 1] != NULL)
-	    {
-	      newv[newindex++] = concat ("-foutput-class-dir=", argv[i + 1],
-					 NULL);
-	      nskip = 0;
-	      i += 2;
-	    }
 
 	  while (nskip > 0)
 	    {
@@ -3742,6 +3732,12 @@ driver_handle_option (const struct cl_decoded_option *decoded,
       do_save = false;
       break;
 
+    case OPT_L:
+      /* Similarly, canonicalize -L for linkers that may not accept
+	 separate arguments.  */
+      save_switch (concat ("-L", arg, NULL), 0, NULL, validated);
+      return true;
+
     case OPT_save_temps:
       save_temps_flag = SAVE_TEMPS_CWD;
       validated = true;
@@ -3772,7 +3768,6 @@ driver_handle_option (const struct cl_decoded_option *decoded,
 	 processing.  */
       break;
 
-    case OPT_specs:
     case OPT_specs_:
       {
 	struct user_specs *user = XNEW (struct user_specs);

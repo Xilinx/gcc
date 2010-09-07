@@ -362,6 +362,7 @@ enum gfc_isym_id
   GFC_ISYM_ERFC,
   GFC_ISYM_ERFC_SCALED,
   GFC_ISYM_ETIME,
+  GFC_ISYM_EXECUTE_COMMAND_LINE,
   GFC_ISYM_EXIT,
   GFC_ISYM_EXP,
   GFC_ISYM_EXPONENT,
@@ -396,7 +397,9 @@ enum gfc_isym_id
   GFC_ISYM_HUGE,
   GFC_ISYM_HYPOT,
   GFC_ISYM_IACHAR,
+  GFC_ISYM_IALL,
   GFC_ISYM_IAND,
+  GFC_ISYM_IANY,
   GFC_ISYM_IARGC,
   GFC_ISYM_IBCLR,
   GFC_ISYM_IBITS,
@@ -411,6 +414,7 @@ enum gfc_isym_id
   GFC_ISYM_INT2,
   GFC_ISYM_INT8,
   GFC_ISYM_IOR,
+  GFC_ISYM_IPARITY,
   GFC_ISYM_IRAND,
   GFC_ISYM_ISATTY,
   GFC_ISYM_IS_IOSTAT_END,
@@ -472,6 +476,8 @@ enum gfc_isym_id
   GFC_ISYM_PACK,
   GFC_ISYM_PARITY,
   GFC_ISYM_PERROR,
+  GFC_ISYM_POPCNT,
+  GFC_ISYM_POPPAR,
   GFC_ISYM_PRECISION,
   GFC_ISYM_PRESENT,
   GFC_ISYM_PRODUCT,
@@ -2093,7 +2099,7 @@ typedef struct gfc_code
     gfc_wait *wait;
     gfc_dt *dt;
     gfc_forall_iterator *forall_iterator;
-    struct gfc_code *whichloop;
+    struct gfc_code *which_construct;
     int stop_code;
     gfc_entry_list *entry;
     gfc_omp_clauses *omp_clauses;
@@ -2103,7 +2109,7 @@ typedef struct gfc_code
   }
   ext;		/* Points to additional structures required by statement */
 
-  /* Cycle and break labels in do loops.  */
+  /* Cycle and break labels in constructs.  */
   tree cycle_label;
   tree exit_label;
 }

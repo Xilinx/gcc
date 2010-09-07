@@ -1480,21 +1480,21 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   /* X86_TUNE_PROMOTE_HI_REGS */
   m_PPRO,
 
-  /* X86_TUNE_ADD_ESP_4: Enable if add/sub is preferred over 1/2 push/pop.  */
-  m_ATOM | m_AMD_MULTIPLE | m_K6_GEODE | m_PENT4 | m_NOCONA
-  | m_CORE2 | m_GENERIC,
+  /* X86_TUNE_SINGLE_POP: Enable if single pop insn is preferred
+     over esp addition.  */
+  m_386 | m_486 | m_PENT | m_PPRO,
 
-  /* X86_TUNE_ADD_ESP_8 */
-  m_AMD_MULTIPLE | m_ATOM | m_PPRO | m_K6_GEODE | m_386
-  | m_486 | m_PENT4 | m_NOCONA | m_CORE2 | m_GENERIC,
+  /* X86_TUNE_DOUBLE_POP: Enable if double pop insn is preferred
+     over esp addition.  */
+  m_PENT,
 
-  /* X86_TUNE_SUB_ESP_4 */
-  m_AMD_MULTIPLE | m_ATOM | m_PPRO | m_PENT4 | m_NOCONA | m_CORE2
-  | m_GENERIC,
+  /* X86_TUNE_SINGLE_PUSH: Enable if single push insn is preferred
+     over esp subtraction.  */
+  m_386 | m_486 | m_PENT | m_K6_GEODE,
 
-  /* X86_TUNE_SUB_ESP_8 */
-  m_AMD_MULTIPLE | m_ATOM | m_PPRO | m_386 | m_486
-  | m_PENT4 | m_NOCONA | m_CORE2 | m_GENERIC,
+  /* X86_TUNE_DOUBLE_PUSH. Enable if double push insn is preferred
+     over esp subtraction.  */
+  m_PENT | m_K6_GEODE,
 
   /* X86_TUNE_INTEGER_DFMODE_MOVES: Enable if integer moves are preferred
      for DFmode copies */
@@ -1896,7 +1896,6 @@ static const char ix86_force_align_arg_pointer_string[]
   = "force_align_arg_pointer";
 
 static rtx (*ix86_gen_leave) (void);
-static rtx (*ix86_gen_pop1) (rtx);
 static rtx (*ix86_gen_add3) (rtx, rtx, rtx);
 static rtx (*ix86_gen_sub3) (rtx, rtx, rtx);
 static rtx (*ix86_gen_sub3_carry) (rtx, rtx, rtx, rtx, rtx);
@@ -3655,7 +3654,6 @@ override_options (bool main_args_p)
   if (TARGET_64BIT)
     {
       ix86_gen_leave = gen_leave_rex64;
-      ix86_gen_pop1 = gen_popdi1;
       ix86_gen_add3 = gen_adddi3;
       ix86_gen_sub3 = gen_subdi3;
       ix86_gen_sub3_carry = gen_subdi3_carry;
@@ -3669,7 +3667,6 @@ override_options (bool main_args_p)
   else
     {
       ix86_gen_leave = gen_leave;
-      ix86_gen_pop1 = gen_popsi1;
       ix86_gen_add3 = gen_addsi3;
       ix86_gen_sub3 = gen_subsi3;
       ix86_gen_sub3_carry = gen_subsi3_carry;
@@ -8122,13 +8119,7 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
       /* Ensure all queued register saves are flushed before the
 	 call.  */
       if (dwarf2out_do_frame ())
-	{
-	  rtx insn;
-	  start_sequence ();
-	  insn = emit_barrier ();
-	  end_sequence ();
-	  dwarf2out_frame_debug (insn, false);
-	}
+	dwarf2out_flush_queued_reg_saves ();
 #endif
       xops[2] = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (name));
       xops[2] = gen_rtx_MEM (QImode, xops[2]);
@@ -8171,6 +8162,18 @@ gen_push (rtx arg)
 				   gen_rtx_PRE_DEC (Pmode,
 						    stack_pointer_rtx)),
 		      arg);
+}
+
+/* Generate an "pop" pattern for input ARG.  */
+
+static rtx
+gen_pop (rtx arg)
+{
+  return gen_rtx_SET (VOIDmode,
+		      arg,
+		      gen_rtx_MEM (Pmode,
+				   gen_rtx_POST_INC (Pmode,
+						     stack_pointer_rtx)));
 }
 
 /* Return >= 0 if there is an unused call-clobbered register available
@@ -9052,7 +9055,7 @@ release_scratch_register_on_entry (struct scratch_reg *sr)
 {
   if (sr->saved)
     {
-      rtx x, insn = emit_insn (ix86_gen_pop1 (sr->reg));
+      rtx x, insn = emit_insn (gen_pop (sr->reg));
 
       /* The RTX_FRAME_RELATED_P mechanism doesn't know about pop.  */
       RTX_FRAME_RELATED_P (insn) = 1;
@@ -9478,7 +9481,7 @@ ix86_expand_prologue (void)
 	{
 	  /* The frame pointer is not needed so pop %ebp again.
 	     This leaves us with a pristine state.  */
-	  emit_insn (ix86_gen_pop1 (hard_frame_pointer_rtx));
+	  emit_insn (gen_pop (hard_frame_pointer_rtx));
 	}
     }
 
@@ -9612,6 +9615,29 @@ ix86_expand_prologue (void)
     }
 
   allocate = frame.stack_pointer_offset - m->fs.sp_offset;
+
+  if (flag_stack_usage)
+    {
+      /* We start to count from ARG_POINTER.  */
+      HOST_WIDE_INT stack_size = frame.stack_pointer_offset;
+
+      /* If it was realigned, take into account the fake frame.  */
+      if (stack_realign_drap)
+	{
+	  if (ix86_static_chain_on_stack)
+	    stack_size += UNITS_PER_WORD;
+
+	  if (!call_used_regs[REGNO (crtl->drap_reg)])
+	    stack_size += UNITS_PER_WORD;
+
+	  /* This over-estimates by 1 minimal-stack-alignment-unit but
+	     mitigates that by counting in the new return address slot.  */
+	  current_function_dynamic_stack_size
+	    += crtl->stack_alignment_needed / BITS_PER_UNIT;
+	}
+
+      current_function_static_stack_size = stack_size;
+    }
 
   /* The stack has already been decremented by the instruction calling us
      so we need to probe unconditionally to preserve the protection area.  */
@@ -9763,7 +9789,7 @@ static void
 ix86_emit_restore_reg_using_pop (rtx reg)
 {
   struct machine_function *m = cfun->machine;
-  rtx insn = emit_insn (ix86_gen_pop1 (reg));
+  rtx insn = emit_insn (gen_pop (reg));
 
   ix86_add_cfa_restore_note (insn, reg, m->fs.sp_offset);
   m->fs.sp_offset -= UNITS_PER_WORD;
@@ -9786,10 +9812,12 @@ ix86_emit_restore_reg_using_pop (rtx reg)
 
   if (m->fs.cfa_reg == stack_pointer_rtx)
     {
-      m->fs.cfa_offset -= UNITS_PER_WORD;
-      add_reg_note (insn, REG_CFA_ADJUST_CFA,
-		    copy_rtx (XVECEXP (PATTERN (insn), 0, 1)));
+      rtx x = plus_constant (stack_pointer_rtx, UNITS_PER_WORD);
+      x = gen_rtx_SET (VOIDmode, stack_pointer_rtx, x);
+      add_reg_note (insn, REG_CFA_ADJUST_CFA, x);
       RTX_FRAME_RELATED_P (insn) = 1;
+
+      m->fs.cfa_offset -= UNITS_PER_WORD;
     }
 
   /* When the frame pointer is the CFA, and we pop it, we are
@@ -10090,6 +10118,7 @@ ix86_expand_epilogue (int style)
 		}
 	    }
 	  m->fs.sp_offset = UNITS_PER_WORD;
+	  m->fs.sp_valid = true;
 	}
     }
   else
@@ -10206,7 +10235,7 @@ ix86_expand_epilogue (int style)
 	  /* There is no "pascal" calling convention in any 64bit ABI.  */
 	  gcc_assert (!TARGET_64BIT);
 
-	  insn = emit_insn (gen_popsi1 (ecx));
+	  insn = emit_insn (gen_pop (ecx));
 	  m->fs.cfa_offset -= UNITS_PER_WORD;
 	  m->fs.sp_offset -= UNITS_PER_WORD;
 
@@ -12376,6 +12405,7 @@ get_some_local_dynamic_name (void)
    Y -- print condition for XOP pcom* instruction.
    + -- print a branch hint as 'cs' or 'ds' prefix
    ; -- print a semicolon (after prefixes due to bug in older gas).
+   @ -- print a segment register of thread base pointer load
  */
 
 void
@@ -12854,6 +12884,19 @@ ix86_print_operand (FILE *file, rtx x, int code)
 #endif
 	  return;
 
+	case '@':
+	  if (ASSEMBLER_DIALECT == ASM_ATT)
+	    putc ('%', file);
+
+	  /* The kernel uses a different segment register for performance
+	     reasons; a system call would not have to trash the userspace
+	     segment register, which would be expensive.  */
+	  if (TARGET_64BIT && ix86_cmodel != CM_KERNEL)
+	    fputs ("fs", file);
+	  else
+	    fputs ("gs", file);
+	  return;
+
 	default:
 	    output_operand_lossage ("invalid operand code '%c'", code);
 	}
@@ -12984,7 +13027,8 @@ ix86_print_operand (FILE *file, rtx x, int code)
 static bool
 ix86_print_operand_punct_valid_p (unsigned char code)
 {
-  return (code == '*' || code == '+' || code == '&' || code == ';');
+  return (code == '@' || code == '*' || code == '+'
+	  || code == '&' || code == ';');
 }
 
 /* Print a memory operand whose address is ADDR.  */
@@ -26184,6 +26228,32 @@ ix86_secondary_reload (bool in_p, rtx x, reg_class_t rclass,
   return NO_REGS;
 }
 
+/* Implement TARGET_CLASS_LIKELY_SPILLED_P.  */
+
+static bool
+ix86_class_likely_spilled_p (reg_class_t rclass)
+{
+  switch (rclass)
+    {
+      case AREG:
+      case DREG:
+      case CREG:
+      case BREG:
+      case AD_REGS:
+      case SIREG:
+      case DIREG:
+      case SSE_FIRST_REG:
+      case FP_TOP_REG:
+      case FP_SECOND_REG:
+	return true;
+
+      default:
+	break;
+    }
+
+  return false;
+}
+
 /* If we are copying between general and FP registers, we need a memory
    location. The same is true for SSE and MMX registers.
 
@@ -31701,6 +31771,9 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD ix86_secondary_reload
+
+#undef TARGET_CLASS_LIKELY_SPILLED_P
+#define TARGET_CLASS_LIKELY_SPILLED_P ix86_class_likely_spilled_p
 
 #undef TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST \

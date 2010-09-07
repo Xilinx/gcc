@@ -5681,18 +5681,21 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
   auto_node = type_uses_auto (type);
   if (auto_node)
     {
+      tree d_init;
       if (init == NULL_TREE)
 	{
 	  error ("declaration of %q#D has no initializer", decl);
 	  TREE_TYPE (decl) = error_mark_node;
 	  return;
 	}
-      if (TREE_CODE (init) == TREE_LIST)
-	init = build_x_compound_expr_from_list (init, ELK_INIT,
-						tf_warning_or_error);
-      if (describable_type (init))
+      d_init = init;
+      if (TREE_CODE (d_init) == TREE_LIST)
+	d_init = build_x_compound_expr_from_list (d_init, ELK_INIT,
+						  tf_warning_or_error);
+      if (describable_type (d_init))
 	{
-	  type = TREE_TYPE (decl) = do_auto_deduction (type, init, auto_node);
+	  type = TREE_TYPE (decl) = do_auto_deduction (type, d_init,
+						       auto_node);
 	  if (type == error_mark_node)
 	    return;
 	}
@@ -8115,7 +8118,8 @@ grokdeclarator (const cp_declarator *declarator,
 	 common.  With no options, it is allowed.  With -Wreturn-type,
 	 it is a warning.  It is only an error with -pedantic-errors.  */
       is_main = (funcdef_flag
-		 && dname && MAIN_NAME_P (dname)
+		 && dname && TREE_CODE (dname) == IDENTIFIER_NODE
+		 && MAIN_NAME_P (dname)
 		 && ctype == NULL_TREE
 		 && in_namespace == NULL_TREE
 		 && current_namespace == global_namespace);
@@ -11623,10 +11627,11 @@ finish_enum (tree enumtype)
 
 /* Build and install a CONST_DECL for an enumeration constant of the
    enumeration type ENUMTYPE whose NAME and VALUE (if any) are provided.
+   LOC is the location of NAME.
    Assignment of sequential values by default is handled here.  */
 
 void
-build_enumerator (tree name, tree value, tree enumtype)
+build_enumerator (tree name, tree value, tree enumtype, location_t loc)
 {
   tree decl;
   tree context;
@@ -11741,12 +11746,12 @@ build_enumerator (tree name, tree value, tree enumtype)
   if (context && context == current_class_type)
     /* This enum declaration is local to the class.  We need the full
        lang_decl so that we can record DECL_CLASS_CONTEXT, for example.  */
-    decl = build_lang_decl (CONST_DECL, name, type);
+    decl = build_lang_decl_loc (loc, CONST_DECL, name, type);
   else
     /* It's a global enum, or it's local to a function.  (Note local to
-      a function could mean local to a class method.  */
-    decl = build_decl (input_location, CONST_DECL, name, type);
-
+       a function could mean local to a class method.  */
+    decl = build_decl (loc, CONST_DECL, name, type);
+  
   DECL_CONTEXT (decl) = FROB_CONTEXT (context);
   TREE_CONSTANT (decl) = 1;
   TREE_READONLY (decl) = 1;

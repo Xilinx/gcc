@@ -302,6 +302,7 @@ Eric Blake					ericb@gcc.gnu.org
 Phil Blundell					pb@futuretv.com
 Hans Boehm					hboehm@gcc.gnu.org
 Segher Boessenkool				segher@kernel.crashing.org
+Ian Bolton					ian.bolton@arm.com
 Andrea Bona					andrea.bona@st.com
 Paolo Bonzini					bonzini@gnu.org
 Neil Booth					neil@daikokuya.co.uk
@@ -455,6 +456,7 @@ Duncan Sands					baldrick@gcc.gnu.org
 Dodji Seketeli					dseketel@redhat.com
 Svein Seldal					svein@dev.seldal.com
 Thiemo Seufer					ths@networkno.de
+Marcus Shawcroft				marcus.shawcroft@arm.com
 Johannes Singler				singler@kit.edu
 Franz Sirl					franz.sirl-kernel@lauterbach.com
 Jan Sjodin					jan.sjodin@amd.com

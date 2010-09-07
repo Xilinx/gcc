@@ -14138,7 +14138,6 @@ rs6000_check_sdmode (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
     case SSA_NAME:
     case REAL_CST:
     case MEM_REF:
-    case MISALIGNED_INDIRECT_REF:
     case VIEW_CONVERT_EXPR:
       if (TYPE_MODE (TREE_TYPE (*tp)) == SDmode)
 	return *tp;
@@ -19715,6 +19714,9 @@ rs6000_emit_prologue (void)
                               && df_regs_ever_live_p (STATIC_CHAIN_REGNUM)
 			      && call_used_regs[STATIC_CHAIN_REGNUM]);
   HOST_WIDE_INT sp_offset = 0;
+
+  if (flag_stack_usage)
+    current_function_static_stack_size = info->total_size;
 
   if (flag_stack_check == STATIC_BUILTIN_STACK_CHECK && info->total_size)
     rs6000_emit_probe_stack_range (STACK_CHECK_PROTECT, info->total_size);

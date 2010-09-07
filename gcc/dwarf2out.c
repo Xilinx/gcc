@@ -471,7 +471,6 @@ static void output_cfi (dw_cfi_ref, dw_fde_ref, int);
 static void output_cfi_directive (dw_cfi_ref);
 static void output_call_frame_info (int);
 static void dwarf2out_note_section_used (void);
-static void flush_queued_reg_saves (void);
 static bool clobbers_queued_reg_save (const_rtx);
 static void dwarf2out_frame_debug_expr (rtx, const char *);
 
@@ -1712,8 +1711,8 @@ queue_reg_save (const char *label, rtx reg, rtx sreg, HOST_WIDE_INT offset)
 
 /* Output all the entries in QUEUED_REG_SAVES.  */
 
-static void
-flush_queued_reg_saves (void)
+void
+dwarf2out_flush_queued_reg_saves (void)
 {
   struct queued_reg_save *q;
 
@@ -2458,7 +2457,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
             {
 	      /* We interpret reg_save differently with stack_realign set.
 		 Thus we must flush whatever we have queued first.  */
-	      flush_queued_reg_saves ();
+	      dwarf2out_flush_queued_reg_saves ();
 
               gcc_assert (cfa_store.reg == REGNO (XEXP (src, 0)));
               fde->stack_realign = 1;
@@ -2705,7 +2704,7 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
       size_t i;
 
       /* Flush any queued register saves.  */
-      flush_queued_reg_saves ();
+      dwarf2out_flush_queued_reg_saves ();
 
       /* Set up state for generating call frame debug info.  */
       lookup_cfa (&cfa);
@@ -2733,7 +2732,7 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
     }
 
   if (!NONJUMP_INSN_P (insn) || clobbers_queued_reg_save (insn))
-    flush_queued_reg_saves ();
+    dwarf2out_flush_queued_reg_saves ();
 
   if (!RTX_FRAME_RELATED_P (insn))
     {
@@ -2841,7 +2840,7 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
      We could probably check just once, here, but this is safer than
      removing the check above.  */
   if (clobbers_queued_reg_save (insn))
-    flush_queued_reg_saves ();
+    dwarf2out_flush_queued_reg_saves ();
 }
 
 /* Determine if we need to save and restore CFI information around this
@@ -6043,9 +6042,6 @@ static GTY ((param_is (struct vcall_insn))) htab_t vcall_insn_table;
 
 /* Record whether the function being analyzed contains inlined functions.  */
 static int current_function_has_inlines;
-#if 0 && defined (MIPS_DEBUGGING_INFO)
-static int comp_unit_has_inlines;
-#endif
 
 /* The last file entry emitted by maybe_emit_file().  */
 static GTY(()) struct dwarf_file_data * last_emitted_file;
@@ -15234,7 +15230,6 @@ loc_list_from_tree (tree loc, int want_address)
 	return 0;
       /* Fallthru.  */
     case INDIRECT_REF:
-    case MISALIGNED_INDIRECT_REF:
       list_ret = loc_list_from_tree (TREE_OPERAND (loc, 0), 0);
       have_address = 1;
       break;
@@ -16256,7 +16251,8 @@ rtl_for_decl_init (tree init, tree type)
     ;
   /* Vectors only work if their mode is supported by the target.
      FIXME: generic vectors ought to work too.  */
-  else if (TREE_CODE (type) == VECTOR_TYPE && TYPE_MODE (type) == BLKmode)
+  else if (TREE_CODE (type) == VECTOR_TYPE
+	   && !VECTOR_MODE_P (TYPE_MODE (type)))
     ;
   /* If the initializer is something that we know will expand into an
      immediate RTL constant, expand it now.  We must be careful not to
@@ -18960,18 +18956,6 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 
       current_function_has_inlines = 0;
       decls_for_scope (outer_scope, subr_die, 0);
-
-#if 0 && defined (MIPS_DEBUGGING_INFO)
-      if (current_function_has_inlines)
-	{
-	  add_AT_flag (subr_die, DW_AT_MIPS_has_inlines, 1);
-	  if (! comp_unit_has_inlines)
-	    {
-	      add_AT_flag (comp_unit_die, DW_AT_MIPS_has_inlines, 1);
-	      comp_unit_has_inlines = 1;
-	    }
-	}
-#endif
     }
   /* Add the calling convention attribute if requested.  */
   add_calling_convention_attribute (subr_die, decl);
@@ -20477,7 +20461,7 @@ gen_decl_die (tree decl, tree origin, dw_die_ref context_die)
       break;
 
     case CONST_DECL:
-      if (!is_fortran ())
+      if (!is_fortran () && !is_ada ())
 	{
 	  /* The individual enumerators of an enum type get output when we output
 	     the Dwarf representation of the relevant enum type itself.  */
@@ -20888,7 +20872,7 @@ dwarf2out_decl (tree decl)
     case CONST_DECL:
       if (debug_info_level <= DINFO_LEVEL_TERSE)
 	return;
-      if (!is_fortran ())
+      if (!is_fortran () && !is_ada ())
 	return;
       if (TREE_STATIC (decl) && decl_function_context (decl))
 	context_die = lookup_decl_die (DECL_CONTEXT (decl));
