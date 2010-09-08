@@ -1,3 +1,5 @@
+// Example from issue 1125 drafting; D() and v were well-formed with the
+// wording approved in Rapperswil, now seems they should be ill-formed.
 // { dg-options "-std=c++0x -pedantic-errors" }
 
 struct B {
@@ -8,7 +10,7 @@ struct B {
 int global; // not constant
 
 struct D : B {
-  constexpr D() : B(global) { }   // ok
+  constexpr D() : B(global) { }   // { dg-error "global|argument" }
 };
 
 struct A2 {
@@ -17,6 +19,6 @@ struct A2 {
 };
 
 // ok, constructor call initializes m with the value 42 after substitution
-constexpr int v = A2(true, global).m;
+constexpr int v = A2(true, global).m; // { dg-error "global" }
 // error: initializer for m is "x", which is non-constant
 constexpr int w = A2(false, global).m; // { dg-error "global" }

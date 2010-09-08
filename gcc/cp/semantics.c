@@ -5670,12 +5670,13 @@ cxx_eval_builtin_function_call (const constexpr_call *call, tree t,
 
 static void
 cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
-                             constexpr_call *new_call)
+                             constexpr_call *new_call,
+			     bool allow_non_constant,
+			     bool *non_constant_p)
 {
   const int nargs = call_expr_nargs (t);
   tree parms = new_call->fundef->parms;
   tree fun = new_call->fundef->decl;
-  bool args_nonconstant = false;
   int i;
   for (i = 0; parms && i < nargs; ++i, parms = TREE_CHAIN (parms))
     {
@@ -5690,9 +5691,11 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
       /* Undo integral promotion done for the target's call ABI.  */
       if (targetm.calls.promote_prototypes (type))
 	x = fold_convert (TYPE_MAIN_VARIANT (type), x);
-      arg = cxx_eval_constant_expression (old_call, x, /*allow_non*/true,
+      arg = cxx_eval_constant_expression (old_call, x, allow_non_constant,
 					  TREE_CODE (type) == REFERENCE_TYPE,
-					  &args_nonconstant);
+					  non_constant_p);
+      if (*non_constant_p && allow_non_constant)
+	return;
       new_call->bindings = tree_cons (parms, arg, new_call->bindings);
     }
 }
@@ -5756,7 +5759,10 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
           return t;
         }
     }
-  cxx_bind_parameters_in_call (old_call, t, &new_call);
+  cxx_bind_parameters_in_call (old_call, t, &new_call,
+			       allow_non_constant, non_constant_p);
+  if (*non_constant_p)
+    return t;
 
   /* If we have seen this call before, we are done.  */
   maybe_initialize_constexpr_call_table ();
@@ -6600,6 +6606,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
             or a constexpr constructor.  */
       {
         tree fun = get_function_named_in_call (t);
+        const int nargs = call_expr_nargs (t);
         if (TREE_CODE (fun) != FUNCTION_DECL)
           {
 	    if (potential_constant_expression (fun, flags))
@@ -6619,8 +6626,36 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
               error ("%qD is not %<constexpr%>", fun);
             return false;
           }
-	/* Don't check arguments; they might not actually be used
-	   in the constexpr function.  */
+        for (i = 0; i < nargs; ++i)
+          {
+            tree x = get_nth_callarg (t, i);
+            /* A call to a non-static member function takes the
+               address of the object as the first argument.
+               But in a constant expression the address will be folded
+	       away, so look through it now.  */
+            if (i == 0 && DECL_NONSTATIC_MEMBER_P (fun)
+                && !DECL_CONSTRUCTOR_P (fun))
+	      {
+		if (TREE_CODE (x) == ADDR_EXPR)
+		  x = TREE_OPERAND (x, 0);
+		if (is_this_parameter (x))
+		  /* OK.  */;
+                else if (!potential_constant_expression (x, flags))
+		  {
+		    if (flags & tf_error)
+		      error ("object argument is not a potential constant "
+			     "expression");
+		    return false;
+		  }
+              }
+	    else if (!potential_constant_expression (x, flags))
+	      {
+		if (flags & tf_error)
+		  error ("argument in position %qP is not a "
+			 "potential constant expression", i);
+		return false;
+              }
+          }
         return true;
       }
 
