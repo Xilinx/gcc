@@ -4788,14 +4788,10 @@ check_for_uninitialized_const_var (tree decl)
 {
   tree type = strip_array_types (TREE_TYPE (decl));
 
-  if (TREE_CODE (decl) == VAR_DECL && DECL_DECLARED_CONSTEXPR_P (decl)
-      && DECL_INITIAL (decl) == NULL)
-    error ("missing initializer for constexpr %qD", decl);
-
   /* ``Unless explicitly declared extern, a const object does not have
      external linkage and must be initialized. ($8.4; $12.1)'' ARM
      7.1.6 */
-  else if (TREE_CODE (decl) == VAR_DECL
+  if (TREE_CODE (decl) == VAR_DECL
       && TREE_CODE (type) != REFERENCE_TYPE
       && CP_TYPE_CONST_P (type)
       && (!TYPE_NEEDS_CONSTRUCTING (type)

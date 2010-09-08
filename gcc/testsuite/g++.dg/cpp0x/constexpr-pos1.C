@@ -41,9 +41,7 @@ private:
   int val;
 };
 
-// Marked XFAIL so I remember to check whether this should be an error at all
-// (if so, it should move to -neg1)
-constexpr Length l1;		// { dg-error "missing init" "" { xfail *-*-* } }
+constexpr Length l1;
 constexpr Length l2(12);
 
 struct pixel2 {

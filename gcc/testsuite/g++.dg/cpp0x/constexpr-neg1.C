@@ -57,11 +57,11 @@ constexpr int bar(int x, int y) // { dg-error "previously defined here" }
 int bar(int x, int y)		// { dg-error "redefinition" }
 { return x * 2 + 3 * y; }
 
-struct pixel2 {
+struct pixel2 {	   // { dg-message "no user-provided default constructor" }
   int x, y;
 };
 constexpr pixel2 ur = { 1294, 1024 };// OK
-constexpr pixel2 origin;	     // { dg-error "missing initializer" }
+constexpr pixel2 origin;	     // { dg-error "uninitialized const" }
 
 constexpr const int* addr(const int& ir) { return &ir; } // OK
 
