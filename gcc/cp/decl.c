@@ -4381,7 +4381,8 @@ start_decl (const cp_declarator *declarator,
       /* This is a const variable with implicit 'static'.  Set
 	 DECL_THIS_STATIC so we can tell it from variables that are
 	 !TREE_PUBLIC because of the anonymous namespace.  */
-      gcc_assert (CP_TYPE_CONST_P (TREE_TYPE (decl)));
+      gcc_assert (CP_TYPE_CONST_P (TREE_TYPE (decl))
+		  || TREE_CODE (TREE_TYPE (decl)) == REFERENCE_TYPE);
       DECL_THIS_STATIC (decl) = 1;
     }
 
