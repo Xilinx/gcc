@@ -6490,9 +6490,13 @@ tree
 maybe_constant_init (tree t)
 {
   t = maybe_constant_value (t);
-  if (TREE_CODE (t) == TARGET_EXPR
-      && TREE_CODE (TARGET_EXPR_INITIAL (t)) == CONSTRUCTOR)
-    t = TARGET_EXPR_INITIAL (t);
+  if (TREE_CODE (t) == TARGET_EXPR)
+    {
+      tree init = TARGET_EXPR_INITIAL (t);
+      if (TREE_CODE (init) == CONSTRUCTOR
+	  && TREE_CONSTANT (init))
+	t = init;
+    }
   return t;
 }
 
