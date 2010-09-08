@@ -122,9 +122,16 @@ doc/python.pdf:
 python.html: 
 
 python.install-common: installdirs
-	-rm -f $(DESTDIR)$(bindir)/$(GCCPY_INSTALL_NAME)$(exeext)
-	-$(INSTALL_PROGRAM) gccpy$(exeext) $(DESTDIR)$(bindir)/$(GCCPY_INSTALL_NAME)$(exeext)
-	-chmod a+x $(DESTDIR)$(bindir)/$(GCCPY_INSTALL_NAME)$(exeext)
+	for name in $(PYTHON_EXECS); \
+	do \
+	   if [ -f $$name ] ; then \
+	    name2="`echo \`basename $$name\` | sed -e '$(program_transform_name)' `"; \
+	    rm -f $(DESTDIR)$(bindir)/$$name2$(exeext); \
+	    echo $(INSTALL_PROGRAM) $$name$(exeext) $(DESTDIR)$(bindir)/$$name2$(exeext); \
+	    $(INSTALL_PROGRAM) $$name$(exeext) $(DESTDIR)$(bindir)/$$name2$(exeext); \
+	    chmod a+x $(DESTDIR)$(bindir)/$$name2$(exeext); \
+	  fi ; \
+	done
 
 python.install-plugin:
 

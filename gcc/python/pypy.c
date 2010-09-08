@@ -552,6 +552,7 @@ tree gpy_main_method_decl( VEC(tree,gc) * block, gpy_context_branch * co )
 static
 tree gpy_build_callable_record_type( void )
 {
+  /*
   tree type = lang_hooks.types.make_type ( RECORD_TYPE );
   tree field, fields;
 
@@ -565,7 +566,9 @@ tree gpy_build_callable_record_type( void )
   fields = field;
 
   fields = build_decl( BUILTINS_LOCATION,
-		       FIELD_DECL, NULL_TREE, void )
+		       FIELD_DECL, NULL_TREE, void );
+  */
+  return;
 }
 
 void gpy_write_globals( void )
