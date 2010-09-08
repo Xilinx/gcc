@@ -505,7 +505,7 @@ tree gpy_main_method_decl( VEC(tree,gc) * block, gpy_context_branch * co )
 	  block_decl_vec[ idy ] = x;
 	  idy++;
 	}
-      block_decl_vec[ idy ] = main_ret; idy++;
+      //block_decl_vec[ idy ] = main_ret; idy++;
       append_to_statement_list( gpy_builtin_get_finalize_block_call( block_decl_len,
 								     block_decl_vec ),
 				&main_stmts );
