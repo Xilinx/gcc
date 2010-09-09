@@ -782,6 +782,9 @@ apply_poly_transforms (scop_p scop)
 	transform_done |= scop_do_interchange (scop);
     }
 
+  if (flag_loop_flatten)
+    transform_done |= flatten_all_loops (scop);
+
   if (flag_graphite_write)
     {
       graphite_file = init_graphite_out_file (file_scop_number);
@@ -1686,7 +1689,8 @@ pbb_number_of_iterations_at_time (poly_bb_p pbb,
       ppl_delete_Constraint_System (cs);
     }
 
-  /* Compute the lower bound on the original iteration domain.  */
+  /* Compute the lower bound on the original iteration domain and add
+     it to the scattering.  */
   ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron
     (&sctr_lb, PBB_TRANSFORMED_SCATTERING (pbb));
   for (i = 0; i < (int) domain_dim; i++)
