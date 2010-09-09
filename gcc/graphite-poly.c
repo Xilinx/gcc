@@ -1636,6 +1636,7 @@ pbb_number_of_iterations_at_time (poly_bb_p pbb,
 {
   ppl_Pointset_Powerset_C_Polyhedron_t domain, sctr_lb, sctr_ub;
   ppl_dimension_type domain_dim, sctr_dim;
+  graphite_dim_t dim_iter_domain = pbb_dim_iter_domain (pbb);
   ppl_Linear_Expression_t le;
   mpz_t lb, ub, diff, one;
   int i;
@@ -1646,6 +1647,7 @@ pbb_number_of_iterations_at_time (poly_bb_p pbb,
     (&domain, PBB_DOMAIN (pbb));
 
   ppl_Pointset_Powerset_C_Polyhedron_space_dimension (domain, &domain_dim);
+
   mpz_init (diff);
   mpz_init (lb);
   mpz_init (ub);
@@ -1656,7 +1658,7 @@ pbb_number_of_iterations_at_time (poly_bb_p pbb,
      that upper bound to the scattering.  */
   ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron
     (&sctr_ub, PBB_TRANSFORMED_SCATTERING (pbb));
-  for (i = 0; i < (int) domain_dim; i++)
+  for (i = 0; i < (int) dim_iter_domain; i++)
     {
       ppl_Linear_Expression_t eq;
       ppl_Constraint_t pc;
@@ -1693,7 +1695,7 @@ pbb_number_of_iterations_at_time (poly_bb_p pbb,
      it to the scattering.  */
   ppl_new_Pointset_Powerset_C_Polyhedron_from_C_Polyhedron
     (&sctr_lb, PBB_TRANSFORMED_SCATTERING (pbb));
-  for (i = 0; i < (int) domain_dim; i++)
+  for (i = 0; i < (int) dim_iter_domain; i++)
     {
       ppl_Linear_Expression_t eq;
       ppl_Constraint_t pc;
