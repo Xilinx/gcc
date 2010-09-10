@@ -5565,8 +5565,7 @@ maybe_initialize_constexpr_call_table (void)
 static inline bool
 is_this_parameter (tree t)
 {
-  /* FIXME can we just use current_class_ptr?  */
-  return DECL_P (t) && DECL_NAME (t) == this_identifier;
+  return t == current_class_ptr;
 }
 
 /* We have an expression tree T that represents a call, either CALL_EXPR
@@ -6495,26 +6494,26 @@ maybe_constant_init (tree t)
   return t;
 }
 
-/* Return true if DECL has automatic or thread local storage.
-
-   FIXME decl_linkage == lk_none?  no, storage duration != linkage.
-   Should have decl_storage_duration function.  */
+/* Return true if the object referred to by REF has automatic or thread
+   local storage.  */
 
 static bool
-has_automatic_or_tls (tree decl)
+has_automatic_or_tls (tree ref)
 {
-  switch (TREE_CODE (decl))
-    {
-    case PARM_DECL:
-      return true;
+  enum machine_mode mode;
+  HOST_WIDE_INT bitsize, bitpos;
+  tree offset;
+  int volatilep = 0, unsignedp = 0;
+  tree decl = get_inner_reference (ref, &bitsize, &bitpos, &offset,
+				   &mode, &unsignedp, &volatilep, false);
+  duration_kind dk;
 
-    case VAR_DECL:
-      return DECL_THREAD_LOCAL_P (decl)
-         || (DECL_FUNCTION_SCOPE_P (decl) && !TREE_STATIC (decl));
-
-    default:
-      return false;
-    }
+  /* If there isn't a decl in the middle, we don't know the linkage here,
+     and this isn't a constant expression anyway.  */
+  if (!DECL_P (decl))
+    return false;
+  dk = decl_storage_duration (decl);
+  return (dk == dk_auto || dk == dk_thread);
 }
 
 /* Return true if the DECL designates a builtin function that is
