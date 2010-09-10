@@ -5238,9 +5238,6 @@ ensure_literal_type_for_constexpr_object (tree decl)
 
 typedef struct GTY(()) constexpr_fundef {
   tree decl;
-  /* FIXME why store parms rather than get them from decl? Because a later
-     redecl could mess them up?  Fix that in duplicate_decls if so.  */
-  tree parms;
   tree body;
 } constexpr_fundef;
 
@@ -5278,7 +5275,7 @@ constexpr_fundef_hash (const void *p)
 static constexpr_fundef *
 retrieve_constexpr_fundef (tree fun)
 {
-  constexpr_fundef fundef = { NULL, NULL, NULL };
+  constexpr_fundef fundef = { NULL, NULL };
   if (constexpr_fundef_table == NULL)
     return NULL;
 
@@ -5347,10 +5344,6 @@ validate_constexpr_fundecl (tree fun)
                                               constexpr_fundef_equal,
                                               ggc_free);
   entry.decl = fun;
-  /* We don't store parameters at this point.  The parameters that
-     matter are the ones we see in the definition.
-     register_constexpr_fundef will store them.   */
-  entry.parms = NULL;
   entry.body = NULL;
   slot = (constexpr_fundef **)
     htab_find_slot (constexpr_fundef_table, &entry, INSERT);
@@ -5482,7 +5475,6 @@ register_constexpr_fundef (tree fun, tree body)
       DECL_DECLARED_CONSTEXPR_P (fun) = false;
       return NULL;
     }
-  fundef->parms = DECL_ARGUMENTS (fun);
   fundef->body = body;
   return fun;
 }
@@ -5678,8 +5670,8 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
 			     bool *non_constant_p)
 {
   const int nargs = call_expr_nargs (t);
-  tree parms = new_call->fundef->parms;
   tree fun = new_call->fundef->decl;
+  tree parms = DECL_ARGUMENTS (fun);
   int i;
   for (i = 0; parms && i < nargs; ++i, parms = TREE_CHAIN (parms))
     {
