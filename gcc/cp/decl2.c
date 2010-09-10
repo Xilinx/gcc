@@ -921,11 +921,9 @@ grokfield (const cp_declarator *declarator,
 	init = NULL_TREE;
       else if (!processing_template_decl)
 	{
-	  /* FIXME */
 	  if (TREE_CODE (init) == CONSTRUCTOR)
 	    init = digest_init (TREE_TYPE (value), init);
-	  else
-	    init = maybe_constant_init (init);
+	  init = maybe_constant_init (init);
 
 	  if (init != error_mark_node && !TREE_CONSTANT (init))
 	    {
@@ -3531,9 +3529,12 @@ decl_defined_p (tree decl)
       variables of integral or enumeration types initialized with
       constant expressions ...
 
+      C++0x also allows constexpr variables and temporaries initialized
+      with constant expressions.  We handle the former here, but the latter
+      are just folded away in cxx_eval_constant_expression.
+
    The standard does not require that the expression be non-volatile.
    G++ implements the proposed correction in DR 457.  */
-/* FIXME temporaries too? or is that covered by TARGET_EXPR?  */
 
 bool
 decl_constant_var_p (tree decl)

@@ -17576,9 +17576,11 @@ dependent_scope_p (tree scope)
    [temp.dep.constexpr].  EXPRESSION is already known to be a constant
    expression.  */
 
-/* FIXME this predicate is not appropriate for general expressions; we want
-   a potentially-constant-and-not-value-dependent predicate and an
-   instantiation-dependent predicate to use on general exprs.  */
+/* FIXME this predicate is not appropriate for general expressions; the
+   predicates we want instead are "valid constant expression, value
+   dependent or not?", "really constant expression, not value dependent?"
+   and "instantiation-dependent?".  Try to integrate with
+   potential_constant_expression?  */
 
 bool
 value_dependent_expression_p (tree expression)
@@ -17719,12 +17721,8 @@ value_dependent_expression_p (tree expression)
 	    tree op = CALL_EXPR_ARG (expression, i);
 	    /* In a call to a constexpr member function, look through the
 	       implicit ADDR_EXPR on the object argument so that it doesn't
-	       cause the call to be considered value-dependent.  */
-	    /* FIXME maybe integrate value_dependent_expression_p with
-	       cxx_eval_constant_expression somehow?  Value dependency is
-	       only defined for constant expressions, so it's wrong to test it first.
-	       Really, what we are trying to find is the set of expressions that
-	       are both constant and not value-dependent.  */
+	       cause the call to be considered value-dependent.  We also
+	       look through it in potential_constant_expression.  */
 	    if (i == 0 && fn && DECL_DECLARED_CONSTEXPR_P (fn)
 		&& DECL_NONSTATIC_MEMBER_FUNCTION_P (fn)
 		&& TREE_CODE (op) == ADDR_EXPR)

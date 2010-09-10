@@ -5214,10 +5214,6 @@ extern tree maybe_constant_init (tree);
 extern bool constant_expression_p (tree);
 extern bool reduced_constant_expression_p (tree);
 
-/* True if C++0x-style conctant expresions are allowed.  */
-#define generalized_constant_expression_allowed() \
-  ((cxx_dialect >= cxx0x) || in_system_header)
-
 enum {
   BCS_NO_SCOPE = 1,
   BCS_TRY_BLOCK = 2,

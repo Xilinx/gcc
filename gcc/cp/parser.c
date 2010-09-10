@@ -14500,7 +14500,6 @@ cp_parser_direct_declarator (cp_parser* parser,
 		= cp_parser_constant_expression (parser,
 						 /*allow_non_constant=*/true,
 						 &non_constant_p);
-	      /* FIXME generalized_constant_expression_allowed */
 	      if (!non_constant_p || cxx_dialect >= cxx0x)
 		/* OK */;
 	      /* Normally, the array bound must be an integral constant

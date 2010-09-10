@@ -5835,7 +5835,6 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	 constant static data member, then it can be used in future
 	 integral constant expressions, and its value must be
 	 available. */
-      /* FIXME make sure this works in c++0x */
       if (!(init
 	    && DECL_CLASS_SCOPE_P (decl)
 	    && TREE_CONSTANT (decl)

@@ -609,7 +609,7 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
       return error_mark_node;
     }
 
-  /* FIXME remove? */
+  /* FIXME remove when moving to c_fully_fold model.  */
   e = integral_constant_value (e);
   if (error_operand_p (e))
     return error_mark_node;

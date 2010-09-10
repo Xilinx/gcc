@@ -1547,7 +1547,7 @@ defaulted_late_check (tree fn)
       tree eh_spec = TYPE_RAISES_EXCEPTIONS (TREE_TYPE (implicit_fn));
       TREE_TYPE (fn) = build_exception_variant (TREE_TYPE (fn), eh_spec);
       if (DECL_DECLARED_CONSTEXPR_P (implicit_fn))
-	/* FIXME should we do this for out-of-class too? Should it be OK to
+	/* Hmm...should we do this for out-of-class too? Should it be OK to
 	   add constexpr later like inline, rather than requiring
 	   declarations to match?  */
 	DECL_DECLARED_CONSTEXPR_P (fn) = true;
