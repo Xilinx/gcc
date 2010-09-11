@@ -2951,8 +2951,6 @@ build_vec_init (tree base, tree maxindex, tree init,
     }
 
   /* FIXME pull out constant value when from_array? */
-  /* FIXME handle constant init of some elements, non-constant init of
-     others */
 
   if (init != NULL_TREE && TREE_CODE (init) == CONSTRUCTOR)
     {
@@ -2960,9 +2958,14 @@ build_vec_init (tree base, tree maxindex, tree init,
 	 brace-enclosed initializers.  */
       unsigned HOST_WIDE_INT idx;
       tree field, elt;
-      bool try_const = (literal_type_p (type)
+      bool try_const = (literal_type_p (inner_elt_type)
 			|| TYPE_HAS_CONSTEXPR_CTOR (inner_elt_type));
       bool saw_non_const = false;
+      bool saw_const = false;
+      /* If we're initializing a static array, we want to do static
+	 initialization of any elements with constant initializers even if
+	 some are non-constant.  */
+      bool do_static_init = (DECL_P (obase) && TREE_STATIC (obase));
       VEC(constructor_elt,gc) *new_vec;
       from_array = 0;
 
@@ -2997,13 +3000,24 @@ build_vec_init (tree base, tree maxindex, tree init,
 	      if (reduced_constant_expression_p (e))
 		{
 		  CONSTRUCTOR_APPEND_ELT (new_vec, field, e);
-		  one_init = build2 (INIT_EXPR, type, baseref, e);
+		  if (do_static_init)
+		    one_init = NULL_TREE;
+		  else
+		    one_init = build2 (INIT_EXPR, type, baseref, e);
+		  saw_const = true;
 		}
 	      else
-		saw_non_const = true;
+		{
+		  if (do_static_init)
+		    CONSTRUCTOR_APPEND_ELT (new_vec, field,
+					    build_zero_init (TREE_TYPE (e),
+							     NULL_TREE, true));
+		  saw_non_const = true;
+		}
 	    }
 
-	  finish_expr_stmt (one_init);
+	  if (one_init)
+	    finish_expr_stmt (one_init);
 	  current_stmt_tree ()->stmts_are_full_exprs_p = 0;
 
 	  finish_expr_stmt (cp_build_unary_op (PREINCREMENT_EXPR, base, 0,
@@ -3016,6 +3030,8 @@ build_vec_init (tree base, tree maxindex, tree init,
 	{
 	  if (!saw_non_const)
 	    const_init = build_constructor (atype, new_vec);
+	  else if (do_static_init && saw_const)
+	    DECL_INITIAL (obase) = build_constructor (atype, new_vec);
 	  else
 	    VEC_free (constructor_elt, gc, new_vec);
 	}
