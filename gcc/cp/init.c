@@ -2950,7 +2950,7 @@ build_vec_init (tree base, tree maxindex, tree init,
       try_block = begin_try_block ();
     }
 
-  /* FIXME pull out constant value when from_array? */
+  /* Maybe pull out constant value when from_array? */
 
   if (init != NULL_TREE && TREE_CODE (init) == CONSTRUCTOR)
     {
@@ -2958,6 +2958,7 @@ build_vec_init (tree base, tree maxindex, tree init,
 	 brace-enclosed initializers.  */
       unsigned HOST_WIDE_INT idx;
       tree field, elt;
+      /* Should we try to create a constant initializer?  */
       bool try_const = (literal_type_p (inner_elt_type)
 			|| TYPE_HAS_CONSTEXPR_CTOR (inner_elt_type));
       bool saw_non_const = false;
