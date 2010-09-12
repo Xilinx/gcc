@@ -1,3 +1,199 @@
+2010-09-11  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* mathbuiltins.def: Do not defined huge_val built-in.
+	* trans-const.c (gfc_build_inf_or_huge): New function.
+	* trans-const.h (gfc_build_inf_or_huge): New prototype.
+	* f95-lang.c (gfc_init_builtin_functions): Don't defined
+	huge_val built-ins.
+	* trans-intrinsic.c (gfc_build_intrinsic_lib_fndecls): We don't
+	have functions of type (*) (void) anymore.
+	(gfc_conv_intrinsic_minmaxloc): Call gfc_build_inf_or_huge.
+	(gfc_conv_intrinsic_nearest): Call gfc_build_inf_or_huge instead
+	of generating a call to huge_val().
+
+2010-09-11  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* gfortran.h (gfc_expr): Remove inline_noncopying_intrinsic attribute.
+	* dependency.c (gfc_check_dependency): Don't depend on
+	expr's inline_noncopying_intrinsic_attribute.
+	* dependency.c (gfc_check_argument_var_dependency,
+	gfc_check_argument_dependency): Ditto. Recursively check dependency
+	as NOT_ELEMENTAL in the non-copying (=transpose) case.
+	* trans-intrinsic.c (gfc_conv_intrinsic_function): Ditto.
+	* resolve.c (find_noncopying_intrinsics): Remove.
+	(resolve_function, resolve_call): Remove call to
+	find_noncopying_intrinsics.
+
+	* trans-array.c (gfc_conv_array_transpose): Remove.
+	(gfc_walk_subexpr): Make non-static. Move prototype...
+	* trans-array.h (gfc_walk_subexpr): ... here.
+	* trans-intrinsic.c (gfc_conv_intrinsic_function): Update transpose
+	handling.
+	(walk_inline_intrinsic_transpose, walk_inline_intrinsic_function,
+	gfc_inline_intrinsic_function_p): New.
+	(gfc_is_intrinsic_libcall): Return early in inline intrinsic case.
+	Remove transpose from the libcall list.
+	(gfc_walk_intrinsic_function): Special case inline intrinsic.
+	* trans.h (gfc_inline_intrinsic_function_p): New prototype.
+
+2010-09-10  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-expr.c (expr_is_variable): New function taking non-copying
+	intrinsic functions into account.
+	(gfc_trans_assignment_1): Use expr_is_variable.
+
+2010-09-10  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_conv_loop_setup): Access the shape along the
+	real array dimension instead of the scalarizer (loop) dimension.
+
+2010-09-10  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_conv_resolve_dependencies): Handle same-array
+	transposed references.
+
+2010-09-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45186
+	* trans.h (build1_stat_loc, build2_stat_loc, build3_stat_loc,
+	build4_stat_loc): New inline functions.
+	(build1_loc, build2_loc, build3_loc, build4_loc): New macros.
+	(build1_v, build2_v, build3_v, build4_v): Use input_location
+	as locus.
+	* trans-array.c (gfc_trans_scalarized_loop_end,
+	gfc_conv_array_parameter): Replace build[1-4] by build[1-4]_loc.
+	* trans.c (gfc_build_addr_expr, gfc_build_array_ref,
+	gfc_finish_wrapped_block): Ditto.
+	* trans-decl.c (gfc_init_default_dt, init_intent_out_dt): Ditto.
+	* trans-expr.c (gfc_conv_missing_dummy,
+	gfc_trans_alloc_subarray_assign, gfc_trans_zero_assign): Ditto.
+	* trans-openmp.c (gfc_omp_clause_default_ctor,
+	gfc_trans_omp_critical, gfc_trans_omp_parallel,
+	gfc_trans_omp_parallel_do, gfc_trans_omp_parallel_sections,
+	gfc_trans_omp_parallel_workshare, gfc_trans_omp_sections
+	gfc_trans_omp_single, gfc_trans_omp_task,
+	gfc_trans_omp_workshare): Ditto.
+
+2010-09-09  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* fortran/expr.c (check_inquiry): OPTIONAL attribute is not allowed
+	for dummy argument that appears in a specification statement.
+
+2010-09-09  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_get_array_ref_dim): New function.
+	(gfc_trans_create_temp_array): Reconstruct array
+	bounds from loop bounds. Use array bounds instead of loop bounds.
+
+2010-09-09  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_set_loop_bounds_from_array_spec):
+	Get the array dimension from the dim array.
+
+2010-09-09  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_trans_preloop_setup): Unconditionally use the
+	dim array to get the stride in the innermost loop.
+
+2010-09-09  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_trans_create_temp_array): Don't set dim array.
+	(gfc_conv_loop_setup, gfc_walk_function_expr): Set dim array.
+	* trans-intrinsic.c (gfc_walk_intrinsic_libfunc): Ditto.
+
+2010-09-09  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_trans_create_temp_array): Assert loop dimension
+	and info dimension are the same. Loop over loop dimension.
+	* trans-stmt.c (gfc_conv_elemental_dependencies): Set loop dimension
+
+2010-09-09  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_conv_array_transpose): Change generated descriptor
+	name
+
+2010-09-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43665
+	* intrincic.texi (FGET, FGETC, FPUT, FPUTC, FSTAT, GETCWD, KILL,
+	STAT): Show also syntax for the function version.
+	* intrinsic.c (add_sym_1s_intent, add_sym_2s_intent,
+	 add_sym_3s_intent): Remove function.
+	(add_sym_1s, add_sym_2s, add_sym_3s): Take always the intent
+	as argument.
+	(add_sym_2_intent): New function.
+	(add_functions): Set intent for functions which modify
+	the argument: fstat, fgetc, fget, hostnm, lstat, stat. Change
+	argument name of hostnm from "a" to "c"
+	(add_subroutines): Change add_sym_*s_intent to
+	add_sym_*s and add intent to the add_sym_*s calls.
+
+2010-09-08  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/38282
+	* intrinsic.c (add_functions): Add B{G,L}{E,T}, DSHIFT{L,R},
+	MASK{L,R}, MERGE_BITS and SHIFT{A,L,R}.
+	* gfortran.h: Define ISYM values for above intrinsics.
+	* intrinsic.h (gfc_check_bge_bgt_ble_blt, gfc_check_dshift,
+	gfc_check_mask, gfc_check_merge_bits, gfc_check_shift,
+	gfc_simplify_bge, gfc_simplify_bgt, gfc_simplify_ble,
+	gfc_simplify_blt, gfc_simplify_dshiftl, gfc_simplify_dshiftr,
+	gfc_simplify_lshift, gfc_simplify_maskl, gfc_simplify_maskr,
+	gfc_simplify_merge_bits, gfc_simplify_rshift,
+	gfc_simplify_shifta, gfc_simplify_shiftl, gfc_simplify_shiftr,
+	gfc_resolve_dshift, gfc_resolve_mask, gfc_resolve_merge_bits,
+	gfc_resolve_shift): New prototypes.
+	* iresolve.c (gfc_resolve_dshift, gfc_resolve_mask,
+	gfc_resolve_merge_bits, gfc_resolve_shift): New functions.
+	* check.c (gfc_check_bge_bgt_ble_blt, gfc_check_dshift,
+	gfc_check_mask, gfc_check_merge_bits, gfc_check_shift): New
+	functions.
+	* trans-intrinsic.c (gfc_conv_intrinsic_dshift,
+	gfc_conv_intrinsic_bitcomp, gfc_conv_intrinsic_shift,
+	gfc_conv_intrinsic_merge_bits, gfc_conv_intrinsic_mask): New
+	functions.
+	(gfc_conv_intrinsic_function): Call above static functions.
+	* intrinsic.texi: Document new intrinsics.
+	* simplify.c (gfc_simplify_bge, gfc_simplify_bgt, gfc_simplify_ble,
+	gfc_simplify_blt, gfc_simplify_dshiftl, gfc_simplify_dshiftr,
+	gfc_simplify_lshift, gfc_simplify_maskl, gfc_simplify_maskr,
+	gfc_simplify_merge_bits, gfc_simplify_rshift, 
+	gfc_simplify_shifta, gfc_simplify_shiftl, gfc_simplify_shiftr):
+	New functions.
+
+2010-09-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* frontend-passes.c (optimize_code_node): Walk block chain by default.
+
+	PR fortran/45597
+	* trans-openmp.c (gfc_trans_omp_do): Store exit/cycle labels on code
+	instead of code->block.
+
+	PR fortran/45595
+	* openmp.c (resolve_omp_do): Report not enough do loops for
+	collapse even if block->next is NULL.
+
+2010-09-07  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45576
+	* dependency.c (gfc_deb_compare_expr):  Take missing optional
+	arguments into account.
+
+2010-09-08  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* trans.h (gfor_fndecl_clz128, gfor_fndecl_ctz128): Remove.
+	* trans-decl.c (gfor_fndecl_clz128, gfor_fndecl_ctz128): Remove.
+	(gfc_build_intrinsic_function_decls): Don't build the
+	gfor_fndecl_clz128 and gfor_fndecl_ctz128.
+	* trans-intrinsic.c (gfc_conv_intrinsic_leadz,
+	gfc_conv_intrinsic_trailz): Generate inline arithmetic instead
+	of calling clz128/ctz128 library functions.
+
+2010-09-07  Jan Hubicka  <jh@suse.cz>
+
+	* trans-expr.c (gfc_conv_initializer): Set STATIC flags for
+	initializers.
+
 2010-09-07  Tobias Burnus <burnus@net-b.de>
 	
 	PR fortran/45583
@@ -865,11 +1061,11 @@
 	PR fortran/42051
 	PR fortran/44064
 	* symbol.c (changed_syms): Made static again.
-	(gfc_symbol_state): Don't conditionalize on GFC_DEBUG. 
+	(gfc_symbol_state): Don't conditionalize on GFC_DEBUG.
 	Changed conditional internal error into assert.
 	Rename function to ...
 	(gfc_enforce_clean_symbol_state): ... this.
-	* gfortran.h (gfc_symbol_state, gfc_enforce_clean_symbol_state): 
+	* gfortran.h (gfc_symbol_state, gfc_enforce_clean_symbol_state):
 	Rename the former to the latter.
 	* parse.c (decode_statement, decode_omp_directive,
 	decode_gcc_attribute): Update callers accordingly. Don't conditionalize
@@ -932,12 +1128,12 @@
 	PR fortran/42051
 	PR fortran/44064
 	PR fortran/45151
-	* intrinsic.c (gfc_get_intrinsic_sub_symbol): Commit changed symbol. 
+	* intrinsic.c (gfc_get_intrinsic_sub_symbol): Commit changed symbol.
 	* symbol.c (gen_cptr_param, gen_fptr_param, gen_shape_param,
 	gfc_copy_formal_args, gfc_copy_formal_args_intr,
 	gfc_copy_formal_args_ppc, generate_isocbinding_symbol): Ditto.
-	* parse.c (parse_derived_contains, parse_spec, parse_progunit): 
-	Call reject_statement in case of error. 
+	* parse.c (parse_derived_contains, parse_spec, parse_progunit):
+	Call reject_statement in case of error.
 	(match_deferred_characteritics): Call gfc_undo_symbols in case match
 	fails.
 
@@ -954,7 +1150,7 @@
 	PR fortran/42051
 	PR fortran/44064
 	* symbol.c (changed_syms): Made non-static.
-	* parse.c (changed_syms): Declare new external. 
+	* parse.c (changed_syms): Declare new external.
 	(next_statement): Assert changed_syms is NULL at the beginning.
 
 2010-07-30  Janus Weil  <janus@gcc.gnu.org>
@@ -1115,7 +1311,7 @@
 	a parameterized stop condition.
 	(gfc_free_equiv): Use gfc_free_equiv_until.
 	* parse.c (next_statement): Save equivalence list.
-	(reject_statement): Restore equivalence list. 
+	(reject_statement): Restore equivalence list.
 
 2010-07-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
@@ -1350,7 +1546,7 @@
 2010-07-14  Mikael Morin  <mikael@gcc.gnu.org>
 
 	* trans-array.c (gfc_conv_section_upper_bound): Remove
-	(gfc_conv_section_startstride): Don't set the upper bound in the 
+	(gfc_conv_section_startstride): Don't set the upper bound in the
 	vector subscript case.
 	(gfc_conv_loop_setup): Don't use gfc_conv_section_upper_bound
 

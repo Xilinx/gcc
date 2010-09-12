@@ -900,7 +900,7 @@ package body Sem_Type is
       --  An aggregate is compatible with an array or record type
 
       elsif T2 = Any_Composite
-        and then Ekind (T1) in E_Array_Type .. E_Record_Subtype
+        and then Is_Aggregate_Type (T1)
       then
          return True;
 
@@ -1866,6 +1866,7 @@ package body Sem_Type is
             then
                declare
                   Opnd : Node_Id;
+
                begin
                   if Nkind (N) = N_Function_Call then
                      Opnd := First_Actual (N);
@@ -1875,8 +1876,8 @@ package body Sem_Type is
 
                   if Ekind (Etype (Opnd)) = E_Anonymous_Access_Type
                     and then
-                      List_Containing (Parent (Designated_Type (Etype (Opnd))))
-                        = List_Containing (Unit_Declaration_Node (User_Subp))
+                      In_Same_List (Parent (Designated_Type (Etype (Opnd))),
+                                    Unit_Declaration_Node (User_Subp))
                   then
                      if It2.Nam = Predef_Subp then
                         return It1;
@@ -2606,7 +2607,22 @@ package body Sem_Type is
                return True;
 
             elsif Etype (Par) /= Par then
-               Par := Etype (Par);
+
+               --  If this is a private type and its parent is an interface
+               --  then use the parent of the full view (which is a type that
+               --  implements such interface)
+
+               if Is_Private_Type (Par)
+                 and then Is_Interface (Etype (Par))
+                 and then Present (Full_View (Par))
+               then
+                  Par := Etype (Full_View (Par));
+               else
+                  Par := Etype (Par);
+               end if;
+
+            --  For all other cases return False, not an Ancestor
+
             else
                return False;
             end if;
@@ -2652,6 +2668,18 @@ package body Sem_Type is
            and then not In_Instance;
       end if;
    end Is_Invisible_Operator;
+
+   --------------------
+   --  Is_Progenitor --
+   --------------------
+
+   function Is_Progenitor
+     (Iface : Entity_Id;
+      Typ   : Entity_Id) return Boolean
+   is
+   begin
+      return Implements_Interface (Typ, Iface, Exclude_Parents => True);
+   end Is_Progenitor;
 
    -------------------
    -- Is_Subtype_Of --
@@ -3032,12 +3060,12 @@ package body Sem_Type is
          return T1;
 
       elsif T2 = Any_Composite
-        and then Ekind (T1) in E_Array_Type .. E_Record_Subtype
+        and then Is_Aggregate_Type (T1)
       then
          return T1;
 
       elsif T1 = Any_Composite
-        and then Ekind (T2) in E_Array_Type .. E_Record_Subtype
+        and then Is_Aggregate_Type (T2)
       then
          return T2;
 
@@ -3194,7 +3222,7 @@ package body Sem_Type is
       Write_Str (" Index: ");
       Write_Int (Int (Interp_Map.Table (Map_Ptr).Index));
       Write_Str (" Next:  ");
-      Write_Int (Int (Interp_Map.Table (Map_Ptr).Next));
+      Write_Int (Interp_Map.Table (Map_Ptr).Next);
       Write_Eol;
    end Write_Interp_Ref;
 

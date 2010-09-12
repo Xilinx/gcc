@@ -3681,7 +3681,7 @@ package body Exp_Disp is
 
          --  Calculate the number of slots of the dispatch table. If the number
          --  of primitives of Typ is 0 we reserve a dummy single entry for its
-         --  DT because at run-time the pointer to this dummy entry will be
+         --  DT because at run time the pointer to this dummy entry will be
          --  used as the tag.
 
          if Num_Iface_Prims = 0 then
@@ -4489,6 +4489,9 @@ package body Exp_Disp is
                             (RTE_Record_Component (RE_NDT_Prims_Ptr), Loc)),
                       Attribute_Name => Name_Address))));
 
+            Set_Is_Statically_Allocated (DT_Ptr,
+              Is_Library_Level_Tagged_Type (Typ));
+
             --  Generate the SCIL node for the previous object declaration
             --  because it has a tag initialization.
 
@@ -4553,6 +4556,9 @@ package body Exp_Disp is
                           New_Occurrence_Of
                             (RTE_Record_Component (RE_Prims_Ptr), Loc)),
                       Attribute_Name => Name_Address))));
+
+            Set_Is_Statically_Allocated (DT_Ptr,
+              Is_Library_Level_Tagged_Type (Typ));
 
             --  Generate the SCIL node for the previous object declaration
             --  because it has a tag initialization.
@@ -5089,7 +5095,7 @@ package body Exp_Disp is
                  Is_Library_Level_Tagged_Type (Typ));
 
                --  The table of interfaces is not constant; its slots are
-               --  filled at run-time by the IP routine using attribute
+               --  filled at run time by the IP routine using attribute
                --  'Position to know the location of the tag components
                --  (and this attribute cannot be safely used before the
                --  object is initialized).
@@ -6305,12 +6311,13 @@ package body Exp_Disp is
       Set_Related_Type (DT_Ptr, Typ);
 
       --  For CPP types there is no need to build the dispatch tables since
-      --  they are imported from the C++ side. If the CPP type has an IP
-      --  then we declare now the variable that will store the copy of the
-      --  C++ tag.
+      --  they are imported from the C++ side. If the CPP type has an IP then
+      --  we declare now the variable that will store the copy of the C++ tag.
+      --  If the CPP type is an interface, we need the variable as well,
+      --  because it becomes the pointer to the corresponding secondary table.
 
       if Is_CPP_Class (Typ) then
-         if Has_CPP_Constructors (Typ) then
+         if Has_CPP_Constructors (Typ) or else Is_Interface (Typ) then
             Append_To (Result,
               Make_Object_Declaration (Loc,
                 Defining_Identifier => DT_Ptr,
@@ -6639,6 +6646,13 @@ package body Exp_Disp is
             Analyze_List (Result);
             Set_Suppress_Init_Proc (Base_Type (DT_Prims));
 
+            --  Disable backend optimizations based on assumptions about the
+            --  aliasing status of objects designated by the access to the
+            --  dispatch table. Required to handle dispatch tables imported
+            --  from C++.
+
+            Set_No_Strict_Aliasing (Base_Type (DT_Prims_Acc));
+
             --  Add the freezing nodes of these declarations; required to avoid
             --  generating these freezing nodes in wrong scopes (for example in
             --  the IC routine of a derivation of Typ).
@@ -6653,8 +6667,8 @@ package body Exp_Disp is
          end;
       end if;
 
-      --  Mark entities of dispatch table. Required by the back end to
-      --  handle them properly.
+      --  Mark entities of dispatch table. Required by the back end to handle
+      --  them properly.
 
       if Present (DT) then
          Set_Is_Dispatch_Table_Entity (DT);

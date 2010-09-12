@@ -150,12 +150,9 @@ tree gfor_fndecl_convert_char4_to_char1;
 
 
 /* Other misc. runtime library functions.  */
-
 tree gfor_fndecl_size0;
 tree gfor_fndecl_size1;
 tree gfor_fndecl_iargc;
-tree gfor_fndecl_clz128;
-tree gfor_fndecl_ctz128;
 
 /* Intrinsic functions implemented in Fortran.  */
 tree gfor_fndecl_sc_kind;
@@ -2775,21 +2772,6 @@ gfc_build_intrinsic_function_decls (void)
   gfor_fndecl_iargc = gfc_build_library_function_decl (
 	get_identifier (PREFIX ("iargc")), gfc_int4_type_node, 0);
   TREE_NOTHROW (gfor_fndecl_iargc) = 1;
-
-  if (gfc_type_for_size (128, true))
-    {
-      tree uint128 = gfc_type_for_size (128, true);
-
-      gfor_fndecl_clz128 = gfc_build_library_function_decl (
-	get_identifier (PREFIX ("clz128")), integer_type_node, 1, uint128);
-      TREE_READONLY (gfor_fndecl_clz128) = 1;
-      TREE_NOTHROW (gfor_fndecl_clz128) = 1;
-
-      gfor_fndecl_ctz128 = gfc_build_library_function_decl (
-	get_identifier (PREFIX ("ctz128")), integer_type_node, 1, uint128);
-      TREE_READONLY (gfor_fndecl_ctz128) = 1;
-      TREE_NOTHROW (gfor_fndecl_ctz128) = 1;
-    }
 }
 
 
@@ -3101,8 +3083,8 @@ gfc_init_default_dt (gfc_symbol * sym, stmtblock_t * block, bool dealloc)
 			  || sym->ns->proc_name->attr.entry_master))
     {
       present = gfc_conv_expr_present (sym);
-      tmp = build3 (COND_EXPR, TREE_TYPE (tmp), present,
-		    tmp, build_empty_stmt (input_location));
+      tmp = build3_loc (input_location, COND_EXPR, TREE_TYPE (tmp), present,
+			tmp, build_empty_stmt (input_location));
     }
   gfc_add_expr_to_block (block, tmp);
   gfc_free_expr (e);
@@ -3137,8 +3119,9 @@ init_intent_out_dt (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 		|| f->sym->ns->proc_name->attr.entry_master)
 	      {
 		present = gfc_conv_expr_present (f->sym);
-		tmp = build3 (COND_EXPR, TREE_TYPE (tmp), present,
-			      tmp, build_empty_stmt (input_location));
+		tmp = build3_loc (input_location, COND_EXPR, TREE_TYPE (tmp),
+				  present, tmp,
+				  build_empty_stmt (input_location));
 	      }
 
 	    gfc_add_expr_to_block (&init, tmp);

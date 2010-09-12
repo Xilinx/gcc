@@ -368,8 +368,14 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 	  /* Compare the argument lists for equality.  */
 	  while (args1 && args2)
 	    {
-	      if (gfc_dep_compare_expr (args1->expr, args2->expr) != 0)
+	      /*  Bitwise xor, since C has no non-bitwise xor operator.  */
+	      if ((args1->expr == NULL) ^ (args2->expr == NULL))
 		return -2;
+
+	      if (args1->expr != NULL && args2->expr != NULL
+		  && gfc_dep_compare_expr (args1->expr, args2->expr) != 0)
+		return -2;
+
 	      args1 = args1->next;
 	      args2 = args2->next;
 	    }
@@ -621,11 +627,15 @@ gfc_check_argument_var_dependency (gfc_expr *var, sym_intent intent,
       return gfc_check_dependency (var, expr, 1);
 
     case EXPR_FUNCTION:
-      if (intent != INTENT_IN && expr->inline_noncopying_intrinsic
-	  && (arg = gfc_get_noncopying_intrinsic_argument (expr))
-	  && gfc_check_argument_var_dependency (var, intent, arg, elemental))
-	return 1;
-      if (elemental)
+      if (intent != INTENT_IN)
+	{
+	  arg = gfc_get_noncopying_intrinsic_argument (expr);
+	  if (arg != NULL)
+	    return gfc_check_argument_var_dependency (var, intent, arg,
+						      NOT_ELEMENTAL);
+	}
+
+      if (elemental != NOT_ELEMENTAL)
 	{
 	  if ((expr->value.function.esym
 	       && expr->value.function.esym->attr.elemental)
@@ -677,12 +687,11 @@ gfc_check_argument_dependency (gfc_expr *other, sym_intent intent,
       return gfc_check_argument_var_dependency (other, intent, expr, elemental);
 
     case EXPR_FUNCTION:
-      if (other->inline_noncopying_intrinsic)
-	{
-	  other = gfc_get_noncopying_intrinsic_argument (other);
-	  return gfc_check_argument_dependency (other, INTENT_IN, expr, 
-						elemental);
-	}
+      other = gfc_get_noncopying_intrinsic_argument (other);
+      if (other != NULL)
+	return gfc_check_argument_dependency (other, INTENT_IN, expr,
+					      NOT_ELEMENTAL);
+
       return 0;
 
     default:
@@ -956,8 +965,9 @@ gfc_check_dependency (gfc_expr *expr1, gfc_expr *expr2, bool identical)
       return 1;
 
     case EXPR_FUNCTION:
-      if (expr2->inline_noncopying_intrinsic)
+      if (gfc_get_noncopying_intrinsic_argument (expr2) != NULL)
 	identical = 1;
+
       /* Remember possible differences between elemental and
 	 transformational functions.  All functions inside a FORALL
 	 will be pure.  */

@@ -60,13 +60,6 @@ package Errout is
    --  the use of constructs not permitted by the library in use, or improper
    --  constructs in No_Run_Time mode).
 
-   type Compiler_State_Type is (Parsing, Analyzing);
-   Compiler_State : Compiler_State_Type;
-   --  Indicates current state of compilation. This is put in the Errout spec
-   --  because it affects the action of the error message handling. In
-   --  particular, an attempt is made by Errout to suppress cascaded error
-   --  messages in Parsing mode, but not in the other modes.
-
    Current_Error_Source_File : Source_File_Index
      renames Err_Vars.Current_Error_Source_File;
    --  Id of current messages. Used to post file name when unit changes. This

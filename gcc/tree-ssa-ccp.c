@@ -1373,8 +1373,7 @@ fold_const_aggregate_ref (tree t)
 
       if (ctor == NULL_TREE
 	  || (TREE_CODE (ctor) != CONSTRUCTOR
-	      && TREE_CODE (ctor) != STRING_CST)
-	  || !TREE_STATIC (ctor))
+	      && TREE_CODE (ctor) != STRING_CST))
 	return NULL_TREE;
 
       /* Get the index.  If we have an SSA_NAME, try to resolve it
@@ -1398,8 +1397,7 @@ fold_const_aggregate_ref (tree t)
 	}
 
       /* Fold read from constant string.  */
-      if (TREE_CODE (ctor) == STRING_CST
-	  && TREE_CODE (idx) == INTEGER_CST)
+      if (TREE_CODE (ctor) == STRING_CST)
 	{
 	  tree low_bound = array_ref_low_bound (t);
 	  double_int low_bound_cst;
@@ -1407,7 +1405,9 @@ fold_const_aggregate_ref (tree t)
 	  double_int length_cst;
 	  bool signed_p = TYPE_UNSIGNED (TREE_TYPE (idx));
 
-	  if (TREE_CODE (low_bound) != INTEGER_CST)
+	  if (TREE_CODE (idx) != INTEGER_CST
+	      || !INTEGRAL_TYPE_P (TREE_TYPE (t))
+	      || TREE_CODE (low_bound) != INTEGER_CST)
 	    return NULL_TREE;
 	  low_bound_cst = tree_to_double_int (low_bound);
 	  index_cst = tree_to_double_int (idx);
@@ -1459,8 +1459,7 @@ fold_const_aggregate_ref (tree t)
 	}
 
       if (ctor == NULL_TREE
-	  || TREE_CODE (ctor) != CONSTRUCTOR
-	  || !TREE_STATIC (ctor))
+	  || TREE_CODE (ctor) != CONSTRUCTOR)
 	return NULL_TREE;
 
       field = TREE_OPERAND (t, 1);
@@ -1526,8 +1525,7 @@ fold_const_aggregate_ref (tree t)
 
       if (ctor == NULL_TREE
 	  || (TREE_CODE (ctor) != CONSTRUCTOR
-	      && TREE_CODE (ctor) != STRING_CST)
-	  || !TREE_STATIC (ctor))
+	      && TREE_CODE (ctor) != STRING_CST))
 	return NULL_TREE;
 
       /* Get the byte offset.  */
@@ -1536,8 +1534,9 @@ fold_const_aggregate_ref (tree t)
       /* Fold read from constant string.  */
       if (TREE_CODE (ctor) == STRING_CST)
 	{
-	  if ((TYPE_MODE (TREE_TYPE (t))
-	       == TYPE_MODE (TREE_TYPE (TREE_TYPE (ctor))))
+	  if (INTEGRAL_TYPE_P (TREE_TYPE (t))
+	      && (TYPE_MODE (TREE_TYPE (t))
+		  == TYPE_MODE (TREE_TYPE (TREE_TYPE (ctor))))
 	      && (GET_MODE_CLASS (TYPE_MODE (TREE_TYPE (TREE_TYPE (ctor))))
 	          == MODE_INT)
 	      && GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (TREE_TYPE (ctor)))) == 1

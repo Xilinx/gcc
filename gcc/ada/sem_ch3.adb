@@ -574,14 +574,6 @@ package body Sem_Ch3 is
    --  copying the record declaration for the derived base. In the tagged case
    --  the value returned is irrelevant.
 
-   function Is_Progenitor
-     (Iface : Entity_Id;
-      Typ   : Entity_Id) return Boolean;
-   --  Determine whether the interface Iface is implemented by Typ. It requires
-   --  traversing the list of abstract interfaces of the type, as well as that
-   --  of the ancestor types. The predicate is used to determine when a formal
-   --  in the signature of an inherited operation must carry the derived type.
-
    function Is_Valid_Constraint_Kind
      (T_Kind          : Type_Kind;
       Constraint_Kind : Node_Kind) return Boolean;
@@ -1569,11 +1561,17 @@ package body Sem_Ch3 is
 
                if No (Prim) then
 
+                  --  Skip non-overridden null interface primitives because
+                  --  their wrappers will be generated later.
+
+                  if Is_Null_Interface_Primitive (Iface_Prim) then
+                     goto Continue;
+
                   --  if the tagged type is defined at library level then we
                   --  invoke Check_Abstract_Overriding to report the error
                   --  and thus avoid generating the dispatch tables.
 
-                  if Is_Library_Level_Tagged_Type (Tagged_Type) then
+                  elsif Is_Library_Level_Tagged_Type (Tagged_Type) then
                      Check_Abstract_Overriding (Tagged_Type);
                      pragma Assert (Serious_Errors_Detected > 0);
                      return;
@@ -1645,6 +1643,7 @@ package body Sem_Ch3 is
                Set_Has_Delayed_Freeze (New_Subp);
             end if;
 
+            <<Continue>>
             Next_Elmt (Elmt);
          end loop;
 
@@ -2779,7 +2778,7 @@ package body Sem_Ch3 is
       --  Has_Stream just for efficiency reasons. There is no point in
       --  spending time on a Has_Stream check if the restriction is not set.
 
-      if Restrictions.Set (No_Streams) then
+      if Restriction_Check_Required (No_Streams) then
          if Has_Stream (T) then
             Check_Restriction (No_Streams, N);
          end if;
@@ -2960,13 +2959,7 @@ package body Sem_Ch3 is
 
       --  Check No_Wide_Characters restriction
 
-      if T = Standard_Wide_Character
-        or else T = Standard_Wide_Wide_Character
-        or else Root_Type (T) = Standard_Wide_String
-        or else Root_Type (T) = Standard_Wide_Wide_String
-      then
-         Check_Restriction (No_Wide_Characters, Object_Definition (N));
-      end if;
+      Check_Wide_Character_Restriction (T, Object_Definition (N));
 
       --  Indicate this is not set in source. Certainly true for constants,
       --  and true for variables so far (will be reset for a variable if and
@@ -3155,7 +3148,7 @@ package body Sem_Ch3 is
          --  A rather specialized test. If we see two tasks being declared
          --  of the same type in the same object declaration, and the task
          --  has an entry with an address clause, we know that program error
-         --  will be raised at run-time since we can't have two tasks with
+         --  will be raised at run time since we can't have two tasks with
          --  entries at the same address.
 
          if Is_Task_Type (Etype (Id)) and then More_Ids (N) then
@@ -5382,8 +5375,13 @@ package body Sem_Ch3 is
          Set_RM_Size        (Implicit_Base, RM_Size        (Parent_Type));
          Set_First_Rep_Item (Implicit_Base, First_Rep_Item (Parent_Type));
 
+         --  Copy other flags from parent type
+
          Set_Has_Non_Standard_Rep
                             (Implicit_Base, Has_Non_Standard_Rep
+                                                           (Parent_Type));
+         Set_Has_Pragma_Ordered
+                            (Implicit_Base, Has_Pragma_Ordered
                                                            (Parent_Type));
          Set_Has_Delayed_Freeze (Implicit_Base);
 
@@ -5559,8 +5557,7 @@ package body Sem_Ch3 is
       end if;
 
       --  If we did not have a range constraint, then set the range from the
-      --  parent type. Otherwise, the call to Process_Subtype has set the
-      --  bounds.
+      --  parent type. Otherwise, the Process_Subtype call has set the bounds.
 
       if No_Constraint
         or else not Has_Range_Constraint (Indic)
@@ -5846,6 +5843,7 @@ package body Sem_Ch3 is
                Full_Der  := New_Copy (Derived_Type);
                Set_Comes_From_Source (Full_Decl, False);
                Set_Comes_From_Source (Full_Der, False);
+               Set_Parent (Full_Der, Full_Decl);
 
                Insert_After (N, Full_Decl);
 
@@ -5919,8 +5917,15 @@ package body Sem_Ch3 is
                Set_Defining_Identifier (Full_Decl, Full_Der);
                Build_Derived_Record_Type
                  (Full_Decl, Parent_Type, Full_Der, Derive_Subps);
-               Set_Analyzed (Full_Decl);
             end if;
+
+            --  The full declaration has been introduced into the tree and
+            --  processed in the step above. It should not be analyzed again
+            --  (when encountered later in the current list of declarations)
+            --  to prevent spurious name conflicts. The full entity remains
+            --  invisible.
+
+            Set_Analyzed (Full_Decl);
 
             if Swapped then
                Uninstall_Declarations (Par_Scope);
@@ -11255,6 +11260,12 @@ package body Sem_Ch3 is
       Rng : Node_Id;
 
    begin
+      --  Defend against previous errors
+
+      if No (Scalar_Range (Derived_Type)) then
+         return;
+      end if;
+
       Lo := Build_Scalar_Bound
               (Type_Low_Bound (Derived_Type),
                Parent_Type, Implicit_Base);
@@ -12263,15 +12274,6 @@ package body Sem_Ch3 is
                Set_Etype (New_Id, Base_Type (Derived_Type));
             end if;
 
-         --  Ada 2005 (AI-251): Handle derivations of abstract interface
-         --  primitives.
-
-         elsif Is_Interface (Etype (Id))
-           and then not Is_Class_Wide_Type (Etype (Id))
-           and then Is_Progenitor (Etype (Id), Derived_Type)
-         then
-            Set_Etype (New_Id, Derived_Type);
-
          else
             Set_Etype (New_Id, Etype (Id));
          end if;
@@ -12291,33 +12293,12 @@ package body Sem_Ch3 is
          end if;
       end Set_Derived_Name;
 
-      --  Local variables
-
-      Parent_Overrides_Interface_Primitive : Boolean := False;
-
    --  Start of processing for Derive_Subprogram
 
    begin
       New_Subp :=
          New_Entity (Nkind (Parent_Subp), Sloc (Derived_Type));
       Set_Ekind (New_Subp, Ekind (Parent_Subp));
-
-      --  Check whether the parent overrides an interface primitive
-
-      if Is_Overriding_Operation (Parent_Subp) then
-         declare
-            E : Entity_Id := Parent_Subp;
-         begin
-            while Present (Overridden_Operation (E)) loop
-               E := Ultimate_Alias (Overridden_Operation (E));
-            end loop;
-
-            Parent_Overrides_Interface_Primitive :=
-              Is_Dispatching_Operation (E)
-                and then Present (Find_Dispatching_Type (E))
-                and then Is_Interface (Find_Dispatching_Type (E));
-         end;
-      end if;
 
       --  Check whether the inherited subprogram is a private operation that
       --  should be inherited but not yet made visible. Such subprograms can
@@ -12387,7 +12368,10 @@ package body Sem_Ch3 is
       --  overrides an interface primitive because interface primitives
       --  must be visible in the partial view of the parent (RM 7.3 (7.3/2))
 
-      elsif Parent_Overrides_Interface_Primitive then
+      elsif Ada_Version >= Ada_05
+         and then Is_Dispatching_Operation (Parent_Subp)
+         and then Covers_Some_Interface (Parent_Subp)
+      then
          Set_Derived_Name;
 
       --  Otherwise, the type is inheriting a private operation, so enter
@@ -12992,12 +12976,19 @@ package body Sem_Ch3 is
             then
                null;
 
-            --  Case 2: Inherit entities associated with interfaces that
-            --  were not covered by the parent type. We exclude here null
-            --  interface primitives because they do not need special
-            --  management.
+            --  Case 2: Inherit entities associated with interfaces that were
+            --  not covered by the parent type. We exclude here null interface
+            --  primitives because they do not need special management.
+
+            --  We also exclude interface operations that are renamings. If the
+            --  subprogram is an explicit renaming of an interface primitive,
+            --  it is a regular primitive operation, and the presence of its
+            --  alias is not relevant: it has to be derived like any other
+            --  primitive.
 
             elsif Present (Alias (Subp))
+              and then Nkind (Unit_Declaration_Node (Subp)) /=
+                                            N_Subprogram_Renaming_Declaration
               and then Is_Interface (Find_Dispatching_Type (Alias_Subp))
               and then not
                 (Nkind (Parent (Alias_Subp)) = N_Procedure_Specification
@@ -13550,8 +13541,18 @@ package body Sem_Ch3 is
          if not Is_Generic_Actual_Type (Parent_Type)
            or else In_Visible_Part (Scope (Parent_Type))
          then
-            Error_Msg_N
-              ("type derived from tagged type must have extension", Indic);
+            if Is_Class_Wide_Type (Parent_Type) then
+               Error_Msg_N
+                 ("parent type must not be a class-wide type", Indic);
+
+               --  Use specific type to prevent cascaded errors.
+
+               Parent_Type := Etype (Parent_Type);
+
+            else
+               Error_Msg_N
+                 ("type derived from tagged type must have extension", Indic);
+            end if;
          end if;
       end if;
 
@@ -13677,8 +13678,20 @@ package body Sem_Ch3 is
          Generate_Definition (L);
          Set_Convention (L, Convention_Intrinsic);
 
+         --  Case of character literal
+
          if Nkind (L) = N_Defining_Character_Literal then
             Set_Is_Character_Type (T, True);
+
+            --  Check violation of No_Wide_Characters
+
+            if Restriction_Check_Required (No_Wide_Characters) then
+               Get_Name_String (Chars (L));
+
+               if Name_Len >= 3 and then Name_Buffer (1 .. 2) = "QW" then
+                  Check_Restriction (No_Wide_Characters, L);
+               end if;
+            end if;
          end if;
 
          Ev := Ev + 1;
@@ -14211,13 +14224,7 @@ package body Sem_Ch3 is
 
       --  Check No_Wide_Characters restriction
 
-      if Typ = Standard_Wide_Character
-        or else Typ = Standard_Wide_Wide_Character
-        or else Typ = Standard_Wide_String
-        or else Typ = Standard_Wide_Wide_String
-      then
-         Check_Restriction (No_Wide_Characters, S);
-      end if;
+      Check_Wide_Character_Restriction (Typ, S);
 
       return Typ;
    end Find_Type_Of_Subtype_Indic;
@@ -14962,19 +14969,6 @@ package body Sem_Ch3 is
          return True;
       end if;
    end Is_Null_Extension;
-
-   --------------------
-   --  Is_Progenitor --
-   --------------------
-
-   function Is_Progenitor
-     (Iface : Entity_Id;
-      Typ   : Entity_Id) return Boolean
-   is
-   begin
-      return Implements_Interface (Typ, Iface,
-               Exclude_Parents => True);
-   end Is_Progenitor;
 
    ------------------------------
    -- Is_Valid_Constraint_Kind --
@@ -17275,7 +17269,7 @@ package body Sem_Ch3 is
                         N_Subtype_Declaration);
 
          --  Create an Itype that is a duplicate of Entity (S) but with the
-         --  null-exclusion attribute
+         --  null-exclusion attribute.
 
          if May_Have_Null_Exclusion
            and then Is_Access_Type (Entity (S))
@@ -18314,6 +18308,12 @@ package body Sem_Ch3 is
       Kind : constant Entity_Kind :=  Ekind (Def_Id);
 
    begin
+      --  Defend against previous error
+
+      if Nkind (R) = N_Error then
+         return;
+      end if;
+
       Set_Scalar_Range (Def_Id, R);
 
       --  We need to link the range into the tree before resolving it so

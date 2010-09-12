@@ -178,15 +178,16 @@ gfc_conv_missing_dummy (gfc_se * se, gfc_expr * arg, gfc_typespec ts, int kind)
 							se->expr));
     
       /* Test for a NULL value.  */
-      tmp = build3 (COND_EXPR, TREE_TYPE (tmp), present, tmp,
-		    fold_convert (TREE_TYPE (tmp), integer_one_node));
+      tmp = build3_loc (input_location, COND_EXPR, TREE_TYPE (tmp), present,
+			tmp, fold_convert (TREE_TYPE (tmp), integer_one_node));
       tmp = gfc_evaluate_now (tmp, &se->pre);
       se->expr = gfc_build_addr_expr (NULL_TREE, tmp);
     }
   else
     {
-      tmp = build3 (COND_EXPR, TREE_TYPE (se->expr), present, se->expr,
-		    fold_convert (TREE_TYPE (se->expr), integer_zero_node));
+      tmp = build3_loc (input_location, COND_EXPR, TREE_TYPE (se->expr),
+			present, se->expr,
+			fold_convert (TREE_TYPE (se->expr), integer_zero_node));
       tmp = gfc_evaluate_now (tmp, &se->pre);
       se->expr = tmp;
     }
@@ -4000,19 +4001,23 @@ gfc_conv_initializer (gfc_expr * expr, gfc_typespec * ts, tree type,
 
       gfc_init_se (&se, NULL);
       gfc_conv_constant (&se, expr);
+      gcc_assert (TREE_CODE (se.expr) != CONSTRUCTOR);
       return se.expr;
     }
   
   if (array && !procptr)
     {
+      tree ctor;
       /* Arrays need special handling.  */
       if (pointer)
-	return gfc_build_null_descriptor (type);
+	ctor = gfc_build_null_descriptor (type);
       /* Special case assigning an array to zero.  */
       else if (is_zero_initializer_p (expr))
-        return build_constructor (type, NULL);
+        ctor = build_constructor (type, NULL);
       else
-	return gfc_conv_array_initializer (type, expr);
+	ctor = gfc_conv_array_initializer (type, expr);
+      TREE_STATIC (ctor) = 1;
+      return ctor;
     }
   else if (pointer || procptr)
     {
@@ -4023,6 +4028,7 @@ gfc_conv_initializer (gfc_expr * expr, gfc_typespec * ts, tree type,
 	  gfc_init_se (&se, NULL);
 	  se.want_pointer = 1;
 	  gfc_conv_expr (&se, expr);
+          gcc_assert (TREE_CODE (se.expr) != CONSTRUCTOR);
 	  return se.expr;
 	}
     }
@@ -4037,14 +4043,21 @@ gfc_conv_initializer (gfc_expr * expr, gfc_typespec * ts, tree type,
 	    gfc_conv_structure (&se, gfc_class_null_initializer(ts), 1);
 	  else
 	    gfc_conv_structure (&se, expr, 1);
+	  gcc_assert (TREE_CODE (se.expr) == CONSTRUCTOR);
+	  TREE_STATIC (se.expr) = 1;
 	  return se.expr;
 
 	case BT_CHARACTER:
-	  return gfc_conv_string_init (ts->u.cl->backend_decl,expr);
+	  {
+	    tree ctor = gfc_conv_string_init (ts->u.cl->backend_decl,expr);
+	    TREE_STATIC (ctor) = 1;
+	    return ctor;
+	  }
 
 	default:
 	  gfc_init_se (&se, NULL);
 	  gfc_conv_constant (&se, expr);
+	  gcc_assert (TREE_CODE (se.expr) != CONSTRUCTOR);
 	  return se.expr;
 	}
     }
@@ -4287,9 +4300,8 @@ gfc_trans_alloc_subarray_assign (tree dest, gfc_component * cm,
 					null_pointer_node);
 	  null_expr = gfc_finish_block (&block);
 	  tmp = gfc_conv_descriptor_data_get (arg->symtree->n.sym->backend_decl);
-	  tmp = build2 (EQ_EXPR, boolean_type_node, tmp,
-			fold_convert (TREE_TYPE (tmp),
-				      null_pointer_node));
+	  tmp = build2_loc (input_location, EQ_EXPR, boolean_type_node, tmp,
+			    fold_convert (TREE_TYPE (tmp), null_pointer_node));
 	  return build3_v (COND_EXPR, tmp,
 			   null_expr, non_null_expr);
 	}
@@ -5384,8 +5396,8 @@ gfc_trans_zero_assign (gfc_expr * expr)
   /* If we are zeroing a local array avoid taking its address by emitting
      a = {} instead.  */
   if (!POINTER_TYPE_P (TREE_TYPE (dest)))
-    return build2 (MODIFY_EXPR, void_type_node,
-		   dest, build_constructor (TREE_TYPE (dest), NULL));
+    return build2_loc (input_location, MODIFY_EXPR, void_type_node,
+		       dest, build_constructor (TREE_TYPE (dest), NULL));
 
   /* Convert arguments to the correct types.  */
   dest = fold_convert (pvoid_type_node, dest);
@@ -5524,6 +5536,27 @@ gfc_trans_array_constructor_copy (gfc_expr * expr1, gfc_expr * expr2)
 }
 
 
+/* Tells whether the expression is to be treated as a variable reference.  */
+
+static bool
+expr_is_variable (gfc_expr *expr)
+{
+  gfc_expr *arg;
+
+  if (expr->expr_type == EXPR_VARIABLE)
+    return true;
+
+  arg = gfc_get_noncopying_intrinsic_argument (expr);
+  if (arg)
+    {
+      gcc_assert (expr->value.function.isym->id == GFC_ISYM_TRANSPOSE);
+      return expr_is_variable (arg);
+    }
+
+  return false;
+}
+
+
 /* Subroutine of gfc_trans_assignment that actually scalarizes the
    assignment.  EXPR1 is the destination/LHS and EXPR2 is the source/RHS.
    init_flag indicates initialization expressions and dealloc that no
@@ -5649,7 +5682,7 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
      must have its components deallocated afterwards.  */
   scalar_to_array = (expr2->ts.type == BT_DERIVED
 		       && expr2->ts.u.derived->attr.alloc_comp
-		       && expr2->expr_type != EXPR_VARIABLE
+		       && !expr_is_variable (expr2)
 		       && !gfc_is_constant_expr (expr2)
 		       && expr1->rank && !expr2->rank);
   if (scalar_to_array && dealloc)
@@ -5660,8 +5693,8 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
 
   tmp = gfc_trans_scalar_assign (&lse, &rse, expr1->ts,
 				 l_is_temp || init_flag,
-				 (expr2->expr_type == EXPR_VARIABLE)
-				    || scalar_to_array, dealloc);
+				 expr_is_variable (expr2) || scalar_to_array,
+				 dealloc);
   gfc_add_expr_to_block (&body, tmp);
 
   if (lss == gfc_ss_terminator)

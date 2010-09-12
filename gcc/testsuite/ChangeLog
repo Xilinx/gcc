@@ -1,3 +1,184 @@
+2010-09-11  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* gfortran.dg/promotion.f90: Fix options.
+
+2010-09-11  Rodrigo Rivas <rodrigorivascosta@gmail.com>
+
+	* g++.dg/cpp0x/range-for1.C: New.
+	* g++.dg/cpp0x/range-for2.C: New.
+	* g++.dg/cpp0x/range-for3.C: New.
+	* g++.dg/cpp0x/range-for4.C: New.
+	* g++.dg/cpp0x/range-for5.C: New.
+	* g++.dg/cpp0x/range-for6.C: New.
+
+2010-09-11  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* gfortran.dg/inline_transpose_1.f90: Update temporary's locations
+	and counts. Check that transpose is not called.
+	* gfortran.dg/transpose_2.f90: Update error message.
+
+2010-09-10  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
+
+	PR c++/43824
+	* g++.dg/lookup/strong-using-1.C: Set dg-options to "".
+	* g++.dg/lookup/strong-using-2.C: Likewise.
+	* g++.dg/lookup/strong-using-3.C: Likewise.
+	* g++.dg/lookup/strong-using-5.C: Likewise.
+
+	* g++.dg/cpp0x/inline-ns3.C: Add -std=c++0x.
+	* g++.dg/cpp0x/inline-ns4.C: New.
+	* g++.dg/cpp0x/inline-ns5.C: New.
+
+2010-09-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/45634
+	* gfortran.fortran-torture/compile/pr45634.f90: New.
+
+2010-09-10  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/fobjc-exceptions.m: New test.
+
+2010-09-10  Jan Hubicka  <jh@suse.cz>
+
+	* g++.dg/inherit/covariant7.C: Fix pattern matching.
+
+2010-09-10  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/44972
+	* gcc.dg/ipa/ipa-sra-1.c: Adjust scanning expressions.
+	* gcc.dg/tree-ssa/pr45144.c: Likewise.
+	* gcc.dg/tree-ssa/forwprop-5.c: Likewise and scan optimzed dump
+	instead.
+	* g++.dg/torture/pr44972.C: New test.
+
+2010-09-10  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/44972
+	* g++.dg/torture/pr34850.C: Remove expected warning.
+
+2010-09-09  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* gfortran.dg/dummy_optional_arg.f90: New test.
+
+2010-09-08  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/45598
+	* fortran.fortran-torture/compile/pr45598.f90: New test.
+
+2010-09-09  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* lib/target-supports-dg.exp (dg-require-ifunc): New.
+	* lib/target-supports.exp (check_ifunc_available): New.
+	* gcc.dg/attr-ifunc-1.c: New.
+	* gcc.dg/attr-ifunc-2.c: New.
+	* gcc.dg/attr-ifunc-3.c: New.
+	* gcc.dg/attr-ifunc-4.c: New.
+	* gcc.dg/attr-ifunc-5.c: New.
+	* testsuite/g++.dg/ext/attr-ifunc-1.C: New.
+	* testsuite/g++.dg/ext/attr-ifunc-2.C: New.
+	* testsuite/g++.dg/ext/attr-ifunc-3.C: New.
+	* testsuite/g++.dg/ext/attr-ifunc-4.C: New.
+
+2010-09-09  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR middle-end/40386
+	* gcc.c-torture/execute/{pr40386.c,pr40386.x}: New testcase.
+
+2010-09-09  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* gfortran.dg/inline_transpose_1.f90: New test.
+
+2010-09-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/45588
+	* g++.dg/warn/Wunused-var-15.C: New test.
+
+2010-09-08  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* c-c++-common/Wunused-var-12.c: Add -fno-common to options on 32-bit
+	hppa*-*-hpux*.
+
+2010-09-08  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc/execute/exceptions/throw-nil.m: New test.
+	* objc/execute/exceptions/handler-1.m: Updated to use the new
+	objc_set_uncaught_exception_handler() function.
+	* objc/execute/exceptions/matcher-1.m: New test.
+
+2010-09-08  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/38282
+	* gfortran.dg/bit_comparison_1.F90: New test.
+	* gfortran.dg/leadz_trailz_3.f90: New test.
+	* gfortran.dg/masklr_2.F90: New test.
+	* gfortran.dg/shiftalr_1.F90: New test.
+	* gfortran.dg/merge_bits_2.F90: New test.
+	* gfortran.dg/dshift_2.F90: New test.
+	* gfortran.dg/bit_comparison_2.F90: New test.
+	* gfortran.dg/masklr_1.F90: New test.
+	* gfortran.dg/merge_bits_1.F90: New test.
+	* gfortran.dg/dshift_1.F90: New test.
+	* gfortran.dg/shiftalr_2.F90: New test.
+
+2010-09-08  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/type-stream-1.m: Replaced with a test that tests that
+	functions from objc/typedstream.h are deprecated.
+
+2010-09-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/target-supports.exp
+	(check_effective_target_run_expensive_tests): New proc.
+	* gcc.c-torture/compile/limits-fnargs.c: Use
+	dg-require-effective-target run_expensive_tests.
+
+2010-09-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/45597
+	* gfortran.dg/gomp/pr45597.f90: New test.
+
+	PR fortran/45595
+	* gfortran.dg/gomp/pr45595.f90: New test.
+
+2010-09-08  Michael Matz  <matz@suse.de>
+
+	* c-c++-common/uninit-17.c: Adjust.
+
+2010-09-08  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/43430
+	* gcc.dg/vect/pr43430-2.c: New test.
+
+2010-09-08  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/33244
+	* gfortran.dg/vect/fast-math-vect-8.f90: New test.
+
+2010-09-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45578
+	* gfortran.dg/pr45578.f90: New testcase.
+
+2010-09-08  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/45590
+	* gcc.dg/graphite/pr44391.c: Remove -m32 option.
+
+2010-09-07  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45576
+	* gfortran.dg/char_length_18.f90:  New test.
+
+2010-09-07  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR target/36502
+	* gcc.target/i386/pr36502.c: New test.
+
+	PR target/42313
+	PR target/44651
+	* gcc.target/i386/builtin-unreachable.c: Don't skip on darwin.
+	* gcc/testsuite/gcc.dg/stack-usage-1.c: Use default on i386/Darwin.
+
 2010-09-07  Mikael Morin  <mikael@gcc.gnu.org>
 
 	* gfortran.dg/achar_4.f90: Enable bounds checking.
@@ -285,7 +466,7 @@
 
 	* gcc.dg/vect/bb-slp-8.c: Separate the interesting part and the
 	check into different basic blocks. Expect vectorization if misaligned
-	stores are supported. 
+	stores are supported.
 	* gcc.dg/vect/bb-slp-8a.c: New test.
 	* gcc.dg/vect/bb-slp-8b.c: New test.
 

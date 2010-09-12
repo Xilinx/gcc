@@ -1,3 +1,34 @@
+2010-09-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/hash-string-aux.cc: Remove. Move contents...
+	* src/hash_tr1.cc: ... here.
+	* src/compatibility-c++0x.cc: ... and here.
+
+2010-09-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45613
+	* include/bits/random.tcc: Add missing include guards.
+	* include/bits/random.h: Likewise.
+	* include/tr1/random.tcc: Likewise.
+
+2010-09-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* libsupc++/cxxabi.h: Uglify nothrow to __nothrow__; fix a few
+	inconsistent uglifications everywhere.
+
+2010-09-07  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Marc Glisse  <marc.glisse@normalesup.org>
+
+	PR libstdc++/45549
+	* include/bits/cpp_type_traits.h (__is_iterator_helper): Rename to
+	__has_iterator_category.
+	(__is_iterator): Adjust.
+	* include/bits/stl_iterator_base_types.h (__iterator_traits): Add
+	in C++0x mode, use the latter.
+	(iterator_traits): In C++0x mode, derive from the latter.
+	* include/bits/stl_iterator_base_funcs.h (next, prev): Remove
+	enable_if on the return type.
+
 2010-09-07  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/45398

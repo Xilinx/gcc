@@ -1932,6 +1932,13 @@ lto_input_ts_decl_common_tree_pointers (struct lto_input_block *ib,
        || TREE_CODE (expr) == PARM_DECL)
       && DECL_HAS_VALUE_EXPR_P (expr))
     SET_DECL_VALUE_EXPR (expr, lto_input_tree (ib, data_in));
+
+  if (TREE_CODE (expr) == VAR_DECL)
+    {
+      tree dexpr = lto_input_tree (ib, data_in);
+      if (dexpr)
+	SET_DECL_DEBUG_EXPR (expr, dexpr);
+    }
 }
 
 
@@ -2030,8 +2037,6 @@ lto_input_ts_type_tree_pointers (struct lto_input_block *ib,
   else if (TREE_CODE (expr) == FUNCTION_TYPE
 	   || TREE_CODE (expr) == METHOD_TYPE)
     TYPE_ARG_TYPES (expr) = lto_input_tree (ib, data_in);
-  else if (TREE_CODE (expr) == VECTOR_TYPE)
-    TYPE_DEBUG_REPRESENTATION_TYPE (expr) = lto_input_tree (ib, data_in);
 
   TYPE_SIZE (expr) = lto_input_tree (ib, data_in);
   TYPE_SIZE_UNIT (expr) = lto_input_tree (ib, data_in);

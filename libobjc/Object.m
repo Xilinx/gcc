@@ -22,6 +22,7 @@ a copy of the GCC Runtime Library Exception along with this program;
 see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
+#include "objc-private/common.h"
 #include <stdarg.h>
 #include <errno.h>
 #include "objc/Object.h"
@@ -343,6 +344,13 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
   class_set_version(self, aVersion);
   return self;
 }
+@end
+
+/* The following methods were deprecated in GCC 4.6.0 and will be
+   removed in the next GCC release.
+*/
+
+@implementation Object (Deprecated)
 
 + (int)streamVersion: (TypedStream*)aStream
 {
