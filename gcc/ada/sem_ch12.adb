@@ -11212,6 +11212,7 @@ package body Sem_Ch12 is
       --  stack contains the parent instances of the instantiation, followed by
       --  the original S.
 
+      Cur_P  : Entity_Id;
       E      : Entity_Id;
       P      : Entity_Id;
       Hidden : Elmt_Id;
@@ -11234,9 +11235,18 @@ package body Sem_Ch12 is
                   Next_Entity (E);
                end loop;
 
-               if Is_Generic_Instance (Current_Scope)
-                 and then P /= Current_Scope
-               then
+               --  If instantiation is declared in a block, it is the enclosing
+               --  scope that might be a parent instance. Note that only one
+               --  block can be involved, because the parent instances have
+               --  been installed within it.
+
+               if Ekind (P) = E_Block then
+                  Cur_P := Scope (P);
+               else
+                  Cur_P := P;
+               end if;
+
+               if Is_Generic_Instance (Cur_P) and then P /= Current_Scope then
                   --  We are within an instance of some sibling. Retain
                   --  visibility of parent, for proper subsequent cleanup, and
                   --  reinstall private declarations as well.
@@ -11246,7 +11256,7 @@ package body Sem_Ch12 is
                end if;
 
             --  If the ultimate parent is a top-level unit recorded in
-            --  Instance_Parent_Unit, then reset its visibility to what is was
+            --  Instance_Parent_Unit, then reset its visibility to what it was
             --  before instantiation. (It's not clear what the purpose is of
             --  testing whether Scope (P) is In_Open_Scopes, but that test was
             --  present before the ultimate parent test was added.???)
@@ -11389,11 +11399,11 @@ package body Sem_Ch12 is
       while Present (M) loop
          Typ := Node (M);
 
-         --  Subtypes of types whose views have been exchanged, and that
-         --  are defined within the instance, were not on the list of
-         --  Private_Dependents on entry to the instance, so they have to be
-         --  exchanged explicitly now, in order to remain consistent with the
-         --  view of the parent type.
+         --  Subtypes of types whose views have been exchanged, and that are
+         --  defined within the instance, were not on the Private_Dependents
+         --  list on entry to the instance, so they have to be exchanged
+         --  explicitly now, in order to remain consistent with the view of the
+         --  parent type.
 
          if Ekind_In (Typ, E_Private_Type,
                            E_Limited_Private_Type,
@@ -11437,11 +11447,11 @@ package body Sem_Ch12 is
             --  An unusual case of aliasing: the actual may also be directly
             --  visible in the generic, and be private there, while it is fully
             --  visible in the context of the instance. The internal subtype
-            --  is private in the instance, but has full visibility like its
+            --  is private in the instance but has full visibility like its
             --  parent in the enclosing scope. This enforces the invariant that
             --  the privacy status of all private dependents of a type coincide
             --  with that of the parent type. This can only happen when a
-            --  generic child unit is instantiated within sibling.
+            --  generic child unit is instantiated within a sibling.
 
             if Is_Private_Type (E)
               and then not Is_Private_Type (Etype (E))
@@ -11457,16 +11467,14 @@ package body Sem_Ch12 is
             --  a formal package, make its own formals private as well. The
             --  actual in this case is itself the renaming of an instantiation.
             --  If the entity is not a package renaming, it is the entity
-            --  created to validate formal package actuals: ignore.
+            --  created to validate formal package actuals: ignore it.
 
             --  If the actual is itself a formal package for the enclosing
             --  generic, or the actual for such a formal package, it remains
             --  visible on exit from the instance, and therefore nothing needs
             --  to be done either, except to keep it accessible.
 
-            if Is_Package
-              and then Renamed_Object (E) = Pack_Id
-            then
+            if Is_Package and then Renamed_Object (E) = Pack_Id then
                exit;
 
             elsif Nkind (Parent (E)) /= N_Package_Renaming_Declaration then
@@ -11720,15 +11728,29 @@ package body Sem_Ch12 is
          N2 := Get_Associated_Node (N);
          E := Entity (N2);
 
+         --  If the entity is an itype created as a subtype of an access type
+         --  with a null exclusion restore source entity for proper visibility.
+         --  The itype will be created anew in the instance.
+
          if Present (E) then
+            if Is_Itype (E)
+              and then Ekind (E) = E_Access_Subtype
+              and then Is_Entity_Name (N)
+              and then Chars (Etype (E)) = Chars (N)
+            then
+               E := Etype (E);
+               Set_Entity (N2, E);
+               Set_Etype  (N2, E);
+            end if;
+
             if Is_Global (E) then
                Set_Global_Type (N, N2);
 
             elsif Nkind (N) = N_Op_Concat
               and then Is_Generic_Type (Etype (N2))
-              and then
-               (Base_Type (Etype (Right_Opnd (N2))) = Etype (N2)
-                  or else Base_Type (Etype (Left_Opnd (N2))) = Etype (N2))
+              and then (Base_Type (Etype (Right_Opnd (N2))) = Etype (N2)
+                         or else
+                        Base_Type (Etype (Left_Opnd (N2)))  = Etype (N2))
               and then Is_Intrinsic_Subprogram (E)
             then
                null;
@@ -11971,11 +11993,11 @@ package body Sem_Ch12 is
            and then Is_Generic_Unit (Scope (Gen_Id))
            and then In_Open_Scopes (Scope (Gen_Id))
          then
-            --  This is an instantiation of a child unit within a sibling,
-            --  so that the generic parent is in scope. An eventual instance
-            --  must occur within the scope of an instance of the parent.
-            --  Make name in instance into an expanded name, to preserve the
-            --  identifier of the parent, so it can be resolved subsequently.
+            --  This is an instantiation of a child unit within a sibling, so
+            --  that the generic parent is in scope. An eventual instance must
+            --  occur within the scope of an instance of the parent. Make name
+            --  in instance into an expanded name, to preserve the identifier
+            --  of the parent, so it can be resolved subsequently.
 
             Rewrite (Name (N2),
               Make_Expanded_Name (Loc,

@@ -127,8 +127,7 @@ extern const enum tree_code_class tree_code_type[];
    ascending code order.  */
 
 #define INDIRECT_REF_P(CODE)\
-  (TREE_CODE (CODE) == INDIRECT_REF \
-   || TREE_CODE (CODE) == MISALIGNED_INDIRECT_REF)
+  (TREE_CODE (CODE) == INDIRECT_REF)
 
 /* Nonzero if CODE represents a reference.  */
 
@@ -612,7 +611,7 @@ struct GTY(()) tree_common {
            all types
 
        TREE_THIS_NOTRAP in
-          (ALIGN/MISALIGNED_)INDIRECT_REF, ARRAY_REF, ARRAY_RANGE_REF
+          INDIRECT_REF, ARRAY_REF, ARRAY_RANGE_REF
 
    deprecated_flag:
 
@@ -1260,8 +1259,7 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 /* Nonzero means this node will not trap.  In an INDIRECT_REF, means
    accessing the memory pointed to won't generate a trap.  However,
    this only applies to an object when used appropriately: it doesn't
-   mean that writing a READONLY mem won't trap. Similarly for
-   MISALIGNED_INDIRECT_REF.
+   mean that writing a READONLY mem won't trap.
 
    In ARRAY_REF and ARRAY_RANGE_REF means that we know that the index
    (or slice of the array) always belongs to the range of the array.
@@ -2069,9 +2067,6 @@ struct GTY(()) tree_block {
 #define TYPE_DOMAIN(NODE) (ARRAY_TYPE_CHECK (NODE)->type.values)
 #define TYPE_FIELDS(NODE) (RECORD_OR_UNION_CHECK (NODE)->type.values)
 #define TYPE_CACHED_VALUES(NODE) (TYPE_CHECK(NODE)->type.values)
-#define TYPE_ORIG_SIZE_TYPE(NODE)			\
-  (INTEGER_TYPE_CHECK (NODE)->type.values		\
-  ? TREE_TYPE ((NODE)->type.values) : NULL_TREE)
 #define TYPE_METHODS(NODE) (RECORD_OR_UNION_CHECK (NODE)->type.maxval)
 #define TYPE_VFIELD(NODE) (RECORD_OR_UNION_CHECK (NODE)->type.minval)
 #define TYPE_ARG_TYPES(NODE) (FUNC_OR_METHOD_CHECK (NODE)->type.values)
@@ -2133,12 +2128,6 @@ extern enum machine_mode vector_type_mode (const_tree);
 #define TYPE_LANG_SPECIFIC(NODE) (TYPE_CHECK (NODE)->type.lang_specific)
 #define TYPE_IBIT(NODE) (GET_MODE_IBIT (TYPE_MODE (NODE)))
 #define TYPE_FBIT(NODE) (GET_MODE_FBIT (TYPE_MODE (NODE)))
-
-/* For a VECTOR_TYPE node, this describes a different type which is emitted
-   in the debugging output.  We use this to describe a vector as a
-   structure containing an array.  */
-#define TYPE_DEBUG_REPRESENTATION_TYPE(NODE) \
-  (VECTOR_TYPE_CHECK (NODE)->type.values)
 
 /* For record and union types, information about this type, as a base type
    for itself.  */
@@ -4060,6 +4049,7 @@ extern tree build_constructor_from_list (tree, tree);
 extern tree build_real_from_int_cst (tree, const_tree);
 extern tree build_complex (tree, tree, tree);
 extern tree build_one_cst (tree);
+extern tree build_zero_cst (tree);
 extern tree build_string (int, const char *);
 extern tree build_tree_list_stat (tree, tree MEM_STAT_DECL);
 #define build_tree_list(t,q) build_tree_list_stat(t,q MEM_STAT_INFO)
@@ -4102,7 +4092,6 @@ extern tree build_vector_type (tree innertype, int nunits);
 extern tree build_opaque_vector_type (tree innertype, int nunits);
 extern tree build_type_no_quals (tree);
 extern tree build_index_type (tree);
-extern tree build_index_2_type (tree, tree);
 extern tree build_array_type (tree, tree);
 extern tree build_function_type (tree, tree);
 extern tree build_function_type_list (tree, ...);
@@ -4316,6 +4305,10 @@ extern tree get_qualified_type (tree, int);
    exist.  This function never returns NULL_TREE.  */
 
 extern tree build_qualified_type (tree, int);
+
+/* Create a variant of type T with alignment ALIGN.  */
+
+extern tree build_aligned_type (tree, unsigned int);
 
 /* Like build_qualified_type, but only deals with the `const' and
    `volatile' qualifiers.  This interface is retained for backwards

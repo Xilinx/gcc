@@ -621,13 +621,11 @@ gfc_build_intrinsic_lib_fndecls (void)
        C99-like library functions.  For now, we only handle __float128
        q-suffixed functions.  */
 
-    tree tmp, func_0, func_1, func_2, func_cabs, func_frexp;
+    tree tmp, func_1, func_2, func_cabs, func_frexp;
     tree func_lround, func_llround, func_scalbn, func_cpow;
 
     memset (quad_decls, 0, sizeof(tree) * (END_BUILTINS + 1));
 
-    /* type (*) (void) */
-    func_0 = build_function_type (float128_type_node, void_list_node);
     /* type (*) (type) */
     tmp = tree_cons (NULL_TREE, float128_type_node, void_list_node);
     func_1 = build_function_type (float128_type_node, tmp);
@@ -1288,6 +1286,62 @@ gfc_conv_intrinsic_mod (gfc_se * se, gfc_expr * expr, int modulo)
     }
 }
 
+/* DSHIFTL(I,J,S) = (I << S) | (J >> (BITSIZE(J) - S))
+   DSHIFTR(I,J,S) = (I << (BITSIZE(I) - S)) | (J >> S)
+   where the right shifts are logical (i.e. 0's are shifted in).
+   Because SHIFT_EXPR's want shifts strictly smaller than the integral
+   type width, we have to special-case both S == 0 and S == BITSIZE(J):
+     DSHIFTL(I,J,0) = I
+     DSHIFTL(I,J,BITSIZE) = J
+     DSHIFTR(I,J,0) = J
+     DSHIFTR(I,J,BITSIZE) = I.  */
+
+static void
+gfc_conv_intrinsic_dshift (gfc_se * se, gfc_expr * expr, bool dshiftl)
+{
+  tree type, utype, stype, arg1, arg2, shift, res, left, right;
+  tree args[3], cond, tmp;
+  int bitsize;
+
+  gfc_conv_intrinsic_function_args (se, expr, args, 3);
+
+  gcc_assert (TREE_TYPE (args[0]) == TREE_TYPE (args[1]));
+  type = TREE_TYPE (args[0]);
+  bitsize = TYPE_PRECISION (type);
+  utype = unsigned_type_for (type);
+  stype = TREE_TYPE (args[2]);
+
+  arg1 = gfc_evaluate_now (args[0], &se->pre);
+  arg2 = gfc_evaluate_now (args[1], &se->pre);
+  shift = gfc_evaluate_now (args[2], &se->pre);
+
+  /* The generic case.  */
+  tmp = fold_build2_loc (input_location, MINUS_EXPR, stype,
+			 build_int_cst (stype, bitsize), shift);
+  left = fold_build2_loc (input_location, LSHIFT_EXPR, type,
+			  arg1, dshiftl ? shift : tmp);
+
+  right = fold_build2_loc (input_location, RSHIFT_EXPR, utype,
+			   fold_convert (utype, arg2), dshiftl ? tmp : shift);
+  right = fold_convert (type, right);
+
+  res = fold_build2_loc (input_location, BIT_IOR_EXPR, type, left, right);
+
+  /* Special cases.  */
+  cond = fold_build2_loc (input_location, EQ_EXPR, boolean_type_node, shift,
+			  build_int_cst (stype, 0));
+  res = fold_build3_loc (input_location, COND_EXPR, type, cond,
+			 dshiftl ? arg1 : arg2, res);
+
+  cond = fold_build2_loc (input_location, EQ_EXPR, boolean_type_node, shift,
+			  build_int_cst (stype, bitsize));
+  res = fold_build3_loc (input_location, COND_EXPR, type, cond,
+			 dshiftl ? arg2 : arg1, res);
+
+  se->expr = res;
+}
+
+
 /* Positive difference DIM (x, y) = ((x - y) < 0) ? 0 : x - y.  */
 
 static void
@@ -1428,7 +1482,7 @@ gfc_conv_intrinsic_char (gfc_se * se, gfc_expr * expr)
   arg[0] = fold_build1_loc (input_location, NOP_EXPR, type, arg[0]);
   gfc_add_modify (&se->pre, var, arg[0]);
   se->expr = gfc_build_addr_expr (build_pointer_type (type), var);
-  se->string_length = integer_one_node;
+  se->string_length = build_int_cst (gfc_charlen_type_node, 1);
 }
 
 
@@ -2004,11 +2058,14 @@ gfc_conv_intrinsic_arith (gfc_se * se, gfc_expr * expr, enum tree_code op,
 		      gfc_build_const (type, integer_one_node));
       tmp = gfc_build_const (type, integer_zero_node);
     }
-  else if (op == PLUS_EXPR)
+  else if (op == PLUS_EXPR || op == BIT_IOR_EXPR || op == BIT_XOR_EXPR)
     tmp = gfc_build_const (type, integer_zero_node);
   else if (op == NE_EXPR)
     /* PARITY.  */
     tmp = convert (type, boolean_false_node);
+  else if (op == BIT_AND_EXPR)
+    tmp = gfc_build_const (type, fold_build1_loc (input_location, NEGATE_EXPR,
+						  type, integer_one_node));
   else
     tmp = gfc_build_const (type, integer_one_node);
 
@@ -2431,22 +2488,14 @@ gfc_conv_intrinsic_minmaxloc (gfc_se * se, gfc_expr * expr, enum tree_code op)
     }
 
   limit = gfc_create_var (gfc_typenode_for_spec (&arrayexpr->ts), "limit");
-  n = gfc_validate_kind (arrayexpr->ts.type, arrayexpr->ts.kind, false);
   switch (arrayexpr->ts.type)
     {
     case BT_REAL:
-      if (HONOR_INFINITIES (DECL_MODE (limit)))
-	{
-	  REAL_VALUE_TYPE real;
-	  real_inf (&real);
-	  tmp = build_real (TREE_TYPE (limit), real);
-	}
-      else
-	tmp = gfc_conv_mpfr_to_tree (gfc_real_kinds[n].huge,
-				     arrayexpr->ts.kind, 0);
+      tmp = gfc_build_inf_or_huge (TREE_TYPE (limit), arrayexpr->ts.kind);
       break;
 
     case BT_INTEGER:
+      n = gfc_validate_kind (arrayexpr->ts.type, arrayexpr->ts.kind, false);
       tmp = gfc_conv_mpz_to_tree (gfc_integer_kinds[n].huge,
 				  arrayexpr->ts.kind);
       break;
@@ -3206,6 +3255,33 @@ gfc_conv_intrinsic_btest (gfc_se * se, gfc_expr * expr)
   se->expr = convert (type, tmp);
 }
 
+
+/* Generate code for BGE, BGT, BLE and BLT intrinsics.  */
+static void
+gfc_conv_intrinsic_bitcomp (gfc_se * se, gfc_expr * expr, enum tree_code op)
+{
+  tree args[2];
+
+  gfc_conv_intrinsic_function_args (se, expr, args, 2);
+
+  /* Convert both arguments to the unsigned type of the same size.  */
+  args[0] = fold_convert (unsigned_type_for (TREE_TYPE (args[0])), args[0]);
+  args[1] = fold_convert (unsigned_type_for (TREE_TYPE (args[1])), args[1]);
+
+  /* If they have unequal type size, convert to the larger one.  */
+  if (TYPE_PRECISION (TREE_TYPE (args[0]))
+      > TYPE_PRECISION (TREE_TYPE (args[1])))
+    args[1] = fold_convert (TREE_TYPE (args[0]), args[1]);
+  else if (TYPE_PRECISION (TREE_TYPE (args[1]))
+	   > TYPE_PRECISION (TREE_TYPE (args[0])))
+    args[0] = fold_convert (TREE_TYPE (args[1]), args[0]);
+
+  /* Now, we compare them.  */
+  se->expr = fold_build2_loc (input_location, op, boolean_type_node,
+			      args[0], args[1]);
+}
+
+
 /* Generate code to perform the specified operation.  */
 static void
 gfc_conv_intrinsic_bitop (gfc_se * se, gfc_expr * expr, enum tree_code op)
@@ -3274,18 +3350,39 @@ gfc_conv_intrinsic_ibits (gfc_se * se, gfc_expr * expr)
   se->expr = fold_build2_loc (input_location, BIT_AND_EXPR, type, tmp, mask);
 }
 
-/* RSHIFT (I, SHIFT) = I >> SHIFT
-   LSHIFT (I, SHIFT) = I << SHIFT  */
 static void
-gfc_conv_intrinsic_rlshift (gfc_se * se, gfc_expr * expr, int right_shift)
+gfc_conv_intrinsic_shift (gfc_se * se, gfc_expr * expr, bool right_shift,
+			  bool arithmetic)
 {
-  tree args[2];
+  tree args[2], type, num_bits, cond;
 
   gfc_conv_intrinsic_function_args (se, expr, args, 2);
+
+  args[0] = gfc_evaluate_now (args[0], &se->pre);
+  args[1] = gfc_evaluate_now (args[1], &se->pre);
+  type = TREE_TYPE (args[0]);
+
+  if (!arithmetic)
+    args[0] = fold_convert (unsigned_type_for (type), args[0]);
+  else
+    gcc_assert (right_shift);
 
   se->expr = fold_build2_loc (input_location,
 			      right_shift ? RSHIFT_EXPR : LSHIFT_EXPR,
 			      TREE_TYPE (args[0]), args[0], args[1]);
+
+  if (!arithmetic)
+    se->expr = fold_convert (type, se->expr);
+
+  /* The Fortran standard allows shift widths <= BIT_SIZE(I), whereas
+     gcc requires a shift width < BIT_SIZE(I), so we have to catch this
+     special case.  */
+  num_bits = build_int_cst (TREE_TYPE (args[1]), TYPE_PRECISION (type));
+  cond = fold_build2_loc (input_location, GE_EXPR, boolean_type_node,
+			  args[1], num_bits);
+
+  se->expr = fold_build3_loc (input_location, COND_EXPR, type, cond,
+			      build_int_cst (type, 0), se->expr);
 }
 
 /* ISHFT (I, SHIFT) = (abs (shift) >= BIT_SIZE (i))
@@ -3430,6 +3527,7 @@ gfc_conv_intrinsic_ishftc (gfc_se * se, gfc_expr * expr)
 			      rrot);
 }
 
+
 /* LEADZ (i) = (i == 0) ? BIT_SIZE (i)
 			: __builtin_clz(i) - (BIT_SIZE('int') - BIT_SIZE(i))
 
@@ -3474,9 +3572,9 @@ gfc_conv_intrinsic_leadz (gfc_se * se, gfc_expr * expr)
     }
   else
     {
-      gcc_assert (argsize == 128);
+      gcc_assert (argsize == 2 * LONG_LONG_TYPE_SIZE);
       arg_type = gfc_build_uint_type (argsize);
-      func = gfor_fndecl_clz128;
+      func = NULL_TREE;
     }
 
   /* Convert the actual argument twice: first, to the unsigned type of the
@@ -3484,14 +3582,65 @@ gfc_conv_intrinsic_leadz (gfc_se * se, gfc_expr * expr)
      function.  But the return type is of the default INTEGER kind.  */
   arg = fold_convert (gfc_build_uint_type (argsize), arg);
   arg = fold_convert (arg_type, arg);
+  arg = gfc_evaluate_now (arg, &se->pre);
   result_type = gfc_get_int_type (gfc_default_integer_kind);
 
   /* Compute LEADZ for the case i .ne. 0.  */
-  s = TYPE_PRECISION (arg_type) - argsize;
-  tmp = fold_convert (result_type, build_call_expr_loc (input_location, func,
-							1, arg));
-  leadz = fold_build2_loc (input_location, MINUS_EXPR, result_type,
-			   tmp, build_int_cst (result_type, s));
+  if (func)
+    {
+      s = TYPE_PRECISION (arg_type) - argsize;
+      tmp = fold_convert (result_type,
+			  build_call_expr_loc (input_location, func,
+					       1, arg));
+      leadz = fold_build2_loc (input_location, MINUS_EXPR, result_type,
+			       tmp, build_int_cst (result_type, s));
+    }
+  else
+    {
+      /* We end up here if the argument type is larger than 'long long'.
+	 We generate this code:
+  
+	    if (x & (ULL_MAX << ULL_SIZE) != 0)
+	      return clzll ((unsigned long long) (x >> ULLSIZE));
+	    else
+	      return ULL_SIZE + clzll ((unsigned long long) x);
+	 where ULL_MAX is the largest value that a ULL_MAX can hold
+	 (0xFFFFFFFFFFFFFFFF for a 64-bit long long type), and ULLSIZE
+	 is the bit-size of the long long type (64 in this example).  */
+      tree ullsize, ullmax, tmp1, tmp2;
+
+      ullsize = build_int_cst (result_type, LONG_LONG_TYPE_SIZE);
+      ullmax = fold_build1_loc (input_location, BIT_NOT_EXPR,
+				long_long_unsigned_type_node,
+				build_int_cst (long_long_unsigned_type_node,
+					       0));
+
+      cond = fold_build2_loc (input_location, LSHIFT_EXPR, arg_type,
+			      fold_convert (arg_type, ullmax), ullsize);
+      cond = fold_build2_loc (input_location, BIT_AND_EXPR, arg_type,
+			      arg, cond);
+      cond = fold_build2_loc (input_location, NE_EXPR, boolean_type_node,
+			      cond, build_int_cst (arg_type, 0));
+
+      tmp1 = fold_build2_loc (input_location, RSHIFT_EXPR, arg_type,
+			      arg, ullsize);
+      tmp1 = fold_convert (long_long_unsigned_type_node, tmp1);
+      tmp1 = fold_convert (result_type,
+			   build_call_expr_loc (input_location,	
+						built_in_decls[BUILT_IN_CLZLL],
+						1, tmp1));
+
+      tmp2 = fold_convert (long_long_unsigned_type_node, arg);
+      tmp2 = fold_convert (result_type,
+			   build_call_expr_loc (input_location,
+						built_in_decls[BUILT_IN_CLZLL],
+						1, tmp2));
+      tmp2 = fold_build2_loc (input_location, PLUS_EXPR, result_type,
+			      tmp2, ullsize);
+
+      leadz = fold_build3_loc (input_location, COND_EXPR, result_type,
+			       cond, tmp1, tmp2);
+    }
 
   /* Build BIT_SIZE.  */
   bit_size = build_int_cst (result_type, argsize);
@@ -3501,6 +3650,7 @@ gfc_conv_intrinsic_leadz (gfc_se * se, gfc_expr * expr)
   se->expr = fold_build3_loc (input_location, COND_EXPR, result_type, cond,
 			      bit_size, leadz);
 }
+
 
 /* TRAILZ(i) = (i == 0) ? BIT_SIZE (i) : __builtin_ctz(i)
 
@@ -3541,9 +3691,9 @@ gfc_conv_intrinsic_trailz (gfc_se * se, gfc_expr *expr)
     }
   else
     {
-      gcc_assert (argsize == 128);
+      gcc_assert (argsize == 2 * LONG_LONG_TYPE_SIZE);
       arg_type = gfc_build_uint_type (argsize);
-      func = gfor_fndecl_ctz128;
+      func = NULL_TREE;
     }
 
   /* Convert the actual argument twice: first, to the unsigned type of the
@@ -3551,11 +3701,57 @@ gfc_conv_intrinsic_trailz (gfc_se * se, gfc_expr *expr)
      function.  But the return type is of the default INTEGER kind.  */
   arg = fold_convert (gfc_build_uint_type (argsize), arg);
   arg = fold_convert (arg_type, arg);
+  arg = gfc_evaluate_now (arg, &se->pre);
   result_type = gfc_get_int_type (gfc_default_integer_kind);
 
   /* Compute TRAILZ for the case i .ne. 0.  */
-  trailz = fold_convert (result_type, build_call_expr_loc (input_location,
-						       func, 1, arg));
+  if (func)
+    trailz = fold_convert (result_type, build_call_expr_loc (input_location,
+							     func, 1, arg));
+  else
+    {
+      /* We end up here if the argument type is larger than 'long long'.
+	 We generate this code:
+  
+	    if ((x & ULL_MAX) == 0)
+	      return ULL_SIZE + ctzll ((unsigned long long) (x >> ULLSIZE));
+	    else
+	      return ctzll ((unsigned long long) x);
+
+	 where ULL_MAX is the largest value that a ULL_MAX can hold
+	 (0xFFFFFFFFFFFFFFFF for a 64-bit long long type), and ULLSIZE
+	 is the bit-size of the long long type (64 in this example).  */
+      tree ullsize, ullmax, tmp1, tmp2;
+
+      ullsize = build_int_cst (result_type, LONG_LONG_TYPE_SIZE);
+      ullmax = fold_build1_loc (input_location, BIT_NOT_EXPR,
+				long_long_unsigned_type_node,
+				build_int_cst (long_long_unsigned_type_node, 0));
+
+      cond = fold_build2_loc (input_location, BIT_AND_EXPR, arg_type, arg,
+			      fold_convert (arg_type, ullmax));
+      cond = fold_build2_loc (input_location, EQ_EXPR, boolean_type_node, cond,
+			      build_int_cst (arg_type, 0));
+
+      tmp1 = fold_build2_loc (input_location, RSHIFT_EXPR, arg_type,
+			      arg, ullsize);
+      tmp1 = fold_convert (long_long_unsigned_type_node, tmp1);
+      tmp1 = fold_convert (result_type,
+			   build_call_expr_loc (input_location,	
+						built_in_decls[BUILT_IN_CTZLL],
+						1, tmp1));
+      tmp1 = fold_build2_loc (input_location, PLUS_EXPR, result_type,
+			      tmp1, ullsize);
+
+      tmp2 = fold_convert (long_long_unsigned_type_node, arg);
+      tmp2 = fold_convert (result_type,
+			   build_call_expr_loc (input_location,
+						built_in_decls[BUILT_IN_CTZLL],
+						1, tmp2));
+
+      trailz = fold_build3_loc (input_location, COND_EXPR, result_type,
+				cond, tmp1, tmp2);
+    }
 
   /* Build BIT_SIZE.  */
   bit_size = build_int_cst (result_type, argsize);
@@ -3929,6 +4125,84 @@ gfc_conv_intrinsic_merge (gfc_se * se, gfc_expr * expr)
 }
 
 
+/* MERGE_BITS (I, J, MASK) = (I & MASK) | (I & (~MASK)).  */
+
+static void
+gfc_conv_intrinsic_merge_bits (gfc_se * se, gfc_expr * expr)
+{
+  tree args[3], mask, type;
+
+  gfc_conv_intrinsic_function_args (se, expr, args, 3);
+  mask = gfc_evaluate_now (args[2], &se->pre);
+
+  type = TREE_TYPE (args[0]);
+  gcc_assert (TREE_TYPE (args[1]) == type);
+  gcc_assert (TREE_TYPE (mask) == type);
+
+  args[0] = fold_build2_loc (input_location, BIT_AND_EXPR, type, args[0], mask);
+  args[1] = fold_build2_loc (input_location, BIT_AND_EXPR, type, args[1],
+			     fold_build1_loc (input_location, BIT_NOT_EXPR,
+					      type, mask));
+  se->expr = fold_build2_loc (input_location, BIT_IOR_EXPR, type,
+			      args[0], args[1]);
+}
+
+
+/* MASKL(n)  =  n == 0 ? 0 : (~0) << (BIT_SIZE - n)
+   MASKR(n)  =  n == BIT_SIZE ? ~0 : ~((~0) << n)  */
+
+static void
+gfc_conv_intrinsic_mask (gfc_se * se, gfc_expr * expr, int left)
+{
+  tree arg, allones, type, utype, res, cond, bitsize;
+  int i;
+ 
+  gfc_conv_intrinsic_function_args (se, expr, &arg, 1);
+  arg = gfc_evaluate_now (arg, &se->pre);
+
+  type = gfc_get_int_type (expr->ts.kind);
+  utype = unsigned_type_for (type);
+
+  i = gfc_validate_kind (BT_INTEGER, expr->ts.kind, false);
+  bitsize = build_int_cst (TREE_TYPE (arg), gfc_integer_kinds[i].bit_size);
+
+  allones = fold_build1_loc (input_location, BIT_NOT_EXPR, utype,
+			     build_int_cst (utype, 0));
+
+  if (left)
+    {
+      /* Left-justified mask.  */
+      res = fold_build2_loc (input_location, MINUS_EXPR, TREE_TYPE (arg),
+			     bitsize, arg);
+      res = fold_build2_loc (input_location, LSHIFT_EXPR, utype, allones,
+			     fold_convert (utype, res));
+
+      /* Special case arg == 0, because SHIFT_EXPR wants a shift strictly
+	 smaller than type width.  */
+      cond = fold_build2_loc (input_location, EQ_EXPR, boolean_type_node, arg,
+			      build_int_cst (TREE_TYPE (arg), 0));
+      res = fold_build3_loc (input_location, COND_EXPR, utype, cond,
+			     build_int_cst (utype, 0), res);
+    }
+  else
+    {
+      /* Right-justified mask.  */
+      res = fold_build2_loc (input_location, LSHIFT_EXPR, utype, allones,
+			     fold_convert (utype, arg));
+      res = fold_build1_loc (input_location, BIT_NOT_EXPR, utype, res);
+
+      /* Special case agr == bit_size, because SHIFT_EXPR wants a shift
+	 strictly smaller than type width.  */
+      cond = fold_build2_loc (input_location, EQ_EXPR, boolean_type_node,
+			      arg, bitsize);
+      res = fold_build3_loc (input_location, COND_EXPR, utype,
+			     cond, allones, res);
+    }
+
+  se->expr = fold_convert (type, res);
+}
+
+
 /* FRACTION (s) is translated into frexp (s, &dummy_int).  */
 static void
 gfc_conv_intrinsic_fraction (gfc_se * se, gfc_expr * expr)
@@ -3958,12 +4232,12 @@ gfc_conv_intrinsic_nearest (gfc_se * se, gfc_expr * expr)
 
   nextafter = gfc_builtin_decl_for_float_kind (BUILT_IN_NEXTAFTER, expr->ts.kind);
   copysign = gfc_builtin_decl_for_float_kind (BUILT_IN_COPYSIGN, expr->ts.kind);
-  huge_val = gfc_builtin_decl_for_float_kind (BUILT_IN_HUGE_VAL, expr->ts.kind);
 
   type = gfc_typenode_for_spec (&expr->ts);
   gfc_conv_intrinsic_function_args (se, expr, args, 2);
-  tmp = build_call_expr_loc (input_location, copysign, 2,
-			     build_call_expr_loc (input_location, huge_val, 0),
+
+  huge_val = gfc_build_inf_or_huge (type, expr->ts.kind);
+  tmp = build_call_expr_loc (input_location, copysign, 2, huge_val,
 			     fold_convert (type, args[1]));
   se->expr = build_call_expr_loc (input_location, nextafter, 2,
 				  fold_convert (type, args[0]), tmp);
@@ -4706,7 +4980,7 @@ gfc_conv_intrinsic_transfer (gfc_se * se, gfc_expr * expr)
 
   se->expr = info->descriptor;
   if (expr->ts.type == BT_CHARACTER)
-    se->string_length = dest_word_len;
+    se->string_length = fold_convert (gfc_charlen_type_node, dest_word_len);
 
   return;
 
@@ -5299,7 +5573,7 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
 
   name = &expr->value.function.name[2];
 
-  if (expr->rank > 0 && !expr->inline_noncopying_intrinsic)
+  if (expr->rank > 0)
     {
       lib = gfc_is_intrinsic_libcall (expr);
       if (lib != 0)
@@ -5445,6 +5719,22 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       gfc_conv_intrinsic_btest (se, expr);
       break;
 
+    case GFC_ISYM_BGE:
+      gfc_conv_intrinsic_bitcomp (se, expr, GE_EXPR);
+      break;
+
+    case GFC_ISYM_BGT:
+      gfc_conv_intrinsic_bitcomp (se, expr, GT_EXPR);
+      break;
+
+    case GFC_ISYM_BLE:
+      gfc_conv_intrinsic_bitcomp (se, expr, LE_EXPR);
+      break;
+
+    case GFC_ISYM_BLT:
+      gfc_conv_intrinsic_bitcomp (se, expr, LT_EXPR);
+      break;
+
     case GFC_ISYM_ACHAR:
     case GFC_ISYM_CHAR:
       gfc_conv_intrinsic_char (se, expr);
@@ -5522,6 +5812,14 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       gfc_conv_intrinsic_dprod (se, expr);
       break;
 
+    case GFC_ISYM_DSHIFTL:
+      gfc_conv_intrinsic_dshift (se, expr, true);
+      break;
+
+    case GFC_ISYM_DSHIFTR:
+      gfc_conv_intrinsic_dshift (se, expr, false);
+      break;
+
     case GFC_ISYM_FDATE:
       gfc_conv_intrinsic_fdate (se, expr);
       break;
@@ -5530,8 +5828,16 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       gfc_conv_intrinsic_fraction (se, expr);
       break;
 
+    case GFC_ISYM_IALL:
+      gfc_conv_intrinsic_arith (se, expr, BIT_AND_EXPR, false);
+      break;
+
     case GFC_ISYM_IAND:
       gfc_conv_intrinsic_bitop (se, expr, BIT_AND_EXPR);
+      break;
+
+    case GFC_ISYM_IANY:
+      gfc_conv_intrinsic_arith (se, expr, BIT_IOR_EXPR, false);
       break;
 
     case GFC_ISYM_IBCLR:
@@ -5576,6 +5882,10 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       gfc_conv_intrinsic_bitop (se, expr, BIT_IOR_EXPR);
       break;
 
+    case GFC_ISYM_IPARITY:
+      gfc_conv_intrinsic_arith (se, expr, BIT_XOR_EXPR, false);
+      break;
+
     case GFC_ISYM_IS_IOSTAT_END:
       gfc_conv_has_intvalue (se, expr, LIBERROR_END);
       break;
@@ -5589,11 +5899,23 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       break;
 
     case GFC_ISYM_LSHIFT:
-      gfc_conv_intrinsic_rlshift (se, expr, 0);
+      gfc_conv_intrinsic_shift (se, expr, false, false);
       break;
 
     case GFC_ISYM_RSHIFT:
-      gfc_conv_intrinsic_rlshift (se, expr, 1);
+      gfc_conv_intrinsic_shift (se, expr, true, true);
+      break;
+
+    case GFC_ISYM_SHIFTA:
+      gfc_conv_intrinsic_shift (se, expr, true, true);
+      break;
+
+    case GFC_ISYM_SHIFTL:
+      gfc_conv_intrinsic_shift (se, expr, false, false);
+      break;
+
+    case GFC_ISYM_SHIFTR:
+      gfc_conv_intrinsic_shift (se, expr, true, false);
       break;
 
     case GFC_ISYM_ISHFT:
@@ -5625,13 +5947,9 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       break;
 
     case GFC_ISYM_TRANSPOSE:
-      if (se->ss && se->ss->useflags)
-	{
-	  gfc_conv_tmp_array_ref (se);
-	  gfc_advance_se_ss_chain (se);
-	}
-      else
-	gfc_conv_array_transpose (se, expr->value.function.actual->expr);
+      /* The scalarizer has already been set up for reversed dimension access
+	 order ; now we just get the argument value normally.  */
+      gfc_conv_expr (se, expr->value.function.actual->expr);
       break;
 
     case GFC_ISYM_LEN:
@@ -5658,6 +5976,14 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
       gfc_conv_intrinsic_strcmp (se, expr, LT_EXPR);
       break;
 
+    case GFC_ISYM_MASKL:
+      gfc_conv_intrinsic_mask (se, expr, 1);
+      break;
+
+    case GFC_ISYM_MASKR:
+      gfc_conv_intrinsic_mask (se, expr, 0);
+      break;
+
     case GFC_ISYM_MAX:
       if (expr->ts.type == BT_CHARACTER)
 	gfc_conv_intrinsic_minmax_char (se, expr, 1);
@@ -5675,6 +6001,10 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
 
     case GFC_ISYM_MERGE:
       gfc_conv_intrinsic_merge (se, expr);
+      break;
+
+    case GFC_ISYM_MERGE_BITS:
+      gfc_conv_intrinsic_merge_bits (se, expr);
       break;
 
     case GFC_ISYM_MIN:
@@ -5844,6 +6174,64 @@ gfc_conv_intrinsic_function (gfc_se * se, gfc_expr * expr)
 }
 
 
+static gfc_ss *
+walk_inline_intrinsic_transpose (gfc_ss *ss, gfc_expr *expr)
+{
+  gfc_ss *arg_ss, *tmp_ss;
+  gfc_actual_arglist *arg;
+
+  arg = expr->value.function.actual;
+
+  gcc_assert (arg->expr);
+
+  arg_ss = gfc_walk_subexpr (gfc_ss_terminator, arg->expr);
+  gcc_assert (arg_ss != gfc_ss_terminator);
+
+  for (tmp_ss = arg_ss; ; tmp_ss = tmp_ss->next)
+    {
+      if (tmp_ss->type != GFC_SS_SCALAR
+	  && tmp_ss->type != GFC_SS_REFERENCE)
+	{
+	  int tmp_dim;
+	  gfc_ss_info *info;
+
+	  info = &tmp_ss->data.info;
+	  gcc_assert (info->dimen == 2);
+
+	  /* We just invert dimensions.  */
+	  tmp_dim = info->dim[0];
+	  info->dim[0] = info->dim[1];
+	  info->dim[1] = tmp_dim;
+	}
+
+      /* Stop when tmp_ss points to the last valid element of the chain...  */
+      if (tmp_ss->next == gfc_ss_terminator)
+	break;
+    }
+
+  /* ... so that we can attach the rest of the chain to it.  */
+  tmp_ss->next = ss;
+
+  return arg_ss;
+}
+
+
+static gfc_ss *
+walk_inline_intrinsic_function (gfc_ss * ss, gfc_expr * expr)
+{
+
+  switch (expr->value.function.isym->id)
+    {
+      case GFC_ISYM_TRANSPOSE:
+	return walk_inline_intrinsic_transpose (ss, expr);
+
+      default:
+	gcc_unreachable ();
+    }
+  gcc_unreachable ();
+}
+
+
 /* This generates code to execute before entering the scalarization loop.
    Currently does nothing.  */
 
@@ -5890,6 +6278,7 @@ static gfc_ss *
 gfc_walk_intrinsic_libfunc (gfc_ss * ss, gfc_expr * expr)
 {
   gfc_ss *newss;
+  int n;
 
   gcc_assert (expr->rank > 0);
 
@@ -5898,8 +6287,30 @@ gfc_walk_intrinsic_libfunc (gfc_ss * ss, gfc_expr * expr)
   newss->expr = expr;
   newss->next = ss;
   newss->data.info.dimen = expr->rank;
+  for (n = 0; n < newss->data.info.dimen; n++)
+    newss->data.info.dim[n] = n;
 
   return newss;
+}
+
+
+/* Return whether the function call expression EXPR will be expanded
+   inline by gfc_conv_intrinsic_function.  */
+
+bool
+gfc_inline_intrinsic_function_p (gfc_expr *expr)
+{
+  if (!expr->value.function.isym)
+    return false;
+
+  switch (expr->value.function.isym->id)
+    {
+    case GFC_ISYM_TRANSPOSE:
+      return true;
+
+    default:
+      return false;
+    }
 }
 
 
@@ -5913,12 +6324,18 @@ gfc_is_intrinsic_libcall (gfc_expr * expr)
   gcc_assert (expr->expr_type == EXPR_FUNCTION && expr->value.function.isym);
   gcc_assert (expr->rank > 0);
 
+  if (gfc_inline_intrinsic_function_p (expr))
+    return 0;
+
   switch (expr->value.function.isym->id)
     {
     case GFC_ISYM_ALL:
     case GFC_ISYM_ANY:
     case GFC_ISYM_COUNT:
     case GFC_ISYM_JN2:
+    case GFC_ISYM_IANY:
+    case GFC_ISYM_IALL:
+    case GFC_ISYM_IPARITY:
     case GFC_ISYM_MATMUL:
     case GFC_ISYM_MAXLOC:
     case GFC_ISYM_MAXVAL:
@@ -5930,7 +6347,6 @@ gfc_is_intrinsic_libcall (gfc_expr * expr)
     case GFC_ISYM_SUM:
     case GFC_ISYM_SHAPE:
     case GFC_ISYM_SPREAD:
-    case GFC_ISYM_TRANSPOSE:
     case GFC_ISYM_YN2:
       /* Ignore absent optional parameters.  */
       return 1;
@@ -5956,10 +6372,14 @@ gfc_walk_intrinsic_function (gfc_ss * ss, gfc_expr * expr,
   gcc_assert (isym);
 
   if (isym->elemental)
-    return gfc_walk_elemental_function_args (ss, expr->value.function.actual, GFC_SS_SCALAR);
+    return gfc_walk_elemental_function_args (ss, expr->value.function.actual,
+					     GFC_SS_SCALAR);
 
   if (expr->rank == 0)
     return ss;
+
+  if (gfc_inline_intrinsic_function_p (expr))
+    return walk_inline_intrinsic_function (ss, expr);
 
   if (gfc_is_intrinsic_libcall (expr))
     return gfc_walk_intrinsic_libfunc (ss, expr);

@@ -1099,7 +1099,7 @@ Specify explicitly the @var{language} for the following input files
 name suffix).  This option applies to all following input files until
 the next @option{-x} option.  Possible values for @var{language} are:
 @smallexample
-c  c-header  c-cpp-output
+c  c-header  cpp-output
 c++  c++-header  c++-cpp-output
 objective-c  objective-c-header  objective-c-cpp-output
 objective-c++ objective-c++-header objective-c++-cpp-output
@@ -3053,7 +3053,7 @@ This warning is enabled by @option{-Wall}.
 
 Suppress warning messages emitted by @code{#warning} directives.
 
-@item -Wdouble-promotion @r{(C and Objective-C only)}
+@item -Wdouble-promotion @r{(C, C++, Objective-C and Objective-C++ only)}
 @opindex Wdouble-promotion
 @opindex Wno-double-promotion
 Give a warning when a value of type @code{float} is implicitly
@@ -5979,7 +5979,8 @@ invoking @option{-O2} on programs that use computed gotos.
 Optimize yet more.  @option{-O3} turns on all optimizations specified
 by @option{-O2} and also turns on the @option{-finline-functions},
 @option{-funswitch-loops}, @option{-fpredictive-commoning},
-@option{-fgcse-after-reload} and @option{-ftree-vectorize} options.
+@option{-fgcse-after-reload}, @option{-ftree-vectorize} and
+@option{-fipa-cp-clone} options.
 
 @item -O0
 @opindex O0
@@ -10120,7 +10121,7 @@ assembly code.  Permissible names are: @samp{arm2}, @samp{arm250},
 @samp{arm10e}, @samp{arm1020e}, @samp{arm1022e},
 @samp{arm1136j-s}, @samp{arm1136jf-s}, @samp{mpcore}, @samp{mpcorenovfp},
 @samp{arm1156t2-s}, @samp{arm1156t2f-s}, @samp{arm1176jz-s}, @samp{arm1176jzf-s},
-@samp{cortex-a5}, @samp{cortex-a8}, @samp{cortex-a9},
+@samp{cortex-a5}, @samp{cortex-a8}, @samp{cortex-a9}, @samp{cortex-a15},
 @samp{cortex-r4}, @samp{cortex-r4f}, @samp{cortex-m4}, @samp{cortex-m3},
 @samp{cortex-m1},
 @samp{cortex-m0},
@@ -15211,6 +15212,11 @@ scheduling parameters set by @option{-mtune}.
 @opindex mcmodel=small
 Generate PowerPC64 code for the small model: The TOC is limited to
 64k.
+
+@item -mcmodel=medium
+@opindex mcmodel=medium
+Generate PowerPC64 code for the medium model: The TOC and other static
+data may be up to a total of 4G in size.
 
 @item -mcmodel=large
 @opindex mcmodel=large

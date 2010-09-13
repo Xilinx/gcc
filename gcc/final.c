@@ -2655,7 +2655,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	/* ??? This will put the directives in the wrong place if
 	   get_insn_template outputs assembly directly.  However calling it
 	   before get_insn_template breaks if the insns is split.  */
-	if (targetm.asm_out.unwind_emit)
+	if (targetm.asm_out.unwind_emit_before_insn
+	    && targetm.asm_out.unwind_emit)
 	  targetm.asm_out.unwind_emit (asm_out_file, insn);
 
 	if (CALL_P (insn))
@@ -2712,6 +2713,10 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    && dwarf2out_do_frame ())
 	  dwarf2out_frame_debug (insn, true);
 #endif
+
+	if (!targetm.asm_out.unwind_emit_before_insn
+	    && targetm.asm_out.unwind_emit)
+	  targetm.asm_out.unwind_emit (asm_out_file, insn);
 
 	current_output_insn = debug_insn = 0;
       }
@@ -4235,18 +4240,12 @@ rest_of_handle_final (void)
   final (get_insns (), asm_out_file, optimize);
   final_end_function ();
 
-#ifdef TARGET_UNWIND_INFO
-  /* ??? The IA-64 ".handlerdata" directive must be issued before
-     the ".endp" directive that closes the procedure descriptor.  */
+  /* The IA-64 ".handlerdata" directive must be issued before the ".endp"
+     directive that closes the procedure descriptor.  Similarly, for x64 SEH.
+     Otherwise it's not strictly necessary, but it doesn't hurt either.  */
   output_function_exception_table (fnname);
-#endif
 
   assemble_end_function (current_function_decl, fnname);
-
-#ifndef TARGET_UNWIND_INFO
-  /* Otherwise, it feels unclean to switch sections in the middle.  */
-  output_function_exception_table (fnname);
-#endif
 
   user_defined_section_attribute = false;
 

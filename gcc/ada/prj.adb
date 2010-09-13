@@ -48,8 +48,6 @@ package body Prj is
 
    The_Empty_String : Name_Id := No_Name;
 
-   subtype Known_Casing is Casing_Type range All_Upper_Case .. Mixed_Case;
-
    type Cst_String_Access is access constant String;
 
    All_Lower_Case_Image : aliased constant String := "lowercase";
@@ -249,16 +247,10 @@ package body Prj is
             return No_File;
 
          when Makefile =>
-            return
-              File_Name_Type
-                (Extend_Name
-                   (Source_File_Name, Makefile_Dependency_Suffix));
+            return Extend_Name (Source_File_Name, Makefile_Dependency_Suffix);
 
          when ALI_File =>
-            return
-              File_Name_Type
-                (Extend_Name
-                   (Source_File_Name, ALI_Dependency_Suffix));
+            return Extend_Name (Source_File_Name, ALI_Dependency_Suffix);
       end case;
    end Dependency_Name;
 
@@ -1023,11 +1015,11 @@ package body Prj is
 
          if Project.Library then
             if Project.Object_Directory = No_Path_Information
-              or else Contains_ALI_Files (Project.Library_ALI_Dir.Name)
+              or else Contains_ALI_Files (Project.Library_ALI_Dir.Display_Name)
             then
-               return Project.Library_ALI_Dir.Name;
+               return Project.Library_ALI_Dir.Display_Name;
             else
-               return Project.Object_Directory.Name;
+               return Project.Object_Directory.Display_Name;
             end if;
 
             --  For a non-library project, add object directory if it is not a
@@ -1053,7 +1045,7 @@ package body Prj is
                end loop;
 
                if Add_Object_Dir then
-                  return Project.Object_Directory.Name;
+                  return Project.Object_Directory.Display_Name;
                end if;
             end;
          end if;

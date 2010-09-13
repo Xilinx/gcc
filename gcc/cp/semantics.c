@@ -876,12 +876,16 @@ finish_for_expr (tree expr, tree for_stmt)
 
 /* Finish the body of a for-statement, which may be given by
    FOR_STMT.  The increment-EXPR for the loop must be
-   provided.  */
+   provided.
+   It can also finish RANGE_FOR_STMT. */
 
 void
 finish_for_stmt (tree for_stmt)
 {
-  FOR_BODY (for_stmt) = do_poplevel (FOR_BODY (for_stmt));
+  if (TREE_CODE (for_stmt) == RANGE_FOR_STMT)
+    RANGE_FOR_BODY (for_stmt) = do_poplevel (RANGE_FOR_BODY (for_stmt));
+  else
+    FOR_BODY (for_stmt) = do_poplevel (FOR_BODY (for_stmt));
 
   /* Pop the scope for the body of the loop.  */
   if (flag_new_for_scope > 0)
@@ -892,6 +896,36 @@ finish_for_stmt (tree for_stmt)
     }
 
   finish_stmt ();
+}
+
+/* Begin a range-for-statement.  Returns a new RANGE_FOR_STMT.
+   To finish it call finish_for_stmt(). */
+
+tree
+begin_range_for_stmt (void)
+{
+  tree r;
+
+  r = build_stmt (input_location, RANGE_FOR_STMT,
+		  NULL_TREE, NULL_TREE, NULL_TREE);
+
+  if (flag_new_for_scope > 0)
+    TREE_CHAIN (r) = do_pushlevel (sk_for);
+
+  return r;
+}
+
+/* Finish the head of a range-based for statement, which may
+   be given by RANGE_FOR_STMT. DECL must be the declaration
+   and EXPR must be the loop expression. */
+
+void
+finish_range_for_decl (tree range_for_stmt, tree decl, tree expr)
+{
+  RANGE_FOR_DECL (range_for_stmt) = decl;
+  RANGE_FOR_EXPR (range_for_stmt) = expr;
+  add_stmt (range_for_stmt);
+  RANGE_FOR_BODY (range_for_stmt) = do_pushlevel (sk_block);
 }
 
 /* Finish a break-statement.  */
@@ -1851,11 +1885,12 @@ empty_expr_stmt_p (tree expr_stmt)
 
 /* Perform Koenig lookup.  FN is the postfix-expression representing
    the function (or functions) to call; ARGS are the arguments to the
-   call.  Returns the functions to be considered by overload
-   resolution.  */
+   call; if INCLUDE_STD then the `std' namespace is automatically
+   considered an associated namespace (used in range-based for loops).
+   Returns the functions to be considered by overload resolution.  */
 
 tree
-perform_koenig_lookup (tree fn, VEC(tree,gc) *args)
+perform_koenig_lookup (tree fn, VEC(tree,gc) *args, bool include_std)
 {
   tree identifier = NULL_TREE;
   tree functions = NULL_TREE;
@@ -1891,7 +1926,7 @@ perform_koenig_lookup (tree fn, VEC(tree,gc) *args)
   if (!any_type_dependent_arguments_p (args)
       && !any_dependent_template_arguments_p (tmpl_args))
     {
-      fn = lookup_arg_dependent (identifier, functions, args);
+      fn = lookup_arg_dependent (identifier, functions, args, include_std);
       if (!fn)
 	/* The unqualified name could not be resolved.  */
 	fn = unqualified_fn_lookup_error (identifier);

@@ -4916,7 +4916,6 @@ static tree
 reshape_init_vector (tree type, reshape_iter *d)
 {
   tree max_index = NULL_TREE;
-  tree rtype;
 
   gcc_assert (TREE_CODE (type) == VECTOR_TYPE);
 
@@ -4933,12 +4932,9 @@ reshape_init_vector (tree type, reshape_iter *d)
       return value;
     }
 
-  /* For a vector, the representation type is a struct
-      containing a single member which is an array of the
-      appropriate size.  */
-  rtype = TYPE_DEBUG_REPRESENTATION_TYPE (type);
-  if (rtype && TYPE_DOMAIN (TREE_TYPE (TYPE_FIELDS (rtype))))
-    max_index = array_type_nelts (TREE_TYPE (TYPE_FIELDS (rtype)));
+  /* For a vector, we initialize it as an array of the appropriate size.  */
+  if (TREE_CODE (type) == VECTOR_TYPE)
+    max_index = size_int (TYPE_VECTOR_SUBPARTS (type) - 1);
 
   return reshape_init_array_1 (TREE_TYPE (type), max_index, d);
 }
@@ -11712,10 +11708,11 @@ finish_enum (tree enumtype)
 
 /* Build and install a CONST_DECL for an enumeration constant of the
    enumeration type ENUMTYPE whose NAME and VALUE (if any) are provided.
+   LOC is the location of NAME.
    Assignment of sequential values by default is handled here.  */
 
 void
-build_enumerator (tree name, tree value, tree enumtype)
+build_enumerator (tree name, tree value, tree enumtype, location_t loc)
 {
   tree decl;
   tree context;
@@ -11830,12 +11827,12 @@ build_enumerator (tree name, tree value, tree enumtype)
   if (context && context == current_class_type)
     /* This enum declaration is local to the class.  We need the full
        lang_decl so that we can record DECL_CLASS_CONTEXT, for example.  */
-    decl = build_lang_decl (CONST_DECL, name, type);
+    decl = build_lang_decl_loc (loc, CONST_DECL, name, type);
   else
     /* It's a global enum, or it's local to a function.  (Note local to
-      a function could mean local to a class method.  */
-    decl = build_decl (input_location, CONST_DECL, name, type);
-
+       a function could mean local to a class method.  */
+    decl = build_decl (loc, CONST_DECL, name, type);
+  
   DECL_CONTEXT (decl) = FROB_CONTEXT (context);
   TREE_CONSTANT (decl) = 1;
   TREE_READONLY (decl) = 1;

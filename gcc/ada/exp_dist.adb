@@ -8427,6 +8427,15 @@ package body Exp_Dist is
 
             Fnam := Find_Inherited_TSS (U_Type, TSS_From_Any);
 
+            --  For the subtype representing a generic actual type, go to the
+            --  actual type.
+
+            if Is_Generic_Actual_Type (U_Type) then
+               U_Type := Underlying_Type (Base_Type (U_Type));
+            end if;
+
+            --  For a standard subtype, go to the base type
+
             if Sloc (U_Type) <= Standard_Location then
                U_Type := Base_Type (U_Type);
             end if;
@@ -8516,13 +8525,6 @@ package body Exp_Dist is
                   Decl : Entity_Id;
 
                begin
-                  --  For the subtype representing a generic actual type, go
-                  --  to the base type.
-
-                  if Is_Generic_Actual_Type (U_Type) then
-                     U_Type := Base_Type (U_Type);
-                  end if;
-
                   Build_From_Any_Function (Loc, U_Type, Decl, Fnam);
                   Append_To (Decls, Decl);
                end;
@@ -8769,7 +8771,7 @@ package body Exp_Dist is
                                  --  Struct_Counter should be reset before
                                  --  handling a variant part. Indeed only one
                                  --  of the case statement alternatives will be
-                                 --  executed at run-time, so the counter must
+                                 --  executed at run time, so the counter must
                                  --  start at 0 for every case statement.
 
                                  Struct_Counter := 0;
@@ -9240,12 +9242,14 @@ package body Exp_Dist is
 
             Fnam := Find_Inherited_TSS (U_Type, TSS_To_Any);
 
-            --  Check first for Boolean and Character. These are enumeration
-            --  types, but we treat them specially, since they may require
-            --  special handling in the transfer protocol. However, this
-            --  special handling only applies if they have standard
-            --  representation, otherwise they are treated like any other
-            --  enumeration type.
+            --  For the subtype representing a generic actual type, go to the
+            --  actual type.
+
+            if Is_Generic_Actual_Type (U_Type) then
+               U_Type := Underlying_Type (Base_Type (U_Type));
+            end if;
+
+            --  For a standard subtype, go to the base type
 
             if Sloc (U_Type) <= Standard_Location then
                U_Type := Base_Type (U_Type);
@@ -9253,6 +9257,13 @@ package body Exp_Dist is
 
             if Present (Fnam) then
                null;
+
+            --  Check first for Boolean and Character. These are enumeration
+            --  types, but we treat them specially, since they may require
+            --  special handling in the transfer protocol. However, this
+            --  special handling only applies if they have standard
+            --  representation, otherwise they are treated like any other
+            --  enumeration type.
 
             elsif U_Type = Standard_Boolean then
                Lib_RE := RE_TA_B;
@@ -9380,14 +9391,11 @@ package body Exp_Dist is
             Decls : constant List_Id := New_List;
             Stms  : constant List_Id := New_List;
 
-            Expr_Parameter : constant Entity_Id :=
-                               Make_Defining_Identifier (Loc, Name_E);
-
-            Any : constant Entity_Id :=
-                    Make_Defining_Identifier (Loc, Name_A);
+            Expr_Parameter : Entity_Id;
+            Any            : Entity_Id;
+            Result_TC      : Node_Id;
 
             Any_Decl  : Node_Id;
-            Result_TC : Node_Id := Build_TypeCode_Call (Loc, Typ, Decls);
 
             Use_Opaque_Representation : Boolean;
             --  When True, use stream attributes and represent type as an
@@ -9401,12 +9409,16 @@ package body Exp_Dist is
 
             if Is_Itype (Typ) and then Typ /= Base_Type (Typ) then
                Build_To_Any_Function
-                  (Loc  => Loc,
+                 (Loc  => Loc,
                   Typ  => Etype (Typ),
                   Decl => Decl,
                   Fnam => Fnam);
                return;
             end if;
+
+            Expr_Parameter := Make_Defining_Identifier (Loc, Name_E);
+            Any            := Make_Defining_Identifier (Loc, Name_A);
+            Result_TC      := Build_TypeCode_Call (Loc, Typ, Decls);
 
             Fnam := Make_Helper_Function_Name (Loc, Typ, Name_To_Any);
 
@@ -9655,7 +9667,7 @@ package body Exp_Dist is
                                  --  Struct_Counter should be reset before
                                  --  handling a variant part. Indeed only one
                                  --  of the case statement alternatives will be
-                                 --  executed at run-time, so the counter must
+                                 --  executed at run time, so the counter must
                                  --  start at 0 for every case statement.
 
                                  Struct_Counter := 0;
@@ -10017,15 +10029,20 @@ package body Exp_Dist is
                Fnam := Find_Inherited_TSS (U_Type, TSS_TypeCode);
             end if;
 
+            --  For the subtype representing a generic actual type, go to the
+            --  actual type.
+
+            if Is_Generic_Actual_Type (U_Type) then
+               U_Type := Underlying_Type (Base_Type (U_Type));
+            end if;
+
+            --  For a standard subtype, go to the base type
+
+            if Sloc (U_Type) <= Standard_Location then
+               U_Type := Base_Type (U_Type);
+            end if;
+
             if No (Fnam) then
-               if Sloc (U_Type) <= Standard_Location then
-
-                  --  Do not try to build alias typecodes for subtypes from
-                  --  Standard.
-
-                  U_Type := Base_Type (U_Type);
-               end if;
-
                if U_Type = Standard_Boolean then
                   Lib_RE := RE_TC_B;
 

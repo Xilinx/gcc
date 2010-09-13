@@ -65,6 +65,7 @@ package Opt is
    --  Set True if binder file to be generated in Ada rather than C
 
    type Ada_Version_Type is (Ada_83, Ada_95, Ada_05, Ada_12);
+   pragma Ordered (Ada_Version_Type);
    --  Versions of Ada for Ada_Version below. Note that these are ordered,
    --  so that tests like Ada_Version >= Ada_95 are legitimate and useful.
 
@@ -910,6 +911,12 @@ package Opt is
    --  GNATMAKE
    --  Set to True when an object directory is specified with option -D
 
+   One_Compilation_Per_Obj_Dir : Boolean := False;
+   --  GNATMAKE, GPRBUILD
+   --  Set to True with switch --single-compile-per-obj-dir. When True, there
+   --  cannot be simultaneous compilations with the object files in the same
+   --  object directory, if project files are used.
+
    type Operating_Mode_Type is (Check_Syntax, Check_Semantics, Generate_Code);
    Operating_Mode : Operating_Mode_Type := Generate_Code;
    --  GNAT
@@ -1082,7 +1089,12 @@ package Opt is
    --  GNAT
    --  Set True if a pragma Short_Circuit_And_Or applies to the current unit.
 
+   Short_Descriptors : Boolean := False;
+   --  GNAT
+   --  Set True if a pragma Short_Descriptors applies to the current unit.
+
    Sprint_Line_Limit : Nat := 72;
+   --  GNAT
    --  Limit values for chopping long lines in Sprint output, can be reset
    --  by use of NNN parameter with -gnatG or -gnatD switches.
 
@@ -1299,6 +1311,7 @@ package Opt is
    --  information sent to standard output, also header, copyright and summary)
 
    type Verbosity_Level_Type is (None, Low, Medium, High);
+   pragma Ordered (Verbosity_Level_Type);
    Verbosity_Level : Verbosity_Level_Type := High;
    --  GNATMAKE, GPRMAKE
    --  Modified by gnatmake or gprmake switches -v, -vl, -vm, -vh. Indicates
@@ -1449,6 +1462,13 @@ package Opt is
    --  Set to True to generate warnings for unchecked conversions that may have
    --  non-portable semantics (e.g. because sizes of types differ). The default
    --  is that this warning is enabled.
+
+   Warn_On_Unordered_Enumeration_Type : Boolean := False;
+   --  GNAT
+   --  Set to True to generate warnings for inappropriate uses (comparisons
+   --  and explicit ranges) on unordered enumeration types (which includes
+   --  all enumeration types for which pragma Ordered is not given). The
+   --  default is that this warning is disabled.
 
    Warn_On_Unrecognized_Pragma : Boolean := True;
    --  GNAT
@@ -1636,6 +1656,14 @@ package Opt is
    --  flag is used to set the initial value for Polling_Required at the start
    --  of analyzing each unit.
 
+   Short_Descriptors_Config : Boolean;
+   --  GNAT
+   --  This is the value of the configuration switch that controls the use of
+   --  Short_Descriptors for setting descriptor default sizes. It can be set
+   --  True by the use of the pragma Short_Descriptors in the gnat.adc file.
+   --  This flag is used to set the initial value for Short_Descriptors at the
+   --  start of analyzing each unit.
+
    Use_VADS_Size_Config : Boolean;
    --  GNAT
    --  This is the value of the configuration switch that controls the use of
@@ -1765,6 +1793,7 @@ private
       Optimize_Alignment_Local       : Boolean;
       Persistent_BSS_Mode            : Boolean;
       Polling_Required               : Boolean;
+      Short_Descriptors              : Boolean;
       Use_VADS_Size                  : Boolean;
    end record;
 

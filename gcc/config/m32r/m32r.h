@@ -1048,16 +1048,6 @@ L2:     .word STATIC
 	goto ADDR;						\
     }								\
   while (0)
-
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)		\
-  do								\
-    {						 		\
-      if (GET_CODE (ADDR) == LO_SUM)		 		\
-	goto LABEL;					 	\
-    }								\
-  while (0)
 
 /* Condition code usage.  */
 
@@ -1066,16 +1056,6 @@ L2:     .word STATIC
 #define REVERSIBLE_CC_MODE(MODE) 1 /*???*/
 
 /* Costs.  */
-
-/* Compute extra cost of moving data between one register class
-   and another.  */
-#define REGISTER_MOVE_COST(MODE, CLASS1, CLASS2) 2
-
-/* Compute the cost of moving data between registers and memory.  */
-/* Memory is 3 times as expensive as registers.
-   ??? Is that the right way to look at it?  */
-#define MEMORY_MOVE_COST(MODE,CLASS,IN_P) \
-(GET_MODE_SIZE (MODE) <= UNITS_PER_WORD ? 6 : 12)
 
 /* The cost of a branch insn.  */
 /* A value of 2 here causes GCC to avoid using branches in comparisons like

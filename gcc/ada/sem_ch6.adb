@@ -166,6 +166,13 @@ package body Sem_Ch6 is
    --  True otherwise. Proc is the entity for the procedure case and is used
    --  in posting the warning message.
 
+   procedure Check_Untagged_Equality (Eq_Op : Entity_Id);
+   --  In Ada 2012, a primitive equality operator on an untagged record type
+   --  must appear before the type is frozen, and have the same visibility as
+   --  that of the type. This procedure checks that this rule is met, and
+   --  otherwise emits an error on the subprogram declaration and a warning
+   --  on the earlier freeze point if it is easy to locate.
+
    procedure Enter_Overloaded_Entity (S : Entity_Id);
    --  This procedure makes S, a new overloaded entity, into the first visible
    --  entity with that name.
@@ -1638,9 +1645,7 @@ package body Sem_Ch6 is
 
          if Present (Prag) then
             if Present (Spec_Id) then
-               if List_Containing (N) =
-                 List_Containing (Unit_Declaration_Node (Spec_Id))
-               then
+               if In_Same_List (N, Unit_Declaration_Node (Spec_Id)) then
                   Analyze (Prag);
                end if;
 
@@ -1649,10 +1654,12 @@ package body Sem_Ch6 is
 
                declare
                   Subp : constant Entity_Id :=
-                    Make_Defining_Identifier (Loc, Chars (Body_Id));
+                           Make_Defining_Identifier (Loc, Chars (Body_Id));
                   Decl : constant Node_Id :=
-                    Make_Subprogram_Declaration (Loc,
-                      Specification =>  New_Copy_Tree (Specification (N)));
+                           Make_Subprogram_Declaration (Loc,
+                             Specification =>
+                               New_Copy_Tree (Specification (N)));
+
                begin
                   Set_Defining_Unit_Name (Specification (Decl), Subp);
 
@@ -1714,7 +1721,7 @@ package body Sem_Ch6 is
            and then Present (Spec_Id)
            and then No_Return (Spec_Id)
          then
-               Check_Returns (HSS, 'P', Missing_Ret, Spec_Id);
+            Check_Returns (HSS, 'P', Missing_Ret, Spec_Id);
          end if;
       end Check_Missing_Return;
 
@@ -4037,7 +4044,7 @@ package body Sem_Ch6 is
                   Error_Msg_Name_2 := Get_Convention_Name (Convention (Op));
                   Error_Msg_Sloc   := Sloc (Op);
 
-                  if Comes_From_Source (Op) then
+                  if Comes_From_Source (Op) or else No (Alias (Op)) then
                      if not Is_Overriding_Operation (Op) then
                         Error_Msg_N ("\\primitive % defined #", Typ);
                      else
@@ -5625,15 +5632,16 @@ package body Sem_Ch6 is
 
          begin
             --  In the case of functions with unconstrained result subtypes,
-            --  add a 3-state formal indicating whether the return object is
-            --  allocated by the caller (0), or should be allocated by the
-            --  callee on the secondary stack (1) or in the global heap (2).
-            --  For the moment we just use Natural for the type of this formal.
-            --  Note that this formal isn't usually needed in the case where
-            --  the result subtype is constrained, but it is needed when the
-            --  function has a tagged result, because generally such functions
-            --  can be called in a dispatching context and such calls must be
-            --  handled like calls to a class-wide function.
+            --  add a 4-state formal indicating whether the return object is
+            --  allocated by the caller (1), or should be allocated by the
+            --  callee on the secondary stack (2), in the global heap (3), or
+            --  in a user-defined storage pool (4). For the moment we just use
+            --  Natural for the type of this formal. Note that this formal
+            --  isn't usually needed in the case where the result subtype is
+            --  constrained, but it is needed when the function has a tagged
+            --  result, because generally such functions can be called in a
+            --  dispatching context and such calls must be handled like calls
+            --  to a class-wide function.
 
             if not Is_Constrained (Underlying_Type (Result_Subt))
               or else Is_Tagged_Type (Underlying_Type (Result_Subt))
@@ -5644,19 +5652,18 @@ package body Sem_Ch6 is
                     E, BIP_Formal_Suffix (BIP_Alloc_Form));
             end if;
 
-            --  In the case of functions whose result type has controlled
-            --  parts, we have an extra formal of type
-            --  System.Finalization_Implementation.Finalizable_Ptr_Ptr. That
-            --  is, we are passing a pointer to a finalization list (which is
-            --  itself a pointer). This extra formal is then passed along to
-            --  Move_Final_List in case of successful completion of a return
-            --  statement. We cannot pass an 'in out' parameter, because we
-            --  need to update the finalization list during an abort-deferred
-            --  region, rather than using copy-back after the function
-            --  returns. This is true even if we are able to get away with
-            --  having 'in out' parameters, which are normally illegal for
-            --  functions. This formal is also needed when the function has
-            --  a tagged result.
+            --  For functions whose result type has controlled parts, we have
+            --  an extra formal of type System.Finalization_Implementation.
+            --  Finalizable_Ptr_Ptr. That is, we are passing a pointer to a
+            --  finalization list (which is itself a pointer). This extra
+            --  formal is then passed along to Move_Final_List in case of
+            --  successful completion of a return statement. We cannot pass an
+            --  'in out' parameter, because we need to update the finalization
+            --  list during an abort-deferred region, rather than using
+            --  copy-back after the function returns. This is true even if we
+            --  are able to get away with having 'in out' parameters, which are
+            --  normally illegal for functions. This formal is also needed when
+            --  the function has a tagged result.
 
             if Needs_BIP_Final_List (E) then
                Discard :=
@@ -5788,6 +5795,51 @@ package body Sem_Ch6 is
          end loop;
       end if;
    end Enter_Overloaded_Entity;
+
+   -----------------------------
+   -- Check_Untagged_Equality --
+   -----------------------------
+
+   procedure Check_Untagged_Equality (Eq_Op : Entity_Id) is
+      Typ      : constant Entity_Id := Etype (First_Formal (Eq_Op));
+      Decl     : constant Node_Id   := Unit_Declaration_Node (Eq_Op);
+      Obj_Decl : Node_Id;
+
+   begin
+      if Nkind (Decl) = N_Subprogram_Declaration
+        and then Is_Record_Type (Typ)
+        and then not Is_Tagged_Type (Typ)
+      then
+         if Is_Frozen (Typ) then
+            Error_Msg_NE
+              ("equality operator must be declared "
+                & "before type& is frozen", Eq_Op, Typ);
+
+            Obj_Decl := Next (Parent (Typ));
+            while Present (Obj_Decl)
+              and then Obj_Decl /= Decl
+            loop
+               if Nkind (Obj_Decl) = N_Object_Declaration
+                 and then Etype (Defining_Identifier (Obj_Decl)) = Typ
+               then
+                  Error_Msg_NE ("type& is frozen by declaration?",
+                     Obj_Decl, Typ);
+                  Error_Msg_N
+                    ("\an equality operator cannot be declared after this "
+                      & "point ('R'M 4.5.2 (9.8)) (Ada2012))?", Obj_Decl);
+                  exit;
+               end if;
+
+               Next (Obj_Decl);
+            end loop;
+
+         elsif not In_Same_List (Parent (Typ), Decl)
+           and then not Is_Limited_Type (Typ)
+         then
+            Error_Msg_N ("equality operator appears too late", Eq_Op);
+         end if;
+      end if;
+   end Check_Untagged_Equality;
 
    -----------------------------
    -- Find_Corresponding_Spec --
@@ -7974,6 +8026,10 @@ package body Sem_Ch6 is
            and then not Is_Dispatching_Operation (S)
          then
             Make_Inequality_Operator (S);
+
+            if Ada_Version >= Ada_12 then
+               Check_Untagged_Equality (S);
+            end if;
          end if;
    end New_Overloaded_Entity;
 

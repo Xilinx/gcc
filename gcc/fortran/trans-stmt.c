@@ -240,6 +240,7 @@ gfc_conv_elemental_dependencies (gfc_se * se, gfc_se * loopse,
 	  /* Make a local loopinfo for the temporary creation, so that
 	     none of the other ss->info's have to be renormalized.  */
 	  gfc_init_loopinfo (&tmp_loop);
+	  tmp_loop.dimen = info->dimen;
 	  for (n = 0; n < info->dimen; n++)
 	    {
 	      tmp_loop.to[n] = loopse->loop->to[n];
@@ -1692,7 +1693,7 @@ gfc_trans_character_select (gfc_code *code)
   gfc_init_block (&body);
 
   /* Attempt to optimize length 1 selects.  */
-  if (expr1se.string_length == integer_one_node)
+  if (integer_onep (expr1se.string_length))
     {
       for (d = cp; d; d = d->right)
 	{

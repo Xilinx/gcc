@@ -3347,6 +3347,8 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
       next_stmt = first_stmt;
       for (i = 0; i < vec_num; i++)
 	{
+	  struct ptr_info_def *pi;
+
 	  if (i > 0)
 	    /* Bump the vector pointer.  */
 	    dataref_ptr = bump_vector_ptr (dataref_ptr, ptr_incr, gsi, stmt,
@@ -3359,18 +3361,28 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	       vect_permute_store_chain().  */
 	    vec_oprnd = VEC_index (tree, result_chain, i);
 
+	  data_ref = build2 (MEM_REF, TREE_TYPE (vec_oprnd), dataref_ptr,
+			     build_int_cst (reference_alias_ptr_type
+					    (DR_REF (first_dr)), 0));
+	  pi = get_ptr_info (dataref_ptr);
+	  pi->align = TYPE_ALIGN_UNIT (vectype);
           if (aligned_access_p (first_dr))
-	    data_ref
-	      = build2 (MEM_REF, TREE_TYPE (vec_oprnd), dataref_ptr,
-			build_int_cst (reference_alias_ptr_type
-				         (DR_REF (first_dr)), 0));
-          else
-          {
-            int mis = DR_MISALIGNMENT (first_dr);
-            tree tmis = (mis == -1 ? size_zero_node : size_int (mis));
-            tmis = size_binop (MULT_EXPR, tmis, size_int (BITS_PER_UNIT));
-            data_ref = build2 (MISALIGNED_INDIRECT_REF, vectype, dataref_ptr, tmis);
-           }
+	    pi->misalign = 0;
+          else if (DR_MISALIGNMENT (first_dr) == -1)
+	    {
+	      TREE_TYPE (data_ref)
+		= build_aligned_type (TREE_TYPE (data_ref),
+				      TYPE_ALIGN (TREE_TYPE (vectype)));
+	      pi->align = TYPE_ALIGN_UNIT (TREE_TYPE (vectype));
+	      pi->misalign = 0;
+	    }
+	  else
+	    {
+	      TREE_TYPE (data_ref)
+		= build_aligned_type (TREE_TYPE (data_ref),
+				      TYPE_ALIGN (TREE_TYPE (vectype)));
+	      pi->misalign = DR_MISALIGNMENT (first_dr);
+	    }
 
 	  /* Arguments are ready. Create the new vector stmt.  */
 	  new_stmt = gimple_build_assign (data_ref, vec_oprnd);
@@ -3735,20 +3747,35 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	  switch (alignment_support_scheme)
 	    {
 	    case dr_aligned:
-	      gcc_assert (aligned_access_p (first_dr));
-	      data_ref
-		= build2 (MEM_REF, vectype, dataref_ptr,
-			  build_int_cst (reference_alias_ptr_type
-					   (DR_REF (first_dr)), 0));
-	      break;
 	    case dr_unaligned_supported:
 	      {
-		int mis = DR_MISALIGNMENT (first_dr);
-		tree tmis = (mis == -1 ? size_zero_node : size_int (mis));
-
-		tmis = size_binop (MULT_EXPR, tmis, size_int(BITS_PER_UNIT));
-		data_ref =
-		  build2 (MISALIGNED_INDIRECT_REF, vectype, dataref_ptr, tmis);
+		struct ptr_info_def *pi;
+		data_ref
+		  = build2 (MEM_REF, vectype, dataref_ptr,
+			    build_int_cst (reference_alias_ptr_type
+					   (DR_REF (first_dr)), 0));
+		pi = get_ptr_info (dataref_ptr);
+		pi->align = TYPE_ALIGN_UNIT (vectype);
+		if (alignment_support_scheme == dr_aligned)
+		  {
+		    gcc_assert (aligned_access_p (first_dr));
+		    pi->misalign = 0;
+		  }
+		else if (DR_MISALIGNMENT (first_dr) == -1)
+		  {
+		    TREE_TYPE (data_ref)
+		      = build_aligned_type (TREE_TYPE (data_ref),
+					    TYPE_ALIGN (TREE_TYPE (vectype)));
+		    pi->align = TYPE_ALIGN_UNIT (TREE_TYPE (vectype));
+		    pi->misalign = 0;
+		  }
+		else
+		  {
+		    TREE_TYPE (data_ref)
+		      = build_aligned_type (TREE_TYPE (data_ref),
+					    TYPE_ALIGN (TREE_TYPE (vectype)));
+		    pi->misalign = DR_MISALIGNMENT (first_dr);
+		  }
 		break;
 	      }
 	    case dr_explicit_realign:
@@ -4011,16 +4038,18 @@ vectorizable_condition (gimple stmt, gimple_stmt_iterator *gsi,
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_info);
   enum machine_mode vec_mode;
   tree def;
-  enum vect_def_type dt;
+  enum vect_def_type dt, dts[4];
   int nunits = TYPE_VECTOR_SUBPARTS (vectype);
   int ncopies = LOOP_VINFO_VECT_FACTOR (loop_vinfo) / nunits;
   enum tree_code code;
+  stmt_vec_info prev_stmt_info = NULL;
+  int j;
 
   /* FORNOW: unsupported in basic block SLP.  */
   gcc_assert (loop_vinfo);
 
   gcc_assert (ncopies >= 1);
-  if (ncopies > 1)
+  if (reduc_index && ncopies > 1)
     return false; /* FORNOW */
 
   if (!STMT_VINFO_RELEVANT_P (stmt_info))
@@ -4107,29 +4136,68 @@ vectorizable_condition (gimple stmt, gimple_stmt_iterator *gsi,
   vec_dest = vect_create_destination_var (scalar_dest, vectype);
 
   /* Handle cond expr.  */
-  vec_cond_lhs =
-    vect_get_vec_def_for_operand (TREE_OPERAND (cond_expr, 0), stmt, NULL);
-  vec_cond_rhs =
-    vect_get_vec_def_for_operand (TREE_OPERAND (cond_expr, 1), stmt, NULL);
-  if (reduc_index == 1)
-    vec_then_clause = reduc_def;
-  else
-    vec_then_clause = vect_get_vec_def_for_operand (then_clause, stmt, NULL);
-  if (reduc_index == 2)
-    vec_else_clause = reduc_def;
-  else
-    vec_else_clause = vect_get_vec_def_for_operand (else_clause, stmt, NULL);
+  for (j = 0; j < ncopies; j++)
+    {
+      gimple new_stmt;
+      if (j == 0)
+	{
+	  gimple gtemp;
+	  vec_cond_lhs =
+	      vect_get_vec_def_for_operand (TREE_OPERAND (cond_expr, 0),
+					    stmt, NULL);
+	  vect_is_simple_use (TREE_OPERAND (cond_expr, 0), loop_vinfo,
+			      NULL, &gtemp, &def, &dts[0]);
+	  vec_cond_rhs =
+	      vect_get_vec_def_for_operand (TREE_OPERAND (cond_expr, 1),
+					    stmt, NULL);
+	  vect_is_simple_use (TREE_OPERAND (cond_expr, 1), loop_vinfo,
+			      NULL, &gtemp, &def, &dts[1]);
+	  if (reduc_index == 1)
+	    vec_then_clause = reduc_def;
+	  else
+	    {
+	      vec_then_clause = vect_get_vec_def_for_operand (then_clause,
+							      stmt, NULL);
+	      vect_is_simple_use (then_clause, loop_vinfo,
+				  NULL, &gtemp, &def, &dts[2]);
+	    }
+	  if (reduc_index == 2)
+	    vec_else_clause = reduc_def;
+	  else
+	    {
+	      vec_else_clause = vect_get_vec_def_for_operand (else_clause,
+							      stmt, NULL);
+	      vect_is_simple_use (else_clause, loop_vinfo,
+				  NULL, &gtemp, &def, &dts[3]);
+	    }
+	}
+      else
+	{
+	  vec_cond_lhs = vect_get_vec_def_for_stmt_copy (dts[0], vec_cond_lhs);
+	  vec_cond_rhs = vect_get_vec_def_for_stmt_copy (dts[1], vec_cond_rhs);
+	  vec_then_clause = vect_get_vec_def_for_stmt_copy (dts[2],
+							    vec_then_clause);
+	  vec_else_clause = vect_get_vec_def_for_stmt_copy (dts[3],
+							    vec_else_clause);
+	}
 
-  /* Arguments are ready. Create the new vector stmt.  */
-  vec_compare = build2 (TREE_CODE (cond_expr), vectype,
-			vec_cond_lhs, vec_cond_rhs);
-  vec_cond_expr = build3 (VEC_COND_EXPR, vectype,
-			  vec_compare, vec_then_clause, vec_else_clause);
+      /* Arguments are ready. Create the new vector stmt.  */
+      vec_compare = build2 (TREE_CODE (cond_expr), vectype,
+			    vec_cond_lhs, vec_cond_rhs);
+      vec_cond_expr = build3 (VEC_COND_EXPR, vectype,
+			      vec_compare, vec_then_clause, vec_else_clause);
 
-  *vec_stmt = gimple_build_assign (vec_dest, vec_cond_expr);
-  new_temp = make_ssa_name (vec_dest, *vec_stmt);
-  gimple_assign_set_lhs (*vec_stmt, new_temp);
-  vect_finish_stmt_generation (stmt, *vec_stmt, gsi);
+      new_stmt = gimple_build_assign (vec_dest, vec_cond_expr);
+      new_temp = make_ssa_name (vec_dest, new_stmt);
+      gimple_assign_set_lhs (new_stmt, new_temp);
+      vect_finish_stmt_generation (stmt, new_stmt, gsi);
+      if (j == 0)
+        STMT_VINFO_VEC_STMT (stmt_info) = *vec_stmt = new_stmt;
+      else
+        STMT_VINFO_RELATED_STMT (prev_stmt_info) = new_stmt;
+
+      prev_stmt_info = vinfo_for_stmt (new_stmt);
+    }
 
   return true;
 }

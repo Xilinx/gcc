@@ -184,356 +184,98 @@ package body Sem_Ch13 is
    begin
       --  Processing depends on version of Ada
 
-      case Ada_Version is
+      --  For Ada 95, we just renumber bits within a storage unit. We do the
+      --  same for Ada 83 mode, since we recognize pragma Bit_Order in Ada 83,
+      --  and are free to add this extension.
 
-         --  For Ada 95, we just renumber bits within a storage unit. We do
-         --  the same for Ada 83 mode, since we recognize pragma Bit_Order
-         --  in Ada 83, and are free to add this extension.
+      if Ada_Version < Ada_2005 then
+         Comp := First_Component_Or_Discriminant (R);
+         while Present (Comp) loop
+            CC := Component_Clause (Comp);
 
-         when Ada_83 | Ada_95 =>
-            Comp := First_Component_Or_Discriminant (R);
-            while Present (Comp) loop
-               CC := Component_Clause (Comp);
+            --  If component clause is present, then deal with the non-default
+            --  bit order case for Ada 95 mode.
 
-               --  If component clause is present, then deal with the non-
-               --  default bit order case for Ada 95 mode.
+            --  We only do this processing for the base type, and in fact that
+            --  is important, since otherwise if there are record subtypes, we
+            --  could reverse the bits once for each subtype, which is wrong.
 
-               --  We only do this processing for the base type, and in
-               --  fact that's important, since otherwise if there are
-               --  record subtypes, we could reverse the bits once for
-               --  each subtype, which would be incorrect.
+            if Present (CC)
+              and then Ekind (R) = E_Record_Type
+            then
+               declare
+                  CFB : constant Uint    := Component_Bit_Offset (Comp);
+                  CSZ : constant Uint    := Esize (Comp);
+                  CLC : constant Node_Id := Component_Clause (Comp);
+                  Pos : constant Node_Id := Position (CLC);
+                  FB  : constant Node_Id := First_Bit (CLC);
 
-               if Present (CC)
-                 and then Ekind (R) = E_Record_Type
-               then
-                  declare
-                     CFB : constant Uint    := Component_Bit_Offset (Comp);
-                     CSZ : constant Uint    := Esize (Comp);
-                     CLC : constant Node_Id := Component_Clause (Comp);
-                     Pos : constant Node_Id := Position (CLC);
-                     FB  : constant Node_Id := First_Bit (CLC);
+                  Storage_Unit_Offset : constant Uint :=
+                                          CFB / System_Storage_Unit;
 
-                     Storage_Unit_Offset : constant Uint :=
-                                             CFB / System_Storage_Unit;
-
-                     Start_Bit : constant Uint :=
-                                   CFB mod System_Storage_Unit;
-
-                  begin
-                     --  Cases where field goes over storage unit boundary
-
-                     if Start_Bit + CSZ > System_Storage_Unit then
-
-                        --  Allow multi-byte field but generate warning
-
-                        if Start_Bit mod System_Storage_Unit = 0
-                          and then CSZ mod System_Storage_Unit = 0
-                        then
-                           Error_Msg_N
-                             ("multi-byte field specified with non-standard"
-                              & " Bit_Order?", CLC);
-
-                           if Bytes_Big_Endian then
-                              Error_Msg_N
-                                ("bytes are not reversed "
-                                 & "(component is big-endian)?", CLC);
-                           else
-                              Error_Msg_N
-                                ("bytes are not reversed "
-                                 & "(component is little-endian)?", CLC);
-                           end if;
-
-                           --  Do not allow non-contiguous field
-
-                        else
-                           Error_Msg_N
-                             ("attempt to specify non-contiguous field "
-                              & "not permitted", CLC);
-                           Error_Msg_N
-                             ("\caused by non-standard Bit_Order "
-                              & "specified", CLC);
-                           Error_Msg_N
-                             ("\consider possibility of using "
-                              & "Ada 2005 mode here", CLC);
-                        end if;
-
-                        --  Case where field fits in one storage unit
-
-                     else
-                        --  Give warning if suspicious component clause
-
-                        if Intval (FB) >= System_Storage_Unit
-                          and then Warn_On_Reverse_Bit_Order
-                        then
-                           Error_Msg_N
-                             ("?Bit_Order clause does not affect " &
-                              "byte ordering", Pos);
-                           Error_Msg_Uint_1 :=
-                             Intval (Pos) + Intval (FB) /
-                             System_Storage_Unit;
-                           Error_Msg_N
-                             ("?position normalized to ^ before bit " &
-                              "order interpreted", Pos);
-                        end if;
-
-                        --  Here is where we fix up the Component_Bit_Offset
-                        --  value to account for the reverse bit order.
-                        --  Some examples of what needs to be done are:
-
-                        --    First_Bit .. Last_Bit     Component_Bit_Offset
-                        --      old          new          old       new
-
-                        --     0 .. 0       7 .. 7         0         7
-                        --     0 .. 1       6 .. 7         0         6
-                        --     0 .. 2       5 .. 7         0         5
-                        --     0 .. 7       0 .. 7         0         4
-
-                        --     1 .. 1       6 .. 6         1         6
-                        --     1 .. 4       3 .. 6         1         3
-                        --     4 .. 7       0 .. 3         4         0
-
-                        --  The general rule is that the first bit is
-                        --  is obtained by subtracting the old ending bit
-                        --  from storage_unit - 1.
-
-                        Set_Component_Bit_Offset
-                          (Comp,
-                           (Storage_Unit_Offset * System_Storage_Unit) +
-                             (System_Storage_Unit - 1) -
-                             (Start_Bit + CSZ - 1));
-
-                        Set_Normalized_First_Bit
-                          (Comp,
-                           Component_Bit_Offset (Comp) mod
-                             System_Storage_Unit);
-                     end if;
-                  end;
-               end if;
-
-               Next_Component_Or_Discriminant (Comp);
-            end loop;
-
-         --  For Ada 2005, we do machine scalar processing, as fully described
-         --  In AI-133. This involves gathering all components which start at
-         --  the same byte offset and processing them together
-
-         when Ada_05 .. Ada_Version_Type'Last =>
-            declare
-               Max_Machine_Scalar_Size : constant Uint :=
-                                           UI_From_Int
-                                             (Standard_Long_Long_Integer_Size);
-            --  We use this as the maximum machine scalar size
-
-               Num_CC : Natural;
-               SSU    : constant Uint := UI_From_Int (System_Storage_Unit);
-
-            begin
-               --  This first loop through components does two things. First it
-               --  deals with the case of components with component clauses
-               --  whose length is greater than the maximum machine scalar size
-               --  (either accepting them or rejecting as needed). Second, it
-               --  counts the number of components with component clauses whose
-               --  length does not exceed this maximum for later processing.
-
-               Num_CC := 0;
-               Comp   := First_Component_Or_Discriminant (R);
-               while Present (Comp) loop
-                  CC := Component_Clause (Comp);
-
-                  if Present (CC) then
-                     declare
-                        Fbit : constant Uint :=
-                                 Static_Integer (First_Bit (CC));
-
-                     begin
-                        --  Case of component with size > max machine scalar
-
-                        if Esize (Comp) > Max_Machine_Scalar_Size then
-
-                           --  Must begin on byte boundary
-
-                           if Fbit mod SSU /= 0 then
-                              Error_Msg_N
-                                ("illegal first bit value for "
-                                 & "reverse bit order",
-                                 First_Bit (CC));
-                              Error_Msg_Uint_1 := SSU;
-                              Error_Msg_Uint_2 := Max_Machine_Scalar_Size;
-
-                              Error_Msg_N
-                                ("\must be a multiple of ^ "
-                                 & "if size greater than ^",
-                                 First_Bit (CC));
-
-                              --  Must end on byte boundary
-
-                           elsif Esize (Comp) mod SSU /= 0 then
-                              Error_Msg_N
-                                ("illegal last bit value for "
-                                 & "reverse bit order",
-                                 Last_Bit (CC));
-                              Error_Msg_Uint_1 := SSU;
-                              Error_Msg_Uint_2 := Max_Machine_Scalar_Size;
-
-                              Error_Msg_N
-                                ("\must be a multiple of ^ if size "
-                                 & "greater than ^",
-                                 Last_Bit (CC));
-
-                              --  OK, give warning if enabled
-
-                           elsif Warn_On_Reverse_Bit_Order then
-                              Error_Msg_N
-                                ("multi-byte field specified with "
-                                 & "  non-standard Bit_Order?", CC);
-
-                              if Bytes_Big_Endian then
-                                 Error_Msg_N
-                                   ("\bytes are not reversed "
-                                    & "(component is big-endian)?", CC);
-                              else
-                                 Error_Msg_N
-                                   ("\bytes are not reversed "
-                                    & "(component is little-endian)?", CC);
-                              end if;
-                           end if;
-
-                           --  Case where size is not greater than max machine
-                           --  scalar. For now, we just count these.
-
-                        else
-                           Num_CC := Num_CC + 1;
-                        end if;
-                     end;
-                  end if;
-
-                  Next_Component_Or_Discriminant (Comp);
-               end loop;
-
-               --  We need to sort the component clauses on the basis of the
-               --  Position values in the clause, so we can group clauses with
-               --  the same Position. together to determine the relevant
-               --  machine scalar size.
-
-               Sort_CC : declare
-                  Comps : array (0 .. Num_CC) of Entity_Id;
-                  --  Array to collect component and discriminant entities. The
-                  --  data starts at index 1, the 0'th entry is for the sort
-                  --  routine.
-
-                  function CP_Lt (Op1, Op2 : Natural) return Boolean;
-                  --  Compare routine for Sort
-
-                  procedure CP_Move (From : Natural; To : Natural);
-                  --  Move routine for Sort
-
-                  package Sorting is new GNAT.Heap_Sort_G (CP_Move, CP_Lt);
-
-                  Start : Natural;
-                  Stop  : Natural;
-                  --  Start and stop positions in component list of set of
-                  --  components with the same starting position (that
-                  --  constitute components in a single machine scalar).
-
-                  MaxL  : Uint;
-                  --  Maximum last bit value of any component in this set
-
-                  MSS   : Uint;
-                  --  Corresponding machine scalar size
-
-                  -----------
-                  -- CP_Lt --
-                  -----------
-
-                  function CP_Lt (Op1, Op2 : Natural) return Boolean is
-                  begin
-                     return Position (Component_Clause (Comps (Op1))) <
-                            Position (Component_Clause (Comps (Op2)));
-                  end CP_Lt;
-
-                  -------------
-                  -- CP_Move --
-                  -------------
-
-                  procedure CP_Move (From : Natural; To : Natural) is
-                  begin
-                     Comps (To) := Comps (From);
-                  end CP_Move;
-
-               --  Start of processing for Sort_CC
+                  Start_Bit : constant Uint :=
+                                CFB mod System_Storage_Unit;
 
                begin
-                  --  Collect the component clauses
+                  --  Cases where field goes over storage unit boundary
 
-                  Num_CC := 0;
-                  Comp   := First_Component_Or_Discriminant (R);
-                  while Present (Comp) loop
-                     if Present (Component_Clause (Comp))
-                       and then Esize (Comp) <= Max_Machine_Scalar_Size
+                  if Start_Bit + CSZ > System_Storage_Unit then
+
+                     --  Allow multi-byte field but generate warning
+
+                     if Start_Bit mod System_Storage_Unit = 0
+                       and then CSZ mod System_Storage_Unit = 0
                      then
-                        Num_CC := Num_CC + 1;
-                        Comps (Num_CC) := Comp;
+                        Error_Msg_N
+                          ("multi-byte field specified with non-standard"
+                           & " Bit_Order?", CLC);
+
+                        if Bytes_Big_Endian then
+                           Error_Msg_N
+                             ("bytes are not reversed "
+                              & "(component is big-endian)?", CLC);
+                        else
+                           Error_Msg_N
+                             ("bytes are not reversed "
+                              & "(component is little-endian)?", CLC);
+                        end if;
+
+                        --  Do not allow non-contiguous field
+
+                     else
+                        Error_Msg_N
+                          ("attempt to specify non-contiguous field "
+                           & "not permitted", CLC);
+                        Error_Msg_N
+                          ("\caused by non-standard Bit_Order "
+                           & "specified", CLC);
+                        Error_Msg_N
+                          ("\consider possibility of using "
+                           & "Ada 2005 mode here", CLC);
                      end if;
 
-                     Next_Component_Or_Discriminant (Comp);
-                  end loop;
+                  --  Case where field fits in one storage unit
 
-                  --  Sort by ascending position number
+                  else
+                     --  Give warning if suspicious component clause
 
-                  Sorting.Sort (Num_CC);
-
-                  --  We now have all the components whose size does not exceed
-                  --  the max machine scalar value, sorted by starting
-                  --  position. In this loop we gather groups of clauses
-                  --  starting at the same position, to process them in
-                  --  accordance with Ada 2005 AI-133.
-
-                  Stop := 0;
-                  while Stop < Num_CC loop
-                     Start := Stop + 1;
-                     Stop  := Start;
-                     MaxL  :=
-                       Static_Integer
-                         (Last_Bit (Component_Clause (Comps (Start))));
-                     while Stop < Num_CC loop
-                        if Static_Integer
-                             (Position (Component_Clause (Comps (Stop + 1)))) =
-                           Static_Integer
-                             (Position (Component_Clause (Comps (Stop))))
-                        then
-                           Stop := Stop + 1;
-                           MaxL :=
-                             UI_Max
-                               (MaxL,
-                                Static_Integer
-                                  (Last_Bit
-                                     (Component_Clause (Comps (Stop)))));
-                        else
-                           exit;
-                        end if;
-                     end loop;
-
-                     --  Now we have a group of component clauses from Start to
-                     --  Stop whose positions are identical, and MaxL is the
-                     --  maximum last bit value of any of these components.
-
-                     --  We need to determine the corresponding machine scalar
-                     --  size. This loop assumes that machine scalar sizes are
-                     --  even, and that each possible machine scalar has twice
-                     --  as many bits as the next smaller one.
-
-                     MSS := Max_Machine_Scalar_Size;
-                     while MSS mod 2 = 0
-                       and then (MSS / 2) >= SSU
-                       and then (MSS / 2) > MaxL
-                     loop
-                        MSS := MSS / 2;
-                     end loop;
+                     if Intval (FB) >= System_Storage_Unit
+                       and then Warn_On_Reverse_Bit_Order
+                     then
+                        Error_Msg_N
+                          ("?Bit_Order clause does not affect " &
+                           "byte ordering", Pos);
+                        Error_Msg_Uint_1 :=
+                          Intval (Pos) + Intval (FB) /
+                          System_Storage_Unit;
+                        Error_Msg_N
+                          ("?position normalized to ^ before bit " &
+                           "order interpreted", Pos);
+                     end if;
 
                      --  Here is where we fix up the Component_Bit_Offset value
                      --  to account for the reverse bit order. Some examples of
-                     --  what needs to be done for the case of a machine scalar
-                     --  size of 8 are:
+                     --  what needs to be done are:
 
                      --    First_Bit .. Last_Bit     Component_Bit_Offset
                      --      old          new          old       new
@@ -547,52 +289,305 @@ package body Sem_Ch13 is
                      --     1 .. 4       3 .. 6         1         3
                      --     4 .. 7       0 .. 3         4         0
 
-                     --  The general rule is that the first bit is obtained by
-                     --  subtracting the old ending bit from machine scalar
-                     --  size - 1.
+                     --  The rule is that the first bit is is obtained by
+                     --  subtracting the old ending bit from storage_unit - 1.
 
-                     for C in Start .. Stop loop
-                        declare
-                           Comp : constant Entity_Id := Comps (C);
-                           CC   : constant Node_Id   :=
-                                    Component_Clause (Comp);
-                           LB   : constant Uint :=
-                                    Static_Integer (Last_Bit (CC));
-                           NFB  : constant Uint := MSS - Uint_1 - LB;
-                           NLB  : constant Uint := NFB + Esize (Comp) - 1;
-                           Pos  : constant Uint :=
-                                    Static_Integer (Position (CC));
+                     Set_Component_Bit_Offset
+                       (Comp,
+                        (Storage_Unit_Offset * System_Storage_Unit) +
+                          (System_Storage_Unit - 1) -
+                          (Start_Bit + CSZ - 1));
 
-                        begin
-                           if Warn_On_Reverse_Bit_Order then
-                              Error_Msg_Uint_1 := MSS;
+                     Set_Normalized_First_Bit
+                       (Comp,
+                        Component_Bit_Offset (Comp) mod
+                          System_Storage_Unit);
+                  end if;
+               end;
+            end if;
+
+            Next_Component_Or_Discriminant (Comp);
+         end loop;
+
+      --  For Ada 2005, we do machine scalar processing, as fully described In
+      --  AI-133. This involves gathering all components which start at the
+      --  same byte offset and processing them together. Same approach is still
+      --  valid in later versions including Ada 2012.
+
+      else
+         declare
+            Max_Machine_Scalar_Size : constant Uint :=
+                                        UI_From_Int
+                                          (Standard_Long_Long_Integer_Size);
+            --  We use this as the maximum machine scalar size
+
+            Num_CC : Natural;
+            SSU    : constant Uint := UI_From_Int (System_Storage_Unit);
+
+         begin
+            --  This first loop through components does two things. First it
+            --  deals with the case of components with component clauses whose
+            --  length is greater than the maximum machine scalar size (either
+            --  accepting them or rejecting as needed). Second, it counts the
+            --  number of components with component clauses whose length does
+            --  not exceed this maximum for later processing.
+
+            Num_CC := 0;
+            Comp   := First_Component_Or_Discriminant (R);
+            while Present (Comp) loop
+               CC := Component_Clause (Comp);
+
+               if Present (CC) then
+                  declare
+                     Fbit : constant Uint :=
+                              Static_Integer (First_Bit (CC));
+
+                  begin
+                     --  Case of component with size > max machine scalar
+
+                     if Esize (Comp) > Max_Machine_Scalar_Size then
+
+                        --  Must begin on byte boundary
+
+                        if Fbit mod SSU /= 0 then
+                           Error_Msg_N
+                             ("illegal first bit value for "
+                              & "reverse bit order",
+                              First_Bit (CC));
+                           Error_Msg_Uint_1 := SSU;
+                           Error_Msg_Uint_2 := Max_Machine_Scalar_Size;
+
+                           Error_Msg_N
+                             ("\must be a multiple of ^ "
+                              & "if size greater than ^",
+                              First_Bit (CC));
+
+                           --  Must end on byte boundary
+
+                        elsif Esize (Comp) mod SSU /= 0 then
+                           Error_Msg_N
+                             ("illegal last bit value for "
+                              & "reverse bit order",
+                              Last_Bit (CC));
+                           Error_Msg_Uint_1 := SSU;
+                           Error_Msg_Uint_2 := Max_Machine_Scalar_Size;
+
+                           Error_Msg_N
+                             ("\must be a multiple of ^ if size "
+                              & "greater than ^",
+                              Last_Bit (CC));
+
+                           --  OK, give warning if enabled
+
+                        elsif Warn_On_Reverse_Bit_Order then
+                           Error_Msg_N
+                             ("multi-byte field specified with "
+                              & "  non-standard Bit_Order?", CC);
+
+                           if Bytes_Big_Endian then
                               Error_Msg_N
-                                ("info: reverse bit order in machine " &
-                                 "scalar of length^?", First_Bit (CC));
-                              Error_Msg_Uint_1 := NFB;
-                              Error_Msg_Uint_2 := NLB;
-
-                              if Bytes_Big_Endian then
-                                 Error_Msg_NE
-                                   ("?\info: big-endian range for "
-                                    & "component & is ^ .. ^",
-                                    First_Bit (CC), Comp);
-                              else
-                                 Error_Msg_NE
-                                   ("?\info: little-endian range "
-                                    & "for component & is ^ .. ^",
-                                    First_Bit (CC), Comp);
-                              end if;
+                                ("\bytes are not reversed "
+                                 & "(component is big-endian)?", CC);
+                           else
+                              Error_Msg_N
+                                ("\bytes are not reversed "
+                                 & "(component is little-endian)?", CC);
                            end if;
+                        end if;
 
-                           Set_Component_Bit_Offset (Comp, Pos * SSU + NFB);
-                           Set_Normalized_First_Bit (Comp, NFB mod SSU);
-                        end;
-                     end loop;
+                        --  Case where size is not greater than max machine
+                        --  scalar. For now, we just count these.
+
+                     else
+                        Num_CC := Num_CC + 1;
+                     end if;
+                  end;
+               end if;
+
+               Next_Component_Or_Discriminant (Comp);
+            end loop;
+
+            --  We need to sort the component clauses on the basis of the
+            --  Position values in the clause, so we can group clauses with
+            --  the same Position. together to determine the relevant machine
+            --  scalar size.
+
+            Sort_CC : declare
+               Comps : array (0 .. Num_CC) of Entity_Id;
+               --  Array to collect component and discriminant entities. The
+               --  data starts at index 1, the 0'th entry is for the sort
+               --  routine.
+
+               function CP_Lt (Op1, Op2 : Natural) return Boolean;
+               --  Compare routine for Sort
+
+               procedure CP_Move (From : Natural; To : Natural);
+               --  Move routine for Sort
+
+               package Sorting is new GNAT.Heap_Sort_G (CP_Move, CP_Lt);
+
+               Start : Natural;
+               Stop  : Natural;
+               --  Start and stop positions in the component list of the set of
+               --  components with the same starting position (that constitute
+               --  components in a single machine scalar).
+
+               MaxL  : Uint;
+               --  Maximum last bit value of any component in this set
+
+               MSS   : Uint;
+               --  Corresponding machine scalar size
+
+               -----------
+               -- CP_Lt --
+               -----------
+
+               function CP_Lt (Op1, Op2 : Natural) return Boolean is
+               begin
+                  return Position (Component_Clause (Comps (Op1))) <
+                    Position (Component_Clause (Comps (Op2)));
+               end CP_Lt;
+
+               -------------
+               -- CP_Move --
+               -------------
+
+               procedure CP_Move (From : Natural; To : Natural) is
+               begin
+                  Comps (To) := Comps (From);
+               end CP_Move;
+
+               --  Start of processing for Sort_CC
+
+            begin
+               --  Collect the component clauses
+
+               Num_CC := 0;
+               Comp   := First_Component_Or_Discriminant (R);
+               while Present (Comp) loop
+                  if Present (Component_Clause (Comp))
+                    and then Esize (Comp) <= Max_Machine_Scalar_Size
+                  then
+                     Num_CC := Num_CC + 1;
+                     Comps (Num_CC) := Comp;
+                  end if;
+
+                  Next_Component_Or_Discriminant (Comp);
+               end loop;
+
+               --  Sort by ascending position number
+
+               Sorting.Sort (Num_CC);
+
+               --  We now have all the components whose size does not exceed
+               --  the max machine scalar value, sorted by starting position.
+               --  In this loop we gather groups of clauses starting at the
+               --  same position, to process them in accordance with AI-133.
+
+               Stop := 0;
+               while Stop < Num_CC loop
+                  Start := Stop + 1;
+                  Stop  := Start;
+                  MaxL  :=
+                    Static_Integer
+                      (Last_Bit (Component_Clause (Comps (Start))));
+                  while Stop < Num_CC loop
+                     if Static_Integer
+                          (Position (Component_Clause (Comps (Stop + 1)))) =
+                        Static_Integer
+                          (Position (Component_Clause (Comps (Stop))))
+                     then
+                        Stop := Stop + 1;
+                        MaxL :=
+                          UI_Max
+                            (MaxL,
+                             Static_Integer
+                               (Last_Bit
+                                  (Component_Clause (Comps (Stop)))));
+                     else
+                        exit;
+                     end if;
                   end loop;
-               end Sort_CC;
-            end;
-      end case;
+
+                  --  Now we have a group of component clauses from Start to
+                  --  Stop whose positions are identical, and MaxL is the
+                  --  maximum last bit value of any of these components.
+
+                  --  We need to determine the corresponding machine scalar
+                  --  size. This loop assumes that machine scalar sizes are
+                  --  even, and that each possible machine scalar has twice
+                  --  as many bits as the next smaller one.
+
+                  MSS := Max_Machine_Scalar_Size;
+                  while MSS mod 2 = 0
+                    and then (MSS / 2) >= SSU
+                    and then (MSS / 2) > MaxL
+                  loop
+                     MSS := MSS / 2;
+                  end loop;
+
+                  --  Here is where we fix up the Component_Bit_Offset value
+                  --  to account for the reverse bit order. Some examples of
+                  --  what needs to be done for the case of a machine scalar
+                  --  size of 8 are:
+
+                  --    First_Bit .. Last_Bit     Component_Bit_Offset
+                  --      old          new          old       new
+
+                  --     0 .. 0       7 .. 7         0         7
+                  --     0 .. 1       6 .. 7         0         6
+                  --     0 .. 2       5 .. 7         0         5
+                  --     0 .. 7       0 .. 7         0         4
+
+                  --     1 .. 1       6 .. 6         1         6
+                  --     1 .. 4       3 .. 6         1         3
+                  --     4 .. 7       0 .. 3         4         0
+
+                  --  The rule is that the first bit is obtained by subtracting
+                  --  the old ending bit from machine scalar size - 1.
+
+                  for C in Start .. Stop loop
+                     declare
+                        Comp : constant Entity_Id := Comps (C);
+                        CC   : constant Node_Id   :=
+                                 Component_Clause (Comp);
+                        LB   : constant Uint :=
+                                 Static_Integer (Last_Bit (CC));
+                        NFB  : constant Uint := MSS - Uint_1 - LB;
+                        NLB  : constant Uint := NFB + Esize (Comp) - 1;
+                        Pos  : constant Uint :=
+                                 Static_Integer (Position (CC));
+
+                     begin
+                        if Warn_On_Reverse_Bit_Order then
+                           Error_Msg_Uint_1 := MSS;
+                           Error_Msg_N
+                             ("info: reverse bit order in machine " &
+                              "scalar of length^?", First_Bit (CC));
+                           Error_Msg_Uint_1 := NFB;
+                           Error_Msg_Uint_2 := NLB;
+
+                           if Bytes_Big_Endian then
+                              Error_Msg_NE
+                                ("?\info: big-endian range for "
+                                 & "component & is ^ .. ^",
+                                 First_Bit (CC), Comp);
+                           else
+                              Error_Msg_NE
+                                ("?\info: little-endian range "
+                                 & "for component & is ^ .. ^",
+                                 First_Bit (CC), Comp);
+                           end if;
+                        end if;
+
+                        Set_Component_Bit_Offset (Comp, Pos * SSU + NFB);
+                        Set_Normalized_First_Bit (Comp, NFB mod SSU);
+                     end;
+                  end loop;
+               end loop;
+            end Sort_CC;
+         end;
+      end if;
    end Adjust_Record_For_Reverse_Bit_Order;
 
    --------------------------------------
@@ -1288,6 +1283,7 @@ package body Sem_Ch13 is
 
          when Attribute_Component_Size => Component_Size_Case : declare
             Csize    : constant Uint := Static_Integer (Expr);
+            Ctyp     : Entity_Id;
             Btype    : Entity_Id;
             Biased   : Boolean;
             New_Ctyp : Entity_Id;
@@ -1300,13 +1296,14 @@ package body Sem_Ch13 is
             end if;
 
             Btype := Base_Type (U_Ent);
+            Ctyp := Component_Type (Btype);
 
             if Has_Component_Size_Clause (Btype) then
                Error_Msg_N
                  ("component size clause for& previously given", Nam);
 
             elsif Csize /= No_Uint then
-               Check_Size (Expr, Component_Type (Btype), Csize, Biased);
+               Check_Size (Expr, Ctyp, Csize, Biased);
 
                if Has_Aliased_Components (Btype)
                  and then Csize < 32
@@ -1370,6 +1367,17 @@ package body Sem_Ch13 is
                      Error_Msg_N
                        ("?component size ignored in this configuration", N);
                   end if;
+               end if;
+
+               --  Deal with warning on overridden size
+
+               if Warn_On_Overridden_Size
+                 and then Has_Size_Clause (Ctyp)
+                 and then RM_Size (Ctyp) /= Csize
+               then
+                  Error_Msg_NE
+                    ("?component size overrides size clause for&",
+                     N, Ctyp);
                end if;
 
                Set_Has_Component_Size_Clause (Btype, True);
@@ -1538,6 +1546,17 @@ package body Sem_Ch13 is
                  ("size cannot be given for unconstrained array", Nam);
 
             elsif Size /= No_Uint then
+
+               if VM_Target /= No_VM and then not GNAT_Mode then
+
+                  --  Size clause is not handled properly on VM targets.
+                  --  Display a warning unless we are in GNAT mode, in which
+                  --  case this is useless.
+
+                  Error_Msg_N
+                    ("?size clauses are ignored in this configuration", N);
+               end if;
+
                if Is_Type (U_Ent) then
                   Etyp := U_Ent;
                else
@@ -2743,6 +2762,15 @@ package body Sem_Ch13 is
                         Set_Normalized_First_Bit (Comp, Fbit mod SSU);
                         Set_Normalized_Position  (Comp, Fbit / SSU);
 
+                        if Warn_On_Overridden_Size
+                          and then Has_Size_Clause (Etype (Comp))
+                          and then RM_Size (Etype (Comp)) /= Esize (Comp)
+                        then
+                           Error_Msg_NE
+                             ("?component size overrides size clause for&",
+                              Component_Name (CC), Etype (Comp));
+                        end if;
+
                         --  This information is also set in the corresponding
                         --  component of the base type, found by accessing the
                         --  Original_Record_Component link if it is present.
@@ -3251,6 +3279,9 @@ package body Sem_Ch13 is
       Overlap_Check_Required : Boolean;
       --  Used to keep track of whether or not an overlap check is required
 
+      Overlap_Detected : Boolean := False;
+      --  Set True if an overlap is detected
+
       Ccount : Natural := 0;
       --  Number of component clauses in record rep clause
 
@@ -3274,6 +3305,7 @@ package body Sem_Ch13 is
       procedure Check_Component_Overlap (C1_Ent, C2_Ent : Entity_Id) is
          CC1 : constant Node_Id := Component_Clause (C1_Ent);
          CC2 : constant Node_Id := Component_Clause (C2_Ent);
+
       begin
          if Present (CC1) and then Present (CC2) then
 
@@ -3305,6 +3337,7 @@ package body Sem_Ch13 is
                   Error_Msg_Node_1 := Component_Name (CC1);
                   Error_Msg_N
                     ("component& overlaps & #", Component_Name (CC1));
+                  Overlap_Detected := True;
                end if;
             end;
          end if;
@@ -3477,11 +3510,13 @@ package body Sem_Ch13 is
          if Present (Comp) then
             Ccount := Ccount + 1;
 
+            --  We need a full overlap check if record positions non-monotonic
+
             if Fbit <= Max_Bit_So_Far then
                Overlap_Check_Required := True;
-            else
-               Max_Bit_So_Far := Lbit;
             end if;
+
+            Max_Bit_So_Far := Lbit;
 
             --  Check bit position out of range of specified size
 
@@ -3501,6 +3536,7 @@ package body Sem_Ch13 is
                   Error_Msg_NE
                     ("component overlaps tag field of&",
                      Component_Name (CC), Rectype);
+                  Overlap_Detected := True;
                end if;
 
                if Hbit < Lbit then
@@ -3650,8 +3686,8 @@ package body Sem_Ch13 is
 
                --  Skip overlap check if entity has no declaration node. This
                --  happens with discriminants in constrained derived types.
-               --  Probably we are missing some checks as a result, but that
-               --  does not seem terribly serious ???
+               --  Possibly we are missing some checks as a result, but that
+               --  does not seem terribly serious.
 
                if No (Declaration_Node (C1_Ent)) then
                   goto Continue_Main_Component_Loop;
@@ -3695,7 +3731,6 @@ package body Sem_Ch13 is
 
                   else
                      Citem := First (Component_Items (Clist));
-
                      while Present (Citem) loop
                         if Nkind (Citem) = N_Component_Declaration then
                            C2_Ent := Defining_Identifier (Citem);
@@ -3739,6 +3774,183 @@ package body Sem_Ch13 is
 
             end loop Main_Component_Loop;
          end Overlap_Check2;
+      end if;
+
+      --  The following circuit deals with warning on record holes (gaps). We
+      --  skip this check if overlap was detected, since it makes sense for the
+      --  programmer to fix this illegality before worrying about warnings.
+
+      if not Overlap_Detected and Warn_On_Record_Holes then
+         Record_Hole_Check : declare
+            Decl : constant Node_Id := Declaration_Node (Base_Type (Rectype));
+            --  Full declaration of record type
+
+            procedure Check_Component_List
+              (CL   : Node_Id;
+               Sbit : Uint;
+               DS   : List_Id);
+            --  Check component list CL for holes. The starting bit should be
+            --  Sbit. which is zero for the main record component list and set
+            --  appropriately for recursive calls for variants. DS is set to
+            --  a list of discriminant specifications to be included in the
+            --  consideration of components. It is No_List if none to consider.
+
+            --------------------------
+            -- Check_Component_List --
+            --------------------------
+
+            procedure Check_Component_List
+              (CL   : Node_Id;
+               Sbit : Uint;
+               DS   : List_Id)
+            is
+               Compl : Integer;
+
+            begin
+               Compl := Integer (List_Length (Component_Items (CL)));
+
+               if DS /= No_List then
+                  Compl := Compl + Integer (List_Length (DS));
+               end if;
+
+               declare
+                  Comps : array (Natural range 0 .. Compl) of Entity_Id;
+                  --  Gather components (zero entry is for sort routine)
+
+                  Ncomps : Natural := 0;
+                  --  Number of entries stored in Comps (starting at Comps (1))
+
+                  Citem : Node_Id;
+                  --  One component item or discriminant specification
+
+                  Nbit  : Uint;
+                  --  Starting bit for next component
+
+                  CEnt  : Entity_Id;
+                  --  Component entity
+
+                  Variant : Node_Id;
+                  --  One variant
+
+                  function Lt (Op1, Op2 : Natural) return Boolean;
+                  --  Compare routine for Sort
+
+                  procedure Move (From : Natural; To : Natural);
+                  --  Move routine for Sort
+
+                  package Sorting is new GNAT.Heap_Sort_G (Move, Lt);
+
+                  --------
+                  -- Lt --
+                  --------
+
+                  function Lt (Op1, Op2 : Natural) return Boolean is
+                  begin
+                     return Component_Bit_Offset (Comps (Op1))
+                       <
+                       Component_Bit_Offset (Comps (Op2));
+                  end Lt;
+
+                  ----------
+                  -- Move --
+                  ----------
+
+                  procedure Move (From : Natural; To : Natural) is
+                  begin
+                     Comps (To) := Comps (From);
+                  end Move;
+
+               begin
+                  --  Gather discriminants into Comp
+
+                  if DS /= No_List then
+                     Citem := First (DS);
+                     while Present (Citem) loop
+                        if Nkind (Citem) = N_Discriminant_Specification then
+                           declare
+                              Ent : constant Entity_Id :=
+                                      Defining_Identifier (Citem);
+                           begin
+                              if Ekind (Ent) = E_Discriminant then
+                                 Ncomps := Ncomps + 1;
+                                 Comps (Ncomps) := Ent;
+                              end if;
+                           end;
+                        end if;
+
+                        Next (Citem);
+                     end loop;
+                  end if;
+
+                  --  Gather component entities into Comp
+
+                  Citem := First (Component_Items (CL));
+                  while Present (Citem) loop
+                     if Nkind (Citem) = N_Component_Declaration then
+                        Ncomps := Ncomps + 1;
+                        Comps (Ncomps) := Defining_Identifier (Citem);
+                     end if;
+
+                     Next (Citem);
+                  end loop;
+
+                  --  Now sort the component entities based on the first bit.
+                  --  Note we already know there are no overlapping components.
+
+                  Sorting.Sort (Ncomps);
+
+                  --  Loop through entries checking for holes
+
+                  Nbit := Sbit;
+                  for J in 1 .. Ncomps loop
+                     CEnt := Comps (J);
+                     Error_Msg_Uint_1 := Component_Bit_Offset (CEnt) - Nbit;
+
+                     if Error_Msg_Uint_1 > 0 then
+                        Error_Msg_NE
+                          ("?^-bit gap before component&",
+                           Component_Name (Component_Clause (CEnt)), CEnt);
+                     end if;
+
+                     Nbit := Component_Bit_Offset (CEnt) + Esize (CEnt);
+                  end loop;
+
+                  --  Process variant parts recursively if present
+
+                  if Present (Variant_Part (CL)) then
+                     Variant := First (Variants (Variant_Part (CL)));
+                     while Present (Variant) loop
+                        Check_Component_List
+                          (Component_List (Variant), Nbit, No_List);
+                        Next (Variant);
+                     end loop;
+                  end if;
+               end;
+            end Check_Component_List;
+
+         --  Start of processing for Record_Hole_Check
+
+         begin
+            declare
+               Sbit : Uint;
+
+            begin
+               if Is_Tagged_Type (Rectype) then
+                  Sbit := UI_From_Int (System_Address_Size);
+               else
+                  Sbit := Uint_0;
+               end if;
+
+               if Nkind (Decl) = N_Full_Type_Declaration
+                 and then Nkind (Type_Definition (Decl)) = N_Record_Definition
+               then
+                  Check_Component_List
+                    (Component_List (Type_Definition (Decl)),
+                     Sbit,
+                     Discriminant_Specifications (Decl));
+               end if;
+            end;
+         end Record_Hole_Check;
       end if;
 
       --  For records that have component clauses for all components, and whose

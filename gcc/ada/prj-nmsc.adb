@@ -685,6 +685,7 @@ package body Prj.Nmsc is
             end if;
 
          elsif Prev_Unit /= No_Unit_Index
+           and then Prev_Unit.File_Names (Kind) /= null
            and then not Source.Locally_Removed
          then
             --  Path is set if this is a source we found on the disk, in which
@@ -722,6 +723,7 @@ package body Prj.Nmsc is
          elsif not Source.Locally_Removed
            and then not Data.Flags.Allow_Duplicate_Basenames
            and then Lang_Id.Config.Kind = Unit_Based
+           and then Source.Language.Config.Kind = Unit_Based
          then
             Error_Msg_File_1 := File_Name;
             Error_Msg_File_2 := File_Name_Type (Source.Project.Name);
@@ -3310,7 +3312,7 @@ package body Prj.Nmsc is
 
          --  Get the naming exceptions for all languages
 
-         for Kind in Spec .. Impl loop
+         for Kind in Spec_Or_Body loop
             Lang_Id := Project.Languages;
             while Lang_Id /= No_Language_Index loop
                case Lang_Id.Config.Kind is
@@ -5206,6 +5208,7 @@ package body Prj.Nmsc is
                                Resolve_Links  =>
                                  Opt.Follow_Links_For_Dirs,
                                Case_Sensitive => True);
+               Has_Error : Boolean := False;
 
             begin
                if Root_Dir'Length = 0 then
@@ -5213,8 +5216,11 @@ package body Prj.Nmsc is
                   Error_Or_Warning
                     (Data.Flags, Data.Flags.Missing_Source_Files,
                      "{ is not a valid directory.", Location, Project);
+                  Has_Error := Data.Flags.Missing_Source_Files = Error;
+               end if;
 
-               else
+               if not Has_Error then
+
                   --  We have an existing directory, we register it and all of
                   --  its subdirectories.
 
@@ -5238,6 +5244,7 @@ package body Prj.Nmsc is
             declare
                Path_Name  : Path_Information;
                Dir_Exists : Boolean;
+               Has_Error  : Boolean := False;
 
             begin
                Locate_Directory
@@ -5253,10 +5260,14 @@ package body Prj.Nmsc is
                   Error_Or_Warning
                     (Data.Flags, Data.Flags.Missing_Source_Files,
                      "{ is not a valid directory", Location, Project);
+                  Has_Error := Data.Flags.Missing_Source_Files = Error;
+               end if;
 
-               else
-                  --  links have been resolved if necessary, and Path_Name
-                  --  always ends with a directory separator
+               if not Has_Error then
+
+                  --  Links have been resolved if necessary, and Path_Name
+                  --  always ends with a directory separator.
+
                   Add_To_Or_Remove_From_Source_Dirs
                     (Path_Id         => Path_Name.Name,
                      Display_Path_Id => Path_Name.Display_Name,
@@ -5505,7 +5516,7 @@ package body Prj.Nmsc is
             Element := Data.Tree.String_Elements.Table (Current);
             if Element.Value /= No_Name then
                Element.Value :=
-                 Name_Id (Canonical_Case_File_Name (Name_Id (Element.Value)));
+                 Name_Id (Canonical_Case_File_Name (Element.Value));
                Data.Tree.String_Elements.Table (Current) := Element;
             end if;
 
@@ -6519,7 +6530,7 @@ package body Prj.Nmsc is
 
                   if not Found then
                      Error_Msg_Name_1 := Name_Id (Source.Display_File);
-                     Error_Msg_Name_2 := Name_Id (Source.Unit.Name);
+                     Error_Msg_Name_2 := Source.Unit.Name;
                      Error_Or_Warning
                        (Data.Flags, Data.Flags.Missing_Source_Files,
                         "source file %% for unit %% not found",
@@ -6877,7 +6888,7 @@ package body Prj.Nmsc is
                  and then Name_Loc.Source.Kind = Impl
                then
                   Src_Ind := Sinput.P.Load_Project_File
-                    (Get_Name_String (Path));
+                    (Get_Name_String (Display_Path));
 
                   if Sinput.P.Source_File_Is_Subunit (Src_Ind) then
                      Override_Kind (Name_Loc.Source, Sep);
@@ -7380,7 +7391,7 @@ package body Prj.Nmsc is
 
                            Src_Ind :=
                              Sinput.P.Load_Project_File
-                               (Get_Name_String (Src_Id.Path.Name));
+                               (Get_Name_String (Src_Id.Path.Display_Name));
 
                            if Sinput.P.Source_File_Is_Subunit (Src_Ind) then
                               Override_Kind (Src_Id, Sep);

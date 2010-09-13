@@ -269,7 +269,10 @@ package body Sem_Ch4 is
    --  the call may be overloaded with both interpretations.
 
    function Try_Object_Operation (N : Node_Id) return Boolean;
-   --  Ada 2005 (AI-252): Support the object.operation notation
+   --  Ada 2005 (AI-252): Support the object.operation notation. If node N
+   --  is a call in this notation, it is transformed into a normal subprogram
+   --  call where the prefix is a parameter, and True is returned. If node
+   --  N is not of this form, it is unchanged, and False is returned.
 
    procedure wpo (T : Entity_Id);
    pragma Warnings (Off, wpo);
@@ -617,7 +620,7 @@ package body Sem_Ch4 is
       --  Has_Stream just for efficiency reasons. There is no point in
       --  spending time on a Has_Stream check if the restriction is not set.
 
-      if Restrictions.Set (No_Streams) then
+      if Restriction_Check_Required (No_Streams) then
          if Has_Stream (Designated_Type (Acc_Type)) then
             Check_Restriction (No_Streams, N);
          end if;
@@ -3392,11 +3395,11 @@ package body Sem_Ch4 is
 
       if Is_Access_Type (Prefix_Type) then
 
-         --  A RACW object can never be used as prefix of a selected
-         --  component since that means it is dereferenced without
-         --  being a controlling operand of a dispatching operation
-         --  (RM E.2.2(16/1)). Before reporting an error, we must check
-         --  whether this is actually a dispatching call in prefix form.
+         --  A RACW object can never be used as prefix of a selected component
+         --  since that means it is dereferenced without being a controlling
+         --  operand of a dispatching operation (RM E.2.2(16/1)). Before
+         --  reporting an error, we must check whether this is actually a
+         --  dispatching call in prefix form.
 
          if Is_Remote_Access_To_Class_Wide_Type (Prefix_Type)
            and then Comes_From_Source (N)
@@ -3586,8 +3589,8 @@ package body Sem_Ch4 is
                --  this case gigi generates all the checks and can find the
                --  necessary bounds information.
 
-               --  We also do not need an actual subtype for the case of
-               --  a first, last, length, or range attribute applied to a
+               --  We also do not need an actual subtype for the case of a
+               --  first, last, length, or range attribute applied to a
                --  non-packed array, since gigi can again get the bounds in
                --  these cases (gigi cannot handle the packed case, since it
                --  has the bounds of the packed array type, not the original
@@ -3938,12 +3941,11 @@ package body Sem_Ch4 is
          else
             if Ekind (Prefix_Type) = E_Record_Subtype then
 
-               --  Check whether this is a component of the base type
-               --  which is absent from a statically constrained subtype.
-               --  This will raise constraint error at run-time, but is
-               --  not a compile-time error. When the selector is illegal
-               --  for base type as well fall through and generate a
-               --  compilation error anyway.
+               --  Check whether this is a component of the base type which
+               --  is absent from a statically constrained subtype. This will
+               --  raise constraint error at run time, but is not a compile-
+               --  time error. When the selector is illegal for base type as
+               --  well fall through and generate a compilation error anyway.
 
                Comp := First_Component (Base_Type (Prefix_Type));
                while Present (Comp) loop
@@ -6146,9 +6148,10 @@ package body Sem_Ch4 is
                                                    N_Function_Call);
       Loc            : constant Source_Ptr := Sloc (N);
       Obj            : constant Node_Id    := Prefix (N);
-      Subprog        : constant Node_Id    :=
-                         Make_Identifier (Sloc (Selector_Name (N)),
-                           Chars => Chars (Selector_Name (N)));
+
+      Subprog : constant Node_Id    :=
+                  Make_Identifier (Sloc (Selector_Name (N)),
+                    Chars => Chars (Selector_Name (N)));
       --  Identifier on which possible interpretations will be collected
 
       Report_Error : Boolean := False;
@@ -6409,11 +6412,11 @@ package body Sem_Ch4 is
          else
             Analyze (Node_To_Replace);
 
-            --  If the operation has been rewritten into a call, which may
-            --  get subsequently an explicit dereference, preserve the
-            --  type on the original node (selected component or indexed
-            --  component) for subsequent legality tests, e.g. Is_Variable.
-            --  which examines the original node.
+            --  If the operation has been rewritten into a call, which may get
+            --  subsequently an explicit dereference, preserve the type on the
+            --  original node (selected component or indexed component) for
+            --  subsequent legality tests, e.g. Is_Variable. which examines
+            --  the original node.
 
             if Nkind (Node_To_Replace) = N_Function_Call then
                Set_Etype
@@ -6530,7 +6533,6 @@ package body Sem_Ch4 is
            and then N = Prefix (Parent_Node)
          then
             Node_To_Replace := Parent_Node;
-
             Actuals := Expressions (Parent_Node);
 
             Actual := First (Actuals);

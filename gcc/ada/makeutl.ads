@@ -52,6 +52,14 @@ package Makeutl is
    --  Command line switch to allow shared library projects to import projects
    --  that are not shared library projects.
 
+   Single_Compile_Per_Obj_Dir_Switch : constant String :=
+                                         "--single-compile-per-obj-dir";
+   --  Switch to forbid simultaneous compilations for the same object directory
+   --  when project files are used.
+
+   Create_Map_File_Switch : constant String := "--create-map-file";
+   --  Switch to create a map file when an executable is linked
+
    procedure Add
      (Option : String_Access;
       To     : in out String_List_Access;
@@ -61,6 +69,9 @@ package Makeutl is
       To     : in out String_List_Access;
       Last   : in out Natural);
    --  Add a string to a list of strings
+
+   function Create_Binder_Mapping_File return Path_Name_Type;
+   --  Create a binder mapping file and returns its path name
 
    function Create_Name (Name : String) return File_Name_Type;
    function Create_Name (Name : String) return Name_Id;
