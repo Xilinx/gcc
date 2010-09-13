@@ -5292,6 +5292,47 @@ valid_type_in_constexpr_fundecl_p (tree t)
   return literal_type_p (non_reference (t));
 }
 
+/* Check whether the parameter and return types of FUN are valid for a
+   constexpr function, and complain if COMPLAIN.  */
+
+static bool
+is_valid_constexpr_fn (tree fun, bool complain)
+{
+  tree parm = FUNCTION_FIRST_USER_PARM (fun);
+  bool ret = true;
+  for (; parm != NULL; parm = TREE_CHAIN (parm))
+    if (!valid_type_in_constexpr_fundecl_p (TREE_TYPE (parm)))
+      {
+	ret = false;
+	if (complain)
+	  error ("invalid type for parameter %q#D of constexpr function",
+		 parm);
+      }
+
+  if (!DECL_CONSTRUCTOR_P (fun))
+    {
+      tree rettype = TREE_TYPE (TREE_TYPE (fun));
+      if (!valid_type_in_constexpr_fundecl_p (rettype))
+	{
+	  ret = false;
+	  if (complain)
+	    error ("invalid return type %qT of constexpr function %qD",
+		   rettype, fun);
+	}
+
+      if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fun)
+	  && COMPLETE_TYPE_P (DECL_CONTEXT (fun))
+	  && !valid_type_in_constexpr_fundecl_p (DECL_CONTEXT (fun)))
+	{
+	  ret = false;
+	  if (complain)
+	    error ("enclosing class of %q#D is not a literal type", fun);
+	}
+    }
+
+  return ret;
+}
+
 /* Return non-null if FUN certainly designates a valid constexpr function
    declaration.  Otherwise return NULL.  Issue appropriate diagnostics
    if necessary.  Note that we only check the declaration, not the body
@@ -5300,8 +5341,6 @@ valid_type_in_constexpr_fundecl_p (tree t)
 tree
 validate_constexpr_fundecl (tree fun)
 {
-  tree rettype = NULL;
-  tree parm = NULL;
   constexpr_fundef entry;
   constexpr_fundef **slot;
 
@@ -5311,30 +5350,10 @@ validate_constexpr_fundecl (tree fun)
     /* We already checked the original function.  */
     return fun;
 
-  parm = FUNCTION_FIRST_USER_PARM (fun);
-  for (; parm != NULL; parm = TREE_CHAIN (parm))
-    if (!valid_type_in_constexpr_fundecl_p (TREE_TYPE (parm)))
-      {
-	/* FIXME explain for template inst if we get "not a constexpr fn"
-	   error in cxx_eval_call_expression */
-	if (!DECL_TEMPLATE_INSTANTIATION (fun))
-	  error ("invalid type for parameter %q#D of constexpr function",
-		 parm);
-        DECL_DECLARED_CONSTEXPR_P (fun) = false;
-        return NULL;
-      }
-
-  if (!DECL_CONSTRUCTOR_P (fun))
+  if (!is_valid_constexpr_fn (fun, !DECL_TEMPLATE_INSTANTIATION (fun)))
     {
-      rettype = TREE_TYPE (TREE_TYPE (fun));
-      if (!valid_type_in_constexpr_fundecl_p (rettype))
-        {
-	  if (!DECL_TEMPLATE_INSTANTIATION (fun))
-	    error ("invalid return type %qT of constexpr function %qD",
-		   rettype, fun);
-          DECL_DECLARED_CONSTEXPR_P (fun) = false;
-          return NULL;
-        }
+      DECL_DECLARED_CONSTEXPR_P (fun) = false;
+      return NULL;
     }
 
   /* Create the constexpr function table if necessary.  */
@@ -5734,7 +5753,13 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
   if (!DECL_DECLARED_CONSTEXPR_P (fun))
     {
       if (!allow_non_constant)
-	error_at (loc, "%qD is not a constexpr function", fun);
+	{
+	  error_at (loc, "%qD is not a constexpr function", fun);
+	  if (DECL_TEMPLATE_INSTANTIATION (fun)
+	      && DECL_DECLARED_CONSTEXPR_P (DECL_TEMPLATE_RESULT
+					    (DECL_TI_TEMPLATE (fun))))
+	    is_valid_constexpr_fn (fun, true);
+	}
       *non_constant_p = true;
       return t;
     }
