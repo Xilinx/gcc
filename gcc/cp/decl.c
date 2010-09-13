@@ -5367,6 +5367,9 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 	    {
 	      init = TREE_OPERAND (init_code, 1);
 	      init_code = NULL_TREE;
+	      /* Don't call digest_init; it's unnecessary and will complain
+		 about aggregate initialization of non-aggregate classes.  */
+	      flags |= LOOKUP_ALREADY_DIGESTED;
 	    }
 	  else if (DECL_DECLARED_CONSTEXPR_P (decl))
 	    {

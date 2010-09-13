@@ -740,11 +740,7 @@ store_init_value (tree decl, tree init, int flags)
 
   /* End of special C++ code.  */
 
-  /* FIXME this is fragile.  */
-  if (TYPE_NEEDS_CONSTRUCTING (type)
-      || (CLASS_TYPE_P (type)
-	  && !BRACE_ENCLOSED_INITIALIZER_P (init)))
-    /* Already digested.  */
+  if (flags & LOOKUP_ALREADY_DIGESTED)
     value = init;
   else
     /* Digest the specified initializer into an expression.  */

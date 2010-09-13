@@ -5589,9 +5589,7 @@ is_this_parameter (tree t)
 
 /* We have an expression tree T that represents a call, either CALL_EXPR
    or AGGR_INIT_EXPR.  If the call is lexically to a named function,
-   retrun the _DECL for that function.
-
-   FIXME refactor get_callee_fndecl?  */
+   retrun the _DECL for that function.  */
 
 static tree
 get_function_named_in_call (tree t)
@@ -5840,7 +5838,7 @@ reduced_constant_expression_p (tree t)
   if (cxx_dialect >= cxx0x && TREE_OVERFLOW_P (t))
     /* In C++0x, integer overflow makes this not a constant expression.  */
     return false;
-  /* FIXME try TREE_CONSTANT? */
+  /* FIXME are we calling this too much?  */
   return initializer_constant_valid_p (t, TREE_TYPE (t)) != NULL_TREE;
 }
 
@@ -5952,7 +5950,8 @@ cxx_eval_array_reference (const constexpr_call *call, tree t,
 					   allow_non_constant, addr,
 					   non_constant_p);
   tree index, r, oldidx;
-  unsigned i, len;
+  HOST_WIDE_INT i;
+  unsigned len;
   if (*non_constant_p)
     return t;
   oldidx = TREE_OPERAND (t, 1);
@@ -5965,8 +5964,8 @@ cxx_eval_array_reference (const constexpr_call *call, tree t,
     return t;
   else if (addr)
     return build4 (ARRAY_REF, TREE_TYPE (t), ary, index, NULL, NULL);
-  /* FIXME: For the time being, refuse to index into a too big array.
-     Actually, CONSTRUCTOR_NELTS is only an unsigned, not an unsigned
+  /* Refuse to index into a too big array.  Note that CONSTRUCTOR_NELTS is
+     only an unsigned, and TREE_STRING_LENGTH an int; neither are
      HOST_WIDE_INT.  What does the C front end do about extremely large
      initializers? */
   if (!host_integerp (index, 0))
@@ -6491,7 +6490,8 @@ maybe_constant_value (tree t)
   tree r;
 
   if (type_dependent_expression_p (t)
-      /* FIXME shouldn't check value-dependence first.  */
+      /* FIXME shouldn't check value-dependence first; see comment before
+	 value_dependent_expression_p.  */
       || value_dependent_expression_p (t))
     return t;
 
@@ -6522,8 +6522,9 @@ maybe_constant_init (tree t)
 /* Return true if the object referred to by REF has automatic or thread
    local storage.  */
 
-static bool
-has_automatic_or_tls (tree ref)
+enum { ck_ok, ck_bad, ck_unknown };
+static int
+check_automatic_or_tls (tree ref)
 {
   enum machine_mode mode;
   HOST_WIDE_INT bitsize, bitpos;
@@ -6536,9 +6537,9 @@ has_automatic_or_tls (tree ref)
   /* If there isn't a decl in the middle, we don't know the linkage here,
      and this isn't a constant expression anyway.  */
   if (!DECL_P (decl))
-    return false;
+    return ck_unknown;
   dk = decl_storage_duration (decl);
-  return (dk == dk_auto || dk == dk_thread);
+  return (dk == dk_auto || dk == dk_thread) ? ck_bad : ck_ok;
 }
 
 /* Return true if the DECL designates a builtin function that is
@@ -6563,7 +6564,7 @@ morally_constexpr_builtin_function_p (tree decl)
       if (!literal_type_p (TREE_VALUE (t)))
         return false;
     }
-  /* FIXME We don't want to mess with varargs functions, yet.  */
+  /* We assume no varargs builtins are suitable.  */
   return t != NULL;
 }
 
@@ -6610,7 +6611,6 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
       return true;
 
     case PARM_DECL:
-      /* FIXME check for outer function parm */
       /* -- this (5.1) unless it appears as the postfix-expression in a
             class member access expression, including the result of the
             implicit transformation in the body of the non-static
@@ -6707,23 +6707,13 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case VIEW_CONVERT_EXPR:
       /* -- an array-to-pointer conversion that is applied to an lvalue
             that designates an object with thread or automatic storage
-            duration;
+            duration;  FIXME not implemented as it breaks constexpr arrays
          -- a type conversion from a pointer or pointer-to-member type
             to a literal type.  */
       {
         tree from = TREE_OPERAND (t, 0);
         tree source = TREE_TYPE (from);
         tree target = TREE_TYPE (t);
-	/* FIXME array-to-ptr conversion doesn't look like this, does it?  */
-        if (TYPE_ARRAY_P (source) && TYPE_PTR_P (target)
-            && has_automatic_or_tls (from))
-          {
-            if (flags & tf_error)
-              error ("array-to-pointer conversion of %qE with automatic "
-                     "or thread local storage cannot yield a constant "
-                     "expression", from);
-            return false;
-          }
         if (TYPE_PTR_P (source) && ARITHMETIC_TYPE_P (target)
 	    && !(TREE_CODE (from) == COMPONENT_REF
 		 && TYPE_PTRMEMFUNC_P (TREE_TYPE (TREE_OPERAND (from, 0)))))
@@ -6741,13 +6731,13 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
             designates an object with thread or automatic storage
             duration;  */
       t = TREE_OPERAND (t, 0);
-      /* FIXME external -- should use storage duration function */
-      if (VAR_DECL_P (t) && TREE_STATIC (t))
-        return true;
-      if (has_automatic_or_tls (t))
+      i = check_automatic_or_tls (t);
+      if (i == ck_ok)
+	return true;
+      if (i == ck_bad)
         {
           if (flags & tf_error)
-            error ("address-of a object %qE with thread local or "
+            error ("address-of an object %qE with thread local or "
                    "automatic storage is not a constant expression", t);
           return false;
         }
@@ -6757,7 +6747,8 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case BIT_FIELD_REF:
       /* -- a class member access unless its postfix-expression is
             of literal type or of pointer to literal type.  */
-      /* FIXME no test?  */
+      /* This test would be redundant, as it follows from the
+	 postfix-expression being a potential constant expression.  */
       return potential_constant_expression (TREE_OPERAND (t, 0), flags);
 
     case INDIRECT_REF:
@@ -6799,8 +6790,6 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case TYPEID_EXPR:
       /* -- a typeid expression whose operand is of polymorphic
             class type;  */
-      /* FIXME what about other typeids?  Just like naming a static
-	 variable; only ok if its address is taken.  */
       {
         tree e = TREE_OPERAND (t, 0);
         if (!TYPE_P (e) && TYPE_POLYMORPHIC_P (TREE_TYPE (e)))
@@ -6891,7 +6880,6 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case TRUNC_MOD_EXPR:
     case CEIL_MOD_EXPR:
     case ROUND_MOD_EXPR:
-      /* FIXME this doesn't apply to potential CEs.  */
       if (integer_zerop (maybe_constant_value (TREE_OPERAND (t, 1))))
 	return false;
       else
