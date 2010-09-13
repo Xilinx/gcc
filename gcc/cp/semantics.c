@@ -5740,6 +5740,7 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
       arg = cxx_eval_constant_expression (old_call, x, allow_non_constant,
 					  TREE_CODE (type) == REFERENCE_TYPE,
 					  non_constant_p);
+      /* Don't VERIFY_CONSTANT here.  */
       if (*non_constant_p && allow_non_constant)
 	return;
       new_call->bindings = tree_cons (parms, arg, new_call->bindings);
@@ -5881,9 +5882,10 @@ reduced_constant_expression_p (tree t)
    themselves, such as 1/0.  Call this function (or rather, the macro
    following it) to check for that condition.
 
-   We do not call this in cases where we might have a non-constant
-   expression that can be a component of a constant expression, such as the
-   address of a static variable.  */
+   We only call this in places that require an arithmetic constant, not in
+   places where we might have a non-constant expression that can be a
+   component of a constant expression, such as the address of a constexpr
+   variable that might be dereferenced later.  */
 
 static bool
 verify_constant (tree t, bool allow_non_constant, bool *non_constant_p)
@@ -5960,13 +5962,12 @@ cxx_eval_conditional_expression (const constexpr_call *call, tree t,
 					   allow_non_constant, addr,
 					   non_constant_p);
   VERIFY_CONSTANT (val);
-  if (*non_constant_p)
-    return t;
   if (val == boolean_true_node)
     return cxx_eval_constant_expression (call, TREE_OPERAND (t, 1),
 					 allow_non_constant, addr,
 					 non_constant_p);
   gcc_assert (val == boolean_false_node);
+  /* Don't VERIFY_CONSTANT here.  */
   return cxx_eval_constant_expression (call, TREE_OPERAND (t, 2),
 				       allow_non_constant, addr,
 				       non_constant_p);
@@ -5984,7 +5985,7 @@ cxx_eval_array_reference (const constexpr_call *call, tree t,
   tree ary = cxx_eval_constant_expression (call, oldary,
 					   allow_non_constant, addr,
 					   non_constant_p);
-  tree index, r, oldidx;
+  tree index, oldidx;
   HOST_WIDE_INT i;
   unsigned len;
   if (*non_constant_p)
@@ -5994,8 +5995,7 @@ cxx_eval_array_reference (const constexpr_call *call, tree t,
 					allow_non_constant, false,
 					non_constant_p);
   VERIFY_CONSTANT (index);
-  if (*non_constant_p
-      || (addr && ary == oldary && index == oldidx))
+  if (addr && ary == oldary && index == oldidx)
     return t;
   else if (addr)
     return build4 (ARRAY_REF, TREE_TYPE (t), ary, index, NULL, NULL);
@@ -6022,12 +6022,11 @@ cxx_eval_array_reference (const constexpr_call *call, tree t,
       return t;
     }
   if (TREE_CODE (ary) == CONSTRUCTOR)
-    r = VEC_index (constructor_elt, CONSTRUCTOR_ELTS (ary), i)->value;
+    return VEC_index (constructor_elt, CONSTRUCTOR_ELTS (ary), i)->value;
   else
-    r = build_int_cst (cv_unqualified (TREE_TYPE (TREE_TYPE (ary))),
-		       TREE_STRING_POINTER (ary)[i]);
-  VERIFY_CONSTANT (r);
-  return r;
+    return build_int_cst (cv_unqualified (TREE_TYPE (TREE_TYPE (ary))),
+			  TREE_STRING_POINTER (ary)[i]);
+  /* Don't VERIFY_CONSTANT here.  */
 }
 
 /* Subroutine of cxx_eval_constant_expression.
@@ -6051,7 +6050,7 @@ cxx_eval_component_reference (const constexpr_call *call, tree t,
   if (addr)
     return fold_build3 (COMPONENT_REF, TREE_TYPE (t),
 			whole, part, NULL_TREE);
-  VERIFY_CONSTANT (whole);
+  /* Don't VERIFY_CONSTANT here.  */
   if (*non_constant_p)
     return t;
   FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (whole), i, field, value)
@@ -6088,8 +6087,6 @@ cxx_eval_logical_expression (const constexpr_call *call, tree t,
 					   allow_non_constant, addr,
 					   non_constant_p);
   VERIFY_CONSTANT (lhs);
-  if (*non_constant_p)
-    return t;
   if (lhs == bailout_value)
     return lhs;
   gcc_assert (lhs == continue_value);
@@ -6121,7 +6118,7 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t,
       tree elt = cxx_eval_constant_expression (call, ce->value,
 					       allow_non_constant, addr,
 					       non_constant_p);
-      VERIFY_CONSTANT (elt);
+      /* Don't VERIFY_CONSTANT here.  */
       if (allow_non_constant && *non_constant_p)
 	goto fail;
       if (elt != ce->value)
@@ -6259,7 +6256,8 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 						allow_non_constant,
 						code == ADDR_EXPR,
 						non_constant_p);
-	if (op == oldop)
+	/* Don't VERIFY_CONSTANT here.  */
+	if (op == oldop || *non_constant_p)
 	  return t;
 	/* These functions do more aggressive folding than fold itself.  */
 	if (code == ADDR_EXPR)
