@@ -101,7 +101,7 @@ VEC(tree,gc) * gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_
       retval = VEC_alloc(tree,gc,0);
 
       tree address = build_decl( opa->loc, VAR_DECL, create_tmp_var_name("A"),
-				 build_pointer_type( void_type_node ) );
+				 ptr_type_node );
       VEC_safe_push( tree, gc, retval, build2( MODIFY_EXPR, ptr_type_node,
 				       address, rhs_tree )
 		     );

@@ -32,12 +32,12 @@ FLEX_C_FLAGS := -g -O2 -fomit-frame-pointer -gtoggle -DIN_GCC -W -Wall -Wwrite-s
 
 GPY_CFLAGS := -std=gnu99 -I${srcdir}/python
 
-lexer.o: $(srcdir)/python/lexer.l parser.o
+py-lexer.o: $(srcdir)/python/py-lexer.l parser.o
 	$(FLEX) --outfile=lex.py.c $(srcdir)/python/lexer.l
 	$(CC) $(GPY_CFLAGS) $(FLEX_C_FLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ lex.py.c
 
-parser.o: $(srcdir)/python/parser.y
+py-parser.o: $(srcdir)/python/py-parser.y
 	$(BISON) -v --debug --verbose --defines=y.py.h --output=y.py.c \
 	$(srcdir)/python/parser.y
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
@@ -49,48 +49,50 @@ py-lang.o: $(srcdir)/python/py-lang.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-lang.c
 
-pypy.o: $(srcdir)/python/pypy.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+py-stmt.o: $(srcdir)/python/pypy.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gt-python-py-lang.h gtype-python.h
-	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) --save-temps $(ALL_CPPFLAGS) $(INCLUDES) \
-	$(LDFLAGS) -c -o $@ $(srcdir)/python/pypy.c
+	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-stmt.c
 
-expression.o: $(srcdir)/python/expression.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+py-tree.o: $(srcdir)/python/expression.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gt-python-py-lang.h gtype-python.h
-	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) --save-temps $(ALL_CPPFLAGS) $(INCLUDES) \
-	$(LDFLAGS) -c -o $@ $(srcdir)/python/expression.c
+	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-tree.c
 
-hashtab.o: $(srcdir)/python/hashtab.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+py-vec.o: $(srcdir)/python/hashtab.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gt-python-py-lang.h gtype-python.h
-	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) --save-temps $(ALL_CPPFLAGS) $(INCLUDES) \
-	$(LDFLAGS) -c -o $@ $(srcdir)/python/hashtab.c
+	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-vec.c
 
 py-runtime.o: $(srcdir)/python/py-runtime.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gt-python-py-lang.h gtype-python.h
-	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) --save-temps $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-runtime.c
 
 GPY_OBJS = \
+	py-parser.o \
+	py-lexer.o \
 	py-lang.o \
-	pypy.o \
-	expression.o \
-	hashtab.o \
+	py-stmt.o \
+	py-tree.o \
+	py-vec.o \
 	py-runtime.o
 
-GCCPY_C_OBJS = parser.o lexer.o $(GPY_OBJS) $(BACKEND) $(LIBSDEPS) attribs.o
+GCCPY_C_OBJS = $(GPY_OBJS) $(BACKEND) $(LIBSDEPS) attribs.o
 gpy1$(exeext): $(GCCPY_C_OBJS)
 	$(CC) $(GPY_CFLAGS) $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(GCCPY_C_OBJS) \
 	$(GMPLIBS) $(LIBS) $(BACKENDLIBS) 
 
-pyspec.o: $(srcdir)/python/pyspec.c $(CONFIG_H) $(SYSTEM_H) \
+py-spec.o: $(srcdir)/python/py-spec.c $(CONFIG_H) $(SYSTEM_H) \
   coretypes.h $(DIAGNOSTIC_H) $(TREE_H) $(FLAGS_H) toplev.h langhooks.h $(TM_H)
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(DRIVER_DEFINES) \
-		$(INCLUDES) $(LDFLAGS) -c -o $@ $(srcdir)/python/pyspec.c
+		$(INCLUDES) $(LDFLAGS) -c -o $@ $(srcdir)/python/py-spec.c
 
-GCCPY_D_OBJS = $(GCC_OBJS) pyspec.o version.o prefix.o intl.o
+GCCPY_D_OBJS = $(GCC_OBJS) py-spec.o version.o prefix.o intl.o
 gccpy$(exeext): $(GCCPY_D_OBJS) $(EXTRA_GCC_OBJS) $(LIBDEPS)
 	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
 	  $(GCCPY_D_OBJS) $(EXTRA_GCC_OBJS) $(LIBS)

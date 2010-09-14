@@ -301,11 +301,7 @@ bool gpy_ctx_push_decl( tree decl, const char * s,
       t = ctx->var_decls;
       type = "VAR";
     }
-  else
-    {
-      t = ctx->fnc_decls;
-      type = "FNC";
-    }
+  else fatal_error("unhandled decl type!\n");
 
   debug("trying to push decl <%s>!\n", s );
 
@@ -317,10 +313,6 @@ bool gpy_ctx_push_decl( tree decl, const char * s,
       if( T == VAR )
 	{
 	  VEC_safe_push( gpy_ident, gc, ctx->var_decl_t, o );
-	}
-      else
-	{
-	  VEC_safe_push( gpy_ident, gc, ctx->fnc_decl_t, o );
 	}
     }
   else
