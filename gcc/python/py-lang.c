@@ -37,7 +37,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "vec.h"
 #include "hashtab.h"
 
-#include "gpy.h"
+#include "gpython.h"
+#include "py-dot-codes.def"
+#include "py-dot.h"
+#include "py-vec.h"
+#include "py-tree.h"
+#include "py-runtime.h"
 
 /* Language-dependent contents of a type.  */
 struct GTY(()) lang_type {
@@ -76,23 +81,8 @@ static
 bool gpy_langhook_init( void )
 {
   gpy_init_tbls( );
+
   build_common_tree_nodes( false );
-
-  /* The sizetype may be "unsigned long" or "unsigned long long".  */
-  if( TYPE_MODE (long_unsigned_type_node) == ptr_mode )
-    {
-      size_type_node = long_unsigned_type_node;
-    }
-  else if( TYPE_MODE (long_long_unsigned_type_node) == ptr_mode )
-    {
-      size_type_node = long_long_unsigned_type_node;
-    }
-  else
-    {
-      size_type_node = long_unsigned_type_node;
-    }
-
-  set_sizetype( size_type_node );
   build_common_tree_nodes_2( 0 );
 
   void_list_node = build_tree_list( NULL_TREE, void_type_node );
@@ -213,10 +203,6 @@ static void
 gpy_langhook_write_globals( void )
 {
   debug("write globals!\n");
-
-  if( seen_error( ) )
-    return;
-
   gpy_write_globals( );
 }
 
@@ -257,6 +243,18 @@ void __gpy_debug__( const char * file, unsigned int lineno,
   va_end( args );
 }
 
+/* The attribute table might be used for the GCC attribute syntax, e.g.
+ * __attribute__((unused)), but this feature isn't yet used in gcalc
+ */ 
+const struct attribute_spec python_attribute_table[] = {
+  { NULL, 0, 0, false, false, false, NULL }
+};
+
+
+/* The language hooks data structure. This is the main interface between the GCC front-end
+ * and the GCC middle-end/back-end. A list of language hooks could be found in
+ * <gcc>/langhooks.h
+ */
 #undef LANG_HOOKS_NAME
 #undef LANG_HOOKS_INIT 
 #undef LANG_HOOKS_INIT_OPTIONS
@@ -291,4 +289,3 @@ struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 
 #include "gt-python-py-lang.h"
 #include "gtype-python.h"
-#include "symbols.h"

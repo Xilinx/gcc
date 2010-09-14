@@ -15,6 +15,11 @@
 #<http://www.gnu.org/licenses/>.
 
 language="python"
+
 compilers="gpy1\$(exeext)"
+
+build_by_default="no"
+
 target_libs=target-libgpython
-gtfiles="\$(srcdir)/python/py-lang.c \$(srcdir)/python/expression.c \$(srcdir)/python/symbols.h"
+
+gtfiles="\$(srcdir)/python/py-lang.c \$(srcdir)/python/py-decl.c \$(srcdir)/python/py-dot.h"

@@ -42,11 +42,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "vec.h"
 #include "hashtab.h"
 
-#include "gpy.h"
-#include "opcodes.def"
-#include "symbols.h"
-#include "pypy-tree.h"
-#include "runtime.h"
+#include "gpython.h"
+#include "py-dot-codes.def"
+#include "py-dot.h"
+#include "py-vec.h"
+#include "py-tree.h"
+#include "py-runtime.h"
 
 static VEC( gpy_sym,gc ) * gpy_symbol_stack;
 

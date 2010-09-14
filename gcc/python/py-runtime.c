@@ -20,7 +20,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "opts.h"
 #include "tree.h"
-#include "tree-iterator.h"
 #include "gimple.h"
 #include "toplev.h"
 #include "debug.h"
@@ -31,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "target.h"
-#include "cgraph.h"
 
 #include <gmp.h>
 #include <mpfr.h>
@@ -39,10 +37,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "vec.h"
 #include "hashtab.h"
 
-#include "gpy.h"
-#include "symbols.h"
-#include "runtime.h"
-#include "opcodes.def"
+#include "gpython.h"
+#include "py-dot-codes.def"
+#include "py-dot.h"
+#include "py-vec.h"
+#include "py-tree.h"
+#include "py-runtime.h"
 
 tree gpy_builtin_get_init_call( void )
 {

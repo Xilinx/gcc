@@ -15,12 +15,6 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-/**
- * The lexer the lexical tokens which are important get parsed here!
- *
- * IMPORTANT: We now requite Flex to generate the lexer now!
- **/
-
 #include "config.h"
 #include "system.h"
 #include "ansidecl.h"
@@ -44,11 +38,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "vec.h"
 #include "hashtab.h"
 
-#include "gpy.h"
-#include "opcodes.def"
-#include "symbols.h"
-#include "pypy-tree.h"
-#include "runtime.h"
+#include "gpython.h"
+#include "py-dot-codes.def"
+#include "py-dot.h"
+#include "py-vec.h"
+#include "py-tree.h"
+#include "py-runtime.h"
 
 #include "y.py.h"
 

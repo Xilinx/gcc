@@ -33,13 +33,13 @@ FLEX_C_FLAGS := -g -O2 -fomit-frame-pointer -gtoggle -DIN_GCC -W -Wall -Wwrite-s
 GPY_CFLAGS := -std=gnu99 -I${srcdir}/python
 
 py-lexer.o: $(srcdir)/python/py-lexer.l parser.o
-	$(FLEX) --outfile=lex.py.c $(srcdir)/python/lexer.l
+	$(FLEX) --outfile=lex.py.c $(srcdir)/python/py-lexer.l
 	$(CC) $(GPY_CFLAGS) $(FLEX_C_FLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ lex.py.c
 
 py-parser.o: $(srcdir)/python/py-parser.y
 	$(BISON) -v --debug --verbose --defines=y.py.h --output=y.py.c \
-	$(srcdir)/python/parser.y
+	$(srcdir)/python/py-parser.y
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ y.py.c
 
@@ -49,19 +49,19 @@ py-lang.o: $(srcdir)/python/py-lang.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-lang.c
 
-py-stmt.o: $(srcdir)/python/pypy.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+py-stmt.o: $(srcdir)/python/py-stmt.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gt-python-py-lang.h gtype-python.h
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-stmt.c
 
-py-tree.o: $(srcdir)/python/expression.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+py-decl.o: $(srcdir)/python/py-decl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gt-python-py-lang.h gtype-python.h
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
-	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-tree.c
+	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-decl.c
 
-py-vec.o: $(srcdir)/python/hashtab.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+py-vec.o: $(srcdir)/python/py-vec.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gt-python-py-lang.h gtype-python.h
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \

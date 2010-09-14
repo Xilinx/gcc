@@ -20,7 +20,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "opts.h"
 #include "tree.h"
-#include "tree-iterator.h"
 #include "gimple.h"
 #include "toplev.h"
 #include "debug.h"
@@ -31,6 +30,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "target.h"
+
+#include "tree-iterator.h"
 #include "cgraph.h"
 
 #include <gmp.h>
@@ -39,11 +40,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "vec.h"
 #include "hashtab.h"
 
-#include "gpy.h"
-#include "opcodes.def"
-#include "symbols.h"
-#include "pypy-tree.h"
-#include "runtime.h"
+#include "gpython.h"
+#include "py-dot-codes.def"
+#include "py-dot.h"
+#include "py-vec.h"
+#include "py-tree.h"
+#include "py-runtime.h"
 
 static gpy_symbol_obj * gpy_process_AST_Align( gpy_symbol_obj ** );
 static void gpy_finish_type( tree );
@@ -673,11 +675,9 @@ void gpy_write_globals( void )
     }
 
   /* Need to generate table of gpy_callable_def_t[] and gpy_type_obj_def_t[] */
-  // @ see fortran/trans-decl.c 4358
-
   VEC(constructor_elt,gc) *array_data = NULL;
   
-  for( )
+  for( ;; )
     {
       VEC(constructor_elt,gc) *struct_data;
       const char * ident = NULL;
