@@ -675,68 +675,37 @@ void gpy_write_globals( void )
     }
 
   /* Need to generate table of gpy_callable_def_t[] and gpy_type_obj_def_t[] */
-  VEC(constructor_elt,gc) *array_data = NULL;
-  
-  for( ;; )
-    {
-      VEC(constructor_elt,gc) *struct_data;
-      const char * ident = NULL;
+  int table_len = 1;
 
-      CONSTRUCTOR_APPEND_ELT (struct_data, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-						      "ident",
-						      ptr_type_node),
-			      build_string(strlen(ident), ident)
-			      );
-
-      CONSTRUCTOR_APPEND_ELT (struct_data, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-						       "n_args",
-						       integer_type_node),
-			      build_int_cst(integer_type_node, 0 )
-			      );
-
-      CONSTRUCTOR_APPEND_ELT (struct_data, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-						       "class",
-						       boolean_type_node),
-			      build_int_cst(boolean_type_node,0)
-			      );
-
-      CONSTRUCTOR_APPEND_ELT (struct_data, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-						       "call",
-						       ptr_type_node),
-			      NULL_TREE
-			      );
-      
-      CONSTRUCTOR_APPEND_ELT (array_data, NULL_TREE,
-			      build_constructor(gpy_build_callable_record_type(),struct_data));
-      
-    }
-  VEC(constructor_elt,gc) *struct_data;
-  CONSTRUCTOR_APPEND_ELT (struct_data, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-						   "ident",
+  VEC(constructor_elt,gc) *struct_data_cons;
+  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
+						   get_identifier("ident"),
 						   ptr_type_node),
 			  null_pointer_node
 			  );
   
-  CONSTRUCTOR_APPEND_ELT (struct_data, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-						   "n_args",
+  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
+						   get_identifier("n_args"),
 						   integer_type_node),
 			  build_int_cst(integer_type_node, 0 )
 			  );
   
-  CONSTRUCTOR_APPEND_ELT (struct_data, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-						   "class",
+  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
+						   get_identifier("class"),
 						   boolean_type_node),
 			  build_int_cst(boolean_type_node,0)
 			  );
   
-  CONSTRUCTOR_APPEND_ELT (struct_data, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-						   "call",
+  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
+						   get_identifier("call"),
 						   ptr_type_node),
 			  null_pointer_node
 			  );
+
+  VEC(constructor_elt,gc) *array_data = NULL;
   
   CONSTRUCTOR_APPEND_ELT (array_data, NULL_TREE,
-			  build_constructor(gpy_build_callable_record_type(),struct_data));
+			  build_constructor(gpy_build_callable_record_type(),struct_data_cons));
 
   tree array_type = build_array_type( gpy_build_callable_record_type(),
 				      build_index_type( build_int_cst(integer_type_node,table_len) ));

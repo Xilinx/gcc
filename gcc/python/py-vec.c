@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "target.h"
-#include "cgraph.h"
 
 #include <gmp.h>
 #include <mpfr.h>
@@ -38,11 +37,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "vec.h"
 #include "hashtab.h"
 
-#include "gpy.h"
-#include "opcodes.def"
-#include "symbols.h"
-#include "pypy-tree.h"
-#include "runtime.h"
+#include "gpython.h"
+#include "py-dot-codes.def"
+#include "py-dot.h"
+#include "py-vec.h"
+#include "py-tree.h"
+#include "py-runtime.h"
 
 /*
   This is just a basic garbage collection to free all IR symbols
@@ -260,15 +260,10 @@ void gpy_init_ctx_branch( gpy_context_branch * const * o )
     {
       (*o)->var_decls = (gpy_hash_tab_t *)
 	xmalloc( sizeof(gpy_hash_tab_t) );
-      (*o)->fnc_decls = (gpy_hash_tab_t *)
-	xmalloc( sizeof(gpy_hash_tab_t) );
 
       gpy_dd_hash_init_table( &((*o)->var_decls) );
-      gpy_dd_hash_init_table( &((*o)->fnc_decls) );
 
       (*o)->var_decl_t = VEC_alloc(gpy_ident,gc,0);
-      (*o)->fnc_decl_t = VEC_alloc(gpy_ident,gc,0);
-      (*o)->ctx_init = VEC_alloc(tree,gc,0);
     }
 }
 
@@ -343,8 +338,8 @@ tree gpy_ctx_lookup_decl( VEC(gpy_ctx_t,gc) * context, const char * s, enum DECL
 
       if( T == VAR )
 	decl_table = it->var_decls;
-      else
-	decl_table = it->fnc_decls;
+
+      else fatal_error("unhandled decl type!\n");
 
       o = gpy_dd_hash_lookup_table( decl_table, h );
       if( o )

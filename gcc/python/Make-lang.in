@@ -78,7 +78,7 @@ GPY_OBJS = \
 	py-lexer.o \
 	py-lang.o \
 	py-stmt.o \
-	py-tree.o \
+	py-decl.o \
 	py-vec.o \
 	py-runtime.o
 
