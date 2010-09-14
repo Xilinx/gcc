@@ -6921,10 +6921,13 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case COMPOUND_EXPR:
       {
 	/* check_return_expr sometimes wraps a TARGET_EXPR in a
-	   COMPOUND_EXPR; don't get confused.  */
+	   COMPOUND_EXPR; don't get confused.  Also handle EMPTY_CLASS_EXPR
+	   introduced by build_call_a.  */
 	tree op0 = TREE_OPERAND (t, 0);
-	if (TREE_CODE (op0) == TARGET_EXPR
-	    && TREE_OPERAND (t, 1) == TARGET_EXPR_SLOT (op0))
+	tree op1 = TREE_OPERAND (t, 1);
+	STRIP_NOPS (op1);
+	if ((TREE_CODE (op0) == TARGET_EXPR && op1 == TARGET_EXPR_SLOT (op0))
+	    || TREE_CODE (op1) == EMPTY_CLASS_EXPR)
 	  return potential_constant_expression (op0, flags);
 	else
 	  goto binary;
