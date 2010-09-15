@@ -4621,7 +4621,10 @@ finish_static_assert (tree condition, tree message, location_t location,
         /* Report the error. */
         error ("static assertion failed: %E", message);
       else if (condition && condition != error_mark_node)
-        error ("non-constant condition for static assertion");
+	{
+	  error ("non-constant condition for static assertion");
+	  cxx_constant_value (condition);
+	}
       input_location = saved_loc;
     }
 }
@@ -5963,10 +5966,10 @@ cxx_eval_binary_expression (const constexpr_call *call, tree t,
 {
   tree r;
   tree orig_lhs = TREE_OPERAND (t, 0);
+  tree orig_rhs = TREE_OPERAND (t, 1);
   tree lhs = cxx_eval_constant_expression (call, orig_lhs,
 					   allow_non_constant, addr,
 					   non_constant_p);
-  tree orig_rhs = TREE_OPERAND (t, 1);
   tree rhs = cxx_eval_constant_expression (call, orig_rhs,
 					   allow_non_constant, addr,
 					   non_constant_p);
@@ -6229,6 +6232,8 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
     case PARM_DECL:
       if (call && DECL_CONTEXT (t) == call->fundef->decl)
 	r = lookup_parameter_binding (call, t);
+      else if (addr)
+	/* Defer in case this is only used for its type.  */;
       else
 	{
 	  if (!allow_non_constant)

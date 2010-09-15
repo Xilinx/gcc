@@ -16,7 +16,7 @@ struct B
 };
 
 B<int> b(1);
-SA(b.t==1);			// { dg-error "non-constant condition" }
+SA(b.t==1);			// { dg-error "non-constant condition|'b'" }
 constexpr B<int> b2(1);
 SA(b2.t==1);
 
