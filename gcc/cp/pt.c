@@ -17595,7 +17595,17 @@ dependent_scope_p (tree scope)
    predicates we want instead are "valid constant expression, value
    dependent or not?", "really constant expression, not value dependent?"
    and "instantiation-dependent?".  Try to integrate with
-   potential_constant_expression?  */
+   potential_constant_expression?
+
+   fold_non_dependent_expr: fold if constant and not type-dependent and not value-dependent.
+     (what about instantiation-dependent constant-expressions?)
+   is_late_template_attribute: defer if instantiation-dependent.
+   compute_array_index_type: proceed if constant and not t- or v-dependent
+   uses_template_parms: FIXME
+   tsubst_decl [function_decl]: Why is this using value_dependent_expression_p?
+   dependent_type_p [array_type]: dependent if size is instantiation-dependent
+     (or non-constant?)
+   static_assert - instantiation-dependent */
 
 bool
 value_dependent_expression_p (tree expression)
