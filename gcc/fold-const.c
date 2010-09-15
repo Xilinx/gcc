@@ -15539,7 +15539,16 @@ fold_indirect_ref_1 (location_t loc, tree type, tree op0)
 					part_width, index);
 
 	    }
+	  /* ((foo*)&complexfoo)[1] => __imag__ complexfoo */
+	  else if (TREE_CODE (op00type) == COMPLEX_TYPE
+		   && type == TREE_TYPE (op00type))
+	    {
+	      tree size = TYPE_SIZE_UNIT (type);
+	      if (tree_int_cst_equal (size, op01))
+		return fold_build1_loc (loc, IMAGPART_EXPR, type, op00);
+	    }
 	  /* ((foo *)&fooarray)[1] => fooarray[1] */
+	  /* FIXME should this handle non-constant offsets, too?  */
 	  else if (TREE_CODE (op00type) == ARRAY_TYPE
 		   && type == TREE_TYPE (op00type))
 	    {
@@ -15570,29 +15579,8 @@ fold_indirect_ref_1 (location_t loc, tree type, tree op0)
 	}
     }
 
-
-  /* ((foo*)&complexfoo)[1] => __imag__ complexfoo */
-  if (TREE_CODE (sub) == POINTER_PLUS_EXPR
-      && TREE_CODE (TREE_OPERAND (sub, 1)) == INTEGER_CST)
-    {
-      tree op00 = TREE_OPERAND (sub, 0);
-      tree op01 = TREE_OPERAND (sub, 1);
-      tree op00type;
-
-      STRIP_NOPS (op00);
-      op00type = TREE_TYPE (op00);
-      if (TREE_CODE (op00) == ADDR_EXPR
- 	  && TREE_CODE (TREE_TYPE (op00type)) == COMPLEX_TYPE
-	  && type == TREE_TYPE (TREE_TYPE (op00type)))
-	{
-	  tree size = TYPE_SIZE_UNIT (type);
-	  if (tree_int_cst_equal (size, op01))
-	    return fold_build1_loc (loc, IMAGPART_EXPR, type,
-				TREE_OPERAND (op00, 0));
-	}
-    }
-
   /* *(foo *)fooarrptr => (*fooarrptr)[0] */
+  /* FIXME handle POINTER_PLUS_EXPR, too?  */
   if (TREE_CODE (TREE_TYPE (subtype)) == ARRAY_TYPE
       && type == TREE_TYPE (TREE_TYPE (subtype)))
     {
