@@ -5342,7 +5342,10 @@ retrieve_constexpr_fundef (tree fun)
 static bool
 valid_type_in_constexpr_fundecl_p (tree t)
 {
-  return literal_type_p (non_reference (t));
+  return (literal_type_p (t)
+	  /* FIXME we allow ref to non-literal; should change standard to
+	     match, or change back if not.  */
+	  || TREE_CODE (t) == REFERENCE_TYPE);
 }
 
 /* Check whether the parameter and return types of FUN are valid for a
