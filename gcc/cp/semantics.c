@@ -5999,28 +5999,17 @@ cxx_eval_array_reference (const constexpr_call *call, tree t,
     return t;
   else if (addr)
     return build4 (ARRAY_REF, TREE_TYPE (t), ary, index, NULL, NULL);
-  /* Refuse to index into a too big array.  Note that CONSTRUCTOR_NELTS is
-     only an unsigned, and TREE_STRING_LENGTH an int; neither are
-     HOST_WIDE_INT.  What does the C front end do about extremely large
-     initializers? */
-  if (!host_integerp (index, 0))
-    {
-      if (!allow_non_constant)
-	error ("array subscript too big");
-      *non_constant_p = true;
-      return t;
-    }
-  i = tree_low_cst (index, 0);
   len = (TREE_CODE (ary) == CONSTRUCTOR
 	 ? CONSTRUCTOR_NELTS (ary)
 	 : (unsigned)TREE_STRING_LENGTH (ary));
-  if (i >= len)
+  if (compare_tree_int (index, len) >= 0)
     {
       if (!allow_non_constant)
 	error ("array subscript out of bound");
       *non_constant_p = true;
       return t;
     }
+  i = tree_low_cst (index, 0);
   if (TREE_CODE (ary) == CONSTRUCTOR)
     return VEC_index (constructor_elt, CONSTRUCTOR_ELTS (ary), i)->value;
   else
