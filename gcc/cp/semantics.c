@@ -5949,7 +5949,8 @@ cxx_eval_unary_expression (const constexpr_call *call, tree t,
   tree orig_arg = TREE_OPERAND (t, 0);
   tree arg = cxx_eval_constant_expression (call, orig_arg, allow_non_constant,
 					   addr, non_constant_p);
-  if (*non_constant_p || arg == orig_arg)
+  VERIFY_CONSTANT (arg);
+  if (arg == orig_arg)
     return t;
   r = fold_build1 (TREE_CODE (t), TREE_TYPE (t), arg);
   VERIFY_CONSTANT (r);
@@ -5967,13 +5968,16 @@ cxx_eval_binary_expression (const constexpr_call *call, tree t,
   tree r;
   tree orig_lhs = TREE_OPERAND (t, 0);
   tree orig_rhs = TREE_OPERAND (t, 1);
-  tree lhs = cxx_eval_constant_expression (call, orig_lhs,
-					   allow_non_constant, addr,
-					   non_constant_p);
-  tree rhs = cxx_eval_constant_expression (call, orig_rhs,
-					   allow_non_constant, addr,
-					   non_constant_p);
-  if (*non_constant_p || (lhs == orig_lhs && rhs == orig_rhs))
+  tree lhs, rhs;
+  lhs = cxx_eval_constant_expression (call, orig_lhs,
+				      allow_non_constant, addr,
+				      non_constant_p);
+  VERIFY_CONSTANT (lhs);
+  rhs = cxx_eval_constant_expression (call, orig_rhs,
+				      allow_non_constant, addr,
+				      non_constant_p);
+  VERIFY_CONSTANT (rhs);
+  if (lhs == orig_lhs && rhs == orig_rhs)
     return t;
   r = fold_build2 (TREE_CODE (t), TREE_TYPE (t), lhs, rhs);
   VERIFY_CONSTANT (r);
