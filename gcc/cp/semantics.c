@@ -5106,6 +5106,9 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
     case CPTK_IS_UNION:
       return (type_code1 == UNION_TYPE);
 
+    case CPTK_IS_LITERAL_TYPE:
+      return (literal_type_p (type1));
+
     default:
       gcc_unreachable ();
       return false;
@@ -5154,6 +5157,7 @@ finish_trait_expr (cp_trait_kind kind, tree type1, tree type2)
 	      || kind == CPTK_IS_POLYMORPHIC
 	      || kind == CPTK_IS_STD_LAYOUT
 	      || kind == CPTK_IS_TRIVIAL
+	      || kind == CPTK_IS_LITERAL_TYPE
 	      || kind == CPTK_IS_UNION);
 
   if (kind == CPTK_IS_CONVERTIBLE_TO)
@@ -5197,6 +5201,7 @@ finish_trait_expr (cp_trait_kind kind, tree type1, tree type2)
     case CPTK_IS_POLYMORPHIC:
     case CPTK_IS_STD_LAYOUT:
     case CPTK_IS_TRIVIAL:
+    case CPTK_IS_LITERAL_TYPE:
       if (!check_trait_type (type1))
 	{
 	  error ("incomplete type %qT not allowed", type1);
