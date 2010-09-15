@@ -4,6 +4,8 @@
 
 #define IS_LIT(T) (std::is_literal_type<T>::value)
 #define SA(X) static_assert (X, #X)
+#define YES(T) SA(IS_LIT(T))
+#define NO(T) SA(!IS_LIT(T))
 
 enum E1 { };
 enum class E2 { };
@@ -14,18 +16,18 @@ private:
   NotLiteral(const NotLiteral&);
 };
 
-SA (IS_LIT (int));
-SA (IS_LIT (int[]));
-SA (IS_LIT (int[3]));
-SA (IS_LIT (double));
-SA (IS_LIT (void *));
-SA (IS_LIT (decltype (nullptr)));
-SA (IS_LIT (int Literal::*));
-SA (IS_LIT (void (Literal::*)()));
-SA (IS_LIT (E1));
-SA (IS_LIT (E2));
-SA (IS_LIT (Literal));
-SA (!IS_LIT (NotLiteral));
-SA (IS_LIT (NotLiteral *));
-SA (IS_LIT (NotLiteral NotLiteral::*));
-SA (IS_LIT (NotLiteral (NotLiteral::*)(NotLiteral)));
+YES(int);
+YES(int[]);
+YES(int[3]);
+YES(double);
+YES(void *);
+YES(decltype (nullptr));
+YES(int Literal::*);
+YES(void (Literal::*)());
+YES(E1);
+YES(E2);
+YES(Literal);
+NO (NotLiteral);
+YES(NotLiteral *);
+YES(NotLiteral NotLiteral::*);
+YES(NotLiteral (NotLiteral::*)(NotLiteral));
