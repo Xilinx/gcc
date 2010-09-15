@@ -5735,7 +5735,7 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
         continue;
       x = get_nth_callarg (t, i);
       /* Undo integral promotion done for the target's call ABI.  */
-      if (targetm.calls.promote_prototypes (type))
+      if (SCALAR_TYPE_P (type) && targetm.calls.promote_prototypes (type))
 	x = fold_convert (TYPE_MAIN_VARIANT (type), x);
       arg = cxx_eval_constant_expression (old_call, x, allow_non_constant,
 					  TREE_CODE (type) == REFERENCE_TYPE,
@@ -5745,6 +5745,21 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
 	return;
       new_call->bindings = tree_cons (parms, arg, new_call->bindings);
     }
+}
+
+/* TEMP is the constant value of a temporary object of type TYPE.  Adjust
+   the type of the value to match.  */
+
+static tree
+adjust_temp_type (tree type, tree temp)
+{
+  if (TREE_TYPE (temp) == type)
+    return temp;
+  /* Avoid wrapping an aggregate value in a NOP_EXPR.  */
+  if (TREE_CODE (temp) == CONSTRUCTOR)
+    return build_constructor (type, CONSTRUCTOR_ELTS (temp));
+  gcc_assert (SCALAR_TYPE_P (type));
+  return fold_convert (type, temp);
 }
 
 /* Subroutine of cxx_eval_constant_expression.
@@ -5855,7 +5870,20 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
       if (*non_constant_p)
 	entry->result = result = error_mark_node;
       else
-	entry->result = result;
+	{
+	  /* If this was a call to initialize an object, set the type of
+	     the CONSTRUCTOR to the type of that object.  */
+	  if (DECL_CONSTRUCTOR_P (fun))
+	    {
+	      tree ob_arg = get_nth_callarg (t, 0);
+	      STRIP_NOPS (ob_arg);
+	      gcc_assert (TREE_CODE (TREE_TYPE (ob_arg)) == POINTER_TYPE
+			  && CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (ob_arg))));
+	      result = adjust_temp_type (TREE_TYPE (TREE_TYPE (ob_arg)),
+					 result);
+	    }
+	  entry->result = result;
+	}
     }
 
   if (result == error_mark_node)
@@ -6039,7 +6067,14 @@ cxx_eval_component_reference (const constexpr_call *call, tree t,
   if (addr)
     return fold_build3 (COMPONENT_REF, TREE_TYPE (t),
 			whole, part, NULL_TREE);
-  /* Don't VERIFY_CONSTANT here.  */
+  /* Don't VERIFY_CONSTANT here; we only want to check that we got a
+     CONSTRUCTOR.  */
+  if (!*non_constant_p && TREE_CODE (whole) != CONSTRUCTOR)
+    {
+      if (!allow_non_constant)
+	error ("%qE is not a constant expression", orig_whole);
+      *non_constant_p = true;
+    }
   if (*non_constant_p)
     return t;
   FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (whole), i, field, value)
@@ -6215,6 +6250,9 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
       r = cxx_eval_constant_expression (call, TREE_OPERAND (t, 1),
 					allow_non_constant, false,
 					non_constant_p);
+      if (!*non_constant_p)
+	/* Adjust the type of the result to the type of the temporary.  */
+	r = adjust_temp_type (TREE_TYPE (t), r);
       break;
 
     case SCOPE_REF:
@@ -6253,17 +6291,33 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 	  return build_fold_addr_expr_with_type (op, TREE_TYPE (t));
 	else
 	  {
-	    /* Strip NOPs that just mess with cv-quals.  We don't want to
-	       strip a NOP from pointer-to-array to pointer-to-element.  */
-	    while (CONVERT_EXPR_P (op)
-		   && (same_type_ignoring_top_level_qualifiers_p
-		       (TREE_TYPE (TREE_TYPE (op)),
-			TREE_TYPE (TREE_TYPE (TREE_OPERAND (op, 0))))))
-	      op = TREE_OPERAND (op, 0);
-	    r = build_fold_indirect_ref (op);
+	    tree sub = op;
+	    STRIP_NOPS (sub);
+	    r = NULL_TREE;
+	    if (TREE_CODE (sub) == ADDR_EXPR)
+	      {
+		/* We want to be less strict for simple *& folding than
+		   fold_indirect_ref_1, which requires cv-quals to match.
+		   If we have a non-const temporary that we access through
+		   a const pointer, that should work.  Handle this here
+		   rather than change fold_indirect_ref_1 because we're
+		   dealing with things like ADDR_EXPR of INTEGER_CST which
+		   don't really make sense outside of constant expression
+		   evaluation.  */
+		tree in = TREE_OPERAND (sub, 0);
+		if (same_type_ignoring_top_level_qualifiers_p
+		    (TREE_TYPE (in), TREE_TYPE (t)))
+		  r = in;
+	      }
+	    if (!r)
+	      r = build_fold_indirect_ref (op);
 	    if (TREE_CODE (r) != INDIRECT_REF)
 	      r = cxx_eval_constant_expression (call, r, allow_non_constant,
 						addr, non_constant_p);
+	    else
+	      /* Make sure this wasn't something we should have folded.  */
+	      gcc_assert (TREE_CODE (sub) != ADDR_EXPR
+			  && TREE_CODE (sub) != POINTER_PLUS_EXPR);
 	  }
 	return r;
       }
