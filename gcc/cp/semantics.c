@@ -6465,6 +6465,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 static tree
 cxx_eval_outermost_constant_expr (tree t, bool allow_non_constant)
 {
+  /* FIXME provide version that returns non_constant_p flag.  */
   bool non_constant_p = false;
   tree r = cxx_eval_constant_expression (NULL, t, allow_non_constant,
 					 false, &non_constant_p);
