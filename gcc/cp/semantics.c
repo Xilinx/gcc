@@ -5729,6 +5729,21 @@ cxx_eval_builtin_function_call (const constexpr_call *call, tree t,
   return fold (new_call);
 }
 
+/* TEMP is the constant value of a temporary object of type TYPE.  Adjust
+   the type of the value to match.  */
+
+static tree
+adjust_temp_type (tree type, tree temp)
+{
+  if (TREE_TYPE (temp) == type)
+    return temp;
+  /* Avoid wrapping an aggregate value in a NOP_EXPR.  */
+  if (TREE_CODE (temp) == CONSTRUCTOR)
+    return build_constructor (type, CONSTRUCTOR_ELTS (temp));
+  gcc_assert (SCALAR_TYPE_P (type));
+  return fold_convert (type, temp);
+}
+
 /* Subroutine of cxx_eval_call_expression.
    We are processing a call expression (either CALL_EXPR or
    AGGR_INIT_EXPR) in the call context of OLD_CALL.  Evaluate
@@ -5755,32 +5770,18 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
       if (i == 0 && DECL_CONSTRUCTOR_P (fun))
         continue;
       x = get_nth_callarg (t, i);
-      /* Undo integral promotion done for the target's call ABI.  */
-      if (SCALAR_TYPE_P (type) && targetm.calls.promote_prototypes (type))
-	x = fold_convert (TYPE_MAIN_VARIANT (type), x);
       arg = cxx_eval_constant_expression (old_call, x, allow_non_constant,
 					  TREE_CODE (type) == REFERENCE_TYPE,
 					  non_constant_p);
       /* Don't VERIFY_CONSTANT here.  */
       if (*non_constant_p && allow_non_constant)
 	return;
+
+      /* Make sure the binding has the same type as the parm.  */
+      if (TREE_CODE (type) != REFERENCE_TYPE)
+	arg = adjust_temp_type (type, arg);
       new_call->bindings = tree_cons (parms, arg, new_call->bindings);
     }
-}
-
-/* TEMP is the constant value of a temporary object of type TYPE.  Adjust
-   the type of the value to match.  */
-
-static tree
-adjust_temp_type (tree type, tree temp)
-{
-  if (TREE_TYPE (temp) == type)
-    return temp;
-  /* Avoid wrapping an aggregate value in a NOP_EXPR.  */
-  if (TREE_CODE (temp) == CONSTRUCTOR)
-    return build_constructor (type, CONSTRUCTOR_ELTS (temp));
-  gcc_assert (SCALAR_TYPE_P (type));
-  return fold_convert (type, temp);
 }
 
 /* Subroutine of cxx_eval_constant_expression.
