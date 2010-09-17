@@ -603,37 +603,32 @@ void gpy_write_globals( void )
 			       get_identifier("__gpy_module_main_callables"),
 			       array_type);
 
-  TREE_CONSTANT (table_decl) = 1;
   DECL_ARTIFICIAL (table_decl) = 1;
   TREE_STATIC (table_decl) = 1;
-  TREE_READONLY (table_decl) = 1;
+  TREE_PUBLIC (table_decl) = 1;
   TREE_USED (table_decl) = 1;
-  DECL_INITIAL (table_decl) = array;
+  // DECL_INITIAL (table_decl) = array;
 
   tree test = build_decl( UNKNOWN_LOCATION, VAR_DECL,
 			  get_identifier("test"),
 			  integer_type_node);
 
-  TREE_CONSTANT (test) = 1;
   DECL_ARTIFICIAL (test) = 1;
   TREE_STATIC (test) = 1;
-  TREE_READONLY (test) = 1;
+  TREE_PUBLIC(test) = 1;
   TREE_USED (test) = 1;
-  DECL_INITIAL (test) = build_int_cst(integer_type_node, 1234 );
+  DECL_INITIAL (test) = build_int_cst(integer_type_node, 12345 );
+
+  rest_of_decl_compilation (test, 1, 0);
+  rest_of_decl_compilation (table_decl, 1, 0);
 
   /* Add in the main method decl! */
   VEC_safe_push( tree,gc,global_decls,gpy_main_method_decl( main_stmts_vec,co ) );
-  /*
-  set_user_assembler_name (test, "test");
-  layout_decl (test, 0);
-  rest_of_decl_compilation (test, 1, 0);
 
-  gimple_seq seq_p = NULL;
-  bool x = gimplify_stmt( &test, &seq_p );
-  debug("x=<%i>!\n", (int)x );
-  */
   VEC_safe_push( tree,gc,global_decls,table_decl );
   VEC_safe_push( tree,gc,global_decls,test );
+
+  debug_tree( table_decl );
 
   VEC_pop( gpy_ctx_t, gpy_ctx_table );
 
@@ -641,17 +636,17 @@ void gpy_write_globals( void )
   int global_vec_len = VEC_length(tree, global_decls);
   tree * global_vec = XNEWVEC( tree, global_vec_len );
 
+  FILE *tu_stream = dump_begin (TDI_tu, NULL);
   for( idx=0; VEC_iterate(tree,global_decls,idx,itx); ++idx )
-    {/*
-      FILE *tu_stream = dump_begin (TDI_tu, NULL);
+    {
       if (tu_stream)
-	{
-	  dump_node(itx, 0, tu_stream);
-	  dump_end(TDI_tu, tu_stream);
-	  }*/
+	dump_node(itx, 0, tu_stream);
+
       global_vec[ idy ] = itx;
       idy++;
     }
+  if (tu_stream)
+    dump_end(TDI_tu, tu_stream);
 
   debug("Finished processing!\n\n");
 
