@@ -1458,9 +1458,9 @@ struct GTY((variable_size)) lang_type {
 #define TYPE_HAS_LIST_CTOR(NODE) \
   (LANG_TYPE_CLASS_CHECK (NODE)->has_list_ctor)
 
-/* Nonzero if this class has a constexpr constructor.  Note that a class
-   can have constexpr constructors for static initialization even if it
-   isn't a literal class.  */
+/* Nonzero if this class has a constexpr constructor other than a copy/move
+   constructor.  Note that a class can have constexpr constructors for
+   static initialization even if it isn't a literal class.  */
 #define TYPE_HAS_CONSTEXPR_CTOR(NODE) \
   (LANG_TYPE_CLASS_CHECK (NODE)->has_constexpr_ctor)
 

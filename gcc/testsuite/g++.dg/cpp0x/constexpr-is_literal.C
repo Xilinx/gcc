@@ -12,8 +12,7 @@ enum class E2 { };
 struct Literal {};
 
 struct NotLiteral {
-private:
-  NotLiteral(const NotLiteral&);
+  ~NotLiteral();
 };
 
 YES(int);
@@ -31,3 +30,9 @@ NO (NotLiteral);
 YES(NotLiteral *);
 YES(NotLiteral NotLiteral::*);
 YES(NotLiteral (NotLiteral::*)(NotLiteral));
+
+struct A {
+  A(const A&) = default;
+};
+
+NO(A);				// no constexpr ctor other than copy

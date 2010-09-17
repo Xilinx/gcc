@@ -82,13 +82,13 @@ constexpr complex I2 = I + I;                 // OK
 struct resource {
   int id;
   constexpr resource(int i) : id(i) { }       // fine
-  resource(const resource& r) : id(r.id)
+  resource(const resource& r) : id(r.id)      // oops, not constexpr
   {
     //cout << id << " copied" << endl;
   }
 };
-constexpr resource f(resource d) // { dg-error "resource" }
-{ return d; }                  // error: copy-constructor not trivial
+constexpr resource f(resource d)
+{ return d; }                  // { dg-error "not .constexpr" }
 constexpr resource d = f(9);   // { dg-error "resource" }
 
 // 4.4 floating-point constant expressions
