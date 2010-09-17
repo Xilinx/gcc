@@ -5760,15 +5760,15 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
   tree fun = new_call->fundef->decl;
   tree parms = DECL_ARGUMENTS (fun);
   int i;
-  for (i = 0; parms && i < nargs; ++i, parms = TREE_CHAIN (parms))
+  for (i = 0; i < nargs; ++i)
     {
       tree x, arg;
-      tree type = TREE_TYPE (parms);
+      tree type = parms ? TREE_TYPE (parms) : void_type_node;
       /* For member function, the first argument is a pointer to the implied
          object.  And for an object contruction, don't bind `this' before
          it is fully constructed.  */
       if (i == 0 && DECL_CONSTRUCTOR_P (fun))
-        continue;
+        goto next;
       x = get_nth_callarg (t, i);
       arg = cxx_eval_constant_expression (old_call, x, allow_non_constant,
 					  TREE_CODE (type) == REFERENCE_TYPE,
@@ -5776,11 +5776,16 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
       /* Don't VERIFY_CONSTANT here.  */
       if (*non_constant_p && allow_non_constant)
 	return;
+      /* Just discard ellipsis args after checking their constantitude.  */
+      if (!parms)
+	continue;
 
       /* Make sure the binding has the same type as the parm.  */
       if (TREE_CODE (type) != REFERENCE_TYPE)
 	arg = adjust_temp_type (type, arg);
       new_call->bindings = tree_cons (parms, arg, new_call->bindings);
+    next:
+      parms = TREE_CHAIN (parms);
     }
 }
 
