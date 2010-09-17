@@ -18,8 +18,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "ansidecl.h"
 #include "coretypes.h"
+#include "tm.h"
 #include "opts.h"
 #include "tree.h"
+#include "tree-iterator.h"
+#include "tree-pass.h"
 #include "gimple.h"
 #include "toplev.h"
 #include "debug.h"
@@ -30,8 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "target.h"
-
-#include "tree-iterator.h"
 #include "cgraph.h"
 
 #include <gmp.h>
@@ -45,11 +46,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "py-dot.h"
 #include "py-vec.h"
 #include "py-tree.h"
+#include "py-types.h"
 #include "py-runtime.h"
 
 static gpy_symbol_obj * gpy_process_AST_Align( gpy_symbol_obj ** );
-
-static tree gpy_build_callable_record_type( void );
 
 static VEC( gpy_sym,gc ) * gpy_decls;
 VEC(gpy_ctx_t,gc) * gpy_ctx_table;
@@ -553,58 +553,6 @@ tree gpy_main_method_decl( VEC(tree,gc) * block, gpy_context_branch * co )
   return retval;
 }
 
-/* @see coverage.c build_fn_info_type ( unsigned int )
-   for more examples on RECORD_TYPE's
-
-   Better still @see fortran/trans-types.c - gfc_get_desc_dim_type
-
-   Or even better @see go/types.cc - 2027
-
-typedef gpy_object_state_t * (*__callable)( void );
-
-typedef struct gpy_callable_def_t {
-  char * ident; int n_args;
-  bool class; __callable call;
-} gpy_callable_def_t;
-
- */
-static
-tree gpy_build_callable_record_type( void )
-{
-  tree type = make_node(RECORD_TYPE);
-  tree field_trees = NULL_TREE;
-  tree *chain = &field_trees;
-
-  tree field = build_decl(BUILTINS_LOCATION, FIELD_DECL, get_identifier ("ident"),
-			  ptr_type_node);
-  DECL_CONTEXT(field) = type;
-  *chain = field;
-  chain = &TREE_CHAIN(field);
-
-  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, get_identifier ("n_args"),
-		     integer_type_node);
-  DECL_CONTEXT(field) = type;
-  *chain = field;
-  chain = &TREE_CHAIN(field);
-
-  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, get_identifier ("class"),
-		     boolean_type_node);
-  DECL_CONTEXT(field) = type;
-  *chain = field;
-  chain = &TREE_CHAIN(field);
-
-  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, get_identifier ("call"),
-		     ptr_type_node);
-  DECL_CONTEXT(field) = type;
-  *chain = field;
-  chain = &TREE_CHAIN(field);
-
-  TYPE_FIELDS(type) = field_trees;
-  layout_type(type);
-
-  return type;
-}
-
 void gpy_write_globals( void )
 {
   gpy_context_branch *co = NULL;
@@ -642,38 +590,12 @@ void gpy_write_globals( void )
   /* Need to generate table of gpy_callable_def_t[] and gpy_type_obj_def_t[] */
   int table_len = 1;
 
-  VEC(constructor_elt,gc) *struct_data_cons = NULL;
-  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-							get_identifier("ident"),
-							ptr_type_node),
-			  build_int_cst(ptr_type_node, 0)
-			  );
-  
-  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-							get_identifier("n_args"),
-							integer_type_node),
-			  build_int_cst(integer_type_node, 0 )
-			  );
-  
-  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-							get_identifier("class"),
-							boolean_type_node),
-			  build_int_cst(boolean_type_node,0)
-			  );
-  
-  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-							get_identifier("call"),
-							ptr_type_node),
-			  build_int_cst(ptr_type_node, 0)
-			  );
-
   VEC(constructor_elt,gc) *array_data = NULL;
-  
-  tree inter = build_constructor(gpy_build_callable_record_type(),struct_data_cons);
 
-  CONSTRUCTOR_APPEND_ELT (array_data, NULL_TREE,inter);
+  CONSTRUCTOR_APPEND_ELT( array_data, NULL_TREE,
+			  gpy_init_callable_record("NULL", 0, false, NULL_TREE) );
 
-  tree array_type = build_array_type( gpy_build_callable_record_type(),
+  tree array_type = build_array_type( gpy_get_callable_record_type(),
 				      build_index_type( build_int_cst(integer_type_node,table_len) ));
 
   tree array = build_constructor(array_type, array_data);
@@ -682,22 +604,51 @@ void gpy_write_globals( void )
 			       array_type);
 
   TREE_CONSTANT (table_decl) = 1;
+  DECL_ARTIFICIAL (table_decl) = 1;
   TREE_STATIC (table_decl) = 1;
   TREE_READONLY (table_decl) = 1;
   TREE_USED (table_decl) = 1;
   DECL_INITIAL (table_decl) = array;
 
+  tree test = build_decl( UNKNOWN_LOCATION, VAR_DECL,
+			  get_identifier("test"),
+			  integer_type_node);
+
+  TREE_CONSTANT (test) = 1;
+  DECL_ARTIFICIAL (test) = 1;
+  TREE_STATIC (test) = 1;
+  TREE_READONLY (test) = 1;
+  TREE_USED (test) = 1;
+  DECL_INITIAL (test) = build_int_cst(integer_type_node, 1234 );
+
   /* Add in the main method decl! */
   VEC_safe_push( tree,gc,global_decls,gpy_main_method_decl( main_stmts_vec,co ) );
-  /* Add the callables table */
+  /*
+  set_user_assembler_name (test, "test");
+  layout_decl (test, 0);
+  rest_of_decl_compilation (test, 1, 0);
+
+  gimple_seq seq_p = NULL;
+  bool x = gimplify_stmt( &test, &seq_p );
+  debug("x=<%i>!\n", (int)x );
+  */
   VEC_safe_push( tree,gc,global_decls,table_decl );
+  VEC_safe_push( tree,gc,global_decls,test );
 
   VEC_pop( gpy_ctx_t, gpy_ctx_table );
 
-  tree itx = NULL_TREE; int idy = 0; int global_vec_len = VEC_length(tree, global_decls);
+  tree itx = NULL_TREE; int idy = 0;
+  int global_vec_len = VEC_length(tree, global_decls);
   tree * global_vec = XNEWVEC( tree, global_vec_len );
+
   for( idx=0; VEC_iterate(tree,global_decls,idx,itx); ++idx )
-    {
+    {/*
+      FILE *tu_stream = dump_begin (TDI_tu, NULL);
+      if (tu_stream)
+	{
+	  dump_node(itx, 0, tu_stream);
+	  dump_end(TDI_tu, tu_stream);
+	  }*/
       global_vec[ idy ] = itx;
       idy++;
     }

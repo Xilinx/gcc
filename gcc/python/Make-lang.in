@@ -73,12 +73,19 @@ py-runtime.o: $(srcdir)/python/py-runtime.c $(CONFIG_H) $(SYSTEM_H) coretypes.h 
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-runtime.c
 
+py-types.o: $(srcdir)/python/py-types.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
+  gt-python-py-lang.h gtype-python.h
+	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-types.c
+
 GPY_OBJS = \
 	py-parser.o \
 	py-lexer.o \
 	py-lang.o \
 	py-stmt.o \
 	py-decl.o \
+	py-types.o \
 	py-vec.o \
 	py-runtime.o
 

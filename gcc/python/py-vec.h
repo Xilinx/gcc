@@ -70,4 +70,6 @@ extern VEC(gpy_ctx_t,gc) * gpy_ctx_table;
 extern VEC(gpy_sym,gc) * gpy_garbage_decls;
 extern VEC(tree,gc) * global_decls;
 
+extern void gpy_init_context_tables ( void );
+
 #endif /*__PY_VEC_H__*/

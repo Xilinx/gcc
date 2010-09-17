@@ -267,7 +267,7 @@ void gpy_init_ctx_branch( gpy_context_branch * const * o )
     }
 }
 
-void gpy_init_tbls( void )
+void gpy_init_context_tables( void )
 {
   gpy_context_branch *o = (gpy_context_branch *)
     xmalloc( sizeof(gpy_context_branch) );

@@ -18,8 +18,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "ansidecl.h"
 #include "coretypes.h"
+#include "tm.h"
 #include "opts.h"
 #include "tree.h"
+#include "tree-iterator.h"
+#include "tree-pass.h"
 #include "gimple.h"
 #include "toplev.h"
 #include "debug.h"
@@ -30,18 +33,17 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "target.h"
+#include "cgraph.h"
 
-#include <gmp.h>
-#include <mpfr.h>
-
-#include "vec.h"
-#include "hashtab.h"
+#include "gmp.h"
+#include "mpfr.h"
 
 #include "gpython.h"
 #include "py-dot-codes.def"
 #include "py-dot.h"
 #include "py-vec.h"
 #include "py-tree.h"
+#include "py-types.h"
 #include "py-runtime.h"
 
 /* Language-dependent contents of a type.  */
@@ -80,12 +82,13 @@ struct GTY(()) language_function {
 static
 bool gpy_langhook_init( void )
 {
-  gpy_init_tbls( );
-
   build_common_tree_nodes( false );
   build_common_tree_nodes_2( 0 );
 
   void_list_node = build_tree_list( NULL_TREE, void_type_node );
+
+  gpy_init_context_tables ();
+  gpy_initilize_types ();
 
   return true;
 }
@@ -95,10 +98,7 @@ static void
 gpy_langhook_init_options( unsigned int decoded_options_count,
 			   struct cl_decoded_option *decoded_options )
 {
-  flag_strict_aliasing = 1;
-  debug("init options!\n");
-
-  mpfr_set_default_prec( 128 );
+  return;
 }
 
 /* Handle gpy specific options.  Return 0 if we didn't do anything.  */
@@ -211,6 +211,21 @@ gpy_langhook_gimplify_expr( tree *expr_p ATTRIBUTE_UNUSED,
 			    gimple_seq *pre_p ATTRIBUTE_UNUSED,
 			    gimple_seq *post_p ATTRIBUTE_UNUSED )
 {
+  debug_tree( (*expr_p) );
+
+  enum tree_code code = TREE_CODE (*expr_p);
+
+  /* This is handled mostly by gimplify.c, but we have to deal with
+     not warning about int x = x; as it is a GCC extension to turn off
+     this warning but only if warn_init_self is zero.  */
+  if (code == DECL_EXPR
+      && TREE_CODE (DECL_EXPR_DECL (*expr_p)) == VAR_DECL
+      && !DECL_EXTERNAL (DECL_EXPR_DECL (*expr_p))
+      && !TREE_STATIC (DECL_EXPR_DECL (*expr_p))
+      && (DECL_INITIAL (DECL_EXPR_DECL (*expr_p)) == DECL_EXPR_DECL (*expr_p))
+      && !warn_init_self)
+    TREE_NO_WARNING (DECL_EXPR_DECL (*expr_p)) = 1;
+
   return GS_UNHANDLED;
 }
 
@@ -218,9 +233,7 @@ gpy_langhook_gimplify_expr( tree *expr_p ATTRIBUTE_UNUSED,
 tree convert( tree type ATTRIBUTE_UNUSED,
 	      tree expr ATTRIBUTE_UNUSED )
 {
-  debug("tree convert!\n");
   gcc_unreachable( );
-  return NULL;
 }
 
 static GTY(()) tree gpy_gc_root;

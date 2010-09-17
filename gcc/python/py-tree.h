@@ -14,8 +14,8 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>. */
 
-#ifndef __PYPY_TREE_H__
-#define __PYPY_TREE_H__
+#ifndef __PY_TREE_H__
+#define __PY_TREE_H__
 
 extern void gpy_ident_vec_init( gpy_ident_vector_t * const v )
      __attribute__((nonnull));
@@ -70,8 +70,6 @@ extern void gpy_process_decl( gpy_symbol_obj * );
 
 extern bool gpy_ctx_push_decl( tree, const char *, gpy_context_branch *,
 			       enum DECL_T );
-
-extern gpy_symbol_obj * gpy_symbol_obj_clone( gpy_symbol_obj *, bool );
 
 extern void gpy_symbol_init_ctx( gpy_symbol_obj * const )
   __attribute__((nonnull));
