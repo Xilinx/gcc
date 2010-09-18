@@ -5791,6 +5791,8 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	      DECL_INITIAL (clone) = error_mark_node;
 	    }
 	  init = NULL_TREE;
+	  if (DECL_DECLARED_CONSTEXPR_P (decl))
+	    error ("constexpr function %qD defined as deleted", decl);
 	}
       else if (init == ridpointers[(int)RID_DEFAULT])
 	{
