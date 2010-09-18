@@ -1,3 +1,269 @@
+2010-09-18  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/initlist44.C: New.
+
+2010-09-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45709
+	* g++.dg/torture/pr45709-2.C: New testcase.
+
+2010-09-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45709
+	* g++.dg/torture/pr45709.C: New testcase.
+
+2010-09-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/45719
+	* gcc.target/i386/pad-3.c: Pass -fno-pic.
+
+2010-09-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/pad-1.c: New.
+	* gcc.target/i386/pad-2.c: Likewise.
+	* gcc.target/i386/pad-3.c: Likewise.
+	* gcc.target/i386/pad-4.c: Likewise.
+	* gcc.target/i386/pad-5a.c: Likewise.
+	* gcc.target/i386/pad-5b.c: Likewise.
+	* gcc.target/i386/pad-6a.c: Likewise.
+	* gcc.target/i386/pad-6b.c: Likewise.
+	* gcc.target/i386/pad-7.c: Likewise.
+	* gcc.target/i386/pad-8.c: Likewise.
+	* gcc.target/i386/pad-9.c: Likewise.
+	* gcc.target/i386/pad-10.c: Likewise.
+
+2010-09-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/45234
+	* gcc.dg/torture/stackalign/alloca-5.c: New.
+
+2010-09-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/45678
+	* gcc.dg/torture/pr45678-2.c: New.
+
+2010-09-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45678
+	* gcc.dg/torture/pr45678-1.c: New testcase.
+
+2010-09-17  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/43432
+	* lib/target-supports.exp (check_effective_target_vect_perm_byte,
+	check_effective_target_vect_perm_short): New predicates.
+	(check_effective_target_vect_perm): Include x86_64.
+	* gcc.dg/vect/pr43432.c: New test.
+	* gcc.dg/vect/vect-114.c: Adjust.
+	* gcc.dg/vect/vect-15.c: Ditto.
+	* gcc.dg/vect/slp-perm-8.c: Use new predicate.
+	* gcc.dg/vect/slp-perm-9.c: Ditto.
+
+2010-09-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR testsuite/45692	
+	* objc/execute/exceptions/throw-nil.m: Run the test only with the
+	GNU runtime.
+
+2010-09-17  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/pr27898.c: Use -flto instead of -combine.
+	* gcc.dg/pr28706.c: Likewise.
+	* gcc.dg/pr28712.c: Likewise.
+	* gcc.dg/pr30762-1.c: Likewise.
+	* gcc.dg/pr30762-2.c: Likewise.
+	* gcc.dg/pr31529-1.c: Likewise.
+	* gcc.dg/pr31529-2.c: Likewise.
+	* gcc.dg/pr34457-1.c: Likewise.
+	* gcc.dg/pr34457-2.c: Likewise.
+	* gcc.dg/pr34668-1.c: Likewise.
+	* gcc.dg/pr34668-2.c: Likewise.
+	* gcc.dg/pr34989-1.c: Likewise.
+	* gcc.dg/pr34989-2.c: Likewise.
+	* gcc.dg/pr43557-1.c: Likewise.
+	* gcc.dg/pr43557-2.c: Likewise.
+	* gcc.dg/debug/pr41893-1.c: Likewise.
+	* gcc.dg/matrix/matrix.exp: Do not use -combine.
+	* gcc.dg/matrix/matrix-3.c: Drop dg-options.
+	* gcc.dg/matrix/matrix-4.c: Likewise.
+	* gcc.dg/struct/struct-reorg.exp: Do not use -combine.
+	* gcc.dg/struct/wo_prof_empty_str.c: Drop dg-options.
+	* gcc.dg/struct/wo_prof_escape_arg_to_local.c: Likewise.
+	* gcc.dg/struct/wo_prof_escape_return.c: Likewise.
+
+2010-09-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43665
+	* gfortran.dg/cray_pointers_2.f90: Disable inlining to avoid
+	optimizations.
+	* gfortran.dg/intent_optimize_1.f90: New test.
+
+2010-09-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/divmod-1.c: New.
+	* gcc.target/i386/divmod-2.c: Likewise.
+	* gcc.target/i386/divmod-3.c: Likewise.
+	* gcc.target/i386/divmod-4.c: Likewise.
+	* gcc.target/i386/divmod-4a.c: Likewise.
+	* gcc.target/i386/divmod-5.c: Likewise.
+	* gcc.target/i386/divmod-6.c: Likewise.
+	* gcc.target/i386/divmod-7.c: Likewise.
+	* gcc.target/i386/divmod-8.c: Likewise.
+	* gcc.target/i386/udivmod-1.c: Likewise.
+	* gcc.target/i386/udivmod-2.c: Likewise.
+	* gcc.target/i386/udivmod-3.c: Likewise.
+	* gcc.target/i386/udivmod-4.c: Likewise.
+	* gcc.target/i386/udivmod-4a.c: Likewise.
+	* gcc.target/i386/udivmod-5.c: Likewise.
+	* gcc.target/i386/udivmod-6.c: Likewise.
+	* gcc.target/i386/udivmod-7.c: Likewise.
+	* gcc.target/i386/udivmod-8.c: Likewise.
+
+2010-09-16  Jan Hubicka  <jh@suse.cz>
+
+	* g++.dg/lto/pr45679-1_0.C: New file.
+	* g++.dg/lto/pr45679-1_1.C: New file.
+	* g++.dg/lto/pr45679-0_0.C: New file.
+	* g++.dg/lto/pr45679-0_1.C: New file.
+
+2010-09-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45674
+	* gfortran.dg/class_dummy_2.f03: New.
+
+2010-09-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45623
+	* gcc.dg/torture/pr45623.c: New testcase.
+
+2010-09-16  Ira Rosen  <irar@il.ibm.com>
+
+	* gcc.dg/vect/bb-slp-8.c: Fix documentation, add space between function
+	name and parentheses.
+	* gcc.dg/vect/bb-slp-8a.c, gcc.dg/vect/bb-slp-8b.c: Likewise.
+
+2010-09-15  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/parse/parameter-declaration-2.C: New.
+
+	* g++.dg/cpp0x/scoped_enum2.C: New.
+
+2010-09-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/compile/20100915-1.c: New test.
+
+2010-09-15  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/45644
+	* gcc.dg/ipa/pr45644.c: New test.
+
+2010-09-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/45633
+	* gcc.dg/vect/pr45633.c: New test.
+
+2010-09-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45577
+	* gfortran.dg/allocate_derived_4.f90: New.
+
+2010-09-15  Tejas Belagod  <tejas.belagod@arm.com>
+
+	* lib/target-supports.exp
+	(check_effective_target_vect_pack_trunc): Set vect_pack_trunc
+	supported flag to true for neon.
+
+2010-09-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/45665
+	* g++.dg/template/crash103.C: New.
+
+2010-09-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+
+	2006-03-09  Fariborz Jahanian  <fjahanian@apple.com>
+
+	Radar 4457381
+	* objc.dg/msg-in-protocol.m: New.
+	* obj-c++.dg/msg-in-protocol.mm: New.
+
+	2006-02-07  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4219590
+	* objc.dg/break-in-ifstmt.m: New.
+
+	2005-08-22  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4174166
+	* obj-c++.dg/comp-types-13.mm: New.
+	* objc.dg/comp-types-12.m: New.
+
+	2005-08-22  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4216500
+	* obj-c++.dg/proto-lossage-7.mm: New.
+	* objc.dg/proto-lossage-7.m: New.
+
+2010-09-14  Jan Hubicka  <jh@suse.cz>
+
+	* gfortran.dg/vect/fast-math-pr38968.f90: Add common to prevent
+	folding.
+	* gcc.target/i386/funcspec-1.c: Remove static keywords to prevent
+	folding.
+
+2010-09-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/45567
+	* gcc.dg/pr45567.c: New test.
+
+	PR debug/45660
+	* g++.dg/debug/pr45660.C: New test.
+
+2010-09-14  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/45470
+	* g++.dg/vect/pr45470-a.cc: New test.
+	* g++.dg/vect/pr45470-a.cc: New test.
+
+2010-09-10  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR target/42070
+	* gcc/testsuite/lib/profopt.exp: Prune warnings on execname2 compile.
+	* gcc/testsuite/lib/prune.exp: Prune "can't add line info" warnings.
+
+2010-09-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/45532
+	* gfortran.dg/namelist_64.f90: New test.
+
+2010-09-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/45617
+	* gcc.target/i386/pr45617.c: New test.
+
+2010-09-13  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* gcc.target/i386/volatile-2.c: Allow underscores before symbols.
+
+2010-09-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/fma4-256-vector.c: Add -mtune=generic.
+	* gcc.target/i386/fma4-vector.c: Likewise.
+	* gcc.target/i386/vectorize2.c: Likewise.
+	* gcc.target/i386/vectorize4.c: Likewise.
+	* gcc.target/i386/vectorize5.c: Likewise.
+	* gcc.target/i386/vectorize6.c: Likewise.
+	* gcc.target/i386/vectorize8.c: Likewise.
+
+	* gcc.target/i386/vect-double-1.c: New.
+	* gcc.target/i386/vect-double-1a.c: Likewise.
+	* gcc.target/i386/vect-double-2.c: Likewise.
+	* gcc.target/i386/vect-double-2a.c: Likewise.
+
+	* lib/target-supports.exp (check_effective_target_vect_double):
+	Set et_vect_double_saved to 0 when tuning for Atom.
+
 2010-09-13  Jan Hubicka  <jh@suse.cz>
 
 	* gcc.dg/torture/pr23821.c: Drop static keyword.

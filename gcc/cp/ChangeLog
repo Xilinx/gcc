@@ -1,3 +1,30 @@
+2010-09-18  Jason Merrill  <jason@redhat.com>
+
+	* call.c (compare_ics): Do lvalue/rvalue reference binding
+	comparison for ck_list, too.
+
+2010-09-15  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (finish_id_expression): Diagnose use of function
+	parms in evaluated context outside function body.
+
+	* decl2.c (grokbitfield): Diagnose non-integral width.
+
+	* call.c (convert_like_real): Use the underlying type of the
+	reference for the temporary.
+
+2010-09-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/45635
+	* class.c (build_vtbl_initializer): Use fn instead of init's operand
+	as first argument to FDESC_EXPR.
+
+2010-09-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/45665
+	* decl.c (grokdeclarator): Check build_memfn_type return value
+	for error_mark_node.
+
 2010-09-13  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
 
 	* semantics.c (finish_for_stmt): Always test flag_new_for_scope.

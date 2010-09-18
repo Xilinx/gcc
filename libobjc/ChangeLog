@@ -1,3 +1,64 @@
+2010-09-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* hash.c: Include objc-private/hash.h instead of objc/hash.h.
+
+	* objc/sarray.h: Moved into objc/deprecated/sarray.h;
+	objc/sarray.h replaced with a placeholder including the file from
+	the deprecated/ directory.
+	* objc-private/sarray.h: New file (private copy of sarray.h).
+	* hash.c: Include <assert.h> instead of "assert.h"
+	* sarray.c: Include <assert.h> instead of "assert.h".  Include
+	objc-private/sarray.h instead of objc/sarray.h.
+	* selector.c: Include objc-private/sarray.h instead of
+	objc/sarray.h.
+	* sendmsg.c: Include <assert.h>.  Include objc-private/sarray.h
+	instead of objc/sarray.h.
+	* Makefile.in (OBJC_DEPRECATED_H): Added sarray.h.	
+
+2010-09-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-private/objc-list.h (list_remove_elem): Unused function
+	removed.  (list_nth): Unused function removed.  (list_find):
+	Unused function removed.  (list_lenght): Unused function removed.
+	
+2010-09-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc/hash.h: Moved into objc/deprecated/hash.h; objc/hash.h
+	replaced with a placeholder including the file from the
+	deprecated/ directory.
+	* objc/objc-api.h: Updated includes.
+	* objc/typedstream.h: Updated includes.
+	* objc-private/hash.h: New file (private copy of hash.h).
+	* objc/objc-list.h: Moved into objc/deprecated/objc-list.h;
+	objc/objc-list.h replaced with a placeholder including the file
+	from the deprecated/ directory.
+	* objc-private/objc-list.h: New file (private copy of objc-list.h).
+	* init.c: Include objc-private/hash.h and objc-private/objc-list.h
+	instead of objc/hash.h and objc/objc-list.h.
+	* selector.c: Same change.
+	* class.c: Added include <string.h>, which used to be implicitly included
+	when hash.h was included.
+	* exception.c: Same change.
+	* objects.c: Same change.
+	* sarray.c: Same change.
+	* sendmsg.c: Same change.
+	* Makefile.in (OBJC_DEPRECATED_H): Added hash.h and objc-list.h.
+
+2010-09-14  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented objc_sync_enter() and objc_sync_exit(), which are
+	required by @synchronized() to work.
+	* objc-sync.c: New file.
+	* objc/objc-sync.h: New file.
+	* objc-private/objc-sync.h: New file.
+	* init.c (__objc_exec_class): Call __objc_sync_init() during the
+	Objective-C runtime startup.
+	* Makefile.in: Added objc-sync.c and objc-sync.h.
+	* configure.ac: Added GCC_CHECK_TLS.
+	* acinclude.m4: Include ../config/enable.m4 and ../config/tls.m4.
+	* configure: Regenerated.
+	* config.h.in: Regenerated.
+	
 2010-09-12  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* Makefile.in (%_gc.lo): New pattern rules to build the

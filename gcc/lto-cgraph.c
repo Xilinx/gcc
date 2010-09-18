@@ -447,11 +447,14 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
 
   clone_of = node->clone_of;
   while (clone_of
-	 && (ref = lto_cgraph_encoder_lookup (encoder, node->clone_of)) == LCC_NOT_FOUND)
+	 && (ref = lto_cgraph_encoder_lookup (encoder, clone_of)) == LCC_NOT_FOUND)
     if (clone_of->prev_sibling_clone)
       clone_of = clone_of->prev_sibling_clone;
     else
       clone_of = clone_of->clone_of;
+
+  if (LTO_cgraph_analyzed_node)
+    gcc_assert (clone_of || !node->clone_of);
   if (!clone_of)
     lto_output_sleb128_stream (ob->main_stream, LCC_NOT_FOUND);
   else
@@ -811,7 +814,7 @@ compute_ltrans_boundary (struct lto_out_decl_state *state,
 	  && !lto_varpool_encoder_encode_initializer_p (varpool_encoder,
 						        vnode)
 	  && (DECL_IN_CONSTANT_POOL (vnode->decl)
-	      ||  TREE_READONLY (vnode->decl)))
+	      || vnode->const_value_known))
 	{
 	  lto_set_varpool_encoder_encode_initializer (varpool_encoder, vnode);
 	  add_references (encoder, varpool_encoder, &vnode->ref_list);
@@ -953,7 +956,16 @@ input_overwrite_node (struct lto_file_decl_data *file_data,
   node->lowered = bp_unpack_value (bp, 1);
   node->analyzed = tag == LTO_cgraph_analyzed_node;
   node->in_other_partition = bp_unpack_value (bp, 1);
-  if (node->in_other_partition)
+  if (node->in_other_partition
+      /* Avoid updating decl when we are seeing just inline clone.
+	 When inlining function that has functions already inlined into it,
+	 we produce clones of inline clones.
+
+	 WPA partitioning might put each clone into different unit and
+	 we might end up streaming inline clone from other partition
+	 to support clone we are interested in. */
+      && (!node->clone_of
+	  || node->clone_of->decl != node->decl))
     {
       DECL_EXTERNAL (node->decl) = 1;
       TREE_STATIC (node->decl) = 0;

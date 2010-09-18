@@ -499,10 +499,6 @@ extern enum cmodel sparc_cmodel;
 
 /* Show we can debug even without a frame pointer.  */
 #define CAN_DEBUG_WITHOUT_FP
-
-/* Option handling.  */
-
-#define OVERRIDE_OPTIONS  sparc_override_options ()
 
 /* Mask of all CPU selection flags.  */
 #define MASK_ISA \
@@ -606,8 +602,6 @@ extern struct sparc_cpu_select sparc_select[];
 #else
 #define MIN_UNITS_PER_WORD	4
 #endif
-
-#define UNITS_PER_SIMD_WORD(MODE) (TARGET_VIS ? 8 : UNITS_PER_WORD)
 
 /* Now define the sizes of the C data types.  */
 

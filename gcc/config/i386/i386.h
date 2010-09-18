@@ -299,6 +299,7 @@ enum ix86_tune_indices {
   X86_TUNE_USE_BT,
   X86_TUNE_USE_INCDEC,
   X86_TUNE_PAD_RETURNS,
+  X86_TUNE_PAD_SHORT_FUNCTION,
   X86_TUNE_EXT_80387_CONSTANTS,
   X86_TUNE_SHORTEN_X87_SSE,
   X86_TUNE_AVOID_VECTOR_DECODE,
@@ -312,6 +313,7 @@ enum ix86_tune_indices {
   X86_TUNE_USE_VECTOR_CONVERTS,
   X86_TUNE_FUSE_CMP_AND_BRANCH,
   X86_TUNE_OPT_AGU,
+  X86_TUNE_VECTORIZE_DOUBLE,
 
   X86_TUNE_LAST
 };
@@ -384,6 +386,8 @@ extern unsigned char ix86_tune_features[X86_TUNE_LAST];
 #define TARGET_USE_BT		ix86_tune_features[X86_TUNE_USE_BT]
 #define TARGET_USE_INCDEC	ix86_tune_features[X86_TUNE_USE_INCDEC]
 #define TARGET_PAD_RETURNS	ix86_tune_features[X86_TUNE_PAD_RETURNS]
+#define TARGET_PAD_SHORT_FUNCTION \
+	ix86_tune_features[X86_TUNE_PAD_SHORT_FUNCTION]
 #define TARGET_EXT_80387_CONSTANTS \
 	ix86_tune_features[X86_TUNE_EXT_80387_CONSTANTS]
 #define TARGET_SHORTEN_X87_SSE	ix86_tune_features[X86_TUNE_SHORTEN_X87_SSE]
@@ -404,6 +408,8 @@ extern unsigned char ix86_tune_features[X86_TUNE_LAST];
 #define TARGET_FUSE_CMP_AND_BRANCH \
 	ix86_tune_features[X86_TUNE_FUSE_CMP_AND_BRANCH]
 #define TARGET_OPT_AGU ix86_tune_features[X86_TUNE_OPT_AGU]
+#define TARGET_VECTORIZE_DOUBLE \
+	ix86_tune_features[X86_TUNE_VECTORIZE_DOUBLE]
 
 /* Feature tests against the various architecture variations.  */
 enum ix86_arch_indices {
@@ -502,21 +508,6 @@ extern enum calling_abi ix86_abi;
 /* Subtargets may reset this to 1 in order to enable 96-bit long double
    with the rounding mode forced to 53 bits.  */
 #define TARGET_96_ROUND_53_LONG_DOUBLE 0
-
-/* Sometimes certain combinations of command options do not make
-   sense on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
-
-   Don't use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.  */
-
-#define OVERRIDE_OPTIONS override_options (true)
-
-/* Define this to change the optimizations performed by default.  */
-#define OPTIMIZATION_OPTIONS(LEVEL, SIZE) \
-  optimization_options ((LEVEL), (SIZE))
 
 /* -march=native handling only makes sense with compiler running on
    an x86 or x86_64 chip.  If changing this condition, also change
@@ -1030,16 +1021,6 @@ enum target_cpu_default
    || (MODE) == V2SImode || (MODE) == SImode				\
    || (MODE) == V4HImode || (MODE) == V8QImode)
 
-/* ??? No autovectorization into MMX or 3DNOW until we can reliably
-   place emms and femms instructions.
-   FIXME: AVX has 32byte floating point vector operations and 16byte
-   integer vector operations.  But vectorizer doesn't support
-   different sizes for integer and floating point vectors.  We limit
-   vector size to 16byte.  */
-#define UNITS_PER_SIMD_WORD(MODE)					\
-  (TARGET_AVX ? (((MODE) == DFmode || (MODE) == SFmode) ? 16 : 16)	\
-   	      : (TARGET_SSE ? 16 : UNITS_PER_WORD))
-
 #define VALID_DFP_MODE_P(MODE) \
   ((MODE) == SDmode || (MODE) == DDmode || (MODE) == TDmode)
 
@@ -1463,26 +1444,21 @@ enum reg_class
    of the first local allocated.  */
 #define STARTING_FRAME_OFFSET 0
 
-/* If we generate an insn to push BYTES bytes,
-   this says how many the stack pointer really advances by.
-   On 386, we have pushw instruction that decrements by exactly 2 no
-   matter what the position was, there is no pushb.
-   But as CIE data alignment factor on this arch is -4, we need to make
-   sure all stack pointer adjustments are in multiple of 4.
+/* If we generate an insn to push BYTES bytes, this says how many the stack
+   pointer really advances by.  On 386, we have pushw instruction that
+   decrements by exactly 2 no matter what the position was, there is no pushb.
 
-   For 64bit ABI we round up to 8 bytes.
- */
+   But as CIE data alignment factor on this arch is -4 for 32bit targets
+   and -8 for 64bit targets, we need to make sure all stack pointer adjustments
+   are in multiple of 4 for 32bit targets and 8 for 64bit targets.  */
 
 #define PUSH_ROUNDING(BYTES) \
-  (TARGET_64BIT		     \
-   ? (((BYTES) + 7) & (-8))  \
-   : (((BYTES) + 3) & (-4)))
+  (((BYTES) + UNITS_PER_WORD - 1) & -UNITS_PER_WORD)
 
-/* If defined, the maximum amount of space required for outgoing arguments will
-   be computed and placed into the variable
-   `crtl->outgoing_args_size'.  No space will be pushed onto the
-   stack for each call; instead, the function prologue should increase the stack
-   frame size by this amount.  
+/* If defined, the maximum amount of space required for outgoing arguments
+   will be computed and placed into the variable `crtl->outgoing_args_size'.
+   No space will be pushed onto the stack for each call; instead, the
+   function prologue should increase the stack frame size by this amount.  
    
    MS ABI seem to require 16 byte alignment everywhere except for function
    prologue and apilogue.  This is not possible without

@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for ARM.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Pieter `Tiggr' Schoenmakers (rcpieter@win.tue.nl)
    and Martin Simmons (@harleqn.co.uk).
@@ -498,11 +498,6 @@ extern int arm_arch_hwdiv;
    that is controlled by the APCS-FRAME option.  */
 #define CAN_DEBUG_WITHOUT_FP
 
-#define OVERRIDE_OPTIONS  arm_override_options ()
-
-#define OPTIMIZATION_OPTIONS(LEVEL,SIZE)		\
-	arm_optimization_options ((LEVEL), (SIZE))
-
 /* Nonzero if PIC code requires explicit qualifiers to generate
    PLT and GOT relocs rather than the assembler doing so implicitly.
    Subtargets can override these if required.  */
@@ -579,12 +574,6 @@ extern int arm_arch_hwdiv;
 #define FLOAT_WORDS_BIG_ENDIAN (arm_float_words_big_endian ())
 
 #define UNITS_PER_WORD	4
-
-/* Use the option -mvectorize-with-neon-quad to override the use of doubleword
-   registers when autovectorizing for Neon, at least until multiple vector
-   widths are supported properly by the middle-end.  */
-#define UNITS_PER_SIMD_WORD(MODE) \
-  (TARGET_NEON ? (TARGET_NEON_VECTORIZE_QUAD ? 16 : 8) : UNITS_PER_WORD)
 
 /* True if natural alignment is used for doubleword types.  */
 #define ARM_DOUBLEWORD_ALIGN	TARGET_AAPCS_BASED

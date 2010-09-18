@@ -215,6 +215,8 @@ static void arm_init_libfuncs (void);
 static tree arm_build_builtin_va_list (void);
 static void arm_expand_builtin_va_start (tree, rtx);
 static tree arm_gimplify_va_arg_expr (tree, tree, gimple_seq *, gimple_seq *);
+static void arm_option_override (void);
+static void arm_option_optimization (int, int);
 static bool arm_handle_option (size_t, const char *, int);
 static void arm_target_help (void);
 static unsigned HOST_WIDE_INT arm_shift_truncation_mask (enum machine_mode);
@@ -236,6 +238,7 @@ static rtx arm_trampoline_adjust_address (rtx);
 static rtx arm_pic_static_addr (rtx orig, rtx reg);
 static bool cortex_a9_sched_adjust_cost (rtx, rtx, rtx, int *);
 static bool xscale_sched_adjust_cost (rtx, rtx, rtx, int *);
+static unsigned int arm_units_per_simd_word (enum machine_mode);
 
 
 /* Table of machine attributes.  */
@@ -317,6 +320,10 @@ static const struct attribute_spec arm_attribute_table[] =
 #define TARGET_HANDLE_OPTION arm_handle_option
 #undef  TARGET_HELP
 #define TARGET_HELP arm_target_help
+#undef  TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE arm_option_override
+#undef  TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION arm_option_optimization
 
 #undef  TARGET_COMP_TYPE_ATTRIBUTES
 #define TARGET_COMP_TYPE_ATTRIBUTES arm_comp_type_attributes
@@ -363,6 +370,8 @@ static const struct attribute_spec arm_attribute_table[] =
 #define TARGET_SHIFT_TRUNCATION_MASK arm_shift_truncation_mask
 #undef TARGET_VECTOR_MODE_SUPPORTED_P
 #define TARGET_VECTOR_MODE_SUPPORTED_P arm_vector_mode_supported_p
+#undef TARGET_VECTORIZE_UNITS_PER_SIMD_WORD
+#define TARGET_VECTORIZE_UNITS_PER_SIMD_WORD arm_units_per_simd_word
 
 #undef  TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG arm_reorg
@@ -1372,12 +1381,15 @@ arm_target_help (void)
 
 }
 
-/* Fix up any incompatible options that the user has specified.
-   This has now turned into a maze.  */
-void
-arm_override_options (void)
+/* Fix up any incompatible options that the user has specified.  */
+static void
+arm_option_override (void)
 {
   unsigned i;
+
+#ifdef SUBTARGET_OVERRIDE_OPTIONS
+  SUBTARGET_OVERRIDE_OPTIONS;
+#endif
 
   if (arm_selected_arch)
     {
@@ -21869,6 +21881,17 @@ arm_vector_mode_supported_p (enum machine_mode mode)
   return false;
 }
 
+/* Use the option -mvectorize-with-neon-quad to override the use of doubleword
+   registers when autovectorizing for Neon, at least until multiple vector
+   widths are supported properly by the middle-end.  */
+
+static unsigned int
+arm_units_per_simd_word (enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  return (TARGET_NEON
+	  ? (TARGET_NEON_VECTORIZE_QUAD ? 16 : 8) : UNITS_PER_WORD);
+}
+
 /* Implements target hook small_register_classes_for_mode_p.  */
 bool
 arm_small_register_classes_for_mode_p (enum machine_mode mode ATTRIBUTE_UNUSED)
@@ -22607,8 +22630,8 @@ arm_order_regs_for_local_alloc (void)
 }
 
 /* Set default optimization options.  */
-void
-arm_optimization_options (int level, int size ATTRIBUTE_UNUSED)
+static void
+arm_option_optimization (int level, int size ATTRIBUTE_UNUSED)
 {
   /* Enable section anchors by default at -O1 or higher.
      Use 2 to distinguish from an explicit -fsection-anchors

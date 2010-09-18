@@ -1085,6 +1085,7 @@ static bool rs6000_builtin_support_vector_misalignment (enum
 							int, bool);
 static int rs6000_builtin_vectorization_cost (enum vect_cost_for_stmt,
                                               tree, int);
+static unsigned int rs6000_units_per_simd_word (enum machine_mode);
 
 static void def_builtin (int, const char *, tree, int);
 static bool rs6000_vector_alignment_reachable (const_tree, bool);
@@ -1133,6 +1134,8 @@ static rtx altivec_expand_vec_init_builtin (tree, tree, rtx);
 static rtx altivec_expand_vec_set_builtin (tree);
 static rtx altivec_expand_vec_ext_builtin (tree, rtx);
 static int get_element_number (tree, tree);
+static void rs6000_option_override (void);
+static void rs6000_option_optimization (int, int);
 static bool rs6000_handle_option (size_t, const char *, int);
 static void rs6000_parse_tls_size_option (void);
 static void rs6000_parse_yes_no_option (const char *, const char *, int *);
@@ -1485,6 +1488,9 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #undef TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST \
   rs6000_builtin_vectorization_cost
+#undef TARGET_VECTORIZE_UNITS_PER_SIMD_WORD
+#define TARGET_VECTORIZE_UNITS_PER_SIMD_WORD \
+  rs6000_units_per_simd_word
 
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS rs6000_init_builtins
@@ -1587,6 +1593,12 @@ static const struct attribute_spec rs6000_attribute_table[] =
 
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION rs6000_handle_option
+
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE rs6000_option_override
+
+#undef TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION rs6000_option_optimization
 
 #undef TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION \
@@ -2393,8 +2405,8 @@ darwin_rs6000_override_options (void)
 /* Override command line options.  Mostly we process the processor
    type and sometimes adjust other TARGET_ options.  */
 
-void
-rs6000_override_options (const char *default_cpu)
+static void
+rs6000_option_override_internal (const char *default_cpu)
 {
   size_t i, j;
   struct rs6000_cpu_select *ptr;
@@ -3226,6 +3238,15 @@ rs6000_override_options (const char *default_cpu)
   rs6000_init_hard_regno_mode_ok ();
 }
 
+/* Implement TARGET_OPTION_OVERRIDE.  On the RS/6000 this is used to
+   define the target cpu type.  */
+
+static void
+rs6000_option_override (void)
+{
+  rs6000_option_override_internal (OPTION_TARGET_CPU_DEFAULT);
+}
+
 /* Implement targetm.vectorize.builtin_mask_for_load.  */
 static tree
 rs6000_builtin_mask_for_load (void)
@@ -3570,6 +3591,18 @@ rs6000_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
     }
 }
 
+/* Implement targetm.vectorize.units_per_simd_word.  */
+
+static unsigned int
+rs6000_units_per_simd_word (enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  return (TARGET_VSX ? UNITS_PER_VSX_WORD
+	  : (TARGET_ALTIVEC ? UNITS_PER_ALTIVEC_WORD
+	     : (TARGET_SPE ? UNITS_PER_SPE_WORD
+		: (TARGET_PAIRED_FLOAT ? UNITS_PER_PAIRED_WORD
+		   : UNITS_PER_WORD))));
+}
+
 /* Handle generic options of the form -mfoo=yes/no.
    NAME is the option name.
    VALUE is the option value.
@@ -3605,8 +3638,9 @@ rs6000_parse_tls_size_option (void)
     error ("bad value %qs for -mtls-size switch", rs6000_tls_size_string);
 }
 
-void
-optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
+static void
+rs6000_option_optimization (int level ATTRIBUTE_UNUSED,
+			    int size ATTRIBUTE_UNUSED)
 {
   if (DEFAULT_ABI == ABI_DARWIN)
     /* The Darwin libraries never set errno, so we might as well
@@ -7542,7 +7576,7 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
    controls this instead of DEFAULT_ABI; V.4 targets needing backward
    compatibility can change DRAFT_V4_STRUCT_RET to override the
    default, and -m switches get the final word.  See
-   rs6000_override_options for more details.
+   rs6000_option_override_internal for more details.
 
    The PPC32 SVR4 ABI uses IEEE double extended for long double, if 128-bit
    long double support is enabled.  These values are returned in memory.
@@ -21953,7 +21987,7 @@ output_toc (FILE *file, rtx x, int labelno, enum machine_mode mode)
       struct toc_hash_struct *h;
       void * * found;
 
-      /* Create toc_hash_table.  This can't be done at OVERRIDE_OPTIONS
+      /* Create toc_hash_table.  This can't be done at TARGET_OPTION_OVERRIDE
 	 time because GGC is not initialized at that point.  */
       if (toc_hash_table == NULL)
 	toc_hash_table = htab_create_ggc (1021, toc_hash_function,

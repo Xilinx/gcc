@@ -111,19 +111,20 @@ INCLUDES = -I$(srcdir)/$(MULTISRCTOP)../gcc \
 OBJC_H = \
   objc.h \
   objc-exception.h \
+  objc-sync.h \
   \
   NXConstStr.h \
   Object.h \
   Protocol.h \
   encoding.h \
-  hash.h \
   message.h \
   objc-api.h \
   objc-decls.h \
-  objc-list.h \
-  sarray.h \
   thr.h \
   \
+  hash.h \
+  objc-list.h \
+  sarray.h \
   typedstream.h
 
 # User-visible header files containing deprecated APIs, from the
@@ -132,10 +133,13 @@ OBJC_DEPRECATED_H = \
   MetaClass.h \
   Object.h \
   STR.h \
+  hash.h \
+  objc-list.h \
   objc_error.h \
   objc_malloc.h \
   objc_unexpected_exception.h \
   objc_valloc.h \
+  sarray.h \
   struct_objc_class.h \
   struct_objc_protocol.h \
   struct_objc_selector.h \
@@ -159,6 +163,7 @@ C_SOURCE_FILES = \
    init.c \
    memory.c \
    nil_method.c \
+   objc-sync.c \
    objects.c \
    sarray.c \
    selector.c \

@@ -264,6 +264,8 @@ frv_cpu_t frv_cpu_type = CPU_TYPE;	/* value of -mcpu= */
 /* Forward references */
 
 static bool frv_handle_option			(size_t, const char *, int);
+static void frv_option_override			(void);
+static void frv_option_optimization		(int, int);
 static bool frv_legitimate_address_p		(enum machine_mode, rtx, bool);
 static int frv_default_flags_for_cpu		(void);
 static int frv_string_begins_with		(const_tree, const char *);
@@ -428,6 +430,10 @@ static bool frv_class_likely_spilled_p 		(reg_class_t);
    | MASK_NESTED_CE)
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION frv_handle_option
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE frv_option_override
+#undef TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION frv_option_optimization
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS frv_init_builtins
 #undef TARGET_EXPAND_BUILTIN
@@ -669,17 +675,10 @@ frv_default_flags_for_cpu (void)
     }
 }
 
-/* Sometimes certain combinations of command options do not make
-   sense on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
+/* Implement TARGET_OPTION_OVERRIDE.  */
 
-   Don't use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.  */
-
-void
-frv_override_options (void)
+static void
+frv_option_override (void)
 {
   int regno;
   unsigned int i;
@@ -854,29 +853,12 @@ frv_override_options (void)
 }
 
 
-/* Some machines may desire to change what optimizations are performed for
-   various optimization levels.  This macro, if defined, is executed once just
-   after the optimization level is determined and before the remainder of the
-   command options have been parsed.  Values set in this macro are used as the
-   default values for the other command line options.
+/* Implement TARGET_OPTION_OPTIMIZATION.
 
-   LEVEL is the optimization level specified; 2 if `-O2' is specified, 1 if
-   `-O' is specified, and 0 if neither is specified.
-
-   SIZE is nonzero if `-Os' is specified, 0 otherwise.
-
-   You should not use this macro to change options that are not
-   machine-specific.  These should uniformly selected by the same optimization
-   level on all supported machines.  Use this macro to enable machine-specific
-   optimizations.
-
-   *Do not examine `write_symbols' in this macro!* The debugging options are
-   *not supposed to alter the generated code.  */
-
-/* On the FRV, possibly disable VLIW packing which is done by the 2nd
+   On the FRV, possibly disable VLIW packing which is done by the 2nd
    scheduling pass at the current time.  */
-void
-frv_optimization_options (int level, int size ATTRIBUTE_UNUSED)
+static void
+frv_option_optimization (int level, int size ATTRIBUTE_UNUSED)
 {
   if (level >= 2)
     {

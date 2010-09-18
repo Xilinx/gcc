@@ -1576,6 +1576,9 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   /* X86_TUNE_PAD_RETURNS */
   m_AMD_MULTIPLE | m_CORE2 | m_GENERIC,
 
+  /* X86_TUNE_PAD_SHORT_FUNCTION: Pad short funtion.  */
+  m_ATOM,
+
   /* X86_TUNE_EXT_80387_CONSTANTS */
   m_K6_GEODE | m_ATHLON_K8 | m_ATOM | m_PENT4 | m_NOCONA | m_PPRO
   | m_CORE2 | m_GENERIC,
@@ -1627,6 +1630,10 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   /* X86_TUNE_OPT_AGU: Optimize for Address Generation Unit. This flag
      will impact LEA instruction selection. */
   m_ATOM,
+
+  /* X86_TUNE_VECTORIZE_DOUBLE: Enable double precision vector
+     instructions.  */
+  ~m_ATOM,
 };
 
 /* Feature tests against the various architecture variations.  */
@@ -1981,6 +1988,7 @@ static bool ix86_expand_vector_init_one_nonzero (bool, enum machine_mode,
 static void ix86_add_new_builtins (int);
 static rtx ix86_expand_vec_perm_builtin (tree);
 static tree ix86_canonical_va_list_type (tree);
+static void predict_jump (int);
 
 enum ix86_function_specific_strings
 {
@@ -2019,9 +2027,6 @@ static enum calling_abi ix86_function_abi (const_tree);
 /* Whether -mtune= or -march= were specified */
 static int ix86_tune_defaulted;
 static int ix86_arch_specified;
-
-/* Bit flags that specify the ISA we are compiling for.  */
-int ix86_isa_flags = TARGET_64BIT_DEFAULT | TARGET_SUBTARGET_ISA_DEFAULT;
 
 /* A mask of ix86_isa_flags that includes bit X if X
    was set or cleared on the command line.  */
@@ -2625,6 +2630,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
     { "-msseregparm",			MASK_SSEREGPARM },
     { "-mstack-arg-probe",		MASK_STACK_PROBE },
     { "-mtls-direct-seg-refs",		MASK_TLS_DIRECT_SEG_REFS },
+    { "-m8bit-idiv",			MASK_USE_8BIT_IDIV },
   };
 
   const char *opts[ARRAY_SIZE (isa_opts) + ARRAY_SIZE (flag_opts) + 6][2];
@@ -2799,17 +2805,12 @@ ix86_debug_options (void)
   return;
 }
 
-/* Sometimes certain combinations of command options do not make
-   sense on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
+/* Override various settings based on options.  If MAIN_ARGS_P, the
+   options are from the command line, otherwise they are from
+   attributes.  */
 
-   Don't use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.  */
-
-void
-override_options (bool main_args_p)
+static void
+ix86_option_override_internal (bool main_args_p)
 {
   int i;
   unsigned int ix86_arch_mask, ix86_tune_mask;
@@ -3705,6 +3706,14 @@ override_options (bool main_args_p)
       = build_target_option_node ();
 }
 
+/* Implement the TARGET_OPTION_OVERRIDE hook.  */
+
+static void
+ix86_option_override (void)
+{
+  ix86_option_override_internal (true);
+}
+
 /* Update register usage after having seen the compiler flags.  */
 
 void
@@ -4101,9 +4110,10 @@ ix86_valid_target_attribute_tree (tree args)
   if (! ix86_valid_target_attribute_inner_p (args, option_strings))
     return NULL_TREE;
 
-  /* If the changed options are different from the default, rerun override_options,
-     and then save the options away.  The string options are are attribute options,
-     and will be undone when we copy the save structure.  */
+  /* If the changed options are different from the default, rerun
+     ix86_option_override_internal, and then save the options away.
+     The string options are are attribute options, and will be undone
+     when we copy the save structure.  */
   if (ix86_isa_flags != def->ix86_isa_flags
       || target_flags != def->target_flags
       || option_strings[IX86_FUNCTION_SPECIFIC_ARCH]
@@ -4129,7 +4139,7 @@ ix86_valid_target_attribute_tree (tree args)
 	ix86_fpmath_string = "sse,387";
 
       /* Do any overrides, such as arch=xxx, or tune=xxx support.  */
-      override_options (false);
+      ix86_option_override_internal (false);
 
       /* Add any builtin functions with the new isa if any.  */
       ix86_add_new_builtins (ix86_isa_flags);
@@ -4508,8 +4518,8 @@ x86_output_aligned_bss (FILE *file, tree decl ATTRIBUTE_UNUSED,
   ASM_OUTPUT_SKIP (file, size ? size : 1);
 }
 
-void
-optimization_options (int level, int size ATTRIBUTE_UNUSED)
+static void
+ix86_option_optimization (int level, int size ATTRIBUTE_UNUSED)
 {
   /* For -O2 and beyond, turn off -fschedule-insns by default.  It tends to
      make the problem with not enough registers even worse.  */
@@ -4525,8 +4535,9 @@ optimization_options (int level, int size ATTRIBUTE_UNUSED)
 
   /* The default values of these switches depend on the TARGET_64BIT
      that is not known at this moment.  Mark these values with 2 and
-     let user the to override these.  In case there is no command line option
-     specifying them, we will set the defaults in override_options.  */
+     let user the to override these.  In case there is no command line
+     option specifying them, we will set the defaults in
+     ix86_option_override_internal.  */
   if (optimize >= 1)
     flag_omit_frame_pointer = 2;
 
@@ -7897,9 +7908,9 @@ ix86_frame_pointer_required (void)
   if (SUBTARGET_FRAME_POINTER_REQUIRED)
     return true;
 
-  /* In override_options, TARGET_OMIT_LEAF_FRAME_POINTER turns off
-     the frame pointer by default.  Turn it back on now if we've not
-     got a leaf function.  */
+  /* In ix86_option_override_internal, TARGET_OMIT_LEAF_FRAME_POINTER
+     turns off the frame pointer by default.  Turn it back on now if
+     we've not got a leaf function.  */
   if (TARGET_OMIT_LEAF_FRAME_POINTER
       && (!current_function_is_leaf
 	  || ix86_current_function_calls_tls_descriptor))
@@ -8013,6 +8024,11 @@ ix86_code_end (void)
 
       xops[0] = gen_rtx_REG (Pmode, regno);
       xops[1] = gen_rtx_MEM (Pmode, stack_pointer_rtx);
+      /* Pad stack IP move with 4 instructions.  2 NOPs count as 1
+         instruction.  */
+      if (TARGET_PAD_SHORT_FUNCTION)
+	output_asm_insn ("nop; nop; nop; nop; nop; nop; nop; nop",
+			 xops);
       output_asm_insn ("mov%z0\t{%1, %0|%0, %1}", xops);
       output_asm_insn ("ret", xops);
       final_end_function ();
@@ -14647,6 +14663,107 @@ ix86_expand_unary_operator (enum rtx_code code, enum machine_mode mode,
     emit_move_insn (operands[0], dst);
 }
 
+/* Split 32bit/64bit divmod with 8bit unsigned divmod if dividend and
+   divisor are within the the range [0-255].  */
+
+void
+ix86_split_idivmod (enum machine_mode mode, rtx operands[],
+		    bool signed_p)
+{
+  rtx end_label, qimode_label;
+  rtx insn, div, mod;
+  rtx scratch, tmp0, tmp1, tmp2;
+  rtx (*gen_divmod4_1) (rtx, rtx, rtx, rtx);
+  rtx (*gen_zero_extend) (rtx, rtx);
+  rtx (*gen_test_ccno_1) (rtx, rtx);
+
+  switch (mode)
+    {
+    case SImode:
+      gen_divmod4_1 = signed_p ? gen_divmodsi4_1 : gen_udivmodsi4_1;
+      gen_test_ccno_1 = gen_testsi_ccno_1;
+      gen_zero_extend = gen_zero_extendqisi2;
+      break;
+    case DImode:
+      gen_divmod4_1 = signed_p ? gen_divmoddi4_1 : gen_udivmoddi4_1;
+      gen_test_ccno_1 = gen_testdi_ccno_1;
+      gen_zero_extend = gen_zero_extendqidi2;
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  end_label = gen_label_rtx ();
+  qimode_label = gen_label_rtx ();
+
+  scratch = gen_reg_rtx (mode);
+
+  /* Use 8bit unsigned divimod if dividend and divisor are within the
+     the range [0-255].  */
+  emit_move_insn (scratch, operands[2]);
+  scratch = expand_simple_binop (mode, IOR, scratch, operands[3],
+				 scratch, 1, OPTAB_DIRECT);
+  emit_insn (gen_test_ccno_1 (scratch, GEN_INT (-0x100)));
+  tmp0 = gen_rtx_REG (CCNOmode, FLAGS_REG);
+  tmp0 = gen_rtx_EQ (VOIDmode, tmp0, const0_rtx);
+  tmp0 = gen_rtx_IF_THEN_ELSE (VOIDmode, tmp0,
+			       gen_rtx_LABEL_REF (VOIDmode, qimode_label),
+			       pc_rtx);
+  insn = emit_jump_insn (gen_rtx_SET (VOIDmode, pc_rtx, tmp0));
+  predict_jump (REG_BR_PROB_BASE * 50 / 100);
+  JUMP_LABEL (insn) = qimode_label;
+
+  /* Generate original signed/unsigned divimod.  */
+  div = gen_divmod4_1 (operands[0], operands[1],
+		       operands[2], operands[3]);
+  emit_insn (div);
+
+  /* Branch to the end.  */
+  emit_jump_insn (gen_jump (end_label));
+  emit_barrier ();
+
+  /* Generate 8bit unsigned divide.  */
+  emit_label (qimode_label);
+  /* Don't use operands[0] for result of 8bit divide since not all
+     registers support QImode ZERO_EXTRACT.  */
+  tmp0 = simplify_gen_subreg (HImode, scratch, mode, 0);
+  tmp1 = simplify_gen_subreg (HImode, operands[2], mode, 0);
+  tmp2 = simplify_gen_subreg (QImode, operands[3], mode, 0);
+  emit_insn (gen_udivmodhiqi3 (tmp0, tmp1, tmp2));
+
+  if (signed_p)
+    {
+      div = gen_rtx_DIV (SImode, operands[2], operands[3]);
+      mod = gen_rtx_MOD (SImode, operands[2], operands[3]);
+    }
+  else
+    {
+      div = gen_rtx_UDIV (SImode, operands[2], operands[3]);
+      mod = gen_rtx_UMOD (SImode, operands[2], operands[3]);
+    }
+
+  /* Extract remainder from AH.  */
+  tmp1 = gen_rtx_ZERO_EXTRACT (mode, tmp0, GEN_INT (8), GEN_INT (8));
+  if (REG_P (operands[1]))
+    insn = emit_move_insn (operands[1], tmp1);
+  else
+    {
+      /* Need a new scratch register since the old one has result 
+	 of 8bit divide.  */
+      scratch = gen_reg_rtx (mode);
+      emit_move_insn (scratch, tmp1);
+      insn = emit_move_insn (operands[1], scratch);
+    }
+  set_unique_reg_note (insn, REG_EQUAL, mod);
+
+  /* Zero extend quotient from AL.  */
+  tmp1 = gen_lowpart (QImode, tmp0);
+  insn = emit_insn (gen_zero_extend (operands[0], tmp1));
+  set_unique_reg_note (insn, REG_EQUAL, div);
+
+  emit_label (end_label);
+}
+
 #define LEA_SEARCH_THRESHOLD 12
 
 /* Search backward for non-agu definition of register number REGNO1
@@ -14867,15 +14984,19 @@ ix86_lea_for_add_ok (rtx insn, rtx operands[])
   else
     {
       int dist_define, dist_use;
+
+      /* Return false if REGNO0 isn't used in memory address. */
+      dist_use = distance_agu_use (regno0, insn);
+      if (dist_use <= 0)
+	return false;
+
       dist_define = distance_non_agu_define (regno1, regno2, insn);
       if (dist_define <= 0)
         return true;
 
       /* If this insn has both backward non-agu dependence and forward
          agu dependence, the one with short distance take effect. */
-      dist_use = distance_agu_use (regno0, insn);
-      if (dist_use <= 0
-	  || (dist_define + IX86_LEA_PRIORITY) < dist_use)
+      if ((dist_define + IX86_LEA_PRIORITY) < dist_use)
         return false;
 
       return true;
@@ -27551,7 +27672,6 @@ x86_function_profiler (FILE *file, int labelno ATTRIBUTE_UNUSED)
     }
 }
 
-#ifdef ASM_OUTPUT_MAX_SKIP_PAD
 /* We don't have exact information about the insn sizes, but we may assume
    quite safely that we are informed about all 1 byte insns and memory
    address sizes.  This is enough to eliminate unnecessary padding in
@@ -27612,6 +27732,8 @@ min_insn_size (rtx insn)
   else
     return 2;
 }
+
+#ifdef ASM_OUTPUT_MAX_SKIP_PAD
 
 /* AMD K8 core mispredicts jumps when there are more than 3 jumps in 16 byte
    window.  */
@@ -27768,6 +27890,120 @@ ix86_pad_returns (void)
     }
 }
 
+/* Count the minimum number of instructions in BB.  Return 4 if the
+   number of instructions >= 4.  */
+
+static int 
+ix86_count_insn_bb (basic_block bb)
+{
+  rtx insn;
+  int insn_count = 0;
+
+  /* Count number of instructions in this block.  Return 4 if the number
+     of instructions >= 4.  */
+  FOR_BB_INSNS (bb, insn)
+    {
+      /* Only happen in exit blocks.  */
+      if (JUMP_P (insn)
+	  && GET_CODE (PATTERN (insn)) == RETURN)
+	break;
+
+      if (NONDEBUG_INSN_P (insn)
+	  && GET_CODE (PATTERN (insn)) != USE
+	  && GET_CODE (PATTERN (insn)) != CLOBBER)
+	{
+	  insn_count++;
+	  if (insn_count >= 4)
+	    return insn_count;
+	}
+    }
+
+  return insn_count;
+}
+
+
+/* Count the minimum number of instructions in code path in BB.  
+   Return 4 if the number of instructions >= 4.  */
+
+static int 
+ix86_count_insn (basic_block bb)
+{
+  edge e;
+  edge_iterator ei;
+  int min_prev_count;
+
+  /* Only bother counting instructions along paths with no
+     more than 2 basic blocks between entry and exit.  Given
+     that BB has an edge to exit, determine if a predecessor
+     of BB has an edge from entry.  If so, compute the number
+     of instructions in the predecessor block.  If there
+     happen to be multiple such blocks, compute the minimum.  */
+  min_prev_count = 4;
+  FOR_EACH_EDGE (e, ei, bb->preds)
+    {
+      edge prev_e;
+      edge_iterator prev_ei;
+
+      if (e->src == ENTRY_BLOCK_PTR)
+	{
+	  min_prev_count = 0;
+	  break;
+	}
+      FOR_EACH_EDGE (prev_e, prev_ei, e->src->preds)
+	{
+	  if (prev_e->src == ENTRY_BLOCK_PTR)
+	    {
+	      int count = ix86_count_insn_bb (e->src);
+	      if (count < min_prev_count)
+		min_prev_count = count;
+	      break;
+	    }
+	}
+    }
+
+  if (min_prev_count < 4)
+    min_prev_count += ix86_count_insn_bb (bb);
+
+  return min_prev_count;
+}
+
+/* Pad short funtion to 4 instructions.   */
+
+static void
+ix86_pad_short_function (void)
+{
+  edge e;
+  edge_iterator ei;
+
+  FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
+    {
+      rtx ret = BB_END (e->src);
+      if (JUMP_P (ret) && GET_CODE (PATTERN (ret)) == RETURN)
+	{
+	  int insn_count = ix86_count_insn (e->src);
+
+	  /* Pad short function.  */
+	  if (insn_count < 4)
+	    {
+	      rtx insn = ret;
+
+	      /* Find epilogue.  */
+	      while (insn
+		     && (!NOTE_P (insn)
+			 || NOTE_KIND (insn) != NOTE_INSN_EPILOGUE_BEG))
+		insn = PREV_INSN (insn);
+
+	      if (!insn)
+		insn = ret;
+
+	      /* Two NOPs are counted as one instruction.  */
+	      insn_count = 2 * (4  - insn_count);
+	      emit_insn_before (gen_nops (GEN_INT (insn_count)), insn);
+	    }
+	}
+    }
+}
+
 /* Implement machine specific optimizations.  We implement padding of returns
    for K8 CPUs and pass to avoid 4 jumps in the single 16 byte window.  */
 static void
@@ -27775,7 +28011,9 @@ ix86_reorg (void)
 {
   if (optimize && optimize_function_for_speed_p (cfun))
     {
-      if (TARGET_PAD_RETURNS)
+      if (TARGET_PAD_SHORT_FUNCTION)
+	ix86_pad_short_function ();
+      else if (TARGET_PAD_RETURNS)
 	ix86_pad_returns ();
 #ifdef ASM_OUTPUT_MAX_SKIP_PAD
       if (TARGET_FOUR_JUMP_LIMIT)
@@ -32334,6 +32572,28 @@ has_dispatch (rtx insn, int action)
   return false;
 }
 
+/* ??? No autovectorization into MMX or 3DNOW until we can reliably
+   place emms and femms instructions.  */
+
+static unsigned int
+ix86_units_per_simd_word (enum machine_mode mode)
+{
+  /* Disable double precision vectorizer if needed.  */
+  if (mode == DFmode && !TARGET_VECTORIZE_DOUBLE)
+    return UNITS_PER_WORD;
+
+#if 0
+  /*  FIXME: AVX has 32byte floating point vector operations and 16byte
+      integer vector operations.  But vectorizer doesn't support
+      different sizes for integer and floating point vectors.  We limit
+      vector size to 16byte.  */
+  if (TARGET_AVX)
+    return (mode == DFmode || mode == SFmode) ? 32 : 16;
+  else
+#endif
+    return TARGET_SSE ? 16 : UNITS_PER_WORD;
+}
+
 /* Initialize the GCC target structure.  */
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY ix86_return_in_memory
@@ -32467,6 +32727,11 @@ has_dispatch (rtx insn, int action)
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION ix86_handle_option
 
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE ix86_option_override
+#undef TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION ix86_option_optimization
+
 #undef TARGET_REGISTER_MOVE_COST
 #define TARGET_REGISTER_MOVE_COST ix86_register_move_cost
 #undef TARGET_MEMORY_MOVE_COST
@@ -32583,6 +32848,9 @@ has_dispatch (rtx insn, int action)
 #undef TARGET_VECTORIZE_BUILTIN_VEC_PERM_OK
 #define TARGET_VECTORIZE_BUILTIN_VEC_PERM_OK \
   ix86_vectorize_builtin_vec_perm_ok
+#undef TARGET_VECTORIZE_UNITS_PER_SIMD_WORD
+#define TARGET_VECTORIZE_UNITS_PER_SIMD_WORD \
+  ix86_units_per_simd_word
 
 #undef TARGET_SET_CURRENT_FUNCTION
 #define TARGET_SET_CURRENT_FUNCTION ix86_set_current_function

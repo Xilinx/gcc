@@ -20,11 +20,7 @@
 
 #define TARGET_VERSION fprintf (stderr, " (spu %s)", __DATE__);
 
-#define OVERRIDE_OPTIONS spu_override_options()
 #define C_COMMON_OVERRIDE_OPTIONS spu_c_common_override_options()
-
-#define OPTIMIZATION_OPTIONS(level,size) \
-	  spu_optimization_options(level,size)
 
 #define INIT_EXPANDERS spu_init_expanders()
 
