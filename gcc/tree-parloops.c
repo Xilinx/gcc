@@ -25,12 +25,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
 #include "tree-flow.h"
 #include "cfgloop.h"
-#include "ggc.h"
 #include "tree-data-ref.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-pass.h"
 #include "tree-scalar-evolution.h"
 #include "hashtab.h"
@@ -64,7 +63,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /*
   Reduction handling:
-  currently we use vect_is_simple_reduction() to detect reduction patterns.
+  currently we use vect_force_simple_reduction() to detect reduction patterns.
   The code transformation will be introduced by an example.
 
 
@@ -248,7 +247,7 @@ name_to_copy_elt_hash (const void *aa)
    in parallel).  */
 
 static bool
-loop_parallel_p (struct loop *loop)
+loop_parallel_p (struct loop *loop, struct obstack * parloop_obstack)
 {
   VEC (ddr_p, heap) * dependence_relations;
   VEC (data_reference_p, heap) *datarefs;
@@ -273,7 +272,7 @@ loop_parallel_p (struct loop *loop)
   if (dump_file && (dump_flags & TDF_DETAILS))
     dump_data_dependence_relations (dump_file, dependence_relations);
 
-  trans = lambda_trans_matrix_new (1, 1);
+  trans = lambda_trans_matrix_new (1, 1, parloop_obstack);
   LTM_MATRIX (trans)[0][0] = -1;
 
   if (lambda_transform_legal_p (trans, 1, dependence_relations))
@@ -358,7 +357,7 @@ take_address_of (tree obj, tree type, edge entry, htab_t decl_address)
 
   if (var_p != &obj)
     {
-      *var_p = build1 (INDIRECT_REF, TREE_TYPE (*var_p), name);
+      *var_p = build_simple_mem_ref (name);
       name = force_gimple_operand (build_addr (obj, current_function_decl),
 				   &stmts, true, NULL_TREE);
       if (!gimple_seq_empty_p (stmts))
@@ -457,7 +456,7 @@ eliminate_local_variables_1 (tree *tp, int *walk_subtrees, void *data)
       type = TREE_TYPE (t);
       addr_type = build_pointer_type (type);
       addr = take_address_of (t, addr_type, dta->entry, dta->decl_address);
-      *tp = build1 (INDIRECT_REF, TREE_TYPE (*tp), addr);
+      *tp = build_simple_mem_ref (addr);
 
       dta->changed = true;
       return NULL_TREE;
@@ -550,7 +549,7 @@ eliminate_local_variables (edge entry, edge exit)
 
   gather_blocks_in_sese_region (entry_bb, exit_bb, &body);
 
-  for (i = 0; VEC_iterate (basic_block, body, i, bb); i++)
+  FOR_EACH_VEC_ELT (basic_block, body, i, bb)
     if (bb != entry_bb && bb != exit_bb)
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	eliminate_local_variables_stmt (entry, gsi_stmt (gsi),
@@ -858,7 +857,6 @@ create_call_for_reduction_1 (void **slot, void *data)
   struct clsn_data *const clsn_data = (struct clsn_data *) data;
   gimple_stmt_iterator gsi;
   tree type = TREE_TYPE (PHI_RESULT (reduc->reduc_phi));
-  tree struct_type = TREE_TYPE (TREE_TYPE (clsn_data->load));
   tree load_struct;
   basic_block bb;
   basic_block new_bb;
@@ -867,7 +865,7 @@ create_call_for_reduction_1 (void **slot, void *data)
   tree tmp_load, name;
   gimple load;
 
-  load_struct = fold_build1 (INDIRECT_REF, struct_type, clsn_data->load);
+  load_struct = build_simple_mem_ref (clsn_data->load);
   t = build3 (COMPONENT_REF, type, load_struct, reduc->field, NULL_TREE);
 
   addr = build_addr (t, current_function_decl);
@@ -926,13 +924,12 @@ create_loads_for_reductions (void **slot, void *data)
   gimple stmt;
   gimple_stmt_iterator gsi;
   tree type = TREE_TYPE (gimple_assign_lhs (red->reduc_stmt));
-  tree struct_type = TREE_TYPE (TREE_TYPE (clsn_data->load));
   tree load_struct;
   tree name;
   tree x;
 
   gsi = gsi_after_labels (clsn_data->load_bb);
-  load_struct = fold_build1 (INDIRECT_REF, struct_type, clsn_data->load);
+  load_struct = build_simple_mem_ref (clsn_data->load);
   load_struct = build3 (COMPONENT_REF, type, load_struct, red->field,
 			NULL_TREE);
 
@@ -1013,7 +1010,6 @@ create_loads_and_stores_for_name (void **slot, void *data)
   gimple stmt;
   gimple_stmt_iterator gsi;
   tree type = TREE_TYPE (elt->new_name);
-  tree struct_type = TREE_TYPE (TREE_TYPE (clsn_data->load));
   tree load_struct;
 
   gsi = gsi_last_bb (clsn_data->store_bb);
@@ -1023,7 +1019,7 @@ create_loads_and_stores_for_name (void **slot, void *data)
   gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
 
   gsi = gsi_last_bb (clsn_data->load_bb);
-  load_struct = fold_build1 (INDIRECT_REF, struct_type, clsn_data->load);
+  load_struct = build_simple_mem_ref (clsn_data->load);
   t = build3 (COMPONENT_REF, type, load_struct, elt->field, NULL_TREE);
   stmt = gimple_build_assign (elt->new_name, t);
   SSA_NAME_DEF_STMT (elt->new_name) = stmt;
@@ -1091,7 +1087,7 @@ separate_decls_in_region (edge entry, edge exit, htab_t reduction_list,
   entry = single_succ_edge (entry_bb);
   gather_blocks_in_sese_region (entry_bb, exit_bb, &body);
 
-  for (i = 0; VEC_iterate (basic_block, body, i, bb); i++)
+  FOR_EACH_VEC_ELT (basic_block, body, i, bb)
     {
       if (bb != entry_bb && bb != exit_bb)
 	{
@@ -1119,7 +1115,7 @@ separate_decls_in_region (edge entry, edge exit, htab_t reduction_list,
      and discard those for which we know there's nothing we can
      do.  */
   if (has_debug_stmt)
-    for (i = 0; VEC_iterate (basic_block, body, i, bb); i++)
+    FOR_EACH_VEC_ELT (basic_block, body, i, bb)
       if (bb != entry_bb && bb != exit_bb)
 	{
 	  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi);)
@@ -1745,7 +1741,9 @@ gather_scalar_reductions (loop_p loop, htab_t reduction_list)
       if (!simple_iv (loop, loop, res, &iv, true)
 	&& simple_loop_info)
 	{
-           gimple reduc_stmt = vect_is_simple_reduction (simple_loop_info, phi, true, &double_reduc);
+           gimple reduc_stmt = vect_force_simple_reduction (simple_loop_info,
+							    phi, true,
+							    &double_reduc);
 	   if (reduc_stmt && !double_reduc)
               build_new_reduction (reduction_list, reduc_stmt, phi);
         }
@@ -1884,15 +1882,17 @@ parallelize_loops (void)
   struct tree_niter_desc niter_desc;
   loop_iterator li;
   htab_t reduction_list;
+  struct obstack parloop_obstack;
   HOST_WIDE_INT estimated;
   LOC loop_loc;
-  
+
   /* Do not parallelize loops in the functions created by parallelization.  */
   if (parallelized_function_p (cfun->decl))
     return false;
   if (cfun->has_nonlocal_label)
     return false;
 
+  gcc_obstack_init (&parloop_obstack);
   reduction_list = htab_create (10, reduction_info_hash,
 				     reduction_info_eq, free);
   init_stmt_vec_info_vec ();
@@ -1950,7 +1950,8 @@ parallelize_loops (void)
       if (!try_create_reduction_list (loop, reduction_list))
 	continue;
 
-      if (!flag_loop_parallelize_all && !loop_parallel_p (loop))
+      if (!flag_loop_parallelize_all
+	  && !loop_parallel_p (loop, &parloop_obstack))
 	continue;
 
       changed = true;
@@ -1970,20 +1971,18 @@ parallelize_loops (void)
       verify_flow_info ();
       verify_dominators (CDI_DOMINATORS);
       verify_loop_structure ();
-      verify_loop_closed_ssa ();
+      verify_loop_closed_ssa (true);
     }
 
   free_stmt_vec_info_vec ();
   htab_delete (reduction_list);
+  obstack_free (&parloop_obstack, NULL);
 
   /* Parallelization will cause new function calls to be inserted through
-     which local variables will escape.  Reset the points-to solutions
-     for ESCAPED and CALLUSED.  */
+     which local variables will escape.  Reset the points-to solution
+     for ESCAPED.  */
   if (changed)
-    {
-      pt_solution_reset (&cfun->gimple_df->escaped);
-      pt_solution_reset (&cfun->gimple_df->callused);
-    }
+    pt_solution_reset (&cfun->gimple_df->escaped);
 
   return changed;
 }

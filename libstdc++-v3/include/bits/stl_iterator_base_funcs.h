@@ -61,6 +61,7 @@
 #define _STL_ITERATOR_BASE_FUNCS_H 1
 
 #pragma GCC system_header
+
 #include <bits/concept_check.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
@@ -173,6 +174,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
+
   template<typename _ForwardIterator>
     inline _ForwardIterator
     next(_ForwardIterator __x, typename
@@ -183,14 +185,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   template<typename _BidirectionalIterator>
-    inline _BidirectionalIterator 
+    inline _BidirectionalIterator
     prev(_BidirectionalIterator __x, typename
 	 iterator_traits<_BidirectionalIterator>::difference_type __n = 1) 
     {
       std::advance(__x, -__n);
       return __x;
     }
-#endif
+
+#endif // __GXX_EXPERIMENTAL_CXX0X__
 
 _GLIBCXX_END_NAMESPACE
 

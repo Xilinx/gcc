@@ -52,13 +52,13 @@ namespace __gnu_test
 	  __s += "\n";
 	  __s += "random number generated is: ";
 	  char buf[40];
-	  __builtin_sprintf(buf, "%lu", random);
+	  __builtin_sprintf(buf, "%lu", (unsigned long)random);
 	  __s += buf;
 	  __s += " on range [";
-	  __builtin_sprintf(buf, "%lu", distribution.min());
+	  __builtin_sprintf(buf, "%lu", (unsigned long)distribution.min());
 	  __s += buf;
 	  __s += ", ";
-	  __builtin_sprintf(buf, "%lu", distribution.max());
+	  __builtin_sprintf(buf, "%lu", (unsigned long)distribution.max());
 	  __s += buf;
 	  __s += "]\n";
 	  std::__throw_out_of_range(__s.c_str());
@@ -1012,7 +1012,6 @@ namespace __gnu_test
 	_M_functions.push_back(function_type(base_type::_M_clear));
 
 	// Run tests.
-	auto i = _M_functions.begin();
 	for (auto i = _M_functions.begin(); i != _M_functions.end(); ++i)
 	  {
 	    function_type& f = *i;
@@ -1163,7 +1162,6 @@ namespace __gnu_test
 	_M_functions.push_back(function_type(base_type::_M_rehash));
 
 	// Run tests.
-	auto i = _M_functions.begin();
 	for (auto i = _M_functions.begin(); i != _M_functions.end(); ++i)
 	  {
 	    function_type& f = *i;

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -150,8 +150,7 @@ function Prag (Pragma_Node : Node_Id; Semi : Source_Ptr) return Node_Id is
          Error_Msg_Name_2 := Name_On;
          Error_Msg_Name_3 := Name_Off;
 
-         Error_Msg
-           ("argument for pragma% must be% or%", Sloc (Argx));
+         Error_Msg ("argument for pragma% must be% or%", Sloc (Argx));
          raise Error_Resync;
       end if;
    end Check_Arg_Is_On_Or_Off;
@@ -307,7 +306,7 @@ begin
       -- Ada_05/Ada_2005 --
       ---------------------
 
-      --  This pragma must be processed at parse time, since we want to set
+      --  These pragmas must be processed at parse time, since we want to set
       --  the Ada version properly at parse time to recognize the appropriate
       --  Ada version syntax. However, it is only the zero argument form that
       --  must be processed at parse time.
@@ -317,6 +316,18 @@ begin
             Ada_Version := Ada_05;
             Ada_Version_Explicit := Ada_05;
          end if;
+
+      ---------------------
+      -- Ada_12/Ada_2012 --
+      ---------------------
+
+      --  These pragmas must be processed at parse time, since we want to set
+      --  the Ada version properly at parse time to recognize the appropriate
+      --  Ada version syntax.
+
+      when Pragma_Ada_12 | Pragma_Ada_2012 =>
+         Ada_Version := Ada_12;
+         Ada_Version_Explicit := Ada_12;
 
       -----------
       -- Debug --
@@ -375,8 +386,10 @@ begin
 
          if Chars (Expression (Arg1)) = Name_On then
             Extensions_Allowed := True;
+            Ada_Version := Ada_12;
          else
             Extensions_Allowed := False;
+            Ada_Version := Ada_Version_Explicit;
          end if;
 
       ----------------
@@ -943,7 +956,11 @@ begin
                OK := False;
 
             elsif Chars (A) = Name_All_Checks then
-               Stylesw.Set_Default_Style_Check_Options;
+               if GNAT_Mode then
+                  Stylesw.Set_GNAT_Style_Check_Options;
+               else
+                  Stylesw.Set_Default_Style_Check_Options;
+               end if;
 
             elsif Chars (A) = Name_On then
                Style_Check := True;
@@ -1139,10 +1156,11 @@ begin
            Pragma_Memory_Size                   |
            Pragma_No_Body                       |
            Pragma_No_Return                     |
-           Pragma_Obsolescent                   |
            Pragma_No_Run_Time                   |
            Pragma_No_Strict_Aliasing            |
            Pragma_Normalize_Scalars             |
+           Pragma_Obsolescent                   |
+           Pragma_Ordered                       |
            Pragma_Optimize                      |
            Pragma_Optimize_Alignment            |
            Pragma_Pack                          |
@@ -1174,6 +1192,7 @@ begin
            Pragma_Shared                        |
            Pragma_Shared_Passive                |
            Pragma_Short_Circuit_And_Or          |
+           Pragma_Short_Descriptors             |
            Pragma_Storage_Size                  |
            Pragma_Storage_Unit                  |
            Pragma_Static_Elaboration_Desired    |

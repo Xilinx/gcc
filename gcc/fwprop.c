@@ -23,12 +23,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 
 #include "timevar.h"
 #include "rtl.h"
 #include "tm_p.h"
-#include "emit-rtl.h"
 #include "insn-config.h"
 #include "recog.h"
 #include "flags.h"
@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfgloop.h"
 #include "tree-pass.h"
 #include "domwalk.h"
+#include "emit-rtl.h"
 
 
 /* This pass does simple forward propagation and simplification when an
@@ -220,15 +221,18 @@ single_def_use_enter_block (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
   struct df_lr_bb_info *lr_bb_info = df_lr_get_bb_info (bb_index);
   rtx insn;
 
-  bitmap_copy (local_md, md_bb_info->in);
-  bitmap_copy (local_lr, lr_bb_info->in);
+  bitmap_copy (local_md, &md_bb_info->in);
+  bitmap_copy (local_lr, &lr_bb_info->in);
 
   /* Push a marker for the leave_block callback.  */
   VEC_safe_push (df_ref, heap, reg_defs_stack, NULL);
 
   process_uses (df_get_artificial_uses (bb_index), DF_REF_AT_TOP);
   process_defs (df_get_artificial_defs (bb_index), DF_REF_AT_TOP);
-  df_simulate_initialize_forwards (bb, local_lr);
+
+  /* We don't call df_simulate_initialize_forwards, as it may overestimate
+     the live registers if there are unused artificial defs.  We prefer
+     liveness to be underestimated.  */
 
   FOR_BB_INSNS (bb, insn)
     if (INSN_P (insn))
@@ -904,28 +908,17 @@ update_df (rtx insn, rtx *loc, df_ref *use_rec, enum df_ref_type type,
     {
       df_ref use = *use_rec;
       df_ref orig_use = use, new_use;
-      int width = -1;
-      int offset = -1;
-      enum machine_mode mode = VOIDmode;
       rtx *new_loc = find_occurrence (loc, DF_REF_REG (orig_use));
       use_rec++;
 
       if (!new_loc)
 	continue;
 
-      if (DF_REF_FLAGS_IS_SET (orig_use, DF_REF_SIGN_EXTRACT | DF_REF_ZERO_EXTRACT))
-	{
-	  width = DF_REF_EXTRACT_WIDTH (orig_use);
-	  offset = DF_REF_EXTRACT_OFFSET (orig_use);
-	  mode = DF_REF_EXTRACT_MODE (orig_use);
-	}
-
       /* Add a new insn use.  Use the original type, because it says if the
          use was within a MEM.  */
       new_use = df_ref_create (DF_REF_REG (orig_use), new_loc,
 			       insn, BLOCK_FOR_INSN (insn),
-			       type, DF_REF_FLAGS (orig_use) | new_flags,
-			       width, offset, mode);
+			       type, DF_REF_FLAGS (orig_use) | new_flags);
 
       /* Set up the use-def chain.  */
       gcc_assert (DF_REF_ID (new_use) == (int) VEC_length (df_ref, use_def_ref));
@@ -1301,10 +1294,11 @@ forward_propagate_and_simplify (df_ref use, rtx def_insn, rtx def_set)
 	loc = &SET_SRC (use_set);
 
       /* Do not replace an existing REG_EQUAL note if the insn is not
-	 recognized.  Either we're already replacing in the note, or
-	 we'll separately try plugging the definition in the note and
-	 simplifying.  */
-      set_reg_equal = (note == NULL_RTX);
+	 recognized.  Either we're already replacing in the note, or we'll
+	 separately try plugging the definition in the note and simplifying.
+	 And only install a REQ_EQUAL note when the destination is a REG,
+	 as the note would be invalid otherwise.  */
+      set_reg_equal = (note == NULL_RTX && REG_P (SET_DEST (use_set)));
     }
 
   if (GET_MODE (*loc) == VOIDmode)

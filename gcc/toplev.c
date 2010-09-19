@@ -25,8 +25,6 @@ along with GCC; see the file COPYING3.  If not see
    Error messages and low-level interface to malloc also handled here.  */
 
 #include "config.h"
-#undef FLOAT /* This is for hpux. They should change hpux.  */
-#undef FFS  /* Some systems define this in param.h.  */
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
@@ -49,6 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "line-map.h"
 #include "input.h"
 #include "tree.h"
+#include "realmpfr.h"	/* For GMP/MPFR/MPC versions, in print_version.  */
 #include "version.h"
 #include "rtl.h"
 #include "tm_p.h"
@@ -70,12 +69,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "timevar.h"
 #include "diagnostic.h"
+#include "tree-diagnostic.h"
+#include "tree-pretty-print.h"
 #include "params.h"
 #include "reload.h"
 #include "ira.h"
 #include "dwarf2asm.h"
 #include "integrate.h"
-#include "real.h"
 #include "debug.h"
 #include "target.h"
 #include "langhooks.h"
@@ -84,6 +84,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hosthooks.h"
 #include "cgraph.h"
 #include "opts.h"
+#include "opts-diagnostic.h"
 #include "coverage.h"
 #include "value-prof.h"
 #include "alloc-pool.h"
@@ -137,12 +138,9 @@ static bool no_backend;
 /* Length of line when printing switch values.  */
 #define MAX_LINE 75
 
-/* Name of program invoked, sans directories.  */
-
-const char *progname;
-
-/* Copy of argument vector to toplev_main.  */
-static const char **save_argv;
+/* Decoded options, and number of such options.  */
+static struct cl_decoded_option *save_decoded_options;
+static unsigned int save_decoded_options_count;
 
 /* Name of top-level original source file (what was input to cpp).
    This comes from the #-command at the beginning of the actual input.
@@ -151,14 +149,8 @@ static const char **save_argv;
 const char *main_input_filename;
 
 /* Used to enable -fvar-tracking, -fweb and -frename-registers according
-   to optimize and default_debug_hooks in process_options ().  */
+   to optimize in process_options ().  */
 #define AUTODETECT_VALUE 2
-
-/* Current position in real source file.  */
-
-location_t input_location;
-
-struct line_maps *line_table;
 
 /* Name to use as base of names for dump output files.  */
 
@@ -183,10 +175,6 @@ int target_flags_explicit;
 /* Debug hooks - dependent upon command line options.  */
 
 const struct gcc_debug_hooks *debug_hooks;
-
-/* Debug hooks - target default.  */
-
-static const struct gcc_debug_hooks *default_debug_hooks;
 
 /* Other flags saying which kinds of debugging dump have been requested.  */
 
@@ -233,10 +221,6 @@ tree current_function_decl;
    if none.  */
 const char * current_function_func_begin_label;
 
-/* Nonzero means to collect statistics which might be expensive
-   and to print them when we are done.  */
-int flag_detailed_statistics = 0;
-
 /* A random sequence of characters, unless overridden by user.  */
 static const char *flag_random_seed;
 
@@ -246,28 +230,6 @@ static const char *flag_random_seed;
 unsigned local_tick;
 
 /* -f flags.  */
-
-/* Nonzero means `char' should be signed.  */
-
-int flag_signed_char;
-
-/* Nonzero means give an enum type only as many bytes as it needs.  A value
-   of 2 means it has not yet been initialized.  */
-
-int flag_short_enums;
-
-/* Nonzero if structures and unions should be returned in memory.
-
-   This should only be defined if compatibility with another compiler or
-   with an ABI is needed, because it results in slower code.  */
-
-#ifndef DEFAULT_PCC_STRUCT_RETURN
-#define DEFAULT_PCC_STRUCT_RETURN 1
-#endif
-
-/* Nonzero for -fpcc-struct-return: return values the same way PCC does.  */
-
-int flag_pcc_struct_return = DEFAULT_PCC_STRUCT_RETURN;
 
 /* 0 means straightforward implementation of complex divide acceptable.
    1 means wide ranges of inputs must work for complex divide.
@@ -306,14 +268,9 @@ enum tls_model flag_tls_default = TLS_MODEL_GLOBAL_DYNAMIC;
 enum ira_algorithm flag_ira_algorithm = IRA_ALGORITHM_CB;
 enum ira_region flag_ira_region = IRA_REGION_MIXED;
 
-/* Set the default value for -fira-verbose.  */
-
-unsigned int flag_ira_verbose = 5;
-
 /* Set the default for excess precision.  */
 
 enum excess_precision flag_excess_precision_cmdline = EXCESS_PRECISION_DEFAULT;
-enum excess_precision flag_excess_precision = EXCESS_PRECISION_DEFAULT;
 
 /* Nonzero means change certain warnings into errors.
    Usually these are warnings about failure to conform to some standard.  */
@@ -371,18 +328,12 @@ enum stack_check_type flag_stack_check = NO_STACK_CHECK;
 
 bool user_defined_section_attribute = false;
 
-/* Values of the -falign-* flags: how much to align labels in code.
-   0 means `use default', 1 means `don't align'.
-   For each variable, there is an _log variant which is the power
-   of two not less than the variable, for .align output.  */
-
-int align_loops_log;
-int align_loops_max_skip;
-int align_jumps_log;
-int align_jumps_max_skip;
-int align_labels_log;
-int align_labels_max_skip;
-int align_functions_log;
+struct target_flag_state default_target_flag_state;
+#if SWITCHABLE_TARGET
+struct target_flag_state *this_target_flag_state = &default_target_flag_state;
+#else
+#define this_target_flag_state (&default_target_flag_state)
+#endif
 
 typedef struct
 {
@@ -411,6 +362,7 @@ static const param_info lang_independent_params[] = {
 
 FILE *asm_out_file;
 FILE *aux_info_file;
+FILE *stack_usage_file = NULL;
 FILE *dump_file = NULL;
 const char *dump_file_name;
 
@@ -543,39 +495,11 @@ set_random_seed (const char *val)
   return old;
 }
 
-/* Decode the string P as an integral parameter.
-   If the string is indeed an integer return its numeric value else
-   issue an Invalid Option error for the option PNAME and return DEFVAL.
-   If PNAME is zero just return DEFVAL, do not call error.  */
-
-int
-read_integral_parameter (const char *p, const char *pname, const int  defval)
-{
-  const char *endp = p;
-
-  while (*endp)
-    {
-      if (ISDIGIT (*endp))
-	endp++;
-      else
-	break;
-    }
-
-  if (*endp != 0)
-    {
-      if (pname != 0)
-	error ("invalid option argument %qs", pname);
-      return defval;
-    }
-
-  return atoi (p);
-}
-
 #if GCC_VERSION < 3004
 
-/* The functions floor_log2 and exact_log2 are defined as inline
-   functions in toplev.h if GCC_VERSION >= 3004.  The definitions here
-   are used for older versions of gcc.  */
+/* The functions clz_hwi, ctz_hwi, ffs_hwi, floor_log2 and exact_log2
+   are defined as inline functions in toplev.h if GCC_VERSION >= 3004.
+   The definitions here are used for older versions of gcc.  */
 
 /* Given X, an unsigned number, return the largest int Y such that 2**Y <= X.
    If X is 0, return -1.  */
@@ -617,6 +541,32 @@ exact_log2 (unsigned HOST_WIDE_INT x)
   if (x != (x & -x))
     return -1;
   return floor_log2 (x);
+}
+
+/* Given X, an unsigned number, return the number of least significant bits
+   that are zero.  When X == 0, the result is the word size.  */
+
+int
+ctz_hwi (unsigned HOST_WIDE_INT x)
+{
+  return x ? floor_log2 (x & -x) : HOST_BITS_PER_WIDE_INT;
+}
+
+/* Similarly for most significant bits.  */
+
+int
+clz_hwi (unsigned HOST_WIDE_INT x)
+{
+  return HOST_BITS_PER_WIDE_INT - 1 - floor_log2(x);
+}
+
+/* Similar to ctz_hwi, except that the least significant bit is numbered
+   starting from 1, and X == 0 yields 0.  */
+
+int
+ffs_hwi (unsigned HOST_WIDE_INT x)
+{
+  return 1 + floor_log2 (x & -x);
 }
 
 #endif /* GCC_VERSION < 3004 */
@@ -709,39 +659,6 @@ output_quoted_string (FILE *asm_file, const char *string)
 #endif
 }
 
-/* Output a file name in the form wanted by System V.  */
-
-void
-output_file_directive (FILE *asm_file, const char *input_name)
-{
-  int len;
-  const char *na;
-
-  if (input_name == NULL)
-    input_name = "<stdin>";
-  else
-    input_name = remap_debug_filename (input_name);
-
-  len = strlen (input_name);
-  na = input_name + len;
-
-  /* NA gets INPUT_NAME sans directory names.  */
-  while (na > input_name)
-    {
-      if (IS_DIR_SEPARATOR (na[-1]))
-	break;
-      na--;
-    }
-
-#ifdef ASM_OUTPUT_SOURCE_FILENAME
-  ASM_OUTPUT_SOURCE_FILENAME (asm_file, na);
-#else
-  fprintf (asm_file, "\t.file\t");
-  output_quoted_string (asm_file, na);
-  putc ('\n', asm_file);
-#endif
-}
-
 /* A subroutine of wrapup_global_declarations.  We've come to the end of
    the compilation unit.  All deferred variables should be undeferred,
    and all incomplete decls should be finalized.  */
@@ -797,17 +714,19 @@ wrapup_global_declaration_2 (tree decl)
     {
       struct varpool_node *node;
       bool needed = true;
-      node = varpool_node (decl);
+      node = varpool_get_node (decl);
 
-      if (node->finalized)
+      if (!node && flag_ltrans)
 	needed = false;
-      else if (node->alias)
+      else if (node && node->finalized)
+	needed = false;
+      else if (node && node->alias)
 	needed = false;
       else if (!cgraph_global_info_ready
 	       && (TREE_USED (decl)
 		   || TREE_USED (DECL_ASSEMBLER_NAME (decl))))
 	/* needed */;
-      else if (node->needed)
+      else if (node && node->needed)
 	/* needed */;
       else if (DECL_COMDAT (decl))
 	needed = false;
@@ -928,7 +847,7 @@ emit_debug_global_declarations (tree *vec, int len)
   int i;
 
   /* Avoid confusing the debug information machinery when there are errors.  */
-  if (errorcount != 0 || sorrycount != 0)
+  if (seen_error ())
     return;
 
   timevar_push (TV_SYMOUT);
@@ -1068,7 +987,7 @@ compile_file (void)
      what's left of the symbol table output.  */
   timevar_pop (TV_PARSE);
 
-  if (flag_syntax_only)
+  if (flag_syntax_only || flag_wpa)
     return;
 
   ggc_protect_identifiers = false;
@@ -1076,7 +995,7 @@ compile_file (void)
   /* This must also call cgraph_finalize_compilation_unit.  */
   lang_hooks.decls.final_write_globals ();
 
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return;
 
   varpool_assemble_pending_decls ();
@@ -1085,10 +1004,6 @@ compile_file (void)
   /* Likewise for mudflap static object registrations.  */
   if (flag_mudflap)
     mudflap_finish_file ();
-
-  /* Likewise for emulated thread-local storage.  */
-  if (!targetm.have_tls)
-    emutls_finish ();
 
   output_shared_constant_pool ();
   output_object_blocks ();
@@ -1395,7 +1310,6 @@ print_switch_values (print_switch_fn_type print_fn)
 {
   int pos = 0;
   size_t j;
-  const char **p;
 
   /* Fill in the -frandom-seed option, if the user didn't pass it, so
      that it can be printed below.  This helps reproducibility.  */
@@ -1406,30 +1320,23 @@ print_switch_values (print_switch_fn_type print_fn)
   pos = print_single_switch (print_fn, pos,
 			     SWITCH_TYPE_DESCRIPTIVE, _("options passed: "));
 
-  for (p = &save_argv[1]; *p != NULL; p++)
+  for (j = 1; j < save_decoded_options_count; j++)
     {
-      if (**p == '-')
+      switch (save_decoded_options[j].opt_index)
 	{
+	case OPT_o:
+	case OPT_d:
+	case OPT_dumpbase:
+	case OPT_dumpdir:
+	case OPT_auxbase:
+	case OPT_quiet:
+	case OPT_version:
 	  /* Ignore these.  */
-	  if (strcmp (*p, "-o") == 0
-	      || strcmp (*p, "-dumpbase") == 0
-	      || strcmp (*p, "-dumpdir") == 0
-	      || strcmp (*p, "-auxbase") == 0)
-	    {
-	      if (p[1] != NULL)
-		p++;
-	      continue;
-	    }
-
-	  if (strcmp (*p, "-quiet") == 0
-	      || strcmp (*p, "-version") == 0)
-	    continue;
-
-	  if ((*p)[1] == 'd')
-	    continue;
+	  continue;
 	}
 
-      pos = print_single_switch (print_fn, pos, SWITCH_TYPE_PASSED, *p);
+      pos = print_single_switch (print_fn, pos, SWITCH_TYPE_PASSED,
+				 save_decoded_options[j].orig_option_with_args_text);
     }
 
   if (pos > 0)
@@ -1655,6 +1562,10 @@ default_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
       t = va_arg (*text->args_ptr, tree);
       break;
 
+    case 'K':
+      percent_K_format (text);
+      return true;
+
     default:
       return false;
     }
@@ -1680,7 +1591,97 @@ default_tree_printer (pretty_printer *pp, text_info *text, const char *spec,
 static void *
 realloc_for_line_map (void *ptr, size_t len)
 {
-  return ggc_realloc (ptr, len);
+  return GGC_RESIZEVAR (void, ptr, len);
+}
+
+/* A helper function: used as the allocator function for
+   identifier_to_locale.  */
+static void *
+alloc_for_identifier_to_locale (size_t len)
+{
+  return ggc_alloc_atomic (len);
+}
+
+/* Output stack usage information.  */
+void
+output_stack_usage (void)
+{
+  static bool warning_issued = false;
+  enum stack_usage_kind_type { STATIC = 0, DYNAMIC, DYNAMIC_BOUNDED };
+  const char *stack_usage_kind_str[] = {
+    "static",
+    "dynamic",
+    "dynamic,bounded"
+  };
+  HOST_WIDE_INT stack_usage = current_function_static_stack_size;
+  enum stack_usage_kind_type stack_usage_kind;
+  expanded_location loc;
+  const char *raw_id, *id;
+
+  if (stack_usage < 0)
+    {
+      if (!warning_issued)
+	{
+	  warning (0, "-fstack-usage not supported for this target");
+	  warning_issued = true;
+	}
+      return;
+    }
+
+  stack_usage_kind = STATIC;
+
+  /* Add the maximum amount of space pushed onto the stack.  */
+  if (current_function_pushed_stack_size > 0)
+    {
+      stack_usage += current_function_pushed_stack_size;
+      stack_usage_kind = DYNAMIC_BOUNDED;
+    }
+
+  /* Now on to the tricky part: dynamic stack allocation.  */
+  if (current_function_allocates_dynamic_stack_space)
+    {
+      if (current_function_has_unbounded_dynamic_stack_size)
+	stack_usage_kind = DYNAMIC;
+      else
+	stack_usage_kind = DYNAMIC_BOUNDED;
+
+      /* Add the size even in the unbounded case, this can't hurt.  */
+      stack_usage += current_function_dynamic_stack_size;
+    }
+
+  loc = expand_location (DECL_SOURCE_LOCATION (current_function_decl));
+
+  /* Strip the scope prefix if any.  */
+  raw_id = lang_hooks.decl_printable_name (current_function_decl, 2);
+  id = strrchr (raw_id, '.');
+  if (id)
+    id++;
+  else
+    id = raw_id;
+
+  fprintf (stack_usage_file,
+	   "%s:%d:%d:%s\t"HOST_WIDE_INT_PRINT_DEC"\t%s\n",
+	   lbasename (loc.file),
+	   loc.line,
+	   loc.column,
+	   id,
+	   stack_usage,
+	   stack_usage_kind_str[stack_usage_kind]);
+}
+
+/* Open an auxiliary output file.  */
+static FILE *
+open_auxiliary_file (const char *ext)
+{
+  char *filename;
+  FILE *file;
+
+  filename = concat (aux_base_name, ".", ext, NULL);
+  file = fopen (filename, "w");
+  if (!file)
+    fatal_error ("can't open %s for writing: %m", filename);
+  free (filename);
+  return file;
 }
 
 /* Initialization of the front end environment, before command line
@@ -1705,12 +1706,21 @@ general_init (const char *argv0)
 
   gcc_init_libintl ();
 
+  identifier_to_locale_alloc = alloc_for_identifier_to_locale;
+  identifier_to_locale_free = ggc_free;
+
   /* Initialize the diagnostics reporting machinery, so option parsing
      can give warnings and errors.  */
-  diagnostic_initialize (global_dc);
+  diagnostic_initialize (global_dc, N_OPTS);
+  diagnostic_starter (global_dc) = default_tree_diagnostic_starter;
   /* Set a default printer.  Language specific initializations will
      override it later.  */
   pp_format_decoder (global_dc->printer) = &default_tree_printer;
+  global_dc->show_option_requested = flag_diagnostics_show_option;
+  global_dc->show_column = flag_show_column;
+  global_dc->internal_error = plugins_internal_error_function;
+  global_dc->option_enabled = option_enabled;
+  global_dc->option_name = option_name;
 
   /* Trap fatal signals, e.g. SIGSEGV, and convert them to ICE messages.  */
 #ifdef SIGSEGV
@@ -1739,7 +1749,7 @@ general_init (const char *argv0)
      table.  */
   init_ggc ();
   init_stringpool ();
-  line_table = GGC_NEW (struct line_maps);
+  line_table = ggc_alloc_line_maps ();
   linemap_init (line_table);
   line_table->reallocator = realloc_for_line_map;
   init_ttree ();
@@ -1820,6 +1830,12 @@ process_options (void)
     warn_unused_parameter = (warn_unused && extra_warnings);
   if (warn_unused_variable == -1)
     warn_unused_variable = warn_unused;
+  /* Wunused-but-set-parameter is enabled if both -Wunused -Wextra are
+     enabled.  */
+  if (warn_unused_but_set_parameter == -1)
+    warn_unused_but_set_parameter = (warn_unused && extra_warnings);
+  if (warn_unused_but_set_variable == -1)
+    warn_unused_but_set_variable = warn_unused;
   if (warn_unused_value == -1)
     warn_unused_value = warn_unused;
 
@@ -1833,10 +1849,8 @@ process_options (void)
      so we can correctly initialize debug output.  */
   no_backend = lang_hooks.post_options (&main_input_filename);
 
-#ifdef OVERRIDE_OPTIONS
   /* Some machines may reject certain combinations of options.  */
-  OVERRIDE_OPTIONS;
-#endif
+  targetm.target_option.override ();
 
   /* Avoid any informative notes in the second run of -fcompare-debug.  */
   if (flag_compare_debug) 
@@ -1957,14 +1971,14 @@ process_options (void)
       FILE *final_output = fopen (flag_dump_final_insns, "w");
       if (!final_output)
 	{
-	  error ("could not open final insn dump file %qs: %s",
-		 flag_dump_final_insns, strerror (errno));
+	  error ("could not open final insn dump file %qs: %m",
+		 flag_dump_final_insns);
 	  flag_dump_final_insns = NULL;
 	}
       else if (fclose (final_output))
 	{
-	  error ("could not close zeroed insn dump file %qs: %s",
-		 flag_dump_final_insns, strerror (errno));
+	  error ("could not close zeroed insn dump file %qs: %m",
+		 flag_dump_final_insns);
 	  flag_dump_final_insns = NULL;
 	}
     }
@@ -1978,32 +1992,6 @@ process_options (void)
      level is 0.  */
   if (debug_info_level == DINFO_LEVEL_NONE)
     write_symbols = NO_DEBUG;
-
-  /* Now we know write_symbols, set up the debug hooks based on it.
-     By default we do nothing for debug output.  */
-  if (PREFERRED_DEBUGGING_TYPE == NO_DEBUG)
-    default_debug_hooks = &do_nothing_debug_hooks;
-#if defined(DBX_DEBUGGING_INFO)
-  else if (PREFERRED_DEBUGGING_TYPE == DBX_DEBUG)
-    default_debug_hooks = &dbx_debug_hooks;
-#endif
-#if defined(XCOFF_DEBUGGING_INFO)
-  else if (PREFERRED_DEBUGGING_TYPE == XCOFF_DEBUG)
-    default_debug_hooks = &xcoff_debug_hooks;
-#endif
-#ifdef SDB_DEBUGGING_INFO
-  else if (PREFERRED_DEBUGGING_TYPE == SDB_DEBUG)
-    default_debug_hooks = &sdb_debug_hooks;
-#endif
-#ifdef DWARF2_DEBUGGING_INFO
-  else if (PREFERRED_DEBUGGING_TYPE == DWARF2_DEBUG)
-    default_debug_hooks = &dwarf2_debug_hooks;
-#endif
-#ifdef VMS_DEBUGGING_INFO
-  else if (PREFERRED_DEBUGGING_TYPE == VMS_DEBUG
-	   || PREFERRED_DEBUGGING_TYPE == VMS_AND_DWARF2_DEBUG)
-    default_debug_hooks = &vmsdbg_debug_hooks;
-#endif
 
   if (write_symbols == NO_DEBUG)
     ;
@@ -2111,13 +2099,13 @@ process_options (void)
     }
 
 #ifndef HAVE_prefetch
-  if (flag_prefetch_loop_arrays)
+  if (flag_prefetch_loop_arrays > 0)
     {
       warning (0, "-fprefetch-loop-arrays not supported for this target");
       flag_prefetch_loop_arrays = 0;
     }
 #else
-  if (flag_prefetch_loop_arrays && !HAVE_prefetch)
+  if (flag_prefetch_loop_arrays > 0 && !HAVE_prefetch)
     {
       warning (0, "-fprefetch-loop-arrays not supported for this target (try -march switches)");
       flag_prefetch_loop_arrays = 0;
@@ -2126,7 +2114,7 @@ process_options (void)
 
   /* This combination of options isn't handled for i386 targets and doesn't
      make much sense anyway, so don't allow it.  */
-  if (flag_prefetch_loop_arrays && optimize_size)
+  if (flag_prefetch_loop_arrays > 0 && optimize_size)
     {
       warning (0, "-fprefetch-loop-arrays is not supported with -Os");
       flag_prefetch_loop_arrays = 0;
@@ -2318,6 +2306,10 @@ lang_dependent_init (const char *name)
 
   init_asm_output (name);
 
+  /* If stack usage information is desired, open the output file.  */
+  if (flag_stack_usage)
+    stack_usage_file = open_auxiliary_file ("su");
+
   /* This creates various _DECL nodes, so needs to be called after the
      front end is initialized.  */
   init_eh ();
@@ -2364,7 +2356,6 @@ dump_memory_report (bool final)
   dump_tree_statistics ();
   dump_gimple_statistics ();
   dump_rtx_statistics ();
-  dump_varray_statistics ();
   dump_alloc_pool_statistics ();
   dump_bitmap_statistics ();
   dump_vec_loc_statistics ();
@@ -2382,7 +2373,7 @@ finalize (void)
   if (flag_gen_aux_info)
     {
       fclose (aux_info_file);
-      if (errorcount)
+      if (seen_error ())
 	unlink (aux_info_file_name);
     }
 
@@ -2399,6 +2390,9 @@ finalize (void)
       if (flag_wpa)
 	unlink_if_ordinary (asm_file_name);
     }
+
+  if (stack_usage_file)
+    fclose (stack_usage_file);
 
   statistics_fini ();
   finish_optimization_passes ();
@@ -2425,7 +2419,7 @@ do_compile (void)
   process_options ();
 
   /* Don't do any more if an error has already occurred.  */
-  if (!errorcount)
+  if (!seen_error ())
     {
       /* This must be run always, because it is needed to compute the FP
 	 predefined macros, such as __LDBL_MAX__, for targets using non
@@ -2459,14 +2453,13 @@ toplev_main (int argc, char **argv)
 {
   expandargv (&argc, &argv);
 
-  save_argv = CONST_CAST2 (const char **, char **, argv);
-
   /* Initialization of GCC's environment, and diagnostics.  */
   general_init (argv[0]);
 
   /* Parse the options and do minimal processing; basically just
      enough to default flags appropriately.  */
-  decode_options (argc, CONST_CAST2 (const char **, char **, argv));
+  decode_options (argc, CONST_CAST2 (const char **, char **, argv),
+		  &save_decoded_options, &save_decoded_options_count);
 
   init_local_tick ();
 
@@ -2495,12 +2488,13 @@ toplev_main (int argc, char **argv)
 
   if (warningcount || errorcount) 
     print_ignored_options ();
+  diagnostic_finish (global_dc);
 
   /* Invoke registered plugin callbacks if any.  */
   invoke_plugin_callbacks (PLUGIN_FINISH, NULL);
 
   finalize_plugins ();
-  if (errorcount || sorrycount)
+  if (seen_error ())
     return (FATAL_EXIT_CODE);
 
   return (SUCCESS_EXIT_CODE);

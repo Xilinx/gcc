@@ -40,7 +40,6 @@
 #include <memory>
 #include <mutex>
 #include <condition_variable>
-#include <cstddef>
 #include <bits/functexcept.h>
 #include <bits/functional_hash.h>
 #include <bits/gthr.h>
@@ -124,6 +123,7 @@ namespace std
 
   public:
     thread() = default;
+    thread(thread&) = delete;
     thread(const thread&) = delete;
 
     thread(thread&& __t)
@@ -228,7 +228,7 @@ namespace std
     {
       size_t
       operator()(const thread::id& __id) const
-      { return std::_Fnv_hash::hash(__id._M_thread); }
+      { return std::_Hash_impl::hash(__id._M_thread); }
     };
 
   template<class _CharT, class _Traits>

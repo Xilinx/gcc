@@ -1,5 +1,5 @@
 /* Definitions for the Blackfin port.
-   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Analog Devices.
 
    This file is part of GCC.
@@ -252,7 +252,7 @@ extern int target_flags;
    Defined in svr4.h.  */
 #undef  ASM_SPEC
 #define ASM_SPEC "\
-%{G*} %{v} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
+%{v} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
     %{mno-fdpic:-mnopic} %{mfdpic}"
 
 #define LINK_SPEC "\
@@ -262,7 +262,6 @@ extern int target_flags;
 %{static:-dn -Bstatic} \
 %{shared:-G -Bdynamic} \
 %{symbolic:-Bsymbolic} \
-%{G*} \
 %{YP,*} \
 %{Qy:} %{!Qn:-Qy} \
 -init __init -fini __fini "
@@ -276,17 +275,6 @@ extern int target_flags;
 #define MAX_LIBRARY_ID 255
 
 extern const char *bfin_library_id_string;
-
-/* Sometimes certain combinations of command options do not make
-   sense on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
- 
-   Don't use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.  */
- 
-#define OVERRIDE_OPTIONS override_options ()
 
 #define FUNCTION_MODE    SImode
 #define Pmode            SImode
@@ -756,10 +744,11 @@ enum reg_class
     MOST_REGS, AREGS, CCREGS, LIM_REG_CLASSES		\
 }
 
-/* When defined, the compiler allows registers explicitly used in the
-   rtl to be used as spill registers but prevents the compiler from
-   extending the lifetime of these registers. */
-#define SMALL_REGISTER_CLASSES 1
+/* When this hook returns true for MODE, the compiler allows
+   registers explicitly used in the rtl to be used as spill registers
+   but prevents the compiler from extending the lifetime of these
+   registers.  */
+#define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
 
 #define CLASS_LIKELY_SPILLED_P(CLASS) \
     ((CLASS) == PREGS_CLOBBERED \
@@ -869,8 +858,6 @@ typedef struct {
    (TYPE is null for libcalls where that information may not be available.)  */
 #define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
   (function_arg_advance (&CUM, MODE, TYPE, NAMED))
-
-#define RETURN_POPS_ARGS(FDECL, FUNTYPE, STKSIZE) 0
 
 /* Define how to find the value returned by a function.
    VALTYPE is the data type of the value (as a tree).

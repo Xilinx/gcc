@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -90,6 +90,81 @@ package body Sem_Disp is
 
       Append_Unique_Elmt (New_Op, List);
    end Add_Dispatching_Operation;
+
+   ---------------------------
+   -- Covers_Some_Interface --
+   ---------------------------
+
+   function Covers_Some_Interface (Prim : Entity_Id) return Boolean is
+      Tagged_Type : constant Entity_Id := Find_Dispatching_Type (Prim);
+      Elmt        : Elmt_Id;
+      E           : Entity_Id;
+
+   begin
+      pragma Assert (Is_Dispatching_Operation (Prim));
+
+      --  Although this is a dispatching primitive we must check if its
+      --  dispatching type is available because it may be the primitive
+      --  of a private type not defined as tagged in its partial view.
+
+      if Present (Tagged_Type) and then Has_Interfaces (Tagged_Type) then
+
+         --  If the tagged type is frozen then the internal entities associated
+         --  with interfaces are available in the list of primitives of the
+         --  tagged type and can be used to speed up this search.
+
+         if Is_Frozen (Tagged_Type) then
+            Elmt := First_Elmt (Primitive_Operations (Tagged_Type));
+            while Present (Elmt) loop
+               E := Node (Elmt);
+
+               if Present (Interface_Alias (E))
+                 and then Alias (E) = Prim
+               then
+                  return True;
+               end if;
+
+               Next_Elmt (Elmt);
+            end loop;
+
+         --  Otherwise we must collect all the interface primitives and check
+         --  if the Prim will override some interface primitive.
+
+         else
+            declare
+               Ifaces_List : Elist_Id;
+               Iface_Elmt  : Elmt_Id;
+               Iface       : Entity_Id;
+               Iface_Prim  : Entity_Id;
+
+            begin
+               Collect_Interfaces (Tagged_Type, Ifaces_List);
+               Iface_Elmt := First_Elmt (Ifaces_List);
+               while Present (Iface_Elmt) loop
+                  Iface := Node (Iface_Elmt);
+
+                  Elmt := First_Elmt (Primitive_Operations (Iface));
+                  while Present (Elmt) loop
+                     Iface_Prim := Node (Elmt);
+
+                     if Chars (E) = Chars (Prim)
+                       and then Is_Interface_Conformant
+                                  (Tagged_Type, Iface_Prim, Prim)
+                     then
+                        return True;
+                     end if;
+
+                     Next_Elmt (Elmt);
+                  end loop;
+
+                  Next_Elmt (Iface_Elmt);
+               end loop;
+            end;
+         end if;
+      end if;
+
+      return False;
+   end Covers_Some_Interface;
 
    -------------------------------
    -- Check_Controlling_Formals --
@@ -175,10 +250,7 @@ package body Sem_Disp is
          Next_Formal (Formal);
       end loop;
 
-      if Ekind (Subp) = E_Function
-           or else
-         Ekind (Subp) = E_Generic_Function
-      then
+      if Ekind_In (Subp, E_Function, E_Generic_Function) then
          Ctrl_Type := Check_Controlling_Type (Etype (Subp), Subp);
 
          if Present (Ctrl_Type) then
@@ -643,8 +715,8 @@ package body Sem_Disp is
                   end if;
 
                   if Present (Func) and then Is_Abstract_Subprogram (Func) then
-                     Error_Msg_N (
-                       "call to abstract function must be dispatching", N);
+                     Error_Msg_N
+                       ("call to abstract function must be dispatching", N);
                   end if;
                end if;
 
@@ -673,25 +745,22 @@ package body Sem_Disp is
       Body_Is_Last_Primitive : Boolean := False;
 
    begin
-      if Ekind (Subp) /= E_Procedure and then Ekind (Subp) /= E_Function then
+      if not Ekind_In (Subp, E_Procedure, E_Function) then
          return;
       end if;
 
       Set_Is_Dispatching_Operation (Subp, False);
       Tagged_Type := Find_Dispatching_Type (Subp);
 
-      --  Ada 2005 (AI-345)
+      --  Ada 2005 (AI-345): Use the corresponding record (if available).
+      --  Required because primitives of concurrent types are be attached
+      --  to the corresponding record (not to the concurrent type).
 
-      if Ada_Version = Ada_05
+      if Ada_Version >= Ada_05
         and then Present (Tagged_Type)
         and then Is_Concurrent_Type (Tagged_Type)
+        and then Present (Corresponding_Record_Type (Tagged_Type))
       then
-         --  Protect the frontend against previously detected errors
-
-         if No (Corresponding_Record_Type (Tagged_Type)) then
-            return;
-         end if;
-
          Tagged_Type := Corresponding_Record_Type (Tagged_Type);
       end if;
 
@@ -749,7 +818,7 @@ package body Sem_Disp is
                  and then not In_Instance
                then
                   Error_Msg_N ("?declaration of& is too late!", Subp);
-                  Error_Msg_NE
+                  Error_Msg_NE -- CODEFIX??
                     ("\spec should appear immediately after declaration of &!",
                      Subp, Typ);
                   exit;
@@ -790,7 +859,7 @@ package body Sem_Disp is
         and then not Comes_From_Source (Subp)
         and then not Has_Dispatching_Parent
       then
-         --  Complete decoration if internally built subprograms that override
+         --  Complete decoration of internally built subprograms that override
          --  a dispatching primitive. These entities correspond with the
          --  following cases:
 
@@ -800,7 +869,10 @@ package body Sem_Disp is
          --     type by Make_Controlling_Function_Wrappers. However, attribute
          --     Is_Dispatching_Operation must be set to true.
 
-         --  2. Subprograms associated with stream attributes (built by
+         --  2. Ada 2005 (AI-251): Wrapper procedures of null interface
+         --     primitives.
+
+         --  3. Subprograms associated with stream attributes (built by
          --     New_Stream_Subprogram)
 
          if Present (Old_Subp)
@@ -811,9 +883,17 @@ package body Sem_Disp is
              ((Ekind (Subp) = E_Function
                 and then Is_Dispatching_Operation (Old_Subp)
                 and then Is_Null_Extension (Base_Type (Etype (Subp))))
+               or else
+                (Ekind (Subp) = E_Procedure
+                  and then Is_Dispatching_Operation (Old_Subp)
+                  and then Present (Alias (Old_Subp))
+                  and then Is_Null_Interface_Primitive
+                             (Ultimate_Alias (Old_Subp)))
                or else Get_TSS_Name (Subp) = TSS_Stream_Read
                or else Get_TSS_Name (Subp) = TSS_Stream_Write);
 
+            Check_Controlling_Formals (Tagged_Type, Subp);
+            Override_Dispatching_Operation (Tagged_Type, Old_Subp, Subp);
             Set_Is_Dispatching_Operation (Subp);
          end if;
 
@@ -1070,6 +1150,18 @@ package body Sem_Disp is
                end;
             end if;
          end if;
+
+      --  If the tagged type is a concurrent type then we must be compiling
+      --  with no code generation (we are either compiling a generic unit or
+      --  compiling under -gnatc mode) because we have previously tested that
+      --  no serious errors has been reported. In this case we do not add the
+      --  primitive to the list of primitives of Tagged_Type but we leave the
+      --  primitive decorated as a dispatching operation to be able to analyze
+      --  and report errors associated with the Object.Operation notation.
+
+      elsif Is_Concurrent_Type (Tagged_Type) then
+         pragma Assert (not Expander_Active);
+         null;
 
       --  If no old subprogram, then we add this as a dispatching operation,
       --  but we avoid doing this if an error was posted, to prevent annoying
@@ -1499,7 +1591,7 @@ package body Sem_Disp is
 
       --  For subprograms internally generated by derivations of tagged types
       --  use the alias subprogram as a reference to locate the dispatching
-      --  type of Subp
+      --  type of Subp.
 
       elsif not Comes_From_Source (Subp)
         and then Present (Alias (Subp))
@@ -1595,6 +1687,19 @@ package body Sem_Disp is
          return Find_Controlling_Arg (N) /= Empty;
       end if;
    end Is_Dynamically_Tagged;
+
+   ---------------------------------
+   -- Is_Null_Interface_Primitive --
+   ---------------------------------
+
+   function Is_Null_Interface_Primitive (E : Entity_Id) return Boolean is
+   begin
+      return Comes_From_Source (E)
+        and then Is_Dispatching_Operation (E)
+        and then Ekind (E) = E_Procedure
+        and then Null_Present (Parent (E))
+        and then Is_Interface (Find_Dispatching_Type (E));
+   end Is_Null_Interface_Primitive;
 
    --------------------------
    -- Is_Tag_Indeterminate --
@@ -1703,7 +1808,28 @@ package body Sem_Disp is
          return;
       end if;
 
-      Replace_Elmt (Elmt, New_Op);
+      --  The location of entities that come from source in the list of
+      --  primitives of the tagged type must follow their order of occurrence
+      --  in the sources to fulfill the C++ ABI. If the overriden entity is a
+      --  primitive of an interface that is not an ancestor of this tagged
+      --  type (that is, it is an entity added to the list of primitives by
+      --  Derive_Interface_Progenitors), then we must append the new entity
+      --  at the end of the list of primitives.
+
+      if Present (Alias (Prev_Op))
+        and then Is_Interface (Find_Dispatching_Type (Alias (Prev_Op)))
+        and then not Is_Ancestor (Find_Dispatching_Type (Alias (Prev_Op)),
+                                  Tagged_Type)
+      then
+         Remove_Elmt (Primitive_Operations (Tagged_Type), Elmt);
+         Append_Elmt (New_Op, Primitive_Operations (Tagged_Type));
+
+      --  The new primitive replaces the overriden entity. Required to ensure
+      --  that overriding primitive is assigned the same dispatch table slot.
+
+      else
+         Replace_Elmt (Elmt, New_Op);
+      end if;
 
       if Ada_Version >= Ada_05
         and then Has_Interfaces (Tagged_Type)

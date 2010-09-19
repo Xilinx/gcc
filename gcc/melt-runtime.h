@@ -1,6 +1,7 @@
 /**
    MELT header melt-runtime.h
-   [[middle end lisp translator]]
+   [[middle end lisp translator, see http://gcc.gnu.org/wiki/MELT or
+   www.gcc-melt.org ]]
    Copyright (C)  2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
@@ -151,6 +152,16 @@ void melt_debug_out (struct debugprint_melt_st *dp, melt_ptr_t ptr,
 			int depth);
 void melt_dbgeprint (void *p);
 void melt_dbgbacktrace (int depth);
+
+#ifdef ENABLE_CHECKING
+extern int melt_debug_garbcoll;
+#define melt_debuggc_eprintf(Fmt,...) do {if (melt_debug_garbcoll > 0) \
+      fprintf (stderr, "%s:%d:@$*" Fmt "\n",			       \
+	       lbasename(__FILE__), __LINE__, ##__VA_ARGS__);} while(0)
+#else
+#define melt_debuggc_eprintf(Fmt,...) do{}while(0)
+#endif
+
 
 /******************* closures, routines ************************/
 
@@ -413,6 +424,10 @@ enum meltobmag_en    {
 };
 
 
+/* Gives the constant string corresponding to a given object magic
+   above.  */
+const char* melt_obmag_string(int i);
+
 /* maxhash can also be used as a bit mask */
 #define MELT_MAXHASH 0x3fffffff
 
@@ -437,9 +452,14 @@ enum meltobmag_en    {
 
 /* when MELTOBMAG_OBJECT -- */
 
+/* GCC 4.6 gengtype introducted the variable_size GTY attribute. But
+   GCC 4.5 don't have it. So every usage of variable_size is marked by
+   a comment on the same line as the 'GTY' and 'variable_size' words
+   with @@ followed by MELTGTY to help an external shell script to
+   convert and backport this melt-runtime.h to 4.5 habits. */
 
 struct 
-GTY (())
+GTY ((variable_size)) /*@@MELTGTY@@*/
 meltobject_st
 {
   /* for objects, the discriminant is their class */
@@ -502,7 +522,7 @@ meltbox_st
 
 /* when MELTOBMAG_MULTIPLE  */
 struct 
-GTY (())
+GTY ((variable_size)) /*@@MELTGTY@@*/
 meltmultiple_st
 {
   meltobject_ptr_t discr;
@@ -518,7 +538,7 @@ meltmultiple_st
 
 /* when MELTOBMAG_CLOSURE */
 struct 
-GTY (())
+GTY ((variable_size)) /*@@MELTGTY@@*/
 meltclosure_st
 {
   meltobject_ptr_t discr;
@@ -538,7 +558,7 @@ meltclosure_st
 #define MELT_ROUTDESCR_LEN 96
 
 struct 
-GTY (()) 
+GTY ((variable_size)) /*@@MELTGTY@@*/
 meltroutine_st 
 {
   meltobject_ptr_t discr;
@@ -629,7 +649,7 @@ meltmixloc_st
    use an exported mpz format, the value can be copied and trashed by
    MELT garbage collector without harm. */
 struct
-GTY (())
+GTY ((variable_size))  /*@@MELTGTY@@*/
 meltmixbigint_st
 {
   meltobject_ptr_t discr;
@@ -685,10 +705,14 @@ meltspecial_st
   union special_melt_un GTY ((skip)) val;
 };
 
+
 static inline void
 melt_mark_special (struct meltspecial_st *p)
 {
   p->mark = 1;
+  melt_debuggc_eprintf ("marked special %p of magic %d %s", 
+			(void*)p, p->discr->object_magic, 
+			melt_obmag_string (p->discr->object_magic));
 }
 
 static inline void
@@ -709,7 +733,7 @@ struct meltspecial_st* meltgc_make_special(melt_ptr_t discr);
 
 /* when MELTOBMAG_STRING -  */
 struct 
-GTY (())
+GTY ((variable_size)) /*@@MELTGTY@@*/
 meltstring_st
 {
   meltobject_ptr_t discr;
@@ -1705,6 +1729,7 @@ void melt_garbcoll (size_t wanted, enum melt_gckind_en gckd);
    allocated: set these variables in the debugger */
 static void* tracedptr1;
 static void* tracedptr2;
+
 #endif
 
 /* the allocator routine allocates a zone of BASESZ with extra GAP */

@@ -28,6 +28,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "basic-block.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-flow.h"
 #include "toplev.h"
 #include "tree-dump.h"
@@ -44,7 +46,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 
 #ifdef HAVE_cloog
-#include "cloog/cloog.h"
 #include "ppl_c.h"
 #include "sese.h"
 #include "graphite-ppl.h"
@@ -61,7 +62,7 @@ scop_max_loop_depth (scop_p scop)
   poly_bb_p pbb;
   int max_nb_loops = 0;
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
     {
       int nb_loops = pbb_dim_iter_domain (pbb);
       if (max_nb_loops < nb_loops)
@@ -80,11 +81,11 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
   ppl_dimension_type nb_old_dims, nb_new_dims;
   int nb_added_dims, i;
   ppl_Coefficient_t coef;
-  Value one;
+  mpz_t one;
 
   nb_added_dims = max_scattering - pbb_nb_scattering_transform (pbb);
-  value_init (one);
-  value_set_si (one, 1);
+  mpz_init (one);
+  mpz_set_si (one, 1);
   ppl_new_Coefficient (&coef);
   ppl_assign_Coefficient_from_mpz_t (coef, one);
 
@@ -113,7 +114,7 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
     }
 
   ppl_delete_Coefficient (coef);
-  value_clear (one);
+  mpz_clear (one);
 }
 
 /* All scattering matrices in SCOP will have the same number of scattering
@@ -126,10 +127,10 @@ unify_scattering_dimensions (scop_p scop)
   poly_bb_p pbb;
   graphite_dim_t max_scattering = 0;
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
     max_scattering = MAX (pbb_nb_scattering_transform (pbb), max_scattering);
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
     extend_scattering (pbb, max_scattering);
 
   return max_scattering;
@@ -220,7 +221,7 @@ print_scattering_functions (FILE *file, scop_p scop, int verbosity)
   int i;
   poly_bb_p pbb;
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
     print_scattering_function (file, pbb, verbosity);
 }
 
@@ -233,14 +234,14 @@ print_iteration_domains (FILE *file, scop_p scop, int verbosity)
   int i;
   poly_bb_p pbb;
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
     print_iteration_domain (file, pbb, verbosity);
 }
 
 /* Prints to STDERR the scattering function of PBB, at some VERBOSITY
    level.  */
 
-void
+DEBUG_FUNCTION void
 debug_scattering_function (poly_bb_p pbb, int verbosity)
 {
   print_scattering_function (stderr, pbb, verbosity);
@@ -249,7 +250,7 @@ debug_scattering_function (poly_bb_p pbb, int verbosity)
 /* Prints to STDERR the iteration domain of PBB, at some VERBOSITY
    level.  */
 
-void
+DEBUG_FUNCTION void
 debug_iteration_domain (poly_bb_p pbb, int verbosity)
 {
   print_iteration_domain (stderr, pbb, verbosity);
@@ -258,7 +259,7 @@ debug_iteration_domain (poly_bb_p pbb, int verbosity)
 /* Prints to STDERR the scattering functions of every PBB of SCOP, at
    some VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_scattering_functions (scop_p scop, int verbosity)
 {
   print_scattering_functions (stderr, scop, verbosity);
@@ -267,7 +268,7 @@ debug_scattering_functions (scop_p scop, int verbosity)
 /* Prints to STDERR the iteration domains of every PBB of SCOP, at
    some VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_iteration_domains (scop_p scop, int verbosity)
 {
   print_iteration_domains (stderr, scop, verbosity);
@@ -341,8 +342,8 @@ pbb_remove_duplicate_pdrs (poly_bb_p pbb)
   unsigned n = VEC_length (poly_dr_p, PBB_DRS (pbb));
   VEC (poly_dr_p, heap) *collapsed = VEC_alloc (poly_dr_p, heap, n);
 
-  for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb), i, pdr1); i++)
-    for (j = 0; VEC_iterate (poly_dr_p, collapsed, j, pdr2); j++)
+  FOR_EACH_VEC_ELT (poly_dr_p, PBB_DRS (pbb), i, pdr1)
+    FOR_EACH_VEC_ELT (poly_dr_p, collapsed, j, pdr2)
       if (!can_collapse_pdrs (pdr1, pdr2))
 	VEC_quick_push (poly_dr_p, collapsed, pdr1);
 
@@ -421,7 +422,7 @@ free_poly_bb (poly_bb_p pbb)
     poly_scattering_free (PBB_ORIGINAL (pbb));
 
   if (PBB_DRS (pbb))
-    for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb), i, pdr); i++)
+    FOR_EACH_VEC_ELT (poly_dr_p, PBB_DRS (pbb), i, pdr)
       free_poly_dr (pdr);
 
   VEC_free (poly_dr_p, heap, PBB_DRS (pbb));
@@ -498,7 +499,7 @@ print_pdr (FILE *file, poly_dr_p pdr, int verbosity)
 /* Prints to STDERR the polyhedral data reference PDR, at some
    VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_pdr (poly_dr_p pdr, int verbosity)
 {
   print_pdr (stderr, pdr, verbosity);
@@ -532,7 +533,7 @@ free_scop (scop_p scop)
   int i;
   poly_bb_p pbb;
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
     free_poly_bb (pbb);
 
   VEC_free (poly_bb_p, heap, SCOP_BBS (scop));
@@ -599,7 +600,7 @@ dump_gbb_cases (FILE *file, gimple_bb_p gbb)
 
   fprintf (file, "# cases bb_%d (\n", GBB_BB (gbb)->index);
 
-  for (i = 0; VEC_iterate (gimple, cases, i, stmt); i++)
+  FOR_EACH_VEC_ELT (gimple, cases, i, stmt)
     {
       fprintf (file, "# ");
       print_gimple_stmt (file, stmt, 0, 0);
@@ -626,7 +627,7 @@ dump_gbb_conditions (FILE *file, gimple_bb_p gbb)
 
   fprintf (file, "# conditions bb_%d (\n", GBB_BB (gbb)->index);
 
-  for (i = 0; VEC_iterate (gimple, conditions, i, stmt); i++)
+  FOR_EACH_VEC_ELT (gimple, conditions, i, stmt)
     {
       fprintf (file, "# ");
       print_gimple_stmt (file, stmt, 0, 0);
@@ -661,7 +662,7 @@ print_pdrs (FILE *file, poly_bb_p pbb, int verbosity)
     fprintf (file, "# Access informations are provided\n");
   fprintf (file, "1\n");
 
-  for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb), i, pdr); i++)
+  FOR_EACH_VEC_ELT (poly_dr_p, PBB_DRS (pbb), i, pdr)
     if (PDR_TYPE (pdr) == PDR_READ)
       nb_reads++;
     else
@@ -674,7 +675,7 @@ print_pdrs (FILE *file, poly_bb_p pbb, int verbosity)
     fprintf (file, "# Read access informations\n");
   fprintf (file, "%d\n", nb_reads);
 
-  for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb), i, pdr); i++)
+  FOR_EACH_VEC_ELT (poly_dr_p, PBB_DRS (pbb), i, pdr)
     if (PDR_TYPE (pdr) == PDR_READ)
       print_pdr (file, pdr, verbosity);
 
@@ -688,7 +689,7 @@ print_pdrs (FILE *file, poly_bb_p pbb, int verbosity)
     fprintf (file, "# Write access informations\n");
   fprintf (file, "%d\n", nb_writes);
 
-  for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb), i, pdr); i++)
+  FOR_EACH_VEC_ELT (poly_dr_p, PBB_DRS (pbb), i, pdr)
     if (PDR_TYPE (pdr) != PDR_READ)
       print_pdr (file, pdr, verbosity);
 
@@ -701,7 +702,7 @@ print_pdrs (FILE *file, poly_bb_p pbb, int verbosity)
 
 /* Print to STDERR all the data references of PBB.  */
 
-void
+DEBUG_FUNCTION void
 debug_pdrs (poly_bb_p pbb, int verbosity)
 {
   print_pdrs (stderr, pbb, verbosity);
@@ -783,7 +784,7 @@ print_scop_params (FILE *file, scop_p scop, int verbosity)
       fprintf (file, "0\n");
     }
 
-  for (i = 0; VEC_iterate (tree, SESE_PARAMS (SCOP_REGION (scop)), i, t); i++)
+  FOR_EACH_VEC_ELT (tree, SESE_PARAMS (SCOP_REGION (scop)), i, t)
     {
       print_generic_expr (file, t, 0);
       fprintf (file, " ");
@@ -840,7 +841,7 @@ print_scop (FILE *file, scop_p scop, int verbosity)
 
   fprintf (file, "%d\n",VEC_length (poly_bb_p, SCOP_BBS (scop)));
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
     print_pbb (file, pbb, verbosity);
 
   if (verbosity > 1)
@@ -879,7 +880,7 @@ print_cloog (FILE *file, scop_p scop, int verbosity)
 
   fprintf (file, "%d\n", VEC_length (poly_bb_p, SCOP_BBS (scop)));
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
     {
       if (verbosity > 1)
 	fprintf (file, "# pbb_%d (\n", pbb_index (pbb));
@@ -908,7 +909,7 @@ print_cloog (FILE *file, scop_p scop, int verbosity)
   fprintf (file, "%d\n", VEC_length (poly_bb_p, SCOP_BBS (scop)));
   unify_scattering_dimensions (scop);
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+  FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
     {
       if (!PBB_TRANSFORMED (pbb)
 	  || !(PBB_TRANSFORMED_SCATTERING (pbb)
@@ -935,7 +936,7 @@ print_cloog (FILE *file, scop_p scop, int verbosity)
 
 /* Print to STDERR the domain of PBB, at some VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_pbb_domain (poly_bb_p pbb, int verbosity)
 {
   print_pbb_domain (stderr, pbb, verbosity);
@@ -944,7 +945,7 @@ debug_pbb_domain (poly_bb_p pbb, int verbosity)
 /* Print to FILE the domain and scattering function of PBB, at some
    VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_pbb (poly_bb_p pbb, int verbosity)
 {
   print_pbb (stderr, pbb, verbosity);
@@ -952,7 +953,7 @@ debug_pbb (poly_bb_p pbb, int verbosity)
 
 /* Print to STDERR the context of SCOP, at some VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_scop_context (scop_p scop, int verbosity)
 {
   print_scop_context (stderr, scop, verbosity);
@@ -960,7 +961,7 @@ debug_scop_context (scop_p scop, int verbosity)
 
 /* Print to STDERR the SCOP, at some VERBOSITY level.  */
 
-void
+DEBUG_FUNCTION void
 debug_scop (scop_p scop, int verbosity)
 {
   print_scop (stderr, scop, verbosity);
@@ -969,7 +970,7 @@ debug_scop (scop_p scop, int verbosity)
 /* Print to STDERR the SCOP under CLooG format, at some VERBOSITY
    level.  */
 
-void
+DEBUG_FUNCTION void
 debug_cloog (scop_p scop, int verbosity)
 {
   print_cloog (stderr, scop, verbosity);
@@ -978,7 +979,7 @@ debug_cloog (scop_p scop, int verbosity)
 /* Print to STDERR the parameters of SCOP, at some VERBOSITY
    level.  */
 
-void
+DEBUG_FUNCTION void
 debug_scop_params (scop_p scop, int verbosity)
 {
   print_scop_params (stderr, scop, verbosity);
@@ -998,10 +999,10 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
   ppl_dimension_type iter = psct_iterator_dim (pbb, loop_depth);
   ppl_Linear_Expression_t expr;
   ppl_Coefficient_t coef;
-  Value val;
+  mpz_t val;
   graphite_dim_t i;
 
-  value_init (val);
+  mpz_init (val);
   ppl_new_Coefficient (&coef);
   ppl_Polyhedron_get_constraints (ph, &pcs);
   ppl_new_Constraint_System_const_iterator (&cit);
@@ -1017,7 +1018,7 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
       ppl_Linear_Expression_coefficient (expr, iter, coef);
       ppl_Coefficient_to_mpz_t (coef, val);
 
-      if (value_zero_p (val))
+      if (mpz_sgn (val) == 0)
 	{
 	  ppl_delete_Linear_Expression (expr);
 	  continue;
@@ -1030,9 +1031,9 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
 	  ppl_Linear_Expression_coefficient (expr, scatter, coef);
 	  ppl_Coefficient_to_mpz_t (coef, val);
 
-	  if (value_notzero_p (val))
+	  if (mpz_sgn (val) != 0)
 	    {
-	      value_clear (val);
+	      mpz_clear (val);
 	      ppl_delete_Linear_Expression (expr);
 	      ppl_delete_Coefficient (coef);
 	      ppl_delete_Constraint_System_const_iterator (cit);
@@ -1052,7 +1053,7 @@ psct_scattering_dim_for_loop_depth (poly_bb_p pbb, graphite_dim_t loop_depth)
 void
 pbb_number_of_iterations (poly_bb_p pbb,
 			  graphite_dim_t loop_depth,
-			  Value niter)
+			  mpz_t niter)
 {
   ppl_Linear_Expression_t le;
   ppl_dimension_type dim;
@@ -1060,7 +1061,7 @@ pbb_number_of_iterations (poly_bb_p pbb,
   ppl_Pointset_Powerset_C_Polyhedron_space_dimension (PBB_DOMAIN (pbb), &dim);
   ppl_new_Linear_Expression_with_dimension (&le, dim);
   ppl_set_coef (le, pbb_iterator_dim (pbb, loop_depth), 1);
-  value_set_si (niter, -1);
+  mpz_set_si (niter, -1);
   ppl_max_for_le_pointset (PBB_DOMAIN (pbb), le, niter);
   ppl_delete_Linear_Expression (le);
 }
@@ -1071,7 +1072,7 @@ pbb_number_of_iterations (poly_bb_p pbb,
 void
 pbb_number_of_iterations_at_time (poly_bb_p pbb,
 				  graphite_dim_t time_depth,
-				  Value niter)
+				  mpz_t niter)
 {
   ppl_Pointset_Powerset_C_Polyhedron_t ext_domain, sctr;
   ppl_Linear_Expression_t le;
@@ -1106,7 +1107,7 @@ pbb_number_of_iterations_at_time (poly_bb_p pbb,
   ppl_Pointset_Powerset_C_Polyhedron_space_dimension (sctr, &dim);
   ppl_new_Linear_Expression_with_dimension (&le, dim);
   ppl_set_coef (le, time_depth, 1);
-  value_set_si (niter, -1);
+  mpz_set_si (niter, -1);
   ppl_max_for_le_pointset (sctr, le, niter);
 
   ppl_delete_Linear_Expression (le);
@@ -1213,7 +1214,7 @@ print_lst (FILE *file, lst_p lst, int indent)
       else
 	fprintf (file, "#(root");
 
-      for (i = 0; VEC_iterate (lst_p, LST_SEQ (lst), i, l); i++)
+      FOR_EACH_VEC_ELT (lst_p, LST_SEQ (lst), i, l)
 	print_lst (file, l, indent + 2);
 
       fprintf (file, ")");
@@ -1224,7 +1225,7 @@ print_lst (FILE *file, lst_p lst, int indent)
 
 /* Print LST to STDERR.  */
 
-void
+DEBUG_FUNCTION void
 debug_lst (lst_p lst)
 {
   print_lst (stderr, lst, 0);
@@ -1254,7 +1255,7 @@ dot_lst_1 (FILE *file, lst_p lst)
 		 lst_depth (lst),
 		 lst_dewey_number (lst));
 
-      for (i = 0; VEC_iterate (lst_p, LST_SEQ (lst), i, l); i++)
+      FOR_EACH_VEC_ELT (lst_p, LST_SEQ (lst), i, l)
 	dot_lst_1 (file, l);
     }
 
@@ -1283,7 +1284,7 @@ dot_lst (lst_p lst)
   fputs ("}\n\n", stream);
   fclose (stream);
 
-  x = system ("dotty /tmp/lst.dot");
+  x = system ("dotty /tmp/lst.dot &");
 #else
   fputs ("digraph all {\n", stderr);
   dot_lst_1 (stderr, lst);

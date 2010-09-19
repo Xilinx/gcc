@@ -58,12 +58,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "conditions.h"
 #include "flags.h"
-#include "real.h"
 #include "hard-reg-set.h"
 #include "output.h"
 #include "except.h"
 #include "function.h"
-#include "toplev.h"
+#include "rtl-error.h"
+#include "toplev.h" /* exact_log2, floor_log2 */
 #include "reload.h"
 #include "intl.h"
 #include "basic-block.h"
@@ -99,8 +99,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "sdbout.h"
 #endif
 
-/* If we aren't using cc0, CC_STATUS_INIT shouldn't exist.  So define a
-   null default for it to save conditionalization later.  */
+/* Most ports that aren't using cc0 don't need to define CC_STATUS_INIT.
+   So define a null default for it to save conditionalization later.  */
 #ifndef CC_STATUS_INIT
 #define CC_STATUS_INIT
 #endif
@@ -221,7 +221,6 @@ static void output_asm_name (void);
 static void output_alternate_entry_point (FILE *, rtx);
 static tree get_mem_expr_from_op (rtx, int *);
 static void output_asm_operand_names (rtx *, int *, int);
-static void output_operand (rtx, int);
 #ifdef LEAF_REGISTERS
 static void leaf_renumber_regs (rtx);
 #endif
@@ -1547,10 +1546,8 @@ final_start_function (rtx first ATTRIBUTE_UNUSED, FILE *file,
 
   /* The Sun386i and perhaps other machines don't work right
      if the profiling code comes after the prologue.  */
-#ifdef PROFILE_BEFORE_PROLOGUE
-  if (crtl->profile)
+  if (targetm.profile_before_prologue () && crtl->profile)
     profile_function (file);
-#endif /* PROFILE_BEFORE_PROLOGUE */
 
 #if defined (DWARF2_UNWIND_INFO) && defined (HAVE_prologue)
   if (dwarf2out_do_frame ())
@@ -1592,10 +1589,8 @@ final_start_function (rtx first ATTRIBUTE_UNUSED, FILE *file,
 static void
 profile_after_prologue (FILE *file ATTRIBUTE_UNUSED)
 {
-#ifndef PROFILE_BEFORE_PROLOGUE
-  if (crtl->profile)
+  if (!targetm.profile_before_prologue () && crtl->profile)
     profile_function (file);
-#endif /* not PROFILE_BEFORE_PROLOGUE */
 }
 
 static void
@@ -1851,9 +1846,8 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	  break;
 
 	case NOTE_INSN_BASIC_BLOCK:
-#ifdef TARGET_UNWIND_INFO
-	  targetm.asm_out.unwind_emit (asm_out_file, insn);
-#endif
+	  if (targetm.asm_out.unwind_emit)
+	    targetm.asm_out.unwind_emit (asm_out_file, insn);
 
 	  if (flag_debug_asm)
 	    fprintf (asm_out_file, "\t%s basic block %d\n",
@@ -1898,8 +1892,9 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	case NOTE_INSN_EPILOGUE_BEG:
 #if defined (DWARF2_UNWIND_INFO) && defined (HAVE_epilogue)
 	  if (dwarf2out_do_frame ())
-	    dwarf2out_begin_epilogue (insn);
+	    dwarf2out_cfi_begin_epilogue (insn);
 #endif
+	  (*debug_hooks->begin_epilogue) (last_linenum, last_filename);
 	  targetm.asm_out.function_begin_epilogue (file);
 	  break;
 
@@ -2044,9 +2039,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 #endif
 	    }
 	}
-#ifdef HAVE_cc0
       CC_STATUS_INIT;
-#endif
 
       if (!DECL_IGNORED_P (current_function_decl) && LABEL_NAME (insn))
 	debug_hooks->label (insn);
@@ -2659,12 +2652,12 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    return new_rtx;
 	  }
 
-#ifdef TARGET_UNWIND_INFO
 	/* ??? This will put the directives in the wrong place if
 	   get_insn_template outputs assembly directly.  However calling it
 	   before get_insn_template breaks if the insns is split.  */
-	targetm.asm_out.unwind_emit (asm_out_file, insn);
-#endif
+	if (targetm.asm_out.unwind_emit_before_insn
+	    && targetm.asm_out.unwind_emit)
+	  targetm.asm_out.unwind_emit (asm_out_file, insn);
 
 	if (CALL_P (insn))
 	  {
@@ -2720,6 +2713,10 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	    && dwarf2out_do_frame ())
 	  dwarf2out_frame_debug (insn, true);
 #endif
+
+	if (!targetm.asm_out.unwind_emit_before_insn
+	    && targetm.asm_out.unwind_emit)
+	  targetm.asm_out.unwind_emit (asm_out_file, insn);
 
 	current_output_insn = debug_insn = 0;
       }
@@ -3330,7 +3327,7 @@ output_asm_insn (const char *templ, rtx *operands)
 	   outputs an operand in a special way depending on the letter.
 	   Letters `acln' are implemented directly.
 	   Other letters are passed to `output_operand' so that
-	   the PRINT_OPERAND macro can define them.  */
+	   the TARGET_PRINT_OPERAND hook can define them.  */
 	else if (ISALPHA (*p))
 	  {
 	    int letter = *p++;
@@ -3396,12 +3393,10 @@ output_asm_insn (const char *templ, rtx *operands)
 	    c = *p;
 	  }
 	/* % followed by punctuation: output something for that
-	   punctuation character alone, with no operand.
-	   The PRINT_OPERAND macro decides what is actually done.  */
-#ifdef PRINT_OPERAND_PUNCT_VALID_P
-	else if (PRINT_OPERAND_PUNCT_VALID_P ((unsigned char) *p))
+	   punctuation character alone, with no operand.  The
+	   TARGET_PRINT_OPERAND hook decides what is actually done.  */
+	else if (targetm.asm_out.print_operand_punct_valid_p ((unsigned char) *p))
 	  output_operand (NULL_RTX, *p++);
-#endif
 	else
 	  output_operand_lossage ("invalid %%-code");
 	break;
@@ -3473,16 +3468,15 @@ mark_symbol_refs_as_used (rtx x)
 }
 
 /* Print operand X using machine-dependent assembler syntax.
-   The macro PRINT_OPERAND is defined just to control this function.
    CODE is a non-digit that preceded the operand-number in the % spec,
    such as 'z' if the spec was `%z3'.  CODE is 0 if there was no char
    between the % and the digits.
    When CODE is a non-letter, X is 0.
 
    The meanings of the letters are machine-dependent and controlled
-   by PRINT_OPERAND.  */
+   by TARGET_PRINT_OPERAND.  */
 
-static void
+void
 output_operand (rtx x, int code ATTRIBUTE_UNUSED)
 {
   if (x && GET_CODE (x) == SUBREG)
@@ -3491,7 +3485,7 @@ output_operand (rtx x, int code ATTRIBUTE_UNUSED)
   /* X must not be a pseudo reg.  */
   gcc_assert (!x || !REG_P (x) || REGNO (x) < FIRST_PSEUDO_REGISTER);
 
-  PRINT_OPERAND (asm_out_file, x, code);
+  targetm.asm_out.print_operand (asm_out_file, x, code);
 
   if (x == NULL_RTX)
     return;
@@ -3499,16 +3493,15 @@ output_operand (rtx x, int code ATTRIBUTE_UNUSED)
   for_each_rtx (&x, mark_symbol_ref_as_used, NULL);
 }
 
-/* Print a memory reference operand for address X
-   using machine-dependent assembler syntax.
-   The macro PRINT_OPERAND_ADDRESS exists just to control this function.  */
+/* Print a memory reference operand for address X using
+   machine-dependent assembler syntax.  */
 
 void
 output_address (rtx x)
 {
   bool changed = false;
   walk_alter_subreg (&x, &changed);
-  PRINT_OPERAND_ADDRESS (asm_out_file, x);
+  targetm.asm_out.print_operand_address (asm_out_file, x);
 }
 
 /* Print an integer constant expression in assembler syntax.
@@ -3529,10 +3522,7 @@ output_addr_const (FILE *file, rtx x)
 
     case SYMBOL_REF:
       if (SYMBOL_REF_DECL (x))
-	{
-	  mark_decl_referenced (SYMBOL_REF_DECL (x));
-	  assemble_external (SYMBOL_REF_DECL (x));
-	}
+	assemble_external (SYMBOL_REF_DECL (x));
 #ifdef ASM_OUTPUT_SYMBOL_REF
       ASM_OUTPUT_SYMBOL_REF (file, x);
 #else
@@ -3635,12 +3625,9 @@ output_addr_const (FILE *file, rtx x)
       break;
 
     default:
-#ifdef OUTPUT_ADDR_CONST_EXTRA
-      OUTPUT_ADDR_CONST_EXTRA (file, x, fail);
-      break;
+      if (targetm.asm_out.output_addr_const_extra (file, x))
+	break;
 
-    fail:
-#endif
       output_operand_lossage ("invalid expression as operand");
     }
 }
@@ -4253,18 +4240,12 @@ rest_of_handle_final (void)
   final (get_insns (), asm_out_file, optimize);
   final_end_function ();
 
-#ifdef TARGET_UNWIND_INFO
-  /* ??? The IA-64 ".handlerdata" directive must be issued before
-     the ".endp" directive that closes the procedure descriptor.  */
+  /* The IA-64 ".handlerdata" directive must be issued before the ".endp"
+     directive that closes the procedure descriptor.  Similarly, for x64 SEH.
+     Otherwise it's not strictly necessary, but it doesn't hurt either.  */
   output_function_exception_table (fnname);
-#endif
 
   assemble_end_function (current_function_decl, fnname);
-
-#ifndef TARGET_UNWIND_INFO
-  /* Otherwise, it feels unclean to switch sections in the middle.  */
-  output_function_exception_table (fnname);
-#endif
 
   user_defined_section_attribute = false;
 
@@ -4367,21 +4348,24 @@ rest_of_clean_state (void)
       final_output = fopen (flag_dump_final_insns, "a");
       if (!final_output)
 	{
-	  error ("could not open final insn dump file %qs: %s",
-		 flag_dump_final_insns, strerror (errno));
+	  error ("could not open final insn dump file %qs: %m",
+		 flag_dump_final_insns);
 	  flag_dump_final_insns = NULL;
 	}
       else
 	{
 	  const char *aname;
+	  struct cgraph_node *node = cgraph_node (current_function_decl);
 
 	  aname = (IDENTIFIER_POINTER
 		   (DECL_ASSEMBLER_NAME (current_function_decl)));
 	  fprintf (final_output, "\n;; Function (%s) %s\n\n", aname,
-	     cfun->function_frequency == FUNCTION_FREQUENCY_HOT
+	     node->frequency == NODE_FREQUENCY_HOT
 	     ? " (hot)"
-	     : cfun->function_frequency == FUNCTION_FREQUENCY_UNLIKELY_EXECUTED
+	     : node->frequency == NODE_FREQUENCY_UNLIKELY_EXECUTED
 	     ? " (unlikely executed)"
+	     : node->frequency == NODE_FREQUENCY_EXECUTED_ONCE
+	     ? " (executed once)"
 	     : "");
 
 	  flag_dump_noaddr = flag_dump_unnumbered = 1;
@@ -4425,8 +4409,8 @@ rest_of_clean_state (void)
 
       if (fclose (final_output))
 	{
-	  error ("could not close final insn dump file %qs: %s",
-		 flag_dump_final_insns, strerror (errno));
+	  error ("could not close final insn dump file %qs: %m",
+		 flag_dump_final_insns);
 	  flag_dump_final_insns = NULL;
 	}
     }

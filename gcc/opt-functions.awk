@@ -78,6 +78,10 @@ function switch_flags (flags)
 	result = result \
 	  test_flag("Common", flags, " | CL_COMMON") \
 	  test_flag("Target", flags, " | CL_TARGET") \
+	  test_flag("Driver", flags, " | CL_DRIVER") \
+	  test_flag("RejectDriver", flags, " | CL_REJECT_DRIVER") \
+	  test_flag("NoDriverArg", flags, " | CL_NO_DRIVER_ARG") \
+	  test_flag("SeparateAlias", flags, " | CL_SEPARATE_ALIAS") \
 	  test_flag("Save", flags, " | CL_SAVE") \
 	  test_flag("Joined", flags, " | CL_JOINED") \
 	  test_flag("JoinedOrMissing", flags, " | CL_JOINED | CL_MISSING_OK") \
@@ -111,7 +115,9 @@ function global_state_p(flags)
 # associated with it.
 function needs_state_p(flags)
 {
-	return flag_set_p("Target", flags)
+	return (flag_set_p("Target", flags) \
+		&& !flag_set_p("Alias.*", flags) \
+		&& !flag_set_p("Ignore", flags))
 }
 
 # If FLAGS describes an option that needs a static state variable,
@@ -128,7 +134,7 @@ function static_var(name, flags)
 # Return the type of variable that should be associated with the given flags.
 function var_type(flags)
 {
-	if (!flag_set_p("Joined.*", flags))
+	if (!flag_set_p("Joined.*", flags) && !flag_set_p("Separate", flags))
 		return "int "
 	else if (flag_set_p("UInteger", flags))
 		return "int "
@@ -143,7 +149,7 @@ function var_type_struct(flags)
 {
 	if (flag_set_p("UInteger", flags))
 		return "int "
-	else if (!flag_set_p("Joined.*", flags)) {
+	else if (!flag_set_p("Joined.*", flags) && !flag_set_p("Separate", flags)) {
 		if (flag_set_p(".*Mask.*", flags))
 			return "int "
 		else
@@ -193,4 +199,19 @@ function var_ref(name, flags)
 	if (opt_args("InverseMask", flags) != "")
 		return "&target_flags"
 	return "0"
+}
+
+# Given the option called NAME return a sanitized version of its name.
+function opt_sanitized_name(name)
+{
+	if (name == "gdwarf+")
+		name = "gdwarfplus"
+	gsub ("[^A-Za-z0-9]", "_", name)
+	return name
+}
+
+# Given the option called NAME return the appropriate enum for it.
+function opt_enum(name)
+{
+	return "OPT_" opt_sanitized_name(name)
 }

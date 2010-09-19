@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -728,7 +728,7 @@ package body Prj.Env is
                Fmap.Add_To_File_Map
                  (Unit_Name => Unit_Name_Type (Data.Unit.Name),
                   File_Name => Data.File,
-                  Path_Name => File_Name_Type (Data.Path.Name));
+                  Path_Name => File_Name_Type (Data.Path.Display_Name));
             end if;
          end if;
 
@@ -831,14 +831,14 @@ package body Prj.Env is
                   Put_Name_Buffer;
                end if;
 
-               Get_Name_String (Source.File);
+               Get_Name_String (Source.Display_File);
                Put_Name_Buffer;
 
                if Source.Locally_Removed then
                   Name_Len := 1;
                   Name_Buffer (1) := '/';
                else
-                  Get_Name_String (Source.Path.Name);
+                  Get_Name_String (Source.Path.Display_Name);
                end if;
 
                Put_Name_Buffer;
@@ -1498,7 +1498,9 @@ package body Prj.Env is
    procedure Set_Ada_Paths
      (Project             : Project_Id;
       In_Tree             : Project_Tree_Ref;
-      Including_Libraries : Boolean)
+      Including_Libraries : Boolean;
+      Include_Path        : Boolean := True;
+      Objects_Path        : Boolean := True)
 
    is
       Source_Paths : Source_Path_Table.Instance;
@@ -1570,7 +1572,7 @@ package body Prj.Env is
       --  If it is the first time we call this procedure for this project,
       --  compute the source path and/or the object path.
 
-      if Project.Include_Path_File = No_Path then
+      if Include_Path and then Project.Include_Path_File = No_Path then
          Source_Path_Table.Init (Source_Paths);
          Process_Source_Dirs := True;
          Create_New_Path_File
@@ -1580,7 +1582,7 @@ package body Prj.Env is
       --  For the object path, we make a distinction depending on
       --  Including_Libraries.
 
-      if Including_Libraries then
+      if Objects_Path and Including_Libraries then
          if Project.Objects_Path_File_With_Libs = No_Path then
             Object_Path_Table.Init (Object_Paths);
             Process_Object_Dirs := True;
@@ -1588,7 +1590,7 @@ package body Prj.Env is
               (In_Tree, Object_FD, Project.Objects_Path_File_With_Libs);
          end if;
 
-      else
+      elsif Objects_Path then
          if Project.Objects_Path_File_Without_Libs = No_Path then
             Object_Path_Table.Init (Object_Paths);
             Process_Object_Dirs := True;
@@ -1662,7 +1664,8 @@ package body Prj.Env is
       --  Set the env vars, if they need to be changed, and set the
       --  corresponding flags.
 
-      if In_Tree.Private_Part.Current_Source_Path_File /=
+      if Include_Path and then
+         In_Tree.Private_Part.Current_Source_Path_File /=
            Project.Include_Path_File
       then
          In_Tree.Private_Part.Current_Source_Path_File :=
@@ -1672,28 +1675,30 @@ package body Prj.Env is
             Get_Name_String (In_Tree.Private_Part.Current_Source_Path_File));
       end if;
 
-      if Including_Libraries then
-         if In_Tree.Private_Part.Current_Object_Path_File /=
-            Project.Objects_Path_File_With_Libs
-         then
-            In_Tree.Private_Part.Current_Object_Path_File :=
-              Project.Objects_Path_File_With_Libs;
-            Set_Path_File_Var
-              (Project_Objects_Path_File,
-               Get_Name_String
-                 (In_Tree.Private_Part.Current_Object_Path_File));
-         end if;
+      if Objects_Path then
+         if Including_Libraries then
+            if In_Tree.Private_Part.Current_Object_Path_File /=
+              Project.Objects_Path_File_With_Libs
+            then
+               In_Tree.Private_Part.Current_Object_Path_File :=
+                 Project.Objects_Path_File_With_Libs;
+               Set_Path_File_Var
+                 (Project_Objects_Path_File,
+                  Get_Name_String
+                    (In_Tree.Private_Part.Current_Object_Path_File));
+            end if;
 
-      else
-         if In_Tree.Private_Part.Current_Object_Path_File /=
-            Project.Objects_Path_File_Without_Libs
-         then
-            In_Tree.Private_Part.Current_Object_Path_File :=
-              Project.Objects_Path_File_Without_Libs;
-            Set_Path_File_Var
-              (Project_Objects_Path_File,
-               Get_Name_String
-                 (In_Tree.Private_Part.Current_Object_Path_File));
+         else
+            if In_Tree.Private_Part.Current_Object_Path_File /=
+              Project.Objects_Path_File_Without_Libs
+            then
+               In_Tree.Private_Part.Current_Object_Path_File :=
+                 Project.Objects_Path_File_Without_Libs;
+               Set_Path_File_Var
+                 (Project_Objects_Path_File,
+                  Get_Name_String
+                    (In_Tree.Private_Part.Current_Object_Path_File));
+            end if;
          end if;
       end if;
 

@@ -83,7 +83,7 @@ along with GCC; see the file COPYING3.  If not see
   %{!mno-cygwin:-lcygwin} \
   %{mno-cygwin:%{mthreads:-lmingwthrd} -lmingw32} \
   %{mwindows:-lgdi32 -lcomdlg32} \
-  -luser32 -lkernel32 -ladvapi32 -lshell32"
+  -ladvapi32 -lshell32 -luser32 -lkernel32"
 
 /* To implement C++ function replacement we always wrap the cxx
    malloc-like operators.  See N2800 #17.6.4.6 [replacement.functions] */
@@ -301,5 +301,5 @@ while (0)
 #define LIBGCC_SONAME "cyggcc_s" LIBGCC_EH_EXTN "-1.dll"
 
 /* We should find a way to not have to update this manually.  */
-#define LIBGCJ_SONAME "cyggcj" /*LIBGCC_EH_EXTN*/ "-11.dll"
+#define LIBGCJ_SONAME "cyggcj" /*LIBGCC_EH_EXTN*/ "-12.dll"
 

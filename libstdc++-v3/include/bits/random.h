@@ -28,6 +28,9 @@
  *  You should not attempt to use it directly.
  */
 
+#ifndef _RANDOM_H
+#define _RANDOM_H 1
+
 #include <vector>
 
 namespace std
@@ -1614,7 +1617,7 @@ namespace std
    */
 
   /**
-   * @addtogroup random_distributions_uniform Uniform Distributions
+   * @addtogroup random_distributions_uniform Uniform
    * @ingroup random_distributions
    * @{
    */
@@ -1972,7 +1975,7 @@ namespace std
   /* @} */ // group random_distributions_uniform
 
   /**
-   * @addtogroup random_distributions_normal Normal Distributions
+   * @addtogroup random_distributions_normal Normal
    * @ingroup random_distributions
    * @{
    */
@@ -3226,7 +3229,7 @@ namespace std
   /* @} */ // group random_distributions_normal
 
   /**
-   * @addtogroup random_distributions_bernoulli Bernoulli Distributions
+   * @addtogroup random_distributions_bernoulli Bernoulli
    * @ingroup random_distributions
    * @{
    */
@@ -3957,7 +3960,7 @@ namespace std
   /* @} */ // group random_distributions_bernoulli
 
   /**
-   * @addtogroup random_distributions_poisson Poisson Distributions
+   * @addtogroup random_distributions_poisson Poisson
    * @ingroup random_distributions
    * @{
    */
@@ -5337,6 +5340,6 @@ namespace std
   /* @} */ // group random_utilities
 
   /* @} */ // group random
-
 }
 
+#endif

@@ -139,7 +139,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       pointer
       operator->() const
-      { return &static_cast<_Node*>(this->_M_node)->_M_value; }
+      { return std::__addressof(static_cast<_Node*>
+				(this->_M_node)->_M_value); }
 
       _Self&
       operator++()
@@ -210,7 +211,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       pointer
       operator->() const
-      { return &static_cast<_Node*>(this->_M_node)->_M_value; }
+      { return std::__addressof(static_cast<_Node*>
+				(this->_M_node)->_M_value); }
 
       _Self&
       operator++()
@@ -450,7 +452,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  @param  al    An allocator object.
        */
       forward_list(forward_list&& __list, const _Alloc& __al)
-      : _Base(std::forward<_Base>(__list), __al)
+      : _Base(std::move(__list), __al)
       { }
 
       /**
@@ -461,7 +463,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  constructed elements.
        */
       explicit
-      forward_list(size_type __n);
+      forward_list(size_type __n)
+      : _Base()
+      { _M_default_initialize(__n); }
 
       /**
        *  @brief  Creates a %forward_list with copies of an exemplar element.
@@ -519,7 +523,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  %forward_list.
        */
       forward_list(forward_list&& __list)
-      : _Base(std::forward<_Base>(__list)) { }
+      : _Base(std::move(__list)) { }
 
       /**
        *  @brief  Builds a %forward_list from an initializer_list
@@ -998,7 +1002,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  populated with given data.
        */
       void
-      resize(size_type __sz, value_type __val);
+      resize(size_type __sz, const value_type& __val);
 
       /**
        *  @brief  Erases all the elements.
@@ -1207,6 +1211,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       // Called by splice_after and insert_after.
       iterator
       _M_splice_after(const_iterator __pos, forward_list&& __list);
+
+      // Called by forward_list(n).
+      void
+      _M_default_initialize(size_type __n);
+
+      // Called by resize(sz).
+      void
+      _M_default_insert_after(const_iterator __pos, size_type __n);
     };
 
   /**

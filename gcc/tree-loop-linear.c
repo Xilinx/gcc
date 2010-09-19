@@ -24,20 +24,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "ggc.h"
 #include "tree.h"
-#include "target.h"
-
-#include "rtl.h"
 #include "basic-block.h"
-#include "diagnostic.h"
 #include "obstack.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "timevar.h"
 #include "cfgloop.h"
-#include "expr.h"
-#include "optabs.h"
 #include "tree-chrec.h"
 #include "tree-data-ref.h"
 #include "tree-scalar-evolution.h"
@@ -106,7 +99,7 @@ gather_interchange_stats (VEC (ddr_p, heap) *dependence_relations ATTRIBUTE_UNUS
   *nb_deps_not_carried_by_loop = 0;
   *access_strides = double_int_zero;
 
-  for (i = 0; VEC_iterate (ddr_p, dependence_relations, i, ddr); i++)
+  FOR_EACH_VEC_ELT (ddr_p, dependence_relations, i, ddr)
     {
       /* If we don't know anything about this dependence, or the distance
 	 vector is NULL, or there is no dependence, then there is no reuse of
@@ -132,7 +125,7 @@ gather_interchange_stats (VEC (ddr_p, heap) *dependence_relations ATTRIBUTE_UNUS
     }
 
   /* Compute the access strides.  */
-  for (i = 0; VEC_iterate (data_reference_p, datarefs, i, dr); i++)
+  FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, dr)
     {
       unsigned int it;
       tree ref = DR_REF (dr);
@@ -358,14 +351,15 @@ linear_transform_loops (void)
 	goto free_and_continue;
 
       lambda_collect_parameters (datarefs, &lambda_parameters);
-      if (!lambda_compute_access_matrices (datarefs, lambda_parameters, nest))
+      if (!lambda_compute_access_matrices (datarefs, lambda_parameters,
+					   nest, &lambda_obstack))
 	goto free_and_continue;
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	dump_ddrs (dump_file, dependence_relations);
 
       /* Build the transformation matrix.  */
-      trans = lambda_trans_matrix_new (depth, depth);
+      trans = lambda_trans_matrix_new (depth, depth, &lambda_obstack);
       lambda_matrix_id (LTM_MATRIX (trans), depth);
       trans = try_interchange_loops (trans, depth, dependence_relations,
 				     datarefs, loop_nest);
@@ -420,7 +414,7 @@ linear_transform_loops (void)
       VEC_free (loop_p, heap, nest);
     }
 
-  for (i = 0; VEC_iterate (gimple, remove_ivs, i, oldiv_stmt); i++)
+  FOR_EACH_VEC_ELT (gimple, remove_ivs, i, oldiv_stmt)
     remove_iv (oldiv_stmt);
 
   VEC_free (tree, heap, oldivs);

@@ -29,11 +29,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "hard-reg-set.h"
 #include "flags.h"
-#include "real.h"
 #include "insn-config.h"
 #include "recog.h"
 #include "function.h"
 #include "emit-rtl.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "output.h"
 #include "ggc.h"
@@ -43,6 +43,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "alloc-pool.h"
 #include "target.h"
+#include "bitmap.h"
 
 static bool cselib_record_memory;
 static bool cselib_preserve_constants;
@@ -178,6 +179,7 @@ static cselib_val dummy_val;
    that is constant through the whole function and should never be
    eliminated.  */
 static cselib_val *cfa_base_preserved_val;
+static unsigned int cfa_base_preserved_regno;
 
 /* Used to list all values that contain memory reference.
    May or may not contain the useless values - the list is compacted
@@ -338,7 +340,7 @@ cselib_reset_table (unsigned int num)
 
   if (cfa_base_preserved_val)
     {
-      unsigned int regno = REGNO (cfa_base_preserved_val->locs->loc);
+      unsigned int regno = cfa_base_preserved_regno;
       unsigned int new_used_regs = 0;
       for (i = 0; i < n_used_regs; i++)
 	if (used_regs[i] == regno)
@@ -571,12 +573,15 @@ cselib_preserved_value_p (cselib_val *v)
    never invalidated and preserved across cselib_reset_table calls.  */
 
 void
-cselib_preserve_cfa_base_value (cselib_val *v)
+cselib_preserve_cfa_base_value (cselib_val *v, unsigned int regno)
 {
   if (cselib_preserve_constants
       && v->locs
       && REG_P (v->locs->loc))
-    cfa_base_preserved_val = v;
+    {
+      cfa_base_preserved_val = v;
+      cfa_base_preserved_regno = regno;
+    }
 }
 
 /* Clean all non-constant expressions in the hash table, but retain
@@ -694,6 +699,10 @@ rtx_equal_for_cselib_p (rtx x, rtx y)
     case CONST_FIXED:
     case DEBUG_EXPR:
       return 0;
+
+    case DEBUG_IMPLICIT_PTR:
+      return DEBUG_IMPLICIT_PTR_DECL (x)
+	     == DEBUG_IMPLICIT_PTR_DECL (y);
 
     case LABEL_REF:
       return XEXP (x, 0) == XEXP (y, 0);
@@ -828,6 +837,11 @@ cselib_hash_rtx (rtx x, int create)
       hash += ((unsigned) DEBUG_EXPR << 7)
 	      + DEBUG_TEMP_UID (DEBUG_EXPR_TREE_DECL (x));
       return hash ? hash : (unsigned int) DEBUG_EXPR;
+
+    case DEBUG_IMPLICIT_PTR:
+      hash += ((unsigned) DEBUG_IMPLICIT_PTR << 7)
+	      + DECL_UID (DEBUG_IMPLICIT_PTR_DECL (x));
+      return hash ? hash : (unsigned int) DEBUG_IMPLICIT_PTR;
 
     case CONST_INT:
       hash += ((unsigned) CONST_INT << 7) + INTVAL (x);
@@ -1783,7 +1797,9 @@ cselib_invalidate_regno (unsigned int regno, enum machine_mode mode)
 	  if (i < FIRST_PSEUDO_REGISTER && v != NULL)
 	    this_last = end_hard_regno (GET_MODE (v->val_rtx), i) - 1;
 
-	  if (this_last < regno || v == NULL || v == cfa_base_preserved_val)
+	  if (this_last < regno || v == NULL
+	      || (v == cfa_base_preserved_val
+		  && i == cfa_base_preserved_regno))
 	    {
 	      l = &(*l)->next;
 	      continue;
@@ -2266,6 +2282,7 @@ cselib_finish (void)
   cselib_discard_hook = NULL;
   cselib_preserve_constants = false;
   cfa_base_preserved_val = NULL;
+  cfa_base_preserved_regno = INVALID_REGNUM;
   free_alloc_pool (elt_list_pool);
   free_alloc_pool (elt_loc_list_pool);
   free_alloc_pool (cselib_val_pool);

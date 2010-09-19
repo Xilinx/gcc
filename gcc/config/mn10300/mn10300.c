@@ -27,7 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "output.h"
@@ -39,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "optabs.h"
 #include "function.h"
 #include "obstack.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "tm_p.h"
 #include "target.h"
@@ -69,6 +69,7 @@ enum processor_type mn10300_processor = PROCESSOR_DEFAULT;
 
 
 static bool mn10300_handle_option (size_t, const char *, int);
+static void mn10300_option_override (void);
 static bool mn10300_legitimate_address_p (enum machine_mode, rtx, bool);
 static int mn10300_address_cost_1 (rtx, int *);
 static int mn10300_address_cost (rtx, bool);
@@ -112,6 +113,8 @@ static bool mn10300_can_output_mi_thunk (const_tree, HOST_WIDE_INT, HOST_WIDE_IN
 #define TARGET_DEFAULT_TARGET_FLAGS MASK_MULT_BUG | MASK_PTR_A0D0
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION mn10300_handle_option
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE mn10300_option_override
 
 #undef  TARGET_ENCODE_SECTION_INFO
 #define TARGET_ENCODE_SECTION_INFO mn10300_encode_section_info
@@ -177,10 +180,10 @@ mn10300_handle_option (size_t code,
     }
 }
 
-/* Implement OVERRIDE_OPTIONS.  */
+/* Implement TARGET_OPTION_OVERRIDE.  */
 
-void
-mn10300_override_options (void)
+static void
+mn10300_option_override (void)
 {
   if (TARGET_AM33)
     target_flags &= ~MASK_MULT_BUG;
@@ -1493,9 +1496,7 @@ mn10300_builtin_saveregs (void)
 {
   rtx offset, mem;
   tree fntype = TREE_TYPE (current_function_decl);
-  int argadj = ((!(TYPE_ARG_TYPES (fntype) != 0
-                   && (TREE_VALUE (tree_last (TYPE_ARG_TYPES (fntype)))
-                       != void_type_node)))
+  int argadj = ((!stdarg_p (fntype))
                 ? UNITS_PER_WORD : 0);
   alias_set_type set = get_varargs_alias_set ();
 

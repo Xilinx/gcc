@@ -23,7 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 #define _TREE_FLOW_H 1
 
 #include "bitmap.h"
-#include "hard-reg-set.h"
+#include "sbitmap.h"
 #include "basic-block.h"
 #include "hashtab.h"
 #include "gimple.h"
@@ -56,9 +56,6 @@ struct GTY(()) gimple_df {
   /* The PTA solution for the ESCAPED artificial variable.  */
   struct pt_solution escaped;
 
-  /* The PTA solution for the CALLUSED artificial variable.  */
-  struct pt_solution callused;
-
   /* A map of decls to artificial ssa-names that point to the partition
      of the decl.  */
   struct pointer_map_t * GTY((skip(""))) decls_to_pointers;
@@ -78,6 +75,9 @@ struct GTY(()) gimple_df {
 
   /* True if the code is in ssa form.  */
   unsigned int in_ssa_p : 1;
+
+  /* True if IPA points-to information was computed for this function.  */
+  unsigned int ipa_pta : 1;
 
   struct ssa_operands ssa_operands;
 };
@@ -114,10 +114,23 @@ typedef struct
 ---------------------------------------------------------------------------*/
 
 /* Aliasing information for SSA_NAMEs representing pointer variables.  */
+
 struct GTY(()) ptr_info_def
 {
-  /* The points-to solution, TBAA-pruned if the pointer is dereferenced.  */
+  /* The points-to solution.  */
   struct pt_solution pt;
+
+  /* Alignment and misalignment of the pointer in bytes.  Together
+     align and misalign specify low known bits of the pointer.
+     ptr & (align - 1) == misalign.  */
+
+  /* The power-of-two byte alignment of the object this pointer
+     points into.  This is usually DECL_ALIGN_UNIT for decls and
+     MALLOC_ABI_ALIGNMENT for allocated storage.  */
+  unsigned int align;
+
+  /* The byte offset this pointer differs from the above alignment.  */
+  unsigned int misalign;
 };
 
 
@@ -146,29 +159,6 @@ enum need_phi_state {
 };
 
 
-/* The "no alias" attribute allows alias analysis to make more
-   aggressive assumptions when assigning alias sets, computing
-   points-to information and memory partitions.  These attributes
-   are the result of user annotations or flags (e.g.,
-   -fargument-noalias).  */
-enum noalias_state {
-    /* Default state.  No special assumptions can be made about this
-       symbol.  */
-    MAY_ALIAS = 0,
-
-    /* The symbol does not alias with other symbols that have a
-       NO_ALIAS* attribute.  */
-    NO_ALIAS,
-
-    /* The symbol does not alias with other symbols that have a
-       NO_ALIAS*, and it may not alias with global symbols.  */
-    NO_ALIAS_GLOBAL,
-
-    /* The symbol does not alias with any other symbols.  */
-    NO_ALIAS_ANYTHING
-};
-
-
 struct GTY(()) var_ann_d {
   /* Used when building base variable structures in a var_map.  */
   unsigned base_var_processed : 1;
@@ -185,11 +175,6 @@ struct GTY(()) var_ann_d {
   /* True for HEAP artificial variables.  These variables represent
      the memory area allocated by a call to malloc.  */
   unsigned is_heapvar : 1;
-
-  /* This field describes several "no alias" attributes that some
-     symbols are known to have.  See the enum's definition for more
-     information on each attribute.  */
-  ENUM_BITFIELD (noalias_state) noalias_state : 2;
 
   /* Used by var_map for the base index of ssa base variables.  */
   unsigned base_index;
@@ -252,17 +237,17 @@ typedef struct immediate_use_iterator_d
 /* Use this iterator when simply looking at stmts.  Adding, deleting or
    modifying stmts will cause this iterator to malfunction.  */
 
-#define FOR_EACH_IMM_USE_FAST(DEST, ITER, SSAVAR)			\
+#define FOR_EACH_IMM_USE_FAST(DEST, ITER, SSAVAR)		\
   for ((DEST) = first_readonly_imm_use (&(ITER), (SSAVAR));	\
        !end_readonly_imm_use_p (&(ITER));			\
-       (DEST) = next_readonly_imm_use (&(ITER)))
+       (void) ((DEST) = next_readonly_imm_use (&(ITER))))
 
 /* Use this iterator to visit each stmt which has a use of SSAVAR.  */
 
 #define FOR_EACH_IMM_USE_STMT(STMT, ITER, SSAVAR)		\
   for ((STMT) = first_imm_use_stmt (&(ITER), (SSAVAR));		\
        !end_imm_use_stmt_p (&(ITER));				\
-       (STMT) = next_imm_use_stmt (&(ITER)))
+       (void) ((STMT) = next_imm_use_stmt (&(ITER))))
 
 /* Use this to terminate the FOR_EACH_IMM_USE_STMT loop early.  Failure to
    do so will result in leaving a iterator marker node in the immediate
@@ -290,7 +275,7 @@ typedef struct immediate_use_iterator_d
 #define FOR_EACH_IMM_USE_ON_STMT(DEST, ITER)			\
   for ((DEST) = first_imm_use_on_stmt (&(ITER));		\
        !end_imm_use_on_stmt_p (&(ITER));			\
-       (DEST) = next_imm_use_on_stmt (&(ITER)))
+       (void) ((DEST) = next_imm_use_on_stmt (&(ITER))))
 
 
 
@@ -348,7 +333,6 @@ typedef struct
 extern tree referenced_var_lookup (unsigned int);
 extern bool referenced_var_check_and_insert (tree);
 #define num_referenced_vars htab_elements (gimple_referenced_vars (cfun))
-#define referenced_var(i) referenced_var_lookup (i)
 
 #define num_ssa_names (VEC_length (tree, cfun->gimple_df->ssa_names))
 #define ssa_name(i) (VEC_index (tree, cfun->gimple_df->ssa_names, (i)))
@@ -395,7 +379,7 @@ struct omp_region
   /* If this is a combined parallel+workshare region, this is a list
      of additional arguments needed by the combined parallel+workshare
      library call.  */
-  tree ws_args;
+  VEC(tree,gc) *ws_args;
 
   /* The code for the omp directive of this region.  */
   enum gimple_code type;
@@ -485,7 +469,6 @@ extern void end_recording_case_labels (void);
 extern basic_block move_sese_region_to_fn (struct function *, basic_block,
 				           basic_block, tree);
 void remove_edge_and_dominated_blocks (edge);
-void mark_virtual_ops_in_bb (basic_block);
 bool tree_node_can_be_shared (tree);
 
 /* In tree-cfgcleanup.c  */
@@ -519,6 +502,7 @@ extern tree gimple_default_def (struct function *, tree);
 extern bool stmt_references_abnormal_ssa_name (gimple);
 extern tree get_ref_base_and_extent (tree, HOST_WIDE_INT *,
 				     HOST_WIDE_INT *, HOST_WIDE_INT *);
+extern tree get_addr_base_and_unit_offset (tree, HOST_WIDE_INT *);
 extern void find_referenced_vars_in (gimple);
 
 /* In tree-phinodes.c  */
@@ -540,7 +524,6 @@ extern void phinodes_print_statistics (void);
 /* In gimple-low.c  */
 extern void record_vars_into (tree, tree);
 extern void record_vars (tree);
-extern bool block_may_fallthru (const_tree);
 extern bool gimple_seq_may_fallthru (gimple_seq);
 extern bool gimple_stmt_may_fallthru (gimple);
 extern bool gimple_check_call_args (gimple);
@@ -574,6 +557,8 @@ extern void flush_pending_stmts (edge);
 extern void verify_ssa (bool);
 extern void delete_tree_ssa (void);
 extern bool ssa_undefined_value_p (tree);
+extern void warn_uninit (tree, const char *, void *);
+extern unsigned int warn_uninitialized_vars (bool);
 extern void execute_update_addresses_taken (bool);
 
 /* Call-back function for walk_use_def_chains().  At each reaching
@@ -599,6 +584,7 @@ void release_ssa_name_after_update_ssa (tree);
 void compute_global_livein (bitmap, bitmap);
 void mark_sym_for_renaming (tree);
 void mark_set_for_renaming (bitmap);
+bool symbol_marked_for_renaming (tree);
 tree get_current_def (tree);
 void set_current_def (tree, tree);
 
@@ -617,12 +603,7 @@ extern void ssanames_print_statistics (void);
 #endif
 
 /* In tree-ssa-ccp.c  */
-bool fold_stmt (gimple_stmt_iterator *);
-bool fold_stmt_inplace (gimple);
-tree get_symbol_constant_value (tree);
 tree fold_const_aggregate_ref (tree);
-bool may_propagate_address_into_dereference (tree, tree);
-
 
 /* In tree-ssa-dom.c  */
 extern void dump_dominator_optimization_stats (FILE *);
@@ -687,7 +668,7 @@ basic_block *blocks_in_phiopt_order (void);
 
 /* In tree-ssa-loop*.c  */
 
-void tree_ssa_lim (void);
+unsigned int tree_ssa_lim (void);
 unsigned int tree_ssa_unswitch_loops (void);
 unsigned int canonicalize_induction_variables (void);
 unsigned int tree_unroll_loops_completely (bool, bool);
@@ -703,7 +684,7 @@ bool number_of_iterations_exit (struct loop *, edge,
 tree find_loop_niter (struct loop *, edge *);
 tree loop_niter_by_eval (struct loop *, edge);
 tree find_loop_niter_by_eval (struct loop *, edge *);
-void estimate_numbers_of_iterations (void);
+void estimate_numbers_of_iterations (bool);
 bool array_at_struct_end_p (tree);
 bool scev_probably_wraps_p (tree, tree, gimple, struct loop *, bool);
 bool convert_affine_scev (struct loop *, tree, tree *, tree *, gimple, bool);
@@ -715,7 +696,7 @@ enum ev_direction scev_direction (const_tree);
 void free_numbers_of_iterations_estimates (void);
 void free_numbers_of_iterations_estimates_loop (struct loop *);
 void rewrite_into_loop_closed_ssa (bitmap, unsigned);
-void verify_loop_closed_ssa (void);
+void verify_loop_closed_ssa (bool);
 bool for_each_index (tree *, bool (*) (tree, tree *, void *), void *);
 void create_iv (tree, tree, tree, struct loop *, gimple_stmt_iterator *, bool,
 		tree *, tree *);
@@ -778,11 +759,9 @@ extern enum move_pos movement_possibility (gimple);
 char *get_lsm_tmp_name (tree, unsigned);
 
 /* In tree-flow-inline.h  */
-static inline bool is_call_clobbered (const_tree);
 static inline void set_is_used (tree);
 static inline bool unmodifiable_var_p (const_tree);
 static inline bool ref_contains_array_ref (const_tree);
-static inline bool array_ref_contains_indirect_ref (const_tree);
 
 /* In tree-eh.c  */
 extern void make_eh_edges (gimple);
@@ -838,13 +817,18 @@ bool stmt_invariant_in_loop_p (struct loop *, gimple);
 bool multiplier_allowed_in_address_p (HOST_WIDE_INT, enum machine_mode,
 				      addr_space_t);
 unsigned multiply_by_cost (HOST_WIDE_INT, enum machine_mode, bool);
+bool may_be_nonaddressable_p (tree expr);
 
 /* In tree-ssa-threadupdate.c.  */
 extern bool thread_through_all_blocks (bool);
 extern void register_jump_thread (edge, edge);
 
 /* In gimplify.c  */
+tree force_gimple_operand_1 (tree, gimple_seq *, gimple_predicate, tree);
 tree force_gimple_operand (tree, gimple_seq *, bool, tree);
+tree force_gimple_operand_gsi_1 (gimple_stmt_iterator *, tree,
+				 gimple_predicate, tree,
+				 bool, enum gsi_iterator_update);
 tree force_gimple_operand_gsi (gimple_stmt_iterator *, tree, bool, tree,
 			       bool, enum gsi_iterator_update);
 tree gimple_fold_indirect_ref (tree);
@@ -866,13 +850,17 @@ struct mem_address
 
 struct affine_tree_combination;
 tree create_mem_ref (gimple_stmt_iterator *, tree,
-		     struct affine_tree_combination *, tree, bool);
+		     struct affine_tree_combination *, tree, tree, tree, bool);
 rtx addr_for_mem_ref (struct mem_address *, addr_space_t, bool);
 void get_address_description (tree, struct mem_address *);
 tree maybe_fold_tmr (tree);
 
 unsigned int execute_free_datastructures (void);
 unsigned int execute_fixup_cfg (void);
+bool fixup_noreturn_call (gimple stmt);
+
+/* In ipa-pure-const.c  */
+void warn_function_noreturn (tree);
 
 #include "tree-flow-inline.h"
 

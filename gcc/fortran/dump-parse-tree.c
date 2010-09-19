@@ -32,7 +32,9 @@ along with GCC; see the file COPYING3.  If not see
    TODO: Dump DATA.  */
 
 #include "config.h"
+#include "system.h"
 #include "gfortran.h"
+#include "constructor.h"
 
 /* Keep track of indentation for symbol tree dumps.  */
 static int show_level = 0;
@@ -45,6 +47,20 @@ static FILE *dumpfile;
 static void show_expr (gfc_expr *p);
 static void show_code_node (int, gfc_code *);
 static void show_namespace (gfc_namespace *ns);
+
+
+/* Allow dumping of an expression in the debugger.  */
+void gfc_debug_expr (gfc_expr *);
+
+void
+gfc_debug_expr (gfc_expr *e)
+{
+  FILE *tmp = dumpfile;
+  dumpfile = stderr;
+  show_expr (e);
+  fputc ('\n', dumpfile);
+  dumpfile = tmp;
+}
 
 
 /* Do indentation for a specific level.  */
@@ -141,9 +157,9 @@ show_array_spec (gfc_array_spec *as)
       return;
     }
 
-  fprintf (dumpfile, "(%d", as->rank);
+  fprintf (dumpfile, "(%d [%d]", as->rank, as->corank);
 
-  if (as->rank != 0)
+  if (as->rank + as->corank > 0)
     {
       switch (as->type)
       {
@@ -157,7 +173,7 @@ show_array_spec (gfc_array_spec *as)
       }
       fprintf (dumpfile, " %s ", c);
 
-      for (i = 0; i < as->rank; i++)
+      for (i = 0; i < as->rank + as->corank; i++)
 	{
 	  show_expr (as->lower[i]);
 	  fputc (' ', dumpfile);
@@ -271,9 +287,10 @@ show_ref (gfc_ref *p)
 /* Display a constructor.  Works recursively for array constructors.  */
 
 static void
-show_constructor (gfc_constructor *c)
+show_constructor (gfc_constructor_base base)
 {
-  for (; c; c = c->next)
+  gfc_constructor *c;
+  for (c = gfc_constructor_first (base); c; c = gfc_constructor_next (c))
     {
       if (c->iterator == NULL)
 	show_expr (c->expr);
@@ -294,7 +311,7 @@ show_constructor (gfc_constructor *c)
 	  fputc (')', dumpfile);
 	}
 
-      if (c->next != NULL)
+      if (gfc_constructor_next (c) != NULL)
 	fputs (" , ", dumpfile);
     }
 }
@@ -591,8 +608,12 @@ show_attr (symbol_attribute *attr)
     fputs (" ALLOCATABLE", dumpfile);
   if (attr->asynchronous)
     fputs (" ASYNCHRONOUS", dumpfile);
+  if (attr->codimension)
+    fputs (" CODIMENSION", dumpfile);
   if (attr->dimension)
     fputs (" DIMENSION", dumpfile);
+  if (attr->contiguous)
+    fputs (" CONTIGUOUS", dumpfile);
   if (attr->external)
     fputs (" EXTERNAL", dumpfile);
   if (attr->intrinsic)
@@ -789,6 +810,15 @@ show_symbol (gfc_symbol *sym)
 
   fprintf (dumpfile, "symbol %s ", sym->name);
   show_typespec (&sym->ts);
+
+  /* If this symbol is an associate-name, show its target expression.  */
+  if (sym->assoc)
+    {
+      fputs (" => ", dumpfile);
+      show_expr (sym->assoc->target);
+      fputs (" ", dumpfile);
+    }
+
   show_attr (&sym->attr);
 
   if (sym->value)
@@ -848,7 +878,7 @@ show_symbol (gfc_symbol *sym)
 	}
     }
 
-  if (sym->formal_ns)
+  if (sym->formal_ns && (sym->formal_ns->proc_name != sym))
     {
       show_indent ();
       fputs ("Formal namespace", dumpfile);
@@ -1170,6 +1200,7 @@ show_code_node (int level, gfc_code *c)
   gfc_filepos *fp;
   gfc_inquire *i;
   gfc_dt *dt;
+  gfc_namespace *ns;
 
   code_indent (level, c->here);
 
@@ -1368,6 +1399,22 @@ show_code_node (int level, gfc_code *c)
 
       fputs ("ENDIF", dumpfile);
       break;
+
+    case EXEC_BLOCK:
+      {
+	const char* blocktype;
+	if (c->ext.block.assoc)
+	  blocktype = "ASSOCIATE";
+	else
+	  blocktype = "BLOCK";
+	show_indent ();
+	fprintf (dumpfile, "%s ", blocktype);
+	ns = c->ext.block.ns;
+	show_namespace (ns);
+	show_indent ();
+	fprintf (dumpfile, "END %s ", blocktype);
+	break;
+      }
 
     case EXEC_SELECT:
       d = c->block;
@@ -2139,7 +2186,7 @@ show_namespace (gfc_namespace *ns)
   fputc ('\n', dumpfile);
   fputc ('\n', dumpfile);
 
-  show_code (0, ns->code);
+  show_code (show_level, ns->code);
 
   for (ns = ns->contained; ns; ns = ns->sibling)
     {

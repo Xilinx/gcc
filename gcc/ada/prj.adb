@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,10 +34,9 @@ with Uintp;    use Uintp;
 with Ada.Characters.Handling;    use Ada.Characters.Handling;
 with Ada.Unchecked_Deallocation;
 
+with GNAT.Case_Util;            use GNAT.Case_Util;
 with GNAT.Directory_Operations; use GNAT.Directory_Operations;
-
-with System.Case_Util; use System.Case_Util;
-with System.HTable;
+with GNAT.HTable;
 
 package body Prj is
 
@@ -48,8 +47,6 @@ package body Prj is
    --  Initial size for extensible buffer used in Add_To_Buffer
 
    The_Empty_String : Name_Id := No_Name;
-
-   subtype Known_Casing is Casing_Type range All_Upper_Case .. Mixed_Case;
 
    type Cst_String_Access is access constant String;
 
@@ -250,16 +247,10 @@ package body Prj is
             return No_File;
 
          when Makefile =>
-            return
-              File_Name_Type
-                (Extend_Name
-                   (Source_File_Name, Makefile_Dependency_Suffix));
+            return Extend_Name (Source_File_Name, Makefile_Dependency_Suffix);
 
          when ALI_File =>
-            return
-              File_Name_Type
-                (Extend_Name
-                   (Source_File_Name, ALI_Dependency_Suffix));
+            return Extend_Name (Source_File_Name, ALI_Dependency_Suffix);
       end case;
    end Dependency_Name;
 
@@ -568,7 +559,7 @@ package body Prj is
    -- Hash --
    ----------
 
-   function Hash is new System.HTable.Hash (Header_Num => Header_Num);
+   function Hash is new GNAT.HTable.Hash (Header_Num => Header_Num);
    --  Used in implementation of other functions Hash below
 
    function Hash (Name : File_Name_Type) return Header_Num is
@@ -1024,11 +1015,11 @@ package body Prj is
 
          if Project.Library then
             if Project.Object_Directory = No_Path_Information
-              or else Contains_ALI_Files (Project.Library_ALI_Dir.Name)
+              or else Contains_ALI_Files (Project.Library_ALI_Dir.Display_Name)
             then
-               return Project.Library_ALI_Dir.Name;
+               return Project.Library_ALI_Dir.Display_Name;
             else
-               return Project.Object_Directory.Name;
+               return Project.Object_Directory.Display_Name;
             end if;
 
             --  For a non-library project, add object directory if it is not a
@@ -1054,7 +1045,7 @@ package body Prj is
                end loop;
 
                if Add_Object_Dir then
-                  return Project.Object_Directory.Name;
+                  return Project.Object_Directory.Display_Name;
                end if;
             end;
          end if;
@@ -1154,7 +1145,10 @@ package body Prj is
    begin
       return Source.Language.Config.Compiler_Driver /= No_File
         and then Length_Of_Name (Source.Language.Config.Compiler_Driver) /= 0
-        and then not Source.Locally_Removed;
+        and then not Source.Locally_Removed
+        and then (Source.Language.Config.Kind /= File_Based
+                    or else
+                  Source.Kind /= Spec);
    end Is_Compilable;
 
    ------------------------------
@@ -1226,11 +1220,13 @@ package body Prj is
    function Create_Flags
      (Report_Error               : Error_Handler;
       When_No_Sources            : Error_Warning;
-      Require_Sources_Other_Lang : Boolean := True;
-      Allow_Duplicate_Basenames  : Boolean := True;
-      Compiler_Driver_Mandatory  : Boolean := False;
-      Error_On_Unknown_Language  : Boolean := True;
-      Require_Obj_Dirs           : Error_Warning := Error)
+      Require_Sources_Other_Lang : Boolean       := True;
+      Allow_Duplicate_Basenames  : Boolean       := True;
+      Compiler_Driver_Mandatory  : Boolean       := False;
+      Error_On_Unknown_Language  : Boolean       := True;
+      Require_Obj_Dirs           : Error_Warning := Error;
+      Allow_Invalid_External     : Error_Warning := Error;
+      Missing_Source_Files       : Error_Warning := Error)
       return Processing_Flags
    is
    begin
@@ -1241,7 +1237,9 @@ package body Prj is
          Allow_Duplicate_Basenames  => Allow_Duplicate_Basenames,
          Error_On_Unknown_Language  => Error_On_Unknown_Language,
          Compiler_Driver_Mandatory  => Compiler_Driver_Mandatory,
-         Require_Obj_Dirs           => Require_Obj_Dirs);
+         Require_Obj_Dirs           => Require_Obj_Dirs,
+         Allow_Invalid_External     => Allow_Invalid_External,
+         Missing_Source_Files       => Missing_Source_Files);
    end Create_Flags;
 
    ------------

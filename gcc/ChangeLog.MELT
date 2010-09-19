@@ -1,3 +1,34 @@
+2010-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	[[merged with trunk rev.164348, so improved MELT runtime!]]
+	* melt-runtime.h: improved comments.
+	(melt_debug_garbcoll, melt_debuggc_eprintf):  Moved from melt-runtime.c.
+	(melt_obmag_string): New declaration.
+	(struct meltobject_st, struct meltclosure_st, struct
+	meltroutine_st, struct meltmixbigint_st, struct meltstring_st):
+	using GTY variable_size and @@MELTGTY@@ comment.
+	(melt_mark_special): added debug print.
+
+	* melt-runtime.c:  Improved comments.
+	Include bversion.h, realmpfr.h, gimple-pretty-print.h.
+	(ggc_force_collect) Declared external.
+	(melt_forward_counter): Added.
+	(melt_obmag_string): New function.
+	(melt_alptr_1, melt_alptr_2, melt_break_alptr_1_at)
+	(melt_break_alptr_2_at, melt_break_alptr_1,melt_break_alptr_1)
+	(melt_allocate_young_gc_zone, melt_free_young_gc_zone): New.
+	(delete_special, meltgc_make_special): Improved debug printf and
+	use melt_break_alptr_1...
+	(ggc_alloc_*) macros defined for backport to GCC 4.5
+	(melt_forwarded_copy): Don't clear the new destination zone in old
+	GGC heap.
+	(meltgc_add_out_raw_len): Use ggc_alloc_atomic.
+	(meltgc_raw_new_mappointers, meltgc_raw_put_mappointers)
+	(meltgc_raw_remove_mappointers): Corrected length argument to
+	ggc_alloc_cleared_vec_entrypointermelt_st.
+	(melt_really_initialize): Call melt_allocate_young_gc_zone.
+	(melt_initialize):  Set flag_plugin_added.
+	(melt_val2passflag): TODO_verify_loops only in GCC 4.5
+
 2010-08-31  Jeremie salvucci  <jeremie.salvucci@free.fr>
 	* xtramelt-ana-base.melt (gimple_iterator): Iterator added for gimple.
 	* xtramelt-c-generator.melt: Added new file.

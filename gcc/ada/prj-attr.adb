@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -71,7 +71,6 @@ package body Prj.Attr is
    "SVRproject_dir#" &
    "lVmain#" &
    "LVlanguages#" &
-   "SVmain_language#" &
    "Lbroots#" &
    "SVexternally_built#" &
 
@@ -100,6 +99,7 @@ package body Prj.Attr is
    "SVlibrary_version#" &
    "LVlibrary_interface#" &
    "SVlibrary_auto_init#" &
+   "LVleading_library_options#" &
    "LVlibrary_options#" &
    "SVlibrary_src_dir#" &
    "SVlibrary_ali_dir#" &
@@ -247,6 +247,7 @@ package body Prj.Attr is
    "Plinker#" &
    "LVrequired_switches#" &
    "Ladefault_switches#" &
+   "LcOleading_switches#" &
    "LcOswitches#" &
    "LVlinker_options#" &
    "SVmap_file_option#" &

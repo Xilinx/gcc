@@ -29,7 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "output.h"
@@ -39,8 +38,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "function.h"
 #include "optabs.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
-#include "c-pragma.h"
+#include "c-family/c-pragma.h"	/* ??? */
 #include "tm_p.h"
 #include "ggc.h"
 #include "target.h"
@@ -303,10 +303,22 @@ enum h8_cpu
   H8_S
 };
 
+/* Implement TARGET_OPTION_OPTIMIZATION.  */
+
+static void
+h8300_option_optimization (int level ATTRIBUTE_UNUSED,
+			   int size ATTRIBUTE_UNUSED)
+{
+  /* Basic block reordering is only beneficial on targets with cache
+     and/or variable-cycle branches where (cycle count taken != cycle
+     count not taken).  */
+  flag_reorder_blocks = 0;
+}
+
 /* Initialize various cpu specific globals at start up.  */
 
-void
-h8300_init_once (void)
+static void
+h8300_option_override (void)
 {
   static const char *const h8_push_ops[2] = { "push" , "push.l" };
   static const char *const h8_pop_ops[2]  = { "pop"  , "pop.l"  };
@@ -403,6 +415,10 @@ h8300_init_once (void)
 	 restore er6 though, so bump up the cost.  */
       h8300_move_ratio = 6;
     }
+
+  /* This target defaults to strict volatile bitfields.  */
+  if (flag_strict_volatile_bitfields < 0)
+    flag_strict_volatile_bitfields = 1;
 }
 
 /* Implement REG_CLASS_FROM_LETTER.
@@ -1468,12 +1484,20 @@ print_operand (FILE *file, rtx x, int code)
 	goto def;
       break;
     case 'V':
-      bitint = exact_log2 (INTVAL (x) & 0xff);
+      bitint = (INTVAL (x) & 0xffff);
+      if ((exact_log2 ((bitint >> 8) & 0xff)) == -1)
+	bitint = exact_log2 (bitint & 0xff);
+      else
+        bitint = exact_log2 ((bitint >> 8) & 0xff);	      
       gcc_assert (bitint >= 0);
       fprintf (file, "#%d", bitint);
       break;
     case 'W':
-      bitint = exact_log2 ((~INTVAL (x)) & 0xff);
+      bitint = ((~INTVAL (x)) & 0xffff);
+      if ((exact_log2 ((bitint >> 8) & 0xff)) == -1 )
+	bitint = exact_log2 (bitint & 0xff);
+      else
+	bitint = (exact_log2 ((bitint >> 8) & 0xff));      
       gcc_assert (bitint >= 0);
       fprintf (file, "#%d", bitint);
       break;
@@ -5909,5 +5933,11 @@ h8300_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
 
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT h8300_trampoline_init
+
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE h8300_option_override
+
+#undef TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION h8300_option_optimization
 
 struct gcc_target targetm = TARGET_INITIALIZER;

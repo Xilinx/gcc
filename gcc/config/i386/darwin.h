@@ -60,6 +60,12 @@ along with GCC; see the file COPYING3.  If not see
 #undef WCHAR_TYPE_SIZE
 #define WCHAR_TYPE_SIZE 32
 
+/* Generate branch islands stubs if this is true.  */
+extern int darwin_emit_branch_islands;
+
+#undef TARGET_MACHO_BRANCH_ISLANDS
+#define TARGET_MACHO_BRANCH_ISLANDS darwin_emit_branch_islands
+
 #undef MAX_BITS_PER_WORD
 #define MAX_BITS_PER_WORD 64
 
@@ -73,7 +79,9 @@ along with GCC; see the file COPYING3.  If not see
    Failure to ensure this will lead to a crash in the system libraries
    or dynamic loader.  */
 #undef STACK_BOUNDARY
-#define STACK_BOUNDARY 128
+#define STACK_BOUNDARY \
+ ((profile_flag || (TARGET_64BIT && ix86_abi == MS_ABI)) \
+  ? 128 : BITS_PER_WORD)
 
 #undef MAIN_STACK_BOUNDARY
 #define MAIN_STACK_BOUNDARY 128
@@ -85,13 +93,14 @@ along with GCC; see the file COPYING3.  If not see
    it's below the minimum.  */
 #undef PREFERRED_STACK_BOUNDARY
 #define PREFERRED_STACK_BOUNDARY			\
-  MAX (STACK_BOUNDARY, ix86_preferred_stack_boundary)
+  MAX (128, ix86_preferred_stack_boundary)
 
 /* We want -fPIC by default, unless we're using -static to compile for
    the kernel or some such.  */
 
 #undef CC1_SPEC
 #define CC1_SPEC "%(cc1_cpu) \
+  %<mdynamic-no-pic " /* For now, we just ignore this flag */ " \
   %{!mkernel:%{!static:%{!mdynamic-no-pic:-fPIC}}} \
   %{!mmacosx-version-min=*:-mmacosx-version-min=%(darwin_minversion)} \
   %{g: %{!fno-eliminate-unused-debug-symbols: -feliminate-unused-debug-symbols }}"
@@ -140,6 +149,12 @@ along with GCC; see the file COPYING3.  If not see
    print %cl.  */
 
 #define SHIFT_DOUBLE_OMITS_COUNT 0
+
+/* Put all *tf routines in libgcc.  */
+#undef LIBGCC2_HAS_TF_MODE
+#define LIBGCC2_HAS_TF_MODE 1
+#define LIBGCC2_TF_CEXT q
+#define TF_SIZE 113
 
 #undef TARGET_ASM_FILE_END
 #define TARGET_ASM_FILE_END darwin_file_end
@@ -208,7 +223,7 @@ along with GCC; see the file COPYING3.  If not see
    to define a global common symbol.  */
 
 #define ASM_OUTPUT_COMMON(FILE, NAME, SIZE, ROUNDED)  \
-( fputs (".comm ", (FILE)),			\
+( fputs ("\t.comm ", (FILE)),			\
   assemble_name ((FILE), (NAME)),		\
   fprintf ((FILE), ","HOST_WIDE_INT_PRINT_UNSIGNED"\n", (ROUNDED)))
 
@@ -216,7 +231,7 @@ along with GCC; see the file COPYING3.  If not see
    to define a local common symbol.  */
 
 #define ASM_OUTPUT_LOCAL(FILE, NAME, SIZE, ROUNDED)  \
-( fputs (".lcomm ", (FILE)),			\
+( fputs ("\t.lcomm ", (FILE)),			\
   assemble_name ((FILE), (NAME)),		\
   fprintf ((FILE), ","HOST_WIDE_INT_PRINT_UNSIGNED"\n", (ROUNDED)))
 
@@ -224,7 +239,7 @@ along with GCC; see the file COPYING3.  If not see
 #undef FUNCTION_PROFILER
 #define FUNCTION_PROFILER(FILE, LABELNO)				\
     do {								\
-      if (MACHOPIC_INDIRECT && !TARGET_64BIT)				\
+      if (TARGET_MACHO_BRANCH_ISLANDS && MACHOPIC_INDIRECT && !TARGET_64BIT)		\
 	{								\
 	  const char *name = machopic_mcount_stub_name ();		\
 	  fprintf (FILE, "\tcall %s\n", name+1);  /*  skip '&'  */	\

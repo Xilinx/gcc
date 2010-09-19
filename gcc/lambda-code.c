@@ -28,7 +28,7 @@
 #include "target.h"
 #include "rtl.h"
 #include "basic-block.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "obstack.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
@@ -150,6 +150,17 @@ static lambda_lattice lambda_lattice_compute_base (lambda_loopnest,
 
 static bool can_convert_to_perfect_nest (struct loop *);
 
+/* Create a new lambda loop in LAMBDA_OBSTACK.  */
+
+static lambda_loop
+lambda_loop_new (struct obstack * lambda_obstack)
+{
+  lambda_loop result = (lambda_loop)
+    obstack_alloc (lambda_obstack, sizeof (struct lambda_loop_s));
+  memset (result, 0, sizeof (struct lambda_loop_s));
+  return result;
+}
+
 /* Create a new lambda body vector.  */
 
 lambda_body_vector
@@ -157,7 +168,8 @@ lambda_body_vector_new (int size, struct obstack * lambda_obstack)
 {
   lambda_body_vector ret;
 
-  ret = (lambda_body_vector)obstack_alloc (lambda_obstack, sizeof (*ret));
+  ret = (lambda_body_vector) obstack_alloc (lambda_obstack,
+					    sizeof (*ret));
   LBV_COEFFICIENTS (ret) = lambda_vector_new (size);
   LBV_SIZE (ret) = size;
   LBV_DENOMINATOR (ret) = 1;
@@ -367,9 +379,10 @@ lambda_lattice_new (int depth, int invariants, struct obstack * lambda_obstack)
 {
   lambda_lattice ret
       = (lambda_lattice)obstack_alloc (lambda_obstack, sizeof (*ret));
-  LATTICE_BASE (ret) = lambda_matrix_new (depth, depth);
+  LATTICE_BASE (ret) = lambda_matrix_new (depth, depth, lambda_obstack);
   LATTICE_ORIGIN (ret) = lambda_vector_new (depth);
-  LATTICE_ORIGIN_INVARIANTS (ret) = lambda_matrix_new (depth, invariants);
+  LATTICE_ORIGIN_INVARIANTS (ret) = lambda_matrix_new (depth, invariants,
+						       lambda_obstack);
   LATTICE_DIMENSION (ret) = depth;
   LATTICE_INVARIANTS (ret) = invariants;
   return ret;
@@ -500,15 +513,15 @@ compute_nest_using_fourier_motzkin (int size,
   lambda_vector swapvector, a1;
   int newsize;
 
-  A1 = lambda_matrix_new (128, depth);
-  B1 = lambda_matrix_new (128, invariants);
+  A1 = lambda_matrix_new (128, depth, lambda_obstack);
+  B1 = lambda_matrix_new (128, invariants, lambda_obstack);
   a1 = lambda_vector_new (128);
 
   auxillary_nest = lambda_loopnest_new (depth, invariants, lambda_obstack);
 
   for (i = depth - 1; i >= 0; i--)
     {
-      loop = lambda_loop_new ();
+      loop = lambda_loop_new (lambda_obstack);
       LN_LOOPS (auxillary_nest)[i] = loop;
       LL_STEP (loop) = 1;
 
@@ -654,12 +667,12 @@ lambda_compute_auxillary_space (lambda_loopnest nest,
   /* Unfortunately, we can't know the number of constraints we'll have
      ahead of time, but this should be enough even in ridiculous loop nest
      cases. We must not go over this limit.  */
-  A = lambda_matrix_new (128, depth);
-  B = lambda_matrix_new (128, invariants);
+  A = lambda_matrix_new (128, depth, lambda_obstack);
+  B = lambda_matrix_new (128, invariants, lambda_obstack);
   a = lambda_vector_new (128);
 
-  A1 = lambda_matrix_new (128, depth);
-  B1 = lambda_matrix_new (128, invariants);
+  A1 = lambda_matrix_new (128, depth, lambda_obstack);
+  B1 = lambda_matrix_new (128, invariants, lambda_obstack);
   a1 = lambda_vector_new (128);
 
   /* Store the bounds in the equation matrix A, constant vector a, and
@@ -754,11 +767,11 @@ lambda_compute_auxillary_space (lambda_loopnest nest,
   /* Now compute the auxiliary space bounds by first inverting U, multiplying
      it by A1, then performing Fourier-Motzkin.  */
 
-  invertedtrans = lambda_matrix_new (depth, depth);
+  invertedtrans = lambda_matrix_new (depth, depth, lambda_obstack);
 
   /* Compute the inverse of U.  */
   lambda_matrix_inverse (LTM_MATRIX (trans),
-			 invertedtrans, depth);
+			 invertedtrans, depth, lambda_obstack);
 
   /* A = A1 inv(U).  */
   lambda_matrix_mult (A1, invertedtrans, A, size, depth, depth);
@@ -795,18 +808,19 @@ lambda_compute_target_space (lambda_loopnest auxillary_nest,
   depth = LN_DEPTH (auxillary_nest);
   invariants = LN_INVARIANTS (auxillary_nest);
 
-  inverse = lambda_matrix_new (depth, depth);
-  determinant = lambda_matrix_inverse (LTM_MATRIX (H), inverse, depth);
+  inverse = lambda_matrix_new (depth, depth, lambda_obstack);
+  determinant = lambda_matrix_inverse (LTM_MATRIX (H), inverse, depth,
+				       lambda_obstack);
 
   /* H1 is H excluding its diagonal.  */
-  H1 = lambda_matrix_new (depth, depth);
+  H1 = lambda_matrix_new (depth, depth, lambda_obstack);
   lambda_matrix_copy (LTM_MATRIX (H), H1, depth, depth);
 
   for (i = 0; i < depth; i++)
     H1[i][i] = 0;
 
   /* Computes the linear offsets of the loop bounds.  */
-  target = lambda_matrix_new (depth, depth);
+  target = lambda_matrix_new (depth, depth, lambda_obstack);
   lambda_matrix_mult (H1, inverse, target, depth, depth, depth);
 
   target_nest = lambda_loopnest_new (depth, invariants, lambda_obstack);
@@ -815,7 +829,7 @@ lambda_compute_target_space (lambda_loopnest auxillary_nest,
     {
 
       /* Get a new loop structure.  */
-      target_loop = lambda_loop_new ();
+      target_loop = lambda_loop_new (lambda_obstack);
       LN_LOOPS (target_nest)[i] = target_loop;
 
       /* Computes the gcd of the coefficients of the linear part.  */
@@ -982,7 +996,9 @@ lambda_compute_target_space (lambda_loopnest auxillary_nest,
    result.  */
 
 static lambda_vector
-lambda_compute_step_signs (lambda_trans_matrix trans, lambda_vector stepsigns)
+lambda_compute_step_signs (lambda_trans_matrix trans,
+                           lambda_vector stepsigns,
+                           struct obstack * lambda_obstack)
 {
   lambda_matrix matrix, H;
   int size;
@@ -992,7 +1008,7 @@ lambda_compute_step_signs (lambda_trans_matrix trans, lambda_vector stepsigns)
 
   matrix = LTM_MATRIX (trans);
   size = LTM_ROWSIZE (trans);
-  H = lambda_matrix_new (size, size);
+  H = lambda_matrix_new (size, size, lambda_obstack);
 
   newsteps = lambda_vector_new (size);
   lambda_vector_copy (stepsigns, newsteps, size);
@@ -1067,7 +1083,7 @@ lambda_loopnest_transform (lambda_loopnest nest, lambda_trans_matrix trans,
 
   /* Compute the lattice base.  */
   lattice = lambda_lattice_compute_base (nest, lambda_obstack);
-  trans1 = lambda_trans_matrix_new (depth, depth);
+  trans1 = lambda_trans_matrix_new (depth, depth, lambda_obstack);
 
   /* Multiply the transformation matrix by the lattice base.  */
 
@@ -1075,25 +1091,27 @@ lambda_loopnest_transform (lambda_loopnest nest, lambda_trans_matrix trans,
 		      LTM_MATRIX (trans1), depth, depth, depth);
 
   /* Compute the Hermite normal form for the new transformation matrix.  */
-  H = lambda_trans_matrix_new (depth, depth);
-  U = lambda_trans_matrix_new (depth, depth);
+  H = lambda_trans_matrix_new (depth, depth, lambda_obstack);
+  U = lambda_trans_matrix_new (depth, depth, lambda_obstack);
   lambda_matrix_hermite (LTM_MATRIX (trans1), depth, LTM_MATRIX (H),
 			 LTM_MATRIX (U));
 
   /* Compute the auxiliary loop nest's space from the unimodular
      portion.  */
-  auxillary_nest = lambda_compute_auxillary_space (nest, U, lambda_obstack);
+  auxillary_nest = lambda_compute_auxillary_space (nest, U,
+						   lambda_obstack);
 
   /* Compute the loop step signs from the old step signs and the
      transformation matrix.  */
-  stepsigns = lambda_compute_step_signs (trans1, stepsigns);
+  stepsigns = lambda_compute_step_signs (trans1, stepsigns,
+					 lambda_obstack);
 
   /* Compute the target loop nest space from the auxiliary nest and
      the lower triangular matrix H.  */
   target_nest = lambda_compute_target_space (auxillary_nest, H, stepsigns,
                                              lambda_obstack);
   origin = lambda_vector_new (depth);
-  origin_invariants = lambda_matrix_new (depth, invariants);
+  origin_invariants = lambda_matrix_new (depth, invariants, lambda_obstack);
   lambda_matrix_vector_mult (LTM_MATRIX (trans), depth, depth,
 			     LATTICE_ORIGIN (lattice), origin);
   lambda_matrix_mult (LTM_MATRIX (trans), LATTICE_ORIGIN_INVARIANTS (lattice),
@@ -1149,7 +1167,7 @@ gcc_tree_to_linear_expression (int depth, tree expr,
       {
 	tree iv, invar;
 	size_t i;
-	for (i = 0; VEC_iterate (tree, outerinductionvars, i, iv); i++)
+	FOR_EACH_VEC_ELT (tree, outerinductionvars, i, iv)
 	  if (iv != NULL)
 	    {
 	      if (SSA_NAME_VAR (iv) == SSA_NAME_VAR (expr))
@@ -1163,7 +1181,7 @@ gcc_tree_to_linear_expression (int depth, tree expr,
 		  LLE_DENOMINATOR (lle) = 1;
 		}
 	    }
-	for (i = 0; VEC_iterate (tree, invariants, i, invar); i++)
+	FOR_EACH_VEC_ELT (tree, invariants, i, invar)
 	  if (invar != NULL)
 	    {
 	      if (SSA_NAME_VAR (invar) == SSA_NAME_VAR (expr))
@@ -1424,7 +1442,7 @@ gcc_loop_to_lambda_loop (struct loop *loop, int depth,
       return NULL;
     }
 
-  lloop = lambda_loop_new ();
+  lloop = lambda_loop_new (lambda_obstack);
   LL_STEP (lloop) = stepint;
   LL_LOWER_BOUND (lloop) = lbound;
   LL_UPPER_BOUND (lloop) = ubound;
@@ -1524,7 +1542,7 @@ gcc_loopnest_to_lambda_loopnest (struct loop *loop_nest,
 
   ret = lambda_loopnest_new (depth, 2 * depth, lambda_obstack);
 
-  for (i = 0; VEC_iterate (lambda_loop, loops, i, newloop); i++)
+  FOR_EACH_VEC_ELT (lambda_loop, loops, i, newloop)
     LN_LOOPS (ret)[i] = newloop;
 
  fail:
@@ -1685,7 +1703,7 @@ remove_iv (gimple iv_stmt)
    TRANSFORM is the matrix transform that was applied to OLD_LOOPNEST to get
    NEW_LOOPNEST.  */
 
-void
+void 
 lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
 				 VEC(tree,heap) *old_ivs,
 				 VEC(tree,heap) *invariants,
@@ -1702,7 +1720,7 @@ lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
   tree oldiv;
   gimple_stmt_iterator bsi;
 
-  transform = lambda_trans_matrix_inverse (transform);
+  transform = lambda_trans_matrix_inverse (transform, lambda_obstack);
 
   if (dump_file)
     {
@@ -1819,7 +1837,7 @@ lambda_loopnest_to_gcc_loopnest (struct loop *old_loopnest,
   /* Rewrite uses of the old ivs so that they are now specified in terms of
      the new ivs.  */
 
-  for (i = 0; VEC_iterate (tree, old_ivs, i, oldiv); i++)
+  FOR_EACH_VEC_ELT (tree, old_ivs, i, oldiv)
     {
       imm_use_iterator imm_iter;
       use_operand_p use_p;
@@ -2113,7 +2131,7 @@ replace_uses_equiv_to_x_with_y (struct loop *loop, gimple stmt, tree x,
       gsi_insert_before (firstbsi, setstmt, GSI_SAME_STMT);
       update_stmt (setstmt);
       SET_USE (use_p, var);
-      h = GGC_NEW (struct tree_map);
+      h = ggc_alloc_tree_map ();
       h->hash = in.hash;
       h->base.from = use;
       h->to = var;
@@ -2623,7 +2641,7 @@ lambda_transform_legal_p (lambda_trans_matrix trans,
   distres = lambda_vector_new (nb_loops);
 
   /* For each distance vector in the dependence graph.  */
-  for (i = 0; VEC_iterate (ddr_p, dependence_relations, i, ddr); i++)
+  FOR_EACH_VEC_ELT (ddr_p, dependence_relations, i, ddr)
     {
       /* Don't care about relations for which we know that there is no
 	 dependence, nor about read-read (aka. output-dependences):
@@ -2692,7 +2710,7 @@ lambda_collect_parameters (VEC (data_reference_p, heap) *datarefs,
   struct pointer_set_t *parameter_set = pointer_set_create ();
   data_reference_p data_reference;
 
-  for (i = 0; VEC_iterate (data_reference_p, datarefs, i, data_reference); i++)
+  FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, data_reference)
     for (j = 0; j < DR_NUM_DIMENSIONS (data_reference); j++)
       lambda_collect_parameters_from_af (DR_ACCESS_FN (data_reference, j),
 					 parameter_set, parameters);
@@ -2801,9 +2819,12 @@ av_for_af (tree access_fun, lambda_vector cy, struct access_matrix *am)
 
 static bool
 build_access_matrix (data_reference_p data_reference,
-		     VEC (tree, heap) *parameters, VEC (loop_p, heap) *nest)
+		     VEC (tree, heap) *parameters,
+		     VEC (loop_p, heap) *nest,
+		     struct obstack * lambda_obstack)
 {
-  struct access_matrix *am = GGC_NEW (struct access_matrix);
+  struct access_matrix *am = (struct access_matrix *)
+    obstack_alloc(lambda_obstack, sizeof (struct access_matrix));
   unsigned i, ndim = DR_NUM_DIMENSIONS (data_reference);
   unsigned nivs = VEC_length (loop_p, nest);
   unsigned lambda_nb_columns;
@@ -2835,13 +2856,14 @@ build_access_matrix (data_reference_p data_reference,
 bool
 lambda_compute_access_matrices (VEC (data_reference_p, heap) *datarefs,
 				VEC (tree, heap) *parameters,
-				VEC (loop_p, heap) *nest)
+				VEC (loop_p, heap) *nest,
+				struct obstack * lambda_obstack)
 {
   data_reference_p dataref;
   unsigned ix;
 
-  for (ix = 0; VEC_iterate (data_reference_p, datarefs, ix, dataref); ix++)
-    if (!build_access_matrix (dataref, parameters, nest))
+  FOR_EACH_VEC_ELT (data_reference_p, datarefs, ix, dataref)
+    if (!build_access_matrix (dataref, parameters, nest, lambda_obstack))
       return false;
 
   return true;

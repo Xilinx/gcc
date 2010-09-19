@@ -1,6 +1,6 @@
 /* Transformations based on profile information for values.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009  Free Software
-   Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -37,6 +37,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "tree-flow-inline.h"
 #include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "coverage.h"
 #include "tree.h"
 #include "gcov-io.h"
@@ -384,7 +386,7 @@ visit_hist (void **slot, void *data)
 
 /* Verify sanity of the histograms.  */
 
-void
+DEBUG_FUNCTION void
 verify_histograms (void)
 {
   basic_block bb;
@@ -1646,7 +1648,7 @@ gimple_find_values_to_profile (histogram_values *values)
     for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
       gimple_values_to_profile (gsi_stmt (gsi), values);
 
-  for (i = 0; VEC_iterate (histogram_value, *values, i, hist); i++)
+  FOR_EACH_VEC_ELT (histogram_value, *values, i, hist)
     {
       switch (hist->type)
         {

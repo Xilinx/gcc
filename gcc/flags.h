@@ -150,19 +150,6 @@ extern int flag_print_asm_name;
 
 /* Now the symbols that are set with `-f' switches.  */
 
-/* Nonzero means `char' should be signed.  */
-
-extern int flag_signed_char;
-
-/* Nonzero means give an enum type only as many bytes as it needs.  A value
-   of 2 means it has not yet been initialized.  */
-
-extern int flag_short_enums;
-
-/* Nonzero for -fpcc-struct-return: return values the same way PCC does.  */
-
-extern int flag_pcc_struct_return;
-
 /* 0 means straightforward implementation of complex divide acceptable.
    1 means wide ranges of inputs must work for complex divide.
    2 means C99-like requirements for complex multiply and divide.  */
@@ -234,8 +221,6 @@ enum ira_region
 
 extern enum ira_region flag_ira_region;
 
-extern unsigned int flag_ira_verbose;
-
 /* The options for excess precision.  */
 enum excess_precision
 {
@@ -247,12 +232,50 @@ enum excess_precision
 /* The excess precision specified on the command line, or defaulted by
    the front end.  */
 extern enum excess_precision flag_excess_precision_cmdline;
-
-/* The excess precision currently in effect.  */
-extern enum excess_precision flag_excess_precision;
-
 
 /* Other basic status info about current function.  */
+
+/* Target-dependent global state.  */
+struct target_flag_state {
+  /* Values of the -falign-* flags: how much to align labels in code.
+     0 means `use default', 1 means `don't align'.
+     For each variable, there is an _log variant which is the power
+     of two not less than the variable, for .align output.  */
+  int x_align_loops_log;
+  int x_align_loops_max_skip;
+  int x_align_jumps_log;
+  int x_align_jumps_max_skip;
+  int x_align_labels_log;
+  int x_align_labels_max_skip;
+  int x_align_functions_log;
+
+  /* The excess precision currently in effect.  */
+  enum excess_precision x_flag_excess_precision;
+};
+
+extern struct target_flag_state default_target_flag_state;
+#if SWITCHABLE_TARGET
+extern struct target_flag_state *this_target_flag_state;
+#else
+#define this_target_flag_state (&default_target_flag_state)
+#endif
+
+#define align_loops_log \
+  (this_target_flag_state->x_align_loops_log)
+#define align_loops_max_skip \
+  (this_target_flag_state->x_align_loops_max_skip)
+#define align_jumps_log \
+  (this_target_flag_state->x_align_jumps_log)
+#define align_jumps_max_skip \
+  (this_target_flag_state->x_align_jumps_max_skip)
+#define align_labels_log \
+  (this_target_flag_state->x_align_labels_log)
+#define align_labels_max_skip \
+  (this_target_flag_state->x_align_labels_max_skip)
+#define align_functions_log \
+  (this_target_flag_state->x_align_functions_log)
+#define flag_excess_precision \
+  (this_target_flag_state->x_flag_excess_precision)
 
 /* Nonzero if subexpressions must be evaluated from left-to-right.  */
 extern int flag_evaluation_order;
@@ -267,19 +290,6 @@ extern bool sel_sched_switch_set;
 /* Whether to run the warn_unused_result attribute pass.  */
 extern bool flag_warn_unused_result;
 
-/* Values of the -falign-* flags: how much to align labels in code.
-   0 means `use default', 1 means `don't align'.
-   For each variable, there is an _log variant which is the power
-   of two not less than the variable, for .align output.  */
-
-extern int align_loops_log;
-extern int align_loops_max_skip;
-extern int align_jumps_log;
-extern int align_jumps_max_skip;
-extern int align_labels_log;
-extern int align_labels_max_skip;
-extern int align_functions_log;
-
 /* Nonzero if we dump in VCG format, not plain text.  */
 extern int dump_for_graph;
 
@@ -290,14 +300,6 @@ enum graph_dump_types
   vcg
 };
 extern enum graph_dump_types graph_dump_format;
-
-/* Nonzero means to collect statistics which might be expensive
-   and to print them when we are done.  */
-extern int flag_detailed_statistics;
-
-/* Nonzero means that we defer emitting functions until they are actually
-   used.  */
-extern int flag_remove_unreachable_functions;
 
 /* Nonzero if we should track variables.  */
 extern int flag_var_tracking;

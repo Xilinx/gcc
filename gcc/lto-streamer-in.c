@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "params.h"
 #include "input.h"
-#include "varray.h"
 #include "hashtab.h"
 #include "basic-block.h"
 #include "tree-flow.h"
@@ -356,10 +355,9 @@ lto_input_tree_ref (struct lto_input_block *ib, struct data_in *data_in,
     case LTO_const_decl_ref:
     case LTO_imported_decl_ref:
     case LTO_label_decl_ref:
+    case LTO_translation_unit_decl_ref:
       ix_u = lto_input_uleb128 (ib);
       result = lto_file_decl_data_get_var_decl (data_in->file_data, ix_u);
-      if (TREE_CODE (result) == VAR_DECL)
-	varpool_mark_needed_node (varpool_node (result));
       break;
 
     default:
@@ -392,7 +390,7 @@ lto_input_eh_catch_list (struct lto_input_block *ib, struct data_in *data_in,
       lto_tag_check_range (tag, LTO_eh_catch, LTO_eh_catch);
 
       /* Read the catch node.  */
-      n = GGC_CNEW (struct eh_catch_d);
+      n = ggc_alloc_cleared_eh_catch_d ();
       n->type_list = lto_input_tree (ib, data_in);
       n->filter_list = lto_input_tree (ib, data_in);
       n->label = lto_input_tree (ib, data_in);
@@ -432,7 +430,7 @@ input_eh_region (struct lto_input_block *ib, struct data_in *data_in, int ix)
   if (tag == LTO_null)
     return NULL;
 
-  r = GGC_CNEW (struct eh_region_d);
+  r = ggc_alloc_cleared_eh_region_d ();
   r->index = lto_input_sleb128 (ib);
 
   gcc_assert (r->index == ix);
@@ -505,7 +503,7 @@ input_eh_lp (struct lto_input_block *ib, struct data_in *data_in, int ix)
 
   lto_tag_check_range (tag, LTO_eh_landing_pad, LTO_eh_landing_pad);
 
-  lp = GGC_CNEW (struct eh_landing_pad_d);
+  lp = ggc_alloc_cleared_eh_landing_pad_d ();
   lp->index = lto_input_sleb128 (ib);
   gcc_assert (lp->index == ix);
   lp->next_lp = (eh_landing_pad) (intptr_t) lto_input_sleb128 (ib);
@@ -542,7 +540,7 @@ fixup_eh_region_pointers (struct function *fn, HOST_WIDE_INT root_region)
 
   /* Convert all the index numbers stored in pointer fields into
      pointers to the corresponding slots in the EH region array.  */
-  for (i = 0; VEC_iterate (eh_region, eh_array, i, r); i++)
+  FOR_EACH_VEC_ELT (eh_region, eh_array, i, r)
     {
       /* The array may contain NULL regions.  */
       if (r == NULL)
@@ -557,7 +555,7 @@ fixup_eh_region_pointers (struct function *fn, HOST_WIDE_INT root_region)
 
   /* Convert all the index numbers stored in pointer fields into
      pointers to the corresponding slots in the EH landing pad array.  */
-  for (i = 0; VEC_iterate (eh_landing_pad, lp_array, i, lp); i++)
+  FOR_EACH_VEC_ELT (eh_landing_pad, lp_array, i, lp)
     {
       /* The array may contain NULL landing pads.  */
       if (lp == NULL)
@@ -710,7 +708,7 @@ make_new_block (struct function *fn, unsigned int index)
   basic_block bb = alloc_block ();
   bb->index = index;
   SET_BASIC_BLOCK_FOR_FUNCTION (fn, index, bb);
-  bb->il.gimple = GGC_CNEW (struct gimple_bb_info);
+  bb->il.gimple = ggc_alloc_cleared_gimple_bb_info ();
   n_basic_blocks_for_function (fn)++;
   bb->flags = 0;
   set_bb_seq (bb, gimple_seq_alloc ());
@@ -875,124 +873,6 @@ input_ssa_names (struct lto_input_block *ib, struct data_in *data_in,
     }
 }
 
-
-/* Fixup the reference tree OP for replaced VAR_DECLs with mismatched
-   types.  */
-
-static void
-maybe_fixup_handled_component (tree op)
-{
-  tree decl_type;
-  tree wanted_type;
-
-  while (handled_component_p (TREE_OPERAND (op, 0)))
-    op = TREE_OPERAND (op, 0);
-  if (TREE_CODE (TREE_OPERAND (op, 0)) != VAR_DECL)
-    return;
-
-  decl_type = TREE_TYPE (TREE_OPERAND (op, 0));
-
-  switch (TREE_CODE (op))
-    {
-    case COMPONENT_REF:
-      /* The DECL_CONTEXT of the field-decl is the record type we look for.  */
-      wanted_type = DECL_CONTEXT (TREE_OPERAND (op, 1));
-      break;
-
-    case ARRAY_REF:
-      if (TREE_CODE (decl_type) == ARRAY_TYPE
-	  && (TREE_TYPE (decl_type) == TREE_TYPE (op)
-	      || useless_type_conversion_p (TREE_TYPE (op),
-					    TREE_TYPE (decl_type))))
-	return;
-      /* An unknown size array type should be ok.  But we do not
-         lower the lower bound in all cases - ugh.  */
-      wanted_type = build_array_type (TREE_TYPE (op), NULL_TREE);
-      break;
-
-    case ARRAY_RANGE_REF:
-      if (TREE_CODE (decl_type) == ARRAY_TYPE
-	  && (TREE_TYPE (decl_type) == TREE_TYPE (TREE_TYPE (op))
-	      || useless_type_conversion_p (TREE_TYPE (TREE_TYPE (op)),
-					    TREE_TYPE (decl_type))))
-	return;
-      /* An unknown size array type should be ok.  But we do not
-         lower the lower bound in all cases - ugh.  */
-      wanted_type = build_array_type (TREE_TYPE (TREE_TYPE (op)), NULL_TREE);
-      break;
-
-    case BIT_FIELD_REF:
-    case VIEW_CONVERT_EXPR:
-      /* Very nice - nothing to do.  */
-      return;
-
-    case REALPART_EXPR:
-    case IMAGPART_EXPR:
-      if (TREE_CODE (decl_type) == COMPLEX_TYPE
-	  && (TREE_TYPE (decl_type) == TREE_TYPE (op)
-	      || useless_type_conversion_p (TREE_TYPE (op),
-					    TREE_TYPE (decl_type))))
-	return;
-      wanted_type = build_complex_type (TREE_TYPE (op));
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-
-  if (!useless_type_conversion_p (wanted_type, decl_type))
-    TREE_OPERAND (op, 0) = build1 (VIEW_CONVERT_EXPR, wanted_type,
-				   TREE_OPERAND (op, 0));
-}
-
-/* Fixup reference tree operands for substituted prevailing decls
-   with mismatched types in STMT.  This handles plain DECLs where
-   we need the stmt for context to lookup the required type.  */
-
-static void
-maybe_fixup_decls (gimple stmt)
-{
-  /* We have to fixup replaced decls here in case there were
-     inter-TU type mismatches.  Catch the most common cases
-     for now - this way we'll get testcases for the rest as
-     the type verifier will complain.  */
-  if (gimple_assign_single_p (stmt))
-    {
-      tree lhs = gimple_assign_lhs (stmt);
-      tree rhs = gimple_assign_rhs1 (stmt);
-
-      /* First catch loads and aggregate copies by adjusting the rhs.  */
-      if (TREE_CODE (rhs) == VAR_DECL)
-	{
-	  if (!useless_type_conversion_p (TREE_TYPE (lhs), TREE_TYPE (rhs)))
-	    gimple_assign_set_rhs1 (stmt, build1 (VIEW_CONVERT_EXPR,
-						  TREE_TYPE (lhs), rhs));
-	}
-      /* Then catch scalar stores.  */
-      else if (TREE_CODE (lhs) == VAR_DECL)
-	{
-	  if (!useless_type_conversion_p (TREE_TYPE (lhs), TREE_TYPE (rhs)))
-	    gimple_assign_set_lhs (stmt, build1 (VIEW_CONVERT_EXPR,
-						 TREE_TYPE (rhs), lhs));
-	}
-    }
-  else if (is_gimple_call (stmt))
-    {
-      tree lhs = gimple_call_lhs (stmt);
-
-      if (lhs && TREE_CODE (lhs) == VAR_DECL)
-	{
-	  if (!useless_type_conversion_p (TREE_TYPE (lhs),
-					  gimple_call_return_type (stmt)))
-	    gimple_call_set_lhs (stmt, build1 (VIEW_CONVERT_EXPR,
-					       gimple_call_return_type (stmt),
-					       lhs));
-	}
-
-      /* Arguments, especially for varargs functions will be funny...  */
-    }
-}
-
 /* Read a statement with tag TAG in function FN from block IB using
    descriptors in DATA_IN.  */
 
@@ -1004,20 +884,19 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
   enum gimple_code code;
   unsigned HOST_WIDE_INT num_ops;
   size_t i;
-  struct bitpack_d *bp;
+  struct bitpack_d bp;
 
   code = lto_tag_to_gimple_code (tag);
 
   /* Read the tuple header.  */
   bp = lto_input_bitpack (ib);
-  num_ops = bp_unpack_value (bp, sizeof (unsigned) * 8);
+  num_ops = bp_unpack_value (&bp, sizeof (unsigned) * 8);
   stmt = gimple_alloc (code, num_ops);
-  stmt->gsbase.no_warning = bp_unpack_value (bp, 1);
+  stmt->gsbase.no_warning = bp_unpack_value (&bp, 1);
   if (is_gimple_assign (stmt))
-    stmt->gsbase.nontemporal_move = bp_unpack_value (bp, 1);
-  stmt->gsbase.has_volatile_ops = bp_unpack_value (bp, 1);
-  stmt->gsbase.subcode = bp_unpack_value (bp, 16);
-  bitpack_delete (bp);
+    stmt->gsbase.nontemporal_move = bp_unpack_value (&bp, 1);
+  stmt->gsbase.has_volatile_ops = bp_unpack_value (&bp, 1);
+  stmt->gsbase.subcode = bp_unpack_value (&bp, 16);
 
   /* Read location information.  */
   gimple_set_location (stmt, lto_input_location (ib, data_in));
@@ -1047,6 +926,7 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 	stmt->gimple_asm.ni = lto_input_uleb128 (ib);
 	stmt->gimple_asm.no = lto_input_uleb128 (ib);
 	stmt->gimple_asm.nc = lto_input_uleb128 (ib);
+	stmt->gimple_asm.nl = lto_input_uleb128 (ib);
 	str = input_string_cst (data_in, ib);
 	stmt->gimple_asm.string = TREE_STRING_POINTER (str);
       }
@@ -1067,21 +947,6 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 	  if (!op)
 	    continue;
 
-	  /* Fixup reference tree operands for substituted prevailing decls
-	     with mismatched types.  For plain VAR_DECLs we need to look
-	     at context to determine the wanted type - we do that below
-	     after the stmt is completed.  */
-	  if (TREE_CODE (op) == ADDR_EXPR
-	      && TREE_CODE (TREE_OPERAND (op, 0)) == VAR_DECL
-	      && !useless_type_conversion_p (TREE_TYPE (TREE_TYPE (op)),
-					     TREE_TYPE (op)))
-	    {
-	      TREE_OPERAND (op, 0)
-		= build1 (VIEW_CONVERT_EXPR, TREE_TYPE (TREE_TYPE (op)),
-			  TREE_OPERAND (op, 0));
-	      continue;
-	    }
-
 	  /* Fixup FIELD_DECLs in COMPONENT_REFs, they are not handled
 	     by decl merging.  */
 	  if (TREE_CODE (op) == ADDR_EXPR)
@@ -1096,8 +961,12 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 		  for (tem = TYPE_FIELDS (type); tem; tem = TREE_CHAIN (tem))
 		    {
 		      if (tem == field
-			  || (TREE_TYPE (tem) == TREE_TYPE (field)
-			      && compare_field_offset (tem, field)))
+			  || (gimple_types_compatible_p (TREE_TYPE (tem),
+							 TREE_TYPE (field),
+							 GTC_DIAG)
+			      && DECL_NONADDRESSABLE_P (tem)
+				 == DECL_NONADDRESSABLE_P (field)
+			      && gimple_compare_field_offset (tem, field)))
 			break;
 		    }
 		  /* In case of type mismatches across units we can fail
@@ -1111,17 +980,8 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 		    TREE_OPERAND (op, 1) = tem;
 		}
 
-	      /* Preserve the last handled component for the fixup of
-	         its operand below.  */
-	      if (!handled_component_p (TREE_OPERAND (op, 0)))
-		break;
 	      op = TREE_OPERAND (op, 0);
 	    }
-
-	  /* Fixup reference tree operands for substituted prevailing decls
-	     with mismatched types.  */
-	  if (handled_component_p (op))
-	    maybe_fixup_handled_component (op);
 	}
       break;
 
@@ -1157,9 +1017,9 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 	}
     }
 
-  /* Fixup reference tree operands for substituted prevailing decls
-     with mismatched types.  */
-  maybe_fixup_decls (stmt);
+  /* Reset alias information.  */
+  if (code == GIMPLE_CALL)
+    gimple_call_reset_alias_info (stmt);
 
   /* Mark the statement modified so its operand vectors can be filled in.  */
   gimple_set_modified (stmt, true);
@@ -1201,13 +1061,6 @@ input_bb (struct lto_input_block *ib, enum LTO_tags tag,
     {
       gimple stmt = input_gimple_stmt (ib, data_in, fn, tag);
 
-      /* Change debug stmts to nops on-the-fly if we do not have VTA enabled.
-	 This allows us to build for example static libs with debugging
-	 enabled and do the final link without.  */
-      if (!MAY_HAVE_DEBUG_STMTS
-	  && is_gimple_debug (stmt))
-	stmt = gimple_build_nop ();
-
       find_referenced_vars_in (stmt);
       gsi_insert_after (&bsi, stmt, GSI_NEW_STMT);
 
@@ -1243,6 +1096,8 @@ fixup_call_stmt_edges_1 (struct cgraph_node *node, gimple *stmts)
 {
   struct cgraph_edge *cedge;
   for (cedge = node->callees; cedge; cedge = cedge->next_callee)
+    cedge->call_stmt = stmts[cedge->lto_stmt_uid];
+  for (cedge = node->indirect_calls; cedge; cedge = cedge->next_callee)
     cedge->call_stmt = stmts[cedge->lto_stmt_uid];
 }
 
@@ -1285,9 +1140,10 @@ input_function (tree fn_decl, struct data_in *data_in,
   enum LTO_tags tag;
   gimple *stmts;
   basic_block bb;
-  struct bitpack_d *bp;
+  struct bitpack_d bp;
   struct cgraph_node *node;
   tree args, narg, oarg;
+  int len;
 
   fn = DECL_STRUCT_FUNCTION (fn_decl);
   tag = input_record_start (ib);
@@ -1298,22 +1154,25 @@ input_function (tree fn_decl, struct data_in *data_in,
 
   /* Read all the attributes for FN.  */
   bp = lto_input_bitpack (ib);
-  fn->is_thunk = bp_unpack_value (bp, 1);
-  fn->has_local_explicit_reg_vars = bp_unpack_value (bp, 1);
-  fn->after_tree_profile = bp_unpack_value (bp, 1);
-  fn->returns_pcc_struct = bp_unpack_value (bp, 1);
-  fn->returns_struct = bp_unpack_value (bp, 1);
-  fn->always_inline_functions_inlined = bp_unpack_value (bp, 1);
-  fn->after_inlining = bp_unpack_value (bp, 1);
-  fn->dont_save_pending_sizes_p = bp_unpack_value (bp, 1);
-  fn->stdarg = bp_unpack_value (bp, 1);
-  fn->has_nonlocal_label = bp_unpack_value (bp, 1);
-  fn->calls_alloca = bp_unpack_value (bp, 1);
-  fn->calls_setjmp = bp_unpack_value (bp, 1);
-  fn->function_frequency = (enum function_frequency) bp_unpack_value (bp, 2);
-  fn->va_list_fpr_size = bp_unpack_value (bp, 8);
-  fn->va_list_gpr_size = bp_unpack_value (bp, 8);
-  bitpack_delete (bp);
+  fn->is_thunk = bp_unpack_value (&bp, 1);
+  fn->has_local_explicit_reg_vars = bp_unpack_value (&bp, 1);
+  fn->after_tree_profile = bp_unpack_value (&bp, 1);
+  fn->returns_pcc_struct = bp_unpack_value (&bp, 1);
+  fn->returns_struct = bp_unpack_value (&bp, 1);
+  fn->can_throw_non_call_exceptions = bp_unpack_value (&bp, 1);
+  fn->always_inline_functions_inlined = bp_unpack_value (&bp, 1);
+  fn->after_inlining = bp_unpack_value (&bp, 1);
+  fn->dont_save_pending_sizes_p = bp_unpack_value (&bp, 1);
+  fn->stdarg = bp_unpack_value (&bp, 1);
+  fn->has_nonlocal_label = bp_unpack_value (&bp, 1);
+  fn->calls_alloca = bp_unpack_value (&bp, 1);
+  fn->calls_setjmp = bp_unpack_value (&bp, 1);
+  fn->va_list_fpr_size = bp_unpack_value (&bp, 8);
+  fn->va_list_gpr_size = bp_unpack_value (&bp, 8);
+
+  /* Input the function start and end loci.  */
+  fn->function_start_locus = lto_input_location (ib, data_in);
+  fn->function_end_locus = lto_input_location (ib, data_in);
 
   /* Input the current IL state of the function.  */
   fn->curr_properties = lto_input_uleb128 (ib);
@@ -1323,7 +1182,17 @@ input_function (tree fn_decl, struct data_in *data_in,
   fn->nonlocal_goto_save_area = lto_input_tree (ib, data_in);
 
   /* Read all the local symbols.  */
-  fn->local_decls = lto_input_tree (ib, data_in);
+  len = lto_input_sleb128 (ib);
+  if (len > 0)
+    {
+      int i;
+      VEC_safe_grow (tree, gc, fn->local_decls, len);
+      for (i = 0; i < len; i++)
+	{
+	  tree t = lto_input_tree (ib, data_in);
+	  VEC_replace (tree, fn->local_decls, i, t);
+	}
+    }
 
   /* Read all function arguments.  We need to re-map them here to the
      arguments of the merged function declaration.  */
@@ -1366,11 +1235,26 @@ input_function (tree fn_decl, struct data_in *data_in,
   stmts = (gimple *) xcalloc (gimple_stmt_max_uid (fn), sizeof (gimple));
   FOR_ALL_BB (bb)
     {
-      gimple_stmt_iterator bsi;
-      for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
+      gimple_stmt_iterator bsi = gsi_start_bb (bb);
+      while (!gsi_end_p (bsi))
 	{
 	  gimple stmt = gsi_stmt (bsi);
-	  stmts[gimple_uid (stmt)] = stmt;
+	  /* If we're recompiling LTO objects with debug stmts but
+	     we're not supposed to have debug stmts, remove them now.
+	     We can't remove them earlier because this would cause uid
+	     mismatches in fixups, but we can do it at this point, as
+	     long as debug stmts don't require fixups.  */
+	  if (!MAY_HAVE_DEBUG_STMTS && is_gimple_debug (stmt))
+	    {
+	      gimple_stmt_iterator gsi = bsi;
+	      gsi_next (&bsi);
+	      gsi_remove (&gsi, true);
+	    }
+	  else
+	    {
+	      gsi_next (&bsi);
+	      stmts[gimple_uid (stmt)] = stmt;
+	    }
 	}
     }
 
@@ -1575,12 +1459,16 @@ unpack_ts_base_value_fields (struct bitpack_d *bp, tree expr)
 	 so we skip it here.  */
       TREE_PUBLIC (expr) = (unsigned) bp_unpack_value (bp, 1);
     }
+  else
+    bp_unpack_value (bp, 4);
   TREE_ADDRESSABLE (expr) = (unsigned) bp_unpack_value (bp, 1);
   TREE_THIS_VOLATILE (expr) = (unsigned) bp_unpack_value (bp, 1);
   if (DECL_P (expr))
     DECL_UNSIGNED (expr) = (unsigned) bp_unpack_value (bp, 1);
   else if (TYPE_P (expr))
     TYPE_UNSIGNED (expr) = (unsigned) bp_unpack_value (bp, 1);
+  else
+    bp_unpack_value (bp, 1);
   TREE_ASM_WRITTEN (expr) = (unsigned) bp_unpack_value (bp, 1);
   TREE_NO_WARNING (expr) = (unsigned) bp_unpack_value (bp, 1);
   TREE_USED (expr) = (unsigned) bp_unpack_value (bp, 1);
@@ -1591,8 +1479,10 @@ unpack_ts_base_value_fields (struct bitpack_d *bp, tree expr)
   TREE_DEPRECATED (expr) = (unsigned) bp_unpack_value (bp, 1);
   if (TYPE_P (expr))
     TYPE_SATURATING (expr) = (unsigned) bp_unpack_value (bp, 1);
-  if (TREE_CODE (expr) == SSA_NAME)
+  else if (TREE_CODE (expr) == SSA_NAME)
     SSA_NAME_IS_DEFAULT_DEF (expr) = (unsigned) bp_unpack_value (bp, 1);
+  else
+    bp_unpack_value (bp, 1);
 }
 
 
@@ -1615,7 +1505,7 @@ unpack_ts_real_cst_value_fields (struct bitpack_d *bp, tree expr)
   for (i = 0; i < SIGSZ; i++)
     r.sig[i] = (unsigned long) bp_unpack_value (bp, HOST_BITS_PER_LONG);
 
-  rp = GGC_NEW (REAL_VALUE_TYPE);
+  rp = ggc_alloc_real_value ();
   memcpy (rp, &r, sizeof (REAL_VALUE_TYPE));
   TREE_REAL_CST_PTR (expr) = rp;
 }
@@ -1631,6 +1521,7 @@ unpack_ts_fixed_cst_value_fields (struct bitpack_d *bp, tree expr)
 
   fv.data.low = (HOST_WIDE_INT) bp_unpack_value (bp, HOST_BITS_PER_WIDE_INT);
   fv.data.high = (HOST_WIDE_INT) bp_unpack_value (bp, HOST_BITS_PER_WIDE_INT);
+  fv.mode = (enum machine_mode) bp_unpack_value (bp, HOST_BITS_PER_INT);
   TREE_FIXED_CST (expr) = fv;
 }
 
@@ -1715,6 +1606,7 @@ unpack_ts_decl_with_vis_value_fields (struct bitpack_d *bp, tree expr)
     {
       DECL_HARD_REGISTER (expr) = (unsigned) bp_unpack_value (bp, 1);
       DECL_IN_TEXT_SECTION (expr) = (unsigned) bp_unpack_value (bp, 1);
+      DECL_IN_CONSTANT_POOL (expr) = (unsigned) bp_unpack_value (bp, 1);
       DECL_TLS_MODEL (expr) = (enum tls_model) bp_unpack_value (bp,  3);
     }
 
@@ -1763,13 +1655,13 @@ unpack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
 {
   enum machine_mode mode;
 
-  TYPE_PRECISION (expr) = (unsigned) bp_unpack_value (bp, 9);
-  mode = (enum machine_mode) bp_unpack_value (bp, 7);
+  TYPE_PRECISION (expr) = (unsigned) bp_unpack_value (bp, 10);
+  mode = (enum machine_mode) bp_unpack_value (bp, 8);
   SET_TYPE_MODE (expr, mode);
   TYPE_STRING_FLAG (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_NO_FORCE_BLK (expr) = (unsigned) bp_unpack_value (bp, 1);
-  TYPE_NEEDS_CONSTRUCTING(expr) = (unsigned) bp_unpack_value (bp, 1);
-  if (TREE_CODE (expr) == UNION_TYPE || TREE_CODE (expr) == RECORD_TYPE)
+  TYPE_NEEDS_CONSTRUCTING (expr) = (unsigned) bp_unpack_value (bp, 1);
+  if (RECORD_OR_UNION_TYPE_P (expr))
     TYPE_TRANSPARENT_AGGR (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_PACKED (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_RESTRICT (expr) = (unsigned) bp_unpack_value (bp, 1);
@@ -1792,6 +1684,13 @@ unpack_ts_block_value_fields (struct bitpack_d *bp, tree expr)
   BLOCK_NUMBER (expr) = (unsigned) bp_unpack_value (bp, 31);
 }
 
+/* Unpack all the non-pointer fields of the TS_TRANSLATION_UNIT_DECL
+   structure of expression EXPR from bitpack BP.  */
+
+static void
+unpack_ts_translation_unit_decl_value_fields (struct bitpack_d *bp ATTRIBUTE_UNUSED, tree expr ATTRIBUTE_UNUSED)
+{
+}
 
 /* Unpack all the non-pointer fields in EXPR into a bit pack.  */
 
@@ -1847,32 +1746,9 @@ unpack_value_fields (struct bitpack_d *bp, tree expr)
       /* This is only used by High GIMPLE.  */
       gcc_unreachable ();
     }
-}
 
-
-/* Read a bitpack from input block IB.  */
-
-struct bitpack_d *
-lto_input_bitpack (struct lto_input_block *ib)
-{
-  unsigned i, num_words;
-  struct bitpack_d *bp;
-
-  bp = bitpack_create ();
-
-  /* If we are about to read more than a handful of words, something
-     is wrong.  This check is overly strict, but it acts as an early
-     warning.  No streamed object has hundreds of bits in its fields.  */
-  num_words = lto_input_uleb128 (ib);
-  gcc_assert (num_words < 20);
-
-  for (i = 0; i < num_words; i++)
-    {
-      bitpack_word_t w = lto_input_uleb128 (ib);
-      VEC_safe_push (bitpack_word_t, heap, bp->values, w);
-    }
-
-  return bp;
+  if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
+    unpack_ts_translation_unit_decl_value_fields (bp, expr);
 }
 
 
@@ -1884,7 +1760,7 @@ static tree
 lto_materialize_tree (struct lto_input_block *ib, struct data_in *data_in,
 		      enum LTO_tags tag, int *ix_p)
 {
-  struct bitpack_d *bp;
+  struct bitpack_d bp;
   enum tree_code code;
   tree result;
 #ifdef LTO_STREAMER_DEBUG
@@ -1949,12 +1825,11 @@ lto_materialize_tree (struct lto_input_block *ib, struct data_in *data_in,
 
   /* The first word in BP contains the code of the tree that we
      are about to read.  */
-  code = (enum tree_code) bp_unpack_value (bp, 16);
+  code = (enum tree_code) bp_unpack_value (&bp, 16);
   lto_tag_check (lto_tree_code_to_tag (code), tag);
 
   /* Unpack all the value fields from BP.  */
-  unpack_value_fields (bp, result);
-  bitpack_delete (bp);
+  unpack_value_fields (&bp, result);
 
   /* Enter RESULT in the reader cache.  This will make RESULT
      available so that circular references in the rest of the tree
@@ -2068,6 +1943,13 @@ lto_input_ts_decl_common_tree_pointers (struct lto_input_block *ib,
        || TREE_CODE (expr) == PARM_DECL)
       && DECL_HAS_VALUE_EXPR_P (expr))
     SET_DECL_VALUE_EXPR (expr, lto_input_tree (ib, data_in));
+
+  if (TREE_CODE (expr) == VAR_DECL)
+    {
+      tree dexpr = lto_input_tree (ib, data_in);
+      if (dexpr)
+	SET_DECL_DEBUG_EXPR (expr, dexpr);
+    }
 }
 
 
@@ -2161,12 +2043,11 @@ lto_input_ts_type_tree_pointers (struct lto_input_block *ib,
     TYPE_VALUES (expr) = lto_input_tree (ib, data_in);
   else if (TREE_CODE (expr) == ARRAY_TYPE)
     TYPE_DOMAIN (expr) = lto_input_tree (ib, data_in);
-  else if (TREE_CODE (expr) == RECORD_TYPE || TREE_CODE (expr) == UNION_TYPE)
+  else if (RECORD_OR_UNION_TYPE_P (expr))
     TYPE_FIELDS (expr) = lto_input_tree (ib, data_in);
-  else if (TREE_CODE (expr) == FUNCTION_TYPE || TREE_CODE (expr) == METHOD_TYPE)
+  else if (TREE_CODE (expr) == FUNCTION_TYPE
+	   || TREE_CODE (expr) == METHOD_TYPE)
     TYPE_ARG_TYPES (expr) = lto_input_tree (ib, data_in);
-  else if (TREE_CODE (expr) == VECTOR_TYPE)
-    TYPE_DEBUG_REPRESENTATION_TYPE (expr) = lto_input_tree (ib, data_in);
 
   TYPE_SIZE (expr) = lto_input_tree (ib, data_in);
   TYPE_SIZE_UNIT (expr) = lto_input_tree (ib, data_in);
@@ -2183,7 +2064,8 @@ lto_input_ts_type_tree_pointers (struct lto_input_block *ib,
   if (RECORD_OR_UNION_TYPE_P (expr))
     TYPE_BINFO (expr) = lto_input_tree (ib, data_in);
   TYPE_CONTEXT (expr) = lto_input_tree (ib, data_in);
-  TYPE_CANONICAL (expr) = lto_input_tree (ib, data_in);
+  /* TYPE_CANONICAL gets re-computed during type merging.  */
+  TYPE_CANONICAL (expr) = NULL_TREE;
   TYPE_STUB_DECL (expr) = lto_input_tree (ib, data_in);
 }
 
@@ -2335,6 +2217,34 @@ lto_input_ts_constructor_tree_pointers (struct lto_input_block *ib,
 }
 
 
+/* Input a TS_TARGET_OPTION tree from IB into EXPR.  */
+
+static void
+lto_input_ts_target_option (struct lto_input_block *ib, tree expr)
+{
+  unsigned i, len;
+  struct bitpack_d bp;
+  struct cl_target_option *t = TREE_TARGET_OPTION (expr);
+
+  bp = lto_input_bitpack (ib);
+  len = sizeof (struct cl_target_option);
+  for (i = 0; i < len; i++)
+    ((unsigned char *)t)[i] = bp_unpack_value (&bp, 8);
+  if (bp_unpack_value (&bp, 32) != 0x12345678)
+    fatal_error ("cl_target_option size mismatch in LTO reader and writer");
+}
+
+/* Input a TS_TRANSLATION_UNIT_DECL tree from IB and DATA_IN into EXPR.  */
+
+static void
+lto_input_ts_translation_unit_decl_tree_pointers (struct lto_input_block *ib,
+						  struct data_in *data_in,
+						  tree expr)
+{
+  TRANSLATION_UNIT_LANGUAGE (expr) = input_string (data_in, ib);
+  VEC_safe_push (tree, gc, all_translation_units, expr);
+}
+
 /* Helper for lto_input_tree.  Read all pointer fields in EXPR from
    input block IB.  DATA_IN contains tables and descriptors for the
    file being read.  */
@@ -2419,9 +2329,10 @@ lto_input_tree_pointers (struct lto_input_block *ib, struct data_in *data_in,
     }
 
   if (CODE_CONTAINS_STRUCT (code, TS_TARGET_OPTION))
-    {
-      sorry ("target optimization options not supported yet");
-    }
+    lto_input_ts_target_option (ib, expr);
+
+  if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
+    lto_input_ts_translation_unit_decl_tree_pointers (ib, data_in, expr);
 }
 
 
@@ -2719,17 +2630,6 @@ lto_input_tree (struct lto_input_block *ib, struct data_in *data_in)
       /* If we are going to read a built-in function, all we need is
 	 the code and class.  */
       result = lto_get_builtin_tree (ib, data_in);
-    }
-  else if (tag == LTO_var_decl_alias)
-    {
-      /* An extra_name alias for a variable.  */
-      unsigned HOST_WIDE_INT ix;
-      tree target;
-      ix = lto_input_uleb128 (ib);
-      result = lto_file_decl_data_get_var_decl (data_in->file_data, ix);
-      ix = lto_input_uleb128 (ib);
-      target = lto_file_decl_data_get_var_decl (data_in->file_data, ix);
-      varpool_extra_name_alias (result, target);
     }
   else if (tag == lto_tree_code_to_tag (INTEGER_CST))
     {

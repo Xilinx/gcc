@@ -23,7 +23,7 @@ along with GCC; see the file COPYING3.   If not see
 
 /* for debugging -fmelt-debug is useful */
 
-/* to compile as a plugin, try compiling with -DMELT_IS_PLUGIN */
+/* To compile MELT as a plugin, try compiling with -DMELT_IS_PLUGIN. */
 
 #ifdef MELT_IS_PLUGIN
 #include "gcc-plugin.h"
@@ -31,13 +31,20 @@ along with GCC; see the file COPYING3.   If not see
 #include "version.h"
 #endif
 
-
+#include "bversion.h"
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
 #include "obstack.h"
 #include "tm.h"
 
+
+/* some system or library headers needed to MELT */
+#include <dirent.h>
+#include <dlfcn.h>
+#include <ppl_c.h>
+/* meltgc_sort_multiple needs setjmp */
+#include <setjmp.h>
 
 #include "tree.h"
 #include "gimple.h"
@@ -67,25 +74,26 @@ along with GCC; see the file COPYING3.   If not see
 #include "plugin.h"
 #include "cppdefault.h"
 
-/* some system or library headers needed to MELT */
-#include <dirent.h>
-#include <dlfcn.h>
-#include <ppl_c.h>
-/* meltgc_sort_multiple needs setjmp */
-#include <setjmp.h>
+#if BUILDING_GCC_VERSION > 4005
+/* GCC 4.6 has realmpfr.h which includes <mpfr.h>  */
+#include "realmpfr.h"
+
+/* GCC 4.6 has it: */
+#include "gimple-pretty-print.h"
+
+/* Flag ggc_force_collect is defined in ggc-internal.h so is officially not
+   public.  */
+extern bool ggc_force_collect;
+
+#endif /*GCC 4.6*/
+
 
 #include "melt-runtime.h"
 
 const char melt_runtime_build_date[] = __DATE__;
 
-int melt_debug_garbcoll; /* can be set in GDB */
-
-#ifdef ENABLE_CHECKING
-#define melt_debuggc_eprintf(Fmt,...) do {if (melt_debug_garbcoll > 0) \
-      debugeprintf("@$*" Fmt, ##__VA_ARGS__);} while(0)
-#else
-#define melt_debuggc_eprintf(Fmt,...) do{}while(0)
-#endif
+int melt_debug_garbcoll; /* Can be set in GDB, and is used by
+			    melt_debuggc_eprintf!  */
 
 /* the generating GGC marking routine */
 extern void gt_ggc_mx_melt_un (void *);
@@ -160,6 +168,7 @@ void* melt_endalz=NULL;
 char* melt_curalz=NULL;
 void** melt_storalz=NULL;
 bool melt_is_forwarding=FALSE;
+long melt_forward_counter=0;
 
 static long melt_minorsizekilow = 0;
 static long melt_fullthresholdkilow = 0;
@@ -233,6 +242,181 @@ static VEC (char_p, heap)* parsedmeltfilevect;
 static struct obstack bname_obstack;
 
 			 
+const char* 
+melt_obmag_string (int i)
+{
+#define CACHEBUFOBMAG 13
+#define BUFOBMAGLEN   16
+  static char cacheobmag[CACHEBUFOBMAG][BUFOBMAGLEN];
+  switch (i) {
+#define OBMACASE(K) case K: return #K
+  case 0: return "MeltObmag!0";
+  OBMACASE (MELTOBMAG_OBJECT);
+  OBMACASE (MELTOBMAG_BASICBLOCK);
+  OBMACASE (MELTOBMAG_BITMAP);
+  OBMACASE (MELTOBMAG_BOX);
+  OBMACASE (MELTOBMAG_CLOSURE);
+  OBMACASE (MELTOBMAG_DECAY);
+  OBMACASE (MELTOBMAG_EDGE);
+  OBMACASE (MELTOBMAG_GIMPLE);
+  OBMACASE (MELTOBMAG_GIMPLESEQ);
+  OBMACASE (MELTOBMAG_INT);
+  OBMACASE (MELTOBMAG_LIST);
+  OBMACASE (MELTOBMAG_LOOP);
+  OBMACASE (MELTOBMAG_MAPBASICBLOCKS);
+  OBMACASE (MELTOBMAG_MAPBITMAPS);
+  OBMACASE (MELTOBMAG_MAPEDGES);
+  OBMACASE (MELTOBMAG_MAPGIMPLES);
+  OBMACASE (MELTOBMAG_MAPGIMPLESEQS);
+  OBMACASE (MELTOBMAG_MAPLOOPS);
+  OBMACASE (MELTOBMAG_MAPOBJECTS);
+  OBMACASE (MELTOBMAG_MAPRTVECS);
+  OBMACASE (MELTOBMAG_MAPRTXS);
+  OBMACASE (MELTOBMAG_MAPSTRINGS);
+  OBMACASE (MELTOBMAG_MAPTREES);
+  OBMACASE (MELTOBMAG_MIXBIGINT);
+  OBMACASE (MELTOBMAG_MIXINT);
+  OBMACASE (MELTOBMAG_MIXLOC);
+  OBMACASE (MELTOBMAG_MULTIPLE);
+  OBMACASE (MELTOBMAG_PAIR);
+  OBMACASE (MELTOBMAG_REAL);
+  OBMACASE (MELTOBMAG_ROUTINE);
+  OBMACASE (MELTOBMAG_RTVEC);
+  OBMACASE (MELTOBMAG_RTX);
+  OBMACASE (MELTOBMAG_STRBUF);
+  OBMACASE (MELTOBMAG_STRING);
+  OBMACASE (MELTOBMAG_TREE);
+  OBMACASE (MELTOBMAG_SPEC_FILE);		
+  OBMACASE (MELTOBMAG_SPEC_RAWFILE);	
+  OBMACASE (MELTOBMAG_SPEC_MPFR);
+  OBMACASE (MELTOBMAG_SPECPPL_COEFFICIENT);
+  OBMACASE (MELTOBMAG_SPECPPL_LINEAR_EXPRESSION);
+  OBMACASE (MELTOBMAG_SPECPPL_CONSTRAINT);
+  OBMACASE (MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM);
+  OBMACASE (MELTOBMAG_SPECPPL_GENERATOR);
+  OBMACASE (MELTOBMAG_SPECPPL_GENERATOR_SYSTEM);
+  OBMACASE (MELTOBMAG_SPECPPL_POLYHEDRON);
+  default:
+    { 
+      int ix = (i & 0xffffff) % CACHEBUFOBMAG;
+      snprintf(cacheobmag[ix], BUFOBMAGLEN-1, "?MeltObMag?%d", i);
+      return cacheobmag[ix];
+    }
+  }
+#undef OBMACASE
+#undef CACHEBUFOBMAG
+#undef BUFOBMAGLEN
+}
+
+
+#if ENABLE_CHECKING
+
+/* For debugging purposes, used thru gdb.  */
+void *melt_alptr_1;
+void *melt_alptr_2;
+
+void melt_break_alptr_1_at (const char*msg, const char* fil, int line);
+void melt_break_alptr_2_at (const char*msg, const char* fil, int line);
+#define melt_break_alptr_1(Msg) melt_break_alptr_1_at((Msg),__FILE__,__LINE__)
+#define melt_break_alptr_2(Msg) melt_break_alptr_2_at((Msg),__FILE__,__LINE__)
+
+void 
+melt_break_alptr_1_at (const char*msg, const char* fil, int line)
+{
+  fprintf (stderr, "melt_break_alptr_1 %s:%d: %s alptr_1=%p\n", 
+	   lbasename(fil), line, msg, melt_alptr_1);
+  fflush (stderr);
+}
+
+void 
+melt_break_alptr_2_at (const char*msg, const char* fil, int line)
+{
+  fprintf (stderr, "melt_break_alptr_2 %s:%d: %s alptr_2=%p\n", 
+	   lbasename(fil), line, msg, melt_alptr_2);
+  fflush (stderr);
+}
+
+#endif /*ENABLE_CHECKING*/
+
+/* The allocation & freeing of the young zone is a routine, for ease
+   of debugging. */
+static void 
+melt_allocate_young_gc_zone (long wantedbytes)
+{
+  if (wantedbytes & 0xffff)
+    wantedbytes = (wantedbytes | 0xffff) + 1;
+  melt_debuggc_eprintf("allocate #%ld young zone %ld [=%ldK] bytes", 
+		       melt_nb_garbcoll, wantedbytes, wantedbytes >> 10);
+  melt_startalz = melt_curalz =
+    (char *) xcalloc (sizeof (void *), wantedbytes / sizeof (void *));
+  melt_endalz = (char *) melt_curalz + wantedbytes;
+  melt_storalz = ((void **) melt_endalz) - 2;
+  melt_debuggc_eprintf("allocated young zone %p-%p", 
+		       (void*)melt_startalz, (void*)melt_endalz);
+  /* You could put a breakpoint here under gdb! */
+  gcc_assert (melt_startalz != NULL);
+#if ENABLE_CHECKING
+  if (melt_alptr_1 && (char*)melt_alptr_1 >= (char*)melt_startalz
+      && (char*)melt_alptr_1 < (char*)melt_endalz) 
+    {
+      fprintf (stderr, "melt_allocate_young_gc_zone zone %p-%p with alptr_1 %p", 
+	       (void*)melt_startalz,  (void*)melt_endalz, melt_alptr_1);
+      fflush (stderr);
+      melt_debuggc_eprintf("allocate #%ld young with alptr_1 %p", 
+			   melt_nb_garbcoll, melt_alptr_1);
+      melt_break_alptr_1 ("allocate with alptr_1");
+    };
+  if (melt_alptr_2 && (char*)melt_alptr_2 >= (char*)melt_startalz
+      && (char*)melt_alptr_2 < (char*)melt_endalz) 
+    {
+      fprintf (stderr, "melt_allocate_young_gc_zone zone %p-%p with alptr_2 %p", 
+	       (void*)melt_startalz,  (void*)melt_endalz, melt_alptr_2);
+      fflush (stderr);
+      melt_debuggc_eprintf("allocate #%ld young with alptr_2 %p", 
+			   melt_nb_garbcoll, melt_alptr_2);
+      melt_break_alptr_2 ("allocate with alptr_2");
+    };
+#endif /*ENABLE_CHECKING*/
+  return;
+}
+
+static void
+melt_free_young_gc_zone (void)
+{
+  gcc_assert (melt_startalz != NULL);
+  melt_debuggc_eprintf("freeing #%ld young zone %p-%p", 
+		       melt_nb_garbcoll,
+		       (void*)melt_startalz, (void*)melt_endalz);
+#if ENABLE_CHECKING
+  if (melt_alptr_1 && (char*)melt_alptr_1 >= (char*)melt_startalz
+      && (char*)melt_alptr_1 < (char*)melt_endalz) 
+    {
+      fprintf (stderr, "melt_free_young_gc_zone zone %p-%p with alptr_1 %p", 
+	       (void*)melt_startalz,  (void*)melt_endalz, melt_alptr_1);
+      fflush (stderr);
+      melt_debuggc_eprintf("free #%ld young with alptr_1 %p", 
+			   melt_nb_garbcoll, melt_alptr_1);
+      melt_break_alptr_1 ("free with alptr_1");
+    };
+  if (melt_alptr_2 && (char*)melt_alptr_2 >= (char*)melt_startalz
+      && (char*)melt_alptr_2 < (char*)melt_endalz) 
+    {
+      fprintf (stderr, "melt_free_young_gc_zone zone %p-%p with alptr_2 %p", 
+	       (void*)melt_startalz,  (void*)melt_endalz, melt_alptr_2);
+      fflush (stderr);
+      melt_debuggc_eprintf("free #%ld young with alptr_2 %p", 
+			   melt_nb_garbcoll, melt_alptr_2);
+      melt_break_alptr_2("free with alptr_2");
+    };
+#endif /*ENABLE_CHECKING*/
+  free (melt_startalz);
+  melt_startalz = melt_endalz = melt_curalz = NULL;
+  melt_storalz = NULL;
+  /* You can put a gdb breakpoint here! */
+  gcc_assert (melt_nb_garbcoll > 0);
+  return;
+}
+
 			 
 /* called from toplev.c function print_version */
 void 
@@ -417,9 +601,10 @@ int melt_debug_depth (void)
 static inline void
 delete_special (struct meltspecial_st *sp)
 {
-  melt_debuggc_eprintf ("delete_special deleting sp %p magic %d", 
-			(void*) sp, sp->discr->object_magic);
-  switch (sp->discr->object_magic)
+  int magic = sp->discr->object_magic;
+  melt_debuggc_eprintf ("delete_special deleting sp %p magic %d %s", 
+			(void*) sp, magic, melt_obmag_string (magic));
+  switch (magic)
     {
     case MELTOBMAG_SPEC_FILE:
       if (sp->val.sp_file)
@@ -570,6 +755,7 @@ static long thresholdcheckcallframes;
 struct meltspecial_st*
 meltgc_make_special(melt_ptr_t discr_p)
 {
+  int magic = 0;
   MELT_ENTERFRAME (2, NULL);
 #define discrv     meltfram__.mcfr_varptr[0]
 #define specv      meltfram__.mcfr_varptr[1]
@@ -577,7 +763,8 @@ meltgc_make_special(melt_ptr_t discr_p)
   discrv = discr_p;
   if (!discrv || melt_magic_discr((melt_ptr_t)discrv) != MELTOBMAG_OBJECT)
     goto end;
-  switch (((meltobject_ptr_t)discrv)->object_magic) 
+  magic = ((meltobject_ptr_t)discrv)->object_magic;
+  switch (magic) 
     {
     case ALL_MELTOBMAG_SPECIAL_CASES:
       specv = meltgc_allocate (sizeof(struct meltspecial_st),0);
@@ -585,6 +772,24 @@ meltgc_make_special(melt_ptr_t discr_p)
       sp_specv->mark = 0;
       sp_specv->nextspec = melt_newspeclist;
       melt_newspeclist = sp_specv;
+      melt_debuggc_eprintf ("make_special %p discr %p magic %d %s", 
+			    specv, discrv, magic, melt_obmag_string(magic));
+#if ENABLE_CHECKING
+      if (melt_alptr_1 && (void*)melt_alptr_1 == specv) 
+	{
+	  fprintf (stderr, "meltgc_make_special alptr_1 %p mag %d %s\n", 
+		   melt_alptr_1, magic, melt_obmag_string(magic));
+	  fflush (stderr);
+	  melt_break_alptr_1 ("meltgc_make_special alptr_1");
+	};
+      if (melt_alptr_2 && (void*)melt_alptr_2 == specv) 
+	{
+	  fprintf (stderr, "meltgc_make_special alptr_2 %p mag %d %s\n", 
+		   melt_alptr_1, magic, melt_obmag_string(magic));
+	  fflush (stderr);
+	  melt_break_alptr_1 ("meltgc_make_special alptr_2");
+	};
+#endif /*ENABLE_CHECKING*/
       break;
     default: goto end;
     }
@@ -691,6 +896,7 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 			  void* user_data ATTRIBUTE_UNUSED)
 {
   int ix = 0;
+  melt_ptr_t *storp = NULL;
   struct callframe_melt_st *cf = 0;
   meltmarkingcount++;
   dbgprintf ("start of melt_marking_callback %ld", meltmarkingcount);
@@ -702,6 +908,7 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
       {
 	/* Common case, we have a closure. */
 	meltroutfun_t*funp = 0;
+	int ix = 0;
 	gcc_assert(cf->mcfr_closp->rout);
 	funp = cf->mcfr_closp->rout->routfunad;
 	gcc_assert(funp);
@@ -709,6 +916,8 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 			      meltmarkingcount, (void*) cf, 
 			      cf->mcfr_nbvar);
 	gt_ggc_mx_melt_un ((melt_ptr_t)(cf->mcfr_closp));
+	for (ix = ((int)(cf->mcfr_nbvar)) - 1; ix >= 0; ix --)
+	  gt_ggc_mx_melt_un ((melt_ptr_t)(cf->mcfr_varptr[ix]));
 	/* call the function specially with the MARKGCC special
 	   parameter descriptor */
 	funp(cf->mcfr_closp, (melt_ptr_t)cf, MELTPAR_MARKGGC, 
@@ -740,6 +949,15 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	    gt_ggc_mx_melt_un ((melt_ptr_t)(cf->mcfr_varptr[ix]));
       } 
   }
+  /* mark the store list.  */
+  if (melt_storalz) 
+    for (storp = (melt_ptr_t *) melt_storalz;
+	 (char *) storp < (char *) melt_endalz; storp++)
+      {
+	melt_ptr_t curstorp = (melt_ptr_t) *storp;
+	if (curstorp)
+	  gt_ggc_mx_melt_un (curstorp);
+      }
   dbgprintf("end of melt_marking_callback %ld", meltmarkingcount);
 }
 
@@ -785,7 +1003,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
       else if (melt_fullperiod > 256) melt_fullperiod = 256;
     }
   melt_check_call_frames (MELT_ANYWHERE, "before garbage collection");
-  melt_debuggc_eprintf ("melt_garbcoll %ld begin alz=%p-%p", 
+  melt_debuggc_eprintf ("melt_garbcoll %ld begin alz=%p-%p *****************\n", 
 		  melt_nb_garbcoll, melt_startalz, melt_endalz);
   gcc_assert ((char *) melt_startalz < (char *) melt_endalz);
   gcc_assert ((char *) melt_curalz >= (char *) melt_startalz
@@ -802,6 +1020,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
     needfull = TRUE;
 
   melt_is_forwarding = TRUE;
+  melt_forward_counter = 0;
   for (ix = 0; ix < MELTGLOB__LASTGLOB; ix++)
     MELT_FORWARDED (melt_globarr[ix]);
   for (cfram = melt_topframe; cfram != NULL; cfram = cfram->mcfr_prev)
@@ -880,19 +1099,14 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   melt_newspeclist = NULL;
 
   /* Free the previous young zone and allocate a new one.  */
-  free (melt_startalz);
-  melt_debuggc_eprintf ("melt_garbcoll %ld freed alz=%p-%p", 
+  melt_debuggc_eprintf ("melt_garbcoll %ld freeing alz=%p-%p", 
 			melt_nb_garbcoll, melt_startalz, melt_endalz);
-  melt_startalz = melt_endalz = melt_curalz = NULL;
-  melt_storalz = NULL;
+  melt_free_young_gc_zone ();
   melt_kilowords_sincefull += wanted / (1024 * sizeof (void *));
   if (gckd > MELT_ONLY_MINOR && melt_kilowords_sincefull >
       (unsigned long) melt_fullthresholdkilow)
     needfull = TRUE;
-  melt_startalz = melt_curalz =
-    (char *) xcalloc (sizeof (void *), wanted / sizeof (void *));
-  melt_endalz = (char *) melt_curalz + wanted;
-  melt_storalz = ((void **) melt_endalz) - 2;
+  melt_allocate_young_gc_zone (wanted);
   melt_debuggc_eprintf ("melt_garbcoll %ld allocated alz=%p-%p", 
 			melt_nb_garbcoll, melt_startalz, melt_endalz);
   if (needfull)
@@ -940,10 +1154,9 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 }
 
 /**
-   GCC 4.5 (and also very early 4.6 trunk, ...) has an untyped GGC
-   allocator thru routines ggc_alloc_cleared, but GCC 4.6 will
-   probably have typed GGC allocation; see
-   http://gcc.gnu.org/ml/gcc/2010-06/msg00581.html &
+   GCC 4.5 has an untyped GGC allocator thru routines
+   ggc_alloc_cleared, but GCC 4.6 will probably have typed GGC
+   allocation; see http://gcc.gnu.org/ml/gcc/2010-06/msg00581.html &
    http://gcc.gnu.org/ml/gcc/2010-06/msg00566.html etc.  Since we want
    to try hard to have a MELT runtime compilable both as a plugin to
    unchanged GCC 4.5 and as a branch following 4.6, we try to be
@@ -951,171 +1164,260 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 **/
 #if BUILDING_GCC_VERSION <= 4006 && !defined (ggc_alloc_cleared_gimple)
 #define ggc_alloc_cleared_meltobject_st(Siz) \
-  ((struct meltobject_st*)ggc_alloc_cleared (sizeof(struct meltobject_st) \
-					    +(Siz)*sizeof(melt_ptr_t)))
+  ((struct meltobject_st*)ggc_alloc_cleared ((Siz))
+#define ggc_alloc_meltobject_st(Siz) \
+  ((struct meltobject_st*)ggc_alloc ((Siz))
 
 #define ggc_alloc_cleared_meltdecay_st() \
   ((struct meltdecay_st*)ggc_alloc_cleared (sizeof(struct meltdecay_st)))
+#define ggc_alloc_meltdecay_st() \
+  ((struct meltdecay_st*)ggc_alloc (sizeof(struct meltdecay_st)))
 
 #define ggc_alloc_cleared_meltforward_st() \
   ((struct meltforward_st*)ggc_alloc_cleared (sizeof(struct meltforward_st)))
+#define ggc_alloc_meltforward_st() \
+  ((struct meltforward_st*)ggc_alloc (sizeof(struct meltforward_st)))
 
 #define ggc_alloc_cleared_meltbox_st() \
   ((struct meltbox_st*)ggc_alloc_cleared (sizeof(struct meltbox_st)))
+#define ggc_alloc_meltbox_st() \
+  ((struct meltbox_st*)ggc_alloc (sizeof(struct meltbox_st)))
 
 #define ggc_alloc_cleared_meltmultiple_st(Siz) \
-  ((struct meltmultiple_st*)ggc_alloc_cleared (sizeof(struct meltmultiple_st) \
-					 + (Siz)*sizeof(melt_ptr_t)))
+  ((struct meltmultiple_st*)ggc_alloc_cleared ((Siz))
+#define ggc_alloc_meltmultiple_st(Siz) \
+  ((struct meltmultiple_st*)ggc_alloc ((Siz))
 
 #define ggc_alloc_cleared_meltclosure_st(Siz) \
-  ((struct meltclosure_st*)ggc_alloc_cleared (sizeof(struct meltclosure_st) \
-					 + (Siz)*sizeof(melt_ptr_t)))
+  ((struct meltclosure_st*)ggc_alloc_cleared ((Siz))
+#define ggc_alloc_meltclosure_st(Siz) \
+  ((struct meltclosure_st*)ggc_alloc ((Siz))
 
 #define ggc_alloc_cleared_meltroutine_st(Siz) \
-  ((struct meltroutine_st*)ggc_alloc_cleared (sizeof(struct meltroutine_st) \
-					     + (Siz)*sizeof(melt_ptr_t)))
+  ((struct meltroutine_st*)ggc_alloc_cleared ((Siz))
+#define ggc_alloc_meltroutine_st(Siz) \
+  ((struct meltroutine_st*)ggc_alloc ((Siz))
 
 #define ggc_alloc_cleared_meltpair_st() \
   ((struct meltpair_st*)ggc_alloc_cleared (sizeof(struct meltpair_st)))
+#define ggc_alloc_meltpair_st() \
+  ((struct meltpair_st*)ggc_alloc (sizeof(struct meltpair_st)))
 
 #define ggc_alloc_cleared_meltlist_st() \
   ((struct meltlist_st*)ggc_alloc_cleared (sizeof(struct meltlist_st)))
+#define ggc_alloc_meltlist_st() \
+  ((struct meltlist_st*)ggc_alloc (sizeof(struct meltlist_st)))
 
 #define ggc_alloc_cleared_meltint_st() \
   ((struct meltint_st*)ggc_alloc_cleared (sizeof(struct meltint_st)))
+#define ggc_alloc_meltint_st() \
+  ((struct meltint_st*)ggc_alloc (sizeof(struct meltint_st)))
 
 #define ggc_alloc_cleared_meltmixint_st() \
   ((struct meltmixint_st*)ggc_alloc_cleared (sizeof(struct meltmixint_st)))
+#define ggc_alloc_meltmixint_st() \
+  ((struct meltmixint_st*)ggc_alloc (sizeof(struct meltmixint_st)))
 
 #define ggc_alloc_cleared_meltmixloc_st() \
   ((struct meltmixloc_st*)ggc_alloc_cleared (sizeof(struct meltmixloc_st)))
 
 #define ggc_alloc_cleared_meltmixbigint_st(Siz) \
-  ((struct meltmixbigint_st*)ggc_alloc_cleared (sizeof(struct meltmixbigint_st) \
-						+ Siz * sizeof(long)))
+  ((struct meltmixbigint_st*)ggc_alloc_cleared ((Siz))
+#define ggc_alloc_meltmixbigint_st(Siz) \
+  ((struct meltmixbigint_st*)ggc_alloc ((Siz))
 
 #define ggc_alloc_cleared_meltmixreal_st() \
   ((struct meltmixreal_st*)ggc_alloc_cleared (sizeof(struct meltmixreal_st)))
+#define ggc_alloc_meltmixreal_st() \
+  ((struct meltmixreal_st*)ggc_alloc (sizeof(struct meltmixreal_st)))
 
 #define ggc_alloc_cleared_meltspecial_st() \
   ((struct meltspecial_st*)ggc_alloc_cleared (sizeof(struct meltspecial_st)))
+#define ggc_alloc_meltspecial_st() \
+  ((struct meltspecial_st*)ggc_alloc (sizeof(struct meltspecial_st)))
 
 #define ggc_alloc_cleared_meltstring_st(Siz) \
-  ((struct meltstring_st*)ggc_alloc_cleared ((Siz)*sizeof(char)   \
-					    + sizeof(struct meltstring_st)))
+  ((struct meltstring_st*)ggc_alloc_cleared ((Siz))
+#define ggc_alloc_meltstring_st(Siz) \
+  ((struct meltstring_st*)ggc_alloc ((Siz))
 
 #define ggc_alloc_cleared_meltstrbuf_st() \
   ((struct meltstrbuf_st*)ggc_alloc_cleared (sizeof(struct meltstrbuf_st)))
+#define ggc_alloc_meltstrbuf_st() \
+  ((struct meltstrbuf_st*)ggc_alloc (sizeof(struct meltstrbuf_st)))
 
 #define ggc_alloc_cleared_melttree_st() \
   ((struct melttree_st*)ggc_alloc_cleared (sizeof(struct melttree_st)))
+#define ggc_alloc_melttree_st() \
+  ((struct melttree_st*)ggc_alloc (sizeof(struct melttree_st)))
 
 #define ggc_alloc_cleared_meltgimple_st() \
   ((struct meltgimple_st*)ggc_alloc_cleared (sizeof(struct meltgimple_st)))
+#define ggc_alloc_meltgimple_st() \
+  ((struct meltgimple_st*)ggc_alloc (sizeof(struct meltgimple_st)))
 
 #define ggc_alloc_cleared_meltgimpleseq_st() \
   ((struct meltgimpleseq_st*)ggc_alloc_cleared (sizeof(struct meltgimpleseq_st)))
+#define ggc_alloc_meltgimpleseq_st() \
+  ((struct meltgimpleseq_st*)ggc_alloc (sizeof(struct meltgimpleseq_st)))
 
 #define ggc_alloc_cleared_meltbasicblock_st() \
   ((struct meltbasicblock_st*)ggc_alloc_cleared (sizeof(struct meltbasicblock_st)))
+#define ggc_alloc_meltbasicblock_st() \
+  ((struct meltbasicblock_st*)ggc_alloc (sizeof(struct meltbasicblock_st)))
 
 #define ggc_alloc_cleared_meltedge_st() \
   ((struct meltedge_st*)ggc_alloc_cleared (sizeof(struct meltedge_st)))
+#define ggc_alloc_meltedge_st() \
+  ((struct meltedge_st*)ggc_alloc (sizeof(struct meltedge_st)))
 
 #define ggc_alloc_cleared_meltloop_st() \
   ((struct meltloop_st*)ggc_alloc_cleared (sizeof(struct meltloop_st)))
+#define ggc_alloc_meltloop_st() \
+  ((struct meltloop_st*)ggc_alloc (sizeof(struct meltloop_st)))
 
 #define ggc_alloc_cleared_meltreal_st() \
   ((struct meltreal_st*)ggc_alloc_cleared (sizeof(struct meltreal_st)))
+#define ggc_alloc_meltreal_st() \
+  ((struct meltreal_st*)ggc_alloc (sizeof(struct meltreal_st)))
 
 #define ggc_alloc_cleared_meltrtx_st() \
   ((struct meltrtx_st*)ggc_alloc_cleared (sizeof(struct meltrtx_st)))
+#define ggc_alloc_meltrtx_st() \
+  ((struct meltrtx_st*)ggc_alloc (sizeof(struct meltrtx_st)))
 
 #define ggc_alloc_cleared_meltbitmap_st() \
   ((struct meltbitmap_st*)ggc_alloc_cleared (sizeof(struct meltbitmap_st)))
+#define ggc_alloc_meltbitmap_st() \
+  ((struct meltbitmap_st*)ggc_alloc (sizeof(struct meltbitmap_st)))
 
 #define ggc_alloc_cleared_meltrtvec_st() \
   ((struct meltrtvec_st*)ggc_alloc_cleared (sizeof(struct meltrtvec_st)))
+#define ggc_alloc_meltrtvec_st() \
+  ((struct meltrtvec_st*)ggc_alloc (sizeof(struct meltrtvec_st)))
 
 
 #define ggc_alloc_cleared_meltmapobjects_st() \
   ((struct meltmapobjects_st*)ggc_alloc_cleared (sizeof(struct meltmapobjects_st)))
+#define ggc_alloc_meltmapobjects_st() \
+  ((struct meltmapobjects_st*)ggc_alloc (sizeof(struct meltmapobjects_st)))
 
-#define ggc_alloc_cleared_vec_entryobjectsmelt_st(Siz) \
-  ((struct entryobjectsmelt_st*)ggc_alloc_cleared (Siz*sizeof(struct entryobjectsmelt_st)))
+#define ggc_alloc_cleared_vec_entryobjectsmelt_st(Len) \
+  ((struct entryobjectsmelt_st*)ggc_alloc_cleared ((Len)*sizeof(struct entryobjectsmelt_st)))
+#define ggc_alloc_vec_entryobjectsmelt_st(Len) \
+  ((struct entryobjectsmelt_st*)ggc_alloc ((Len)*sizeof(struct entryobjectsmelt_st)))
 
 
 #define ggc_alloc_cleared_meltmaptrees_st() \
   ((struct meltmaptrees_st*)ggc_alloc_cleared (sizeof(struct meltmaptrees_st)))
+#define ggc_alloc_meltmaptrees_st() \
+  ((struct meltmaptrees_st*)ggc_alloc (sizeof(struct meltmaptrees_st)))
 
-#define ggc_alloc_cleared_vec_entrytreesmelt_st(Siz) \
-  ((struct entrytreesmelt_st*)ggc_alloc_cleared (Siz*sizeof(struct entrytreesmelt_st)))
+#define ggc_alloc_cleared_vec_entrytreesmelt_st(Len) \
+  ((struct entrytreesmelt_st*)ggc_alloc_cleared ((Len)*sizeof(struct entrytreesmelt_st)))
+#define ggc_alloc_vec_entrytreesmelt_st(Len) \
+  ((struct entrytreesmelt_st*)ggc_alloc ((Len)*sizeof(struct entrytreesmelt_st)))
 
 
 #define ggc_alloc_cleared_meltmapgimples_st() \
   ((struct meltmapgimples_st*)ggc_alloc_cleared (sizeof(struct meltmapgimples_st)))
+#define ggc_alloc_meltmapgimples_st() \
+  ((struct meltmapgimples_st*)ggc_alloc (sizeof(struct meltmapgimples_st)))
 
-#define ggc_alloc_cleared_vec_entrygimplesmelt_st(Siz) \
-  ((struct entrygimplesmelt_st*)ggc_alloc_cleared (Siz*sizeof(struct entrygimplesmelt_st)))
+#define ggc_alloc_cleared_vec_entrygimplesmelt_st(Len) \
+  ((struct entrygimplesmelt_st*)ggc_alloc_cleared ((Len)*sizeof(struct entrygimplesmelt_st)))
+#define ggc_alloc_vec_entrygimplesmelt_st(Len) \
+  ((struct entrygimplesmelt_st*)ggc_alloc ((Len)*sizeof(struct entrygimplesmelt_st)))
 
 
 
 #define ggc_alloc_cleared_meltmapgimpleseqs_st() \
   ((struct meltmapgimpleseqs_st*)ggc_alloc_cleared (sizeof(struct meltmapgimpleseqs_st)))
+#define ggc_alloc_meltmapgimpleseqs_st() \
+  ((struct meltmapgimpleseqs_st*)ggc_alloc (sizeof(struct meltmapgimpleseqs_st)))
 
-#define ggc_alloc_cleared_vec_entrygimpleseqsmelt_st(Siz) \
-  ((struct entrygimpleseqsmelt_st*) ggc_alloc_cleared (Siz*sizeof(struct entrygimpleseqsmelt_st)))
+#define ggc_alloc_cleared_vec_entrygimpleseqsmelt_st(Len) \
+  ((struct entrygimpleseqsmelt_st*) ggc_alloc_cleared ((Len)*sizeof(struct entrygimpleseqsmelt_st)))
+#define ggc_alloc_vec_entrygimpleseqsmelt_st(Len) \
+  ((struct entrygimpleseqsmelt_st*) ggc_alloc ((Len)*sizeof(struct entrygimpleseqsmelt_st)))
 
 
 
 #define ggc_alloc_cleared_meltmaploops_st() \
   ((struct meltmaploops_st*)ggc_alloc_cleared (sizeof(struct meltmaploops_st)))
+#define ggc_alloc_meltmaploops_st() \
+  ((struct meltmaploops_st*)ggc_alloc (sizeof(struct meltmaploops_st)))
 
-#define ggc_alloc_cleared_vec_entryloopsmelt_st(Siz) \
-  ((struct entryloopsmelt_st*)ggc_alloc_cleared (Siz*sizeof(struct entryloopsmelt_st)))
+#define ggc_alloc_cleared_vec_entryloopsmelt_st(Len) \
+  ((struct entryloopsmelt_st*)ggc_alloc_cleared ((Len)*sizeof(struct entryloopsmelt_st)))
+#define ggc_alloc_vec_entryloopsmelt_st(Len) \
+  ((struct entryloopsmelt_st*)ggc_alloc ((Len)*sizeof(struct entryloopsmelt_st)))
 
 
 #define ggc_alloc_cleared_meltmaprtxs_st() \
   ((struct meltmaprtxs_st*)ggc_alloc_cleared (sizeof(struct meltmaprtxs_st)))
+#define ggc_alloc_meltmaprtxs_st() \
+  ((struct meltmaprtxs_st*)ggc_alloc (sizeof(struct meltmaprtxs_st)))
 
-#define ggc_alloc_cleared_vec_entryrtxsmelt_st(Siz) \
-  ((struct entryrtxsmelt_st*) ggc_alloc_cleared((Siz)*sizeof(struct entryrtxsmelt_st)))
+#define ggc_alloc_cleared_vec_entryrtxsmelt_st(Len) \
+  ((struct entryrtxsmelt_st*) ggc_alloc_cleared((Len)*sizeof(struct entryrtxsmelt_st)))
+#define ggc_alloc_vec_entryrtxsmelt_st(Len) \
+  ((struct entryrtxsmelt_st*) ggc_alloc((Len)*sizeof(struct entryrtxsmelt_st)))
 
 
 #define ggc_alloc_cleared_meltmaprtvecs_st() \
   ((struct meltmaprtvecs_st*)ggc_alloc_cleared (sizeof(struct meltmaprtvecs_st)))
+#define ggc_alloc_meltmaprtvecs_st() \
+  ((struct meltmaprtvecs_st*)ggc_alloc (sizeof(struct meltmaprtvecs_st)))
 
-#define ggc_alloc_cleared_vec_entryrtvecsmelt_st(Siz) \
-  ((struct entryrtvecsmelt_st*) ggc_alloc_cleared((Siz)*sizeof(struct entryrtvecsmelt_st)))
-
+#define ggc_alloc_cleared_vec_entryrtvecsmelt_st(Len) \
+  ((struct entryrtvecsmelt_st*) ggc_alloc_cleared((Len)*sizeof(struct entryrtvecsmelt_st)))
+#define ggc_alloc_vec_entryrtvecsmelt_st(Len) \
+  ((struct entryrtvecsmelt_st*) ggc_alloc((Len)*sizeof(struct entryrtvecsmelt_st)))
 
 
 #define ggc_alloc_cleared_meltmapstrings_st() \
   ((struct meltmapstrings_st*)ggc_alloc_cleared (sizeof(struct meltmapstrings_st)))
+#define ggc_alloc_meltmapstrings_st() \
+  ((struct meltmapstrings_st*)ggc_alloc (sizeof(struct meltmapstrings_st)))
 
-#define ggc_alloc_cleared_vec_entrystringsmelt_st(Siz) \
-  ((struct entrystringsmelt_st*) ggc_alloc_cleared((Siz)*sizeof(struct entrystringsmelt_st)))
+#define ggc_alloc_cleared_vec_entrystringsmelt_st(Len) \
+  ((struct entrystringsmelt_st*) ggc_alloc_cleared((Len)*sizeof(struct entrystringsmelt_st)))
+#define ggc_alloc_vec_entrystringsmelt_st(Len) \
+  ((struct entrystringsmelt_st*) ggc_alloc((Len)*sizeof(struct entrystringsmelt_st)))
 
 
 #define ggc_alloc_cleared_meltmapbasicblocks_st() \
   ((struct meltmapbasicblocks_st*)ggc_alloc_cleared (sizeof(struct meltmapbasicblocks_st)))
+#define ggc_alloc_meltmapbasicblocks_st() \
+  ((struct meltmapbasicblocks_st*)ggc_alloc (sizeof(struct meltmapbasicblocks_st)))
 
-#define ggc_alloc_cleared_vec_entrybasicblocksmelt_st(Siz) \
-  ((struct entrybasicblocksmelt_st*) ggc_alloc_cleared((Siz)*sizeof(struct entrybasicblocksmelt_st)))
+#define ggc_alloc_cleared_vec_entrybasicblocksmelt_st(Len) \
+  ((struct entrybasicblocksmelt_st*) ggc_alloc_cleared((Len)*sizeof(struct entrybasicblocksmelt_st)))
+#define ggc_alloc_vec_entrybasicblocksmelt_st(Len) \
+  ((struct entrybasicblocksmelt_st*) ggc_alloc((Len)*sizeof(struct entrybasicblocksmelt_st)))
 
 
 
 #define ggc_alloc_cleared_meltmapedges_st() \
   ((struct meltmapedges_st*)ggc_alloc_cleared (sizeof(struct meltmapedges_st)))
+#define ggc_alloc_meltmapedges_st() \
+  ((struct meltmapedges_st*)ggc_alloc (sizeof(struct meltmapedges_st)))
 
-#define ggc_alloc_cleared_vec_entryedgesmelt_st(Siz) \
-  ((struct entryedgesmelt_st*) ggc_alloc_cleared((Siz)*sizeof(struct entryedgesmelt_st)))
+#define ggc_alloc_cleared_vec_entryedgesmelt_st(Len) \
+  ((struct entryedgesmelt_st*) ggc_alloc_cleared((Len)*sizeof(struct entryedgesmelt_st)))
+#define ggc_alloc_vec_entryedgesmelt_st(Len) \
+  ((struct entryedgesmelt_st*) ggc_alloc((Len)*sizeof(struct entryedgesmelt_st)))
 
 #define ggc_alloc_cleared_meltmapbitmaps_st() \
   ((struct meltmapbitmaps_st*)ggc_alloc_cleared (sizeof(struct meltmapbitmaps_st)))
+#define ggc_alloc_meltmapbitmaps_st() \
+  ((struct meltmapbitmaps_st*)ggc_alloc (sizeof(struct meltmapbitmaps_st)))
 
-#define ggc_alloc_cleared_vec_entrybitmapsmelt_st(Siz) \
-  ((struct entrybitmapsmelt_st*) ggc_alloc_cleared((Siz)*sizeof(struct entrybitmapsmelt_st)))
+#define ggc_alloc_cleared_vec_entrybitmapsmelt_st(Len) \
+  ((struct entrybitmapsmelt_st*) ggc_alloc_cleared((Len)*sizeof(struct entrybitmapsmelt_st)))
+#define ggc_alloc_vec_entrybitmapsmelt_st(Len) \
+  ((struct entrybitmapsmelt_st*) ggc_alloc((Len)*sizeof(struct entrybitmapsmelt_st)))
 
 
 #endif /* when gcc 4.5 without typed ggc_alloc... */
@@ -1139,7 +1441,8 @@ melt_reserved_allocation_failure (long siz)
 }
 
 /* cheney like forwarding */
-melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
+melt_ptr_t 
+melt_forwarded_copy (melt_ptr_t p)
 {
   melt_ptr_t n = 0;
   int mag = 0;
@@ -1151,6 +1454,7 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
        (((struct meltforward_st *) p->u_discr)->forward))->object_magic;
   else
     mag = p->u_discr->object_magic;
+  melt_forward_counter++;
   /***
    * we can copy *dst = *src only for structures which do not use
    * FLEXIBLE_DIM; for those that do and which are "empty" this is not
@@ -1165,17 +1469,20 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
     case MELTOBMAG_OBJECT:
       {
 	struct meltobject_st *src = (struct meltobject_st *) p;
-	unsigned oblen = src->obj_len;
-	struct meltobject_st *dst = 
-	  ggc_alloc_cleared_meltobject_st (oblen);
-	int ix;
+	int ix = 0;
+	struct meltobject_st *dst = NULL;
+	int oblen = (int) (src->obj_len);
+	/* We don't need to clear at allocation, since the object is
+	   explicitly filled here! */
+	dst = ggc_alloc_meltobject_st
+	  (oblen*sizeof(void*)
+	   + offsetof(struct meltobject_st, obj_vartab));
 	/* we cannot copy the whole src, because FLEXIBLE_DIM might be 1 */
 	dst->obj_class = src->obj_class;
 	dst->obj_hash = src->obj_hash;
 	dst->obj_num = src->obj_num;
-	dst->obj_len = src->obj_len;
-	if (oblen > 0)
-	  for (ix = (int) oblen - 1; ix >= 0; ix--)
+	dst->obj_len = oblen;
+	for (ix = 0; ix < oblen; ix++)
 	    dst->obj_vartab[ix] = src->obj_vartab[ix];
 	n = (melt_ptr_t) dst;
 	break;
@@ -1183,8 +1490,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
     case MELTOBMAG_DECAY:
       {
 	struct meltdecay_st *src = (struct meltdecay_st *) p;
-	struct meltdecay_st *dst = 
-	  ggc_alloc_cleared_meltdecay_st ();
+	/* Don't need a cleared allocation! */
+	struct meltdecay_st *dst = ggc_alloc_meltdecay_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1192,8 +1499,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
     case MELTOBMAG_BOX:
       {
 	struct meltbox_st *src = (struct meltbox_st *) p;
-	struct meltbox_st *dst = 
-	  ggc_alloc_cleared_meltbox_st ();
+	/* Don't need a cleared allocation!  */
+	struct meltbox_st *dst = ggc_alloc_meltbox_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1201,15 +1508,17 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
     case MELTOBMAG_MULTIPLE:
       {
 	struct meltmultiple_st *src = (struct meltmultiple_st *) p;
-	unsigned nbv = src->nbval;
-	int ix;
+	int nbv = (int) src->nbval;
+	int ix = 0;
 	struct meltmultiple_st *dst = 
-	  ggc_alloc_cleared_meltmultiple_st (nbv);
+	  /* Don't need a cleared allocation!  */
+	  ggc_alloc_meltmultiple_st 
+	  (nbv*sizeof(void*) + offsetof(struct meltmultiple_st, tabval));
 	/* we cannot copy the whole src, because FLEXIBLE_DIM might be
 	   1 and nbval could be 0 */
 	dst->discr = src->discr;
 	dst->nbval = src->nbval;
-	for (ix = (int) nbv; ix >= 0; ix--)
+	for (ix = 0; ix < nbv; ix++)
 	  dst->tabval[ix] = src->tabval[ix];
 	n = (melt_ptr_t) dst;
 	break;
@@ -1217,14 +1526,16 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
     case MELTOBMAG_CLOSURE:
       {
 	struct meltclosure_st *src = (struct meltclosure_st *) p;
-	unsigned nbv = src->nbval;
-	int ix;
+	int nbv = (int) src->nbval;
+	int ix = 0;
 	struct meltclosure_st *dst = 
-	  ggc_alloc_cleared_meltclosure_st (nbv);
+	  /* Don't need a cleared allocation!  */
+	  ggc_alloc_meltclosure_st 
+	  (nbv*sizeof(void*) + offsetof(struct meltclosure_st, tabval));
 	dst->discr = src->discr;
 	dst->rout = src->rout;
-	dst->nbval = src->nbval;
-	for (ix = (int) nbv; ix >= 0; ix--)
+	dst->nbval = (unsigned) nbv;
+	for (ix = 0; ix < nbv; ix++)
 	  dst->tabval[ix] = src->tabval[ix];
 	n = (melt_ptr_t) dst;
 	break;
@@ -1232,16 +1543,18 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
     case MELTOBMAG_ROUTINE:
       {
 	struct meltroutine_st *src = (struct meltroutine_st *) p;
-	unsigned nbv = src->nbval;
-	int ix;
+	int nbv = (int) src->nbval;
+	int ix = 0;
 	struct meltroutine_st *dst =
-	  ggc_alloc_cleared_meltroutine_st (nbv);
+	  /* Don't need a cleared allocation!  */
+	  ggc_alloc_meltroutine_st
+	  (nbv*sizeof(void*) + offsetof(struct meltroutine_st, tabval));
 	dst->discr = src->discr;
 	strncpy (dst->routdescr, src->routdescr, MELT_ROUTDESCR_LEN);
 	dst->routdescr[MELT_ROUTDESCR_LEN - 1] = 0;
-	dst->nbval = src->nbval;
+	dst->nbval = (unsigned) nbv;
 	dst->routfunad = src->routfunad;
-	for (ix = (int) nbv; ix >= 0; ix--)
+	for (ix = 0; ix < nbv; ix++)
 	  dst->tabval[ix] = src->tabval[ix];
 	dst->routdata = src->routdata;
 	n = (melt_ptr_t) dst;
@@ -1251,7 +1564,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltlist_st *src = (struct meltlist_st *) p;
 	struct meltlist_st *dst = 
-	  ggc_alloc_cleared_meltlist_st ();
+	  /* Don't need a cleared allocation!  */
+	  ggc_alloc_meltlist_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1260,7 +1574,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltpair_st *src = (struct meltpair_st *) p;
 	struct meltpair_st *dst = 
-	  ggc_alloc_cleared_meltpair_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltpair_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1269,7 +1584,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltint_st *src = (struct meltint_st *) p;
 	struct meltint_st *dst = 
-	  ggc_alloc_cleared_meltint_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltint_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1278,7 +1594,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltmixint_st *src = (struct meltmixint_st *) p;
 	struct meltmixint_st *dst = 
-	  ggc_alloc_cleared_meltmixint_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmixint_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1287,7 +1604,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltmixloc_st *src = (struct meltmixloc_st *) p;
 	struct meltmixloc_st *dst = 
-	  ggc_alloc_cleared_meltmixloc_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmixloc_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1297,11 +1615,14 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	struct meltmixbigint_st *src = (struct meltmixbigint_st *) p;
 	unsigned blen = src->biglen;
 	struct meltmixbigint_st *dst = 
-	  ggc_alloc_cleared_meltmixbigint_st (blen);
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmixbigint_st 
+	  (blen*sizeof(long) + offsetof(struct meltmixbigint_st, tabig));
 	dst->discr = src->discr;
 	dst->ptrval = src->ptrval;
 	dst->negative = src->negative;
 	dst->biglen = blen;
+	memcpy (dst->tabig, src->tabig, blen*sizeof(dst->tabig[0]));
 	n = (melt_ptr_t) dst;
 	break;
       }
@@ -1309,7 +1630,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltreal_st *src = (struct meltreal_st *) p;
 	struct meltreal_st *dst =
-	  ggc_alloc_cleared_meltreal_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltreal_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1318,7 +1640,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltspecial_st *src = (struct meltspecial_st *) p;
 	struct meltspecial_st *dst = 
-	  ggc_alloc_cleared_meltspecial_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltspecial_st ();
 	*dst = *src;
 	/* mark the new copy! */
 	dst->mark = 1;
@@ -1331,11 +1654,14 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
     case MELTOBMAG_STRING:
       {
 	struct meltstring_st *src = (struct meltstring_st *) p;
-	int srclen = strlen (src->val);
+	int srclen = (src->val)?strlen (src->val):0;
 	struct meltstring_st *dst = 
-	  ggc_alloc_cleared_meltstring_st (srclen);
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltstring_st 
+	  (offsetof(struct meltstring_st, val) + (srclen+1));
 	dst->discr = src->discr;
 	memcpy (dst->val, src->val, srclen);
+	dst->val[srclen] = (char)0;
 	n = (melt_ptr_t) dst;
 	break;
       }
@@ -1344,16 +1670,21 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	struct meltstrbuf_st *src = (struct meltstrbuf_st *) p;
 	unsigned blen = melt_primtab[src->buflenix];
 	struct meltstrbuf_st *dst = 
-	  ggc_alloc_cleared_meltstrbuf_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltstrbuf_st ();
 	dst->discr = src->discr;
 	dst->bufstart = src->bufstart;
 	dst->bufend = src->bufend;
 	dst->buflenix = src->buflenix;
 	if (blen > 0)
 	  {
-	    /* TODO: this probably has to be corrected! */
+#if BUILDING_GCC_VERSION > 4005
+	    dst->bufzn = CONST_CAST (char *, ggc_alloc_string (src->bufzn, blen+1));
+#else /*GCC 4.5*/ 
 	    dst->bufzn = (char *) ggc_alloc_cleared (1 + blen);
 	    memcpy (dst->bufzn, src->bufzn, blen);
+#endif  /*!GCC 4.5*/
+	    dst->bufzn[blen] = (char)0;
 	  }
 	else
 	  dst->bufzn = NULL;
@@ -1364,7 +1695,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct melttree_st *src = (struct melttree_st *) p;
 	struct melttree_st *dst = 
-	  ggc_alloc_cleared_melttree_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_melttree_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1373,7 +1705,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltgimple_st *src = (struct meltgimple_st *) p;
 	struct meltgimple_st *dst = 
-	  ggc_alloc_cleared_meltgimple_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltgimple_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1382,7 +1715,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltgimpleseq_st *src = (struct meltgimpleseq_st *) p;
 	struct meltgimpleseq_st *dst =
-	  ggc_alloc_cleared_meltgimpleseq_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltgimpleseq_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1391,7 +1725,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltbasicblock_st *src = (struct meltbasicblock_st *) p;
 	struct meltbasicblock_st *dst = 
-	  ggc_alloc_cleared_meltbasicblock_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltbasicblock_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1400,7 +1735,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltedge_st *src = (struct meltedge_st *) p;
 	struct meltedge_st *dst = 
-	  ggc_alloc_cleared_meltedge_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltedge_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1409,7 +1745,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltloop_st *src = (struct meltloop_st *) p;
 	struct meltloop_st *dst =
-	  ggc_alloc_cleared_meltloop_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltloop_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1418,7 +1755,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltrtx_st *src = (struct meltrtx_st *) p;
 	struct meltrtx_st *dst = 
-	  ggc_alloc_cleared_meltrtx_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltrtx_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1427,7 +1765,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltrtvec_st *src = (struct meltrtvec_st *) p;
 	struct meltrtvec_st *dst =
-	  ggc_alloc_cleared_meltrtvec_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltrtvec_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1436,7 +1775,8 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       {
 	struct meltbitmap_st *src = (struct meltbitmap_st *) p;
 	struct meltbitmap_st *dst = 
-	  ggc_alloc_cleared_meltbitmap_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltbitmap_st ();
 	*dst = *src;
 	n = (melt_ptr_t) dst;
 	break;
@@ -1446,13 +1786,15 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	struct meltmapobjects_st *src = (struct meltmapobjects_st *) p;
 	int siz = melt_primtab[src->lenix];
 	struct meltmapobjects_st *dst = 
-	  ggc_alloc_cleared_meltmapobjects_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmapobjects_st ();
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
-	    dst->entab = ggc_alloc_cleared_vec_entryobjectsmelt_st (siz);
+	  /* Don't need a cleared allocation.  */
+	    dst->entab = ggc_alloc_vec_entryobjectsmelt_st (siz);
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -1465,13 +1807,15 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	struct meltmaptrees_st *src = (struct meltmaptrees_st *) p;
 	int siz = melt_primtab[src->lenix];
 	struct meltmaptrees_st *dst = 
-	  ggc_alloc_cleared_meltmaptrees_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmaptrees_st ();
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
-	    dst->entab = ggc_alloc_cleared_vec_entrytreesmelt_st (siz);
+	  /* Don't need a cleared allocation.  */
+	    dst->entab = ggc_alloc_vec_entrytreesmelt_st (siz);
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -1484,14 +1828,16 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	struct meltmapgimples_st *src = (struct meltmapgimples_st *) p;
 	int siz = melt_primtab[src->lenix];
 	struct meltmapgimples_st *dst = 
-	  ggc_alloc_cleared_meltmapgimples_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmapgimples_st ();
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab =
-	      ggc_alloc_cleared_vec_entrygimplesmelt_st (siz);
+	  /* Don't need a cleared allocation.  */
+	      ggc_alloc_vec_entrygimplesmelt_st (siz);
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -1505,13 +1851,15 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	struct meltmapstrings_st *src = (struct meltmapstrings_st *) p;
 	int siz = melt_primtab[src->lenix];
 	struct meltmapstrings_st *dst = 
-	  ggc_alloc_cleared_meltmapstrings_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmapstrings_st ();
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
-	    dst->entab = ggc_alloc_cleared_vec_entrystringsmelt_st (siz);
+	  /* Don't need a cleared allocation.  */
+	    dst->entab = ggc_alloc_vec_entrystringsmelt_st (siz);
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -1525,13 +1873,15 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	  (struct meltmapbasicblocks_st *) p;
 	int siz = melt_primtab[src->lenix];
 	struct meltmapbasicblocks_st *dst =
-	  ggc_alloc_cleared_meltmapbasicblocks_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmapbasicblocks_st ();
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
-	    dst->entab = ggc_alloc_cleared_vec_entrybasicblocksmelt_st (siz);
+	  /* Don't need a cleared allocation.  */
+	    dst->entab = ggc_alloc_vec_entrybasicblocksmelt_st (siz);
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -1544,13 +1894,15 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	struct meltmapedges_st *src = (struct meltmapedges_st *) p;
 	int siz = melt_primtab[src->lenix];
 	struct meltmapedges_st *dst =
-	  ggc_alloc_cleared_meltmapedges_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmapedges_st ();
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
-	    dst->entab = ggc_alloc_cleared_vec_entryedgesmelt_st (siz);
+	  /* Don't need a cleared allocation.  */
+	    dst->entab = ggc_alloc_vec_entryedgesmelt_st (siz);
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -1563,14 +1915,16 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	struct meltmaploops_st *src = (struct meltmaploops_st *) p;
 	int siz = melt_primtab[src->lenix];
 	struct meltmaploops_st *dst = 
-	  ggc_alloc_cleared_meltmaploops_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmaploops_st ();
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab =
-	      ggc_alloc_cleared_vec_entryloopsmelt_st (siz);
+	  /* Don't need a cleared allocation.  */
+	      ggc_alloc_vec_entryloopsmelt_st (siz);
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -1583,14 +1937,16 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	struct meltmaprtxs_st *src = (struct meltmaprtxs_st *) p;
 	int siz = melt_primtab[src->lenix];
 	struct meltmaprtxs_st *dst = 
-	  ggc_alloc_cleared_meltmaprtxs_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmaprtxs_st ();
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab =
-	      ggc_alloc_cleared_vec_entryrtxsmelt_st (siz);
+	  /* Don't need a cleared allocation.  */
+	      ggc_alloc_vec_entryrtxsmelt_st (siz);
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -1603,15 +1959,16 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	struct meltmaprtvecs_st *src = (struct meltmaprtvecs_st *) p;
 	int siz = melt_primtab[src->lenix];
 	struct meltmaprtvecs_st *dst = 
-	  ggc_alloc_cleared_meltmaprtvecs_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmaprtvecs_st ();
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab =
-	      (struct entryrtvecsmelt_st *)
-	      ggc_alloc_cleared (siz * sizeof (dst->entab[0]));
+	  /* Don't need a cleared allocation.  */
+	      ggc_alloc_vec_entryrtvecsmelt_st (siz);
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -1624,14 +1981,16 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
 	struct meltmapbitmaps_st *src = (struct meltmapbitmaps_st *) p;
 	int siz = melt_primtab[src->lenix];
 	struct meltmapbitmaps_st *dst = 
-	  ggc_alloc_cleared_meltmapbitmaps_st ();
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmapbitmaps_st ();
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab =
-	      ggc_alloc_cleared_vec_entrybitmapsmelt_st (siz);
+	  /* Don't need a cleared allocation.  */
+	      ggc_alloc_vec_entrybitmapsmelt_st (siz);
 	    memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
 	  }
 	else
@@ -1643,9 +2002,29 @@ melt_ptr_t melt_forwarded_copy (melt_ptr_t p)
       fatal_error ("corruption: forward invalid p=%p discr=%p magic=%d",
 		   (void *) p, (void *) p->u_discr, mag);
     }
-    melt_debuggc_eprintf("melt_forwarded_copy p=%p => n=%p mag %d", (void*)p, (void*)n, mag);
+    melt_debuggc_eprintf ("melt_forwarded_copy#%ld/%04ld %p => %p %s", 
+			  melt_nb_garbcoll, melt_forward_counter, (void*)p, (void*)n, melt_obmag_string (mag));
   if (n)
     {
+#if ENABLE_CHECKING
+      if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)n) 
+	{
+	  fprintf (stderr, "melt_forwarded_copy to alptr_1 %p mag %d\n",  melt_alptr_1, mag);
+	  fflush (stderr);
+	  melt_debuggc_eprintf("melt_forwarded_copy #%ld alptr_1 %p mag %d", 
+			       melt_nb_garbcoll, melt_alptr_1, mag);
+	  melt_break_alptr_1 ("forwarded copy to alptr_1");
+	}
+      if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)n) 
+	{
+	  fprintf (stderr, "melt_forwarded_copy to alptr_2 %p mag %d\n",  melt_alptr_2, mag);
+	  fflush (stderr);
+	  melt_debuggc_eprintf("melt_forwarded_copy #%ld alptr_2 %p", 
+			       melt_nb_garbcoll, melt_alptr_2);
+	  melt_break_alptr_2 ("forwarded copy to alptr_2");
+	};
+#endif /*ENABLE_CHECKING*/
+
       p->u_forward.discr = MELT_FORWARDED_DISCR;
       p->u_forward.forward = n;
       VEC_safe_push (melt_ptr_t, gc, bscanvec, n);
@@ -1666,7 +2045,7 @@ scanning (melt_ptr_t p)
   unsigned omagic = 0;
   if (!p)
     return;
-  gcc_assert (p != (void *) 1);
+  gcc_assert (p != (void *) HTAB_DELETED_ENTRY);
   gcc_assert (p->u_discr && p->u_discr != (meltobject_ptr_t) 1);
   MELT_FORWARDED (p->u_discr);
   gcc_assert (!melt_is_young (p));
@@ -1675,9 +2054,10 @@ scanning (melt_ptr_t p)
     {
     case MELTOBMAG_OBJECT:
       {
-	int ix;
+	int ix = 0;
 	struct meltobject_st *src = (meltobject_ptr_t) p;
-	for (ix = (int) (src->obj_len) - 1; ix >= 0; ix--)
+	int oblen = (int) (src->obj_len);
+	for (ix = 0; ix < oblen; ix++)
 	  MELT_FORWARDED (src->obj_vartab[ix]);
 	break;
       }
@@ -1696,28 +2076,28 @@ scanning (melt_ptr_t p)
     case MELTOBMAG_MULTIPLE:
       {
 	struct meltmultiple_st *src = (struct meltmultiple_st *) p;
-	unsigned nbval = src->nbval;
-	int ix;
-	for (ix = (int) nbval - 1; ix >= 0; ix--)
+	int nbval = (int) src->nbval;
+	int ix = 0;
+	for (ix = 0; ix < nbval; ix++)
 	  MELT_FORWARDED (src->tabval[ix]);
 	break;
       }
     case MELTOBMAG_CLOSURE:
       {
 	struct meltclosure_st *src = (struct meltclosure_st *) p;
-	unsigned nbval = src->nbval;
-	int ix;
+	int nbval = (int) src->nbval;
+	int ix = 0;
 	MELT_FORWARDED (src->rout);
-	for (ix = (int) nbval - 1; ix >= 0; ix--)
+	for (ix = 0; ix < nbval; ix++)
 	  MELT_FORWARDED (src->tabval[ix]);
 	break;
       }
     case MELTOBMAG_ROUTINE:
       {
 	struct meltroutine_st *src = (struct meltroutine_st *) p;
-	unsigned nbval = src->nbval;
-	int ix;
-	for (ix = (int) nbval - 1; ix >= 0; ix--)
+	int nbval = (int) src->nbval;
+	int ix = 0;
+	for (ix = 0; ix < nbval; ix++)
 	  MELT_FORWARDED (src->tabval[ix]);
 	break;
       }
@@ -1753,11 +2133,9 @@ scanning (melt_ptr_t p)
 	gcc_assert (siz > 0);
 	if (melt_is_young (src->entab))
 	  {
-	    struct entryobjectsmelt_st *newtab =
-	      (struct entryobjectsmelt_st *) ggc_alloc_cleared (siz *
-								   sizeof
-								   (struct
-								    entryobjectsmelt_st));
+	    struct entryobjectsmelt_st *newtab = 
+	      /* Don't need a cleared allocation!  */
+	      ggc_alloc_vec_entryobjectsmelt_st (siz);
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entryobjectsmelt_st));
 	    src->entab = newtab;
@@ -1765,7 +2143,7 @@ scanning (melt_ptr_t p)
 	for (ix = 0; ix < siz; ix++)
 	  {
 	    meltobject_ptr_t at = src->entab[ix].e_at;
-	    if (!at || at == (void *) 1)
+	    if (!at || at == (void *) HTAB_DELETED_ENTRY)
 	      {
 		src->entab[ix].e_va = NULL;
 		continue;
@@ -1787,10 +2165,8 @@ scanning (melt_ptr_t p)
 	if (melt_is_young (src->entab))
 	  {
 	    struct entrytreesmelt_st *newtab =
-	      (struct entrytreesmelt_st *) ggc_alloc_cleared (siz *
-								 sizeof
-								 (struct
-								  entrytreesmelt_st));
+	      /* Don't need a cleared allocation!  */
+	      ggc_alloc_vec_entrytreesmelt_st  (siz);
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entrytreesmelt_st));
 	    src->entab = newtab;
@@ -1798,7 +2174,7 @@ scanning (melt_ptr_t p)
 	for (ix = 0; ix < siz; ix++)
 	  {
 	    tree at = src->entab[ix].e_at;
-	    if (!at || at == (void *) 1)
+	    if (!at || at == (void *) HTAB_DELETED_ENTRY)
 	      {
 		src->entab[ix].e_va = NULL;
 		continue;
@@ -1817,11 +2193,9 @@ scanning (melt_ptr_t p)
 	gcc_assert (siz > 0);
 	if (melt_is_young (src->entab))
 	  {
-	    struct entrygimplesmelt_st *newtab =
-	      (struct entrygimplesmelt_st *) ggc_alloc_cleared (siz *
-								   sizeof
-								   (struct
-								    entrygimplesmelt_st));
+	    struct entrygimplesmelt_st *newtab 
+	      /* Don't need a cleared allocation!  */
+	      = ggc_alloc_vec_entrygimplesmelt_st (siz);
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entrygimplesmelt_st));
 	    src->entab = newtab;
@@ -1829,7 +2203,7 @@ scanning (melt_ptr_t p)
 	for (ix = 0; ix < siz; ix++)
 	  {
 	    gimple at = src->entab[ix].e_at;
-	    if (!at || at == (void *) 1)
+	    if (!at || at == (void *) HTAB_DELETED_ENTRY)
 	      {
 		src->entab[ix].e_va = NULL;
 		continue;
@@ -1850,9 +2224,8 @@ scanning (melt_ptr_t p)
 	if (melt_is_young (src->entab))
 	  {
 	    struct entrygimpleseqsmelt_st *newtab =
-	      (struct entrygimpleseqsmelt_st *)
-	      ggc_alloc_cleared (siz *
-				 sizeof (struct entrygimpleseqsmelt_st));
+	      /* Don't need a cleared allocation!  */
+	      ggc_alloc_vec_entrygimpleseqsmelt_st (siz);
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entrygimpleseqsmelt_st));
 	    src->entab = newtab;
@@ -1860,7 +2233,7 @@ scanning (melt_ptr_t p)
 	for (ix = 0; ix < siz; ix++)
 	  {
 	    gimple_seq at = src->entab[ix].e_at;
-	    if (!at || at == (void *) 1)
+	    if (!at || at == (void *) HTAB_DELETED_ENTRY)
 	      {
 		src->entab[ix].e_va = NULL;
 		continue;
@@ -1880,9 +2253,8 @@ scanning (melt_ptr_t p)
 	if (melt_is_young (src->entab))
 	  {
 	    struct entrystringsmelt_st *newtab
-	      = (struct entrystringsmelt_st *)
-	      ggc_alloc_cleared (siz *
-				 sizeof (struct entrystringsmelt_st));
+	      /* Don't need a cleared allocation!  */
+	      = ggc_alloc_vec_entrystringsmelt_st (siz);
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entrystringsmelt_st));
 	    src->entab = newtab;
@@ -1890,7 +2262,7 @@ scanning (melt_ptr_t p)
 	for (ix = 0; ix < siz; ix++)
 	  {
 	    const char *at = src->entab[ix].e_at;
-	    if (!at || at == (void *) 1)
+	    if (!at || at == (void *) HTAB_DELETED_ENTRY)
 	      {
 		src->entab[ix].e_va = NULL;
 		continue;
@@ -1913,9 +2285,8 @@ scanning (melt_ptr_t p)
 	if (melt_is_young (src->entab))
 	  {
 	    struct entrybasicblocksmelt_st *newtab
-	      = (struct entrybasicblocksmelt_st *)
-	      ggc_alloc_cleared (siz *
-				 sizeof (struct entrybasicblocksmelt_st));
+	      /* Don't need a cleared allocation!  */
+	     = ggc_alloc_vec_entrybasicblocksmelt_st (siz);
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entrybasicblocksmelt_st));
 	    src->entab = newtab;
@@ -1923,7 +2294,7 @@ scanning (melt_ptr_t p)
 	for (ix = 0; ix < siz; ix++)
 	  {
 	    basic_block at = src->entab[ix].e_at;
-	    if (!at || at == (void *) 1)
+	    if (!at || at == (void *) HTAB_DELETED_ENTRY)
 	      {
 		src->entab[ix].e_va = NULL;
 		continue;
@@ -1943,8 +2314,8 @@ scanning (melt_ptr_t p)
 	if (melt_is_young (src->entab))
 	  {
 	    struct entryedgesmelt_st *newtab
-	      = (struct entryedgesmelt_st *)
-	      ggc_alloc_cleared (siz * sizeof (struct entryedgesmelt_st));
+	      /* Don't need a cleared allocation!  */
+	      = ggc_alloc_vec_entryedgesmelt_st (siz);
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entryedgesmelt_st));
 	    src->entab = newtab;
@@ -1952,7 +2323,7 @@ scanning (melt_ptr_t p)
 	for (ix = 0; ix < siz; ix++)
 	  {
 	    edge at = src->entab[ix].e_at;
-	    if (!at || at == (void *) 1)
+	    if (!at || at == (void *) HTAB_DELETED_ENTRY)
 	      {
 		src->entab[ix].e_va = NULL;
 		continue;
@@ -1972,8 +2343,8 @@ scanning (melt_ptr_t p)
 	if (melt_is_young (src->entab))
 	  {
 	    struct entryloopsmelt_st *newtab
-	      = (struct entryloopsmelt_st *)
-	      ggc_alloc_cleared (siz * sizeof (struct entryloopsmelt_st));
+	      /* Don't need a cleared allocation!  */
+	      =	ggc_alloc_vec_entryloopsmelt_st (siz);
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entryloopsmelt_st));
 	    src->entab = newtab;
@@ -1981,7 +2352,7 @@ scanning (melt_ptr_t p)
 	for (ix = 0; ix < siz; ix++)
 	  {
 	    loop_p at = src->entab[ix].e_at;
-	    if (!at || at == (void *) 1)
+	    if (!at || at == (void *) HTAB_DELETED_ENTRY)
 	      {
 		src->entab[ix].e_va = NULL;
 		continue;
@@ -2001,8 +2372,8 @@ scanning (melt_ptr_t p)
 	if (melt_is_young (src->entab))
 	  {
 	    struct entryrtxsmelt_st *newtab
-	      = (struct entryrtxsmelt_st *)
-	      ggc_alloc_cleared (siz * sizeof (struct entryrtxsmelt_st));
+	      /* Don't need a cleared allocation!  */
+	      = ggc_alloc_vec_entryrtxsmelt_st (siz);
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entryrtxsmelt_st));
 	    src->entab = newtab;
@@ -2010,7 +2381,7 @@ scanning (melt_ptr_t p)
 	for (ix = 0; ix < siz; ix++)
 	  {
 	    rtx at = src->entab[ix].e_at;
-	    if (!at || at == (void *) 1)
+	    if (!at || at == (void *) HTAB_DELETED_ENTRY)
 	      {
 		src->entab[ix].e_va = NULL;
 		continue;
@@ -2030,8 +2401,8 @@ scanning (melt_ptr_t p)
 	if (melt_is_young (src->entab))
 	  {
 	    struct entryrtvecsmelt_st *newtab
-	      = (struct entryrtvecsmelt_st *)
-	      ggc_alloc_cleared (siz * sizeof (struct entryrtvecsmelt_st));
+	      /* Don't need a cleared allocation!  */
+	      = ggc_alloc_vec_entryrtvecsmelt_st  (siz);
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entryrtvecsmelt_st));
 	    src->entab = newtab;
@@ -2039,7 +2410,7 @@ scanning (melt_ptr_t p)
 	for (ix = 0; ix < siz; ix++)
 	  {
 	    rtvec at = src->entab[ix].e_at;
-	    if (!at || at == (void *) 1)
+	    if (!at || at == (void *) HTAB_DELETED_ENTRY)
 	      {
 		src->entab[ix].e_va = NULL;
 		continue;
@@ -2059,8 +2430,8 @@ scanning (melt_ptr_t p)
 	if (melt_is_young (src->entab))
 	  {
 	    struct entrybitmapsmelt_st *newtab
-	      = (struct entrybitmapsmelt_st *)
-	      ggc_alloc_cleared (siz * sizeof (struct entrybitmapsmelt_st));
+	      /* Don't need a cleared allocation!  */
+	      =  ggc_alloc_vec_entrybitmapsmelt_st (siz);
 	    memcpy (newtab, src->entab,
 		    siz * sizeof (struct entrybitmapsmelt_st));
 	    src->entab = newtab;
@@ -2068,7 +2439,7 @@ scanning (melt_ptr_t p)
 	for (ix = 0; ix < siz; ix++)
 	  {
 	    bitmap at = src->entab[ix].e_at;
-	    if (!at || at == (void *) 1)
+	    if (!at || at == (void *) HTAB_DELETED_ENTRY)
 	      {
 		src->entab[ix].e_va = NULL;
 		continue;
@@ -2104,8 +2475,12 @@ scanning (melt_ptr_t p)
 	    int bsiz = melt_primtab[src->buflenix];
 	    if (bsiz > 0)
 	      {
-		char *newbufzn = (char *) ggc_alloc_cleared (bsiz + 1);
+#if BUILDING_GCC_VERSION > 4005
+		char *newbufzn =  CONST_CAST (char *, ggc_alloc_string (oldbufzn, bsiz + 1));
+#else /*GCC 4.5*/ 
+		char *newbufzn =(char *) ggc_alloc_cleared (bsiz + 1);
 		memcpy (newbufzn, oldbufzn, bsiz);
+#endif /*!GCC 4.5*/
 		src->bufzn = newbufzn;
 		memset (oldbufzn, 0, bsiz);
 	      }
@@ -2140,7 +2515,7 @@ scanning (melt_ptr_t p)
 
 
 /** array of about 190 primes gotten by shell command 
-    primes 3 2000000000 | awk '($1>p+p/8){print $1, ","; p=$1}'  **/
+    /usr/games/primes 3 2000000000 | awk '($1>p+p/8){print $1, ","; p=$1}'  **/
 const long melt_primtab[256] = {
   0,				/* the first entry indexed #0 is 0 to never be used */
   3, 5, 7, 11, 13, 17, 23, 29, 37, 43, 53, 61, 71, 83, 97, 113,
@@ -2594,14 +2969,15 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
   case MELTOBMAG_SPEC_RAWFILE:
     {
       FILE* f = spec_outbufv->val.sp_file;
-      if (f) {
-	int fno = fileno(f);
+      if (f) 
+	{
+	int fno = fileno (f);
 	char* eol = 0;
-	long fp = ftell(f);
+	long fp = ftell (f);
 	(void) fwrite(str, (size_t)slen, (size_t)1, f);
 	if (fno < MELTMAXFILE && fno >= 0 && (eol = strchr(str, '\n')) && eol-str < slen)
 	  lasteol[fno] = fp + (eol-str);
-      }
+	}
     }
     break;
   case MELTOBMAG_STRBUF:
@@ -2653,16 +3029,16 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 	     triggers a GC which migrate the strbuf from young to old */
 	  if (melt_is_young (buf_outbufv->bufzn))
 	    {
-	      /* bug to avoid: the strbuf was young, the allocation of
-		 newb triggers a GC, and then the strbuf becomes old. we
-		 cannot put newb inside it (this violate the GC invariant
-		 of no unfollowed -on store list- old to young
-		 pointers). So we reserve the required length to make sure
-		 that the following newb allocation does not trigger a
-		 GC */
+	      /* Bug to avoid: the strbuf was young, the allocation of
+		 newb triggers a GC, so the strbuf becomes old. we
+		 cannot put newb inside it (this violate the GC
+		 invariant of no unfollowed -on store list- old to
+		 young pointers).  Hence we reserve the required
+		 length to make sure that the following newb
+		 allocation does not trigger a GC */
 	      meltgc_reserve (newblen + 10 * sizeof (void *));
 	      /* does the above reservation triggered a GC which moved buf_outbufv to old? */
-	      if (!melt_is_young (buf_outbufv->bufzn))
+	      if (!melt_is_young (buf_outbufv->bufzn) || !melt_is_young (buf_outbufv))
 		goto strbuf_in_old_memory;
 	      gcc_assert (melt_is_young (buf_outbufv));
 	      newb = (char *) melt_allocatereserved (newblen + 1, 0);
@@ -2678,7 +3054,11 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 		 by the meltgc_reserve call above */
 	    strbuf_in_old_memory:
 	      gcc_assert (!melt_is_young (buf_outbufv));
+#if BUILDING_GCC_VERSION > 4005
+	      newb = (char *) ggc_alloc_atomic (newblen + 1);
+#else /*GCC 4.5*/
 	      newb = (char *) ggc_alloc_cleared (newblen + 1);
+#endif /*!GCC 4.5*/
 	      memcpy (newb, buf_outbufv->bufzn + buf_outbufv->bufstart, siz);
 	      strncpy (newb + siz, str, slen);
 	      memset (buf_outbufv->bufzn, 0, oldblen);
@@ -4278,8 +4658,7 @@ meltgc_put_mapobjects (meltmapobjects_ptr_t
       else
 	{
 	alloc_old_smallmapobj:
-	  map_mapobjectv->entab =
-	    (struct entryobjectsmelt_st *) ggc_alloc_cleared (lensiz);
+	  map_mapobjectv->entab = ggc_alloc_cleared_vec_entryobjectsmelt_st (len);
 	}
       map_mapobjectv->lenix = 1;
       meltgc_touch (map_mapobjectv);
@@ -4308,8 +4687,7 @@ meltgc_put_mapobjects (meltmapobjects_ptr_t
       else
 	{
 	alloc_old_mapobj:
-	  newtab =
-	    (struct entryobjectsmelt_st *) ggc_alloc_cleared (newlensiz);
+	  newtab = ggc_alloc_cleared_vec_entryobjectsmelt_st (newlen);
 	};
       oldtab = map_mapobjectv->entab;
       for (ix = 0; ix < len; ix++)
@@ -4423,8 +4801,7 @@ meltgc_remove_mapobjects (meltmapobjects_ptr_t
       else
 	{
 	alloc_old_entries:
-	  newtab =
-	    (struct entryobjectsmelt_st *) ggc_alloc_cleared (newlensiz);
+	  newtab = ggc_alloc_cleared_vec_entryobjectsmelt_st (newlen);
 	}
       oldtab = map_mapobjectv->entab;
       for (ix = 0; ix < len; ix++)
@@ -4596,8 +4973,7 @@ meltgc_put_mapstrings (struct meltmapstrings_st
       else
 	{
 	alloc_old_small_mapstring:
-	  map_mapstringv->entab =
-	    (struct entrystringsmelt_st *) ggc_alloc_cleared (lensiz);
+	  map_mapstringv->entab = ggc_alloc_cleared_vec_entrystringsmelt_st (len);
 	}
       map_mapstringv->lenix = 1;
       meltgc_touch (map_mapstringv);
@@ -4624,8 +5000,7 @@ meltgc_put_mapstrings (struct meltmapstrings_st
       else
 	{
 	alloc_old_mapstring:
-	  newtab =
-	    (struct entrystringsmelt_st *) ggc_alloc_cleared (newlensiz);
+	  newtab = ggc_alloc_cleared_vec_entrystringsmelt_st (newlen);
 	};
       oldtab = map_mapstringv->entab;
       for (ix = 0; ix < len; ix++)
@@ -4762,8 +5137,7 @@ meltgc_remove_mapstrings (struct meltmapstrings_st *
       else
 	{
 	alloc_old_mapstring_newtab:
-	  newtab =
-	    (struct entrystringsmelt_st *) ggc_alloc_cleared (newlensiz);
+	  newtab = ggc_alloc_cleared_vec_entrystringsmelt_st  (newlen);
 	}
       oldtab = map_mapstringv->entab;
       for (ix = 0; ix < len; ix++)
@@ -4803,9 +5177,9 @@ end:
 
 
 /* index of entry to get or add an attribute in an mappointer (or -1 on error) */
-struct entrypointermelt_st
+struct GTY(()) entrypointermelt_st
 {
-  const void *e_at;
+ const void * e_at;
   melt_ptr_t e_va;
 };
 static inline int
@@ -4871,6 +5245,18 @@ struct meltmappointers_st
      at once */
   struct entrypointermelt_st map_space[FLEXIBLE_DIM];
 };
+
+#ifndef ggc_alloc_cleared_vec_entrypointermelt_st
+/* When ggc_alloc_cleared_vec_entrypointermelt_st is not defined by
+   gengtype generated files, we use the allocation of string entries
+   suitably casted. This does not impact the GGC marking of struct
+   meltmappointers_st since they are always casted & handled
+   appropriately.  */
+#define ggc_alloc_cleared_vec_entrypointermelt_st(Siz) \
+  ((struct entrypointermelt_st*)(ggc_alloc_cleared_vec_entrystringsmelt_st(Siz)))
+#endif /*ggc_alloc_cleared_vec_entrystringsmelt_st*/
+
+
 /* allocate a new empty mappointers without checks */
 void *
 meltgc_raw_new_mappointers (meltobject_ptr_t discr_p, unsigned len)
@@ -4947,8 +5333,8 @@ meltgc_raw_put_mappointers (void *mappointer_p,
       else
 	{
 	alloc_old_mappointer_small_entab:
-	  map_mappointerv->entab = (struct entrypointermelt_st *)
-	    ggc_alloc_cleared (len * sizeof (struct entrypointermelt_st));
+	  map_mappointerv->entab 
+	    = ggc_alloc_cleared_vec_entrypointermelt_st (len);
 	}
       map_mappointerv->lenix = 1;
       meltgc_touch (map_mappointerv);
@@ -4975,9 +5361,7 @@ meltgc_raw_put_mappointers (void *mappointer_p,
       else
 	{
 	alloc_old_mappointer_entab:
-	  newtab = (struct entrypointermelt_st *)
-	    ggc_alloc_cleared (newlen *
-			       sizeof (struct entrypointermelt_st));
+	  newtab = ggc_alloc_cleared_vec_entrypointermelt_st (newlen);
 	}
       oldtab = map_mappointerv->entab;
       for (ix = 0; ix < len; ix++)
@@ -5086,9 +5470,7 @@ meltgc_raw_remove_mappointers (void *mappointer_p, const void *attr)
       else
 	{
 	allocate_old_newtab_mappointer:
-	  newtab = (struct entrypointermelt_st *)
-	    ggc_alloc_cleared (newlen *
-			       sizeof (struct entrypointermelt_st));
+	  newtab =  ggc_alloc_cleared_vec_entrypointermelt_st (newlen);
 	};
       oldtab = map_mappointerv->entab;
       for (ix = 0; ix < len; ix++)
@@ -9527,10 +9909,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     gcc_assert (melt_startalz == NULL && melt_endalz == NULL);
     gcc_assert (wantedwords * sizeof (void *) >
 		300 * MELTGLOB__LASTGLOB * sizeof (struct meltobject_st));
-    melt_curalz = (char *) xcalloc (sizeof (void *), wantedwords);
-    melt_startalz = melt_curalz;
-    melt_endalz = (char *) melt_curalz + wantedwords * sizeof (void *);
-    melt_storalz = ((void **) melt_endalz) - 2;
+    melt_allocate_young_gc_zone (wantedwords / sizeof(void*));
     melt_newspeclist = NULL;
     melt_oldspeclist = NULL;
     debugeprintf ("melt_really_initialize alz %p-%p (%ld Kw)",
@@ -9691,6 +10070,11 @@ melt_initialize (void)
 {
   debugeprintf ("start of melt_initialize [builtin MELT] version_string %s",
 		version_string);
+  /* For the MELT branch, we are using the plugin facilities without
+     calling add_new_plugin, so we need to force the flag_plugin_added
+     so that every plugin hook registration runs as if there was a
+     MELT plugin!  */
+  flag_plugin_added = true;
   melt_really_initialize ("MELT/_builtin", version_string);
   debugeprintf ("end of melt_initialize [builtin MELT] meltruntime %s", __DATE__);
 }
@@ -11453,7 +11837,10 @@ melt_val2passflag(melt_ptr_t val_p)
     WHENFLAG(TODO_verify_flow);
     WHENFLAG(TODO_verify_stmts);
     WHENFLAG(TODO_cleanup_cfg);
+#if BUILDING_GCC_VERSION < 4006
+    /* only in GCC 4.5! */
     WHENFLAG(TODO_verify_loops);
+#endif
     WHENFLAG(TODO_dump_cgraph);
     WHENFLAG(TODO_remove_functions);
     WHENFLAG(TODO_rebuild_frequencies);

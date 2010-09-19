@@ -33,11 +33,25 @@ along with GCC; see the file COPYING3.  If not see
 #define PREFERRED_DEBUGGING_TYPE DBX_DEBUG
 #endif
 
-#undef TARGET_64BIT_MS_ABI
-#define TARGET_64BIT_MS_ABI (!cfun ? ix86_abi == MS_ABI : TARGET_64BIT && cfun->machine->call_abi == MS_ABI)
-
 #undef DEFAULT_ABI
 #define DEFAULT_ABI (TARGET_64BIT ? MS_ABI : SYSV_ABI)
+
+#if ! defined (USE_MINGW64_LEADING_UNDERSCORES)
+#undef USER_LABEL_PREFIX
+#define USER_LABEL_PREFIX (TARGET_64BIT ? "" : "_")
+
+#undef LOCAL_LABEL_PREFIX
+#define LOCAL_LABEL_PREFIX (TARGET_64BIT ? "." : "")
+
+#undef ASM_GENERATE_INTERNAL_LABEL
+#define ASM_GENERATE_INTERNAL_LABEL(BUF,PREFIX,NUMBER)  \
+  sprintf ((BUF), "*%s%s%ld", LOCAL_LABEL_PREFIX, \
+	   (PREFIX), (long)(NUMBER))
+
+#undef LPREFIX
+#define LPREFIX (TARGET_64BIT ? ".L" : "L")
+
+#endif
 
 #undef DBX_REGISTER_NUMBER
 #define DBX_REGISTER_NUMBER(n)				\
@@ -79,11 +93,13 @@ along with GCC; see the file COPYING3.  If not see
 	builtin_assert ("system=winnt");				\
 	builtin_define ("__stdcall=__attribute__((__stdcall__))");	\
 	builtin_define ("__fastcall=__attribute__((__fastcall__))");	\
+	builtin_define ("__thiscall=__attribute__((__thiscall__))");	\
 	builtin_define ("__cdecl=__attribute__((__cdecl__))");		\
 	if (!flag_iso)							\
 	  {								\
 	    builtin_define ("_stdcall=__attribute__((__stdcall__))");	\
 	    builtin_define ("_fastcall=__attribute__((__fastcall__))");	\
+	    builtin_define ("_thiscall=__attribute__((__thiscall__))");	\
 	    builtin_define ("_cdecl=__attribute__((__cdecl__))");	\
 	  }								\
 	/* Even though linkonce works with static libs, this is needed 	\
@@ -145,7 +161,15 @@ union tree_node;
 #undef  SUBTARGET_OVERRIDE_OPTIONS
 #define SUBTARGET_OVERRIDE_OPTIONS					\
 do {									\
-  if (flag_pic)								\
+  if (TARGET_64BIT && flag_pic != 1)					\
+    {									\
+      if (flag_pic > 1)							\
+        warning (0,							\
+	         "-fPIC ignored for target (all code is position independent)"\
+                 );                         				\
+      flag_pic = 1;							\
+    }									\
+  else if (!TARGET_64BIT && flag_pic)					\
     {									\
       warning (0, "-f%s ignored for target (all code is position independent)",\
 	       (flag_pic > 1) ? "PIC" : "pic");				\
@@ -249,7 +273,7 @@ do {						\
       i386_pe_maybe_record_exported_symbol (DECL, NAME, 0);		\
       if (write_symbols != SDB_DEBUG)					\
 	i386_pe_declare_function_type (FILE, NAME, TREE_PUBLIC (DECL));	\
-      ASM_OUTPUT_LABEL (FILE, NAME);					\
+      ASM_OUTPUT_FUNCTION_LABEL (FILE, NAME, DECL);			\
     }									\
   while (0)
 
@@ -271,6 +295,12 @@ do {						\
 #undef ASM_OUTPUT_ALIGNED_BSS
 #define ASM_OUTPUT_ALIGNED_BSS(FILE, DECL, NAME, SIZE, ALIGN) \
   asm_output_aligned_bss ((FILE), (DECL), (NAME), (SIZE), (ALIGN))
+
+/* Put all *tf routines in libgcc.  */
+#undef LIBGCC2_HAS_TF_MODE
+#define LIBGCC2_HAS_TF_MODE 1
+#define LIBGCC2_TF_CEXT q
+#define TF_SIZE 113
 
 /* Output function declarations at the end of the file.  */
 #undef TARGET_ASM_FILE_END
@@ -401,6 +431,9 @@ do {						\
 #define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P i386_pe_valid_dllimport_attribute_p
 #define TARGET_CXX_ADJUST_CLASS_AT_DEFINITION i386_pe_adjust_class_at_definition
 #define TARGET_MANGLE_DECL_ASSEMBLER_NAME i386_pe_mangle_decl_assembler_name
+
+/* Static stack checking is supported by means of probes.  */
+#define STACK_CHECK_STATIC_BUILTIN 1
 
 #undef TREE
 

@@ -73,6 +73,7 @@ print "#include " quote "intl.h" quote
 print ""
 print "#ifdef GCC_DRIVER"
 print "int target_flags;"
+print "int target_flags_explicit;"
 print "#else"
 print "#include " quote "flags.h" quote
 print "#include " quote "target.h" quote
@@ -170,11 +171,7 @@ for (i = 0; i < n_opts; i++) {
 	}
 
 	len = length (opts[i]);
-	enum = "OPT_" opts[i]
-	if (opts[i] == "finline-limit=" || opts[i] == "Wlarger-than=" \
-	    || opts[i] == "ftemplate-depth=")
-		enum = enum "eq"
-	gsub ("[^A-Za-z0-9]", "_", enum)
+	enum = opt_enum(opts[i])
 
 	# If this switch takes joined arguments, back-chain all
 	# subsequent switches to it for which it is a prefix.  If
@@ -198,6 +195,52 @@ for (i = 0; i < n_opts; i++) {
 	else
 		hlp = quote help[i] quote;
 
+	missing_arg_error = opt_args("MissingArgError", flags[i])
+	if (missing_arg_error == "")
+		missing_arg_error = "0"
+	else
+		missing_arg_error = quote missing_arg_error quote
+
+
+	warn_message = opt_args("Warn", flags[i])
+	if (warn_message == "")
+		warn_message = "0"
+	else
+		warn_message = quote warn_message quote
+
+	alias_arg = opt_args("Alias", flags[i])
+	if (alias_arg == "") {
+		if (flag_set_p("Ignore", flags[i]))
+			alias_data = "NULL, NULL, OPT_SPECIAL_ignore"
+		else
+			alias_data = "NULL, NULL, N_OPTS"
+	} else {
+		alias_opt = nth_arg(0, alias_arg)
+		alias_posarg = nth_arg(1, alias_arg)
+		alias_negarg = nth_arg(2, alias_arg)
+
+		if (var_ref(opts[i], flags[i]) != "0")
+			print "#error Alias setting variable"
+
+		if (alias_posarg != "" && alias_negarg == "") {
+			if (!flag_set_p("RejectNegative", flags[i]) \
+			    && opts[i] ~ "^[Wfm]")
+				print "#error Alias with single argument " \
+					"allowing negative form"
+		}
+
+		alias_opt = opt_enum(alias_opt)
+		if (alias_posarg == "")
+			alias_posarg = "NULL"
+		else
+			alias_posarg = quote alias_posarg quote
+		if (alias_negarg == "")
+			alias_negarg = "NULL"
+		else
+			alias_negarg = quote alias_negarg quote
+		alias_data = alias_posarg ", " alias_negarg ", " alias_opt
+	}
+
 	neg = opt_args("Negative", flags[i]);
 	if (neg != "")
 		idx = indices[neg]
@@ -213,8 +256,9 @@ for (i = 0; i < n_opts; i++) {
 	}
 	# Split the printf after %u to work around an ia64-hp-hpux11.23
 	# awk bug.
-	printf("  { %c-%s%c,\n    %s,\n    %s, %u,",
-	       quote, opts[i], quote, hlp, back_chain[i], len)
+	printf("  { %c-%s%c,\n    %s,\n    %s,\n    %s,\n    %s, %s, %u,",
+	       quote, opts[i], quote, hlp, missing_arg_error, warn_message,
+	       alias_data, back_chain[i], len)
 	printf(" %d,\n", idx)
 	condition = opt_args("Condition", flags[i])
 	cl_flags = switch_flags(flags[i])
@@ -343,7 +387,7 @@ print "{";
 print "  fputs (\"\\n\", file);";
 for (i = 0; i < n_opt_other; i++) {
 	print "  if (ptr->" var_opt_other[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%lx)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#lx)\\n\",";
 	print "             indent_to, \"\",";
 	print "             \"" var_opt_other[i] "\",";
 	print "             (unsigned long)ptr->" var_opt_other[i] ");";
@@ -352,7 +396,7 @@ for (i = 0; i < n_opt_other; i++) {
 
 for (i = 0; i < n_opt_int; i++) {
 	print "  if (ptr->" var_opt_int[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%x)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
 	print "             indent_to, \"\",";
 	print "             \"" var_opt_int[i] "\",";
 	print "             ptr->" var_opt_int[i] ");";
@@ -361,7 +405,7 @@ for (i = 0; i < n_opt_int; i++) {
 
 for (i = 0; i < n_opt_short; i++) {
 	print "  if (ptr->" var_opt_short[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%x)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
 	print "             indent_to, \"\",";
 	print "             \"" var_opt_short[i] "\",";
 	print "             ptr->" var_opt_short[i] ");";
@@ -370,7 +414,7 @@ for (i = 0; i < n_opt_short; i++) {
 
 for (i = 0; i < n_opt_char; i++) {
 	print "  if (ptr->" var_opt_char[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%x)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
 	print "             indent_to, \"\",";
 	print "             \"" var_opt_char[i] "\",";
 	print "             ptr->" var_opt_char[i] ");";
@@ -498,7 +542,7 @@ print "{";
 print "  fputs (\"\\n\", file);";
 for (i = 0; i < n_target_other; i++) {
 	print "  if (ptr->" var_target_other[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%lx)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#lx)\\n\",";
 	print "             indent, \"\",";
 	print "             \"" var_target_other[i] "\",";
 	print "             (unsigned long)ptr->" var_target_other[i] ");";
@@ -507,7 +551,7 @@ for (i = 0; i < n_target_other; i++) {
 
 for (i = 0; i < n_target_int; i++) {
 	print "  if (ptr->" var_target_int[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%x)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
 	print "             indent, \"\",";
 	print "             \"" var_target_int[i] "\",";
 	print "             ptr->" var_target_int[i] ");";
@@ -516,7 +560,7 @@ for (i = 0; i < n_target_int; i++) {
 
 for (i = 0; i < n_target_short; i++) {
 	print "  if (ptr->" var_target_short[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%x)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
 	print "             indent, \"\",";
 	print "             \"" var_target_short[i] "\",";
 	print "             ptr->" var_target_short[i] ");";
@@ -525,7 +569,7 @@ for (i = 0; i < n_target_short; i++) {
 
 for (i = 0; i < n_target_char; i++) {
 	print "  if (ptr->" var_target_char[i] ")";
-	print "    fprintf (file, \"%*s%s (0x%x)\\n\",";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
 	print "             indent, \"\",";
 	print "             \"" var_target_char[i] "\",";
 	print "             ptr->" var_target_char[i] ");";

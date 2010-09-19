@@ -60,8 +60,6 @@ extern enum processor_type mn10300_processor;
 #define PROCESSOR_DEFAULT PROCESSOR_MN10300
 #endif
 
-#define OVERRIDE_OPTIONS mn10300_override_options ()
-
 /* Print subsidiary information on the compiler version in use.  */
 
 #define TARGET_VERSION fprintf (stderr, " (MN10300)");
@@ -237,7 +235,7 @@ extern enum processor_type mn10300_processor;
 
 /* 4 data, and effectively 3 address registers is small as far as I'm
    concerned.  */
-#define SMALL_REGISTER_CLASSES 1
+#define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
 
 /* Define the classes of registers for register constraints in the
    machine description.  Also define ranges of constants.
@@ -491,15 +489,6 @@ enum reg_class {
 /* We can debug without frame pointers on the mn10300, so eliminate
    them whenever possible.  */
 #define CAN_DEBUG_WITHOUT_FP
-
-/* Value is the number of bytes of arguments automatically
-   popped when returning from a subroutine call.
-   FUNDECL is the declaration node of the function (as a tree),
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.
-   SIZE is the number of bytes of arguments passed on the stack.  */
-
-#define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
 
 /* We use d0/d1 for passing parameters, so allocate 8 bytes of space
    for a register flushback area.  */

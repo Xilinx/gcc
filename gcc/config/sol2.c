@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "rtl.h"
 #include "tm_p.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "ggc.h"
 
@@ -122,8 +123,10 @@ solaris_output_init_fini (FILE *file, tree decl)
    the visibility type VIS, which must not be VISIBILITY_DEFAULT.  */
 
 void
-solaris_assemble_visibility (tree decl, int vis)
+solaris_assemble_visibility (tree decl ATTRIBUTE_UNUSED,
+			     int vis ATTRIBUTE_UNUSED)
 {
+#ifdef HAVE_GAS_HIDDEN
   /* Sun as uses .symbolic for STV_PROTECTED.  STV_INTERNAL is marked as
      `currently reserved', but the linker treats it like STV_HIDDEN.  Sun
      Studio 12.1 cc emits .hidden instead.
@@ -146,9 +149,6 @@ solaris_assemble_visibility (tree decl, int vis)
   name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
   type = visibility_types[vis];
 
-  /* .hidden dates back before Solaris 2.5, but .symbolic was only added in
-     Solaris 9 12/02.  */
-#ifdef HAVE_GAS_HIDDEN
   fprintf (asm_out_file, "\t.%s\t", type);
   assemble_name (asm_out_file, name);
   fprintf (asm_out_file, "\n");

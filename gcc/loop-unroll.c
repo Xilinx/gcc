@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "hashtab.h"
 #include "recog.h"
+#include "target.h"
 
 /* This pass performs loop unrolling and peeling.  We only perform these
    optimizations on innermost loops (with single exception) because
@@ -500,7 +501,7 @@ peel_loop_completely (struct loop *loop)
  	}
 
       /* Remove the exit edges.  */
-      for (i = 0; VEC_iterate (edge, remove_edges, i, ein); i++)
+      FOR_EACH_VEC_ELT (edge, remove_edges, i, ein)
 	remove_path (ein);
       VEC_free (edge, heap, remove_edges);
     }
@@ -788,7 +789,7 @@ unroll_loop_constant_iterations (struct loop *loop)
   desc->niter_expr = GEN_INT (desc->niter);
 
   /* Remove the edges.  */
-  for (i = 0; VEC_iterate (edge, remove_edges, i, e); i++)
+  FOR_EACH_VEC_ELT (edge, remove_edges, i, e)
     remove_path (e);
   VEC_free (edge, heap, remove_edges);
 
@@ -825,6 +826,9 @@ decide_unroll_runtime_iterations (struct loop *loop, int flags)
     nunroll = nunroll_by_av;
   if (nunroll > (unsigned) PARAM_VALUE (PARAM_MAX_UNROLL_TIMES))
     nunroll = PARAM_VALUE (PARAM_MAX_UNROLL_TIMES);
+
+  if (targetm.loop_unroll_adjust)
+    nunroll = targetm.loop_unroll_adjust (nunroll, loop);
 
   /* Skip big loops.  */
   if (nunroll <= 1)
@@ -988,7 +992,7 @@ unroll_loop_runtime_iterations (struct loop *loop)
       basic_block bb;
 
       ldom = get_dominated_by (CDI_DOMINATORS, body[i]);
-      for (j = 0; VEC_iterate (basic_block, ldom, j, bb); j++)
+      FOR_EACH_VEC_ELT (basic_block, ldom, j, bb)
 	if (!flow_bb_inside_loop_p (loop, bb))
 	  VEC_safe_push (basic_block, heap, dom_bbs, bb);
 
@@ -1157,7 +1161,7 @@ unroll_loop_runtime_iterations (struct loop *loop)
     }
 
   /* Remove the edges.  */
-  for (i = 0; VEC_iterate (edge, remove_edges, i, e); i++)
+  FOR_EACH_VEC_ELT (edge, remove_edges, i, e)
     remove_path (e);
   VEC_free (edge, heap, remove_edges);
 
@@ -1365,6 +1369,9 @@ decide_unroll_stupid (struct loop *loop, int flags)
     nunroll = nunroll_by_av;
   if (nunroll > (unsigned) PARAM_VALUE (PARAM_MAX_UNROLL_TIMES))
     nunroll = PARAM_VALUE (PARAM_MAX_UNROLL_TIMES);
+
+  if (targetm.loop_unroll_adjust)
+    nunroll = targetm.loop_unroll_adjust (nunroll, loop);
 
   /* Skip big loops.  */
   if (nunroll <= 1)
@@ -2117,7 +2124,7 @@ insert_var_expansion_initialization (struct var_to_expand *ve,
 
   start_sequence ();
   if (ve->op == PLUS || ve->op == MINUS)
-    for (i = 0; VEC_iterate (rtx, ve->var_expansions, i, var); i++)
+    FOR_EACH_VEC_ELT (rtx, ve->var_expansions, i, var)
       {
 	if (honor_signed_zero_p)
 	  zero_init = simplify_gen_unary (NEG, mode, CONST0_RTX (mode), mode);
@@ -2127,7 +2134,7 @@ insert_var_expansion_initialization (struct var_to_expand *ve,
         emit_move_insn (var, zero_init);
       }
   else if (ve->op == MULT)
-    for (i = 0; VEC_iterate (rtx, ve->var_expansions, i, var); i++)
+    FOR_EACH_VEC_ELT (rtx, ve->var_expansions, i, var)
       {
         zero_init =  CONST1_RTX (GET_MODE (var));
         emit_move_insn (var, zero_init);
@@ -2159,13 +2166,13 @@ combine_var_copies_in_loop_exit (struct var_to_expand *ve, basic_block place)
 
   start_sequence ();
   if (ve->op == PLUS || ve->op == MINUS)
-    for (i = 0; VEC_iterate (rtx, ve->var_expansions, i, var); i++)
+    FOR_EACH_VEC_ELT (rtx, ve->var_expansions, i, var)
       {
         sum = simplify_gen_binary (PLUS, GET_MODE (ve->reg),
                                    var, sum);
       }
   else if (ve->op == MULT)
-    for (i = 0; VEC_iterate (rtx, ve->var_expansions, i, var); i++)
+    FOR_EACH_VEC_ELT (rtx, ve->var_expansions, i, var)
       {
         sum = simplify_gen_binary (MULT, GET_MODE (ve->reg),
                                    var, sum);
