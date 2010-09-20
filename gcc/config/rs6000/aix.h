@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler,
    for IBM RS/6000 POWER running AIX.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -43,11 +43,13 @@
    collect has a chance to see them, so scan the object files directly.  */
 #define COLLECT_EXPORT_LIST
 
+#if HAVE_AS_REF
 /* Issue assembly directives that create a reference to the given DWARF table
    identifier label from the current function section.  This is defined to
    ensure we drag frame frame tables associated with needed function bodies in
    a link with garbage collection activated.  */
 #define ASM_OUTPUT_DWARF_TABLE_REF rs6000_aix_asm_output_dwarf_table_ref
+#endif
 
 /* Handle #pragma weak and #pragma pack.  */
 #define HANDLE_SYSV_PRAGMA 1
@@ -154,7 +156,7 @@
 %{p:-L%R/lib/profiled -L%R/usr/lib/profiled} %{!shared:%{g*:-lg}} -lc"
 
 /* Static linking with shared libstdc++ requires libsupc++ as well.  */
-#define LIBSTDCXX_STATIC "-lsupc++"
+#define LIBSTDCXX_STATIC "supc++"
 
 /* This now supports a natural alignment mode.  */
 /* AIX word-aligns FP doubles but doubleword-aligns 64-bit ints.  */
@@ -258,3 +260,6 @@
 
 /* WINT_TYPE */
 #define WINT_TYPE "int"
+
+/* Static stack checking is supported by means of probes.  */
+#define STACK_CHECK_STATIC_BUILTIN 1

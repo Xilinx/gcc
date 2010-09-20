@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.
    Motorola 68HC11 and 68HC12.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Stephane Carrez (stcarrez@nerim.fr)
 
@@ -141,17 +141,6 @@ extern short *reg_renumber;	/* def in local_alloc.c */
 
 /* Print subsidiary information on the compiler version in use.  */
 #define TARGET_VERSION	fprintf (stderr, " (MC68HC11/MC68HC12/MC68HCS12)")
-
-/* Sometimes certain combinations of command options do not make
-   sense on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
-
-   Don't use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.  */
-
-#define OVERRIDE_OPTIONS	m68hc11_override_options ()
 
 
 /* Define cost parameters for a given processor variant.  */
@@ -707,7 +696,7 @@ extern enum reg_class m68hc11_tmp_regs_class;
 
 #define PREFERRED_RELOAD_CLASS(X,CLASS)	preferred_reload_class(X,CLASS)
 
-#define SMALL_REGISTER_CLASSES 1
+#define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
 
 /* A C expression that is nonzero if hard register number REGNO2 can be
    considered for use as a rename register for REGNO1 */
@@ -896,15 +885,6 @@ extern enum reg_class m68hc11_tmp_regs_class;
    stack pointer really advances by. No rounding or alignment needed
    for MC6811.  */
 #define PUSH_ROUNDING(BYTES)	(BYTES)
-
-/* Value is 1 if returning from a function call automatically pops the
-   arguments described by the number-of-args field in the call. FUNTYPE is
-   the data type of the function (as a tree), or for a library call it is
-   an identifier node for the subroutine name.
-  
-   The standard MC6811 call, with arg count word, includes popping the
-   args as part of the call template.  */
-#define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE)	0
 
 /* Passing Arguments in Registers.  */
 
@@ -1350,17 +1330,6 @@ do {                                                                    \
 { "x", "d", "y", "sp", "pc", "a", "b", "ccr", "z",		\
   "*_.frame", "*_.tmp", "*_.z", "*_.xy", "*fake clobber",	\
   SOFT_REG_NAMES, "*sframe", "*ap"}
-
-/* Print an instruction operand X on file FILE. CODE is the code from the
-   %-spec for printing this operand. If `%z3' was used to print operand
-   3, then CODE is 'z'.  */
-
-#define PRINT_OPERAND(FILE, X, CODE) \
-  print_operand (FILE, X, CODE)
-
-/* Print a memory operand whose address is X, on file FILE.  */
-#define PRINT_OPERAND_ADDRESS(FILE, ADDR) \
-  print_operand_address (FILE, ADDR)
 
 /* This is how to output an insn to push/pop a register on the stack.
    It need not be very fast code.  

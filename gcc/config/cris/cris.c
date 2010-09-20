@@ -1,6 +1,6 @@
 /* Definitions for GCC.  Part of the machine description for CRIS.
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009  Free Software Foundation, Inc.
+   2008, 2009, 2010  Free Software Foundation, Inc.
    Contributed by Axis Communications.  Written by Hans-Peter Nilsson.
 
 This file is part of GCC.
@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "rtl.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "insn-attr.h"
@@ -35,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "except.h"
 #include "function.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "recog.h"
 #include "reload.h"
@@ -109,6 +109,12 @@ static void cris_operand_lossage (const char *, rtx);
 
 static int cris_reg_saved_in_regsave_area  (unsigned int, bool);
 
+static void cris_print_operand (FILE *, rtx, int);
+
+static void cris_print_operand_address (FILE *, rtx);
+
+static bool cris_print_operand_punct_valid_p (unsigned char code);
+
 static void cris_asm_output_mi_thunk
   (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT, tree);
 
@@ -124,6 +130,8 @@ static int cris_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 static tree cris_md_asm_clobbers (tree, tree, tree);
 
 static bool cris_handle_option (size_t, const char *, int);
+static void cris_option_optimization (int, int);
+static void cris_option_override (void);
 
 static bool cris_frame_pointer_required (void);
 
@@ -158,6 +166,13 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 
 #undef TARGET_ASM_UNALIGNED_DI_OP
 #define TARGET_ASM_UNALIGNED_DI_OP TARGET_ASM_ALIGNED_DI_OP
+
+#undef TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND cris_print_operand
+#undef TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS cris_print_operand_address
+#undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P cris_print_operand_punct_valid_p
 
 #undef TARGET_ASM_OUTPUT_MI_THUNK
 #define TARGET_ASM_OUTPUT_MI_THUNK cris_asm_output_mi_thunk
@@ -194,6 +209,11 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 #define TARGET_HANDLE_OPTION cris_handle_option
 #undef TARGET_FRAME_POINTER_REQUIRED
 #define TARGET_FRAME_POINTER_REQUIRED cris_frame_pointer_required
+
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE cris_option_override
+#undef TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION cris_option_optimization
 
 #undef TARGET_ASM_TRAMPOLINE_TEMPLATE
 #define TARGET_ASM_TRAMPOLINE_TEMPLATE cris_asm_trampoline_template
@@ -688,7 +708,7 @@ saved_regs_mentioned (rtx x)
 
 /* The PRINT_OPERAND worker.  */
 
-void
+static void
 cris_print_operand (FILE *file, rtx x, int code)
 {
   rtx operand = x;
@@ -1115,9 +1135,15 @@ cris_print_operand (FILE *file, rtx x, int code)
     }
 }
 
+static bool
+cris_print_operand_punct_valid_p (unsigned char code)
+{
+  return (code == '#' || code == '!' || code == ':');
+}
+
 /* The PRINT_OPERAND_ADDRESS worker.  */
 
-void
+static void
 cris_print_operand_address (FILE *file, rtx x)
 {
   /* All these were inside MEM:s so output indirection characters.  */
@@ -2317,7 +2343,7 @@ cris_asm_output_case_end (FILE *stream, int num, rtx table)
 
 /* TARGET_HANDLE_OPTION worker.  We just store the values into local
    variables here.  Checks for correct semantics are in
-   cris_override_options.  */
+   cris_option_override.  */
 
 static bool
 cris_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
@@ -2373,11 +2399,20 @@ cris_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
   return true;
 }
 
-/* The OVERRIDE_OPTIONS worker.
+/* Implement TARGET_OPTION_OPTIMIZATION.  */
+
+static void
+cris_option_optimization (int level, int size)
+{
+  if (level >= 2 || size)
+    flag_omit_frame_pointer = 1;
+}
+
+/* The TARGET_OPTION_OVERRIDE worker.
    As is the norm, this also parses -mfoo=bar type parameters.  */
 
-void
-cris_override_options (void)
+static void
+cris_option_override (void)
 {
   if (cris_max_stackframe_str)
     {
@@ -2553,8 +2588,8 @@ cris_file_start (void)
 {
   /* These expressions can vary at run time, so we cannot put
      them into TARGET_INITIALIZER.  */
-  targetm.file_start_app_off = !(TARGET_PDEBUG || flag_print_asm_name);
-  targetm.file_start_file_directive = TARGET_ELF;
+  targetm.asm_file_start_app_off = !(TARGET_PDEBUG || flag_print_asm_name);
+  targetm.asm_file_start_file_directive = TARGET_ELF;
 
   default_file_start ();
 }
@@ -2584,7 +2619,7 @@ cris_init_expanders (void)
 static struct machine_function *
 cris_init_machine_status (void)
 {
-  return GGC_CNEW (struct machine_function);
+  return ggc_alloc_cleared_machine_function ();
 }
 
 /* Split a 2 word move (DI or presumably DF) into component parts.

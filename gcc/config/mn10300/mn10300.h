@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler.
    Matsushita MN10300 series
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2007, 2008, 2009 Free Software Foundation, Inc.
+   2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
 This file is part of GCC.
@@ -59,8 +59,6 @@ extern enum processor_type mn10300_processor;
 #ifndef PROCESSOR_DEFAULT
 #define PROCESSOR_DEFAULT PROCESSOR_MN10300
 #endif
-
-#define OVERRIDE_OPTIONS mn10300_override_options ()
 
 /* Print subsidiary information on the compiler version in use.  */
 
@@ -130,6 +128,7 @@ extern enum processor_type mn10300_processor;
 #define LAST_EXTENDED_REGNUM 17
 #define FIRST_FP_REGNUM 18
 #define LAST_FP_REGNUM 49
+#define FIRST_ARGUMENT_REGNUM 0
 
 /* Specify the registers used for certain standard purposes.
    The values of these macros are register numbers.  */
@@ -236,7 +235,7 @@ extern enum processor_type mn10300_processor;
 
 /* 4 data, and effectively 3 address registers is small as far as I'm
    concerned.  */
-#define SMALL_REGISTER_CLASSES 1
+#define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
 
 /* Define the classes of registers for register constraints in the
    machine description.  Also define ranges of constants.
@@ -491,15 +490,6 @@ enum reg_class {
    them whenever possible.  */
 #define CAN_DEBUG_WITHOUT_FP
 
-/* Value is the number of bytes of arguments automatically
-   popped when returning from a subroutine call.
-   FUNDECL is the declaration node of the function (as a tree),
-   FUNTYPE is the data type of the function (as a tree),
-   or for a library call it is an identifier node for the subroutine name.
-   SIZE is the number of bytes of arguments passed on the stack.  */
-
-#define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
-
 /* We use d0/d1 for passing parameters, so allocate 8 bytes of space
    for a register flushback area.  */
 #define REG_PARM_STACK_SPACE(DECL) 8
@@ -511,7 +501,7 @@ enum reg_class {
 #define STACK_POINTER_OFFSET 4
 
 /* 1 if N is a possible register number for function argument passing.
-   On the MN10300, no registers are used in this way.  */
+   On the MN10300, d0 and d1 are used in this way.  */
 
 #define FUNCTION_ARG_REGNO_P(N) ((N) <= 1)
 
@@ -558,8 +548,6 @@ struct cum_arg {int nbytes; };
     the preceding args and about the function being called.
    NAMED is nonzero if this argument is a named parameter
     (otherwise it is an extra parameter matching an ellipsis).  */
-
-/* On the MN10300 all args are pushed.  */
 
 #define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
   function_arg (&CUM, MODE, TYPE, NAMED)

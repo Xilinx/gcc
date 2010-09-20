@@ -1,5 +1,5 @@
 /* score7.c for Sunplus S+CORE processor
-   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Sunnorth
 
    This file is part of GCC.
@@ -25,11 +25,11 @@
 #include "rtl.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "insn-attr.h"
 #include "recog.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "output.h"
 #include "tree.h"
@@ -634,9 +634,9 @@ score7_asm_file_end (void)
     }
 }
 
-/* Implement OVERRIDE_OPTIONS macro.  */
+/* Implement TARGET_OPTION_OVERRIDE hook.  */
 void
-score7_override_options (void)
+score7_option_override (void)
 {
   flag_pic = false;
   if (!flag_pic)
@@ -1175,7 +1175,7 @@ score7_output_external (FILE *file ATTRIBUTE_UNUSED,
 
   if (score7_in_small_data_p (decl))
     {
-      p = (struct extern_list *) ggc_alloc (sizeof (struct extern_list));
+      p = ggc_alloc_extern_list ();
       p->next = extern_head;
       p->name = name;
       p->size = int_size_in_bytes (TREE_TYPE (decl));

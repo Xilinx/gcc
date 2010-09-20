@@ -590,6 +590,23 @@
    (set_attr "length" "2,2,4")
    ])
 
+;; This pattern was added to match the previous pattern. When doing if-convert
+;; the pattern generated using movhicc does not have a eq:CC but only a eq for
+;; operator. If this pattern were not to be there, Gcc decides not to use
+;; movhicc at all. Whereas, in Gcc 4.4, it seems to be cleverer.
+(define_insn "*supported_compare1"
+  [(set (reg:CC CC_REGNUM)
+        (match_operator 0 "picochip_supported_comparison_operator"
+                        [(match_operand:HI 1 "register_operand" "r,r,r")
+                         (match_operand:HI 2 "picochip_comparison_operand" "r,J,i")]))]
+  ""
+  "* return picochip_output_compare(operands);"
+  [; Must be picoAlu because it sets the condition flags.
+   (set_attr "type" "picoAlu,picoAlu,picoAlu")
+   (set_attr "longConstant" "false,false,true")
+   (set_attr "length" "2,2,4")
+   ])
+
 (define_insn "*compare"
   [(set (reg:CC CC_REGNUM)
         (match_operator:CC 0 "comparison_operator"
@@ -648,6 +665,9 @@
        rtx shiftVal;
        rtx loadedValue;
        rtx addressMask;
+       rtx topByteValue;
+       rtx signExtendedValue;
+
 
        warn_of_byte_access();
 
@@ -696,11 +716,11 @@
          emit_insn(gen_rtx_SET(HImode, loadedValue, gen_rtx_MEM(HImode, wordAddress)));
 
 	 /* Shift the desired byte to the most significant byte. */
-	 rtx topByteValue = gen_reg_rtx (HImode);
+	 topByteValue = gen_reg_rtx (HImode);
 	 emit_insn (gen_ashlhi3 (topByteValue, loadedValue, shiftVal));
 
          /* Sign extend the top-byte back into the bottom byte. */
-	 rtx signExtendedValue = gen_reg_rtx(HImode);
+	 signExtendedValue = gen_reg_rtx(HImode);
          emit_insn(gen_ashrhi3(signExtendedValue, topByteValue, GEN_INT(8)));
 
          /* Final extraction of QI mode register. */
@@ -712,8 +732,8 @@
        {
          rtx zeroingByteMask;
          rtx temp;
-         rtx tempQiMode;
          rtx tempHiMode;
+         rtx lsbByteMask;
 
          /* Get the address. */
          address = gen_reg_rtx(HImode);
@@ -747,19 +767,10 @@
 	  * bits, instead of the original memory value which is being
 	  * modified.
   	  */
-         /*if (register_operand(operands[1],QImode))
-         {
-           tempHiMode = XEXP(operands[1], 0);
-         }
-         else
-         {
-           tempHiMode = operands[1];
-         }*/
-         //tempHiMode = force_reg(QImode, operands[1]);
          tempHiMode = simplify_gen_subreg(HImode, operands[1], QImode, 0);
          temp = gen_reg_rtx(HImode);
 	 emit_insn(gen_rtx_SET(HImode, temp, tempHiMode));
-         rtx lsbByteMask = gen_reg_rtx (HImode);
+         lsbByteMask = gen_reg_rtx (HImode);
 	 emit_insn (gen_rtx_SET (HImode, lsbByteMask, GEN_INT (0xFF)));
 	 emit_insn (gen_andhi3 (temp, temp, lsbByteMask));
 
@@ -876,7 +887,7 @@
 (define_split
   [(set (match_operand:SI 0 "register_operand" "")
         (match_operand:SI 1 "const_int_operand" ""))]
-  ""
+  "reload_completed"
   [(set (match_dup 2) (match_dup 3))
    (set (match_dup 4) (match_dup 5))]
   "{
@@ -895,6 +906,20 @@
     LDL %a1,%R0\t\t// %R0 :={SF} Mem(%M1{byte})
     // %R0 := #%1 (SF)\n\tCOPY.%# %L1,%L0\n\tCOPY.%# %U1,%U0
     STL %R1,%a0\t\t// Mem(%M0{byte}) :={SF} %R1")
+
+;; memcpy pattern
+;; 0 = destination (mem:BLK ...)
+;; 1 = source (mem:BLK ...)
+;; 2 = count
+;; 3 = alignment
+(define_expand "movmemhi"
+  [(match_operand 0 "memory_operand" "")
+  (match_operand 1 "memory_operand" "")
+  (match_operand:HI 2 "immediate_operand" "")
+  (match_operand 3 "" "")]
+  "picochip_schedule_type != DFA_TYPE_NONE"
+  "if (picochip_expand_movmemhi(operands)) DONE; FAIL;"
+)
 
 ;;===========================================================================
 ;; NOP
@@ -1832,12 +1857,18 @@
   {
     /* Synthesise a variable shift. */
 
+    rtx tmp1;
+    rtx tmp2;
+    rtx tmp3;
+    rtx minus_one;
+    rtx tmp4;
+
     /* Fill a temporary with the sign bits. */
-    rtx tmp1 = gen_reg_rtx (HImode);
+    tmp1 = gen_reg_rtx (HImode);
     emit_insn (gen_builtin_asri (tmp1, operands[1], GEN_INT(15)));
 
     /* Shift the unsigned value. */
-    rtx tmp2 = gen_reg_rtx (HImode);
+    tmp2 = gen_reg_rtx (HImode);
     emit_insn (gen_lshrhi3 (tmp2, operands[1], operands[2]));
 
     /* The word of sign bits must be shifted back to the left, to zero
@@ -1845,10 +1876,10 @@
      * count). Since the shifts are computed modulo 16 (i.e., only the
      * lower 4 bits of the count are used), the shift amount (15 - count)
      * is equivalent to !count. */
-    rtx tmp3 = gen_reg_rtx (HImode);
-    rtx tmp3_1 = GEN_INT (-1);
-    emit_insn (gen_xorhi3 (tmp3, operands[2], tmp3_1));
-    rtx tmp4 = gen_reg_rtx (HImode);
+    tmp3 = gen_reg_rtx (HImode);
+    minus_one = GEN_INT (-1);
+    emit_insn (gen_xorhi3 (tmp3, operands[2], minus_one));
+    tmp4 = gen_reg_rtx (HImode);
     emit_insn (gen_ashlhi3 (tmp4, tmp1, tmp3));
 
     /* Combine the sign bits with the shifted value. */
@@ -2355,7 +2386,7 @@
 		   UNSPEC_TESTPORT))
    (clobber (reg:CC CC_REGNUM))]
   ""
-  "// %0 := TestPort(%1)\;TSTPORT %1\;COPYSW.0 %0\;AND.0 %0,8,%0"
+  "// %0 := TestPort(%1)\;COPY.1 0,%0 %| TSTPORT %1\;COPYEQ 1,%0"
   [(set_attr "length" "9")])
 
 ; Entry point for array tstport (the actual port index is computed as the

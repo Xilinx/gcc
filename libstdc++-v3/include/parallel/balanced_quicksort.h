@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -44,12 +44,12 @@
 
 #include <parallel/basic_iterator.h>
 #include <bits/stl_algo.h>
+#include <bits/stl_function.h>
 
 #include <parallel/settings.h>
 #include <parallel/partition.h>
 #include <parallel/random_number.h>
 #include <parallel/queue.h>
-#include <functional>
 
 #if _GLIBCXX_ASSERTIONS
 #include <parallel/checkers.h>
@@ -135,7 +135,7 @@ namespace __gnu_parallel
 	std::swap(*__pivot_pos, *(__end - 1));
       __pivot_pos = __end - 1;
 
-      __gnu_parallel::binder2nd<_Compare, _ValueType, _ValueType, bool>
+      __gnu_parallel::__binder2nd<_Compare, _ValueType, _ValueType, bool>
 	__pred(__comp, *__pivot_pos);
 
       // Divide, returning __end - __begin - 1 in the worst case.
@@ -245,7 +245,8 @@ namespace __gnu_parallel
   template<typename _RAIter, typename _Compare>
     void
     __qsb_local_sort_with_helping(_QSBThreadLocal<_RAIter>** __tls,
-				  _Compare& __comp, int __iam, bool __wait)
+				  _Compare& __comp, _ThreadIndex __iam,
+				  bool __wait)
     {
       typedef std::iterator_traits<_RAIter> _TraitsType;
       typedef typename _TraitsType::value_type _ValueType;
@@ -286,7 +287,7 @@ namespace __gnu_parallel
         	std::swap(*__pivot_pos, *(__end - 1));
               __pivot_pos = __end - 1;
 
-              __gnu_parallel::binder2nd
+              __gnu_parallel::__binder2nd
 		<_Compare, _ValueType, _ValueType, bool>
 		__pred(__comp, *__pivot_pos);
 
@@ -460,7 +461,7 @@ namespace __gnu_parallel
       // 2. The largest range has at most length __n
       // 3. Each range is larger than half of the range remaining
       volatile _DifferenceType __elements_leftover = __n;
-      for (int __i = 0; __i < __num_threads; ++__i)
+      for (_ThreadIndex __i = 0; __i < __num_threads; ++__i)
 	{
           __tls[__i]->_M_elements_leftover = &__elements_leftover;
           __tls[__i]->_M_num_threads = __num_threads;
@@ -477,12 +478,12 @@ namespace __gnu_parallel
 #if _GLIBCXX_ASSERTIONS
       // All stack must be empty.
       _Piece __dummy;
-      for (int __i = 1; __i < __num_threads; ++__i)
+      for (_ThreadIndex __i = 1; __i < __num_threads; ++__i)
 	_GLIBCXX_PARALLEL_ASSERT(
           !__tls[__i]->_M_leftover_parts.pop_back(__dummy));
 #endif
 
-      for (int __i = 0; __i < __num_threads; ++__i)
+      for (_ThreadIndex __i = 0; __i < __num_threads; ++__i)
 	delete __tls[__i];
       delete[] __tls;
     }

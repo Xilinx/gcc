@@ -16,12 +16,12 @@ end interface
 external :: aaargh
 
 type :: t
+  procedure(), pointer, nopass :: ptr1
   procedure(real), pointer, nopass :: ptr2
   procedure(sub), pointer, nopass :: ptr3
   procedure(), pointer, nopass ptr4              ! { dg-error "Expected '::'" }
   procedure(), pointer, nopass, pointer :: ptr5  ! { dg-error "Duplicate" }
   procedure, pointer, nopass :: ptr6             ! { dg-error "Syntax error" }
-  procedure(), pointer, nopass :: ptr7 => ptr2   ! { dg-error "requires a NULL" }
   procedure(), nopass :: ptr8                    ! { dg-error "POINTER attribute is required" }
   procedure(pp), pointer, nopass :: ptr9         ! { dg-error "declared in a later PROCEDURE statement" }
   procedure(aaargh), pointer, nopass :: ptr10    ! { dg-error "must be explicit" }
@@ -40,6 +40,7 @@ x%ptr2 => x       ! { dg-error "Invalid procedure pointer assignment" }
 
 x => x%ptr2       ! { dg-error "Pointer assignment to non-POINTER" }
 
+print *, x%ptr1() ! { dg-error "attribute conflicts with" }
 call x%ptr2()     ! { dg-error "attribute conflicts with" }
 print *,x%ptr3()  ! { dg-error "attribute conflicts with" }
 

@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -345,11 +345,11 @@ namespace __gnu_parallel
 
   template<typename _IIter,
            typename _OutputIterator,
-           typename Operation>
+           typename _Operation>
     _OutputIterator
     __parallel_set_operation(_IIter __begin1, _IIter __end1,
 			     _IIter __begin2, _IIter __end2,
-			     _OutputIterator __result, Operation __op)
+			     _OutputIterator __result, _Operation __op)
     {
       _GLIBCXX_CALL((__end1 - __begin1) + (__end2 - __begin2))
 
@@ -444,7 +444,7 @@ namespace __gnu_parallel
 	if (__iam == 0)
 	  {
 	    // Do the last block.
-	    for (int __i = 0; __i < __num_threads; ++__i)
+	    for (_ThreadIndex __i = 0; __i < __num_threads; ++__i)
 	      __r += __lengths[__i];
 
 	    __block_begin = __block_begins[__num_threads];
@@ -457,7 +457,7 @@ namespace __gnu_parallel
 	  }
           else
             {
-              for (int __i = 0; __i < __iam; ++__i)
+              for (_ThreadIndex __i = 0; __i < __iam; ++__i)
         	__r += __lengths[ __i ];
 
               // Reset begins for copy pass.

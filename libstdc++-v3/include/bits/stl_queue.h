@@ -1,6 +1,6 @@
 // Queue implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -81,7 +81,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  that supports @c front, @c back, @c push_back, and @c pop_front,
    *  such as std::list or an appropriate user-defined type.
    *
-   *  Members not found in "normal" containers are @c container_type,
+   *  Members not found in @a normal containers are @c container_type,
    *  which is a typedef for the second Sequence parameter, and @c push and
    *  @c pop, which are standard %queue/FIFO operations.
   */
@@ -137,16 +137,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       explicit
       queue(_Sequence&& __c = _Sequence())
       : c(std::move(__c)) { }
-
-      queue(queue&& __q)
-      : c(std::move(__q.c)) { }
-
-      queue&
-      operator=(queue&& __q)
-      {
-	c = std::move(__q.c);
-	return *this;
-      }
 #endif
 
       /**
@@ -340,7 +330,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  priority comparisons.  It defaults to @c less<value_type> but
    *  can be anything defining a strict weak ordering.
    *
-   *  Members not found in "normal" containers are @c container_type,
+   *  Members not found in @a normal containers are @c container_type,
    *  which is a typedef for the second Sequence parameter, and @c
    *  push, @c pop, and @c top, which are standard %queue operations.
    *
@@ -451,17 +441,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  c.insert(c.end(), __first, __last);
 	  std::make_heap(c.begin(), c.end(), comp);
 	}
-
-      priority_queue(priority_queue&& __pq)
-      : c(std::move(__pq.c)), comp(std::move(__pq.comp)) { }
-
-      priority_queue&
-      operator=(priority_queue&& __pq)
-      {
-	c = std::move(__pq.c);
-	comp = std::move(__pq.comp);
-	return *this;
-      }
 #endif
 
       /**

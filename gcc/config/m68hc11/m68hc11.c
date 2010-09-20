@@ -1,6 +1,6 @@
 /* Subroutines for code generation on Motorola 68HC11 and 68HC12.
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009 Free Software Foundation, Inc.
+   2009, 2010 Free Software Foundation, Inc.
    Contributed by Stephane Carrez (stcarrez@nerim.fr)
 
 This file is part of GCC.
@@ -43,7 +43,6 @@ Note:
 #include "tm_p.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "output.h"
@@ -52,6 +51,7 @@ Note:
 #include "recog.h"
 #include "expr.h"
 #include "libfuncs.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "basic-block.h"
 #include "function.h"
@@ -61,6 +61,7 @@ Note:
 #include "target-def.h"
 #include "df.h"
 
+static void m68hc11_option_override (void);
 static void emit_move_after_reload (rtx, rtx, rtx);
 static rtx simplify_logical (enum machine_mode, int, rtx, rtx *);
 static void m68hc11_emit_logical (enum machine_mode, enum rtx_code, rtx *);
@@ -79,6 +80,8 @@ static tree m68hc11_handle_page0_attribute (tree *, tree, tree, int, bool *);
 void create_regs_rtx (void);
 
 static void asm_print_register (FILE *, int);
+static void m68hc11_print_operand (FILE *, rtx, int);
+static void m68hc11_print_operand_address (FILE *, rtx);
 static void m68hc11_output_function_epilogue (FILE *, HOST_WIDE_INT);
 static void m68hc11_asm_out_constructor (rtx, int);
 static void m68hc11_asm_out_destructor (rtx, int);
@@ -239,6 +242,11 @@ static const struct attribute_spec m68hc11_attribute_table[] =
 #undef TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.word\t"
 
+#undef TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND m68hc11_print_operand
+#undef TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS m68hc11_print_operand_address
+
 #undef TARGET_ASM_FUNCTION_EPILOGUE
 #define TARGET_ASM_FUNCTION_EPILOGUE m68hc11_output_function_epilogue
 
@@ -286,10 +294,13 @@ static const struct attribute_spec m68hc11_attribute_table[] =
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT m68hc11_trampoline_init
 
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE m68hc11_option_override
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
-int
-m68hc11_override_options (void)
+static void
+m68hc11_option_override (void)
 {
   memset (m68hc11_reg_valid_for_index, 0,
 	  sizeof (m68hc11_reg_valid_for_index));
@@ -354,7 +365,6 @@ m68hc11_override_options (void)
       if (TARGET_LONG_CALLS)
         current_function_far = 1;
     }
-  return 0;
 }
 
 
@@ -2124,8 +2134,8 @@ asm_print_register (FILE *file, int regno)
    'T' generate the low-part temporary scratch register.  The operand is
        ignored.  */
 
-void
-print_operand (FILE *file, rtx op, int letter)
+static void
+m68hc11_print_operand (FILE *file, rtx op, int letter)
 {
   if (letter == 't')
     {
@@ -2317,8 +2327,8 @@ must_parenthesize (rtx op)
    assembler syntax for an instruction operand that is a memory
    reference whose address is ADDR.  ADDR is an RTL expression.  */
 
-void
-print_operand_address (FILE *file, rtx addr)
+static void
+m68hc11_print_operand_address (FILE *file, rtx addr)
 {
   rtx base;
   rtx offset;

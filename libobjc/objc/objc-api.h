@@ -28,7 +28,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define __objc_api_INCLUDE_GNU
 
 #include "objc.h"
-#include "hash.h"
+#ifndef GNU_LIBOBJC_COMPILING_LIBOBJC_ITSELF
+# include "deprecated/hash.h"
+#endif
 #include "thr.h"
 #include "objc-decls.h"
 #include <stdio.h>
@@ -82,61 +84,7 @@ struct objc_method_description
 #define _C_VECTOR   '!'
 #define _C_COMPLEX   'j'
 
-
-/* Error handling
-  
-   Call objc_error() or objc_verror() to record an error; this error
-   routine will generally exit the program but not necessarily if the
-   user has installed his own error handler.
-  
-   Call objc_set_error_handler to assign your own function for
-   handling errors.  The function should return YES if it is ok
-   to continue execution, or return NO or just abort if the
-   program should be stopped.  The default error handler is just to
-   print a message on stderr.
-  
-   The error handler function should be of type objc_error_handler
-   The first parameter is an object instance of relevance.
-   The second parameter is an error code.
-   The third parameter is a format string in the printf style.
-   The fourth parameter is a variable list of arguments.  */
-extern void objc_error(id object, int code, const char* fmt, ...);
-extern void objc_verror(id object, int code, const char* fmt, va_list ap);
-typedef BOOL (*objc_error_handler)(id, int code, const char *fmt, va_list ap);
-extern objc_error_handler objc_set_error_handler(objc_error_handler func);
-
-/* Error codes
-   These are used by the runtime library, and your
-   error handling may use them to determine if the error is
-   hard or soft thus whether execution can continue or abort.  */
-#define OBJC_ERR_UNKNOWN 0             /* Generic error */
-
-#define OBJC_ERR_OBJC_VERSION 1        /* Incorrect runtime version */
-#define OBJC_ERR_GCC_VERSION 2         /* Incorrect compiler version */
-#define OBJC_ERR_MODULE_SIZE 3         /* Bad module size */
-#define OBJC_ERR_PROTOCOL_VERSION 4    /* Incorrect protocol version */
-
-#define OBJC_ERR_MEMORY 10             /* Out of memory */
-
-#define OBJC_ERR_RECURSE_ROOT 20       /* Attempt to archive the root
-					  object more than once. */
-#define OBJC_ERR_BAD_DATA 21           /* Didn't read expected data */
-#define OBJC_ERR_BAD_KEY 22            /* Bad key for object */
-#define OBJC_ERR_BAD_CLASS 23          /* Unknown class */
-#define OBJC_ERR_BAD_TYPE 24           /* Bad type specification */
-#define OBJC_ERR_NO_READ 25            /* Cannot read stream */
-#define OBJC_ERR_NO_WRITE 26           /* Cannot write stream */
-#define OBJC_ERR_STREAM_VERSION 27     /* Incorrect stream version */
-#define OBJC_ERR_BAD_OPCODE 28         /* Bad opcode */
-
-#define OBJC_ERR_UNIMPLEMENTED 30      /* Method is not implemented */
-
-#define OBJC_ERR_BAD_STATE 40          /* Bad thread state */
-
-/* Set this variable nonzero to print a line describing each
-   message that is sent.  (this is currently disabled)  */
-extern BOOL objc_trace;
-
+#include "deprecated/objc_error.h"
 
 /* For every class which happens to have statically allocated instances in
    this module, one OBJC_STATIC_INSTANCES is allocated by the compiler.
@@ -186,18 +134,18 @@ typedef struct objc_symtab {
 ** That array holds a pointer to each module structure of the executable. 
 */
 typedef struct objc_module {
-  unsigned long version;                        /* Compiler revision. */
-  unsigned long size;                           /* sizeof(Module). */
-  const char* name;                             /* Name of the file where the 
-                                                  module was generated.   The 
-                                                  name includes the path. */
-
-  Symtab_t    symtab;                           /* Pointer to the Symtab of
-                                                  the module.  The Symtab
-                                                  holds an array of 
-						  pointers to 
-                                                  the classes and categories 
-                                                  defined in the module. */
+  unsigned long version; /* Version of the Module data structure.  */
+  unsigned long size;    /* sizeof(Module) according to the compiler -
+			    only used to sanity check that it matches
+			    sizeof(Module) according to the
+			    runtime.  */
+  const char* name;      /* Name of the file used to compile the
+			    module - not set by modern compilers for
+			    security reasons.  */
+  Symtab_t    symtab;    /* Pointer to the Symtab of the module.  The
+			    Symtab holds an array of pointers to the
+			    classes and categories defined in the
+			    module. */
 } Module, *Module_t;
 
 
@@ -380,19 +328,18 @@ objc_EXPORT id (*_objc_object_copy)(id object);
 objc_EXPORT id (*_objc_object_dispose)(id object);
 
 /*
-** Standard functions for memory allocation and disposal.
-** Users should use these functions in their ObjC programs so
-** that they work properly with garbage collectors as well as
-** can take advantage of the exception/error handling available.
+  Standard functions for memory allocation and disposal.  Users should
+  use these functions in their ObjC programs so that they work so that
+  they work properly with garbage collectors.
 */
 void *
 objc_malloc(size_t size);
 
+/* FIXME: Shouldn't the following be called objc_malloc_atomic ?  The
+   GC function is GC_malloc_atomic() which makes sense.
+ */
 void *
 objc_atomic_malloc(size_t size);
-
-void *
-objc_valloc(size_t size);
 
 void *
 objc_realloc(void *mem, size_t size);
@@ -403,22 +350,8 @@ objc_calloc(size_t nelem, size_t size);
 void
 objc_free(void *mem);
 
-/*
-** Hook functions for memory allocation and disposal.
-** This makes it easy to substitute garbage collection systems
-** such as Boehm's GC by assigning these function pointers
-** to the GC's allocation routines.  By default these point
-** to the ANSI standard malloc, realloc, free, etc.
-**
-** Users should call the normal objc routines above for
-** memory allocation and disposal within their programs.
-*/
-objc_EXPORT void *(*_objc_malloc)(size_t);
-objc_EXPORT void *(*_objc_atomic_malloc)(size_t);
-objc_EXPORT void *(*_objc_valloc)(size_t);
-objc_EXPORT void *(*_objc_realloc)(void *, size_t);
-objc_EXPORT void *(*_objc_calloc)(size_t, size_t);
-objc_EXPORT void (*_objc_free)(void *);
+#include "deprecated/objc_valloc.h"
+#include "deprecated/objc_malloc.h"
 
 /*
 **  Hooks for method forwarding. This makes it easy to substitute a
@@ -430,14 +363,7 @@ objc_EXPORT void (*_objc_free)(void *);
 objc_EXPORT IMP (*__objc_msg_forward)(SEL);
 objc_EXPORT IMP (*__objc_msg_forward2)(id, SEL);
 
-/*
-** Hook for uncaught exceptions.  This hook is called when an exception
-** is thrown and no valid exception handler is in place.  The function
-** is expected never to return.  If the function returns the result is
-** currently undefined.
-*/
-objc_EXPORT void (*_objc_unexpected_exception)(id);
-
+#include "deprecated/objc_unexpected_exception.h"
 
 Method_t class_get_class_method(MetaClass _class, SEL aSel);
 
@@ -540,12 +466,6 @@ method_get_imp(Method_t method)
 }
 
 IMP get_imp (Class _class, SEL sel);
-
-/* Redefine on NeXTSTEP so as not to conflict with system function */
-#ifdef __NeXT__
-#define object_copy	gnu_object_copy
-#define object_dispose	gnu_object_dispose
-#endif
 
 id object_copy(id object);
 

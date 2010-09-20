@@ -22,6 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "rtl.h"
 #include "tm_p.h"
@@ -957,7 +958,7 @@ mark_target_live_regs (rtx insns, rtx target, struct resources *res)
 
       /* Get starting and ending insn, handling the case where each might
 	 be a SEQUENCE.  */
-      start_insn = (b == ENTRY_BLOCK_PTR->next_bb->index ? 
+      start_insn = (b == ENTRY_BLOCK_PTR->next_bb->index ?
 		    insns : BB_HEAD (BASIC_BLOCK (b)));
       stop_insn = target;
 

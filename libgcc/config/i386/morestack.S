@@ -292,7 +292,7 @@ __morestack:
 	.global	__stack_split_initialize
 
 #ifdef __ELF__
-	.type	init, @function
+	.type	__stack_split_initialize, @function
 #endif
 
 __stack_split_initialize:

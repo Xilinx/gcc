@@ -1,7 +1,7 @@
 // The template and inlines for the -*- C++ -*- complex number classes.
 
 // Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007, 2008, 2009
+// 2006, 2007, 2008, 2009, 2010
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -1062,36 +1062,35 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       void imag(float __val)
       { __imag__ _M_value = __val; }
 
-      complex<float>&
+      complex&
       operator=(float __f)
       {
-	__real__ _M_value = __f;
-	__imag__ _M_value = 0.0f;
+	_M_value = __f;
 	return *this;
       }
 
-      complex<float>&
+      complex&
       operator+=(float __f)
       {
-	__real__ _M_value += __f;
+	_M_value += __f;
 	return *this;
       }
 
-      complex<float>&
+      complex&
       operator-=(float __f)
       {
-	__real__ _M_value -= __f;
+	_M_value -= __f;
 	return *this;
       }
 
-      complex<float>&
+      complex&
       operator*=(float __f)
       {
 	_M_value *= __f;
 	return *this;
       }
 
-      complex<float>&
+      complex&
       operator/=(float __f)
       {
 	_M_value /= __f;
@@ -1103,7 +1102,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       // complex& operator=(const complex&);
 
       template<typename _Tp>
-        complex<float>&
+        complex&
         operator=(const complex<_Tp>&  __z)
 	{
 	  __real__ _M_value = __z.real();
@@ -1112,7 +1111,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<typename _Tp>
-        complex<float>&
+        complex&
         operator+=(const complex<_Tp>& __z)
 	{
 	  __real__ _M_value += __z.real();
@@ -1121,7 +1120,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<class _Tp>
-        complex<float>&
+        complex&
         operator-=(const complex<_Tp>& __z)
 	{
 	  __real__ _M_value -= __z.real();
@@ -1130,7 +1129,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<class _Tp>
-        complex<float>&
+        complex&
         operator*=(const complex<_Tp>& __z)
 	{
 	  _ComplexT __t;
@@ -1141,7 +1140,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<class _Tp>
-        complex<float>&
+        complex&
         operator/=(const complex<_Tp>& __z)
 	{
 	  _ComplexT __t;
@@ -1208,36 +1207,35 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       void imag(double __val)
       { __imag__ _M_value = __val; }
 
-      complex<double>&
+      complex&
       operator=(double __d)
       {
-	__real__ _M_value = __d;
-	__imag__ _M_value = 0.0;
+	_M_value = __d;
 	return *this;
       }
 
-      complex<double>&
+      complex&
       operator+=(double __d)
       {
-	__real__ _M_value += __d;
+	_M_value += __d;
 	return *this;
       }
 	
-      complex<double>&
+      complex&
       operator-=(double __d)
       {
-	__real__ _M_value -= __d;
+	_M_value -= __d;
 	return *this;
       }
 
-      complex<double>&
+      complex&
       operator*=(double __d)
       {
 	_M_value *= __d;
 	return *this;
       }
 
-      complex<double>&
+      complex&
       operator/=(double __d)
       {
 	_M_value /= __d;
@@ -1248,7 +1246,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       // complex& operator=(const complex&);
 
       template<typename _Tp>
-        complex<double>&
+        complex&
         operator=(const complex<_Tp>& __z)
 	{
 	  __real__ _M_value = __z.real();
@@ -1257,7 +1255,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<typename _Tp>
-        complex<double>&
+        complex&
         operator+=(const complex<_Tp>& __z)
 	{
 	  __real__ _M_value += __z.real();
@@ -1266,7 +1264,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<typename _Tp>
-        complex<double>&
+        complex&
         operator-=(const complex<_Tp>& __z)
 	{
 	  __real__ _M_value -= __z.real();
@@ -1275,7 +1273,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<typename _Tp>
-        complex<double>&
+        complex&
         operator*=(const complex<_Tp>& __z)
 	{
 	  _ComplexT __t;
@@ -1286,7 +1284,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<typename _Tp>
-        complex<double>&
+        complex&
         operator/=(const complex<_Tp>& __z)
 	{
 	  _ComplexT __t;
@@ -1354,36 +1352,35 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       void imag(long double __val)
       { __imag__ _M_value = __val; }
 
-      complex<long double>&
+      complex&
       operator=(long double __r)
       {
-	__real__ _M_value = __r;
-	__imag__ _M_value = 0.0L;
+	_M_value = __r;
 	return *this;
       }
 
-      complex<long double>&
+      complex&
       operator+=(long double __r)
       {
-	__real__ _M_value += __r;
+	_M_value += __r;
 	return *this;
       }
 
-      complex<long double>&
+      complex&
       operator-=(long double __r)
       {
-	__real__ _M_value -= __r;
+	_M_value -= __r;
 	return *this;
       }
 
-      complex<long double>&
+      complex&
       operator*=(long double __r)
       {
 	_M_value *= __r;
 	return *this;
       }
 
-      complex<long double>&
+      complex&
       operator/=(long double __r)
       {
 	_M_value /= __r;
@@ -1394,7 +1391,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       // complex& operator=(const complex&);
 
       template<typename _Tp>
-        complex<long double>&
+        complex&
         operator=(const complex<_Tp>& __z)
 	{
 	  __real__ _M_value = __z.real();
@@ -1403,7 +1400,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<typename _Tp>
-        complex<long double>&
+        complex&
 	operator+=(const complex<_Tp>& __z)
 	{
 	  __real__ _M_value += __z.real();
@@ -1412,7 +1409,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<typename _Tp>
-        complex<long double>&
+        complex&
 	operator-=(const complex<_Tp>& __z)
 	{
 	  __real__ _M_value -= __z.real();
@@ -1421,7 +1418,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<typename _Tp>
-        complex<long double>&
+        complex&
 	operator*=(const complex<_Tp>& __z)
 	{
 	  _ComplexT __t;
@@ -1432,7 +1429,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<typename _Tp>
-        complex<long double>&
+        complex&
 	operator/=(const complex<_Tp>& __z)
 	{
 	  _ComplexT __t;
@@ -1572,13 +1569,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     { return __complex_proj(__z); }
 #endif
 
+  // DR 1137.
   template<typename _Tp>
-    inline std::complex<typename __gnu_cxx::__promote<_Tp>::__type>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
     proj(_Tp __x)
-    {
-      typedef typename __gnu_cxx::__promote<_Tp>::__type __type;
-      return std::proj(std::complex<__type>(__x));
-    }
+    { return __x; }
+
+  template<typename _Tp>
+    inline typename __gnu_cxx::__promote<_Tp>::__type
+    conj(_Tp __x)
+    { return __x; }
 
 _GLIBCXX_END_NAMESPACE
 

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---            Copyright (C) 2006-2009, Free Software Foundation, Inc.       --
+--            Copyright (C) 2006-2010, Free Software Foundation, Inc.       --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,23 +23,25 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Directories;  use Ada.Directories;
-with GNAT.HTable;      use GNAT.HTable;
-with Makeutl;          use Makeutl;
+with Hostparm;
+with Makeutl;  use Makeutl;
 with MLib.Tgt;
-with Opt;              use Opt;
-with Output;           use Output;
+with Opt;      use Opt;
+with Output;   use Output;
 with Prj.Env;
 with Prj.Err;
 with Prj.Part;
 with Prj.PP;
-with Prj.Proc;         use Prj.Proc;
-with Prj.Tree;         use Prj.Tree;
-with Prj.Util;         use Prj.Util;
-with Prj;              use Prj;
-with Snames;           use Snames;
-with System.Case_Util; use System.Case_Util;
-with System;
+with Prj.Proc; use Prj.Proc;
+with Prj.Tree; use Prj.Tree;
+with Prj.Util; use Prj.Util;
+with Prj;      use Prj;
+with Snames;   use Snames;
+
+with Ada.Directories; use Ada.Directories;
+
+with GNAT.Case_Util; use GNAT.Case_Util;
+with GNAT.HTable;    use GNAT.HTable;
 
 package body Prj.Conf is
 
@@ -516,6 +518,8 @@ package body Prj.Conf is
          Count    : Natural;
          Result   : Argument_List_Access;
 
+         Check_Default : Boolean;
+
       begin
          Prj_Iter := Project_Tree.Projects;
          while Prj_Iter /= null loop
@@ -530,9 +534,23 @@ package body Prj.Conf is
                  or else Variable.Default
                then
                   --  Languages is not declared. If it is not an extending
-                  --  project, check for Default_Language
+                  --  project, or if it extends a project with no Languages,
+                  --  check for Default_Language.
 
-                  if Prj_Iter.Project.Extends = No_Project then
+                  Check_Default := Prj_Iter.Project.Extends = No_Project;
+
+                  if not Check_Default then
+                     Variable :=
+                       Value_Of
+                         (Name_Languages,
+                          Prj_Iter.Project.Extends.Decl.Attributes,
+                          Project_Tree);
+                     Check_Default :=
+                       Variable /= Nil_Variable_Value
+                         and then Variable.Values = Nil_String;
+                  end if;
+
+                  if Check_Default then
                      Variable :=
                        Value_Of
                          (Name_Default_Language,
@@ -548,7 +566,7 @@ package body Prj.Conf is
                         Language_Htable.Set (Lang, Lang);
 
                      else
-                        --  If no language is declared, default to Ada
+                        --  If no default language is declared, default to Ada
 
                         Language_Htable.Set (Name_Ada, Name_Ada);
                      end if;
@@ -667,7 +685,7 @@ package body Prj.Conf is
          --  First, find the object directory of the user's project
 
          if Obj_Dir = Nil_Variable_Value or else Obj_Dir.Default then
-            Get_Name_String (Project.Directory.Name);
+            Get_Name_String (Project.Directory.Display_Name);
 
          else
             if Is_Absolute_Path (Get_Name_String (Obj_Dir.Value)) then
@@ -676,7 +694,7 @@ package body Prj.Conf is
             else
                Name_Len := 0;
                Add_Str_To_Name_Buffer
-                 (Get_Name_String (Project.Directory.Name));
+                 (Get_Name_String (Project.Directory.Display_Name));
                Add_Str_To_Name_Buffer (Get_Name_String (Obj_Dir.Value));
             end if;
          end if;
@@ -873,8 +891,18 @@ package body Prj.Conf is
       <<Process_Config_File>>
 
       if Automatically_Generated then
-         --  This might raise an Invalid_Config exception
-         Do_Autoconf;
+         if Hostparm.OpenVMS then
+
+            --  There is no gprconfig on VMS
+
+            raise Invalid_Config
+              with "could not locate any configuration project file";
+
+         else
+            --  This might raise an Invalid_Config exception
+
+            Do_Autoconf;
+         end if;
       end if;
 
       --  Parse the configuration file
@@ -1188,8 +1216,11 @@ package body Prj.Conf is
          Index : String := "";
          Pkg   : Project_Node_Id := Empty_Node)
       is
-         Attr : Project_Node_Id;
-         Val  : Name_Id := No_Name;
+         Attr       : Project_Node_Id;
+         pragma Unreferenced (Attr);
+
+         Expr   : Name_Id         := No_Name;
+         Val    : Name_Id         := No_Name;
          Parent : Project_Node_Id := Config_File;
       begin
          if Index /= "" then
@@ -1202,23 +1233,20 @@ package body Prj.Conf is
             Parent := Pkg;
          end if;
 
+         Name_Len := Value'Length;
+         Name_Buffer (1 .. Name_Len) := Value;
+         Expr := Name_Find;
+
          Attr := Create_Attribute
            (Tree       => Project_Tree,
             Prj_Or_Pkg => Parent,
             Name       => Name,
             Index_Name => Val,
-            Kind       => Prj.Single);
-
-         Name_Len := Value'Length;
-         Name_Buffer (1 .. Name_Len) := Value;
-         Val := Name_Find;
-
-         Set_Expression_Of
-           (Attr, Project_Tree,
-            Enclose_In_Expression
-              (Create_Literal_String (Val, Project_Tree),
-               Project_Tree));
+            Kind       => Prj.Single,
+            Value      => Create_Literal_String (Expr, Project_Tree));
       end Create_Attribute;
+
+      --  Local variables
 
       Name   : Name_Id;
       Naming : Project_Node_Id;
