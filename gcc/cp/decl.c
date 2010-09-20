@@ -7467,6 +7467,7 @@ compute_array_index_type (tree name, tree size, tsubst_flags_t complain)
     return error_mark_node;
 
   type = TREE_TYPE (size);
+  /* type_dependent_expression_p? */
   if (!dependent_type_p (type))
     {
       mark_rvalue_use (size);
@@ -7511,6 +7512,7 @@ compute_array_index_type (tree name, tree size, tsubst_flags_t complain)
   /* We can only call value_dependent_expression_p on integral constant
      expressions; the parser adds a dummy NOP_EXPR with TREE_SIDE_EFFECTS
      set if this isn't one.  */
+  /* FIXME handle type-dep here too. */
   if (processing_template_decl
       && (TREE_SIDE_EFFECTS (size) || value_dependent_expression_p (size)))
     {
@@ -7572,6 +7574,10 @@ compute_array_index_type (tree name, tree size, tsubst_flags_t complain)
   else if (TREE_CONSTANT (size)
 	   /* We don't allow VLAs at non-function scopes, or during
 	      tentative template substitution.  */
+	   /* FIXME shouldn't need to have both checks -- many things might
+	      work better if we set up context properly for overload
+	      template substitution.  The scope of substitution is the scope
+	      of the declaration being substituted into.  */
 	   || !at_function_scope_p () || !(complain & tf_error))
     {
       if (!(complain & tf_error))

@@ -17481,6 +17481,7 @@ dependent_type_p_r (tree type)
       /* If this is the TYPE_DOMAIN of an array type, consider it
 	 dependent.  We already checked for value-dependence in
 	 compute_array_index_type.  */
+      /* FIXME why not check type-dep there too?  */
       return type_dependent_expression_p (TYPE_MAX_VALUE (type));
     }
 
@@ -17601,9 +17602,10 @@ dependent_scope_p (tree scope)
      (what about instantiation-dependent constant-expressions?)
    is_late_template_attribute: defer if instantiation-dependent.
    compute_array_index_type: proceed if constant and not t- or v-dependent
-   uses_template_parms: FIXME
+     if instantiation-dependent, need to remember full expression
+   uses_template_parms: FIXME - need to audit callers
    tsubst_decl [function_decl]: Why is this using value_dependent_expression_p?
-   dependent_type_p [array_type]: dependent if size is instantiation-dependent
+   dependent_type_p [array_type]: dependent if index type is dependent
      (or non-constant?)
    static_assert - instantiation-dependent */
 
