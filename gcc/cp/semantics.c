@@ -5446,6 +5446,12 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
     t = TREE_OPERAND (t, 0);
   if (t == error_mark_node)
     return false;
+  if (TREE_CODE (t) == CLEANUP_STMT)
+    /* We can't see a CLEANUP_STMT in a constructor for a literal class,
+       but we can in a constexpr constructor for a non-literal class.  Just
+       ignore it; either all the initialization will be constant, in which
+       case the cleanup can't run, or it can't be constexpr.  */
+    return true;
   if (TREE_CODE (t) == CONVERT_EXPR)
     t = TREE_OPERAND (t, 0);
   if (TREE_CODE (t) == INIT_EXPR
