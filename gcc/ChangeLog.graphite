@@ -1,3 +1,7 @@
+2010-09-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Revert previous patch "New flag: -fgraphite-dump-cloog."
+
 2010-09-20  Andreas Simbuerger  <simbuerg@fim.uni-passau.de>
 
 	* common.opt (fgraphite-dump-cloog): New flag.

@@ -311,7 +311,6 @@ Objective-C and Objective-C++ Dialects}.
 -feliminate-unused-debug-symbols -femit-class-debug-always @gol
 -fenable-icf-debug @gol
 -fgraphite-read -fgraphite-write @gol
--fgraphite-dump-cloog @gol
 -fmem-report -fpre-ipa-mem-report -fpost-ipa-mem-report -fprofile-arcs @gol
 -frandom-seed=@var{string} -fsched-verbose=@var{n} @gol
 -fsel-sched-verbose -fsel-sched-dump-cfg -fsel-sched-pipelining-verbose @gol
@@ -6934,13 +6933,6 @@ Enable graphite to dump a scop to an external file.  Each scop in the
 program is described in a separate file.  For a program @code{file.c}
 that has 3 scops, the dumped files are named @code{file.0.graphite},
 @code{file.1.graphite}, and @code{file.2.graphite}.
-
-@item -fgraphite-dump-cloog
-@opindex fgraphite-dump-cloog
-Enable graphite to dump a cloog input file for each scop.  Each scop in
-the program is stored in a separate file.  For a program @code{file.c}
-that has 3 scops, the dumped files are named @code{file.0.cloog},
-@code{file.1.cloog} and @code{file.2.graphite}.
 
 @item -floop-flatten
 @opindex floop-flatten
