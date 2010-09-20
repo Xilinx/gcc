@@ -607,7 +607,7 @@ void gpy_write_globals( void )
   TREE_STATIC (table_decl) = 1;
   TREE_PUBLIC (table_decl) = 1;
   TREE_USED (table_decl) = 1;
-  // DECL_INITIAL (table_decl) = array;
+  DECL_INITIAL (table_decl) = array;
 
   tree test = build_decl( UNKNOWN_LOCATION, VAR_DECL,
 			  get_identifier("test"),

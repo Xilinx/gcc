@@ -108,13 +108,15 @@ tree gpy_init_callable_record( const char * identifier, int args,
 {
   VEC(constructor_elt,gc) *struct_data_cons = NULL;
 
+  /*
   tree ident = build_string(strlen(identifier), identifier);
   TREE_TYPE(ident) = build_pointer_type( char_type_node );
+  */
 
   CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
 							get_identifier("ident"),
 							build_pointer_type( char_type_node )),
-			  ident
+			  build_int_cst( build_pointer_type(char_type_node), 0)
 			  );
   
   CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
@@ -128,7 +130,7 @@ tree gpy_init_callable_record( const char * identifier, int args,
 							boolean_type_node),
 			  build_int_cst(boolean_type_node,c)
 			  );
-  
+
   CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
 							get_identifier("call"),
 							ptr_type_node),
