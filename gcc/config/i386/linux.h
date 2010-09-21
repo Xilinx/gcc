@@ -220,5 +220,6 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_THREAD_SSP_OFFSET	0x14
 
 /* We steal the last transactional memory word.  */
+#define TARGET_CAN_SPLIT_STACK
 #define TARGET_THREAD_SPLIT_STACK_OFFSET 0x30
 #endif
