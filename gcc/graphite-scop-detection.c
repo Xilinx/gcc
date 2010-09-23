@@ -1463,7 +1463,10 @@ is_scop_p (refined_region_p region)
   for (i = 0; VEC_iterate (basic_block, bblist, i, bb_iter); i++)
     {
       if (!is_valid_bb_p (region, bb_iter))
-	return false;
+	{
+	  VEC_free (basic_block, heap, bblist);
+	  return false;
+	}
 
       /* TODO: Do all loops have a number of iterations that can be expressed
 	 by an affine linear function.  */
@@ -1476,6 +1479,7 @@ is_scop_p (refined_region_p region)
      All loops are detected by gcc's loop detection?
      All conditions are well nested?  */
 
+  VEC_free (basic_block, heap, bblist);
   return true;
 }
 
