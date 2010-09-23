@@ -6121,6 +6121,7 @@ cxx_eval_component_reference (const constexpr_call *call, tree t,
     }
   if (TREE_CODE (TREE_TYPE (whole)) == UNION_TYPE)
     {
+      /* FIXME Mike Miller wants this to be OK.  */
       if (!allow_non_constant)
 	error ("accessing %qD member instead of initialized %qD member in "
 	       "constant expression", part, CONSTRUCTOR_ELT (whole, 0)->index);
@@ -6323,13 +6324,14 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 						code == ADDR_EXPR,
 						non_constant_p);
 	/* Don't VERIFY_CONSTANT here.  */
-	if (op == oldop || *non_constant_p)
+	if (*non_constant_p)
 	  return t;
 	/* These functions do more aggressive folding than fold itself.  */
 	if (code == ADDR_EXPR)
-	  return build_fold_addr_expr_with_type (op, TREE_TYPE (t));
+	  r = build_fold_addr_expr_with_type (op, TREE_TYPE (t));
 	else
 	  {
+	    bool empty_base = false;
 	    tree sub = op;
 	    STRIP_NOPS (sub);
 	    r = NULL_TREE;
@@ -6347,18 +6349,48 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 		if (same_type_ignoring_top_level_qualifiers_p
 		    (TREE_TYPE (in), TREE_TYPE (t)))
 		  r = in;
+		/* Also handle conversion to an empty base class, which
+		   is represented with a NOP_EXPR.  */
+		else if (!addr && is_empty_class (TREE_TYPE (t))
+			 && CLASS_TYPE_P (TREE_TYPE (in))
+			 && DERIVED_FROM_P (TREE_TYPE (t), TREE_TYPE (in)))
+		  {
+		    r = in;
+		    empty_base = true;
+		  }
 	      }
 	    if (!r)
 	      r = build_fold_indirect_ref (op);
 	    if (TREE_CODE (r) != INDIRECT_REF)
 	      r = cxx_eval_constant_expression (call, r, allow_non_constant,
 						addr, non_constant_p);
-	    else
-	      /* Make sure this wasn't something we should have folded.  */
-	      gcc_assert (TREE_CODE (sub) != ADDR_EXPR
-			  && TREE_CODE (sub) != POINTER_PLUS_EXPR);
+	    else if (TREE_CODE (sub) == ADDR_EXPR
+		     || TREE_CODE (sub) == POINTER_PLUS_EXPR)
+	      {
+		gcc_assert (!same_type_ignoring_top_level_qualifiers_p
+			    (TREE_TYPE (TREE_TYPE (sub)), TREE_TYPE (t)));
+		/* FIXME Mike Miller wants this to be OK.  */
+		if (!allow_non_constant)
+		  error ("accessing value of %qE through a %qT glvalue in a "
+			 "constant expression", build_fold_indirect_ref (sub),
+			 TREE_TYPE (t));
+		*non_constant_p = true;
+		return t;
+	      }
+
+	    /* If we're pulling out the value of an empty base, make sure
+	       that the whole object is constant and then return an empty
+	       CONSTRUCTOR.  */
+	    if (empty_base)
+	      {
+		VERIFY_CONSTANT (r);
+		r = build_constructor (TREE_TYPE (t), NULL);
+		TREE_CONSTANT (r) = true;
+	      }
 	  }
-	return r;
+	if (TREE_CODE (r) == code && TREE_OPERAND (r, 0) == oldop)
+	  return t;
+	break;
       }
 
     case REALPART_EXPR:
