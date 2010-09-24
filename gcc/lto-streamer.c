@@ -303,6 +303,7 @@ check_handled_ts_structures (void)
   handled_p[TS_OMP_CLAUSE] = true;
   handled_p[TS_OPTIMIZATION] = true;
   handled_p[TS_TARGET_OPTION] = true;
+  handled_p[TS_TRANSLATION_UNIT_DECL] = true;
 
   /* Anything not marked above will trigger the following assertion.
      If this assertion triggers, it means that there is a new TS_*
@@ -524,7 +525,8 @@ lto_record_common_node (tree *nodep, VEC(tree, heap) **common_nodes,
     {
       /* Type merging will get confused by the canonical types as they
 	 are set by the middle-end.  */
-      TYPE_CANONICAL (node) = NULL_TREE;
+      if (in_lto_p)
+	TYPE_CANONICAL (node) = NULL_TREE;
       *nodep = node = gimple_register_type (node);
     }
 

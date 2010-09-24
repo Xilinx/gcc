@@ -938,6 +938,8 @@ verify_ssa (bool check_modified_stmt)
 	  gimple stmt = gsi_stmt (gsi);
 	  use_operand_p use_p;
 	  bool has_err;
+	  int count;
+	  unsigned i;
 
 	  if (check_modified_stmt && gimple_modified_p (stmt))
 	    {
@@ -1007,10 +1009,24 @@ verify_ssa (bool check_modified_stmt)
 	      goto err;
 	    }
 
+	  count = 0;
 	  FOR_EACH_SSA_TREE_OPERAND (op, stmt, iter, SSA_OP_USE|SSA_OP_DEF)
 	    {
 	      if (verify_ssa_name (op, false))
 		{
+		  error ("in statement");
+		  print_gimple_stmt (stderr, stmt, 0, TDF_VOPS|TDF_MEMSYMS);
+		  goto err;
+		}
+	      count++;
+	    }
+
+	  for (i = 0; i < gimple_num_ops (stmt); i++)
+	    {
+	      op = gimple_op (stmt, i);
+	      if (op && TREE_CODE (op) == SSA_NAME && --count < 0)
+		{
+		  error ("nr of operands and imm-links don't agree");
 		  error ("in statement");
 		  print_gimple_stmt (stderr, stmt, 0, TDF_VOPS|TDF_MEMSYMS);
 		  goto err;
@@ -1869,9 +1885,9 @@ non_rewritable_mem_ref_base (tree ref)
   return NULL_TREE;
 }
 
-/* When possible, clear ADDRESSABLE bit or set the REGISTER bit
-   and mark the variable VAR for conversion into SSA.  Returns true
-   when updating stmts is required.  */
+/* When possible, clear TREE_ADDRESSABLE bit or set DECL_GIMPLE_REG_P bit and
+   mark the variable VAR for conversion into SSA.  Return true when updating
+   stmts is required.  */
 
 static bool
 maybe_optimize_var (tree var, bitmap addresses_taken, bitmap not_reg_needs)
@@ -1902,11 +1918,12 @@ maybe_optimize_var (tree var, bitmap addresses_taken, bitmap not_reg_needs)
       update_vops = true;
       if (dump_file)
 	{
-	  fprintf (dump_file, "No longer having address taken ");
+	  fprintf (dump_file, "No longer having address taken: ");
 	  print_generic_expr (dump_file, var, 0);
 	  fprintf (dump_file, "\n");
 	}
     }
+
   if (!DECL_GIMPLE_REG_P (var)
       && !bitmap_bit_p (not_reg_needs, DECL_UID (var))
       && (TREE_CODE (TREE_TYPE (var)) == COMPLEX_TYPE
@@ -1919,7 +1936,7 @@ maybe_optimize_var (tree var, bitmap addresses_taken, bitmap not_reg_needs)
       update_vops = true;
       if (dump_file)
 	{
-	  fprintf (dump_file, "Decl is now a gimple register ");
+	  fprintf (dump_file, "Now a gimple register: ");
 	  print_generic_expr (dump_file, var, 0);
 	  fprintf (dump_file, "\n");
 	}
@@ -1931,14 +1948,14 @@ maybe_optimize_var (tree var, bitmap addresses_taken, bitmap not_reg_needs)
 /* Compute TREE_ADDRESSABLE and DECL_GIMPLE_REG_P for local variables.  */
 
 void
-execute_update_addresses_taken (bool do_optimize)
+execute_update_addresses_taken (void)
 {
-  tree var;
   gimple_stmt_iterator gsi;
   basic_block bb;
   bitmap addresses_taken = BITMAP_ALLOC (NULL);
   bitmap not_reg_needs = BITMAP_ALLOC (NULL);
   bool update_vops = false;
+  tree var;
   unsigned i;
 
   /* Collect into ADDRESSES_TAKEN all variables whose address is taken within
@@ -2031,20 +2048,16 @@ execute_update_addresses_taken (bool do_optimize)
 	}
     }
 
-  /* When possible, clear ADDRESSABLE bit or set the REGISTER bit
-     and mark variable for conversion into SSA.  */
-  if (optimize && do_optimize)
-    {
-      /* We cannot iterate over all referenced vars as that can contain
-	 unused vars from BLOCK trees which cause code generation
-	 differences for -g vs. -g0.  */
-      for (var = DECL_ARGUMENTS (cfun->decl); var; var = DECL_CHAIN (var))
-	update_vops |= maybe_optimize_var (var, addresses_taken, not_reg_needs);
-      FOR_EACH_VEC_ELT (tree, cfun->local_decls, i, var)
-	update_vops |= maybe_optimize_var (var, addresses_taken, not_reg_needs);
-    }
+  /* We cannot iterate over all referenced vars because that can contain
+     unused vars from BLOCK trees, which causes code generation differences
+     for -g vs. -g0.  */
+  for (var = DECL_ARGUMENTS (cfun->decl); var; var = DECL_CHAIN (var))
+    update_vops |= maybe_optimize_var (var, addresses_taken, not_reg_needs);
 
-  /* Operand caches needs to be recomputed for operands referencing the updated
+  FOR_EACH_VEC_ELT (tree, cfun->local_decls, i, var)
+    update_vops |= maybe_optimize_var (var, addresses_taken, not_reg_needs);
+
+  /* Operand caches need to be recomputed for operands referencing the updated
      variables.  */
   if (update_vops)
     {

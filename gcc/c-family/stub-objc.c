@@ -184,9 +184,10 @@ objc_add_method_declaration (tree ARG_UNUSED (signature))
 {
 }
 
-void
+bool
 objc_start_method_definition (tree ARG_UNUSED (signature))
 {
+  return true;
 }
 
 void
@@ -243,6 +244,12 @@ objc_build_string_object (tree ARG_UNUSED (str))
 
 tree
 objc_get_class_reference (tree ARG_UNUSED (name))
+{
+  return 0;
+}
+
+tree
+objc_get_interface_ivars (tree ARG_UNUSED (fieldlist))
 {
   return 0;
 }

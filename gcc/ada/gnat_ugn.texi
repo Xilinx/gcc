@@ -7,7 +7,7 @@
 @c                                                                            o
 @c                             G N A T _ U G N                                o
 @c                                                                            o
-@c   GNAT is maintained by Ada Core Technologies Inc (http://www.gnat.com).   o
+@c                     Copyright (C) 1992-2010, AdaCore                       o
 @c                                                                            o
 @c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
@@ -182,9 +182,6 @@ AdaCore@*
 * The GNAT Metric Tool gnatmetric::
 * File Name Krunching Using gnatkr::
 * Preprocessing Using gnatprep::
-@ifset vms
-* The GNAT Run-Time Library Builder gnatlbr::
-@end ifset
 * The GNAT Library Browser gnatls::
 * Cleaning Up Using gnatclean::
 @ifclear vms
@@ -408,14 +405,6 @@ Preprocessing Using gnatprep
 * Switches for gnatprep::
 * Form of Definitions File::
 * Form of Input Text for gnatprep::
-
-@ifset vms
-The GNAT Run-Time Library Builder gnatlbr
-
-* Running gnatlbr::
-* Switches for gnatlbr::
-* Examples of gnatlbr Usage::
-@end ifset
 
 The GNAT Library Browser gnatls
 
@@ -791,13 +780,6 @@ file names on operating systems with a limit on the length of names.
 preprocessor utility that allows a single source file to be used to
 generate multiple or parameterized source files by means of macro
 substitution.
-
-@ifset vms
-@item
-@ref{The GNAT Run-Time Library Builder gnatlbr}, describes @command{gnatlbr},
-a tool for rebuilding the GNAT run time with user-supplied
-configuration pragmas.
-@end ifset
 
 @item
 @ref{The GNAT Library Browser gnatls}, describes @code{gnatls}, a
@@ -1796,8 +1778,8 @@ of the compiler (@pxref{Character Set Control}).
 @noindent
 The basic character set is Latin-1. This character set is defined by ISO
 standard 8859, part 1. The lower half (character codes @code{16#00#}
-@dots{} @code{16#7F#)} is identical to standard ASCII coding, but the upper half
-is used to represent additional characters. These include extended letters
+@dots{} @code{16#7F#)} is identical to standard ASCII coding, but the upper
+half is used to represent additional characters. These include extended letters
 used by European languages, such as French accents, the vowels with umlauts
 used in German, and the extra letter A-ring used in Swedish.
 
@@ -3841,7 +3823,8 @@ compiled.
 
 @cindex cannot generate code
 If you attempt to compile any of these files, you will get one of the
-following error messages (where @var{fff} is the name of the file you compiled):
+following error messages (where @var{fff} is the name of the file you
+compiled):
 
 @smallexample
 cannot generate code for file @var{fff} (package spec)
@@ -3997,7 +3980,7 @@ effect if this switch is present.
 
 @item -fno-inline-functions
 @cindex @option{-fno-inline-functions} (@command{gcc})
-Suppresses automatic inlining of simple subprograms, which is enabled
+Suppresses automatic inlining of subprograms, which is enabled
 if @option{-O3} is used.
 
 @item -fno-inline-small-functions
@@ -5073,6 +5056,7 @@ individually controlled.  The warnings that are not turned on by this
 switch are
 @option{-gnatwd} (implicit dereferencing),
 @option{-gnatwh} (hiding),
+@option{-gnatw.h} (holes (gaps) in record layouts)
 @option{-gnatwl} (elaboration warnings),
 @option{-gnatw.o} (warn on values set by out parameters ignored)
 and @option{-gnatwt} (tracking of deleted conditional code).
@@ -5274,6 +5258,22 @@ Note that @option{-gnatwa} does not affect the setting of this warning option.
 @emph{Suppress warnings on hiding.}
 @cindex @option{-gnatwH} (@command{gcc})
 This switch suppresses warnings on hiding declarations.
+
+@item -gnatw.h
+@emph{Activate warnings on holes/gaps in records.}
+@cindex @option{-gnatw.h} (@command{gcc})
+@cindex Record Representation (gaps)
+This switch activates warnings on component clauses in record
+representation clauses that leave holes (gaps) in the record layout.
+If this warning option is active, then record representation clauses
+should specify a contiguous layout, adding unused fill fields if needed.
+Note that @option{-gnatwa} does not affect the setting of this warning option.
+
+@item -gnatw.H
+@emph{Suppress warnings on holes/gaps in records.}
+@cindex @option{-gnatw.H} (@command{gcc})
+This switch suppresses warnings on component clauses in record
+representation clauses that leave holes (haps) in the record layout.
 
 @item -gnatwi
 @emph{Activate warnings on implementation units.}
@@ -5582,6 +5582,25 @@ To suppress these back end warnings as well, use the switch @option{-w}
 in addition to @option{-gnatws}. Also this switch has no effect on the
 handling of style check messages.
 
+@item -gnatw.s
+@emph{Activate warnings on overridden size clauses.}
+@cindex @option{-gnatw.s} (@command{gcc})
+@cindex Record Representation (component sizes)
+This switch activates warnings on component clauses in record
+representation clauses where the length given overrides that
+specified by an explicit size clause for the component type. A
+warning is similarly given in the array case if a specified
+component size overrides an explicit size clause for the array
+component type.
+Note that @option{-gnatwa} does not affect the setting of this warning option.
+
+@item -gnatw.S
+@emph{Suppress warnings on overriddebn size clauses.}
+@cindex @option{-gnatw.S} (@command{gcc})
+This switch suppresses warnings on component clauses in record
+representation clauses that override size clauses, and similar
+warnings when an array component size overrides a size clause.
+
 @item -gnatwt
 @emph{Activate warnings for tracking of deleted conditional code.}
 @cindex @option{-gnatwt} (@command{gcc})
@@ -5626,6 +5645,24 @@ This warning can also be turned on using @option{-gnatwa}.
 This switch suppresses warnings for unused entities and packages.
 It also turns off warnings on unreferenced formals (and thus includes
 the effect of @option{-gnatwF}).
+
+@item -gnatw.u
+@emph{Activate warnings on unordered enumeration types.}
+@cindex @option{-gnatw.u} (@command{gcc})
+This switch causes enumeration types to be considered as conceptually
+unordered, unless an explicit pragma @code{Ordered} is given for the type.
+The effect is to generate warnings in clients that use explicit comparisons
+or subranges, since these constructs both treat objects of the type as
+ordered. (A @emph{client} is defined as a unit that is other than the unit in
+which the type is declared, or its body or subunits.) Please refer to
+the description of pragma @code{Ordered} in the
+@cite{@value{EDITION} Reference Manual} for further details.
+
+@item -gnatw.U
+@emph{Deactivate warnings on unordered enumeration types.}
+@cindex @option{-gnatw.U} (@command{gcc})
+This switch causes all enumeration types to be considered as ordered, so
+that no warnings are given for comparisons or subranges for any type.
 
 @item -gnatwv
 @emph{Activate warnings on unassigned variables.}
@@ -6143,6 +6180,17 @@ specified style check, an appropriate message is given, preceded by
 the character sequence ``(style)''. This message does not prevent
 successful compilation (unless the @option{-gnatwe} switch is used).
 
+Note that this is by no means intended to be a general facility for
+checking arbitrary coding standards. It is simply an embedding of the
+style rules we have chosen for the GNAT sources. If you are starting
+a project which does not have established style standards, you may
+find it useful to adopt the entire set of GNAT coding standards, or
+some subset of them. If you already have an established set of coding
+standards, then it may be that selected style checking options do
+indeed correspond to choices you have made, but for general checking
+of an existing set of coding rules, you should look to the gnatcheck
+tool, which is designed for that purpose.
+
 @ifset vms
 @code{(option,option,@dots{})} is a sequence of keywords
 @end ifset
@@ -6207,8 +6255,8 @@ Comments that follow other tokens on a line must have at least one blank
 following the ``@code{--}'' at the start of the comment.
 
 @item
-Full line comments must have two blanks following the ``@code{--}'' that
-starts the comment, with the following exceptions.
+Full line comments must have at least two blanks following the
+``@code{--}'' that starts the comment, with the following exceptions.
 
 @item
 A line consisting only of the ``@code{--}'' characters, possibly preceded
@@ -8045,6 +8093,7 @@ be presented in subsequent sections.
 * Binder Error Message Control::
 * Elaboration Control::
 * Output Control::
+* Dynamic Allocation Control::
 * Binding with Non-Ada Main Programs::
 * Binding Programs with No Main Subprogram::
 @end menu
@@ -8130,7 +8179,6 @@ Output complete list of elaboration-order dependencies.
 @item ^-E^/STORE_TRACEBACKS^
 @cindex @option{^-E^/STORE_TRACEBACKS^} (@command{gnatbind})
 Store tracebacks in exception occurrences when the target supports it.
-This is the default with the zero cost exception mechanism.
 @ignore
 @c The following may get moved to an appendix
 This option is currently supported on the following targets:
@@ -8156,6 +8204,17 @@ flag checks are generated.
 @item ^-h^/HELP^
 @cindex @option{^-h^/HELP^} (@command{gnatbind})
 Output usage (help) information
+
+@item ^-H32^/32_MALLOC^
+@cindex @option{^-H32^/32_MALLOC^} (@command{gnatbind})
+Use 32-bit allocations for @code{__gnat_malloc} (and thus for access types).
+For further details see @ref{Dynamic Allocation Control}.
+
+@item ^-H64^/64_MALLOC^
+@cindex @option{^-H32^/32_MALLOC^} (@command{gnatbind})
+Use 64-bit allocations for @code{__gnat_malloc} (and thus for access types).
+@cindex @code{__gnat_malloc}
+For further details see @ref{Dynamic Allocation Control}.
 
 @item ^-I^/SEARCH^
 @cindex @option{^-I^/SEARCH^} (@command{gnatbind})
@@ -8584,6 +8643,35 @@ the current unit. This is useful for code audit purposes, and also may
 be used to improve code generation in some cases.
 
 @end table
+
+@node Dynamic Allocation Control
+@subsection Dynamic Allocation Control
+
+@noindent
+The heap control switches -- @option{-H32} and @option{-H64} --
+determine whether dynamic allocation uses 32-bit or 64-bit memory.
+They only affect compiler-generated allocations via @code{__gnat_malloc};
+explicit calls to @code{malloc} and related functions from the C
+run-time library are unaffected.
+
+@table @option
+@item -H32
+Allocate memory on 32-bit heap
+
+@item -H64
+Allocate memory on 64-bit heap.  This is the default
+unless explicitly overridden by a @code{'Size} clause on the access type.
+@end table
+
+@ifset vms
+@noindent
+See also @ref{Access types and 32/64-bit allocation}.
+@end ifset
+@ifclear vms
+@noindent
+These switches are only effective on VMS platforms.
+@end ifclear
+
 
 @node Binding with Non-Ada Main Programs
 @subsection Binding with Non-Ada Main Programs
@@ -9243,12 +9331,27 @@ itself must not include any embedded spaces.
 
 @item ^--subdirs^/SUBDIRS^=subdir
 Actual object directory of each project file is the subdirectory subdir of the
-object directory specified or defauted in the project file.
+object directory specified or defaulted in the project file.
+
+@item ^--single-compile-per-obj-dir^/SINGLE_COMPILE_PER_OBJ_DIR^
+Disallow simultaneous compilations in the same object directory when
+project files are used.
 
 @item ^--unchecked-shared-lib-imports^/UNCHECKED_SHARED_LIB_IMPORTS^
 By default, shared library projects are not allowed to import static library
 projects. When this switch is used on the command line, this restriction is
 relaxed.
+
+@ifclear vms
+@item --create-map-file
+When linking an executable, create a map file. The name of the map file
+has the same name as the executable with extension ".map".
+
+@item --create-map-file=mapfile
+When linking an executable, create a map file. The name of the map file is
+"mapfile".
+
+@end ifclear
 
 @item ^-a^/ALL_FILES^
 @cindex @option{^-a^/ALL_FILES^} (@command{gnatmake})
@@ -10105,12 +10208,12 @@ generates highly optimized code and has
 the slowest compilation time.
 
 @item ^-O3^/OPTIMIZE=INLINING^
-Full optimization as in @option{-O2},
-and also attempts automatic inlining of small
-subprograms within a unit (@pxref{Inlining of Subprograms}).
+Full optimization as in @option{-O2};
+also uses more aggressive automatic inlining of subprograms within a unit
+(@pxref{Inlining of Subprograms}) and attemps to vectorize loops.
 
 @item ^-Os^/OPTIMIZE=SPACE^
-Optimize space usage of resulting program.
+Optimize space usage (code and data) of resulting program.
 @end table
 
 @noindent
@@ -10139,7 +10242,7 @@ levels.
 
 Note regarding the use of @option{-O3}: The use of this optimization level
 is generally discouraged with GNAT, since it often results in larger
-executables which run more slowly. See further discussion of this point
+executables which may run more slowly. See further discussion of this point
 in @ref{Inlining of Subprograms}.
 
 @node Debugging Optimized Code
@@ -10289,9 +10392,10 @@ subprograms.
 @item
 @cindex pragma Inline
 @findex Inline
-Either @code{pragma Inline} applies to the subprogram, or it is local
-to the unit and called once from within it, or it is small and automatic
-inlining (optimization level @option{-O3}) is specified.
+Either @code{pragma Inline} applies to the subprogram, or it is local to
+the unit and called once from within it, or it is small and optimization
+level @option{-O2} is specified, or automatic inlining (optimization level
+@option{-O3}) is specified.
 @end itemize
 
 @noindent
@@ -10375,7 +10479,11 @@ this switch is used to suppress the resulting inlining actions.
 
 @cindex @option{-fno-inline-functions} (@command{gcc})
 Note: The @option{-fno-inline-functions} switch can be used to prevent
-automatic inlining of small subprograms if @option{-O3} is used.
+automatic inlining of subprograms if @option{-O3} is used.
+
+@cindex @option{-fno-inline-small-functions} (@command{gcc})
+Note: The @option{-fno-inline-small-functions} switch can be used to prevent
+automatic inlining of small subprograms if @option{-O2} is used.
 
 @cindex @option{-fno-inline-functions-called-once} (@command{gcc})
 Note: The @option{-fno-inline-functions-called-once} switch
@@ -10752,7 +10860,9 @@ the file name may contain path information.
 @command{gcc}. They will be passed on to all compiler invocations made by
 @command{gnatelim} to generate the ASIS trees. Here you can provide
 @option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
-use the @option{-gnatec} switch to set the configuration file etc.
+use the @option{-gnatec} switch to set the configuration file,
+use the @option{-gnat05} switch if sources should be compiled in
+Ada 2005 mode etc.
 
 @code{gnatelim} has the following switches:
 
@@ -12649,7 +12759,9 @@ follow the GNAT file naming rules
 @command{gcc}. They will be passed on to all compiler invocations made by
 @command{gnatelim} to generate the ASIS trees. Here you can provide
 @option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
-use the @option{-gnatec} switch to set the configuration file etc.
+use the @option{-gnatec} switch to set the configuration file,
+use the @option{-gnat05} switch if sources should be compiled in
+Ada 2005 mode  etc.
 @end itemize
 
 @menu
@@ -13763,7 +13875,9 @@ Including both a @option{-files} switch and one or more
 @command{gcc}. They will be passed on to all compiler invocations made by
 @command{gnatmetric} to generate the ASIS trees. Here you can provide
 @option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
-and use the @option{-gnatec} switch to set the configuration file.
+and use the @option{-gnatec} switch to set the configuration file,
+use the @option{-gnat05} switch if sources should be compiled in
+Ada 2005 mode etc.
 @end itemize
 
 @menu
@@ -14974,76 +15088,6 @@ Header : String := $XYZ;
 
 @noindent
 and then the substitution will occur as desired.
-
-@ifset vms
-@node The GNAT Run-Time Library Builder gnatlbr
-@chapter The GNAT Run-Time Library Builder @code{gnatlbr}
-@findex gnatlbr
-@cindex Library builder
-
-@noindent
-@code{gnatlbr} is a tool for rebuilding the GNAT run time with user
-supplied configuration pragmas.
-
-@menu
-* Running gnatlbr::
-* Switches for gnatlbr::
-* Examples of gnatlbr Usage::
-@end menu
-
-@node Running gnatlbr
-@section Running @code{gnatlbr}
-
-@noindent
-The @code{gnatlbr} command has the form
-
-@smallexample
-$ GNAT LIBRARY /@r{[}CREATE@r{|}SET@r{|}DELETE@r{]}=directory @r{[}/CONFIG=file@r{]}
-@end smallexample
-
-@node Switches for gnatlbr
-@section Switches for @code{gnatlbr}
-
-@noindent
-@code{gnatlbr} recognizes the following switches:
-
-@table @option
-@c !sort!
-@item /CREATE=directory
-@cindex @code{/CREATE} (@code{gnatlbr})
-Create the new run-time library in the specified directory.
-
-@item /SET=directory
-@cindex @code{/SET} (@code{gnatlbr})
-Make the library in the specified directory the current run-time library.
-
-@item /DELETE=directory
-@cindex @code{/DELETE} (@code{gnatlbr})
-Delete the run-time library in the specified directory.
-
-@item /CONFIG=file
-@cindex @code{/CONFIG} (@code{gnatlbr})
-With /CREATE: Use the configuration pragmas in the specified file when
-building the library.
-
-With /SET: Use the configuration pragmas in the specified file when
-compiling.
-
-@end table
-
-@node Examples of gnatlbr Usage
-@section Example of @code{gnatlbr} Usage
-
-@smallexample
-Contents of VAXFLOAT.ADC:
-pragma Float_Representation (VAX_Float);
-
-$ GNAT LIBRARY /CREATE=[.VAXFLOAT] /CONFIG=VAXFLOAT.ADC
-
-GNAT LIBRARY rebuilds the run-time library in directory [.VAXFLOAT]
-
-@end smallexample
-@end ifset
 
 @node The GNAT Library Browser gnatls
 @chapter The GNAT Library Browser @code{gnatls}
@@ -17218,7 +17262,9 @@ or line breaks.
 @command{gcc}. They will be passed on to all compiler invocations made by
 @command{gnatcheck} to generate the ASIS trees. Here you can provide
 @option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
-and use the @option{-gnatec} switch to set the configuration file.
+and use the @option{-gnatec} switch to set the configuration file,
+use the @option{-gnat05} switch if sources should be compiled in
+Ada 2005 mode etc.
 
 @item
 @var{rule_options} is a list of options for controlling a set of
@@ -17883,7 +17929,9 @@ current directory)
 @command{gcc}. They will be passed on to all compiler invocations made by
 @command{gnatelim} to generate the ASIS trees. Here you can provide
 @option{^-I^/INCLUDE_DIRS=^} switches to form the source search path,
-use the @option{-gnatec} switch to set the configuration file etc.
+use the @option{-gnatec} switch to set the configuration file,
+use the @option{-gnat05} switch if sources should be compiled in
+Ada 2005 mode etc.
 
 @item switches
 is an optional sequence of switches as described in the next section
@@ -18699,9 +18747,9 @@ gnatmake -f -pg -P my_project
 @end smallexample
 
 @noindent
-Note that only the objects that were compiled with the @samp{-pg} switch will be
-profiled; if you need to profile your whole project, use the
-@samp{-f} gnatmake switch to force full recompilation.
+Note that only the objects that were compiled with the @samp{-pg} switch will
+be profiled; if you need to profile your whole project, use the @samp{-f}
+gnatmake switch to force full recompilation.
 
 @node Program execution
 @subsection Program execution
@@ -24931,8 +24979,8 @@ Note that in this approach, both declarations are analyzed by the
 compiler so this can only be used where both declarations are legal,
 even though one of them will not be used.
 
-Another approach is to define integer constants, e.g.@: @code{Bits_Per_Word}, or
-Boolean constants, e.g.@: @code{Little_Endian}, and then write declarations
+Another approach is to define integer constants, e.g.@: @code{Bits_Per_Word},
+or Boolean constants, e.g.@: @code{Little_Endian}, and then write declarations
 that are parameterized by these constants. For example
 
 @smallexample @c ada
@@ -26538,10 +26586,11 @@ Such code will be referred to below as @emph{64-bit code}.
 
 @menu
 * Address types::
-* Access types::
+* Access types and 32/64-bit allocation::
 * Unchecked conversions::
 * Predefined constants::
 * Interfacing with C::
+* 32/64-bit descriptors::
 * Experience with source compatibility::
 @end menu
 
@@ -26556,9 +26605,13 @@ approach has been taken:
 @itemize @bullet
 @item
 @code{System.Address} always has a size of 64 bits
+@cindex @code{System.Address} size
+@cindex @code{Address} size
 
 @item
 @code{System.Short_Address} is a 32-bit subtype of @code{System.Address}
+@cindex @code{System.Short_Address} size
+@cindex @code{Short_Address} size
 @end itemize
 
 @noindent
@@ -26597,31 +26650,64 @@ required in any code setting or accessing the field; the compiler will
 automatically perform any needed conversions between address
 formats.
 
-@node Access types
-@subsubsection Access types
+@node Access types and 32/64-bit allocation
+@subsubsection Access types and 32/64-bit allocation
+@cindex 32-bit allocation
+@cindex 64-bit allocation
 
 @noindent
-By default, objects designated by access values are always
-allocated in the 32-bit
-address space. Thus legacy code will never contain
-any objects that are not addressable with 32-bit addresses, and
-the compiler will never raise exceptions as result of mixing
-32-bit and 64-bit addresses.
+By default, objects designated by access values are always allocated in
+the 64-bit address space, and access values themselves are represented
+in 64 bits.  If these defaults are not appropriate, and 32-bit allocation
+is required (for example if the address of an allocated object is assigned
+to a @code{Short_Address} variable), then several alternatives are available:
 
-However, the access values themselves are represented in 64 bits, for optimum
-performance and future compatibility with 64-bit code. As was
-the case with @code{System.Address}, the compiler will give an error message
-if an object or record component has a representation clause that
-requires the access value to fit in 32 bits. In such a situation,
-an explicit size clause for the access type, specifying 32 bits,
-will have the desired effect.
+@itemize @bullet
+@item
+A pool-specific access type (ie, an @w{Ada 83} access type, whose
+definition is @code{access T} versus @code{access all T} or
+@code{access constant T}), may be declared with a @code{'Size} representation
+clause that establishes the size as 32 bits.
+In such circumstances allocations for that type will
+be from the 32-bit heap.  Such a clause is not permitted
+for a general access type (declared with @code{access all} or
+@code{access constant}) as values of such types must be able to refer
+to any object of the designated type, including objects residing outside
+the 32-bit address range.  Existing @w{Ada 83} code will not contain such
+type definitions, however, since general access types were introduced
+in @w{Ada 95}.
 
-General access types (declared with @code{access all}) can never be
-32 bits, as values of such types must be able to refer to any object
-of the  designated type,
-including objects residing outside the 32-bit address range.
-Existing Ada 83 code will not contain such type definitions,
-however, since general access types were introduced in Ada 95.
+@item
+Switches for @command{GNAT BIND} control whether the internal GNAT
+allocation routine @code{__gnat_malloc} uses 64-bit or 32-bit allocations.
+@cindex @code{__gnat_malloc}
+The switches are respectively @option{-H64} (the default) and
+@option{-H32}.
+@cindex @option{-H32} (@command{gnatbind})
+@cindex @option{-H64} (@command{gnatbind})
+
+@item
+The environment variable (logical name) @code{GNAT$NO_MALLOC_64}
+@cindex @code{GNAT$NO_MALLOC_64} environment variable
+may be used to force @code{__gnat_malloc} to use 32-bit allocation.
+If this variable is left
+undefined, or defined as @code{"DISABLE"}, @code{"FALSE"}, or @code{"0"},
+then the default (64-bit) allocation is used.
+If defined as @code{"ENABLE"}, @code{"TRUE"}, or @code{"1"},
+then 32-bit allocation is used.  The gnatbind qualifiers described above
+override this logical name.
+
+@item
+A ^gcc switch^gcc switch^ for OpenVMS, @option{-mno-malloc64}, operates
+@cindex @option{-mno-malloc64} (^gcc^gcc^)
+at a low level to convert explicit calls to @code{malloc} and related
+functions from the C run-time library so that they perform allocations
+in the 32-bit heap.
+Since all internal allocations from GNAT use @code{__gnat_malloc},
+this switch is not required unless the program makes explicit calls on
+@code{malloc} (or related functions) from interfaced C code.
+@end itemize
+
 
 @node Unchecked conversions
 @subsubsection Unchecked conversions
@@ -26694,6 +26780,20 @@ pragma Convention(C, int_star);
 for int_star'Size use 64;  -- Necessary to get 64 and not 32 bits
 @end smallexample
 
+@node 32/64-bit descriptors
+@subsubsection 32/64-bit descriptors
+
+@noindent
+By default, GNAT uses a 64-bit descriptor mechanism.  For an imported
+subprogram (i.e., a subprogram identified by pragma @code{Import_Function},
+@code{Import_Procedure}, or @code{Import_Valued_Procedure}) that specifies
+@code{Short_Descriptor} as its mechanism, a 32-bit descriptor is used.
+@cindex @code{Short_Descriptor} mechanism for imported subprograms
+
+If the configuration pragma @code{Short_Descriptors} is supplied, then
+all descriptors will be 32 bits.
+@cindex pragma @code{Short_Descriptors}
+
 @node Experience with source compatibility
 @subsubsection Experience with source compatibility
 
@@ -26726,8 +26826,6 @@ these sorts of potential source code porting problems.
 * Making code 64 bit clean::
 * Allocating memory from the 64 bit storage pool::
 * Restrictions on use of 64 bit objects::
-* Using 64 bit storage pools by default::
-* General access types::
 * STARLET and other predefined libraries::
 @end menu
 
@@ -26771,13 +26869,10 @@ Any attempt to do this will raise @code{Constraint_Error}.
 @subsubsection Allocating memory from the 64-bit storage pool
 
 @noindent
-For any access type @code{T} that potentially requires memory allocations
-beyond the 32-bit address space,
-use the following representation clause:
-
-@smallexample @c ada
-   for T'Storage_Pool use System.Pool_64;
-@end smallexample
+By default, all allocations -- for both pool-specific and general
+access types -- use the 64-bit storage pool.  To override
+this default, for an individual access type or globally, see
+@ref{Access types and 32/64-bit allocation}.
 
 @node Restrictions on use of 64 bit objects
 @subsubsection Restrictions on use of 64-bit objects
@@ -26791,46 +26886,6 @@ or assigning it to a variable of type @code{Short_Address}, will cause
 (@pxref{Making code 64 bit clean}), or checks are suppressed,
 no exception is raised and execution
 will become erroneous.
-
-@node Using 64 bit storage pools by default
-@subsubsection Using 64-bit storage pools by default
-
-@noindent
-In some cases it may be desirable to have the compiler allocate
-from 64-bit storage pools by default. This may be the case for
-libraries that are 64-bit clean, but may be used in both 32-bit
-and 64-bit contexts. For these cases the following configuration
-pragma may be specified:
-
-@smallexample @c ada
-  pragma Pool_64_Default;
-@end smallexample
-
-@noindent
-Any code compiled in the context of this pragma will by default
-use the @code{System.Pool_64} storage pool. This default may be overridden
-for a specific access type @code{T} by the representation clause:
-
-@smallexample @c ada
-   for T'Storage_Pool use System.Pool_32;
-@end smallexample
-
-@noindent
-Any object whose address may be passed to a subprogram with a
-@code{Short_Address} argument, or assigned to a variable of type
-@code{Short_Address}, needs to be allocated from this pool.
-
-@node General access types
-@subsubsection General access types
-
-@noindent
-Objects designated by access values from a
-general access type (declared with @code{access all}) are never allocated
-from a 64-bit storage pool. Code that uses general access types will
-accept objects allocated in either 32-bit or 64-bit address spaces,
-but never allocate objects outside the 32-bit address space.
-Using general access types ensures maximum compatibility with both
-32-bit and 64-bit code.
 
 @node STARLET and other predefined libraries
 @subsubsection STARLET and other predefined libraries
@@ -26891,8 +26946,8 @@ platforms (NT, 2000, and XP Professional).
 * Windows Calling Conventions::
 * Introduction to Dynamic Link Libraries (DLLs)::
 * Using DLLs with GNAT::
-* Building DLLs with GNAT::
 * Building DLLs with GNAT Project files::
+* Building DLLs with GNAT::
 * Building DLLs with gnatdll::
 * GNAT and Windows Resources::
 * Debugging a DLL::
@@ -26953,11 +27008,7 @@ features are not used, but it is not guaranteed to work.
 
 @item
 It is not possible to link against Microsoft libraries except for
-import libraries. The library must be built to be compatible with
-@file{MSVCRT.LIB} (/MD Microsoft compiler option), @file{LIBC.LIB} and
-@file{LIBCMT.LIB} (/ML or /MT Microsoft compiler options) are known to
-not be compatible with the GNAT runtime. Even if the library is
-compatible with @file{MSVCRT.LIB} it is not guaranteed to work.
+import libraries. Interfacing must be done by the mean of DLLs.
 
 @item
 When the compilation environment is located on FAT32 drives, users may
@@ -27048,29 +27099,8 @@ interoperability strategy.
 
 If you use @command{gcc} to compile the non-Ada part of your application,
 there are no Windows-specific restrictions that affect the overall
-interoperability with your Ada code. If you plan to use
-Microsoft tools (e.g.@: Microsoft Visual C/C++), you should be aware of
-the following limitations:
-
-@itemize @bullet
-@item
-You cannot link your Ada code with an object or library generated with
-Microsoft tools if these use the @code{.tls} section (Thread Local
-Storage section) since the GNAT linker does not yet support this section.
-
-@item
-You cannot link your Ada code with an object or library generated with
-Microsoft tools if these use I/O routines other than those provided in
-the Microsoft DLL: @code{msvcrt.dll}. This is because the GNAT run time
-uses the services of @code{msvcrt.dll} for its I/Os. Use of other I/O
-libraries can cause a conflict with @code{msvcrt.dll} services. For
-instance Visual C++ I/O stream routines conflict with those in
-@code{msvcrt.dll}.
-@end itemize
-
-@noindent
-If you do want to use the Microsoft tools for your non-Ada code and hit one
-of the above limitations, you have two choices:
+interoperability with your Ada code. If you do want to use the
+Microsoft tools for your non-Ada code, you have two choices:
 
 @enumerate
 @item
@@ -27082,14 +27112,18 @@ build the DLL and use GNAT to build your executable
 @item
 Or you can encapsulate your Ada code in a DLL to be linked with the
 other part of your application. In this case, use GNAT to build the DLL
-(@pxref{Building DLLs with GNAT}) and use the Microsoft or whatever
-environment to build your executable.
+(@pxref{Building DLLs with GNAT Project files}) and use the Microsoft
+or whatever environment to build your executable.
 @end enumerate
 
 @node Windows Calling Conventions
 @section Windows Calling Conventions
 @findex Stdcall
 @findex APIENTRY
+
+This section pertain only to Win32. On Win64 there is a single native
+calling convention. All convention specifiers are ignored on this
+platform.
 
 @menu
 * C Calling Convention::
@@ -27394,11 +27428,23 @@ $ gnatmake my_ada_app -largs -lAPI
 
 @noindent
 The argument @option{-largs -lAPI} at the end of the @command{gnatmake} command
-tells the GNAT linker to look first for a library named @file{API.lib}
-(Microsoft-style name) and if not found for a libraries named
-@file{libAPI.dll.a}, @file{API.dll.a} or @file{libAPI.a}.
-(GNAT-style name). Note that if the Ada package spec for @file{API.dll}
-contains the following pragma
+tells the GNAT linker to look for an import library. The linker will
+look for a library name in this specific order:
+
+@enumerate
+@item @file{libAPI.dll.a}
+@item @file{API.dll.a}
+@item @file{libAPI.a}
+@item @file{API.lib}
+@item @file{libAPI.dll}
+@item @file{API.dll}
+@end enumerate
+
+The first three are the GNU style import libraries. The third is the
+Microsoft style import libraries. The last two are the DLL themself.
+
+Note that if the Ada package spec for @file{API.dll} contains the
+following pragma
 
 @smallexample @c ada
 pragma Linker_Options ("-lAPI");
@@ -27456,7 +27502,7 @@ end API;
 
 @noindent
 Note that a variable is
-@strong{always imported with a Stdcall convention}. A function
+@strong{always imported with a DLL convention}. A function
 can have @code{C} or @code{Stdcall} convention.
 (@pxref{Windows Calling Conventions}).
 
@@ -27637,6 +27683,19 @@ See the Microsoft documentation for further details about the usage of
 @code{lib}.
 @end enumerate
 
+@node Building DLLs with GNAT Project files
+@section Building DLLs with GNAT Project files
+@cindex DLLs, building
+
+@noindent
+There is nothing specific to Windows in the build process.
+@pxref{Library Projects}.
+
+@noindent
+Due to a system limitation, it is not possible under Windows to create threads
+when inside the @code{DllMain} routine which is used for auto-initialization
+of shared libraries, so it is not possible to have library level tasks in SALs.
+
 @node Building DLLs with GNAT
 @section Building DLLs with GNAT
 @cindex DLLs, building
@@ -27699,19 +27758,6 @@ option.
 $ gnatmake main -Iapilib -bargs -shared -largs -Lapilib -lAPI
 @end smallexample
 
-@node Building DLLs with GNAT Project files
-@section Building DLLs with GNAT Project files
-@cindex DLLs, building
-
-@noindent
-There is nothing specific to Windows in the build process.
-@pxref{Library Projects}.
-
-@noindent
-Due to a system limitation, it is not possible under Windows to create threads
-when inside the @code{DllMain} routine which is used for auto-initialization
-of shared libraries, so it is not possible to have library level tasks in SALs.
-
 @node Building DLLs with gnatdll
 @section Building DLLs with gnatdll
 @cindex DLLs, building
@@ -27727,9 +27773,9 @@ of shared libraries, so it is not possible to have library level tasks in SALs.
 @end menu
 
 @noindent
-Note that it is preferred to use the built-in GNAT DLL support
-(@pxref{Building DLLs with GNAT}) or GNAT Project files
-(@pxref{Building DLLs with GNAT Project files}) to build DLLs.
+Note that it is preferred to use GNAT Project files
+(@pxref{Building DLLs with GNAT Project files}) or the built-in GNAT
+DLL support (@pxref{Building DLLs with GNAT}) or to build DLLs.
 
 This section explains how to build DLLs containing Ada code using
 @code{gnatdll}. These DLLs will be referred to as Ada DLLs in the
@@ -28474,7 +28520,6 @@ The program is built with foreign tools and the DLL is built with
 @item
 The program is built with @code{GCC/GNAT} and the DLL is built with
 foreign tools.
-@item
 @end enumerate
 
 @noindent

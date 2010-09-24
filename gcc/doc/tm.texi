@@ -773,24 +773,6 @@ description should define @code{TARGET_VERSION}.  For example:
 @end smallexample
 @end defmac
 
-@defmac OVERRIDE_OPTIONS
-Sometimes certain combinations of command options do not make sense on
-a particular target machine.  You can define a macro
-@code{OVERRIDE_OPTIONS} to take account of this.  This macro, if
-defined, is executed once just after all the command options have been
-parsed.
-
-Don't use this macro to turn on various extra optimizations for
-@option{-O}.  That is what @code{OPTIMIZATION_OPTIONS} is for.
-
-If you need to do something whenever the optimization level is
-changed via the optimize attribute or pragma, see
-@code{TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE}
-
-This macros is obsolete, new ports should use the target hook
-@code{TARGET_OPTION_OVERRIDE} instead.
-@end defmac
-
 @deftypefn {Target Hook} void TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE (void)
 This target function is similar to the hook @code{TARGET_OPTION_OVERRIDE}
 but is called when the optimize level is changed via an attribute or
@@ -802,15 +784,16 @@ actions then, you should have @code{TARGET_OPTION_OVERRIDE} call
 @end deftypefn
 
 @defmac C_COMMON_OVERRIDE_OPTIONS
-This is similar to @code{OVERRIDE_OPTIONS} but is only used in the C
+This is similar to the @code{TARGET_OPTION_OVERRIDE} hook
+but is only used in the C
 language frontends (C, Objective-C, C++, Objective-C++) and so can be
 used to alter option flag variables which only exist in those
 frontends.
 @end defmac
 
-@defmac OPTIMIZATION_OPTIONS (@var{level}, @var{size})
+@deftypefn {Target Hook} void TARGET_OPTION_OPTIMIZATION (int @var{level}, int @var{size})
 Some machines may desire to change what optimizations are performed for
-various optimization levels.   This macro, if defined, is executed once
+various optimization levels.   This hook, if defined, is executed once
 just after the optimization level is determined and before the remainder
 of the command options have been parsed.  Values set in this macro are
 used as the default values for the other command line options.
@@ -825,9 +808,9 @@ options are changed via @code{#pragma GCC optimize} or by using the
 @code{optimize} attribute.
 
 @strong{Do not examine @code{write_symbols} in
-this macro!} The debugging options are not supposed to alter the
+this hook!}  The debugging options are not supposed to alter the
 generated code.
-@end defmac
+@end deftypefn
 
 @deftypefn {Target Hook} void TARGET_HELP (void)
 This hook is called in response to the user invoking
@@ -993,13 +976,6 @@ register, a power of two from 1 or 8.
 Minimum number of units in a word.  If this is undefined, the default is
 @code{UNITS_PER_WORD}.  Otherwise, it is the constant value that is the
 smallest value that @code{UNITS_PER_WORD} can have at run-time.
-@end defmac
-
-@defmac UNITS_PER_SIMD_WORD (@var{mode})
-Number of units in the vectors that the vectorizer can produce for
-scalar mode @var{mode}.  The default is equal to @code{UNITS_PER_WORD},
-because the vectorizer can do some transformations even in absence of
-specialized @acronym{SIMD} hardware.
 @end defmac
 
 @defmac POINTER_SIZE
@@ -2857,6 +2833,24 @@ Do not define this macro if you do not define
 @code{SECONDARY_MEMORY_NEEDED} or if widening @var{mode} to a mode that
 is @code{BITS_PER_WORD} bits wide is correct for your machine.
 @end defmac
+
+@deftypefn {Target Hook} bool TARGET_CLASS_LIKELY_SPILLED_P (reg_class_t @var{rclass})
+A target hook which returns @code{true} if pseudos that have been assigned
+to registers of class @var{rclass} would likely be spilled because
+registers of @var{rclass} are needed for spill registers.
+
+The default version of this target hook returns @code{true} if @var{rclass}
+has exactly one register and @code{false} otherwise.  On most machines, this
+default should be used.  Only use this target hook to some other expression
+if pseudos allocated by @file{local-alloc.c} end up in memory because their
+hard registers were needed for spill registers.  If this target hook returns
+@code{false} for those classes, those pseudos will only be allocated by
+@file{global.c}, which knows how to reallocate the pseudo to another
+register.  If there would not be another register available for reallocation,
+you should not change the implementation of this target hook since
+the only effect of such implementation would be to slow down register
+allocation.
+@end deftypefn
 
 @defmac CLASS_LIKELY_SPILLED_P (@var{class})
 A C expression whose value is nonzero if pseudos that have been assigned
@@ -5747,6 +5741,13 @@ the elements in the vectors should be of type @var{type}.  @var{is_packed}
 parameter is true if the memory access is defined in a packed struct.
 @end deftypefn
 
+@deftypefn {Target Hook} {unsigned int} TARGET_VECTORIZE_UNITS_PER_SIMD_WORD (enum machine_mode @var{mode})
+This hook should return th number of units in the vectors that the
+vectorizer can produce for scalar mode @var{mode}.  The default is
+equal to @code{UNITS_PER_WORD}, because the vectorizer can do some
+transformations even in absence of specialized @acronym{SIMD} hardware.
+@end deftypefn
+
 @node Anchored Addresses
 @section Anchored Addresses
 @cindex anchored addresses
@@ -6757,6 +6758,16 @@ the machine and the resources required by each instruction.  The target
 backend can use @var{g} to calculate such bound.  A very simple lower
 bound will be used in case this hook is not implemented: the total number
 of instructions divided by the issue rate.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_SCHED_DISPATCH (rtx @var{insn}, int @var{x})
+This hook is called by Haifa Scheduler.  It returns true if dispatch scheduling
+is supported in hardware and the condition specified in the parameter is true.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_DISPATCH_DO (rtx @var{insn}, int @var{x})
+This hook is called by Haifa Scheduler.  It performs the operation specified
+in its second parameter.
 @end deftypefn
 
 @node Sections
@@ -8726,10 +8737,18 @@ to be broken up according to function.
 The default is that no label is emitted.
 @end deftypefn
 
+@deftypefn {Target Hook} void TARGET_ASM_EMIT_EXCEPT_PERSONALITY (rtx @var{personality})
+If the target implements @code{TARGET_ASM_UNWIND_EMIT}, this hook may be used to emit a directive to install a personality hook into the unwind info.  This hook should not be used if dwarf2 unwind info is used.
+@end deftypefn
+
 @deftypefn {Target Hook} void TARGET_ASM_UNWIND_EMIT (FILE *@var{stream}, rtx @var{insn})
 This target hook emits assembly directives required to unwind the
 given instruction.  This is only used when TARGET_UNWIND_INFO is set.
 @end deftypefn
+
+@deftypevr {Target Hook} bool TARGET_ASM_UNWIND_EMIT_BEFORE_INSN
+True if the @code{TARGET_ASM_UNWIND_EMIT} hook should be called before the assembly for @var{insn} has been emitted, false if the hook should be called afterward.
+@end deftypevr
 
 @node Exception Region Output
 @subsection Assembler Commands for Exception Regions
@@ -9395,7 +9414,7 @@ Define this macro if GCC should produce debugging output for VMS
 in response to the @option{-g} option.  The default behavior for VMS
 is to generate minimal debug info for a traceback in the absence of
 @option{-g} unless explicitly overridden with @option{-g0}.  This
-behavior is controlled by @code{OPTIMIZATION_OPTIONS} and
+behavior is controlled by @code{TARGET_OPTION_OPTIMIZATION} and
 @code{TARGET_OPTION_OVERRIDE}.
 @end defmac
 
@@ -9743,7 +9762,7 @@ a particular target machine.  You can override the hook
 once just after all the command options have been parsed.
 
 Don't use this hook to turn on various extra optimizations for
-@option{-O}.  That is what @code{OPTIMIZATION_OPTIONS} is for.
+@option{-O}.  That is what @code{TARGET_OPTION_OPTIMIZATION} is for.
 
 If you need to do something whenever the optimization level is
 changed via the optimize attribute or pragma, see

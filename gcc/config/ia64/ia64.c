@@ -202,6 +202,7 @@ static rtx gen_fr_spill_x (rtx, rtx, rtx);
 static rtx gen_fr_restore_x (rtx, rtx, rtx);
 
 static void ia64_option_override (void);
+static void ia64_option_optimization (int, int);
 static bool ia64_can_eliminate (const int, const int);
 static enum machine_mode hfa_element_mode (const_tree, bool);
 static void ia64_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode,
@@ -246,6 +247,10 @@ static int ia64_dfa_sched_reorder (FILE *, int, rtx *, int *, int, int);
 static int ia64_sched_reorder (FILE *, int, rtx *, int *, int);
 static int ia64_sched_reorder2 (FILE *, int, rtx *, int *, int);
 static int ia64_variable_issue (FILE *, int, rtx, int);
+
+static void ia64_asm_unwind_emit (FILE *, rtx);
+static void ia64_asm_emit_except_personality (rtx);
+static void ia64_asm_init_sections (void);
 
 static struct bundle_state *get_free_bundle_state (void);
 static void free_bundle_state (struct bundle_state *);
@@ -357,6 +362,8 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE ia64_option_override
+#undef TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION ia64_option_optimization
 
 #undef TARGET_ASM_FUNCTION_PROLOGUE
 #define TARGET_ASM_FUNCTION_PROLOGUE ia64_output_function_prologue
@@ -521,7 +528,11 @@ static const struct attribute_spec ia64_attribute_table[] =
 #define TARGET_GIMPLIFY_VA_ARG_EXPR ia64_gimplify_va_arg
 
 #undef TARGET_ASM_UNWIND_EMIT
-#define TARGET_ASM_UNWIND_EMIT process_for_unwind_directive
+#define TARGET_ASM_UNWIND_EMIT ia64_asm_unwind_emit
+#undef TARGET_ASM_EMIT_EXCEPT_PERSONALITY
+#define TARGET_ASM_EMIT_EXCEPT_PERSONALITY  ia64_asm_emit_except_personality
+#undef TARGET_ASM_INIT_SECTIONS
+#define TARGET_ASM_INIT_SECTIONS  ia64_asm_init_sections
 
 #undef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P ia64_scalar_mode_supported_p
@@ -2306,7 +2317,7 @@ ia64_file_start (void)
 {
   /* Variable tracking should be run after all optimizations which change order
      of insns.  It also needs a valid CFG.  This can't be done in
-     ia64_override_options, because flag_var_tracking is finalized after
+     ia64_option_override, because flag_var_tracking is finalized after
      that.  */
   ia64_flag_var_tracking = flag_var_tracking;
   flag_var_tracking = 0;
@@ -3096,6 +3107,9 @@ ia64_expand_prologue (void)
 
   ia64_compute_frame_size (get_frame_size ());
   last_scratch_gr_reg = 15;
+
+  if (flag_stack_usage)
+    current_function_static_stack_size = current_frame_info.total_size;
 
   if (dump_file) 
     {
@@ -9842,8 +9856,8 @@ process_set (FILE *asm_out_file, rtx pat, rtx insn, bool unwind, bool frame)
 
 /* This function looks at a single insn and emits any directives
    required to unwind this insn.  */
-void
-process_for_unwind_directive (FILE *asm_out_file, rtx insn)
+static void
+ia64_asm_unwind_emit (FILE *asm_out_file, rtx insn)
 {
   bool unwind = (flag_unwind_tables
 		 || (flag_exceptions && !USING_SJLJ_EXCEPTIONS));
@@ -9906,6 +9920,24 @@ process_for_unwind_directive (FILE *asm_out_file, rtx insn)
     }
 }
 
+/* Implement TARGET_ASM_EMIT_EXCEPT_PERSONALITY.  */
+
+static void
+ia64_asm_emit_except_personality (rtx personality)
+{
+  fputs ("\t.personality\t", asm_out_file);
+  output_addr_const (asm_out_file, personality);
+  fputc ('\n', asm_out_file);
+}
+
+/* Implement TARGET_ASM_INITIALIZE_SECTIONS.  */
+
+static void
+ia64_asm_init_sections (void)
+{
+  exception_section = get_unnamed_section (0, output_section_asm_op,
+					   "\t.handlerdata");
+}
 
 enum ia64_builtins
 {
@@ -10690,10 +10722,14 @@ ia64_invalid_binary_op (int op ATTRIBUTE_UNUSED, const_tree type1, const_tree ty
 }
 
 /* Implement overriding of the optimization options.  */
-void
-ia64_optimization_options (int level ATTRIBUTE_UNUSED,
-                           int size ATTRIBUTE_UNUSED)
+static void
+ia64_option_optimization (int level ATTRIBUTE_UNUSED,
+			  int size ATTRIBUTE_UNUSED)
 {
+#ifdef SUBTARGET_OPTIMIZATION_OPTIONS
+  SUBTARGET_OPTIMIZATION_OPTIONS;
+#endif
+
   /* Let the scheduler form additional regions.  */
   set_param_value ("max-sched-extend-regions-iters", 2);
 

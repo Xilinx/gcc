@@ -362,13 +362,13 @@ mark_all_vars_used_1 (tree *tp, int *walk_subtrees, void *data)
       && (b = TREE_BLOCK (t)) != NULL)
     TREE_USED (b) = true;
 
-  /* Ignore TREE_ORIGINAL for TARGET_MEM_REFS, as well as other
-     fields that do not contain vars.  */
+  /* Ignore TMR_OFFSET and TMR_STEP for TARGET_MEM_REFS, as those
+     fields do not contain vars.  */
   if (TREE_CODE (t) == TARGET_MEM_REF)
     {
-      mark_all_vars_used (&TMR_SYMBOL (t), data);
       mark_all_vars_used (&TMR_BASE (t), data);
       mark_all_vars_used (&TMR_INDEX (t), data);
+      mark_all_vars_used (&TMR_INDEX2 (t), data);
       *walk_subtrees = 0;
       return NULL;
     }
@@ -813,18 +813,13 @@ remove_unused_locals (void)
       BITMAP_FREE (global_unused_vars);
     }
 
-  /* Remove unused variables from REFERENCED_VARs.  As a special
-     exception keep the variables that are believed to be aliased.
-     Those can't be easily removed from the alias sets and operand
-     caches.  They will be removed shortly after the next may_alias
-     pass is performed.  */
+  /* Remove unused variables from REFERENCED_VARs.  */
   FOR_EACH_REFERENCED_VAR (t, rvi)
     if (!is_global_var (t)
 	&& TREE_CODE (t) != PARM_DECL
 	&& TREE_CODE (t) != RESULT_DECL
 	&& !(ann = var_ann (t))->used
-	&& !ann->is_heapvar
-	&& !TREE_ADDRESSABLE (t))
+	&& !ann->is_heapvar)
       remove_referenced_var (t);
   remove_unused_scope_block_p (DECL_INITIAL (current_function_decl));
   if (dump_file && (dump_flags & TDF_DETAILS))
@@ -1250,8 +1245,8 @@ dump_enumerated_decls (FILE *file, int flags)
   struct walk_stmt_info wi;
   VEC (numbered_tree, heap) *decl_list = VEC_alloc (numbered_tree, heap, 40);
 
+  memset (&wi, '\0', sizeof (wi));
   wi.info = (void*) decl_list;
-  wi.pset = NULL;
   FOR_EACH_BB (bb)
     {
       gimple_stmt_iterator gsi;

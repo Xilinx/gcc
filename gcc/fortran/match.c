@@ -978,13 +978,6 @@ gfc_match_iterator (gfc_iterator *iter, int init_flag)
       goto cleanup;
     }
 
-  if (var->symtree->n.sym->attr.intent == INTENT_IN)
-    {
-      gfc_error ("Loop variable '%s' at %C cannot be INTENT(IN)",
-		 var->symtree->n.sym->name);
-      goto cleanup;
-    }
-
   gfc_match_char ('=');
 
   var->symtree->n.sym->attr.implied_index = 1;
@@ -1847,9 +1840,7 @@ gfc_match_associate (void)
 
       /* The `variable' field is left blank for now; because the target is not
 	 yet resolved, we can't use gfc_has_vector_subscript to determine it
-	 for now.  Instead, if the symbol is matched as variable, this field
-	 is set -- and during resolution we check that.  */
-      newAssoc->variable = 0;
+	 for now.  This is set during resolution.  */
 
       /* Put it into the list.  */
       newAssoc->next = new_st.ext.block.assoc;
@@ -2034,7 +2025,7 @@ match_exit_cycle (gfc_statement st, gfc_exec_op op)
       sym = stree->n.sym;
       if (sym->attr.flavor != FL_LABEL)
 	{
-	  gfc_error ("Name '%s' in %s statement at %C is not a loop name",
+	  gfc_error ("Name '%s' in %s statement at %C is not a construct name",
 		     name, gfc_ascii_statement (st));
 	  return MATCH_ERROR;
 	}
@@ -2042,9 +2033,7 @@ match_exit_cycle (gfc_statement st, gfc_exec_op op)
 
   /* Find the loop specified by the label (or lack of a label).  */
   for (o = NULL, p = gfc_state_stack; p; p = p->previous)
-    if (p->state == COMP_DO && (sym == NULL || sym == p->sym))
-      break;
-    else if (o == NULL && p->state == COMP_OMP_STRUCTURED_BLOCK)
+    if (o == NULL && p->state == COMP_OMP_STRUCTURED_BLOCK)
       o = p;
     else if (p->state == COMP_CRITICAL)
       {
@@ -2052,16 +2041,52 @@ match_exit_cycle (gfc_statement st, gfc_exec_op op)
 		  gfc_ascii_statement (st));
 	return MATCH_ERROR;
       }
+    else if ((sym && sym == p->sym) || (!sym && p->state == COMP_DO))
+      break;
 
   if (p == NULL)
     {
       if (sym == NULL)
-	gfc_error ("%s statement at %C is not within a loop",
+	gfc_error ("%s statement at %C is not within a construct",
 		   gfc_ascii_statement (st));
       else
-	gfc_error ("%s statement at %C is not within loop '%s'",
+	gfc_error ("%s statement at %C is not within construct '%s'",
 		   gfc_ascii_statement (st), sym->name);
 
+      return MATCH_ERROR;
+    }
+
+  /* Special checks for EXIT from non-loop constructs.  */
+  switch (p->state)
+    {
+    case COMP_DO:
+      break;
+
+    case COMP_CRITICAL:
+      /* This is already handled above.  */
+      gcc_unreachable ();
+
+    case COMP_ASSOCIATE:
+    case COMP_BLOCK:
+    case COMP_IF:
+    case COMP_SELECT:
+    case COMP_SELECT_TYPE:
+      gcc_assert (sym);
+      if (op == EXEC_CYCLE)
+	{
+	  gfc_error ("CYCLE statement at %C is not applicable to non-loop"
+		     " construct '%s'", sym->name);
+	  return MATCH_ERROR;
+	}
+      gcc_assert (op == EXEC_EXIT);
+      if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: EXIT statement with no"
+			  " do-construct-name at %C") == FAILURE)
+	return MATCH_ERROR;
+      break;
+      
+    default:
+      gfc_error ("%s statement at %C is not applicable to construct '%s'",
+		 gfc_ascii_statement (st), sym->name);
       return MATCH_ERROR;
     }
 
@@ -2096,13 +2121,14 @@ match_exit_cycle (gfc_statement st, gfc_exec_op op)
 	}
       if (st == ST_CYCLE && cnt < collapse)
 	{
-	  gfc_error ("CYCLE statement at %C to non-innermost collapsed !$OMP DO loop");
+	  gfc_error ("CYCLE statement at %C to non-innermost collapsed"
+		     " !$OMP DO loop");
 	  return MATCH_ERROR;
 	}
     }
 
-  /* Save the first statement in the loop - needed by the backend.  */
-  new_st.ext.whichloop = p->head;
+  /* Save the first statement in the construct - needed by the backend.  */
+  new_st.ext.which_construct = p->construct;
 
   new_st.op = op;
 
@@ -2955,6 +2981,7 @@ alloc_opt_list:
 	    }
 
 	  stat = tmp;
+	  tmp = NULL;
 	  saw_stat = true;
 
 	  if (gfc_check_do_variable (stat->symtree))
@@ -2981,6 +3008,7 @@ alloc_opt_list:
 	    }
 
 	  errmsg = tmp;
+	  tmp = NULL;
 	  saw_errmsg = true;
 
 	  if (gfc_match_char (',') == MATCH_YES)
@@ -3019,6 +3047,7 @@ alloc_opt_list:
             }
 
 	  source = tmp;
+	  tmp = NULL;
 	  saw_source = true;
 
 	  if (gfc_match_char (',') == MATCH_YES)
@@ -3050,6 +3079,7 @@ alloc_opt_list:
 	    }
 
 	  mold = tmp;
+	  tmp = NULL;
 	  saw_mold = true;
 	  mold->mold = 1;
 
@@ -3126,12 +3156,6 @@ gfc_match_nullify (void)
 
       if (gfc_check_do_variable (p->symtree))
 	goto cleanup;
-
-      if (gfc_pure (NULL) && gfc_impure_variable (p->symtree->n.sym))
-	{
-	  gfc_error ("Illegal variable in NULLIFY at %C for a PURE procedure");
-	  goto cleanup;
-	}
 
       /* build ' => NULL() '.  */
       e = gfc_get_null_expr (&gfc_current_locus);
@@ -4460,6 +4484,12 @@ select_type_set_tmp (gfc_typespec *ts)
   char name[GFC_MAX_SYMBOL_LEN];
   gfc_symtree *tmp;
   
+  if (!ts)
+    {
+      select_type_stack->tmp = NULL;
+      return;
+    }
+  
   if (!gfc_type_is_extensible (ts->u.derived))
     return;
 
@@ -4478,6 +4508,13 @@ select_type_set_tmp (gfc_typespec *ts)
 			      &tmp->n.sym->as, false);
       tmp->n.sym->attr.class_ok = 1;
     }
+  tmp->n.sym->attr.select_type_temporary = 1;
+
+  /* Add an association for it, so the rest of the parser knows it is
+     an associate-name.  The target will be set during resolution.  */
+  tmp->n.sym->assoc = gfc_get_association_list ();
+  tmp->n.sym->assoc->dangling = 1;
+  tmp->n.sym->assoc->st = tmp;
 
   select_type_stack->tmp = tmp;
 }
@@ -4516,6 +4553,7 @@ gfc_match_select_type (void)
 	expr1->symtree->n.sym->attr.untyped = 1;
       else
 	expr1->symtree->n.sym->ts = expr2->ts;
+      expr1->symtree->n.sym->attr.flavor = FL_VARIABLE;
       expr1->symtree->n.sym->attr.referenced = 1;
       expr1->symtree->n.sym->attr.class_ok = 1;
     }
@@ -4702,6 +4740,7 @@ gfc_match_class_is (void)
       c->where = gfc_current_locus;
       c->ts.type = BT_UNKNOWN;
       new_st.ext.case_list = c;
+      select_type_set_tmp (NULL);
       return MATCH_YES;
     }
 

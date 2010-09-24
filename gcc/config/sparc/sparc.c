@@ -349,6 +349,7 @@ static HOST_WIDE_INT frame_base_offset;
 int sparc_indent_opcode = 0;
 
 static bool sparc_handle_option (size_t, const char *, int);
+static void sparc_option_override (void);
 static void sparc_init_modes (void);
 static void scan_record_type (tree, int *, int *, int *);
 static int function_arg_slotno (const CUMULATIVE_ARGS *, enum machine_mode,
@@ -434,6 +435,7 @@ static bool sparc_can_eliminate (const int, const int);
 static const char *sparc_mangle_type (const_tree);
 #endif
 static void sparc_trampoline_init (rtx, tree, rtx);
+static unsigned int sparc_units_per_simd_word (enum machine_mode);
 
 #ifdef SUBTARGET_ATTRIBUTE_TABLE
 /* Table of valid machine attributes.  */
@@ -571,6 +573,9 @@ static bool fpu_option_set = false;
 #undef TARGET_VECTOR_MODE_SUPPORTED_P
 #define TARGET_VECTOR_MODE_SUPPORTED_P sparc_vector_mode_supported_p
 
+#undef TARGET_VECTORIZE_UNITS_PER_SIMD_WORD
+#define TARGET_VECTORIZE_UNITS_PER_SIMD_WORD sparc_units_per_simd_word
+
 #undef TARGET_DWARF_HANDLE_FRAME_UNSPEC
 #define TARGET_DWARF_HANDLE_FRAME_UNSPEC sparc_dwarf_handle_frame_unspec
 
@@ -591,6 +596,8 @@ static bool fpu_option_set = false;
 #define TARGET_DEFAULT_TARGET_FLAGS TARGET_DEFAULT
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION sparc_handle_option
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE sparc_option_override
 
 #if TARGET_GNU_TLS && defined(HAVE_AS_SPARC_UA_PCREL)
 #undef TARGET_ASM_OUTPUT_DWARF_DTPREL
@@ -647,8 +654,8 @@ sparc_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
 /* Validate and override various options, and do some machine dependent
    initialization.  */
 
-void
-sparc_override_options (void)
+static void
+sparc_option_override (void)
 {
   static struct code_model {
     const char *const name;
@@ -723,6 +730,10 @@ sparc_override_options (void)
   const struct cpu_table *cpu;
   const struct sparc_cpu_select *sel;
   int fpu;
+
+#ifdef SUBTARGET_OVERRIDE_OPTIONS
+  SUBTARGET_OVERRIDE_OPTIONS;
+#endif
 
 #ifndef SPARC_BI_ARCH
   /* Check for unsupported architecture size.  */
@@ -4402,6 +4413,9 @@ sparc_expand_prologue (void)
   /* Advertise that the data calculated just above are now valid.  */
   sparc_prologue_data_valid_p = true;
 
+  if (flag_stack_usage)
+    current_function_static_stack_size = actual_fsize;
+
   if (flag_stack_check == STATIC_BUILTIN_STACK_CHECK && actual_fsize)
     sparc_emit_probe_stack_range (STACK_CHECK_PROTECT, actual_fsize);
 
@@ -6228,6 +6242,14 @@ static bool
 sparc_vector_mode_supported_p (enum machine_mode mode)
 {
   return TARGET_VIS && VECTOR_MODE_P (mode) ? true : false;
+}
+
+/* Implement the TARGET_VECTORIZE_UNITS_PER_SIMD_WORD target hook.  */
+
+static unsigned int
+sparc_units_per_simd_word (enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  return TARGET_VIS ? 8 : UNITS_PER_WORD;
 }
 
 /* Return the string to output an unconditional branch to LABEL, which is

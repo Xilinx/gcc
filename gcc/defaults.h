@@ -39,7 +39,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    || (CHAR) == 'e' || (CHAR) == 'T' || (CHAR) == 'u' \
    || (CHAR) == 'I' || (CHAR) == 'J' || (CHAR) == 'm' \
    || (CHAR) == 'x' || (CHAR) == 'L' || (CHAR) == 'A' \
-   || (CHAR) == 'B' )
+   || (CHAR) == 'B' || (CHAR) == 'd')
 
 /* This defines which multi-letter switches take arguments.  */
 
@@ -140,6 +140,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 	fprintf (FILE, "\n");						\
   } while (0)
 #endif
+#endif
+
+#ifndef IFUNC_ASM_TYPE
+#define IFUNC_ASM_TYPE "gnu_indirect_function"
 #endif
 
 #ifndef TLS_COMMON_ASM_OP
@@ -943,12 +947,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #ifndef HAS_LONG_UNCOND_BRANCH
 #define HAS_LONG_UNCOND_BRANCH 0
-#endif
-
-/* By default, only attempt to parallelize bitwise operations, and
-   possibly adds/subtracts using bit-twiddling.  */
-#ifndef UNITS_PER_SIMD_WORD
-#define UNITS_PER_SIMD_WORD(MODE) UNITS_PER_WORD
 #endif
 
 /* Determine whether __cxa_atexit, rather than atexit, is used to

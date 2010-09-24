@@ -1,3 +1,30 @@
+2010-09-15  Ian Lance Taylor  <iant@google.com>
+
+	* init.c: Fix type name in comment.
+
+2010-08-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR preprocessor/45457
+	* expr.c (parse_defined): Call pfile->cb.user_builtin_macro hook if
+	needed.
+	* directives.c (do_ifdef, do_ifndef): Likewise.
+
+2010-08-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* system.h [HAVE_INTTYPES_H]: Include inttypes.h.
+
+2010-08-24  Richard Henderson  <rth@redhat.com>
+
+	PR bootstrap/45376
+	* configure.ac (HAVE_SSE4): New check.
+	* configure, config.in: Rebuild.
+	* lex.c (search_line_sse42): Omit if !HAVE_SSE4.
+
+2010-08-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lex.c [__sun__ && __svr4__]: Disable init_vectorized_lexer
+	etc. on Solaris 2/x86.
+
 2010-08-21  Richard Henderson  <rth@redhat.com>
 	    Andi Kleen <ak@linux.intel.com>
 	    David S. Miller  <davem@davemloft.net>

@@ -1,3 +1,28 @@
+2010-09-22 Tristan Gingold  <gingold@adacore.com>
+
+	* cplus-dem.c (ada_demangle): Add comments.
+	Handle stream and controlled type operations.
+	Decoding of some uppercase letters moved before separators.
+	* testsuite/demangle-expected: Add tests.
+
+2010-09-10  James Lyon  <jameslyon0@googlemail.com>
+
+	http://sourceware.org/bugzilla/show_bug.cgi?id=11572
+	* cp-demangle.c (d_find_pack): Add case for
+	DEMANGLE_COMPONENT_LAMBDA.
+	* testsuite/demangle-expected: Add regression test.
+
+2010-09-08  Tristan Gingold  <gingold@adacore.com>
+
+	PR 44001
+	* maint-tool (missing): Fix pattern for object file.
+	(deps): Use $(objext) for object extension.
+	* Makefile.in (objext): New variable.
+	Replace all occurences of .o with .$(objext)
+	Regenerate with maint-deps
+	* configure.ac (pexecute): Set to the basename.
+	* configure: Regenerate.
+
 2010-08-20  Maciej W. Rozycki  <macro@codesourcery.com>
 
 	* pex-common.c (pex_read_err): Set stderr_pipe to -1 if a

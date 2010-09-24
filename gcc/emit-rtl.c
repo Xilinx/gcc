@@ -1615,14 +1615,10 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	align = MAX (align, TYPE_ALIGN (type));
     }
 
-  else if (TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
-    {
-      if (integer_zerop (TREE_OPERAND (t, 1)))
-	/* We don't know anything about the alignment.  */
-	align = BITS_PER_UNIT;
-      else
-	align = tree_low_cst (TREE_OPERAND (t, 1), 1);
-    }
+  else if (TREE_CODE (t) == TARGET_MEM_REF)
+    /* ??? This isn't fully correct, we can't set the alignment from the
+       type in all cases.  */
+    align = MAX (align, TYPE_ALIGN (type));
 
   /* If the size is known, we can set that.  */
   if (TYPE_SIZE_UNIT (type) && host_integerp (TYPE_SIZE_UNIT (type), 1))
@@ -1777,8 +1773,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	    }
 
 	  /* If this is an indirect reference, record it.  */
-	  else if (TREE_CODE (t) == MEM_REF 
-		   || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
+	  else if (TREE_CODE (t) == MEM_REF)
 	    {
 	      expr = t;
 	      offset = const0_rtx;
@@ -1788,7 +1783,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 
       /* If this is an indirect reference, record it.  */
       else if (TREE_CODE (t) == MEM_REF 
-	       || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
+	       || TREE_CODE (t) == TARGET_MEM_REF)
 	{
 	  expr = t;
 	  offset = const0_rtx;

@@ -321,11 +321,6 @@ typedef unsigned int CUMULATIVE_ARGS;
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
   (CUM) = 0
 
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  rx_function_arg (& CUM, MODE, TYPE, NAMED)
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
-  (CUM) += rx_function_arg_size (MODE, TYPE)
 
 #define TRAMPOLINE_SIZE 	(! TARGET_BIG_ENDIAN_DATA ? 14 : 20)
 #define TRAMPOLINE_ALIGNMENT 	32
@@ -636,9 +631,6 @@ extern int rx_float_compare_mode;
 /* Translate -nofpu into -mnofpu so that it gets passed from gcc to cc1.  */
 #define TARGET_OPTION_TRANSLATE_TABLE \
   {"-nofpu", "-mnofpu" }
-
-#define OPTIMIZATION_OPTIONS(LEVEL,SIZE) \
-  rx_set_optimization_options ()
 
 #define TARGET_USE_FPU		(! TARGET_NO_USE_FPU)
 

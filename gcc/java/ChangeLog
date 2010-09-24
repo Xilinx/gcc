@@ -1,3 +1,39 @@
+2010-09-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* jvspec.c (lang_specific_driver): Handle OPT__help instead of
+	OPT_fhelp.
+	* lang.opt (-CLASSPATH, -all-warnings, -bootclasspath, -classpath,
+	-dependencies, -encoding, -extdirs, -include-directory,
+	-include-directory=, -output-class-directory,
+	-output-class-directory=, -resource, -resource=,
+	-user-dependencies): New.
+
+2010-09-16  Richard Guenther  <rguenther@suse.de>
+
+	* jcf-parse.c (current_file_list): Remove.
+	(java_parse_file): Use build_translation_unit_decl.  Adjust.
+
+2010-09-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (d): New.
+
+2010-09-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR java/45504
+	* jvgenmain.c (main): Check "-D XXX=YYY".
+
+2010-09-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* jvspec.c (jvgenmain_spec): Don't handle -fnew-verifier.
+
+2010-09-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (CLASSPATH, bootclasspath, classpath, encoding,
+	fCLASSPATH=): Mark as Java options and as aliases.
+	* jvspec.c (jvgenmain_spec): Don't handle -fCLASSPATH*.
+	(lang_specific_driver): Don't handle options marked as aliases.
+	* lang.c (java_handle_option): Don't handle OPT_fCLASSPATH_.
+
 2010-08-22  Joseph Myers  <joseph@codesourcery.com>
 
 	* Make-lang.in (jvspec.o): Update dependencies.

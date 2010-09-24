@@ -45,6 +45,10 @@ struct cl_option
   const char *opt_text;
   const char *help;
   const char *missing_argument_error;
+  const char *warn_message;
+  const char *alias_arg;
+  const char *neg_alias_arg;
+  unsigned short alias_target;
   unsigned short back_chain;
   unsigned char opt_len;
   int neg_index;
@@ -67,12 +71,12 @@ extern const unsigned int cl_options_count;
 extern const char *const lang_names[];
 extern const unsigned int cl_lang_count;
 
-#define CL_PARAMS               (1 << 14) /* Fake entry.  Used to display --param info with --help.  */
-#define CL_WARNING		(1 << 15) /* Enables an (optional) warning message.  */
-#define CL_OPTIMIZATION		(1 << 16) /* Enables an (optional) optimization.  */
-#define CL_DRIVER		(1 << 17) /* Driver option.  */
-#define CL_TARGET		(1 << 18) /* Target-specific option.  */
-#define CL_COMMON		(1 << 19) /* Language-independent.  */
+#define CL_PARAMS               (1 << 13) /* Fake entry.  Used to display --param info with --help.  */
+#define CL_WARNING		(1 << 14) /* Enables an (optional) warning message.  */
+#define CL_OPTIMIZATION		(1 << 15) /* Enables an (optional) optimization.  */
+#define CL_DRIVER		(1 << 16) /* Driver option.  */
+#define CL_TARGET		(1 << 17) /* Target-specific option.  */
+#define CL_COMMON		(1 << 18) /* Language-independent.  */
 
 #define CL_MIN_OPTION_CLASS	CL_PARAMS
 #define CL_MAX_OPTION_CLASS	CL_COMMON
@@ -82,6 +86,7 @@ extern const unsigned int cl_lang_count;
    This distinction is important because --help will not list options
    which only have these higher bits set.  */
 
+#define CL_SEPARATE_ALIAS	(1 << 19) /* Option is an alias when used with separate argument.  */
 #define CL_NO_DRIVER_ARG	(1 << 20) /* Option takes no argument in the driver.  */
 #define CL_REJECT_DRIVER	(1 << 21) /* Reject this option in the driver.  */
 #define CL_SAVE			(1 << 22) /* Target-specific option for attribute.  */
@@ -102,6 +107,9 @@ extern const unsigned int cl_lang_count;
 #define CL_ERR_MISSING_ARG	(1 << 1) /* Argument required but missing.  */
 #define CL_ERR_WRONG_LANG	(1 << 2) /* Option for wrong language.  */
 #define CL_ERR_UINT_ARG		(1 << 3) /* Bad unsigned integer argument.  */
+#define CL_ERR_NEGATIVE		(1 << 4) /* Negative form of option
+					    not permitted (together
+					    with OPT_SPECIAL_unknown).  */
 
 /* Structure describing the result of decoding an option.  */
 
@@ -110,6 +118,9 @@ struct cl_decoded_option
   /* The index of this option, or an OPT_SPECIAL_* value for
      non-options and unknown options.  */
   size_t opt_index;
+
+  /* Any warning to give for use of this option, or NULL if none.  */
+  const char *warn_message;
 
   /* The string argument, or NULL if none.  For OPT_SPECIAL_* cases,
      the option or non-option command-line argument.  */
@@ -195,7 +206,6 @@ extern void decode_cmdline_options_to_array (unsigned int argc,
 					     unsigned int lang_mask,
 					     struct cl_decoded_option **decoded_options,
 					     unsigned int *decoded_options_count);
-extern void prune_options (int *argcp, char ***argvp);
 extern void decode_options (unsigned int argc, const char **argv,
 			    struct cl_decoded_option **decoded_options,
 			    unsigned int *decoded_options_count);

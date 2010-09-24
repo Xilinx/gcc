@@ -80,7 +80,7 @@ along with GCC; see the file COPYING3.  If not see
        (2) has PREFETCH_MOD 64
        (3) has PREFETCH_MOD 4
        (4) has PREFETCH_MOD 1.  We do not set PREFETCH_BEFORE here, since
-           the cache line accessed by (4) is the same with probability only
+           the cache line accessed by (5) is the same with probability only
 	   7/32.
        (5) has PREFETCH_MOD 1 as well.
 
@@ -422,9 +422,6 @@ idx_analyze_ref (tree base, tree *index, void *data)
   tree ibase, step, stepsize;
   HOST_WIDE_INT idelta = 0, imult = 1;
   affine_iv iv;
-
-  if (TREE_CODE (base) == MISALIGNED_INDIRECT_REF)
-    return false;
 
   if (!simple_iv (ar_data->loop, loop_containing_stmt (ar_data->stmt),
 		  *index, &iv, true))

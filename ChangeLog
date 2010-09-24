@@ -1,3 +1,31 @@
+2010-09-21  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* configure.ac (enable-lto): Add Darwin to the list of supported lto
+	targets and amend comment.
+	* configure: Regenerate.
+
+2010-09-15  Tejas Belagod  <tejas.belagod@arm.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2010-09-03  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	* configure.ac: Enable LTO by default on Darwin.
+	* configure: Regenerate.
+
+2010-09-02  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2010-09-01  Ian Bolton  <ian.bolton@arm.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2010-08-25  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* MAINTAINERS (OS Port Maintainers): Remove myself from windows
+	ports
+
 2010-07-28  David Yuste  <david.yuste@gmail.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.

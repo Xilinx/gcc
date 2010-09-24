@@ -134,7 +134,7 @@ extern enum rs6000_cmodel cmodel;
 	  else							\
 	    {							\
 	      if (!rs6000_explicit_options.cmodel)		\
-		SET_CMODEL (CMODEL_LARGE);			\
+		SET_CMODEL (CMODEL_MEDIUM);			\
 	      if (cmodel != CMODEL_SMALL)			\
 		{						\
 		  TARGET_NO_FP_IN_TOC = 0;			\
@@ -162,10 +162,10 @@ extern enum rs6000_cmodel cmodel;
 
 #ifdef	RS6000_BI_ARCH
 
-#undef	OVERRIDE_OPTIONS
-#define	OVERRIDE_OPTIONS \
-  rs6000_override_options (((TARGET_DEFAULT ^ target_flags) & MASK_64BIT) \
-			   ? (char *) 0 : TARGET_CPU_DEFAULT)
+#undef	OPTION_TARGET_CPU_DEFAULT
+#define	OPTION_TARGET_CPU_DEFAULT \
+  (((TARGET_DEFAULT ^ target_flags) & MASK_64BIT) \
+   ? (char *) 0 : TARGET_CPU_DEFAULT)
 
 #endif
 

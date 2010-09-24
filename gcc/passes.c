@@ -219,7 +219,8 @@ rest_of_decl_compilation (tree decl,
   /* Let cgraph know about the existence of variables.  */
   if (in_lto_p && !at_end)
     ;
-  else if (TREE_CODE (decl) == VAR_DECL && !DECL_EXTERNAL (decl))
+  else if (TREE_CODE (decl) == VAR_DECL && !DECL_EXTERNAL (decl)
+	   && TREE_STATIC (decl))
     varpool_node (decl);
 }
 
@@ -757,7 +758,6 @@ init_optimization_passes (void)
       struct opt_pass **p = &pass_early_local_passes.pass.sub;
       NEXT_PASS (pass_fixup_cfg);
       NEXT_PASS (pass_tree_profile);
-      NEXT_PASS (pass_cleanup_cfg);
       NEXT_PASS (pass_init_datastructures);
       NEXT_PASS (pass_expand_omp);
 
@@ -836,7 +836,6 @@ init_optimization_passes (void)
       /* Initial scalar cleanups before alias computation.
 	 They ensure memory accesses are not indirect wherever possible.  */
       NEXT_PASS (pass_strip_predict_hints);
-      NEXT_PASS (pass_update_address_taken);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_complete_unrolli);
       NEXT_PASS (pass_ccp);
@@ -1207,15 +1206,13 @@ execute_function_todo (void *data)
       cfun->last_verified &= ~TODO_verify_ssa;
     }
 
-  if (flags & TODO_update_address_taken)
-    execute_update_addresses_taken (true);
-
   if (flags & TODO_rebuild_alias)
     {
-      if (!(flags & TODO_update_address_taken))
-	execute_update_addresses_taken (true);
+      execute_update_addresses_taken ();
       compute_may_aliases ();
     }
+  else if (optimize && (flags & TODO_update_address_taken))
+    execute_update_addresses_taken ();
 
   if (flags & TODO_remove_unused_locals)
     remove_unused_locals ();
@@ -1247,6 +1244,10 @@ execute_function_todo (void *data)
 
   if (flags & TODO_rebuild_frequencies)
     rebuild_frequencies ();
+
+  /* If we've seen errors do not bother running any verifiers.  */
+  if (seen_error ())
+    return;
 
 #if defined ENABLE_CHECKING
   if (flags & TODO_verify_ssa

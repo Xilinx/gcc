@@ -411,6 +411,22 @@ gnat_poplevel (void)
   free_binding_level = level;
 }
 
+/* Exit a binding level and discard the associated BLOCK.  */
+
+void
+gnat_zaplevel (void)
+{
+  struct gnat_binding_level *level = current_binding_level;
+  tree block = level->block;
+
+  BLOCK_CHAIN (block) = free_block_chain;
+  free_block_chain = block;
+
+  /* Free this binding structure.  */
+  current_binding_level = level->chain;
+  level->chain = free_binding_level;
+  free_binding_level = level;
+}
 
 /* Records a ..._DECL node DECL as belonging to the current lexical scope
    and uses GNAT_NODE for location information and propagating flags.  */
@@ -418,11 +434,8 @@ gnat_poplevel (void)
 void
 gnat_pushdecl (tree decl, Node_Id gnat_node)
 {
-  /* If this decl is public external or at toplevel, there is no context.
-     But PARM_DECLs always go in the level of its function.  */
-  if (TREE_CODE (decl) != PARM_DECL
-      && ((DECL_EXTERNAL (decl) && TREE_PUBLIC (decl))
-	  || global_bindings_p ()))
+  /* If this decl is public external or at toplevel, there is no context.  */
+  if ((TREE_PUBLIC (decl) && DECL_EXTERNAL (decl)) || global_bindings_p ())
     DECL_CONTEXT (decl) = 0;
   else
     {
@@ -444,13 +457,12 @@ gnat_pushdecl (tree decl, Node_Id gnat_node)
   add_decl_expr (decl, gnat_node);
 
   /* Put the declaration on the list.  The list of declarations is in reverse
-     order.  The list will be reversed later.  Put global variables in the
-     globals list and builtin functions in a dedicated list to speed up
-     further lookups.  Don't put TYPE_DECLs for UNCONSTRAINED_ARRAY_TYPE into
-     the list, as they will cause trouble with the debugger and aren't needed
-     anyway.  */
-  if (TREE_CODE (decl) != TYPE_DECL
-      || TREE_CODE (TREE_TYPE (decl)) != UNCONSTRAINED_ARRAY_TYPE)
+     order.  The list will be reversed later.  Put global declarations in the
+     globals list and local ones in the current block.  But skip TYPE_DECLs
+     for UNCONSTRAINED_ARRAY_TYPE in both cases, as they will cause trouble
+     with the debugger and aren't needed anyway.  */
+  if (!(TREE_CODE (decl) == TYPE_DECL
+        && TREE_CODE (TREE_TYPE (decl)) == UNCONSTRAINED_ARRAY_TYPE))
     {
       if (global_bindings_p ())
 	{
@@ -459,7 +471,7 @@ gnat_pushdecl (tree decl, Node_Id gnat_node)
 	  if (TREE_CODE (decl) == FUNCTION_DECL && DECL_BUILT_IN (decl))
 	    VEC_safe_push (tree, gc, builtin_decls, decl);
 	}
-      else
+      else if (!DECL_EXTERNAL (decl))
 	{
 	  DECL_CHAIN (decl) = BLOCK_VARS (current_binding_level->block);
 	  BLOCK_VARS (current_binding_level->block) = decl;
@@ -1094,10 +1106,8 @@ create_subprog_type (tree return_type, tree param_decl_list, tree cico_list,
 
   /* TYPE may have been shared since GCC hashes types.  If it has a different
      CICO_LIST, make a copy.  Likewise for the various flags.  */
-  if (TYPE_CI_CO_LIST (type) != cico_list
-      || TYPE_RETURN_UNCONSTRAINED_P (type) != return_unconstrained_p
-      || TYPE_RETURN_BY_DIRECT_REF_P (type) != return_by_direct_ref_p
-      || TREE_ADDRESSABLE (type) != return_by_invisi_ref_p)
+  if (!fntype_same_flags_p (type, cico_list, return_unconstrained_p,
+			    return_by_direct_ref_p, return_by_invisi_ref_p))
     {
       type = copy_type (type);
       TYPE_CI_CO_LIST (type) = cico_list;
@@ -1153,17 +1163,9 @@ tree
 create_index_type (tree min, tree max, tree index, Node_Id gnat_node)
 {
   /* First build a type for the desired range.  */
-  tree type = build_index_2_type (min, max);
+  tree type = build_nonshared_range_type (sizetype, min, max);
 
-  /* If this type has the TYPE_INDEX_TYPE we want, return it.  */
-  if (TYPE_INDEX_TYPE (type) == index)
-    return type;
-
-  /* Otherwise, if TYPE_INDEX_TYPE is set, make a copy.  Note that we have
-     no way of sharing these types, but that's only a small hole.  */
-  if (TYPE_INDEX_TYPE (type))
-    type = copy_type (type);
-
+  /* Then set the index type.  */
   SET_TYPE_INDEX_TYPE (type, index);
   create_type_decl (NULL_TREE, type, NULL, true, false, gnat_node);
 
@@ -1182,26 +1184,12 @@ create_range_type (tree type, tree min, tree max)
     type = sizetype;
 
   /* First build a type with the base range.  */
-  range_type
-    = build_range_type (type, TYPE_MIN_VALUE (type), TYPE_MAX_VALUE (type));
-
-  min = convert (type, min);
-  max = convert (type, max);
-
-  /* If this type has the TYPE_RM_{MIN,MAX}_VALUE we want, return it.  */
-  if (TYPE_RM_MIN_VALUE (range_type)
-      && TYPE_RM_MAX_VALUE (range_type)
-      && operand_equal_p (TYPE_RM_MIN_VALUE (range_type), min, 0)
-      && operand_equal_p (TYPE_RM_MAX_VALUE (range_type), max, 0))
-    return range_type;
-
-  /* Otherwise, if TYPE_RM_{MIN,MAX}_VALUE is set, make a copy.  */
-  if (TYPE_RM_MIN_VALUE (range_type) || TYPE_RM_MAX_VALUE (range_type))
-    range_type = copy_type (range_type);
+  range_type = build_nonshared_range_type (type, TYPE_MIN_VALUE (type),
+						 TYPE_MAX_VALUE (type));
 
   /* Then set the actual range.  */
-  SET_TYPE_RM_MIN_VALUE (range_type, min);
-  SET_TYPE_RM_MAX_VALUE (range_type, max);
+  SET_TYPE_RM_MIN_VALUE (range_type, convert (type, min));
+  SET_TYPE_RM_MAX_VALUE (range_type, convert (type, max));
 
   return range_type;
 }
@@ -1368,12 +1356,11 @@ create_var_decl_1 (tree var_name, tree asm_name, tree type, tree var_init,
       && !have_global_bss_p ())
     DECL_COMMON (var_decl) = 1;
 
-  /* If it's public and not external, always allocate storage for it.
-     At the global binding level we need to allocate static storage for the
-     variable if and only if it's not external. If we are not at the top level
-     we allocate automatic storage unless requested not to.  */
+  /* At the global binding level, we need to allocate static storage for the
+     variable if it isn't external.  Otherwise, we allocate automatic storage
+     unless requested not to.  */
   TREE_STATIC (var_decl)
-    = !extern_flag && (public_flag || static_flag || global_bindings_p ());
+    = !extern_flag && (static_flag || global_bindings_p ());
 
   /* For an external constant whose initializer is not absolute, do not emit
      debug info.  In DWARF this would mean a global relocation in a read-only
@@ -1878,9 +1865,7 @@ end_subprog_body (tree body)
 {
   tree fndecl = current_function_decl;
 
-  /* Mark the BLOCK for this level as being for this function and pop the
-     level.  Since the vars in it are the parameters, clear them.  */
-  BLOCK_VARS (current_binding_level->block) = NULL_TREE;
+  /* Attach the BLOCK for this level to the function and pop the level.  */
   BLOCK_SUPERCONTEXT (current_binding_level->block) = fndecl;
   DECL_INITIAL (fndecl) = current_binding_level->block;
   gnat_poplevel ();
@@ -1891,6 +1876,13 @@ end_subprog_body (tree body)
 
   /* Mark the RESULT_DECL as being in this subprogram. */
   DECL_CONTEXT (DECL_RESULT (fndecl)) = fndecl;
+
+  /* The body should be a BIND_EXPR whose BLOCK is the top-level one.  */
+  if (TREE_CODE (body) == BIND_EXPR)
+    {
+      BLOCK_SUPERCONTEXT (BIND_EXPR_BLOCK (body)) = fndecl;
+      DECL_INITIAL (fndecl) = BIND_EXPR_BLOCK (body);
+    }
 
   DECL_SAVED_TREE (fndecl) = body;
 
@@ -2104,6 +2096,18 @@ gnat_types_compatible_p (tree t1, tree t2)
     return 1;
 
   return 0;
+}
+
+/* Return true if T, a FUNCTION_TYPE, has the specified list of flags.  */
+
+bool
+fntype_same_flags_p (const_tree t, tree cico_list, bool return_unconstrained_p,
+		     bool return_by_direct_ref_p, bool return_by_invisi_ref_p)
+{
+  return TYPE_CI_CO_LIST (t) == cico_list
+	 && TYPE_RETURN_UNCONSTRAINED_P (t) == return_unconstrained_p
+	 && TYPE_RETURN_BY_DIRECT_REF_P (t) == return_by_direct_ref_p
+	 && TREE_ADDRESSABLE (t) == return_by_invisi_ref_p;
 }
 
 /* EXP is an expression for the size of an object.  If this size contains
@@ -3213,15 +3217,18 @@ build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
   tree gnu_subprog_type, gnu_subprog_addr, gnu_subprog_call;
   tree gnu_stub_param, gnu_arg_types, gnu_param;
   tree gnu_stub_decl = DECL_FUNCTION_STUB (gnu_subprog);
-  tree gnu_body;
   VEC(tree,gc) *gnu_param_vec = NULL;
 
   gnu_subprog_type = TREE_TYPE (gnu_subprog);
 
+  /* Initialize the information structure for the function.  */
+  allocate_struct_function (gnu_stub_decl, false);
+  set_cfun (NULL);
+
   begin_subprog_body (gnu_stub_decl);
-  gnat_pushlevel ();
 
   start_stmt_group ();
+  gnat_pushlevel ();
 
   /* Loop over the parameters of the stub and translate any of them
      passed by descriptor into a by reference one.  */
@@ -3243,8 +3250,6 @@ build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
       VEC_safe_push (tree, gc, gnu_param_vec, gnu_param);
     }
 
-  gnu_body = end_stmt_group ();
-
   /* Invoke the internal subprogram.  */
   gnu_subprog_addr = build1 (ADDR_EXPR, build_pointer_type (gnu_subprog_type),
 			     gnu_subprog);
@@ -3253,16 +3258,13 @@ build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
 
   /* Propagate the return value, if any.  */
   if (VOID_TYPE_P (TREE_TYPE (gnu_subprog_type)))
-    append_to_statement_list (gnu_subprog_call, &gnu_body);
+    add_stmt (gnu_subprog_call);
   else
-    append_to_statement_list (build_return_expr (DECL_RESULT (gnu_stub_decl),
-						 gnu_subprog_call),
-			      &gnu_body);
+    add_stmt (build_return_expr (DECL_RESULT (gnu_stub_decl),
+				 gnu_subprog_call));
 
   gnat_poplevel ();
-
-  allocate_struct_function (gnu_stub_decl, false);
-  end_subprog_body (gnu_body);
+  end_subprog_body (end_stmt_group ());
 }
 
 /* Build a type to be used to represent an aliased object whose nominal type

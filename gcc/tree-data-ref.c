@@ -1335,12 +1335,12 @@ dr_may_alias_p (const struct data_reference *a, const struct data_reference *b)
     return false;
 
   /* Query the alias oracle.  */
-  if (!DR_IS_READ (a) && !DR_IS_READ (b))
+  if (DR_IS_WRITE (a) && DR_IS_WRITE (b))
     {
       if (!refs_output_dependent_p (DR_REF (a), DR_REF (b)))
 	return false;
     }
-  else if (DR_IS_READ (a) && !DR_IS_READ (b))
+  else if (DR_IS_READ (a) && DR_IS_WRITE (b))
     {
       if (!refs_anti_dependent_p (DR_REF (a), DR_REF (b)))
 	return false;
@@ -1372,7 +1372,7 @@ dr_may_alias_p (const struct data_reference *a, const struct data_reference *b)
     decl_b = SSA_NAME_VAR (addr_b);
 
   if (TYPE_RESTRICT (type_a) && TYPE_RESTRICT (type_b)
-      && (!DR_IS_READ (a) || !DR_IS_READ (b))
+      && (DR_IS_WRITE (a) || DR_IS_WRITE (b))
       && decl_a && DECL_P (decl_a)
       && decl_b && DECL_P (decl_b)
       && decl_a != decl_b
@@ -1716,7 +1716,7 @@ bool
 estimated_loop_iterations (struct loop *loop, bool conservative,
 			   double_int *nit)
 {
-  estimate_numbers_of_iterations_loop (loop);
+  estimate_numbers_of_iterations_loop (loop, true);
   if (conservative)
     {
       if (!loop->any_upper_bound)
@@ -4107,7 +4107,7 @@ compute_all_dependences (VEC (data_reference_p, heap) *datarefs,
 
   FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, a)
     for (j = i + 1; VEC_iterate (data_reference_p, datarefs, j, b); j++)
-      if (!DR_IS_READ (a) || !DR_IS_READ (b) || compute_self_and_rr)
+      if (DR_IS_WRITE (a) || DR_IS_WRITE (b) || compute_self_and_rr)
 	{
 	  ddr = initialize_data_dependence_relation (a, b, loop_nest);
 	  VEC_safe_push (ddr_p, heap, *dependence_relations, ddr);
@@ -4709,6 +4709,76 @@ debug_rdg (struct graph *rdg)
   dump_rdg (stderr, rdg);
 }
 
+static void
+dot_rdg_1 (FILE *file, struct graph *rdg)
+{
+  int i;
+
+  fprintf (file, "digraph RDG {\n");
+
+  for (i = 0; i < rdg->n_vertices; i++)
+    {
+      struct vertex *v = &(rdg->vertices[i]);
+      struct graph_edge *e;
+
+      /* Highlight reads from memory.  */
+      if (RDG_MEM_READS_STMT (rdg, i))
+       fprintf (file, "%d [style=filled, fillcolor=green]\n", i);
+
+      /* Highlight stores to memory.  */
+      if (RDG_MEM_WRITE_STMT (rdg, i))
+       fprintf (file, "%d [style=filled, fillcolor=red]\n", i);
+
+      if (v->succ)
+       for (e = v->succ; e; e = e->succ_next)
+         switch (RDGE_TYPE (e))
+           {
+           case input_dd:
+             fprintf (file, "%d -> %d [label=input] \n", i, e->dest);
+             break;
+
+           case output_dd:
+             fprintf (file, "%d -> %d [label=output] \n", i, e->dest);
+             break;
+
+           case flow_dd:
+             /* These are the most common dependences: don't print these. */
+             fprintf (file, "%d -> %d \n", i, e->dest);
+             break;
+
+           case anti_dd:
+             fprintf (file, "%d -> %d [label=anti] \n", i, e->dest);
+             break;
+
+           default:
+             gcc_unreachable ();
+           }
+    }
+
+  fprintf (file, "}\n\n");
+}
+
+/* Display the Reduced Dependence Graph using dotty.  */
+extern void dot_rdg (struct graph *);
+
+DEBUG_FUNCTION void
+dot_rdg (struct graph *rdg)
+{
+  /* When debugging, enable the following code.  This cannot be used
+     in production compilers because it calls "system".  */
+#if 0
+  FILE *file = fopen ("/tmp/rdg.dot", "w");
+  gcc_assert (file != NULL);
+
+  dot_rdg_1 (file, rdg);
+  fclose (file);
+
+  system ("dotty /tmp/rdg.dot &");
+#else
+  dot_rdg_1 (stderr, rdg);
+#endif
+}
+
 /* This structure is used for recording the mapping statement index in
    the RDG.  */
 
@@ -4772,11 +4842,11 @@ create_rdg_edge_for_ddr (struct graph *rdg, ddr_p ddr)
   /* Determines the type of the data dependence.  */
   if (DR_IS_READ (dra) && DR_IS_READ (drb))
     RDGE_TYPE (e) = input_dd;
-  else if (!DR_IS_READ (dra) && !DR_IS_READ (drb))
+  else if (DR_IS_WRITE (dra) && DR_IS_WRITE (drb))
     RDGE_TYPE (e) = output_dd;
-  else if (!DR_IS_READ (dra) && DR_IS_READ (drb))
+  else if (DR_IS_WRITE (dra) && DR_IS_READ (drb))
     RDGE_TYPE (e) = flow_dd;
-  else if (DR_IS_READ (dra) && !DR_IS_READ (drb))
+  else if (DR_IS_READ (dra) && DR_IS_WRITE (drb))
     RDGE_TYPE (e) = anti_dd;
 }
 

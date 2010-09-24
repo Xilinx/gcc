@@ -1763,7 +1763,7 @@ dot_all_scops_1 (FILE *file, VEC (scop_p, heap) *scops)
 
 /* Display all SCoPs using dotty.  */
 
-void
+DEBUG_FUNCTION void
 dot_all_scops (VEC (scop_p, heap) *scops)
 {
   /* When debugging, enable the following code.  This cannot be used
@@ -1783,7 +1783,7 @@ dot_all_scops (VEC (scop_p, heap) *scops)
 
 /* Display all SCoPs using dotty.  */
 
-void
+DEBUG_FUNCTION void
 dot_scop (scop_p scop)
 {
   VEC (scop_p, heap) *scops = NULL;

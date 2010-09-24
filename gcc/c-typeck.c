@@ -1038,17 +1038,6 @@ comptypes_internal (const_tree type1, const_tree type2, bool *enum_and_int_p,
       || TREE_CODE (t1) == ERROR_MARK || TREE_CODE (t2) == ERROR_MARK)
     return 1;
 
-  /* If either type is the internal version of sizetype, return the
-     language version.  */
-  if (TREE_CODE (t1) == INTEGER_TYPE && TYPE_IS_SIZETYPE (t1)
-      && TYPE_ORIG_SIZE_TYPE (t1))
-    t1 = TYPE_ORIG_SIZE_TYPE (t1);
-
-  if (TREE_CODE (t2) == INTEGER_TYPE && TYPE_IS_SIZETYPE (t2)
-      && TYPE_ORIG_SIZE_TYPE (t2))
-    t2 = TYPE_ORIG_SIZE_TYPE (t2);
-
-
   /* Enumerated types are compatible with integer types, but this is
      not transitive: two enumerated types in the same translation unit
      are compatible with each other only if they are the same type.  */
@@ -2908,8 +2897,13 @@ convert_arguments (tree typelist, VEC(tree,gc) *values,
 
       if (type == void_type_node)
 	{
-	  error_at (input_location,
-		    "too many arguments to function %qE", function);
+	  if (selector)
+	    error_at (input_location,
+		      "too many arguments to method %qE", selector);
+	  else
+	    error_at (input_location,
+		      "too many arguments to function %qE", function);
+
 	  if (fundecl && !DECL_BUILT_IN (fundecl))
 	    inform (DECL_SOURCE_LOCATION (fundecl), "declared here");
 	  return parmnum;
@@ -3106,8 +3100,15 @@ convert_arguments (tree typelist, VEC(tree,gc) *values,
 	  if (type_generic)
 	    parmval = val;
 	  else
-	    /* Convert `float' to `double'.  */
-	    parmval = convert (double_type_node, val);
+	    {
+	      /* Convert `float' to `double'.  */
+	      if (warn_double_promotion && !c_inhibit_evaluation_warnings)
+		warning (OPT_Wdouble_promotion,
+			 "implicit conversion from %qT to %qT when passing "
+			 "argument to function",
+			 valtype, double_type_node);
+	      parmval = convert (double_type_node, val);
+	    }
 	}
       else if (excess_precision && !type_generic)
 	/* A "double" argument with excess precision being passed
@@ -4140,6 +4141,10 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
 	       || code2 == COMPLEX_TYPE))
     {
       result_type = c_common_type (type1, type2);
+      do_warn_double_promotion (result_type, type1, type2,
+				"implicit conversion from %qT to %qT to "
+				"match other result of conditional",
+				colon_loc);
 
       /* If -Wsign-compare, warn here if type1 and type2 have
 	 different signedness.  We'll promote the signed to unsigned
@@ -9822,6 +9827,11 @@ build_binary_op (location_t location, enum tree_code code,
       if (shorten || common || short_compare)
 	{
 	  result_type = c_common_type (type0, type1);
+	  do_warn_double_promotion (result_type, type0, type1,
+				    "implicit conversion from %qT to %qT "
+				    "to match other operand of binary "
+				    "expression",
+				    location);
 	  if (result_type == error_mark_node)
 	    return error_mark_node;
 	}

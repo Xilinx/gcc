@@ -30,44 +30,6 @@ CC recognizes how to compile each input file by suffixes in the file names.
 Once it knows which kind of compilation to perform, the procedure for
 compilation is specified by a string called a "spec".  */
 
-/* A Short Introduction to Adding a Command-Line Option.
-
-   Before adding a command-line option, consider if it is really
-   necessary.  Each additional command-line option adds complexity and
-   is difficult to remove in subsequent versions.
-
-   In the following, consider adding the command-line argument
-   `--bar'.
-
-   1. Each command-line option is specified in the specs file.  The
-   notation is described below in the comment entitled "The Specs
-   Language".  Read it.
-
-   2. In this file, add an entry to "option_map" equating the long
-   `--' argument version and any shorter, single letter version.  Read
-   the comments in the declaration of "struct option_map" for an
-   explanation.  Do not omit the first `-'.
-
-   3. Look in the "specs" file to determine which program or option
-   list should be given the argument, e.g., "cc1_options".  Add the
-   appropriate syntax for the shorter option version to the
-   corresponding "const char *" entry in this file.  Omit the first
-   `-' from the option.  For example, use `-bar', rather than `--bar'.
-
-   4. If the argument takes an argument, e.g., `--baz argument1',
-   modify either DEFAULT_SWITCH_TAKES_ARG or
-   DEFAULT_WORD_SWITCH_TAKES_ARG in gcc.h.  Omit the first `-'
-   from `--baz'.
-
-   5. Document the option in this file's display_help().  If the
-   option is passed to a subprogram, modify its corresponding
-   function, e.g., cppinit.c:print_help() or toplev.c:display_help(),
-   instead.
-
-   6. Compile and test.  Make sure that your new specs file is being
-   read.  For example, use a debugger to investigate the value of
-   "specs_file" in main().  */
-
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -263,7 +225,6 @@ static void add_prefix (struct path_prefix *, const char *, const char *,
 			int, int, int);
 static void add_sysrooted_prefix (struct path_prefix *, const char *,
 				  const char *, int, int, int);
-static void translate_options (int *, const char *const **);
 static char *skip_whitespace (char *);
 static void delete_if_ordinary (const char *);
 static void delete_temp_files (void);
@@ -300,7 +261,7 @@ static void display_help (void);
 static void add_preprocessor_option (const char *, int);
 static void add_assembler_option (const char *, int);
 static void add_linker_option (const char *, int);
-static void process_command (int, const char **);
+static void process_command (unsigned int, struct cl_decoded_option *);
 static int execute (void);
 static void alloc_args (void);
 static void clear_args (void);
@@ -802,9 +763,10 @@ static const char *cc1_options =
  %{!fcompare-debug-second:%{c|S:%{o*:-auxbase-strip %*}%{!o*:-auxbase %b}}}%{!c:%{!S:-auxbase %b}} \
  %{g*} %{O*} %{W*&pedantic*} %{w} %{std*&ansi&trigraphs}\
  %{v:-version} %{pg:-p} %{p} %{f*} %{undef}\
- %{Qn:-fno-ident} %{--help:--help}\
- %{--target-help:--target-help}\
- %{--help=*:--help=%(VALUE)}\
+ %{Qn:-fno-ident} %{-help:--help}\
+ %{-target-help:--target-help}\
+ %{-version:--version}\
+ %{-help=*:--help=%*}\
  %{!fsyntax-only:%{S:%W{o*}%{!o*:-o %b.s}}}\
  %{fsyntax-only:-o %j} %{-param*}\
  %{fmudflap|fmudflapth:-fno-builtin -fno-merge-constants}\
@@ -959,7 +921,7 @@ static const struct compiler default_compilers[] =
   {".java", "#Java", 0, 0, 0}, {".class", "#Java", 0, 0, 0},
   {".zip", "#Java", 0, 0, 0}, {".jar", "#Java", 0, 0, 0},
   /* Next come the entries for C.  */
-  {".c", "@c", 0, 1, 1},
+  {".c", "@c", 0, 0, 1},
   {"@c",
    /* cc1 has an integrated ISO C preprocessor.  We should invoke the
       external preprocessor if -save-temps is given.  */
@@ -967,20 +929,13 @@ static const struct compiler default_compilers[] =
       %{!E:%{!M:%{!MM:\
           %{traditional|ftraditional:\
 %eGNU C no longer supports -traditional without -E}\
-       %{!combine:\
-	  %{save-temps*|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
-		%(cpp_options) -o %{save-temps*:%b.i} %{!save-temps*:%g.i} \n\
-		    cc1 -fpreprocessed %{save-temps*:%b.i} %{!save-temps*:%g.i} \
-			%(cc1_options)}\
-	  %{!save-temps*:%{!traditional-cpp:%{!no-integrated-cpp:\
-		cc1 %(cpp_unique_options) %(cc1_options)}}}\
-          %{!fsyntax-only:%(invoke_as)}} \
-      %{combine:\
-	  %{save-temps*|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
-		%(cpp_options) -o %{save-temps*:%b.i} %{!save-temps*:%g.i}}\
-	  %{!save-temps*:%{!traditional-cpp:%{!no-integrated-cpp:\
-		cc1 %(cpp_unique_options) %(cc1_options)}}\
-                %{!fsyntax-only:%(invoke_as)}}}}}}", 0, 1, 1},
+      %{save-temps*|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
+	  %(cpp_options) -o %{save-temps*:%b.i} %{!save-temps*:%g.i} \n\
+	    cc1 -fpreprocessed %{save-temps*:%b.i} %{!save-temps*:%g.i} \
+	  %(cc1_options)}\
+      %{!save-temps*:%{!traditional-cpp:%{!no-integrated-cpp:\
+	  cc1 %(cpp_unique_options) %(cc1_options)}}}\
+      %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 1},
   {"-",
    "%{!E:%e-E or -x required when input is from standard input}\
     %(trad_capable_cpp) %(cpp_options) %(cpp_debug_options)", 0, 0, 0},
@@ -1000,7 +955,7 @@ static const struct compiler default_compilers[] =
 		cc1 %(cpp_unique_options) %(cc1_options)\
                     %{!fdump-ada-spec*:-o %g.s %{!o*:--output-pch=%i.gch}\
                     %W{o*:--output-pch=%*}}%V}}}}}}", 0, 0, 0},
-  {".i", "@cpp-output", 0, 1, 0},
+  {".i", "@cpp-output", 0, 0, 0},
   {"@cpp-output",
    "%{!M:%{!MM:%{!E:cc1 -fpreprocessed %i %(cc1_options) %{!fsyntax-only:%(invoke_as)}}}}", 0, 1, 0},
   {".s", "@assembler", 0, 1, 0},
@@ -1048,352 +1003,6 @@ static char **assembler_options;
    and substituted into the preprocessor command with %Z.  */
 static int n_preprocessor_options;
 static char **preprocessor_options;
-
-/* Define how to map long options into short ones.  */
-
-/* This structure describes one mapping.  */
-struct option_map
-{
-  /* The long option's name.  */
-  const char *const name;
-  /* The equivalent short option.  */
-  const char *const equivalent;
-  /* Argument info.  A string of flag chars; NULL equals no options.
-     a => argument required.
-     o => argument optional.
-     j => join argument to equivalent, making one word.
-     * => require other text after NAME as an argument.  */
-  const char *const arg_info;
-};
-
-/* This is the table of mappings.  Mappings are tried sequentially
-   for each option encountered; the first one that matches, wins.  */
-
-static const struct option_map option_map[] =
- {
-   {"--all-warnings", "-Wall", 0},
-   {"--ansi", "-ansi", 0},
-   {"--assemble", "-S", 0},
-   {"--assert", "-A", "a"},
-   {"--classpath", "-fclasspath=", "aj"},
-   {"--bootclasspath", "-fbootclasspath=", "aj"},
-   {"--CLASSPATH", "-fclasspath=", "aj"},
-   {"--combine", "-combine", 0},
-   {"--comments", "-C", 0},
-   {"--comments-in-macros", "-CC", 0},
-   {"--compile", "-c", 0},
-   {"--debug", "-g", "oj"},
-   {"--define-macro", "-D", "aj"},
-   {"--dependencies", "-M", 0},
-   {"--dump", "-d", "a"},
-   {"--dumpbase", "-dumpbase", "a"},
-   {"--dumpdir", "-dumpdir", "a"},
-   {"--encoding", "-fencoding=", "aj"},
-   {"--entry", "-e", 0},
-   {"--extra-warnings", "-W", 0},
-   {"--extdirs", "-fextdirs=", "aj"},
-   {"--for-assembler", "-Wa", "a"},
-   {"--for-linker", "-Xlinker", "a"},
-   {"--force-link", "-u", "a"},
-   {"--coverage", "-coverage", 0},
-   {"--imacros", "-imacros", "a"},
-   {"--include", "-include", "a"},
-   {"--include-barrier", "-I-", 0},
-   {"--include-directory", "-I", "aj"},
-   {"--include-directory-after", "-idirafter", "a"},
-   {"--include-prefix", "-iprefix", "a"},
-   {"--include-with-prefix", "-iwithprefix", "a"},
-   {"--include-with-prefix-before", "-iwithprefixbefore", "a"},
-   {"--include-with-prefix-after", "-iwithprefix", "a"},
-   {"--language", "-x", "a"},
-   {"--library-directory", "-L", "a"},
-   {"--machine", "-m", "aj"},
-   {"--machine-", "-m", "*j"},
-   {"--no-canonical-prefixes", "-no-canonical-prefixes", 0},
-   {"--no-integrated-cpp", "-no-integrated-cpp", 0},
-   {"--no-line-commands", "-P", 0},
-   {"--no-precompiled-includes", "-noprecomp", 0},
-   {"--no-standard-includes", "-nostdinc", 0},
-   {"--no-standard-libraries", "-nostdlib", 0},
-   {"--no-warnings", "-w", 0},
-   {"--optimize", "-O", "oj"},
-   {"--output", "-o", "a"},
-   {"--output-class-directory", "-foutput-class-dir=", "ja"},
-   {"--param", "--param", "a"},
-   {"--pass-exit-codes", "-pass-exit-codes", 0},
-   {"--pedantic", "-pedantic", 0},
-   {"--pedantic-errors", "-pedantic-errors", 0},
-   {"--pie", "-pie", 0},
-   {"--pipe", "-pipe", 0},
-   {"--prefix", "-B", "a"},
-   {"--preprocess", "-E", 0},
-   {"--print-search-dirs", "-print-search-dirs", 0},
-   {"--print-file-name", "-print-file-name=", "aj"},
-   {"--print-libgcc-file-name", "-print-libgcc-file-name", 0},
-   {"--print-missing-file-dependencies", "-MG", 0},
-   {"--print-multi-lib", "-print-multi-lib", 0},
-   {"--print-multi-directory", "-print-multi-directory", 0},
-   {"--print-multi-os-directory", "-print-multi-os-directory", 0},
-   {"--print-prog-name", "-print-prog-name=", "aj"},
-   {"--print-sysroot", "-print-sysroot", 0},
-   {"--print-sysroot-headers-suffix", "-print-sysroot-headers-suffix", 0},
-   {"--profile", "-p", 0},
-   {"--resource", "-fcompile-resource=", "aj"},
-   {"--save-temps", "-save-temps", 0},
-   {"--shared", "-shared", 0},
-   {"--specs", "-specs=", "aj"},
-   {"--static", "-static", 0},
-   {"--std", "-std=", "aj"},
-   {"--symbolic", "-symbolic", 0},
-   {"--sysroot", "--sysroot=", "aj"},
-   {"--time", "-time", 0},
-   {"--trace-includes", "-H", 0},
-   {"--traditional", "-traditional", 0},
-   {"--traditional-cpp", "-traditional-cpp", 0},
-   {"--trigraphs", "-trigraphs", 0},
-   {"--undefine-macro", "-U", "aj"},
-   {"--user-dependencies", "-MM", 0},
-   {"--verbose", "-v", 0},
-   {"--warn-", "-W", "*j"},
-   {"--write-dependencies", "-MD", 0},
-   {"--write-user-dependencies", "-MMD", 0},
-   {"--", "-f", "*j"}
- };
-
-
-#ifdef TARGET_OPTION_TRANSLATE_TABLE
-static const struct {
-  const char *const option_found;
-  const char *const replacements;
-} target_option_translations[] =
-{
-  TARGET_OPTION_TRANSLATE_TABLE,
-  { 0, 0 }
-};
-#endif
-
-/* Translate the options described by *ARGCP and *ARGVP.
-   Make a new vector and store it back in *ARGVP,
-   and store its length in *ARGCP.  */
-
-static void
-translate_options (int *argcp, const char *const **argvp)
-{
-  int i;
-  int argc = *argcp;
-  const char *const *argv = *argvp;
-  int newvsize = (argc + 2) * 2 * sizeof (const char *);
-  const char **newv = XNEWVAR (const char *, newvsize);
-  int newindex = 0;
-
-  i = 0;
-  newv[newindex++] = argv[i++];
-
-  while (i < argc)
-    {
-#ifdef TARGET_OPTION_TRANSLATE_TABLE
-      int tott_idx;
-
-      for (tott_idx = 0;
-	   target_option_translations[tott_idx].option_found;
-	   tott_idx++)
-	{
-	  if (strcmp (target_option_translations[tott_idx].option_found,
-		      argv[i]) == 0)
-	    {
-	      int spaces = 1;
-	      const char *sp;
-	      char *np;
-
-	      for (sp = target_option_translations[tott_idx].replacements;
-		   *sp; sp++)
-		{
-		  if (*sp == ' ')
-		    spaces ++;
-		}
-
-	      newvsize += spaces * sizeof (const char *);
-	      newv =  XRESIZEVAR (const char *, newv, newvsize);
-
-	      sp = target_option_translations[tott_idx].replacements;
-	      np = xstrdup (sp);
-
-	      while (1)
-		{
-		  while (*np == ' ')
-		    np++;
-		  if (*np == 0)
-		    break;
-		  newv[newindex++] = np;
-		  while (*np != ' ' && *np)
-		    np++;
-		  if (*np == 0)
-		    break;
-		  *np++ = 0;
-		}
-
-	      i ++;
-	      break;
-	    }
-	}
-      if (target_option_translations[tott_idx].option_found)
-	continue;
-#endif
-
-      /* Translate -- options.  */
-      if (argv[i][0] == '-' && argv[i][1] == '-')
-	{
-	  size_t j;
-	  /* Find a mapping that applies to this option.  */
-	  for (j = 0; j < ARRAY_SIZE (option_map); j++)
-	    {
-	      size_t optlen = strlen (option_map[j].name);
-	      size_t arglen = strlen (argv[i]);
-	      size_t complen = arglen > optlen ? optlen : arglen;
-	      const char *arginfo = option_map[j].arg_info;
-
-	      if (arginfo == 0)
-		arginfo = "";
-
-	      if (!strncmp (argv[i], option_map[j].name, complen))
-		{
-		  const char *arg = 0;
-
-		  if (arglen < optlen)
-		    {
-		      size_t k;
-		      for (k = j + 1; k < ARRAY_SIZE (option_map); k++)
-			if (strlen (option_map[k].name) >= arglen
-			    && !strncmp (argv[i], option_map[k].name, arglen))
-			  {
-			    error ("ambiguous abbreviation %s", argv[i]);
-			    break;
-			  }
-
-		      if (k != ARRAY_SIZE (option_map))
-			break;
-		    }
-
-		  if (arglen > optlen)
-		    {
-		      /* If the option has an argument, accept that.  */
-		      if (argv[i][optlen] == '=')
-			arg = argv[i] + optlen + 1;
-
-		      /* If this mapping requires extra text at end of name,
-			 accept that as "argument".  */
-		      else if (strchr (arginfo, '*') != 0)
-			arg = argv[i] + optlen;
-
-		      /* Otherwise, extra text at end means mismatch.
-			 Try other mappings.  */
-		      else
-			continue;
-		    }
-
-		  else if (strchr (arginfo, '*') != 0)
-		    {
-		      error ("incomplete %qs option", option_map[j].name);
-		      break;
-		    }
-
-		  /* Handle arguments.  */
-		  if (strchr (arginfo, 'a') != 0)
-		    {
-		      if (arg == 0)
-			{
-			  if (i + 1 == argc)
-			    {
-			      error ("missing argument to %qs option",
-				     option_map[j].name);
-			      break;
-			    }
-
-			  arg = argv[++i];
-			}
-		    }
-		  else if (strchr (arginfo, '*') != 0)
-		    ;
-		  else if (strchr (arginfo, 'o') == 0)
-		    {
-		      if (arg != 0)
-			error ("extraneous argument to %qs option",
-			       option_map[j].name);
-		      arg = 0;
-		    }
-
-		  /* Store the translation as one argv elt or as two.  */
-		  if (arg != 0 && strchr (arginfo, 'j') != 0)
-		    newv[newindex++] = concat (option_map[j].equivalent, arg,
-					       NULL);
-		  else if (arg != 0)
-		    {
-		      newv[newindex++] = option_map[j].equivalent;
-		      newv[newindex++] = arg;
-		    }
-		  else
-		    newv[newindex++] = option_map[j].equivalent;
-
-		  break;
-		}
-	    }
-	  i++;
-	}
-
-      /* Handle old-fashioned options--just copy them through,
-	 with their arguments.  */
-      else if (argv[i][0] == '-')
-	{
-	  const char *p = argv[i] + 1;
-	  int c = *p;
-	  int nskip = 1;
-
-	  if (SWITCH_TAKES_ARG (c) > (p[1] != 0))
-	    nskip += SWITCH_TAKES_ARG (c) - (p[1] != 0);
-	  else if (WORD_SWITCH_TAKES_ARG (p))
-	    nskip += WORD_SWITCH_TAKES_ARG (p);
-	  else if ((c == 'B' || c == 'b' || c == 'x')
-		   && p[1] == 0)
-	    nskip += 1;
-	  else if (! strcmp (p, "Xlinker"))
-	    nskip += 1;
-	  else if (! strcmp (p, "Xpreprocessor"))
-	    nskip += 1;
-	  else if (! strcmp (p, "Xassembler"))
-	    nskip += 1;
-
-	  /* Watch out for an option at the end of the command line that
-	     is missing arguments, and avoid skipping past the end of the
-	     command line.  */
-	  if (nskip + i > argc)
-	    nskip = argc - i;
-
-	  /* Convert -d with a separate argument to
-	     -foutput-class-dir= for Java.  */
-	  if (c == 'd' && p[1] == 0 && argv[i + 1] != NULL)
-	    {
-	      newv[newindex++] = concat ("-foutput-class-dir=", argv[i + 1],
-					 NULL);
-	      nskip = 0;
-	      i += 2;
-	    }
-
-	  while (nskip > 0)
-	    {
-	      newv[newindex++] = argv[i++];
-	      nskip--;
-	    }
-	}
-      else
-	/* Ordinary operands.  */
-	newv[newindex++] = argv[i++];
-    }
-
-  newv[newindex] = 0;
-
-  *argvp = newv;
-  *argcp = newindex;
-}
 
 static char *
 skip_whitespace (char *p)
@@ -3332,7 +2941,6 @@ display_help (void)
   fputs (_("  -Xassembler <arg>        Pass <arg> on to the assembler\n"), stdout);
   fputs (_("  -Xpreprocessor <arg>     Pass <arg> on to the preprocessor\n"), stdout);
   fputs (_("  -Xlinker <arg>           Pass <arg> on to the linker\n"), stdout);
-  fputs (_("  -combine                 Pass multiple source files to compiler at once\n"), stdout);
   fputs (_("  -save-temps              Do not delete intermediate files\n"), stdout);
   fputs (_("  -save-temps=<arg>        Do not delete intermediate files\n"), stdout);
   fputs (_("\
@@ -3565,8 +3173,7 @@ driver_handle_option (const struct cl_decoded_option *decoded,
       printf ("%s\n", spec_machine);
       exit (0);
 
-    case OPT_fversion:
-      /* translate_options () has turned --version into -fversion.  */
+    case OPT__version:
       print_version = 1;
 
       /* CPP driver cannot obtain switch from cc1_options.  */
@@ -3576,8 +3183,7 @@ driver_handle_option (const struct cl_decoded_option *decoded,
       add_linker_option ("--version", strlen ("--version"));
       break;
 
-    case OPT_fhelp:
-      /* translate_options () has turned --help into -fhelp.  */
+    case OPT__help:
       print_help_list = 1;
 
       /* CPP driver cannot obtain switch from cc1_options.  */
@@ -3587,13 +3193,11 @@ driver_handle_option (const struct cl_decoded_option *decoded,
       add_linker_option ("--help", 6);
       break;
 
-    case OPT_fhelp_:
-      /* translate_options () has turned --help into -fhelp.  */
+    case OPT__help_:
       print_subprocess_help = 2;
       break;
 
-    case OPT_ftarget_help:
-      /* translate_options() has turned --target-help into -ftarget-help.  */
+    case OPT__target_help:
       print_subprocess_help = 1;
 
       /* CPP driver cannot obtain switch from cc1_options.  */
@@ -3742,6 +3346,12 @@ driver_handle_option (const struct cl_decoded_option *decoded,
       do_save = false;
       break;
 
+    case OPT_L:
+      /* Similarly, canonicalize -L for linkers that may not accept
+	 separate arguments.  */
+      save_switch (concat ("-L", arg, NULL), 0, NULL, validated);
+      return true;
+
     case OPT_save_temps:
       save_temps_flag = SAVE_TEMPS_CWD;
       validated = true;
@@ -3765,14 +3375,11 @@ driver_handle_option (const struct cl_decoded_option *decoded,
 
     case OPT_pipe:
       validated = true;
-      /* Fall through.  */
-    case OPT_combine:
       /* These options set the variables specified in common.opt
 	 automatically, but do need to be saved for spec
 	 processing.  */
       break;
 
-    case OPT_specs:
     case OPT_specs_:
       {
 	struct user_specs *user = XNEW (struct user_specs);
@@ -3899,17 +3506,16 @@ driver_handle_option (const struct cl_decoded_option *decoded,
    Store its length in `n_switches'.  */
 
 static void
-process_command (int argc, const char **argv)
+process_command (unsigned int decoded_options_count,
+		 struct cl_decoded_option *decoded_options)
 {
-  int i;
   const char *temp;
   char *temp1;
   const char *tooldir_prefix;
   char *(*get_relative_prefix) (const char *, const char *,
 				const char *) = NULL;
   struct cl_option_handlers handlers;
-  struct cl_decoded_option *decoded_options;
-  unsigned int decoded_options_count, j;
+  unsigned int j;
 
   GET_ENVIRONMENT (gcc_exec_prefix, "GCC_EXEC_PREFIX");
 
@@ -3930,18 +3536,13 @@ process_command (int argc, const char **argv)
 	}
     }
 
-  /* Convert new-style -- options to old-style.  */
-  translate_options (&argc,
-		     CONST_CAST2 (const char *const **, const char ***,
-				  &argv));
-
   /* Handle any -no-canonical-prefixes flag early, to assign the function
      that builds relative prefixes.  This function creates default search
      paths that are needed later in normal option handling.  */
 
-  for (i = 1; i < argc; i++)
+  for (j = 1; j < decoded_options_count; j++)
     {
-      if (! strcmp (argv[i], "-no-canonical-prefixes"))
+      if (decoded_options[j].opt_index == OPT_no_canonical_prefixes)
 	{
 	  get_relative_prefix = make_relative_prefix_ignore_links;
 	  break;
@@ -3951,17 +3552,18 @@ process_command (int argc, const char **argv)
     get_relative_prefix = make_relative_prefix;
 
   /* Set up the default search paths.  If there is no GCC_EXEC_PREFIX,
-     see if we can create it from the pathname specified in argv[0].  */
+     see if we can create it from the pathname specified in
+     decoded_options[0].arg.  */
 
   gcc_libexec_prefix = standard_libexec_prefix;
 #ifndef VMS
   /* FIXME: make_relative_prefix doesn't yet work for VMS.  */
   if (!gcc_exec_prefix)
     {
-      gcc_exec_prefix = get_relative_prefix (argv[0],
+      gcc_exec_prefix = get_relative_prefix (decoded_options[0].arg,
 					     standard_bindir_prefix,
 					     standard_exec_prefix);
-      gcc_libexec_prefix = get_relative_prefix (argv[0],
+      gcc_libexec_prefix = get_relative_prefix (decoded_options[0].arg,
 					     standard_bindir_prefix,
 					     standard_libexec_prefix);
       if (gcc_exec_prefix)
@@ -3988,10 +3590,8 @@ process_command (int argc, const char **argv)
 #endif
   /* From this point onward, gcc_exec_prefix is non-null if the toolchain
      is relocated. The toolchain was either relocated using GCC_EXEC_PREFIX
-     or an automatically created GCC_EXEC_PREFIX from argv[0].  */
-
-  decode_cmdline_options_to_array (argc, argv, CL_DRIVER,
-				   &decoded_options, &decoded_options_count);
+     or an automatically created GCC_EXEC_PREFIX from
+     decoded_options[0].arg.  */
 
   /* Do language-specific adjustment/addition of flags.  */
   lang_specific_driver (&decoded_options, &decoded_options_count,
@@ -4287,7 +3887,7 @@ process_command (int argc, const char **argv)
      ``make_relative_prefix'' is not compiled for VMS, so don't call it.  */
   if (target_system_root && !target_system_root_changed && gcc_exec_prefix)
     {
-      char *tmp_prefix = get_relative_prefix (argv[0],
+      char *tmp_prefix = get_relative_prefix (decoded_options[0].arg,
 					      standard_bindir_prefix,
 					      target_system_root);
       if (tmp_prefix && access_check (tmp_prefix, F_OK) == 0)
@@ -6498,6 +6098,8 @@ main (int argc, char **argv)
   const char *p;
   struct user_specs *uptr;
   char **old_argv = argv;
+  struct cl_decoded_option *decoded_options;
+  unsigned int decoded_options_count;
 
   /* Initialize here, not in definition.  The IRIX 6 O32 cc sometimes chokes
      on ?: in file-scope variable initializations.  */
@@ -6516,7 +6118,10 @@ main (int argc, char **argv)
   if (argv != old_argv)
     at_file_supplied = true;
 
-  prune_options (&argc, &argv);
+  decode_cmdline_options_to_array (argc, CONST_CAST2 (const char **, char **,
+						      argv),
+				   CL_DRIVER,
+				   &decoded_options, &decoded_options_count);
 
 #ifdef GCC_DRIVER_HOST_INITIALIZATION
   /* Perform host dependent initialization when needed.  */
@@ -6606,7 +6211,7 @@ main (int argc, char **argv)
      Make a table of specified input files (infiles, n_infiles).
      Decode switches that are handled locally.  */
 
-  process_command (argc, CONST_CAST2 (const char **, char **, argv));
+  process_command (decoded_options_count, decoded_options);
 
   /* Initialize the vector of specs to just the default.
      This means one element containing 0s, as a terminator.  */
@@ -7008,10 +6613,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 
   explicit_link_files = XCNEWVEC (char, n_infiles);
 
-  if (combine_flag)
-    combine_inputs = true;
-  else
-    combine_inputs = false;
+  combine_inputs = have_o || flag_wpa;
 
   for (i = 0; (int) i < n_infiles; i++)
     {
@@ -7044,63 +6646,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
     }
 
   if (!combine_inputs && have_c && have_o && lang_n_infiles > 1)
-   fatal_error ("cannot specify -o with -c, -S or -E with multiple files");
-
-  if (combine_flag && save_temps_flag)
-    {
-      bool save_combine_inputs = combine_inputs;
-      /* Must do a separate pre-processing pass for C & Objective-C files, to
-	 obtain individual .i files.  */
-
-      combine_inputs = false;
-      for (i = 0; (int) i < n_infiles; i++)
-	{
-	  int this_file_error = 0;
-
-	  input_file_number = i;
-	  set_input (infiles[i].name);
-	  if (infiles[i].incompiler
-	      && (infiles[i].incompiler)->needs_preprocessing)
-	    input_file_compiler = infiles[i].incompiler;
-	  else
-	    continue;
-
-	  if (input_file_compiler)
-	    {
-	      if (input_file_compiler->spec[0] == '#')
-		{
-		  error ("%s: %s compiler not installed on this system",
-			 gcc_input_filename, &input_file_compiler->spec[1]);
-		  this_file_error = 1;
-		}
-	      else
-		{
-		  value = do_spec (input_file_compiler->spec);
-		  infiles[i].preprocessed = true;
-		  if (!have_o_argbuf_index)
-		    fatal_error ("spec %qs is invalid",
-				 input_file_compiler->spec);
-		  infiles[i].name = argbuf[have_o_argbuf_index];
-		  infiles[i].incompiler
-		    = lookup_compiler (infiles[i].name,
-				       strlen (infiles[i].name),
-				       infiles[i].language);
-
-		  if (value < 0)
-		    this_file_error = 1;
-		}
-	    }
-
-	  if (this_file_error)
-	    {
-	      delete_failure_queue ();
-	      errorcount++;
-	      break;
-	    }
-	  clear_failure_queue ();
-	}
-      combine_inputs = save_combine_inputs;
-    }
+    fatal_error ("cannot specify -o with -c, -S or -E with multiple files");
 
   for (i = 0; (int) i < n_infiles; i++)
     {
@@ -7120,12 +6666,9 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 
       /* Figure out which compiler from the file's suffix.  */
 
-      if (! combine_inputs)
-	input_file_compiler
-	  = lookup_compiler (infiles[i].name, input_filename_length,
-			     infiles[i].language);
-      else
-	input_file_compiler = infiles[i].incompiler;
+      input_file_compiler
+	= lookup_compiler (infiles[i].name, input_filename_length,
+			   infiles[i].language);
 
       if (input_file_compiler)
 	{

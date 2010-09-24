@@ -28,9 +28,8 @@ BEGIN {
 	n_opts = 0
 	n_langs = 0
 	n_target_save = 0
+	n_extra_vars = 0
 	n_extra_masks = 0
-	quote = "\042"
-	comma = ","
 	FS=SUBSEP
 }
 
@@ -44,6 +43,10 @@ BEGIN {
 			# Make sure the declarations are put in source order
 			target_save_decl[n_target_save] = $2
 			n_target_save++
+		}
+		else if ($1 == "Variable") {
+			extra_vars[n_extra_vars] = $2
+			n_extra_vars++
 		}
 		else {
 			name = opt_args("Mask", $1)
@@ -67,11 +70,16 @@ print ""
 print "#ifndef OPTIONS_H"
 print "#define OPTIONS_H"
 print ""
-print "extern int target_flags;"
 print "extern int target_flags_explicit;"
 print ""
 
 have_save = 0;
+
+for (i = 0; i < n_extra_vars; i++) {
+	var = extra_vars[i]
+	sub(" *=.*", "", var)
+	print "extern " var ";"
+}
 
 for (i = 0; i < n_opts; i++) {
 	if (flag_set_p("Save", flags[i]))
@@ -321,6 +329,7 @@ print "{"
 for (i = 0; i < n_opts; i++)
 	back_chain[i] = "N_OPTS";
 
+enum_value = 0
 for (i = 0; i < n_opts; i++) {
 	# Combine the flags of identical switches.  Switches
 	# appear many times if they are handled by many front
@@ -332,6 +341,14 @@ for (i = 0; i < n_opts; i++) {
 
 	len = length (opts[i]);
 	enum = opt_enum(opts[i])
+	enum_string = enum " = " enum_value ","
+
+	# Aliases do not get enumeration names.
+	if ((flag_set_p("Alias.*", flags[i]) \
+	     && !flag_set_p("SeparateAlias", flags[i])) \
+	    || flag_set_p("Ignore", flags[i])) {
+		enum_string = "/* " enum_string " */"
+	}
 
 	# If this switch takes joined arguments, back-chain all
 	# subsequent switches to it for which it is a prefix.  If
@@ -346,20 +363,21 @@ for (i = 0; i < n_opts; i++) {
 		}
 	}
 
-	s = substr("                                         ", length (enum))
-	if (i + 1 == n_opts)
-		comma = ""
+	s = substr("                                          ",
+		   length (enum_string))
 
 	if (help[i] == "")
 		hlp = "0"
 	else
 		hlp = "N_(\"" help[i] "\")";
 
-	print "  " enum "," s "/* -" opts[i] " */"
+	print "  " enum_string s "/* -" opts[i] " */"
+	enum_value++
 }
 
 print "  N_OPTS,"
 print "  OPT_SPECIAL_unknown,"
+print "  OPT_SPECIAL_ignore,"
 print "  OPT_SPECIAL_program_name,"
 print "  OPT_SPECIAL_input_file"
 print "};"

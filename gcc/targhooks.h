@@ -86,6 +86,7 @@ extern bool
 default_builtin_support_vector_misalignment (enum machine_mode mode,
 					     const_tree,
 					     int, bool);
+extern unsigned int default_units_per_simd_word (enum machine_mode mode);
 
 /* These are here, and not in hooks.[ch], because not all users of
    hooks.h include tm.h, and thus we don't have CUMULATIVE_ARGS.  */
@@ -152,3 +153,4 @@ extern int default_register_move_cost (enum machine_mode, reg_class_t,
 				       reg_class_t);
 
 extern bool default_profile_before_prologue (void);
+extern bool default_class_likely_spilled_p (reg_class_t);

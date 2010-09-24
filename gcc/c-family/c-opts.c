@@ -161,7 +161,6 @@ warning_as_error_callback (int option_index)
 	break;
 
       case OPT_Wcomment:
-      case OPT_Wcomments:
 	cpp_opts->warn_comments = 1;
 	break;
 
@@ -493,7 +492,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_Wcomment:
-    case OPT_Wcomments:
       cpp_opts->warn_comments = value;
       break;
 
@@ -521,13 +519,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       global_dc->warning_as_error_requested = value;
       break;
 
-    case OPT_Werror_implicit_function_declaration:
-      /* For backward compatibility, this is the same as
-	 -Werror=implicit-function-declaration.  */
-      enable_warning_as_error ("implicit-function-declaration", value,
-			       CL_C | CL_ObjC, handlers);
-      break;
-
     case OPT_Wformat:
       set_Wformat (value);
       break;
@@ -544,10 +535,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       if (warn_implicit_function_declaration == -1)
 	handle_generated_option (OPT_Wimplicit_function_declaration, NULL,
 				 value, c_family_lang_mask, kind, handlers);
-      break;
-
-    case OPT_Wimport:
-      /* Silently ignore for now.  */
       break;
 
     case OPT_Winvalid_pch:
@@ -632,25 +619,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 	  flag_cond_mismatch = value;
 	  break;
 	}
-      /* Fall through.  */
-
-    case OPT_fall_virtual:
-    case OPT_falt_external_templates:
-    case OPT_fenum_int_equiv:
-    case OPT_fexternal_templates:
-    case OPT_fguiding_decls:
-    case OPT_fhonor_std:
-    case OPT_fhuge_objects:
-    case OPT_flabels_ok:
-    case OPT_fname_mangling_version_:
-    case OPT_fnew_abi:
-    case OPT_fnonnull_objects:
-    case OPT_fsquangle:
-    case OPT_fstrict_prototype:
-    case OPT_fthis_is_variable:
-    case OPT_fvtable_thunks:
-    case OPT_fxref:
-    case OPT_fvtable_gc:
       warning (0, "switch %qs is no longer supported", option->opt_text);
       break;
 
@@ -681,10 +649,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       constant_string_class_name = arg;
       break;
 
-    case OPT_fdefault_inline:
-      /* Ignore.  */
-      break;
-
     case OPT_fextended_identifiers:
       cpp_opts->extended_identifiers = value;
       break;
@@ -693,21 +657,12 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       flag_next_runtime = !value;
       break;
 
-    case OPT_fhandle_exceptions:
-      warning (0, "-fhandle-exceptions has been renamed -fexceptions (and is now on by default)");
-      flag_exceptions = value;
-      break;
-
     case OPT_fnext_runtime:
       flag_next_runtime = value;
       break;
 
     case OPT_foperator_names:
       cpp_opts->operator_names = value;
-      break;
-
-    case OPT_foptional_diags:
-      /* Ignore.  */
       break;
 
     case OPT_fpch_deps:
@@ -752,8 +707,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_ftemplate_depth_:
-      /* Kept for backwards compatibility.  */
-    case OPT_ftemplate_depth_eq:
       max_tinst_depth = value;
       break;
 
@@ -865,30 +818,23 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 	set_std_cxx0x (code == OPT_std_c__0x /* ISO */);
       break;
 
-    case OPT_std_c89:
     case OPT_std_c90:
-    case OPT_std_iso9899_1990:
     case OPT_std_iso9899_199409:
       if (!preprocessing_asm_p)
 	set_std_c89 (code == OPT_std_iso9899_199409 /* c94 */, true /* ISO */);
       break;
 
-    case OPT_std_gnu89:
     case OPT_std_gnu90:
       if (!preprocessing_asm_p)
 	set_std_c89 (false /* c94 */, false /* ISO */);
       break;
 
     case OPT_std_c99:
-    case OPT_std_c9x:
-    case OPT_std_iso9899_1999:
-    case OPT_std_iso9899_199x:
       if (!preprocessing_asm_p)
 	set_std_c99 (true /* ISO */);
       break;
 
     case OPT_std_gnu99:
-    case OPT_std_gnu9x:
       if (!preprocessing_asm_p)
 	set_std_c99 (false /* ISO */);
       break;

@@ -81,6 +81,7 @@ function switch_flags (flags)
 	  test_flag("Driver", flags, " | CL_DRIVER") \
 	  test_flag("RejectDriver", flags, " | CL_REJECT_DRIVER") \
 	  test_flag("NoDriverArg", flags, " | CL_NO_DRIVER_ARG") \
+	  test_flag("SeparateAlias", flags, " | CL_SEPARATE_ALIAS") \
 	  test_flag("Save", flags, " | CL_SAVE") \
 	  test_flag("Joined", flags, " | CL_JOINED") \
 	  test_flag("JoinedOrMissing", flags, " | CL_JOINED | CL_MISSING_OK") \
@@ -114,7 +115,9 @@ function global_state_p(flags)
 # associated with it.
 function needs_state_p(flags)
 {
-	return flag_set_p("Target", flags)
+	return (flag_set_p("Target", flags) \
+		&& !flag_set_p("Alias.*", flags) \
+		&& !flag_set_p("Ignore", flags))
 }
 
 # If FLAGS describes an option that needs a static state variable,
@@ -201,9 +204,6 @@ function var_ref(name, flags)
 # Given the option called NAME return a sanitized version of its name.
 function opt_sanitized_name(name)
 {
-	if (name == "finline-limit=" || name == "Wlarger-than=" \
-	    || name == "ftemplate-depth=")
-		name = name "eq"
 	if (name == "gdwarf+")
 		name = "gdwarfplus"
 	gsub ("[^A-Za-z0-9]", "_", name)

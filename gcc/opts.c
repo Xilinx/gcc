@@ -37,7 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "diagnostic.h"
 #include "opts-diagnostic.h"
-#include "tm_p.h"		/* For OPTIMIZATION_OPTIONS.  */
 #include "insn-attr.h"		/* For INSN_SCHEDULING.  */
 #include "target.h"
 #include "tree-pass.h"
@@ -482,7 +481,8 @@ unknown_option_callback (const struct cl_decoded_option *decoded)
 {
   const char *opt = decoded->arg;
 
-  if (opt[1] == 'W' && opt[2] == 'n' && opt[3] == 'o' && opt[4] == '-')
+  if (opt[1] == 'W' && opt[2] == 'n' && opt[3] == 'o' && opt[4] == '-'
+      && !(decoded->errors & CL_ERR_NEGATIVE))
     {
       /* We don't generate warnings for unknown -Wno-* options unless
 	 we issue diagnostics.  */
@@ -894,8 +894,9 @@ decode_options (unsigned int argc, const char **argv,
 	 set after target options have been processed.  */
       flag_short_enums = 2;
 
-      /* Initialize target_flags before OPTIMIZATION_OPTIONS so the latter can
-	 modify it.  */
+      /* Initialize target_flags before
+	 targetm.target_option.optimization so the latter can modify
+	 it.  */
       target_flags = targetm.default_target_flags;
 
       /* Some targets have ABI-specified unwind tables.  */
@@ -907,10 +908,8 @@ decode_options (unsigned int argc, const char **argv,
   lto_clear_user_options ();
 #endif
 
-#ifdef OPTIMIZATION_OPTIONS
   /* Allow default optimizations to be specified on a per-machine basis.  */
-  OPTIMIZATION_OPTIONS (optimize, optimize_size);
-#endif
+  targetm.target_option.optimization (optimize, optimize_size);
 
   read_cmdline_options (*decoded_options, *decoded_options_count, lang_mask,
 			&handlers);
@@ -1437,7 +1436,6 @@ common_handle_option (const struct cl_decoded_option *decoded,
       verbose = true;
       break;
 
-    case OPT_fhelp:
     case OPT__help:
       {
 	unsigned int all_langs_mask = (1U << cl_lang_count) - 1;
@@ -1459,7 +1457,6 @@ common_handle_option (const struct cl_decoded_option *decoded,
 	break;
       }
 
-    case OPT_ftarget_help:
     case OPT__target_help:
       print_specific_help (CL_TARGET, CL_UNDOCUMENTED, 0);
       exit_after_options = true;
@@ -1469,7 +1466,6 @@ common_handle_option (const struct cl_decoded_option *decoded,
 	targetm.help ();
       break;
 
-    case OPT_fhelp_:
     case OPT__help_:
       {
 	const char * a = arg;
@@ -1588,7 +1584,6 @@ common_handle_option (const struct cl_decoded_option *decoded,
 	break;
       }
 
-    case OPT_fversion:
     case OPT__version:
       exit_after_options = true;
       break;
@@ -1604,11 +1599,6 @@ common_handle_option (const struct cl_decoded_option *decoded,
       break;
 
     case OPT_Wlarger_than_:
-      /* This form corresponds to -Wlarger-than-.
-	 Kept for backward compatibility.
-	 Don't use it as the first argument of warning().  */
-
-    case OPT_Wlarger_than_eq:
       larger_than_size = value;
       warn_larger_than = value != -1;
       break;
@@ -1649,7 +1639,6 @@ common_handle_option (const struct cl_decoded_option *decoded,
       break;
 
     case OPT_aux_info:
-    case OPT_aux_info_:
       aux_info_file_name = arg;
       flag_gen_aux_info = 1;
       break;
@@ -1760,7 +1749,6 @@ common_handle_option (const struct cl_decoded_option *decoded,
       break;
 
     case OPT_finline_limit_:
-    case OPT_finline_limit_eq:
       set_param_value ("max-inline-insns-single", value / 2);
       set_param_value ("max-inline-insns-auto", value / 2);
       break;
@@ -1949,18 +1937,6 @@ common_handle_option (const struct cl_decoded_option *decoded,
 	warning (0, "unknown stack check parameter \"%s\"", arg);
       break;
 
-    case OPT_fstack_check:
-      /* This is the same as the "specific" mode above.  */
-      if (value)
-	flag_stack_check = STACK_CHECK_BUILTIN
-			   ? FULL_BUILTIN_STACK_CHECK
-			   : STACK_CHECK_STATIC_BUILTIN
-			     ? STATIC_BUILTIN_STACK_CHECK
-			     : GENERIC_STACK_CHECK;
-      else
-	flag_stack_check = NO_STACK_CHECK;
-      break;
-
     case OPT_fstack_limit:
       /* The real switch is -fno-stack-limit.  */
       if (value)
@@ -2094,30 +2070,16 @@ common_handle_option (const struct cl_decoded_option *decoded,
       global_dc->pedantic_errors = 1;
       break;
 
+    case OPT_fwhopr_:
+      flag_whopr = arg;
+      break;
+
     case OPT_fwhopr:
-      flag_whopr = value;
+      flag_whopr = "";
       break;
 
     case OPT_w:
       global_dc->inhibit_warnings = true;
-      break;
-
-    case OPT_fsee:
-    case OPT_fcse_skip_blocks:
-    case OPT_floop_optimize:
-    case OPT_frerun_loop_opt:
-    case OPT_fsched2_use_traces:
-    case OPT_fstrength_reduce:
-    case OPT_ftree_store_copy_prop:
-    case OPT_fforce_addr:
-    case OPT_ftree_salias:
-    case OPT_ftree_store_ccp:
-    case OPT_Wunreachable_code:
-    case OPT_fargument_alias:
-    case OPT_fargument_noalias:
-    case OPT_fargument_noalias_anything:
-    case OPT_fargument_noalias_global:
-      /* These are no-ops, preserved for backward compatibility.  */
       break;
 
     case OPT_fuse_linker_plugin:
@@ -2379,8 +2341,13 @@ enable_warning_as_error (const char *arg, int value, unsigned int lang_mask,
     }
   else
     {
+      const struct cl_option *option = &cl_options[option_index];
       const diagnostic_t kind = value ? DK_ERROR : DK_WARNING;
 
+      if (option->alias_target != N_OPTS)
+	option_index = option->alias_target;
+      if (option_index == OPT_SPECIAL_ignore)
+	return;
       diagnostic_classify_diagnostic (global_dc, option_index, kind,
 				      UNKNOWN_LOCATION);
       if (kind == DK_ERROR)

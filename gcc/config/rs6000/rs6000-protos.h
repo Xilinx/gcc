@@ -87,7 +87,6 @@ extern int extract_ME (rtx);
 extern void rs6000_output_function_entry (FILE *, const char *);
 extern void print_operand (FILE *, rtx, int);
 extern void print_operand_address (FILE *, rtx);
-extern bool rs6000_output_addr_const_extra (FILE *, rtx);
 extern enum rtx_code rs6000_reverse_condition (enum machine_mode,
 					       enum rtx_code);
 extern void rs6000_emit_sISEL (enum machine_mode, rtx[]);
@@ -129,6 +128,9 @@ extern void rs6000_emit_parity (rtx, rtx);
 
 extern rtx rs6000_machopic_legitimize_pic_address (rtx, enum machine_mode,
 						   rtx);
+extern rtx rs6000_address_for_fpconvert (rtx);
+extern rtx rs6000_allocate_stack_temp (enum machine_mode, bool, bool);
+extern void rs6000_expand_convert_si_to_sfdf (rtx, rtx, bool);
 #endif /* RTX_CODE */
 
 #ifdef TREE_CODE
@@ -136,10 +138,7 @@ extern unsigned int rs6000_special_round_type_align (tree, unsigned int,
 						     unsigned int);
 extern unsigned int darwin_rs6000_special_round_type_align (tree, unsigned int,
 							    unsigned int);
-extern void function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
-				  tree, int, int);
-extern int function_arg_boundary (enum machine_mode, tree);
-extern rtx function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
+extern int function_arg_boundary (enum machine_mode, const_tree);
 extern tree altivec_resolve_overloaded_builtin (location_t, tree, void *);
 extern rtx rs6000_libcall_value (enum machine_mode);
 extern rtx rs6000_va_arg (tree, tree);
@@ -153,8 +152,6 @@ extern enum direction function_arg_padding (enum machine_mode, const_tree);
 
 #endif /* TREE_CODE */
 
-extern void optimization_options (int, int);
-extern void rs6000_override_options (const char *);
 extern int direct_return (void);
 extern int first_reg_to_save (void);
 extern int first_fp_reg_to_save (void);

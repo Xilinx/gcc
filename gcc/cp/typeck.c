@@ -265,6 +265,7 @@ cp_common_type (tree t1, tree t2)
   enum tree_code code2 = TREE_CODE (t2);
   tree attributes;
 
+
   /* In what follows, we slightly generalize the rules given in [expr] so
      as to deal with `long long' and `complex'.  First, merge the
      attributes.  */
@@ -1219,7 +1220,7 @@ incompatible_dependent_types_p (tree t1, tree t2)
 
   if (!t1_typedef_variant_p || !t2_typedef_variant_p)
     /* Either T1 or T2 is not a typedef so we cannot compare the
-       the template parms of the typedefs of T1 and T2.
+       template parms of the typedefs of T1 and T2.
        At this point, if the main variant type of T1 and T2 are equal
        it means the two types can't be incompatible, from the perspective
        of this function.  */
@@ -3427,8 +3428,17 @@ warn_args_num (location_t loc, tree fndecl, bool too_many_p)
 	      "declared here");
     }
   else
-    error_at (loc, too_many_p ? G_("too many arguments to function")
-		      	      : G_("too few arguments to function"));
+    {
+      if (c_dialect_objc ()  &&  objc_message_selector ())
+	error_at (loc,
+		  too_many_p 
+		  ? G_("too many arguments to method %q#D")
+		  : G_("too few arguments to method %q#D"),
+		  objc_message_selector ());
+      else
+	error_at (loc, too_many_p ? G_("too many arguments to function")
+		                  : G_("too few arguments to function"));
+    }
 }
 
 /* Convert the actual parameter expressions in the list VALUES to the
@@ -4362,7 +4372,14 @@ cp_build_binary_op (location_t location,
   if (!result_type
       && arithmetic_types_p
       && (shorten || common || short_compare))
-    result_type = cp_common_type (type0, type1);
+    {
+      result_type = cp_common_type (type0, type1);
+      do_warn_double_promotion (result_type, type0, type1,
+				"implicit conversion from %qT to %qT "
+				"to match other operand of binary "
+				"expression",
+				location);
+    }
 
   if (!result_type)
     {

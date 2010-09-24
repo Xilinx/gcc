@@ -139,7 +139,7 @@ package body Bindgen is
 
    --  Heap_Size is the heap to use for memory allocations set by use of a
    --  -Hnn parameter for the binder or by the GNAT$NO_MALLOC_64 logical.
-   --  Valid values are 32 and 64. This switch is only available on VMS.
+   --  Valid values are 32 and 64. This switch is only effective on VMS.
 
    --  WC_Encoding shows the wide character encoding method used for the main
    --  program. This is one of the encoding letters defined in
@@ -348,6 +348,11 @@ package body Bindgen is
    procedure Set_String (S : String);
    --  Sets characters of given string in Statement_Buffer, starting at the
    --  Last + 1 position, and updating last past the string value.
+
+   procedure Set_String_Replace (S : String);
+   --  Replaces the last S'Length characters in the Statement_Buffer with
+   --  the characters of S. The caller must ensure that these characters do
+   --  in fact exist in the Statement_Buffer.
 
    procedure Set_Unit_Name;
    --  Given a unit name in the Name_Buffer, copies it to Statement_Buffer,
@@ -788,10 +793,17 @@ package body Bindgen is
 
          --  Generate call to Install_Handler
 
-         WBI ("");
-         WBI ("      if Handler_Installed = 0 then");
-         WBI ("         Install_Handler;");
-         WBI ("      end if;");
+         --  In .NET, when binding with -z, we don't install the signal handler
+         --  to let the caller handle the last exception handler.
+
+         if VM_Target /= CLI_Target
+           or else Bind_Main_Program
+         then
+            WBI ("");
+            WBI ("      if Handler_Installed = 0 then");
+            WBI ("         Install_Handler;");
+            WBI ("      end if;");
+         end if;
 
          --  Generate call to Set_Features
 
@@ -2336,7 +2348,7 @@ package body Bindgen is
 
          WBI ("");
          WBI ("   GNAT_Version : constant String :=");
-         WBI ("                    ""GNAT Version: " &
+         WBI ("                    """ & Ver_Prefix &
                                    Gnat_Version_String &
                                    """ & ASCII.NUL;");
          WBI ("   pragma Export (C, GNAT_Version, ""__gnat_version"");");
@@ -2745,7 +2757,7 @@ package body Bindgen is
 
       if Bind_Main_Program then
          WBI ("");
-         WBI ("char __gnat_version[] = ""GNAT Version: " &
+         WBI ("char __gnat_version[] = """ & Ver_Prefix &
                                    Gnat_Version_String & """;");
 
          Set_String ("char __gnat_ada_main_program_name[] = """);
@@ -2801,9 +2813,7 @@ package body Bindgen is
 
       Count := 0;
 
-      for J in Cumulative_Restrictions.Set'First ..
-        Restriction_Id'Pred (Cumulative_Restrictions.Set'Last)
-      loop
+      for J in Cumulative_Restrictions.Set'Range loop
          Set_Boolean (Cumulative_Restrictions.Set (J));
          Set_String (", ");
          Count := Count + 1;
@@ -2815,30 +2825,22 @@ package body Bindgen is
          end if;
       end loop;
 
-      Set_Boolean
-        (Cumulative_Restrictions.Set (Cumulative_Restrictions.Set'Last));
-      Set_String ("),");
+      Set_String_Replace ("),");
       Write_Statement_Buffer;
       Set_String ("         Value => (");
 
-      for J in Cumulative_Restrictions.Value'First ..
-        Restriction_Id'Pred (Cumulative_Restrictions.Value'Last)
-      loop
+      for J in Cumulative_Restrictions.Value'Range loop
          Set_Int (Int (Cumulative_Restrictions.Value (J)));
          Set_String (", ");
       end loop;
 
-      Set_Int (Int (Cumulative_Restrictions.Value
-        (Cumulative_Restrictions.Value'Last)));
-      Set_String ("),");
+      Set_String_Replace ("),");
       Write_Statement_Buffer;
       WBI ("         Violated =>");
       Set_String ("          (");
       Count := 0;
 
-      for J in Cumulative_Restrictions.Violated'First ..
-        Restriction_Id'Pred (Cumulative_Restrictions.Violated'Last)
-      loop
+      for J in Cumulative_Restrictions.Violated'Range loop
          Set_Boolean (Cumulative_Restrictions.Violated (J));
          Set_String (", ");
          Count := Count + 1;
@@ -2850,36 +2852,26 @@ package body Bindgen is
          end if;
       end loop;
 
-      Set_Boolean (Cumulative_Restrictions.Violated
-        (Cumulative_Restrictions.Violated'Last));
-      Set_String ("),");
+      Set_String_Replace ("),");
       Write_Statement_Buffer;
       Set_String ("         Count => (");
 
-      for J in Cumulative_Restrictions.Count'First ..
-        Restriction_Id'Pred (Cumulative_Restrictions.Count'Last)
-      loop
+      for J in Cumulative_Restrictions.Count'Range loop
          Set_Int (Int (Cumulative_Restrictions.Count (J)));
          Set_String (", ");
       end loop;
 
-      Set_Int (Int (Cumulative_Restrictions.Count
-        (Cumulative_Restrictions.Count'Last)));
-      Set_String ("),");
+      Set_String_Replace ("),");
       Write_Statement_Buffer;
       Set_String ("         Unknown => (");
 
-      for J in Cumulative_Restrictions.Unknown'First ..
-        Restriction_Id'Pred (Cumulative_Restrictions.Unknown'Last)
-      loop
+      for J in Cumulative_Restrictions.Unknown'Range loop
          Set_Boolean (Cumulative_Restrictions.Unknown (J));
          Set_String (", ");
       end loop;
 
-      Set_Boolean
-        (Cumulative_Restrictions.Unknown
-          (Cumulative_Restrictions.Unknown'Last));
-      Set_String ("));");
+      Set_String_Replace ("))");
+      Set_String (";");
       Write_Statement_Buffer;
    end Gen_Restrictions_Ada;
 
@@ -2926,68 +2918,49 @@ package body Bindgen is
       WBI ("   restrictions r = {");
       Set_String ("     {");
 
-      for J in Cumulative_Restrictions.Set'First ..
-        Restriction_Id'Pred (Cumulative_Restrictions.Set'Last)
-      loop
+      for J in Cumulative_Restrictions.Set'Range loop
          Set_Int (Boolean'Pos (Cumulative_Restrictions.Set (J)));
          Set_String (", ");
       end loop;
 
-      Set_Int (Boolean'Pos
-        (Cumulative_Restrictions.Set (Cumulative_Restrictions.Set'Last)));
-      Set_String ("},");
+      Set_String_Replace ("},");
       Write_Statement_Buffer;
       Set_String ("     {");
 
-      for J in Cumulative_Restrictions.Value'First ..
-        Restriction_Id'Pred (Cumulative_Restrictions.Value'Last)
-      loop
+      for J in Cumulative_Restrictions.Value'Range loop
          Set_Int (Int (Cumulative_Restrictions.Value (J)));
          Set_String (", ");
       end loop;
 
-      Set_Int (Int (Cumulative_Restrictions.Value
-        (Cumulative_Restrictions.Value'Last)));
-      Set_String ("},");
+      Set_String_Replace ("},");
       Write_Statement_Buffer;
       Set_String ("     {");
 
-      for J in Cumulative_Restrictions.Violated'First ..
-        Restriction_Id'Pred (Cumulative_Restrictions.Violated'Last)
-      loop
+      for J in Cumulative_Restrictions.Violated'Range loop
          Set_Int (Boolean'Pos (Cumulative_Restrictions.Violated (J)));
          Set_String (", ");
       end loop;
 
-      Set_Int (Boolean'Pos (Cumulative_Restrictions.Violated
-        (Cumulative_Restrictions.Violated'Last)));
-      Set_String ("},");
+      Set_String_Replace ("},");
       Write_Statement_Buffer;
       Set_String ("     {");
 
-      for J in Cumulative_Restrictions.Count'First ..
-        Restriction_Id'Pred (Cumulative_Restrictions.Count'Last)
-      loop
+      for J in Cumulative_Restrictions.Count'Range loop
          Set_Int (Int (Cumulative_Restrictions.Count (J)));
          Set_String (", ");
       end loop;
 
-      Set_Int (Int (Cumulative_Restrictions.Count
-        (Cumulative_Restrictions.Count'Last)));
-      Set_String ("},");
+      Set_String_Replace ("},");
       Write_Statement_Buffer;
       Set_String ("     {");
 
-      for J in Cumulative_Restrictions.Unknown'First ..
-        Restriction_Id'Pred (Cumulative_Restrictions.Unknown'Last)
-      loop
+      for J in Cumulative_Restrictions.Unknown'Range loop
          Set_Int (Boolean'Pos (Cumulative_Restrictions.Unknown (J)));
          Set_String (", ");
       end loop;
 
-      Set_Int (Boolean'Pos (Cumulative_Restrictions.Unknown
-          (Cumulative_Restrictions.Unknown'Last)));
-      Set_String ("}};");
+      Set_String_Replace ("}}");
+      Set_String (";");
       Write_Statement_Buffer;
       WBI ("   system__restrictions__run_time_restrictions = r;");
    end Gen_Restrictions_C;
@@ -3474,6 +3447,15 @@ package body Bindgen is
       Statement_Buffer (Last + 1 .. Last + S'Length) := S;
       Last := Last + S'Length;
    end Set_String;
+
+   ------------------------
+   -- Set_String_Replace --
+   ------------------------
+
+   procedure Set_String_Replace (S : String) is
+   begin
+      Statement_Buffer (Last - S'Length + 1 .. Last) := S;
+   end Set_String_Replace;
 
    -------------------
    -- Set_Unit_Name --

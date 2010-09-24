@@ -1795,9 +1795,8 @@ package body Exp_Ch6 is
 
          Append_To (Extra_Actuals,
            Make_Parameter_Association (Loc,
-             Explicit_Actual_Parameter => Expr,
-             Selector_Name =>
-               Make_Identifier (Loc, Chars (EF))));
+             Selector_Name             => Make_Identifier (Loc, Chars (EF)),
+             Explicit_Actual_Parameter => Expr));
 
          Analyze_And_Resolve (Expr, Etype (EF));
 
@@ -2174,8 +2173,8 @@ package body Exp_Ch6 is
                Prev_Orig := Prev;
             end if;
 
-            --  Ada 2005 (AI-251): Thunks must propagate the extra actuals
-            --  of accessibility levels.
+            --  Ada 2005 (AI-251): Thunks must propagate the extra actuals of
+            --  accessibility levels.
 
             if Ekind (Current_Scope) in Subprogram_Kind
               and then Is_Thunk (Current_Scope)
@@ -2299,7 +2298,7 @@ package body Exp_Ch6 is
                               Extra_Accessibility (Formal));
 
                         --  No other cases of attributes returning access
-                        --  values that can be passed to access parameters
+                        --  values that can be passed to access parameters.
 
                         when others =>
                            raise Program_Error;
@@ -2331,17 +2330,22 @@ package body Exp_Ch6 is
          end if;
 
          --  Perform the check of 4.6(49) that prevents a null value from being
-         --  passed as an actual to an access parameter. Note that the check is
-         --  elided in the common cases of passing an access attribute or
+         --  passed as an actual to an access parameter. Note that the check
+         --  is elided in the common cases of passing an access attribute or
          --  access parameter as an actual. Also, we currently don't enforce
          --  this check for expander-generated actuals and when -gnatdj is set.
 
          if Ada_Version >= Ada_05 then
 
-            --  Ada 2005 (AI-231): Check null-excluding access types
+            --  Ada 2005 (AI-231): Check null-excluding access types. Note that
+            --  the intent of 6.4.1(13) is that null-exclusion checks should
+            --  not be done for 'out' parameters, even though it refers only
+            --  to constraint checks, and a null_exlusion is not a constraint.
+            --  Note that AI05-0196-1 corrects this mistake in the RM.
 
             if Is_Access_Type (Etype (Formal))
               and then Can_Never_Be_Null (Etype (Formal))
+              and then Ekind (Formal) /= E_Out_Parameter
               and then Nkind (Prev) /= N_Raise_Constraint_Error
               and then (Known_Null (Prev)
                           or else not Can_Never_Be_Null (Etype (Prev)))
@@ -2425,10 +2429,10 @@ package body Exp_Ch6 is
          --  since this is a left side reference. We only do this for calls
          --  from the source program since we assume that compiler generated
          --  calls explicitly generate any required checks. We also need it
-         --  only if we are doing standard validity checks, since clearly it
-         --  is not needed if validity checks are off, and in subscript
-         --  validity checking mode, all indexed components are checked with
-         --  a call directly from Expand_N_Indexed_Component.
+         --  only if we are doing standard validity checks, since clearly it is
+         --  not needed if validity checks are off, and in subscript validity
+         --  checking mode, all indexed components are checked with a call
+         --  directly from Expand_N_Indexed_Component.
 
          if Comes_From_Source (N)
            and then Ekind (Formal) /= E_In_Parameter
@@ -2594,11 +2598,11 @@ package body Exp_Ch6 is
 
       --  Deals with Dispatch_Call if we still have a call, before expanding
       --  extra actuals since this will be done on the re-analysis of the
-      --  dispatching call. Note that we do not try to shorten the actual
-      --  list for a dispatching call, it would not make sense to do so.
-      --  Expansion of dispatching calls is suppressed when VM_Target, because
-      --  the VM back-ends directly handle the generation of dispatching
-      --  calls and would have to undo any expansion to an indirect call.
+      --  dispatching call. Note that we do not try to shorten the actual list
+      --  for a dispatching call, it would not make sense to do so. Expansion
+      --  of dispatching calls is suppressed when VM_Target, because the VM
+      --  back-ends directly handle the generation of dispatching calls and
+      --  would have to undo any expansion to an indirect call.
 
       if Nkind_In (N, N_Function_Call, N_Procedure_Call_Statement)
         and then Present (Controlling_Argument (N))
@@ -2606,8 +2610,8 @@ package body Exp_Ch6 is
          if Tagged_Type_Expansion then
             Expand_Dispatching_Call (N);
 
-            --  The following return is worrisome. Is it really OK to
-            --  skip all remaining processing in this procedure ???
+            --  The following return is worrisome. Is it really OK to skip all
+            --  remaining processing in this procedure ???
 
             return;
 
@@ -2625,8 +2629,8 @@ package body Exp_Ch6 is
 
       --  Similarly, expand calls to RCI subprograms on which pragma
       --  All_Calls_Remote applies. The rewriting will be reanalyzed
-      --  later. Do this only when the call comes from source since we do
-      --  not want such a rewriting to occur in expanded code.
+      --  later. Do this only when the call comes from source since we
+      --  do not want such a rewriting to occur in expanded code.
 
       if Is_All_Remote_Call (N) then
          Expand_All_Calls_Remote_Subprogram_Call (N);
@@ -2651,15 +2655,15 @@ package body Exp_Ch6 is
          end loop;
       end if;
 
-      --  At this point we have all the actuals, so this is the point at
-      --  which the various expansion activities for actuals is carried out.
+      --  At this point we have all the actuals, so this is the point at which
+      --  the various expansion activities for actuals is carried out.
 
       Expand_Actuals (N, Subp);
 
-      --  If the subprogram is a renaming, or if it is inherited, replace it
-      --  in the call with the name of the actual subprogram being called.
-      --  If this is a dispatching call, the run-time decides what to call.
-      --  The Alias attribute does not apply to entries.
+      --  If the subprogram is a renaming, or if it is inherited, replace it in
+      --  the call with the name of the actual subprogram being called. If this
+      --  is a dispatching call, the run-time decides what to call. The Alias
+      --  attribute does not apply to entries.
 
       if Nkind (N) /= N_Entry_Call_Statement
         and then No (Controlling_Argument (N))
@@ -2828,10 +2832,10 @@ package body Exp_Ch6 is
          if Is_Access_Protected_Subprogram_Type
               (Base_Type (Etype (Prefix (Name (N)))))
          then
-            --  If this is a call through an access to protected operation,
-            --  the prefix has the form (object'address, operation'access).
-            --  Rewrite as a for other protected calls: the object is the
-            --  first parameter of the list of actuals.
+            --  If this is a call through an access to protected operation, the
+            --  prefix has the form (object'address, operation'access). Rewrite
+            --  as a for other protected calls: the object is the 1st parameter
+            --  of the list of actuals.
 
             declare
                Call : Node_Id;
@@ -2906,11 +2910,11 @@ package body Exp_Ch6 is
 
       --  In the case where the intrinsic is to be processed by the back end,
       --  the call to Expand_Intrinsic_Call will do nothing, which is fine,
-      --  since the idea in this case is to pass the call unchanged.
-      --  If the intrinsic is an inherited unchecked conversion, and the
-      --  derived type is the target type of the conversion, we must retain
-      --  it as the return type of the expression. Otherwise the expansion
-      --  below, which uses the parent operation, will yield the wrong type.
+      --  since the idea in this case is to pass the call unchanged. If the
+      --  intrinsic is an inherited unchecked conversion, and the derived type
+      --  is the target type of the conversion, we must retain it as the return
+      --  type of the expression. Otherwise the expansion below, which uses the
+      --  parent operation, will yield the wrong type.
 
       if Is_Intrinsic_Subprogram (Subp) then
          Expand_Intrinsic_Call (N, Subp);
@@ -3101,14 +3105,30 @@ package body Exp_Ch6 is
       --  To prevent a double attachment, check that the current call is
       --  not a rewriting of a protected function call.
 
-      if Needs_Finalization (Etype (Subp))
-        and then not Is_Inherently_Limited_Type (Etype (Subp))
-        and then
-          (No (First_Formal (Subp))
-            or else
-              not Is_Concurrent_Record_Type (Etype (First_Formal (Subp))))
-      then
-         Expand_Ctrl_Function_Call (N);
+      if Needs_Finalization (Etype (Subp)) then
+         if not Is_Inherently_Limited_Type (Etype (Subp))
+           and then
+             (No (First_Formal (Subp))
+                or else
+                  not Is_Concurrent_Record_Type (Etype (First_Formal (Subp))))
+         then
+            Expand_Ctrl_Function_Call (N);
+
+         --  Build-in-place function calls which appear in anonymous contexts
+         --  need a transient scope to ensure the proper finalization of the
+         --  intermediate result after its use.
+
+         elsif Is_Build_In_Place_Function_Call (N)
+           and then Nkind_In (Parent (N), N_Attribute_Reference,
+                                          N_Function_Call,
+                                          N_Indexed_Component,
+                                          N_Object_Renaming_Declaration,
+                                          N_Procedure_Call_Statement,
+                                          N_Selected_Component,
+                                          N_Slice)
+         then
+            Establish_Transient_Scope (N, Sec_Stack => True);
+         end if;
       end if;
 
       --  Test for First_Optional_Parameter, and if so, truncate parameter list
@@ -4097,6 +4117,8 @@ package body Exp_Ch6 is
    --  Initialize scalar out parameters if Initialize/Normalize_Scalars
 
    --  Reset Pure indication if any parameter has root type System.Address
+   --  or has any parameters of limited types, where limited means that the
+   --  run-time view is limited (i.e. the full type is limited).
 
    --  Wrap thread body
 
@@ -4288,7 +4310,14 @@ package body Exp_Ch6 is
          begin
             F := First_Formal (Spec_Id);
             while Present (F) loop
-               if Is_Descendent_Of_Address (Etype (F)) then
+               if Is_Descendent_Of_Address (Etype (F))
+
+                 --  Note that this test is being made in the body of the
+                 --  subprogram, not the spec, so we are testing the full
+                 --  type for being limited here, as required.
+
+                 or else Is_Limited_Type (Etype (F))
+               then
                   Set_Is_Pure (Spec_Id, False);
 
                   if Spec_Id /= Body_Id then
@@ -5328,7 +5357,6 @@ package body Exp_Ch6 is
       --  scope is established to ensure eventual cleanup of the result.
 
       else
-
          --  Pass an allocation parameter indicating that the function should
          --  allocate its result on the secondary stack.
 
@@ -5346,8 +5374,6 @@ package body Exp_Ch6 is
 
          Add_Access_Actual_To_Build_In_Place_Call
            (Func_Call, Function_Id, Empty);
-
-         Establish_Transient_Scope (Func_Call, Sec_Stack => True);
       end if;
    end Make_Build_In_Place_Call_In_Anonymous_Context;
 
@@ -5776,6 +5802,7 @@ package body Exp_Ch6 is
            Make_Explicit_Dereference (Loc,
              Prefix => New_Reference_To (Def_Id, Loc));
 
+         Loc := Sloc (Object_Decl);
          Rewrite (Object_Decl,
            Make_Object_Renaming_Declaration (Loc,
              Defining_Identifier => Make_Temporary (Loc, 'D'),
@@ -5813,6 +5840,14 @@ package body Exp_Ch6 is
             Set_Homonym     (Renaming_Def_Id, Homonym (Obj_Def_Id));
 
             Exchange_Entities (Renaming_Def_Id, Obj_Def_Id);
+
+            --  Preserve source indication of original declaration, so that
+            --  xref information is properly generated for the right entity.
+
+            Preserve_Comes_From_Source
+              (Object_Decl, Original_Node (Object_Decl));
+            Set_Comes_From_Source (Obj_Def_Id, True);
+            Set_Comes_From_Source (Renaming_Def_Id, False);
          end;
       end if;
 

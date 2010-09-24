@@ -919,14 +919,6 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
   return rclass;
 }
 
-void
-default_target_option_override (void)
-{
-#ifdef OVERRIDE_OPTIONS
-  OVERRIDE_OPTIONS;
-#endif
-}
-
 bool
 default_handle_c_option (size_t code ATTRIBUTE_UNUSED,
 			 const char *arg ATTRIBUTE_UNUSED,
@@ -982,6 +974,15 @@ default_builtin_support_vector_misalignment (enum machine_mode mode,
   if (optab_handler (movmisalign_optab, mode) != CODE_FOR_nothing)
     return true;
   return false;
+}
+
+/* By default, only attempt to parallelize bitwise operations, and
+   possibly adds/subtracts using bit-twiddling.  */
+
+unsigned int
+default_units_per_simd_word (enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  return UNITS_PER_WORD;
 }
 
 /* Determine whether or not a pointer mode is valid. Assume defaults
@@ -1217,6 +1218,18 @@ default_profile_before_prologue (void)
   return true;
 #else
   return false;
+#endif
+}
+
+/* The default implementation of TARGET_CLASS_LIKELY_SPILLED_P.  */
+
+bool
+default_class_likely_spilled_p (reg_class_t rclass)
+{
+#ifndef CLASS_LIKELY_SPILLED_P
+  return (reg_class_size[(int) rclass] == 1);
+#else
+  return CLASS_LIKELY_SPILLED_P ((enum reg_class) rclass);
 #endif
 }
 

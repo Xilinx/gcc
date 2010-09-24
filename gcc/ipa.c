@@ -238,7 +238,12 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 #endif
   varpool_reset_queue ();
   for (node = cgraph_nodes; node; node = node->next)
-    if (!cgraph_can_remove_if_no_direct_calls_and_refs_p (node)
+    if ((!cgraph_can_remove_if_no_direct_calls_and_refs_p (node)
+	 /* Keep around virtual functions for possible devirtualization.  */
+	 || (!before_inlining_p
+	     && !node->global.inlined_to
+	     && DECL_VIRTUAL_P (node->decl)
+	     && (DECL_COMDAT (node->decl) || DECL_EXTERNAL (node->decl))))
 	&& ((!DECL_EXTERNAL (node->decl))
             || before_inlining_p))
       {
@@ -407,22 +412,26 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 		  if (!clone)
 		    {
 		      cgraph_release_function_body (node);
-		      node->analyzed = false;
 		      node->local.inlinable = false;
+		      if (node->prev_sibling_clone)
+			node->prev_sibling_clone->next_sibling_clone = node->next_sibling_clone;
+		      else if (node->clone_of)
+			node->clone_of->clones = node->next_sibling_clone;
+		      if (node->next_sibling_clone)
+			node->next_sibling_clone->prev_sibling_clone = node->prev_sibling_clone;
+#ifdef ENABLE_CHECKING
+		      if (node->clone_of)
+			node->former_clone_of = node->clone_of->decl;
+#endif
+		      node->clone_of = NULL;
+		      node->next_sibling_clone = NULL;
+		      node->prev_sibling_clone = NULL;
 		    }
 		  else
 		    gcc_assert (!clone->in_other_partition);
+		  node->analyzed = false;
 		  cgraph_node_remove_callees (node);
 		  ipa_remove_all_references (&node->ref_list);
-		  if (node->prev_sibling_clone)
-		    node->prev_sibling_clone->next_sibling_clone = node->next_sibling_clone;
-		  else if (node->clone_of)
-		    node->clone_of->clones = node->next_sibling_clone;
-		  if (node->next_sibling_clone)
-		    node->next_sibling_clone->prev_sibling_clone = node->prev_sibling_clone;
-		  node->clone_of = NULL;
-		  node->next_sibling_clone = NULL;
-		  node->prev_sibling_clone = NULL;
 		}
 	      else
 		cgraph_remove_node (node);
@@ -561,6 +570,7 @@ ipa_discover_readonly_nonaddressable_vars (void)
 	    if (dump_file)
 	      fprintf (dump_file, " %s (read-only)", varpool_node_name (vnode));
 	    TREE_READONLY (vnode->decl) = 1;
+	    vnode->const_value_known |= const_value_known_p (vnode->decl);
 	  }
       }
   if (dump_file)
@@ -767,6 +777,9 @@ function_and_variable_visibility (bool whole_program)
 	      || ! (ADDR_SPACE_GENERIC_P
 		    (TYPE_ADDR_SPACE (TREE_TYPE (vnode->decl))))))
 	DECL_COMMON (vnode->decl) = 0;
+     /* Even extern variables might have initializers known.
+	See, for example testsuite/g++.dg/opt/static3.C  */
+     vnode->const_value_known |= const_value_known_p (vnode->decl);
     }
   for (vnode = varpool_nodes_queue; vnode; vnode = vnode->next_needed)
     {
@@ -801,6 +814,7 @@ function_and_variable_visibility (bool whole_program)
 	  gcc_assert (in_lto_p || whole_program || !TREE_PUBLIC (vnode->decl));
 	  cgraph_make_decl_local (vnode->decl);
 	}
+     vnode->const_value_known |= const_value_known_p (vnode->decl);
      gcc_assert (TREE_STATIC (vnode->decl));
     }
   pointer_set_destroy (aliased_nodes);
@@ -1420,9 +1434,10 @@ record_cdtor_fn (struct cgraph_node *node)
    they are destructors.  */
 
 static void
-build_cdtor (bool ctor_p, tree *cdtors, size_t len)
+build_cdtor (bool ctor_p, VEC (tree, heap) *cdtors)
 {
   size_t i,j;
+  size_t len = VEC_length (tree, cdtors);
 
   i = 0;
   while (i < len)
@@ -1437,7 +1452,7 @@ build_cdtor (bool ctor_p, tree *cdtors, size_t len)
       do
 	{
 	  priority_type p;
-	  fn = cdtors[i];
+	  fn = VEC_index (tree, cdtors, j);
 	  p = ctor_p ? DECL_INIT_PRIORITY (fn) : DECL_FINI_PRIORITY (fn);
 	  if (j == i)
 	    priority = p;
@@ -1447,7 +1462,7 @@ build_cdtor (bool ctor_p, tree *cdtors, size_t len)
 	}
       while (j < len);
 
-      /* When there is only once constructor and target supports them, do nothing.  */
+      /* When there is only one cdtor and target supports them, do nothing.  */
       if (j == i + 1
 	  && targetm.have_ctors_dtors)
 	{
@@ -1456,14 +1471,10 @@ build_cdtor (bool ctor_p, tree *cdtors, size_t len)
 	}
       /* Find the next batch of constructors/destructors with the same
 	 initialization priority.  */
-      do
+      for (;i < j; i++)
 	{
-	  priority_type p;
 	  tree call;
-	  fn = cdtors[i];
-	  p = ctor_p ? DECL_INIT_PRIORITY (fn) : DECL_FINI_PRIORITY (fn);
-	  if (p != priority)
-	    break;
+	  fn = VEC_index (tree, cdtors, i);
 	  call = build_call_expr (fn, 0);
 	  if (ctor_p)
 	    DECL_STATIC_CONSTRUCTOR (fn) = 0;
@@ -1474,7 +1485,6 @@ build_cdtor (bool ctor_p, tree *cdtors, size_t len)
 	     optimizing, we want user to be able to breakpoint in them.  */
 	  TREE_SIDE_EFFECTS (call) = 1;
 	  append_to_statement_list (call, &body);
-	  ++i;
 	}
       while (i < len);
       gcc_assert (body != NULL_TREE);
@@ -1551,10 +1561,7 @@ build_cdtor_fns (void)
 	     VEC_length (tree, static_ctors),
 	     sizeof (tree),
 	     compare_ctor);
-      build_cdtor (/*ctor_p=*/true,
-		   VEC_address (tree, static_ctors),
-		   VEC_length (tree, static_ctors));
-      VEC_truncate (tree, static_ctors, 0);
+      build_cdtor (/*ctor_p=*/true, static_ctors);
     }
 
   if (!VEC_empty (tree, static_dtors))
@@ -1564,10 +1571,7 @@ build_cdtor_fns (void)
 	     VEC_length (tree, static_dtors),
 	     sizeof (tree),
 	     compare_dtor);
-      build_cdtor (/*ctor_p=*/false,
-		   VEC_address (tree, static_dtors),
-		   VEC_length (tree, static_dtors));
-      VEC_truncate (tree, static_dtors, 0);
+      build_cdtor (/*ctor_p=*/false, static_dtors);
     }
 }
 

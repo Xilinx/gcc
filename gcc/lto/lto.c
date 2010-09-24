@@ -160,9 +160,6 @@ lto_materialize_function (struct cgraph_node *node)
      and also functions that are needed to produce virtual clones.  */
   if (node->analyzed || has_analyzed_clone_p (node))
     {
-      /* This function has a definition.  */
-      TREE_STATIC (decl) = 1;
-
       /* Clones don't need to be read.  */
       if (node->clone_of)
 	return;
@@ -198,8 +195,6 @@ lto_materialize_function (struct cgraph_node *node)
       if (!flag_wpa)
 	ggc_collect ();
     }
-  else
-    DECL_EXTERNAL (decl) = 1;
 
   /* Let the middle end know about the function.  */
   rest_of_decl_compilation (decl, 1, 0);
@@ -914,6 +909,7 @@ promote_var (struct varpool_node *vnode)
   gcc_assert (flag_wpa);
   TREE_PUBLIC (vnode->decl) = 1;
   DECL_VISIBILITY (vnode->decl) = VISIBILITY_HIDDEN;
+  DECL_VISIBILITY_SPECIFIED (vnode->decl) = true;
   if (cgraph_dump_file)
     fprintf (cgraph_dump_file,
 	    "Promoting var as hidden: %s\n", varpool_node_name (vnode));
@@ -930,6 +926,7 @@ promote_fn (struct cgraph_node *node)
     return false;
   TREE_PUBLIC (node->decl) = 1;
   DECL_VISIBILITY (node->decl) = VISIBILITY_HIDDEN;
+  DECL_VISIBILITY_SPECIFIED (node->decl) = true;
   if (node->same_body)
     {
       struct cgraph_node *alias;
@@ -938,6 +935,7 @@ promote_fn (struct cgraph_node *node)
 	{
 	  TREE_PUBLIC (alias->decl) = 1;
 	  DECL_VISIBILITY (alias->decl) = VISIBILITY_HIDDEN;
+	  DECL_VISIBILITY_SPECIFIED (alias->decl) = true;
 	}
     }
   if (cgraph_dump_file)
@@ -1010,7 +1008,7 @@ lto_promote_cross_file_statics (void)
 	 from this partition that are not in this partition.
 	 This needs to be done recursively.  */
       for (vnode = varpool_nodes; vnode; vnode = vnode->next)
-	if ((TREE_READONLY (vnode->decl) || DECL_IN_CONSTANT_POOL (vnode->decl))
+	if (const_value_known_p (vnode->decl)
 	    && DECL_INITIAL (vnode->decl)
 	    && !varpool_node_in_set_p (vnode, vset)
 	    && referenced_from_this_partition_p (&vnode->ref_list, set, vset)
@@ -1050,7 +1048,7 @@ lto_promote_cross_file_statics (void)
 			   && !v->externally_visible && v->analyzed)
 		    {
 		      if (promote_var (v)
-			  && DECL_INITIAL (v->decl) && TREE_READONLY (v->decl)
+			  && DECL_INITIAL (v->decl) && v->const_value_known
 			  && !pointer_set_insert (inserted, vnode))
 			VEC_safe_push (varpool_node_ptr, heap,
 				       promoted_initializers, v);
@@ -1723,6 +1721,11 @@ lto_flatten_files (struct lto_file_decl_data **orig, int count, int last_file_ix
   gcc_assert (k == count);
 }
 
+/* Input file data before flattening (i.e. splitting them to subfiles to support
+   incremental linking.  */
+static int real_file_count;
+static GTY((length ("real_file_count + 1"))) struct lto_file_decl_data **real_file_decl_data;
+
 /* Read all the symbols from the input files FNAMES.  NFILES is the
    number of files requested in the command line.  Instantiate a
    global call graph by aggregating all the sub-graphs found in each
@@ -1741,7 +1744,9 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
 
   timevar_push (TV_IPA_LTO_DECL_IN);
 
-  decl_data = (struct lto_file_decl_data **)xmalloc (sizeof(*decl_data) * (nfiles+1));
+  real_file_decl_data
+    = decl_data = ggc_alloc_cleared_vec_lto_file_decl_data_ptr (nfiles + 1);
+  real_file_count = nfiles;
 
   /* Read the resolution file.  */
   resolution = NULL;
@@ -1786,13 +1791,13 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
 
       lto_obj_file_close (current_lto_file);
       current_lto_file = NULL;
-      /* ???  We'd want but can't ggc_collect () here as the type merging
-         code in gimple.c uses hashtables that are not ggc aware.  */
+      ggc_collect ();
     }
 
   lto_flatten_files (decl_data, count, last_file_ix);
   lto_stats.num_input_files = count;
-  free(decl_data);
+  ggc_free(decl_data);
+  real_file_decl_data = NULL;
 
   if (resolution_file_name)
     fclose (resolution);

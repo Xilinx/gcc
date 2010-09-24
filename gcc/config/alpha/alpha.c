@@ -256,8 +256,8 @@ alpha_mangle_type (const_tree type)
 
 /* Parse target option strings.  */
 
-void
-override_options (void)
+static void
+alpha_option_override (void)
 {
   static const struct cpu_table {
     const char *const name;
@@ -282,6 +282,10 @@ override_options (void)
 
   int const ct_size = ARRAY_SIZE (cpu_table);
   int i;
+
+#ifdef SUBTARGET_OVERRIDE_OPTIONS
+  SUBTARGET_OVERRIDE_OPTIONS;
+#endif
 
   /* Unicos/Mk doesn't have shared libraries.  */
   if (TARGET_ABI_UNICOSMK && flag_pic)
@@ -7763,6 +7767,30 @@ emit_frame_store (unsigned int regno, rtx base_reg,
   emit_frame_store_1 (reg, base_reg, frame_bias, base_ofs, reg);
 }
 
+/* Compute the frame size.  SIZE is the size of the "naked" frame
+   and SA_SIZE is the size of the register save area.  */
+
+static HOST_WIDE_INT
+compute_frame_size (HOST_WIDE_INT size, HOST_WIDE_INT sa_size)
+{
+  if (TARGET_ABI_OPEN_VMS)
+    return ALPHA_ROUND (sa_size 
+			+ (alpha_procedure_type == PT_STACK ? 8 : 0)
+			+ size
+			+ crtl->args.pretend_args_size);
+  else if (TARGET_ABI_UNICOSMK)
+    /* We have to allocate space for the DSIB if we generate a frame.  */
+    return ALPHA_ROUND (sa_size
+			+ (alpha_procedure_type == PT_STACK ? 48 : 0))
+	   + ALPHA_ROUND (size
+			  + crtl->outgoing_args_size);
+  else
+    return ALPHA_ROUND (crtl->outgoing_args_size)
+	   + sa_size
+	   + ALPHA_ROUND (size
+			  + crtl->args.pretend_args_size);
+}
+
 /* Write function prologue.  */
 
 /* On vms we have two kinds of functions:
@@ -7790,30 +7818,19 @@ alpha_expand_prologue (void)
   HOST_WIDE_INT sa_size;
   /* Complete stack size needed.  */
   HOST_WIDE_INT frame_size;
+  /* Probed stack size; it additionally includes the size of
+     the "reserve region" if any.  */
+  HOST_WIDE_INT probed_size;
   /* Offset from base reg to register save area.  */
   HOST_WIDE_INT reg_offset;
   rtx sa_reg;
   int i;
 
   sa_size = alpha_sa_size ();
+  frame_size = compute_frame_size (get_frame_size (), sa_size);
 
-  frame_size = get_frame_size ();
-  if (TARGET_ABI_OPEN_VMS)
-    frame_size = ALPHA_ROUND (sa_size
-			      + (alpha_procedure_type == PT_STACK ? 8 : 0)
-			      + frame_size
-			      + crtl->args.pretend_args_size);
-  else if (TARGET_ABI_UNICOSMK)
-    /* We have to allocate space for the DSIB if we generate a frame.  */
-    frame_size = ALPHA_ROUND (sa_size
-			      + (alpha_procedure_type == PT_STACK ? 48 : 0))
-		 + ALPHA_ROUND (frame_size
-				+ crtl->outgoing_args_size);
-  else
-    frame_size = (ALPHA_ROUND (crtl->outgoing_args_size)
-		  + sa_size
-		  + ALPHA_ROUND (frame_size
-				 + crtl->args.pretend_args_size));
+  if (flag_stack_usage)
+    current_function_static_stack_size = frame_size;
 
   if (TARGET_ABI_OPEN_VMS)
     reg_offset = 8 + 8 * cfun->machine->uses_condition_handler;
@@ -7849,20 +7866,26 @@ alpha_expand_prologue (void)
 
      Note that we are only allowed to adjust sp once in the prologue.  */
 
-  if (frame_size <= 32768)
+  probed_size = frame_size;
+  if (flag_stack_check)
+    probed_size += STACK_CHECK_PROTECT;
+
+  if (probed_size <= 32768)
     {
-      if (frame_size > 4096)
+      if (probed_size > 4096)
 	{
 	  int probed;
 
-	  for (probed = 4096; probed < frame_size; probed += 8192)
+	  for (probed = 4096; probed < probed_size; probed += 8192)
 	    emit_insn (gen_probe_stack (GEN_INT (TARGET_ABI_UNICOSMK
 						 ? -probed + 64
 						 : -probed)));
 
-	  /* We only have to do this probe if we aren't saving registers.  */
-	  if (sa_size == 0 && frame_size > probed - 4096)
-	    emit_insn (gen_probe_stack (GEN_INT (-frame_size)));
+	  /* We only have to do this probe if we aren't saving registers or
+	     if we are probing beyond the frame because of -fstack-check.  */
+	  if ((sa_size == 0 && probed_size > probed - 4096)
+	      || flag_stack_check)
+	    emit_insn (gen_probe_stack (GEN_INT (-probed_size)));
 	}
 
       if (frame_size != 0)
@@ -7877,10 +7900,11 @@ alpha_expand_prologue (void)
 	 number of 8192 byte blocks to probe.  We then probe each block
 	 in the loop and then set SP to the proper location.  If the
 	 amount remaining is > 4096, we have to do one more probe if we
-	 are not saving any registers.  */
+	 are not saving any registers or if we are probing beyond the
+	 frame because of -fstack-check.  */
 
-      HOST_WIDE_INT blocks = (frame_size + 4096) / 8192;
-      HOST_WIDE_INT leftover = frame_size + 4096 - blocks * 8192;
+      HOST_WIDE_INT blocks = (probed_size + 4096) / 8192;
+      HOST_WIDE_INT leftover = probed_size + 4096 - blocks * 8192;
       rtx ptr = gen_rtx_REG (DImode, 22);
       rtx count = gen_rtx_REG (DImode, 23);
       rtx seq;
@@ -7893,19 +7917,22 @@ alpha_expand_prologue (void)
 	 late in the compilation, generate the loop as a single insn.  */
       emit_insn (gen_prologue_stack_probe_loop (count, ptr));
 
-      if (leftover > 4096 && sa_size == 0)
+      if ((leftover > 4096 && sa_size == 0) || flag_stack_check)
 	{
 	  rtx last = gen_rtx_MEM (DImode, plus_constant (ptr, -leftover));
 	  MEM_VOLATILE_P (last) = 1;
 	  emit_move_insn (last, const0_rtx);
 	}
 
-      if (TARGET_ABI_WINDOWS_NT)
+      if (TARGET_ABI_WINDOWS_NT || flag_stack_check)
 	{
 	  /* For NT stack unwind (done by 'reverse execution'), it's
 	     not OK to take the result of a loop, even though the value
 	     is already in ptr, so we reload it via a single operation
 	     and subtract it to sp.
+
+	     Same if -fstack-check is specified, because the probed stack
+	     size is not equal to the frame size.
 
 	     Yes, that's correct -- we have to reload the whole constant
 	     into a temporary via ldah+lda then subtract from sp.  */
@@ -8135,23 +8162,7 @@ alpha_start_function (FILE *file, const char *fnname,
 
   alpha_fnname = fnname;
   sa_size = alpha_sa_size ();
-
-  frame_size = get_frame_size ();
-  if (TARGET_ABI_OPEN_VMS)
-    frame_size = ALPHA_ROUND (sa_size
-			      + (alpha_procedure_type == PT_STACK ? 8 : 0)
-			      + frame_size
-			      + crtl->args.pretend_args_size);
-  else if (TARGET_ABI_UNICOSMK)
-    frame_size = ALPHA_ROUND (sa_size
-			      + (alpha_procedure_type == PT_STACK ? 48 : 0))
-		 + ALPHA_ROUND (frame_size
-			      + crtl->outgoing_args_size);
-  else
-    frame_size = (ALPHA_ROUND (crtl->outgoing_args_size)
-		  + sa_size
-		  + ALPHA_ROUND (frame_size
-				 + crtl->args.pretend_args_size));
+  frame_size = compute_frame_size (get_frame_size (), sa_size);
 
   if (TARGET_ABI_OPEN_VMS)
     reg_offset = 8 + 8 * cfun->machine->uses_condition_handler;
@@ -8353,23 +8364,7 @@ alpha_expand_epilogue (void)
   int i;
 
   sa_size = alpha_sa_size ();
-
-  frame_size = get_frame_size ();
-  if (TARGET_ABI_OPEN_VMS)
-    frame_size = ALPHA_ROUND (sa_size
-			      + (alpha_procedure_type == PT_STACK ? 8 : 0)
-			      + frame_size
-			      + crtl->args.pretend_args_size);
-  else if (TARGET_ABI_UNICOSMK)
-    frame_size = ALPHA_ROUND (sa_size
-			      + (alpha_procedure_type == PT_STACK ? 48 : 0))
-		 + ALPHA_ROUND (frame_size
-			      + crtl->outgoing_args_size);
-  else
-    frame_size = (ALPHA_ROUND (crtl->outgoing_args_size)
-		  + sa_size
-		  + ALPHA_ROUND (frame_size
-				 + crtl->args.pretend_args_size));
+  frame_size = compute_frame_size (get_frame_size (), sa_size);
 
   if (TARGET_ABI_OPEN_VMS)
     {
@@ -10034,6 +10029,7 @@ alpha_use_linkage (rtx func, tree cfundecl, int lflag, int rflag)
 
       al = ggc_alloc_alpha_links ();
       al->num = cfaf->num;
+      al->target = NULL;
 
       node = splay_tree_lookup (alpha_links_tree, (splay_tree_key) name);
       if (node)
@@ -11165,6 +11161,9 @@ alpha_init_libfuncs (void)
   (TARGET_DEFAULT | TARGET_CPU_DEFAULT | TARGET_DEFAULT_EXPLICIT_RELOCS)
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION alpha_handle_option
+
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE alpha_option_override
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
 #undef TARGET_MANGLE_TYPE

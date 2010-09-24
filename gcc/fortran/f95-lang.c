@@ -200,17 +200,18 @@ gfc_truthvalue_conversion (tree expr)
 	  return expr;
 	}
       else if (TREE_CODE (expr) == NOP_EXPR)
-        return fold_build1 (NOP_EXPR,
+        return fold_build1_loc (input_location, NOP_EXPR,
 			    boolean_type_node, TREE_OPERAND (expr, 0));
       else
-        return fold_build1 (NOP_EXPR, boolean_type_node, expr);
+        return fold_build1_loc (input_location, NOP_EXPR, boolean_type_node,
+				expr);
 
     case INTEGER_TYPE:
       if (TREE_CODE (expr) == INTEGER_CST)
 	return integer_zerop (expr) ? boolean_false_node : boolean_true_node;
       else
-        return fold_build2 (NE_EXPR, boolean_type_node, expr,
-			    build_int_cst (TREE_TYPE (expr), 0));
+        return fold_build2_loc (input_location, NE_EXPR, boolean_type_node,
+				expr, build_int_cst (TREE_TYPE (expr), 0));
 
     default:
       internal_error ("Unexpected type in truthvalue_conversion");
@@ -788,7 +789,7 @@ gfc_init_builtin_functions (void)
     build_function_type_list (void_type_node, ptype, ptype, NULL_TREE);
 
 /* Non-math builtins are defined manually, so they're not included here.  */
-#define OTHER_BUILTIN(ID,NAME,TYPE)
+#define OTHER_BUILTIN(ID,NAME,TYPE,CONST)
 
 #include "mathbuiltins.def"
 
@@ -854,13 +855,6 @@ gfc_init_builtin_functions (void)
 		      BUILT_IN_FMOD, "fmod", true);
   gfc_define_builtin ("__builtin_fmodf", mfunc_float[1], 
 		      BUILT_IN_FMODF, "fmodf", true);
-
-  gfc_define_builtin ("__builtin_huge_vall", mfunc_longdouble[3], 
-		      BUILT_IN_HUGE_VALL, "__builtin_huge_vall", true);
-  gfc_define_builtin ("__builtin_huge_val", mfunc_double[3], 
-		      BUILT_IN_HUGE_VAL, "__builtin_huge_val", true);
-  gfc_define_builtin ("__builtin_huge_valf", mfunc_float[3], 
-		      BUILT_IN_HUGE_VALF, "__builtin_huge_valf", true);
 
   /* lround{f,,l} and llround{f,,l} */
   ftype = build_function_type_list (long_integer_type_node,
@@ -938,13 +932,17 @@ gfc_init_builtin_functions (void)
 		          BUILT_IN_SINCOSF, "sincosf", false);
     }
 
-  /* For LEADZ / TRAILZ.  */
+  /* For LEADZ, TRAILZ, POPCNT and POPPAR.  */
   ftype = build_function_type_list (integer_type_node,
                                     unsigned_type_node, NULL_TREE);
   gfc_define_builtin ("__builtin_clz", ftype, BUILT_IN_CLZ,
 		      "__builtin_clz", true);
   gfc_define_builtin ("__builtin_ctz", ftype, BUILT_IN_CTZ,
 		      "__builtin_ctz", true);
+  gfc_define_builtin ("__builtin_parity", ftype, BUILT_IN_PARITY,
+		      "__builtin_parity", true);
+  gfc_define_builtin ("__builtin_popcount", ftype, BUILT_IN_POPCOUNT,
+		      "__builtin_popcount", true);
 
   ftype = build_function_type_list (integer_type_node,
                                     long_unsigned_type_node, NULL_TREE);
@@ -952,6 +950,10 @@ gfc_init_builtin_functions (void)
 		      "__builtin_clzl", true);
   gfc_define_builtin ("__builtin_ctzl", ftype, BUILT_IN_CTZL,
 		      "__builtin_ctzl", true);
+  gfc_define_builtin ("__builtin_parityl", ftype, BUILT_IN_PARITYL,
+		      "__builtin_parityl", true);
+  gfc_define_builtin ("__builtin_popcountl", ftype, BUILT_IN_POPCOUNTL,
+		      "__builtin_popcountl", true);
 
   ftype = build_function_type_list (integer_type_node,
                                     long_long_unsigned_type_node, NULL_TREE);
@@ -959,6 +961,10 @@ gfc_init_builtin_functions (void)
 		      "__builtin_clzll", true);
   gfc_define_builtin ("__builtin_ctzll", ftype, BUILT_IN_CTZLL,
 		      "__builtin_ctzll", true);
+  gfc_define_builtin ("__builtin_parityll", ftype, BUILT_IN_PARITYLL,
+		      "__builtin_parityll", true);
+  gfc_define_builtin ("__builtin_popcountll", ftype, BUILT_IN_POPCOUNTLL,
+		      "__builtin_popcountll", true);
 
   /* Other builtin functions we use.  */
 

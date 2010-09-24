@@ -60,27 +60,20 @@
 #define Has_Stdcall_Convention(E) (0)
 #endif
 
-/* Stack realignment for functions with foreign conventions is provided on a
-   per back-end basis now, as it is handled by the prologue expanders and not
-   as part of the function's body any more.  It might be requested by way of a
-   dedicated function type attribute on the targets that support it.
+/* Stack realignment is necessary for functions with foreign conventions when
+   the ABI doesn't mandate as much as what the compiler assumes - that is, up
+   to PREFERRED_STACK_BOUNDARY.
 
-   We need a way to avoid setting the attribute on the targets that don't
-   support it and use FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN for this purpose.
+   Such realignment can be requested with a dedicated function type attribute
+   on the targets that support it.  We define FOREIGN_FORCE_REALIGN_STACK to
+   characterize the situations where the attribute should be set.  We rely on
+   compiler configuration settings for 'main' to decide.  */
 
-   It is defined on targets where the circuitry is available, and indicates
-   whether the realignment is needed for 'main'.  We use this to decide for
-   foreign subprograms as well.
-
-   It is not defined on targets where the circuitry is not implemented, and
-   we just never set the attribute in these cases.
-
-   Whether it is defined on all targets that would need it in theory is
-   not entirely clear.  We currently trust the base GCC settings for this
-   purpose.  */
-
-#ifndef FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN
-#define FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN 0
+#ifdef MAIN_STACK_BOUNDARY
+#define FOREIGN_FORCE_REALIGN_STACK \
+  (MAIN_STACK_BOUNDARY < PREFERRED_STACK_BOUNDARY)
+#else
+#define FOREIGN_FORCE_REALIGN_STACK 0
 #endif
 
 struct incomplete
@@ -364,10 +357,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
      another compilation unit) public entities, show we are at global level
      for the purpose of computing scopes.  Don't do this for components or
      discriminants since the relevant test is whether or not the record is
-     being defined.  */
+     being defined.  Don't do this for constants either as we'll look into
+     their defining expression in the local context.  */
   if (!definition
       && kind != E_Component
       && kind != E_Discriminant
+      && kind != E_Constant
       && Is_Public (gnat_entity)
       && !Is_Statically_Allocated (gnat_entity))
     force_global++, this_global = true;
@@ -428,18 +423,37 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	}
 
       /* If we have an external constant that we are not defining, get the
-	 expression that is was defined to represent.  We may throw that
-	 expression away later if it is not a constant.  Do not retrieve the
-	 expression if it is an aggregate or allocator, because in complex
-	 instantiation contexts it may not be expanded  */
+	 expression that is was defined to represent.  We may throw it away
+	 later if it is not a constant.  But do not retrieve the expression
+	 if it is an allocator because the designated type might be dummy
+	 at this point.  */
       if (!definition
-	  && Present (Expression (Declaration_Node (gnat_entity)))
 	  && !No_Initialization (Declaration_Node (gnat_entity))
-	  && (Nkind (Expression (Declaration_Node (gnat_entity)))
-	      != N_Aggregate)
-	  && (Nkind (Expression (Declaration_Node (gnat_entity)))
-	      != N_Allocator))
-	gnu_expr = gnat_to_gnu (Expression (Declaration_Node (gnat_entity)));
+	  && Present (Expression (Declaration_Node (gnat_entity)))
+	  && Nkind (Expression (Declaration_Node (gnat_entity)))
+	     != N_Allocator)
+	{
+	  bool went_into_elab_proc = false;
+
+	  /* The expression may contain N_Expression_With_Actions nodes and
+	     thus object declarations from other units.  In this case, even
+	     though the expression will eventually be discarded since not a
+	     constant, the declarations would be stuck either in the global
+	     varpool or in the current scope.  Therefore we force the local
+	     context and create a fake scope that we'll zap at the end.  */
+	  if (!current_function_decl)
+	    {
+	      current_function_decl = get_elaboration_procedure ();
+	      went_into_elab_proc = true;
+	    }
+	  gnat_pushlevel ();
+
+	  gnu_expr = gnat_to_gnu (Expression (Declaration_Node (gnat_entity)));
+
+	  gnat_zaplevel ();
+	  if (went_into_elab_proc)
+	    current_function_decl = NULL_TREE;
+	}
 
       /* Ignore deferred constant definitions without address clause since
 	 they are processed fully in the front-end.  If No_Initialization
@@ -935,10 +949,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		   that for the renaming.  At the global level, we can only do
 		   this if we know no SAVE_EXPRs need be made, because the
 		   expression we return might be used in arbitrary conditional
-		   branches so we must force the SAVE_EXPRs evaluation
-		   immediately and this requires a function context.  */
+		   branches so we must force the evaluation of the SAVE_EXPRs
+		   immediately and this requires a proper function context.
+		   Note that an external constant is at the global level.  */
 		if (!Materialize_Entity (gnat_entity)
-		    && (!global_bindings_p ()
+		    && (!((!definition && kind == E_Constant)
+			  || global_bindings_p ())
 			|| (staticp (gnu_expr)
 			    && !TREE_SIDE_EFFECTS (gnu_expr))))
 		  {
@@ -949,7 +965,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		      {
 			/* ??? No DECL_EXPR is created so we need to mark
 			   the expression manually lest it is shared.  */
-			if (global_bindings_p ())
+			if ((!definition && kind == E_Constant)
+			    || global_bindings_p ())
 			  MARK_VISITED (maybe_stable_expr);
 			gnu_decl = maybe_stable_expr;
 			save_gnu_tree (gnat_entity, gnu_decl, true);
@@ -1368,11 +1385,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	  }
 
 	/* If this is a renaming pointer, attach the renamed object to it and
-	   register it if we are at top level.  */
+	   register it if we are at the global level.  Note that an external
+	   constant is at the global level.  */
 	if (TREE_CODE (gnu_decl) == VAR_DECL && renamed_obj)
 	  {
 	    SET_DECL_RENAMED_OBJECT (gnu_decl, renamed_obj);
-	    if (global_bindings_p ())
+	    if ((!definition && kind == E_Constant) || global_bindings_p ())
 	      {
 		DECL_RENAMING_GLOBAL_P (gnu_decl) = 1;
 		record_global_renaming_pointer (gnu_decl);
@@ -1507,7 +1525,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      = create_var_decl (get_entity_name (gnat_literal), NULL_TREE,
 				 gnu_type, gnu_value, true, false, false,
 				 false, NULL, gnat_literal);
-
+	    /* Do not generate debug info for individual enumerators.  */
+	    DECL_IGNORED_P (gnu_literal) = 1;
 	    save_gnu_tree (gnat_literal, gnu_literal, false);
 	    gnu_literal_list = tree_cons (DECL_NAME (gnu_literal),
 					  gnu_value, gnu_literal_list);
@@ -2051,7 +2070,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	/* Now build the array type.  */
 	for (index = ndim - 1; index >= 0; index--)
 	  {
-	    tem = build_array_type (tem, gnu_index_types[index]);
+	    tem = build_nonshared_array_type (tem, gnu_index_types[index]);
 	    TYPE_MULTI_ARRAY_P (tem) = (index > 0);
 	    if (array_type_has_nonaliased_component (tem, gnat_entity))
 	      TYPE_NONALIASED_COMPONENT (tem) = 1;
@@ -2384,7 +2403,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	  /* Now build the array type.  */
 	  for (index = ndim - 1; index >= 0; index --)
 	    {
-	      gnu_type = build_array_type (gnu_type, gnu_index_types[index]);
+	      gnu_type = build_nonshared_array_type (gnu_type,
+						     gnu_index_types[index]);
 	      TYPE_MULTI_ARRAY_P (gnu_type) = (index > 0);
 	      if (array_type_has_nonaliased_component (gnu_type, gnat_entity))
 		TYPE_NONALIASED_COMPONENT (gnu_type) = 1;
@@ -2630,8 +2650,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 			       gnat_entity);
 
 	gnu_type
-	  = build_array_type (gnat_to_gnu_type (Component_Type (gnat_entity)),
-			      gnu_index_type);
+	  = build_nonshared_array_type (gnat_to_gnu_type
+					(Component_Type (gnat_entity)),
+					gnu_index_type);
 	if (array_type_has_nonaliased_component (gnu_type, gnat_entity))
 	  TYPE_NONALIASED_COMPONENT (gnu_type) = 1;
 	relate_alias_sets (gnu_type, gnu_string_type, ALIAS_SET_COPY);
@@ -3519,7 +3540,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		    && TYPE_IS_DUMMY_P
 		       (TREE_TYPE (get_gnu_tree (gnat_desig_equiv))))
 		|| (!in_main_unit
-		    && defer_incomplete_level
+		    && defer_incomplete_level != 0
 		    && !present_gnu_tree (gnat_desig_equiv))
 		|| (in_main_unit
 		    && is_from_limited_with
@@ -3540,7 +3561,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    gnu_type = TYPE_POINTER_TO (gnu_desig_type);
 	    if (!gnu_type)
 	      {
-		tree gnu_template_type = make_node (ENUMERAL_TYPE);
+		tree gnu_template_type = make_node (RECORD_TYPE);
 		tree gnu_ptr_template = build_pointer_type (gnu_template_type);
 		tree gnu_array_type = make_node (ENUMERAL_TYPE);
 		tree gnu_ptr_array = build_pointer_type (gnu_array_type);
@@ -3603,7 +3624,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		    access type may be the full view of a private type.  Note
 		    that the unconstrained array case is handled above.  */
 		 || ((!in_main_unit || imported_p)
-		     && defer_incomplete_level
+		     && defer_incomplete_level != 0
 		     && !present_gnu_tree (gnat_desig_equiv)
 		     && (Is_Record_Type (gnat_desig_rep)
 			 || Is_Array_Type (gnat_desig_rep)))
@@ -3737,7 +3758,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	       Besides, variants of this non-dummy type might have been created
 	       along the way.  update_pointer_to is expected to properly take
 	       care of those situations.  */
-	    if (!defer_incomplete_level && !is_from_limited_with_in_main_unit)
+	    if (defer_incomplete_level == 0
+		&& !is_from_limited_with_in_main_unit)
 	      update_pointer_to (TYPE_MAIN_VARIANT (gnu_old_desig_type),
 				 gnat_to_gnu_type (gnat_desig_equiv));
 	    else
@@ -4208,13 +4230,10 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	     get_identifier ("stdcall"), NULL_TREE,
 	     gnat_entity);
 
-	/* If we are on a target where stack realignment is needed for 'main'
-	   to honor GCC's implicit expectations (stack alignment greater than
-	   what the base ABI guarantees), ensure we do the same for foreign
-	   convention subprograms as they might be used as callbacks from code
-	   breaking such expectations.  Note that this applies to task entry
-	   points in particular.  */
-	if (FORCE_PREFERRED_STACK_BOUNDARY_IN_MAIN
+	/* If we should request stack realignment for a foreign convention
+	   subprogram, do so.  Note that this applies to task entry points in
+	   particular.  */
+	if (FOREIGN_FORCE_REALIGN_STACK
 	    && Has_Foreign_Convention (gnat_entity))
 	  prepend_one_attribute_to
 	    (&attr_list, ATTR_MACHINE_ATTRIBUTE,
@@ -5057,7 +5076,7 @@ rest_of_type_decl_compilation (tree decl)
 {
   /* We need to defer finalizing the type if incomplete types
      are being deferred or if they are being processed.  */
-  if (defer_incomplete_level || defer_finalize_level)
+  if (defer_incomplete_level != 0 || defer_finalize_level != 0)
     VEC_safe_push (tree, heap, defer_finalize_list, decl);
   else
     rest_of_type_decl_compilation_no_defer (decl);
@@ -5988,7 +6007,7 @@ elaborate_expression_1 (tree gnu_expr, Entity_Id gnat_entity, tree gnu_name,
 					     IDENTIFIER_POINTER (gnu_name)),
 			 NULL_TREE, TREE_TYPE (gnu_expr), gnu_expr,
 			 !need_debug, Is_Public (gnat_entity),
-			 !definition, false, NULL, gnat_entity);
+			 !definition, expr_global, NULL, gnat_entity);
 
   /* We only need to use this variable if we are in global context since GCC
      can do the right thing in the local case.  */
@@ -8593,7 +8612,7 @@ substitute_in_type (tree t, tree f, tree r)
 	if (component == TREE_TYPE (t) && domain == TYPE_DOMAIN (t))
 	  return t;
 
-	nt = build_array_type (component, domain);
+	nt = build_nonshared_array_type (component, domain);
 	TYPE_ALIGN (nt) = TYPE_ALIGN (t);
 	TYPE_USER_ALIGN (nt) = TYPE_USER_ALIGN (t);
 	SET_TYPE_MODE (nt, TYPE_MODE (t));

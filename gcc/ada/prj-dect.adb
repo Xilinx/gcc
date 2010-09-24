@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -247,8 +247,7 @@ package body Prj.Dect is
             end if;
 
             if Attribute_Kind_Of (Current_Attribute) in
-                 Case_Insensitive_Associative_Array ..
-                 Optional_Index_Case_Insensitive_Associative_Array
+                 All_Case_Insensitive_Associative_Array
             then
                Set_Case_Insensitive (Attribute, In_Tree, To => True);
             end if;
@@ -1028,8 +1027,9 @@ package body Prj.Dect is
       First_Attribute        : Attribute_Node_Id := Empty_Attribute;
       Current_Package        : Package_Node_Id   := Empty_Package;
       First_Declarative_Item : Project_Node_Id   := Empty_Node;
-
       Package_Location       : constant Source_Ptr := Token_Ptr;
+      Renaming               : Boolean := False;
+      Extending              : Boolean := False;
 
    begin
       Package_Declaration :=
@@ -1150,13 +1150,20 @@ package body Prj.Dect is
       end if;
 
       if Token = Tok_Renames then
+         Renaming := True;
+      elsif Token = Tok_Extends then
+         Extending := True;
+      end if;
+
+      if Renaming or else Extending then
          if Is_Config_File then
             Error_Msg
               (Flags,
-               "no package renames in configuration projects", Token_Ptr);
+               "no package rename or extension in configuration projects",
+               Token_Ptr);
          end if;
 
-         --  Scan past "renames"
+         --  Scan past "renames" or "extends"
 
          Scan (In_Tree);
 
@@ -1250,7 +1257,9 @@ package body Prj.Dect is
                end if;
             end if;
          end if;
+      end if;
 
+      if Renaming then
          Expect (Tok_Semicolon, "`;`");
          Set_End_Of_Line (Package_Declaration);
          Set_Previous_Line_Node (Package_Declaration);
@@ -1306,7 +1315,7 @@ package body Prj.Dect is
          Remove_Next_End_Node;
 
       else
-         Error_Msg (Flags, "expected IS or RENAMES", Token_Ptr);
+         Error_Msg (Flags, "expected IS", Token_Ptr);
       end if;
 
    end Parse_Package_Declaration;

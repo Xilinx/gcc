@@ -67,7 +67,11 @@ Some basic guidelines for editing this document:
 * @code{BESSEL_Y0}:     BESSEL_Y0, Bessel function of the second kind of order 0
 * @code{BESSEL_Y1}:     BESSEL_Y1, Bessel function of the second kind of order 1
 * @code{BESSEL_YN}:     BESSEL_YN, Bessel function of the second kind
+* @code{BGE}:           BGE,       Bitwise greater than or equal to
+* @code{BGT}:           BGT,       Bitwise greater than
 * @code{BIT_SIZE}:      BIT_SIZE,  Bit size inquiry function
+* @code{BLE}:           BLE,       Bitwise less than or equal to
+* @code{BLT}:           BLT,       Bitwise less than
 * @code{BTEST}:         BTEST,     Bit test function
 * @code{C_ASSOCIATED}:  C_ASSOCIATED, Status of a C pointer
 * @code{C_F_POINTER}:   C_F_POINTER, Convert C into Fortran pointer
@@ -97,6 +101,8 @@ Some basic guidelines for editing this document:
 * @code{DOT_PRODUCT}:   DOT_PRODUCT, Dot product function
 * @code{DPROD}:         DPROD,     Double product function
 * @code{DREAL}:         DREAL,     Double real part function
+* @code{DSHIFTL}:       DSHIFTL,   Combined left shift
+* @code{DSHIFTR}:       DSHIFTR,   Combined right shift
 * @code{DTIME}:         DTIME,     Execution time subroutine (or function)
 * @code{EOSHIFT}:       EOSHIFT,   End-off shift elements of an array
 * @code{EPSILON}:       EPSILON,   Epsilon function
@@ -104,6 +110,7 @@ Some basic guidelines for editing this document:
 * @code{ERFC}:          ERFC,      Complementary error function
 * @code{ERFC_SCALED}:   ERFC_SCALED, Exponentially-scaled complementary error function
 * @code{ETIME}:         ETIME,     Execution time subroutine (or function)
+* @code{EXECUTE_COMMAND_LINE}: EXECUTE_COMMAND_LINE, Execute a shell command
 * @code{EXIT}:          EXIT,      Exit the program with status.
 * @code{EXP}:           EXP,       Exponential function
 * @code{EXPONENT}:      EXPONENT,  Exponent function
@@ -136,9 +143,11 @@ Some basic guidelines for editing this document:
 * @code{GMTIME}:        GMTIME,    Convert time to GMT info
 * @code{HOSTNM}:        HOSTNM,    Get system host name
 * @code{HUGE}:          HUGE,      Largest number of a kind
-* @code{HYPOT}:         HYPOT,     Euclidian distance function
+* @code{HYPOT}:         HYPOT,     Euclidean distance function
 * @code{IACHAR}:        IACHAR,    Code in @acronym{ASCII} collating sequence
+* @code{IALL}:          IALL,      Bitwise AND of array elements
 * @code{IAND}:          IAND,      Bitwise logical and
+* @code{IANY}:          IANY,      Bitwise OR of array elements
 * @code{IARGC}:         IARGC,     Get the number of command line arguments
 * @code{IBCLR}:         IBCLR,     Clear bit
 * @code{IBITS}:         IBITS,     Bit extraction
@@ -147,13 +156,14 @@ Some basic guidelines for editing this document:
 * @code{IDATE}:         IDATE,     Current local time (day/month/year)
 * @code{IEOR}:          IEOR,      Bitwise logical exclusive or
 * @code{IERRNO}:        IERRNO,    Function to get the last system error number
+* @code{IMAGE_INDEX}:   IMAGE_INDEX, Cosubscript to image index conversion
 * @code{INDEX}:         INDEX intrinsic, Position of a substring within a string
 * @code{INT}:           INT,       Convert to integer type
 * @code{INT2}:          INT2,      Convert to 16-bit integer type
 * @code{INT8}:          INT8,      Convert to 64-bit integer type
 * @code{IOR}:           IOR,       Bitwise logical or
+* @code{IPARITY}:       IPARITY,   Bitwise XOR of array elements
 * @code{IRAND}:         IRAND,     Integer pseudo-random number
-* @code{IMAGE_INDEX}:   IMAGE_INDEX, Cosubscript to image index convertion
 * @code{IS_IOSTAT_END}:  IS_IOSTAT_END, Test for end-of-file value
 * @code{IS_IOSTAT_EOR}:  IS_IOSTAT_EOR, Test for end-of-record value
 * @code{ISATTY}:        ISATTY,    Whether a unit is a terminal device
@@ -184,6 +194,8 @@ Some basic guidelines for editing this document:
 * @code{LSTAT}:         LSTAT,     Get file status
 * @code{LTIME}:         LTIME,     Convert time to local time info
 * @code{MALLOC}:        MALLOC,    Dynamic memory allocation function
+* @code{MASKL}:         MASKL,     Left justified mask
+* @code{MASKR}:         MASKR,     Right justified mask
 * @code{MATMUL}:        MATMUL,    matrix multiplication
 * @code{MAX}:           MAX,       Maximum value of an argument list
 * @code{MAXEXPONENT}:   MAXEXPONENT, Maximum exponent of a real kind
@@ -192,6 +204,7 @@ Some basic guidelines for editing this document:
 * @code{MCLOCK}:        MCLOCK,    Time function
 * @code{MCLOCK8}:       MCLOCK8,   Time function (64-bit)
 * @code{MERGE}:         MERGE,     Merge arrays
+* @code{MERGE_BITS}:    MERGE_BITS, Merge of bits under mask
 * @code{MIN}:           MIN,       Minimum value of an argument list
 * @code{MINEXPONENT}:   MINEXPONENT, Minimum exponent of a real kind
 * @code{MINLOC}:        MINLOC,    Location of the minimum value within an array
@@ -203,12 +216,16 @@ Some basic guidelines for editing this document:
 * @code{NEAREST}:       NEAREST,   Nearest representable number
 * @code{NEW_LINE}:      NEW_LINE,  New line character
 * @code{NINT}:          NINT,      Nearest whole number
+* @code{NORM2}:         NORM2,     Euclidean vector norm
 * @code{NOT}:           NOT,       Logical negation
 * @code{NULL}:          NULL,      Function that returns an disassociated pointer
 * @code{NUM_IMAGES}:    NUM_IMAGES, Number of images
 * @code{OR}:            OR,        Bitwise logical OR
 * @code{PACK}:          PACK,      Pack an array into an array of rank one
+* @code{PARITY}:        PARITY,    Reduction with exclusive OR
 * @code{PERROR}:        PERROR,    Print system error message
+* @code{POPCNT}:        POPCNT,    Number of bits set
+* @code{POPPAR}:        POPPAR,    Parity of the number of bits set
 * @code{PRECISION}:     PRECISION, Decimal precision of a real kind
 * @code{PRESENT}:       PRESENT,   Determine whether an optional dummy argument is specified
 * @code{PRODUCT}:       PRODUCT,   Product of array elements
@@ -234,6 +251,9 @@ Some basic guidelines for editing this document:
 * @code{SELECTED_REAL_KIND}: SELECTED_REAL_KIND,  Choose real kind
 * @code{SET_EXPONENT}:  SET_EXPONENT, Set the exponent of the model
 * @code{SHAPE}:         SHAPE,     Determine the shape of an array
+* @code{SHIFTA}:        SHIFTA,    Right shift with fill
+* @code{SHIFTL}:        SHIFTL,    Left shift
+* @code{SHIFTR}:        SHIFTR,    Right shift
 * @code{SIGN}:          SIGN,      Sign copying function
 * @code{SIGNAL}:        SIGNAL,    Signal handling subroutine (or function)
 * @code{SIN}:           SIN,       Sine function
@@ -1423,7 +1443,7 @@ Inverse function: @ref{TAN}
 @item @emph{Description}:
 @code{ATAN2(Y, X)} computes the principal value of the argument
 function of the complex number @math{X + i Y}. This function can
-be used to transform from carthesian into polar coordinates and
+be used to transform from Cartesian into polar coordinates and
 allows to determine the angle in the correct quadrant.
 
 @item @emph{Standard}:
@@ -1640,7 +1660,7 @@ of the first kind of the orders @var{N1} to @var{N2}.
 Fortran 2008 and later, negative @var{N} is allowed as GNU extension
 
 @item @emph{Class}:
-Elemental function, except for the tranformational function
+Elemental function, except for the transformational function
 @code{BESSEL_JN(N1, N2, X)}
 
 @item @emph{Syntax}:
@@ -1800,7 +1820,7 @@ of the first kind of the orders @var{N1} to @var{N2}.
 Fortran 2008 and later, negative @var{N} is allowed as GNU extension
 
 @item @emph{Class}:
-Elemental function, except for the tranformational function
+Elemental function, except for the transformational function
 @code{BESSEL_YN(N1, N2, X)}
 
 @item @emph{Syntax}:
@@ -1843,6 +1863,75 @@ end program test_besyn
 
 
 
+@node BGE
+@section @code{BGE} --- Bitwise greater than or equal to
+@fnindex BGE
+@cindex bitwise comparison
+
+@table @asis
+@item @emph{Description}:
+Determines whether an integral is a bitwise greater than or equal to
+another.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = BGE(I, J)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be of @code{INTEGER} type.
+@item @var{J} @tab Shall be of @code{INTEGER} type, and of the same kind
+as @var{I}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{LOGICAL} and of the default kind.
+
+@item @emph{See also}:
+@ref{BGT}, @ref{BLE}, @ref{BLT}
+@end table
+
+
+
+@node BGT
+@section @code{BGT} --- Bitwise greater than
+@fnindex BGT
+@cindex bitwise comparison
+
+@table @asis
+@item @emph{Description}:
+Determines whether an integral is a bitwise greater than another.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = BGT(I, J)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be of @code{INTEGER} type.
+@item @var{J} @tab Shall be of @code{INTEGER} type, and of the same kind
+as @var{I}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{LOGICAL} and of the default kind.
+
+@item @emph{See also}:
+@ref{BGE}, @ref{BLE}, @ref{BLT}
+@end table
+
+
+
 @node BIT_SIZE
 @section @code{BIT_SIZE} --- Bit size inquiry function
 @fnindex BIT_SIZE
@@ -1881,6 +1970,75 @@ program test_bit_size
     print *, size
 end program test_bit_size
 @end smallexample
+@end table
+
+
+
+@node BLE
+@section @code{BLE} --- Bitwise less than or equal to
+@fnindex BLE
+@cindex bitwise comparison
+
+@table @asis
+@item @emph{Description}:
+Determines whether an integral is a bitwise less than or equal to
+another.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = BLE(I, J)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be of @code{INTEGER} type.
+@item @var{J} @tab Shall be of @code{INTEGER} type, and of the same kind
+as @var{I}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{LOGICAL} and of the default kind.
+
+@item @emph{See also}:
+@ref{BGT}, @ref{BGE}, @ref{BLT}
+@end table
+
+
+
+@node BLT
+@section @code{BLT} --- Bitwise less than
+@fnindex BLT
+@cindex bitwise comparison
+
+@table @asis
+@item @emph{Description}:
+Determines whether an integral is a bitwise less than another.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = BLT(I, J)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be of @code{INTEGER} type.
+@item @var{J} @tab Shall be of @code{INTEGER} type, and of the same kind
+as @var{I}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{LOGICAL} and of the default kind.
+
+@item @emph{See also}:
+@ref{BGE}, @ref{BGT}, @ref{BLE}
 @end table
 
 
@@ -2707,7 +2865,7 @@ end program test_cos
 @item @emph{Specific names}:
 @multitable @columnfractions .20 .20 .20 .25
 @item Name            @tab Argument            @tab Return type       @tab Standard
-@item @code{COS(X)}  n@tab @code{REAL(4) X}    @tab @code{REAL(4)}    @tab Fortran 77 and later
+@item @code{COS(X)}   @tab @code{REAL(4) X}    @tab @code{REAL(4)}    @tab Fortran 77 and later
 @item @code{DCOS(X)}  @tab @code{REAL(8) X}    @tab @code{REAL(8)}    @tab Fortran 77 and later
 @item @code{CCOS(X)}  @tab @code{COMPLEX(4) X} @tab @code{COMPLEX(4)} @tab Fortran 77 and later
 @item @code{ZCOS(X)}  @tab @code{COMPLEX(8) X} @tab @code{COMPLEX(8)} @tab GNU extension
@@ -3416,6 +3574,86 @@ end program test_dreal
 
 
 
+@node DSHIFTL
+@section @code{DSHIFTL} --- Combined left shift
+@fnindex DSHIFTL
+@cindex left shift, combined
+@cindex shift, left
+
+@table @asis
+@item @emph{Description}:
+@code{DSHIFTL(I, J, SHIFT)} combines bits of @var{I} and @var{J}. The
+rightmost @var{SHIFT} bits of the result are the leftmost @var{SHIFT}
+bits of @var{J}, and the remaining bits are the rightmost bits of
+@var{I}.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = DSHIFTL(I, J, SHIFT)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be of type @code{INTEGER}.
+@item @var{J} @tab Shall be of type @code{INTEGER}, and of the same kind
+as @var{I}.
+@item @var{SHIFT} @tab Shall be of type @code{INTEGER}.
+@end multitable
+
+@item @emph{Return value}:
+The return value has same type and kind as @var{I}.
+
+@item @emph{See also}:
+@ref{DSHIFTR}
+
+@end table
+
+
+
+@node DSHIFTR
+@section @code{DSHIFTR} --- Combined right shift
+@fnindex DSHIFTR
+@cindex right shift, combined
+@cindex shift, right
+
+@table @asis
+@item @emph{Description}:
+@code{DSHIFTR(I, J, SHIFT)} combines bits of @var{I} and @var{J}. The
+leftmost @var{SHIFT} bits of the result are the rightmost @var{SHIFT}
+bits of @var{I}, and the remaining bits are the leftmost bits of
+@var{J}.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = DSHIFTR(I, J, SHIFT)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be of type @code{INTEGER}.
+@item @var{J} @tab Shall be of type @code{INTEGER}, and of the same kind
+as @var{I}.
+@item @var{SHIFT} @tab Shall be of type @code{INTEGER}.
+@end multitable
+
+@item @emph{Return value}:
+The return value has same type and kind as @var{I}.
+
+@item @emph{See also}:
+@ref{DSHIFTL}
+
+@end table
+
+
+
 @node DTIME
 @section @code{DTIME} --- Execution time subroutine (or function)
 @fnindex DTIME
@@ -3813,6 +4051,82 @@ end program test_etime
 
 
 
+@node EXECUTE_COMMAND_LINE
+@section @code{EXECUTE_COMMAND_LINE} --- Execute a shell command
+@fnindex EXECUTE_COMMAND_LINE
+@cindex system, system call
+@cindex command line
+
+@table @asis
+@item @emph{Description}:
+@code{EXECUTE_COMMAND_LINE} runs a shell command, synchronously or
+asynchronously.
+
+The @code{COMMAND} argument is passed to the shell and executed, using
+the C library's @code{system()} call.  (The shell is @code{sh} on Unix
+systems, and @code{cmd.exe} on Windows.)  If @code{WAIT} is present and
+has the value false, the execution of the command is asynchronous if the
+system supports it; otherwise, the command is executed synchronously.
+
+The three last arguments allow the user to get status information.  After
+synchronous execution, @code{EXITSTAT} contains the integer exit code of
+the command, as returned by @code{system}.  @code{CMDSTAT} is set to zero
+if the command line was executed (whatever its exit status was).
+@code{CMDMSG} is assigned an error message if an error has occurred.
+
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Subroutine
+
+@item @emph{Syntax}:
+@code{CALL EXECUTE_COMMAND_LINE(COMMAND [, WAIT, EXITSTAT, CMDSTAT, CMDMSG ])}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{COMMAND} @tab Shall be a default @code{CHARACTER} scalar.
+@item @var{WAIT} @tab (Optional) Shall be a default @code{LOGICAL} scalar.
+@item @var{EXITSTAT} @tab (Optional) Shall be an @code{INTEGER} of the
+default kind.
+@item @var{CMDSTAT} @tab (Optional) Shall be an @code{INTEGER} of the
+default kind.
+@item @var{CMDMSG} @tab (Optional) Shall be an @code{CHARACTER} scalar of the
+default kind.
+@end multitable
+
+@item @emph{Example}:
+@smallexample
+program test_exec
+  integer :: i
+
+  call execute_command_line ("external_prog.exe", exitstat=i)
+  print *, "Exit status of external_prog.exe was ", i
+
+  call execute_command_line ("reindex_files.exe", wait=.false.)
+  print *, "Now reindexing files in the background"
+
+end program test_exec
+@end smallexample
+
+
+@item @emph{Note}:
+
+Because this intrinsic is implemented in terms of the @code{system()}
+function call, its behavior with respect to signaling is processor
+dependent. In particular, on POSIX-compliant systems, the SIGINT and
+SIGQUIT signals will be ignored, and the SIGCHLD will be blocked. As
+such, if the parent process is terminated, the child process might not be
+terminated alongside.
+
+
+@item @emph{See also}:
+@ref{SYSTEM}
+@end table
+
+
+
 @node EXIT
 @section @code{EXIT} --- Exit the program with status. 
 @fnindex EXIT
@@ -4075,7 +4389,10 @@ GNU extension
 Subroutine, function
 
 @item @emph{Syntax}:
-@code{CALL FGET(C [, STATUS])}
+@multitable @columnfractions .80
+@item @code{CALL FGET(C [, STATUS])}
+@item @code{STATUS = FGET(C)}
+@end multitable
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -4137,7 +4454,10 @@ GNU extension
 Subroutine, function
 
 @item @emph{Syntax}:
-@code{CALL FGETC(UNIT, C [, STATUS])}
+@multitable @columnfractions .80
+@item @code{CALL FGETC(UNIT, C [, STATUS])}
+@item @code{STATUS = FGETC(UNIT, C)}
+@end multitable
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -4357,7 +4677,10 @@ GNU extension
 Subroutine, function
 
 @item @emph{Syntax}:
-@code{CALL FPUT(C [, STATUS])}
+@multitable @columnfractions .80
+@item @code{CALL FPUT(C [, STATUS])}
+@item @code{STATUS = FPUT(C)}
+@end multitable
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -4413,7 +4736,10 @@ GNU extension
 Subroutine, function
 
 @item @emph{Syntax}:
-@code{CALL FPUTC(UNIT, C [, STATUS])}
+@multitable @columnfractions .80
+@item @code{CALL FPUTC(UNIT, C [, STATUS])}
+@item @code{STATUS = FPUTC(UNIT, C)}
+@end multitable
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -4631,7 +4957,10 @@ GNU extension
 Subroutine, function
 
 @item @emph{Syntax}:
-@code{CALL FSTAT(UNIT, VALUES [, STATUS])}
+@multitable @columnfractions .80
+@item @code{CALL FSTAT(UNIT, VALUES [, STATUS])}
+@item @code{STATUS = FSTAT(UNIT, VALUES)}
+@end multitable
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -4999,7 +5328,10 @@ GNU extension
 Subroutine, function
 
 @item @emph{Syntax}:
-@code{CALL GETCWD(C [, STATUS])}
+@multitable @columnfractions .80
+@item @code{CALL GETCWD(C [, STATUS])}
+@item @code{STATUS = GETCWD(C)}
+@end multitable
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -5132,7 +5464,7 @@ END PROGRAM
 @node GETGID
 @section @code{GETGID} --- Group ID function
 @fnindex GETGID
-@cindex system, group id
+@cindex system, group ID
 
 @table @asis
 @item @emph{Description}:
@@ -5209,8 +5541,8 @@ END PROGRAM
 @node GETPID
 @section @code{GETPID} --- Process ID function
 @fnindex GETPID
-@cindex system, process id
-@cindex process id
+@cindex system, process ID
+@cindex process ID
 
 @table @asis
 @item @emph{Description}:
@@ -5248,7 +5580,7 @@ end program info
 @node GETUID
 @section @code{GETUID} --- User ID function
 @fnindex GETUID
-@cindex system, user id
+@cindex system, user ID
 @cindex user id
 
 @table @asis
@@ -5499,6 +5831,66 @@ and formatted string representations.
 
 
 
+@node IALL
+@section @code{IALL} --- Bitwise AND of array elements
+@fnindex IALL
+@cindex array, AND
+@cindex bits, AND of array elements
+
+@table @asis
+@item @emph{Description}:
+Reduces with bitwise AND the elements of @var{ARRAY} along dimension @var{DIM}
+if the corresponding element in @var{MASK} is @code{TRUE}.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Transformational function
+
+@item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{RESULT = IALL(ARRAY[, MASK])}
+@item @code{RESULT = IALL(ARRAY, DIM[, MASK])}
+@end multitable
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER}
+@item @var{DIM}   @tab (Optional) shall be a scalar of type 
+@code{INTEGER} with a value in the range from 1 to n, where n 
+equals the rank of @var{ARRAY}.
+@item @var{MASK}  @tab (Optional) shall be of type @code{LOGICAL} 
+and either be a scalar or an array of the same shape as @var{ARRAY}.
+@end multitable
+
+@item @emph{Return value}:
+The result is of the same type as @var{ARRAY}.
+
+If @var{DIM} is absent, a scalar with the bitwise ALL of all elements in
+@var{ARRAY} is returned. Otherwise, an array of rank n-1, where n equals
+the rank of @var{ARRAY}, and a shape similar to that of @var{ARRAY} with
+dimension @var{DIM} dropped is returned.
+
+@item @emph{Example}:
+@smallexample
+PROGRAM test_iall
+  INTEGER(1) :: a(2)
+
+  a(1) = b'00100100'
+  a(1) = b'01101010'
+
+  ! prints 00100000
+  PRINT '(b8.8)', IALL(a)
+END PROGRAM
+@end smallexample
+
+@item @emph{See also}:
+@ref{IANY}, @ref{IPARITY}, @ref{IAND}
+@end table
+
+
+
 @node IAND
 @section @code{IAND} --- Bitwise logical and
 @fnindex IAND
@@ -5543,6 +5935,66 @@ END PROGRAM
 @item @emph{See also}:
 @ref{IOR}, @ref{IEOR}, @ref{IBITS}, @ref{IBSET}, @ref{IBCLR}, @ref{NOT}
 
+@end table
+
+
+
+@node IANY
+@section @code{IANY} --- Bitwise XOR of array elements
+@fnindex IANY
+@cindex array, OR
+@cindex bits, OR of array elements
+
+@table @asis
+@item @emph{Description}:
+Reduces with bitwise OR (inclusive or) the elements of @var{ARRAY} along
+dimension @var{DIM} if the corresponding element in @var{MASK} is @code{TRUE}.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Transformational function
+
+@item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{RESULT = IANY(ARRAY[, MASK])}
+@item @code{RESULT = IANY(ARRAY, DIM[, MASK])}
+@end multitable
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER}
+@item @var{DIM}   @tab (Optional) shall be a scalar of type 
+@code{INTEGER} with a value in the range from 1 to n, where n 
+equals the rank of @var{ARRAY}.
+@item @var{MASK}  @tab (Optional) shall be of type @code{LOGICAL} 
+and either be a scalar or an array of the same shape as @var{ARRAY}.
+@end multitable
+
+@item @emph{Return value}:
+The result is of the same type as @var{ARRAY}.
+
+If @var{DIM} is absent, a scalar with the bitwise OR of all elements in
+@var{ARRAY} is returned. Otherwise, an array of rank n-1, where n equals
+the rank of @var{ARRAY}, and a shape similar to that of @var{ARRAY} with
+dimension @var{DIM} dropped is returned.
+
+@item @emph{Example}:
+@smallexample
+PROGRAM test_iany
+  INTEGER(1) :: a(2)
+
+  a(1) = b'00100100'
+  a(1) = b'01101010'
+
+  ! prints 01111011
+  PRINT '(b8.8)', IANY(a)
+END PROGRAM
+@end smallexample
+
+@item @emph{See also}:
+@ref{IPARITY}, @ref{IALL}, @ref{IOR}
 @end table
 
 
@@ -5717,7 +6169,7 @@ The correspondence between characters and their codes is not necessarily
 the same across different GNU Fortran implementations.
 
 @item @emph{Standard}:
-Fortan 95 and later, with @var{KIND} argument Fortran 2003 and later
+Fortran 95 and later, with @var{KIND} argument Fortran 2003 and later
 
 @item @emph{Class}:
 Elemental function
@@ -5833,7 +6285,7 @@ end program test_idate
 
 @table @asis
 @item @emph{Description}:
-@code{IEOR} returns the bitwise boolean exclusive-OR of @var{I} and
+@code{IEOR} returns the bitwise Boolean exclusive-OR of @var{I} and
 @var{J}.
 
 @item @emph{Standard}:
@@ -5892,6 +6344,50 @@ kind.
 
 @item @emph{See also}:
 @ref{PERROR}
+@end table
+
+
+
+@node IMAGE_INDEX
+@section @code{IMAGE_INDEX} --- Function that converts a cosubscript to an image index
+@fnindex IMAGE_INDEX
+@cindex coarray, @code{IMAGE_INDEX}
+@cindex images, cosubscript to image index conversion
+
+@table @asis
+@item @emph{Description}:
+Returns the image index belonging to a cosubscript.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Inquiry function.
+
+@item @emph{Syntax}:
+@code{RESULT = IMAGE_INDEX(COARRAY, SUB)}
+
+@item @emph{Arguments}: None.
+@multitable @columnfractions .15 .70
+@item @var{COARRAY} @tab Coarray of any type.
+@item @var{SUB}     @tab default integer rank-1 array of a size equal to
+the corank of @var{COARRAY}.
+@end multitable
+
+
+@item @emph{Return value}:
+Scalar default integer with the value of the image index which corresponds
+to the cosubscripts. For invalid cosubscripts the result is zero.
+
+@item @emph{Example}:
+@smallexample
+INTEGER :: array[2,-1:4,8,*]
+! Writes  28 (or 0 if there are fewer than 28 images)
+WRITE (*,*) IMAGE_INDEX (array, [2,0,3,1])
+@end smallexample
+
+@item @emph{See also}:
+@ref{THIS_IMAGE}, @ref{NUM_IMAGES}
 @end table
 
 
@@ -6092,7 +6588,7 @@ The return value is a @code{INTEGER(8)} variable.
 
 @table @asis
 @item @emph{Description}:
-@code{IOR} returns the bitwise boolean inclusive-OR of @var{I} and
+@code{IOR} returns the bitwise Boolean inclusive-OR of @var{I} and
 @var{J}.
 
 @item @emph{Standard}:
@@ -6119,6 +6615,67 @@ the larger argument.)
 
 @item @emph{See also}:
 @ref{IEOR}, @ref{IAND}, @ref{IBITS}, @ref{IBSET}, @ref{IBCLR}, @ref{NOT}
+@end table
+
+
+
+@node IPARITY
+@section @code{IPARITY} --- Bitwise XOR of array elements
+@fnindex IPARITY
+@cindex array, parity
+@cindex array, XOR
+@cindex bits, XOR of array elements
+
+@table @asis
+@item @emph{Description}:
+Reduces with bitwise XOR (exclusive or) the elements of @var{ARRAY} along
+dimension @var{DIM} if the corresponding element in @var{MASK} is @code{TRUE}.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Transformational function
+
+@item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{RESULT = IPARITY(ARRAY[, MASK])}
+@item @code{RESULT = IPARITY(ARRAY, DIM[, MASK])}
+@end multitable
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{ARRAY} @tab Shall be an array of type @code{INTEGER}
+@item @var{DIM}   @tab (Optional) shall be a scalar of type 
+@code{INTEGER} with a value in the range from 1 to n, where n 
+equals the rank of @var{ARRAY}.
+@item @var{MASK}  @tab (Optional) shall be of type @code{LOGICAL} 
+and either be a scalar or an array of the same shape as @var{ARRAY}.
+@end multitable
+
+@item @emph{Return value}:
+The result is of the same type as @var{ARRAY}.
+
+If @var{DIM} is absent, a scalar with the bitwise XOR of all elements in
+@var{ARRAY} is returned. Otherwise, an array of rank n-1, where n equals
+the rank of @var{ARRAY}, and a shape similar to that of @var{ARRAY} with
+dimension @var{DIM} dropped is returned.
+
+@item @emph{Example}:
+@smallexample
+PROGRAM test_iparity
+  INTEGER(1) :: a(2)
+
+  a(1) = b'00100100'
+  a(1) = b'01101010'
+
+  ! prints 10111011
+  PRINT '(b8.8)', IPARITY(a)
+END PROGRAM
+@end smallexample
+
+@item @emph{See also}:
+@ref{IANY}, @ref{IALL}, @ref{IEOR}, @ref{PARITY}
 @end table
 
 
@@ -6174,54 +6731,10 @@ end program test_irand
 
 
 
-@node IMAGE_INDEX
-@section @code{IMAGE_INDEX} --- Function that converts a cosubscript to an image index
-@fnindex IMAGE_INDEX
-@cindex coarray, IMAGE_INDEX
-@cindex images, cosubscript to image index conversion
-
-@table @asis
-@item @emph{Description}:
-Returns the image index belonging to a cosubscript.
-
-@item @emph{Standard}:
-Fortran 2008 and later
-
-@item @emph{Class}:
-Inquiry function.
-
-@item @emph{Syntax}:
-@code{RESULT = IMAGE_INDEX(COARRAY, SUB)}
-
-@item @emph{Arguments}: None.
-@multitable @columnfractions .15 .70
-@item @var{COARRAY} @tab Coarray of any type.
-@item @var{SUB}     @tab default integer rank-1 array of a size equal to
-the corank of @var{COARRAY}.
-@end multitable
-
-
-@item @emph{Return value}:
-Scalar default integer with the value of the image index which corresponds
-to the cosubscripts. For invalid cosubscripts the result is zero.
-
-@item @emph{Example}:
-@smallexample
-INTEGER :: array[2,-1:4,8,*]
-! Writes  28 (or 0 if there are fewer than 28 images)
-WRITE (*,*) IMAGE_INDEX (array, [2,0,3,1])
-@end smallexample
-
-@item @emph{See also}:
-@ref{THIS_IMAGE}, @ref{NUM_IMAGES}
-@end table
-
-
-
 @node IS_IOSTAT_END
 @section @code{IS_IOSTAT_END} --- Test for end-of-file value
 @fnindex IS_IOSTAT_END
-@cindex IOSTAT, end of file
+@cindex @code{IOSTAT}, end of file
 
 @table @asis
 @item @emph{Description}:
@@ -6247,7 +6760,7 @@ Elemental function
 @item @emph{Return value}:
 Returns a @code{LOGICAL} of the default kind, which @code{.TRUE.} if
 @var{I} has the value which indicates an end of file condition for
-IOSTAT= specifiers, and is @code{.FALSE.} otherwise.
+@code{IOSTAT=} specifiers, and is @code{.FALSE.} otherwise.
 
 @item @emph{Example}:
 @smallexample
@@ -6266,7 +6779,7 @@ END PROGRAM
 @node IS_IOSTAT_EOR
 @section @code{IS_IOSTAT_EOR} --- Test for end-of-record value
 @fnindex IS_IOSTAT_EOR
-@cindex IOSTAT, end of record
+@cindex @code{IOSTAT}, end of record
 
 @table @asis
 @item @emph{Description}:
@@ -6292,7 +6805,7 @@ Elemental function
 @item @emph{Return value}:
 Returns a @code{LOGICAL} of the default kind, which @code{.TRUE.} if
 @var{I} has the value which indicates an end of file condition for
-IOSTAT= specifiers, and is @code{.FALSE.} otherwise.
+@code{IOSTAT=} specifiers, and is @code{.FALSE.} otherwise.
 
 @item @emph{Example}:
 @smallexample
@@ -6539,7 +7052,10 @@ only one form can be used in any given program unit.
 Subroutine, function
 
 @item @emph{Syntax}:
-@code{CALL KILL(C, VALUE [, STATUS])}
+@multitable @columnfractions .80
+@item @code{CALL KILL(C, VALUE [, STATUS])}
+@item @code{STATUS = KILL(C, VALUE)}
+@end multitable
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -6717,7 +7233,7 @@ END PROGRAM
 @end smallexample
 
 @item @emph{See also}:
-@ref{BIT_SIZE}, @ref{TRAILZ}
+@ref{BIT_SIZE}, @ref{TRAILZ}, @ref{POPCNT}, @ref{POPPAR}
 @end table
 
 
@@ -7379,7 +7895,8 @@ Bits shifted out from the left end are lost; zeros are shifted in from
 the opposite end.
 
 This function has been superseded by the @code{ISHFT} intrinsic, which
-is standard in Fortran 95 and later.
+is standard in Fortran 95 and later, and the @code{SHIFTL} intrinsic,
+which is standard in Fortran 2008 and later.
 
 @item @emph{Standard}:
 GNU extension
@@ -7401,7 +7918,8 @@ The return value is of type @code{INTEGER} and of the same kind as
 @var{I}.
 
 @item @emph{See also}:
-@ref{ISHFT}, @ref{ISHFTC}, @ref{RSHIFT}
+@ref{ISHFT}, @ref{ISHFTC}, @ref{RSHIFT}, @ref{SHIFTA}, @ref{SHIFTL},
+@ref{SHIFTR}
 
 @end table
 
@@ -7430,7 +7948,10 @@ GNU extension
 Subroutine, function
 
 @item @emph{Syntax}:
-@code{CALL LSTAT(NAME, VALUES [, STATUS])}
+@multitable @columnfractions .80
+@item @code{CALL LSTAT(NAME, VALUES [, STATUS])}
+@item @code{STATUS = LSTAT(NAME, VALUES)}
+@end multitable
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -7560,6 +8081,80 @@ end program test_malloc
 
 @item @emph{See also}:
 @ref{FREE}
+@end table
+
+
+
+@node MASKL
+@section @code{MASKL} --- Left justified mask
+@fnindex MASKL
+@cindex mask, left justified
+
+@table @asis
+@item @emph{Description}:
+@code{MASKL(I[, KIND])} has its leftmost @var{I} bits set to 1, and the
+remaining bits set to 0.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = MASKL(I[, KIND])}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be of type @code{INTEGER}.
+@item @var{KIND} @tab Shall be a scalar constant expression of type
+@code{INTEGER}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{INTEGER}. If @var{KIND} is present, it
+specifies the kind value of the return type; otherwise, it is of the
+default integer kind.
+
+@item @emph{See also}:
+@ref{MASKR}
+@end table
+
+
+
+@node MASKR
+@section @code{MASKR} --- Right justified mask
+@fnindex MASKR
+@cindex mask, right justified
+
+@table @asis
+@item @emph{Description}:
+@code{MASKL(I[, KIND])} has its rightmost @var{I} bits set to 1, and the
+remaining bits set to 0.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = MASKR(I[, KIND])}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be of type @code{INTEGER}.
+@item @var{KIND} @tab Shall be a scalar constant expression of type
+@code{INTEGER}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{INTEGER}. If @var{KIND} is present, it
+specifies the kind value of the return type; otherwise, it is of the
+default integer kind.
+
+@item @emph{See also}:
+@ref{MASKL}
 @end table
 
 
@@ -7920,6 +8515,43 @@ as @var{TSOURCE}.
 
 @item @emph{Return value}:
 The result is of the same type and type parameters as @var{TSOURCE}.
+
+@end table
+
+
+
+@node MERGE_BITS
+@section @code{MERGE_BITS} --- Merge of bits under mask
+@fnindex MERGE_BITS
+@cindex bits, merge
+
+@table @asis
+@item @emph{Description}:
+@code{MERGE_BITS(I, J, MASK)} merges the bits of @var{I} and @var{J}
+as determined by the mask.  The i-th bit of the result is equal to the 
+i-th bit of @var{I} if the i-th bit of @var{MASK} is 1; it is equal to
+the i-th bit of @var{J} otherwise.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = MERGE_BITS(I, J, MASK)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I}    @tab Shall be of type @code{INTEGER}.
+@item @var{J}    @tab Shall be of type @code{INTEGER} and of the same
+kind as @var{I}.
+@item @var{MASK} @tab Shall be of type @code{INTEGER} and of the same
+kind as @var{I}.
+@end multitable
+
+@item @emph{Return value}:
+The result is of the same type and kind as @var{I}.
 
 @end table
 
@@ -8471,6 +9103,57 @@ end program test_nint
 
 
 
+@node NORM2
+@section @code{NORM2} --- Euclidean vector norms
+@fnindex NORM2
+@cindex Euclidean vector norm
+@cindex L2 vector norm
+@cindex norm, Euclidean
+
+@table @asis
+@item @emph{Description}:
+Calculates the Euclidean vector norm (@math{L_2} norm) of
+of @var{ARRAY} along dimension @var{DIM}.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Transformational function
+
+@item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{RESULT = NORM2(ARRAY[, DIM])}
+@end multitable
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{ARRAY} @tab Shall be an array of type @code{REAL}
+@item @var{DIM}   @tab (Optional) shall be a scalar of type 
+@code{INTEGER} with a value in the range from 1 to n, where n 
+equals the rank of @var{ARRAY}.
+@end multitable
+
+@item @emph{Return value}:
+The result is of the same type as @var{ARRAY}.
+
+If @var{DIM} is absent, a scalar with the square root of the sum of all
+elements in @var{ARRAY} squared  is returned. Otherwise, an array of
+rank @math{n-1}, where @math{n} equals the rank of @var{ARRAY}, and a
+shape similar to that of @var{ARRAY} with dimension @var{DIM} dropped
+is returned.
+
+@item @emph{Example}:
+@smallexample
+PROGRAM test_sum
+  REAL :: x(5) = [ real :: 1, 2, 3, 4, 5 ]
+  print *, NORM2(x)  ! = sqrt(55.) ~ 7.416
+END PROGRAM
+@end smallexample
+@end table
+
+
+
 @node NOT
 @section @code{NOT} --- Logical negation
 @fnindex NOT
@@ -8480,7 +9163,7 @@ end program test_nint
 
 @table @asis
 @item @emph{Description}:
-@code{NOT} returns the bitwise boolean inverse of @var{I}.
+@code{NOT} returns the bitwise Boolean inverse of @var{I}.
 
 @item @emph{Standard}:
 Fortran 95 and later
@@ -8517,7 +9200,7 @@ argument.
 @item @emph{Description}:
 Returns a disassociated pointer.
 
-If @var{MOLD} is present, a dissassociated pointer of the same type is
+If @var{MOLD} is present, a disassociated pointer of the same type is
 returned, otherwise the type is determined by context.
 
 In Fortran 95, @var{MOLD} is optional. Please note that Fortran 2003
@@ -8555,7 +9238,7 @@ REAL, POINTER, DIMENSION(:) :: VEC => NULL ()
 @node NUM_IMAGES
 @section @code{NUM_IMAGES} --- Function that returns the number of images
 @fnindex NUM_IMAGES
-@cindex coarray, NUM_IMAGES
+@cindex coarray, @code{NUM_IMAGES}
 @cindex images, number of
 
 @table @asis
@@ -8717,6 +9400,58 @@ END PROGRAM
 
 
 
+@node PARITY
+@section @code{PARITY} --- Reduction with exclusive OR
+@fnindex PARITY
+@cindex Parity
+@cindex Reduction, XOR
+@cindex XOR reduction
+
+@table @asis
+@item @emph{Description}:
+Calculates the parity, i.e. the reduction using @code{.XOR.},
+of @var{MASK} along dimension @var{DIM}.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Transformational function
+
+@item @emph{Syntax}:
+@multitable @columnfractions .80
+@item @code{RESULT = PARITY(MASK[, DIM])}
+@end multitable
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{LOGICAL} @tab Shall be an array of type @code{LOGICAL}
+@item @var{DIM}   @tab (Optional) shall be a scalar of type 
+@code{INTEGER} with a value in the range from 1 to n, where n 
+equals the rank of @var{MASK}.
+@end multitable
+
+@item @emph{Return value}:
+The result is of the same type as @var{MASK}.
+
+If @var{DIM} is absent, a scalar with the parity of all elements in
+@var{MASK} is returned, i.e. true if an odd number of elements is
+@code{.true.} and false otherwise.  If @var{DIM} is present, an array
+of rank @math{n-1}, where @math{n} equals the rank of @var{ARRAY},
+and a shape similar to that of @var{MASK} with dimension @var{DIM}
+dropped is returned.
+
+@item @emph{Example}:
+@smallexample
+PROGRAM test_sum
+  LOGICAL :: x(2) = [ .true., .false. ]
+  print *, PARITY(x) ! prints "T" (true).
+END PROGRAM
+@end smallexample
+@end table
+
+
+
 @node PERROR
 @section @code{PERROR} --- Print system error message
 @fnindex PERROR
@@ -8789,6 +9524,95 @@ program prec_and_range
   print *, precision(x), range(x)
   print *, precision(y), range(y)
 end program prec_and_range
+@end smallexample
+@end table
+
+
+
+@node POPCNT
+@section @code{POPCNT} --- Number of bits set
+@fnindex POPCNT
+@cindex binary representation
+@cindex bits set
+
+@table @asis
+@item @emph{Description}:
+@code{POPCNT(I)} returns the number of bits set ('1' bits) in the binary
+representation of @code{I}.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = POPCNT(I)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be of type @code{INTEGER}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{INTEGER} and of the default integer
+kind.
+
+@item @emph{See also}:
+@ref{POPPAR}, @ref{LEADZ}, @ref{TRAILZ}
+
+@item @emph{Example}:
+@smallexample
+program test_population
+  print *, popcnt(127),       poppar(127)
+  print *, popcnt(huge(0_4)), poppar(huge(0_4))
+  print *, popcnt(huge(0_8)), poppar(huge(0_8))
+end program test_population
+@end smallexample
+@end table
+
+
+@node POPPAR
+@section @code{POPPAR} --- Parity of the number of bits set
+@fnindex POPPAR
+@cindex binary representation
+@cindex parity
+
+@table @asis
+@item @emph{Description}:
+@code{POPPAR(I)} returns parity of the integer @code{I}, i.e. the parity
+of the number of bits set ('1' bits) in the binary representation of
+@code{I}. It is equal to 0 if @code{I} has an even number of bits set,
+and 1 for an odd number of '1' bits.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = POPPAR(I)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab Shall be of type @code{INTEGER}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{INTEGER} and of the default integer
+kind.
+
+@item @emph{See also}:
+@ref{POPCNT}, @ref{LEADZ}, @ref{TRAILZ}
+
+@item @emph{Example}:
+@smallexample
+program test_population
+  print *, popcnt(127),       poppar(127)
+  print *, popcnt(huge(0_4)), poppar(huge(0_4))
+  print *, popcnt(huge(0_8)), poppar(huge(0_8))
+end program test_population
 @end smallexample
 @end table
 
@@ -9433,12 +10257,13 @@ The value returned is equal to
 @item @emph{Description}:
 @code{RSHIFT} returns a value corresponding to @var{I} with all of the
 bits shifted right by @var{SHIFT} places.  If the absolute value of
-@var{SHIFT} is greater than @code{BIT_SIZE(I)}, the value is undefined. 
-Bits shifted out from the left end are lost; zeros are shifted in from
-the opposite end.
+@var{SHIFT} is greater than @code{BIT_SIZE(I)}, the value is undefined.
+Bits shifted out from the right end are lost. The fill is arithmetic: the
+bits shifted in from the left end are equal to the leftmost bit, which in
+two's complement representation is the sign bit.
 
-This function has been superseded by the @code{ISHFT} intrinsic, which
-is standard in Fortran 95 and later.
+This function has been superseded by the @code{SHIFTA} intrinsic, which
+is standard in Fortran 2008 and later.
 
 @item @emph{Standard}:
 GNU extension
@@ -9460,7 +10285,8 @@ The return value is of type @code{INTEGER} and of the same kind as
 @var{I}.
 
 @item @emph{See also}:
-@ref{ISHFT}, @ref{ISHFTC}, @ref{LSHIFT}
+@ref{ISHFT}, @ref{ISHFTC}, @ref{LSHIFT}, @ref{SHIFTA}, @ref{SHIFTR},
+@ref{SHIFTL}
 
 @end table
 
@@ -9953,6 +10779,124 @@ END PROGRAM
 
 @item @emph{See also}:
 @ref{RESHAPE}, @ref{SIZE}
+@end table
+
+
+
+@node SHIFTA
+@section @code{SHIFTA} --- Right shift with fill
+@fnindex SHIFTA
+@cindex bits, shift right
+@cindex shift, right with fill
+
+@table @asis
+@item @emph{Description}:
+@code{SHIFTA} returns a value corresponding to @var{I} with all of the
+bits shifted right by @var{SHIFT} places.  If the absolute value of
+@var{SHIFT} is greater than @code{BIT_SIZE(I)}, the value is undefined.
+Bits shifted out from the right end are lost. The fill is arithmetic: the
+bits shifted in from the left end are equal to the leftmost bit, which in
+two's complement representation is the sign bit.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = SHIFTA(I, SHIFT)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab The type shall be @code{INTEGER}.
+@item @var{SHIFT} @tab The type shall be @code{INTEGER}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{INTEGER} and of the same kind as
+@var{I}.
+
+@item @emph{See also}:
+@ref{SHIFTL}, @ref{SHIFTR}
+@end table
+
+
+
+@node SHIFTL
+@section @code{SHIFTL} --- Left shift
+@fnindex SHIFTL
+@cindex bits, shift left
+@cindex shift, left
+
+@table @asis
+@item @emph{Description}:
+@code{SHIFTL} returns a value corresponding to @var{I} with all of the
+bits shifted left by @var{SHIFT} places.  If the absolute value of
+@var{SHIFT} is greater than @code{BIT_SIZE(I)}, the value is undefined.
+Bits shifted out from the left end are lost, and bits shifted in from
+the right end are set to 0.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = SHIFTL(I, SHIFT)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab The type shall be @code{INTEGER}.
+@item @var{SHIFT} @tab The type shall be @code{INTEGER}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{INTEGER} and of the same kind as
+@var{I}.
+
+@item @emph{See also}:
+@ref{SHIFTA}, @ref{SHIFTR}
+@end table
+
+
+
+@node SHIFTR
+@section @code{SHIFTR} --- Right shift
+@fnindex SHIFTR
+@cindex bits, shift right
+@cindex shift, right
+
+@table @asis
+@item @emph{Description}:
+@code{SHIFTR} returns a value corresponding to @var{I} with all of the
+bits shifted right by @var{SHIFT} places.  If the absolute value of
+@var{SHIFT} is greater than @code{BIT_SIZE(I)}, the value is undefined.
+Bits shifted out from the right end are lost, and bits shifted in from
+the left end are set to 0.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Elemental function
+
+@item @emph{Syntax}:
+@code{RESULT = SHIFTR(I, SHIFT)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{I} @tab The type shall be @code{INTEGER}.
+@item @var{SHIFT} @tab The type shall be @code{INTEGER}.
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{INTEGER} and of the same kind as
+@var{I}.
+
+@item @emph{See also}:
+@ref{SHIFTA}, @ref{SHIFTL}
 @end table
 
 
@@ -10546,7 +11490,10 @@ GNU extension
 Subroutine, function
 
 @item @emph{Syntax}:
-@code{CALL STAT(NAME, VALUES [, STATUS])}
+@multitable @columnfractions .80
+@item @code{CALL STAT(NAME, VALUES [, STATUS])}
+@item @code{STATUS = STAT(NAME, VALUES)}
+@end multitable
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -10759,6 +11706,8 @@ Subroutine, function
 @end multitable
 
 @item @emph{See also}:
+@ref{EXECUTE_COMMAND_LINE}, which is part of the Fortran 2008 standard
+and should considered in new code for future portability.
 @end table
 
 
@@ -10919,7 +11868,7 @@ end program test_tanh
 @node THIS_IMAGE
 @section @code{THIS_IMAGE} --- Function that returns the cosubscript index of this image
 @fnindex THIS_IMAGE
-@cindex coarray, THIS_IMAGE
+@cindex coarray, @code{THIS_IMAGE}
 @cindex images, index of this image
 
 @table @asis
@@ -11123,7 +12072,7 @@ END PROGRAM
 @end smallexample
 
 @item @emph{See also}:
-@ref{BIT_SIZE}, @ref{LEADZ}
+@ref{BIT_SIZE}, @ref{LEADZ}, @ref{POPPAR}, @ref{POPCNT}
 @end table
 
 
@@ -11412,8 +12361,10 @@ GNU extension
 Subroutine, function
 
 @item @emph{Syntax}:
-@code{CALL UMASK(MASK [, OLD])}
-@code{OLD = UMASK(MASK)}
+@multitable @columnfractions .80
+@item @code{CALL UMASK(MASK [, OLD])}
+@item @code{OLD = UMASK(MASK)}
+@end multitable
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
@@ -11674,16 +12625,16 @@ size of 16, 32, and 64 bits. It is negative if a target platform
 does not support the particular kind. (Fortran 2008 or later.)
 
 @item @code{IOSTAT_END}:
-The value assigned to the variable passed to the IOSTAT= specifier of
+The value assigned to the variable passed to the @code{IOSTAT=} specifier of
 an input/output statement if an end-of-file condition occurred.
 
 @item @code{IOSTAT_EOR}:
-The value assigned to the variable passed to the IOSTAT= specifier of
+The value assigned to the variable passed to the @code{IOSTAT=} specifier of
 an input/output statement if an end-of-record condition occurred.
 
 @item @code{IOSTAT_INQUIRE_INTERNAL_UNIT}:
 Scalar default-integer constant, used by @code{INQUIRE} for the
-IOSTAT= specifier to denote an that a unit number identifies an
+@code{IOSTAT=} specifier to denote an that a unit number identifies an
 internal unit. (Fortran 2008 or later.)
 
 @item @code{NUMERIC_STORAGE_SIZE}:
@@ -11822,7 +12773,7 @@ a form of two Fortran 90 modules, named @code{OMP_LIB} and
 @code{OMP_LIB_KINDS}, and in a form of a Fortran @code{include} file named
 @file{omp_lib.h}. The procedures provided by @code{OMP_LIB} can be found
 in the @ref{Top,,Introduction,libgomp,GNU OpenMP runtime library} manual,
-the named constants defined in the @code{OMP_LIB_KINDS} module are listed
+the named constants defined in the modules are listed
 below.
 
 For details refer to the actual
@@ -11838,4 +12789,19 @@ named constants:
 @item @code{omp_lock_kind}
 @item @code{omp_nest_lock_kind}
 @item @code{omp_sched_kind}
+@end table
+
+@code{OMP_LIB} provides the scalar default-integer
+named constant @code{openmp_version} with a value of the form
+@var{yyyymm}, where @code{yyyy} is the year and @var{mm} the month
+of the OpenMP version; for OpenMP v3.0 the value is @code{200805}.
+
+And the following scalar integer named constants of the
+kind @code{omp_sched_kind}:
+
+@table @asis
+@item @code{omp_sched_static}
+@item @code{omp_sched_dynamic}
+@item @code{omp_sched_guided}
+@item @code{omp_sched_auto}
 @end table

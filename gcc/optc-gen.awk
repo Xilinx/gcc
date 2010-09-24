@@ -30,6 +30,7 @@ BEGIN {
 	n_opts = 0
 	n_langs = 0
 	n_target_save = 0
+	n_extra_vars = 0
         quote = "\042"
 	comma = ","
 	FS=SUBSEP
@@ -47,6 +48,10 @@ BEGIN {
 			# Make sure the declarations are put in source order
 			target_save_decl[n_target_save] = $2
 			n_target_save++
+		}
+		else if ($1 == "Variable") {
+			extra_vars[n_extra_vars] = $2
+			n_extra_vars++
 		}
 		else {
 			name = opt_args("Mask", $1)
@@ -72,7 +77,6 @@ print "#include " quote "opts.h" quote
 print "#include " quote "intl.h" quote
 print ""
 print "#ifdef GCC_DRIVER"
-print "int target_flags;"
 print "int target_flags_explicit;"
 print "#else"
 print "#include " quote "flags.h" quote
@@ -81,6 +85,9 @@ print "#endif /* GCC_DRIVER */"
 print ""
 
 have_save = 0;
+for (i = 0; i < n_extra_vars; i++) {
+	print extra_vars[i] ";"
+}
 for (i = 0; i < n_opts; i++) {
 	if (flag_set_p("Save", flags[i]))
 		have_save = 1;
@@ -90,11 +97,7 @@ for (i = 0; i < n_opts; i++) {
 		continue;
 
 	if (flag_set_p("VarExists", flags[i])) {
-		# Need it for the gcc driver.
-		if (name in var_seen)
-			continue;
-		init = ""
-		gcc_driver = 1
+		continue;
 	}
 	else {
 		init = opt_args("Init", flags[i])
@@ -102,16 +105,11 @@ for (i = 0; i < n_opts; i++) {
 			init = " = " init;
 		else if (name in var_seen)
 			continue;
-		gcc_driver = 0
 	}
 
-	if (gcc_driver == 1)
-		print "#ifdef GCC_DRIVER"
 	print "/* Set by -" opts[i] "."
 	print "   " help[i] "  */"
 	print var_type(flags[i]) name init ";"
-	if (gcc_driver == 1)
-		print "#endif /* GCC_DRIVER */"
 	print ""
 
 	var_seen[name] = 1;
@@ -201,6 +199,46 @@ for (i = 0; i < n_opts; i++) {
 	else
 		missing_arg_error = quote missing_arg_error quote
 
+
+	warn_message = opt_args("Warn", flags[i])
+	if (warn_message == "")
+		warn_message = "0"
+	else
+		warn_message = quote warn_message quote
+
+	alias_arg = opt_args("Alias", flags[i])
+	if (alias_arg == "") {
+		if (flag_set_p("Ignore", flags[i]))
+			alias_data = "NULL, NULL, OPT_SPECIAL_ignore"
+		else
+			alias_data = "NULL, NULL, N_OPTS"
+	} else {
+		alias_opt = nth_arg(0, alias_arg)
+		alias_posarg = nth_arg(1, alias_arg)
+		alias_negarg = nth_arg(2, alias_arg)
+
+		if (var_ref(opts[i], flags[i]) != "0")
+			print "#error Alias setting variable"
+
+		if (alias_posarg != "" && alias_negarg == "") {
+			if (!flag_set_p("RejectNegative", flags[i]) \
+			    && opts[i] ~ "^[Wfm]")
+				print "#error Alias with single argument " \
+					"allowing negative form"
+		}
+
+		alias_opt = opt_enum(alias_opt)
+		if (alias_posarg == "")
+			alias_posarg = "NULL"
+		else
+			alias_posarg = quote alias_posarg quote
+		if (alias_negarg == "")
+			alias_negarg = "NULL"
+		else
+			alias_negarg = quote alias_negarg quote
+		alias_data = alias_posarg ", " alias_negarg ", " alias_opt
+	}
+
 	neg = opt_args("Negative", flags[i]);
 	if (neg != "")
 		idx = indices[neg]
@@ -216,9 +254,9 @@ for (i = 0; i < n_opts; i++) {
 	}
 	# Split the printf after %u to work around an ia64-hp-hpux11.23
 	# awk bug.
-	printf("  { %c-%s%c,\n    %s,\n    %s,\n    %s, %u,",
-	       quote, opts[i], quote, hlp, missing_arg_error,
-	       back_chain[i], len)
+	printf("  { %c-%s%c,\n    %s,\n    %s,\n    %s,\n    %s, %s, %u,",
+	       quote, opts[i], quote, hlp, missing_arg_error, warn_message,
+	       alias_data, back_chain[i], len)
 	printf(" %d,\n", idx)
 	condition = opt_args("Condition", flags[i])
 	cl_flags = switch_flags(flags[i])

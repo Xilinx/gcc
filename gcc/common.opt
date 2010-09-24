@@ -23,39 +23,213 @@
 
 ; Please try to keep this file in ASCII collating order.
 
+Variable
+int target_flags
+
 ###
 Driver
 
+-assemble
+Driver Alias(S)
+
+-compile
+Driver Alias(c)
+
+-coverage
+Driver Alias(coverage)
+
+-debug
+Common Alias(g)
+
+-dump
+Common Separate Alias(d)
+
+-dump=
+Common Joined Alias(d)
+
+-dumpbase
+Common Separate Alias(dumpbase)
+
+-dumpdir
+Common Separate Alias(dumpdir)
+
+-entry
+Driver Separate Alias(e)
+
+-entry=
+Driver Joined Alias(e)
+
+-extra-warnings
+Common Warning Alias(Wextra)
+
+-for-assembler
+Driver Separate Alias(Xassembler)
+
+-for-assembler=
+Driver JoinedOrMissing Alias(Xassembler)
+
+-for-linker
+Driver Separate Alias(Xlinker)
+
+-for-linker=
+Driver JoinedOrMissing Alias(Xlinker)
+
+-force-link
+Driver Separate Alias(u)
+
+-force-link=
+Driver Joined Alias(u)
+
 -help
-Common Driver
+Common Driver Var(help_flag)
 Display this information
 
 -help=
 Common Driver Report Joined
 --help=<class>	Display descriptions of a specific class of options.  <class> is one or more of optimizers, target, warnings, undocumented, params
 
+-language
+Driver Separate Alias(x)
+
+-language=
+Driver Joined Alias(x)
+
+-library-directory
+Driver Separate Alias(L)
+
+-library-directory=
+Driver Joined Alias(L)
+
+-no-canonical-prefixes
+Driver Alias(no-canonical-prefixes)
+
+-no-standard-libraries
+Driver Alias(nostdlib)
+
+-no-warnings
+Common Alias(w)
+
+-optimize
+Common Alias(O)
+
+-output
+Common Driver Separate Alias(o) MissingArgError(missing filename after %qs)
+
+-output=
+Common Driver Joined Alias(o) MissingArgError(missing filename after %qs)
+
+-pass-exit-codes
+Driver Alias(pass-exit-codes)
+
+-pedantic
+Common Alias(pedantic)
+
+-pedantic-errors
+Common Alias(pedantic-errors)
+
+-pie
+Common Alias(pie)
+
+-pipe
+Driver Alias(pipe)
+
+-prefix
+Driver Separate Alias(B)
+
+-prefix=
+Driver JoinedOrMissing Alias(B)
+
+-preprocess
+Driver Alias(E)
+
+-print-file-name
+Driver Separate Alias(print-file-name=)
+
+-print-file-name=
+Driver JoinedOrMissing Alias(print-file-name=)
+
+-print-libgcc-file-name
+Driver Alias(print-libgcc-file-name)
+
+-print-multi-directory
+Driver Alias(print-multi-directory)
+
+-print-multi-lib
+Driver Alias(print-multi-lib)
+
+-print-multi-os-directory
+Driver Alias(print-multi-os-directory)
+
+-print-prog-name
+Driver Separate Alias(print-prog-name=)
+
+-print-prog-name=
+Driver JoinedOrMissing Alias(print-prog-name=)
+
+-print-search-dirs
+Driver Alias(print-search-dirs)
+
+-print-sysroot
+Driver Alias(print-sysroot)
+
+-print-sysroot-headers-suffix
+Driver Alias(print-sysroot-headers-suffix)
+
+-profile
+Common Alias(p)
+
+-save-temps
+Driver Alias(save-temps)
+
+-shared
+Common Alias(shared)
+
+-specs
+Driver Separate Alias(specs=)
+
+-specs=
+Driver Joined Alias(specs=)
+
+-static
+Driver Alias(static)
+
+-symbolic
+Driver Alias(symbolic)
+
 -target-help
 Common Driver
 Alias for --help=target
 
-;; The following four entries are to work around the gcc driver
-;; program's insatiable desire to turn options starting with a
-;; double dash (--) into options starting with a dash f (-f).
+-time
+Driver Alias(time)
+
+-verbose
+Driver Alias(v)
+
+;; The driver used to convert options such as --help into forms such
+;; as -fhelp; the following four entries are for compatibility with
+;; any direct uses of those (undocumented) -f forms
 fhelp
-Common Driver Var(help_flag)
+Common Driver Alias(-help)
 
 fhelp=
-Common Driver Joined
+Common Driver Joined Alias(-help=)
 
 ftarget-help
-Common Driver
+Common Driver Alias(-target-help)
 
 fversion
-Common Driver
+Common Driver Alias(-version)
 
 -param
 Common Separate
 --param <param>=<value>	Set parameter <param> to value.  See below for a complete list of parameters
+
+-param=
+Common Joined Alias(-param)
+
+-sysroot
+Driver Separate Alias(-sysroot=)
 
 -sysroot=
 Driver JoinedOrMissing
@@ -88,7 +262,7 @@ S
 Driver
 
 W
-Common RejectNegative Var(extra_warnings) Warning
+Common RejectNegative Warning Alias(Wextra)
 This switch is deprecated; use -Wextra instead
 
 Wa,
@@ -153,7 +327,7 @@ Common Var(warn_inline) Warning
 Warn when an inlined function cannot be inlined
 
 Wlarger-than-
-Common RejectNegative Joined UInteger Warning Undocumented
+Common RejectNegative Joined Warning Undocumented Alias(Wlarger-than=)
 
 Wlarger-than=
 Common RejectNegative Joined UInteger Warning
@@ -248,7 +422,7 @@ Common Var(warn_uninitialized) Init(-1) Warning
 Warn about uninitialized automatic variables
 
 Wunreachable-code
-Common
+Common Ignore
 Does nothing. Preserved for backward compatibility.
 
 Wunused
@@ -301,7 +475,7 @@ Common Separate
 -aux-info <file>	Emit declaration information into <file>
 
 aux-info=
-Common Joined
+Common Joined Alias(aux-info)
 
 auxbase
 Common Separate RejectDriver
@@ -309,8 +483,8 @@ Common Separate RejectDriver
 auxbase-strip
 Common Separate RejectDriver
 
-combine
-Driver Var(combine_flag)
+coverage
+Driver
 
 c
 Driver
@@ -335,6 +509,9 @@ Driver
 
 dumpversion
 Driver
+
+e
+Driver Joined Separate
 
 ; The version of the C++ ABI in use.  The following values are allowed:
 ;
@@ -387,19 +564,19 @@ falign-loops=
 Common RejectNegative Joined UInteger
 
 fargument-alias
-Common
+Common Ignore
 Does nothing. Preserved for backward compatibility.
 
 fargument-noalias
-Common
+Common Ignore
 Does nothing. Preserved for backward compatibility.
 
 fargument-noalias-global
-Common
+Common Ignore
 Does nothing. Preserved for backward compatibility.
 
 fargument-noalias-anything
-Common
+Common Ignore
 Does nothing. Preserved for backward compatibility.
 
 fasynchronous-unwind-tables
@@ -490,7 +667,7 @@ Common Report Var(flag_cse_follow_jumps) Optimization
 When running CSE, follow jumps to their targets
 
 fcse-skip-blocks
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 fcx-limited-range
@@ -543,6 +720,9 @@ fdump-
 Common Joined RejectNegative
 -fdump-<type>	Dump various compiler internals to a file
 
+fdump-final-insns
+Driver RejectNegative
+
 fdump-final-insns=
 Common RejectNegative Joined Var(flag_dump_final_insns)
 -fdump-final-insns=filename	Dump to filename the insns at the end of translation
@@ -552,11 +732,11 @@ Common Report Var(flag_dump_noaddr)
 Suppress output of addresses in debugging dumps
 
 fdump-unnumbered
-Common Report Var(flag_dump_unnumbered) VarExists
+Common Report Var(flag_dump_unnumbered)
 Suppress output of instruction numbers, line number notes and addresses in debugging dumps
 
 fdump-unnumbered-links
-Common Report Var(flag_dump_unnumbered_links) VarExists
+Common Report Var(flag_dump_unnumbered_links)
 Suppress output of previous and next insn numbers in debugging dumps
 
 fdwarf2-cfi-asm
@@ -619,7 +799,7 @@ Common Report Var(flag_float_store) Optimization
 Don't allocate floats and doubles in extended-precision registers
 
 fforce-addr
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 fforward-propagate
@@ -737,6 +917,10 @@ ftree-loop-if-convert
 Common Report Var(flag_tree_loop_if_convert) Init(-1) Optimization
 Convert conditional jumps in innermost loops to branchless equivalents
 
+ftree-loop-if-convert-stores
+Common Report Var(flag_tree_loop_if_convert_stores) Optimization
+Also if-convert conditional jumps containing memory writes
+
 ; -finhibit-size-directive inhibits output of .size for ELF.
 ; This is used only for compiling crtstuff.c,
 ; and it may be extended to other effects
@@ -771,7 +955,7 @@ Common Report Var(flag_inline_functions_called_once) Init(1) Optimization
 Integrate functions called once into their callers
 
 finline-limit-
-Common RejectNegative Joined UInteger
+Common RejectNegative Joined Alias(finline-limit=)
 
 finline-limit=
 Common RejectNegative Joined UInteger
@@ -873,7 +1057,7 @@ Common Report Var(flag_leading_underscore) Init(-1)
 Give external symbols a leading underscore
 
 floop-optimize
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 flto
@@ -1119,7 +1303,7 @@ Common Report Var(flag_rerun_cse_after_loop) Init(2) Optimization
 Add a common subexpression elimination pass after loop optimizations
 
 frerun-loop-opt
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 frounding-math
@@ -1155,7 +1339,7 @@ Common Report Var(flag_sched2_use_superblocks) Optimization
 If scheduling post reload, do superblock scheduling
 
 fsched2-use-traces
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 fschedule-insns
@@ -1240,7 +1424,7 @@ Common Report Var(flag_section_anchors) Optimization
 Access data in the same section from shared anchor points
 
 fsee
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 fzee
@@ -1280,7 +1464,7 @@ Common Report RejectNegative Joined
 -fstack-check=[no|generic|specific]	Insert stack checking code into the program
 
 fstack-check
-Common Report
+Common Alias(fstack-check=, specific, no)
 Insert stack checking code into the program.  Same as -fstack-check=specific
 
 fstack-limit
@@ -1302,8 +1486,12 @@ fstack-protector-all
 Common Report RejectNegative Var(flag_stack_protect, 2) VarExists
 Use a stack protection method for every function
 
+fstack-usage
+Common RejectNegative Var(flag_stack_usage)
+Output stack usage information on a per-function basis
+
 fstrength-reduce
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 ; Nonzero if we should do (language-dependent) alias analysis.
@@ -1366,7 +1554,7 @@ Common Report Var(flag_tree_bit_ccp) Optimization
 Enable SSA-BIT-CCP optimization on trees
 
 ftree-store-ccp
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 ftree-ch
@@ -1382,7 +1570,7 @@ Common Report Var(flag_tree_copy_prop) Optimization
 Enable copy propagation on trees
 
 ftree-store-copy-prop
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 ftree-cselim
@@ -1458,7 +1646,7 @@ Common Report Var(flag_tree_reassoc) Init(1) Optimization
 Enable reassociation on tree level
 
 ftree-salias
-Common
+Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 ftree-sink
@@ -1528,16 +1716,27 @@ Just generate unwind tables for exception handling
 fuse-linker-plugin
 Common Undocumented
 
+; Positive if we should track variables, negative if we should run
+; the var-tracking pass only to discard debug annotations, zero if
+; we're not to run it.  When flag_var_tracking == 2 (AUTODETECT_VALUE) it
+; will be set according to optimize, debug_info_level and debug_hooks
+; in process_options ().
 fvar-tracking
-Common Report Var(flag_var_tracking) VarExists Optimization
+Common Report Var(flag_var_tracking) Init(2) Optimization
 Perform variable tracking
 
+; Positive if we should track variables at assignments, negative if
+; we should run the var-tracking pass only to discard debug
+; annotations.  When flag_var_tracking_assignments ==
+; AUTODETECT_VALUE it will be set according to flag_var_tracking.
 fvar-tracking-assignments
-Common Report Var(flag_var_tracking_assignments) VarExists Optimization
+Common Report Var(flag_var_tracking_assignments) Init(2) Optimization
 Perform variable tracking by annotating assignments
 
+; Nonzero if we should toggle flag_var_tracking_assignments after
+; processing options and computing its default.  */
 fvar-tracking-assignments-toggle
-Common Report Var(flag_var_tracking_assignments_toggle) VarExists Optimization
+Common Report Var(flag_var_tracking_assignments_toggle) Optimization
 Toggle -fvar-tracking-assignments
 
 fvar-tracking-uninit
@@ -1596,8 +1795,8 @@ Common
 Enable partitioned link-time optimization
 
 fwhopr=
-Common RejectNegative UInteger Joined Var(flag_whopr)
-Enable partitioned link-time optimization with specified number of parallel jobs
+Common RejectNegative Joined Var(flag_whopr)
+Partitioned link-time optimization with number of parallel jobs or jobserver.
 
 ftree-builtin-call-dce
 Common Report Var(flag_tree_builtin_call_dce) Init(0) Optimization
@@ -1747,6 +1946,9 @@ Driver Var(report_times)
 time=
 Driver JoinedOrMissing
 
+u
+Driver Joined Separate
+
 v
 Driver
 
@@ -1772,7 +1974,7 @@ shared-libgcc
 Driver
 
 specs
-Driver Separate
+Driver Separate Alias(specs=)
 
 specs=
 Driver Joined
@@ -1788,6 +1990,9 @@ Driver
 ; Documented for Fortran, but always accepted by driver.
 
 static-libstdc++
+Driver
+
+symbolic
 Driver
 
 pie

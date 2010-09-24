@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -728,7 +728,7 @@ package body Prj.Env is
                Fmap.Add_To_File_Map
                  (Unit_Name => Unit_Name_Type (Data.Unit.Name),
                   File_Name => Data.File,
-                  Path_Name => File_Name_Type (Data.Path.Name));
+                  Path_Name => File_Name_Type (Data.Path.Display_Name));
             end if;
          end if;
 
@@ -831,14 +831,14 @@ package body Prj.Env is
                   Put_Name_Buffer;
                end if;
 
-               Get_Name_String (Source.File);
+               Get_Name_String (Source.Display_File);
                Put_Name_Buffer;
 
                if Source.Locally_Removed then
                   Name_Len := 1;
                   Name_Buffer (1) := '/';
                else
-                  Get_Name_String (Source.Path.Name);
+                  Get_Name_String (Source.Path.Display_Name);
                end if;
 
                Put_Name_Buffer;
