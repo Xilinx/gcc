@@ -3651,7 +3651,7 @@ ix86_option_override_internal (bool main_args_p)
 
   /* If using typedef char *va_list, signal that __builtin_va_start (&ap, 0)
      can be optimized to ap = __builtin_next_arg (0).  */
-  if (!TARGET_64BIT)
+  if (!TARGET_64BIT && !flag_split_stack)
     targetm.expand_builtin_va_start = NULL;
 
   if (TARGET_64BIT)
@@ -7259,7 +7259,6 @@ ix86_va_start (tree valist, rtx nextarg)
   if (flag_split_stack
       && cfun->machine->split_stack_varargs_pointer == NULL_RTX)
     {
-      rtx reg, seq;
       unsigned int scratch_regno;
 
       /* When we are splitting the stack, we can't refer to the stack
@@ -7270,23 +7269,29 @@ ix86_va_start (tree valist, rtx nextarg)
 	 stack prologue can't set the pseudo-register directly because
 	 it (the prologue) runs before any registers have been saved.  */
 
-      reg = gen_reg_rtx (Pmode);
-      cfun->machine->split_stack_varargs_pointer = reg;
       scratch_regno = split_stack_prologue_scratch_regno ();
-      start_sequence ();
-      emit_move_insn (reg, gen_rtx_REG (Pmode, scratch_regno));
-      seq = get_insns ();
-      end_sequence ();
+      if (scratch_regno != INVALID_REGNUM)
+	{
+	  rtx reg, seq;
 
-      push_topmost_sequence ();
-      emit_insn_after (seq, entry_of_function ());
-      pop_topmost_sequence ();
+	  reg = gen_reg_rtx (Pmode);
+	  cfun->machine->split_stack_varargs_pointer = reg;
+
+	  start_sequence ();
+	  emit_move_insn (reg, gen_rtx_REG (Pmode, scratch_regno));
+	  seq = get_insns ();
+	  end_sequence ();
+
+	  push_topmost_sequence ();
+	  emit_insn_after (seq, entry_of_function ());
+	  pop_topmost_sequence ();
+	}
     }
 
   /* Only 64bit target needs something special.  */
   if (!TARGET_64BIT || is_va_list_char_pointer (TREE_TYPE (valist)))
     {
-      if (!flag_split_stack)
+      if (cfun->machine->split_stack_varargs_pointer == NULL_RTX)
 	std_expand_builtin_va_start (valist, nextarg);
       else
 	{
@@ -7344,7 +7349,7 @@ ix86_va_start (tree valist, rtx nextarg)
 
   /* Find the overflow area.  */
   type = TREE_TYPE (ovf);
-  if (!flag_split_stack)
+  if (cfun->machine->split_stack_varargs_pointer == NULL_RTX)
     ovf_rtx = crtl->args.internal_arg_pointer;
   else
     ovf_rtx = cfun->machine->split_stack_varargs_pointer;
@@ -10404,8 +10409,11 @@ split_stack_prologue_scratch_regno (void)
       if (is_fastcall)
 	{
 	  if (DECL_STATIC_CHAIN (cfun->decl))
-	    sorry ("-fsplit-stack does not support fastcall with "
-		   "nested function");
+	    {
+	      sorry ("-fsplit-stack does not support fastcall with "
+		     "nested function");
+	      return INVALID_REGNUM;
+	    }
 	  return AX_REG;
 	}
       else if (regparm < 3)
@@ -10415,8 +10423,11 @@ split_stack_prologue_scratch_regno (void)
 	  else
 	    {
 	      if (regparm >= 2)
-		sorry ("-fsplit-stack does not support 2 register "
-		       " parameters for a nested function");
+		{
+		  sorry ("-fsplit-stack does not support 2 register "
+			 " parameters for a nested function");
+		  return INVALID_REGNUM;
+		}
 	      return DX_REG;
 	    }
 	}
@@ -10425,7 +10436,7 @@ split_stack_prologue_scratch_regno (void)
 	  /* FIXME: We could make this work by pushing a register
 	     around the addition and comparison.  */
 	  sorry ("-fsplit-stack does not support 3 register parameters");
-	  return CX_REG;
+	  return INVALID_REGNUM;
 	}
     }
 }
@@ -10481,25 +10492,23 @@ ix86_expand_split_stack_prologue (void)
 	 register which is not used for parameters.  */
       offset = GEN_INT (- allocate);
       scratch_regno = split_stack_prologue_scratch_regno ();
+      if (scratch_regno == INVALID_REGNUM)
+	return;
       scratch_reg = gen_rtx_REG (Pmode, scratch_regno);
-      if (!TARGET_64BIT)
-	emit_insn (gen_addsi3 (scratch_reg, stack_pointer_rtx, offset));
+      if (!TARGET_64BIT || x86_64_immediate_operand (offset, Pmode))
+	{
+	  /* We don't use ix86_gen_add3 in this case because it will
+	     want to split to lea, but when not optimizing the insn
+	     will not be split after this point.  */
+	  emit_insn (gen_rtx_SET (VOIDmode, scratch_reg,
+				  gen_rtx_PLUS (Pmode, stack_pointer_rtx,
+						offset)));
+	}
       else
 	{
-	  if (x86_64_immediate_operand (offset, Pmode))
-	    {
-	      /* We don't use gen_adddi3 in this case because it will
-		 want to split to lea, but when not optimizing the
-		 insn will not be split after this point.  */
-	      emit_move_insn (scratch_reg,
-			      gen_rtx_PLUS (Pmode, stack_pointer_rtx, offset));
-	    }
-	  else
-	    {
-	      emit_move_insn (scratch_reg, offset);
-	      emit_insn (gen_adddi3 (scratch_reg, scratch_reg,
-				     stack_pointer_rtx));
-	    }
+	  emit_move_insn (scratch_reg, offset);
+	  emit_insn (gen_adddi3 (scratch_reg, scratch_reg,
+				 stack_pointer_rtx));
 	}
       current = scratch_reg;
     }
@@ -10520,12 +10529,7 @@ ix86_expand_split_stack_prologue (void)
   allocate_rtx = GEN_INT (allocate);
   args_size = crtl->args.size >= 0 ? crtl->args.size : 0;
   call_fusage = NULL_RTX;
-  if (!TARGET_64BIT)
-    {
-      emit_insn (gen_push (GEN_INT (args_size)));
-      emit_insn (gen_push (allocate_rtx));
-    }
-  else
+  if (TARGET_64BIT)
     {
       rtx reg;
 
@@ -10548,6 +10552,11 @@ ix86_expand_split_stack_prologue (void)
       emit_move_insn (reg, GEN_INT (args_size));
       use_reg (&call_fusage, reg);
     }
+  else
+    {
+      emit_insn (gen_push (GEN_INT (args_size)));
+      emit_insn (gen_push (allocate_rtx));
+    }
   if (split_stack_fn == NULL_RTX)
     split_stack_fn = gen_rtx_SYMBOL_REF (Pmode, "__morestack");
   call_insn = ix86_expand_call (NULL_RTX, gen_rtx_MEM (QImode, split_stack_fn),
@@ -10559,27 +10568,11 @@ ix86_expand_split_stack_prologue (void)
      to execute a return instruction.  See
      libgcc/config/i386/morestack.S for the details on how this works.
 
-     In order to support backtracing, we need to set the CFA around
-     the call, so that the unwinder knows how to correctly pick up the
-     return address.  We set the CFA around the call because the
-     unwinder looks up to the point of the call but not after the
-     call.  */
-  add_reg_note (call_insn, REG_CFA_TEMPORARY,
-		gen_rtx_PLUS (Pmode, gen_rtx_REG (Pmode, SP_REG),
-			      GEN_INT (UNITS_PER_WORD)));
-  RTX_FRAME_RELATED_P (call_insn) = 1;
-
-  /* For flow purposes gcc must not see this as a return
+     For flow purposes gcc must not see this as a return
      instruction--we need control flow to continue at the subsequent
      label.  Therefore, we use an unspec.  */
-  if (crtl->args.pops_args == 0)
-    emit_insn (gen_split_stack_return ());
-  else
-    {
-      gcc_assert (!TARGET_64BIT);
-      gcc_assert (crtl->args.pops_args < 65536);
-      emit_insn (gen_split_stack_pop_return (GEN_INT (crtl->args.pops_args)));
-    }
+  gcc_assert (crtl->args.pops_args < 65536);
+  emit_insn (gen_split_stack_return (GEN_INT (crtl->args.pops_args)));
 
   /* If we are in 64-bit mode and this function uses a static chain,
      we saved %r10 in %rax before calling _morestack.  */
@@ -10599,20 +10592,32 @@ ix86_expand_split_stack_prologue (void)
     {
       unsigned int scratch_regno;
       rtx frame_reg;
+      int words;
 
       scratch_regno = split_stack_prologue_scratch_regno ();
       scratch_reg = gen_rtx_REG (Pmode, scratch_regno);
       frame_reg = gen_rtx_REG (Pmode, BP_REG);
 
-      /* fp -> old fp value
+      /* 64-bit:
+	 fp -> old fp value
 	       return address within this function
 	       return address of caller of this function
 	       stack arguments
 	 So we add three words to get to the stack arguments.
+
+	 32-bit:
+	 fp -> old fp value
+	       return address within this function
+               first argument to __morestack
+               second argument to __morestack
+               return address of caller of this function
+               stack arguments
+         So we add five words to get to the stack arguments.
       */
-      emit_move_insn (scratch_reg,
-		      gen_rtx_PLUS (Pmode, frame_reg,
-				    GEN_INT (3 * UNITS_PER_WORD)));
+      words = TARGET_64BIT ? 3 : 5;
+      emit_insn (gen_rtx_SET (VOIDmode, scratch_reg,
+			      gen_rtx_PLUS (Pmode, frame_reg,
+					    GEN_INT (words * UNITS_PER_WORD))));
 
       varargs_label = gen_label_rtx ();
       emit_jump_insn (gen_jump (varargs_label));
@@ -10629,9 +10634,9 @@ ix86_expand_split_stack_prologue (void)
      case we need to set it based on the stack pointer.  */
   if (cfun->machine->split_stack_varargs_pointer != NULL_RTX)
     {
-      emit_move_insn (scratch_reg,
-		      gen_rtx_PLUS (Pmode, stack_pointer_rtx,
-				    GEN_INT (UNITS_PER_WORD)));
+      emit_insn (gen_rtx_SET (VOIDmode, scratch_reg,
+			      gen_rtx_PLUS (Pmode, stack_pointer_rtx,
+					    GEN_INT (UNITS_PER_WORD))));
 
       emit_label (varargs_label);
       LABEL_NUSES (varargs_label) = 1;
