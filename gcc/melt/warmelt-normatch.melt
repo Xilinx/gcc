@@ -5047,7 +5047,7 @@ normalized expression.}#
     (assert_msg "check matmatcher" (is_a matmatcher class_any_matcher))
     (let ( 
 	  (nthen (altmatch_normalize_step matthen nmctxt))
-	  (nelse (altmatch_normalize_step matthen nmctxt))
+	  (nelse (altmatch_normalize_step matelse nmctxt))
 	  (ndata (altmatch_normalize_mdata matdata nmctxt))
 	  (jumpthen (instance class_nrep_match_jump
 			      :nmjmp_label nthen))
@@ -5055,12 +5055,29 @@ normalized expression.}#
 			      :nmjmp_label nelse))
 	  (njthen (complete_normstep_if_last step jumpthen nmctxt))
 	  (njelse (complete_normstep_if_last step jumpelse nmctxt))
+	  (amin (get_field :amatch_in matmatcher))
+	  (ambind (get_field :amatch_matchbind matmatcher))
+	  (amout (get_field :amatch_out matmatcher))
 	  )
       (debug_msg njthen "normstep_mtestmatcher njthen")
       (debug_msg njelse "normstep_mtestmatcher njelse")
       (debug_msg ndata "normstep_mtestmatcher ndata")
-    (assert_msg "@$@unimplemented normstep_mtestmatcher")
-    )))
+      (debug_msg ambind "normstep_mtestmatcher ambind")
+      (debug_msg amin "normstep_mtestmatcher amin")
+      (debug_msg mins "normstep_mtestmatcher mins again")
+      (if (!=i (multiple_length amin) (multiple_length mins))
+	  (error_strv nsloc
+		      "mismatch on input arity of matcher"
+		      (get_field :named_name matmatcher))
+	)
+      (debug_msg amout "normstep_mtestmatcher amout")
+      (debug_msg mouts "normstep_mtestmatcher mouts again")
+      (if (!=i (multiple_length amout) (multiple_length mouts))
+	  (error_strv nsloc 
+		      "mismatch on output arity of matcher" 
+		      (get_field :named_name matmatcher)))
+      (assert_msg "@$@unimplemented normstep_mtestmatcher")
+      )))
 (install_method class_match_step_test_matcher normalize_step normstep_mtestmatcher)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; utility to normalize a step with a match normalization context

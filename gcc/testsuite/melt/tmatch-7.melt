@@ -1,0 +1,23 @@
+; -*- lisp -*-
+;; file tmatch-7.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=runfile  -fmelt-module-path=.  \
+    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-option=match_graphic=/tmp/melt7graph,alternate_match \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tmatch-7.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+(defun testmatchnumber (f x :long i)
+  (match i
+	 (?(some_integer_multiple 2
+				  ?(some_integer_greater_than 3
+							      ?k))
+	   (debuglong "testmatchnum k" k)
+	   (f x k)
+	   )	 
+	 )
+  )
+;; eof tmatch-7.melt

@@ -1,3 +1,7 @@
+2010-09-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tmatch-7.melt: Added new file.
+	* melt/warmelt-normatch.melt: improving normstep_mtestmatcher.
+
 2010-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	[[merged with trunk rev.164348, so improved MELT runtime!]]
 	* melt-runtime.h: improved comments.
