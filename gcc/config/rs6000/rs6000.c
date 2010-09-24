@@ -996,6 +996,7 @@ static tree rs6000_builtin_vectorized_libmass (tree, tree, tree);
 static tree rs6000_builtin_vectorized_function (tree, tree, tree);
 static int rs6000_savres_strategy (rs6000_stack_t *, bool, int, int);
 static void rs6000_restore_saved_cr (rtx, int);
+static bool rs6000_output_addr_const_extra (FILE *, rtx);
 static void rs6000_output_function_prologue (FILE *, HOST_WIDE_INT);
 static void rs6000_output_function_epilogue (FILE *, HOST_WIDE_INT);
 static void rs6000_output_mi_thunk (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT,
@@ -1431,6 +1432,9 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #define TARGET_ASM_FUNCTION_PROLOGUE rs6000_output_function_prologue
 #undef TARGET_ASM_FUNCTION_EPILOGUE
 #define TARGET_ASM_FUNCTION_EPILOGUE rs6000_output_function_epilogue
+
+#undef TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA
+#define TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA rs6000_output_addr_const_extra
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS rs6000_legitimize_address
@@ -5485,7 +5489,7 @@ virtual_stack_registers_memory_p (rtx op)
     return false;
 
   return (regnum >= FIRST_VIRTUAL_REGISTER
-	  && regnum <= LAST_VIRTUAL_REGISTER);
+	  && regnum <= LAST_VIRTUAL_POINTER_REGISTER);
 }
 
 static bool
@@ -7028,46 +7032,6 @@ rs6000_eliminate_indexed_memrefs (rtx operands[2])
 			       copy_addr_to_reg (XEXP (operands[1], 0)));
 }
 
-/* Return true if OP, a SYMBOL_REF, should be considered local when
-   generating -mcmodel=medium code.  */
-
-static bool
-toc_relative_ok (rtx op)
-{
-  tree decl;
-
-  if (!SYMBOL_REF_LOCAL_P (op))
-    return false;
-
-  /* This is a bit hard to explain.  When building shared libraries,
-     you are supposed to pass -fpic or -fPIC to the compiler.
-     -fpic/-fPIC not only generate position independent code but also
-     generate code that supports ELF shared library global function
-     or variable overriding.  ppc64 is always PIC and at least some of
-     the ELF shared libaray semantics of global variables happen to be
-     supported without -fpic/-fPIC.  So people may not be careful
-     about using -fPIC for shared libs.
-     With -mcmodel=medium this situation changes.  A shared library
-     built without -fpic/-fPIC requires text relocs for global var
-     access (and would fail to load since glibc ld.so doesn't support
-     the required dynamic relocs).  So avoid this potential
-     problem by using -mcmodel=large access for global vars, unless
-     we know we are compiling for an executable.  */
-  if (flag_pie)
-    return true;
-
-  decl = SYMBOL_REF_DECL (op);
-  if (!decl || !DECL_P (decl))
-    return true;
-  if (!TREE_PUBLIC (decl))
-    return true;
-  if (DECL_VISIBILITY (decl) != VISIBILITY_DEFAULT)
-    return true;
-
-  /* If we get here we must have a global var.  See binds_local_p.  */
-  return flag_whole_program;
-}
-
 /* Return true if memory accesses to DECL are known to never straddle
    a 32k boundary.  */
 
@@ -7423,7 +7387,7 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
 	  || (TARGET_CMODEL == CMODEL_MEDIUM
 	      && GET_CODE (operands[1]) == SYMBOL_REF
 	      && !CONSTANT_POOL_ADDRESS_P (operands[1])
-	      && toc_relative_ok (operands[1])
+	      && SYMBOL_REF_LOCAL_P (operands[1])
 	      && offsettable_ok_by_alignment (SYMBOL_REF_DECL (operands[1]))))
 	{
 	  rtx reg = NULL_RTX;
@@ -16026,9 +15990,9 @@ print_operand_address (FILE *file, rtx x)
     gcc_unreachable ();
 }
 
-/* Implement OUTPUT_ADDR_CONST_EXTRA for address X.  */
+/* Implement TARGET_OUTPUT_ADDR_CONST_EXTRA.  */
 
-bool
+static bool
 rs6000_output_addr_const_extra (FILE *file, rtx x)
 {
   if (GET_CODE (x) == UNSPEC)

@@ -1,3 +1,24 @@
+2010-09-24  Jason Merrill  <jason@redhat.com>
+
+	* decl.c (compute_array_index_type): Remember type dependence of
+	array bound.
+	* pt.c (dependent_type_p_r): Don't recompute it here.
+
+	* error.c (dump_expr) [CASE_CONVERT]: Print conversion between
+	reference and pointer to the same type as "*" or "&".
+
+2010-09-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* typeck.c (warn_args_num): Use warning 'too many arguments to
+	method [methodname]' for an Objective-C method instead of the less
+	satisfactory 'too many arguments to function' (with no method
+	name).
+
+2010-09-21  Jason Merrill  <jason@redhat.com>
+
+	* mangle.c (write_expression) [SCOPE_REF]: Only do -fabi-version=1
+	special handling if we know the member.
+
 2010-09-18  Jason Merrill  <jason@redhat.com>
 
 	* call.c (compare_ics): Do lvalue/rvalue reference binding

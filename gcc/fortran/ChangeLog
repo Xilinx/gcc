@@ -1,3 +1,159 @@
+2010-09-24  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.texi: Add second space after end-of-sentence period;
+	change / to /@/ to allow hyphenation of URLs.
+	(Standards): Remove duplicated OpenMP, update wording given that
+	Fortran 2008 now released.
+	(Fortran 2008 status): Update and add list of implemented features.
+
+2010-09-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40571
+	* iso-fortran-env.def: Add NAMED_KINDARRAY with
+	character_kinds, integer_kinds, logical_kinds and
+	real_kinds.
+	* gfortran.h: Add them to iso_fortran_env_symbol.
+	* libgfortran.h: Rename GFC_INQUIRE_INTERNAL_UNIT to
+	LIBERROR_INQUIRE_INTERNAL_UNIT and move it from
+	libgfortran_stat_codes to libgfortran_error_codes.
+	* module.c (create_int_parameter_array): New function.
+	(use_iso_fortran_env_module): Use it for
+	NAMED_KINDARRAY of iso-fortran-env.def.
+	* trans-decl.c (gfc_get_symbol_decl): Parameter
+	arrays of intrinsics modules become local static variables.
+	* intrinsic.texi (ISO_FORTRAN_ENV): Add character_kinds,
+	integer_kinds, logical_kinds and real_kinds.
+
+2010-09-23  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45744
+	* frontend-passes.c (optimize_binop_array_assignment):
+	Only re-use lhs as intermediate storage if kind and type
+	parameters match.
+
+2010-09-23  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/45745
+	PR fortran/45648
+	* trans-array.c (gfc_conv_expr_descriptor): Handle
+	ss->type == GFC_SS_INTRINSIC (for {l,u}bound intrinsics) case.
+
+2010-09-23  Tobias Burnus  <burnus@net-b.de>
+
+	* intrinsic.texi (OpenMP modules): Add named constants of
+	OMP_LIB.
+
+2010-09-23  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38936
+	PR fortran/44044
+	PR fortran/45474
+	* gfortran.h (gfc_check_vardef_context): New method.
+	(struct symbol_attribute): New flag `select_type_temporary'.
+	* primary.c (gfc_variable_attr): Clarify initialization of ref.
+	(match_variable): Remove PROTECTED check and assignment check
+	for PARAMETERs (this is now done later).
+	* match.c (gfc_match_iterator): Remove INTENT(IN) check.
+	(gfc_match_associate): Defer initialization of newAssoc->variable.
+	(gfc_match_nullify): Remove PURE definability check.
+	(select_type_set_tmp): Set new `select_type_temporary' flag.
+	* expr.c (gfc_check_assign): Remove INTENT(IN) check here.
+	(gfc_check_pointer_assign): Ditto (and other checks removed).
+	(gfc_check_vardef_context): New method.
+	* interface.c (compare_parameter_protected): Removed.
+	(compare_actual_formal): Use `gfc_check_vardef_context' for checks
+	related to INTENT([IN]OUT) arguments.
+	* intrinsic.c (check_arglist): Check INTENT for intrinsics.
+	* resolve.c (gfc_resolve_iterator): Use `gfc_check_vardef_context'.
+	(remove_last_array_ref): New method.
+	(resolve_deallocate_expr), (resolve_allocate_expr): Ditto.
+	(resolve_allocate_deallocate): Ditto (for STAT and ERRMSG).
+	(resolve_assoc_var): Remove checks for definability here.
+	(resolve_select_type): Handle resolving of code->block here.
+	(resolve_ordinary_assign): Remove PURE check.
+	(resolve_code): Do not resolve code->blocks for SELECT TYPE here.
+	Use `gfc_check_vardef_context' for assignments and pointer-assignments.
+
+2010-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gfortran.texi (Argument list functions): Allow URL to wrap.
+	* intrinsic.texi (GETGID, GETPID, GETUID, IMAGE_INDEX)
+	(IS_IOSTAT_END, IS_IOSTAT_EOR, NUM_IMAGES, THIS_IMAGE)
+	(ISO_FORTRAN_ENV): Fix markup in index entries, and a couple of
+	code markups in the text.
+	* invoke.texi (Fortran Dialect Options)
+	(Error and Warning Options, Directory Options, Code Gen Options):
+	Likewise.  Remove @code inside @smallexample.
+
+2010-09-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* gfortranspec.c (lang_specific_driver): Handle OPT__version and
+	OPT__help instead of OPT_fversion and OPT_fhelp.
+	* lang.opt (-all-warnings, -assert, -assert=, -comments,
+	-comments-in-macros, -define-macro, -define-macro=, -dependencies,
+	-dump, -dump=, -include-barrier, -include-directory,
+	-include-directory=, -include-directory-after,
+	-include-directory-after=, -include-prefix, -include-prefix=,
+	-no-line-commands, -no-standard-includes, -output, -output=,
+	-preprocess, -print-missing-file-dependencies, -trace-includes,
+	-undefine-macro, -undefine-macro=, -user-dependencies, -verbose,
+	-write-dependencies, -write-user-dependencies): New.
+
+2010-09-21  Jason Blevins  <jrblevin@sdf.org>
+
+	* intrinsics.texi (HYPOT, IMAGE_INDEX, BESSEL_JN, BESSEL_YN,
+	execute_command_line, IEOR, IOR, NORM2, NOT, NULL, PARITY):
+	Correct spelling.
+
+2010-09-21  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/45648
+	* trans-array.c (gfc_conv_expr_descriptor): Calculate dim out of n and
+	info->dim.
+
+	PR fortran/45648
+	* trans-array.c (gfc_conv_expr_descriptor): Unset full if we are
+	accessing dimensions in reversed order. 
+
+	PR fortran/45648
+	* trans-array.c (gfc_conv_expr_descriptor): Special case noncopying
+	intrinsic function call. 
+
+	* trans-array.c (gfc_conv_expr_descriptor): Remove ss lookup.
+	Update asserts accordingly.
+
+	PR fortran/45648
+	* trans.h (gfc_se): New field force_tmp. 
+	* trans-expr.c (gfc_conv_procedure_call): Check for argument alias
+	and set parmse.force_tmp if some alias is found. 
+	* trans-array.c (gfc_conv_expr_descriptor): Force a temporary creation
+	if se->force_tmp is set. 
+
+2010-09-20  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45438
+	* trans-expr.c (gfc_conv_procedure_call): Fix pointer checking for
+	TBPs, PPCs and pointer/allocatable components.
+
+2010-09-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/45081
+	* simplify.c (is_constant_array_expr): Allow structure array
+	elements as well as constants.
+	(gfc_simplify_pack, gfc_simplify_reshape, gfc_simplify_spread,
+	gfc_simplify_transpose, gfc_simplify_unpack): Copy the derived
+	type of source to the result.
+
+2010-09-19  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* frontend-passes.c (gfc_expr_walker):  Also
+	handle EXPR_SUBSTRING.
+
+2010-09-19  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* frontend-passes.c (gfc_expr_walker):  Handle
+	constructors and references.
+
 2010-09-16  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/43665

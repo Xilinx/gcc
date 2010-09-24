@@ -7507,12 +7507,15 @@ compute_array_index_type (tree name, tree size, tsubst_flags_t complain)
 	}
     }
 
+  /* A type is dependent if it is...an array type constructed from any
+     dependent type or whose size is specified by a constant expression
+     that is value-dependent.  */
   /* We can only call value_dependent_expression_p on integral constant
      expressions; the parser adds a dummy NOP_EXPR with TREE_SIDE_EFFECTS
      set if this isn't one.  */
-  /* FIXME handle type-dep here too. */
   if (processing_template_decl
-      && (TREE_SIDE_EFFECTS (size) || value_dependent_expression_p (size)))
+      && (dependent_type_p (type)
+	  || TREE_SIDE_EFFECTS (size) || value_dependent_expression_p (size)))
     {
       /* We cannot do any checking for a SIZE that isn't known to be
 	 constant. Just build the index type and mark that it requires
@@ -7647,10 +7650,16 @@ compute_array_index_type (tree name, tree size, tsubst_flags_t complain)
     {
       tree t = build_index_type (itype);
       TYPE_CANONICAL (abi_1_itype) = TYPE_CANONICAL (t);
-      return abi_1_itype;
+      itype = abi_1_itype;
     }
   else
-    return build_index_type (itype);
+    itype = build_index_type (itype);
+
+  /* If the index type were dependent, we would have returned early, so
+     remember that it isn't.  */
+  TYPE_DEPENDENT_P (itype) = 0;
+  TYPE_DEPENDENT_P_VALID (itype) = 1;
+  return itype;
 }
 
 /* Returns the scope (if any) in which the entity declared by

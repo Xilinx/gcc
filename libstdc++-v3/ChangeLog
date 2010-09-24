@@ -1,3 +1,93 @@
+2010-09-22  David Krauss  <potswa@mac.com>
+
+	PR libstdc++/45628
+	* include/bits/fstream.tcc (basic_filebuf::underflow): Add state
+	transition to avoid modality requiring seekoff(0,ios::cur).
+	(basic_filebuf::pbackfail): Likewise.
+	(basic_filebuf::overflow): Likewise.
+	(basic_filebuf::_M_seek): Avoid minor unnecessary conversion.
+	(basic_filebuf::seekoff): Remove code to _M_get_ext_pos; make
+	(0, ios::cur) a special case preserving buffer contents.
+	(basic_filebuf::_M_get_ext_pos): New function to obtain status
+	about codecvt extern_t buffer for overflow and seekoff.
+	* include/std/fstream (basic_filebuf::_M_get_ext_pos): Likewise.
+	* config/abi/pre/gnu.ver: Export new symbols.
+	* testsuite/27_io/basic_filebuf/seekoff/char/45628-1.cc: New,
+	verifies that seekoff(0, ios::cur) preserves buffers.
+	* testsuite/27_io/basic_filebuf/seekoff/45628-2.cc: Likewise.
+	for codecvt case. More lenient as it may still flush put area.
+	* testsuite/27_io/basic_filebuf/seekoff/char/4.cc: Modify to
+	check that seekoff is not required between read and write.
+	* testsuite/27_io/basic_filebuf/seekoff/wchar_t/4.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/sync/wchar_t/1.cc: Remove.
+	* testsuite/27_io/basic_filebuf/sync/wchar_t/1.cc: Likewise.
+	* testsuite/util/testsuite_character.h (codecvt::do_length): Comply
+	with 22.2.1.5.2/10 "Returns ... the LARGEST value in the range..."
+
+2010-09-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/functional_hash.h (__hash_base): Add.
+	(hash): Derive from __hash_base instead.
+	* include/debug/bitset (hash): Likewise.
+	* include/debug/vector (hash): Likewise.
+	* include/std/system_error (hash): Likewise.
+	* include/std/thread (hash): Likewise.
+	* include/std/bitset (hash): Likewise.
+	* include/profile/bitset (hash): Likewise.
+	* include/profile/vector (hash): Likewise.
+	* include/bits/basic_string.h (hash): Likewise.
+	* include/bits/stl_bvector.h (hash): Likewise.
+	* include/std/typeindex (hash): Do not derive from unary_function,
+	add result_type and argument_type typedefs; trim includes.
+
+2010-09-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/typeindex: New.
+	* include/Makefile.am: Add.
+	* include/Makefile.in: Regenerate.
+	* include/precompiled/stdc++.h: Add.
+	* testsuite/20_util/typeindex/comparison_operators.cc: New.
+	* testsuite/20_util/typeindex/hash.cc: Likewise.
+	* testsuite/20_util/typeindex/hash_code.cc: Likewise.
+	* testsuite/20_util/typeindex/name.cc: Likewise.
+
+	* testsuite/18_support/type_info/hash_code.cc: Tweak.
+
+2010-09-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/hash_bytes.cc: Move...
+	* libsupc++/hash_bytes.cc: ... here.
+	* src/Makefile.am: Adjust.
+	* libsupc++/Makefile.am: Likewise.
+	* config/abi/pre/gnu.ver: Likewise.
+	* libsupc++/typeinfo (type_info::hash_code): Add in C++0x mode.
+	* src/Makefile.in: Regenerate.
+	* libsupc++/Makefile.am: Likewise.
+	* testsuite/18_support/type_info/hash_code.cc: New.
+
+2010-09-20  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR libstdc++/45711
+	* src/Makefile.am (stamp-debug): Also adjust possibly-relative
+	file names in MKDIR_P, and, for consistency, also top_build_prefix.
+	* src/Makefile.in: Regenerate.
+
+2010-09-19  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* include/ext/throw_allocator.h
+	(hash<__gnu_cxx::throw_value_limit>::operator()): Uglify local.
+	(hash<__gnu_cxx::throw_value_random>::operator()): Likewise.
+	* include/parallel/set_operations.h (__symmetric_difference_func):
+	Uglify remaining arguments to __count, __first_empty, _M_invoke.
+	(__difference_func): Likewise for __count.
+	* include/profile/impl/profiler_node.h
+	(__object_info_base::__write): Uglify parameter.
+
+2010-09-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/hash_bytes.cc: Compile load_bytes and shift_mix only when
+	__SIZEOF_SIZE_T__ == 8.
+
 2010-09-17  Luc Hermitte  <hermitte@free.fr>
 	    Paolo Carlini  <paolo.carlini@oracle.com>
 

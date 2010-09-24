@@ -1,10 +1,616 @@
+2010-09-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/45234
+	* rtl.h (enum global_rtl_index): Add
+	GR_VIRTUAL_PREFERRED_STACK_BOUNDARY.
+	(LAST_VIRTUAL_POINTER_REGISTER): Define.
+	(virtual_preferred_stack_boundary_rtx,
+	VIRTUAL_PREFERRED_STACK_BOUNDARY_REGNUM): Define.
+	(LAST_VIRTUAL_REGISTER): Increase by one.
+	(REGNO_PTR_FRAME_P): Use LAST_VIRTUAL_POINTER_REGISTER
+	instead of LAST_VIRTUAL_REGISTER.
+	* function.c (instantiate_new_reg): Handle
+	virtual_preferred_stack_boundary_rtx.
+	* emit-rtl.c (init_virtual_regs): Handle
+	VIRTUAL_PREFERRED_STACK_BOUNDARY_REGNUM.
+	(init_emit_regs): Initialize virtual_preferred_stack_boundary_rtx.
+	* explow.c (round_push): If crtl->preferred_stack_boundary
+	is smaller than MAX_SUPPORTED_STACK_ALIGNMENT, use
+	virtual_preferred_stack_boundary_rtx alignment instead of
+	crtl->preferred_stack_boundary alignment.
+	(allocate_dynamic_stack_space): Use CONST_INT_P and REG_P
+	macros.  Never decrease crtl->preferred_stack_boundary,
+	use crtl->preferred_stack_boundary or MAX_SUPPORTED_STACK_ALIGNMENT
+	instead of PREFERRED_STACK_BOUNDARY.  Don't modify
+	stack_pointer_delta in dynamic allocation, even when size
+	is constant.
+	(probe_stack_range, anti_adjust_stack_and_probe): Use CONST_INT_P
+	macro.
+	* print-rtl.c (print_rtx): Handle
+	VIRTUAL_PREFERRED_STACK_BOUNDARY_REGNUM.
+	* config/alpha/alpha.h (NONSTRICT_REG_OK_FP_BASE_P): Use
+	LAST_VIRTUAL_POINTER_REGISTER instead of LAST_VIRTUAL_REGISTER.
+	* config/frv/frv.c (frv_emit_movsi): Likewise.
+	* config/arm/arm.c (thumb1_legitimate_address_p): Likewise.
+	* config/rs6000/rs6000.c (virtual_stack_registers_memory_p):
+	Likewise.
+
+	Revert:
+	2010-09-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/45234
+	* calls.c (expand_call): Make sure that all variable sized
+	adjustments are multiple of preferred stack boundary after
+	stack alignment.
+
+2010-09-24  Iain Sandoe  <iains@gcc.gnu.org>
+	    Dominique Dhumieres  <dominiq@lps.ens.fr>
+	    
+	PR bootstrap/45751
+	* gcc/config/darwin-driver.c (darwin_default_min_version):
+	Adjust size passed to memcpy in two places.
+	
+2010-09-24  Richard Guenther  <rguenther@suse.de>
+
+	* c-decl.c (pop_scope): Always set file-scope DECL_CONTEXT.
+	Make sure to not call set_type_context with error_mark_node.
+	* langhooks.c (lhd_set_decl_assembler_name): Use DECL_FILE_SCOPE_P.
+
+2010-09-24  Richard Guenther  <rguenther@suse.de>
+
+	* Makefile.in (OBJS-onestep): Remove.
+	(ALL_HOST_BACKEND_OBJS): Remove libbackend.o.
+	(libbackend.a): Remove onestep support.
+	(libbackend.o): Remove.
+	* configure.ac (--enable-intermodule): Remove.
+	* configure: Regenerate.
+
+2010-09-24  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* cfgcleanup.c (flow_find_head_matching_sequence): Terminate when
+	reaching the end of a block if it occurs at a DEBUG_INSN.
+
+2010-09-09  Tristan Gingold  <gingold@adacore.com>
+
+	PR target/44242
+	* config/vms/vms-crt0-64.c: Removed.
+	* config/vms/vms-crt0.c: Removed.
+	* config/vms/vms-psxcrt0-64.c: Removed.
+	* config/vms/vms-psxcrt0.c: Removed.
+	* config/vms/vms-ucrt0.c: New file.
+	* config/vms/t-vms64: Removed.
+	* config/vms/t-vms (VMS_EXTRA_PARTS): Uncomment it.  Remove DECC.
+	Use $(GCC_FOR_TARGET) to build pcrt0.o and vcrt0.o
+	* config.gcc (alpha-dec-vms): Use t-vms.
+
+2010-09-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* doc/invoke.texi (-fno-nil-receivers): Tidied up line to remove
+	underfull hbox in DVI output.
+	(-fobjc-class-cxx-cdtors): Same change.
+	(-fobjc-exceptions): Tidied up documentation.  Explain what the
+	option does, but moved the (lenghty) description of the exception
+	syntax into objc.texi.
+	(-fobjc-gc): Explain that the option is not useful with the GNU
+	runtime.
+	(-fzero-link): Explain that the GNU runtime always works in
+	"zero-link" mode.
+	* doc/objc.texi: All sections: simplified @node declarations
+	removing specification of next, previous, up node.
+	(Objective-C): Updated introduction.
+	(Garbage Collection): Updated.  The bohem-gc library is now
+	included in gcc itself.  Mention that this section only applies to
+	the GNU Objective-C runtime.
+	(compatibility_alias): Small tidy up.
+	(Exceptions): New section mostly containing text previously in the
+	description of the -fobjc-exception command-line option.
+	(Synchronization): Same.
+
+2010-09-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (ix86_code_end): Move the initialization of
+	xops array near the consumer.  Use AX_REG and SP_REG instead of
+	numerical constants.
+
+2010-09-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-typeck.c (convert_arguments): Use warning 'too many arguments to
+	method [methodname]' for an Objective-C method instead of the less
+	satisfactory 'too many arguments to function' (with no method name).
+
+2010-09-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-flow.h (execute_update_addresses_taken): Remove parameter.
+	* tree-ssa.c (maybe_optimize_var): Tweak comment and dump messages.
+	(execute_update_addresses_taken): Remove parameter.  Execute the
+	optimization unconditionally.
+	* passes.c (execute_function_todo): Call execute_update_addresses_taken
+	unconditionally if TODO_rebuild_alias is set, else only when optimizing
+	if TODO_update_address_taken is set.
+
+2010-09-23  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/arm/arm.h (OUTPUT_ADDR_CONST_EXTRA): Remove.
+	* config/arm/arm-protos.h (arm_output_addr_const_extra): Remove.
+	* config/arm/arm.c (TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA): Define.
+	(arm_output_addr_const_extra): Make static.
+
+2010-09-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (UNSPECV_NOPS): Rename from UNSPEC_NOPS and
+	define as unspec_volatile.
+	("nops"): Define as unspec_volatile. Use fputs to write to
+	asm_out_file directly.  Output NOPs on separate lines using while loop.
+	* config/i386/i386.c (ix86_code_end): Use fputs to write to
+	asm_out_file directly.  Output NOPs on separate lines using while loop.
+
+2010-09-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45565
+	* cgraphunit.c (cgraph_redirect_edge_call_stmt_to_callee):
+	Make sure to adjust the fndecl before replacing the stmt.
+
+2010-09-23  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45750
+	* gimplify.c (gimplify_expr): Properly pass on GS_ERROR when
+	gimplifying MEM_REF.
+
+2010-09-23  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/rs6000.c (toc_relative_ok): Delete.
+	(rs6000_emit_move): Use SYMBOL_REF_LOCAL_P instead.
+
+2010-09-23  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR rtl-optimization/44374
+	* basic-block.h (enum bb_flags): Add BB_MODIFIED.
+	* df-core.c (df_set_bb_dirty): Set it.
+	* ifcvt.c (find_memory): Remove function.
+	(dead_or_predicable): Use can_move_insns_across.
+	* df.h (can_move_insns_across): Declare function.
+	* cfgcleanup.c (block_was_dirty): New static variable.
+	(try_crossjump_bb, try_forward_edges): Test BB_MODIFIED flag rather
+	than df_get_bb_dirty.
+	(try_head_merge_bb): New static function.
+	(try_optimize_cfg): Call it.  Call df_analyze if block_was_dirty
+	is set.
+	* df-problems.c: Include "target.h"
+	(df_simulate_find_uses): New static function.
+	(MEMREF_NORMAL, MEMREF_VOLATILE): New macros.
+	(find_memory, find_memory_store): New static functions.
+	(can_move_insns_across): New function.
+	* Makefile.in (df-problems.o): Update dependencies.
+
+2010-09-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR java/44095
+	* config/sparc/linux.h (ASM_SPEC): Pass -K PIC if -findirect-dispatch
+	is specified and the suffix of the file isn't ".c".
+	* config/sparc/linux64.h (ASM_SPEC): Likewise.
+
+2010-09-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/contrib.texi (Contributors): Allow URL to wrap in PDF output.
+	* doc/cppopts.texi: Fix markup of index entry.
+	* doc/extend.texi (Constructing Calls): Fix markup of
+	__builtin_va_arg_pack and __builtin_va_arg_pack_len definition.
+	(Conditionals, C++ Comments, Pragmas, Unnamed Fields, Thread-Local)
+	(Vague Linkage, C++ Attributes): Fix markup of index entries and
+	keywords.
+	* doc/invoke.texi (Option Summary): Fix spacing.  Rewrap to
+	avoid long lines.
+	(C Dialect Options, C++ Dialect Options, Warning Options)
+	(Debugging Options, Spec Files, Darwin Options)
+	(i386 and x86-64 Options, MIPS Options)
+	(RS/6000 and PowerPC Options, Code Gen Options): Fix markup of
+	index entries, avoid abbreviations, allow URLs to wrap, avoid
+	long lines, avoid overlong pages from long @itemx lists.
+	* doc/objc.texi (Garbage Collection): Allow URLs to wrap.
+	* doc/standards.texi (Standards): Likewise.
+	* doc/trouble.texi (Incompatibilities): Fix markup of index entry.
+
+2010-09-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* opts-common.c (prune_options): Make static.  Work with decoded
+	options.
+	(decode_cmdline_options_to_array): Call prune_options.  Don't
+	resize option array here.
+	* opts.h (prune_options): Remove prototype.
+	* gcc.c (process_command): Take decoded options; don't call
+	decode_cmdline_options_to_array here.  Use decoded options for argv[0].
+	(main): Call decode_cmdline_options_to_array here instead of
+	prune_options.  Update call to process_command.
+	* config/darwin-driver.c: Include opts.h.
+	(darwin_default_min_version): Work with decoded options.  Don't
+	handle -b or -V here.
+	* config/darwin.h (darwin_default_min_version): Update prototype.
+	(GCC_DRIVER_HOST_INITIALIZATION): Update call to
+	darwin_default_min_version.
+	* config/i386/cygwin.h (mingw_scan): Update prototype.
+	(GCC_DRIVER_HOST_INITIALIZATION): Update call to mingw_scan.
+	* config/i386/cygwin1.c: Include opts.h.
+	(mingw_scan): Work with decoded options.
+	* config/i386/t-cygwin (cygwin1.o): Update dependencies.
+	* config/t-darwin (darwin-driver.o): Update dependencies.
+
+2010-09-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt (-assemble, -compile, -coverage, -debug, -dump,
+	-dump=, -dumpbase, -dumpdir, -entry, -entry=, -extra-warnings,
+	-for-assembler, -for-assembler=, -for-linker, -for-linker=,
+	-force-link, -force-link=, -language, -language=,
+	-library-directory, -library-directory=, -no-canonical-prefixes,
+	-no-standard-libraries, -no-warnings, -optimize, -output,
+	-output=, -pass-exit-codes, -pedantic, -pedantic-errors, -pie,
+	-pipe, -prefix, -prefix=, -preprocess, -print-file-name,
+	-print-file-name=, -print-libgcc-file-name,
+	-print-multi-directory, -print-multi-lib,
+	-print-multi-os-directory, -print-prog-name, -print-prog-name=,
+	-print-search-dirs, -print-sysroot, -print-sysroot-headers-suffix,
+	-profile, -save-temps, -shared, -specs, -specs=, -static,
+	-symbolic, -time, -verbose, -param=, -sysroot, coverage, e, u,
+	symbolic): New.
+	(fhelp, fhelp=, ftarget-help, fversion): Make into aliases.
+	* gcc.c (A Short Introduction to Adding a Command-Line Option):
+	Remove comment.
+	(cc1_options): Correct specs for passing down --help,
+	--target-help and --help=*.  Add spec for passing down --version.
+	(struct option_map, option_map, target_option_translations,
+	translate_options): Remove.
+	(driver_handle_option): Handle OPT__version, OPT__help, OPT__help_
+	and OPT__target_help instead of OPT_fversion, OPT_fhelp,
+	OPT_fhelp_ and OPT_ftarget_help.
+	(process_command): Don't call translate_options.  Call
+	decode_cmdline_options_to_array before checking for
+	-no-canonical-prefixes using decoded options.
+	* opts-common.c (tm.h): Update comment on #include.
+	(find_opt): Allow abbreviations of long options.
+	(struct option_map, option_map): New.
+	(decode_cmdline_option): Use them instead of hardcoding -Wno, -fno
+	and -mno handling.
+	(target_option_translations): New.
+	(decode_cmdline_options_to_array): Handle
+	TARGET_OPTION_TRANSLATE_TABLE in driver.
+	* opts.c (common_handle_option): Don't handle OPT_fhelp,
+	OPT_ftarget_help, OPT_fhelp_ or OPT_fversion.
+
+2010-09-22  Richard Guenther  <rguenther@suse.de>
+
+	* tree-inline.c (optimize_inline_calls): Schedule cleanups
+	only if we inlined something.  Block compaction and conditional
+	folding are done by cfg cleanup.  Schedule update-address-taken.
+	(tree_function_versioning): Remove redundant call to number_blocks.
+	* tree-optimize.c (execute_cleanup_cfg_post_optimizing): Conditional
+	folding is done by cfg cleanup.
+	* passes.c (init_optimization_passes): Remove update-address-taken
+	pass after IPA inlining.
+
+2010-09-22  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* postreload.c (move2add_note_store): Add reg_symbol_ref[] checks
+	to update conditions. Fix reg_mode[] check.
+
+2010-09-22  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	* config/picochip/picochip.md (movhicc): Use expand to check whether
+	movhicc is available and split it after reload.
+
+2010-09-22  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssanames.c (release_dead_ssa_names): Do not remove
+	callee edges here.
+	* passes.c (init_optimization_passes): Remove early CFG cleanup.
+	* tree-optimize.c (execute_cleanup_cfg_pre_ipa): Remove.
+	(pass_cleanup_cfg): Likewise.
+	(execute_fixup_cfg): Cleanup.
+	* tree-pass.h (pass_cleanup_cfg): Remove.
+
+2010-09-22  Martin Jambor  <mjambor@suse.cz>
+
+	* gimple-fold.c (fold_gimple_call): New parameter inplace, do not fold
+	builtins if it is true.
+	(fold_stmt_1): Call, fold_gimple_call always, pass inplace as a
+	parameter.
+
+2010-09-22  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (struct access): New field grp_no_warning.
+	(create_access_replacement): Set TREE_NO_WARNING according to
+	 grp_no_warning.
+	(create_artificial_child_access): Use build_ref_for_model and set
+	grp_no_warning if build_user_friendly_ref_for_offset fails.
+	(propagate_subaccesses_across_link): Likewise.
+
+2010-09-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/35664
+	* config/sparc/constraints.md ('e'): Return NO_REGS if !TARGET_FPU.
+	('f'): Likewise.
+
+2010-09-22  Tristan Gingold  <gingold@adacore.com>
+
+	* config/alpha/alpha.c (alpha_use_linkage): Initialize target field.
+
+2010-09-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.h (MAX_STRINGOP_ALGS): Fix typo in the name.
+	* config/i386/i386.c (decide_alg): Update for rename.
+
+2010-09-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/45739
+	* simplify-rtx.c (simplify_binary_operation_1): Optimize even
+	vector mode | CONST0_RTX (mode) and ^ CONST0_RTX (mode).
+
+2010-09-21  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/rs6000/rs6000.h (OUTPUT_ADDR_CONST_EXTRA): Remove macros.
+	* config/rs6000/rs6000-protos.h (rs6000_output_addr_const_extra):
+	Remove.
+	* config/rs6000/rs6000.c (rs6000_output_addr_const_extra): Make static.
+	(TTARGET_ASM_OUTPUT_ADDR_CONST_EXTRA): Define.
+
+2010-09-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/23710
+	* c-parser.c (c_parser_objc_method_definition): Check the return
+	value of objc_start_method_definition and if false is returned,
+	parse the method definition but emit no code.
+
+2010-09-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/25965
+	* c-decl.c (detect_field_duplicates): If compiling Objective-C,
+	call objc_get_interface_ivars ().
+
+2010-09-21  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR target/45694
+	* config/i386/i386.c (ix86_expand_prologue): Save r10 in case that
+	static chain-register is used for 64-bit.
+
+2010-09-21  Richard Guenther  <rguenther@suse.de>
+
+	* dwarf2out.c (is_cu_die): New function.
+	(add_pubtype): Use it.
+	(gen_subprogram_die): Likewise.
+	(gen_struct_or_union_type_die): Likewise.
+	(dwarf2out_finish): Likewise.
+	(comp_unit_die): Rename to ...
+	(single_comp_unit_die): ... this.
+	(comp_unit_die): New function lazily constructing and
+	returning single_comp_unit_die.
+	(is_cxx, is_fortran, is_ada, debug_dwarf, break_out_comdat_types,
+	base_type_die, subrange_type_die, modified_type_die,
+	lower_bound_default, add_bound_info, add_prototyped_attribute,
+	dwarf2out_vms_debug_main_pointer, scope_die_for, retry_incomplete_types,
+	dwarf2out_abstract_function, gen_type_die_with_usage, get_context_die,
+	force_decl_die, gen_namespace_die, dwarf2out_decl,
+	dwarf2out_start_source_file, dwarf2out_end_source_file,
+	prune_unused_types, dwarf2out_finish): Use it.
+	(gen_compile_unit_die): For GNU GIMPLE derive DW_AT_language from
+	the global list of translation-unit decls.
+	(dwarf2out_init): Do not create single_comp_unit_die here.
+	(force_decl_die): Handle TRANSLATION_UNIT_DECL.
+
+2010-09-21  Richard Guenther  <rguenther@suse.de>
+
+	* dwarf2out.c (dwarf2out_decl): Do not always generate a DIE
+	for bool for C++.
+
+2010-09-21  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* config/arm/iterators.md (qhs_extenddi_op): New mode_attr.
+	(qhs_extenddi_cstr): Likewise.
+	* config/arm/arm.md (zero_extend<mode>di2, extend<mode>di2): Use
+	them for the source operand.
+
+2010-09-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_split_ashl): Rename single_width variable
+	to half_width.  Use GET_MODE_BITSIZE to calculate mode size.
+	(ix86_split_ashr): Ditto.
+	(ix86_split_lshr): Ditto.
+
+2010-09-21  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45580
+	* tree-ssa-propagate.c (substitute_and_fold): Always replace
+	regular uses.
+	* gimple-fold.c (gimple_fold_obj_type_ref): For a BINFO without
+	virtuals fold the call into a regular indirect one.
+
+2010-09-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/42775
+	* cfgrtl.c (rest_of_pass_free_cfg): Recompute notes if delay slot
+	scheduling is enabled.
+
+2010-09-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/45728
+	* expr.c (expand_expr_real_1): If op0 isn't REG or MEM, try
+	gen_lowpart_common first and if that fails, force_reg first
+	before calling gen_lowpart.
+
+	PR middle-end/45678
+	* cfgexpand.c (expand_one_stack_var_at): Use
+	crtl->max_used_stack_slot_alignment as max_align, instead
+	of maximum of that and PREFERRED_STACK_BOUNDARY.
+	Don't call update_stack_alignment.
+
+2010-09-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* langhooks.h (struct lang_hooks_for_types): Remove hash_types field.
+	* langhooks-def.h (LANG_HOOKS_HASH_TYPES): Delete.
+	(LANG_HOOKS_FOR_TYPES_INITIALIZER): Remove LANG_HOOKS_HASH_TYPES.
+	* system.h (LANG_HOOKS_HASH_TYPES): Poison.
+	* tree.c (type_hash_canon): Do not test lang_hooks.types.hash_types.
+	(build_nonstandard_integer_type): Likewise.
+	(build_range_type_1): New function, built from...
+	(build_range_type): ...this.  Call build_range_type_1.
+	(build_nonshared_range_type): New function.
+	(build_array_type_1): New function, built from...
+	(build_array_type: ...this.  Call build_array_type_1.
+	(build_nonshared_array_type): New function.
+	* tree.h (build_nonshared_range_type): Declare.
+	(build_nonshared_array_type): Likewise.
+
+2010-09-20  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/arm/arm.h (CLASS_LIKELY_SPILLED_P): Remove.
+	* config/arm/arm.c (TARGET_CLASS_LIKELY_SPILLED_P): Define.
+	(arm_class_likely_spilled_p): New function.
+
+2010-09-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_expand_ashl_const): Rewrite using
+	indirect functions.
+	(ix86_split_ashl): Ditto.
+	(ix86_split_ashr): Ditto.
+	(ix86_split_lshr): Ditto.
+	(ix86_adjust_counter): Ditto.
+
+2010-09-20  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-family/c-common.h (constant_string_class): Documented with
+	comment identical to the one already in c-common.c.
+
+2010-09-20  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (any_cfis_emitted): New static variable.
+	(add_fde_cfi): Set it.
+	(dwarf2out_frame_debug): Clear it before processing,
+	if it is set afterwards, flush any queued reg saves.
+
+	PR debug/45124
+	* dwarf2out.c (add_accessibility_attribute): Assume
+	DW_ACCESS_private as the default for dwarf_version > 2
+	and DW_TAG_class_type parent.
+	(gen_inheritance_die): Assume DW_ACCESS_public as the default
+	for dwarf_version > 2 and parent other than DW_TAG_class_type.
+
+2010-09-20  Rafael Carre  <rafael.carre@gmail.com>
+
+	PR target/45726
+	* arm.md (arm_movt): Only enable on machines with MOVT.
+
+2010-09-20  Jie Zhang  <jie@codesourcery.com>
+
+	* config/arm/arm.c (arm_address_offset_is_imm): New.
+	(arm_early_store_addr_dep): New.
+	(arm_early_load_addr_dep): New.
+	* config/arm/arm-protos.h (arm_early_store_addr_dep): Declare.
+	(arm_early_load_addr_dep): Declare.
+	(arm_address_offset_is_imm): Declare.
+	* config/arm/cortex-m4.md: New file.
+	* config/arm/cortex-m4-fpu.md: New file.
+	* config/arm/arm.md: Include cortex-m4.md and cortex-m4-fpu.md.
+	(attr generic_sched): Exclude cortexm4.
+	(attr generic_vfp): Exclude cortexm4.
+
+2010-09-20  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45704
+	* gimplify.c (gimplify_modify_expr_rhs): Preserve volatileness.
+
+2010-09-20  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimize/45605
+	* cgraph.h (const_value_known_p): Declare.
+	(varpool_decide_const_value_known): Remove.
+	* tree-ssa-ccp.c (get_base_constructor): Use it.
+	* lto-cgraph.c (compute_ltrans_boundary): Likewise.
+	* expr.c (string_constant): Likewise.
+	* tree-ssa-loop-ivcanon.c (constant_after_peeling): Likewise.
+	* ipa.c (ipa_discover_readonly_nonaddressable_var,
+	function_and_variable_visibility): Likewise.
+	* gimplify.c (gimplify_call_expr): Likewise.
+	* gimple-fold.c (get_symbol_constant_value): Likewise.
+	* varpool.c (varpool_decide_const_value_known): Replace by...
+	(const_value_known_p): ... this one; handle other kinds of DECLs
+	too and work for automatic vars.
+	(varpool_finalize_decl): Use const_value_known_p.
+
+2010-09-20  Rafael Carre  <rafael.carre@gmail.com>
+
+	PR target/45726
+	* arm.md (arm_movtas_ze): Only enable on machine with MOVT.
+
+2010-09-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45705
+	* tree-ssa-dom.c (optimize_stmt): Perform redundant store elimination.
+
+2010-09-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/45695
+	* combine.c (try_combine): When splitting a two set pattern,
+	make sure the pattern which will be put into i2 doesn't use REGs
+	or MEMs set by insns in between i2 and i3.
+
+2010-09-19  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/44246
+	* lto-cgraph.c (input_cgraph_1, input_varpool_1): Avoid
+	processing same node twice.
+
+2010-09-19  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/bfin/bfin.h (CLASS_LIKELY_SPILLED_P): Remove.
+	* config/bfin/bfin.c (TARGET_CLASS_LIKELY_SPILLED_P): Define.
+	(bfin_class_likely_spilled_p): New function
+
+2010-09-19  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/45714
+	* tree-vect-stmts.c (vect_transform_stmt): Use a dummy statement
+	created in vectorizable_call instead of the original statement in
+	def stmt updates.
+
+2010-09-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386-protos.h (split_double_mode): New prototype.
+	(split_di, split_ti): Remove prototypes.
+	* config/i386/i386.c (split_double_mode): New function.
+	(split_di, split_ti): Remove.
+	(ix86_expand_branch): Use split_double_mode.
+	(ix86_split_to_parts): Ditto.
+	(ix86_split_ashl): Ditto.
+	(ix86_split_ashr): Ditto.
+	(ix86_split_lshr): Ditto.
+	(ix86_force_to_memory): Ditto.
+	* config/i386/i386.md: Use split_double_mode in double-mode splitters.
+
+2010-09-18  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/45453
+	* cgraphunit.c (cgraph_finalize_function): Consider comdat & external
+	virtual functions are reachable.
+	* ipa-inline.c (cgraph_clone_inlined_nodes): Likewise.
+	* ipa.c (cgraph_remove_unreachable_nodes): Likewise.
+	* ipa-prop.c (ipa_modify_formal_parameters): Clear DECL_VIRTUAL_P
+	when modifying function.
+
+2010-09-18  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/45605
+	* cgraphunit.c (cgraph_analyze_functions): Allocate bitmap obstack.
+	* gimple-fold.c (static_object_in_other_unit_p): New function.
+	(canonicalize_constructor_val): Use it.
+	(get_symbol_constant_value): Be reaqdy for canonicalize_constructor_val
+	returning NULL.
+	(gimple_fold_obj_type_ref_known_binfo): Use
+	static_object_in_other_unit_p.
+
 2010-09-18  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/45709
 	* tree-inline.c (copy_phis_for_bb): Delay commit of edge
 	insertions until after all PHI nodes of the block are processed.
 
-2010-09-18  Tijl Coosemans <tijl@coosemans.org>
+2010-09-18  Tijl Coosemans  <tijl@coosemans.org>
 
 	* config/i386/freebsd.h (SUBTARGET32_DEFAULT_CPU): Add.
 
@@ -15,8 +621,7 @@
 2010-09-18  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/45709
-	* tree-inline.c (copy_phis_for_bb): Fixup new_edge when
-	we splitted it.
+	* tree-inline.c (copy_phis_for_bb): Fixup new_edge when we splitted it.
 
 2010-09-17  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -28,7 +633,9 @@
 
 2010-09-17  Sebastian Pop  <sebastian.pop@amd.com>
 
-	Revert commit: 2009-12-16  Ben Elliston  <bje@au.ibm.com>
+	Revert:
+	2009-12-16  Ben Elliston  <bje@au.ibm.com>
+
 	* tree-data-ref.c (dot_rdg_1): Added back.
 	(dot_rdg): Same.  Added "#if 0" around system call.
 
@@ -62,8 +669,7 @@
 	passed an invalid value, print an error instead of ICEing.
 	(valid_psw_flag): New.
 	(rx_expand_builtin): Call it for setpsw/clrpsw.
-	(rx_expand_builtin_mvtipl): Pass an integer to IN_RANGE, not an
-	RTX.
+	(rx_expand_builtin_mvtipl): Pass an integer to IN_RANGE, not an RTX.
 
 	* config/rx/rx.md (bitclr): Don't mark the output as early-clobber.
 	(bitclr_in_memory): Likewise.
@@ -139,8 +745,7 @@
 	(do_spec): Remove code concerning combine.
 	(main): Likewise.
 	* doc/invoke.texi: Remove traces of -combine.
-	* lto-wrapper.c (run_gcc): Do not pass -combine to the compiler
-	driver.
+	* lto-wrapper.c (run_gcc): Do not pass -combine to the compiler driver.
 
 2010-09-17  Richard Guenther  <rguenther@suse.de>
 
@@ -311,8 +916,7 @@
 	alpha_override_options.
 	* config/alpha/alpha-protos.h (override_options): Remove.
 	* config/alpha/alpha.c (override_options): Rename to
-	alpha_option_override.  Call SUBTARGET_OVERRIDE_OPTIONS.  Make
-	static.
+	alpha_option_override.  Call SUBTARGET_OVERRIDE_OPTIONS.  Make static.
 	(TARGET_OPTION_OVERRIDE): Define.
 	* config/alpha/alpha.h (OVERRIDE_OPTIONS): Remove.
 	* config/alpha/vms.h (SUBTARGET_OVERRIDE_OPTIONS): Define instead
@@ -327,14 +931,12 @@
 	(arm_override_options): Rename to arm_option_override.  Make
 	static.  Call SUBTARGET_OVERRIDE_OPTIONS.
 	* config/arm/arm.h (OVERRIDE_OPTIONS): Remove.
-	* config/arm/arm.md: Update comment referring to
-	arm_override_options.
+	* config/arm/arm.md: Update comment referring to arm_override_options.
 	* config/arm/vxworks.h (SUBTARGET_OVERRIDE_OPTIONS): Define
 	instead of OVERRIDE_OPTIONS.
 	* config/avr/avr-protos.h (avr_override_options): Remove.
 	* config/avr/avr.c (TARGET_OPTION_OVERRIDE): Define.
-	(avr_override_options): Rename to avr_option_override.  Make
-	static.
+	(avr_override_options): Rename to avr_option_override.  Make static.
 	* config/avr/avr.h (OVERRIDE_OPTIONS): Remove.
 	* config/bfin/bfin-protos.h (override_options): Remove (twice).
 	* config/bfin/bfin.c (override_options): Rename to
@@ -343,13 +945,11 @@
 	* config/bfin/bfin.h (OVERRIDE_OPTIONS): Remove.
 	* config/cris/cris-protos.h (cris_override_options): Remove.
 	* config/cris/cris.c (TARGET_OPTION_OVERRIDE): Define.
-	(cris_override_options): Rename to cris_option_override.  Make
-	static.
+	(cris_override_options): Rename to cris_option_override.  Make static.
 	* config/cris/cris.h (OVERRIDE_OPTIONS): Remove.
 	* config/frv/frv-protos.h (frv_override_options): Remove.
 	* config/frv/frv.c (TARGET_OPTION_OVERRIDE): Define.
-	(frv_override_options): Rename to frv_option_override.  Make
-	static.
+	(frv_override_options): Rename to frv_option_override.  Make static.
 	* config/frv/frv.h (OVERRIDE_OPTIONS): Remove.
 	* config/h8300/h8300-protos.h (h8300_init_once): Remove.
 	* config/h8300/h8300.c (h8300_init_once): Rename to
@@ -363,26 +963,22 @@
 	(ix86_option_override): New.
 	(TARGET_OPTION_OVERRIDE): Define.
 	* config/i386/i386.h (OVERRIDE_OPTION): Remove.
-	* config/i386/linux64.h (DEFAULT_PCC_STRUCT_RETURN): Update
-	comment.
+	* config/i386/linux64.h (DEFAULT_PCC_STRUCT_RETURN): Update comment.
 	* config/ia64/ia64.c (ia64_file_start): Update comment referring
 	to ia64_override_options.
 	* config/iq2000/iq2000-protos.h (override_options): Remove.
 	* config/iq2000/iq2000.c (TARGET_OPTION_OVERRIDE): Define.
-	(override_options): Rename to iq2000_option_override.  Make
-	static.
+	(override_options): Rename to iq2000_option_override.  Make static.
 	* config/iq2000/iq2000.h (OVERRIDE_OPTIONS): Remove.
 	* config/lm32/lm32-protos.h (lm32_override_options): Remove.
 	* config/lm32/lm32.c (TARGET_OPTION_OVERRIDE): Define.
-	(lm32_override_options): Rename to lm32_option_override.  Make
-	static.
+	(lm32_override_options): Rename to lm32_option_override.  Make static.
 	* config/lm32/lm32.h (OVERRIDE_OPTIONS): Remove.
 	* config/m32r/m32r.c (TARGET_OPTION_OVERRIDE): Define.
 	(m32r_option_override): New.
 	(m32r_init): Update comment.
 	* config/m32r/m32r.h (OVERRIDE_OPTIONS): Remove.
-	* config/m68hc11/m68hc11-protos.h (m68hc11_override_options):
-	Remove.
+	* config/m68hc11/m68hc11-protos.h (m68hc11_override_options): Remove.
 	* config/m68hc11/m68hc11.c (TARGET_OPTION_OVERRIDE): Define.
 	(m68hc11_override_options): Rename to m68hc11_option_override.
 	Make static.  Return void.
@@ -398,16 +994,13 @@
 	* config/mcore/mcore.h (OVERRIDE_OPTIONS): Remove.
 	* config/mep/mep-protos.h (mep_override_options): Remove.
 	* config/mep/mep.c (TARGET_OPTION_OVERRIDE): Define.
-	(mep_override_options): Rename to mep_option_override.  Make
-	static.
+	(mep_override_options): Rename to mep_option_override.  Make static.
 	* config/mep/mep.h (OVERRIDE_OPTIONS): Remove.
 	* config/mmix/mmix-protos.h (mmix_override_options): Remove.
 	* config/mmix/mmix.c (TARGET_OPTION_OVERRIDE): Define.
-	(mmix_override_options): Rename to mmix_option_override.  Make
-	static.
+	(mmix_override_options): Rename to mmix_option_override.  Make static.
 	* config/mmix/mmix.h (OVERRIDE_OPTIONS): Remove.
-	* config/mn10300/mn10300-protos.h (mn10300_override_options):
-	Remove.
+	* config/mn10300/mn10300-protos.h (mn10300_override_options): Remove.
 	* config/mn10300/mn10300.c (TARGET_OPTION_OVERRIDE): Define.
 	(mn10300_override_options): Rename to mn10300_option_override.
 	Make static.
@@ -424,16 +1017,11 @@
 	Make static.  Update comment and definition of
 	TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE.
 	* config/picochip/picochip.h (OVERRIDE_OPTIONS): Remove.
-	* config/rs6000/aix43.h (SUBTARGET_OVERRIDE_OPTIONS): Update
-	comment.
-	* config/rs6000/aix51.h (SUBTARGET_OVERRIDE_OPTIONS): Update
-	comment.
-	* config/rs6000/aix52.h (SUBTARGET_OVERRIDE_OPTIONS): Update
-	comment.
-	* config/rs6000/aix53.h (SUBTARGET_OVERRIDE_OPTIONS): Update
-	comment.
-	* config/rs6000/aix61.h (SUBTARGET_OVERRIDE_OPTIONS): Update
-	comment.
+	* config/rs6000/aix43.h (SUBTARGET_OVERRIDE_OPTIONS): Update comment.
+	* config/rs6000/aix51.h (SUBTARGET_OVERRIDE_OPTIONS): Update comment.
+	* config/rs6000/aix52.h (SUBTARGET_OVERRIDE_OPTIONS): Update comment.
+	* config/rs6000/aix53.h (SUBTARGET_OVERRIDE_OPTIONS): Update comment.
+	* config/rs6000/aix61.h (SUBTARGET_OVERRIDE_OPTIONS): Update comment.
 	* config/rs6000/linux64.h (OPTION_TARGET_CPU_DEFAULT): Define
 	instead of OVERRIDE_OPTIONS.
 	* config/rs6000/rs6000-modes.def: Update comment referring to
@@ -446,8 +1034,7 @@
 	(rs6000_option_override): New.
 	* config/rs6000/rs6000.h (OPTION_TARGET_CPU_DEFAULT): Define
 	instead of OVERRIDE_OPTIONS.
-	* config/rs6000/sysv4.h (SUBTARGET_OVERRIDE_OPTIONS): Update
-	comment.
+	* config/rs6000/sysv4.h (SUBTARGET_OVERRIDE_OPTIONS): Update comment.
 	* config/s390/s390-protos.h (override_options): Remove.
 	* config/s390/s390.c (override_options): Rename to
 	s390_option_override.  Make static.
@@ -490,8 +1077,7 @@
 	* config/vxworks.h: Update comment referring to OVERRIDE_OPTIONS.
 	* config/xtensa/xtensa-protos.h (override_options): Remove.
 	* config/xtensa/xtensa.c (TARGET_OPTION_OVERRIDE): Define.
-	(override_options): Rename to xtensa_option_override.  Make
-	static.
+	(override_options): Rename to xtensa_option_override.  Make static.
 	* config/xtensa/xtensa.h (OVERRIDE_OPTIONS): Remove.
 
 2010-09-16  Richard Guenther  <rguenther@suse.de>
@@ -641,7 +1227,7 @@
 2010-09-15  Tejas Belagod  <tejas.belagod@arm.com>
 
 	* config/arm/neon.md (vec_pack_trunc_<mode>): Instruction
-	pattern for vmovn. Expansion in case of non 
+	pattern for vmovn. Expansion in case of non
 	-mvectorize-with-neon-quad.
 	(neon_vec_pack_trunc_<mode>): Instruction pattern for vmovn for
 	non- -mvectorize-with-neon-quad case.
@@ -5466,7 +6052,7 @@
 	PR target/45142
 	* config/i386/sse.md (vec_set<mode>_0): Do not set mode attribute for
 	alternative 2.
-	(vec_set<moode>_0 splitter): Use SSEMODE4S mode iterator to also
+	(vec_set<mode>_0 splitter): Use SSEMODE4S mode iterator to also
 	split V4SI operands.
 
 2010-08-01  Anatoly Sokolov  <aesok@post.ru>

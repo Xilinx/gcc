@@ -2479,8 +2479,11 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
     {
       /* The CALL_EXPR in *EXPR_P is already in GIMPLE form, so all we
 	 have to do is replicate it as a GIMPLE_CALL tuple.  */
+      gimple_stmt_iterator gsi;
       call = gimple_build_call_from_tree (*expr_p);
       gimplify_seq_add_stmt (pre_p, call);
+      gsi = gsi_last (*pre_p);
+      fold_stmt (&gsi);
       *expr_p = NULL_TREE;
     }
 
@@ -4197,9 +4200,18 @@ gimplify_modify_expr_rhs (tree *expr_p, tree *from_p, tree *to_p,
 	     This kind of code arises in C++ when an object is bound
 	     to a const reference, and if "x" is a TARGET_EXPR we want
 	     to take advantage of the optimization below.  */
+	    bool volatile_p = TREE_THIS_VOLATILE (*from_p);
 	    tree t = gimple_fold_indirect_ref_rhs (TREE_OPERAND (*from_p, 0));
 	    if (t)
 	      {
+		if (TREE_THIS_VOLATILE (t) != volatile_p)
+		  {
+		    if (TREE_CODE_CLASS (TREE_CODE (t)) == tcc_declaration)
+		      t = build_simple_mem_ref_loc (EXPR_LOCATION (*from_p),
+						    build_fold_addr_expr (t));
+		    if (REFERENCE_CLASS_P (t))
+		      TREE_THIS_VOLATILE (t) = volatile_p;
+		  }
 		*from_p = t;
 		ret = GS_OK;
 		changed = true;
@@ -6797,8 +6809,10 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 
 	    ret = gimplify_expr (&TREE_OPERAND (*expr_p, 0), pre_p, post_p,
 				 is_gimple_reg, fb_rvalue);
-	    recalculate_side_effects (*expr_p);
+	    if (ret == GS_ERROR)
+	      break;
 
+	    recalculate_side_effects (*expr_p);
 	    *expr_p = fold_build2_loc (input_location, MEM_REF,
 				       TREE_TYPE (*expr_p),
 				       TREE_OPERAND (*expr_p, 0),
@@ -6823,6 +6837,8 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	    }
 	  ret = gimplify_expr (&TREE_OPERAND (*expr_p, 0), pre_p, post_p,
 			       is_gimple_mem_ref_addr, fb_rvalue);
+	  if (ret == GS_ERROR)
+	    break;
 	  recalculate_side_effects (*expr_p);
 	  ret = GS_ALL_DONE;
 	  break;

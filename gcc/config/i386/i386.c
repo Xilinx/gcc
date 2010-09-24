@@ -7964,12 +7964,12 @@ ix86_code_end (void)
   rtx xops[2];
   int regno;
 
-  for (regno = 0; regno < 8; ++regno)
+  for (regno = AX_REG; regno <= SP_REG; regno++)
     {
       char name[32];
       tree decl;
 
-      if (! ((pic_labels_used >> regno) & 1))
+      if (!(pic_labels_used & (1 << regno)))
 	continue;
 
       get_pc_thunk_name (name, regno);
@@ -8022,15 +8022,20 @@ ix86_code_end (void)
       /* Make sure unwind info is emitted for the thunk if needed.  */
       final_start_function (emit_barrier (), asm_out_file, 1);
 
+      /* Pad stack IP move with 4 instructions (two NOPs count
+	 as one instruction).  */
+      if (TARGET_PAD_SHORT_FUNCTION)
+	{
+	  int i = 8;
+
+	  while (i--)
+	    fputs ("\tnop\n", asm_out_file);
+	}
+
       xops[0] = gen_rtx_REG (Pmode, regno);
       xops[1] = gen_rtx_MEM (Pmode, stack_pointer_rtx);
-      /* Pad stack IP move with 4 instructions.  2 NOPs count as 1
-         instruction.  */
-      if (TARGET_PAD_SHORT_FUNCTION)
-	output_asm_insn ("nop; nop; nop; nop; nop; nop; nop; nop",
-			 xops);
       output_asm_insn ("mov%z0\t{%1, %0|%0, %1}", xops);
-      output_asm_insn ("ret", xops);
+      fputs ("\tret\n", asm_out_file);
       final_end_function ();
       init_insn_lengths ();
       free_after_compilation (cfun);
@@ -9693,16 +9698,24 @@ ix86_expand_prologue (void)
   else
     {
       rtx eax = gen_rtx_REG (Pmode, AX_REG);
-      bool eax_live;
+      rtx r10 = NULL;
+      bool eax_live = false;
+      bool r10_live = false;
 
-      if (cfun->machine->call_abi == MS_ABI)
-	eax_live = false;
-      else
-	eax_live = ix86_eax_live_at_start_p ();
+      if (TARGET_64BIT)
+        r10_live = (DECL_STATIC_CHAIN (current_function_decl) != 0);
+      if (!TARGET_64BIT_MS_ABI)
+        eax_live = ix86_eax_live_at_start_p ();
 
       if (eax_live)
 	{
 	  emit_insn (gen_push (eax));
+	  allocate -= UNITS_PER_WORD;
+	}
+      if (r10_live)
+	{
+	  r10 = gen_rtx_REG (Pmode, R10_REG);
+	  emit_insn (gen_push (r10));
 	  allocate -= UNITS_PER_WORD;
 	}
 
@@ -9720,10 +9733,17 @@ ix86_expand_prologue (void)
 	}
       m->fs.sp_offset += allocate;
 
-      if (eax_live)
+      if (r10_live && eax_live)
+        {
+	  t = choose_baseaddr (m->fs.sp_offset - allocate);
+	  emit_move_insn (r10, gen_frame_mem (Pmode, t));
+	  t = choose_baseaddr (m->fs.sp_offset - allocate - UNITS_PER_WORD);
+	  emit_move_insn (eax, gen_frame_mem (Pmode, t));
+	}
+      else if (eax_live || r10_live)
 	{
 	  t = choose_baseaddr (m->fs.sp_offset - allocate);
-	  emit_move_insn (eax, gen_frame_mem (Pmode, t));
+	  emit_move_insn ((eax_live ? eax : r10), gen_frame_mem (Pmode, t));
 	}
     }
   gcc_assert (m->fs.sp_offset == frame.stack_pointer_offset);
@@ -13248,15 +13268,33 @@ i386_asm_output_addr_const_extra (FILE *file, rtx x)
   return true;
 }
 
-/* Split one or more DImode RTL references into pairs of SImode
+/* Split one or more double-mode RTL references into pairs of half-mode
    references.  The RTL can be REG, offsettable MEM, integer constant, or
-   CONST_DOUBLE.  "operands" is a pointer to an array of DImode RTL to
+   CONST_DOUBLE.  "operands" is a pointer to an array of double-mode RTLs to
    split and "num" is its length.  lo_half and hi_half are output arrays
    that parallel "operands".  */
 
 void
-split_di (rtx operands[], int num, rtx lo_half[], rtx hi_half[])
+split_double_mode (enum machine_mode mode, rtx operands[],
+		   int num, rtx lo_half[], rtx hi_half[])
 {
+  enum machine_mode half_mode;
+  unsigned int byte;
+
+  switch (mode)
+    {
+    case TImode:
+      half_mode = DImode;
+      break;
+    case DImode:
+      half_mode = SImode;
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  byte = GET_MODE_SIZE (half_mode);
+
   while (num--)
     {
       rtx op = operands[num];
@@ -13265,44 +13303,17 @@ split_di (rtx operands[], int num, rtx lo_half[], rtx hi_half[])
          but we still have to handle it.  */
       if (MEM_P (op))
 	{
-	  lo_half[num] = adjust_address (op, SImode, 0);
-	  hi_half[num] = adjust_address (op, SImode, 4);
+	  lo_half[num] = adjust_address (op, half_mode, 0);
+	  hi_half[num] = adjust_address (op, half_mode, byte);
 	}
       else
 	{
-	  lo_half[num] = simplify_gen_subreg (SImode, op,
+	  lo_half[num] = simplify_gen_subreg (half_mode, op,
 					      GET_MODE (op) == VOIDmode
-					      ? DImode : GET_MODE (op), 0);
-	  hi_half[num] = simplify_gen_subreg (SImode, op,
+					      ? mode : GET_MODE (op), 0);
+	  hi_half[num] = simplify_gen_subreg (half_mode, op,
 					      GET_MODE (op) == VOIDmode
-					      ? DImode : GET_MODE (op), 4);
-	}
-    }
-}
-/* Split one or more TImode RTL references into pairs of DImode
-   references.  The RTL can be REG, offsettable MEM, integer constant, or
-   CONST_DOUBLE.  "operands" is a pointer to an array of DImode RTL to
-   split and "num" is its length.  lo_half and hi_half are output arrays
-   that parallel "operands".  */
-
-void
-split_ti (rtx operands[], int num, rtx lo_half[], rtx hi_half[])
-{
-  while (num--)
-    {
-      rtx op = operands[num];
-
-      /* simplify_subreg refuse to split volatile memory addresses, but we
-         still have to handle it.  */
-      if (MEM_P (op))
-	{
-	  lo_half[num] = adjust_address (op, DImode, 0);
-	  hi_half[num] = adjust_address (op, DImode, 8);
-	}
-      else
-	{
-	  lo_half[num] = simplify_gen_subreg (DImode, op, TImode, 0);
-	  hi_half[num] = simplify_gen_subreg (DImode, op, TImode, 8);
+					      ? mode : GET_MODE (op), byte);
 	}
     }
 }
@@ -16273,9 +16284,10 @@ ix86_expand_compare (enum rtx_code code, rtx op0, rtx op1)
 void
 ix86_expand_branch (enum rtx_code code, rtx op0, rtx op1, rtx label)
 {
+  enum machine_mode mode = GET_MODE (op0);
   rtx tmp;
 
-  switch (GET_MODE (op0))
+  switch (mode)
     {
     case SFmode:
     case DFmode:
@@ -16306,18 +16318,11 @@ ix86_expand_branch (enum rtx_code code, rtx op0, rtx op1, rtx label)
 	    tmp = op0, op0 = op1, op1 = tmp;
 	    code = swap_condition (code);
 	  }
-	if (GET_MODE (op0) == DImode)
-	  {
-	    split_di (&op0, 1, lo+0, hi+0);
-	    split_di (&op1, 1, lo+1, hi+1);
-	    submode = SImode;
-	  }
-	else
-	  {
-	    split_ti (&op0, 1, lo+0, hi+0);
-	    split_ti (&op1, 1, lo+1, hi+1);
-	    submode = DImode;
-	  }
+
+	split_double_mode (mode, &op0, 1, lo+0, hi+0);
+	split_double_mode (mode, &op1, 1, lo+1, hi+1);
+
+	submode = mode == DImode ? SImode : DImode;
 
 	/* When comparing for equality, we can use (hi0^hi1)|(lo0^lo1) to
 	   avoid two branches.  This costs one extra insn, so disable when
@@ -16474,7 +16479,7 @@ ix86_expand_carry_flag_compare (enum rtx_code code, rtx op0, rtx op1, rtx *pop)
   enum machine_mode mode =
     GET_MODE (op0) != VOIDmode ? GET_MODE (op0) : GET_MODE (op1);
 
-  /* Do not handle DImode compares that go through special path.  */
+  /* Do not handle double-mode compares that go through special path.  */
   if (mode == (TARGET_64BIT ? TImode : DImode))
     return false;
 
@@ -17686,8 +17691,8 @@ ix86_expand_int_addcc (rtx operands[])
 }
 
 
-/* Split operands 0 and 1 into SImode parts.  Similar to split_di, but
-   works for floating pointer parameters and nonoffsetable memories.
+/* Split operands 0 and 1 into half-mode parts.  Similar to split_double_mode,
+   but works for floating pointer parameters and nonoffsetable memories.
    For pushes, it returns just stack offsets; the values will be saved
    in the right order.  Maximally three parts are generated.  */
 
@@ -17740,7 +17745,7 @@ ix86_split_to_parts (rtx operand, rtx *parts, enum machine_mode mode)
   if (!TARGET_64BIT)
     {
       if (mode == DImode)
-	split_di (&operand, 1, &parts[0], &parts[1]);
+	split_double_mode (mode, &operand, 1, &parts[0], &parts[1]);
       else
 	{
 	  int i;
@@ -17791,7 +17796,7 @@ ix86_split_to_parts (rtx operand, rtx *parts, enum machine_mode mode)
   else
     {
       if (mode == TImode)
-	split_ti (&operand, 1, &parts[0], &parts[1]);
+	split_double_mode (mode, &operand, 1, &parts[0], &parts[1]);
       if (mode == XFmode || mode == TFmode)
 	{
 	  enum machine_mode upper_mode = mode==XFmode ? SImode : DImode;
@@ -17862,7 +17867,7 @@ ix86_split_long_move (rtx operands[])
   /* The DFmode expanders may ask us to move double.
      For 64bit target this is single move.  By hiding the fact
      here we simplify i386.md splitters.  */
-  if (GET_MODE_SIZE (GET_MODE (operands[0])) == 8 && TARGET_64BIT)
+  if (TARGET_64BIT && GET_MODE_SIZE (GET_MODE (operands[0])) == 8)
     {
       /* Optimize constant pool reference to immediates.  This is used by
 	 fp moves, that force all constants to memory to allow combining.  */
@@ -18072,62 +18077,62 @@ ix86_split_long_move (rtx operands[])
 static void
 ix86_expand_ashl_const (rtx operand, int count, enum machine_mode mode)
 {
-  if (count == 1)
+  rtx (*insn)(rtx, rtx, rtx);
+
+  if (count == 1
+      || (count * ix86_cost->add <= ix86_cost->shift_const
+	  && !optimize_insn_for_size_p ()))
     {
-      emit_insn ((mode == DImode
-		  ? gen_addsi3
-		  : gen_adddi3) (operand, operand, operand));
-    }
-  else if (!optimize_insn_for_size_p ()
-	   && count * ix86_cost->add <= ix86_cost->shift_const)
-    {
-      int i;
-      for (i=0; i<count; i++)
-	{
-	  emit_insn ((mode == DImode
-		      ? gen_addsi3
-		      : gen_adddi3) (operand, operand, operand));
-	}
+      insn = mode == DImode ? gen_addsi3 : gen_adddi3;
+      while (count-- > 0)
+	emit_insn (insn (operand, operand, operand));
     }
   else
-    emit_insn ((mode == DImode
-		? gen_ashlsi3
-		: gen_ashldi3) (operand, operand, GEN_INT (count)));
+    {
+      insn = mode == DImode ? gen_ashlsi3 : gen_ashldi3;
+      emit_insn (insn (operand, operand, GEN_INT (count)));
+    }
 }
 
 void
 ix86_split_ashl (rtx *operands, rtx scratch, enum machine_mode mode)
 {
+  rtx (*gen_ashl3)(rtx, rtx, rtx);
+  rtx (*gen_shld)(rtx, rtx, rtx);
+  int half_width = GET_MODE_BITSIZE (mode) >> 1;
+
   rtx low[2], high[2];
   int count;
-  const int single_width = mode == DImode ? 32 : 64;
 
   if (CONST_INT_P (operands[2]))
     {
-      (mode == DImode ? split_di : split_ti) (operands, 2, low, high);
-      count = INTVAL (operands[2]) & (single_width * 2 - 1);
+      split_double_mode (mode, operands, 2, low, high);
+      count = INTVAL (operands[2]) & (GET_MODE_BITSIZE (mode) - 1);
 
-      if (count >= single_width)
+      if (count >= half_width)
 	{
 	  emit_move_insn (high[0], low[1]);
 	  emit_move_insn (low[0], const0_rtx);
 
-	  if (count > single_width)
-	    ix86_expand_ashl_const (high[0], count - single_width, mode);
+	  if (count > half_width)
+	    ix86_expand_ashl_const (high[0], count - half_width, mode);
 	}
       else
 	{
+	  gen_shld = mode == DImode ? gen_x86_shld : gen_x86_64_shld;
+
 	  if (!rtx_equal_p (operands[0], operands[1]))
 	    emit_move_insn (operands[0], operands[1]);
-	  emit_insn ((mode == DImode
-		     ? gen_x86_shld
-		     : gen_x86_64_shld) (high[0], low[0], GEN_INT (count)));
+
+	  emit_insn (gen_shld (high[0], low[0], GEN_INT (count)));
 	  ix86_expand_ashl_const (low[0], count, mode);
 	}
       return;
     }
 
-  (mode == DImode ? split_di : split_ti) (operands, 1, low, high);
+  split_double_mode (mode, operands, 1, low, high);
+
+  gen_ashl3 = mode == DImode ? gen_ashlsi3 : gen_ashldi3;
 
   if (operands[1] == const1_rtx)
     {
@@ -18139,7 +18144,7 @@ ix86_split_ashl (rtx *operands, rtx scratch, enum machine_mode mode)
 
 	  ix86_expand_clear (low[0]);
 	  ix86_expand_clear (high[0]);
-	  emit_insn (gen_testqi_ccz_1 (operands[2], GEN_INT (single_width)));
+	  emit_insn (gen_testqi_ccz_1 (operands[2], GEN_INT (half_width)));
 
 	  d = gen_lowpart (QImode, low[0]);
 	  d = gen_rtx_STRICT_LOW_PART (VOIDmode, d);
@@ -18159,33 +18164,44 @@ ix86_split_ashl (rtx *operands, rtx scratch, enum machine_mode mode)
 	 pentium4 a bit; no one else seems to care much either way.  */
       else
 	{
+	  enum machine_mode half_mode;
+	  rtx (*gen_lshr3)(rtx, rtx, rtx);
+	  rtx (*gen_and3)(rtx, rtx, rtx);
+	  rtx (*gen_xor3)(rtx, rtx, rtx);
+	  HOST_WIDE_INT bits;
 	  rtx x;
 
-	  if (TARGET_PARTIAL_REG_STALL && !optimize_insn_for_size_p ())
-	    x = gen_rtx_ZERO_EXTEND (mode == DImode ? SImode : DImode, operands[2]);
+	  if (mode == DImode)
+	    {
+	      half_mode = SImode;
+	      gen_lshr3 = gen_lshrsi3;
+	      gen_and3 = gen_andsi3;
+	      gen_xor3 = gen_xorsi3;
+	      bits = 5;
+	    }
 	  else
-	    x = gen_lowpart (mode == DImode ? SImode : DImode, operands[2]);
+	    {
+	      half_mode = DImode;
+	      gen_lshr3 = gen_lshrdi3;
+	      gen_and3 = gen_anddi3;
+	      gen_xor3 = gen_xordi3;
+	      bits = 6;
+	    }
+
+	  if (TARGET_PARTIAL_REG_STALL && !optimize_insn_for_size_p ())
+	    x = gen_rtx_ZERO_EXTEND (half_mode, operands[2]);
+	  else
+	    x = gen_lowpart (half_mode, operands[2]);
 	  emit_insn (gen_rtx_SET (VOIDmode, high[0], x));
 
-	  emit_insn ((mode == DImode
-		      ? gen_lshrsi3
-		      : gen_lshrdi3) (high[0], high[0],
-				      GEN_INT (mode == DImode ? 5 : 6)));
-	  emit_insn ((mode == DImode
-		      ? gen_andsi3
-		      : gen_anddi3) (high[0], high[0], const1_rtx));
+	  emit_insn (gen_lshr3 (high[0], high[0], GEN_INT (bits)));
+	  emit_insn (gen_and3 (high[0], high[0], const1_rtx));
 	  emit_move_insn (low[0], high[0]);
-	  emit_insn ((mode == DImode
-		      ? gen_xorsi3
-		      : gen_xordi3) (low[0], low[0], const1_rtx));
+	  emit_insn (gen_xor3 (low[0], low[0], const1_rtx));
 	}
 
-      emit_insn ((mode == DImode
-		    ? gen_ashlsi3
-		    : gen_ashldi3) (low[0], low[0], operands[2]));
-      emit_insn ((mode == DImode
-		    ? gen_ashlsi3
-		    : gen_ashldi3) (high[0], high[0], operands[2]));
+      emit_insn (gen_ashl3 (low[0], low[0], operands[2]));
+      emit_insn (gen_ashl3 (high[0], high[0], operands[2]));
       return;
     }
 
@@ -18201,176 +18217,177 @@ ix86_split_ashl (rtx *operands, rtx scratch, enum machine_mode mode)
     }
   else
     {
+      gen_shld = mode == DImode ? gen_x86_shld : gen_x86_64_shld;
+
       if (!rtx_equal_p (operands[0], operands[1]))
 	emit_move_insn (operands[0], operands[1]);
 
-      (mode == DImode ? split_di : split_ti) (operands, 1, low, high);
-      emit_insn ((mode == DImode
-		  ? gen_x86_shld
-		  : gen_x86_64_shld) (high[0], low[0], operands[2]));
+      split_double_mode (mode, operands, 1, low, high);
+      emit_insn (gen_shld (high[0], low[0], operands[2]));
     }
 
-  emit_insn ((mode == DImode
-	      ? gen_ashlsi3
-	      : gen_ashldi3) (low[0], low[0], operands[2]));
+  emit_insn (gen_ashl3 (low[0], low[0], operands[2]));
 
   if (TARGET_CMOVE && scratch)
     {
+      rtx (*gen_x86_shift_adj_1)(rtx, rtx, rtx, rtx)
+	= mode == DImode ? gen_x86_shiftsi_adj_1 : gen_x86_shiftdi_adj_1;
+
       ix86_expand_clear (scratch);
-      emit_insn ((mode == DImode
-		  ? gen_x86_shiftsi_adj_1
-		  : gen_x86_shiftdi_adj_1) (high[0], low[0], operands[2],
-					    scratch));
+      emit_insn (gen_x86_shift_adj_1 (high[0], low[0], operands[2], scratch));
     }
   else
-    emit_insn ((mode == DImode
-		? gen_x86_shiftsi_adj_2
-		: gen_x86_shiftdi_adj_2) (high[0], low[0], operands[2]));
+    {
+      rtx (*gen_x86_shift_adj_2)(rtx, rtx, rtx)
+	= mode == DImode ? gen_x86_shiftsi_adj_2 : gen_x86_shiftdi_adj_2;
+
+      emit_insn (gen_x86_shift_adj_2 (high[0], low[0], operands[2]));
+    }
 }
 
 void
 ix86_split_ashr (rtx *operands, rtx scratch, enum machine_mode mode)
 {
+  rtx (*gen_ashr3)(rtx, rtx, rtx)
+    = mode == DImode ? gen_ashrsi3 : gen_ashrdi3;
+  rtx (*gen_shrd)(rtx, rtx, rtx);
+  int half_width = GET_MODE_BITSIZE (mode) >> 1;
+
   rtx low[2], high[2];
   int count;
-  const int single_width = mode == DImode ? 32 : 64;
 
   if (CONST_INT_P (operands[2]))
     {
-      (mode == DImode ? split_di : split_ti) (operands, 2, low, high);
-      count = INTVAL (operands[2]) & (single_width * 2 - 1);
+      split_double_mode (mode, operands, 2, low, high);
+      count = INTVAL (operands[2]) & (GET_MODE_BITSIZE (mode) - 1);
 
-      if (count == single_width * 2 - 1)
+      if (count == GET_MODE_BITSIZE (mode) - 1)
 	{
 	  emit_move_insn (high[0], high[1]);
-	  emit_insn ((mode == DImode
-		      ? gen_ashrsi3
-		      : gen_ashrdi3) (high[0], high[0],
-				      GEN_INT (single_width - 1)));
+	  emit_insn (gen_ashr3 (high[0], high[0],
+				GEN_INT (half_width - 1)));
 	  emit_move_insn (low[0], high[0]);
 
 	}
-      else if (count >= single_width)
+      else if (count >= half_width)
 	{
 	  emit_move_insn (low[0], high[1]);
 	  emit_move_insn (high[0], low[0]);
-	  emit_insn ((mode == DImode
-		      ? gen_ashrsi3
-		      : gen_ashrdi3) (high[0], high[0],
-				      GEN_INT (single_width - 1)));
-	  if (count > single_width)
-	    emit_insn ((mode == DImode
-			? gen_ashrsi3
-			: gen_ashrdi3) (low[0], low[0],
-					GEN_INT (count - single_width)));
+	  emit_insn (gen_ashr3 (high[0], high[0],
+				GEN_INT (half_width - 1)));
+
+	  if (count > half_width)
+	    emit_insn (gen_ashr3 (low[0], low[0],
+				  GEN_INT (count - half_width)));
 	}
       else
 	{
+	  gen_shrd = mode == DImode ? gen_x86_shrd : gen_x86_64_shrd;
+
 	  if (!rtx_equal_p (operands[0], operands[1]))
 	    emit_move_insn (operands[0], operands[1]);
-	  emit_insn ((mode == DImode
-		      ? gen_x86_shrd
-		      : gen_x86_64_shrd) (low[0], high[0], GEN_INT (count)));
-	  emit_insn ((mode == DImode
-		      ? gen_ashrsi3
-		      : gen_ashrdi3) (high[0], high[0], GEN_INT (count)));
+
+	  emit_insn (gen_shrd (low[0], high[0], GEN_INT (count)));
+	  emit_insn (gen_ashr3 (high[0], high[0], GEN_INT (count)));
 	}
     }
   else
     {
-      if (!rtx_equal_p (operands[0], operands[1]))
+      gen_shrd = mode == DImode ? gen_x86_shrd : gen_x86_64_shrd;
+
+     if (!rtx_equal_p (operands[0], operands[1]))
 	emit_move_insn (operands[0], operands[1]);
 
-      (mode == DImode ? split_di : split_ti) (operands, 1, low, high);
+      split_double_mode (mode, operands, 1, low, high);
 
-      emit_insn ((mode == DImode
-		  ? gen_x86_shrd
-		  : gen_x86_64_shrd) (low[0], high[0], operands[2]));
-      emit_insn ((mode == DImode
-		  ? gen_ashrsi3
-		  : gen_ashrdi3)  (high[0], high[0], operands[2]));
+      emit_insn (gen_shrd (low[0], high[0], operands[2]));
+      emit_insn (gen_ashr3 (high[0], high[0], operands[2]));
 
       if (TARGET_CMOVE && scratch)
 	{
+	  rtx (*gen_x86_shift_adj_1)(rtx, rtx, rtx, rtx)
+	    = mode == DImode ? gen_x86_shiftsi_adj_1 : gen_x86_shiftdi_adj_1;
+
 	  emit_move_insn (scratch, high[0]);
-	  emit_insn ((mode == DImode
-		      ? gen_ashrsi3
-		      : gen_ashrdi3) (scratch, scratch,
-				      GEN_INT (single_width - 1)));
-	  emit_insn ((mode == DImode
-		      ? gen_x86_shiftsi_adj_1
-		      : gen_x86_shiftdi_adj_1) (low[0], high[0], operands[2],
-						scratch));
+	  emit_insn (gen_ashr3 (scratch, scratch,
+				GEN_INT (half_width - 1)));
+	  emit_insn (gen_x86_shift_adj_1 (low[0], high[0], operands[2],
+					  scratch));
 	}
       else
-	emit_insn ((mode == DImode
-		    ? gen_x86_shiftsi_adj_3
-		    : gen_x86_shiftdi_adj_3) (low[0], high[0], operands[2]));
+	{
+	  rtx (*gen_x86_shift_adj_3)(rtx, rtx, rtx)
+	    = mode == DImode ? gen_x86_shiftsi_adj_3 : gen_x86_shiftdi_adj_3;
+
+	  emit_insn (gen_x86_shift_adj_3 (low[0], high[0], operands[2]));
+	}
     }
 }
 
 void
 ix86_split_lshr (rtx *operands, rtx scratch, enum machine_mode mode)
 {
+  rtx (*gen_lshr3)(rtx, rtx, rtx)
+    = mode == DImode ? gen_lshrsi3 : gen_lshrdi3;
+  rtx (*gen_shrd)(rtx, rtx, rtx);
+  int half_width = GET_MODE_BITSIZE (mode) >> 1;
+
   rtx low[2], high[2];
   int count;
-  const int single_width = mode == DImode ? 32 : 64;
 
   if (CONST_INT_P (operands[2]))
     {
-      (mode == DImode ? split_di : split_ti) (operands, 2, low, high);
-      count = INTVAL (operands[2]) & (single_width * 2 - 1);
+      split_double_mode (mode, operands, 2, low, high);
+      count = INTVAL (operands[2]) & (GET_MODE_BITSIZE (mode) - 1);
 
-      if (count >= single_width)
+      if (count >= half_width)
 	{
 	  emit_move_insn (low[0], high[1]);
 	  ix86_expand_clear (high[0]);
 
-	  if (count > single_width)
-	    emit_insn ((mode == DImode
-			? gen_lshrsi3
-			: gen_lshrdi3) (low[0], low[0],
-					GEN_INT (count - single_width)));
+	  if (count > half_width)
+	    emit_insn (gen_lshr3 (low[0], low[0],
+				  GEN_INT (count - half_width)));
 	}
       else
 	{
+	  gen_shrd = mode == DImode ? gen_x86_shrd : gen_x86_64_shrd;
+
 	  if (!rtx_equal_p (operands[0], operands[1]))
 	    emit_move_insn (operands[0], operands[1]);
-	  emit_insn ((mode == DImode
-		      ? gen_x86_shrd
-		      : gen_x86_64_shrd) (low[0], high[0], GEN_INT (count)));
-	  emit_insn ((mode == DImode
-		      ? gen_lshrsi3
-		      : gen_lshrdi3) (high[0], high[0], GEN_INT (count)));
+
+	  emit_insn (gen_shrd (low[0], high[0], GEN_INT (count)));
+	  emit_insn (gen_lshr3 (high[0], high[0], GEN_INT (count)));
 	}
     }
   else
     {
+      gen_shrd = mode == DImode ? gen_x86_shrd : gen_x86_64_shrd;
+
       if (!rtx_equal_p (operands[0], operands[1]))
 	emit_move_insn (operands[0], operands[1]);
 
-      (mode == DImode ? split_di : split_ti) (operands, 1, low, high);
+      split_double_mode (mode, operands, 1, low, high);
 
-      emit_insn ((mode == DImode
-		  ? gen_x86_shrd
-		  : gen_x86_64_shrd) (low[0], high[0], operands[2]));
-      emit_insn ((mode == DImode
-		  ? gen_lshrsi3
-		  : gen_lshrdi3) (high[0], high[0], operands[2]));
+      emit_insn (gen_shrd (low[0], high[0], operands[2]));
+      emit_insn (gen_lshr3 (high[0], high[0], operands[2]));
 
-      /* Heh.  By reversing the arguments, we can reuse this pattern.  */
       if (TARGET_CMOVE && scratch)
 	{
+	  rtx (*gen_x86_shift_adj_1)(rtx, rtx, rtx, rtx)
+	    = mode == DImode ? gen_x86_shiftsi_adj_1 : gen_x86_shiftdi_adj_1;
+
 	  ix86_expand_clear (scratch);
-	  emit_insn ((mode == DImode
-		      ? gen_x86_shiftsi_adj_1
-		      : gen_x86_shiftdi_adj_1) (low[0], high[0], operands[2],
-						scratch));
+	  emit_insn (gen_x86_shift_adj_1 (low[0], high[0], operands[2],
+					  scratch));
 	}
       else
-	emit_insn ((mode == DImode
-		    ? gen_x86_shiftsi_adj_2
-		    : gen_x86_shiftdi_adj_2) (low[0], high[0], operands[2]));
+	{
+	  rtx (*gen_x86_shift_adj_2)(rtx, rtx, rtx)
+	    = mode == DImode ? gen_x86_shiftsi_adj_2 : gen_x86_shiftdi_adj_2;
+
+	  emit_insn (gen_x86_shift_adj_2 (low[0], high[0], operands[2]));
+	}
     }
 }
 
@@ -18407,10 +18424,10 @@ ix86_expand_aligntest (rtx variable, int value, bool epilogue)
 static void
 ix86_adjust_counter (rtx countreg, HOST_WIDE_INT value)
 {
-  if (GET_MODE (countreg) == DImode)
-    emit_insn (gen_adddi3 (countreg, countreg, GEN_INT (-value)));
-  else
-    emit_insn (gen_addsi3 (countreg, countreg, GEN_INT (-value)));
+  rtx (*gen_add)(rtx, rtx, rtx)
+    = GET_MODE (countreg) == DImode ? gen_adddi3 : gen_addsi3;
+
+  emit_insn (gen_add (countreg, countreg, GEN_INT (-value)));
 }
 
 /* Zero extend possibly SImode EXP to Pmode register.  */
@@ -19226,7 +19243,7 @@ decide_alg (HOST_WIDE_INT count, HOST_WIDE_INT expected_size, bool memset,
     {
       unsigned int i;
       enum stringop_alg alg = libcall;
-      for (i = 0; i < NAX_STRINGOP_ALGS; i++)
+      for (i = 0; i < MAX_STRINGOP_ALGS; i++)
 	{
 	  /* We get here if the algorithms that were not libcall-based
 	     were rep-prefix based and we are unable to use rep prefixes
@@ -19272,7 +19289,7 @@ decide_alg (HOST_WIDE_INT count, HOST_WIDE_INT expected_size, bool memset,
       int i;
       bool any_alg_usable_p = true;
 
-      for (i = 0; i < NAX_STRINGOP_ALGS; i++)
+      for (i = 0; i < MAX_STRINGOP_ALGS; i++)
         {
           enum stringop_alg candidate = algs->size[i].alg;
           any_alg_usable_p = any_alg_usable_p && ALG_USABLE_P (candidate);
@@ -26144,7 +26161,7 @@ ix86_force_to_memory (enum machine_mode mode, rtx operand)
 	case DImode:
 	  {
 	    rtx operands[2];
-	    split_di (&operand, 1, operands, operands + 1);
+	    split_double_mode (mode, &operand, 1, operands, operands + 1);
 	    emit_insn (
 			gen_rtx_SET (VOIDmode,
 				     gen_rtx_MEM (SImode,

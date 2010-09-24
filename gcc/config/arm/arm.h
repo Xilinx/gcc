@@ -1284,13 +1284,6 @@ enum reg_class
      || reg_classes_intersect_p (VFP_REGS, (CLASS))	\
    : 0)
 
-/* We need to define this for LO_REGS on thumb.  Otherwise we can end up
-   using r0-r4 for function arguments, r7 for the stack frame and don't
-   have enough left over to do doubleword arithmetic.  */
-#define CLASS_LIKELY_SPILLED_P(CLASS)	\
-    ((TARGET_THUMB && (CLASS) == LO_REGS)	\
-     || (CLASS) == CC_REG)
-
 /* The class value for index registers, and the one for base regs.  */
 #define INDEX_REG_CLASS  (TARGET_THUMB1 ? LO_REGS : GENERAL_REGS)
 #define BASE_REG_CLASS   (TARGET_THUMB1 ? LO_REGS : CORE_REGS)
@@ -2425,10 +2418,6 @@ extern int making_const_table;
        ? ((~ (unsigned HOST_WIDE_INT) 0)			\
 	  & ~ (unsigned HOST_WIDE_INT) 0xffffffff)		\
        : 0))))
-
-#define OUTPUT_ADDR_CONST_EXTRA(file, x, fail)		\
-  if (arm_output_addr_const_extra (file, x) == FALSE)	\
-    goto fail
 
 /* A C expression whose value is RTL representing the value of the return
    address for the frame COUNT steps up from the current frame.  */

@@ -9381,7 +9381,15 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	{
 	  if (GET_CODE (op0) == SUBREG)
 	    op0 = force_reg (GET_MODE (op0), op0);
-	  op0 = gen_lowpart (mode, op0);
+	  temp = gen_lowpart_common (mode, op0);
+	  if (temp)
+	    op0 = temp;
+	  else
+	    {
+	      if (!REG_P (op0) && !MEM_P (op0))
+		op0 = force_reg (GET_MODE (op0), op0);
+	      op0 = gen_lowpart (mode, op0);
+	    }
 	}
       /* If both types are integral, convert from one mode to the other.  */
       else if (INTEGRAL_TYPE_P (type) && INTEGRAL_TYPE_P (TREE_TYPE (treeop0)))
@@ -9851,14 +9859,8 @@ string_constant (tree arg, tree *ptr_offset)
       int length;
 
       /* Variables initialized to string literals can be handled too.  */
-      if (DECL_INITIAL (array) == NULL_TREE
+      if (!const_value_known_p (array)
 	  || TREE_CODE (DECL_INITIAL (array)) != STRING_CST)
-	return 0;
-
-      /* If they are read-only, non-volatile and bind locally.  */
-      if (! TREE_READONLY (array)
-	  || TREE_SIDE_EFFECTS (array)
-	  || ! targetm.binds_local_p (array))
 	return 0;
 
       /* Avoid const char foo[4] = "abcde";  */

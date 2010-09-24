@@ -1203,15 +1203,14 @@ pop_scope (void)
 	      DECL_CHAIN (extp) = BLOCK_VARS (block);
 	      BLOCK_VARS (block) = extp;
 	    }
-	  /* If this is the file scope, and we are processing more
-	     than one translation unit in this compilation, set
-	     DECL_CONTEXT of each decl to the TRANSLATION_UNIT_DECL.
-	     This makes same_translation_unit_p work, and causes
-	     static declarations to be given disambiguating suffixes.  */
-	  if (scope == file_scope && num_in_fnames > 1)
+	  /* If this is the file scope set DECL_CONTEXT of each decl to
+	     the TRANSLATION_UNIT_DECL.  This makes same_translation_unit_p
+	     work.  */
+	  if (scope == file_scope)
 	    {
 	      DECL_CONTEXT (p) = context;
-	      if (TREE_CODE (p) == TYPE_DECL)
+	      if (TREE_CODE (p) == TYPE_DECL
+		  && TREE_TYPE (p) != error_mark_node)
 		set_type_context (TREE_TYPE (p), context);
 	    }
 
@@ -6717,6 +6716,17 @@ detect_field_duplicates (tree fieldlist)
 {
   tree x, y;
   int timeout = 10;
+
+  /* If the struct is the list of instance variables of an Objective-C
+     class, then we need to add all the instance variables of
+     superclasses before checking for duplicates (since you can't have
+     an instance variable in a subclass with the same name as an
+     instance variable in a superclass).  objc_get_interface_ivars()
+     leaves fieldlist unchanged if we are not in this case, so in that
+     case nothing changes compared to C.
+  */
+  if (c_dialect_objc ())
+    fieldlist = objc_get_interface_ivars (fieldlist);
 
   /* First, see if there are more than "a few" fields.
      This is trivially true if there are zero or one fields.  */
