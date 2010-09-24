@@ -1069,7 +1069,7 @@ check_noexcept_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
 	  if (DECL_DECLARED_CONSTEXPR_P (fn))
 	    {
 	      t = maybe_constant_value (t);
-	      if (TREE_CODE (t) != code)
+	      if (TREE_CONSTANT (t))
 		return NULL_TREE;
 	    }
 	}
@@ -1204,7 +1204,9 @@ type_throw_all_p (const_tree type)
 tree
 build_noexcept_spec (tree expr, int complain)
 {
-  if (!type_dependent_expression_p (expr))
+  /* This isn't part of the signature, so don't bother trying to evaluate
+     it until instantiation.  */
+  if (!processing_template_decl)
     {
       expr = maybe_constant_value (expr);
       expr = perform_implicit_conversion_flags (boolean_type_node, expr,

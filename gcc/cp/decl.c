@@ -7511,11 +7511,10 @@ compute_array_index_type (tree name, tree size, tsubst_flags_t complain)
      dependent type or whose size is specified by a constant expression
      that is value-dependent.  */
   /* We can only call value_dependent_expression_p on integral constant
-     expressions; the parser adds a dummy NOP_EXPR with TREE_SIDE_EFFECTS
-     set if this isn't one.  */
+     expressions; treat non-constant expressions as dependent, too.  */
   if (processing_template_decl
       && (dependent_type_p (type)
-	  || TREE_SIDE_EFFECTS (size) || value_dependent_expression_p (size)))
+	  || !TREE_CONSTANT (size) || value_dependent_expression_p (size)))
     {
       /* We cannot do any checking for a SIZE that isn't known to be
 	 constant. Just build the index type and mark that it requires

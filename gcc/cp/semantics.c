@@ -6590,7 +6590,6 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 static tree
 cxx_eval_outermost_constant_expr (tree t, bool allow_non_constant)
 {
-  /* FIXME provide version that returns non_constant_p flag.  */
   bool non_constant_p = false;
   tree r = cxx_eval_constant_expression (NULL, t, allow_non_constant,
 					 false, &non_constant_p);
@@ -6604,6 +6603,16 @@ cxx_eval_outermost_constant_expr (tree t, bool allow_non_constant)
 
   if (non_constant_p && !allow_non_constant)
     return error_mark_node;
+  else if (non_constant_p && TREE_CONSTANT (t))
+    {
+      /* This isn't actually constant, so unset TREE_CONSTANT.  */
+      if (EXPR_P (t) || TREE_CODE (t) == CONSTRUCTOR)
+	r = copy_node (t);
+      else
+	r = build_nop (TREE_TYPE (t), t);
+      TREE_CONSTANT (r) = false;
+      return r;
+    }
   else if (non_constant_p || r == t)
     return t;
   else if (TREE_CODE (r) == CONSTRUCTOR && CLASS_TYPE_P (TREE_TYPE (r)))
@@ -6632,6 +6641,10 @@ cxx_constant_value (tree t)
   return cxx_eval_outermost_constant_expr (t, false);
 }
 
+/* If T is a constant expression, returns its reduced value.
+   Otherwise, if T does not have TREE_CONSTANT set, returns T.
+   Otherwise, returns a version of T without TREE_CONSTANT.  */
+
 tree
 maybe_constant_value (tree t)
 {
@@ -6648,10 +6661,14 @@ maybe_constant_value (tree t)
   /* cp_tree_equal looks through NOPs, so allow them.  */
   gcc_assert (r == t
 	      || CONVERT_EXPR_P (t)
+	      || (TREE_CONSTANT (t) && !TREE_CONSTANT (r))
 	      || !cp_tree_equal (r, t));
 #endif
   return r;
 }
+
+/* Like maybe_constant_value, but returns a CONSTRUCTOR directly, rather
+   than wrapped in a TARGET_EXPR.  */
 
 tree
 maybe_constant_init (tree t)

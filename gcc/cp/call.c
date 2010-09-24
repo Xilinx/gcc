@@ -474,12 +474,16 @@ null_ptr_cst_p (tree t)
 	{
 	  t = fold_non_dependent_expr (t);
 	  t = maybe_constant_value (t);
+	  if (TREE_CONSTANT (t) && integer_zerop (t))
+	    return true;
 	}
       else
-	t = integral_constant_value (t);
-      STRIP_NOPS (t);
-      if (integer_zerop (t) && !TREE_OVERFLOW (t))
-	return true;
+	{
+	  t = integral_constant_value (t);
+	  STRIP_NOPS (t);
+	  if (integer_zerop (t) && !TREE_OVERFLOW (t))
+	    return true;
+	}
     }
   return false;
 }

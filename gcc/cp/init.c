@@ -1417,7 +1417,7 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
       if (DECL_DECLARED_CONSTEXPR_P (fn))
 	{
 	  tree e = maybe_constant_value (rval);
-	  if (TREE_CODE (e) == TARGET_EXPR)
+	  if (TREE_CONSTANT (e))
 	    rval = build2 (INIT_EXPR, type, exp, e);
 	}
     }
