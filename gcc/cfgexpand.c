@@ -205,19 +205,11 @@ static bool has_protected_decls;
    smaller than our cutoff threshold.  Used for -Wstack-protector.  */
 static bool has_short_buffer;
 
-/* Discover the byte alignment to use for DECL.  Ignore alignment
-   we can't do with expected alignment of the stack boundary.  */
+/* Update stack alignment requirement.  */
 
-static unsigned int
-get_decl_align_unit (tree decl)
+static void
+update_stack_alignment (unsigned int align)
 {
-  unsigned int align;
-
-  align = LOCAL_DECL_ALIGNMENT (decl);
-
-  if (align > MAX_SUPPORTED_STACK_ALIGNMENT)
-    align = MAX_SUPPORTED_STACK_ALIGNMENT;
-
   if (SUPPORTS_STACK_ALIGNMENT)
     {
       if (crtl->stack_alignment_estimated < align)
@@ -233,6 +225,22 @@ get_decl_align_unit (tree decl)
     crtl->stack_alignment_needed = align;
   if (crtl->max_used_stack_slot_alignment < align)
     crtl->max_used_stack_slot_alignment = align;
+}
+
+/* Discover the byte alignment to use for DECL.  Ignore alignment
+   we can't do with expected alignment of the stack boundary.  */
+
+static unsigned int
+get_decl_align_unit (tree decl)
+{
+  unsigned int align;
+
+  align = LOCAL_DECL_ALIGNMENT (decl);
+
+  if (align > MAX_SUPPORTED_STACK_ALIGNMENT)
+    align = MAX_SUPPORTED_STACK_ALIGNMENT;
+
+  update_stack_alignment (align);
 
   return align / BITS_PER_UNIT;
 }
@@ -730,8 +738,7 @@ expand_one_stack_var_at (tree decl, HOST_WIDE_INT offset)
       offset -= frame_phase;
       align = offset & -offset;
       align *= BITS_PER_UNIT;
-      max_align = MAX (crtl->max_used_stack_slot_alignment,
-		       PREFERRED_STACK_BOUNDARY);
+      max_align = crtl->max_used_stack_slot_alignment;
       if (align == 0 || align > max_align)
 	align = max_align;
 
@@ -2450,7 +2457,6 @@ expand_debug_expr (tree exp)
 	return NULL;
       /* Fallthru.  */
     case INDIRECT_REF:
-    case MISALIGNED_INDIRECT_REF:
       op0 = expand_debug_expr (TREE_OPERAND (exp, 0));
       if (!op0)
 	return NULL;
@@ -2912,7 +2918,32 @@ expand_debug_expr (tree exp)
     case ADDR_EXPR:
       op0 = expand_debug_expr (TREE_OPERAND (exp, 0));
       if (!op0 || !MEM_P (op0))
-	return NULL;
+	{
+	  if ((TREE_CODE (TREE_OPERAND (exp, 0)) == VAR_DECL
+	       || TREE_CODE (TREE_OPERAND (exp, 0)) == PARM_DECL
+	       || TREE_CODE (TREE_OPERAND (exp, 0)) == RESULT_DECL)
+	      && !TREE_ADDRESSABLE (TREE_OPERAND (exp, 0)))
+	    return gen_rtx_DEBUG_IMPLICIT_PTR (mode, TREE_OPERAND (exp, 0));
+
+	  if (handled_component_p (TREE_OPERAND (exp, 0)))
+	    {
+	      HOST_WIDE_INT bitoffset, bitsize, maxsize;
+	      tree decl
+		= get_ref_base_and_extent (TREE_OPERAND (exp, 0),
+					   &bitoffset, &bitsize, &maxsize);
+	      if ((TREE_CODE (decl) == VAR_DECL
+		   || TREE_CODE (decl) == PARM_DECL
+		   || TREE_CODE (decl) == RESULT_DECL)
+		  && !TREE_ADDRESSABLE (decl)
+		  && (bitoffset % BITS_PER_UNIT) == 0
+		  && bitsize > 0
+		  && bitsize == maxsize)
+		return plus_constant (gen_rtx_DEBUG_IMPLICIT_PTR (mode, decl),
+				      bitoffset / BITS_PER_UNIT);
+	    }
+
+	  return NULL;
+	}
 
       op0 = convert_debug_memory_address (mode, XEXP (op0, 0));
 

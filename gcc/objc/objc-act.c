@@ -371,6 +371,8 @@ int objc_public_flag;
 /* Use to generate method labels.  */
 static int method_slot = 0;
 
+static int objc_collecting_ivars = 0;
+
 #define BUFSIZE		1024
 
 static char *errbuf;	/* Buffer for error diagnostics */
@@ -775,23 +777,43 @@ void
 objc_add_method_declaration (tree decl)
 {
   if (!objc_interface_context)
-    fatal_error ("method declaration not in @interface context");
+    {
+      /* PS: At the moment, due to how the parser works, it should be
+	 impossible to get here.  But it's good to have the check in
+	 case the parser changes.
+      */
+      fatal_error ("method declaration not in @interface context");
+    }
 
   objc_add_method (objc_interface_context,
 		   decl,
 		   objc_inherit_code == CLASS_METHOD_DECL);
 }
 
-void
+/* Return 'true' if the method definition could be started, and
+   'false' if not (because we are outside an @implementation context).
+*/
+bool
 objc_start_method_definition (tree decl)
 {
   if (!objc_implementation_context)
-    fatal_error ("method definition not in @implementation context");
+    {
+      error ("method definition not in @implementation context");
+      return false;
+    }
+
+#ifndef OBJCPLUS
+  /* Indicate no valid break/continue context by setting these variables
+     to some non-null, non-label value.  We'll notice and emit the proper
+     error message in c_finish_bc_stmt.  */
+  c_break_label = c_cont_label = size_zero_node;
+#endif
 
   objc_add_method (objc_implementation_context,
 		   decl,
 		   objc_inherit_code == CLASS_METHOD_DECL);
   start_method_def (decl);
+  return true;
 }
 
 void
@@ -1131,6 +1153,29 @@ objc_compare_types (tree ltyp, tree rtyp, int argno, tree callee)
     }
   while (POINTER_TYPE_P (ltyp) && POINTER_TYPE_P (rtyp));
 
+  /* We must also handle function pointers, since ObjC is a bit more
+     lenient than C or C++ on this.  */
+  if (TREE_CODE (ltyp) == FUNCTION_TYPE && TREE_CODE (rtyp) == FUNCTION_TYPE)
+    {
+      /* Return types must be covariant.  */
+      if (!comptypes (TREE_TYPE (ltyp), TREE_TYPE (rtyp))
+	  && !objc_compare_types (TREE_TYPE (ltyp), TREE_TYPE (rtyp),
+				  argno, callee))
+      return false;
+
+      /* Argument types must be contravariant.  */
+      for (ltyp = TYPE_ARG_TYPES (ltyp), rtyp = TYPE_ARG_TYPES (rtyp);
+	   ltyp && rtyp; ltyp = TREE_CHAIN (ltyp), rtyp = TREE_CHAIN (rtyp))
+	{
+	  if (!comptypes (TREE_VALUE (rtyp), TREE_VALUE (ltyp))
+	      && !objc_compare_types (TREE_VALUE (rtyp), TREE_VALUE (ltyp),
+				      argno, callee))
+	    return false;
+      }
+
+      return (ltyp == rtyp);
+    }
+
   /* Past this point, we are only interested in ObjC class instances,
      or 'id' or 'Class'.  */
   if (TREE_CODE (ltyp) != RECORD_TYPE || TREE_CODE (rtyp) != RECORD_TYPE)
@@ -1415,7 +1460,17 @@ objc_get_protocol_qualified_type (tree interface, tree protocols)
       type = objc_is_class_name (interface);
 
       if (type)
-	type = xref_tag (RECORD_TYPE, type);
+	{
+	  /* If looking at a typedef, retrieve the precise type it
+	     describes.  */
+	  if (TREE_CODE (interface) == IDENTIFIER_NODE)
+	    interface = identifier_global_value (interface);
+
+	  type = ((interface && TREE_CODE (interface) == TYPE_DECL
+		   && DECL_ORIGINAL_TYPE (interface))
+		  ? DECL_ORIGINAL_TYPE (interface)
+		  : xref_tag (RECORD_TYPE, type));
+	}
       else
         return interface;
     }
@@ -3413,6 +3468,21 @@ objc_get_class_ivars (tree class_name)
   return error_mark_node;
 }
 
+/* Called when checking the variables in a struct.  If we are not
+   doing the ivars list inside an @interface context, then returns
+   fieldlist unchanged.  Else, returns the list of class ivars.
+*/
+tree
+objc_get_interface_ivars (tree fieldlist)
+{
+  if (!objc_collecting_ivars || !objc_interface_context 
+      || TREE_CODE (objc_interface_context) != CLASS_INTERFACE_TYPE
+      || CLASS_SUPER_NAME (objc_interface_context) == NULL_TREE)
+    return fieldlist;
+
+  return get_class_ivars (objc_interface_context, true);
+}
+
 /* Used by: build_private_template, continue_class,
    and for @defs constructs.  */
 
@@ -3822,13 +3892,16 @@ objc_begin_try_stmt (location_t try_locus, tree body)
   c->end_try_locus = input_location;
   cur_try_context = c;
 
-  if (flag_objc_sjlj_exceptions)
+  /* -fobjc-exceptions is required to enable Objective-C exceptions.
+     For example, on Darwin, ObjC exceptions require a sufficiently
+     recent version of the runtime, so the user must ask for them
+     explicitly.  On other platforms, at the moment -fobjc-exceptions
+     triggers -fexceptions which again is required for exceptions to
+     work.
+  */
+  if (!flag_objc_exceptions)
     {
-      /* On Darwin, ObjC exceptions require a sufficiently recent
-	 version of the runtime, so the user must ask for them explicitly.  */
-      if (!flag_objc_exceptions)
-	warning (0, "use %<-fobjc-exceptions%> to enable Objective-C "
-		 "exception syntax");
+      error_at (try_locus, "%<-fobjc-exceptions%> is required to enable Objective-C exception syntax");
     }
 
   if (flag_objc_sjlj_exceptions)
@@ -3979,13 +4052,9 @@ objc_build_throw_stmt (location_t loc, tree throw_expr)
 {
   tree args;
 
-  if (flag_objc_sjlj_exceptions)
+  if (!flag_objc_exceptions)
     {
-      /* On Darwin, ObjC exceptions require a sufficiently recent
-	 version of the runtime, so the user must ask for them explicitly.  */
-      if (!flag_objc_exceptions)
-	warning (0, "use %<-fobjc-exceptions%> to enable Objective-C "
-		 "exception syntax");
+      error_at (loc, "%<-fobjc-exceptions%> is required to enable Objective-C exception syntax");
     }
 
   if (throw_expr == NULL)
@@ -6361,7 +6430,14 @@ objc_finish_message_expr (tree receiver, tree sel_name, tree method_params)
 	 more intelligent about which methods the receiver will
 	 understand. */
       if (!rtype || TREE_CODE (rtype) == IDENTIFIER_NODE)
-	rtype = NULL_TREE;
+	{
+	  rtype = NULL_TREE;
+	  /* We could not find an @interface declaration, yet Message maybe in a 
+	     @class's protocol. */
+	  if (!method_prototype && rprotos)
+	    method_prototype
+	      = lookup_method_in_protocol_list (rprotos, sel_name, 0);
+	}
       else if (TREE_CODE (rtype) == CLASS_INTERFACE_TYPE
 	  || TREE_CODE (rtype) == CLASS_IMPLEMENTATION_TYPE)
 	{
@@ -7668,7 +7744,9 @@ continue_class (tree klass)
       push_lang_context (lang_name_c);
 #endif /* OBJCPLUS */
 
+      objc_collecting_ivars = 1;
       build_private_template (klass);
+      objc_collecting_ivars = 0;
 
 #ifdef OBJCPLUS
       pop_lang_context ();

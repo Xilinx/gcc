@@ -41,8 +41,8 @@ with Exp_Strm; use Exp_Strm;
 with Exp_Tss;  use Exp_Tss;
 with Exp_Util; use Exp_Util;
 with Freeze;   use Freeze;
-with Nlists;   use Nlists;
 with Namet;    use Namet;
+with Nlists;   use Nlists;
 with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Restrict; use Restrict;
@@ -141,6 +141,12 @@ package body Exp_Ch3 is
    --  the code expansion for controlled components (when control actions
    --  are active) can lead to very large blocks that GCC3 handles poorly.
 
+   procedure Build_Untagged_Equality (Typ : Entity_Id);
+   --  AI05-0123: Equality on untagged records composes. This procedure
+   --  builds the equality routine for an untagged record that has components
+   --  of a record type that has user-defined primitive equality operations.
+   --  The resulting operation is a TSS subprogram.
+
    procedure Build_Variant_Record_Equality (Typ  : Entity_Id);
    --  Create An Equality function for the non-tagged variant record 'Typ'
    --  and attach it to the TSS list
@@ -219,6 +225,13 @@ package body Exp_Ch3 is
 
    function Is_Variable_Size_Record (E : Entity_Id) return Boolean;
    --  Returns true if E has variable size components
+
+   function Make_Eq_Body
+     (Typ     : Entity_Id;
+      Eq_Name : Name_Id) return Node_Id;
+   --  Build the body of a primitive equality operation for a tagged record
+   --  type, or in Ada2012 for any record type that has components with a
+   --  user-defined equality. Factored out of Predefined_Primitive_Bodies.
 
    function Make_Eq_Case
      (E     : Entity_Id;
@@ -299,9 +312,7 @@ package body Exp_Ch3 is
    --  invoking the inherited subprogram's parent subprogram and extended
    --  with a null association list.
 
-   procedure Make_Null_Procedure_Specs
-     (Tag_Typ   : Entity_Id;
-      Decl_List : out List_Id);
+   function Make_Null_Procedure_Specs (Tag_Typ : Entity_Id) return List_Id;
    --  Ada 2005 (AI-251): Makes specs for null procedures associated with any
    --  null procedures inherited from an interface type that have not been
    --  overridden. Only one null procedure will be created for a given set of
@@ -787,6 +798,7 @@ package body Exp_Ch3 is
       Decl : Node_Id;
       P    : Node_Id;
       Par  : Node_Id;
+      Scop : Entity_Id;
 
    begin
       --  Nothing to do if there is no task hierarchy
@@ -805,9 +817,11 @@ package body Exp_Ch3 is
          P := Parent (T);
       end if;
 
+      Scop := Find_Master_Scope (T);
+
       --  Nothing to do if we already built a master entity for this scope
 
-      if not Has_Master_Entity (Scope (T)) then
+      if not Has_Master_Entity (Scop) then
 
          --  First build the master entity
          --    _Master : constant Master_Id := Current_Master.all;
@@ -823,9 +837,9 @@ package body Exp_Ch3 is
                Make_Explicit_Dereference (Loc,
                  New_Reference_To (RTE (RE_Current_Master), Loc)));
 
+         Set_Has_Master_Entity (Scop);
          Insert_Action (P, Decl);
          Analyze (Decl);
-         Set_Has_Master_Entity (Scope (T));
 
          --  Now mark the containing scope as a task master. Masters
          --  associated with return statements are already marked at
@@ -1467,12 +1481,8 @@ package body Exp_Ch3 is
 
       if Has_Task (Full_Type) then
          if Restriction_Active (No_Task_Hierarchy) then
-
-            --  3 is System.Tasking.Library_Task_Level
-            --  (should be rtsfindable constant ???)
-
-            Append_To (Args, Make_Integer_Literal (Loc, 3));
-
+            Append_To (Args,
+              New_Occurrence_Of (RTE (RE_Library_Task_Level), Loc));
          else
             Append_To (Args, Make_Identifier (Loc, Name_uMaster));
          end if;
@@ -2028,10 +2038,8 @@ package body Exp_Ch3 is
 
          if Has_Task (Rec_Type) then
             if Restriction_Active (No_Task_Hierarchy) then
-
-               --  3 is System.Tasking.Library_Task_Level
-
-               Append_To (Args, Make_Integer_Literal (Loc, 3));
+               Append_To (Args,
+                 New_Occurrence_Of (RTE (RE_Library_Task_Level), Loc));
             else
                Append_To (Args, Make_Identifier (Loc, Name_uMaster));
             end if;
@@ -3745,6 +3753,149 @@ package body Exp_Ch3 is
       Set_Is_Pure (Proc_Name);
    end Build_Slice_Assignment;
 
+   -----------------------------
+   -- Build_Untagged_Equality --
+   -----------------------------
+
+   procedure Build_Untagged_Equality (Typ : Entity_Id) is
+      Build_Eq : Boolean;
+      Comp     : Entity_Id;
+      Decl     : Node_Id;
+      Op       : Entity_Id;
+      Prim     : Elmt_Id;
+      Eq_Op    : Entity_Id;
+
+      function User_Defined_Eq (T : Entity_Id) return Entity_Id;
+      --  Check whether the type T has a user-defined primitive equality. If so
+      --  return it, else return Empty. If true for a component of Typ, we have
+      --  to build the primitive equality for it.
+
+      ---------------------
+      -- User_Defined_Eq --
+      ---------------------
+
+      function User_Defined_Eq (T : Entity_Id) return Entity_Id is
+         Prim : Elmt_Id;
+         Op   : Entity_Id;
+
+      begin
+         Op := TSS (T, TSS_Composite_Equality);
+
+         if Present (Op) then
+            return Op;
+         end if;
+
+         Prim := First_Elmt (Collect_Primitive_Operations (T));
+         while Present (Prim) loop
+            Op := Node (Prim);
+
+            if Chars (Op) = Name_Op_Eq
+              and then Etype (Op) = Standard_Boolean
+              and then Etype (First_Formal (Op)) = T
+              and then Etype (Next_Formal (First_Formal (Op))) = T
+            then
+               return Op;
+            end if;
+
+            Next_Elmt (Prim);
+         end loop;
+
+         return Empty;
+      end User_Defined_Eq;
+
+   --  Start of processing for Build_Untagged_Equality
+
+   begin
+      --  If a record component has a primitive equality operation, we must
+      --  build the corresponding one for the current type.
+
+      Build_Eq := False;
+      Comp := First_Component (Typ);
+      while Present (Comp) loop
+         if Is_Record_Type (Etype (Comp))
+           and then Present (User_Defined_Eq (Etype (Comp)))
+         then
+            Build_Eq := True;
+         end if;
+
+         Next_Component (Comp);
+      end loop;
+
+      --  If there is a user-defined equality for the type, we do not create
+      --  the implicit one.
+
+      Prim := First_Elmt (Collect_Primitive_Operations (Typ));
+      Eq_Op := Empty;
+      while Present (Prim) loop
+         if Chars (Node (Prim)) = Name_Op_Eq
+              and then Comes_From_Source (Node (Prim))
+
+         --  Don't we also need to check formal types and return type as in
+         --  User_Defined_Eq above???
+
+         then
+            Eq_Op := Node (Prim);
+            Build_Eq := False;
+            exit;
+         end if;
+
+         Next_Elmt (Prim);
+      end loop;
+
+      --  If the type is derived, inherit the operation, if present, from the
+      --  parent type. It may have been declared after the type derivation. If
+      --  the parent type itself is derived, it may have inherited an operation
+      --  that has itself been overridden, so update its alias and related
+      --  flags. Ditto for inequality.
+
+      if No (Eq_Op) and then Is_Derived_Type (Typ) then
+         Prim := First_Elmt (Collect_Primitive_Operations (Etype (Typ)));
+         while Present (Prim) loop
+            if Chars (Node (Prim)) = Name_Op_Eq then
+               Copy_TSS (Node (Prim), Typ);
+               Build_Eq := False;
+
+               declare
+                  Op    : constant Entity_Id := User_Defined_Eq (Typ);
+                  Eq_Op : constant Entity_Id := Node (Prim);
+                  NE_Op : constant Entity_Id := Next_Entity (Eq_Op);
+
+               begin
+                  if Present (Op) then
+                     Set_Alias (Op, Eq_Op);
+                     Set_Is_Abstract_Subprogram
+                       (Op, Is_Abstract_Subprogram (Eq_Op));
+
+                     if Chars (Next_Entity (Op)) = Name_Op_Ne then
+                        Set_Is_Abstract_Subprogram
+                          (Next_Entity (Op), Is_Abstract_Subprogram (NE_Op));
+                     end if;
+                  end if;
+               end;
+
+               exit;
+            end if;
+
+            Next_Elmt (Prim);
+         end loop;
+      end if;
+
+      --  If not inherited and not user-defined, build body as for a type with
+      --  tagged components.
+
+      if Build_Eq then
+         Decl :=
+           Make_Eq_Body (Typ, Make_TSS_Name (Typ, TSS_Composite_Equality));
+         Op := Defining_Entity (Decl);
+         Set_TSS (Typ, Op);
+         Set_Is_Pure (Op);
+
+         if Is_Library_Level_Entity (Typ) then
+            Set_Is_Public (Op);
+         end if;
+      end if;
+   end Build_Untagged_Equality;
+
    ------------------------------------
    -- Build_Variant_Record_Equality --
    ------------------------------------
@@ -4843,7 +4994,10 @@ package body Exp_Ch3 is
                  and then No_Initialization (Expr)
                then
                   null;
-               else
+
+               --  Otherwise apply a constraint check now if no prev error
+
+               elsif Nkind (Expr) /= N_Error then
                   Apply_Constraint_Check (Expr, Typ);
 
                   --  If the expression has been marked as requiring a range
@@ -5730,9 +5884,8 @@ package body Exp_Ch3 is
       --  user-defined equality function). Used to pass this entity from
       --  Make_Predefined_Primitive_Specs to Predefined_Primitive_Bodies.
 
-      Wrapper_Decl_List   : List_Id := No_List;
-      Wrapper_Body_List   : List_Id := No_List;
-      Null_Proc_Decl_List : List_Id := No_List;
+      Wrapper_Decl_List : List_Id := No_List;
+      Wrapper_Body_List : List_Id := No_List;
 
    --  Start of processing for Expand_Freeze_Record_Type
 
@@ -5944,9 +6097,9 @@ package body Exp_Ch3 is
             if Ada_Version >= Ada_05
               and then Etype (Def_Id) /= Def_Id
               and then not Is_Abstract_Type (Def_Id)
+              and then Has_Interfaces (Def_Id)
             then
-               Make_Null_Procedure_Specs (Def_Id, Null_Proc_Decl_List);
-               Insert_Actions (N, Null_Proc_Decl_List);
+               Insert_Actions (N, Make_Null_Procedure_Specs (Def_Id));
             end if;
 
             Set_Is_Frozen (Def_Id);
@@ -6026,8 +6179,10 @@ package body Exp_Ch3 is
             end if;
          end if;
 
-      --  In the non-tagged case, an equality function is provided only for
-      --  variant records (that are not unchecked unions).
+      --  In the non-tagged case, ever since Ada83 an equality function must
+      --  be  provided for variant records that are not unchecked unions.
+      --  In Ada2012 the equality function composes, and thus must be built
+      --  explicitly just as for tagged records.
 
       elsif Has_Discriminants (Def_Id)
         and then not Is_Limited_Type (Def_Id)
@@ -6043,6 +6198,12 @@ package body Exp_Ch3 is
                Build_Variant_Record_Equality (Def_Id);
             end if;
          end;
+
+      elsif Ada_Version >= Ada_12
+        and then Comes_From_Source (Def_Id)
+        and then Convention (Def_Id) = Convention_Ada
+      then
+         Build_Untagged_Equality (Def_Id);
       end if;
 
       --  Before building the record initialization procedure, if we are
@@ -7638,6 +7799,79 @@ package body Exp_Ch3 is
       end loop;
    end Make_Controlling_Function_Wrappers;
 
+   -------------------
+   --  Make_Eq_Body --
+   -------------------
+
+   function Make_Eq_Body
+     (Typ     : Entity_Id;
+      Eq_Name : Name_Id) return Node_Id
+   is
+      Loc          : constant Source_Ptr := Sloc (Parent (Typ));
+      Decl         : Node_Id;
+      Def          : constant Node_Id := Parent (Typ);
+      Stmts        : constant List_Id := New_List;
+      Variant_Case : Boolean := Has_Discriminants (Typ);
+      Comps        : Node_Id := Empty;
+      Typ_Def      : Node_Id := Type_Definition (Def);
+
+   begin
+      Decl :=
+        Predef_Spec_Or_Body (Loc,
+          Tag_Typ => Typ,
+          Name    => Eq_Name,
+          Profile => New_List (
+            Make_Parameter_Specification (Loc,
+              Defining_Identifier =>
+                Make_Defining_Identifier (Loc, Name_X),
+              Parameter_Type      => New_Reference_To (Typ, Loc)),
+
+            Make_Parameter_Specification (Loc,
+              Defining_Identifier =>
+                Make_Defining_Identifier (Loc, Name_Y),
+              Parameter_Type      => New_Reference_To (Typ, Loc))),
+
+          Ret_Type => Standard_Boolean,
+          For_Body => True);
+
+      if Variant_Case then
+         if Nkind (Typ_Def) = N_Derived_Type_Definition then
+            Typ_Def := Record_Extension_Part (Typ_Def);
+         end if;
+
+         if Present (Typ_Def) then
+            Comps := Component_List (Typ_Def);
+         end if;
+
+         Variant_Case :=
+           Present (Comps) and then Present (Variant_Part (Comps));
+      end if;
+
+      if Variant_Case then
+         Append_To (Stmts,
+           Make_Eq_If (Typ, Discriminant_Specifications (Def)));
+         Append_List_To (Stmts, Make_Eq_Case (Typ, Comps));
+         Append_To (Stmts,
+           Make_Simple_Return_Statement (Loc,
+             Expression => New_Reference_To (Standard_True, Loc)));
+
+      else
+         Append_To (Stmts,
+           Make_Simple_Return_Statement (Loc,
+             Expression =>
+               Expand_Record_Equality
+                 (Typ,
+                  Typ    => Typ,
+                  Lhs    => Make_Identifier (Loc, Name_X),
+                  Rhs    => Make_Identifier (Loc, Name_Y),
+                  Bodies => Declarations (Decl))));
+      end if;
+
+      Set_Handled_Statement_Sequence
+        (Decl, Make_Handled_Sequence_Of_Statements (Loc, Stmts));
+      return Decl;
+   end Make_Eq_Body;
+
    ------------------
    -- Make_Eq_Case --
    ------------------
@@ -7790,40 +8024,17 @@ package body Exp_Ch3 is
    -- Make_Null_Procedure_Specs --
    -------------------------------
 
-   procedure Make_Null_Procedure_Specs
-     (Tag_Typ   : Entity_Id;
-      Decl_List : out List_Id)
-   is
-      Loc : constant Source_Ptr := Sloc (Tag_Typ);
-
+   function Make_Null_Procedure_Specs (Tag_Typ : Entity_Id) return List_Id is
+      Decl_List      : constant List_Id    := New_List;
+      Loc            : constant Source_Ptr := Sloc (Tag_Typ);
       Formal         : Entity_Id;
       Formal_List    : List_Id;
       New_Param_Spec : Node_Id;
       Parent_Subp    : Entity_Id;
       Prim_Elmt      : Elmt_Id;
-      Proc_Decl      : Node_Id;
       Subp           : Entity_Id;
 
-      function Is_Null_Interface_Primitive (E : Entity_Id) return Boolean;
-      --  Returns True if E is a null procedure that is an interface primitive
-
-      ---------------------------------
-      -- Is_Null_Interface_Primitive --
-      ---------------------------------
-
-      function Is_Null_Interface_Primitive (E : Entity_Id) return Boolean is
-      begin
-         return Comes_From_Source (E)
-           and then Is_Dispatching_Operation (E)
-           and then Ekind (E) = E_Procedure
-           and then Null_Present (Parent (E))
-           and then Is_Interface (Find_Dispatching_Type (E));
-      end Is_Null_Interface_Primitive;
-
-   --  Start of processing for Make_Null_Procedure_Specs
-
    begin
-      Decl_List := New_List;
       Prim_Elmt := First_Elmt (Primitive_Operations (Tag_Typ));
       while Present (Prim_Elmt) loop
          Subp := Node (Prim_Elmt);
@@ -7883,19 +8094,19 @@ package body Exp_Ch3 is
                end loop;
             end if;
 
-            Proc_Decl :=
+            Append_To (Decl_List,
               Make_Subprogram_Declaration (Loc,
                 Make_Procedure_Specification (Loc,
                   Defining_Unit_Name =>
                     Make_Defining_Identifier (Loc, Chars (Subp)),
                   Parameter_Specifications => Formal_List,
-                  Null_Present => True));
-            Append_To (Decl_List, Proc_Decl);
-            Analyze (Proc_Decl);
+                  Null_Present => True)));
          end if;
 
          Next_Elmt (Prim_Elmt);
       end loop;
+
+      return Decl_List;
    end Make_Null_Procedure_Specs;
 
    -------------------------------------
@@ -8667,67 +8878,7 @@ package body Exp_Ch3 is
          --  Body for equality
 
          if Eq_Needed then
-            Decl :=
-              Predef_Spec_Or_Body (Loc,
-                Tag_Typ => Tag_Typ,
-                Name    => Eq_Name,
-                Profile => New_List (
-                  Make_Parameter_Specification (Loc,
-                    Defining_Identifier =>
-                      Make_Defining_Identifier (Loc, Name_X),
-                    Parameter_Type      => New_Reference_To (Tag_Typ, Loc)),
-
-                  Make_Parameter_Specification (Loc,
-                    Defining_Identifier =>
-                      Make_Defining_Identifier (Loc, Name_Y),
-                    Parameter_Type      => New_Reference_To (Tag_Typ, Loc))),
-
-                Ret_Type => Standard_Boolean,
-                For_Body => True);
-
-            declare
-               Def          : constant Node_Id := Parent (Tag_Typ);
-               Stmts        : constant List_Id := New_List;
-               Variant_Case : Boolean := Has_Discriminants (Tag_Typ);
-               Comps        : Node_Id := Empty;
-               Typ_Def      : Node_Id := Type_Definition (Def);
-
-            begin
-               if Variant_Case then
-                  if Nkind (Typ_Def) = N_Derived_Type_Definition then
-                     Typ_Def := Record_Extension_Part (Typ_Def);
-                  end if;
-
-                  if Present (Typ_Def) then
-                     Comps := Component_List (Typ_Def);
-                  end if;
-
-                  Variant_Case := Present (Comps)
-                    and then Present (Variant_Part (Comps));
-               end if;
-
-               if Variant_Case then
-                  Append_To (Stmts,
-                    Make_Eq_If (Tag_Typ, Discriminant_Specifications (Def)));
-                  Append_List_To (Stmts, Make_Eq_Case (Tag_Typ, Comps));
-                  Append_To (Stmts,
-                    Make_Simple_Return_Statement (Loc,
-                      Expression => New_Reference_To (Standard_True, Loc)));
-
-               else
-                  Append_To (Stmts,
-                    Make_Simple_Return_Statement (Loc,
-                      Expression =>
-                        Expand_Record_Equality (Tag_Typ,
-                          Typ => Tag_Typ,
-                          Lhs => Make_Identifier (Loc, Name_X),
-                          Rhs => Make_Identifier (Loc, Name_Y),
-                          Bodies => Declarations (Decl))));
-               end if;
-
-               Set_Handled_Statement_Sequence (Decl,
-                 Make_Handled_Sequence_Of_Statements (Loc, Stmts));
-            end;
+            Decl := Make_Eq_Body (Tag_Typ, Eq_Name);
             Append_To (Res, Decl);
          end if;
 

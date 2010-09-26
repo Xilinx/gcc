@@ -37,7 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "diagnostic.h"
 #include "opts-diagnostic.h"
-#include "tm_p.h"		/* For OPTIMIZATION_OPTIONS.  */
 #include "insn-attr.h"		/* For INSN_SCHEDULING.  */
 #include "target.h"
 #include "tree-pass.h"
@@ -888,8 +887,9 @@ decode_options (unsigned int argc, const char **argv,
 	 set after target options have been processed.  */
       flag_short_enums = 2;
 
-      /* Initialize target_flags before OPTIMIZATION_OPTIONS so the latter can
-	 modify it.  */
+      /* Initialize target_flags before
+	 targetm.target_option.optimization so the latter can modify
+	 it.  */
       target_flags = targetm.default_target_flags;
 
       /* Some targets have ABI-specified unwind tables.  */
@@ -901,10 +901,8 @@ decode_options (unsigned int argc, const char **argv,
   lto_clear_user_options ();
 #endif
 
-#ifdef OPTIMIZATION_OPTIONS
   /* Allow default optimizations to be specified on a per-machine basis.  */
-  OPTIMIZATION_OPTIONS (optimize, optimize_size);
-#endif
+  targetm.target_option.optimization (optimize, optimize_size);
 
   read_cmdline_options (*decoded_options, *decoded_options_count, lang_mask,
 			&handlers);
@@ -1431,7 +1429,6 @@ common_handle_option (const struct cl_decoded_option *decoded,
       verbose = true;
       break;
 
-    case OPT_fhelp:
     case OPT__help:
       {
 	unsigned int all_langs_mask = (1U << cl_lang_count) - 1;
@@ -1453,7 +1450,6 @@ common_handle_option (const struct cl_decoded_option *decoded,
 	break;
       }
 
-    case OPT_ftarget_help:
     case OPT__target_help:
       print_specific_help (CL_TARGET, CL_UNDOCUMENTED, 0);
       exit_after_options = true;
@@ -1463,7 +1459,6 @@ common_handle_option (const struct cl_decoded_option *decoded,
 	targetm.help ();
       break;
 
-    case OPT_fhelp_:
     case OPT__help_:
       {
 	const char * a = arg;
@@ -1582,7 +1577,6 @@ common_handle_option (const struct cl_decoded_option *decoded,
 	break;
       }
 
-    case OPT_fversion:
     case OPT__version:
       exit_after_options = true;
       break;

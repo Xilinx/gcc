@@ -11140,6 +11140,14 @@ mips_scalar_mode_supported_p (enum machine_mode mode)
   return default_scalar_mode_supported_p (mode);
 }
 
+/* Implement TARGET_VECTORIZE_UNITS_PER_SIMD_WORD.  */
+
+static unsigned int
+mips_units_per_simd_word (enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  return TARGET_PAIRED_SINGLE_FLOAT ? 8 : UNITS_PER_WORD;
+}
+
 /* Implement TARGET_INIT_LIBFUNCS.  */
 
 #include "config/gofast.h"
@@ -12714,6 +12722,12 @@ AVAIL_NON_MIPS16 (cache, TARGET_CACHE_BUILTIN)
 #define CODE_FOR_loongson_pmulhuh CODE_FOR_umulv4hi3_highpart
 #define CODE_FOR_loongson_pmulhh CODE_FOR_smulv4hi3_highpart
 #define CODE_FOR_loongson_pmullh CODE_FOR_mulv4hi3
+#define CODE_FOR_loongson_psllh CODE_FOR_ashlv4hi3
+#define CODE_FOR_loongson_psllw CODE_FOR_ashlv2si3
+#define CODE_FOR_loongson_psrlh CODE_FOR_lshrv4hi3
+#define CODE_FOR_loongson_psrlw CODE_FOR_lshrv2si3
+#define CODE_FOR_loongson_psrah CODE_FOR_ashrv4hi3
+#define CODE_FOR_loongson_psraw CODE_FOR_ashrv2si3
 #define CODE_FOR_loongson_psubw CODE_FOR_subv2si3
 #define CODE_FOR_loongson_psubh CODE_FOR_subv4hi3
 #define CODE_FOR_loongson_psubb CODE_FOR_subv8qi3
@@ -16499,6 +16513,9 @@ mips_shift_truncation_mask (enum machine_mode mode)
 
 #undef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P mips_scalar_mode_supported_p
+
+#undef TARGET_VECTORIZE_UNITS_PER_SIMD_WORD
+#define TARGET_VECTORIZE_UNITS_PER_SIMD_WORD mips_units_per_simd_word
 
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS mips_init_builtins

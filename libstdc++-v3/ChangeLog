@@ -1,3 +1,420 @@
+2010-09-22  David Krauss  <potswa@mac.com>
+
+	PR libstdc++/45628
+	* include/bits/fstream.tcc (basic_filebuf::underflow): Add state
+	transition to avoid modality requiring seekoff(0,ios::cur).
+	(basic_filebuf::pbackfail): Likewise.
+	(basic_filebuf::overflow): Likewise.
+	(basic_filebuf::_M_seek): Avoid minor unnecessary conversion.
+	(basic_filebuf::seekoff): Remove code to _M_get_ext_pos; make
+	(0, ios::cur) a special case preserving buffer contents.
+	(basic_filebuf::_M_get_ext_pos): New function to obtain status
+	about codecvt extern_t buffer for overflow and seekoff.
+	* include/std/fstream (basic_filebuf::_M_get_ext_pos): Likewise.
+	* config/abi/pre/gnu.ver: Export new symbols.
+	* testsuite/27_io/basic_filebuf/seekoff/char/45628-1.cc: New,
+	verifies that seekoff(0, ios::cur) preserves buffers.
+	* testsuite/27_io/basic_filebuf/seekoff/45628-2.cc: Likewise.
+	for codecvt case. More lenient as it may still flush put area.
+	* testsuite/27_io/basic_filebuf/seekoff/char/4.cc: Modify to
+	check that seekoff is not required between read and write.
+	* testsuite/27_io/basic_filebuf/seekoff/wchar_t/4.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/sync/wchar_t/1.cc: Remove.
+	* testsuite/27_io/basic_filebuf/sync/wchar_t/1.cc: Likewise.
+	* testsuite/util/testsuite_character.h (codecvt::do_length): Comply
+	with 22.2.1.5.2/10 "Returns ... the LARGEST value in the range..."
+
+2010-09-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/functional_hash.h (__hash_base): Add.
+	(hash): Derive from __hash_base instead.
+	* include/debug/bitset (hash): Likewise.
+	* include/debug/vector (hash): Likewise.
+	* include/std/system_error (hash): Likewise.
+	* include/std/thread (hash): Likewise.
+	* include/std/bitset (hash): Likewise.
+	* include/profile/bitset (hash): Likewise.
+	* include/profile/vector (hash): Likewise.
+	* include/bits/basic_string.h (hash): Likewise.
+	* include/bits/stl_bvector.h (hash): Likewise.
+	* include/std/typeindex (hash): Do not derive from unary_function,
+	add result_type and argument_type typedefs; trim includes.
+
+2010-09-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/typeindex: New.
+	* include/Makefile.am: Add.
+	* include/Makefile.in: Regenerate.
+	* include/precompiled/stdc++.h: Add.
+	* testsuite/20_util/typeindex/comparison_operators.cc: New.
+	* testsuite/20_util/typeindex/hash.cc: Likewise.
+	* testsuite/20_util/typeindex/hash_code.cc: Likewise.
+	* testsuite/20_util/typeindex/name.cc: Likewise.
+
+	* testsuite/18_support/type_info/hash_code.cc: Tweak.
+
+2010-09-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/hash_bytes.cc: Move...
+	* libsupc++/hash_bytes.cc: ... here.
+	* src/Makefile.am: Adjust.
+	* libsupc++/Makefile.am: Likewise.
+	* config/abi/pre/gnu.ver: Likewise.
+	* libsupc++/typeinfo (type_info::hash_code): Add in C++0x mode.
+	* src/Makefile.in: Regenerate.
+	* libsupc++/Makefile.am: Likewise.
+	* testsuite/18_support/type_info/hash_code.cc: New.
+
+2010-09-20  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR libstdc++/45711
+	* src/Makefile.am (stamp-debug): Also adjust possibly-relative
+	file names in MKDIR_P, and, for consistency, also top_build_prefix.
+	* src/Makefile.in: Regenerate.
+
+2010-09-19  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* include/ext/throw_allocator.h
+	(hash<__gnu_cxx::throw_value_limit>::operator()): Uglify local.
+	(hash<__gnu_cxx::throw_value_random>::operator()): Likewise.
+	* include/parallel/set_operations.h (__symmetric_difference_func):
+	Uglify remaining arguments to __count, __first_empty, _M_invoke.
+	(__difference_func): Likewise for __count.
+	* include/profile/impl/profiler_node.h
+	(__object_info_base::__write): Uglify parameter.
+
+2010-09-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/hash_bytes.cc: Compile load_bytes and shift_mix only when
+	__SIZEOF_SIZE_T__ == 8.
+
+2010-09-17  Luc Hermitte  <hermitte@free.fr>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45713
+	* include/std/bitset: Fix _GLIBCXX_BITSET_WORDS macro.
+	* testsuite/23_containers/bitset/45713.cc: New.
+
+2010-09-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_raw_storage_iter.h (raw_storage_iterator<>::
+	operator=(const _Tp&)): Use std::__addressof.
+
+2010-09-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/system_error (system_error::system_error(error_code),
+	system_error(error_code, const string&), system_error(int, const
+	error_category&), system_error(int, const error_category&,
+	const string&)): Fix for what() to return the NBTS recommended in
+	the Note in 19.5.6.2/14.
+	* testsuite/19_diagnostics/system_error/cons-1.cc: Adjust.
+	* testsuite/19_diagnostics/system_error/what-1.cc: Likewise.
+	* testsuite/19_diagnostics/system_error/what-2.cc: Likewise.
+	* testsuite/19_diagnostics/system_error/what-big.cc: Likewise.
+	* testsuite/19_diagnostics/system_error/what-3.cc: Likewise.
+
+	* testsuite/19_diagnostics/system_error/what-4.cc: Tidy includes.
+
+2010-09-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/complex (complex<float>::operator=(float),
+	complex<float>::operator+=(float),
+	complex<float>::operator-=(float),
+	complex<double>::operator=(double),
+	complex<double>::operator+=(double),
+	complex<double>::operator-=(double),
+	complex<long double>::operator=(long double),
+	complex<long double>::operator+=(long double),
+	complex<long double>::operator-=(long double)): Simplify a tad,
+	just forward to the underlying __complex__ T operators, as
+	operator*= and operator/= already do.
+
+	* include/std/complex (complex<float>, complex<double>,
+	complex<long double>): Simplify spelling of return types, just
+	say complex, instead of complex<float>, complex<double>,
+	complex<long double>, respectively.
+
+2010-09-15  François Dumont  <francois.cppdevs@free.fr>
+
+	* testsuite/lib/libstdc++.exp,([check_v3_target_namedlocale]):
+	Clean temporary source file once compiled.
+
+2010-09-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* doc/xml/manual/prerequisites.xml: Update "C" library locale
+	information prerequisites.
+
+2010-09-15  François Dumont  <francois.cppdevs@free.fr>
+
+	* testsuite/lib/libstdc++.exp, dg-options.exp
+	([check_v3_target_namedlocale]): Take the name of the required locale.
+	* testsuite/27_io/objects/wchar_t/9520.cc, 11.cc, 13.cc, 10.cc, 12.cc:
+	Specify locale name to check.
+	* testsuite/27_io/basic_streambuf/imbue/wchar_t/9322.cc, 13007-1.cc,
+	13007-2.cc: Likewise.
+	* testsuite/27_io/basic_streambuf/imbue/char/9322.cc, 13007-1.cc,
+	13007-2.cc: Likewise.
+	* testsuite/27_io/basic_ios/copyfmt/char/2.cc: Likewise.
+	* testsuite/27_io/basic_stringbuf/imbue/wchar_t/9322.cc: Likewise.
+	* testsuite/27_io/basic_stringbuf/imbue/char/9322.cc: Likewise.
+	* testsuite/27_io/basic_ostream/inserters_arithmetic/wchar_t/2.cc:
+	Likewise.
+	* testsuite/27_io/basic_ostream/inserters_arithmetic/char/2.cc:
+	Likewise.
+	* testsuite/27_io/basic_filebuf/seekoff/wchar_t/1.cc, 2.cc:
+	Likewise.
+	* testsuite/27_io/basic_filebuf/imbue/wchar_t/13171-3.cc, 9322.cc,
+	13582-2.cc, 2.cc, 13582-3.cc, 12868.cc, 14975-2.cc, 13007.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/imbue/char/13171-2.cc, 13171-4.cc,
+	9322.cc, 13582-2.cc, 2.cc, 14975-1.cc, 13007.cc, 13171-1.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/overflow/wchar_t/11305-1.cc,
+	11305-2.cc, 11305-3.cc, 11305-4.cc: Likewise.
+	* testsuite/27_io/basic_filebuf/underflow/wchar_t/9520.cc, 1.cc, 2.cc,
+	3.cc, 11389-1.cc, 4.cc, 11389-2.cc, 5.cc, 11389-3.cc, 11389-4.cc:
+	Likewise.
+	* testsuite/27_io/basic_filebuf/seekpos/wchar_t/9874.cc: Likewise.
+	* testsuite/27_io/manipulators/extended/put_money/wchar_t/1.cc:
+	Likewise.
+	* testsuite/27_io/manipulators/extended/put_money/char/1.cc: Likewise.
+	* testsuite/27_io/manipulators/extended/get_money/wchar_t/1.cc:
+	Likewise.
+	* testsuite/27_io/manipulators/extended/get_money/char/1.cc: Likewise.
+	* testsuite/ext/stdio_sync_filebuf/wchar_t/12077.cc: Likewise.
+	* testsuite/22_locale/money_put/put/wchar_t/1.cc, 2.cc, 3.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/money_put/put/char/1.cc, 2.cc, 3.cc, 9780-3.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/facet/2.cc: Likewise.
+	* testsuite/22_locale/collate/hash/wchar_t/2.cc, wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/collate/hash/char/2.cc, wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/collate/compare/wchar_t/1.cc, 2.cc, 3.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/collate/compare/char/1.cc, 2.cc, 3.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/collate/transform/wchar_t/2.cc, 3.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/collate/transform/char/2.cc, 3.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/ctype/cons/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/ctype/to/wchar_t/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/ctype/to/char/wrapped_locale.cc, wrapped_env.cc:
+	Likewise.
+	* testsuite/22_locale/ctype/scan/wchar_t/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/ctype/scan/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/ctype/widen/wchar_t/2.cc, 3.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/ctype/widen/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/ctype/narrow/wchar_t/3.cc, wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/ctype/narrow/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/ctype/is/wchar_t/2.cc,wrapped_locale.cc,
+	wrapped_env.cc: Likewise
+	* testsuite/22_locale/ctype/is/char/2.cc, wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/time_put/put/wchar_t/2.cc, 3.cc, 4.cc, 6.cc,
+	7.cc, 8.cc, wrapped_env.cc, wrapped_locale.cc, 17038.cc: Likewise.
+	* testsuite/22_locale/time_put/put/char/2.cc, 3.cc, 4.cc, 6.cc,
+	9780-1.cc, 7.cc, 8.cc, wrapped_env.cc, wrapped_locale.cc, 17038.cc:
+	Likewise.
+	* testsuite/22_locale/money_get/get/wchar_t/1.cc, 2.cc, 3.cc, 4.cc,
+	wrapped_env.cc, 10.cc, 11528.cc, wrapped_locale.cc, 11.cc, 12.cc,
+	13.cc, 15.cc, 16.cc, 17.cc, 18.cc: Likewise.
+	* testsuite/22_locale/money_get/get/char/1.cc, 2.cc, 3.cc, 4.cc,
+	wrapped_env.cc, 10.cc, 11528.cc, wrapped_locale.cc, 11.cc, 12.cc,
+	13.cc, 15.cc, 16.cc, 17.cc, 18.cc: Likewise
+	* testsuite/22_locale/num_put/put/wchar_t/1.cc, 3.cc, 5.cc,
+	wrapped_env.cc, 20914.cc, wrapped_locale.cc, 20909.cc: Likewise.
+	* testsuite/22_locale/num_put/put/char/1.cc, 3.cc, 5.cc, 9780-2.cc,
+	wrapped_env.cc, 20914.cc, wrapped_locale.cc, 20909.cc: Likewise.
+	* testsuite/22_locale/codecvt/unshift/wchar_t/2.cc, wrapped_locale.cc,
+	3.cc, 4.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/codecvt/unshift/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	testsuite/22_locale/codecvt/length/wchar_t/2.cc, wrapped_locale.cc,
+	3.cc, 4.cc, 7.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/codecvt/length/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/codecvt/always_noconv/wchar_t/2.cc,
+	wrapped_locale.cc, 3.cc, 4.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/codecvt/always_noconv/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/codecvt/encoding/wchar_t/2.cc, wrapped_locale.cc,
+	3.cc, 4.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/codecvt/encoding/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/codecvt/in/wchar_t/2.cc, wrapped_locale.cc, 3.cc,
+	4.cc, 7.cc, 8.cc, 9.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/codecvt/in/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/codecvt/max_length/wchar_t/2.cc,
+	wrapped_locale.cc, 3.cc, 4.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/codecvt/max_length/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/codecvt/out/wchar_t/2.cc, wrapped_locale.cc,
+	3.cc, 4.cc, 7.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/codecvt/out/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/moneypunct_byname/named_equivalence.cc: Likewise.
+	* testsuite/22_locale/time_get/get_year/wchar_t/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/time_get/get_year/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/time_get/get_monthname/wchar_t/2.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/time_get/get_monthname/char/2.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/time_get/date_order/wchar_t/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/time_get/date_order/char/wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/time_get/get_weekday/wchar_t/2.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/time_get/get_weekday/char/2.cc, 38081-1.cc,
+	wrapped_locale.cc, 38081-2.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/time_get/get_date/wchar_t/12750.cc, 26701.cc,
+	2.cc, wrapped_locale.cc, 4.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/time_get/get_date/char/12750.cc, 26701.cc,
+	2.cc, wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/time_get/get_time/wchar_t/1.cc, 2.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/time_get/get_time/char/1.cc, 2.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/num_get/get/wchar_t/1.cc, 3.cc, 5.cc, 6.cc, 9.cc,
+	wrapped_env.cc, wrapped_locale.cc: Likewise.
+	* testsuite/22_locale/num_get/get/char/1.cc, 3.cc, 5.cc, 6.cc, 9.cc,
+	wrapped_env.cc, wrapped_locale.cc: Likewise.
+	* testsuite/22_locale/locale/cons/38368.cc, 2.cc, 4.cc, 5.cc, 7.cc,
+	12658_thread-1.cc, 12658_thread-2.cc, 40184.cc, 29217.cc, 38365.cc:
+	Likewise.
+	* testsuite/22_locale/locale/global_locale_objects/14071.cc, 2.cc:
+	Likewise.
+	* testsuite/22_locale/moneypunct/40712.cc: Likewise.
+	* testsuite/22_locale/moneypunct/members/wchar_t/2.cc,
+	wrapped_locale.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/moneypunct/members/char/2.cc, wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/messages_byname/named_equivalence.cc: Likewise.
+	* testsuite/22_locale/numpunct_byname/named_equivalence.cc: Likewise.
+	* testsuite/22_locale/messages/members/char/1.cc, 2.cc,
+	wrapped_locale.cc, 3.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/numpunct/members/wchar_t/2.cc, wrapped_locale.cc,
+	wrapped_env.cc: Likewise.
+	* testsuite/22_locale/numpunct/members/char/2.cc, wrapped_locale.cc,
+	3.cc, wrapped_env.cc: Likewise.
+	* testsuite/22_locale/collate_byname/named_equivalence.cc: Likewise.
+
+2010-09-14  Matt Austern  <austern@google.com>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/performance/21_strings/hash.cc: New.
+
+2010-09-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/performance/21_strings/string_append.cc: Rename to...
+	* testsuite/performance/21_strings/append-1.cc: ... this.
+	* testsuite/performance/21_strings/string_append_2.cc: Rename to...
+	* testsuite/performance/21_strings/append-2.cc: ... this.
+	* testsuite/performance/21_strings/string_cons_input_iterator.cc:
+	Rename to...
+	* testsuite/performance/21_strings/cons_input_iterator.cc: ... this.
+	* testsuite/performance/21_strings/string_copy_cons_and_dest.cc:
+	Rename to...
+	* testsuite/performance/21_strings/copy_cons_and_dest.cc: ... this.
+	* testsuite/performance/21_strings/string_find.cc: Rename to...
+	* testsuite/performance/21_strings/find.cc: ... this.
+
+2010-09-13  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/api.xml: Add title.
+	* doc/xml/manual/spine.xml: Same.
+	* doc/xml/spine.xml: Same.
+
+2010-09-13  Matt Austern  <austern@google.com>
+
+	* src/hash_bytes.cc: New file, exports _Hash_bytes (a Murmur hash),
+	and _Fnv_hash_bytes (based on a FNV algorithm).
+	* src/compatibility-c++0x.cc (hash<string>::operator(),
+	hash<const string&>::operator(), hash<wstring>::operator(),
+	hash<const wstring&>::operator(), hash<error_code>::operator()):
+	Adjust, use _Hash_bytes.
+	* include/std/system_error (hash<error_code>::operator()): Likewise.
+	* include/std/thread (hash<thread::id>operator()): Likewise.
+	* include/std/bitset (hash<bitset>operator()): Likewise.
+	* include/bits/basic_string.h (hash<string>::operator(),
+	hash<wstring>::operator(), hash<u16string>::operator(),
+	hash<u32string>::operator()): Adjust.
+	* include/bits/vector.tcc (hash<vector<bool>>::operator()): Adjust.
+	* include/bits/functional_hash.h (_Hash_bytes, _Fnv_hash_bytes):
+	Declare.
+	(struct _Hash_impl, struct _Fnv_hash_impl): Add, use _Hash_bytes
+	and _Fnv_hash_bytes, respectively.
+	(hash<float>::operator(), hash<double>::operator()): Adjust.
+	* config/abi/pre/gnu.ver: Add exports.
+	* src/Makefile.am: Add.
+	* src/Makefile.in: Regenerate.
+
+2010-09-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h (forward_list<>::resize(size_type,
+	value_type)): Fix signature, per LWG 1340.
+	* include/bits/forward_list.tcc: Adjust definition.
+
+2010-09-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/27_io/basic_filebuf/seekoff/char/4.cc: New.
+	* testsuite/27_io/basic_filebuf/seekoff/wchar_t/4.cc: Likewise.
+
+2010-09-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/hash-string-aux.cc: Remove. Move contents...
+	* src/hash_tr1.cc: ... here.
+	* src/compatibility-c++0x.cc: ... and here.
+
+2010-09-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45613
+	* include/bits/random.tcc: Add missing include guards.
+	* include/bits/random.h: Likewise.
+	* include/tr1/random.tcc: Likewise.
+
+2010-09-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* libsupc++/cxxabi.h: Uglify nothrow to __nothrow__; fix a few
+	inconsistent uglifications everywhere.
+
+2010-09-07  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Marc Glisse  <marc.glisse@normalesup.org>
+
+	PR libstdc++/45549
+	* include/bits/cpp_type_traits.h (__is_iterator_helper): Rename to
+	__has_iterator_category.
+	(__is_iterator): Adjust.
+	* include/bits/stl_iterator_base_types.h (__iterator_traits): Add
+	in C++0x mode, use the latter.
+	(iterator_traits): In C++0x mode, derive from the latter.
+	* include/bits/stl_iterator_base_funcs.h (next, prev): Remove
+	enable_if on the return type.
+
+2010-09-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45398
+	* include/std/atomic (atomic<_TP*>::store): Define.
+
+	* include/std/atomic (atomic<_TP*>::load, exchange): Define inline.
+
+2010-09-06  Jason Merrill  <jason@redhat.com>
+
+	* testsuite/libstdc++-abi/abi.exp: Add "libstdc++-abi/" to
+	abi_check FAIL message.
+
 2010-09-03  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/45347

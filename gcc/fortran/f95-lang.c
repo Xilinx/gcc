@@ -200,17 +200,18 @@ gfc_truthvalue_conversion (tree expr)
 	  return expr;
 	}
       else if (TREE_CODE (expr) == NOP_EXPR)
-        return fold_build1 (NOP_EXPR,
+        return fold_build1_loc (input_location, NOP_EXPR,
 			    boolean_type_node, TREE_OPERAND (expr, 0));
       else
-        return fold_build1 (NOP_EXPR, boolean_type_node, expr);
+        return fold_build1_loc (input_location, NOP_EXPR, boolean_type_node,
+				expr);
 
     case INTEGER_TYPE:
       if (TREE_CODE (expr) == INTEGER_CST)
 	return integer_zerop (expr) ? boolean_false_node : boolean_true_node;
       else
-        return fold_build2 (NE_EXPR, boolean_type_node, expr,
-			    build_int_cst (TREE_TYPE (expr), 0));
+        return fold_build2_loc (input_location, NE_EXPR, boolean_type_node,
+				expr, build_int_cst (TREE_TYPE (expr), 0));
 
     default:
       internal_error ("Unexpected type in truthvalue_conversion");
@@ -854,13 +855,6 @@ gfc_init_builtin_functions (void)
 		      BUILT_IN_FMOD, "fmod", true);
   gfc_define_builtin ("__builtin_fmodf", mfunc_float[1], 
 		      BUILT_IN_FMODF, "fmodf", true);
-
-  gfc_define_builtin ("__builtin_huge_vall", mfunc_longdouble[3], 
-		      BUILT_IN_HUGE_VALL, "__builtin_huge_vall", true);
-  gfc_define_builtin ("__builtin_huge_val", mfunc_double[3], 
-		      BUILT_IN_HUGE_VAL, "__builtin_huge_val", true);
-  gfc_define_builtin ("__builtin_huge_valf", mfunc_float[3], 
-		      BUILT_IN_HUGE_VALF, "__builtin_huge_valf", true);
 
   /* lround{f,,l} and llround{f,,l} */
   ftype = build_function_type_list (long_integer_type_node,

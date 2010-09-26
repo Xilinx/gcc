@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler,
    for Motorola M*CORE Processor.
    Copyright (C) 1993, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007,
-   2008, 2009 Free Software Foundation, Inc.
+   2008, 2009, 2010 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -84,36 +84,6 @@ extern char * mcore_current_function_name;
  
 /* The MCore ABI says that bitfields are unsigned by default.  */
 #define CC1_SPEC "-funsigned-bitfields"
-
-/* What options are we going to default to specific settings when
-   -O* happens; the user can subsequently override these settings.
-  
-   Omitting the frame pointer is a very good idea on the MCore.
-   Scheduling isn't worth anything on the current MCore implementation.  */
-#define OPTIMIZATION_OPTIONS(LEVEL,SIZE)	\
-{						\
-  if (LEVEL)					\
-    {						\
-      flag_no_function_cse = 1;			\
-      flag_omit_frame_pointer = 1;		\
-						\
-      if (LEVEL >= 2)				\
-        {					\
-          flag_caller_saves = 0;		\
-          flag_schedule_insns = 0;		\
-          flag_schedule_insns_after_reload = 0;	\
-        }					\
-    }						\
-  if (SIZE)					\
-    {						\
-      target_flags &= ~MASK_HARDLIT;		\
-    }						\
-}
-
-/* What options are we going to force to specific settings,
-   regardless of what the user thought he wanted.
-   We also use this for some post-processing of options.  */
-#define OVERRIDE_OPTIONS  mcore_override_options ()
 
 /* Target machine storage Layout.  */
 

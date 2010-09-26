@@ -129,6 +129,14 @@ package body Exp_CG is
             Write_Call_Info (N);
 
          else pragma Assert (Nkind (N) = N_Defining_Identifier);
+
+            --  The type may be a private untagged type whose completion is
+            --  tagged, in which case we must use the full tagged view.
+
+            if not Is_Tagged_Type (N) and then Is_Private_Type (N) then
+               N := Full_View (N);
+            end if;
+
             pragma Assert (Is_Tagged_Type (N));
 
             Write_Type_Info (N);
@@ -193,7 +201,7 @@ package body Exp_CG is
                declare
                   Result : Natural := Prefix_Length + 1;
                begin
-                  while Nr > 10 loop
+                  while Nr >= 10 loop
                      Result := Result + 1;
                      Nr := Nr / 10;
                   end loop;
@@ -265,18 +273,43 @@ package body Exp_CG is
                                     Name_uDisp_Requeue,
                                     Name_uDisp_Timed_Select);
 
-               Suffix_Length : constant Natural := Homonym_Suffix_Length (E);
+               Suffix_Length : Natural;
 
             begin
+               --  Search for and strip suffix for body-nested package entities
+
+               Suffix_Length := Homonym_Suffix_Length (E);
+               for J in reverse Full_Name'First + 2 .. Full_Name'Last loop
+                  if Full_Name (J) = 'X' then
+
+                     --  Include the "X", "Xb", "Xn", ... in the part of the
+                     --  suffix to be removed.
+
+                     Suffix_Length := Suffix_Length + Full_Name'Last - J + 1;
+                     exit;
+                  end if;
+
+                  exit when Full_Name (J) /= 'b' and then Full_Name (J) /= 'n';
+               end loop;
+
                for J in Predef_Names_95'Range loop
                   Get_Name_String (Predef_Names_95 (J));
 
-                  if Full_Name'Last - Suffix_Length > Name_Len
+                  --  The predefined primitive operations are identified by the
+                  --  names "_size", "_alignment", etc. If we try a pattern
+                  --  matching against this string, we can wrongly match other
+                  --  primitive operations like "get_size". To avoid this, we
+                  --  add the "__" scope separator, which can only prepend
+                  --  predefined primitive operations because other primitive
+                  --  operations can neither start with an underline nor
+                  --  contain two consecutive underlines in its name.
+
+                  if Full_Name'Last - Suffix_Length > Name_Len + 2
                     and then
                       Full_Name
-                        (Full_Name'Last - Name_Len - Suffix_Length + 1
+                        (Full_Name'Last - Name_Len - 2 - Suffix_Length + 1
                            .. Full_Name'Last - Suffix_Length) =
-                                                  Name_Buffer (1 .. Name_Len)
+                      "__" & Name_Buffer (1 .. Name_Len)
                   then
                      --  For the equality operator the type of the two operands
                      --  must also match.
@@ -291,12 +324,12 @@ package body Exp_CG is
                   for J in Predef_Names_05'Range loop
                      Get_Name_String (Predef_Names_05 (J));
 
-                     if Full_Name'Last - Suffix_Length > Name_Len
+                     if Full_Name'Last - Suffix_Length > Name_Len + 2
                        and then
                          Full_Name
-                           (Full_Name'Last - Name_Len - Suffix_Length + 1
+                           (Full_Name'Last - Name_Len - 2 - Suffix_Length + 1
                               .. Full_Name'Last - Suffix_Length) =
-                                                 Name_Buffer (1 .. Name_Len)
+                         "__" & Name_Buffer (1 .. Name_Len)
                      then
                         return True;
                      end if;
@@ -324,12 +357,22 @@ package body Exp_CG is
 
             declare
                Copy : constant Node_Id := New_Copy (N);
+               Par  : Node_Id;
 
             begin
-               --  Copy the link to the parent to allow climbing up the tree
-               --  when the call-graph information is generated
+               --  Determine the enclosing scope to use when generating the
+               --  call graph. This must be done now to avoid problems with
+               --  control structures that may be rewritten during expansion.
 
-               Set_Parent (Copy, Parent (N));
+               Par := Parent (N);
+               while Nkind (Par) /= N_Subprogram_Body
+                 and then Nkind (Parent (Par)) /= N_Compilation_Unit
+               loop
+                  Par := Parent (Par);
+                  pragma Assert (Present (Par));
+               end loop;
+
+               Set_Parent (Copy, Par);
                Call_Graph_Nodes.Append (Copy);
             end;
          end if;
@@ -378,23 +421,26 @@ package body Exp_CG is
       Ctrl_Arg : constant Node_Id   := Controlling_Argument (Call);
       Ctrl_Typ : constant Entity_Id := Base_Type (Etype (Ctrl_Arg));
       Prim     : constant Entity_Id := Entity (Sinfo.Name (Call));
-      P        : Node_Id;
+      P        : constant Node_Id   := Parent (Call);
 
    begin
-      --  Locate the enclosing context: a subprogram (if available) or the
-      --  enclosing library-level package
-
-      P := Parent (Call);
-      while Nkind (P) /= N_Subprogram_Body
-        and then Nkind (Parent (P)) /= N_Compilation_Unit
-      loop
-         P := Parent (P);
-         pragma Assert (Present (P));
-      end loop;
-
       Write_Str ("edge: { sourcename: ");
       Write_Char ('"');
-      Get_External_Name (Defining_Entity (P), Has_Suffix => False);
+
+      --  The parent node is the construct that contains the call: subprogram
+      --  body or library-level package. Display the qualified name of the
+      --  entity of the construct. For a subprogram, it is the entity of the
+      --  spec, which carries a homonym counter when it is overloaded.
+
+      if Nkind (P) = N_Subprogram_Body
+        and then not Acts_As_Spec (P)
+      then
+         Get_External_Name (Corresponding_Spec (P), Has_Suffix => False);
+
+      else
+         Get_External_Name (Defining_Entity (P), Has_Suffix => False);
+      end if;
+
       Write_Str (Name_Buffer (1 .. Name_Len));
 
       if Nkind (P) = N_Package_Declaration then

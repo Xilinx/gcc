@@ -1332,7 +1332,7 @@ package body Sprint is
                Write_Str_With_Col_Check ("abstract ");
             end if;
 
-            Write_Str_With_Col_Check_Sloc ("new ");
+            Write_Str_With_Col_Check ("new ");
 
             --  Ada 2005 (AI-231)
 
@@ -3467,11 +3467,13 @@ package body Sprint is
          end if;
 
       --  Case of selector of an expanded name where the expanded name
-      --  has an associated entity, output this entity.
+      --  has an associated entity, output this entity. Check that the
+      --  entity or associated node is of the right kind, see above.
 
       elsif Nkind (Parent (N)) = N_Expanded_Name
         and then Selector_Name (Parent (N)) = N
-        and then Present (Entity (Parent (N)))
+        and then Present (Entity_Or_Associated_Node (Parent (N)))
+        and then Nkind (Entity (Parent (N))) in N_Entity
       then
          Write_Id (Entity (Parent (N)));
 
@@ -4362,12 +4364,10 @@ package body Sprint is
    procedure Write_Ureal_With_Col_Check_Sloc (U : Ureal) is
       D : constant Uint := Denominator (U);
       N : constant Uint := Numerator (U);
-
    begin
-      Col_Check
-        (UI_Decimal_Digits_Hi (D) + UI_Decimal_Digits_Hi (N) + 4);
+      Col_Check (UI_Decimal_Digits_Hi (D) + UI_Decimal_Digits_Hi (N) + 4);
       Set_Debug_Sloc;
-      UR_Write (U);
+      UR_Write (U, Brackets => True);
    end Write_Ureal_With_Col_Check_Sloc;
 
 end Sprint;

@@ -612,6 +612,9 @@ dfp=`if test $enable_decimal_float != no; then echo 1; else echo 0; fi`
 AC_DEFINE_UNQUOTED(ENABLE_DECIMAL_FLOAT, $dfp,
 [Define to 1 to enable decimal float extension to C.])
 
+# Use default_decimal_float for dependency.
+enable_decimal_float=$default_decimal_float
+
 bid=`if test $enable_decimal_float = bid; then echo 1; else echo 0; fi`
 AC_DEFINE_UNQUOTED(ENABLE_DECIMAL_BID_FORMAT, $bid,
 [Define to 1 to specify that we are using the BID decimal floating
@@ -627,7 +630,7 @@ AC_ARG_ENABLE(fixed-point,
     mips*-*-*)
       case $host in
 	mips*-sgi-irix*)
-	  AC_MSG_WARN(fixed-point is not supported on IRIX, ignored)
+	  AC_MSG_WARN([fixed-point is not supported on IRIX, ignored])
 	  enable_fixed_point=no
 	  ;;
 	*)
@@ -636,7 +639,7 @@ AC_ARG_ENABLE(fixed-point,
       esac
       ;;
     *)
-      AC_MSG_WARN(fixed-point is not supported for this target, ignored)
+      AC_MSG_WARN([fixed-point is not supported for this target, ignored])
       enable_fixed_point=no
       ;;
   esac
@@ -750,16 +753,6 @@ AC_ARG_WITH(specs,
   [CONFIGURE_SPECS=]
 )
 AC_SUBST(CONFIGURE_SPECS)
-
-# Build with intermodule optimisations
-AC_ARG_ENABLE(intermodule,
-[  --enable-intermodule    build the compiler in one step],
-[case ${enable_intermodule} in
-  yes) onestep="-onestep";;
-  *) onestep="";;
-esac],
-[onestep=""])
-AC_SUBST(onestep)
 
 ACX_PKGVERSION([GCC])
 ACX_BUGURL([http://gcc.gnu.org/bugs.html])
@@ -2154,6 +2147,19 @@ EOF
     gcc_cv_as_hidden=yes
     ;;
 esac])
+
+# gnu_indirect_function type is an extension proposed at
+# http://groups.google/com/group/generic-abi/files. It allows dynamic runtime
+# selection of function implementation
+gcc_GAS_CHECK_FEATURE(gnu_indirect_function, gcc_cv_as_indirect_function,
+ [elf,2,20,1],,
+[	.type  Foo, @gnu_indirect_function
+Foo:])
+GCC_TARGET_TEMPLATE([HAVE_GAS_INDIRECT_FUNCTION])
+if test $gcc_cv_as_indirect_function = yes ; then
+  AC_DEFINE(HAVE_GAS_INDIRECT_FUNCTION, 1,
+  [Define if your assembler supports indirect function type.])
+fi
 
 changequote(,)dnl
 if test $in_tree_ld != yes ; then
@@ -4623,32 +4629,52 @@ enable_plugin=$enableval,
 enable_plugin=yes; default_plugin=yes)
 
 pluginlibs=
+
+case "${host}" in
+  *-*-darwin*)
+    if test x$build = x$host; then
+      export_sym_check="nm${exeext} -g"
+    elif test x$host = x$target; then
+      export_sym_check="$gcc_cv_nm -g"
+    else
+      export_sym_check=
+    fi
+  ;;
+  *)
+    if test x$build = x$host; then
+      export_sym_check="objdump${exeext} -T"
+    elif test x$host = x$target; then
+      export_sym_check="$gcc_cv_objdump -T"
+    else
+      export_sym_check=
+    fi
+  ;;
+esac
+
 if test x"$enable_plugin" = x"yes"; then
 
-  case "${host}" in
-    *-*-darwin*)
-      export_sym_check="$gcc_cv_nm -g"
-    ;;
-    *)
-      export_sym_check="$gcc_cv_objdump -T"
-    ;;
-  esac
   AC_MSG_CHECKING([for exported symbols])
-  echo "int main() {return 0;} int foobar() {return 0;}" > conftest.c
-  ${CC} ${CFLAGS} ${LDFLAGS} conftest.c -o conftest > /dev/null 2>&1
-  if $export_sym_check conftest | grep foobar > /dev/null; then
-    : # No need to use a flag
-  else
-    AC_MSG_CHECKING([for -rdynamic])
-    ${CC} ${CFLAGS} ${LDFLAGS} -rdynamic conftest.c -o conftest > /dev/null 2>&1
+  if test "x$export_sym_check" != x; then
+    echo "int main() {return 0;} int foobar() {return 0;}" > conftest.c
+    ${CC} ${CFLAGS} ${LDFLAGS} conftest.c -o conftest > /dev/null 2>&1
     if $export_sym_check conftest | grep foobar > /dev/null; then
-      plugin_rdynamic=yes
-      pluginlibs="-rdynamic"
+      : # No need to use a flag
+      AC_MSG_RESULT([yes])
     else
-      plugin_rdynamic=no
-      enable_plugin=no
+      AC_MSG_RESULT([yes])
+      AC_MSG_CHECKING([for -rdynamic])
+      ${CC} ${CFLAGS} ${LDFLAGS} -rdynamic conftest.c -o conftest > /dev/null 2>&1
+      if $export_sym_check conftest | grep foobar > /dev/null; then
+        plugin_rdynamic=yes
+        pluginlibs="-rdynamic"
+      else
+        plugin_rdynamic=no
+        enable_plugin=no
+      fi
+      AC_MSG_RESULT([$plugin_rdynamic])
     fi
-    AC_MSG_RESULT([$plugin_rdynamic])
+  else
+    AC_MSG_RESULT([unable to check])
   fi
 
   # Check -ldl

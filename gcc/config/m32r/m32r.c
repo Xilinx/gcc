@@ -63,10 +63,13 @@ enum m32r_sdata m32r_sdata = M32R_SDATA_DEFAULT;
 
 /* Forward declaration.  */
 static bool  m32r_handle_option (size_t, const char *, int);
+static void  m32r_option_override (void);
+static void  m32r_option_optimization (int, int);
 static void  init_reg_tables (void);
 static void  block_move_call (rtx, rtx, rtx);
 static int   m32r_is_insn (rtx);
 static rtx   m32r_legitimize_address (rtx, rtx, enum machine_mode);
+static bool  m32r_mode_dependent_address_p (const_rtx);
 static tree  m32r_handle_model_attribute (tree *, tree, tree, int, bool *);
 static void  m32r_print_operand (FILE *, rtx, int);
 static void  m32r_print_operand_address (FILE *, rtx);
@@ -89,6 +92,7 @@ static void m32r_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode,
 					 tree, int *, int);
 static void init_idents (void);
 static bool m32r_rtx_costs (rtx, int, int, int *, bool speed);
+static int m32r_memory_move_cost (enum machine_mode, reg_class_t, bool);
 static bool m32r_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 				    const_tree, bool);
 static int m32r_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
@@ -116,6 +120,8 @@ static const struct attribute_spec m32r_attribute_table[] =
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS m32r_legitimize_address
+#undef TARGET_MODE_DEPENDENT_ADDRESS_P
+#define TARGET_MODE_DEPENDENT_ADDRESS_P m32r_mode_dependent_address_p
 
 #undef  TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.hword\t"
@@ -146,12 +152,19 @@ static const struct attribute_spec m32r_attribute_table[] =
 #define TARGET_DEFAULT_TARGET_FLAGS TARGET_CPU_DEFAULT
 #undef  TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION m32r_handle_option
+#undef  TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE m32r_option_override
+#undef  TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION m32r_option_optimization
 
 #undef  TARGET_ENCODE_SECTION_INFO
 #define TARGET_ENCODE_SECTION_INFO m32r_encode_section_info
 #undef  TARGET_IN_SMALL_DATA_P
 #define TARGET_IN_SMALL_DATA_P m32r_in_small_data_p
 
+
+#undef  TARGET_MEMORY_MOVE_COST
+#define TARGET_MEMORY_MOVE_COST m32r_memory_move_cost
 #undef  TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS m32r_rtx_costs
 #undef  TARGET_ADDRESS_COST
@@ -244,7 +257,7 @@ m32r_handle_option (size_t code, const char *arg, int value)
     }
 }
 
-/* Called by OVERRIDE_OPTIONS to initialize various things.  */
+/* Called by m32r_option_override to initialize various things.  */
 
 void
 m32r_init (void)
@@ -259,6 +272,27 @@ m32r_init (void)
   /* Provide default value if not specified.  */
   if (!g_switch_set)
     g_switch_value = SDATA_DEFAULT_SIZE;
+}
+
+static void
+m32r_option_override (void)
+{
+  /* These need to be done at start up.
+     It's convenient to do them here.  */
+  m32r_init ();
+  SUBTARGET_OVERRIDE_OPTIONS;
+}
+
+static void
+m32r_option_optimization (int level, int size)
+{
+  if (level == 1)
+    flag_regmove = 1;
+
+  if (size)
+    flag_omit_frame_pointer = 1;
+
+  SUBTARGET_OPTIMIZATION_OPTIONS;
 }
 
 /* Vectors to keep interesting information about registers where it can easily
@@ -1230,7 +1264,8 @@ m32r_arg_partial_bytes (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 
 static rtx
 m32r_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-		   const_tree type, bool named ATTRIBUTE_UNUSED)
+		   const_tree type ATTRIBUTE_UNUSED,
+		   bool named ATTRIBUTE_UNUSED)
 {
   return (PASS_IN_REG_P (*cum, mode, type)
 	  ? gen_rtx_REG (mode, ROUND_ADVANCE_CUM (*cum, mode, type))
@@ -1365,6 +1400,22 @@ m32r_issue_rate (void)
 }
 
 /* Cost functions.  */
+
+/* Implement TARGET_HANDLE_OPTION.
+
+   Memory is 3 times as expensive as registers.
+   ??? Is that the right way to look at it?  */
+
+static int
+m32r_memory_move_cost (enum machine_mode mode,
+		       reg_class_t rclass ATTRIBUTE_UNUSED,
+		       bool in ATTRIBUTE_UNUSED)
+{
+  if (GET_MODE_SIZE (mode) <= UNITS_PER_WORD)
+    return 6;
+  else
+    return 12;
+}
 
 static bool
 m32r_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total,
@@ -2022,6 +2073,17 @@ m32r_legitimize_address (rtx x, rtx orig_x ATTRIBUTE_UNUSED,
     return m32r_legitimize_pic_address (x, NULL_RTX);
   else
     return x;
+}
+
+/* Worker function for TARGET_MODE_DEPENDENT_ADDRESS_P.  */
+
+static bool
+m32r_mode_dependent_address_p (const_rtx addr)
+{
+  if (GET_CODE (addr) == LO_SUM)
+    return true;
+
+  return false;
 }
 
 /* Nested function support.  */

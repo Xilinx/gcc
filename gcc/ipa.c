@@ -238,7 +238,12 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 #endif
   varpool_reset_queue ();
   for (node = cgraph_nodes; node; node = node->next)
-    if (!cgraph_can_remove_if_no_direct_calls_and_refs_p (node)
+    if ((!cgraph_can_remove_if_no_direct_calls_and_refs_p (node)
+	 /* Keep around virtual functions for possible devirtualization.  */
+	 || (!before_inlining_p
+	     && !node->global.inlined_to
+	     && DECL_VIRTUAL_P (node->decl)
+	     && (DECL_COMDAT (node->decl) || DECL_EXTERNAL (node->decl))))
 	&& ((!DECL_EXTERNAL (node->decl))
             || before_inlining_p))
       {
@@ -407,22 +412,26 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 		  if (!clone)
 		    {
 		      cgraph_release_function_body (node);
-		      node->analyzed = false;
 		      node->local.inlinable = false;
+		      if (node->prev_sibling_clone)
+			node->prev_sibling_clone->next_sibling_clone = node->next_sibling_clone;
+		      else if (node->clone_of)
+			node->clone_of->clones = node->next_sibling_clone;
+		      if (node->next_sibling_clone)
+			node->next_sibling_clone->prev_sibling_clone = node->prev_sibling_clone;
+#ifdef ENABLE_CHECKING
+		      if (node->clone_of)
+			node->former_clone_of = node->clone_of->decl;
+#endif
+		      node->clone_of = NULL;
+		      node->next_sibling_clone = NULL;
+		      node->prev_sibling_clone = NULL;
 		    }
 		  else
 		    gcc_assert (!clone->in_other_partition);
+		  node->analyzed = false;
 		  cgraph_node_remove_callees (node);
 		  ipa_remove_all_references (&node->ref_list);
-		  if (node->prev_sibling_clone)
-		    node->prev_sibling_clone->next_sibling_clone = node->next_sibling_clone;
-		  else if (node->clone_of)
-		    node->clone_of->clones = node->next_sibling_clone;
-		  if (node->next_sibling_clone)
-		    node->next_sibling_clone->prev_sibling_clone = node->prev_sibling_clone;
-		  node->clone_of = NULL;
-		  node->next_sibling_clone = NULL;
-		  node->prev_sibling_clone = NULL;
 		}
 	      else
 		cgraph_remove_node (node);
@@ -561,7 +570,7 @@ ipa_discover_readonly_nonaddressable_vars (void)
 	    if (dump_file)
 	      fprintf (dump_file, " %s (read-only)", varpool_node_name (vnode));
 	    TREE_READONLY (vnode->decl) = 1;
-	    vnode->const_value_known |= varpool_decide_const_value_known (vnode);
+	    vnode->const_value_known |= const_value_known_p (vnode->decl);
 	  }
       }
   if (dump_file)
@@ -770,7 +779,7 @@ function_and_variable_visibility (bool whole_program)
 	DECL_COMMON (vnode->decl) = 0;
      /* Even extern variables might have initializers known.
 	See, for example testsuite/g++.dg/opt/static3.C  */
-     vnode->const_value_known |= varpool_decide_const_value_known (vnode);
+     vnode->const_value_known |= const_value_known_p (vnode->decl);
     }
   for (vnode = varpool_nodes_queue; vnode; vnode = vnode->next_needed)
     {
@@ -805,7 +814,7 @@ function_and_variable_visibility (bool whole_program)
 	  gcc_assert (in_lto_p || whole_program || !TREE_PUBLIC (vnode->decl));
 	  cgraph_make_decl_local (vnode->decl);
 	}
-     vnode->const_value_known |= varpool_decide_const_value_known (vnode);
+     vnode->const_value_known |= const_value_known_p (vnode->decl);
      gcc_assert (TREE_STATIC (vnode->decl));
     }
   pointer_set_destroy (aliased_nodes);

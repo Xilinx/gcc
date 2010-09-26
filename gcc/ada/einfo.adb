@@ -149,6 +149,7 @@ package body Einfo is
 
    --    Alias                           Node18
    --    Corresponding_Concurrent_Type   Node18
+   --    Corresponding_Protected_Entry   Node18
    --    Corresponding_Record_Type       Node18
    --    Delta_Value                     Ureal18
    --    Enclosing_Scope                 Node18
@@ -455,6 +456,7 @@ package body Einfo is
    --    Is_Primitive_Wrapper            Flag195
    --    Was_Hidden                      Flag196
    --    Is_Limited_Interface            Flag197
+   --    Has_Pragma_Ordered              Flag198
 
    --    Has_Anon_Block_Suffix           Flag201
    --    Itype_Printed                   Flag202
@@ -508,7 +510,6 @@ package body Einfo is
    --    Is_Underlying_Record_View       Flag246
    --    OK_To_Rename                    Flag247
 
-   --    (unused)                        Flag198
    --    (unused)                        Flag199
    --    (unused)                        Flag200
 
@@ -722,6 +723,12 @@ package body Einfo is
           and then Chars (Id) = Name_Op_Ne);
       return Node13 (Id);
    end Corresponding_Equality;
+
+   function Corresponding_Protected_Entry (Id : E) return E is
+   begin
+      pragma Assert (Ekind (Id) = E_Subprogram_Body);
+      return Node18 (Id);
+   end Corresponding_Protected_Entry;
 
    function Corresponding_Record_Type (Id : E) return E is
    begin
@@ -1335,6 +1342,12 @@ package body Einfo is
    begin
       return Flag230 (Id);
    end Has_Pragma_Inline_Always;
+
+   function Has_Pragma_Ordered (Id : E) return B is
+   begin
+      pragma Assert (Is_Enumeration_Type (Id));
+      return Flag198 (Implementation_Base_Type (Id));
+   end Has_Pragma_Ordered;
 
    function Has_Pragma_Pack (Id : E) return B is
    begin
@@ -2731,6 +2744,11 @@ package body Einfo is
       return Ekind (Id) in Access_Subprogram_Kind;
    end Is_Access_Subprogram_Type;
 
+   function Is_Aggregate_Type                   (Id : E) return B is
+   begin
+      return Ekind (Id) in Aggregate_Kind;
+   end Is_Aggregate_Type;
+
    function Is_Array_Type                       (Id : E) return B is
    begin
       return Ekind (Id) in Array_Kind;
@@ -3103,6 +3121,12 @@ package body Einfo is
           and then Chars (Id) = Name_Op_Ne);
       Set_Node13 (Id, V);
    end Set_Corresponding_Equality;
+
+   procedure Set_Corresponding_Protected_Entry (Id : E; V : E) is
+   begin
+      pragma Assert (Ekind_In (Id, E_Void, E_Subprogram_Body));
+      Set_Node18 (Id, V);
+   end Set_Corresponding_Protected_Entry;
 
    procedure Set_Corresponding_Record_Type (Id : E; V : E) is
    begin
@@ -3734,6 +3758,13 @@ package body Einfo is
    begin
       Set_Flag230 (Id, V);
    end Set_Has_Pragma_Inline_Always;
+
+   procedure Set_Has_Pragma_Ordered (Id : E; V : B := True) is
+   begin
+      pragma Assert (Is_Enumeration_Type (Id));
+      pragma Assert (Id = Base_Type (Id));
+      Set_Flag198 (Id, V);
+   end Set_Has_Pragma_Ordered;
 
    procedure Set_Has_Pragma_Pack (Id : E; V : B := True) is
    begin
@@ -6883,6 +6914,7 @@ package body Einfo is
       W ("Has_Pragma_Elaborate_Body",       Flag150 (Id));
       W ("Has_Pragma_Inline",               Flag157 (Id));
       W ("Has_Pragma_Inline_Always",        Flag230 (Id));
+      W ("Has_Pragma_Ordered",              Flag198 (Id));
       W ("Has_Pragma_Pack",                 Flag121 (Id));
       W ("Has_Pragma_Preelab_Init",         Flag221 (Id));
       W ("Has_Pragma_Pure",                 Flag203 (Id));
@@ -7642,6 +7674,9 @@ package body Einfo is
 
          when E_Record_Type                                =>
             Write_Str ("Corresponding_Concurrent_Type");
+
+         when E_Subprogram_Body                            =>
+            Write_Str ("Corresponding_Protected_Entry");
 
          when E_Entry_Index_Parameter                      =>
             Write_Str ("Entry_Index_Constant");

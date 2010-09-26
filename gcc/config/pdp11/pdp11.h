@@ -764,7 +764,7 @@ extern int may_call_alloca;
 
 /* cost of moving one register class to another */
 #define REGISTER_MOVE_COST(MODE, CLASS1, CLASS2) \
-  register_move_cost (CLASS1, CLASS2)
+  pdp11_register_move_cost (CLASS1, CLASS2)
 
 /* Tell emit-rtl.c how to initialize special values on a per-function base.  */
 extern int optimize;
@@ -948,28 +948,6 @@ extern struct rtx_def *cc0_reg_rtx;
 
 #define TRAMPOLINE_SIZE 8
 #define TRAMPOLINE_ALIGNMENT 16
-
-/* Some machines may desire to change what optimizations are
-   performed for various optimization levels.   This macro, if
-   defined, is executed once just after the optimization level is
-   determined and before the remainder of the command options have
-   been parsed.  Values set in this macro are used as the default
-   values for the other command line options.
-
-   LEVEL is the optimization level specified; 2 if -O2 is
-   specified, 1 if -O is specified, and 0 if neither is specified.  */
-
-#define OPTIMIZATION_OPTIONS(LEVEL,SIZE)				\
-{									\
-  flag_finite_math_only		= 0;					\
-  flag_trapping_math		= 0;					\
-  flag_signaling_nans		= 0;					\
-  if (LEVEL >= 3)							\
-    {									\
-      flag_omit_frame_pointer		= 1;				\
-      /* flag_unroll_loops			= 1; */			\
-    }									\
-}
 
 /* there is no point in avoiding branches on a pdp, 
    since branches are really cheap - I just want to find out

@@ -173,6 +173,7 @@ Implementation Defined Pragmas
 * Pragma Normalize_Scalars::
 * Pragma Obsolescent::
 * Pragma Optimize_Alignment::
+* Pragma Ordered::
 * Pragma Passive::
 * Pragma Persistent_BSS::
 * Pragma Polling::
@@ -185,6 +186,7 @@ Implementation Defined Pragmas
 * Pragma Restriction_Warnings::
 * Pragma Shared::
 * Pragma Short_Circuit_And_Or::
+* Pragma Short_Descriptors::
 * Pragma Source_File_Name::
 * Pragma Source_File_Name_Project::
 * Pragma Source_Reference::
@@ -789,6 +791,7 @@ consideration, the use of these pragmas should be minimized.
 * Pragma Normalize_Scalars::
 * Pragma Obsolescent::
 * Pragma Optimize_Alignment::
+* Pragma Ordered::
 * Pragma Passive::
 * Pragma Persistent_BSS::
 * Pragma Polling::
@@ -801,6 +804,7 @@ consideration, the use of these pragmas should be minimized.
 * Pragma Restriction_Warnings::
 * Pragma Shared::
 * Pragma Short_Circuit_And_Or::
+* Pragma Short_Descriptors::
 * Pragma Source_File_Name::
 * Pragma Source_File_Name_Project::
 * Pragma Source_Reference::
@@ -2206,8 +2210,9 @@ you can construct your own extension unit following the above
 definition.  Note that such a package is a child of @code{System}
 and thus is considered part of the implementation.  To compile
 it you will have to use the appropriate switch for compiling
-system units.  @xref{Top, @value{EDITION} User's Guide, About This
-Guide,, gnat_ugn, @value{EDITION} User's Guide}, for details.
+system units.
+@xref{Top, @value{EDITION} User's Guide, About This Guide, gnat_ugn, @value{EDITION} User's Guide},
+for details.
 
 @node Pragma Extensions_Allowed
 @unnumberedsec Pragma Extensions_Allowed
@@ -2426,9 +2431,7 @@ floating point types declared in the packages @code{Standard} and
 be @code{IEEE_Float} and the pragma has no effect. On OpenVMS, the
 argument may be @code{VAX_Float} to specify the use of the VAX float
 format for the floating-point types in Standard. This requires that
-the standard runtime libraries be recompiled.  @xref{The GNAT Run-Time
-Library Builder gnatlbr,,, gnat_ugn, @value{EDITION} User's Guide
-OpenVMS}, for a description of the @code{GNAT LIBRARY} command.
+the standard runtime libraries be recompiled.
 
 The two argument form specifies the representation to be used for
 the specified floating-point type. On all systems other than OpenVMS,
@@ -3344,9 +3347,6 @@ type @code{Long_Float} and for floating point type representations with
 For further details on this pragma, see the
 @cite{DEC Ada Language Reference Manual}, section 3.5.7b.  Note that to use
 this pragma, the standard runtime libraries must be recompiled.
-@xref{The GNAT Run-Time Library Builder gnatlbr,,, gnat_ugn,
-@value{EDITION} User's Guide OpenVMS}, for a description of the
-@code{GNAT LIBRARY} command.
 
 @node Pragma Machine_Attribute
 @unnumberedsec Pragma Machine_Attribute
@@ -3730,6 +3730,101 @@ that units with an explicit configuration pragma in the same file as the source
 unit are excluded from the consistency check, as are all predefined units. The
 latter are compiled by default in pragma Optimize_Alignment (Off) mode if no
 pragma appears at the start of the file.
+
+@node Pragma Ordered
+@unnumberedsec Pragma Ordered
+@findex Ordered
+@findex pragma @code{Ordered}
+@noindent
+Syntax:
+
+@smallexample @c ada
+pragma Ordered (enumeration_first_subtype_LOCAL_NAME);
+@end smallexample
+
+@noindent
+Most enumeration types are from a conceptual point of view unordered.
+For example, consider:
+
+@smallexample @c ada
+type Color is (Red, Blue, Green, Yellow);
+@end smallexample
+
+@noindent
+By Ada semantics @code{Blue > Red} and @code{Green > Blue},
+but really these relations make no sense; the enumeration type merely
+specifies a set of possible colors, and the order is unimportant.
+
+For unordered enumeration types, it is generally a good idea if
+clients avoid comparisons (other than equality or inequality) and
+explicit ranges. (A @emph{client} is a unit where the type is referenced,
+other than the unit where the type is declared, its body, and its subunits.)
+For example, if code buried in some client says:
+
+@smallexample @c ada
+if Current_Color < Yellow then ...
+if Current_Color in Blue .. Green then ...
+@end smallexample
+
+@noindent
+then the client code is relying on the order, which is undesirable.
+It makes the code hard to read and creates maintenance difficulties if
+entries have to be added to the enumeration type. Instead,
+the code in the client should list the possibilities, or an
+appropriate subtype should be declared in the unit that declares
+the original enumeration type. E.g., the following subtype could
+be declared along with the type @code{Color}:
+
+@smallexample @c ada
+subtype RBG is Color range Red .. Green;
+@end smallexample
+
+@noindent
+and then the client could write:
+
+@smallexample @c ada
+if Current_Color in RBG then ...
+if Current_Color = Blue or Current_Color = Green then ...
+@end smallexample
+
+@noindent
+However, some enumeration types are legitimately ordered from a conceptual
+point of view. For example, if you declare:
+
+@smallexample @c ada
+type Day is (Mon, Tue, Wed, Thu, Fri, Sat, Sun);
+@end smallexample
+
+@noindent
+then the ordering imposed by the language is reasonable, and
+clients can depend on it, writing for example:
+
+@smallexample @c ada
+if D in Mon .. Fri then ...
+if D < Wed then ...
+@end smallexample
+
+@noindent
+The pragma @option{Ordered} is provided to mark enumeration types that
+are conceptually ordered, alerting the reader that clients may depend
+on the ordering. GNAT provides a pragma to mark enumerations as ordered
+rather than one to mark them as unordered, since in our experience,
+the great majority of enumeration types are conceptually unordered.
+
+The types @code{Boolean}, @code{Character}, @code{Wide_Character},
+and @code{Wide_Wide_Character}
+are considered to be ordered types, so each is declared with a
+pragma @code{Ordered} in package @code{Standard}.
+
+Normally pragma @code{Ordered} serves only as documentation and a guide for
+coding standards, but GNAT provides a warning switch @option{-gnatw.u} that
+requests warnings for inappropriate uses (comparisons and explicit
+subranges) for unordered types. If this switch is used, then any
+enumeration type not marked with pragma @code{Ordered} will be considered
+as unordered, and will generate warnings for inappropriate uses.
+
+For additional information please refer to the description of the
+@option{-gnatw.u} switch in the @value{EDITION} User's Guide.
 
 @node Pragma Passive
 @unnumberedsec Pragma Passive
@@ -4274,6 +4369,14 @@ modifies a global variable (the count).  Memo functions are another
 example (where a table of previous calls is kept and consulted to
 avoid re-computation).
 
+Note also that the normal rules excluding optimization of subprograms
+in pure units (when parameter types are descended from System.Address,
+or when the full view of a parameter type is limited), do not apply
+for the Pure_Function case. If you explicitly specify Pure_Function,
+the compiler may optimize away calls with identical arguments, and
+if that results in unexpected behavior, the proper action is not to
+use the pragma for subprograms that are not (conceptually) pure.
+
 @findex Pure
 Note: Most functions in a @code{Pure} package are automatically pure, and
 there is no need to use pragma @code{Pure_Function} for such functions.  One
@@ -4338,7 +4441,23 @@ short-circuited logical operators. If this configuration pragma occurs locally
 within the file being compiled, it applies only to the file being compiled.
 There is no requirement that all units in a partition use this option.
 
-semantics are identical to pragma Atomic.
+@node Pragma Short_Descriptors
+@unnumberedsec Pragma Short_Descriptors
+@findex Short_Descriptors
+@noindent
+Syntax:
+
+@smallexample @c ada
+pragma Short_Descriptors
+@end smallexample
+
+@noindent
+In VMS versions of the compiler, this configuration pragma causes all
+occurrences of the mechanism types Descriptor[_xxx] to be treated as
+Short_Descriptor[_xxx]. This is helpful in porting legacy applications from a
+32-bit environment to a 64-bit environment. This pragma is ignored for non-VMS
+versions.
+
 @node Pragma Source_File_Name
 @unnumberedsec Pragma Source_File_Name
 @findex Source_File_Name
@@ -5745,11 +5864,11 @@ may raise @code{Constraint_Error}.
 @cindex Representation of enums
 @findex Enum_Val
 @noindent
-For every enumeration subtype @var{S}, @code{@var{S}'Enum_Rep} denotes a
+For every enumeration subtype @var{S}, @code{@var{S}'Enum_Val} denotes a
 function with the following spec:
 
 @smallexample @c ada
-function @var{S}'Enum_Rep (Arg : @i{Universal_Integer)
+function @var{S}'Enum_Val (Arg : @i{Universal_Integer)
   return @var{S}'Base};
 @end smallexample
 
@@ -7095,16 +7214,16 @@ for scalar types.
 @cindex Stream oriented attributes
 The XDR implementation is provided as an alternative body of the
 @code{System.Stream_Attributes} package, in the file
-@file{s-strxdr.adb} in the GNAT library.
-There is no @file{s-strxdr.ads} file.
+@file{s-stratt-xdr.adb} in the GNAT library.
+There is no @file{s-stratt-xdr.ads} file.
 In order to install the XDR implementation, do the following:
 @enumerate
 @item Replace the default implementation of the
 @code{System.Stream_Attributes} package with the XDR implementation.
 For example on a Unix platform issue the commands:
 @smallexample
-$ mv s-stratt.adb s-strold.adb
-$ mv s-strxdr.adb s-stratt.adb
+$ mv s-stratt.adb s-stratt-default.adb
+$ mv s-stratt-xdr.adb s-stratt.adb
 @end smallexample
 
 @item

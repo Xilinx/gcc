@@ -31,6 +31,61 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-propagate.h"
 #include "target.h"
 
+/* Return true when DECL is static object in other partition.
+   In that case we must prevent folding as we can't refer to
+   the symbol.
+
+   We can get into it in two ways:
+     1) When analyzing C++ virtual tables.
+	C++ virtual tables do have known constructors even
+	when they are keyed to other compilation unit.
+	Those tables can contain pointers to methods and vars
+	in other units.  Those methods have both STATIC and EXTERNAL
+	set.
+     2) In WHOPR mode devirtualization might lead to reference
+	to method that was partitioned elsehwere.
+	In this case we have static VAR_DECL or FUNCTION_DECL
+	that has no corresponding callgraph/varpool node
+	declaring the body.  */
+	
+static bool
+static_object_in_other_unit_p (tree decl)
+{
+  struct varpool_node *vnode;
+  struct cgraph_node *node;
+
+  if (!TREE_STATIC (decl)
+      || TREE_PUBLIC (decl) || DECL_COMDAT (decl))
+    return false;
+  /* External flag is set, so we deal with C++ reference
+     to static object from other file.  */
+  if (DECL_EXTERNAL (decl))
+    {
+      /* Just be sure it is not big in frontend setting
+	 flags incorrectly.  Those variables should never
+	 be finalized.  */
+      gcc_checking_assert (!(vnode = varpool_get_node (decl))
+			   || !vnode->finalized);
+      return true;
+    }
+  /* We are not at ltrans stage; so don't worry about WHOPR.  */
+  if (!flag_ltrans)
+    return false;
+  if (TREE_CODE (decl) == FUNCTION_DECL)
+    {
+      node = cgraph_get_node (decl);
+      if (!node || !node->analyzed)
+	return true;
+    }
+  else if (TREE_CODE (decl) == VAR_DECL)
+    {
+      vnode = varpool_get_node (decl);
+      if (!vnode || !vnode->finalized)
+	return true;
+    }
+  return false;
+}
+
 /* CVAL is value taken from DECL_INITIAL of variable.  Try to transorm it into
    acceptable form for is_gimple_min_invariant.   */
 
@@ -50,6 +105,11 @@ canonicalize_constructor_val (tree cval)
   if (TREE_CODE (cval) == ADDR_EXPR)
     {
       tree base = get_base_address (TREE_OPERAND (cval, 0));
+      if (base
+	  && (TREE_CODE (base) == VAR_DECL
+	      || TREE_CODE (base) == FUNCTION_DECL)
+	  && static_object_in_other_unit_p (base))
+	return NULL_TREE;
       if (base && TREE_CODE (base) == VAR_DECL)
 	add_referenced_var (base);
     }
@@ -62,16 +122,16 @@ canonicalize_constructor_val (tree cval)
 tree
 get_symbol_constant_value (tree sym)
 {
-  if ((TREE_STATIC (sym) || DECL_EXTERNAL (sym))
-      && (TREE_CODE (sym) == CONST_DECL
-	  || varpool_get_node (sym)->const_value_known))
+  if (const_value_known_p (sym))
     {
       tree val = DECL_INITIAL (sym);
       if (val)
 	{
 	  val = canonicalize_constructor_val (val);
-	  if (is_gimple_min_invariant (val))
+	  if (val && is_gimple_min_invariant (val))
 	    return val;
+	  else
+	    return NULL_TREE;
 	}
       /* Variables declared 'const' without an initializer
 	 have zero as the initializer if they may not be
@@ -477,7 +537,8 @@ maybe_fold_reference (tree expr, bool is_lhs)
   tree result;
 
   if (!is_lhs
-      && (result = fold_const_aggregate_ref (expr)))
+      && (result = fold_const_aggregate_ref (expr))
+      && is_gimple_min_invariant (result))
     return result;
 
   /* ???  We might want to open-code the relevant remaining cases
@@ -1369,7 +1430,6 @@ gimple_fold_obj_type_ref_known_binfo (HOST_WIDE_INT token, tree known_binfo)
 {
   HOST_WIDE_INT i;
   tree v, fndecl;
-  struct cgraph_node *node;
 
   v = BINFO_VIRTUALS (known_binfo);
   i = 0;
@@ -1381,13 +1441,11 @@ gimple_fold_obj_type_ref_known_binfo (HOST_WIDE_INT token, tree known_binfo)
     }
 
   fndecl = TREE_VALUE (v);
-  node = cgraph_get_node (fndecl);
   /* When cgraph node is missing and function is not public, we cannot
      devirtualize.  This can happen in WHOPR when the actual method
      ends up in other partition, because we found devirtualization
      possibility too late.  */
-  if ((!node || (!node->analyzed && !node->in_other_partition))
-      && (!TREE_PUBLIC (fndecl) || DECL_COMDAT (fndecl)))
+  if (static_object_in_other_unit_p (fndecl))
     return NULL;
   return build_fold_addr_expr (fndecl);
 }
@@ -1413,6 +1471,9 @@ gimple_fold_obj_type_ref (tree ref, tree known_type)
   if (binfo)
     {
       HOST_WIDE_INT token = tree_low_cst (OBJ_TYPE_REF_TOKEN (ref), 1);
+      /* If there is no virtual methods fold this to an indirect call.  */
+      if (!BINFO_VIRTUALS (binfo))
+	return OBJ_TYPE_REF_EXPR (ref);
       return gimple_fold_obj_type_ref_known_binfo (token, binfo);
     }
   else
@@ -1425,7 +1486,7 @@ gimple_fold_obj_type_ref (tree ref, tree known_type)
    It is assumed that the operands have been previously folded.  */
 
 static bool
-fold_gimple_call (gimple_stmt_iterator *gsi)
+fold_gimple_call (gimple_stmt_iterator *gsi, bool inplace)
 {
   gimple stmt = gsi_stmt (*gsi);
 
@@ -1433,7 +1494,7 @@ fold_gimple_call (gimple_stmt_iterator *gsi)
 
   /* Check for builtins that CCP can handle using information not
      available in the generic fold routines.  */
-  if (callee && DECL_BUILT_IN (callee))
+  if (!inplace && callee && DECL_BUILT_IN (callee))
     {
       tree result = gimple_fold_builtin (stmt);
 
@@ -1450,7 +1511,6 @@ fold_gimple_call (gimple_stmt_iterator *gsi)
          there requires that we create a new CALL_EXPR, and that requires
          copying EH region info to the new node.  Easier to just do it
          here where we can just smash the call operand.  */
-      /* ??? Is there a good reason not to do this in fold_stmt_inplace?  */
       callee = gimple_call_fn (stmt);
       if (TREE_CODE (callee) == OBJ_TYPE_REF
           && TREE_CODE (OBJ_TYPE_REF_OBJECT (callee)) == ADDR_EXPR)
@@ -1517,9 +1577,7 @@ fold_stmt_1 (gimple_stmt_iterator *gsi, bool inplace)
 		changed = true;
 	      }
 	  }
-      /* The entire statement may be replaced in this case.  */
-      if (!inplace)
-	changed |= fold_gimple_call (gsi);
+      changed |= fold_gimple_call (gsi, inplace);
       break;
 
     case GIMPLE_ASM:

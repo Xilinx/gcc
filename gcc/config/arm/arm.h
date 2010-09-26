@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for ARM.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Pieter `Tiggr' Schoenmakers (rcpieter@win.tue.nl)
    and Martin Simmons (@harleqn.co.uk).
@@ -498,11 +498,6 @@ extern int arm_arch_hwdiv;
    that is controlled by the APCS-FRAME option.  */
 #define CAN_DEBUG_WITHOUT_FP
 
-#define OVERRIDE_OPTIONS  arm_override_options ()
-
-#define OPTIMIZATION_OPTIONS(LEVEL,SIZE)		\
-	arm_optimization_options ((LEVEL), (SIZE))
-
 /* Nonzero if PIC code requires explicit qualifiers to generate
    PLT and GOT relocs rather than the assembler doing so implicitly.
    Subtargets can override these if required.  */
@@ -579,12 +574,6 @@ extern int arm_arch_hwdiv;
 #define FLOAT_WORDS_BIG_ENDIAN (arm_float_words_big_endian ())
 
 #define UNITS_PER_WORD	4
-
-/* Use the option -mvectorize-with-neon-quad to override the use of doubleword
-   registers when autovectorizing for Neon, at least until multiple vector
-   widths are supported properly by the middle-end.  */
-#define UNITS_PER_SIMD_WORD(MODE) \
-  (TARGET_NEON ? (TARGET_NEON_VECTORIZE_QUAD ? 16 : 8) : UNITS_PER_WORD)
 
 /* True if natural alignment is used for doubleword types.  */
 #define ARM_DOUBLEWORD_ALIGN	TARGET_AAPCS_BASED
@@ -1294,13 +1283,6 @@ enum reg_class
    ? reg_classes_intersect_p (FPA_REGS, (CLASS))	\
      || reg_classes_intersect_p (VFP_REGS, (CLASS))	\
    : 0)
-
-/* We need to define this for LO_REGS on thumb.  Otherwise we can end up
-   using r0-r4 for function arguments, r7 for the stack frame and don't
-   have enough left over to do doubleword arithmetic.  */
-#define CLASS_LIKELY_SPILLED_P(CLASS)	\
-    ((TARGET_THUMB && (CLASS) == LO_REGS)	\
-     || (CLASS) == CC_REG)
 
 /* The class value for index registers, and the one for base regs.  */
 #define INDEX_REG_CLASS  (TARGET_THUMB1 ? LO_REGS : GENERAL_REGS)
@@ -2436,10 +2418,6 @@ extern int making_const_table;
        ? ((~ (unsigned HOST_WIDE_INT) 0)			\
 	  & ~ (unsigned HOST_WIDE_INT) 0xffffffff)		\
        : 0))))
-
-#define OUTPUT_ADDR_CONST_EXTRA(file, x, fail)		\
-  if (arm_output_addr_const_extra (file, x) == FALSE)	\
-    goto fail
 
 /* A C expression whose value is RTL representing the value of the return
    address for the frame COUNT steps up from the current frame.  */

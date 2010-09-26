@@ -386,6 +386,7 @@ package Snames is
    Name_Restriction_Warnings           : constant Name_Id := N + $; -- GNAT
    Name_Reviewable                     : constant Name_Id := N + $;
    Name_Short_Circuit_And_Or           : constant Name_Id := N + $; -- GNAT
+   Name_Short_Descriptors              : constant Name_Id := N + $; -- GNAT
    Name_Source_File_Name               : constant Name_Id := N + $; -- GNAT
    Name_Source_File_Name_Project       : constant Name_Id := N + $; -- GNAT
    Name_Style_Checks                   : constant Name_Id := N + $; -- GNAT
@@ -483,6 +484,7 @@ package Snames is
    Name_No_Return                      : constant Name_Id := N + $; -- Ada 05
    Name_Obsolescent                    : constant Name_Id := N + $; -- GNAT
    Name_Optimize                       : constant Name_Id := N + $;
+   Name_Ordered                        : constant Name_Id := N + $; -- GNAT
    Name_Pack                           : constant Name_Id := N + $;
    Name_Page                           : constant Name_Id := N + $;
    Name_Passive                        : constant Name_Id := N + $; -- GNAT
@@ -1075,7 +1077,9 @@ package Snames is
    Name_Include_Path_File                : constant Name_Id := N + $;
    Name_Inherit_Source_Path              : constant Name_Id := N + $;
    Name_Languages                        : constant Name_Id := N + $;
+   Name_Leading_Library_Options          : constant Name_Id := N + $;
    Name_Leading_Required_Switches        : constant Name_Id := N + $;
+   Name_Leading_Switches                 : constant Name_Id := N + $;
    Name_Library                          : constant Name_Id := N + $;
    Name_Library_Ali_Dir                  : constant Name_Id := N + $;
    Name_Library_Auto_Init                : constant Name_Id := N + $;
@@ -1463,6 +1467,7 @@ package Snames is
       Pragma_Restriction_Warnings,
       Pragma_Reviewable,
       Pragma_Short_Circuit_And_Or,
+      Pragma_Short_Descriptors,
       Pragma_Source_File_Name,
       Pragma_Source_File_Name_Project,
       Pragma_Style_Checks,
@@ -1545,6 +1550,7 @@ package Snames is
       Pragma_No_Return,
       Pragma_Obsolescent,
       Pragma_Optimize,
+      Pragma_Ordered,
       Pragma_Pack,
       Pragma_Page,
       Pragma_Passive,

@@ -722,8 +722,8 @@ package body Checks is
 
    procedure Apply_Arithmetic_Overflow_Check (N : Node_Id) is
       Loc   : constant Source_Ptr := Sloc (N);
-      Typ   : Entity_Id           := Etype (N);
-      Rtyp  : Entity_Id           := Root_Type (Typ);
+      Typ   : constant Entity_Id  := Etype (N);
+      Rtyp  : constant Entity_Id  := Root_Type (Typ);
 
    begin
       --  An interesting special case. If the arithmetic operation appears as
@@ -815,9 +815,23 @@ package body Checks is
                         Subtype_Mark => New_Occurrence_Of (Target_Type, Loc),
                         Expression   => Relocate_Node (Right_Opnd (N))));
 
+                     --  Rewrite the conversion operand so that the original
+                     --  node is retained, in order to avoid the warning for
+                     --  redundant conversions in Resolve_Type_Conversion.
+
+                     --  The above comment is uncomfortable. This seems like
+                     --  an awkward covert channel, since there isno general
+                     --  requirement in sinfo.ads or einfo.ads that requires
+                     --  this rewrite. Instead, the issue seems to be that in
+                     --  the old code, some node was incorrectly marked as
+                     --  coming from source when it should not have been and/or
+                     --  the warning code did not properly test the appropriate
+                     --  Comes_From_Soure flag. ???
+
+                     Rewrite (N, Relocate_Node (N));
+
                      Set_Etype (N, Target_Type);
-                     Typ := Target_Type;
-                     Rtyp := Root_Type (Typ);
+
                      Analyze_And_Resolve (Left_Opnd  (N), Target_Type);
                      Analyze_And_Resolve (Right_Opnd (N), Target_Type);
 
@@ -4092,6 +4106,17 @@ package body Checks is
                end if;
             end;
          end if;
+      end if;
+
+      --  If this is a boolean expression, only its elementary consituents need
+      --  checking: if they are valid, a boolean or short-circuit operation
+      --  with them will be valid as well.
+
+      if Base_Type (Typ) = Standard_Boolean
+        and then
+          (Nkind (Expr) in N_Op or else Nkind (Expr) in N_Short_Circuit)
+      then
+         return;
       end if;
 
       --  If we fall through, a validity check is required

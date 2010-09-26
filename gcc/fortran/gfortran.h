@@ -331,7 +331,11 @@ enum gfc_isym_id
   GFC_ISYM_ATAN,
   GFC_ISYM_ATAN2,
   GFC_ISYM_ATANH,
+  GFC_ISYM_BGE,
+  GFC_ISYM_BGT,
   GFC_ISYM_BIT_SIZE,
+  GFC_ISYM_BLE,
+  GFC_ISYM_BLT,
   GFC_ISYM_BTEST,
   GFC_ISYM_CEILING,
   GFC_ISYM_CHAR,
@@ -355,6 +359,8 @@ enum gfc_isym_id
   GFC_ISYM_DIM,
   GFC_ISYM_DOT_PRODUCT,
   GFC_ISYM_DPROD,
+  GFC_ISYM_DSHIFTL,
+  GFC_ISYM_DSHIFTR,
   GFC_ISYM_DTIME,
   GFC_ISYM_EOSHIFT,
   GFC_ISYM_EPSILON,
@@ -397,7 +403,9 @@ enum gfc_isym_id
   GFC_ISYM_HUGE,
   GFC_ISYM_HYPOT,
   GFC_ISYM_IACHAR,
+  GFC_ISYM_IALL,
   GFC_ISYM_IAND,
+  GFC_ISYM_IANY,
   GFC_ISYM_IARGC,
   GFC_ISYM_IBCLR,
   GFC_ISYM_IBITS,
@@ -412,6 +420,7 @@ enum gfc_isym_id
   GFC_ISYM_INT2,
   GFC_ISYM_INT8,
   GFC_ISYM_IOR,
+  GFC_ISYM_IPARITY,
   GFC_ISYM_IRAND,
   GFC_ISYM_ISATTY,
   GFC_ISYM_IS_IOSTAT_END,
@@ -446,6 +455,8 @@ enum gfc_isym_id
   GFC_ISYM_LSTAT,
   GFC_ISYM_LTIME,
   GFC_ISYM_MALLOC,
+  GFC_ISYM_MASKL,
+  GFC_ISYM_MASKR,
   GFC_ISYM_MATMUL,
   GFC_ISYM_MAX,
   GFC_ISYM_MAXEXPONENT,
@@ -454,6 +465,7 @@ enum gfc_isym_id
   GFC_ISYM_MCLOCK,
   GFC_ISYM_MCLOCK8,
   GFC_ISYM_MERGE,
+  GFC_ISYM_MERGE_BITS,
   GFC_ISYM_MIN,
   GFC_ISYM_MINEXPONENT,
   GFC_ISYM_MINLOC,
@@ -497,6 +509,9 @@ enum gfc_isym_id
   GFC_ISYM_SECOND,
   GFC_ISYM_SET_EXPONENT,
   GFC_ISYM_SHAPE,
+  GFC_ISYM_SHIFTA,
+  GFC_ISYM_SHIFTL,
+  GFC_ISYM_SHIFTR,
   GFC_ISYM_SIGN,
   GFC_ISYM_SIGNAL,
   GFC_ISYM_SI_KIND,
@@ -598,6 +613,7 @@ gfc_reverse;
 #define BBT_HEADER(self) int priority; struct self *left, *right
 
 #define NAMED_INTCST(a,b,c,d) a,
+#define NAMED_KINDARRAY(a,b,c,d) a,
 typedef enum
 {
   ISOFORTRANENV_INVALID = -1,
@@ -605,7 +621,7 @@ typedef enum
   ISOFORTRANENV_LAST, ISOFORTRANENV_NUMBER = ISOFORTRANENV_LAST
 }
 iso_fortran_env_symbol;
-#undef NAMED_INTCST
+#undef NAMED_KINDARRAY
 
 #define NAMED_INTCST(a,b,c,d) a,
 #define NAMED_REALCST(a,b,c) a,
@@ -768,6 +784,9 @@ typedef struct
      component at all.  */
   unsigned alloc_comp:1, pointer_comp:1, proc_pointer_comp:1,
 	   private_comp:1, zero_comp:1, coarray_comp:1;
+
+  /* This is a temporary selector for SELECT TYPE.  */
+  unsigned select_type_temporary:1;
 
   /* Attributes set by compiler extensions (!GCC$ ATTRIBUTES).  */
   unsigned ext_attr:EXT_ATTR_NUM;
@@ -1680,11 +1699,9 @@ typedef struct gfc_expr
 
   locus where;
 
-  /* True if the expression is a call to a function that returns an array,
-     and if we have decided not to allocate temporary data for that array.
-     is_boz is true if the integer is regarded as BOZ bitpatten and is_snan
+  /* is_boz is true if the integer is regarded as BOZ bitpatten and is_snan
      denotes a signalling not-a-number.  */
-  unsigned int inline_noncopying_intrinsic : 1, is_boz : 1, is_snan : 1;
+  unsigned int is_boz : 1, is_snan : 1;
 
   /* Sometimes, when an error has been emitted, it is necessary to prevent
       it from recurring.  */
@@ -2713,6 +2730,7 @@ bool gfc_has_ultimate_allocatable (gfc_expr *);
 bool gfc_has_ultimate_pointer (gfc_expr *);
 
 gfc_expr* gfc_build_intrinsic_call (const char*, locus, unsigned, ...);
+gfc_try gfc_check_vardef_context (gfc_expr*, bool, const char*);
 
 
 /* st.c */
@@ -2872,5 +2890,11 @@ gfc_symtree* gfc_get_tbp_symtree (gfc_symtree**, const char*);
 /* frontend-passes.c */
 
 void gfc_run_passes (gfc_namespace *);
+
+typedef int (*walk_code_fn_t) (gfc_code **, int *, void *);
+typedef int (*walk_expr_fn_t) (gfc_expr **, int *, void *);
+
+int gfc_expr_walker (gfc_expr **, walk_expr_fn_t, void *);
+int gfc_code_walker (gfc_code **, walk_code_fn_t, walk_expr_fn_t, void *);
 
 #endif /* GCC_GFORTRAN_H  */

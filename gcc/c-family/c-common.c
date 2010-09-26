@@ -308,6 +308,7 @@ static tree handle_hot_attribute (tree *, tree, tree, int, bool *);
 static tree handle_cold_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noinline_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noclone_attribute (tree *, tree, tree, int, bool *);
+static tree handle_leaf_attribute (tree *, tree, tree, int, bool *);
 static tree handle_always_inline_attribute (tree *, tree, tree, int,
 					    bool *);
 static tree handle_gnu_inline_attribute (tree *, tree, tree, int, bool *);
@@ -327,6 +328,8 @@ static tree handle_mode_attribute (tree *, tree, tree, int, bool *);
 static tree handle_section_attribute (tree *, tree, tree, int, bool *);
 static tree handle_aligned_attribute (tree *, tree, tree, int, bool *);
 static tree handle_weak_attribute (tree *, tree, tree, int, bool *) ;
+static tree handle_alias_ifunc_attribute (bool, tree *, tree, tree, bool *);
+static tree handle_ifunc_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alias_attribute (tree *, tree, tree, int, bool *);
 static tree handle_weakref_attribute (tree *, tree, tree, int, bool *) ;
 static tree handle_visibility_attribute (tree *, tree, tree, int,
@@ -568,6 +571,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_noinline_attribute },
   { "noclone",                0, 0, true,  false, false,
 			      handle_noclone_attribute },
+  { "leaf",                   0, 0, true,  false, false,
+			      handle_leaf_attribute },
   { "always_inline",          0, 0, true,  false, false,
 			      handle_always_inline_attribute },
   { "gnu_inline",             0, 0, true,  false, false,
@@ -599,6 +604,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_aligned_attribute },
   { "weak",                   0, 0, true,  false, false,
 			      handle_weak_attribute },
+  { "ifunc",                  1, 1, true,  false, false,
+			      handle_ifunc_attribute },
   { "alias",                  1, 1, true,  false, false,
 			      handle_alias_attribute },
   { "weakref",                0, 1, true,  false, false,
@@ -5869,6 +5876,28 @@ handle_gnu_inline_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
+/* Handle a "leaf" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_leaf_attribute (tree *node, tree name,
+		       tree ARG_UNUSED (args),
+		       int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  if (!TREE_PUBLIC (*node))
+    {
+      warning (OPT_Wattributes, "%qE attribute has no effect on unit local functions", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
 /* Handle an "artificial" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -6595,6 +6624,12 @@ handle_weak_attribute (tree *node, tree name,
       error ("inline function %q+D cannot be declared weak", *node);
       *no_add_attrs = true;
     }
+  else if (lookup_attribute ("ifunc", DECL_ATTRIBUTES (*node)))
+    {
+      error ("indirect function %q+D cannot be declared weak", *node);
+      *no_add_attrs = true;
+      return NULL_TREE;
+    }
   else if (TREE_CODE (*node) == FUNCTION_DECL
 	   || TREE_CODE (*node) == VAR_DECL)
     declare_weak (*node);
@@ -6604,16 +6639,18 @@ handle_weak_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
-/* Handle an "alias" attribute; arguments as in
-   struct attribute_spec.handler.  */
+/* Handle an "alias" or "ifunc" attribute; arguments as in
+   struct attribute_spec.handler, except that IS_ALIAS tells us
+   whether this is an alias as opposed to ifunc attribute.  */
 
 static tree
-handle_alias_attribute (tree *node, tree name, tree args,
-			int ARG_UNUSED (flags), bool *no_add_attrs)
+handle_alias_ifunc_attribute (bool is_alias, tree *node, tree name, tree args,
+			      bool *no_add_attrs)
 {
   tree decl = *node;
 
-  if (TREE_CODE (decl) != FUNCTION_DECL && TREE_CODE (decl) != VAR_DECL)
+  if (TREE_CODE (decl) != FUNCTION_DECL
+      && (!is_alias || TREE_CODE (decl) != VAR_DECL))
     {
       warning (OPT_Wattributes, "%qE attribute ignored", name);
       *no_add_attrs = true;
@@ -6626,9 +6663,18 @@ handle_alias_attribute (tree *node, tree name, tree args,
       || (TREE_CODE (decl) != FUNCTION_DECL
 	  && ! TREE_PUBLIC (decl) && DECL_INITIAL (decl)))
     {
-      error ("%q+D defined both normally and as an alias", decl);
+      error ("%q+D defined both normally and as %qE attribute", decl, name);
       *no_add_attrs = true;
+      return NULL_TREE;
     }
+  else if (!is_alias
+	   && (lookup_attribute ("weak", DECL_ATTRIBUTES (decl)) 
+	       || lookup_attribute ("weakref", DECL_ATTRIBUTES (decl))))
+    {
+      error ("weak %q+D cannot be defined %qE", decl, name);
+      *no_add_attrs = true;
+      return NULL_TREE;
+    }			 
 
   /* Note that the very first time we process a nested declaration,
      decl_function_context will not be set.  Indeed, *would* never
@@ -6642,7 +6688,7 @@ handle_alias_attribute (tree *node, tree name, tree args,
       id = TREE_VALUE (args);
       if (TREE_CODE (id) != STRING_CST)
 	{
-	  error ("alias argument not a string");
+	  error ("attribute %qE argument not a string", name);
 	  *no_add_attrs = true;
 	  return NULL_TREE;
 	}
@@ -6660,6 +6706,11 @@ handle_alias_attribute (tree *node, tree name, tree args,
 	    DECL_EXTERNAL (decl) = 0;
 	  TREE_STATIC (decl) = 1;
 	}
+
+      if (!is_alias)
+	/* ifuncs are also aliases, so set that attribute too. */
+	DECL_ATTRIBUTES (decl)
+	  = tree_cons (get_identifier ("alias"), args, DECL_ATTRIBUTES (decl));
     }
   else
     {
@@ -6668,6 +6719,26 @@ handle_alias_attribute (tree *node, tree name, tree args,
     }
 
   return NULL_TREE;
+}
+
+/* Handle an "alias" or "ifunc" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_ifunc_attribute (tree *node, tree name, tree args,
+			int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  return handle_alias_ifunc_attribute (false, node, name, args, no_add_attrs);
+}
+
+/* Handle an "alias" or "ifunc" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_alias_attribute (tree *node, tree name, tree args,
+			int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  return handle_alias_ifunc_attribute (true, node, name, args, no_add_attrs);
 }
 
 /* Handle a "weakref" attribute; arguments as in struct
@@ -6687,6 +6758,13 @@ handle_weakref_attribute (tree *node, tree ARG_UNUSED (name), tree args,
       || (TREE_CODE (*node) != VAR_DECL && TREE_CODE (*node) != FUNCTION_DECL))
     {
       warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+      return NULL_TREE;
+    }
+
+  if (lookup_attribute ("ifunc", DECL_ATTRIBUTES (*node)))
+    {
+      error ("indirect function %q+D cannot be declared weakref", *node);
       *no_add_attrs = true;
       return NULL_TREE;
     }
@@ -7677,10 +7755,10 @@ parse_optimize_options (tree args, bool attr_p)
 		  ret = false;
 		  if (attr_p)
 		    warning (OPT_Wattributes,
-			     "Bad option %s to optimize attribute.", p);
+			     "bad option %s to optimize attribute", p);
 		  else
 		    warning (OPT_Wpragmas,
-			     "Bad option %s to pragma attribute", p);
+			     "bad option %s to pragma attribute", p);
 		  continue;
 		}
 
@@ -9126,6 +9204,40 @@ warn_for_sign_compare (location_t location,
         warning_at (location, OPT_Wsign_compare,
                  "comparison of promoted ~unsigned with unsigned");
     }
+}
+
+/* RESULT_TYPE is the result of converting TYPE1 and TYPE2 to a common
+   type via c_common_type.  If -Wdouble-promotion is in use, and the
+   conditions for warning have been met, issue a warning.  GMSGID is
+   the warning message.  It must have two %T specifiers for the type
+   that was converted (generally "float") and the type to which it was
+   converted (generally "double), respectively.  LOC is the location
+   to which the awrning should refer.  */
+
+void
+do_warn_double_promotion (tree result_type, tree type1, tree type2,
+			 const char *gmsgid, location_t loc)
+{
+  tree source_type;
+
+  if (!warn_double_promotion)
+    return;
+  /* If the conversion will not occur at run-time, there is no need to
+     warn about it.  */
+  if (c_inhibit_evaluation_warnings)
+    return;
+  if (TYPE_MAIN_VARIANT (result_type) != double_type_node
+      && TYPE_MAIN_VARIANT (result_type) != complex_double_type_node)
+    return;
+  if (TYPE_MAIN_VARIANT (type1) == float_type_node
+      || TYPE_MAIN_VARIANT (type1) == complex_float_type_node)
+    source_type = type1;
+  else if (TYPE_MAIN_VARIANT (type2) == float_type_node
+	   || TYPE_MAIN_VARIANT (type2) == complex_float_type_node)
+    source_type = type2;
+  else
+    return;
+  warning_at (loc, OPT_Wdouble_promotion, gmsgid, source_type, result_type);
 }
 
 /* Setup a TYPE_DECL node as a typedef representation.

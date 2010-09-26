@@ -26,6 +26,7 @@
 with GNAT.Directory_Operations; use GNAT.Directory_Operations;
 
 with Csets;
+with Hostparm; use Hostparm;
 with Makeutl;  use Makeutl;
 with MLib.Tgt; use MLib.Tgt;
 with MLib.Utl;
@@ -46,16 +47,14 @@ with Table;
 with Targparm;
 with Tempdir;
 with Types;    use Types;
-with Hostparm; use Hostparm;
---  Used to determine if we are in VMS or not for error message purposes
+with VMS_Conv; use VMS_Conv;
+with VMS_Cmds; use VMS_Cmds;
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;        use Ada.Command_Line;
 with Ada.Text_IO;             use Ada.Text_IO;
 
-with GNAT.OS_Lib;             use GNAT.OS_Lib;
-
-with VMS_Conv;                use VMS_Conv;
+with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 procedure GNATCmd is
    Project_Node_Tree : Project_Node_Tree_Ref;
@@ -806,8 +805,6 @@ procedure GNATCmd is
          Return_Code  => Return_Code,
          Err_To_Out   => True);
 
-      Close (FD);
-
       --  Read the output of the invocation of gnatmake
 
       Open (File, In_File, Get_Name_String (Name));
@@ -1320,9 +1317,7 @@ procedure GNATCmd is
 begin
    --  Initializations
 
-   Namet.Initialize;
    Csets.Initialize;
-
    Snames.Initialize;
 
    Project_Node_Tree := new Project_Node_Tree_Data;
@@ -1351,6 +1346,19 @@ begin
    --  Osint.Program_Name to handle the mapping of GNAAMP tool names.
 
    Targparm.Get_Target_Parameters;
+
+   --  Put the command line in environment variable GNAT_DRIVER_COMMAND_LINE,
+   --  so that the spawned tool may know the way the GNAT driver was invoked.
+
+   Name_Len := 0;
+   Add_Str_To_Name_Buffer (Command_Name);
+
+   for J in 1 .. Argument_Count loop
+      Add_Char_To_Name_Buffer (' ');
+      Add_Str_To_Name_Buffer (Argument (J));
+   end loop;
+
+   Setenv ("GNAT_DRIVER_COMMAND_LINE", Name_Buffer (1 .. Name_Len));
 
    --  Add the directory where the GNAT driver is invoked in front of the path,
    --  if the GNAT driver is invoked with directory information. Do not do this

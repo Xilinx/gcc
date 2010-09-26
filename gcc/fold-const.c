@@ -2044,7 +2044,6 @@ maybe_lvalue_p (const_tree x)
   case COMPONENT_REF:
   case MEM_REF:
   case INDIRECT_REF:
-  case MISALIGNED_INDIRECT_REF:
   case ARRAY_REF:
   case ARRAY_RANGE_REF:
   case BIT_FIELD_REF:
@@ -2587,20 +2586,22 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
       switch (TREE_CODE (arg0))
 	{
 	case INDIRECT_REF:
-	case MISALIGNED_INDIRECT_REF:
 	case REALPART_EXPR:
 	case IMAGPART_EXPR:
 	  return OP_SAME (0);
 
 	case MEM_REF:
-	  /* Require equal access sizes.  We can have incomplete types
-	     for array references of variable-sized arrays from the
-	     Fortran frontent though.  */
+	  /* Require equal access sizes, and similar pointer types.
+	     We can have incomplete types for array references of
+	     variable-sized arrays from the Fortran frontent
+	     though.  */
 	  return ((TYPE_SIZE (TREE_TYPE (arg0)) == TYPE_SIZE (TREE_TYPE (arg1))
 		   || (TYPE_SIZE (TREE_TYPE (arg0))
 		       && TYPE_SIZE (TREE_TYPE (arg1))
 		       && operand_equal_p (TYPE_SIZE (TREE_TYPE (arg0)),
 					   TYPE_SIZE (TREE_TYPE (arg1)), flags)))
+		  && (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_OPERAND (arg0, 1)))
+		      == TYPE_MAIN_VARIANT (TREE_TYPE (TREE_OPERAND (arg1, 1))))
 		  && OP_SAME (0) && OP_SAME (1));
 
 	case ARRAY_REF:
@@ -7597,8 +7598,7 @@ build_fold_addr_expr_with_type_loc (location_t loc, tree t, tree ptrtype)
   if (TREE_CODE (t) == WITH_SIZE_EXPR)
     t = TREE_OPERAND (t, 0);
 
-  if (TREE_CODE (t) == INDIRECT_REF
-      || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
+  if (TREE_CODE (t) == INDIRECT_REF)
     {
       t = TREE_OPERAND (t, 0);
 
@@ -13648,7 +13648,7 @@ fold_check_failed (const_tree expr ATTRIBUTE_UNUSED, const_tree ret ATTRIBUTE_UN
 static void
 fold_checksum_tree (const_tree expr, struct md5_ctx *ctx, htab_t ht)
 {
-  const void **slot;
+  void **slot;
   enum tree_code code;
   union tree_node buf;
   int i, len;
@@ -13660,10 +13660,10 @@ recursive_label:
 	      && sizeof (struct tree_type) <= sizeof (struct tree_function_decl));
   if (expr == NULL)
     return;
-  slot = (const void **) htab_find_slot (ht, expr, INSERT);
+  slot = (void **) htab_find_slot (ht, expr, INSERT);
   if (*slot != NULL)
     return;
-  *slot = expr;
+  *slot = CONST_CAST_TREE (expr);
   code = TREE_CODE (expr);
   if (TREE_CODE_CLASS (code) == tcc_declaration
       && DECL_ASSEMBLER_NAME_SET_P (expr))

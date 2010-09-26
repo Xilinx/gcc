@@ -27,6 +27,12 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 /* FIXME: This file has no business including tm.h.  */
 
+/* FIXME: This file contains functions that will abort the entire
+   program if they fail.  Is that really needed ?
+*/
+
+#include "objc-private/common.h"
+#include "objc-private/error.h"
 #include "tconfig.h"
 #include "coretypes.h"
 #include "tm.h"
@@ -105,13 +111,24 @@ static int __attribute__ ((__unused__)) not_target_flags = 0;
 #undef ALTIVEC_VECTOR_MODE
 #define ALTIVEC_VECTOR_MODE(MODE) (0)
 
+/* Furthermore, some (powerpc) targets also use TARGET_ALIGN_NATURAL
+ in their alignment macros. Currently[4.5/6], rs6000.h points this
+ to a static variable, initialized by target overrides. This is reset
+ in linux64.h but not in darwin64.h.  The macro is not used by *86*.  */
+
+#if __MACH__ && __LP64__
+# undef TARGET_ALIGN_NATURAL
+# define TARGET_ALIGN_NATURAL 1
+#endif
 
 /*  FIXME: while this file has no business including tm.h, this
     definitely has no business defining this macro but it
     is only way around without really rewritting this file,
-    should look after the branch of 3.4 to fix this.  */
+    should look after the branch of 3.4 to fix this.
+    FIXME1: It's also out of date, darwin no longer has the same alignment
+    'special' as aix - this is probably the origin of the m32 breakage.  */
 #define rs6000_special_round_type_align(STRUCT, COMPUTED, SPECIFIED)	\
-  ({ const char *_fields = TYPE_FIELDS (STRUCT);				\
+  ({ const char *_fields = TYPE_FIELDS (STRUCT);			\
   ((_fields != 0							\
     && TYPE_MODE (strip_array_types (TREE_TYPE (_fields))) == DFmode)	\
    ? MAX (MAX (COMPUTED, SPECIFIED), 64)				\
@@ -304,8 +321,11 @@ objc_sizeof_type (const char *type)
 	    
 	    default:
 	      {
-		objc_error (nil, OBJC_ERR_BAD_TYPE, "unknown complex type %s\n",
-			    type);
+		/* FIXME: Is this so bad that we have to abort the
+		   entire program ?  (it applies to all the other
+		   _objc_abort calls in this file).
+		*/
+		_objc_abort ("unknown complex type %s\n", type);
 		return 0;
 	      }
 	}
@@ -313,7 +333,7 @@ objc_sizeof_type (const char *type)
 
   default:
     {
-      objc_error (nil, OBJC_ERR_BAD_TYPE, "unknown type %s\n", type);
+      _objc_abort ("unknown type %s\n", type);
       return 0;
     }
   }
@@ -479,8 +499,7 @@ objc_alignof_type (const char *type)
 	    
 	    default:
 	      {
-		objc_error (nil, OBJC_ERR_BAD_TYPE, "unknown complex type %s\n",
-			    type);
+		_objc_abort ("unknown complex type %s\n", type);
 		return 0;
 	      }
 	}
@@ -488,7 +507,7 @@ objc_alignof_type (const char *type)
 
   default:
     {
-      objc_error (nil, OBJC_ERR_BAD_TYPE, "unknown type %s\n", type);
+      _objc_abort ("unknown type %s\n", type);
       return 0;
     }
   }
@@ -631,7 +650,7 @@ objc_skip_typespec (const char *type)
       return ++type;
     else
       {
-	objc_error (nil, OBJC_ERR_BAD_TYPE, "bad array type %s\n", type);
+	_objc_abort ("bad array type %s\n", type);
 	return 0;
       }
 
@@ -672,7 +691,7 @@ objc_skip_typespec (const char *type)
 
   default:
     {
-      objc_error (nil, OBJC_ERR_BAD_TYPE, "unknown type %s\n", type);
+      _objc_abort ("unknown type %s\n", type);
       return 0;
     }
   }
@@ -870,9 +889,8 @@ objc_layout_structure (const char *type,
 
   if (*type != _C_UNION_B && *type != _C_STRUCT_B)
     {
-      objc_error (nil, OBJC_ERR_BAD_TYPE,
-                 "record (or union) type expected in objc_layout_structure, got %s\n",
-                 type);
+      _objc_abort ("record (or union) type expected in objc_layout_structure, got %s\n",
+		   type);
     }
 
   type ++;

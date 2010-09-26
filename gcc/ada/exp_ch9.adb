@@ -829,10 +829,12 @@ package body Exp_Ch9 is
 
    begin
       --  Loop to find enclosing construct containing activation chain variable
+      --  The construct is a body, a block, or an extended return.
 
       P := Parent (N);
 
       while not Nkind_In (P, N_Subprogram_Body,
+                             N_Entry_Body,
                              N_Package_Declaration,
                              N_Package_Body,
                              N_Block_Statement,
@@ -2479,31 +2481,7 @@ package body Exp_Ch9 is
       S    : Entity_Id;
 
    begin
-      S := Scope (E);
-
-      --  Ada 2005 (AI-287): Do not set/get the has_master_entity reminder
-      --  in internal scopes, unless present already.. Required for nested
-      --  limited aggregates, where the expansion of task components may
-      --  generate inner blocks. If the block is the rewriting of a call
-      --  or the scope is an extended return statement this is valid master.
-      --  The master in an extended return is only used within the return,
-      --  and is subsequently overwritten in Move_Activation_Chain, but it
-      --  must exist now.
-
-      if Ada_Version >= Ada_05 then
-         while Is_Internal (S) loop
-            if Nkind (Parent (S)) = N_Block_Statement
-              and then
-                Nkind (Original_Node (Parent (S))) = N_Procedure_Call_Statement
-            then
-               exit;
-            elsif Ekind (S) = E_Return_Statement then
-               exit;
-            else
-               S := Scope (S);
-            end if;
-         end loop;
-      end if;
+      S := Find_Master_Scope (E);
 
       --  Nothing to do if we already built a master entity for this scope
       --  or if there is no task hierarchy.
@@ -2532,14 +2510,7 @@ package body Exp_Ch9 is
       Insert_Before (P, Decl);
       Analyze (Decl);
 
-      --  Ada 2005 (AI-287): Set the has_master_entity reminder in the
-      --  non-internal scope selected above.
-
-      if Ada_Version >= Ada_05 then
-         Set_Has_Master_Entity (S);
-      else
-         Set_Has_Master_Entity (Scope (E));
-      end if;
+      Set_Has_Master_Entity (S);
 
       --  Now mark the containing scope as a task master
 
@@ -2748,6 +2719,10 @@ package body Exp_Ch9 is
             when others =>
                raise Program_Error;
          end case;
+
+         --  Establish link between subprogram body entity and source entry.
+
+         Set_Corresponding_Protected_Entry (Edef, Ent);
 
          --  Create body of entry procedure. The renaming declarations are
          --  placed ahead of the block that contains the actual entry body.
@@ -5283,6 +5258,11 @@ package body Exp_Ch9 is
              Identifier                 => New_Reference_To (Blkent, Loc),
              Declarations               => Declarations (N),
              Handled_Statement_Sequence => Build_Accept_Body (N));
+
+         --  For the analysis of the generated declarations, the parent node
+         --  must be properly set.
+
+         Set_Parent (Block, Parent (N));
 
          --  Prepend call to Accept_Call to main statement sequence If the
          --  accept has exception handlers, the statement sequence is wrapped
@@ -11134,6 +11114,43 @@ package body Exp_Ch9 is
             Make_Integer_Literal (Loc, 0)));
    end Family_Size;
 
+   -----------------------
+   -- Find_Master_Scope --
+   -----------------------
+
+   function Find_Master_Scope (E : Entity_Id) return Entity_Id is
+      S : Entity_Id;
+
+   begin
+      --  In Ada2005, the master is the innermost enclosing scope that is not
+      --  transient. If the enclosing block is the rewriting of a call or the
+      --  scope is an extended return statement this is valid master. The
+      --  master in an extended return is only used within the return, and is
+      --  subsequently overwritten in Move_Activation_Chain, but it must exist
+      --  now before that overwriting occurs.
+
+      S := Scope (E);
+
+      if Ada_Version >= Ada_05 then
+         while Is_Internal (S) loop
+            if Nkind (Parent (S)) = N_Block_Statement
+              and then
+                Nkind (Original_Node (Parent (S))) = N_Procedure_Call_Statement
+            then
+               exit;
+
+            elsif Ekind (S) = E_Return_Statement then
+               exit;
+
+            else
+               S := Scope (S);
+            end if;
+         end loop;
+      end if;
+
+      return S;
+   end Find_Master_Scope;
+
    -----------------------------------
    -- Find_Task_Or_Protected_Pragma --
    -----------------------------------
@@ -12121,13 +12138,14 @@ package body Exp_Ch9 is
 
          --  Master parameter. This is a reference to the _Master parameter of
          --  the initialization procedure, except in the case of the pragma
-         --  Restrictions (No_Task_Hierarchy) where the value is fixed to 3
-         --  (3 is System.Tasking.Library_Task_Level).
+         --  Restrictions (No_Task_Hierarchy) where the value is fixed to
+         --  System.Tasking.Library_Task_Level.
 
          if Restriction_Active (No_Task_Hierarchy) = False then
             Append_To (Args, Make_Identifier (Loc, Name_uMaster));
          else
-            Append_To (Args, Make_Integer_Literal (Loc, 3));
+            Append_To (Args,
+              New_Occurrence_Of (RTE (RE_Library_Task_Level), Loc));
          end if;
       end if;
 

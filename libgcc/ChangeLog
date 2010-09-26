@@ -1,3 +1,33 @@
+2010-09-21  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* Makefile.in (libgcc-extra-parts):  Check for static archives and
+	invoke ranlib after installing them.
+	(gcc-extra-parts): Likewise.
+	(install-leaf): Likewise.
+
+2010-09-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure: Regenerated.
+
+2010-09-10  Kai Tietz  <kai.tietz@onevision.com>
+
+	* configure: Regenerated.
+
+2010-09-09  Gerald Pfeifer  <gerald@pfeifer.com>
+	    Andrew Pinski  <pinskia@gmail.com>
+
+	PR target/40959	
+	* config.host (ia64*-*-freebsd*): Set extra_parts.  Set tmake_file.
+
+2010-09-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/45524
+	* configure: Regenerated.
+
+2010-09-06  Andreas Schwab  <schwab@redhat.com>
+
+	* configure: Regenerate.
+
 2010-09-03  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/t-sol2 (__copysigntf3, __fabstf3): Disable for

@@ -1,6 +1,6 @@
 /* Prototypes for exported functions defined in arm.c and pe.c
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009 Free Software Foundation, Inc.
+   2009, 2010 Free Software Foundation, Inc.
    Contributed by Richard Earnshaw (rearnsha@arm.com)
    Minor hacks by Nick Clifton (nickc@cygnus.com)
 
@@ -23,8 +23,6 @@
 #ifndef GCC_ARM_PROTOS_H
 #define GCC_ARM_PROTOS_H
 
-extern void arm_override_options (void);
-extern void arm_optimization_options (int, int);
 extern int use_return_insn (int, rtx);
 extern enum reg_class arm_regno_class (int);
 extern void arm_load_pic_register (unsigned long);
@@ -88,6 +86,8 @@ extern int arm_coproc_mem_operand (rtx, bool);
 extern int neon_vector_mem_operand (rtx, int);
 extern int neon_struct_mem_operand (rtx);
 extern int arm_no_early_store_addr_dep (rtx, rtx);
+extern int arm_early_store_addr_dep (rtx, rtx);
+extern int arm_early_load_addr_dep (rtx, rtx);
 extern int arm_no_early_alu_shift_dep (rtx, rtx);
 extern int arm_no_early_alu_shift_value_dep (rtx, rtx);
 extern int arm_no_early_mul_dep (rtx, rtx);
@@ -129,6 +129,7 @@ extern const char *output_move_quad (rtx *);
 extern const char *output_move_vfp (rtx *operands);
 extern const char *output_move_neon (rtx *operands);
 extern int arm_attr_length_move_neon (rtx);
+extern int arm_address_offset_is_imm (rtx);
 extern const char *output_add_immediate (rtx *);
 extern const char *arithmetic_instr (rtx, int);
 extern void output_ascii_pseudo_op (FILE *, const unsigned char *, int);
@@ -149,8 +150,6 @@ extern void arm_expand_sync (enum machine_mode, struct arm_sync_generator *,
 extern const char *arm_output_memory_barrier (rtx *);
 extern const char *arm_output_sync_insn (rtx, rtx *);
 extern unsigned int arm_sync_loop_insns (rtx , rtx *);
-
-extern bool arm_output_addr_const_extra (FILE *, rtx);
 
 #if defined TREE_CODE
 extern void arm_init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree);

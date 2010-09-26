@@ -142,6 +142,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #endif
 #endif
 
+#ifndef IFUNC_ASM_TYPE
+#define IFUNC_ASM_TYPE "gnu_indirect_function"
+#endif
+
 #ifndef TLS_COMMON_ASM_OP
 #define TLS_COMMON_ASM_OP ".tls_common"
 #endif
@@ -943,12 +947,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #ifndef HAS_LONG_UNCOND_BRANCH
 #define HAS_LONG_UNCOND_BRANCH 0
-#endif
-
-/* By default, only attempt to parallelize bitwise operations, and
-   possibly adds/subtracts using bit-twiddling.  */
-#ifndef UNITS_PER_SIMD_WORD
-#define UNITS_PER_SIMD_WORD(MODE) UNITS_PER_WORD
 #endif
 
 /* Determine whether __cxa_atexit, rather than atexit, is used to

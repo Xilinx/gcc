@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -110,7 +110,8 @@ package body Prj.Util is
       Main     : File_Name_Type;
       Index    : Int;
       Ada_Main : Boolean := True;
-      Language : String := "") return File_Name_Type
+      Language : String := "";
+      Include_Suffix : Boolean := True) return File_Name_Type
    is
       pragma Assert (Project /= No_Project);
 
@@ -130,8 +131,6 @@ package body Prj.Util is
                         In_Package              => Builder_Package,
                         In_Tree                 => In_Tree);
 
-      Executable_Suffix_Name : Name_Id := No_Name;
-
       Lang   : Language_Ptr;
 
       Spec_Suffix : Name_Id := No_Name;
@@ -144,6 +143,10 @@ package body Prj.Util is
         (B_Suffix : File_Name_Type;
          S_Suffix : File_Name_Type);
       --  Get the non empty suffixes in variables Spec_Suffix and Body_Suffix
+
+      function Add_Suffix (File : File_Name_Type) return File_Name_Type;
+      --  Return the name of the executable, based on File, and adding the
+      --  executable suffix if needed
 
       ------------------
       -- Get_Suffixes --
@@ -165,6 +168,52 @@ package body Prj.Util is
          end if;
       end Get_Suffixes;
 
+      ----------------
+      -- Add_Suffix --
+      ----------------
+
+      function Add_Suffix (File : File_Name_Type) return File_Name_Type is
+         Saved_EEOT : constant Name_Id := Executable_Extension_On_Target;
+         Result     : File_Name_Type;
+         Suffix_From_Project : Variable_Value;
+      begin
+         if Include_Suffix then
+            if Project.Config.Executable_Suffix /= No_Name then
+               Executable_Extension_On_Target :=
+                 Project.Config.Executable_Suffix;
+            end if;
+
+            Result :=  Executable_Name (File);
+            Executable_Extension_On_Target := Saved_EEOT;
+            return Result;
+
+         elsif Builder_Package /= No_Package then
+
+            --  If the suffix is specified in the project itself, as opposed to
+            --  the config file, it needs to be taken into account. However,
+            --  when the project was processed, in both cases the suffix was
+            --  stored in Project.Config, so get it from the project again.
+
+            Suffix_From_Project :=
+              Prj.Util.Value_Of
+                (Variable_Name => Name_Executable_Suffix,
+                 In_Variables  =>
+                   In_Tree.Packages.Table (Builder_Package).Decl.Attributes,
+                 In_Tree       => In_Tree);
+
+            if Suffix_From_Project /= Nil_Variable_Value
+              and then Suffix_From_Project.Value /= No_Name
+            then
+               Executable_Extension_On_Target := Suffix_From_Project.Value;
+               Result :=  Executable_Name (File);
+               Executable_Extension_On_Target := Saved_EEOT;
+               return Result;
+            end if;
+         end if;
+
+         return File;
+      end Add_Suffix;
+
    --  Start of processing for Executable_Of
 
    begin
@@ -181,8 +230,6 @@ package body Prj.Util is
       end if;
 
       if Builder_Package /= No_Package then
-         Executable_Suffix_Name := Project.Config.Executable_Suffix;
-
          if Executable = Nil_Variable_Value and then Ada_Main then
             Get_Name_String (Main);
 
@@ -237,22 +284,7 @@ package body Prj.Util is
            and then Executable.Value /= No_Name
            and then Length_Of_Name (Executable.Value) /= 0
          then
-            --  Get the executable name. If Executable_Suffix is defined,
-            --  make sure that it will be the extension of the executable.
-
-            declare
-               Saved_EEOT : constant Name_Id := Executable_Extension_On_Target;
-               Result     : File_Name_Type;
-
-            begin
-               if Executable_Suffix_Name /= No_Name then
-                  Executable_Extension_On_Target := Executable_Suffix_Name;
-               end if;
-
-               Result :=  Executable_Name (File_Name_Type (Executable.Value));
-               Executable_Extension_On_Target := Saved_EEOT;
-               return Result;
-            end;
+            return Add_Suffix (File_Name_Type (Executable.Value));
          end if;
       end if;
 
@@ -287,24 +319,7 @@ package body Prj.Util is
          Get_Name_String (Strip_Suffix (Main));
       end if;
 
-      --  Get the executable name. If Executable_Suffix is defined in the
-      --  configuration, make sure that it will be the extension of the
-      --  executable.
-
-      declare
-         Saved_EEOT : constant Name_Id := Executable_Extension_On_Target;
-         Result     : File_Name_Type;
-
-      begin
-         if Project.Config.Executable_Suffix /= No_Name then
-            Executable_Extension_On_Target :=
-              Project.Config.Executable_Suffix;
-         end if;
-
-         Result := Executable_Name (Name_Find);
-         Executable_Extension_On_Target := Saved_EEOT;
-         return Result;
-      end;
+      return Add_Suffix (Name_Find);
    end Executable_Of;
 
    --------------

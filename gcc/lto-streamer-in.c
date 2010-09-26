@@ -355,6 +355,7 @@ lto_input_tree_ref (struct lto_input_block *ib, struct data_in *data_in,
     case LTO_const_decl_ref:
     case LTO_imported_decl_ref:
     case LTO_label_decl_ref:
+    case LTO_translation_unit_decl_ref:
       ix_u = lto_input_uleb128 (ib);
       result = lto_file_decl_data_get_var_decl (data_in->file_data, ix_u);
       break;
@@ -1683,6 +1684,13 @@ unpack_ts_block_value_fields (struct bitpack_d *bp, tree expr)
   BLOCK_NUMBER (expr) = (unsigned) bp_unpack_value (bp, 31);
 }
 
+/* Unpack all the non-pointer fields of the TS_TRANSLATION_UNIT_DECL
+   structure of expression EXPR from bitpack BP.  */
+
+static void
+unpack_ts_translation_unit_decl_value_fields (struct bitpack_d *bp ATTRIBUTE_UNUSED, tree expr ATTRIBUTE_UNUSED)
+{
+}
 
 /* Unpack all the non-pointer fields in EXPR into a bit pack.  */
 
@@ -1738,6 +1746,9 @@ unpack_value_fields (struct bitpack_d *bp, tree expr)
       /* This is only used by High GIMPLE.  */
       gcc_unreachable ();
     }
+
+  if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
+    unpack_ts_translation_unit_decl_value_fields (bp, expr);
 }
 
 
@@ -1932,6 +1943,13 @@ lto_input_ts_decl_common_tree_pointers (struct lto_input_block *ib,
        || TREE_CODE (expr) == PARM_DECL)
       && DECL_HAS_VALUE_EXPR_P (expr))
     SET_DECL_VALUE_EXPR (expr, lto_input_tree (ib, data_in));
+
+  if (TREE_CODE (expr) == VAR_DECL)
+    {
+      tree dexpr = lto_input_tree (ib, data_in);
+      if (dexpr)
+	SET_DECL_DEBUG_EXPR (expr, dexpr);
+    }
 }
 
 
@@ -2030,8 +2048,6 @@ lto_input_ts_type_tree_pointers (struct lto_input_block *ib,
   else if (TREE_CODE (expr) == FUNCTION_TYPE
 	   || TREE_CODE (expr) == METHOD_TYPE)
     TYPE_ARG_TYPES (expr) = lto_input_tree (ib, data_in);
-  else if (TREE_CODE (expr) == VECTOR_TYPE)
-    TYPE_DEBUG_REPRESENTATION_TYPE (expr) = lto_input_tree (ib, data_in);
 
   TYPE_SIZE (expr) = lto_input_tree (ib, data_in);
   TYPE_SIZE_UNIT (expr) = lto_input_tree (ib, data_in);
@@ -2218,6 +2234,17 @@ lto_input_ts_target_option (struct lto_input_block *ib, tree expr)
     fatal_error ("cl_target_option size mismatch in LTO reader and writer");
 }
 
+/* Input a TS_TRANSLATION_UNIT_DECL tree from IB and DATA_IN into EXPR.  */
+
+static void
+lto_input_ts_translation_unit_decl_tree_pointers (struct lto_input_block *ib,
+						  struct data_in *data_in,
+						  tree expr)
+{
+  TRANSLATION_UNIT_LANGUAGE (expr) = xstrdup (input_string (data_in, ib));
+  VEC_safe_push (tree, gc, all_translation_units, expr);
+}
+
 /* Helper for lto_input_tree.  Read all pointer fields in EXPR from
    input block IB.  DATA_IN contains tables and descriptors for the
    file being read.  */
@@ -2303,6 +2330,9 @@ lto_input_tree_pointers (struct lto_input_block *ib, struct data_in *data_in,
 
   if (CODE_CONTAINS_STRUCT (code, TS_TARGET_OPTION))
     lto_input_ts_target_option (ib, expr);
+
+  if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
+    lto_input_ts_translation_unit_decl_tree_pointers (ib, data_in, expr);
 }
 
 

@@ -470,8 +470,6 @@ do { \
 
 #define DRIVER_SELF_SPECS "%{m2a:%{ml:%eSH2a does not support little-endian}}"
 
-#define OPTIMIZATION_OPTIONS(LEVEL,SIZE) sh_optimization_options (LEVEL, SIZE)
-
 #define ASSEMBLER_DIALECT assembler_dialect
 
 extern int assembler_dialect;
@@ -506,8 +504,6 @@ extern enum sh_divide_strategy_e sh_div_strategy;
 #define SUBTARGET_OVERRIDE_OPTIONS (void) 0
 
 extern const char *sh_fixed_range_str;
-
-#define OVERRIDE_OPTIONS sh_override_options ()
 
 
 /* Target machine storage layout.  */
@@ -1451,8 +1447,6 @@ extern enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER];
    ? FIRST_FP_PARM_REG					\
    : FIRST_PARM_REG)
 
-#define FUNCTION_VALUE_REGNO_P(REGNO) sh_function_value_regno_p (REGNO)
-
 /* 1 if N is a possible register number for function argument passing.  */
 /* ??? There are some callers that pass REGNO as int, and others that pass
    it as unsigned.  We get warnings unless we do casts everywhere.  */
@@ -2173,9 +2167,6 @@ struct sh_args {
 #define REGCLASS_HAS_FP_REG(CLASS) \
   ((CLASS) == FP0_REGS || (CLASS) == FP_REGS \
    || (CLASS) == DF_REGS || (CLASS) == DF_HI_REGS)
-
-#define REGISTER_MOVE_COST(MODE, SRCCLASS, DSTCLASS) \
-  sh_register_move_cost ((MODE), (SRCCLASS), (DSTCLASS))
 
 /* ??? Perhaps make MEMORY_MOVE_COST depend on compiler option?  This
    would be so that people with slow memory systems could generate

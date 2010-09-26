@@ -264,6 +264,8 @@ frv_cpu_t frv_cpu_type = CPU_TYPE;	/* value of -mcpu= */
 /* Forward references */
 
 static bool frv_handle_option			(size_t, const char *, int);
+static void frv_option_override			(void);
+static void frv_option_optimization		(int, int);
 static bool frv_legitimate_address_p		(enum machine_mode, rtx, bool);
 static int frv_default_flags_for_cpu		(void);
 static int frv_string_begins_with		(const_tree, const char *);
@@ -371,6 +373,10 @@ static void frv_setup_incoming_varargs		(CUMULATIVE_ARGS *,
 static rtx frv_expand_builtin_saveregs		(void);
 static void frv_expand_builtin_va_start		(tree, rtx);
 static bool frv_rtx_costs			(rtx, int, int, int*, bool);
+static int frv_register_move_cost		(enum machine_mode,
+						 reg_class_t, reg_class_t);
+static int frv_memory_move_cost			(enum machine_mode,
+						 reg_class_t, bool);
 static void frv_asm_out_constructor		(rtx, int);
 static void frv_asm_out_destructor		(rtx, int);
 static bool frv_function_symbol_referenced_p	(rtx);
@@ -391,6 +397,7 @@ static reg_class_t frv_secondary_reload		(bool, rtx, reg_class_t,
 static bool frv_frame_pointer_required		(void);
 static bool frv_can_eliminate			(const int, const int);
 static void frv_trampoline_init			(rtx, tree, rtx);
+static bool frv_class_likely_spilled_p 		(reg_class_t);
 
 /* Allow us to easily change the default for -malloc-cc.  */
 #ifndef DEFAULT_NO_ALLOC_CC
@@ -423,6 +430,10 @@ static void frv_trampoline_init			(rtx, tree, rtx);
    | MASK_NESTED_CE)
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION frv_handle_option
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE frv_option_override
+#undef TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION frv_option_optimization
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS frv_init_builtins
 #undef TARGET_EXPAND_BUILTIN
@@ -431,6 +442,10 @@ static void frv_trampoline_init			(rtx, tree, rtx);
 #define TARGET_INIT_LIBFUNCS frv_init_libfuncs
 #undef TARGET_IN_SMALL_DATA_P
 #define TARGET_IN_SMALL_DATA_P frv_in_small_data_p
+#undef TARGET_REGISTER_MOVE_COST
+#define TARGET_REGISTER_MOVE_COST frv_register_move_cost
+#undef TARGET_MEMORY_MOVE_COST
+#define TARGET_MEMORY_MOVE_COST frv_memory_move_cost
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS frv_rtx_costs
 #undef TARGET_ASM_CONSTRUCTOR
@@ -480,6 +495,9 @@ static void frv_trampoline_init			(rtx, tree, rtx);
 #undef TARGET_ASM_OUTPUT_DWARF_DTPREL
 #define TARGET_ASM_OUTPUT_DWARF_DTPREL frv_output_dwarf_dtprel
 #endif
+
+#undef TARGET_CLASS_LIKELY_SPILLED_P
+#define TARGET_CLASS_LIKELY_SPILLED_P frv_class_likely_spilled_p
 
 #undef  TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD frv_secondary_reload
@@ -657,17 +675,10 @@ frv_default_flags_for_cpu (void)
     }
 }
 
-/* Sometimes certain combinations of command options do not make
-   sense on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
+/* Implement TARGET_OPTION_OVERRIDE.  */
 
-   Don't use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.  */
-
-void
-frv_override_options (void)
+static void
+frv_option_override (void)
 {
   int regno;
   unsigned int i;
@@ -842,29 +853,12 @@ frv_override_options (void)
 }
 
 
-/* Some machines may desire to change what optimizations are performed for
-   various optimization levels.  This macro, if defined, is executed once just
-   after the optimization level is determined and before the remainder of the
-   command options have been parsed.  Values set in this macro are used as the
-   default values for the other command line options.
+/* Implement TARGET_OPTION_OPTIMIZATION.
 
-   LEVEL is the optimization level specified; 2 if `-O2' is specified, 1 if
-   `-O' is specified, and 0 if neither is specified.
-
-   SIZE is nonzero if `-Os' is specified, 0 otherwise.
-
-   You should not use this macro to change options that are not
-   machine-specific.  These should uniformly selected by the same optimization
-   level on all supported machines.  Use this macro to enable machine-specific
-   optimizations.
-
-   *Do not examine `write_symbols' in this macro!* The debugging options are
-   *not supposed to alter the generated code.  */
-
-/* On the FRV, possibly disable VLIW packing which is done by the 2nd
+   On the FRV, possibly disable VLIW packing which is done by the 2nd
    scheduling pass at the current time.  */
-void
-frv_optimization_options (int level, int size ATTRIBUTE_UNUSED)
+static void
+frv_option_optimization (int level, int size ATTRIBUTE_UNUSED)
 {
   if (level >= 2)
     {
@@ -4073,7 +4067,7 @@ frv_emit_movsi (rtx dest, rtx src)
 	  || (GET_CODE (src) == REG
 	      && IN_RANGE_P (REGNO (src),
 			     FIRST_VIRTUAL_REGISTER,
-			     LAST_VIRTUAL_REGISTER))))
+			     LAST_VIRTUAL_POINTER_REGISTER))))
     {
       emit_insn (gen_rtx_SET (VOIDmode, dest, copy_to_mode_reg (SImode, src)));
       return TRUE;
@@ -6533,23 +6527,10 @@ frv_secondary_reload (bool in_p, rtx x, reg_class_t reload_class_i,
 
 }
 
-/* A C expression whose value is nonzero if pseudos that have been assigned to
-   registers of class RCLASS would likely be spilled because registers of RCLASS
-   are needed for spill registers.
+/* Worker function for TARGET_CLASS_LIKELY_SPILLED_P.  */
 
-   The default value of this macro returns 1 if RCLASS has exactly one register
-   and zero otherwise.  On most machines, this default should be used.  Only
-   define this macro to some other expression if pseudo allocated by
-   `local-alloc.c' end up in memory because their hard registers were needed
-   for spill registers.  If this macro returns nonzero for those classes, those
-   pseudos will only be allocated by `global.c', which knows how to reallocate
-   the pseudo to another register.  If there would not be another register
-   available for reallocation, you should not change the definition of this
-   macro since the only effect of such a definition would be to slow down
-   register allocation.  */
-
-int
-frv_class_likely_spilled_p (enum reg_class rclass)
+static bool
+frv_class_likely_spilled_p (reg_class_t rclass)
 {
   switch (rclass)
     {
@@ -6574,10 +6555,10 @@ frv_class_likely_spilled_p (enum reg_class rclass)
     case EVEN_ACC_REGS:
     case ACC_REGS:
     case ACCG_REGS:
-      return TRUE;
+      return true;
     }
 
-  return FALSE;
+  return false;
 }
 
 
@@ -6917,28 +6898,16 @@ frv_select_cc_mode (enum rtx_code code, rtx x, rtx y)
     }
 }
 
-/* A C expression for the cost of moving data from a register in class FROM to
-   one in class TO.  The classes are expressed using the enumeration values
-   such as `GENERAL_REGS'.  A value of 4 is the default; other values are
-   interpreted relative to that.
 
-   It is not required that the cost always equal 2 when FROM is the same as TO;
-   on some machines it is expensive to move between registers if they are not
-   general registers.
-
-   If reload sees an insn consisting of a single `set' between two hard
-   registers, and if `REGISTER_MOVE_COST' applied to their classes returns a
-   value of 2, reload does not check to ensure that the constraints of the insn
-   are met.  Setting a cost of other than 2 will allow reload to verify that
-   the constraints are met.  You should do this if the `movM' pattern's
-   constraints do not allow such copying.  */
+/* Worker function for TARGET_REGISTER_MOVE_COST.  */
 
 #define HIGH_COST 40
 #define MEDIUM_COST 3
 #define LOW_COST 1
 
-int
-frv_register_move_cost (enum reg_class from, enum reg_class to)
+static int
+frv_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
+			reg_class_t from, reg_class_t to)
 {
   switch (from)
     {
@@ -7021,6 +6990,17 @@ frv_register_move_cost (enum reg_class from, enum reg_class to)
 
   return HIGH_COST;
 }
+
+/* Worker function for TARGET_MEMORY_MOVE_COST.  */
+
+static int
+frv_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
+                      reg_class_t rclass ATTRIBUTE_UNUSED,
+                      bool in ATTRIBUTE_UNUSED)
+{
+  return 4;
+}
+
 
 /* Implementation of TARGET_ASM_INTEGER.  In the FRV case we need to
    use ".picptr" to generate safe relocations for PIC code.  We also
