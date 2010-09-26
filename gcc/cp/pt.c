@@ -5050,10 +5050,24 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
       if (CLASS_TYPE_P (expr_type)
 	  && CLASSTYPE_LITERAL_P (expr_type))
 	{
-	  /* FIXME this probably allows conversion via double, while
-	     a plain double is not allowed.  */
-	  expr = perform_implicit_conversion (type, expr, complain);
-	  expr_type = TREE_TYPE (expr);
+	  tree conv = perform_implicit_conversion (type, expr, complain);
+	  if (conv != error_mark_node)
+	    {
+	      tree tmp = conv;
+	      /* for a non-type template-parameter of integral or
+		 enumeration type, integral promotions (4.5) and integral
+		 conversions (4.7) are applied.
+
+		 So look through any conversions and make sure that the
+		 CALL_EXPR also returned an integral or enumeration type.  */
+	      while (TREE_CODE (tmp) != CALL_EXPR)
+		tmp = TREE_OPERAND (tmp, 0);
+	      if (INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (tmp)))
+		{
+		  expr = conv;
+		  expr_type = TREE_TYPE (expr);
+		}
+	    }
 	}
       if (!INTEGRAL_OR_ENUMERATION_TYPE_P (expr_type))
 	return error_mark_node;
