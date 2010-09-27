@@ -343,6 +343,8 @@ enum gfc_isym_id
   GFC_ISYM_CHMOD,
   GFC_ISYM_CMPLX,
   GFC_ISYM_COMMAND_ARGUMENT_COUNT,
+  GFC_ISYM_COMPILER_OPTIONS,
+  GFC_ISYM_COMPILER_VERSION,
   GFC_ISYM_COMPLEX,
   GFC_ISYM_CONJG,
   GFC_ISYM_CONVERSION,
@@ -613,6 +615,8 @@ gfc_reverse;
 #define BBT_HEADER(self) int priority; struct self *left, *right
 
 #define NAMED_INTCST(a,b,c,d) a,
+#define NAMED_KINDARRAY(a,b,c,d) a,
+#define NAMED_FUNCTION(a,b,c,d) a,
 typedef enum
 {
   ISOFORTRANENV_INVALID = -1,
@@ -621,6 +625,8 @@ typedef enum
 }
 iso_fortran_env_symbol;
 #undef NAMED_INTCST
+#undef NAMED_KINDARRAY
+#undef NAMED_FUNCTION
 
 #define NAMED_INTCST(a,b,c,d) a,
 #define NAMED_REALCST(a,b,c) a,
@@ -630,6 +636,7 @@ iso_fortran_env_symbol;
 #define NAMED_CHARCST(a,b,c) a,
 #define DERIVED_TYPE(a,b,c) a,
 #define PROCEDURE(a,b) a,
+#define NAMED_FUNCTION(a,b,c,d) a,
 typedef enum
 {
   ISOCBINDING_INVALID = -1, 
@@ -646,6 +653,7 @@ iso_c_binding_symbol;
 #undef NAMED_CHARCST
 #undef DERIVED_TYPE
 #undef PROCEDURE
+#undef NAMED_FUNCTION
 
 typedef enum
 {
@@ -783,6 +791,9 @@ typedef struct
      component at all.  */
   unsigned alloc_comp:1, pointer_comp:1, proc_pointer_comp:1,
 	   private_comp:1, zero_comp:1, coarray_comp:1;
+
+  /* This is a temporary selector for SELECT TYPE.  */
+  unsigned select_type_temporary:1;
 
   /* Attributes set by compiler extensions (!GCC$ ATTRIBUTES).  */
   unsigned ext_attr:EXT_ATTR_NUM;
@@ -1641,7 +1652,8 @@ typedef struct gfc_intrinsic_sym
   gfc_intrinsic_arg *formal;
   gfc_typespec ts;
   unsigned elemental:1, inquiry:1, transformational:1, pure:1, 
-    generic:1, specific:1, actual_ok:1, noreturn:1, conversion:1;
+    generic:1, specific:1, actual_ok:1, noreturn:1, conversion:1,
+    from_module:1;
 
   int standard;
 
@@ -1996,7 +2008,7 @@ typedef struct
 {
   gfc_expr *io_unit, *format_expr, *rec, *advance, *iostat, *size, *iomsg,
 	   *id, *pos, *asynchronous, *blank, *decimal, *delim, *pad, *round,
-	   *sign, *extra_comma;
+	   *sign, *extra_comma, *dt_io_kind;
 
   gfc_symbol *namelist;
   /* A format_label of `format_asterisk' indicates the "*" format */
@@ -2634,6 +2646,7 @@ bool gfc_is_intrinsic (gfc_symbol*, int, locus);
 int gfc_intrinsic_actual_ok (const char *, const bool);
 gfc_intrinsic_sym *gfc_find_function (const char *);
 gfc_intrinsic_sym *gfc_find_subroutine (const char *);
+gfc_intrinsic_sym *gfc_intrinsic_function_by_id (gfc_isym_id);
 
 match gfc_intrinsic_func_interface (gfc_expr *, int);
 match gfc_intrinsic_sub_interface (gfc_code *, int);
@@ -2726,6 +2739,7 @@ bool gfc_has_ultimate_allocatable (gfc_expr *);
 bool gfc_has_ultimate_pointer (gfc_expr *);
 
 gfc_expr* gfc_build_intrinsic_call (const char*, locus, unsigned, ...);
+gfc_try gfc_check_vardef_context (gfc_expr*, bool, const char*);
 
 
 /* st.c */

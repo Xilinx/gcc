@@ -754,16 +754,6 @@ AC_ARG_WITH(specs,
 )
 AC_SUBST(CONFIGURE_SPECS)
 
-# Build with intermodule optimisations
-AC_ARG_ENABLE(intermodule,
-[  --enable-intermodule    build the compiler in one step],
-[case ${enable_intermodule} in
-  yes) onestep="-onestep";;
-  *) onestep="";;
-esac],
-[onestep=""])
-AC_SUBST(onestep)
-
 ACX_PKGVERSION([GCC])
 ACX_BUGURL([http://gcc.gnu.org/bugs.html])
 
@@ -2398,11 +2388,13 @@ else
   # no objdump, err on the side of caution
   gcc_cv_as_cfi_advance_working=no
 fi
+GCC_TARGET_TEMPLATE(HAVE_GAS_CFI_DIRECTIVE)
 AC_DEFINE_UNQUOTED(HAVE_GAS_CFI_DIRECTIVE,
   [`if test $gcc_cv_as_cfi_directive = yes \
        && test $gcc_cv_as_cfi_advance_working = yes; then echo 1; else echo 0; fi`],
   [Define 0/1 if your assembler supports CFI directives.])
 
+GCC_TARGET_TEMPLATE(HAVE_GAS_CFI_PERSONALITY_DIRECTIVE)
 gcc_GAS_CHECK_FEATURE([cfi personality directive],
   gcc_cv_as_cfi_personality_directive, ,,
 [	.text
@@ -2436,6 +2428,7 @@ gcc_GAS_CHECK_FEATURE([cfi sections directive],
     gcc_cv_as_cfi_sections_directive=yes
     ;;
 esac])
+GCC_TARGET_TEMPLATE(HAVE_GAS_CFI_SECTIONS_DIRECTIVE)
 AC_DEFINE_UNQUOTED(HAVE_GAS_CFI_SECTIONS_DIRECTIVE,
   [`if test $gcc_cv_as_cfi_sections_directive = yes;
     then echo 1; else echo 0; fi`],

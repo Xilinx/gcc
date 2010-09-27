@@ -561,7 +561,7 @@ extern int flag_hosted;
 
 extern int print_struct_values;
 
-/* ???.  Undocumented.  */
+/* Tells the compiler what is the constant string class for ObjC.  */
 
 extern const char *constant_string_class_name;
 
@@ -962,6 +962,7 @@ extern tree objc_build_string_object (tree);
 extern tree objc_get_protocol_qualified_type (tree, tree);
 extern tree objc_get_class_reference (tree);
 extern tree objc_get_class_ivars (tree);
+extern tree objc_get_interface_ivars (tree);
 extern void objc_start_class_interface (tree, tree, tree);
 extern void objc_start_category_interface (tree, tree, tree);
 extern void objc_start_protocol (tree, tree);
@@ -975,7 +976,7 @@ extern void objc_set_visibility (int);
 extern void objc_set_method_type (enum tree_code);
 extern tree objc_build_method_signature (tree, tree, tree, bool);
 extern void objc_add_method_declaration (tree);
-extern void objc_start_method_definition (tree);
+extern bool objc_start_method_definition (tree);
 extern void objc_finish_method_definition (tree);
 extern void objc_add_instance_variable (tree);
 extern tree objc_build_keyword_decl (tree, tree, tree);

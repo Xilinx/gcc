@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "arith.h"
 #include "flags.h"
 #include "dependency.h"
+#include "constructor.h"
 
 /* Forward declarations.  */
 
@@ -121,8 +122,13 @@ optimize_binop_array_assignment (gfc_code *c, gfc_expr **rhs, bool seen_op)
   else if (seen_op && e->expr_type == EXPR_FUNCTION && e->rank > 0
 	   && ! (e->value.function.esym 
 		 && (e->value.function.esym->attr.elemental 
-		     || e->value.function.esym->attr.allocatable))
-	   && ! (e->value.function.isym && e->value.function.isym->elemental))
+		     || e->value.function.esym->attr.allocatable
+		     || e->value.function.esym->ts.type != c->expr1->ts.type
+		     || e->value.function.esym->ts.kind != c->expr1->ts.kind))
+	   && ! (e->value.function.isym
+		 && (e->value.function.isym->elemental
+		     || e->ts.type != c->expr1->ts.type
+		     || e->ts.kind != c->expr1->ts.kind)))
     {
 
       gfc_code *n;
@@ -319,6 +325,9 @@ gfc_expr_walker (gfc_expr **e, walk_expr_fn_t exprfn, void *data)
     {
       int walk_subtrees = 1;
       gfc_actual_arglist *a;
+      gfc_ref *r;
+      gfc_constructor *c;
+
       int result = exprfn (e, &walk_subtrees, data);
       if (result)
 	return result;
@@ -339,6 +348,61 @@ gfc_expr_walker (gfc_expr **e, walk_expr_fn_t exprfn, void *data)
 	    for (a = (*e)->value.compcall.actual; a; a = a->next)
 	      WALK_SUBEXPR (a->expr);
 	    break;
+
+	  case EXPR_STRUCTURE:
+	  case EXPR_ARRAY:
+	    for (c = gfc_constructor_first ((*e)->value.constructor); c;
+		 c = gfc_constructor_next (c))
+	      {
+		WALK_SUBEXPR (c->expr);
+		if (c->iterator != NULL)
+		  {
+		    WALK_SUBEXPR (c->iterator->var);
+		    WALK_SUBEXPR (c->iterator->start);
+		    WALK_SUBEXPR (c->iterator->end);
+		    WALK_SUBEXPR (c->iterator->step);
+		  }
+	      }
+
+	    if ((*e)->expr_type != EXPR_ARRAY)
+	      break;
+
+	    /* Fall through to the variable case in order to walk the
+	       the reference.  */
+
+	  case EXPR_SUBSTRING:
+	  case EXPR_VARIABLE:
+	    for (r = (*e)->ref; r; r = r->next)
+	      {
+		gfc_array_ref *ar;
+		int i;
+
+		switch (r->type)
+		  {
+		  case REF_ARRAY:
+		    ar = &r->u.ar;
+		    if (ar->type == AR_SECTION || ar->type == AR_ELEMENT)
+		      {
+			for (i=0; i< ar->dimen; i++)
+			  {
+			    WALK_SUBEXPR (ar->start[i]);
+			    WALK_SUBEXPR (ar->end[i]);
+			    WALK_SUBEXPR (ar->stride[i]);
+			  }
+		      }
+
+		    break;
+
+		  case REF_SUBSTRING:
+		    WALK_SUBEXPR (r->u.ss.start);
+		    WALK_SUBEXPR (r->u.ss.end);
+		    break;
+
+		  case REF_COMPONENT:
+		    break;
+		  }
+	      }
+
 	  default:
 	    break;
 	  }

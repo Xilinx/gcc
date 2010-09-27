@@ -1558,7 +1558,8 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 	  tree new_rhs;
 	  new_rhs = force_gimple_operand_gsi (&seq_gsi,
 					      gimple_assign_rhs1 (stmt),
-					      true, NULL, false, GSI_NEW_STMT);
+					      true, NULL, false,
+					      GSI_CONTINUE_LINKING);
 	  gimple_assign_set_rhs1 (stmt, new_rhs);
 	  id->regimplify = false;
 	}
@@ -1977,12 +1978,13 @@ copy_phis_for_bb (basic_block bb, copy_body_data *id)
   edge_iterator ei;
   gimple phi;
   gimple_stmt_iterator si;
+  edge new_edge;
+  bool inserted = false;
 
   for (si = gsi_start (phi_nodes (bb)); !gsi_end_p (si); gsi_next (&si))
     {
       tree res, new_res;
       gimple new_phi;
-      edge new_edge;
 
       phi = gsi_stmt (si);
       res = PHI_RESULT (phi);
@@ -2022,13 +2024,19 @@ copy_phis_for_bb (basic_block bb, copy_body_data *id)
 		{
 		  gimple_seq stmts = NULL;
 		  new_arg = force_gimple_operand (new_arg, &stmts, true, NULL);
-		  gsi_insert_seq_on_edge_immediate (new_edge, stmts);
+		  gsi_insert_seq_on_edge (new_edge, stmts);
+		  inserted = true;
 		}
 	      add_phi_arg (new_phi, new_arg, new_edge,
 			   gimple_phi_arg_location_from_edge (phi, old_edge));
 	    }
 	}
     }
+
+  /* Commit the delayed edge insertions.  */
+  if (inserted)
+    FOR_EACH_EDGE (new_edge, ei, new_bb->preds)
+      gsi_commit_one_edge_insert (new_edge, NULL);
 }
 
 
@@ -4155,6 +4163,7 @@ optimize_inline_calls (tree fn)
   basic_block bb;
   int last = n_basic_blocks;
   struct gimplify_ctx gctx;
+  bool inlined_p = false;
 
   /* There is no point in performing inlining if errors have already
      occurred -- and we might crash if we try to inline invalid
@@ -4194,7 +4203,7 @@ optimize_inline_calls (tree fn)
      follow it; we'll trudge through them, processing their CALL_EXPRs
      along the way.  */
   FOR_EACH_BB (bb)
-    gimple_expand_calls_inline (bb, &id);
+    inlined_p |= gimple_expand_calls_inline (bb, &id);
 
   pop_gimplify_context (NULL);
 
@@ -4210,18 +4219,19 @@ optimize_inline_calls (tree fn)
     }
 #endif
 
-  /* Fold the statements before compacting/renumbering the basic blocks.  */
+  /* Fold queued statements.  */
   fold_marked_statements (last, id.statements_to_fold);
   pointer_set_destroy (id.statements_to_fold);
 
   gcc_assert (!id.debug_stmts);
 
-  /* Renumber the (code) basic_blocks consecutively.  */
-  compact_blocks ();
+  /* If we didn't inline into the function there is nothing to do.  */
+  if (!inlined_p)
+    return 0;
+
   /* Renumber the lexical scoping (non-code) blocks consecutively.  */
   number_blocks (fn);
 
-  fold_cond_expr_cond ();
   delete_unreachable_blocks_update_callgraph (&id);
 #ifdef ENABLE_CHECKING
   verify_cgraph_node (id.dst_node);
@@ -4234,6 +4244,7 @@ optimize_inline_calls (tree fn)
   return (TODO_update_ssa
 	  | TODO_cleanup_cfg
 	  | (gimple_in_ssa_p (cfun) ? TODO_remove_unused_locals : 0)
+	  | (gimple_in_ssa_p (cfun) ? TODO_update_address_taken : 0)
 	  | (profile_status != PROFILE_ABSENT ? TODO_rebuild_frequencies : 0));
 }
 
@@ -5110,9 +5121,6 @@ tree_function_versioning (tree old_decl, tree new_decl,
       				     args_to_skip, &vars);
 
   DECL_INITIAL (new_decl) = remap_blocks (DECL_INITIAL (id.src_fn), &id);
-
-  /* Renumber the lexical scoping (non-code) blocks consecutively.  */
-  number_blocks (id.dst_fn);
 
   declare_inline_vars (DECL_INITIAL (new_decl), vars);
 

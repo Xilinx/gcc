@@ -1,3 +1,40 @@
+2010-09-24  Jan Hubicka  <jh@suse.cz>
+
+	* c-common.c (handle_leaf_attribute): New function.
+	(struct attribute_spec c_common_att): Add leaf.
+
+2010-09-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* c.opt (-all-warnings, -ansi, -assert, -assert=, -comments,
+	-comments-in-macros, -define-macro, -define-macro=, -dependencies,
+	-dump, -dump=, -imacros, -imacros=, -include, -include=,
+	-include-barrier, -include-directory, -include-directory=,
+	-include-directory-after, -include-directory-after=,
+	-include-prefix, -include-prefix=, -include-with-prefix,
+	-include-with-prefix=, -include-with-prefix-after,
+	-include-with-prefix-after=, -include-with-prefix-before,
+	-include-with-prefix-before=, -no-integrated-cpp,
+	-no-line-commands, -no-standard-includes, -no-warnings, -output,
+	-output=, -pedantic, -pedantic-errors, -preprocess,
+	-print-missing-file-dependencies, -trace-includes, -traditional,
+	-traditional-cpp, -trigraphs, -undefine-macro, -undefine-macro=,
+	-user-dependencies, -verbose, -write-dependencies,
+	-write-user-dependencies, no-integrated-cpp, traditional): New.
+
+2010-09-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/23710
+	* c-common.h (objc_start_method_definition): Return bool instead
+	of void.
+	* stub-objc.c (objc_start_method_definition): Return bool instead
+	of void.
+
+2010-09-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/25965
+	* c-common.h (objc_get_interface_ivars): New declaration.
+	* stub-objc.c (objc_get_interface_ivars): New stub.
+
 2010-09-15  Ian Lance Taylor  <iant@google.com>
 
 	* c-common.c (parse_optimize_options): Do not capitalize warning

@@ -179,7 +179,6 @@ sources = \
 	hash_tr1.cc \
 	hashtable_c++0x.cc \
 	hashtable_tr1.cc \
-	hash_bytes.cc \
 	ios.cc \
 	ios_failure.cc \
 	ios_init.cc \
@@ -310,11 +309,6 @@ hashtable_c++0x.lo: hashtable_c++0x.cc
 hashtable_c++0x.o: hashtable_c++0x.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
-hash_bytes.lo: hash_bytes.cc
-	$(LTCXXCOMPILE) -std=gnu++0x -c $<
-hash_bytes.o: hash_bytes.cc
-	$(CXXCOMPILE) -std=gnu++0x -c $<
-
 limits.lo: limits.cc
 	$(LTCXXCOMPILE) -std=gnu++0x -c $<
 limits.o: limits.cc
@@ -421,13 +415,16 @@ endif
 debugdir = debug
 
 # Build a set of debug objects here.
+# Take care to fix all possibly-relative paths.
 stamp-debug:
 	if test ! -d ${debugdir}; then \
 	  mkdir -p ${debugdir}; \
 	  (cd ${debugdir}; \
 	  sed -e 's/top_builddir = \.\./top_builddir = ..\/../' \
+	      -e 's/top_build_prefix = \.\./top_build_prefix = ..\/../' \
 	      -e 's/srcdir = \.\./srcdir = ..\/../' \
 	      -e 's/glibcxx_basedir = \.\./glibcxx_basedir = ..\/../' \
+	      -e 's/MKDIR_P = \.\./MKDIR_P = ..\/../' \
 	      -e 's/all-local: build_debug/all-local:/' \
 	      -e 's/install-data-local: install_debug/install-data-local:/' \
 	  < ../Makefile > Makefile) ; \

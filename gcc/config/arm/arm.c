@@ -224,6 +224,7 @@ static bool arm_cannot_copy_insn_p (rtx);
 static bool arm_tls_symbol_p (rtx x);
 static int arm_issue_rate (void);
 static void arm_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
+static bool arm_output_addr_const_extra (FILE *, rtx);
 static bool arm_allocate_stack_slots_for_args (void);
 static const char *arm_invalid_parameter_type (const_tree t);
 static const char *arm_invalid_return_type (const_tree t);
@@ -239,6 +240,7 @@ static rtx arm_pic_static_addr (rtx orig, rtx reg);
 static bool cortex_a9_sched_adjust_cost (rtx, rtx, rtx, int *);
 static bool xscale_sched_adjust_cost (rtx, rtx, rtx, int *);
 static unsigned int arm_units_per_simd_word (enum machine_mode);
+static bool arm_class_likely_spilled_p (reg_class_t);
 
 
 /* Table of machine attributes.  */
@@ -307,6 +309,9 @@ static const struct attribute_spec arm_attribute_table[] =
 #define TARGET_PRINT_OPERAND_ADDRESS arm_print_operand_address
 #undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
 #define TARGET_PRINT_OPERAND_PUNCT_VALID_P arm_print_operand_punct_valid_p
+
+#undef TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA
+#define TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA arm_output_addr_const_extra
 
 #undef  TARGET_ASM_FUNCTION_PROLOGUE
 #define TARGET_ASM_FUNCTION_PROLOGUE arm_output_function_prologue
@@ -544,6 +549,9 @@ static const struct attribute_spec arm_attribute_table[] =
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE arm_can_eliminate
+
+#undef TARGET_CLASS_LIKELY_SPILLED_P
+#define TARGET_CLASS_LIKELY_SPILLED_P arm_class_likely_spilled_p
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -5847,7 +5855,8 @@ thumb1_legitimate_address_p (enum machine_mode mode, rtx x, int strict_p)
 	       && (REGNO (XEXP (x, 0)) == FRAME_POINTER_REGNUM
 		   || REGNO (XEXP (x, 0)) == ARG_POINTER_REGNUM
 		   || (REGNO (XEXP (x, 0)) >= FIRST_VIRTUAL_REGISTER
-		       && REGNO (XEXP (x, 0)) <= LAST_VIRTUAL_REGISTER))
+		       && REGNO (XEXP (x, 0))
+			  <= LAST_VIRTUAL_POINTER_REGISTER))
 	       && GET_MODE_SIZE (mode) >= 4
 	       && GET_CODE (XEXP (x, 1)) == CONST_INT
 	       && (INTVAL (XEXP (x, 1)) & 3) == 0)
@@ -13343,6 +13352,34 @@ arm_attr_length_move_neon (rtx insn)
     }
   else
     return 4;
+}
+
+/* Return nonzero if the offset in the address is an immediate.  Otherwise,
+   return zero.  */
+
+int
+arm_address_offset_is_imm (rtx insn)
+{
+  rtx mem, addr;
+
+  extract_insn_cached (insn);
+
+  if (REG_P (recog_data.operand[0]))
+    return 0;
+
+  mem = recog_data.operand[0];
+
+  gcc_assert (MEM_P (mem));
+
+  addr = XEXP (mem, 0);
+
+  if (GET_CODE (addr) == REG
+      || (GET_CODE (addr) == PLUS
+	  && GET_CODE (XEXP (addr, 0)) == REG
+	  && GET_CODE (XEXP (addr, 1)) == CONST_INT))
+    return 1;
+  else
+    return 0;
 }
 
 /* Output an ADD r, s, #n where n may be too big for one instruction.
@@ -21503,6 +21540,38 @@ arm_no_early_store_addr_dep (rtx producer, rtx consumer)
   return !reg_overlap_mentioned_p (value, addr);
 }
 
+/* Return nonzero if the CONSUMER instruction (a store) does need
+   PRODUCER's value to calculate the address.  */
+
+int
+arm_early_store_addr_dep (rtx producer, rtx consumer)
+{
+  return !arm_no_early_store_addr_dep (producer, consumer);
+}
+
+/* Return nonzero if the CONSUMER instruction (a load) does need
+   PRODUCER's value to calculate the address.  */
+
+int
+arm_early_load_addr_dep (rtx producer, rtx consumer)
+{
+  rtx value = PATTERN (producer);
+  rtx addr = PATTERN (consumer);
+
+  if (GET_CODE (value) == COND_EXEC)
+    value = COND_EXEC_CODE (value);
+  if (GET_CODE (value) == PARALLEL)
+    value = XVECEXP (value, 0, 0);
+  value = XEXP (value, 0);
+  if (GET_CODE (addr) == COND_EXEC)
+    addr = COND_EXEC_CODE (addr);
+  if (GET_CODE (addr) == PARALLEL)
+    addr = XVECEXP (addr, 0, 0);
+  addr = XEXP (addr, 1);
+
+  return reg_overlap_mentioned_p (value, addr);
+}
+
 /* Return nonzero if the CONSUMER instruction (an ALU op) does not
    have an early register shift value or amount dependency on the
    result of PRODUCER.  */
@@ -21890,6 +21959,22 @@ arm_units_per_simd_word (enum machine_mode mode ATTRIBUTE_UNUSED)
 {
   return (TARGET_NEON
 	  ? (TARGET_NEON_VECTORIZE_QUAD ? 16 : 8) : UNITS_PER_WORD);
+}
+
+/* Implement TARGET_CLASS_LIKELY_SPILLED_P.
+ 
+   We need to define this for LO_REGS on thumb.  Otherwise we can end up
+   using r0-r4 for function arguments, r7 for the stack frame and don't
+   have enough left over to do doubleword arithmetic.  */
+
+static bool
+arm_class_likely_spilled_p (reg_class_t rclass)
+{
+  if ((TARGET_THUMB && rclass == LO_REGS)
+      || rclass  == CC_REG)
+    return true;
+
+  return false;
 }
 
 /* Implements target hook small_register_classes_for_mode_p.  */
@@ -22371,7 +22456,9 @@ arm_output_dwarf_dtprel (FILE *file, int size, rtx x)
   fputs ("(tlsldo)", file);
 }
 
-bool
+/* Implement TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA.  */
+
+static bool
 arm_output_addr_const_extra (FILE *fp, rtx x)
 {
   if (GET_CODE (x) == UNSPEC && XINT (x, 1) == UNSPEC_TLS)
