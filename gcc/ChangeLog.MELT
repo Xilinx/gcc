@@ -1,3 +1,8 @@
+2010-09-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tmatch-7.melt: has a complex match input argument
+	to test its normalization.
+	* melt/warmelt-normatch.melt: still improving normstep_mtestmatcher.
+
 2010-09-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmatch-7.melt: Added new file.
 	* melt/warmelt-normatch.melt: improving normstep_mtestmatcher.

@@ -5058,6 +5058,9 @@ normalized expression.}#
 	  (amin (get_field :amatch_in matmatcher))
 	  (ambind (get_field :amatch_matchbind matmatcher))
 	  (amout (get_field :amatch_out matmatcher))
+	  (env (get_field :mctx_env matctx))
+	  (newenv (fresh_env env))
+	  (newbindlist (make_list discr_list))
 	  )
       (debug_msg njthen "normstep_mtestmatcher njthen")
       (debug_msg njelse "normstep_mtestmatcher njelse")
@@ -5065,19 +5068,82 @@ normalized expression.}#
       (debug_msg ambind "normstep_mtestmatcher ambind")
       (debug_msg amin "normstep_mtestmatcher amin")
       (debug_msg mins "normstep_mtestmatcher mins again")
-      (if (!=i (multiple_length amin) (multiple_length mins))
-	  (error_strv nsloc
-		      "mismatch on input arity of matcher"
-		      (get_field :named_name matmatcher))
-	)
-      (debug_msg amout "normstep_mtestmatcher amout")
-      (debug_msg mouts "normstep_mtestmatcher mouts again")
-      (if (!=i (multiple_length amout) (multiple_length mouts))
-	  (error_strv nsloc 
-		      "mismatch on output arity of matcher" 
-		      (get_field :named_name matmatcher)))
-      (assert_msg "@$@unimplemented normstep_mtestmatcher")
-      )))
+      (debug_msg matctx "normstep_mtestmatcher matctx")
+      (assert_msg "check env" (is_a env class_environment))
+      ;; bind the matched data
+      (assert_msg "check ambind" (is_a ambind class_formal_binding))
+      (let ( (ambinder (get_field :binder ambind))
+	     (amctype (get_field :fbind_type ambind))
+	     (datctype (get_ctype ndata env)) 
+	     (newambinding (instance class_normal_let_binding
+				     :letbind_loc nsloc
+				     :binder ambinder
+				     :letbind_type amctype
+				     :letbind_expr ndata))
+	     )
+	(if (!= amctype datctype)
+	    (progn
+	      (error_strv nsloc "invalid matched data ctype in matcher"
+			  (get_field :named_name matmatcher))
+	      (warning_strv nsloc "expected matched data ctype" 
+			    (get_field :named_name amctype))
+	      (warning_strv nsloc "actual matched data ctype"
+			    (get_field :named_name datctype))
+	      )
+	  (put_env newenv newambinding)
+	  )
+	(debug_msg newambinding "normstep_mtestmatcher newambinding")
+	(list_append newbindlist newambinding)
+	;; bind the matched inputs
+	(if (!=i (multiple_length amin) (multiple_length mins))
+	    (error_strv nsloc
+			"mismatch on input arity of matcher"
+			(get_field :named_name matmatcher))
+	  )
+	(foreach_in_multiple
+	 (amin)
+	 (curmin :long minix)
+	 (let ( (curins (multiple_nth mins minix))
+		(curctype (get_ctype curins env))
+		(curmintype (get_field :fbind_type curmin))
+		(curminbinder (get_field :binder curmin))
+		)
+	   (debug_msg curmin "normstep_mtestmatcher curmin")
+	   (debug_msg curins "normstep_mtestmatcher curins")
+	   (debug_msg curctype "normstep_mtestmatcher curctype")
+	   (assert_msg "check curmin" (is_a curmin class_formal_binding))
+	   (if (!= curmintype curctype)
+	       (progn
+		 (error_strv nsloc "mismatched input data in matcher"
+			     (get_field :named_name matmatcher))
+		 (warning_strv nsloc "invalid ctype in matcher pattern input"
+			       (get_field :named_name curminbinder))
+		 (warning_strv nsloc "got ctype"
+			       (get_field :named_name curctype))
+		 (warning_strv nsloc "expecting ctype"
+			       (get_field :named_name curmintype))
+		 ))
+	   (let ( (newbinding (instance class_normal_let_binding
+					:letbind_loc nsloc
+					:binder curminbinder
+					:letbind_type curctype
+					:letbind_expr curins)
+			      ) )
+	     (debug_msg newbinding "normstep_mtestmatcher newbinding")
+	     (put_env newenv newbinding)
+	     (list_append newbindlist newbinding)
+	     )
+	   ))
+	(debug_msg newbindlist "normstep_mtestmatcher newbindlist")
+	(debug_msg amout "normstep_mtestmatcher amout")
+	(debug_msg mouts "normstep_mtestmatcher mouts again")
+	(if (!=i (multiple_length amout) (multiple_length mouts))
+	    (error_strv nsloc 
+			"mismatch on output arity of matcher" 
+			(get_field :named_name matmatcher)))
+	(compile_warning "normstep_mtestmatcher should handle amout & mouts")
+	(assert_msg "@$@unimplemented normstep_mtestmatcher")
+	))))
 (install_method class_match_step_test_matcher normalize_step normstep_mtestmatcher)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; utility to normalize a step with a match normalization context

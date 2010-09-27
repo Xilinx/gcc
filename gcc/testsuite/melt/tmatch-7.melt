@@ -10,11 +10,12 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 
-(defun testmatchnumber (f x :long i)
+(defun testmatchnumber (f x :long i j)
   (match i
-	 (?(some_integer_multiple 2
-				  ?(some_integer_greater_than 3
-							      ?k))
+	 (?(some_integer_multiple
+	    (+i 2 j)
+	    ?(some_integer_greater_than 3
+					?k))
 	   (debuglong "testmatchnum k" k)
 	   (f x k)
 	   )	 
