@@ -1396,7 +1396,7 @@ is_illegal_recursion (gfc_symbol* sym, gfc_namespace* context)
 static gfc_try
 resolve_intrinsic (gfc_symbol *sym, locus *loc)
 {
-  gfc_intrinsic_sym* isym;
+  gfc_intrinsic_sym* isym = NULL;
   const char* symstd;
 
   if (sym->formal)
@@ -1407,7 +1407,12 @@ resolve_intrinsic (gfc_symbol *sym, locus *loc)
      gfc_find_subroutine directly to check whether it is a function or
      subroutine.  */
 
-  if ((isym = gfc_find_function (sym->name)))
+  if (sym->intmod_sym_id)
+    isym = gfc_intrinsic_function_by_id ((gfc_isym_id) sym->intmod_sym_id);
+  else
+    isym = gfc_find_function (sym->name);
+
+  if (isym)
     {
       if (sym->ts.type != BT_UNKNOWN && gfc_option.warn_surprising
 	  && !sym->attr.implicit_type)
@@ -7570,7 +7575,11 @@ resolve_assoc_var (gfc_symbol* sym, bool resolve_target)
       sym->attr.target = (tsym->attr.target || tsym->attr.pointer);
     }
 
-  sym->ts = target->ts;
+  /* Get type if this was not already set.  Note that it can be
+     some other type than the target in case this is a SELECT TYPE
+     selector!  So we must not update when the type is already there.  */
+  if (sym->ts.type == BT_UNKNOWN)
+    sym->ts = target->ts;
   gcc_assert (sym->ts.type != BT_UNKNOWN);
 
   /* See if this is a valid association-to-variable.  */
@@ -7673,8 +7682,8 @@ resolve_select_type (gfc_code *code, gfc_namespace *old_ns)
 	      error++;
 	      continue;
 	    }
-	  else
-	    default_case = body;
+
+	  default_case = body;
 	}
     }
     
@@ -7914,6 +7923,13 @@ resolve_transfer (gfc_code *code)
 
   if (exp == NULL || (exp->expr_type != EXPR_VARIABLE
 		      && exp->expr_type != EXPR_FUNCTION))
+    return;
+
+  /* If we are reading, the variable will be changed.  Note that
+     code->ext.dt may be NULL if the TRANSFER is related to
+     an INQUIRE statement -- but in this case, we are not reading, either.  */
+  if (code->ext.dt && code->ext.dt->dt_io_kind->value.iokind == M_READ
+      && gfc_check_vardef_context (exp, false, _("item in READ")) == FAILURE)
     return;
 
   sym = exp->symtree->n.sym;

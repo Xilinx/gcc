@@ -1048,7 +1048,8 @@ lto_promote_cross_file_statics (void)
 			   && !v->externally_visible && v->analyzed)
 		    {
 		      if (promote_var (v)
-			  && DECL_INITIAL (v->decl) && v->const_value_known
+			  && DECL_INITIAL (v->decl)
+			  && const_value_known_p (v->decl)
 			  && !pointer_set_insert (inserted, vnode))
 			VEC_safe_push (varpool_node_ptr, heap,
 				       promoted_initializers, v);
@@ -1687,6 +1688,9 @@ lto_read_all_file_options (void)
       htab_delete (file_data->section_hash_table);
       free (file_data);
     }
+
+  if (!quiet_flag)
+    fprintf (stderr, "\n");
 
   /* Apply globally the options read from all the files.  */
   lto_reissue_options ();

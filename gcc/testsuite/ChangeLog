@@ -1,3 +1,145 @@
+2010-09-27  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/rv-lvalue-req.C: New.
+	* g++.dg/ext/complit11.C: Adjust.
+	* g++.old-deja/g++.law/temps1.C: Adjust.
+	* g++.old-deja/g++.ns/koenig6.C: Adjust.
+	* g++.old-deja/g++.oliva/partord1.C: Adjust.
+
+2010-09-27  Ian Lance Taylor  <iant@google.com>
+
+	* lib/target-supports.exp (check_effective_target_split_stack):
+	New procedure.
+	* gcc.dg/split-1.c: New test.
+	* gcc.dg/split-2.c: New test.
+	* gcc.dg/split-3.c: New test.
+	* gcc.dg/split-4.c: New test.
+
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/25464
+	* objc.dg/type-size-3.m: New test.
+
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/45763
+	* objc.dg/encode-1.m: Execute the test with the GNU runtime as
+	well.
+	
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>	
+
+	PR objc/25450
+	* objc.dg/encode-3.m: Updated for fix of encoding of enums.
+	* objc.dg/type-size-2.m: Same change.
+	* obj-c++.dg/encode-5.mm: Same change.
+
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.  The original
+	Changelogs are below.
+
+	* objc.dg/encode-6.m: Execute the test only with the GNU runtime.
+	* objc.dg/encode-6-next.m: New file (from encode-6.m in the
+	branch).
+	* objc.dg/encode-7-next.m: New file (from encode-7.m in the
+	branch).
+	* objc.dg/encode-7-next-64bit.m: New file (from encode-7-64bit.m
+	in the branch).	
+	* objc.dg/proto-qual-1.m: Test the 3.3 ABI on NeXT (from
+	proto-qual-1.m in the branch) and the normal ABI on GNU.
+	* objc.dg/threedotthree-abi-1.m: New file (from the branch).  Run
+	the test only with the NeXT runtime.
+	* obj-c++/encode-1.mm: Execute the test only with the GNU runtime.
+	* obj-c++/encode-1-next.mm: New file (from encode-1.mm in the
+	branch).
+	* obj-c++.dg/threedotthree-abi-1.mm: New file (from the branch).
+	Run the test only with the NeXT runtime.
+	
+	2006-03-30 Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4492973
+	* objc.dg/encode-7-64bit.m: New.
+	* objc.dg/encode-7.m: Skip if -m64.
+	
+	2005-10-19  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4301047
+	* objc.dg/proto-qual-1.m: Fix test to match 3.3 ABI
+	* obj-c++.dg/threedotthree-abi-1.mm: New
+	* objc.dg/threedotthree-abi-1.m: New
+
+	2005-07-20  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4136935
+	* obj-c++.dg/encode-1.mm: Tweak encodings to match fix.
+	* objc.dg/encode-6.m: Likewise.
+	* objc.dg/encode-7.m: New test case.
+
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.  Renamed
+	const-str-12.m to constr-str-12b.m to avoid conflicts.
+	
+	2005-12-15  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4229905
+	* obj-c++.dg/warn5.mm: New
+	
+	2005-06-22  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4154928
+	* obj-c++.dg/const-str-12.mm: New.
+	* objc.dg/const-str-12.m: New.
+
+2010-09-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40569
+	PR fortran/40568
+	* gfortran.dg/storage_size_2.f08: Fix test.
+	* gfortran.dg/c_sizeof_1.f90: Fix test.
+	* gfortran.dg/c_sizeof_2.f90: Update dg-error.
+	* gfortran.dg/c_sizeof_3.f90: New.
+	* gfortran.dg/c_sizeof_4.f90: New.
+	* gfortran.dg/iso_c_binding_compiler_1.f90: New.
+	* gfortran.dg/iso_c_binding_compiler_2.f90: New.
+
+2010-09-26  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/45783
+	PR fortran/45795
+	* gfortran.dg/select_type_18.f03: New test.
+
+2010-09-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/return2.ad[sb]: New test.
+	* gnat.dg/return2_pkg.ads: New helper.
+
+2010-09-25  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/45776
+	* gfortran.dg/io_constraints_6.f03: New test.
+	* gfortran.dg/io_constraints_7.f03: New test.
+	* gfortran.dg/newunit_2.f90: New test.
+
+2010-09-24  Steven G. Kargl  < kargl@gcc.gnu.org>
+
+	* testsuite/gfortran.dg/operator_c1202.f90: New test.
+
+2010-09-24  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/leaf.c: New testcase.
+
+2010-09-24  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/45738
+	PR tree-optimization/45741
+	* gcc.c-torture/compile/pr45741.c: New.
+	* gfortran.fortran-torture/compile/pr45738.f90: New.
+
+2010-09-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/cpp/undef-opt-1.c: New test.
+
 2010-09-24  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/other/error10.C: Adjust expected output.

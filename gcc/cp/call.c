@@ -909,6 +909,11 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
       else if (expr && string_conv_p (to, expr, 0))
 	/* converting from string constant to char *.  */
 	conv = build_conv (ck_qual, to, conv);
+      /* Allow conversions among compatible ObjC pointer types (base
+	 conversions have been already handled above).  */
+      else if (c_dialect_objc ()
+	       && objc_compare_types (to, from, -4, NULL_TREE))
+	conv = build_conv (ck_ptr, to, conv);
       else if (ptr_reasonably_similar (to_pointee, from_pointee))
 	{
 	  conv = build_conv (ck_ptr, to, conv);
@@ -2744,7 +2749,7 @@ build_this (tree obj)
   if (processing_template_decl)
     return build_address (obj);
 
-  return cp_build_unary_op (ADDR_EXPR, obj, 0, tf_warning_or_error);
+  return cp_build_addr_expr (obj, tf_warning_or_error);
 }
 
 /* Returns true iff functions are equivalent. Equivalent functions are
@@ -5162,7 +5167,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  /* We are going to bind a reference directly to a base-class
 	     subobject of EXPR.  */
 	  /* Build an expression for `*((base*) &expr)'.  */
-	  expr = cp_build_unary_op (ADDR_EXPR, expr, 0, complain);
+	  expr = cp_build_addr_expr (expr, complain);
 	  expr = convert_to_base (expr, build_pointer_type (totype),
 				  !c_cast_p, /*nonnull=*/true, complain);
 	  expr = cp_build_indirect_ref (expr, RO_IMPLICIT_CONVERSION, complain);
@@ -5211,8 +5216,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
            VA_ARG_EXPR and CONSTRUCTOR expressions are special cases
            that need temporaries, even when their types are reference
            compatible with the type of reference being bound, so the
-           upcoming call to cp_build_unary_op (ADDR_EXPR, expr, ...)
-           doesn't fail.  */
+           upcoming call to cp_build_addr_expr doesn't fail.  */
 	if (convs->need_temporary_p
 	    || TREE_CODE (expr) == CONSTRUCTOR
 	    || TREE_CODE (expr) == VA_ARG_EXPR)
@@ -5269,7 +5273,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 
 	/* Take the address of the thing to which we will bind the
 	   reference.  */
-	expr = cp_build_unary_op (ADDR_EXPR, expr, 1, complain);
+	expr = cp_build_addr_expr (expr, complain);
 	if (expr == error_mark_node)
 	  return error_mark_node;
 
@@ -6016,7 +6020,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 
 	  arg2 = TYPE_SIZE_UNIT (as_base);
 	  arg1 = arg;
-	  arg0 = cp_build_unary_op (ADDR_EXPR, to, 0, complain);
+	  arg0 = cp_build_addr_expr (to, complain);
 
 	  if (!can_trust_pointer_alignment ())
 	    {
@@ -8013,7 +8017,7 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup,
 	    }
 	  else
 	    /* Take the address of EXPR.  */
-	    expr = cp_build_unary_op (ADDR_EXPR, expr, 0, tf_warning_or_error);
+	    expr = cp_build_addr_expr (expr, tf_warning_or_error);
 	  /* If a BASE_CONV was required, perform it now.  */
 	  if (base_conv_type)
 	    expr = (perform_implicit_conversion

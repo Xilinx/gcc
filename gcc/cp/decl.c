@@ -6428,8 +6428,8 @@ register_dtor_fn (tree decl)
 	   in, and, in general, it's cheaper to pass NULL than any
 	   other value.  */
 	addr = null_pointer_node;
-      arg2 = cp_build_unary_op (ADDR_EXPR, get_dso_handle_node (), 0,
-                                tf_warning_or_error);
+      arg2 = cp_build_addr_expr (get_dso_handle_node (),
+				 tf_warning_or_error);
       if (targetm.cxx.use_aeabi_atexit ())
 	{
 	  arg1 = cleanup;
@@ -12778,7 +12778,7 @@ finish_function (int flags)
   if (!processing_template_decl
       && !cp_function_chain->can_throw
       && !flag_non_call_exceptions
-      && !DECL_REPLACEABLE_P (fndecl))
+      && !decl_replaceable_p (fndecl))
     TREE_NOTHROW (fndecl) = 1;
 
   /* This must come after expand_function_end because cleanups might
