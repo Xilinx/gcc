@@ -1405,6 +1405,11 @@ instantiate_new_reg (rtx x, HOST_WIDE_INT *poffset)
 #endif
       offset = cfa_offset;
     }
+  else if (x == virtual_preferred_stack_boundary_rtx)
+    {
+      new_rtx = GEN_INT (crtl->preferred_stack_boundary / BITS_PER_UNIT);
+      offset = 0;
+    }
   else
     return NULL_RTX;
 
@@ -5103,6 +5108,8 @@ get_arg_pointer_save_area (void)
       push_topmost_sequence ();
       emit_insn_after (seq, entry_of_function ());
       pop_topmost_sequence ();
+
+      crtl->arg_pointer_save_area_init = true;
     }
 
   return ret;
@@ -5207,17 +5214,50 @@ emit_return_into_block (basic_block bb)
 static void
 thread_prologue_and_epilogue_insns (void)
 {
-  int inserted = 0;
+  bool inserted;
+  rtx seq, epilogue_end;
+  edge entry_edge;
   edge e;
-#if defined (HAVE_sibcall_epilogue) || defined (HAVE_epilogue) || defined (HAVE_return) || defined (HAVE_prologue)
-  rtx seq;
-#endif
-#if defined (HAVE_epilogue) || defined(HAVE_return)
-  rtx epilogue_end = NULL_RTX;
-#endif
   edge_iterator ei;
 
   rtl_profile_for_bb (ENTRY_BLOCK_PTR);
+
+  inserted = false;
+  seq = NULL_RTX;
+  epilogue_end = NULL_RTX;
+
+  /* Can't deal with multiple successors of the entry block at the
+     moment.  Function should always have at least one entry
+     point.  */
+  gcc_assert (single_succ_p (ENTRY_BLOCK_PTR));
+  entry_edge = single_succ_edge (ENTRY_BLOCK_PTR);
+
+  if (flag_split_stack
+      && (lookup_attribute ("no_split_stack", DECL_ATTRIBUTES (cfun->decl))
+	  == NULL))
+    {
+#ifndef HAVE_split_stack_prologue
+      gcc_unreachable ();
+#else
+      gcc_assert (HAVE_split_stack_prologue);
+
+      start_sequence ();
+      emit_insn (gen_split_stack_prologue ());
+      seq = get_insns ();
+      end_sequence ();
+
+      record_insns (seq, NULL, &prologue_insn_hash);
+      set_insn_locators (seq, prologue_locator);
+
+      /* This relies on the fact that committing the edge insertion
+	 will look for basic blocks within the inserted instructions,
+	 which in turn relies on the fact that we are not in CFG
+	 layout mode here.  */
+      insert_insn_on_edge (seq, entry_edge);
+      inserted = true;
+#endif
+    }
+
 #ifdef HAVE_prologue
   if (HAVE_prologue)
     {
@@ -5244,13 +5284,8 @@ thread_prologue_and_epilogue_insns (void)
       end_sequence ();
       set_insn_locators (seq, prologue_locator);
 
-      /* Can't deal with multiple successors of the entry block
-         at the moment.  Function should always have at least one
-         entry point.  */
-      gcc_assert (single_succ_p (ENTRY_BLOCK_PTR));
-
-      insert_insn_on_edge (seq, single_succ_edge (ENTRY_BLOCK_PTR));
-      inserted = 1;
+      insert_insn_on_edge (seq, entry_edge);
+      inserted = true;
     }
 #endif
 
@@ -5420,7 +5455,7 @@ thread_prologue_and_epilogue_insns (void)
       end_sequence ();
 
       insert_insn_on_edge (seq, e);
-      inserted = 1;
+      inserted = true;
     }
   else
 #endif

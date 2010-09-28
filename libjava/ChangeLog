@@ -1,3 +1,16 @@
+2010-09-27  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* libjava/Makefile.in: Regenerate.
+	* libjava/gcj/Makefile.in: Regenerate.
+	* libjava/include/Makefile.in: Regenerate.
+	* libjava/testsuite/Makefile.in: Regenerate.
+
+2010-09-21  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	* libjava/configure.ac: Set LIBMATHSPEC to -lm except on darwin.
+	* libjava/libgcj.spec.in: Use LIBMATHSPEC.
+	* libjava/configure: Regenerate.
+
 2010-08-27  Dmitrijs Ledkovs  <dmitrij.ledkov@ubuntu.com>
 	    Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 

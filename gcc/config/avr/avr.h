@@ -124,8 +124,6 @@ extern GTY(()) section *progmem_section;
 
 #define TARGET_VERSION fprintf (stderr, " (GNU assembler syntax)");
 
-#define OVERRIDE_OPTIONS avr_override_options ()
-
 #define CAN_DEBUG_WITHOUT_FP
 
 #define BITS_BIG_ENDIAN 0
@@ -334,8 +332,6 @@ enum reg_class {
 #define PREFERRED_RELOAD_CLASS(X, CLASS) preferred_reload_class(X,CLASS)
 
 #define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
-
-#define CLASS_LIKELY_SPILLED_P(c) class_likely_spilled_p(c)
 
 #define CLASS_MAX_NREGS(CLASS, MODE)   class_max_nregs (CLASS, MODE)
 

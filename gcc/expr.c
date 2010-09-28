@@ -7572,6 +7572,24 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
 	    }
 	}
 
+      /* Use TER to expand pointer addition of a negated value
+	 as pointer subtraction.  */
+      if ((POINTER_TYPE_P (TREE_TYPE (treeop0))
+	   || (TREE_CODE (TREE_TYPE (treeop0)) == VECTOR_TYPE
+	       && POINTER_TYPE_P (TREE_TYPE (TREE_TYPE (treeop0)))))
+	  && TREE_CODE (treeop1) == SSA_NAME
+	  && TYPE_MODE (TREE_TYPE (treeop0))
+	     == TYPE_MODE (TREE_TYPE (treeop1)))
+	{
+	  gimple def = get_def_for_expr (treeop1, NEGATE_EXPR);
+	  if (def)
+	    {
+	      treeop1 = gimple_assign_rhs1 (def);
+	      code = MINUS_EXPR;
+	      goto do_minus;
+	    }
+	}
+
       /* No sense saving up arithmetic to be done
 	 if it's all in the wrong mode to form part of an address.
 	 And force_operand won't know whether to sign-extend or
@@ -7593,6 +7611,7 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
       return REDUCE_BIT_FIELD (simplify_gen_binary (PLUS, mode, op0, op1));
 
     case MINUS_EXPR:
+    do_minus:
       /* For initializers, we are allowed to return a MINUS of two
 	 symbolic constants.  Here we handle all cases when both operands
 	 are constant.  */
@@ -8811,7 +8830,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		 && TREE_READONLY (array) && ! TREE_SIDE_EFFECTS (array)
 		 && TREE_CODE (array) == VAR_DECL && DECL_INITIAL (array)
 		 && TREE_CODE (DECL_INITIAL (array)) != ERROR_MARK
-		 && targetm.binds_local_p (array))
+		 && const_value_known_p (array))
 	  {
 	    if (TREE_CODE (index) == INTEGER_CST)
 	      {
@@ -9362,7 +9381,15 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	{
 	  if (GET_CODE (op0) == SUBREG)
 	    op0 = force_reg (GET_MODE (op0), op0);
-	  op0 = gen_lowpart (mode, op0);
+	  temp = gen_lowpart_common (mode, op0);
+	  if (temp)
+	    op0 = temp;
+	  else
+	    {
+	      if (!REG_P (op0) && !MEM_P (op0))
+		op0 = force_reg (GET_MODE (op0), op0);
+	      op0 = gen_lowpart (mode, op0);
+	    }
 	}
       /* If both types are integral, convert from one mode to the other.  */
       else if (INTEGRAL_TYPE_P (type) && INTEGRAL_TYPE_P (TREE_TYPE (treeop0)))
@@ -9827,19 +9854,15 @@ string_constant (tree arg, tree *ptr_offset)
       *ptr_offset = fold_convert (sizetype, offset);
       return array;
     }
-  else if (TREE_CODE (array) == VAR_DECL)
+  else if (TREE_CODE (array) == VAR_DECL
+	   || TREE_CODE (array) == CONST_DECL)
     {
       int length;
 
       /* Variables initialized to string literals can be handled too.  */
-      if (DECL_INITIAL (array) == NULL_TREE
+      if (!const_value_known_p (array)
+	  || !DECL_INITIAL (array)
 	  || TREE_CODE (DECL_INITIAL (array)) != STRING_CST)
-	return 0;
-
-      /* If they are read-only, non-volatile and bind locally.  */
-      if (! TREE_READONLY (array)
-	  || TREE_SIDE_EFFECTS (array)
-	  || ! targetm.binds_local_p (array))
 	return 0;
 
       /* Avoid const char foo[4] = "abcde";  */

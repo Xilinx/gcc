@@ -37,9 +37,11 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "objc/objc-api.h"
 #include "objc/thr.h"
 #include "objc-private/runtime.h"
-#include "objc/sarray.h"
+#include "objc-private/sarray.h"
 #include "objc/encoding.h"
 #include "runtime-info.h"
+#include <assert.h> /* For assert */
+#include <string.h> /* For strlen */
 
 /* This is how we hack STRUCT_VALUE to be 1 or 0.   */
 #define gen_rtx(args...) 1
@@ -220,7 +222,7 @@ __objc_responds_to (id object, SEL sel)
 /* This is the lookup function.  All entries in the table are either a 
    valid method *or* zero.  If zero then either the dispatch table
    needs to be installed or it doesn't exist and forwarding is attempted. */
-inline
+
 IMP
 objc_msg_lookup (id receiver, SEL op)
 {
@@ -711,7 +713,7 @@ __objc_print_dtable_stats ()
 /* Returns the uninstalled dispatch table indicator.
  If a class' dispatch table points to __objc_uninstalled_dtable
  then that means it needs its dispatch table to be installed. */
-inline
+
 struct sarray *
 objc_get_uninstalled_dtable ()
 {

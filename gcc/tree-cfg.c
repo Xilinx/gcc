@@ -2258,7 +2258,8 @@ is_ctrl_altering_stmt (gimple t)
 
 	/* A non-pure/const call alters flow control if the current
 	   function has nonlocal labels.  */
-	if (!(flags & (ECF_CONST | ECF_PURE)) && cfun->has_nonlocal_label)
+	if (!(flags & (ECF_CONST | ECF_PURE | ECF_LEAF))
+	    && cfun->has_nonlocal_label)
 	  return true;
 
 	/* A call also alters control flow if it does not return.  */
@@ -2314,7 +2315,8 @@ stmt_can_make_abnormal_goto (gimple t)
   if (computed_goto_p (t))
     return true;
   if (is_gimple_call (t))
-    return gimple_has_side_effects (t) && cfun->has_nonlocal_label;
+    return (gimple_has_side_effects (t) && cfun->has_nonlocal_label
+	    && !(gimple_call_flags (t) & ECF_LEAF));
   return false;
 }
 
@@ -3448,8 +3450,9 @@ verify_gimple_assign_binary (gimple stmt)
       }
 
     case PLUS_EXPR:
+    case MINUS_EXPR:
       {
-	/* We use regular PLUS_EXPR for vectors.
+	/* We use regular PLUS_EXPR and MINUS_EXPR for vectors.
 	   ???  This just makes the checker happy and may not be what is
 	   intended.  */
 	if (TREE_CODE (lhs_type) == VECTOR_TYPE
@@ -3474,10 +3477,6 @@ verify_gimple_assign_binary (gimple stmt)
 	      }
 	    goto do_pointer_plus_expr_check;
 	  }
-      }
-    /* Fallthru.  */
-    case MINUS_EXPR:
-      {
 	if (POINTER_TYPE_P (lhs_type)
 	    || POINTER_TYPE_P (rhs1_type)
 	    || POINTER_TYPE_P (rhs2_type))

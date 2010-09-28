@@ -358,7 +358,7 @@ output_file_start (void)
 
   /* Variable tracking should be run after all optimizations which change order
      of insns.  It also needs a valid CFG.  This can't be done in
-     override_options, because flag_var_tracking is finalized after
+     bfin_option_override, because flag_var_tracking is finalized after
      that.  */
   bfin_flag_var_tracking = flag_var_tracking;
   flag_var_tracking = 0;
@@ -2543,6 +2543,29 @@ bfin_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 
   return NO_REGS;
 }
+
+/* Implement TARGET_CLASS_LIKELY_SPILLED_P.  */
+
+static bool
+bfin_class_likely_spilled_p (reg_class_t rclass)
+{
+  switch (rclass)
+    {
+      case PREGS_CLOBBERED:
+      case PROLOGUE_REGS:
+      case P0REGS:
+      case D0REGS:
+      case D1REGS:
+      case D2REGS:
+      case CCREGS:
+        return true;
+
+      default:
+        break;
+    }
+
+  return false;
+}
 
 /* Implement TARGET_HANDLE_OPTION.  */
 
@@ -2639,10 +2662,10 @@ bfin_init_machine_status (void)
   return ggc_alloc_cleared_machine_function ();
 }
 
-/* Implement the macro OVERRIDE_OPTIONS.  */
+/* Implement the TARGET_OPTION_OVERRIDE hook.  */
 
-void
-override_options (void)
+static void
+bfin_option_override (void)
 {
   /* If processor type is not specified, enable all workarounds.  */
   if (bfin_cpu_type == BFIN_CPU_UNKNOWN)
@@ -6626,11 +6649,17 @@ bfin_expand_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION bfin_handle_option
 
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE bfin_option_override
+
 #undef TARGET_DEFAULT_TARGET_FLAGS
 #define TARGET_DEFAULT_TARGET_FLAGS TARGET_DEFAULT
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD bfin_secondary_reload
+
+#undef TARGET_CLASS_LIKELY_SPILLED_P
+#define TARGET_CLASS_LIKELY_SPILLED_P bfin_class_likely_spilled_p
 
 #undef TARGET_DELEGITIMIZE_ADDRESS
 #define TARGET_DELEGITIMIZE_ADDRESS bfin_delegitimize_address

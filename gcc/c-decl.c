@@ -118,12 +118,6 @@ static GTY(()) struct stmt_tree_s c_stmt_tree;
 tree c_break_label;
 tree c_cont_label;
 
-/* Linked list of TRANSLATION_UNIT_DECLS for the translation units
-   included in this invocation.  Note that the current translation
-   unit is not included in this list.  */
-
-static GTY(()) tree all_translation_units;
-
 /* A list of decls to be made automatically visible in each file scope.  */
 static GTY(()) tree visible_builtins;
 
@@ -1072,10 +1066,7 @@ pop_scope (void)
     context = current_function_decl;
   else if (scope == file_scope)
     {
-      tree file_decl = build_decl (UNKNOWN_LOCATION,
-	  			   TRANSLATION_UNIT_DECL, 0, 0);
-      DECL_CHAIN (file_decl) = all_translation_units;
-      all_translation_units = file_decl;
+      tree file_decl = build_translation_unit_decl (NULL_TREE);
       context = file_decl;
     }
   else
@@ -1212,15 +1203,14 @@ pop_scope (void)
 	      DECL_CHAIN (extp) = BLOCK_VARS (block);
 	      BLOCK_VARS (block) = extp;
 	    }
-	  /* If this is the file scope, and we are processing more
-	     than one translation unit in this compilation, set
-	     DECL_CONTEXT of each decl to the TRANSLATION_UNIT_DECL.
-	     This makes same_translation_unit_p work, and causes
-	     static declarations to be given disambiguating suffixes.  */
-	  if (scope == file_scope && num_in_fnames > 1)
+	  /* If this is the file scope set DECL_CONTEXT of each decl to
+	     the TRANSLATION_UNIT_DECL.  This makes same_translation_unit_p
+	     work.  */
+	  if (scope == file_scope)
 	    {
 	      DECL_CONTEXT (p) = context;
-	      if (TREE_CODE (p) == TYPE_DECL)
+	      if (TREE_CODE (p) == TYPE_DECL
+		  && TREE_TYPE (p) != error_mark_node)
 		set_type_context (TREE_TYPE (p), context);
 	    }
 
@@ -6727,6 +6717,17 @@ detect_field_duplicates (tree fieldlist)
   tree x, y;
   int timeout = 10;
 
+  /* If the struct is the list of instance variables of an Objective-C
+     class, then we need to add all the instance variables of
+     superclasses before checking for duplicates (since you can't have
+     an instance variable in a subclass with the same name as an
+     instance variable in a superclass).  objc_get_interface_ivars()
+     leaves fieldlist unchanged if we are not in this case, so in that
+     case nothing changes compared to C.
+  */
+  if (c_dialect_objc ())
+    fieldlist = objc_get_interface_ivars (fieldlist);
+
   /* First, see if there are more than "a few" fields.
      This is trivially true if there are zero or one fields.  */
   if (!fieldlist)
@@ -9664,8 +9665,9 @@ static void
 collect_all_refs (const char *source_file)
 {
   tree t;
+  unsigned i;
 
-  for (t = all_translation_units; t; t = TREE_CHAIN (t))
+  FOR_EACH_VEC_ELT (tree, all_translation_units, i, t)
     collect_ada_nodes (BLOCK_VARS (DECL_INITIAL (t)), source_file);
 }
 
@@ -9677,8 +9679,9 @@ for_each_global_decl (void (*callback) (tree decl))
   tree t;
   tree decls;
   tree decl;
+  unsigned i;
 
-  for (t = all_translation_units; t; t = TREE_CHAIN (t))
+  FOR_EACH_VEC_ELT (tree, all_translation_units, i, t)
     { 
       decls = DECL_INITIAL (t);
       for (decl = BLOCK_VARS (decls); decl; decl = TREE_CHAIN (decl))
@@ -9693,6 +9696,7 @@ void
 c_write_global_declarations (void)
 {
   tree t;
+  unsigned i;
 
   /* We don't want to do this if generating a PCH.  */
   if (pch_file)
@@ -9729,7 +9733,7 @@ c_write_global_declarations (void)
 
   /* Process all file scopes in this compilation, and the external_scope,
      through wrapup_global_declarations and check_global_declarations.  */
-  for (t = all_translation_units; t; t = DECL_CHAIN (t))
+  FOR_EACH_VEC_ELT (tree, all_translation_units, i, t)
     c_write_global_declarations_1 (BLOCK_VARS (DECL_INITIAL (t)));
   c_write_global_declarations_1 (BLOCK_VARS (ext_block));
 
@@ -9742,7 +9746,7 @@ c_write_global_declarations (void)
   if (!seen_error ())
     {
       timevar_push (TV_SYMOUT);
-      for (t = all_translation_units; t; t = DECL_CHAIN (t))
+      FOR_EACH_VEC_ELT (tree, all_translation_units, i, t)
 	c_write_global_declarations_2 (BLOCK_VARS (DECL_INITIAL (t)));
       c_write_global_declarations_2 (BLOCK_VARS (ext_block));
       timevar_pop (TV_SYMOUT);

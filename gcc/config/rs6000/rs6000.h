@@ -619,21 +619,8 @@ extern unsigned char rs6000_recip_bits[];
 #define RS6000_RECIP_HIGH_PRECISION_P(MODE) \
   ((MODE) == SFmode || (MODE) == V4SFmode || TARGET_RECIP_PRECISION)
 
-/* Sometimes certain combinations of command options do not make sense
-   on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
-
-   Do not use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.
-
-   On the RS/6000 this is used to define the target cpu type.  */
-
-#define OVERRIDE_OPTIONS rs6000_override_options (TARGET_CPU_DEFAULT)
-
-/* Define this to change the optimizations performed by default.  */
-#define OPTIMIZATION_OPTIONS(LEVEL,SIZE) optimization_options(LEVEL,SIZE)
+/* The default CPU for TARGET_OPTION_OVERRIDE.  */
+#define OPTION_TARGET_CPU_DEFAULT TARGET_CPU_DEFAULT
 
 /* Show we can debug even without a frame pointer.  */
 #define CAN_DEBUG_WITHOUT_FP
@@ -1149,13 +1136,6 @@ extern unsigned rs6000_pointer_size;
 
 #define PAIRED_VECTOR_MODE(MODE)        \
          ((MODE) == V2SFmode)            
-
-#define UNITS_PER_SIMD_WORD(MODE)					\
-	(TARGET_VSX ? UNITS_PER_VSX_WORD				\
-	 : (TARGET_ALTIVEC ? UNITS_PER_ALTIVEC_WORD			\
-	 : (TARGET_SPE ? UNITS_PER_SPE_WORD				\
-	 : (TARGET_PAIRED_FLOAT ? UNITS_PER_PAIRED_WORD			\
-	 : UNITS_PER_WORD))))
 
 /* Value is TRUE if hard register REGNO can hold a value of
    machine-mode MODE.  */
@@ -2430,12 +2410,6 @@ extern char rs6000_reg_names[][8];	/* register names (0 vs. %r0).  */
 /* Print a memory address as an operand to reference that memory location.  */
 
 #define PRINT_OPERAND_ADDRESS(FILE, ADDR) print_operand_address (FILE, ADDR)
-
-#define OUTPUT_ADDR_CONST_EXTRA(STREAM, X, FAIL)		\
-  do								\
-    if (!rs6000_output_addr_const_extra (STREAM, X))		\
-      goto FAIL;						\
-  while (0)
 
 /* uncomment for disabling the corresponding default options */
 /* #define  MACHINE_no_sched_interblock */

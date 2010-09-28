@@ -1,3 +1,117 @@
+2010-09-26  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* encoding.c (objc_sizeof_type): Added support for vector type and
+	for double long types.	
+	(objc_alignof_type): Same change.
+	(objc_skip_typespec): Same change.
+	* objc/encoding.h (_C_GCINVISIBLE): Use '|' for _C_GCINVISIBLE
+	instead of '!' since '!' is already used for _C_VECTOR.
+	* objc/objc-api.h (_C_LNG_DBL): Added.
+	
+2010-09-26  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* libobjc_entry.c: File removed.
+
+2010-09-26  Kai Tietz  <kai.tietz@onevision.com>
+
+	* sendmsg.c (objc_msg_lookup): Remove inline.
+	(objc_get_uninstalled_dtable): Likewise.
+	* encoding.c (objc_skip_type_qualifiers): Likewise.
+	(objc_skip_offset): Likewise.
+	* archive.c (__objc_write_object): Likewise
+	(__objc_write_class):
+	(__objc_write_selector):
+	(objc_read_char):
+	(objc_read_unsigned_char):
+	(objc_read_short):
+	(objc_read_unsigned_short):
+	(objc_read_int):
+	(objc_read_long):
+	(__objc_read_nbyte_uint):
+	(objc_read_unsigned_int):
+	(objc_read_unsigned_long):
+	* objc/objc-decls.h (obc_EXPORT): Remove dllexport for DLL_EXPORT case.
+	(objc_EXPORT): Likewise.
+	* objc/message.h (objc-decls.h): Add include.
+	* objc/objc-api.h: Mark API by objc_EXPORT.
+	* libobjc.def (__objc_responds_to): Removed.
+
+2010-09-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* hash.c: Include objc-private/hash.h instead of objc/hash.h.
+
+	* objc/sarray.h: Moved into objc/deprecated/sarray.h;
+	objc/sarray.h replaced with a placeholder including the file from
+	the deprecated/ directory.
+	* objc-private/sarray.h: New file (private copy of sarray.h).
+	* hash.c: Include <assert.h> instead of "assert.h"
+	* sarray.c: Include <assert.h> instead of "assert.h".  Include
+	objc-private/sarray.h instead of objc/sarray.h.
+	* selector.c: Include objc-private/sarray.h instead of
+	objc/sarray.h.
+	* sendmsg.c: Include <assert.h>.  Include objc-private/sarray.h
+	instead of objc/sarray.h.
+	* Makefile.in (OBJC_DEPRECATED_H): Added sarray.h.	
+
+2010-09-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-private/objc-list.h (list_remove_elem): Unused function
+	removed.  (list_nth): Unused function removed.  (list_find):
+	Unused function removed.  (list_lenght): Unused function removed.
+	
+2010-09-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc/hash.h: Moved into objc/deprecated/hash.h; objc/hash.h
+	replaced with a placeholder including the file from the
+	deprecated/ directory.
+	* objc/objc-api.h: Updated includes.
+	* objc/typedstream.h: Updated includes.
+	* objc-private/hash.h: New file (private copy of hash.h).
+	* objc/objc-list.h: Moved into objc/deprecated/objc-list.h;
+	objc/objc-list.h replaced with a placeholder including the file
+	from the deprecated/ directory.
+	* objc-private/objc-list.h: New file (private copy of objc-list.h).
+	* init.c: Include objc-private/hash.h and objc-private/objc-list.h
+	instead of objc/hash.h and objc/objc-list.h.
+	* selector.c: Same change.
+	* class.c: Added include <string.h>, which used to be implicitly included
+	when hash.h was included.
+	* exception.c: Same change.
+	* objects.c: Same change.
+	* sarray.c: Same change.
+	* sendmsg.c: Same change.
+	* Makefile.in (OBJC_DEPRECATED_H): Added hash.h and objc-list.h.
+
+2010-09-14  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented objc_sync_enter() and objc_sync_exit(), which are
+	required by @synchronized() to work.
+	* objc-sync.c: New file.
+	* objc/objc-sync.h: New file.
+	* objc-private/objc-sync.h: New file.
+	* init.c (__objc_exec_class): Call __objc_sync_init() during the
+	Objective-C runtime startup.
+	* Makefile.in: Added objc-sync.c and objc-sync.h.
+	* configure.ac: Added GCC_CHECK_TLS.
+	* acinclude.m4: Include ../config/enable.m4 and ../config/tls.m4.
+	* configure: Regenerated.
+	* config.h.in: Regenerated.
+	
+2010-09-12  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* Makefile.in (%_gc.lo): New pattern rules to build the
+	garbage-collected version of the library.  Removed rules for
+	specific files that are no longer needed.  Standardized all rules.
+	(C_SOURCE_FILES, OBJC_SOURCE_FILES): New variables.
+	(OBJS, OBJS_GC): Compute these from C_SOURCE_FILES and
+	OBJC_SOURCE_FILES.
+	(INCLUDES): Removed the unused include -I$(srcdir)/objc.
+
+2010-09-12  Nicola Pero  <nicola.pero@meta-innovation.com>
+	
+	* memory.c (objc_calloc): Fixed call to GC_malloc when building
+	with Garbage Colletion.
+	
 2010-09-12  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* memory.c: Do not include objc-private/runtime.h.

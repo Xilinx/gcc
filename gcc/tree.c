@@ -294,6 +294,8 @@ tree_node_structure_for_code (enum tree_code code)
 	    return TS_TYPE_DECL;
 	  case FUNCTION_DECL:
 	    return TS_FUNCTION_DECL;
+	  case TRANSLATION_UNIT_DECL:
+	    return TS_TRANSLATION_UNIT_DECL;
 	  default:
 	    return TS_DECL_NON_COMMON;
 	  }
@@ -464,6 +466,10 @@ initialize_tree_contains_struct (void)
 	  MARK_TS_DECL_NON_COMMON (code);
 	  break;
 
+	case TS_TRANSLATION_UNIT_DECL:
+	  MARK_TS_DECL_COMMON (code);
+	  break;
+
 	default:
 	  gcc_unreachable ();
 	}
@@ -471,7 +477,6 @@ initialize_tree_contains_struct (void)
 
   /* Basic consistency checks for attributes used in fold.  */
   gcc_assert (tree_contains_struct[FUNCTION_DECL][TS_DECL_NON_COMMON]);
-  gcc_assert (tree_contains_struct[TRANSLATION_UNIT_DECL][TS_DECL_NON_COMMON]);
   gcc_assert (tree_contains_struct[TYPE_DECL][TS_DECL_NON_COMMON]);
   gcc_assert (tree_contains_struct[CONST_DECL][TS_DECL_COMMON]);
   gcc_assert (tree_contains_struct[VAR_DECL][TS_DECL_COMMON]);
@@ -500,7 +505,6 @@ initialize_tree_contains_struct (void)
   gcc_assert (tree_contains_struct[VAR_DECL][TS_DECL_WITH_VIS]);
   gcc_assert (tree_contains_struct[FUNCTION_DECL][TS_DECL_WITH_VIS]);
   gcc_assert (tree_contains_struct[TYPE_DECL][TS_DECL_WITH_VIS]);
-  gcc_assert (tree_contains_struct[TRANSLATION_UNIT_DECL][TS_DECL_WITH_VIS]);
   gcc_assert (tree_contains_struct[VAR_DECL][TS_VAR_DECL]);
   gcc_assert (tree_contains_struct[FIELD_DECL][TS_FIELD_DECL]);
   gcc_assert (tree_contains_struct[PARM_DECL][TS_PARM_DECL]);
@@ -1582,6 +1586,18 @@ build_one_cst (tree type)
       gcc_unreachable ();
     }
 }
+
+/* Build 0 constant of type TYPE.  This is used by constructor folding and thus
+   the constant should correspond zero in memory representation.  */
+
+tree
+build_zero_cst (tree type)
+{
+  if (!AGGREGATE_TYPE_P (type))
+    return fold_convert (type, integer_zero_node);
+  return build_constructor (type, NULL);
+}
+
 
 /* Build a BINFO with LEN language slots.  */
 
@@ -4022,6 +4038,21 @@ build_fn_decl (const char *name, tree type)
   return decl;
 }
 
+VEC(tree,gc) *all_translation_units;
+
+/* Builds a new translation-unit decl with name NAME, queues it in the
+   global list of translation-unit decls and returns it.   */
+
+tree
+build_translation_unit_decl (tree name)
+{
+  tree tu = build_decl (UNKNOWN_LOCATION, TRANSLATION_UNIT_DECL,
+			name, NULL_TREE);
+  TRANSLATION_UNIT_LANGUAGE (tu) = lang_hooks.name;
+  VEC_safe_push (tree, gc, all_translation_units, tu);
+  return tu;
+}
+
 
 /* BLOCK nodes are used to represent the structure of binding contours
    and declarations, once those contours have been exited and their contents
@@ -6092,9 +6123,6 @@ type_hash_canon (unsigned int hashcode, tree type)
      being passed.  */
   gcc_assert (TYPE_MAIN_VARIANT (type) == type);
 
-  if (!lang_hooks.types.hash_types)
-    return type;
-
   /* See if the type is in the hash table already.  If so, return it.
      Otherwise, add the type.  */
   t1 = type_hash_lookup (hashcode, type);
@@ -7062,21 +7090,20 @@ build_nonstandard_integer_type (unsigned HOST_WIDE_INT precision,
   ret = itype;
   if (host_integerp (TYPE_MAX_VALUE (itype), 1))
     ret = type_hash_canon (tree_low_cst (TYPE_MAX_VALUE (itype), 1), itype);
-  if (precision <= MAX_INT_CACHED_PREC && lang_hooks.types.hash_types)
+  if (precision <= MAX_INT_CACHED_PREC)
     nonstandard_integer_type_cache[precision + unsignedp] = ret;
 
   return ret;
 }
 
-/* Create a range of some discrete type TYPE (an INTEGER_TYPE,
-   ENUMERAL_TYPE or BOOLEAN_TYPE), with low bound LOWVAL and
-   high bound HIGHVAL.  */
+/* Create a range of some discrete type TYPE (an INTEGER_TYPE, ENUMERAL_TYPE
+   or BOOLEAN_TYPE) with low bound LOWVAL and high bound HIGHVAL.  If SHARED
+   is true, reuse such a type that has already been constructed.  */
 
-tree
-build_range_type (tree type, tree lowval, tree highval)
+static tree
+build_range_type_1 (tree type, tree lowval, tree highval, bool shared)
 {
   tree itype = make_node (INTEGER_TYPE);
-  hashval_t hash;
 
   TREE_TYPE (itype) = type;
 
@@ -7100,10 +7127,32 @@ build_range_type (tree type, tree lowval, tree highval)
       SET_TYPE_STRUCTURAL_EQUALITY (itype);
       return itype;
     }
-  hash = iterative_hash_expr (TYPE_MIN_VALUE (itype), 0);
-  hash = iterative_hash_expr (TYPE_MAX_VALUE (itype), hash);
-  hash = iterative_hash_hashval_t (TYPE_HASH (type), hash);
-  return type_hash_canon (hash, itype);
+
+  if (shared)
+    {
+      hashval_t hash = iterative_hash_expr (TYPE_MIN_VALUE (itype), 0);
+      hash = iterative_hash_expr (TYPE_MAX_VALUE (itype), hash);
+      hash = iterative_hash_hashval_t (TYPE_HASH (type), hash);
+      itype = type_hash_canon (hash, itype);
+    }
+
+  return itype;
+}
+
+/* Wrapper around build_range_type_1 with SHARED set to true.  */
+
+tree
+build_range_type (tree type, tree lowval, tree highval)
+{
+  return build_range_type_1 (type, lowval, highval, true);
+}
+
+/* Wrapper around build_range_type_1 with SHARED set to false.  */
+
+tree
+build_nonshared_range_type (tree type, tree lowval, tree highval)
+{
+  return build_range_type_1 (type, lowval, highval, false);
 }
 
 /* Create a type of integers to be the TYPE_DOMAIN of an ARRAY_TYPE.
@@ -7174,13 +7223,12 @@ subrange_type_for_debug_p (const_tree type, tree *lowval, tree *highval)
 
 /* Construct, lay out and return the type of arrays of elements with ELT_TYPE
    and number of elements specified by the range of values of INDEX_TYPE.
-   If such a type has already been constructed, reuse it.  */
+   If SHARED is true, reuse such a type that has already been constructed.  */
 
-tree
-build_array_type (tree elt_type, tree index_type)
+static tree
+build_array_type_1 (tree elt_type, tree index_type, bool shared)
 {
   tree t;
-  hashval_t hashcode = 0;
 
   if (TREE_CODE (elt_type) == FUNCTION_TYPE)
     {
@@ -7200,10 +7248,13 @@ build_array_type (tree elt_type, tree index_type)
   if (TYPE_STRUCTURAL_EQUALITY_P (t))
     return t;
 
-  hashcode = iterative_hash_object (TYPE_HASH (elt_type), hashcode);
-  if (index_type)
-    hashcode = iterative_hash_object (TYPE_HASH (index_type), hashcode);
-  t = type_hash_canon (hashcode, t);
+  if (shared)
+    {
+      hashval_t hashcode = iterative_hash_object (TYPE_HASH (elt_type), 0);
+      if (index_type)
+	hashcode = iterative_hash_object (TYPE_HASH (index_type), hashcode);
+      t = type_hash_canon (hashcode, t);
+    }
 
   if (TYPE_CANONICAL (t) == t)
     {
@@ -7213,11 +7264,29 @@ build_array_type (tree elt_type, tree index_type)
       else if (TYPE_CANONICAL (elt_type) != elt_type
 	       || (index_type && TYPE_CANONICAL (index_type) != index_type))
 	TYPE_CANONICAL (t)
-	  = build_array_type (TYPE_CANONICAL (elt_type),
-			      index_type ? TYPE_CANONICAL (index_type) : NULL);
+	  = build_array_type_1 (TYPE_CANONICAL (elt_type),
+				index_type
+				? TYPE_CANONICAL (index_type) : NULL_TREE,
+				shared);
     }
 
   return t;
+}
+
+/* Wrapper around build_array_type_1 with SHARED set to true.  */
+
+tree
+build_array_type (tree elt_type, tree index_type)
+{
+  return build_array_type_1 (elt_type, index_type, true);
+}
+
+/* Wrapper around build_array_type_1 with SHARED set to false.  */
+
+tree
+build_nonshared_array_type (tree elt_type, tree index_type)
+{
+  return build_array_type_1 (elt_type, index_type, false);
 }
 
 /* Recursively examines the array elements of TYPE, until a non-array
@@ -9155,6 +9224,9 @@ local_define_builtin (const char *name, tree type, enum built_in_function code,
     TREE_NOTHROW (decl) = 1;
   if (ecf_flags & ECF_MALLOC)
     DECL_IS_MALLOC (decl) = 1;
+  if (ecf_flags & ECF_LEAF)
+    DECL_ATTRIBUTES (decl) = tree_cons (get_identifier ("leaf"),
+					NULL, DECL_ATTRIBUTES (decl));
 
   built_in_decls[code] = decl;
   implicit_built_in_decls[code] = decl;
@@ -9178,10 +9250,10 @@ build_common_builtin_nodes (void)
 
       if (built_in_decls[BUILT_IN_MEMCPY] == NULL)
 	local_define_builtin ("__builtin_memcpy", ftype, BUILT_IN_MEMCPY,
-			      "memcpy", ECF_NOTHROW);
+			      "memcpy", ECF_NOTHROW | ECF_LEAF);
       if (built_in_decls[BUILT_IN_MEMMOVE] == NULL)
 	local_define_builtin ("__builtin_memmove", ftype, BUILT_IN_MEMMOVE,
-			      "memmove", ECF_NOTHROW);
+			      "memmove", ECF_NOTHROW | ECF_LEAF);
     }
 
   if (built_in_decls[BUILT_IN_MEMCMP] == NULL)
@@ -9190,7 +9262,7 @@ build_common_builtin_nodes (void)
 					const_ptr_type_node, size_type_node,
 					NULL_TREE);
       local_define_builtin ("__builtin_memcmp", ftype, BUILT_IN_MEMCMP,
-			    "memcmp", ECF_PURE | ECF_NOTHROW);
+			    "memcmp", ECF_PURE | ECF_NOTHROW | ECF_LEAF);
     }
 
   if (built_in_decls[BUILT_IN_MEMSET] == NULL)
@@ -9199,7 +9271,7 @@ build_common_builtin_nodes (void)
 					ptr_type_node, integer_type_node,
 					size_type_node, NULL_TREE);
       local_define_builtin ("__builtin_memset", ftype, BUILT_IN_MEMSET,
-			    "memset", ECF_NOTHROW);
+			    "memset", ECF_NOTHROW | ECF_LEAF);
     }
 
   if (built_in_decls[BUILT_IN_ALLOCA] == NULL)
@@ -9207,7 +9279,7 @@ build_common_builtin_nodes (void)
       ftype = build_function_type_list (ptr_type_node,
 					size_type_node, NULL_TREE);
       local_define_builtin ("__builtin_alloca", ftype, BUILT_IN_ALLOCA,
-			    "alloca", ECF_MALLOC | ECF_NOTHROW);
+			    "alloca", ECF_MALLOC | ECF_NOTHROW | ECF_LEAF);
     }
 
   /* If we're checking the stack, `alloca' can throw.  */
@@ -9219,7 +9291,7 @@ build_common_builtin_nodes (void)
 				    ptr_type_node, NULL_TREE);
   local_define_builtin ("__builtin_init_trampoline", ftype,
 			BUILT_IN_INIT_TRAMPOLINE,
-			"__builtin_init_trampoline", ECF_NOTHROW);
+			"__builtin_init_trampoline", ECF_NOTHROW | ECF_LEAF);
 
   ftype = build_function_type_list (ptr_type_node, ptr_type_node, NULL_TREE);
   local_define_builtin ("__builtin_adjust_trampoline", ftype,
@@ -9253,12 +9325,12 @@ build_common_builtin_nodes (void)
 
   ftype = build_function_type_list (ptr_type_node, NULL_TREE);
   local_define_builtin ("__builtin_stack_save", ftype, BUILT_IN_STACK_SAVE,
-			"__builtin_stack_save", ECF_NOTHROW);
+			"__builtin_stack_save", ECF_NOTHROW | ECF_LEAF);
 
   ftype = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
   local_define_builtin ("__builtin_stack_restore", ftype,
 			BUILT_IN_STACK_RESTORE,
-			"__builtin_stack_restore", ECF_NOTHROW);
+			"__builtin_stack_restore", ECF_NOTHROW | ECF_LEAF);
 
   ftype = build_function_type_list (void_type_node, NULL_TREE);
   local_define_builtin ("__builtin_profile_func_enter", ftype,
@@ -9273,7 +9345,7 @@ build_common_builtin_nodes (void)
       ftype = build_function_type_list (void_type_node, NULL_TREE);
       local_define_builtin ("__builtin_cxa_end_cleanup", ftype,
 			    BUILT_IN_CXA_END_CLEANUP,
-			    "__cxa_end_cleanup", ECF_NORETURN);
+			    "__cxa_end_cleanup", ECF_NORETURN | ECF_LEAF);
     }
 
   ftype = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
@@ -9292,12 +9364,12 @@ build_common_builtin_nodes (void)
   ftype = build_function_type_list (ptr_type_node,
 				    integer_type_node, NULL_TREE);
   local_define_builtin ("__builtin_eh_pointer", ftype, BUILT_IN_EH_POINTER,
-			"__builtin_eh_pointer", ECF_PURE | ECF_NOTHROW);
+			"__builtin_eh_pointer", ECF_PURE | ECF_NOTHROW | ECF_LEAF);
 
   tmp = lang_hooks.types.type_for_mode (targetm.eh_return_filter_mode (), 0);
   ftype = build_function_type_list (tmp, integer_type_node, NULL_TREE);
   local_define_builtin ("__builtin_eh_filter", ftype, BUILT_IN_EH_FILTER,
-			"__builtin_eh_filter", ECF_PURE | ECF_NOTHROW);
+			"__builtin_eh_filter", ECF_PURE | ECF_NOTHROW | ECF_LEAF);
 
   ftype = build_function_type_list (void_type_node,
 				    integer_type_node, integer_type_node,
@@ -9339,11 +9411,11 @@ build_common_builtin_nodes (void)
 
 	built_in_names[mcode] = concat ("__mul", mode_name_buf, "3", NULL);
         local_define_builtin (built_in_names[mcode], ftype, mcode,
-			      built_in_names[mcode], ECF_CONST | ECF_NOTHROW);
+			      built_in_names[mcode], ECF_CONST | ECF_NOTHROW | ECF_LEAF);
 
 	built_in_names[dcode] = concat ("__div", mode_name_buf, "3", NULL);
         local_define_builtin (built_in_names[dcode], ftype, dcode,
-			      built_in_names[dcode], ECF_CONST | ECF_NOTHROW);
+			      built_in_names[dcode], ECF_CONST | ECF_NOTHROW | ECF_LEAF);
       }
   }
 }

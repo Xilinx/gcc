@@ -90,7 +90,7 @@ enum stringop_alg
    unrolled_loop
 };
 
-#define NAX_STRINGOP_ALGS 4
+#define MAX_STRINGOP_ALGS 4
 
 /* Specify what algorithm to use for stringops on known size.
    When size is unknown, the UNKNOWN_SIZE alg is used.  When size is
@@ -107,7 +107,7 @@ struct stringop_algs
   const struct stringop_strategy {
     const int max;
     const enum stringop_alg alg;
-  } size [NAX_STRINGOP_ALGS];
+  } size [MAX_STRINGOP_ALGS];
 };
 
 /* Define the specific costs for a given cpu */
@@ -299,6 +299,7 @@ enum ix86_tune_indices {
   X86_TUNE_USE_BT,
   X86_TUNE_USE_INCDEC,
   X86_TUNE_PAD_RETURNS,
+  X86_TUNE_PAD_SHORT_FUNCTION,
   X86_TUNE_EXT_80387_CONSTANTS,
   X86_TUNE_SHORTEN_X87_SSE,
   X86_TUNE_AVOID_VECTOR_DECODE,
@@ -312,6 +313,7 @@ enum ix86_tune_indices {
   X86_TUNE_USE_VECTOR_CONVERTS,
   X86_TUNE_FUSE_CMP_AND_BRANCH,
   X86_TUNE_OPT_AGU,
+  X86_TUNE_VECTORIZE_DOUBLE,
 
   X86_TUNE_LAST
 };
@@ -384,6 +386,8 @@ extern unsigned char ix86_tune_features[X86_TUNE_LAST];
 #define TARGET_USE_BT		ix86_tune_features[X86_TUNE_USE_BT]
 #define TARGET_USE_INCDEC	ix86_tune_features[X86_TUNE_USE_INCDEC]
 #define TARGET_PAD_RETURNS	ix86_tune_features[X86_TUNE_PAD_RETURNS]
+#define TARGET_PAD_SHORT_FUNCTION \
+	ix86_tune_features[X86_TUNE_PAD_SHORT_FUNCTION]
 #define TARGET_EXT_80387_CONSTANTS \
 	ix86_tune_features[X86_TUNE_EXT_80387_CONSTANTS]
 #define TARGET_SHORTEN_X87_SSE	ix86_tune_features[X86_TUNE_SHORTEN_X87_SSE]
@@ -404,6 +408,8 @@ extern unsigned char ix86_tune_features[X86_TUNE_LAST];
 #define TARGET_FUSE_CMP_AND_BRANCH \
 	ix86_tune_features[X86_TUNE_FUSE_CMP_AND_BRANCH]
 #define TARGET_OPT_AGU ix86_tune_features[X86_TUNE_OPT_AGU]
+#define TARGET_VECTORIZE_DOUBLE \
+	ix86_tune_features[X86_TUNE_VECTORIZE_DOUBLE]
 
 /* Feature tests against the various architecture variations.  */
 enum ix86_arch_indices {
@@ -502,21 +508,6 @@ extern enum calling_abi ix86_abi;
 /* Subtargets may reset this to 1 in order to enable 96-bit long double
    with the rounding mode forced to 53 bits.  */
 #define TARGET_96_ROUND_53_LONG_DOUBLE 0
-
-/* Sometimes certain combinations of command options do not make
-   sense on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
-
-   Don't use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.  */
-
-#define OVERRIDE_OPTIONS override_options (true)
-
-/* Define this to change the optimizations performed by default.  */
-#define OPTIMIZATION_OPTIONS(LEVEL, SIZE) \
-  optimization_options ((LEVEL), (SIZE))
 
 /* -march=native handling only makes sense with compiler running on
    an x86 or x86_64 chip.  If changing this condition, also change
@@ -683,9 +674,8 @@ enum target_cpu_default
 
 /* Width of a word, in units (bytes).  */
 #define UNITS_PER_WORD		(TARGET_64BIT ? 8 : 4)
-#ifdef IN_LIBGCC2
-#define MIN_UNITS_PER_WORD	(TARGET_64BIT ? 8 : 4)
-#else
+
+#ifndef IN_LIBGCC2
 #define MIN_UNITS_PER_WORD	4
 #endif
 
@@ -872,8 +862,8 @@ enum target_cpu_default
 #define STACK_REGS
 
 #define IS_STACK_MODE(MODE)					\
-  (((MODE) == SFmode && (!TARGET_SSE || !TARGET_SSE_MATH))	\
-   || ((MODE) == DFmode && (!TARGET_SSE2 || !TARGET_SSE_MATH))  \
+  (((MODE) == SFmode && !(TARGET_SSE && TARGET_SSE_MATH))	\
+   || ((MODE) == DFmode && !(TARGET_SSE2 && TARGET_SSE_MATH))	\
    || (MODE) == XFmode)
 
 /* Cover class containing the stack registers.  */
@@ -988,8 +978,7 @@ enum target_cpu_default
 
    Actually there are no two word move instructions for consecutive
    registers.  And only registers 0-3 may have mov byte instructions
-   applied to them.
-   */
+   applied to them.  */
 
 #define HARD_REGNO_NREGS(REGNO, MODE)					\
   (FP_REGNO_P (REGNO) || SSE_REGNO_P (REGNO) || MMX_REGNO_P (REGNO)	\
@@ -1029,16 +1018,6 @@ enum target_cpu_default
   ((MODE == V1DImode) || (MODE) == DImode				\
    || (MODE) == V2SImode || (MODE) == SImode				\
    || (MODE) == V4HImode || (MODE) == V8QImode)
-
-/* ??? No autovectorization into MMX or 3DNOW until we can reliably
-   place emms and femms instructions.
-   FIXME: AVX has 32byte floating point vector operations and 16byte
-   integer vector operations.  But vectorizer doesn't support
-   different sizes for integer and floating point vectors.  We limit
-   vector size to 16byte.  */
-#define UNITS_PER_SIMD_WORD(MODE)					\
-  (TARGET_AVX ? (((MODE) == DFmode || (MODE) == SFmode) ? 16 : 16)	\
-   	      : (TARGET_SSE ? 16 : UNITS_PER_WORD))
 
 #define VALID_DFP_MODE_P(MODE) \
   ((MODE) == SDmode || (MODE) == DDmode || (MODE) == TDmode)
@@ -1206,7 +1185,8 @@ enum reg_class
   NON_Q_REGS,			/* %esi %edi %ebp %esp */
   INDEX_REGS,			/* %eax %ebx %ecx %edx %esi %edi %ebp */
   LEGACY_REGS,			/* %eax %ebx %ecx %edx %esi %edi %ebp %esp */
-  GENERAL_REGS,			/* %eax %ebx %ecx %edx %esi %edi %ebp %esp %r8 - %r15*/
+  GENERAL_REGS,			/* %eax %ebx %ecx %edx %esi %edi %ebp %esp
+				   %r8 %r9 %r10 %r11 %r12 %r13 %r14 %r15 */
   FP_TOP_REG, FP_SECOND_REG,	/* %st(0) %st(1) */
   FLOAT_REGS,
   SSE_FIRST_REG,
@@ -1435,10 +1415,13 @@ enum reg_class
 /* On the 80386, this is the size of MODE in words,
    except in the FP regs, where a single reg is always enough.  */
 #define CLASS_MAX_NREGS(CLASS, MODE)					\
- (!MAYBE_INTEGER_CLASS_P (CLASS)					\
-  ? (COMPLEX_MODE_P (MODE) ? 2 : 1)					\
-  : (((((MODE) == XFmode ? 12 : GET_MODE_SIZE (MODE)))			\
-      + UNITS_PER_WORD - 1) / UNITS_PER_WORD))
+  (MAYBE_INTEGER_CLASS_P (CLASS)					\
+   ? ((MODE) == XFmode							\
+      ? (TARGET_64BIT ? 2 : 3)						\
+      : (MODE) == XCmode						\
+      ? (TARGET_64BIT ? 4 : 6)						\
+      : ((GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1) / UNITS_PER_WORD))	\
+   : (COMPLEX_MODE_P (MODE) ? 2 : 1))
 
 /* Return a class of registers that cannot change FROM mode to TO mode.  */
 
@@ -1463,26 +1446,21 @@ enum reg_class
    of the first local allocated.  */
 #define STARTING_FRAME_OFFSET 0
 
-/* If we generate an insn to push BYTES bytes,
-   this says how many the stack pointer really advances by.
-   On 386, we have pushw instruction that decrements by exactly 2 no
-   matter what the position was, there is no pushb.
-   But as CIE data alignment factor on this arch is -4, we need to make
-   sure all stack pointer adjustments are in multiple of 4.
+/* If we generate an insn to push BYTES bytes, this says how many the stack
+   pointer really advances by.  On 386, we have pushw instruction that
+   decrements by exactly 2 no matter what the position was, there is no pushb.
 
-   For 64bit ABI we round up to 8 bytes.
- */
+   But as CIE data alignment factor on this arch is -4 for 32bit targets
+   and -8 for 64bit targets, we need to make sure all stack pointer adjustments
+   are in multiple of 4 for 32bit targets and 8 for 64bit targets.  */
 
 #define PUSH_ROUNDING(BYTES) \
-  (TARGET_64BIT		     \
-   ? (((BYTES) + 7) & (-8))  \
-   : (((BYTES) + 3) & (-4)))
+  (((BYTES) + UNITS_PER_WORD - 1) & -UNITS_PER_WORD)
 
-/* If defined, the maximum amount of space required for outgoing arguments will
-   be computed and placed into the variable
-   `crtl->outgoing_args_size'.  No space will be pushed onto the
-   stack for each call; instead, the function prologue should increase the stack
-   frame size by this amount.  
+/* If defined, the maximum amount of space required for outgoing arguments
+   will be computed and placed into the variable `crtl->outgoing_args_size'.
+   No space will be pushed onto the stack for each call; instead, the
+   function prologue should increase the stack frame size by this amount.  
    
    MS ABI seem to require 16 byte alignment everywhere except for function
    prologue and apilogue.  This is not possible without
@@ -1777,7 +1755,7 @@ typedef struct ix86_args {
 /* MOVE_MAX_PIECES is the number of bytes at a time which we can
    move efficiently, as opposed to  MOVE_MAX which is the maximum
    number of bytes we can move with a single instruction.  */
-#define MOVE_MAX_PIECES (TARGET_64BIT ? 8 : 4)
+#define MOVE_MAX_PIECES UNITS_PER_WORD
 
 /* If a memory-to-memory move would take MOVE_RATIO or more simple
    move-instruction pairs, we will do a movmem or libcall instead.
@@ -2022,18 +2000,12 @@ do {									\
 #define ASM_OUTPUT_ADDR_DIFF_ELT(FILE, BODY, VALUE, REL) \
   ix86_output_addr_diff_elt ((FILE), (VALUE), (REL))
 
-/* When we see %v, we will print the 'v' prefix if TARGET_AVX is
-   true.  */
+/* When we see %v, we will print the 'v' prefix if TARGET_AVX is true.  */
 
 #define ASM_OUTPUT_AVX_PREFIX(STREAM, PTR)	\
 {						\
   if ((PTR)[0] == '%' && (PTR)[1] == 'v')	\
-    {						\
-      if (TARGET_AVX)				\
-	(PTR) += 1;				\
-      else					\
-	(PTR) += 2;				\
-    }						\
+    (PTR) += TARGET_AVX ? 1 : 2;		\
 }
 
 /* A C statement or statements which output an assembler instruction
@@ -2304,6 +2276,13 @@ struct GTY(()) machine_function {
   /* Number of saved registers USE_FAST_PROLOGUE_EPILOGUE
      has been computed for.  */
   int use_fast_prologue_epilogue_nregs;
+
+  /* For -fsplit-stack support: A stack local which holds a pointer to
+     the stack arguments for a function with a variable number of
+     arguments.  This is set at the start of the function and is used
+     to initialize the overflow_arg_area field of the va_list
+     structure.  */
+  rtx split_stack_varargs_pointer;
 
   /* This value is used for amd64 targets and specifies the current abi
      to be used. MS_ABI means ms abi. Otherwise SYSV_ABI means sysv abi.  */

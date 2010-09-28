@@ -3002,31 +3002,6 @@ struct GTY(()) tree_parm_decl {
    multiple translation units should be merged.  */
 #define DECL_ONE_ONLY(NODE) (DECL_COMDAT_GROUP (NODE) != NULL_TREE)
 
-/* A replaceable function is one which may be replaced at link-time
-   with an entirely different definition, provided that the
-   replacement has the same type.  For example, functions declared
-   with __attribute__((weak)) on most systems are replaceable.
-
-   COMDAT functions are not replaceable, since all definitions of the
-   function must be equivalent.  It is important that COMDAT functions
-   not be treated as replaceable so that use of C++ template
-   instantiations is not penalized.
-
-   In other respects, the condition is usually equivalent to whether
-   the function binds to the current module (shared library or executable).
-   However, weak functions can always be overridden by earlier TUs
-   in the same module, even if they bind locally to that module.
-
-   For example, DECL_REPLACEABLE is used to determine whether or not a
-   function (including a template instantiation) which is not
-   explicitly declared "inline" can be inlined.  If the function is
-   DECL_REPLACEABLE then it is not safe to do the inlining, since the
-   implementation chosen at link-time may be different.  However, a
-   function that is not DECL_REPLACEABLE can be inlined, since all
-   versions of the function will be functionally identical.  */
-#define DECL_REPLACEABLE_P(NODE) \
-  (!DECL_COMDAT (NODE) && (DECL_WEAK (NODE) || !targetm.binds_local_p (NODE)))
-
 /* The name of the object as the assembler will see it (but before any
    translations made by ASM_OUTPUT_LABELREF).  Often this is the same
    as DECL_NAME.  It is an IDENTIFIER_NODE.  */
@@ -3385,6 +3360,23 @@ struct GTY(()) tree_function_decl {
   /* 3 bits left */
 };
 
+/* The source language of the translation-unit.  */
+#define TRANSLATION_UNIT_LANGUAGE(NODE) \
+  (TRANSLATION_UNIT_DECL_CHECK (NODE)->translation_unit_decl.language)
+
+/* TRANSLATION_UNIT_DECL inherits from DECL_MINIMAL.  */
+
+struct GTY(()) tree_translation_unit_decl {
+  struct tree_decl_common common;
+  /* Source language of this translation unit.  Used for DWARF output.  */
+  const char * GTY((skip(""))) language;
+  /* TODO: Non-optimization used to build this translation unit.  */
+  /* TODO: Root of a partial DWARF tree for global types and decls.  */
+};
+
+/* A vector of all translation-units.  */
+extern GTY (()) VEC(tree,gc) *all_translation_units;
+
 /* For a TYPE_DECL, holds the "original" type.  (TREE_TYPE has the copy.) */
 #define DECL_ORIGINAL_TYPE(NODE) \
   (TYPE_DECL_CHECK (NODE)->decl_non_common.result)
@@ -3490,6 +3482,8 @@ union GTY ((ptr_alias (union lang_tree_node),
   struct tree_const_decl GTY ((tag ("TS_CONST_DECL"))) const_decl;
   struct tree_type_decl GTY ((tag ("TS_TYPE_DECL"))) type_decl;
   struct tree_function_decl GTY ((tag ("TS_FUNCTION_DECL"))) function_decl;
+  struct tree_translation_unit_decl GTY ((tag ("TS_TRANSLATION_UNIT_DECL")))
+    translation_unit_decl;
   struct tree_type GTY ((tag ("TS_TYPE"))) type;
   struct tree_list GTY ((tag ("TS_LIST"))) list;
   struct tree_vec GTY ((tag ("TS_VEC"))) vec;
@@ -4038,6 +4032,7 @@ extern tree build_constructor_from_list (tree, tree);
 extern tree build_real_from_int_cst (tree, const_tree);
 extern tree build_complex (tree, tree, tree);
 extern tree build_one_cst (tree);
+extern tree build_zero_cst (tree);
 extern tree build_string (int, const char *);
 extern tree build_tree_list_stat (tree, tree MEM_STAT_DECL);
 #define build_tree_list(t,q) build_tree_list_stat(t,q MEM_STAT_INFO)
@@ -4047,6 +4042,7 @@ extern tree build_decl_stat (location_t, enum tree_code,
 			     tree, tree MEM_STAT_DECL);
 extern tree build_fn_decl (const char *, tree);
 #define build_decl(l,c,t,q) build_decl_stat (l,c,t,q MEM_STAT_INFO)
+extern tree build_translation_unit_decl (tree);
 extern tree build_block (tree, tree, tree, tree);
 extern tree build_empty_stmt (location_t);
 extern tree build_omp_clause (location_t, enum omp_clause_code);
@@ -4081,6 +4077,7 @@ extern tree build_opaque_vector_type (tree innertype, int nunits);
 extern tree build_type_no_quals (tree);
 extern tree build_index_type (tree);
 extern tree build_array_type (tree, tree);
+extern tree build_nonshared_array_type (tree, tree);
 extern tree build_function_type (tree, tree);
 extern tree build_function_type_list (tree, ...);
 extern tree build_function_type_skip_args (tree, bitmap);
@@ -5105,6 +5102,7 @@ extern void build_common_tree_nodes_2 (int);
 extern void build_common_builtin_nodes (void);
 extern tree build_nonstandard_integer_type (unsigned HOST_WIDE_INT, int);
 extern tree build_range_type (tree, tree, tree);
+extern tree build_nonshared_range_type (tree, tree, tree);
 extern bool subrange_type_for_debug_p (const_tree, tree *, tree *);
 extern HOST_WIDE_INT int_cst_value (const_tree);
 extern HOST_WIDEST_INT widest_int_cst_value (const_tree);
@@ -5200,6 +5198,8 @@ extern tree build_duplicate_type (tree);
 /* Function does not read or write memory (but may have side effects, so
    it does not necessarily fit ECF_CONST).  */
 #define ECF_NOVOPS		  (1 << 9)
+/* The function does not lead to calls within current function unit.  */
+#define ECF_LEAF		  (1 << 10)
 
 extern int flags_from_decl_or_type (const_tree);
 extern int call_expr_flags (const_tree);
@@ -5273,6 +5273,8 @@ extern void process_pending_assemble_externals (void);
 extern void finish_aliases_1 (void);
 extern void finish_aliases_2 (void);
 extern void remove_unreachable_alias_pairs (void);
+extern bool decl_replaceable_p (tree);
+extern bool decl_binds_to_current_def_p (tree);
 
 /* In stmt.c */
 extern void expand_computed_goto (tree);

@@ -216,6 +216,9 @@ struct access
      cannot be called from within FOR_EACH_REFERENCED_VAR. */
   unsigned grp_to_be_replaced : 1;
 
+  /* Should TREE_NO_WARNING of a replacement be set?  */
+  unsigned grp_no_warning : 1;
+
   /* Is it possible that the group refers to data which might be (directly or
      otherwise) modified?  */
   unsigned grp_maybe_modified : 1;
@@ -774,12 +777,13 @@ create_access (tree expr, gimple stmt, bool write)
 	  disqualify_candidate (base, "Encountered a variable sized access.");
 	  return NULL;
 	}
-      if ((offset % BITS_PER_UNIT) != 0 || (size % BITS_PER_UNIT) != 0)
+      if (TREE_CODE (expr) == COMPONENT_REF
+	  && DECL_BIT_FIELD (TREE_OPERAND (expr, 1)))
 	{
-	  disqualify_candidate (base,
-				"Encountered an acces not aligned to a byte.");
+	  disqualify_candidate (base, "Encountered a bit-field access.");
 	  return NULL;
 	}
+      gcc_checking_assert ((offset % BITS_PER_UNIT) == 0);
 
       if (ptr)
 	mark_parm_dereference (base, offset + size, stmt);
@@ -1328,13 +1332,12 @@ make_fancy_name (tree expr)
    by INSERT_AFTER.  This function is not capable of handling bitfields.  */
 
 tree
-build_ref_for_offset (tree base, HOST_WIDE_INT offset,
+build_ref_for_offset (location_t loc, tree base, HOST_WIDE_INT offset,
 		      tree exp_type, gimple_stmt_iterator *gsi,
 		      bool insert_after)
 {
   tree prev_base = base;
   tree off;
-  location_t loc = EXPR_LOCATION (base);
   HOST_WIDE_INT base_offset;
 
   gcc_checking_assert (offset % BITS_PER_UNIT == 0);
@@ -1354,6 +1357,7 @@ build_ref_for_offset (tree base, HOST_WIDE_INT offset,
       tmp = make_ssa_name (tmp, NULL);
       addr = build_fold_addr_expr (unshare_expr (prev_base));
       stmt = gimple_build_assign (tmp, addr);
+      gimple_set_location (stmt, loc);
       SSA_NAME_DEF_STMT (tmp) = stmt;
       if (insert_after)
 	gsi_insert_after (gsi, stmt, GSI_NEW_STMT);
@@ -1389,7 +1393,7 @@ build_ref_for_offset (tree base, HOST_WIDE_INT offset,
    build_ref_for_offset.  */
 
 static tree
-build_ref_for_model (tree base, HOST_WIDE_INT offset,
+build_ref_for_model (location_t loc, tree base, HOST_WIDE_INT offset,
 		     struct access *model, gimple_stmt_iterator *gsi,
 		     bool insert_after)
 {
@@ -1401,13 +1405,13 @@ build_ref_for_model (tree base, HOST_WIDE_INT offset,
 
       offset -= int_bit_position (TREE_OPERAND (model->expr, 1));
       exp_type = TREE_TYPE (TREE_OPERAND (model->expr, 0));
-      t = build_ref_for_offset (base, offset, exp_type, gsi, insert_after);
-      return fold_build3_loc (EXPR_LOCATION (base), COMPONENT_REF,
-			      model->type, t, TREE_OPERAND (model->expr, 1),
-			      NULL_TREE);
+      t = build_ref_for_offset (loc, base, offset, exp_type, gsi, insert_after);
+      return fold_build3_loc (loc, COMPONENT_REF, model->type, t,
+			      TREE_OPERAND (model->expr, 1), NULL_TREE);
     }
   else
-    return build_ref_for_offset (base, offset, model->type, gsi, insert_after);
+    return build_ref_for_offset (loc, base, offset, model->type,
+				 gsi, insert_after);
 }
 
 /* Construct a memory reference consisting of component_refs and array_refs to
@@ -1713,7 +1717,10 @@ create_access_replacement (struct access *access, bool rename)
 	  }
       SET_DECL_DEBUG_EXPR (repl, debug_expr);
       DECL_DEBUG_EXPR_IS_FROM (repl) = 1;
-      TREE_NO_WARNING (repl) = TREE_NO_WARNING (access->base);
+      if (access->grp_no_warning)
+	TREE_NO_WARNING (repl) = 1;
+      else
+	TREE_NO_WARNING (repl) = TREE_NO_WARNING (access->base);
     }
   else
     TREE_NO_WARNING (repl) = 1;
@@ -1969,12 +1976,17 @@ create_artificial_child_access (struct access *parent, struct access *model,
   tree expr = parent->base;
 
   gcc_assert (!model->grp_unscalarizable_region);
-  if (!build_user_friendly_ref_for_offset (&expr, TREE_TYPE (expr), new_offset,
-					   model->type))
-    return NULL;
 
   access = (struct access *) pool_alloc (access_pool);
   memset (access, 0, sizeof (struct access));
+  if (!build_user_friendly_ref_for_offset (&expr, TREE_TYPE (expr), new_offset,
+					   model->type))
+    {
+      access->grp_no_warning = true;
+      expr = build_ref_for_model (EXPR_LOCATION (parent->base), parent->base,
+				  new_offset, model, NULL, false);
+    }
+
   access->base = parent->base;
   access->expr = expr;
   access->offset = new_offset;
@@ -2015,11 +2027,16 @@ propagate_subaccesses_across_link (struct access *lacc, struct access *racc)
     {
       tree t = lacc->base;
 
+      lacc->type = racc->type;
       if (build_user_friendly_ref_for_offset (&t, TREE_TYPE (t), lacc->offset,
 					      racc->type))
+	lacc->expr = t;
+      else
 	{
-	  lacc->expr = t;
-	  lacc->type = racc->type;
+	  lacc->expr = build_ref_for_model (EXPR_LOCATION (lacc->base),
+					    lacc->base, lacc->offset,
+					    racc, NULL, false);
+	  lacc->grp_no_warning = true;
 	}
       return false;
     }
@@ -2169,12 +2186,12 @@ analyze_all_variable_accesses (void)
 }
 
 /* Generate statements copying scalar replacements of accesses within a subtree
-   into or out of AGG.  ACCESS is the first child of the root of the subtree to
-   be processed.  AGG is an aggregate type expression (can be a declaration but
-   does not have to be, it can for example also be a mem_ref or a series of
-   handled components).  TOP_OFFSET is the offset of the processed subtree
-   which has to be subtracted from offsets of individual accesses to get
-   corresponding offsets for AGG.  If CHUNK_SIZE is non-null, copy only
+   into or out of AGG.  ACCESS, all its children, siblings and their children
+   are to be processed.  AGG is an aggregate type expression (can be a
+   declaration but does not have to be, it can for example also be a mem_ref or
+   a series of handled components).  TOP_OFFSET is the offset of the processed
+   subtree which has to be subtracted from offsets of individual accesses to
+   get corresponding offsets for AGG.  If CHUNK_SIZE is non-null, copy only
    replacements in the interval <start_offset, start_offset + chunk_size>,
    otherwise copy all.  GSI is a statement iterator used to place the new
    statements.  WRITE should be true when the statements should write from AGG
@@ -2187,7 +2204,7 @@ generate_subtree_copies (struct access *access, tree agg,
 			 HOST_WIDE_INT top_offset,
 			 HOST_WIDE_INT start_offset, HOST_WIDE_INT chunk_size,
 			 gimple_stmt_iterator *gsi, bool write,
-			 bool insert_after)
+			 bool insert_after, location_t loc)
 {
   do
     {
@@ -2201,7 +2218,7 @@ generate_subtree_copies (struct access *access, tree agg,
 	  tree expr, repl = get_access_replacement (access);
 	  gimple stmt;
 
-	  expr = build_ref_for_model (agg, access->offset - top_offset,
+	  expr = build_ref_for_model (loc, agg, access->offset - top_offset,
 				      access, gsi, insert_after);
 
 	  if (write)
@@ -2223,6 +2240,7 @@ generate_subtree_copies (struct access *access, tree agg,
 						 : GSI_SAME_STMT);
 	      stmt = gimple_build_assign (expr, repl);
 	    }
+	  gimple_set_location (stmt, loc);
 
 	  if (insert_after)
 	    gsi_insert_after (gsi, stmt, GSI_NEW_STMT);
@@ -2235,7 +2253,7 @@ generate_subtree_copies (struct access *access, tree agg,
       if (access->first_child)
 	generate_subtree_copies (access->first_child, agg, top_offset,
 				 start_offset, chunk_size, gsi,
-				 write, insert_after);
+				 write, insert_after, loc);
 
       access = access->next_sibling;
     }
@@ -2249,7 +2267,7 @@ generate_subtree_copies (struct access *access, tree agg,
 
 static void
 init_subtree_with_zero (struct access *access, gimple_stmt_iterator *gsi,
-			bool insert_after)
+			bool insert_after, location_t loc)
 
 {
   struct access *child;
@@ -2266,10 +2284,11 @@ init_subtree_with_zero (struct access *access, gimple_stmt_iterator *gsi,
       else
 	gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
       update_stmt (stmt);
+      gimple_set_location (stmt, loc);
     }
 
   for (child = access->first_child; child; child = child->next_sibling)
-    init_subtree_with_zero (child, gsi, insert_after);
+    init_subtree_with_zero (child, gsi, insert_after, loc);
 }
 
 /* Search for an access representative for the given expression EXPR and
@@ -2306,6 +2325,7 @@ get_access_for_expr (tree expr)
 static bool
 sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write)
 {
+  location_t loc;
   struct access *access;
   tree type, bfr;
 
@@ -2324,6 +2344,7 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write)
     return false;
   type = TREE_TYPE (*expr);
 
+  loc = gimple_location (gsi_stmt (*gsi));
   if (access->grp_to_be_replaced)
     {
       tree repl = get_access_replacement (access);
@@ -2341,7 +2362,7 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write)
 	{
 	  tree ref;
 
-	  ref = build_ref_for_model (access->base, access->offset, access,
+	  ref = build_ref_for_model (loc, access->base, access->offset, access,
 				     NULL, false);
 
 	  if (write)
@@ -2352,6 +2373,7 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write)
 		ref = force_gimple_operand_gsi (gsi, ref, true, NULL_TREE,
 						 false, GSI_NEW_STMT);
 	      stmt = gimple_build_assign (repl, ref);
+	      gimple_set_location (stmt, loc);
 	      gsi_insert_after (gsi, stmt, GSI_NEW_STMT);
 	    }
 	  else
@@ -2362,6 +2384,7 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write)
 		repl = force_gimple_operand_gsi (gsi, repl, true, NULL_TREE,
 						 true, GSI_SAME_STMT);
 	      stmt = gimple_build_assign (ref, repl);
+	      gimple_set_location (stmt, loc);
 	      gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
 	    }
 	}
@@ -2385,7 +2408,8 @@ sra_modify_expr (tree *expr, gimple_stmt_iterator *gsi, bool write)
 	start_offset = chunk_size = 0;
 
       generate_subtree_copies (access->first_child, access->base, 0,
-			       start_offset, chunk_size, gsi, write, write);
+			       start_offset, chunk_size, gsi, write, write,
+			       loc);
     }
   return true;
 }
@@ -2398,55 +2422,55 @@ enum unscalarized_data_handling { SRA_UDH_NONE,  /* Nothing done so far. */
 				  SRA_UDH_LEFT }; /* Data flushed to the LHS. */
 
 /* Store all replacements in the access tree rooted in TOP_RACC either to their
-   base aggregate if there are unscalarized data or directly to LHS
-   otherwise.  */
+   base aggregate if there are unscalarized data or directly to LHS of the
+   statement that is pointed to by GSI otherwise.  */
 
 static enum unscalarized_data_handling
-handle_unscalarized_data_in_subtree (struct access *top_racc, tree lhs,
+handle_unscalarized_data_in_subtree (struct access *top_racc,
 				     gimple_stmt_iterator *gsi)
 {
   if (top_racc->grp_unscalarized_data)
     {
       generate_subtree_copies (top_racc->first_child, top_racc->base, 0, 0, 0,
-			       gsi, false, false);
+			       gsi, false, false,
+			       gimple_location (gsi_stmt (*gsi)));
       return SRA_UDH_RIGHT;
     }
   else
     {
+      tree lhs = gimple_assign_lhs (gsi_stmt (*gsi));
       generate_subtree_copies (top_racc->first_child, lhs, top_racc->offset,
-			       0, 0, gsi, false, false);
+			       0, 0, gsi, false, false,
+			       gimple_location (gsi_stmt (*gsi)));
       return SRA_UDH_LEFT;
     }
 }
 
 
-/* Try to generate statements to load all sub-replacements in an access
-   (sub)tree (LACC is the first child) from scalar replacements in the TOP_RACC
-   (sub)tree.  If that is not possible, refresh the TOP_RACC base aggregate and
-   load the accesses from it.  LEFT_OFFSET is the offset of the left whole
-   subtree being copied, RIGHT_OFFSET is the same thing for the right subtree.
-   NEW_GSI is stmt iterator used for statement insertions after the original
-   assignment, OLD_GSI is used to insert statements before the assignment.
-   *REFRESHED keeps the information whether we have needed to refresh
-   replacements of the LHS and from which side of the assignments this takes
-   place.  */
+/* Try to generate statements to load all sub-replacements in an access subtree
+   formed by children of LACC from scalar replacements in the TOP_RACC subtree.
+   If that is not possible, refresh the TOP_RACC base aggregate and load the
+   accesses from it.  LEFT_OFFSET is the offset of the left whole subtree being
+   copied. NEW_GSI is stmt iterator used for statement insertions after the
+   original assignment, OLD_GSI is used to insert statements before the
+   assignment.  *REFRESHED keeps the information whether we have needed to
+   refresh replacements of the LHS and from which side of the assignments this
+   takes place.  */
 
 static void
 load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 				 HOST_WIDE_INT left_offset,
-				 HOST_WIDE_INT right_offset,
 				 gimple_stmt_iterator *old_gsi,
 				 gimple_stmt_iterator *new_gsi,
-				 enum unscalarized_data_handling *refreshed,
-				 tree lhs)
+				 enum unscalarized_data_handling *refreshed)
 {
-  location_t loc = EXPR_LOCATION (lacc->expr);
-  do
+  location_t loc = gimple_location (gsi_stmt (*old_gsi));
+  for (lacc = lacc->first_child; lacc; lacc = lacc->next_sibling)
     {
       if (lacc->grp_to_be_replaced)
 	{
 	  struct access *racc;
-	  HOST_WIDE_INT offset = lacc->offset - left_offset + right_offset;
+	  HOST_WIDE_INT offset = lacc->offset - left_offset + top_racc->offset;
 	  gimple stmt;
 	  tree rhs;
 
@@ -2463,33 +2487,31 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 		 the aggregate.  See if we have to update it first... */
 	      if (*refreshed == SRA_UDH_NONE)
 		*refreshed = handle_unscalarized_data_in_subtree (top_racc,
-								  lhs, old_gsi);
+								  old_gsi);
 
 	      if (*refreshed == SRA_UDH_LEFT)
-		rhs = build_ref_for_model (lacc->base, lacc->offset, lacc,
+		rhs = build_ref_for_model (loc, lacc->base, lacc->offset, lacc,
 					    new_gsi, true);
 	      else
-		rhs = build_ref_for_model (top_racc->base, offset, lacc,
+		rhs = build_ref_for_model (loc, top_racc->base, offset, lacc,
 					    new_gsi, true);
 	    }
 
 	  stmt = gimple_build_assign (get_access_replacement (lacc), rhs);
 	  gsi_insert_after (new_gsi, stmt, GSI_NEW_STMT);
+	  gimple_set_location (stmt, loc);
 	  update_stmt (stmt);
 	  sra_stats.subreplacements++;
 	}
       else if (*refreshed == SRA_UDH_NONE
 	       && lacc->grp_read && !lacc->grp_covered)
-	*refreshed = handle_unscalarized_data_in_subtree (top_racc, lhs,
+	*refreshed = handle_unscalarized_data_in_subtree (top_racc,
 							  old_gsi);
 
       if (lacc->first_child)
-	load_assign_lhs_subreplacements (lacc->first_child, top_racc,
-					 left_offset, right_offset,
-					 old_gsi, new_gsi, refreshed, lhs);
-      lacc = lacc->next_sibling;
+	load_assign_lhs_subreplacements (lacc, top_racc, left_offset,
+					 old_gsi, new_gsi, refreshed);
     }
-  while (lacc);
 }
 
 /* Result code for SRA assignment modification.  */
@@ -2507,11 +2529,13 @@ sra_modify_constructor_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 {
   tree lhs = gimple_assign_lhs (*stmt);
   struct access *acc;
+  location_t loc;
 
   acc = get_access_for_expr (lhs);
   if (!acc)
     return SRA_AM_NONE;
 
+  loc = gimple_location (*stmt);
   if (VEC_length (constructor_elt,
 		  CONSTRUCTOR_ELTS (gimple_assign_rhs1 (*stmt))) > 0)
     {
@@ -2519,20 +2543,20 @@ sra_modify_constructor_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 	 following should handle it gracefully.  */
       if (access_has_children_p (acc))
 	generate_subtree_copies (acc->first_child, acc->base, 0, 0, 0, gsi,
-				 true, true);
+				 true, true, loc);
       return SRA_AM_MODIFIED;
     }
 
   if (acc->grp_covered)
     {
-      init_subtree_with_zero (acc, gsi, false);
+      init_subtree_with_zero (acc, gsi, false, loc);
       unlink_stmt_vdef (*stmt);
       gsi_remove (gsi, true);
       return SRA_AM_REMOVED;
     }
   else
     {
-      init_subtree_with_zero (acc, gsi, true);
+      init_subtree_with_zero (acc, gsi, true, loc);
       return SRA_AM_MODIFIED;
     }
 }
@@ -2571,7 +2595,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
   tree lhs, rhs;
   bool modify_this_stmt = false;
   bool force_gimple_rhs = false;
-  location_t loc = gimple_location (*stmt);
+  location_t loc;
   gimple_stmt_iterator orig_gsi = *gsi;
 
   if (!gimple_assign_single_p (*stmt))
@@ -2598,6 +2622,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
   if (!lacc && !racc)
     return SRA_AM_NONE;
 
+  loc = gimple_location (*stmt);
   if (lacc && lacc->grp_to_be_replaced)
     {
       lhs = get_access_replacement (lacc);
@@ -2627,13 +2652,15 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 	  if (AGGREGATE_TYPE_P (TREE_TYPE (lhs))
 	      && !access_has_children_p (lacc))
 	    {
-	      lhs = build_ref_for_offset (lhs, 0, TREE_TYPE (rhs), gsi, false);
+	      lhs = build_ref_for_offset (loc, lhs, 0, TREE_TYPE (rhs),
+					  gsi, false);
 	      gimple_assign_set_lhs (*stmt, lhs);
 	    }
 	  else if (AGGREGATE_TYPE_P (TREE_TYPE (rhs))
 		   && !contains_view_convert_expr_p (rhs)
 		   && !access_has_children_p (racc))
-	    rhs = build_ref_for_offset (rhs, 0, TREE_TYPE (lhs), gsi, false);
+	    rhs = build_ref_for_offset (loc, rhs, 0, TREE_TYPE (lhs),
+					gsi, false);
 
 	  if (!useless_type_conversion_p (TREE_TYPE (lhs), TREE_TYPE (rhs)))
 	    {
@@ -2685,10 +2712,10 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
     {
       if (access_has_children_p (racc))
 	generate_subtree_copies (racc->first_child, racc->base, 0, 0, 0,
-				 gsi, false, false);
+				 gsi, false, false, loc);
       if (access_has_children_p (lacc))
 	generate_subtree_copies (lacc->first_child, lacc->base, 0, 0, 0,
-				 gsi, true, true);
+				 gsi, true, true, loc);
       sra_stats.separate_lhs_rhs_handling++;
     }
   else
@@ -2699,13 +2726,12 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 	  enum unscalarized_data_handling refreshed;
 
 	  if (lacc->grp_read && !lacc->grp_covered)
-	    refreshed = handle_unscalarized_data_in_subtree (racc, lhs, gsi);
+	    refreshed = handle_unscalarized_data_in_subtree (racc, gsi);
 	  else
 	    refreshed = SRA_UDH_NONE;
 
-	  load_assign_lhs_subreplacements (lacc->first_child, racc,
-					   lacc->offset, racc->offset,
-					   &orig_gsi, gsi, &refreshed, lhs);
+	  load_assign_lhs_subreplacements (lacc, racc, lacc->offset,
+					   &orig_gsi, gsi, &refreshed);
 	  if (refreshed != SRA_UDH_RIGHT)
 	    {
 	      gsi_next (gsi);
@@ -2740,7 +2766,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 		      if (racc->first_child)
 			generate_subtree_copies (racc->first_child, lhs,
 						 racc->offset, 0, 0, gsi,
-						 false, false);
+						 false, false, loc);
 
 		      gcc_assert (*stmt == gsi_stmt (*gsi));
 		      unlink_stmt_vdef (*stmt);
@@ -2750,12 +2776,12 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 		    }
 		}
 	      else if (racc->first_child)
-		generate_subtree_copies (racc->first_child, lhs,
-					 racc->offset, 0, 0, gsi, false, true);
+		generate_subtree_copies (racc->first_child, lhs, racc->offset,
+					 0, 0, gsi, false, true, loc);
 	    }
 	  if (access_has_children_p (lacc))
 	    generate_subtree_copies (lacc->first_child, rhs, lacc->offset,
-				     0, 0, gsi, true, true);
+				     0, 0, gsi, true, true, loc);
 	}
     }
 
@@ -2888,7 +2914,8 @@ initialize_parameter_reductions (void)
       for (access = VEC_index (access_p, access_vec, 0);
 	   access;
 	   access = access->next_grp)
-	generate_subtree_copies (access, parm, 0, 0, 0, &gsi, true, true);
+	generate_subtree_copies (access, parm, 0, 0, 0, &gsi, true, true,
+				 EXPR_LOCATION (parm));
     }
 
   if (seq)

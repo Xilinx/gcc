@@ -2770,7 +2770,7 @@ conv_isocbinding_procedure (gfc_se * se, gfc_symbol * sym,
 
 int
 gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
-			 gfc_actual_arglist * arg, gfc_expr * expr,
+			 gfc_actual_arglist * args, gfc_expr * expr,
 			 VEC(tree,gc) *append_args)
 {
   gfc_interface_mapping mapping;
@@ -2789,6 +2789,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
   VEC(tree,gc) *stringargs;
   tree result = NULL;
   gfc_formal_arglist *formal;
+  gfc_actual_arglist *arg;
   int has_alternate_specifier = 0;
   bool need_interface_mapping;
   bool callee_alloc;
@@ -2809,7 +2810,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
   gfc_clear_ts (&ts);
 
   if (sym->from_intmod == INTMOD_ISO_C_BINDING
-      && conv_isocbinding_procedure (se, sym, arg))
+      && conv_isocbinding_procedure (se, sym, args))
     return 0;
 
   gfc_is_proc_ptr_comp (expr, &comp);
@@ -2859,7 +2860,8 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
     }
 
   /* Evaluate the arguments.  */
-  for (; arg != NULL; arg = arg->next, formal = formal ? formal->next : NULL)
+  for (arg = args; arg != NULL;
+       arg = arg->next, formal = formal ? formal->next : NULL)
     {
       e = arg->expr;
       fsym = formal ? formal->sym : NULL;
@@ -3040,6 +3042,24 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	      else
 		f = f || !sym->attr.always_explicit;
 
+	      /* If the argument is a function call that may not create
+		 a temporary for the result, we have to check that we
+		 can do it, i.e. that there is no alias between this 
+		 argument and another one.  */
+	      if (gfc_get_noncopying_intrinsic_argument (e) != NULL)
+		{
+		  sym_intent intent;
+
+		  if (fsym != NULL)
+		    intent = fsym->attr.intent;
+		  else
+		    intent = INTENT_UNKNOWN;
+
+		  if (gfc_check_fncall_dependency (e, intent, sym, args,
+						   NOT_ELEMENTAL))
+		    parmse.force_tmp = 1;
+		}
+
 	      if (e->expr_type == EXPR_VARIABLE
 		    && is_subref_array (e))
 		/* The actual argument is a component reference to an
@@ -3169,27 +3189,16 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
       if (gfc_option.rtcheck & GFC_RTCHECK_POINTER && e != NULL)
         {
-	  symbol_attribute *attr;
+	  symbol_attribute attr;
 	  char *msg;
 	  tree cond;
 
-	  if (e->expr_type == EXPR_VARIABLE)
-	    attr = &e->symtree->n.sym->attr;
-	  else if (e->expr_type == EXPR_FUNCTION)
-	    {
-	      /* For intrinsic functions, the gfc_attr are not available.  */
-	      if (e->symtree->n.sym->attr.generic && e->value.function.isym)
-		goto end_pointer_check;
-
-	      if (e->symtree->n.sym->attr.generic)
-		attr = &e->value.function.esym->attr;
-	      else
-		attr = &e->symtree->n.sym->result->attr;
-	    }
+	  if (e->expr_type == EXPR_VARIABLE || e->expr_type == EXPR_FUNCTION)
+	    attr = gfc_expr_attr (e);
 	  else
 	    goto end_pointer_check;
 
-          if (attr->optional)
+          if (attr.optional)
 	    {
               /* If the actual argument is an optional pointer/allocatable and
 		 the formal argument takes an nonpointer optional value,
@@ -3198,16 +3207,16 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		 See Fortran 2003, Section 12.4.1.6 item (7)+(8).  */
 	      tree present, null_ptr, type;
 
-	      if (attr->allocatable
+	      if (attr.allocatable
 		  && (fsym == NULL || !fsym->attr.allocatable))
 		asprintf (&msg, "Allocatable actual argument '%s' is not "
 			  "allocated or not present", e->symtree->n.sym->name);
-	      else if (attr->pointer
+	      else if (attr.pointer
 		       && (fsym == NULL || !fsym->attr.pointer))
 		asprintf (&msg, "Pointer actual argument '%s' is not "
 			  "associated or not present",
 			  e->symtree->n.sym->name);
-	      else if (attr->proc_pointer
+	      else if (attr.proc_pointer
 		       && (fsym == NULL || !fsym->attr.proc_pointer))
 		asprintf (&msg, "Proc-pointer actual argument '%s' is not "
 			  "associated or not present",
@@ -3231,15 +3240,15 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	    }
           else
 	    {
-	      if (attr->allocatable
+	      if (attr.allocatable
 		  && (fsym == NULL || !fsym->attr.allocatable))
 		asprintf (&msg, "Allocatable actual argument '%s' is not "
 		      "allocated", e->symtree->n.sym->name);
-	      else if (attr->pointer
+	      else if (attr.pointer
 		       && (fsym == NULL || !fsym->attr.pointer))
 		asprintf (&msg, "Pointer actual argument '%s' is not "
 		      "associated", e->symtree->n.sym->name);
-	      else if (attr->proc_pointer
+	      else if (attr.proc_pointer
 		       && (fsym == NULL || !fsym->attr.proc_pointer))
 		asprintf (&msg, "Proc-pointer actual argument '%s' is not "
 		      "associated", e->symtree->n.sym->name);

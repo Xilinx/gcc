@@ -1,3 +1,138 @@
+2010-09-28  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+
+	2005-07-18  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4175534
+	* objc-act.c (objc_compare_types): A new silent comparison
+	mode (-4), differing from regular comparison (-3) in that
+	'false' is returned instead of issuing warnings.
+	
+2010-09-28  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-act.c (encode_type): Do not add 'r' with the next runtime.
+	(encode_aggregate_within): Reorganized code to be more readable.
+	(encode_aggregate_fields): Updated second argument to be 'bool'
+	instead of 'int'.
+
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/45763
+	PR objc/25450
+	PR objc/25464
+	* objc-act.c: Improved comments for encoding functions.
+	(encode_aggregate_within): For the GNU runtime, rewritten some
+	obsfuscated code to clarify the various cases.
+	(encode_aggregate): Function removed.
+	(encode_array): Generate an error if asked to encode an incomplete
+	array as part of generating instance variables.  Else, when
+	encoding an incomplete array inside a structure, encode it as an
+	array of zero size.
+	(encode_pointer): For the GNU runtime, fixed encoding 'BOOL *' as
+	'^c' instead of '*'.
+	(encode_gnu_bitfield): Encode enumerated types exactly in the same
+	type as integer types instead of using a hardcoded 'i'.  If asked
+	to encode a non-integer type as a bitfield, do not abort
+	compilation immediately; instead generate an error, then skip the
+	type.
+	(encode_type): Use a 'switch' instead of a sequence of 'if's.
+	Added a 'default' clause that gets executed if the type can not be
+	matched, and that encodes it as '?' (unknown) and produces a
+	warning.  For the GNU runtime, encode enumerated types exactly in
+	the same way as integer types instead of using a hardcoded 'i'.
+	Encode long double as 'D'.  Encode 128-bit integers as 'T' or 't'.
+	Encode C++ reference types as pointers.  Call encode_vector to
+	encode vectors.
+	(encode_vector): New function.
+	
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.  I modified the
+	changes to be used only when compiling for the NeXT runtime.
+
+	2005-10-10  Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4301047
+
+	* objc-act.c (encode_type): Remove the hack.
+	
+	2005-07-20  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4136935
+	* objc-act.c (pointee_is_readonly): New function.
+	(encode_pointer, encode_aggregate_within, encode_type):
+	Attempt to emulate GCC 3.3 when generating type encodings.
+
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+
+	2005-12-15  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4229905
+	* objc-act.c (objc_have_common_types): New function.
+	
+	2005-06-22  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4154928
+	* objc-act.c (objc_common_type): New function.
+	
+2010-09-27  Richard Guenther  <rguenther@suse.de>
+
+	* objc-act.c (objc_get_class_reference): Use CP_TYPE_CONTEXT.
+	(objc_is_global_reference_p): Use DECL_FILE_SCOPE_P.
+
+2010-09-26  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-act.c: Removed historical, obsolete comment at the top of
+	the file.
+
+2010-09-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/23710
+	* objc-act.c (objc_start_method_definition): Do not abort upon a
+	'method definition not in @implementation context' error.  Return
+	'false' instead.
+
+2010-09-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/25965
+	* objc-act.c (objc_get_interface_ivars): New function.
+	(objc_collecting_ivars): New variable.
+	(continue_class): Set and reset objc_collecting_ivars for context.
+	
+2010-09-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+
+	2006-03-09 Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4457381
+	* objc/objc-act.c (objc_finish_message_expr): Look for message in
+	@class's protocol list.
+
+	2006-02-07  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4219590
+	* objc/objc-act.c (objc_start_method_definition): Initialize
+	break/continue labels.
+
+	2005-08-22  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4174166
+	* objc-act.c (objc_compare_types): Compare function
+	pointers; indicate success if the right-hand side has
+	a return type that is covariant, and the argument types
+	contravariant, with those of the left side.
+
+	2005-08-22  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4216500
+	* objc-act.c (objc_get_protocol_qualified_type): When looking
+	at a typedef, retrieve the precise type it describes (rather
+	than merely looking up a class by name).
+	
 2010-09-10  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc/objc-act.c (objc_begin_try_stmt): Generate an error if

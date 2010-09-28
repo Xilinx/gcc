@@ -363,7 +363,13 @@ cgraph_finalize_function (tree decl, bool nested)
      there.  */
   if ((TREE_PUBLIC (decl) && !DECL_COMDAT (decl) && !DECL_EXTERNAL (decl))
       || DECL_STATIC_CONSTRUCTOR (decl)
-      || DECL_STATIC_DESTRUCTOR (decl))
+      || DECL_STATIC_DESTRUCTOR (decl)
+      /* COMDAT virtual functions may be referenced by vtable from
+	 other compilatoin unit.  Still we want to devirtualize calls
+	 to those so we need to analyze them.
+	 FIXME: We should introduce may edges for this purpose and update
+	 their handling in unreachable function removal and inliner too.  */
+      || (DECL_VIRTUAL_P (decl) && (DECL_COMDAT (decl) || DECL_EXTERNAL (decl))))
     cgraph_mark_reachable_node (node);
 
   /* If we've not yet emitted decl, tell the debug info about it.  */
@@ -861,6 +867,7 @@ cgraph_analyze_functions (void)
   static struct varpool_node *first_analyzed_var;
   struct cgraph_node *node, *next;
 
+  bitmap_obstack_initialize (NULL);
   process_function_and_variable_attributes (first_processed,
 					    first_analyzed_var);
   first_processed = cgraph_nodes;
@@ -971,6 +978,7 @@ cgraph_analyze_functions (void)
       fprintf (cgraph_dump_file, "\n\nReclaimed ");
       dump_cgraph (cgraph_dump_file);
     }
+  bitmap_obstack_release (NULL);
   first_analyzed = cgraph_nodes;
   ggc_collect ();
 }
@@ -2151,6 +2159,7 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
       new_stmt
 	= gimple_call_copy_skip_args (e->call_stmt,
 				      e->callee->clone.combined_args_to_skip);
+      gimple_call_set_fndecl (new_stmt, e->callee->decl);
 
       if (gimple_vdef (new_stmt)
 	  && TREE_CODE (gimple_vdef (new_stmt)) == SSA_NAME)
@@ -2160,10 +2169,11 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
       gsi_replace (&gsi, new_stmt, true);
     }
   else
-    new_stmt = e->call_stmt;
-
-  gimple_call_set_fndecl (new_stmt, e->callee->decl);
-  update_stmt (new_stmt);
+    {
+      new_stmt = e->call_stmt;
+      gimple_call_set_fndecl (new_stmt, e->callee->decl);
+      update_stmt (new_stmt);
+    }
 
   cgraph_set_call_stmt_including_clones (e->caller, e->call_stmt, new_stmt);
 

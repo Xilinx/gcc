@@ -882,21 +882,13 @@ finish_for_expr (tree expr, tree for_stmt)
 void
 finish_for_stmt (tree for_stmt)
 {
-  bool scoped;
-
   if (TREE_CODE (for_stmt) == RANGE_FOR_STMT)
-    {
-      RANGE_FOR_BODY (for_stmt) = do_poplevel (RANGE_FOR_BODY (for_stmt));
-      scoped = true;
-    }
+    RANGE_FOR_BODY (for_stmt) = do_poplevel (RANGE_FOR_BODY (for_stmt));
   else
-    {
-      FOR_BODY (for_stmt) = do_poplevel (FOR_BODY (for_stmt));
-      scoped = flag_new_for_scope > 0;
-    }
+    FOR_BODY (for_stmt) = do_poplevel (FOR_BODY (for_stmt));
 
   /* Pop the scope for the body of the loop.  */
-  if (scoped)
+  if (flag_new_for_scope > 0)
     {
       tree scope = TREE_CHAIN (for_stmt);
       TREE_CHAIN (for_stmt) = NULL;
@@ -913,10 +905,12 @@ tree
 begin_range_for_stmt (void)
 {
   tree r;
+
   r = build_stmt (input_location, RANGE_FOR_STMT,
 		  NULL_TREE, NULL_TREE, NULL_TREE);
-  /* We can ignore flag_new_for_scope here. */
-  TREE_CHAIN (r) = do_pushlevel (sk_for);
+
+  if (flag_new_for_scope > 0)
+    TREE_CHAIN (r) = do_pushlevel (sk_for);
 
   return r;
 }
@@ -2869,6 +2863,16 @@ finish_id_expression (tree id_expression,
 	      error ("  %q+#D declared here", decl);
 	      return error_mark_node;
 	    }
+	}
+
+      /* Also disallow uses of function parameters outside the function
+	 body, except inside an unevaluated context (i.e. decltype).  */
+      if (TREE_CODE (decl) == PARM_DECL
+	  && DECL_CONTEXT (decl) == NULL_TREE
+	  && !cp_unevaluated_operand)
+	{
+	  error ("use of parameter %qD outside function body", decl);
+	  return error_mark_node;
 	}
     }
 

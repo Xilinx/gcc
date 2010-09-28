@@ -1,3 +1,258 @@
+2010-09-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40569
+	PR fortran/40568
+	* intrinsic.h (gfc_simplify_compiler_options,
+	gfc_simplify_compiler_version): New prototypes.
+	* intrinsic.c (gfc_intrinsic_function_by_id,
+	make_from_module): New functions.
+	(gfc_find_function, gfc_find_subroutine, gfc_generic_intrinsic,
+	gfc_specific_intrinsic): Don't return module intrinsics.
+	(add_functions): Add compiler_options, compiler_version.
+	(gfc_intrinsic_func_interface): Also lookup symbol by ISYM ID.
+	* symbol.c (std_for_isocbinding_symbol): Add version check for
+	NAMED_FUNCTIONS.
+	* iso-fortran-env.def: Add compiler_options, compiler_version.
+	* iso-c-binding.def: Add c_sizeof.
+	* gfortran.h (gfc_intrinsic_sym): Add from_module:1.
+	(iso_c_binding_symbol, iso_fortran_env_symbol): Add NAMED_FUNCTIONS.
+	(gfc_intrinsic_function_by_id): New prototype.
+	* module.c (create_intrinsic_function): New function.
+	(import_iso_c_binding_module, use_iso_fortran_env_module): Use it.
+	* trans-types.c (init_c_interop_kinds): Add NAMED_FUNCTIONS.
+	* resolve.c (resolve_intrinsic): Try also to resolve intrinsics
+	by ISYM ID.
+	* simplify.c (gfc_simplify_compiler_options,
+	gfc_simplify_compiler_version): New functions.
+
+2010-09-26  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/45783
+	PR fortran/45795
+	* resolve.c (resolve_select_type): Clarify code.
+	(resolve_assoc_var): Only set typespec if it is currently unknown.
+
+2010-09-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/45793
+	* module.c (create_int_parameter_array): Set the array value shape.
+
+2010-09-25  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.texi: Re-add accidently removed \input line.
+
+2010-09-25  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/45776
+	* gfortran.h (struct gfc_dt): New member `dt_io_kind'.
+	* io.c (resolve_tag): F2008 check for NEWUNIT and variable
+	definition checks for NEWUNIT, IOSTAT, SIZE and IOMSG.
+	(gfc_free_dt): Correctly handle freeing of `dt_io_kind' and
+	`extra_comma' with changed semantics.
+	(gfc_resolve_dt): Check variable definitions.
+	(match_io_element): Remove INTENT and PURE checks here and
+	initialize code->ext.dt member.
+	(match_io): Set dt->dt_io_kind.
+	(gfc_resolve_inquire): Check variable definition for all tags
+	except UNIT, FILE and ID.
+	* resolve.c (resolve_transfer): Variable definition check.
+
+2010-09-25  Tobias Burnus  <burnus@net-b.de>
+
+	* interface.c (gfc_match_end_interface): Constify char pointer
+	to fix warning.
+
+2010-09-24  Steven G. Kargl  < kargl@gcc.gnu.org>
+
+	* interface.c (gfc_match_end_interface): Deal with user defined
+	operators that overload rational operators and C1202.
+
+2010-09-24  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.texi: Add second space after end-of-sentence period;
+	change / to /@/ to allow hyphenation of URLs.
+	(Standards): Remove duplicated OpenMP, update wording given that
+	Fortran 2008 now released.
+	(Fortran 2008 status): Update and add list of implemented features.
+
+2010-09-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40571
+	* iso-fortran-env.def: Add NAMED_KINDARRAY with
+	character_kinds, integer_kinds, logical_kinds and
+	real_kinds.
+	* gfortran.h: Add them to iso_fortran_env_symbol.
+	* libgfortran.h: Rename GFC_INQUIRE_INTERNAL_UNIT to
+	LIBERROR_INQUIRE_INTERNAL_UNIT and move it from
+	libgfortran_stat_codes to libgfortran_error_codes.
+	* module.c (create_int_parameter_array): New function.
+	(use_iso_fortran_env_module): Use it for
+	NAMED_KINDARRAY of iso-fortran-env.def.
+	* trans-decl.c (gfc_get_symbol_decl): Parameter
+	arrays of intrinsics modules become local static variables.
+	* intrinsic.texi (ISO_FORTRAN_ENV): Add character_kinds,
+	integer_kinds, logical_kinds and real_kinds.
+
+2010-09-23  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45744
+	* frontend-passes.c (optimize_binop_array_assignment):
+	Only re-use lhs as intermediate storage if kind and type
+	parameters match.
+
+2010-09-23  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/45745
+	PR fortran/45648
+	* trans-array.c (gfc_conv_expr_descriptor): Handle
+	ss->type == GFC_SS_INTRINSIC (for {l,u}bound intrinsics) case.
+
+2010-09-23  Tobias Burnus  <burnus@net-b.de>
+
+	* intrinsic.texi (OpenMP modules): Add named constants of
+	OMP_LIB.
+
+2010-09-23  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38936
+	PR fortran/44044
+	PR fortran/45474
+	* gfortran.h (gfc_check_vardef_context): New method.
+	(struct symbol_attribute): New flag `select_type_temporary'.
+	* primary.c (gfc_variable_attr): Clarify initialization of ref.
+	(match_variable): Remove PROTECTED check and assignment check
+	for PARAMETERs (this is now done later).
+	* match.c (gfc_match_iterator): Remove INTENT(IN) check.
+	(gfc_match_associate): Defer initialization of newAssoc->variable.
+	(gfc_match_nullify): Remove PURE definability check.
+	(select_type_set_tmp): Set new `select_type_temporary' flag.
+	* expr.c (gfc_check_assign): Remove INTENT(IN) check here.
+	(gfc_check_pointer_assign): Ditto (and other checks removed).
+	(gfc_check_vardef_context): New method.
+	* interface.c (compare_parameter_protected): Removed.
+	(compare_actual_formal): Use `gfc_check_vardef_context' for checks
+	related to INTENT([IN]OUT) arguments.
+	* intrinsic.c (check_arglist): Check INTENT for intrinsics.
+	* resolve.c (gfc_resolve_iterator): Use `gfc_check_vardef_context'.
+	(remove_last_array_ref): New method.
+	(resolve_deallocate_expr), (resolve_allocate_expr): Ditto.
+	(resolve_allocate_deallocate): Ditto (for STAT and ERRMSG).
+	(resolve_assoc_var): Remove checks for definability here.
+	(resolve_select_type): Handle resolving of code->block here.
+	(resolve_ordinary_assign): Remove PURE check.
+	(resolve_code): Do not resolve code->blocks for SELECT TYPE here.
+	Use `gfc_check_vardef_context' for assignments and pointer-assignments.
+
+2010-08-22  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gfortran.texi (Argument list functions): Allow URL to wrap.
+	* intrinsic.texi (GETGID, GETPID, GETUID, IMAGE_INDEX)
+	(IS_IOSTAT_END, IS_IOSTAT_EOR, NUM_IMAGES, THIS_IMAGE)
+	(ISO_FORTRAN_ENV): Fix markup in index entries, and a couple of
+	code markups in the text.
+	* invoke.texi (Fortran Dialect Options)
+	(Error and Warning Options, Directory Options, Code Gen Options):
+	Likewise.  Remove @code inside @smallexample.
+
+2010-09-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* gfortranspec.c (lang_specific_driver): Handle OPT__version and
+	OPT__help instead of OPT_fversion and OPT_fhelp.
+	* lang.opt (-all-warnings, -assert, -assert=, -comments,
+	-comments-in-macros, -define-macro, -define-macro=, -dependencies,
+	-dump, -dump=, -include-barrier, -include-directory,
+	-include-directory=, -include-directory-after,
+	-include-directory-after=, -include-prefix, -include-prefix=,
+	-no-line-commands, -no-standard-includes, -output, -output=,
+	-preprocess, -print-missing-file-dependencies, -trace-includes,
+	-undefine-macro, -undefine-macro=, -user-dependencies, -verbose,
+	-write-dependencies, -write-user-dependencies): New.
+
+2010-09-21  Jason Blevins  <jrblevin@sdf.org>
+
+	* intrinsics.texi (HYPOT, IMAGE_INDEX, BESSEL_JN, BESSEL_YN,
+	execute_command_line, IEOR, IOR, NORM2, NOT, NULL, PARITY):
+	Correct spelling.
+
+2010-09-21  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/45648
+	* trans-array.c (gfc_conv_expr_descriptor): Calculate dim out of n and
+	info->dim.
+
+	PR fortran/45648
+	* trans-array.c (gfc_conv_expr_descriptor): Unset full if we are
+	accessing dimensions in reversed order. 
+
+	PR fortran/45648
+	* trans-array.c (gfc_conv_expr_descriptor): Special case noncopying
+	intrinsic function call. 
+
+	* trans-array.c (gfc_conv_expr_descriptor): Remove ss lookup.
+	Update asserts accordingly.
+
+	PR fortran/45648
+	* trans.h (gfc_se): New field force_tmp. 
+	* trans-expr.c (gfc_conv_procedure_call): Check for argument alias
+	and set parmse.force_tmp if some alias is found. 
+	* trans-array.c (gfc_conv_expr_descriptor): Force a temporary creation
+	if se->force_tmp is set. 
+
+2010-09-20  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45438
+	* trans-expr.c (gfc_conv_procedure_call): Fix pointer checking for
+	TBPs, PPCs and pointer/allocatable components.
+
+2010-09-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/45081
+	* simplify.c (is_constant_array_expr): Allow structure array
+	elements as well as constants.
+	(gfc_simplify_pack, gfc_simplify_reshape, gfc_simplify_spread,
+	gfc_simplify_transpose, gfc_simplify_unpack): Copy the derived
+	type of source to the result.
+
+2010-09-19  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* frontend-passes.c (gfc_expr_walker):  Also
+	handle EXPR_SUBSTRING.
+
+2010-09-19  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* frontend-passes.c (gfc_expr_walker):  Handle
+	constructors and references.
+
+2010-09-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/43665
+	* trans-types.c (create_fn_spec): New function.
+	(gfc_get_function_type): Call it.
+
+2010-09-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* gfortran.h (walk_code_fn_t, walk_expr_fn_t): New types.
+	(gfc_expr_walker, gfc_code_walker): New prototypes.
+	* frontend-passes.c (gfc_expr_walker, gfc_code_walker): New functions.
+	(WALK_SUBEXPR, WALK_SUBEXPR_TAIL, WALK_SUBCODE): Define.
+	(optimize_namespace): Use gfc_code_walker.
+	(optimize_code, optimize_expr): Rewritten as gfc_code_walker hooks.
+	(optimize_expr_0, optimize_code_node,
+	optimize_actual_arglist): Removed.
+	(optimize_assignment): Don't call optimize_expr_0.
+
+2010-09-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45674
+	* interface.c (compare_parameter): Create vtab for actual argument,
+	instead of formal (if needed).
+
+2010-09-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45577
+	* resolve.c (resolve_allocate_expr): Do default initialization via
+	EXEC_INIT_ASSIGN.
+
 2010-09-11  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	* mathbuiltins.def: Do not defined huge_val built-in.

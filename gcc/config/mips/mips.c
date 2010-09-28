@@ -11140,6 +11140,14 @@ mips_scalar_mode_supported_p (enum machine_mode mode)
   return default_scalar_mode_supported_p (mode);
 }
 
+/* Implement TARGET_VECTORIZE_UNITS_PER_SIMD_WORD.  */
+
+static unsigned int
+mips_units_per_simd_word (enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  return TARGET_PAIRED_SINGLE_FLOAT ? 8 : UNITS_PER_WORD;
+}
+
 /* Implement TARGET_INIT_LIBFUNCS.  */
 
 #include "config/gofast.h"
@@ -13017,6 +13025,10 @@ static const struct mips_builtin_description mips_builtins[] = {
   DIRECT_NO_TARGET_BUILTIN (cache, MIPS_VOID_FTYPE_SI_CVPOINTER, cache)
 };
 
+/* Index I is the function declaration for mips_builtins[I], or null if the
+   function isn't defined on this target.  */
+static GTY(()) tree mips_builtin_decls[ARRAY_SIZE (mips_builtins)];
+
 /* MODE is a vector mode whose elements have type TYPE.  Return the type
    of the vector itself.  */
 
@@ -13133,10 +13145,21 @@ mips_init_builtins (void)
     {
       d = &mips_builtins[i];
       if (d->avail ())
-	add_builtin_function (d->name,
-			      mips_build_function_type (d->function_type),
-			      i, BUILT_IN_MD, NULL, NULL);
+	mips_builtin_decls[i]
+	  = add_builtin_function (d->name,
+				  mips_build_function_type (d->function_type),
+				  i, BUILT_IN_MD, NULL, NULL);
     }
+}
+
+/* Implement TARGET_BUILTIN_DECL.  */
+
+static tree
+mips_builtin_decl (unsigned int code, bool initialize_p ATTRIBUTE_UNUSED)
+{
+  if (code >= ARRAY_SIZE (mips_builtins))
+    return error_mark_node;
+  return mips_builtin_decls[code];
 }
 
 /* Take argument ARGNO from EXP's argument list and convert it into a
@@ -16506,8 +16529,13 @@ mips_shift_truncation_mask (enum machine_mode mode)
 #undef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P mips_scalar_mode_supported_p
 
+#undef TARGET_VECTORIZE_UNITS_PER_SIMD_WORD
+#define TARGET_VECTORIZE_UNITS_PER_SIMD_WORD mips_units_per_simd_word
+
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS mips_init_builtins
+#undef TARGET_BUILTIN_DECL
+#define TARGET_BUILTIN_DECL mips_builtin_decl
 #undef TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN mips_expand_builtin
 

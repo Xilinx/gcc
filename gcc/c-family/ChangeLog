@@ -1,3 +1,66 @@
+2010-09-27  Ian Lance Taylor  <iant@google.com>
+
+	* c-common.c (c_common_attribute_table): Add no_split_stack.
+	(handle_no_split_stack_attribute): New static function.
+
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.	
+
+	2005-12-15  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4229905	
+	* c-common.h (objc_have_common_type): New declaration.
+	* stub-objc.c (objc_have_common_type): New stub.
+
+	2005-06-22  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4154928
+	* c-common.h (objc_common_type): New prototype.
+	* stub-objc.c (objc_common_type): New stub.	
+
+2010-09-24  Jan Hubicka  <jh@suse.cz>
+
+	* c-common.c (handle_leaf_attribute): New function.
+	(struct attribute_spec c_common_att): Add leaf.
+
+2010-09-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* c.opt (-all-warnings, -ansi, -assert, -assert=, -comments,
+	-comments-in-macros, -define-macro, -define-macro=, -dependencies,
+	-dump, -dump=, -imacros, -imacros=, -include, -include=,
+	-include-barrier, -include-directory, -include-directory=,
+	-include-directory-after, -include-directory-after=,
+	-include-prefix, -include-prefix=, -include-with-prefix,
+	-include-with-prefix=, -include-with-prefix-after,
+	-include-with-prefix-after=, -include-with-prefix-before,
+	-include-with-prefix-before=, -no-integrated-cpp,
+	-no-line-commands, -no-standard-includes, -no-warnings, -output,
+	-output=, -pedantic, -pedantic-errors, -preprocess,
+	-print-missing-file-dependencies, -trace-includes, -traditional,
+	-traditional-cpp, -trigraphs, -undefine-macro, -undefine-macro=,
+	-user-dependencies, -verbose, -write-dependencies,
+	-write-user-dependencies, no-integrated-cpp, traditional): New.
+
+2010-09-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/23710
+	* c-common.h (objc_start_method_definition): Return bool instead
+	of void.
+	* stub-objc.c (objc_start_method_definition): Return bool instead
+	of void.
+
+2010-09-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/25965
+	* c-common.h (objc_get_interface_ivars): New declaration.
+	* stub-objc.c (objc_get_interface_ivars): New stub.
+
+2010-09-15  Ian Lance Taylor  <iant@google.com>
+
+	* c-common.c (parse_optimize_options): Do not capitalize warning
+	messages.  Remove period at end of warning message.
+
 2010-09-09  Nathan Sidwell  <nathan@codesourcery.com>
 
 	* c-common.c (handle_alias_ifunc_attribute): New, broken out of	...

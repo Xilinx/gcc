@@ -3690,36 +3690,41 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p)
 	   && GET_CODE (XVECEXP (newpat, 0, 1)) == SET
 	   && GET_CODE (SET_DEST (XVECEXP (newpat, 0, 1))) != ZERO_EXTRACT
 	   && GET_CODE (SET_DEST (XVECEXP (newpat, 0, 1))) != STRICT_LOW_PART
-	   && ! use_crosses_set_p (SET_SRC (XVECEXP (newpat, 0, 1)),
-				   DF_INSN_LUID (i2))
 	   && ! reg_referenced_p (SET_DEST (XVECEXP (newpat, 0, 1)),
 				  XVECEXP (newpat, 0, 0))
 	   && ! reg_referenced_p (SET_DEST (XVECEXP (newpat, 0, 0)),
 				  XVECEXP (newpat, 0, 1))
 	   && ! (contains_muldiv (SET_SRC (XVECEXP (newpat, 0, 0)))
-		 && contains_muldiv (SET_SRC (XVECEXP (newpat, 0, 1))))
-#ifdef HAVE_cc0
-	   /* We cannot split the parallel into two sets if both sets
-	      reference cc0.  */
-	   && ! (reg_referenced_p (cc0_rtx, XVECEXP (newpat, 0, 0))
-		 && reg_referenced_p (cc0_rtx, XVECEXP (newpat, 0, 1)))
-#endif
-	   )
+		 && contains_muldiv (SET_SRC (XVECEXP (newpat, 0, 1)))))
     {
       /* Normally, it doesn't matter which of the two is done first,
-	 but it does if one references cc0.  In that case, it has to
+	 but the one that references cc0 can't be the second, and
+	 one which uses any regs/memory set in between i2 and i3 can't
 	 be first.  */
+      if (!use_crosses_set_p (SET_SRC (XVECEXP (newpat, 0, 1)),
+			      DF_INSN_LUID (i2))
 #ifdef HAVE_cc0
-      if (reg_referenced_p (cc0_rtx, XVECEXP (newpat, 0, 0)))
+	  && !reg_referenced_p (cc0_rtx, XVECEXP (newpat, 0, 0))
+#endif
+	 )
+	{
+	  newi2pat = XVECEXP (newpat, 0, 1);
+	  newpat = XVECEXP (newpat, 0, 0);
+	}
+      else if (!use_crosses_set_p (SET_SRC (XVECEXP (newpat, 0, 0)),
+				   DF_INSN_LUID (i2))
+#ifdef HAVE_cc0
+	       && !reg_referenced_p (cc0_rtx, XVECEXP (newpat, 0, 1))
+#endif
+	      )
 	{
 	  newi2pat = XVECEXP (newpat, 0, 0);
 	  newpat = XVECEXP (newpat, 0, 1);
 	}
       else
-#endif
 	{
-	  newi2pat = XVECEXP (newpat, 0, 1);
-	  newpat = XVECEXP (newpat, 0, 0);
+	  undo_all ();
+	  return 0;
 	}
 
       i2_code_number = recog_for_combine (&newi2pat, i2, &new_i2_notes);
@@ -3735,44 +3740,11 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p)
 		  {
 		    rtx reg = XEXP (XVECEXP (newi2pat, 0, i), 0);
 		    if (reg_overlap_mentioned_p (reg, newpat))
-		      break;
+		      {
+			undo_all ();
+			return 0;
+		      }
 		  }
-
-	      if (i >= 0)
-		{
-		  /* CLOBBERs on newi2pat prevent it going first.
-		     Try the other order of the insns if possible.  */
-		  temp = newpat;
-		  newpat = XVECEXP (newi2pat, 0, 0);
-		  newi2pat = temp;
-#ifdef HAVE_cc0
-		  if (reg_referenced_p (cc0_rtx, newpat))
-		    {
-		      undo_all ();
-		      return 0;
-		    }
-#endif
-
-		  i2_code_number = recog_for_combine (&newi2pat, i2,
-						      &new_i2_notes);
-		  if (i2_code_number < 0)
-		    {
-		      undo_all ();
-		      return 0;
-		    }
-
-		  if (GET_CODE (newi2pat) == PARALLEL)
-		    for (i = XVECLEN (newi2pat, 0) - 1; i >= 0; i--)
-		      if (GET_CODE (XVECEXP (newi2pat, 0, i)) == CLOBBER)
-			{
-			  rtx reg = XEXP (XVECEXP (newi2pat, 0, i), 0);
-			  if (reg_overlap_mentioned_p (reg, newpat))
-			    {
-			      undo_all ();
-			      return 0;
-			    }
-			}
-		}
 	    }
 
 	  insn_code_number = recog_for_combine (&newpat, i3, &new_i3_notes);
@@ -11773,13 +11745,14 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	  /* If we have (compare (xshiftrt FOO N) (const_int C)) and
 	     the low order N bits of FOO are known to be zero, we can do this
 	     by comparing FOO with C shifted left N bits so long as no
-	     overflow occurs.  */
+	     overflow occurs.  Even if the low order N bits of FOO aren't known
+	     to be zero, if the comparison is >= or < we can use the same
+	     optimization and for > or <= by setting all the low
+	     order N bits in the comparison constant.  */
 	  if (CONST_INT_P (XEXP (op0, 1))
-	      && INTVAL (XEXP (op0, 1)) >= 0
+	      && INTVAL (XEXP (op0, 1)) > 0
 	      && INTVAL (XEXP (op0, 1)) < HOST_BITS_PER_WIDE_INT
 	      && mode_width <= HOST_BITS_PER_WIDE_INT
-	      && (nonzero_bits (XEXP (op0, 0), mode)
-		  & (((HOST_WIDE_INT) 1 << INTVAL (XEXP (op0, 1))) - 1)) == 0
 	      && (((unsigned HOST_WIDE_INT) const_op
 		   + (GET_CODE (op0) != LSHIFTRT
 		      ? ((GET_MODE_MASK (mode) >> INTVAL (XEXP (op0, 1)) >> 1)
@@ -11787,15 +11760,27 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 		      : 0))
 		  <= GET_MODE_MASK (mode) >> INTVAL (XEXP (op0, 1))))
 	    {
-	      /* If the shift was logical, then we must make the condition
-		 unsigned.  */
-	      if (GET_CODE (op0) == LSHIFTRT)
-		code = unsigned_condition (code);
+	      unsigned HOST_WIDE_INT low_bits
+		= (nonzero_bits (XEXP (op0, 0), mode)
+		   & (((unsigned HOST_WIDE_INT) 1
+		       << INTVAL (XEXP (op0, 1))) - 1));
+	      if (low_bits == 0 || !equality_comparison_p)
+		{
+		  /* If the shift was logical, then we must make the condition
+		     unsigned.  */
+		  if (GET_CODE (op0) == LSHIFTRT)
+		    code = unsigned_condition (code);
 
-	      const_op <<= INTVAL (XEXP (op0, 1));
-	      op1 = GEN_INT (const_op);
-	      op0 = XEXP (op0, 0);
-	      continue;
+		  const_op <<= INTVAL (XEXP (op0, 1));
+		  if (low_bits != 0
+		      && (code == GT || code == GTU
+			  || code == LE || code == LEU))
+		    const_op
+		      |= (((HOST_WIDE_INT) 1 << INTVAL (XEXP (op0, 1))) - 1);
+		  op1 = GEN_INT (const_op);
+		  op0 = XEXP (op0, 0);
+		  continue;
+		}
 	    }
 
 	  /* If we are using this shift to extract just the sign bit, we

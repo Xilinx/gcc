@@ -62,9 +62,22 @@ objc_is_reserved_word (tree ARG_UNUSED (ident))
   return 0;
 }
 
+tree
+objc_common_type (tree ARG_UNUSED (type1), tree ARG_UNUSED (type2))
+{
+  return 0;
+}
+
 bool
 objc_compare_types (tree ARG_UNUSED (ltyp), tree ARG_UNUSED (rtyp),
 		    int ARG_UNUSED (argno), tree ARG_UNUSED (callee))
+{
+  return false;
+}
+
+bool
+objc_have_common_type (tree ARG_UNUSED (ltyp), tree ARG_UNUSED (rtyp),
+		       int ARG_UNUSED (argno), tree ARG_UNUSED (callee))
 {
   return false;
 }
@@ -184,9 +197,10 @@ objc_add_method_declaration (tree ARG_UNUSED (signature))
 {
 }
 
-void
+bool
 objc_start_method_definition (tree ARG_UNUSED (signature))
 {
+  return true;
 }
 
 void
@@ -243,6 +257,12 @@ objc_build_string_object (tree ARG_UNUSED (str))
 
 tree
 objc_get_class_reference (tree ARG_UNUSED (name))
+{
+  return 0;
+}
+
+tree
+objc_get_interface_ivars (tree ARG_UNUSED (fieldlist))
 {
   return 0;
 }

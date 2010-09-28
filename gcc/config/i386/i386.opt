@@ -19,6 +19,10 @@
 ; along with GCC; see the file COPYING3.  If not see
 ; <http://www.gnu.org/licenses/>.
 
+; Bit flags that specify the ISA we are compiling for.
+Variable
+int ix86_isa_flags = TARGET_64BIT_DEFAULT | TARGET_SUBTARGET_ISA_DEFAULT
+
 ;; Definitions to add to the cl_target_option structure
 ;; -march= processor
 TargetSave
@@ -388,3 +392,7 @@ Support F16C built-in functions and code generation
 mfentry
 Target Report Var(flag_fentry) Init(-1)
 Emit profiling counter call at function entry before prologue.
+
+m8bit-idiv
+Target Report Mask(USE_8BIT_IDIV) Save
+Expand 32bit/64bit integer divide into 8bit unsigned integer divide with run-time check

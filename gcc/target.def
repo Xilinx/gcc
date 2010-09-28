@@ -880,6 +880,14 @@ DEFHOOK
  (enum machine_mode mode, const_tree type, int misalignment, bool is_packed),
  default_builtin_support_vector_misalignment)
 
+/* Return units per SIMD word.  */
+DEFHOOK
+(units_per_simd_word,
+ "",
+ unsigned int,
+ (enum machine_mode mode),
+ default_units_per_simd_word)
+
 HOOK_VECTOR_END (vectorize)
 
 #undef HOOK_PREFIX
@@ -1671,6 +1679,16 @@ DEFHOOK
  tree, (void),
  default_external_stack_protect_fail)
 
+DEFHOOK
+(supports_split_stack,
+ "Whether this target supports splitting the stack.  This is called\
+ after options have been parsed, so the target may reject splitting\
+ the stack in some configurations.  The default version of this hook\
+ returns false.  If @var{report} is true, this function may issue a warning\
+ or error; if @var{report} is false, it must simply return a value",
+ bool, (bool),
+ hook_bool_bool_false)
+
 /* Returns NULL if target supports the insn within a doloop block,
    otherwise it returns an error message.  */
 DEFHOOK
@@ -2303,7 +2321,14 @@ DEFHOOK
 (override,
  "",
  void, (void),
- default_target_option_override)
+ hook_void_void)
+
+/* Set default optimizations for the target.  */
+DEFHOOK
+(optimization,
+ "",
+ void, (int level, int size),
+ hook_void_int_int)
 
 /* Function to determine if one function can inline another function.  */
 #undef HOOK_PREFIX

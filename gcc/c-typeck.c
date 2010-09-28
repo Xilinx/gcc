@@ -2897,8 +2897,13 @@ convert_arguments (tree typelist, VEC(tree,gc) *values,
 
       if (type == void_type_node)
 	{
-	  error_at (input_location,
-		    "too many arguments to function %qE", function);
+	  if (selector)
+	    error_at (input_location,
+		      "too many arguments to method %qE", selector);
+	  else
+	    error_at (input_location,
+		      "too many arguments to function %qE", function);
+
 	  if (fundecl && !DECL_BUILT_IN (fundecl))
 	    inform (DECL_SOURCE_LOCATION (fundecl), "declared here");
 	  return parmnum;
@@ -4046,7 +4051,6 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
   bool int_const, op1_int_operands, op2_int_operands, int_operands;
   bool ifexp_int_operands;
   tree ret;
-  bool objc_ok;
 
   op1_int_operands = EXPR_INT_CONST_OPERANDS (orig_op1);
   if (op1_int_operands)
@@ -4082,8 +4086,6 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
       error_at (colon_loc, "non-lvalue array in conditional expression");
       return error_mark_node;
     }
-
-  objc_ok = objc_compare_types (type1, type2, -3, NULL_TREE);
 
   if ((TREE_CODE (op1) == EXCESS_PRECISION_EXPR
        || TREE_CODE (op2) == EXCESS_PRECISION_EXPR)
@@ -4250,13 +4252,15 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
 	  result_type = build_pointer_type (qualify_type (TREE_TYPE (type2),
 							  TREE_TYPE (type1)));
 	}
+      /* Objective-C pointer comparisons are a bit more lenient.  */
+      else if (objc_have_common_type (type1, type2, -3, NULL_TREE))
+	result_type = objc_common_type (type1, type2);
       else
 	{
 	  int qual = ENCODE_QUAL_ADDR_SPACE (as_common);
 
-	  if (!objc_ok)
-	    pedwarn (colon_loc, 0,
-		     "pointer type mismatch in conditional expression");
+	  pedwarn (colon_loc, 0,
+		   "pointer type mismatch in conditional expression");
 	  result_type = build_pointer_type
 			  (build_qualified_type (void_type_node, qual));
 	}

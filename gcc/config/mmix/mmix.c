@@ -113,6 +113,8 @@ rtx mmix_compare_op1;
 /* Intermediate for insn output.  */
 static int mmix_output_destination_register;
 
+static void mmix_option_override (void);
+static void mmix_option_optimization (int, int);
 static void mmix_asm_output_source_filename (FILE *, const char *);
 static void mmix_output_shiftvalue_op_from_str
   (FILE *, const char *, HOST_WIDEST_INT);
@@ -233,15 +235,20 @@ static void mmix_trampoline_init (rtx, tree, rtx);
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT mmix_trampoline_init
 
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE mmix_option_override
+#undef TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION mmix_option_optimization
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 /* Functions that are expansions for target macros.
    See Target Macros in `Using and Porting GCC'.  */
 
-/* OVERRIDE_OPTIONS.  */
+/* TARGET_OPTION_OVERRIDE.  */
 
-void
-mmix_override_options (void)
+static void
+mmix_option_override (void)
 {
   /* Should we err or should we warn?  Hmm.  At least we must neutralize
      it.  For example the wrong kind of case-tables will be generated with
@@ -253,6 +260,18 @@ mmix_override_options (void)
       warning (0, "-f%s not supported: ignored", (flag_pic > 1) ? "PIC" : "pic");
       flag_pic = 0;
     }
+}
+
+/* TARGET_OPTION_OPTIMIZATION.  */
+
+static void
+mmix_option_optimization (int level, int size)
+{
+  if (level >= 1)
+    flag_regmove = 1;
+
+  if (size || level > 1)
+    flag_omit_frame_pointer = 1;
 }
 
 /* INIT_EXPANDERS.  */

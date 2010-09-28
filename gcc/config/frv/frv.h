@@ -328,37 +328,6 @@
         #endif  */
 #define TARGET_VERSION fprintf (stderr, _(" (frv)"))
 
-/* Sometimes certain combinations of command options do not make sense on a
-   particular target machine.  You can define a macro `OVERRIDE_OPTIONS' to
-   take account of this.  This macro, if defined, is executed once just after
-   all the command options have been parsed.
-
-   Don't use this macro to turn on various extra optimizations for `-O'.  That
-   is what `OPTIMIZATION_OPTIONS' is for.  */
-
-#define OVERRIDE_OPTIONS frv_override_options ()
-
-/* Some machines may desire to change what optimizations are performed for
-   various optimization levels.  This macro, if defined, is executed once just
-   after the optimization level is determined and before the remainder of the
-   command options have been parsed.  Values set in this macro are used as the
-   default values for the other command line options.
-
-   LEVEL is the optimization level specified; 2 if `-O2' is specified, 1 if
-   `-O' is specified, and 0 if neither is specified.
-
-   SIZE is nonzero if `-Os' is specified, 0 otherwise.
-
-   You should not use this macro to change options that are not
-   machine-specific.  These should uniformly selected by the same optimization
-   level on all supported machines.  Use this macro to enable machine-specific
-   optimizations.
-
-   *Do not examine `write_symbols' in this macro!* The debugging options are
-   *not supposed to alter the generated code.  */
-#define OPTIMIZATION_OPTIONS(LEVEL,SIZE) frv_optimization_options (LEVEL, SIZE)
-
-
 /* Define this macro if debugging can be performed even without a frame
    pointer.  If this macro is defined, GCC will turn on the
    `-fomit-frame-pointer' option whenever `-O' is specified.  */
@@ -1945,31 +1914,6 @@ __asm__("\n"								\
 
 
 /* Describing Relative Costs of Operations.  */
-
-/* A C expression for the cost of moving data from a register in class FROM to
-   one in class TO.  The classes are expressed using the enumeration values
-   such as `GENERAL_REGS'.  A value of 4 is the default; other values are
-   interpreted relative to that.
-
-   It is not required that the cost always equal 2 when FROM is the same as TO;
-   on some machines it is expensive to move between registers if they are not
-   general registers.
-
-   If reload sees an insn consisting of a single `set' between two hard
-   registers, and if `REGISTER_MOVE_COST' applied to their classes returns a
-   value of 2, reload does not check to ensure that the constraints of the insn
-   are met.  Setting a cost of other than 2 will allow reload to verify that
-   the constraints are met.  You should do this if the `movM' pattern's
-   constraints do not allow such copying.  */
-#define REGISTER_MOVE_COST(MODE, FROM, TO) frv_register_move_cost (FROM, TO)
-
-/* A C expression for the cost of moving data of mode M between a register and
-   memory.  A value of 2 is the default; this cost is relative to those in
-   `REGISTER_MOVE_COST'.
-
-   If moving between registers and memory is more expensive than between two
-   registers, you should define this macro to express the relative cost.  */
-#define MEMORY_MOVE_COST(M,C,I) 4
 
 /* A C expression for the cost of a branch instruction.  A value of 1 is the
    default; other values are interpreted relative to that.  */

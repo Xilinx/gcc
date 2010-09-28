@@ -1,3 +1,107 @@
+2010-09-27  Jason Merrill  <jason@redhat.com>
+
+	Require lvalues as specified by the standard.
+	* typeck.c (lvalue_or_else): Use real_lvalue_p.
+	(cp_build_addr_expr_1): Split out of cp_build_unary_op.
+	(cp_build_addr_expr, cp_build_addr_expr_strict): Interfaces.
+	(decay_conversion, get_member_function_from_ptrfunc): Adjust.
+	(build_x_unary_op, build_reinterpret_cast_1): Adjust.
+	(build_const_cast_1): Adjust.
+	* cp-tree.h: Declare new fns.
+	* call.c (build_this, convert_like_real, build_over_call): Adjust.
+	(initialize_reference): Adjust.
+	* class.c (build_base_path, convert_to_base_statically): Adjust.
+	(build_vfn_ref, resolve_address_of_overloaded_function): Adjust.
+	* cvt.c (build_up_reference, convert_to_reference): Adjust.
+	* decl.c (register_dtor_fn): Adjust.
+	* decl2.c (build_offset_ref_call_from_tree): Adjust.
+	* except.c (initialize_handler_parm): Adjust.
+	* init.c (build_offset_ref, build_delete, build_vec_delete): Adjust.
+	* rtti.c (build_dynamic_cast_1, tinfo_base_init): Adjust.
+	* tree.c (stabilize_expr): Adjust.
+
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from apple/trunk branch on FSF servers:
+	
+	2005-12-15  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4229905
+	* typeck.c (composite_pointer_type): Call objc_have_common_type
+	when comparing two objective-c pointer types.
+
+	2005-07-18  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4175534
+	* call.c (standard_conversion): Do not issue warnings when
+	comparing ObjC pointer types.
+	
+	2005-06-22  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4154928
+	* call.c (standard_conversion): Allow for a pointer conversion
+	between any two ObjC pointer types.
+	* typeck.c (composite_pointer_type): Determine common type
+	for two ObjC pointer types.
+	
+2010-09-24  Jan Hubicka  <jh@suse.cz>
+
+	* decl.c (finish_function): Use decl_replaceable_p
+	* method.c (make_alias_for_thunk): Update call of cgraph_same_body_alias.
+
+2010-09-24  Jason Merrill  <jason@redhat.com>
+
+	* decl.c (compute_array_index_type): Remember type dependence of
+	array bound.
+	* pt.c (dependent_type_p_r): Don't recompute it here.
+
+	* error.c (dump_expr) [CASE_CONVERT]: Print conversion between
+	reference and pointer to the same type as "*" or "&".
+
+2010-09-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* typeck.c (warn_args_num): Use warning 'too many arguments to
+	method [methodname]' for an Objective-C method instead of the less
+	satisfactory 'too many arguments to function' (with no method
+	name).
+
+2010-09-21  Jason Merrill  <jason@redhat.com>
+
+	* mangle.c (write_expression) [SCOPE_REF]: Only do -fabi-version=1
+	special handling if we know the member.
+
+2010-09-18  Jason Merrill  <jason@redhat.com>
+
+	* call.c (compare_ics): Do lvalue/rvalue reference binding
+	comparison for ck_list, too.
+
+2010-09-15  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (finish_id_expression): Diagnose use of function
+	parms in evaluated context outside function body.
+
+	* decl2.c (grokbitfield): Diagnose non-integral width.
+
+	* call.c (convert_like_real): Use the underlying type of the
+	reference for the temporary.
+
+2010-09-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/45635
+	* class.c (build_vtbl_initializer): Use fn instead of init's operand
+	as first argument to FDESC_EXPR.
+
+2010-09-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/45665
+	* decl.c (grokdeclarator): Check build_memfn_type return value
+	for error_mark_node.
+
+2010-09-13  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
+
+	* semantics.c (finish_for_stmt): Always test flag_new_for_scope.
+	(begin_range_for_stmt): Likewise.
+
 2010-09-11  Rodrigo Rivas <rodrigorivascosta@gmail.com>
 
 	Implement range-based for-statements.

@@ -38,8 +38,6 @@ extern frv_cpu_t frv_cpu_type;			/* value of -mcpu= */
 /* Define functions defined in frv.c */
 extern void frv_expand_prologue			(void);
 extern void frv_expand_epilogue			(bool);
-extern void frv_override_options		(void);
-extern void frv_optimization_options		(int, int);
 extern void frv_conditional_register_usage	(void);
 extern frv_stack_t *frv_stack_info		(void);
 extern void frv_debug_stack			(frv_stack_t *);
@@ -111,7 +109,6 @@ extern enum machine_mode frv_select_cc_mode (enum rtx_code, rtx, rtx);
 #endif	/* RTX_CODE */
 
 extern int direct_return_p		(void);
-extern int frv_register_move_cost	(enum reg_class, enum reg_class);
 extern int frv_issue_rate		(void);
 extern int frv_acc_group		(rtx);
 

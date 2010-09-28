@@ -63,6 +63,8 @@ enum m32r_sdata m32r_sdata = M32R_SDATA_DEFAULT;
 
 /* Forward declaration.  */
 static bool  m32r_handle_option (size_t, const char *, int);
+static void  m32r_option_override (void);
+static void  m32r_option_optimization (int, int);
 static void  init_reg_tables (void);
 static void  block_move_call (rtx, rtx, rtx);
 static int   m32r_is_insn (rtx);
@@ -150,6 +152,10 @@ static const struct attribute_spec m32r_attribute_table[] =
 #define TARGET_DEFAULT_TARGET_FLAGS TARGET_CPU_DEFAULT
 #undef  TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION m32r_handle_option
+#undef  TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE m32r_option_override
+#undef  TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION m32r_option_optimization
 
 #undef  TARGET_ENCODE_SECTION_INFO
 #define TARGET_ENCODE_SECTION_INFO m32r_encode_section_info
@@ -157,8 +163,8 @@ static const struct attribute_spec m32r_attribute_table[] =
 #define TARGET_IN_SMALL_DATA_P m32r_in_small_data_p
 
 
-#undef  TARGET_MEMORY_MOVE_COSTS
-#define TARGET_MEMORY_MOVE_COSTS m32r_memory_move_costs
+#undef  TARGET_MEMORY_MOVE_COST
+#define TARGET_MEMORY_MOVE_COST m32r_memory_move_cost
 #undef  TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS m32r_rtx_costs
 #undef  TARGET_ADDRESS_COST
@@ -251,7 +257,7 @@ m32r_handle_option (size_t code, const char *arg, int value)
     }
 }
 
-/* Called by OVERRIDE_OPTIONS to initialize various things.  */
+/* Called by m32r_option_override to initialize various things.  */
 
 void
 m32r_init (void)
@@ -266,6 +272,27 @@ m32r_init (void)
   /* Provide default value if not specified.  */
   if (!g_switch_set)
     g_switch_value = SDATA_DEFAULT_SIZE;
+}
+
+static void
+m32r_option_override (void)
+{
+  /* These need to be done at start up.
+     It's convenient to do them here.  */
+  m32r_init ();
+  SUBTARGET_OVERRIDE_OPTIONS;
+}
+
+static void
+m32r_option_optimization (int level, int size)
+{
+  if (level == 1)
+    flag_regmove = 1;
+
+  if (size)
+    flag_omit_frame_pointer = 1;
+
+  SUBTARGET_OPTIMIZATION_OPTIONS;
 }
 
 /* Vectors to keep interesting information about registers where it can easily
@@ -1237,7 +1264,8 @@ m32r_arg_partial_bytes (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 
 static rtx
 m32r_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-		   const_tree type, bool named ATTRIBUTE_UNUSED)
+		   const_tree type ATTRIBUTE_UNUSED,
+		   bool named ATTRIBUTE_UNUSED)
 {
   return (PASS_IN_REG_P (*cum, mode, type)
 	  ? gen_rtx_REG (mode, ROUND_ADVANCE_CUM (*cum, mode, type))

@@ -308,6 +308,7 @@ static tree handle_hot_attribute (tree *, tree, tree, int, bool *);
 static tree handle_cold_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noinline_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noclone_attribute (tree *, tree, tree, int, bool *);
+static tree handle_leaf_attribute (tree *, tree, tree, int, bool *);
 static tree handle_always_inline_attribute (tree *, tree, tree, int,
 					    bool *);
 static tree handle_gnu_inline_attribute (tree *, tree, tree, int, bool *);
@@ -357,6 +358,7 @@ static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
 static tree handle_target_attribute (tree *, tree, tree, int, bool *);
 static tree handle_optimize_attribute (tree *, tree, tree, int, bool *);
+static tree handle_no_split_stack_attribute (tree *, tree, tree, int, bool *);
 static tree handle_fnspec_attribute (tree *, tree, tree, int, bool *);
 
 static void check_function_nonnull (tree, int, tree *);
@@ -570,6 +572,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_noinline_attribute },
   { "noclone",                0, 0, true,  false, false,
 			      handle_noclone_attribute },
+  { "leaf",                   0, 0, true,  false, false,
+			      handle_leaf_attribute },
   { "always_inline",          0, 0, true,  false, false,
 			      handle_always_inline_attribute },
   { "gnu_inline",             0, 0, true,  false, false,
@@ -658,6 +662,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_target_attribute },
   { "optimize",               1, -1, true, false, false,
 			      handle_optimize_attribute },
+  { "no_split_stack",	      0, 0, true,  false, false,
+			      handle_no_split_stack_attribute },
   /* For internal use (marking of builtins and runtime functions) only.
      The name contains space to prevent its usage in source code.  */
   { "fn spec",	 	      1, 1, false, true, true,
@@ -5873,6 +5879,28 @@ handle_gnu_inline_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
+/* Handle a "leaf" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_leaf_attribute (tree *node, tree name,
+		       tree ARG_UNUSED (args),
+		       int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  if (!TREE_PUBLIC (*node))
+    {
+      warning (OPT_Wattributes, "%qE attribute has no effect on unit local functions", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
 /* Handle an "artificial" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -7730,10 +7758,10 @@ parse_optimize_options (tree args, bool attr_p)
 		  ret = false;
 		  if (attr_p)
 		    warning (OPT_Wattributes,
-			     "Bad option %s to optimize attribute.", p);
+			     "bad option %s to optimize attribute", p);
 		  else
 		    warning (OPT_Wpragmas,
-			     "Bad option %s to pragma attribute", p);
+			     "bad option %s to pragma attribute", p);
 		  continue;
 		}
 
@@ -7812,6 +7840,32 @@ handle_optimize_attribute (tree *node, tree name, tree args,
 
       /* Restore current options.  */
       cl_optimization_restore (&cur_opts);
+    }
+
+  return NULL_TREE;
+}
+
+/* Handle a "no_split_stack" attribute.  */
+
+static tree
+handle_no_split_stack_attribute (tree *node, tree name,
+				 tree ARG_UNUSED (args),
+				 int ARG_UNUSED (flags),
+				 bool *no_add_attrs)
+{
+  tree decl = *node;
+
+  if (TREE_CODE (decl) != FUNCTION_DECL)
+    {
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"%qE attribute applies only to functions", name);
+      *no_add_attrs = true;
+    }
+  else if (DECL_INITIAL (decl))
+    {
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"can%'t set %qE attribute after definition", name);
+      *no_add_attrs = true;
     }
 
   return NULL_TREE;

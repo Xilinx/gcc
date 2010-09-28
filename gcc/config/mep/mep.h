@@ -1,5 +1,5 @@
 /* Definitions for Toshiba Media Processor
-   Copyright (C) 2001, 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright (C) 2001, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
@@ -134,8 +134,6 @@ extern int target_flags;
 
 #define TARGET_VERSION fprintf (stderr, " (Toshiba Media Processor (MeP))");
 
-#define OVERRIDE_OPTIONS mep_override_options ();
-
 /* The MeP config tool will add TARGET_OPTION_TRANSLATE_TABLE here.  */
 #define TARGET_OPTION_TRANSLATE_TABLE \
   {"-mall-opts", "-maverage -mmult -mdiv -mbitops -mleadz \
@@ -165,8 +163,6 @@ extern int target_flags;
 /* end-coproc-selection-table */
 
 #define CAN_DEBUG_WITHOUT_FP
-
-#define OPTIMIZATION_OPTIONS(LEVEL, FOR_SIZE) mep_optimization_options ()
 
 
 #define BITS_BIG_ENDIAN 0
@@ -276,7 +272,7 @@ extern int target_flags;
   }
 
 #define CONDITIONAL_REGISTER_USAGE \
-	mep_conditional_register_usage (fixed_regs, call_used_regs);
+	mep_conditional_register_usage ();
 
 #define REG_ALLOC_ORDER {						\
   /* core registers */							\

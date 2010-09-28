@@ -183,6 +183,7 @@ static int noncall_uses_reg (rtx, rtx, rtx *);
 static rtx gen_block_redirect (rtx, int, int);
 static void sh_reorg (void);
 static void sh_option_override (void);
+static void sh_option_optimization (int, int);
 static void output_stack_adjust (int, rtx, int, HARD_REG_SET *, bool);
 static rtx frame_insn (rtx);
 static rtx push (int);
@@ -331,7 +332,7 @@ static const struct attribute_spec sh_attribute_table[] =
 #undef TARGET_ASM_UNALIGNED_SI_OP
 #define TARGET_ASM_UNALIGNED_SI_OP "\t.ualong\t"
 
-/* These are NULLed out on non-SH5 in OVERRIDE_OPTIONS.  */
+/* These are NULLed out on non-SH5 in TARGET_OPTION_OVERRIDE.  */
 #undef TARGET_ASM_UNALIGNED_DI_OP
 #define TARGET_ASM_UNALIGNED_DI_OP "\t.uaquad\t"
 #undef TARGET_ASM_ALIGNED_DI_OP
@@ -339,6 +340,8 @@ static const struct attribute_spec sh_attribute_table[] =
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE sh_option_override
+#undef TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION sh_option_optimization
 
 #undef TARGET_PRINT_OPERAND
 #define TARGET_PRINT_OPERAND sh_print_operand
@@ -694,8 +697,8 @@ sh_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
 }
 
 /* Set default optimization options.  */
-void
-sh_optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
+static void
+sh_option_optimization (int level, int size)
 {
   if (level)
     {
@@ -720,7 +723,7 @@ sh_optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
 	target_flags |= MASK_SAVE_ALL_TARGET_REGS;
     }
   /* Likewise, we can't meaningfully test TARGET_SH2E / TARGET_IEEE
-     here, so leave it to OVERRIDE_OPTIONS to set
+     here, so leave it to TARGET_OPTION_OVERRIDE to set
     flag_finite_math_only.  We set it to 2 here so we know if the user
     explicitly requested this to be on or off.  */
   flag_finite_math_only = 2;

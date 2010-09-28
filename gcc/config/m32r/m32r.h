@@ -302,47 +302,13 @@ extern enum m32r_sdata m32r_sdata;
 #define MULTILIB_DEFAULTS { "mmodel=small" SUBTARGET_MULTILIB_DEFAULTS }
 #endif
 
-/* Sometimes certain combinations of command options do not make
-   sense on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
-
-   Don't use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.  */
-
 #ifndef SUBTARGET_OVERRIDE_OPTIONS
 #define SUBTARGET_OVERRIDE_OPTIONS
 #endif
 
-#define OVERRIDE_OPTIONS			\
-  do						\
-    {						\
-      /* These need to be done at start up.	\
-	 It's convenient to do them here.  */	\
-      m32r_init ();				\
-      SUBTARGET_OVERRIDE_OPTIONS		\
-    }						\
-  while (0)
-
 #ifndef SUBTARGET_OPTIMIZATION_OPTIONS
 #define SUBTARGET_OPTIMIZATION_OPTIONS
 #endif
-
-#define OPTIMIZATION_OPTIONS(LEVEL, SIZE)	\
-  do						\
-    {						\
-      if (LEVEL == 1)				\
-	flag_regmove = TRUE;			\
-      						\
-      if (SIZE)					\
-	{					\
-	  flag_omit_frame_pointer = TRUE;	\
-	}					\
-      						\
-      SUBTARGET_OPTIMIZATION_OPTIONS		\
-    }						\
-  while (0)
 
 /* Define this macro if debugging can be performed even without a
    frame pointer.  If this macro is defined, GCC will turn on the

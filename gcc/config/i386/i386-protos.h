@@ -20,8 +20,6 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 /* Functions in i386.c */
-extern void override_options (bool);
-extern void optimization_options (int, int);
 extern void ix86_conditional_register_usage (void);
 
 extern bool ix86_target_stack_probe (void);
@@ -31,6 +29,7 @@ extern void ix86_setup_frame_addresses (void);
 extern HOST_WIDE_INT ix86_initial_elimination_offset (int, int);
 extern void ix86_expand_prologue (void);
 extern void ix86_expand_epilogue (int);
+extern void ix86_expand_split_stack_prologue (void);
 
 extern void ix86_output_addr_vec_elt (FILE *, int);
 extern void ix86_output_addr_diff_elt (FILE *, int, int);
@@ -66,8 +65,7 @@ extern bool legitimate_pic_address_disp_p (rtx);
 extern void print_reg (rtx, int, FILE*);
 extern void ix86_print_operand (FILE *, rtx, int);
 
-extern void split_di (rtx[], int, rtx[], rtx[]);
-extern void split_ti (rtx[], int, rtx[], rtx[]);
+extern void split_double_mode (enum machine_mode, rtx[], int, rtx[], rtx[]);
 
 extern const char *output_set_got (rtx, rtx);
 extern const char *output_387_binary_op (rtx, rtx*);
@@ -120,7 +118,7 @@ extern bool ix86_expand_int_vcond (rtx[]);
 extern void ix86_expand_sse_unpack (rtx[], bool, bool);
 extern void ix86_expand_sse4_unpack (rtx[], bool, bool);
 extern bool ix86_expand_int_addcc (rtx[]);
-extern void ix86_expand_call (rtx, rtx, rtx, rtx, rtx, int);
+extern rtx ix86_expand_call (rtx, rtx, rtx, rtx, rtx, int);
 extern void x86_initialize_trampoline (rtx, rtx, rtx);
 extern rtx ix86_zero_extend_to_Pmode (rtx);
 extern void ix86_split_long_move (rtx[]);
@@ -129,6 +127,7 @@ extern void ix86_split_ashr (rtx *, rtx, enum machine_mode);
 extern void ix86_split_lshr (rtx *, rtx, enum machine_mode);
 extern rtx ix86_find_base_term (rtx);
 extern bool ix86_check_movabs (rtx, int);
+extern void ix86_split_idivmod (enum machine_mode, rtx[], bool);
 
 extern rtx assign_386_stack_local (enum machine_mode, enum ix86_stack_slot);
 extern int ix86_attr_length_immediate_default (rtx, int);

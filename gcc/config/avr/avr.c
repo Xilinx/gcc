@@ -49,6 +49,7 @@
 /* Maximal allowed offset for an address in the LD command */
 #define MAX_LD_OFFSET(MODE) (64 - (signed)GET_MODE_SIZE (MODE))
 
+static void avr_option_override (void);
 static int avr_naked_function_p (tree);
 static int interrupt_function_p (tree);
 static int signal_function_p (tree);
@@ -91,6 +92,7 @@ static bool avr_hard_regno_scratch_ok (unsigned int);
 static unsigned int avr_case_values_threshold (void);
 static bool avr_frame_pointer_required_p (void);
 static bool avr_can_eliminate (const int, const int);
+static bool avr_class_likely_spilled_p (reg_class_t c);
 
 /* Allocate registers from r25 to r8 for parameters for function calls.  */
 #define FIRST_CUM_REG 26
@@ -192,10 +194,16 @@ static const struct attribute_spec avr_attribute_table[] =
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE avr_can_eliminate
 
+#undef TARGET_CLASS_LIKELY_SPILLED_P
+#define TARGET_CLASS_LIKELY_SPILLED_P avr_class_likely_spilled_p
+
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE avr_option_override
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
-void
-avr_override_options (void)
+static void
+avr_option_override (void)
 {
   const struct mcu_type_s *t;
 
@@ -739,6 +747,9 @@ expand_prologue (void)
             }
         }
     }
+
+  if (flag_stack_usage)
+    current_function_static_stack_size = cfun->machine->stack_usage;
 }
 
 /* Output summary at end of function prologue.  */
@@ -4758,8 +4769,8 @@ gas_output_ascii(FILE *file, const char *str, size_t length)
    assigned to registers of class CLASS would likely be spilled
    because registers of CLASS are needed for spill registers.  */
 
-bool
-class_likely_spilled_p (int c)
+static bool
+avr_class_likely_spilled_p (reg_class_t c)
 {
   return (c != ALL_REGS && c != ADDW_REGS);
 }
