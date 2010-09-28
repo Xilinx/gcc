@@ -977,16 +977,16 @@ static bool c_parser_pragma (c_parser *, enum pragma_context);
 
 /* These Objective-C parser functions are only ever called when
    compiling Objective-C.  */
-static void c_parser_objc_class_definition (c_parser *);
+static void c_parser_objc_class_definition (c_parser *, tree);
 static void c_parser_objc_class_instance_variables (c_parser *);
 static void c_parser_objc_class_declaration (c_parser *);
 static void c_parser_objc_alias_declaration (c_parser *);
-static void c_parser_objc_protocol_definition (c_parser *);
+static void c_parser_objc_protocol_definition (c_parser *, tree);
 static enum tree_code c_parser_objc_method_type (c_parser *);
 static void c_parser_objc_method_definition (c_parser *);
 static void c_parser_objc_methodprotolist (c_parser *);
 static void c_parser_objc_methodproto (c_parser *);
-static tree c_parser_objc_method_decl (c_parser *);
+static tree c_parser_objc_method_decl (c_parser *, tree *);
 static tree c_parser_objc_type_name (c_parser *);
 static tree c_parser_objc_protocol_refs (c_parser *);
 static void c_parser_objc_try_catch_statement (c_parser *);
@@ -996,6 +996,8 @@ static tree c_parser_objc_selector_arg (c_parser *);
 static tree c_parser_objc_receiver (c_parser *);
 static tree c_parser_objc_message_args (c_parser *);
 static tree c_parser_objc_keywordexpr (c_parser *);
+static bool c_parser_objc_diagnose_bad_element_prefix 
+  (c_parser *, struct c_declspecs *);
 
 /* Parse a translation unit (C90 6.7, C99 6.9).
 
@@ -1079,7 +1081,7 @@ c_parser_external_declaration (c_parser *parser)
 	case RID_AT_INTERFACE:
 	case RID_AT_IMPLEMENTATION:
 	  gcc_assert (c_dialect_objc ());
-	  c_parser_objc_class_definition (parser);
+	  c_parser_objc_class_definition (parser, NULL_TREE);
 	  break;
 	case RID_CLASS:
 	  gcc_assert (c_dialect_objc ());
@@ -1091,7 +1093,7 @@ c_parser_external_declaration (c_parser *parser)
 	  break;
 	case RID_AT_PROTOCOL:
 	  gcc_assert (c_dialect_objc ());
-	  c_parser_objc_protocol_definition (parser);
+	  c_parser_objc_protocol_definition (parser, NULL_TREE);
 	  break;
 	case RID_AT_END:
 	  gcc_assert (c_dialect_objc ());
@@ -1123,14 +1125,14 @@ c_parser_external_declaration (c_parser *parser)
 	 as a declaration or function definition.  */
     default:
     decl_or_fndef:
-      /* A declaration or a function definition.  We can only tell
-	 which after parsing the declaration specifiers, if any, and
-	 the first declarator.  */
+      /* A declaration or a function definition (or, in Objective-C,
+	 an @interface or @protocol with prefix attributes).  We can
+	 only tell which after parsing the declaration specifiers, if
+	 any, and the first declarator.  */
       c_parser_declaration_or_fndef (parser, true, true, true, false, true);
       break;
     }
 }
-
 
 /* Parse a declaration or function definition (C90 6.5, 6.7.1, C99
    6.7, 6.9.1).  If FNDEF_OK is true, a function definition is
@@ -1172,6 +1174,11 @@ c_parser_external_declaration (c_parser *parser)
    nested-function-definition:
      declaration-specifiers declarator declaration-list[opt]
        compound-statement
+
+   Objective-C:
+     attributes objc-class-definition
+     attributes objc-category-definition
+     attributes objc-protocol-definition
 
    The simple-asm-expr and attributes are GNU extensions.
 
@@ -1235,6 +1242,74 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok,
       c_parser_consume_token (parser);
       return;
     }
+  else if (c_dialect_objc ())
+    {
+      /* Prefix attributes are an error on method decls.  */
+      switch (c_parser_peek_token (parser)->type)
+	{
+	  case CPP_PLUS:
+	  case CPP_MINUS:
+	    if (c_parser_objc_diagnose_bad_element_prefix (parser, specs))
+	      return;
+	    if (specs->attrs)
+	      {
+		warning_at (c_parser_peek_token (parser)->location, 
+			    OPT_Wattributes,
+	       		    "prefix attributes are ignored for methods");
+		specs->attrs = NULL_TREE;
+	      }
+	    if (fndef_ok)
+	      c_parser_objc_method_definition (parser);
+	    else
+	      c_parser_objc_methodproto (parser);
+	    return;
+	    break;
+	  default:
+	    break;
+	}
+      /* This is where we parse 'attributes @interface ...',
+	 'attributes @implementation ...', 'attributes @protocol ...'
+	 (where attributes could be, for example, __attribute__
+	 ((deprecated)).
+      */
+      switch (c_parser_peek_token (parser)->keyword)
+	{
+	case RID_AT_INTERFACE:
+	  {
+	    if (c_parser_objc_diagnose_bad_element_prefix (parser, specs))
+	      return;
+	    c_parser_objc_class_definition (parser, specs->attrs);
+	    return;
+	  }
+	  break;
+	case RID_AT_IMPLEMENTATION:
+	  {
+	    if (c_parser_objc_diagnose_bad_element_prefix (parser, specs))
+	      return;
+	    if (specs->attrs)
+	      {
+		warning_at (c_parser_peek_token (parser)->location, 
+			OPT_Wattributes,
+			"prefix attributes are ignored for implementations");
+		specs->attrs = NULL_TREE;
+	      }
+	    c_parser_objc_class_definition (parser, NULL_TREE);	    
+	    return;
+	  }
+	  break;
+	case RID_AT_PROTOCOL:
+	  {
+	    if (c_parser_objc_diagnose_bad_element_prefix (parser, specs))
+	      return;
+	    c_parser_objc_protocol_definition (parser, specs->attrs);
+	    return;
+	  }
+	  break;
+	default:
+	  break;
+	}
+    }
+  
   pending_xref_error ();
   prefix_attrs = specs->attrs;
   all_prefix_attrs = prefix_attrs;
@@ -6254,7 +6329,7 @@ c_parser_expr_list (c_parser *parser, bool convert_p, bool fold_p,
    objc-protocol-refs and objc-class-instance-variables are omitted.  */
 
 static void
-c_parser_objc_class_definition (c_parser *parser)
+c_parser_objc_class_definition (c_parser *parser, tree attributes)
 {
   bool iface_p;
   tree id1;
@@ -6265,6 +6340,7 @@ c_parser_objc_class_definition (c_parser *parser)
     iface_p = false;
   else
     gcc_unreachable ();
+
   c_parser_consume_token (parser);
   if (c_parser_next_token_is_not (parser, CPP_NAME))
     {
@@ -6294,7 +6370,7 @@ c_parser_objc_class_definition (c_parser *parser)
 	}
       if (c_parser_next_token_is (parser, CPP_LESS))
 	proto = c_parser_objc_protocol_refs (parser);
-      objc_start_category_interface (id1, id2, proto);
+      objc_start_category_interface (id1, id2, proto, attributes);
       c_parser_objc_methodprotolist (parser);
       c_parser_require_keyword (parser, RID_AT_END, "expected %<@end%>");
       objc_finish_interface ();
@@ -6318,7 +6394,7 @@ c_parser_objc_class_definition (c_parser *parser)
       tree proto = NULL_TREE;
       if (c_parser_next_token_is (parser, CPP_LESS))
 	proto = c_parser_objc_protocol_refs (parser);
-      objc_start_class_interface (id1, superclass, proto);
+      objc_start_class_interface (id1, superclass, proto, attributes);
     }
   else
     objc_start_class_implementation (id1, superclass);
@@ -6498,9 +6574,10 @@ c_parser_objc_alias_declaration (c_parser *parser)
    omitted.  */
 
 static void
-c_parser_objc_protocol_definition (c_parser *parser)
+c_parser_objc_protocol_definition (c_parser *parser, tree attributes)
 {
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_AT_PROTOCOL));
+
   c_parser_consume_token (parser);
   if (c_parser_next_token_is_not (parser, CPP_NAME))
     {
@@ -6540,7 +6617,7 @@ c_parser_objc_protocol_definition (c_parser *parser)
       if (c_parser_next_token_is (parser, CPP_LESS))
 	proto = c_parser_objc_protocol_refs (parser);
       parser->objc_pq_context = true;
-      objc_start_protocol (id, proto);
+      objc_start_protocol (id, proto, attributes);
       c_parser_objc_methodprotolist (parser);
       c_parser_require_keyword (parser, RID_AT_END, "expected %<@end%>");
       parser->objc_pq_context = false;
@@ -6581,23 +6658,28 @@ static void
 c_parser_objc_method_definition (c_parser *parser)
 {
   enum tree_code type = c_parser_objc_method_type (parser);
-  tree decl;
+  tree decl, attributes = NULL_TREE;
   objc_set_method_type (type);
   parser->objc_pq_context = true;
-  decl = c_parser_objc_method_decl (parser);
+  decl = c_parser_objc_method_decl (parser, &attributes);
+  if (decl == error_mark_node)
+    return;  /* Bail here. */
+
   if (c_parser_next_token_is (parser, CPP_SEMICOLON))
     {
       c_parser_consume_token (parser);
       pedwarn (c_parser_peek_token (parser)->location, OPT_pedantic,
 	       "extra semicolon in method definition specified");
     }
+
   if (!c_parser_next_token_is (parser, CPP_OPEN_BRACE))
     {
       c_parser_error (parser, "expected %<{%>");
       return;
     }
+
   parser->objc_pq_context = false;
-  if (objc_start_method_definition (decl))
+  if (objc_start_method_definition (decl, attributes))
     {
       add_stmt (c_parser_compound_statement (parser));
       objc_finish_method_definition (current_function_decl);
@@ -6668,15 +6750,62 @@ static void
 c_parser_objc_methodproto (c_parser *parser)
 {
   enum tree_code type = c_parser_objc_method_type (parser);
-  tree decl;
+  tree decl, attributes = NULL_TREE;
   objc_set_method_type (type);
   /* Remember protocol qualifiers in prototypes.  */
   parser->objc_pq_context = true;
-  decl = c_parser_objc_method_decl (parser);
-  /* Forget protocol qualifiers here.  */
+  decl = c_parser_objc_method_decl (parser, &attributes);
+  /* Forget protocol qualifiers now.  */
   parser->objc_pq_context = false;
-  objc_add_method_declaration (decl);
+
+  /* Do not allow the presence of attributes to hide an erroneous 
+     method implementation in the interface section.  */
+  if (!c_parser_next_token_is (parser, CPP_SEMICOLON))
+    {
+      c_parser_error (parser, "expected %<;%>");
+      return;
+    }
+  
+  if (decl != error_mark_node)
+    objc_add_method_declaration (decl, attributes);
+
   c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");
+}
+
+/* If we are at a position that method attributes may be present, check that 
+   there are not any parsed already (a syntax error) and then collect any 
+   specified at the current location.  Finally, if new attributes were present,
+   check that the next token is legal ( ';' for decls and '{' for defs).  */
+   
+static bool 
+c_parser_objc_maybe_method_attributes (c_parser* parser, tree* attributes)
+{
+  bool bad = false;
+  if (*attributes)
+    {
+      c_parser_error (parser, 
+		    "method attributes must be specified at the end only");
+      *attributes = NULL_TREE;
+      bad = true;
+    }
+
+  if (c_parser_next_token_is_keyword (parser, RID_ATTRIBUTE))
+    *attributes = c_parser_attributes (parser);
+
+  /* If there were no attributes here, just report any earlier error.  */
+  if (*attributes == NULL_TREE || bad)
+    return bad;
+
+  /* If the attributes are followed by a ; or {, then just report any earlier
+     error.  */
+  if (c_parser_next_token_is (parser, CPP_SEMICOLON)
+      || c_parser_next_token_is (parser, CPP_OPEN_BRACE))
+    return bad;
+
+  /* We've got attributes, but not at the end.  */
+  c_parser_error (parser, 
+		  "expected %<;%> or %<{%> after method attribute definition");
+  return true;
 }
 
 /* Parse an objc-method-decl.
@@ -6686,6 +6815,7 @@ c_parser_objc_methodproto (c_parser *parser)
      objc-selector
      ( objc-type-name ) objc-keyword-selector objc-optparmlist
      objc-keyword-selector objc-optparmlist
+     attributes
 
    objc-keyword-selector:
      objc-keyword-decl
@@ -6710,13 +6840,15 @@ c_parser_objc_methodproto (c_parser *parser)
 */
 
 static tree
-c_parser_objc_method_decl (c_parser *parser)
+c_parser_objc_method_decl (c_parser *parser, tree *attributes)
 {
   tree type = NULL_TREE;
   tree sel;
   tree parms = NULL_TREE;
   bool ellipsis = false;
+  bool attr_err = false;
 
+  *attributes = NULL_TREE;
   if (c_parser_next_token_is (parser, CPP_OPEN_PAREN))
     {
       c_parser_consume_token (parser);
@@ -6734,6 +6866,7 @@ c_parser_objc_method_decl (c_parser *parser)
       while (true)
 	{
 	  tree atype = NULL_TREE, id, keyworddecl;
+	  tree param_attr = NULL_TREE;
 	  if (!c_parser_require (parser, CPP_COLON, "expected %<:%>"))
 	    break;
 	  if (c_parser_next_token_is (parser, CPP_OPEN_PAREN))
@@ -6743,6 +6876,9 @@ c_parser_objc_method_decl (c_parser *parser)
 	      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN,
 					 "expected %<)%>");
 	    }
+	  /* New ObjC allows attributes on method parameters.  */
+	  if (c_parser_next_token_is_keyword (parser, RID_ATTRIBUTE))
+	    param_attr = c_parser_attributes (parser);
 	  if (c_parser_next_token_is_not (parser, CPP_NAME))
 	    {
 	      c_parser_error (parser, "expected identifier");
@@ -6750,12 +6886,15 @@ c_parser_objc_method_decl (c_parser *parser)
 	    }
 	  id = c_parser_peek_token (parser)->value;
 	  c_parser_consume_token (parser);
-	  keyworddecl = objc_build_keyword_decl (tsel, atype, id);
+	  keyworddecl = objc_build_keyword_decl (tsel, atype, id, param_attr);
 	  list = chainon (list, keyworddecl);
 	  tsel = c_parser_objc_selector (parser);
 	  if (!tsel && c_parser_next_token_is_not (parser, CPP_COLON))
 	    break;
 	}
+
+      attr_err |= c_parser_objc_maybe_method_attributes (parser, attributes) ;
+
       /* Parse the optional parameter list.  Optional Objective-C
 	 method parameters follow the C syntax, and may include '...'
 	 to denote a variable number of arguments.  */
@@ -6768,6 +6907,8 @@ c_parser_objc_method_decl (c_parser *parser)
 	    {
 	      ellipsis = true;
 	      c_parser_consume_token (parser);
+	      attr_err |= c_parser_objc_maybe_method_attributes 
+						(parser, attributes) ;
 	      break;
 	    }
 	  parm = c_parser_parameter_declaration (parser, NULL_TREE);
@@ -6778,6 +6919,18 @@ c_parser_objc_method_decl (c_parser *parser)
 	}
       sel = list;
     }
+  else
+    attr_err |= c_parser_objc_maybe_method_attributes (parser, attributes) ;
+
+  if (sel == NULL)
+    {
+      c_parser_error (parser, "objective-c method declaration is expected");
+      return error_mark_node;
+    }
+
+  if (attr_err)
+    return error_mark_node;
+
   return objc_build_method_signature (type, sel, parms, ellipsis);
 }
 
@@ -7129,6 +7282,21 @@ c_parser_objc_keywordexpr (c_parser *parser)
   return ret;
 }
 
+/* A check, needed in several places, that ObjC interface, implementation or
+   method definitions are not prefixed by incorrect items.  */
+static bool
+c_parser_objc_diagnose_bad_element_prefix (c_parser *parser, 
+					   struct c_declspecs *specs)
+{
+  if (!specs->declspecs_seen_p || specs->type_seen_p || specs->non_sc_seen_p)
+    {
+      c_parser_error (parser, 
+      		      "no type or storage class may be specified here,");
+      c_parser_skip_to_end_of_block_or_statement (parser);
+      return true;
+    }
+  return false;
+}
 
 /* Handle pragmas.  Some OpenMP pragmas are associated with, and therefore
    should be considered, statements.  ALLOW_STMT is true if we're within

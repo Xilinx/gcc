@@ -1,3 +1,181 @@
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* c-parser.c (c_parser_declaration_or_fndef): Diagnose incorrect prefix
+	attributes on methods.
+	 (c_parser_objc_method_definition): Handle attributes.
+	(c_parser_objc_methodproto): Likewise.
+	(c_parser_objc_maybe_method_attributes): New.
+	(c_parser_objc_method_decl): Handle attributes, add a diagnostic for a
+	missing definition, similar to that in ObjC++.
+
+2010-09-28  Richard Henderson  <rth@redhat.com>
+
+	* defaults.h (DWARF2_UNWIND_INFO): Don't depend on TARGET_UNWIND_INFO.
+	(MUST_USE_SJLJ_EXCEPTIONS): Remove.
+	(CONFIG_SJLJ_EXCEPTIONS): Remove.
+	(STACK_OLD_CHECK_PROTECT): Use targetm.except_unwind_info.
+	(STACK_CHECK_PROTECT): Likewise.
+	* dwarf2out.c (DWARF2_UNWIND_INFO, DWARF2_FRAME_INFO): Poison.
+	(dwarf2out_do_frame): Use debug_unwind_info and except_unwind_info.
+	(dwarf2out_do_cfi_asm, dwarf2out_begin_prologue): Likewise.
+	(dwarf2out_frame_init, dwarf2out_frame_finish): Likewise.
+	(dwarf2out_assembly_start): Likewise.
+	* except.c (init_eh): Use targetm.except_unwind_info.
+	(finish_eh_generation, gate_convert_to_eh_region_ranges): Likewise.
+	(output_one_function_exception_table): Likewise.
+	* final.c: Unconditionally include dwarf2out.h.
+	(final_start_function): Unconditionally call dwarf2out routines.
+	(final_end_function, final_scan_insn): Likewise.
+	* function.c (expand_function_end): Use targetm.except_unwind_info.
+	* opts.c (decode_options): Use targetm.except_unwind_info.
+	* system.h (USING_SJLJ_EXCEPTIONS, TARGET_UNWIND_INFO): Poison.
+	* target.def (debug_unwind_info, except_unwind_info): New.
+	* target.h (enum unwind_info_type): New.
+	* targhooks.c (default_debug_unwind_info): New.
+	(default_except_unwind_info): New.
+	(dwarf2_except_unwind_info, sjlj_except_unwind_info): New.
+	* targhooks.h: Declare them.
+	* tree-tailcall.c: Include "target.h"
+	(suitable_for_tail_call_opt_p): Use targetm.except_unwind_info.
+	* Makefile.in (tree-tailcall.o): Update.
+	* tree.c (build_common_builtin_nodes): Use targetm.except_unwind_info.
+	(lhd_gcc_personality): Likewise.
+
+	* doc/tm.texi.in (TARGET_UNWIND_INFO): Remove.
+	(TARGET_EXCEPT_UNWIND_INFO): New.
+	(DWARF2_UNWIND_INFO): Update.
+	(TARGET_DEBUG_UNWIND_INFO): New.
+	* doc/tm.texi: Rebuild.
+
+	* c-family/c-cppbuiltin.c (c_cpp_builtins): Use
+	targetm.except_unwind_info.
+
+	* config/arm/arm.c (TARGET_EXCEPT_UNWIND_INFO): New.
+	(arm_except_unwind_info): New.
+	(arm_compute_func_type): Use it.
+	(arm_expand_prologue, thumb_pushpop): Likewise.
+	(thumb1_expand_prologue, thumb1_output_function_prologue): Likewise.
+	(arm_unwind_emit, arm_output_fn_unwind): Likewise.
+	* config/arm/bpabi.h (ARM_UNWIND_INFO): Rename from TARGET_UNWIND_INFO.
+	* config/arm/arm.h (ARM_UNWIND_INFO): Likewise.
+	(DWARF2_UNWIND_INFO): Remove.
+	(MUST_USE_SJLJ_EXCEPTIONS): Remove.
+	(ARM_EABI_UNWIND_TABLES): Remove.
+
+	* config/ia64/ia64.c (ia64_debug_unwind_info): New.
+	(TARGET_DEBUG_UNWIND_INFO, TARGET_EXCEPT_UNWIND_INFO): New.
+	(ia64_except_unwind_info): New.
+	(ia64_output_function_prologue): Use it.
+	(ia64_add_bundle_selector_before): Likewise.
+	(ia64_reorg, ia64_asm_unwind_emit): Likewise.
+	* config/ia64/ia64.h (DWARF2_FRAME_INFO): Remove.
+	(TARGET_UNWIND_INFO): Remove.
+
+	* config/pa/pa.c (pa_option_override): Use targetm.except_unwind_info.
+	
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* c-parser.c (c_parser_objc_class_definition): Adjust prototype.
+	(c_parser_objc_protocol_definition): Likewise.
+	(c_parser_external_declaration): Provide dummy attribute arguments.
+	(c_parser_declaration_or_fndef): Parse prefix attributes for ObjC.
+	(c_parser_objc_class_definition): Handle attributes.
+	(c_parser_objc_protocol_definition): Likewise.
+
+2010-09-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40569
+	PR fortran/40568
+	* toplev.h (save_decoded_options, save_decoded_options_count):
+	New global variables.
+	* toplev.c (save_decoded_options, save_decoded_options_count):
+	export variables.
+
+2010-09-28  Ian Lance Taylor  <iant@google.com>
+
+	* config/i386/i386.c (ix86_supports_split_stack): Test
+	HAVE_GAS_CFI_PERSONALITY_DIRECTIVE rather than
+	dwarf2out_do_cfi_asm.
+
+2010-09-28  Ian Lance Taylor  <iant@google.com>
+
+	PR target/45815
+	* opts.c (decode_options): Don't test whether the target supports
+	split stack if flag_split_stack == 0.
+
+2010-09-28  Jan Hubicka  <jh@suse.cz>
+
+	* builtin-attrs.def (ATTR_LEAF): New attribute.
+	(ATTR_NOVOPS_LEAF_LIST, ATTR_LEAF_LIST, ATTR_NOTHROW_LEAF_LIST,
+	ATTR_CONST_NOTHROW_LEAF_LIST, ATTR_PURE_NOTHROW_LEAF_LIST,
+	ATTR_PURE_NOTHROW_NOVOPS_LEAF_LIST, ATTR_NORETURN_NOTHROW_LEAF_LIST,
+	ATTR_MALLOC_NOTHROW_LEAF_LIST, ATTR_SENTINEL_NOTHROW_LEAF_LIST,
+	ATTR_NOTHROW_NONNULL_LEAF, ATTR_CONST_NOTHROW_NONNULL_LEAF,
+	ATTR_CONST_NOTHROW_TYPEGENERIC_LEAF, ATTR_PURE_NOTHROW_NONNULL_LEAF,
+	ATTR_MALLOC_NOTHROW_NONNULL_LEAF): New attribute lists.
+	* sync-builtins.def: Annotate all builtins by leaf.
+	* omp-builtins.def: Annotate all builtins by leaf.
+	* builtins.def: Annotate relevant builtins with leaf attribute.
+	(ATTR_MATHFN_ERRNO, ATTR_MATHFN_FPROUNDING,
+	ATTR_MATHFN_FPROUNDING_ERRNO, ATTR_MATHFN_FPROUNDING_STORE): Make
+	leaf.
+
+2010-09-28  Jan Hubicka  <jh@suse.cz>
+
+	* tree-ssa-ccp.c (fold_ctor_reference): New function.
+	(fold_const_aggregate_ref): Use it.
+	* fold-const.c (canonicalize_constructor_val): Check that we don't fold
+	into external static.
+
+2010-09-28  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/44452
+	* config/i386/i386.opt (mvect8-ret-in-mem): Define.
+	* config/i386/i386.c (ix86_target_string): Handle -mvect8-ret-in-mem.
+	(ix86_solaris_return_in_memory): Remove.
+	* config/i386/i386-protos.h (ix86_solaris_return_in_memory): Remove.
+	* config/i386/sol2.h (SUBTARGET_RETURN_IN_MEMORY): Remove.
+	(TARGET_SUBTARGET_DEFAULT): Redefine.
+	* config/i386/sol2-10.h (TARGET_SUBTARGET_DEFAULT): Update comment.
+	* config/i386/vx-common.h (SUBTARGET_RETURN_IN_MEMORY): Remove.
+	(TARGET_SUBTARGET_DEFAULT): Redefine.
+	* doc/invoke.texi (Option Summary, i386 and x86-64 Options): Add
+	-mvect8-ret-in-mem.
+	(i386 and x86-64 Options): Document -mvect8-ret-in-mem.
+
+2010-09-29  Alan Modra  <amodra@gmail.com>
+
+	PR target/45807
+	* config/rs6000/aix.h (SETUP_FRAME_ADDRESSES): Delete.
+	* config/rs6000/linux64.h (SETUP_FRAME_ADDRESSES): Delete.
+	* config/rs6000/rs6000-protos.h (rs6000_aix_emit_builtin_unwind_init):
+	Delete.
+	* config/rs6000/rs6000.c (rs6000_aix_emit_builtin_unwind_init): Delete.
+	(rs6000_emit_prologue): Don't just create frame save info for r2,
+	actually save r2.
+
+2010-09-28  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/cygming.h (ASM_OUTPUT_DWARF_OFFSET): Output 8 bytes
+	when 8 bytes are requested.
+
+2010-09-28  Tristan Gingold  <gingold@adacore.com>
+
+	* config/avr/avr.c (expand_prologue): Set
+	current_function_static_stack_size.
+
+2010-09-28  Tristan Gingold  <gingold@adacore.com>
+
+	* config/alpha/alpha.md: Change the initial condition of the
+	probing loop.
+
+2010-09-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (*avx_<umaxmin:code><mode>3):
+	Split from *avx_<maxmin:code><mode>3.
+	(*avx_<smaxmin:code><mode>3): Ditto.
+	* config/i386/i386.md (maxmin): Remove code iterator.
+
 2010-09-27  Ian Lance Taylor  <iant@google.com>
 
 	* config/i386/i386.c (ix86_supports_split_stack): -fsplit-stack

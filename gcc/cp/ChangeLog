@@ -1,3 +1,38 @@
+2010-09-28  Jason Merrill  <jason@redhat.com>
+
+	* tree.c (lvalue_kind): Rename from lvalue_p_1, make nonstatic.
+	(real_lvalue_p): Take const_tree.
+	* cp-tree.h: Adjust.
+	* typeck.c (lvalue_or_else): Make temporary arg a permerror.
+	(cp_build_addr_expr_1): Likewise.
+
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+	
+	Partially merged from apple/trunk branch on FSF servers:
+	2006-04-26 Fariborz Jahanian <fjahanian@apple.com>
+	Radar 3803157 (method attributes)
+	
+	* parser.c (cp_parser_objc_method_keyword_params): Handle attributes.
+	(cp_parser_objc_method_tail_params_opt): Likewise.
+	(cp_parser_objc_method_signature): Likewise.
+	(cp_parser_objc_method_maybe_bad_prefix_attributes): New.
+	(cp_parser_objc_method_prototype_list): Handle attributes.
+	(cp_parser_objc_method_definition_list): Likewise.
+
+2010-09-28  Richard Henderson  <rth@redhat.com>
+
+	* cp-lang.c: Include "target.h".
+	(cp_eh_personality): Use targetm.except_unwind_info.
+	* Make-lang.in (cp-lang.o): Update deps.
+
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* parser.c (cp_parser_objc_valid_prefix_attributes): New.
+	(cp_parser_declaration): Parse prefix attributes for ObjC++.
+	(cp_parser_objc_protocol_declaration): Handle attributes.
+	(cp_parser_objc_class_interface): Likewise.
+	(cp_parser_objc_declaration): Likewise.
+
 2010-09-27  Jason Merrill  <jason@redhat.com>
 
 	Require lvalues as specified by the standard.

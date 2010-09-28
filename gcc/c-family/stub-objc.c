@@ -122,21 +122,24 @@ objc_declare_protocols (tree ARG_UNUSED (list))
 
 void
 objc_start_protocol (tree ARG_UNUSED (proto),
-		     tree ARG_UNUSED (protorefs))
+		     tree ARG_UNUSED (protorefs),
+		     tree ARG_UNUSED (attribs))
 {
 }
 
 void
 objc_start_class_interface (tree ARG_UNUSED (name),
 			    tree ARG_UNUSED (super),
-			    tree ARG_UNUSED (protos))
+			    tree ARG_UNUSED (protos),
+			    tree ARG_UNUSED (attribs))
 {
 }
 
 void
 objc_start_category_interface (tree ARG_UNUSED (name),
 			       tree ARG_UNUSED (categ),
-			       tree ARG_UNUSED (protos))
+			       tree ARG_UNUSED (protos),
+			       tree ARG_UNUSED (attribs))
 {
 }
 
@@ -193,12 +196,14 @@ objc_finish_implementation (void)
 }
 
 void
-objc_add_method_declaration (tree ARG_UNUSED (signature))
+objc_add_method_declaration (tree ARG_UNUSED (signature),
+			     tree ARG_UNUSED (attributes))
 {
 }
 
 bool
-objc_start_method_definition (tree ARG_UNUSED (signature))
+objc_start_method_definition (tree ARG_UNUSED (signature),
+			      tree ARG_UNUSED (attributes))
 {
   return true;
 }
@@ -211,7 +216,8 @@ objc_finish_method_definition (tree ARG_UNUSED (fndecl))
 tree
 objc_build_keyword_decl (tree ARG_UNUSED (selector),
 			 tree ARG_UNUSED (type),
-			 tree ARG_UNUSED (identifier))
+			 tree ARG_UNUSED (identifier),
+			 tree ARG_UNUSED (attributes))
 {
   return 0;
 }

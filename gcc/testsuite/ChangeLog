@@ -1,3 +1,75 @@
+2010-09-28  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/rv-lvalue-req.C: Adjust messages.
+	* g++.dg/ext/complit11.C: Likewise.
+	* g++.old-deja/g++.law/temps1.C: Likewise.
+
+	* g++.old-deja/g++.bugs/900121_02.C: Adjust for C++0x mode.
+	* g++.old-deja/g++.mike/misc6.C: Likewise.
+
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/attributes/method-attribute-1.m: New.
+	* objc.dg/attributes/method-attribute-2.m: New.
+
+	* obj-c++.dg/attributes/method-attribute-1.m: New.
+	* obj-c++.dg/attributes/method-attribute-2.m: New.
+
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/attributes: New.
+	* objc.dg/attributes/attributes.exp: New.
+	* objc.dg/attributes/class-attribute-1.m: New.
+	* objc.dg/attributes/class-attribute-2.m: New
+	* objc.dg/attributes/categ-attribute-1.m: New
+	* objc.dg/attributes/categ-attribute-2.m: New
+	* objc.dg/attributes/proto-attribute-1.m: New
+
+	* obj-c++.dg/attributes: New.
+	* obj-c++.dg/attributes/attributes.exp: New
+	* obj-c++.dg/attributes/class-attribute-1.mm: New
+	* obj-c++.dg/attributes/class-attribute-2.mm: New
+	* obj-c++.dg/attributes/categ-attribute-1.mm: New
+	* obj-c++.dg/attributes/categ-attribute-2.mm: New
+	* obj-c++.dg/attributes/proto-attribute-1.mm: New
+
+2010-09-28  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers (test method-20.m
+	from the branch renamed to method-20b.m to avoid clashes).
+
+	2005-08-23  Stuart Hastings <stuart@apple.com>
+	            Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4209854
+	* obj-c++.dg/method-23.mm: New.
+	* objc.dg/method-20.m: New.
+
+2010-09-28  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/foldconst-5.c: New testcase.
+
+2010-09-28  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/44452
+	* gcc.target/i386/pr22076.c: Add -mno-vect8-ret-in-mem on
+	i?86-*-solaris2.[89], *-*-vxworks*.
+	* gcc.target/i386/pr22152.c: Likewise.
+	* gcc.target/i386/vect8-ret.c: New test.
+
+2010-09-28  Jie Zhang  <jie@codesourcery.com>
+
+	* gcc.dg/Wcxx-compat-12.c: Add -fno-short-enums.
+
+2010-09-28  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+
+	2005-07-18  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4175534
+	* obj-c++.dg/method-22.mm: New.
+	
 2010-09-27  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/rv-lvalue-req.C: New.

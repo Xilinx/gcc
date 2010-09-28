@@ -213,6 +213,7 @@ static void really_start_method (tree, tree);
 static void really_start_method (tree, struct c_arg_info *);
 #endif
 static int comp_proto_with_proto (tree, tree, int);
+static tree objc_decay_parm_type (tree);
 static void objc_push_parm (tree);
 #ifdef OBJCPLUS
 static tree objc_get_parm_info (int);
@@ -650,8 +651,13 @@ lookup_protocol_in_reflist (tree rproto_list, tree lproto)
 }
 
 void
-objc_start_class_interface (tree klass, tree super_class, tree protos)
+objc_start_class_interface (tree klass, tree super_class,
+			    tree protos, tree attributes)
 {
+  if (attributes)
+    warning_at (input_location, OPT_Wattributes, 
+		"class attributes are not available in this version"
+		" of the compiler, (ignored)");
   objc_interface_context
     = objc_ivar_context
     = start_class (CLASS_INTERFACE_TYPE, klass, super_class, protos);
@@ -659,8 +665,13 @@ objc_start_class_interface (tree klass, tree super_class, tree protos)
 }
 
 void
-objc_start_category_interface (tree klass, tree categ, tree protos)
+objc_start_category_interface (tree klass, tree categ,
+			       tree protos, tree attributes)
 {
+  if (attributes)
+    warning_at (input_location, OPT_Wattributes, 
+		"category attributes are not available in this version"
+		" of the compiler, (ignored)");
   objc_interface_context
     = start_class (CATEGORY_INTERFACE_TYPE, klass, categ, protos);
   objc_ivar_chain
@@ -668,8 +679,12 @@ objc_start_category_interface (tree klass, tree categ, tree protos)
 }
 
 void
-objc_start_protocol (tree name, tree protos)
+objc_start_protocol (tree name, tree protos, tree attributes)
 {
+  if (attributes)
+    warning_at (input_location, OPT_Wattributes, 
+		"protocol attributes are not available in this version"
+		" of the compiler, (ignored)");
   objc_interface_context
     = start_protocol (PROTOCOL_INTERFACE_TYPE, name, protos);
 }
@@ -754,7 +769,7 @@ objc_build_method_signature (tree rettype, tree selector,
 }
 
 void
-objc_add_method_declaration (tree decl)
+objc_add_method_declaration (tree decl, tree attributes)
 {
   if (!objc_interface_context)
     {
@@ -765,6 +780,11 @@ objc_add_method_declaration (tree decl)
       fatal_error ("method declaration not in @interface context");
     }
 
+  if (attributes)
+    warning_at (input_location, OPT_Wattributes, 
+		"method attributes are not available in this version"
+		" of the compiler, (ignored)");
+
   objc_add_method (objc_interface_context,
 		   decl,
 		   objc_inherit_code == CLASS_METHOD_DECL);
@@ -774,13 +794,18 @@ objc_add_method_declaration (tree decl)
    'false' if not (because we are outside an @implementation context).
 */
 bool
-objc_start_method_definition (tree decl)
+objc_start_method_definition (tree decl, tree attributes)
 {
   if (!objc_implementation_context)
     {
       error ("method definition not in @implementation context");
       return false;
     }
+
+  if (attributes)
+    warning_at (input_location, OPT_Wattributes, 
+		"method attributes are not available in this version"
+		" of the compiler, (ignored)");
 
 #ifndef OBJCPLUS
   /* Indicate no valid break/continue context by setting these variables
@@ -1143,7 +1168,9 @@ objc_common_type (tree type1, tree type2)
      0		Return value;
      -1		Assignment;
      -2		Initialization;
-     -3		Comparison (LTYP and RTYP may match in either direction).  */
+     -3		Comparison (LTYP and RTYP may match in either direction);
+     -4		Silent comparison (for C++ overload resolution).
+  */
 
 bool
 objc_compare_types (tree ltyp, tree rtyp, int argno, tree callee)
@@ -1198,8 +1225,9 @@ objc_compare_types (tree ltyp, tree rtyp, int argno, tree callee)
       && !TYPE_HAS_OBJC_INFO (rtyp))
     return false;
 
-  /* Past this point, we are committed to returning 'true' to the caller.
-     However, we can still warn about type and/or protocol mismatches.  */
+  /* Past this point, we are committed to returning 'true' to the caller
+     (unless performing a silent comparison; see below).  However, we can
+     still warn about type and/or protocol mismatches.  */
 
   if (TYPE_HAS_OBJC_INFO (ltyp))
     {
@@ -1253,7 +1281,7 @@ objc_compare_types (tree ltyp, tree rtyp, int argno, tree callee)
       if (!pointers_compatible)
 	pointers_compatible = DERIVED_FROM_P (ltyp, rtyp);
 
-      if (!pointers_compatible && argno == -3)
+      if (!pointers_compatible && argno <= -3)
 	pointers_compatible = DERIVED_FROM_P (rtyp, ltyp);
     }
 
@@ -1271,11 +1299,17 @@ objc_compare_types (tree ltyp, tree rtyp, int argno, tree callee)
 
   if (!pointers_compatible)
     {
+      /* The two pointers are not exactly compatible.  Issue a warning, unless
+	 we are performing a silent comparison, in which case return 'false'
+	 instead.  */
       /* NB: For the time being, we shall make our warnings look like their
 	 C counterparts.  In the future, we may wish to make them more
 	 ObjC-specific.  */
       switch (argno)
 	{
+	case -4:
+	  return false;
+
 	case -3:
 	  warning (0, "comparison of distinct Objective-C types lacks a cast");
 	  break;
@@ -3614,7 +3648,7 @@ objc_eh_personality (void)
   if (!flag_objc_sjlj_exceptions
       && !objc_eh_personality_decl)
     objc_eh_personality_decl
-      = build_personality_function (USING_SJLJ_EXCEPTIONS
+      = build_personality_function (targetm.except_unwind_info () == UI_SJLJ
 				    ? "__gnu_objc_personality_sj0"
 				    : "__gnu_objc_personality_v0");
 
@@ -4620,7 +4654,7 @@ objc_generate_cxx_ctor_or_dtor (bool dtor)
 						 ? TAG_CXX_DESTRUCT
 						 : TAG_CXX_CONSTRUCT),
 				 make_node (TREE_LIST),
-				 false));
+				 false), NULL);
   body = begin_function_body ();
   compound_stmt = begin_compound_stmt (0);
 
@@ -5952,6 +5986,7 @@ adjust_type_for_id_default (tree type)
      In:	key_name, an "identifier_node" (optional).
 		arg_type, a  "tree_list" (optional).
 		arg_name, an "identifier_node".
+		attributes, a optional tree containing param attributes.
 
      Note:	It would be really nice to strongly type the preceding
 		arguments in the function prototype; however, then I
@@ -5960,9 +5995,15 @@ adjust_type_for_id_default (tree type)
      Out:	an instance of "keyword_decl".  */
 
 tree
-objc_build_keyword_decl (tree key_name, tree arg_type, tree arg_name)
+objc_build_keyword_decl (tree key_name, tree arg_type, 
+			 tree arg_name, tree attributes)
 {
   tree keyword_decl;
+
+  if (attributes)
+    warning_at (input_location, OPT_Wattributes, 
+		"method parameter attributes are not available in this "
+		"version of the compiler, (ignored)");
 
   /* If no type is specified, default to "id".  */
   arg_type = adjust_type_for_id_default (arg_type);
@@ -6099,11 +6140,8 @@ get_arg_type_list (tree meth, int context, int superflag)
     {
       tree arg_type = TREE_VALUE (TREE_TYPE (akey));
 
-      /* Decay arrays and functions into pointers.  */
-      if (TREE_CODE (arg_type) == ARRAY_TYPE)
-	arg_type = build_pointer_type (TREE_TYPE (arg_type));
-      else if (TREE_CODE (arg_type) == FUNCTION_TYPE)
-	arg_type = build_pointer_type (arg_type);
+      /* Decay argument types for the underlying C function as appropriate.  */
+      arg_type = objc_decay_parm_type (arg_type);
 
       chainon (arglist, build_tree_list (NULL_TREE, arg_type));
     }
@@ -6114,6 +6152,8 @@ get_arg_type_list (tree meth, int context, int superflag)
 	   akey; akey = TREE_CHAIN (akey))
 	{
 	  tree arg_type = TREE_TYPE (TREE_VALUE (akey));
+
+	  arg_type = objc_decay_parm_type (arg_type);
 
 	  chainon (arglist, build_tree_list (NULL_TREE, arg_type));
 	}
@@ -8105,7 +8145,7 @@ encode_array (tree type, int curtype, int format)
   tree an_int_cst = TYPE_SIZE (type);
   tree array_of = TREE_TYPE (type);
   char buffer[40];
-
+  
   if (an_int_cst == NULL)
     {
       /* We are trying to encode an incomplete array.  An incomplete
@@ -8197,7 +8237,7 @@ encode_vector (tree type, int curtype, int format)
 }
 
 static void
-encode_aggregate_fields (tree type, int pointed_to, int curtype, int format)
+encode_aggregate_fields (tree type, bool pointed_to, int curtype, int format)
 {
   tree field = TYPE_FIELDS (type);
 
@@ -8250,14 +8290,14 @@ encode_aggregate_within (tree type, int curtype, int format, int left,
 
   if (flag_next_runtime)
     {
-      pointed_to = (ob_size > 0
-		    ? *(obstack_next_free (&util_obstack) - 1) == '^'
-		    : 0);
-      inline_contents = ((format == OBJC_ENCODE_INLINE_DEFS || generating_instance_variables)
-			 && (!pointed_to
-			     || ob_size - curtype == 1
-			     || (ob_size - curtype == 2
-				 && *(obstack_next_free (&util_obstack) - 2) == 'r')));      
+      if (ob_size > 0  &&  *(obstack_next_free (&util_obstack) - 1) == '^')
+	pointed_to = true;
+
+      if ((format == OBJC_ENCODE_INLINE_DEFS || generating_instance_variables)
+	  && (!pointed_to || ob_size - curtype == 1
+	      || (ob_size - curtype == 2
+		  && *(obstack_next_free (&util_obstack) - 2) == 'r')))
+	inline_contents = true;
     }
   else
     {
@@ -8279,27 +8319,19 @@ encode_aggregate_within (tree type, int curtype, int format, int left,
 	    inline_contents = true;
 	  else
 	    {
-	      /* FIXME: It's hard to understand what the following
-		 code is meant to be doing.  It seems that it will
-		 inline contents even if we are encoding a pointed
-		 structure and the last characters were 'r^' or just
-		 '^'.
+	      /* Note that the check (ob_size - curtype < 2) prevents
+		 infinite recursion when encoding a structure which is
+		 a linked list (eg, struct node { struct node *next;
+		 }).  Each time we follow a pointer, we add one
+		 character to ob_size, and curtype is fixed, so after
+		 at most two pointers we stop inlining contents and
+		 break the loop.
 
-		 So it seems that in the end the only case where we
-		 don't inline contents is '^r', which is a pointer to
-		 a 'const' structure!  If that is the case, the whole
-		 blob of code could be rewritten in a simpler way.
+		 The other case where we don't inline is "^r", which
+		 is a pointer to a constant struct.
 	      */
-	      if (c1 == 'r')
-		{
-		  if (ob_size - curtype == 2)
-		    inline_contents = true;
-		}
-	      else
-		{
-		  if (ob_size - curtype == 1)
-		    inline_contents = true;    
-		}
+	      if ((ob_size - curtype <= 2) && !(c0 == 'r'))
+		inline_contents = true;
 	    }
 	}
     }
@@ -8364,7 +8396,6 @@ static void
 encode_type (tree type, int curtype, int format)
 {
   enum tree_code code = TREE_CODE (type);
-  char c;
 
   /* Ignore type qualifiers other than 'const' when encoding a
      type.  */
@@ -8372,8 +8403,11 @@ encode_type (tree type, int curtype, int format)
   if (type == error_mark_node)
     return;
 
-  if (TYPE_READONLY (type))
-    obstack_1grow (&util_obstack, 'r');
+  if (!flag_next_runtime)
+    {
+      if (TYPE_READONLY (type))
+	obstack_1grow (&util_obstack, 'r');
+    }
 
   switch (code)
     {
@@ -8383,13 +8417,14 @@ encode_type (tree type, int curtype, int format)
 	  /* Kludge for backwards-compatibility with gcc-3.3: enums
 	     are always encoded as 'i' no matter what type they
 	     actually are (!).  */
-	  c = 'i';
+	  obstack_1grow (&util_obstack, 'i');
 	  break;
 	}
       /* Else, they are encoded exactly like the integer type that is
 	 used by the compiler to store them.  */
     case INTEGER_TYPE:
       {
+	char c;
 	switch (GET_MODE_BITSIZE (TYPE_MODE (type)))
 	  {
 	  case 8:  c = TYPE_UNSIGNED (type) ? 'C' : 'c'; break;
@@ -8433,6 +8468,7 @@ encode_type (tree type, int curtype, int format)
       }
     case REAL_TYPE:
       {
+	char c;
 	/* Floating point types.  */
 	switch (GET_MODE_BITSIZE (TYPE_MODE (type)))
 	  {
@@ -8594,6 +8630,19 @@ encode_field_decl (tree field_decl, int curtype, int format)
     encode_type (TREE_TYPE (field_decl), curtype, format);
 }
 
+/* Decay array and function parameters into pointers.  */
+
+static tree
+objc_decay_parm_type (tree type)
+{
+  if (TREE_CODE (type) == ARRAY_TYPE || TREE_CODE (type) == FUNCTION_TYPE)
+    type = build_pointer_type (TREE_CODE (type) == ARRAY_TYPE
+			       ? TREE_TYPE (type)
+			       : type);
+
+  return type;
+}
+
 static GTY(()) tree objc_parmlist = NULL_TREE;
 
 /* Append PARM to a list of formal parameters of a method, making a necessary
@@ -8602,7 +8651,7 @@ static GTY(()) tree objc_parmlist = NULL_TREE;
 static void
 objc_push_parm (tree parm)
 {
-  bool relayout_needed = false;
+  tree type;
 
   if (TREE_TYPE (parm) == error_mark_node)
     {
@@ -8611,20 +8660,12 @@ objc_push_parm (tree parm)
     }
 
   /* Decay arrays and functions into pointers.  */
-  if (TREE_CODE (TREE_TYPE (parm)) == ARRAY_TYPE)
-    {
-      TREE_TYPE (parm) = build_pointer_type (TREE_TYPE (TREE_TYPE (parm)));
-      relayout_needed = true;
-    }
-  else if (TREE_CODE (TREE_TYPE (parm)) == FUNCTION_TYPE)
-    {
-      TREE_TYPE (parm) = build_pointer_type (TREE_TYPE (parm));
-      relayout_needed = true;
-    }
+  type = objc_decay_parm_type (TREE_TYPE (parm));
 
-  if (relayout_needed)
-    relayout_decl (parm);
-  
+  /* If the parameter type has been decayed, a new PARM_DECL needs to be
+     built as well.  */
+  if (type != TREE_TYPE (parm))
+    parm = build_decl (input_location, PARM_DECL, DECL_NAME (parm), type);
 
   DECL_ARG_TYPE (parm)
     = lang_hooks.types.type_promotes_to (TREE_TYPE (parm));
