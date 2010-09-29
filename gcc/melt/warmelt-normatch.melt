@@ -47,7 +47,7 @@ occurrences. $PCTN_TESTS is the list of normal
 testers. $PCTN_VARHANDERS is a list of pattern variable handler when
 scanning variables.}#
   :fields (pctn_normctxt		;the class_normalization_context
-	   pctn_src			;the source match expressioon
+	   pctn_src			;the source match expression
 	   pctn_env			;the current environment
 	   ;; mapping symbols to patternvars
 	   pctn_mapatvar		;objmap of patternvars
@@ -4995,8 +4995,9 @@ normalized expression.}#
       )))
 (install_method class_match_step_test_variable normalize_step normstep_mtestvar)
 
-;;;;;;;;;;;;;;;;
 
+
+;;;;;;;;;;;;;;;;
 
 (defun normstep_msuccwhenflag (step nmctxt sloc)
   (debug_msg step "normstep_msuccwhenflag step")
@@ -5006,24 +5007,60 @@ normalized expression.}#
 	  (matflag (unsafe_get_field :mstep_flag step))
 	  (matthen (unsafe_get_field :mstep_then step))
 	  (matvarocc (unsafe_get_field :mstepsuccess_varocc step))
+	  (nmatresloc (get_field :matnorx_resloc nmctxt))
 	  (mbinds (unsafe_get_field :mstepsuccess_binds step))
 	  (matbody (unsafe_get_field :mstepsuccess_body step))
 	  )
     (debug_msg matflag "normstep_msuccwhenflag mflag")
-    (debug_msg matvarocc "normstep_msuccwhenflag mvarocc")
+    (debug_msg matvarocc "normstep_msuccwhenflag matvarocc")
     (debug_msg mbinds "normstep_msuccwhenflag mbinds")
-    (debug_msg matbody "normstep_msuccwhenflag mbody")
+    (debug_msg matbody "normstep_msuccwhenflag matbody")
     (debug_msg matthen "normstep_msuccwhenflag mthen")
+    (debug_msg nmatresloc "normstep_msuccwhenflag nmatresloc")
     (let (
 	  (nthen (altmatch_normalize_step matthen nmctxt))
 	  (nflag (altmatch_normalize_flag matflag nmctxt))
 	  (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
+	  (jumpthen (instance class_nrep_match_jump
+			      :nmjmp_label nthen))
+	  (njthen (complete_normstep_if_last step jumpthen nmctxt))
+	  (:long matbodylen (multiple_length matbody))
+	  (lastmatbody (multiple_nth matbody -1))
+	  (nsetqres (instance class_nrep_setq
+			      :nrep_loc nsloc
+			      :nstq_var nmatresloc
+			      :nstq_exp lastmatbody
+			      ))
+	  (newmatbody (make_multiple discr_multiple (+i matbodylen 2)))
 	  )
+      ;; we build a newmatbody fdrom the matbody and add the setting
+      ;; of the match result and the jump
+      (foreach_in_multiple
+       (matbody)
+       (curmatbody :long bix)
+       (multiple_put_nth newmatbody bix curmatbody)
+       )
+      (multiple_put_nth newmatbody -2 nsetqres)
+      (multiple_put_nth newmatbody -1 njthen)
       (debug_msg nthen "normstep_msuccwhenflag nthen")
+      (debug_msg njthen "normstep_msuccwhenflag njthen")
       (debug_msg nflag "normstep_msuccwhenflag nflag")
-      (assert_msg "@$@unimplemented normstep_msuccwhenflag")
-      )))
+      (debug_msg newmatbody "normstep_msuccwhenflag newmatbody")
+      (let (
+	    (nifsucc (instance class_nrep_if
+			       :nrep_loc nsloc
+			       :nif_test nflag
+			       :nif_then (wrap_normal_letseq newmatbody mbinds nsloc)
+			       :nexpr_ctyp ctype_void
+			       :nif_else ()))
+
+	    )
+	(debug_msg nifsucc "normstep_msuccwhenflag final nifsucc")
+	(return nifsucc)
+	))))
 (install_method class_match_step_success_when_flag normalize_step normstep_msuccwhenflag)
+
+
 
 ;;;;;;;;;;;;;;;;
 (defun normstep_mtestmatcher (step nmctxt sloc)
@@ -5401,6 +5438,7 @@ nmctxt)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (debug_msg recv "normexp_altmatch recv")
+  (shortbacktrace_dbg "normexp_altmatch start" 20)
   (let ( (sloc (or (unsafe_get_field :loca_location recv) psloc))
 	 (smatsx (unsafe_get_field :smat_matchedx recv))
 	 (scases (unsafe_get_field :smat_cases recv))

@@ -1,3 +1,7 @@
+2010-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tmatch-6.melt: updated comment.
+	* melt/warmelt-normatch.melt: completed normstep_msuccwhenflag.
+
 2010-09-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmatch-7.melt: has a complex match input argument
 	to test its normalization.
