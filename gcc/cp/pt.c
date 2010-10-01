@@ -187,7 +187,6 @@ static tree tsubst_decl (tree, tree, tsubst_flags_t);
 static void perform_typedefs_access_check (tree tmpl, tree targs);
 static void append_type_to_template_for_access_check_1 (tree, tree, tree,
 							location_t);
-static hashval_t iterative_hash_template_arg (tree arg, hashval_t val);
 static tree listify (tree);
 static tree listify_autos (tree, tree);
 
@@ -1450,7 +1449,7 @@ hash_specialization (const void *p)
 /* Recursively calculate a hash value for a template argument ARG, for use
    in the hash tables of template specializations.  */
 
-static hashval_t
+hashval_t
 iterative_hash_template_arg (tree arg, hashval_t val)
 {
   unsigned HOST_WIDE_INT i;
@@ -1606,15 +1605,6 @@ iterative_hash_template_arg (tree arg, hashval_t val)
     }
   gcc_unreachable ();
   return 0;
-}
-
-/* Return a hash value for arguments ARGS in a call to a constexpr
-   function.  INIT is an initial hash value to combine with.  */
-
-hashval_t
-hash_constexpr_args (tree arg, hashval_t init)
-{
-   return iterative_hash_template_arg (arg, init);
 }
 
 /* Unregister the specialization SPEC as a specialization of TMPL.

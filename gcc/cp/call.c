@@ -7840,11 +7840,21 @@ set_up_extended_ref_temp (tree decl, tree expr, tree *cleanup, tree *initp)
   if (TREE_CODE (expr) != TARGET_EXPR)
     expr = get_target_expr (expr);
 
+  /* If the initializer is constant, put it in DECL_INITIAL so we get
+     static initialization and use in constant expressions.  */
   init = maybe_constant_init (expr);
-  if (TREE_CODE (init) != TARGET_EXPR)
+  if (TREE_CONSTANT (init))
     {
-      if (literal_type_p (type))
+      if (literal_type_p (type) && CP_TYPE_CONST_NON_VOLATILE_P (type))
 	{
+	  /* 5.19 says that a constant expression can include an
+	     lvalue-rvalue conversion applied to "a glvalue of literal type
+	     that refers to a non-volatile temporary object initialized
+	     with a constant expression".  Rather than try to communicate
+	     that this VAR_DECL is a temporary, just mark it constexpr.
+
+	     Currently this is only useful for initializer_list temporaries,
+	     since reference vars can't appear in constant expressions.  */
 	  DECL_DECLARED_CONSTEXPR_P (var) = true;
 	  TREE_CONSTANT (var) = true;
 	}

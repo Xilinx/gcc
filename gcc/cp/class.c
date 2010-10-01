@@ -1269,8 +1269,7 @@ check_bases (tree t,
 
       gcc_assert (COMPLETE_TYPE_P (basetype));
 
-      /* If any of the base class is non-literal, the whole class
-         becomes non-literal.  */
+      /* If any base class is non-literal, so is the derived class.  */
       if (!CLASSTYPE_LITERAL_P (basetype))
         CLASSTYPE_LITERAL_P (t) = false;
 
@@ -4637,7 +4636,7 @@ check_bases_and_members (tree t)
       CLASSTYPE_NON_AGGREGATE (t) = 1;
     }
 
-  /* Compute the `literal type' property before we get to
+  /* Compute the 'literal type' property before we
      do anything with non-static member functions.  */
   finalize_literal_type_property (t);
 

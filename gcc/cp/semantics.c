@@ -5572,7 +5572,7 @@ typedef struct GTY(()) constexpr_call {
      Note: This arrangement is made to accomodate the use of
      iterative_hash_template_arg (see pt.c).  If you change this
      representation, also change the implementation of the function
-     hash_constexpr_args.  */
+     constexpr_call_hash.  */
   tree bindings;
   /* Result of the call.
        NULL means the call is being evaluated.
@@ -5595,8 +5595,8 @@ static hashval_t
 constexpr_call_hash (const void *p)
 {
   const constexpr_call *info = (const constexpr_call *) p;
-  return hash_constexpr_args (info->bindings,
-                              constexpr_fundef_hash (info->fundef));
+  return iterative_hash_template_arg (info->bindings,
+				      constexpr_fundef_hash (info->fundef));
 }
 
 /* Return 1 if the objects pointed to by P and Q represent calls

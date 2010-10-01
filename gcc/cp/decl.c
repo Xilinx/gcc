@@ -4381,8 +4381,7 @@ start_decl (const cp_declarator *declarator,
       /* This is a const variable with implicit 'static'.  Set
 	 DECL_THIS_STATIC so we can tell it from variables that are
 	 !TREE_PUBLIC because of the anonymous namespace.  */
-      gcc_assert (CP_TYPE_CONST_P (TREE_TYPE (decl))
-		  || TREE_CODE (TREE_TYPE (decl)) == REFERENCE_TYPE);
+      gcc_assert (CP_TYPE_CONST_P (TREE_TYPE (decl)) || errorcount);
       DECL_THIS_STATIC (decl) = 1;
     }
 
@@ -5356,6 +5355,11 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 	      && !(init && BRACE_ENCLOSED_INITIALIZER_P (init))))
 	{
 	  init_code = build_aggr_init_full_exprs (decl, init, flags);
+
+	  /* If this is a constexpr initializer, expand_default_init will
+	     have returned an INIT_EXPR rather than a CALL_EXPR.  In that
+	     case, pull the initializer back out and pass it down into
+	     store_init_value.  */
 	  while (TREE_CODE (init_code) == EXPR_STMT
 		 || TREE_CODE (init_code) == CONVERT_EXPR)
 	    init_code = TREE_OPERAND (init_code, 0);
@@ -5369,7 +5373,9 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 	    }
 	  else if (DECL_DECLARED_CONSTEXPR_P (decl))
 	    {
-	      /* Leave init set so store_init_value complains.  */
+	      /* Declared constexpr, but no suitable initializer; massage
+		 init appropriately so we can pass it into store_init_value
+		 for the error.  */
 	      if (init && BRACE_ENCLOSED_INITIALIZER_P (init))
 		init = finish_compound_literal (type, init);
 	      else if (CLASS_TYPE_P (type)
@@ -6457,7 +6463,7 @@ expand_static_init (tree decl, tree init)
   gcc_assert (TREE_CODE (decl) == VAR_DECL);
   gcc_assert (TREE_STATIC (decl));
 
-  /* Some variables require no initialization.  */
+  /* Some variables require no dynamic initialization.  */
   if (!init
       && TYPE_HAS_TRIVIAL_DESTRUCTOR (TREE_TYPE (decl)))
     return;
@@ -7574,10 +7580,6 @@ compute_array_index_type (tree name, tree size, tsubst_flags_t complain)
   else if (TREE_CONSTANT (size)
 	   /* We don't allow VLAs at non-function scopes, or during
 	      tentative template substitution.  */
-	   /* FIXME shouldn't need to have both checks -- many things might
-	      work better if we set up context properly for overload
-	      template substitution.  The scope of substitution is the scope
-	      of the declaration being substituted into.  */
 	   || !at_function_scope_p () || !(complain & tf_error))
     {
       if (!(complain & tf_error))

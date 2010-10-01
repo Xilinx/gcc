@@ -3228,10 +3228,6 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define TYPE_PTR_P(NODE)			\
   (TREE_CODE (NODE) == POINTER_TYPE)
 
-/* Return true if NODE is an array type.  */
-#define TYPE_ARRAY_P(NODE)                      \
-  (TREE_CODE (NODE) == ARRAY_TYPE)
-
 /* Returns true if NODE is an object type:
 
      [basic.types]
@@ -5098,8 +5094,7 @@ extern tree get_template_innermost_arguments	(const_tree);
 extern tree get_template_argument_pack_elems	(const_tree);
 extern tree get_function_template_decl		(const_tree);
 extern tree resolve_nondeduced_context		(tree);
-
-extern hashval_t hash_constexpr_args (tree, hashval_t);
+extern hashval_t iterative_hash_template_arg (tree arg, hashval_t val);
 
 /* in repo.c */
 extern void init_repo				(void);
