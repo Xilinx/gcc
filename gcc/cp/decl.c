@@ -7429,8 +7429,21 @@ build_ptrmem_type (tree class_type, tree member_type)
 int
 check_static_variable_definition (tree decl, tree type)
 {
+  /* If DECL is declared constexpr, we'll do the appropriate checks
+     in check_initializer.  */
   if (DECL_P (decl) && DECL_DECLARED_CONSTEXPR_P (decl))
     return 0;
+  else if (cxx_dialect >= cxx0x && !INTEGRAL_OR_ENUMERATION_TYPE_P (type))
+    {
+      if (literal_type_p (type))
+	error ("%<constexpr%> needed for in-class initialization of static "
+	       "data member %q#D of non-integral type", decl);
+      else
+	error ("in-class initialization of static data member %q#D of "
+	       "non-literal type", decl);
+      return 1;
+    }
+
   /* Motion 10 at San Diego: If a static const integral data member is
      initialized with an integral constant expression, the initializer
      may appear either in the declaration (within the class), or in

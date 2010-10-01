@@ -5276,7 +5276,6 @@ ensure_literal_type_for_constexpr_object (tree decl)
   tree type = TREE_TYPE (decl);
   if (TREE_CODE (decl) == VAR_DECL && DECL_DECLARED_CONSTEXPR_P (decl)
       && !processing_template_decl
-      && !(DECL_LANG_SPECIFIC (decl) && DECL_TEMPLATE_INSTANTIATION (decl))
       /* The call to complete_type is just for initializer_list.  */
       && !literal_type_p (complete_type (type)))
     {
