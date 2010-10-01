@@ -5843,6 +5843,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	 available. */
       if (!(init
 	    && DECL_CLASS_SCOPE_P (decl)
+	    /* FIXME */
 	    && TREE_CONSTANT (decl)
 	    && !type_dependent_p
 	    && !value_dependent_init_p (init)))
