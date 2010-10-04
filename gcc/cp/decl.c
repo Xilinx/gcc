@@ -5804,6 +5804,8 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
   if (init && TREE_CODE (decl) == VAR_DECL)
     {
       DECL_NONTRIVIALLY_INITIALIZED_P (decl) = 1;
+      /* FIXME we rely on TREE_CONSTANT below; basing that on
+	 init_const_expr_p is probably wrong for C++0x.  */
       if (init_const_expr_p)
 	{
 	  /* Set these flags now for C++98 templates.  We'll update the
@@ -5837,9 +5839,10 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	 available. */
       if (!(init
 	    && DECL_CLASS_SCOPE_P (decl)
-	    /* FIXME */
+	    /* We just set TREE_CONSTANT appropriately; see above.  */
 	    && TREE_CONSTANT (decl)
 	    && !type_dependent_p
+	    /* FIXME non-value-dependent constant expression  */
 	    && !value_dependent_init_p (init)))
 	{
 	  if (init)
