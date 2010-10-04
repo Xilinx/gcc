@@ -751,29 +751,6 @@
 	(c_parser_objc_method_decl): Handle attributes, add a diagnostic for a
 	missing definition, similar to that in ObjC++.
 
-2010-09-28  Ian Lance Taylor  <iant@google.com>
-
-	* config/i386/i386.c (ix86_supports_split_stack): Test
-	HAVE_GAS_CFI_PERSONALITY_DIRECTIVE rather than dwarf2out_do_cfi_asm.
-
-2010-09-28  Tobias Burnus  <burnus@net-b.de>
-
-	PR fortran/40569
-	PR fortran/40568
-	* toplev.h (save_decoded_options, save_decoded_options_count):
-	New global variables.
-	* toplev.c (save_decoded_options, save_decoded_options_count):
-	Export variables.
-
-2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
-
-	* c-parser.c (c_parser_objc_class_definition): Adjust prototype.
-	(c_parser_objc_protocol_definition): Likewise.
-	(c_parser_external_declaration): Provide dummy attribute arguments.
-	(c_parser_declaration_or_fndef): Parse prefix attributes for ObjC.
-	(c_parser_objc_class_definition): Handle attributes.
-	(c_parser_objc_protocol_definition): Likewise.
-
 2010-09-28  Richard Henderson  <rth@redhat.com>
 
 	* defaults.h (DWARF2_UNWIND_INFO): Don't depend on TARGET_UNWIND_INFO.
@@ -838,6 +815,29 @@
 	(TARGET_UNWIND_INFO): Remove.
 
 	* config/pa/pa.c (pa_option_override): Use targetm.except_unwind_info.
+
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* c-parser.c (c_parser_objc_class_definition): Adjust prototype.
+	(c_parser_objc_protocol_definition): Likewise.
+	(c_parser_external_declaration): Provide dummy attribute arguments.
+	(c_parser_declaration_or_fndef): Parse prefix attributes for ObjC.
+	(c_parser_objc_class_definition): Handle attributes.
+	(c_parser_objc_protocol_definition): Likewise.
+
+2010-09-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40569
+	PR fortran/40568
+	* toplev.h (save_decoded_options, save_decoded_options_count):
+	New global variables.
+	* toplev.c (save_decoded_options, save_decoded_options_count):
+	Export variables.
+
+2010-09-28  Ian Lance Taylor  <iant@google.com>
+
+	* config/i386/i386.c (ix86_supports_split_stack): Test
+	HAVE_GAS_CFI_PERSONALITY_DIRECTIVE rather than dwarf2out_do_cfi_asm.
 
 2010-09-28  Ian Lance Taylor  <iant@google.com>
 
