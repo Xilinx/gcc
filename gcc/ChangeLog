@@ -1,3 +1,120 @@
+2010-10-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/45876
+	* fold-const.c (fold_binary_loc) <case BIT_AND_EXPR>: Use
+	arg0's type or its unsigned counterpart as utype.  Convert
+	arg1 to utype unconditionally.
+
+2010-10-04  Julian Brown  <julian@codesourcery.com>
+
+	* expr.c (expand_assignment): Add assertion to prevent emitting
+	null rtx for movmisalign pattern.
+	(expand_expr_real_1): Likewise.
+	* config/arm/arm.c (arm_builtin_support_vector_misalignment): New.
+	(TARGET_VECTORIZE_SUPPORT_VECTOR_MISALIGNMENT): New. Use above.
+	(arm_vector_alignment_reachable): New.
+	(TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE): New. Use above.
+	(neon_vector_mem_operand): Disallow PRE_DEC for misaligned loads.
+	(arm_print_operand): Include alignment qualifier in %A.
+	* config/arm/neon.md (UNSPEC_MISALIGNED_ACCESS): New constant.
+	(movmisalign<mode>): New expander.
+	(movmisalign<mode>_neon_store, movmisalign<mode>_neon_load): New
+	insn patterns.
+
+2010-10-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* optc-gen.awk: Define global_options_set.  Don't define
+	target_flags_explicit.
+	* opth-gen.awk: Declare global_options_set.  Define
+	target_flags_explicit as macro.
+	* opts-common.c (handle_option): Take opts_set and generated_p
+	parameters.
+	(handle_generated_option, read_cmdline_option, set_option): Take
+	opts_set parameter.
+	(set_option): Use opts_set instead of hardcoding target_flags and
+	target_flags_explicit.
+	* opts.c (sel_sched_switch_set, profile_arc_flag_set,
+	flag_profile_values_set, flag_unroll_loops_set, flag_tracer_set,
+	flag_value_profile_transformations_set, flag_peel_loops_set,
+	flag_branch_probabilities_set, flag_inline_functions_set,
+	flag_ipa_cp_set, flag_ipa_cp_clone_set,
+	flag_predictive_commoning_set, flag_unswitch_loops_set,
+	flag_gcse_after_reload_set): Remove.
+	(common_handle_option, lang_handle_option, target_handle_option):
+	Take opts_set parameter.  Assert that it is &global_options_set.
+	(common_handle_option): Don't set _set variables.  Check opts_set
+	instead of such variables.
+	(enable_warning_as_error): Pass &global_options_set to
+	handle_generated_option.
+	* opts.h (cl_option_handler_func.handler, set_option,
+	handle_option, handle_generated_option, read_cmdline_option): Add
+	opts_set parameters.
+	(handle_option): Add generated_p parameter.
+	* config/i386/i386.c (ix86_function_specific_save,
+	ix86_function_specific_restore): Updat for renaming of
+	target_flags_explicit field.
+	* config/i386/i386.opt (target_flags_explicit): Rename to
+	ix86_target_flags_explicit.
+	* config/ia64/ia64.c (ia64_override_options_after_change): Check
+	global_options_set.x_flag_selective_scheduling and
+	global_options_set.x_flag_selective_scheduling2, not
+	sel_sched_switch_set.
+	* flags.h (sel_sched_switch_set,
+	flag_speculative_prefetching_set): Remove.
+	* gcc.c (driver_handle_option): Take opts_set parameter.  Assert
+	that it is &global_options_set.
+	(process_command): Pass &global_options_set to
+	read_cmdline_option.
+	* lto-opts.c (lto_reissue_options): Pass &global_options_set to
+	set_option.
+	* toplev.c (target_flags_explicit): Remove.
+
+2010-10-04  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/45871
+	* tree-ssa-ccp.c (get_base_constructor): Take HOST_WIDE_INT offset;
+	use get_ref_base_and_offset to handle references.
+	(fold_const_aggregate_ref): Update.
+
+2010-10-04  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/45572
+	* ipa-prop.c (ipa_make_edge_direct_to_target): Call
+	ipa_check_create_node_params.
+	* ipa-inline.c (add_new_edges_to_heap): Do not insert inlined edges.
+
+2010-10-04  Yao Qi  <yao@codesourcery.com>
+
+	* doc/passes.texi: Clean up.
+
+2010-10-03  Ian Lance Taylor  <iant@google.com>
+
+	* c-typeck.c (lookup_field): If -fplan9-extensions, permit
+	referring to a field using a typedef name.
+	(find_anonymous_field_with_type): New static function.
+	(convert_to_anonymous_field): New static function.
+	(convert_for_assignment): If -fplan9-extensions, permit converting
+	pointer to struct to pointer to anonymous field.
+	* c-decl.c (grokfield): If -fplan9-extensions, permit anonymous
+	fields.
+	(is_duplicate_field): New static function.
+	(detect_field_duplicates_hash): If -fplan9-extensions, check for
+	typedef names duplicating field names.
+	(detect_field_duplicates): Likewise.
+	* doc/invoke.texi (Option Summary): Mention -fplan9-extensions.
+	(C Dialect Options): Document -fplan9-extensions.
+	* doc/extend.texi (Unnamed Fields): Document -fplan9-extensions.
+
+2010-10-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* tree-vect-data-refs.c (vect_analyze_data_ref_access): Revert
+	revision 164914.
+	(vect_create_data_ref_ptr): Likewise.
+	* tree-vect-stmts.c (vectorizable_store): Likewise.
+	(perm_mask_for_reverse): Likewise.
+	(reverse_vec_elements): Likewise.
+	(vectorizable_load): Likewise.
+
 2010-10-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	* cppbuiltin.c: New file.

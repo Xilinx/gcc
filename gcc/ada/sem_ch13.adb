@@ -106,6 +106,16 @@ package body Sem_Ch13 is
    --  renaming_as_body. For tagged types, the specification is one of the
    --  primitive specs.
 
+   procedure Set_Biased
+     (E      : Entity_Id;
+      N      : Node_Id;
+      Msg    : String;
+      Biased : Boolean := True);
+   --  If Biased is True, sets Has_Biased_Representation flag for E, and
+   --  outputs a warning message at node N if Warn_On_Biased_Representation is
+   --  is True. This warning inserts the string Msg to describe the construct
+   --  causing biasing.
+
    ----------------------------------------------
    -- Table for Validate_Unchecked_Conversions --
    ----------------------------------------------
@@ -1342,17 +1352,11 @@ package body Sem_Ch13 is
                      Set_Esize                     (New_Ctyp, Csize);
                      Set_RM_Size                   (New_Ctyp, Csize);
                      Init_Alignment                (New_Ctyp);
-                     Set_Has_Biased_Representation (New_Ctyp, True);
                      Set_Is_Itype                  (New_Ctyp, True);
                      Set_Associated_Node_For_Itype (New_Ctyp, U_Ent);
 
                      Set_Component_Type (Btype, New_Ctyp);
-
-                     if Warn_On_Biased_Representation then
-                        Error_Msg_N
-                          ("?component size clause forces biased "
-                           & "representation", N);
-                     end if;
+                     Set_Biased (New_Ctyp, N, "component size clause");
                   end if;
 
                   Set_Component_Size (Btype, Csize);
@@ -1574,12 +1578,7 @@ package body Sem_Ch13 is
                  or else Has_Small_Clause (U_Ent)
                then
                   Check_Size (Expr, Etyp, Size, Biased);
-                     Set_Has_Biased_Representation (U_Ent, Biased);
-
-                  if Biased and Warn_On_Biased_Representation then
-                     Error_Msg_N
-                       ("?size clause forces biased representation", N);
-                  end if;
+                  Set_Biased (U_Ent, N, "size clause", Biased);
                end if;
 
                --  For types set RM_Size and Esize if possible
@@ -1953,12 +1952,7 @@ package body Sem_Ch13 is
             else
                if Is_Elementary_Type (U_Ent) then
                   Check_Size (Expr, U_Ent, Size, Biased);
-                  Set_Has_Biased_Representation (U_Ent, Biased);
-
-                  if Biased and Warn_On_Biased_Representation then
-                     Error_Msg_N
-                       ("?value size clause forces biased representation", N);
-                  end if;
+                  Set_Biased (U_Ent, N, "value size clause", Biased);
                end if;
 
                Set_RM_Size (U_Ent, Size);
@@ -2098,10 +2092,16 @@ package body Sem_Ch13 is
       Val      : Uint;
       Err      : Boolean := False;
 
-      Lo  : constant Uint := Expr_Value (Type_Low_Bound (Universal_Integer));
-      Hi  : constant Uint := Expr_Value (Type_High_Bound (Universal_Integer));
+      Lo : constant Uint := Expr_Value (Type_Low_Bound (Universal_Integer));
+      Hi : constant Uint := Expr_Value (Type_High_Bound (Universal_Integer));
+      --  Allowed range of universal integer (= allowed range of enum lit vals)
+
       Min : Uint;
       Max : Uint;
+      --  Minimum and maximum values of entries
+
+      Max_Node : Node_Id;
+      --  Pointer to node for literal providing max value
 
    begin
       if Ignore_Rep_Clauses then
@@ -2260,7 +2260,7 @@ package body Sem_Ch13 is
                         Err := True;
                      end if;
 
-                     Set_Enumeration_Rep_Expr (Elit, Choice);
+                     Set_Enumeration_Rep_Expr (Elit, Expression (Assoc));
 
                      Expr := Expression (Assoc);
                      Val := Static_Integer (Expr);
@@ -2306,15 +2306,16 @@ package body Sem_Ch13 is
                   if Max /= No_Uint and then Val <= Max then
                      Error_Msg_NE
                        ("enumeration value for& not ordered!",
-                                       Enumeration_Rep_Expr (Elit), Elit);
+                        Enumeration_Rep_Expr (Elit), Elit);
                   end if;
 
+                  Max_Node := Enumeration_Rep_Expr (Elit);
                   Max := Val;
                end if;
 
-               --  If there is at least one literal whose representation
-               --  is not equal to the Pos value, then note that this
-               --  enumeration type has a non-standard representation.
+               --  If there is at least one literal whose representation is not
+               --  equal to the Pos value, then note that this enumeration type
+               --  has a non-standard representation.
 
                if Val /= Enumeration_Pos (Elit) then
                   Set_Has_Non_Standard_Rep (Base_Type (Enumtype));
@@ -2331,18 +2332,32 @@ package body Sem_Ch13 is
 
          begin
             if Has_Size_Clause (Enumtype) then
-               if Esize (Enumtype) >= Minsize then
+
+               --  All OK, if size is OK now
+
+               if RM_Size (Enumtype) >= Minsize then
                   null;
 
                else
+                  --  Try if we can get by with biasing
+
                   Minsize :=
                     UI_From_Int (Minimum_Size (Enumtype, Biased => True));
 
-                  if Esize (Enumtype) < Minsize then
-                     Error_Msg_N ("previously given size is too small", N);
+                  --  Error message if even biasing does not work
+
+                  if RM_Size (Enumtype) < Minsize then
+                     Error_Msg_Uint_1 := RM_Size (Enumtype);
+                     Error_Msg_Uint_2 := Max;
+                     Error_Msg_N
+                       ("previously given size (^) is too small "
+                        & "for this value (^)", Max_Node);
+
+                  --  If biasing worked, indicate that we now have biased rep
 
                   else
-                     Set_Has_Biased_Representation (Enumtype);
+                     Set_Biased
+                       (Enumtype, Size_Clause (Enumtype), "size clause");
                   end if;
                end if;
 
@@ -2787,13 +2802,8 @@ package body Sem_Ch13 is
                            Esize (Comp),
                            Biased);
 
-                        Set_Has_Biased_Representation (Comp, Biased);
-
-                        if Biased and Warn_On_Biased_Representation then
-                           Error_Msg_F
-                             ("?component clause forces biased "
-                              & "representation", CC);
-                        end if;
+                        Set_Biased
+                          (Comp, First_Node (CC), "component clause", Biased);
 
                         if Present (Ocomp) then
                            Set_Component_Clause     (Ocomp, CC);
@@ -2804,6 +2814,10 @@ package body Sem_Ch13 is
 
                            Set_Normalized_Position_Max
                              (Ocomp, Normalized_Position (Ocomp));
+
+                           --  Note: we don't use Set_Biased here, because we
+                           --  already gave a warning above if needed, and we
+                           --  would get a duplicate for the same name here.
 
                            Set_Has_Biased_Representation
                              (Ocomp, Has_Biased_Representation (Comp));
@@ -4836,7 +4850,6 @@ package body Sem_Ch13 is
       --  cases were already dealt with.
 
       elsif Is_Enumeration_Type (T1) then
-
          Enumeration_Case : declare
             L1, L2 : Entity_Id;
 
@@ -4863,6 +4876,27 @@ package body Sem_Ch13 is
          return True;
       end if;
    end Same_Representation;
+
+   ----------------
+   -- Set_Biased --
+   ----------------
+
+   procedure Set_Biased
+     (E      : Entity_Id;
+      N      : Node_Id;
+      Msg    : String;
+      Biased : Boolean := True)
+   is
+   begin
+      if Biased then
+         Set_Has_Biased_Representation (E);
+
+         if Warn_On_Biased_Representation then
+            Error_Msg_NE
+              ("?" & Msg & " forces biased representation for&", N, E);
+         end if;
+      end if;
+   end Set_Biased;
 
    --------------------
    -- Set_Enum_Esize --
