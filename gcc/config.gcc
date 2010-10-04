@@ -45,6 +45,16 @@
 #			default value of $default_use_cxa_atexit is set to
 #			"no" except for targets which are known to be OK.
 #
+#  default_gnu_indirect_function
+#                       The default value for the $enable_gnu_indirect_function
+#                       variable.  enable_gnu_indirect_function relies
+#			upon the presence of a non-standard gnu ifunc support
+#			in the assembler, linker and dynamic linker.
+#			Since not all libraries provide the dynamic linking
+#			support, the default value of
+#			$default_gnu_indirect_function is set to
+#			"no" except for targets which are known to be OK.
+#
 #  gas_flag		Either yes or no depending on whether GNU as was
 #			requested.
 #
@@ -205,6 +215,7 @@ thread_file=
 gas="$gas_flag"
 gnu_ld="$gnu_ld_flag"
 default_use_cxa_atexit=no
+default_gnu_indirect_function=no
 target_gtfiles=
 need_64bit_hwint=
 need_64bit_isa=
@@ -339,6 +350,10 @@ m32r*-*-*)
 m68k-*-*)
 	extra_headers=math-68881.h
 	;;
+microblaze*-*-*)
+        cpu_type=microblaze
+	extra_options="${extra_options} g.opt"
+        ;;
 mips*-*-*)
 	cpu_type=mips
 	need_64bit_hwint=yes
@@ -637,6 +652,9 @@ case ${target} in
   ;;
 *-*-uclinux*)
   use_gcc_stdint=wrap
+  ;;
+*-*-solaris2*)
+  extra_options="${extra_options} sol2.opt"
   ;;
 *-*-vxworks*)
   tmake_file=t-vxworks
@@ -964,7 +982,7 @@ moxie-*-uclinux*)
 	extra_options="${extra_options} linux.opt"
 	;;
 moxie-*-rtems*)
-	tmake_file="${tmake_file} moxie/t-moxie moxie/t-moxie-softfp soft-fp/t-softfp moxie/t-rtems"
+	tmake_file="${tmake_file} moxie/t-moxie moxie/t-moxie-softfp soft-fp/t-softfp t-rtems"
 	tm_file="moxie/moxie.h dbxelf.h elfos.h moxie/rtems.h rtems.h newlib-stdint.h"
 	;;
 h8300-*-rtems*)
@@ -1192,6 +1210,8 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h svr4.h linux.h glibc-stdint.h"
 	case ${target} in
 	i[34567]86-*-linux*)
+		# Assume modern glibc
+		default_gnu_indirect_function=yes
 		if test x$enable_targets = xall; then
 			tm_file="${tm_file} i386/x86-64.h i386/linux64.h"
 			tm_defines="${tm_defines} TARGET_BI_ARCH=1"
@@ -1227,6 +1247,8 @@ x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h svr4.h linux.h glibc-stdint.h \
 		 i386/x86-64.h i386/linux64.h"
 	case ${target} in
+	x86_64-*-linux*)
+	  default_gnu_indirect_function=glibc-2011 ;;
 	x86_64-*-kfreebsd*-gnu) tm_file="${tm_file} kfreebsd-gnu.h" ;;
 	x86_64-*-knetbsd*-gnu) tm_file="${tm_file} knetbsd-gnu.h" ;;
 	esac
@@ -1742,6 +1764,19 @@ mep-*-*)
 	fi
 	use_gcc_stdint=wrap
 	;;
+microblaze*-linux*)
+	tm_file="${tm_file} dbxelf.h linux.h microblaze/linux.h"
+	c_target_objs="${c_target_objs} microblaze-c.o"
+	cxx_target_objs="${cxx_target_objs} microblaze-c.o"
+	tmake_file="${tmake_file} t-slibgcc-elf-ver t-slibgcc-nolc-override t-linux microblaze/t-microblaze"
+        extra_parts="crtbegin.o crtbeginS.o crtend.o crtendS.o crtbeginT.o"
+	;;
+microblaze*-*-*)
+        tm_file="${tm_file} dbxelf.h"
+	c_target_objs="${c_target_objs} microblaze-c.o"
+	cxx_target_objs="${cxx_target_objs} microblaze-c.o"
+        tmake_file="${tmake_file} microblaze/t-microblaze"
+        ;;
 mips-sgi-irix6.5*)
 	tm_file="elfos.h ${tm_file} mips/iris6.h"
 	tmake_file="mips/t-iris mips/t-iris6 mips/t-slibgcc-irix"

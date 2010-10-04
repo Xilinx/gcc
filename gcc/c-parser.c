@@ -179,7 +179,11 @@ typedef struct GTY(()) c_parser {
   BOOL_BITFIELD in_if_block : 1;
   /* True if we want to lex an untranslated string.  */
   BOOL_BITFIELD lex_untranslated_string : 1;
+
   /* Objective-C specific parser/lexer information.  */
+
+  /* True if we are in a context where the Objective-C "PQ" keywords
+     are considered keywords.  */
   BOOL_BITFIELD objc_pq_context : 1;
   /* The following flag is needed to contextualize Objective-C lexical
      analysis.  In some cases (e.g., 'int NSObject;'), it is
@@ -236,18 +240,37 @@ c_lex_one_token (c_parser *parser, c_token *token)
 		token->keyword = rid_code;
 		break;
 	      }
-	    else if (c_dialect_objc ())
+	    else if (c_dialect_objc () && OBJC_IS_PQ_KEYWORD (rid_code))
 	      {
-		if (!objc_is_reserved_word (token->value)
-		    && (!OBJC_IS_PQ_KEYWORD (rid_code)
-			|| parser->objc_pq_context))
+		/* We found an Objective-C "pq" keyword (in, out,
+		   inout, bycopy, byref, oneway).  They need special
+		   care because the interpretation depends on the
+		   context.
+		 */
+		if (parser->objc_pq_context)
 		  {
-		    /* Return the canonical spelling for this keyword.  */
-		    token->value = ridpointers[(int) rid_code];
 		    token->type = CPP_KEYWORD;
 		    token->keyword = rid_code;
 		    break;
 		  }
+		/* Else, "pq" keywords outside of the "pq" context are
+		   not keywords, and we fall through to the code for
+		   normal tokens.
+		*/
+	      }
+	    else if (c_dialect_objc () 
+		     && (OBJC_IS_AT_KEYWORD (rid_code)
+			 || OBJC_IS_CXX_KEYWORD (rid_code)))
+	      {
+		/* We found one of the Objective-C "@" keywords (defs,
+		   selector, synchronized, etc) or one of the
+		   Objective-C "cxx" keywords (class, private,
+		   protected, public, try, catch, throw) without a
+		   preceding '@' sign.  Do nothing and fall through to
+		   the code for normal tokens (in C++ we would still
+		   consider the CXX ones keywords, but not in C).
+		*/
+		;
 	      }
 	    else
 	      {
@@ -287,7 +310,25 @@ c_lex_one_token (c_parser *parser, c_token *token)
     case CPP_AT_NAME:
       /* This only happens in Objective-C; it must be a keyword.  */
       token->type = CPP_KEYWORD;
-      token->keyword = C_RID_CODE (token->value);
+      switch (C_RID_CODE (token->value))
+	{
+	  /* Replace 'class' with '@class', 'private' with '@private',
+	     etc.  This prevents confusion with the C++ keyword
+	     'class', and makes the tokens consistent with other
+	     Objective-C 'AT' keywords.  For example '@class' is
+	     reported as RID_AT_CLASS which is consistent with
+	     '@synchronized', which is reported as
+	     RID_AT_SYNCHRONIZED.
+	  */
+	case RID_CLASS:     token->keyword = RID_AT_CLASS; break;
+	case RID_PRIVATE:   token->keyword = RID_AT_PRIVATE; break;
+	case RID_PROTECTED: token->keyword = RID_AT_PROTECTED; break;
+	case RID_PUBLIC:    token->keyword = RID_AT_PUBLIC; break;
+	case RID_THROW:     token->keyword = RID_AT_THROW; break;
+	case RID_TRY:       token->keyword = RID_AT_TRY; break;
+	case RID_CATCH:     token->keyword = RID_AT_CATCH; break;
+	default:            token->keyword = C_RID_CODE (token->value);
+	}
       break;
     case CPP_COLON:
     case CPP_COMMA:
@@ -861,11 +902,11 @@ disable_extension_diagnostics (void)
 	     | (flag_iso << 3)
 	     | (warn_long_long << 4)
 	     | (warn_cxx_compat << 5));
-  cpp_opts->pedantic = pedantic = 0;
+  cpp_opts->cpp_pedantic = pedantic = 0;
   warn_pointer_arith = 0;
-  cpp_opts->warn_traditional = warn_traditional = 0;
+  cpp_opts->cpp_warn_traditional = warn_traditional = 0;
   flag_iso = 0;
-  cpp_opts->warn_long_long = warn_long_long = 0;
+  cpp_opts->cpp_warn_long_long = warn_long_long = 0;
   warn_cxx_compat = 0;
   return ret;
 }
@@ -876,11 +917,11 @@ disable_extension_diagnostics (void)
 static inline void
 restore_extension_diagnostics (int flags)
 {
-  cpp_opts->pedantic = pedantic = flags & 1;
+  cpp_opts->cpp_pedantic = pedantic = flags & 1;
   warn_pointer_arith = (flags >> 1) & 1;
-  cpp_opts->warn_traditional = warn_traditional = (flags >> 2) & 1;
+  cpp_opts->cpp_warn_traditional = warn_traditional = (flags >> 2) & 1;
   flag_iso = (flags >> 3) & 1;
-  cpp_opts->warn_long_long = warn_long_long = (flags >> 4) & 1;
+  cpp_opts->cpp_warn_long_long = warn_long_long = (flags >> 4) & 1;
   warn_cxx_compat = (flags >> 5) & 1;
 }
 
@@ -1083,7 +1124,7 @@ c_parser_external_declaration (c_parser *parser)
 	  gcc_assert (c_dialect_objc ());
 	  c_parser_objc_class_definition (parser, NULL_TREE);
 	  break;
-	case RID_CLASS:
+	case RID_AT_CLASS:
 	  gcc_assert (c_dialect_objc ());
 	  c_parser_objc_class_declaration (parser);
 	  break;
@@ -2537,7 +2578,8 @@ c_parser_direct_declarator (c_parser *parser, bool type_seen_p, c_dtr_syn kind,
   if (kind != C_DTR_ABSTRACT
       && c_parser_next_token_is (parser, CPP_NAME)
       && ((type_seen_p
-	   && c_parser_peek_token (parser)->id_kind == C_ID_TYPENAME)
+	   && (c_parser_peek_token (parser)->id_kind == C_ID_TYPENAME
+	       || c_parser_peek_token (parser)->id_kind == C_ID_CLASSNAME))
 	  || c_parser_peek_token (parser)->id_kind == C_ID_ID))
     {
       struct c_declarator *inner
@@ -4057,7 +4099,7 @@ c_parser_statement_after_labels (c_parser *parser)
 	case RID_ASM:
 	  stmt = c_parser_asm_statement (parser);
 	  break;
-	case RID_THROW:
+	case RID_AT_THROW:
 	  gcc_assert (c_dialect_objc ());
 	  c_parser_consume_token (parser);
 	  if (c_parser_next_token_is (parser, CPP_SEMICOLON))
@@ -4073,7 +4115,7 @@ c_parser_statement_after_labels (c_parser *parser)
 	      goto expect_semicolon;
 	    }
 	  break;
-	case RID_TRY:
+	case RID_AT_TRY:
 	  gcc_assert (c_dialect_objc ());
 	  c_parser_objc_try_catch_statement (parser);
 	  break;
@@ -6459,19 +6501,19 @@ c_parser_objc_class_instance_variables (c_parser *parser)
 	  break;
 	}
       /* Parse any objc-visibility-spec.  */
-      if (c_parser_next_token_is_keyword (parser, RID_PRIVATE))
+      if (c_parser_next_token_is_keyword (parser, RID_AT_PRIVATE))
 	{
 	  c_parser_consume_token (parser);
 	  objc_set_visibility (2);
 	  continue;
 	}
-      else if (c_parser_next_token_is_keyword (parser, RID_PROTECTED))
+      else if (c_parser_next_token_is_keyword (parser, RID_AT_PROTECTED))
 	{
 	  c_parser_consume_token (parser);
 	  objc_set_visibility (0);
 	  continue;
 	}
-      else if (c_parser_next_token_is_keyword (parser, RID_PUBLIC))
+      else if (c_parser_next_token_is_keyword (parser, RID_AT_PUBLIC))
 	{
 	  c_parser_consume_token (parser);
 	  objc_set_visibility (1);
@@ -6506,7 +6548,7 @@ static void
 c_parser_objc_class_declaration (c_parser *parser)
 {
   tree list = NULL_TREE;
-  gcc_assert (c_parser_next_token_is_keyword (parser, RID_CLASS));
+  gcc_assert (c_parser_next_token_is_keyword (parser, RID_AT_CLASS));
   c_parser_consume_token (parser);
   /* Any identifiers, including those declared as type names, are OK
      here.  */
@@ -6701,6 +6743,8 @@ c_parser_objc_method_definition (c_parser *parser)
      objc-methodprotolist objc-methodproto
      objc-methodprotolist declaration
      objc-methodprotolist ;
+     @optional
+     @required
 
    The declaration is a data definition, which may be missing
    declaration specifiers under the same rules and diagnostics as
@@ -6733,7 +6777,18 @@ c_parser_objc_methodprotolist (c_parser *parser)
 	default:
 	  if (c_parser_next_token_is_keyword (parser, RID_AT_END))
 	    return;
-	  c_parser_declaration_or_fndef (parser, false, false, true,
+	  else if (c_parser_next_token_is_keyword (parser, RID_AT_OPTIONAL))
+	    {
+	      objc_set_method_opt (true);
+	      c_parser_consume_token (parser);
+	    }
+	  else if (c_parser_next_token_is_keyword (parser, RID_AT_REQUIRED))
+	    {
+	      objc_set_method_opt (false);
+	      c_parser_consume_token (parser);
+	    }
+	  else
+	    c_parser_declaration_or_fndef (parser, false, false, true,
 					 false, true);
 	  break;
 	}
@@ -7028,12 +7083,12 @@ c_parser_objc_try_catch_statement (c_parser *parser)
 {
   location_t loc;
   tree stmt;
-  gcc_assert (c_parser_next_token_is_keyword (parser, RID_TRY));
+  gcc_assert (c_parser_next_token_is_keyword (parser, RID_AT_TRY));
   c_parser_consume_token (parser);
   loc = c_parser_peek_token (parser)->location;
   stmt = c_parser_compound_statement (parser);
   objc_begin_try_stmt (loc, stmt);
-  while (c_parser_next_token_is_keyword (parser, RID_CATCH))
+  while (c_parser_next_token_is_keyword (parser, RID_AT_CATCH))
     {
       struct c_parm *parm;
       c_parser_consume_token (parser);

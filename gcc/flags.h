@@ -77,6 +77,11 @@ extern void set_struct_debug_option (const char *value);
    debugging information.  */
 extern bool use_gnu_debug_info_extensions;
 
+/* Run the second compilation of -fcompare-debug.  Not defined using
+   Var in common.opt because this is used in Ada code and so must be
+   an actual variable not a macro.  */
+extern int flag_compare_debug;
+
 /* Enumerate visibility settings.  This is deliberately ordered from most
    to least visibility.  */
 #ifndef SYMBOL_VISIBILITY_DEFINED
@@ -101,14 +106,6 @@ struct visibility_flags
 
 /* Global visibility options.  */
 extern struct visibility_flags visibility_options;
-
-/* Nonzero means do optimizations.  -opt.  */
-
-extern int optimize;
-
-/* Nonzero means optimize for size.  -Os.  */
-
-extern int optimize_size;
 
 /* True if this is the LTO front end (lto1).  This is used to disable
    gimple generation and lowering passes that are normally run on the

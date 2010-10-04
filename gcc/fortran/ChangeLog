@@ -1,3 +1,53 @@
+2010-10-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* cpp.c (cpp_define_builtins): Call functions from cppbuiltin.c
+	instead of duplicating code.
+	* Make-lang.in: Add dependency on cppbuiltin.h. Don't define
+	BASEVER.
+
+2010-10-02  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45748
+	* resolve.c (resolve_formal_arglist): Avoid setting default type for
+	formal arguments of intrinsic procedures.
+
+2010-09-30  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45828
+	* resolve.c (resolve_allocate_expr): Do not use
+	'gfc_has_default_initializer'.
+
+2010-09-30  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.tex (Fortran 2008 status): Update list of
+	implemented features.
+
+2010-09-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt: Don't use VarExists.
+
+2010-09-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* cpp.c (cpp_define_builtins): Update names of gfc_option_t
+	members.
+	(gfc_cpp_post_options): Update names of cpp_options members.
+	(cb_cpp_error): Update names of diagnostic_context members.
+	* f95-lang.c (gfc_init_builtin_functions): Update names of
+	gfc_option_t members.
+	* gfortran.h (gfc_option_t): Rename warn_conversion and
+	flag_openmp.
+	* intrinsic.c (gfc_convert_type_warn): Update names of
+	gfc_option_t members.
+	* options.c (gfc_init_options, gfc_post_options, set_Wall,
+	gfc_handle_option): Update names of gfc_option_t members.
+	* parse.c (next_free, next_fixed): Update names of gfc_option_t
+	members.
+	* scanner.c (pedantic): Remove extern declaration.
+	(skip_free_comments, skip_fixed_comments, include_line): Update
+	names of gfc_option_t members.
+	* trans-decl.c (gfc_generate_function_code): Update names of
+	gfc_option_t members.
+
 2010-09-28  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/40569

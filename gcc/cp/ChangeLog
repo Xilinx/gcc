@@ -1,3 +1,54 @@
+2010-10-03  Jason Merrill  <jason@redhat.com>
+
+	* typeck.c (require_complete_type_sfinae): Add complain parm to...
+	(require_complete_type): ...this function.
+	(cp_build_array_ref, convert_arguments): Use it.
+	(convert_for_initialization, cp_build_modify_expr): Likewise.
+	* cp-tree.h: Declare it.
+	* call.c (build_over_call): Use it.
+
+2010-09-30  Iain Sandoe  <iains@gcc.gnu.org>
+
+	merge from FSF 'apple/trunk' branch.
+	2006-01-30  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4386773
+	* cp/parser.c (cp_parser_objc_interstitial_code): For
+	@optional/@required set the optional/required flag.
+	
+2010-09-30  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_lexer_get_preprocessor_token): Tidied up comments
+	and indentation when finding an Objective-C++ CPP_AT_NAME token.
+
+2010-09-29  Richard Guenther  <rguenther@suse.de>
+
+	* cp-tree.h (CP_DECL_CONTEXT): Check DECL_FILE_SCOPE_P.
+	(CP_TYPE_CONTEXT): Similar.
+	(FROB_CONTEXT): Frob global_namespace to the global
+	TRANSLATION_UNIT_DECL.
+	* decl.c (cxx_init_decl_processing): Build a TRANSLATION_UNIT_DECL,
+	set DECL_CONTEXT of global_namespace to it.
+	(start_decl): Use CP_DECL_CONTEXT and test TYPE_P
+	instead of zeroing context.
+	(cp_finish_decl): Use DECL_FILE_SCOPE_P.
+	(grokfndecl): Likewise.
+	(start_preparsed_function): Likewise.
+	* name-lookup.c (maybe_push_decl): Use DECL_NAMESPACE_SCOPE_P.
+	(namespace_binding): Use SCOPE_FILE_SCOPE_P.
+	* pt.c (template_class_depth): Use CP_TYPE_CONTEXT.
+	(is_specialization_of_friend): Use CP_DECL_CONTEXT.
+	(push_template_decl_real): Likewise.
+	(tsubst_friend_class): Likewise.  Adjust context comparisons.
+	(instantiate_class_template): Use CP_TYPE_CONTEXT.
+	(tsubst): Do not substitute into TRANSLATION_UNIT_DECL.
+	* cxx-pretty-print.c (pp_cxx_nested_name_specifier): Use
+	SCOPE_FILE_SCOPE_P.
+
+2010-09-29  Yao Qi  <yao@codesourcery.com>
+
+	* decl.c (get_atexit_node): Fix typo.
+
 2010-09-28  Jason Merrill  <jason@redhat.com>
 
 	* tree.c (lvalue_kind): Rename from lvalue_p_1, make nonstatic.

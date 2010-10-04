@@ -1244,6 +1244,7 @@ OBJS-common = \
 	graphite-clast-to-gimple.o \
 	graphite-cloog-util.o \
 	graphite-dependences.o \
+	graphite-flattening.o \
 	graphite-interchange.o \
 	graphite-poly.o \
 	graphite-ppl.o \
@@ -1448,6 +1449,7 @@ OBJS-archive = \
 	cgraph.o \
 	cgraphbuild.o \
 	cgraphunit.o \
+	cppbuiltin.o \
 	cppdefault.o \
 	incpath.o \
 	ipa-cp.o \
@@ -2092,9 +2094,9 @@ c-family/c-common.o : c-family/c-common.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 c-family/c-cppbuiltin.o : c-family/c-cppbuiltin.c $(CONFIG_H) $(SYSTEM_H) \
 	coretypes.h $(TM_H) $(TREE_H) version.h $(C_COMMON_H) $(C_PRAGMA_H) \
 	$(FLAGS_H) $(TOPLEV_H) output.h $(TREE_H) $(TARGET_H) \
-	$(TM_P_H) $(BASEVER) debug.h $(CPP_ID_DATA_H)
+	$(TM_P_H) debug.h $(CPP_ID_DATA_H) cppbuiltin.h
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
-		-DBASEVER=$(BASEVER_s) $< $(OUTPUT_OPTION)
+		$< $(OUTPUT_OPTION)
 
 c-family/c-dump.o : c-family/c-dump.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(TM_H) $(TREE_H) $(TREE_DUMP_H)
@@ -2695,6 +2697,12 @@ graphite-dependences.o: graphite-dependences.c $(CONFIG_H) $(SYSTEM_H) \
    $(TOPLEV_H) $(DIAGNOSTIC_CORE_H) $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) \
    $(GIMPLE_H) $(TREE_DATA_REF_H) tree-pass.h domwalk.h \
    graphite.h graphite-poly.h graphite-ppl.h graphite-dependences.h
+graphite-flattening.o: graphite-flattening.c $(CONFIG_H) $(SYSTEM_H)	\
+   coretypes.h $(TM_H) $(GGC_H) $(TREE_H) $(RTL_H) output.h		\
+   $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) $(TOPLEV_H) $(TREE_FLOW_H)		\
+   $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H)			\
+   $(TREE_DATA_REF_H) tree-pass.h domwalk.h value-prof.h graphite.h	\
+   graphite-poly.h graphite-ppl.h
 graphite-interchange.o: graphite-interchange.c $(CONFIG_H) $(SYSTEM_H) \
    coretypes.h \
    $(TM_H) $(GGC_H) $(TREE_H) $(RTL_H) output.h $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) \
@@ -3903,11 +3911,6 @@ build/genhooks.o : genhooks.c target.def $(BCONFIG_H) $(SYSTEM_H) errors.h
 # since they need to run on this machine
 # even if GCC is being compiled to run on some other machine.
 
-# As a general rule...
-build/gen%$(build_exeext): build/gen%.o $(BUILD_LIBDEPS)
-	$(LINKER_FOR_BUILD) $(BUILD_LINKERFLAGS) $(BUILD_LDFLAGS) -o $@ \
-	    $(filter-out $(BUILD_LIBDEPS), $^) $(BUILD_LIBS)
-
 # All these programs use the RTL reader ($(BUILD_RTL)).
 genprogrtl = attr attrtab automata codes conditions config emit \
 	     extract flags opinit output peep preds recog
@@ -3917,16 +3920,23 @@ $(genprogrtl:%=build/gen%$(build_exeext)): $(BUILD_RTL)
 genprogmd = $(genprogrtl) mddeps constants enums
 $(genprogmd:%=build/gen%$(build_exeext)): $(BUILD_MD)
 
-# All generator programs need to report errors
-genprog = $(genprogmd) genrtl modes gtype
-$(genprog:%=build/gen%$(build_exeext)): $(BUILD_ERRORS)
+# All these programs need to report errors.
+genprogerr = $(genprogmd) genrtl modes gtype hooks
+$(genprogerr:%=build/gen%$(build_exeext)): $(BUILD_ERRORS)
+
+# Remaining build programs.
+genprog = $(genprogerr) check checksum condmd
 
 # These programs need libs over and above what they get from the above list.
 build/genautomata$(build_exeext) : BUILD_LIBS += -lm
 
 # These programs are not linked with the MD reader.
 build/gengtype$(build_exeext) : build/gengtype-lex.o build/gengtype-parse.o
-build/genhooks$(build_exeext) : $(BUILD_ERRORS)
+
+# Rule for the generator programs:
+$(genprog:%=build/gen%$(build_exeext)): build/gen%$(build_exeext): build/gen%.o $(BUILD_LIBDEPS)
+	$(LINKER_FOR_BUILD) $(BUILD_LINKERFLAGS) $(BUILD_LDFLAGS) -o $@ \
+	    $(filter-out $(BUILD_LIBDEPS), $^) $(BUILD_LIBS)
 
 # Generated source files for gengtype.
 gengtype-lex.c : gengtype-lex.l
@@ -3954,6 +3964,12 @@ PREPROCESSOR_DEFINES = \
   -DPREFIX=\"$(prefix)/\" \
   -DSTANDARD_EXEC_PREFIX=\"$(libdir)/gcc/\" \
   @TARGET_SYSTEM_ROOT_DEFINE@
+
+cppbuiltin.o: cppbuiltin.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+	cppbuiltin.h Makefile
+	$(COMPILER) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
+	  $(PREPROCESSOR_DEFINES) -DBASEVER=$(BASEVER_s) \
+	  -c $(srcdir)/cppbuiltin.c $(OUTPUT_OPTION)
 
 cppdefault.o: cppdefault.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	cppdefault.h Makefile

@@ -1898,7 +1898,6 @@ int x86_prefetch_sse;
 static int ix86_regparm;
 
 /* -mstackrealign option */
-extern int ix86_force_align_arg_pointer;
 static const char ix86_force_align_arg_pointer_string[]
   = "force_align_arg_pointer";
 
@@ -3860,7 +3859,7 @@ ix86_function_specific_print (FILE *file, int indent,
 			      struct cl_target_option *ptr)
 {
   char *target_string
-    = ix86_target_string (ptr->ix86_isa_flags, ptr->target_flags,
+    = ix86_target_string (ptr->x_ix86_isa_flags, ptr->x_target_flags,
 			  NULL, NULL, NULL, false);
 
   fprintf (file, "%*sarch = %d (%s)\n",
@@ -4117,8 +4116,8 @@ ix86_valid_target_attribute_tree (tree args)
      ix86_option_override_internal, and then save the options away.
      The string options are are attribute options, and will be undone
      when we copy the save structure.  */
-  if (ix86_isa_flags != def->ix86_isa_flags
-      || target_flags != def->target_flags
+  if (ix86_isa_flags != def->x_ix86_isa_flags
+      || target_flags != def->x_target_flags
       || option_strings[IX86_FUNCTION_SPECIFIC_ARCH]
       || option_strings[IX86_FUNCTION_SPECIFIC_TUNE]
       || option_strings[IX86_FUNCTION_SPECIFIC_FPMATH])
@@ -4181,11 +4180,12 @@ ix86_valid_target_attribute_p (tree fndecl,
   /* If the function changed the optimization levels as well as setting target
      options, start with the optimizations specified.  */
   if (func_optimize && func_optimize != old_optimize)
-    cl_optimization_restore (TREE_OPTIMIZATION (func_optimize));
+    cl_optimization_restore (&global_options,
+			     TREE_OPTIMIZATION (func_optimize));
 
   /* The target attributes may also change some optimization flags, so update
      the optimization options if necessary.  */
-  cl_target_option_save (&cur_target);
+  cl_target_option_save (&cur_target, &global_options);
   new_target = ix86_valid_target_attribute_tree (args);
   new_optimize = build_optimization_node ();
 
@@ -4200,10 +4200,11 @@ ix86_valid_target_attribute_p (tree fndecl,
 	DECL_FUNCTION_SPECIFIC_OPTIMIZATION (fndecl) = new_optimize;
     }
 
-  cl_target_option_restore (&cur_target);
+  cl_target_option_restore (&global_options, &cur_target);
 
   if (old_optimize != new_optimize)
-    cl_optimization_restore (TREE_OPTIMIZATION (old_optimize));
+    cl_optimization_restore (&global_options,
+			     TREE_OPTIMIZATION (old_optimize));
 
   return ret;
 }
@@ -4235,12 +4236,12 @@ ix86_can_inline_p (tree caller, tree callee)
       /* Callee's isa options should a subset of the caller's, i.e. a SSE4 function
 	 can inline a SSE2 function but a SSE2 function can't inline a SSE4
 	 function.  */
-      if ((caller_opts->ix86_isa_flags & callee_opts->ix86_isa_flags)
-	  != callee_opts->ix86_isa_flags)
+      if ((caller_opts->x_ix86_isa_flags & callee_opts->x_ix86_isa_flags)
+	  != callee_opts->x_ix86_isa_flags)
 	ret = false;
 
       /* See if we have the same non-isa options.  */
-      else if (caller_opts->target_flags != callee_opts->target_flags)
+      else if (caller_opts->x_target_flags != callee_opts->x_target_flags)
 	ret = false;
 
       /* See if arch, tune, etc. are the same.  */
@@ -4292,7 +4293,8 @@ ix86_set_current_function (tree fndecl)
 
       else if (new_tree)
 	{
-	  cl_target_option_restore (TREE_TARGET_OPTION (new_tree));
+	  cl_target_option_restore (&global_options,
+				    TREE_TARGET_OPTION (new_tree));
 	  target_reinit ();
 	}
 
@@ -4301,7 +4303,7 @@ ix86_set_current_function (tree fndecl)
 	  struct cl_target_option *def
 	    = TREE_TARGET_OPTION (target_option_current_node);
 
-	  cl_target_option_restore (def);
+	  cl_target_option_restore (&global_options, def);
 	  target_reinit ();
 	}
     }
@@ -7522,6 +7524,8 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
 	      tree dest_addr, dest;
 	      int cur_size = GET_MODE_SIZE (mode);
 
+	      gcc_assert (prev_size <= INTVAL (XEXP (slot, 1)));
+	      prev_size = INTVAL (XEXP (slot, 1));
 	      if (prev_size + cur_size > size)
 		{
 		  cur_size = size - prev_size;
@@ -7554,7 +7558,7 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
 
 	      dest_addr = fold_convert (daddr_type, addr);
 	      dest_addr = fold_build2 (POINTER_PLUS_EXPR, daddr_type, dest_addr,
-				       size_int (INTVAL (XEXP (slot, 1))));
+				       size_int (prev_size));
 	      if (cur_size == GET_MODE_SIZE (mode))
 		{
 		  src = build_va_arg_indirect_ref (src_addr);

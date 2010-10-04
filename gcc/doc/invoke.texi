@@ -334,7 +334,8 @@ Objective-C and Objective-C++ Dialects}.
 -falign-labels[=@var{n}] -falign-loops[=@var{n}] -fassociative-math @gol
 -fauto-inc-dec -fbranch-probabilities -fbranch-target-load-optimize @gol
 -fbranch-target-load-optimize2 -fbtr-bb-exclusive -fcaller-saves @gol
--fcheck-data-deps -fconserve-stack -fcprop-registers -fcrossjumping @gol
+-fcheck-data-deps -fcombine-stack-adjustments -fconserve-stack @gol
+-fcprop-registers -fcrossjumping @gol
 -fcse-follow-jumps -fcse-skip-blocks -fcx-fortran-rules @gol
 -fcx-limited-range @gol
 -fdata-sections -fdce -fdce @gol
@@ -352,7 +353,7 @@ Objective-C and Objective-C++ Dialects}.
 -fira-loop-pressure -fno-ira-share-save-slots @gol
 -fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
 -fivopts -fkeep-inline-functions -fkeep-static-consts @gol
--floop-block -floop-interchange -floop-strip-mine @gol
+-floop-block -floop-flatten -floop-interchange -floop-strip-mine @gol
 -floop-parallelize-all -flto -flto-compression-level -flto-report @gol
 -fltrans -fltrans-output-list -fmerge-all-constants -fmerge-constants @gol
 -fmodulo-sched -fmodulo-sched-allow-regmoves -fmove-loop-invariants @gol
@@ -683,6 +684,13 @@ Objective-C and Objective-C++ Dialects}.
 -mmult -mno-opts -mrepeat -ms -msatur -msdram -msim -msimnovec -mtf @gol
 -mtiny=@var{n}}
 
+@emph{MicroBlaze Options}
+@gccoptlist{-msoft-float -mhard-float -msmall-divides -mcpu=@var{cpu} @gol
+-mmemcpy -mxl-soft-mul -mxl-soft-div -mxl-barrel-shift @gol
+-mxl-pattern-compare -mxl-stack-check -mxl-gp-opt -mno-clearbss @gol
+-mxl-multiply-high -mxl-float-convert -mxl-float-sqrt @gol
+-mxl-mode-@var{app-model}}
+
 @emph{MIPS Options}
 @gccoptlist{-EL  -EB  -march=@var{arch}  -mtune=@var{arch} @gol
 -mips1  -mips2  -mips3  -mips4  -mips32  -mips32r2 @gol
@@ -841,6 +849,10 @@ See RS/6000 and PowerPC Options.
 -madjust-unroll -mindexed-addressing -mgettrcost=@var{number} -mpt-fixed @gol
 -maccumulate-outgoing-args -minvalid-symbols}
 
+@emph{Solaris 2 Options}
+@gccoptlist{-mimpure-text  -mno-impure-text @gol
+-threads -pthreads -pthread}
+
 @emph{SPARC Options}
 @gccoptlist{-mcpu=@var{cpu-type} @gol
 -mtune=@var{cpu-type} @gol
@@ -849,11 +861,10 @@ See RS/6000 and PowerPC Options.
 -mfaster-structs  -mno-faster-structs @gol
 -mfpu  -mno-fpu  -mhard-float  -msoft-float @gol
 -mhard-quad-float  -msoft-quad-float @gol
--mimpure-text  -mno-impure-text  -mlittle-endian @gol
+-mlittle-endian @gol
 -mstack-bias  -mno-stack-bias @gol
 -munaligned-doubles  -mno-unaligned-doubles @gol
--mv8plus  -mno-v8plus  -mvis  -mno-vis
--threads -pthreads -pthread}
+-mv8plus  -mno-v8plus  -mvis  -mno-vis}
 
 @emph{SPU Options}
 @gccoptlist{-mwarn-reloc -merror-reloc @gol
@@ -6608,6 +6619,13 @@ those which have no call-preserved registers to use instead.
 
 Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
 
+@item -fcombine-stack-adjustments
+@opindex fcombine-stack-adjustments
+Tracks stack adjustments (pushes and pops) and stack memory references
+and then tries to find ways to combine them.
+
+Enabled by default at @option{-O1} and higher.
+
 @item -fconserve-stack
 @opindex fconserve-stack
 Attempt to minimize stack usage.  The compiler will attempt to use less
@@ -6788,6 +6806,7 @@ Perform linear loop transformations on tree.  This flag can improve cache
 performance and allow further loop optimizations to take place.
 
 @item -floop-interchange
+@opindex floop-interchange
 Perform loop interchange transformations on loops.  Interchanging two
 nested loops switches the inner and outer loops.  For example, given a
 loop like:
@@ -6816,6 +6835,7 @@ with @option{--with-ppl} and @option{--with-cloog} to enable the
 Graphite loop transformation infrastructure.
 
 @item -floop-strip-mine
+@opindex floop-strip-mine
 Perform loop strip mining transformations on loops.  Strip mining
 splits a loop into two nested loops.  The outer loop has strides
 equal to the strip size and the inner loop has strides of the
@@ -6841,6 +6861,7 @@ be configured with @option{--with-ppl} and @option{--with-cloog} to
 enable the Graphite loop transformation infrastructure.
 
 @item -floop-block
+@opindex floop-block
 Perform loop blocking transformations on loops.  Blocking strip mines
 each loop in the loop nest such that the memory accesses of the
 element loops fit inside caches.  The strip length can be changed
@@ -6882,7 +6903,14 @@ GIMPLE -> GRAPHITE -> GIMPLE transformation.  Some minimal optimizations
 are also performed by the code generator CLooG, like index splitting and
 dead code elimination in loops.
 
+@item -floop-flatten
+@opindex floop-flatten
+Removes the loop nesting structure: transforms the loop nest into a
+single loop.  This transformation can be useful to vectorize all the
+levels of the loop nest.
+
 @item -floop-parallelize-all
+@opindex floop-parallelize-all
 Use the Graphite data dependence analysis to identify loops that can
 be parallelized.  Parallelize all the loops that can be analyzed to
 not contain loop carried dependences without checking that it is
@@ -9828,6 +9856,7 @@ platform.
 * M68hc1x Options::
 * MCore Options::
 * MeP Options::
+* MicroBlaze Options::
 * MIPS Options::
 * MMIX Options::
 * MN10300 Options::
@@ -9839,6 +9868,7 @@ platform.
 * S/390 and zSeries Options::
 * Score Options::
 * SH Options::
+* Solaris 2 Options::
 * SPARC Options::
 * SPU Options::
 * System V Options::
@@ -13811,6 +13841,104 @@ register.  The default for this option is 4, but note that there's a
 
 @end table
 
+@node MicroBlaze Options
+@subsection MicroBlaze Options
+@cindex MicroBlaze Options
+
+@table @gcctabopt
+
+@item -msoft-float
+@opindex msoft-float
+Use software emulation for floating point (default).
+
+@item -mhard-float
+@opindex mhard-float
+Use hardware floating point instructions.
+
+@item -mmemcpy
+@opindex mmemcpy
+Do not optimize block moves, use @code{memcpy}.
+
+@item -mno-clearbss
+@opindex mno-clearbss
+This option is deprecated.  Use @option{-fno-zero-initialized-in-bss} instead.
+
+@item -mcpu=@var{cpu-type}
+@opindex mcpu=
+Use features of and schedule code for given CPU.
+Supported values are in the format @samp{v@var{X}.@var{YY}.@var{Z}}, 
+where @var{X} is a major version, @var{YY} is the minor version, and 
+@var{Z} is compatiblity code.  Example values are @samp{v3.00.a}, 
+@samp{v4.00.b}, @samp{v5.00.a}, @samp{v5.00.b}, @samp{v5.00.b}, @samp{v6.00.a}. 
+
+@item -mxl-soft-mul
+@opindex mxl-soft-mul
+Use software multiply emulation (default).
+
+@item -mxl-soft-div
+@opindex mxl-soft-div
+Use software emulation for divides (default).
+
+@item -mxl-barrel-shift
+@opindex mxl-barrel-shift
+Use the hardware barrel shifter.
+
+@item -mxl-pattern-compare
+@opindex mxl-pattern-compare
+Use pattern compare instructions.
+
+@item -msmall-divides
+@opindex msmall-divides
+Use table lookup optimization for small signed integer divisions.
+
+@item -mxl-stack-check
+@opindex mxl-stack-check
+This option is deprecated.  Use -fstack-check instead.
+
+@item -mxl-gp-opt
+@opindex mxl-gp-opt
+Use GP relative sdata/sbss sections.
+
+@item -mxl-multiply-high
+@opindex mxl-multiply-high
+Use multiply high instructions for high part of 32x32 multiply.
+
+@item -mxl-float-convert
+@opindex mxl-float-convert
+Use hardware floating point converstion instructions.
+
+@item -mxl-float-sqrt
+@opindex mxl-float-sqrt
+Use hardware floating point square root instruction.
+
+@item -mxl-mode-@var{app-model}
+Select application model @var{app-model}.  Valid models are 
+@table @samp
+@item executable
+normal executable (default), uses startup code @file{crt0.o}.
+
+@item xmdstub
+for use with Xilinx Microprocessor Debugger (XMD) based 
+software intrusive debug agent called xmdstub. This uses startup file 
+@file{crt1.o} and sets the start address of the program to be 0x800.
+
+@item bootstrap
+for applications that are loaded using a bootloader.
+This model uses startup file @file{crt2.o} which does not contain a processor 
+reset vector handler. This is suitable for transferring control on a 
+processor reset to the bootloader rather than the application.
+
+@item novectors
+for applications that do not require any of the 
+MicroBlaze vectors. This option may be useful for applications running
+within a monitoring application. This model uses @file{crt3.o} as a startup file.
+@end table
+
+Option @option{-xl-mode-@var{app-model}} is a deprecated alias for 
+@option{-mxl-mode-@var{app-model}}.
+
+@end table
+
 @node MIPS Options
 @subsection MIPS Options
 @cindex MIPS options
@@ -16599,6 +16727,51 @@ It will then prevent cross-basic-block cse, hoisting and most scheduling
 of symbol loads.  The default is @option{-mno-invalid-symbols}.
 @end table
 
+@node Solaris 2 Options
+@subsection Solaris 2 Options
+@cindex Solaris 2 options
+
+These @samp{-m} options are supported on Solaris 2:
+
+@table @gcctabopt
+@item -mimpure-text
+@opindex mimpure-text
+@option{-mimpure-text}, used in addition to @option{-shared}, tells
+the compiler to not pass @option{-z text} to the linker when linking a
+shared object.  Using this option, you can link position-dependent
+code into a shared object.
+
+@option{-mimpure-text} suppresses the ``relocations remain against
+allocatable but non-writable sections'' linker error message.
+However, the necessary relocations will trigger copy-on-write, and the
+shared object is not actually shared across processes.  Instead of
+using @option{-mimpure-text}, you should compile all source code with
+@option{-fpic} or @option{-fPIC}.
+
+@end table
+
+These switches are supported in addition to the above on Solaris 2:
+
+@table @gcctabopt
+@item -threads
+@opindex threads
+Add support for multithreading using the Solaris threads library.  This
+option sets flags for both the preprocessor and linker.  This option does
+not affect the thread safety of object code produced by the compiler or
+that of libraries supplied with it.
+
+@item -pthreads
+@opindex pthreads
+Add support for multithreading using the POSIX threads library.  This
+option sets flags for both the preprocessor and linker.  This option does
+not affect the thread safety of object code produced  by the compiler or
+that of libraries supplied with it.
+
+@item -pthread
+@opindex pthread
+This is a synonym for @option{-pthreads}.
+@end table
+
 @node SPARC Options
 @subsection SPARC Options
 @cindex SPARC options
@@ -16686,22 +16859,6 @@ However, the use of this changed alignment directly violates the SPARC
 ABI@.  Thus, it's intended only for use on targets where the developer
 acknowledges that their resulting code will not be directly in line with
 the rules of the ABI@.
-
-@item -mimpure-text
-@opindex mimpure-text
-@option{-mimpure-text}, used in addition to @option{-shared}, tells
-the compiler to not pass @option{-z text} to the linker when linking a
-shared object.  Using this option, you can link position-dependent
-code into a shared object.
-
-@option{-mimpure-text} suppresses the ``relocations remain against
-allocatable but non-writable sections'' linker error message.
-However, the necessary relocations will trigger copy-on-write, and the
-shared object is not actually shared across processes.  Instead of
-using @option{-mimpure-text}, you should compile all source code with
-@option{-fpic} or @option{-fPIC}.
-
-This option is only available on SunOS and Solaris.
 
 @item -mcpu=@var{cpu_type}
 @opindex mcpu
@@ -16849,28 +17006,6 @@ With @option{-mstack-bias}, GCC assumes that the stack pointer, and
 frame pointer if present, are offset by @minus{}2047 which must be added back
 when making stack frame references.  This is the default in 64-bit mode.
 Otherwise, assume no such offset is present.
-@end table
-
-These switches are supported in addition to the above on Solaris:
-
-@table @gcctabopt
-@item -threads
-@opindex threads
-Add support for multithreading using the Solaris threads library.  This
-option sets flags for both the preprocessor and linker.  This option does
-not affect the thread safety of object code produced by the compiler or
-that of libraries supplied with it.
-
-@item -pthreads
-@opindex pthreads
-Add support for multithreading using the POSIX threads library.  This
-option sets flags for both the preprocessor and linker.  This option does
-not affect the thread safety of object code produced  by the compiler or
-that of libraries supplied with it.
-
-@item -pthread
-@opindex pthread
-This is a synonym for @option{-pthreads}.
 @end table
 
 @node SPU Options

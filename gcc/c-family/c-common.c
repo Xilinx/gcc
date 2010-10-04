@@ -381,8 +381,13 @@ static int resort_field_decl_cmp (const void *, const void *);
    If -fno-asm is used, D_ASM is added to the mask.  If
    -fno-gnu-keywords is used, D_EXT is added.  If -fno-asm and C in
    C89 mode, D_EXT89 is added for both -fno-asm and -fno-gnu-keywords.
-   In C with -Wc++-compat, we warn if D_CXXWARN is set.  */
+   In C with -Wc++-compat, we warn if D_CXXWARN is set.
 
+   Note the complication of the D_CXX_OBJC keywords.  These are
+   reserved words such as 'class'.  In C++, 'class' is a reserved
+   word.  In Objective-C++ it is too.  In Objective-C, it is a
+   reserved word too, but only if it follows an '@' sign.
+*/
 const struct c_common_resword c_common_reswords[] =
 {
   { "_Bool",		RID_BOOL,      D_CONLY },
@@ -537,6 +542,8 @@ const struct c_common_resword c_common_reswords[] =
   { "selector",		RID_AT_SELECTOR,	D_OBJC },
   { "finally",		RID_AT_FINALLY,		D_OBJC },
   { "synchronized",	RID_AT_SYNCHRONIZED,	D_OBJC },
+  { "optional",		RID_AT_OPTIONAL,	D_OBJC },
+  { "required",		RID_AT_REQUIRED,	D_OBJC },
   /* These are recognized only in protocol-qualifier context
      (see above) */
   { "bycopy",		RID_BYCOPY,		D_OBJC },
@@ -7811,12 +7818,13 @@ handle_optimize_attribute (tree *node, tree name, tree args,
       tree old_opts = DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node);
 
       /* Save current options.  */
-      cl_optimization_save (&cur_opts);
+      cl_optimization_save (&cur_opts, &global_options);
 
       /* If we previously had some optimization options, use them as the
 	 default.  */
       if (old_opts)
-	cl_optimization_restore (TREE_OPTIMIZATION (old_opts));
+	cl_optimization_restore (&global_options,
+				 TREE_OPTIMIZATION (old_opts));
 
       /* Parse options, and update the vector.  */
       parse_optimize_options (args, true);
@@ -7824,7 +7832,7 @@ handle_optimize_attribute (tree *node, tree name, tree args,
 	= build_optimization_node ();
 
       /* Restore current options.  */
-      cl_optimization_restore (&cur_opts);
+      cl_optimization_restore (&global_options, &cur_opts);
     }
 
   return NULL_TREE;
@@ -8291,7 +8299,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
 {
   diagnostic_info diagnostic;
   diagnostic_t dlevel;
-  bool save_warn_system_headers = global_dc->warn_system_headers;
+  bool save_warn_system_headers = global_dc->dc_warn_system_headers;
   bool ret;
 
   switch (level)
@@ -8299,7 +8307,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
     case CPP_DL_WARNING_SYSHDR:
       if (flag_no_output)
 	return false;
-      global_dc->warn_system_headers = 1;
+      global_dc->dc_warn_system_headers = 1;
       /* Fall through.  */
     case CPP_DL_WARNING:
       if (flag_no_output)
@@ -8336,7 +8344,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
                                     c_option_controlling_cpp_error (reason));
   ret = report_diagnostic (&diagnostic);
   if (level == CPP_DL_WARNING_SYSHDR)
-    global_dc->warn_system_headers = save_warn_system_headers;
+    global_dc->dc_warn_system_headers = save_warn_system_headers;
   return ret;
 }
 

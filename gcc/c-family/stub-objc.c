@@ -56,10 +56,9 @@ objc_check_decl (tree ARG_UNUSED (decl))
 {
 }
 
-int
-objc_is_reserved_word (tree ARG_UNUSED (ident))
+void
+objc_check_global_decl (tree ARG_UNUSED (decl))
 {
-  return 0;
 }
 
 tree
@@ -124,6 +123,11 @@ void
 objc_start_protocol (tree ARG_UNUSED (proto),
 		     tree ARG_UNUSED (protorefs),
 		     tree ARG_UNUSED (attribs))
+{
+}
+
+void 
+objc_set_method_opt (bool ARG_UNUSED (optional))
 {
 }
 

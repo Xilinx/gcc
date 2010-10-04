@@ -168,12 +168,6 @@ reduction_phi_p (sese region, gimple_stmt_iterator *psi)
   gimple phi = gsi_stmt (*psi);
   tree res = gimple_phi_result (phi);
 
-  if (!is_gimple_reg (res))
-    {
-      gsi_next (psi);
-      return false;
-    }
-
   loop = loop_containing_stmt (phi);
 
   if (simple_copy_phi_p (phi))
@@ -1038,7 +1032,6 @@ add_upper_bounds_from_estimated_nit (scop_p scop, double_int nit,
   ppl_Coefficient_t coef;
   ppl_Constraint_t ub;
 
-  ppl_new_Linear_Expression_with_dimension (&ub_expr, dim);
   ppl_new_C_Polyhedron_from_space_dimension (&pol, dim, 0);
   ppl_new_Linear_Expression_from_Linear_Expression (&nb_iters_le,
 						    ub_expr);
@@ -2359,12 +2352,6 @@ rewrite_degenerate_phi (gimple_stmt_iterator *psi)
   tree res = gimple_phi_result (phi);
   basic_block bb;
 
-  if (!is_gimple_reg (res))
-    {
-      gsi_next (psi);
-      return;
-    }
-
   bb = gimple_bb (phi);
   rhs = degenerate_phi_result (phi);
   gcc_assert (rhs);
@@ -2391,6 +2378,12 @@ rewrite_reductions_out_of_ssa (scop_p scop)
       for (psi = gsi_start_phis (bb); !gsi_end_p (psi);)
 	{
 	  gimple phi = gsi_stmt (psi);
+
+	  if (!is_gimple_reg (gimple_phi_result (phi)))
+	    {
+	      gsi_next (&psi);
+	      continue;
+	    }
 
 	  if (gimple_phi_num_args (phi) > 1
 	      && degenerate_phi_result (phi))
@@ -2465,7 +2458,8 @@ rewrite_cross_bb_scalar_deps (sese region, gimple_stmt_iterator *gsi)
       return false;
     }
 
-  if (!is_gimple_reg (def))
+  if (!def
+      || !is_gimple_reg (def))
     return false;
 
   if (scev_analyzable_p (def, region))

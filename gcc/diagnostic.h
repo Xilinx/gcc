@@ -124,10 +124,10 @@ struct diagnostic_context
   bool fatal_errors;
 
   /* True if all warnings should be disabled.  */
-  bool inhibit_warnings;
+  bool dc_inhibit_warnings;
 
   /* True if warnings should be given in system headers.  */
-  bool warn_system_headers;
+  bool dc_warn_system_headers;
 
   /* This function is called before any message is printed out.  It is
      responsible for preparing message prefix and such.  For example, it
@@ -146,7 +146,11 @@ struct diagnostic_context
 
   /* Client hook to say whether the option controlling a diagnostic is
      enabled.  Returns nonzero if enabled, zero if disabled.  */
-  int (*option_enabled) (int);
+  int (*option_enabled) (int, void *);
+
+  /* Client information to pass as second argument to
+     option_enabled.  */
+  void *option_state;
 
   /* Client hook to return the name of an option that controls a
      diagnostic.  Returns malloced memory.  The first diagnostic_t
@@ -230,8 +234,8 @@ extern diagnostic_context *global_dc;
 
 /* Returns nonzero if warnings should be emitted.  */
 #define diagnostic_report_warnings_p(DC, LOC)				\
-  (!(DC)->inhibit_warnings						\
-   && !(in_system_header_at (LOC) && !(DC)->warn_system_headers))
+  (!(DC)->dc_inhibit_warnings						\
+   && !(in_system_header_at (LOC) && !(DC)->dc_warn_system_headers))
 
 #define report_diagnostic(D) diagnostic_report_diagnostic (global_dc, D)
 

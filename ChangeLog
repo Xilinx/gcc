@@ -1,3 +1,24 @@
+2010-10-02  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/45326
+	PR bootstrap/45174
+	* configure.ac: Honor initial values of $build_configargs,
+	$host_configargs, $target_configargs.  Mark the precious, so
+	environment settings get recorded.
+	* configure: Regenerate.
+
+2010-09-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/45796
+	* Makefile.def (info-gcc, dvi-gcc, pdf-gcc, html-gcc):
+	Depend on all-build-libiberty.
+	* Makefile.in: Regenerate.
+
+2010-09-30  Michael Eager  <eager@eagercon.com>
+
+	* configure.ac (microblaze): Add target-libssp to noconfigdirs.
+	* configure: Regenerate.
+
 2010-09-28  Michael Eager  <eager@eagercon.com>
 
 	* MAINTAINERS (CPU Port Maintainers): Add myself for MicroBlaze port.

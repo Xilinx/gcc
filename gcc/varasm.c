@@ -5364,7 +5364,7 @@ do_assemble_alias (tree decl, tree target)
     }
   if (lookup_attribute ("ifunc", DECL_ATTRIBUTES (decl)))
     {
-#if defined (ASM_OUTPUT_TYPE_DIRECTIVE) && HAVE_GAS_INDIRECT_FUNCTION
+#if defined (ASM_OUTPUT_TYPE_DIRECTIVE) && HAVE_GNU_INDIRECT_FUNCTION
       ASM_OUTPUT_TYPE_DIRECTIVE
 	(asm_out_file, IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)),
 	 IFUNC_ASM_TYPE);
@@ -5542,8 +5542,12 @@ assemble_alias (tree decl, tree target)
 # else
       if (!DECL_WEAK (decl))
 	{
-	  error_at (DECL_SOURCE_LOCATION (decl),
-		    "only weak aliases are supported in this configuration");
+	  if (lookup_attribute ("ifunc", DECL_ATTRIBUTES (decl)))
+	    error_at (DECL_SOURCE_LOCATION (decl),
+		      "ifunc is not supported in this configuration");
+	  else	
+	    error_at (DECL_SOURCE_LOCATION (decl),
+		      "only weak aliases are supported in this configuration");
 	  return;
 	}
 # endif
