@@ -376,9 +376,18 @@ package body Ch6 is
          end if;
 
       else
+         --  Skip extra parenthesis at end of formal part
+
+         Ignore (Tok_Right_Paren);
+
+         --  For function, scan result subtype
+
          if Func then
-            Ignore (Tok_Right_Paren);
             TF_Return;
+
+            if Prev_Token = Tok_Return then
+               Result_Node := P_Subtype_Mark;
+            end if;
          end if;
       end if;
 

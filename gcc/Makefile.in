@@ -1253,6 +1253,7 @@ OBJS-common = \
 	graphite-clast-to-gimple.o \
 	graphite-cloog-util.o \
 	graphite-dependences.o \
+	graphite-flattening.o \
 	graphite-interchange.o \
 	graphite-poly.o \
 	graphite-ppl.o \
@@ -1457,6 +1458,7 @@ OBJS-archive = \
 	cgraph.o \
 	cgraphbuild.o \
 	cgraphunit.o \
+	cppbuiltin.o \
 	cppdefault.o \
 	incpath.o \
 	ipa-cp.o \
@@ -1826,7 +1828,7 @@ libbackend.a: $(OBJS)
 # and CC is `gcc'.  It is renamed to `gcc' when it is installed.
 xgcc$(exeext): $(GCC_OBJS) gccspec.o version.o intl.o prefix.o \
    version.o $(LIBDEPS) $(EXTRA_GCC_OBJS)
-	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ $(GCC_OBJS) \
+	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ $(GCC_OBJS) \
 	  gccspec.o intl.o prefix.o version.o $(EXTRA_GCC_OBJS) $(LIBS)
 
 # cpp is to cpp0 as gcc is to cc1.
@@ -1834,7 +1836,7 @@ xgcc$(exeext): $(GCC_OBJS) gccspec.o version.o intl.o prefix.o \
 # instead of gccspec.o.
 cpp$(exeext): $(GCC_OBJS) cppspec.o version.o intl.o prefix.o \
    version.o $(LIBDEPS) $(EXTRA_GCC_OBJS)
-	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ $(GCC_OBJS) \
+	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ $(GCC_OBJS) \
 	  cppspec.o intl.o prefix.o version.o $(EXTRA_GCC_OBJS) $(LIBS)
 
 # Dump a specs file to make -B./ read these specs over installed ones.
@@ -1851,7 +1853,7 @@ gcc-cross$(exeext): xgcc$(exeext)
 dummy-checksum.o : dummy-checksum.c $(CONFIG_H) $(SYSTEM_H)
 
 cc1-dummy$(exeext): $(C_OBJS) dummy-checksum.o $(BACKEND) $(LIBDEPS)
-	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ $(C_OBJS) \
+	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ $(C_OBJS) \
 	  dummy-checksum.o $(BACKEND) $(LIBS) $(BACKENDLIBS)
 
 cc1-checksum.c : cc1-dummy$(exeext) build/genchecksum$(build_exeext)
@@ -1860,7 +1862,7 @@ cc1-checksum.c : cc1-dummy$(exeext) build/genchecksum$(build_exeext)
 cc1-checksum.o : cc1-checksum.c $(CONFIG_H) $(SYSTEM_H)
 
 cc1$(exeext): $(C_OBJS) cc1-checksum.o $(BACKEND) $(LIBDEPS)
-	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ $(C_OBJS) \
+	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ $(C_OBJS) \
 	  cc1-checksum.o $(BACKEND) $(LIBS) $(BACKENDLIBS)
 
 #
@@ -2072,7 +2074,7 @@ COLLECT2_OBJS = collect2.o collect2-aix.o tlink.o intl.o version.o
 COLLECT2_LIBS = @COLLECT2_LIBS@
 collect2$(exeext): $(COLLECT2_OBJS) $(LIBDEPS)
 # Don't try modifying collect2 (aka ld) in place--it might be linking this.
-	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o T$@ \
+	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o T$@ \
 		$(COLLECT2_OBJS) $(LIBS) $(COLLECT2_LIBS)
 	mv -f T$@ $@
 
@@ -2089,7 +2091,7 @@ tlink.o: tlink.c $(DEMANGLE_H) $(HASHTAB_H) $(CONFIG_H) $(SYSTEM_H) coretypes.h 
     $(OBSTACK_H) collect2.h intl.h
 
 lto-wrapper$(exeext): lto-wrapper.o intl.o $(LIBDEPS)
-	$(COMPILER) $(ALL_COMPILERFLAGS) $(LDFLAGS) -o T$@ lto-wrapper.o intl.o $(LIBS)
+	+$(COMPILER) $(ALL_COMPILERFLAGS) $(LDFLAGS) -o T$@ lto-wrapper.o intl.o $(LIBS)
 	mv -f T$@ $@
 
 lto-wrapper.o: lto-wrapper.c $(CONFIG_H) $(SYSTEM_H) coretypes.h intl.h \
@@ -2110,9 +2112,9 @@ c-family/c-common.o : c-family/c-common.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 c-family/c-cppbuiltin.o : c-family/c-cppbuiltin.c $(CONFIG_H) $(SYSTEM_H) \
 	coretypes.h $(TM_H) $(TREE_H) version.h $(C_COMMON_H) $(C_PRAGMA_H) \
 	$(FLAGS_H) $(TOPLEV_H) output.h $(TREE_H) $(TARGET_H) \
-	$(TM_P_H) $(BASEVER) debug.h $(CPP_ID_DATA_H)
+	$(TM_P_H) debug.h $(CPP_ID_DATA_H) cppbuiltin.h
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
-		-DBASEVER=$(BASEVER_s) $< $(OUTPUT_OPTION)
+		$< $(OUTPUT_OPTION)
 
 c-family/c-dump.o : c-family/c-dump.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(TM_H) $(TREE_H) $(TREE_DUMP_H)
@@ -2341,7 +2343,7 @@ lto-symtab.o: lto-symtab.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(LTO_STREAMER_H) $(LINKER_PLUGIN_API_H) gt-lto-symtab.h
 lto-opts.o: lto-opts.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
    $(HASHTAB_H) $(GGC_H) $(BITMAP_H) $(FLAGS_H) opts.h options.h \
-   $(TARGET_H) $(TOPLEV_H) $(DIAGNOSTIC_CORE_H) $(LTO_STREAMER_H)
+   $(TARGET_H) $(TOPLEV_H) $(DIAGNOSTIC_H) $(LTO_STREAMER_H)
 lto-streamer.o: lto-streamer.c $(CONFIG_H) $(SYSTEM_H) coretypes.h   \
    $(TM_H) $(TREE_H) $(GIMPLE_H) $(BITMAP_H) $(LTO_STREAMER_H) $(FLAGS_H) \
    $(TREE_FLOW_H) $(DIAGNOSTIC_CORE_H) $(LTO_SYMTAB_H) $(TOPLEV_H) $(DIAGNOSTIC_CORE_H)
@@ -2519,7 +2521,7 @@ tree-cfgcleanup.o : tree-cfgcleanup.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
 tree-tailcall.o : tree-tailcall.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    $(TREE_H) $(TM_P_H) $(FUNCTION_H) $(TM_H) coretypes.h \
    $(TREE_DUMP_H) $(DIAGNOSTIC_H) $(EXCEPT_H) $(TREE_PASS_H) $(FLAGS_H) langhooks.h \
-   $(BASIC_BLOCK_H) $(DBGCNT_H) gimple-pretty-print.h
+   $(BASIC_BLOCK_H) $(DBGCNT_H) gimple-pretty-print.h $(TARGET_H)
 tree-ssa-sink.o : tree-ssa-sink.c $(TREE_FLOW_H) $(CONFIG_H) \
    $(SYSTEM_H) $(TREE_H) $(DIAGNOSTIC_H) $(TIMEVAR_H) \
    $(TM_H) coretypes.h $(TREE_DUMP_H) $(TREE_PASS_H) $(FLAGS_H) alloc-pool.h \
@@ -2713,6 +2715,12 @@ graphite-dependences.o: graphite-dependences.c $(CONFIG_H) $(SYSTEM_H) \
    $(TOPLEV_H) $(DIAGNOSTIC_CORE_H) $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) \
    $(GIMPLE_H) $(TREE_DATA_REF_H) tree-pass.h domwalk.h \
    graphite.h graphite-poly.h graphite-ppl.h graphite-dependences.h
+graphite-flattening.o: graphite-flattening.c $(CONFIG_H) $(SYSTEM_H)	\
+   coretypes.h $(TM_H) $(GGC_H) $(TREE_H) $(RTL_H) output.h		\
+   $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) $(TOPLEV_H) $(TREE_FLOW_H)		\
+   $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H)			\
+   $(TREE_DATA_REF_H) tree-pass.h domwalk.h value-prof.h graphite.h	\
+   graphite-poly.h graphite-ppl.h
 graphite-interchange.o: graphite-interchange.c $(CONFIG_H) $(SYSTEM_H) \
    coretypes.h \
    $(TM_H) $(GGC_H) $(TREE_H) $(RTL_H) output.h $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) \
@@ -3980,11 +3988,6 @@ build/genhooks.o : genhooks.c target.def $(BCONFIG_H) $(SYSTEM_H) errors.h
 # since they need to run on this machine
 # even if GCC is being compiled to run on some other machine.
 
-# As a general rule...
-build/gen%$(build_exeext): build/gen%.o $(BUILD_LIBDEPS)
-	$(LINKER_FOR_BUILD) $(BUILD_LINKERFLAGS) $(BUILD_LDFLAGS) -o $@ \
-	    $(filter-out $(BUILD_LIBDEPS), $^) $(BUILD_LIBS)
-
 # All these programs use the RTL reader ($(BUILD_RTL)).
 genprogrtl = attr attrtab automata codes conditions config emit \
 	     extract flags opinit output peep preds recog
@@ -3994,16 +3997,23 @@ $(genprogrtl:%=build/gen%$(build_exeext)): $(BUILD_RTL)
 genprogmd = $(genprogrtl) mddeps constants enums
 $(genprogmd:%=build/gen%$(build_exeext)): $(BUILD_MD)
 
-# All generator programs need to report errors
-genprog = $(genprogmd) genrtl modes gtype
-$(genprog:%=build/gen%$(build_exeext)): $(BUILD_ERRORS)
+# All these programs need to report errors.
+genprogerr = $(genprogmd) genrtl modes gtype hooks
+$(genprogerr:%=build/gen%$(build_exeext)): $(BUILD_ERRORS)
+
+# Remaining build programs.
+genprog = $(genprogerr) check checksum condmd
 
 # These programs need libs over and above what they get from the above list.
 build/genautomata$(build_exeext) : BUILD_LIBS += -lm
 
 # These programs are not linked with the MD reader.
 build/gengtype$(build_exeext) : build/gengtype-lex.o build/gengtype-parse.o
-build/genhooks$(build_exeext) : $(BUILD_ERRORS)
+
+# Rule for the generator programs:
+$(genprog:%=build/gen%$(build_exeext)): build/gen%$(build_exeext): build/gen%.o $(BUILD_LIBDEPS)
+	+$(LINKER_FOR_BUILD) $(BUILD_LINKERFLAGS) $(BUILD_LDFLAGS) -o $@ \
+	    $(filter-out $(BUILD_LIBDEPS), $^) $(BUILD_LIBS)
 
 # Generated source files for gengtype.
 gengtype-lex.c : gengtype-lex.l
@@ -4032,6 +4042,12 @@ PREPROCESSOR_DEFINES = \
   -DSTANDARD_EXEC_PREFIX=\"$(libdir)/gcc/\" \
   @TARGET_SYSTEM_ROOT_DEFINE@
 
+cppbuiltin.o: cppbuiltin.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+	cppbuiltin.h Makefile
+	$(COMPILER) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
+	  $(PREPROCESSOR_DEFINES) -DBASEVER=$(BASEVER_s) \
+	  -c $(srcdir)/cppbuiltin.c $(OUTPUT_OPTION)
+
 cppdefault.o: cppdefault.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	cppdefault.h Makefile
 	$(COMPILER) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
@@ -4046,7 +4062,7 @@ build/gcov-iov.o: gcov-iov.c $(BCONFIG_H) coretypes.h $(GTM_H) \
   $(SYSTEM_H) coretypes.h $(TM_H)
 
 build/gcov-iov$(build_exeext): build/gcov-iov.o
-	$(LINKER_FOR_BUILD) $(BUILD_LINKERFLAGS) $(BUILD_LDFLAGS) \
+	+$(LINKER_FOR_BUILD) $(BUILD_LINKERFLAGS) $(BUILD_LDFLAGS) \
 		build/gcov-iov.o -o $@
 
 gcov-iov.h: s-iov
@@ -4063,10 +4079,10 @@ gcov-dump.o: gcov-dump.c gcov-io.c $(GCOV_IO_H) $(SYSTEM_H) coretypes.h \
 
 GCOV_OBJS = gcov.o intl.o version.o errors.o
 gcov$(exeext): $(GCOV_OBJS) $(LIBDEPS)
-	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) $(GCOV_OBJS) $(LIBS) -o $@
+	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) $(GCOV_OBJS) $(LIBS) -o $@
 GCOV_DUMP_OBJS = gcov-dump.o version.o errors.o
 gcov-dump$(exeext): $(GCOV_DUMP_OBJS) $(LIBDEPS)
-	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) $(GCOV_DUMP_OBJS) \
+	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) $(GCOV_DUMP_OBJS) \
 		$(LIBS) -o $@
 #
 # Build the include directories.  The stamp files are stmp-* rather than

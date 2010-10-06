@@ -5910,8 +5910,8 @@ package body Sem_Ch6 is
                --  that was created for an operation inherited by a null
                --  extension, it may be overridden by a body without a previous
                --  spec (one more reason why these should be shunned). In that
-               --  case remove the generated body, because the current one is
-               --  the explicit overriding.
+               --  case remove the generated body if present, because the
+               --  current one is the explicit overriding.
 
                elsif Ekind (E) = E_Function
                  and then Ada_Version >= Ada_05
@@ -5922,15 +5922,20 @@ package body Sem_Ch6 is
                then
                   Set_Has_Completion (E, False);
 
-                  if Expander_Active then
+                  if Expander_Active
+                    and then Nkind (Parent (E)) = N_Function_Specification
+                  then
                      Remove
                        (Unit_Declaration_Node
-                         (Corresponding_Body (Unit_Declaration_Node (E))));
+                          (Corresponding_Body (Unit_Declaration_Node (E))));
+
                      return E;
 
-                  --  If expansion is disabled, the wrapper function has not
-                  --  been generated, and this is the standard case of a late
-                  --  body overriding an inherited operation.
+                  --  If expansion is disabled, or if the wrapper function has
+                  --  not been generated yet, this a late body overriding an
+                  --  inherited operation, or it is an overriding by some other
+                  --  declaration before the controlling result is frozen. In
+                  --  either case this is a declaration of a new entity.
 
                   else
                      return Empty;
@@ -7537,6 +7542,53 @@ package body Sem_Ch6 is
 
       E := Current_Entity_In_Scope (S);
 
+      --  Ada 2005 (AI-251): Derivation of abstract interface primitives.
+      --  They are directly added to the list of primitive operations of
+      --  Derived_Type, unless this is a rederivation in the private part
+      --  of an operation that was already derived in the visible part of
+      --  the current package.
+
+      if Ada_Version >= Ada_05
+        and then Present (Derived_Type)
+        and then Present (Alias (S))
+        and then Is_Dispatching_Operation (Alias (S))
+        and then Present (Find_Dispatching_Type (Alias (S)))
+        and then Is_Interface (Find_Dispatching_Type (Alias (S)))
+      then
+         --  For private types, when the full-view is processed we propagate to
+         --  the full view the non-overridden entities whose attribute "alias"
+         --  references an interface primitive. These entities were added by
+         --  Derive_Subprograms to ensure that interface primitives are
+         --  covered.
+
+         --  Inside_Freeze_Actions is non zero when S corresponds with an
+         --  internal entity that links an interface primitive with its
+         --  covering primitive through attribute Interface_Alias (see
+         --  Add_Internal_Interface_Entities)
+
+         if Inside_Freezing_Actions = 0
+           and then Is_Package_Or_Generic_Package (Current_Scope)
+           and then In_Private_Part (Current_Scope)
+           and then Nkind (Parent (E)) = N_Private_Extension_Declaration
+           and then Nkind (Parent (S)) = N_Full_Type_Declaration
+           and then Full_View (Defining_Identifier (Parent (E)))
+                      = Defining_Identifier (Parent (S))
+           and then Alias (E) = Alias (S)
+         then
+            Check_Operation_From_Private_View (S, E);
+            Set_Is_Dispatching_Operation (S);
+
+         --  Common case
+
+         else
+            Enter_Overloaded_Entity (S);
+            Check_Dispatching_Operation (S, Empty);
+            Check_For_Primitive_Subprogram (Is_Primitive_Subp);
+         end if;
+
+         return;
+      end if;
+
       --  If there is no homonym then this is definitely not overriding
 
       if No (E) then
@@ -7612,30 +7664,6 @@ package body Sem_Ch6 is
       --  E exists and is overloadable
 
       else
-         --  Ada 2005 (AI-251): Derivation of abstract interface primitives.
-         --  They are directly added to the list of primitive operations of
-         --  Derived_Type, unless this is a rederivation in the private part
-         --  of an operation that was already derived in the visible part of
-         --  the current package.
-
-         if Ada_Version >= Ada_05
-           and then Present (Derived_Type)
-           and then Is_Dispatching_Operation (Alias (S))
-           and then Present (Find_Dispatching_Type (Alias (S)))
-           and then Is_Interface (Find_Dispatching_Type (Alias (S)))
-         then
-            if Type_Conformant (E, S)
-              and then Is_Package_Or_Generic_Package (Current_Scope)
-              and then In_Private_Part (Current_Scope)
-              and then Parent (E) /= Parent (S)
-              and then Alias (E) = Alias (S)
-            then
-               Check_Operation_From_Private_View (S, E);
-            else
-               goto Add_New_Entity;
-            end if;
-         end if;
-
          Check_Synchronized_Overriding (S, Overridden_Subp);
 
          --  Loop through E and its homonyms to determine if any of them is
@@ -7992,8 +8020,6 @@ package body Sem_Ch6 is
 
             E := Homonym (E);
          end loop;
-
-         <<Add_New_Entity>>
 
          --  On exit, we know that S is a new entity
 

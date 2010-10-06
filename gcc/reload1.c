@@ -588,7 +588,7 @@ replace_pseudos_in (rtx *loc, enum machine_mode mem_mode, rtx usage)
       if (regno < FIRST_PSEUDO_REGISTER)
 	return;
 
-      x = eliminate_regs (x, mem_mode, usage);
+      x = eliminate_regs_1 (x, mem_mode, usage, true, false);
       if (x != *loc)
 	{
 	  *loc = x;
@@ -598,6 +598,8 @@ replace_pseudos_in (rtx *loc, enum machine_mode mem_mode, rtx usage)
 
       if (reg_equiv_constant[regno])
 	*loc = reg_equiv_constant[regno];
+      else if (reg_equiv_invariant[regno])
+	*loc = reg_equiv_invariant[regno];
       else if (reg_equiv_mem[regno])
 	*loc = reg_equiv_mem[regno];
       else if (reg_equiv_address[regno])
@@ -831,7 +833,7 @@ reload (rtx first, int global)
 	spill_hard_reg (from, 1);
     }
 
-#if HARD_FRAME_POINTER_REGNUM != FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
   if (frame_pointer_needed)
     spill_hard_reg (HARD_FRAME_POINTER_REGNUM, 1);
 #endif
@@ -1315,6 +1317,8 @@ reload (rtx first, int global)
 #endif
 
   VEC_free (rtx_p, heap, substitute_stack);
+
+  gcc_assert (bitmap_empty_p (&spilled_pseudos));
 
   return failure;
 }
@@ -3232,7 +3236,7 @@ eliminate_regs_in_insn (rtx insn, int replace)
       for (ep = reg_eliminate; ep < &reg_eliminate[NUM_ELIMINABLE_REGS]; ep++)
 	if (ep->from_rtx == SET_DEST (old_set) && ep->can_eliminate)
 	  {
-#if HARD_FRAME_POINTER_REGNUM != FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
 	    /* If this is setting the frame pointer register to the
 	       hardware frame pointer register and this is an elimination
 	       that will be done (tested above), this insn is really

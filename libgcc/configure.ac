@@ -135,6 +135,17 @@ AC_CACHE_CHECK([whether fixed-point is supported], [libgcc_cv_fixed_point],
 fixed_point=$libgcc_cv_fixed_point
 AC_SUBST(fixed_point)
 
+# Check for assembler CFI support.
+AC_CACHE_CHECK([whether assembler supports CFI directives], [libgcc_cv_cfi],
+	       [AC_COMPILE_IFELSE(
+[asm("\n\
+	.text\n\
+	.cfi_startproc\n\
+	.cfi_personality 0, symbol\n\
+	.cfi_endproc");],
+  [libgcc_cv_cfi=yes],
+  [libgcc_cv_cfi=no])])
+
 # Check 32bit or 64bit for x86.
 case ${host} in
 i?86*-*-* | x86_64*-*-*)

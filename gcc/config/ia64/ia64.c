@@ -251,6 +251,9 @@ static void ia64_asm_unwind_emit (FILE *, rtx);
 static void ia64_asm_emit_except_personality (rtx);
 static void ia64_asm_init_sections (void);
 
+static enum unwind_info_type ia64_debug_unwind_info (void);
+static enum unwind_info_type ia64_except_unwind_info (void);
+
 static struct bundle_state *get_free_bundle_state (void);
 static void free_bundle_state (struct bundle_state *);
 static void initiate_bundle_states (void);
@@ -319,6 +322,7 @@ static void ia64_trampoline_init (rtx, tree, rtx);
 static void ia64_override_options_after_change (void);
 
 static void ia64_dwarf_handle_frame_unspec (const char *, rtx, int);
+static tree ia64_builtin_decl (unsigned, bool);
 
 /* Table of valid machine attributes.  */
 static const struct attribute_spec ia64_attribute_table[] =
@@ -343,6 +347,9 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN ia64_expand_builtin
+
+#undef TARGET_BUILTIN_DECL
+#define TARGET_BUILTIN_DECL ia64_builtin_decl
 
 #undef TARGET_ASM_BYTE_OP
 #define TARGET_ASM_BYTE_OP "\tdata1\t"
@@ -536,6 +543,11 @@ static const struct attribute_spec ia64_attribute_table[] =
 #define TARGET_ASM_EMIT_EXCEPT_PERSONALITY  ia64_asm_emit_except_personality
 #undef TARGET_ASM_INIT_SECTIONS
 #define TARGET_ASM_INIT_SECTIONS  ia64_asm_init_sections
+
+#undef TARGET_DEBUG_UNWIND_INFO
+#define TARGET_DEBUG_UNWIND_INFO  ia64_debug_unwind_info
+#undef TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO  ia64_except_unwind_info
 
 #undef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P ia64_scalar_mode_supported_p
@@ -3903,7 +3915,7 @@ ia64_output_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 	     current_frame_info.n_output_regs,
 	     current_frame_info.n_rotate_regs);
 
-  if (!flag_unwind_tables && (!flag_exceptions || USING_SJLJ_EXCEPTIONS))
+  if (ia64_except_unwind_info () != UI_TARGET)
     return;
 
   /* Emit the .prologue directive.  */
@@ -3961,7 +3973,7 @@ ia64_output_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 static void
 ia64_output_function_end_prologue (FILE *file)
 {
-  if (!flag_unwind_tables && (!flag_exceptions || USING_SJLJ_EXCEPTIONS))
+  if (ia64_except_unwind_info () != UI_TARGET)
     return;
 
   fputs ("\t.body\n", file);
@@ -5554,11 +5566,6 @@ ia64_handle_option (size_t code, const char *arg, int value)
 {
   switch (code)
     {
-    case OPT_G:
-      g_switch_value = value;
-      g_switch_set = true;
-      return true;
-
     case OPT_mfixed_range_:
       fix_range (arg);
       return true;
@@ -5615,7 +5622,9 @@ ia64_option_override (void)
     flag_ira_loop_pressure = 1;
 
 
-  ia64_section_threshold = g_switch_set ? g_switch_value : IA64_DEFAULT_GVALUE;
+  ia64_section_threshold = (global_options_set.x_g_switch_value
+			    ? g_switch_value
+			    : IA64_DEFAULT_GVALUE);
 
   init_machine_status = ia64_init_machine_status;
 
@@ -5638,7 +5647,8 @@ ia64_override_options_after_change (void)
   flag_schedule_insns_after_reload = 0;
 
   if (optimize >= 3
-      && ! sel_sched_switch_set)
+      && !global_options_set.x_flag_selective_scheduling
+      && !global_options_set.x_flag_selective_scheduling2)
     {
       flag_selective_scheduling2 = 1;
       flag_sel_sched_pipelining = 1;
@@ -8558,7 +8568,7 @@ ia64_add_bundle_selector_before (int template0, rtx insn)
   ia64_emit_insn_before (b, insn);
 #if NR_BUNDLES == 10
   if ((template0 == 4 || template0 == 5)
-      && (flag_unwind_tables || (flag_exceptions && !USING_SJLJ_EXCEPTIONS)))
+      && ia64_except_unwind_info () == UI_TARGET)
     {
       int i;
       rtx note = NULL_RTX;
@@ -9399,7 +9409,7 @@ ia64_reorg (void)
   /* A call must not be the last instruction in a function, so that the
      return address is still within the function, so that unwinding works
      properly.  Note that IA-64 differs from dwarf2 on this point.  */
-  if (flag_unwind_tables || (flag_exceptions && !USING_SJLJ_EXCEPTIONS))
+  if (ia64_except_unwind_info () == UI_TARGET)
     {
       rtx insn;
       int saw_stop = 0;
@@ -9865,8 +9875,7 @@ process_cfa_offset (FILE *asm_out_file, rtx pat, bool unwind)
 static void
 ia64_asm_unwind_emit (FILE *asm_out_file, rtx insn)
 {
-  bool unwind = (flag_unwind_tables
-		 || (flag_exceptions && !USING_SJLJ_EXCEPTIONS));
+  bool unwind = ia64_except_unwind_info () == UI_TARGET;
   bool frame = dwarf2out_do_frame ();
   rtx note, pat;
   bool handled_one;
@@ -9991,6 +10000,33 @@ ia64_asm_init_sections (void)
   exception_section = get_unnamed_section (0, output_section_asm_op,
 					   "\t.handlerdata");
 }
+
+/* Implement TARGET_DEBUG_UNWIND_INFO.  */
+
+static enum unwind_info_type
+ia64_debug_unwind_info (void)
+{
+  return UI_TARGET;
+}
+
+/* Implement TARGET_EXCEPT_UNWIND_INFO.  */
+
+static enum unwind_info_type
+ia64_except_unwind_info (void)
+{
+  /* Honor the --enable-sjlj-exceptions configure switch.  */
+#ifdef CONFIG_UNWIND_EXCEPTIONS
+  if (CONFIG_UNWIND_EXCEPTIONS)
+    return UI_SJLJ;
+#endif
+
+  /* For simplicity elsewhere in this file, indicate that all unwind
+     info is disabled if we're not emitting unwind tables.  */
+  if (!flag_exceptions && !flag_unwind_tables)
+    return UI_NONE;
+
+  return UI_TARGET;
+}
 
 enum ia64_builtins
 {
@@ -9999,14 +10035,18 @@ enum ia64_builtins
   IA64_BUILTIN_FABSQ,
   IA64_BUILTIN_FLUSHRS,
   IA64_BUILTIN_INFQ,
-  IA64_BUILTIN_HUGE_VALQ
+  IA64_BUILTIN_HUGE_VALQ,
+  IA64_BUILTIN_max
 };
+
+static GTY(()) tree ia64_builtins[(int) IA64_BUILTIN_max];
 
 void
 ia64_init_builtins (void)
 {
   tree fpreg_type;
   tree float80_type;
+  tree decl;
 
   /* The __fpreg type.  */
   fpreg_type = make_node (REAL_TYPE);
@@ -10023,7 +10063,7 @@ ia64_init_builtins (void)
   /* The __float128 type.  */
   if (!TARGET_HPUX)
     {
-      tree ftype, decl;
+      tree ftype;
       tree float128_type = make_node (REAL_TYPE);
 
       TYPE_PRECISION (float128_type) = 128;
@@ -10032,13 +10072,15 @@ ia64_init_builtins (void)
 
       /* TFmode support builtins.  */
       ftype = build_function_type (float128_type, void_list_node);
-      add_builtin_function ("__builtin_infq", ftype,
-			    IA64_BUILTIN_INFQ, BUILT_IN_MD,
-			    NULL, NULL_TREE);
+      decl = add_builtin_function ("__builtin_infq", ftype,
+				   IA64_BUILTIN_INFQ, BUILT_IN_MD,
+				   NULL, NULL_TREE);
+      ia64_builtins[IA64_BUILTIN_INFQ] = decl;
 
-      add_builtin_function ("__builtin_huge_valq", ftype,
-			    IA64_BUILTIN_HUGE_VALQ, BUILT_IN_MD,
-			    NULL, NULL_TREE);
+      decl = add_builtin_function ("__builtin_huge_valq", ftype,
+				   IA64_BUILTIN_HUGE_VALQ, BUILT_IN_MD,
+				   NULL, NULL_TREE);
+      ia64_builtins[IA64_BUILTIN_HUGE_VALQ] = decl;
 
       ftype = build_function_type_list (float128_type,
 					float128_type,
@@ -10047,6 +10089,7 @@ ia64_init_builtins (void)
 				   IA64_BUILTIN_FABSQ, BUILT_IN_MD,
 				   "__fabstf2", NULL_TREE);
       TREE_READONLY (decl) = 1;
+      ia64_builtins[IA64_BUILTIN_FABSQ] = decl;
 
       ftype = build_function_type_list (float128_type,
 					float128_type,
@@ -10056,6 +10099,7 @@ ia64_init_builtins (void)
 				   IA64_BUILTIN_COPYSIGNQ, BUILT_IN_MD,
 				   "__copysigntf3", NULL_TREE);
       TREE_READONLY (decl) = 1;
+      ia64_builtins[IA64_BUILTIN_COPYSIGNQ] = decl;
     }
   else
     /* Under HPUX, this is a synonym for "long double".  */
@@ -10073,13 +10117,15 @@ ia64_init_builtins (void)
   add_builtin_function ((name), (type), (code), BUILT_IN_MD,	\
 		       NULL, NULL_TREE)
 
-  def_builtin ("__builtin_ia64_bsp",
+  decl = def_builtin ("__builtin_ia64_bsp",
 	       build_function_type (ptr_type_node, void_list_node),
 	       IA64_BUILTIN_BSP);
+  ia64_builtins[IA64_BUILTIN_BSP] = decl;
 
-  def_builtin ("__builtin_ia64_flushrs",
+  decl = def_builtin ("__builtin_ia64_flushrs",
 	       build_function_type (void_type_node, void_list_node),
 	       IA64_BUILTIN_FLUSHRS);
+  ia64_builtins[IA64_BUILTIN_FLUSHRS] = decl;
 
 #undef def_builtin
 
@@ -10147,6 +10193,17 @@ ia64_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
     }
 
   return NULL_RTX;
+}
+
+/* Return the ia64 builtin for CODE.  */
+
+static tree
+ia64_builtin_decl (unsigned code, bool initialize_p ATTRIBUTE_UNUSED)
+{
+  if (code >= IA64_BUILTIN_max)
+    return error_mark_node;
+
+  return ia64_builtins[code];
 }
 
 /* For the HP-UX IA64 aggregate parameters are passed stored in the

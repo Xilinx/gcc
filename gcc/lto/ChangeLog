@@ -1,3 +1,33 @@
+2010-10-05  Ian Lance Taylor  <iant@google.com>
+
+	* lto.c (lto_section_with_id): Make s a const pointer.
+
+2010-10-05  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c:  Include params.h.
+	(add_cgraph_node_to_partition, add_varpool_node_to_partition): Do
+	refcounting in aux field.
+	(undo_partition, partition_cgraph_node_p, partition_varpool_node_p):
+	New functions.
+	(lto_1_to_1_map): Simplify.
+	(lto_balanced_map): New function.
+	(do_whole_program_analysis): Chose proper partitioning alg.
+	* Make-lang.in (lto.o): Add dependency on params.h
+
+2010-10-04  Andi Kleen <ak@linux.intel.com>
+
+	* Make-lang.in (lto1): Add + to build rule.
+
+2010-10-03  Andi Kleen <ak@linux.intel.com>
+
+    	* lto.c (lto_file_finalize): Replace gcc_assert for missing section
+          with fatal_error.
+
+2010-09-28  Jan Hubicka  <jh@suse.cz>
+
+	* lto-lang.c (handle_leaf_attribute): New function.
+	(lto_attribute_tables): Add leaf.
+
 2010-09-25  Jie Zhang  <jie@codesourcery.com>
 
 	* lto.c (lto_read_all_file_options): Start a new line after

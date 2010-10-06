@@ -358,6 +358,11 @@ picochip_option_override (void)
   if (optimize >= 1)
     flag_section_anchors = 1;
 
+  /* Exception flags are irrelevant to picochip. It causes failure in libgcc
+     functions. */
+    flag_non_call_exceptions = 0;
+    flag_exceptions = 0;
+
   /* Turn off the second scheduling pass, and move it to
      picochip_reorg, to avoid having the second jump optimisation
      trash the instruction modes (e.g., instructions are changed to
@@ -1636,6 +1641,18 @@ picochip_output_internal_label (FILE * stream, const char *prefix,
 
 	  sprintf (picochip_current_vliw_state.lm_label_name,
 		   "picoMark_%s%ld", prefix, num);
+	}
+      else if (picochip_schedule_type == DFA_TYPE_SPEED &&
+	  (strcmp (prefix, "LCFI")) == 0 && picochip_vliw_continuation)
+	{
+          if (picochip_current_vliw_state.num_cfi_labels_deferred == 2)
+          {
+            internal_error ("LCFI labels have already been deferred.");
+          }
+          sprintf(picochip_current_vliw_state.cfi_label_name[
+                    picochip_current_vliw_state.num_cfi_labels_deferred], 
+                  "picoMark_%s%ld", prefix, num);
+          picochip_current_vliw_state.num_cfi_labels_deferred++;
 	}
       else
 	{

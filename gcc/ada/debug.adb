@@ -143,7 +143,7 @@ package body Debug is
    --  d.W  Print out debugging information for Walk_Library_Items
    --  d.X  Use Expression_With_Actions
    --  d.Y  Do not use Expression_With_Actions
-   --  d.Z  Generate call-graph information
+   --  d.Z
 
    --  d1   Error msgs have node numbers where possible
    --  d2   Eliminate error flags in verbose form error messages
@@ -595,12 +595,6 @@ package body Debug is
    --  d.Y  Prevents the use of the N_Expression_With_Actions node even in the
    --       case of the gcc back end. Provided as a back up in case the new
    --       scheme has problems.
-
-   --  d.Z  This flag enables the frontend call-graph output associated with
-   --       dispatching calls. This is a temporary debug flag to be used during
-   --       development of this output. Once it works, it will always be output
-   --       (as part of the standard call-graph output) by default, and this
-   --       flag will be removed.
 
    --  d1   Error messages have node numbers where possible. Normally error
    --       messages have only source locations. This option is useful when

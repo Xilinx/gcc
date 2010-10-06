@@ -255,7 +255,7 @@ package body Exp_Ch4 is
                       Prefix         => Name (N),
                       Attribute_Name => Name_Address);
 
-      Arg1      : constant Node_Id := Op1;
+      Arg1      : Node_Id := Op1;
       Arg2      : Node_Id := Op2;
       Call_Node : Node_Id;
       Proc_Name : Entity_Id;
@@ -321,6 +321,8 @@ package body Exp_Ch4 is
          --   X       xor (not Y)  =  not (X xor Y)  =  Nxor (X, Y)
 
          if Nkind (Op1) = N_Op_Not then
+            Arg1 := Right_Opnd (Op1);
+            Arg2 := Right_Opnd (Op2);
             if Kind = N_Op_And then
                Proc_Name := RTE (RE_Vector_Nor);
             elsif Kind = N_Op_Or then
@@ -354,7 +356,7 @@ package body Exp_Ch4 is
                  Prefix         => Arg2,
                  Attribute_Name => Name_Address),
                Make_Attribute_Reference (Loc,
-                 Prefix         => Op1,
+                 Prefix         => Arg1,
                  Attribute_Name => Name_Length)));
       end if;
 
@@ -2183,7 +2185,7 @@ package body Exp_Ch4 is
 
             --  if no TSS has been created for the type, check whether there is
             --  a primitive equality declared for it. If it is abstract replace
-            --  the call with an explicit raise.
+            --  the call with an explicit raise (AI05-0123).
 
             declare
                Prim : Elmt_Id;
@@ -2208,7 +2210,7 @@ package body Exp_Ch4 is
                end loop;
             end;
 
-            --  Predfined equality applies iff no user-defined primitive exists
+            --  Use predefined equality iff no user-defined primitive exists
 
             return Make_Op_Eq (Loc, Lhs, Rhs);
 
@@ -2217,8 +2219,7 @@ package body Exp_Ch4 is
          end if;
 
       else
-
-         --  It can be a simple record or the full view of a scalar private
+         --  If not array or record type, it is predefined equality.
 
          return Make_Op_Eq (Loc, Left_Opnd => Lhs, Right_Opnd => Rhs);
       end if;
@@ -5031,15 +5032,15 @@ package body Exp_Ch4 is
    -- Expand_N_Null --
    -------------------
 
-   --  The only replacement required is for the case of a null of type that is
-   --  an access to protected subprogram. We represent such access values as a
-   --  record, and so we must replace the occurrence of null by the equivalent
-   --  record (with a null address and a null pointer in it), so that the
-   --  backend creates the proper value.
+   --  The only replacement required is for the case of a null of a type that
+   --  is an access to protected subprogram, or a subtype thereof. We represent
+   --  such access values as a record, and so we must replace the occurrence of
+   --  null by the equivalent record (with a null address and a null pointer in
+   --  it), so that the backend creates the proper value.
 
    procedure Expand_N_Null (N : Node_Id) is
       Loc : constant Source_Ptr := Sloc (N);
-      Typ : constant Entity_Id  := Etype (N);
+      Typ : constant Entity_Id  := Base_Type (Etype (N));
       Agg : Node_Id;
 
    begin
@@ -7031,6 +7032,9 @@ package body Exp_Ch4 is
                --  (not A) op (not B) can be reduced to a single call
 
                if N = Op1 and then Nkind (Op2) = N_Op_Not then
+                  return;
+
+               elsif N = Op2 and then Nkind (Op1) = N_Op_Not then
                   return;
 
                --  A xor (not B) can also be special-cased

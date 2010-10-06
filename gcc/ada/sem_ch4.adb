@@ -891,8 +891,8 @@ package body Sem_Ch4 is
 
          --  If this is an indirect call, the return type of the access_to
          --  subprogram may be an incomplete type. At the point of the call,
-         --  use the full type if available, and at the same time update
-         --  the return type of the access_to_subprogram.
+         --  use the full type if available, and at the same time update the
+         --  return type of the access_to_subprogram.
 
          if Success
            and then Nkind (Nam) = N_Explicit_Dereference
@@ -920,12 +920,12 @@ package body Sem_Ch4 is
 
             --  Name may be call that returns an access to subprogram, or more
             --  generally an overloaded expression one of whose interpretations
-            --  yields an access to subprogram. If the name is an entity, we
-            --  do not dereference, because the node is a call that returns
-            --  the access type: note difference between f(x), where the call
-            --  may return an access subprogram type, and f(x)(y), where the
-            --  type returned by the call to f is implicitly dereferenced to
-            --  analyze the outer call.
+            --  yields an access to subprogram. If the name is an entity, we do
+            --  not dereference, because the node is a call that returns the
+            --  access type: note difference between f(x), where the call may
+            --  return an access subprogram type, and f(x)(y), where the type
+            --  returned by the call to f is implicitly dereferenced to analyze
+            --  the outer call.
 
             if Is_Access_Type (Nam_Ent) then
                Nam_Ent := Designated_Type (Nam_Ent);
@@ -2103,9 +2103,7 @@ package body Sem_Ch4 is
 
       P_T := Base_Type (Etype (P));
 
-      if Is_Entity_Name (P)
-        or else Nkind (P) = N_Operator_Symbol
-      then
+      if Is_Entity_Name (P) then
          U_N := Entity (P);
 
          if Is_Type (U_N) then
@@ -2526,9 +2524,7 @@ package body Sem_Ch4 is
          --  being called is noted on the selector.
 
          if not Is_Type (Nam) then
-            if Is_Entity_Name (Name (N))
-              or else Nkind (Name (N)) = N_Operator_Symbol
-            then
+            if Is_Entity_Name (Name (N)) then
                Set_Entity (Name (N), Nam);
 
             elsif Nkind (Name (N)) = N_Selected_Component then
@@ -6101,14 +6097,25 @@ package body Sem_Ch4 is
            and then Is_Type (Entity (Actual))
            and then No (Next (Actual))
          then
-            Rewrite (N,
-              Make_Slice (Loc,
-                Prefix => Make_Function_Call (Loc,
-                  Name => Relocate_Node (Name (N))),
-                Discrete_Range =>
-                  New_Occurrence_Of (Entity (Actual), Sloc (Actual))));
+            --  A single actual that is a type name indicates a slice if the
+            --  type is discrete, and an error otherwise.
 
-            Analyze (N);
+            if Is_Discrete_Type (Entity (Actual)) then
+               Rewrite (N,
+                 Make_Slice (Loc,
+                   Prefix =>
+                     Make_Function_Call (Loc,
+                       Name => Relocate_Node (Name (N))),
+                   Discrete_Range =>
+                     New_Occurrence_Of (Entity (Actual), Sloc (Actual))));
+
+               Analyze (N);
+
+            else
+               Error_Msg_N ("invalid use of type in expression", Actual);
+               Set_Etype (N, Any_Type);
+            end if;
+
             return True;
 
          elsif not Has_Compatible_Type (Actual, Etype (Index)) then

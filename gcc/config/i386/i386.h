@@ -447,8 +447,6 @@ extern int x86_prefetch_sse;
 #define TARGET_ANY_GNU_TLS	(TARGET_GNU_TLS || TARGET_GNU2_TLS)
 #define TARGET_SUN_TLS		0
 
-extern int ix86_isa_flags;
-
 #ifndef TARGET_64BIT_DEFAULT
 #define TARGET_64BIT_DEFAULT 0
 #endif
@@ -2276,6 +2274,13 @@ struct GTY(()) machine_function {
   /* Number of saved registers USE_FAST_PROLOGUE_EPILOGUE
      has been computed for.  */
   int use_fast_prologue_epilogue_nregs;
+
+  /* For -fsplit-stack support: A stack local which holds a pointer to
+     the stack arguments for a function with a variable number of
+     arguments.  This is set at the start of the function and is used
+     to initialize the overflow_arg_area field of the va_list
+     structure.  */
+  rtx split_stack_varargs_pointer;
 
   /* This value is used for amd64 targets and specifies the current abi
      to be used. MS_ABI means ms abi. Otherwise SYSV_ABI means sysv abi.  */

@@ -9351,7 +9351,7 @@ build_common_builtin_nodes (void)
   ftype = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
   local_define_builtin ("__builtin_unwind_resume", ftype,
 			BUILT_IN_UNWIND_RESUME,
-			(USING_SJLJ_EXCEPTIONS
+			(targetm.except_unwind_info () == UI_SJLJ
 			 ? "_Unwind_SjLj_Resume" : "_Unwind_Resume"),
 			ECF_NORETURN);
 
@@ -10750,7 +10750,8 @@ build_optimization_node (void)
 
   /* Use the cache of optimization nodes.  */
 
-  cl_optimization_save (TREE_OPTIMIZATION (cl_optimization_node));
+  cl_optimization_save (TREE_OPTIMIZATION (cl_optimization_node),
+			&global_options);
 
   slot = htab_find_slot (cl_option_hash_table, cl_optimization_node, INSERT);
   t = (tree) *slot;
@@ -10777,7 +10778,8 @@ build_target_option_node (void)
 
   /* Use the cache of optimization nodes.  */
 
-  cl_target_option_save (TREE_TARGET_OPTION (cl_target_option_node));
+  cl_target_option_save (TREE_TARGET_OPTION (cl_target_option_node),
+			 &global_options);
 
   slot = htab_find_slot (cl_option_hash_table, cl_target_option_node, INSERT);
   t = (tree) *slot;
@@ -10935,7 +10937,7 @@ lhd_gcc_personality (void)
 {
   if (!gcc_eh_personality_decl)
     gcc_eh_personality_decl
-      = build_personality_function (USING_SJLJ_EXCEPTIONS
+      = build_personality_function (targetm.except_unwind_info () == UI_SJLJ
 				    ? "__gcc_personality_sj0"
 				    : "__gcc_personality_v0");
 

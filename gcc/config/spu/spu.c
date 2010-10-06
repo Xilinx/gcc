@@ -472,6 +472,9 @@ static const struct attribute_spec spu_attribute_table[] =
 #undef TARGET_OPTION_OPTIMIZATION
 #define TARGET_OPTION_OPTIMIZATION spu_option_optimization
 
+#undef TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO  sjlj_except_unwind_info
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 static void
@@ -5713,8 +5716,7 @@ spu_init_builtins (void)
 
       sprintf (name, "__builtin_%s", d->name);
       spu_builtin_decls[i] =
-	add_builtin_function (name, p, END_BUILTINS + i, BUILT_IN_MD,
-			      NULL, NULL_TREE);
+	add_builtin_function (name, p, i, BUILT_IN_MD, NULL, NULL_TREE);
       if (d->fcode == SPU_MASK_FOR_LOAD)
 	TREE_READONLY (spu_builtin_decls[i]) = 1;	
 
@@ -6642,7 +6644,7 @@ spu_expand_builtin (tree exp,
 		    int ignore ATTRIBUTE_UNUSED)
 {
   tree fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
-  unsigned int fcode = DECL_FUNCTION_CODE (fndecl) - END_BUILTINS;
+  unsigned int fcode = DECL_FUNCTION_CODE (fndecl);
   struct spu_builtin_description *d;
 
   if (fcode < NUM_SPU_BUILTINS)

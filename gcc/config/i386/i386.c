@@ -1898,7 +1898,6 @@ int x86_prefetch_sse;
 static int ix86_regparm;
 
 /* -mstackrealign option */
-extern int ix86_force_align_arg_pointer;
 static const char ix86_force_align_arg_pointer_string[]
   = "force_align_arg_pointer";
 
@@ -1989,6 +1988,8 @@ static void ix86_add_new_builtins (int);
 static rtx ix86_expand_vec_perm_builtin (tree);
 static tree ix86_canonical_va_list_type (tree);
 static void predict_jump (int);
+static unsigned int split_stack_prologue_scratch_regno (void);
+static bool i386_asm_output_addr_const_extra (FILE *, rtx);
 
 enum ix86_function_specific_strings
 {
@@ -2630,6 +2631,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
     { "-msseregparm",			MASK_SSEREGPARM },
     { "-mstack-arg-probe",		MASK_STACK_PROBE },
     { "-mtls-direct-seg-refs",		MASK_TLS_DIRECT_SEG_REFS },
+    { "-mvect8-ret-in-mem",		MASK_VECT8_RETURNS },
     { "-m8bit-idiv",			MASK_USE_8BIT_IDIV },
   };
 
@@ -3649,7 +3651,7 @@ ix86_option_override_internal (bool main_args_p)
 
   /* If using typedef char *va_list, signal that __builtin_va_start (&ap, 0)
      can be optimized to ap = __builtin_next_arg (0).  */
-  if (!TARGET_64BIT)
+  if (!TARGET_64BIT && !flag_split_stack)
     targetm.expand_builtin_va_start = NULL;
 
   if (TARGET_64BIT)
@@ -3800,7 +3802,7 @@ ix86_function_specific_save (struct cl_target_option *ptr)
   ptr->tune_defaulted = ix86_tune_defaulted;
   ptr->arch_specified = ix86_arch_specified;
   ptr->ix86_isa_flags_explicit = ix86_isa_flags_explicit;
-  ptr->target_flags_explicit = target_flags_explicit;
+  ptr->ix86_target_flags_explicit = target_flags_explicit;
 
   /* The fields are char but the variables are not; make sure the
      values fit in the fields.  */
@@ -3829,7 +3831,7 @@ ix86_function_specific_restore (struct cl_target_option *ptr)
   ix86_tune_defaulted = ptr->tune_defaulted;
   ix86_arch_specified = ptr->arch_specified;
   ix86_isa_flags_explicit = ptr->ix86_isa_flags_explicit;
-  target_flags_explicit = ptr->target_flags_explicit;
+  target_flags_explicit = ptr->ix86_target_flags_explicit;
 
   /* Recreate the arch feature tests if the arch changed */
   if (old_arch != ix86_arch)
@@ -3857,7 +3859,7 @@ ix86_function_specific_print (FILE *file, int indent,
 			      struct cl_target_option *ptr)
 {
   char *target_string
-    = ix86_target_string (ptr->ix86_isa_flags, ptr->target_flags,
+    = ix86_target_string (ptr->x_ix86_isa_flags, ptr->x_target_flags,
 			  NULL, NULL, NULL, false);
 
   fprintf (file, "%*sarch = %d (%s)\n",
@@ -4114,8 +4116,8 @@ ix86_valid_target_attribute_tree (tree args)
      ix86_option_override_internal, and then save the options away.
      The string options are are attribute options, and will be undone
      when we copy the save structure.  */
-  if (ix86_isa_flags != def->ix86_isa_flags
-      || target_flags != def->target_flags
+  if (ix86_isa_flags != def->x_ix86_isa_flags
+      || target_flags != def->x_target_flags
       || option_strings[IX86_FUNCTION_SPECIFIC_ARCH]
       || option_strings[IX86_FUNCTION_SPECIFIC_TUNE]
       || option_strings[IX86_FUNCTION_SPECIFIC_FPMATH])
@@ -4178,11 +4180,12 @@ ix86_valid_target_attribute_p (tree fndecl,
   /* If the function changed the optimization levels as well as setting target
      options, start with the optimizations specified.  */
   if (func_optimize && func_optimize != old_optimize)
-    cl_optimization_restore (TREE_OPTIMIZATION (func_optimize));
+    cl_optimization_restore (&global_options,
+			     TREE_OPTIMIZATION (func_optimize));
 
   /* The target attributes may also change some optimization flags, so update
      the optimization options if necessary.  */
-  cl_target_option_save (&cur_target);
+  cl_target_option_save (&cur_target, &global_options);
   new_target = ix86_valid_target_attribute_tree (args);
   new_optimize = build_optimization_node ();
 
@@ -4197,10 +4200,11 @@ ix86_valid_target_attribute_p (tree fndecl,
 	DECL_FUNCTION_SPECIFIC_OPTIMIZATION (fndecl) = new_optimize;
     }
 
-  cl_target_option_restore (&cur_target);
+  cl_target_option_restore (&global_options, &cur_target);
 
   if (old_optimize != new_optimize)
-    cl_optimization_restore (TREE_OPTIMIZATION (old_optimize));
+    cl_optimization_restore (&global_options,
+			     TREE_OPTIMIZATION (old_optimize));
 
   return ret;
 }
@@ -4232,12 +4236,12 @@ ix86_can_inline_p (tree caller, tree callee)
       /* Callee's isa options should a subset of the caller's, i.e. a SSE4 function
 	 can inline a SSE2 function but a SSE2 function can't inline a SSE4
 	 function.  */
-      if ((caller_opts->ix86_isa_flags & callee_opts->ix86_isa_flags)
-	  != callee_opts->ix86_isa_flags)
+      if ((caller_opts->x_ix86_isa_flags & callee_opts->x_ix86_isa_flags)
+	  != callee_opts->x_ix86_isa_flags)
 	ret = false;
 
       /* See if we have the same non-isa options.  */
-      else if (caller_opts->target_flags != callee_opts->target_flags)
+      else if (caller_opts->x_target_flags != callee_opts->x_target_flags)
 	ret = false;
 
       /* See if arch, tune, etc. are the same.  */
@@ -4289,7 +4293,8 @@ ix86_set_current_function (tree fndecl)
 
       else if (new_tree)
 	{
-	  cl_target_option_restore (TREE_TARGET_OPTION (new_tree));
+	  cl_target_option_restore (&global_options,
+				    TREE_TARGET_OPTION (new_tree));
 	  target_reinit ();
 	}
 
@@ -4298,7 +4303,7 @@ ix86_set_current_function (tree fndecl)
 	  struct cl_target_option *def
 	    = TREE_TARGET_OPTION (target_option_current_node);
 
-	  cl_target_option_restore (def);
+	  cl_target_option_restore (&global_options, def);
 	  target_reinit ();
 	}
     }
@@ -4888,6 +4893,10 @@ ix86_function_regparm (const_tree type, const_tree decl)
 	  /* We don't want to use regparm(3) for nested functions as
 	     these use a static chain pointer in the third argument.  */
 	  if (local_regparm == 3 && DECL_STATIC_CHAIN (decl))
+	    local_regparm = 2;
+
+	  /* In 32-bit mode save a register for the split stack.  */
+	  if (!TARGET_64BIT && local_regparm == 3 && flag_split_stack)
 	    local_regparm = 2;
 
 	  /* Each fixed register usage increases register pressure,
@@ -6843,9 +6852,9 @@ return_in_memory_32 (const_tree type, enum machine_mode mode)
 	return false;
 
       /* MMX/3dNow values are returned in MM0,
-	 except when it doesn't exits.  */
+	 except when it doesn't exits or the ABI prescribes otherwise.  */
       if (size == 8)
-	return !TARGET_MMX;
+	return !TARGET_MMX || TARGET_VECT8_RETURNS;
 
       /* SSE values are returned in XMM0, except when it doesn't exist.  */
       if (size == 16)
@@ -6907,43 +6916,6 @@ ix86_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
   else
     return return_in_memory_32 (type, mode);
 #endif
-}
-
-/* Return false iff TYPE is returned in memory.  This version is used
-   on Solaris 2.  It is similar to the generic ix86_return_in_memory,
-   but differs notably in that when MMX is available, 8-byte vectors
-   are returned in memory, rather than in MMX registers.  */
-
-bool
-ix86_solaris_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
-{
-  int size;
-  enum machine_mode mode = type_natural_mode (type, NULL);
-
-  if (TARGET_64BIT)
-    return return_in_memory_64 (type, mode);
-
-  if (mode == BLKmode)
-    return 1;
-
-  size = int_size_in_bytes (type);
-
-  if (VECTOR_MODE_P (mode))
-    {
-      /* Return in memory only if MMX registers *are* available.  This
-	 seems backwards, but it is consistent with the existing
-	 Solaris x86 ABI.  */
-      if (size == 8)
-	return TARGET_MMX;
-      if (size == 16)
-	return !TARGET_SSE;
-    }
-  else if (mode == TImode)
-    return !TARGET_SSE;
-  else if (mode == XFmode)
-    return 0;
-
-  return size > 12;
 }
 
 /* When returning SSE vector types, we have a choice of either
@@ -7248,10 +7220,56 @@ ix86_va_start (tree valist, rtx nextarg)
   tree gpr, fpr, ovf, sav, t;
   tree type;
 
+  rtx ovf_rtx;
+
+  if (flag_split_stack
+      && cfun->machine->split_stack_varargs_pointer == NULL_RTX)
+    {
+      unsigned int scratch_regno;
+
+      /* When we are splitting the stack, we can't refer to the stack
+	 arguments using internal_arg_pointer, because they may be on
+	 the old stack.  The split stack prologue will arrange to
+	 leave a pointer to the old stack arguments in a scratch
+	 register, which we here copy to a pseudo-register.  The split
+	 stack prologue can't set the pseudo-register directly because
+	 it (the prologue) runs before any registers have been saved.  */
+
+      scratch_regno = split_stack_prologue_scratch_regno ();
+      if (scratch_regno != INVALID_REGNUM)
+	{
+	  rtx reg, seq;
+
+	  reg = gen_reg_rtx (Pmode);
+	  cfun->machine->split_stack_varargs_pointer = reg;
+
+	  start_sequence ();
+	  emit_move_insn (reg, gen_rtx_REG (Pmode, scratch_regno));
+	  seq = get_insns ();
+	  end_sequence ();
+
+	  push_topmost_sequence ();
+	  emit_insn_after (seq, entry_of_function ());
+	  pop_topmost_sequence ();
+	}
+    }
+
   /* Only 64bit target needs something special.  */
   if (!TARGET_64BIT || is_va_list_char_pointer (TREE_TYPE (valist)))
     {
-      std_expand_builtin_va_start (valist, nextarg);
+      if (cfun->machine->split_stack_varargs_pointer == NULL_RTX)
+	std_expand_builtin_va_start (valist, nextarg);
+      else
+	{
+	  rtx va_r, next;
+
+	  va_r = expand_expr (valist, NULL_RTX, VOIDmode, EXPAND_WRITE);
+	  next = expand_binop (ptr_mode, add_optab,
+			       cfun->machine->split_stack_varargs_pointer,
+			       crtl->args.arg_offset_rtx,
+			       NULL_RTX, 0, OPTAB_LIB_WIDEN);
+	  convert_move (va_r, next, 0);
+	}
       return;
     }
 
@@ -7297,7 +7315,11 @@ ix86_va_start (tree valist, rtx nextarg)
 
   /* Find the overflow area.  */
   type = TREE_TYPE (ovf);
-  t = make_tree (type, crtl->args.internal_arg_pointer);
+  if (cfun->machine->split_stack_varargs_pointer == NULL_RTX)
+    ovf_rtx = crtl->args.internal_arg_pointer;
+  else
+    ovf_rtx = cfun->machine->split_stack_varargs_pointer;
+  t = make_tree (type, ovf_rtx);
   if (words != 0)
     t = build2 (POINTER_PLUS_EXPR, type, t,
 	        size_int (words * UNITS_PER_WORD));
@@ -7502,6 +7524,8 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
 	      tree dest_addr, dest;
 	      int cur_size = GET_MODE_SIZE (mode);
 
+	      gcc_assert (prev_size <= INTVAL (XEXP (slot, 1)));
+	      prev_size = INTVAL (XEXP (slot, 1));
 	      if (prev_size + cur_size > size)
 		{
 		  cur_size = size - prev_size;
@@ -7534,7 +7558,7 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
 
 	      dest_addr = fold_convert (daddr_type, addr);
 	      dest_addr = fold_build2 (POINTER_PLUS_EXPR, daddr_type, dest_addr,
-				       size_int (INTVAL (XEXP (slot, 1))));
+				       size_int (prev_size));
 	      if (cur_size == GET_MODE_SIZE (mode))
 		{
 		  src = build_va_arg_indirect_ref (src_addr);
@@ -8042,6 +8066,9 @@ ix86_code_end (void)
       set_cfun (NULL);
       current_function_decl = NULL;
     }
+
+  if (flag_split_stack)
+    file_end_indicate_split_stack ();
 }
 
 /* Emit code for the SET_GOT patterns.  */
@@ -8343,6 +8370,37 @@ ix86_builtin_setjmp_frame_value (void)
 {
   return stack_realign_fp ? hard_frame_pointer_rtx : virtual_stack_vars_rtx;
 }
+
+/* On the x86 -fsplit-stack and -fstack-protector both use the same
+   field in the TCB, so they can not be used together.  */
+
+static bool
+ix86_supports_split_stack (bool report ATTRIBUTE_UNUSED)
+{
+  bool ret = true;
+
+#ifndef TARGET_THREAD_SPLIT_STACK_OFFSET
+  if (report)
+    error ("%<-fsplit-stack%> currently only supported on GNU/Linux");
+  ret = false;
+#else
+  if (!HAVE_GAS_CFI_PERSONALITY_DIRECTIVE)
+    {
+      if (report)
+	error ("%<-fsplit-stack%> requires "
+	       "assembler support for CFI directives");
+      ret = false;
+    }
+#endif
+
+  return ret;
+}
+
+/* When using -fsplit-stack, the allocation routines set a field in
+   the TCB to the bottom of the stack plus this much space, measured
+   in bytes.  */
+
+#define SPLIT_STACK_AVAILABLE 256
 
 /* Fill structure ix86_frame about frame of currently computed function.  */
 
@@ -10334,6 +10392,277 @@ ix86_output_function_epilogue (FILE *file ATTRIBUTE_UNUSED,
 #endif
 
 }
+
+/* Return a scratch register to use in the split stack prologue.  The
+   split stack prologue is used for -fsplit-stack.  It is the first
+   instructions in the function, even before the regular prologue.
+   The scratch register can be any caller-saved register which is not
+   used for parameters or for the static chain.  */
+
+static unsigned int
+split_stack_prologue_scratch_regno (void)
+{
+  if (TARGET_64BIT)
+    return R11_REG;
+  else
+    {
+      bool is_fastcall;
+      int regparm;
+
+      is_fastcall = (lookup_attribute ("fastcall",
+				       TYPE_ATTRIBUTES (TREE_TYPE (cfun->decl)))
+		     != NULL);
+      regparm = ix86_function_regparm (TREE_TYPE (cfun->decl), cfun->decl);
+
+      if (is_fastcall)
+	{
+	  if (DECL_STATIC_CHAIN (cfun->decl))
+	    {
+	      sorry ("-fsplit-stack does not support fastcall with "
+		     "nested function");
+	      return INVALID_REGNUM;
+	    }
+	  return AX_REG;
+	}
+      else if (regparm < 3)
+	{
+	  if (!DECL_STATIC_CHAIN (cfun->decl))
+	    return CX_REG;
+	  else
+	    {
+	      if (regparm >= 2)
+		{
+		  sorry ("-fsplit-stack does not support 2 register "
+			 " parameters for a nested function");
+		  return INVALID_REGNUM;
+		}
+	      return DX_REG;
+	    }
+	}
+      else
+	{
+	  /* FIXME: We could make this work by pushing a register
+	     around the addition and comparison.  */
+	  sorry ("-fsplit-stack does not support 3 register parameters");
+	  return INVALID_REGNUM;
+	}
+    }
+}
+
+/* A SYMBOL_REF for the function which allocates new stackspace for
+   -fsplit-stack.  */
+
+static GTY(()) rtx split_stack_fn;
+
+/* Handle -fsplit-stack.  These are the first instructions in the
+   function, even before the regular prologue.  */
+
+void
+ix86_expand_split_stack_prologue (void)
+{
+  struct ix86_frame frame;
+  HOST_WIDE_INT allocate;
+  int args_size;
+  rtx label, limit, current, jump_insn, allocate_rtx, call_insn, call_fusage;
+  rtx scratch_reg = NULL_RTX;
+  rtx varargs_label = NULL_RTX;
+
+  gcc_assert (flag_split_stack && reload_completed);
+
+  ix86_finalize_stack_realign_flags ();
+  ix86_compute_frame_layout (&frame);
+  allocate = frame.stack_pointer_offset - INCOMING_FRAME_SP_OFFSET;
+
+  /* This is the label we will branch to if we have enough stack
+     space.  We expect the basic block reordering pass to reverse this
+     branch if optimizing, so that we branch in the unlikely case.  */
+  label = gen_label_rtx ();
+
+  /* We need to compare the stack pointer minus the frame size with
+     the stack boundary in the TCB.  The stack boundary always gives
+     us SPLIT_STACK_AVAILABLE bytes, so if we need less than that we
+     can compare directly.  Otherwise we need to do an addition.  */
+
+  limit = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const0_rtx),
+			  UNSPEC_STACK_CHECK);
+  limit = gen_rtx_CONST (Pmode, limit);
+  limit = gen_rtx_MEM (Pmode, limit);
+  if (allocate < SPLIT_STACK_AVAILABLE)
+    current = stack_pointer_rtx;
+  else
+    {
+      unsigned int scratch_regno;
+      rtx offset;
+
+      /* We need a scratch register to hold the stack pointer minus
+	 the required frame size.  Since this is the very start of the
+	 function, the scratch register can be any caller-saved
+	 register which is not used for parameters.  */
+      offset = GEN_INT (- allocate);
+      scratch_regno = split_stack_prologue_scratch_regno ();
+      if (scratch_regno == INVALID_REGNUM)
+	return;
+      scratch_reg = gen_rtx_REG (Pmode, scratch_regno);
+      if (!TARGET_64BIT || x86_64_immediate_operand (offset, Pmode))
+	{
+	  /* We don't use ix86_gen_add3 in this case because it will
+	     want to split to lea, but when not optimizing the insn
+	     will not be split after this point.  */
+	  emit_insn (gen_rtx_SET (VOIDmode, scratch_reg,
+				  gen_rtx_PLUS (Pmode, stack_pointer_rtx,
+						offset)));
+	}
+      else
+	{
+	  emit_move_insn (scratch_reg, offset);
+	  emit_insn (gen_adddi3 (scratch_reg, scratch_reg,
+				 stack_pointer_rtx));
+	}
+      current = scratch_reg;
+    }
+
+  ix86_expand_branch (GEU, current, limit, label);
+  jump_insn = get_last_insn ();
+  JUMP_LABEL (jump_insn) = label;
+
+  /* Mark the jump as very likely to be taken.  */
+  add_reg_note (jump_insn, REG_BR_PROB,
+		GEN_INT (REG_BR_PROB_BASE - REG_BR_PROB_BASE / 100));
+
+  /* Get more stack space.  We pass in the desired stack space and the
+     size of the arguments to copy to the new stack.  In 32-bit mode
+     we push the parameters; __morestack will return on a new stack
+     anyhow.  In 64-bit mode we pass the parameters in r10 and
+     r11.  */
+  allocate_rtx = GEN_INT (allocate);
+  args_size = crtl->args.size >= 0 ? crtl->args.size : 0;
+  call_fusage = NULL_RTX;
+  if (TARGET_64BIT)
+    {
+      rtx reg;
+
+      reg = gen_rtx_REG (Pmode, R10_REG);
+
+      /* If this function uses a static chain, it will be in %r10.
+	 Preserve it across the call to __morestack.  */
+      if (DECL_STATIC_CHAIN (cfun->decl))
+	{
+	  rtx rax;
+
+	  rax = gen_rtx_REG (Pmode, AX_REG);
+	  emit_move_insn (rax, reg);
+	  use_reg (&call_fusage, rax);
+	}
+
+      emit_move_insn (reg, allocate_rtx);
+      use_reg (&call_fusage, reg);
+      reg = gen_rtx_REG (Pmode, R11_REG);
+      emit_move_insn (reg, GEN_INT (args_size));
+      use_reg (&call_fusage, reg);
+    }
+  else
+    {
+      emit_insn (gen_push (GEN_INT (args_size)));
+      emit_insn (gen_push (allocate_rtx));
+    }
+  if (split_stack_fn == NULL_RTX)
+    split_stack_fn = gen_rtx_SYMBOL_REF (Pmode, "__morestack");
+  call_insn = ix86_expand_call (NULL_RTX, gen_rtx_MEM (QImode, split_stack_fn),
+				GEN_INT (UNITS_PER_WORD), constm1_rtx,
+				NULL_RTX, 0);
+  add_function_usage_to (call_insn, call_fusage);
+
+  /* In order to make call/return prediction work right, we now need
+     to execute a return instruction.  See
+     libgcc/config/i386/morestack.S for the details on how this works.
+
+     For flow purposes gcc must not see this as a return
+     instruction--we need control flow to continue at the subsequent
+     label.  Therefore, we use an unspec.  */
+  gcc_assert (crtl->args.pops_args < 65536);
+  emit_insn (gen_split_stack_return (GEN_INT (crtl->args.pops_args)));
+
+  /* If we are in 64-bit mode and this function uses a static chain,
+     we saved %r10 in %rax before calling _morestack.  */
+  if (TARGET_64BIT && DECL_STATIC_CHAIN (cfun->decl))
+    emit_move_insn (gen_rtx_REG (Pmode, R10_REG),
+		    gen_rtx_REG (Pmode, AX_REG));
+
+  /* If this function calls va_start, we need to store a pointer to
+     the arguments on the old stack, because they may not have been
+     all copied to the new stack.  At this point the old stack can be
+     found at the frame pointer value used by __morestack, because
+     __morestack has set that up before calling back to us.  Here we
+     store that pointer in a scratch register, and in
+     ix86_expand_prologue we store the scratch register in a stack
+     slot.  */
+  if (cfun->machine->split_stack_varargs_pointer != NULL_RTX)
+    {
+      unsigned int scratch_regno;
+      rtx frame_reg;
+      int words;
+
+      scratch_regno = split_stack_prologue_scratch_regno ();
+      scratch_reg = gen_rtx_REG (Pmode, scratch_regno);
+      frame_reg = gen_rtx_REG (Pmode, BP_REG);
+
+      /* 64-bit:
+	 fp -> old fp value
+	       return address within this function
+	       return address of caller of this function
+	       stack arguments
+	 So we add three words to get to the stack arguments.
+
+	 32-bit:
+	 fp -> old fp value
+	       return address within this function
+               first argument to __morestack
+               second argument to __morestack
+               return address of caller of this function
+               stack arguments
+         So we add five words to get to the stack arguments.
+      */
+      words = TARGET_64BIT ? 3 : 5;
+      emit_insn (gen_rtx_SET (VOIDmode, scratch_reg,
+			      gen_rtx_PLUS (Pmode, frame_reg,
+					    GEN_INT (words * UNITS_PER_WORD))));
+
+      varargs_label = gen_label_rtx ();
+      emit_jump_insn (gen_jump (varargs_label));
+      JUMP_LABEL (get_last_insn ()) = varargs_label;
+
+      emit_barrier ();
+    }
+
+  emit_label (label);
+  LABEL_NUSES (label) = 1;
+
+  /* If this function calls va_start, we now have to set the scratch
+     register for the case where we do not call __morestack.  In this
+     case we need to set it based on the stack pointer.  */
+  if (cfun->machine->split_stack_varargs_pointer != NULL_RTX)
+    {
+      emit_insn (gen_rtx_SET (VOIDmode, scratch_reg,
+			      gen_rtx_PLUS (Pmode, stack_pointer_rtx,
+					    GEN_INT (UNITS_PER_WORD))));
+
+      emit_label (varargs_label);
+      LABEL_NUSES (varargs_label) = 1;
+    }
+}
+
+/* We may have to tell the dataflow pass that the split stack prologue
+   is initializing a scratch register.  */
+
+static void
+ix86_live_on_entry (bitmap regs)
+{
+  if (cfun->machine->split_stack_varargs_pointer != NULL_RTX)
+    {
+      gcc_assert (flag_split_stack);
+      bitmap_set_bit (regs, split_stack_prologue_scratch_regno ());
+    }
+}
 
 /* Extract the parts of an RTL expression that is a valid memory address
    for an instruction.  Return 0 if the structure of the address is
@@ -10977,6 +11306,10 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	  case UNSPEC_INDNTPOFF:
 	  case UNSPEC_NTPOFF:
 	  case UNSPEC_DTPOFF:
+	    break;
+
+	  case UNSPEC_STACK_CHECK:
+	    gcc_assert (flag_split_stack);
 	    break;
 
 	  default:
@@ -11870,6 +12203,13 @@ output_pic_addr_const (FILE *file, rtx x, int code)
       break;
 
      case UNSPEC:
+       if (XINT (x, 1) == UNSPEC_STACK_CHECK)
+	 {
+	   bool f = i386_asm_output_addr_const_extra (file, x);
+	   gcc_assert (f);
+	   break;
+	 }
+
        gcc_assert (XVECLEN (x, 0) == 1);
        output_pic_addr_const (file, XVECEXP (x, 0, 0), code);
        switch (XINT (x, 1))
@@ -13272,6 +13612,22 @@ i386_asm_output_addr_const_extra (FILE *file, rtx x)
       machopic_output_function_base_name (file);
       break;
 #endif
+
+    case UNSPEC_STACK_CHECK:
+      {
+	int offset;
+
+	gcc_assert (flag_split_stack);
+
+#ifdef TARGET_THREAD_SPLIT_STACK_OFFSET
+	offset = TARGET_THREAD_SPLIT_STACK_OFFSET;
+#else
+	gcc_unreachable ();
+#endif
+
+	fprintf (file, "%s:%d", TARGET_64BIT ? "%fs" : "%gs", offset);
+      }
+      break;
 
     default:
       return false;
@@ -20359,7 +20715,7 @@ construct_plt_address (rtx symbol)
   return tmp;
 }
 
-void
+rtx
 ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
 		  rtx callarg2,
 		  rtx pop, int sibcall)
@@ -20450,6 +20806,8 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
   call = emit_call_insn (call);
   if (use)
     CALL_INSN_FUNCTION_USAGE (call) = use;
+
+  return call;
 }
 
 
@@ -32856,6 +33214,9 @@ ix86_units_per_simd_word (enum machine_mode mode)
 #undef TARGET_STACK_PROTECT_FAIL
 #define TARGET_STACK_PROTECT_FAIL ix86_stack_protect_fail
 
+#undef TARGET_SUPPORTS_SPLIT_STACK
+#define TARGET_SUPPORTS_SPLIT_STACK ix86_supports_split_stack
+
 #undef TARGET_FUNCTION_VALUE
 #define TARGET_FUNCTION_VALUE ix86_function_value
 
@@ -32913,6 +33274,9 @@ ix86_units_per_simd_word (enum machine_mode mode)
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE ix86_can_eliminate
+
+#undef TARGET_EXTRA_LIVE_ON_ENTRY
+#define TARGET_EXTRA_LIVE_ON_ENTRY ix86_live_on_entry
 
 #undef TARGET_ASM_CODE_END
 #define TARGET_ASM_CODE_END ix86_code_end

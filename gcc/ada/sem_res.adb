@@ -1011,6 +1011,17 @@ package body Sem_Res is
          It  : Interp;
 
       begin
+         --  If the context is an attribute reference that can apply to
+         --  functions, this is never a parameterless call (RM 4.1.4 (6)).
+
+         if Nkind (Parent (N)) = N_Attribute_Reference
+            and then (Attribute_Name (Parent (N)) = Name_Address
+              or else Attribute_Name (Parent (N)) = Name_Code_Address
+              or else Attribute_Name (Parent (N)) = Name_Access)
+         then
+            return False;
+         end if;
+
          if not Is_Overloaded (N) then
             return
               Ekind (Etype (N)) = E_Subprogram_Type
@@ -1070,7 +1081,7 @@ package body Sem_Res is
       --  If the entity is the name of an operator, it cannot be a call because
       --  operators cannot have default parameters. In this case, this must be
       --  a string whose contents coincide with an operator name. Set the kind
-      --  of the node appropriately and reanalyze.
+      --  of the node appropriately.
 
       if (Is_Entity_Name (N)
             and then Nkind (N) /= N_Operator_Symbol
@@ -2290,8 +2301,7 @@ package body Sem_Res is
                --  and also the entity pointer for the prefix.
 
                elsif Nkind_In (N, N_Procedure_Call_Statement, N_Function_Call)
-                 and then (Is_Entity_Name (Name (N))
-                            or else Nkind (Name (N)) = N_Operator_Symbol)
+                 and then Is_Entity_Name (Name (N))
                then
                   Set_Etype  (Name (N), Expr_Type);
                   Set_Entity (Name (N), Seen);
@@ -8826,9 +8836,9 @@ package body Sem_Res is
                  (Etype (Entity (Orig_N)) = Orig_T
                    or else
                      (Ekind (Entity (Orig_N)) = E_Loop_Parameter
-                      and then Covers (Orig_T, Etype (Entity (Orig_N))))))
+                       and then Covers (Orig_T, Etype (Entity (Orig_N))))))
 
-         --  If not an entity, then type of expression must match
+           --  If not an entity, then type of expression must match
 
            or else Etype (Orig_N) = Orig_T
          then
@@ -8843,16 +8853,24 @@ package body Sem_Res is
             then
                null;
 
-            --  Finally, the expression may be a qualified expression whose
-            --  own expression is a possibly overloaded function call. The
-            --  qualified expression is needed to be disambiguate the call,
-            --  but it appears in a context in which a name is needed, forcing
-            --  the use of a conversion.
-            --  In Ada2012 a qualified expression is a name, and this idiom
-            --  is not needed any longer.
+            --  Finally, if this type conversion occurs in a context that
+            --  requires a prefix, and the expression is a qualified
+            --  expression, then the type conversion is not redundant,
+            --  because a qualified expression is not a prefix, whereas a
+            --  type conversion is. For example, "X := T'(Funx(...)).Y;" is
+            --  illegal. because a selected component requires a prefix, but
+            --  a type conversion makes it legal: "X := T(T'(Funx(...))).Y;"
+            --  In Ada 2012, a qualified expression is a name, so this idiom is
+            --  no longer needed, but we still suppress the warning because it
+            --  seems unfriendly for warnings to pop up when you switch to the
+            --  newer language version.
 
             elsif Nkind (Orig_N) = N_Qualified_Expression
-              and then Nkind (Expression (Orig_N)) = N_Function_Call
+              and then Nkind_In (Parent (N), N_Attribute_Reference,
+                                             N_Indexed_Component,
+                                             N_Selected_Component,
+                                             N_Slice,
+                                             N_Explicit_Dereference)
             then
                null;
 
@@ -9255,9 +9273,9 @@ package body Sem_Res is
 
          Rewrite (N, Op_Node);
 
-         --  If the context type is private, add the appropriate conversions
-         --  so that the operator is applied to the full view. This is done
-         --  in the routines that resolve intrinsic operators,
+         --  If the context type is private, add the appropriate conversions so
+         --  that the operator is applied to the full view. This is done in the
+         --  routines that resolve intrinsic operators.
 
          if Is_Intrinsic_Subprogram (Op)
            and then Is_Private_Type (Typ)
@@ -9277,9 +9295,8 @@ package body Sem_Res is
 
       elsif Ekind (Op) = E_Function and then Is_Intrinsic_Subprogram (Op) then
 
-         --  Operator renames a user-defined operator of the same name. Use
-         --  the original operator in the node, which is the one that Gigi
-         --  knows about.
+         --  Operator renames a user-defined operator of the same name. Use the
+         --  original operator in the node, which is the one Gigi knows about.
 
          Set_Entity (N, Op);
          Set_Is_Overloaded (N, False);
@@ -9290,12 +9307,12 @@ package body Sem_Res is
    -- Set_Slice_Subtype --
    -----------------------
 
-   --  Build an implicit subtype declaration to represent the type delivered
-   --  by the slice. This is an abbreviated version of an array subtype. We
-   --  define an index subtype for the slice, using either the subtype name
-   --  or the discrete range of the slice. To be consistent with index usage
-   --  elsewhere, we create a list header to hold the single index. This list
-   --  is not otherwise attached to the syntax tree.
+   --  Build an implicit subtype declaration to represent the type delivered by
+   --  the slice. This is an abbreviated version of an array subtype. We define
+   --  an index subtype for the slice, using either the subtype name or the
+   --  discrete range of the slice. To be consistent with index usage elsewhere
+   --  we create a list header to hold the single index. This list is not
+   --  otherwise attached to the syntax tree.
 
    procedure Set_Slice_Subtype (N : Node_Id) is
       Loc           : constant Source_Ptr := Sloc (N);
@@ -9401,10 +9418,10 @@ package body Sem_Res is
 
       if Is_OK_Static_Expression (Low_Bound) then
 
-      --  The low bound is set from the low bound of the corresponding
-      --  index type. Note that we do not store the high bound in the
-      --  string literal subtype, but it can be deduced if necessary
-      --  from the length and the low bound.
+      --  The low bound is set from the low bound of the corresponding index
+      --  type. Note that we do not store the high bound in the string literal
+      --  subtype, but it can be deduced if necessary from the length and the
+      --  low bound.
 
          Set_String_Literal_Low_Bound (Subtype_Id, Low_Bound);
 

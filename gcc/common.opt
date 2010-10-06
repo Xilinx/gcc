@@ -26,6 +26,12 @@
 Variable
 int target_flags
 
+Variable
+int optimize
+
+Variable
+int optimize_size
+
 ###
 Driver
 
@@ -732,6 +738,10 @@ fcheck-data-deps
 Common Report Var(flag_check_data_deps)
 Compare the results of several data dependence analyzers.
 
+fcombine-stack-adjustments
+Common Report Var(flag_combine_stack_adjustments) Optimization
+Looks for opportunities to reduce stack adjustments and stack references.
+
 fcommon
 Common Report Var(flag_no_common,0) Optimization
 Do not put uninitialized globals in the common section
@@ -745,7 +755,7 @@ Common Driver JoinedOrMissing RejectNegative Var(flag_compare_debug_opt)
 -fcompare-debug[=<opts>]	Compile with and without e.g. -gtoggle, and compare the final-insns dump
 
 fcompare-debug-second
-Common Driver RejectNegative Var(flag_compare_debug)
+Common Driver RejectNegative
 Run only the second compilation of -fcompare-debug
 
 fconserve-stack
@@ -962,6 +972,10 @@ floop-block
 Common Report Var(flag_loop_block) Optimization
 Enable Loop Blocking transformation
 
+floop-flatten
+Common Report Var(flag_loop_flatten) Optimization
+Enable Loop Flattening transformation
+
 fstrict-volatile-bitfields
 Common Report Var(flag_strict_volatile_bitfields) Init(-1)
 Force bitfield accesses to match their type width
@@ -1088,10 +1102,6 @@ fira-region=
 Common Joined RejectNegative
 -fira-region=[one|all|mixed] Set regions for IRA
 
-fira-coalesce
-Common Report Var(flag_ira_coalesce) Init(0)
-Do optimistic coalescing.
-
 fira-loop-pressure
 Common Report Var(flag_ira_loop_pressure)
 Use IRA based register pressure calculation
@@ -1137,6 +1147,14 @@ flto
 Common Var(flag_lto)
 Enable link-time optimization.
 
+flto-partition=1to1
+Common Var(flag_lto_partition_1to1)
+Partition functions and vars at linktime based on object files they originate from
+
+flto-partition=balanced
+Common Var(flag_lto_partition_balanced)
+Partition functions and vars at linktime into approximately same sized buckets
+
 ; The initial value of -1 comes from Z_DEFAULT_COMPRESSION in zlib.h.
 flto-compression-level=
 Common Joined RejectNegative UInteger Var(flag_lto_compression_level) Init(-1)
@@ -1162,7 +1180,7 @@ Common Report Var(flag_merge_constants,2) Init(1) Optimization
 Attempt to merge identical constants and constant variables
 
 fmerge-constants
-Common Report Var(flag_merge_constants,1) VarExists Optimization
+Common Report Var(flag_merge_constants,1) Optimization
 Attempt to merge identical constants across compilation units
 
 fmerge-debug-strings
@@ -1190,7 +1208,7 @@ Common RejectNegative Report Var(flag_mudflap)
 Add mudflap bounds-checking instrumentation for single-threaded program
 
 fmudflapth
-Common RejectNegative Report VarExists Var(flag_mudflap,2)
+Common RejectNegative Report Var(flag_mudflap,2)
 Add mudflap bounds-checking instrumentation for multi-threaded program
 
 fmudflapir
@@ -1270,11 +1288,11 @@ Common Report Var(flag_pie,2)
 Generate position-independent code for executables if possible (large mode)
 
 fpic
-Common Report Var(flag_pic,1) VarExists
+Common Report Var(flag_pic,1)
 Generate position-independent code if possible (small mode)
 
 fpie
-Common Report Var(flag_pie,1) VarExists
+Common Report Var(flag_pie,1)
 Generate position-independent code for executables if possible (small mode)
 
 fplugin=
@@ -1348,7 +1366,7 @@ Common Report Var(flag_record_gcc_switches)
 Record gcc command line switches in the object file.
 
 freg-struct-return
-Common Report Var(flag_pcc_struct_return,0) VarExists Optimization
+Common Report Var(flag_pcc_struct_return,0) Optimization
 Return small aggregates in registers
 
 fregmove
@@ -1524,6 +1542,10 @@ fsplit-ivs-in-unroller
 Common Report Var(flag_split_ivs_in_unroller) Init(1) Optimization
 Split lifetimes of induction variables when loops are unrolled
 
+fsplit-stack
+Common Report Var(flag_split_stack) Init(-1)
+Generate discontiguous stack frames
+
 fsplit-wide-types
 Common Report Var(flag_split_wide_types) Optimization
 Split wide types into independent registers
@@ -1556,7 +1578,7 @@ Common Report Var(flag_stack_protect, 1)
 Use propolice as a stack protection method
 
 fstack-protector-all
-Common Report RejectNegative Var(flag_stack_protect, 2) VarExists
+Common Report RejectNegative Var(flag_stack_protect, 2)
 Use a stack protection method for every function
 
 fstack-usage
@@ -1916,7 +1938,7 @@ Common RejectNegative Var(dwarf_strict,0) Init(-1)
 Emit DWARF additions beyond selected version
 
 gstrict-dwarf
-Common Report RejectNegative Var(dwarf_strict,1) VarExists
+Common Report RejectNegative Var(dwarf_strict,1)
 Don't emit DWARF additions beyond selected version
 
 gtoggle

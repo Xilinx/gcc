@@ -193,12 +193,13 @@ static bool arm_align_anon_bitfield (void);
 static bool arm_return_in_msb (const_tree);
 static bool arm_must_pass_in_stack (enum machine_mode, const_tree);
 static bool arm_return_in_memory (const_tree, const_tree);
-#ifdef TARGET_UNWIND_INFO
+#if ARM_UNWIND_INFO
 static void arm_unwind_emit (FILE *, rtx);
 static bool arm_output_ttype (rtx);
 static void arm_asm_emit_except_personality (rtx);
 static void arm_asm_init_sections (void);
 #endif
+static enum unwind_info_type arm_except_unwind_info (void);
 static void arm_dwarf_handle_frame_unspec (const char *, rtx, int);
 static rtx arm_dwarf_register_span (rtx);
 
@@ -241,6 +242,11 @@ static bool cortex_a9_sched_adjust_cost (rtx, rtx, rtx, int *);
 static bool xscale_sched_adjust_cost (rtx, rtx, rtx, int *);
 static unsigned int arm_units_per_simd_word (enum machine_mode);
 static bool arm_class_likely_spilled_p (reg_class_t);
+static bool arm_vector_alignment_reachable (const_tree type, bool is_packed);
+static bool arm_builtin_support_vector_misalignment (enum machine_mode mode,
+						     const_tree type,
+						     int misalignment,
+						     bool is_packed);
 
 
 /* Table of machine attributes.  */
@@ -461,7 +467,7 @@ static const struct attribute_spec arm_attribute_table[] =
 #undef TARGET_MUST_PASS_IN_STACK
 #define TARGET_MUST_PASS_IN_STACK arm_must_pass_in_stack
 
-#ifdef TARGET_UNWIND_INFO
+#if ARM_UNWIND_INFO
 #undef TARGET_ASM_UNWIND_EMIT
 #define TARGET_ASM_UNWIND_EMIT arm_unwind_emit
 
@@ -477,7 +483,10 @@ static const struct attribute_spec arm_attribute_table[] =
 
 #undef TARGET_ASM_INIT_SECTIONS
 #define TARGET_ASM_INIT_SECTIONS arm_asm_init_sections
-#endif /* TARGET_UNWIND_INFO */
+#endif /* ARM_UNWIND_INFO */
+
+#undef TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO  arm_except_unwind_info
 
 #undef TARGET_DWARF_HANDLE_FRAME_UNSPEC
 #define TARGET_DWARF_HANDLE_FRAME_UNSPEC arm_dwarf_handle_frame_unspec
@@ -552,6 +561,14 @@ static const struct attribute_spec arm_attribute_table[] =
 
 #undef TARGET_CLASS_LIKELY_SPILLED_P
 #define TARGET_CLASS_LIKELY_SPILLED_P arm_class_likely_spilled_p
+
+#undef TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE
+#define TARGET_VECTORIZE_VECTOR_ALIGNMENT_REACHABLE \
+  arm_vector_alignment_reachable
+
+#undef TARGET_VECTORIZE_SUPPORT_VECTOR_MISALIGNMENT
+#define TARGET_VECTORIZE_SUPPORT_VECTOR_MISALIGNMENT \
+  arm_builtin_support_vector_misalignment
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -2032,7 +2049,7 @@ arm_compute_func_type (void)
   if (optimize > 0
       && (TREE_NOTHROW (current_function_decl)
           || !(flag_unwind_tables
-               || (flag_exceptions && !USING_SJLJ_EXCEPTIONS)))
+               || (flag_exceptions && arm_except_unwind_info () != UI_SJLJ)))
       && TREE_THIS_VOLATILE (current_function_decl))
     type |= ARM_FT_VOLATILE;
 
@@ -8830,7 +8847,8 @@ neon_vector_mem_operand (rtx op, int type)
     return arm_address_register_rtx_p (ind, 0);
 
   /* Allow post-increment with Neon registers.  */
-  if (type != 1 && (GET_CODE (ind) == POST_INC || GET_CODE (ind) == PRE_DEC))
+  if ((type != 1 && GET_CODE (ind) == POST_INC)
+      || (type == 0 && GET_CODE (ind) == PRE_DEC))
     return arm_address_register_rtx_p (XEXP (ind, 0), 0);
 
   /* FIXME: vld1 allows register post-modify.  */
@@ -15719,7 +15737,8 @@ arm_expand_prologue (void)
      using the EABI unwinder, to prevent faulting instructions from being
      swapped with a stack adjustment.  */
   if (crtl->profile || !TARGET_SCHED_PROLOG
-      || (ARM_EABI_UNWIND_TABLES && cfun->can_throw_non_call_exceptions))
+      || (arm_except_unwind_info () == UI_TARGET
+	  && cfun->can_throw_non_call_exceptions))
     emit_insn (gen_blockage ());
 
   /* If the link register is being kept alive, with the return address in it,
@@ -16312,6 +16331,8 @@ arm_print_operand (FILE *stream, rtx x, int code)
       {
 	rtx addr;
 	bool postinc = FALSE;
+	unsigned align, modesize, align_bits;
+
 	gcc_assert (GET_CODE (x) == MEM);
 	addr = XEXP (x, 0);
 	if (GET_CODE (addr) == POST_INC)
@@ -16319,7 +16340,29 @@ arm_print_operand (FILE *stream, rtx x, int code)
 	    postinc = 1;
 	    addr = XEXP (addr, 0);
 	  }
-	asm_fprintf (stream, "[%r]", REGNO (addr));
+	asm_fprintf (stream, "[%r", REGNO (addr));
+
+	/* We know the alignment of this access, so we can emit a hint in the
+	   instruction (for some alignments) as an aid to the memory subsystem
+	   of the target.  */
+	align = MEM_ALIGN (x) >> 3;
+	modesize = GET_MODE_SIZE (GET_MODE (x));
+	
+	/* Only certain alignment specifiers are supported by the hardware.  */
+	if (modesize == 16 && (align % 32) == 0)
+	  align_bits = 256;
+	else if ((modesize == 8 || modesize == 16) && (align % 16) == 0)
+	  align_bits = 128;
+	else if ((align % 8) == 0)
+	  align_bits = 64;
+	else
+	  align_bits = 0;
+	
+	if (align_bits != 0)
+	  asm_fprintf (stream, ":%d", align_bits);
+
+	asm_fprintf (stream, "]");
+
 	if (postinc)
 	  fputs("!", stream);
       }
@@ -19575,7 +19618,7 @@ thumb_pushpop (FILE *f, unsigned long mask, int push, int *cfa_offset,
       return;
     }
 
-  if (ARM_EABI_UNWIND_TABLES && push)
+  if (push && arm_except_unwind_info () == UI_TARGET)
     {
       fprintf (f, "\t.save\t{");
       for (regno = 0; regno < 15; regno++)
@@ -20515,7 +20558,8 @@ thumb1_expand_prologue (void)
      using the EABI unwinder, to prevent faulting instructions from being
      swapped with a stack adjustment.  */
   if (crtl->profile || !TARGET_SCHED_PROLOG
-      || (ARM_EABI_UNWIND_TABLES && cfun->can_throw_non_call_exceptions))
+      || (arm_except_unwind_info () == UI_TARGET
+	  && cfun->can_throw_non_call_exceptions))
     emit_insn (gen_blockage ());
 
   cfun->machine->lr_save_eliminated = !thumb_force_lr_save ();
@@ -20628,7 +20672,7 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
   if (crtl->args.pretend_args_size)
     {
       /* Output unwind directive for the stack adjustment.  */
-      if (ARM_EABI_UNWIND_TABLES)
+      if (arm_except_unwind_info () == UI_TARGET)
 	fprintf (f, "\t.pad #%d\n",
 		 crtl->args.pretend_args_size);
 
@@ -20698,7 +20742,7 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 
       work_register = thumb_find_work_register (live_regs_mask);
 
-      if (ARM_EABI_UNWIND_TABLES)
+      if (arm_except_unwind_info () == UI_TARGET)
 	asm_fprintf (f, "\t.pad #16\n");
 
       asm_fprintf
@@ -22061,7 +22105,7 @@ arm_dwarf_register_span (rtx rtl)
   return p;
 }
 
-#ifdef TARGET_UNWIND_INFO
+#if ARM_UNWIND_INFO
 /* Emit unwind directives for a store-multiple instruction or stack pointer
    push during alignment.
    These should only ever be generated by the function prologue code, so
@@ -22275,7 +22319,7 @@ arm_unwind_emit (FILE * asm_out_file, rtx insn)
 {
   rtx pat;
 
-  if (!ARM_EABI_UNWIND_TABLES)
+  if (arm_except_unwind_info () != UI_TARGET)
     return;
 
   if (!(flag_unwind_tables || crtl->uses_eh_lsda)
@@ -22344,7 +22388,33 @@ arm_asm_init_sections (void)
   exception_section = get_unnamed_section (0, output_section_asm_op,
 					   "\t.handlerdata");
 }
-#endif /* TARGET_UNWIND_INFO */
+#endif /* ARM_UNWIND_INFO */
+
+/* Implement TARGET_EXCEPT_UNWIND_INFO.  */
+
+static enum unwind_info_type
+arm_except_unwind_info (void)
+{
+  /* Honor the --enable-sjlj-exceptions configure switch.  */
+#ifdef CONFIG_SJLJ_EXCEPTIONS
+  if (CONFIG_SJLJ_EXCEPTIONS)
+    return UI_SJLJ;
+#endif
+
+  /* If not using ARM EABI unwind tables... */
+  if (ARM_UNWIND_INFO)
+    {
+      /* For simplicity elsewhere in this file, indicate that all unwind
+	 info is disabled if we're not emitting unwind tables.  */
+      if (!flag_exceptions && !flag_unwind_tables)
+	return UI_NONE;
+      else
+	return UI_TARGET;
+    }
+
+  /* ... we use sjlj exceptions for backwards compatibility.  */
+  return UI_SJLJ;
+}
 
 
 /* Handle UNSPEC DWARF call frame instructions.  These are needed for dynamic
@@ -22376,7 +22446,7 @@ arm_dwarf_handle_frame_unspec (const char *label, rtx pattern, int index)
 void
 arm_output_fn_unwind (FILE * f, bool prologue)
 {
-  if (!ARM_EABI_UNWIND_TABLES)
+  if (arm_except_unwind_info () != UI_TARGET)
     return;
 
   if (prologue)
@@ -23111,6 +23181,45 @@ arm_expand_sync (enum machine_mode mode,
       emit_insn (arm_call_generator (generator, target, memory, required_value,
 				     new_value));
     }
+}
+
+static bool
+arm_vector_alignment_reachable (const_tree type, bool is_packed)
+{
+  /* Vectors which aren't in packed structures will not be less aligned than
+     the natural alignment of their element type, so this is safe.  */
+  if (TARGET_NEON && !BYTES_BIG_ENDIAN)
+    return !is_packed;
+
+  return default_builtin_vector_alignment_reachable (type, is_packed);
+}
+
+static bool
+arm_builtin_support_vector_misalignment (enum machine_mode mode,
+					 const_tree type, int misalignment,
+					 bool is_packed)
+{
+  if (TARGET_NEON && !BYTES_BIG_ENDIAN)
+    {
+      HOST_WIDE_INT align = TYPE_ALIGN_UNIT (type);
+
+      if (is_packed)
+        return align == 1;
+
+      /* If the misalignment is unknown, we should be able to handle the access
+	 so long as it is not to a member of a packed data structure.  */
+      if (misalignment == -1)
+        return true;
+
+      /* Return true if the misalignment is a multiple of the natural alignment
+         of the vector's element type.  This is probably always going to be
+	 true in practice, since we've already established that this isn't a
+	 packed access.  */
+      return ((misalignment % align) == 0);
+    }
+  
+  return default_builtin_support_vector_misalignment (mode, type, misalignment,
+						      is_packed);
 }
 
 #include "gt-arm.h"

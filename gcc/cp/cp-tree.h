@@ -2361,12 +2361,12 @@ struct GTY((variable_size)) lang_decl {
 #define SET_DECL_FRIEND_CONTEXT(NODE, CONTEXT) \
   (LANG_DECL_FN_CHECK (NODE)->context = (CONTEXT))
 
-/* NULL_TREE in DECL_CONTEXT represents the global namespace.  */
 #define CP_DECL_CONTEXT(NODE) \
-  (DECL_CONTEXT (NODE) ? DECL_CONTEXT (NODE) : global_namespace)
+  (!DECL_FILE_SCOPE_P (NODE) ? DECL_CONTEXT (NODE) : global_namespace)
 #define CP_TYPE_CONTEXT(NODE) \
-  (TYPE_CONTEXT (NODE) ? TYPE_CONTEXT (NODE) : global_namespace)
-#define FROB_CONTEXT(NODE)   ((NODE) == global_namespace ? NULL_TREE : (NODE))
+  (!TYPE_FILE_SCOPE_P (NODE) ? TYPE_CONTEXT (NODE) : global_namespace)
+#define FROB_CONTEXT(NODE) \
+  ((NODE) == global_namespace ? DECL_CONTEXT (NODE) : (NODE))
 
 /* 1 iff NODE has namespace scope, including the global namespace.  */
 #define DECL_NAMESPACE_SCOPE_P(NODE)				\
@@ -3934,6 +3934,13 @@ typedef enum linkage_kind {
   lk_external			/* External linkage.  */
 } linkage_kind;
 
+typedef enum duration_kind {
+  dk_static,
+  dk_thread,
+  dk_auto,
+  dk_dynamic
+} duration_kind;
+
 /* Bitmask flags to control type substitution.  */
 enum tsubst_flags {
   tf_none = 0,			 /* nothing special */
@@ -5345,7 +5352,8 @@ extern void cp_set_underlying_type		(tree);
 extern tree copy_binfo				(tree, tree, tree,
 						 tree *, int);
 extern int member_p				(const_tree);
-extern cp_lvalue_kind real_lvalue_p		(tree);
+extern cp_lvalue_kind real_lvalue_p		(const_tree);
+extern cp_lvalue_kind lvalue_kind		(const_tree);
 extern bool lvalue_or_rvalue_with_address_p	(const_tree);
 extern bool builtin_valid_in_constant_expr_p    (const_tree);
 extern tree build_min				(enum tree_code, tree, ...);
@@ -5401,6 +5409,7 @@ extern int count_trees				(tree);
 extern int char_type_p				(tree);
 extern void verify_stmt_tree			(tree);
 extern linkage_kind decl_linkage		(tree);
+extern duration_kind decl_storage_duration	(tree);
 extern tree cp_walk_subtrees (tree*, int*, walk_tree_fn,
 			      void*, struct pointer_set_t*);
 #define cp_walk_tree(a,b,c,d) \
@@ -5421,7 +5430,7 @@ extern void cxx_print_xnode			(FILE *, tree, int);
 extern void cxx_print_decl			(FILE *, tree, int);
 extern void cxx_print_type			(FILE *, tree, int);
 extern void cxx_print_identifier		(FILE *, tree, int);
-extern void cxx_print_error_function	(struct diagnostic_context *,
+extern void cxx_print_error_function		(diagnostic_context *,
 						 const char *,
 						 struct diagnostic_info *);
 
@@ -5431,6 +5440,7 @@ extern int string_conv_p			(const_tree, const_tree, int);
 extern tree cp_truthvalue_conversion		(tree);
 extern tree condition_conversion		(tree);
 extern tree require_complete_type		(tree);
+extern tree require_complete_type_sfinae	(tree, tsubst_flags_t);
 extern tree complete_type			(tree);
 extern tree complete_type_or_else		(tree, tree);
 extern tree complete_type_or_maybe_complain	(tree, tree, tsubst_flags_t);
@@ -5472,6 +5482,8 @@ extern tree build_x_binary_op			(enum tree_code, tree,
 extern tree build_x_array_ref			(tree, tree, tsubst_flags_t);
 extern tree build_x_unary_op			(enum tree_code, tree,
                                                  tsubst_flags_t);
+extern tree cp_build_addr_expr			(tree, tsubst_flags_t);
+extern tree cp_build_addr_expr_strict		(tree, tsubst_flags_t);
 extern tree cp_build_unary_op                   (enum tree_code, tree, int, 
                                                  tsubst_flags_t);
 extern tree unary_complex_lvalue		(enum tree_code, tree);
@@ -5582,7 +5594,7 @@ extern alias_set_type cxx_get_alias_set		(tree);
 extern bool cxx_warn_unused_global_decl		(const_tree);
 extern size_t cp_tree_size			(enum tree_code);
 extern bool cp_var_mod_type_p			(tree, tree);
-extern void cxx_initialize_diagnostics		(struct diagnostic_context *);
+extern void cxx_initialize_diagnostics		(diagnostic_context *);
 extern int cxx_types_compatible_p		(tree, tree);
 extern void init_shadowed_var_for_decl		(void);
 

@@ -67,7 +67,6 @@ graphite_verify (void)
 #ifdef ENABLE_CHECKING
   verify_loop_structure ();
   verify_dominators (CDI_DOMINATORS);
-  verify_dominators (CDI_POST_DOMINATORS);
   verify_loop_closed_ssa (true);
 #endif
 }
@@ -201,19 +200,29 @@ max_signed_precision_type (tree type1, tree type2)
   int p2 = TYPE_PRECISION (type2);
   int precision;
   tree type;
+  enum machine_mode mode;
 
   if (p1 > p2)
     precision = TYPE_UNSIGNED (type1) ? p1 * 2 : p1;
   else
     precision = TYPE_UNSIGNED (type2) ? p2 * 2 : p2;
 
-  type = lang_hooks.types.type_for_size (precision, false);
+  if (precision > BITS_PER_WORD)
+    {
+      gloog_error = true;
+      return integer_type_node;
+    }
+
+  mode = smallest_mode_for_size (precision, MODE_INT);
+  precision = GET_MODE_PRECISION (mode);
+  type = build_nonstandard_integer_type (precision, false);
 
   if (!type)
     {
       gloog_error = true;
       return integer_type_node;
     }
+
   return type;
 }
 
@@ -405,7 +414,7 @@ precision_for_value (mpz_t val)
   if (mpz_sgn (y) < 0)
     mpz_neg (y, y);
 
-  while (mpz_cmp (y, x) > 0)
+  while (mpz_cmp (y, x) >= 0)
     {
       mpz_mul (x, x, two);
       precision++;
@@ -449,9 +458,6 @@ gcc_type_for_interval (mpz_t low, mpz_t up)
 
   gcc_assert (mpz_cmp (low, up) <= 0);
 
-  if (mpz_sgn (low) < 0)
-    unsigned_p = false;
-
   prec_up = precision_for_value (up);
   prec_int = precision_for_interval (low, up);
   precision = MAX (prec_up, prec_int);
@@ -460,6 +466,15 @@ gcc_type_for_interval (mpz_t low, mpz_t up)
     {
       gloog_error = true;
       return integer_type_node;
+    }
+
+  if (mpz_sgn (low) <= 0)
+    unsigned_p = false;
+
+  else if (precision < BITS_PER_WORD)
+    {
+      unsigned_p = false;
+      precision++;
     }
 
   mode = smallest_mode_for_size (precision, MODE_INT);
@@ -688,6 +703,8 @@ compute_bounds_for_level (poly_bb_p pbb, int level, mpz_t low, mpz_t up)
 
   ppl_max_for_le_pointset (ps, le, up);
   ppl_min_for_le_pointset (ps, le, low);
+  ppl_delete_Linear_Expression (le);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (ps);
 }
 
 /* Compute the type for the induction variable at LEVEL for the
@@ -1201,6 +1218,31 @@ initialize_cloog_names (scop_p scop, CloogProgram *prog)
 			      scattering);
 }
 
+/* Initialize a CLooG input file.  */
+
+static FILE *
+init_cloog_input_file (int scop_number)
+{
+  FILE *graphite_out_file;
+  int len = strlen (dump_base_name);
+  char *dumpname = XNEWVEC (char, len + 25);
+  char *s_scop_number = XNEWVEC (char, 15);
+
+  memcpy (dumpname, dump_base_name, len + 1);
+  strip_off_ending (dumpname, len);
+  sprintf (s_scop_number, ".%d", scop_number);
+  strcat (dumpname, s_scop_number);
+  strcat (dumpname, ".cloog");
+  graphite_out_file = fopen (dumpname, "w+b");
+
+  if (graphite_out_file == 0)
+    fatal_error ("can%'t open %s for writing: %m", dumpname);
+
+  free (dumpname);
+
+  return graphite_out_file;
+}
+
 /* Build cloog program for SCoP.  */
 
 static void
@@ -1290,6 +1332,17 @@ build_cloog_prog (scop_p scop, CloogProgram *prog,
 
   /* Extract scalar dimensions to simplify the code generation problem.  */
   cloog_program_extract_scalars (prog, scattering, options);
+
+  /* Dump a .cloog input file, if requested.  This feature is only
+     enabled in the Graphite branch.  */
+  if (0)
+    {
+      static size_t file_scop_number = 0;
+      FILE *cloog_file = init_cloog_input_file (file_scop_number);
+
+      cloog_program_dump_cloog (cloog_file, prog, scattering);
+      ++file_scop_number;
+    }
 
   /* Apply scattering.  */
   cloog_program_scatter (prog, scattering, options);

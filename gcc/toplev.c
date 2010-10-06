@@ -139,8 +139,8 @@ static bool no_backend;
 #define MAX_LINE 75
 
 /* Decoded options, and number of such options.  */
-static struct cl_decoded_option *save_decoded_options;
-static unsigned int save_decoded_options_count;
+struct cl_decoded_option *save_decoded_options;
+unsigned int save_decoded_options_count;
 
 /* Name of top-level original source file (what was input to cpp).
    This comes from the #-command at the beginning of the actual input.
@@ -167,11 +167,6 @@ const char *aux_base_name;
 /* Prefix for profile data files */
 const char *profile_data_prefix;
 
-/* A mask of target_flags that includes bit X if X was set or cleared
-   on the command line.  */
-
-int target_flags_explicit;
-
 /* Debug hooks - dependent upon command line options.  */
 
 const struct gcc_debug_hooks *debug_hooks;
@@ -185,22 +180,6 @@ enum graph_dump_types graph_dump_format;
 /* Name for output file of assembly code, specified with -o.  */
 
 const char *asm_file_name;
-
-/* Nonzero means do optimizations.  -O.
-   Particular numeric values stand for particular amounts of optimization;
-   thus, -O2 stores 2 here.  However, the optimizations beyond the basic
-   ones are not controlled directly by this variable.  Instead, they are
-   controlled by individual `flag_...' variables that are defaulted
-   based on this variable.  */
-
-int optimize = 0;
-
-/* Nonzero means optimize for size.  -Os.
-   The only valid values are zero and nonzero. When optimize_size is
-   nonzero, optimize defaults to 2, but certain individual code
-   bloating optimizations are disabled.  */
-
-int optimize_size = 0;
 
 /* True if this is the lto front end.  This is used to disable
    gimple generation and lowering passes that are normally run on the
@@ -1333,7 +1312,7 @@ print_switch_values (print_switch_fn_type print_fn)
 
   for (j = 0; j < cl_options_count; j++)
     if ((cl_options[j].flags & CL_REPORT)
-	&& option_enabled (j) > 0)
+	&& option_enabled (j, &global_options) > 0)
       pos = print_single_switch (print_fn, pos,
 				 SWITCH_TYPE_ENABLED, cl_options[j].opt_text);
 
@@ -1412,10 +1391,10 @@ option_affects_pch_p (int option, struct cl_option_state *state)
 {
   if ((cl_options[option].flags & CL_TARGET) == 0)
     return false;
-  if (cl_options[option].flag_var == &target_flags)
+  if (option_flag_var (option, &global_options) == &target_flags)
     if (targetm.check_pch_target_flags)
       return false;
-  return get_option_state (option, state);
+  return get_option_state (&global_options, option, state);
 }
 
 /* Default version of get_pch_validity.
@@ -1703,6 +1682,7 @@ general_init (const char *argv0)
   global_dc->show_column = flag_show_column;
   global_dc->internal_error = plugins_internal_error_function;
   global_dc->option_enabled = option_enabled;
+  global_dc->option_state = &global_options;
   global_dc->option_name = option_name;
 
   /* Trap fatal signals, e.g. SIGSEGV, and convert them to ICE messages.  */

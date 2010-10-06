@@ -464,6 +464,57 @@ package body Exp_Disp is
       end if;
    end Build_Static_Dispatch_Tables;
 
+   ------------------------------
+   -- Convert_Tag_To_Interface --
+   ------------------------------
+
+   function Convert_Tag_To_Interface
+     (Typ  : Entity_Id;
+      Expr : Node_Id) return Node_Id
+   is
+      Loc       : constant Source_Ptr := Sloc (Expr);
+      Anon_Type : Entity_Id;
+      Result    : Node_Id;
+
+   begin
+      pragma Assert (Is_Class_Wide_Type (Typ)
+        and then Is_Interface (Typ)
+        and then
+          ((Nkind (Expr) = N_Selected_Component
+             and then Is_Tag (Entity (Selector_Name (Expr))))
+           or else
+           (Nkind (Expr) = N_Function_Call
+             and then RTE_Available (RE_Displace)
+             and then Entity (Name (Expr)) = RTE (RE_Displace))));
+
+      Anon_Type := Create_Itype (E_Anonymous_Access_Type, Expr);
+      Set_Directly_Designated_Type (Anon_Type, Typ);
+      Set_Etype (Anon_Type, Anon_Type);
+      Set_Can_Never_Be_Null (Anon_Type);
+
+      --  Decorate the size and alignment attributes of the anonymous access
+      --  type, as required by gigi.
+
+      Layout_Type (Anon_Type);
+
+      if Nkind (Expr) = N_Selected_Component
+        and then Is_Tag (Entity (Selector_Name (Expr)))
+      then
+         Result :=
+           Make_Explicit_Dereference (Loc,
+             Unchecked_Convert_To (Anon_Type,
+               Make_Attribute_Reference (Loc,
+                 Prefix         => Expr,
+                 Attribute_Name => Name_Address)));
+      else
+         Result :=
+           Make_Explicit_Dereference (Loc,
+             Unchecked_Convert_To (Anon_Type, Expr));
+      end if;
+
+      return Result;
+   end Convert_Tag_To_Interface;
+
    -------------------
    -- CPP_Num_Prims --
    -------------------
@@ -1152,15 +1203,18 @@ package body Exp_Disp is
       pragma Assert (Iface_Tag /= Empty);
 
       --  Keep separate access types to interfaces because one internal
-      --  function is used to handle the null value (see following comment)
+      --  function is used to handle the null value (see following comments)
 
       if not Is_Access_Type (Etype (N)) then
+
+         --  Statically displace the pointer to the object to reference
+         --  the component containing the secondary dispatch table.
+
          Rewrite (N,
-           Unchecked_Convert_To (Etype (N),
+           Convert_Tag_To_Interface (Class_Wide_Type (Iface_Typ),
              Make_Selected_Component (Loc,
                Prefix => Relocate_Node (Expression (N)),
-               Selector_Name =>
-                 New_Occurrence_Of (Iface_Tag, Loc))));
+               Selector_Name => New_Occurrence_Of (Iface_Tag, Loc))));
 
       else
          --  Build internal function to handle the case in which the
@@ -4968,6 +5022,7 @@ package body Exp_Disp is
             declare
                Prim_Elmt : Elmt_Id;
                Prim      : Entity_Id;
+               Size_Comp : Node_Id;
 
             begin
                Prim_Elmt := First_Elmt (Primitive_Operations (Typ));
@@ -4978,15 +5033,15 @@ package body Exp_Disp is
                      Prim := Ultimate_Alias (Prim);
 
                      if Is_Abstract_Subprogram (Prim) then
-                        Append_To (TSD_Aggr_List,
+                        Size_Comp :=
                           Unchecked_Convert_To (RTE (RE_Size_Ptr),
-                            New_Reference_To (RTE (RE_Null_Address), Loc)));
+                            New_Reference_To (RTE (RE_Null_Address), Loc));
                      else
-                        Append_To (TSD_Aggr_List,
+                        Size_Comp :=
                           Unchecked_Convert_To (RTE (RE_Size_Ptr),
                             Make_Attribute_Reference (Loc,
                               Prefix => New_Reference_To (Prim, Loc),
-                              Attribute_Name => Name_Unrestricted_Access)));
+                              Attribute_Name => Name_Unrestricted_Access));
                      end if;
 
                      exit;
@@ -4994,6 +5049,9 @@ package body Exp_Disp is
 
                   Next_Elmt (Prim_Elmt);
                end loop;
+
+               pragma Assert (Present (Size_Comp));
+               Append_To (TSD_Aggr_List, Size_Comp);
             end;
          end if;
       end if;
@@ -7965,7 +8023,7 @@ package body Exp_Disp is
             Write_Int (Int (Alias (Prim)));
 
             --  If the DTC_Entity attribute is already set we can also output
-            --  the name of the interface covered by this primitive (if any)
+            --  the name of the interface covered by this primitive (if any).
 
             if Present (DTC_Entity (Alias (Prim)))
               and then Is_Interface (Scope (DTC_Entity (Alias (Prim))))
@@ -7976,6 +8034,11 @@ package body Exp_Disp is
 
             if Present (Interface_Alias (Prim)) then
                Write_Str  (", AI_Alias of ");
+
+               if Is_Null_Interface_Primitive (Interface_Alias (Prim)) then
+                  Write_Str ("null primitive ");
+               end if;
+
                Write_Name
                  (Chars (Find_Dispatching_Type (Interface_Alias (Prim))));
                Write_Char (':');

@@ -27,7 +27,6 @@ with Atree;    use Atree;
 with Checks;   use Checks;
 with Debug;    use Debug;
 with Einfo;    use Einfo;
-with Elists;   use Elists;
 with Exp_Atag; use Exp_Atag;
 with Exp_Aggr; use Exp_Aggr;
 with Exp_Ch6;  use Exp_Ch6;
@@ -1041,7 +1040,7 @@ package body Exp_Ch5 is
       --  Note that on the last iteration of the loop, the index is increased
       --  (or decreased) past the corresponding bound. This is consistent with
       --  the C semantics of the back-end, where such an off-by-one value on a
-      --  dead index variable is OK.  However, in CodePeer mode this leads to
+      --  dead index variable is OK. However, in CodePeer mode this leads to
       --  spurious warnings, and thus we place a guard around the attribute
       --  reference. For obvious reasons we only do this for CodePeer.
 
@@ -1232,7 +1231,7 @@ package body Exp_Ch5 is
          --  part expression as the switch for the generated case statement.
 
          function Make_Field_Assign
-           (C : Entity_Id;
+           (C   : Entity_Id;
             U_U : Boolean := False) return Node_Id;
          --  Given C, the entity for a discriminant or component, build an
          --  assignment for the corresponding field values. The flag U_U
@@ -1341,7 +1340,7 @@ package body Exp_Ch5 is
          -----------------------
 
          function Make_Field_Assign
-           (C : Entity_Id;
+           (C   : Entity_Id;
             U_U : Boolean := False) return Node_Id
          is
             A    : Node_Id;
@@ -1359,7 +1358,7 @@ package body Exp_Ch5 is
             else
                Expr :=
                  Make_Selected_Component (Loc,
-                   Prefix => Duplicate_Subexpr (Rhs),
+                   Prefix        => Duplicate_Subexpr (Rhs),
                    Selector_Name => New_Occurrence_Of (C, Loc));
             end if;
 
@@ -1367,7 +1366,7 @@ package body Exp_Ch5 is
               Make_Assignment_Statement (Loc,
                 Name =>
                   Make_Selected_Component (Loc,
-                    Prefix => Duplicate_Subexpr (Lhs),
+                    Prefix        => Duplicate_Subexpr (Lhs),
                     Selector_Name =>
                       New_Occurrence_Of (Find_Component (L_Typ, C), Loc)),
                 Expression => Expr);
@@ -1397,6 +1396,7 @@ package body Exp_Ch5 is
          begin
             Item := First (CI);
             Result := New_List;
+
             while Present (Item) loop
 
                --  Look for components, but exclude _tag field assignment if
@@ -1404,7 +1404,7 @@ package body Exp_Ch5 is
 
                if Nkind (Item) = N_Component_Declaration
                  and then not (Is_Tag (Defining_Identifier (Item))
-                                and then Componentwise_Assignment (N))
+                                 and then Componentwise_Assignment (N))
                then
                   Append_To
                     (Result, Make_Field_Assign (Defining_Identifier (Item)));
@@ -1976,14 +1976,29 @@ package body Exp_Ch5 is
                          Reason => CE_Tag_Check_Failed));
                   end if;
 
-                  Append_To (L,
-                    Make_Procedure_Call_Statement (Loc,
-                      Name => New_Reference_To (Op, Loc),
-                      Parameter_Associations => New_List (
-                        Unchecked_Convert_To (F_Typ,
-                          Duplicate_Subexpr (Lhs)),
-                        Unchecked_Convert_To (F_Typ,
-                          Duplicate_Subexpr (Rhs)))));
+                  declare
+                     Left_N  : Node_Id := Duplicate_Subexpr (Lhs);
+                     Right_N : Node_Id := Duplicate_Subexpr (Rhs);
+
+                  begin
+                     --  In order to dispatch the call to _assign the type of
+                     --  the actuals must match. Add conversion (if required).
+
+                     if Etype (Lhs) /= F_Typ then
+                        Left_N := Unchecked_Convert_To (F_Typ, Left_N);
+                     end if;
+
+                     if Etype (Rhs) /= F_Typ then
+                        Right_N := Unchecked_Convert_To (F_Typ, Right_N);
+                     end if;
+
+                     Append_To (L,
+                       Make_Procedure_Call_Statement (Loc,
+                         Name => New_Reference_To (Op, Loc),
+                         Parameter_Associations => New_List (
+                           Node1 => Left_N,
+                           Node2 => Right_N)));
+                  end;
                end;
 
             else
@@ -4129,13 +4144,11 @@ package body Exp_Ch5 is
                       Make_Selected_Component (Loc,
                         Prefix => Duplicate_Subexpr (Exp),
                         Selector_Name =>
-                          New_Reference_To (First_Tag_Component (Utyp), Loc)),
+                          Make_Identifier (Loc, Chars => Name_uTag)),
                     Right_Opnd =>
-                      Unchecked_Convert_To (RTE (RE_Tag),
-                        New_Reference_To
-                          (Node (First_Elmt
-                                  (Access_Disp_Table (Base_Type (Utyp)))),
-                           Loc))),
+                      Make_Attribute_Reference (Loc,
+                        Prefix => New_Occurrence_Of (Base_Type (Utyp), Loc),
+                        Attribute_Name => Name_Tag)),
                 Reason => CE_Tag_Check_Failed));
 
          --  If the result type is a specific nonlimited tagged type, then we

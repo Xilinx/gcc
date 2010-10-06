@@ -77,6 +77,11 @@ extern void set_struct_debug_option (const char *value);
    debugging information.  */
 extern bool use_gnu_debug_info_extensions;
 
+/* Run the second compilation of -fcompare-debug.  Not defined using
+   Var in common.opt because this is used in Ada code and so must be
+   an actual variable not a macro.  */
+extern int flag_compare_debug;
+
 /* Enumerate visibility settings.  This is deliberately ordered from most
    to least visibility.  */
 #ifndef SYMBOL_VISIBILITY_DEFINED
@@ -101,14 +106,6 @@ struct visibility_flags
 
 /* Global visibility options.  */
 extern struct visibility_flags visibility_options;
-
-/* Nonzero means do optimizations.  -opt.  */
-
-extern int optimize;
-
-/* Nonzero means optimize for size.  -Os.  */
-
-extern int optimize_size;
 
 /* True if this is the LTO front end (lto1).  This is used to disable
    gimple generation and lowering passes that are normally run on the
@@ -275,13 +272,6 @@ extern struct target_flag_state *this_target_flag_state;
 /* Nonzero if subexpressions must be evaluated from left-to-right.  */
 extern int flag_evaluation_order;
 
-/* Value of the -G xx switch, and whether it was passed or not.  */
-extern unsigned HOST_WIDE_INT g_switch_value;
-extern bool g_switch_set;
-
-/* Same for selective scheduling.  */
-extern bool sel_sched_switch_set;
-
 /* Whether to run the warn_unused_result attribute pass.  */
 extern bool flag_warn_unused_result;
 
@@ -295,10 +285,6 @@ enum graph_dump_types
   vcg
 };
 extern enum graph_dump_types graph_dump_format;
-
-/* True if flag_speculative_prefetching was set by user.  Used to suppress
-   warning message in case flag was set by -fprofile-{generate,use}.  */
-extern bool flag_speculative_prefetching_set;
 
 /* Type of stack check.  */
 enum stack_check_type

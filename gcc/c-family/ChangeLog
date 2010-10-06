@@ -1,3 +1,129 @@
+2010-10-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (struct diagnostic_context): Don't declare here.
+	(c_common_initialize_diagnostics): Declare using
+	diagnostic_context typedef.
+	* c-opts.c (c_common_handle_option): Pass global_dc to
+	handle_generated_option.
+
+2010-10-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-opts.c (c_common_handle_option): Pass &global_options_set to
+	handle_generated_option.
+
+2010-10-03  Ian Lance Taylor  <iant@google.com>
+
+	* c.opt (-fplan9-extensions): New option.
+
+2010-10-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* c-cppbuiltin.c (define__GNUC__, builtin_define_type_precision):
+	Remove.
+	(c_cpp_builtins): Call functions from cppbuiltin.c instead
+	of duplicating code.
+
+2010-09-30  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* c-common.c: Add two new entries for @optional
+	and @required keywords.
+
+	merge from FSF 'apple/trunk' branch.
+	2006-01-30  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4386773
+	* c-common.h (RID_AT_OPTIONAL, RID_AT_REQUIRED): Two new
+	objective-c keywords.
+	(objc_set_method_opt): New declaration.
+	* stub-objc.c (objc_set_method_opt): New stub.
+	
+2010-09-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (handle_optimize_attribute): Pass &global_options to
+	cl_optimization_save and cl_optimization_restore.
+	* c-opts.c (c_common_handle_option): Pass &global_options to
+	handle_generated_option.
+	* c-pragma.c (handle_pragma_diagnostic): Use option_flag_var.
+	(handle_pragma_pop_options, handle_pragma_reset_options): Pass
+	&global_options to cl_optimization_restore.
+
+2010-09-30  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-lex.c (c_lex_with_flags): Updated comments for CPP_AT_NAME
+	Objective-C/Objective-C++ keywords.
+
+2010-09-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.	
+	
+	2005-10-04  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4281748
+	* c-common.h (objc_check_global_decl): New declaration.
+	* stub-objc.c (objc_check_global_decl): New stub.
+
+2010-09-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* c.opt: Don't use VarExists.
+
+2010-09-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (c_cpp_error): Update names of diagnostic_context
+	members.
+	* c-cppbuiltin.c (c_cpp_builtins_optimize_pragma): Update names of
+	cl_optimization members.
+	* c-opts.c (warning_as_error_callback, c_common_handle_option,
+	sanitize_cpp_opts, finish_options): Update names of cpp_options
+	members.
+
+2010-09-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-common.h (OBJC_IS_CXX_KEYWORD): New macro.  Updated comments.
+	(objc_is_reserved_word): Removed.
+	* c-common.c: Updated comments.
+	* c-lex.c (c_lex_with_flags): Use OBJC_IS_CXX_KEYWORD instead of
+	objc_is_reserved_word.
+	* stub-objc.c (objc_is_reserved_word): Removed.
+
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* c-common.h (objc_add_method_declaration): Adjust prototype to 
+	include attributes.
+	(objc_start_method_definition): Likewise.
+	(objc_build_keyword_decl): Likewise.
+	* stub-objc.c:(objc_add_method_declaration): Handle attributes.
+	(objc_start_method_definition): Likewise.
+	(objc_build_keyword_decl): Likewise.
+
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* c-common.h (objc_start_class_interface): Adjust prototype.
+	(objc_start_category_interface): Likewise.
+	(objc_start_protocol): Likewise.
+	* stub-objc.c (objc_start_protocol): Adjust for extra argument.
+	(objc_start_class_interface): Likewise.
+	(objc_start_category_interface): Likewise.
+
+2010-09-27  Ian Lance Taylor  <iant@google.com>
+
+	* c-common.c (c_common_attribute_table): Add no_split_stack.
+	(handle_no_split_stack_attribute): New static function.
+
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.	
+
+	2005-12-15  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4229905	
+	* c-common.h (objc_have_common_type): New declaration.
+	* stub-objc.c (objc_have_common_type): New stub.
+
+	2005-06-22  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4154928
+	* c-common.h (objc_common_type): New prototype.
+	* stub-objc.c (objc_common_type): New stub.	
+
 2010-09-24  Jan Hubicka  <jh@suse.cz>
 
 	* c-common.c (handle_leaf_attribute): New function.

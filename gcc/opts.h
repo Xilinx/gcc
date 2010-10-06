@@ -53,7 +53,7 @@ struct cl_option
   unsigned char opt_len;
   int neg_index;
   unsigned int flags;
-  void *flag_var;
+  unsigned short flag_var_offset;
   enum cl_var_type var_type;
   int var_value;
 };
@@ -156,7 +156,9 @@ struct cl_decoded_option
 struct cl_option_handler_func
 {
   /* The function called to handle the option.  */
-  bool (*handler) (const struct cl_decoded_option *decoded,
+  bool (*handler) (struct gcc_options *opts,
+		   struct gcc_options *opts_set,
+		   const struct cl_decoded_option *decoded,
 		   unsigned int lang_mask, int kind,
 		   const struct cl_option_handlers *handlers);
 
@@ -209,26 +211,41 @@ extern void decode_cmdline_options_to_array (unsigned int argc,
 extern void decode_options (unsigned int argc, const char **argv,
 			    struct cl_decoded_option **decoded_options,
 			    unsigned int *decoded_options_count);
-extern int option_enabled (int opt_idx);
-extern bool get_option_state (int, struct cl_option_state *);
-extern void set_option (int opt_index, int value, const char *arg, int);
-bool handle_option (const struct cl_decoded_option *decoded,
+extern int option_enabled (int opt_idx, void *opts);
+extern bool get_option_state (struct gcc_options *, int,
+			      struct cl_option_state *);
+extern void set_option (struct gcc_options *opts,
+			struct gcc_options *opts_set,
+			int opt_index, int value, const char *arg, int kind,
+			diagnostic_context *dc);
+extern void *option_flag_var (int opt_index, struct gcc_options *opts);
+bool handle_option (struct gcc_options *opts,
+		    struct gcc_options *opts_set,
+		    const struct cl_decoded_option *decoded,
 		    unsigned int lang_mask, int kind,
-		    const struct cl_option_handlers *handlers);
-bool handle_generated_option (size_t opt_index, const char *arg, int value,
+		    const struct cl_option_handlers *handlers,
+		    bool generated_p, diagnostic_context *dc);
+bool handle_generated_option (struct gcc_options *opts,
+			      struct gcc_options *opts_set,
+			      size_t opt_index, const char *arg, int value,
 			      unsigned int lang_mask, int kind,
-			      const struct cl_option_handlers *handlers);
+			      const struct cl_option_handlers *handlers,
+			      diagnostic_context *dc);
 void generate_option (size_t opt_index, const char *arg, int value,
 		      unsigned int lang_mask,
 		      struct cl_decoded_option *decoded);
 void generate_option_input_file (const char *file,
 				 struct cl_decoded_option *decoded);
-extern void read_cmdline_option (struct cl_decoded_option *decoded,
+extern void read_cmdline_option (struct gcc_options *opts,
+				 struct gcc_options *opts_set,
+				 struct cl_decoded_option *decoded,
 				 unsigned int lang_mask,
-				 const struct cl_option_handlers *handlers);
+				 const struct cl_option_handlers *handlers,
+				 diagnostic_context *dc);
 extern void register_warning_as_error_callback (void (*callback) (int));
 extern void enable_warning_as_error (const char *arg, int value,
 				     unsigned int lang_mask,
-				     const struct cl_option_handlers *handlers);
+				     const struct cl_option_handlers *handlers,
+				     diagnostic_context *dc);
 extern void print_ignored_options (void);
 #endif

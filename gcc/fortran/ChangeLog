@@ -1,3 +1,112 @@
+2010-10-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/45838
+	* f95-lang.c (ATTR_NOTHROW_LEAF_LIST, ATTR_CONST_NOTHROW_LEAF_LIST,
+	ATTR_NOTHROW_LIST, ATTR_CONST_NOTHROW_LIST): Define.
+	(gfc_define_builtin): Change last argument to int bitmask from bool,
+	control addition of TREE_NOTHROW and leaf attribute as well.
+	(DO_DEFINE_MATH_BUILTIN): Adjust callers.
+	(gfc_init_builtin_functions): Likewise.  Remove
+	ATTR_{,CONST_}NOTHROW_LIST enum.
+
+2010-10-04  Andi Kleen <ak@linux.intel.com>
+
+	* Make-lang.in (gfortran, f951): Add + to build rule.
+
+2010-10-04  Richard Guenther  <rguenther@suse.de>
+
+	* f95-lang.c (current_translation_unit): New global variable.
+	(gfc_create_decls): Build a translation-unit decl.
+	(pushdecl): In the global binding-level use the
+	translation-unit decl as DECL_CONTEXT.
+	* trans-decl.c (gfc_get_symbol_decl): Use DECL_FILE_SCOPE_P.
+	(build_function_decl): Likewise.  Delay setting the assembler
+	name, leave setting of DECL_CONTEXT to pushdecl.
+	(trans_function_start): Use DECL_FILE_SCOPE_P.
+	(gfc_create_module_variable): Likewise.  Remove questionable
+	asserts.
+	* trans.c (gfc_generate_module_code): Likewise.
+
+2010-10-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* cpp.c (cpp_define_builtins): Call functions from cppbuiltin.c
+	instead of duplicating code.
+	* Make-lang.in: Add dependency on cppbuiltin.h. Don't define
+	BASEVER.
+
+2010-10-02  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45748
+	* resolve.c (resolve_formal_arglist): Avoid setting default type for
+	formal arguments of intrinsic procedures.
+
+2010-09-30  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45828
+	* resolve.c (resolve_allocate_expr): Do not use
+	'gfc_has_default_initializer'.
+
+2010-09-30  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.tex (Fortran 2008 status): Update list of
+	implemented features.
+
+2010-09-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt: Don't use VarExists.
+
+2010-09-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* cpp.c (cpp_define_builtins): Update names of gfc_option_t
+	members.
+	(gfc_cpp_post_options): Update names of cpp_options members.
+	(cb_cpp_error): Update names of diagnostic_context members.
+	* f95-lang.c (gfc_init_builtin_functions): Update names of
+	gfc_option_t members.
+	* gfortran.h (gfc_option_t): Rename warn_conversion and
+	flag_openmp.
+	* intrinsic.c (gfc_convert_type_warn): Update names of
+	gfc_option_t members.
+	* options.c (gfc_init_options, gfc_post_options, set_Wall,
+	gfc_handle_option): Update names of gfc_option_t members.
+	* parse.c (next_free, next_fixed): Update names of gfc_option_t
+	members.
+	* scanner.c (pedantic): Remove extern declaration.
+	(skip_free_comments, skip_fixed_comments, include_line): Update
+	names of gfc_option_t members.
+	* trans-decl.c (gfc_generate_function_code): Update names of
+	gfc_option_t members.
+
+2010-09-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40569
+	PR fortran/40568
+	* intrinsic.c (add_functions): Make compiler_version and
+	compiler_options CLASS_INQUIRY.
+	* gfortran.h (gfc_get_option_string): New prototype.
+	* intrinsic.texi (COMPILER_VERSION, COMPILER_OPTIONS):
+	Add documentation.
+	(C_SIZEOF): Mark as inquiry function of ISO_C_BINDING.
+	(ISO_FORTRAN_ENV): Refer to COMPILER_VERSION and COMPILER_OPTIONS.
+	(ISO_C_BINDING): Refer to C_SIZEOF.
+	* options.c (gfc_get_option_string): New function.
+	* simplify.c (gfc_simplify_compiler_options): Use it.
+	(gfc_simplify_compiler_version): Include compiler name.
+
+2010-09-28  Jan Hubicka  <jh@suse.cz>
+
+	* f95-lang.c (gfc_define_builtin): Make leaf.
+	(gfc_init_builtin_functions): Handle only ATTR_CONST_NOTHROW_LEAF_LIST
+	and ATTR_NOTHROW_LEAF_LIST.
+	(DEF_SYNC_BUILTIN): Check ATTR_CONST_NOTHROW_LEAF_LIST.
+	(DEF_GOMP_BUILTIN): Likewise.
+
+2010-09-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45756
+	* trans-decl.c (gfc_get_symbol_decl): Use gsym for decl of
+	module parameters.
+
 2010-09-27  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/40569

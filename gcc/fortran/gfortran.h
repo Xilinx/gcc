@@ -2190,7 +2190,7 @@ typedef struct
 
   int warn_aliasing;
   int warn_ampersand;
-  int warn_conversion;
+  int gfc_warn_conversion;
   int warn_conversion_extra;
   int warn_implicit_interface;
   int warn_implicit_procedure;
@@ -2230,7 +2230,7 @@ typedef struct
   int blas_matmul_limit;
   int flag_cray_pointer;
   int flag_d_lines;
-  int flag_openmp;
+  int gfc_flag_openmp;
   int flag_sign_zero;
   int flag_module_private;
   int flag_recursive;
@@ -2403,6 +2403,7 @@ void gfc_init_options (unsigned int,
 bool gfc_handle_option (size_t, const char *, int, int,
 			const struct cl_option_handlers *);
 bool gfc_post_options (const char **);
+char *gfc_get_option_string (void);
 
 /* f95-lang.c */
 void gfc_maybe_initialize_eh (void);

@@ -1926,7 +1926,8 @@ attributes are currently defined for functions on all targets:
 @code{returns_twice}, @code{noinline}, @code{noclone},
 @code{always_inline}, @code{flatten}, @code{pure}, @code{const},
 @code{nothrow}, @code{sentinel}, @code{format}, @code{format_arg},
-@code{no_instrument_function}, @code{section}, @code{constructor},
+@code{no_instrument_function}, @code{no_split_stack},
+@code{section}, @code{constructor},
 @code{destructor}, @code{used}, @code{unused}, @code{deprecated},
 @code{weak}, @code{malloc}, @code{alias}, @code{ifunc},
 @code{warn_unused_result}, @code{nonnull}, @code{gnu_inline},
@@ -2533,8 +2534,8 @@ interrupt handler.  The compiler will generate function entry and exit
 sequences suitable for use in an interrupt handler when this attribute
 is present.
 
-Note, interrupt handlers for the Blackfin, H8/300, H8/300H, H8S, and
-SH processors can be specified via the @code{interrupt_handler} attribute.
+Note, interrupt handlers for the Blackfin, H8/300, H8/300H, H8S, MicroBlaze,
+and SH processors can be specified via the @code{interrupt_handler} attribute.
 
 Note, on the AVR, interrupts will be enabled inside the function.
 
@@ -2856,6 +2857,14 @@ If @option{-finstrument-functions} is given, profiling function calls will
 be generated at entry and exit of most user-compiled functions.
 Functions with this attribute will not be so instrumented.
 
+@item no_split_stack
+@cindex @code{no_split_stack} function attribute
+@opindex fsplit-stack
+If @option{-fsplit-stack} is given, functions will have a small
+prologue which decides whether to split the stack.  Functions with the
+@code{no_split_stack} attribute will not have that prologue, and thus
+may run with only a small amount of stack space available.
+
 @item noinline
 @cindex @code{noinline} function attribute
 This function attribute prevents a function from being considered for
@@ -3124,6 +3133,14 @@ to be marked with the @code{noreturn} attribute.
 Use this attribute on the Blackfin, H8/300, H8/300H, and H8S to indicate that
 all registers except the stack pointer should be saved in the prologue
 regardless of whether they are used or not.
+
+@item save_volatiles
+@cindex save volatile registers on the MicroBlaze
+Use this attribute on the MicroBlaze to indicate that the function is
+an interrupt handler.  All volatile registers (in addition to non-volatile 
+registers) will be saved in the function prologue.  If the function is a leaf 
+function, only volatiles used by the function are saved.  A normal function 
+return is generated instead of a return from interrupt.  
 
 @item section ("@var{section-name}")
 @cindex @code{section} function attribute
@@ -13009,6 +13026,34 @@ also be a definition with a tag such as @samp{struct foo @{ int a;
 @};}, a reference to a previously defined structure or union such as
 @samp{struct foo;}, or a reference to a @code{typedef} name for a
 previously defined structure or union type with a tag.
+
+@opindex fplan9-extensions
+The option @option{-fplan9-extensions} enables
+@option{-fms-extensions} as well as two other extensions.  First, a
+pointer to a structure is automatically converted to a pointer to an
+anonymous field for assignments and function calls.  For example:
+
+@smallexample
+struct s1 @{ int a; @};
+struct s2 @{ struct s1; @};
+extern void f1 (struct s1 *);
+void f2 (struct s2 *p) @{ f1 (p); @}
+@end smallexample
+
+In the call to @code{f1} inside @code{f2}, the pointer @code{p} is
+converted into a pointer to the anonymous field.
+
+Second, when the type of an anonymous field is a @code{typedef} for a
+@code{struct} or @code{union}, code may refer to the field using the
+name of the @code{typedef}.
+
+@smallexample
+typedef struct @{ int a; @} s1;
+struct s2 @{ s1; @};
+s1 f1 (struct s2 *p) @{ return p->s1; @}
+@end smallexample
+
+These usages are only permitted when they are not ambiguous.
 
 @node Thread-Local
 @section Thread-Local Storage

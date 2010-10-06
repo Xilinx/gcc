@@ -1739,12 +1739,17 @@ package body Sem_Ch10 is
          --  Otherwise we must load the subunit and link to it
 
          else
+            --  Make sure that, if the subunit is preprocessed and -gnateG is
+            --  specified, the preprocessed file will be written.
+
+            Lib.Analysing_Subunit_Of_Main := True;
             Unum :=
               Load_Unit
                 (Load_Name  => Subunit_Name,
                  Required   => False,
                  Subunit    => True,
                  Error_Node => N);
+            Lib.Analysing_Subunit_Of_Main := False;
 
             --  Give message if we did not get the unit Emit warning even if
             --  missing subunit is not within main unit, to simplify debugging.
@@ -1822,11 +1827,11 @@ package body Sem_Ch10 is
             end if;
          end if;
 
-         --  The remaining case is when the subunit is not already loaded and
-         --  we are not generating code. In this case we are just performing
-         --  semantic analysis on the parent, and we are not interested in
-         --  the subunit. For subprograms, analyze the stub as a body. For
-         --  other entities the stub has already been marked as completed.
+      --  The remaining case is when the subunit is not already loaded and we
+      --  are not generating code. In this case we are just performing semantic
+      --  analysis on the parent, and we are not interested in the subunit. For
+      --  subprograms, analyze the stub as a body. For other entities the stub
+      --  has already been marked as completed.
 
       else
          Optional_Subunit;
@@ -2267,7 +2272,16 @@ package body Sem_Ch10 is
       else
          Set_Scope (Defining_Entity (N), Current_Scope);
          Generate_Reference (Nam, Defining_Identifier (N), 'b');
-         Set_Has_Completion (Etype (Nam));
+
+         --  Check for duplicate stub, if so give message and terminate
+
+         if Has_Completion (Etype (Nam)) then
+            Error_Msg_N ("duplicate stub for task", N);
+            return;
+         else
+            Set_Has_Completion (Etype (Nam));
+         end if;
+
          Analyze_Proper_Body (N, Etype (Nam));
 
          --  Set elaboration flag to indicate that entity is callable. This

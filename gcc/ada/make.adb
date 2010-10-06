@@ -1658,6 +1658,32 @@ package body Make is
             return;
          end if;
 
+         --  When compiling with -gnatc, don't take ALI file into account if
+         --  it has not been generated for the current source, for example if
+         --  it has been generated for the spec, but we are compiling the body.
+
+         if Operating_Mode = Check_Semantics then
+            declare
+               File_Name : constant String := Get_Name_String (Source_File);
+               OK        : Boolean := False;
+
+            begin
+               for U in ALIs.Table (ALI).First_Unit ..
+                 ALIs.Table (ALI).Last_Unit
+               loop
+                  OK := Get_Name_String (Units.Table (U).Sfile) = File_Name;
+                  exit when OK;
+               end loop;
+
+               if not OK then
+                  Verbose_Msg
+                    (Full_Lib_File, "not generated for the same source");
+                  ALI := No_ALI_Id;
+                  return;
+               end if;
+            end;
+         end if;
+
          --  Check for matching compiler switches if needed
 
          if Check_Switches then
@@ -4468,29 +4494,41 @@ package body Make is
                      --  language, all the Ada mains.
 
                      while Value /= Prj.Nil_String loop
-                        Get_Name_String
-                          (Project_Tree.String_Elements.Table (Value).Value);
-
                         --  To know if a main is an Ada main, get its project.
                         --  It should be the project specified on the command
                         --  line.
 
-                        if (not Foreign_Language) or else
-                            Prj.Env.Project_Of
-                              (Name_Buffer (1 .. Name_Len),
-                               Main_Project,
-                               Project_Tree) =
-                             Main_Project
-                        then
-                           At_Least_One_Main := True;
-                           Osint.Add_File
-                             (Get_Name_String
-                                (Project_Tree.String_Elements.Table
-                                   (Value).Value),
-                              Index =>
-                                Project_Tree.String_Elements.Table
-                                  (Value).Index);
-                        end if;
+                        Get_Name_String
+                          (Project_Tree.String_Elements.Table (Value).Value);
+
+                        declare
+                           Main_Name : constant String :=
+                              Get_Name_String
+                               (Project_Tree.String_Elements.Table
+                                    (Value).Value);
+                           Proj : constant Project_Id :=
+                             Prj.Env.Project_Of
+                              (Main_Name, Main_Project, Project_Tree);
+                        begin
+
+                           if Proj = Main_Project then
+
+                              At_Least_One_Main := True;
+                              Osint.Add_File
+                                (Get_Name_String
+                                   (Project_Tree.String_Elements.Table
+                                      (Value).Value),
+                                 Index =>
+                                   Project_Tree.String_Elements.Table
+                                     (Value).Index);
+
+                           elsif not Foreign_Language then
+                              Make_Failed
+                                ("""" & Main_Name &
+                                 """ is not a source of project " &
+                                 Get_Name_String (Main_Project.Display_Name));
+                           end if;
+                        end;
 
                         Value := Project_Tree.String_Elements.Table
                                    (Value).Next;
@@ -7950,6 +7988,12 @@ package body Make is
                end;
             end if;
 
+         elsif Argv'Length > Source_Info_Option'Length and then
+           Argv (1 .. Source_Info_Option'Length) = Source_Info_Option
+         then
+            Project_Tree.Source_Info_File_Name :=
+              new String'(Argv (Source_Info_Option'Length + 1 .. Argv'Last));
+
          elsif Argv'Length >= 8 and then
            Argv (1 .. 8) = "--param="
          then
@@ -8060,12 +8104,12 @@ package body Make is
          elsif Argv (2) = 'L' then
             Add_Switch (Argv, Linker, And_Save => And_Save);
 
-         --  For -gxxxxx, -pg, -mxxx, -fxxx: give the switch to both the
+         --  For -gxxx, -pg, -mxxx, -fxxx, -Oxxx, pass the switch to both the
          --  compiler and the linker (except for -gnatxxx which is only for the
          --  compiler). Some of the -mxxx (for example -m64) and -fxxx (for
          --  example -ftest-coverage for gcov) need to be used when compiling
          --  the binder generated files, and using all these gcc switches for
-         --  the binder generated files should not be a problem.
+         --  them should not be a problem. Pass -Oxxx to the linker for LTO.
 
          elsif
            (Argv (2) = 'g' and then (Argv'Last < 5
@@ -8073,6 +8117,7 @@ package body Make is
              or else Argv (2 .. Argv'Last) = "pg"
              or else (Argv (2) = 'm' and then Argv'Last > 2)
              or else (Argv (2) = 'f' and then Argv'Last > 2)
+             or else (Argv (2) = 'O' and then Argv'Last > 2)
          then
             Add_Switch (Argv, Compiler, And_Save => And_Save);
             Add_Switch (Argv, Linker,   And_Save => And_Save);
@@ -8316,10 +8361,11 @@ package body Make is
 
       Switches :=
         Prj.Util.Value_Of
-          (Index     => Name_Id (Source_File),
-           Src_Index => Source_Index,
-           In_Array  => Switches_Array,
-           In_Tree   => Project_Tree);
+          (Index           => Name_Id (Source_File),
+           Src_Index       => Source_Index,
+           In_Array        => Switches_Array,
+           In_Tree         => Project_Tree,
+           Allow_Wildcards => True);
 
       --  Check also without the suffix
 
@@ -8361,10 +8407,11 @@ package body Make is
                Add_Str_To_Name_Buffer (Name (1 .. Last));
                Switches :=
                  Prj.Util.Value_Of
-                   (Index     => Name_Find,
-                    Src_Index => 0,
-                    In_Array  => Switches_Array,
-                    In_Tree   => Project_Tree);
+                   (Index           => Name_Find,
+                    Src_Index       => 0,
+                    In_Array        => Switches_Array,
+                    In_Tree         => Project_Tree,
+                    Allow_Wildcards => True);
 
                if Switches = Nil_Variable_Value and then Allow_ALI then
                   Last := Source_File_Name'Length;

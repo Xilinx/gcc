@@ -2151,14 +2151,18 @@ esac])
 # gnu_indirect_function type is an extension proposed at
 # http://groups.google/com/group/generic-abi/files. It allows dynamic runtime
 # selection of function implementation
-gcc_GAS_CHECK_FEATURE(gnu_indirect_function, gcc_cv_as_indirect_function,
- [elf,2,20,1],,
-[	.type  Foo, @gnu_indirect_function
-Foo:])
-GCC_TARGET_TEMPLATE([HAVE_GAS_INDIRECT_FUNCTION])
-if test $gcc_cv_as_indirect_function = yes ; then
-  AC_DEFINE(HAVE_GAS_INDIRECT_FUNCTION, 1,
-  [Define if your assembler supports indirect function type.])
+AC_ARG_ENABLE(gnu-indirect-function,
+ [AS_HELP_STRING([--enable-gnu-indirect-function],
+                 [enable the use of the @gnu_indirect_function to glibc systems])],
+ [case $enable_gnu_indirect_function in
+    yes | no) ;;
+    *) AC_MSG_ERROR(['$enable_gnu_indirect_function' is an invalid value for --enable-gnu-indirect-function.
+Valid choices are 'yes' and 'no'.]) ;;
+  esac],
+ [enable_gnu_indirect_function="$default_gnu_indirect_function"])
+if test x$enable_gnu_indirect_function = xyes; then
+  AC_DEFINE(HAVE_GNU_INDIRECT_FUNCTION, 1,
+   [Define if your system supports gnu indirect functions.])
 fi
 
 changequote(,)dnl
@@ -2230,6 +2234,15 @@ else
     case "${target}" in
       hppa64*-*-hpux* | ia64*-*-hpux*)
 	gcc_cv_ld_hidden=yes
+	;;
+      *-*-solaris2.8*)
+        # .hidden support was backported to Solaris 8, starting with ld
+	# version 1.276.
+	if test "$ld_vers_minor" -ge 276; then
+	  gcc_cv_ld_hidden=yes
+	else
+	  gcc_cv_ld_hidden=no
+	fi
 	;;
       *-*-solaris2.9* | *-*-solaris2.1[0-9]*)
 	# Support for .hidden in Sun ld appeared in Solaris 9 FCS, but
@@ -3739,9 +3752,9 @@ esac
 # version to the per-target configury.
 case "$target" in
   i?86*-*-* | mips*-*-* | alpha*-*-* | powerpc*-*-* | sparc*-*-* | m68*-*-* \
-  | x86_64*-*-* | hppa*-*-* | arm*-*-* \
+  | x86_64*-*-* | hppa*-*-* | arm*-*-* | avr*-*-* \
   | xstormy16*-*-* | cris-*-* | crisv32-*-* | xtensa*-*-* | bfin-*-* | score*-*-* \
-  | spu-*-* | fido*-*-* | m32c-*-*)
+  | spu-*-* | fido*-*-* | m32c-*-* | microblaze-*-*)
     insn="nop"
     ;;
   ia64*-*-* | s390*-*-*)

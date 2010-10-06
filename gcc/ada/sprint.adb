@@ -2785,7 +2785,13 @@ package body Sprint is
             end if;
 
             Write_Indent;
-            Sprint_Node_Sloc (Specification (Node));
+
+            if Present (Corresponding_Spec (Node)) then
+               Sprint_Node_Sloc (Parent (Corresponding_Spec (Node)));
+            else
+               Sprint_Node_Sloc (Specification (Node));
+            end if;
+
             Write_Str (" is");
 
             Sprint_Indented_List (Declarations (Node));
@@ -3760,12 +3766,15 @@ package body Sprint is
 
                   when Access_Kind =>
                      Write_Header (Ekind (Typ) = E_Access_Type);
+
+                     if Can_Never_Be_Null (Typ) then
+                        Write_Str ("not null ");
+                     end if;
+
                      Write_Str ("access ");
 
                      if Is_Access_Constant (Typ) then
                         Write_Str ("constant ");
-                     elsif Can_Never_Be_Null (Typ) then
-                        Write_Str ("not null ");
                      end if;
 
                      Write_Id (Directly_Designated_Type (Typ));

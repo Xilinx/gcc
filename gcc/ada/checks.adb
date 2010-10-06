@@ -819,15 +819,6 @@ package body Checks is
                      --  node is retained, in order to avoid the warning for
                      --  redundant conversions in Resolve_Type_Conversion.
 
-                     --  The above comment is uncomfortable. This seems like
-                     --  an awkward covert channel, since there isno general
-                     --  requirement in sinfo.ads or einfo.ads that requires
-                     --  this rewrite. Instead, the issue seems to be that in
-                     --  the old code, some node was incorrectly marked as
-                     --  coming from source when it should not have been and/or
-                     --  the warning code did not properly test the appropriate
-                     --  Comes_From_Soure flag. ???
-
                      Rewrite (N, Relocate_Node (N));
 
                      Set_Etype (N, Target_Type);
@@ -4108,13 +4099,13 @@ package body Checks is
          end if;
       end if;
 
-      --  If this is a boolean expression, only its elementary consituents need
+      --  If this is a boolean expression, only its elementary operands need
       --  checking: if they are valid, a boolean or short-circuit operation
       --  with them will be valid as well.
 
       if Base_Type (Typ) = Standard_Boolean
         and then
-          (Nkind (Expr) in N_Op or else Nkind (Expr) in N_Short_Circuit)
+         (Nkind (Expr) in N_Op or else Nkind (Expr) in N_Short_Circuit)
       then
          return;
       end if;
