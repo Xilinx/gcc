@@ -93,6 +93,18 @@ extern void gt_ggc_mx_hashed_attribute (void *);
   if (X != NULL) gt_ggc_mx_hashed_entry (X);\
   } while (0)
 extern void gt_ggc_mx_hashed_entry (void *);
+#define gt_ggc_m_23VEC_ltrans_partition_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_ltrans_partition_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_ltrans_partition_gc (void *);
+#define gt_ggc_m_20ltrans_partition_def(X) do { \
+  if (X != NULL) gt_ggc_mx_ltrans_partition_def (X);\
+  } while (0)
+extern void gt_ggc_mx_ltrans_partition_def (void *);
+#define gt_ggc_m_19VEC_method_entry_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_method_entry_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_method_entry_gc (void *);
 #define gt_ggc_m_14type_assertion(X) do { \
   if (X != NULL) gt_ggc_mx_type_assertion (X);\
   } while (0)
@@ -121,6 +133,14 @@ extern void gt_ggc_mx_binding_level (void *);
   if (X != NULL) gt_ggc_mx_opt_stack (X);\
   } while (0)
 extern void gt_ggc_mx_opt_stack (void *);
+#define gt_ggc_m_27VEC_pending_redefinition_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_pending_redefinition_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_pending_redefinition_gc (void *);
+#define gt_ggc_m_19VEC_pending_weak_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_pending_weak_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_pending_weak_gc (void *);
 #define gt_ggc_m_11align_stack(X) do { \
   if (X != NULL) gt_ggc_mx_align_stack (X);\
   } while (0)
@@ -145,6 +165,14 @@ extern void gt_ggc_mx_VEC_tree_int_gc (void *);
   if (X != NULL) gt_ggc_mx_cp_parser (X);\
   } while (0)
 extern void gt_ggc_mx_cp_parser (void *);
+#define gt_ggc_m_34VEC_cp_unparsed_functions_entry_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_cp_unparsed_functions_entry_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_cp_unparsed_functions_entry_gc (void *);
+#define gt_ggc_m_27VEC_cp_default_arg_entry_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_cp_default_arg_entry_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_cp_default_arg_entry_gc (void *);
 #define gt_ggc_m_17cp_parser_context(X) do { \
   if (X != NULL) gt_ggc_mx_cp_parser_context (X);\
   } while (0)
@@ -169,6 +197,10 @@ extern void gt_ggc_mx_spec_entry (void *);
   if (X != NULL) gt_ggc_mx_pending_template (X);\
   } while (0)
 extern void gt_ggc_mx_pending_template (void *);
+#define gt_ggc_m_21VEC_incomplete_var_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_incomplete_var_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_incomplete_var_gc (void *);
 #define gt_ggc_m_21named_label_use_entry(X) do { \
   if (X != NULL) gt_ggc_mx_named_label_use_entry (X);\
   } while (0)
@@ -205,6 +237,10 @@ extern void gt_ggc_mx_saved_scope (void *);
   if (X != NULL) gt_ggc_mx_cxx_int_tree_map (X);\
   } while (0)
 extern void gt_ggc_mx_cxx_int_tree_map (void *);
+#define gt_ggc_m_23VEC_cp_label_binding_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_cp_label_binding_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_cp_label_binding_gc (void *);
 #define gt_ggc_m_23VEC_cp_class_binding_gc(X) do { \
   if (X != NULL) gt_ggc_mx_VEC_cp_class_binding_gc (X);\
   } while (0)
@@ -257,6 +293,10 @@ extern void gt_ggc_mx_VEC_parm_attr_gc (void *);
   if (X != NULL) gt_ggc_mx_parm_attr_d (X);\
   } while (0)
 extern void gt_ggc_mx_parm_attr_d (void *);
+#define gt_ggc_m_17lto_in_decl_state(X) do { \
+  if (X != NULL) gt_ggc_mx_lto_in_decl_state (X);\
+  } while (0)
+extern void gt_ggc_mx_lto_in_decl_state (void *);
 #define gt_ggc_m_22VEC_ipa_edge_args_t_gc(X) do { \
   if (X != NULL) gt_ggc_mx_VEC_ipa_edge_args_t_gc (X);\
   } while (0)
@@ -265,6 +305,10 @@ extern void gt_ggc_mx_VEC_ipa_edge_args_t_gc (void *);
   if (X != NULL) gt_ggc_mx_lto_symtab_entry_def (X);\
   } while (0)
 extern void gt_ggc_mx_lto_symtab_entry_def (void *);
+#define gt_ggc_m_11heapvar_map(X) do { \
+  if (X != NULL) gt_ggc_mx_heapvar_map (X);\
+  } while (0)
+extern void gt_ggc_mx_heapvar_map (void *);
 #define gt_ggc_m_20ssa_operand_memory_d(X) do { \
   if (X != NULL) gt_ggc_mx_ssa_operand_memory_d (X);\
   } while (0)
@@ -277,10 +321,10 @@ extern void gt_ggc_mx_scev_info_str (void *);
   if (X != NULL) gt_ggc_mx_VEC_mem_addr_template_gc (X);\
   } while (0)
 extern void gt_ggc_mx_VEC_mem_addr_template_gc (void *);
-#define gt_ggc_m_13VEC_gimple_gc(X) do { \
-  if (X != NULL) gt_ggc_mx_VEC_gimple_gc (X);\
+#define gt_ggc_m_17gimple_seq_node_d(X) do { \
+  if (X != NULL) gt_ggc_mx_gimple_seq_node_d (X);\
   } while (0)
-extern void gt_ggc_mx_VEC_gimple_gc (void *);
+extern void gt_ggc_mx_gimple_seq_node_d (void *);
 #define gt_ggc_m_9type_hash(X) do { \
   if (X != NULL) gt_ggc_mx_type_hash (X);\
   } while (0)
@@ -289,10 +333,6 @@ extern void gt_ggc_mx_type_hash (void *);
   if (X != NULL) gt_ggc_mx_string_pool_data (X);\
   } while (0)
 extern void gt_ggc_mx_string_pool_data (void *);
-#define gt_ggc_m_13libfunc_entry(X) do { \
-  if (X != NULL) gt_ggc_mx_libfunc_entry (X);\
-  } while (0)
-extern void gt_ggc_mx_libfunc_entry (void *);
 #define gt_ggc_m_23temp_slot_address_entry(X) do { \
   if (X != NULL) gt_ggc_mx_temp_slot_address_entry (X);\
   } while (0)
@@ -429,14 +469,22 @@ extern void gt_ggc_mx_constant_descriptor_tree (void *);
   if (X != NULL) gt_ggc_mx_cgraph_asm_node (X);\
   } while (0)
 extern void gt_ggc_mx_cgraph_asm_node (void *);
-#define gt_ggc_m_12varpool_node(X) do { \
-  if (X != NULL) gt_ggc_mx_varpool_node (X);\
+#define gt_ggc_m_25cgraph_indirect_call_info(X) do { \
+  if (X != NULL) gt_ggc_mx_cgraph_indirect_call_info (X);\
   } while (0)
-extern void gt_ggc_mx_varpool_node (void *);
-#define gt_ggc_m_22VEC_cgraph_node_set_gc(X) do { \
-  if (X != NULL) gt_ggc_mx_VEC_cgraph_node_set_gc (X);\
+extern void gt_ggc_mx_cgraph_indirect_call_info (void *);
+#define gt_ggc_m_20varpool_node_set_def(X) do { \
+  if (X != NULL) gt_ggc_mx_varpool_node_set_def (X);\
   } while (0)
-extern void gt_ggc_mx_VEC_cgraph_node_set_gc (void *);
+extern void gt_ggc_mx_varpool_node_set_def (void *);
+#define gt_ggc_m_28varpool_node_set_element_def(X) do { \
+  if (X != NULL) gt_ggc_mx_varpool_node_set_element_def (X);\
+  } while (0)
+extern void gt_ggc_mx_varpool_node_set_element_def (void *);
+#define gt_ggc_m_23VEC_varpool_node_ptr_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_varpool_node_ptr_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_varpool_node_ptr_gc (void *);
 #define gt_ggc_m_19cgraph_node_set_def(X) do { \
   if (X != NULL) gt_ggc_mx_cgraph_node_set_def (X);\
   } while (0)
@@ -461,6 +509,18 @@ extern void gt_ggc_mx_VEC_ipa_replace_map_p_gc (void *);
   if (X != NULL) gt_ggc_mx_ipa_replace_map (X);\
   } while (0)
 extern void gt_ggc_mx_ipa_replace_map (void *);
+#define gt_ggc_m_18lto_file_decl_data(X) do { \
+  if (X != NULL) gt_ggc_mx_lto_file_decl_data (X);\
+  } while (0)
+extern void gt_ggc_mx_lto_file_decl_data (void *);
+#define gt_ggc_m_16VEC_ipa_ref_t_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_ipa_ref_t_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_ipa_ref_t_gc (void *);
+#define gt_ggc_m_12varpool_node(X) do { \
+  if (X != NULL) gt_ggc_mx_varpool_node (X);\
+  } while (0)
+extern void gt_ggc_mx_varpool_node (void *);
 #define gt_ggc_m_11cgraph_node(X) do { \
   if (X != NULL) gt_ggc_mx_cgraph_node (X);\
   } while (0)
@@ -481,14 +541,6 @@ extern void gt_ggc_mx_rtl_bb_info (void *);
   if (X != NULL) gt_ggc_mx_VEC_edge_gc (X);\
   } while (0)
 extern void gt_ggc_mx_VEC_edge_gc (void *);
-#define gt_ggc_m_17cselib_val_struct(X) do { \
-  if (X != NULL) gt_ggc_mx_cselib_val_struct (X);\
-  } while (0)
-extern void gt_ggc_mx_cselib_val_struct (void *);
-#define gt_ggc_m_12elt_loc_list(X) do { \
-  if (X != NULL) gt_ggc_mx_elt_loc_list (X);\
-  } while (0)
-extern void gt_ggc_mx_elt_loc_list (void *);
 #define gt_ggc_m_13VEC_loop_p_gc(X) do { \
   if (X != NULL) gt_ggc_mx_VEC_loop_p_gc (X);\
   } while (0)
@@ -525,10 +577,18 @@ extern void gt_ggc_mx_control_flow_graph (void *);
   if (X != NULL) gt_ggc_mx_eh_status (X);\
   } while (0)
 extern void gt_ggc_mx_eh_status (void *);
+#define gt_ggc_m_11stack_usage(X) do { \
+  if (X != NULL) gt_ggc_mx_stack_usage (X);\
+  } while (0)
+extern void gt_ggc_mx_stack_usage (void *);
 #define gt_ggc_m_20initial_value_struct(X) do { \
   if (X != NULL) gt_ggc_mx_initial_value_struct (X);\
   } while (0)
 extern void gt_ggc_mx_initial_value_struct (void *);
+#define gt_ggc_m_11frame_space(X) do { \
+  if (X != NULL) gt_ggc_mx_frame_space (X);\
+  } while (0)
+extern void gt_ggc_mx_frame_space (void *);
 #define gt_ggc_m_17rtx_constant_pool(X) do { \
   if (X != NULL) gt_ggc_mx_rtx_constant_pool (X);\
   } while (0)
@@ -557,10 +617,10 @@ extern void gt_ggc_mx_call_site_record_d (void *);
   if (X != NULL) gt_ggc_mx_sequence_stack (X);\
   } while (0)
 extern void gt_ggc_mx_sequence_stack (void *);
-#define gt_ggc_m_8elt_list(X) do { \
-  if (X != NULL) gt_ggc_mx_elt_list (X);\
+#define gt_ggc_m_13libfunc_entry(X) do { \
+  if (X != NULL) gt_ggc_mx_libfunc_entry (X);\
   } while (0)
-extern void gt_ggc_mx_elt_list (void *);
+extern void gt_ggc_mx_libfunc_entry (void *);
 #define gt_ggc_m_17tree_priority_map(X) do { \
   if (X != NULL) gt_ggc_mx_tree_priority_map (X);\
   } while (0)
@@ -569,6 +629,10 @@ extern void gt_ggc_mx_tree_priority_map (void *);
   if (X != NULL) gt_ggc_mx_tree_int_map (X);\
   } while (0)
 extern void gt_ggc_mx_tree_int_map (void *);
+#define gt_ggc_m_13tree_decl_map(X) do { \
+  if (X != NULL) gt_ggc_mx_tree_decl_map (X);\
+  } while (0)
+extern void gt_ggc_mx_tree_decl_map (void *);
 #define gt_ggc_m_8tree_map(X) do { \
   if (X != NULL) gt_ggc_mx_tree_map (X);\
   } while (0)
@@ -597,10 +661,6 @@ extern void gt_ggc_mx_lang_type (void *);
   if (X != NULL) gt_ggc_mx_die_struct (X);\
   } while (0)
 extern void gt_ggc_mx_die_struct (void *);
-#define gt_ggc_m_15varray_head_tag(X) do { \
-  if (X != NULL) gt_ggc_mx_varray_head_tag (X);\
-  } while (0)
-extern void gt_ggc_mx_varray_head_tag (void *);
 #define gt_ggc_m_12ptr_info_def(X) do { \
   if (X != NULL) gt_ggc_mx_ptr_info_def (X);\
   } while (0)
@@ -613,14 +673,6 @@ extern void gt_ggc_mx_VEC_constructor_elt_gc (void *);
   if (X != NULL) gt_ggc_mx_VEC_alias_pair_gc (X);\
   } while (0)
 extern void gt_ggc_mx_VEC_alias_pair_gc (void *);
-#define gt_ggc_m_11VEC_tree_gc(X) do { \
-  if (X != NULL) gt_ggc_mx_VEC_tree_gc (X);\
-  } while (0)
-extern void gt_ggc_mx_VEC_tree_gc (void *);
-#define gt_ggc_m_12VEC_uchar_gc(X) do { \
-  if (X != NULL) gt_ggc_mx_VEC_uchar_gc (X);\
-  } while (0)
-extern void gt_ggc_mx_VEC_uchar_gc (void *);
 #define gt_ggc_m_8function(X) do { \
   if (X != NULL) gt_ggc_mx_function (X);\
   } while (0)
@@ -637,10 +689,6 @@ extern void gt_ggc_mx_fixed_value (void *);
   if (X != NULL) gt_ggc_mx_real_value (X);\
   } while (0)
 extern void gt_ggc_mx_real_value (void *);
-#define gt_ggc_m_10VEC_rtx_gc(X) do { \
-  if (X != NULL) gt_ggc_mx_VEC_rtx_gc (X);\
-  } while (0)
-extern void gt_ggc_mx_VEC_rtx_gc (void *);
 #define gt_ggc_m_12object_block(X) do { \
   if (X != NULL) gt_ggc_mx_object_block (X);\
   } while (0)
@@ -669,6 +717,22 @@ extern void gt_ggc_mx_machine_function (void *);
   if (X != NULL) gt_ggc_mx_stack_local_entry (X);\
   } while (0)
 extern void gt_ggc_mx_stack_local_entry (void *);
+#define gt_ggc_m_10VEC_rtx_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_rtx_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_rtx_gc (void *);
+#define gt_ggc_m_13VEC_gimple_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_gimple_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_gimple_gc (void *);
+#define gt_ggc_m_11VEC_tree_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_tree_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_tree_gc (void *);
+#define gt_ggc_m_12VEC_uchar_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_uchar_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_uchar_gc (void *);
 #define gt_ggc_m_15basic_block_def(X) do { \
   if (X != NULL) gt_ggc_mx_basic_block_def (X);\
   } while (0)
@@ -677,10 +741,6 @@ extern void gt_ggc_mx_basic_block_def (void *);
   if (X != NULL) gt_ggc_mx_edge_def (X);\
   } while (0)
 extern void gt_ggc_mx_edge_def (void *);
-#define gt_ggc_m_17gimple_seq_node_d(X) do { \
-  if (X != NULL) gt_ggc_mx_gimple_seq_node_d (X);\
-  } while (0)
-extern void gt_ggc_mx_gimple_seq_node_d (void *);
 #define gt_ggc_m_12gimple_seq_d(X) do { \
   if (X != NULL) gt_ggc_mx_gimple_seq_d (X);\
   } while (0)
@@ -728,7 +788,6 @@ extern void gt_ggc_mx_line_maps (void *);
 extern void gt_ggc_m_II17splay_tree_node_s (void *);
 extern void gt_ggc_m_SP9tree_node17splay_tree_node_s (void *);
 extern void gt_ggc_m_P9tree_nodeP9tree_node17splay_tree_node_s (void *);
-extern void gt_ggc_m_IP9tree_node17splay_tree_node_s (void *);
 extern void gt_ggc_m_P15interface_tuple4htab (void *);
 extern void gt_ggc_m_P16volatilized_type4htab (void *);
 extern void gt_ggc_m_P17string_descriptor4htab (void *);
@@ -739,20 +798,21 @@ extern void gt_ggc_m_P21pending_abstract_type4htab (void *);
 extern void gt_ggc_m_P10spec_entry4htab (void *);
 extern void gt_ggc_m_P16cxx_int_tree_map4htab (void *);
 extern void gt_ggc_m_P17named_label_entry4htab (void *);
-extern void gt_ggc_m_P12tree_int_map4htab (void *);
+extern void gt_ggc_m_P17lto_in_decl_state4htab (void *);
 extern void gt_ggc_m_P20lto_symtab_entry_def4htab (void *);
-extern void gt_ggc_m_IP9tree_node12splay_tree_s (void *);
+extern void gt_ggc_m_P11heapvar_map4htab (void *);
+extern void gt_ggc_m_P8tree_map4htab (void *);
 extern void gt_ggc_m_P9tree_nodeP9tree_node12splay_tree_s (void *);
 extern void gt_ggc_m_P12varpool_node4htab (void *);
 extern void gt_ggc_m_P13scev_info_str4htab (void *);
+extern void gt_ggc_m_P12tree_int_map4htab (void *);
 extern void gt_ggc_m_P23constant_descriptor_rtx4htab (void *);
 extern void gt_ggc_m_P24constant_descriptor_tree4htab (void *);
 extern void gt_ggc_m_P12object_block4htab (void *);
 extern void gt_ggc_m_P7section4htab (void *);
 extern void gt_ggc_m_P17tree_priority_map4htab (void *);
-extern void gt_ggc_m_P8tree_map4htab (void *);
+extern void gt_ggc_m_P13tree_decl_map4htab (void *);
 extern void gt_ggc_m_P9type_hash4htab (void *);
-extern void gt_ggc_m_P13libfunc_entry4htab (void *);
 extern void gt_ggc_m_P23temp_slot_address_entry4htab (void *);
 extern void gt_ggc_m_P15throw_stmt_node4htab (void *);
 extern void gt_ggc_m_P9reg_attrs4htab (void *);
@@ -766,11 +826,13 @@ extern void gt_ggc_m_P15dwarf_file_data4htab (void *);
 extern void gt_ggc_m_P20indirect_string_node4htab (void *);
 extern void gt_ggc_m_P11cgraph_node4htab (void *);
 extern void gt_ggc_m_II12splay_tree_s (void *);
+extern void gt_ggc_m_P28varpool_node_set_element_def4htab (void *);
 extern void gt_ggc_m_P27cgraph_node_set_element_def4htab (void *);
 extern void gt_ggc_m_P11cgraph_edge4htab (void *);
 extern void gt_ggc_m_P9loop_exit4htab (void *);
 extern void gt_ggc_m_P24types_used_by_vars_entry4htab (void *);
 extern void gt_ggc_m_P9tree_node4htab (void *);
+extern void gt_ggc_m_P13libfunc_entry4htab (void *);
 
 /* functions code */
 
@@ -1160,8 +1222,8 @@ EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
-/* gt-melt-runtime-plugin.h file generated Wed Jul 14 14:53:16 2010
+/* gt-melt-runtime-plugin.h file generated Wed 06 Oct 2010 11:06:29 AM CEST
 
-f7dc292e5dfada593a15402f0dc982ba  melt-runtime.h
-d24b39b28a85c86681a679e154b0573c  melt-runtime.c
+6f0e6bf33eb37d094cd9e41bf23816f6  melt-runtime.h
+0459f1edeb53cf37c8eec4ded8d541ee  melt-runtime.c
 */
