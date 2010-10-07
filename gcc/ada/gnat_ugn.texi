@@ -2918,7 +2918,7 @@ should provide a stub body that raises @code{Program_Error}.
 
 @noindent
 GNAT additionally provides a useful pragma @code{Convention_Identifier}
-that can be used to parametrize conventions and allow additional synonyms
+that can be used to parameterize conventions and allow additional synonyms
 to be specified. For example if you have legacy code in which the convention
 identifier Fortran77 was used for Fortran, you can use the configuration
 pragma:
@@ -6980,10 +6980,12 @@ may generally be compiled using this switch (see the description of the
 @option{-gnat83} and @option{-gnat95} switches for further
 information).
 
+@ifset PROEDITION
 Note that even though Ada 2005 is the current official version of the
 language, GNAT still compiles in Ada 95 mode by default, so if you are
 using Ada 2005 features in your program, you must use this switch (or
 the equivalent Ada_05 or Ada_2005 configuration pragmas).
+@end ifset
 
 @item -gnat12 or -gnat2012 (Ada 2012 mode)
 @cindex @option{-gnat12} (@command{gcc})
@@ -9341,6 +9343,21 @@ project files are used.
 By default, shared library projects are not allowed to import static library
 projects. When this switch is used on the command line, this restriction is
 relaxed.
+
+@item ^--source-info=<source info file>^/SRC_INFO=source-info-file^
+Specify a source info file. This switch is active only when project files
+are used. If the source info file is specified as a relative path, then it is
+relative to the object directory of the main project. If the source info file
+does not exist, then after the Project Manager has successfully parsed and
+processed the project files and found the sources, it creates the source info
+file. If the source info file already exists and can be read successfully,
+then the Project Manager will get all the needed information about the sources
+from the source info file and will not look for them. This reduces the time
+to process the project files, especially when looking for sources that take a
+long time. If the source info file exists but cannot be parsed successfully,
+the Project Manager will attempt to recreate it. If the Project Manager fails
+to create the source info file, a message is issued, but gnatmake does not
+fail.
 
 @ifclear vms
 @item --create-map-file
@@ -17307,7 +17324,7 @@ sources and applied rules (coding standard);
 @item list of exempted coding standard violations;
 @item list of non-exempted coding standard violations;
 @item list of problems in the definition of exemption sections;
-@item of language violations (compile-time errors) detected in processed sources;
+@item list of language violations (compile-time errors) detected in processed sources;
 @end itemize
 
 @node General gnatcheck Switches
@@ -18092,6 +18109,8 @@ constants. Function macros (macros with arguments) are partially translated
 as comments, to be completed manually if needed.
 @item some extensions (e.g. vector types) are not supported
 @item pointers to pointers or complex structures are mapped to System.Address
+@item identifiers with identical name (except casing) will generate compilation
+      errors (e.g. @code{shm_get} vs @code{SHM_GET}).
 @end itemize
 
 The code generated is using the Ada 2005 syntax, which makes it
@@ -27716,11 +27735,11 @@ into the DLL. This is done by using the standard @command{gnatmake} tool.
 
 @item building the DLL
 
-To build the DLL you must use @command{gcc}'s @option{-shared}
-option. It is quite simple to use this method:
+To build the DLL you must use @command{gcc}'s @option{-shared} and
+@option{-shared-libgcc} options. It is quite simple to use this method:
 
 @smallexample
-$ gcc -shared -o api.dll obj1.o obj2.o @dots{}
+$ gcc -shared -shared-libgcc -o api.dll obj1.o obj2.o @dots{}
 @end smallexample
 
 It is important to note that in this case all symbols found in the
@@ -27729,7 +27748,7 @@ the set of symbols to export by passing to @command{gcc} a definition
 file, @pxref{The Definition File}. For example:
 
 @smallexample
-$ gcc -shared -o api.dll api.def obj1.o obj2.o @dots{}
+$ gcc -shared -shared-libgcc -o api.dll api.def obj1.o obj2.o @dots{}
 @end smallexample
 
 If you use a definition file you must export the elaboration procedures

@@ -1298,6 +1298,34 @@ package body Sem_Ch13 is
             Biased   : Boolean;
             New_Ctyp : Entity_Id;
             Decl     : Node_Id;
+            Ignore   : Boolean := False;
+
+            procedure Complain_CS (T : String);
+            --  Outputs error messages for incorrect CS clause for aliased or
+            --  atomic components (T is "aliased" or "atomic");
+
+            -----------------
+            -- Complain_CS --
+            -----------------
+
+            procedure Complain_CS (T : String) is
+            begin
+               if Known_Static_Esize (Ctyp) then
+                  Error_Msg_N
+                    ("incorrect component size for " & T & " components", N);
+                  Error_Msg_Uint_1 := Esize (Ctyp);
+                  Error_Msg_N ("\only allowed value is^", N);
+
+               else
+                  Error_Msg_N
+                    ("component size cannot be given for " & T & " components",
+                     N);
+               end if;
+
+               return;
+            end Complain_CS;
+
+         --  Start of processing for Component_Size_Case
 
          begin
             if not Is_Array_Type (U_Ent) then
@@ -1315,14 +1343,36 @@ package body Sem_Ch13 is
             elsif Csize /= No_Uint then
                Check_Size (Expr, Ctyp, Csize, Biased);
 
-               if Has_Aliased_Components (Btype)
-                 and then Csize < 32
-                 and then Csize /= 8
-                 and then Csize /= 16
+               --  Case where component size has no effect
+
+               if Known_Static_Esize (Ctyp)
+                 and then Known_Static_RM_Size (Ctyp)
+                 and then Esize (Ctyp) = RM_Size (Ctyp)
+                 and then (Esize (Ctyp) = 8  or else
+                           Esize (Ctyp) = 16 or else
+                           Esize (Ctyp) = 32 or else
+                           Esize (Ctyp) = 64)
                then
-                  Error_Msg_N
-                    ("component size incorrect for aliased components", N);
-                  return;
+                  Ignore := True;
+
+               --  Cannot give component size for aliased/atomic components
+
+               elsif Has_Aliased_Components (Btype)
+                 or else Is_Aliased (Ctyp)
+               then
+                  Complain_CS ("aliased");
+
+               elsif Has_Atomic_Components (Btype)
+                  or else Is_Atomic (Ctyp)
+               then
+                  Complain_CS ("atomic");
+
+               --  Warn for case of atomic type
+
+               elsif Is_Atomic (Btype) then
+                  Error_Msg_NE
+                    ("non-atomic components of type& may not be accessible "
+                     & "by separate tasks?", N, Btype);
                end if;
 
                --  For the biased case, build a declaration for a subtype
@@ -1385,7 +1435,10 @@ package body Sem_Ch13 is
                end if;
 
                Set_Has_Component_Size_Clause (Btype, True);
-               Set_Has_Non_Standard_Rep      (Btype, True);
+
+               if not Ignore then
+                  Set_Has_Non_Standard_Rep (Btype, True);
+               end if;
             end if;
          end Component_Size_Case;
 
@@ -1859,7 +1912,7 @@ package body Sem_Ch13 is
                      return;
                   end if;
 
-                  if Compile_Time_Known_Value (Expr)
+                  if Is_OK_Static_Expression (Expr)
                     and then Expr_Value (Expr) = 0
                   then
                      Set_No_Pool_Assigned (Btype);
@@ -2396,9 +2449,14 @@ package body Sem_Ch13 is
       E : constant Entity_Id := Entity (N);
 
    begin
+      --  Remember that we are processing a freezing entity. Required to
+      --  ensure correct decoration of internal entities associated with
+      --  interfaces (see New_Overloaded_Entity).
+
+      Inside_Freezing_Actions := Inside_Freezing_Actions + 1;
+
       --  For tagged types covering interfaces add internal entities that link
       --  the primitives of the interfaces with the primitives that cover them.
-
       --  Note: These entities were originally generated only when generating
       --  code because their main purpose was to provide support to initialize
       --  the secondary dispatch tables. They are now generated also when
@@ -2485,6 +2543,8 @@ package body Sem_Ch13 is
             end loop;
          end;
       end if;
+
+      Inside_Freezing_Actions := Inside_Freezing_Actions - 1;
    end Analyze_Freeze_Entity;
 
    ------------------------------------------
@@ -2499,16 +2559,16 @@ package body Sem_Ch13 is
    --  for the remainder of this processing.
 
    procedure Analyze_Record_Representation_Clause (N : Node_Id) is
-      Ident   : constant Node_Id    := Identifier (N);
-      Rectype : Entity_Id;
-      CC      : Node_Id;
-      Posit   : Uint;
-      Fbit    : Uint;
-      Lbit    : Uint;
-      Hbit    : Uint := Uint_0;
-      Comp    : Entity_Id;
-      Ocomp   : Entity_Id;
+      Ident   : constant Node_Id := Identifier (N);
       Biased  : Boolean;
+      CC      : Node_Id;
+      Comp    : Entity_Id;
+      Fbit    : Uint;
+      Hbit    : Uint := Uint_0;
+      Lbit    : Uint;
+      Ocomp   : Entity_Id;
+      Posit   : Uint;
+      Rectype : Entity_Id;
 
       CR_Pragma : Node_Id := Empty;
       --  Points to N_Pragma node if Complete_Representation pragma present
@@ -2535,10 +2595,6 @@ package body Sem_Ch13 is
          Error_Msg_NE
            ("record type required, found}", Ident, First_Subtype (Rectype));
          return;
-
-      elsif Is_Unchecked_Union (Rectype) then
-         Error_Msg_N
-           ("record rep clause not allowed for Unchecked_Union", N);
 
       elsif Scope (Rectype) /= Current_Scope then
          Error_Msg_N ("type must be declared in this scope", N);
@@ -2714,6 +2770,24 @@ package body Sem_Ch13 is
                   if No (Comp) then
                      Error_Msg_N
                        ("component clause is for non-existent field", CC);
+
+                  --  Ada 2012 (AI05-0026): Any name that denotes a
+                  --  discriminant of an object of an unchecked union type
+                  --  shall not occur within a record_representation_clause.
+
+                  --  The general restriction of using record rep clauses on
+                  --  Unchecked_Union types has now been lifted. Since it is
+                  --  possible to introduce a record rep clause which mentions
+                  --  the discriminant of an Unchecked_Union in non-Ada 2012
+                  --  code, this check is applied to all versions of the
+                  --  language.
+
+                  elsif Ekind (Comp) = E_Discriminant
+                    and then Is_Unchecked_Union (Rectype)
+                  then
+                     Error_Msg_N
+                       ("cannot reference discriminant of Unchecked_Union",
+                        Component_Name (CC));
 
                   elsif Present (Component_Clause (Comp)) then
 

@@ -5541,7 +5541,7 @@ package body Exp_Dist is
                --  Name
 
                 Make_String_Literal (Loc,
-                  Full_Qualified_Name (Desig)),
+                  Fully_Qualified_Name_String (Desig)),
 
                --  Handler
 
@@ -5887,7 +5887,7 @@ package body Exp_Dist is
                    Unchecked_Convert_To (RTE (RE_Address),
                      New_Occurrence_Of (RACW_Parameter, Loc)),
                    Make_String_Literal (Loc,
-                     Strval => Full_Qualified_Name
+                     Strval => Fully_Qualified_Name_String
                                  (Etype (Designated_Type (RACW_Type)))),
                    Build_Stub_Tag (Loc, RACW_Type),
                    New_Occurrence_Of (Boolean_Literals (Is_RAS), Loc),
@@ -6083,7 +6083,7 @@ package body Exp_Dist is
                  Parameter_Associations => New_List (
                    Unchecked_Convert_To (RTE (RE_Address), Object),
                   Make_String_Literal (Loc,
-                    Strval => Full_Qualified_Name
+                    Strval => Fully_Qualified_Name_String
                                 (Etype (Designated_Type (RACW_Type)))),
                   Build_Stub_Tag (Loc, RACW_Type),
                   New_Occurrence_Of (Boolean_Literals (Is_RAS), Loc),
@@ -10549,9 +10549,9 @@ package body Exp_Dist is
             if Is_Itype (Typ) and then Typ /= Base_Type (Typ) then
                Build_TypeCode_Function
                   (Loc  => Loc,
-                  Typ  => Etype (Typ),
-                  Decl => Decl,
-                  Fnam => Fnam);
+                   Typ  => Etype (Typ),
+                   Decl => Decl,
+                   Fnam => Fnam);
                return;
             end if;
 
@@ -11036,26 +11036,29 @@ package body Exp_Dist is
          begin
             declare
                Serial : Nat := 0;
-               --  For tagged types, we use a canonical name so that it matches
-               --  the primitive spec. For all other cases, we use a serialized
-               --  name so that multiple generations of the same procedure do
-               --  not clash.
+               --  For tagged types that aren't frozen yet, generate the helper
+               --  under its canonical name so that it matches the primitive
+               --  spec. For all other cases, we use a serialized name so that
+               --  multiple generations of the same procedure do not clash.
 
             begin
-               if not Is_Tagged_Type (Typ) then
+               if Is_Tagged_Type (Typ) and then not Is_Frozen (Typ) then
+                  null;
+               else
                   Serial := Increment_Serial_Number;
                end if;
 
-               --  Use prefixed underscore to avoid potential clash with used
+               --  Use prefixed underscore to avoid potential clash with user
                --  identifier (we use attribute names for Nam).
 
                return
                  Make_Defining_Identifier (Loc,
                    Chars =>
                      New_External_Name
-                       (Related_Id => Nam,
-                        Suffix => ' ', Suffix_Index => Serial,
-                        Prefix => '_'));
+                       (Related_Id   => Nam,
+                        Suffix       => ' ',
+                        Suffix_Index => Serial,
+                        Prefix       => '_'));
             end;
          end Make_Helper_Function_Name;
       end Helpers;

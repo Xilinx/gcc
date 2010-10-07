@@ -37,6 +37,7 @@ with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
 with Errout;   use Errout;
+with Exp_Ch7;  use Exp_Ch7;
 with Exp_Dist; use Exp_Dist;
 with Lib;      use Lib;
 with Lib.Writ; use Lib.Writ;
@@ -392,9 +393,14 @@ package body Sem_Prag is
       procedure Check_At_Most_N_Arguments (N : Nat);
       --  Check there are no more than N arguments present
 
-      procedure Check_Component (Comp : Node_Id);
-      --  Examine Unchecked_Union component for correct use of per-object
+      procedure Check_Component
+        (Comp            : Node_Id;
+         UU_Typ          : Entity_Id;
+         In_Variant_Part : Boolean := False);
+      --  Examine an Unchecked_Union component for correct use of per-object
       --  constrained subtypes, and for restrictions on finalizable components.
+      --  UU_Typ is the related Unchecked_Union type. Flag In_Variant_Part
+      --  should be set when Comp comes from a record variant.
 
       procedure Check_Duplicated_Export_Name (Nam : Node_Id);
       --  Nam is an N_String_Literal node containing the external name set by
@@ -483,9 +489,10 @@ package body Sem_Prag is
       --  and to library level instantiations), and they are simply ignored,
       --  which is implemented by rewriting them as null statements.
 
-      procedure Check_Variant (Variant : Node_Id);
-      --  Check Unchecked_Union variant for lack of nested variants and
-      --  presence of at least one component.
+      procedure Check_Variant (Variant : Node_Id; UU_Typ : Entity_Id);
+      --  Check an Unchecked_Union variant for lack of nested variants and
+      --  presence of at least one component. UU_Typ is the related Unchecked_
+      --  Union type.
 
       procedure Error_Pragma (Msg : String);
       pragma No_Return (Error_Pragma);
@@ -1094,39 +1101,80 @@ package body Sem_Prag is
       -- Check_Component --
       ---------------------
 
-      procedure Check_Component (Comp : Node_Id) is
+      procedure Check_Component
+        (Comp            : Node_Id;
+         UU_Typ          : Entity_Id;
+         In_Variant_Part : Boolean := False)
+      is
+         Comp_Id : constant Entity_Id := Defining_Identifier (Comp);
+         Sindic  : constant Node_Id :=
+                     Subtype_Indication (Component_Definition (Comp));
+         Typ     : constant Entity_Id := Etype (Comp_Id);
+
+         function Inside_Generic_Body (Id : Entity_Id) return Boolean;
+         --  Determine whether entity Id appears inside a generic body
+
+         -------------------------
+         -- Inside_Generic_Body --
+         -------------------------
+
+         function Inside_Generic_Body (Id : Entity_Id) return Boolean is
+            S : Entity_Id := Id;
+
+         begin
+            while Present (S)
+              and then S /= Standard_Standard
+            loop
+               if Ekind (S) = E_Generic_Package
+                 and then In_Package_Body (S)
+               then
+                  return True;
+               end if;
+
+               S := Scope (S);
+            end loop;
+
+            return False;
+         end Inside_Generic_Body;
+
+      --  Start of processing for Check_Component
+
       begin
-         if Nkind (Comp) = N_Component_Declaration then
-            declare
-               Sindic : constant Node_Id :=
-                          Subtype_Indication (Component_Definition (Comp));
-               Typ    : constant Entity_Id :=
-                          Etype (Defining_Identifier (Comp));
-            begin
-               if Nkind (Sindic) = N_Subtype_Indication then
+         --  Ada 2005 (AI-216): If a component subtype is subject to a per-
+         --  object constraint, then the component type shall be an Unchecked_
+         --  Union.
 
-                  --  Ada 2005 (AI-216): If a component subtype is subject to
-                  --  a per-object constraint, then the component type shall
-                  --  be an Unchecked_Union.
+         if Nkind (Sindic) = N_Subtype_Indication
+           and then Has_Per_Object_Constraint (Comp_Id)
+           and then not Is_Unchecked_Union (Etype (Subtype_Mark (Sindic)))
+         then
+            Error_Msg_N
+              ("component subtype subject to per-object constraint " &
+               "must be an Unchecked_Union", Comp);
 
-                  if Has_Per_Object_Constraint (Defining_Identifier (Comp))
-                    and then
-                      not Is_Unchecked_Union (Etype (Subtype_Mark (Sindic)))
-                  then
-                     Error_Msg_N ("component subtype subject to per-object" &
-                       " constraint must be an Unchecked_Union", Comp);
-                  end if;
-               end if;
+         --  Ada 2012 (AI05-0026): For an unchecked union type declared within
+         --  the body of a generic unit, or within the body of any of its
+         --  descendant library units, no part of the type of a component
+         --  declared in a variant_part of the unchecked union type shall be of
+         --  a formal private type or formal private extension declared within
+         --  the formal part of the generic unit.
 
-               if Is_Controlled (Typ) then
-                  Error_Msg_N
-                   ("component of unchecked union cannot be controlled", Comp);
+         elsif Ada_Version >= Ada_2012
+           and then Inside_Generic_Body (UU_Typ)
+           and then In_Variant_Part
+           and then Is_Private_Type (Typ)
+           and then Is_Generic_Type (Typ)
+         then
+            Error_Msg_N
+              ("component of Unchecked_Union cannot be of generic type", Comp);
 
-               elsif Has_Task (Typ) then
-                  Error_Msg_N
-                   ("component of unchecked union cannot have tasks", Comp);
-               end if;
-            end;
+         elsif Needs_Finalization (Typ) then
+            Error_Msg_N
+              ("component of Unchecked_Union cannot be controlled", Comp);
+
+         elsif Has_Task (Typ) then
+            Error_Msg_N
+              ("component of Unchecked_Union cannot have tasks", Comp);
          end if;
       end Check_Component;
 
@@ -1698,7 +1746,7 @@ package body Sem_Prag is
       -- Check_Variant --
       -------------------
 
-      procedure Check_Variant (Variant : Node_Id) is
+      procedure Check_Variant (Variant : Node_Id; UU_Typ : Entity_Id) is
          Clist : constant Node_Id := Component_List (Variant);
          Comp  : Node_Id;
 
@@ -1712,7 +1760,7 @@ package body Sem_Prag is
 
          Comp := First (Component_Items (Clist));
          while Present (Comp) loop
-            Check_Component (Comp);
+            Check_Component (Comp, UU_Typ, In_Variant_Part => True);
             Next (Comp);
          end loop;
       end Check_Variant;
@@ -5344,7 +5392,7 @@ package body Sem_Prag is
          --  pragma Ada_2005;
          --  pragma Ada_2005 (LOCAL_NAME):
 
-         --  Note: these pragma also have some specific processing in Par.Prag
+         --  Note: these pragmas also have some specific processing in Par.Prag
          --  because we want to set the Ada 2005 version mode during parsing.
 
          when Pragma_Ada_05 | Pragma_Ada_2005 => declare
@@ -5386,27 +5434,48 @@ package body Sem_Prag is
          ---------------------
 
          --  pragma Ada_12;
-         --  pragma Ada_2012;
+         --  pragma Ada_12 (LOCAL_NAME);
 
-         --  Note: these pragma also have some specific processing in Par.Prag
+         --  pragma Ada_2012;
+         --  pragma Ada_2012 (LOCAL_NAME):
+
+         --  Note: these pragmas also have some specific processing in Par.Prag
          --  because we want to set the Ada 2012 version mode during parsing.
 
-         when Pragma_Ada_12 | Pragma_Ada_2012 =>
+         when Pragma_Ada_12 | Pragma_Ada_2012 => declare
+            E_Id : Node_Id;
+
+         begin
             GNAT_Pragma;
-            Check_Arg_Count (0);
 
-            --  For Ada_2012 we unconditionally enforce the documented
-            --  configuration pragma placement, since we do not want to
-            --  tolerate mixed modes in a unit involving Ada 2012. That would
-            --  cause real difficulties for those cases where there are
-            --  incompatibilities between Ada 95 and Ada 2005/Ada 2012.
+            if Arg_Count = 1 then
+               Check_Arg_Is_Local_Name (Arg1);
+               E_Id := Expression (Arg1);
 
-            Check_Valid_Configuration_Pragma;
+               if Etype (E_Id) = Any_Type then
+                  return;
+               end if;
 
-            --  Now set Ada 2012 mode
+               Set_Is_Ada_2012_Only (Entity (E_Id));
 
-            Ada_Version := Ada_12;
-            Ada_Version_Explicit := Ada_12;
+            else
+               Check_Arg_Count (0);
+
+               --  For Ada_2012 we unconditionally enforce the documented
+               --  configuration pragma placement, since we do not want to
+               --  tolerate mixed modes in a unit involving Ada 2012. That
+               --  would cause real difficulties for those cases where there
+               --  are incompatibilities between Ada 95 and Ada 2012. We could
+               --  allow mixing of Ada 2005 and Ada 2012 but it's not worth it.
+
+               Check_Valid_Configuration_Pragma;
+
+               --  Now set Ada 2012 mode
+
+               Ada_Version := Ada_12;
+               Ada_Version_Explicit := Ada_12;
+            end if;
+         end;
 
          ----------------------
          -- All_Calls_Remote --
@@ -5843,6 +5912,7 @@ package body Sem_Prag is
             E    : Entity_Id;
             D    : Node_Id;
             K    : Node_Kind;
+            Ctyp : Entity_Id;
 
          begin
             Check_Ada_83_Warning;
@@ -5888,9 +5958,19 @@ package body Sem_Prag is
                   if Is_Packed (E) then
                      Set_Is_Packed (E, False);
 
-                     Error_Pragma_Arg
-                       ("?Pack canceled, cannot pack atomic components",
-                        Arg1);
+                     if Is_Array_Type (E) then
+                        Ctyp := Component_Type (E);
+                     else
+                        Ctyp := Component_Type (Etype (E));
+                     end if;
+
+                     if not (Known_Static_Esize (Ctyp)
+                              and then Known_Static_RM_Size (Ctyp)
+                              and then Esize (Ctyp) = RM_Size (Ctyp))
+                     then
+                        Error_Pragma_Arg
+                          ("cannot pack atomic components", Arg1);
+                     end if;
                   end if;
                end if;
 
@@ -9800,6 +9880,8 @@ package body Sem_Prag is
             Assoc   : constant Node_Id := Arg1;
             Type_Id : Node_Id;
             Typ     : Entity_Id;
+            Ctyp    : Entity_Id;
+            Ignore  : Boolean := False;
 
          begin
             Check_No_Identifiers;
@@ -9830,18 +9912,36 @@ package body Sem_Prag is
             --  Array type
 
             elsif Is_Array_Type (Typ) then
+               Ctyp := Component_Type (Typ);
 
-               --  Pack not allowed for aliased or atomic components
+               --  Ignore pack that does nothing
 
-               if Has_Aliased_Components (Base_Type (Typ)) then
-                  Error_Pragma
-                    ("pragma% ignored, cannot pack aliased components?");
+               if Known_Static_Esize (Ctyp)
+                 and then Known_Static_RM_Size (Ctyp)
+                 and then Esize (Ctyp) = RM_Size (Ctyp)
+                 and then (Esize (Ctyp) = 8  or else
+                           Esize (Ctyp) = 16 or else
+                           Esize (Ctyp) = 32 or else
+                           Esize (Ctyp) = 64)
+               then
+                  Ignore := True;
+
+               --  Pack not allowed for aliased/atomic components
+
+               elsif Has_Aliased_Components (Base_Type (Typ)) then
+                  Error_Pragma ("cannot pack aliased components");
 
                elsif Has_Atomic_Components (Typ)
                  or else Is_Atomic (Component_Type (Typ))
                then
-                  Error_Pragma
-                    ("?pragma% ignored, cannot pack atomic components");
+                  Error_Pragma ("cannot pack atomic components");
+
+               --  Warn for cases of packing non-atomic components of atomic
+
+               elsif Is_Atomic (Typ) then
+                  Error_Msg_NE
+                    ("non-atomic components of type& may not be accessible "
+                     & "by separate tasks?", N, Typ);
                end if;
 
                --  If we had an explicit component size given, then we do not
@@ -9875,12 +9975,15 @@ package body Sem_Prag is
                      --  For normal non-VM target, do the packing
 
                      elsif VM_Target = No_VM then
-                        Set_Is_Packed            (Base_Type (Typ));
-                        Set_Has_Pragma_Pack      (Base_Type (Typ));
-                        Set_Has_Non_Standard_Rep (Base_Type (Typ));
+                        if not Ignore then
+                           Set_Is_Packed            (Base_Type (Typ));
+                           Set_Has_Non_Standard_Rep (Base_Type (Typ));
+                        end if;
 
-                     --  If we ignore the pack, then warn about this, except
-                     --  that we suppress the warning in GNAT mode.
+                        Set_Has_Pragma_Pack      (Base_Type (Typ));
+
+                     --  If we ignore the pack for VM_Targets, then warn about
+                     --  this, except suppress the warning in GNAT mode.
 
                      elsif not GNAT_Mode then
                         Error_Pragma
@@ -11950,7 +12053,7 @@ package body Sem_Prag is
 
                Comp := First (Component_Items (Clist));
                while Present (Comp) loop
-                  Check_Component (Comp);
+                  Check_Component (Comp, Typ);
                   Next (Comp);
                end loop;
 
@@ -11965,7 +12068,7 @@ package body Sem_Prag is
 
                Variant := First (Variants (Vpart));
                while Present (Variant) loop
-                  Check_Variant (Variant);
+                  Check_Variant (Variant, Typ);
                   Next (Variant);
                end loop;
             end if;

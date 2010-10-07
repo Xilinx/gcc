@@ -11140,12 +11140,15 @@ mips_scalar_mode_supported_p (enum machine_mode mode)
   return default_scalar_mode_supported_p (mode);
 }
 
-/* Implement TARGET_VECTORIZE_UNITS_PER_SIMD_WORD.  */
+/* Implement TARGET_VECTORIZE_PREFERRED_SIMD_MODE.  */
 
-static unsigned int
-mips_units_per_simd_word (enum machine_mode mode ATTRIBUTE_UNUSED)
+static enum machine_mode
+mips_preferred_simd_mode (enum machine_mode mode ATTRIBUTE_UNUSED)
 {
-  return TARGET_PAIRED_SINGLE_FLOAT ? 8 : UNITS_PER_WORD;
+  if (TARGET_PAIRED_SINGLE_FLOAT
+      && mode == SFmode)
+    return V2SFmode;
+  return word_mode;
 }
 
 /* Implement TARGET_INIT_LIBFUNCS.  */
@@ -15442,11 +15445,6 @@ mips_handle_option (size_t code, const char *arg, int value)
 {
   switch (code)
     {
-    case OPT_G:
-      g_switch_value = value;
-      g_switch_set = true;
-      return true;
-
     case OPT_mabi_:
       if (strcmp (arg, "32") == 0)
 	mips_abi = ABI_32;
@@ -15527,7 +15525,7 @@ mips_option_override (void)
     TARGET_INTERLINK_MIPS16 = 1;
 
   /* Set the small data limit.  */
-  mips_small_data_threshold = (g_switch_set
+  mips_small_data_threshold = (global_options_set.x_g_switch_value
 			       ? g_switch_value
 			       : MIPS_DEFAULT_GVALUE);
 
@@ -16529,8 +16527,8 @@ mips_shift_truncation_mask (enum machine_mode mode)
 #undef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P mips_scalar_mode_supported_p
 
-#undef TARGET_VECTORIZE_UNITS_PER_SIMD_WORD
-#define TARGET_VECTORIZE_UNITS_PER_SIMD_WORD mips_units_per_simd_word
+#undef TARGET_VECTORIZE_PREFERRED_SIMD_MODE
+#define TARGET_VECTORIZE_PREFERRED_SIMD_MODE mips_preferred_simd_mode
 
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS mips_init_builtins

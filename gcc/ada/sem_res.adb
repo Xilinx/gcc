@@ -1011,6 +1011,17 @@ package body Sem_Res is
          It  : Interp;
 
       begin
+         --  If the context is an attribute reference that can apply to
+         --  functions, this is never a parameterless call (RM 4.1.4(6)).
+
+         if Nkind (Parent (N)) = N_Attribute_Reference
+            and then (Attribute_Name (Parent (N)) = Name_Address
+              or else Attribute_Name (Parent (N)) = Name_Code_Address
+              or else Attribute_Name (Parent (N)) = Name_Access)
+         then
+            return False;
+         end if;
+
          if not Is_Overloaded (N) then
             return
               Ekind (Etype (N)) = E_Subprogram_Type
@@ -1070,7 +1081,7 @@ package body Sem_Res is
       --  If the entity is the name of an operator, it cannot be a call because
       --  operators cannot have default parameters. In this case, this must be
       --  a string whose contents coincide with an operator name. Set the kind
-      --  of the node appropriately and reanalyze.
+      --  of the node appropriately.
 
       if (Is_Entity_Name (N)
             and then Nkind (N) /= N_Operator_Symbol
@@ -1188,13 +1199,13 @@ package body Sem_Res is
       type Kind_Test is access function (E : Entity_Id) return Boolean;
 
       function Operand_Type_In_Scope (S : Entity_Id) return Boolean;
-      --  If the operand is not universal, and the operator is given by a
-      --  expanded name, verify that the operand has an interpretation with
-      --  a type defined in the given scope of the operator.
+      --  If the operand is not universal, and the operator is given by an
+      --  expanded name, verify that the operand has an interpretation with a
+      --  type defined in the given scope of the operator.
 
       function Type_In_P (Test : Kind_Test) return Entity_Id;
-      --  Find a type of the given class in the package Pack that contains
-      --  the operator.
+      --  Find a type of the given class in package Pack that contains the
+      --  operator.
 
       ---------------------------
       -- Operand_Type_In_Scope --
@@ -1269,12 +1280,10 @@ package body Sem_Res is
       --  Start of processing for Type_In_P
 
       begin
-         --  If the context type is declared in the prefix package, this
-         --  is the desired base type.
+         --  If the context type is declared in the prefix package, this is the
+         --  desired base type.
 
-         if Scope (Base_Type (Typ)) = Pack
-           and then Test (Typ)
-         then
+         if Scope (Base_Type (Typ)) = Pack and then Test (Typ) then
             return Base_Type (Typ);
 
          else
@@ -1332,7 +1341,7 @@ package body Sem_Res is
 
       --  A final wrinkle is the multiplication operator for fixed point types,
       --  which is defined in Standard only, and not in the scope of the
-      --  fixed_point type itself.
+      --  fixed point type itself.
 
       if Nkind (Name (N)) = N_Expanded_Name then
          Pack := Entity (Prefix (Name (N)));
@@ -1360,7 +1369,7 @@ package body Sem_Res is
                Error := True;
             end if;
 
-         --  Ada 2005, AI-420: Predefined equality on Universal_Access is
+         --  Ada 2005 AI-420: Predefined equality on Universal_Access is
          --  available.
 
          elsif Ada_Version >= Ada_05
@@ -4287,15 +4296,7 @@ package body Sem_Res is
       --  Check for allocation from an empty storage pool
 
       if No_Pool_Assigned (Typ) then
-         declare
-            Loc : constant Source_Ptr := Sloc (N);
-         begin
-            Error_Msg_N ("?allocation from empty storage pool!", N);
-            Error_Msg_N ("\?Storage_Error will be raised at run time!", N);
-            Insert_Action (N,
-              Make_Raise_Storage_Error (Loc,
-                Reason => SE_Empty_Storage_Pool));
-         end;
+         Error_Msg_N ("allocation from empty storage pool!", N);
 
       --  If the context is an unchecked conversion, as may happen within
       --  an inlined subprogram, the allocator is being resolved with its
@@ -5543,6 +5544,13 @@ package body Sem_Res is
 
       elsif Is_RTE (Nam, RE_Abort_Task) then
          Check_Potentially_Blocking_Operation (N);
+      end if;
+
+      --  A call to Ada.Real_Time.Timing_Events.Set_Handler violates
+      --  restriction No_Relative_Delay (AI-0211).
+
+      if Is_RTE (Nam, RE_Set_Handler) then
+         Check_Restriction (No_Relative_Delay, N);
       end if;
 
       --  Issue an error for a call to an eliminated subprogram. We skip this

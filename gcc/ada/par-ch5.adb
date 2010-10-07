@@ -83,7 +83,8 @@ package body Ch5 is
    -- 5.1  Sequence of Statements --
    ---------------------------------
 
-   --  SEQUENCE_OF_STATEMENTS ::= STATEMENT {STATEMENT}
+   --  SEQUENCE_OF_STATEMENTS ::= STATEMENT {STATEMENT} {LABEL}
+   --  Note: the final label is an Ada 2012 addition.
 
    --  STATEMENT ::=
    --    {LABEL} SIMPLE_STATEMENT | {LABEL} COMPOUND_STATEMENT
@@ -149,6 +150,12 @@ package body Ch5 is
       --  is required. It is initialized from the Sreq flag, and modified as
       --  statements are scanned (a statement turns it off, and a label turns
       --  it back on again since a statement must follow a label).
+      --  Note : this final requirement is lifted in Ada 2012.
+
+      Statement_Seen : Boolean;
+      --  In Ada 2012, a label can end a sequence of statements, but the
+      --  sequence cannot contain only labels. This flag is set whenever a
+      --  label is encountered, to enforce this rule at the end of a sequence.
 
       Declaration_Found : Boolean := False;
       --  This flag is set True if a declaration is encountered, so that the
@@ -190,14 +197,42 @@ package body Ch5 is
       -----------------------------
 
       procedure Test_Statement_Required is
+         function All_Pragmas return Boolean;
+         --  Return True if statement list is all pragmas
+
+         -----------------
+         -- All_Pragmas --
+         -----------------
+
+         function All_Pragmas return Boolean is
+            S : Node_Id;
+         begin
+            S := First (Statement_List);
+            while Present (S) loop
+               if Nkind (S) /= N_Pragma then
+                  return False;
+               else
+                  Next (S);
+               end if;
+            end loop;
+
+            return True;
+         end All_Pragmas;
+
+      --  Start of processing for Test_Statement_Required
+
       begin
          if Statement_Required then
 
-            --  Check no statement required after label in Ada 2012
+            --  Check no statement required after label in Ada 2012, and that
+            --  it is OK to have nothing but pragmas in a statement sequence.
 
             if Ada_Version >= Ada_2012
               and then not Is_Empty_List (Statement_List)
-              and then Nkind (Last (Statement_List)) = N_Label
+              and then
+                ((Nkind (Last (Statement_List)) = N_Label
+                   and then Statement_Seen)
+                or else All_Pragmas)
             then
                declare
                   Null_Stm : constant Node_Id :=
@@ -221,6 +256,7 @@ package body Ch5 is
    begin
       Statement_List := New_List;
       Statement_Required := SS_Flags.Sreq;
+      Statement_Seen     := False;
 
       loop
          Ignore (Tok_Semicolon);
@@ -737,8 +773,15 @@ package body Ch5 is
                   Statement_Required := False;
 
                --  Label starting with << which must precede real statement
+               --  Note: in Ada 2012, the label may end the sequence.
 
                when Tok_Less_Less =>
+                  if Present (Last (Statement_List))
+                    and then Nkind (Last (Statement_List)) /= N_Label
+                  then
+                     Statement_Seen := True;
+                  end if;
+
                   Append_To (Statement_List, P_Label);
                   Statement_Required := True;
 

@@ -24,6 +24,7 @@
 ------------------------------------------------------------------------------
 
 with Atree;    use Atree;
+with Casing;   use Casing;
 with Checks;   use Checks;
 with Debug;    use Debug;
 with Einfo;    use Einfo;
@@ -1753,6 +1754,62 @@ package body Exp_Util is
       Remove_Side_Effects (Exp, Name_Req, Variable_Ref => True);
    end Force_Evaluation;
 
+   ---------------------------------
+   -- Fully_Qualified_Name_String --
+   ---------------------------------
+
+   function Fully_Qualified_Name_String (E : Entity_Id) return String_Id is
+      procedure Internal_Full_Qualified_Name (E : Entity_Id);
+      --  Compute recursively the qualified name without NUL at the end, adding
+      --  it to the currently started string being generated
+
+      ----------------------------------
+      -- Internal_Full_Qualified_Name --
+      ----------------------------------
+
+      procedure Internal_Full_Qualified_Name (E : Entity_Id) is
+         Ent : Entity_Id;
+
+      begin
+         --  Deal properly with child units
+
+         if Nkind (E) = N_Defining_Program_Unit_Name then
+            Ent := Defining_Identifier (E);
+         else
+            Ent := E;
+         end if;
+
+         --  Compute qualification recursively (only "Standard" has no scope)
+
+         if Present (Scope (Scope (Ent))) then
+            Internal_Full_Qualified_Name (Scope (Ent));
+            Store_String_Char (Get_Char_Code ('.'));
+         end if;
+
+         --  Every entity should have a name except some expanded blocks
+         --  don't bother about those.
+
+         if Chars (Ent) = No_Name then
+            return;
+         end if;
+
+         --  Generates the entity name in upper case
+
+         Get_Decoded_Name_String (Chars (Ent));
+         Set_All_Upper_Case;
+         Store_String_Chars (Name_Buffer (1 .. Name_Len));
+         return;
+      end Internal_Full_Qualified_Name;
+
+   --  Start of processing for Full_Qualified_Name
+
+   begin
+      Start_String;
+      Internal_Full_Qualified_Name (E);
+      Store_String_Char (Get_Char_Code (ASCII.NUL));
+      return End_String;
+   end Fully_Qualified_Name_String;
+
    ------------------------
    -- Generate_Poll_Call --
    ------------------------
@@ -2451,11 +2508,15 @@ package body Exp_Util is
                return;
 
             --  Case of appearing within an Expressions_With_Actions node. We
-            --  prepend the actions to the list of actions already there.
+            --  prepend the actions to the list of actions already there, if
+            --  the node has not been analyzed yet. Otherwise find insertion
+            --  location further up the tree.
 
             when N_Expression_With_Actions =>
-               Prepend_List (Ins_Actions, Actions (P));
-               return;
+               if not Analyzed (P) then
+                  Prepend_List (Ins_Actions, Actions (P));
+                  return;
+               end if;
 
             --  Case of appearing in the condition of a while expression or
             --  elsif. We insert the actions into the Condition_Actions field.
@@ -2531,6 +2592,7 @@ package body Exp_Util is
                N_Package_Declaration                    |
                N_Package_Instantiation                  |
                N_Package_Renaming_Declaration           |
+               N_Parameterized_Expression               |
                N_Private_Extension_Declaration          |
                N_Private_Type_Declaration               |
                N_Procedure_Instantiation                |
@@ -4477,6 +4539,25 @@ package body Exp_Util is
                  or else Ekind (Entity (Prefix (N))) = E_In_Parameter;
             end if;
 
+         --  If the prefix is an explicit dereference that is not access-to-
+         --  constant then this construct is a variable reference, which means
+         --  it is to be considered to have side effects if Variable_Ref is
+         --  True.
+
+         --  Exception is an access to an entity that is a constant or an
+         --  in-parameter.
+
+         elsif Nkind (Prefix (N)) = N_Explicit_Dereference
+           and then not Is_Access_Constant (Etype (Prefix (Prefix (N))))
+           and then Variable_Ref
+         then
+            declare
+               DDT : constant Entity_Id :=
+                       Designated_Type (Etype (Prefix (Prefix (N))));
+            begin
+               return Ekind_In (DDT, E_Constant, E_In_Parameter);
+            end;
+
          --  The following test is the simplest way of solving a complex
          --  problem uncovered by BB08-010: Side effect on loop bound that
          --  is a subcomponent of a global variable:
@@ -4503,15 +4584,14 @@ package body Exp_Util is
 
       function Side_Effect_Free (N : Node_Id) return Boolean is
       begin
-         --  Note on checks that could raise Constraint_Error. Strictly, if
-         --  we take advantage of 11.6, these checks do not count as side
-         --  effects. However, we would just as soon consider that they are
-         --  side effects, since the backend CSE does not work very well on
-         --  expressions which can raise Constraint_Error. On the other
-         --  hand, if we do not consider them to be side effect free, then
-         --  we get some awkward expansions in -gnato mode, resulting in
-         --  code insertions at a point where we do not have a clear model
-         --  for performing the insertions.
+         --  Note on checks that could raise Constraint_Error. Strictly, if we
+         --  take advantage of 11.6, these checks do not count as side effects.
+         --  However, we would prefer to consider that they are side effects,
+         --  since the backend CSE does not work very well on expressions which
+         --  can raise Constraint_Error. On the other hand if we don't consider
+         --  them to be side effect free, then we get some awkward expansions
+         --  in -gnato mode, resulting in code insertions at a point where we
+         --  do not have a clear model for performing the insertions.
 
          --  Special handling for entity names
 

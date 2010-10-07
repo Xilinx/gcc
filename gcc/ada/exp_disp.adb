@@ -481,11 +481,11 @@ package body Exp_Disp is
         and then Is_Interface (Typ)
         and then
           ((Nkind (Expr) = N_Selected_Component
-              and then Is_Tag (Entity (Selector_Name (Expr))))
+             and then Is_Tag (Entity (Selector_Name (Expr))))
            or else
            (Nkind (Expr) = N_Function_Call
-              and then RTE_Available (RE_Displace)
-              and then Entity (Name (Expr)) = RTE (RE_Displace))));
+             and then RTE_Available (RE_Displace)
+             and then Entity (Name (Expr)) = RTE (RE_Displace))));
 
       Anon_Type := Create_Itype (E_Anonymous_Access_Type, Expr);
       Set_Directly_Designated_Type (Anon_Type, Typ);
@@ -4483,8 +4483,7 @@ package body Exp_Disp is
          end loop;
       end if;
 
-      --  Get the _tag entity and the number of primitives of its dispatch
-      --  table.
+      --  Get the _tag entity and number of primitives of its dispatch table
 
       DT_Ptr  := Node (First_Elmt (Access_Disp_Table (Typ)));
       Nb_Prim := UI_To_Int (DT_Entry_Count (First_Tag_Component (Typ)));
@@ -4654,7 +4653,7 @@ package body Exp_Disp is
           Object_Definition   => New_Reference_To (Standard_String, Loc),
           Expression =>
             Make_String_Literal (Loc,
-              Full_Qualified_Name (First_Subtype (Typ)))));
+              Fully_Qualified_Name_String (First_Subtype (Typ)))));
 
       Set_Is_Statically_Allocated (Exname);
       Set_Is_True_Constant (Exname);
@@ -4679,6 +4678,7 @@ package body Exp_Disp is
       --            External_Tag       => Cstring_Ptr!(Exname'Address))
       --            HT_Link            => HT_Link'Address,
       --            Transportable      => <<boolean-value>>,
+      --            Type_Is_Abstract   => <<boolean-value>>,
       --            RC_Offset          => <<integer-value>>,
       --            [ Size_Func         => Size_Prim'Access ]
       --            [ Interfaces_Table  => <<access-value>> ]
@@ -4767,7 +4767,7 @@ package body Exp_Disp is
                               New_External_Name (Tname, 'A'));
 
             Full_Name   : constant String_Id :=
-                            Full_Qualified_Name (First_Subtype (Typ));
+                            Fully_Qualified_Name_String (First_Subtype (Typ));
             Str1_Id     : String_Id;
             Str2_Id     : String_Id;
 
@@ -4945,6 +4945,22 @@ package body Exp_Disp is
             New_Occurrence_Of (Transportable, Loc));
       end;
 
+      --  Type_Is_Abstract (Ada 2012: AI05-0173). This functionality is
+      --  not available in the HIE runtime.
+
+      if RTE_Record_Component_Available (RE_Type_Is_Abstract) then
+         declare
+            Type_Is_Abstract : Entity_Id;
+
+         begin
+            Type_Is_Abstract :=
+              Boolean_Literals (Is_Abstract_Type (Typ));
+
+            Append_To (TSD_Aggr_List,
+               New_Occurrence_Of (Type_Is_Abstract, Loc));
+         end;
+      end if;
+
       --  RC_Offset: These are the valid values and their meaning:
 
       --   >0: For simple types with controlled components is
@@ -5022,6 +5038,7 @@ package body Exp_Disp is
             declare
                Prim_Elmt : Elmt_Id;
                Prim      : Entity_Id;
+               Size_Comp : Node_Id;
 
             begin
                Prim_Elmt := First_Elmt (Primitive_Operations (Typ));
@@ -5032,15 +5049,15 @@ package body Exp_Disp is
                      Prim := Ultimate_Alias (Prim);
 
                      if Is_Abstract_Subprogram (Prim) then
-                        Append_To (TSD_Aggr_List,
+                        Size_Comp :=
                           Unchecked_Convert_To (RTE (RE_Size_Ptr),
-                            New_Reference_To (RTE (RE_Null_Address), Loc)));
+                            New_Reference_To (RTE (RE_Null_Address), Loc));
                      else
-                        Append_To (TSD_Aggr_List,
+                        Size_Comp :=
                           Unchecked_Convert_To (RTE (RE_Size_Ptr),
                             Make_Attribute_Reference (Loc,
                               Prefix => New_Reference_To (Prim, Loc),
-                              Attribute_Name => Name_Unrestricted_Access)));
+                              Attribute_Name => Name_Unrestricted_Access));
                      end if;
 
                      exit;
@@ -5048,6 +5065,9 @@ package body Exp_Disp is
 
                   Next_Elmt (Prim_Elmt);
                end loop;
+
+               pragma Assert (Present (Size_Comp));
+               Append_To (TSD_Aggr_List, Size_Comp);
             end;
          end if;
       end if;
@@ -8019,7 +8039,7 @@ package body Exp_Disp is
             Write_Int (Int (Alias (Prim)));
 
             --  If the DTC_Entity attribute is already set we can also output
-            --  the name of the interface covered by this primitive (if any)
+            --  the name of the interface covered by this primitive (if any).
 
             if Present (DTC_Entity (Alias (Prim)))
               and then Is_Interface (Scope (DTC_Entity (Alias (Prim))))

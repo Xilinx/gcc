@@ -1,3 +1,156 @@
+2010-10-07  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/45916
+	Revert revision 165026:
+	2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* decl.c (match_procedure_in_type): Assertify if conditions.
+
+2010-10-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/45889
+	* resolve.c (resolve_transfer): Use expression inside parenthesis to
+	find acutal component to be transgferred.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-stmt.c (gfc_trans_allocate): free lhs expr.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_free_ss_chain): Made non-static.
+	* trans-array.h (gfc_free_ss_chain): New prototype.
+	* trans-stmt.c (gfc_trans_where_2): Free ss chains.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-intrinsic.c (gfc_conv_intrinsic_funcall): Also free symbol's
+	subcomponents.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-stmt.c (gfc_trans_forall_1): Free forall struct at the end.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-expr.c (get_proc_ptr_comp): Restore initial expression type
+	before calling gfc_free_expr.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_conv_tmp_array_ref): Add factorized call to
+	gfc_advance_se_ss_chain.
+	* trans-expr.c (gfc_conv_subref_array_ref, gfc_conv_procedure_call,
+	gfc_conv_array_constructor_expr, gfc_trans_assignment_1): Remove
+	calls to gfc_advance_se_ss_chain after gfc_conv_tmp_array_ref.
+	* trans-intrinsic.c (gfc_conv_intrinsic_function): Ditto.
+	* trans-stmt.c (gfc_trans_where_assign, gfc_trans_where_3): Ditto.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans.c (gfc_restore_backend_locus): New function.
+	(gfc_get_backend_locus): Renamed to ...
+	(gfc_save_backend_locus): ... this.
+	* trans.h (gfc_restore_backend_locus, gfc_get_backend_locus,
+	gfc_save_backend_locus): Same.
+	* trans-array.c (gfc_trans_g77_array, gfc_trans_dummy_array_bias,
+	gfc_trans_deferred_array): Rename gfc_get_backend_locus to
+	gfc_save_backend_locus.
+	(gfc_trans_dummy_array_bias): Call gfc_restore_backend_locus at the
+	end.
+	(gfc_trans_g77_array, gfc_trans_deferred_array): Use
+	gfc_restore_backend_locus instead of gfc_set_backend_locus.
+	(gfc_trans_deferred_array): Call gfc_restore_backend_locus on early
+	return.
+	* trans-decl.c (gfc_get_extern_function_decl, build_entry_thunks,
+	gfc_trans_deferred_vars):
+	Rename gfc_get_backend_locus to gfc_save_backend_locus.
+	Use gfc_restore_backend_locus insted of gfc_set_backend_locus.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_build_constant_array_constructor): Free array
+	spec when done.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* symbol.c (gfc_copy_formal_args_ppc): Free previous formal arg list
+	before overwriting it.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* array.c (gfc_match_array_spec): Don't re-initialize cleared struct.
+	* symbol.c (gen_shape_param): Ditto.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* symbol.c (free_entry_list): New function.
+	(gfc_free_namespace): Free list of entries.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* symbol.c (free_components): Free list of formal args and formal
+	namespace.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* simplify.c (gfc_simplify_size): Clear temporary mpz int before
+	returning.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* resolve.c (add_dt_to_dt_list): Remove unneeded if.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* resolve.c (check_typebound_baseobject): Free local expr before
+	returning.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* primary.c (gfc_match_structure_constructor): Invert the assert logic.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* primary.c (gfc_free_structure_ctor_component): Also free the
+	component structure itself.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* module.c (gfc_use_module): Free atom_string when done with it.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* module.c (read_module): Remove useless string duplication.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* gfortranspec.c (append_arg): Remove commented code.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* decl.c (match_procedure_in_type): Assertify if conditions.
+
+2010-10-06  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* cpp.c (gfc_cpp_post_options): Don't create a cpp reader if
+	preprocessing is disabled.
+
+2010-10-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/45838
+	* f95-lang.c (ATTR_NOTHROW_LEAF_LIST, ATTR_CONST_NOTHROW_LEAF_LIST,
+	ATTR_NOTHROW_LIST, ATTR_CONST_NOTHROW_LIST): Define.
+	(gfc_define_builtin): Change last argument to int bitmask from bool,
+	control addition of TREE_NOTHROW and leaf attribute as well.
+	(DO_DEFINE_MATH_BUILTIN): Adjust callers.
+	(gfc_init_builtin_functions): Likewise.  Remove
+	ATTR_{,CONST_}NOTHROW_LIST enum.
+
+2010-10-04  Andi Kleen <ak@linux.intel.com>
+
+	* Make-lang.in (gfortran, f951): Add + to build rule.
+
 2010-10-04  Richard Guenther  <rguenther@suse.de>
 
 	* f95-lang.c (current_translation_unit): New global variable.

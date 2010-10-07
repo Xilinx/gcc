@@ -1,3 +1,211 @@
+2010-10-07  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+	
+	2006-04-26  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4508851
+	* obj-c++.dg/method-namespace-1.mm: New.
+
+2010-10-07  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/tree-ssa/sra-11.c: New test.
+
+2010-10-07  Tejas Belagod  <tejas.belagod@arm.com>
+
+	* gcc.dg/vect/pr45847.c: New test.
+
+2010-10-07  Iain Sandoe  <iains@gcc.gnu.org>
+	    Kai Tietz  <kai.tietz@onevision.com>
+
+       * objc.dg/proto-lossage-4.m: Use intptr_t instead of long type.
+
+2010-10-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45732
+	* gcc.dg/torture/pr45732.c: New testcase.
+
+2010-10-07  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/foreach-1.m: Adjust for -fnext-runtime compatibility.
+	* objc.dg/foreach-2.m: Likewise.
+	* objc.dg/foreach-3.m: Likewise.
+	* objc.dg/foreach-4.m: Likewise.
+	* objc.dg/foreach-5.m: Likewise.
+	* objc.dg/foreach-6.m: Likewise.
+	* objc.dg/foreach-7.m: Likewise.
+	* objc.dg/objc-foreach-4.m: Likewise.
+	* objc.dg/objc-foreach-5.m: Likewise.
+
+2010-10-07  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45869
+	* gcc.dg/torture/pr45869.c: New testcase.
+	
+2010-10-07  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/set-not-used-1.m: New
+	* obj-c++.dg/set-not-used-1.mm: New.
+
+2010-10-07  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/attributes/method-attribute-3.m: New.
+	* obj-c++.dg/attributes/method-attribute-3.mm: New.
+
+2010-10-07  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/45916
+	* gfortran.dg/generic_typebound_operator_1.f90: New test.
+
+2010-10-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/45889
+	* gfortran.dg/alloc_comp_constraint_6.f90: New test.
+
+2010-10-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+	
+	2005-12-14  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4278774
+	* obj-c++.dg/encode-9.mm: New.
+	
+2010-10-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* g++.dg/cpp0x/pr45908.C: New test.
+
+2010-10-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt6.ad[sb]: New test.
+
+2010-10-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented fast enumeration for Objective-C.
+	* objc.dg/foreach-1.m: New.
+	* objc.dg/foreach-2.m: New.
+	* objc.dg/foreach-3.m: New.
+	* objc.dg/foreach-4.m: New.
+	* objc.dg/foreach-5.m: New.
+	* objc.dg/foreach-6.m: New.
+	* objc.dg/foreach-7.m: New.
+
+	Merge from 'apple/trunk' branch on FSF servers:
+	2006-04-13 Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4502236
+	* objc.dg/objc-foreach-5.m: New.	
+
+	2006-04-12 Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4507230
+	* objc.dg/objc-foreach-4.m: New.
+
+	2006-03-13  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4472881
+	* objc.dg/objc-foreach-3.m: New.
+
+	2005-03-07 Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4468498
+	* objc.dg/objc-foreach-2.m: New.
+
+	2006-02-15   Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4294910
+	* objc.dg/objc-foreach-1.m: New
+
+2010-10-06  Hariharan Sandanagobalane <hariharan@picochip.com>
+
+	* gcc.c-torture/execute/cmpsi-2.c : Unsigned comparisons should use
+	unsigned values.
+	
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc++/28050
+	* obj-c++.dg/syntax-error-10.mm: New.
+
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc++/23707
+	* obj-c++.dg/syntax-error-9.mm: New.
+
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc++/31126
+	* obj-c++.dg/syntax-error-8.mm: New.
+
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+
+	2005-10-17  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4290840
+	* obj-c++.dg/syntax-error-7.mm: New
+
+	2005-10-14  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4294425
+	* obj-c++.dg/syntax-error-6.mm: New
+
+	2005-10-13  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4261146
+	* obj-c++.dg/syntax-error-5.mm: New
+
+	2005-08-15  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4093475
+	* obj-c++.dg/syntax-error-[3-4].mm: New.
+	
+	2005-08-02  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4185810
+	* obj-c++.dg/syntax-error-[1-2].mm: New.
+	
+2010-10-05  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/45752
+	* gcc.dg/vect/pr45752.c: New test.
+
+2010-10-05  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-prof/val-prof-1.c: Adjust.
+	* gcc.dg/tree-prof/val-prof-2.c: Likewise.
+	* gcc.dg/tree-prof/val-prof-3.c: Likewise.
+	* gcc.dg/tree-prof/val-prof-4.c: Likewise.
+	* gcc.dg/tree-prof/val-prof-5.c: Likewise.
+	* gcc.dg/tree-prof/val-prof-7.c: Likewise.
+	* gcc.dg/tree-prof/stringop-1.c: Likewise.
+	* gcc.dg/tree-prof/stringop-2.c: Likewise.
+	* gcc.dg/tree-prof/ic-misattribution-1.c: Likewise.
+	* gcc.dg/tree-prof/indir-call-prof.c: Likewise.
+	* gcc.dg/tree-prof/update-loopch.c: Likewise.
+	* g++.dg/tree-prof/indir-call-prof.C: Likewise.
+	* g++.dg/tree-prof/inline_mismatch_args.C: Likewise.
+	* gcc.dg/tree-prof/tracer-1.c: Likewise.
+	* gcc.dg/tree-ssa/inline-4.c: Likewise.
+	* gcc.dg/tree-ssa/inline-3.c: Likewise.
+	* gcc.dg/tree-ssa/20080530.c: Likewise.
+	* g++.dg/tree-ssa/inline-3.C: Likewise.
+	* g++.dg/tree-ssa/inline-1.C: Likewise.
+	* g++.dg/tree-ssa/inline-2.C: Likewise.
+	* gcc.dg/profile-dir-1.c: Likewise.
+	* gcc.dg/profile-dir-2.c: Likewise.
+	* gcc.dg/profile-dir-3.c: Likewise.
+
+2010-10-05  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45877
+	* g++.dg/torture/pr45877.C: New testcase.
+
+2010-10-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45849
+	* gcc.dg/debug/pr45849.c: New test.
+
 2010-10-04  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/45876

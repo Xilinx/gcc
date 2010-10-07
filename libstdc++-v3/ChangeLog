@@ -1,3 +1,76 @@
+2010-10-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/locale_facets_nonio.tcc (time_get<>::
+	_M_extract_via_format): Tighten somewhat error checking.
+	* testsuite/22_locale/time_get/get_time/char/6.cc: New.
+	* testsuite/22_locale/time_get/get_time/wchar_t/6.cc: Likewise.
+
+2010-10-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/45924
+	* include/std/functional (_Bind_result::operator()): Do not expand
+	template parameter pack in forward call.
+	* testsuite/20_util/bind/45924.cc: New.
+
+2010-10-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/functional (struct _Weak_result_type_impl): Add
+	specializazions for cv-qualified function types, for variadic
+	function types and pointers and references to function types,
+	and for pointers to member function types.
+	(struct _Reference_wrapper_base): Add specializations for
+	cv-qualified unary and binary function types.
+	* testsuite/20_util/reference_wrapper/result_type.cc: New.
+	* testsuite/20_util/reference_wrapper/typedefs-2.cc: Likewise.
+
+2010-10-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libstdc++/45863
+	* scripts/extract_symvers: Restore revision 164879.
+	Only use pvs on SunOS.
+
+2010-10-05  David Krauss  <potswa@mac.com>
+
+	PR libstdc++/45841
+	* include/bits/fstream.h (basic_filebuf::underflow): Overflow
+	success does not preclude returning failure.
+	(basic_filebuf::pbackfail): Likewise.
+	(basic_filebuf::xsputn): Fix indentation problem.
+	(basic_filebuf::xsgetn): Likewise. Also, add similar overflow
+	call to enable optimized case from write mode.
+	* testsuite/27_io/basic_filebuf/underflow/char/45841.cc: New.
+	* testsuite/27_io/basic_filebuf/underflow/wchar_t/45841.cc: Likewise.
+
+2010-10-05  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/locale_facets_nonio.h (time_get::get_time): Doc typo.
+	(time_get::get_date): Likewise.
+
+2010-10-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/type_traits (_GLIBCXX_HAS_NESTED_TYPE): Add.
+	* include/std/functional (_Has_result_type_helper,
+	_Has_result_type): Remove; use the above to define __has_result_type.
+	* include/bits/stl_iterator_base_types.h: Use the above to define
+	__has_iterator_category.
+	* include/bits/allocator.h (__has_allocator_type): Use the above.
+	* include/bits/cpp_type_traits.h (__has_iterator_category,
+	__is_iterator): Remove.
+
+2010-10-05  Sebastian Huber  <sebastian.huber@embedded-brains.de>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/44647
+	* libsupc++/Makefile.am (sources): Add bad_alloc.cc.
+	* libsupc++/new_handler.cc (bad_alloc): Move to ...
+	* libsupc++/bad_alloc.cc (bad_alloc): ... here, new file.
+	* libsupc++/Makefile.in: Regenerate.
+
+2010-10-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/functional (function<>::swap): Use std::swap.
+	* include/tr1/functional (function<>::swap): Likewise.
+
 2010-10-04  Andreas Schwab  <schwab@redhat.com>
 
 	* acinclude.m4 (GLIBCXX_ENABLE): Properly quote argument to
@@ -120,7 +193,6 @@
 	* configure: Regenerate.
 	* include/Makefile.in: Likewise.
 
->>>>>>> .r164755
 2010-09-22  David Krauss  <potswa@mac.com>
 
 	PR libstdc++/45628

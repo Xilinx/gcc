@@ -356,7 +356,7 @@ package body Exp_Ch4 is
                  Prefix         => Arg2,
                  Attribute_Name => Name_Address),
                Make_Attribute_Reference (Loc,
-                 Prefix         => Op1,
+                 Prefix         => Arg1,
                  Attribute_Name => Name_Length)));
       end if;
 
@@ -2193,7 +2193,14 @@ package body Exp_Ch4 is
             begin
                Prim := First_Elmt (Collect_Primitive_Operations (Full_Type));
                while Present (Prim) loop
-                  if Chars (Node (Prim)) = Name_Op_Eq then
+
+                  --  Locate primitive equality with the right signature
+
+                  if Chars (Node (Prim)) = Name_Op_Eq
+                    and then Etype (First_Formal (Node (Prim))) =
+                               Etype (Next_Formal (First_Formal (Node (Prim))))
+                    and then Etype (Node (Prim)) = Standard_Boolean
+                  then
                      if Is_Abstract_Subprogram (Node (Prim)) then
                         return
                           Make_Raise_Program_Error (Loc,
@@ -3664,15 +3671,6 @@ package body Exp_Ch4 is
 
                if Has_Task (T) then
                   if No (Master_Id (Base_Type (PtrT))) then
-
-                     --  If we have a non-library level task with restriction
-                     --  No_Task_Hierarchy set, then no point in expanding.
-
-                     if not Is_Library_Level_Entity (T)
-                       and then Restriction_Active (No_Task_Hierarchy)
-                     then
-                        return;
-                     end if;
 
                      --  The designated type was an incomplete type, and the
                      --  access type did not get expanded. Salvage it now.

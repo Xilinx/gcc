@@ -309,8 +309,17 @@ static char picochip_get_vliw_alu_id (void);
 #undef TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE
 #define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE picochip_option_override
 
+#undef TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO picochip_except_unwind_info
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
+
+enum unwind_info_type
+picochip_except_unwind_info (void)
+{
+  return UI_NONE;
+}
 
 /* Only return a value in memory if it is greater than 4 bytes.
    int_size_in_bytes returns -1 for variable size objects, which go in

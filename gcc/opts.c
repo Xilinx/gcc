@@ -46,10 +46,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "lto-streamer.h"
 
-/* Value of the -G xx switch, and whether it was passed or not.  */
-unsigned HOST_WIDE_INT g_switch_value;
-bool g_switch_set;
-
 /* True if we should exit after parsing options.  */
 bool exit_after_options;
 
@@ -643,7 +639,8 @@ read_cmdline_options (struct cl_decoded_option *decoded_options,
 	}
 
       read_cmdline_option (&global_options, &global_options_set,
-			   decoded_options + i, lang_mask, handlers);
+			   decoded_options + i, lang_mask, handlers,
+			   global_dc);
     }
 }
 
@@ -883,7 +880,8 @@ decode_options (unsigned int argc, const char **argv,
     }
 
   /* Enable -Werror=coverage-mismatch by default */
-  enable_warning_as_error ("coverage-mismatch", 1, lang_mask, &handlers);
+  enable_warning_as_error ("coverage-mismatch", 1, lang_mask, &handlers,
+			   global_dc);
 
   if (first_time_p)
     {
@@ -1082,6 +1080,13 @@ decode_options (unsigned int argc, const char **argv,
 #else
       error ("LTO support has not been enabled in this configuration");
 #endif
+    }
+  if (flag_lto_partition_balanced || flag_lto_partition_1to1)
+    {
+      if (flag_lto_partition_balanced && flag_lto_partition_1to1)
+	error ("Only one -flto-partitoin value can be specified");
+      if (!flag_whopr)
+	error ("-flto-partitoin has effect only with -fwhopr");
     }
 
   /* Reconcile -flto and -fwhopr.  Set additional flags as appropriate and
@@ -1610,7 +1615,7 @@ common_handle_option (struct gcc_options *opts,
       break;
 
     case OPT_Werror_:
-      enable_warning_as_error (arg, value, lang_mask, handlers);
+      enable_warning_as_error (arg, value, lang_mask, handlers, global_dc);
       break;
 
     case OPT_Wlarger_than_:
@@ -2288,12 +2293,15 @@ register_warning_as_error_callback (void (*callback) (int))
   warning_as_error_callback = callback;
 }
 
-/* Enable a warning option as an error.  This is used by -Werror= and
-   also by legacy Werror-implicit-function-declaration.  */
+/* Enable (or disable if VALUE is 0) a warning option ARG (language
+   mask LANG_MASK, option handlers HANDLERS) as an error for
+   diagnostic context DC (possibly NULL).  This is used by
+   -Werror=.  */
 
 void
 enable_warning_as_error (const char *arg, int value, unsigned int lang_mask,
-			 const struct cl_option_handlers *handlers)
+			 const struct cl_option_handlers *handlers,
+			 diagnostic_context *dc)
 {
   char *new_option;
   int option_index;
@@ -2315,8 +2323,9 @@ enable_warning_as_error (const char *arg, int value, unsigned int lang_mask,
 	option_index = option->alias_target;
       if (option_index == OPT_SPECIAL_ignore)
 	return;
-      diagnostic_classify_diagnostic (global_dc, option_index, kind,
-				      UNKNOWN_LOCATION);
+      if (dc)
+	diagnostic_classify_diagnostic (dc, option_index, kind,
+					UNKNOWN_LOCATION);
       if (kind == DK_ERROR)
 	{
 	  const struct cl_option * const option = cl_options + option_index;
@@ -2325,7 +2334,8 @@ enable_warning_as_error (const char *arg, int value, unsigned int lang_mask,
 	  if (option->var_type == CLVC_BOOLEAN)
 	    handle_generated_option (&global_options, &global_options_set,
 				     option_index, NULL, value, lang_mask,
-				     (int)kind, handlers);
+				     (int)kind, handlers,
+				     dc);
 
 	  if (warning_as_error_callback)
 	    warning_as_error_callback (option_index);

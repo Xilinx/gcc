@@ -349,15 +349,15 @@ Objective-C and Objective-C++ Dialects}.
 -finline-small-functions -fipa-cp -fipa-cp-clone -fipa-matrix-reorg @gol
 -fipa-pta -fipa-profile -fipa-pure-const -fipa-reference @gol
 -fipa-struct-reorg -fira-algorithm=@var{algorithm} @gol
--fira-region=@var{region} -fira-coalesce @gol
+-fira-region=@var{region} @gol
 -fira-loop-pressure -fno-ira-share-save-slots @gol
 -fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
 -fivopts -fkeep-inline-functions -fkeep-static-consts @gol
 -floop-block -floop-flatten -floop-interchange -floop-strip-mine @gol
--floop-parallelize-all -flto -flto-compression-level -flto-report @gol
--fltrans -fltrans-output-list -fmerge-all-constants -fmerge-constants @gol
--fmodulo-sched -fmodulo-sched-allow-regmoves -fmove-loop-invariants @gol
--fmudflap -fmudflapir -fmudflapth -fno-branch-count-reg @gol
+-floop-parallelize-all -flto -flto-compression-level -flto-partition=@var{alg} @gol
+-flto-report -fltrans -fltrans-output-list -fmerge-all-constants @gol
+-fmerge-constants -fmodulo-sched -fmodulo-sched-allow-regmoves @gol
+-fmove-loop-invariants fmudflap -fmudflapir -fmudflapth -fno-branch-count-reg @gol
 -fno-default-inline @gol
 -fno-defer-pop -fno-function-cse -fno-guess-branch-probability @gol
 -fno-inline -fno-math-errno -fno-peephole -fno-peephole2 @gol
@@ -6416,11 +6416,6 @@ irregular register set, the third one results in faster and generates
 decent code and the smallest size code, and the default value usually
 give the best results in most cases and for most architectures.
 
-@item -fira-coalesce
-@opindex fira-coalesce
-Do optimistic register coalescing.  This option might be profitable for
-architectures with big regular register files.
-
 @item -fira-loop-pressure
 @opindex fira-loop-pressure
 Use IRA to evaluate register pressure in loops for decision to move
@@ -7600,6 +7595,13 @@ for this to work. This will likely only work if @env{MAKE} is
 GNU make.
 
 Disabled by default.
+
+@item -flto-partition=@var{alg}
+@opindex flto-partition
+Specify partitioning algorithm used by @option{-fwhopr} mode.  The value is
+either @code{1to1} to specify partitioning corresponding to source files
+or @code{balanced} to specify partitioning into, if possible, equally sized
+chunks.  The default value is @code{balanced}.
 
 @item -fwpa
 @opindex fwpa
@@ -8793,6 +8795,16 @@ IPA-CP attempts to track all possible types passed to a function's
 parameter in order to perform devirtualization.
 @option{devirt-type-list-size} is the maximum number of types it
 stores per a single formal parameter of a function.
+
+@item lto-partitions
+Specify desired nuber of partitions produced during WHOPR copmilation.
+Number of partitions should exceed number of CPUs used for compilatoin.
+Default value is 32.
+
+@item lto-minpartition
+Size of minimal paritition for WHOPR (in estimated instructions).
+This prevents expenses of splitting very small programs into too many
+partitions.
 
 @end table
 @end table
@@ -17383,22 +17395,6 @@ specifies that a console application is to be generated, by
 instructing the linker to set the PE header subsystem type
 required for console applications.
 This is the default behavior for Cygwin and MinGW targets.
-
-@item -mcygwin
-@opindex mcygwin
-This option is available for Cygwin targets.  It specifies that
-the Cygwin internal interface is to be used for predefined
-preprocessor macros, C runtime libraries and related linker
-paths and options.  For Cygwin targets this is the default behavior.
-This option is deprecated and will be removed in a future release.
-
-@item -mno-cygwin
-@opindex mno-cygwin
-This option is available for Cygwin targets.  It specifies that
-the MinGW internal interface is to be used instead of Cygwin's, by
-setting MinGW-related predefined macros and linker paths and default
-library options.
-This option is deprecated and will be removed in a future release.
 
 @item -mdll
 @opindex mdll

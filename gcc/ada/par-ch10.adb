@@ -347,10 +347,10 @@ package body Ch10 is
             Error_Msg_BC -- CODEFIX
               ("keyword BODY expected here [see file name]");
             Restore_Scan_State (Scan_State);
-            Set_Unit (Comp_Unit_Node, P_Package (Pf_Pbod));
+            Set_Unit (Comp_Unit_Node, P_Package (Pf_Pbod_Pexp));
          else
             Restore_Scan_State (Scan_State);
-            Set_Unit (Comp_Unit_Node, P_Package (Pf_Decl_Gins_Pbod_Rnam));
+            Set_Unit (Comp_Unit_Node, P_Package (Pf_Decl_Gins_Pbod_Rnam_Pexp));
          end if;
 
       elsif Token = Tok_Generic then
@@ -364,7 +364,7 @@ package body Ch10 is
         or else Token = Tok_Overriding
         or else Token = Tok_Procedure
       then
-         Set_Unit (Comp_Unit_Node, P_Subprogram (Pf_Decl_Gins_Pbod_Rnam));
+         Set_Unit (Comp_Unit_Node, P_Subprogram (Pf_Decl_Gins_Pbod_Rnam_Pexp));
 
          --  A little bit of an error recovery check here. If we just scanned
          --  a subprogram declaration (as indicated by an SIS entry being
@@ -634,7 +634,6 @@ package body Ch10 is
          --  Check we did not with any child units
 
          Item := First (Context_Items (Comp_Unit_Node));
-
          while Present (Item) loop
             if Nkind (Item) = N_With_Clause
               and then Nkind (Name (Item)) /= N_Identifier
@@ -1035,10 +1034,10 @@ package body Ch10 is
         or else Token = Tok_Overriding
         or else Token = Tok_Procedure
       then
-         Body_Node := P_Subprogram (Pf_Pbod);
+         Body_Node := P_Subprogram (Pf_Pbod_Pexp);
 
       elsif Token = Tok_Package then
-         Body_Node := P_Package (Pf_Pbod);
+         Body_Node := P_Package (Pf_Pbod_Pexp);
 
       elsif Token = Tok_Protected then
          Scan; -- past PROTECTED

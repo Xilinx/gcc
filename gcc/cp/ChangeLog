@@ -1,3 +1,117 @@
+2010-10-07  Nicola Pero  <nicola@nicola.brainstorm.co.uk>
+
+	Merge from apple/trunk branch on FSF servers.
+
+	2006-04-26  Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4508851
+	* parser.c (cp_parser_objc_interstitial_code): Recognize
+	and parse RID_NAMESPACE keyword.
+
+2010-10-07  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* parser.c (cp_parser_objc_method_tail_params_opt): Peek new token after
+	finding ellipsis, before checking for attributes.
+
+2010-10-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from apple/trunk branch on FSF servers.
+	* cp-tree.def: Added AT_ENCODE_EXPR here instead of to the no
+	longer existing gcc/c-common.def.
+	
+	2005-12-14  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4278774
+	* pt.c (tsubst_copy_and_build): Instantiate @endcode(T).
+	* parser.c (cp_parser_objc_encode_expression): Build a templatized 
+	parse tree for @encode(T).
+
+	2005-12-14  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4278774
+	* c-common.def: Add new expression code AT_ENCODE_EXPR.
+	
+2010-10-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR c++/45908
+	* typeck.c (cp_build_addr_expr_1): Add check for incomplete types in
+	code folding offsetof-like computations.
+
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc++/31125
+	* parser.c (cp_parser_objc_class_interface): If no identifier
+	follows an @interface token, stop parsing the interface after
+	printing an error.
+	(cp_parser_objc_class_implementation): If no identifier follows an
+	@implementation token, stop parsing the implementation after
+	printing an error.
+
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc++/23707
+	* parser.c (cp_parser_objc_method_keyword_params): If the required
+	colon is not found while parsing parameters, stop parsing them.
+
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc++/31126
+	* parser.c (cp_parser_objc_class_ivars): Do not eat the EOF or
+	@end after detecting it.  Print an error if @end is found without
+	a '}'.
+	(cp_parser_objc_method_prototype_list): Do not eat the EOF after
+	detecting it.  Fixed reading the next token when continuing
+	because of an error in a method signature.  Print an error if EOF
+	is found without an '@end'.
+	(cp_parser_objc_method_definition_list): Same change.
+
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+	
+	Merge from apple/trunk branch on FSF servers:
+	
+	2005-10-17  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4290840
+	* parser.c (cp_parser_objc_method_keyword_params): Check for valid
+	method parameters and issue error.
+	(cp_parser_objc_method_definition_list): Check for invalid tokens
+	which cannot start a function definition.
+
+	2005-10-14  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4294425
+	* parser.c (cp_parser_objc_message_args): Check for missing message
+	arguments and syntax error.
+
+	2005-10-13  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4261146
+	* parser.c (cp_parser_objc_class_ivars): Check for @end/eof while
+	looking for '}'.
+
+	2005-08-15  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4093475
+	* parser.c (cp_parser_objc_interstitial_code): Catch stray
+	'{' and '}' tokens and issue appropriate errors.
+	
+	2005-08-02  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4185810
+	(cp_parser_statement_seq_opt): In addition to '}' and
+	end-of-file, a statement sequence may also be terminated
+	by a stray '@end'.
+	
+2010-10-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* cp-tree.h (cxx_print_error_function,
+	cxx_initialize_diagnostics): Declare using diagnostic_context
+	typedef.
+
+2010-10-04  Andi Kleen <ak@linux.intel.com>
+
+	* Make-lang.in (g++, cc1plus): Add + to build rule.
+
 2010-10-04  Jason Merrill  <jason@redhat.com>
 
 	* tree.c (decl_storage_duration): New.

@@ -4142,7 +4142,7 @@ package body Ch3 is
 
          when Tok_Function =>
             Check_Bad_Layout;
-            Append (P_Subprogram (Pf_Decl_Gins_Pbod_Rnam_Stub), Decls);
+            Append (P_Subprogram (Pf_Decl_Gins_Pbod_Rnam_Stub_Pexp), Decls);
             Done := False;
 
          when Tok_For =>
@@ -4186,7 +4186,7 @@ package body Ch3 is
                Error_Msg_SC ("\unit must be compiled with -gnat05 switch");
 
                Token := Tok_Overriding;
-               Append (P_Subprogram (Pf_Decl_Gins_Pbod_Rnam_Stub), Decls);
+               Append (P_Subprogram (Pf_Decl_Gins_Pbod_Rnam_Stub_Pexp), Decls);
                Done := False;
 
             --  Normal case, no overriding, or overriding followed by colon
@@ -4201,17 +4201,17 @@ package body Ch3 is
 
          when Tok_Not =>
             Check_Bad_Layout;
-            Append (P_Subprogram (Pf_Decl_Gins_Pbod_Rnam_Stub), Decls);
+            Append (P_Subprogram (Pf_Decl_Gins_Pbod_Rnam_Stub_Pexp), Decls);
             Done := False;
 
          when Tok_Overriding =>
             Check_Bad_Layout;
-            Append (P_Subprogram (Pf_Decl_Gins_Pbod_Rnam_Stub), Decls);
+            Append (P_Subprogram (Pf_Decl_Gins_Pbod_Rnam_Stub_Pexp), Decls);
             Done := False;
 
          when Tok_Package =>
             Check_Bad_Layout;
-            Append (P_Package (Pf_Decl_Gins_Pbod_Rnam_Stub), Decls);
+            Append (P_Package (Pf_Decl_Gins_Pbod_Rnam_Stub_Pexp), Decls);
             Done := False;
 
          when Tok_Pragma =>
@@ -4220,7 +4220,7 @@ package body Ch3 is
 
          when Tok_Procedure =>
             Check_Bad_Layout;
-            Append (P_Subprogram (Pf_Decl_Gins_Pbod_Rnam_Stub), Decls);
+            Append (P_Subprogram (Pf_Decl_Gins_Pbod_Rnam_Stub_Pexp), Decls);
             Done := False;
 
          when Tok_Protected =>
@@ -4335,23 +4335,23 @@ package body Ch3 is
                Done := True;
             end if;
 
-            --  Normally an END terminates the scan for basic declarative
-            --  items. The one exception is END RECORD, which is probably
-            --  left over from some other junk.
+         --  Normally an END terminates the scan for basic declarative items.
+         --  The one exception is END RECORD, which is probably left over from
+         --  some other junk.
 
-            when Tok_End =>
-               Save_Scan_State (Scan_State); -- at END
-               Scan; -- past END
+         when Tok_End =>
+            Save_Scan_State (Scan_State); -- at END
+            Scan; -- past END
 
-               if Token = Tok_Record then
-                  Error_Msg_SP ("no RECORD for this `end record`!");
-                  Scan; -- past RECORD
-                  TF_Semicolon;
+            if Token = Tok_Record then
+               Error_Msg_SP ("no RECORD for this `end record`!");
+               Scan; -- past RECORD
+               TF_Semicolon;
 
-               else
-                  Restore_Scan_State (Scan_State); -- to END
-                  Done := True;
-               end if;
+            else
+               Restore_Scan_State (Scan_State); -- to END
+               Done := True;
+            end if;
 
          --  The following tokens which can only be the start of a statement
          --  are considered to end a declarative part (i.e. we have a missing

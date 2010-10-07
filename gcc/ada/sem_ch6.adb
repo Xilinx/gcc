@@ -1038,6 +1038,31 @@ package body Sem_Ch6 is
       Analyze (Explicit_Actual_Parameter (N));
    end Analyze_Parameter_Association;
 
+   --------------------------------------
+   -- Analyze_Parameterized_Expression --
+   --------------------------------------
+
+   procedure Analyze_Parameterized_Expression (N : Node_Id) is
+      Loc  : constant Source_Ptr := Sloc (N);
+      LocX : constant Source_Ptr := Sloc (Expression (N));
+
+   begin
+      --  This is one of the occasions on which we write things during semantic
+      --  analysis. Transform the parameterized expression into an equivalent
+      --  subprogram body, and then analyze that.
+
+      Rewrite (N,
+        Make_Subprogram_Body (Loc,
+          Specification              => Specification (N),
+          Declarations               => Empty_List,
+          Handled_Statement_Sequence =>
+            Make_Handled_Sequence_Of_Statements (LocX,
+              Statements => New_List (
+                Make_Simple_Return_Statement (LocX,
+                  Expression => Expression (N))))));
+      Analyze (N);
+   end Analyze_Parameterized_Expression;
+
    ----------------------------
    -- Analyze_Procedure_Call --
    ----------------------------
@@ -2932,19 +2957,32 @@ package body Sem_Ch6 is
          --  Ada 2005 (AI-251): If the return type is abstract, verify that
          --  the subprogram is abstract also. This does not apply to renaming
          --  declarations, where abstractness is inherited.
+
          --  In case of primitives associated with abstract interface types
          --  the check is applied later (see Analyze_Subprogram_Declaration).
 
-         if Is_Abstract_Type (Etype (Designator))
-           and then not Is_Interface (Etype (Designator))
-           and then Nkind (Parent (N)) /= N_Subprogram_Renaming_Declaration
-           and then Nkind (Parent (N)) /=
-                      N_Abstract_Subprogram_Declaration
-           and then
-             (Nkind (Parent (N))) /= N_Formal_Abstract_Subprogram_Declaration
+         if not Nkind_In (Parent (N), N_Subprogram_Renaming_Declaration,
+                                      N_Abstract_Subprogram_Declaration,
+                                      N_Formal_Abstract_Subprogram_Declaration)
          then
-            Error_Msg_N
-              ("function that returns abstract type must be abstract", N);
+            if Is_Abstract_Type (Etype (Designator))
+              and then not Is_Interface (Etype (Designator))
+            then
+               Error_Msg_N
+                 ("function that returns abstract type must be abstract", N);
+
+            --  Ada 2012 (AI-0073): extend this test to subprograms with an
+            --  access result whose designated type is abstract.
+
+            elsif Nkind (Result_Definition (N)) = N_Access_Definition
+              and then
+                not Is_Class_Wide_Type (Designated_Type (Etype (Designator)))
+              and then Is_Abstract_Type (Designated_Type (Etype (Designator)))
+              and then Ada_Version >= Ada_12
+            then
+               Error_Msg_N ("function whose access result designates "
+                 & "abstract type must be abstract", N);
+            end if;
          end if;
       end if;
 
@@ -5826,7 +5864,7 @@ package body Sem_Ch6 is
                      Obj_Decl, Typ);
                   Error_Msg_N
                     ("\an equality operator cannot be declared after this "
-                      & "point ('R'M 4.5.2 (9.8)) (Ada2012))?", Obj_Decl);
+                      & "point ('R'M 4.5.2 (9.8)) (Ada 2012))?", Obj_Decl);
                   exit;
                end if;
 
@@ -7004,16 +7042,34 @@ package body Sem_Ch6 is
                      & "(RM 3.9.3(10))!", S);
 
                elsif Ekind (S) = E_Function
-                 and then Is_Tagged_Type (T)
-                 and then T = Base_Type (Etype (S))
                  and then not Is_Overriding
                then
-                  Error_Msg_N
-                    ("private function with tagged result must"
-                     & " override visible-part function", S);
-                  Error_Msg_N
-                    ("\move subprogram to the visible part"
-                     & " (RM 3.9.3(10))", S);
+                  if Is_Tagged_Type (T)
+                    and then T = Base_Type (Etype (S))
+                  then
+                     Error_Msg_N
+                       ("private function with tagged result must"
+                        & " override visible-part function", S);
+                     Error_Msg_N
+                       ("\move subprogram to the visible part"
+                        & " (RM 3.9.3(10))", S);
+
+                  --  AI05-0073: extend this test to the case of a function
+                  --  with a controlling access result.
+
+                  elsif Ekind (Etype (S)) = E_Anonymous_Access_Type
+                    and then Is_Tagged_Type (Designated_Type (Etype (S)))
+                    and then
+                      not Is_Class_Wide_Type (Designated_Type (Etype (S)))
+                    and then Ada_Version >= Ada_12
+                  then
+                     Error_Msg_N
+                       ("private function with controlling access result "
+                          & "must override visible-part function", S);
+                     Error_Msg_N
+                       ("\move subprogram to the visible part"
+                          & " (RM 3.9.3(10))", S);
+                  end if;
                end if;
             end if;
          end Check_Private_Overriding;
@@ -7542,6 +7598,53 @@ package body Sem_Ch6 is
 
       E := Current_Entity_In_Scope (S);
 
+      --  Ada 2005 (AI-251): Derivation of abstract interface primitives.
+      --  They are directly added to the list of primitive operations of
+      --  Derived_Type, unless this is a rederivation in the private part
+      --  of an operation that was already derived in the visible part of
+      --  the current package.
+
+      if Ada_Version >= Ada_05
+        and then Present (Derived_Type)
+        and then Present (Alias (S))
+        and then Is_Dispatching_Operation (Alias (S))
+        and then Present (Find_Dispatching_Type (Alias (S)))
+        and then Is_Interface (Find_Dispatching_Type (Alias (S)))
+      then
+         --  For private types, when the full-view is processed we propagate to
+         --  the full view the non-overridden entities whose attribute "alias"
+         --  references an interface primitive. These entities were added by
+         --  Derive_Subprograms to ensure that interface primitives are
+         --  covered.
+
+         --  Inside_Freeze_Actions is non zero when S corresponds with an
+         --  internal entity that links an interface primitive with its
+         --  covering primitive through attribute Interface_Alias (see
+         --  Add_Internal_Interface_Entities)
+
+         if Inside_Freezing_Actions = 0
+           and then Is_Package_Or_Generic_Package (Current_Scope)
+           and then In_Private_Part (Current_Scope)
+           and then Nkind (Parent (E)) = N_Private_Extension_Declaration
+           and then Nkind (Parent (S)) = N_Full_Type_Declaration
+           and then Full_View (Defining_Identifier (Parent (E)))
+                      = Defining_Identifier (Parent (S))
+           and then Alias (E) = Alias (S)
+         then
+            Check_Operation_From_Private_View (S, E);
+            Set_Is_Dispatching_Operation (S);
+
+         --  Common case
+
+         else
+            Enter_Overloaded_Entity (S);
+            Check_Dispatching_Operation (S, Empty);
+            Check_For_Primitive_Subprogram (Is_Primitive_Subp);
+         end if;
+
+         return;
+      end if;
+
       --  If there is no homonym then this is definitely not overriding
 
       if No (E) then
@@ -7617,30 +7720,6 @@ package body Sem_Ch6 is
       --  E exists and is overloadable
 
       else
-         --  Ada 2005 (AI-251): Derivation of abstract interface primitives.
-         --  They are directly added to the list of primitive operations of
-         --  Derived_Type, unless this is a rederivation in the private part
-         --  of an operation that was already derived in the visible part of
-         --  the current package.
-
-         if Ada_Version >= Ada_05
-           and then Present (Derived_Type)
-           and then Is_Dispatching_Operation (Alias (S))
-           and then Present (Find_Dispatching_Type (Alias (S)))
-           and then Is_Interface (Find_Dispatching_Type (Alias (S)))
-         then
-            if Type_Conformant (E, S)
-              and then Is_Package_Or_Generic_Package (Current_Scope)
-              and then In_Private_Part (Current_Scope)
-              and then Parent (E) /= Parent (S)
-              and then Alias (E) = Alias (S)
-            then
-               Check_Operation_From_Private_View (S, E);
-            else
-               goto Add_New_Entity;
-            end if;
-         end if;
-
          Check_Synchronized_Overriding (S, Overridden_Subp);
 
          --  Loop through E and its homonyms to determine if any of them is
@@ -7997,8 +8076,6 @@ package body Sem_Ch6 is
 
             E := Homonym (E);
          end loop;
-
-         <<Add_New_Entity>>
 
          --  On exit, we know that S is a new entity
 

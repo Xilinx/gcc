@@ -880,13 +880,23 @@ DEFHOOK
  (enum machine_mode mode, const_tree type, int misalignment, bool is_packed),
  default_builtin_support_vector_misalignment)
 
-/* Return units per SIMD word.  */
+/* Returns the preferred mode for SIMD operations for the specified
+   scalar mode.  */
 DEFHOOK
-(units_per_simd_word,
+(preferred_simd_mode,
+ "",
+ enum machine_mode,
+ (enum machine_mode mode),
+ default_preferred_simd_mode)
+
+/* Returns a mask of vector sizes to iterate over when auto-vectorizing
+   after processing the preferred one derived from preferred_simd_mode.  */
+DEFHOOK
+(autovectorize_vector_sizes,
  "",
  unsigned int,
- (enum machine_mode mode),
- default_units_per_simd_word)
+ (void),
+ default_autovectorize_vector_sizes)
 
 HOOK_VECTOR_END (vectorize)
 

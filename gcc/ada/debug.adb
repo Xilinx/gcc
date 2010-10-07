@@ -127,7 +127,7 @@ package body Debug is
    --  d.G
    --  d.H
    --  d.I  SCIL generation mode
-   --  d.J  Parallel SCIL generation mode
+   --  d.J  Disable parallel SCIL generation mode
    --  d.K
    --  d.L  Depend on back end for limited types in conditional expressions
    --  d.M
@@ -143,7 +143,7 @@ package body Debug is
    --  d.W  Print out debugging information for Walk_Library_Items
    --  d.X  Use Expression_With_Actions
    --  d.Y  Do not use Expression_With_Actions
-   --  d.Z  Generate call-graph information
+   --  d.Z
 
    --  d1   Error msgs have node numbers where possible
    --  d2   Eliminate error flags in verbose form error messages
@@ -563,9 +563,9 @@ package body Debug is
    --       of static analysis tools, and ensure additional tree consistency
    --       between different compilations of specs.
 
-   --  d.J  Ensure the SCIL generated is compatible with parallel builds.
-   --       This means in particular not writing the same files under the
-   --       same directory.
+   --  d.J  Disable parallel SCIL generation. Normally SCIL file generation is
+   --       done in parallel to speed processing. This switch disables this
+   --       behavior.
 
    --  d.L  Normally the front end generates special expansion for conditional
    --       expressions of a limited type. This debug flag removes this special
@@ -595,12 +595,6 @@ package body Debug is
    --  d.Y  Prevents the use of the N_Expression_With_Actions node even in the
    --       case of the gcc back end. Provided as a back up in case the new
    --       scheme has problems.
-
-   --  d.Z  This flag enables the frontend call-graph output associated with
-   --       dispatching calls. This is a temporary debug flag to be used during
-   --       development of this output. Once it works, it will always be output
-   --       (as part of the standard call-graph output) by default, and this
-   --       flag will be removed.
 
    --  d1   Error messages have node numbers where possible. Normally error
    --       messages have only source locations. This option is useful when

@@ -487,8 +487,7 @@ package body Sem_Ch7 is
 
             function Has_Referencer
               (L     : List_Id;
-               Outer : Boolean)
-               return  Boolean;
+               Outer : Boolean) return  Boolean;
             --  Traverse the given list of declarations in reverse order.
             --  Return True if a referencer is present. Return False if none is
             --  found. The Outer parameter is True for the outer level call and
@@ -509,10 +508,10 @@ package body Sem_Ch7 is
 
             function Has_Referencer
               (L     : List_Id;
-               Outer : Boolean)
-               return  Boolean
+               Outer : Boolean) return  Boolean
             is
                Has_Referencer_Except_For_Subprograms : Boolean := False;
+
                D : Node_Id;
                E : Entity_Id;
                K : Node_Kind;
@@ -532,7 +531,6 @@ package body Sem_Ch7 is
                   V : Node_Id;
 
                begin
-
                   --  Check name of procedure or function calls
 
                   if Nkind_In (N, N_Procedure_Call_Statement, N_Function_Call)
@@ -566,11 +564,12 @@ package body Sem_Ch7 is
                   end if;
 
                   return OK;
-
                end Check_Subprogram_Ref;
 
                function Check_Subprogram_Refs is
                  new Traverse_Func (Check_Subprogram_Ref);
+
+            --  Start of processing for Has_Referencer
 
             begin
                if No (L) then
@@ -2036,6 +2035,7 @@ package body Sem_Ch7 is
          Set_Is_Volatile             (Priv, Is_Volatile                (Full));
          Set_Treat_As_Volatile       (Priv, Treat_As_Volatile          (Full));
          Set_Is_Ada_2005_Only        (Priv, Is_Ada_2005_Only           (Full));
+         Set_Is_Ada_2012_Only        (Priv, Is_Ada_2012_Only           (Full));
          Set_Has_Pragma_Unmodified   (Priv, Has_Pragma_Unmodified      (Full));
          Set_Has_Pragma_Unreferenced (Priv, Has_Pragma_Unreferenced    (Full));
          Set_Has_Pragma_Unreferenced_Objects

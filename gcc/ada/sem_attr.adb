@@ -7917,6 +7917,7 @@ package body Sem_Attr is
                   --  that generic unit. This includes any such attribute that
                   --  occurs within the body of a generic unit that is a child
                   --  of the generic unit where the subprogram is declared.
+
                   --  The rule also prohibits applying the attribute when the
                   --  access type is a generic formal access type (since the
                   --  level of the actual type is not known). This restriction
@@ -7950,10 +7951,11 @@ package body Sem_Attr is
                   --  been caught by the compilation of the generic unit.
 
                   --  Note that we relax this check in CodePeer mode for
-                  --  compatibility with legacy code.
-
-                  --  This seems an odd decision??? Why should codepeer mode
-                  --  have a different notion of legality from the compiler???
+                  --  compatibility with legacy code, since CodePeer is an
+                  --  Ada source code analyzer, not a strict compiler.
+                  --  ??? Note that a better approach would be to have a
+                  --  separate switch to relax this rule, and enable this
+                  --  switch in CodePeer mode.
 
                   elsif Attr_Id = Attribute_Access
                     and then not CodePeer_Mode

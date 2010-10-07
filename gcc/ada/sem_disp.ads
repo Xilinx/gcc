@@ -82,10 +82,16 @@ package Sem_Disp is
    function Find_Primitive_Covering_Interface
      (Tagged_Type : Entity_Id;
       Iface_Prim  : Entity_Id) return Entity_Id;
-   --  Search in the homonym chain for the primitive of Tagged_Type that
-   --  covers Iface_Prim. The homonym chain traversal is required to catch
-   --  primitives associated with the partial view of private types when
-   --  processing the corresponding full view.
+   --  Search in the homonym chain for the primitive of Tagged_Type that covers
+   --  Iface_Prim. The homonym chain traversal is required to catch primitives
+   --  associated with the partial view of private types when processing the
+   --  corresponding full view. If the entity is not found then search for it
+   --  in the list of primitives of Tagged_Type. This latter search is needed
+   --  when the interface primitive is covered by a private subprogram. If the
+   --  primitive has not been covered yet then return the entity that will be
+   --  overriden when the primitive is covered (that is, return the entity
+   --  whose alias attribute references the interface primitive). If none of
+   --  these entities is found then return Empty.
 
    function Is_Dynamically_Tagged (N : Node_Id) return Boolean;
    --  Used to determine whether a call is dispatching, i.e. if is an

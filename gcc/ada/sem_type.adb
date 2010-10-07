@@ -480,8 +480,7 @@ package body Sem_Type is
          then
             Add_Entry (Entity (N), Etype (N));
 
-         elsif (Nkind (N) = N_Function_Call
-                 or else Nkind (N) = N_Procedure_Call_Statement)
+         elsif Nkind_In (N, N_Function_Call, N_Procedure_Call_Statement)
            and then Is_Entity_Name (Name (N))
          then
             Add_Entry (Entity (Name (N)), Etype (N));
@@ -876,10 +875,13 @@ package body Sem_Type is
             return False;
          end;
 
-      --  In a dispatching call the actual may be class-wide
+         --  In a dispatching call the actual may be class-wide, the formal
+         --  may be its specific type, or that of a descendent of it.
 
       elsif Is_Class_Wide_Type (T2)
-        and then Base_Type (Root_Type (T2)) = Base_Type (T1)
+        and then
+          (Class_Wide_Type (T1) = T2
+             or else Base_Type (Root_Type (T2)) = Base_Type (T1))
       then
          return True;
 
@@ -1531,15 +1533,26 @@ package body Sem_Type is
       It2  := It;
       Nam2 := It.Nam;
 
+      --  Check whether one of the entities is an Ada 2005/2012 and we are
+      --  operating in an earlier mode, in which case we discard the Ada
+      --  2005/2012 entity, so that we get proper Ada 95 overload resolution.
+
       if Ada_Version < Ada_05 then
-
-         --  Check whether one of the entities is an Ada 2005 entity and we are
-         --  operating in an earlier mode, in which case we discard the Ada
-         --  2005 entity, so that we get proper Ada 95 overload resolution.
-
-         if Is_Ada_2005_Only (Nam1) then
+         if Is_Ada_2005_Only (Nam1) or else Is_Ada_2012_Only (Nam1) then
             return It2;
-         elsif Is_Ada_2005_Only (Nam2) then
+         elsif Is_Ada_2005_Only (Nam2) or else Is_Ada_2012_Only (Nam1) then
+            return It1;
+         end if;
+      end if;
+
+      --  Check whether one of the entities is an Ada 2012 entity and we are
+      --  operating in Ada 2005 mode, in which case we discard the Ada 2012
+      --  entity, so that we get proper Ada 2005 overload resolution.
+
+      if Ada_Version = Ada_05 then
+         if Is_Ada_2012_Only (Nam1) then
+            return It2;
+         elsif Is_Ada_2012_Only (Nam2) then
             return It1;
          end if;
       end if;

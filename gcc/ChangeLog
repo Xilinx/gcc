@@ -1,3 +1,576 @@
+2010-10-07  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (struct access): New field grp_assignment_write.
+	(dump_access): Dump grp_assignment_write.
+	(build_accesses_from_assign): Set grp_assignment_write.
+	(sort_and_splice_var_accesses): Aggregate grp_assignment_write.
+	(mark_read_status): Renamed to mark_rw_status, individual values
+	renamed too.
+	(analyze_access_subtree): Changed type of mark_write to
+	mark_read_status.  Fixed propagating of mark_read and
+	mark_write.  Changed benefit estimate.  Updated comment.
+
+2010-10-07  Tejas Belagod  <tejas.belagod@arm.com>
+
+	* tree-vect-patterns.c (vect_recog_widen_mult_pattern): Add NULL
+	check for vectype_out returned by get_vectype_for_scalar_type().
+
+2010-10-07  Tejas Belagod  <tejas.belagod@arm.com>
+
+	* config/arm/neon.md (neon_unpack<US>_<mode>): Add 'w' to
+	constraint, add register specifier in instruction template.
+	(neon_vec_pack_trunc_<mode>): Likewise.
+	(neon_vec_<US>mult_<mode>): Add register specifier to
+	instruction template.
+
+2010-10-07  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* config.gcc (c_target_objs)[i?86-*-pe|i?86-*-cygwin*]: Don't add
+	cygwin2.o.
+	(cxx_target_objs)[i?86-*-pe|i?86-*-cygwin*]: Likewise.
+	(extra_gcc_objs)[i?86-*-pe|i?86-*-cygwin*]: Don't add cygwin1.o.
+	* config/i386/t-cygwin (cygwin1.o): Delete build rule.
+	(cygwin2.o): Likewise.
+	* config/i386/cygwin1.c: Delete file.
+	* config/i386/cygwin2.c: Likewise.
+	* config/i386/cygwin.h (CPP_SPEC): Remove all %{mno-cygwin} specs and
+	make all {%!mno-cygwin} ones unconditional.
+	(STARTFILE_SPEC): Likewise.
+	(REAL_LIBGCC_SPEC): Likewise.
+	(LIB_SPEC): Likewise.
+	(CXX_WRAP_SPEC): Likewise.
+	(LINK_SPEC): Likewise.
+	(CYGWIN_MINGW_SUBDIR): Delete now-unused macro definition.
+	(CYGWIN_MINGW_SUBDIR_LEN): Likewise.
+	(cygwin_gplusplus_include_dir): Delete now-unused array.
+	(GPLUSPLUS_INCLUDE_DIR): Don't redefine to point to it.
+	(cygwin_gplusplus_tool_include_dir): Delete now-unused array.
+	(GPLUSPLUS_TOOL_INCLUDE_DIR): Don't redefine to point to it.
+	(cygwin_gplusplus_backward_include_dir): Delete now-unused array.
+	(GPLUSPLUS_BACKWARD_INCLUDE_DIR): Don't redefine to point to it.
+	(cygwin_local_include_dir): Delete now-unused array.
+	(LOCAL_INCLUDE_DIR): Don't redefine to point to it.
+	(cygwin_cross_include_dir): Delete now-unused array.
+	(CROSS_INCLUDE_DIR): Don't redefine to point to it.
+	(cygwin_tool_include_dir): Delete now-unused array.
+	(TOOL_INCLUDE_DIR): Don't redefine to point to it.
+	(cygwin_standard_include_dir): Delete now-unused array.
+	(STANDARD_INCLUDE_DIR): Don't redefine to point to it.
+	(GEN_CVT_ARRAY): Delete now-unused macro definition.
+	(cvt_to_mingw): Delete now-unused array.
+	(mingw_scan): Remove prototype of deleted function.
+	(GCC_DRIVER_HOST_INITIALIZATION): Don't define now-unused target macro.
+	* config/i386/cygming.opt (mcygwin): Delete target-specific option.
+	* doc/invoke.texi (-mcygwin): Don't document removed option.
+	(-mno-cygwin): Likewise.
+
+2010-10-07  Richard Guenther  <rguenther@suse.de>
+
+	* machmode.h (mode_for_vector): Declare.
+	* stor-layout.c (mode_for_vector): New function, split out from ...
+	(layout_type): ... here.
+	* tree-vectorizer.h (current_vector_size): Declare.
+	* tree-vect-stmts.c (perm_mask_for_reverse): Check if the
+	mask vector type is available.
+	(get_vectype_for_scalar_type): Rename to ...
+	(get_vectype_for_scalar_type_and_size): ... this.  Get a vector
+	size argument.
+	(get_vectype_for_scalar_type): New wrapper around
+	get_vectype_for_scalar_type_and_size using current_vector_size.
+	(get_same_sized_vectype): Use get_vectype_for_scalar_type_and_size.
+	* tree-vect-loop.c (vect_analyze_loop_2): Split out core part
+	of vect_analyze_loop here.
+	(vect_analyze_loop): Loop over vector sizes calling vect_analyze_loop_3.
+	* tree-vect-slp.c (vect_slp_analyze_bb): Set current_vector_size
+	to autodetect.
+	* config/i386/i386.c (ix86_vectorize_builtin_conversion): Fix
+	V8SF to V8SI conversion builtin.
+
+2010-10-07  Richard Guenther  <rguenther@suse.de>
+
+	* target.def (autovectorize_vector_sizes): New target hook.
+	* targhooks.c (default_autovectorize_vector_sizes): New function.
+	* targhooks.h (default_autovectorize_vector_sizes): Declare.
+	* doc/tm.texi.in (TARGET_VECTORIZE_AUTOVECTORIZE_VECTOR_SIZES):
+	Document.
+	* doc/tm.texi: Update.
+	* config/i386/i386.c (ix86_autovectorize_vector_sizes): New function.
+	(TARGET_VECTORIZE_AUTOVECTORIZE_VECTOR_SIZES): Define.
+
+2010-10-07  Richard Guenther  <rguenther@suse.de>
+
+	* target.def (units_per_simd_word): Rename to ...
+	(preferred_simd_mode): ... this.  Return mode instead of size.
+	* targhooks.c (default_units_per_simd_word): Rename to ...
+	(default_preferred_simd_mode): ... this.  Return word_mode.
+	* targhooks.h (default_preferred_simd_mode): Declare.
+	* config/arm/arm.c (arm_units_per_simd_word): Rename to ...
+	(arm_preferred_simd_mode): ... this.  Re-implement.
+	* config/i386/i386.c (ix86_units_per_simd_word): Rename to ...
+	(ix86_preferred_simd_mode): ... this.  Re-implement.
+	* config/sparc/sparc.c (sparc_units_per_simd_word): Rename to ...
+	(sparc_preferred_simd_mode): ... this.  Re-implement.
+	* config/mips/mips.c (mips_units_per_simd_word): Rename to ...
+	(mips_preferred_simd_mode): ... this.  Re-implement.
+	* config/rs6000/rs6000.c (rs6000_units_per_simd_word): Rename to ...
+	(rs6000_preferred_simd_mode): ... this.  Re-implement.
+	* tree-vect-stmts.c (get_vectype_for_scalar_type): Adjust.
+	* doc/tm.texi.in (TARGET_VECTORIZE_UNITS_PER_SIMD_WORD): Remove.
+	(TARGET_VECTORIZE_PREFERRED_SIMD_MODE): Document.
+	* doc/tm.texi: Update.
+
+2010-10-07  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45869
+	* tree-cfg.c (verify_gimple_assign_binary): Allow vector shifts
+	of pointers.
+
+2010-10-07  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/rs6000.c (rs6000_emit_prologue): Use gen_int_mode
+	rather than sign extension by hand.
+
+2010-10-07  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/45926
+	* ipa.c (cgraph_remove_unreachable_nodes): Revert my previous patch.
+
+2010-10-07  Richard Guenther  <rguenther@suse.de>
+
+	PR bootstrap/45914
+	* configure.ac: Fix typo.
+	* configure: Regenerated.
+
+2010-10-06  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* config/spu/spu-c.c (spu_resolve_overloaded_builtin): Don't use
+	define_builtin_std where it's unnecessary.
+	* config/i386/nto.h (TARGET_OS_CPP_BUILTINS): Likewise.
+
+2010-10-06  Anatoly Sokolov  <aesok@post.ru>
+
+	* doc/tm.texi.in (CLASS_LIKELY_SPILLED_P): Remove documentation.
+	* doc/tm.texi.in: Regenerate.
+	* system.h (CLASS_LIKELY_SPILLED_P): Poison.
+	* targhooks.c (default_class_likely_spilled_p): Don't use the
+	CLASS_LIKELY_SPILLED_P macro.
+
+	* config/arm/arm.md: Update comment.
+
+2010-10-06  Jan Hubicka  <jh@suse.cz>
+
+	* ipa.c (cgraph_remove_unreachable_nodes): External references can
+	always be removed.
+	(cgraph_externally_visible_p): We can not bring local comdats that
+	are known to linker; fix handling of internal visibility.
+	(function_and_variable_visibility): Likewise.
+
+2010-10-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/45394
+	* combine.c (cleanup_auto_inc_dec): Remove AFTER parameter and adjust.
+	(struct rtx_subst_pair): Remove AFTER field.
+	(propagate_for_debug_subst): Adjust call to cleanup_auto_inc_dec.
+	(propagate_for_debug): Remove MOVE parameter and adjust.
+	(try_combine): In the special case where I2 is a PARALLEL, combine only
+	destinations of SETs and set I2SRC to the I2 source.
+	Adjust calls to propagate_for_debug throughout.
+	* reload1.c (eliminate_regs_1) <ASM_OPERANDS>: Do not abort for debug
+	insns.
+
+2010-10-06  Olivier Hainque  <hainque@adacore.com>
+
+	* config/rs6000/rs6000.c (rs6000_expand_ternop_builtin): Rewrite
+	switch on insn codes as sequence of ifs.
+
+2010-10-06  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	* config/picochip/picochip.c (TARGET_EXCEPT_UNWIND_INFO): Define it to
+	be UI_NONE for picochip.
+	(picochip_option_override): Do not disable exception flags.
+	* config/picochip/picochip-protos.h (picochip_except_unwind_info):
+	Declare.
+
+2010-10-06  Richard Guenther  <rguenther@suse.de>
+
+	* Makefile.in (regmove.o): Depend on $(TARGET_H).
+
+2010-10-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented fast enumeration for Objective-C.
+	* c-parser.c (objc_could_be_foreach_context): New.
+	(c_lex_one_token): Recognize RID_IN keyword in a potential
+	Objective-C foreach context.
+	(c_parser_declaration_or_fndef): Added parameter.  Accept
+	Objective-C RID_IN keyword as terminating a declaration; in that
+	case, return the declaration in the new parameter.
+	(c_parser_extenral_declaration): Updated calls to
+	c_parser_declaration_or_fndef.
+	(c_parser_declaration_or_fndef): Same change.
+	(c_parser_compound_statement_nostart): Same change.
+	(c_parser_label): Same change.
+	(c_parser_objc_methodprotolist): Same change.
+	(c_parser_omp_for_loop): Same change.
+	(c_parser_for_statement): Detect and parse Objective-C foreach
+	statements.
+	(c_parser_omp_for_loop): Updated call to check_for_loop_decls().
+	* c-decl.c (check_for_loop_decls): Added parameter to allow ObjC
+	fast enumeration parsing code to turn off the c99 error but still
+	perform checks on the loop declarations.
+	* c-tree.h (check_for_loop_decls): Updated declaration.
+	* doc/objc.texi: Document fast enumeration.
+
+2010-10-06  Nick Clifton  <nickc@redhat.com>
+
+	* config/mn10300/mn10300.h (FIRST_PSEUDO_REGISTER): Increment by
+	one.
+	(MDR_REGNUM): Define.
+	(FIXED_REGISTERS, CALL_USED_REGISTERS): Add MDR as a fixed
+	register.
+	(REG_CLASS_CONTENTS): Add MDR to ALL_REGS.
+	(INCOMING_RETURN_ADDR_RTX): Define in terms of MDR.
+	(REGISTER_NAMES): Add MDR.
+	(DWARF2_DEBUGGING_INFO): Define to 1.
+	* config/mn10300/mn10300.c (TARGET_EXCEPT_UNWIND_INFO): Define.
+	(F): New function.  Sets RTX_FRAME_RELATED_P.
+	(mn10300_gen_multiple_store): Use F.
+	(expand_prologue): Use F.  Use gen_movsf() to push floating
+	point registers.
+	(expand_epilogue): Use gen_movsf() to pop floating point
+	registers.
+	(mn10300_option_override): Disable combine stack adjust pass.
+
+2010-10-06  Thomas Schwinge  <thomas@schwinge.name>
+
+	PR target/45901
+	* config/alpha/gnu.h (TARGET_OS_CPP_BUILTINS): Refer to
+	LINUX_TARGET_OS_CPP_BUILTINS instead of HURD_TARGET_OS_CPP_BUILTINS.
+
+2010-10-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* builtins.def (BUILT_IN_CALLOC, BUILT_IN_REALLOC,
+	BUILT_IN_ISALNUM, BUILT_IN_ISALPHA, BUILT_IN_ISASCII,
+	BUILT_IN_ISBLANK, BUILT_IN_ISCNTRL, BUILT_IN_ISDIGIT,
+	BUILT_IN_ISGRAPH, BUILT_IN_ISLOWER, BUILT_IN_ISPRINT,
+	BUILT_IN_ISPUNCT, BUILT_IN_ISSPACE, BUILT_IN_ISUPPER,
+	BUILT_IN_ISXDIGIT, BUILT_IN_TOASCII, BUILT_IN_TOLOWER,
+	BUILT_IN_TOUPPER): Mark as leaf.
+
+	PR middle-end/45838
+	* omp-builtins.def (BUILT_IN_GOMP_PARALLEL_LOOP_STATIC_START,
+	BUILT_IN_GOMP_PARALLEL_LOOP_DYNAMIC_START,
+	BUILT_IN_GOMP_PARALLEL_LOOP_GUIDED_START,
+	BUILT_IN_GOMP_PARALLEL_LOOP_RUNTIME_START,
+	BUILT_IN_GOMP_PARALLEL_START, BUILT_IN_GOMP_TASK,
+	BUILT_IN_GOMP_PARALLEL_SECTIONS_START): Use
+	Revert back to ATTR_NOTHROW_LIST instead of ATTR_NOTHROW_LEAF_LIST.
+
+2010-10-05  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/m68hc11/m68hc11.h (CLASS_LIKELY_SPILLED_P): Remove.
+	* config/m68hc11/m68hc11.c (TARGET_CLASS_LIKELY_SPILLED_P): Define.
+	(m68hc11_class_likely_spilled_p): New function.
+
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-parser.c (c_parser_objc_method_definition): Updated comment.
+
+2010-10-05  Jan Hubicka  <jh@suse.cz>
+
+	* doc/invoke.texi (-flto-partition, lto-partitions, lto-minpartition):
+	Document.
+	* opts.c (decode_options): Handle lto partitions.
+	* common.opt (flto-partition=1to1, flto-partition=balanced): New.
+	* params.def (PARAM_LTO_PARTITIONS, MIN_PARTITION_SIZE): New.
+
+2010-10-05  Jan Hubicka  <jh@suse.cz>
+
+	* cgraphunit.c (assemble_function): Output thunks and aliases before
+	the function itself.
+
+2010-09-29  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	* config/picochip/picochip.c (picochip_option_override): Disable
+	exception flags for picochip.
+
+2010-10-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* opts-common.c (handle_option, handle_generated_option,
+	read_cmdline_option, set_option): Add diagnostic_context
+	parameter.  Update calls among these functions.
+	(set_option): Don't use global_dc.
+	* opts.c (read_cmdline_options): Pass global_dc to
+	read_cmdline_option.
+	(decode_options): Pass global_dc to enable_warning_as_error.
+	(common_handle_option): Pass global_dc to enable_warning_as_error.
+	(enable_warning_as_error): Add diagnostic_context parameter.
+	Document parameters.  Don't use global_dc.  Pass
+	diagnostic_context parameter to handle_generated_option.
+	* opts.h (set_option, handle_option, handle_generated_option,
+	read_cmdline_option, enable_warning_as_error): Add
+	diagnostic_context parameter.
+	* Makefile.in (lto-opts.o): Update dependencies.
+	* coretypes.h (struct diagnostic_context, diagnostic_context):
+	Declare here.
+	* diagnostic.h (diagnostic_context): Don't declare typedef here.
+	* gcc.c (process_command): Pass global_dc to read_cmdline_option.
+	* langhooks-def.h (struct diagnostic_context): Don't declare here.
+	(lhd_print_error_function, lhd_initialize_diagnostics): Declare
+	using diagnostic_context typedef.
+	* langhooks.c (lhd_initialize_diagnostics): Declare using
+	diagnostic_context typedef.
+	* langhooks.h (struct diagnostic_context): Don't declare here.
+	(initialize_diagnostics, print_error_function): Declare using
+	diagnostic_context typedef.
+	* lto-opts.c: Include diagnostic.h.
+	(lto_reissue_options): Pass global_dc to set_option.  Pass
+	DK_UNSPECIFIED not 0.
+	* plugin.c (plugins_internal_error_function): Declare using
+	diagnostic_context typedef.
+	* plugin.h (struct diagnostic_context): Don't declare here.
+	(plugins_internal_error_function): Declare using
+	diagnostic_context typedef.
+
+2010-10-05  Olivier Hainque  <hainque@adacore.com>
+            Nicolas Roche  <roche@adacore.com>
+
+	* config/vxworksae.h: Add missing VXWORKS_OS_CPP_BUILTINS.
+	* config/rs6000/vxworks.h: Remove redundant CPP builtin definitions.
+
+2010-10-05  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/45752
+	* tree-vect-slp.c (vect_get_mask_element): Remove static
+	variables, make them function arguments.
+	(vect_transform_slp_perm_load): Pass new arguments to
+	vect_get_mask_element.
+
+2010-10-05  Richard Guenther  <rguenther@suse.de>
+
+	* value-prof.c (gimple_divmod_fixed_value): Work on SSA form.
+	(gimple_mod_pow2): Likewise.
+	(gimple_mod_subtract): Likewise.
+	(gimple_ic): Likewise.
+	(gimple_stringop_fixed_value): Likewise.
+	* tree-profile.c (tree_init_edge_profiler): Mark profile
+	functions nothrow and leaf.
+	(add_abnormal_goto_call_edges): Remove.
+	(tree_gen_edge_profiler): Work on SSA form.
+	(tree_gen_ic_profiler): Likewise.  Simplify.
+	(do_tree_profiling): Update SSA form.
+	(pass_tree_profile): Remove.
+	(do_tree_profiling): Likewise.
+	(gate_tree_profile_ipa): New function.
+	(pass_ipa_tree_profile): New.
+	(tree_profiling): Re-write as IPA pass.  Properly drop const/pure
+	state of instrumented functions.
+	* passes.c (init_optimization_passes): Remove early non-SSA
+	inlining.  Move profiling after early optimizations.
+	* ipa-inline.c (cgraph_gate_ipa_early_inlining): Remove.
+	(pass_ipa_early_inline): Likewise.
+	* tree-pass.h (pass_ipa_early_inline): Remove.
+	(pass_tree_profile): Likewise.
+	(pass_ipa_tree_profile): Declare.
+
+2010-10-05  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+            Christian Borntraeger  <Christian.Borntraeger@de.ibm.com>
+
+	* gcc/config/s390/s390.c (z196_cost): New.
+	(s390_handle_arch_option): Add -march=z196.
+	(s390_option_override): Use the new cost function and use the z10
+	defaults also for z196.
+	(legitimate_reload_constant_p): Adjust comment.
+	(legitimate_reload_fp_constant_p): New function.
+	(s390_preferred_reload_class): Distingiush between FP and Int constants.
+	(preferred_la_operand_p): Avoid la with index on z196.
+	(s390_adjust_priority): Trigger also for z196.
+	(s390_issue_rate): Issue rate for z196 is 3.
+	(s390_z10_fix_long_loop_prediction): Rename to ...
+	(s390_fix_long_loop_prediction): ... this.
+	(s390_reorg): Apply the z10 adjustments also for z196.
+	(s390_loop_unroll_adjust): Do this also for z196.
+	* gcc/config/s390/s390.h (enum processor_type): Add PROCESSOR_2817_Z196.
+	(enum processor_flags): Add PF_Z196.
+	(TARGET_AVOID_CMP_AND_BRANCH): New macro.
+	(TARGET_CPU_Z196, TARGET_Z196): New macros.
+	* gcc/config.gcc: Enable z196 for --with-arch.
+	* gcc/config/s390/2817.md: New file.
+	* gcc/config/s390/2084.md: New type for multiply and add.
+	* gcc/config/s390/2097.md: Likewise.
+	* gcc/config/s390/s390.md (UNSPEC_POPCNT, UNSPEC_COPYSIGN)
+	(UNSPECV_ATOMIC_OP): New constants.
+	(fmadddf, fmaddsf): New values for type attribute.
+	(z196prop): New insn attribute.
+	(cpu, cpu_facility): Add z196.
+	(ATOMIC_Z196): New code iterator.
+	(noxa): New code attribute.
+	(gk): New mode attribute.
+	(*mov<mode>_64, *mov<mode>_31, *mov<mode>_64dfp, mov<mode>):
+	Support load zero for fp constants.
+	(fixuns_truncdddi2, fixuns_trunctddi2)
+	(fixuns_trunc<BFP:mode><GPR:mode>2): Use the standard rtx pattern
+	for z196.
+	(fixuns_trunc<mode>si2, mov<mode>cc, popcountdi2, popcountsi2)
+	(popcounthi2, popcountqi2): New expander.
+	(*fixuns_trunc<FP:mode><GPR:mode>2_z196, floatsi<mode>2)
+	(floatuns<GPR:mode><FP:mode>2, *mov<mode>cc, sync_<atomic><mode>)
+	(sync_old_<atomic><mode>, *popcount<mode>, copysign<mode>3): New
+	insn definition.
+	(add<mode>3, *add<mode>3_carry1_cc, *add<mode>3_carry1_cconly)
+	(*add<mode>3_carry2_cc, *add<mode>3_carry2_cconly, *add<mode>3_cc)
+	(*add<mode>3_cconly, *add<mode>3_cconly2, *add<mode>3_imm_cc, *sub<mode>3)
+	(*sub<mode>3_borrow_cc, *sub<mode>3_borrow_cconly, *sub<mode>3_cc)
+	(*sub<mode>3_cc2, *sub<mode>3_cconly, *sub<mode>3_cconly2)
+	(*anddi3_cc, *anddi3_cconly, *anddi3, *andsi3_cc, *andsi3_cconly)
+	(*andsi3_zarch, *andsi3_esa, *andhi3_zarch, *andqi3_zarch, *iordi3_cc)
+	(*iordi3_cconly, *iordi3, *iorsi3_cc, *iorsi3_cconly, *iorsi3_zarch)
+	(*iorhi3_zarch, *iorqi3_zarch, *xordi3_cc, *xordi3_cconly, *xordi3)
+	(*xorsi3_cc, *xorsi3_cconly, *xorsi3, *xorhi3, *xorqi3, *<shift><mode>3)
+	(*<shift><mode>3_and, *ashr<mode>3_cc, *ashr<mode>3_cconly, *ashr<mode>3)
+	(*ashr<mode>3_cc_and, *ashr<mode>3_cconly_and, *ashr<mode>3_and):
+	Support new z196 instructions.
+
+2010-10-05  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45877
+	* gimple-fold.c (gimplify_and_update_call_from_tree): Handle
+	case where gimplification optimizes away the stmt.
+
+2010-10-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45849
+	* var-tracking.c (strip_pointer_flags): New function.
+	(emit_note_insn_var_location): If rtx_equal_p check failed,
+	retry on locations simplified with simplify_replace_fn_rtx
+	and strip_pointer_flags as its callback.
+
+2010-10-04  Jan Hubicka  <jh@suse.cz>
+
+	* gimple-fold.c (static_object_in_other_unit_p): Rename to...
+	(can_refer_decl_in_current_unit_p): ... this one; reverse return
+	value; handle comdats too.
+	(canonicalize_constructor_val): Use it; handle function_decls
+	correctly.
+	(gimple_fold_obj_type_ref_known_binfo): Likewise.
+	* gimple.c (get_base_address): Accept all kinds of decls.
+
+2010-10-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* flags.h (g_switch_value, g_switch_set): Remove.
+	* opts.c (g_switch_value, g_switch_set): Remove.
+	* config/g.opt (G): Add Var(g_switch_value).
+	* config/alpha/alpha.c (alpha_handle_option): Don't handle -G
+	here.
+	(alpha_option_override): Check global_options_set.x_g_switch_value
+	instead of g_switch_set.
+	(alpha_in_small_data_p): Remove cast in comparison with
+	g_switch_value.
+	* config/alpha/elf.h (ASM_OUTPUT_ALIGNED_LOCAL): Cast
+	g_switch_value to unsigned HOST_WIDE_INT.
+	* config/frv/frv.c (frv_const_unspec_p): Remove cast in comparison
+	with g_switch_value.
+	(frv_handle_option): Don't handle -G here.
+	(frv_option_override): Check global_options_set.x_g_switch_value
+	instead of g_switch_set.  Don't modify g_switch_set.
+	(frv_in_small_data_p): Remove cast in comparison with
+	g_switch_value.
+	* config/frv/frv.h (ASM_OUTPUT_ALIGNED_DECL_LOCAL): Cast
+	g_switch_value to unsigned HOST_WIDE_INT.
+	* config/ia64/ia64.c (ia64_handle_option): Don't handle -G here.
+	(ia64_option_override): Check global_options_set.x_g_switch_value
+	instead of g_switch_set.
+	* config/lm32/lm32.c (lm32_handle_option, TARGET_HANDLE_OPTION):
+	Remove.
+	(lm32_in_small_data_p): Remove cast in comparison with
+	g_switch_value.
+	* config/lm32/lm32.h (ASM_OUTPUT_ALIGNED_LOCAL,
+	ASM_OUTPUT_ALIGNED_COMMON): Cast g_switch_value to unsigned
+	HOST_WIDE_INT.
+	* config/m32r/m32r.c (m32r_handle_option): Don't handle -G here.
+	(m32r_init): Check global_options_set.x_g_switch_value instead of
+	g_switch_set.
+	(m32r_in_small_data_p): Remove cast in comparison with
+	g_switch_value.
+	(m32r_file_start): Format g_switch_value with %d.
+	* config/m32r/m32r.h (ASM_OUTPUT_ALIGNED_COMMON,
+	ASM_OUTPUT_ALIGNED_BSS): Cast g_switch_value to unsigned
+	HOST_WIDE_INT.
+	* config/microblaze/microblaze.c (microblaze_handle_option): Don't
+	handle -G here.
+	(microblaze_option_override): Check
+	global_options_set.x_g_switch_value instead of g_switch_set.
+	* config/mips/mips.c (mips_handle_option): Don't handle -G here.
+	(mips_option_override): Check global_options_set.x_g_switch_value
+	instead of g_switch_set.
+	* config/rs6000/rs6000.c (rs6000_handle_option): Don't handle -G
+	here.
+	(rs6000_file_start): Format g_switch_value with %d.
+	(small_data_operand, rs6000_elf_in_small_data_p): Remove casts in
+	comparisons with g_switch_value.
+	* config/rs6000/sysv4.h (SUBTARGET_OVERRIDE_OPTIONS): Check
+	global_options_set.x_g_switch_value instead of g_switch_set.
+	* config/rs6000/vxworks.h (SUBSUBTARGET_OVERRIDE_OPTIONS): Check
+	global_options_set.x_g_switch_value instead of g_switch_set.
+	* config/score/score.c (score_handle_option): Don't handle -G
+	here.
+	* config/score/score3.c (score3_option_override): Check
+	global_options_set.x_g_switch_value instead of g_switch_set.
+	* config/score/score7.c (score7_option_override): Check
+	global_options_set.x_g_switch_value instead of g_switch_set.
+
+2010-10-04  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* common.opt (fira-coalesce): Remove.
+
+	* doc/invoke.texi (flag_ira_coalesce): Remove.
+
+	* ira-color.c (allocno_coalesced_p): Move before
+	copy_freq_compare_func.
+	processed_coalesced_allocno_bitmap): Ditto.
+	(update_conflict_hard_regno_costs): Don't use
+	ALLOCNO_FIRST_COALESCED_ALLOCNO.
+	(allocno_cost_compare_func, print_coalesced_allocno): Remove.
+	(assign_hard_reg): Assume no coalesced allocnos.
+	(get_coalesced_allocnos_attributes): Remove.
+	(bucket_allocno_compare_func): Assume no coalesced allocnos.
+	(push_allocno_to_stack): Ditto.
+	(remove_allocno_from_bucket_and_push): Use
+	ira_print_expanded_allocno instead of print_coalesced_allocno.
+	(push_allocnos_to_stack): Assume uncoalesced allocnos.
+	(all_conflicting_hard_regs_coalesced): Ditto.  Rename to
+	all_conflicting_hard_regs.
+	(setup_allocno_available_regs_num): Assume uncoalesced allocnos.
+	(setup_allocno_left_conflicts_size): Ditto.
+	(put_allocno_into_bucket): Ditto.
+	(copy_freq_compare_func): Remove.
+	(copy_freq_compare_func, merge_allocnos): Move before
+	coalesced_pseudo_reg_freq_compare.
+	coalesced_allocno_conflict_p): Ditto.
+	(coalesced_allocno_conflict_p, coalesce_allocnos): Ditto.  Remove
+	parameter.  Assume it true.
+	(color_allocnos): Assume uncoalesced allocnos.  Use
+	ira_print_expanded_allocno instead of print_coalesced_allocno.
+	(ira_sort_regnos_for_alter_reg): Call coalesce_allocnos without
+	parameter.
+
+	* ira.c: Remove comment about coalescing.
+
+2010-10-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/mips/mips.h (target_flags_explicit): Declare for
+	GENERATOR_FILE.
+
+2010-10-04  Andi Kleen <ak@linux.intel.com>
+
+	* Makefile.in (xgcc, cpp, cc1, collect2, lto-wrapper, gcov,
+	gcov-dump, cc1-dummy, genprog, build/gcov-iov): Add + to build rule.
+
+2010-10-04  Matthias Klose  <doko@ubuntu.com>
+
+	* config/sparc/t-linux64 (MULTILIB_OSDIRNAMES): Use ../lib32 as the
+	multilib osdirname if it exists.
+	* config/s390/t-linux64 (MULTILIB_OSDIRNAMES): Likewise.
+
 2010-10-04  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/45876
@@ -551,7 +1124,7 @@
 	* extend.texi (interrupt_handler): Add MicroBlaze to list.
 	(save_volatiles): Describe option for MicroBlaze.
 	* invoke.texi: Add MicroBlaze Options.
-	* contrib.texi: Add acknowledgment. 
+	* contrib.texi: Add acknowledgment.
 	* md.texi: Add MicroBlaze d and z constraints.
 	* install.texi: Add microblaze-*-elf.
 	* configure.ac: Add microblaze-*-* to target list.
@@ -656,6 +1229,22 @@
 	* tree-sra.c (type_consists_of_records_p): Do not check for trailing
 	zero sized bit-fields.
 
+2010-09-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+	* c-parser.c: Applied change originally in c-parse.in.
+
+	2005-10-04  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4281748
+	* c-decl.c (start_decl): Check for redeclaration of class name.
+	* c-parse.in (after_type_declarator): Recognize CLASSNAME.
+
+2010-09-30  Tom G. Christensen <tgc@jupiterrise.com>
+
+	* doc/install.texi (Binaries): Update link to HP-UX porting centre.
+	Add links to current providers of packages for Solaris and IRIX.
+
 2010-09-30  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* c-parser.c (c_lex_one_token): When finding a CPP_AT_NAME
@@ -669,22 +1258,6 @@
 	and RID_AT_PUBLIC instead of RID_PUBLIC.
 	(c_parser_statement_after_labels): Use RID_AT_TRY instead of
 	RID_TRY and RID_AT_CATCH instead of RID_CATCH.
-	
-2010-09-30  Tom G. Christensen <tgc@jupiterrise.com>
-
-	* doc/install.texi (Binaries): Update link to HP-UX porting centre.
-	Add links to current providers of packages for Solaris and IRIX.
-
-2010-09-29  Nicola Pero  <nicola.pero@meta-innovation.com>
-
-	Merge from 'apple/trunk' branch on FSF servers.
-	* c-parser.c: Applied change originally in c-parse.in.
-	
-	2005-10-04  Fariborz Jahanian <fjahanian@apple.com>
-
-	Radar 4281748
-	* c-decl.c (start_decl): Check for redeclaration of class name.
-	* c-parse.in (after_type_declarator): Recognize CLASSNAME.
 
 2010-09-29  Steve Ellcey  <sje@cup.hp.com>
 
@@ -816,7 +1389,7 @@
 	* sel-sched.c: Use HARD_FRAME_POINTER_IS_FRAME_POINTER
 	* stmt.c: Use HARD_FRAME_POINTER_IS_ARG_POINTER.
 
-2010-09-29  Hariharan Sandanagobalane <hariharan@picochip.com>
+2010-09-29  Hariharan Sandanagobalane  <hariharan@picochip.com>
 
 	* config/picochip/picochip.c (picochip_output_internal_label):
 	This function can now be called for debug CFI labels, which can come
@@ -1471,7 +2044,6 @@
 	unconditionally if TODO_rebuild_alias is set, else only when optimizing
 	if TODO_update_address_taken is set.
 
->>>>>>> .r164755
 2010-09-23  Anatoly Sokolov  <aesok@post.ru>
 
 	* config/arm/arm.h (OUTPUT_ADDR_CONST_EXTRA): Remove.
@@ -8762,7 +9334,7 @@
 
 2010-07-22  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
 
- 	PR target/43698
+	PR target/43698
 	* config/arm/arm.md: Split arm_rev into *arm_rev and *thumb1_rev.
 	Set *arm_rev to be predicable.
 
@@ -11640,7 +12212,7 @@
 
 	* ipa-split.c (split_function): For aggregate values, set the return
 	slot optimization bit.  When passing DECL_BY_REFERENCE, produce
- 	*<retval> = fncall.part ().
+	*<retval> = fncall.part ().
 	(execute_split_functions): Do not care about DECL_BY_REFERENCE.
 
 2010-07-02  Sandra Loosemore  <sandra@codesourcery.com>

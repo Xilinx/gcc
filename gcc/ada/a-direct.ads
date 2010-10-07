@@ -105,7 +105,7 @@ package Ada.Directories is
    --  the external environment does not support the creation of a directory
    --  with the given name (in the absence of Name_Error) and form.
    --
-   --  The Form parameter is ignored.
+   --  The Form parameter is ignored
 
    procedure Delete_Directory (Directory : String);
    --  Deletes an existing empty directory with name Directory. The exception
@@ -132,7 +132,7 @@ package Ada.Directories is
    --  not support the creation of any directories with the given name (in the
    --  absence of Name_Error) and form.
    --
-   --  The Form parameter is ignored.
+   --  The Form parameter is ignored
 
    procedure Delete_Tree (Directory : String);
    --  Deletes an existing directory with name Directory. The directory and
@@ -164,53 +164,68 @@ package Ada.Directories is
      (Source_Name   : String;
       Target_Name   : String;
       Form          : String := "");
-   --  Copies the contents of the existing external file with Source_Name
-   --  to Target_Name. The resulting external file is a duplicate of the source
-   --  external file. The Form can be used to give system-dependent
+   --  Copies the contents of the existing external file with Source_Name to
+   --  Target_Name. The resulting external file is a duplicate of the source
+   --  external file. The Form argument can be used to give system-dependent
    --  characteristics of the resulting external file; the interpretation of
    --  the Form parameter is implementation-defined. Exception Name_Error is
    --  propagated if the string given as Source_Name does not identify an
    --  existing external ordinary or special file or if the string given as
-   --  Target_Name does not allow the identification of an external file.
-   --  The exception Use_Error is propagated if the external environment does
-   --  not support the creating of the file with the name given by Target_Name
-   --  and form given by Form, or copying of the file with the name given by
+   --  Target_Name does not allow the identification of an external file. The
+   --  exception Use_Error is propagated if the external environment does not
+   --  support the creating of the file with the name given by Target_Name and
+   --  form given by Form, or copying of the file with the name given by
    --  Source_Name (in the absence of Name_Error).
    --
    --  Interpretation of the Form parameter:
-   --  The Form parameter is case-insensitive.
-   --  Two fields are recognized in the Form parameter:
-   --    preserve=<value>
-   --    mode=<value>
-   --  <value> starts immediatey after the character '=' and ends with the
-   --  character immediatey preceding the next comma (',') or with the last
-   --  character of the parameter.
-   --  The only possible values for preserve= are:
-   --     no_attributes: do not try to preserve any file attributes. This is
-   --                    the default if no preserve= is found in Form.
-   --     all_attributes: try to preserve all file attributes (timestamps,
-   --                     access rights).
-   --     timestamps: preserve the timestamp of the copied file, but not the
-   --                 other file attributes.
-   --  The only possible values for mode= are:
-   --     copy: only do the copy if the destination file does not already
-   --           exist. If it already exist, Copy_File fails.
-   --     overwrite: copy the file in all cases. Overwite an aready existing
-   --                destination file.
-   --     append: append the original file to the destination file. If the
-   --             destination file does not exist, the destination file is
-   --             a copy of the source file.
-   --             When mode=append, the field preserve=, if it exists, is not
-   --             taken into account.
-   --  If the Form parameter includes one or both of the fields and the value
-   --  or values are incorrect, Copy_file fails with Use_Error.
-   --  Examples of correct Forms:
-   --     Form => "preserve=no_attributes,mode=overwrite" (the default)
-   --     Form => "mode=append"
-   --     Form => "mode=copy, preserve=all_attributes"
-   --  Examples of incorrect Forms
-   --     Form => "preserve=junk"
-   --     Form => "mode=internal, preserve=timestamps"
+   --
+   --    The Form parameter is case-insensitive
+   --
+   --    Two fields are recognized in the Form parameter:
+   --      preserve=<value>
+   --      mode=<value>
+   --
+   --      <value> starts immediately after the character '=' and ends with the
+   --      character immediately preceding the next comma (',') or with the
+   --      last character of the parameter.
+   --
+   --      The allowed values for preserve= are:
+   --
+   --        no_attributes:  Do not try to preserve any file attributes. This
+   --                        is the default if no preserve= is found in Form.
+   --
+   --        all_attributes: Try to preserve all file attributes (timestamps,
+   --                        access rights).
+   --
+   --        timestamps:     Preserve the timestamp of the copied file, but not
+   --                        the other file attributes.
+   --
+   --      The allowed values for mode= are:
+   --
+   --        copy:           Only copy if the destination file does not already
+   --                        exist. If it already exists, Copy_File will fail.
+   --
+   --        overwrite:      Copy the file in all cases. Overwite an already
+   --                        existing destination file. This is the default if
+   --                        no mode= is found in Form.
+   --
+   --        append:         Append the original file to the destination file.
+   --                        If the destination file does not exist, the
+   --                        destination file is a copy of the source file.
+   --                        When mode=append, the field preserve=, if it
+   --                        exists, is not taken into account.
+   --
+   --    If the Form parameter includes one or both of the fields and the value
+   --    or values are incorrect, Copy_File fails with Use_Error.
+   --
+   --    Examples of correct Forms:
+   --       Form => "preserve=no_attributes,mode=overwrite" (the default)
+   --       Form => "mode=append"
+   --       Form => "mode=copy,preserve=all_attributes"
+   --
+   --    Examples of incorrect Forms:
+   --       Form => "preserve=junk"
+   --       Form => "mode=internal,preserve=timestamps"
 
    ----------------------------------------
    -- File and directory name operations --
