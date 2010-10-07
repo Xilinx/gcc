@@ -4849,7 +4849,7 @@ $SBUF.}#
 (install_method class_normtester_any compile_tester compiltst_anytester)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; compilation of matches
+;;;; compilation of old matches
 (defun compilobj_nrep_match (nmat gcx)
   (assert_msg "check nmat" (is_a nmat class_nrep_match))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
@@ -5053,6 +5053,16 @@ $SBUF.}#
     ))
 (install_method class_nrep_match compile_obj compilobj_nrep_match)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; compilation of alternate matches
+(defun compilobj_nrep_altmatch (nmat gcx)
+  (assert_msg "check nmat" (is_a nmat class_nrep_altmatch))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (debug_msg nmat "compilobj_nrep_altmatch nmat")
+  (debug_msg gcx "compilobj_nrep_altmatch gcx")
+  (assert_msg "@@unimplemented compilobj_nrep_altmatch")
+)
+(install_method class_nrep_altmatch compile_obj compilobj_nrep_altmatch)
 
 ;; utility function to return the label instr of a tester
 (defun normtester_labelinstr (nt gcx)

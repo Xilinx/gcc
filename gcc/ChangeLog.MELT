@@ -1,3 +1,28 @@
+2010-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (meltgc_sort_multiple): updated comment.
+
+	* melt-runtime.c (melt_mode_string, melt_old_mode_string)
+	(melt_argument_string, melt_arglist_string)
+	(melt_compile_script_string, count_melt_debugskip_string)
+	(melt_dynmodpath_string, melt_srcpath_string, melt_init_string)
+	(melt_secondargument_string, melt_tempdir_string): options are
+	conditionally #undef-ed (for GCC 4.6) or poisoned (for 4.5).
+	(mulsort_cmp): The sorting function can also return multiply a
+	non-nil value and a long...
+
+	* melt/warmelt-debug.melt: display all object fields on debug_msg
+	at depth 0.
+
+	* melt/warmelt-normatch.melt: more of normexp_altmatch & renamed
+	altmatch_normalize_match_case as altmatch_normalize_match_context
+	and remove the tuple of cases argument.
+
+	* melt/warmelt-genobj.melt: added compilobj_nrep_altmatch
+	incomplete stub.
+
+	* testsuite/melt/tmatch-6.melt: updated test.
+
 2010-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated all MELT files}}
 	* melt/generated/warmelt-first.0.c: Regenerated.

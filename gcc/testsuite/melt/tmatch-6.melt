@@ -10,13 +10,19 @@
 |#
 
 ; this works
-(defun testnameofsymbol (symb)
-  (match symb (
-               ?(instance class_symbol :named_name 
-                          ?synam)
-                (if (is_string synam) synam))))
+(defun testnameofsymbol (symb f g)
+  (match symb 
+	 (
+	  ?(instance class_symbol :named_name  ?synam)
+	   (f synam))
+	 (
+	  ?(instance class_container :container_value ?cval)
+	   (g cval))
+	 ))
 #|
-(debug_msg (testnameofsymbol 'asymbol) "testnameofsymbol asymbol")
+(debug_msg (testnameofsymbol 'asymbol 
+			     (lambda (s) (debug_msg s "testnamedbg")))
+	   "testnameofsymbol asymbol")
 
 (defun testnameofclassoffield (fld)
   (match fld 

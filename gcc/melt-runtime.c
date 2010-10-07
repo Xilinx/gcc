@@ -552,13 +552,78 @@ melt_argument (const char* argname)
   return NULL;
 }
 #endif /*MELT_IS_PLUGIN*/
+
 #if defined(__GNUC__) && __GNUC__>3
-#pragma GCC poison melt_mode_string melt_old_mode_string melt_argument_string melt_arglist_string
-/* don't poison flag_melt_debug */
-#pragma GCC poison melt_compile_script_string count_melt_debugskip_string
-#pragma GCC poison melt_dynmodpath_string melt_srcpath_string
-#pragma GCC poison melt_init_string melt_secondargument_string melt_tempdir_string
+/* in GCC 4.6, options are #define-ed macros, in GCC 4.5 they are variables!  */
+#ifdef melt_mode_string
+#undef melt_mode_string
+#else
+#pragma GCC poison melt_mode_string 
+#endif /* melt_mode_string */
+
+#ifdef melt_old_mode_string
+#undef melt_old_mode_string
+#else
+#pragma GCC poison melt_old_mode_string
 #endif
+
+#ifdef melt_argument_string 
+#undef melt_argument_string
+#else
+#pragma GCC poison melt_argument_string
+#endif
+
+#ifdef melt_arglist_string
+#undef melt_arglist_string
+#else
+#pragma GCC poison melt_arglist_string
+#endif
+
+/* don't poison flag_melt_debug */
+#ifdef melt_compile_script_string
+#undef melt_compile_script_string
+#else
+#pragma GCC poison melt_compile_script_string 
+#endif
+
+#ifdef count_melt_debugskip_string
+#undef count_melt_debugskip_string
+#else
+#pragma GCC poison count_melt_debugskip_string
+#endif
+
+#ifdef melt_dynmodpath_string
+#undef melt_dynmodpath_string
+#else
+#pragma GCC poison melt_dynmodpath_string 
+#endif
+
+#ifdef melt_srcpath_string
+#undef melt_srcpath_string
+#else
+#pragma GCC poison melt_srcpath_string
+#endif
+
+
+#ifdef melt_init_string
+#undef melt_init_string
+#else
+#pragma GCC poison melt_init_string 
+#endif
+
+#ifdef melt_secondargument_string
+#undef melt_secondargument_string
+#else
+#pragma GCC poison melt_secondargument_string 
+#endif
+
+#ifdef melt_tempdir_string
+#undef melt_tempdir_string
+#else
+#pragma GCC poison melt_tempdir_string
+#endif
+
+#endif /* GCC >= 3 */
 
 /* the debug depth for MELT debug_msg .... */
 int melt_debug_depth (void)
@@ -3599,7 +3664,9 @@ mulsort_cmp (const void *p1, const void *p2)
   int ok = 0;
   int cmp = 0;
   int ix1 = -1, ix2 = -1;
+  long cmplg = 0;
   union meltparam_un argtab[2];
+  union meltparam_un restab[2];
   MELT_ENTERFRAME (5, NULL);
 #define rescmpv meltfram__.mcfr_varptr[0]
 #define val1v meltfram__.mcfr_varptr[1]
@@ -3619,14 +3686,21 @@ mulsort_cmp (const void *p1, const void *p2)
       goto end;
     }
   memset (argtab, 0, sizeof (argtab));
+  memset (restab, 0, sizeof (restab));
   argtab[0].bp_aptr = (melt_ptr_t *) & val2v;
+  restab[0].bp_longptr = & cmplg;
   rescmpv =
     melt_apply ((meltclosure_ptr_t) clov, (melt_ptr_t) val1v,
-		   BPARSTR_PTR, argtab, "", NULL);
+		   BPARSTR_PTR, argtab, BPARSTR_LONG, restab);
   if (melt_magic_discr ((melt_ptr_t) rescmpv) == MELTOBMAG_INT)
     {
       ok = 1;
       cmp = melt_get_int ((melt_ptr_t) rescmpv);
+    }
+  else if (rescmpv) 
+    {
+      ok = 1;
+      cmp = (int) cmplg;
     }
 end:
   MELT_EXITFRAME ();

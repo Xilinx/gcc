@@ -218,7 +218,7 @@ $DBGI at given $DEPTH}#
 		 (let ( (curfld (multiple_nth clafieldseq ix))
 			(curval (object_nth_field obj ix))
 			)
-		   (if curval
+		   (if (or (<=i depth 0) (notnull curval))
 		       (let
 			   ( (:long outcuroff (output_length out))
 			     )
