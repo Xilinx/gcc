@@ -3853,23 +3853,13 @@
 		     (errormsg_plain "invalid translatetomodule mode")
 		     (return)
 		     )))
-	   (tmpsrcnam
-	       (make_string_tempname_suffixed discr_string basnam ".c"))
 	   (outnam (or outarg basnam))
-	   (:long failremovesrc 0)
+	   (rawsrcnam (make_string_generated_c_filename discr_string outnam ()))
 	   )
       (debug_msg basnam "translatetomodule_docmd basnam")
-      (debug_msg tmpsrcnam "translatetomodule_docmd tmpsrcnam")
-      (compile_one_or_more_files inarg tmpsrcnam curenv)
-      (generate_melt_module tmpsrcnam outnam)
-      (code_chunk 
-       removetmpsrc
-       #{
-       $FAILREMOVESRC = (long) remove(melt_string_str((melt_ptr_t)$TMPSRCNAM))
-       }#)
-      (if failremovesrc
-	  (warningmsg_strv "failed to remove temporary generated C file" 
-			   tmpsrcnam))
+      (debug_msg rawsrcnam "translatetomodule_docmd rawsrcnam")
+      (compile_one_or_more_files inarg rawsrcnam curenv)
+      (generate_melt_module rawsrcnam outnam)
       )))
 
 

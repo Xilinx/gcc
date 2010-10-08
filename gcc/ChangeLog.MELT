@@ -1,3 +1,10 @@
+2010-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (make_string_generated_c_filename): New
+	primitive.
+
+	* melt/warmelt-outobj.melt (translatetomodule_docmd): The
+	generated C files are kept in the current directory.
+
 2010-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (meltgc_sort_multiple): updated comment.

@@ -482,10 +482,19 @@ discriminant $DIS.}#
 
 ;;; compute the naked temporary path for a basename with a suffix
 (defprimitive make_string_tempname_suffixed (dis str :cstring suff) :value
-  #{(meltgc_new_string_tempname_suffixed((meltobject_ptr_t)($dis), 
-					 melt_string_str((melt_ptr_t)($str)), 
+  :doc #{make a naked temporary path of discriminant $DIS for a
+  basename $STR with suffix $SUFF.}#
+  #{(meltgc_new_string_tempname_suffixed((meltobject_ptr_t)($dis),
+					 melt_string_str((melt_ptr_t)($str)),
 					 ($suff)))}#)
 
+;; compute a generated C source file
+(defprimitive make_string_generated_c_filename (dis basestr dirstr) :value
+  :doc #{make a generated C file path of discriminant $DIS with base $BASESTR and directory $DIRSTR adding a .c suffix.}#
+  #{(meltgc_new_string_generated_c_filename((meltobject_ptr_t)($DIS),
+					    melt_string_str ((melt_ptr_t)($BASESTR)),
+					    melt_string_str ((melt_ptr_t)($DIRSTR)),
+					    0))}#)
 
 ;;;; compile a C code file as module and load it. First argument is an
 ;;;; environment, second argument is the string containing the C file
@@ -1070,6 +1079,7 @@ significant iff ENABLE_CHECKING.}# #{(melt_application_depth() <
  split_string_comma
  split_string_colon
  strbuf2string
+ make_string_generated_c_filename
  make_string_nakedbasename
  make_string_tempname_suffixed
  load_debug_melt_module
