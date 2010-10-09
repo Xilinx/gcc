@@ -596,7 +596,7 @@ package body Exp_Aggr is
       --  If component is limited, aggregate must be expanded because each
       --  component assignment must be built in place.
 
-      if Is_Inherently_Limited_Type (Component_Type (Typ)) then
+      if Is_Immutably_Limited_Type (Component_Type (Typ)) then
          return False;
       end if;
 
@@ -2120,7 +2120,7 @@ package body Exp_Aggr is
          then
             RC := RE_Limited_Record_Controller;
 
-         elsif Is_Inherently_Limited_Type (Target_Type) then
+         elsif Is_Immutably_Limited_Type (Target_Type) then
             RC := RE_Limited_Record_Controller;
 
          else
@@ -3648,7 +3648,7 @@ package body Exp_Aggr is
          --  in place within the caller's scope).
 
          or else
-           (Is_Inherently_Limited_Type (Typ)
+           (Is_Immutably_Limited_Type (Typ)
              and then
                (Nkind (Parent (Parent_Node)) = N_Extended_Return_Statement
                  or else Nkind (Parent_Node) = N_Simple_Return_Statement))
@@ -3768,12 +3768,20 @@ package body Exp_Aggr is
          then
             Expr := First (Component_Associations (N));
             while Present (Expr) loop
-               if Nkind (Expression (Expr)) = N_Integer_Literal then
+               if Nkind_In (Expression (Expr), N_Integer_Literal,
+                                               N_Real_Literal)
+               then
+                  null;
+
+               elsif Is_Entity_Name (Expression (Expr))
+                 and then Present (Entity (Expression (Expr)))
+                 and then Ekind (Entity (Expression (Expr))) =
+                   E_Enumeration_Literal
+               then
                   null;
 
                elsif Nkind (Expression (Expr)) /= N_Aggregate
-                 or else
-                   not Compile_Time_Known_Aggregate (Expression (Expr))
+                 or else not Compile_Time_Known_Aggregate (Expression (Expr))
                  or else Expansion_Delayed (Expression (Expr))
                then
                   Static_Components := False;
@@ -4193,6 +4201,11 @@ package body Exp_Aggr is
       --  aggregate index is outside the bounds of the index constraint.
       --  Sub_Aggr is an array sub-aggregate. Dim is the dimension
       --  corresponding to the sub-aggregate.
+
+      function Safe_Left_Hand_Side (N : Node_Id) return Boolean;
+      --  In addition to Maybe_In_Place_OK, in order for an aggregate to be
+      --  built directly into the target of the assignment it must be free
+      --  of side-effects.
 
       ----------------------------
       -- Build_Constrained_Type --
@@ -4922,7 +4935,33 @@ package body Exp_Aggr is
          end if;
       end Others_Check;
 
-      --  Remaining Expand_Array_Aggregate variables
+      -------------------------
+      -- Safe_Left_Hand_Side --
+      -------------------------
+
+      function Safe_Left_Hand_Side (N : Node_Id) return Boolean is
+      begin
+         if Is_Entity_Name (N) then
+            return True;
+
+         elsif Nkind_In (N, N_Explicit_Dereference, N_Selected_Component)
+           and then Safe_Left_Hand_Side (Prefix (N))
+         then
+            return True;
+
+         elsif Nkind (N) = N_Indexed_Component
+           and then Safe_Left_Hand_Side (Prefix (N))
+           and then
+             (Is_Entity_Name (First (Expressions (N)))
+               or else Nkind (First (Expressions (N))) = N_Integer_Literal)
+         then
+            return True;
+         else
+            return False;
+         end if;
+      end Safe_Left_Hand_Side;
+
+      --  Local variables
 
       Tmp : Entity_Id;
       --  Holds the temporary aggregate value
@@ -5230,9 +5269,9 @@ package body Exp_Aggr is
       --  In the remaining cases the aggregate is the RHS of an assignment
 
       elsif Maybe_In_Place_OK
-        and then Is_Entity_Name (Name (Parent (N)))
+        and then Safe_Left_Hand_Side (Name (Parent (N)))
       then
-         Tmp := Entity (Name (Parent (N)));
+         Tmp := Name (Parent (N));
 
          if Etype (Tmp) /= Etype (N) then
             Apply_Length_Check (N, Etype (Tmp));
@@ -5243,16 +5282,6 @@ package body Exp_Aggr is
 
                return;
             end if;
-         end if;
-
-      elsif Maybe_In_Place_OK
-        and then Nkind (Name (Parent (N))) = N_Explicit_Dereference
-        and then Is_Entity_Name (Prefix (Name (Parent (N))))
-      then
-         Tmp := Name (Parent (N));
-
-         if Etype (Tmp) /= Etype (N) then
-            Apply_Length_Check (N, Etype (Tmp));
          end if;
 
       elsif Maybe_In_Place_OK
@@ -5469,6 +5498,14 @@ package body Exp_Aggr is
 
          C := First (Comps);
          while Present (C) loop
+
+            --  If the component has box initialization, expansion is needed
+            --  and component is not ready for backend.
+
+            if Box_Present (C) then
+               return True;
+            end if;
+
             if Nkind (Expression (C)) = N_Qualified_Expression then
                Expr_Q := Expression (Expression (C));
             else
@@ -5554,13 +5591,34 @@ package body Exp_Aggr is
       end if;
 
       --  Ada 2005 (AI-318-2): We need to convert to assignments if components
-      --  are build-in-place function calls. This test could be more specific,
-      --  but doing it for all inherently limited aggregates seems harmless.
-      --  The assignments will turn into build-in-place function calls (see
-      --  Make_Build_In_Place_Call_In_Assignment).
+      --  are build-in-place function calls. The assignments will each turn
+      --  into a build-in-place function call.  If components are all static,
+      --  we can pass the aggregate to the backend regardless of limitedness.
 
-      if Ada_Version >= Ada_05 and then Is_Inherently_Limited_Type (Typ) then
-         Convert_To_Assignments (N, Typ);
+      --  Extension aggregates, aggregates in extended return statements, and
+      --  aggregates for C++ imported types must be expanded.
+
+      if Ada_Version >= Ada_05 and then Is_Immutably_Limited_Type (Typ) then
+         if not Nkind_In (Parent (N), N_Object_Declaration,
+                                      N_Component_Association)
+         then
+            Convert_To_Assignments (N, Typ);
+
+         elsif Nkind (N) = N_Extension_Aggregate
+           or else Convention (Typ) = Convention_CPP
+         then
+            Convert_To_Assignments (N, Typ);
+
+         elsif not Size_Known_At_Compile_Time (Typ)
+           or else Component_Not_OK_For_Backend
+           or else not Static_Components
+         then
+            Convert_To_Assignments (N, Typ);
+
+         else
+            Set_Compile_Time_Known_Aggregate (N);
+            Set_Expansion_Delayed (N, False);
+         end if;
 
       --  Gigi doesn't handle properly temporaries of variable size
       --  so we generate it in the front-end

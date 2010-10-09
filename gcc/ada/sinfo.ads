@@ -4427,6 +4427,21 @@ package Sinfo is
       --  Was_Originally_Stub (Flag13-Sem)
       --  Has_Relative_Deadline_Pragma (Flag9-Sem)
 
+      ------------------------------
+      -- Parameterized Expression --
+      ------------------------------
+
+      --  This is an Ada 2012 extension, we put it here for now, to be labeled
+      --  and put in its proper section when we know exactly where that is!
+
+      --  PARAMETERIZED_EXPRESSION ::=
+      --    FUNCTION SPECIFICATION IS (EXPRESSION);
+
+      --  N_Parameterized_Expression
+      --  Sloc points to FUNCTION
+      --  Specification (Node1)
+      --  Expression (Node3)
+
       -----------------------------------
       -- 6.4  Procedure Call Statement --
       -----------------------------------
@@ -4715,15 +4730,18 @@ package Sinfo is
       -- 8.4  Use Type Clause --
       --------------------------
 
-      --  USE_TYPE_CLAUSE ::= use type SUBTYPE_MARK {, SUBTYPE_MARK};
+      --  USE_TYPE_CLAUSE ::= use [ALL] type SUBTYPE_MARK {, SUBTYPE_MARK};
 
       --  Note: use type clause is not permitted in Ada 83 mode
+
+      --  Note: the ALL keyword can appear only in Ada 2012 mode
 
       --  N_Use_Type_Clause
       --  Sloc points to USE
       --  Subtype_Marks (List2)
       --  Next_Use_Clause (Node3-Sem)
       --  Hidden_By_Use_Clause (Elist4-Sem)
+      --  All_Present (Flag15)
 
       -------------------------------
       -- 8.5  Renaming Declaration --
@@ -7314,6 +7332,7 @@ package Sinfo is
       N_Incomplete_Type_Declaration,
       N_Loop_Parameter_Specification,
       N_Object_Declaration,
+      N_Parameterized_Expression,
       N_Protected_Type_Declaration,
       N_Private_Extension_Declaration,
       N_Private_Type_Declaration,
@@ -10421,6 +10440,13 @@ package Sinfo is
         3 => False,   --  Activation_Chain_Entity (Node3-Sem)
         4 => True,    --  Handled_Statement_Sequence (Node4)
         5 => False),  --  Corresponding_Spec (Node5-Sem)
+
+     N_Parameterized_Expression =>
+       (1 => True,    --  Specification (Node1)
+        2 => False,   --  unused
+        3 => True,    --  Expression (Node3)
+        4 => False,   --  unused
+        5 => False),  --  unused
 
      N_Procedure_Call_Statement =>
        (1 => False,   --  Controlling_Argument (Node1-Sem)

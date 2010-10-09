@@ -483,7 +483,7 @@ package body Sem_Ch6 is
                Error_Msg_N
                  ("(Ada 2005) cannot copy object of a limited type " &
                   "(RM-2005 6.5(5.5/2))", Expr);
-               if Is_Inherently_Limited_Type (R_Type) then
+               if Is_Immutably_Limited_Type (R_Type) then
                   Error_Msg_N
                     ("\return by reference not permitted in Ada 2005", Expr);
                end if;
@@ -495,7 +495,7 @@ package body Sem_Ch6 is
             --  evilly turned off. Otherwise it is a real error.
 
             elsif Warn_On_Ada_2005_Compatibility or GNAT_Mode then
-               if Is_Inherently_Limited_Type (R_Type) then
+               if Is_Immutably_Limited_Type (R_Type) then
                   Error_Msg_N
                     ("return by reference not permitted in Ada 2005 " &
                      "(RM-2005 6.5(5.5/2))?", Expr);
@@ -620,7 +620,11 @@ package body Sem_Ch6 is
                   Subtype_Ind);
             end if;
 
-            if Is_Constrained (R_Type) then
+            --  AI05-103: for elementary types, subtypes must statically match
+
+            if Is_Constrained (R_Type)
+              or else Is_Access_Type (R_Type)
+            then
                if not Subtypes_Statically_Match (R_Stm_Type, R_Type) then
                   Error_Msg_N
                     ("subtype must statically match function result subtype",
@@ -755,7 +759,7 @@ package body Sem_Ch6 is
          --  check the static cases.
 
          if (Ada_Version < Ada_05 or else Debug_Flag_Dot_L)
-           and then Is_Inherently_Limited_Type (Etype (Scope_Id))
+           and then Is_Immutably_Limited_Type (Etype (Scope_Id))
            and then Object_Access_Level (Expr) >
                       Subprogram_Access_Level (Scope_Id)
          then
@@ -1037,6 +1041,31 @@ package body Sem_Ch6 is
    begin
       Analyze (Explicit_Actual_Parameter (N));
    end Analyze_Parameter_Association;
+
+   --------------------------------------
+   -- Analyze_Parameterized_Expression --
+   --------------------------------------
+
+   procedure Analyze_Parameterized_Expression (N : Node_Id) is
+      Loc  : constant Source_Ptr := Sloc (N);
+      LocX : constant Source_Ptr := Sloc (Expression (N));
+
+   begin
+      --  This is one of the occasions on which we write things during semantic
+      --  analysis. Transform the parameterized expression into an equivalent
+      --  subprogram body, and then analyze that.
+
+      Rewrite (N,
+        Make_Subprogram_Body (Loc,
+          Specification              => Specification (N),
+          Declarations               => Empty_List,
+          Handled_Statement_Sequence =>
+            Make_Handled_Sequence_Of_Statements (LocX,
+              Statements => New_List (
+                Make_Simple_Return_Statement (LocX,
+                  Expression => Expression (N))))));
+      Analyze (N);
+   end Analyze_Parameterized_Expression;
 
    ----------------------------
    -- Analyze_Procedure_Call --
@@ -2932,19 +2961,32 @@ package body Sem_Ch6 is
          --  Ada 2005 (AI-251): If the return type is abstract, verify that
          --  the subprogram is abstract also. This does not apply to renaming
          --  declarations, where abstractness is inherited.
+
          --  In case of primitives associated with abstract interface types
          --  the check is applied later (see Analyze_Subprogram_Declaration).
 
-         if Is_Abstract_Type (Etype (Designator))
-           and then not Is_Interface (Etype (Designator))
-           and then Nkind (Parent (N)) /= N_Subprogram_Renaming_Declaration
-           and then Nkind (Parent (N)) /=
-                      N_Abstract_Subprogram_Declaration
-           and then
-             (Nkind (Parent (N))) /= N_Formal_Abstract_Subprogram_Declaration
+         if not Nkind_In (Parent (N), N_Subprogram_Renaming_Declaration,
+                                      N_Abstract_Subprogram_Declaration,
+                                      N_Formal_Abstract_Subprogram_Declaration)
          then
-            Error_Msg_N
-              ("function that returns abstract type must be abstract", N);
+            if Is_Abstract_Type (Etype (Designator))
+              and then not Is_Interface (Etype (Designator))
+            then
+               Error_Msg_N
+                 ("function that returns abstract type must be abstract", N);
+
+            --  Ada 2012 (AI-0073): extend this test to subprograms with an
+            --  access result whose designated type is abstract.
+
+            elsif Nkind (Result_Definition (N)) = N_Access_Definition
+              and then
+                not Is_Class_Wide_Type (Designated_Type (Etype (Designator)))
+              and then Is_Abstract_Type (Designated_Type (Etype (Designator)))
+              and then Ada_Version >= Ada_12
+            then
+               Error_Msg_N ("function whose access result designates "
+                 & "abstract type must be abstract", N);
+            end if;
          end if;
       end if;
 
@@ -3673,7 +3715,6 @@ package body Sem_Ch6 is
                Error_Msg_Name_1 := Chars (New_Id);
                Error_Msg_Name_2 :=
                  Name_Ada + Convention_Id'Pos (Convention (New_Id));
-
                Conformance_Error ("\prior declaration for% has convention %!");
 
             else
@@ -3732,6 +3773,29 @@ package body Sem_Ch6 is
 
                Set_Error_Posted (New_Formal);
                return;
+            end if;
+
+            --  Null exclusion must match
+
+            if Null_Exclusion_Present (Parent (Old_Formal))
+                 /=
+               Null_Exclusion_Present (Parent (New_Formal))
+            then
+               --  Only give error if both come from source. This should be
+               --  investigated some time, since it should not be needed ???
+
+               if Comes_From_Source (Old_Formal)
+                    and then
+                  Comes_From_Source (New_Formal)
+               then
+                  Conformance_Error
+                    ("\null exclusion for & does not match", New_Formal);
+
+                  --  Mark error posted on the new formal to avoid duplicated
+                  --  complaint about types not matching.
+
+                  Set_Error_Posted (New_Formal);
+               end if;
             end if;
          end if;
 
@@ -3874,6 +3938,11 @@ package body Sem_Ch6 is
                    or else
                  Is_Access_Constant (Etype (Old_Formal)) /=
                  Is_Access_Constant (Etype (New_Formal)))
+
+              --  Do not complain if error already posted on New_Formal. This
+              --  avoids some redundant error messages.
+
+              and then not Error_Posted (New_Formal)
             then
                --  It is allowed to omit the null-exclusion in case of stream
                --  attribute subprograms. We recognize stream subprograms
@@ -4187,7 +4256,7 @@ package body Sem_Ch6 is
             Utyp : constant Entity_Id := Underlying_Type (Typ);
 
          begin
-            if Is_Inherently_Limited_Type (Typ) then
+            if Is_Immutably_Limited_Type (Typ) then
                Set_Returns_By_Ref (Designator);
 
             elsif Present (Utyp) and then CW_Or_Has_Controlled_Part (Utyp) then
@@ -5826,7 +5895,7 @@ package body Sem_Ch6 is
                      Obj_Decl, Typ);
                   Error_Msg_N
                     ("\an equality operator cannot be declared after this "
-                      & "point ('R'M 4.5.2 (9.8)) (Ada2012))?", Obj_Decl);
+                      & "point ('R'M 4.5.2 (9.8)) (Ada 2012))?", Obj_Decl);
                   exit;
                end if;
 
@@ -7004,16 +7073,34 @@ package body Sem_Ch6 is
                      & "(RM 3.9.3(10))!", S);
 
                elsif Ekind (S) = E_Function
-                 and then Is_Tagged_Type (T)
-                 and then T = Base_Type (Etype (S))
                  and then not Is_Overriding
                then
-                  Error_Msg_N
-                    ("private function with tagged result must"
-                     & " override visible-part function", S);
-                  Error_Msg_N
-                    ("\move subprogram to the visible part"
-                     & " (RM 3.9.3(10))", S);
+                  if Is_Tagged_Type (T)
+                    and then T = Base_Type (Etype (S))
+                  then
+                     Error_Msg_N
+                       ("private function with tagged result must"
+                        & " override visible-part function", S);
+                     Error_Msg_N
+                       ("\move subprogram to the visible part"
+                        & " (RM 3.9.3(10))", S);
+
+                  --  AI05-0073: extend this test to the case of a function
+                  --  with a controlling access result.
+
+                  elsif Ekind (Etype (S)) = E_Anonymous_Access_Type
+                    and then Is_Tagged_Type (Designated_Type (Etype (S)))
+                    and then
+                      not Is_Class_Wide_Type (Designated_Type (Etype (S)))
+                    and then Ada_Version >= Ada_12
+                  then
+                     Error_Msg_N
+                       ("private function with controlling access result "
+                          & "must override visible-part function", S);
+                     Error_Msg_N
+                       ("\move subprogram to the visible part"
+                          & " (RM 3.9.3(10))", S);
+                  end if;
                end if;
             end if;
          end Check_Private_Overriding;

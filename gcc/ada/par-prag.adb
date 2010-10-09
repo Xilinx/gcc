@@ -323,11 +323,14 @@ begin
 
       --  These pragmas must be processed at parse time, since we want to set
       --  the Ada version properly at parse time to recognize the appropriate
-      --  Ada version syntax.
+      --  Ada version syntax. However, it is only the zero argument form that
+      --  must be processed at parse time.
 
       when Pragma_Ada_12 | Pragma_Ada_2012 =>
-         Ada_Version := Ada_12;
-         Ada_Version_Explicit := Ada_12;
+         if Arg_Count = 0 then
+            Ada_Version := Ada_12;
+            Ada_Version_Explicit := Ada_12;
+         end if;
 
       -----------
       -- Debug --
@@ -1120,7 +1123,7 @@ begin
            Pragma_Finalize_Storage_Only         |
            Pragma_Float_Representation          |
            Pragma_Ident                         |
-           Pragma_Implemented_By_Entry          |
+           Pragma_Implemented                   |
            Pragma_Implicit_Packing              |
            Pragma_Import                        |
            Pragma_Import_Exception              |
@@ -1128,6 +1131,8 @@ begin
            Pragma_Import_Object                 |
            Pragma_Import_Procedure              |
            Pragma_Import_Valued_Procedure       |
+           Pragma_Independent                   |
+           Pragma_Independent_Components        |
            Pragma_Initialize_Scalars            |
            Pragma_Inline                        |
            Pragma_Inline_Always                 |

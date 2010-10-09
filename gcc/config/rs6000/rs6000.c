@@ -1086,7 +1086,7 @@ static bool rs6000_builtin_support_vector_misalignment (enum
 							int, bool);
 static int rs6000_builtin_vectorization_cost (enum vect_cost_for_stmt,
                                               tree, int);
-static unsigned int rs6000_units_per_simd_word (enum machine_mode);
+static enum machine_mode rs6000_preferred_simd_mode (enum machine_mode);
 
 static void def_builtin (int, const char *, tree, int);
 static bool rs6000_vector_alignment_reachable (const_tree, bool);
@@ -1492,9 +1492,9 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #undef TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZATION_COST \
   rs6000_builtin_vectorization_cost
-#undef TARGET_VECTORIZE_UNITS_PER_SIMD_WORD
-#define TARGET_VECTORIZE_UNITS_PER_SIMD_WORD \
-  rs6000_units_per_simd_word
+#undef TARGET_VECTORIZE_PREFERRED_SIMD_MODE
+#define TARGET_VECTORIZE_PREFERRED_SIMD_MODE \
+  rs6000_preferred_simd_mode
 
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS rs6000_init_builtins
@@ -3595,16 +3595,46 @@ rs6000_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
     }
 }
 
-/* Implement targetm.vectorize.units_per_simd_word.  */
+/* Implement targetm.vectorize.preferred_simd_mode.  */
 
-static unsigned int
-rs6000_units_per_simd_word (enum machine_mode mode ATTRIBUTE_UNUSED)
+static enum machine_mode
+rs6000_preferred_simd_mode (enum machine_mode mode)
 {
-  return (TARGET_VSX ? UNITS_PER_VSX_WORD
-	  : (TARGET_ALTIVEC ? UNITS_PER_ALTIVEC_WORD
-	     : (TARGET_SPE ? UNITS_PER_SPE_WORD
-		: (TARGET_PAIRED_FLOAT ? UNITS_PER_PAIRED_WORD
-		   : UNITS_PER_WORD))));
+  if (TARGET_VSX)
+    switch (mode)
+      {
+      case DFmode:
+	return V2DFmode;
+      default:;
+      }
+  if (TARGET_ALTIVEC || TARGET_VSX)
+    switch (mode)
+      {
+      case SFmode:
+	return V4SFmode;
+      case DImode:
+	return V2DImode;
+      case SImode:
+	return V4SImode;
+      case HImode:
+	return V8HImode;
+      case QImode:
+	return V16QImode;
+      default:;
+      }
+  if (TARGET_SPE)
+    switch (mode)
+      {
+      case SFmode:
+	return V2SFmode;
+      case SImode:
+	return V2SImode;
+      default:;
+      }
+  if (TARGET_PAIRED_FLOAT
+      && mode == SFmode)
+    return V2SFmode;
+  return word_mode;
 }
 
 /* Handle generic options of the form -mfoo=yes/no.
@@ -10904,12 +10934,18 @@ rs6000_expand_ternop_builtin (enum insn_code icode, tree exp, rtx target)
       || arg2 == error_mark_node)
     return const0_rtx;
 
-  switch (icode)
+  /* Check and prepare argument depending on the instruction code.
+
+     Note that a switch statement instead of the sequence of tests
+     would be incorrect as many of the CODE_FOR values could be
+     CODE_FOR_nothing and that would yield multiple alternatives
+     with identical values.  We'd never reach here at runtime in
+     this case.  */
+  if (icode == CODE_FOR_altivec_vsldoi_v4sf
+      || icode == CODE_FOR_altivec_vsldoi_v4si
+      || icode == CODE_FOR_altivec_vsldoi_v8hi
+      || icode == CODE_FOR_altivec_vsldoi_v16qi)
     {
-    case CODE_FOR_altivec_vsldoi_v4sf:
-    case CODE_FOR_altivec_vsldoi_v4si:
-    case CODE_FOR_altivec_vsldoi_v8hi:
-    case CODE_FOR_altivec_vsldoi_v16qi:
       /* Only allow 4-bit unsigned literals.  */
       STRIP_NOPS (arg2);
       if (TREE_CODE (arg2) != INTEGER_CST
@@ -10918,16 +10954,16 @@ rs6000_expand_ternop_builtin (enum insn_code icode, tree exp, rtx target)
 	  error ("argument 3 must be a 4-bit unsigned literal");
 	  return const0_rtx;
 	}
-      break;
-
-    case CODE_FOR_vsx_xxpermdi_v2df:
-    case CODE_FOR_vsx_xxpermdi_v2di:
-    case CODE_FOR_vsx_xxsldwi_v16qi:
-    case CODE_FOR_vsx_xxsldwi_v8hi:
-    case CODE_FOR_vsx_xxsldwi_v4si:
-    case CODE_FOR_vsx_xxsldwi_v4sf:
-    case CODE_FOR_vsx_xxsldwi_v2di:
-    case CODE_FOR_vsx_xxsldwi_v2df:
+    }
+  else if (icode == CODE_FOR_vsx_xxpermdi_v2df
+           || icode == CODE_FOR_vsx_xxpermdi_v2di
+           || icode == CODE_FOR_vsx_xxsldwi_v16qi
+           || icode == CODE_FOR_vsx_xxsldwi_v8hi
+           || icode == CODE_FOR_vsx_xxsldwi_v4si
+           || icode == CODE_FOR_vsx_xxsldwi_v4sf
+           || icode == CODE_FOR_vsx_xxsldwi_v2di
+           || icode == CODE_FOR_vsx_xxsldwi_v2df)
+    {
       /* Only allow 2-bit unsigned literals.  */
       STRIP_NOPS (arg2);
       if (TREE_CODE (arg2) != INTEGER_CST
@@ -10936,10 +10972,10 @@ rs6000_expand_ternop_builtin (enum insn_code icode, tree exp, rtx target)
 	  error ("argument 3 must be a 2-bit unsigned literal");
 	  return const0_rtx;
 	}
-      break;
-
-    case CODE_FOR_vsx_set_v2df:
-    case CODE_FOR_vsx_set_v2di:
+    }
+  else if (icode == CODE_FOR_vsx_set_v2df
+           || icode == CODE_FOR_vsx_set_v2di)
+    {
       /* Only allow 1-bit unsigned literals.  */
       STRIP_NOPS (arg2);
       if (TREE_CODE (arg2) != INTEGER_CST
@@ -10948,10 +10984,6 @@ rs6000_expand_ternop_builtin (enum insn_code icode, tree exp, rtx target)
 	  error ("argument 3 must be a 1-bit unsigned literal");
 	  return const0_rtx;
 	}
-      break;
-
-    default:
-      break;
     }
 
   if (target == 0
@@ -20212,7 +20244,7 @@ rs6000_emit_prologue (void)
   /* In AIX ABI we need to make sure r2 is really saved.  */
   if (TARGET_AIX && crtl->calls_eh_return)
     {
-      rtx tmp_reg, tmp_reg_si, compare_result, toc_save_done, jump;
+      rtx tmp_reg, tmp_reg_si, hi, lo, compare_result, toc_save_done, jump;
       long toc_restore_insn;
 
       gcc_assert (frame_reg_rtx == frame_ptr_rtx
@@ -20230,15 +20262,13 @@ rs6000_emit_prologue (void)
 	 toc adjusting stub.  */
       emit_move_insn (tmp_reg_si, gen_rtx_MEM (SImode, tmp_reg));
       toc_restore_insn = TARGET_32BIT ? 0x80410014 : 0xE8410028;
-      toc_restore_insn = (toc_restore_insn ^ 0x80000000) - 0x80000000;
-      emit_insn (gen_xorsi3 (tmp_reg_si, tmp_reg_si,
-			     GEN_INT (toc_restore_insn & ~0xffff)));
+      hi = gen_int_mode (toc_restore_insn & ~0xffff, SImode);
+      emit_insn (gen_xorsi3 (tmp_reg_si, tmp_reg_si, hi));
       compare_result = gen_rtx_REG (CCUNSmode, CR0_REGNO);
       validate_condition_mode (EQ, CCUNSmode);
+      lo = gen_int_mode (toc_restore_insn & 0xffff, SImode);
       emit_insn (gen_rtx_SET (VOIDmode, compare_result,
-			      gen_rtx_COMPARE (CCUNSmode, tmp_reg_si,
-					       GEN_INT (toc_restore_insn
-							& 0xffff))));
+			      gen_rtx_COMPARE (CCUNSmode, tmp_reg_si, lo)));
       toc_save_done = gen_label_rtx ();
       jump = gen_rtx_IF_THEN_ELSE (VOIDmode,
 				   gen_rtx_EQ (VOIDmode, compare_result,

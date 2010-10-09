@@ -457,6 +457,7 @@ package body Einfo is
    --    Was_Hidden                      Flag196
    --    Is_Limited_Interface            Flag197
    --    Has_Pragma_Ordered              Flag198
+   --    Is_Ada_2012_Only                Flag199
 
    --    Has_Anon_Block_Suffix           Flag201
    --    Itype_Printed                   Flag202
@@ -492,7 +493,6 @@ package body Einfo is
    --    Has_Pragma_Inline_Always        Flag230
 
    --    Renamed_In_Spec                 Flag231
-   --    Implemented_By_Entry            Flag232
    --    Has_Pragma_Unmodified           Flag233
    --    Is_Dispatch_Table_Entity        Flag234
    --    Is_Trivial_Subprogram           Flag235
@@ -510,8 +510,8 @@ package body Einfo is
    --    Is_Underlying_Record_View       Flag246
    --    OK_To_Rename                    Flag247
 
-   --    (unused)                        Flag199
    --    (unused)                        Flag200
+   --    (unused)                        Flag232
 
    -----------------------
    -- Local subprograms --
@@ -1536,12 +1536,6 @@ package body Einfo is
       return Node4 (Id);
    end Homonym;
 
-   function Implemented_By_Entry (Id : E) return B is
-   begin
-      pragma Assert (Ekind_In (Id, E_Function, E_Procedure));
-      return Flag232 (Id);
-   end Implemented_By_Entry;
-
    function Interfaces (Id : E) return L is
    begin
       pragma Assert (Is_Record_Type (Id));
@@ -1608,6 +1602,11 @@ package body Einfo is
    begin
       return Flag185 (Id);
    end Is_Ada_2005_Only;
+
+   function Is_Ada_2012_Only (Id : E) return B is
+   begin
+      return Flag199 (Id);
+   end Is_Ada_2012_Only;
 
    function Is_Aliased (Id : E) return B is
    begin
@@ -3953,12 +3952,6 @@ package body Einfo is
       Set_Node4 (Id, V);
    end Set_Homonym;
 
-   procedure Set_Implemented_By_Entry (Id : E; V : B := True) is
-   begin
-      pragma Assert (Ekind_In (Id, E_Function, E_Procedure));
-      Set_Flag232 (Id, V);
-   end Set_Implemented_By_Entry;
-
    procedure Set_Interfaces (Id : E; V : L) is
    begin
       pragma Assert (Is_Record_Type (Id));
@@ -4028,6 +4021,11 @@ package body Einfo is
    begin
       Set_Flag185 (Id, V);
    end Set_Is_Ada_2005_Only;
+
+   procedure Set_Is_Ada_2012_Only (Id : E; V : B := True) is
+   begin
+      Set_Flag199 (Id, V);
+   end Set_Is_Ada_2012_Only;
 
    procedure Set_Is_Aliased (Id : E; V : B := True) is
    begin
@@ -6948,7 +6946,6 @@ package body Einfo is
       W ("Has_Up_Level_Access",             Flag215 (Id));
       W ("Has_Volatile_Components",         Flag87  (Id));
       W ("Has_Xref_Entry",                  Flag182 (Id));
-      W ("Implemented_By_Entry",            Flag232 (Id));
       W ("In_Package_Body",                 Flag48  (Id));
       W ("In_Private_Part",                 Flag45  (Id));
       W ("In_Use",                          Flag8   (Id));
@@ -6958,6 +6955,7 @@ package body Einfo is
       W ("Is_Local_Anonymous_Access",       Flag194 (Id));
       W ("Is_Access_Constant",              Flag69  (Id));
       W ("Is_Ada_2005_Only",                Flag185 (Id));
+      W ("Is_Ada_2012_Only",                Flag199 (Id));
       W ("Is_Aliased",                      Flag15  (Id));
       W ("Is_Asynchronous",                 Flag81  (Id));
       W ("Is_Atomic",                       Flag85  (Id));

@@ -245,6 +245,28 @@ package body Sem_Util is
       Analyze (N);
    end Add_Global_Declaration;
 
+   -----------------
+   -- Addressable --
+   -----------------
+
+   --  For now, just 8/16/32/64. but analyze later if AAMP is special???
+
+   function Addressable (V : Uint) return Boolean is
+   begin
+      return V = Uint_8  or else
+             V = Uint_16 or else
+             V = Uint_32 or else
+             V = Uint_64;
+   end Addressable;
+
+   function Addressable (V : Int) return Boolean is
+   begin
+      return V = 8  or else
+             V = 16 or else
+             V = 32 or else
+             V = 64;
+   end Addressable;
+
    -----------------------
    -- Alignment_In_Bits --
    -----------------------
@@ -3468,71 +3490,6 @@ package body Sem_Util is
       end if;
    end First_Actual;
 
-   -------------------------
-   -- Full_Qualified_Name --
-   -------------------------
-
-   function Full_Qualified_Name (E : Entity_Id) return String_Id is
-      Res : String_Id;
-      pragma Warnings (Off, Res);
-
-      function Internal_Full_Qualified_Name (E : Entity_Id) return String_Id;
-      --  Compute recursively the qualified name without NUL at the end
-
-      ----------------------------------
-      -- Internal_Full_Qualified_Name --
-      ----------------------------------
-
-      function Internal_Full_Qualified_Name (E : Entity_Id) return String_Id is
-         Ent         : Entity_Id := E;
-         Parent_Name : String_Id := No_String;
-
-      begin
-         --  Deals properly with child units
-
-         if Nkind (Ent) = N_Defining_Program_Unit_Name then
-            Ent := Defining_Identifier (Ent);
-         end if;
-
-         --  Compute qualification recursively (only "Standard" has no scope)
-
-         if Present (Scope (Scope (Ent))) then
-            Parent_Name := Internal_Full_Qualified_Name (Scope (Ent));
-         end if;
-
-         --  Every entity should have a name except some expanded blocks
-         --  don't bother about those.
-
-         if Chars (Ent) = No_Name then
-            return Parent_Name;
-         end if;
-
-         --  Add a period between Name and qualification
-
-         if Parent_Name /= No_String then
-            Start_String (Parent_Name);
-            Store_String_Char (Get_Char_Code ('.'));
-
-         else
-            Start_String;
-         end if;
-
-         --  Generates the entity name in upper case
-
-         Get_Decoded_Name_String (Chars (Ent));
-         Set_All_Upper_Case;
-         Store_String_Chars (Name_Buffer (1 .. Name_Len));
-         return End_String;
-      end Internal_Full_Qualified_Name;
-
-   --  Start of processing for Full_Qualified_Name
-
-   begin
-      Res := Internal_Full_Qualified_Name (E);
-      Store_String_Char (Get_Char_Code (ASCII.NUL));
-      return End_String;
-   end Full_Qualified_Name;
-
    -----------------------
    -- Gather_Components --
    -----------------------
@@ -5301,6 +5258,18 @@ package body Sem_Util is
          return False;
       end if;
    end Has_Tagged_Component;
+
+   -------------------------
+   -- Implementation_Kind --
+   -------------------------
+
+   function Implementation_Kind (Subp : Entity_Id) return Name_Id is
+      Impl_Prag : constant Node_Id := Get_Rep_Pragma (Subp, Name_Implemented);
+   begin
+      pragma Assert (Present (Impl_Prag));
+      return
+        Chars (Expression (Last (Pragma_Argument_Associations (Impl_Prag))));
+   end Implementation_Kind;
 
    --------------------------
    -- Implements_Interface --

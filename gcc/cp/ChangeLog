@@ -1,3 +1,58 @@
+2010-10-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* cp-objcp-common.h (LANG_HOOKS_INIT_OPTIONS_STRUCT): Define.
+
+2010-10-07  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* cp-tree.def: Changed type of AT_ENCODE_EXPR from tcc_unary to
+	tcc_expression.
+	* cxx-pretty-print.c (pp_cxx_unary_expression): Added case for
+	AT_ENCODE_EXPR.
+	* error.c (dump_expr): Added case for AT_ENCODE_EXPR.
+	* pt.c (tsubst_copy): Added case for AT_ENCODE_EXPR.
+	(value_dependent_expression_p): Added case for AT_ENCODE_EXPR.
+	(type_dependent_expression_p): Added case for AT_ENCODE_EXPR.
+	* parser.c (cp_parser_objc_encode_expression): Updated comment.
+	
+2010-10-07  Nicola Pero  <nicola@nicola.brainstorm.co.uk>
+
+	Merge from apple/trunk branch on FSF servers.
+
+	2006-04-26  Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4508851
+	* parser.c (cp_parser_objc_interstitial_code): Recognize
+	and parse RID_NAMESPACE keyword.
+
+2010-10-07  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* parser.c (cp_parser_objc_method_tail_params_opt): Peek new token after
+	finding ellipsis, before checking for attributes.
+
+2010-10-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from apple/trunk branch on FSF servers.
+	* cp-tree.def: Added AT_ENCODE_EXPR here instead of to the no
+	longer existing gcc/c-common.def.
+	
+	2005-12-14  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4278774
+	* pt.c (tsubst_copy_and_build): Instantiate @endcode(T).
+	* parser.c (cp_parser_objc_encode_expression): Build a templatized 
+	parse tree for @encode(T).
+
+	2005-12-14  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4278774
+	* c-common.def: Add new expression code AT_ENCODE_EXPR.
+	
+2010-10-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR c++/45908
+	* typeck.c (cp_build_addr_expr_1): Add check for incomplete types in
+	code folding offsetof-like computations.
+
 2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	PR objc++/31125

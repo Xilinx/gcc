@@ -3462,6 +3462,13 @@ gfc_trans_forall_1 (gfc_code * code, forall_info * nested_forall_info)
   gfc_free (varexpr);
   gfc_free (saved_vars);
 
+  for (this_forall = info->this_loop; this_forall;)
+    {
+      iter_info *next = this_forall->next;
+      gfc_free (this_forall);
+      this_forall = next;
+    }
+
   /* Free the space for this forall_info.  */
   gfc_free (info);
 
@@ -3740,10 +3747,7 @@ gfc_trans_where_assign (gfc_expr *expr1, gfc_expr *expr2,
   /* Translate the expression.  */
   gfc_conv_expr (&rse, expr2);
   if (lss != gfc_ss_terminator && loop.temp_ss != NULL)
-    {
-      gfc_conv_tmp_array_ref (&lse);
-      gfc_advance_se_ss_chain (&lse);
-    }
+    gfc_conv_tmp_array_ref (&lse);
   else
     gfc_conv_expr (&lse, expr1);
 
@@ -3796,7 +3800,6 @@ gfc_trans_where_assign (gfc_expr *expr1, gfc_expr *expr2,
           lse.ss = lss;
 
           gfc_conv_tmp_array_ref (&rse);
-          gfc_advance_se_ss_chain (&rse);
           gfc_conv_expr (&lse, expr1);
 
           gcc_assert (lse.ss == gfc_ss_terminator
@@ -3923,6 +3926,9 @@ gfc_trans_where_2 (gfc_code * code, tree mask, bool invert,
       gfc_init_block (&inner_size_body);
       inner_size = compute_inner_temp_size (cblock->expr1, cblock->expr1,
 					    &inner_size_body, &lss, &rss);
+
+      gfc_free_ss_chain (lss);
+      gfc_free_ss_chain (rss);
 
       /* Calculate the total size of temporary needed.  */
       size = compute_overall_iter_number (nested_forall_info, inner_size,
@@ -4201,10 +4207,7 @@ gfc_trans_where_3 (gfc_code * cblock, gfc_code * eblock)
 
   gfc_conv_expr (&tsse, tsrc);
   if (tdss != gfc_ss_terminator && loop.temp_ss != NULL)
-    {
-      gfc_conv_tmp_array_ref (&tdse);
-      gfc_advance_se_ss_chain (&tdse);
-    }
+    gfc_conv_tmp_array_ref (&tdse);
   else
     gfc_conv_expr (&tdse, tdst);
 
@@ -4212,12 +4215,9 @@ gfc_trans_where_3 (gfc_code * cblock, gfc_code * eblock)
     {
       gfc_conv_expr (&esse, esrc);
       if (edss != gfc_ss_terminator && loop.temp_ss != NULL)
-        {
-          gfc_conv_tmp_array_ref (&edse);
-          gfc_advance_se_ss_chain (&edse);
-        }
+	gfc_conv_tmp_array_ref (&edse);
       else
-        gfc_conv_expr (&edse, edst);
+	gfc_conv_expr (&edse, edst);
     }
 
   tstmt = gfc_trans_scalar_assign (&tdse, &tsse, tdst->ts, false, false, true);
@@ -4567,6 +4567,7 @@ gfc_trans_allocate (gfc_code * code)
 			fold_convert (TREE_TYPE (lse.expr), tmp));
 		}
 	    }
+	  gfc_free_expr (lhs);
 	}
 
     }

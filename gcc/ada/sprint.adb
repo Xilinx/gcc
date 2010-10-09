@@ -65,7 +65,7 @@ package body Sprint is
    --  Set True if the -gnatdo (dump original tree) flag is set
 
    Dump_Generated_Only : Boolean;
-   --  Set True if the -gnatG (dump generated tree) debug flag is set
+   --  Set True if the -gnatdG (dump generated tree) debug flag is set
    --  or for Print_Generated_Code (-gnatG) or Dump_Generated_Code (-gnatD).
 
    Dump_Freeze_Null : Boolean;
@@ -2387,6 +2387,17 @@ package body Sprint is
             else
                Write_Str (", ");
             end if;
+
+         when N_Parameterized_Expression =>
+            Write_Indent;
+            Sprint_Node_Sloc (Specification (Node));
+
+            Write_Str (" is");
+            Indent_Begin;
+            Write_Indent;
+            Sprint_Node (Expression (Node));
+            Write_Char (';');
+            Indent_End;
 
          when N_Pop_Constraint_Error_Label =>
             Write_Indent_Str ("%pop_constraint_error_label");

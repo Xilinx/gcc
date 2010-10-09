@@ -482,7 +482,8 @@ package body Prj.Nmsc is
    --  if file cannot be found.
 
    procedure Remove_Source
-     (Id          : Source_Id;
+     (Tree        : Project_Tree_Ref;
+      Id          : Source_Id;
       Replaced_By : Source_Id);
    --  Remove a file from the list of sources of a project. This might be
    --  because the file is replaced by another one in an extending project,
@@ -704,9 +705,13 @@ package body Prj.Nmsc is
                --  (for instance because of symbolic links).
 
                elsif Source.Path.Name /= Path.Name then
-                  Error_Msg_Name_1 := Unit;
-                  Error_Msg
-                    (Data.Flags, "duplicate unit %%", Location, Project);
+                  if not Source.Duplicate_Unit then
+                     Error_Msg_Name_1 := Unit;
+                     Error_Msg
+                       (Data.Flags, "\duplicate unit %%", Location, Project);
+                     Source.Duplicate_Unit := True;
+                  end if;
+
                   Add_Src := False;
                end if;
             end if;
@@ -872,7 +877,16 @@ package body Prj.Nmsc is
       Lang_Id.First_Source := Id;
 
       if Source_To_Replace /= No_Source then
-         Remove_Source (Source_To_Replace, Id);
+         Remove_Source (Data.Tree, Source_To_Replace, Id);
+      end if;
+
+      if Data.Tree.Replaced_Source_Number > 0 and then
+         Replaced_Source_HTable.Get (Data.Tree.Replaced_Sources, Id.File) /=
+           No_File
+      then
+         Replaced_Source_HTable.Remove (Data.Tree.Replaced_Sources, Id.File);
+         Data.Tree.Replaced_Source_Number :=
+           Data.Tree.Replaced_Source_Number - 1;
       end if;
 
       Files_Htable.Set (Data.File_To_Source, File_Name, Id);
@@ -3277,7 +3291,7 @@ package body Prj.Nmsc is
             --  Spec_Suffix cannot be equal to Body_Suffix or Separate_Suffix,
             --  since that would cause a clear ambiguity. Note that we do allow
             --  a Spec_Suffix to have the same termination as one of these,
-            --  which causes a potential ambiguity, but we resolve that my
+            --  which causes a potential ambiguity, but we resolve that by
             --  matching the longest possible suffix.
 
             if Lang_Id.Config.Naming_Data.Spec_Suffix /= No_File
@@ -6193,7 +6207,7 @@ package body Prj.Nmsc is
                           (Project.Source_Names,
                            Source.File,
                            No_Name_Location);
-                        Remove_Source (Source, No_Source);
+                        Remove_Source (Data.Tree, Source, No_Source);
 
                         Error_Msg_Name_1 := Name_Id (Source.File);
                         Error_Msg
@@ -6277,7 +6291,7 @@ package body Prj.Nmsc is
                end if;
 
                if Source.Path = No_Path_Information then
-                  Remove_Source (Source, No_Source);
+                  Remove_Source (Data.Tree, Source, No_Source);
                end if;
             end if;
 
@@ -7589,7 +7603,8 @@ package body Prj.Nmsc is
    -------------------
 
    procedure Remove_Source
-     (Id          : Source_Id;
+     (Tree        : Project_Tree_Ref;
+      Id          : Source_Id;
       Replaced_By : Source_Id)
    is
       Source : Source_Id;
@@ -7609,6 +7624,23 @@ package body Prj.Nmsc is
       if Replaced_By /= No_Source then
          Id.Replaced_By := Replaced_By;
          Replaced_By.Declared_In_Interfaces := Id.Declared_In_Interfaces;
+
+         if Id.File /= Replaced_By.File then
+            declare
+               Replacement : constant File_Name_Type :=
+                               Replaced_Source_HTable.Get
+                                 (Tree.Replaced_Sources, Id.File);
+
+            begin
+               Replaced_Source_HTable.Set
+                 (Tree.Replaced_Sources, Id.File, Replaced_By.File);
+
+               if Replacement = No_File then
+                  Tree.Replaced_Source_Number :=
+                    Tree.Replaced_Source_Number + 1;
+               end if;
+            end;
+         end if;
       end if;
 
       Id.In_Interfaces := False;

@@ -78,6 +78,9 @@ package Opt is
    --  GNAT
    --  Default Ada version if no switch given. The Warnings off is to kill
    --  constant condition warnings.
+   --
+   --  WARNING: some scripts rely on the format of this line of code. Any
+   --  change must be coordinated with the scripts requirements.
 
    Ada_Version : Ada_Version_Type := Ada_Version_Default;
    --  GNAT
@@ -1330,6 +1333,12 @@ package Opt is
    --  GNAT
    --  Set to True to generate all warnings on Ada 2005 compatibility issues,
    --  including warnings on Ada 2005 obsolescent features used in Ada 2005
+   --  mode. Set False by -gnatwY.
+
+   Warn_On_Ada_2012_Compatibility : Boolean := True;
+   --  GNAT
+   --  Set to True to generate all warnings on Ada 2012 compatibility issues,
+   --  including warnings on Ada 2012 obsolescent features used in Ada 2012
    --  mode. Set False by -gnatwY.
 
    Warn_On_Parameter_Order : Boolean := False;

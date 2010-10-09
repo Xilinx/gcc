@@ -765,6 +765,9 @@ package Prj is
       Naming_Exception : Boolean := False;
       --  True if the source has an exceptional name
 
+      Duplicate_Unit : Boolean := False;
+      --  True when a duplicate unit has been reported for this source
+
       Next_In_Lang : Source_Id := No_Source;
       --  Link to another source of the same language in the same project
    end record;
@@ -799,6 +802,7 @@ package Prj is
                        Switches_Path          => No_Path,
                        Switches_TS            => Empty_Time_Stamp,
                        Naming_Exception       => False,
+                       Duplicate_Unit         => False,
                        Next_In_Lang           => No_Source);
 
    package Source_Paths_Htable is new Simple_HTable
@@ -1333,6 +1337,14 @@ package Prj is
    -- Project_Tree_Data --
    -----------------------
 
+   package Replaced_Source_HTable is new Simple_HTable
+     (Header_Num => Header_Num,
+      Element    => File_Name_Type,
+      No_Element => No_File,
+      Key        => File_Name_Type,
+      Hash       => Hash,
+      Equal      => "=");
+
    type Private_Project_Tree_Data is private;
    --  Data for a project tree that is used only by the Project Manager
 
@@ -1346,6 +1358,13 @@ package Prj is
          Arrays            : Array_Table.Instance;
          Packages          : Package_Table.Instance;
          Projects          : Project_List;
+
+         Replaced_Sources  : Replaced_Source_HTable.Instance;
+         --  The list of sources that have been replaced by sources with
+         --  different file names.
+
+         Replaced_Source_Number : Natural := 0;
+         --  The number of entries in Replaced_Sources
 
          Units_HT : Units_Htable.Instance;
          --  Unit name to Unit_Index (and from there so Source_Id)

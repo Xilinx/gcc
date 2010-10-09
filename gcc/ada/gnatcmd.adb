@@ -377,6 +377,7 @@ procedure GNATCmd is
 
          declare
             Proj : Project_List;
+            File : String_Access;
 
          begin
             --  Gnatstack needs to add the .ci file for the binder generated
@@ -389,7 +390,6 @@ procedure GNATCmd is
                   if Check_Project (Proj.Project, Project) then
                      declare
                         Main : String_List_Id;
-                        File : String_Access;
 
                      begin
                         --  Include binder generated files for main programs
@@ -406,6 +406,26 @@ procedure GNATCmd is
                                      (Project_Tree.String_Elements.Table
                                         (Main).Value),
                                    "ci"));
+
+                           --  When looking for the .ci file for a binder
+                           --  generated file, look for both b~xxx and b__xxx
+                           --  as gprbuild always uses b__ as the prefix of
+                           --  such files.
+
+                           if not Is_Regular_File (File.all)
+                             and then B_Start.all /= "b__"
+                           then
+                              File :=
+                                new String'
+                                  (Get_Name_String
+                                     (Proj.Project.Object_Directory.Name)    &
+                                   "b__"                                     &
+                                   MLib.Fil.Ext_To
+                                     (Get_Name_String
+                                        (Project_Tree.String_Elements.Table
+                                           (Main).Value),
+                                      "ci"));
+                           end if;
 
                            if Is_Regular_File (File.all) then
                               Last_Switches.Increment_Last;
@@ -429,6 +449,19 @@ procedure GNATCmd is
                                 B_Start.all                                  &
                                 Get_Name_String (Proj.Project.Library_Name)  &
                                 ".ci");
+
+                           if not Is_Regular_File (File.all) and then
+                               B_Start.all /= "b__"
+                           then
+                              File :=
+                                new String'
+                                  (Get_Name_String
+                                     (Proj.Project.Object_Directory.Name)    &
+                                   "b__"                                     &
+                                   Get_Name_String
+                                     (Proj.Project.Library_Name)             &
+                                   ".ci");
+                           end if;
 
                            if Is_Regular_File (File.all) then
                               Last_Switches.Increment_Last;
@@ -541,8 +574,7 @@ procedure GNATCmd is
                         end if;
 
                         if not Subunit then
-                           Last_Switches.Increment_Last;
-                           Last_Switches.Table (Last_Switches.Last) :=
+                           File :=
                              new String'
                                (Get_Name_String
                                  (Unit.File_Names
@@ -551,6 +583,11 @@ procedure GNATCmd is
                                   (Get_Name_String
                                      (Unit.File_Names (Impl).Display_File),
                                    "ci"));
+
+                           if Is_Regular_File (File.all) then
+                              Last_Switches.Increment_Last;
+                              Last_Switches.Table (Last_Switches.Last) := File;
+                           end if;
                         end if;
                      end if;
 
@@ -562,8 +599,7 @@ procedure GNATCmd is
                      if Check_Project
                           (Unit.File_Names (Spec).Project, Project)
                      then
-                        Last_Switches.Increment_Last;
-                        Last_Switches.Table (Last_Switches.Last) :=
+                        File :=
                           new String'
                             (Get_Name_String
                               (Unit.File_Names
@@ -572,6 +608,11 @@ procedure GNATCmd is
                              MLib.Fil.Ext_To
                                (Get_Name_String (Unit.File_Names (Spec).File),
                                 "ci"));
+
+                        if Is_Regular_File (File.all) then
+                           Last_Switches.Increment_Last;
+                           Last_Switches.Table (Last_Switches.Last) := File;
+                        end if;
                      end if;
                   end if;
 

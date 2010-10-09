@@ -1806,10 +1806,6 @@ package Einfo is
 --       that we still have a concrete type. For entities other than types,
 --       returns the entity unchanged.
 
---    Implemented_By_Entry (Flag232)
---       Applies to functions and procedures. Set if pragma Implemented_By_
---       Entry is applied on the subprogram entity.
-
 --    Interfaces (Elist25)
 --       Present in record types and subtypes. List of abstract interfaces
 --       implemented by a tagged type that are not already implemented by the
@@ -1889,10 +1885,18 @@ package Einfo is
 --       Applies to all entities, true for access types and subtypes
 
 --    Is_Ada_2005_Only (Flag185)
---       Present in all entities, true if a valid pragma Ada_05 applies to the
---       entity which specifically names the entity, indicating that the entity
---       is Ada 2005 only. Note that this flag is not set if the entity is part
---       of a unit compiled with the normal no-argument form of pragma Ada_05.
+--       Present in all entities, true if a valid pragma Ada_05 or Ada_2005
+--       applies to the entity which specifically names the entity, indicating
+--       that the entity is Ada 2005 only. Note that this flag is not set if
+--       the entity is part of a unit compiled with the normal no-argument form
+--       of pragma Ada_05 or Ada_2005.
+
+--    Is_Ada_2012_Only (Flag199)
+--       Present in all entities, true if a valid pragma Ada_12 or Ada_2012
+--       applies to the entity which specifically names the entity, indicating
+--       that the entity is Ada 2012 only. Note that this flag is not set if
+--       the entity is part of a unit compiled with the normal no-argument form
+--       of pragma Ada_12 or Ada_2012.
 
 --    Is_Aliased (Flag15)
 --       Present in objects whose declarations carry the keyword aliased,
@@ -2432,7 +2436,7 @@ package Einfo is
 --         4. Setting Component_Size of an array to a bit-packable value
 --         3. Indexing an array with a non-standard enumeration type.
 --
---       For records, Is_Packed is always set if Has_Pack_Pragma is set,
+--       For records, Is_Packed is always set if Has_Pragma_Pack is set,
 --       and can also be set on its own in a derived type which inherited
 --       its packed status.
 --
@@ -2451,7 +2455,7 @@ package Einfo is
 --       the bit packed case once the array type is frozen.
 --
 --       Before an array type is frozen, Is_Packed will always be set if
---       Has_Pack_Pragma is set. Before the freeze point, it is not possible
+--       Has_Pragma_Pack is set. Before the freeze point, it is not possible
 --       to know the component size, since the component type is not frozen
 --       until the array type is frozen. Thus Is_Packed for an array type
 --       before it is frozen means that packed is required. Then if it turns
@@ -3027,12 +3031,12 @@ package Einfo is
 --       interpreted as true. Currently this is set true for derived Boolean
 --       types which have a convention of C, C++ or Fortran.
 
---    No_Pool_Assigned (Flag131) [root type only]
---       Present in access types. Set if a storage size clause applies to
---       the variable with a compile time known value of zero. This flag is
---       used to generate warnings if any attempt is made to allocate or free
---       an instance of such an access type. This is set only in the root
---       type, since derived types must have the same pool.
+--    No_Pool_Assigned (Flag131) [root type only] Present in access types.
+--       Set if a storage size clause applies to the variable with a static
+--       expression value of zero. This flag is used to generate errors if any
+--       attempt is made to allocate or free an instance of such an access
+--       type. This is set only in the root type, since derived types must
+--       have the same pool.
 
 --    No_Return (Flag113)
 --       Present in all entities. Always false except in the case of procedures
@@ -4589,6 +4593,7 @@ package Einfo is
    --    Has_Xref_Entry                      (Flag182)
    --    In_Private_Part                     (Flag45)
    --    Is_Ada_2005_Only                    (Flag185)
+   --    Is_Ada_2012_Only                    (Flag199)
    --    Is_Bit_Packed_Array                 (Flag122)  (base type only)
    --    Is_Character_Type                   (Flag63)
    --    Is_Child_Unit                       (Flag73)
@@ -5043,7 +5048,6 @@ package Einfo is
    --    Has_Postconditions                  (Flag240)
    --    Has_Recursive_Call                  (Flag143)
    --    Has_Subprogram_Descriptor           (Flag93)
-   --    Implemented_By_Entry                (Flag232)  (non-generic case only)
    --    Is_Abstract_Subprogram              (Flag19)   (non-generic case only)
    --    Is_Called                           (Flag102)  (non-generic case only)
    --    Is_Constructor                      (Flag76)
@@ -5302,7 +5306,6 @@ package Einfo is
    --    Has_Nested_Block_With_Handler       (Flag101)
    --    Has_Postconditions                  (Flag240)
    --    Has_Subprogram_Descriptor           (Flag93)
-   --    Implemented_By_Entry                (Flag232)  (non-generic case only)
    --    Is_Abstract_Subprogram              (Flag19)   (non-generic case only)
    --    Is_Asynchronous                     (Flag81)
    --    Is_Called                           (Flag102)  (non-generic case only)
@@ -5919,7 +5922,6 @@ package Einfo is
    function Has_Xref_Entry                      (Id : E) return B;
    function Hiding_Loop_Variable                (Id : E) return E;
    function Homonym                             (Id : E) return E;
-   function Implemented_By_Entry                (Id : E) return B;
    function In_Package_Body                     (Id : E) return B;
    function In_Private_Part                     (Id : E) return B;
    function In_Use                              (Id : E) return B;
@@ -5932,6 +5934,7 @@ package Einfo is
    function Is_Abstract_Type                    (Id : E) return B;
    function Is_Access_Constant                  (Id : E) return B;
    function Is_Ada_2005_Only                    (Id : E) return B;
+   function Is_Ada_2012_Only                    (Id : E) return B;
    function Is_Aliased                          (Id : E) return B;
    function Is_Asynchronous                     (Id : E) return B;
    function Is_Atomic                           (Id : E) return B;
@@ -6480,7 +6483,6 @@ package Einfo is
    procedure Set_Has_Xref_Entry                  (Id : E; V : B := True);
    procedure Set_Hiding_Loop_Variable            (Id : E; V : E);
    procedure Set_Homonym                         (Id : E; V : E);
-   procedure Set_Implemented_By_Entry            (Id : E; V : B := True);
    procedure Set_Interfaces                      (Id : E; V : L);
    procedure Set_In_Package_Body                 (Id : E; V : B := True);
    procedure Set_In_Private_Part                 (Id : E; V : B := True);
@@ -6493,6 +6495,7 @@ package Einfo is
    procedure Set_Is_Abstract_Type                (Id : E; V : B := True);
    procedure Set_Is_Access_Constant              (Id : E; V : B := True);
    procedure Set_Is_Ada_2005_Only                (Id : E; V : B := True);
+   procedure Set_Is_Ada_2012_Only                (Id : E; V : B := True);
    procedure Set_Is_Aliased                      (Id : E; V : B := True);
    procedure Set_Is_Asynchronous                 (Id : E; V : B := True);
    procedure Set_Is_Atomic                       (Id : E; V : B := True);
@@ -6860,7 +6863,7 @@ package Einfo is
    --  Empty is returned.
 
    function Get_Record_Representation_Clause (E : Entity_Id) return Node_Id;
-   --  Searches the Rep_Item chain for a given entyt E, for a record
+   --  Searches the Rep_Item chain for a given entity E, for a record
    --  representation clause, and if found, returns it. Returns Empty
    --  if no such clause is found.
 
@@ -7139,7 +7142,6 @@ package Einfo is
    pragma Inline (Has_Xref_Entry);
    pragma Inline (Hiding_Loop_Variable);
    pragma Inline (Homonym);
-   pragma Inline (Implemented_By_Entry);
    pragma Inline (Interfaces);
    pragma Inline (In_Package_Body);
    pragma Inline (In_Private_Part);
@@ -7152,6 +7154,7 @@ package Einfo is
    pragma Inline (Is_Abstract_Type);
    pragma Inline (Is_Access_Constant);
    pragma Inline (Is_Ada_2005_Only);
+   pragma Inline (Is_Ada_2012_Only);
    pragma Inline (Is_Access_Type);
    pragma Inline (Is_Access_Protected_Subprogram_Type);
    pragma Inline (Is_Access_Subprogram_Type);
@@ -7571,7 +7574,6 @@ package Einfo is
    pragma Inline (Set_Has_Xref_Entry);
    pragma Inline (Set_Hiding_Loop_Variable);
    pragma Inline (Set_Homonym);
-   pragma Inline (Set_Implemented_By_Entry);
    pragma Inline (Set_Interfaces);
    pragma Inline (Set_In_Package_Body);
    pragma Inline (Set_In_Private_Part);
@@ -7584,6 +7586,7 @@ package Einfo is
    pragma Inline (Set_Is_Abstract_Type);
    pragma Inline (Set_Is_Access_Constant);
    pragma Inline (Set_Is_Ada_2005_Only);
+   pragma Inline (Set_Is_Ada_2012_Only);
    pragma Inline (Set_Is_Aliased);
    pragma Inline (Set_Is_Asynchronous);
    pragma Inline (Set_Is_Atomic);

@@ -1915,6 +1915,13 @@ lto_input_ts_decl_minimal_tree_pointers (struct lto_input_block *ib,
 {
   DECL_NAME (expr) = lto_input_tree (ib, data_in);
   DECL_CONTEXT (expr) = lto_input_tree (ib, data_in);
+  /* We do not stream BLOCK_VARS but lazily construct it here.  */
+  if (DECL_CONTEXT (expr)
+      && TREE_CODE (DECL_CONTEXT (expr)) == BLOCK)
+    {
+      TREE_CHAIN (expr) = BLOCK_VARS (DECL_CONTEXT (expr));
+      BLOCK_VARS (DECL_CONTEXT (expr)) = expr;
+    }
   DECL_SOURCE_LOCATION (expr) = lto_input_location (ib, data_in);
 }
 
@@ -2136,20 +2143,33 @@ lto_input_ts_block_tree_pointers (struct lto_input_block *ib,
   unsigned i, len;
 
   BLOCK_SOURCE_LOCATION (expr) = lto_input_location (ib, data_in);
-  BLOCK_VARS (expr) = lto_input_chain (ib, data_in);
+  /* We do not stream BLOCK_VARS but lazily construct it when reading
+     in decls.  */
 
   len = lto_input_uleb128 (ib);
-  for (i = 0; i < len; i++)
+  if (len > 0)
     {
-      tree t = lto_input_tree (ib, data_in);
-      VEC_safe_push (tree, gc, BLOCK_NONLOCALIZED_VARS (expr), t);
+      VEC_reserve_exact (tree, gc, BLOCK_NONLOCALIZED_VARS (expr), len);
+      for (i = 0; i < len; i++)
+	{
+	  tree t = lto_input_tree (ib, data_in);
+	  VEC_quick_push (tree, BLOCK_NONLOCALIZED_VARS (expr), t);
+	}
     }
 
   BLOCK_SUPERCONTEXT (expr) = lto_input_tree (ib, data_in);
   BLOCK_ABSTRACT_ORIGIN (expr) = lto_input_tree (ib, data_in);
   BLOCK_FRAGMENT_ORIGIN (expr) = lto_input_tree (ib, data_in);
   BLOCK_FRAGMENT_CHAIN (expr) = lto_input_tree (ib, data_in);
-  BLOCK_SUBBLOCKS (expr) = lto_input_chain (ib, data_in);
+  /* We re-compute BLOCK_SUBBLOCKS of our parent here instead
+     of streaming it.  For non-BLOCK BLOCK_SUPERCONTEXTs we still
+     stream the child relationship explicitly.  */
+  if (BLOCK_SUPERCONTEXT (expr)
+      && TREE_CODE (BLOCK_SUPERCONTEXT (expr)) == BLOCK)
+    {
+      BLOCK_CHAIN (expr) = BLOCK_SUBBLOCKS (BLOCK_SUPERCONTEXT (expr));
+      BLOCK_SUBBLOCKS (BLOCK_SUPERCONTEXT (expr)) = expr;
+    }
 }
 
 
@@ -2183,10 +2203,14 @@ lto_input_ts_binfo_tree_pointers (struct lto_input_block *ib,
   BINFO_VPTR_FIELD (expr) = lto_input_tree (ib, data_in);
 
   len = lto_input_uleb128 (ib);
-  for (i = 0; i < len; i++)
+  if (len > 0)
     {
-      tree a = lto_input_tree (ib, data_in);
-      VEC_safe_push (tree, gc, BINFO_BASE_ACCESSES (expr), a);
+      VEC_reserve_exact (tree, gc, BINFO_BASE_ACCESSES (expr), len);
+      for (i = 0; i < len; i++)
+	{
+	  tree a = lto_input_tree (ib, data_in);
+	  VEC_quick_push (tree, BINFO_BASE_ACCESSES (expr), a);
+	}
     }
 
   BINFO_INHERITANCE_CHAIN (expr) = lto_input_tree (ib, data_in);

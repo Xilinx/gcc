@@ -364,14 +364,59 @@ package body Sem_Ch4 is
       E        : Node_Id             := Expression (N);
       Acc_Type : Entity_Id;
       Type_Id  : Entity_Id;
+      P        : Node_Id;
+      C        : Node_Id;
 
    begin
+      --  Deal with allocator restrictions
+
       --  In accordance with H.4(7), the No_Allocators restriction only applies
-      --  to user-written allocators.
+      --  to user-written allocators. The same consideration applies to the
+      --  No_Allocators_Before_Elaboration restriction.
 
       if Comes_From_Source (N) then
          Check_Restriction (No_Allocators, N);
+
+         --  Processing for No_Allocators_After_Elaboration, loop to look at
+         --  enclosing context, checking task case and main subprogram case.
+
+         C := N;
+         P := Parent (C);
+         while Present (P) loop
+
+            --  In both cases we need a handled sequence of statements, where
+            --  the occurrence of the allocator is within the statements.
+
+            if Nkind (P) = N_Handled_Sequence_Of_Statements
+              and then Is_List_Member (C)
+              and then List_Containing (C) = Statements (P)
+            then
+               --  Check for allocator within task body, this is a definite
+               --  violation of No_Allocators_After_Elaboration we can detect.
+
+               if Nkind (Original_Node (Parent (P))) = N_Task_Body then
+                  Check_Restriction (No_Allocators_After_Elaboration, N);
+                  exit;
+               end if;
+
+               --  The other case is appearence in a subprogram body. This may
+               --  be a violation if this is a library level subprogram, and it
+               --  turns out to be used as the main program, but only the
+               --  binder knows that, so just record the occurrence.
+
+               if Nkind (Original_Node (Parent (P))) = N_Subprogram_Body
+                 and then Nkind (Parent (Parent (P))) = N_Compilation_Unit
+               then
+                  Set_Has_Allocator (Current_Sem_Unit);
+               end if;
+            end if;
+
+            C := P;
+            P := Parent (C);
+         end loop;
       end if;
+
+      --  Analyze the allocator
 
       if Nkind (E) = N_Qualified_Expression then
          Acc_Type := Create_Itype (E_Allocator_Type, N);
@@ -507,15 +552,25 @@ package body Sem_Ch4 is
             --  be a null object, and we can insert an unconditional raise
             --  before the allocator.
 
+            --  Ada 2012 (AI-104): A not null indication here is altogether
+            --  illegal.
+
             if Can_Never_Be_Null (Type_Id) then
                declare
                   Not_Null_Check : constant Node_Id :=
                                      Make_Raise_Constraint_Error (Sloc (E),
                                        Reason => CE_Null_Not_Allowed);
+
                begin
-                  if Expander_Active then
+                  if Ada_Version >= Ada_12 then
+                     Error_Msg_N
+                       ("an uninitialized allocator cannot have"
+                         & " a null exclusion", N);
+
+                  elsif Expander_Active then
                      Insert_Action (N, Not_Null_Check);
                      Analyze (Not_Null_Check);
+
                   else
                      Error_Msg_N ("null value not allowed here?", E);
                   end if;

@@ -7410,7 +7410,10 @@ package body Sem_Attr is
                         --  All wide characters look like Hex_hhhhhhhh
 
                         if J > 255 then
-                           W := 12;
+
+                           --  No need to compute this more than once!
+
+                           exit;
 
                         else
                            C := Character'Val (J);
@@ -7423,13 +7426,11 @@ package body Sem_Attr is
                            case C is
                               when Reserved_128 | Reserved_129 |
                                    Reserved_132 | Reserved_153
-
                                 => Wt := 12;
 
                               when BS | HT | LF | VT | FF | CR |
                                    SO | SI | EM | FS | GS | RS |
                                    US | RI | MW | ST | PM
-
                                 => Wt := 2;
 
                               when NUL | SOH | STX | ETX | EOT |
@@ -7441,13 +7442,20 @@ package body Sem_Attr is
                                    SS2 | SS3 | DCS | PU1 | PU2 |
                                    STS | CCH | SPA | EPA | SOS |
                                    SCI | CSI | OSC | APC
-
                                 => Wt := 3;
 
                               when Space .. Tilde |
                                    No_Break_Space .. LC_Y_Diaeresis
+                                =>
+                                 --  Special case of soft hyphen in Ada 2005
 
-                                => Wt := 3;
+                                 if C = Character'Val (16#AD#)
+                                   and then Ada_Version >= Ada_05
+                                 then
+                                    Wt := 11;
+                                 else
+                                    Wt := 3;
+                                 end if;
                            end case;
 
                            W := Int'Max (W, Wt);
@@ -7917,6 +7925,7 @@ package body Sem_Attr is
                   --  that generic unit. This includes any such attribute that
                   --  occurs within the body of a generic unit that is a child
                   --  of the generic unit where the subprogram is declared.
+
                   --  The rule also prohibits applying the attribute when the
                   --  access type is a generic formal access type (since the
                   --  level of the actual type is not known). This restriction
@@ -7950,10 +7959,11 @@ package body Sem_Attr is
                   --  been caught by the compilation of the generic unit.
 
                   --  Note that we relax this check in CodePeer mode for
-                  --  compatibility with legacy code.
-
-                  --  This seems an odd decision??? Why should codepeer mode
-                  --  have a different notion of legality from the compiler???
+                  --  compatibility with legacy code, since CodePeer is an
+                  --  Ada source code analyzer, not a strict compiler.
+                  --  ??? Note that a better approach would be to have a
+                  --  separate switch to relax this rule, and enable this
+                  --  switch in CodePeer mode.
 
                   elsif Attr_Id = Attribute_Access
                     and then not CodePeer_Mode

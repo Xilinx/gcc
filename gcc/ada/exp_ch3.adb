@@ -230,7 +230,7 @@ package body Exp_Ch3 is
      (Typ     : Entity_Id;
       Eq_Name : Name_Id) return Node_Id;
    --  Build the body of a primitive equality operation for a tagged record
-   --  type, or in Ada2012 for any record type that has components with a
+   --  type, or in Ada 2012 for any record type that has components with a
    --  user-defined equality. Factored out of Predefined_Primitive_Bodies.
 
    function Make_Eq_Case
@@ -1661,7 +1661,7 @@ package body Exp_Ch3 is
            and then Has_New_Controlled_Component (Enclos_Type)
            and then Has_Controlled_Component (Typ)
          then
-            if Is_Inherently_Limited_Type (Typ) then
+            if Is_Immutably_Limited_Type (Typ) then
                Controller_Typ := RTE (RE_Limited_Record_Controller);
             else
                Controller_Typ := RTE (RE_Record_Controller);
@@ -1930,7 +1930,7 @@ package body Exp_Ch3 is
 
          if Needs_Finalization (Typ)
            and then not (Nkind_In (Kind, N_Aggregate, N_Extension_Aggregate))
-           and then not Is_Inherently_Limited_Type (Typ)
+           and then not Is_Immutably_Limited_Type (Typ)
          then
             declare
                Ref : constant Node_Id :=
@@ -4800,7 +4800,7 @@ package body Exp_Ch3 is
             --  creating the object (via allocator) and initializing it.
 
             if Is_Return_Object (Def_Id)
-              and then Is_Inherently_Limited_Type (Typ)
+              and then Is_Immutably_Limited_Type (Typ)
             then
                null;
 
@@ -5014,7 +5014,7 @@ package body Exp_Ch3 is
             --  renaming declaration.
 
             if Needs_Finalization (Typ)
-              and then not Is_Inherently_Limited_Type (Typ)
+              and then not Is_Immutably_Limited_Type (Typ)
               and then not Rewrite_As_Renaming
             then
                Insert_Actions_After (Init_After,
@@ -5291,7 +5291,7 @@ package body Exp_Ch3 is
          Loc := Sloc (First (Component_Items (Comp_List)));
       end if;
 
-      if Is_Inherently_Limited_Type (T) then
+      if Is_Immutably_Limited_Type (T) then
          Controller_Type := RTE (RE_Limited_Record_Controller);
       else
          Controller_Type := RTE (RE_Record_Controller);
@@ -5859,12 +5859,11 @@ package body Exp_Ch3 is
    -------------------------------
 
    procedure Expand_Freeze_Record_Type (N : Node_Id) is
-      Def_Id        : constant Node_Id := Entity (N);
-      Type_Decl     : constant Node_Id := Parent (Def_Id);
-      Comp          : Entity_Id;
-      Comp_Typ      : Entity_Id;
-      Has_Static_DT : Boolean := False;
-      Predef_List   : List_Id;
+      Def_Id      : constant Node_Id := Entity (N);
+      Type_Decl   : constant Node_Id := Parent (Def_Id);
+      Comp        : Entity_Id;
+      Comp_Typ    : Entity_Id;
+      Predef_List : List_Id;
 
       Flist : Entity_Id := Empty;
       --  Finalization list allocated for the case of a type with anonymous
@@ -5899,9 +5898,9 @@ package body Exp_Ch3 is
       elsif Is_Derived_Type (Def_Id)
         and then not Is_Tagged_Type (Def_Id)
 
-         --  If we have a derived Unchecked_Union, we do not inherit the
-         --  discriminant checking functions from the parent type since the
-         --  discriminants are non existent.
+        --  If we have a derived Unchecked_Union, we do not inherit the
+        --  discriminant checking functions from the parent type since the
+        --  discriminants are non existent.
 
         and then not Is_Unchecked_Union (Def_Id)
         and then Has_Discriminants (Def_Id)
@@ -5939,7 +5938,6 @@ package body Exp_Ch3 is
       --  declaration.
 
       Comp := First_Component (Def_Id);
-
       while Present (Comp) loop
          Comp_Typ := Etype (Comp);
 
@@ -5982,9 +5980,6 @@ package body Exp_Ch3 is
       --  just use it.
 
       if Is_Tagged_Type (Def_Id) then
-         Has_Static_DT :=
-           Static_Dispatch_Tables
-             and then Is_Library_Level_Tagged_Type (Def_Id);
 
          --  Add the _Tag component
 
@@ -6004,7 +5999,7 @@ package body Exp_Ch3 is
             Set_CPP_Constructors (Def_Id);
 
          else
-            if not Has_Static_DT then
+            if not Building_Static_DT (Def_Id) then
 
                --  Usually inherited primitives are not delayed but the first
                --  Ada extension of a CPP_Class is an exception since the
@@ -6014,14 +6009,14 @@ package body Exp_Ch3 is
                --  Similarly, if this is an inherited operation whose parent is
                --  not frozen yet, it is not in the DT of the parent, and we
                --  generate an explicit freeze node for the inherited operation
-               --  so that it is properly inserted in the DT of the current
-               --  type.
+               --  so it is properly inserted in the DT of the current type.
 
                declare
-                  Elmt : Elmt_Id := First_Elmt (Primitive_Operations (Def_Id));
+                  Elmt : Elmt_Id;
                   Subp : Entity_Id;
 
                begin
+                  Elmt := First_Elmt (Primitive_Operations (Def_Id));
                   while Present (Elmt) loop
                      Subp := Node (Elmt);
 
@@ -6054,6 +6049,14 @@ package body Exp_Ch3 is
 
             if Is_CPP_Class (Root_Type (Def_Id))
               and then Convention (Def_Id) = Convention_CPP
+            then
+               null;
+
+            --  Do not add the spec of predefined primitives in case of
+            --  CIL and Java tagged types
+
+            elsif Convention (Def_Id) = Convention_CIL
+              or else Convention (Def_Id) = Convention_Java
             then
                null;
 
@@ -6096,7 +6099,11 @@ package body Exp_Ch3 is
             end if;
 
             Set_Is_Frozen (Def_Id);
-            Set_All_DT_Position (Def_Id);
+            if not Is_Derived_Type (Def_Id)
+              or else Is_Tagged_Type (Etype (Def_Id))
+            then
+               Set_All_DT_Position (Def_Id);
+            end if;
 
             --  Add the controlled component before the freezing actions
             --  referenced in those actions.
@@ -6116,7 +6123,7 @@ package body Exp_Ch3 is
                --  Dispatch tables of library level tagged types are built
                --  later (see Analyze_Declarations).
 
-               if not Has_Static_DT then
+               if not Building_Static_DT (Def_Id) then
                   Append_Freeze_Actions (Def_Id, Make_DT (Def_Id));
                end if;
             end if;
@@ -6174,7 +6181,7 @@ package body Exp_Ch3 is
 
       --  In the non-tagged case, ever since Ada83 an equality function must
       --  be  provided for variant records that are not unchecked unions.
-      --  In Ada2012 the equality function composes, and thus must be built
+      --  In Ada 2012 the equality function composes, and thus must be built
       --  explicitly just as for tagged records.
 
       elsif Has_Discriminants (Def_Id)
@@ -6183,7 +6190,6 @@ package body Exp_Ch3 is
          declare
             Comps : constant Node_Id :=
                       Component_List (Type_Definition (Type_Decl));
-
          begin
             if Present (Comps)
               and then Present (Variant_Part (Comps))
@@ -6192,9 +6198,17 @@ package body Exp_Ch3 is
             end if;
          end;
 
-      elsif Ada_Version >= Ada_12
-        and then Comes_From_Source (Def_Id)
+      --  Otherwise create primitive equality operation (AI05-0123)
+
+      --  This is done unconditionally to ensure that tools can be linked
+      --  properly with user programs compiled with older language versions.
+      --  It might be worth including a switch to revert to a non-composable
+      --  equality for untagged records, even though no program depending on
+      --  non-composability has surfaced ???
+
+      elsif Comes_From_Source (Def_Id)
         and then Convention (Def_Id) = Convention_Ada
+        and then not Is_Limited_Type (Def_Id)
       then
          Build_Untagged_Equality (Def_Id);
       end if;
@@ -6251,11 +6265,10 @@ package body Exp_Ch3 is
       end if;
 
       --  For tagged type that are not interfaces, build bodies of primitive
-      --  operations. Note that we do this after building the record
-      --  initialization procedure, since the primitive operations may need
-      --  the initialization routine. There is no need to add predefined
-      --  primitives of interfaces because all their predefined primitives
-      --  are abstract.
+      --  operations. Note: do this after building the record initialization
+      --  procedure, since the primitive operations may need the initialization
+      --  routine. There is no need to add predefined primitives of interfaces
+      --  because all their predefined primitives are abstract.
 
       if Is_Tagged_Type (Def_Id)
         and then not Is_Interface (Def_Id)
@@ -6265,6 +6278,14 @@ package body Exp_Ch3 is
 
          if Is_CPP_Class (Root_Type (Def_Id))
            and then Convention (Def_Id) = Convention_CPP
+         then
+            null;
+
+         --  Do not add the body of predefined primitives in case of
+         --  CIL and Java tagged types.
+
+         elsif Convention (Def_Id) = Convention_CIL
+           or else Convention (Def_Id) = Convention_Java
          then
             null;
 

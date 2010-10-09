@@ -4060,8 +4060,7 @@ package body Exp_Disp is
             Append_To (Prim_Ops_Aggr_List, Make_Null (Loc));
 
          elsif Is_Abstract_Type (Typ)
-           or else not Static_Dispatch_Tables
-           or else not Is_Library_Level_Tagged_Type (Typ)
+           or else not Building_Static_DT (Typ)
          then
             for J in 1 .. Nb_Prim loop
                Append_To (Prim_Ops_Aggr_List, Make_Null (Loc));
@@ -4317,6 +4316,8 @@ package body Exp_Disp is
       if Has_Dispatch_Table (Typ)
         or else No (Access_Disp_Table (Typ))
         or else Is_CPP_Class (Typ)
+        or else Convention (Typ) = Convention_CIL
+        or else Convention (Typ) = Convention_Java
       then
          return Result;
 
@@ -4483,8 +4484,7 @@ package body Exp_Disp is
          end loop;
       end if;
 
-      --  Get the _tag entity and the number of primitives of its dispatch
-      --  table.
+      --  Get the _tag entity and number of primitives of its dispatch table
 
       DT_Ptr  := Node (First_Elmt (Access_Disp_Table (Typ)));
       Nb_Prim := UI_To_Int (DT_Entry_Count (First_Tag_Component (Typ)));
@@ -4654,7 +4654,7 @@ package body Exp_Disp is
           Object_Definition   => New_Reference_To (Standard_String, Loc),
           Expression =>
             Make_String_Literal (Loc,
-              Full_Qualified_Name (First_Subtype (Typ)))));
+              Fully_Qualified_Name_String (First_Subtype (Typ)))));
 
       Set_Is_Statically_Allocated (Exname);
       Set_Is_True_Constant (Exname);
@@ -4679,6 +4679,7 @@ package body Exp_Disp is
       --            External_Tag       => Cstring_Ptr!(Exname'Address))
       --            HT_Link            => HT_Link'Address,
       --            Transportable      => <<boolean-value>>,
+      --            Type_Is_Abstract   => <<boolean-value>>,
       --            RC_Offset          => <<integer-value>>,
       --            [ Size_Func         => Size_Prim'Access ]
       --            [ Interfaces_Table  => <<access-value>> ]
@@ -4767,7 +4768,7 @@ package body Exp_Disp is
                               New_External_Name (Tname, 'A'));
 
             Full_Name   : constant String_Id :=
-                            Full_Qualified_Name (First_Subtype (Typ));
+                            Fully_Qualified_Name_String (First_Subtype (Typ));
             Str1_Id     : String_Id;
             Str2_Id     : String_Id;
 
@@ -4944,6 +4945,22 @@ package body Exp_Disp is
          Append_To (TSD_Aggr_List,
             New_Occurrence_Of (Transportable, Loc));
       end;
+
+      --  Type_Is_Abstract (Ada 2012: AI05-0173). This functionality is
+      --  not available in the HIE runtime.
+
+      if RTE_Record_Component_Available (RE_Type_Is_Abstract) then
+         declare
+            Type_Is_Abstract : Entity_Id;
+
+         begin
+            Type_Is_Abstract :=
+              Boolean_Literals (Is_Abstract_Type (Typ));
+
+            Append_To (TSD_Aggr_List,
+               New_Occurrence_Of (Type_Is_Abstract, Loc));
+         end;
+      end if;
 
       --  RC_Offset: These are the valid values and their meaning:
 
@@ -5598,9 +5615,7 @@ package body Exp_Disp is
          if Nb_Prim = 0 then
             Append_To (Prim_Ops_Aggr_List, Make_Null (Loc));
 
-         elsif not Static_Dispatch_Tables
-           or else not Is_Library_Level_Tagged_Type (Typ)
-         then
+         elsif not Building_Static_DT (Typ) then
             for J in 1 .. Nb_Prim loop
                Append_To (Prim_Ops_Aggr_List, Make_Null (Loc));
             end loop;
@@ -5752,9 +5767,7 @@ package body Exp_Disp is
       --  because the whole dispatch table (including inherited primitives) has
       --  been already built.
 
-      if Static_Dispatch_Tables
-        and then Is_Library_Level_Tagged_Type (Typ)
-      then
+      if Building_Static_DT (Typ) then
          null;
 
       --  If the ancestor is a CPP_Class type we inherit the dispatch tables

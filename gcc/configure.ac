@@ -1609,7 +1609,7 @@ tmake_file="${tmake_file_}"
 out_object_file=`basename $out_file .c`.o
 
 tm_file_list="options.h"
-tm_include_list="options.h insn-constants.h"
+tm_include_list="flags.h insn-constants.h"
 for f in $tm_file; do
   case $f in
     ./* )
@@ -1810,6 +1810,10 @@ case $use_collect2 in
     esac
     ;;
 esac
+
+AC_DEFINE_UNQUOTED(LTOPLUGINSONAME,"${host_lto_plugin_soname}",
+[Define to the name of the LTO plugin DSO that must be
+  passed to the linker's -plugin=LIB option.])
 
 # ---------------------------
 # Assembler & linker features
@@ -3015,7 +3019,7 @@ case "$target" in
 	  min_tls_ld_vers_minor=343
           ;;
       esac
-      if test "$ls_vers_major" -gt 1 || \
+      if test "$ld_vers_major" -gt 1 || \
         test "$ld_vers_minor" -ge "$min_tls_ld_vers_minor"; then
  	ld_tls_support=yes
       else

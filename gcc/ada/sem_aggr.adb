@@ -1795,6 +1795,19 @@ package body Sem_Aggr is
                      Expander_Mode_Save_And_Set (False);
                      Full_Analysis := False;
                      Analyze (Expr);
+
+                     --  If the expression is a literal, propagate this info
+                     --  to the expression in the association, to enable some
+                     --  optimizations downstream.
+
+                     if Is_Entity_Name (Expr)
+                       and then Present (Entity (Expr))
+                       and then Ekind (Entity (Expr)) = E_Enumeration_Literal
+                     then
+                        Analyze_And_Resolve
+                          (Expression (Assoc), Component_Typ);
+                     end if;
+
                      Full_Analysis := Save_Analysis;
                      Expander_Mode_Restore;
 
@@ -3557,8 +3570,7 @@ package body Sem_Aggr is
 
                         procedure Propagate_Discriminants
                           (Aggr       : Node_Id;
-                           Assoc_List : List_Id;
-                           Comp       : Entity_Id);
+                           Assoc_List : List_Id);
                         --  Nested components may themselves be discriminated
                         --  types constrained by outer discriminants, whose
                         --  values must be captured before the aggregate is
@@ -3640,42 +3652,94 @@ package body Sem_Aggr is
 
                         procedure Propagate_Discriminants
                           (Aggr       : Node_Id;
-                           Assoc_List : List_Id;
-                           Comp       : Entity_Id)
+                           Assoc_List : List_Id)
                         is
-                           Inner_Comp : Entity_Id;
-                           Comp_Type  : Entity_Id;
+                           Aggr_Type : constant Entity_Id :=
+                                         Base_Type (Etype (Aggr));
+                           Def_Node  : constant Node_Id :=
+                                         Type_Definition
+                                           (Declaration_Node (Aggr_Type));
+
+                           Comp       : Node_Id;
+                           Comp_Elmt  : Elmt_Id;
+                           Components : constant Elist_Id := New_Elmt_List;
                            Needs_Box  : Boolean := False;
-                           New_Aggr   : Node_Id;
+                           Errors     : Boolean;
 
-                        begin
-                           Inner_Comp := First_Component (Etype (Comp));
-                           while Present (Inner_Comp) loop
-                              Comp_Type := Etype (Inner_Comp);
+                           procedure Process_Component (Comp : Entity_Id);
+                           --  Add one component with a box association to the
+                           --  inner aggregate, and recurse if component is
+                           --  itself composite.
 
-                              if Is_Record_Type (Comp_Type)
-                                and then Has_Discriminants (Comp_Type)
+                           ------------------------
+                           --  Process_Component --
+                           ------------------------
+
+                           procedure Process_Component (Comp : Entity_Id) is
+                              T : constant Entity_Id := Etype (Comp);
+                              New_Aggr   : Node_Id;
+
+                           begin
+                              if Is_Record_Type (T)
+                                and then Has_Discriminants (T)
                               then
                                  New_Aggr :=
                                    Make_Aggregate (Loc, New_List, New_List);
-                                 Set_Etype (New_Aggr, Comp_Type);
+                                 Set_Etype (New_Aggr, T);
                                  Add_Association
-                                   (Inner_Comp, New_Aggr,
-                                    Component_Associations (Aggr));
+                                   (Comp, New_Aggr,
+                                     Component_Associations (Aggr));
 
                                  --  Collect discriminant values and recurse
 
                                  Add_Discriminant_Values
                                    (New_Aggr, Assoc_List);
                                  Propagate_Discriminants
-                                   (New_Aggr, Assoc_List, Inner_Comp);
+                                   (New_Aggr, Assoc_List);
 
                               else
                                  Needs_Box := True;
                               end if;
+                           end Process_Component;
 
-                              Next_Component (Inner_Comp);
-                           end loop;
+                        begin
+                           --  The component type may be a variant type, so
+                           --  collect the components that are ruled by the
+                           --  known values of the discriminants.
+
+                           if Nkind (Def_Node) =  N_Record_Definition
+                             and then
+                               Present (Component_List (Def_Node))
+                             and then
+                               Present
+                                 (Variant_Part (Component_List (Def_Node)))
+                           then
+                              Gather_Components (Aggr_Type,
+                                Component_List (Def_Node),
+                                Governed_By   => Assoc_List,
+                                Into          => Components,
+                                Report_Errors => Errors);
+
+                              Comp_Elmt := First_Elmt (Components);
+                              while Present (Comp_Elmt) loop
+                                 if
+                                   Ekind (Node (Comp_Elmt)) /= E_Discriminant
+                                 then
+                                    Process_Component (Node (Comp_Elmt));
+                                 end if;
+
+                                 Next_Elmt (Comp_Elmt);
+                              end loop;
+
+                           --  No variant part, iterate over all components
+
+                           else
+                              Comp := First_Component (Etype (Aggr));
+                              while Present (Comp) loop
+                                 Process_Component (Comp);
+                                 Next_Component (Comp);
+                              end loop;
+                           end if;
 
                            if Needs_Box then
                               Append
@@ -3688,26 +3752,28 @@ package body Sem_Aggr is
                            end if;
                         end Propagate_Discriminants;
 
+                     --  Start of processing for Capture_Discriminants
+
                      begin
                         Expr := Make_Aggregate (Loc, New_List, New_List);
                         Set_Etype (Expr, Ctyp);
 
-                        --  If the enclosing type has discriminants, they
-                        --  have been collected in the aggregate earlier, and
-                        --  they may appear as constraints of subcomponents.
+                        --  If the enclosing type has discriminants, they have
+                        --  been collected in the aggregate earlier, and they
+                        --  may appear as constraints of subcomponents.
+
                         --  Similarly if this component has discriminants, they
                         --  might in turn be propagated to their components.
 
                         if Has_Discriminants (Typ) then
                            Add_Discriminant_Values (Expr, New_Assoc_List);
-                           Propagate_Discriminants
-                              (Expr, New_Assoc_List, Component);
+                           Propagate_Discriminants (Expr, New_Assoc_List);
 
                         elsif Has_Discriminants (Ctyp) then
                            Add_Discriminant_Values
-                              (Expr,  Component_Associations (Expr));
+                              (Expr, Component_Associations (Expr));
                            Propagate_Discriminants
-                              (Expr, Component_Associations (Expr), Component);
+                              (Expr, Component_Associations (Expr));
 
                         else
                            declare
@@ -3890,8 +3956,23 @@ package body Sem_Aggr is
                elsif No (Typech) then
                   Typech := Base_Type (Etype (Component));
 
+               --  AI05-0199: In Ada 2012, several components of anonymous
+               --  access types can appear in a choice list, as long as the
+               --  designated types match.
+
                elsif Typech /= Base_Type (Etype (Component)) then
-                  if not Box_Present (Parent (Selectr)) then
+                  if Ada_Version >= Ada_12
+                    and then Ekind (Typech) = E_Anonymous_Access_Type
+                    and then
+                       Ekind (Etype (Component)) = E_Anonymous_Access_Type
+                    and then Base_Type (Designated_Type (Typech)) =
+                             Base_Type (Designated_Type (Etype (Component)))
+                    and then
+                      Subtypes_Statically_Match (Typech, (Etype (Component)))
+                  then
+                     null;
+
+                  elsif not Box_Present (Parent (Selectr)) then
                      Error_Msg_N
                        ("components in choice list must have same type",
                         Selectr);

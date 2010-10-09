@@ -3466,6 +3466,7 @@ package body Sem_Ch3 is
       Set_Treat_As_Volatile (Id, Treat_As_Volatile (T));
       Set_Is_Atomic         (Id, Is_Atomic         (T));
       Set_Is_Ada_2005_Only  (Id, Is_Ada_2005_Only  (T));
+      Set_Is_Ada_2012_Only  (Id, Is_Ada_2012_Only  (T));
       Set_Convention        (Id, Convention        (T));
 
       --  In the case where there is no constraint given in the subtype
@@ -8374,6 +8375,155 @@ package body Sem_Ch3 is
       Subp       : Entity_Id;
       Type_Def   : Node_Id;
 
+      procedure Check_Pragma_Implemented (Subp : Entity_Id);
+      --  Ada 2012 (AI05-0030): Subprogram Subp overrides an interface routine
+      --  which has pragma Implemented already set. Check whether Subp's entity
+      --  kind conforms to the implementation kind of the overridden routine.
+
+      procedure Check_Pragma_Implemented
+        (Subp       : Entity_Id;
+         Iface_Subp : Entity_Id);
+      --  Ada 2012 (AI05-0030): Subprogram Subp overrides interface routine
+      --  Iface_Subp and both entities have pragma Implemented already set on
+      --  them. Check whether the two implementation kinds are conforming.
+
+      procedure Inherit_Pragma_Implemented
+        (Subp       : Entity_Id;
+         Iface_Subp : Entity_Id);
+      --  Ada 2012 (AI05-0030): Interface primitive Subp overrides interface
+      --  subprogram Iface_Subp which has been marked by pragma Implemented.
+      --  Propagate the implementation kind of Iface_Subp to Subp.
+
+      ------------------------------
+      -- Check_Pragma_Implemented --
+      ------------------------------
+
+      procedure Check_Pragma_Implemented (Subp : Entity_Id) is
+         Iface_Alias : constant Entity_Id := Interface_Alias (Subp);
+         Impl_Kind   : constant Name_Id   := Implementation_Kind (Iface_Alias);
+         Contr_Typ   : Entity_Id;
+
+      begin
+         --  Subp must have an alias since it is a hidden entity used to link
+         --  an interface subprogram to its overriding counterpart.
+
+         pragma Assert (Present (Alias (Subp)));
+
+         --  Extract the type of the controlling formal
+
+         Contr_Typ := Etype (First_Formal (Alias (Subp)));
+
+         if Is_Concurrent_Record_Type (Contr_Typ) then
+            Contr_Typ := Corresponding_Concurrent_Type (Contr_Typ);
+         end if;
+
+         --  An interface subprogram whose implementation kind is By_Entry must
+         --  be implemented by an entry.
+
+         if Impl_Kind = Name_By_Entry
+           and then Ekind (Wrapped_Entity (Alias (Subp))) /= E_Entry
+         then
+            Error_Msg_Node_2 := Iface_Alias;
+            Error_Msg_NE
+              ("type & must implement abstract subprogram & with an entry",
+               Alias (Subp), Contr_Typ);
+
+         elsif Impl_Kind = Name_By_Protected_Procedure then
+
+            --  An interface subprogram whose implementation kind is By_
+            --  Protected_Procedure cannot be implemented by a primitive
+            --  procedure of a task type.
+
+            if Ekind (Contr_Typ) /= E_Protected_Type then
+               Error_Msg_Node_2 := Contr_Typ;
+               Error_Msg_NE
+                 ("interface subprogram & cannot be implemented by a " &
+                  "primitive procedure of task type &", Alias (Subp),
+                  Iface_Alias);
+
+            --  An interface subprogram whose implementation kind is By_
+            --  Protected_Procedure must be implemented by a procedure.
+
+            elsif Is_Primitive_Wrapper (Alias (Subp))
+              and then Ekind (Wrapped_Entity (Alias (Subp))) /= E_Procedure
+            then
+               Error_Msg_Node_2 := Iface_Alias;
+               Error_Msg_NE
+                 ("type & must implement abstract subprogram & with a " &
+                  "procedure", Alias (Subp), Contr_Typ);
+            end if;
+         end if;
+      end Check_Pragma_Implemented;
+
+      ------------------------------
+      -- Check_Pragma_Implemented --
+      ------------------------------
+
+      procedure Check_Pragma_Implemented
+        (Subp       : Entity_Id;
+         Iface_Subp : Entity_Id)
+      is
+         Iface_Kind : constant Name_Id := Implementation_Kind (Iface_Subp);
+         Subp_Kind  : constant Name_Id := Implementation_Kind (Subp);
+
+      begin
+         --  Ada 2012 (AI05-0030): The implementation kinds of an overridden
+         --  and overriding subprogram are different. In general this is an
+         --  error except when the implementation kind of the overridden
+         --  subprograms is By_Any.
+
+         if Iface_Kind /= Subp_Kind
+           and then Iface_Kind /= Name_By_Any
+         then
+            if Iface_Kind = Name_By_Entry then
+               Error_Msg_N
+                 ("incompatible implementation kind, overridden subprogram " &
+                  "is marked By_Entry", Subp);
+            else
+               Error_Msg_N
+                 ("incompatible implementation kind, overridden subprogram " &
+                  "is marked By_Protected_Procedure", Subp);
+            end if;
+         end if;
+      end Check_Pragma_Implemented;
+
+      --------------------------------
+      -- Inherit_Pragma_Implemented --
+      --------------------------------
+
+      procedure Inherit_Pragma_Implemented
+        (Subp       : Entity_Id;
+         Iface_Subp : Entity_Id)
+      is
+         Iface_Kind : constant Name_Id    := Implementation_Kind (Iface_Subp);
+         Loc        : constant Source_Ptr := Sloc (Subp);
+         Impl_Prag  : Node_Id;
+
+      begin
+         --  Since the implementation kind is stored as a representation item
+         --  rather than a flag, create a pragma node.
+
+         Impl_Prag :=
+           Make_Pragma (Loc,
+             Chars => Name_Implemented,
+             Pragma_Argument_Associations => New_List (
+               Make_Pragma_Argument_Association (Loc,
+                 Expression =>
+                   New_Reference_To (Subp, Loc)),
+
+               Make_Pragma_Argument_Association (Loc,
+                 Expression =>
+                   Make_Identifier (Loc, Iface_Kind))));
+
+         --  The pragma doesn't need to be analyzed because it is internaly
+         --  build. It is safe to directly register it as a rep item since we
+         --  are only interested in the characters of the implementation kind.
+
+         Record_Rep_Item (Subp, Impl_Prag);
+      end Inherit_Pragma_Implemented;
+
+   --  Start of processing for Check_Abstract_Overriding
+
    begin
       Op_List := Primitive_Operations (T);
 
@@ -8583,33 +8733,48 @@ package body Sem_Ch3 is
             end if;
          end if;
 
-         --  Ada 2005 (AI05-0030): Inspect hidden subprograms which provide
-         --  the mapping between interface and implementing type primitives.
-         --  If the interface alias is marked as Implemented_By_Entry, the
-         --  alias must be an entry wrapper.
+         --  Ada 2012 (AI05-0030): Perform some checks related to pragma
+         --  Implemented
 
-         if Ada_Version >= Ada_05
+         --  Subp is an expander-generated procedure which maps an interface
+         --  alias to a protected wrapper. The interface alias is flagged by
+         --  pragma Implemented. Ensure that Subp is a procedure when the
+         --  implementation kind is By_Protected_Procedure or an entry when
+         --  By_Entry.
+
+         if Ada_Version >= Ada_2012
            and then Is_Hidden (Subp)
            and then Present (Interface_Alias (Subp))
-           and then Implemented_By_Entry (Interface_Alias (Subp))
-           and then Present (Alias_Subp)
-           and then
-             (not Is_Primitive_Wrapper (Alias_Subp)
-                or else Ekind (Wrapped_Entity (Alias_Subp)) /= E_Entry)
+           and then Has_Rep_Pragma (Interface_Alias (Subp), Name_Implemented)
          then
-            declare
-               Error_Ent : Entity_Id := T;
+            Check_Pragma_Implemented (Subp);
+         end if;
 
-            begin
-               if Is_Concurrent_Record_Type (Error_Ent) then
-                  Error_Ent := Corresponding_Concurrent_Type (Error_Ent);
-               end if;
+         --  Subp is an interface primitive which overrides another interface
+         --  primitive marked with pragma Implemented.
 
-               Error_Msg_Node_2 := Interface_Alias (Subp);
-               Error_Msg_NE
-                 ("type & must implement abstract subprogram & with an entry",
-                  Error_Ent, Error_Ent);
-            end;
+         if Ada_Version >= Ada_2012
+           and then Is_Overriding_Operation (Subp)
+           and then Present (Overridden_Operation (Subp))
+           and then Has_Rep_Pragma
+                      (Overridden_Operation (Subp), Name_Implemented)
+         then
+            --  If the overriding routine is also marked by Implemented, check
+            --  that the two implementation kinds are conforming.
+
+            if Has_Rep_Pragma (Subp, Name_Implemented) then
+               Check_Pragma_Implemented
+                 (Subp       => Subp,
+                  Iface_Subp => Overridden_Operation (Subp));
+
+            --  Otherwise the overriding routine inherits the implementation
+            --  kind from the overridden subprogram.
+
+            else
+               Inherit_Pragma_Implemented
+                 (Subp       => Subp,
+                  Iface_Subp => Overridden_Operation (Subp));
+            end if;
          end if;
 
          Next_Elmt (Elmt);
@@ -8629,12 +8794,11 @@ package body Sem_Ch3 is
       --  only in the declaration for a task or protected type, or for a type
       --  with the reserved word 'limited' in its definition or in one of its
       --  ancestors. (RM 3.7(10))
+      --  AI-0063 : the proper condition is that type must be immutably
+      --  limited.
 
       if Nkind (Discriminant_Type (D)) = N_Access_Definition
-        and then not Is_Concurrent_Type (Current_Scope)
-        and then not Is_Concurrent_Record_Type (Current_Scope)
-        and then not Is_Limited_Record (Current_Scope)
-        and then Ekind (Current_Scope) /= E_Limited_Private_Type
+        and then not Is_Immutably_Limited_Type (Current_Scope)
       then
          Error_Msg_N
            ("access discriminants allowed only for limited types", Loc);
@@ -12436,6 +12600,9 @@ package body Sem_Ch3 is
       if Ekind (Parent_Subp) = E_Procedure then
          Set_Is_Valued_Procedure
            (New_Subp, Is_Valued_Procedure (Parent_Subp));
+      else
+         Set_Has_Controlling_Result
+           (New_Subp, Has_Controlling_Result (Parent_Subp));
       end if;
 
       --  No_Return must be inherited properly. If this is overridden in the
@@ -12486,6 +12653,15 @@ package body Sem_Ch3 is
                    or else (Is_Tagged_Type (Derived_Type)
                              and then Etype (New_Subp) = Derived_Type
                              and then No (Actual_Subp)))
+      then
+         Set_Is_Abstract_Subprogram (New_Subp);
+
+      --  AI05-0097 : an inherited operation that dispatches on result is
+      --  abstract if the derived type is abstract, even if the parent type
+      --  is concrete and the derived type is a null extension.
+
+      elsif Has_Controlling_Result (Alias (New_Subp))
+        and then Is_Abstract_Type (Etype (New_Subp))
       then
          Set_Is_Abstract_Subprogram (New_Subp);
 
@@ -13561,9 +13737,23 @@ package body Sem_Ch3 is
              (not Is_Interface (Parent_Type)
                or else not Is_Limited_Interface (Parent_Type))
          then
-            Error_Msg_NE
-              ("parent type& of limited type must be limited",
-               N, Parent_Type);
+            --  AI05-0096: a derivation in the private part of an instance is
+            --  legal if the generic formal is untagged limited, and the actual
+            --  is non-limited.
+
+            if Is_Generic_Actual_Type (Parent_Type)
+              and then In_Private_Part (Current_Scope)
+              and then
+                not Is_Tagged_Type
+                      (Generic_Parent_Type (Parent (Parent_Type)))
+            then
+               null;
+
+            else
+               Error_Msg_NE
+                 ("parent type& of limited type must be limited",
+                  N, Parent_Type);
+            end if;
          end if;
       end if;
    end Derived_Type_Declaration;

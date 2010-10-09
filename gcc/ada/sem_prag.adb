@@ -37,6 +37,7 @@ with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
 with Errout;   use Errout;
+with Exp_Ch7;  use Exp_Ch7;
 with Exp_Dist; use Exp_Dist;
 with Lib;      use Lib;
 with Lib.Writ; use Lib.Writ;
@@ -309,7 +310,12 @@ package body Sem_Prag is
       procedure Ada_2005_Pragma;
       --  Called for pragmas defined in Ada 2005, that are not in Ada 95. In
       --  Ada 95 mode, these are implementation defined pragmas, so should be
-      --  caught by the No_Implementation_Pragmas restriction
+      --  caught by the No_Implementation_Pragmas restriction.
+
+      procedure Ada_2012_Pragma;
+      --  Called for pragmas defined in Ada 2012, that are not in Ada 95 or 05.
+      --  In Ada 95 or 05 mode, these are implementation defined pragmas, so
+      --  should be caught by the No_Implementation_Pragmas restriction.
 
       procedure Check_Ada_83_Warning;
       --  Issues a warning message for the current pragma if operating in Ada
@@ -392,9 +398,19 @@ package body Sem_Prag is
       procedure Check_At_Most_N_Arguments (N : Nat);
       --  Check there are no more than N arguments present
 
-      procedure Check_Component (Comp : Node_Id);
-      --  Examine Unchecked_Union component for correct use of per-object
+      procedure Check_Component
+        (Comp            : Node_Id;
+         UU_Typ          : Entity_Id;
+         In_Variant_Part : Boolean := False);
+      --  Examine an Unchecked_Union component for correct use of per-object
       --  constrained subtypes, and for restrictions on finalizable components.
+      --  UU_Typ is the related Unchecked_Union type. Flag In_Variant_Part
+      --  should be set when Comp comes from a record variant.
+
+      procedure Check_Duplicate_Pragma (E : Entity_Id);
+      --  Check if a pragma of the same name as the current pragma is already
+      --  chained as a rep pragma to the given entity. if so give a message
+      --  about the duplicate, using Error_Pragma so the call does not return.
 
       procedure Check_Duplicated_Export_Name (Nam : Node_Id);
       --  Nam is an N_String_Literal node containing the external name set by
@@ -483,9 +499,10 @@ package body Sem_Prag is
       --  and to library level instantiations), and they are simply ignored,
       --  which is implemented by rewriting them as null statements.
 
-      procedure Check_Variant (Variant : Node_Id);
-      --  Check Unchecked_Union variant for lack of nested variants and
-      --  presence of at least one component.
+      procedure Check_Variant (Variant : Node_Id; UU_Typ : Entity_Id);
+      --  Check an Unchecked_Union variant for lack of nested variants and
+      --  presence of at least one component. UU_Typ is the related Unchecked_
+      --  Union type.
 
       procedure Error_Pragma (Msg : String);
       pragma No_Return (Error_Pragma);
@@ -725,6 +742,17 @@ package body Sem_Prag is
             Check_Restriction (No_Implementation_Pragmas, N);
          end if;
       end Ada_2005_Pragma;
+
+      ---------------------
+      -- Ada_2012_Pragma --
+      ---------------------
+
+      procedure Ada_2012_Pragma is
+      begin
+         if Ada_Version <= Ada_05 then
+            Check_Restriction (No_Implementation_Pragmas, N);
+         end if;
+      end Ada_2012_Pragma;
 
       --------------------------
       -- Check_Ada_83_Warning --
@@ -1094,41 +1122,109 @@ package body Sem_Prag is
       -- Check_Component --
       ---------------------
 
-      procedure Check_Component (Comp : Node_Id) is
+      procedure Check_Component
+        (Comp            : Node_Id;
+         UU_Typ          : Entity_Id;
+         In_Variant_Part : Boolean := False)
+      is
+         Comp_Id : constant Entity_Id := Defining_Identifier (Comp);
+         Sindic  : constant Node_Id :=
+                     Subtype_Indication (Component_Definition (Comp));
+         Typ     : constant Entity_Id := Etype (Comp_Id);
+
+         function Inside_Generic_Body (Id : Entity_Id) return Boolean;
+         --  Determine whether entity Id appears inside a generic body
+
+         -------------------------
+         -- Inside_Generic_Body --
+         -------------------------
+
+         function Inside_Generic_Body (Id : Entity_Id) return Boolean is
+            S : Entity_Id := Id;
+
+         begin
+            while Present (S)
+              and then S /= Standard_Standard
+            loop
+               if Ekind (S) = E_Generic_Package
+                 and then In_Package_Body (S)
+               then
+                  return True;
+               end if;
+
+               S := Scope (S);
+            end loop;
+
+            return False;
+         end Inside_Generic_Body;
+
+      --  Start of processing for Check_Component
+
       begin
-         if Nkind (Comp) = N_Component_Declaration then
-            declare
-               Sindic : constant Node_Id :=
-                          Subtype_Indication (Component_Definition (Comp));
-               Typ    : constant Entity_Id :=
-                          Etype (Defining_Identifier (Comp));
-            begin
-               if Nkind (Sindic) = N_Subtype_Indication then
+         --  Ada 2005 (AI-216): If a component subtype is subject to a per-
+         --  object constraint, then the component type shall be an Unchecked_
+         --  Union.
 
-                  --  Ada 2005 (AI-216): If a component subtype is subject to
-                  --  a per-object constraint, then the component type shall
-                  --  be an Unchecked_Union.
+         if Nkind (Sindic) = N_Subtype_Indication
+           and then Has_Per_Object_Constraint (Comp_Id)
+           and then not Is_Unchecked_Union (Etype (Subtype_Mark (Sindic)))
+         then
+            Error_Msg_N
+              ("component subtype subject to per-object constraint " &
+               "must be an Unchecked_Union", Comp);
 
-                  if Has_Per_Object_Constraint (Defining_Identifier (Comp))
-                    and then
-                      not Is_Unchecked_Union (Etype (Subtype_Mark (Sindic)))
-                  then
-                     Error_Msg_N ("component subtype subject to per-object" &
-                       " constraint must be an Unchecked_Union", Comp);
-                  end if;
-               end if;
+         --  Ada 2012 (AI05-0026): For an unchecked union type declared within
+         --  the body of a generic unit, or within the body of any of its
+         --  descendant library units, no part of the type of a component
+         --  declared in a variant_part of the unchecked union type shall be of
+         --  a formal private type or formal private extension declared within
+         --  the formal part of the generic unit.
 
-               if Is_Controlled (Typ) then
-                  Error_Msg_N
-                   ("component of unchecked union cannot be controlled", Comp);
+         elsif Ada_Version >= Ada_2012
+           and then Inside_Generic_Body (UU_Typ)
+           and then In_Variant_Part
+           and then Is_Private_Type (Typ)
+           and then Is_Generic_Type (Typ)
+         then
+            Error_Msg_N
+              ("component of Unchecked_Union cannot be of generic type", Comp);
 
-               elsif Has_Task (Typ) then
-                  Error_Msg_N
-                   ("component of unchecked union cannot have tasks", Comp);
-               end if;
-            end;
+         elsif Needs_Finalization (Typ) then
+            Error_Msg_N
+              ("component of Unchecked_Union cannot be controlled", Comp);
+
+         elsif Has_Task (Typ) then
+            Error_Msg_N
+              ("component of Unchecked_Union cannot have tasks", Comp);
          end if;
       end Check_Component;
+
+      ----------------------------
+      -- Check_Duplicate_Pragma --
+      ----------------------------
+
+      procedure Check_Duplicate_Pragma (E : Entity_Id) is
+         P   : constant Node_Id := Get_Rep_Pragma (E, Pragma_Name (N));
+         Arg : Node_Id;
+
+      begin
+         if Present (P) then
+
+            --  Make sure pragma is for this entity, and not for some parent
+            --  entity in the case of a derived type.
+
+            Arg := Get_Pragma_Arg (First (Pragma_Argument_Associations (P)));
+
+            if Nkind (Arg) = N_Identifier
+              and then Entity (Arg) = E
+            then
+               Error_Msg_Name_1 := Pname;
+               Error_Msg_Sloc := Sloc (P);
+               Error_Msg_NE ("pragma% for & duplicates one#", N, E);
+               raise Pragma_Exit;
+            end if;
+         end if;
+      end Check_Duplicate_Pragma;
 
       ----------------------------------
       -- Check_Duplicated_Export_Name --
@@ -1240,6 +1336,18 @@ package body Sem_Prag is
          then
             Error_Pragma_Arg
               ("argument for pragma% must be library level entity", Arg1);
+         end if;
+
+         --  AI05-0033 : pragma cannot appear within a generic body, because
+         --  instance can be in a nested scope. The check that protected type
+         --  is itself a library-level declaration is done elsewhere.
+
+         if Inside_A_Generic then
+            if Ekind (Scope (Current_Scope)) = E_Generic_Package
+               and then In_Package_Body (Scope (Current_Scope))
+            then
+               Error_Pragma ("pragma% cannot be used inside a generic");
+            end if;
          end if;
       end Check_Interrupt_Or_Attach_Handler;
 
@@ -1698,7 +1806,7 @@ package body Sem_Prag is
       -- Check_Variant --
       -------------------
 
-      procedure Check_Variant (Variant : Node_Id) is
+      procedure Check_Variant (Variant : Node_Id; UU_Typ : Entity_Id) is
          Clist : constant Node_Id := Component_List (Variant);
          Comp  : Node_Id;
 
@@ -1712,7 +1820,7 @@ package body Sem_Prag is
 
          Comp := First (Component_Items (Clist));
          while Present (Comp) loop
-            Check_Component (Comp);
+            Check_Component (Comp, UU_Typ, In_Variant_Part => True);
             Next (Comp);
          end loop;
       end Check_Variant;
@@ -2152,6 +2260,12 @@ package body Sem_Prag is
          D := Declaration_Node (E);
          K := Nkind (D);
 
+         --  Check duplicate before we chain ourselves!
+
+         Check_Duplicate_Pragma (E);
+
+         --  Now check appropriateness of the entity
+
          if Is_Type (E) then
             if Rep_Item_Too_Early (E, N)
                  or else
@@ -2314,7 +2428,7 @@ package body Sem_Prag is
                      --  need to force visibility for client (error will be
                      --  output in any case, and this is the situation in which
                      --  we do not want a client to get a warning, since the
-                     --  warning is in the body or the spec private part.
+                     --  warning is in the body or the spec private part).
 
                      else
                         if Cont = False then
@@ -5344,7 +5458,7 @@ package body Sem_Prag is
          --  pragma Ada_2005;
          --  pragma Ada_2005 (LOCAL_NAME):
 
-         --  Note: these pragma also have some specific processing in Par.Prag
+         --  Note: these pragmas also have some specific processing in Par.Prag
          --  because we want to set the Ada 2005 version mode during parsing.
 
          when Pragma_Ada_05 | Pragma_Ada_2005 => declare
@@ -5386,27 +5500,48 @@ package body Sem_Prag is
          ---------------------
 
          --  pragma Ada_12;
-         --  pragma Ada_2012;
+         --  pragma Ada_12 (LOCAL_NAME);
 
-         --  Note: these pragma also have some specific processing in Par.Prag
+         --  pragma Ada_2012;
+         --  pragma Ada_2012 (LOCAL_NAME):
+
+         --  Note: these pragmas also have some specific processing in Par.Prag
          --  because we want to set the Ada 2012 version mode during parsing.
 
-         when Pragma_Ada_12 | Pragma_Ada_2012 =>
+         when Pragma_Ada_12 | Pragma_Ada_2012 => declare
+            E_Id : Node_Id;
+
+         begin
             GNAT_Pragma;
-            Check_Arg_Count (0);
 
-            --  For Ada_2012 we unconditionally enforce the documented
-            --  configuration pragma placement, since we do not want to
-            --  tolerate mixed modes in a unit involving Ada 2012. That would
-            --  cause real difficulties for those cases where there are
-            --  incompatibilities between Ada 95 and Ada 2005/Ada 2012.
+            if Arg_Count = 1 then
+               Check_Arg_Is_Local_Name (Arg1);
+               E_Id := Expression (Arg1);
 
-            Check_Valid_Configuration_Pragma;
+               if Etype (E_Id) = Any_Type then
+                  return;
+               end if;
 
-            --  Now set Ada 2012 mode
+               Set_Is_Ada_2012_Only (Entity (E_Id));
 
-            Ada_Version := Ada_12;
-            Ada_Version_Explicit := Ada_12;
+            else
+               Check_Arg_Count (0);
+
+               --  For Ada_2012 we unconditionally enforce the documented
+               --  configuration pragma placement, since we do not want to
+               --  tolerate mixed modes in a unit involving Ada 2012. That
+               --  would cause real difficulties for those cases where there
+               --  are incompatibilities between Ada 95 and Ada 2012. We could
+               --  allow mixing of Ada 2005 and Ada 2012 but it's not worth it.
+
+               Check_Valid_Configuration_Pragma;
+
+               --  Now set Ada 2012 mode
+
+               Ada_Version := Ada_12;
+               Ada_Version_Explicit := Ada_12;
+            end if;
+         end;
 
          ----------------------
          -- All_Calls_Remote --
@@ -5857,6 +5992,8 @@ package body Sem_Prag is
 
             E := Entity (E_Id);
 
+            Check_Duplicate_Pragma (E);
+
             if Rep_Item_Too_Early (E, N)
                  or else
                Rep_Item_Too_Late (E, N)
@@ -5884,14 +6021,6 @@ package body Sem_Prag is
 
                if Prag_Id = Pragma_Atomic_Components then
                   Set_Has_Atomic_Components (E);
-
-                  if Is_Packed (E) then
-                     Set_Is_Packed (E, False);
-
-                     Error_Pragma_Arg
-                       ("?Pack canceled, cannot pack atomic components",
-                        Arg1);
-                  end if;
                end if;
 
             else
@@ -7899,49 +8028,105 @@ package body Sem_Prag is
             end;
          end Ident;
 
-         --------------------------
-         -- Implemented_By_Entry --
-         --------------------------
+         -----------------
+         -- Implemented --
+         -----------------
 
-         --  pragma Implemented_By_Entry (DIRECT_NAME);
+         --  pragma Implemented (procedure_LOCAL_NAME, implementation_kind);
+         --  implementation_kind ::= By_Entry | By_Protected_Procedure | By_Any
 
-         when Pragma_Implemented_By_Entry => Implemented_By_Entry : declare
-            Ent : Entity_Id;
+         when Pragma_Implemented => Implemented : declare
+            Proc_Id : Entity_Id;
+            Typ     : Entity_Id;
 
          begin
-            Ada_2005_Pragma;
-            Check_Arg_Count (1);
+            Ada_2012_Pragma;
+            Check_Arg_Count (2);
             Check_No_Identifiers;
             Check_Arg_Is_Identifier (Arg1);
             Check_Arg_Is_Local_Name (Arg1);
-            Ent := Entity (Expression (Arg1));
+            Check_Arg_Is_One_Of
+              (Arg2, Name_By_Any, Name_By_Entry, Name_By_Protected_Procedure);
 
-            --  Pragma Implemented_By_Entry must be applied only to protected
-            --  synchronized or task interface primitives.
+            --  Extract the name of the local procedure
 
-            if (Ekind (Ent) /= E_Function
-                  and then Ekind (Ent) /= E_Procedure)
-               or else not Present (First_Formal (Ent))
-               or else not Is_Concurrent_Interface (Etype (First_Formal (Ent)))
+            Proc_Id := Entity (Expression (Arg1));
+
+            --  Ada 2012 (AI05-0030): The procedure_LOCAL_NAME must denote a
+            --  primitive procedure of a synchronized tagged type.
+
+            if Ekind (Proc_Id) = E_Procedure
+              and then Is_Primitive (Proc_Id)
+              and then Present (First_Formal (Proc_Id))
             then
-               Error_Pragma_Arg
-                 ("pragma % must be applied to a concurrent interface " &
-                  "primitive", Arg1);
+               Typ := Etype (First_Formal (Proc_Id));
+
+               if Is_Tagged_Type (Typ)
+                 and then
+
+                  --  Check for a protected, a synchronized or a task interface
+
+                   ((Is_Interface (Typ)
+                       and then Is_Synchronized_Interface (Typ))
+
+                  --  Check for a protected type or a task type that implements
+                  --  an interface.
+
+                   or else
+                    (Is_Concurrent_Record_Type (Typ)
+                       and then Present (Interfaces (Typ)))
+
+                  --  Check for a private record extension with keyword
+                  --  "synchronized".
+
+                   or else
+                    (Ekind_In (Typ, E_Record_Type_With_Private,
+                                    E_Record_Subtype_With_Private)
+                       and then Synchronized_Present (Parent (Typ))))
+               then
+                  null;
+               else
+                  Error_Pragma_Arg
+                    ("controlling formal must be of synchronized " &
+                     "tagged type", Arg1);
+                  return;
+               end if;
+
+            --  Procedures declared inside a protected type must be accepted
+
+            elsif Ekind (Proc_Id) = E_Procedure
+              and then Is_Protected_Type (Scope (Proc_Id))
+            then
+               null;
+
+            --  The first argument is not a primitive procedure
 
             else
-               if Einfo.Implemented_By_Entry (Ent)
-                 and then Warn_On_Redundant_Constructs
-               then
-                  Error_Pragma ("?duplicate pragma%!");
-               else
-                  Set_Implemented_By_Entry (Ent);
-               end if;
+               Error_Pragma_Arg
+                 ("pragma % must be applied to a primitive procedure", Arg1);
+               return;
             end if;
-         end Implemented_By_Entry;
 
-         -----------------------
+            --  Ada 2012 (AI05-0030): Cannot apply the implementation_kind
+            --  By_Protected_Procedure to the primitive procedure of a task
+            --  interface.
+
+            if Chars (Arg2) = Name_By_Protected_Procedure
+              and then Is_Interface (Typ)
+              and then Is_Task_Interface (Typ)
+            then
+               Error_Pragma_Arg
+                 ("implementation kind By_Protected_Procedure cannot be " &
+                  "applied to a task interface primitive", Arg2);
+               return;
+            end if;
+
+            Record_Rep_Item (Proc_Id, N);
+         end Implemented;
+
+         ----------------------
          -- Implicit_Packing --
-         -----------------------
+         ----------------------
 
          --  pragma Implicit_Packing;
 
@@ -8244,6 +8429,125 @@ package body Sem_Prag is
               Arg_Mechanism                => Mechanism,
               Arg_First_Optional_Parameter => First_Optional_Parameter);
          end Import_Valued_Procedure;
+
+         -----------------
+         -- Independent --
+         -----------------
+
+         --  pragma Independent (LOCAL_NAME);
+
+         when Pragma_Independent => Independent : declare
+            E_Id : Node_Id;
+            E    : Entity_Id;
+            D    : Node_Id;
+            K    : Node_Kind;
+
+         begin
+            Check_Ada_83_Warning;
+            Ada_2012_Pragma;
+            Check_No_Identifiers;
+            Check_Arg_Count (1);
+            Check_Arg_Is_Local_Name (Arg1);
+            E_Id := Expression (Arg1);
+
+            if Etype (E_Id) = Any_Type then
+               return;
+            end if;
+
+            E := Entity (E_Id);
+            D := Declaration_Node (E);
+            K := Nkind (D);
+
+            --  Check duplicate before we chain ourselves!
+
+            Check_Duplicate_Pragma (E);
+
+            --  Check appropriate entity
+
+            if Is_Type (E) then
+               if Rep_Item_Too_Early (E, N)
+                    or else
+                  Rep_Item_Too_Late (E, N)
+               then
+                  return;
+               else
+                  Check_First_Subtype (Arg1);
+               end if;
+
+            elsif K = N_Object_Declaration
+              or else (K = N_Component_Declaration
+                       and then Original_Record_Component (E) = E)
+            then
+               if Rep_Item_Too_Late (E, N) then
+                  return;
+               end if;
+
+            else
+               Error_Pragma_Arg
+                 ("inappropriate entity for pragma%", Arg1);
+            end if;
+
+            Independence_Checks.Append ((N, E));
+         end Independent;
+
+         ----------------------------
+         -- Independent_Components --
+         ----------------------------
+
+         --  pragma Atomic_Components (array_LOCAL_NAME);
+
+         --  This processing is shared by Volatile_Components
+
+         when Pragma_Independent_Components => Independent_Components : declare
+            E_Id : Node_Id;
+            E    : Entity_Id;
+            D    : Node_Id;
+            K    : Node_Kind;
+
+         begin
+            Check_Ada_83_Warning;
+            Ada_2012_Pragma;
+            Check_No_Identifiers;
+            Check_Arg_Count (1);
+            Check_Arg_Is_Local_Name (Arg1);
+            E_Id := Expression (Arg1);
+
+            if Etype (E_Id) = Any_Type then
+               return;
+            end if;
+
+            E := Entity (E_Id);
+
+            --  Check duplicate before we chain ourselves!
+
+            Check_Duplicate_Pragma (E);
+
+            --  Check appropriate entity
+
+            if Rep_Item_Too_Early (E, N)
+                 or else
+               Rep_Item_Too_Late (E, N)
+            then
+               return;
+            end if;
+
+            D := Declaration_Node (E);
+            K := Nkind (D);
+
+            if (K = N_Full_Type_Declaration
+                 and then (Is_Array_Type (E) or else Is_Record_Type (E)))
+              or else
+                ((Ekind (E) = E_Constant or else Ekind (E) = E_Variable)
+                   and then Nkind (D) = N_Object_Declaration
+                   and then Nkind (Object_Definition (D)) =
+                                       N_Constrained_Array_Definition)
+            then
+               Independence_Checks.Append ((N, E));
+
+            else
+               Error_Pragma_Arg ("inappropriate entity for pragma%", Arg1);
+            end if;
+         end Independent_Components;
 
          ------------------------
          -- Initialize_Scalars --
@@ -8663,10 +8967,11 @@ package body Sem_Prag is
 
          when Pragma_CIL_Constructor | Pragma_Java_Constructor =>
          Java_Constructor : declare
-            Id         : Entity_Id;
-            Def_Id     : Entity_Id;
-            Hom_Id     : Entity_Id;
-            Convention : Convention_Id;
+            Convention  : Convention_Id;
+            Def_Id      : Entity_Id;
+            Hom_Id      : Entity_Id;
+            Id          : Entity_Id;
+            This_Formal : Entity_Id;
 
          begin
             GNAT_Pragma;
@@ -8683,6 +8988,22 @@ package body Sem_Prag is
                return;
             end if;
 
+            --  Check wrong use of pragma in wrong VM target
+
+            if VM_Target = No_VM then
+               return;
+
+            elsif VM_Target = CLI_Target
+              and then Prag_Id = Pragma_Java_Constructor
+            then
+               Error_Pragma ("must use pragma 'C'I'L_'Constructor");
+
+            elsif VM_Target = JVM_Target
+              and then Prag_Id = Pragma_CIL_Constructor
+            then
+               Error_Pragma ("must use pragma 'Java_'Constructor");
+            end if;
+
             case Prag_Id is
                when Pragma_CIL_Constructor  => Convention := Convention_CIL;
                when Pragma_Java_Constructor => Convention := Convention_Java;
@@ -8696,42 +9017,210 @@ package body Sem_Prag is
             loop
                Def_Id := Get_Base_Subprogram (Hom_Id);
 
-               --  The constructor is required to be a function returning an
-               --  access type whose designated type has convention Java/CIL.
+               --  The constructor is required to be a function
 
-               if Ekind (Def_Id) = E_Function
-                 and then
-                   (Is_Value_Type (Etype (Def_Id))
-                     or else
-                       (Ekind (Etype (Def_Id)) = E_Access_Subprogram_Type
-                         and then
-                          Atree.Convention (Etype (Def_Id)) = Convention)
-                     or else
-                       (Ekind (Etype (Def_Id)) in Access_Kind
-                         and then
-                          (Atree.Convention
-                             (Designated_Type (Etype (Def_Id))) = Convention
-                            or else
-                              Atree.Convention
-                               (Root_Type (Designated_Type (Etype (Def_Id)))) =
-                                                                 Convention)))
-               then
-                  Set_Is_Constructor (Def_Id);
-                  Set_Convention     (Def_Id, Convention);
-                  Set_Is_Imported    (Def_Id);
-
-               else
-                  if Convention = Convention_Java then
+               if Ekind (Def_Id) /= E_Function then
+                  if VM_Target = JVM_Target then
                      Error_Pragma_Arg
                        ("pragma% requires function returning a " &
-                        "'Java access type", Arg1);
+                        "'Java access type", Def_Id);
                   else
-                     pragma Assert (Convention = Convention_CIL);
                      Error_Pragma_Arg
                        ("pragma% requires function returning a " &
-                        "'C'I'L access type", Arg1);
+                        "'C'I'L access type", Def_Id);
                   end if;
                end if;
+
+               --  Check arguments: For tagged type the first formal must be
+               --  named "this" and its type must be a named access type
+               --  designating a class-wide tagged type that has convention
+               --  CIL/Java. The first formal must also have a null default
+               --  value. For example:
+
+               --      type Typ is tagged ...
+               --      type Ref is access all Typ;
+               --      pragma Convention (CIL, Typ);
+
+               --      function New_Typ (This : Ref) return Ref;
+               --      function New_Typ (This : Ref; I : Integer) return Ref;
+               --      pragma Cil_Constructor (New_Typ);
+
+               --  Reason: The first formal must NOT be a primitive of the
+               --  tagged type.
+
+               --  This rule also applies to constructors of delegates used
+               --  to interface with standard target libraries. For example:
+
+               --      type Delegate is access procedure ...
+               --      pragma Import (CIL, Delegate, ...);
+
+               --      function new_Delegate
+               --        (This : Delegate := null; ... ) return Delegate;
+
+               --  For value-types this rule does not apply.
+
+               if not Is_Value_Type (Etype (Def_Id)) then
+                  if No (First_Formal (Def_Id)) then
+                     Error_Msg_Name_1 := Pname;
+                     Error_Msg_N ("% function must have parameters", Def_Id);
+                     return;
+                  end if;
+
+                  --  In the JRE library we have several occurrences in which
+                  --  the "this" parameter is not the first formal.
+
+                  This_Formal := First_Formal (Def_Id);
+
+                  --  In the JRE library we have several occurrences in which
+                  --  the "this" parameter is not the first formal. Search for
+                  --  it.
+
+                  if VM_Target = JVM_Target then
+                     while Present (This_Formal)
+                       and then Get_Name_String (Chars (This_Formal)) /= "this"
+                     loop
+                        Next_Formal (This_Formal);
+                     end loop;
+
+                     if No (This_Formal) then
+                        This_Formal := First_Formal (Def_Id);
+                     end if;
+                  end if;
+
+                  --  Warning: The first parameter should be named "this".
+                  --  We temporarily allow it because we have the following
+                  --  case in the Java runtime (file s-osinte.ads) ???
+
+                  --    function new_Thread
+                  --      (Self_Id : System.Address) return Thread_Id;
+                  --    pragma Java_Constructor (new_Thread);
+
+                  if VM_Target = JVM_Target
+                    and then Get_Name_String (Chars (First_Formal (Def_Id)))
+                               = "self_id"
+                    and then Etype (First_Formal (Def_Id)) = RTE (RE_Address)
+                  then
+                     null;
+
+                  elsif Get_Name_String (Chars (This_Formal)) /= "this" then
+                     Error_Msg_Name_1 := Pname;
+                     Error_Msg_N
+                       ("first formal of % function must be named `this`",
+                        Parent (This_Formal));
+
+                  elsif not Is_Access_Type (Etype (This_Formal)) then
+                     Error_Msg_Name_1 := Pname;
+                     Error_Msg_N
+                       ("first formal of % function must be an access type",
+                        Parameter_Type (Parent (This_Formal)));
+
+                  --  For delegates the type of the first formal must be a
+                  --  named access-to-subprogram type (see previous example)
+
+                  elsif Ekind (Etype (Def_Id)) = E_Access_Subprogram_Type
+                    and then Ekind (Etype (This_Formal))
+                               /= E_Access_Subprogram_Type
+                  then
+                     Error_Msg_Name_1 := Pname;
+                     Error_Msg_N
+                       ("first formal of % function must be a named access" &
+                        " to subprogram type",
+                        Parameter_Type (Parent (This_Formal)));
+
+                  --  Warning: We should reject anonymous access types because
+                  --  the constructor must not be handled as a primitive of the
+                  --  tagged type. We temporarily allow it because this profile
+                  --  is currently generated by cil2ada???
+
+                  elsif Ekind (Etype (Def_Id)) /= E_Access_Subprogram_Type
+                    and then not Ekind_In (Etype (This_Formal),
+                                             E_Access_Type,
+                                             E_General_Access_Type,
+                                             E_Anonymous_Access_Type)
+                  then
+                     Error_Msg_Name_1 := Pname;
+                     Error_Msg_N
+                       ("first formal of % function must be a named access" &
+                        " type",
+                        Parameter_Type (Parent (This_Formal)));
+
+                  elsif Atree.Convention
+                         (Designated_Type (Etype (This_Formal))) /= Convention
+                  then
+                     Error_Msg_Name_1 := Pname;
+
+                     if Convention = Convention_Java then
+                        Error_Msg_N
+                          ("pragma% requires convention 'Cil in designated" &
+                           " type",
+                           Parameter_Type (Parent (This_Formal)));
+                     else
+                        Error_Msg_N
+                          ("pragma% requires convention 'Java in designated" &
+                           " type",
+                           Parameter_Type (Parent (This_Formal)));
+                     end if;
+
+                  elsif No (Expression (Parent (This_Formal)))
+                    or else Nkind (Expression (Parent (This_Formal))) /= N_Null
+                  then
+                     Error_Msg_Name_1 := Pname;
+                     Error_Msg_N
+                       ("pragma% requires first formal with default `null`",
+                        Parameter_Type (Parent (This_Formal)));
+                  end if;
+               end if;
+
+               --  Check result type: the constructor must be a function
+               --  returning:
+               --   * a value type (only allowed in the CIL compiler)
+               --   * an access-to-subprogram type with convention Java/CIL
+               --   * an access-type designating a type that has convention
+               --     Java/CIL.
+
+               if Is_Value_Type (Etype (Def_Id)) then
+                  null;
+
+               --  Access-to-subprogram type with convention Java/CIL
+
+               elsif Ekind (Etype (Def_Id)) = E_Access_Subprogram_Type then
+                  if Atree.Convention (Etype (Def_Id)) /= Convention then
+                     if Convention = Convention_Java then
+                        Error_Pragma_Arg
+                          ("pragma% requires function returning a " &
+                           "'Java access type", Arg1);
+                     else
+                        pragma Assert (Convention = Convention_CIL);
+                        Error_Pragma_Arg
+                          ("pragma% requires function returning a " &
+                           "'C'I'L access type", Arg1);
+                     end if;
+                  end if;
+
+               elsif Ekind (Etype (Def_Id)) in Access_Kind then
+                  if not Ekind_In (Etype (Def_Id), E_Access_Type,
+                                                   E_General_Access_Type)
+                    or else
+                      Atree.Convention
+                        (Designated_Type (Etype (Def_Id))) /= Convention
+                  then
+                     Error_Msg_Name_1 := Pname;
+
+                     if Convention = Convention_Java then
+                        Error_Pragma_Arg
+                          ("pragma% requires function returning a named" &
+                           "'Java access type", Arg1);
+                     else
+                        Error_Pragma_Arg
+                          ("pragma% requires function returning a named" &
+                           "'C'I'L access type", Arg1);
+                     end if;
+                  end if;
+               end if;
+
+               Set_Is_Constructor (Def_Id);
+               Set_Convention     (Def_Id, Convention);
+               Set_Is_Imported    (Def_Id);
 
                Hom_Id := Homonym (Hom_Id);
 
@@ -9800,6 +10289,8 @@ package body Sem_Prag is
             Assoc   : constant Node_Id := Arg1;
             Type_Id : Node_Id;
             Typ     : Entity_Id;
+            Ctyp    : Entity_Id;
+            Ignore  : Boolean := False;
 
          begin
             Check_No_Identifiers;
@@ -9830,62 +10321,47 @@ package body Sem_Prag is
             --  Array type
 
             elsif Is_Array_Type (Typ) then
+               Ctyp := Component_Type (Typ);
 
-               --  Pack not allowed for aliased or atomic components
+               --  Ignore pack that does nothing
 
-               if Has_Aliased_Components (Base_Type (Typ)) then
-                  Error_Pragma
-                    ("pragma% ignored, cannot pack aliased components?");
-
-               elsif Has_Atomic_Components (Typ)
-                 or else Is_Atomic (Component_Type (Typ))
+               if Known_Static_Esize (Ctyp)
+                 and then Known_Static_RM_Size (Ctyp)
+                 and then Esize (Ctyp) = RM_Size (Ctyp)
+                 and then Addressable (Esize (Ctyp))
                then
-                  Error_Pragma
-                    ("?pragma% ignored, cannot pack atomic components");
+                  Ignore := True;
                end if;
 
-               --  If we had an explicit component size given, then we do not
-               --  let Pack override this given size. We also give a warning
-               --  that Pack is being ignored unless we can tell for sure that
-               --  the Pack would not have had any effect anyway.
+               --  Process OK pragma Pack. Note that if there is a separate
+               --  component clause present, the Pack will be cancelled. This
+               --  processing is in Freeze.
 
-               if Has_Component_Size_Clause (Typ) then
-                  if Known_Static_RM_Size (Component_Type (Typ))
-                    and then
-                      RM_Size (Component_Type (Typ)) = Component_Size (Typ)
-                  then
+               if not Rep_Item_Too_Late (Typ, N) then
+
+                  --  In the context of static code analysis, we do not need
+                  --  complex front-end expansions related to pragma Pack,
+                  --  so disable handling of pragma Pack in this case.
+
+                  if CodePeer_Mode then
                      null;
-                  else
-                     Error_Pragma
-                       ("?pragma% ignored, explicit component size given");
-                  end if;
 
-               --  If no prior array component size given, Pack is effective
+                  --  For normal non-VM target, do the packing
 
-               else
-                  if not Rep_Item_Too_Late (Typ, N) then
-
-                     --  In the context of static code analysis, we do not need
-                     --  complex front-end expansions related to pragma Pack,
-                     --  so disable handling of pragma Pack in this case.
-
-                     if CodePeer_Mode then
-                        null;
-
-                     --  For normal non-VM target, do the packing
-
-                     elsif VM_Target = No_VM then
+                  elsif VM_Target = No_VM then
+                     if not Ignore then
                         Set_Is_Packed            (Base_Type (Typ));
-                        Set_Has_Pragma_Pack      (Base_Type (Typ));
                         Set_Has_Non_Standard_Rep (Base_Type (Typ));
-
-                     --  If we ignore the pack, then warn about this, except
-                     --  that we suppress the warning in GNAT mode.
-
-                     elsif not GNAT_Mode then
-                        Error_Pragma
-                          ("?pragma% ignored in this configuration");
                      end if;
+
+                     Set_Has_Pragma_Pack (Base_Type (Typ));
+
+                  --  If we ignore the pack for VM_Targets, then warn about
+                  --  this, except suppress the warning in GNAT mode.
+
+                  elsif not GNAT_Mode then
+                     Error_Pragma
+                       ("?pragma% ignored in this configuration");
                   end if;
                end if;
 
@@ -11950,7 +12426,7 @@ package body Sem_Prag is
 
                Comp := First (Component_Items (Clist));
                while Present (Comp) loop
-                  Check_Component (Comp);
+                  Check_Component (Comp, Typ);
                   Next (Comp);
                end loop;
 
@@ -11965,7 +12441,7 @@ package body Sem_Prag is
 
                Variant := First (Variants (Vpart));
                while Present (Variant) loop
-                  Check_Variant (Variant);
+                  Check_Variant (Variant, Typ);
                   Next (Variant);
                end loop;
             end if;
@@ -12843,7 +13319,7 @@ package body Sem_Prag is
       Pragma_Finalize_Storage_Only         =>  0,
       Pragma_Float_Representation          =>  0,
       Pragma_Ident                         => -1,
-      Pragma_Implemented_By_Entry          => -1,
+      Pragma_Implemented                   => -1,
       Pragma_Implicit_Packing              =>  0,
       Pragma_Import                        => +2,
       Pragma_Import_Exception              =>  0,
@@ -12851,6 +13327,8 @@ package body Sem_Prag is
       Pragma_Import_Object                 =>  0,
       Pragma_Import_Procedure              =>  0,
       Pragma_Import_Valued_Procedure       =>  0,
+      Pragma_Independent                   =>  0,
+      Pragma_Independent_Components        =>  0,
       Pragma_Initialize_Scalars            => -1,
       Pragma_Inline                        =>  0,
       Pragma_Inline_Always                 =>  0,
