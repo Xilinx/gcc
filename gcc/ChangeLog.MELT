@@ -1,3 +1,6 @@
+2010-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-make.mk (warm%.so): added dependency to cc1
+
 2010-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (make_string_generated_c_filename): New
 	primitive.

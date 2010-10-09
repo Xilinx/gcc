@@ -104,7 +104,7 @@ warmeltbig-%.so: warmeltbig-%.c $(melt_make_module_makefile) melt-predef.h  cc1$
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags) -O0"   \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
-warm%.so: warm%.c  $(melt_make_module_makefile) melt-predef.h
+warm%.so: warm%.c  $(melt_make_module_makefile) melt-predef.h cc1$(exeext)
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(MELT_FINAL_CFLAGS)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
