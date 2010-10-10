@@ -255,6 +255,12 @@
 					;destination
 	   ))
 
+;; a block for compiling new matches with flags
+(defclass class_objflagblock
+  :super class_objanyblock
+  :fields (oflablo_flags 		;the tuple of flags
+	   ))
+
 ;; unique label instr
 (defclass class_objlabelinstr
   :super class_objinstr
@@ -5060,8 +5066,56 @@ $SBUF.}#
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg nmat "compilobj_nrep_altmatch nmat")
   (debug_msg gcx "compilobj_nrep_altmatch gcx")
-  (assert_msg "@@unimplemented compilobj_nrep_altmatch")
-)
+  (let ( 
+	(nloc (unsafe_get_field :nrep_loc nmat))
+	(nctyp (unsafe_get_field :nexpr_ctyp nmat))
+	(nmatched (unsafe_get_field :namatch_matched nmat))
+	(nres (unsafe_get_field :namatch_result nmat))
+	(nbody (unsafe_get_field :namatch_body nmat))
+	(nflags (unsafe_get_field :namatch_flags nmat))
+	(obodyl (make_list discr_list))
+	)
+
+    (debug_msg nmatched "compilobj_nrep_altmatch nmatched")
+    (debug_msg nres "compilobj_nrep_altmatch nres")
+    (debug_msg nflags "compilobj_nrep_altmatch nflags")
+    (debug_msg nctyp "compilobj_nrep_altmatch nctyp")
+    (debug_msg nbody "compilobj_nrep_altmatch nbody")
+    (let (
+	  (nsymbres (get_field :nocc_symb nres))
+	  (obvares (get_free_objloctyped gcx nsymbres nctyp))
+	  (ocleares (instance class_objclear
+			      :obi_loc nloc
+			      :oclr_vloc obvares))
+	  )
+      (list_append obodyl ocleares)
+      (foreach_in_multiple
+       (nbody)
+       (curncomp :long bodix)
+       (debug_msg curncomp "compilobj_nrep_altmatch curncomp")
+       (let ( (curocomp (compile_obj curncomp gcx))
+	      )
+	 (debug_msg curocomp "compilobj_nrep_altmatch curocomp")
+	 (assert_msg "check curocomp object" (is_object curocomp))
+	 (list_append obodyl curocomp)
+	 ))
+      (debug_msg obodyl "compilobj_nrep_altmatch obodyl")
+      (let ( (oflags 
+	      (multiple_map
+	       nflags
+	       (lambda (curnflag :long fix)
+		 (debug_msg curnflag "curnflag compilobj_nrep_altmatch")
+		 (let ( (curoflag (compile_obj curnflag gcx))
+			)
+		   (debug_msg curoflag "curoflag compilobj_nrep_altmatch")
+		   (return curoflag))))
+	      )
+	     )
+	(debug_msg oflags "compilobj_nrep_altmatch oflags")
+	)
+      (dispose_objloc obvares gcx)
+      (assert_msg "@@unimplemented compilobj_nrep_altmatch")
+      )))
 (install_method class_nrep_altmatch compile_obj compilobj_nrep_altmatch)
 
 ;; utility function to return the label instr of a tester

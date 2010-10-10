@@ -1,3 +1,7 @@
+2010-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt: (compilobj_nrep_altmatch) added
+	more... but still incomplete...
+
 2010-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-make.mk (warm%.so): added dependency to cc1
 
