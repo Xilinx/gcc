@@ -23,6 +23,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Aspects;  use Aspects;
 with Atree;    use Atree;
 with Checks;   use Checks;
 with Einfo;    use Einfo;
@@ -618,6 +619,331 @@ package body Sem_Ch13 is
       end if;
    end Alignment_Check_For_Esize_Change;
 
+   -----------------------------------
+   -- Analyze_Aspect_Specifications --
+   -----------------------------------
+
+   procedure Analyze_Aspect_Specifications
+     (N : Node_Id;
+      E : Entity_Id;
+      L : List_Id)
+   is
+      Aspect : Node_Id;
+      Aitem  : Node_Id;
+      Ent    : Node_Id;
+
+      Ins_Node : Node_Id := N;
+      --  Insert pragmas (other than Pre/Post) after this node
+
+      --  The general processing involves building an attribute definition
+      --  clause or a pragma node that corresponds to the access type. Then
+      --  one of two things happens:
+
+      --  If we are required to delay the evaluation of this aspect to the
+      --  freeze point, we preanalyze the relevant argument, and then attach
+      --  the corresponding pragma/attribute definition clause to the aspect
+      --  specification node, which is then placed in the Rep Item chain.
+      --  In this case we mark the entity with the Has_Delayed_Aspects flag,
+      --  and we evaluate the rep item at the freeze point.
+
+      --  If no delay is required, we just insert the pragma or attribute
+      --  after the declaration, and it will get processed by the normal
+      --  circuit. The From_Aspect_Specification flag is set on the pragma
+      --  or attribute definition node in either case to activate special
+      --  processing (e.g. not traversing the list of homonyms for inline).
+
+      Delay_Required : Boolean;
+      --  Set True if delay is required
+
+   begin
+      if L = No_List then
+         return;
+      end if;
+
+      Aspect := First (L);
+      while Present (Aspect) loop
+         declare
+            Id   : constant Node_Id   := Identifier (Aspect);
+            Expr : constant Node_Id   := Expression (Aspect);
+            Nam  : constant Name_Id   := Chars (Id);
+            A_Id : constant Aspect_Id := Get_Aspect_Id (Nam);
+            Anod : Node_Id;
+            T    : Entity_Id;
+
+         begin
+            Set_Entity (Aspect, E);
+            Ent := New_Occurrence_Of (E, Sloc (Id));
+
+            --  Check for duplicate aspect
+
+            Anod := First (L);
+            while Anod /= Aspect loop
+               if Nam = Chars (Identifier (Anod)) then
+                  Error_Msg_Name_1 := Nam;
+                  Error_Msg_Sloc := Sloc (Anod);
+                  Error_Msg_NE
+                    ("aspect% for & ignored, already given at#", Id, E);
+                  goto Continue;
+               end if;
+
+               Next (Anod);
+            end loop;
+
+            --  Processing based on specific aspect
+
+            case A_Id is
+
+               --  No_Aspect should be impossible
+
+               when No_Aspect =>
+                  raise Program_Error;
+
+                  --  Aspects taking an optional boolean argument. For all of
+                  --  these we just create a matching pragma and insert it,
+                  --  setting flag Cancel_Aspect if the expression is False.
+
+               when Aspect_Ada_2005                     |
+                    Aspect_Ada_2012                     |
+                    Aspect_Atomic                       |
+                    Aspect_Atomic_Components            |
+                    Aspect_Discard_Names                |
+                    Aspect_Favor_Top_Level              |
+                    Aspect_Inline                       |
+                    Aspect_Inline_Always                |
+                    Aspect_No_Return                    |
+                    Aspect_Pack                         |
+                    Aspect_Persistent_BSS               |
+                    Aspect_Preelaborable_Initialization |
+                    Aspect_Pure_Function                |
+                    Aspect_Shared                       |
+                    Aspect_Suppress_Debug_Info          |
+                    Aspect_Unchecked_Union              |
+                    Aspect_Universal_Aliasing           |
+                    Aspect_Unmodified                   |
+                    Aspect_Unreferenced                 |
+                    Aspect_Unreferenced_Objects         |
+                    Aspect_Volatile                     |
+                    Aspect_Volatile_Components          =>
+
+                  --  Build corresponding pragma node
+
+                  Aitem :=
+                    Make_Pragma (Sloc (Aspect),
+                      Pragma_Argument_Associations => New_List (Ent),
+                      Pragma_Identifier            =>
+                        Make_Identifier (Sloc (Id), Chars (Id)));
+
+                  --  Deal with missing expression case, delay never needed
+
+                  if No (Expr) then
+                     Delay_Required := False;
+
+                  --  Expression is present
+
+                  else
+                     Preanalyze_Spec_Expression (Expr, Standard_Boolean);
+
+                     --  If preanalysis gives a static expression, we don't
+                     --  need to delay (this will happen often in practice).
+
+                     if Is_OK_Static_Expression (Expr) then
+                        Delay_Required := False;
+
+                        if Is_False (Expr_Value (Expr)) then
+                           Set_Aspect_Cancel (Aitem);
+                        end if;
+
+                     --  If we don't get a static expression, then delay, the
+                     --  expression may turn out static by freeze time.
+
+                     else
+                        Delay_Required := True;
+                     end if;
+                  end if;
+
+               --  Aspects corresponding to attribute definition clauses with
+               --  the exception of Address which is treated specially.
+
+               when Aspect_Address        |
+                    Aspect_Alignment      |
+                    Aspect_Bit_Order      |
+                    Aspect_Component_Size |
+                    Aspect_External_Tag   |
+                    Aspect_Machine_Radix  |
+                    Aspect_Object_Size    |
+                    Aspect_Size           |
+                    Aspect_Storage_Pool   |
+                    Aspect_Storage_Size   |
+                    Aspect_Stream_Size    |
+                    Aspect_Value_Size     =>
+
+                  --  Preanalyze the expression with the appropriate type
+
+                  case A_Id is
+                     when Aspect_Address      =>
+                        T := RTE (RE_Address);
+                     when Aspect_Bit_Order    =>
+                        T := RTE (RE_Bit_Order);
+                     when Aspect_External_Tag =>
+                        T := Standard_String;
+                     when Aspect_Storage_Pool =>
+                        T := Class_Wide_Type (RTE (RE_Root_Storage_Pool));
+                     when others              =>
+                        T := Any_Integer;
+                  end case;
+
+                  Preanalyze_Spec_Expression (Expr, T);
+
+                  --  Construct the attribute definition clause
+
+                  Aitem :=
+                    Make_Attribute_Definition_Clause (Sloc (Aspect),
+                      Name       => Ent,
+                      Chars      => Chars (Id),
+                      Expression => Relocate_Node (Expr));
+
+                  --  We do not need a delay if we have a static expression
+
+                  if Is_OK_Static_Expression (Expression (Aitem)) then
+                     Delay_Required := False;
+
+                  --  Here a delay is required
+
+                  else
+                     Delay_Required := True;
+                  end if;
+
+               --  Aspects corresponding to pragmas with two arguments, where
+               --  the first argument is a local name referring to the entity,
+               --  and the second argument is the aspect definition expression.
+
+               when Aspect_Suppress   |
+                    Aspect_Unsuppress =>
+
+                  --  Construct the pragma
+
+                  Aitem :=
+                    Make_Pragma (Sloc (Aspect),
+                      Pragma_Argument_Associations => New_List (
+                        New_Occurrence_Of (E, Sloc (Expr)),
+                        Relocate_Node (Expr)),
+                      Pragma_Identifier            =>
+                      Make_Identifier (Sloc (Id), Chars (Id)));
+
+                  --  We don't have to play the delay game here, since the only
+                  --  values are check names which don't get analyzed anyway.
+
+                  Delay_Required := False;
+
+               --  Aspects corresponding to pragmas with two arguments, where
+               --  the second argument is a local name referring to the entity,
+               --  and the first argument is the aspect definition expression.
+
+               when Aspect_Warnings =>
+
+                  --  Construct the pragma
+
+                  Aitem :=
+                    Make_Pragma (Sloc (Aspect),
+                      Pragma_Argument_Associations => New_List (
+                        Relocate_Node (Expr),
+                        New_Occurrence_Of (E, Sloc (Expr))),
+                      Pragma_Identifier            =>
+                         Make_Identifier (Sloc (Id), Chars (Id)));
+
+                  --  We don't have to play the delay game here, since the only
+                  --  values are check names which don't get analyzed anyway.
+
+                  Delay_Required := False;
+
+               --  Aspect Post corresponds to pragma Postcondition with single
+               --  argument that is the expression (we never give a message
+               --  argument. This is inserted right after the declaration,
+               --  to get the required pragma placement.
+
+               when Aspect_Post =>
+
+                  --  Construct the pragma
+
+                  Aitem :=
+                    Make_Pragma (Sloc (Expr),
+                      Pragma_Argument_Associations => New_List (
+                        Relocate_Node (Expr)),
+                      Pragma_Identifier            =>
+                      Make_Identifier (Sloc (Id), Name_Postcondition));
+
+                  --  We don't have to play the delay game here. The required
+                  --  delay in this case is already implemented by the pragma.
+
+                  Delay_Required := False;
+
+               --  Aspect Pre corresponds to pragma Precondition with single
+               --  argument that is the expression (we never give a message
+               --  argument). This is inserted right after the declaration,
+               --  to get the required pragma placement.
+
+               when Aspect_Pre =>
+
+                  --  Construct the pragma
+
+                  Aitem :=
+                    Make_Pragma (Sloc (Expr),
+                      Pragma_Argument_Associations => New_List (
+                        Relocate_Node (Expr)),
+                      Pragma_Identifier            =>
+                        Make_Identifier (Sloc (Id), Name_Precondition));
+
+                  --  We don't have to play the delay game here. The required
+                  --  delay in this case is already implemented by the pragma.
+
+                  Delay_Required := False;
+
+               --  Aspects currently unimplemented
+
+               when Aspect_Invariant |
+                    Aspect_Predicate =>
+
+                  Error_Msg_N ("aspect& not implemented", Identifier (Aspect));
+                  goto Continue;
+            end case;
+
+            Set_From_Aspect_Specification (Aitem, True);
+
+            --  If a delay is required, we delay the freeze (not much point in
+            --  delaying the aspect if we don't delay the freeze!). The pragma
+            --  or clause is then attached to the aspect specification which
+            --  is placed in the rep item list.
+
+            if Delay_Required then
+               Ensure_Freeze_Node (E);
+               Set_Is_Delayed_Aspect (Aitem);
+               Set_Has_Delayed_Aspects (E);
+               Set_Aspect_Rep_Item (Aspect, Aitem);
+               Record_Rep_Item (E, Aspect);
+
+            --  If no delay required, insert the pragma/clause in the tree
+
+            else
+               --  For Pre/Post cases, insert immediately after the entity
+               --  declaration, since that is the required pragma placement.
+
+               if A_Id = Aspect_Pre or else A_Id = Aspect_Post then
+                  Insert_After (N, Aitem);
+
+               --  For all other cases, insert in sequence
+
+               else
+                  Insert_After (Ins_Node, Aitem);
+                  Ins_Node := Aitem;
+               end if;
+            end if;
+         end;
+
+         <<Continue>>
+            Next (Aspect);
+      end loop;
+   end Analyze_Aspect_Specifications;
+
    -----------------------
    -- Analyze_At_Clause --
    -----------------------
@@ -683,6 +1009,12 @@ package body Sem_Ch13 is
       procedure Analyze_Stream_TSS_Definition (TSS_Nam : TSS_Name_Type);
       --  Common processing for 'Read, 'Write, 'Input and 'Output attribute
       --  definition clauses.
+
+      function Duplicate_Clause return Boolean;
+      --  This routine checks if the aspect for U_Ent being given by attribute
+      --  definition clause N is for an aspect that has already been specified,
+      --  and if so gives an error message. If there is a duplicate, True is
+      --  returned, otherwise if there is no error, False is returned.
 
       -----------------------------------
       -- Analyze_Stream_TSS_Definition --
@@ -820,6 +1152,40 @@ package body Sem_Ch13 is
          end if;
       end Analyze_Stream_TSS_Definition;
 
+      ----------------------
+      -- Duplicate_Clause --
+      ----------------------
+
+      function Duplicate_Clause return Boolean is
+         A : Node_Id;
+
+      begin
+         --  Nothing to do if this attribute definition clause comes from
+         --  an aspect specification, since we could not be duplicating an
+         --  explicit clause, and we dealt with the case of duplicated aspects
+         --  in Analyze_Aspect_Specifications.
+
+         if From_Aspect_Specification (N) then
+            return False;
+         end if;
+
+         --  Otherwise current clause may duplicate previous clause or a
+         --  previously given aspect specification for the same aspect.
+
+         A := Get_Rep_Item_For_Entity (U_Ent, Chars (N));
+
+         if Present (A) then
+            if Entity (A) = U_Ent then
+               Error_Msg_Name_1 := Chars (N);
+               Error_Msg_Sloc := Sloc (A);
+               Error_Msg_NE ("aspect% for & previously specified#", N, U_Ent);
+               return True;
+            end if;
+         end if;
+
+         return False;
+      end Duplicate_Clause;
+
    --  Start of processing for Analyze_Attribute_Definition_Clause
 
    begin
@@ -928,6 +1294,8 @@ package body Sem_Ch13 is
          return;
       end if;
 
+      Set_Entity (N, U_Ent);
+
       --  Switch on particular attribute
 
       case Id is
@@ -969,8 +1337,8 @@ package body Sem_Ch13 is
                return;
             end if;
 
-            if Present (Address_Clause (U_Ent)) then
-               Error_Msg_N ("address already given for &", Nam);
+            if Duplicate_Clause then
+               null;
 
             --  Case of address clause for subprogram
 
@@ -1235,9 +1603,8 @@ package body Sem_Ch13 is
             then
                Error_Msg_N ("alignment cannot be given for &", Nam);
 
-            elsif Has_Alignment_Clause (U_Ent) then
-               Error_Msg_Sloc := Sloc (Alignment_Clause (U_Ent));
-               Error_Msg_N ("alignment clause previously given#", N);
+            elsif Duplicate_Clause then
+               null;
 
             elsif Align /= No_Uint then
                Set_Has_Alignment_Clause (U_Ent);
@@ -1265,6 +1632,9 @@ package body Sem_Ch13 is
             if not Is_Record_Type (U_Ent) then
                Error_Msg_N
                  ("Bit_Order can only be defined for record type", Nam);
+
+            elsif Duplicate_Clause then
+               null;
 
             else
                Analyze_And_Resolve (Expr, RTE (RE_Bit_Order));
@@ -1307,9 +1677,8 @@ package body Sem_Ch13 is
             Btype := Base_Type (U_Ent);
             Ctyp := Component_Type (Btype);
 
-            if Has_Component_Size_Clause (Btype) then
-               Error_Msg_N
-                 ("component size clause for& previously given", Nam);
+            if Duplicate_Clause then
+               null;
 
             elsif Rep_Item_Too_Early (Btype, N) then
                null;
@@ -1317,12 +1686,11 @@ package body Sem_Ch13 is
             elsif Csize /= No_Uint then
                Check_Size (Expr, Ctyp, Csize, Biased);
 
-               --  For the biased case, build a declaration for a subtype
-               --  that will be used to represent the biased subtype that
-               --  reflects the biased representation of components. We need
-               --  this subtype to get proper conversions on referencing
-               --  elements of the array. Note that component size clauses
-               --  are ignored in VM mode.
+               --  For the biased case, build a declaration for a subtype that
+               --  will be used to represent the biased subtype that reflects
+               --  the biased representation of components. We need the subtype
+               --  to get proper conversions on referencing elements of the
+               --  array. Note: component size clauses are ignored in VM mode.
 
                if VM_Target = No_VM then
                   if Biased then
@@ -1391,28 +1759,33 @@ package body Sem_Ch13 is
                Error_Msg_N ("should be a tagged type", Nam);
             end if;
 
-            Analyze_And_Resolve (Expr, Standard_String);
+            if Duplicate_Clause then
+               null;
 
-            if not Is_Static_Expression (Expr) then
-               Flag_Non_Static_Expr
-                 ("static string required for tag name!", Nam);
-            end if;
-
-            if VM_Target = No_VM then
-               Set_Has_External_Tag_Rep_Clause (U_Ent);
             else
-               Error_Msg_Name_1 := Attr;
-               Error_Msg_N
-                 ("% attribute unsupported in this configuration", Nam);
-            end if;
+               Analyze_And_Resolve (Expr, Standard_String);
 
-            if not Is_Library_Level_Entity (U_Ent) then
-               Error_Msg_NE
-                 ("?non-unique external tag supplied for &", N, U_Ent);
-               Error_Msg_N
-                 ("?\same external tag applies to all subprogram calls", N);
-               Error_Msg_N
-                 ("?\corresponding internal tag cannot be obtained", N);
+               if not Is_Static_Expression (Expr) then
+                  Flag_Non_Static_Expr
+                    ("static string required for tag name!", Nam);
+               end if;
+
+               if VM_Target = No_VM then
+                  Set_Has_External_Tag_Rep_Clause (U_Ent);
+               else
+                  Error_Msg_Name_1 := Attr;
+                  Error_Msg_N
+                    ("% attribute unsupported in this configuration", Nam);
+               end if;
+
+               if not Is_Library_Level_Entity (U_Ent) then
+                  Error_Msg_NE
+                    ("?non-unique external tag supplied for &", N, U_Ent);
+                  Error_Msg_N
+                    ("?\same external tag applies to all subprogram calls", N);
+                  Error_Msg_N
+                    ("?\corresponding internal tag cannot be obtained", N);
+               end if;
             end if;
          end External_Tag;
 
@@ -1437,9 +1810,8 @@ package body Sem_Ch13 is
             if not Is_Decimal_Fixed_Point_Type (U_Ent) then
                Error_Msg_N ("decimal fixed-point type expected for &", Nam);
 
-            elsif Has_Machine_Radix_Clause (U_Ent) then
-               Error_Msg_Sloc := Sloc (Alignment_Clause (U_Ent));
-               Error_Msg_N ("machine radix clause previously given#", N);
+            elsif Duplicate_Clause then
+               null;
 
             elsif Radix /= No_Uint then
                Set_Has_Machine_Radix_Clause (U_Ent);
@@ -1471,8 +1843,8 @@ package body Sem_Ch13 is
             if not Is_Type (U_Ent) then
                Error_Msg_N ("Object_Size cannot be given for &", Nam);
 
-            elsif Has_Object_Size_Clause (U_Ent) then
-               Error_Msg_N ("Object_Size already given for &", Nam);
+            elsif Duplicate_Clause then
+               null;
 
             else
                Check_Size (Expr, U_Ent, Size, Biased);
@@ -1526,8 +1898,8 @@ package body Sem_Ch13 is
          begin
             FOnly := True;
 
-            if Has_Size_Clause (U_Ent) then
-               Error_Msg_N ("size already given for &", Nam);
+            if Duplicate_Clause then
+               null;
 
             elsif not Is_Type (U_Ent)
               and then Ekind (U_Ent) /= E_Variable
@@ -1709,8 +2081,7 @@ package body Sem_Ch13 is
                  ("storage pool cannot be given for a derived access type",
                   Nam);
 
-            elsif Has_Storage_Size_Clause (U_Ent) then
-               Error_Msg_N ("storage size already given for &", Nam);
+            elsif Duplicate_Clause then
                return;
 
             elsif Present (Associated_Storage_Pool (U_Ent)) then
@@ -1839,8 +2210,8 @@ package body Sem_Ch13 is
                  ("storage size cannot be given for a derived access type",
                   Nam);
 
-            elsif Has_Storage_Size_Clause (Btype) then
-               Error_Msg_N ("storage size already given for &", Nam);
+            elsif Duplicate_Clause then
+               null;
 
             else
                Analyze_And_Resolve (Expr, Any_Integer);
@@ -1884,8 +2255,8 @@ package body Sem_Ch13 is
                Check_Restriction (No_Implementation_Attributes, N);
             end if;
 
-            if Has_Stream_Size_Clause (U_Ent) then
-               Error_Msg_N ("Stream_Size already given for &", Nam);
+            if Duplicate_Clause then
+               null;
 
             elsif Is_Elementary_Type (U_Ent) then
                if Size /= System_Storage_Unit
@@ -1929,11 +2300,8 @@ package body Sem_Ch13 is
             if not Is_Type (U_Ent) then
                Error_Msg_N ("Value_Size cannot be given for &", Nam);
 
-            elsif Present
-                   (Get_Attribute_Definition_Clause
-                     (U_Ent, Attribute_Value_Size))
-            then
-               Error_Msg_N ("Value_Size already given for &", Nam);
+            elsif Duplicate_Clause then
+               null;
 
             elsif Is_Array_Type (U_Ent)
               and then not Is_Constrained (U_Ent)
@@ -2404,7 +2772,7 @@ package body Sem_Ch13 is
       --  also used to locate primitives covering interfaces when processing
       --  generics (see Derive_Subprograms).
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Ekind (E) = E_Record_Type
         and then Is_Tagged_Type (E)
         and then not Is_Interface (E)

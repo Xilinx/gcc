@@ -455,13 +455,13 @@ package Sinfo is
 
    --  The following flag fields appear in all nodes
 
-   --  Analyzed (Flag1)
+   --  Analyzed
    --    This flag is used to indicate that a node (and all its children have
    --    been analyzed. It is used to avoid reanalysis of a node that has
    --    already been analyzed, both for efficiency and functional correctness
    --    reasons.
 
-   --  Comes_From_Source (Flag2)
+   --  Comes_From_Source
    --    This flag is set if the node comes directly from an explicit construct
    --    in the source. It is normally on for any nodes built by the scanner or
    --    parser from the source program, with the exception that in a few cases
@@ -475,7 +475,7 @@ package Sinfo is
    --    from the source program (e.g. the allocator built for build-in-place
    --    case), and the Comes_From_Source flag is deliberately set.
 
-   --  Error_Posted (Flag3)
+   --  Error_Posted
    --    This flag is used to avoid multiple error messages being posted on or
    --    referring to the same node. This flag is set if an error message
    --    refers to a node or is posted on its source location, and has the
@@ -586,6 +586,18 @@ package Sinfo is
    --    not normally handled (in particular the tasking abort signal). This
    --    is used for translation of the at end handler into a normal exception
    --    handler.
+
+   --  Aspect_Cancel (Flag11-Sem)
+   --    Processing of aspect specifications typically generates pragmas and
+   --    attribute definition clauses that are inserted into the tree after
+   --    the declaration node to get the desired aspect effect. In the case
+   --    of Boolean aspects that use "=> False" to cancel the effect of an
+   --    aspect (i.e. turn if off), the generated pragma has the Aspect_Cancel
+   --    flag set to indicate that the pragma operates in the opposite sense.
+
+   --  Aspect_Rep_Item (Node2-Sem)
+   --    Present in N_Aspect_Specification nodes. Points to the corresponding
+   --    pragma/attribute definition node used to process the aspect.
 
    --  Assignment_OK (Flag15-Sem)
    --    This flag is set in a subexpression node for an object, indicating
@@ -1056,6 +1068,12 @@ package Sinfo is
    --    cannot figure it out. If both flags Forwards_OK and Backwards_OK are
    --    set, it means that the front end can assure no overlap of operands.
 
+   --  From_Aspect_Specification (Flag13-Sem)
+   --    Processing of aspect specifications typically results in insertion in
+   --    the tree of corresponding pragma or attribute definition clause nodes.
+   --    These generated nodes have the From_Aspect_Specification flag set to
+   --    indicate that they came from aspect specifications originally.
+
    --  From_At_End (Flag4-Sem)
    --    This flag is set on an N_Raise_Statement node if it corresponds to
    --    the reraise statement generated as the last statement of an AT END
@@ -1215,6 +1233,11 @@ package Sinfo is
    --    Present in concatenation nodes, to indicate that the corresponding
    --    operand is of the component type of the result. Used in resolving
    --    concatenation nodes in instances.
+
+   --  Is_Delayed_Aspect (Flag14-Sem)
+   --    Present in N_Pragma and N_Attribute_Definition_Clause nodes which
+   --    come from aspect specifications, where the evaluation of the aspect
+   --    must be delayed to the freeze point.
 
    --  Is_Controlling_Actual (Flag16-Sem)
    --    This flag is set on in an expression that is a controlling argument in
@@ -1442,9 +1465,10 @@ package Sinfo is
    --      details).
 
    --  Next_Rep_Item (Node5-Sem)
-   --    Present in pragma nodes and attribute definition nodes. Used to link
-   --    representation items that apply to an entity. See description of
-   --    First_Rep_Item field in Einfo for full details.
+   --    Present in pragma nodes, attribute definition nodes, enumeration rep
+   --    clauses, record rep clauses, aspect specification nodes. Used to link
+   --    representation items that apply to an entity. See full description of
+   --    First_Rep_Item field in Einfo for further details.
 
    --  Next_Use_Clause (Node3-Sem)
    --    While use clauses are active during semantic processing, they are
@@ -1996,11 +2020,14 @@ package Sinfo is
       --  Sloc points to PRAGMA
       --  Next_Pragma (Node1-Sem)
       --  Pragma_Argument_Associations (List2) (set to No_List if none)
-      --  Debug_Statement (Node3) (set to Empty if not Debug, Assert)
+      --  Debug_Statement (Node3) (set to Empty if not Debug)
       --  Pragma_Identifier (Node4)
       --  Next_Rep_Item (Node5-Sem)
       --  Pragma_Enabled (Flag5-Sem)
+      --  From_Aspect_Specification (Flag13-Sem)
+      --  Is_Delayed_Aspect (Flag14-Sem)
       --  Import_Interface_Present (Flag16-Sem)
+      --  Aspect_Cancel (Flag11-Sem)
 
       --  Note: we should have a section on what pragmas are passed on to
       --  the back end to be processed. This section should note that pragma
@@ -2010,7 +2037,12 @@ package Sinfo is
       --  Note: a utility function Pragma_Name may be applied to pragma nodes
       --  to conveniently obtain the Chars field of the Pragma_Identifier.
 
-      --------------------------------------
+      --  Note: if From_Aspect_Specification is set, then Sloc points to the
+      --  aspect name, as does the Pragma_Identifier. In this case if the
+      --  pragma has a local name argument (such as pragma Inline), it is
+      --  resolved to point to the specific entity affected by the pragma.
+
+   --------------------------------------
       -- 2.8  Pragma Argument Association --
       --------------------------------------
 
@@ -2809,7 +2841,7 @@ package Sinfo is
 
       --  COMPONENT_DECLARATION ::=
       --    DEFINING_IDENTIFIER_LIST : COMPONENT_DEFINITION
-      --      [:= DEFAULT_EXPRESSION]
+      --      [:= DEFAULT_EXPRESSION];
 
       --  Note: although the syntax does not permit a component definition to
       --  be an anonymous array (and the parser will diagnose such an attempt
@@ -4586,9 +4618,12 @@ package Sinfo is
       --  By_Ref (Flag5-Sem)
 
       --  Note: Return_Statement_Entity points to an E_Return_Statement.
+
       --  Note that Return_Object_Declarations is a list containing the
       --  N_Object_Declaration -- see comment on this field above.
+
       --  The declared object will have Is_Return_Object = True.
+
       --  There is no such syntactic category as return_object_declaration
       --  in the RM. Return_Object_Declarations represents this portion of
       --  the syntax for EXTENDED_RETURN_STATEMENT:
@@ -6323,7 +6358,55 @@ package Sinfo is
       --  Next_Rep_Item (Node5-Sem)
       --  From_At_Mod (Flag4-Sem)
       --  Check_Address_Alignment (Flag11-Sem)
+      --  From_Aspect_Specification (Flag13-Sem)
+      --  Is_Delayed_Aspect (Flag14-Sem)
       --  Address_Warning_Posted (Flag18-Sem)
+
+      --  Note: if From_Aspect_Specification is set, then Sloc points to the
+      --  aspect name, and Entity is resolved already to reference the entity
+      --  to which the aspect applies.
+
+      -----------------------------------
+      -- 13.3.1  Aspect Specifications --
+      -----------------------------------
+
+      --  We modify the RM grammar here, the RM grammar is:
+
+      --     ASPECT_SPECIFICATION ::=
+      --       with ASPECT_MARK [=> ASPECT_DEFINITION] {.
+      --            ASPECT_MARK [=> ASPECT_DEFINITION] }
+
+      --     ASPECT_MARK ::= aspect_IDENTIFIER['Class]
+
+      --     ASPECT_DEFINITION ::= NAME | EXPRESSION
+
+      --  That's inconvenient, since there is no non-terminal name for a single
+      --  entry in the list of aspects. So we use this grammar instead:
+
+      --     ASPECT_SPECIFICATIONS ::=
+      --       with ASPECT_SPECIFICATION {, ASPECT_SPECIFICATION};
+
+      --     ASPECT_SPECIFICATION =>
+      --       ASPECT_MARK [=> ASPECT_DEFINITION]
+
+      --     ASPECT_MARK ::= aspect_IDENTIFIER['Class]
+
+      --     ASPECT_DEFINITION ::= NAME | EXPRESSION
+
+      --  See separate package Aspects for details on the incorporation of
+      --  these nodes into the tree, and how aspect specifications for a given
+      --  declaration node are associated with that node.
+
+      --  N_Aspect_Specification
+      --  Sloc points to aspect identifier
+      --  Identifier (Node1) aspect identifier
+      --  Aspect_Rep_Item (Node2-Sem)
+      --  Expression (Node3) Aspect_Definition (set to Empty if none)
+      --  Entity (Node4-Sem) entity to which the aspect applies
+      --  Class_Present (Flag6) Set if 'Class present
+      --  Next_Rep_Item (Node5-Sem)
+
+      --  Note: Aspect_Specification is an Ada 2012 feature
 
       ---------------------------------------------
       -- 13.4  Enumeration representation clause --
@@ -7165,10 +7248,10 @@ package Sinfo is
    --------------------------
 
    --  The following is the definition of the Node_Kind type. As previously
-   --  discussed, this is separated off to allow rearrangement of the order
-   --  to facilitate definition of subtype ranges. The comments show the
-   --  subtype classes which apply to each set of node kinds. The first
-   --  entry in the comment characterizes the following list of nodes.
+   --  discussed, this is separated off to allow rearrangement of the order to
+   --  facilitate definition of subtype ranges. The comments show the subtype
+   --  classes which apply to each set of node kinds. The first entry in the
+   --  comment characterizes the following list of nodes.
 
    type Node_Kind is (
       N_Unused_At_Start,
@@ -7483,6 +7566,7 @@ package Sinfo is
       N_Abstract_Subprogram_Declaration,
       N_Access_Definition,
       N_Access_To_Object_Definition,
+      N_Aspect_Specification,
       N_Case_Expression_Alternative,
       N_Case_Statement_Alternative,
       N_Compilation_Unit,
@@ -7609,7 +7693,8 @@ package Sinfo is
      N_Expanded_Name ..
      N_Attribute_Reference;
    --  Nodes that have Entity fields
-   --  Warning: DOES NOT INCLUDE N_Freeze_Entity!
+   --  Warning: DOES NOT INCLUDE N_Freeze_Entity, N_Aspect_Specification,
+   --  or N_Attribute_Definition_Clause.
 
    subtype N_Has_Etype is Node_Kind range
      N_Error ..
@@ -7801,6 +7886,12 @@ package Sinfo is
    function Array_Aggregate
      (N : Node_Id) return Node_Id;    -- Node3
 
+   function Aspect_Cancel
+     (N : Node_Id) return Boolean;    -- Flag11
+
+   function Aspect_Rep_Item
+     (N : Node_Id) return Node_Id;    -- Node2
+
    function Assignment_OK
      (N : Node_Id) return Boolean;    -- Flag15
 
@@ -7848,6 +7939,9 @@ package Sinfo is
 
    function Choices
      (N : Node_Id) return List_Id;    -- List1
+
+   function Class_Present
+     (N : Node_Id) return Boolean;    -- Flag6
 
    function Coextensions
       (N : Node_Id) return Elist_Id;  -- Elist4
@@ -8122,6 +8216,9 @@ package Sinfo is
    function Forwards_OK
      (N : Node_Id) return Boolean;    -- Flag5
 
+   function From_Aspect_Specification
+     (N : Node_Id) return Boolean;    -- Flag13
+
    function From_At_End
      (N : Node_Id) return Boolean;    -- Flag4
 
@@ -8244,6 +8341,9 @@ package Sinfo is
 
    function Is_Controlling_Actual
      (N : Node_Id) return Boolean;    -- Flag16
+
+   function Is_Delayed_Aspect
+     (N : Node_Id) return Boolean;    -- Flag14
 
    function Is_Dynamic_Coextension
      (N : Node_Id) return Boolean;    -- Flag18
@@ -8731,6 +8831,12 @@ package Sinfo is
    procedure Set_Array_Aggregate
      (N : Node_Id; Val : Node_Id);            -- Node3
 
+   procedure Set_Aspect_Cancel
+     (N : Node_Id; Val : Boolean := True);    -- Flag11
+
+   procedure Set_Aspect_Rep_Item
+     (N : Node_Id; Val : Node_Id);            -- Node2
+
    procedure Set_Assignment_OK
      (N : Node_Id; Val : Boolean := True);    -- Flag15
 
@@ -8776,11 +8882,14 @@ package Sinfo is
    procedure Set_Choice_Parameter
      (N : Node_Id; Val : Node_Id);            -- Node2
 
-   procedure Set_Coextensions
-     (N : Node_Id; Val : Elist_Id);           -- Elist4
-
    procedure Set_Choices
      (N : Node_Id; Val : List_Id);            -- List1
+
+   procedure Set_Class_Present
+     (N : Node_Id; Val : Boolean := True);    -- Flag6
+
+   procedure Set_Coextensions
+     (N : Node_Id; Val : Elist_Id);           -- Elist4
 
    procedure Set_Comes_From_Extended_Return_Statement
      (N : Node_Id; Val : Boolean := True);    -- Flag18
@@ -9052,6 +9161,9 @@ package Sinfo is
    procedure Set_From_At_Mod
      (N : Node_Id; Val : Boolean := True);    -- Flag4
 
+   procedure Set_From_Aspect_Specification
+     (N : Node_Id; Val : Boolean := True);    -- Flag13
+
    procedure Set_From_At_End
      (N : Node_Id; Val : Boolean := True);    -- Flag4
 
@@ -9171,6 +9283,9 @@ package Sinfo is
 
    procedure Set_Is_Controlling_Actual
      (N : Node_Id; Val : Boolean := True);    -- Flag16
+
+   procedure Set_Is_Delayed_Aspect
+     (N : Node_Id; Val : Boolean := True);    -- Flag14
 
    procedure Set_Is_Dynamic_Coextension
      (N : Node_Id; Val : Boolean := True);    -- Flag18
@@ -9594,20 +9709,25 @@ package Sinfo is
    procedure Next_Rep_Item     (N : in out Node_Id);
    procedure Next_Use_Clause   (N : in out Node_Id);
 
-   --------------------------------------
-   -- Logical Access to End_Span Field --
-   --------------------------------------
+   -------------------------------------------
+   -- Miscellaneous Tree Access Subprograms --
+   -------------------------------------------
 
    function End_Location (N : Node_Id) return Source_Ptr;
-   --  N is an N_If_Statement or N_Case_Statement node, and this
-   --  function returns the location of the IF token in the END IF
-   --  sequence by translating the value of the End_Span field.
+   --  N is an N_If_Statement or N_Case_Statement node, and this function
+   --  returns the location of the IF token in the END IF sequence by
+   --  translating the value of the End_Span field.
 
    procedure Set_End_Location (N : Node_Id; S : Source_Ptr);
-   --  N is an N_If_Statement or N_Case_Statement node. This procedure
-   --  sets the End_Span field to correspond to the given value S. In
-   --  other words, End_Span is set to the difference between S and
-   --  Sloc (N), the starting location.
+   --  N is an N_If_Statement or N_Case_Statement node. This procedure sets
+   --  the End_Span field to correspond to the given value S. In other words,
+   --  End_Span is set to the difference between S and Sloc (N), the starting
+   --  location.
+
+   function Get_Pragma_Arg (Arg : Node_Id) return Node_Id;
+   --  Given an argument to a pragma Arg, this function returns the expression
+   --  for the argument. This is Arg itself, or, in the case where Arg is a
+   --  pragma argument association node, the expression from this node.
 
    --------------------------------
    -- Node_Kind Membership Tests --
@@ -11001,6 +11121,13 @@ package Sinfo is
         4 => False,   --  unused
         5 => False),  --  Next_Rep_Item (Node5-Sem)
 
+     N_Aspect_Specification =>
+       (1 => True,    --  Identifier (Node1)
+        2 => False,   --  Aspect_Rep_Item (Node2-Sem)
+        3 => True,    --  Expression (Node3)
+        4 => False,   --  Entity (Node4-Sem)
+        5 => False),  --  Next_Rep_Item (Node5-Sem)
+
      N_Enumeration_Representation_Clause =>
        (1 => True,    --  Identifier (Node1)
         2 => False,   --  unused
@@ -11232,8 +11359,6 @@ package Sinfo is
         4 => False,   --  unused
         5 => False),  --  unused
 
-   --  End of inserted output from makeisf program
-
    --  Entries for SCIL nodes
 
      N_SCIL_Dispatch_Table_Tag_Init =>
@@ -11314,6 +11439,8 @@ package Sinfo is
    pragma Inline (Alternatives);
    pragma Inline (Ancestor_Part);
    pragma Inline (Array_Aggregate);
+   pragma Inline (Aspect_Cancel);
+   pragma Inline (Aspect_Rep_Item);
    pragma Inline (Assignment_OK);
    pragma Inline (Associated_Node);
    pragma Inline (At_End_Proc);
@@ -11330,6 +11457,7 @@ package Sinfo is
    pragma Inline (Check_Address_Alignment);
    pragma Inline (Choice_Parameter);
    pragma Inline (Choices);
+   pragma Inline (Class_Present);
    pragma Inline (Coextensions);
    pragma Inline (Comes_From_Extended_Return_Statement);
    pragma Inline (Compile_Time_Known_Aggregate);
@@ -11421,6 +11549,7 @@ package Sinfo is
    pragma Inline (Float_Truncate);
    pragma Inline (Formal_Type_Definition);
    pragma Inline (Forwards_OK);
+   pragma Inline (From_Aspect_Specification);
    pragma Inline (From_At_End);
    pragma Inline (From_At_Mod);
    pragma Inline (From_Default);
@@ -11462,6 +11591,7 @@ package Sinfo is
    pragma Inline (Is_Component_Left_Opnd);
    pragma Inline (Is_Component_Right_Opnd);
    pragma Inline (Is_Controlling_Actual);
+   pragma Inline (Is_Delayed_Aspect);
    pragma Inline (Is_Dynamic_Coextension);
    pragma Inline (Is_Elsif);
    pragma Inline (Is_Entry_Barrier_Function);
@@ -11621,6 +11751,8 @@ package Sinfo is
    pragma Inline (Set_Alternatives);
    pragma Inline (Set_Ancestor_Part);
    pragma Inline (Set_Array_Aggregate);
+   pragma Inline (Set_Aspect_Cancel);
+   pragma Inline (Set_Aspect_Rep_Item);
    pragma Inline (Set_Assignment_OK);
    pragma Inline (Set_Associated_Node);
    pragma Inline (Set_At_End_Proc);
@@ -11637,6 +11769,7 @@ package Sinfo is
    pragma Inline (Set_Check_Address_Alignment);
    pragma Inline (Set_Choice_Parameter);
    pragma Inline (Set_Choices);
+   pragma Inline (Set_Class_Present);
    pragma Inline (Set_Coextensions);
    pragma Inline (Set_Comes_From_Extended_Return_Statement);
    pragma Inline (Set_Compile_Time_Known_Aggregate);
@@ -11727,6 +11860,7 @@ package Sinfo is
    pragma Inline (Set_Float_Truncate);
    pragma Inline (Set_Formal_Type_Definition);
    pragma Inline (Set_Forwards_OK);
+   pragma Inline (Set_From_Aspect_Specification);
    pragma Inline (Set_From_At_End);
    pragma Inline (Set_From_At_Mod);
    pragma Inline (Set_From_Default);
@@ -11767,6 +11901,7 @@ package Sinfo is
    pragma Inline (Set_Is_Component_Left_Opnd);
    pragma Inline (Set_Is_Component_Right_Opnd);
    pragma Inline (Set_Is_Controlling_Actual);
+   pragma Inline (Set_Is_Delayed_Aspect);
    pragma Inline (Set_Is_Dynamic_Coextension);
    pragma Inline (Set_Is_Elsif);
    pragma Inline (Set_Is_Entry_Barrier_Function);

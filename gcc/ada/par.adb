@@ -23,6 +23,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Aspects;  use Aspects;
 with Atree;    use Atree;
 with Casing;   use Casing;
 with Debug;    use Debug;
@@ -836,6 +837,25 @@ function Par (Configuration_Pragmas : Boolean) return List_Id is
    package Ch13 is
       function P_Representation_Clause                return Node_Id;
 
+      function Aspect_Specifications_Present return Boolean;
+      --  This function tests whether the next keyword is WITH followed by
+      --  something that looks reasonably like an aspect specification. If so,
+      --  True is returned. Otherwise False is returned. In either case control
+      --  returns with the token pointer unchanged (i.e. pointing to the WITH
+      --  token in the case where True is returned). This function takes care
+      --  of generating appropriate messages if aspect specifications appear
+      --  in versions of Ada prior to Ada 2012.
+
+      procedure P_Aspect_Specifications (Decl : Node_Id);
+      --  This subprogram is called with the current token pointing to either a
+      --  WITH keyword starting an aspect specification, or a semicolon. In the
+      --  former case, the aspect specifications are scanned out including the
+      --  terminating semicolon, the Has_Aspect_Specifications flag is set in
+      --  the given declaration node, and the list of aspect specifications is
+      --  constructed and associated with this declaration node using a call to
+      --  Set_Aspect_Specifications. If no WITH keyword is present, then this
+      --  call has no effect other than scanning out the semicolon.
+
       function P_Code_Statement (Subtype_Mark : Node_Id) return Node_Id;
       --  Function to parse a code statement. The caller has scanned out
       --  the name to be used as the subtype mark (but has not checked that
@@ -1375,7 +1395,7 @@ begin
 
             begin
                --  If parsing was successful and we are not in check syntax
-               --  mode, check that language defined units are compiled in GNAT
+               --  mode, check that language-defined units are compiled in GNAT
                --  mode. For this purpose we do NOT consider renamings in annex
                --  J as predefined. That allows users to compile their own
                --  versions of these files, and in particular, in the VMS
@@ -1406,7 +1426,7 @@ begin
                         Name = "system"
                      then
                         Error_Msg
-                          ("language defined units may not be recompiled",
+                          ("language-defined units cannot be recompiled",
                            Sloc (Unit (Comp_Unit_Node)));
 
                      elsif Name'Length > 4
@@ -1414,8 +1434,8 @@ begin
                          Name (Name'First .. Name'First + 3) = "ada."
                      then
                         Error_Msg
-                          ("descendents of package Ada " &
-                             "may not be compiled",
+                          ("user-defined descendents of package Ada " &
+                             "are not allowed",
                            Sloc (Unit (Comp_Unit_Node)));
 
                      elsif Name'Length > 11
@@ -1423,8 +1443,8 @@ begin
                          Name (Name'First .. Name'First + 10) = "interfaces."
                      then
                         Error_Msg
-                          ("descendents of package Interfaces " &
-                             "may not be compiled",
+                          ("user-defined descendents of package Interfaces " &
+                             "are not allowed",
                            Sloc (Unit (Comp_Unit_Node)));
 
                      elsif Name'Length > 7
@@ -1436,8 +1456,8 @@ begin
                                                                  "system.rpc.")
                      then
                         Error_Msg
-                          ("descendents of package System " &
-                             "may not be compiled",
+                          ("user-defined descendents of package System " &
+                             "are not allowed",
                            Sloc (Unit (Comp_Unit_Node)));
                      end if;
                   end;

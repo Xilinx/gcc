@@ -286,18 +286,6 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
       TYPE_SIZE_UNIT (void_type_node) = size_zero_node;
     }
 
-  /* If the GNU type extensions to DWARF are available, setup the hooks.  */
-#if defined (DWARF2_DEBUGGING_INFO) && defined (DWARF2_GNU_TYPE_EXTENSIONS)
-  /* We condition the name demangling and the generation of type encoding
-     strings on -gdwarf+ and always set descriptive types on.  */
-  if (use_gnu_debug_info_extensions)
-    {
-      dwarf2out_set_type_encoding_func (extract_encoding);
-      dwarf2out_set_demangle_name_func (decode_name);
-    }
-  dwarf2out_set_descriptive_type_func (get_parallel_type);
-#endif
-
   /* Enable GNAT stack checking method if needed */
   if (!Stack_Check_Probes_On_Target)
     set_stack_check_libfunc ("_gnat_stack_check");
@@ -987,6 +975,10 @@ Identifier_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p)
     {
       const bool read_only = DECL_POINTS_TO_READONLY_P (gnu_result);
       tree renamed_obj;
+
+      if (TREE_CODE (gnu_result) == PARM_DECL
+	  && DECL_BY_DOUBLE_REF_P (gnu_result))
+	gnu_result = build_unary_op (INDIRECT_REF, NULL_TREE, gnu_result);
 
       if (TREE_CODE (gnu_result) == PARM_DECL
 	  && DECL_BY_COMPONENT_PTR_P (gnu_result))
@@ -2595,9 +2587,13 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
        gnat_param = Next_Formal_With_Extras (gnat_param))
     {
       tree gnu_param = get_gnu_tree (gnat_param);
+      bool is_var_decl = (TREE_CODE (gnu_param) == VAR_DECL);
+
       annotate_object (gnat_param, TREE_TYPE (gnu_param), NULL_TREE,
-		       DECL_BY_REF_P (gnu_param));
-      if (TREE_CODE (gnu_param) == VAR_DECL)
+		       DECL_BY_REF_P (gnu_param),
+		       !is_var_decl && DECL_BY_DOUBLE_REF_P (gnu_param));
+
+      if (is_var_decl)
 	save_gnu_tree (gnat_param, NULL_TREE, false);
     }
 
@@ -2900,6 +2896,12 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	  /* The symmetry of the paths to the type of an entity is broken here
 	     since arguments don't know that they will be passed by ref.  */
 	  gnu_formal_type = TREE_TYPE (get_gnu_tree (gnat_formal));
+
+	  if (DECL_BY_DOUBLE_REF_P (gnu_formal))
+	    gnu_actual
+	      = build_unary_op (ADDR_EXPR, TREE_TYPE (gnu_formal_type),
+				gnu_actual);
+
 	  gnu_actual = build_unary_op (ADDR_EXPR, gnu_formal_type, gnu_actual);
 	}
       else if (gnu_formal
@@ -4482,7 +4484,8 @@ gnat_to_gnu (Node_Id gnat_node)
 	  }
 
 	if (kind == N_Not_In)
-	  gnu_result = invert_truthvalue (gnu_result);
+	  gnu_result
+	    = invert_truthvalue_loc (EXPR_LOCATION (gnu_result), gnu_result);
       }
       break;
 
@@ -5008,10 +5011,14 @@ gnat_to_gnu (Node_Id gnat_node)
     case N_Abstract_Subprogram_Declaration:
       /* This subprogram doesn't exist for code generation purposes, but we
 	 have to elaborate the types of any parameters and result, unless
-	 they are imported types (nothing to generate in this case).  */
+	 they are imported types (nothing to generate in this case).
+
+	 The parameter list may contain types with freeze nodes, e.g. not null
+	 subtypes, so the subprogram itself may carry a freeze node, in which
+	 case its elaboration must be deferred.  */
 
       /* Process the parameter types first.  */
-
+      if (No (Freeze_Node (Defining_Entity (Specification (gnat_node)))))
       for (gnat_temp
 	   = First_Formal_With_Extras
 	      (Defining_Entity (Specification (gnat_node)));
@@ -5021,9 +5028,7 @@ gnat_to_gnu (Node_Id gnat_node)
 	    && !From_With_Type (Etype (gnat_temp)))
 	  gnat_to_gnu_entity (Etype (gnat_temp), NULL_TREE, 0);
 
-
       /* Then the result type, set to Standard_Void_Type for procedures.  */
-
       {
 	Entity_Id gnat_temp_type
 	  = Etype (Defining_Entity (Specification (gnat_node)));

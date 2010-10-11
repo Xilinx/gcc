@@ -1577,6 +1577,15 @@ begin
            Program_Name (Command_List (The_Command).Unixcmd.all, "gnat");
       end if;
 
+      --  For the tools where the GNAT driver processes the project files,
+      --  allow shared library projects to import projects that are not shared
+      --  library projects, to avoid adding a switch for these tools. For the
+      --  builder (gnatmake), if a shared library project imports a project
+      --  that is not a shared library project and the appropriate switch is
+      --  not specified, the invocation of gnatmake will fail.
+
+      Opt.Unchecked_Shared_Lib_Imports := True;
+
       --  Locate the executable for the command
 
       Exec_Path := Locate_Exec_On_Path (Program.all);

@@ -653,7 +653,7 @@ package body Exp_Attr is
       --  eventually we plan to expand the functions that are treated as
       --  build-in-place to include other composite result types.
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Is_Build_In_Place_Function_Call (Pref)
       then
          Make_Build_In_Place_Call_In_Anonymous_Context (Pref);
@@ -1396,7 +1396,7 @@ package body Exp_Attr is
          --  to Callable. Generate:
          --    callable (Task_Id (Pref._disp_get_task_id));
 
-         if Ada_Version >= Ada_05
+         if Ada_Version >= Ada_2005
            and then Ekind (Ptyp) = E_Class_Wide_Type
            and then Is_Interface (Ptyp)
            and then Is_Task_Interface (Ptyp)
@@ -1627,9 +1627,9 @@ package body Exp_Attr is
 
                elsif not Is_Variable (Pref)
                  or else Present (Formal_Ent)
-                 or else (Ada_Version < Ada_05
+                 or else (Ada_Version < Ada_2005
                             and then Is_Aliased_View (Pref))
-                 or else (Ada_Version >= Ada_05
+                 or else (Ada_Version >= Ada_2005
                             and then Is_Constrained_Aliased_View (Pref))
                then
                   Res := True;
@@ -2206,7 +2206,7 @@ package body Exp_Attr is
             --  dynamically through a dispatching call, as for other task
             --  attributes applied to interfaces.
 
-            if Ada_Version >= Ada_05
+            if Ada_Version >= Ada_2005
               and then Ekind (Ptyp) = E_Class_Wide_Type
               and then Is_Interface (Ptyp)
               and then Is_Task_Interface (Ptyp)
@@ -3174,7 +3174,7 @@ package body Exp_Attr is
                   --  We cannot figure out a practical way to implement this
                   --  accessibility check on virtual machines, so we omit it.
 
-                  if Ada_Version >= Ada_05
+                  if Ada_Version >= Ada_2005
                     and then Tagged_Type_Expansion
                   then
                      Insert_Action (N,
@@ -3791,6 +3791,12 @@ package body Exp_Attr is
 
          Rewrite_Stream_Proc_Call (Pname);
       end Read;
+
+      ---------
+      -- Ref --
+      ---------
+
+      --  Ref is identical to To_Address, see To_Address for processing
 
       ---------------
       -- Remainder --
@@ -4471,7 +4477,7 @@ package body Exp_Attr is
          --  Generate:
          --    terminated (Task_Id (Pref._disp_get_task_id));
 
-         if Ada_Version >= Ada_05
+         if Ada_Version >= Ada_2005
            and then Ekind (Ptyp) = E_Class_Wide_Type
            and then Is_Interface (Ptyp)
            and then Is_Task_Interface (Ptyp)
@@ -4507,10 +4513,10 @@ package body Exp_Attr is
       -- To_Address --
       ----------------
 
-      --  Transforms System'To_Address (X) into unchecked conversion
-      --  from (integral) type of X to type address.
+      --  Transforms System'To_Address (X) and System.Address'Ref (X) into
+      --  unchecked conversion from (integral) type of X to type address.
 
-      when Attribute_To_Address =>
+      when Attribute_To_Address | Attribute_Ref =>
          Rewrite (N,
            Unchecked_Convert_To (RTE (RE_Address),
              Relocate_Node (First (Exprs))));
@@ -5355,6 +5361,7 @@ package body Exp_Attr is
            Attribute_Stub_Type                    |
            Attribute_Target_Name                  |
            Attribute_Type_Class                   |
+           Attribute_Type_Key                     |
            Attribute_Unconstrained_Array          |
            Attribute_Universal_Literal_String     |
            Attribute_Wchar_T_Size                 |

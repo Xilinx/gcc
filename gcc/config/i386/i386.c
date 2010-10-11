@@ -3632,15 +3632,11 @@ ix86_option_override_internal (bool main_args_p)
   if (!TARGET_SCHEDULE)
     flag_schedule_insns_after_reload = flag_schedule_insns = 0;
 
-  if (!PARAM_SET_P (PARAM_SIMULTANEOUS_PREFETCHES))
-    set_param_value ("simultaneous-prefetches",
-		     ix86_cost->simultaneous_prefetches);
-  if (!PARAM_SET_P (PARAM_L1_CACHE_LINE_SIZE))
-    set_param_value ("l1-cache-line-size", ix86_cost->prefetch_block);
-  if (!PARAM_SET_P (PARAM_L1_CACHE_SIZE))
-    set_param_value ("l1-cache-size", ix86_cost->l1_cache_size);
-  if (!PARAM_SET_P (PARAM_L2_CACHE_SIZE))
-    set_param_value ("l2-cache-size", ix86_cost->l2_cache_size);
+  maybe_set_param_value (PARAM_SIMULTANEOUS_PREFETCHES,
+			 ix86_cost->simultaneous_prefetches);
+  maybe_set_param_value (PARAM_L1_CACHE_LINE_SIZE, ix86_cost->prefetch_block);
+  maybe_set_param_value (PARAM_L1_CACHE_SIZE, ix86_cost->l1_cache_size);
+  maybe_set_param_value (PARAM_L2_CACHE_SIZE, ix86_cost->l2_cache_size);
 
   /* Enable sw prefetching at -O3 for CPUS that prefetching is helpful.  */
   if (flag_prefetch_loop_arrays < 0
@@ -12305,6 +12301,49 @@ ix86_pic_register_p (rtx x)
     return REG_P (x) && REGNO (x) == PIC_OFFSET_TABLE_REGNUM;
 }
 
+/* Helper function for ix86_delegitimize_address.
+   Attempt to delegitimize TLS local-exec accesses.  */
+
+static rtx
+ix86_delegitimize_tls_address (rtx orig_x)
+{
+  rtx x = orig_x, unspec;
+  struct ix86_address addr;
+
+  if (!TARGET_TLS_DIRECT_SEG_REFS)
+    return orig_x;
+  if (MEM_P (x))
+    x = XEXP (x, 0);
+  if (GET_CODE (x) != PLUS || GET_MODE (x) != Pmode)
+    return orig_x;
+  if (ix86_decompose_address (x, &addr) == 0
+      || addr.seg != (TARGET_64BIT ? SEG_FS : SEG_GS)
+      || addr.disp == NULL_RTX
+      || GET_CODE (addr.disp) != CONST)
+    return orig_x;
+  unspec = XEXP (addr.disp, 0);
+  if (GET_CODE (unspec) == PLUS && CONST_INT_P (XEXP (unspec, 1)))
+    unspec = XEXP (unspec, 0);
+  if (GET_CODE (unspec) != UNSPEC || XINT (unspec, 1) != UNSPEC_NTPOFF)
+    return orig_x;
+  x = XVECEXP (unspec, 0, 0);
+  gcc_assert (GET_CODE (x) == SYMBOL_REF);
+  if (unspec != XEXP (addr.disp, 0))
+    x = gen_rtx_PLUS (Pmode, x, XEXP (XEXP (addr.disp, 0), 1));
+  if (addr.index)
+    {
+      rtx idx = addr.index;
+      if (addr.scale != 1)
+	idx = gen_rtx_MULT (Pmode, idx, GEN_INT (addr.scale));
+      x = gen_rtx_PLUS (Pmode, idx, x);
+    }
+  if (addr.base)
+    x = gen_rtx_PLUS (Pmode, addr.base, x);
+  if (MEM_P (orig_x))
+    x = replace_equiv_address_nv (orig_x, x);
+  return x;
+}
+
 /* In the name of slightly smaller debug output, and to cater to
    general assembler lossage, recognize PIC+GOTOFF and turn it back
    into a direct symbol reference.
@@ -12340,7 +12379,7 @@ ix86_delegitimize_address (rtx x)
 	  || GET_CODE (XEXP (x, 0)) != UNSPEC
 	  || XINT (XEXP (x, 0), 1) != UNSPEC_GOTPCREL
 	  || !MEM_P (orig_x))
-	return orig_x;
+	return ix86_delegitimize_tls_address (orig_x);
       x = XVECEXP (XEXP (x, 0), 0, 0);
       if (GET_MODE (orig_x) != Pmode)
 	return simplify_gen_subreg (GET_MODE (orig_x), x, Pmode, 0);
@@ -12349,7 +12388,7 @@ ix86_delegitimize_address (rtx x)
 
   if (GET_CODE (x) != PLUS
       || GET_CODE (XEXP (x, 1)) != CONST)
-    return orig_x;
+    return ix86_delegitimize_tls_address (orig_x);
 
   if (ix86_pic_register_p (XEXP (x, 0)))
     /* %ebx + GOT/GOTOFF */
@@ -12389,7 +12428,7 @@ ix86_delegitimize_address (rtx x)
     result = XVECEXP (x, 0, 0);
 
   if (! result)
-    return orig_x;
+    return ix86_delegitimize_tls_address (orig_x);
 
   if (const_addend)
     result = gen_rtx_CONST (Pmode, gen_rtx_PLUS (Pmode, result, const_addend));
@@ -26611,12 +26650,15 @@ i386_ira_cover_classes (void)
  return TARGET_SSE_MATH ? sse_fpmath_classes : no_sse_fpmath_classes;
 }
 
-/* Put float CONST_DOUBLE in the constant pool instead of fp regs.
+/* Implement TARGET_PREFERRED_RELOAD_CLASS.
+
+   Put float CONST_DOUBLE in the constant pool instead of fp regs.
    QImode must go into class Q_REGS.
    Narrow ALL_REGS to GENERAL_REGS.  This supports allowing movsf and
    movdf to do mem-to-mem moves through integer regs.  */
-enum reg_class
-ix86_preferred_reload_class (rtx x, enum reg_class regclass)
+
+static reg_class_t
+ix86_preferred_reload_class (rtx x, reg_class_t regclass)
 {
   enum machine_mode mode = GET_MODE (x);
 
@@ -33256,6 +33298,8 @@ ix86_autovectorize_vector_sizes (void)
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD ix86_secondary_reload
 
+#undef TARGET_PREFERRED_RELOAD_CLASS
+#define TARGET_PREFERRED_RELOAD_CLASS ix86_preferred_reload_class
 #undef TARGET_CLASS_LIKELY_SPILLED_P
 #define TARGET_CLASS_LIKELY_SPILLED_P ix86_class_likely_spilled_p
 

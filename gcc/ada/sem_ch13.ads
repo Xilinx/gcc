@@ -36,6 +36,17 @@ package Sem_Ch13 is
    procedure Analyze_Record_Representation_Clause       (N : Node_Id);
    procedure Analyze_Code_Statement                     (N : Node_Id);
 
+   procedure Analyze_Aspect_Specifications
+     (N : Node_Id;
+      E : Entity_Id;
+      L : List_Id);
+   --  This procedure is called to analyze aspect spefications for node N. E is
+   --  the corresponding entity declared by the declaration node N, and L is
+   --  the list of aspect specifications for this node. If L is No_List, the
+   --  call is ignored. Note that we can't use a simpler interface of just
+   --  passing the node N, since the analysis of the node may cause it to be
+   --  rewritten to a node not permitting aspect specifications.
+
    procedure Adjust_Record_For_Reverse_Bit_Order (R : Entity_Id);
    --  Called from Freeze where R is a record entity for which reverse bit
    --  order is specified and there is at least one component clause. Adjusts
@@ -148,6 +159,11 @@ package Sem_Ch13 is
    --  the case of a private or incomplete type. The protocol is to first
    --  check for Rep_Item_Too_Early using the initial entity, then take the
    --  underlying type, then call Rep_Item_Too_Late on the result.
+   --
+   --  Note: Calls to Rep_Item_Too_Late are ignored for the case of attribute
+   --  definition clauses which have From_Aspect_Specification set. This is
+   --  because such clauses are linked on to the Rep_Item chain in procedure
+   --  Sem_Ch13.Analyze_Aspect_Specifications. See that procedure for details.
 
    function Same_Representation (Typ1, Typ2 : Entity_Id) return Boolean;
    --  Given two types, where the two types are related by possible derivation,

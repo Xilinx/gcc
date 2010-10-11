@@ -604,7 +604,7 @@ package body Exp_Disp is
       elsif TSS_Name = TSS_Deep_Finalize then
          return Uint_10;
 
-      elsif Ada_Version >= Ada_05 then
+      elsif Ada_Version >= Ada_2005 then
          if Chars (E) = Name_uDisp_Asynchronous_Select then
             return Uint_11;
 
@@ -1971,7 +1971,7 @@ package body Exp_Disp is
 
    function Is_Predefined_Interface_Primitive (E : Entity_Id) return Boolean is
    begin
-      return Ada_Version >= Ada_05
+      return Ada_Version >= Ada_2005
         and then (Chars (E) = Name_uDisp_Asynchronous_Select or else
                   Chars (E) = Name_uDisp_Conditional_Select  or else
                   Chars (E) = Name_uDisp_Get_Prim_Op_Kind    or else
@@ -4387,7 +4387,7 @@ package body Exp_Disp is
             Prim_Elmt := First_Elmt (Primitive_Operations (Typ));
             while Present (Prim_Elmt) loop
                Prim    := Node (Prim_Elmt);
-               Frnodes := Freeze_Entity (Prim, Loc);
+               Frnodes := Freeze_Entity (Prim, Typ);
 
                declare
                   F : Entity_Id;
@@ -5220,7 +5220,7 @@ package body Exp_Disp is
       --  constrained by the number of non-predefined primitive operations.
 
       if RTE_Record_Component_Available (RE_SSD) then
-         if Ada_Version >= Ada_05
+         if Ada_Version >= Ada_2005
            and then Has_DT (Typ)
            and then Is_Concurrent_Record_Type (Typ)
            and then Has_Interfaces (Typ)
@@ -6030,7 +6030,7 @@ package body Exp_Disp is
       --  a limited interface. Skip this step in Ravenscar profile or when
       --  general dispatching is forbidden.
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Is_Concurrent_Record_Type (Typ)
         and then Has_Interfaces (Typ)
         and then not Restriction_Active (No_Dispatching_Calls)
@@ -6728,8 +6728,8 @@ package body Exp_Disp is
             --  generating these freezing nodes in wrong scopes (for example in
             --  the IC routine of a derivation of Typ).
 
-            Append_List_To (Result, Freeze_Entity (DT_Prims, Loc));
-            Append_List_To (Result, Freeze_Entity (DT_Prims_Acc, Loc));
+            Append_List_To (Result, Freeze_Entity (DT_Prims, Typ));
+            Append_List_To (Result, Freeze_Entity (DT_Prims_Acc, Typ));
 
             --  Mark entity of dispatch table. Required by the back end to
             --  handle them properly.

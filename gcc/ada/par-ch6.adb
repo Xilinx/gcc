@@ -218,7 +218,7 @@ package body Ch6 is
 
       if Is_Overriding or else Not_Overriding then
 
-         --  Note that if we are not in Ada_05 mode, error messages have
+         --  Note that if we are not in Ada_2005 mode, error messages have
          --  already been given, so no need to give another message here.
 
          --  An overriding indicator is allowed for subprogram declarations,
@@ -305,7 +305,7 @@ package body Ch6 is
 
             Set_Defining_Unit_Name (Inst_Node, Name_Node);
             Set_Generic_Associations (Inst_Node, P_Generic_Actual_Part_Opt);
-            TF_Semicolon;
+            P_Aspect_Specifications (Inst_Node);
             Pop_Scope_Stack; -- Don't need scope stack entry in this case
 
             if Is_Overriding then
@@ -367,7 +367,7 @@ package body Ch6 is
          --  Ada 2005 (AI-318-02)
 
          if Token = Tok_Access then
-            if Ada_Version < Ada_05 then
+            if Ada_Version < Ada_2005 then
                Error_Msg_SC
                  ("anonymous access result type is an Ada 2005 extension");
                Error_Msg_SC ("\unit must be compiled with -gnat05 switch");
@@ -525,13 +525,13 @@ package body Ch6 is
                Set_Specification (Absdec_Node, Specification_Node);
                Pop_Scope_Stack; -- discard unneeded entry
                Scan; -- past ABSTRACT
-               TF_Semicolon;
+               P_Aspect_Specifications (Absdec_Node);
                return Absdec_Node;
 
             --  Ada 2005 (AI-248): Parse a null procedure declaration
 
             elsif Token = Tok_Null then
-               if Ada_Version < Ada_05 then
+               if Ada_Version < Ada_2005 then
                   Error_Msg_SP ("null procedures are an Ada 2005 extension");
                   Error_Msg_SP ("\unit must be compiled with -gnat05 switch");
                end if;
@@ -710,7 +710,7 @@ package body Ch6 is
 
                   --  Check we are in Ada 2012 mode
 
-                  if Ada_Version < Ada_12 then
+                  if Ada_Version < Ada_2012 then
                      Error_Msg_SC
                        ("parameterized expression is an Ada 2012 feature!");
                      Error_Msg_SC
@@ -842,7 +842,7 @@ package body Ch6 is
          --  Ada 2005 (AI-318-02)
 
          if Token = Tok_Access then
-            if Ada_Version < Ada_05 then
+            if Ada_Version < Ada_2005 then
                Error_Msg_SC
                  ("anonymous access result type is an Ada 2005 extension");
                Error_Msg_SC ("\unit must be compiled with -gnat05 switch");
@@ -1678,7 +1678,7 @@ package body Ch6 is
          --  Extended_return_statement (Ada 2005 only -- AI-318):
 
          else
-            if Ada_Version < Ada_05 then
+            if Ada_Version < Ada_2005 then
                Error_Msg_SP
                  (" extended_return_statement is an Ada 2005 extension");
                Error_Msg_SP ("\unit must be compiled with -gnat05 switch");

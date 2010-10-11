@@ -23,6 +23,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Aspects;  use Aspects;
 with Atree;    use Atree;
 with Checks;   use Checks;
 with Einfo;    use Einfo;
@@ -44,6 +45,7 @@ with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch5;  use Sem_Ch5;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
+with Sem_Ch13; use Sem_Ch13;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
 with Sem_Type; use Sem_Type;
@@ -104,14 +106,14 @@ package body Sem_Ch9 is
          Analyze (T_Name);
 
          if Is_Task_Type (Etype (T_Name))
-           or else (Ada_Version >= Ada_05
+           or else (Ada_Version >= Ada_2005
                       and then Ekind (Etype (T_Name)) = E_Class_Wide_Type
                       and then Is_Interface (Etype (T_Name))
                       and then Is_Task_Interface (Etype (T_Name)))
          then
             Resolve (T_Name);
          else
-            if Ada_Version >= Ada_05 then
+            if Ada_Version >= Ada_2005 then
                Error_Msg_N ("expect task name or task interface class-wide "
                           & "object for ABORT", T_Name);
             else
@@ -402,7 +404,7 @@ package body Sem_Ch9 is
       Check_Restriction (Max_Asynchronous_Select_Nesting, N);
       Check_Restriction (No_Select_Statements, N);
 
-      if Ada_Version >= Ada_05 then
+      if Ada_Version >= Ada_2005 then
          Trigger := Triggering_Statement (Triggering_Alternative (N));
 
          Analyze (Trigger);
@@ -448,7 +450,7 @@ package body Sem_Ch9 is
 
       --  Ada 2005 (AI-345): The trigger may be a dispatching call
 
-      if Ada_Version >= Ada_05 then
+      if Ada_Version >= Ada_2005 then
          Analyze (Trigger);
          Check_Triggering_Statement (Trigger, N, Is_Disp_Select);
       end if;
@@ -904,6 +906,7 @@ package body Sem_Ch9 is
       end if;
 
       Generate_Reference_To_Formals (Def_Id);
+      Analyze_Aspect_Specifications (N, Def_Id, Aspect_Specifications (N));
    end Analyze_Entry_Declaration;
 
    ---------------------------------------
@@ -1122,11 +1125,11 @@ package body Sem_Ch9 is
       Process_End_Label (N, 'e', Current_Scope);
    end Analyze_Protected_Definition;
 
-   ----------------------------
-   -- Analyze_Protected_Type --
-   ----------------------------
+   ----------------------------------------
+   -- Analyze_Protected_Type_Declaration --
+   ----------------------------------------
 
-   procedure Analyze_Protected_Type (N : Node_Id) is
+   procedure Analyze_Protected_Type_Declaration (N : Node_Id) is
       Def_Id : constant Entity_Id := Defining_Identifier (N);
       E      : Entity_Id;
       T      : Entity_Id;
@@ -1134,7 +1137,7 @@ package body Sem_Ch9 is
    begin
       if No_Run_Time_Mode then
          Error_Msg_CRT ("protected type", N);
-         return;
+         goto Leave;
       end if;
 
       Tasking_Used := True;
@@ -1158,7 +1161,7 @@ package body Sem_Ch9 is
       Set_Stored_Constraint  (T, No_Elist);
       Push_Scope (T);
 
-      if Ada_Version >= Ada_05 then
+      if Ada_Version >= Ada_2005 then
          Check_Interfaces (N, T);
       end if;
 
@@ -1254,7 +1257,10 @@ package body Sem_Ch9 is
             Process_Full_View (N, T, Def_Id);
          end if;
       end if;
-   end Analyze_Protected_Type;
+
+      <<Leave>>
+         Analyze_Aspect_Specifications (N, Def_Id, Aspect_Specifications (N));
+   end Analyze_Protected_Type_Declaration;
 
    ---------------------
    -- Analyze_Requeue --
@@ -1651,11 +1657,11 @@ package body Sem_Ch9 is
       end if;
    end Analyze_Selective_Accept;
 
-   ------------------------------
-   -- Analyze_Single_Protected --
-   ------------------------------
+   ------------------------------------------
+   -- Analyze_Single_Protected_Declaration --
+   ------------------------------------------
 
-   procedure Analyze_Single_Protected (N : Node_Id) is
+   procedure Analyze_Single_Protected_Declaration (N : Node_Id) is
       Loc    : constant Source_Ptr := Sloc (N);
       Id     : constant Node_Id    := Defining_Identifier (N);
       T      : Entity_Id;
@@ -1704,14 +1710,15 @@ package body Sem_Ch9 is
       --  procedure directly. Otherwise the node would be expanded twice, with
       --  disastrous result.
 
-      Analyze_Protected_Type (N);
-   end Analyze_Single_Protected;
+      Analyze_Protected_Type_Declaration (N);
+      Analyze_Aspect_Specifications (N, Id, Aspect_Specifications (N));
+   end Analyze_Single_Protected_Declaration;
 
-   -------------------------
-   -- Analyze_Single_Task --
-   -------------------------
+   -------------------------------------
+   -- Analyze_Single_Task_Declaration --
+   -------------------------------------
 
-   procedure Analyze_Single_Task (N : Node_Id) is
+   procedure Analyze_Single_Task_Declaration (N : Node_Id) is
       Loc    : constant Source_Ptr := Sloc (N);
       Id     : constant Node_Id    := Defining_Identifier (N);
       T      : Entity_Id;
@@ -1768,8 +1775,9 @@ package body Sem_Ch9 is
       --  procedure directly. Otherwise the node would be expanded twice, with
       --  disastrous result.
 
-      Analyze_Task_Type (N);
-   end Analyze_Single_Task;
+      Analyze_Task_Type_Declaration (N);
+      Analyze_Aspect_Specifications (N, Id, Aspect_Specifications (N));
+   end Analyze_Single_Task_Declaration;
 
    -----------------------
    -- Analyze_Task_Body --
@@ -1935,11 +1943,11 @@ package body Sem_Ch9 is
       Process_End_Label (N, 'e', Current_Scope);
    end Analyze_Task_Definition;
 
-   -----------------------
-   -- Analyze_Task_Type --
-   -----------------------
+   -----------------------------------
+   -- Analyze_Task_Type_Declaration --
+   -----------------------------------
 
-   procedure Analyze_Task_Type (N : Node_Id) is
+   procedure Analyze_Task_Type_Declaration (N : Node_Id) is
       Def_Id : constant Entity_Id := Defining_Identifier (N);
       T      : Entity_Id;
 
@@ -1966,7 +1974,7 @@ package body Sem_Ch9 is
       Set_Stored_Constraint  (T, No_Elist);
       Push_Scope (T);
 
-      if Ada_Version >= Ada_05 then
+      if Ada_Version >= Ada_2005 then
          Check_Interfaces (N, T);
       end if;
 
@@ -2038,7 +2046,9 @@ package body Sem_Ch9 is
             Process_Full_View (N, T, Def_Id);
          end if;
       end if;
-   end Analyze_Task_Type;
+
+      Analyze_Aspect_Specifications (N, Def_Id, Aspect_Specifications (N));
+   end Analyze_Task_Type_Declaration;
 
    -----------------------------------
    -- Analyze_Terminate_Alternative --
@@ -2072,7 +2082,7 @@ package body Sem_Ch9 is
 
       --  Ada 2005 (AI-345): The trigger may be a dispatching call
 
-      if Ada_Version >= Ada_05 then
+      if Ada_Version >= Ada_2005 then
          Analyze (Trigger);
          Check_Triggering_Statement (Trigger, N, Is_Disp_Select);
       end if;
@@ -2114,7 +2124,7 @@ package body Sem_Ch9 is
         and then Nkind (Trigger) not in N_Delay_Statement
         and then Nkind (Trigger) /= N_Entry_Call_Statement
       then
-         if Ada_Version < Ada_05 then
+         if Ada_Version < Ada_2005 then
             Error_Msg_N
              ("triggering statement must be delay or entry call", Trigger);
 
@@ -2400,7 +2410,7 @@ package body Sem_Ch9 is
       --  It is not possible to have a dispatching trigger if we are not in
       --  Ada 2005 mode.
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Nkind (Trigger) = N_Procedure_Call_Statement
         and then Present (Parameter_Associations (Trigger))
       then

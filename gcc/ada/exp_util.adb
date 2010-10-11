@@ -2774,6 +2774,7 @@ package body Exp_Util is
                N_Access_To_Object_Definition            |
                N_Aggregate                              |
                N_Allocator                              |
+               N_Aspect_Specification                   |
                N_Case_Expression                        |
                N_Case_Statement_Alternative             |
                N_Character_Literal                      |
@@ -4539,16 +4540,17 @@ package body Exp_Util is
                  or else Ekind (Entity (Prefix (N))) = E_In_Parameter;
             end if;
 
-         --  If the prefix is an explicit dereference that is not access-to-
-         --  constant then this construct is a variable reference, which means
-         --  it is to be considered to have side effects if Variable_Ref is
-         --  True.
+         --  If the prefix is an explicit dereference then this construct is a
+         --  variable reference, which means it is to be considered to have
+         --  side effects if Variable_Ref is True.
+
+         --  We do NOT exclude dereferences of access-to-constant types because
+         --  we handle them as constant view of variables.
 
          --  Exception is an access to an entity that is a constant or an
          --  in-parameter.
 
          elsif Nkind (Prefix (N)) = N_Explicit_Dereference
-           and then not Is_Access_Constant (Etype (Prefix (Prefix (N))))
            and then Variable_Ref
          then
             declare
@@ -4837,6 +4839,17 @@ package body Exp_Util is
          return;
       end if;
 
+      --  No action needed for renamings of class-wide expressions because for
+      --  class-wide types Remove_Side_Effects uses a renaming to capture the
+      --  expression (and hence we would generate a never-ending loop in the
+      --  front end).
+
+      if Is_Class_Wide_Type (Exp_Type)
+         and then Nkind (Parent (Exp)) = N_Object_Renaming_Declaration
+      then
+         return;
+      end if;
+
       --  All this must not have any checks
 
       Scope_Suppress := (others => True);
@@ -5030,7 +5043,7 @@ package body Exp_Util is
          if Nkind (Exp) = N_Function_Call
            and then Is_Immutably_Limited_Type (Etype (Exp))
            and then Nkind (Parent (Exp)) /= N_Object_Declaration
-           and then Ada_Version >= Ada_05
+           and then Ada_Version >= Ada_2005
          then
             declare
                Obj  : constant Entity_Id := Make_Temporary (Loc, 'F', Exp);

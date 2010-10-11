@@ -228,7 +228,7 @@ package body Sem_Disp is
                   --  In Ada 2005, access parameters can have defaults
 
                   if Ekind (Etype (Formal)) = E_Anonymous_Access_Type
-                    and then Ada_Version < Ada_05
+                    and then Ada_Version < Ada_2005
                   then
                      Error_Msg_N
                        ("default not allowed for controlling access parameter",
@@ -756,7 +756,7 @@ package body Sem_Disp is
       --  Required because primitives of concurrent types are be attached
       --  to the corresponding record (not to the concurrent type).
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Present (Tagged_Type)
         and then Is_Concurrent_Type (Tagged_Type)
         and then Present (Corresponding_Record_Type (Tagged_Type))
@@ -1044,9 +1044,15 @@ package body Sem_Disp is
          --  If the type is not frozen yet and we are not in the overriding
          --  case it looks suspiciously like an attempt to define a primitive
          --  operation, which requires the declaration to be in a package spec
-         --  (3.2.3(6)).
+         --  (3.2.3(6)). Only report cases where the type and subprogram are
+         --  in the same declaration list (by checking the enclosing parent
+         --  declarations), to avoid spurious warnings on subprograms in
+         --  instance bodies when the type is declared in the instance spec but
+         --  hasn't been frozen by the instance body.
 
-         elsif not Is_Frozen (Tagged_Type) then
+         elsif not Is_Frozen (Tagged_Type)
+           and then In_Same_List (Parent (Tagged_Type), Parent (Parent (Subp)))
+         then
             Error_Msg_N
               ("?not dispatching (must be defined in a package spec)", Subp);
             return;
@@ -1809,7 +1815,7 @@ package body Sem_Disp is
       --  is also tag-indeterminate.
 
       elsif Nkind (Orig_Node) = N_Explicit_Dereference
-        and then Ada_Version >= Ada_05
+        and then Ada_Version >= Ada_2005
       then
          return Is_Tag_Indeterminate (Prefix (Orig_Node));
 
@@ -1876,7 +1882,7 @@ package body Sem_Disp is
          Replace_Elmt (Elmt, New_Op);
       end if;
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Has_Interfaces (Tagged_Type)
       then
          --  Ada 2005 (AI-251): Update the attribute alias of all the aliased

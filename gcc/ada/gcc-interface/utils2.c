@@ -791,7 +791,7 @@ build_binary_op (enum tree_code op_code, tree result_type,
 	  result = compare_arrays (result_type, left_operand, right_operand);
 
 	  if (op_code == NE_EXPR)
-	    result = invert_truthvalue (result);
+	    result = invert_truthvalue_loc (EXPR_LOCATION (result), result);
 	  else
 	    gcc_assert (op_code == EQ_EXPR);
 
@@ -1018,7 +1018,7 @@ build_unary_op (enum tree_code op_code, tree result_type, tree operand)
 #ifdef ENABLE_CHECKING
       gcc_assert (TREE_CODE (get_base_type (result_type)) == BOOLEAN_TYPE);
 #endif
-      result = invert_truthvalue (operand);
+      result = invert_truthvalue_loc (EXPR_LOCATION (operand), operand);
       break;
 
     case ATTR_ADDR_EXPR:
@@ -1562,8 +1562,7 @@ gnat_build_constructor (tree type, VEC(constructor_elt,gc) *v)
      by increasing bit position.  This is necessary to ensure the
      constructor can be output as static data.  */
   if (allconstant && TREE_CODE (type) == RECORD_TYPE && n_elmts > 1)
-    qsort (VEC_address (constructor_elt, v), n_elmts,
-           sizeof (constructor_elt), compare_elmt_bitpos);
+    VEC_qsort (constructor_elt, v, compare_elmt_bitpos);
 
   result = build_constructor (type, v);
   TREE_CONSTANT (result) = TREE_STATIC (result) = allconstant;
@@ -1820,9 +1819,10 @@ maybe_wrap_malloc (tree data_size, tree data_type, Node_Id gnat_node)
   /* On VMS, if pointers are 64-bit and the allocator size is 32-bit or
      Convention C, allocate 32-bit memory.  */
   if (TARGET_ABI_OPEN_VMS
-      && (POINTER_SIZE == 64
-	     && (UI_To_Int (Esize (Etype (gnat_node))) == 32
-		 || Convention (Etype (gnat_node)) == Convention_C)))
+      && POINTER_SIZE == 64
+      && Nkind (gnat_node) == N_Allocator
+      && (UI_To_Int (Esize (Etype (gnat_node))) == 32
+          || Convention (Etype (gnat_node)) == Convention_C))
     malloc_ptr = build_call_1_expr (malloc32_decl, size_to_malloc);
   else
     malloc_ptr = build_call_1_expr (malloc_decl, size_to_malloc);

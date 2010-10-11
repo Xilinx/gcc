@@ -1476,9 +1476,7 @@ compare_case_labels (const void *p1, const void *p2)
 void
 sort_case_labels (VEC(tree,heap)* label_vec)
 {
-  size_t len = VEC_length (tree, label_vec);
-  qsort (VEC_address (tree, label_vec), len, sizeof (tree),
-         compare_case_labels);
+  VEC_qsort (tree, label_vec, compare_case_labels);
 }
 
 
@@ -6798,6 +6796,7 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	case INDIRECT_REF:
 	  {
 	    bool volatilep = TREE_THIS_VOLATILE (*expr_p);
+	    bool notrap = TREE_THIS_NOTRAP (*expr_p);
 	    tree saved_ptr_type = TREE_TYPE (TREE_OPERAND (*expr_p, 0));
 
 	    *expr_p = fold_indirect_ref_loc (input_location, *expr_p);
@@ -6818,6 +6817,7 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 				       TREE_OPERAND (*expr_p, 0),
 				       build_int_cst (saved_ptr_type, 0));
 	    TREE_THIS_VOLATILE (*expr_p) = volatilep;
+	    TREE_THIS_NOTRAP (*expr_p) = notrap;
 	    ret = GS_OK;
 	    break;
 	  }

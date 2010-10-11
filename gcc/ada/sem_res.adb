@@ -301,7 +301,7 @@ package body Sem_Res is
 
          --  Include Wide_Wide_Character in Ada 2005 mode
 
-         if Ada_Version >= Ada_05 then
+         if Ada_Version >= Ada_2005 then
             Error_Msg_N ("\\possible interpretation: Wide_Wide_Character!", C);
          end if;
 
@@ -708,7 +708,7 @@ package body Sem_Res is
       --  are handled by Analyze_Access_Attribute, Analyze_Assignment,
       --  Analyze_Object_Renaming, and Freeze_Entity.
 
-      elsif Ada_Version >= Ada_05
+      elsif Ada_Version >= Ada_2005
         and then Is_Entity_Name (Pref)
         and then Is_Access_Type (Etype (Pref))
         and then Ekind (Directly_Designated_Type (Etype (Pref))) =
@@ -1372,7 +1372,7 @@ package body Sem_Res is
          --  Ada 2005 AI-420: Predefined equality on Universal_Access is
          --  available.
 
-         elsif Ada_Version >= Ada_05
+         elsif Ada_Version >= Ada_2005
            and then (Op_Name = Name_Op_Eq or else Op_Name = Name_Op_Ne)
            and then Ekind (Etype (Act1)) = E_Anonymous_Access_Type
          then
@@ -2045,7 +2045,7 @@ package body Sem_Res is
                --  type against which we are resolving is the same as the
                --  type of the interpretation.
 
-               if Ada_Version >= Ada_05
+               if Ada_Version >= Ada_2005
                  and then It.Typ = Typ
                  and then Typ /= Universal_Integer
                  and then Typ /= Universal_Real
@@ -3351,7 +3351,7 @@ package body Sem_Res is
                                            (Etype (Expression (A)));
                         begin
                            if Comes_From_Source (A)
-                             and then Ada_Version >= Ada_05
+                             and then Ada_Version >= Ada_2005
                              and then
                                ((Is_Private_Type (Comp_Type)
                                    and then not Is_Generic_Type (Comp_Type))
@@ -3674,18 +3674,28 @@ package body Sem_Res is
                   Apply_Range_Check (A, F_Typ);
                end if;
 
-               --  Ada 2005 (AI-231)
+               --  Ada 2005 (AI-231): Note that the controlling parameter case
+               --  already existed in Ada 95, which is partially checked
+               --  elsewhere (see Checks), and we don't want the warning
+               --  message to differ.
 
-               if Ada_Version >= Ada_05
-                 and then Is_Access_Type (F_Typ)
+               if Is_Access_Type (F_Typ)
                  and then Can_Never_Be_Null (F_Typ)
                  and then Known_Null (A)
                then
-                  Apply_Compile_Time_Constraint_Error
-                    (N      => A,
-                     Msg    => "(Ada 2005) null not allowed in "
-                               & "null-excluding formal?",
-                     Reason => CE_Null_Not_Allowed);
+                  if Is_Controlling_Formal (F) then
+                     Apply_Compile_Time_Constraint_Error
+                       (N      => A,
+                        Msg    => "null value not allowed here?",
+                        Reason => CE_Access_Check_Failed);
+
+                  elsif Ada_Version >= Ada_2005 then
+                     Apply_Compile_Time_Constraint_Error
+                       (N      => A,
+                        Msg    => "(Ada 2005) null not allowed in "
+                                  & "null-excluding formal?",
+                        Reason => CE_Null_Not_Allowed);
+                  end if;
                end if;
             end if;
 
@@ -4259,7 +4269,7 @@ package body Sem_Res is
       --  the case of an initialized allocator with a class-wide argument (see
       --  Expand_Allocator_Expression).
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Is_Class_Wide_Type (Designated_Type (Typ))
       then
          declare
@@ -5047,7 +5057,7 @@ package body Sem_Res is
         and then Nkind (N) /= N_Entry_Call_Statement
         and then Entry_Call_Statement (Parent (N)) = N
       then
-         if Ada_Version < Ada_05 then
+         if Ada_Version < Ada_2005 then
             Error_Msg_N ("entry call required in select statement", N);
 
          --  Ada 2005 (AI-345): If a procedure_call_statement is used
@@ -5527,10 +5537,10 @@ package body Sem_Res is
       then
          Generate_Reference (Nam, Subp, 'R');
 
-      --  Normal case, not a dispatching call
+      --  Normal case, not a dispatching call. Generate a call reference.
 
       else
-         Generate_Reference (Nam, Subp);
+         Generate_Reference (Nam, Subp, 's');
       end if;
 
       if Is_Intrinsic_Subprogram (Nam) then
@@ -6328,7 +6338,10 @@ package body Sem_Res is
       end if;
 
       Resolve_Actuals (N, Nam);
-      Generate_Reference (Nam, Entry_Name);
+
+      --  Create a call reference to the entry
+
+      Generate_Reference (Nam, Entry_Name, 's');
 
       if Ekind_In (Nam, E_Entry, E_Entry_Family) then
          Check_Potentially_Blocking_Operation (N);
@@ -7140,7 +7153,7 @@ package body Sem_Res is
       --  In this case we have nothing else to do. The membership test will be
       --  done at run time.
 
-      elsif Ada_Version >= Ada_05
+      elsif Ada_Version >= Ada_2005
         and then Is_Class_Wide_Type (Etype (L))
         and then Is_Interface (Etype (L))
         and then Is_Class_Wide_Type (Etype (R))
@@ -7196,7 +7209,7 @@ package body Sem_Res is
 
       --  Ada 2005 (AI-231): Remove restriction
 
-      if Ada_Version < Ada_05
+      if Ada_Version < Ada_2005
         and then not Debug_Flag_J
         and then Ekind (Typ) = E_Anonymous_Access_Type
         and then Comes_From_Source (N)
@@ -7221,7 +7234,7 @@ package body Sem_Res is
       --  Ada 2005 (AI-231): Generate the null-excluding check in case of
       --  assignment to a null-excluding object
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Can_Never_Be_Null (Typ)
         and then Nkind (Parent (N)) = N_Assignment_Statement
       then
@@ -8362,23 +8375,28 @@ package body Sem_Res is
          Index := First_Index (Array_Type);
          Resolve (Drange, Base_Type (Etype (Index)));
 
-         if Nkind (Drange) = N_Range
+         if Nkind (Drange) = N_Range then
+
+            --  Ensure that side effects in the bounds are properly handled
+
+            Remove_Side_Effects (Low_Bound  (Drange), Variable_Ref => True);
+            Remove_Side_Effects (High_Bound (Drange), Variable_Ref => True);
 
             --  Do not apply the range check to nodes associated with the
             --  frontend expansion of the dispatch table. We first check
-            --  if Ada.Tags is already loaded to void the addition of an
+            --  if Ada.Tags is already loaded to avoid the addition of an
             --  undesired dependence on such run-time unit.
 
-           and then
-             (not Tagged_Type_Expansion
-               or else not
-                 (RTU_Loaded (Ada_Tags)
-                   and then Nkind (Prefix (N)) = N_Selected_Component
-                   and then Present (Entity (Selector_Name (Prefix (N))))
-                   and then Entity (Selector_Name (Prefix (N))) =
-                                         RTE_Record_Component (RE_Prims_Ptr)))
-         then
-            Apply_Range_Check (Drange, Etype (Index));
+            if not Tagged_Type_Expansion
+              or else not
+                (RTU_Loaded (Ada_Tags)
+                  and then Nkind (Prefix (N)) = N_Selected_Component
+                  and then Present (Entity (Selector_Name (Prefix (N))))
+                  and then Entity (Selector_Name (Prefix (N))) =
+                                         RTE_Record_Component (RE_Prims_Ptr))
+            then
+               Apply_Range_Check (Drange, Etype (Index));
+            end if;
          end if;
       end if;
 
@@ -8898,7 +8916,7 @@ package body Sem_Res is
       --  No need to perform any interface conversion if the type of the
       --  expression coincides with the target type.
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Expander_Active
         and then Operand_Typ /= Target_Typ
       then

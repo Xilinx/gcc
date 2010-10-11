@@ -42,6 +42,7 @@ package body Ch4 is
       Attribute_Base         => True,
       Attribute_Class        => True,
       Attribute_Stub_Type    => True,
+      Attribute_Type_Key     => True,
       others                 => False);
    --  This map contains True for parameterless attributes that return a
    --  string or a type. For those attributes, a left parenthesis after
@@ -235,7 +236,7 @@ package body Ch4 is
 
          --  Qualified expression in Ada 2012 mode (treated as a name)
 
-         if Ada_Version >= Ada_12 and then Token = Tok_Left_Paren then
+         if Ada_Version >= Ada_2012 and then Token = Tok_Left_Paren then
             goto Scan_Name_Extension_Apostrophe;
 
          --  If left paren not in Ada 2012, then it is not part of the name,
@@ -389,7 +390,7 @@ package body Ch4 is
          begin
             --  Check for qualified expression case in Ada 2012 mode
 
-            if Ada_Version >= Ada_12 and then Token = Tok_Left_Paren then
+            if Ada_Version >= Ada_2012 and then Token = Tok_Left_Paren then
                Name_Node := P_Qualified_Expression (Name_Node);
                goto Scan_Name_Extension;
 
@@ -1484,7 +1485,7 @@ package body Ch4 is
          --  Ada 2005(AI-287): The box notation is used to indicate the
          --  default initialization of aggregate components
 
-         if Ada_Version < Ada_05 then
+         if Ada_Version < Ada_2005 then
             Error_Msg_SP
               ("component association with '<'> is an Ada 2005 extension");
             Error_Msg_SP ("\unit must be compiled with -gnat05 switch");
@@ -2073,7 +2074,7 @@ package body Ch4 is
          --  If qualified expression, comment and continue, otherwise something
          --  is pretty nasty so do an Error_Resync call.
 
-         if Ada_Version < Ada_12
+         if Ada_Version < Ada_2012
            and then Nkind (Node1) = N_Qualified_Expression
          then
             Error_Msg_SC ("\would be legal in Ada 2012 mode");
@@ -2400,7 +2401,7 @@ package body Ch4 is
                --  If this looks like a conditional expression, then treat it
                --  that way with an error message.
 
-               elsif Ada_Version >= Ada_12 then
+               elsif Ada_Version >= Ada_2012 then
                   Error_Msg_SC
                     ("conditional expression must be parenthesized");
                   return P_Conditional_Expression;
@@ -2426,7 +2427,7 @@ package body Ch4 is
                --  If this looks like a case expression, then treat it that way
                --  with an error message.
 
-               elsif Ada_Version >= Ada_12 then
+               elsif Ada_Version >= Ada_2012 then
                   Error_Msg_SC ("case expression must be parenthesized");
                   return P_Case_Expression;
 
@@ -2716,7 +2717,7 @@ package body Ch4 is
       Save_State : Saved_Scan_State;
 
    begin
-      if Ada_Version < Ada_12 then
+      if Ada_Version < Ada_2012 then
          Error_Msg_SC ("|case expression is an Ada 2012 feature");
          Error_Msg_SC ("\|unit must be compiled with -gnat2012 switch");
       end if;
@@ -2807,7 +2808,7 @@ package body Ch4 is
    begin
       Inside_Conditional_Expression := Inside_Conditional_Expression + 1;
 
-      if Token = Tok_If and then Ada_Version < Ada_12 then
+      if Token = Tok_If and then Ada_Version < Ada_2012 then
          Error_Msg_SC ("|conditional expression is an Ada 2012 feature");
          Error_Msg_SC ("\|unit must be compiled with -gnat2012 switch");
       end if;
@@ -2884,13 +2885,13 @@ package body Ch4 is
    procedure P_Membership_Test (N : Node_Id) is
       Alt : constant Node_Id :=
               P_Range_Or_Subtype_Mark
-                (Allow_Simple_Expression => (Ada_Version >= Ada_12));
+                (Allow_Simple_Expression => (Ada_Version >= Ada_2012));
 
    begin
       --  Set case
 
       if Token = Tok_Vertical_Bar then
-         if Ada_Version < Ada_12 then
+         if Ada_Version < Ada_2012 then
             Error_Msg_SC ("set notation is an Ada 2012 feature");
             Error_Msg_SC ("\|unit must be compiled with -gnat2012 switch");
          end if;

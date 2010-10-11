@@ -134,6 +134,14 @@ package Snames is
    Name_Space                          : constant Name_Id := N + $;
    Name_Time                           : constant Name_Id := N + $;
 
+   --  Names of aspects for which there are no matching pragmas or attributes
+   --  so that they need to be included for aspect specification use.
+
+   Name_Invariant                      : constant Name_Id := N + $;
+   Name_Post                           : constant Name_Id := N + $;
+   Name_Pre                            : constant Name_Id := N + $;
+   Name_Predicate                      : constant Name_Id := N + $;
+
    --  Some special names used by the expander. Note that the lower case u's
    --  at the start of these names get translated to extra underscores. These
    --  names are only referenced internally by expander generated code.
@@ -773,6 +781,7 @@ package Snames is
    Name_Priority                       : constant Name_Id := N + $; -- Ada 05
    Name_Range                          : constant Name_Id := N + $;
    Name_Range_Length                   : constant Name_Id := N + $; -- GNAT
+   Name_Ref                            : constant Name_Id := N + $; -- GNAT
    Name_Result                         : constant Name_Id := N + $; -- GNAT
    Name_Round                          : constant Name_Id := N + $;
    Name_Safe_Emax                      : constant Name_Id := N + $; -- Ada 83
@@ -793,6 +802,7 @@ package Snames is
    Name_Terminated                     : constant Name_Id := N + $;
    Name_To_Address                     : constant Name_Id := N + $; -- GNAT
    Name_Type_Class                     : constant Name_Id := N + $; -- GNAT
+   Name_Type_Key                       : constant Name_Id := N + $; -- GNAT
    Name_UET_Address                    : constant Name_Id := N + $; -- GNAT
    Name_Unbiased_Rounding              : constant Name_Id := N + $;
    Name_Unchecked_Access               : constant Name_Id := N + $;
@@ -1288,6 +1298,7 @@ package Snames is
       Attribute_Priority,
       Attribute_Range,
       Attribute_Range_Length,
+      Attribute_Ref,
       Attribute_Result,
       Attribute_Round,
       Attribute_Safe_Emax,
@@ -1308,6 +1319,7 @@ package Snames is
       Attribute_Terminated,
       Attribute_To_Address,
       Attribute_Type_Class,
+      Attribute_Type_Key,
       Attribute_UET_Address,
       Attribute_Unbiased_Rounding,
       Attribute_Unchecked_Access,

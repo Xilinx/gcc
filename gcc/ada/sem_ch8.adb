@@ -64,6 +64,7 @@ with Sinfo.CN; use Sinfo.CN;
 with Snames;   use Snames;
 with Style;    use Style;
 with Table;
+with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 
@@ -953,13 +954,13 @@ package body Sem_Ch8 is
 
       --  Ada 2005 (AI-327)
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Nkind (Nam) = N_Attribute_Reference
         and then Attribute_Name (Nam) = Name_Priority
       then
          null;
 
-      elsif Ada_Version >= Ada_05
+      elsif Ada_Version >= Ada_2005
         and then Nkind (Nam) in N_Has_Entity
       then
          declare
@@ -1102,7 +1103,7 @@ package body Sem_Ch8 is
 
       --  Ada 2005 (AI-327)
 
-      elsif Ada_Version >= Ada_05
+      elsif Ada_Version >= Ada_2005
         and then Nkind (Nam) = N_Attribute_Reference
         and then Attribute_Name (Nam) = Name_Priority
       then
@@ -2142,7 +2143,7 @@ package body Sem_Ch8 is
          --  when performing a null exclusion check between a renaming and a
          --  renamed subprogram that has been found to be illegal.
 
-         if Ada_Version >= Ada_05
+         if Ada_Version >= Ada_2005
            and then Entity (Nam) /= Any_Id
          then
             Check_Null_Exclusion
@@ -2448,7 +2449,7 @@ package body Sem_Ch8 is
       --  is dispatching. Test is skipped if some previous error was detected
       --  that set Old_S to Any_Id.
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Old_S /= Any_Id
         and then not Is_Dispatching_Operation (Old_S)
         and then Is_Dispatching_Operation (New_S)
@@ -2933,7 +2934,11 @@ package body Sem_Ch8 is
       --  type is still not frozen). We exclude from this processing generic
       --  formal subprograms found in instantiations and AST_Entry renamings.
 
-      if not Present (Corresponding_Formal_Spec (N))
+      --  We must exclude VM targets because entity AST_Handler is defined in
+      --  package System.Aux_Dec which is not available in those platforms.
+
+      if VM_Target = No_VM
+        and then not Present (Corresponding_Formal_Spec (N))
         and then Etype (Nam) /= RTE (RE_AST_Handler)
       then
          declare
@@ -5675,7 +5680,7 @@ package body Sem_Ch8 is
                   --  view of a type.
 
                   if not Is_Tagged_Type (T)
-                    and then Ada_Version >= Ada_05
+                    and then Ada_Version >= Ada_2005
                   then
                      if From_With_Type (T) then
                         Error_Msg_N
@@ -5881,7 +5886,7 @@ package body Sem_Ch8 is
                   --  nor anywhere else in the declaration because entries
                   --  cannot have access parameters.
 
-                  if Ada_Version >= Ada_05
+                  if Ada_Version >= Ada_2005
                     and then Nkind (Parent (N)) = N_Access_Definition
                   then
                      Set_Entity (N, T_Name);
@@ -5907,7 +5912,7 @@ package body Sem_Ch8 is
                   --  In Ada 2005, a protected name can be used in an access
                   --  definition within its own body.
 
-                  if Ada_Version >= Ada_05
+                  if Ada_Version >= Ada_2005
                     and then Nkind (Parent (N)) = N_Access_Definition
                   then
                      Set_Entity (N, T_Name);

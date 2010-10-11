@@ -511,7 +511,7 @@ package body Sem_Ch4 is
                --  partial view, it cannot receive a discriminant constraint,
                --  and the allocated object is unconstrained.
 
-               elsif Ada_Version >= Ada_05
+               elsif Ada_Version >= Ada_2005
                  and then Has_Constrained_Partial_View (Base_Typ)
                then
                   Error_Msg_N
@@ -562,7 +562,7 @@ package body Sem_Ch4 is
                                        Reason => CE_Null_Not_Allowed);
 
                begin
-                  if Ada_Version >= Ada_12 then
+                  if Ada_Version >= Ada_2012 then
                      Error_Msg_N
                        ("an uninitialized allocator cannot have"
                          & " a null exclusion", N);
@@ -597,7 +597,7 @@ package body Sem_Ch4 is
                   Error_Msg_N
                     ("initialization required in class-wide allocation", N);
                else
-                  if Ada_Version < Ada_05
+                  if Ada_Version < Ada_2005
                     and then Is_Limited_Type (Type_Id)
                   then
                      Error_Msg_N ("unconstrained allocation not allowed", N);
@@ -2419,7 +2419,7 @@ package body Sem_Ch4 is
       Analyze_Expression (L);
 
       if No (R)
-        and then Ada_Version >= Ada_12
+        and then Ada_Version >= Ada_2012
       then
          Analyze_Set_Membership;
          return;
@@ -3375,12 +3375,45 @@ package body Sem_Ch4 is
       Is_Single_Concurrent_Object : Boolean;
       --  Set True if the prefix is a single task or a single protected object
 
+      procedure Find_Component_In_Instance (Rec : Entity_Id);
+      --  In an instance, a component of a private extension may not be visible
+      --  while it was visible in the generic. Search candidate scope for a
+      --  component with the proper identifier. This is only done if all other
+      --  searches have failed. When the match is found (it always will be),
+      --  the Etype of both N and Sel are set from this component, and the
+      --  entity of Sel is set to reference this component.
+
       function Has_Mode_Conformant_Spec (Comp : Entity_Id) return Boolean;
       --  It is known that the parent of N denotes a subprogram call. Comp
       --  is an overloadable component of the concurrent type of the prefix.
       --  Determine whether all formals of the parent of N and Comp are mode
       --  conformant. If the parent node is not analyzed yet it may be an
       --  indexed component rather than a function call.
+
+      --------------------------------
+      -- Find_Component_In_Instance --
+      --------------------------------
+
+      procedure Find_Component_In_Instance (Rec : Entity_Id) is
+         Comp : Entity_Id;
+
+      begin
+         Comp := First_Component (Rec);
+         while Present (Comp) loop
+            if Chars (Comp) = Chars (Sel) then
+               Set_Entity_With_Style_Check (Sel, Comp);
+               Set_Etype (Sel, Etype (Comp));
+               Set_Etype (N,   Etype (Comp));
+               return;
+            end if;
+
+            Next_Component (Comp);
+         end loop;
+
+         --  This must succeed because code was legal in the generic
+
+         raise Program_Error;
+      end Find_Component_In_Instance;
 
       ------------------------------
       -- Has_Mode_Conformant_Spec --
@@ -3734,7 +3767,7 @@ package body Sem_Ch4 is
          --  Ada 2005 (AI05-0030): In the case of dispatching requeue, the
          --  selected component should resolve to a name.
 
-         if Ada_Version >= Ada_05
+         if Ada_Version >= Ada_2005
            and then Is_Tagged_Type (Prefix_Type)
            and then not Is_Concurrent_Type (Prefix_Type)
          then
@@ -3785,7 +3818,7 @@ package body Sem_Ch4 is
                --  Before declaring an error, check whether this is tagged
                --  private type and a call to a primitive operation.
 
-               elsif Ada_Version >= Ada_05
+               elsif Ada_Version >= Ada_2005
                  and then Is_Tagged_Type (Prefix_Type)
                  and then Try_Object_Operation (N)
                then
@@ -3881,7 +3914,7 @@ package body Sem_Ch4 is
          --  visible entities are plausible interpretations, check whether
          --  there is some other primitive operation with that name.
 
-         if Ada_Version >= Ada_05
+         if Ada_Version >= Ada_2005
            and then Is_Tagged_Type (Prefix_Type)
          then
             if (Etype (N) = Any_Type
@@ -3961,33 +3994,31 @@ package body Sem_Ch4 is
             Analyze_Selected_Component (N);
             return;
 
+         --  Similarly, if this is the actual for a formal derived type, the
+         --  component inherited from the generic parent may not be visible
+         --  in the actual, but the selected component is legal.
+
          elsif Ekind (Prefix_Type) = E_Record_Subtype_With_Private
            and then Is_Generic_Actual_Type (Prefix_Type)
            and then Present (Full_View (Prefix_Type))
          then
-            --  Similarly, if this the actual for a formal derived type, the
-            --  component inherited from the generic parent may not be visible
-            --  in the actual, but the selected component is legal.
 
-            declare
-               Comp : Entity_Id;
+            Find_Component_In_Instance
+              (Generic_Parent_Type (Parent (Prefix_Type)));
+            return;
 
-            begin
-               Comp :=
-                 First_Component (Generic_Parent_Type (Parent (Prefix_Type)));
-               while Present (Comp) loop
-                  if Chars (Comp) = Chars (Sel) then
-                     Set_Entity_With_Style_Check (Sel, Comp);
-                     Set_Etype (Sel, Etype (Comp));
-                     Set_Etype (N,   Etype (Comp));
-                     return;
-                  end if;
+         --  Finally, the formal and the actual may be private extensions,
+         --  but the generic is declared in a child unit of the parent, and
+         --  an addtional step is needed to retrieve the proper scope.
 
-                  Next_Component (Comp);
-               end loop;
+         elsif In_Instance
+           and then Present (Parent_Subtype (Etype (Base_Type (Prefix_Type))))
+         then
+            Find_Component_In_Instance
+              (Parent_Subtype (Etype (Base_Type (Prefix_Type))));
+            return;
 
-               pragma Assert (Etype (N) /= Any_Type);
-            end;
+         --  Component not found, specialize error message when appropriate
 
          else
             if Ekind (Prefix_Type) = E_Record_Subtype then
@@ -4710,7 +4741,7 @@ package body Sem_Ch4 is
       pragma Warnings (Off, Boolean);
 
    begin
-      if Ada_Version >= Ada_05 then
+      if Ada_Version >= Ada_2005 then
          Actual := First_Actual (N);
          while Present (Actual) loop
 
@@ -5209,7 +5240,7 @@ package body Sem_Ch4 is
          --  Ada 2005 (AI-230): Keep restriction imposed by Ada 83 and 95:
          --  Do not allow anonymous access types in equality operators.
 
-         if Ada_Version < Ada_05
+         if Ada_Version < Ada_2005
            and then Ekind (T1) = E_Anonymous_Access_Type
          then
             return;
@@ -5889,7 +5920,7 @@ package body Sem_Ch4 is
                --  unit, it is one of the operations declared abstract in some
                --  variants of System, and it must be removed as well.
 
-               elsif Ada_Version >= Ada_05
+               elsif Ada_Version >= Ada_2005
                  or else Is_Predefined_File_Name
                            (Unit_File_Name (Get_Source_Unit (It.Nam)))
                then
@@ -6049,7 +6080,7 @@ package body Sem_Ch4 is
             --  predefined operators when addresses are involved since this
             --  case is handled separately.
 
-            elsif Ada_Version >= Ada_05
+            elsif Ada_Version >= Ada_2005
               and then not Address_Kludge
             then
                while Present (It.Nam) loop
