@@ -5371,13 +5371,21 @@ package body Sem_Attr is
       --       P;
       --    end;
 
-      --  which shouold print 64 rather than 32. The exclusion of non-source
+      --  which should print 64 rather than 32. The exclusion of non-source
       --  constructs from this test comes from some internal usage in packed
       --  arrays, which otherwise fails, could use more analysis perhaps???
 
+      --  We do however go ahead with generic actual types, otherwise we get
+      --  some regressions, probably these types should be frozen anyway???
+
       if In_Spec_Expression
         and then Comes_From_Source (N)
-        and then not (Is_Entity_Name (P) and then Is_Frozen (Entity (P)))
+        and then not (Is_Entity_Name (P)
+                       and then
+                        (Is_Frozen (Entity (P))
+                          or else (Is_Type (Entity (P))
+                                    and then
+                                      Is_Generic_Actual_Type (Entity (P)))))
       then
          return;
       end if;

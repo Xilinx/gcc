@@ -2877,6 +2877,8 @@ package body Sem_Ch12 is
       End_Scope;
       Exit_Generic_Scope (Id);
       Generate_Reference_To_Formals (Id);
+
+      List_Inherited_Pre_Post_Aspects (Id);
       Analyze_Aspect_Specifications (N, Id, Aspect_Specifications (N));
    end Analyze_Generic_Subprogram_Declaration;
 
@@ -5768,6 +5770,14 @@ package body Sem_Ch12 is
 
       New_N := New_Copy (N);
 
+      --  Copy aspects if present
+
+      if Has_Aspects (N) then
+         Set_Has_Aspects (New_N, False);
+         Set_Aspect_Specifications
+           (New_N, Copy_Generic_List (Aspect_Specifications (N), Parent_Id));
+      end if;
+
       if Instantiating then
          Adjust_Instantiation_Sloc (New_N, S_Adjustment);
       end if;
@@ -6203,15 +6213,25 @@ package body Sem_Ch12 is
             end if;
          end;
 
-      elsif Nkind_In (N, N_Integer_Literal,
-                         N_Real_Literal,
-                         N_String_Literal)
-      then
+      elsif Nkind_In (N, N_Integer_Literal, N_Real_Literal) then
+
          --  No descendant fields need traversing
 
          null;
 
-      --  For the remaining nodes, copy recursively their descendants
+      elsif Nkind (N) = N_String_Literal
+        and then Present (Etype (N))
+        and then Instantiating
+      then
+         --  If the string is declared in an outer scope, the string_literal
+         --  subtype created for it may have the wrong scope. We force the
+         --  reanalysis of the constant to generate a new itype in the proper
+         --  context.
+
+         Set_Etype (New_N, Empty);
+         Set_Analyzed (New_N, False);
+
+      --  For the remaining nodes, copy their descendants recursively
 
       else
          Copy_Descendants;

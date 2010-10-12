@@ -198,7 +198,7 @@ package body Debug is
    --  dj
    --  dk
    --  dl
-   --  dm
+   --  dm  Display the number of maximum simultaneous compilations
    --  dn  Do not delete temp files created by gnatmake
    --  do
    --  dp  Prints the contents of the Q used by Make.Compile_Sources
@@ -697,6 +697,9 @@ package body Debug is
    --------------------------------------------
 
    --  df  Only output file names, not path names, in log
+
+   --  dm  Issue a message indicating the maximum number of simultaneous
+   --      compilations.
 
    --  dn  Do not delete temporary files created by gnatmake at the end
    --      of execution, such as temporary config pragma files, mapping

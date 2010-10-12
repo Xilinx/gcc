@@ -23,7 +23,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 #include "objc-private/common.h"
-#include "objc/objc.h"
 #include "objc/objc-api.h"
 #include "objc/thr.h"
 #include "objc-private/hash.h"
@@ -163,6 +162,14 @@ void __objc_register_instance_methods_to_class (Class class)
     __objc_update_dispatch_table_for_class (class->class_pointer);
 }
 
+BOOL
+sel_isEqual (SEL s1, SEL s2)
+{
+  if (s1 == 0 || s2 == 0)
+    return s1 == s2;
+  else
+    return s1->sel_id == s2->sel_id;
+}
 
 /* Returns YES iff t1 and t2 have same method types, but we ignore
    the argframe layout */
@@ -293,6 +300,9 @@ const char *sel_getName (SEL selector)
 {
   const char *ret;
 
+  if (selector == NULL)
+    return "<null selector>";
+
   objc_mutex_lock (__objc_runtime_mutex);
   if ((soffset_decode ((sidx)selector->sel_id) > 0)
       && (soffset_decode ((sidx)selector->sel_id) <= __objc_selector_max_index))
@@ -306,6 +316,9 @@ const char *sel_getName (SEL selector)
 /* Traditional GNU Objective-C Runtime API.  */
 const char *sel_get_name (SEL selector)
 {
+  if (selector == NULL)
+    return 0;
+
   return sel_getName (selector);
 }
 

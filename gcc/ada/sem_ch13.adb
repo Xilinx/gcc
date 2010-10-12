@@ -50,6 +50,7 @@ with Sem_Res;  use Sem_Res;
 with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
 with Sem_Warn; use Sem_Warn;
+with Sinput;   use Sinput;
 with Snames;   use Snames;
 with Stand;    use Stand;
 with Sinfo;    use Sinfo;
@@ -81,10 +82,10 @@ package body Sem_Ch13 is
    --  posted as required, and a value of No_Uint is returned.
 
    function Is_Operational_Item (N : Node_Id) return Boolean;
-   --  A specification for a stream attribute is allowed before the full
-   --  type is declared, as explained in AI-00137 and the corrigendum.
-   --  Attributes that do not specify a representation characteristic are
-   --  operational attributes.
+   --  A specification for a stream attribute is allowed before the full type
+   --  is declared, as explained in AI-00137 and the corrigendum. Attributes
+   --  that do not specify a representation characteristic are operational
+   --  attributes.
 
    procedure New_Stream_Subprogram
      (N    : Node_Id;
@@ -663,26 +664,67 @@ package body Sem_Ch13 is
       Aspect := First (L);
       while Present (Aspect) loop
          declare
-            Id   : constant Node_Id   := Identifier (Aspect);
-            Expr : constant Node_Id   := Expression (Aspect);
-            Nam  : constant Name_Id   := Chars (Id);
-            A_Id : constant Aspect_Id := Get_Aspect_Id (Nam);
+            Loc  : constant Source_Ptr := Sloc (Aspect);
+            Id   : constant Node_Id    := Identifier (Aspect);
+            Expr : constant Node_Id    := Expression (Aspect);
+            Nam  : constant Name_Id    := Chars (Id);
+            A_Id : constant Aspect_Id  := Get_Aspect_Id (Nam);
             Anod : Node_Id;
             T    : Entity_Id;
+
+            Eloc : Source_Ptr := Sloc (Expr);
+            --  Source location of expression, modified when we split PPC's
 
          begin
             Set_Entity (Aspect, E);
             Ent := New_Occurrence_Of (E, Sloc (Id));
 
-            --  Check for duplicate aspect
+            --  Check for duplicate aspect. Note that the Comes_From_Source
+            --  test allows duplicate Pre/Post's that we generate internally
+            --  to escape being flagged here.
 
             Anod := First (L);
             while Anod /= Aspect loop
-               if Nam = Chars (Identifier (Anod)) then
+               if Nam = Chars (Identifier (Anod))
+                 and then Comes_From_Source (Aspect)
+               then
                   Error_Msg_Name_1 := Nam;
                   Error_Msg_Sloc := Sloc (Anod);
-                  Error_Msg_NE
-                    ("aspect% for & ignored, already given at#", Id, E);
+
+                  --  Case of same aspect specified twice
+
+                  if Class_Present (Anod) = Class_Present (Aspect) then
+                     if not Class_Present (Anod) then
+                        Error_Msg_NE
+                          ("aspect% for & previously given#",
+                           Id, E);
+                     else
+                        Error_Msg_NE
+                          ("aspect `%''Class` for & previously given#",
+                           Id, E);
+                     end if;
+
+                  --  Case of Pre and Pre'Class both specified
+
+                  elsif Nam = Name_Pre then
+                     if Class_Present (Aspect) then
+                        Error_Msg_NE
+                          ("aspect `Pre''Class` for & is not allowed here",
+                           Id, E);
+                        Error_Msg_NE
+                          ("\since aspect `Pre` previously given#",
+                           Id, E);
+
+                     else
+                        Error_Msg_NE
+                          ("aspect `Pre` for & is not allowed here",
+                           Id, E);
+                        Error_Msg_NE
+                          ("\since aspect `Pre''Class` previously given#",
+                           Id, E);
+                     end if;
+                  end if;
+
                   goto Continue;
                end if;
 
@@ -728,7 +770,7 @@ package body Sem_Ch13 is
                   --  Build corresponding pragma node
 
                   Aitem :=
-                    Make_Pragma (Sloc (Aspect),
+                    Make_Pragma (Loc,
                       Pragma_Argument_Associations => New_List (Ent),
                       Pragma_Identifier            =>
                         Make_Identifier (Sloc (Id), Chars (Id)));
@@ -797,7 +839,7 @@ package body Sem_Ch13 is
                   --  Construct the attribute definition clause
 
                   Aitem :=
-                    Make_Attribute_Definition_Clause (Sloc (Aspect),
+                    Make_Attribute_Definition_Clause (Loc,
                       Name       => Ent,
                       Chars      => Chars (Id),
                       Expression => Relocate_Node (Expr));
@@ -823,9 +865,9 @@ package body Sem_Ch13 is
                   --  Construct the pragma
 
                   Aitem :=
-                    Make_Pragma (Sloc (Aspect),
+                    Make_Pragma (Loc,
                       Pragma_Argument_Associations => New_List (
-                        New_Occurrence_Of (E, Sloc (Expr)),
+                        New_Occurrence_Of (E, Eloc),
                         Relocate_Node (Expr)),
                       Pragma_Identifier            =>
                       Make_Identifier (Sloc (Id), Chars (Id)));
@@ -844,59 +886,97 @@ package body Sem_Ch13 is
                   --  Construct the pragma
 
                   Aitem :=
-                    Make_Pragma (Sloc (Aspect),
+                    Make_Pragma (Loc,
                       Pragma_Argument_Associations => New_List (
                         Relocate_Node (Expr),
-                        New_Occurrence_Of (E, Sloc (Expr))),
+                        New_Occurrence_Of (E, Eloc)),
                       Pragma_Identifier            =>
-                         Make_Identifier (Sloc (Id), Chars (Id)));
+                        Make_Identifier (Sloc (Id), Chars (Id)),
+                      Class_Present                => Class_Present (Aspect));
 
                   --  We don't have to play the delay game here, since the only
                   --  values are check names which don't get analyzed anyway.
 
                   Delay_Required := False;
 
-               --  Aspect Post corresponds to pragma Postcondition with single
-               --  argument that is the expression (we never give a message
-               --  argument. This is inserted right after the declaration,
-               --  to get the required pragma placement.
+               --  Aspects Pre/Post generate Precondition/Postcondition pragmas
+               --  with a first argument that is the expression, and a second
+               --  argument that is an informative message if the test fails.
+               --  This is inserted right after the declaration, to get the
+               --  required pragma placement.
 
-               when Aspect_Post =>
+               when Aspect_Pre | Aspect_Post => declare
+                  Pname : Name_Id;
 
-                  --  Construct the pragma
+               begin
+                  if A_Id = Aspect_Pre then
+                     Pname := Name_Precondition;
+                  else
+                     Pname := Name_Postcondition;
+                  end if;
+
+                  --  If the expressions is of the form A and then B, then
+                  --  we generate separate Pre/Post aspects for the separate
+                  --  clauses. Since we allow multiple pragmas, there is no
+                  --  problem in allowing multiple Pre/Post aspects internally.
+
+                  --  We do not do this for Pre'Class, since we have to put
+                  --  these conditions together in a complex OR expression
+
+                  if Pname = Name_Postcondition
+                       or else not Class_Present (Aspect)
+                  then
+                     while Nkind (Expr) = N_And_Then loop
+                        Insert_After (Aspect,
+                          Make_Aspect_Specification (Sloc (Right_Opnd (Expr)),
+                            Identifier    => Identifier (Aspect),
+                            Expression    => Relocate_Node (Right_Opnd (Expr)),
+                            Class_Present => Class_Present (Aspect),
+                            Split_PPC     => True));
+                        Rewrite (Expr, Relocate_Node (Left_Opnd (Expr)));
+                        Eloc := Sloc (Expr);
+                     end loop;
+                  end if;
+
+                  --  Build the precondition/postcondition pragma
 
                   Aitem :=
-                    Make_Pragma (Sloc (Expr),
-                      Pragma_Argument_Associations => New_List (
-                        Relocate_Node (Expr)),
+                    Make_Pragma (Loc,
                       Pragma_Identifier            =>
-                      Make_Identifier (Sloc (Id), Name_Postcondition));
-
-                  --  We don't have to play the delay game here. The required
-                  --  delay in this case is already implemented by the pragma.
-
-                  Delay_Required := False;
-
-               --  Aspect Pre corresponds to pragma Precondition with single
-               --  argument that is the expression (we never give a message
-               --  argument). This is inserted right after the declaration,
-               --  to get the required pragma placement.
-
-               when Aspect_Pre =>
-
-                  --  Construct the pragma
-
-                  Aitem :=
-                    Make_Pragma (Sloc (Expr),
+                        Make_Identifier (Sloc (Id),
+                          Chars => Pname),
+                      Class_Present                => Class_Present (Aspect),
+                      Split_PPC                    => Split_PPC (Aspect),
                       Pragma_Argument_Associations => New_List (
-                        Relocate_Node (Expr)),
-                      Pragma_Identifier            =>
-                        Make_Identifier (Sloc (Id), Name_Precondition));
+                        Make_Pragma_Argument_Association (Eloc,
+                          Chars      => Name_Check,
+                          Expression => Relocate_Node (Expr))));
 
-                  --  We don't have to play the delay game here. The required
-                  --  delay in this case is already implemented by the pragma.
+                  --  Add message unless exception messages are suppressed
 
-                  Delay_Required := False;
+                  if not Opt.Exception_Locations_Suppressed then
+                     Append_To (Pragma_Argument_Associations (Aitem),
+                       Make_Pragma_Argument_Association (Eloc,
+                         Chars     => Name_Message,
+                         Expression =>
+                           Make_String_Literal (Eloc,
+                             Strval => "failed "
+                                       & Get_Name_String (Pname)
+                                       & " from "
+                                       & Build_Location_String (Eloc))));
+                  end if;
+
+                  Set_From_Aspect_Specification (Aitem, True);
+
+                  --  For Pre/Post cases, insert immediately after the entity
+                  --  declaration, since that is the required pragma placement.
+                  --  Note that for these aspects, we do not have to worry
+                  --  about delay issues, since the pragmas themselves deal
+                  --  with delay of visibility for the expression analysis.
+
+                  Insert_After (N, Aitem);
+                  goto Continue;
+               end;
 
                --  Aspects currently unimplemented
 
@@ -1178,7 +1258,7 @@ package body Sem_Ch13 is
             if Entity (A) = U_Ent then
                Error_Msg_Name_1 := Chars (N);
                Error_Msg_Sloc := Sloc (A);
-               Error_Msg_NE ("aspect% for & previously specified#", N, U_Ent);
+               Error_Msg_NE ("aspect% for & previously given#", N, U_Ent);
                return True;
             end if;
          end if;

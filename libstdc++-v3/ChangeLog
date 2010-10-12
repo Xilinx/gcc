@@ -1,3 +1,42 @@
+2010-10-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.h (discrete_distribution<>::param_type):
+	Disable move operations.
+	(piecewise_constant_distribution<>::param_type): Likewise.
+	(piecewise_linear_distribution<>::param_type): Likewise.
+
+	* include/bits/random.h (discrete_distribution<>::param_type::
+	param_type()): Simplify, don't use _M_initialize.
+	(piecewise_constant_distribution<>::param_type::param_type()):
+	Likewise.
+	(piecewise_linear_distribution<>::param_type::param_type()):
+	Likewise.
+
+2010-10-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.tcc (piecewise_linear_distribution<>::
+	operator()): Don't crash when the dist is default-constructed.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	operators/call-default.cc: New.
+
+2010-10-11  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/23_containers/bitset/cons/2.cc: Tweak.
+
+2010-10-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/bitset (bitset<>::bitset(const _CharT*,
+	typename std::basic_string<>::size_type, _CharT, _CharT)):
+	Implement new proposed resolution for DR 1325.
+	* include/debug/bitset: Likewise.
+	* include/profile/bitset: Likewise.
+	* testsuite/23_containers/bitset/cons/dr1325-1.cc: New.
+	* testsuite/23_containers/bitset/cons/dr1325-2.cc: Likewise.
+
+2010-10-11  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/api.xml: Add link to 4.5 generated docs.
+
 2010-10-08  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/std/future (_Result_alloc): Derive from _Alloc,

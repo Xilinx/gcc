@@ -1,3 +1,121 @@
+2010-10-12  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* config/arm/arm.h (ARM_EXPAND_ALIGNMENT): Rename from
+	DATA_ALIGNMENT and add COND parameter. Update comments above.
+	(DATA_ALIGNMENT): Use ARM_EXPAND_ALIGNMENT, with !optimize_size.
+	(LOCAL_ALIGNMENT): Use ARM_EXPAND_ALIGNMENT, with
+	!flag_conserve_stack.
+
+2010-10-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/45958
+	* exec-tool.in: Support '-plugin' as the second option to the
+	linker.
+
+2010-10-12  Richard Henderson  <rth@redhat.com>
+
+	PR middle-end/45962
+	* cfgexpand.c (add_stack_var): Ensure every variable has 1 byte.
+	(expand_stack_vars): Assert large base allocated when used.
+
+2010-10-12  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (get_constraint_for_1): Constants
+	only point to nonlocal, not anything.
+
+2010-10-11  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	* config/picochip/picochip.c (TARGET_EXCEPT_UNWIND_INFO): Use sjlj
+	unwind info for exceptions.
+
+2010-10-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR testsuite/45851
+	* doc/sourcebuild.texi (LTO Testing, dg-extra-ld-options):
+	Document optional target selector.
+
+2010-10-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* flag-types.h: New.
+	* Makefile.in (TH_H): Include $(OPTIONS_H) instead of $(FLAGS_H).
+	(FLAGS_H): Include flag-types.h.  Include $(OPTIONS_H) instead of
+	options.h.
+	(OPTIONS_H): Define.
+	(c-family/c-opts.o, lto-opts.o, opts.o): Use $(OPTIONS_H) instead
+	of options.h.
+	* configure.ac (tm_include_list): Include options.h not flags.h.
+	* configure: Regenerate.
+	* flags.h: Include flag-types.h.  Include options.h at top of file
+	again.
+	(enum debug_info_type, enum debug_info_level, enum
+	debug_info_usage, enum symbol_visibility, struct visibility_flags,
+	enum ira_algorithm, enum ira_region, enum excess_precision, enum
+	graph_dump_types, enum stack_check_type, enum
+	warn_strict_overflow_code): Move to flag-types.h
+	* opth-gen.awk: Include flag-types.h in options.h.
+
+2010-10-12  Jakub Jelinek  <jakub@redhat.com>
+
+	* expr.c (store_expr): Share code for STRING_CST and
+	MEM_REF of &STRING_CST cases.  Don't require BLKmode, instead
+	check if target is a MEM.
+
+	* rtl.h: Include hashtab.h.
+	(iterative_hash_rtx): New prototype.
+	* rtl.c (iterative_hash_rtx): New function.
+	* dwarf2out.c (dw_loc_list_node): Add hash and emitted fields.
+	(output_loc_list): Return immediately if emitted is set,
+	set it.
+	(hash_loc_operands, hash_locs, hash_loc_list,
+	compare_loc_operands, compare_locs, loc_list_hash, loc_list_eq,
+	optimize_location_lists_1, optimize_location_lists): New function.
+	(dwarf2out_finish): Call optimize_location_lists.
+	* Makefile.in (RTL_BASE_H): Depend on $(HASHTAB_H).
+
+2010-10-12  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR testsuite/45974
+	Revert:
+	* Makefile.in ($(lang_checks_parallel))
+	($(lang_checks_parallelized)): Use single quotes for
+	$(RUNTESTFLAGS), to allow passing quoted content.
+
+2010-10-11  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/linux-atomic.c (__sync_val_compare_and_swap_4): Return
+	actual_oldval.  Use __builtin_expect.
+	(SUBWORD_VAL_CAS): Likewise.
+
+2010-10-11  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* recog.c (nonmemory_operand): Call immediate_operand for
+	CONSTANT_P operands.
+
+2010-10-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (movmem<mode>): Macroize expander from
+	movmem{si,di} using SWI48 mode iterator.
+	(*strmovsi_1): Macroize insn pattern from *strmovsi_1 and
+	*strmovsi_rex_1 using P mode iterator.
+	(*strmovhi_1): Ditto from *strmovhi_1 and *strmovhi_rex_1.
+	(*strmovqi_1): Ditto from *strmovqi_1 and *strmovqi_rex_1.
+	(*rep_movsi): Ditto from *rep_movsi and *rep_movsi_rex64.
+	(*rep_movqi): Ditto from *rep_movqi and *rep_movqi_rex64.
+	(setmem<mode>): Macroize expander from setmem{si,di} using
+	SWI48 mode iterator.
+	(*strsetsi_1): Macroize insn pattern from *strsetsi_1 and
+	*strsetsi_rex_1 using P mode iterator.
+	(*strsethi_1): Ditto from *strsethi_1 and *strsethi_rex_1.
+	(*strsetqi_1): Ditto from *strsetqi_1 and *strsetqi_rex_1.
+	(*rep_stossi): Ditto from *rep_stossi and *rep_stossi_rex64.
+	(*rep_stosqi): Ditto from *rep_stosqi and *rep_stosqi_rex64.
+	(*cmpstrnqi_nz_1): Ditto from *cmpstrnqi_nz_1 and *cmpstrnqi_nz_rex_1.
+	(*cmpstrnqi_1): Ditto from *cmpstrnqi_1 and *cmpstrnqi_rex_1.
+	(strlen<mode>): Macroize expander from strlen{si,di} using SWI48x
+	mode iterator.
+	(*strlenqi_1): Macroize insn pattern from *strlenqi_1 and
+	*strlenqi_rex_1 using P mode iterator.
+
 2010-10-11  Bernd Schmidt  <bernds@codesourcery.com>
 
 	PR bootstrap/45445
@@ -118,14 +236,13 @@
 	* tree.h (TREE_THIS_NOTRAP): Use TREE_CHECK5.
 	* emit-rtl.c (set_mem_attributes_minus_bitpos): Only check
 	TREE_THIS_NOTRAP when appropriate.
-	(get_spill_slot_decl): Don't set TREE_THIS_NOTRAP on the new
-	VAR_DECL.
+	(get_spill_slot_decl): Don't set TREE_THIS_NOTRAP on the new VAR_DECL.
 	* gimplify.c (gimplify_expr): Copy NOTRAP from INDIRECT_REF to
 	newly created MEM_REF.
 
 2010-10-11  Hariharan Sandanagobalane  <hariharan@picochip.com>
 
-        Nathan Froyds patch to hooks FUNCTION_ARG etc.
+	Nathan Froyds patch to hooks FUNCTION_ARG etc.
 	* config/picochip/picochip-protos.h (picochip_function_arg): Delete.
 	(picochip_incoming_function_arg): Delete.
 	(picochip_arg_advance): Delete.
@@ -166,8 +283,7 @@
 	(maybe_set_param_value, set_default_param_value): New.
 	* params.h (PARAM_VALUE, PARAM_SET_P): Make into rvalues.
 	(maybe_set_param_value, set_default_param_value): Declare.
-	* config/arm/arm.c (arm_option_override): Use
-	maybe_set_param_value.
+	* config/arm/arm.c (arm_option_override): Use maybe_set_param_value.
 	* config/i386/i386.c (ix86_option_override_internal): Use
 	maybe_set_param_value.
 	* config/ia64/ia64.c (ia64_option_default_params,
@@ -181,18 +297,15 @@
 	(rs6000_option_override_internal): Use maybe_set_param_value.
 	(rs6000_option_optimization): Move some code to
 	rs6000_option_default_params.
-	* config/s390/s390.c (s390_option_override): Use
-	maybe_set_param_value.
+	* config/s390/s390.c (s390_option_override): Use maybe_set_param_value.
 	* config/sh/sh.c (sh_option_default_params,
 	TARGET_OPTION_DEFAULT_PARAMS): New.
-	(sh_option_optimization): Move some code to
-	sh_option_default_params.
+	(sh_option_optimization): Move some code to sh_option_default_params.
 	* config/sparc/sparc.c (sparc_option_override): Use
 	maybe_set_param_value.
 	* config/spu/spu.c (spu_option_default_params,
 	TARGET_OPTION_DEFAULT_PARAMS): New.
-	(spu_option_optimization): Move some code to
-	spu_option_default_params.
+	(spu_option_optimization): Move some code to spu_option_default_params.
 	(spu_option_override): Use maybe_set_param_value.
 	* doc/tm.texi.in (TARGET_OPTION_DEFAULT_PARAMS): New @hook.
 	* doc/tm.texi: Regenerate.
@@ -202,8 +315,7 @@
 	(default_options_optimization): Use maybe_set_param_value.
 	(finish_options): Use maybe_set_param_value.
 	* target.def (target_option.default_params): New hook.
-	* toplev.c (general_init): Call
-	targetm.target_option.default_params.
+	* toplev.c (general_init): Call targetm.target_option.default_params.
 
 2010-10-11  Ira Rosen  <irar@il.ibm.com>
 

@@ -1133,7 +1133,16 @@ package Sinfo is
    --    generate elaboration code, and non-preelaborated packages which do
    --    not generate elaboration code.
 
-   --  Has_Priority_Pragma (Flag6-Sem)
+   --  Has_Pragma_Suppress_All (Flag14-Sem)
+   --    This flag is set in an N_Compilation_Unit node if the Suppress_All
+   --    pragma appears anywhere in the unit. This accomodates the rather
+   --    strange placement rules of other compilers (DEC permits it at the
+   --    end of a unit, and Rational allows it as a program unit pragma). We
+   --    allow it anywhere at all, and consider it equivalent to a pragma
+   --    Suppress (All_Checks) appearing at the start of the configuration
+   --    pragmas for the unit.
+
+   --  Has_Pragma_Priority (Flag6-Sem)
    --    A flag present in N_Subprogram_Body, N_Task_Definition and
    --    N_Protected_Definition nodes to flag the presence of either a Priority
    --    or Interrupt_Priority pragma in the declaration sequence (public or
@@ -1680,6 +1689,14 @@ package Sinfo is
    --    source type entity for the unchecked conversion instantiation
    --    which gigi must do size validation for.
 
+   --  Split_PPC (Flag17)
+   --     When a Pre or Postaspect specification is processed, it is broken
+   --     into AND THEN sections. The left most section has Split_PPC set to
+   --     False, indicating that it is the original specification (e.g. for
+   --     posting errors). For other sections, Split_PPC is set to True.
+   --     This flag is set in both the N_Aspect_Specification node itself,
+   --     and in the pragma which is generated from this node.
+
    --  Static_Processing_OK (Flag4-Sem)
    --    Present in N_Aggregate nodes. When the Compile_Time_Known_Aggregate
    --    flag is set, the full value of the aggregate can be determined at
@@ -2028,6 +2045,8 @@ package Sinfo is
       --  Is_Delayed_Aspect (Flag14-Sem)
       --  Import_Interface_Present (Flag16-Sem)
       --  Aspect_Cancel (Flag11-Sem)
+      --  Split_PPC (Flag17) set if corresponding aspect had Split_PPC set
+      --  Class_Present (Flag6) set if from Aspect with 'Class
 
       --  Note: we should have a section on what pragmas are passed on to
       --  the back end to be processed. This section should note that pragma
@@ -2120,7 +2139,9 @@ package Sinfo is
 
       --  FULL_TYPE_DECLARATION ::=
       --    type DEFINING_IDENTIFIER [KNOWN_DISCRIMINANT_PART]
-      --      is TYPE_DEFINITION;
+      --      is TYPE_DEFINITION
+      --        [ASPECT_SPECIFICATIONS];
+
       --  | TASK_TYPE_DECLARATION
       --  | PROTECTED_TYPE_DECLARATION
 
@@ -2227,11 +2248,14 @@ package Sinfo is
 
       --  OBJECT_DECLARATION ::=
       --    DEFINING_IDENTIFIER_LIST : [aliased] [constant]
-      --      [NULL_EXCLUSION] SUBTYPE_INDICATION [:= EXPRESSION];
+      --      [NULL_EXCLUSION] SUBTYPE_INDICATION [:= EXPRESSION]
+      --        [ASPECT_SPECIFICATIONS];
       --  | DEFINING_IDENTIFIER_LIST : [aliased] [constant]
-      --      ACCESS_DEFINITION [:= EXPRESSION];
+      --      ACCESS_DEFINITION [:= EXPRESSION]
+      --        [ASPECT_SPECIFICATIONS];
       --  | DEFINING_IDENTIFIER_LIST : [aliased] [constant]
-      --      ARRAY_TYPE_DEFINITION [:= EXPRESSION];
+      --      ARRAY_TYPE_DEFINITION [:= EXPRESSION]
+      --        [ASPECT_SPECIFICATIONS];
       --  | SINGLE_TASK_DECLARATION
       --  | SINGLE_PROTECTED_DECLARATION
 
@@ -2841,7 +2865,8 @@ package Sinfo is
 
       --  COMPONENT_DECLARATION ::=
       --    DEFINING_IDENTIFIER_LIST : COMPONENT_DEFINITION
-      --      [:= DEFAULT_EXPRESSION];
+      --      [:= DEFAULT_EXPRESSION]
+      --        [ASPECT_SPECIFICATIONS];
 
       --  Note: although the syntax does not permit a component definition to
       --  be an anonymous array (and the parser will diagnose such an attempt
@@ -4209,7 +4234,9 @@ package Sinfo is
       -- 6.1  Subprogram Declaration --
       ---------------------------------
 
-      --  SUBPROGRAM_DECLARATION ::= SUBPROGRAM_SPECIFICATION;
+      --  SUBPROGRAM_DECLARATION ::=
+      --    SUBPROGRAM_SPECIFICATION
+      --      [ASPECT_SPECIFICATIONS];
 
       --  N_Subprogram_Declaration
       --  Sloc points to FUNCTION or PROCEDURE
@@ -4223,7 +4250,8 @@ package Sinfo is
       ------------------------------------------
 
       --  ABSTRACT_SUBPROGRAM_DECLARATION ::=
-      --    SUBPROGRAM_SPECIFICATION is abstract;
+      --    SUBPROGRAM_SPECIFICATION is abstract
+      --      [ASPECT_SPECIFICATIONS];
 
       --  N_Abstract_Subprogram_Declaration
       --  Sloc points to ABSTRACT
@@ -4452,7 +4480,7 @@ package Sinfo is
       --  Acts_As_Spec (Flag4-Sem)
       --  Bad_Is_Detected (Flag15) used only by parser
       --  Do_Storage_Check (Flag17-Sem)
-      --  Has_Priority_Pragma (Flag6-Sem)
+      --  Has_Pragma_Priority (Flag6-Sem)
       --  Is_Protected_Subprogram_Body (Flag7-Sem)
       --  Is_Entry_Barrier_Function (Flag8-Sem)
       --  Is_Task_Master (Flag5-Sem)
@@ -4640,7 +4668,9 @@ package Sinfo is
       -- 7.1  Package Declaration --
       ------------------------------
 
-      --  PACKAGE_DECLARATION ::= PACKAGE_SPECIFICATION;
+      --  PACKAGE_DECLARATION ::=
+      --    PACKAGE_SPECIFICATION
+      --      [ASPECT_SPECIFICATIONS];
 
       --  Note: the activation chain entity for a package spec is used for
       --  all tasks declared in the package spec, or in the package body.
@@ -4889,7 +4919,8 @@ package Sinfo is
 
       --  TASK_TYPE_DECLARATION ::=
       --    task type DEFINING_IDENTIFIER [KNOWN_DISCRIMINANT_PART]
-      --      [is [new INTERFACE_LIST with] TASK_DEFINITION];
+      --      [is [new INTERFACE_LIST with] TASK_DEFINITION]
+      --        [ASPECT_SPECIFICATIONS];
 
       --  N_Task_Type_Declaration
       --  Sloc points to TASK
@@ -4906,7 +4937,8 @@ package Sinfo is
 
       --  SINGLE_TASK_DECLARATION ::=
       --    task DEFINING_IDENTIFIER
-      --      [is [new INTERFACE_LIST with] TASK_DEFINITION];
+      --      [is [new INTERFACE_LIST with] TASK_DEFINITION]
+      --        [ASPECT_SPECIFICATIONS];
 
       --  N_Single_Task_Declaration
       --  Sloc points to TASK
@@ -4932,7 +4964,7 @@ package Sinfo is
       --  Visible_Declarations (List2)
       --  Private_Declarations (List3) (set to No_List if no private part)
       --  End_Label (Node4)
-      --  Has_Priority_Pragma (Flag6-Sem)
+      --  Has_Pragma_Priority (Flag6-Sem)
       --  Has_Storage_Size_Pragma (Flag5-Sem)
       --  Has_Task_Info_Pragma (Flag7-Sem)
       --  Has_Task_Name_Pragma (Flag8-Sem)
@@ -4973,7 +5005,8 @@ package Sinfo is
 
       --  PROTECTED_TYPE_DECLARATION ::=
       --    protected type DEFINING_IDENTIFIER [KNOWN_DISCRIMINANT_PART]
-      --      is [new INTERFACE_LIST with] PROTECTED_DEFINITION;
+      --      is [new INTERFACE_LIST with] PROTECTED_DEFINITION
+      --        {ASPECT_SPECIFICATIONS];
 
       --  Note: protected type declarations are not permitted in Ada 83 mode
 
@@ -4992,7 +5025,8 @@ package Sinfo is
 
       --  SINGLE_PROTECTED_DECLARATION ::=
       --    protected DEFINING_IDENTIFIER
-      --      is [new INTERFACE_LIST with] PROTECTED_DEFINITION;
+      --      is [new INTERFACE_LIST with] PROTECTED_DEFINITION
+      --        [ASPECT_SPECIFICATIONS];
 
       --  Note: single protected declarations are not allowed in Ada 83 mode
 
@@ -5017,7 +5051,7 @@ package Sinfo is
       --  Visible_Declarations (List2)
       --  Private_Declarations (List3) (set to No_List if no private part)
       --  End_Label (Node4)
-      --  Has_Priority_Pragma (Flag6-Sem)
+      --  Has_Pragma_Priority (Flag6-Sem)
 
       ------------------------------------------
       -- 9.4  Protected Operation Declaration --
@@ -5531,6 +5565,7 @@ package Sinfo is
       --  Acts_As_Spec (Flag4-Sem) flag for subprogram body with no spec
       --  Context_Pending (Flag16-Sem)
       --  First_Inlined_Subprogram (Node3-Sem)
+      --  Has_Pragma_Suppress_All (Flag14-Sem)
 
       --  N_Compilation_Unit_Aux
       --  Sloc is a copy of the Sloc from the N_Compilation_Unit node
@@ -5733,7 +5768,8 @@ package Sinfo is
       -- 11.1  Exception Declaration --
       ---------------------------------
 
-      --  EXCEPTION_DECLARATION ::= DEFINING_IDENTIFIER_LIST : exception;
+      --  EXCEPTION_DECLARATION ::= DEFINING_IDENTIFIER_LIST : exception
+      --    [ASPECT_SPECIFICATIONS];
 
       --  For consistency with object declarations etc., the parser converts
       --  the case of multiple identifiers being declared to a series of
@@ -5902,7 +5938,8 @@ package Sinfo is
       ---------------------------------------
 
       --  GENERIC_PACKAGE_DECLARATION ::=
-      --    GENERIC_FORMAL_PART PACKAGE_SPECIFICATION;
+      --    GENERIC_FORMAL_PART PACKAGE_SPECIFICATION
+      --      [ASPECT_SPECIFICATIONS];
 
       --  Note: when we do generics right, the Activation_Chain_Entity entry
       --  for this node can be removed (since the expander won't see generic
@@ -5941,13 +5978,16 @@ package Sinfo is
 
       --  GENERIC_INSTANTIATION ::=
       --    package DEFINING_PROGRAM_UNIT_NAME is
-      --      new generic_package_NAME [GENERIC_ACTUAL_PART];
+      --      new generic_package_NAME [GENERIC_ACTUAL_PART]
+      --        [ASPECT_SPECIFICATIONS];
       --  | [[not] overriding]
       --    procedure DEFINING_PROGRAM_UNIT_NAME is
-      --      new generic_procedure_NAME [GENERIC_ACTUAL_PART];
+      --      new generic_procedure_NAME [GENERIC_ACTUAL_PART]
+      --        [ASPECT_SPECIFICATIONS];
       --  | [[not] overriding]
       --    function DEFINING_DESIGNATOR is
-      --      new generic_function_NAME [GENERIC_ACTUAL_PART];
+      --      new generic_function_NAME [GENERIC_ACTUAL_PART]
+      --        [ASPECT_SPECIFICATIONS];
 
       --  N_Package_Instantiation
       --  Sloc points to PACKAGE
@@ -6031,9 +6071,11 @@ package Sinfo is
 
       --  FORMAL_OBJECT_DECLARATION ::=
       --    DEFINING_IDENTIFIER_LIST :
-      --      MODE [NULL_EXCLUSION] SUBTYPE_MARK [:= DEFAULT_EXPRESSION];
+      --      MODE [NULL_EXCLUSION] SUBTYPE_MARK [:= DEFAULT_EXPRESSION]
+      --        [ASPECT_SPECIFICATIONS];
       --  | DEFINING_IDENTIFIER_LIST :
-      --      MODE ACCESS_DEFINITION [:= DEFAULT_EXPRESSION];
+      --      MODE ACCESS_DEFINITION [:= DEFAULT_EXPRESSION]
+      --        [ASPECT_SPECIFICATIONS];
 
       --  Although the syntax allows multiple identifiers in the list, the
       --  semantics is as though successive declarations were given with
@@ -6061,7 +6103,8 @@ package Sinfo is
 
       --  FORMAL_TYPE_DECLARATION ::=
       --    type DEFINING_IDENTIFIER [DISCRIMINANT_PART]
-      --      is FORMAL_TYPE_DEFINITION;
+      --      is FORMAL_TYPE_DEFINITION
+      --        [ASPECT_SPECIFICATIONS];
 
       --  N_Formal_Type_Declaration
       --  Sloc points to TYPE
@@ -6208,7 +6251,8 @@ package Sinfo is
       --------------------------------------------------
 
       --  FORMAL_CONCRETE_SUBPROGRAM_DECLARATION ::=
-      --    with SUBPROGRAM_SPECIFICATION [is SUBPROGRAM_DEFAULT];
+      --    with SUBPROGRAM_SPECIFICATION [is SUBPROGRAM_DEFAULT]
+      --      [ASPECT_SPECIFICATIONS];
 
       --  N_Formal_Concrete_Subprogram_Declaration
       --  Sloc points to WITH
@@ -6224,7 +6268,8 @@ package Sinfo is
       --------------------------------------------------
 
       --  FORMAL_ABSTRACT_SUBPROGRAM_DECLARATION ::=
-      --    with SUBPROGRAM_SPECIFICATION is abstract [SUBPROGRAM_DEFAULT];
+      --    with SUBPROGRAM_SPECIFICATION is abstract [SUBPROGRAM_DEFAULT]
+      --      [ASPECT_SPECIFICATIONS];
 
       --  N_Formal_Abstract_Subprogram_Declaration
       --  Sloc points to WITH
@@ -6258,7 +6303,8 @@ package Sinfo is
 
       --  FORMAL_PACKAGE_DECLARATION ::=
       --    with package DEFINING_IDENTIFIER
-      --      is new generic_package_NAME FORMAL_PACKAGE_ACTUAL_PART;
+      --      is new generic_package_NAME FORMAL_PACKAGE_ACTUAL_PART
+      --        [ASPECT_SPECIFICATIONS];
 
       --  Note: formal package declarations not allowed in Ada 83 mode
 
@@ -6384,7 +6430,7 @@ package Sinfo is
       --  entry in the list of aspects. So we use this grammar instead:
 
       --     ASPECT_SPECIFICATIONS ::=
-      --       with ASPECT_SPECIFICATION {, ASPECT_SPECIFICATION};
+      --       with ASPECT_SPECIFICATION {, ASPECT_SPECIFICATION}
 
       --     ASPECT_SPECIFICATION =>
       --       ASPECT_MARK [=> ASPECT_DEFINITION]
@@ -6405,8 +6451,14 @@ package Sinfo is
       --  Entity (Node4-Sem) entity to which the aspect applies
       --  Class_Present (Flag6) Set if 'Class present
       --  Next_Rep_Item (Node5-Sem)
+      --  Split_PPC (Flag17) Set if split pre/post attribute
 
       --  Note: Aspect_Specification is an Ada 2012 feature
+
+      --  Note: When a Pre or Post aspect specification is processed, it is
+      --  broken into AND THEN sections. The left most section has Split_PPC
+      --  set to False, indicating that it is the original specification (e.g.
+      --  for posting errors). For the other sections, Split_PPC is set True.
 
       ---------------------------------------------
       -- 13.4  Enumeration representation clause --
@@ -8264,8 +8316,11 @@ package Sinfo is
    function Has_No_Elaboration_Code
      (N : Node_Id) return Boolean;    -- Flag17
 
-   function Has_Priority_Pragma
+   function Has_Pragma_Priority
      (N : Node_Id) return Boolean;    -- Flag6
+
+   function Has_Pragma_Suppress_All
+     (N : Node_Id) return Boolean;    -- Flag14
 
    function Has_Private_View
      (N : Node_Id) return Boolean;    -- Flag11
@@ -8668,6 +8723,9 @@ package Sinfo is
 
    function Specification
      (N : Node_Id) return Node_Id;    -- Node1
+
+   function Split_PPC
+     (N : Node_Id) return Boolean;    -- Flag17
 
    function Statements
      (N : Node_Id) return List_Id;    -- List3
@@ -9206,8 +9264,11 @@ package Sinfo is
    procedure Set_Has_No_Elaboration_Code
      (N : Node_Id; Val : Boolean := True);    -- Flag17
 
-   procedure Set_Has_Priority_Pragma
+   procedure Set_Has_Pragma_Priority
      (N : Node_Id; Val : Boolean := True);    -- Flag6
+
+   procedure Set_Has_Pragma_Suppress_All
+     (N : Node_Id; Val : Boolean := True);    -- Flag14
 
    procedure Set_Has_Private_View
      (N : Node_Id; Val : Boolean := True);    -- Flag11
@@ -9610,6 +9671,9 @@ package Sinfo is
 
    procedure Set_Specification
      (N : Node_Id; Val : Node_Id);            -- Node1
+
+   procedure Set_Split_PPC
+     (N : Node_Id; Val : Boolean);            -- Flag17
 
    procedure Set_Statements
      (N : Node_Id; Val : List_Id);            -- List3
@@ -11566,7 +11630,8 @@ package Sinfo is
    pragma Inline (Has_Local_Raise);
    pragma Inline (Has_Self_Reference);
    pragma Inline (Has_No_Elaboration_Code);
-   pragma Inline (Has_Priority_Pragma);
+   pragma Inline (Has_Pragma_Priority);
+   pragma Inline (Has_Pragma_Suppress_All);
    pragma Inline (Has_Private_View);
    pragma Inline (Has_Relative_Deadline_Pragma);
    pragma Inline (Has_Storage_Size_Pragma);
@@ -11700,6 +11765,7 @@ package Sinfo is
    pragma Inline (Shift_Count_OK);
    pragma Inline (Source_Type);
    pragma Inline (Specification);
+   pragma Inline (Split_PPC);
    pragma Inline (Statements);
    pragma Inline (Static_Processing_OK);
    pragma Inline (Storage_Pool);
@@ -11876,7 +11942,8 @@ package Sinfo is
    pragma Inline (Set_Has_Local_Raise);
    pragma Inline (Set_Has_Dynamic_Range_Check);
    pragma Inline (Set_Has_No_Elaboration_Code);
-   pragma Inline (Set_Has_Priority_Pragma);
+   pragma Inline (Set_Has_Pragma_Priority);
+   pragma Inline (Set_Has_Pragma_Suppress_All);
    pragma Inline (Set_Has_Private_View);
    pragma Inline (Set_Has_Relative_Deadline_Pragma);
    pragma Inline (Set_Has_Storage_Size_Pragma);
@@ -12010,6 +12077,7 @@ package Sinfo is
    pragma Inline (Set_Shift_Count_OK);
    pragma Inline (Set_Source_Type);
    pragma Inline (Set_Specification);
+   pragma Inline (Set_Split_PPC);
    pragma Inline (Set_Statements);
    pragma Inline (Set_Static_Processing_OK);
    pragma Inline (Set_Storage_Pool);

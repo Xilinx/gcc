@@ -194,11 +194,11 @@ package body Sem_Ch9 is
          return;
       end if;
 
-      --  In order to process the parameters, we create a defining
-      --  identifier that can be used as the name of the scope. The
-      --  name of the accept statement itself is not a defining identifier,
-      --  and we cannot use its name directly because the task may have
-      --  any number of accept statements for the same entry.
+      --  In order to process the parameters, we create a defining identifier
+      --  that can be used as the name of the scope. The name of the accept
+      --  statement itself is not a defining identifier, and we cannot use
+      --  its name directly because the task may have any number of accept
+      --  statements for the same entry.
 
       if Present (Index) then
          Accept_Id := New_Internal_Entity
@@ -277,7 +277,6 @@ package body Sem_Ch9 is
          if Entry_Nam = Scope_Stack.Table (J).Entity then
             Error_Msg_N ("duplicate accept statement for same entry", N);
          end if;
-
       end loop;
 
       declare
@@ -1691,6 +1690,7 @@ package body Sem_Ch9 is
           Defining_Identifier => O_Name,
           Object_Definition   => Make_Identifier (Loc,  Chars (T)));
 
+      Move_Aspects (N, O_Decl);
       Rewrite (N, T_Decl);
       Insert_After (N, O_Decl);
       Mark_Rewrite_Insertion (O_Decl);
@@ -1749,13 +1749,15 @@ package body Sem_Ch9 is
       --  entity is the new object declaration. The single_task_declaration
       --  is not used further in semantics or code generation, but is scanned
       --  when generating debug information, and therefore needs the updated
-      --  Sloc information for the entity (see Sprint).
+      --  Sloc information for the entity (see Sprint). Aspect specifications
+      --  are moved from the single task node to the object declaration node.
 
       O_Decl :=
         Make_Object_Declaration (Loc,
           Defining_Identifier => O_Name,
           Object_Definition   => Make_Identifier (Loc, Chars (T)));
 
+      Move_Aspects (N, O_Decl);
       Rewrite (N, T_Decl);
       Insert_After (N, O_Decl);
       Mark_Rewrite_Insertion (O_Decl);

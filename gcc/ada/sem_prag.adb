@@ -58,6 +58,7 @@ with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch12; use Sem_Ch12;
 with Sem_Ch13; use Sem_Ch13;
+with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
 with Sem_Elim; use Sem_Elim;
 with Sem_Eval; use Sem_Eval;
@@ -90,10 +91,9 @@ package body Sem_Prag is
    -- Common Handling of Import-Export Pragmas --
    ----------------------------------------------
 
-   --  In the following section, a number of Import_xxx and Export_xxx
-   --  pragmas are defined by GNAT. These are compatible with the DEC
-   --  pragmas of the same name, and all have the following common
-   --  form and processing:
+   --  In the following section, a number of Import_xxx and Export_xxx pragmas
+   --  are defined by GNAT. These are compatible with the DEC pragmas of the
+   --  same name, and all have the following common form and processing:
 
    --  pragma Export_xxx
    --        [Internal                 =>] LOCAL_NAME
@@ -566,9 +566,8 @@ package body Sem_Prag is
       --  This is called prior to issuing an error message. Msg is a string
       --  which typically contains the substring pragma. If the current pragma
       --  comes from an aspect, each such "pragma" substring is replaced with
-      --  the characters "aspect", and in addition, if Error_Msg_Name_1 is
-      --  Name_Precondition (resp Name_Postcondition) it is replaced with
-      --  Name_Pre (resp Name_Post).
+      --  the characters "aspect", and if Error_Msg_Name_1 is Name_Precondition
+      --  (resp Name_Postcondition) it is changed to Name_Pre (resp Name_Post).
 
       procedure Gather_Associations
         (Names : Name_List;
@@ -1248,7 +1247,7 @@ package body Sem_Prag is
             if Nkind (P) = N_Aspect_Specification
               or else From_Aspect_Specification (P)
             then
-               Error_Msg_NE ("aspect% for & previously specified#", N, E);
+               Error_Msg_NE ("aspect% for & previously given#", N, E);
             else
                Error_Msg_NE ("pragma% for & duplicates pragma#", N, E);
             end if;
@@ -1463,7 +1462,10 @@ package body Sem_Prag is
 
       procedure Check_Optional_Identifier (Arg : Node_Id; Id : Name_Id) is
       begin
-         if Present (Arg) and then Chars (Arg) /= No_Name then
+         if Present (Arg)
+           and then Nkind (Arg) = N_Pragma_Argument_Association
+           and then Chars (Arg) /= No_Name
+         then
             if Chars (Arg) /= Id then
                Error_Msg_Name_1 := Pname;
                Error_Msg_Name_2 := Id;
@@ -1499,11 +1501,26 @@ package body Sem_Prag is
          ---------------
 
          procedure Chain_PPC (PO : Node_Id) is
-            S : Node_Id;
+            S   : Entity_Id;
+            P   : Node_Id;
 
          begin
-            if not Nkind_In (PO, N_Subprogram_Declaration,
-                                 N_Generic_Subprogram_Declaration)
+            if Nkind (PO) = N_Abstract_Subprogram_Declaration then
+               if not From_Aspect_Specification (N) then
+                  Error_Pragma
+                    ("pragma% cannot be applied to abstract subprogram");
+
+               elsif Class_Present (N) then
+                  Error_Pragma
+                    ("aspect `%''Class` not implemented yet");
+
+               else
+                  Error_Pragma
+                    ("aspect % requires ''Class for abstract subprogram");
+               end if;
+
+            elsif not Nkind_In (PO, N_Subprogram_Declaration,
+                                    N_Generic_Subprogram_Declaration)
             then
                Pragma_Misplaced;
             end if;
@@ -1511,6 +1528,60 @@ package body Sem_Prag is
             --  Here if we have subprogram or generic subprogram declaration
 
             S := Defining_Unit_Name (Specification (PO));
+
+            --  Make sure we do not have the case of a precondition pragma when
+            --  the Pre'Class aspect is present.
+
+            --  We do this by looking at pragmas already chained to the entity
+            --  since the aspect derived pragma will be put on this list first.
+
+            if Pragma_Name (N) = Name_Precondition then
+               if not From_Aspect_Specification (N) then
+                  P := Spec_PPC_List (S);
+                  while Present (P) loop
+                     if Pragma_Name (P) = Name_Precondition
+                       and then From_Aspect_Specification (P)
+                       and then Class_Present (P)
+                     then
+                        Error_Msg_Sloc := Sloc (P);
+                        Error_Pragma
+                          ("pragma% not allowed, `Pre''Class` aspect given#");
+                     end if;
+
+                     P := Next_Pragma (P);
+                  end loop;
+               end if;
+            end if;
+
+            --  Similarly check for Pre with inherited Pre'Class. Note that
+            --  we cover the aspect case as well here.
+
+            if Pragma_Name (N) = Name_Precondition
+              and then not Class_Present (N)
+            then
+               declare
+                  Inherited : constant Subprogram_List :=
+                                Inherited_Subprograms (S);
+                  P         : Node_Id;
+
+               begin
+                  for J in Inherited'Range loop
+                     P := Spec_PPC_List (Inherited (J));
+                     while Present (P) loop
+                        if Pragma_Name (P) = Name_Precondition
+                          and then Class_Present (P)
+                        then
+                           Error_Msg_Sloc := Sloc (P);
+                           Error_Pragma
+                             ("pragma% not allowed, `Pre''Class` "
+                              & "aspect inherited from#");
+                        end if;
+
+                        P := Next_Pragma (P);
+                     end loop;
+                  end loop;
+               end;
+            end if;
 
             --  Analyze the pragma unless it appears within a package spec,
             --  which is the case where we delay the analysis of the PPC until
@@ -1599,9 +1670,7 @@ package body Sem_Prag is
             if Operating_Mode /= Generate_Code
               or else Inside_A_Generic
             then
-
-               --  Analyze expression in pragma, for correctness
-               --  and for ASIS use.
+               --  Analyze pragma expression for correctness and for ASIS use
 
                Preanalyze_Spec_Expression
                  (Get_Pragma_Arg (Arg1), Standard_Boolean);
@@ -2059,12 +2128,12 @@ package body Sem_Prag is
                   Msg (J .. J + 5) := "aspect";
                end if;
             end loop;
-         end if;
 
-         if Error_Msg_Name_1 = Name_Precondition then
-            Error_Msg_Name_1 := Name_Pre;
-         elsif Error_Msg_Name_1 = Name_Postcondition then
-            Error_Msg_Name_1 := Name_Post;
+            if Error_Msg_Name_1 = Name_Precondition then
+               Error_Msg_Name_1 := Name_Pre;
+            elsif Error_Msg_Name_1 = Name_Postcondition then
+               Error_Msg_Name_1 := Name_Post;
+            end if;
          end if;
       end Fix_Error;
 
@@ -3593,7 +3662,7 @@ package body Sem_Prag is
                               Set_Mechanism_Value
                                 (Formal, Expression (Massoc));
 
-                              --  Set entity on identifier for ASIS
+                              --  Set entity on identifier (needed by ASIS)
 
                               Set_Entity (Choice, Formal);
 
@@ -3768,15 +3837,15 @@ package body Sem_Prag is
          elsif Is_Subprogram (Def_Id)
            or else Is_Generic_Subprogram (Def_Id)
          then
-            --  If the name is overloaded, pragma applies to all of the
-            --  denoted entities in the same declarative part.
+            --  If the name is overloaded, pragma applies to all of the denoted
+            --  entities in the same declarative part.
 
             Hom_Id := Def_Id;
             while Present (Hom_Id) loop
                Def_Id := Get_Base_Subprogram (Hom_Id);
 
-               --  Ignore inherited subprograms because the pragma will
-               --  apply to the parent operation, which is the one called.
+               --  Ignore inherited subprograms because the pragma will apply
+               --  to the parent operation, which is the one called.
 
                if Is_Overloadable (Def_Id)
                  and then Present (Alias (Def_Id))
@@ -4548,6 +4617,12 @@ package body Sem_Prag is
       --  Start of processing for Process_Restrictions_Or_Restriction_Warnings
 
       begin
+         --  Ignore all Restrictions pragma in CodePeer mode
+
+         if CodePeer_Mode then
+            return;
+         end if;
+
          Check_Ada_83_Warning;
          Check_At_Least_N_Arguments (1);
          Check_Valid_Configuration_Pragma;
@@ -8924,11 +8999,11 @@ package body Sem_Prag is
                Pragma_Misplaced;
                return;
 
-            elsif Has_Priority_Pragma (P) then
+            elsif Has_Pragma_Priority (P) then
                Error_Pragma ("duplicate pragma% not allowed");
 
             else
-               Set_Has_Priority_Pragma (P, True);
+               Set_Has_Pragma_Priority (P, True);
                Record_Rep_Item (Defining_Identifier (Parent (P)), N);
             end if;
          end Interrupt_Priority;
@@ -10948,10 +11023,10 @@ package body Sem_Prag is
                Pragma_Misplaced;
             end if;
 
-            if Has_Priority_Pragma (P) then
+            if Has_Pragma_Priority (P) then
                Error_Pragma ("duplicate pragma% not allowed");
             else
-               Set_Has_Priority_Pragma (P, True);
+               Set_Has_Pragma_Priority (P, True);
 
                if Nkind_In (P, N_Protected_Definition, N_Task_Definition) then
                   Record_Rep_Item (Defining_Identifier (Parent (P)), N);
@@ -12150,24 +12225,15 @@ package body Sem_Prag is
 
          --  pragma Suppress_All;
 
-         --  The only check made here is that the pragma appears in the proper
-         --  place, i.e. following a compilation unit. If indeed it appears in
-         --  this context, then the parser has already inserted an equivalent
-         --  pragma Suppress (All_Checks) to get the required effect.
+         --  The only check made here is that the pragma has no arguments.
+         --  There are no placement rules, and the processing required (setting
+         --  the Has_Pragma_Suppress_All flag in the compilation unit node was
+         --  taken care of by the parser). Process_Compilation_Unit_Pragmas
+         --  then creates and inserts a pragma Suppress (All_Checks).
 
          when Pragma_Suppress_All =>
             GNAT_Pragma;
             Check_Arg_Count (0);
-
-            if Nkind (Parent (N)) /= N_Compilation_Unit_Aux
-              or else not Is_List_Member (N)
-              or else List_Containing (N) /= Pragmas_After (Parent (N))
-            then
-               if not CodePeer_Mode then
-                  Error_Pragma
-                    ("misplaced pragma%, must follow compilation unit");
-               end if;
-            end if;
 
          -------------------------
          -- Suppress_Debug_Info --
@@ -13736,35 +13802,26 @@ package body Sem_Prag is
    procedure Process_Compilation_Unit_Pragmas (N : Node_Id) is
    begin
       --  A special check for pragma Suppress_All, a very strange DEC pragma,
-      --  strange because it comes at the end of the unit. If we have a pragma
-      --  Suppress_All in the Pragmas_After of the current unit, then we insert
-      --  a pragma Suppress (All_Checks) at the start of the context clause to
-      --  ensure the correct processing.
+      --  strange because it comes at the end of the unit. Rational has the
+      --  same name for a pragma, but treats it as a program unit pragma, In
+      --  GNAT we just decide to allow it anywhere at all. If it appeared then
+      --  the flag Has_Pragma_Suppress_All was set on the compilation unit
+      --  node, and we insert a pragma Suppress (All_Checks) at the start of
+      --  the context clause to ensure the correct processing.
 
-      declare
-         PA : constant List_Id := Pragmas_After (Aux_Decls_Node (N));
-         P  : Node_Id;
+      if Has_Pragma_Suppress_All (N) then
+         Prepend_To (Context_Items (N),
+           Make_Pragma (Sloc (N),
+             Chars                        => Name_Suppress,
+             Pragma_Argument_Associations => New_List (
+               Make_Pragma_Argument_Association (Sloc (N),
+                 Expression =>
+                   Make_Identifier (Sloc (N),
+                     Chars => Name_All_Checks)))));
+      end if;
 
-      begin
-         if Present (PA) then
-            P := First (PA);
-            while Present (P) loop
-               if Pragma_Name (P) = Name_Suppress_All then
-                  Prepend_To (Context_Items (N),
-                    Make_Pragma (Sloc (P),
-                      Chars => Name_Suppress,
-                      Pragma_Argument_Associations => New_List (
-                        Make_Pragma_Argument_Association (Sloc (P),
-                          Expression =>
-                            Make_Identifier (Sloc (P),
-                              Chars => Name_All_Checks)))));
-                  exit;
-               end if;
+      --  Nothing else to do at the current time!
 
-               Next (P);
-            end loop;
-         end if;
-      end;
    end Process_Compilation_Unit_Pragmas;
 
    --------

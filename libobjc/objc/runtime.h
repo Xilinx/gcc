@@ -48,6 +48,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* TODO: This file is incomplete.  */
 
 #include "objc.h"
+#include "objc-decls.h"
 
 /* An 'Ivar' represents an instance variable.  It holds information
    about the name, type and offset of the instance variable.  */
@@ -168,7 +169,8 @@ object_getClass (id object)
 
 /** Implementation: the following functions are in selector.c.  */
 
-/* Return the name of a given selector.  */
+/* Return the name of a given selector.  If 'selector' is NULL, return
+   "<null selector>".  */
 objc_EXPORT const char *sel_getName (SEL selector);
 
 /* Return the type of a given selector.
@@ -236,6 +238,14 @@ objc_EXPORT Class object_setClass (id object, Class class_);
    variable name.  This is an expensive function to call, so try to
    reuse the returned Ivar if you can.  */
 objc_EXPORT Ivar class_getInstanceVariable (Class class_, const char *name);
+
+/* Return a class variable given the class and the class variable
+   name.  This is an expensive function to call, so try to reuse the
+   returned Ivar if you can.  
+   
+   This function always returns NULL since class variables are
+   currently unavailable in Objective-C.  */
+objc_EXPORT Ivar class_getClassVariable (Class class_, const char *name);
 
 /* If the object was created in class_createInstance() with some
    extraBytes, returns a pointer to them.  If it was not, then the
@@ -355,6 +365,180 @@ objc_EXPORT int objc_getClassList (Class *returnValue, int maxNumberOfClassesToR
    the documentation is unclear on what they are supposed to do, and
    the GNU Objective-C Runtime currently does not provide them.  */
 
+/* Return the name of the class 'class_', or the string "nil" if the
+   class_ is Nil.  */
+objc_EXPORT const char * class_getName (Class class_);
+
+/* Return YES if 'class_' is a meta class, and NO if not.  If 'class_'
+   is Nil, return NO.  */
+objc_EXPORT BOOL class_isMetaClass (Class class_);
+
+/* Return the superclass of 'class_'.  If 'class_' is Nil, or it is a root
+   class, return Nil.
+
+   TODO: It may be worth to define this inline, since it is usually
+   used in loops when traversing the class hierarchy.  */
+objc_EXPORT Class class_getSuperclass (Class class_);
+
+/* Return the 'version' number of the class, which is an integer that
+   can be used to track changes in the class API, methods and
+   variables.  If class_ is Nil, return 0.  If class_ is not Nil, the
+   version is 0 unless class_setVersion() has been called to set a
+   different one.
+
+   Please note that internally the version is a long, but the API only
+   allows you to set and retrieve int values.  */
+objc_EXPORT int class_getVersion (Class class_);
+
+/* Set the 'version' number of the class, which is an integer that can
+   be used to track changes in the class API, methods and variables.
+   If 'class_' is Nil, does nothing.
+
+   This is typically used internally by "Foundation" libraries such as
+   GNUstep Base to support serialization / deserialization of objects
+   that work across changes in the classes.  If you are using such a
+   library, you probably want to use their versioning API, which may
+   be based on this one, but is integrated with the rest of the
+   library.
+
+   Please note that internally the version is a long, but the API only
+   allows you to set and retrieve int values.  */
+objc_EXPORT void class_setVersion (Class class_, int version);
+
+/* Return the size in bytes (a byte is the size of a char) of an
+   instance of the class.  If class_ is Nil, return 0; else it return
+   a non-zero number (since the 'isa' instance variable is required
+   for all classes).  */
+objc_EXPORT size_t class_getInstanceSize (Class class_);
+
+
+/** Implementation: the following functions are in protocols.c.  */
+
+/* Return the protocol with name 'name', or nil if it the protocol is
+   not known to the runtime.  */
+objc_EXPORT Protocol *objc_getProtocol (const char *name);
+
+/* Return all the protocols known to the runtime.  The return value of
+   the function is a pointer to an area, allocated with malloc(), that
+   contains all the protocols known to the runtime; the list is
+   terminated by NULL.  You should free this area using free() once
+   you no longer need it.  Optionally, if you pass a non-NULL
+   'numberOfReturnedProtocols' pointer, the unsigned int that it
+   points to will be filled with the number of protocols returned.  If
+   there are no protocols known to the runtime, NULL is returned.  */
+objc_EXPORT Protocol **objc_copyProtocolList (unsigned int *numberOfReturnedProtocols);
+
+/* Add a protocol to a class, and return YES if it was done
+   succesfully, and NO if not.  At the moment, NO should only happen
+   if class_ or protocol are nil, if the protocol is not a Protocol
+   object or if the class already conforms to the protocol.  */
+objc_EXPORT BOOL class_addProtocol (Class class_, Protocol *protocol);
+
+/* Return YES if the class 'class_' conforms to Protocol 'protocol',
+   and NO if not.  */
+objc_EXPORT BOOL class_conformsToProtocol (Class class_, Protocol *protocol);
+
+/* Return all the protocols that the class conforms to.  The return
+   value of the function is a pointer to an area, allocated with
+   malloc(), that contains all the protocols formally adopted by the
+   class.  It does not include protocols adopted by superclasses.  The
+   list is terminated by NULL.  Optionally, if you pass a non-NULL
+   'numberOfReturnedProtocols' pointer, the unsigned int that it
+   points to will be filled with the number of protocols returned.  */
+objc_EXPORT Protocol **class_copyProtocolList (Class class_, unsigned int *numberOfReturnedProtocols);
+
+/* Return YES if protocol 'protocol' conforms to protocol
+   'anotherProtocol', and NO if not.  Note that if one of the two
+   protocols is nil, it returns NO.  */
+objc_EXPORT BOOL protocol_conformsToProtocol (Protocol *protocol, Protocol *anotherProtocol);
+
+/* Return YES if protocol 'protocol' is the same as protocol
+   'anotherProtocol', and 'NO' if not.  Note that it returns YES if
+   the two protocols are both nil.  */
+objc_EXPORT BOOL protocol_isEqual (Protocol *protocol, Protocol *anotherProtocol);
+
+/* Return the name of protocol 'protocol'.  If 'protocol' is nil or is
+   not a Protocol, return NULL.  */
+objc_EXPORT const char *protocol_getName (Protocol *protocol);
+
+/* Return the method description for the method with selector
+   'selector' in protocol 'protocol'; if 'requiredMethod' is YES, the
+   function searches the list of required methods; if NO, the list of
+   optional methods.  If 'instanceMethod' is YES, the function search
+   for an instance method; if NO, for a class method.  If there is no
+   matching method, an objc_method_description structure with both
+   name and types set to NULL is returned.  This function will only
+   find methods that are directly declared in the protocol itself, not
+   in other protocols that this protocol adopts.
+
+   Note that the traditional ABI does not store the list of optional
+   methods of a protocol in a compiled module, so the traditional ABI
+   will always return (NULL, NULL) when requiredMethod == NO.  */
+objc_EXPORT struct objc_method_description protocol_getMethodDescription (Protocol *protocol, 
+									  SEL selector,
+									  BOOL requiredMethod,
+									  BOOL instanceMethod);
+
+/* Return the method descriptions of all the methods of the protocol.
+   The return value of the function is a pointer to an area, allocated
+   with malloc(), that contains all the method descriptions of the
+   methods of the protocol.  It does not recursively include methods
+   of the protocols adopted by this protocol.  The list is terminated
+   by a NULL objc_method_description (one with both fields set to
+   NULL).  Optionally, if you pass a non-NULL
+   'numberOfReturnedMethods' pointer, the unsigned int that it points
+   to will be filled with the number of properties returned.
+
+   Note that the traditional ABI does not store the list of optional
+   methods of a protocol in a compiled module, so the traditional ABI
+   will always return an empty list if requiredMethod is set to
+   NO.  */
+objc_EXPORT struct objc_method_description *protocol_copyMethodDescriptionList (Protocol *protocol,
+										BOOL requiredMethod,
+										BOOL instanceMethod,
+										unsigned int *numberOfReturnedMethods);
+
+/* Return the property with name 'propertyName' of the protocol
+   'protocol'.  If 'requiredProperty' is YES, the function searches
+   the list of required properties; if NO, the list of optional
+   properties.  If 'instanceProperty' is YES, the function searches
+   the list of instance properties; if NO, the list of class
+   properties.  At the moment, optional properties and class
+   properties are not part of the Objective-C language, so both
+   'requiredProperty' and 'instanceProperty' should be set to YES.
+   This function returns NULL if the required property can not be
+   found.
+
+   Note that the traditional ABI does not store the list of properties
+   of a protocol in a compiled module, so the traditional ABI will
+   always return NULL.  */
+objc_EXPORT Property protocol_getProperty (Protocol *protocol, const char *propertyName, 
+					   BOOL requiredProperty, BOOL instanceProperty);
+
+/* Return all the properties of the protocol.  The return value of the
+   function is a pointer to an area, allocated with malloc(), that
+   contains all the properties of the protocol.  It does not
+   recursively include properties of the protocols adopted by this
+   protocol.  The list is terminated by NULL.  Optionally, if you pass
+   a non-NULL 'numberOfReturnedProperties' pointer, the unsigned int
+   that it points to will be filled with the number of properties
+   returned.
+
+   Note that the traditional ABI does not store the list of properties
+   of a protocol in a compiled module, so the traditional ABI will
+   always return NULL and store 0 in numberOfReturnedProperties.  */
+objc_EXPORT Property *protocol_copyPropertyList (Protocol *protocol, unsigned int *numberOfReturnedProperties);
+
+/* Return all the protocols that the protocol conforms to.  The return
+   value of the function is a pointer to an area, allocated with
+   malloc(), that contains all the protocols formally adopted by the
+   protocol.  It does not recursively include protocols adopted by the
+   protocols adopted by this protocol.  The list is terminated by
+   NULL.  Optionally, if you pass a non-NULL
+   'numberOfReturnedProtocols' pointer, the unsigned int that it
+   points to will be filled with the number of protocols returned.  */
+objc_EXPORT Protocol **protocol_copyProtocolList (Protocol *protocol, unsigned int *numberOfReturnedProtocols);
+
 
 /* TODO: Add all the other functions in the API.  */
 
@@ -410,11 +594,38 @@ struct __objcFastEnumerationState
 */
 
 
+/** Implementation: the following functions are in memory.c.  */
+
+/* Traditional GNU Objective-C Runtime functions that are used for
+   memory allocation and disposal.  These functions are used in the
+   same way as you use malloc, realloc, calloc and free and make sure
+   that memory allocation works properly with the garbage
+   collector.
+
+   Compatibility Note: these functions are not available with the
+   Apple/NeXT runtime.  */
+
+objc_EXPORT void *objc_malloc(size_t size);
+
+/* FIXME: Shouldn't the following be called objc_malloc_atomic ?  The
+   GC function is GC_malloc_atomic() which makes sense.
+ */
+objc_EXPORT void *objc_atomic_malloc(size_t size);
+
+objc_EXPORT void *objc_realloc(void *mem, size_t size);
+
+objc_EXPORT void *objc_calloc(size_t nelem, size_t size);
+
+objc_EXPORT void objc_free(void *mem);
+
+
 /** Implementation: the following functions are in encoding.c.  */
 
 /* Traditional GNU Objective-C Runtime functions that are currently
    used to implement method forwarding.
-*/
+
+   Compatibility Note: these functions are not available with the
+   Apple/NeXT runtime.  */
 
 /* Return the size of a variable which has the specified 'type'
    encoding.  */

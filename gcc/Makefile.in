@@ -830,7 +830,7 @@ CONFIG_H  = config.h  $(host_xm_file_list)
 TCONFIG_H = tconfig.h $(xm_file_list)
 TM_P_H    = tm_p.h    $(tm_p_file_list)
 GTM_H     = tm.h      $(tm_file_list) insn-constants.h
-TM_H      = $(GTM_H) insn-flags.h $(FLAGS_H)
+TM_H      = $(GTM_H) insn-flags.h $(OPTIONS_H)
 
 # Variables for version information.
 BASEVER     := $(srcdir)/BASE-VER  # 4.x.y
@@ -881,7 +881,8 @@ HOSTHOOKS_DEF_H = hosthooks-def.h $(HOOKS_H)
 LANGHOOKS_DEF_H = langhooks-def.h $(HOOKS_H)
 TARGET_DEF_H = target-def.h target-hooks-def.h $(HOOKS_H) targhooks.h
 RTL_BASE_H = rtl.h rtl.def $(MACHMODE_H) reg-notes.def insn-notes.def \
-  $(INPUT_H) $(REAL_H) statistics.h $(VEC_H) $(FIXED_VALUE_H) alias.h
+  $(INPUT_H) $(REAL_H) statistics.h $(VEC_H) $(FIXED_VALUE_H) alias.h \
+  $(HASHTAB_H)
 FIXED_VALUE_H = fixed-value.h $(MACHMODE_H) double-int.h
 RTL_H = $(RTL_BASE_H) genrtl.h vecir.h
 RTL_ERROR_H = $(RTL_H) $(DIAGNOSTIC_CORE_H)
@@ -904,7 +905,8 @@ DEMANGLE_H = $(srcdir)/../include/demangle.h
 RECOG_H = recog.h
 ALIAS_H = alias.h coretypes.h
 EMIT_RTL_H = emit-rtl.h
-FLAGS_H = flags.h coretypes.h options.h
+FLAGS_H = flags.h coretypes.h flag-types.h $(OPTIONS_H)
+OPTIONS_H = options.h flag-types.h
 FUNCTION_H = function.h $(TREE_H) $(HASHTAB_H) vecprim.h $(TM_H)
 EXPR_H = expr.h insn-config.h $(FUNCTION_H) $(RTL_H) $(FLAGS_H) $(TREE_H) $(MACHMODE_H) $(EMIT_RTL_H)
 OPTABS_H = optabs.h insn-codes.h
@@ -2143,7 +2145,7 @@ c-family/c-omp.o : c-family/c-omp.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 c-family/c-opts.o : c-family/c-opts.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
         $(TREE_H) $(C_PRAGMA_H) $(FLAGS_H) $(TOPLEV_H) langhooks.h \
         $(DIAGNOSTIC_H) intl.h debug.h $(C_COMMON_H)	\
-        opts.h options.h $(MKDEPS_H) incpath.h cppdefault.h
+        opts.h $(OPTIONS_H) $(MKDEPS_H) incpath.h cppdefault.h
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
 		$< $(OUTPUT_OPTION) @TARGET_SYSTEM_ROOT_DEFINE@
 
@@ -2344,7 +2346,7 @@ lto-symtab.o: lto-symtab.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    toplev.h $(TREE_H) $(GIMPLE_H) $(GGC_H) $(LAMBDA_H) $(HASHTAB_H) \
    $(LTO_STREAMER_H) $(LINKER_PLUGIN_API_H) gt-lto-symtab.h
 lto-opts.o: lto-opts.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
-   $(HASHTAB_H) $(GGC_H) $(BITMAP_H) $(FLAGS_H) opts.h options.h \
+   $(HASHTAB_H) $(GGC_H) $(BITMAP_H) $(FLAGS_H) opts.h $(OPTIONS_H) \
    $(TARGET_H) $(TOPLEV_H) $(DIAGNOSTIC_H) $(LTO_STREAMER_H)
 lto-streamer.o: lto-streamer.c $(CONFIG_H) $(SYSTEM_H) coretypes.h   \
    $(TM_H) $(TREE_H) $(GIMPLE_H) $(BITMAP_H) $(LTO_STREAMER_H) $(FLAGS_H) \
@@ -2836,7 +2838,7 @@ fold-const.o : fold-const.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(GIMPLE_H) realmpfr.h $(TREE_FLOW_H)
 diagnostic.o : diagnostic.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    version.h $(INPUT_H) intl.h $(DIAGNOSTIC_H) diagnostic.def
-opts.o : opts.c opts.h options.h $(TOPLEV_H) $(DIAGNOSTIC_CORE_H) $(CONFIG_H) $(SYSTEM_H) \
+opts.o : opts.c opts.h $(OPTIONS_H) $(TOPLEV_H) $(DIAGNOSTIC_CORE_H) $(CONFIG_H) $(SYSTEM_H) \
    coretypes.h $(TREE_H) $(TM_H) langhooks.h $(GGC_H) $(EXPR_H) $(RTL_H) \
    output.h $(DIAGNOSTIC_H) $(TM_P_H) $(INSN_ATTR_H) intl.h $(TARGET_H) \
    $(FLAGS_H) $(PARAMS_H) $(TREE_PASS_H) $(DBGCNT_H) debug.h \
@@ -4980,7 +4982,7 @@ $(lang_checks_parallel): site.exp
 	variant=`echo "$@" | sed 's,^[^/]*//,,'`; \
 	vardots=`echo "$$variant" | sed 's,/,.,g'`; \
 	$(MAKE) TESTSUITEDIR="testsuite.$$vardots" \
-	  RUNTESTFLAGS="--target_board=$$variant "'$(RUNTESTFLAGS)' \
+	  RUNTESTFLAGS="--target_board=$$variant $(RUNTESTFLAGS)" \
 	  "$$target"
 
 TESTSUITEDIR = testsuite
@@ -5039,9 +5041,9 @@ check_p_subdirs=$(wordlist 1,$(words $(check_$*_parallelize)),$(check_p_numbers)
 # to lang_checks_parallelized variable and define check_$lang_parallelize
 # variable (see above check_gcc_parallelize description).
 $(lang_checks_parallelized): check-% : site.exp
-	@if [ -z '$(filter-out --target_board=%, $(RUNTESTFLAGS))' ] \
+	@if [ -z "$(filter-out --target_board=%, $(RUNTESTFLAGS))" ] \
 	    && [ "$(filter -j, $(MFLAGS))" = "-j" ]; then \
-	  $(MAKE) TESTSUITEDIR="$(TESTSUITEDIR)" RUNTESTFLAGS='$(RUNTESTFLAGS)' \
+	  $(MAKE) TESTSUITEDIR="$(TESTSUITEDIR)" RUNTESTFLAGS="$(RUNTESTFLAGS)" \
 	    check-parallel-$* \
 	    $(patsubst %,check-parallel-$*_%, $(check_p_subdirs)); \
 	  for file in $(TESTSUITEDIR)/$*/$* \
@@ -5058,7 +5060,7 @@ $(lang_checks_parallelized): check-% : site.exp
 	    $(patsubst %,$(TESTSUITEDIR)/$*%/$*.log.sep,$(check_p_subdirs)) \
 	    > $(TESTSUITEDIR)/$*/$*.log; \
 	else \
-	  $(MAKE) TESTSUITEDIR="$(TESTSUITEDIR)" RUNTESTFLAGS='$(RUNTESTFLAGS)' \
+	  $(MAKE) TESTSUITEDIR="$(TESTSUITEDIR)" RUNTESTFLAGS="$(RUNTESTFLAGS)" \
 	    check_$*_parallelize= check-parallel-$*; \
 	fi
 

@@ -4645,6 +4645,20 @@ package body Exp_Util is
            and then Ekind (Entity (Original_Node (N))) /= E_Constant
          then
             return False;
+
+         --  Remove_Side_Effects generates an object renaming declaration to
+         --  capture the expression of a class-wide expression. In VM targets
+         --  the frontend performs no expansion for dispatching calls to
+         --  class-wide types since they are handled by the VM. Hence, we must
+         --  locate here if this node corresponds to a previous invocation of
+         --  Remove_Side_Effects to avoid a never ending loop in the frontend.
+
+         elsif VM_Target /= No_VM
+            and then not Comes_From_Source (N)
+            and then Is_Class_Wide_Type (Etype (N))
+            and then Nkind (Parent (N)) = N_Object_Renaming_Declaration
+         then
+            return True;
          end if;
 
          --  For other than entity names and compile time known values,
@@ -4836,17 +4850,6 @@ package body Exp_Util is
       --  there is nothing to do.
 
       if Side_Effect_Free (Exp) or else not Expander_Active then
-         return;
-      end if;
-
-      --  No action needed for renamings of class-wide expressions because for
-      --  class-wide types Remove_Side_Effects uses a renaming to capture the
-      --  expression (and hence we would generate a never-ending loop in the
-      --  front end).
-
-      if Is_Class_Wide_Type (Exp_Type)
-         and then Nkind (Parent (Exp)) = N_Object_Renaming_Declaration
-      then
          return;
       end if;
 

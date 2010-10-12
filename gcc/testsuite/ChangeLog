@@ -1,3 +1,22 @@
+2010-10-12  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38936
+	* gfortran.dg/associate_1.f03: More tests with derived-types.
+	* gfortran.dg/associate_9.f03: New test (XFAIL for now).
+	* gfortran.dg/associate_8.f03: Fix typo.
+	* gfortran.dg/initialization_27.f90: Fix typo.
+
+2010-10-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR testsuite/45851
+	* lib/lto.exp (lto-get-options-main): Support optional target
+	selector for dg-extra-ld-options.
+
+2010-10-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/pragma-init-fini.c: Skip on i?86-*-solaris2.8 && !gas.
+	* gcc.dg/pragma-init-fini-2.c: XFAIL on i?86-*-solaris2.8 && !gas.
+
 2010-10-11  Martin Jambor  <mjambor@suse.cz>
 
 	PR middle-end/45699
@@ -135,7 +154,7 @@
 2010-10-07  Iain Sandoe  <iains@gcc.gnu.org>
 	    Kai Tietz  <kai.tietz@onevision.com>
 
-       * objc.dg/proto-lossage-4.m: Use intptr_t instead of long type.
+	* objc.dg/proto-lossage-4.m: Use intptr_t instead of long type.
 
 2010-10-07  Richard Guenther  <rguenther@suse.de>
 
@@ -225,7 +244,7 @@
 
 	2005-03-07 Fariborz Jahanian <fjahanian@apple.com>
 
-        Radar 4468498
+	Radar 4468498
 	* objc.dg/objc-foreach-2.m: New.
 
 	2006-02-15   Fariborz Jahanian <fjahanian@apple.com>
