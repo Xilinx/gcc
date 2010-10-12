@@ -453,6 +453,12 @@ create_new_allocno_for_spilling (int nreg, int oreg)
 
   /* First create the allocno.  */
   to = ira_create_allocno (nreg, true, ira_curr_loop_tree_node);
+
+  /* This must occur before creating objects so that we know how many
+     objects to create.  */
+  from = ira_regno_allocno_map [oreg];
+  ALLOCNO_COVER_CLASS (to) = ALLOCNO_COVER_CLASS (from);
+
   ira_create_allocno_objects (to);
   ALLOCNO_REG (to) = regno_reg_rtx[nreg];
 
@@ -469,7 +475,6 @@ create_new_allocno_for_spilling (int nreg, int oreg)
 
 
   /* Copy various fields from the original allocno to the new one.  */
-  from = ira_regno_allocno_map [oreg];
 #ifdef STACK_REGS
   ALLOCNO_NO_STACK_REG_P (to) = ALLOCNO_NO_STACK_REG_P (from);
   ALLOCNO_TOTAL_NO_STACK_REG_P (to) = ALLOCNO_TOTAL_NO_STACK_REG_P (from);
@@ -482,7 +487,6 @@ create_new_allocno_for_spilling (int nreg, int oreg)
     = ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (from);
   ALLOCNO_BAD_SPILL_P (to) = ALLOCNO_BAD_SPILL_P (from);
 
-  ALLOCNO_COVER_CLASS (to) = ALLOCNO_COVER_CLASS (from);
   ALLOCNO_COVER_CLASS_COST (to) = ALLOCNO_COVER_CLASS_COST (from);
   ALLOCNO_MEMORY_COST (to) = ALLOCNO_MEMORY_COST (from);
   ALLOCNO_UPDATED_MEMORY_COST (to) = ALLOCNO_UPDATED_MEMORY_COST (from);
@@ -493,8 +497,14 @@ create_new_allocno_for_spilling (int nreg, int oreg)
     {
       ira_object_t obj = ALLOCNO_OBJECT (to, i);
       /* We recompute these fields after we have localized an entire block.  */
-      CLEAR_HARD_REG_SET (OBJECT_CONFLICT_HARD_REGS (obj));
-      CLEAR_HARD_REG_SET (OBJECT_TOTAL_CONFLICT_HARD_REGS (obj));
+      COPY_HARD_REG_SET (OBJECT_CONFLICT_HARD_REGS (obj),
+			 ira_no_alloc_regs);
+      COPY_HARD_REG_SET (OBJECT_TOTAL_CONFLICT_HARD_REGS (obj),
+			 ira_no_alloc_regs);
+      IOR_COMPL_HARD_REG_SET (OBJECT_CONFLICT_HARD_REGS (obj),
+			      reg_class_contents[ALLOCNO_COVER_CLASS (to)]);
+      IOR_COMPL_HARD_REG_SET (OBJECT_TOTAL_CONFLICT_HARD_REGS (obj),
+			      reg_class_contents[ALLOCNO_COVER_CLASS (to)]);
     }
 
   /* ?!? This is a hack.

@@ -1,3 +1,10 @@
+2010-08-04  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (create_new_allocno_for_spilling): Set the new allocno's
+	cover class before creating its underlying objects.  Set the underlying
+	object's conflicts to include ira_no_alloc_regs and regs not in the
+	cover class.
+
 2010-07-26  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (create_new_allocno_for_spilling): Changes to allow
