@@ -16,8 +16,8 @@
 # along with GCC; see the file COPYING3.  If not see
 # <http://www.gnu.org/licenses/>.
 
-# 128 bit long double support was introduced with GCC 4.5.0 for Solaris 2.
-# These lines make the symbols to get a @@GCC_4.5.0.
+# 128 bit long double support was introduced with GCC 4.6.0 for FreeBSD.
+# These lines make the symbols to get a @@GCC_4.6.0.
 
 %exclude {
   __addtf3
@@ -57,7 +57,7 @@
   __unordtf2
 }
 
-GCC_4.5.0 {
+GCC_4.6.0 {
   __addtf3
 %ifndef __x86_64__
   __copysigntf3
