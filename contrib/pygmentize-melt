@@ -35,9 +35,13 @@ import pygments.cmdline
 ## adaptation of /usr/share/pyshared/pygments/lexers/functional.py for MELT
 import re
 
+## minor corrections & help by Tim Hatch.
+
 from pygments.lexer import Lexer, RegexLexer, bygroups, include, do_insertions
 from pygments.token import Text, Comment, Operator, Keyword, Name, \
      String, Number, Punctuation, Literal, Generic
+
+__all__ = ['MeltLexer']
 
 class MeltLexer(RegexLexer):
     """
@@ -284,10 +288,13 @@ class MeltLexer(RegexLexer):
             # $variable
             (r'\$[A-Za-z0-9_-]*',  Name.Variable),
             # everything else is text
-            (r'[^$', Text),
+            (r'.', Text),
         ],
             
     }
+
+import pygments.lexers._mapping
+pygments.lexers._mapping.LEXERS['MeltLexer'] = ('__main__', MeltLexer.name, MeltLexer.aliases, MeltLexer.filenames, MeltLexer.mimetypes)
 
 pygments.cmdline.main()
 

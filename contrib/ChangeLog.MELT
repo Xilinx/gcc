@@ -1,4 +1,7 @@
 2010-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* pygmentize-melt: minor corrections with help from Tim Hatch.
+
+2010-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* pygmentize-melt: Added new python script to pygmentize MELT code
 
 2010-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
