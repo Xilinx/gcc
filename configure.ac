@@ -1528,6 +1528,11 @@ AC_SUBST(poststage1_ldflags)
 ppllibs=" -lppl_c -lppl -lgmpxx"
 pplinc=
 
+# we need PPL 0.10.2 at least, but 0.11 is better
+# See http://www.cs.unipr.it/ppl/
+ppl_major_version=0
+ppl_minor_version=11
+
 AC_ARG_WITH(ppl, [  --with-ppl=PATH         Specify prefix directory for the installed PPL package
                           Equivalent to --with-ppl-include=PATH/include
                           plus --with-ppl-lib=PATH/lib])

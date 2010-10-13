@@ -4019,8 +4019,7 @@ condition is a string such as "4.5." or a list of strings.}#)
     (return res)
     ))
 
-(install_initial_patmacro 
- 'and patexpand_and mexpand_and)
+(install_initial_patmacro 'and patexpand_and mexpand_and)
 (export_patmacro 
  and patexpand_and mexpand_and
  :doc #{The lispy $AND conjonction syntax is a short-circuit "and
