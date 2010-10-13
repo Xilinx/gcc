@@ -1,0 +1,293 @@
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
+## pygmentize-melt == a Python script to pygmentize a MELT source code
+## see the pygmentize program from http://pygments.org/
+#
+# Copyright (C) 2010 Free Software Foundation, Inc.
+#
+# This file is part of GCC.
+#
+# GCC is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3, or (at your option)
+# any later version.
+#
+# GCC is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING.  If not, write to
+# the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+# Boston, MA 02110-1301, USA.
+"""
+    pygmentize-melt
+    ~~~~~~~~~~~~~~~
+
+    Pygmentize script for MELT source code
+    :copyright: (C) 2010 Free Software Foundation, Inc.
+    :license: GPLv3+
+
+"""
+
+import pygments.cmdline
+## adaptation of /usr/share/pyshared/pygments/lexers/functional.py for MELT
+import re
+
+from pygments.lexer import Lexer, RegexLexer, bygroups, include, do_insertions
+from pygments.token import Text, Comment, Operator, Keyword, Name, \
+     String, Number, Punctuation, Literal, Generic
+
+class MeltLexer(RegexLexer):
+    """
+    A MELT lexer, parsing a stream and outputting the tokens
+    needed to highlight MELT code.
+
+    This lexer is copied from the SchemeLexer of
+    /usr/share/pyshared/pygments/lexers/functional.py
+    """
+    name = 'MELT'
+    aliases = ['melt']
+    filenames = ['*.melt']
+    mimetypes = ['text/x-melt', 'application/x-melt']
+    # list of known keywords
+    keywords = [
+        ## gotten with 
+        ## awk /\\\(install_initial_macro/\{printf\ \"%s\',\ \",\$2\;\}  ../gcc/melt/warmelt-macro.melt | fmt
+        'defprimitive', 'defciterator', 'defcmatcher', 'defunmatcher',
+        'defun', 'defclass', 'definstance', 'defselector', 'instance',
+        'load', 'code_chunk', 'unsafe_put_fields', 'put_fields',
+        'unsafe_get_field', 'get_field', 'setq', 'if', 'cppif', 'gccif',
+        'cond', 'match', 'let', 'letrec', 'lambda', 'multicall',
+        'quote', 'comment', 'progn', 'return', 'forever', 'exit',
+        'compile_warning', 'assert_msg', 'debug_msg', 'export_values',
+        'export_macro', 'export_patmacro', 'export_class', 'export_synonym',
+        'current_module_environment_container', 'parent_module_environment',
+        'update_current_module_environment_container', 'fetch_predefined',
+        'store_predefined',
+        ## gotten with 
+        ## awk /\\\(install_initial_patmacro/\{printf\ \"%s\',\ \",\$2\;\}  ../gcc/melt/warmelt-*.melt | fmt
+        'instance', 'object', 'as', 'when', 'and', 'or', 'tuple', 'list',
+        ## manually added
+        ':else', ':true', 'question',
+    ]
+    #
+    # list of builtins
+    ## the exported values or exported classes of warmelt-first.melt
+    ## or warmelt-base.melt, in alphanumerical order
+    builtins = [
+        '!=', '!=i', '!=s', '%i', '%iraw', '*i', '+i', '-i',
+        '/i', '/iraw', '<=i', '<i', '==', '==i', '==s', '>=i', '>i',
+        'add2out_ccomconst', 'add2out_ccomstrbuf', 'add2out_ccomstring',
+        'add2out_cencstrbuf', 'add2out_cencstring', 'add2out_cident',
+        'add2out_cidentprefix', 'add2out_indent', 'add2out_indentnl',
+        'add2out_longdec', 'add2out_longhex', 'add2out_mixloc',
+        'add2out_routinedescr', 'add2out_sbuf', 'add2out_strconst',
+        'add2out_string', 'add2sbuf_ccomconst', 'add2sbuf_ccomstrbuf',
+        'add2sbuf_ccomstring', 'add2sbuf_cencstrbuf', 'add2sbuf_cencstring',
+        'add2sbuf_cident', 'add2sbuf_cidentprefix', 'add2sbuf_indent',
+        'add2sbuf_indentnl', 'add2sbuf_longdec', 'add2sbuf_longhex',
+        'add2sbuf_mixloc', 'add2sbuf_routinedescr', 'add2sbuf_sbuf',
+        'add2sbuf_short_mixloc', 'add2sbuf_strconst', 'add2sbuf_string',
+        'add2sbuf_texi_mixloc', 'andi', 'assert_failed', 'at_exit_first',
+        'at_exit_last', 'at_finish_unit_first', 'at_finish_unit_last',
+        'at_start_unit_first', 'at_start_unit_last', 'box_content', 'box_of',
+        'box_put', 'cbreak_msg', 'checkcallstack_msg', 'checkval_dbg',
+        'class_any_binding', 'class_any_matcher',
+        'class_c_generation_context', 'class_citerator',
+        'class_citerator_binding', 'class_class', 'class_class_binding',
+        'class_cloned_symbol', 'class_cmatcher', 'class_cmatcher_binding',
+        'class_container', 'class_ctype', 'class_described_environment',
+        'class_discriminant', 'class_environment', 'class_exported_binding',
+        'class_field', 'class_field_binding', 'class_fixed_binding',
+        'class_formal_binding', 'class_function_binding', 'class_funmatcher',
+        'class_funmatcher_binding', 'class_gcc_gimple_pass',
+        'class_gcc_pass', 'class_gcc_rtl_pass', 'class_gcc_simple_ipa_pass',
+        'class_generated_c_code', 'class_infix_additive_symbol',
+        'class_infix_any_symbol', 'class_infix_delimiter',
+        'class_infix_integer_literal', 'class_infix_keyword',
+        'class_infix_lexeme', 'class_infix_multiplicative_symbol',
+        'class_infix_relational_symbol', 'class_infix_string_literal',
+        'class_infix_symbol', 'class_initial_generation_context',
+        'class_instance_binding', 'class_keyword', 'class_label_binding',
+        'class_let_binding', 'class_letrec_binding', 'class_located',
+        'class_macro_binding', 'class_melt_mode', 'class_module_context',
+        'class_named', 'class_normal_let_binding',
+        'class_normalization_context', 'class_patmacro_binding',
+        'class_primitive', 'class_primitive_binding', 'class_proped',
+        'class_root', 'class_selector', 'class_selector_binding',
+        'class_sexpr', 'class_sexpr_macrostring', 'class_source',
+        'class_symbol', 'class_system_data', 'class_value_binding',
+        'clone_symbol', 'closure', 'closure_every', 'closure_nth',
+        'closure_routine', 'closure_size', 'compare_named_alphais_out',
+        'compare_obj_ranked', 'create_keywordstr', 'create_symbolstr',
+        'cstring_length', 'cstring_same', 'ctype_basic_block',
+        'ctype_bitmap', 'ctype_cstring', 'ctype_edge', 'ctype_gimple',
+        'ctype_gimple_seq', 'ctype_long', 'ctype_loop',
+        'ctype_ppl_coefficient', 'ctype_ppl_constraint',
+        'ctype_ppl_constraint_system', 'ctype_ppl_linear_expression',
+        'ctype_rtvec', 'ctype_rtx', 'ctype_tree', 'ctype_value',
+        'ctype_void', 'debugcstring', 'debuglong', 'discr_any_receiver',
+        'discr_basic_block', 'discr_bitmap', 'discr_box',
+        'discr_character_integer', 'discr_class_sequence', 'discr_closure',
+        'discr_constant_integer', 'discr_edge', 'discr_field_sequence',
+        'discr_file', 'discr_gimple', 'discr_gimple_seq', 'discr_integer',
+        'discr_list', 'discr_loop', 'discr_map_basic_blocks',
+        'discr_map_bitmaps', 'discr_map_edges', 'discr_map_gimple_seqs',
+        'discr_map_gimples', 'discr_map_objects', 'discr_map_rtvecs',
+        'discr_map_rtxs', 'discr_map_strings', 'discr_map_trees',
+        'discr_method_map', 'discr_mixed_bigint', 'discr_mixed_integer',
+        'discr_mixed_location', 'discr_multiple', 'discr_name_string',
+        'discr_null_receiver', 'discr_pair', 'discr_ppl_constraint_system',
+        'discr_ppl_polyhedron', 'discr_rawfile', 'discr_real',
+        'discr_routine', 'discr_rtvec', 'discr_rtx', 'discr_strbuf',
+        'discr_string', 'discr_tree', 'discr_verbatim_string', 'discrim',
+        'error_plain', 'error_strv', 'errormsg_plain', 'errormsg_strv',
+        'find_enclosing_env', 'find_env', 'find_env_debug',
+        'foreach_in_list', 'foreach_in_mapobject', 'foreach_in_mapstring',
+        'foreach_in_multiple', 'foreach_in_multiple_backward',
+        'foreach_long_upto', 'fresh_env', 'full_garbcoll',
+        'generate_debug_melt_module', 'generate_melt_module',
+        'get_globpredef', 'get_int', 'get_keywordstr', 'get_raw_symbol',
+        'get_symbolstr', 'ignore', 'inform_plain', 'inform_strv',
+        'informsg_long', 'informsg_plain', 'informsg_strv',
+        'initial_environment', 'initial_system_data', 'install_ctype_descr',
+        'install_method', 'integerbox_of', 'is_a', 'is_box', 'is_closure',
+        'is_integerbox', 'is_list', 'is_list_or_null', 'is_mapobject',
+        'is_mapstring', 'is_mixbigint', 'is_mixint', 'is_mixloc',
+        'is_multiple', 'is_multiple_or_null', 'is_non_empty_list',
+        'is_not_a', 'is_not_object', 'is_object', 'is_pair', 'is_routine',
+        'is_strbufmake_string', 'is_string', 'is_stringconst', 'list_append',
+        'list_append2list', 'list_every', 'list_find', 'list_first',
+        'list_first_element', 'list_iterate_test', 'list_last',
+        'list_last_element', 'list_length', 'list_map', 'list_popfirst',
+        'list_prepend', 'list_to_multiple', 'load_debug_melt_module',
+        'load_melt_module', 'longbacktrace_dbg', 'make_box',
+        'make_integerbox', 'make_list', 'make_mapobject', 'make_mapstring',
+        'make_mixint', 'make_mixloc', 'make_multiple', 'make_pair',
+        'make_strbuf', 'make_string_generated_c_filename',
+        'make_string_nakedbasename', 'make_string_tempname_suffixed',
+        'make_stringconst', 'mapobject_count', 'mapobject_every',
+        'mapobject_get', 'mapobject_iterate_test', 'mapobject_nth_attr',
+        'mapobject_nth_val', 'mapobject_put', 'mapobject_remove',
+        'mapobject_size', 'mapobject_sorted_attribute_tuple',
+        'mapstring_count', 'mapstring_every', 'mapstring_getstr',
+        'mapstring_iterate_test', 'mapstring_nth_attrstr',
+        'mapstring_nth_val', 'mapstring_putstr', 'mapstring_rawget',
+        'mapstring_rawput', 'mapstring_rawremove', 'mapstring_removestr',
+        'mapstring_size', 'maxi', 'melt_application_count',
+        'melt_application_depth', 'melt_application_shallower',
+        'melt_mode_container', 'message_dbg', 'messagenum_dbg',
+        'messageval_dbg', 'mini', 'minor_garbcoll', 'mixbigint_val',
+        'mixint_val', 'mixloc_location', 'mixloc_locfile', 'mixloc_locline',
+        'mixloc_val', 'multiple_backward_every', 'multiple_every',
+        'multiple_every_both', 'multiple_iterate_test', 'multiple_length',
+        'multiple_map', 'multiple_nth', 'multiple_put_nth', 'multiple_sort',
+        'multiple_to_list', 'need_dbg', 'need_dbglim', 'negi',
+        'nonzero_hash', 'not', 'noti', 'notnull', 'null', 'obj_hash',
+        'obj_len', 'obj_num', 'object_length', 'object_nth_field', 'ori',
+        'outcstring_dbg', 'outcstring_err', 'outnewline_dbg',
+        'outnewline_err', 'outnum_dbg', 'outnum_err', 'output_length',
+        'output_sbuf_strconst', 'output_sbuf_strval', 'outstr_dbg',
+        'outstr_err', 'outstrbuf_dbg', 'outstrbuf_err', 'overwrite_env',
+        'pair_head', 'pair_listlength', 'pair_set_head', 'pair_tail',
+        'pairlist_to_multiple', 'post_initialization', 'ppstrbuf_mixbigint',
+        'put_env', 'put_int', 'read_file', 'register_option',
+        'routine_descr', 'routine_every', 'routine_nth', 'routine_size',
+        'shortbacktrace_dbg', 'some_integer_greater_than',
+        'some_integer_multiple', 'split_string_colon', 'split_string_comma',
+        'split_string_space', 'strbuf2string', 'strbuf_usedlength',
+        'string!=', 'string<', 'string=', 'string>', 'string_length',
+        'stringconst2val', 'subclass_of', 'subclass_or_eq',
+        'subseq_multiple', 'the_callcount', 'the_framedepth',
+        'the_meltcallcount', 'the_null_cstring', 'tuple_nth', 'tuple_sized',
+        'void', 'warning_plain', 'warning_strv', 'warningmsg_plain',
+        'warningmsg_strv', 'xori', 'zerop',
+    ]
+    
+    # list of ctype keywords, gotten with 
+    ## awk "/^ *:ctype_keyword/{printf \"%s',\\n\", \$2;}" ../gcc/melt/warmelt-*.melt | fmt
+    ctypekeywords = [
+        ':value', ':long', ':tree', ':gimple', ':gimple_seq', ':basic_block',
+        ':edge', ':loop', ':rtx', ':bitmap', ':rtvec', ':ppl_coefficient',
+        ':ppl_linear_expression', ':ppl_constraint', ':ppl_constraint_system',
+        ':ppl_polyhedron', ':void', ':cstring',
+    ]
+
+    # valid names for identifiers
+    # well, names can only not consist fully of numbers
+    # but this should be good enough for now
+    valid_name = r'[a-zA-Z0-9!$%&*+,/:<=>?@^_~|-]+'
+
+    tokens = {
+        'root' : [
+            # the comments - always starting with semicolon
+            # and going to the end of the line
+            (r';.*$', Comment.Single),
+
+            # whitespaces - usually not relevant
+            (r'\s+', Text),
+
+            # numbers
+            (r'-?\d+\.\d+', Number.Float),
+            (r'-?\d+', Number.Integer),
+            # support for uncommon kinds of numbers -
+            # have to figure out what the characters mean
+            #(r'(#e|#i|#b|#o|#d|#x)[\d.]+', Number),
+
+            # strings, symbols and characters
+            (r'"(\\\\|\\"|[^"])*"', String),
+            (r"'" + valid_name, String.Symbol),
+            (r"#\\([()/'\".'_!§$%& ?=+-]{1}|[a-zA-Z0-9]+)", String.Char),
+
+            # The macrostring
+            (r'#\{',  Operator, 'macrostring'),
+
+            # constants
+            (r'(#t|#f)', Name.Constant),
+
+            # special operators
+            (r"('|#|`|,@|,|\.)", Operator),
+
+            # highlight the keywords
+            ('(%s)' % '|'.join([
+                re.escape(entry) + ' ' for entry in keywords]),
+                Keyword
+            ),
+
+            # first variable in a quoted string like
+            # '(this is syntactic sugar)
+            (r"(?<='\()" + valid_name, Name.Variable),
+            (r"(?<=#\()" + valid_name, Name.Variable),
+
+            # highlight the builtins
+            ("(?<=\()(%s)" % '|'.join([
+                re.escape(entry) + ' ' for entry in builtins]),
+                Name.Builtin
+            ),
+
+            # the remaining functions
+            (r'(?<=\()' + valid_name, Name.Function),
+            # find the remaining variables
+            (valid_name, Name.Variable),
+
+            # the famous parentheses!
+            (r'(\(|\))', Punctuation),
+        ],
+
+        'macrostring' : [
+            # whitespaces - usually not relevant
+            (r'\s+', Text),
+            # endofmacrostring
+            (r'\}#', Operator, '#pop'),
+            # $variable
+            (r'\$[A-Za-z0-9_-]*',  Name.Variable),
+            # everything else is text
+            (r'[^$', Text),
+        ],
+            
+    }
+
+pygments.cmdline.main()
+

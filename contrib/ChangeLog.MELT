@@ -1,3 +1,6 @@
+2010-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* pygmentize-melt: Added new python script to pygmentize MELT code
+
 2010-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* gt-melt-runtime-plugin-4.5.h: Manually copied from generated
 	gt-melt-runtime.h suitable for GCC 4.5.
