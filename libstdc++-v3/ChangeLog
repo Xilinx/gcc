@@ -1,5 +1,13 @@
 2010-10-15  Benjamin Kosnik  <bkoz@redhat.com>
 
+	* include/bits/c++config (_GLIBCXX_CONSTEXPR): Add.
+	(_GLIBCXX_USE_CONSTEXPR): Add.
+	* include/std/limits: Use it.
+	* src/limits.cc: Adjust.
+	* testsuite/ext/profile/mutex_extensions.cc: Change line number.
+
+2010-10-15  Benjamin Kosnik  <bkoz@redhat.com>
+
 	* include/bits/atomic_0.h: Rework for N3126 draft.
 	* include/bits/atomic_2.h: Same.
 	* include/bits/atomic_base.h: Same.

@@ -34,6 +34,8 @@
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
+#define const _GLIBCXX_USE_CONSTEXPR
+
   const bool __numeric_limits_base::is_specialized;
   const int  __numeric_limits_base::digits;
   const int  __numeric_limits_base::digits10;
