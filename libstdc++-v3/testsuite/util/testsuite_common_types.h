@@ -588,6 +588,29 @@ namespace __gnu_test
       }
   };
 
+  // Generator to test constexpr constructor
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  struct constexpr_constructible
+  {
+    template<typename _Ttesttype, typename _Tbasetype>
+      void
+      operator()()
+      {
+	struct _Concept
+	{
+	  void __constraint()
+	  {
+	    const _Tbasetype __v = 0;
+	    constexpr _Ttesttype __t(__v);
+	  }
+	};
+
+	_Concept c;
+	c.__constraint();
+      }
+  };
+#endif
+
   // Generator to test direct list initialization
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
   struct direct_list_initializable

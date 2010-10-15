@@ -29,5 +29,5 @@ int main()
   return 0;
 }
 
-// { dg-error "ambiguous" "" { target *-*-* } 522 }
+// { dg-error "deleted" "" { target *-*-* } 522 }
 // { dg-prune-output "include" }

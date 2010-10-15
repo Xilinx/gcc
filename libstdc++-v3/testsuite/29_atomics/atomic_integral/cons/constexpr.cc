@@ -1,6 +1,6 @@
-// { dg-options "-x c -shared-libgcc -lstdc++" }
+// { dg-options "-std=gnu++0x" }
 
-// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -17,14 +17,14 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-#include <stdatomic.h>
+#include <atomic>
+#include <testsuite_common_types.h>
 
 int main()
 {
-  atomic_flag af = ATOMIC_FLAG_INIT;
-
-  if (!atomic_flag_test_and_set(&af))
-    atomic_flag_clear(&af);
-
+  __gnu_test::constexpr_constructible test;
+  __gnu_cxx::typelist::apply_generator(test,
+				       __gnu_test::atomic_integrals::type(),
+				       __gnu_test::integral_types::type());
   return 0;
 }
