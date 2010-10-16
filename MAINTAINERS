@@ -72,6 +72,7 @@ m68k port		Andreas Schwab		schwab@linux-m68k.org
 m68k-motorola-sysv port	Philippe De Muyter	phdm@macqel.be
 mcore port		Nick Clifton		nickc@redhat.com
 mep port		DJ Delorie		dj@redhat.com
+microblaze		Michael Eager		eager@eagercon.com
 mips port		Eric Christopher	echristo@apple.com
 mips port		Richard Sandiford	rdsandiford@googlemail.com
 mmix port		Hans-Peter Nilsson	hp@bitrange.com
@@ -122,7 +123,6 @@ RTEMS Ports		Joel Sherrill		joel@oarcorp.com
 RTEMS Ports		Ralf Corsepius		ralf.corsepius@rtems.org
 VxWorks ports		Nathan Sidwell		nathan@codesourcery.com
 windows, cygwin, mingw	Christopher Faylor	cgf@gcc.gnu.org
-windows, cygwin, mingw	Danny Smith		dannysmith@users.sourceforge.net
 windows, cygwin, mingw	Kai Tietz		kai.tietz@onevision.com
 windows, cygwin, mingw	Dave Korn		dave.korn.cygwin@gmail.com
 
@@ -291,6 +291,7 @@ Giovanni Bajo					giovannibajo@gcc.gnu.org
 Simon Baldwin					simonb@google.com
 Scott Bambrough					scottb@netwinder.org
 Wolfgang Bangerth				bangerth@dealii.org
+Tejas Belagod					tejas.belagod@arm.com
 Andrey Belevantsev				abel@ispras.ru
 Jon Beniston					jon@beniston.com
 Peter Bergner					bergner@vnet.ibm.com
@@ -302,6 +303,7 @@ Eric Blake					ericb@gcc.gnu.org
 Phil Blundell					pb@futuretv.com
 Hans Boehm					hboehm@gcc.gnu.org
 Segher Boessenkool				segher@kernel.crashing.org
+Ian Bolton					ian.bolton@arm.com
 Andrea Bona					andrea.bona@st.com
 Paolo Bonzini					bonzini@gnu.org
 Neil Booth					neil@daikokuya.co.uk
@@ -335,6 +337,7 @@ Rafael Ávila de Espíndola			espindola@google.com
 Ansgar Esztermann				ansgar@thphy.uni-duesseldorf.de
 Doug Evans					dje@google.com
 Chris Fairles					cfairles@gcc.gnu.org
+Changpeng Fang					changpeng.fang@amd.com
 Li Feng						nemokingdom@gmail.com
 Thomas Fitzsimmons				fitzsim@redhat.com
 Brian Ford					ford@vss.fsi.com
@@ -433,6 +436,7 @@ Fernando Pereira				pronesto@gmail.com
 Nicolas Pitre					nico@cam.org
 Antoniu Pop					antoniu.pop@gmail.com
 Vladimir Prus					vladimir@codesourcery.com
+Yao Qi						yao@codesourcery.com
 Jerry Quinn					jlquinn@optonline.net
 Ramana Radhakrishnan				ramana.radhakrishnan@arm.com
 Rolf Rasmussen					rolfwr@gcc.gnu.org
@@ -453,6 +457,7 @@ Duncan Sands					baldrick@gcc.gnu.org
 Dodji Seketeli					dseketel@redhat.com
 Svein Seldal					svein@dev.seldal.com
 Thiemo Seufer					ths@networkno.de
+Marcus Shawcroft				marcus.shawcroft@arm.com
 Johannes Singler				singler@kit.edu
 Franz Sirl					franz.sirl-kernel@lauterbach.com
 Jan Sjodin					jan.sjodin@amd.com
@@ -486,6 +491,7 @@ Ralf Wildenhues					Ralf.Wildenhues@gmx.de
 Kevin Williams					kevin.williams@inria.fr
 Carlo Wood					carlo@alinoe.com
 Le-Chun Wu					lcwu@google.com
+Mingjie Xing					mingjie.xing@gmail.com
 Canqun Yang					canqun@nudt.edu.cn
 Jeffrey Yasskin					jyasskin@google.com
 Joey Ye						joey.ye@intel.com
