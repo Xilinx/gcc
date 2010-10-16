@@ -87,12 +87,13 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
   classes from the table - and the difficult thing with lock-free data
   structures is freeing data when is removed from the structures.  */
 
-#include "objc/runtime.h"            /* the kitchen sink */
-#include "objc/sarray.h"
-
+#include "objc-private/common.h"
+#include "objc-private/error.h"
 #include "objc/objc.h"
 #include "objc/objc-api.h"
 #include "objc/thr.h"
+#include "objc-private/runtime.h"            /* the kitchen sink */
+#include <string.h> /* For memset */
 
 /* We use a table which maps a class name to the corresponding class
  * pointer.  The first part of this file defines this table, and
@@ -138,7 +139,8 @@ static class_node_ptr class_table_array[CLASS_TABLE_SIZE];
 /* The table writing mutex - we lock on writing to avoid conflicts
    between different writers, but we read without locks.  That is
    possible because we assume pointer assignment to be an atomic
-   operation.  */
+   operation.  TODO: This is only true under certain circumstances,
+   which should be clarified.  */
 static objc_mutex_t __class_table_lock = NULL;
 
 /* CLASS_TABLE_HASH is how we compute the hash of a class name.  It is
@@ -407,8 +409,35 @@ class_table_print_histogram (void)
 
 /* This is a hook which is called by objc_get_class and
    objc_lookup_class if the runtime is not able to find the class.  
-   This may e.g. try to load in the class using dynamic loading.  */
+   This may e.g. try to load in the class using dynamic loading.
+
+   This hook was a public, global variable in the Traditional GNU
+   Objective-C Runtime API (objc/objc-api.h).  The modern GNU
+   Objective-C Runtime API (objc/runtime.h) provides the
+   objc_setGetUnknownClassHandler() function instead.
+*/
 Class (*_objc_lookup_class) (const char *name) = 0;      /* !T:SAFE */
+
+/* Temporarily while we still include objc/objc-api.h instead of objc/runtime.h.  */
+#ifndef __objc_runtime_INCLUDE_GNU
+typedef Class (*objc_get_unknown_class_handler)(const char *class_name);
+#endif
+
+/* The handler currently in use.  PS: if both
+   __obj_get_unknown_class_handler and _objc_lookup_class are defined,
+   __objc_get_unknown_class_handler is called first.  */
+static objc_get_unknown_class_handler
+__objc_get_unknown_class_handler = NULL;
+
+objc_get_unknown_class_handler
+objc_setGetUnknownClassHandler (objc_get_unknown_class_handler 
+				new_handler)
+{
+  objc_get_unknown_class_handler old_handler 
+    = __objc_get_unknown_class_handler;
+  __objc_get_unknown_class_handler = new_handler;
+  return old_handler;
+}
 
 
 /* True when class links has been resolved.  */     
@@ -463,25 +492,106 @@ __objc_add_class_to_hash (Class class)
   objc_mutex_unlock (__objc_runtime_mutex);
 }
 
+Class
+objc_getClass (const char *name)
+{
+  Class class;
+
+  if (name == NULL)
+    return Nil;
+
+  class = class_table_get_safe (name);
+  
+  if (class)
+    return class;
+  
+  if (__objc_get_unknown_class_handler)
+    return (*__objc_get_unknown_class_handler) (name);
+
+  if (_objc_lookup_class)
+    return (*_objc_lookup_class) (name);
+
+  return Nil;
+}
+
+Class
+objc_lookupClass (const char *name)
+{
+  if (name == NULL)
+    return Nil;
+  else
+    return class_table_get_safe (name);
+}
+
+Class
+objc_getMetaClass (const char *name)
+{
+  Class class = objc_getClass (name);
+
+  if (class)
+    return class->class_pointer;
+  else
+    return Nil;
+}
+
+Class
+objc_getRequiredClass (const char *name)
+{
+  Class class = objc_getClass (name);
+
+  if (class)
+    return class;
+  else
+    _objc_abort ("objc_getRequiredClass ('%s') failed: class not found\n", name);
+}
+
+int
+objc_getClassList (Class *returnValue, int maxNumberOfClassesToReturn)
+{
+  /* Iterate over all entries in the table.  */
+  int hash, count = 0;
+
+  objc_mutex_lock (__class_table_lock); 
+
+  for (hash = 0; hash < CLASS_TABLE_SIZE; hash++)
+    {
+      class_node_ptr node = class_table_array[hash];
+      
+      while (node != NULL)
+	{
+	  if (returnValue)
+	    {
+	      if (count < maxNumberOfClassesToReturn)
+		returnValue[count] = node->pointer;
+	      else
+		{
+		  objc_mutex_unlock (__class_table_lock);
+		  return count;
+		}
+	    }
+	  count++;
+	  node = node->next;
+	}
+    }
+  
+  objc_mutex_unlock (__class_table_lock);
+  return count;
+}
+
+/* Traditional GNU Objective-C Runtime API.  */
 /* Get the class object for the class named NAME.  If NAME does not
    identify a known class, the hook _objc_lookup_class is called.  If
    this fails, nil is returned.  */
 Class
 objc_lookup_class (const char *name)
 {
-  Class class;
-
-  class = class_table_get_safe (name);
-
-  if (class)
-    return class;
-
-  if (_objc_lookup_class)
-    return (*_objc_lookup_class) (name);
-  else
-    return 0;
+  return objc_getClass (name);
 }
 
+/* Traditional GNU Objective-C Runtime API.  Important: this method is
+   called automatically by the compiler while messaging (if using the
+   traditional ABI), so it is worth keeping it fast; don't make it
+   just a wrapper around objc_getClass().  */
 /* Get the class object for the class named NAME.  If NAME does not
    identify a known class, the hook _objc_lookup_class is called.  If
    this fails, an error message is issued and the system aborts.  */
@@ -495,14 +605,17 @@ objc_get_class (const char *name)
   if (class)
     return class;
 
-  if (_objc_lookup_class)
+  if (__objc_get_unknown_class_handler)
+    class = (*__objc_get_unknown_class_handler) (name);
+
+  if ((!class)  &&  _objc_lookup_class)
     class = (*_objc_lookup_class) (name);
 
   if (class)
     return class;
   
-  objc_error (nil, OBJC_ERR_BAD_CLASS, 
-              "objc runtime: cannot find class %s\n", name);
+  _objc_abort ("objc runtime: cannot find class %s\n", name);
+
   return 0;
 }
 
@@ -618,7 +731,14 @@ __objc_resolve_class_links (void)
   objc_mutex_unlock (__objc_runtime_mutex);
 }
 
+const char *
+class_getName (Class class_)
+{
+  if (class_ == Nil)
+    return "nil";
 
+  return class_->name;
+}
 
 #define CLASSOF(c) ((c)->class_pointer)
 
