@@ -543,6 +543,8 @@ poplevel (int keep, int reverse, int functionbody)
   tree decl;
   int leaving_for_scope;
   scope_kind kind;
+  unsigned ix;
+  cp_label_binding *label_bind;
 
   timevar_push (TV_NAME_LOOKUP);
  restart:
@@ -687,10 +689,9 @@ poplevel (int keep, int reverse, int functionbody)
 	      /* Add it to the list of dead variables in the next
 		 outermost binding to that we can remove these when we
 		 leave that binding.  */
-	      current_binding_level->level_chain->dead_vars_from_for
-		= tree_cons (NULL_TREE, link,
-			     current_binding_level->level_chain->
-			     dead_vars_from_for);
+	      VEC_safe_push (tree, gc,
+			     current_binding_level->level_chain->dead_vars_from_for,
+			     link);
 
 	      /* Although we don't pop the cxx_binding, we do clear
 		 its SCOPE since the scope is going away now.  */
@@ -719,9 +720,9 @@ poplevel (int keep, int reverse, int functionbody)
 
   /* Remove declarations for any `for' variables from inner scopes
      that we kept around.  */
-  for (link = current_binding_level->dead_vars_from_for;
-       link; link = TREE_CHAIN (link))
-    pop_binding (DECL_NAME (TREE_VALUE (link)), TREE_VALUE (link));
+  FOR_EACH_VEC_ELT_REVERSE (tree, current_binding_level->dead_vars_from_for,
+			    ix, decl)
+    pop_binding (DECL_NAME (decl), decl);
 
   /* Restore the IDENTIFIER_TYPE_VALUEs.  */
   for (link = current_binding_level->type_shadowed;
@@ -729,10 +730,10 @@ poplevel (int keep, int reverse, int functionbody)
     SET_IDENTIFIER_TYPE_VALUE (TREE_PURPOSE (link), TREE_VALUE (link));
 
   /* Restore the IDENTIFIER_LABEL_VALUEs for local labels.  */
-  for (link = current_binding_level->shadowed_labels;
-       link;
-       link = TREE_CHAIN (link))
-    pop_local_label (TREE_VALUE (link), TREE_PURPOSE (link));
+  FOR_EACH_VEC_ELT_REVERSE (cp_label_binding,
+			    current_binding_level->shadowed_labels,
+			    ix, label_bind)
+    pop_local_label (label_bind->label, label_bind->prev_value);
 
   /* There may be OVERLOADs (wrapped in TREE_LISTs) on the BLOCK_VARs
      list if a `using' declaration put them there.  The debugging
@@ -2508,16 +2509,17 @@ lookup_label (tree id)
 tree
 declare_local_label (tree id)
 {
-  tree decl, shadow;
+  tree decl;
+  cp_label_binding *bind;
 
   /* Add a new entry to the SHADOWED_LABELS list so that when we leave
      this scope we can restore the old value of IDENTIFIER_TYPE_VALUE.  */
-  shadow = tree_cons (IDENTIFIER_LABEL_VALUE (id), NULL_TREE,
-		      current_binding_level->shadowed_labels);
-  current_binding_level->shadowed_labels = shadow;
+  bind = VEC_safe_push (cp_label_binding, gc,
+			current_binding_level->shadowed_labels, NULL);
+  bind->prev_value = IDENTIFIER_LABEL_VALUE (id);
 
   decl = make_label_decl (id, /*local_p=*/1);
-  TREE_VALUE (shadow) = decl;
+  bind->label = decl;
 
   return decl;
 }
@@ -2707,7 +2709,7 @@ check_goto (tree decl)
       identified = true;
     }
 
-  for (ix = 0; VEC_iterate (tree, ent->bad_decls, ix, bad); ix++)
+  FOR_EACH_VEC_ELT (tree, ent->bad_decls, ix, bad)
     {
       int u = decl_jump_unsafe (bad);
 
@@ -3415,6 +3417,7 @@ cxx_init_decl_processing (void)
   gcc_assert (global_namespace == NULL_TREE);
   global_namespace = build_lang_decl (NAMESPACE_DECL, global_scope_name,
 				      void_type_node);
+  DECL_CONTEXT (global_namespace) = build_translation_unit_decl (NULL_TREE);
   TREE_PUBLIC (global_namespace) = 1;
   begin_scope (sk_namespace, global_namespace);
 
@@ -4161,16 +4164,9 @@ start_decl (const cp_declarator *declarator,
       || decl == error_mark_node)
     return error_mark_node;
 
-  context = DECL_CONTEXT (decl);
-
-  if (context)
-    {
-      *pushed_scope_p = push_scope (context);
-
-      /* We are only interested in class contexts, later.  */
-      if (TREE_CODE (context) == NAMESPACE_DECL)
-	context = NULL_TREE;
-    }
+  context = CP_DECL_CONTEXT (decl);
+  if (context != global_namespace)
+    *pushed_scope_p = push_scope (context);
 
   if (initialized)
     /* Is it valid for this decl to have an initializer at all?
@@ -4239,7 +4235,7 @@ start_decl (const cp_declarator *declarator,
       && lookup_attribute ("noinline", DECL_ATTRIBUTES (decl)))
     warning (0, "inline function %q+D given attribute noinline", decl);
 
-  if (context && COMPLETE_TYPE_P (complete_type (context)))
+  if (TYPE_P (context) && COMPLETE_TYPE_P (complete_type (context)))
     {
       if (TREE_CODE (decl) == VAR_DECL)
 	{
@@ -4593,9 +4589,7 @@ maybe_deduce_size_from_array_init (tree decl, tree init)
 	  VEC(constructor_elt,gc) *v = CONSTRUCTOR_ELTS (initializer);
 	  constructor_elt *ce;
 	  HOST_WIDE_INT i;
-	  for (i = 0; 
-	       VEC_iterate (constructor_elt, v, i, ce);
-	       ++i) 
+	  FOR_EACH_VEC_ELT (constructor_elt, v, i, ce)
 	    if (!check_array_designated_initializer (ce))
 	      failure = 1;
 	}
@@ -4891,7 +4885,6 @@ static tree
 reshape_init_vector (tree type, reshape_iter *d)
 {
   tree max_index = NULL_TREE;
-  tree rtype;
 
   gcc_assert (TREE_CODE (type) == VECTOR_TYPE);
 
@@ -4908,12 +4901,9 @@ reshape_init_vector (tree type, reshape_iter *d)
       return value;
     }
 
-  /* For a vector, the representation type is a struct
-      containing a single member which is an array of the
-      appropriate size.  */
-  rtype = TYPE_DEBUG_REPRESENTATION_TYPE (type);
-  if (rtype && TYPE_DOMAIN (TREE_TYPE (TYPE_FIELDS (rtype))))
-    max_index = array_type_nelts (TREE_TYPE (TYPE_FIELDS (rtype)));
+  /* For a vector, we initialize it as an array of the appropriate size.  */
+  if (TREE_CODE (type) == VECTOR_TYPE)
+    max_index = size_int (TYPE_VECTOR_SUBPARTS (type) - 1);
 
   return reshape_init_array_1 (TREE_TYPE (type), max_index, d);
 }
@@ -5681,18 +5671,21 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
   auto_node = type_uses_auto (type);
   if (auto_node)
     {
+      tree d_init;
       if (init == NULL_TREE)
 	{
 	  error ("declaration of %q#D has no initializer", decl);
 	  TREE_TYPE (decl) = error_mark_node;
 	  return;
 	}
-      if (TREE_CODE (init) == TREE_LIST)
-	init = build_x_compound_expr_from_list (init, ELK_INIT,
-						tf_warning_or_error);
-      if (describable_type (init))
+      d_init = init;
+      if (TREE_CODE (d_init) == TREE_LIST)
+	d_init = build_x_compound_expr_from_list (d_init, ELK_INIT,
+						  tf_warning_or_error);
+      if (describable_type (d_init))
 	{
-	  type = TREE_TYPE (decl) = do_auto_deduction (type, init, auto_node);
+	  type = TREE_TYPE (decl) = do_auto_deduction (type, d_init,
+						       auto_node);
 	  if (type == error_mark_node)
 	    return;
 	}
@@ -5803,7 +5796,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  && !COMPLETE_TYPE_P (TREE_TYPE (decl)))
 	TYPE_DECL_SUPPRESS_DEBUG (decl) = 1;
 
-      rest_of_decl_compilation (decl, DECL_CONTEXT (decl) == NULL_TREE,
+      rest_of_decl_compilation (decl, DECL_FILE_SCOPE_P (decl),
 				at_eof);
       goto finish_end;
     }
@@ -6132,7 +6125,7 @@ get_atexit_node (void)
 
 	   int __cxa_atexit (void (*)(void *), void *, void *)
 
-	 We build up the argument types and then then function type
+	 We build up the argument types and then the function type
 	 itself.  */
       tree argtype0, argtype1, argtype2;
 
@@ -6168,7 +6161,7 @@ get_atexit_node (void)
 
 	   int atexit (void (*)());
 
-	 We build up the argument types and then then function type
+	 We build up the argument types and then the function type
 	 itself.  */
       fn_ptr_type = get_atexit_fn_ptr_type ();
       /* Build the final atexit type.  */
@@ -6355,8 +6348,8 @@ register_dtor_fn (tree decl)
 	   in, and, in general, it's cheaper to pass NULL than any
 	   other value.  */
 	addr = null_pointer_node;
-      arg2 = cp_build_unary_op (ADDR_EXPR, get_dso_handle_node (), 0,
-                                tf_warning_or_error);
+      arg2 = cp_build_addr_expr (get_dso_handle_node (),
+				 tf_warning_or_error);
       if (targetm.cxx.use_aeabi_atexit ())
 	{
 	  arg1 = cleanup;
@@ -6889,8 +6882,7 @@ grokfndecl (tree ctype,
 	   && strncmp (IDENTIFIER_POINTER (declarator)+2, "builtin_", 8) == 0))
       && current_lang_name == lang_name_cplusplus
       && ctype == NULL_TREE
-      /* NULL_TREE means global namespace.  */
-      && DECL_CONTEXT (decl) == NULL_TREE)
+      && DECL_FILE_SCOPE_P (decl))
     SET_DECL_LANGUAGE (decl, lang_c);
 
   /* Should probably propagate const out from type to decl I bet (mrs).  */
@@ -7403,11 +7395,15 @@ compute_array_index_type (tree name, tree size)
       type = TREE_TYPE (size);
     }
 
+  /* A type is dependent if it is...an array type constructed from any
+     dependent type or whose size is specified by a constant expression
+     that is value-dependent.  */
   /* We can only call value_dependent_expression_p on integral constant
      expressions; the parser adds a dummy NOP_EXPR with TREE_SIDE_EFFECTS
      set if this isn't one.  */
   if (processing_template_decl
-      && (TREE_SIDE_EFFECTS (size) || value_dependent_expression_p (size)))
+      && (dependent_type_p (type)
+	  || TREE_SIDE_EFFECTS (size) || value_dependent_expression_p (size)))
     {
       /* We cannot do any checking for a SIZE that isn't known to be
 	 constant. Just build the index type and mark that it requires
@@ -7533,10 +7529,16 @@ compute_array_index_type (tree name, tree size)
     {
       tree t = build_index_type (itype);
       TYPE_CANONICAL (abi_1_itype) = TYPE_CANONICAL (t);
-      return abi_1_itype;
+      itype = abi_1_itype;
     }
   else
-    return build_index_type (itype);
+    itype = build_index_type (itype);
+
+  /* If the index type were dependent, we would have returned early, so
+     remember that it isn't.  */
+  TYPE_DEPENDENT_P (itype) = 0;
+  TYPE_DEPENDENT_P_VALID (itype) = 1;
+  return itype;
 }
 
 /* Returns the scope (if any) in which the entity declared by
@@ -8115,7 +8117,8 @@ grokdeclarator (const cp_declarator *declarator,
 	 common.  With no options, it is allowed.  With -Wreturn-type,
 	 it is a warning.  It is only an error with -pedantic-errors.  */
       is_main = (funcdef_flag
-		 && dname && MAIN_NAME_P (dname)
+		 && dname && TREE_CODE (dname) == IDENTIFIER_NODE
+		 && MAIN_NAME_P (dname)
 		 && ctype == NULL_TREE
 		 && in_namespace == NULL_TREE
 		 && current_namespace == global_namespace);
@@ -8762,6 +8765,8 @@ grokdeclarator (const cp_declarator *declarator,
 	      type = build_memfn_type (type,
 				       declarator->u.pointer.class_type,
 				       memfn_quals);
+	      if (type == error_mark_node)
+		return error_mark_node;
 	      memfn_quals = TYPE_UNQUALIFIED;
 	    }
 
@@ -11623,10 +11628,11 @@ finish_enum (tree enumtype)
 
 /* Build and install a CONST_DECL for an enumeration constant of the
    enumeration type ENUMTYPE whose NAME and VALUE (if any) are provided.
+   LOC is the location of NAME.
    Assignment of sequential values by default is handled here.  */
 
 void
-build_enumerator (tree name, tree value, tree enumtype)
+build_enumerator (tree name, tree value, tree enumtype, location_t loc)
 {
   tree decl;
   tree context;
@@ -11741,12 +11747,12 @@ build_enumerator (tree name, tree value, tree enumtype)
   if (context && context == current_class_type)
     /* This enum declaration is local to the class.  We need the full
        lang_decl so that we can record DECL_CLASS_CONTEXT, for example.  */
-    decl = build_lang_decl (CONST_DECL, name, type);
+    decl = build_lang_decl_loc (loc, CONST_DECL, name, type);
   else
     /* It's a global enum, or it's local to a function.  (Note local to
-      a function could mean local to a class method.  */
-    decl = build_decl (input_location, CONST_DECL, name, type);
-
+       a function could mean local to a class method.  */
+    decl = build_decl (loc, CONST_DECL, name, type);
+  
   DECL_CONTEXT (decl) = FROB_CONTEXT (context);
   TREE_CONSTANT (decl) = 1;
   TREE_READONLY (decl) = 1;
@@ -12055,7 +12061,7 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
 	 with any previous declarations; if the original declaration
 	 has a linkage specification, that specification applies to
 	 the definition as well, and may affect the mangled name.  */
-      if (!DECL_CONTEXT (decl1))
+      if (DECL_FILE_SCOPE_P (decl1))
 	maybe_apply_pragma_weak (decl1);
     }
 
@@ -12661,7 +12667,7 @@ finish_function (int flags)
   if (!processing_template_decl
       && !cp_function_chain->can_throw
       && !flag_non_call_exceptions
-      && !DECL_REPLACEABLE_P (fndecl))
+      && !decl_replaceable_p (fndecl))
     TREE_NOTHROW (fndecl) = 1;
 
   /* This must come after expand_function_end because cleanups might
@@ -12832,7 +12838,7 @@ finish_function (int flags)
       unsigned int i;
       tree decl;
 
-      for (i = 0; VEC_iterate (tree, deferred_mark_used_calls, i, decl); i++)
+      FOR_EACH_VEC_ELT (tree, deferred_mark_used_calls, i, decl)
 	mark_used (decl);
       VEC_free (tree, gc, deferred_mark_used_calls);
     }

@@ -327,7 +327,7 @@ build_up_reference (tree type, tree arg, int flags, tree decl)
   /* If we had a way to wrap this up, and say, if we ever needed its
      address, transform all occurrences of the register, into a memory
      reference we could win better.  */
-  rval = cp_build_unary_op (ADDR_EXPR, arg, 1, tf_warning_or_error);
+  rval = cp_build_addr_expr (arg, tf_warning_or_error);
   if (rval == error_mark_node)
     return error_mark_node;
 
@@ -471,7 +471,7 @@ convert_to_reference (tree reftype, tree expr, int convtype,
 	warning (0, "casting %qT to %qT does not dereference pointer",
 		 intype, reftype);
 
-      rval = cp_build_unary_op (ADDR_EXPR, expr, 0, tf_warning_or_error);
+      rval = cp_build_addr_expr (expr, tf_warning_or_error);
       if (rval != error_mark_node)
 	rval = convert_force (build_pointer_type (TREE_TYPE (reftype)),
 			      rval, 0);
@@ -1468,7 +1468,7 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
 
   /* The code for conversions from class type is currently only used for
      delete expressions.  Other expressions are handled by build_new_op.  */
-  if (!complete_type_or_else (basetype, expr))
+  if (!complete_type_or_maybe_complain (basetype, expr, complain))
     return error_mark_node;
   if (!TYPE_HAS_CONVERSION (basetype))
     return NULL_TREE;

@@ -358,7 +358,7 @@ output_file_start (void)
 
   /* Variable tracking should be run after all optimizations which change order
      of insns.  It also needs a valid CFG.  This can't be done in
-     override_options, because flag_var_tracking is finalized after
+     bfin_option_override, because flag_var_tracking is finalized after
      that.  */
   bfin_flag_var_tracking = flag_var_tracking;
   flag_var_tracking = 0;
@@ -1907,9 +1907,9 @@ init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
    of mode MODE and data type TYPE.
    (TYPE is null for libcalls where that information may not be available.)  */
 
-void
-function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
-		      int named ATTRIBUTE_UNUSED)
+static void
+bfin_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			   const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   int count, bytes, words;
 
@@ -1946,9 +1946,9 @@ function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
    NAMED is nonzero if this argument is a named parameter
     (otherwise it is an extra parameter matching an ellipsis).  */
 
-struct rtx_def *
-function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
-	      int named ATTRIBUTE_UNUSED)
+static rtx
+bfin_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		   const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   int bytes
     = (mode == BLKmode) ? int_size_in_bytes (type) : GET_MODE_SIZE (mode);
@@ -2543,6 +2543,29 @@ bfin_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 
   return NO_REGS;
 }
+
+/* Implement TARGET_CLASS_LIKELY_SPILLED_P.  */
+
+static bool
+bfin_class_likely_spilled_p (reg_class_t rclass)
+{
+  switch (rclass)
+    {
+      case PREGS_CLOBBERED:
+      case PROLOGUE_REGS:
+      case P0REGS:
+      case D0REGS:
+      case D1REGS:
+      case D2REGS:
+      case CCREGS:
+        return true;
+
+      default:
+        break;
+    }
+
+  return false;
+}
 
 /* Implement TARGET_HANDLE_OPTION.  */
 
@@ -2639,10 +2662,10 @@ bfin_init_machine_status (void)
   return ggc_alloc_cleared_machine_function ();
 }
 
-/* Implement the macro OVERRIDE_OPTIONS.  */
+/* Implement the TARGET_OPTION_OVERRIDE hook.  */
 
-void
-override_options (void)
+static void
+bfin_option_override (void)
 {
   /* If processor type is not specified, enable all workarounds.  */
   if (bfin_cpu_type == BFIN_CPU_UNKNOWN)
@@ -3795,12 +3818,12 @@ bfin_dump_loops (loop_info loops)
       fprintf (dump_file, "{head:%d, depth:%d}", loop->head->index, loop->depth);
 
       fprintf (dump_file, " blocks: [ ");
-      for (ix = 0; VEC_iterate (basic_block, loop->blocks, ix, b); ix++)
+      FOR_EACH_VEC_ELT (basic_block, loop->blocks, ix, b)
 	fprintf (dump_file, "%d ", b->index);
       fprintf (dump_file, "] ");
 
       fprintf (dump_file, " inner loops: [ ");
-      for (ix = 0; VEC_iterate (loop_info, loop->loops, ix, i); ix++)
+      FOR_EACH_VEC_ELT (loop_info, loop->loops, ix, i)
 	fprintf (dump_file, "%d ", i->loop_no);
       fprintf (dump_file, "]\n");
     }
@@ -3826,7 +3849,7 @@ bfin_scan_loop (loop_info loop, rtx reg, rtx loop_end)
   unsigned ix;
   basic_block bb;
 
-  for (ix = 0; VEC_iterate (basic_block, loop->blocks, ix, bb); ix++)
+  FOR_EACH_VEC_ELT (basic_block, loop->blocks, ix, bb)
     {
       rtx insn;
 
@@ -3902,7 +3925,7 @@ bfin_optimize_loop (loop_info loop)
   /* Every loop contains in its list of inner loops every loop nested inside
      it, even if there are intermediate loops.  This works because we're doing
      a depth-first search here and never visit a loop more than once.  */
-  for (ix = 0; VEC_iterate (loop_info, loop->loops, ix, inner); ix++)
+  FOR_EACH_VEC_ELT (loop_info, loop->loops, ix, inner)
     {
       bfin_optimize_loop (inner);
 
@@ -4052,7 +4075,7 @@ bfin_optimize_loop (loop_info loop)
   reg_lb0 = gen_rtx_REG (SImode, REG_LB0);
   reg_lb1 = gen_rtx_REG (SImode, REG_LB1);
 
-  for (ix = 0; VEC_iterate (basic_block, loop->blocks, ix, bb); ix++)
+  FOR_EACH_VEC_ELT (basic_block, loop->blocks, ix, bb)
     {
       rtx insn;
 
@@ -4398,14 +4421,13 @@ bfin_discover_loop (loop_info loop, basic_block tail_bb, rtx tail_insn)
 	  break;
 	}
 
-      if (bitmap_bit_p (loop->block_bitmap, bb->index))
+      if (!bitmap_set_bit (loop->block_bitmap, bb->index))
 	continue;
 
       /* We've not seen this block before.  Add it to the loop's
 	 list and then add each successor to the work list.  */
 
       VEC_safe_push (basic_block, heap, loop->blocks, bb);
-      bitmap_set_bit (loop->block_bitmap, bb->index);
 
       if (bb != tail_bb)
 	{
@@ -4434,7 +4456,7 @@ bfin_discover_loop (loop_info loop, basic_block tail_bb, rtx tail_insn)
   if (!loop->bad)
     {
       int pass, retry;
-      for (dwork = 0; VEC_iterate (basic_block, loop->blocks, dwork, bb); dwork++)
+      FOR_EACH_VEC_ELT (basic_block, loop->blocks, dwork, bb)
 	{
 	  edge e;
 	  edge_iterator ei;
@@ -6612,6 +6634,12 @@ bfin_expand_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES bfin_arg_partial_bytes
 
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG bfin_function_arg
+
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE bfin_function_arg_advance
+
 #undef TARGET_PASS_BY_REFERENCE
 #define TARGET_PASS_BY_REFERENCE bfin_pass_by_reference
 
@@ -6627,11 +6655,17 @@ bfin_expand_builtin (tree exp, rtx target ATTRIBUTE_UNUSED,
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION bfin_handle_option
 
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE bfin_option_override
+
 #undef TARGET_DEFAULT_TARGET_FLAGS
 #define TARGET_DEFAULT_TARGET_FLAGS TARGET_DEFAULT
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD bfin_secondary_reload
+
+#undef TARGET_CLASS_LIKELY_SPILLED_P
+#define TARGET_CLASS_LIKELY_SPILLED_P bfin_class_likely_spilled_p
 
 #undef TARGET_DELEGITIMIZE_ADDRESS
 #define TARGET_DELEGITIMIZE_ADDRESS bfin_delegitimize_address

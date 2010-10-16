@@ -176,7 +176,7 @@ lhd_set_decl_assembler_name (tree decl)
      is less than the whole compilation.  Concatenate a distinguishing
      number - we use the DECL_UID.  */
 
-  if (TREE_PUBLIC (decl) || DECL_CONTEXT (decl) == NULL_TREE)
+  if (TREE_PUBLIC (decl) || DECL_FILE_SCOPE_P (decl))
     id = targetm.mangle_decl_assembler_name (decl, DECL_NAME (decl));
   else
     {
@@ -333,7 +333,13 @@ write_global_declarations (void)
 
 /* Called to perform language-specific initialization of CTX.  */
 void
-lhd_initialize_diagnostics (struct diagnostic_context *ctx ATTRIBUTE_UNUSED)
+lhd_initialize_diagnostics (diagnostic_context *ctx ATTRIBUTE_UNUSED)
+{
+}
+
+/* Called to perform language-specific options initialization of OPTS.  */
+void
+lhd_init_options_struct (struct gcc_options *opts ATTRIBUTE_UNUSED)
 {
 }
 

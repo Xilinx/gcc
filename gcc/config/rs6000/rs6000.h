@@ -1,6 +1,7 @@
 /* Definitions of target machine for GNU compiler, for IBM RS/6000.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+   2010
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -43,6 +44,10 @@
 
 #ifndef TARGET_AIX
 #define TARGET_AIX 0
+#endif
+
+#ifndef TARGET_AIX_OS
+#define TARGET_AIX_OS 0
 #endif
 
 /* Control whether function entry points use a "dot" symbol when
@@ -296,9 +301,11 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 
 /* Code model for 64-bit linux.
    small: 16-bit toc offsets.
-   large: 32-bit toc offsets.  */
+   medium: 32-bit toc offsets, static data and code within 2G of TOC pointer.
+   large: 32-bit toc offsets, no limit on static data and code.  */
 enum rs6000_cmodel {
   CMODEL_SMALL,
+  CMODEL_MEDIUM,
   CMODEL_LARGE
 };
 
@@ -468,7 +475,6 @@ extern int rs6000_float_gprs;
 extern int rs6000_alignment_flags;
 extern const char *rs6000_sched_insert_nops_str;
 extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
-extern int rs6000_xilinx_fpu;
 
 /* Describe which vector unit to use for a given machine mode.  */
 enum rs6000_vector {
@@ -554,6 +560,25 @@ extern int rs6000_vector_align[];
 #define TARGET_E500_DOUBLE 0
 #define CHECK_E500_OPTIONS do { } while (0)
 
+/* ISA 2.01 allowed FCFID to be done in 32-bit, previously it was 64-bit only.
+   Enable 32-bit fcfid's on any of the switches for newer ISA machines or
+   XILINX.  */
+#define TARGET_FCFID	(TARGET_POWERPC64 \
+			 || TARGET_POPCNTB	/* ISA 2.02 */ \
+			 || TARGET_CMPB		/* ISA 2.05 */ \
+			 || TARGET_POPCNTD	/* ISA 2.06 */ \
+			 || TARGET_XILINX_FPU)
+
+#define TARGET_FCTIDZ	TARGET_FCFID
+#define TARGET_STFIWX	TARGET_PPC_GFXOPT
+#define TARGET_LFIWAX	TARGET_CMPB
+#define TARGET_LFIWZX	TARGET_POPCNTD
+#define TARGET_FCFIDS	TARGET_POPCNTD
+#define TARGET_FCFIDU	TARGET_POPCNTD
+#define TARGET_FCFIDUS	TARGET_POPCNTD
+#define TARGET_FCTIDUZ	TARGET_POPCNTD
+#define TARGET_FCTIWUZ	TARGET_POPCNTD
+
 /* E500 processors only support plain "sync", not lwsync.  */
 #define TARGET_NO_LWSYNC TARGET_E500
 
@@ -597,21 +622,8 @@ extern unsigned char rs6000_recip_bits[];
 #define RS6000_RECIP_HIGH_PRECISION_P(MODE) \
   ((MODE) == SFmode || (MODE) == V4SFmode || TARGET_RECIP_PRECISION)
 
-/* Sometimes certain combinations of command options do not make sense
-   on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
-
-   Do not use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.
-
-   On the RS/6000 this is used to define the target cpu type.  */
-
-#define OVERRIDE_OPTIONS rs6000_override_options (TARGET_CPU_DEFAULT)
-
-/* Define this to change the optimizations performed by default.  */
-#define OPTIMIZATION_OPTIONS(LEVEL,SIZE) optimization_options(LEVEL,SIZE)
+/* The default CPU for TARGET_OPTION_OVERRIDE.  */
+#define OPTION_TARGET_CPU_DEFAULT TARGET_CPU_DEFAULT
 
 /* Show we can debug even without a frame pointer.  */
 #define CAN_DEBUG_WITHOUT_FP
@@ -1127,13 +1139,6 @@ extern unsigned rs6000_pointer_size;
 
 #define PAIRED_VECTOR_MODE(MODE)        \
          ((MODE) == V2SFmode)            
-
-#define UNITS_PER_SIMD_WORD(MODE)					\
-	(TARGET_VSX ? UNITS_PER_VSX_WORD				\
-	 : (TARGET_ALTIVEC ? UNITS_PER_ALTIVEC_WORD			\
-	 : (TARGET_SPE ? UNITS_PER_SPE_WORD				\
-	 : (TARGET_PAIRED_FLOAT ? UNITS_PER_PAIRED_WORD			\
-	 : UNITS_PER_WORD))))
 
 /* Value is TRUE if hard register REGNO can hold a value of
    machine-mode MODE.  */
@@ -1695,38 +1700,6 @@ typedef struct rs6000_args
 
 #define INIT_CUMULATIVE_LIBCALL_ARGS(CUM, MODE, LIBNAME) \
   init_cumulative_args (&CUM, NULL_TREE, LIBNAME, FALSE, TRUE, 0)
-
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  */
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
-  function_arg_advance (&CUM, MODE, TYPE, NAMED, 0)
-
-/* Determine where to put an argument to a function.
-   Value is zero to push the argument on the stack,
-   or a hard register in which to store the argument.
-
-   MODE is the argument's machine mode.
-   TYPE is the data type of the argument (as a tree).
-    This is null for libcalls where that information may
-    not be available.
-   CUM is a variable of type CUMULATIVE_ARGS which gives info about
-    the preceding args and about the function being called.
-   NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).
-
-   On RS/6000 the first eight words of non-FP are normally in registers
-   and the rest are pushed.  The first 13 FP args are in registers.
-
-   If this is floating-point and no prototype is specified, we use
-   both an FP and integer register (or possibly FP reg and stack).  Library
-   functions (when TYPE is zero) always have the proper types for args,
-   so we can pass the FP value just in one register.  emit_library_function
-   doesn't support EXPR_LIST anyway.  */
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  function_arg (&CUM, MODE, TYPE, NAMED)
 
 /* If defined, a C expression which determines whether, and in which
    direction, to pad out an argument with extra space.  The value
@@ -2441,21 +2414,12 @@ extern char rs6000_reg_names[][8];	/* register names (0 vs. %r0).  */
 
 #define PRINT_OPERAND_ADDRESS(FILE, ADDR) print_operand_address (FILE, ADDR)
 
-#define OUTPUT_ADDR_CONST_EXTRA(STREAM, X, FAIL)		\
-  do								\
-    if (!rs6000_output_addr_const_extra (STREAM, X))		\
-      goto FAIL;						\
-  while (0)
-
 /* uncomment for disabling the corresponding default options */
 /* #define  MACHINE_no_sched_interblock */
 /* #define  MACHINE_no_sched_speculative */
 /* #define  MACHINE_no_sched_speculative_load */
 
 /* General flags.  */
-extern int flag_pic;
-extern int optimize;
-extern int flag_expensive_optimizations;
 extern int frame_pointer_needed;
 
 /* Classification of the builtin functions to properly set the declaration tree

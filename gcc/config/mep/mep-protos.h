@@ -1,5 +1,5 @@
 /* Prototypes for exported functions defined in mep.c
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009 Free
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010 Free
    Software Foundation, Inc.
    Contributed by Red Hat Inc (dj@redhat.com)
 
@@ -19,9 +19,7 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-extern void mep_conditional_register_usage (char *, char *);
-extern void mep_optimization_options (void);
-extern void mep_override_options (void);
+extern void mep_conditional_register_usage (void);
 extern int mep_regno_reg_class (int);
 extern int mep_reg_class_from_constraint (int, const char *);
 extern bool mep_const_ok_for_letter_p (HOST_WIDE_INT, int);
@@ -77,8 +75,6 @@ extern void mep_print_operand_address (FILE *, rtx);
 extern void mep_print_operand (FILE *, rtx, int);
 extern void mep_final_prescan_insn (rtx, rtx *, int);
 extern void mep_init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree);
-extern rtx mep_function_arg (CUMULATIVE_ARGS, enum machine_mode, tree, int);
-extern void mep_arg_advance (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
 extern bool mep_return_in_memory (const_tree, const_tree);
 extern rtx mep_function_value (tree, tree);
 extern rtx mep_libcall_value (enum machine_mode);
@@ -107,6 +103,14 @@ extern bool mep_have_copro_copro_moves_p;
 
 extern bool mep_cannot_change_mode_class (enum machine_mode, enum machine_mode,
 					  enum reg_class);
+
+/* These are called from mep-pragmas (front end) and then call into
+   the RTL layer to re-initialize the register tables once we're done
+   changing them via pragmas.  */
+extern void mep_save_register_info (void);
+extern void mep_reinit_regs (void);
+extern void mep_init_regs (void);
+
 
 extern int cgen_h_uint_6a1_immediate (rtx, enum machine_mode);
 extern int cgen_h_uint_7a1_immediate (rtx, enum machine_mode);

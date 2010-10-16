@@ -122,8 +122,9 @@ package Types is
 
    subtype Big_String is String (Positive);
    type Big_String_Ptr is access all Big_String;
-   for Big_String_Ptr'Storage_Size use 0;
-   --  Virtual type for handling imported big strings
+   --  Virtual type for handling imported big strings. Note that we should
+   --  never have any allocators for this type, but we don't give a storage
+   --  size of zero, since there are legitimate deallocations going on.
 
    function To_Big_String_Ptr is
      new Unchecked_Conversion (System.Address, Big_String_Ptr);
@@ -197,13 +198,14 @@ package Types is
    --  Source_Buffer_Ptr, see Osint.Read_Source_File for details.
 
    type Source_Buffer_Ptr is access all Big_Source_Buffer;
-   for Source_Buffer_Ptr'Storage_Size use 0;
    --  Pointer to source buffer. We use virtual origin addressing for source
    --  buffers, with thin pointers. The pointer points to a virtual instance
    --  of type Big_Source_Buffer, where the actual type is in fact of type
    --  Source_Buffer. The address is adjusted so that the virtual origin
    --  addressing works correctly. See Osint.Read_Source_Buffer for further
-   --  details.
+   --  details. Again, as for Big_String_Ptr, we should never allocate using
+   --  this type, but we don't give a storage size clause of zero, since we
+   --  may end up doing deallocations of instances allocated manually.
 
    subtype Source_Ptr is Text_Ptr;
    --  Type used to represent a source location, which is a subscript of a
@@ -251,13 +253,13 @@ package Types is
    --    Universal integers (type Uint)
    --    Universal reals (type Ureal)
 
-   --  In most contexts, the strongly typed interface determines which of
-   --  these types is present. However, there are some situations (involving
-   --  untyped traversals of the tree), where it is convenient to be easily
-   --  able to distinguish these values. The underlying representation in all
-   --  cases is an integer type Union_Id, and we ensure that the range of
-   --  the various possible values for each of the above types is disjoint
-   --  so that this distinction is possible.
+   --  In most contexts, the strongly typed interface determines which of these
+   --  types is present. However, there are some situations (involving untyped
+   --  traversals of the tree), where it is convenient to be easily able to
+   --  distinguish these values. The underlying representation in all cases is
+   --  an integer type Union_Id, and we ensure that the range of the various
+   --  possible values for each of the above types is disjoint so that this
+   --  distinction is possible.
 
    type Union_Id is new Int;
    --  The type in the tree for a union of possible ID values

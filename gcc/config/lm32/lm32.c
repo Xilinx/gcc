@@ -75,10 +75,10 @@ static bool lm32_can_eliminate (const int, const int);
 static bool
 lm32_legitimate_address_p (enum machine_mode mode, rtx x, bool strict);
 static HOST_WIDE_INT lm32_compute_frame_size (int size);
-static bool lm32_handle_option (size_t code, const char *arg, int value);
+static void lm32_option_override (void);
 
-#undef TARGET_HANDLE_OPTION
-#define TARGET_HANDLE_OPTION lm32_handle_option
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE lm32_option_override
 #undef TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST hook_int_rtx_bool_0
 #undef TARGET_RTX_COSTS
@@ -656,14 +656,10 @@ lm32_setup_incoming_varargs (CUMULATIVE_ARGS * cum, enum machine_mode mode,
 {
   int first_anon_arg;
   tree fntype;
-  int stdarg_p;
 
   fntype = TREE_TYPE (current_function_decl);
-  stdarg_p = (TYPE_ARG_TYPES (fntype) != 0
-	      && (TREE_VALUE (tree_last (TYPE_ARG_TYPES (fntype)))
-		  != void_type_node));
 
-  if (stdarg_p)
+  if (stdarg_p (fntype))
     first_anon_arg = *cum + LM32_FIRST_ARG_REG;
   else
     {
@@ -699,26 +695,9 @@ lm32_setup_incoming_varargs (CUMULATIVE_ARGS * cum, enum machine_mode mode,
     }
 }
 
-/* Implement TARGET_HANDLE_OPTION.  */
-
-static bool
-lm32_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED, int value)
-{
-  switch (code)
-    {
-    case OPT_G:
-      g_switch_value = value;
-      g_switch_set = true;
-      return true;
-
-    default:
-      return true;
-    }
-}
-
 /* Override command line options.  */
-void
-lm32_override_options (void)
+static void
+lm32_option_override (void)
 {
   /* We must have sign-extend enabled if barrel-shift isn't.  */
   if (!TARGET_BARREL_SHIFT_ENABLED && !TARGET_SIGN_EXTEND_ENABLED)
@@ -798,7 +777,7 @@ lm32_in_small_data_p (const_tree exp)
 
       /* If this is an incomplete type with size 0, then we can't put it
          in sdata because it might be too big when completed.  */
-      if (size > 0 && (unsigned HOST_WIDE_INT) size <= g_switch_value)
+      if (size > 0 && size <= g_switch_value)
 	return true;
     }
 

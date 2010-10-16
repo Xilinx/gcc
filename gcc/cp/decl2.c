@@ -1066,6 +1066,10 @@ grokbitfield (const cp_declarator *declarator,
 
   if (width != error_mark_node)
     {
+      /* The width must be an integer type.  */
+      if (!INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (TREE_TYPE (width)))
+	error ("width of bit-field %qD has non-integral type %qT", value,
+	       TREE_TYPE (width));
       constant_expression_warning (width);
       DECL_INITIAL (value) = width;
       SET_DECL_C_BIT_FIELD (value);
@@ -3300,7 +3304,7 @@ generate_ctor_or_dtor_function (bool constructor_p, int priority,
 
   /* Call the static storage duration function with appropriate
      arguments.  */
-  for (i = 0; VEC_iterate (tree, ssdf_decls, i, fndecl); ++i)
+  FOR_EACH_VEC_ELT (tree, ssdf_decls, i, fndecl)
     {
       /* Calls to pure or const functions will expand to nothing.  */
       if (! (flags_from_decl_or_type (fndecl) & (ECF_CONST | ECF_PURE)))
@@ -3742,7 +3746,7 @@ cp_write_global_declarations (void)
       /* Go through the set of inline functions whose bodies have not
 	 been emitted yet.  If out-of-line copies of these functions
 	 are required, emit them.  */
-      for (i = 0; VEC_iterate (tree, deferred_fns, i, decl); ++i)
+      FOR_EACH_VEC_ELT (tree, deferred_fns, i, decl)
 	{
 	  /* Does it need synthesizing?  */
 	  if (DECL_DEFAULTED_FN (decl) && ! DECL_INITIAL (decl)
@@ -3844,7 +3848,7 @@ cp_write_global_declarations (void)
 	reconsider = true;
 
       /* Static data members are just like namespace-scope globals.  */
-      for (i = 0; VEC_iterate (tree, pending_statics, i, decl); ++i)
+      FOR_EACH_VEC_ELT (tree, pending_statics, i, decl)
 	{
 	  if (var_finalized_p (decl) || DECL_REALLY_EXTERN (decl)
 	      /* Don't write it out if we haven't seen a definition.  */
@@ -3866,7 +3870,7 @@ cp_write_global_declarations (void)
   while (reconsider);
 
   /* All used inline functions must have a definition at this point.  */
-  for (i = 0; VEC_iterate (tree, deferred_fns, i, decl); ++i)
+  FOR_EACH_VEC_ELT (tree, deferred_fns, i, decl)
     {
       if (/* Check online inline functions that were actually used.  */
 	  DECL_ODR_USED (decl) && DECL_DECLARED_INLINE_P (decl)
@@ -3888,7 +3892,7 @@ cp_write_global_declarations (void)
     }
 
   /* So must decls that use a type with no linkage.  */
-  for (i = 0; VEC_iterate (tree, no_linkage_decls, i, decl); ++i)
+  FOR_EACH_VEC_ELT (tree, no_linkage_decls, i, decl)
     if (!decl_defined_p (decl))
       no_linkage_error (decl);
 
@@ -3933,6 +3937,8 @@ cp_write_global_declarations (void)
       emit_debug_global_declarations (VEC_address (tree, pending_statics),
 				      VEC_length (tree, pending_statics));
     }
+
+  perform_deferred_noexcept_checks ();
 
   /* Generate hidden aliases for Java.  */
   if (candidates)
@@ -4003,7 +4009,7 @@ build_offset_ref_call_from_tree (tree fn, VEC(tree,gc) **args)
       make_args_non_dependent (*args);
       object = build_non_dependent_expr (object);
       if (TREE_CODE (fn) == DOTSTAR_EXPR)
-	object = cp_build_unary_op (ADDR_EXPR, object, 0, tf_warning_or_error);
+	object = cp_build_addr_expr (object, tf_warning_or_error);
       VEC_safe_insert (tree, gc, *args, 0, object);
       /* Now that the arguments are done, transform FN.  */
       fn = build_non_dependent_expr (fn);
@@ -4017,8 +4023,7 @@ build_offset_ref_call_from_tree (tree fn, VEC(tree,gc) **args)
 	void B::g() { (this->*p)(); }  */
   if (TREE_CODE (fn) == OFFSET_REF)
     {
-      tree object_addr = cp_build_unary_op (ADDR_EXPR, object, 0,
-                                         tf_warning_or_error);
+      tree object_addr = cp_build_addr_expr (object, tf_warning_or_error);
       fn = TREE_OPERAND (fn, 1);
       fn = get_member_function_from_ptrfunc (&object_addr, fn);
       VEC_safe_insert (tree, gc, *args, 0, object_addr);

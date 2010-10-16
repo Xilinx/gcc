@@ -23,7 +23,6 @@ along with GCC; see the file COPYING3.  If not see
 
 /* This file should be #include-d after tree.h.  */
 
-struct diagnostic_context;
 struct diagnostic_info;
 
 struct gimplify_omp_ctx;
@@ -138,11 +137,6 @@ struct lang_hooks_for_types
      return values from functions.  The argument TYPE is the top of the
      chain, and BOTTOM is the new type which we will point to.  */
   tree (*reconstruct_complex_type) (tree, tree);
-
-  /* Nonzero if types that are identical are to be hashed so that only
-     one copy is kept.  If a language requires unique types for each
-     user-specified type, such as Ada, this should be set to TRUE.  */
-  bool hash_types;
 };
 
 /* Language hooks related to decls and the symbol table.  */
@@ -273,14 +267,18 @@ struct lang_hooks
      of options.  */
   unsigned int (*option_lang_mask) (void);
 
+  /* Initialize variables in an options structure.  */
+  void (*init_options_struct) (struct gcc_options *opts);
+
   /* After the initialize_diagnostics hook is called, do any simple
-     initialization needed before any calls to handle_option.  */
+     initialization needed before any calls to handle_option, other
+     than that done by the init_options_struct hook.  */
   void (*init_options) (unsigned int decoded_options_count,
 			struct cl_decoded_option *decoded_options);
 
   /* Callback used to perform language-specific initialization for the
      global diagnostic context structure.  */
-  void (*initialize_diagnostics) (struct diagnostic_context *);
+  void (*initialize_diagnostics) (diagnostic_context *);
 
   /* Return true if a warning should be given about option OPTION,
      which is for the wrong language, false if it should be quietly
@@ -379,7 +377,7 @@ struct lang_hooks
   int (*types_compatible_p) (tree x, tree y);
 
   /* Called by report_error_function to print out function name.  */
-  void (*print_error_function) (struct diagnostic_context *, const char *,
+  void (*print_error_function) (diagnostic_context *, const char *,
 				struct diagnostic_info *);
 
   /* Convert a character from the host's to the target's character

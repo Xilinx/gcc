@@ -468,40 +468,6 @@ extern int current_first_parm_offset;
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
  ((CUM) = 0)
 
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  
-
-*/
-
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
- ((CUM) += ((MODE) != BLKmode			\
-	    ? (GET_MODE_SIZE (MODE))		\
-	    : (int_size_in_bytes (TYPE))))	
-
-/* Determine where to put an argument to a function.
-   Value is zero to push the argument on the stack,
-   or a hard register in which to store the argument.
-
-   MODE is the argument's machine mode.
-   TYPE is the data type of the argument (as a tree).
-    This is null for libcalls where that information may
-    not be available.
-   CUM is a variable of type CUMULATIVE_ARGS which gives info about
-    the preceding args and about the function being called.
-   NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).  */
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED)  0
-
-/* Define where a function finds its arguments.
-   This would be different from FUNCTION_ARG if we had register windows.  */
-/*
-#define FUNCTION_INCOMING_ARG(CUM, MODE, TYPE, NAMED)	\
-  FUNCTION_ARG (CUM, MODE, TYPE, NAMED)
-*/
-
 /* Output assembler code to FILE to increment profiler label # LABELNO
    for profiling a function entry.  */
 
@@ -764,10 +730,9 @@ extern int may_call_alloca;
 
 /* cost of moving one register class to another */
 #define REGISTER_MOVE_COST(MODE, CLASS1, CLASS2) \
-  register_move_cost (CLASS1, CLASS2)
+  pdp11_register_move_cost (CLASS1, CLASS2)
 
 /* Tell emit-rtl.c how to initialize special values on a per-function base.  */
-extern int optimize;
 extern struct rtx_def *cc0_reg_rtx;
 
 #define CC_STATUS_MDEP rtx
@@ -948,28 +913,6 @@ extern struct rtx_def *cc0_reg_rtx;
 
 #define TRAMPOLINE_SIZE 8
 #define TRAMPOLINE_ALIGNMENT 16
-
-/* Some machines may desire to change what optimizations are
-   performed for various optimization levels.   This macro, if
-   defined, is executed once just after the optimization level is
-   determined and before the remainder of the command options have
-   been parsed.  Values set in this macro are used as the default
-   values for the other command line options.
-
-   LEVEL is the optimization level specified; 2 if -O2 is
-   specified, 1 if -O is specified, and 0 if neither is specified.  */
-
-#define OPTIMIZATION_OPTIONS(LEVEL,SIZE)				\
-{									\
-  flag_finite_math_only		= 0;					\
-  flag_trapping_math		= 0;					\
-  flag_signaling_nans		= 0;					\
-  if (LEVEL >= 3)							\
-    {									\
-      flag_omit_frame_pointer		= 1;				\
-      /* flag_unroll_loops			= 1; */			\
-    }									\
-}
 
 /* there is no point in avoiding branches on a pdp, 
    since branches are really cheap - I just want to find out

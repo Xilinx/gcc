@@ -349,10 +349,11 @@ static HOST_WIDE_INT frame_base_offset;
 int sparc_indent_opcode = 0;
 
 static bool sparc_handle_option (size_t, const char *, int);
+static void sparc_option_override (void);
 static void sparc_init_modes (void);
-static void scan_record_type (tree, int *, int *, int *);
+static void scan_record_type (const_tree, int *, int *, int *);
 static int function_arg_slotno (const CUMULATIVE_ARGS *, enum machine_mode,
-				tree, int, int, int *, int *);
+				const_tree, bool, bool, int *, int *);
 
 static int supersparc_adjust_cost (rtx, rtx, rtx, int);
 static int hypersparc_adjust_cost (rtx, rtx, rtx, int);
@@ -423,6 +424,14 @@ static rtx sparc_legitimize_address (rtx, rtx, enum machine_mode);
 static bool sparc_mode_dependent_address_p (const_rtx);
 static bool sparc_pass_by_reference (CUMULATIVE_ARGS *,
 				     enum machine_mode, const_tree, bool);
+static void sparc_function_arg_advance (CUMULATIVE_ARGS *,
+					enum machine_mode, const_tree, bool);
+static rtx sparc_function_arg_1 (const CUMULATIVE_ARGS *,
+				 enum machine_mode, const_tree, bool, bool);
+static rtx sparc_function_arg (CUMULATIVE_ARGS *,
+			       enum machine_mode, const_tree, bool);
+static rtx sparc_function_incoming_arg (CUMULATIVE_ARGS *,
+					enum machine_mode, const_tree, bool);
 static int sparc_arg_partial_bytes (CUMULATIVE_ARGS *,
 				    enum machine_mode, tree, bool);
 static void sparc_dwarf_handle_frame_unspec (const char *, rtx, int);
@@ -434,6 +443,7 @@ static bool sparc_can_eliminate (const int, const int);
 static const char *sparc_mangle_type (const_tree);
 #endif
 static void sparc_trampoline_init (rtx, tree, rtx);
+static enum machine_mode sparc_preferred_simd_mode (enum machine_mode);
 
 #ifdef SUBTARGET_ATTRIBUTE_TABLE
 /* Table of valid machine attributes.  */
@@ -557,6 +567,12 @@ static bool fpu_option_set = false;
 #define TARGET_PASS_BY_REFERENCE sparc_pass_by_reference
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES sparc_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE sparc_function_arg_advance
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG sparc_function_arg
+#undef TARGET_FUNCTION_INCOMING_ARG
+#define TARGET_FUNCTION_INCOMING_ARG sparc_function_incoming_arg
 
 #undef TARGET_EXPAND_BUILTIN_SAVEREGS
 #define TARGET_EXPAND_BUILTIN_SAVEREGS sparc_builtin_saveregs
@@ -570,6 +586,9 @@ static bool fpu_option_set = false;
 
 #undef TARGET_VECTOR_MODE_SUPPORTED_P
 #define TARGET_VECTOR_MODE_SUPPORTED_P sparc_vector_mode_supported_p
+
+#undef TARGET_VECTORIZE_PREFERRED_SIMD_MODE
+#define TARGET_VECTORIZE_PREFERRED_SIMD_MODE sparc_preferred_simd_mode
 
 #undef TARGET_DWARF_HANDLE_FRAME_UNSPEC
 #define TARGET_DWARF_HANDLE_FRAME_UNSPEC sparc_dwarf_handle_frame_unspec
@@ -591,6 +610,8 @@ static bool fpu_option_set = false;
 #define TARGET_DEFAULT_TARGET_FLAGS TARGET_DEFAULT
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION sparc_handle_option
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE sparc_option_override
 
 #if TARGET_GNU_TLS && defined(HAVE_AS_SPARC_UA_PCREL)
 #undef TARGET_ASM_OUTPUT_DWARF_DTPREL
@@ -647,8 +668,8 @@ sparc_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
 /* Validate and override various options, and do some machine dependent
    initialization.  */
 
-void
-sparc_override_options (void)
+static void
+sparc_option_override (void)
 {
   static struct code_model {
     const char *const name;
@@ -723,6 +744,10 @@ sparc_override_options (void)
   const struct cpu_table *cpu;
   const struct sparc_cpu_select *sel;
   int fpu;
+
+#ifdef SUBTARGET_OVERRIDE_OPTIONS
+  SUBTARGET_OVERRIDE_OPTIONS;
+#endif
 
 #ifndef SPARC_BI_ARCH
   /* Check for unsupported architecture size.  */
@@ -891,21 +916,19 @@ sparc_override_options (void)
     target_flags |= MASK_LONG_DOUBLE_128;
 #endif
 
-  if (!PARAM_SET_P (PARAM_SIMULTANEOUS_PREFETCHES))
-    set_param_value ("simultaneous-prefetches",
-		     ((sparc_cpu == PROCESSOR_ULTRASPARC
-		       || sparc_cpu == PROCESSOR_NIAGARA
-		       || sparc_cpu == PROCESSOR_NIAGARA2)
-		      ? 2
-		      : (sparc_cpu == PROCESSOR_ULTRASPARC3
-			 ? 8 : 3)));
-  if (!PARAM_SET_P (PARAM_L1_CACHE_LINE_SIZE))
-    set_param_value ("l1-cache-line-size",
-		     ((sparc_cpu == PROCESSOR_ULTRASPARC
-		       || sparc_cpu == PROCESSOR_ULTRASPARC3
-		       || sparc_cpu == PROCESSOR_NIAGARA
-		       || sparc_cpu == PROCESSOR_NIAGARA2)
-		      ? 64 : 32));
+  maybe_set_param_value (PARAM_SIMULTANEOUS_PREFETCHES,
+			 ((sparc_cpu == PROCESSOR_ULTRASPARC
+			   || sparc_cpu == PROCESSOR_NIAGARA
+			   || sparc_cpu == PROCESSOR_NIAGARA2)
+			  ? 2
+			  : (sparc_cpu == PROCESSOR_ULTRASPARC3
+			     ? 8 : 3)));
+  maybe_set_param_value (PARAM_L1_CACHE_LINE_SIZE,
+			 ((sparc_cpu == PROCESSOR_ULTRASPARC
+			   || sparc_cpu == PROCESSOR_ULTRASPARC3
+			   || sparc_cpu == PROCESSOR_NIAGARA
+			   || sparc_cpu == PROCESSOR_NIAGARA2)
+			  ? 64 : 32));
 }
 
 /* Miscellaneous utilities.  */
@@ -4402,6 +4425,9 @@ sparc_expand_prologue (void)
   /* Advertise that the data calculated just above are now valid.  */
   sparc_prologue_data_valid_p = true;
 
+  if (flag_stack_usage)
+    current_function_static_stack_size = actual_fsize;
+
   if (flag_stack_check == STATIC_BUILTIN_STACK_CHECK && actual_fsize)
     sparc_emit_probe_stack_range (STACK_CHECK_PROTECT, actual_fsize);
 
@@ -4527,11 +4553,11 @@ sparc_can_use_return_insn_p (void)
 static void
 sparc_asm_function_epilogue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 {
-  /* If code does not drop into the epilogue, we have to still output
-     a dummy nop for the sake of sane backtraces.  Otherwise, if the
-     last two instructions of a function were "call foo; dslot;" this
-     can make the return PC of foo (i.e. address of call instruction
-     plus 8) point to the first instruction in the next function.  */
+  /* If the last two instructions of a function are "call foo; dslot;"
+     the return address might point to the first instruction in the next
+     function and we have to output a dummy nop for the sake of sane
+     backtraces in such cases.  This is pointless for sibling calls since
+     the return address is explicitly adjusted.  */
 
   rtx insn, last_real_insn;
 
@@ -4543,7 +4569,9 @@ sparc_asm_function_epilogue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
       && GET_CODE (PATTERN (last_real_insn)) == SEQUENCE)
     last_real_insn = XVECEXP (PATTERN (last_real_insn), 0, 0);
 
-  if (last_real_insn && GET_CODE (last_real_insn) == CALL_INSN)
+  if (last_real_insn
+      && CALL_P (last_real_insn)
+      && !SIBLING_CALL_P (last_real_insn))
     fputs("\tnop\n", file);
 
   sparc_output_deferred_case_vectors ();
@@ -4922,7 +4950,8 @@ sparc_strict_argument_naming (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED)
    Sub-fields are not taken into account for the PACKED_P predicate.  */
 
 static void
-scan_record_type (tree type, int *intregs_p, int *fpregs_p, int *packed_p)
+scan_record_type (const_tree type, int *intregs_p, int *fpregs_p,
+		  int *packed_p)
 {
   tree field;
 
@@ -4962,7 +4991,7 @@ scan_record_type (tree type, int *intregs_p, int *fpregs_p, int *packed_p)
 
 static int
 function_arg_slotno (const struct sparc_args *cum, enum machine_mode mode,
-		     tree type, int named, int incoming_p,
+		     const_tree type, bool named, bool incoming_p,
 		     int *pregno, int *ppadding)
 {
   int regbase = (incoming_p
@@ -5536,8 +5565,7 @@ function_arg_vector_value (int size, int regno)
   return regs;
 }
 
-/* Handle the FUNCTION_ARG macro.
-   Determine where to put an argument to a function.
+/* Determine where to put an argument to a function.
    Value is zero to push the argument on the stack,
    or a hard register in which to store the argument.
 
@@ -5547,13 +5575,14 @@ function_arg_vector_value (int size, int regno)
    TYPE is the data type of the argument (as a tree).
     This is null for libcalls where that information may
     not be available.
-   NAMED is nonzero if this argument is a named parameter
+   NAMED is true if this argument is a named parameter
     (otherwise it is an extra parameter matching an ellipsis).
-   INCOMING_P is zero for FUNCTION_ARG, nonzero for FUNCTION_INCOMING_ARG.  */
+   INCOMING_P is false for TARGET_FUNCTION_ARG, true for
+    TARGET_FUNCTION_INCOMING_ARG.  */
 
-rtx
-function_arg (const struct sparc_args *cum, enum machine_mode mode,
-	      tree type, int named, int incoming_p)
+static rtx
+sparc_function_arg_1 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		      const_tree type, bool named, bool incoming_p)
 {
   int regbase = (incoming_p
 		 ? SPARC_INCOMING_INT_ARG_FIRST
@@ -5685,6 +5714,24 @@ function_arg (const struct sparc_args *cum, enum machine_mode mode,
   return gen_rtx_REG (mode, regno);
 }
 
+/* Handle the TARGET_FUNCTION_ARG target hook.  */
+
+static rtx
+sparc_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		    const_tree type, bool named)
+{
+  return sparc_function_arg_1 (cum, mode, type, named, false);
+}
+
+/* Handle the TARGET_FUNCTION_INCOMING_ARG target hook.  */
+
+static rtx
+sparc_function_incoming_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			     const_tree type, bool named)
+{
+  return sparc_function_arg_1 (cum, mode, type, named, true);
+}
+
 /* For an arg passed partly in registers and partly in memory,
    this is the number of bytes of registers used.
    For args passed entirely in registers or entirely in memory, zero.
@@ -5701,8 +5748,9 @@ sparc_arg_partial_bytes (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 {
   int slotno, regno, padding;
 
-  /* We pass 0 for incoming_p here, it doesn't matter.  */
-  slotno = function_arg_slotno (cum, mode, type, named, 0, &regno, &padding);
+  /* We pass false for incoming_p here, it doesn't matter.  */
+  slotno = function_arg_slotno (cum, mode, type, named, false,
+				&regno, &padding);
 
   if (slotno == -1)
     return 0;
@@ -5800,23 +5848,22 @@ sparc_pass_by_reference (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
 	    || GET_MODE_SIZE (mode) > 16);
 }
 
-/* Handle the FUNCTION_ARG_ADVANCE macro.
+/* Handle the TARGET_FUNCTION_ARG_ADVANCE hook.
    Update the data in CUM to advance over an argument
    of mode MODE and data type TYPE.
    TYPE is null for libcalls where that information may not be available.  */
 
-void
-function_arg_advance (struct sparc_args *cum, enum machine_mode mode,
-		      tree type, int named)
+static void
+sparc_function_arg_advance (struct sparc_args *cum, enum machine_mode mode,
+			    const_tree type, bool named)
 {
-  int slotno, regno, padding;
+  int regno, padding;
 
-  /* We pass 0 for incoming_p here, it doesn't matter.  */
-  slotno = function_arg_slotno (cum, mode, type, named, 0, &regno, &padding);
+  /* We pass false for incoming_p here, it doesn't matter.  */
+  function_arg_slotno (cum, mode, type, named, false, &regno, &padding);
 
-  /* If register required leading padding, add it.  */
-  if (slotno != -1)
-    cum->words += padding;
+  /* If argument requires leading padding, add it.  */
+  cum->words += padding;
 
   if (TARGET_ARCH32)
     {
@@ -6227,6 +6274,27 @@ static bool
 sparc_vector_mode_supported_p (enum machine_mode mode)
 {
   return TARGET_VIS && VECTOR_MODE_P (mode) ? true : false;
+}
+
+/* Implement the TARGET_VECTORIZE_PREFERRED_SIMD_MODE target hook.  */
+
+static enum machine_mode
+sparc_preferred_simd_mode (enum machine_mode mode)
+{
+  if (TARGET_VIS)
+    switch (mode)
+      {
+      case SImode:
+	return V2SImode;
+      case HImode:
+	return V4HImode;
+      case QImode:
+	return V8QImode;
+
+      default:;
+      }
+
+  return word_mode;
 }
 
 /* Return the string to output an unconditional branch to LABEL, which is

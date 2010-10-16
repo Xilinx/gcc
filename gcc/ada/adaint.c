@@ -49,6 +49,15 @@
 
 #endif /* VxWorks */
 
+#if (defined (__mips) && defined (__sgi)) || defined (__APPLE__)
+#include <unistd.h>
+#endif
+
+#if defined (__hpux__)
+#include <sys/param.h>
+#include <sys/pstat.h>
+#endif
+
 #ifdef VMS
 #define _POSIX_EXIT 1
 #define HOST_EXECUTABLE_SUFFIX ".exe"
@@ -579,10 +588,29 @@ __gnat_get_maximum_file_name_length (void)
 int
 __gnat_get_file_names_case_sensitive (void)
 {
-#if defined (VMS) || defined (WINNT)
-  return 0;
+  const char *sensitive = getenv ("GNAT_FILE_NAME_CASE_SENSITIVE");
+
+  if (sensitive != NULL
+      && (sensitive[0] == '0' || sensitive[0] == '1')
+      && sensitive[1] == '\0')
+    return sensitive[0] - '0';
+  else
+#if defined (VMS) || defined (WINNT) || defined (__APPLE__)
+    return 0;
 #else
-  return 1;
+    return 1;
+#endif
+}
+
+/* Return nonzero if environment variables are case sensitive.  */
+
+int
+__gnat_get_env_vars_case_sensitive (void)
+{
+#if defined (VMS) || defined (WINNT)
+ return 0;
+#else
+ return 1;
 #endif
 }
 
@@ -2337,6 +2365,32 @@ __gnat_dup2 (int oldfd, int newfd)
 #else
   return dup2 (oldfd, newfd);
 #endif
+}
+
+int
+__gnat_number_of_cpus (void)
+{
+  int cores = 1;
+
+#if defined (linux) || defined (sun) || defined (AIX) \
+    || (defined (__alpha__)  && defined (_osf_)) || defined (__APPLE__)
+  cores = (int) sysconf (_SC_NPROCESSORS_ONLN);
+
+#elif (defined (__mips) && defined (__sgi))
+  cores = (int) sysconf (_SC_NPROC_ONLN);
+
+#elif defined (__hpux__)
+  struct pst_dynamic psd;
+  if (pstat_getdynamic (&psd, sizeof (psd), 1, 0) != -1)
+    cores = (int) psd.psd_proc_cnt;
+
+#elif defined (_WIN32)
+  SYSTEM_INFO sysinfo;
+  GetSystemInfo (&sysinfo);
+  cores = (int) sysinfo.dwNumberOfProcessors;
+#endif
+
+  return cores;
 }
 
 /* WIN32 code to implement a wait call that wait for any child process.  */

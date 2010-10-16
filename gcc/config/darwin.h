@@ -236,6 +236,7 @@ extern GTY(()) int darwin_ms_struct;
    !strcmp (STR, "sectobjectsymbols") ? 2 :     \
    !strcmp (STR, "segcreate") ? 3 :             \
    !strcmp (STR, "dylinker_install_name") ? 1 : \
+   !strcmp (STR, "iframework") ? 1 : \
    0)
 
 #define SUBTARGET_C_COMMON_OVERRIDE_OPTIONS do {                        \
@@ -302,6 +303,9 @@ extern GTY(()) int darwin_ms_struct;
    so put a * after their names so all of them get passed.  */
 #define LINK_SPEC  \
   "%{static}%{!static:-dynamic} \
+   %:remove-outfile(-ldl) \
+   %:remove-outfile(-lm) \
+   %:remove-outfile(-lpthread) \
    %{fgnu-runtime: %{static|static-libgcc: \
                      %:replace-outfile(-lobjc libobjc-gnu.a%s); \
                     :%:replace-outfile(-lobjc -lobjc-gnu ) } }\
@@ -405,15 +409,15 @@ extern GTY(()) int darwin_ms_struct;
    "%{static-libgcc|static: -lgcc_eh -lgcc;				   \
       shared-libgcc|fexceptions|fgnu-runtime:				   \
        %:version-compare(!> 10.5 mmacosx-version-min= -lgcc_s.10.4)	   \
-       %:version-compare(>= 10.5 mmacosx-version-min= -lgcc_s.10.5)	   \
+       %:version-compare(>< 10.5 10.6 mmacosx-version-min= -lgcc_s.10.5)   \
        %:version-compare(!> 10.5 mmacosx-version-min= -lgcc_ext.10.4)	   \
        %:version-compare(>= 10.5 mmacosx-version-min= -lgcc_ext.10.5)	   \
-       -lgcc;								   \
+       -lgcc ;								   \
       :%:version-compare(>< 10.3.9 10.5 mmacosx-version-min= -lgcc_s.10.4) \
-       %:version-compare(>= 10.5 mmacosx-version-min= -lgcc_s.10.5)	   \
+       %:version-compare(>< 10.5 10.6 mmacosx-version-min= -lgcc_s.10.5)   \
        %:version-compare(!> 10.5 mmacosx-version-min= -lgcc_ext.10.4)	   \
        %:version-compare(>= 10.5 mmacosx-version-min= -lgcc_ext.10.5)	   \
-       -lgcc}"
+       -lgcc }"
 
 /* We specify crt0.o as -lcrt0.o so that ld will search the library path.
 
@@ -1048,16 +1052,15 @@ __enable_execute_stack (void *addr)                                     \
 /* For Apple KEXTs, we make the constructors return this to match gcc
    2.95.  */
 #define TARGET_CXX_CDTOR_RETURNS_THIS (darwin_kextabi_p)
-extern int flag_mkernel;
-extern int flag_apple_kext;
 #define TARGET_KEXTABI flag_apple_kext
 
 #define TARGET_HAS_TARGETCM 1
 
 #ifndef CROSS_DIRECTORY_STRUCTURE
-extern void darwin_default_min_version (int * argc, char *** argv);
+extern void darwin_default_min_version (unsigned int *decoded_options_count,
+					struct cl_decoded_option **decoded_options);
 #define GCC_DRIVER_HOST_INITIALIZATION \
-  darwin_default_min_version (&argc, &argv)
+  darwin_default_min_version (&decoded_options_count, &decoded_options)
 #endif /* CROSS_DIRECTORY_STRUCTURE */
 
 /* The Apple assembler and linker do not support constructor priorities.  */

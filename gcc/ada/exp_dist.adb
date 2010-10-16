@@ -5541,7 +5541,7 @@ package body Exp_Dist is
                --  Name
 
                 Make_String_Literal (Loc,
-                  Full_Qualified_Name (Desig)),
+                  Fully_Qualified_Name_String (Desig)),
 
                --  Handler
 
@@ -5887,7 +5887,7 @@ package body Exp_Dist is
                    Unchecked_Convert_To (RTE (RE_Address),
                      New_Occurrence_Of (RACW_Parameter, Loc)),
                    Make_String_Literal (Loc,
-                     Strval => Full_Qualified_Name
+                     Strval => Fully_Qualified_Name_String
                                  (Etype (Designated_Type (RACW_Type)))),
                    Build_Stub_Tag (Loc, RACW_Type),
                    New_Occurrence_Of (Boolean_Literals (Is_RAS), Loc),
@@ -6083,7 +6083,7 @@ package body Exp_Dist is
                  Parameter_Associations => New_List (
                    Unchecked_Convert_To (RTE (RE_Address), Object),
                   Make_String_Literal (Loc,
-                    Strval => Full_Qualified_Name
+                    Strval => Fully_Qualified_Name_String
                                 (Etype (Designated_Type (RACW_Type)))),
                   Build_Stub_Tag (Loc, RACW_Type),
                   New_Occurrence_Of (Boolean_Literals (Is_RAS), Loc),
@@ -7103,7 +7103,7 @@ package body Exp_Dist is
            (RE      : RE_Id;
             Actuals : List_Id := New_List) return Node_Id;
          --  Generate a procedure call statement calling RE with the given
-         --  actuals. Request is appended to the list.
+         --  actuals. Request'Access is appended to the list.
 
          ---------------------------
          -- Make_Request_RTE_Call --
@@ -7114,7 +7114,10 @@ package body Exp_Dist is
             Actuals : List_Id := New_List) return Node_Id
          is
          begin
-            Append_To (Actuals, New_Occurrence_Of (Request, Loc));
+            Append_To (Actuals,
+              Make_Attribute_Reference (Loc,
+                Prefix         => New_Occurrence_Of (Request, Loc),
+                Attribute_Name => Name_Access));
             return Make_Procedure_Call_Statement (Loc,
                      Name                   =>
                        New_Occurrence_Of (RTE (RE), Loc),
@@ -7174,9 +7177,9 @@ package body Exp_Dist is
          Append_To (Decls,
            Make_Object_Declaration (Loc,
              Defining_Identifier => Request,
-             Aliased_Present     => False,
+             Aliased_Present     => True,
              Object_Definition   =>
-                 New_Occurrence_Of (RTE (RE_Request_Access), Loc)));
+               New_Occurrence_Of (RTE (RE_Request), Loc)));
 
          Result := Make_Temporary (Loc, 'R');
 
@@ -7410,13 +7413,16 @@ package body Exp_Dist is
          Append_List_To (Statements, Extra_Formal_Statements);
 
          Append_To (Statements,
-           Make_Request_RTE_Call (RE_Request_Create, New_List (
-                                    Target_Object,
-                                    Subprogram_Id,
-                                    New_Occurrence_Of (Arguments, Loc),
-                                    New_Occurrence_Of (Result, Loc),
-                                    New_Occurrence_Of
-                                      (RTE (RE_Nil_Exc_List), Loc))));
+           Make_Procedure_Call_Statement (Loc,
+             Name =>
+               New_Occurrence_Of (RTE (RE_Request_Setup), Loc),
+             Parameter_Associations => New_List (
+               New_Occurrence_Of (Request, Loc),
+               Target_Object,
+               Subprogram_Id,
+               New_Occurrence_Of (Arguments, Loc),
+               New_Occurrence_Of (Result, Loc),
+               New_Occurrence_Of (RTE (RE_Nil_Exc_List), Loc))));
 
          pragma Assert
            (not (Is_Known_Non_Asynchronous and Is_Known_Asynchronous));
@@ -7447,8 +7453,7 @@ package body Exp_Dist is
          --  Asynchronous case
 
          if not Is_Known_Non_Asynchronous then
-            Asynchronous_Statements :=
-              New_List (Make_Request_RTE_Call (RE_Request_Destroy));
+            Asynchronous_Statements := New_List (Make_Null_Statement (Loc));
          end if;
 
          --  Non-asynchronous case
@@ -7465,10 +7470,6 @@ package body Exp_Dist is
                   New_Occurrence_Of (Request, Loc))));
 
             if Is_Function then
-
-               Append_To (Non_Asynchronous_Statements,
-                 Make_Request_RTE_Call (RE_Request_Destroy));
-
                --  If this is a function call, read the value and return it
 
                Append_To (Non_Asynchronous_Statements,
@@ -7486,9 +7487,6 @@ package body Exp_Dist is
                --  Case of a procedure: deal with IN OUT and OUT formals
 
                Append_List_To (Non_Asynchronous_Statements, After_Statements);
-
-               Append_To (Non_Asynchronous_Statements,
-                 Make_Request_RTE_Call (RE_Request_Destroy));
             end if;
          end if;
 
@@ -8427,6 +8425,15 @@ package body Exp_Dist is
 
             Fnam := Find_Inherited_TSS (U_Type, TSS_From_Any);
 
+            --  For the subtype representing a generic actual type, go to the
+            --  actual type.
+
+            if Is_Generic_Actual_Type (U_Type) then
+               U_Type := Underlying_Type (Base_Type (U_Type));
+            end if;
+
+            --  For a standard subtype, go to the base type
+
             if Sloc (U_Type) <= Standard_Location then
                U_Type := Base_Type (U_Type);
             end if;
@@ -8516,13 +8523,6 @@ package body Exp_Dist is
                   Decl : Entity_Id;
 
                begin
-                  --  For the subtype representing a generic actual type, go
-                  --  to the base type.
-
-                  if Is_Generic_Actual_Type (U_Type) then
-                     U_Type := Base_Type (U_Type);
-                  end if;
-
                   Build_From_Any_Function (Loc, U_Type, Decl, Fnam);
                   Append_To (Decls, Decl);
                end;
@@ -8769,7 +8769,7 @@ package body Exp_Dist is
                                  --  Struct_Counter should be reset before
                                  --  handling a variant part. Indeed only one
                                  --  of the case statement alternatives will be
-                                 --  executed at run-time, so the counter must
+                                 --  executed at run time, so the counter must
                                  --  start at 0 for every case statement.
 
                                  Struct_Counter := 0;
@@ -9240,12 +9240,14 @@ package body Exp_Dist is
 
             Fnam := Find_Inherited_TSS (U_Type, TSS_To_Any);
 
-            --  Check first for Boolean and Character. These are enumeration
-            --  types, but we treat them specially, since they may require
-            --  special handling in the transfer protocol. However, this
-            --  special handling only applies if they have standard
-            --  representation, otherwise they are treated like any other
-            --  enumeration type.
+            --  For the subtype representing a generic actual type, go to the
+            --  actual type.
+
+            if Is_Generic_Actual_Type (U_Type) then
+               U_Type := Underlying_Type (Base_Type (U_Type));
+            end if;
+
+            --  For a standard subtype, go to the base type
 
             if Sloc (U_Type) <= Standard_Location then
                U_Type := Base_Type (U_Type);
@@ -9253,6 +9255,13 @@ package body Exp_Dist is
 
             if Present (Fnam) then
                null;
+
+            --  Check first for Boolean and Character. These are enumeration
+            --  types, but we treat them specially, since they may require
+            --  special handling in the transfer protocol. However, this
+            --  special handling only applies if they have standard
+            --  representation, otherwise they are treated like any other
+            --  enumeration type.
 
             elsif U_Type = Standard_Boolean then
                Lib_RE := RE_TA_B;
@@ -9380,14 +9389,11 @@ package body Exp_Dist is
             Decls : constant List_Id := New_List;
             Stms  : constant List_Id := New_List;
 
-            Expr_Parameter : constant Entity_Id :=
-                               Make_Defining_Identifier (Loc, Name_E);
-
-            Any : constant Entity_Id :=
-                    Make_Defining_Identifier (Loc, Name_A);
+            Expr_Parameter : Entity_Id;
+            Any            : Entity_Id;
+            Result_TC      : Node_Id;
 
             Any_Decl  : Node_Id;
-            Result_TC : Node_Id := Build_TypeCode_Call (Loc, Typ, Decls);
 
             Use_Opaque_Representation : Boolean;
             --  When True, use stream attributes and represent type as an
@@ -9401,12 +9407,16 @@ package body Exp_Dist is
 
             if Is_Itype (Typ) and then Typ /= Base_Type (Typ) then
                Build_To_Any_Function
-                  (Loc  => Loc,
+                 (Loc  => Loc,
                   Typ  => Etype (Typ),
                   Decl => Decl,
                   Fnam => Fnam);
                return;
             end if;
+
+            Expr_Parameter := Make_Defining_Identifier (Loc, Name_E);
+            Any            := Make_Defining_Identifier (Loc, Name_A);
+            Result_TC      := Build_TypeCode_Call (Loc, Typ, Decls);
 
             Fnam := Make_Helper_Function_Name (Loc, Typ, Name_To_Any);
 
@@ -9655,7 +9665,7 @@ package body Exp_Dist is
                                  --  Struct_Counter should be reset before
                                  --  handling a variant part. Indeed only one
                                  --  of the case statement alternatives will be
-                                 --  executed at run-time, so the counter must
+                                 --  executed at run time, so the counter must
                                  --  start at 0 for every case statement.
 
                                  Struct_Counter := 0;
@@ -10017,15 +10027,20 @@ package body Exp_Dist is
                Fnam := Find_Inherited_TSS (U_Type, TSS_TypeCode);
             end if;
 
+            --  For the subtype representing a generic actual type, go to the
+            --  actual type.
+
+            if Is_Generic_Actual_Type (U_Type) then
+               U_Type := Underlying_Type (Base_Type (U_Type));
+            end if;
+
+            --  For a standard subtype, go to the base type
+
+            if Sloc (U_Type) <= Standard_Location then
+               U_Type := Base_Type (U_Type);
+            end if;
+
             if No (Fnam) then
-               if Sloc (U_Type) <= Standard_Location then
-
-                  --  Do not try to build alias typecodes for subtypes from
-                  --  Standard.
-
-                  U_Type := Base_Type (U_Type);
-               end if;
-
                if U_Type = Standard_Boolean then
                   Lib_RE := RE_TC_B;
 
@@ -10532,9 +10547,9 @@ package body Exp_Dist is
             if Is_Itype (Typ) and then Typ /= Base_Type (Typ) then
                Build_TypeCode_Function
                   (Loc  => Loc,
-                  Typ  => Etype (Typ),
-                  Decl => Decl,
-                  Fnam => Fnam);
+                   Typ  => Etype (Typ),
+                   Decl => Decl,
+                   Fnam => Fnam);
                return;
             end if;
 
@@ -11019,26 +11034,29 @@ package body Exp_Dist is
          begin
             declare
                Serial : Nat := 0;
-               --  For tagged types, we use a canonical name so that it matches
-               --  the primitive spec. For all other cases, we use a serialized
-               --  name so that multiple generations of the same procedure do
-               --  not clash.
+               --  For tagged types that aren't frozen yet, generate the helper
+               --  under its canonical name so that it matches the primitive
+               --  spec. For all other cases, we use a serialized name so that
+               --  multiple generations of the same procedure do not clash.
 
             begin
-               if not Is_Tagged_Type (Typ) then
+               if Is_Tagged_Type (Typ) and then not Is_Frozen (Typ) then
+                  null;
+               else
                   Serial := Increment_Serial_Number;
                end if;
 
-               --  Use prefixed underscore to avoid potential clash with used
+               --  Use prefixed underscore to avoid potential clash with user
                --  identifier (we use attribute names for Nam).
 
                return
                  Make_Defining_Identifier (Loc,
                    Chars =>
                      New_External_Name
-                       (Related_Id => Nam,
-                        Suffix => ' ', Suffix_Index => Serial,
-                        Prefix => '_'));
+                       (Related_Id   => Nam,
+                        Suffix       => ' ',
+                        Suffix_Index => Serial,
+                        Prefix       => '_'));
             end;
          end Make_Helper_Function_Name;
       end Helpers;

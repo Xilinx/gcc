@@ -80,9 +80,6 @@ static GTY(()) tree parse_roots[2];
 /* The METHOD_DECL for the current method.  */
 #define current_method parse_roots[1]
 
-/* A list of TRANSLATION_UNIT_DECLs for the files to be compiled.  */
-static GTY(()) VEC(tree,gc) *current_file_list;
-
 /* Line 0 in current file, if compiling from bytecode. */
 static location_t file_start_location;
 
@@ -1683,7 +1680,7 @@ predefined_filename_p (tree node)
   unsigned ix;
   tree f;
 
-  for (ix = 0; VEC_iterate (tree, predefined_filenames, ix, f); ix++)
+  FOR_EACH_VEC_ELT (tree, predefined_filenames, ix, f)
     if (f == node)
       return 1;
 
@@ -1707,7 +1704,7 @@ java_emit_static_constructor (void)
 
       tree decl 
 	= build_decl (input_location, FUNCTION_DECL, name,
-		      build_function_type (void_type_node, void_list_node));
+		      build_function_type_list (void_type_node, NULL_TREE));
 
       tree resdecl = build_decl (input_location,
 				 RESULT_DECL, NULL_TREE, void_type_node);
@@ -1840,9 +1837,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	    duplicate_class_warning (IDENTIFIER_POINTER (node));
 	  else
 	    {
-	      tree file_decl = build_decl (input_location,
-					   TRANSLATION_UNIT_DECL, node, NULL);
-	      VEC_safe_push (tree, gc, current_file_list, file_decl);
+	      build_translation_unit_decl (node);
 	      IS_A_COMMAND_LINE_FILENAME_P (node) = 1;
 	    }
 	}
@@ -1860,16 +1855,18 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
       const char *resource_filename;
       
       /* Only one resource file may be compiled at a time.  */
-      assert (VEC_length (tree, current_file_list) == 1);
+      assert (VEC_length (tree, all_translation_units) == 1);
 
-      resource_filename = IDENTIFIER_POINTER (DECL_NAME (VEC_index (tree, current_file_list, 0)));
+      resource_filename
+	= IDENTIFIER_POINTER
+	    (DECL_NAME (VEC_index (tree, all_translation_units, 0)));
       compile_resource_file (resource_name, resource_filename);
 
       goto finish;
     }
 
   current_jcf = main_jcf;
-  for (ix = 0; VEC_iterate (tree, current_file_list, ix, node); ix++)
+  FOR_EACH_VEC_ELT (tree, all_translation_units, ix, node)
     {
       unsigned char magic_string[4];
       char *real_path;
@@ -1956,7 +1953,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 	}
     }
 
-  for (ix = 0; VEC_iterate (tree, current_file_list, ix, node); ix++)
+  FOR_EACH_VEC_ELT (tree, all_translation_units, ix, node)
     {
       input_location = DECL_SOURCE_LOCATION (node);
       if (CLASS_FILE_P (node))

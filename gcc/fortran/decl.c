@@ -991,7 +991,7 @@ verify_c_interop_param (gfc_symbol *sym)
 	      /* Make personalized messages to give better feedback.  */
 	      if (sym->ts.type == BT_DERIVED)
 		gfc_error ("Type '%s' at %L is a parameter to the BIND(C) "
-			   " procedure '%s' but is not C interoperable "
+			   "procedure '%s' but is not C interoperable "
 			   "because derived type '%s' is not C interoperable",
 			   sym->name, &(sym->declared_at),
 			   sym->ns->proc_name->name, 
@@ -1312,9 +1312,10 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 	}
 
       /* Check if the assignment can happen. This has to be put off
-	 until later for a derived type variable.  */
+	 until later for derived type variables and procedure pointers.  */
       if (sym->ts.type != BT_DERIVED && init->ts.type != BT_DERIVED
 	  && sym->ts.type != BT_CLASS && init->ts.type != BT_CLASS
+	  && !sym->attr.proc_pointer 
 	  && gfc_check_assign_symbol (sym, init) == FAILURE)
 	return FAILURE;
 
@@ -1376,6 +1377,51 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 		    gfc_set_constant_character_len (len, c->expr, -1);
 		}
 	    }
+	}
+
+      /* If sym is implied-shape, set its upper bounds from init.  */
+      if (sym->attr.flavor == FL_PARAMETER && sym->attr.dimension
+	  && sym->as->type == AS_IMPLIED_SHAPE)
+	{
+	  int dim;
+
+	  if (init->rank == 0)
+	    {
+	      gfc_error ("Can't initialize implied-shape array at %L"
+			 " with scalar", &sym->declared_at);
+	      return FAILURE;
+	    }
+	  gcc_assert (sym->as->rank == init->rank);
+
+	  /* Shape should be present, we get an initialization expression.  */
+	  gcc_assert (init->shape);
+
+	  for (dim = 0; dim < sym->as->rank; ++dim)
+	    {
+	      int k;
+	      gfc_expr* lower;
+	      gfc_expr* e;
+	      
+	      lower = sym->as->lower[dim];
+	      if (lower->expr_type != EXPR_CONSTANT)
+		{
+		  gfc_error ("Non-constant lower bound in implied-shape"
+			     " declaration at %L", &lower->where);
+		  return FAILURE;
+		}
+
+	      /* All dimensions must be without upper bound.  */
+	      gcc_assert (!sym->as->upper[dim]);
+
+	      k = lower->ts.kind;
+	      e = gfc_get_constant_expr (BT_INTEGER, k, &sym->declared_at);
+	      mpz_add (e->value.integer,
+		       lower->value.integer, init->shape[dim]);
+	      mpz_sub_ui (e->value.integer, e->value.integer, 1);
+	      sym->as->upper[dim] = e;
+	    }
+
+	  sym->as->type = AS_EXPLICIT;
 	}
 
       /* Need to check if the expression we initialized this
@@ -1607,6 +1653,48 @@ gfc_match_null (gfc_expr **result)
 }
 
 
+/* Match the initialization expr for a data pointer or procedure pointer.  */
+
+static match
+match_pointer_init (gfc_expr **init, int procptr)
+{
+  match m;
+
+  if (gfc_pure (NULL) && gfc_state_stack->state != COMP_DERIVED)
+    {
+      gfc_error ("Initialization of pointer at %C is not allowed in "
+		 "a PURE procedure");
+      return MATCH_ERROR;
+    }
+
+  /* Match NULL() initilization.  */
+  m = gfc_match_null (init);
+  if (m != MATCH_NO)
+    return m;
+
+  /* Match non-NULL initialization.  */
+  gfc_matching_procptr_assignment = procptr;
+  m = gfc_match_rvalue (init);
+  gfc_matching_procptr_assignment = 0;
+  if (m == MATCH_ERROR)
+    return MATCH_ERROR;
+  else if (m == MATCH_NO)
+    {
+      gfc_error ("Error in pointer initialization at %C");
+      return MATCH_ERROR;
+    }
+
+  if (!procptr)
+    gfc_resolve_expr (*init);
+  
+  if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: non-NULL pointer "
+		      "initialization at %C") == FAILURE)
+    return MATCH_ERROR;
+
+  return MATCH_YES;
+}
+
+
 /* Match a variable name with an optional initializer.  When this
    subroutine is called, a variable is expected to be parsed next.
    Depending on what is happening at the moment, updates either the
@@ -1649,6 +1737,34 @@ variable_decl (int elem)
     as = gfc_copy_array_spec (current_as);
   else if (current_as)
     merge_array_spec (current_as, as, true);
+
+  /* At this point, we know for sure if the symbol is PARAMETER and can thus
+     determine (and check) whether it can be implied-shape.  If it
+     was parsed as assumed-size, change it because PARAMETERs can not
+     be assumed-size.  */
+  if (as)
+    {
+      if (as->type == AS_IMPLIED_SHAPE && current_attr.flavor != FL_PARAMETER)
+	{
+	  m = MATCH_ERROR;
+	  gfc_error ("Non-PARAMETER symbol '%s' at %L can't be implied-shape",
+		     name, &var_locus);
+	  goto cleanup;
+	}
+
+      if (as->type == AS_ASSUMED_SIZE && as->rank == 1
+	  && current_attr.flavor == FL_PARAMETER)
+	as->type = AS_IMPLIED_SHAPE;
+
+      if (as->type == AS_IMPLIED_SHAPE
+	  && gfc_notify_std (GFC_STD_F2008,
+			     "Fortran 2008: Implied-shape array at %L",
+			     &var_locus) == FAILURE)
+	{
+	  m = MATCH_ERROR;
+	  goto cleanup;
+	}
+    }
 
   char_len = NULL;
   cl = NULL;
@@ -1826,23 +1942,9 @@ variable_decl (int elem)
 	      goto cleanup;
 	    }
 
-	  m = gfc_match_null (&initializer);
-	  if (m == MATCH_NO)
-	    {
-	      gfc_error ("Pointer initialization requires a NULL() at %C");
-	      m = MATCH_ERROR;
-	    }
-
-	  if (gfc_pure (NULL) && gfc_state_stack->state != COMP_DERIVED)
-	    {
-	      gfc_error ("Initialization of pointer at %C is not allowed in "
-			 "a PURE procedure");
-	      m = MATCH_ERROR;
-	    }
-
+	  m = match_pointer_init (&initializer, 0);
 	  if (m != MATCH_YES)
 	    goto cleanup;
-
 	}
       else if (gfc_match_char ('=') == MATCH_YES)
 	{
@@ -3438,7 +3540,7 @@ match_attr_spec (void)
 	  break;
 
 	case DECL_SAVE:
-	  t = gfc_add_save (&current_attr, NULL, &seen_at[d]);
+	  t = gfc_add_save (&current_attr, SAVE_EXPLICIT, NULL, &seen_at[d]);
 	  break;
 
 	case DECL_TARGET:
@@ -3477,6 +3579,10 @@ match_attr_spec (void)
 	  goto cleanup;
 	}
     }
+
+  /* Module variables implicitly have the SAVE attribute.  */
+  if (gfc_current_state () == COMP_MODULE && !current_attr.save)
+    current_attr.save = SAVE_IMPLICIT;
 
   colon_seen = 1;
   return MATCH_YES;
@@ -3539,7 +3645,8 @@ gfc_try
 verify_c_interop (gfc_typespec *ts)
 {
   if (ts->type == BT_DERIVED && ts->u.derived != NULL)
-    return (ts->u.derived->ts.is_c_interop ? SUCCESS : FAILURE);
+    return (ts->u.derived->ts.is_c_interop || ts->u.derived->attr.is_bind_c)
+	   ? SUCCESS : FAILURE;
   else if (ts->is_c_interop != 1)
     return FAILURE;
   
@@ -3979,45 +4086,81 @@ match
 gfc_match_prefix (gfc_typespec *ts)
 {
   bool seen_type;
+  bool seen_impure;
+  bool found_prefix;
 
   gfc_clear_attr (&current_attr);
-  seen_type = 0;
+  seen_type = false;
+  seen_impure = false;
 
   gcc_assert (!gfc_matching_prefix);
   gfc_matching_prefix = true;
 
-loop:
-  if (!seen_type && ts != NULL
-      && gfc_match_decl_type_spec (ts, 0) == MATCH_YES
-      && gfc_match_space () == MATCH_YES)
+  do
     {
+      found_prefix = false;
 
-      seen_type = 1;
-      goto loop;
+      if (!seen_type && ts != NULL
+	  && gfc_match_decl_type_spec (ts, 0) == MATCH_YES
+	  && gfc_match_space () == MATCH_YES)
+	{
+
+	  seen_type = true;
+	  found_prefix = true;
+	}
+
+      if (gfc_match ("elemental% ") == MATCH_YES)
+	{
+	  if (gfc_add_elemental (&current_attr, NULL) == FAILURE)
+	    goto error;
+
+	  found_prefix = true;
+	}
+
+      if (gfc_match ("pure% ") == MATCH_YES)
+	{
+	  if (gfc_add_pure (&current_attr, NULL) == FAILURE)
+	    goto error;
+
+	  found_prefix = true;
+	}
+
+      if (gfc_match ("recursive% ") == MATCH_YES)
+	{
+	  if (gfc_add_recursive (&current_attr, NULL) == FAILURE)
+	    goto error;
+
+	  found_prefix = true;
+	}
+
+      /* IMPURE is a somewhat special case, as it needs not set an actual
+	 attribute but rather only prevents ELEMENTAL routines from being
+	 automatically PURE.  */
+      if (gfc_match ("impure% ") == MATCH_YES)
+	{
+	  if (gfc_notify_std (GFC_STD_F2008,
+			      "Fortran 2008: IMPURE procedure at %C")
+		== FAILURE)
+	    goto error;
+
+	  seen_impure = true;
+	  found_prefix = true;
+	}
+    }
+  while (found_prefix);
+
+  /* IMPURE and PURE must not both appear, of course.  */
+  if (seen_impure && current_attr.pure)
+    {
+      gfc_error ("PURE and IMPURE must not appear both at %C");
+      goto error;
     }
 
-  if (gfc_match ("elemental% ") == MATCH_YES)
-    {
-      if (gfc_add_elemental (&current_attr, NULL) == FAILURE)
-	goto error;
-
-      goto loop;
-    }
-
-  if (gfc_match ("pure% ") == MATCH_YES)
+  /* If IMPURE it not seen but the procedure is ELEMENTAL, mark it as PURE.  */
+  if (!seen_impure && current_attr.elemental && !current_attr.pure)
     {
       if (gfc_add_pure (&current_attr, NULL) == FAILURE)
 	goto error;
-
-      goto loop;
-    }
-
-  if (gfc_match ("recursive% ") == MATCH_YES)
-    {
-      if (gfc_add_recursive (&current_attr, NULL) == FAILURE)
-	goto error;
-
-      goto loop;
     }
 
   /* At this point, the next item is not a prefix.  */
@@ -4565,20 +4708,7 @@ match_procedure_decl (void)
 	      goto cleanup;
 	    }
 
-	  m = gfc_match_null (&initializer);
-	  if (m == MATCH_NO)
-	    {
-	      gfc_error ("Pointer initialization requires a NULL() at %C");
-	      m = MATCH_ERROR;
-	    }
-
-	  if (gfc_pure (NULL))
-	    {
-	      gfc_error ("Initialization of pointer at %C is not allowed in "
-			 "a PURE procedure");
-	      m = MATCH_ERROR;
-	    }
-
+	  m = match_pointer_init (&initializer, 1);
 	  if (m != MATCH_YES)
 	    goto cleanup;
 
@@ -4705,18 +4835,7 @@ match_ppc_decl (void)
 
       if (gfc_match (" =>") == MATCH_YES)
 	{
-	  m = gfc_match_null (&initializer);
-	  if (m == MATCH_NO)
-	    {
-	      gfc_error ("Pointer initialization requires a NULL() at %C");
-	      m = MATCH_ERROR;
-	    }
-	  if (gfc_pure (NULL))
-	    {
-	      gfc_error ("Initialization of pointer at %C is not allowed in "
-			 "a PURE procedure");
-	      m = MATCH_ERROR;
-	    }
+	  m = match_pointer_init (&initializer, 1);
 	  if (m != MATCH_YES)
 	    {
 	      gfc_free_expr (initializer);
@@ -6610,8 +6729,8 @@ gfc_match_save (void)
       switch (m)
 	{
 	case MATCH_YES:
-	  if (gfc_add_save (&sym->attr, sym->name, &gfc_current_locus)
-	      == FAILURE)
+	  if (gfc_add_save (&sym->attr, SAVE_EXPLICIT, sym->name,
+			    &gfc_current_locus) == FAILURE)
 	    return MATCH_ERROR;
 	  goto next_item;
 

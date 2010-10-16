@@ -589,12 +589,12 @@ gen_rtx_REG (enum machine_mode mode, unsigned int regno)
       if (regno == FRAME_POINTER_REGNUM
 	  && (!reload_completed || frame_pointer_needed))
 	return frame_pointer_rtx;
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
       if (regno == HARD_FRAME_POINTER_REGNUM
 	  && (!reload_completed || frame_pointer_needed))
 	return hard_frame_pointer_rtx;
 #endif
-#if FRAME_POINTER_REGNUM != ARG_POINTER_REGNUM && HARD_FRAME_POINTER_REGNUM != ARG_POINTER_REGNUM
+#if FRAME_POINTER_REGNUM != ARG_POINTER_REGNUM && !HARD_FRAME_POINTER_IS_ARG_POINTER
       if (regno == ARG_POINTER_REGNUM)
 	return arg_pointer_rtx;
 #endif
@@ -1459,7 +1459,8 @@ get_mem_align_offset (rtx mem, unsigned int align)
   /* This function can't use
      if (!MEM_EXPR (mem) || !MEM_OFFSET (mem)
 	 || !CONST_INT_P (MEM_OFFSET (mem))
-	 || (get_object_alignment (MEM_EXPR (mem), MEM_ALIGN (mem), align)
+	 || (MAX (MEM_ALIGN (mem),
+	          get_object_alignment (MEM_EXPR (mem), align))
 	     < align))
        return -1;
      else
@@ -1587,39 +1588,37 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
   else if (TREE_CODE (t) == MEM_REF)
     {
       tree op0 = TREE_OPERAND (t, 0);
-      unsigned HOST_WIDE_INT aoff = BITS_PER_UNIT;
-      if (host_integerp (TREE_OPERAND (t, 1), 1))
+      if (TREE_CODE (op0) == ADDR_EXPR
+	  && (DECL_P (TREE_OPERAND (op0, 0))
+	      || CONSTANT_CLASS_P (TREE_OPERAND (op0, 0))))
 	{
-	  unsigned HOST_WIDE_INT ioff = TREE_INT_CST_LOW (TREE_OPERAND (t, 1));
-	  aoff = (ioff & -ioff) * BITS_PER_UNIT;
-	}
-      if (TREE_CODE (op0) == ADDR_EXPR && DECL_P (TREE_OPERAND (op0, 0)))
-	align = MAX (align, DECL_ALIGN (TREE_OPERAND (op0, 0)));
-      else if (TREE_CODE (op0) == ADDR_EXPR
-	       && CONSTANT_CLASS_P (TREE_OPERAND (op0, 0)))
-	{
-	  align = TYPE_ALIGN (TREE_TYPE (TREE_OPERAND (op0, 0)));
+	  if (DECL_P (TREE_OPERAND (op0, 0)))
+	    align = DECL_ALIGN (TREE_OPERAND (op0, 0));
+	  else if (CONSTANT_CLASS_P (TREE_OPERAND (op0, 0)))
+	    {
+	      align = TYPE_ALIGN (TREE_TYPE (TREE_OPERAND (op0, 0)));
 #ifdef CONSTANT_ALIGNMENT
-	  align = CONSTANT_ALIGNMENT (TREE_OPERAND (op0, 0), align);
+	      align = CONSTANT_ALIGNMENT (TREE_OPERAND (op0, 0), align);
 #endif
+	    }
+	  if (TREE_INT_CST_LOW (TREE_OPERAND (t, 1)) != 0)
+	    {
+	      unsigned HOST_WIDE_INT ioff
+		= TREE_INT_CST_LOW (TREE_OPERAND (t, 1));
+	      unsigned HOST_WIDE_INT aoff = (ioff & -ioff) * BITS_PER_UNIT;
+	      align = MIN (aoff, align);
+	    }
 	}
       else
 	/* ??? This isn't fully correct, we can't set the alignment from the
 	   type in all cases.  */
 	align = MAX (align, TYPE_ALIGN (type));
-
-      if (!integer_zerop (TREE_OPERAND (t, 1)) && aoff < align)
-	align = aoff;
     }
 
-  else if (TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
-    {
-      if (integer_zerop (TREE_OPERAND (t, 1)))
-	/* We don't know anything about the alignment.  */
-	align = BITS_PER_UNIT;
-      else
-	align = tree_low_cst (TREE_OPERAND (t, 1), 1);
-    }
+  else if (TREE_CODE (t) == TARGET_MEM_REF)
+    /* ??? This isn't fully correct, we can't set the alignment from the
+       type in all cases.  */
+    align = MAX (align, TYPE_ALIGN (type));
 
   /* If the size is known, we can set that.  */
   if (TYPE_SIZE_UNIT (type) && host_integerp (TYPE_SIZE_UNIT (type), 1))
@@ -1661,7 +1660,11 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	  else
 	    MEM_NOTRAP_P (ref) = 1;
 	}
-      else
+      else if (TREE_CODE (base) == INDIRECT_REF
+	       || TREE_CODE (base) == MEM_REF
+	       || TREE_CODE (base) == TARGET_MEM_REF
+	       || TREE_CODE (base) == ARRAY_REF
+	       || TREE_CODE (base) == ARRAY_RANGE_REF)
 	MEM_NOTRAP_P (ref) = TREE_THIS_NOTRAP (base);
 
       base = get_base_address (base);
@@ -1774,8 +1777,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	    }
 
 	  /* If this is an indirect reference, record it.  */
-	  else if (TREE_CODE (t) == MEM_REF 
-		   || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
+	  else if (TREE_CODE (t) == MEM_REF)
 	    {
 	      expr = t;
 	      offset = const0_rtx;
@@ -1785,7 +1787,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 
       /* If this is an indirect reference, record it.  */
       else if (TREE_CODE (t) == MEM_REF 
-	       || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
+	       || TREE_CODE (t) == TARGET_MEM_REF)
 	{
 	  expr = t;
 	  offset = const0_rtx;
@@ -1794,8 +1796,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 
       if (!align_computed && !INDIRECT_REF_P (t))
 	{
-	  unsigned int obj_align
-	    = get_object_alignment (t, align, BIGGEST_ALIGNMENT);
+	  unsigned int obj_align = get_object_alignment (t, BIGGEST_ALIGNMENT);
 	  align = MAX (align, obj_align);
 	}
     }
@@ -2239,7 +2240,6 @@ get_spill_slot_decl (bool force_build_p)
   DECL_ARTIFICIAL (d) = 1;
   DECL_IGNORED_P (d) = 1;
   TREE_USED (d) = 1;
-  TREE_THIS_NOTRAP (d) = 1;
   spill_slot_decl = d;
 
   rd = gen_rtx_MEM (BLKmode, frame_pointer_rtx);
@@ -3980,6 +3980,13 @@ delete_insns_since (rtx from)
 void
 reorder_insns_nobb (rtx from, rtx to, rtx after)
 {
+#ifdef ENABLE_CHECKING
+  rtx x;
+  for (x = from; x != to; x = NEXT_INSN (x))
+    gcc_assert (after != x);
+  gcc_assert (after != to);
+#endif
+
   /* Splice this bunch out of where it is now.  */
   if (PREV_INSN (from))
     NEXT_INSN (PREV_INSN (from)) = NEXT_INSN (to);
@@ -5379,6 +5386,8 @@ init_virtual_regs (void)
   regno_reg_rtx[VIRTUAL_STACK_DYNAMIC_REGNUM] = virtual_stack_dynamic_rtx;
   regno_reg_rtx[VIRTUAL_OUTGOING_ARGS_REGNUM] = virtual_outgoing_args_rtx;
   regno_reg_rtx[VIRTUAL_CFA_REGNUM] = virtual_cfa_rtx;
+  regno_reg_rtx[VIRTUAL_PREFERRED_STACK_BOUNDARY_REGNUM]
+    = virtual_preferred_stack_boundary_rtx;
 }
 
 
@@ -5701,6 +5710,8 @@ init_emit_regs (void)
   virtual_outgoing_args_rtx =
     gen_raw_REG (Pmode, VIRTUAL_OUTGOING_ARGS_REGNUM);
   virtual_cfa_rtx = gen_raw_REG (Pmode, VIRTUAL_CFA_REGNUM);
+  virtual_preferred_stack_boundary_rtx =
+    gen_raw_REG (Pmode, VIRTUAL_PREFERRED_STACK_BOUNDARY_REGNUM);
 
   /* Initialize RTL for commonly used hard registers.  These are
      copied into regno_reg_rtx as we begin to compile each function.  */

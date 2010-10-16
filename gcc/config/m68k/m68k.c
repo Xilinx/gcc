@@ -135,6 +135,7 @@ static int m68k_sched_first_cycle_multipass_dfa_lookahead (void);
 static bool m68k_can_eliminate (const int, const int);
 static bool m68k_legitimate_address_p (enum machine_mode, rtx, bool);
 static bool m68k_handle_option (size_t, const char *, int);
+static void m68k_option_override (void);
 static rtx find_addr_reg (rtx);
 static const char *singlemove_string (rtx *);
 static void m68k_output_mi_thunk (FILE *, tree, HOST_WIDE_INT,
@@ -156,6 +157,10 @@ static void m68k_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static void m68k_trampoline_init (rtx, tree, rtx);
 static int m68k_return_pops_args (tree, tree, int);
 static rtx m68k_delegitimize_address (rtx);
+static void m68k_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+				       const_tree, bool);
+static rtx m68k_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+			      const_tree, bool);
 
 
 /* Specify the identification number of the library being built */
@@ -233,6 +238,9 @@ const char *m68k_library_id_string = "_current_shared_library_a5_offset_";
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION m68k_handle_option
 
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE m68k_option_override
+
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS m68k_rtx_costs
 
@@ -278,6 +286,12 @@ const char *m68k_library_id_string = "_current_shared_library_a5_offset_";
 
 #undef TARGET_DELEGITIMIZE_ADDRESS
 #define TARGET_DELEGITIMIZE_ADDRESS m68k_delegitimize_address
+
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG m68k_function_arg
+
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE m68k_function_arg_advance
 
 static const struct attribute_spec m68k_attribute_table[] =
 {
@@ -539,17 +553,10 @@ m68k_handle_option (size_t code, const char *arg, int value)
     }
 }
 
-/* Sometimes certain combinations of command options do not make
-   sense on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
+/* Implement TARGET_OPTION_OVERRIDE.  */
 
-   Don't use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.  */
-
-void
-override_options (void)
+static void
+m68k_option_override (void)
 {
   const struct m68k_target_selection *entry;
   unsigned long target_mask;
@@ -1475,6 +1482,26 @@ m68k_ok_for_sibcall_p (tree decl, tree exp)
     return true;
   
   return false;
+}
+
+/* On the m68k all args are always pushed.  */
+
+static rtx
+m68k_function_arg (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
+		   enum machine_mode mode ATTRIBUTE_UNUSED,
+		   const_tree type ATTRIBUTE_UNUSED,
+		   bool named ATTRIBUTE_UNUSED)
+{
+  return NULL_RTX;
+}
+
+static void
+m68k_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			   const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  *cum += (mode != BLKmode
+	   ? (GET_MODE_SIZE (mode) + 3) & ~3
+	   : (int_size_in_bytes (type) + 3) & ~3);
 }
 
 /* Convert X to a legitimate function call memory reference and return the
@@ -6540,9 +6567,7 @@ m68k_return_pops_args (tree fundecl, tree funtype, int size)
   return ((TARGET_RTD
 	   && (!fundecl
 	       || TREE_CODE (fundecl) != IDENTIFIER_NODE)
-	   && (TYPE_ARG_TYPES (funtype) == 0
-	       || (TREE_VALUE (tree_last (TYPE_ARG_TYPES (funtype)))
-		   == void_type_node)))
+	   && (!stdarg_p (funtype)))
 	  ? size : 0);
 }
 

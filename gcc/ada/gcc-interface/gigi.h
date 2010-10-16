@@ -139,9 +139,10 @@ extern tree choices_to_gnu (tree operand, Node_Id choices);
 /* Given GNAT_ENTITY, an object (constant, variable, parameter, exception)
    and GNU_TYPE, its corresponding GCC type, set Esize and Alignment to the
    size and alignment used by Gigi.  Prefer SIZE over TYPE_SIZE if non-null.
-   BY_REF is true if the object is used by reference.  */
+   BY_REF is true if the object is used by reference and BY_DOUBLE_REF is
+   true if the object is used by double reference.  */
 extern void annotate_object (Entity_Id gnat_entity, tree gnu_type, tree size,
-			     bool by_ref);
+			     bool by_ref, bool by_double_ref);
 
 /* Given a type T, a FIELD_DECL F, and a replacement value R, return a new
    type with all size expressions that contain F updated by replacing F
@@ -258,6 +259,9 @@ extern void post_error_ne_tree_2 (const char *msg, Node_Id node, Entity_Id ent,
 /* Return a label to branch to for the exception type in KIND or NULL_TREE
    if none.  */
 extern tree get_exception_label (char kind);
+
+/* Return the decl for the current elaboration procedure.  */
+extern tree get_elaboration_procedure (void);
 
 /* If nonzero, pretend we are allocating at global level.  */
 extern int force_global;
@@ -403,6 +407,7 @@ extern int global_bindings_p (void);
 /* Enter and exit a new binding level.  */
 extern void gnat_pushlevel (void);
 extern void gnat_poplevel (void);
+extern void gnat_zaplevel (void);
 
 /* Set SUPERCONTEXT of the BLOCK for the current binding level to FNDECL
    and point FNDECL to this BLOCK.  */
@@ -442,6 +447,9 @@ extern tree gnat_signed_type (tree type_node);
 /* Return 1 if the types T1 and T2 are compatible, i.e. if they can be
    transparently converted to each other.  */
 extern int gnat_types_compatible_p (tree t1, tree t2);
+
+/* Return true if T, a FUNCTION_TYPE, has the specified list of flags.  */
+extern bool fntype_same_flags_p (const_tree, tree, bool, bool, bool);
 
 /* Create an expression whose value is that of EXPR,
    converted to type TYPE.  The TREE_TYPE of the value
@@ -500,9 +508,6 @@ extern void rest_of_record_type_compilation (tree record_type);
 
 /* Append PARALLEL_TYPE on the chain of parallel types for decl.  */
 extern void add_parallel_type (tree decl, tree parallel_type);
-
-/* Return the parallel type associated to a type, if any.  */
-extern tree get_parallel_type (tree type);
 
 /* Return a FUNCTION_TYPE node.  RETURN_TYPE is the type returned by the
    subprogram.  If it is VOID_TYPE, then we are dealing with a procedure,

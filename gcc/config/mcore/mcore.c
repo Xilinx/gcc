@@ -1,6 +1,6 @@
 /* Output routines for Motorola MCore processor
    Copyright (C) 1993, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008,
-   2009 Free Software Foundation, Inc.
+   2009, 2010 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -45,11 +45,6 @@
 #include "target.h"
 #include "target-def.h"
 #include "df.h"
-
-/* Maximum size we are allowed to grow the stack in a single operation.
-   If we want more, we must do it in increments of at most this size.
-   If this value is 0, we don't check at all.  */
-int mcore_stack_increment = STACK_UNITS_MAXSTEP;
 
 /* For dumping information about frame sizes.  */
 char * mcore_current_function_name = 0;
@@ -149,6 +144,8 @@ static int        mcore_arg_partial_bytes       (CUMULATIVE_ARGS *,
 						 tree, bool);
 static void       mcore_asm_trampoline_template (FILE *);
 static void       mcore_trampoline_init		(rtx, tree, rtx);
+static void       mcore_option_override		(void);
+static void       mcore_option_optimization	(int, int);
 
 /* MCore specific attributes.  */
 
@@ -224,6 +221,14 @@ static const struct attribute_spec mcore_attribute_table[] =
 #define TARGET_ASM_TRAMPOLINE_TEMPLATE	mcore_asm_trampoline_template
 #undef  TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT		mcore_trampoline_init
+
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE mcore_option_override
+#undef TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION mcore_option_optimization
+
+#undef TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO sjlj_except_unwind_info
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -2679,13 +2684,41 @@ mcore_is_same_reg (rtx x, rtx y)
   return 0;
 }
 
-void
-mcore_override_options (void)
+static void
+mcore_option_override (void)
 {
   /* Only the m340 supports little endian code.  */
   if (TARGET_LITTLE_END && ! TARGET_M340)
     target_flags |= MASK_M340;
 }
+
+/* What options are we going to default to specific settings when
+   -O* happens; the user can subsequently override these settings.
+  
+   Omitting the frame pointer is a very good idea on the MCore.
+   Scheduling isn't worth anything on the current MCore implementation.  */
+
+static void
+mcore_option_optimization (int level, int size)
+{
+  if (level)
+    {
+      flag_no_function_cse = 1;
+      flag_omit_frame_pointer = 1;
+
+      if (level >= 2)
+        {
+          flag_caller_saves = 0;
+          flag_schedule_insns = 0;
+          flag_schedule_insns_after_reload = 0;
+        }
+    }
+  if (size)
+    {
+      target_flags &= ~MASK_HARDLIT;
+    }
+}
+
 
 /* Compute the number of word sized registers needed to 
    hold a function argument of mode MODE and type TYPE.  */

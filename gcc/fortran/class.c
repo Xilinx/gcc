@@ -214,8 +214,6 @@ add_proc_comp (gfc_symbol *vtype, const char *name, gfc_typebound_proc *tb)
       /* Add procedure component.  */
       if (gfc_add_component (vtype, name, &c) == FAILURE)
 	return;
-      if (tb->u.specific)
-	c->ts.interface = tb->u.specific->n.sym;
 
       if (!c->tb)
 	c->tb = XCNEW (gfc_typebound_proc);
@@ -228,17 +226,18 @@ add_proc_comp (gfc_symbol *vtype, const char *name, gfc_typebound_proc *tb)
       c->attr.external = 1;
       c->attr.untyped = 1;
       c->attr.if_source = IFSRC_IFBODY;
-
-      /* A static initializer cannot be used here because the specific
-	function is not a constant; internal compiler error: in
-	output_constant, at varasm.c:4623  */
-      c->initializer = NULL;
     }
   else if (c->attr.proc_pointer && c->tb)
     {
       *c->tb = *tb;
       c->tb->ppc = 1;
-      c->ts.interface = tb->u.specific->n.sym;	  
+    }
+
+  if (tb->u.specific)
+    {
+      c->ts.interface = tb->u.specific->n.sym;
+      if (!tb->deferred)
+	c->initializer = gfc_get_variable_expr (tb->u.specific);
     }
 }
 
@@ -257,10 +256,8 @@ add_procs_to_declared_vtab1 (gfc_symtree *st, gfc_symbol *vtype)
   if (st->right)
     add_procs_to_declared_vtab1 (st->right, vtype);
 
-  if (!st->n.tb)
-    return;
-
-  if (!st->n.tb->is_generic && st->n.tb->u.specific)
+  if (st->n.tb && !st->n.tb->error 
+      && !st->n.tb->is_generic && st->n.tb->u.specific)
     add_proc_comp (vtype, st->name, st->n.tb);
 }
 
@@ -298,7 +295,7 @@ add_procs_to_declared_vtab (gfc_symbol *derived, gfc_symbol *vtype)
     {
       /* Make sure that the PPCs appear in the same order as in the parent.  */
       copy_vtab_proc_comps (super_type, vtype);
-      /* Only needed to get the PPC interfaces right.  */
+      /* Only needed to get the PPC initializers right.  */
       add_procs_to_declared_vtab (super_type, vtype);
     }
 
@@ -322,15 +319,18 @@ gfc_symbol *
 gfc_find_derived_vtab (gfc_symbol *derived)
 {
   gfc_namespace *ns;
-  gfc_symbol *vtab = NULL, *vtype = NULL, *found_sym = NULL;
+  gfc_symbol *vtab = NULL, *vtype = NULL, *found_sym = NULL, *def_init = NULL;
   char name[2 * GFC_MAX_SYMBOL_LEN + 8];
-
-  ns = gfc_current_ns;
-
-  for (; ns; ns = ns->parent)
+  
+  /* Find the top-level namespace (MODULE or PROGRAM).  */
+  for (ns = gfc_current_ns; ns; ns = ns->parent)
     if (!ns->parent)
       break;
 
+  /* If the type is a class container, use the underlying derived type.  */
+  if (derived->attr.is_class)
+    derived = gfc_get_derived_super_type (derived);
+    
   if (ns)
     {
       sprintf (name, "vtab$%s", derived->name);
@@ -340,12 +340,13 @@ gfc_find_derived_vtab (gfc_symbol *derived)
 	{
 	  gfc_get_symbol (name, ns, &vtab);
 	  vtab->ts.type = BT_DERIVED;
-	  vtab->attr.flavor = FL_VARIABLE;
+	  if (gfc_add_flavor (&vtab->attr, FL_VARIABLE, NULL,
+	                      &gfc_current_locus) == FAILURE)
+	    goto cleanup;
 	  vtab->attr.target = 1;
 	  vtab->attr.save = SAVE_EXPLICIT;
 	  vtab->attr.vtab = 1;
 	  vtab->attr.access = ACCESS_PUBLIC;
-	  vtab->refs++;
 	  gfc_set_sym_referenced (vtab);
 	  sprintf (name, "vtype$%s", derived->name);
 	  
@@ -360,7 +361,6 @@ gfc_find_derived_vtab (gfc_symbol *derived)
 				  NULL, &gfc_current_locus) == FAILURE)
 		goto cleanup;
 	      vtype->attr.access = ACCESS_PUBLIC;
-	      vtype->refs++;
 	      gfc_set_sym_referenced (vtype);
 
 	      /* Add component '$hash'.  */
@@ -408,6 +408,33 @@ gfc_find_derived_vtab (gfc_symbol *derived)
 		  c->initializer = gfc_get_null_expr (NULL);
 		}
 
+	      /* Add component $def_init.  */
+	      if (gfc_add_component (vtype, "$def_init", &c) == FAILURE)
+		goto cleanup;
+	      c->attr.pointer = 1;
+	      c->attr.access = ACCESS_PRIVATE;
+	      c->ts.type = BT_DERIVED;
+	      c->ts.u.derived = derived;
+	      if (derived->attr.abstract)
+		c->initializer = NULL;
+	      else
+		{
+		  /* Construct default initialization variable.  */
+		  sprintf (name, "def_init$%s", derived->name);
+		  gfc_get_symbol (name, ns, &def_init);
+		  def_init->attr.target = 1;
+		  def_init->attr.save = SAVE_EXPLICIT;
+		  def_init->attr.access = ACCESS_PUBLIC;
+		  def_init->attr.flavor = FL_VARIABLE;
+		  gfc_set_sym_referenced (def_init);
+		  def_init->ts.type = BT_DERIVED;
+		  def_init->ts.u.derived = derived;
+		  def_init->value = gfc_default_initializer (&def_init->ts);
+
+		  c->initializer = gfc_lval_expr_from_sym (def_init);
+		}
+
+	      /* Add procedure pointers for type-bound procedures.  */
 	      add_procs_to_declared_vtab (derived, vtype);
 	      vtype->attr.vtype = 1;
 	    }
@@ -423,7 +450,13 @@ cleanup:
   /* It is unexpected to have some symbols added at resolution or code
      generation time. We commit the changes in order to keep a clean state.  */
   if (found_sym)
-    gfc_commit_symbols ();
+    {
+      gfc_commit_symbol (vtab);
+      if (vtype)
+	gfc_commit_symbol (vtype);
+      if (def_init)
+	gfc_commit_symbol (def_init);
+    }
   else
     gfc_undo_symbols ();
 

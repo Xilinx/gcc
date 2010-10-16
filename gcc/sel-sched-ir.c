@@ -4326,7 +4326,7 @@ sel_bb_head (basic_block bb)
       note = bb_note (bb);
       head = next_nonnote_insn (note);
 
-      if (head && BLOCK_FOR_INSN (head) != bb)
+      if (head && (BARRIER_P (head) || BLOCK_FOR_INSN (head) != bb))
 	head = NULL_RTX;
     }
 
@@ -5822,7 +5822,7 @@ make_region_from_loop_preheader (VEC(basic_block, heap) **loop_blocks)
 
   new_rgn_number = sel_create_new_region ();
 
-  for (i = 0; VEC_iterate (basic_block, *loop_blocks, i, bb); i++)
+  FOR_EACH_VEC_ELT (basic_block, *loop_blocks, i, bb)
     {
       gcc_assert (new_rgn_number >= 0);
 
@@ -6167,7 +6167,7 @@ sel_remove_loop_preheader (void)
         {
           /* If all preheader blocks are empty - dont create new empty region.
              Instead, remove them completely.  */
-          for (i = 0; VEC_iterate (basic_block, preheader_blocks, i, bb); i++)
+          FOR_EACH_VEC_ELT (basic_block, preheader_blocks, i, bb)
             {
               edge e;
               edge_iterator ei;

@@ -942,7 +942,7 @@ predict_loops (void)
       exits = get_loop_exit_edges (loop);
       n_exits = VEC_length (edge, exits);
 
-      for (j = 0; VEC_iterate (edge, exits, j, ex); j++)
+      FOR_EACH_VEC_ELT (edge, exits, j, ex)
 	{
 	  tree niter = NULL;
 	  HOST_WIDE_INT nitercst;
@@ -1180,9 +1180,8 @@ expr_expected_value_1 (tree type, tree op0, enum tree_code code, tree op1, bitma
       def = SSA_NAME_DEF_STMT (op0);
 
       /* If we were already here, break the infinite cycle.  */
-      if (bitmap_bit_p (visited, SSA_NAME_VERSION (op0)))
+      if (!bitmap_set_bit (visited, SSA_NAME_VERSION (op0)))
 	return NULL;
-      bitmap_set_bit (visited, SSA_NAME_VERSION (op0));
 
       if (gimple_code (def) == GIMPLE_PHI)
 	{

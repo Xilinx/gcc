@@ -387,7 +387,9 @@ typedef enum cpp0x_warn_str
   /* scoped enums */
   CPP0X_SCOPED_ENUMS,
   /* defaulted and deleted functions */
-  CPP0X_DEFAULTED_DELETED
+  CPP0X_DEFAULTED_DELETED,
+  /* inline namespaces */
+  CPP0X_INLINE_NAMESPACES
 } cpp0x_warn_str;
   
 /* The various kinds of operation used by composite_pointer_type. */
@@ -1053,7 +1055,8 @@ struct GTY(()) language_function {
   (cfun && cp_function_chain					\
    ? cp_function_chain->x_current_class_ptr : NULL_TREE)
 #define current_class_ref \
-  (cfun ? cp_function_chain->x_current_class_ref : NULL_TREE)
+  ((cfun && cp_function_chain)                                  \
+   ? cp_function_chain->x_current_class_ref : NULL_TREE)
 
 /* The EH_SPEC_BLOCK for the exception-specifiers for the current
    function, if any.  */
@@ -2359,12 +2362,12 @@ struct GTY((variable_size)) lang_decl {
 #define SET_DECL_FRIEND_CONTEXT(NODE, CONTEXT) \
   (LANG_DECL_FN_CHECK (NODE)->context = (CONTEXT))
 
-/* NULL_TREE in DECL_CONTEXT represents the global namespace.  */
 #define CP_DECL_CONTEXT(NODE) \
-  (DECL_CONTEXT (NODE) ? DECL_CONTEXT (NODE) : global_namespace)
+  (!DECL_FILE_SCOPE_P (NODE) ? DECL_CONTEXT (NODE) : global_namespace)
 #define CP_TYPE_CONTEXT(NODE) \
-  (TYPE_CONTEXT (NODE) ? TYPE_CONTEXT (NODE) : global_namespace)
-#define FROB_CONTEXT(NODE)   ((NODE) == global_namespace ? NULL_TREE : (NODE))
+  (!TYPE_FILE_SCOPE_P (NODE) ? TYPE_CONTEXT (NODE) : global_namespace)
+#define FROB_CONTEXT(NODE) \
+  ((NODE) == global_namespace ? DECL_CONTEXT (NODE) : (NODE))
 
 /* 1 iff NODE has namespace scope, including the global namespace.  */
 #define DECL_NAMESPACE_SCOPE_P(NODE)				\
@@ -3799,6 +3802,12 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define FOR_EXPR(NODE)		TREE_OPERAND (FOR_STMT_CHECK (NODE), 2)
 #define FOR_BODY(NODE)		TREE_OPERAND (FOR_STMT_CHECK (NODE), 3)
 
+/* RANGE_FOR_STMT accessors. These give access to the declarator,
+   expression and body of the statement, respectively.  */
+#define RANGE_FOR_DECL(NODE)	TREE_OPERAND (RANGE_FOR_STMT_CHECK (NODE), 0)
+#define RANGE_FOR_EXPR(NODE)	TREE_OPERAND (RANGE_FOR_STMT_CHECK (NODE), 1)
+#define RANGE_FOR_BODY(NODE)	TREE_OPERAND (RANGE_FOR_STMT_CHECK (NODE), 2)
+
 #define SWITCH_STMT_COND(NODE)	TREE_OPERAND (SWITCH_STMT_CHECK (NODE), 0)
 #define SWITCH_STMT_BODY(NODE)	TREE_OPERAND (SWITCH_STMT_CHECK (NODE), 1)
 #define SWITCH_STMT_TYPE(NODE)	TREE_OPERAND (SWITCH_STMT_CHECK (NODE), 2)
@@ -3926,6 +3935,13 @@ typedef enum linkage_kind {
   lk_external			/* External linkage.  */
 } linkage_kind;
 
+typedef enum duration_kind {
+  dk_static,
+  dk_thread,
+  dk_auto,
+  dk_dynamic
+} duration_kind;
+
 /* Bitmask flags to control type substitution.  */
 enum tsubst_flags {
   tf_none = 0,			 /* nothing special */
@@ -4009,6 +4025,7 @@ extern int function_depth;
    sizeof can be nested.  */
 
 extern int cp_unevaluated_operand;
+extern tree cp_convert_range_for (tree, tree, tree);
 
 /* in pt.c  */
 
@@ -4771,7 +4788,7 @@ extern tree xref_tag_from_type			(tree, tree, tag_scope);
 extern bool xref_basetypes			(tree, tree);
 extern tree start_enum				(tree, tree, bool);
 extern void finish_enum				(tree);
-extern void build_enumerator			(tree, tree, tree);
+extern void build_enumerator			(tree, tree, tree, location_t);
 extern tree lookup_enumerator			(tree, tree);
 extern void start_preparsed_function		(tree, tree, int);
 extern int start_function			(cp_decl_specifier_seq *, const cp_declarator *, tree);
@@ -4883,6 +4900,7 @@ extern tree build_throw				(tree);
 extern int nothrow_libfn_p			(const_tree);
 extern void check_handlers			(tree);
 extern tree finish_noexcept_expr		(tree, tsubst_flags_t);
+extern void perform_deferred_noexcept_checks	(void);
 extern bool nothrow_spec_p			(const_tree);
 extern bool type_noexcept_p			(const_tree);
 extern bool type_throw_all_p			(const_tree);
@@ -4915,8 +4933,8 @@ extern tree build_aggr_init			(tree, tree, int,
 extern int is_class_type			(tree, int);
 extern tree get_type_value			(tree);
 extern tree build_zero_init			(tree, tree, bool);
-extern tree build_value_init			(tree);
-extern tree build_value_init_noctor		(tree);
+extern tree build_value_init			(tree, tsubst_flags_t);
+extern tree build_value_init_noctor		(tree, tsubst_flags_t);
 extern tree build_offset_ref			(tree, tree, bool);
 extern tree build_new				(VEC(tree,gc) **, tree, tree,
 						 VEC(tree,gc) **, int,
@@ -4942,6 +4960,7 @@ extern void yyungetc				(int, int);
 extern tree unqualified_name_lookup_error	(tree);
 extern tree unqualified_fn_lookup_error		(tree);
 extern tree build_lang_decl			(enum tree_code, tree, tree);
+extern tree build_lang_decl_loc			(location_t, enum tree_code, tree, tree);
 extern void retrofit_lang_decl			(tree);
 extern tree copy_decl				(tree);
 extern tree copy_type				(tree);
@@ -5188,6 +5207,9 @@ extern void finish_for_init_stmt		(tree);
 extern void finish_for_cond			(tree, tree);
 extern void finish_for_expr			(tree, tree);
 extern void finish_for_stmt			(tree);
+extern tree begin_range_for_stmt		(void);
+extern void finish_range_for_decl		(tree, tree, tree);
+extern void finish_range_for_stmt		(tree);
 extern tree finish_break_stmt			(void);
 extern tree finish_continue_stmt		(void);
 extern tree begin_switch_stmt			(void);
@@ -5228,7 +5250,7 @@ extern tree finish_stmt_expr_expr		(tree, tree);
 extern tree finish_stmt_expr			(tree, bool);
 extern tree stmt_expr_value_expr		(tree);
 bool empty_expr_stmt_p				(tree);
-extern tree perform_koenig_lookup		(tree, VEC(tree,gc) *);
+extern tree perform_koenig_lookup		(tree, VEC(tree,gc) *, bool);
 extern tree finish_call_expr			(tree, VEC(tree,gc) **, bool,
 						 bool, tsubst_flags_t);
 extern tree finish_increment_expr		(tree, enum tree_code);
@@ -5331,7 +5353,8 @@ extern void cp_set_underlying_type		(tree);
 extern tree copy_binfo				(tree, tree, tree,
 						 tree *, int);
 extern int member_p				(const_tree);
-extern cp_lvalue_kind real_lvalue_p		(tree);
+extern cp_lvalue_kind real_lvalue_p		(const_tree);
+extern cp_lvalue_kind lvalue_kind		(const_tree);
 extern bool lvalue_or_rvalue_with_address_p	(const_tree);
 extern bool builtin_valid_in_constant_expr_p    (const_tree);
 extern tree build_min				(enum tree_code, tree, ...);
@@ -5387,6 +5410,7 @@ extern int count_trees				(tree);
 extern int char_type_p				(tree);
 extern void verify_stmt_tree			(tree);
 extern linkage_kind decl_linkage		(tree);
+extern duration_kind decl_storage_duration	(tree);
 extern tree cp_walk_subtrees (tree*, int*, walk_tree_fn,
 			      void*, struct pointer_set_t*);
 #define cp_walk_tree(a,b,c,d) \
@@ -5407,7 +5431,7 @@ extern void cxx_print_xnode			(FILE *, tree, int);
 extern void cxx_print_decl			(FILE *, tree, int);
 extern void cxx_print_type			(FILE *, tree, int);
 extern void cxx_print_identifier		(FILE *, tree, int);
-extern void cxx_print_error_function	(struct diagnostic_context *,
+extern void cxx_print_error_function		(diagnostic_context *,
 						 const char *,
 						 struct diagnostic_info *);
 
@@ -5417,8 +5441,10 @@ extern int string_conv_p			(const_tree, const_tree, int);
 extern tree cp_truthvalue_conversion		(tree);
 extern tree condition_conversion		(tree);
 extern tree require_complete_type		(tree);
+extern tree require_complete_type_sfinae	(tree, tsubst_flags_t);
 extern tree complete_type			(tree);
 extern tree complete_type_or_else		(tree, tree);
+extern tree complete_type_or_maybe_complain	(tree, tree, tsubst_flags_t);
 extern int type_unknown_p			(const_tree);
 enum { ce_derived, ce_normal, ce_exact };
 extern bool comp_except_specs			(const_tree, const_tree, int);
@@ -5457,6 +5483,8 @@ extern tree build_x_binary_op			(enum tree_code, tree,
 extern tree build_x_array_ref			(tree, tree, tsubst_flags_t);
 extern tree build_x_unary_op			(enum tree_code, tree,
                                                  tsubst_flags_t);
+extern tree cp_build_addr_expr			(tree, tsubst_flags_t);
+extern tree cp_build_addr_expr_strict		(tree, tsubst_flags_t);
 extern tree cp_build_unary_op                   (enum tree_code, tree, int, 
                                                  tsubst_flags_t);
 extern tree unary_complex_lvalue		(enum tree_code, tree);
@@ -5567,7 +5595,7 @@ extern alias_set_type cxx_get_alias_set		(tree);
 extern bool cxx_warn_unused_global_decl		(const_tree);
 extern size_t cp_tree_size			(enum tree_code);
 extern bool cp_var_mod_type_p			(tree, tree);
-extern void cxx_initialize_diagnostics		(struct diagnostic_context *);
+extern void cxx_initialize_diagnostics		(diagnostic_context *);
 extern int cxx_types_compatible_p		(tree, tree);
 extern void init_shadowed_var_for_decl		(void);
 

@@ -642,9 +642,17 @@ package body Sem_Eval is
          --  types, since we may have two NaN values and they should never
          --  compare equal.
 
+         --  If the entity is a discriminant, the two expressions may be bounds
+         --  of components of objects of the same discriminated type. The
+         --  values of the discriminants are not static, and therefore the
+         --  result is unknown.
+
+         --  It would be better to comment individual branches of this test ???
+
          if Nkind_In (Lf, N_Identifier, N_Expanded_Name)
            and then Nkind_In (Rf, N_Identifier, N_Expanded_Name)
            and then Entity (Lf) = Entity (Rf)
+           and then Ekind (Entity (Lf)) /= E_Discriminant
            and then Present (Entity (Lf))
            and then not Is_Floating_Point_Type (Etype (L))
            and then not Is_Volatile_Reference (L)
@@ -3865,13 +3873,13 @@ package body Sem_Eval is
                if No (Typ1) then
                   Typ1 := E;
 
-                  --  Before emitting an error, check for the presence of a
-                  --  mixed-mode operation that specifies a fixed point type.
+               --  Before emitting an error, check for the presence of a
+               --  mixed-mode operation that specifies a fixed point type.
 
                elsif Is_Relational
                  and then
                    (Is_Mixed_Mode_Operand (Left_Opnd (N))
-                    or else Is_Mixed_Mode_Operand (Right_Opnd (N)))
+                     or else Is_Mixed_Mode_Operand (Right_Opnd (N)))
                  and then Is_Fixed_Point_Type (E) /= Is_Fixed_Point_Type (Typ1)
 
                then
@@ -4672,9 +4680,9 @@ package body Sem_Eval is
          --  If there was an error in either range, then just assume the types
          --  statically match to avoid further junk errors.
 
-         if Error_Posted (Scalar_Range (T1))
-              or else
-            Error_Posted (Scalar_Range (T2))
+         if No (Scalar_Range (T1)) or else No (Scalar_Range (T2))
+           or else Error_Posted (Scalar_Range (T1))
+           or else Error_Posted (Scalar_Range (T2))
          then
             return True;
          end if;

@@ -1,6 +1,6 @@
 /* Target definitions for GNU compiler for PowerPC running System V.4
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2006, 2007, 2008, 2009  Free Software Foundation, Inc.
+   2004, 2005, 2006, 2007, 2008, 2009, 2010  Free Software Foundation, Inc.
    Contributed by Cygnus Support.
 
    This file is part of GCC.
@@ -76,18 +76,12 @@ extern const char *rs6000_tls_size_string; /* For -mtls-size= */
 
 #define SDATA_DEFAULT_SIZE 8
 
-/* Sometimes certain combinations of command options do not make sense
-   on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
-
-   The macro SUBTARGET_OVERRIDE_OPTIONS is provided for subtargets, to
-   get control.  */
+/* The macro SUBTARGET_OVERRIDE_OPTIONS is provided for subtargets, to
+   get control in TARGET_OPTION_OVERRIDE.  */
 
 #define SUBTARGET_OVERRIDE_OPTIONS					\
 do {									\
-  if (!g_switch_set)							\
+  if (!global_options_set.x_g_switch_value)				\
     g_switch_value = SDATA_DEFAULT_SIZE;				\
 									\
   if (rs6000_abi_name == NULL)						\
@@ -520,12 +514,8 @@ do {									\
 
 /* Override svr4.h definition.  */
 #undef	SWITCH_TAKES_ARG
-#define	SWITCH_TAKES_ARG(CHAR)						\
-  ((CHAR) == 'D' || (CHAR) == 'U' || (CHAR) == 'o'			\
-   || (CHAR) == 'e' || (CHAR) == 'T' || (CHAR) == 'u'			\
-   || (CHAR) == 'I' || (CHAR) == 'm' || (CHAR) == 'x'			\
-   || (CHAR) == 'L' || (CHAR) == 'A' || (CHAR) == 'V'			\
-   || (CHAR) == 'B' || (CHAR) == 'b' || (CHAR) == 'G')
+#define SWITCH_TAKES_ARG(CHAR)						\
+  (DEFAULT_SWITCH_TAKES_ARG (CHAR) || (CHAR) == 'G')
 
 extern int fixuplabelno;
 

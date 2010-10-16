@@ -606,53 +606,14 @@ AC_ARG_ENABLE(__cxa_atexit,
 [], [])
 
 # Enable C extension for decimal float if target supports it.
-AC_ARG_ENABLE(decimal-float,
-[  --enable-decimal-float={no,yes,bid,dpd}
-			enable decimal float extension to C.  Selecting 'bid'
-			or 'dpd' choses which decimal floating point format
-			to use],
-[
-  case $enable_decimal_float in
-    yes | no | bid | dpd) ;;
-    *) AC_MSG_ERROR(['$enable_decimal_float' is an invalid value for --enable-decimal-float.
-Valid choices are 'yes', 'bid', 'dpd', and 'no'.]) ;;
-  esac
-],
-[
-  case $target in
-    powerpc*-*-linux* | i?86*-*-linux* | x86_64*-*-linux*)
-      enable_decimal_float=yes
-      ;;
-    *)
-      AC_MSG_WARN(decimal float is not supported for this target, ignored)
-      enable_decimal_float=no
-      ;;
-  esac
-])
+GCC_AC_ENABLE_DECIMAL_FLOAT([$target])
 
 dfp=`if test $enable_decimal_float != no; then echo 1; else echo 0; fi`
 AC_DEFINE_UNQUOTED(ENABLE_DECIMAL_FLOAT, $dfp,
 [Define to 1 to enable decimal float extension to C.])
 
-# x86's use BID format instead of DPD
-case x$enable_decimal_float in
-  xyes)
-    case $target in
-      i?86*-*-linux* | x86_64*-*-linux*)
-	enable_decimal_float=bid
-	;;
-      *)
-	enable_decimal_float=dpd
-	;;
-    esac
-    ;;
-  xno)
-    # ENABLE_DECIMAL_FLOAT is set to 0. But we have to have proper
-    # dependency on libdecnumber.
-    enable_decimal_float=dpd
-    ;;
-esac
-AC_SUBST(enable_decimal_float)
+# Use default_decimal_float for dependency.
+enable_decimal_float=$default_decimal_float
 
 bid=`if test $enable_decimal_float = bid; then echo 1; else echo 0; fi`
 AC_DEFINE_UNQUOTED(ENABLE_DECIMAL_BID_FORMAT, $bid,
@@ -669,7 +630,7 @@ AC_ARG_ENABLE(fixed-point,
     mips*-*-*)
       case $host in
 	mips*-sgi-irix*)
-	  AC_MSG_WARN(fixed-point is not supported on IRIX, ignored)
+	  AC_MSG_WARN([fixed-point is not supported on IRIX, ignored])
 	  enable_fixed_point=no
 	  ;;
 	*)
@@ -678,7 +639,7 @@ AC_ARG_ENABLE(fixed-point,
       esac
       ;;
     *)
-      AC_MSG_WARN(fixed-point is not supported for this target, ignored)
+      AC_MSG_WARN([fixed-point is not supported for this target, ignored])
       enable_fixed_point=no
       ;;
   esac
@@ -792,16 +753,6 @@ AC_ARG_WITH(specs,
   [CONFIGURE_SPECS=]
 )
 AC_SUBST(CONFIGURE_SPECS)
-
-# Build with intermodule optimisations
-AC_ARG_ENABLE(intermodule,
-[  --enable-intermodule    build the compiler in one step],
-[case ${enable_intermodule} in
-  yes) onestep="-onestep";;
-  *) onestep="";;
-esac],
-[onestep=""])
-AC_SUBST(onestep)
 
 ACX_PKGVERSION([GCC])
 ACX_BUGURL([http://gcc.gnu.org/bugs.html])
@@ -1580,6 +1531,21 @@ AC_ARG_ENABLE(cld,
 [  --enable-cld            enable -mcld by default for 32bit x86], [],
 [enable_cld=no])
 
+AC_ARG_ENABLE(frame-pointer,
+[  --enable-frame-pointer  enable -fno-omit-frame-pointer by default for 32bit x86], [],
+[
+case $target_os in
+linux* | darwin[[8912]]*)
+  # Enable -fomit-frame-pointer by default for Linux and Darwin with
+  # DWARF2.
+  enable_frame_pointer=no
+  ;;
+*)
+  enable_frame_pointer=yes
+  ;;
+esac
+])
+
 # Windows32 Registry support for specifying GCC installation paths.
 AC_ARG_ENABLE(win32-registry,
 [  --disable-win32-registry
@@ -1844,6 +1810,10 @@ case $use_collect2 in
     esac
     ;;
 esac
+
+AC_DEFINE_UNQUOTED(LTOPLUGINSONAME,"${host_lto_plugin_soname}",
+[Define to the name of the LTO plugin DSO that must be
+  passed to the linker's -plugin=LIB option.])
 
 # ---------------------------
 # Assembler & linker features
@@ -2182,6 +2152,23 @@ EOF
     ;;
 esac])
 
+# gnu_indirect_function type is an extension proposed at
+# http://groups.google/com/group/generic-abi/files. It allows dynamic runtime
+# selection of function implementation
+AC_ARG_ENABLE(gnu-indirect-function,
+ [AS_HELP_STRING([--enable-gnu-indirect-function],
+                 [enable the use of the @gnu_indirect_function to glibc systems])],
+ [case $enable_gnu_indirect_function in
+    yes | no) ;;
+    *) AC_MSG_ERROR(['$enable_gnu_indirect_function' is an invalid value for --enable-gnu-indirect-function.
+Valid choices are 'yes' and 'no'.]) ;;
+  esac],
+ [enable_gnu_indirect_function="$default_gnu_indirect_function"])
+if test x$enable_gnu_indirect_function = xyes; then
+  AC_DEFINE(HAVE_GNU_INDIRECT_FUNCTION, 1,
+   [Define if your system supports gnu indirect functions.])
+fi
+
 changequote(,)dnl
 if test $in_tree_ld != yes ; then
   ld_ver=`$gcc_cv_ld --version 2>/dev/null | sed 1q`
@@ -2251,6 +2238,15 @@ else
     case "${target}" in
       hppa64*-*-hpux* | ia64*-*-hpux*)
 	gcc_cv_ld_hidden=yes
+	;;
+      *-*-solaris2.8*)
+        # .hidden support was backported to Solaris 8, starting with ld
+	# version 1.276.
+	if test "$ld_vers_minor" -ge 276; then
+	  gcc_cv_ld_hidden=yes
+	else
+	  gcc_cv_ld_hidden=no
+	fi
 	;;
       *-*-solaris2.9* | *-*-solaris2.1[0-9]*)
 	# Support for .hidden in Sun ld appeared in Solaris 9 FCS, but
@@ -2390,7 +2386,7 @@ gcc_GAS_CHECK_FEATURE([cfi directives], gcc_cv_as_cfi_directive,
     gcc_cv_as_cfi_directive=yes
     ;;
 esac])
-if test $gcc_cv_as_cfi_directive = yes && test x$gcc_cv_readelf != x; then
+if test $gcc_cv_as_cfi_directive = yes && test x$gcc_cv_objdump != x; then
 gcc_GAS_CHECK_FEATURE([working cfi advance], gcc_cv_as_cfi_advance_working,
   ,,
 [	.text
@@ -2400,20 +2396,22 @@ gcc_GAS_CHECK_FEATURE([working cfi advance], gcc_cv_as_cfi_advance_working,
 	.cfi_adjust_cfa_offset 128
 	.cfi_endproc],
 [[
-if $gcc_cv_readelf -wf conftest.o 2>/dev/null \
+if $gcc_cv_objdump -Wf conftest.o 2>/dev/null \
     | grep 'DW_CFA_advance_loc[24]:[ 	][ 	]*75040[ 	]' >/dev/null; then
    gcc_cv_as_cfi_advance_working=yes
 fi
 ]])
 else
-  # no readelf, err on the side of caution
+  # no objdump, err on the side of caution
   gcc_cv_as_cfi_advance_working=no
 fi
+GCC_TARGET_TEMPLATE(HAVE_GAS_CFI_DIRECTIVE)
 AC_DEFINE_UNQUOTED(HAVE_GAS_CFI_DIRECTIVE,
   [`if test $gcc_cv_as_cfi_directive = yes \
        && test $gcc_cv_as_cfi_advance_working = yes; then echo 1; else echo 0; fi`],
   [Define 0/1 if your assembler supports CFI directives.])
 
+GCC_TARGET_TEMPLATE(HAVE_GAS_CFI_PERSONALITY_DIRECTIVE)
 gcc_GAS_CHECK_FEATURE([cfi personality directive],
   gcc_cv_as_cfi_personality_directive, ,,
 [	.text
@@ -2430,7 +2428,24 @@ gcc_GAS_CHECK_FEATURE([cfi sections directive],
 [	.text
 	.cfi_sections .debug_frame, .eh_frame
 	.cfi_startproc
-	.cfi_endproc])
+	.cfi_endproc],
+[case $target_os in
+  win32 | pe | cygwin* | mingw32* | uwin*)
+    # Need to check that we generated the correct relocation for the
+    # .debug_frame section.  This was fixed for binutils 2.21.
+    gcc_cv_as_cfi_sections_directive=no
+    if test "x$gcc_cv_objdump" != x; then
+     if $gcc_cv_objdump -j .debug_frame -r conftest.o 2>/dev/null | \
+	grep secrel > /dev/null; then
+      gcc_cv_as_cfi_sections_directive=yes
+     fi
+    fi
+    ;;
+  *)
+    gcc_cv_as_cfi_sections_directive=yes
+    ;;
+esac])
+GCC_TARGET_TEMPLATE(HAVE_GAS_CFI_SECTIONS_DIRECTIVE)
 AC_DEFINE_UNQUOTED(HAVE_GAS_CFI_SECTIONS_DIRECTIVE,
   [`if test $gcc_cv_as_cfi_sections_directive = yes;
     then echo 1; else echo 0; fi`],
@@ -3004,7 +3019,7 @@ case "$target" in
 	  min_tls_ld_vers_minor=343
           ;;
       esac
-      if test "$ls_vers_major" -gt 1 || \
+      if test "$ld_vers_major" -gt 1 || \
         test "$ld_vers_minor" -ge "$min_tls_ld_vers_minor"; then
  	ld_tls_support=yes
       else
@@ -3741,9 +3756,9 @@ esac
 # version to the per-target configury.
 case "$target" in
   i?86*-*-* | mips*-*-* | alpha*-*-* | powerpc*-*-* | sparc*-*-* | m68*-*-* \
-  | x86_64*-*-* | hppa*-*-* | arm*-*-* \
+  | x86_64*-*-* | hppa*-*-* | arm*-*-* | avr*-*-* \
   | xstormy16*-*-* | cris-*-* | crisv32-*-* | xtensa*-*-* | bfin-*-* | score*-*-* \
-  | spu-*-* | fido*-*-* | m32c-*-*)
+  | spu-*-* | fido*-*-* | m32c-*-* | microblaze-*-*)
     insn="nop"
     ;;
   ia64*-*-* | s390*-*-*)
@@ -4634,32 +4649,52 @@ enable_plugin=$enableval,
 enable_plugin=yes; default_plugin=yes)
 
 pluginlibs=
+
+case "${host}" in
+  *-*-darwin*)
+    if test x$build = x$host; then
+      export_sym_check="nm${exeext} -g"
+    elif test x$host = x$target; then
+      export_sym_check="$gcc_cv_nm -g"
+    else
+      export_sym_check=
+    fi
+  ;;
+  *)
+    if test x$build = x$host; then
+      export_sym_check="objdump${exeext} -T"
+    elif test x$host = x$target; then
+      export_sym_check="$gcc_cv_objdump -T"
+    else
+      export_sym_check=
+    fi
+  ;;
+esac
+
 if test x"$enable_plugin" = x"yes"; then
 
-  case "${host}" in
-    *-*-darwin*)
-      export_sym_check="$gcc_cv_nm -g"
-    ;;
-    *)
-      export_sym_check="$gcc_cv_objdump -T"
-    ;;
-  esac
   AC_MSG_CHECKING([for exported symbols])
-  echo "int main() {return 0;} int foobar() {return 0;}" > conftest.c
-  ${CC} ${CFLAGS} ${LDFLAGS} conftest.c -o conftest > /dev/null 2>&1
-  if $export_sym_check conftest | grep foobar > /dev/null; then
-    : # No need to use a flag
-  else
-    AC_MSG_CHECKING([for -rdynamic])
-    ${CC} ${CFLAGS} ${LDFLAGS} -rdynamic conftest.c -o conftest > /dev/null 2>&1
+  if test "x$export_sym_check" != x; then
+    echo "int main() {return 0;} int foobar() {return 0;}" > conftest.c
+    ${CC} ${CFLAGS} ${LDFLAGS} conftest.c -o conftest > /dev/null 2>&1
     if $export_sym_check conftest | grep foobar > /dev/null; then
-      plugin_rdynamic=yes
-      pluginlibs="-rdynamic"
+      : # No need to use a flag
+      AC_MSG_RESULT([yes])
     else
-      plugin_rdynamic=no
-      enable_plugin=no
+      AC_MSG_RESULT([yes])
+      AC_MSG_CHECKING([for -rdynamic])
+      ${CC} ${CFLAGS} ${LDFLAGS} -rdynamic conftest.c -o conftest > /dev/null 2>&1
+      if $export_sym_check conftest | grep foobar > /dev/null; then
+        plugin_rdynamic=yes
+        pluginlibs="-rdynamic"
+      else
+        plugin_rdynamic=no
+        enable_plugin=no
+      fi
+      AC_MSG_RESULT([$plugin_rdynamic])
     fi
-    AC_MSG_RESULT([$plugin_rdynamic])
+  else
+    AC_MSG_RESULT([unable to check])
   fi
 
   # Check -ldl

@@ -858,9 +858,11 @@ package body Sem_Warn is
 
       procedure Output_Reference_Error (M : String) is
       begin
-         --  Never issue messages for internal names
+         --  Never issue messages for internal names, nor for renamings
 
-         if Is_Internal_Name (Chars (E1)) then
+         if Is_Internal_Name (Chars (E1))
+           or else Nkind (Parent (E1)) = N_Object_Renaming_Declaration
+         then
             return;
          end if;
 
@@ -1422,8 +1424,7 @@ package body Sem_Warn is
                      or else
                        Referenced_As_Out_Parameter_Check_Spec (E1))
 
-               --  Labels, and enumeration literals, and exceptions. The
-               --  warnings are also placed on local packages that cannot be
+               --  All other entities, including local packages that cannot be
                --  referenced from elsewhere, including those declared within a
                --  package body.
 
@@ -1568,7 +1569,7 @@ package body Sem_Warn is
                if not Warnings_Off_E1 then
                   Unreferenced_Entities.Append (E1);
 
-               --  Force warning on entity
+                  --  Force warning on entity
 
                   Set_Referenced (E1, False);
                end if;
@@ -3067,7 +3068,9 @@ package body Sem_Warn is
             Elab_Warnings                       := True;
             Implementation_Unit_Warnings        := True;
             Ineffective_Inline_Warnings         := True;
+            List_Inherited_Pre_Post             := True;
             Warn_On_Ada_2005_Compatibility      := True;
+            Warn_On_Ada_2012_Compatibility      := True;
             Warn_On_All_Unread_Out_Parameters   := True;
             Warn_On_Assertion_Failure           := True;
             Warn_On_Assumed_Low_Bound           := True;
@@ -3084,11 +3087,14 @@ package body Sem_Warn is
             Warn_On_Object_Renames_Function     := True;
             Warn_On_Obsolescent_Feature         := True;
             Warn_On_Overlap                     := True;
+            Warn_On_Overridden_Size             := True;
             Warn_On_Parameter_Order             := True;
             Warn_On_Questionable_Missing_Parens := True;
+            Warn_On_Record_Holes                := True;
             Warn_On_Redundant_Constructs        := True;
             Warn_On_Reverse_Bit_Order           := True;
             Warn_On_Unchecked_Conversion        := True;
+            Warn_On_Unordered_Enumeration_Type  := True;
             Warn_On_Unrecognized_Pragma         := True;
             Warn_On_Unrepped_Components         := True;
             Warn_On_Warnings_Off                := True;
@@ -3096,11 +3102,23 @@ package body Sem_Warn is
          when 'g' =>
             Set_GNAT_Mode_Warnings;
 
+         when 'h' =>
+            Warn_On_Record_Holes                := True;
+
+         when 'H' =>
+            Warn_On_Record_Holes                := False;
+
          when 'i' =>
             Warn_On_Overlap                     := True;
 
          when 'I' =>
             Warn_On_Overlap                     := False;
+
+         when 'l' =>
+            List_Inherited_Pre_Post             := True;
+
+         when 'L' =>
+            List_Inherited_Pre_Post             := False;
 
          when 'm' =>
             Warn_On_Suspicious_Modulus_Value    := True;
@@ -3125,6 +3143,18 @@ package body Sem_Warn is
 
          when 'R' =>
             Warn_On_Object_Renames_Function     := False;
+
+         when 's' =>
+            Warn_On_Overridden_Size             := True;
+
+         when 'S' =>
+            Warn_On_Overridden_Size             := False;
+
+         when 'u' =>
+            Warn_On_Unordered_Enumeration_Type  := True;
+
+         when 'U' =>
+            Warn_On_Unordered_Enumeration_Type  := False;
 
          when 'v' =>
             Warn_On_Reverse_Bit_Order           := True;
@@ -3166,7 +3196,9 @@ package body Sem_Warn is
       Elab_Warnings                       := False;
       Implementation_Unit_Warnings        := False;
       Ineffective_Inline_Warnings         := True;
+      List_Inherited_Pre_Post             := False;
       Warn_On_Ada_2005_Compatibility      := True;
+      Warn_On_Ada_2012_Compatibility      := True;
       Warn_On_All_Unread_Out_Parameters   := False;
       Warn_On_Assertion_Failure           := True;
       Warn_On_Assumed_Low_Bound           := True;
@@ -3187,6 +3219,7 @@ package body Sem_Warn is
       Warn_On_Reverse_Bit_Order           := False;
       Warn_On_Object_Renames_Function     := True;
       Warn_On_Unchecked_Conversion        := True;
+      Warn_On_Unordered_Enumeration_Type  := False;
       Warn_On_Unrecognized_Pragma         := True;
       Warn_On_Unrepped_Components         := False;
       Warn_On_Warnings_Off                := False;
@@ -3206,7 +3239,9 @@ package body Sem_Warn is
             Constant_Condition_Warnings         := True;
             Implementation_Unit_Warnings        := True;
             Ineffective_Inline_Warnings         := True;
+            List_Inherited_Pre_Post             := True;
             Warn_On_Ada_2005_Compatibility      := True;
+            Warn_On_Ada_2012_Compatibility      := True;
             Warn_On_Assertion_Failure           := True;
             Warn_On_Assumed_Low_Bound           := True;
             Warn_On_Bad_Fixed_Value             := True;
@@ -3235,7 +3270,9 @@ package body Sem_Warn is
             Elab_Warnings                       := False;
             Implementation_Unit_Warnings        := False;
             Ineffective_Inline_Warnings         := False;
+            List_Inherited_Pre_Post             := False;
             Warn_On_Ada_2005_Compatibility      := False;
+            Warn_On_Ada_2012_Compatibility      := False;
             Warn_On_All_Unread_Out_Parameters   := False;
             Warn_On_Assertion_Failure           := False;
             Warn_On_Assumed_Low_Bound           := False;
@@ -3252,11 +3289,14 @@ package body Sem_Warn is
             Warn_On_Object_Renames_Function     := False;
             Warn_On_Obsolescent_Feature         := False;
             Warn_On_Overlap                     := False;
+            Warn_On_Overridden_Size             := False;
             Warn_On_Parameter_Order             := False;
+            Warn_On_Record_Holes                := False;
             Warn_On_Questionable_Missing_Parens := False;
             Warn_On_Redundant_Constructs        := False;
             Warn_On_Reverse_Bit_Order           := False;
             Warn_On_Unchecked_Conversion        := False;
+            Warn_On_Unordered_Enumeration_Type  := False;
             Warn_On_Unrecognized_Pragma         := False;
             Warn_On_Unrepped_Components         := False;
             Warn_On_Warnings_Off                := False;
@@ -3398,9 +3438,11 @@ package body Sem_Warn is
 
          when 'y' =>
             Warn_On_Ada_2005_Compatibility      := True;
+            Warn_On_Ada_2012_Compatibility      := True;
 
          when 'Y' =>
             Warn_On_Ada_2005_Compatibility      := False;
+            Warn_On_Ada_2012_Compatibility      := False;
 
          when 'z' =>
             Warn_On_Unchecked_Conversion        := True;

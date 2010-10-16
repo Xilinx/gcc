@@ -29,7 +29,7 @@
 ;; in Thumb-1 state: I, J, K, L, M, N, O
 
 ;; The following multi-letter normal constraints have been used:
-;; in ARM/Thumb-2 state: Da, Db, Dc, Dn, Dl, DL, Dv, Dy, Di
+;; in ARM/Thumb-2 state: Da, Db, Dc, Dn, Dl, DL, Dv, Dy, Di, Dz
 ;; in Thumb-1 state: Pa, Pb, Pc, Pd
 ;; in Thumb-2 state: Ps, Pt, Pu, Pv, Pw, Px
 
@@ -121,7 +121,7 @@
  "In Thumb-1 state a constant that is a multiple of 4 in the range 0-1020."
  (and (match_code "const_int")
       (match_test "TARGET_32BIT ? ((ival >= 0 && ival <= 32)
-				 || ((ival & (ival - 1)) == 0))
+				 || (((ival & (ival - 1)) & 0xFFFFFFFF) == 0))
 		   : ival >= 0 && ival <= 1020 && (ival & 3) == 0")))
 
 (define_constraint "N"
@@ -198,6 +198,12 @@
  "In ARM/Thumb-2 state a valid FPA immediate constant when negated."
  (and (match_code "const_double")
       (match_test "TARGET_32BIT && neg_const_double_rtx_ok_for_fpa (op)")))
+
+(define_constraint "Dz"
+ "@internal
+  In ARM/Thumb-2 state a vector of constant zeros."
+ (and (match_code "const_vector")
+      (match_test "TARGET_NEON && op == CONST0_RTX (mode)")))
 
 (define_constraint "Da"
  "@internal

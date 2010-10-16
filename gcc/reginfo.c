@@ -1,7 +1,7 @@
 /* Compute different info about registers.
    Copyright (C) 1987, 1988, 1991, 1992, 1993, 1994, 1995, 1996
    1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009  Free Software Foundation, Inc.
+   2009, 2010  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -487,7 +487,7 @@ init_reg_sets_1 (void)
 	}
       else if (i == FRAME_POINTER_REGNUM)
 	;
-#if HARD_FRAME_POINTER_REGNUM != FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
       else if (i == HARD_FRAME_POINTER_REGNUM)
 	;
 #endif
@@ -495,10 +495,9 @@ init_reg_sets_1 (void)
       else if (i == ARG_POINTER_REGNUM && fixed_regs[i])
 	;
 #endif
-#ifndef PIC_OFFSET_TABLE_REG_CALL_CLOBBERED
-      else if (i == (unsigned) PIC_OFFSET_TABLE_REGNUM && fixed_regs[i])
+      else if (!PIC_OFFSET_TABLE_REG_CALL_CLOBBERED
+	       && i == (unsigned) PIC_OFFSET_TABLE_REGNUM && fixed_regs[i])
 	;
-#endif
       else if (CALL_REALLY_USED_REGNO_P (i))
         {
 	  SET_HARD_REG_BIT (regs_invalidated_by_call, i);
@@ -628,8 +627,7 @@ init_fake_stack_mems (void)
    TO, using MODE.  */
 
 int
-register_move_cost (enum machine_mode mode, enum reg_class from,
-                    enum reg_class to)
+register_move_cost (enum machine_mode mode, reg_class_t from, reg_class_t to)
 {
   return targetm.register_move_cost (mode, from, to);
 }
@@ -644,10 +642,10 @@ memory_move_cost (enum machine_mode mode, enum reg_class rclass, bool in)
 /* Compute extra cost of moving registers to/from memory due to reloads.
    Only needed if secondary reloads are required for memory moves.  */
 int
-memory_move_secondary_cost (enum machine_mode mode, enum reg_class rclass,
+memory_move_secondary_cost (enum machine_mode mode, reg_class_t rclass,
 			    bool in)
 {
-  enum reg_class altclass;
+  reg_class_t altclass;
   int partial_cost = 0;
   /* We need a memory reference to feed to SECONDARY... macros.  */
   /* mem may be unused even if the SECONDARY_ macros are defined.  */
@@ -799,6 +797,14 @@ fix_register (const char *name, int fixed, int call_used)
 void
 globalize_reg (int i)
 {
+#ifdef STACK_REGS
+  if (IN_RANGE (i, FIRST_STACK_REG, LAST_STACK_REG))
+    {
+      error ("stack register used for global register variable");
+      return;
+    }
+#endif
+
   if (fixed_regs[i] == 0 && no_global_reg_vars)
     error ("global register variable follows a function definition");
 
@@ -1174,7 +1180,7 @@ reg_scan_mark_refs (rtx x, rtx insn)
 /* Return nonzero if C1 is a subset of C2, i.e., if every register in C1
    is also in C2.  */
 int
-reg_class_subset_p (enum reg_class c1, enum reg_class c2)
+reg_class_subset_p (reg_class_t c1, reg_class_t c2)
 {
   return (c1 == c2
 	  || c2 == ALL_REGS

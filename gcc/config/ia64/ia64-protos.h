@@ -59,7 +59,6 @@ extern void ia64_print_operand (FILE *, rtx, int);
 extern enum reg_class ia64_preferred_reload_class (rtx, enum reg_class);
 extern enum reg_class ia64_secondary_reload_class (enum reg_class,
 						   enum machine_mode, rtx);
-extern void process_for_unwind_directive (FILE *, rtx);
 extern const char *get_bundle_name (int);
 #endif /* RTX_CODE */
 
@@ -100,7 +99,6 @@ extern void ia64_hpux_handle_builtin_pragma (struct cpp_reader *);
 extern void ia64_output_function_profiler (FILE *, int);
 extern void ia64_profile_hook (int);
 
-extern void ia64_optimization_options (int, int);
 extern void ia64_init_expanders (void);
 
 extern rtx ia64_dconst_0_5 (void);

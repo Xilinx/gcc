@@ -96,7 +96,6 @@ package body Exp_Attr is
      (N    : Node_Id;
       Pref : Node_Id;
       Typ  : Entity_Id);
-
    --  An attribute reference to a protected subprogram is transformed into
    --  a pair of pointers: one to the object, and one to the operations.
    --  This expansion is performed for 'Access and for 'Unrestricted_Access.
@@ -155,6 +154,11 @@ package body Exp_Attr is
    --  appropriate TSS from the type itself, or from its closest ancestor
    --  defining it, is returned. In both cases, inheritance of representation
    --  aspects is thus taken into account.
+
+   function Full_Base (T : Entity_Id) return Entity_Id;
+   --  The stream functions need to examine the underlying representation of
+   --  composite types. In some cases T may be non-private but its base type
+   --  is, in which case the function returns the corresponding full view.
 
    function Get_Stream_Convert_Pragma (T : Entity_Id) return Node_Id;
    --  Given a type, find a corresponding stream convert pragma that applies to
@@ -370,7 +374,11 @@ package body Exp_Attr is
         Make_Aggregate (Loc,
           Expressions => New_List (Obj_Ref, Sub_Ref));
 
+      --  Sub_Ref has been marked as analyzed, but we still need to make sure
+      --  Sub is correctly frozen.
+
       Freeze_Before (N, Entity (Sub));
+
       Rewrite (N, Agg);
       Analyze_And_Resolve (N, E_T);
 
@@ -645,7 +653,7 @@ package body Exp_Attr is
       --  eventually we plan to expand the functions that are treated as
       --  build-in-place to include other composite result types.
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Is_Build_In_Place_Function_Call (Pref)
       then
          Make_Build_In_Place_Call_In_Anonymous_Context (Pref);
@@ -1388,7 +1396,7 @@ package body Exp_Attr is
          --  to Callable. Generate:
          --    callable (Task_Id (Pref._disp_get_task_id));
 
-         if Ada_Version >= Ada_05
+         if Ada_Version >= Ada_2005
            and then Ekind (Ptyp) = E_Class_Wide_Type
            and then Is_Interface (Ptyp)
            and then Is_Task_Interface (Ptyp)
@@ -1619,9 +1627,9 @@ package body Exp_Attr is
 
                elsif not Is_Variable (Pref)
                  or else Present (Formal_Ent)
-                 or else (Ada_Version < Ada_05
+                 or else (Ada_Version < Ada_2005
                             and then Is_Aliased_View (Pref))
-                 or else (Ada_Version >= Ada_05
+                 or else (Ada_Version >= Ada_2005
                             and then Is_Constrained_Aliased_View (Pref))
                then
                   Res := True;
@@ -2198,7 +2206,7 @@ package body Exp_Attr is
             --  dynamically through a dispatching call, as for other task
             --  attributes applied to interfaces.
 
-            if Ada_Version >= Ada_05
+            if Ada_Version >= Ada_2005
               and then Ekind (Ptyp) = E_Class_Wide_Type
               and then Is_Interface (Ptyp)
               and then Is_Task_Interface (Ptyp)
@@ -3008,7 +3016,8 @@ package body Exp_Attr is
               and then Chars (Defining_Entity (Subp)) /= Name_uPostconditions;
          end loop;
 
-         --  Insert the assignment at the start of the declarations
+         --  Insert the initialized object declaration at the start of the
+         --  subprogram's declarations.
 
          Asn_Stm :=
            Make_Object_Declaration (Loc,
@@ -3017,12 +3026,24 @@ package body Exp_Attr is
              Object_Definition   => New_Occurrence_Of (Etype (N), Loc),
              Expression          => Pref);
 
+         --  Push the subprogram's scope, so that the object will be analyzed
+         --  in that context (rather than the context of the Precondition
+         --  subprogram) and will have its Scope set properly.
+
+         if Present (Corresponding_Spec (Subp)) then
+            Push_Scope (Corresponding_Spec (Subp));
+         else
+            Push_Scope (Defining_Entity (Subp));
+         end if;
+
          if Is_Empty_List (Declarations (Subp)) then
             Set_Declarations (Subp, New_List (Asn_Stm));
             Analyze (Asn_Stm);
          else
             Insert_Action (First (Declarations (Subp)), Asn_Stm);
          end if;
+
+         Pop_Scope;
 
          Rewrite (N, New_Occurrence_Of (Tnn, Loc));
       end Old;
@@ -3153,7 +3174,7 @@ package body Exp_Attr is
                   --  We cannot figure out a practical way to implement this
                   --  accessibility check on virtual machines, so we omit it.
 
-                  if Ada_Version >= Ada_05
+                  if Ada_Version >= Ada_2005
                     and then Tagged_Type_Expansion
                   then
                      Insert_Action (N,
@@ -3754,10 +3775,10 @@ package body Exp_Attr is
                    (Discriminant_Default_Value (First_Discriminant (U_Type)))
                then
                   Build_Mutable_Record_Read_Procedure
-                    (Loc, Base_Type (U_Type), Decl, Pname);
+                    (Loc, Full_Base (U_Type), Decl, Pname);
                else
                   Build_Record_Read_Procedure
-                    (Loc, Base_Type (U_Type), Decl, Pname);
+                    (Loc, Full_Base (U_Type), Decl, Pname);
                end if;
 
                --  Suppress checks, uninitialized or otherwise invalid
@@ -3770,6 +3791,12 @@ package body Exp_Attr is
 
          Rewrite_Stream_Proc_Call (Pname);
       end Read;
+
+      ---------
+      -- Ref --
+      ---------
+
+      --  Ref is identical to To_Address, see To_Address for processing
 
       ---------------
       -- Remainder --
@@ -4450,7 +4477,7 @@ package body Exp_Attr is
          --  Generate:
          --    terminated (Task_Id (Pref._disp_get_task_id));
 
-         if Ada_Version >= Ada_05
+         if Ada_Version >= Ada_2005
            and then Ekind (Ptyp) = E_Class_Wide_Type
            and then Is_Interface (Ptyp)
            and then Is_Task_Interface (Ptyp)
@@ -4486,10 +4513,10 @@ package body Exp_Attr is
       -- To_Address --
       ----------------
 
-      --  Transforms System'To_Address (X) into unchecked conversion
-      --  from (integral) type of X to type address.
+      --  Transforms System'To_Address (X) and System.Address'Ref (X) into
+      --  unchecked conversion from (integral) type of X to type address.
 
-      when Attribute_To_Address =>
+      when Attribute_To_Address | Attribute_Ref =>
          Rewrite (N,
            Unchecked_Convert_To (RTE (RE_Address),
              Relocate_Node (First (Exprs))));
@@ -5229,10 +5256,10 @@ package body Exp_Attr is
                    (Discriminant_Default_Value (First_Discriminant (U_Type)))
                then
                   Build_Mutable_Record_Write_Procedure
-                    (Loc, Base_Type (U_Type), Decl, Pname);
+                    (Loc, Full_Base (U_Type), Decl, Pname);
                else
                   Build_Record_Write_Procedure
-                    (Loc, Base_Type (U_Type), Decl, Pname);
+                    (Loc, Full_Base (U_Type), Decl, Pname);
                end if;
 
                Insert_Action (N, Decl);
@@ -5334,6 +5361,7 @@ package body Exp_Attr is
            Attribute_Stub_Type                    |
            Attribute_Target_Name                  |
            Attribute_Type_Class                   |
+           Attribute_Type_Key                     |
            Attribute_Unconstrained_Array          |
            Attribute_Universal_Literal_String     |
            Attribute_Wchar_T_Size                 |
@@ -5503,9 +5531,11 @@ package body Exp_Attr is
       --  the compiler will generate in-place stream routines for string types
       --  that appear in GNAT's library, but will generate calls via rtsfind
       --  to library routines for user code.
+
       --  ??? For now, disable this code for JVM, since this generates a
-      --  VerifyError exception at run-time on e.g. c330001.
-      --  This is disabled for AAMP, to avoid making dependences on files not
+      --  VerifyError exception at run time on e.g. c330001.
+
+      --  This is disabled for AAMP, to avoid creating dependences on files not
       --  supported in the AAMP library (such as s-fileio.adb).
 
       if VM_Target /= JVM_Target
@@ -5619,6 +5649,25 @@ package body Exp_Attr is
          return Find_Inherited_TSS (Typ, Nam);
       end if;
    end Find_Stream_Subprogram;
+
+   ---------------
+   -- Full_Base --
+   ---------------
+
+   function Full_Base (T : Entity_Id) return Entity_Id is
+      BT : Entity_Id;
+
+   begin
+      BT := Base_Type (T);
+
+      if Is_Private_Type (BT)
+        and then Present (Full_View (BT))
+      then
+         BT := Full_View (BT);
+      end if;
+
+      return BT;
+   end Full_Base;
 
    -----------------------
    -- Get_Index_Subtype --

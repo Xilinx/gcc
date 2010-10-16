@@ -1,6 +1,6 @@
 /* Definitions for GCC.  Part of the machine description for CRIS.
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009  Free Software Foundation, Inc.
+   2008, 2009, 2010  Free Software Foundation, Inc.
    Contributed by Axis Communications.  Written by Hans-Peter Nilsson.
 
 This file is part of GCC.
@@ -121,6 +121,8 @@ static void cris_asm_output_mi_thunk
 static void cris_file_start (void);
 static void cris_init_libfuncs (void);
 
+static int cris_register_move_cost (enum machine_mode, reg_class_t, reg_class_t);
+static int cris_memory_move_cost (enum machine_mode, reg_class_t, bool);
 static bool cris_rtx_costs (rtx, int, int, int *, bool);
 static int cris_address_cost (rtx, bool);
 static bool cris_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
@@ -130,6 +132,8 @@ static int cris_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 static tree cris_md_asm_clobbers (tree, tree, tree);
 
 static bool cris_handle_option (size_t, const char *, int);
+static void cris_option_optimization (int, int);
+static void cris_option_override (void);
 
 static bool cris_frame_pointer_required (void);
 
@@ -183,6 +187,10 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 #undef TARGET_INIT_LIBFUNCS
 #define TARGET_INIT_LIBFUNCS cris_init_libfuncs
 
+#undef TARGET_REGISTER_MOVE_COST
+#define TARGET_REGISTER_MOVE_COST cris_register_move_cost
+#undef TARGET_MEMORY_MOVE_COST
+#define TARGET_MEMORY_MOVE_COST cris_memory_move_cost
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS cris_rtx_costs
 #undef TARGET_ADDRESS_COST
@@ -207,6 +215,11 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 #define TARGET_HANDLE_OPTION cris_handle_option
 #undef TARGET_FRAME_POINTER_REQUIRED
 #define TARGET_FRAME_POINTER_REQUIRED cris_frame_pointer_required
+
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE cris_option_override
+#undef TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION cris_option_optimization
 
 #undef TARGET_ASM_TRAMPOLINE_TEMPLATE
 #define TARGET_ASM_TRAMPOLINE_TEMPLATE cris_asm_trampoline_template
@@ -1371,11 +1384,11 @@ cris_reload_address_legitimized (rtx x,
   return false;
 }
 
-/* Worker function for REGISTER_MOVE_COST.  */
+/* Worker function for TARGET_REGISTER_MOVE_COST.  */
 
-int
+static int
 cris_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
-			 enum reg_class from, enum reg_class to) 
+			 reg_class_t from, reg_class_t to)
 {
   if (!TARGET_V32)
     {
@@ -1415,6 +1428,23 @@ cris_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
     return 3;
 
   return 2;
+}
+
+/* Worker function for TARGET_MEMORY_MOVE_COST.
+
+   This isn't strictly correct for v0..3 in buswidth-8bit mode, but should
+   suffice.  */
+
+static int
+cris_memory_move_cost (enum machine_mode mode,
+                       reg_class_t rclass ATTRIBUTE_UNUSED,
+                       bool in ATTRIBUTE_UNUSED)
+{
+  if (mode == QImode
+      || mode == HImode)
+    return 4;
+  else
+    return 6;
 }
 
 /* Worker for cris_notice_update_cc; handles the "normal" cases.
@@ -2336,7 +2366,7 @@ cris_asm_output_case_end (FILE *stream, int num, rtx table)
 
 /* TARGET_HANDLE_OPTION worker.  We just store the values into local
    variables here.  Checks for correct semantics are in
-   cris_override_options.  */
+   cris_option_override.  */
 
 static bool
 cris_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
@@ -2392,11 +2422,20 @@ cris_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
   return true;
 }
 
-/* The OVERRIDE_OPTIONS worker.
+/* Implement TARGET_OPTION_OPTIMIZATION.  */
+
+static void
+cris_option_optimization (int level, int size)
+{
+  if (level >= 2 || size)
+    flag_omit_frame_pointer = 1;
+}
+
+/* The TARGET_OPTION_OVERRIDE worker.
    As is the norm, this also parses -mfoo=bar type parameters.  */
 
-void
-cris_override_options (void)
+static void
+cris_option_override (void)
 {
   if (cris_max_stackframe_str)
     {

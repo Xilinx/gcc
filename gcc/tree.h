@@ -32,7 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "real.h"
 #include "fixed-value.h"
 #include "alias.h"
-#include "options.h"
+#include "flags.h"
 
 /* Codes of tree nodes */
 
@@ -117,8 +117,7 @@ extern const enum tree_code_class tree_code_type[];
    ascending code order.  */
 
 #define INDIRECT_REF_P(CODE)\
-  (TREE_CODE (CODE) == INDIRECT_REF \
-   || TREE_CODE (CODE) == MISALIGNED_INDIRECT_REF)
+  (TREE_CODE (CODE) == INDIRECT_REF)
 
 /* Nonzero if CODE represents a reference.  */
 
@@ -184,10 +183,21 @@ extern const char *const tree_code_name[];
    of an alias.  This requires that the decl have been defined.  Aliases
    that precede their definition have to be queued for later processing.  */
 
+/* The deferred processing proceeds in several passes.  We memorize the
+   diagnostics emitted for a pair to prevent repeating messages when the
+   queue gets re-scanned after possible updates.  */
+
+typedef enum {
+  ALIAS_DIAG_NONE      = 0x0,
+  ALIAS_DIAG_TO_UNDEF  = 0x1,
+  ALIAS_DIAG_TO_EXTERN = 0x2
+} alias_diag_flags;
+  
 typedef struct GTY(()) alias_pair
 {
   tree decl;
-  tree target;
+  tree target;  
+  int  emitted_diags;  /* alias_diags already emitted for this pair.  */
 } alias_pair;
 
 /* Define gc'd vector type.  */
@@ -511,7 +521,8 @@ struct GTY(()) tree_common {
            BLOCK
            all decls
 
-       CALL_FROM_THUNK_P in
+       CALL_FROM_THUNK_P and
+       ALLOCA_FOR_VAR_P in
            CALL_EXPR
 
    side_effects_flag:
@@ -590,7 +601,7 @@ struct GTY(()) tree_common {
            all types
 
        TREE_THIS_NOTRAP in
-          (ALIGN/MISALIGNED_)INDIRECT_REF, ARRAY_REF, ARRAY_RANGE_REF
+          INDIRECT_REF, MEM_REF, TARGET_MEM_REF, ARRAY_REF, ARRAY_RANGE_REF
 
    deprecated_flag:
 
@@ -1238,14 +1249,15 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 /* Nonzero means this node will not trap.  In an INDIRECT_REF, means
    accessing the memory pointed to won't generate a trap.  However,
    this only applies to an object when used appropriately: it doesn't
-   mean that writing a READONLY mem won't trap. Similarly for
-   MISALIGNED_INDIRECT_REF.
+   mean that writing a READONLY mem won't trap.
 
    In ARRAY_REF and ARRAY_RANGE_REF means that we know that the index
    (or slice of the array) always belongs to the range of the array.
    I.e. that the access will not trap, provided that the access to
    the base to the array will not trap.  */
-#define TREE_THIS_NOTRAP(NODE) ((NODE)->base.nothrow_flag)
+#define TREE_THIS_NOTRAP(NODE) \
+  (TREE_CHECK5 (NODE, INDIRECT_REF, MEM_REF, TARGET_MEM_REF, ARRAY_REF,	\
+		ARRAY_RANGE_REF)->base.nothrow_flag)
 
 /* In a VAR_DECL, PARM_DECL or FIELD_DECL, or any kind of ..._REF node,
    nonzero means it may not be the lhs of an assignment.
@@ -1286,8 +1298,10 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    In a BLOCK, this means that the block contains variables that are used.  */
 #define TREE_USED(NODE) ((NODE)->base.used_flag)
 
-/* In a FUNCTION_DECL, nonzero means a call to the function cannot throw
-   an exception.  In a CALL_EXPR, nonzero means the call cannot throw.  */
+/* In a FUNCTION_DECL, nonzero means a call to the function cannot
+   throw an exception.  In a CALL_EXPR, nonzero means the call cannot
+   throw.  We can't easily check the node type here as the C++
+   frontend also uses this flag (for AGGR_INIT_EXPR).  */
 #define TREE_NOTHROW(NODE) ((NODE)->base.nothrow_flag)
 
 /* In a CALL_EXPR, means that it's safe to use the target of the call
@@ -1317,6 +1331,10 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 /* In a CALL_EXPR, means that the call is the jump from a thunk to the
    thunked-to function.  */
 #define CALL_FROM_THUNK_P(NODE) (CALL_EXPR_CHECK (NODE)->base.protected_flag)
+
+/* In a CALL_EXPR, if the function being called is BUILT_IN_ALLOCA, means that
+   it has been built for the declaration of a variable-sized object.  */
+#define ALLOCA_FOR_VAR_P(NODE) (CALL_EXPR_CHECK (NODE)->base.protected_flag)
 
 /* In a type, nonzero means that all objects of the type are guaranteed by the
    language or front-end to be properly aligned, so we can indicate that a MEM
@@ -1616,13 +1634,13 @@ extern void protected_set_expr_location (tree, location_t);
 #define CASE_HIGH(NODE)         	TREE_OPERAND (CASE_LABEL_EXPR_CHECK (NODE), 1)
 #define CASE_LABEL(NODE)		TREE_OPERAND (CASE_LABEL_EXPR_CHECK (NODE), 2)
 
-/* The operands of a TARGET_MEM_REF.  */
-#define TMR_SYMBOL(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 0))
-#define TMR_BASE(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 1))
+/* The operands of a TARGET_MEM_REF.  Operands 0 and 1 have to match
+   corresponding MEM_REF operands.  */
+#define TMR_BASE(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 0))
+#define TMR_OFFSET(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 1))
 #define TMR_INDEX(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 2))
 #define TMR_STEP(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 3))
-#define TMR_OFFSET(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 4))
-#define TMR_ORIGINAL(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 5))
+#define TMR_INDEX2(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 4))
 
 /* The operands of a BIND_EXPR.  */
 #define BIND_EXPR_VARS(NODE) (TREE_OPERAND (BIND_EXPR_CHECK (NODE), 0))
@@ -2042,9 +2060,6 @@ struct GTY(()) tree_block {
 #define TYPE_DOMAIN(NODE) (ARRAY_TYPE_CHECK (NODE)->type.values)
 #define TYPE_FIELDS(NODE) (RECORD_OR_UNION_CHECK (NODE)->type.values)
 #define TYPE_CACHED_VALUES(NODE) (TYPE_CHECK(NODE)->type.values)
-#define TYPE_ORIG_SIZE_TYPE(NODE)			\
-  (INTEGER_TYPE_CHECK (NODE)->type.values		\
-  ? TREE_TYPE ((NODE)->type.values) : NULL_TREE)
 #define TYPE_METHODS(NODE) (RECORD_OR_UNION_CHECK (NODE)->type.maxval)
 #define TYPE_VFIELD(NODE) (RECORD_OR_UNION_CHECK (NODE)->type.minval)
 #define TYPE_ARG_TYPES(NODE) (FUNC_OR_METHOD_CHECK (NODE)->type.values)
@@ -2106,12 +2121,6 @@ extern enum machine_mode vector_type_mode (const_tree);
 #define TYPE_LANG_SPECIFIC(NODE) (TYPE_CHECK (NODE)->type.lang_specific)
 #define TYPE_IBIT(NODE) (GET_MODE_IBIT (TYPE_MODE (NODE)))
 #define TYPE_FBIT(NODE) (GET_MODE_FBIT (TYPE_MODE (NODE)))
-
-/* For a VECTOR_TYPE node, this describes a different type which is emitted
-   in the debugging output.  We use this to describe a vector as a
-   structure containing an array.  */
-#define TYPE_DEBUG_REPRESENTATION_TYPE(NODE) \
-  (VECTOR_TYPE_CHECK (NODE)->type.values)
 
 /* For record and union types, information about this type, as a base type
    for itself.  */
@@ -2682,10 +2691,13 @@ struct GTY(()) tree_decl_minimal {
 #define DECL_LANG_FLAG_8(NODE) \
   (DECL_COMMON_CHECK (NODE)->decl_common.lang_flag_8)
 
+/* Nonzero for a scope which is equal to file scope.  */
+#define SCOPE_FILE_SCOPE_P(EXP)	\
+  (! (EXP) || TREE_CODE (EXP) == TRANSLATION_UNIT_DECL)
 /* Nonzero for a decl which is at file scope.  */
-#define DECL_FILE_SCOPE_P(EXP) 					\
-  (! DECL_CONTEXT (EXP)						\
-   || TREE_CODE (DECL_CONTEXT (EXP)) == TRANSLATION_UNIT_DECL)
+#define DECL_FILE_SCOPE_P(EXP) SCOPE_FILE_SCOPE_P (DECL_CONTEXT (EXP))
+/* Nonzero for a type which is at file scope.  */
+#define TYPE_FILE_SCOPE_P(EXP) SCOPE_FILE_SCOPE_P (TYPE_CONTEXT (EXP))
 
 /* Nonzero for a decl that is decorated using attribute used.
    This indicates to compiler tools that this decl needs to be preserved.  */
@@ -2850,9 +2862,7 @@ struct GTY(()) tree_decl_with_rtl {
 
 /* Specify that DECL_ALIGN(NODE) is a multiple of X.  */
 #define SET_DECL_OFFSET_ALIGN(NODE, X) \
-  (FIELD_DECL_CHECK (NODE)->decl_common.off_align = exact_log2 ((X) & -(X)))
-/* 1 if the alignment for this type was requested by "aligned" attribute,
-   0 if it is the default for this type.  */
+  (FIELD_DECL_CHECK (NODE)->decl_common.off_align = ffs_hwi (X) - 1)
 
 /* For FIELD_DECLS, DECL_FCONTEXT is the *first* baseclass in
    which this FIELD_DECL is defined.  This information is needed when
@@ -2998,31 +3008,6 @@ struct GTY(()) tree_parm_decl {
 /* Used in TREE_PUBLIC decls to indicate that copies of this DECL in
    multiple translation units should be merged.  */
 #define DECL_ONE_ONLY(NODE) (DECL_COMDAT_GROUP (NODE) != NULL_TREE)
-
-/* A replaceable function is one which may be replaced at link-time
-   with an entirely different definition, provided that the
-   replacement has the same type.  For example, functions declared
-   with __attribute__((weak)) on most systems are replaceable.
-
-   COMDAT functions are not replaceable, since all definitions of the
-   function must be equivalent.  It is important that COMDAT functions
-   not be treated as replaceable so that use of C++ template
-   instantiations is not penalized.
-
-   In other respects, the condition is usually equivalent to whether
-   the function binds to the current module (shared library or executable).
-   However, weak functions can always be overridden by earlier TUs
-   in the same module, even if they bind locally to that module.
-
-   For example, DECL_REPLACEABLE is used to determine whether or not a
-   function (including a template instantiation) which is not
-   explicitly declared "inline" can be inlined.  If the function is
-   DECL_REPLACEABLE then it is not safe to do the inlining, since the
-   implementation chosen at link-time may be different.  However, a
-   function that is not DECL_REPLACEABLE can be inlined, since all
-   versions of the function will be functionally identical.  */
-#define DECL_REPLACEABLE_P(NODE) \
-  (!DECL_COMDAT (NODE) && (DECL_WEAK (NODE) || !targetm.binds_local_p (NODE)))
 
 /* The name of the object as the assembler will see it (but before any
    translations made by ASM_OUTPUT_LABELREF).  Often this is the same
@@ -3382,6 +3367,23 @@ struct GTY(()) tree_function_decl {
   /* 3 bits left */
 };
 
+/* The source language of the translation-unit.  */
+#define TRANSLATION_UNIT_LANGUAGE(NODE) \
+  (TRANSLATION_UNIT_DECL_CHECK (NODE)->translation_unit_decl.language)
+
+/* TRANSLATION_UNIT_DECL inherits from DECL_MINIMAL.  */
+
+struct GTY(()) tree_translation_unit_decl {
+  struct tree_decl_common common;
+  /* Source language of this translation unit.  Used for DWARF output.  */
+  const char * GTY((skip(""))) language;
+  /* TODO: Non-optimization used to build this translation unit.  */
+  /* TODO: Root of a partial DWARF tree for global types and decls.  */
+};
+
+/* A vector of all translation-units.  */
+extern GTY (()) VEC(tree,gc) *all_translation_units;
+
 /* For a TYPE_DECL, holds the "original" type.  (TREE_TYPE has the copy.) */
 #define DECL_ORIGINAL_TYPE(NODE) \
   (TYPE_DECL_CHECK (NODE)->decl_non_common.result)
@@ -3487,6 +3489,8 @@ union GTY ((ptr_alias (union lang_tree_node),
   struct tree_const_decl GTY ((tag ("TS_CONST_DECL"))) const_decl;
   struct tree_type_decl GTY ((tag ("TS_TYPE_DECL"))) type_decl;
   struct tree_function_decl GTY ((tag ("TS_FUNCTION_DECL"))) function_decl;
+  struct tree_translation_unit_decl GTY ((tag ("TS_TRANSLATION_UNIT_DECL")))
+    translation_unit_decl;
   struct tree_type GTY ((tag ("TS_TYPE"))) type;
   struct tree_list GTY ((tag ("TS_LIST"))) list;
   struct tree_vec GTY ((tag ("TS_VEC"))) vec;
@@ -4035,6 +4039,7 @@ extern tree build_constructor_from_list (tree, tree);
 extern tree build_real_from_int_cst (tree, const_tree);
 extern tree build_complex (tree, tree, tree);
 extern tree build_one_cst (tree);
+extern tree build_zero_cst (tree);
 extern tree build_string (int, const char *);
 extern tree build_tree_list_stat (tree, tree MEM_STAT_DECL);
 #define build_tree_list(t,q) build_tree_list_stat(t,q MEM_STAT_INFO)
@@ -4044,6 +4049,7 @@ extern tree build_decl_stat (location_t, enum tree_code,
 			     tree, tree MEM_STAT_DECL);
 extern tree build_fn_decl (const char *, tree);
 #define build_decl(l,c,t,q) build_decl_stat (l,c,t,q MEM_STAT_INFO)
+extern tree build_translation_unit_decl (tree);
 extern tree build_block (tree, tree, tree, tree);
 extern tree build_empty_stmt (location_t);
 extern tree build_omp_clause (location_t, enum omp_clause_code);
@@ -4077,8 +4083,8 @@ extern tree build_vector_type (tree innertype, int nunits);
 extern tree build_opaque_vector_type (tree innertype, int nunits);
 extern tree build_type_no_quals (tree);
 extern tree build_index_type (tree);
-extern tree build_index_2_type (tree, tree);
 extern tree build_array_type (tree, tree);
+extern tree build_nonshared_array_type (tree, tree);
 extern tree build_function_type (tree, tree);
 extern tree build_function_type_list (tree, ...);
 extern tree build_function_type_skip_args (tree, bitmap);
@@ -4102,8 +4108,20 @@ extern int attribute_list_contained (const_tree, const_tree);
 extern int tree_int_cst_equal (const_tree, const_tree);
 extern int tree_int_cst_lt (const_tree, const_tree);
 extern int tree_int_cst_compare (const_tree, const_tree);
-extern int host_integerp (const_tree, int);
+extern int host_integerp (const_tree, int)
+#ifndef ENABLE_TREE_CHECKING
+  ATTRIBUTE_PURE /* host_integerp is pure only when checking is disabled.  */
+#endif
+  ;
 extern HOST_WIDE_INT tree_low_cst (const_tree, int);
+#if !defined ENABLE_TREE_CHECKING && (GCC_VERSION >= 4003)
+extern inline __attribute__ ((__gnu_inline__)) HOST_WIDE_INT
+tree_low_cst (const_tree t, int pos)
+{
+  gcc_assert (host_integerp (t, pos));
+  return TREE_INT_CST_LOW (t);
+}
+#endif
 extern int tree_int_cst_msb (const_tree);
 extern int tree_int_cst_sgn (const_tree);
 extern int tree_int_cst_sign_bit (const_tree);
@@ -4279,6 +4297,10 @@ extern tree get_qualified_type (tree, int);
    exist.  This function never returns NULL_TREE.  */
 
 extern tree build_qualified_type (tree, int);
+
+/* Create a variant of type T with alignment ALIGN.  */
+
+extern tree build_aligned_type (tree, unsigned int);
 
 /* Like build_qualified_type, but only deals with the `const' and
    `volatile' qualifiers.  This interface is retained for backwards
@@ -4747,16 +4769,14 @@ extern GTY(()) const char * current_function_func_begin_label;
 
 /* Iterator for going through the function arguments.  */
 typedef struct {
-  tree fntype;			/* function type declaration */
   tree next;			/* TREE_LIST pointing to the next argument */
 } function_args_iterator;
 
 /* Initialize the iterator I with arguments from function FNDECL  */
 
 static inline void
-function_args_iter_init (function_args_iterator *i, tree fntype)
+function_args_iter_init (function_args_iterator *i, const_tree fntype)
 {
-  i->fntype = fntype;
   i->next = TYPE_ARG_TYPES (fntype);
 }
 
@@ -4828,7 +4848,7 @@ extern tree call_expr_arg (tree, int);
 extern tree *call_expr_argp (tree, int);
 extern tree create_artificial_label (location_t);
 extern const char *get_name (tree);
-extern bool stdarg_p (tree);
+extern bool stdarg_p (const_tree);
 extern bool prototype_p (tree);
 extern bool is_typedef_decl (tree x);
 extern bool typedef_variant_p (tree);
@@ -5035,10 +5055,10 @@ extern tree build_string_literal (int, const char *);
 extern bool validate_arglist (const_tree, ...);
 extern rtx builtin_memset_read_str (void *, HOST_WIDE_INT, enum machine_mode);
 extern bool can_trust_pointer_alignment (void);
-extern int get_pointer_alignment (tree, unsigned int);
+extern unsigned int get_pointer_alignment (tree, unsigned int);
 extern bool is_builtin_name (const char *);
 extern bool is_builtin_fn (tree);
-extern int get_object_alignment (tree, unsigned int, unsigned int);
+extern unsigned int get_object_alignment (tree, unsigned int);
 extern tree fold_call_stmt (gimple, bool);
 extern tree gimple_fold_builtin_snprintf_chk (gimple, tree, enum built_in_function);
 extern tree make_range (tree, int *, tree *, tree *, bool *);
@@ -5090,6 +5110,7 @@ extern void build_common_tree_nodes_2 (int);
 extern void build_common_builtin_nodes (void);
 extern tree build_nonstandard_integer_type (unsigned HOST_WIDE_INT, int);
 extern tree build_range_type (tree, tree, tree);
+extern tree build_nonshared_range_type (tree, tree, tree);
 extern bool subrange_type_for_debug_p (const_tree, tree *, tree *);
 extern HOST_WIDE_INT int_cst_value (const_tree);
 extern HOST_WIDEST_INT widest_int_cst_value (const_tree);
@@ -5185,6 +5206,8 @@ extern tree build_duplicate_type (tree);
 /* Function does not read or write memory (but may have side effects, so
    it does not necessarily fit ECF_CONST).  */
 #define ECF_NOVOPS		  (1 << 9)
+/* The function does not lead to calls within current function unit.  */
+#define ECF_LEAF		  (1 << 10)
 
 extern int flags_from_decl_or_type (const_tree);
 extern int call_expr_flags (const_tree);
@@ -5258,6 +5281,8 @@ extern void process_pending_assemble_externals (void);
 extern void finish_aliases_1 (void);
 extern void finish_aliases_2 (void);
 extern void remove_unreachable_alias_pairs (void);
+extern bool decl_replaceable_p (tree);
+extern bool decl_binds_to_current_def_p (tree);
 
 /* In stmt.c */
 extern void expand_computed_goto (tree);
@@ -5348,8 +5373,6 @@ typedef enum
   e_kind,
   c_kind,
   id_kind,
-  perm_list_kind,
-  temp_list_kind,
   vec_kind,
   binfo_kind,
   ssa_name_kind,

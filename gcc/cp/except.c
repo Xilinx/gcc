@@ -376,7 +376,7 @@ initialize_handler_parm (tree decl, tree exp)
      pointer catch parm with the address of the temporary.  */
   if (TREE_CODE (init_type) == REFERENCE_TYPE
       && TYPE_PTR_P (TREE_TYPE (init_type)))
-    exp = cp_build_unary_op (ADDR_EXPR, exp, 1, tf_warning_or_error);
+    exp = cp_build_addr_expr (exp, tf_warning_or_error);
 
   exp = ocp_convert (init_type, exp, CONV_IMPLICIT|CONV_FORCE_TEMP, 0);
 
@@ -1069,6 +1069,49 @@ check_noexcept_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
   return NULL_TREE;
 }
 
+/* If a function that causes a noexcept-expression to be false isn't
+   defined yet, remember it and check it for TREE_NOTHROW again at EOF.  */
+
+typedef struct GTY(()) pending_noexcept {
+  tree fn;
+  location_t loc;
+} pending_noexcept;
+DEF_VEC_O(pending_noexcept);
+DEF_VEC_ALLOC_O(pending_noexcept,gc);
+static GTY(()) VEC(pending_noexcept,gc) *pending_noexcept_checks;
+
+/* FN is a FUNCTION_DECL that caused a noexcept-expr to be false.  Warn if
+   it can't throw.  */
+
+static void
+maybe_noexcept_warning (tree fn)
+{
+  if (TREE_NOTHROW (fn))
+    {
+      warning (OPT_Wnoexcept, "noexcept-expression evaluates to %<false%> "
+	       "because of a call to %qD", fn);
+      warning (OPT_Wnoexcept, "but %q+D does not throw; perhaps "
+	       "it should be declared %<noexcept%>", fn);
+    }
+}
+
+/* Check any functions that weren't defined earlier when they caused a
+   noexcept expression to evaluate to false.  */
+
+void
+perform_deferred_noexcept_checks (void)
+{
+  int i;
+  pending_noexcept *p;
+  location_t saved_loc = input_location;
+  FOR_EACH_VEC_ELT (pending_noexcept, pending_noexcept_checks, i, p)
+    {
+      input_location = p->loc;
+      maybe_noexcept_warning (p->fn);
+    }
+  input_location = saved_loc;
+}
+
 /* Evaluate noexcept ( EXPR ).  */
 
 tree
@@ -1082,13 +1125,20 @@ finish_noexcept_expr (tree expr, tsubst_flags_t complain)
   fn = cp_walk_tree_without_duplicates (&expr, check_noexcept_r, 0);
   if (fn)
     {
-      if ((complain & tf_warning) && TREE_CODE (fn) == FUNCTION_DECL
-	  && TREE_NOTHROW (fn) && !DECL_ARTIFICIAL (fn))
+      if ((complain & tf_warning) && warn_noexcept
+	  && TREE_CODE (fn) == FUNCTION_DECL)
 	{
-	  warning (OPT_Wnoexcept, "noexcept-expression evaluates to %<false%> "
-		   "because of a call to %qD", fn);
-	  warning (OPT_Wnoexcept, "but %q+D does not throw; perhaps "
-		   "it should be declared %<noexcept%>", fn);
+	  if (!DECL_INITIAL (fn))
+	    {
+	      /* Not defined yet; check again at EOF.  */
+	      pending_noexcept *p
+		= VEC_safe_push (pending_noexcept, gc,
+				 pending_noexcept_checks, NULL);
+	      p->fn = fn;
+	      p->loc = input_location;
+	    }
+	  else
+	    maybe_noexcept_warning (fn);
 	}
       return boolean_false_node;
     }

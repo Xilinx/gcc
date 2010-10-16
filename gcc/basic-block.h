@@ -246,7 +246,13 @@ enum bb_flags
 
   /* Set on blocks that cannot be threaded through.
      Only used in cfgcleanup.c.  */
-  BB_NONTHREADABLE_BLOCK = 1 << 11
+  BB_NONTHREADABLE_BLOCK = 1 << 11,
+
+  /* Set on blocks that were modified in some way.  This bit is set in
+     df_set_bb_dirty, but not cleared by df_analyze, so it can be used
+     to test whether a block has been modified prior to a df_analyze
+     call.  */
+  BB_MODIFIED = 1 << 12
 };
 
 /* Dummy flag for convenience in the hot/cold partitioning code.  */
@@ -783,11 +789,9 @@ extern void link_block (basic_block, basic_block);
 extern void unlink_block (basic_block);
 extern void compact_blocks (void);
 extern basic_block alloc_block (void);
-extern void alloc_aux_for_block (basic_block, int);
 extern void alloc_aux_for_blocks (int);
 extern void clear_aux_for_blocks (void);
 extern void free_aux_for_blocks (void);
-extern void alloc_aux_for_edge (edge, int);
 extern void alloc_aux_for_edges (int);
 extern void clear_aux_for_edges (void);
 extern void free_aux_for_edges (void);

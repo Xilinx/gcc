@@ -356,6 +356,21 @@ default_print_operand_punct_valid_p (unsigned char code ATTRIBUTE_UNUSED)
 #endif
 }
 
+/* The default implementation of TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA.  */
+
+bool
+default_asm_output_addr_const_extra (FILE *file ATTRIBUTE_UNUSED,
+				     rtx x ATTRIBUTE_UNUSED)
+{
+#ifdef OUTPUT_ADDR_CONST_EXTRA
+  OUTPUT_ADDR_CONST_EXTRA (file, x, fail);
+  return true;
+
+fail:
+#endif
+  return false;
+}
+
 /* True if MODE is valid for the target.  By "valid", we mean able to
    be manipulated in non-trivial ways.  In particular, this means all
    the arithmetic is supported.
@@ -553,28 +568,26 @@ default_function_arg_advance (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 }
 
 rtx
-default_function_arg (const CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+default_function_arg (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 		      enum machine_mode mode ATTRIBUTE_UNUSED,
 		      const_tree type ATTRIBUTE_UNUSED,
 		      bool named ATTRIBUTE_UNUSED)
 {
 #ifdef FUNCTION_ARG
-  return FUNCTION_ARG (*(CONST_CAST (CUMULATIVE_ARGS *, ca)), mode,
-		       CONST_CAST_TREE (type), named);
+  return FUNCTION_ARG (*ca, mode, CONST_CAST_TREE (type), named);
 #else
   gcc_unreachable ();
 #endif
 }
 
 rtx
-default_function_incoming_arg (const CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+default_function_incoming_arg (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 			       enum machine_mode mode ATTRIBUTE_UNUSED,
 			       const_tree type ATTRIBUTE_UNUSED,
 			       bool named ATTRIBUTE_UNUSED)
 {
 #ifdef FUNCTION_INCOMING_ARG
-  return FUNCTION_INCOMING_ARG (*(CONST_CAST (CUMULATIVE_ARGS *, ca)), mode,
-				CONST_CAST_TREE (type), named);
+  return FUNCTION_INCOMING_ARG (*ca, mode, CONST_CAST_TREE (type), named);
 #else
   gcc_unreachable ();
 #endif
@@ -906,14 +919,6 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
   return rclass;
 }
 
-void
-default_target_option_override (void)
-{
-#ifdef OVERRIDE_OPTIONS
-  OVERRIDE_OPTIONS;
-#endif
-}
-
 bool
 default_handle_c_option (size_t code ATTRIBUTE_UNUSED,
 			 const char *arg ATTRIBUTE_UNUSED,
@@ -969,6 +974,24 @@ default_builtin_support_vector_misalignment (enum machine_mode mode,
   if (optab_handler (movmisalign_optab, mode) != CODE_FOR_nothing)
     return true;
   return false;
+}
+
+/* By default, only attempt to parallelize bitwise operations, and
+   possibly adds/subtracts using bit-twiddling.  */
+
+enum machine_mode
+default_preferred_simd_mode (enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  return word_mode;
+}
+
+/* By default only the size derived from the preferred vector mode
+   is tried.  */
+
+unsigned int
+default_autovectorize_vector_sizes (void)
+{
+  return 0;
 }
 
 /* Determine whether or not a pointer mode is valid. Assume defaults
@@ -1205,6 +1228,96 @@ default_profile_before_prologue (void)
 #else
   return false;
 #endif
+}
+
+/* The default implementation of TARGET_PREFERRED_RELOAD_CLASS.  */
+
+reg_class_t
+default_preferred_reload_class (rtx x ATTRIBUTE_UNUSED,
+			        reg_class_t rclass)
+{
+#ifdef PREFERRED_RELOAD_CLASS 
+  return (reg_class_t) PREFERRED_RELOAD_CLASS (x, (enum reg_class) rclass);
+#else
+  return rclass;
+#endif
+}
+
+/* The default implementation of TARGET_CLASS_LIKELY_SPILLED_P.  */
+
+bool
+default_class_likely_spilled_p (reg_class_t rclass)
+{
+  return (reg_class_size[(int) rclass] == 1);
+}
+
+/* Determine the debugging unwind mechanism for the target.  */
+
+enum unwind_info_type
+default_debug_unwind_info (void)
+{
+  /* If the target wants to force the use of dwarf2 unwind info, let it.  */
+  /* ??? Change all users to the hook, then poison this.  */
+#ifdef DWARF2_FRAME_INFO
+  if (DWARF2_FRAME_INFO)
+    return UI_DWARF2;
+#endif
+
+  /* Otherwise, only turn it on if dwarf2 debugging is enabled.  */
+#ifdef DWARF2_DEBUGGING_INFO
+  if (write_symbols == DWARF2_DEBUG || write_symbols == VMS_AND_DWARF2_DEBUG)
+    return UI_DWARF2;
+#endif
+
+  return UI_NONE;
+}
+
+/* Determine the exception handling mechanism for the target.  */
+
+enum unwind_info_type
+default_except_unwind_info (void)
+{
+  /* ??? Change the one user to the hook, then poison this.  */
+#ifdef MUST_USE_SJLJ_EXCEPTIONS
+  if (MUST_USE_SJLJ_EXCEPTIONS)
+    return UI_SJLJ;
+#endif
+
+  /* Obey the configure switch to turn on sjlj exceptions.  */
+#ifdef CONFIG_SJLJ_EXCEPTIONS
+  if (CONFIG_SJLJ_EXCEPTIONS)
+    return UI_SJLJ;
+#endif
+
+  /* ??? Change all users to the hook, then poison this.  */
+#ifdef DWARF2_UNWIND_INFO
+  if (DWARF2_UNWIND_INFO)
+    return UI_DWARF2;
+#endif
+
+  return UI_SJLJ;
+}
+
+/* To be used by targets that force dwarf2 unwind enabled.  */
+
+enum unwind_info_type
+dwarf2_except_unwind_info (void)
+{
+  /* Obey the configure switch to turn on sjlj exceptions.  */
+#ifdef CONFIG_SJLJ_EXCEPTIONS
+  if (CONFIG_SJLJ_EXCEPTIONS)
+    return UI_SJLJ;
+#endif
+
+  return UI_DWARF2;
+}
+
+/* To be used by targets that force sjlj unwind enabled.  */
+
+enum unwind_info_type
+sjlj_except_unwind_info (void)
+{
+  return UI_SJLJ;
 }
 
 #include "gt-targhooks.h"

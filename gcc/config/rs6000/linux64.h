@@ -134,7 +134,7 @@ extern enum rs6000_cmodel cmodel;
 	  else							\
 	    {							\
 	      if (!rs6000_explicit_options.cmodel)		\
-		SET_CMODEL (CMODEL_LARGE);			\
+		SET_CMODEL (CMODEL_MEDIUM);			\
 	      if (cmodel != CMODEL_SMALL)			\
 		{						\
 		  TARGET_NO_FP_IN_TOC = 0;			\
@@ -162,10 +162,10 @@ extern enum rs6000_cmodel cmodel;
 
 #ifdef	RS6000_BI_ARCH
 
-#undef	OVERRIDE_OPTIONS
-#define	OVERRIDE_OPTIONS \
-  rs6000_override_options (((TARGET_DEFAULT ^ target_flags) & MASK_64BIT) \
-			   ? (char *) 0 : TARGET_CPU_DEFAULT)
+#undef	OPTION_TARGET_CPU_DEFAULT
+#define	OPTION_TARGET_CPU_DEFAULT \
+  (((TARGET_DEFAULT ^ target_flags) & MASK_64BIT) \
+   ? (char *) 0 : TARGET_CPU_DEFAULT)
 
 #endif
 
@@ -304,14 +304,6 @@ extern enum rs6000_cmodel cmodel;
    element.  */
 #define BLOCK_REG_PADDING(MODE, TYPE, FIRST) \
   (!(FIRST) ? upward : FUNCTION_ARG_PADDING (MODE, TYPE))
-
-/* __throw will restore its own return address to be the same as the
-   return address of the function that the throw is being made to.
-   This is unfortunate, because we want to check the original
-   return address to see if we need to restore the TOC.
-   So we have to squirrel it away with this.  */
-#define SETUP_FRAME_ADDRESSES() \
-  do { if (TARGET_64BIT) rs6000_aix_emit_builtin_unwind_init (); } while (0)
 
 /* Override svr4.h  */
 #undef MD_EXEC_PREFIX
@@ -573,3 +565,9 @@ extern enum rs6000_cmodel cmodel;
 #ifdef TARGET_DEFAULT_LONG_DOUBLE_128
 #define RS6000_DEFAULT_LONG_DOUBLE_SIZE 128
 #endif
+
+/* Static stack checking is supported by means of probes.  */
+#define STACK_CHECK_STATIC_BUILTIN 1
+
+/* The default value isn't sufficient in 64-bit mode.  */
+#define STACK_CHECK_PROTECT (TARGET_64BIT ? 16 * 1024 : 12 * 1024)

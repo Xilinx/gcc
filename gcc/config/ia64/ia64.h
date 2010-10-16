@@ -53,6 +53,9 @@ do {						\
 
 #define ASM_EXTRA_SPEC ""
 
+#define SWITCH_TAKES_ARG(CHAR)						\
+  (DEFAULT_SWITCH_TAKES_ARG (CHAR) || (CHAR) == 'G')
+
 /* Variables which are this size or smaller are put in the sdata/sbss
    sections.  */
 extern unsigned int ia64_section_threshold;
@@ -115,14 +118,6 @@ enum processor_type
 };
 
 extern enum processor_type ia64_tune;
-
-/* Some machines may desire to change what optimizations are performed for
-   various optimization levels.  This macro, if defined, is executed once just
-   after the optimization level is determined and before the remainder of the
-   command options have been parsed.  Values set in this macro are used as the
-   default values for the other command line options.  */
-
-/* #define OPTIMIZATION_OPTIONS(LEVEL,SIZE) */
 
 /* Driver configuration */
 
@@ -643,7 +638,7 @@ while (0)
 #define HARD_REGNO_NREGS(REGNO, MODE)					\
   ((REGNO) == PR_REG (0) && (MODE) == DImode ? 64			\
    : PR_REGNO_P (REGNO) && (MODE) == BImode ? 2				\
-   : PR_REGNO_P (REGNO) && (MODE) == CCImode ? 1			\
+   : (PR_REGNO_P (REGNO) || GR_REGNO_P (REGNO)) && (MODE) == CCImode ? 1\
    : FR_REGNO_P (REGNO) && (MODE) == XFmode ? 1				\
    : FR_REGNO_P (REGNO) && (MODE) == RFmode ? 1				\
    : FR_REGNO_P (REGNO) && (MODE) == XCmode ? 2				\
@@ -661,7 +656,7 @@ while (0)
    : PR_REGNO_P (REGNO) ?					\
      (MODE) == BImode || GET_MODE_CLASS (MODE) == MODE_CC	\
    : GR_REGNO_P (REGNO) ?					\
-     (MODE) != CCImode && (MODE) != XFmode && (MODE) != XCmode && (MODE) != RFmode \
+     (MODE) != XFmode && (MODE) != XCmode && (MODE) != RFmode	\
    : AR_REGNO_P (REGNO) ? (MODE) == DImode			\
    : BR_REGNO_P (REGNO) ? (MODE) == DImode			\
    : 0)
@@ -1356,7 +1351,7 @@ do {									\
 /* Define this macro if the register defined by `PIC_OFFSET_TABLE_REGNUM' is
    clobbered by calls.  */
 
-#define PIC_OFFSET_TABLE_REG_CALL_CLOBBERED
+#define PIC_OFFSET_TABLE_REG_CALL_CLOBBERED 1
 
 
 /* The Overall Framework of an Assembler File.  */
@@ -1736,12 +1731,6 @@ do {									\
 
 #define DWARF2_DEBUGGING_INFO 1
 
-/* We do not want call-frame info to be output, since debuggers are
-   supposed to use the target unwind info.  Leave this undefined it
-   TARGET_UNWIND_INFO might ever be false.  */
-
-#define DWARF2_FRAME_INFO 0
-
 #define DWARF2_ASM_LINE_DEBUG_INFO (TARGET_DWARF2_ASM)
 
 /* Use tags for debug info labels, so that they don't break instruction
@@ -1854,8 +1843,6 @@ do {									\
 
 extern int ia64_final_schedule;
 
-#define TARGET_UNWIND_INFO	1
-
 #define TARGET_UNWIND_TABLES_DEFAULT true
 
 #define EH_RETURN_DATA_REGNO(N) ((N) < 4 ? (N) + 15 : INVALID_REGNUM)
@@ -1893,9 +1880,5 @@ struct GTY(()) machine_function
 
 /* Switch on code for querying unit reservations.  */
 #define CPU_UNITS_QUERY 1
-
-/* Define this to change the optimizations performed by default.  */
-#define OPTIMIZATION_OPTIONS(LEVEL, SIZE) \
-  ia64_optimization_options ((LEVEL), (SIZE))
 
 /* End of ia64.h */

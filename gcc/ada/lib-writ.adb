@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -80,6 +80,7 @@ package body Lib.Writ is
          Dynamic_Elab     => False,
          Fatal_Error      => False,
          Generate_Code    => False,
+         Has_Allocator    => False,
          Has_RACW         => False,
          Is_Compiler_Unit => False,
          Ident_String     => Empty,
@@ -135,6 +136,7 @@ package body Lib.Writ is
         Dynamic_Elab     => False,
         Fatal_Error      => False,
         Generate_Code    => False,
+        Has_Allocator    => False,
         Has_RACW         => False,
         Is_Compiler_Unit => False,
         Ident_String     => Empty,
@@ -859,8 +861,8 @@ package body Lib.Writ is
          return;
       end if;
 
-      --  Build sorted source dependency table. We do this right away,
-      --  because it is referenced by Up_To_Date_ALI_File_Exists.
+      --  Build sorted source dependency table. We do this right away, because
+      --  it is referenced by Up_To_Date_ALI_File_Exists.
 
       for Unum in Units.First .. Last_Unit loop
          if Cunit_Entity (Unum) = Empty
@@ -875,9 +877,9 @@ package body Lib.Writ is
 
       Lib.Sort (Sdep_Table (1 .. Num_Sdep));
 
-      --  If we are not generating code, and there is an up to date
-      --  ali file accessible, read it, and acquire the compilation
-      --  arguments from this file.
+      --  If we are not generating code, and there is an up to date ALI file
+      --  file accessible, read it, and acquire the compilation arguments from
+      --  this file.
 
       if Operating_Mode /= Generate_Code then
          if Up_To_Date_ALI_File_Exists then
@@ -923,6 +925,10 @@ package body Lib.Writ is
             if Opt.Time_Slice_Set then
                Write_Info_Str (" T=");
                Write_Info_Nat (Opt.Time_Slice_Value);
+            end if;
+
+            if Has_Allocator (Main_Unit) then
+               Write_Info_Str (" AB");
             end if;
 
             Write_Info_Str (" W=");

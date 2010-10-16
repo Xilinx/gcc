@@ -107,15 +107,16 @@ eq_varpool_node (const void *p1, const void *p2)
 
 /* Return varpool node assigned to DECL without creating new one.  */
 struct varpool_node *
-varpool_get_node (tree decl)
+varpool_get_node (const_tree decl)
 {
   struct varpool_node key, **slot;
 
-  gcc_assert (DECL_P (decl) && TREE_CODE (decl) != FUNCTION_DECL);
+  gcc_assert (TREE_CODE (decl) == VAR_DECL
+	      && (TREE_STATIC (decl) || DECL_EXTERNAL (decl)));
 
   if (!varpool_hash)
     return NULL;
-  key.decl = decl;
+  key.decl = CONST_CAST2 (tree, const_tree, decl);
   slot = (struct varpool_node **)
     htab_find_slot (varpool_hash, &key, NO_INSERT);
   if (!slot)
@@ -129,7 +130,8 @@ varpool_node (tree decl)
 {
   struct varpool_node key, *node, **slot;
 
-  gcc_assert (DECL_P (decl) && TREE_CODE (decl) != FUNCTION_DECL);
+  gcc_assert (TREE_CODE (decl) == VAR_DECL
+	      && (TREE_STATIC (decl) || DECL_EXTERNAL (decl)));
 
   if (!varpool_hash)
     varpool_hash = htab_create_ggc (10, hash_varpool_node,
@@ -357,6 +359,47 @@ decide_is_variable_needed (struct varpool_node *node, tree decl)
   return true;
 }
 
+/* Return if DECL is constant and its initial value is known (so we can do
+   constant folding using DECL_INITIAL (decl)).  */
+
+bool
+const_value_known_p (tree decl)
+{
+  if (TREE_CODE (decl) != VAR_DECL
+      &&TREE_CODE (decl) != CONST_DECL)
+    return false;
+
+  if (TREE_CODE (decl) == CONST_DECL
+      || DECL_IN_CONSTANT_POOL (decl))
+    return true;
+
+  gcc_assert (TREE_CODE (decl) == VAR_DECL);
+
+  if (!TREE_READONLY (decl))
+    return false;
+
+  /* Gimplifier takes away constructors of local vars  */
+  if (!TREE_STATIC (decl) && !DECL_EXTERNAL (decl))
+    return DECL_INITIAL (decl) != NULL;
+
+  gcc_assert (TREE_STATIC (decl) || DECL_EXTERNAL (decl));
+
+  /* Variables declared 'const' without an initializer
+     have zero as the initializer if they may not be
+     overridden at link or run time.  */
+  if (!DECL_INITIAL (decl)
+      && (DECL_EXTERNAL (decl)
+	  || decl_replaceable_p (decl)))
+    return false;
+
+  /* Variables declared `const' with an initializer are considered
+     to not be overwritable with different initializer by default. 
+
+     ??? Previously we behaved so for scalar variables but not for array
+     accesses.  */
+  return true;
+}
+
 /* Mark DECL as finalized.  By finalizing the declaration, frontend instruct the
    middle end to output the variable to asm file, if needed or externally
    visible.  */
@@ -364,6 +407,8 @@ void
 varpool_finalize_decl (tree decl)
 {
   struct varpool_node *node = varpool_node (decl);
+
+  gcc_assert (TREE_STATIC (decl));
 
   /* The first declaration of a variable that comes through this function
      decides whether it is global (in C, has external linkage)
@@ -405,7 +450,7 @@ cgraph_variable_initializer_availability (struct varpool_node *node)
   /* If the variable can be overwritten, return OVERWRITABLE.  Takes
      care of at least two notable extensions - the COMDAT variables
      used to share template instantiations in C++.  */
-  if (!(*targetm.binds_local_p) (node->decl) && !DECL_COMDAT (node->decl))
+  if (!decl_replaceable_p (node->decl))
     return AVAIL_OVERWRITABLE;
   return AVAIL_AVAILABLE;
 }
@@ -617,7 +662,7 @@ add_new_static_var (tree type)
 /* Attempt to mark ALIAS as an alias to DECL.  Return TRUE if successful.
    Extra name aliases are output whenever DECL is output.  */
 
-bool
+struct varpool_node *
 varpool_extra_name_alias (tree alias, tree decl)
 {
   struct varpool_node key, *alias_node, *decl_node, **slot;
@@ -638,7 +683,7 @@ varpool_extra_name_alias (tree alias, tree decl)
 
   /* If the varpool_node has been already created, fail.  */
   if (*slot)
-    return false;
+    return NULL;
 
   alias_node = ggc_alloc_cleared_varpool_node ();
   alias_node->decl = alias;
@@ -650,7 +695,26 @@ varpool_extra_name_alias (tree alias, tree decl)
     decl_node->extra_name->prev = alias_node;
   decl_node->extra_name = alias_node;
   *slot = alias_node;
-  return true;
+  return alias_node;
+}
+
+/* Return true when NODE is known to be used from other (non-LTO) object file.
+   Known only when doing LTO via linker plugin.  */
+
+bool
+varpool_used_from_object_file_p (struct varpool_node *node)
+{
+  struct varpool_node *alias;
+
+  if (!TREE_PUBLIC (node->decl))
+    return false;
+  if (resolution_used_from_other_file_p (node->resolution))
+    return true;
+  for (alias = node->extra_name; alias; alias = alias->next)
+    if (TREE_PUBLIC (alias->decl)
+	&& resolution_used_from_other_file_p (alias->resolution))
+      return true;
+  return false;
 }
 
 #include "gt-varpool.h"

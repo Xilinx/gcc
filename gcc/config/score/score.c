@@ -51,6 +51,8 @@
 #include "score3.h"
 #include "df.h"
 
+static void score_option_override (void);
+
 #undef  TARGET_ASM_FILE_START
 #define TARGET_ASM_FILE_START           score_asm_file_start
 
@@ -67,6 +69,8 @@
 #define TARGET_DEFAULT_TARGET_FLAGS     TARGET_DEFAULT
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION            score_handle_option
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE          score_option_override
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS	score_legitimize_address
@@ -100,6 +104,12 @@
 
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES        score_arg_partial_bytes
+
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG             score_function_arg
+
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE     score_function_arg_advance
 
 #undef TARGET_PASS_BY_REFERENCE
 #define TARGET_PASS_BY_REFERENCE        score_pass_by_reference
@@ -291,11 +301,6 @@ score_handle_option (size_t code, const char *arg, int value)
 {
   switch (code)
     {
-    case OPT_G:
-      g_switch_value = value;
-      g_switch_set = true;
-      return true;
-
     case OPT_mscore7d:
       target_flags &= ~(MASK_ALL_CPU_BITS);
       target_flags |= MASK_SCORE7 | MASK_SCORE7D;
@@ -351,16 +356,16 @@ score_handle_option (size_t code, const char *arg, int value)
     }
 }
 
-/* Implement OVERRIDE_OPTIONS macro.  */
-void
-score_override_options (void)
+/* Implement TARGET_OPTION_OVERRIDE hook.  */
+static void
+score_option_override (void)
 {
   if (TARGET_SCORE5 || TARGET_SCORE5U || TARGET_SCORE7 || TARGET_SCORE7D)
-    return score7_override_options ();
+    return score7_option_override ();
   else if (TARGET_SCORE3)
-    return score3_override_options ();
+    return score3_option_override ();
 
-  return score7_override_options ();
+  return score7_option_override ();
 }
 
 /* Implement REGNO_REG_CLASS macro.  */
@@ -475,10 +480,10 @@ score_init_cumulative_args (CUMULATIVE_ARGS *cum,
   memset (cum, 0, sizeof (CUMULATIVE_ARGS));
 }
 
-/* Implement FUNCTION_ARG_ADVANCE macro.  */
+/* Implement TARGET_FUNCTION_ARG_ADVANCE hook.  */
 void
 score_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-                            tree type, int named)
+                            const_tree type, bool named)
 {
   if (TARGET_SCORE5 || TARGET_SCORE5U || TARGET_SCORE7 || TARGET_SCORE7D)
     return score7_function_arg_advance (cum, mode, type, named);
@@ -501,10 +506,10 @@ score_arg_partial_bytes (CUMULATIVE_ARGS *cum,
   gcc_unreachable ();
 }
 
-/* Implement FUNCTION_ARG macro.  */
+/* Implement TARGET_FUNCTION_ARG hook.  */
 rtx
-score_function_arg (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
-                    tree type, int named)
+score_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+                    const_tree type, bool named)
 {
   if (TARGET_SCORE5 || TARGET_SCORE5U || TARGET_SCORE7 || TARGET_SCORE7D)
     return score7_function_arg (cum, mode, type, named);

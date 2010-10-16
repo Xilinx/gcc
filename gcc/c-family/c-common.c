@@ -308,6 +308,7 @@ static tree handle_hot_attribute (tree *, tree, tree, int, bool *);
 static tree handle_cold_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noinline_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noclone_attribute (tree *, tree, tree, int, bool *);
+static tree handle_leaf_attribute (tree *, tree, tree, int, bool *);
 static tree handle_always_inline_attribute (tree *, tree, tree, int,
 					    bool *);
 static tree handle_gnu_inline_attribute (tree *, tree, tree, int, bool *);
@@ -327,6 +328,8 @@ static tree handle_mode_attribute (tree *, tree, tree, int, bool *);
 static tree handle_section_attribute (tree *, tree, tree, int, bool *);
 static tree handle_aligned_attribute (tree *, tree, tree, int, bool *);
 static tree handle_weak_attribute (tree *, tree, tree, int, bool *) ;
+static tree handle_alias_ifunc_attribute (bool, tree *, tree, tree, bool *);
+static tree handle_ifunc_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alias_attribute (tree *, tree, tree, int, bool *);
 static tree handle_weakref_attribute (tree *, tree, tree, int, bool *) ;
 static tree handle_visibility_attribute (tree *, tree, tree, int,
@@ -355,6 +358,7 @@ static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
 static tree handle_target_attribute (tree *, tree, tree, int, bool *);
 static tree handle_optimize_attribute (tree *, tree, tree, int, bool *);
+static tree handle_no_split_stack_attribute (tree *, tree, tree, int, bool *);
 static tree handle_fnspec_attribute (tree *, tree, tree, int, bool *);
 
 static void check_function_nonnull (tree, int, tree *);
@@ -377,8 +381,13 @@ static int resort_field_decl_cmp (const void *, const void *);
    If -fno-asm is used, D_ASM is added to the mask.  If
    -fno-gnu-keywords is used, D_EXT is added.  If -fno-asm and C in
    C89 mode, D_EXT89 is added for both -fno-asm and -fno-gnu-keywords.
-   In C with -Wc++-compat, we warn if D_CXXWARN is set.  */
+   In C with -Wc++-compat, we warn if D_CXXWARN is set.
 
+   Note the complication of the D_CXX_OBJC keywords.  These are
+   reserved words such as 'class'.  In C++, 'class' is a reserved
+   word.  In Objective-C++ it is too.  In Objective-C, it is a
+   reserved word too, but only if it follows an '@' sign.
+*/
 const struct c_common_resword c_common_reswords[] =
 {
   { "_Bool",		RID_BOOL,      D_CONLY },
@@ -532,6 +541,8 @@ const struct c_common_resword c_common_reswords[] =
   { "selector",		RID_AT_SELECTOR,	D_OBJC },
   { "finally",		RID_AT_FINALLY,		D_OBJC },
   { "synchronized",	RID_AT_SYNCHRONIZED,	D_OBJC },
+  { "optional",		RID_AT_OPTIONAL,	D_OBJC },
+  { "required",		RID_AT_REQUIRED,	D_OBJC },
   /* These are recognized only in protocol-qualifier context
      (see above) */
   { "bycopy",		RID_BYCOPY,		D_OBJC },
@@ -568,6 +579,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_noinline_attribute },
   { "noclone",                0, 0, true,  false, false,
 			      handle_noclone_attribute },
+  { "leaf",                   0, 0, true,  false, false,
+			      handle_leaf_attribute },
   { "always_inline",          0, 0, true,  false, false,
 			      handle_always_inline_attribute },
   { "gnu_inline",             0, 0, true,  false, false,
@@ -599,6 +612,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_aligned_attribute },
   { "weak",                   0, 0, true,  false, false,
 			      handle_weak_attribute },
+  { "ifunc",                  1, 1, true,  false, false,
+			      handle_ifunc_attribute },
   { "alias",                  1, 1, true,  false, false,
 			      handle_alias_attribute },
   { "weakref",                0, 1, true,  false, false,
@@ -654,6 +669,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_target_attribute },
   { "optimize",               1, -1, true, false, false,
 			      handle_optimize_attribute },
+  { "no_split_stack",	      0, 0, true,  false, false,
+			      handle_no_split_stack_attribute },
   /* For internal use (marking of builtins and runtime functions) only.
      The name contains space to prevent its usage in source code.  */
   { "fn spec",	 	      1, 1, false, true, true,
@@ -4087,37 +4104,6 @@ c_common_get_alias_set (tree t)
       if (t1 != t)
 	return get_alias_set (t1);
     }
-  else if (POINTER_TYPE_P (t))
-    {
-      tree t1;
-
-      /* Unfortunately, there is no canonical form of a pointer type.
-	 In particular, if we have `typedef int I', then `int *', and
-	 `I *' are different types.  So, we have to pick a canonical
-	 representative.  We do this below.
-
-	 Technically, this approach is actually more conservative that
-	 it needs to be.  In particular, `const int *' and `int *'
-	 should be in different alias sets, according to the C and C++
-	 standard, since their types are not the same, and so,
-	 technically, an `int **' and `const int **' cannot point at
-	 the same thing.
-
-	 But, the standard is wrong.  In particular, this code is
-	 legal C++:
-
-	    int *ip;
-	    int **ipp = &ip;
-	    const int* const* cipp = ipp;
-
-	 And, it doesn't make sense for that to be legal unless you
-	 can dereference IPP and CIPP.  So, we ignore cv-qualifiers on
-	 the pointed-to types.  This issue has been reported to the
-	 C++ committee.  */
-      t1 = build_type_no_quals (t);
-      if (t1 != t)
-	return get_alias_set (t1);
-    }
 
   /* Handle the case of multiple type nodes referring to "the same" type,
      which occurs with IMA.  These share an alias set.  FIXME:  Currently only
@@ -5900,6 +5886,28 @@ handle_gnu_inline_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
+/* Handle a "leaf" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_leaf_attribute (tree *node, tree name,
+		       tree ARG_UNUSED (args),
+		       int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  if (!TREE_PUBLIC (*node))
+    {
+      warning (OPT_Wattributes, "%qE attribute has no effect on unit local functions", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
 /* Handle an "artificial" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -6626,6 +6634,12 @@ handle_weak_attribute (tree *node, tree name,
       error ("inline function %q+D cannot be declared weak", *node);
       *no_add_attrs = true;
     }
+  else if (lookup_attribute ("ifunc", DECL_ATTRIBUTES (*node)))
+    {
+      error ("indirect function %q+D cannot be declared weak", *node);
+      *no_add_attrs = true;
+      return NULL_TREE;
+    }
   else if (TREE_CODE (*node) == FUNCTION_DECL
 	   || TREE_CODE (*node) == VAR_DECL)
     declare_weak (*node);
@@ -6635,16 +6649,18 @@ handle_weak_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
-/* Handle an "alias" attribute; arguments as in
-   struct attribute_spec.handler.  */
+/* Handle an "alias" or "ifunc" attribute; arguments as in
+   struct attribute_spec.handler, except that IS_ALIAS tells us
+   whether this is an alias as opposed to ifunc attribute.  */
 
 static tree
-handle_alias_attribute (tree *node, tree name, tree args,
-			int ARG_UNUSED (flags), bool *no_add_attrs)
+handle_alias_ifunc_attribute (bool is_alias, tree *node, tree name, tree args,
+			      bool *no_add_attrs)
 {
   tree decl = *node;
 
-  if (TREE_CODE (decl) != FUNCTION_DECL && TREE_CODE (decl) != VAR_DECL)
+  if (TREE_CODE (decl) != FUNCTION_DECL
+      && (!is_alias || TREE_CODE (decl) != VAR_DECL))
     {
       warning (OPT_Wattributes, "%qE attribute ignored", name);
       *no_add_attrs = true;
@@ -6657,9 +6673,18 @@ handle_alias_attribute (tree *node, tree name, tree args,
       || (TREE_CODE (decl) != FUNCTION_DECL
 	  && ! TREE_PUBLIC (decl) && DECL_INITIAL (decl)))
     {
-      error ("%q+D defined both normally and as an alias", decl);
+      error ("%q+D defined both normally and as %qE attribute", decl, name);
       *no_add_attrs = true;
+      return NULL_TREE;
     }
+  else if (!is_alias
+	   && (lookup_attribute ("weak", DECL_ATTRIBUTES (decl)) 
+	       || lookup_attribute ("weakref", DECL_ATTRIBUTES (decl))))
+    {
+      error ("weak %q+D cannot be defined %qE", decl, name);
+      *no_add_attrs = true;
+      return NULL_TREE;
+    }			 
 
   /* Note that the very first time we process a nested declaration,
      decl_function_context will not be set.  Indeed, *would* never
@@ -6673,7 +6698,7 @@ handle_alias_attribute (tree *node, tree name, tree args,
       id = TREE_VALUE (args);
       if (TREE_CODE (id) != STRING_CST)
 	{
-	  error ("alias argument not a string");
+	  error ("attribute %qE argument not a string", name);
 	  *no_add_attrs = true;
 	  return NULL_TREE;
 	}
@@ -6691,6 +6716,11 @@ handle_alias_attribute (tree *node, tree name, tree args,
 	    DECL_EXTERNAL (decl) = 0;
 	  TREE_STATIC (decl) = 1;
 	}
+
+      if (!is_alias)
+	/* ifuncs are also aliases, so set that attribute too. */
+	DECL_ATTRIBUTES (decl)
+	  = tree_cons (get_identifier ("alias"), args, DECL_ATTRIBUTES (decl));
     }
   else
     {
@@ -6699,6 +6729,26 @@ handle_alias_attribute (tree *node, tree name, tree args,
     }
 
   return NULL_TREE;
+}
+
+/* Handle an "alias" or "ifunc" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_ifunc_attribute (tree *node, tree name, tree args,
+			int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  return handle_alias_ifunc_attribute (false, node, name, args, no_add_attrs);
+}
+
+/* Handle an "alias" or "ifunc" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_alias_attribute (tree *node, tree name, tree args,
+			int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  return handle_alias_ifunc_attribute (true, node, name, args, no_add_attrs);
 }
 
 /* Handle a "weakref" attribute; arguments as in struct
@@ -6718,6 +6768,13 @@ handle_weakref_attribute (tree *node, tree ARG_UNUSED (name), tree args,
       || (TREE_CODE (*node) != VAR_DECL && TREE_CODE (*node) != FUNCTION_DECL))
     {
       warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+      return NULL_TREE;
+    }
+
+  if (lookup_attribute ("ifunc", DECL_ATTRIBUTES (*node)))
+    {
+      error ("indirect function %q+D cannot be declared weakref", *node);
       *no_add_attrs = true;
       return NULL_TREE;
     }
@@ -7708,10 +7765,10 @@ parse_optimize_options (tree args, bool attr_p)
 		  ret = false;
 		  if (attr_p)
 		    warning (OPT_Wattributes,
-			     "Bad option %s to optimize attribute.", p);
+			     "bad option %s to optimize attribute", p);
 		  else
 		    warning (OPT_Wpragmas,
-			     "Bad option %s to pragma attribute", p);
+			     "bad option %s to pragma attribute", p);
 		  continue;
 		}
 
@@ -7745,8 +7802,11 @@ parse_optimize_options (tree args, bool attr_p)
   saved_flag_strict_aliasing = flag_strict_aliasing;
 
   /* Now parse the options.  */
-  decode_options (opt_argc, opt_argv, &decoded_options,
-		  &decoded_options_count);
+  decode_cmdline_options_to_array_default_mask (opt_argc, opt_argv,
+						&decoded_options,
+						&decoded_options_count);
+  decode_options (&global_options, &global_options_set,
+		  decoded_options, decoded_options_count);
 
   targetm.override_options_after_change();
 
@@ -7776,12 +7836,13 @@ handle_optimize_attribute (tree *node, tree name, tree args,
       tree old_opts = DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node);
 
       /* Save current options.  */
-      cl_optimization_save (&cur_opts);
+      cl_optimization_save (&cur_opts, &global_options);
 
       /* If we previously had some optimization options, use them as the
 	 default.  */
       if (old_opts)
-	cl_optimization_restore (TREE_OPTIMIZATION (old_opts));
+	cl_optimization_restore (&global_options,
+				 TREE_OPTIMIZATION (old_opts));
 
       /* Parse options, and update the vector.  */
       parse_optimize_options (args, true);
@@ -7789,7 +7850,33 @@ handle_optimize_attribute (tree *node, tree name, tree args,
 	= build_optimization_node ();
 
       /* Restore current options.  */
-      cl_optimization_restore (&cur_opts);
+      cl_optimization_restore (&global_options, &cur_opts);
+    }
+
+  return NULL_TREE;
+}
+
+/* Handle a "no_split_stack" attribute.  */
+
+static tree
+handle_no_split_stack_attribute (tree *node, tree name,
+				 tree ARG_UNUSED (args),
+				 int ARG_UNUSED (flags),
+				 bool *no_add_attrs)
+{
+  tree decl = *node;
+
+  if (TREE_CODE (decl) != FUNCTION_DECL)
+    {
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"%qE attribute applies only to functions", name);
+      *no_add_attrs = true;
+    }
+  else if (DECL_INITIAL (decl))
+    {
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"can%'t set %qE attribute after definition", name);
+      *no_add_attrs = true;
     }
 
   return NULL_TREE;
@@ -8181,7 +8268,7 @@ struct reason_option_codes_t
 
 static const struct reason_option_codes_t option_codes[] = {
   {CPP_W_DEPRECATED,			OPT_Wdeprecated},
-  {CPP_W_COMMENTS,			OPT_Wcomments},
+  {CPP_W_COMMENTS,			OPT_Wcomment},
   {CPP_W_TRIGRAPHS,			OPT_Wtrigraphs},
   {CPP_W_MULTICHAR,			OPT_Wmultichar},
   {CPP_W_TRADITIONAL,			OPT_Wtraditional},
@@ -8230,7 +8317,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
 {
   diagnostic_info diagnostic;
   diagnostic_t dlevel;
-  bool save_warn_system_headers = global_dc->warn_system_headers;
+  bool save_warn_system_headers = global_dc->dc_warn_system_headers;
   bool ret;
 
   switch (level)
@@ -8238,7 +8325,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
     case CPP_DL_WARNING_SYSHDR:
       if (flag_no_output)
 	return false;
-      global_dc->warn_system_headers = 1;
+      global_dc->dc_warn_system_headers = 1;
       /* Fall through.  */
     case CPP_DL_WARNING:
       if (flag_no_output)
@@ -8275,7 +8362,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
                                     c_option_controlling_cpp_error (reason));
   ret = report_diagnostic (&diagnostic);
   if (level == CPP_DL_WARNING_SYSHDR)
-    global_dc->warn_system_headers = save_warn_system_headers;
+    global_dc->dc_warn_system_headers = save_warn_system_headers;
   return ret;
 }
 
@@ -9159,6 +9246,40 @@ warn_for_sign_compare (location_t location,
     }
 }
 
+/* RESULT_TYPE is the result of converting TYPE1 and TYPE2 to a common
+   type via c_common_type.  If -Wdouble-promotion is in use, and the
+   conditions for warning have been met, issue a warning.  GMSGID is
+   the warning message.  It must have two %T specifiers for the type
+   that was converted (generally "float") and the type to which it was
+   converted (generally "double), respectively.  LOC is the location
+   to which the awrning should refer.  */
+
+void
+do_warn_double_promotion (tree result_type, tree type1, tree type2,
+			 const char *gmsgid, location_t loc)
+{
+  tree source_type;
+
+  if (!warn_double_promotion)
+    return;
+  /* If the conversion will not occur at run-time, there is no need to
+     warn about it.  */
+  if (c_inhibit_evaluation_warnings)
+    return;
+  if (TYPE_MAIN_VARIANT (result_type) != double_type_node
+      && TYPE_MAIN_VARIANT (result_type) != complex_double_type_node)
+    return;
+  if (TYPE_MAIN_VARIANT (type1) == float_type_node
+      || TYPE_MAIN_VARIANT (type1) == complex_float_type_node)
+    source_type = type1;
+  else if (TYPE_MAIN_VARIANT (type2) == float_type_node
+	   || TYPE_MAIN_VARIANT (type2) == complex_float_type_node)
+    source_type = type2;
+  else
+    return;
+  warning_at (loc, OPT_Wdouble_promotion, gmsgid, source_type, result_type);
+}
+
 /* Setup a TYPE_DECL node as a typedef representation.
 
    X is a TYPE_DECL for a typedef statement.  Create a brand new
@@ -9300,7 +9421,7 @@ make_tree_vector_copy (const VEC(tree,gc) *orig)
 
   ret = make_tree_vector ();
   VEC_reserve (tree, gc, ret, VEC_length (tree, orig));
-  for (ix = 0; VEC_iterate (tree, orig, ix, t); ++ix)
+  FOR_EACH_VEC_ELT (tree, orig, ix, t)
     VEC_quick_push (tree, ret, t);
   return ret;
 }

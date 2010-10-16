@@ -165,14 +165,15 @@ package Sem_Aux is
    --  discriminant values or a class wide type or subtype and returns True if
    --  so. False for other type entities, or any entities that are not types.
 
-   function Is_Inherently_Limited_Type (Ent : Entity_Id) return Boolean;
+   function Is_Immutably_Limited_Type (Ent : Entity_Id) return Boolean;
    --  Ent is any entity. True for a type that is "inherently" limited (i.e.
    --  cannot become nonlimited). From the Ada 2005 RM-7.5(8.1/2), "a type with
    --  a part that is of a task, protected, or explicitly limited record type".
    --  These are the types that are defined as return-by-reference types in Ada
    --  95 (see RM95-6.5(11-16)). In Ada 2005, these are the types that require
    --  build-in-place for function calls. Note that build-in-place is allowed
-   --  for other types, too.
+   --  for other types, too. This is also used for idenfitying pure procedures
+   --  whose calls should not be eliminated (RM 10.2.1(18/2)).
 
    function Is_Limited_Type (Ent : Entity_Id) return Boolean;
    --  Ent is any entity. Returns true if Ent is a limited type (limited

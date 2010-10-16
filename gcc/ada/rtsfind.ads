@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -536,7 +536,8 @@ package Rtsfind is
      RO_RT_Delay_Until,                  -- Ada.Real_Time.Delays
      RO_RT_To_Duration,                  -- Ada.Real_Time.Delays
 
-     RE_Timing_Event,                    -- Ada_Real_Time_Timing_Events
+     RE_Set_Handler,                     -- Ada_Real_Time.Timing_Events
+     RE_Timing_Event,                    -- Ada_Real_Time.Timing_Events
 
      RE_Root_Stream_Type,                -- Ada.Streams
      RE_Stream_Element,                  -- Ada.Streams
@@ -600,6 +601,7 @@ package Rtsfind is
      RE_Signature,                       -- Ada.Tags
      RE_SSD,                             -- Ada.Tags
      RE_TSD,                             -- Ada.Tags
+     RE_Type_Is_Abstract,                -- Ada.Tags
      RE_Type_Specific_Data,              -- Ada.Tags
      RE_Register_Interface_Offset,       -- Ada.Tags
      RE_Register_Tag,                    -- Ada.Tags
@@ -798,6 +800,7 @@ package Rtsfind is
      RE_Image_Boolean,                   -- System.Img_Bool
 
      RE_Image_Character,                 -- System.Img_Char
+     RE_Image_Character_05,              -- System.Img_Char
 
      RE_Image_Decimal,                   -- System.Img_Dec
 
@@ -1132,6 +1135,7 @@ package Rtsfind is
      RE_Raise_Program_Error_Unknown_Tag, -- System.Partition_Interface
      RE_Register_Passive_Package,        -- System.Partition_Interface
      RE_Register_Receiving_Stub,         -- System.Partition_Interface
+     RE_Request,                         -- System.Partition_Interface
      RE_Request_Access,                  -- System.Partition_Interface
      RE_RCI_Locator,                     -- System.Partition_Interface
      RE_RCI_Subp_Info,                   -- System.Partition_Interface
@@ -1171,12 +1175,11 @@ package Rtsfind is
      RE_NVList_Ref,                      -- System.Partition_Interface
      RE_NVList_Create,                   -- System.Partition_Interface
      RE_NVList_Add_Item,                 -- System.Partition_Interface
-     RE_Request_Create,                  -- System.Partition_Interface
-     RE_Request_Invoke,                  -- System.Partition_Interface
      RE_Request_Arguments,               -- System.Partition_Interface
-     RE_Request_Set_Out,                 -- System.Partition_Interface
+     RE_Request_Invoke,                  -- System.Partition_Interface
      RE_Request_Raise_Occurrence,        -- System.Partition_Interface
-     RE_Request_Destroy,                 -- System.Partition_Interface
+     RE_Request_Set_Out,                 -- System.Partition_Interface
+     RE_Request_Setup,                   -- System.Partition_Interface
      RE_Nil_Exc_List,                    -- System.Partition_Interface
      RE_Servant,                         -- System.Partition_Interface
      RE_Move_Any_Value,                  -- System.Partition_Interface
@@ -1395,6 +1398,11 @@ package Rtsfind is
      RE_Simple_Call,                     -- System.Tasking
      RE_Conditional_Call,                -- System.Tasking
      RE_Asynchronous_Call,               -- System.Tasking
+
+     RE_Foreign_Task_Level,              -- System.Tasking
+     RE_Environment_Task_Level,          -- System.Tasking
+     RE_Independent_Task_Level,          -- System.Tasking
+     RE_Library_Task_Level,              -- System.Tasking
 
      RE_Ada_Task_Control_Block,          -- System.Tasking
 
@@ -1701,6 +1709,7 @@ package Rtsfind is
      RO_RT_Delay_Until                   => Ada_Real_Time_Delays,
      RO_RT_To_Duration                   => Ada_Real_Time_Delays,
 
+     RE_Set_Handler                      => Ada_Real_Time_Timing_Events,
      RE_Timing_Event                     => Ada_Real_Time_Timing_Events,
 
      RE_Root_Stream_Type                 => Ada_Streams,
@@ -1765,6 +1774,7 @@ package Rtsfind is
      RE_Signature                        => Ada_Tags,
      RE_SSD                              => Ada_Tags,
      RE_TSD                              => Ada_Tags,
+     RE_Type_Is_Abstract                 => Ada_Tags,
      RE_Type_Specific_Data               => Ada_Tags,
      RE_Register_Interface_Offset        => Ada_Tags,
      RE_Register_Tag                     => Ada_Tags,
@@ -1963,6 +1973,7 @@ package Rtsfind is
      RE_Image_Boolean                    => System_Img_Bool,
 
      RE_Image_Character                  => System_Img_Char,
+     RE_Image_Character_05               => System_Img_Char,
 
      RE_Image_Decimal                    => System_Img_Dec,
 
@@ -2297,6 +2308,7 @@ package Rtsfind is
      RE_Raise_Program_Error_Unknown_Tag  => System_Partition_Interface,
      RE_Register_Passive_Package         => System_Partition_Interface,
      RE_Register_Receiving_Stub          => System_Partition_Interface,
+     RE_Request                          => System_Partition_Interface,
      RE_Request_Access                   => System_Partition_Interface,
      RE_RCI_Locator                      => System_Partition_Interface,
      RE_RCI_Subp_Info                    => System_Partition_Interface,
@@ -2327,12 +2339,11 @@ package Rtsfind is
      RE_NVList_Ref                       => System_Partition_Interface,
      RE_NVList_Create                    => System_Partition_Interface,
      RE_NVList_Add_Item                  => System_Partition_Interface,
-     RE_Request_Create                   => System_Partition_Interface,
-     RE_Request_Invoke                   => System_Partition_Interface,
      RE_Request_Arguments                => System_Partition_Interface,
-     RE_Request_Set_Out                  => System_Partition_Interface,
+     RE_Request_Invoke                   => System_Partition_Interface,
      RE_Request_Raise_Occurrence         => System_Partition_Interface,
-     RE_Request_Destroy                  => System_Partition_Interface,
+     RE_Request_Set_Out                  => System_Partition_Interface,
+     RE_Request_Setup                    => System_Partition_Interface,
      RE_Nil_Exc_List                     => System_Partition_Interface,
      RE_Servant                          => System_Partition_Interface,
      RE_Move_Any_Value                   => System_Partition_Interface,
@@ -2560,6 +2571,11 @@ package Rtsfind is
      RE_Simple_Call                      => System_Tasking,
      RE_Conditional_Call                 => System_Tasking,
      RE_Asynchronous_Call                => System_Tasking,
+
+     RE_Foreign_Task_Level               => System_Tasking,
+     RE_Environment_Task_Level           => System_Tasking,
+     RE_Independent_Task_Level           => System_Tasking,
+     RE_Library_Task_Level               => System_Tasking,
 
      RE_Ada_Task_Control_Block           => System_Tasking,
 

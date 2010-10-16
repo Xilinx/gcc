@@ -20,8 +20,6 @@
 
 extern void spu_cpu_cpp_builtins (struct cpp_reader * pfile);
 extern void builtin_define_std (const char *);
-extern void spu_optimization_options (int level, int size);
-extern void spu_override_options (void);
 extern void spu_c_common_override_options (void);
 extern int valid_subreg (rtx op);
 extern void spu_expand_extv (rtx * ops, int unsignedp);
@@ -57,8 +55,6 @@ extern int spu_constant_address_p (rtx x);
 extern int spu_legitimate_constant_p (rtx x);
 extern int spu_initial_elimination_offset (int from, int to);
 extern rtx spu_function_value (const_tree type, const_tree func);
-extern rtx spu_function_arg (int cum, enum machine_mode mode, tree type,
-			     int named);
 extern void spu_setup_incoming_varargs (int *cum, enum machine_mode mode,
 					tree type, int *pretend_size,
 					int no_rtl);

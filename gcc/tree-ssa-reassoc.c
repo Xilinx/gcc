@@ -1016,7 +1016,7 @@ undistribute_ops_list (enum tree_code opcode,
   candidates = sbitmap_alloc (length);
   sbitmap_zero (candidates);
   nr_candidates = 0;
-  for (i = 0; VEC_iterate (operand_entry_t, *ops, i, oe1); ++i)
+  FOR_EACH_VEC_ELT (operand_entry_t, *ops, i, oe1)
     {
       enum tree_code dcode;
       gimple oe1def;
@@ -1067,7 +1067,7 @@ undistribute_ops_list (enum tree_code opcode,
       linearize_expr_tree (&subops[i], oedef,
 			   associative_tree_code (oecode), false);
 
-      for (j = 0; VEC_iterate (operand_entry_t, subops[i], j, oe1); ++j)
+      FOR_EACH_VEC_ELT (operand_entry_t, subops[i], j, oe1)
 	{
 	  oecount c;
 	  void **slot;
@@ -1093,14 +1093,13 @@ undistribute_ops_list (enum tree_code opcode,
   htab_delete (ctable);
 
   /* Sort the counting table.  */
-  qsort (VEC_address (oecount, cvec), VEC_length (oecount, cvec),
-	 sizeof (oecount), oecount_cmp);
+  VEC_qsort (oecount, cvec, oecount_cmp);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
       oecount *c;
       fprintf (dump_file, "Candidates:\n");
-      for (j = 0; VEC_iterate (oecount, cvec, j, c); ++j)
+      FOR_EACH_VEC_ELT (oecount, cvec, j, c)
 	{
 	  fprintf (dump_file, "  %u %s: ", c->cnt,
 		   c->oecode == MULT_EXPR
@@ -1139,7 +1138,7 @@ undistribute_ops_list (enum tree_code opcode,
 	  if (oecode != c->oecode)
 	    continue;
 
-	  for (j = 0; VEC_iterate (operand_entry_t, subops[i], j, oe1); ++j)
+	  FOR_EACH_VEC_ELT (operand_entry_t, subops[i], j, oe1)
 	    {
 	      if (oe1->op == c->op)
 		{
@@ -1314,9 +1313,14 @@ eliminate_redundant_comparison (enum tree_code opcode,
 	  enum tree_code subcode;
 	  tree newop1;
 	  tree newop2;
+	  gcc_assert (COMPARISON_CLASS_P (t));
 	  tmpvar = create_tmp_var (TREE_TYPE (t), NULL);
 	  add_referenced_var (tmpvar);
 	  extract_ops_from_tree (t, &subcode, &newop1, &newop2);
+	  STRIP_USELESS_TYPE_CONVERSION (newop1);
+	  STRIP_USELESS_TYPE_CONVERSION (newop2);
+	  gcc_checking_assert (is_gimple_val (newop1)
+			       && is_gimple_val (newop2));
 	  sum = build_and_add_sum (tmpvar, newop1, newop2, subcode);
 	  curr->op = gimple_get_lhs (sum);
 	}
@@ -1864,7 +1868,7 @@ repropagate_negates (void)
   unsigned int i = 0;
   tree negate;
 
-  for (i = 0; VEC_iterate (tree, plus_negates, i, negate); i++)
+  FOR_EACH_VEC_ELT (tree, plus_negates, i, negate)
     {
       gimple user = get_single_immediate_use (negate);
 
@@ -1949,7 +1953,7 @@ static bool
 can_reassociate_p (tree op)
 {
   tree type = TREE_TYPE (op);
-  if (INTEGRAL_TYPE_P (type)
+  if ((INTEGRAL_TYPE_P (type) && TYPE_OVERFLOW_WRAPS (type))
       || NON_SAT_FIXED_POINT_TYPE_P (type)
       || (flag_associative_math && FLOAT_TYPE_P (type)))
     return true;
@@ -2065,9 +2069,16 @@ reassociate_bb (basic_block bb)
 	  rhs1 = gimple_assign_rhs1 (stmt);
 	  rhs2 = gimple_assign_rhs2 (stmt);
 
-	  if (!can_reassociate_p (lhs)
-	      || !can_reassociate_p (rhs1)
-	      || !can_reassociate_p (rhs2))
+	  /* For non-bit or min/max operations we can't associate
+	     all types.  Verify that here.  */
+	  if (rhs_code != BIT_IOR_EXPR
+	      && rhs_code != BIT_AND_EXPR
+	      && rhs_code != BIT_XOR_EXPR
+	      && rhs_code != MIN_EXPR
+	      && rhs_code != MAX_EXPR
+	      && (!can_reassociate_p (lhs)
+		  || !can_reassociate_p (rhs1)
+		  || !can_reassociate_p (rhs2)))
 	    continue;
 
 	  if (associative_tree_code (rhs_code))
@@ -2081,18 +2092,12 @@ reassociate_bb (basic_block bb)
 
 	      gimple_set_visited (stmt, true);
 	      linearize_expr_tree (&ops, stmt, true, true);
-	      qsort (VEC_address (operand_entry_t, ops),
-		     VEC_length (operand_entry_t, ops),
-		     sizeof (operand_entry_t),
-		     sort_by_operand_rank);
+	      VEC_qsort (operand_entry_t, ops, sort_by_operand_rank);
 	      optimize_ops_list (rhs_code, &ops);
 	      if (undistribute_ops_list (rhs_code, &ops,
 					 loop_containing_stmt (stmt)))
 		{
-		  qsort (VEC_address (operand_entry_t, ops),
-			 VEC_length (operand_entry_t, ops),
-			 sizeof (operand_entry_t),
-			 sort_by_operand_rank);
+		  VEC_qsort (operand_entry_t, ops, sort_by_operand_rank);
 		  optimize_ops_list (rhs_code, &ops);
 		}
 
@@ -2141,7 +2146,7 @@ dump_ops_vector (FILE *file, VEC (operand_entry_t, heap) *ops)
   operand_entry_t oe;
   unsigned int i;
 
-  for (i = 0; VEC_iterate (operand_entry_t, ops, i, oe); i++)
+  FOR_EACH_VEC_ELT (operand_entry_t, ops, i, oe)
     {
       fprintf (file, "Op %d -> rank: %d, tree: ", i, oe->rank);
       print_generic_expr (file, oe->op, 0);

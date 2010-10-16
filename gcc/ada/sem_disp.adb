@@ -91,6 +91,81 @@ package body Sem_Disp is
       Append_Unique_Elmt (New_Op, List);
    end Add_Dispatching_Operation;
 
+   ---------------------------
+   -- Covers_Some_Interface --
+   ---------------------------
+
+   function Covers_Some_Interface (Prim : Entity_Id) return Boolean is
+      Tagged_Type : constant Entity_Id := Find_Dispatching_Type (Prim);
+      Elmt        : Elmt_Id;
+      E           : Entity_Id;
+
+   begin
+      pragma Assert (Is_Dispatching_Operation (Prim));
+
+      --  Although this is a dispatching primitive we must check if its
+      --  dispatching type is available because it may be the primitive
+      --  of a private type not defined as tagged in its partial view.
+
+      if Present (Tagged_Type) and then Has_Interfaces (Tagged_Type) then
+
+         --  If the tagged type is frozen then the internal entities associated
+         --  with interfaces are available in the list of primitives of the
+         --  tagged type and can be used to speed up this search.
+
+         if Is_Frozen (Tagged_Type) then
+            Elmt := First_Elmt (Primitive_Operations (Tagged_Type));
+            while Present (Elmt) loop
+               E := Node (Elmt);
+
+               if Present (Interface_Alias (E))
+                 and then Alias (E) = Prim
+               then
+                  return True;
+               end if;
+
+               Next_Elmt (Elmt);
+            end loop;
+
+         --  Otherwise we must collect all the interface primitives and check
+         --  if the Prim will override some interface primitive.
+
+         else
+            declare
+               Ifaces_List : Elist_Id;
+               Iface_Elmt  : Elmt_Id;
+               Iface       : Entity_Id;
+               Iface_Prim  : Entity_Id;
+
+            begin
+               Collect_Interfaces (Tagged_Type, Ifaces_List);
+               Iface_Elmt := First_Elmt (Ifaces_List);
+               while Present (Iface_Elmt) loop
+                  Iface := Node (Iface_Elmt);
+
+                  Elmt := First_Elmt (Primitive_Operations (Iface));
+                  while Present (Elmt) loop
+                     Iface_Prim := Node (Elmt);
+
+                     if Chars (E) = Chars (Prim)
+                       and then Is_Interface_Conformant
+                                  (Tagged_Type, Iface_Prim, Prim)
+                     then
+                        return True;
+                     end if;
+
+                     Next_Elmt (Elmt);
+                  end loop;
+
+                  Next_Elmt (Iface_Elmt);
+               end loop;
+            end;
+         end if;
+      end if;
+
+      return False;
+   end Covers_Some_Interface;
+
    -------------------------------
    -- Check_Controlling_Formals --
    -------------------------------
@@ -153,7 +228,7 @@ package body Sem_Disp is
                   --  In Ada 2005, access parameters can have defaults
 
                   if Ekind (Etype (Formal)) = E_Anonymous_Access_Type
-                    and then Ada_Version < Ada_05
+                    and then Ada_Version < Ada_2005
                   then
                      Error_Msg_N
                        ("default not allowed for controlling access parameter",
@@ -681,7 +756,7 @@ package body Sem_Disp is
       --  Required because primitives of concurrent types are be attached
       --  to the corresponding record (not to the concurrent type).
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Present (Tagged_Type)
         and then Is_Concurrent_Type (Tagged_Type)
         and then Present (Corresponding_Record_Type (Tagged_Type))
@@ -794,7 +869,10 @@ package body Sem_Disp is
          --     type by Make_Controlling_Function_Wrappers. However, attribute
          --     Is_Dispatching_Operation must be set to true.
 
-         --  2. Subprograms associated with stream attributes (built by
+         --  2. Ada 2005 (AI-251): Wrapper procedures of null interface
+         --     primitives.
+
+         --  3. Subprograms associated with stream attributes (built by
          --     New_Stream_Subprogram)
 
          if Present (Old_Subp)
@@ -805,9 +883,17 @@ package body Sem_Disp is
              ((Ekind (Subp) = E_Function
                 and then Is_Dispatching_Operation (Old_Subp)
                 and then Is_Null_Extension (Base_Type (Etype (Subp))))
+               or else
+                (Ekind (Subp) = E_Procedure
+                  and then Is_Dispatching_Operation (Old_Subp)
+                  and then Present (Alias (Old_Subp))
+                  and then Is_Null_Interface_Primitive
+                             (Ultimate_Alias (Old_Subp)))
                or else Get_TSS_Name (Subp) = TSS_Stream_Read
                or else Get_TSS_Name (Subp) = TSS_Stream_Write);
 
+            Check_Controlling_Formals (Tagged_Type, Subp);
+            Override_Dispatching_Operation (Tagged_Type, Old_Subp, Subp);
             Set_Is_Dispatching_Operation (Subp);
          end if;
 
@@ -958,9 +1044,15 @@ package body Sem_Disp is
          --  If the type is not frozen yet and we are not in the overriding
          --  case it looks suspiciously like an attempt to define a primitive
          --  operation, which requires the declaration to be in a package spec
-         --  (3.2.3(6)).
+         --  (3.2.3(6)). Only report cases where the type and subprogram are
+         --  in the same declaration list (by checking the enclosing parent
+         --  declarations), to avoid spurious warnings on subprograms in
+         --  instance bodies when the type is declared in the instance spec but
+         --  hasn't been frozen by the instance body.
 
-         elsif not Is_Frozen (Tagged_Type) then
+         elsif not Is_Frozen (Tagged_Type)
+           and then In_Same_List (Parent (Tagged_Type), Parent (Parent (Subp)))
+         then
             Error_Msg_N
               ("?not dispatching (must be defined in a package spec)", Subp);
             return;
@@ -1565,7 +1657,8 @@ package body Sem_Disp is
      (Tagged_Type : Entity_Id;
       Iface_Prim  : Entity_Id) return Entity_Id
    is
-      E : Entity_Id;
+      E  : Entity_Id;
+      El : Elmt_Id;
 
    begin
       pragma Assert (Is_Interface (Find_Dispatching_Type (Iface_Prim))
@@ -1573,6 +1666,10 @@ package body Sem_Disp is
                    and then
                      Is_Interface
                        (Find_Dispatching_Type (Ultimate_Alias (Iface_Prim)))));
+
+      --  Search in the homonym chain. Done to speed up locating visible
+      --  entities and required to catch primitives associated with the partial
+      --  view of private types when processing the corresponding full view.
 
       E := Current_Entity (Iface_Prim);
       while Present (E) loop
@@ -1586,8 +1683,89 @@ package body Sem_Disp is
          E := Homonym (E);
       end loop;
 
+      --  Search in the list of primitives of the type. Required to locate the
+      --  covering primitive if the covering primitive is not visible (for
+      --  example, non-visible inherited primitive of private type).
+
+      El := First_Elmt (Primitive_Operations (Tagged_Type));
+      while Present (El) loop
+         E := Node (El);
+
+         --  Keep separate the management of internal entities that link
+         --  primitives with interface primitives from tagged type primitives.
+
+         if No (Interface_Alias (E)) then
+            if Present (Alias (E)) then
+
+               --  This interface primitive has not been covered yet
+
+               if Alias (E) = Iface_Prim then
+                  return E;
+
+               --  The covering primitive was inherited
+
+               elsif Overridden_Operation (Ultimate_Alias (E))
+                       = Iface_Prim
+               then
+                  return E;
+               end if;
+            end if;
+
+         --  Use the internal entity that links the interface primitive with
+         --  the covering primitive to locate the entity
+
+         elsif Interface_Alias (E) = Iface_Prim then
+            return Alias (E);
+         end if;
+
+         Next_Elmt (El);
+      end loop;
+
+      --  Not found
+
       return Empty;
    end Find_Primitive_Covering_Interface;
+
+   ---------------------------
+   -- Inherited_Subprograms --
+   ---------------------------
+
+   function Inherited_Subprograms (S : Entity_Id) return Subprogram_List is
+      Result : Subprogram_List (1 .. 6000);
+      --  6000 here is intended to be infinity. We could use an expandable
+      --  table, but it would be awfully heavy, and there is no way that we
+      --  could reasonably exceed this value.
+
+      N : Int := 0;
+      --  Number of entries in Result
+
+      Parent_Op : Entity_Id;
+      --  Traverses the Overridden_Operation chain
+
+   begin
+      if Present (S) then
+
+         --  Deal with direct inheritance
+
+         Parent_Op := S;
+         loop
+            Parent_Op := Overridden_Operation (Parent_Op);
+            exit when No (Parent_Op);
+
+            if Is_Subprogram (Parent_Op)
+              or else Is_Generic_Subprogram (Parent_Op)
+            then
+               N := N + 1;
+               Result (N) := Parent_Op;
+            end if;
+         end loop;
+
+         --  For now don't bother with interfaces, TBD ???
+
+      end if;
+
+      return Result (1 .. N);
+   end Inherited_Subprograms;
 
    ---------------------------
    -- Is_Dynamically_Tagged --
@@ -1601,6 +1779,19 @@ package body Sem_Disp is
          return Find_Controlling_Arg (N) /= Empty;
       end if;
    end Is_Dynamically_Tagged;
+
+   ---------------------------------
+   -- Is_Null_Interface_Primitive --
+   ---------------------------------
+
+   function Is_Null_Interface_Primitive (E : Entity_Id) return Boolean is
+   begin
+      return Comes_From_Source (E)
+        and then Is_Dispatching_Operation (E)
+        and then Ekind (E) = E_Procedure
+        and then Null_Present (Parent (E))
+        and then Is_Interface (Find_Dispatching_Type (E));
+   end Is_Null_Interface_Primitive;
 
    --------------------------
    -- Is_Tag_Indeterminate --
@@ -1665,7 +1856,7 @@ package body Sem_Disp is
       --  is also tag-indeterminate.
 
       elsif Nkind (Orig_Node) = N_Explicit_Dereference
-        and then Ada_Version >= Ada_05
+        and then Ada_Version >= Ada_2005
       then
          return Is_Tag_Indeterminate (Prefix (Orig_Node));
 
@@ -1732,7 +1923,7 @@ package body Sem_Disp is
          Replace_Elmt (Elmt, New_Op);
       end if;
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Has_Interfaces (Tagged_Type)
       then
          --  Ada 2005 (AI-251): Update the attribute alias of all the aliased
@@ -1860,7 +2051,35 @@ package body Sem_Disp is
       --  and would have to undo any expansion to an indirect call.
 
       if Tagged_Type_Expansion then
-         Expand_Dispatching_Call (Call_Node);
+         declare
+            Call_Typ : constant Entity_Id := Etype (Call_Node);
+
+         begin
+            Expand_Dispatching_Call (Call_Node);
+
+            --  If the controlling argument is an interface type and the type
+            --  of Call_Node differs then we must add an implicit conversion to
+            --  force displacement of the pointer to the object to reference
+            --  the secondary dispatch table of the interface.
+
+            if Is_Interface (Etype (Control))
+              and then Etype (Control) /= Call_Typ
+            then
+               --  Cannot use Convert_To because the previous call to
+               --  Expand_Dispatching_Call leaves decorated the Call_Node
+               --  with the type of Control.
+
+               Rewrite (Call_Node,
+                 Make_Type_Conversion (Sloc (Call_Node),
+                   Subtype_Mark =>
+                     New_Occurrence_Of (Etype (Control), Sloc (Call_Node)),
+                   Expression => Relocate_Node (Call_Node)));
+               Set_Etype (Call_Node, Etype (Control));
+               Set_Analyzed (Call_Node);
+
+               Expand_Interface_Conversion (Call_Node, Is_Static => False);
+            end if;
+         end;
 
       --  Expansion of a dispatching call results in an indirect call, which in
       --  turn causes current values to be killed (see Resolve_Call), so on VM

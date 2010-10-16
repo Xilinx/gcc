@@ -2286,7 +2286,7 @@ hash_rtx_cb (const_rtx x, enum machine_mode mode,
 
 	       On all machines, we can't record any global registers.
 	       Nor should we record any register that is in a small
-	       class, as defined by CLASS_LIKELY_SPILLED_P.  */
+	       class, as defined by TARGET_CLASS_LIKELY_SPILLED_P.  */
 	    bool record;
 
 	    if (regno >= FIRST_PSEUDO_REGISTER)
@@ -2305,7 +2305,7 @@ hash_rtx_cb (const_rtx x, enum machine_mode mode,
 	      record = true;
 	    else if (targetm.small_register_classes_for_mode_p (GET_MODE (x)))
 	      record = false;
-	    else if (CLASS_LIKELY_SPILLED_P (REGNO_REG_CLASS (regno)))
+	    else if (targetm.class_likely_spilled_p (REGNO_REG_CLASS (regno)))
 	      record = false;
 	    else
 	      record = true;
@@ -5015,7 +5015,7 @@ cse_insn (rtx insn)
 	      dest = canon_rtx (SET_DEST (sets[i].rtl));
 
 	      if (!MEM_P (src) || !MEM_P (dest)
-		  || !nonoverlapping_memrefs_p (src, dest))
+		  || !nonoverlapping_memrefs_p (src, dest, false))
 		break;
 	    }
 
@@ -6348,29 +6348,31 @@ cse_extended_basic_block (struct cse_basic_block_data *ebb_data)
 		recorded_label_ref = true;
 
 #ifdef HAVE_cc0
-	      /* If the previous insn set CC0 and this insn no longer
-		 references CC0, delete the previous insn.  Here we use
-		 fact that nothing expects CC0 to be valid over an insn,
-		 which is true until the final pass.  */
-	      {
-		rtx prev_insn, tem;
-
-		prev_insn = PREV_INSN (insn);
-		if (prev_insn && NONJUMP_INSN_P (prev_insn)
-		    && (tem = single_set (prev_insn)) != 0
-		    && SET_DEST (tem) == cc0_rtx
-		    && ! reg_mentioned_p (cc0_rtx, PATTERN (insn)))
-		  delete_insn (prev_insn);
-	      }
-
-	      /* If this insn is not the last insn in the basic block,
-		 it will be PREV_INSN(insn) in the next iteration.  If
-		 we recorded any CC0-related information for this insn,
-		 remember it.  */
-	      if (insn != BB_END (bb))
+	      if (NONDEBUG_INSN_P (insn))
 		{
-		  prev_insn_cc0 = this_insn_cc0;
-		  prev_insn_cc0_mode = this_insn_cc0_mode;
+		  /* If the previous insn sets CC0 and this insn no
+		     longer references CC0, delete the previous insn.
+		     Here we use fact that nothing expects CC0 to be
+		     valid over an insn, which is true until the final
+		     pass.  */
+		  rtx prev_insn, tem;
+
+		  prev_insn = prev_nonnote_nondebug_insn (insn);
+		  if (prev_insn && NONJUMP_INSN_P (prev_insn)
+		      && (tem = single_set (prev_insn)) != NULL_RTX
+		      && SET_DEST (tem) == cc0_rtx
+		      && ! reg_mentioned_p (cc0_rtx, PATTERN (insn)))
+		    delete_insn (prev_insn);
+
+		  /* If this insn is not the last insn in the basic
+		     block, it will be PREV_INSN(insn) in the next
+		     iteration.  If we recorded any CC0-related
+		     information for this insn, remember it.  */
+		  if (insn != BB_END (bb))
+		    {
+		      prev_insn_cc0 = this_insn_cc0;
+		      prev_insn_cc0_mode = this_insn_cc0_mode;
+		    }
 		}
 #endif
 	    }
@@ -6713,7 +6715,7 @@ set_live_p (rtx set, rtx insn ATTRIBUTE_UNUSED, /* Only used with HAVE_cc0.  */
 #ifdef HAVE_cc0
   else if (GET_CODE (SET_DEST (set)) == CC0
 	   && !side_effects_p (SET_SRC (set))
-	   && ((tem = next_nonnote_insn (insn)) == 0
+	   && ((tem = next_nonnote_nondebug_insn (insn)) == NULL_RTX
 	       || !INSN_P (tem)
 	       || !reg_referenced_p (cc0_rtx, PATTERN (tem))))
     return false;

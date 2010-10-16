@@ -27,6 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "intl.h"
 #include "opts.h"
+#include "toplev.h"  /* For save_decoded_options.  */
 #include "options.h"
 #include "params.h"
 #include "tree-inline.h"
@@ -61,6 +62,14 @@ gfc_option_lang_mask (void)
   return CL_Fortran;
 }
 
+/* Initialize options structure OPTS.  */
+
+void
+gfc_init_options_struct (struct gcc_options *opts)
+{
+  opts->x_flag_errno_math = 0;
+  opts->x_flag_associative_math = -1;
+}
 
 /* Get ready for options handling. Keep in sync with
    libgfortran/runtime/compile_options.c (init_compile_options). */
@@ -87,7 +96,7 @@ gfc_init_options (unsigned int decoded_options_count,
   gfc_option.warn_ampersand = 0;
   gfc_option.warn_character_truncation = 0;
   gfc_option.warn_array_temp = 0;
-  gfc_option.warn_conversion = 0;
+  gfc_option.gfc_warn_conversion = 0;
   gfc_option.warn_conversion_extra = 0;
   gfc_option.warn_implicit_interface = 0;
   gfc_option.warn_line_truncation = 0;
@@ -128,7 +137,7 @@ gfc_init_options (unsigned int decoded_options_count,
   gfc_option.blas_matmul_limit = 30;
   gfc_option.flag_cray_pointer = 0;
   gfc_option.flag_d_lines = -1;
-  gfc_option.flag_openmp = 0;
+  gfc_option.gfc_flag_openmp = 0;
   gfc_option.flag_sign_zero = 1;
   gfc_option.flag_recursive = 0;
   gfc_option.flag_init_integer = GFC_INIT_INTEGER_OFF;
@@ -144,13 +153,7 @@ gfc_init_options (unsigned int decoded_options_count,
   gfc_option.rtcheck = 0;
   gfc_option.coarray = GFC_FCOARRAY_NONE;
 
-  flag_errno_math = 0;
-  flag_associative_math = -1;
-
   set_default_std_flags ();
-
-  /* -fshort-enums can be default on some targets.  */
-  flag_short_enums = targetm.default_short_enums ();
 
   /* Initialize cpp-related options.  */
   gfc_cpp_init_options (decoded_options_count, decoded_options);
@@ -356,7 +359,7 @@ gfc_post_options (const char **pfilename)
 		     gfc_option.flag_max_stack_var_size);
   else if (!gfc_option.flag_automatic && gfc_option.flag_recursive)
     gfc_warning_now ("Flag -fno-automatic overwrites -frecursive");
-  else if (!gfc_option.flag_automatic && gfc_option.flag_openmp)
+  else if (!gfc_option.flag_automatic && gfc_option.gfc_flag_openmp)
     gfc_warning_now ("Flag -fno-automatic overwrites -frecursive implied by "
 		     "-fopenmp");
   else if (gfc_option.flag_max_stack_var_size != -2
@@ -364,7 +367,7 @@ gfc_post_options (const char **pfilename)
     gfc_warning_now ("Flag -frecursive overwrites -fmax-stack-var-size=%d",
 		     gfc_option.flag_max_stack_var_size);
   else if (gfc_option.flag_max_stack_var_size != -2
-	   && gfc_option.flag_openmp)
+	   && gfc_option.gfc_flag_openmp)
     gfc_warning_now ("Flag -fmax-stack-var-size=%d overwrites -frecursive "
 		     "implied by -fopenmp", 
 		     gfc_option.flag_max_stack_var_size);
@@ -374,7 +377,7 @@ gfc_post_options (const char **pfilename)
     gfc_option.flag_max_stack_var_size = -1;
 
   /* Implied -frecursive; implemented as -fmax-stack-var-size=-1.  */
-  if (gfc_option.flag_max_stack_var_size == -2 && gfc_option.flag_openmp
+  if (gfc_option.flag_max_stack_var_size == -2 && gfc_option.gfc_flag_openmp
       && gfc_option.flag_automatic)
     {
       gfc_option.flag_recursive = 1;
@@ -418,7 +421,7 @@ set_Wall (int setting)
 {
   gfc_option.warn_aliasing = setting;
   gfc_option.warn_ampersand = setting;
-  gfc_option.warn_conversion = setting;
+  gfc_option.gfc_warn_conversion = setting;
   gfc_option.warn_line_truncation = setting;
   gfc_option.warn_surprising = setting;
   gfc_option.warn_tabs = !setting;
@@ -580,7 +583,7 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_Wconversion:
-      gfc_option.warn_conversion = value;
+      gfc_option.gfc_warn_conversion = value;
       break;
 
     case OPT_Wconversion_extra:
@@ -706,7 +709,7 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_fopenmp:
-      gfc_option.flag_openmp = value;
+      gfc_option.gfc_flag_openmp = value;
       break;
 
     case OPT_ffree_line_length_none:
@@ -964,5 +967,81 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       break;
     }
 
+  return result;
+}
+
+
+/* Return a string with the options passed to the compiler; used for
+   Fortran's compiler_options() intrinsic.  */
+
+char *
+gfc_get_option_string (void)
+{
+  unsigned j;
+  size_t len, pos;
+  char *result;
+
+  /* Determine required string length.  */
+
+  len = 0;
+  for (j = 1; j < save_decoded_options_count; j++)
+    {
+      switch (save_decoded_options[j].opt_index)
+        {
+        case OPT_o:
+        case OPT_d:
+        case OPT_dumpbase:
+        case OPT_dumpdir:
+        case OPT_auxbase:
+        case OPT_quiet:
+        case OPT_version:
+        case OPT_fintrinsic_modules_path:
+          /* Ignore these.  */
+          break;
+	default:
+	  /* Ignore file names. */
+	  if (save_decoded_options[j].orig_option_with_args_text[0] == '-')
+	    len += 1
+		 + strlen (save_decoded_options[j].orig_option_with_args_text);
+        }
+    }
+
+  result = (char *) gfc_getmem (len);
+
+  pos = 0; 
+  for (j = 1; j < save_decoded_options_count; j++)
+    {
+      switch (save_decoded_options[j].opt_index)
+        {
+        case OPT_o:
+        case OPT_d:
+        case OPT_dumpbase:
+        case OPT_dumpdir:
+        case OPT_auxbase:
+        case OPT_quiet:
+        case OPT_version:
+        case OPT_fintrinsic_modules_path:
+          /* Ignore these.  */
+	  continue;
+
+        case OPT_cpp_:
+	  /* Use "-cpp" rather than "-cpp=<temporary file>".  */
+	  len = 4;
+	  break;
+
+        default:
+	  /* Ignore file names. */
+	  if (save_decoded_options[j].orig_option_with_args_text[0] != '-')
+	    continue;
+
+	  len = strlen (save_decoded_options[j].orig_option_with_args_text);
+        }
+
+      memcpy (&result[pos], save_decoded_options[j].orig_option_with_args_text, len);
+      pos += len;
+      result[pos++] = ' ';
+    }
+
+  result[--pos] = '\0';
   return result;
 }
