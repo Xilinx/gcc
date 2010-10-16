@@ -655,12 +655,9 @@ CFLAGS_FOR_BUILD
 CC_FOR_BUILD
 AS_FOR_BUILD
 AR_FOR_BUILD
-target_configargs
 target_configdirs
 configdirs
-host_configargs
 build_configdirs
-build_configargs
 INSTALL_GDB_TK
 GDB_TK
 CONFIGURE_GDB_TK
@@ -668,6 +665,9 @@ build_tooldir
 tooldir
 GCC_SHLIB_SUBDIR
 RPATH_ENVVAR
+target_configargs
+host_configargs
+build_configargs
 BUILD_CONFIG
 CXXFLAGS_FOR_TARGET
 CFLAGS_FOR_TARGET
@@ -835,6 +835,9 @@ CXX
 CXXFLAGS
 CCC
 CPP
+build_configargs
+host_configargs
+target_configargs
 AR
 AS
 DLLTOOL
@@ -1569,6 +1572,12 @@ Some influential environment variables:
   CXX         C++ compiler command
   CXXFLAGS    C++ compiler flags
   CPP         C preprocessor
+  build_configargs
+              additional configure arguments for build directories
+  host_configargs
+              additional configure arguments for host directories
+  target_configargs
+              additional configure arguments for target directories
   AR          AR for the host
   AS          AS for the host
   DLLTOOL     DLLTOOL for the host
@@ -3108,7 +3117,7 @@ fi
             configdirs="$configdirs gold"
 	    ;;
 	  *)
-            configdirs="`echo " ${configdirs} " | sed -e 's/ ld / gold /'`"
+            configdirs=`echo " ${configdirs} " | sed -e 's/ ld / gold /'`
 	    ;;
 	  esac
 	  ENABLE_GOLD=yes
@@ -3650,7 +3659,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs ld binutils gprof target-libgloss ${libgcj}"
     ;;
   microblaze*)
-    noconfigdirs="$noconfigdirs gprof ${libgcj}"
+    noconfigdirs="$noconfigdirs gprof target-libssp ${libgcj}"
     ;;
   mips*-sde-elf*)
     skipdirs="$skipdirs target-libiberty"
@@ -3731,7 +3740,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs bfd binutils gas gcc gdb ld target-libstdc++-v3 opcodes target-libgloss ${libgcj}"
     ;;
   v850*-*-*)
-    noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
   vax-*-vms)
     noconfigdirs="$noconfigdirs bfd binutils gdb ld target-newlib opcodes target-libgloss ${libgcj}"
@@ -6667,26 +6676,35 @@ to specify its location." "$LINENO" 5
   # Flags needed for libelf.
 
 
+  # ELF platforms build the lto-plugin when GOLD is in use.
+  build_lto_plugin=${ENABLE_GOLD}
 fi
 else
   if test x"$default_enable_lto" = x"yes" ; then
-    # On non-ELF platforms, LTO must be explicitly enabled.
-    enable_lto=no
+    case $target in
+      *-apple-darwin* | *-cygwin* | *-mingw*) ;;
+      # On other non-ELF platforms, LTO must be explicitly enabled.
+      *) enable_lto=no ;;
+    esac
   else
-  # Apart from ELF platforms, only Windows supports LTO so far.  It
-  # would also be nice to check the binutils support, but we don't
+  # Apart from ELF platforms, only Windows and Darwin support LTO so far.
+  # It would also be nice to check the binutils support, but we don't
   # have gcc_GAS_CHECK_FEATURE available here.  For now, we'll just
   # warn during gcc/ subconfigure; unless you're bootstrapping with
   # -flto it won't be needed until after installation anyway.
     case $target in
-      *-cygwin*|*-mingw*) ;;
-      *-apple-darwin*) ;;
+      *-cygwin* | *-mingw* | *-apple-darwin*) ;;
       *) if test x"$enable_lto" = x"yes"; then
 	as_fn_error "LTO support is not enabled for this target." "$LINENO" 5
         fi
       ;;
     esac
   fi
+  # Among non-ELF, only Windows platforms support the lto-plugin so far.
+  case $target in
+    *-cygwin* | *-mingw*) build_lto_plugin=yes ;;
+    *) ;;
+  esac
   default_enable_lto=no
 fi
 
@@ -6767,7 +6785,7 @@ if test -d ${srcdir}/gcc; then
       *,lto,*) ;;
       *) enable_languages="${enable_languages},lto" ;;
     esac
-    if test "${ENABLE_GOLD}" = "yes" ; then
+    if test "${build_lto_plugin}" = "yes" ; then
       configdirs="$configdirs lto-plugin"
       extra_host_libiberty_configure_flags=--enable-shared
     fi
@@ -7914,10 +7932,15 @@ if test "$silent" = yes; then
 fi
 baseargs="$baseargs --disable-option-checking"
 
+# Record and document user additions to sub configure arguments.
+
+
+
+
 # For the build-side libraries, we just need to pretend we're native,
 # and not use the same cache file.  Multilibs are neither needed nor
 # desired.
-build_configargs="--cache-file=../config.cache ${baseargs}"
+build_configargs="$build_configargs --cache-file=../config.cache ${baseargs}"
 
 # For host modules, accept cache file option, or specification as blank.
 case "${cache_file}" in
@@ -7931,9 +7954,9 @@ esac
 
 # Host dirs don't like to share a cache file either, horribly enough.
 # This seems to be due to autoconf 2.5x stupidity.
-host_configargs="--cache-file=./config.cache ${extra_host_args} ${baseargs}"
+host_configargs="$host_configargs --cache-file=./config.cache ${extra_host_args} ${baseargs}"
 
-target_configargs=${baseargs}
+target_configargs="$target_configargs ${baseargs}"
 
 # Passing a --with-cross-host argument lets the target libraries know
 # whether they are being built with a cross-compiler or being built
