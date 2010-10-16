@@ -1,3 +1,7 @@
+2010-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (MELT_PLUGIN_HEADERS): temporarily added $(REGSET_H)
+	which should go into $(PLUGIN_HEADERS)
+
 2010-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt: changed indentation.
 
