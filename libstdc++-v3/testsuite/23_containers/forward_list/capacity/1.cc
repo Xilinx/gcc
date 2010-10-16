@@ -38,8 +38,14 @@ test01()
   fld.resize(0);
   VERIFY(fld.empty() == true);
 
+#ifndef _GLIBCXX_DEBUG
+  using std::_Fwd_list_node;
+#else
+  using std::_GLIBCXX_STD_D::_Fwd_list_node;
+#endif
+
   VERIFY( (fld.max_size()
-	   == std::allocator<std::_Fwd_list_node<double> >().max_size()) );
+	   == std::allocator<_Fwd_list_node<double> >().max_size()) );
 }
 
 int

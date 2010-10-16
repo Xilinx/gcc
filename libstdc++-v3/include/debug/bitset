@@ -150,8 +150,13 @@ namespace __debug
       bitset(const _Base& __x) : _Base(__x), _Safe_base() { }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-      explicit
-      bitset(const char* __str) : _Base(__str) { }
+      template<typename _CharT>
+        explicit
+        bitset(const _CharT* __str,
+	       typename std::basic_string<_CharT>::size_type __n
+	       = std::basic_string<_CharT>::npos,
+	       _CharT __zero = _CharT('0'), _CharT __one = _CharT('1'))
+	: _Base(__str, __n, __zero, __one) { }
 #endif
 
       // 23.3.5.2 bitset operations:
@@ -385,7 +390,7 @@ namespace __debug
   /// std::hash specialization for bitset.
   template<size_t _Nb>
     struct hash<__debug::bitset<_Nb>>
-    : public std::unary_function<__debug::bitset<_Nb>, size_t>
+    : public __hash_base<size_t, __debug::bitset<_Nb>>
     {
       size_t
       operator()(const __debug::bitset<_Nb>& __b) const
