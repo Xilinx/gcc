@@ -1,12 +1,21 @@
 2010-10-15  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* testsuite/util/testsuite_common_types.h
-	(constexpr_default_constructible): Add.
 	(constexpr_single_value_constructible): Add.
 	* testsuite/29_atomics/atomic/cons/constexpr.cc: Adjust name.
 	* testsuite/29_atomics/atomic_integral/cons/constexpr.cc: Same.
-	* testsuite/18_support/numeric_limits/requirements/constexpr.cc: New.
 	* testsuite/29_atomics/atomic_address/cons/constexpr.cc: New.
+	* testsuite/18_support/numeric_limits/constexpr.cc: New.
+
+	* testsuite/29_atomics/atomic/cons/assign_neg.cc: Adjust line numbers.
+	* testsuite/29_atomics/atomic/cons/constexpr.cc: Same.
+	* testsuite/29_atomics/atomic/cons/copy_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/cons/assign_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/cons/constexpr.cc: Same.
+	* testsuite/29_atomics/atomic_integral/cons/copy_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/bitwise_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/decrement_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/increment_neg.cc: Same.
 
 2010-10-15  Benjamin Kosnik  <bkoz@redhat.com>
 
