@@ -22,7 +22,7 @@
 
 int main()
 {
-  __gnu_test::constexpr_constructible test;
+  __gnu_test::constexpr_single_value_constructible test;
 
   // test.operator()<std::atomic<int>, int>();
   __gnu_cxx::typelist::apply_generator(test, __gnu_test::atomics_tl(),

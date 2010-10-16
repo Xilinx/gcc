@@ -1,6 +1,3 @@
-// { dg-options "-std=gnu++0x" }
-// { dg-do compile }
-
 // Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -18,16 +15,12 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-#include <atomic>
+#include <limits>
 #include <testsuite_common_types.h>
 
 int main()
 {
-  __gnu_test::copy_constructible test;
-  __gnu_cxx::typelist::apply_generator(test,
-				       __gnu_test::atomic_integrals::type());
+  __gnu_test::default_constructible test;
+  __gnu_cxx::typelist::apply_generator(test, __gnu_test::limits_tl());
   return 0;
 }
-
-// { dg-error "deleted" "" { target *-*-* } 569 }
-// { dg-prune-output "include" }

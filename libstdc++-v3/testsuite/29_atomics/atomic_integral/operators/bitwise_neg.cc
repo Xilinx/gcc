@@ -27,7 +27,7 @@ int main()
   return 0;
 }
 
-// { dg-error "operator" "" { target *-*-* } 405 }
-// { dg-error "operator" "" { target *-*-* } 406 }
-// { dg-error "operator" "" { target *-*-* } 407 }
+// { dg-error "operator" "" { target *-*-* } 411 }
+// { dg-error "operator" "" { target *-*-* } 412 }
+// { dg-error "operator" "" { target *-*-* } 413 }
 // { dg-excess-errors "In file included from" }

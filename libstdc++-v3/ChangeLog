@@ -1,5 +1,15 @@
 2010-10-15  Benjamin Kosnik  <bkoz@redhat.com>
 
+	* testsuite/util/testsuite_common_types.h
+	(constexpr_default_constructible): Add.
+	(constexpr_single_value_constructible): Add.
+	* testsuite/29_atomics/atomic/cons/constexpr.cc: Adjust name.
+	* testsuite/29_atomics/atomic_integral/cons/constexpr.cc: Same.
+	* testsuite/18_support/numeric_limits/requirements/constexpr.cc: New.
+	* testsuite/29_atomics/atomic_address/cons/constexpr.cc: New.
+
+2010-10-15  Benjamin Kosnik  <bkoz@redhat.com>
+
 	* include/bits/c++config (_GLIBCXX_CONSTEXPR): Add.
 	(_GLIBCXX_USE_CONSTEXPR): Add.
 	* include/std/limits: Use it.

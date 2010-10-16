@@ -1,7 +1,6 @@
 // { dg-options "-std=gnu++0x" }
-// { dg-do compile }
 
-// Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+// Copyright (C) 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -23,11 +22,7 @@
 
 int main()
 {
-  __gnu_test::copy_constructible test;
-  __gnu_cxx::typelist::apply_generator(test,
-				       __gnu_test::atomic_integrals::type());
+  __gnu_test::constexpr_single_value_constructible test;
+  test.operator()<std::atomic_address, void*>();
   return 0;
 }
-
-// { dg-error "deleted" "" { target *-*-* } 569 }
-// { dg-prune-output "include" }

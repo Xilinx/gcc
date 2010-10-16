@@ -339,6 +339,14 @@ namespace __gnu_test
   typedef transform<integral_types::type, atomics>::type atomics_tl;
 #endif
 
+  template<typename Tp>
+    struct numeric_limits
+    {
+      typedef Tp			value_type;
+      typedef std::numeric_limits<value_type>	type;
+    };
+
+  typedef transform<integral_types::type, numeric_limits>::type limits_tl;
 
   struct has_increment_operators
   {
@@ -590,7 +598,7 @@ namespace __gnu_test
 
   // Generator to test constexpr constructor
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-  struct constexpr_constructible
+  struct constexpr_single_value_constructible
   {
     template<typename _Ttesttype, typename _Tbasetype>
       void

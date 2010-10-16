@@ -22,7 +22,7 @@
 
 int main()
 {
-  __gnu_test::constexpr_constructible test;
+  __gnu_test::constexpr_single_value_constructible test;
   __gnu_cxx::typelist::apply_generator(test,
 				       __gnu_test::atomic_integrals::type(),
 				       __gnu_test::integral_types::type());
