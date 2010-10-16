@@ -23,7 +23,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 #include "objc-private/common.h"
-#include "objc/objc.h"
 #include "objc/runtime.h"
 #include "objc-private/module-abi-8.h" /* For runtime structures  */
 #include "objc/thr.h"
@@ -212,6 +211,13 @@ class_copyProtocolList (Class class_, unsigned int *numberOfReturnedProtocols)
   Protocol **returnValue = NULL;
   struct objc_protocol_list* proto_list;
 
+  if (class_ == Nil)
+    {
+      if (numberOfReturnedProtocols)
+	*numberOfReturnedProtocols = 0;
+      return NULL;
+    }
+
   /* Lock the runtime mutex because the class protocols may be
      concurrently modified.  */
   objc_mutex_lock (__objc_runtime_mutex);
@@ -352,7 +358,6 @@ struct objc_method_description protocol_getMethodDescription (Protocol *protocol
 							      BOOL instanceMethod)
 {
   struct objc_method_description no_result = { NULL, NULL };
-  const char* selector_name;
   struct objc_method_description_list *methods;
   int i;
 
@@ -366,8 +371,6 @@ struct objc_method_description protocol_getMethodDescription (Protocol *protocol
   if (protocol->class_pointer != objc_lookupClass ("Protocol"))
     return no_result;
 
-  selector_name = sel_getName (selector);
-
   if (instanceMethod)
     methods = ((struct objc_protocol *)protocol)->instance_methods;
   else
@@ -377,8 +380,12 @@ struct objc_method_description protocol_getMethodDescription (Protocol *protocol
     {
       for (i = 0; i < methods->count; i++)
 	{
-	  if (strcmp ((char*)(methods->list[i].name), selector_name) == 0)
+	  if (sel_isEqual (methods->list[i].name, selector))
 	    return methods->list[i];
+	  /*
+	  if (strcmp (sel_getName (methods->list[i].name), selector_name) == 0)
+	    return methods->list[i];
+	  */
 	}
     }
 

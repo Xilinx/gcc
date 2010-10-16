@@ -89,11 +89,12 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #include "objc-private/common.h"
 #include "objc-private/error.h"
-#include "objc/objc.h"
-#include "objc/objc-api.h"
+#include "objc/runtime.h"
 #include "objc/thr.h"
-#include "objc-private/runtime.h"            /* the kitchen sink */
-#include <string.h> /* For memset */
+#include "objc-private/module-abi-8.h"  /* For CLS_ISCLASS and similar.  */
+#include "objc-private/runtime.h"       /* the kitchen sink */
+#include "objc-private/sarray.h"        /* For sarray_put_at_safe.  */
+#include <string.h>                     /* For memset */
 
 /* We use a table which maps a class name to the corresponding class
  * pointer.  The first part of this file defines this table, and
@@ -418,11 +419,6 @@ class_table_print_histogram (void)
 */
 Class (*_objc_lookup_class) (const char *name) = 0;      /* !T:SAFE */
 
-/* Temporarily while we still include objc/objc-api.h instead of objc/runtime.h.  */
-#ifndef __objc_runtime_INCLUDE_GNU
-typedef Class (*objc_get_unknown_class_handler)(const char *class_name);
-#endif
-
 /* The handler currently in use.  PS: if both
    __obj_get_unknown_class_handler and _objc_lookup_class are defined,
    __objc_get_unknown_class_handler is called first.  */
@@ -504,7 +500,7 @@ objc_getClass (const char *name)
   
   if (class)
     return class;
-  
+
   if (__objc_get_unknown_class_handler)
     return (*__objc_get_unknown_class_handler) (name);
 
@@ -551,8 +547,6 @@ objc_getClassList (Class *returnValue, int maxNumberOfClassesToReturn)
   /* Iterate over all entries in the table.  */
   int hash, count = 0;
 
-  objc_mutex_lock (__class_table_lock); 
-
   for (hash = 0; hash < CLASS_TABLE_SIZE; hash++)
     {
       class_node_ptr node = class_table_array[hash];
@@ -565,7 +559,6 @@ objc_getClassList (Class *returnValue, int maxNumberOfClassesToReturn)
 		returnValue[count] = node->pointer;
 	      else
 		{
-		  objc_mutex_unlock (__class_table_lock);
 		  return count;
 		}
 	    }
@@ -574,7 +567,6 @@ objc_getClassList (Class *returnValue, int maxNumberOfClassesToReturn)
 	}
     }
   
-  objc_mutex_unlock (__class_table_lock);
   return count;
 }
 
@@ -592,6 +584,7 @@ objc_lookup_class (const char *name)
    called automatically by the compiler while messaging (if using the
    traditional ABI), so it is worth keeping it fast; don't make it
    just a wrapper around objc_getClass().  */
+/* Note that this is roughly equivalent to objc_getRequiredClass().  */
 /* Get the class object for the class named NAME.  If NAME does not
    identify a known class, the hook _objc_lookup_class is called.  If
    this fails, an error message is issued and the system aborts.  */
@@ -649,6 +642,62 @@ objc_next_class (void **enum_state)
   objc_mutex_unlock (__objc_runtime_mutex);
   
   return class;
+}
+
+/* This is used when the implementation of a method changes.  It goes
+   through all classes, looking for the ones that have these methods
+   (either method_a or method_b; method_b can be NULL), and reloads
+   the implementation for these.  You should call this with the
+   runtime mutex already locked.  */
+void
+__objc_update_classes_with_methods (struct objc_method *method_a, struct objc_method *method_b)
+{
+  int hash;
+
+  /* Iterate over all classes.  */
+  for (hash = 0; hash < CLASS_TABLE_SIZE; hash++)
+    {
+      class_node_ptr node = class_table_array[hash];
+      
+      while (node != NULL)
+	{
+	  /* Iterate over all methods in the class.  */
+	  Class class = node->pointer;
+	  struct objc_method_list * method_list = class->methods;
+
+	  while (method_list)
+	    {
+	      int i;
+
+	      for (i = 0; i < method_list->method_count; ++i)
+		{
+		  struct objc_method *method = &method_list->method_list[i];
+
+		  /* If the method is one of the ones we are looking
+		     for, update the implementation.  */
+		  if (method == method_a)
+		    {
+		      sarray_at_put_safe (class->dtable,
+					  (sidx) method_a->method_name->sel_id,
+					  method_a->method_imp);
+		    }
+
+		  if (method == method_b)
+		    {
+		      if (method_b != NULL)
+			{
+			  sarray_at_put_safe (class->dtable,
+					      (sidx) method_b->method_name->sel_id,
+					      method_b->method_imp);
+			}
+		    }
+		}
+	  
+	      method_list = method_list->method_next;
+	    }
+	  node = node->next;
+	}
+    }
 }
 
 /* Resolve super/subclass links for all classes.  The only thing we
@@ -738,6 +787,61 @@ class_getName (Class class_)
     return "nil";
 
   return class_->name;
+}
+
+BOOL
+class_isMetaClass (Class class_)
+{
+  /* CLS_ISMETA includes the check for Nil class_.  */
+  return CLS_ISMETA (class_);
+}
+
+/* Even inside libobjc it may be worth using class_getSuperclass
+   instead of accessing class_->super_class directly because it
+   resolves the class links if needed.  If you access
+   class_->super_class directly, make sure to deal with the situation
+   where the class is not resolved yet!  */
+Class
+class_getSuperclass (Class class_)
+{
+  if (class_ == Nil)
+    return Nil;
+
+  /* If the class is not resolved yet, super_class would point to a
+     string (the name of the super class) as opposed to the actual
+     super class.  In that case, we need to resolve the class links
+     before we can return super_class.  */
+  if (! CLS_ISRESOLV (class_))
+    __objc_resolve_class_links ();
+  
+  return class_->super_class;
+}
+
+int
+class_getVersion (Class class_)
+{
+  if (class_ == Nil)
+    return 0;
+
+  return (int)(class_->version);
+}
+
+void
+class_setVersion (Class class_, int version)
+{
+  if (class_ == Nil)
+    return;
+
+  class_->version = version;
+}
+
+size_t
+class_getInstanceSize (Class class_)
+{
+  if (class_ == Nil)
+    return 0;
+
+  return class_->instance_size;
 }
 
 #define CLASSOF(c) ((c)->class_pointer)

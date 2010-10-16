@@ -48,6 +48,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* TODO: This file is incomplete.  */
 
 #include "objc.h"
+#include "objc-decls.h"
 
 /* An 'Ivar' represents an instance variable.  It holds information
    about the name, type and offset of the instance variable.  */
@@ -194,7 +195,7 @@ objc_EXPORT SEL sel_registerName (const char *name);
    Compatibility Note: the Apple/NeXT runtime has untyped selectors,
    so it does not have this function, which is specific to the GNU
    Runtime.  */
-objc_EXPORT SEL set_registerTypedName (const char *name, const char *type);
+objc_EXPORT SEL sel_registerTypedName (const char *name, const char *type);
 
 /* Return YES if first_selector is the same as second_selector, and NO
    if not.  */
@@ -238,6 +239,14 @@ objc_EXPORT Class object_setClass (id object, Class class_);
    reuse the returned Ivar if you can.  */
 objc_EXPORT Ivar class_getInstanceVariable (Class class_, const char *name);
 
+/* Return a class variable given the class and the class variable
+   name.  This is an expensive function to call, so try to reuse the
+   returned Ivar if you can.  
+   
+   This function always returns NULL since class variables are
+   currently unavailable in Objective-C.  */
+objc_EXPORT Ivar class_getClassVariable (Class class_, const char *name);
+
 /* If the object was created in class_createInstance() with some
    extraBytes, returns a pointer to them.  If it was not, then the
    returned pointer may make no sense.  */
@@ -275,15 +284,79 @@ objc_EXPORT id object_getIvar (id object, Ivar variable);
    object_setInstanceVariable.  */
 objc_EXPORT void object_setIvar (id object, Ivar variable, id value);
 
-/* Return the name of the instance variable.  */
+/* Return the name of the instance variable.  Return NULL if
+   'variable' is NULL.  */
 objc_EXPORT const char * ivar_getName (Ivar variable);
 
 /* Return the offset of the instance variable from the start of the
-   object data.  */
+   object data.  Return 0 if 'variable' is NULL.  */
 objc_EXPORT ptrdiff_t ivar_getOffset (Ivar variable);
 
-/* Return the type encoding of the variable.  */
+/* Return the type encoding of the variable.  Return NULL if
+   'variable' is NULL.  */
 objc_EXPORT const char * ivar_getTypeEncoding (Ivar variable);
+
+/* Return all the instance variables of the class.  The return value
+   of the function is a pointer to an area, allocated with malloc(),
+   that contains all the instance variables of the class.  It does not
+   include instance variables of superclasses.  The list is terminated
+   by NULL.  Optionally, if you pass a non-NULL
+   'numberOfReturnedIvars' pointer, the unsigned int that it points to
+   will be filled with the number of instance variables returned.  */
+objc_EXPORT Ivar * class_copyIvarList (Class class_, unsigned int *numberOfReturnedIvars);
+
+/* Return the name of the property.  Return NULL if 'property' is
+   NULL.  */
+objc_EXPORT const char * property_getName (Property property);
+
+/* Return the attributes of the property as a string.  Return NULL if
+   'property' is NULL.  */
+objc_EXPORT const char * property_getAttributes (Property property);
+
+/* Return the property with name 'propertyName' of the class 'class_'.
+   This function returns NULL if the required property can not be
+   found.  Return NULL if 'class_' or 'propertyName' is NULL.
+
+   Note that the traditional ABI does not store the list of properties
+   of a class in a compiled module, so the traditional ABI will always
+   return NULL.  */
+objc_EXPORT Property class_getProperty (Class class_, const char *propertyName);
+
+/* Return all the properties of the class.  The return value
+   of the function is a pointer to an area, allocated with malloc(),
+   that contains all the properties of the class.  It does not
+   include properties of superclasses.  The list is terminated
+   by NULL.  Optionally, if you pass a non-NULL
+   'numberOfReturnedIvars' pointer, the unsigned int that it points to
+   will be filled with the number of properties returned.
+
+   Note that the traditional ABI does not store the list of properties
+   of a class in a compiled module, so the traditional ABI will always
+   return an empty list.  */
+objc_EXPORT Property * class_copyPropertyList 
+(Class class_, unsigned int *numberOfReturnedProperties);
+
+/* Return the ivar layout for class 'class_'.
+
+   At the moment this function always returns NULL.  */
+objc_EXPORT const char * class_getIvarLayout (Class class_);
+
+/* Return the weak ivar layout for class 'class_'.
+
+   At the moment this function always returns NULL.  */
+objc_EXPORT const char * class_getWeakIvarLayout (Class class_);
+
+/* Set the ivar layout for class 'class_'.
+
+   At the moment, this function does nothing.  */
+objc_EXPORT void class_setIvarLayout (Class class_, const char *layout);
+
+/* Set the weak ivar layout for class 'class_'.
+
+   At the moment, this function does nothing.  With the GNU runtime,
+   you should use class_ivar_set_gcinvisible () to hide variables from
+   the Garbage Collector.  */
+objc_EXPORT void class_setWeakIvarLayout (Class class_, const char *layout);
 
 
 /** Implementation: the following functions are in class.c.  */
@@ -359,6 +432,192 @@ objc_EXPORT int objc_getClassList (Class *returnValue, int maxNumberOfClassesToR
 /* Return the name of the class 'class_', or the string "nil" if the
    class_ is Nil.  */
 objc_EXPORT const char * class_getName (Class class_);
+
+/* Return YES if 'class_' is a meta class, and NO if not.  If 'class_'
+   is Nil, return NO.  */
+objc_EXPORT BOOL class_isMetaClass (Class class_);
+
+/* Return the superclass of 'class_'.  If 'class_' is Nil, or it is a root
+   class, return Nil.
+
+   TODO: It may be worth to define this inline, since it is usually
+   used in loops when traversing the class hierarchy.  */
+objc_EXPORT Class class_getSuperclass (Class class_);
+
+/* Return the 'version' number of the class, which is an integer that
+   can be used to track changes in the class API, methods and
+   variables.  If class_ is Nil, return 0.  If class_ is not Nil, the
+   version is 0 unless class_setVersion() has been called to set a
+   different one.
+
+   Please note that internally the version is a long, but the API only
+   allows you to set and retrieve int values.  */
+objc_EXPORT int class_getVersion (Class class_);
+
+/* Set the 'version' number of the class, which is an integer that can
+   be used to track changes in the class API, methods and variables.
+   If 'class_' is Nil, does nothing.
+
+   This is typically used internally by "Foundation" libraries such as
+   GNUstep Base to support serialization / deserialization of objects
+   that work across changes in the classes.  If you are using such a
+   library, you probably want to use their versioning API, which may
+   be based on this one, but is integrated with the rest of the
+   library.
+
+   Please note that internally the version is a long, but the API only
+   allows you to set and retrieve int values.  */
+objc_EXPORT void class_setVersion (Class class_, int version);
+
+/* Return the size in bytes (a byte is the size of a char) of an
+   instance of the class.  If class_ is Nil, return 0; else it return
+   a non-zero number (since the 'isa' instance variable is required
+   for all classes).  */
+objc_EXPORT size_t class_getInstanceSize (Class class_);
+
+/* Change the implementation of the method.  It also searches all
+   classes for any class implementing the method, and replaces the
+   existing implementation with the new one.  For that to work,
+   'method' must be a method returned by class_getInstanceMethod() or
+   class_getClassMethod() as the matching is done by comparing the
+   pointers; in that case, only the implementation in the class is
+   modified.  Return the previous implementation that has been
+   replaced.  If method or implementation is NULL, do nothing and
+   return NULL.  */
+objc_EXPORT IMP
+method_setImplementation (Method method, IMP implementation);
+
+/* Swap the implementation of two methods in a single, atomic
+   operation.  This is equivalent to getting the implementation of
+   each method and then calling method_setImplementation() on the
+   other one.  For this to work, the two methods must have been
+   returned by class_getInstanceMethod() or class_getClassMethod().
+   If 'method_a' or 'method_b' is NULL, do nothing.  */
+objc_EXPORT void
+method_exchangeImplementations (Method method_a, Method method_b);
+
+
+/** Implementation: the following functions are in sendmsg.c.  */
+
+/* Return the instance method with selector 'selector' of class
+   'class_', or NULL if the class (or one of its superclasses) does
+   not implement the method.  Return NULL if class_ is Nil or selector
+   is NULL.  */
+objc_EXPORT Method class_getInstanceMethod (Class class_, SEL selector);
+
+/* Return the class method with selector 'selector' of class 'class_',
+   or NULL if the class (or one of its superclasses) does not
+   implement the method.  Return NULL if class_ is Nil or selector is
+   NULL.  */
+objc_EXPORT Method class_getClassMethod (Class class_, SEL selector);
+
+/* Return the IMP (pointer to the function implementing a method) for
+   the instance method with selector 'selector' in class 'class_'.
+   This is the same routine that is used while messaging, and should
+   be very fast.  Note that you most likely would need to cast the
+   return function pointer to a function pointer with the appropriate
+   arguments and return type before calling it.  To get a class
+   method, you can pass the meta-class as the class_ argument (ie, use
+   class_getMethodImplementation (object_getClass (class_),
+   selector)).  Return NULL if class_ is Nil or selector is NULL.  */
+objc_EXPORT IMP class_getMethodImplementation (Class class_, SEL selector);
+
+/* Compatibility Note: the Apple/NeXT runtime has the function
+   class_getMethodImplementation_stret () which currently does not
+   exist on the GNU runtime because the messaging implementation is
+   different.  */
+
+/* Return YES if class 'class_' has an instance method implementing
+   selector 'selector', and NO if not.  Return NO if class_ is Nil or
+   selector is NULL.  If you need to check a class method, use the
+   meta-class as the class_ argument (ie, use class_respondsToSelector
+   (object_getClass (class_), selector)).  */
+objc_EXPORT BOOL class_respondsToSelector (Class class_, SEL selector);
+
+
+/** Implementation: the following functions are in methods.c.  */
+
+/* Return the selector for method 'method'.  Return NULL if 'method'
+   is NULL.
+
+   This function is misnamed; it should be called
+   'method_getSelector'.  To get the actual name, get the selector,
+   then the name from the selector (ie, use sel_getName
+   (method_getName (method))).  */
+objc_EXPORT SEL method_getName (Method method);
+
+/* Return the IMP of the method.  Return NULL if 'method' is NULL.  */
+objc_EXPORT IMP method_getImplementation (Method method);
+
+/* Return the type encoding of the method.  Return NULL if 'method' is
+   NULL.  */
+objc_EXPORT const char * method_getTypeEncoding (Method method);
+
+/* Return a method description for the method.  Return NULL if
+   'method' is NULL.  */
+objc_EXPORT struct objc_method_description * method_getDescription (Method method);
+
+/* Return all the instance methods of the class.  The return value of
+   the function is a pointer to an area, allocated with malloc(), that
+   contains all the instance methods of the class.  It does not
+   include instance methods of superclasses.  The list is terminated
+   by NULL.  Optionally, if you pass a non-NULL
+   'numberOfReturnedMethods' pointer, the unsigned int that it points
+   to will be filled with the number of instance methods returned.  To
+   get the list of class methods, pass the meta-class in the 'class_'
+   argument, (ie, use class_copyMethodList (object_getClass (class_),
+   &numberOfReturnedMethods)).  */
+objc_EXPORT Method * class_copyMethodList (Class class_, unsigned int *numberOfReturnedMethods);
+
+
+/** Implementation: the following functions are in encoding.c.  */
+
+/* Return the number of arguments that the method 'method' expects.
+   Note that all methods need two implicit arguments ('self' for the
+   receiver, and '_cmd' for the selector).  Return 0 if 'method' is
+   NULL.  */
+objc_EXPORT unsigned int method_getNumberOfArguments (Method method);
+
+/* Return the string encoding for the return type of method 'method'.
+   The string is a standard zero-terminated string in an area of
+   memory allocated with malloc(); you should free it with free() when
+   you finish using it.  Return an empty string if method is NULL.  */
+objc_EXPORT char * method_copyReturnType (Method method);
+
+/* Return the string encoding for the argument type of method
+   'method', argument number 'argumentNumber' ('argumentNumber' is 0
+   for self, 1 for _cmd, and 2 or more for the additional arguments if
+   any).  The string is a standard zero-terminated string in an area
+   of memory allocated with malloc(); you should free it with free()
+   when you finish using it.  Return an empty string if method is NULL
+   or if 'argumentNumber' refers to a non-existing argument.  */
+objc_EXPORT char * method_copyArgumentType (Method method, unsigned int argumentNumber);
+
+/* Return the string encoding for the return type of method 'method'.
+   The string is returned by copying it into the supplied
+   'returnValue' string, which is of size 'returnValueSize'.  No more
+   than 'returnValueSize' characters are copied; if the encoding is
+   smaller than 'returnValueSize', the rest of 'returnValue' is filled
+   with zeros.  If it is bigger, it is truncated (and would not be
+   zero-terminated).  You should supply a big enough
+   'returnValueSize'.  If the method is NULL, returnValue is set to a
+   string of zeros.  */
+objc_EXPORT void method_getReturnType (Method method, char *returnValue, 
+				       size_t returnValueSize);
+
+/* Return the string encoding for the argument type of method
+   'method', argument number 'argumentNumber' ('argumentNumber' is 0
+   for self, 1 for _cmd, and 2 or more for the additional arguments if
+   any).  The string is returned by copying it into the supplied
+   'returnValue' string, which is of size 'returnValueSize'.  No more
+   than 'returnValueSize' characters are copied; if the encoding is
+   smaller than 'returnValueSize', the rest of 'returnValue' is filled
+   with zeros.  If it is bigger, it is truncated (and would not be
+   zero-terminated).  You should supply a big enough
+   'returnValueSize'.  If the method is NULL, returnValue is set to a
+   string of zeros.  */
+objc_EXPORT void method_getArgumentType (Method method, unsigned int argumentNumber,
+					 char *returnValue, size_t returnValueSize);
 
 
 /** Implementation: the following functions are in protocols.c.  */
@@ -543,11 +802,38 @@ struct __objcFastEnumerationState
 */
 
 
+/** Implementation: the following functions are in memory.c.  */
+
+/* Traditional GNU Objective-C Runtime functions that are used for
+   memory allocation and disposal.  These functions are used in the
+   same way as you use malloc, realloc, calloc and free and make sure
+   that memory allocation works properly with the garbage
+   collector.
+
+   Compatibility Note: these functions are not available with the
+   Apple/NeXT runtime.  */
+
+objc_EXPORT void *objc_malloc(size_t size);
+
+/* FIXME: Shouldn't the following be called objc_malloc_atomic ?  The
+   GC function is GC_malloc_atomic() which makes sense.
+ */
+objc_EXPORT void *objc_atomic_malloc(size_t size);
+
+objc_EXPORT void *objc_realloc(void *mem, size_t size);
+
+objc_EXPORT void *objc_calloc(size_t nelem, size_t size);
+
+objc_EXPORT void objc_free(void *mem);
+
+
 /** Implementation: the following functions are in encoding.c.  */
 
 /* Traditional GNU Objective-C Runtime functions that are currently
    used to implement method forwarding.
-*/
+
+   Compatibility Note: these functions are not available with the
+   Apple/NeXT runtime.  */
 
 /* Return the size of a variable which has the specified 'type'
    encoding.  */

@@ -1,3 +1,290 @@
+2010-10-16  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-ivar.m: New.
+
+2010-10-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-property.m: New.
+
+2010-10-15  Xinliang David Li  <davidxl@google.com>
+
+	* g++.dg/uninit-pred-3_a.C: New test.
+	* g++.dg/uninit-pred-3_b.C: New test.
+
+2010-10-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-object.m: New.
+
+2010-10-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-method.m: New.
+
+2010-10-15  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/lto/pr45983_0.C: New.
+
+2010-10-14  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-fma-1.c: New tests for powerpc FMA
+	builtin combiner patterns.
+	* gcc.target/powerpc/ppc-fma-2.c: Ditto.
+	* gcc.target/powerpc/ppc-fma-3.c: Ditto.
+	* gcc.target/powerpc/ppc-fma-4.c: Ditto.
+	* gcc.target/powerpc/ppc-fma-5.c: Ditto.
+	* gcc.target/powerpc/ppc-fma-6.c: Ditto.
+
+2010-10-15  Richard Guenther  <rguenther@suse.de>
+
+	* g++.dg/lto/20101015-1_0.C: New testcase.
+
+2010-10-15  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/46021
+	* gcc.dg/tree-ssa/20031106-3.c: Remove XFAIL.
+	* gcc.dg/tree-ssa/fre-vce-1.c: Likewise.
+
+2010-10-15  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/45957
+	* g++.dg/lto/20101014-1_0.C: New testcase.
+
+2010-10-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-protocol.m: New.
+	* objc.dg/gnu-api-2-sel.m: New.
+
+2010-10-15  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* g++.dg/torture/stackalign/eh-vararg-2.C: Fix dg-options for
+	arm-eabi targets.
+
+2010-10-15  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* gcc.dg/20101010-1.c: New testcase.
+
+2010-10-15  Jie Zhang  <jie@codesourcery.com>
+
+	* lib/lto.exp (lto-link-and-maybe-run): Use the default linker
+	script when relocatable linking.
+
+2010-10-14  Yao Qi  <yao@codesourcery.com>
+
+	PR target/45447
+	* gcc.target/arm/pr45447.c: New test.
+
+2010-10-14  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/45621
+	* g++.dg/lto/pr45621.h : New.
+	* g++.dg/lto/pr45621_0.C: New.
+	* g++.dg/lto/pr45621_1.C: New.
+
+2010-10-14  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/property: New.
+	* objc.dg/property/fsf-property-basic.m: New.
+	* objc.dg/property/fsf-property-method-access.m: New.
+	* objc.dg/property/fsf-property-named-ivar.m: New.
+	* obj-c++.dg/property: New.
+	* obj-c++.dg/property/fsf-property-basic.mm: New.
+	* obj-c++.dg/property/fsf-property-method-access.mm: New.
+	* obj-c++.dg/property/fsf-property-named-ivar.mm: New.
+
+	merge from FSF apple 'trunk' branch.
+	2006 Fariborz Jahanian <fjahanian@apple.com>
+
+	Radars 4436866, 4505126, 4506903, 4517826
+	* objc.dg/property/property-1.m: New.
+	* objc.dg/property/property-2.m: New.
+	* objc.dg/property/property-3.m: New.
+	* objc.dg/property/property-neg-1.m: New.
+	* objc.dg/property/property-neg-2.m: New.
+	* objc.dg/property/property-neg-3.m: New.
+	* objc.dg/property/property-neg-4.m: New.
+	* objc.dg/property/property-neg-5.m: New.
+	* objc.dg/property/property-neg-6.m: New.
+	* objc.dg/property/property-neg-7.m: New.
+	* objc.dg/property/property.exp: New.
+	* obj-c++.dg/property/property-1.mm: New.
+	* obj-c++.dg/property/property-2.mm: New.
+	* obj-c++.dg/property/property-3.mm: New.
+	* obj-c++.dg/property/property-neg-1.mm: New.
+	* obj-c++.dg/property/property-neg-2.mm: New.
+	* obj-c++.dg/property/property-neg-3.mm: New.
+	* obj-c++.dg/property/property-neg-4.mm: New.
+	* obj-c++.dg/property/property-neg-5.mm: New.
+	* obj-c++.dg/property/property-neg-6.mm: New.
+	* obj-c++.dg/property/property-neg-7.mm: New.
+	* obj-c++.dg/property/property.exp: New.
+
+2010-10-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.dg/pr45570.c: Fix typos.  Also run for i?86-*-*.
+
+2010-10-14  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/45969
+	* gcc.c-torture/compile/pr45969-1.c: New test.
+
+2010-10-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/44913
+	* gcc.dg/torture/pr44913.c: New testcase.
+
+2010-10-14  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/45382
+	* g++.dg/lto/20101014-2_0.C: New testcase.
+
+2010-10-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/avx-copysign-vec.c: Add -mtune=generic.
+	* gcc.target/i386/avx-copysignf-vec.c: Likewise.
+	* gcc.target/i386/pr44130.c: Likewise.
+	* gcc.target/i386/pr44144.c: Likewise.
+	* gcc.target/i386/pr44180.c: Likewise.
+	* gcc.target/i386/recip-vec-divf-avx.c: Likewise.
+	* gcc.target/i386/recip-vec-sqrtf-avx.c: Likewise.
+	* gcc.target/i386/vect-sizes-1.c: Likewise.
+	* gcc.target/i386/vectorize4-avx.c: Likewise.
+
+2010-10-14  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/44561
+	* g++.dg/lto/20101010-3_0.C: New testcase.
+	* g++.dg/lto/20101010-4_0.C: Likewise.
+
+2010-10-14  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/pr45878.m: Update to include NSConstantString interface
+	for -fnext-runtime.
+	* objc.dg/pr23214.m: Use the Object1.m implementation to build m64 on
+	-fnext-runtime, XFAIL the m64 -fnext-runtime run.
+	* objc.dg/objc-foreach-4.m: Provide an NSConstantString dummy class
+	reference for m64 -fnext-runtime.
+
+2010-10-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/vect-sizes-1.c: New.
+
+2010-10-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/46011
+	* gcc.target/i386/vectorize4-avx.c: Scan 256bit AVX register and xfail.
+
+2010-10-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/recip-vec-sqrtf-avx.c: Scan 256bit AVX register.
+	* gcc.target/i386/recip-vec-divf-avx.c: Likewise.
+
+2010-10-14  Andrey Belevantsev  <abel@ispras.ru>
+
+	* gcc.target/ia64/20101005.c: New test.
+
+2010-10-14  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/45570
+	* gcc.dg/pr45570.c: New test.
+
+2010-10-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/recip-vec-sqrtf-avx.c: New.
+	* gcc.target/i386/recip-vec-divf-avx.c: Likewise.
+	* gcc.target/i386/vectorize4-avx.c: Likewise.
+
+2010-10-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/avx-copysign-vec.c: New.
+	* gcc.target/i386/avx-copysignf-vec.c: Likewise.
+
+2010-10-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/44130
+	* gcc.target/i386/pr44130.c: New.
+
+2010-10-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/44144
+	* gcc.target/i386/pr44144.c: New.
+
+2010-10-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44180
+	* gcc.target/i386/pr44180.c: New.
+
+2010-10-13  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/canon-type-8.C: New.
+
+2010-10-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/execute/20101013-1.c: New test.
+
+2010-10-13  Richard Guenther  <rguenther@suse.de>
+
+	PR objc/45878
+	* objc.dg/pr45878.m: New testcase.
+
+2010-10-13  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.dg/format/dfp-scanf-1.c: Disable for *-*-mingw* targets.
+	* gcc.dg/format/dfp-printf-1.c: Likewise.
+	* gcc.dg/format/ms_unnamed-1.c: Adjust linenumber for warning.
+
+2010-10-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45788
+	* g++.dg/pr45788.C: New testcase.
+
+2010-10-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45970
+	* gcc.dg/tree-ssa/ssa-dse-13.c: New testcase.
+
+2010-10-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45982
+	* gcc.dg/torture/pr45982.c: New testcase.
+	* gcc.dg/tree-ssa/pr24287.c: Adjust.
+	* gcc.dg/tree-ssa/pta-callused.c: Likewise.
+	* gcc.dg/torture/pr39074-2.c: Likewise.
+
+2010-10-13  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45874
+	* g++.dg/torture/pr45874.C: New testcase.
+
+2010-10-13  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/attributes/method-attribute-1.m: Update to respond
+	to implemented method attributes..
+	* objc.dg/attributes/method-attribute-2.m: Likewise.
+	* objc.dg/attributes/method-attribute-3.m: Likewise.
+	* obj-c++.dg/attributes/method-attribute-1.mm: Likewise.
+	* obj-c++.dg/attributes/method-attribute-2.mm: Likewise.
+	* obj-c++.dg/attributes/method-attribute-3.mm: Likewise.
+
+2010-10-13  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR libobjc/23214
+	* objc.dg/pr23214.m: New.
+
+2010-10-12  Michael Eager  <eager@eagercon.com>
+
+	PR testsuite/45856
+	* gcc.c-torture/execute/cmpsi-2.c: Use int, not long.
+	* gcc.c-torture/execute/cmpsf-1.c: Use float, regen correct table.
+
+2010-10-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/45636
+	* gcc.c-torture/execute/pr45636.c: New test.
+	* gfortran.dg/pr45636.f90: New test.
+
+2010-10-12  Richard Henderson  <rth@redhat.com>
+
+	* g++.dg/abi/mangle40.C: Robustify tests for defined symbols.
+
 2010-10-12  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/38936
@@ -27,7 +314,7 @@
 2010-10-11  Nick Clifton  <nickc@redhat.com>
 
 	* gcc.c-torture/compile/pr44197.c: Require visibility support.
-        Allow for a user label prefix.
+	Allow for a user label prefix.
 
 2010-10-10  Richard Guenther  <rguenther@suse.de>
 

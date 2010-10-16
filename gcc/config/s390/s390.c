@@ -1503,13 +1503,19 @@ s390_option_optimization (int level ATTRIBUTE_UNUSED, int size)
   /* ??? There are apparently still problems with -fcaller-saves.  */
   flag_caller_saves = 0;
 
-  /* By default, always emit DWARF-2 unwind info.  This allows debugging
-     without maintaining a stack frame back-chain.  */
-  flag_asynchronous_unwind_tables = 1;
-
   /* Use MVCLE instructions to decrease code size if requested.  */
   if (size != 0)
     target_flags |= MASK_MVCLE;
+}
+
+/* Implement TARGET_OPTION_INIT_STRUCT.  */
+
+static void
+s390_option_init_struct (struct gcc_options *opts)
+{
+  /* By default, always emit DWARF-2 unwind info.  This allows debugging
+     without maintaining a stack frame back-chain.  */
+  opts->x_flag_asynchronous_unwind_tables = 1;
 }
 
 /* Return true if ARG is the name of a processor.  Set *TYPE and *FLAGS
@@ -1687,22 +1693,42 @@ s390_option_override (void)
   if (s390_tune == PROCESSOR_2097_Z10
       || s390_tune == PROCESSOR_2817_Z196)
     {
-      maybe_set_param_value (PARAM_MAX_UNROLLED_INSNS, 100);
-      maybe_set_param_value (PARAM_MAX_UNROLL_TIMES, 32);
-      maybe_set_param_value (PARAM_MAX_COMPLETELY_PEELED_INSNS, 2000);
-      maybe_set_param_value (PARAM_MAX_COMPLETELY_PEEL_TIMES, 64);
+      maybe_set_param_value (PARAM_MAX_UNROLLED_INSNS, 100,
+			     global_options.x_param_values,
+			     global_options_set.x_param_values);
+      maybe_set_param_value (PARAM_MAX_UNROLL_TIMES, 32,
+			     global_options.x_param_values,
+			     global_options_set.x_param_values);
+      maybe_set_param_value (PARAM_MAX_COMPLETELY_PEELED_INSNS, 2000,
+			     global_options.x_param_values,
+			     global_options_set.x_param_values);
+      maybe_set_param_value (PARAM_MAX_COMPLETELY_PEEL_TIMES, 64,
+			     global_options.x_param_values,
+			     global_options_set.x_param_values);
     }
 
-  set_param_value ("max-pending-list-length", 256);
+  maybe_set_param_value (PARAM_MAX_PENDING_LIST_LENGTH, 256,
+			 global_options.x_param_values,
+			 global_options_set.x_param_values);
   /* values for loop prefetching */
-  set_param_value ("l1-cache-line-size", 256);
-  maybe_set_param_value (PARAM_L1_CACHE_SIZE, 128);
+  maybe_set_param_value (PARAM_L1_CACHE_LINE_SIZE, 256,
+			 global_options.x_param_values,
+			 global_options_set.x_param_values);
+  maybe_set_param_value (PARAM_L1_CACHE_SIZE, 128,
+			 global_options.x_param_values,
+			 global_options_set.x_param_values);
   /* s390 has more than 2 levels and the size is much larger.  Since
      we are always running virtualized assume that we only get a small
      part of the caches above l1.  */
-  maybe_set_param_value (PARAM_L2_CACHE_SIZE, 1500);
-  maybe_set_param_value (PARAM_PREFETCH_MIN_INSN_TO_MEM_RATIO, 2);
-  maybe_set_param_value (PARAM_SIMULTANEOUS_PREFETCHES, 6);
+  maybe_set_param_value (PARAM_L2_CACHE_SIZE, 1500,
+			 global_options.x_param_values,
+			 global_options_set.x_param_values);
+  maybe_set_param_value (PARAM_PREFETCH_MIN_INSN_TO_MEM_RATIO, 2,
+			 global_options.x_param_values,
+			 global_options_set.x_param_values);
+  maybe_set_param_value (PARAM_SIMULTANEOUS_PREFETCHES, 6,
+			 global_options.x_param_values,
+			 global_options_set.x_param_values);
 
   /* This cannot reside in s390_option_optimization since HAVE_prefetch
      requires the arch flags to be evaluated already.  Since prefetching
@@ -10486,6 +10512,9 @@ s390_loop_unroll_adjust (unsigned nunroll, struct loop *loop)
 
 #undef TARGET_OPTION_OPTIMIZATION
 #define TARGET_OPTION_OPTIMIZATION s390_option_optimization
+
+#undef TARGET_OPTION_INIT_STRUCT
+#define TARGET_OPTION_INIT_STRUCT s390_option_init_struct
 
 #undef	TARGET_ENCODE_SECTION_INFO
 #define TARGET_ENCODE_SECTION_INFO s390_encode_section_info

@@ -115,13 +115,15 @@ struct objc_ivar_list
    problem is a singly linked list of methods.  */
 struct objc_method
 {
-  SEL         method_name;  /* This variable is the method's name.  It
-			       is a char*.  The unique integer passed
-			       to objc_msg_send is a char* too.  It is
-			       compared against method_name using
-			       strcmp. */
+  SEL         method_name;  /* This variable is the method's name.
+			       The compiler puts a char* here, and
+			       it's replaced by a real SEL at runtime
+			       when the method is registered.  */
   const char* method_types; /* Description of the method's parameter
-			       list.  Useful for debuggers. */
+			       list.  Used when registering the
+			       selector with the runtime.  When that
+			       happens, method_name will contain the
+			       method's parameter list.  */
   IMP         method_imp;   /* Address of the method in the
 			       executable. */
 };
@@ -139,7 +141,12 @@ struct objc_method_list
 };
 
 /* Currently defined in Protocol.m (that definition should go away
-   once we include this file).  */
+   once we include this file).  Note that a 'struct
+   objc_method_description' as embedded inside a Protocol uses the
+   same trick as a 'struct objc_method': the method_name is a 'char *'
+   according to the compiler, who puts the method name as a string in
+   there.  At runtime, the selectors need to be registered, and the
+   method_name then becomes a SEL.  */
 struct objc_method_description_list
 {
   int count;
@@ -183,7 +190,7 @@ struct objc_class {
   const char*         name;             /* Name of the class. */
   long                version;          /* Unknown. */
   unsigned long       info;             /* Bit mask.  See class masks
-					   defined above. */
+					   defined below. */
   long                instance_size;    /* Size in bytes of the class.
 					   The sum of the class
 					   definition and all super
@@ -217,6 +224,45 @@ struct objc_class {
   void* gc_object_type;
 };
 #endif /* __objc_STRUCT_OBJC_CLASS_defined */
+
+/* This is used to assure consistent access to the info field of 
+   classes.  */
+#ifndef HOST_BITS_PER_LONG
+# define HOST_BITS_PER_LONG  (sizeof(long)*8)
+#endif 
+
+#define __CLS_INFO(cls) ((cls)->info)
+#define __CLS_ISINFO(cls, mask) ((__CLS_INFO(cls)&mask)==mask)
+#define __CLS_SETINFO(cls, mask) (__CLS_INFO(cls) |= mask)
+
+/* The structure is of type MetaClass */
+#define _CLS_META 0x2L
+#define CLS_ISMETA(cls) ((cls)&&__CLS_ISINFO(cls, _CLS_META))
+
+/* The structure is of type Class */
+#define _CLS_CLASS 0x1L
+#define CLS_ISCLASS(cls) ((cls)&&__CLS_ISINFO(cls, _CLS_CLASS))
+
+/* The class is initialized within the runtime.  This means that it
+   has had correct super and sublinks assigned.  */
+#define _CLS_RESOLV 0x8L
+#define CLS_ISRESOLV(cls) __CLS_ISINFO(cls, _CLS_RESOLV)
+#define CLS_SETRESOLV(cls) __CLS_SETINFO(cls, _CLS_RESOLV)
+
+/* The class has been send a +initialize message or a such is not 
+   defined for this class.  */
+#define _CLS_INITIALIZED 0x04L
+#define CLS_ISINITIALIZED(cls) __CLS_ISINFO(cls, _CLS_INITIALIZED)
+#define CLS_SETINITIALIZED(cls) __CLS_SETINFO(cls, _CLS_INITIALIZED)
+
+/* The class number of this class.  This must be the same for both the
+   class and its meta class object.  */
+#define CLS_GETNUMBER(cls) (__CLS_INFO(cls) >> (HOST_BITS_PER_LONG/2))
+#define CLS_SETNUMBER(cls, num) \
+  ({ (cls)->info <<= (HOST_BITS_PER_LONG/2); \
+     (cls)->info >>= (HOST_BITS_PER_LONG/2); \
+     __CLS_SETINFO(cls, (((unsigned long)num) << (HOST_BITS_PER_LONG/2))); })
+
 
 /* The compiler generates one of these structures for each category.
    A class may have many categories and contain both instance and

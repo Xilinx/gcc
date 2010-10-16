@@ -1,3 +1,229 @@
+2010-10-16  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* class.c (class_getSuperclass): Call __objc_resolve_class_links
+	if the class is not resolved yet.
+	* ivars.c (class_getInstanceVariable): Use class_getSuperclass.
+	
+2010-10-16  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc/runtime.h (class_getIvarLayout): New.
+	(class_getWeakIvarLayout): New.
+	(class_setIvarLayout): New.
+	(class_setWeakIvarLayout): New.
+	* ivars.c (class_getIvarLayout): New.
+	(class_getWeakIvarLayout): New.
+	(class_setIvarLayout): New.
+	(class_setWeakIvarLayout): New.	
+
+2010-10-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+	
+	* objc/runtime.h (class_copyPropertyList): New.
+	(class_getProperty): New.
+	(property_getAttributes): New.
+	(property_getName): New.
+	* ivars.c (class_copyPropertyList): New.
+	(class_getProperty): New.
+	(property_getAttributes): New.
+	(property_getName): New.
+	
+2010-10-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-private/runtime.h (__objc_update_classes_with_methods): New.
+	* class.c (__objc_update_classes_with_methods): New.
+	(objc_getClassList): Do not lock the class lock.
+	* methods.c (method_exchangeImplementations): New.
+	(method_setImplementation): New.
+	* objc/runtime.h (method_setImplementation): New.
+	(method_exchangeImplementations): New.
+	
+2010-10-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* Protocol.m: Include objc/runtime.h and
+	objc-private/module-abi-8.h instead of objc/objc-api.h.  Do not
+	repeat Protocol's instance variables.
+	(struct objc_method_description_list): Do not define here.
+	([-conformsTo:]): Reimplemented on top of protocol_conformsTo().
+	([descriptionForInstanceMethod:]): Use sel_isEqual() to compare
+	selectors directly instead of getting names and then using strcmp.
+	([descriptionForClassMethod:]): Same change.
+	([-isEqual:]): Reimplemented on top of protocol_isEqual().
+	* protocols.c (protocol_getMethodDescription): Use sel_isEqual()
+	to compare selectors directly instead of getting names and then
+	using strcmp.
+	* objc/Protocol.h: Updated comments.
+	
+2010-10-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* init.c (__objc_init_protocol): New function which fixes up a
+	protocol's class pointer, registers it with the runtime, register
+	all protocol selectors and registers associated protocols too.
+	(objc_init_statics): Detect if we are initializing protocols, and
+	if so, use __objc_init_protocol instead of only fixing up the
+	class pointer.
+	(__objc_init_protocls): Use __objc_init_protocol.
+	* objc-private/module-abi-8.h: Updated comments.
+	* objc-private/runtime.h
+	(__objc_register_selectors_from_description_list): New.
+	* selector.c (__objc_register_selectors_from_description_list):
+	New.  (struct objc_method_description_list): Declare.
+	* Protocol.m ([-descriptionForInstanceMethod:]): Use sel_get_name
+	when accessing the name of a method, which is now correctly a SEL.
+	([-descriptionForClassMethod:]): Same change.
+	* protocols.c (protocol_getMethodDescription): Same change.
+	* objc/runtime.h: Updated comments.
+	(sel_registerTypedName): Fixed typo in function name.
+	
+2010-10-13  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR libobjc/23214
+	* init.c (objc_init_statics): Do not skip the initialization of a
+	statics list if the first object has already been initialized; in
+	the case of Protocols, while the first one may have been
+	initialized, some others may not have been initialized yet.
+
+2010-10-13  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* Makefile.in (OBJC_DEPRECATED_H): Added
+	objc_get_uninstalled_dtable, objc_object_alloc.h and
+	struct_objc_static_instances.h.
+
+2010-10-13  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* encoding.c (method_copyReturnType): New.
+	(method_copyArgumentType): New.
+	(method_getReturnType): New.
+	(method_getArgumentType): New.
+	* methods.c (method_getDescription): New.
+	* objc/runtime.h (method_copyReturnType): New.
+	(method_copyArgumentType): New.
+	(method_getReturnType): New.
+	(method_getArgumentType): New.
+	(method_getDescription): New.
+	
+2010-10-12  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* encoding.c: Tidied up comments.
+	(objc_skip_variable_name): New static inline function.
+	(objc_sizeof_type): Use objc_skip_variable_name instead of copying
+	the same code over and over.
+	(objc_alignof_type): Same.
+	(objc_aligned_size): Same.
+	(objc_promoted_size): Same.
+	(objc_skip_typespec): Same.
+	(objc_layout_structure_next_member): Same.
+	(objc_skip_offset): Skip a '-' before the digits (if any).  Fixed
+	historical bug where objc_skip_offset would skip one byte even if
+	there is no offset: check that the first offset digit is actually
+	a digit before skipping it.
+	(objc_skip_type_qualifiers): Mark as inline.
+	(objc_skip_typespec): Mark as inline.	
+	
+2010-10-12  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* Makefile.in (C_SOURCE_FILES): Added methods.c.
+	* encoding.c (method_getNumberOfArguments): New.
+	(method_get_number_of_arguments): Call
+	method_getNumberOfArguments.
+	* ivars.c (ivar_getName): Check for NULL variable argument.
+	(ivar_getOffset): Check for NULL variable argument.
+	(ivar_getTypeEncoding): Check for NULL variable argument.
+	(class_copyIvarList): New.
+	* methods.c: New.
+	* protocols.c (class_copyProtocolList): Check for Nil class_
+	argument.
+	* sendmsg.c: Use 'struct objc_method *' instead of Method_t, and
+	'struct objc_method_list *' instead of MethodList_t.
+	(class_getMethodImplementation): New.
+	(class_respondsToSelector): New.
+	(class_getInstanceMethod): New.
+	(class_getClassMethod): New.
+	* objc/runtime.h: Updated comments.
+	(class_copyIvarList): New.
+	(class_getInstanceMethod): New.
+	(class_getClassMethod): New.
+	(class_getMethodImplementation): New.
+	(class_respondsToSelector): New.
+	(method_getName): New.
+	(method_getImplementation): New.
+	(method_getTypeEncoding): New.
+	(class_copyMethodList): New.
+	(method_getNumberOfArguments): New.
+	
+2010-10-12  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* class.c: Include objc/runtime.h and objc-private/module-abi-8.h
+	instead of objc/objc-api.h.
+	(objc_get_unknown_class_handler): Do not define.
+	(class_isMetaClass): New.
+	(class_getSuperclass): New.
+	(class_getVersion): New.
+	(class_setVersion): New.
+	(class_getInstanceSize): New.
+	* exceptions.c: Include objc/runtime.h instead of objc/objc-api.h.
+	(is_kind_of_exception_matcher): Use objc_getSuperclass instead of
+	objc_get_super_class.
+	(get_ttype_entry): Use objc_getRequiredClass instead of
+	objc_get_class.
+	* ivars.c (class_getClassVariable): New.
+	* objects.c: Include objc/runtime.h, objc/thr.h and
+	objc-private/module-abi-8.h instead of objc/objc-api.h
+	* objc/runtime.h (class_getClassVariable): New.
+	(class_isMetaClass): New.
+	(class_getSuperclass): New.
+	(class_getVersion): New.
+	(class_setVersion): New.
+	(class_getInstanceSize): New.
+	* objc-private/module-abi-8.h (HOST_BITS_PER_LONG): New (from
+	objc/objc-api.h)
+	(__CLS_INFO): Same.
+	(__CLS_ISINFO): Same.
+	(__CLS_SETINFO): Same.
+	(CLS_ISMETA): Same.
+	(CLS_ISCLASS): Same.
+	(CLS_ISRESOLV): Same.
+	(CLS_SETRESOLV): Same.
+	(CLS_ISINITIALIZED): Same.
+	(CLS_SETINITIALIZED): Same.
+	(CLS_GETNUMBER): Same.
+	(CLS_SETNUMBER): Same.
+
+2010-10-12  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* archive.c: Do not include objc/objc.h.
+	* class.c: Do not include objc/objc.h.
+	* encoding.c: Include objc/runtime.h, ctype.h and
+	objc-private/module-abi-8.h instead of objc/objc-api.h and
+	objc/encoding.h.
+	* error.c: Do not include objc/objc.h.
+	* gc.c: Include tconfig.h and objc/encoding.h only if
+	OBJC_WITH_GC.
+	* hash.c: Include objc/runtime.h and objc/thr.h instead of
+	objc/objc-api.h.  Do not include objc/objc.h.
+	* init.c: Do not include objc/objc.h.
+	* ivars.c: Include objc/runtime.h, objc-private/module-abi-8.h and
+	objc/thr.h instead of objc/objc-api.h.  Do not include
+	objc/objc.h.
+	* linking.m: Tidied comment.
+	* memory.c: Include objc/runtime.h instead of objc/objc-api.h.
+	Do not include objc/objc.h.
+	* objects.c: Do not include objc/objc.h.
+	* objc-sync.c: Include objc/runtime.h instead of objc/objc-api.h.
+	* protocols.c: Do not include objc/objc.h.
+	* sarray.c: Include objc/runtime.h instead of objc/objc-api.h.  Do
+	not include objc/objc.h.
+	* selector.c: Do not include objc/objc.h.
+	* sendmsg.c: Do not include objc/objc.h.	
+	* thr.c: Include objc/runtime.h instead of objc/objc-api.h.
+	Do not include objc/objc.h.
+	* objc/objc-decls.h: Reindented code.
+	* objc/runtime.h Include objc-decls.h.  Updated comments.
+	(objc_malloc): New.
+	(objc_atomic_malloc): New.
+	(objc_calloc): New.
+	(objc_realloc): New.
+	(objc_free): New.
+	* objc-private/runtime.h: Updated comments.
+	
 2010-10-12  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* Makefile.in (C_SOURCE_FILES): Added protocols.c.

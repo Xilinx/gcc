@@ -184,6 +184,7 @@ static rtx gen_block_redirect (rtx, int, int);
 static void sh_reorg (void);
 static void sh_option_override (void);
 static void sh_option_optimization (int, int);
+static void sh_option_init_struct (struct gcc_options *);
 static void sh_option_default_params (void);
 static void output_stack_adjust (int, rtx, int, HARD_REG_SET *, bool);
 static rtx frame_insn (rtx);
@@ -343,6 +344,8 @@ static const struct attribute_spec sh_attribute_table[] =
 #define TARGET_OPTION_OVERRIDE sh_option_override
 #undef TARGET_OPTION_OPTIMIZATION
 #define TARGET_OPTION_OPTIMIZATION sh_option_optimization
+#undef TARGET_OPTION_INIT_STRUCT
+#define TARGET_OPTION_INIT_STRUCT sh_option_init_struct
 #undef TARGET_OPTION_DEFAULT_PARAMS
 #define TARGET_OPTION_DEFAULT_PARAMS sh_option_default_params
 
@@ -725,15 +728,17 @@ sh_option_optimization (int level, int size)
       if (!size)
 	target_flags |= MASK_SAVE_ALL_TARGET_REGS;
     }
-  /* Likewise, we can't meaningfully test TARGET_SH2E / TARGET_IEEE
+}
+
+/* Implement TARGET_OPTION_INIT_STRUCT.  */
+static void
+sh_option_init_struct (struct gcc_options *opts)
+{
+  /* We can't meaningfully test TARGET_SH2E / TARGET_IEEE
      here, so leave it to TARGET_OPTION_OVERRIDE to set
-    flag_finite_math_only.  We set it to 2 here so we know if the user
-    explicitly requested this to be on or off.  */
-  flag_finite_math_only = 2;
-  /* If flag_schedule_insns is 1, we set it to 2 here so we know if
-     the user explicitly requested this to be on or off.  */
-  if (flag_schedule_insns > 0)
-    flag_schedule_insns = 2;
+     flag_finite_math_only.  We set it to 2 here so we know if the user
+     explicitly requested this to be on or off.  */
+  opts->x_flag_finite_math_only = 2;
 }
 
 /* Implement TARGET_OPTION_DEFAULT_PARAMS.  */
@@ -923,11 +928,12 @@ sh_option_override (void)
          <http://gcc.gnu.org/ml/gcc-patches/2005-10/msg00816.html>.  */
       else if (flag_exceptions)
 	{
-	  if (flag_schedule_insns == 1)
+	  if (flag_schedule_insns && global_options_set.x_flag_schedule_insns)
 	    warning (0, "ignoring -fschedule-insns because of exception handling bug");
 	  flag_schedule_insns = 0;
 	}
-      else if (flag_schedule_insns == 2)
+      else if (flag_schedule_insns
+	       && !global_options_set.x_flag_schedule_insns)
 	flag_schedule_insns = 0;
     }
 

@@ -2624,8 +2624,9 @@ struct GTY(()) tree_decl_minimal {
   (FUNCTION_DECL_CHECK (NODE)->function_decl.personality)
 
 /* Nonzero for a given ..._DECL node means that the name of this node should
-   be ignored for symbolic debug purposes.  Moreover, for a FUNCTION_DECL,
-   the body of the function should also be ignored.  */
+   be ignored for symbolic debug purposes.  For a TYPE_DECL, this means that
+   the associated type should be ignored.  For a FUNCTION_DECL, the body of
+   the function should also be ignored.  */
 #define DECL_IGNORED_P(NODE) \
   (DECL_COMMON_CHECK (NODE)->decl_common.ignored_flag)
 
@@ -5068,6 +5069,7 @@ extern bool merge_ranges (int *, tree *, tree *, int, tree, tree, int,
 extern void set_builtin_user_assembler_name (tree decl, const char *asmspec);
 extern bool is_simple_builtin (tree);
 extern bool is_inexpensive_builtin (tree);
+extern bool mode_has_fma (enum machine_mode mode);
 
 /* In convert.c */
 extern tree strip_float_extensions (tree);

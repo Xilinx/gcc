@@ -1136,7 +1136,7 @@ static rtx altivec_expand_vec_set_builtin (tree);
 static rtx altivec_expand_vec_ext_builtin (tree, rtx);
 static int get_element_number (tree, tree);
 static void rs6000_option_override (void);
-static void rs6000_option_optimization (int, int);
+static void rs6000_option_init_struct (struct gcc_options *);
 static void rs6000_option_default_params (void);
 static bool rs6000_handle_option (size_t, const char *, int);
 static void rs6000_parse_tls_size_option (void);
@@ -1602,8 +1602,8 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE rs6000_option_override
 
-#undef TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION rs6000_option_optimization
+#undef TARGET_OPTION_INIT_STRUCT
+#define TARGET_OPTION_INIT_STRUCT rs6000_option_init_struct
 
 #undef TARGET_OPTION_DEFAULT_PARAMS
 #define TARGET_OPTION_DEFAULT_PARAMS rs6000_option_default_params
@@ -3159,11 +3159,19 @@ rs6000_option_override_internal (const char *default_cpu)
       }
 
   maybe_set_param_value (PARAM_SIMULTANEOUS_PREFETCHES,
-			 rs6000_cost->simultaneous_prefetches);
-  maybe_set_param_value (PARAM_L1_CACHE_SIZE, rs6000_cost->l1_cache_size);
+			 rs6000_cost->simultaneous_prefetches,
+			 global_options.x_param_values,
+			 global_options_set.x_param_values);
+  maybe_set_param_value (PARAM_L1_CACHE_SIZE, rs6000_cost->l1_cache_size,
+			 global_options.x_param_values,
+			 global_options_set.x_param_values);
   maybe_set_param_value (PARAM_L1_CACHE_LINE_SIZE,
-			 rs6000_cost->cache_line_size);
-  maybe_set_param_value (PARAM_L2_CACHE_SIZE, rs6000_cost->l2_cache_size);
+			 rs6000_cost->cache_line_size,
+			 global_options.x_param_values,
+			 global_options_set.x_param_values);
+  maybe_set_param_value (PARAM_L2_CACHE_SIZE, rs6000_cost->l2_cache_size,
+			 global_options.x_param_values,
+			 global_options_set.x_param_values);
 
   /* If using typedef char *va_list, signal that __builtin_va_start (&ap, 0)
      can be optimized to ap = __builtin_next_arg (0).  */
@@ -3673,20 +3681,19 @@ rs6000_parse_tls_size_option (void)
     error ("bad value %qs for -mtls-size switch", rs6000_tls_size_string);
 }
 
+/* Implement TARGET_OPTION_INIT_STRUCT.  */
+
 static void
-rs6000_option_optimization (int level ATTRIBUTE_UNUSED,
-			    int size ATTRIBUTE_UNUSED)
+rs6000_option_init_struct (struct gcc_options *opts)
 {
   if (DEFAULT_ABI == ABI_DARWIN)
     /* The Darwin libraries never set errno, so we might as well
        avoid calling them when that's the only reason we would.  */
-    flag_errno_math = 0;
+    opts->x_flag_errno_math = 0;
 
-  /* Enable section anchors by default.
-     Skip section anchors for Objective C and Objective C++
-     until front-ends fixed.  */
-  if (!TARGET_MACHO && lang_hooks.name[4] != 'O')
-    flag_section_anchors = 2;
+  /* Enable section anchors by default.  */
+  if (!TARGET_MACHO)
+    opts->x_flag_section_anchors = 1;
 }
 
 /* Implement TARGET_OPTION_DEFAULT_PARAMS.  */
@@ -3931,6 +3938,22 @@ rs6000_builtin_vectorized_function (tree fndecl, tree type_out,
 	    return rs6000_builtin_decls[VSX_BUILTIN_XVRSPIM];
 	  if (VECTOR_UNIT_ALTIVEC_P (V4SFmode))
 	    return rs6000_builtin_decls[ALTIVEC_BUILTIN_VRFIM];
+	  break;
+	case BUILT_IN_FMA:
+	  if (VECTOR_UNIT_VSX_P (V2DFmode)
+	      && out_mode == DFmode && out_n == 2
+	      && in_mode == DFmode && in_n == 2)
+	    return rs6000_builtin_decls[VSX_BUILTIN_XVMADDDP];
+	  break;
+	case BUILT_IN_FMAF:
+	  if (VECTOR_UNIT_VSX_P (V4SFmode)
+	      && out_mode == SFmode && out_n == 4
+	      && in_mode == SFmode && in_n == 4)
+	    return rs6000_builtin_decls[VSX_BUILTIN_XVMADDSP];
+	  else if (VECTOR_UNIT_ALTIVEC_P (V4SFmode)
+	      && out_mode == SFmode && out_n == 4
+	      && in_mode == SFmode && in_n == 4)
+	    return rs6000_builtin_decls[ALTIVEC_BUILTIN_VMADDFP];
 	  break;
 	case BUILT_IN_TRUNC:
 	  if (VECTOR_UNIT_VSX_P (V2DFmode)
@@ -17159,7 +17182,13 @@ output_isel (rtx *operands)
 
   code = GET_CODE (operands[1]);
 
-  gcc_assert (!(code == GE || code == GEU || code == LE || code == LEU || code == NE));
+  if (code == GE || code == GEU || code == LE || code == LEU || code == NE)
+    {
+      gcc_assert (GET_CODE (operands[2]) == REG
+		  && GET_CODE (operands[3]) == REG);
+      PUT_CODE (operands[1], reverse_condition (code));
+      return "isel %0,%3,%2,%j1";
+    }
 
   return "isel %0,%2,%3,%j1";
 }
@@ -25731,7 +25760,7 @@ rs6000_rtx_costs (rtx x, int code, int outer_code, int *total,
 	  || (outer_code == COMPARE
 	      && (satisfies_constraint_I (x)
 		  || satisfies_constraint_K (x)))
-	  || (outer_code == EQ
+	  || ((outer_code == EQ || outer_code == NE)
 	      && (satisfies_constraint_I (x)
 		  || satisfies_constraint_K (x)
 		  || (mode == SImode

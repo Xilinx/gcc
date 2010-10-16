@@ -837,6 +837,7 @@ DATESTAMP_c := $(shell cat $(DATESTAMP))
 
 ifeq (,$(wildcard $(REVISION)))
 REVISION_c  :=
+REVISION    :=
 else
 REVISION_c  := $(shell cat $(REVISION))
 endif
@@ -2250,11 +2251,7 @@ gcc-options.o: options.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) opts.h intl
 
 dumpvers: dumpvers.c
 
-ifdef REVISION_c
 version.o: version.c version.h $(REVISION) $(DATESTAMP) $(BASEVER) $(DEVPHASE)
-else
-version.o: version.c version.h $(DATESTAMP) $(BASEVER) $(DEVPHASE)
-endif
 	$(COMPILER) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
 	-DBASEVER=$(BASEVER_s) -DDATESTAMP=$(DATESTAMP_s) \
 	-DREVISION=$(REVISION_s) \
@@ -2409,7 +2406,7 @@ tree-ssa-dse.o : tree-ssa-dse.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 tree-ssa-forwprop.o : tree-ssa-forwprop.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TM_H) $(TREE_H) $(TM_P_H) $(BASIC_BLOCK_H) \
    $(TREE_FLOW_H) $(TREE_PASS_H) $(TREE_DUMP_H) $(DIAGNOSTIC_H) $(TIMEVAR_H) \
-   langhooks.h $(FLAGS_H) $(GIMPLE_H) tree-pretty-print.h
+   langhooks.h $(FLAGS_H) $(GIMPLE_H) tree-pretty-print.h $(EXPR_H)
 tree-ssa-phiprop.o : tree-ssa-phiprop.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TM_H) $(TREE_H) $(TM_P_H) $(BASIC_BLOCK_H) \
    $(TREE_FLOW_H) $(TREE_PASS_H) $(TREE_DUMP_H) $(DIAGNOSTIC_H) $(TIMEVAR_H) \
@@ -3814,7 +3811,7 @@ s-gtyp-input: Makefile
 
 s-gtype: build/gengtype$(build_exeext) $(filter-out [%], $(GTFILES)) \
 	 gtyp-input.list
-	$(RUN_GEN) build/gengtype$(build_exeext) $(srcdir) gtyp-input.list
+	$(RUN_GEN) build/gengtype$(build_exeext) -S $(srcdir) -I gtyp-input.list
 	$(STAMP) s-gtype
 
 generated_files = config.h tm.h $(TM_P_H) $(TM_H) multilib.h \
@@ -3833,6 +3830,16 @@ $(ALL_HOST_OBJS) : | $(generated_files)
 build/%.o :  # dependencies provided by explicit rule later
 	$(COMPILER_FOR_BUILD) -c $(BUILD_COMPILERFLAGS) $(BUILD_CPPFLAGS) \
 		-o $@ $<
+
+## build/version.o is compiled by the $(COMPILER_FOR_BUILD) but needs
+## several C macro definitions, just like version.o
+build/version.o:  version.c version.h \
+                  $(REVISION) $(DATESTAMP) $(BASEVER) $(DEVPHASE)
+	$(COMPILER_FOR_BUILD) -c $(BUILD_COMPILERFLAGS) $(BUILD_CPPFLAGS) \
+	-DBASEVER=$(BASEVER_s) -DDATESTAMP=$(DATESTAMP_s) \
+	-DREVISION=$(REVISION_s) \
+	-DDEVPHASE=$(DEVPHASE_s) -DPKGVERSION=$(PKGVERSION_s) \
+	-DBUGURL=$(BUGURL_s) -o $@ $<
 
 # Header dependencies for the programs that generate source code.
 # These are library modules...
@@ -3943,7 +3950,8 @@ genprog = $(genprogerr) check checksum condmd
 build/genautomata$(build_exeext) : BUILD_LIBS += -lm
 
 # These programs are not linked with the MD reader.
-build/gengtype$(build_exeext) : build/gengtype-lex.o build/gengtype-parse.o
+build/gengtype$(build_exeext) : build/gengtype-lex.o build/gengtype-parse.o \
+              build/version.o
 
 # Rule for the generator programs:
 $(genprog:%=build/gen%$(build_exeext)): build/gen%$(build_exeext): build/gen%.o $(BUILD_LIBDEPS)

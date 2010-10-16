@@ -1,3 +1,38 @@
+2010-10-14  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* c-cppbuiltin.c (builtin_define_float_constants): Emit
+	__FP_FAST_FMA, __FP_FAST_FMAF, and __FP_FAST_FMAL if the machine
+	has the appropriate fma builtins.
+	(c_cpp_builtins): Adjust call to builtin_define_float_constants.
+
+2010-10-14  Iain Sandoe  <iains@gcc.gnu.org>
+
+	merge from FSF apple 'trunk' branch.
+	2006 Fariborz Jahanian <fjahanian@apple.com>
+
+	Radars 4436866, 4505126, 4506903, 4517826
+	* c-common.c (c_common_resword): Define @property and its attributes.
+	* c-common.h: Define property attribute enum entries.
+	(OBJC_IS_PATTR_KEYWORD): New.
+	(objc_property_attribute_kind): New enum.
+	Declare objc_set_property_attr (), objc_add_property_variable (),
+	objc_build_getter_call () and objc_build_setter_call ().
+	* stub-objc.c (objc_set_property_attr): New stub.
+	(objc_add_property_variable): Likewise.
+	(objc_build_getter_call): Likewise.
+	(objc_build_setter_call) Likewise.
+
+2010-10-13  Iain Sandoe  <iains@gcc.gnu.org>
+
+	merge from FSF apple 'trunk' branch.
+	2006-04-26 Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 3803157 (method attributes)
+	* c-common.c (handle_deprecated_attribute): Recognize
+	objc methods as valid declarations.
+	* c-common.h: Declare objc_method_decl ().
+	* stub-objc.c (objc_method_decl): New stub.
+
 2010-10-08  Joseph Myers  <joseph@codesourcery.com>
 
 	* c-common.c (parse_optimize_options): Call
