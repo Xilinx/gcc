@@ -115,11 +115,9 @@ extern enum rx_cpu_types  rx_cpu_type;
 #ifdef __RX_32BIT_DOUBLES__
 #define LIBGCC2_HAS_DF_MODE		0
 #define LIBGCC2_LONG_DOUBLE_TYPE_SIZE   32
-#define LIBGCC2_DOUBLE_TYPE_SIZE	32
 #else
 #define LIBGCC2_HAS_DF_MODE		1
 #define LIBGCC2_LONG_DOUBLE_TYPE_SIZE   64
-#define LIBGCC2_DOUBLE_TYPE_SIZE	64
 #endif
 
 #define DEFAULT_SIGNED_CHAR		0
@@ -269,8 +267,6 @@ enum reg_class
 #define REG_ALLOC_ORDER						\
 {  7,  10,  11,  12,  13,  14,  4,  3,  2,  1, 9, 8, 6, 5, 15	\
 }
-
-#define PREFERRED_RELOAD_CLASS(X,CLASS)		CLASS
 
 #define REGNO_IN_RANGE(REGNO, MIN, MAX)		\
   (IN_RANGE ((REGNO), (MIN), (MAX)) 		\

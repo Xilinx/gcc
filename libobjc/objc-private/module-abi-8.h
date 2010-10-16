@@ -115,13 +115,15 @@ struct objc_ivar_list
    problem is a singly linked list of methods.  */
 struct objc_method
 {
-  SEL         method_name;  /* This variable is the method's name.  It
-			       is a char*.  The unique integer passed
-			       to objc_msg_send is a char* too.  It is
-			       compared against method_name using
-			       strcmp. */
+  SEL         method_name;  /* This variable is the method's name.
+			       The compiler puts a char* here, and
+			       it's replaced by a real SEL at runtime
+			       when the method is registered.  */
   const char* method_types; /* Description of the method's parameter
-			       list.  Useful for debuggers. */
+			       list.  Used when registering the
+			       selector with the runtime.  When that
+			       happens, method_name will contain the
+			       method's parameter list.  */
   IMP         method_imp;   /* Address of the method in the
 			       executable. */
 };
@@ -139,7 +141,12 @@ struct objc_method_list
 };
 
 /* Currently defined in Protocol.m (that definition should go away
-   once we include this file).  */
+   once we include this file).  Note that a 'struct
+   objc_method_description' as embedded inside a Protocol uses the
+   same trick as a 'struct objc_method': the method_name is a 'char *'
+   according to the compiler, who puts the method name as a string in
+   there.  At runtime, the selectors need to be registered, and the
+   method_name then becomes a SEL.  */
 struct objc_method_description_list
 {
   int count;
@@ -174,7 +181,7 @@ struct objc_protocol_list
   places a string in the following member variables: super_class.
 */
 #ifndef __objc_STRUCT_OBJC_CLASS_defined
-struct objc_class {     
+struct objc_class {
   struct objc_class*  class_pointer;    /* Pointer to the class's meta
 					   class. */
   struct objc_class*  super_class;      /* Pointer to the super
@@ -227,6 +234,7 @@ struct objc_class {
 #define __CLS_INFO(cls) ((cls)->info)
 #define __CLS_ISINFO(cls, mask) ((__CLS_INFO(cls)&mask)==mask)
 #define __CLS_SETINFO(cls, mask) (__CLS_INFO(cls) |= mask)
+#define __CLS_SETNOTINFO(cls, mask) (__CLS_INFO(cls) &= ~mask)
 
 /* The structure is of type MetaClass */
 #define _CLS_META 0x2L
@@ -247,6 +255,16 @@ struct objc_class {
 #define _CLS_INITIALIZED 0x04L
 #define CLS_ISINITIALIZED(cls) __CLS_ISINFO(cls, _CLS_INITIALIZED)
 #define CLS_SETINITIALIZED(cls) __CLS_SETINFO(cls, _CLS_INITIALIZED)
+
+/* The class is being constructed; it has been allocated using
+   objc_allocateClassPair(), but has not been registered yet by using
+   objc_registerClassPair().  This means it is possible to freely add
+   instance variables to the class, but it can't be used for anything
+   yet.  */
+#define _CLS_IN_CONSTRUCTION 0x10L
+#define CLS_IS_IN_CONSTRUCTION(cls) __CLS_ISINFO(cls, _CLS_IN_CONSTRUCTION)
+#define CLS_SET_IN_CONSTRUCTION(cls) __CLS_SETINFO(cls, _CLS_IN_CONSTRUCTION)
+#define CLS_SET_NOT_IN_CONSTRUCTION(cls) __CLS_SETNOTINFO(cls, _CLS_IN_CONSTRUCTION)
 
 /* The class number of this class.  This must be the same for both the
    class and its meta class object.  */

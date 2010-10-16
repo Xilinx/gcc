@@ -1178,6 +1178,10 @@ build_int_cst_wide (tree type, unsigned HOST_WIDE_INT low, HOST_WIDE_INT hi)
 
   switch (TREE_CODE (type))
     {
+    case NULLPTR_TYPE:
+      gcc_assert (hi == 0 && low == 0);
+      /* Fallthru.  */
+
     case POINTER_TYPE:
     case REFERENCE_TYPE:
       /* Cache NULL pointer.  */
@@ -3186,6 +3190,10 @@ substitute_in_expr (tree exp, tree f, tree r)
       }
 
   TREE_READONLY (new_tree) |= TREE_READONLY (exp);
+
+  if (code == INDIRECT_REF || code == ARRAY_REF || code == ARRAY_RANGE_REF)
+    TREE_THIS_NOTRAP (new_tree) |= TREE_THIS_NOTRAP (exp);
+
   return new_tree;
 }
 
@@ -3353,6 +3361,10 @@ substitute_placeholder_in_expr (tree exp, tree obj)
       }
 
   TREE_READONLY (new_tree) |= TREE_READONLY (exp);
+
+  if (code == INDIRECT_REF || code == ARRAY_REF || code == ARRAY_RANGE_REF)
+    TREE_THIS_NOTRAP (new_tree) |= TREE_THIS_NOTRAP (exp);
+
   return new_tree;
 }
 
@@ -4466,22 +4478,6 @@ free_lang_data_in_decl (tree decl)
   if (DECL_NAME (decl))
     TREE_TYPE (DECL_NAME (decl)) = NULL_TREE;
 
- if (TREE_CODE (decl) == VAR_DECL)
-   {
-     tree context = DECL_CONTEXT (decl);
-
-     if (context)
-       {
-	 enum tree_code code = TREE_CODE (context);
-	 if (code == FUNCTION_DECL && DECL_ABSTRACT (context))
-	   {
-	     /* Do not clear the decl context here, that will promote
-	        all vars to global ones.  */
-	     DECL_INITIAL (decl) = NULL_TREE;
-	   }
-       }
-   }
-
   free_lang_data_in_one_sizepos (&DECL_SIZE (decl));
   free_lang_data_in_one_sizepos (&DECL_SIZE_UNIT (decl));
   if (TREE_CODE (decl) == FIELD_DECL)
@@ -4517,8 +4513,9 @@ free_lang_data_in_decl (tree decl)
     }
   else if (TREE_CODE (decl) == VAR_DECL)
     {
-      if (DECL_EXTERNAL (decl)
-	  && (!TREE_STATIC (decl) || !TREE_READONLY (decl)))
+      if ((DECL_EXTERNAL (decl)
+	   && (!TREE_STATIC (decl) || !TREE_READONLY (decl)))
+	  || (decl_function_context (decl) && !TREE_STATIC (decl)))
 	DECL_INITIAL (decl) = NULL_TREE;
     }
   else if (TREE_CODE (decl) == TYPE_DECL)
@@ -10874,11 +10871,7 @@ tree
 lhd_gcc_personality (void)
 {
   if (!gcc_eh_personality_decl)
-    gcc_eh_personality_decl
-      = build_personality_function (targetm.except_unwind_info () == UI_SJLJ
-				    ? "__gcc_personality_sj0"
-				    : "__gcc_personality_v0");
-
+    gcc_eh_personality_decl = build_personality_function ("gcc");
   return gcc_eh_personality_decl;
 }
 

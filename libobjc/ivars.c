@@ -26,15 +26,14 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "objc/runtime.h"
 #include "objc-private/module-abi-8.h" /* For runtime structures  */
 #include "objc/thr.h"
-#include "objc-private/runtime.h"		/* the kitchen sink */
-#include <string.h> /* For strcmp */
+#include "objc-private/runtime.h"      /* the kitchen sink */
+#include <string.h>                    /* For strcmp */
 
 struct objc_ivar *
 class_getInstanceVariable (Class class_, const char *name)
 {
-  if (class_ != Nil  &&  name != NULL)
+  if (class_ != Nil  &&  name != NULL  &&  ! CLS_IS_IN_CONSTRUCTION (class_))
     {
-      objc_mutex_lock (__objc_runtime_mutex);
       while (class_ != Nil)
 	{
 	  struct objc_ivar_list *ivars = class_->ivars;
@@ -48,14 +47,12 @@ class_getInstanceVariable (Class class_, const char *name)
 		  
 		  if (!strcmp (ivar->ivar_name, name))
 		    {
-		      objc_mutex_unlock (__objc_runtime_mutex);
 		      return ivar;
 		    }
 		}
 	    }
-	  class_ = class_->super_class;
+	  class_ = class_getSuperclass (class_);
 	}
-      objc_mutex_unlock (__objc_runtime_mutex);
     }
   return NULL;
 }
@@ -157,15 +154,229 @@ void object_setIvar (id object, struct objc_ivar * variable, id value)
 
 const char * ivar_getName (struct objc_ivar * variable)
 {
+  if (variable == NULL)
+    return NULL;
+
   return variable->ivar_name;
 }
 
 ptrdiff_t ivar_getOffset (struct objc_ivar * variable)
 {
+  if (variable == NULL)
+    return 0;
+
   return (ptrdiff_t)(variable->ivar_offset);
 }
 
 const char * ivar_getTypeEncoding (struct objc_ivar * variable)
 {
+  if (variable == NULL)
+    return NULL;
+
   return variable->ivar_type;
+}
+
+struct objc_ivar ** class_copyIvarList (Class class_, unsigned int *numberOfReturnedIvars)
+{
+  unsigned int count = 0;
+  struct objc_ivar **returnValue = NULL;
+  struct objc_ivar_list* ivar_list;
+
+  if (class_ == Nil  ||  CLS_IS_IN_CONSTRUCTION (class_))
+    {
+      if (numberOfReturnedIvars)
+	*numberOfReturnedIvars = 0;
+      return NULL;
+    }
+    
+  /* Count how many ivars we have.  */
+  ivar_list = class_->ivars;
+  count = ivar_list->ivar_count;
+
+  if (count != 0)
+    {
+      unsigned int i = 0;
+      
+      /* Allocate enough memory to hold them.  */
+      returnValue = (struct objc_ivar **)(malloc (sizeof (struct objc_ivar *) * (count + 1)));
+      
+      /* Copy the ivars.  */
+      for (i = 0; i < count; i++)
+	{
+	  returnValue[i] = &(ivar_list->ivar_list[i]);
+	}
+      
+      returnValue[i] = NULL;
+    }
+  
+  if (numberOfReturnedIvars)
+    *numberOfReturnedIvars = count;
+
+  return returnValue;
+}
+
+BOOL
+class_addIvar (Class class_, const char * ivar_name, size_t size,
+	       unsigned char alignment, const char *type)
+{
+  struct objc_ivar_list *ivars;
+
+  if (class_ == Nil
+      || (! CLS_IS_IN_CONSTRUCTION (class_))  
+      || ivar_name == NULL  
+      || (strcmp (ivar_name, "") == 0)
+      || size == 0
+      || type == NULL)
+    return NO;
+
+  /* Check if the class has an instance variable with that name
+     already.  */
+  ivars = class_->ivars;
+
+  if (ivars != NULL)
+    {
+      int i;
+      
+      for (i = 0; i < ivars->ivar_count; i++)
+	{
+	  struct objc_ivar *ivar = &(ivars->ivar_list[i]);
+	  
+	  if (strcmp (ivar->ivar_name, ivar_name) == 0)
+	    {
+	      return NO;
+	    }
+	}
+    }
+
+  /* Ok, no direct ivars.  Check superclasses.  */
+  if (class_getInstanceVariable (objc_getClass ((char *)(class_->super_class)),
+				 ivar_name))
+    return NO;
+
+  /* Good.  Create space for the new instance variable.  */
+  if (ivars)
+    {
+      int ivar_count = ivars->ivar_count + 1;
+      int new_size = sizeof (struct objc_ivar_list) 
+	+ (ivar_count - 1) * sizeof (struct objc_ivar);
+      
+      ivars = (struct objc_ivar_list*) objc_realloc (ivars, new_size);
+      ivars->ivar_count = ivar_count;
+      class_->ivars = ivars;
+    }
+  else
+    {
+      int new_size = sizeof (struct objc_ivar_list);
+      
+      ivars = (struct objc_ivar_list*) objc_malloc (new_size);
+      ivars->ivar_count = 1;
+      class_->ivars = ivars;
+    }
+    
+  /* Now ivars is set to a list of instance variables of the right
+     size. */
+  {
+    struct objc_ivar *ivar = &(ivars->ivar_list[ivars->ivar_count - 1]);
+    int misalignment;
+    
+    ivar->ivar_name = objc_malloc (strlen (ivar_name) + 1);
+    strcpy ((char *)ivar->ivar_name, ivar_name);
+
+    ivar->ivar_type = objc_malloc (strlen (type) + 1);
+    strcpy ((char *)ivar->ivar_type, type);
+
+    /* The new instance variable is placed at the end of the existing
+       instance_size, at the first byte that is aligned with
+       alignment.  */
+    misalignment = class_->instance_size % alignment;
+    
+    if (misalignment == 0)
+      ivar->ivar_offset = class_->instance_size;
+    else
+      ivar->ivar_offset = class_->instance_size - misalignment + alignment;
+    
+    class_->instance_size = ivar->ivar_offset + objc_sizeof_type (ivar->ivar_type);
+  }
+  
+  return YES;
+}
+
+
+const char *
+property_getName (struct objc_property * property __attribute__ ((__unused__)))
+{
+  if (property == NULL)
+    return NULL;
+
+  /* TODO: New ABI.  */
+  /* The current ABI does not have any information on properties.  */
+  return NULL;
+}
+
+const char *
+property_getAttributes (struct objc_property * property __attribute__ ((__unused__)))
+{
+  if (property == NULL)
+    return NULL;
+
+  /* TODO: New ABI.  */
+  /* The current ABI does not have any information on properties.  */
+  return NULL;
+}
+
+struct objc_property *
+class_getProperty (Class class_ __attribute__ ((__unused__)),
+		   const char *propertyName __attribute__ ((__unused__)))
+{
+  if (class_ == NULL  ||  propertyName == NULL)
+    return NULL;
+
+  /* TODO: New ABI.  */
+  /* The current ABI does not have any information on class properties.  */
+  return NULL;
+}
+
+struct objc_property ** 
+class_copyPropertyList (Class class_ __attribute__ ((__unused__)), 
+			unsigned int *numberOfReturnedProperties __attribute__ ((__unused__)))
+{
+  if (class_ == Nil)
+    {
+      if (numberOfReturnedProperties)
+	*numberOfReturnedProperties = 0;
+      return NULL;
+    }
+
+  /* TODO: New ABI.  */
+  /* The current ABI does not have any information on class properties.  */
+  if (numberOfReturnedProperties)
+    *numberOfReturnedProperties = 0;
+
+  return NULL;
+}
+
+const char *
+class_getIvarLayout (Class class_ __attribute__ ((__unused__)))
+{
+  return NULL;
+}
+
+const char *
+class_getWeakIvarLayout (Class class_ __attribute__ ((__unused__)))
+{
+  return NULL;
+}
+
+void
+class_setIvarLayout (Class class_ __attribute__ ((__unused__)),
+		     const char *layout __attribute__ ((__unused__)))
+{
+  return;
+}
+
+void
+class_setWeakIvarLayout (Class class_ __attribute__ ((__unused__)),
+			 const char *layout __attribute__ ((__unused__)))
+{
+  return;
 }

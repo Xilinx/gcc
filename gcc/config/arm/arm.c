@@ -1218,6 +1218,7 @@ arm_build_builtin_va_list (void)
 			     va_list_type);
   DECL_ARTIFICIAL (va_list_name) = 1;
   TYPE_NAME (va_list_type) = va_list_name;
+  TYPE_STUB_DECL (va_list_type) = va_list_name;
   /* Create the __ap field.  */
   ap_field = build_decl (BUILTINS_LOCATION,
 			 FIELD_DECL, 
@@ -1958,7 +1959,9 @@ arm_option_override (void)
        but measurable, size reduction for PIC code.  Therefore, we decrease
        the bar for unrestricted expression hoisting to the cost of PIC address
        calculation, which is 2 instructions.  */
-    maybe_set_param_value (PARAM_GCSE_UNRESTRICTED_COST, 2);
+    maybe_set_param_value (PARAM_GCSE_UNRESTRICTED_COST, 2,
+			   global_options.x_param_values,
+			   global_options_set.x_param_values);
 
   /* Register global variables with the garbage collector.  */
   arm_add_gc_roots ();
@@ -22820,11 +22823,9 @@ arm_order_regs_for_local_alloc (void)
 static void
 arm_option_optimization (int level, int size ATTRIBUTE_UNUSED)
 {
-  /* Enable section anchors by default at -O1 or higher.
-     Use 2 to distinguish from an explicit -fsection-anchors
-     given on the command line.  */
+  /* Enable section anchors by default at -O1 or higher.  */
   if (level > 0)
-    flag_section_anchors = 2;
+    flag_section_anchors = 1;
 }
 
 /* Implement TARGET_FRAME_POINTER_REQUIRED.  */

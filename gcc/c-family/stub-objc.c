@@ -217,6 +217,12 @@ objc_finish_method_definition (tree ARG_UNUSED (fndecl))
 {
 }
 
+bool 
+objc_method_decl (enum tree_code ARG_UNUSED(opcode))
+{
+  return false;
+}
+
 tree
 objc_build_keyword_decl (tree ARG_UNUSED (selector),
 			 tree ARG_UNUSED (type),
@@ -304,6 +310,30 @@ objc_is_public (tree ARG_UNUSED (expr), tree ARG_UNUSED (identifier))
 
 tree
 objc_get_class_ivars (tree ARG_UNUSED (name))
+{
+  return 0;
+}
+
+void
+objc_set_property_attr (location_t ARG_UNUSED (loc),
+			objc_property_attribute_kind ARG_UNUSED (code),
+			tree ARG_UNUSED (identifier))
+{
+}
+
+void
+objc_add_property_variable (tree ARG_UNUSED (prop))
+{
+}
+
+tree
+objc_build_getter_call (tree ARG_UNUSED (datum), tree ARG_UNUSED (component))
+{
+  return 0;
+}
+
+tree
+objc_build_setter_call (tree ARG_UNUSED (lhs), tree ARG_UNUSED (rhs))
 {
   return 0;
 }
