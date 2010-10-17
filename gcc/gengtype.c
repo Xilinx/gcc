@@ -4486,20 +4486,16 @@ main (int argc, char **argv)
 
   if (plugin_output_filename)
     {
-      size_t ix = 0;
       /* In plugin mode, we should have read a state file, and have
          given at least one plugin file.  */
       if (!read_state_filename)
-	fatal ("No read state given in plugin mode for %s",
-	       plugin_output_filename);
+	warning ("No read state given in plugin mode for %s",
+		 plugin_output_filename);
 
       if (nb_plugin_files <= 0 || !plugin_files)
 	fatal ("No plugin files given in plugin mode for %s",
 	       plugin_output_filename);
-
-      /* Parse our plugin files.  */
-      for (ix = 0; ix < nb_plugin_files; ix++)
-	parse_file (plugin_files[ix]);
+      /* Our plugin files have already been parsed...  */
 
       if (hit_error)
 	return 1;

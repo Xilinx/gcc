@@ -1,4 +1,35 @@
 2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* gengtype.c (main): Changed fatal to warning for plugin mode
+	without state file. Remove double parsing of plugin files.
+
+	{{regenerated MELT related files}}
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+03.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
+
+
+2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: melt help printed shorter.
 2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-simple.melt: updared MELT help string.
@@ -791,22 +822,22 @@
 	(discr_rtvec, discr_rtx): new.
 
 	{{regenerated all}}
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+03.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/gt-melt-runtime-plugin.h: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+03.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
 
 2010-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	    Jeremie Salvucci <jeremie.salvucci@free.fr>
@@ -859,28 +890,28 @@
 	* melt/xtramelt-ana-base.melt: added mapgimple primitives & operation on loops & maploops
 
 	{{regenerated all}}
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-normatch.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+03.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/gt-melt-runtime-plugin.h: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+03.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
 
 2010-06-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: added melt_assertmsg in
@@ -951,32 +982,32 @@
 	* melt/warmelt-outobj.melt: ditto. Also removed code outputing
 	GFDL notice in generated documentation.
 	* melt/warmelt-genobj.melt: ditto.
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+03.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-debug.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0+03.c: regenerated.
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/gt-melt-runtime-plugin.h: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+03.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-debug.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0+03.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
 
 2010-06-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: added tree_pointer_type_p cmatcher.
@@ -1138,28 +1169,28 @@
 
 2010-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated all}}
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-normatch.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0+03.c: regenerated.
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/gt-melt-runtime-plugin.h: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0+03.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
 
 2010-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
 
@@ -1263,24 +1294,24 @@
 	* melt/xtramelt-ana-base.melt: likewise.
 
 	{{regenerated all}}
-	* melt/generated/gt-melt-runtime-plugin.h: regenerated.
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-normatch.0+02.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
 
 2010-04-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (struct melt_module_info_st): Added modpath
@@ -1434,26 +1465,26 @@
 	* melt/warmelt-normatch.melt: added export of new classes like
 	class_matched_normal_data etc.
 	{{regenerated all files}}
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-normatch.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-debug.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0+03.c: regenerated.
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/gt-melt-runtime-plugin.h: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-debug.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0+03.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
 
 
 2010-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -1542,20 +1573,20 @@
 
 	{{regenerated all}}
 	* melt/generated/gt-melt-runtime-plugin.h: added generated new file.
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
 
 2010-03-13 Basile Starynkevitch  <basile@starynkevitch.net>
 	{{can be compiled as a plugin, and removed every GDBM stuff.}}
@@ -1637,22 +1668,22 @@
 	* melt/xtramelt-ana-simple.melt: ditto.
 	* melt/xtramelt-parse-infix-syntax.melt: ditto.
 	{{regenerated all}}
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0+03.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-normatch.0+02.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0+03.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
 
 	
 2010-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -1712,30 +1743,30 @@
 	* melt/warmelt-outobj.melt: generates meltcallcount.
 
 	{{regenerated all}}
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-debug.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0+03.c: regenerated.
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+02.c: regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-debug.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0+03.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
 	
 2010-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{ all tletrec*.melt test passes }}
@@ -1797,29 +1828,29 @@
 	curfram__. meltfptr for curfptr etc...
 
 	{{regenerated all}}
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-debug.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0+03.c: regenerated.
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-debug.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0+03.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
 	* melt/generated/warmelt-normatch.0+02.c: new generated file.
 
 2010-02-11  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -1839,29 +1870,29 @@
 	the initial_chunk routines are declared with MELT_MODULE_VISIBILITY.
 
 	{{regenerated all}}
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-debug.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0+03.c: regenerated.
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-debug.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0+03.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
 
 2010-02-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt: assert_msg macro can have no condition
@@ -1904,29 +1935,29 @@
 	avoid generating huge routines which are painful to be compiled by
 	GCC.
 	{{regenerated}}
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-debug.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0+03.c: regenerated.
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-debug.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0+03.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
 
 2010-02-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: removed list[1-6] primitives and moved
@@ -1936,20 +1967,20 @@
 	* melt/warmelt-normatch.melt: ditto.
 	* melt/warmelt-genobj.melt: ditto.
 	{{regenerated}}
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
 	* melt/generated/warmelt-first.0+02.c: removed.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-base.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
 
 2010-02-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_named_symbol, meltgc_named_keyword):
@@ -1976,30 +2007,30 @@
 	* melt/warmelt-outobj.melt: likewise.
 	* melt/xtramelt-ana-base.melt: likewise.
 	{{regenerated everything several times}}
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-debug.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-first.0+01.c: regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-debug.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
 	* melt/generated/warmelt-first.0+02.c: new file.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
 	* melt/generated/warmelt-normal.0+03.c: new file.
 	* melt/generated/warmelt-base.0.c: new file.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
 	* melt/generated/warmelt-macro.0+03.c: new file.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
 
 2010-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: recoding normpat_orpat...
@@ -2034,25 +2065,25 @@
 	MELT_LOCATION..
 	{{regenerated}}
 	* melt/generated/warmelt-normatch.0+01.c: added & generated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-debug.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-debug.0.c: regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-debug.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
 
 2010-01-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tmatch-6 still fails.}}
@@ -2096,20 +2127,20 @@
 	* melt-make.mk: replaced ana-base with xtramelt-ana-base
 	everywhere!
 	{{ regenerated files, some unchanged, some deleted }}
-        * melt/generated/warmelt-first.0.c: regenerated.
-        * melt/generated/warmelt-normal.0.c: regenerated.
-        * melt/generated/warmelt-macro.0.c: regenerated.
-        * melt/generated/warmelt-debug.0+01.c: regenerated.
-        * melt/generated/warmelt-outobj.0.c: regenerated.
-        * melt/generated/warmelt-first.0+01.c: regenerated.
-        * melt/generated/warmelt-normal.0+01.c: regenerated.
-        * melt/generated/warmelt-genobj.0.c: regenerated.
+        * melt/generated/warmelt-first.0.c: Regenerated.
+        * melt/generated/warmelt-normal.0.c: Regenerated.
+        * melt/generated/warmelt-macro.0.c: Regenerated.
+        * melt/generated/warmelt-debug.0+01.c: Regenerated.
+        * melt/generated/warmelt-outobj.0.c: Regenerated.
+        * melt/generated/warmelt-first.0+01.c: Regenerated.
+        * melt/generated/warmelt-normal.0+01.c: Regenerated.
+        * melt/generated/warmelt-genobj.0.c: Regenerated.
         * melt/generated/warmelt-first.0+02.c: removed file.
-        * melt/generated/warmelt-normatch.0.c: regenerated.
-        * melt/generated/warmelt-outobj.0+01.c: regenerated.
-        * melt/generated/warmelt-outobj.0+02.c: regenerated.
-        * melt/generated/warmelt-outobj.0+03.c: regenerated.
-        * melt/generated/warmelt-debug.0.c: regenerated.
+        * melt/generated/warmelt-normatch.0.c: Regenerated.
+        * melt/generated/warmelt-outobj.0+01.c: Regenerated.
+        * melt/generated/warmelt-outobj.0+02.c: Regenerated.
+        * melt/generated/warmelt-outobj.0+03.c: Regenerated.
+        * melt/generated/warmelt-debug.0.c: Regenerated.
 
 
 2010-01-28  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -2130,17 +2161,17 @@
 	private class_match_graphic & mg_out_node_name.
 	{{regenerated, but some files remain unchanged}}
 	* gcc/melt/generated/warmelt-debug.0+01.c: added & regenerated.
-	* gcc/melt/generated/warmelt-debug.0.c: regenerated.
-	* gcc/melt/generated/warmelt-first.0.c: regenerated.
-	* gcc/melt/generated/warmelt-first.0+01.c: regenerated.
-	* gcc/melt/generated/warmelt-first.0+02.c: regenerated.
-	* gcc/melt/generated/warmelt-genobj.0.c: regenerated.
-	* gcc/melt/generated/warmelt-macro.0+02.c: regenerated.
-	* gcc/melt/generated/warmelt-macro.0.c: regenerated.
-	* gcc/melt/generated/warmelt-normal.0+01.c: regenerated.
-	* gcc/melt/generated/warmelt-normal.0.c: regenerated.
-	* gcc/melt/generated/warmelt-normatch.0.c: regenerated.
-	* gcc/melt/generated/warmelt-outobj.0.c: regenerated.
+	* gcc/melt/generated/warmelt-debug.0.c: Regenerated.
+	* gcc/melt/generated/warmelt-first.0.c: Regenerated.
+	* gcc/melt/generated/warmelt-first.0+01.c: Regenerated.
+	* gcc/melt/generated/warmelt-first.0+02.c: Regenerated.
+	* gcc/melt/generated/warmelt-genobj.0.c: Regenerated.
+	* gcc/melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* gcc/melt/generated/warmelt-macro.0.c: Regenerated.
+	* gcc/melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* gcc/melt/generated/warmelt-normal.0.c: Regenerated.
+	* gcc/melt/generated/warmelt-normatch.0.c: Regenerated.
+	* gcc/melt/generated/warmelt-outobj.0.c: Regenerated.
 
 
 2010-01-27  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -2162,22 +2193,22 @@
 	* Makefile.in (melt.encap): simpler and added comment to avoid
 	recurring on $(MAKE) with empty target.
 	[[regenerated several times]]
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-infixsyntax.0.c: regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-infixsyntax.0.c: Regenerated.
 	* melt/generated/warmelt-debug.0.c: added & regenerated.
 
 
@@ -2403,23 +2434,23 @@
 	* testsuite/melt/ttuplist.melt: uncommented all.
 
 	{{regenerated all C files; some didn't change!}}
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-infixsyntax.0.c: regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-infixsyntax.0.c: Regenerated.
 
 
 2010-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -2458,25 +2489,25 @@
 	correctly both nletrec_fill_bindings & nletrec_body_bindings.
 
 	{{regenerated all C files}}
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0+02.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-infixsyntax.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0+02.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-infixsyntax.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
 
 2009-12-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tletrec3.melt test still fails but shouldn't!}}
@@ -2516,25 +2547,25 @@
 	class_objinituniqueobject. compile_list_sexpr checks several times
 	the melt_error_counter.
 	{{regenerated all files several times}}
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0+02.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-infixsyntax.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0+02.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-infixsyntax.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
 
 
 2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -2566,25 +2597,25 @@
 	handles oiclo_rout
 
 	{{regenerated all files several times}}
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0+02.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-infixsyntax.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0+02.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-infixsyntax.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
 
 2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{new tletrec3.melt translated, but runs badly}}
@@ -2614,25 +2645,25 @@
 	* melt/warmelt-genobj.melt: added debug_msg at start of
 	dispose_objloc.
 	{{regenerated all files several times}}
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0+02.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-infixsyntax.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0+02.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-infixsyntax.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
 
 2009-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{tletrec.melt fully translated}}
@@ -2745,25 +2776,25 @@
 	* melt/generated/ : added directory and moved bootstrapped
 	generated C files inside.
 	{{regenerated all files}}
-	* melt/generated/warmelt-first.0+01.c: regenerated.
-	* melt/generated/warmelt-first.0+02.c: regenerated.
-	* melt/generated/warmelt-first.0.c: regenerated.
-	* melt/generated/warmelt-genobj.0+01.c: regenerated.
-	* melt/generated/warmelt-genobj.0+02.c: regenerated.
-	* melt/generated/warmelt-genobj.0+03.c: regenerated.
-	* melt/generated/warmelt-genobj.0.c: regenerated.
-	* melt/generated/warmelt-infixsyntax.0.c: regenerated.
-	* melt/generated/warmelt-macro.0+01.c: regenerated.
-	* melt/generated/warmelt-macro.0+02.c: regenerated.
-	* melt/generated/warmelt-macro.0.c: regenerated.
-	* melt/generated/warmelt-normal.0+01.c: regenerated.
-	* melt/generated/warmelt-normal.0+02.c: regenerated.
-	* melt/generated/warmelt-normal.0.c: regenerated.
-	* melt/generated/warmelt-normatch.0.c: regenerated.
-	* melt/generated/warmelt-outobj.0+01.c: regenerated.
-	* melt/generated/warmelt-outobj.0+02.c: regenerated.
-	* melt/generated/warmelt-outobj.0+03.c: regenerated.
-	* melt/generated/warmelt-outobj.0.c: regenerated.
+	* melt/generated/warmelt-first.0+01.c: Regenerated.
+	* melt/generated/warmelt-first.0+02.c: Regenerated.
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-infixsyntax.0.c: Regenerated.
+	* melt/generated/warmelt-macro.0+01.c: Regenerated.
+	* melt/generated/warmelt-macro.0+02.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
 
 2009-12-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
@@ -2788,24 +2819,24 @@
 	gcc/melt/warmelt*+0[1-9].c, so warmelt*+1.c renamed as
 	warmelt*+01.c etc...
 
-	* melt/warmelt-normal.0.c: regenerated.
-	* melt/warmelt-outobj.0.c: regenerated.
-	* melt/warmelt-first.0+01.c: regenerated.
-	* melt/warmelt-first.0+02.c: regenerated.
-	* melt/warmelt-normal.0+01.c: regenerated.
-	* melt/warmelt-normal.0+02.c: regenerated.
-	* melt/warmelt-macro.0+01.c: regenerated.
-	* melt/warmelt-macro.0+02.c: regenerated.
-	* melt/warmelt-outobj.0+01.c: regenerated.
-	* melt/warmelt-outobj.0+02.c: regenerated.
-	* melt/warmelt-outobj.0+03.c: regenerated.
-	* melt/warmelt-first.0.c: regenerated.
-	* melt/warmelt-macro.0.c: regenerated.
-	* melt/warmelt-genobj.0.c: regenerated.
-	* melt/warmelt-normatch.0.c: regenerated.
-	* melt/warmelt-genobj.0+01.c: regenerated.
-	* melt/warmelt-genobj.0+02.c: regenerated.
-	* melt/warmelt-genobj.0+03.c: regenerated.
+	* melt/warmelt-normal.0.c: Regenerated.
+	* melt/warmelt-outobj.0.c: Regenerated.
+	* melt/warmelt-first.0+01.c: Regenerated.
+	* melt/warmelt-first.0+02.c: Regenerated.
+	* melt/warmelt-normal.0+01.c: Regenerated.
+	* melt/warmelt-normal.0+02.c: Regenerated.
+	* melt/warmelt-macro.0+01.c: Regenerated.
+	* melt/warmelt-macro.0+02.c: Regenerated.
+	* melt/warmelt-outobj.0+01.c: Regenerated.
+	* melt/warmelt-outobj.0+02.c: Regenerated.
+	* melt/warmelt-outobj.0+03.c: Regenerated.
+	* melt/warmelt-first.0.c: Regenerated.
+	* melt/warmelt-macro.0.c: Regenerated.
+	* melt/warmelt-genobj.0.c: Regenerated.
+	* melt/warmelt-normatch.0.c: Regenerated.
+	* melt/warmelt-genobj.0+01.c: Regenerated.
+	* melt/warmelt-genobj.0+02.c: Regenerated.
+	* melt/warmelt-genobj.0+03.c: Regenerated.
 
 2009-12-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* plugin.c (FMT_FOR_PLUGIN_EVENT): was defined twice.
@@ -2816,12 +2847,12 @@
 	* melt-make.mk: have rules for warmelt-%.0.so & for
 	warmelt-%.0.d.so. warmelt0.modlis is not dynamic module.
 	* melt-module.mk: reverted override for meltmodulerawdynamic
-	* melt/warmelt-first.0.c: regenerated.
-	* melt/warmelt-normal.0.c: regenerated.
-	* melt/warmelt-macro.0.c: regenerated.
-	* melt/warmelt-outobj.0.c: regenerated.
-	* melt/warmelt-genobj.0.c: regenerated.
-	* melt/warmelt-normatch.0.c: regenerated.
+	* melt/warmelt-first.0.c: Regenerated.
+	* melt/warmelt-normal.0.c: Regenerated.
+	* melt/warmelt-macro.0.c: Regenerated.
+	* melt/warmelt-outobj.0.c: Regenerated.
+	* melt/warmelt-genobj.0.c: Regenerated.
+	* melt/warmelt-normatch.0.c: Regenerated.
 	{{other regenerated files didn't change}}
 
 2009-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -2833,24 +2864,24 @@
 	* melt-module.mk (meltmodulerawdynamic): added override. 
 
 	{{regenerated}}
-	* melt/warmelt-first.0+1.c: regenerated.
-	* melt/warmelt-first.0+2.c: regenerated.
-	* melt/warmelt-first.0.c: regenerated.
-	* melt/warmelt-genobj.0+1.c: regenerated.
-	* melt/warmelt-genobj.0+2.c: regenerated.
-	* melt/warmelt-genobj.0+3.c: regenerated.
-	* melt/warmelt-genobj.0.c: regenerated.
-	* melt/warmelt-macro.0+1.c: regenerated.
-	* melt/warmelt-macro.0+2.c: regenerated.
-	* melt/warmelt-macro.0.c: regenerated.
-	* melt/warmelt-normal.0+1.c: regenerated.
-	* melt/warmelt-normal.0+2.c: regenerated.
-	* melt/warmelt-normal.0.c: regenerated.
-	* melt/warmelt-normatch.0.c: regenerated.
-	* melt/warmelt-outobj.0+1.c: regenerated.
-	* melt/warmelt-outobj.0+2.c: regenerated.
-	* melt/warmelt-outobj.0+3.c: regenerated.
-	* melt/warmelt-outobj.0.c: regenerated.
+	* melt/warmelt-first.0+1.c: Regenerated.
+	* melt/warmelt-first.0+2.c: Regenerated.
+	* melt/warmelt-first.0.c: Regenerated.
+	* melt/warmelt-genobj.0+1.c: Regenerated.
+	* melt/warmelt-genobj.0+2.c: Regenerated.
+	* melt/warmelt-genobj.0+3.c: Regenerated.
+	* melt/warmelt-genobj.0.c: Regenerated.
+	* melt/warmelt-macro.0+1.c: Regenerated.
+	* melt/warmelt-macro.0+2.c: Regenerated.
+	* melt/warmelt-macro.0.c: Regenerated.
+	* melt/warmelt-normal.0+1.c: Regenerated.
+	* melt/warmelt-normal.0+2.c: Regenerated.
+	* melt/warmelt-normal.0.c: Regenerated.
+	* melt/warmelt-normatch.0.c: Regenerated.
+	* melt/warmelt-outobj.0+1.c: Regenerated.
+	* melt/warmelt-outobj.0+2.c: Regenerated.
+	* melt/warmelt-outobj.0+3.c: Regenerated.
+	* melt/warmelt-outobj.0.c: Regenerated.
 
 2009-12-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{letrec still incomplete}}
@@ -2894,24 +2925,24 @@
 	* Makefile.in (upgrade-warmelt, upgrade-bigmelt): recoded entirely
 	the commands to consider secondarily generated C files.
 	{{regenerated, and added secondary C files}}
-	* melt/warmelt-first.0+1.c: regenerated & added.
-	* melt/warmelt-first.0+2.c: regenerated & added.
-	* melt/warmelt-first.0.c: regenerated.
-	* melt/warmelt-genobj.0+1.c: regenerated & added.
-	* melt/warmelt-genobj.0+2.c: regenerated & added.
-	* melt/warmelt-genobj.0+3.c: regenerated & added.
-	* melt/warmelt-genobj.0.c: regenerated.
-	* melt/warmelt-macro.0+1.c: regenerated & added.
-	* melt/warmelt-macro.0+2.c: regenerated & added.
-	* melt/warmelt-macro.0.c: regenerated.
-	* melt/warmelt-normal.0+1.c: regenerated & added.
-	* melt/warmelt-normal.0+2.c: regenerated & added.
-	* melt/warmelt-normal.0.c: regenerated.
-	* melt/warmelt-normatch.0.c: regenerated.
-	* melt/warmelt-outobj.0+1.c: regenerated & added.
-	* melt/warmelt-outobj.0+2.c: regenerated & added.
-	* melt/warmelt-outobj.0+3.c: regenerated & added.
-	* melt/warmelt-outobj.0.c: regenerated.
+	* melt/warmelt-first.0+1.c: Regenerated & added.
+	* melt/warmelt-first.0+2.c: Regenerated & added.
+	* melt/warmelt-first.0.c: Regenerated.
+	* melt/warmelt-genobj.0+1.c: Regenerated & added.
+	* melt/warmelt-genobj.0+2.c: Regenerated & added.
+	* melt/warmelt-genobj.0+3.c: Regenerated & added.
+	* melt/warmelt-genobj.0.c: Regenerated.
+	* melt/warmelt-macro.0+1.c: Regenerated & added.
+	* melt/warmelt-macro.0+2.c: Regenerated & added.
+	* melt/warmelt-macro.0.c: Regenerated.
+	* melt/warmelt-normal.0+1.c: Regenerated & added.
+	* melt/warmelt-normal.0+2.c: Regenerated & added.
+	* melt/warmelt-normal.0.c: Regenerated.
+	* melt/warmelt-normatch.0.c: Regenerated.
+	* melt/warmelt-outobj.0+1.c: Regenerated & added.
+	* melt/warmelt-outobj.0+2.c: Regenerated & added.
+	* melt/warmelt-outobj.0+3.c: Regenerated & added.
+	* melt/warmelt-outobj.0.c: Regenerated.
 
 2009-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
 
@@ -2982,12 +3013,12 @@
 	* melt-module.mk: removed echo.
 	{{regenerated files, because added fields to class_module_context
 	which are "forard referenced"}}
-	* melt/warmelt-macro.0.c: regenerated.
-	* melt/warmelt-outobj.0.c: regenerated.
-	* melt/warmelt-genobj.0.c: regenerated.
-	* melt/warmelt-normatch.0.c: regenerated.
-	* melt/warmelt-normal.0.c: regenerated.
-	* melt/warmelt-first.0.c: regenerated.
+	* melt/warmelt-macro.0.c: Regenerated.
+	* melt/warmelt-outobj.0.c: Regenerated.
+	* melt/warmelt-genobj.0.c: Regenerated.
+	* melt/warmelt-normatch.0.c: Regenerated.
+	* melt/warmelt-normal.0.c: Regenerated.
+	* melt/warmelt-first.0.c: Regenerated.
 
 2009-11-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
@@ -3034,12 +3065,12 @@
 	names.
 	* melt/warmelt-outobj.melt: the mocx_modulename is naked in module
 	contexts. Generated routines have MELT_MODULE_VISIBILITY.
-	* melt/warmelt-macro.0.c: regenerated.
-	* melt/warmelt-outobj.0.c: regenerated.
-	* melt/warmelt-genobj.0.c: regenerated.
-	* melt/warmelt-normatch.0.c: regenerated.
-	* melt/warmelt-normal.0.c: regenerated.
-	* melt/warmelt-first.0.c: regenerated.
+	* melt/warmelt-macro.0.c: Regenerated.
+	* melt/warmelt-outobj.0.c: Regenerated.
+	* melt/warmelt-genobj.0.c: Regenerated.
+	* melt/warmelt-normatch.0.c: Regenerated.
+	* melt/warmelt-normal.0.c: Regenerated.
+	* melt/warmelt-first.0.c: Regenerated.
 
 	* testsuite/g++.dg/init/placement5.C merged from trunk.
 
@@ -3080,12 +3111,12 @@
         * melt/warmelt-genobj.melt: ditto
         * melt/warmelt-outobj.melt: ditto, added debug_msg & assert...
 	{regenerated files several times}
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 
 2009-11-12  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -3142,12 +3173,12 @@
 	* melt/warmelt-normal.melt: began coding normletrec_lambda.
 	* melt-cc-script.proto: added -k flag to keep the temporary files.
 	{regenerated files}
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-11-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: adding normal_letrec_constructive.
@@ -3229,12 +3260,12 @@
 	* melt/warmelt-normal.melt: renamed fields likewise!
 
 	[regenerated several times, since we refactored classes!]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-10-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: added !=s primitive.
@@ -3248,12 +3279,12 @@
 2009-10-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt: adding documentation. Renamed sreturn_body as sreturn_args.
 	[regenerated, since we renamed a field!]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-10-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: done documentation and cleanup. Removed
@@ -3297,12 +3328,12 @@
 	[regenerated, since we renamed important classes, and since the
 	import protocol has changed - it has an another extra string
 	argument for the module!]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	[the value importer takes the imported symbol name cstring as an
@@ -3327,12 +3358,12 @@
 
 	[regenerated, since the import protocol has changed - it has an
 	extra string argument!]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: added more documentation.
@@ -3361,12 +3392,12 @@
 	* melt/ana-simple.melt: renaming as above.
 
 	[regenerated painfully a lot of times!]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still renaming...]
@@ -3434,12 +3465,12 @@
 	* testsuite/melt/tsynonym.melt: added new testcase for
 	export_synonym. it works!
 	[regenerated since will soon rename a lot of stuff...]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-10-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_unsafe_magic_discr): added new inlined
@@ -3475,12 +3506,12 @@
 	install_melt_mode. and fields meltcmd_* as meltmode_*, eg
 	meltmode_help meltmode_fun.
 	[regenerated since renamed command as mode etc...]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	[begin renaming commands to modes]
@@ -3572,12 +3603,12 @@
 	* melt/warmelt-genobj.melt: ditto.
 	* melt/warmelt-outobj.melt: ditto.
 	[regenerated several times]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: added more documentation & the
@@ -3620,12 +3651,12 @@
 	* melt/warmelt-outobj.melt: renamed class_modulcontext as
 	class_modulecontext. Stub for mkdoc for macros & patterns.
 	[regenerated since export_macro takes a :doc]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	[entirely removed src_loc and corrected old bug in primitive
@@ -3636,12 +3667,12 @@
 	* melt-make.mk: the warmeltallbig pseudotarget generates the
 	warmelt*2.c files using warmeltbig-3.so!
 	[regenerated several times]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	[quoted integers are of DISCR_CONSTINTEGER and cannot be written
@@ -3686,12 +3717,12 @@
 	* melt/warmelt-normatch.melt: Likewise.
 	* melt/warmelt-outobj.melt: Likewise. Also more specific error
 	strings in putfield compilation.
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 	* melt-make.mk: added warmelt*h stuff.
 
 2009-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -3723,12 +3754,12 @@
 	* Makefile.in (TEXI_GCCINT_FILES): added meltgendoc.texi.
 	[regenerated translator because of corrected bug in translation
 	of quoted integers ..]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 
 2009-09-15  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -3756,12 +3787,12 @@
 
 	[regenerated translator because of corrected bug in translation
 	of match ?(instance...) ..]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 
 2009-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -3804,12 +3835,12 @@
 	* melt-predef.list: added CLASS_MELT_COMMAND.
 
 	[regenerated files since the command API has evolved]
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-09-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (readstring): issue a warning for a string
@@ -3843,12 +3874,12 @@
 	* melt/warmel-outobj.melt: added output methods for
 	objinitboxinteger.
 	* melt/ana-simple.melt: added quoted string for name of greenpass.
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (FDISCR_METHODICT) renamed as
@@ -3868,12 +3899,12 @@
 
 	* melt/warmelt-normal.melt: replaced sobj_docstr by sdef_doc in normexp_definstance...
 
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-09-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (do_initial_command): return eearly if no mode
@@ -3906,12 +3937,12 @@
 	isnull_basicblock primitives. better warning_at* primitives. 
 	* melt/ana-simple.melt: justscan pass is more robust, ignoring
 	null trees, gimples, ... and fails assertion when unhandled stuff.
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-09-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_really_initialize): Fixed typo in debug message.
@@ -3977,12 +4008,12 @@
 	it.
 
 2009-07-28  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 	* melt/warmelt-genobj.melt: added added compile warning about
 	useless tests on then & else...
 
@@ -4002,12 +4033,12 @@
 	* testsuite/melt/tmatch-4.melt: enhanced test.
 
 2009-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 
 2009-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	[tmatch-4 seems to be compiled correctly]
@@ -4144,12 +4175,12 @@
 	* melt/warmelt-macro.melt: issue a warning for DEFCLASS of
 	ordinary classes without superclasses!
 	* melt/ana-simple.melt: adding the makegreen command & passes...
-	* melt/warmelt-first-0.c: regenerated.
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
 	
 2009-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-make.mk: added $(melt_default_modules_list).modlis
@@ -4183,12 +4214,12 @@
 	(melt_output_cfile_decl_impl): inform the user.
 	* melt/warmelt-genobj.melt: check that the read files are not
 	empty.
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
 	* gengtype.c: removed dbgprintf.
 	* melt-make.mk: added MELT_DEBUG.
 	
@@ -4299,13 +4330,13 @@
 	* melt-cc-script.proto: ditto
 	* Makefile.in: ditto
 	* params.def: ditto
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-first-0.c: regenerated.
-	* config.in: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-first-0.c: Regenerated.
+	* config.in: Regenerated.
 
 2009-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	[basilys.c compiles in plugin mode, provided gengtype is hacked to
@@ -4335,11 +4366,11 @@
 	sysdata_stdout sysdata_stderr sysdata_dumpfile and uses them in
 	dbgout methods & debug_msg_fun.
 	* melt/warmelt-first-0.c: egenerated.
-	* melt/warmelt-macro-0.c: regenerated.
-	* melt/warmelt-normal-0.c: regenerated.
-	* melt/warmelt-normatch-0.c: regenerated.
-	* melt/warmelt-genobj-0.c: regenerated.
-	* melt/warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-macro-0.c: Regenerated.
+	* melt/warmelt-normal-0.c: Regenerated.
+	* melt/warmelt-normatch-0.c: Regenerated.
+	* melt/warmelt-genobj-0.c: Regenerated.
+	* melt/warmelt-outobj-0.c: Regenerated.
 
 2009-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	[more flexible predefined machinery; moved all MELT files into
@@ -4423,12 +4454,12 @@
 	* melt/warmelt-normal.melt: added loading of [generated]
 	melt-predef.melt.
 	* melt/warmelt-outobj.melt: uses MELT_PREDEF & MELT_STORE_PREDEF.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2009-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	[started plugininfication]
@@ -4475,12 +4506,12 @@
 	mexpander argument and handle tuple macroexpansions specially.
 	* melt/ana-base.melt: using out instead of sbuf.
 	* melt/ana-simple.melt: ditto.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2009-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	[simplified the program flags, using a source path and a module
@@ -4498,7 +4529,7 @@
 	variables.
 	* toplev.c: removed LTDL. 
 	(toplev_main) merged initialize_plugins calls from trunk.
-	* configure: regenerated.
+	* configure: Regenerated.
 	* configure.ac: removed LTDL stuff.
 	* run-basilys.h: dont require LTDL.
 	* Makefile.in: replaced flags using our paths.
@@ -4539,7 +4570,7 @@
 	* pretty-print.c: reverted to trunk.
 	* pretty-print.h: reverted to trunk.
 	* gimple-pretty-print.c: reverted to trunk.
-	* configure: regenerated.
+	* configure: Regenerated.
 	* configure.ac: testing for open_memstream.
 	* cfg.c: reverted to trunk.
 
@@ -4609,7 +4640,7 @@
 	* basic-block.h: reverted to trunk & removed compiler probe.
 	* Makefile.in: removed compiler-probe.h
 	* config.in: likewise.
-	* configure: regenerated.
+	* configure: Regenerated.
 
 2009-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[funmatcher expressions not working]
@@ -4623,12 +4654,12 @@
 	* melt/warmelt-normatch.melt: normpat_orpat working...
 	* melt/warmelt-genobj.metl: compiltst_normtester_disjunction
 	implemented.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2009-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	[or pattern still not working, but constant patterns work]
@@ -4692,12 +4723,12 @@
 	basilysgc_register_pass.
 	* melt/ana-simple.melt: TODO: smallana_command should create and
 	register its own simple IPA pass!
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 	* c-common.c: reverted to the trunk.
 	* passes.c: reverted to the trunk.
 
@@ -4805,12 +4836,12 @@
 	fixbind_data...
 	* melt/warmelt-normatch.melt: normpat_anymatchpat should use the
 	matbind...
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2009-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	[funmatcher-s still incomplete]
@@ -4887,12 +4918,12 @@
 	of the generating compiler.
 	* melt/warmelt-first.melt: added generate_melt_module
 	* melt/warmelt-outobj.melt: added genmod_command
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 	
 2009-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (basilys_tempdir_path): all mkdir should be with 
@@ -4947,12 +4978,12 @@
 	* Makefile.in: added explicit dependency on basilys.h for
 	warmelt*0.o files, t be sure the warmelt*0.o files are recompiled
 	when basilys.h is edited [otherwise a crash can happen].
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2009-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	Big boxed integers are probably needed
@@ -5013,12 +5044,12 @@
 	mixloc_locfile & mixloc_locline.
 	* Makefile.in: warmelt1n.modlis & warmelt2n.modlis correctly
 	generated.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2009-04-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.melt: the debug_ppl_ primitives behave well when
@@ -5053,12 +5084,12 @@
 	gimple_assign_floor_div gimple_assign_floor_mod gimple_assign_rdiv
 	gimple_assign_round_div gimple_assign_round_mod
 	gimple_assign_trunc_div gimple_assign_trunc_mod cmatchers.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2009-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[renamed all *.bysl files into *.melt files which is the preferred
@@ -5104,12 +5135,12 @@
 	* testsuite/melt/tmatch-3.melt: new renamed file
 	* testsuite/melt/tmultilong.melt: new renamed file
 	* testsuite/melt/tputf-1.melt: new renamed file
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2009-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: removed built-melt-cc-script from warm*.so &
@@ -5195,12 +5226,12 @@
 	the :nctx_symbcachemap when adding bindings, including removing
 	stuff from it.
 	* testsuite/melt/t2iter.bysl: updated but passes.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2009-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (debugmsgval_at): new function.
 	(basilysgc_debugmsgval): new declaration.
@@ -5237,12 +5268,12 @@
 	tmultilong.bysl compiles ok]
 	* melt/warmelt-outobj.bysl: added missing & [adressof] in output
 	of multicall secondary results.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2009-03-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	[:long secondary results are mishandled in multicall]
 	* melt/ana-base.bysl: renamed sman_add_constraint as
@@ -5315,12 +5346,12 @@
 	:ppl_constraint_system
 	* melt/warmelt-normal.bysl: added new ctype predefs.
 	* melt/ana-base.bysl: still adding constraints.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2009-03-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: reordered warm%-n.so ana%-d.so etc....
@@ -5345,23 +5376,23 @@
 	add2sbuf_mixloc primitive.
 	* melt/warmelt-outobj.bysl: generating BASILYS_ROUTINE_SET_ROUTCODE.
 	* melt-cc-script.proto: removed all the noise like echo, pwd...
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2009-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: changed casts in sbuf primitives to
 	(basilys_ptr_t) to follow previous change on sbuf functions in
 	basilys.h
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2009-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	[removed almost all warnings in basilys.?; the fopencookie will be
@@ -5419,12 +5450,12 @@
 	* melt/ana-base.bysl: added abenv_pplconsys field.  added
 	dbgout_smallabstractenv function to display
 	class_smallabstractenv.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2009-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilysgc_new_ppl_constraint_system)
 	(basilysgc_ppstrbuf_ppl_varnamvect): added new declarations.
@@ -5502,12 +5533,12 @@
 	correctly.
 	* testsuite/melt/tmatch-3.bysl: added new file exercising a bug.
 	* testsuite/melt/tmallbuf.c: simplified the example.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2009-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: use readlink instead of realpath; thanks to Nicolas
 	Vigier.
@@ -5526,12 +5557,12 @@
 	* melt/warmelt-genobj.bysl: removed some warnings.  in
 	compilobj_nrep_match never dispose the omatched.
 	* melt/ana-base.bysl: tree_variable_decl seems to work ok.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2009-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	[tmatch-2.bysl compiled ok]
 	* melt/warmelt-normatch.bysl: added field nmatch_matched to
@@ -5553,7 +5584,7 @@
 2009-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* configure.ac: added notice when MELT branch configured without
 	enabling basilysmelt.
-	* configure: regenerated.
+	* configure: Regenerated.
 2009-03-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: compile-probe.o is dirty so -Wno-error.
 2009-03-03  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -5605,12 +5636,12 @@
 	compiltst_normtester_success.
 	* melt/warmelt-outobj.bysl: added runfile command and
 	compile_one_or_more_files function.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2009-02-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	[tmatch-1.bysl could be compiled correctly, but lots of
 	intermediate objloc are never disposed...]
@@ -5687,12 +5718,12 @@
 	* melt/warmelt-normatch.bysl: added :ntest_locclist in normtesters.
 	normpat_instancepat & normpat_anymatchpat completed almost.
 	* melt/warmelt-genobj.bysl: removed some debug_msg...
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2009-02-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.bysl: coded compilmatcher_cmatcher - yet
@@ -5714,12 +5745,12 @@
 	* melt/warmelt-normal.bysl: typo in debug_msg.
 	* melt/warmelt-genobj.bysl: Corrected compilation of citeration by
 	missing put_objdest.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2009-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tcond-1.bysl: added new file, exercising a bug.
 	* melt/warmelt-first.bysl: (class_genercontext) Added
@@ -5758,12 +5789,12 @@
 	added debug_msg there.
 	* melt/warmelt-normatch.bysl: better put_fields in (normexp_match)
 	which is still incomplete.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2009-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tputf-1.bysl: new testcase, exhibiting a bug.
 	* melt/warmelt-normal.bysl: (normexp_put_fields) added inform
@@ -5799,12 +5830,12 @@
 2009-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: updated copyright year. added debugmsg in mexpand_defcmatcher.
 	* melt/warmelt-normatch.bysl: adding incomplete normapt_instancepat. still buggy & incomplete.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2009-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: debugged some stuff. Added explicit
 	inform message for matched typemispatch.
@@ -5818,12 +5849,12 @@
 	* melt/warmelt-macro.bysl: added mexpand_put_fields.
 	* melt/warmelt-normal.bysl: corrected assertion in normexp_put_fields.
 	* melt/warmelt-normatch.bysl: more in normpat_anymatchpat.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: added class_srcpattern_anymatch.
@@ -5854,12 +5885,12 @@
 2008-11-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: normexp_class had too strong assert.
 	* melt/warmelt-normatch.bysl: normpat_anyrecv has good psloc.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-11-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: adding normal_pattern selector and
@@ -5896,23 +5927,23 @@
 	* basilys.c: added basilys_modulinfo_t.
 	* melt/warmelt-outobj.bysl: Completed generation of marking. Added
 	generation of initial_frame_basilys.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* Warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* Warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2008-11-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	[generated marking code for initial module routine and every procedure]
 	* melt/warmelt-outobj.bysl: Added generation of marking for the initial frame.
 	Added initial_command_install function.
 	* melt/ana-base.bysl: uses initial_command_install function.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2008-10-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.bysl: in outpucod_marker generate marking of
 	current closure.
@@ -5932,12 +5963,12 @@
 	filled for ctype_value ctype_tree ctype_gimple ctype_gimpleseq
 	ctype_basicblock ctype_edge.
 	* melt/warmelt-outobj.bysl: added outpucod_marker and calling it.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2008-10-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: adding normal_pattern selector.
 
@@ -5956,12 +5987,12 @@
 	* melt/warmelt-macro.bysl: remove smat_else field.
 	* melt/warmelt-normatch.bysl: normexp_match scan the pattern of
 	each clause and build the tuple of vars, of consts, of bindlists.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: adding backpoints & testpoints
@@ -5978,12 +6009,12 @@
 	* melt/warmelt-normal.bysl: normexp_class corrected, so get_field
 	well compiled.
 	* melt/warmelt-normatch.bysl: adding scan_pattern for composite.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-normatch-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: added more scan_pattern methods.
@@ -5997,12 +6028,12 @@
 2008-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	[match still not working]
 	* Makefile.in: addef warmelt-normatch.*
-	* warmelt-first-0.c: regenerated twice.
-	* warmelt-macro-0.c: regenerated twice.
-	* warmelt-normal-0.c: regenerated twice.
+	* warmelt-first-0.c: Regenerated twice.
+	* warmelt-macro-0.c: Regenerated twice.
+	* warmelt-normal-0.c: Regenerated twice.
 	* warmelt-normatch-0.c: added & regenerated.
-	* warmelt-genobj-0.c: regenerated twice.
-	* warmelt-outobj-0.c: regenerated twice.
+	* warmelt-genobj-0.c: Regenerated twice.
+	* warmelt-outobj-0.c: Regenerated twice.
 	* melt/warmelt-macro.bysl: in mexpand_match the elsebody is a
 	tuple.
 	* melt/warmelt-normal.bysl: moved normexp_match to
@@ -6030,20 +6061,20 @@
 	* melt/warmelt-first.bysl: added tuple_nth & tuple_sized cmatchers.
 	* melt/warmelt-macro.bysl: removed redefinition_handling macro.
 	defcmatcher more flexible, can have empty expanders...
-	* warmelt-first-0.c: regenerated twice.
-	* warmelt-macro-0.c: regenerated twice.
-	* warmelt-normal-0.c: regenerated twice.
-	* warmelt-genobj-0.c: regenerated twice.
-	* warmelt-outobj-0.c: regenerated twice.
+	* warmelt-first-0.c: Regenerated twice.
+	* warmelt-macro-0.c: Regenerated twice.
+	* warmelt-normal-0.c: Regenerated twice.
+	* warmelt-genobj-0.c: Regenerated twice.
+	* warmelt-outobj-0.c: Regenerated twice.
 2008-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: added class_nrep_typexpr, and
 	nexpr_ctyp field. removed nif_ctyp field.
 	* melt/warmelt-genobj.bysl: don't use nif_ctyp but nexpr_ctyp.
-	* warmelt-first-0.c: regenerated twice.
-	* warmelt-macro-0.c: regenerated twice.
-	* warmelt-normal-0.c: regenerated twice.
-	* warmelt-genobj-0.c: regenerated twice.
-	* warmelt-outobj-0.c: regenerated twice.
+	* warmelt-first-0.c: Regenerated twice.
+	* warmelt-macro-0.c: Regenerated twice.
+	* warmelt-normal-0.c: Regenerated twice.
+	* warmelt-genobj-0.c: Regenerated twice.
+	* warmelt-outobj-0.c: Regenerated twice.
 2008-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: changed comment.
 	* melt/warmelt-macro.bysl: better expand_cmatchexpr.
@@ -6052,11 +6083,11 @@
 	nchunk_primitive.
 	* melt/warmelt-genobj.bysl: compilobj_nrep_chunk handle primitive
 	& cmatchexpr operators differently.
-	* warmelt-first-0.c: regenerated twice.
-	* warmelt-macro-0.c: regenerated twice.
-	* warmelt-normal-0.c: regenerated twice.
-	* warmelt-genobj-0.c: regenerated twice.
-	* warmelt-outobj-0.c: regenerated twice.
+	* warmelt-first-0.c: Regenerated twice.
+	* warmelt-macro-0.c: Regenerated twice.
+	* warmelt-normal-0.c: Regenerated twice.
+	* warmelt-genobj-0.c: Regenerated twice.
+	* warmelt-outobj-0.c: Regenerated twice.
 2008-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: all fixed bindings handled the same in normexp_symbol.
 2008-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
@@ -6089,11 +6120,11 @@
 	* melt/warmelt-macro.bysl: OR becomes a patmacro.
 	* melt/warmelt-genobj.bysl: all export_macro & export_patmacro
 	done in normalization.
-	* warmelt-first-0.c: regenerated twice.
-	* warmelt-macro-0.c: regenerated twice.
-	* warmelt-normal-0.c: regenerated twice.
-	* warmelt-genobj-0.c: regenerated twice.
-	* warmelt-outobj-0.c: regenerated twice.
+	* warmelt-first-0.c: Regenerated twice.
+	* warmelt-macro-0.c: Regenerated twice.
+	* warmelt-normal-0.c: Regenerated twice.
+	* warmelt-genobj-0.c: Regenerated twice.
+	* warmelt-outobj-0.c: Regenerated twice.
 2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-cc-script.proto: guess the second arg dynstuff from the
 	first csource on common platforms.
@@ -6114,11 +6145,11 @@
 	* melt/warmelt-normal.bysl: ditto.
 	* melt/warmelt-genobj.bysl: ditto.
 	* melt/warmelt-outobj.bysl: ditto.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 2008-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: debug_msg prints correctly the file location.
 	* melt/warmelt-normal.bysl: more export_patmacro related stuff.
@@ -6135,11 +6166,11 @@
 	* melt/warmelt-first.bysl: added sysdata_patmacro_exporter & initpatmacro_exporter
 	* melt/warmelt-macro.bysl: make_instance macro can be called as instance.
 	* melt/warmelt-normal.bysl: added global_CLASS_CMATCHER & more in normexp_export_patmacro [incomplete].
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi: documented export_patmacro.
@@ -6154,11 +6185,11 @@
 	-Wshadow flag]
 	* melt/warmelt-normal.bysl: added fill_normal_formalbind &
 	normexp_defcmatcher
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: added fmbind_defunmatcher field.
@@ -6178,11 +6209,11 @@
 	class_funmatcher class_funmatcher_binding & export them.
 	* melt/warmelt-macro.bysl: adding class_src_defunmatcher
 	... [incomplete]
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: added class_src_cmatchexpr and handle
@@ -6200,11 +6231,11 @@
 	class_cmatcher_binding. added foreach_in_multiple citerator, so
 	should regenerate...
 	* melt/warmelt-macro.bysl: adding defcmatcher ... [incomplete]
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-10-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	[moved the data part of fixed bindings into superclass
@@ -6215,11 +6246,11 @@
 	* melt/warmelt-normal.bysl: use fixbind_data instead of obsolete specific data fields
 	* melt/warmelt-genobj.bysl: factorised compile_obj of fixed_bindings into one singe method
 	* Makefile.in: added warmelt2.modlis as dependency for warmelt-first-3.c
-	* warmelt-first-0.c: regenerated many times.
-	* warmelt-macro-0.c: regenerated many times.
-	* warmelt-normal-0.c: regenerated many times.
-	* warmelt-genobj-0.c: regenerated many times.
-	* warmelt-outobj-0.c: regenerated many times.
+	* warmelt-first-0.c: Regenerated many times.
+	* warmelt-macro-0.c: Regenerated many times.
+	* warmelt-normal-0.c: Regenerated many times.
+	* warmelt-genobj-0.c: Regenerated many times.
+	* warmelt-outobj-0.c: Regenerated many times.
 
 2008-09-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding matching & cmatcher etc...]
@@ -6249,11 +6280,11 @@
 	ecpansion.
 	* melt/warmelt-outobj.bysl: generates a valid but less precise
 	#line with more info as comments.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi: added citerator and function example with the
@@ -6263,11 +6294,11 @@
 	* doc/melt.texi: wrote most of the reference material.
 
 2008-09-23  Basile Starynkevitch  <basile@starynkevitch.net>
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 	* melt/warmelt-outobj.bysl: -fbasilys=translateinit same as -fbasilys=compileinit
 	* Makefile.in: use -fbasilys=translate* instead of -fbasilys=compile*
 
@@ -6298,11 +6329,11 @@
 	assert_msg position handling.
 	* melt/warmelt-normal.bysl: emit warning on type mismatch in
 	primitive invocations.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.bysl (simpana_latessaexec) corrected call to
@@ -6318,11 +6349,11 @@
 	(each_in_gimpleseq, reveach_in_gimpleseq): more robust with null arg.
 	(do_eachgimple_in_basicblock): added function.
 	(simpana_latessaexec): using it.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-09-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilys_basicblock_phinodes): new function.
@@ -6417,11 +6448,11 @@
 	* melt/ana-base.bysl: adding simpana command.
 	* Makefile.in: all MELT compilation done with -fbasilys=comp... &
 	removed -fbasilys-command.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-09-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilysgc_ppstrbuf_tree): added declaration.
@@ -6497,11 +6528,11 @@
 2008-09-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	MERGED WITH TRUNK rev139820
 	* melt/warmelt-first.bysl: added location argument to inform.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-08-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* compiler-probe.c (display_gimple_seq): Use gimple_starting_displayer.
@@ -6534,11 +6565,11 @@
 	CTYPE_GIMPLESEQ, DISCR_MAPGIMPLES, _DISCR_MAPGIMPLESEQS,
 	DISCR_GIMPLE, DISCR_GIMPLESEQ, DISCR_MAPTREES
 	* melt/ana-base.bysl: better each_cgraph_fun iterator & do_each_cfun.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: ana-base.c is secondary.
@@ -6586,11 +6617,11 @@
 	(basilysgc_read_from_val) don't overwrite locnam.
 	* melt/warmelt-first.bysl: new field sysdata_meltattr_definer.
 	* c-common.c (handle_melt_attribute): implemented function.
-	* warmelt-first-0.c: regenerated.
-	* warmelt-macro-0.c: regenerated.
-	* warmelt-normal-0.c: regenerated.
-	* warmelt-genobj-0.c: regenerated.
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
+	* warmelt-macro-0.c: Regenerated.
+	* warmelt-normal-0.c: Regenerated.
+	* warmelt-genobj-0.c: Regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-08-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilysgc_read_from_val): New declaration of function.
@@ -6645,15 +6676,15 @@
 	discr_gimple, discr_tree, discr_mapedges, discr_mapgimples,
 	discr_maptrees.
 
-	* warmelt-first-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
 
-	* warmelt-macro-0.c: regenerated.
+	* warmelt-macro-0.c: Regenerated.
 
-	* warmelt-normal-0.c: regenerated.
+	* warmelt-normal-0.c: Regenerated.
 
-	* warmelt-genobj-0.c: regenerated.
+	* warmelt-genobj-0.c: Regenerated.
 
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-07-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	[merging with trunk after the tuple merge]
@@ -6698,15 +6729,15 @@
 	* melt/warmelt-outobj.bysl: handled better nil arguments, and
 	handle both old fashioned & new fashioned locations.
 
-	* warmelt-first-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
 
-	* warmelt-macro-0.c: regenerated.
+	* warmelt-macro-0.c: Regenerated.
 
-	* warmelt-normal-0.c: regenerated.
+	* warmelt-normal-0.c: Regenerated.
 
-	* warmelt-genobj-0.c: regenerated.
+	* warmelt-genobj-0.c: Regenerated.
 
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding a field inside the compiler works, thanks to dynamic objstruct; 
@@ -6743,15 +6774,15 @@
 
 	* melt-cc-script.proto: added -d option for MELTGCC_DYNAMIC_OBJSTRUCT.
 
-	* warmelt-first-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
 
-	* warmelt-macro-0.c: regenerated.
+	* warmelt-macro-0.c: Regenerated.
 
-	* warmelt-normal-0.c: regenerated.
+	* warmelt-normal-0.c: Regenerated.
 
-	* warmelt-genobj-0.c: regenerated.
+	* warmelt-genobj-0.c: Regenerated.
 
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	[preparing ability to compute dynamically & generate field offsets
@@ -6772,15 +6803,15 @@
 
 	* melt/warmelt-outobj.bysl: added output_exported_offsets
 
-	* warmelt-first-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
 
-	* warmelt-macro-0.c: regenerated.
+	* warmelt-macro-0.c: Regenerated.
 
-	* warmelt-normal-0.c: regenerated.
+	* warmelt-normal-0.c: Regenerated.
 
-	* warmelt-genobj-0.c: regenerated.
+	* warmelt-genobj-0.c: Regenerated.
 
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	[the stage1 melt is built using previous modules of itself]
@@ -6803,15 +6834,15 @@
 
 	* melt/warmelt-genobj.bysl: adding compilation of citerations.
 
-	* warmelt-first-0.c: regenerated twice.
+	* warmelt-first-0.c: Regenerated twice.
 
-	* warmelt-macro-0.c: regenerated twice.
+	* warmelt-macro-0.c: Regenerated twice.
 
-	* warmelt-normal-0.c: regenerated twice.
+	* warmelt-normal-0.c: Regenerated twice.
 
-	* warmelt-genobj-0.c: regenerated twice.
+	* warmelt-genobj-0.c: Regenerated twice.
 
-	* warmelt-outobj-0.c: regenerated twice.
+	* warmelt-outobj-0.c: Regenerated twice.
 
 008-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: added normexp_citeration.
@@ -6823,15 +6854,15 @@
 
 	* melt/warmelt-genobj.bysl: should compile normexp_citeration.
 
-	* warmelt-first-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
 
-	* warmelt-macro-0.c: regenerated.
+	* warmelt-macro-0.c: Regenerated.
 
-	* warmelt-normal-0.c: regenerated.
+	* warmelt-normal-0.c: Regenerated.
 
-	* warmelt-genobj-0.c: regenerated.
+	* warmelt-genobj-0.c: Regenerated.
 
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: still adding normexp_citeration.
@@ -6850,15 +6881,15 @@
 
 	* melt/warmelt-normal.bysl: adding normexp_citeration.
 
-	* warmelt-first-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
 
-	* warmelt-macro-0.c: regenerated.
+	* warmelt-macro-0.c: Regenerated.
 
-	* warmelt-normal-0.c: regenerated.
+	* warmelt-normal-0.c: Regenerated.
 
-	* warmelt-genobj-0.c: regenerated.
+	* warmelt-genobj-0.c: Regenerated.
 
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-07-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r137813
@@ -6894,15 +6925,15 @@
 	* melt/ana-base.bysl: adding basilys_earlyopt_gccpass &
 	basilys_lateopt_gccpass
 
-	* warmelt-first-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
 
-	* warmelt-macro-0.c: regenerated.
+	* warmelt-macro-0.c: Regenerated.
 
-	* warmelt-normal-0.c: regenerated.
+	* warmelt-normal-0.c: Regenerated.
 
-	* warmelt-genobj-0.c: regenerated.
+	* warmelt-genobj-0.c: Regenerated.
 
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-07-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: added  FSYSDAT_EXIT_FINALIZER
@@ -6946,15 +6977,15 @@
 
 	* doc/melt.texi: more about -fbasilys-tempdir.
 
-	* warmelt-first-0.c: regenerated.
+	* warmelt-first-0.c: Regenerated.
 
-	* warmelt-macro-0.c: regenerated.
+	* warmelt-macro-0.c: Regenerated.
 
-	* warmelt-normal-0.c: regenerated.
+	* warmelt-normal-0.c: Regenerated.
 
-	* warmelt-genobj-0.c: regenerated.
+	* warmelt-genobj-0.c: Regenerated.
 
-	* warmelt-outobj-0.c: regenerated.
+	* warmelt-outobj-0.c: Regenerated.
 
 2008-07-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r137357
@@ -6975,7 +7006,7 @@
 
 	* configure.ac: corrected GDBM stuff.
 
-	* configure: regenerated.
+	* configure: Regenerated.
 
 	* c-common.c: (handle_melt_attribute) new empty function.
 
@@ -7014,7 +7045,7 @@
 
 	* configure.ac: added GDBM support.
 
-	* configure: regenerated.
+	* configure: Regenerated.
 
 	* Makefile.in: added GDBM.
 
@@ -7028,15 +7059,15 @@
 	* basilys.c: (forwarded_copy,scanning,basilysgc_new_raw_object)
 	using BASILYS_HAS_OBJ_TAB_FIELDS for fixed length objects.
 
-	* warmelt-first-0.c: regenerated twice.
+	* warmelt-first-0.c: Regenerated twice.
 
-	* warmelt-macro-0.c: regenerated twice.
+	* warmelt-macro-0.c: Regenerated twice.
 
-	* warmelt-normal-0.c: regenerated twice.
+	* warmelt-normal-0.c: Regenerated twice.
 
-	* warmelt-genobj-0.c: regenerated twice.
+	* warmelt-genobj-0.c: Regenerated twice.
 
-	* warmelt-outobj-0.c: regenerated twice.
+	* warmelt-outobj-0.c: Regenerated twice.
 
 	* melt/warmelt-outobj.bysl: added support of
 	BASILYS_HAS_OBJ_TAB_FIELDS.
@@ -7192,11 +7223,11 @@
 
 	* melt/warmelt-outobj.bysl: added the moved compile_list_sexpr
 
-	* warm-basilys-0.c: regenerated from above warmelt*.bysl
+	* warm-basilys-0.c: Regenerated from above warmelt*.bysl
 
 2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	[splitting warm-basilys.bysl into several files]
-	* warm-basilys-0.c: regenerated.
+	* warm-basilys-0.c: Regenerated.
 
 	* Makefile.in: added rules for monolithical build of
 	warm-basilys-*.c from catenation of warmelt*.bysl
@@ -7220,7 +7251,7 @@
 	* melt/warm-basilys.bysl: added errormsg_plain & errormsg_strv.
 	compileinit_command & compilefile_command handle arglist.
 
-	* warm-basilys-0.c: regenerated.
+	* warm-basilys-0.c: Regenerated.
 
 2008-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy for warmelt-genobj.so]
@@ -7253,7 +7284,7 @@
 
 	* melt/warm-basilys.bysl: added many casts.
 
-	* warm-basilys-0.c: regenerated.
+	* warm-basilys-0.c: Regenerated.
 
 2008-06-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r137030
@@ -7274,7 +7305,7 @@
 	msend_selbind.  warning & error messages report location in
 	@file:line: format.  macroexpand_1 deals with selector values.
 
-	* warm-basilys-0.c: regenerated.
+	* warm-basilys-0.c: Regenerated.
 
 2008-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added warmelt-normal.c & warmelt-genobj.c targets.
@@ -7298,7 +7329,7 @@
 	* melt/warm-basilys.bysl: renamed current_module_environment_box
 	as current_module_environment_container
 
-	* warm-basilys-0.c: regenerated several times.
+	* warm-basilys-0.c: Regenerated several times.
 
 2008-06-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: adding more into
@@ -7329,7 +7360,7 @@
 	be called update_current_module_environment_container.
 	Its compilation method is not complete.
 
-	* warm-basilys-0.c: regenerated several times.
+	* warm-basilys-0.c: Regenerated several times.
 
 2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 [start adding update_current_module_environment_box]
@@ -7347,7 +7378,7 @@
 	argument. Added some stuff for
 	update_current_module_environment_box, which is not implemented.
 
-	* warm-basilys-0.c: regenerated.
+	* warm-basilys-0.c: Regenerated.
 
 2008-06-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: renamed  FSYSDAT_FRESH_ENV as  FSYSDAT_BOX_FRESH_ENV
@@ -7361,7 +7392,7 @@
 	normal_exported_macro are simpler.  post_initialization works
 	badly so issue a warning.
 
-	* warm-basilys-0.c: regenerated twide.
+	* warm-basilys-0.c: Regenerated twide.
 
 	* Makefile.in: warm-basilys-0.c made from warm-basilys-3 not 2
 
@@ -7442,7 +7473,7 @@ current_module_environment_box; this will make everything easier]
 	* melt/warm-basilys.bysl: removed all tokenizer stuff, using
 	system_data instead. fetch_predefined works on small example.
 
-	* warm-basilys-0.c: regenerated several times.
+	* warm-basilys-0.c: Regenerated several times.
 
 2008-06-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: added fetch_predefined & store_predefined.
@@ -7457,7 +7488,7 @@ current_module_environment_box; this will make everything easier]
 	* melt/warm-basilys.bysl: added compileinit command and
 	unsafe_replace_module_environment feature.  reordered the file.
 
-	* warm-basilys-0.c: regenerated several times.
+	* warm-basilys-0.c: Regenerated several times.
 
 2008-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
 [beginning to split warm-basilys.bysl into several files using
@@ -7477,7 +7508,7 @@ export...; not yet working!]
 	warmelt-normal.bysl warmelt-genobj.bysl. Added commented target
 	warmelt-macro.so
 
-	* warm-basilys-0.c: regenerated.
+	* warm-basilys-0.c: Regenerated.
 
 2008-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* common.opt: added fbasilys-debugskip= option.
@@ -7515,7 +7546,7 @@ export...; not yet working!]
 	compilefile uses the current module environment if the previous
 	was non nil or else the initial_environment
 
-	* warm-basilys-0.c: regenerated twice.
+	* warm-basilys-0.c: Regenerated twice.
 
 2008-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
 [macro (current_module_environment) works on a tiny example]
@@ -7542,7 +7573,7 @@ export...; not yet working!]
 
 	* melt/testrun1.bysl: updated to test all exports.
 
-	* warm-basilys-0.c: regenerated twice.
+	* warm-basilys-0.c: Regenerated twice.
 
 2008-06-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl:  emitting export macro [untested]
@@ -7570,7 +7601,7 @@ export...; not yet working!]
 	added initvalue_exporter, and unimplemented initmacro_exporter.
 	simpler initial_system_data.
 
-	* warm-basilys-0.c: regenerated twice.
+	* warm-basilys-0.c: Regenerated twice.
 
 	* basilys.h: added commented  FSYSDAT_VALUEEXPORTER &  FSYSDAT_MACROEXPORTER 
 
@@ -7606,7 +7637,7 @@ export...; not yet working!]
 	* melt/warm-basilys.bysl: added compile_warning macro.
 	still unimplemented normexp_export_value.
 
-	* warm-basilys-0.c: regenerated twice [before & afeter edition]
+	* warm-basilys-0.c: Regenerated twice [before & afeter edition]
 
 2008-06-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: (load_initial_basilys_modules) debug messages to show module data.
@@ -7638,7 +7669,7 @@ environment management, etc...]
 	* melt/warm-basilys.bysl: using SYSTEM_DATA and generating a fresh
 	environment in the start_module_basilys
 
-	* warm-basilys-0.c: regenerated twice [after editing warm-basilys.bysl]
+	* warm-basilys-0.c: Regenerated twice [after editing warm-basilys.bysl]
 
 	* melt-cc-script.proto: redirecting which to /dev/null
 
@@ -7662,7 +7693,7 @@ environment management, etc...]
 	* Makefile.in: upgrade-warm-basilys used correctly unifdef.
 	added rule for +warm%-n.so
 
-	* warm-basilys-0.c: regenerated using new Makefile.in.
+	* warm-basilys-0.c: Regenerated using new Makefile.in.
 
 2008-06-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: started adding module compilation context.
@@ -7686,7 +7717,7 @@ environment management, etc...]
 	initialize_module_cdata routine to make the start_module_basilys
 	routine less huge.
 
-	* warm-basilys-0.c: regenerated by the edited warm-basilys.bysl
+	* warm-basilys-0.c: Regenerated by the edited warm-basilys.bysl
 
 2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added warm-basilys-5.c & diff-warm-1-2 ... targets
@@ -7698,7 +7729,7 @@ environment management, etc...]
 2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: using assert_msg macro instead of assertmsg primitive.
 
-	* warm-basilys-0.c: regenerated twice (before and after edition of warm-basilys.bysl)
+	* warm-basilys-0.c: Regenerated twice (before and after edition of warm-basilys.bysl)
 
 2008-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: macroexpansion of cppid twisted.
@@ -7740,7 +7771,7 @@ environment management, etc...]
 2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: using debug_msg macro everywhere instead of debugmsg.
 
-	* warm-basilys-0.c: regenerated.
+	* warm-basilys-0.c: Regenerated.
 
 	* melt-cc-script.proto: do not compile anymore the *-n.so without line numbering.
 
@@ -7751,7 +7782,7 @@ environment management, etc...]
 2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warm-basilys.bysl: removed some debugmsg.
 
-	* warm-basilys-0.c: regenerated.
+	* warm-basilys-0.c: Regenerated.
 
 2008-06-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added MELTBASILYSCC1 variable & warm-basilys-4.c target
@@ -7768,7 +7799,7 @@ environment management, etc...]
 	(basilys_output_cfile_decl_impl) avoid appending .c to a unitname
 	already ending by it.
 
-	* warm-basilys-0.c: regenerated.
+	* warm-basilys-0.c: Regenerated.
 
 	* melt/warm-basilys.bysl: added handling of comment.
 	added copyright comment in generated file.
@@ -8381,7 +8412,7 @@ MELT bootstrapped, ie the generated warm-basilys-0.c is selfgenerated from warm-
 	* configure.ac: added --enable-basilysmelt flag
 	* basilys.h: check ENABLE_BASILYSMELT
 	* Makefile.in: added conditionals on BASILSMELT_OBJ and COMPILER_PROBE_OBJ
-	* configure, config.in: regenerated
+	* configure, config.in: Regenerated
 
 2008-04-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	corrected below bug;

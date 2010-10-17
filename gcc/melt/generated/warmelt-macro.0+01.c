@@ -11931,16 +11931,6 @@ lab_endgetargs:;
 /*anyblock*/{
  
  
- {
- MELT_LOCATION("warmelt-macro.melt:2580:/ locexp");
- debugnum(( "expdefclasupflds ix"), (/*_#IX__L1*/ meltfnum[0]));}
- ;
- 
- {
- MELT_LOCATION("warmelt-macro.melt:2581:/ locexp");
- debugvalue(( "expdefclasupfldsval sfld"), ((void*)(/*_.SFLD__V2*/ meltfptr[1])));}
- ;
- 
  #if ENABLE_CHECKING
   MELT_LOCATION("warmelt-macro.melt:2582:/ cppif.then");
  /*^block*/
