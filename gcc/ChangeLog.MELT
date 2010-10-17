@@ -1,3 +1,7 @@
+2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gengtype.c (parse_program_options): Allocate plugin_files.
+	* Makefile.in (gt-melt-runtime-plugin.h): fix gengtype invocation.
+
 2010-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (MELT_PLUGIN_HEADERS): temporarily added $(REGSET_H)
 	which should go into $(PLUGIN_HEADERS)

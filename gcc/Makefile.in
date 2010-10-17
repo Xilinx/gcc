@@ -5472,7 +5472,7 @@ install-melt-otherfiles: installdirs
 #### this file is useless, except for packaging GCC MELT as a plugin for gcc 4.5
 gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c $(srcdir)/melt-runtime.h gtyp-real-meltplugin-input.list  build/gengtype$(build_exeext)
 	rm -f $@
-	$(RUN_GEN) build/gengtype$(build_exeext) -P $@ $(srcdir) gtyp-real-meltplugin-input.list $(srcdir)/melt-runtime.h $(srcdir)/melt-runtime.c  
+	$(RUN_GEN) build/gengtype$(build_exeext)-S $(srcdir) -I gtyp-real-meltplugin-input.list  -P $@ $(srcdir)/melt-runtime.h $(srcdir)/melt-runtime.c  
 # we add a comment containing various meta-information. 
 	date +"/* $@ file generated %c%n" >> $@
 	if [ -f REVISION ]; then (echo -n "GCC revision: " ; cat REVISION) >> $@ ; fi
