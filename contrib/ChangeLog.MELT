@@ -1,3 +1,11 @@
+2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh: updated, compute the melt-run-md5.h
+	there...
+
+	* gt-melt-runtime-plugin-4.5.h: manually removed the
+	*GIMPLESEQNODE* related obsolete stuff.
+
+
 2010-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-source-tar.sh: updated.
 

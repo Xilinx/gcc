@@ -16,4 +16,4 @@ If you have downloaded the MELT plugin source tree (and not
 the entire GCC MELT branch) you probably can build the melt.so plugin
 for GCC 4.5 in its source directory, by running something like 
 
-env CC=gcc-4.5 ./build-melt-plugin.sh -M $PWD -Y gt-melt-runtime-plugin-4.5.h
+env GCC=gcc-4.5 ./build-melt-plugin.sh -M $PWD -Y gt-melt-runtime-plugin-4.5.h

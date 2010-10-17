@@ -235,6 +235,17 @@ get_gty_melt_header() {
 }
 
 
+################ build melt-run.h and melt-run-md5.h
+### See gcc/Makefile.in and keep in sync with it.
+build_melt_run_headers() {    
+    verbose_echo building melt-run.h and computing its md5 signature after preprocessing
+    verbose_sleep
+    rm -f melt-run.h melt-run-md5.h
+    melt_run_md5=`$(HOSTCC) -C -E -DMELT_IS_PLUGIN -I $gcc_plugin_directory/include melt-run.proto.h | grep -v '^#' | md5sum | cut -c 1-32`
+    echo  "const char melt_run_preprocessed_md5[]=\"$$melt_run_md5\";" > melt-run-md5.h
+    sed -e "s,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$$melt_run_md5\"," <  melt-run.proto.h > melt-run.h
+}
+
 ################ build melt.so with appropriate default settings
 build_melt_dot_so() {
     # build the melt-predef.h file
@@ -341,7 +352,7 @@ install_melt() {
     $HOSTADMINCMD $HOSTINSTALL -m 755  melt.so $gcc_plugin_directory/libexec/
     $HOSTADMINCMD $HOSTINSTALL -m 755 $GCCMELT_SOURCE_TREE/melt-module.mk $gcc_plugin_directory/melt-build-module.mk
     verbose_echo Installing MELT specific header files
-    $HOSTADMINCMD $HOSTINSTALL -m 644 $GCCMELT_SOURCE_TREE/melt-runtime.h  $GCCMELT_SOURCE_TREE/run-melt.h melt-predef.h  $gcc_plugin_directory/include/
+    $HOSTADMINCMD $HOSTINSTALL -m 644 $GCCMELT_SOURCE_TREE/melt-runtime.h  $GCCMELT_SOURCE_TREE/run-melt.h melt-predef.h  melt-run.h melt-run-md5.h $gcc_plugin_directory/include/
     verbose_echo Installing the MELT source directory
     $HOSTADMINCMD $HOSTINSTALL -m 755 -d $gcc_plugin_directory/melt-source
     verbose_echo Populating the MELT source directory with MELT files
@@ -365,6 +376,7 @@ verbose_sleep
 # here we go!
 sanity_checks_gcc_info
 get_gty_melt_header
+build_melt_run_headers
 build_melt_dot_so
 bootstrap_melt
 install_melt

@@ -2869,6 +2869,7 @@ melt-runtime.o:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h  $(C_COMMON_H) \
 ## of melt-run.proto.h and is used to ensure that the melt-run.h is
 ## the one expected. It is included in melt-runtime.c and melt-run.h
 ## is generated to contain it.
+#### keep contrib/build-melt-plugin.sh in sync with this!
 melt-run-md5.h melt-run.h: Makefile  $(srcdir)/melt-run.proto.h $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H) \
    $(TREE_H)  $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H)  \
    tree-pass.h $(MELT_H) gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)

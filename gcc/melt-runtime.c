@@ -1283,6 +1283,8 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 #define ggc_alloc_meltmixint_st() \
   ((struct meltmixint_st*)ggc_alloc (sizeof(struct meltmixint_st)))
 
+#define ggc_alloc_meltmixloc_st() \
+  ((struct meltmixloc_st*)ggc_alloc (sizeof(struct meltmixloc_st)))
 #define ggc_alloc_cleared_meltmixloc_st() \
   ((struct meltmixloc_st*)ggc_alloc_cleared (sizeof(struct meltmixloc_st)))
 

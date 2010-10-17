@@ -986,10 +986,6 @@ gt_ggc_mx_melt_un (void *x_p)
           gt_ggc_m_13meltobject_st ((*x).u_gimpleseq.discr);
           gt_ggc_m_12gimple_seq_d ((*x).u_gimpleseq.val);
           break;
-        case MELTOBMAG_GIMPLESEQNODE:
-          gt_ggc_m_13meltobject_st ((*x).u_gimpleseqnode.discr);
-          gt_ggc_m_12gimple_seq_d ((*x).u_gimpleseqnode.val);
-          break;
         case MELTOBMAG_BASICBLOCK:
           gt_ggc_m_13meltobject_st ((*x).u_basicblock.discr);
           gt_ggc_m_15basic_block_def ((*x).u_basicblock.val);
@@ -1075,17 +1071,6 @@ gt_ggc_mx_melt_un (void *x_p)
               gt_ggc_m_7melt_un ((*x).u_mapgimpleseqs.entab[i14].e_va);
             }
             ggc_mark ((*x).u_mapgimpleseqs.entab);
-          }
-          break;
-        case MELTOBMAG_MAPGIMPLESEQNODES:
-          gt_ggc_m_13meltobject_st ((*x).u_mapgimpleseqnodes.discr);
-          if ((*x).u_mapgimpleseqnodes.entab != NULL) {
-            size_t i15;
-            for (i15 = 0; i15 != (size_t)(melt_primtab[((*x).u_mapgimpleseqnodes).lenix]); i15++) {
-              gt_ggc_m_12gimple_seq_d ((*x).u_mapgimpleseqnodes.entab[i15].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapgimpleseqnodes.entab[i15].e_va);
-            }
-            ggc_mark ((*x).u_mapgimpleseqnodes.entab);
           }
           break;
         case MELTOBMAG_MAPBASICBLOCKS:

@@ -1,4 +1,9 @@
 2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: Added comment about keeping in sync with
+	contrib/build-melt-plugin.sh.
+	* melt-runtime.c: Added missing macro ggc_alloc_meltmixloc_st.
+
+2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h: debumsgval undefined without ENABLE_CHECKING
 
