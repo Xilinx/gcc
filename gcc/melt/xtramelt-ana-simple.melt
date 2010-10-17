@@ -166,8 +166,7 @@
 (definstance makegreen_mode
   class_melt_mode
   :named_name '"makegreen"
-  :meltmode_help '"MELT 'makegreen' mode; enable a pass finding
-  fprintf to stdout..."
+  :meltmode_help '"enable a pass finding fprintf to stdout..."
   :meltmode_fun makegreen_docmd
 )
 (install_melt_mode makegreen_mode)
@@ -1066,7 +1065,7 @@
 (definstance smallana_mode
   class_melt_mode
   :named_name '"smallana"
-  :meltmode_help '"MELT 'smallana' mode; install a small analysis pass"
+  :meltmode_help '"install a small analysis pass"
   :meltmode_fun smallana_docmd
 )
 (install_melt_mode smallana_mode)
@@ -1271,7 +1270,7 @@
 (definstance justscan_mode
   class_melt_mode
   :named_name '"justscan"
-  :meltmode_help '"MELT 'justscan' mode - install a pass scanning all the code"
+  :meltmode_help '"install a pass scanning all the code"
   :meltmode_fun justscan_docmd
 )
 (install_melt_mode justscan_mode "justscan")

@@ -924,7 +924,7 @@
 
 (definstance generator_mode class_melt_mode
   :named_name '"generator"
-  :meltmode_help '"MELT C generator"
+  :meltmode_help '"install a pass to generate C code from Gimple."
   :meltmode_fun generator_run)
 (install_melt_mode generator_mode)
 
