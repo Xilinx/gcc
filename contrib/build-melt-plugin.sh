@@ -241,7 +241,7 @@ build_melt_run_headers() {
     verbose_echo building melt-run.h and computing its md5 signature after preprocessing
     verbose_sleep
     rm -f melt-run.h melt-run-md5.h
-    melt_run_md5=`$(HOSTCC) -C -E -DMELT_IS_PLUGIN -I $gcc_plugin_directory/include melt-run.proto.h | grep -v '^#' | md5sum | cut -c 1-32`
+    melt_run_md5=`$HOSTCC -C -E -DMELT_IS_PLUGIN -I $gcc_plugin_directory/include melt-run.proto.h | grep -v '^#' | md5sum | cut -c 1-32`
     echo  "const char melt_run_preprocessed_md5[]=\"$$melt_run_md5\";" > melt-run-md5.h
     sed -e "s,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$$melt_run_md5\"," <  melt-run.proto.h > melt-run.h
 }
