@@ -3796,8 +3796,9 @@
 	 ))
       (code_chunk flush_chk 
 		  #{
-		  fflush (stderr)	;
-		  fflush (stdout)	;
+		  putchar ('\n');
+		  fflush (stderr);
+		  fflush (stdout);
 #ifdef MELT_IS_PLUGIN
                   inform (UNKNOWN_LOCATION, " use -fplugin-arg-melt-mode= to set the MELT mode[s] separated by comma");
 #else
@@ -3880,7 +3881,8 @@
 (definstance translatefile_mode
   class_melt_mode
   :named_name '"translatefile"
-  :meltmode_help '"translate a .melt file to .c; ARGUMENT= input file; OUTPUT= generated C file"
+  :meltmode_help '"translate a .melt file to .c;\n
+\t ARGUMENT= input file; OUTPUT= generated C file"
   :meltmode_fun translatefile_docmd
 )
 (install_melt_mode translatefile_mode)
@@ -3922,7 +3924,8 @@
 (definstance translatetomodule_mode
   class_melt_mode
   :named_name '"translatetomodule"
-  :meltmode_help '"translate a .melt file to .so module; ARGUMENT= input file; OUTPUT= generated module *.so"
+  :meltmode_help '"translate a .melt file to .so module;\n
+\t ARGUMENT= input file; OUTPUT= generated module *.so"
   :meltmode_fun translatetomodule_docmd
 )
 (install_melt_mode translatetomodule_mode)
@@ -3974,9 +3977,10 @@
 (definstance translatedebug_mode
   class_melt_mode
   :named_name '"translatedebug"
-  :meltmode_help '"translate a .melt file to .so module for debug. ARGUMENT= input file;
-OUTPUT= generated module *.so, also *.c and no MELT line
-number. Useful for running gdb on the module."
+  :meltmode_help '"translate a .melt file to .so module for debug;\n
+\t ARGUMENT= input file; OUTPUT= generated module *.so;\n
+\t generates also *.c and no MELT line number;\n
+\t Useful for running gdb on the module."
   :meltmode_fun translatedebug_docmd
 )
 (install_melt_mode translatedebug_mode)
@@ -4019,8 +4023,8 @@ number. Useful for running gdb on the module."
 (definstance runfile_mode
   class_melt_mode
   :named_name '"runfile"
-  :meltmode_help '"translate and run a .melt file. ARGUMENT= input file; 
-[OUTPUT=generated C]; translate and run an *.melt file."
+  :meltmode_help '"translate and run a .melt file.\n
+\t ARGUMENT= input file; [OUTPUT=generated C]."
   :meltmode_fun runfile_docmd
 )
 (install_melt_mode runfile_mode)
@@ -4078,7 +4082,7 @@ number. Useful for running gdb on the module."
 (definstance rundebug_mode
   class_melt_mode
   :named_name '"rundebug"
-  :meltmode_help '"translate and run a .melt file for debug.\n
+  :meltmode_help '"translate and run a .melt file for debug;\n
 \t ARGUMENT= input file;  [OUTPUT=generated C]"
   :meltmode_fun rundebug_docmd
 )
@@ -4136,8 +4140,8 @@ number. Useful for running gdb on the module."
 (definstance translateinit_mode
   class_melt_mode
   :named_name '"translateinit"
-  :meltmode_help '"translate the very first *.melt file; useful only at MELT installation!\n
-\t ARGUMENT= input file; OUTPUT= generated file"
+  :meltmode_help '"translate the very first *.melt file;\n
+\t useful only at MELT installation! ARGUMENT= input file; OUTPUT= generated file."
   :meltmode_fun translateinit_docmd
 )
 (install_melt_mode translateinit_mode)
