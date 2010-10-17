@@ -1229,9 +1229,9 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 **/
 #if BUILDING_GCC_VERSION <= 4006 && !defined (ggc_alloc_cleared_gimple)
 #define ggc_alloc_cleared_meltobject_st(Siz) \
-  ((struct meltobject_st*)ggc_alloc_cleared ((Siz))
+  ((struct meltobject_st*)ggc_alloc_cleared ((Siz)))
 #define ggc_alloc_meltobject_st(Siz) \
-  ((struct meltobject_st*)ggc_alloc ((Siz))
+  ((struct meltobject_st*)ggc_alloc ((Siz)))
 
 #define ggc_alloc_cleared_meltdecay_st() \
   ((struct meltdecay_st*)ggc_alloc_cleared (sizeof(struct meltdecay_st)))
@@ -1249,19 +1249,19 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   ((struct meltbox_st*)ggc_alloc (sizeof(struct meltbox_st)))
 
 #define ggc_alloc_cleared_meltmultiple_st(Siz) \
-  ((struct meltmultiple_st*)ggc_alloc_cleared ((Siz))
+  ((struct meltmultiple_st*)ggc_alloc_cleared ((Siz)))
 #define ggc_alloc_meltmultiple_st(Siz) \
-  ((struct meltmultiple_st*)ggc_alloc ((Siz))
+  ((struct meltmultiple_st*)ggc_alloc ((Siz)))
 
 #define ggc_alloc_cleared_meltclosure_st(Siz) \
-  ((struct meltclosure_st*)ggc_alloc_cleared ((Siz))
+  ((struct meltclosure_st*)ggc_alloc_cleared ((Siz)))
 #define ggc_alloc_meltclosure_st(Siz) \
-  ((struct meltclosure_st*)ggc_alloc ((Siz))
+  ((struct meltclosure_st*)ggc_alloc ((Siz)))
 
 #define ggc_alloc_cleared_meltroutine_st(Siz) \
-  ((struct meltroutine_st*)ggc_alloc_cleared ((Siz))
+  ((struct meltroutine_st*)ggc_alloc_cleared ((Siz)))
 #define ggc_alloc_meltroutine_st(Siz) \
-  ((struct meltroutine_st*)ggc_alloc ((Siz))
+  ((struct meltroutine_st*)ggc_alloc ((Siz)))
 
 #define ggc_alloc_cleared_meltpair_st() \
   ((struct meltpair_st*)ggc_alloc_cleared (sizeof(struct meltpair_st)))
@@ -1287,9 +1287,9 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   ((struct meltmixloc_st*)ggc_alloc_cleared (sizeof(struct meltmixloc_st)))
 
 #define ggc_alloc_cleared_meltmixbigint_st(Siz) \
-  ((struct meltmixbigint_st*)ggc_alloc_cleared ((Siz))
+  ((struct meltmixbigint_st*)ggc_alloc_cleared ((Siz)))
 #define ggc_alloc_meltmixbigint_st(Siz) \
-  ((struct meltmixbigint_st*)ggc_alloc ((Siz))
+  ((struct meltmixbigint_st*)ggc_alloc ((Siz)))
 
 #define ggc_alloc_cleared_meltmixreal_st() \
   ((struct meltmixreal_st*)ggc_alloc_cleared (sizeof(struct meltmixreal_st)))
@@ -1302,9 +1302,9 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   ((struct meltspecial_st*)ggc_alloc (sizeof(struct meltspecial_st)))
 
 #define ggc_alloc_cleared_meltstring_st(Siz) \
-  ((struct meltstring_st*)ggc_alloc_cleared ((Siz))
+  ((struct meltstring_st*)ggc_alloc_cleared ((Siz)))
 #define ggc_alloc_meltstring_st(Siz) \
-  ((struct meltstring_st*)ggc_alloc ((Siz))
+  ((struct meltstring_st*)ggc_alloc ((Siz)))
 
 #define ggc_alloc_cleared_meltstrbuf_st() \
   ((struct meltstrbuf_st*)ggc_alloc_cleared (sizeof(struct meltstrbuf_st)))
@@ -1361,7 +1361,6 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 #define ggc_alloc_meltrtvec_st() \
   ((struct meltrtvec_st*)ggc_alloc (sizeof(struct meltrtvec_st)))
 
-
 #define ggc_alloc_cleared_meltmapobjects_st() \
   ((struct meltmapobjects_st*)ggc_alloc_cleared (sizeof(struct meltmapobjects_st)))
 #define ggc_alloc_meltmapobjects_st() \
@@ -1371,7 +1370,6 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   ((struct entryobjectsmelt_st*)ggc_alloc_cleared ((Len)*sizeof(struct entryobjectsmelt_st)))
 #define ggc_alloc_vec_entryobjectsmelt_st(Len) \
   ((struct entryobjectsmelt_st*)ggc_alloc ((Len)*sizeof(struct entryobjectsmelt_st)))
-
 
 #define ggc_alloc_cleared_meltmaptrees_st() \
   ((struct meltmaptrees_st*)ggc_alloc_cleared (sizeof(struct meltmaptrees_st)))
@@ -1393,7 +1391,6 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   ((struct entrygimplesmelt_st*)ggc_alloc_cleared ((Len)*sizeof(struct entrygimplesmelt_st)))
 #define ggc_alloc_vec_entrygimplesmelt_st(Len) \
   ((struct entrygimplesmelt_st*)ggc_alloc ((Len)*sizeof(struct entrygimplesmelt_st)))
-
 
 
 #define ggc_alloc_cleared_meltmapgimpleseqs_st() \
@@ -1463,7 +1460,6 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   ((struct entrybasicblocksmelt_st*) ggc_alloc((Len)*sizeof(struct entrybasicblocksmelt_st)))
 
 
-
 #define ggc_alloc_cleared_meltmapedges_st() \
   ((struct meltmapedges_st*)ggc_alloc_cleared (sizeof(struct meltmapedges_st)))
 #define ggc_alloc_meltmapedges_st() \
@@ -1483,7 +1479,6 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   ((struct entrybitmapsmelt_st*) ggc_alloc_cleared((Len)*sizeof(struct entrybitmapsmelt_st)))
 #define ggc_alloc_vec_entrybitmapsmelt_st(Len) \
   ((struct entrybitmapsmelt_st*) ggc_alloc((Len)*sizeof(struct entrybitmapsmelt_st)))
-
 
 #endif /* when gcc 4.5 without typed ggc_alloc... */
 

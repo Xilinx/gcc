@@ -3722,6 +3722,7 @@ void melt_cbreak_at(const char*msg, const char*fil, int lin);
 #define melt_cbreak(Msg) ((void)(Msg))
 #define melt_trace_start(Msg,Cnt) do{}while(0)
 #define melt_trace_end(Msg,Cnt) do{}while(0)
+#undef debugmsgval
 #define debugmsgval(Msg,Val,Count) do {}while(0)
 #endif /*ENABLE_CHECKING*/
 

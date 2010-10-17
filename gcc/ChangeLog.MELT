@@ -1,5 +1,12 @@
 2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h: debumsgval undefined without ENABLE_CHECKING
+
+	* melt-runtime.c: mismatched parenthesis in ggc_alloc_* macro
+	definitions for plugin 4.5 ...
+
+2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* gengtype.c (main): Changed fatal to warning for plugin mode
 	without state file. Remove double parsing of plugin files.
 
