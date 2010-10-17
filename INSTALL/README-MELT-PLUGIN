@@ -1,0 +1,19 @@
+Short installation instructions for MELT as a plugin to an installed
+gcc-4.5
+
+See also http://gcc.gnu.org/wiki/MELT and http://gcc-melt.org/
+
+If installing MELT as plugin to some existing gcc-4.5 installation tree:
+
+   Read carefully the build-melt-plugin.sh perhaps in contrib/
+
+   Read it again.
+
+To prepare a source tree of the MELT plugin, read and run
+contrib/make-melt-source-tar.sh from the GCC MELT branch.
+
+If you have downloaded the MELT plugin source tree (and not
+the entire GCC MELT branch) you probably can build the melt.so plugin
+for GCC 4.5 in its source directory, by running something like 
+
+env CC=gcc-4.5 ./build-melt-plugin.sh -M $PWD -Y gt-melt-runtime-plugin-4.5.h

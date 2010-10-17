@@ -73,8 +73,14 @@ for mf in $gccmelt_source_tree/gcc/*melt*  ; do
     esac
 done
 
-for cf in  $gccmelt_source_tree/contrib/*melt*.sh ; do
+for cf in  $gccmelt_source_tree/contrib/*melt*.sh $gccmelt_source_tree/contrib/pygmentize-melt ; do
+    copymelt contrib/$(basename $cf) 
+    chmod a+x $gccmelt_tarbase/$(basename $cf)
+done
+
+for cf in   $gccmelt_source_tree/contrib/gt*melt*.h ; do
     copymelt contrib/$(basename $cf) 
 done
+copymelt INSTALL/README-MELT-PLUGIN
 
 tar czvf $gccmelt_tarbase.tgz $gccmelt_tarbase
