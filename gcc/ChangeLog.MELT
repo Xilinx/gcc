@@ -1,4 +1,6 @@
 2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: melt help printed shorter.
+2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-simple.melt: updared MELT help string.
 	* melt/xtramelt-c-generator.melt: ditto.
 	* melt/warmelt-outobj.melt: ditto.

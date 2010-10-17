@@ -3789,7 +3789,7 @@
 	      (modhelp (unsafe_get_field :meltmode_help curmod))
 	      )
 	 (code_chunk saymode_chk
-		     #{printf (" MELT mode '%s':: %s\n",
+		     #{printf (" * %s : %s\n",
 			       melt_string_str ($MODNAM),
 			       melt_string_str ($MODHELP)) ;
 		     }#)			     
@@ -3798,6 +3798,11 @@
 		  #{
 		  fflush (stderr)	;
 		  fflush (stdout)	;
+#ifdef MELT_IS_PLUGIN
+                  inform (UNKNOWN_LOCATION, " use -fplugin-arg-melt-mode= to set the MELT mode[s] separated by comma");
+#else
+                  inform (UNKNOWN_LOCATION, " use -fmelt-mode= to set the MELT mode[s] separated by comma");
+#endif /*MELT_IS_PLUGIN*/
 		  }#)
       )))
 
