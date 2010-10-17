@@ -3758,6 +3758,57 @@
     (mapstring_putstr cmdict cnam mode)
 ))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun help_docmd (cmd moduldata)
+  (message_dbg "starting help_docmd")
+  (let ( (cmdict (get_field :sysdata_mode_dict initial_system_data))
+	 (cmdlist (make_list discr_list))
+	 )
+    (foreach_in_mapstring
+     (cmdict)
+     (curname curcmd)
+     (assert_msg "check curcmd" (is_a curcmd class_melt_mode))
+     (list_append cmdlist curcmd)
+     )
+    (let ( (rawcmdtup (list_to_multiple cmdlist))
+	   (sortedcmdtup (multiple_sort rawcmdtup compare_named_alpha discr_multiple))
+	   (:long nbcmd (multiple_length sortedcmdtup))
+	   )
+      (debug_msg sortedcmdtup "help_docmd sortedcmdtup")
+      (code_chunk saynbmode_chk 
+		  #{inform (UNKNOWN_LOCATION, 
+			    "There are %ld MELT modes", $NBCMD)	;
+		  fflush (stderr)				;
+		  fflush (stdout)				;
+		  }#)
+      (foreach_in_multiple
+       (sortedcmdtup)
+       (curmod :long modix)
+       (assert_msg "check curmod" (is_a curmod class_melt_mode))
+       (let ( (modnam (unsafe_get_field :named_name curmod))
+	      (modhelp (unsafe_get_field :meltmode_help curmod))
+	      )
+	 (code_chunk saymode_chk
+		     #{printf (" MELT mode '%s':: %s\n",
+			       melt_string_str ($MODNAM),
+			       melt_string_str ($MODHELP)) ;
+		     }#)			     
+	 ))
+      (code_chunk flush_chk 
+		  #{
+		  fflush (stderr)	;
+		  fflush (stdout)	;
+		  }#)
+      )))
+
+(definstance help_mode
+  class_melt_mode
+  :named_name '"help"
+  :meltmode_help '"MELT help about available modes"
+  :meltmode_fun help_docmd
+)
+(install_melt_mode help_mode)
+
 
 ;;;;
 

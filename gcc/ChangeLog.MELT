@@ -1,4 +1,9 @@
 2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt: removed debug prints from
+	mexpand_defclass
+	* melt/warmelt-outobj.melt: added help mode.
+
+2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* gengtype.c (parse_program_options): Allocate plugin_files.
 	* Makefile.in (gt-melt-runtime-plugin.h): fix gengtype invocation.
 

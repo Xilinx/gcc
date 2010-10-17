@@ -2577,8 +2577,8 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
      (multiple_every 
       superfields 
       (lambda (sfld :long ix)
-	(messagenum_dbg "expdefclasupflds ix" ix)
-	(messageval_dbg "expdefclasupfldsval sfld" sfld)
+	;(messagenum_dbg "expdefclasupflds ix" ix)
+	;(messageval_dbg "expdefclasupfldsval sfld" sfld)
 	(assert_msg "check superfield" (is_a sfld class_field))
 	(multiple_put_nth fieldtup ix sfld)
 	(mapstring_putstr fieldstrmap (unsafe_get_field :named_name sfld) sfld)
