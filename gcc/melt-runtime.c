@@ -8423,8 +8423,9 @@ readstring (struct reading_st *rd)
 		 case.  This helps to catch missing, mismatched or
 		 extra double-quotes! */
 	      if (obstack_object_size (&bstring_obstack) <= 1)
-		warning_at(rd->rsrcloc, 0, "suspicious MELT string starting at end of line");
+		warning_at (rd->rsrcloc, 0, "suspicious MELT string starting at end of line");
 	      c = skipspace_getc (rd, COMMENT_NO);
+	      continue;
 	    }
 	  else
 	    rdnext ();

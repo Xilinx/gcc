@@ -4078,7 +4078,7 @@ number. Useful for running gdb on the module."
 (definstance rundebug_mode
   class_melt_mode
   :named_name '"rundebug"
-  :meltmode_help '"translate and run a .melt file for debug. \n
+  :meltmode_help '"translate and run a .melt file for debug.\n
 \t ARGUMENT= input file;  [OUTPUT=generated C]"
   :meltmode_fun rundebug_docmd
 )
