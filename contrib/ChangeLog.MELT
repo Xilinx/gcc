@@ -1,4 +1,7 @@
 2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh: typo.
+
+2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh: do_melt_make more verbose.
 
 2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
