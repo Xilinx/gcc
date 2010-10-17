@@ -237,7 +237,13 @@ get_gty_melt_header() {
 
 ################ build melt-run.h and melt-run-md5.h
 ### See gcc/Makefile.in and keep in sync with it.
-build_melt_run_headers() {    
+build_melt_run_headers() {  
+    # build the melt-predef.h file
+    verbose_echo generating melt-predef.h
+    rm -f *.so melt-predef.h
+    $GAWK -f $GCCMELT_SOURCE_TREE/make-melt-predefh.awk $GCCMELT_SOURCE_TREE/melt-predef.list > melt-predef.h
+    verbose_echo Generated melt-predef.h with $(wc -l melt-predef.h) lines
+    # 
     verbose_echo building melt-run.h and computing its md5 signature after preprocessing
     verbose_sleep
     rm -f melt-run.h melt-run-md5.h
@@ -248,12 +254,6 @@ build_melt_run_headers() {
 
 ################ build melt.so with appropriate default settings
 build_melt_dot_so() {
-    # build the melt-predef.h file
-    verbose_echo erasing all shared objects and generating melt-predef.h
-    verbose_sleep
-    rm -f *.so melt-predef.h
-    $GAWK -f $GCCMELT_SOURCE_TREE/make-melt-predefh.awk $GCCMELT_SOURCE_TREE/melt-predef.list > melt-predef.h
-    verbose_echo Generated melt-predef.h with $(wc -l melt-predef.h) lines
     # compile the melt.so file
     host_full_cflags="$HOSTCFLAGS -fPIC -shared -DMELT_IS_PLUGIN -I. -I$GCCMELT_SOURCE_TREE -I$gcc_plugin_directory/include"
     verbose_echo Building melt.so with $HOSTCC $host_full_cflags
