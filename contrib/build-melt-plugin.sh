@@ -277,7 +277,8 @@ build_melt_dot_so() {
 
 ## utility function to make a stage of MELT
 do_melt_make () {
-    $MAKE -f $GCCMELT_SOURCE_TREE/melt-make.mk \
+    verbose_echo making MELT using $GCCMELT_SOURCE_TREE/melt-make.mk $*
+    $MAKE -f -w $GCCMELT_SOURCE_TREE/melt-make.mk \
 	melt_source_dir=$gcc_plugin_directory/melt-source \
 	melt_module_dir=$gcc_plugin_directory/libexec/melt-modules \
 	melt_make_module_makefile=$GCCMELT_SOURCE_TREE/melt-module.mk \
@@ -292,6 +293,7 @@ do_melt_make () {
 	melt_is_plugin=1 \
 	VPATH=.:$GCCMELT_SOURCE_TREE/melt:$GCCMELT_SOURCE_TREE:$GCC_BUILD_TREE:$GCC_SOURCE_TREE \
 	$*
+    verbose_echo made MELT $*
 }
  
 bootstrap_melt() {
