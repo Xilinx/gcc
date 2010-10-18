@@ -1,5 +1,7 @@
 #! /bin/sh
 ## file contrib/make-melt-source-tar.sh of the MELT branch of GCC
+## first argument is GCC MELT source tree
+## second argument is the basename of the tar ball
 ##
 ##    Middle End Lisp Translator = MELT
 ##
@@ -22,8 +24,6 @@
 ## along with GCC; see the file COPYING3.   If not see
 ## <http://www.gnu.org/licenses/>.
 
-## first argument is GCC MELT source tree
-## second argument is the basename of the tar ball
 
 gccmelt_source_tree=$1
 gccmelt_tarbase=$2

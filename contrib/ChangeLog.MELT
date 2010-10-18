@@ -1,3 +1,6 @@
+2010-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* make-melt-source-tar.sh: Moved comment upwards.
+
 2010-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh: typo.
 
