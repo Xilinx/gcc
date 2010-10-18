@@ -769,6 +769,16 @@ package Einfo is
 --       Present in floating point types and subtypes and decimal types and
 --       subtypes. Contains the Digits value specified in the declaration.
 
+--    Direct_Primitive_Operations (Elist15)
+--       Present in tagged record types and subtypes, in tagged private types
+--       and in tagged incomplete types. Points to an element list of entities
+--       for primitive operations for the tagged type. Not present in untagged
+--       types (it is an error to reference the primitive operations field of a
+--       type that is not tagged). In order to fulfill the C++ ABI, entities of
+--       primitives that come from source must be stored in this list following
+--       their order of occurrence in the sources. For incomplete types the
+--       list is always empty.
+
 --    Directly_Designated_Type (Node20)
 --       Present in access types. This field points to the type that is
 --       directly designated by the access type. In the case of an access
@@ -1701,10 +1711,10 @@ package Einfo is
 --       representation clause, and thus is not inherited by a derived type.
 --       This flag is always False for non-record types.
 
---    Has_Specified_Stream_Input (Flag190)
+--    Has_Specified_Stream_Input  (Flag190)
 --    Has_Specified_Stream_Output (Flag191)
---    Has_Specified_Stream_Read (Flag192)
---    Has_Specified_Stream_Write (Flag193)
+--    Has_Specified_Stream_Read   (Flag192)
+--    Has_Specified_Stream_Write  (Flag193)
 --       Present in all type and subtype entities. Set for a given view if the
 --       corresponding stream-oriented attribute has been defined by an
 --       attribute definition clause. When such a clause occurs, a TSS is set
@@ -1812,17 +1822,17 @@ package Einfo is
 --       that we still have a concrete type. For entities other than types,
 --       returns the entity unchanged.
 
---    Interfaces (Elist25)
---       Present in record types and subtypes. List of abstract interfaces
---       implemented by a tagged type that are not already implemented by the
---       ancestors (Ada 2005: AI-251).
-
 --    Interface_Alias (Node25)
 --       Present in subprograms that cover a primitive operation of an abstract
 --       interface type. Can be set only if the Is_Hidden flag is also set,
 --       since such entities are always hidden. Points to its associated
 --       interface subprogram. It is used to register the subprogram in
 --       secondary dispatch table of the interface (Ada 2005: AI-251).
+
+--    Interfaces (Elist25)
+--       Present in record types and subtypes. List of abstract interfaces
+--       implemented by a tagged type that are not already implemented by the
+--       ancestors (Ada 2005: AI-251).
 
 --    In_Package_Body (Flag48)
 --       Present in package entities. Set on the entity that denotes the
@@ -3201,15 +3211,17 @@ package Einfo is
 --       to generate the call to this procedure in case the expander inserts
 --       implicit return statements.
 
---    Primitive_Operations (Elist15)
---       Present in tagged record types and subtypes and in tagged private
---       types. Points to an element list of entities for primitive operations
---       for the tagged type. Not present (and not set) in untagged types (it
---       is an error to reference the primitive operations field of a type
---       that is not tagged). In order to fulfill the C++ ABI, entities of
---       primitives that come from source must be stored in this list following
---       their order of occurrence in the sources. Also present in incomplete
---       types, but in this case the list is always empty.
+--    PPC_Wrapper (Node25)
+--       Present in entries and entry families. Set only if pre- or post-
+--       conditions are present. The precondition_wrapper body is the original
+--       entry call, decorated with the given precondition for the entry.
+
+--    Primitive_Operations (synthesized)
+--       Present in concurrent types, tagged record types and subtypes, tagged
+--       private types and tagged incomplete types. For concurrent types that
+--       have available their Corresponding_Record_Type (CRT) returns the list
+--       of Direct_Primitive_Operations of its CRT; otherwise returns No_Elist.
+--       For all the other types returns its Direct_Primitive_Operations.
 
 --    Prival (Node17)
 --       Present in private components of protected types. Refers to the entity
@@ -3532,11 +3544,12 @@ package Einfo is
 --       the corresponding parameter entities in the spec.
 
 --    Spec_PPC_List (Node24)
---       Present in subprogram and generic subprogram entities. Points to a
---       list of Precondition and Postcondition pragma nodes for preconditions
---       and postconditions declared in the spec. The last pragma encountered
---       is at the head of this list, so it is in reverse order of textual
---       appearance.
+--       Present in entries, and in subprogram and generic subprogram entities.
+--       Points to a list of Precondition and Postcondition pragma nodes for
+--       preconditions and postconditions declared in the spec. The last pragma
+--       encountered is at the head of this list, so it is in reverse order of
+--       textual appearance. Note that this includes precondition/postcondition
+--       pragmas generated to correspond to Pre/Post aspects.
 
 --    Storage_Size_Variable (Node15) [implementation base type only]
 --       Present in access types and task type entities. This flag is set
@@ -3765,15 +3778,14 @@ package Einfo is
    --  E_Access_Subtype is for an access subtype created by a subtype
    --  declaration.
 
-   --  In addition, we define the kind E_Allocator_Type to label
-   --  allocators. This is because special resolution rules apply to this
-   --  construct. Eventually the constructs are labeled with the access
-   --  type imposed by the context. Gigi should never see the type
-   --  E_Allocator.
+   --  In addition, we define the kind E_Allocator_Type to label allocators.
+   --  This is because special resolution rules apply to this construct.
+   --  Eventually the constructs are labeled with the access type imposed by
+   --  the context. Gigi should never see the type E_Allocator.
 
-   --  Similarly, the type E_Access_Attribute_Type is used as the initial
-   --  kind associated with an access attribute. After resolution a specific
-   --  access type will be established as determined by the context.
+   --  Similarly, the type E_Access_Attribute_Type is used as the initial kind
+   --  associated with an access attribute. After resolution a specific access
+   --  type will be established as determined by the context.
 
    --  Finally, the type Any_Access is used to label -null- during type
    --  resolution. Any_Access is also replaced by the context type after
@@ -4951,6 +4963,8 @@ package Einfo is
    --    Accept_Address                      (Elist21)
    --    Scope_Depth_Value                   (Uint22)
    --    Protection_Object                   (Node23)   (protected kind)
+   --    Spec_PPC_List                       (Node24)   (for entry only)
+   --    PPC_Wrapper                         (Node25)
    --    Default_Expressions_Processed       (Flag108)
    --    Entry_Accepted                      (Flag152)
    --    Is_AST_Entry                        (Flag132)  (for entry only)
@@ -5260,7 +5274,7 @@ package Einfo is
 
    --  E_Private_Type
    --  E_Private_Subtype
-   --    Primitive_Operations                (Elist15)
+   --    Direct_Primitive_Operations         (Elist15)
    --    First_Entity                        (Node17)
    --    Private_Dependents                  (Elist18)
    --    Underlying_Full_View                (Node19)
@@ -5367,7 +5381,7 @@ package Einfo is
 
    --  E_Record_Type
    --  E_Record_Subtype
-   --    Primitive_Operations                (Elist15)
+   --    Direct_Primitive_Operations         (Elist15)
    --    Access_Disp_Table                   (Elist16)  (base type only)
    --    Dispatch_Table_Wrappers             (Elist26)  (base type only)
    --    Cloned_Subtype                      (Node16)   (subtype case only)
@@ -5400,7 +5414,7 @@ package Einfo is
 
    --  E_Record_Type_With_Private
    --  E_Record_Subtype_With_Private
-   --    Primitive_Operations                (Elist15)
+   --    Direct_Primitive_Operations         (Elist15)
    --    Access_Disp_Table                   (Elist16)  (base type only)
    --    Dispatch_Table_Wrappers             (Elist26)  (base type only)
    --    First_Entity                        (Node17)
@@ -5934,8 +5948,8 @@ package Einfo is
    function In_Private_Part                     (Id : E) return B;
    function In_Use                              (Id : E) return B;
    function Inner_Instances                     (Id : E) return L;
-   function Interfaces                          (Id : E) return L;
    function Interface_Alias                     (Id : E) return E;
+   function Interfaces                          (Id : E) return L;
    function Interface_Name                      (Id : E) return N;
    function Is_AST_Entry                        (Id : E) return B;
    function Is_Abstract_Subprogram              (Id : E) return B;
@@ -6070,7 +6084,8 @@ package Einfo is
    function Packed_Array_Type                   (Id : E) return E;
    function Parent_Subtype                      (Id : E) return E;
    function Postcondition_Proc                  (Id : E) return E;
-   function Primitive_Operations                (Id : E) return L;
+   function PPC_Wrapper                         (Id : E) return E;
+   function Direct_Primitive_Operations         (Id : E) return L;
    function Prival                              (Id : E) return E;
    function Prival_Link                         (Id : E) return E;
    function Private_Dependents                  (Id : E) return L;
@@ -6246,8 +6261,9 @@ package Einfo is
    function Number_Dimensions                   (Id : E) return Pos;
    function Number_Entries                      (Id : E) return Nat;
    function Number_Formals                      (Id : E) return Pos;
-   function Root_Type                           (Id : E) return E;
    function Parameter_Mode                      (Id : E) return Formal_Kind;
+   function Primitive_Operations                (Id : E) return L;
+   function Root_Type                           (Id : E) return E;
    function Scope_Depth_Set                     (Id : E) return B;
    function Size_Clause                         (Id : E) return N;
    function Stream_Size_Clause                  (Id : E) return N;
@@ -6639,7 +6655,8 @@ package Einfo is
    procedure Set_Packed_Array_Type               (Id : E; V : E);
    procedure Set_Parent_Subtype                  (Id : E; V : E);
    procedure Set_Postcondition_Proc              (Id : E; V : E);
-   procedure Set_Primitive_Operations            (Id : E; V : L);
+   procedure Set_PPC_Wrapper                     (Id : E; V : E);
+   procedure Set_Direct_Primitive_Operations     (Id : E; V : L);
    procedure Set_Prival                          (Id : E; V : E);
    procedure Set_Prival_Link                     (Id : E; V : E);
    procedure Set_Private_Dependents              (Id : E; V : L);
@@ -7045,6 +7062,7 @@ package Einfo is
    pragma Inline (Dependent_Instances);
    pragma Inline (Depends_On_Private);
    pragma Inline (Digits_Value);
+   pragma Inline (Direct_Primitive_Operations);
    pragma Inline (Directly_Designated_Type);
    pragma Inline (Discard_Names);
    pragma Inline (Discriminal);
@@ -7356,7 +7374,7 @@ package Einfo is
    pragma Inline (Parameter_Mode);
    pragma Inline (Parent_Subtype);
    pragma Inline (Postcondition_Proc);
-   pragma Inline (Primitive_Operations);
+   pragma Inline (PPC_Wrapper);
    pragma Inline (Prival);
    pragma Inline (Prival_Link);
    pragma Inline (Private_Dependents);
@@ -7480,6 +7498,7 @@ package Einfo is
    pragma Inline (Set_Dependent_Instances);
    pragma Inline (Set_Depends_On_Private);
    pragma Inline (Set_Digits_Value);
+   pragma Inline (Set_Direct_Primitive_Operations);
    pragma Inline (Set_Directly_Designated_Type);
    pragma Inline (Set_Discard_Names);
    pragma Inline (Set_Discriminal);
@@ -7746,7 +7765,7 @@ package Einfo is
    pragma Inline (Set_Packed_Array_Type);
    pragma Inline (Set_Parent_Subtype);
    pragma Inline (Set_Postcondition_Proc);
-   pragma Inline (Set_Primitive_Operations);
+   pragma Inline (Set_PPC_Wrapper);
    pragma Inline (Set_Prival);
    pragma Inline (Set_Prival_Link);
    pragma Inline (Set_Private_Dependents);

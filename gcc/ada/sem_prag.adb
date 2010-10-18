@@ -240,9 +240,7 @@ package body Sem_Prag is
    ------------------------------
 
    procedure Analyze_PPC_In_Decl_Part (N : Node_Id; S : Entity_Id) is
-      Arg1 : constant Node_Id :=
-               First (Pragma_Argument_Associations (N));
-      Arg2 : constant Node_Id := Next (Arg1);
+      Arg1 : constant Node_Id := First (Pragma_Argument_Associations (N));
 
    begin
       --  Install formals and push subprogram spec onto scope stack so that we
@@ -256,13 +254,6 @@ package body Sem_Prag is
 
       Preanalyze_Spec_Expression
         (Get_Pragma_Arg (Arg1), Standard_Boolean);
-
-      --  If there is a message argument, analyze it the same way
-
-      if Present (Arg2) then
-         Preanalyze_Spec_Expression
-           (Get_Pragma_Arg (Arg2), Standard_String);
-      end if;
 
       --  Remove the subprogram from the scope stack now that the pre-analysis
       --  of the precondition/postcondition is done.
@@ -424,7 +415,7 @@ package body Sem_Prag is
 
       procedure Check_In_Main_Program;
       --  Common checks for pragmas that appear within a main program
-      --  (Priority, Main_Storage, Time_Slice, Relative_Deadline).
+      --  (Priority, Main_Storage, Time_Slice, Relative_Deadline, CPU).
 
       procedure Check_Interrupt_Or_Attach_Handler;
       --  Common processing for first argument of pragma Interrupt_Handler or
@@ -1511,8 +1502,7 @@ package body Sem_Prag is
                     ("pragma% cannot be applied to abstract subprogram");
 
                elsif Class_Present (N) then
-                  Error_Pragma
-                    ("aspect `%''Class` not implemented yet");
+                  null;
 
                else
                   Error_Pragma
@@ -1520,14 +1510,19 @@ package body Sem_Prag is
                end if;
 
             elsif not Nkind_In (PO, N_Subprogram_Declaration,
-                                    N_Generic_Subprogram_Declaration)
+                                    N_Generic_Subprogram_Declaration,
+                                    N_Entry_Declaration)
             then
                Pragma_Misplaced;
             end if;
 
-            --  Here if we have subprogram or generic subprogram declaration
+            --  Here if we have [generic] subprogram or entry declaration
 
-            S := Defining_Unit_Name (Specification (PO));
+            if Nkind (PO) = N_Entry_Declaration then
+               S := Defining_Entity (PO);
+            else
+               S := Defining_Unit_Name (Specification (PO));
+            end if;
 
             --  Make sure we do not have the case of a precondition pragma when
             --  the Pre'Class aspect is present.
@@ -1583,14 +1578,11 @@ package body Sem_Prag is
                end;
             end if;
 
-            --  Analyze the pragma unless it appears within a package spec,
-            --  which is the case where we delay the analysis of the PPC until
-            --  the end of the package declarations (for details, see
-            --  Analyze_Package_Specification.Analyze_PPCs).
-
-            if not Is_Package_Or_Generic_Package (Scope (S)) then
-               Analyze_PPC_In_Decl_Part (N, S);
-            end if;
+            --  Note: we do not analye the pragma at this point. Instead we
+            --  delay this analysis until the end of the declarative part in
+            --  which the pragma appears. This implements the required delay
+            --  in this analysis, allowing forward references. The analysis
+            --  happens at the end of Analyze_Declarations.
 
             --  Chain spec PPC pragma to list for subprogram
 
@@ -1608,6 +1600,15 @@ package body Sem_Prag is
       begin
          if not Is_List_Member (N) then
             Pragma_Misplaced;
+         end if;
+
+         --  Preanalyze message argument if present. Visibility in this
+         --  argument is established at the point of pragma occurrence.
+
+         if Arg_Count = 2 then
+            Check_Optional_Identifier (Arg2, Name_Message);
+            Preanalyze_Spec_Expression
+              (Get_Pragma_Arg (Arg2), Standard_String);
          end if;
 
          --  Record if pragma is enabled
@@ -4985,7 +4986,7 @@ package body Sem_Prag is
             Error_Pragma_Arg
               ("cannot export entity& that was previously imported", Arg);
 
-         elsif Present (Address_Clause (E)) then
+         elsif Present (Address_Clause (E)) and then not CodePeer_Mode then
             Error_Pragma_Arg
               ("cannot export entity& that has an address clause", Arg);
          end if;
@@ -6959,6 +6960,92 @@ package body Sem_Prag is
                   "no effect?", N);
             end if;
          end CPP_Vtable;
+
+         ---------
+         -- CPU --
+         ---------
+
+         --  pragma CPU (EXPRESSION);
+
+         when Pragma_CPU => CPU : declare
+            P   : constant Node_Id := Parent (N);
+            Arg : Node_Id;
+
+         begin
+            Ada_2012_Pragma;
+            Check_No_Identifiers;
+            Check_Arg_Count (1);
+
+            --  Subprogram case
+
+            if Nkind (P) = N_Subprogram_Body then
+               Check_In_Main_Program;
+
+               Arg := Get_Pragma_Arg (Arg1);
+               Analyze_And_Resolve (Arg, Any_Integer);
+
+               --  Must be static
+
+               if not Is_Static_Expression (Arg) then
+                  Flag_Non_Static_Expr
+                    ("main subprogram affinity is not static!", Arg);
+                  raise Pragma_Exit;
+
+               --  If constraint error, then we already signalled an error
+
+               elsif Raises_Constraint_Error (Arg) then
+                  null;
+
+               --  Otherwise check in range
+
+               else
+                  declare
+                     CPU_Id : constant Entity_Id := RTE (RE_CPU_Range);
+                     --  This is the entity System.Multiprocessors.CPU_Range;
+
+                     Val : constant Uint := Expr_Value (Arg);
+
+                  begin
+                     if Val < Expr_Value (Type_Low_Bound (CPU_Id))
+                          or else
+                        Val > Expr_Value (Type_High_Bound (CPU_Id))
+                     then
+                        Error_Pragma_Arg
+                          ("main subprogram CPU is out of range", Arg1);
+                     end if;
+                  end;
+               end if;
+
+               Set_Main_CPU
+                    (Current_Sem_Unit, UI_To_Int (Expr_Value (Arg)));
+
+            --  Task case
+
+            elsif Nkind (P) = N_Task_Definition then
+               Arg := Get_Pragma_Arg (Arg1);
+
+               --  The expression must be analyzed in the special manner
+               --  described in "Handling of Default and Per-Object
+               --  Expressions" in sem.ads.
+
+               Preanalyze_Spec_Expression (Arg, RTE (RE_CPU_Range));
+
+            --  Anything else is incorrect
+
+            else
+               Pragma_Misplaced;
+            end if;
+
+            if Has_Pragma_CPU (P) then
+               Error_Pragma ("duplicate pragma% not allowed");
+            else
+               Set_Has_Pragma_CPU (P, True);
+
+               if Nkind (P) = N_Task_Definition then
+                  Record_Rep_Item (Defining_Identifier (Parent (P)), N);
+               end if;
+            end if;
+         end CPU;
 
          -----------
          -- Debug --
@@ -10823,7 +10910,6 @@ package body Sem_Prag is
             Check_At_Least_N_Arguments (1);
             Check_At_Most_N_Arguments (2);
             Check_Optional_Identifier (Arg1, Name_Check);
-
             Check_Precondition_Postcondition (In_Body);
 
             --  If in spec, nothing more to do. If in body, then we convert the
@@ -10833,11 +10919,6 @@ package body Sem_Prag is
             --  analyze the condition itself in the proper context.
 
             if In_Body then
-               if Arg_Count = 2 then
-                  Check_Optional_Identifier (Arg3, Name_Message);
-                  Analyze_And_Resolve (Get_Pragma_Arg (Arg2), Standard_String);
-               end if;
-
                Rewrite (N,
                  Make_Pragma (Loc,
                    Chars => Name_Check,
@@ -13518,6 +13599,7 @@ package body Sem_Prag is
       Pragma_CPP_Constructor               =>  0,
       Pragma_CPP_Virtual                   =>  0,
       Pragma_CPP_Vtable                    =>  0,
+      Pragma_CPU                           => -1,
       Pragma_C_Pass_By_Copy                =>  0,
       Pragma_Comment                       =>  0,
       Pragma_Common_Object                 => -1,

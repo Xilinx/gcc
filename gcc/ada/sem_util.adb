@@ -2715,6 +2715,12 @@ package body Sem_Util is
       elsif Ekind (Dynamic_Scope) = E_Task_Type then
          return Get_Task_Body_Procedure (Dynamic_Scope);
 
+      elsif Ekind (Dynamic_Scope) = E_Limited_Private_Type
+        and then Present (Full_View (Dynamic_Scope))
+        and then Ekind (Full_View (Dynamic_Scope)) = E_Task_Type
+      then
+         return Get_Task_Body_Procedure (Full_View (Dynamic_Scope));
+
       --  No body is generated if the protected operation is eliminated
 
       elsif Convention (Dynamic_Scope) = Convention_Protected
@@ -5579,6 +5585,7 @@ package body Sem_Util is
 
          if Is_Entity_Name (New_Prefix) then
             Ent := Entity (New_Prefix);
+            Pref := New_Prefix;
 
          --  For a retrieval of a subcomponent of some composite object,
          --  retrieve the ultimate entity if there is one.
@@ -5600,8 +5607,10 @@ package body Sem_Util is
             end if;
          end if;
 
+         --  Place the reference on the entity node.
+
          if Present (Ent) then
-            Generate_Reference (Ent, New_Prefix);
+            Generate_Reference (Ent, Pref);
          end if;
       end if;
    end Insert_Explicit_Dereference;
@@ -9445,7 +9454,10 @@ package body Sem_Util is
                if Comes_From_Source (Exp)
                  or else Modification_Comes_From_Source
                then
-                  if Has_Pragma_Unmodified (Ent) then
+                  --  Give warning if pragma unmodified given and we are
+                  --  sure this is a modification.
+
+                  if Has_Pragma_Unmodified (Ent) and then Sure then
                      Error_Msg_NE ("?pragma Unmodified given for &!", N, Ent);
                   end if;
 

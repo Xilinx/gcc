@@ -121,7 +121,7 @@ package body Einfo is
    --    Entry_Parameters_Type           Node15
    --    Extra_Formal                    Node15
    --    Lit_Indexes                     Node15
-   --    Primitive_Operations            Elist15
+   --    Direct_Primitive_Operations     Elist15
    --    Related_Instance                Node15
    --    Scale_Value                     Uint15
    --    Storage_Size_Variable           Node15
@@ -214,6 +214,7 @@ package body Einfo is
    --    Interfaces                      Elist25
    --    Debug_Renaming_Link             Node25
    --    DT_Offset_To_Top_Func           Node25
+   --    PPC_Wrapper                     Node25
    --    Task_Body_Procedure             Node25
 
    --    Dispatch_Table_Wrappers         Elist26
@@ -512,7 +513,6 @@ package body Einfo is
    --    OK_To_Rename                    Flag247
 
    --    (unused)                        Flag232
-
    --    (unused)                        Flag248
    --    (unused)                        Flag249
    --    (unused)                        Flag250
@@ -816,6 +816,13 @@ package body Einfo is
           or else Is_Decimal_Fixed_Point_Type (Id));
       return Uint17 (Id);
    end Digits_Value;
+
+   function Direct_Primitive_Operations (Id : E) return L is
+   begin
+      pragma Assert (Is_Tagged_Type (Id)
+        and then not Is_Concurrent_Type (Id));
+      return Elist15 (Id);
+   end Direct_Primitive_Operations;
 
    function Directly_Designated_Type (Id : E) return E is
    begin
@@ -1538,17 +1545,17 @@ package body Einfo is
       return Node4 (Id);
    end Homonym;
 
-   function Interfaces (Id : E) return L is
-   begin
-      pragma Assert (Is_Record_Type (Id));
-      return Elist25 (Id);
-   end Interfaces;
-
    function Interface_Alias (Id : E) return E is
    begin
       pragma Assert (Is_Subprogram (Id));
       return Node25 (Id);
    end Interface_Alias;
+
+   function Interfaces (Id : E) return L is
+   begin
+      pragma Assert (Is_Record_Type (Id));
+      return Elist25 (Id);
+   end Interfaces;
 
    function In_Package_Body (Id : E) return B is
    begin
@@ -2353,11 +2360,11 @@ package body Einfo is
       return Node8 (Id);
    end Postcondition_Proc;
 
-   function Primitive_Operations (Id : E) return L is
+   function PPC_Wrapper (Id : E) return E is
    begin
-      pragma Assert (Is_Tagged_Type (Id));
-      return Elist15 (Id);
-   end Primitive_Operations;
+      pragma Assert (Ekind_In (Id, E_Entry, E_Entry_Family));
+      return Node25 (Id);
+   end PPC_Wrapper;
 
    function Prival (Id : E) return E is
    begin
@@ -2581,7 +2588,10 @@ package body Einfo is
 
    function Spec_PPC_List (Id : E) return N is
    begin
-      pragma Assert (Is_Subprogram (Id) or else Is_Generic_Subprogram (Id));
+      pragma Assert
+        (Ekind_In (Id,  E_Entry, E_Entry_Family)
+          or else Is_Subprogram (Id)
+          or else Is_Generic_Subprogram (Id));
       return Node24 (Id);
    end Spec_PPC_List;
 
@@ -3960,12 +3970,6 @@ package body Einfo is
       Set_Node4 (Id, V);
    end Set_Homonym;
 
-   procedure Set_Interfaces (Id : E; V : L) is
-   begin
-      pragma Assert (Is_Record_Type (Id));
-      Set_Elist25 (Id, V);
-   end Set_Interfaces;
-
    procedure Set_Interface_Alias (Id : E; V : E) is
    begin
       pragma Assert
@@ -3974,6 +3978,12 @@ package body Einfo is
           and then (Ekind_In (Id, E_Procedure, E_Function)));
       Set_Node25 (Id, V);
    end Set_Interface_Alias;
+
+   procedure Set_Interfaces (Id : E; V : L) is
+   begin
+      pragma Assert (Is_Record_Type (Id));
+      Set_Elist25 (Id, V);
+   end Set_Interfaces;
 
    procedure Set_In_Package_Body (Id : E; V : B := True) is
    begin
@@ -4814,11 +4824,24 @@ package body Einfo is
       Set_Node8 (Id, V);
    end Set_Postcondition_Proc;
 
-   procedure Set_Primitive_Operations (Id : E; V : L) is
+   procedure Set_PPC_Wrapper (Id : E; V : E) is
    begin
-      pragma Assert (Is_Tagged_Type (Id));
+      pragma Assert (Ekind_In (Id, E_Entry, E_Entry_Family));
+      Set_Node25 (Id, V);
+   end Set_PPC_Wrapper;
+
+   procedure Set_Direct_Primitive_Operations (Id : E; V : L) is
+   begin
+      pragma Assert
+        (Is_Tagged_Type (Id)
+           and then
+             (Is_Record_Type (Id)
+                or else
+              Is_Incomplete_Type (Id)
+                or else
+              Ekind_In (Id, E_Private_Type, E_Private_Subtype)));
       Set_Elist15 (Id, V);
-   end Set_Primitive_Operations;
+   end Set_Direct_Primitive_Operations;
 
    procedure Set_Prival (Id : E; V : E) is
    begin
@@ -5046,7 +5069,10 @@ package body Einfo is
 
    procedure Set_Spec_PPC_List (Id : E; V : N) is
    begin
-      pragma Assert (Is_Subprogram (Id) or else Is_Generic_Subprogram (Id));
+      pragma Assert
+        (Ekind_In (Id, E_Entry, E_Entry_Family, E_Void)
+          or else Is_Subprogram (Id)
+          or else Is_Generic_Subprogram (Id));
       Set_Node24 (Id, V);
    end Set_Spec_PPC_List;
 
@@ -6124,6 +6150,10 @@ package body Einfo is
           or else
         Ekind (Id) = E_Task_Type
           or else
+       (Ekind (Id) = E_Limited_Private_Type
+         and then Present (Full_View (Id))
+         and then Ekind (Full_View (Id)) = E_Task_Type)
+          or else
         Ekind (Id) = E_Entry
           or else
         Ekind (Id) = E_Entry_Family
@@ -6557,6 +6587,24 @@ package body Einfo is
    begin
       return Ekind (Id);
    end Parameter_Mode;
+
+   --------------------------
+   -- Primitive_Operations --
+   --------------------------
+
+   function Primitive_Operations (Id : E) return L is
+   begin
+      if Is_Concurrent_Type (Id) then
+         if Present (Corresponding_Record_Type (Id)) then
+            return Direct_Primitive_Operations
+                     (Corresponding_Record_Type (Id));
+         else
+            return No_Elist;
+         end if;
+      else
+         return Direct_Primitive_Operations (Id);
+      end if;
+   end Primitive_Operations;
 
    ---------------------
    -- Record_Rep_Item --
@@ -7573,7 +7621,7 @@ package body Einfo is
               E_Record_Type                                |
               E_Record_Subtype                             |
               Private_Kind                                 =>
-            Write_Str ("Primitive_Operations");
+            Write_Str ("Direct_Primitive_Operations");
 
          when E_Component                                  =>
             Write_Str ("DT_Entry_Count");
@@ -8096,6 +8144,10 @@ package body Einfo is
 
          when E_Variable                                   =>
             Write_Str ("Debug_Renaming_Link");
+
+         when E_Entry                                      |
+              E_Entry_Family                               =>
+            Write_Str ("PPC_Wrapper");
 
          when others                                       =>
             Write_Str ("Field25??");

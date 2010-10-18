@@ -1,3 +1,74 @@
+2010-10-18  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/44950
+	* g++.dg/lto/20101015-2_0.C: New testcase.
+
+2010-10-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/46019
+	* gcc.c-torture/execute/pr46019.c: New test.
+
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+	
+	Merge from 'apple/trunk' branch on FSF servers.
+	
+	2006-04-19 Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4516785
+	* obj-c++.dg/method-namespace-2.mm: New.
+	
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+	
+	Merge from 'apple/trunk' branch on FSF servers.
+
+	2006-03-27 Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4133425
+	* objc.dg/private-1.m: Test modified.
+	* obj-c++.dg/private-1.mm: Test modified.
+	
+2010-10-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/45987
+	* gcc.target/i386/push-1.c: Remove.
+
+2010-10-17  Uros Bizjak  <ubizjak@gmail.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/46051
+	* gcc.target/i386/pr46051.c: New test.
+
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* obj-c++.dg/gnu-api-2-class.mm: New.
+	* obj-c++.dg/gnu-api-2-ivar.mm: New.
+	* obj-c++.dg/gnu-api-2-method.mm: New.
+	* obj-c++.dg/gnu-api-2-objc.mm: New.
+	* obj-c++.dg/gnu-api-2-object.mm: New.
+	* obj-c++.dg/gnu-api-2-property.mm: New.
+	* obj-c++.dg/gnu-api-2-protocol.mm: New.
+	* obj-c++.dg/gnu-api-2-sel.mm: New.
+
+2010-10-17  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/fsf-package-0.m: New.
+	* obj-c++.dg/fsf-package-0.m: New.
+
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/18255
+	* objc.dg/pr18255.m: New.
+
+2010-10-16  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/44206
+	* g++.dg/torture/pr44206.C: New.
+
+2010-10-16  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-class.m: New.
+	* objc.dg/gnu-api-2-objc.m: New.
+
 2010-10-16  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc.dg/gnu-api-2-ivar.m: New.

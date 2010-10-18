@@ -1,3 +1,319 @@
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* einfo.ads, einfo.adb: Minor reformatting.
+
+2010-10-18  Jose Ruiz  <ruiz@adacore.com>
+
+	* adaint.c (__gnat_pthread_setaffinity_np,
+	__gnat_pthread_attr_setaffinity_np): Add these wrappers which check the
+	availability of the underlying OS functionality before calling.
+	* s-osinte-linux.ads (pthread_setaffinity_np,
+	pthread_attr_setaffinity_np): Call a wrapper instead of the OS function
+	to perform a check of its availability.
+	* s-taprop-linux.adb (Create_Task): Remove the check to verify whether
+	the affinity functionality is available in the OS. Now done in a wrapper
+	* gcc-interface/Makefile.in: Remove vmshandler.asm, unused.
+	* gcc-interface/Make-lang.in: Update dependencies.
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* sinfo.ads, sinfo.adb: Change Has_Pragma_CPU to Flag14 (Flag10 is
+	standard field).
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* s-stausa.adb, s-taprop-linux.adb, s-taprop-mingw.adb, s-tassta.ads:
+	Minor reformatting.
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* exp_strm.adb (Build_Elementary_Input_Call): Check
+	No_Default_Stream_Attributes.
+	(Build_Elementary_Write_Call): Check No_Default_Stream_Attributes
+	* s-rident.ads: Add restriction No_Default_Stream_Attributes
+	Put restriction No_Allocators_After_Elaboration in alpha order
+
+2010-10-18  Jose Ruiz  <ruiz@adacore.com>
+
+	* exp_ch9.adb (Expand_N_Task_Type_Declaration): Add field corresponding
+	to the affinity when expanding the task declaration.
+	(Make_Task_Create_Call): Add the affinity parameter to the call to
+	create task.
+	* sem_prag.adb (Analyze_Pragma): Add the analysis for pragma CPU,
+	taking into account the case when it applies to a subprogram (only for
+	main and with static expression) or to a task.
+	* par_prag.adb:(Prag): Make pragma CPU a valid one.
+	* snames.ads-tmpl (Name_uCPU, Name_CPU): Add these new name identifiers
+	used by the expander for handling the affinity parameter when creating
+	a task.
+	(Pragma_Id): Add Pragma_CPU as a valid one.
+	* rtsfind.ads (RTU_Id): Make System_Multiprocessors accesible.
+	(RE_Id, RE_Unit_Table): Make the entities RE_CPU_Range and
+	RE_Unspecified_CPU visible.
+	* sinfo.ads, sinfo.adb (Has_Pragma_CPU, Set_Has_Pragma_CPU): Add these
+	two subprograms to set/get the flag indicating whether there is a
+	pragma CPU which applies to the entity.
+	* lib.ads, lib.adb (Unit_Record, Default_Main_CPU, Main_CPU,
+	Set_Main_CPU): Add the field Main_CPU to Unit_Record to store the value
+	of the affinity associated to the main subprogram (if any).
+	Default_Main_CPU is used when no affinity is set. Subprograms
+	Set_Main_CPU and Main_CPU are added to set/get the affinity of the main
+	subprogram.
+	* ali.ads, ali.adb (ALIs_Record): Add field Main_CPU to contain the
+	value of the affinity of the main subprogram.
+	(Scan_ALI): Get the affinity of the main subprogram (encoded as C=XX in
+	the M line).
+	* lib-writ.ads, lib-writ.adb (M_Parameters): Encode the affinity of the
+	main subprogram in the M (main) line using C=XX.
+	* lib-load.adb (Create_Dummy_Package_Unit, Load_Main_Source,
+	Load_Unit): Add new field Main_CPU.
+	* bindgen.adb (Gen_Adainit_Ada, Gen_Adainit_C): Add the code to pass
+	the affinity of the main subprogram to the run time.
+	* s-taskin.ads (Common_ATCB): Add the field Base_CPU to store the
+	affinity.
+	(Unspecified_CPU): Add this constant to identify the case when no
+	affinity is set for tasks.
+	* s-taskin.adb (Initialize_ATCB): Store the value coming from pragma
+	CPU in the common part of the ATCB.
+	(Initialize): Store the value coming from pragma CPU (for the
+	environment task) in the common part of the ATCB.
+	* s-tassta.ads, s-tassta.adb (Create_Task): Add the affinity specified
+	by pragma CPU to the ATCB.
+	* s-tarest.ads, s-tarest.adb (Create_Restricted_Task): Add the affinity
+	specified by pragma CPU to the ATCB.
+	* s-tporft.adb (Register_Foreign_Thread): Add the new affinity
+	parameter to the call to Initialize_ATCB.
+	* s-taprop-linux.adb (Create_Task): Change the attributes of the thread
+	to include the task affinity before creation. Additionally, the
+	affinity selected with Task_Info is also enforced changing the
+	attributes at task creation time, instead of changing it after creation.
+	(Initialize): Change the affinity of the environment task if required
+	by a pragma CPU.
+	* s-osinte-linux.ads (pthread_setaffinity_np): Instead of using a
+	wrapper to check whether the function is available or not, use a weak
+	symbol.
+	(pthread_attr_setaffinity_np): Add the import of this function which is
+	used to change the affinity in the attributes used to create a thread.
+	* adaint.c (__gnat_pthread_attr_setaffinity_np): Remove this wrapper.
+	It was used to check whether the pthread function was available or not,
+	but the use of a weak symbol handles this situation in a cleaner way.
+	* s-taprop-mingw.adb (Create_Task, Initialize): Change the affinity of
+	tasks (including the environment task) if required by a pragma CPU.
+	* s-taprop-solaris.adb (Enter_Task): Change the affinity of tasks
+	(including the environment task) if required by a pragma CPU.
+	* s-taprop-vxworks.adb (Create_Task, Initialize): Change the affinity
+	of tasks (including the environment task) if required by a pragma CPU.
+	* init.c (__gl_main_cpu): Make this value visible to the run time. It
+	will pass the affinity of the environment task.
+
+2010-10-18  Javier Miranda  <miranda@adacore.com>
+
+	* einfo.adb (Direct_Primitive_Operations): Complete assertion.
+
+2010-10-18  Vincent Celier  <celier@adacore.com>
+
+	* prj.ads (Source_Data): New Boolean flag In_The_Queue.
+
+2010-10-18  Tristan Gingold  <gingold@adacore.com>
+
+	* s-stausa.ads: Add the Top parameter to Initialize_Analyzer.
+	* s-stausa.adb: Use the top parameter.  In Fill_Stack, use the
+	stack top if known.
+	* s-tassta.adb (Task_Wrapper): Call Initialize_Analyzer after Enter_Task
+	so that Pri_Stack_Info.Limit can be set and used.
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* einfo.ads: Minor reformatting.
+	* sem_res.adb (Resolve_Allocator): Add test for violating
+	No_Anonymous_Allocators.
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* prj-nmsc.adb, prj.adb, sem_res.adb: Minor reformatting.
+
+2010-10-18  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_util.adb (Insert_Explicit_Dereference): If operand is a selected
+	component, we generate a reference to the ultimate prefix when it is an
+	entity name. We must place the reference on the identifier for that
+	prefix, and not on the operand itself, to prevent spurious extra
+	references in the ali file.
+
+2010-10-18  Vincent Celier  <celier@adacore.com>
+
+	* projects.texi: Add documentation for attribute Ignore_Source_Sub_Dirs
+
+2010-10-18  Ed Schonberg  <schonberg@adacore.com>
+
+	* einfo.ads, einfo.adb: New attribute PPC_Wrapper for entries and entry
+	families. Denotes a procedure that performs pre/postcondition checks
+	and then performs the entry call.
+	* sem_res.adb (Resolve_Entry_Call): If the entry has
+	pre/postconditions, replace call with a call to the PPC_Wrapper of the
+	entry.
+	* exp_ch9.adb (Build_PPC_Wrapper): new procedure.
+	(Expand_N_Entry_Declaration, Expand_N_Protected_Type_Declaration): call
+	Build_PPC_Wrapper for all entries in task and protected definitions.
+
+2010-10-18  Tristan Gingold  <gingold@adacore.com>
+
+	* init.c: Add __gnat_set_stack_guard_page and __gnat_set_stack_limit.
+	Implement stack limitation on VMS.
+	Minor reformatting.
+
+2010-10-18  Vincent Celier  <celier@adacore.com>
+
+	* prj.adb (Is_Compilable): Do not modify Source.Compilable until the
+	source record has been initialized.
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* einfo.adb: Minor code reorganization (Primitive_Operations is a
+	synthesized attribute routine and was in the wrong place).
+
+2010-10-18  Tristan Gingold  <gingold@adacore.com>
+
+	* init.c: Indentation, and minor changes to more closely follow GNU
+	style rules.  Make more variable statics.
+
+2010-10-18  Vincent Celier  <celier@adacore.com>
+
+	* prj.adb (Is_Compilable): On first call for a source, cache value in
+	component Compilable.
+	* prj.ads (Source_Data): New component Compilable, to cache the value
+	returned by function Is_Compilable.
+
+2010-10-18  Vincent Celier  <celier@adacore.com>
+
+	* prj-attr.adb: New project level attribute Ignore_Source_Sub_Dirs.
+	* prj-nmsc.adb (Expand_Subdirectory_Pattern): New string list parameter
+	Ignore.
+	(Recursive_Find_Dirs): Do not consider subdirectories listed in Ignore.
+	(Get_Directories): Call Find_Source_Dirs with the string list
+	indicated by attribute Ignore_Source_Sub_Dirs.
+	* snames.ads-tmpl: New standard name Ignore_Source_Sub_Dirs.
+
+2010-10-18  Javier Miranda  <miranda@adacore.com>
+
+	* einfo.ads, einfo.adb (Primitive_Operations): New synthesized
+	attribute.
+	(Direct_Primitive_Operations): Renaming of old Primitive_Operations.
+	(Set_Direct_Primitive_Operations): Renaming of old
+	Set_Primitive_Operations. Update documentation
+	* sem_ch3.adb, exp_util.adb, sem_ch7.adb, sem_ch8.adb, exp_ch3.adb:
+	Replace occurrences of Set_Primitive_Operations by
+	Set_Direct_Primitive_Operations.
+	* sem_cat.adb (Validate_RACW_Primitives): No action needed for tagged
+	concurrent types.
+	* exp_dist.adb (Add_RACW_Primitive_Declarations_And_Bodies): Do not
+	process primitives of concurrent types.
+	* lib-xref.adb (Generate_Prim_Op_References): Minor code cleanup.
+
+2010-10-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* exp_ch6.adb (Expand_N_Subprogram_Declaration): Use Freeze_Before.
+	(Expand_Protected_Object_Reference): Likewise.
+	* sem_attr.adb (Resolve_Attribute): Likewise.
+	* sem_ch3.adb (Analyze_Subtype_Declaration): Likewise.
+	* sem_ch6.adb (Analyze_Subprogram_Body_Helper): Likewise.
+
+2010-10-18  Arnaud Charlet  <charlet@adacore.com>
+
+	* g-comlin.adb (Get_Switches): Prevent dereferencing null Config.
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* aspects.ads, aspects.adb: Add entries for aspects
+	Read/Write/Input/Output.
+	* sem_ch13.adb (Analyze_Aspect_Specifications): Add processing for
+	handling aspects Read/Write/Input/Output.
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* sem_util.adb (Note_Possible_Modification): Do not give warning for
+	use of pragma Unmodified unless we are sure this is a modification.
+
+2010-10-18  Tristan Gingold  <gingold@adacore.com>
+
+	* sysdep.c: Add __gnat_get_stack_bounds.
+	* s-taprop-mingw.adb Call __gnat_get_stack_bounds to set Pri_Stack_Info.
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* a-assert.ads: Fix bad name in header.
+	* sem_ch4.adb, sem_ch6.adb, sem_ch7.adb, sem_ch10.adb: Minor
+	reformatting.
+	* exp_aggr.adb: Fix typo in comment.
+
+2010-10-18  Javier Miranda  <miranda@adacore.com>
+
+	* exp_util.adb (Side_Effect_Free): Code clean up.
+
+2010-10-18  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch8.adb (Is_Primitive_Operator_In_Use): Renamed from
+	Is_Primitive_Operator. When ending the scope of a use package scope, a
+	primitive operator remains in use if the base type has a current use
+	(type) clause.
+
+2010-10-18  Javier Miranda  <miranda@adacore.com>
+
+	* einfo.ads (Is_Dynamic_Support): Add missing support for limited
+	private types whose full-view is a task type.
+	* sem_util.adb (Enclosing_Subprogram): Add missing support for limited
+	private types whose full-view is a task type.
+	* exp_ch7.adb (Find_Final_List): Minor code cleanup replacing code by
+	function Nearest_Dynamic_Scope which provides the needed functionality.
+
+2010-10-18  Arnaud Charlet  <charlet@adacore.com>
+
+	* sem_prag.adb (Set_Exported): Do not generate error when exporting a
+	variable with an address clause in codepeer mode.
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* g-trasym-vms-ia64.adb: Minor reformatting.
+
+2010-10-18  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_type.adb (Covers): If either argument is Standard_Void_Type and
+	the other isn't, return False early.
+
+2010-10-18  Ed Falis  <falis@adacore.com>
+
+	* s-vxwext-rtp.ads, s-vxext-rtp.adb: Adapt for missing APIs for RTPs in
+	VxWorks Cert.
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* sem_disp.ads: Minor comment update.
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* einfo.ads, einfo.adb (Spec_PPC_List): Is now present in Entries
+	* sem_ch3.adb (Analyze_Declarations): Add processing for delaying
+	visibility analysis of precondition and postcondition pragmas (and
+	Pre/Post aspects).
+	* sem_ch6.adb (Process_PPCs): Add handling of inherited Pre'Class
+	aspects.
+	* sem_ch7.adb (Analyze_Package_Specification): Remove special handling
+	of pre/post conditions (no longer needed).
+	* sem_disp.adb (Inherit_Subprograms): Deal with interface case.
+	* sem_prag.adb (Analyze_PPC_In_Decl_Part): Remove analysis of message
+	argument, since this is now done in the main processing for
+	pre/postcondition pragmas when they are first seen.
+	(Chain_PPC): Pre'Class and Post'Class now handled properly
+	(Chain_PPC): Handle Pre/Post aspects for entries
+	(Check_Precondition_Postcondition): Handle entry declaration case
+	(Check_Precondition_Postcondition): Handle delay of visibility analysis
+	(Check_Precondition_Postcondition): Preanalyze message argument if
+	present.
+
+2010-10-18  Robert Dewar  <dewar@adacore.com>
+
+	* g-trasym-vms-ia64.adb, prj-nmsc.adb, prj.ads: Minor reformatting.
+
 2010-10-14  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Array_Type>: Set

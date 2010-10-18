@@ -12753,7 +12753,7 @@ cp_parser_simple_type_specifier (cp_parser* parser,
       /* As a last-ditch effort, see if TYPE is an Objective-C type.
 	 If it is, then the '<'...'>' enclose protocol names rather than
 	 template arguments, and so everything is fine.  */
-      if (c_dialect_objc ()
+      if (c_dialect_objc () && !parser->scope
 	  && (objc_is_id (type) || objc_is_class_name (type)))
 	{
 	  tree protos = cp_parser_objc_protocol_refs_opt (parser);
@@ -21356,13 +21356,16 @@ cp_parser_objc_visibility_spec (cp_parser* parser)
   switch (vis->keyword)
     {
     case RID_AT_PRIVATE:
-      objc_set_visibility (2);
+      objc_set_visibility (OBJC_IVAR_VIS_PRIVATE);
       break;
     case RID_AT_PROTECTED:
-      objc_set_visibility (0);
+      objc_set_visibility (OBJC_IVAR_VIS_PROTECTED);
       break;
     case RID_AT_PUBLIC:
-      objc_set_visibility (1);
+      objc_set_visibility (OBJC_IVAR_VIS_PUBLIC);
+      break;
+    case RID_AT_PACKAGE:
+      objc_set_visibility (OBJC_IVAR_VIS_PACKAGE);
       break;
     default:
       return;

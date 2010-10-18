@@ -44,6 +44,11 @@ objc_is_object_ptr (tree ARG_UNUSED (arg))
   return 0;
 }
 
+bool objc_diagnose_private_ivar (tree ARG_UNUSED (arg))
+{
+  return false;
+}
+
 tree
 objc_lookup_ivar (tree other, tree ARG_UNUSED (arg))
 {
@@ -163,7 +168,7 @@ objc_add_instance_variable (tree ARG_UNUSED (decl))
 }
 
 void
-objc_set_visibility (int ARG_UNUSED (vis))
+objc_set_visibility (objc_ivar_visibility_kind ARG_UNUSED (vis))
 {
 }
 

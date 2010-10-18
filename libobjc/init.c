@@ -444,8 +444,7 @@ class_is_subclass_of_class (Class class, Class superclass)
    their superclasses are not yet known to the runtime.  */
 static struct objc_list *unresolved_classes = 0;
 
-/* Extern function used to reference the Object and NXConstantString
-   classes.  */
+/* Extern function used to reference the Object class.  */
 
 extern void __objc_force_linking (void);
 
@@ -623,23 +622,7 @@ __objc_exec_class (Module_t module)
 	 In some cases it isn't and this crashes the program.  */
       class->subclass_list = NULL;
 
-      /* Store the class in the class table and assign class numbers.  */
-      __objc_add_class_to_hash (class);
-
-      /* Register all of the selectors in the class and meta class.  */
-      __objc_register_selectors_from_class (class);
-      __objc_register_selectors_from_class ((Class) class->class_pointer);
-
-      /* Install the fake dispatch tables */
-      __objc_install_premature_dtable (class);
-      __objc_install_premature_dtable (class->class_pointer);
-
-      /* Register the instance methods as class methods, this is
-	 only done for root classes.  */
-      __objc_register_instance_methods_to_class (class);
-
-      if (class->protocols)
-	__objc_init_protocols (class->protocols);
+      __objc_init_class (class);
 
       /* Check to see if the superclass is known in this point. If it's not
 	 add the class to the unresolved_classes list.  */
@@ -771,11 +754,9 @@ objc_send_load (void)
 	return;
     }
 
-  /* Special check to allow creating and sending messages to constant
-     strings in +load methods. If these classes are not yet known,
-     even if all the other classes are known, delay sending of +load.  */
-  if (! objc_lookup_class ("NXConstantString") ||
-      ! objc_lookup_class ("Object"))
+  /* Special check.  If 'Object', which is used by meta-classes, has
+     not been loaded yet, delay sending of +load.  */
+  if (! objc_lookup_class ("Object"))
     return;
 
   /* Iterate over all modules in the __objc_module_list and call on
@@ -862,6 +843,29 @@ init_check_module_version (Module_t module)
       _objc_abort ("Module %s version %d doesn't match runtime %d\n",
 		   module->name, (int)module->version, OBJC_VERSION);
     }
+}
+
+/* __objc_init_class must be called with __objc_runtime_mutex already locked.  */
+void
+__objc_init_class (Class class)
+{
+  /* Store the class in the class table and assign class numbers.  */
+  __objc_add_class_to_hash (class);
+  
+  /* Register all of the selectors in the class and meta class.  */
+  __objc_register_selectors_from_class (class);
+  __objc_register_selectors_from_class ((Class) class->class_pointer);
+
+  /* Install the fake dispatch tables */
+  __objc_install_premature_dtable (class);
+  __objc_install_premature_dtable (class->class_pointer);
+
+  /* Register the instance methods as class methods, this is only done
+     for root classes.  */
+  __objc_register_instance_methods_to_class (class);
+
+  if (class->protocols)
+    __objc_init_protocols (class->protocols);
 }
 
 /* __objc_init_protocol must be called with __objc_runtime_mutex

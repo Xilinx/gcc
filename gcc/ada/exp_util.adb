@@ -4115,8 +4115,8 @@ package body Exp_Util is
          if Is_Tagged_Type  (Priv_Subtyp) then
             Set_Class_Wide_Type
               (Base_Type (Priv_Subtyp), Class_Wide_Type (Unc_Typ));
-            Set_Primitive_Operations (Priv_Subtyp,
-              Primitive_Operations (Unc_Typ));
+            Set_Direct_Primitive_Operations (Priv_Subtyp,
+              Direct_Primitive_Operations (Unc_Typ));
          end if;
 
          Set_Full_View (Priv_Subtyp, Full_Subtyp);
@@ -4655,8 +4655,8 @@ package body Exp_Util is
 
          elsif VM_Target /= No_VM
             and then not Comes_From_Source (N)
-            and then Is_Class_Wide_Type (Etype (N))
             and then Nkind (Parent (N)) = N_Object_Renaming_Declaration
+            and then Is_Class_Wide_Type (Etype (N))
          then
             return True;
          end if;

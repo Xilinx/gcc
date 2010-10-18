@@ -1,3 +1,28 @@
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+	
+	Merge from apple/trunk branch on FSF servers.
+
+	2006-04-19 Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4516785
+	* parser.c (cp_parser_simple_type_specifier): Don't lookup for
+	objc object types if type is scope qualified.
+	
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+	
+	Merge from apple/trunk branch on FSF servers.
+	
+	2006-03-27 Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4133425
+	* lex.c (unqualified_name_lookup_error): Issue diagnostic
+	for private 'ivar' access.
+	
+2010-10-17  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* parser.c (cp_parser_objc_visibility_spec): Update to use visibility 
+	enum, and handle @package.
+
 2010-10-15  Jason Merrill  <jason@redhat.com>
 
 	PR c++/45983
