@@ -188,8 +188,10 @@ WARMELT_BASEROW:=$(shell echo $(WARMELT_BASE)|sed 's/ /:/g')
 ## force a dependency
 $(WARMELT_BASE0SO): empty-file-for-melt.c melt-run.h melt-runtime.h
 
-.PHONY: warmelt1 warmelt2 warmelt warmelt1n warmelt2n
+.PHONY: warmelt0 warmelt1 warmelt2 warmelt warmelt1n warmelt2n
 
+## warmelt0 is useful to contrib/build-melt-plugin.sh!
+warmelt0: warmelt0.modlis $(WARMELT_BASE0SO)
 warmelt1: warmelt1.modlis $(WARMELT_BASE1SO)
 warmelt2: warmelt2.modlis $(WARMELT_BASE2SO)
 warmelt: warmelt.modlis $(WARMELT_BASESO)

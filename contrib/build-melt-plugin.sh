@@ -290,7 +290,7 @@ do_melt_make () {
 	melt_make_gencdeps=$timestamp_file \
 	melt_make_source_dir=$GCCMELT_SOURCE_TREE/melt \
 	melt_make_module_dir=. \
-	melt_make_move="mv -f" \
+	melt_make_move=mv \
 	melt_installed_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include" \
 	melt_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include -I$GCCMELT_SOURCE_TREE -I." \
 	melt_is_plugin=1 \
@@ -317,6 +317,13 @@ bootstrap_melt() {
     fi
     verbose_echo Start regenerating MELT
     verbose_sleep
+    ## zeroth stage
+    verbose_echo Starting MELT stage zero
+    if do_melt_make warmelt0 ; then
+	verbose_echo Did MELT stage zero successfully
+    else
+	error_echo Failure in MELT stage zero
+    fi
     ## first stage
     verbose_echo Starting MELT first stage
     if do_melt_make warmelt1 ; then
