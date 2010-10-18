@@ -1,3 +1,7 @@
+
+2010-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh: testing the result of $MAKE.
+
 2010-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* make-melt-source-tar.sh: Moved comment upwards.
 

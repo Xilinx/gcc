@@ -1,5 +1,6 @@
 #! /bin/sh
 ## file contrib/build-melt-plugin.sh of the MELT branch of GCC
+## run with -h to get some help.
 ##
 ##    Middle End Lisp Translator = MELT
 ##
@@ -22,17 +23,19 @@
 ## along with GCC; see the file COPYING3.   If not see
 ## <http://www.gnu.org/licenses/>.
 
-
+progname=$0
 ################## our help & exit function
 usage() {
-    echo "build-melt-plugin.sh usage:" >&2
-    echo " -h # gives this help" >&2
-    echo " -q # to be quiet unless errors" >&2
-    echo " -s EXPR       # *unsafely* evaluate EXPR, e.g. -s MAKE=gmake sets the MAKE variable" >&2
-    echo " -S sourcepath # sets the GCC source tree, e.g. -S /usr/src/gcc" >&2
-    echo " -B buildpath  # sets the GCC build path, e.g. -B /tmp/gcc-build" >&2
-    echo " -M meltpath   # sets the GCC-MELT source subtree, e.g. /usr/src/gcc-melt/gcc" >&2
-    echo " -Y your/gt-melt-runtime.h  # force the gengtype generated gt-melt-runtime.h" >&2
+    echo "$progname usage:" 
+    echo " -h # gives this help" 
+    echo " -q # to be quiet unless errors" 
+    echo " -s EXPR       # *unsafely* evaluate EXPR, e.g. -s MAKE=gmake sets the MAKE variable" 
+    echo " -S sourcepath # sets the GCC source tree, e.g. -S /usr/src/gcc" 
+    echo " -B buildpath  # sets the GCC build path, e.g. -B /tmp/gcc-build" 
+    echo " -M meltpath   # sets the GCC-MELT source subtree, e.g. /usr/src/gcc-melt/gcc" 
+    echo " -Y your/gt-melt-runtime.h  # force the gengtype generated gt-melt-runtime.h" 
+    echo "$progname is for building MELT as a plugin, not a branch."
+    echo "run $progname -h to get help" >&2
     exit 1
 }
 
@@ -102,8 +105,8 @@ verbose_sleep() {
 }
 ################ parsing the shell program argument
 parse_args() {
+    progname=$0
     while getopts "hqs:S:B:Y:M:C:" opt ; do
-	echo debugMELT opt= $opt OPTARG= $OPTARG
 	case $opt in
 	    h) usage;;
 	    q) quiet=1;;
@@ -293,7 +296,12 @@ do_melt_make () {
 	melt_is_plugin=1 \
 	VPATH=.:$GCCMELT_SOURCE_TREE/melt:$GCCMELT_SOURCE_TREE:$GCC_BUILD_TREE:$GCC_SOURCE_TREE \
 	$*
-    verbose_echo made MELT $*
+    if [ $? -ne 0 ]; then
+	error_echo MELT $MAKE $* failed
+	exit 1
+    else
+	verbose_echo made MELT $*
+    fi
 }
  
 bootstrap_melt() {
