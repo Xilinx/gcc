@@ -1,4 +1,14 @@
 2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c: Every #ifdef MELT_IS_PLUGIN is #endif-ed with a
+	comment. Also corrected typo.
+	(melt_really_initialize): Ensure that meltgc_make_special exists.
+	* melt-runtime.h (MELT_MODULE_VISIBILITY, MELT_PLUGIN_VISIBILITY):
+	Added or moved from melt-run.proto.h
+	(meltgc_make_special): Made publicly visible.
+	* melt-run.proto.h (MELT_MODULE_VISIBILITY) : moved to
+	melt-runtime.h.
+
+2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltgc_make_special): Declared extern.
 	* melt-runtime.c (melt_really_initialize): Indented comment.
 

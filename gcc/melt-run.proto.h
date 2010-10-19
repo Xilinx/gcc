@@ -84,12 +84,6 @@ extern const char melt_md5[];
 extern void gt_ggc_mx_melt_un (void*);
 
 
-#if __GNUC__ >= 4
-#define MELT_MODULE_VISIBILITY  __attribute__ ((visibility ("hidden")))
-#else
-#define MELT_MODULE_VISIBILITY
-#endif
-
 
 /* actually, the generated melt-run.h contains a MD5 string hash, same
    as melt_run_preprocessed_md5 */

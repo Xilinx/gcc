@@ -29,7 +29,7 @@ along with GCC; see the file COPYING3.   If not see
 #include "gcc-plugin.h"
 #else
 #include "version.h"
-#endif
+#endif	/* MELT_IS_PLUGIN */
 
 #include "bversion.h"
 #include "config.h"
@@ -818,7 +818,7 @@ static long thresholdcheckcallframes;
 
 /* make a special value; return NULL if the discriminant is not special */
 struct meltspecial_st*
-meltgc_make_special(melt_ptr_t discr_p)
+meltgc_make_special (melt_ptr_t discr_p)
 {
   int magic = 0;
   MELT_ENTERFRAME (2, NULL);
@@ -868,7 +868,7 @@ meltgc_make_special(melt_ptr_t discr_p)
 
 void
 melt_check_call_frames_at (int noyoungflag, const char *msg,
-			      const char *filenam, int lineno)
+			   const char *filenam, int lineno)
 {
   /* Don't call melt_fatal_error here, because if the MELT stack is
      corrupted we can't show it! */
@@ -930,7 +930,7 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
 
 void
 melt_caught_assign_at (void *ptr, const char *fil, int lin,
-			  const char *msg)
+		       const char *msg)
 {
   debugeprintf ("caught assign %p at %s:%d /// %s", ptr, lbasename (fil), lin,
 		msg);
@@ -6209,7 +6209,7 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
 	  snprintf (tempdir_melt, sizeof(tempdir_melt)-1,
 		    "%s-GccMeltTmp-%x",
 		    tmpnam(NULL),  n);
-#else
+#else /* !MELT_IS_PLUGIN */
 	  {
 	    /* from libiberty/choose-temp.c */
 	    extern char *choose_tmpdir (void);	
@@ -6222,7 +6222,7 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
 	      snprintf (tempdir_melt, sizeof(tempdir_melt)-1, 
 			"%sGCCMeltTmpdir-%x", chtmpdir,  n);
 	  }
-#endif
+#endif	/* MELT_IS_PLUGIN */
 	  if (!mkdir (tempdir_melt, 0700))
 	    {
 	      made_tempdir_melt = true;
@@ -6579,7 +6579,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *binfile, const ch
     free (workarg);
     debugeprintf ("compile_gencsrc_to_binmodule done srcfile %s binfile %s", srcfile, binfile);
   }
-#endif
+#endif /*MELT_IS_PLUGIN*/
 }
 
 
@@ -9929,13 +9929,16 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   parsedmeltfilevect = VEC_alloc (char_p, heap, 12);
 
 #ifdef MELT_IS_PLUGIN
+  /* when MELT is a plugin, we need to process the debug
+     argument. When MELT is a branch, the melt_argument function is
+     using flag_melt_debug for "debug" so we don't want this. */
   { 
     const char *dbgstr = melt_argument ("debug");
     /* debug=n or debug=0 is handled as no debug */
     if (dbgstr && (!dbgstr[0] || !strchr("Nn0", dbgstr[0])))
       flag_melt_debug = 1;
   }
-#endif
+#endif	/* MELT_IS_PLUGIN */
   if (!modstr || *modstr=='\0')
     {
       debugeprintf ("melt_really_initialize return immediately since no mode (inistr=%s)",
@@ -10013,6 +10016,10 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   if (ppl_set_error_handler(melt_ppl_error_handler))
     /* don't call melt_fatal_error since initializing! */
     fatal_error ("MELT failed to set PPL handler");
+  /* I really want meltgc_make_special to be linked in, even in plugin
+     mode... So I test that the routine exists! */
+  debugeprintf ("melt_really_initialize meltgc_make_special=%#lx",
+		(long) meltgc_make_special);
   load_melt_modules_and_do_mode ();
   /* force a minor GC */
   melt_garbcoll (0, MELT_ONLY_MINOR);
@@ -10137,7 +10144,7 @@ plugin_init (struct plugin_name_args* plugin_info,
   return 0; /* success */
 }
 
-#else
+#else /* !MELT_IS_PLUGIN*/
 void
 melt_initialize (void)
 {
@@ -10151,7 +10158,7 @@ melt_initialize (void)
   melt_really_initialize ("MELT/_builtin", version_string);
   debugeprintf ("end of melt_initialize [builtin MELT] meltruntime %s", __DATE__);
 }
-#endif
+#endif	/* MELT_IS_PLUGIN */
 
 
 int *
@@ -10748,11 +10755,11 @@ open_meltpp_file(void)
 	meltppfilename = ourtempnamebuf;
       else
 	melt_fatal_error ("melt temporary file: mkstemp %s failed", ourtempnamebuf);
-#else
+#else  /* !MELT_IS_PLUGIN */
       meltppfilename = make_temp_file (".meltmem");
       if (!meltppfilename)
 	melt_fatal_error ("failed to get melt memory temporary file %s", strerror(errno));
-#endif
+#endif	/* MELT_IS_PLUGIN */
     }
   meltppfile = fopen (meltppfilename, "w+");
 #endif
@@ -11033,7 +11040,7 @@ meltgc_ppout_mixbigint (melt_ptr_t out_p, int indentsp,
 
 /* make a new boxed file */
 melt_ptr_t
-meltgc_new_file(melt_ptr_t discr_p, FILE* fil)
+meltgc_new_file (melt_ptr_t discr_p, FILE* fil)
 {
   MELT_ENTERFRAME(2, NULL);
 #define discrv meltfram__.mcfr_varptr[0]
