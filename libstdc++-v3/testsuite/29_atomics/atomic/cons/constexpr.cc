@@ -1,3 +1,4 @@
+// { dg-do compile }
 // { dg-options "-std=gnu++0x" }
 
 // Copyright (C) 2010 Free Software Foundation, Inc.

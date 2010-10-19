@@ -512,6 +512,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   const bool numeric_limits<char32_t>::tinyness_before;
   const float_round_style numeric_limits<char32_t>::round_style;
 
+#undef const
+
 _GLIBCXX_END_NAMESPACE
 
 // XXX GLIBCXX_ABI Deprecated

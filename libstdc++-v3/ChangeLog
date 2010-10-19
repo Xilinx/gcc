@@ -1,3 +1,14 @@
+2010-10-18  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/limits.cc: Undef.
+	* testsuite/29_atomics/atomic/cons/constexpr.cc: Adjust.
+	* testsuite/29_atomics/atomic_address/cons/constexpr.cc: Same.
+	* testsuite/29_atomics/atomic_integral/cons/constexpr.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/bitwise_neg.c: Same.
+	* testsuite/18_support/numeric_limits/constexpr.cc: To...
+	* testsuite/18_support/numeric_limits/requirements/
+	constexpr_data.cc, constexpr_functions.cc: ...this
+
 2010-10-15  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* testsuite/util/testsuite_common_types.h
