@@ -816,56 +816,6 @@ static long nbcheckcallframes;
 static long thresholdcheckcallframes;
 
 
-/* make a special value; return NULL if the discriminant is not special */
-struct meltspecial_st*
-meltgc_make_special (melt_ptr_t discr_p)
-{
-  int magic = 0;
-  MELT_ENTERFRAME (2, NULL);
-#define discrv     meltfram__.mcfr_varptr[0]
-#define specv      meltfram__.mcfr_varptr[1]
-#define sp_specv ((struct meltspecial_st*)(specv))
-  discrv = discr_p;
-  if (!discrv || melt_magic_discr((melt_ptr_t)discrv) != MELTOBMAG_OBJECT)
-    goto end;
-  magic = ((meltobject_ptr_t)discrv)->object_magic;
-  switch (magic) 
-    {
-    case ALL_MELTOBMAG_SPECIAL_CASES:
-      specv = meltgc_allocate (sizeof(struct meltspecial_st),0);
-      sp_specv->discr = (meltobject_ptr_t) discrv;
-      sp_specv->mark = 0;
-      sp_specv->nextspec = melt_newspeclist;
-      melt_newspeclist = sp_specv;
-      melt_debuggc_eprintf ("make_special %p discr %p magic %d %s", 
-			    specv, discrv, magic, melt_obmag_string(magic));
-#if ENABLE_CHECKING
-      if (melt_alptr_1 && (void*)melt_alptr_1 == specv) 
-	{
-	  fprintf (stderr, "meltgc_make_special alptr_1 %p mag %d %s\n", 
-		   melt_alptr_1, magic, melt_obmag_string(magic));
-	  fflush (stderr);
-	  melt_break_alptr_1 ("meltgc_make_special alptr_1");
-	};
-      if (melt_alptr_2 && (void*)melt_alptr_2 == specv) 
-	{
-	  fprintf (stderr, "meltgc_make_special alptr_2 %p mag %d %s\n", 
-		   melt_alptr_1, magic, melt_obmag_string(magic));
-	  fflush (stderr);
-	  melt_break_alptr_1 ("meltgc_make_special alptr_2");
-	};
-#endif /*ENABLE_CHECKING*/
-      break;
-    default: goto end;
-    }
- end:
-  MELT_EXITFRAME();
-  return sp_specv;
-#undef discrv
-#undef specv
-#undef sp_specv
-}
-
 void
 melt_check_call_frames_at (int noyoungflag, const char *msg,
 			   const char *filenam, int lineno)
@@ -946,8 +896,58 @@ melt_cbreak_at (const char *msg, const char *fil, int lin)
 		    msg);
 }
 
-#endif
+#endif /*ENABLE_CHECKING*/
 
+
+/* make a special value; return NULL if the discriminant is not special */
+struct meltspecial_st*
+meltgc_make_special (melt_ptr_t discr_p)
+{
+  int magic = 0;
+  MELT_ENTERFRAME (2, NULL);
+#define discrv     meltfram__.mcfr_varptr[0]
+#define specv      meltfram__.mcfr_varptr[1]
+#define sp_specv ((struct meltspecial_st*)(specv))
+  discrv = discr_p;
+  if (!discrv || melt_magic_discr((melt_ptr_t)discrv) != MELTOBMAG_OBJECT)
+    goto end;
+  magic = ((meltobject_ptr_t)discrv)->object_magic;
+  switch (magic) 
+    {
+    case ALL_MELTOBMAG_SPECIAL_CASES:
+      specv = meltgc_allocate (sizeof(struct meltspecial_st),0);
+      sp_specv->discr = (meltobject_ptr_t) discrv;
+      sp_specv->mark = 0;
+      sp_specv->nextspec = melt_newspeclist;
+      melt_newspeclist = sp_specv;
+      melt_debuggc_eprintf ("make_special %p discr %p magic %d %s", 
+			    specv, discrv, magic, melt_obmag_string(magic));
+#if ENABLE_CHECKING
+      if (melt_alptr_1 && (void*)melt_alptr_1 == specv) 
+	{
+	  fprintf (stderr, "meltgc_make_special alptr_1 %p mag %d %s\n", 
+		   melt_alptr_1, magic, melt_obmag_string(magic));
+	  fflush (stderr);
+	  melt_break_alptr_1 ("meltgc_make_special alptr_1");
+	};
+      if (melt_alptr_2 && (void*)melt_alptr_2 == specv) 
+	{
+	  fprintf (stderr, "meltgc_make_special alptr_2 %p mag %d %s\n", 
+		   melt_alptr_1, magic, melt_obmag_string(magic));
+	  fflush (stderr);
+	  melt_break_alptr_1 ("meltgc_make_special alptr_2");
+	};
+#endif /*ENABLE_CHECKING*/
+      break;
+    default: goto end;
+    }
+ end:
+  MELT_EXITFRAME();
+  return sp_specv;
+#undef discrv
+#undef specv
+#undef sp_specv
+}
 
 /***
  * the marking routine is registered thru PLUGIN_GGC_MARKING
