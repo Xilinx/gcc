@@ -1,5 +1,8 @@
 
 2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh: typo.
+
+2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh: make a test run of melt.so.
 
 2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>

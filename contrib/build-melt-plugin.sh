@@ -279,7 +279,7 @@ build_melt_dot_so() {
     # we need the empty-file-for-melt.c 
     verbose_echo making  empty-file-for-melt.c using $GCCMELT_SOURCE_TREE/melt-make.mk
     $MAKE -w -f $GCCMELT_SOURCE_TREE/melt-make.mk empty-file-for-melt.c
-    if $GCC -v -fplugin=./melt.so -c -o /dev/null empty-file-for-melt.c; then
+    if $GCC -fplugin=./melt.so -c -o /dev/null empty-file-for-melt.c; then
 	verbose_echo melt.so plugin seems to be loadable
     else
 	error_echo melt.so plugin dont work
