@@ -5404,6 +5404,7 @@ install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR)
 
 
 melt_make_cc1=./cc1$(exeext)
+melt_make_cc1_dependency=./cc1$(exeext)
 melt_make_gencdeps= ./cc1$(exeext)
 melt_make_module_makefile=$(srcdir)/melt-module.mk
 melt_make_source_dir=$(srcdir)/melt

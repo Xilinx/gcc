@@ -30,6 +30,7 @@
 ### melt_make_module_dir - directory containing the *.so files when making MELT
 ### melt_default_modules_list - basename of the default module list
 ### melt_make_cc1 - cc1 program with MELT (or loading MELT plugin) or gcc -fplugin=melt.so
+### melt_make_cc1_dependency - the make dependency for above i.e. cc1$(exeext) for MELT branch
 ### melt_make_gencdeps is an extra make dependency of generated C files [leave empty usually]
 ### melt_is_plugin - should be non empty in plugin mode
 ### melt_make_move - a copy or move command for files
@@ -76,13 +77,13 @@ vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 MELT_MAKE_MODULE=$(MAKE) -f $(melt_make_module_makefile) $(MELT_MAKE_MODULE_XTRAMAKEFLAGS) VPATH=$(VPATH):.
 
 warmelt-%.0.so: warmelt-%.0.c $(melt_make_module_makefile) melt-predef.h melt-run.h \
-                melt-runtime.h melt-runtime.c melt-runtime.o cc1$(exeext)
+                melt-runtime.h melt-runtime.c melt-runtime.o $(melt_make_cc1_dependency)
 	echo in melt-make.mk melt_cflags= $(melt_cflags) 
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 warmelt-%.0.d.so: warmelt-%.0.c $(melt_make_module_makefile) melt-predef.h  melt-run.h \
-                melt-runtime.h melt-runtime.c melt-runtime.o cc1$(exeext)
+                melt-runtime.h melt-runtime.c melt-runtime.o $(melt_make_cc1_dependency)
 	$(MELT_MAKE_MODULE) melt_module_dynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$(shell basename $@ .d.so).so
@@ -100,11 +101,11 @@ warm%.n.so: warm%.c $(melt_make_module_makefile)
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
 ## warmeltbig*.c is so big that it can only be compiled with -O0
-warmeltbig-%.so: warmeltbig-%.c $(melt_make_module_makefile) melt-predef.h  cc1$(exeext)
+warmeltbig-%.so: warmeltbig-%.c $(melt_make_module_makefile) melt-predef.h  $(melt_make_cc1_dependency)
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags) -O0"   \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
-warmelt-%.so: warmelt-%.c  $(melt_make_module_makefile) melt-predef.h cc1$(exeext)
+warmelt-%.so: warmelt-%.c  $(melt_make_module_makefile) melt-predef.h $(melt_make_cc1_dependency)
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(MELT_FINAL_CFLAGS)" \
 	      GCCMELT_MODULE_SOURCE=$< GCCMELT_MODULE_BINARY=$@
@@ -242,7 +243,7 @@ empty-file-for-melt.c:
 	date +"/* empty-file-for-melt.c %c */" > $@-tmp
 	$(melt_make_move) $@-tmp $@
 
-warmelt-first.1.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(melt_make_gencdeps)  $(WARMELT_BASE0SO) empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h melt-runtime.c cc1$(exeext)
+warmelt-first.1.c: $(melt_make_source_dir)/warmelt-first.melt warmelt0.modlis $(melt_make_gencdeps)  $(WARMELT_BASE0SO) empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h melt-runtime.c $(melt_make_cc1_dependency)
 	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0ROW) \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
@@ -290,17 +291,17 @@ warmelt-%-h2.c: $(melt_make_source_dir)/warmelt-%.melt $(melt_make_gencdeps) \
 ## compiled without any optimisation, otherwise the C compiler suffers
 ## too much..
 
-warmeltbig.1.c: $(WARMELT_SRCFILES) warmelt0.modlis $(melt_make_gencdeps)  $(WARMELT_BASE0SO)  warmelt-predef.melt  empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+warmeltbig.1.c: $(WARMELT_SRCFILES) warmelt0.modlis $(melt_make_gencdeps)  $(WARMELT_BASE0SO)  warmelt-predef.melt  empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	$(MELTCCINIT1) $(meltarg_init)=$(WARMELT_BASE0ROW) \
 	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
-warmeltbig.2.c: $(WARMELT_SRCFILES) warmeltbig.1.so $(melt_make_gencdeps) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)  empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+warmeltbig.2.c: $(WARMELT_SRCFILES) warmeltbig.1.so $(melt_make_gencdeps) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)  empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	$(MELTCCINIT1) $(meltarg_init)=warmeltbig.1 \
 	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
-warmeltbig.3.c: $(WARMELT_SRCFILES) warmeltbig.2.so $(melt_make_gencdeps) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)  empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+warmeltbig.3.c: $(WARMELT_SRCFILES) warmeltbig.2.so $(melt_make_gencdeps) empty-file-for-melt.c warmelt-predef.melt $(WARMELT_SRCFILES)  empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	$(MELTCCINIT1) $(meltarg_init)=warmeltbig.2 \
 	      $(meltarg_arglist)=$(WARMELT_SRCARGLIST) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
@@ -339,7 +340,7 @@ warmelt-base.1.c: $(melt_make_source_dir)/warmelt-base.melt $(melt_make_gencdeps
       warmelt-normatch.0.d.so \
       warmelt-genobj.0.d.so \
       warmelt-outobj.0.d.so \
-      empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h cc1$(exeext) 
+      empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency) 
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first.1:warmelt-base.0.d:warmelt-debug.0.d:warmelt-macro.0.d:warmelt-normal.0.d:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -354,7 +355,7 @@ warmelt-debug.1.c: $(melt_make_source_dir)/warmelt-debug.melt $(melt_make_gencde
       warmelt-normatch.0.d.so \
       warmelt-genobj.0.d.so \
       warmelt-outobj.0.d.so \
-      empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h cc1$(exeext) 
+      empty-file-for-melt.c melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency) 
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first.1:warmelt-base.1:warmelt-debug.0.d:warmelt-macro.0.d:warmelt-normal.0.d:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -370,7 +371,7 @@ warmelt-macro.1.c: $(melt_make_source_dir)/warmelt-macro.melt $(melt_make_gencde
      warmelt-normatch.0.d.so \
      warmelt-genobj.0.d.so \
      warmelt-outobj.0.d.so \
-     empty-file-for-melt.c warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h cc1$(exeext) 
+     empty-file-for-melt.c warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency) 
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first.1:warmelt-base.1:warmelt-debug.1:warmelt-macro.0.d:warmelt-normal.0.d:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -386,7 +387,7 @@ warmelt-normal.1.c: $(melt_make_source_dir)/warmelt-normal.melt $(melt_make_genc
     warmelt-normatch.0.d.so \
     warmelt-genobj.0.d.so \
     warmelt-outobj.0.d.so \
-    empty-file-for-melt.c warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h cc1$(exeext) 
+    empty-file-for-melt.c warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency) 
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first.1:warmelt-base.1:warmelt-debug.1:warmelt-macro.1:warmelt-normal.0.d:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -402,7 +403,7 @@ warmelt-normatch.1.c: $(melt_make_source_dir)/warmelt-normatch.melt $(melt_make_
     warmelt-normatch.0.d.so \
     warmelt-genobj.0.d.so \
     warmelt-outobj.0.d.so \
-    empty-file-for-melt.c warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+    empty-file-for-melt.c warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first.1:warmelt-base.1:warmelt-debug.1:warmelt-macro.1:warmelt-normal.1:warmelt-normatch.0.d:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -417,7 +418,7 @@ warmelt-genobj.1.c: $(melt_make_source_dir)/warmelt-genobj.melt $(melt_make_genc
     warmelt-normatch.1.so \
     warmelt-genobj.0.d.so \
     warmelt-outobj.0.d.so \
-    empty-file-for-melt.c warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+    empty-file-for-melt.c warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first.1:warmelt-base.1:warmelt-debug.1:warmelt-macro.1:warmelt-normal.1:warmelt-normatch.1:warmelt-genobj.0.d:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24)\
@@ -432,7 +433,7 @@ warmelt-outobj.1.c: $(melt_make_source_dir)/warmelt-outobj.melt $(melt_make_genc
     warmelt-normatch.1.so \
     warmelt-genobj.1.so \
     warmelt-outobj.0.d.so \
-    empty-file-for-melt.c warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+    empty-file-for-melt.c warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) \
 	$(meltarg_init)=warmelt-first.1:warmelt-base.1:warmelt-debug.1:warmelt-macro.1:warmelt-normal.1:warmelt-normatch.1:warmelt-genobj.1:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24)\
@@ -451,7 +452,7 @@ warmelt2n.modlis: $(WARMELT_BASE2NSO)
 	$(melt_make_move) $@-tmp $@
 
 warmelt-first.2.c: $(melt_make_source_dir)/warmelt-first.melt warmelt1.modlis $(WARMELT_BASE1SO) $(melt_make_gencdeps) \
-  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt1" \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@ empty-file-for-melt.c
@@ -459,7 +460,7 @@ warmelt-first.2.c: $(melt_make_source_dir)/warmelt-first.melt warmelt1.modlis $(
 
 
 warmelt-%.2.c: $(melt_make_source_dir)/warmelt-%.melt warmelt1.modlis $(WARMELT_BASE1SO)  $(melt_make_gencdeps) \
-  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt1" \
 	        -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_arg)=$< \
@@ -500,7 +501,7 @@ warmelt-outobj.so: warmelt-outobj.c
 
 ####
 warmelt-%.c: $(melt_make_source_dir)/warmelt-%.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_make_gencdeps) \
-  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2" \
@@ -513,7 +514,7 @@ warmelt.modlis: $(WARMELT_BASE2SO)
 	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
 
 warmelt-first.c: $(melt_make_source_dir)/warmelt-first.melt warmelt2.modlis $(WARMELT_BASE2SO) $(melt_make_gencdeps) \
-  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	-rm -f $@ 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	$(MELTCCINIT1) $(meltarg_init)="@warmelt2" \
@@ -532,7 +533,7 @@ diff-warmelt.2.: $(WARMELT_BASESO)
 
 ####
 xtramelt-ana-base.c: $(melt_make_source_dir)/xtramelt-ana-base.melt  warmelt2.modlis $(WARMELT_BASE2SO)  $(melt_make_gencdeps) \
-  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2" \
@@ -541,7 +542,7 @@ xtramelt-ana-base.c: $(melt_make_source_dir)/xtramelt-ana-base.melt  warmelt2.mo
 	ls -l $@
 
 xtramelt-ana-simple.c:  $(melt_make_source_dir)/xtramelt-ana-simple.melt  warmelt2.modlis $(WARMELT_BASE2SO)  xtramelt-ana-base.so   $(melt_make_gencdeps)  \
-  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2:xtramelt-ana-base" \
@@ -550,7 +551,7 @@ xtramelt-ana-simple.c:  $(melt_make_source_dir)/xtramelt-ana-simple.melt  warmel
 	ls -l $@
 
 xtramelt-parse-infix-syntax.c:  $(melt_make_source_dir)/xtramelt-parse-infix-syntax.melt  warmelt2.modlis $(WARMELT_BASE2SO)  xtramelt-ana-base.so xtramelt-ana-simple.so  $(melt_make_gencdeps)  \
-  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h cc1$(exeext)
+  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2:xtramelt-ana-base:xtramelt-ana-simple" \

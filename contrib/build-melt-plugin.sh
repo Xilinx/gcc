@@ -286,6 +286,7 @@ do_melt_make () {
 	melt_module_dir=$gcc_plugin_directory/libexec/melt-modules \
 	melt_make_module_makefile=$GCCMELT_SOURCE_TREE/melt-module.mk \
 	melt_make_cc1="$GCC -fplugin=./melt.so -c -o /dev/null" \
+	melt_make_cc1_dependency="" \
 	melt_default_modules_list=melt-default-modules \
 	melt_make_gencdeps=$timestamp_file \
 	melt_make_source_dir=$GCCMELT_SOURCE_TREE/melt \

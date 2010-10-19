@@ -1,3 +1,9 @@
+2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-make.mk (melt_make_cc1_dependency): Added variable.
+	(warmelt*.c): use it.
+
+	* Makefile.in: set it.
+
 2010-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-make.mk: added warmelt0.
 
