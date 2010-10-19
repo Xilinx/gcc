@@ -707,6 +707,14 @@ package body Sinfo is
       return Node5 (N);
    end Default_Expression;
 
+   function Default_Storage_Pool
+      (N : Node_Id) return Node_Id is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Compilation_Unit_Aux);
+      return Node3 (N);
+   end Default_Storage_Pool;
+
    function Default_Name
       (N : Node_Id) return Node_Id is
    begin
@@ -1452,6 +1460,15 @@ package body Sinfo is
         or else NT (N).Nkind = N_Compilation_Unit);
       return Flag17 (N);
    end Has_No_Elaboration_Code;
+
+   function Has_Pragma_CPU
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Subprogram_Body
+        or else NT (N).Nkind = N_Task_Definition);
+      return Flag14 (N);
+   end Has_Pragma_CPU;
 
    function Has_Pragma_Priority
       (N : Node_Id) return Boolean is
@@ -3685,6 +3702,14 @@ package body Sinfo is
       Set_Node5 (N, Val); -- semantic field, no parent set
    end Set_Default_Expression;
 
+   procedure Set_Default_Storage_Pool
+      (N : Node_Id; Val : Node_Id) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Compilation_Unit_Aux);
+      Set_Node3 (N, Val); -- semantic field, no parent set
+   end Set_Default_Storage_Pool;
+
    procedure Set_Default_Name
       (N : Node_Id; Val : Node_Id) is
    begin
@@ -4422,6 +4447,15 @@ package body Sinfo is
         or else NT (N).Nkind = N_Compilation_Unit);
       Set_Flag17 (N, Val);
    end Set_Has_No_Elaboration_Code;
+
+   procedure Set_Has_Pragma_CPU
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Subprogram_Body
+        or else NT (N).Nkind = N_Task_Definition);
+      Set_Flag14 (N, Val);
+   end Set_Has_Pragma_CPU;
 
    procedure Set_Has_Pragma_Priority
       (N : Node_Id; Val : Boolean := True) is

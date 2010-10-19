@@ -870,12 +870,33 @@ package body Sem_Ch13 is
                         New_Occurrence_Of (E, Eloc),
                         Relocate_Node (Expr)),
                       Pragma_Identifier            =>
-                      Make_Identifier (Sloc (Id), Chars (Id)));
+                        Make_Identifier (Sloc (Id), Chars (Id)));
 
                   --  We don't have to play the delay game here, since the only
                   --  values are check names which don't get analyzed anyway.
 
                   Delay_Required := False;
+
+               --  Aspects corresponding to stream routines
+
+               when Aspect_Input  |
+                    Aspect_Output |
+                    Aspect_Read   |
+                    Aspect_Write  =>
+
+                  --  Construct the attribute definition clause
+
+                  Aitem :=
+                    Make_Attribute_Definition_Clause (Loc,
+                      Name       => Ent,
+                      Chars      => Chars (Id),
+                      Expression => Relocate_Node (Expr));
+
+                  --  These are always delayed (typically the subprogram that
+                  --  is referenced cannot have been declared yet, since it has
+                  --  a reference to the type for which this aspect is defined.
+
+                  Delay_Required := True;
 
                --  Aspects corresponding to pragmas with two arguments, where
                --  the second argument is a local name referring to the entity,
@@ -974,11 +995,19 @@ package body Sem_Ch13 is
                   --  about delay issues, since the pragmas themselves deal
                   --  with delay of visibility for the expression analysis.
 
-                  Insert_After (N, Aitem);
+                  --  If the entity is a library-level subprogram, the pre/
+                  --  postconditions must be treated as late pragmas.
+
+                  if Nkind (Parent (N)) = N_Compilation_Unit then
+                     Add_Global_Declaration (Aitem);
+                  else
+                     Insert_After (N, Aitem);
+                  end if;
+
                   goto Continue;
                end;
 
-               --  Aspects currently unimplemented
+                  --  Aspects currently unimplemented
 
                when Aspect_Invariant |
                     Aspect_Predicate =>

@@ -55,7 +55,6 @@ with Sem_Ch12; use Sem_Ch12;
 with Sem_Ch13; use Sem_Ch13;
 with Sem_Disp; use Sem_Disp;
 with Sem_Eval; use Sem_Eval;
-with Sem_Prag; use Sem_Prag;
 with Sem_Util; use Sem_Util;
 with Sem_Warn; use Sem_Warn;
 with Snames;   use Snames;
@@ -255,9 +254,8 @@ package body Sem_Ch7 is
          end if;
 
          if Is_Package_Or_Generic_Package (Spec_Id)
-           and then
-             (Scope (Spec_Id) = Standard_Standard
-               or else Is_Child_Unit (Spec_Id))
+           and then (Scope (Spec_Id) = Standard_Standard
+                      or else Is_Child_Unit (Spec_Id))
            and then not Unit_Requires_Body (Spec_Id)
          then
             if Ada_Version = Ada_83 then
@@ -872,12 +870,6 @@ package body Sem_Ch7 is
       --  private_with_clauses, and remove them at the end of the nested
       --  package.
 
-      procedure Analyze_PPCs (Decls : List_Id);
-      --  Given a list of declarations, go through looking for subprogram
-      --  specs, and for each one found, analyze any pre/postconditions that
-      --  are chained to the spec. This is the implementation of the late
-      --  visibility analysis for preconditions and postconditions in specs.
-
       procedure Clear_Constants (Id : Entity_Id; FE : Entity_Id);
       --  Clears constant indications (Never_Set_In_Source, Constant_Value, and
       --  Is_True_Constant) on all variables that are entities of Id, and on
@@ -905,33 +897,6 @@ package body Sem_Ch7 is
       --  This has to be done at the point of entering the instance package's
       --  private part rather than being done in Sem_Ch12.Install_Parent
       --  (which is where the parents' visible declarations are installed).
-
-      ------------------
-      -- Analyze_PPCs --
-      ------------------
-
-      procedure Analyze_PPCs (Decls : List_Id) is
-         Decl : Node_Id;
-         Spec : Node_Id;
-         Sent : Entity_Id;
-         Prag : Node_Id;
-
-      begin
-         Decl := First (Decls);
-         while Present (Decl) loop
-            if Nkind (Original_Node (Decl)) = N_Subprogram_Declaration then
-               Spec := Specification (Original_Node (Decl));
-               Sent := Defining_Unit_Name (Spec);
-               Prag := Spec_PPC_List (Sent);
-               while Present (Prag) loop
-                  Analyze_PPC_In_Decl_Part (Prag, Sent);
-                  Prag := Next_Pragma (Prag);
-               end loop;
-            end if;
-
-            Next (Decl);
-         end loop;
-      end Analyze_PPCs;
 
       ---------------------
       -- Clear_Constants --
@@ -1161,7 +1126,6 @@ package body Sem_Ch7 is
    begin
       if Present (Vis_Decls) then
          Analyze_Declarations (Vis_Decls);
-         Analyze_PPCs (Vis_Decls);
       end if;
 
       --  Verify that incomplete types have received full declarations
@@ -1296,7 +1260,6 @@ package body Sem_Ch7 is
          end if;
 
          Analyze_Declarations (Priv_Decls);
-         Analyze_PPCs (Priv_Decls);
 
          --  Check the private declarations for incomplete deferred constants
 
@@ -1956,7 +1919,25 @@ package body Sem_Ch7 is
 
    procedure New_Private_Type (N : Node_Id; Id : Entity_Id; Def : Node_Id) is
    begin
-      Enter_Name (Id);
+      if Ada_Version < Ada_2012 then
+         Enter_Name (Id);
+
+      --  Ada 2012 (AI05-0162): Enter the name in the current scope handling
+      --  private type that completes an incomplete type.
+
+      else
+         declare
+            Prev : Entity_Id;
+
+         begin
+            Prev := Find_Type_Name (N);
+
+            pragma Assert (Prev = Id
+              or else (Ekind (Prev) = E_Incomplete_Type
+                         and then Present (Full_View (Prev))
+                         and then Full_View (Prev) = Id));
+         end;
+      end if;
 
       if Limited_Present (Def) then
          Set_Ekind (Id, E_Limited_Private_Type);
@@ -1993,11 +1974,11 @@ package body Sem_Ch7 is
       Set_Private_Dependents (Id, New_Elmt_List);
 
       if Tagged_Present (Def) then
-         Set_Ekind                (Id, E_Record_Type_With_Private);
-         Set_Primitive_Operations (Id, New_Elmt_List);
-         Set_Is_Abstract_Type     (Id, Abstract_Present (Def));
-         Set_Is_Limited_Record    (Id, Limited_Present (Def));
-         Set_Has_Delayed_Freeze   (Id, True);
+         Set_Ekind                       (Id, E_Record_Type_With_Private);
+         Set_Direct_Primitive_Operations (Id, New_Elmt_List);
+         Set_Is_Abstract_Type            (Id, Abstract_Present (Def));
+         Set_Is_Limited_Record           (Id, Limited_Present (Def));
+         Set_Has_Delayed_Freeze          (Id, True);
 
          --  Create a class-wide type with the same attributes
 

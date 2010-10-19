@@ -1118,6 +1118,7 @@ begin
            Pragma_CPP_Constructor               |
            Pragma_CPP_Virtual                   |
            Pragma_CPP_Vtable                    |
+           Pragma_CPU                           |
            Pragma_C_Pass_By_Copy                |
            Pragma_Comment                       |
            Pragma_Common_Object                 |
@@ -1128,6 +1129,7 @@ begin
            Pragma_Convention                    |
            Pragma_Debug_Policy                  |
            Pragma_Detect_Blocking               |
+           Pragma_Default_Storage_Pool          |
            Pragma_Dimension                     |
            Pragma_Discard_Names                 |
            Pragma_Eliminate                     |

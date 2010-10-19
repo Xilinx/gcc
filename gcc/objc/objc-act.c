@@ -150,7 +150,7 @@ static void objc_start_function (tree, tree, tree, struct c_arg_info *);
 static tree start_protocol (enum tree_code, tree, tree);
 static tree build_method_decl (enum tree_code, tree, tree, tree, bool);
 static tree objc_add_method (tree, tree, int, bool);
-static tree add_instance_variable (tree, int, tree);
+static tree add_instance_variable (tree, objc_ivar_visibility_kind, tree);
 static tree build_ivar_reference (tree);
 static tree is_ivar (tree, tree);
 
@@ -385,7 +385,7 @@ int imp_count = 0;	/* `@implementation' */
 int cat_count = 0;	/* `@category' */
 
 enum tree_code objc_inherit_code;
-int objc_public_flag;
+objc_ivar_visibility_kind objc_ivar_visibility;
 
 /* Use to generate method labels.  */
 static int method_slot = 0;
@@ -429,13 +429,6 @@ struct GTY(()) string_descriptor {
 };
 
 static GTY((param_is (struct string_descriptor))) htab_t string_htab;
-
-/* Store the EH-volatilized types in a hash table, for easy retrieval.  */
-struct GTY(()) volatilized_type {
-  tree type;
-};
-
-static GTY((param_is (struct volatilized_type))) htab_t volatilized_htab;
 
 FILE *gen_declaration_file;
 
@@ -734,7 +727,7 @@ objc_start_class_interface (tree klass, tree super_class,
   objc_interface_context
     = objc_ivar_context
     = start_class (CLASS_INTERFACE_TYPE, klass, super_class, protos);
-  objc_public_flag = 0;
+  objc_ivar_visibility = OBJC_IVAR_VIS_PROTECTED;
 }
 
 void
@@ -784,7 +777,7 @@ objc_start_class_implementation (tree klass, tree super_class)
   objc_implementation_context
     = objc_ivar_context
     = start_class (CLASS_IMPLEMENTATION_TYPE, klass, super_class, NULL_TREE);
-  objc_public_flag = 0;
+  objc_ivar_visibility = OBJC_IVAR_VIS_PROTECTED;
 }
 
 void
@@ -822,9 +815,11 @@ objc_finish_implementation (void)
 }
 
 void
-objc_set_visibility (int visibility)
+objc_set_visibility (objc_ivar_visibility_kind visibility)
 {
-  objc_public_flag = visibility;
+  if (visibility == OBJC_IVAR_VIS_PACKAGE)
+    warning (0, "%<@package%> presently has the same effect as %<@public%>");
+  objc_ivar_visibility = visibility;
 }
 
 void
@@ -1352,7 +1347,7 @@ void
 objc_add_instance_variable (tree decl)
 {
   (void) add_instance_variable (objc_ivar_context,
-				objc_public_flag,
+				objc_ivar_visibility,
 				decl);
 }
 
@@ -1488,6 +1483,11 @@ objc_build_volatilized_type (tree type)
 	  && (TREE_TYPE (t) != TREE_TYPE (type)))
 	continue;
 
+      /* Only match up the types which were previously volatilized in similar fashion and not
+	 because they were declared as such. */
+      if (!lookup_attribute ("objc_volatilized", TYPE_ATTRIBUTES (t)))
+	continue;
+
       /* Everything matches up!  */
       return t;
     }
@@ -1496,6 +1496,13 @@ objc_build_volatilized_type (tree type)
      a new one.  */
   t = build_variant_type_copy (type);
   TYPE_VOLATILE (t) = 1;
+
+  TYPE_ATTRIBUTES (t) = merge_attributes (TYPE_ATTRIBUTES (type),
+                      			  tree_cons (get_identifier ("objc_volatilized"),
+                                 	  NULL_TREE,
+                                 	  NULL_TREE));
+  if (TREE_CODE (t) == ARRAY_TYPE)
+    TREE_TYPE (t) = objc_build_volatilized_type (TREE_TYPE (t));
 
   /* Set up the canonical type information. */
   if (TYPE_STRUCTURAL_EQUALITY_P (type))
@@ -1521,18 +1528,8 @@ objc_volatilize_decl (tree decl)
 	  || TREE_CODE (decl) == PARM_DECL))
     {
       tree t = TREE_TYPE (decl);
-      struct volatilized_type key;
-      void **loc;
 
       t = objc_build_volatilized_type (t);
-      key.type = t;
-      loc = htab_find_slot (volatilized_htab, &key, INSERT);
-
-      if (!*loc)
-	{
-	  *loc = ggc_alloc_volatilized_type ();
-	  ((struct volatilized_type *) *loc)->type = t;
-	}
 
       TREE_TYPE (decl) = t;
       TREE_THIS_VOLATILE (decl) = 1;
@@ -1879,16 +1876,11 @@ bool
 objc_type_quals_match (tree ltyp, tree rtyp)
 {
   int lquals = TYPE_QUALS (ltyp), rquals = TYPE_QUALS (rtyp);
-  struct volatilized_type key;
 
-  key.type = ltyp;
-
-  if (htab_find_slot (volatilized_htab, &key, NO_INSERT))
+  if (lookup_attribute ("objc_volatilized", TYPE_ATTRIBUTES (ltyp)))
     lquals &= ~TYPE_QUAL_VOLATILE;
 
-  key.type = rtyp;
-
-  if (htab_find_slot (volatilized_htab, &key, NO_INSERT))
+  if (lookup_attribute ("objc_volatilized", TYPE_ATTRIBUTES (rtyp)))
     rquals &= ~TYPE_QUAL_VOLATILE;
 
   return (lquals == rquals);
@@ -1991,23 +1983,6 @@ objc_xref_basetypes (tree ref, tree basetype)
     }
 }
 
-static hashval_t
-volatilized_hash (const void *ptr)
-{
-  const_tree const typ = ((const struct volatilized_type *)ptr)->type;
-
-  return htab_hash_pointer(typ);
-}
-
-static int
-volatilized_eq (const void *ptr1, const void *ptr2)
-{
-  const_tree const typ1 = ((const struct volatilized_type *)ptr1)->type;
-  const_tree const typ2 = ((const struct volatilized_type *)ptr2)->type;
-
-  return typ1 == typ2;
-}
-
 /* Called from finish_decl.  */
 
 void
@@ -2028,6 +2003,16 @@ objc_check_global_decl (tree decl)
   tree id = DECL_NAME (decl);
   if (objc_is_class_name (id) && global_bindings_p())
     error ("redeclaration of Objective-C class %qs", IDENTIFIER_POINTER (id));
+}
+
+/* Return a non-volatalized version of TYPE. */
+
+tree
+objc_non_volatilized_type (tree type)
+{
+  if (lookup_attribute ("objc_volatilized", TYPE_ATTRIBUTES (type)))
+    type = build_qualified_type (type, (TYPE_QUALS (type) & ~TYPE_QUAL_VOLATILE));
+  return type;
 }
 
 /* Construct a PROTOCOLS-qualified variant of INTERFACE, where INTERFACE may
@@ -2128,6 +2113,9 @@ lookup_and_install_protocols (tree protocols)
 {
   tree proto;
   tree return_value = NULL_TREE;
+
+  if (protocols == error_mark_node)
+    return NULL;
 
   for (proto = protocols; proto; proto = TREE_CHAIN (proto))
     {
@@ -2592,7 +2580,7 @@ string_eq (const void *ptr1, const void *ptr2)
 tree
 objc_build_string_object (tree string)
 {
-  tree constructor, constant_string_class;
+  tree constructor = NULL_TREE, constant_string_class;
   int length;
   tree fields, addr;
   struct string_descriptor *desc, key;
@@ -3667,7 +3655,12 @@ objc_is_class_name (tree ident)
     ident = OBJC_TYPE_NAME (ident);
 #ifdef OBJCPLUS
   if (ident && TREE_CODE (ident) == TYPE_DECL)
-    ident = DECL_NAME (ident);
+    {
+      tree type = TREE_TYPE (ident);
+      if (type && TREE_CODE (type) == TEMPLATE_TYPE_PARM)
+        return NULL_TREE;
+      ident = DECL_NAME (ident);
+    }
 #endif
   if (!ident || TREE_CODE (ident) != IDENTIFIER_NODE)
     return NULL_TREE;
@@ -5250,6 +5243,10 @@ objc_generate_cxx_cdtors (void)
 {
   bool need_ctor = false, need_dtor = false;
   tree ivar;
+
+  /* Error case, due to possibly an extra @end. */
+  if (!objc_implementation_context)
+    return;
 
   /* We do not want to do this for categories, since they do not have
      their own ivars.  */
@@ -7496,10 +7493,6 @@ hash_init (void)
   /* Initialize the hash table used to hold the constant string objects.  */
   string_htab = htab_create_ggc (31, string_hash,
 				   string_eq, NULL);
-
-  /* Initialize the hash table used to hold EH-volatilized types.  */
-  volatilized_htab = htab_create_ggc (31, volatilized_hash,
-				      volatilized_eq, NULL);
 }
 
 /* WARNING!!!!  hash_enter is called with a method, and will peek
@@ -7795,7 +7788,8 @@ add_category (tree klass, tree category)
    VISIBILITY is 1 for public, 0 for protected, and 2 for private.  */
 
 static tree
-add_instance_variable (tree klass, int visibility, tree field_decl)
+add_instance_variable (tree klass, objc_ivar_visibility_kind visibility, 
+		       tree field_decl)
 {
   tree field_type = TREE_TYPE (field_decl);
   const char *ivar_name = DECL_NAME (field_decl)
@@ -7887,19 +7881,21 @@ add_instance_variable (tree klass, int visibility, tree field_decl)
   /* Overload the public attribute, it is not used for FIELD_DECLs.  */
   switch (visibility)
     {
-    case 0:
+    case OBJC_IVAR_VIS_PROTECTED:
       TREE_PUBLIC (field_decl) = 0;
       TREE_PRIVATE (field_decl) = 0;
       TREE_PROTECTED (field_decl) = 1;
       break;
 
-    case 1:
+    case OBJC_IVAR_VIS_PACKAGE:
+    /* TODO: Implement the package variant.  */
+    case OBJC_IVAR_VIS_PUBLIC:
       TREE_PUBLIC (field_decl) = 1;
       TREE_PRIVATE (field_decl) = 0;
       TREE_PROTECTED (field_decl) = 0;
       break;
 
-    case 2:
+    case OBJC_IVAR_VIS_PRIVATE:
       TREE_PUBLIC (field_decl) = 0;
       TREE_PRIVATE (field_decl) = 1;
       TREE_PROTECTED (field_decl) = 0;
@@ -8520,7 +8516,7 @@ objc_gen_one_property_datum (tree klass, tree property, tree class_methods, bool
 				      objc_build_property_ivar_name (property));
       DECL_CONTEXT (field_decl) = record;
       (void) add_instance_variable (klass, 
-				    1, field_decl);
+				    OBJC_IVAR_VIS_PUBLIC, field_decl);
       /* Unfortunately, CLASS_IVARS is completed when interface is completed.
 	 Must add the new ivar by hand to its list here. */
       
@@ -8706,6 +8702,55 @@ objc_synthesize_setter (tree klass, tree class_method, tree property)
   finish_function ();
 #endif
   objc_finish_method_definition (fn);
+}
+
+/* This function is called by the parser after a @synthesize
+   expression is parsed.  'start_locus' is the location of the
+   @synthesize expression, and 'property_and_ivar_list' is a chained
+   list of the property and ivar names.
+ */
+void
+objc_add_synthesize_declaration (location_t start_locus ATTRIBUTE_UNUSED, tree property_and_ivar_list ATTRIBUTE_UNUSED)
+{
+  if (property_and_ivar_list == error_mark_node)
+    return;
+
+  if (!objc_implementation_context)
+    {
+      /* We can get here only in Objective-C; the Objective-C++ parser
+	 detects the problem while parsing, outputs the error
+	 "misplaced '@synthesize' Objective-C++ construct" and skips
+	 the declaration.  */
+      error ("%<@synthesize%> not in @implementation context");
+      return;
+    }
+
+  /* TODO */
+  error ("%<@synthesize%> is not supported in this version of the compiler");
+}
+
+/* This function is called by the parser after a @dynamic expression
+   is parsed.  'start_locus' is the location of the @dynamic
+   expression, and 'property_list' is a chained list of all the
+   property names.  */
+void
+objc_add_dynamic_declaration (location_t start_locus ATTRIBUTE_UNUSED, tree property_list ATTRIBUTE_UNUSED)
+{
+  if (property_list == error_mark_node)
+    return;
+
+  if (!objc_implementation_context)
+    {
+      /* We can get here only in Objective-C; the Objective-C++ parser
+	 detects the problem while parsing, outputs the error
+	 "misplaced '@dynamic' Objective-C++ construct" and skips the
+	 declaration.  */
+      error ("%<@dynamic%> not in @implementation context");
+      return;
+    }
+
+  /* TODO */
+  error ("%<@dynamic%> is not supported in this version of the compiler");
 }
 
 /* Main routine to generate code/data for all the property information for 
@@ -10814,6 +10859,25 @@ generate_objc_image_info (void)
      output.  */
   DECL_PRESERVE_P (decl) = 1;
   finish_var_decl (decl, objc_build_constructor (TREE_TYPE (decl), v));
+}
+
+/* Routine is called to issue diagnostic when reference to a private 
+   ivar is made and no other variable with same name is found in 
+   current scope.  */
+bool
+objc_diagnose_private_ivar (tree id)
+{
+  tree ivar;
+  if (!objc_method_context)
+    return false;
+  ivar = is_ivar (objc_ivar_chain, id);
+  if (ivar && is_private (ivar))
+    {
+      error ("instance variable %qs is declared private", 
+	     IDENTIFIER_POINTER (id));
+      return true;
+    }
+  return false;
 }
 
 /* Look up ID as an instance variable.  OTHER contains the result of

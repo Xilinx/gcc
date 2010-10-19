@@ -1,3 +1,67 @@
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented parsing @synthesize and @dynamic for
+	Objective-C/Objective-C++.
+	* objc-act.c (objc_add_synthesize_declaration): New.
+	(objc_add_dynamic_declaration): New.
+
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>	
+
+	* objc-act.c (lookup_and_install_protocols): Return NULL if passed
+	error_mark_node.
+	
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+
+	2006-03-10  Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4407151
+	* objc/objc-act.c (objc_is_class_name): template parameter is not
+        an objective class name.
+        (objc_generate_cxx_cdtors): Check for the null
+        objc_implementation_context.	
+
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.	
+	
+	2005-11-08  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4330422
+	* objc/objc-act.c (objc_non_volatilized_type): New
+
+	2005-10-07  Fariborz Jahanian <fjahanian@apple.com>
+	
+        Radar 4204796
+	* objc-act.c (objc_build_volatilized_type): Build 'volatilzed'
+	types with proper attribute set and correctly.
+	(objc_volatilize_decl): Remove unneeded code.
+	(objc_type_quals_match): Use the new attribute to check on
+	'volatilzed' type.
+	(hash_init): removed unneeded code.
+	
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+	
+	2006-03-27 Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4133425
+	* objc-act.c (objc_diagnose_private_ivar): New.
+
+2010-10-17  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc-act.c: Rename 'objc_public_flag' to  objc_ivar_visibility and
+	make its type 'objc_ivar_visibility_kind'.  
+	(objc_start_class_interface): Update to use visibility enum.
+	(objc_start_class_implementation): Likewise.
+	(objc_set_visibility): Update to use visibility enum, warn that 
+	@package is handle as per @public.
+	(add_instance_variable): Handle OBJC_IVAR_VIS_PACKAGE.
+	* objc-act.h: Rename 'objc_public_flag' to  objc_ivar_visibility and
+	make its type 'objc_ivar_visibility_kind'.
+
 2010-10-14  Iain Sandoe  <iains@gcc.gnu.org>
 
 	merge from FSF apple 'trunk' branch. 

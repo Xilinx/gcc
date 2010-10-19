@@ -1,8 +1,305 @@
+2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gengtype.c (new_structure): Remove ad-hoc "location_s"
+	processing.
+
+2010-10-18  Richard Henderson  <rth@redhat.com>
+
+	 * simplify-rtx.c (simplify_ternary_operation) [FMA]: Simplify
+	(fma (neg a) (neg b) c) and (fma a (neg b) c).
+
+2010-10-18  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (IX86_BUILTIN_VFMSUBSS, IX86_BUILTIN_VFMSUBSD,
+	IX86_BUILTIN_VFMSUBPS, IX86_BUILTIN_VFMSUBPD,
+	IX86_BUILTIN_VFMSUBADDPS, IX86_BUILTIN_VFMSUBADDPD,
+	IX86_BUILTIN_VFNMADDSS, IX86_BUILTIN_VFNMADDSD,
+	IX86_BUILTIN_VFNMADDPS, IX86_BUILTIN_VFNMADDPD,
+	IX86_BUILTIN_VFNMSUBSS, IX86_BUILTIN_VFNMSUBSD,
+	IX86_BUILTIN_VFNMSUBPS, IX86_BUILTIN_VFNMSUBPD,
+	IX86_BUILTIN_VFMSUBADDPS256, IX86_BUILTIN_VFMSUBADDPD256,
+	IX86_BUILTIN_VFNMADDPS256, IX86_BUILTIN_VFNMADDPD256,
+	IX86_BUILTIN_VFNMSUBPS256, IX86_BUILTIN_VFNMSUBPD256): Remove.
+	(bdesc_multi_arg): Remove the corresponding builtins.
+	* config/i386/i386.md (UNSPEC_FMA4_INTRINSIC): Remove.
+	(UNSPEC_FMA4_FMSUBADD): Remove.
+	(UNSPEC_FMADDSUB): Rename from UNSPEC_FMA4_FMADDSUB.
+	* config/i386/sse.md (FMA4MODEF4): Remove.
+	(FMAMODE): Add.
+	(fma<mode>4): New expander.
+	(*fma4i_fmadd_<mode>): Macroize from fma4i_fmadd<mode>4 patterns,
+	and use FMA rtx code instead of UNSPEC_FMA4_INTRINSIC.
+	(*fma4i_fmsub_<mode>): Similarly.
+	(*fma4i_fnmadd_<mode>): Similarly.
+	(*fma4i_fnmsub_<mode>): Similarly.
+	(fma4i_vmfmadd_<mode>): Scalar patterns zero-extend, not merge
+	with the first operand.
+	(fma4i_fmaddsub_<mode>): Represent with UNSPEC_FMADDSUB instead
+	of explicit arithmetic.  Macroize with AVXMODEF2P.
+	(*fma4i_fmsubadd_<mode>): Represent with UNSPEC_FMADDSUB + NEG.
+	(xop_frcz<mode>2): Macroize with FMAMODE.
+	(xop_vmfrcz<mode>2): Scalar patterns zero-extend, not merge with
+	the first operand.
+	* config/i386/fma4intrin.h (_mm_msub_ps): Use vfmadd intrinsic with
+	extra negations.
+	(_mm_msub_pd, _mm_msub_ss, _mm_msub_sd): Likewise.
+	(_mm_nmacc_ps, _mm_nmacc_pd, _mm_nmacc_ss, _mm_nmacc_sd): Likewise.
+	(_mm_nmsub_ps, _mm_nmsub_pd, _mm_nmsub_ss, _mm_nmsub_sd): Likewise.
+	(_mm256_msub_ps, _mm256_msub_pd): Likewise.
+	(_mm256_nmacc_ps, _mm256_nmacc_pd): Likewise.
+	(_mm256_nmsub_ps, _mm256_nmsub_pd): Likewise.
+	(_mm_msubadd_ps): Use vfmaddsub intrinsic with extra negation.
+	(_mm_msubadd_pd, _mm256_msubadd_ps, _mm256_msubadd_pd): Likewise.
+
+2010-10-18  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR rtl-optimization/45966
+	* combine.c (try_combine): If added_sets_2, deal with the case
+	where i0 feeds i1 and i1 feeds i2.
+
+2010-10-18  Jan Hubicka  <jh@suse.cz>
+
+	* ipa.c (cgraph_externally_visible_p): Handle externally visible and
+	preserve flags before trying to guess on visibility.
+	(varpool_externally_visible_p): New function.
+	(function_and_variable_visibility): Use it.
+
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented parsing @synthesize and @dynamic for Objective-C.
+	* c-parser.c (c_parser_external_declaration): Recognize
+	RID_AT_SYNTHESIZE and RID_AT_DYNAMIC.
+	(c_parser_objc_at_synthesize_declaration): New.
+	(c_parser_objc_at_dynamic_declaration): New.
+
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+	
+	* c-parser.c (c_parser_objc_class_declaration): After finding an
+	error, parse the whole declaration then reset parser->error.
+	
+2010-10-18  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/46041
+	* tree.h (mode_has_fma): Delete, move to c-cppbuiltins.c.
+	* builtins.c (mode_has_fma): Ditto.
+
+2010-10-18  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/36898
+	PR middle-end/43760
+	* config/ia64/ia64.c (rws_access_regno): Remove predicate check.
+
+2010-10-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/i386.c (ix86_option_override_internal): Define and
+	use USE_X86_64_FRAME_POINTER for 64-bit flag_omit_frame_pointer
+	default.
+	* config/i386/sol2-10.h (SUBTARGET_OVERRIDE_OPTIONS): Remove.
+	(USE_IX86_FRAME_POINTER, USE_X86_64_FRAME_POINTER): Define.
+
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.	
+	* c-parser.c (c_parser_objc_type_name): Adapted to new parser the
+	following Objective-C change:
+
+	2005-10-10  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4301047
+	* c-parse.in (objc_quals): Build objc qualifier list same way
+	as gcc-3.3
+
+2010-10-18  Jan Hubicka  <jh@suse.cz>
+
+	* ipa.c (cgraph_externally_visible_p, varpool_externally_visible_p,
+	function_and_variable_visibility): Revert accidental commit.
+
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+	* c-parser.c (c_parser_typeof_specifier): Adapted to new parser
+	the following Objective-C change:
+
+	2005-10-07  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4204796
+	* c-parse.in (typespec_nonreserved_nonattr): Remove volatile from
+	'volatilized' type used in a typeof operator.
+
+2010-10-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-flow.h (gimple_purge_all_dead_abnormal_call_edges): Declare.
+	* tree-cfg.c (gimple_purge_dead_abnormal_call_edges): Move around and
+	rewrite modelled on gimple_purge_dead_eh_edges.
+	(gimple_purge_all_dead_abnormal_call_edges): New function.
+	* tree-inline.c (expand_call_inline): Call gimple_purge_dead_eh_edges
+	directly instead of through gimple_purge_dead_abnormal_call_edges.
+	* tree-ssa-pre.c (need_ab_cleanup): New static variable.
+	(eliminate): Set bit in need_ab_cleanup for the basic block if we have
+	removed AB side-effects from one of its statements.
+	(init_pre): Initialize need_ab_cleanup.
+	(fini_pre): Purge dead abnormal call edges and clean up the CFG if bits
+	are set in need_ab_cleanup.  Free need_ab_cleanup afterward.
+
+2010-10-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/46015
+	* c-parser.c (c_parser_statement_after_labels): Call mark_exp_read
+	on computed goto argument.
+
+2010-10-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45967
+	* tree-ssa-structalias.c (type_could_have_pointers): Remove.
+	(could_have_pointers): Likewise.
+	(handle_rhs_call, handle_const_call, handle_pure_call,
+	find_func_aliases, intra_create_variable_infos): Remove calls to them.
+	(struct fieldoff): Add must_have_pointers field.
+	(type_must_have_pointers): New function.
+	(field_must_have_pointers): Likewise.
+	(push_fields_onto_fieldstack): Remove must_have_pointers_p argument.
+	Adjust field merging.
+	(create_function_info_for): May-have-pointers of varinfo is
+	almost always true.
+	(create_variable_info_for_1): Likewise.
+
+2010-10-18  Tejas Belagod  <tejas.belagod@arm.com>
+
+	* config/arm/neon.md (neon_move_hi_quad_<mode>): Fix the order
+	of operands to vec_concat.
+
+2010-10-18  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/44950
+	* tree.c (free_lang_data_in_decl): As we clear TYPE_METHODS
+	also clear references to entries of it.
+
+2010-10-18  Andi Kleen  <ak@linux.intel.com>
+
+	PR other/43448
+	* gccbug.in: Remove.
+	* Makefile.in (GCCBUG_INSTALL_NAME, gccbug): Remove
+	(doc, distclean, install-common): Remove reference to gccbug.
+	* configure: Regenerate.
+	* configure.ac (all_outputs): Remove gccbug.
+	* doc/configfiles.texi: Remove references to gccbug.
+	* doc/sourcebuild.texi: Dito.
+
+2010-10-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/46019
+	* fold-const.c (fold_binary_loc): If integer_pow2p has
+	TREE_INT_CST_LOW zero, look at TREE_INT_CST_HIGH.
+
+2010-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Jeremie Salvucci  <jeremie.salvucci@free.fr>
+
+	* gengtype.c (verbosity_level): Add variable.
+	(set_gc_used): Count variables for verbosity.
+	(close_output_files): Backing up files, counting written ones
+	verbosily.
+	(write_types): Count emitted functions for verbosity. Added
+	debug messages.
+	(write_enum_defn): Count structures for verbosity. Added debug
+	messages.
+	(gengtype_long_options): Add "verbose" & "backupdir".
+	(print_usage): Ditto.
+	(main): Verbose display of parsed files.
+
+	* gengtype.h (verbosity_level): Add declaration.
+
+2010-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* gengtype.c (parse_program_options): Add allocation of
+	plugin_files, and correct test on nb_plugin_files.
+
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+	
+	2006-03-27 Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4133425
+	* c-decl.c (undeclared_variable): Issue diagnostic on
+	private 'ivar' access.
+	
+2010-10-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/46051
+	* config/i386/sse.md (vec_interleave_highv4df): Fix third RTX of
+	generated sequence to match *avx_vperm2f128<mode>_nozero.
+	(vec_interleave_lowv4df): Ditto.
+	(vec_interleave_highv8sf): Ditto.
+	(vec_interleave_lowv8sf): Ditto.
+
+2010-10-17  Kai Tietz  <kai.tietz@onevision.com>
+
+	* libgcov.c (create_file_directory): Enable it for win32 case.
+	(gcov_exit): De-couple GCOV_PREFIX and GCOV_PREFIX_STRIP.
+	* doc/gcov.texi (GCOV_PREFIX): Adjusted.
+	(GCOV_PREFIX_SKIP): Likewise.
+
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* doc/objc.texi (GNU Objective-C runtime API): New section.
+	(Modern GNU Objective-C runtime API): New section.
+	(Traditional GNU Objective-C runtime API): New section.
+	(Executing code before main): Mention that this section is
+	specific to the GNU Objective-C runtime.
+	(Garbage Collection): Same.
+
+2010-10-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* c-parser.c (c_parser_for_statement): Move initialization of
+	cond and incr before if.
+
+2010-10-17  Anatoly Sokolov  <aesok@post.ru>
+
+	* target.def (preferred_output_reload_class): New hook.
+	* doc/tm.texi.in (TARGET_PREFERRED_OUTPUT_RELOAD_CLASS): Document.
+	* doc/tm.texi: Regenerate.
+	* targhooks.c (default_preferred_output_reload_class): New function.
+	* targhooks.h (default_preferred_output_reload_class): Declare.
+	* reload.c (find_dummy_reload): Change rclass argument type from
+	enum reg_class to reg_class_t. Change this_alternative array type
+	from enum reg_class to reg_class_t.
+	Use TARGET_PREFERRED_OUTPUT_RELOAD_CLASS target hook.
+	(push_reload): Change preferred_class variable type to reg_class_t.
+	Use TARGET_PREFERRED_OUTPUT_RELOAD_CLASS target hook.
+	* recog.c (reg_fits_class_p): Change result type to bool. Change cl
+	argument type from enum reg_class to reg_class_t. Use
+	HARD_REGISTER_NUM_P predicate.
+	* recog.h (reg_fits_class_p): Update prototype.
+
+	* config/i386/i386.h (PREFERRED_OUTPUT_RELOAD_CLASS): Remove.
+	* config/i386/i386-protos.h (ix86_preferred_output_reload_class):
+	Remove.
+	* config/i386/i386.c (ix86_preferred_output_reload_class): Make
+	static. Change regclass argument and result types from enum reg_class
+	to reg_class_t.
+	(TARGET_PREFERRED_OUTPUT_RELOAD_CLASS): Define.
+
+2010-10-17  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* c-parser.c (c_parser_objc_class_instance_variables): Update to use
+	visibility enum, and handle @package.
+
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* doc/objc.texi (What you can and what you cannot do in +load):
+	Document that sending messages to constant string objects in +load
+	is not guaranteed to work.
+
+2010-10-16  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/44206
+	* ipa.c (cgraph_remove_unreachable_nodes): Cleanup; check
+	existence of refrences before removing the function.
+
 2010-10-16  Jan Hubicka  <jh@suse.cz>
 
 	* cgraph.c (dump_cgraph_node): Dump same_comdat_group,
 	only_called_at_startup and only_called_at_exit.
-	(cgraph_propagate_frequency): Compute only_called_at_startup and 
+	(cgraph_propagate_frequency): Compute only_called_at_startup and
 	only_called_at_exit.
 	* cgraph.h (struct cgraph_node): New fileds only_called_at_startup and
 	only_called_at_exit.
@@ -90,8 +387,7 @@
 	* hooks.c (hook_void_gcc_optionsp): New.
 	* hooks.h (hook_void_gcc_optionsp): Declare.
 	* langhooks-def.h (lhd_init_options_struct): Remove.
-	(LANG_HOOKS_INIT_OPTIONS_STRUCT): Define to
-	hook_void_gcc_optionsp.
+	(LANG_HOOKS_INIT_OPTIONS_STRUCT): Define to hook_void_gcc_optionsp.
 	* langhooks.c (lhd_init_options_struct): Remove.
 	* opts.c (init_options_struct): Also call
 	targetm.target_option.init_struct.
@@ -105,8 +401,7 @@
 	pdp11_option_init_struct.
 	* config/rs6000/rs6000.c (rs6000_option_optimization): Replace by
 	rs6000_option_init_struct.  Use options structure pointer.
-	(TARGET_OPTION_OPTIMIZATION): Replace by
-	TARGET_OPTION_INIT_STRUCT.
+	(TARGET_OPTION_OPTIMIZATION): Replace by TARGET_OPTION_INIT_STRUCT.
 	* config/s390/s390.c (s390_option_init_struct,
 	TARGET_OPTION_INIT_STRUCT): New.
 	(s390_option_optimization): Don't set
@@ -116,8 +411,7 @@
 	(sh_option_optimization): Don't set flag_finite_math_only here.
 	* config/spu/spu.c (spu_option_optimization): Replace by
 	spu_option_optimization.  Use options structure pointer.
-	(TARGET_OPTION_OPTIMIZATION): Replace by
-	TARGET_OPTION_INIT_STRUCT.
+	(TARGET_OPTION_OPTIMIZATION): Replace by TARGET_OPTION_INIT_STRUCT.
 
 2010-10-14  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
@@ -155,8 +449,7 @@
 
 	* config/rs6000/altivec.md (UNSPEC_VNMSUBFP): Delete.
 	(altivec_vmaddfp): Rewrite to use FMA rtl if no fused
-	multiply/add.  Rename combiner pattern, and add TARGET_FUSED_MADD
-	test.
+	multiply/add.  Rename combiner pattern, and add TARGET_FUSED_MADD test.
 	(altivec_vmaddfp_1): Ditto.
 	(altivec_vmaddfp_2): Ditto.
 	(atlivec_mulv4sf3): Ditto.
@@ -165,8 +458,7 @@
 	(altivec_vnmsubfp_2): Ditto.
 	(altivec_vnmsubfp_3): Delete.
 
-	* config/rs6000/rs6000.md (fmasf4): New insns for fma builtin
-	support.
+	* config/rs6000/rs6000.md (fmasf4): New insns for fma builtin support.
 	(fmasf4_fpr): Ditto.
 	(fmssf4_fpr): Ditto.
 	(fnmasf4_fpr): Ditto.
@@ -264,7 +556,7 @@
 
 2010-10-14  Iain Sandoe  <iains@gcc.gnu.org>
 
-	merge from FSF apple 'trunk' branch.
+	Merge from FSF apple 'trunk' branch.
 	2006 Fariborz Jahanian <fjahanian@apple.com>
 
 	Radars 4436866, 4505126, 4506903, 4517826

@@ -44,6 +44,11 @@ objc_is_object_ptr (tree ARG_UNUSED (arg))
   return 0;
 }
 
+bool objc_diagnose_private_ivar (tree ARG_UNUSED (arg))
+{
+  return false;
+}
+
 tree
 objc_lookup_ivar (tree other, tree ARG_UNUSED (arg))
 {
@@ -59,6 +64,12 @@ objc_check_decl (tree ARG_UNUSED (decl))
 void
 objc_check_global_decl (tree ARG_UNUSED (decl))
 {
+}
+
+tree
+objc_non_volatilized_type (tree type)
+{
+  return type;
 }
 
 tree
@@ -163,7 +174,7 @@ objc_add_instance_variable (tree ARG_UNUSED (decl))
 }
 
 void
-objc_set_visibility (int ARG_UNUSED (vis))
+objc_set_visibility (objc_ivar_visibility_kind ARG_UNUSED (vis))
 {
 }
 
@@ -336,6 +347,18 @@ tree
 objc_build_setter_call (tree ARG_UNUSED (lhs), tree ARG_UNUSED (rhs))
 {
   return 0;
+}
+
+void
+objc_add_synthesize_declaration (location_t ARG_UNUSED (start_locus), 
+				 tree ARG_UNUSED (property_and_ivar_list))
+{
+}
+
+void
+objc_add_dynamic_declaration (location_t ARG_UNUSED (start_locus), 
+			      tree ARG_UNUSED (property_list))
+{
 }
 
 tree

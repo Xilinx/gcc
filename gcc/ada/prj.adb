@@ -1154,12 +1154,38 @@ package body Prj is
 
    function Is_Compilable (Source : Source_Id) return Boolean is
    begin
-      return Source.Language.Config.Compiler_Driver /= No_File
-        and then Length_Of_Name (Source.Language.Config.Compiler_Driver) /= 0
-        and then not Source.Locally_Removed
-        and then (Source.Language.Config.Kind /= File_Based
-                    or else
-                  Source.Kind /= Spec);
+      case Source.Compilable is
+         when Unknown =>
+            if Source.Language.Config.Compiler_Driver /= No_File
+              and then
+                Length_Of_Name (Source.Language.Config.Compiler_Driver) /= 0
+              and then not Source.Locally_Removed
+              and then (Source.Language.Config.Kind /= File_Based
+                         or else Source.Kind /= Spec)
+            then
+               --  Do not modify Source.Compilable before the source record
+               --  has been initilaized.
+
+               if Source.Source_TS /= Empty_Time_Stamp then
+                  Source.Compilable := Yes;
+               end if;
+
+               return True;
+
+            else
+               if Source.Source_TS /= Empty_Time_Stamp then
+                  Source.Compilable := No;
+               end if;
+
+               return False;
+            end if;
+
+         when Yes =>
+            return True;
+
+         when No =>
+            return False;
+      end case;
    end Is_Compilable;
 
    ------------------------------
