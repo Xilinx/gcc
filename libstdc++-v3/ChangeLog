@@ -1,3 +1,27 @@
+2010-10-19  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/allocator.h: Add constexpr as per N3126 draft.
+	* include/bits/ios_base.h: Same.
+	* include/bits/shared_ptr.h: Same.
+	* include/bits/stl_iterator.h: Same.
+	* include/bits/stl_pair.h: Same.
+	* include/bits/unique_ptr.h: Same.
+	* include/std/chrono: Same.
+	* include/std/mutex: Same.
+	* include/std/ratio: Same.
+	* include/std/tuple: Same.
+	* include/tr1_impl/type_traits: Same.
+	* src/mutex.cc: Same.
+	* testsuite/20_util/duration/requirements/typedefs_neg1.cc: Adjust.
+	* testsuite/20_util/duration/requirements/typedefs_neg2.cc: Same.
+	* testsuite/20_util/duration/requirements/typedefs_neg3.cc: Same.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Same.
+	* testsuite/27_io/ios_base/cons/assign_neg.cc: Same.
+	* testsuite/27_io/ios_base/cons/copy_neg.cc: Same.
+
+	* doc/doxygen/user.cfg.in: Replace _GLIBCXX_USE_CONSTEXPR,
+	_GLIBCXX_CONSTEXPR for doxygen generation.
+
 2010-10-18  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* src/limits.cc: Undef.
