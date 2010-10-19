@@ -3816,6 +3816,18 @@
 (install_melt_mode help_mode)
 
 
+(defun nop_docmd  (cmd moduldata)
+  (debug_msg cmd "in nop_docmd"))
+
+(definstance nop_mode
+  class_melt_mode
+  :named_name '"nop"
+  :meltmode_help '"a mode doing nothing."
+  :meltmode_fun nop_docmd
+)
+(install_melt_mode nop_mode)
+
+
 ;;;;
 
 

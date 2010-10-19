@@ -1,4 +1,7 @@
 2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: added nop mode.
+
+2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_make_special): Moved function out of
 	ENABLE_CHECKING...
 
