@@ -1,4 +1,8 @@
 2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltgc_make_special): Declared extern.
+	* melt-runtime.c (melt_really_initialize): Indented comment.
+
+2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-make.mk (melt_make_cc1_dependency): Added variable.
 	(warmelt*.c): use it.
 

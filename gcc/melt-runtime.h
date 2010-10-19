@@ -727,8 +727,8 @@ melt_mark_decay (struct meltdecay_st *p)
 }
 
 /* make a special value; return NULL if the discriminant is not
-   special; all special values should be made thru this */
-struct meltspecial_st* meltgc_make_special(melt_ptr_t discr);
+   special; all special values should be made thru this. */
+extern struct meltspecial_st* meltgc_make_special (melt_ptr_t discr);
 
 
 /* when MELTOBMAG_STRING -  */

@@ -9987,7 +9987,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     debugeprintf ("melt_really_initialize alz %p-%p (%ld Kw)",
 		  melt_startalz, melt_endalz, (long) wantedwords >> 10);
   }
-  /* we are using register_callback here, even if MELT is not compiled as a plugin. */
+  /* We are using register_callback here, even if MELT is not compiled
+     as a plugin. */
   register_callback (melt_plugin_name, PLUGIN_GGC_MARKING, 
 		     melt_marking_callback,
 		     NULL);

@@ -273,6 +273,17 @@ build_melt_dot_so() {
 	$GCCMELT_SOURCE_TREE/melt-runtime.c -o melt.so
     if [ ! -f melt.so ] ; then
 	error_echo failed to build melt.so
+	exit 1
+    fi
+    # test that the melt.so plugin is loadable without any mode...
+    # we need the empty-file-for-melt.c 
+    verbose_echo making  empty-file-for-melt.c using $GCCMELT_SOURCE_TREE/melt-make.mk
+    $MAKE -w -f $GCCMELT_SOURCE_TREE/melt-make.mk empty-file-for-melt.c
+    if $GCC -v -fplugin=./melt.so -c -o /dev/null empty-file-for-melt.c; then
+	verbose_echo melt.so plugin seems to be loadable
+    else
+	error_echo melt.so plugin dont work
+	exit 1
     fi
 }
 
