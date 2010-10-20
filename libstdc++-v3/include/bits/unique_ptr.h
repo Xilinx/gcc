@@ -47,7 +47,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _Tp>
     struct default_delete
       {
-	constexpr default_delete() { }
+	default_delete() { }
 
 	template<typename _Up, typename = typename
 		 std::enable_if<std::is_convertible<_Up*, _Tp*>::value>::type>
@@ -108,7 +108,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		    "constructed with null function pointer deleter");
 
       // Constructors.
-      constexpr unique_ptr()
+      unique_ptr()
       : _M_t(pointer(), deleter_type())
       { }
 
@@ -129,7 +129,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       { static_assert(!std::is_reference<deleter_type>::value,
 		      "rvalue deleter bound to reference"); }
 
-      constexpr unique_ptr(nullptr_t)
+      unique_ptr(nullptr_t)
       : _M_t(pointer(), deleter_type())
       { }
 
@@ -271,7 +271,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		    "constructed with null function pointer deleter");
 
       // Constructors.
-      constexpr unique_ptr()
+      unique_ptr()
       : _M_t(pointer(), deleter_type())
       { }
 
@@ -292,7 +292,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		      "rvalue deleter bound to reference"); }
 
       /* TODO: use delegating constructor */
-      constexpr unique_ptr(nullptr_t)
+      unique_ptr(nullptr_t)
       : _M_t(pointer(), deleter_type())
       { }
 

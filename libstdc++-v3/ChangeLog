@@ -1,5 +1,10 @@
 2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
 
+	* include/bits/shared_ptr.h: Revert changes.
+	* include/bits/unique_ptr.h: Same.
+
+2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
+
 	* include/std/chrono: Adjust.
 	* include/tr1_impl/type_traits: Same.
 

@@ -95,7 +95,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  @brief  Construct an empty %shared_ptr.
        *  @post   use_count()==0 && get()==0
        */
-      constexpr shared_ptr() : __shared_ptr<_Tp>() { }
+      shared_ptr() : __shared_ptr<_Tp>() { }
 
       /**
        *  @brief  Construct a %shared_ptr that owns the pointer @a __p.
@@ -256,7 +256,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  @param  __p  A null pointer constant.
        *  @post   use_count() == 0 && get() == nullptr
        */
-      constexpr shared_ptr(nullptr_t __p) : __shared_ptr<_Tp>(__p) { }
+      shared_ptr(nullptr_t __p) : __shared_ptr<_Tp>(__p) { }
 
       template<typename _Tp1>
 	shared_ptr&
@@ -387,7 +387,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     class weak_ptr : public __weak_ptr<_Tp>
     {
     public:
-      constexpr weak_ptr() : __weak_ptr<_Tp>() { }
+      weak_ptr() : __weak_ptr<_Tp>() { }
 
       template<typename _Tp1, typename = typename
 	       std::enable_if<std::is_convertible<_Tp1*, _Tp*>::value>::type>
@@ -466,7 +466,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     class enable_shared_from_this
     {
     protected:
-      constexpr enable_shared_from_this() { }
+      enable_shared_from_this() { }
 
       enable_shared_from_this(const enable_shared_from_this&) { }
 
