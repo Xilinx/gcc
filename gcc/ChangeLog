@@ -1229,22 +1229,6 @@
 	* tree-sra.c (type_consists_of_records_p): Do not check for trailing
 	zero sized bit-fields.
 
-2010-09-29  Nicola Pero  <nicola.pero@meta-innovation.com>
-
-	Merge from 'apple/trunk' branch on FSF servers.
-	* c-parser.c: Applied change originally in c-parse.in.
-
-	2005-10-04  Fariborz Jahanian <fjahanian@apple.com>
-
-	Radar 4281748
-	* c-decl.c (start_decl): Check for redeclaration of class name.
-	* c-parse.in (after_type_declarator): Recognize CLASSNAME.
-
-2010-09-30  Tom G. Christensen <tgc@jupiterrise.com>
-
-	* doc/install.texi (Binaries): Update link to HP-UX porting centre.
-	Add links to current providers of packages for Solaris and IRIX.
-
 2010-09-30  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* c-parser.c (c_lex_one_token): When finding a CPP_AT_NAME
@@ -1258,6 +1242,22 @@
 	and RID_AT_PUBLIC instead of RID_PUBLIC.
 	(c_parser_statement_after_labels): Use RID_AT_TRY instead of
 	RID_TRY and RID_AT_CATCH instead of RID_CATCH.
+
+2010-09-30  Tom G. Christensen <tgc@jupiterrise.com>
+
+	* doc/install.texi (Binaries): Update link to HP-UX porting centre.
+	Add links to current providers of packages for Solaris and IRIX.
+
+2010-09-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+	* c-parser.c: Applied change originally in c-parse.in.
+
+	2005-10-04  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4281748
+	* c-decl.c (start_decl): Check for redeclaration of class name.
+	* c-parse.in (after_type_declarator): Recognize CLASSNAME.
 
 2010-09-29  Steve Ellcey  <sje@cup.hp.com>
 
