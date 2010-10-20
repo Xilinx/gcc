@@ -1,7 +1,7 @@
-// { dg-options "-std=gnu++0x" }
 // { dg-do compile }
+// { dg-options "-std=gnu++0x" }
 
-// Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+// Copyright (C) 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -18,16 +18,35 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-#include <atomic>
+#include <type_traits>
 #include <testsuite_common_types.h>
+
+namespace __gnu_test
+{
+  struct constexpr_member_data
+  {
+    template<typename _Ttesttype>
+      void
+      operator()()
+      {
+	struct _Concept
+	{
+	  void __constraint()
+	  {
+	    constexpr auto v(_Ttesttype::value);
+	  }
+	};
+
+	_Concept c;
+	c.__constraint();
+      }
+  };
+}
 
 int main()
 {
-  __gnu_test::assignable test;
-  __gnu_cxx::typelist::apply_generator(test,
-				       __gnu_test::atomic_integrals::type());
+  __gnu_test::constexpr_member_data test;
+  test.operator()<std::integral_constant<unsigned short, 69>>();
+  test.operator()<std::integral_constant<bool, true>>();
   return 0;
 }
-
-// { dg-error "deleted" "" { target *-*-* } 544 }
-// { dg-prune-output "include" }

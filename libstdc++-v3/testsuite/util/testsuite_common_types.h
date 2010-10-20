@@ -392,6 +392,20 @@ namespace __gnu_test
       }
   };
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp>
+    void
+    constexpr_bitwise_operators()
+    {
+      constexpr _Tp a = _Tp();
+      constexpr _Tp b = _Tp();
+      constexpr _Tp c1 = a | b;
+      constexpr _Tp c2 = a & b;
+      constexpr _Tp c3 = a ^ b;
+      constexpr _Tp c4 = ~b;
+    }
+#endif
+
   template<typename _Tp>
     void
     bitwise_operators()
@@ -598,6 +612,24 @@ namespace __gnu_test
 
   // Generator to test constexpr constructor
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
+  // Generator to test default constructor.
+  struct constexpr_default_constructible
+  {
+    template<typename _Tp>
+      void 
+      operator()()
+      {
+	struct _Concept
+	{
+	  void __constraint()
+	  { constexpr _Tp __v; }
+	};
+
+	void (_Concept::*__x)() __attribute__((unused))
+	  = &_Concept::__constraint;
+      }
+  };
+
   struct constexpr_single_value_constructible
   {
     template<typename _Ttesttype, typename _Tbasetype>

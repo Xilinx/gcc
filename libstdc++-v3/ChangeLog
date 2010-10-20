@@ -1,16 +1,41 @@
+2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/chrono: Adjust.
+	* include/tr1_impl/type_traits: Same.
+
+	* testsuite/util/testsuite_common_types.h: Add test functors.
+	* testsuite/20_util/duration/cons/constexpr.cc: New.
+	* testsuite/20_util/duration/requirements/constexpr_functions.cc: Same.
+	* testsuite/20_util/pair/cons/constexpr.cc: Same.
+	* testsuite/20_util/ratio/requirements/constexpr_data.cc: Same.
+	* testsuite/27_io/ios_base/types/fmtflags/constexpr_operators.cc: Same.
+	* testsuite/27_io/ios_base/types/iostate/constexpr_operators.cc: Same.
+	* testsuite/27_io/ios_base/types/openmode/constexpr_operators.cc: Same.
+	* testsuite/30_threads/call_once/constexpr.cc: Same.
+	* testsuite/30_threads/mutex/cons/constexpr.cc: Same.
+	* testsuite/30_threads/once_flag/cons/constexpr.cc: Same.
+	* testsuite/tr1/4_metaprogramming/integral_constant/requirements/
+	constexpr_data.cc: Same.
+
+	* testsuite/29_atomics/atomic/cons/assign_neg.cc: Adjust line numbers.
+	* testsuite/29_atomics/atomic/cons/copy_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/cons/assign_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/cons/copy_neg.cc: Same.
+	* testsuite/29_atomics/atomic_integral/operators/bitwise_neg.cc: Same.
+
 2010-10-19  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* include/bits/allocator.h: Add constexpr as per N3126 draft.
 	* include/bits/ios_base.h: Same.
 	* include/bits/shared_ptr.h: Same.
+	* include/bits/unique_ptr.h: Same.
 	* include/bits/stl_iterator.h: Same.
 	* include/bits/stl_pair.h: Same.
-	* include/bits/unique_ptr.h: Same.
-	* include/std/chrono: Same.
-	* include/std/mutex: Same.
-	* include/std/ratio: Same.
 	* include/std/tuple: Same.
 	* include/tr1_impl/type_traits: Same.
+	* include/std/chrono: Same.
+	* include/std/ratio: Same.
+	* include/std/mutex: Same.
 	* src/mutex.cc: Same.
 	* testsuite/20_util/duration/requirements/typedefs_neg1.cc: Adjust.
 	* testsuite/20_util/duration/requirements/typedefs_neg2.cc: Same.
@@ -62,7 +87,7 @@
 
 2010-10-15  Benjamin Kosnik  <bkoz@redhat.com>
 
-	* include/bits/atomic_0.h: Rework for N3126 draft.
+	* include/bits/atomic_0.h: Rework for N3126 draft, add constexpr.
 	* include/bits/atomic_2.h: Same.
 	* include/bits/atomic_base.h: Same.
 	* include/std/atomic: Same.
