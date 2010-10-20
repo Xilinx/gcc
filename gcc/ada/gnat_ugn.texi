@@ -2918,7 +2918,7 @@ should provide a stub body that raises @code{Program_Error}.
 
 @noindent
 GNAT additionally provides a useful pragma @code{Convention_Identifier}
-that can be used to parametrize conventions and allow additional synonyms
+that can be used to parameterize conventions and allow additional synonyms
 to be specified. For example if you have legacy code in which the convention
 identifier Fortran77 was used for Fortran, you can use the configuration
 pragma:
@@ -4045,14 +4045,14 @@ Allow full Ada 2005 features.
 
 @item -gnat2005
 @cindex @option{-gnat2005} (@command{gcc})
-Allow full Ada 2005 features (same as @option{-gnat05}
+Allow full Ada 2005 features (same as @option{-gnat05})
 
 @item -gnat12
 @cindex @option{-gnat12} (@command{gcc})
 
 @item -gnat2012
 @cindex @option{-gnat2012} (@command{gcc})
-Allow full Ada 2012 features (same as @option{-gnat12}
+Allow full Ada 2012 features (same as @option{-gnat12})
 
 @item -gnata
 @cindex @option{-gnata} (@command{gcc})
@@ -4122,6 +4122,12 @@ Specify a configuration pragma file
 @cindex @option{-gnateD} (@command{gcc})
 Defines a symbol, associated with @var{value}, for preprocessing.
 (@pxref{Integrated Preprocessing}).
+
+@item -gnateE
+@cindex @option{-gnateE} (@command{gcc})
+Generate extra information in exception messages, in particular display
+extra column information and the value and range associated with index and
+range check failures, and extra column information for access checks.
 
 @item -gnatef
 @cindex @option{-gnatef} (@command{gcc})
@@ -4246,7 +4252,7 @@ means that no limit applies.
 @item -gnatn
 @cindex @option{-gnatn} (@command{gcc})
 Activate inlining for subprograms for which
-pragma @code{inline} is specified. This inlining is performed
+pragma @code{Inline} is specified. This inlining is performed
 by the GCC back-end.
 
 @item -gnatN
@@ -4716,14 +4722,14 @@ standard output is redirected, a brief summary is written to
 @file{stderr} (standard error) giving the number of error messages and
 warning messages generated.
 
-@item -^gnatl^OUTPUT_FILE^=file
-@cindex @option{^-gnatl^OUTPUT_FILE^=fname} (@command{gcc})
+@item ^-gnatl^/OUTPUT_FILE^=file
+@cindex @option{^-gnatl^/OUTPUT_FILE^=fname} (@command{gcc})
 This has the same effect as @option{-gnatl} except that the output is
 written to a file instead of to standard output. If the given name
 @file{fname} does not start with a period, then it is the full name
 of the file to be written. If @file{fname} is an extension, it is
 appended to the name of the file being compiled. For example, if
-file @file{xyz.adb} is compiled with @option{^-gnatl^OUTPUT_FILE^=.lst},
+file @file{xyz.adb} is compiled with @option{^-gnatl^/OUTPUT_FILE^=.lst},
 then the output is written to file ^xyz.adb.lst^xyz.adb_lst^.
 
 @item -gnatU
@@ -5048,9 +5054,9 @@ gnat_rm, GNAT Reference manual}.
 @table @option
 @c !sort!
 @item -gnatwa
-@emph{Activate all optional errors.}
+@emph{Activate most optional warnings.}
 @cindex @option{-gnatwa} (@command{gcc})
-This switch activates most optional warning messages, see remaining list
+This switch activates most optional warning messages.  See the remaining list
 in this section for details on optional warning messages that can be
 individually controlled.  The warnings that are not turned on by this
 switch are
@@ -6980,10 +6986,12 @@ may generally be compiled using this switch (see the description of the
 @option{-gnat83} and @option{-gnat95} switches for further
 information).
 
+@ifset PROEDITION
 Note that even though Ada 2005 is the current official version of the
 language, GNAT still compiles in Ada 95 mode by default, so if you are
 using Ada 2005 features in your program, you must use this switch (or
 the equivalent Ada_05 or Ada_2005 configuration pragmas).
+@end ifset
 
 @item -gnat12 or -gnat2012 (Ada 2012 mode)
 @cindex @option{-gnat12} (@command{gcc})
@@ -9342,6 +9350,21 @@ By default, shared library projects are not allowed to import static library
 projects. When this switch is used on the command line, this restriction is
 relaxed.
 
+@item ^--source-info=<source info file>^/SRC_INFO=source-info-file^
+Specify a source info file. This switch is active only when project files
+are used. If the source info file is specified as a relative path, then it is
+relative to the object directory of the main project. If the source info file
+does not exist, then after the Project Manager has successfully parsed and
+processed the project files and found the sources, it creates the source info
+file. If the source info file already exists and can be read successfully,
+then the Project Manager will get all the needed information about the sources
+from the source info file and will not look for them. This reduces the time
+to process the project files, especially when looking for sources that take a
+long time. If the source info file exists but cannot be parsed successfully,
+the Project Manager will attempt to recreate it. If the Project Manager fails
+to create the source info file, a message is issued, but gnatmake does not
+fail.
+
 @ifclear vms
 @item --create-map-file
 When linking an executable, create a map file. The name of the map file
@@ -10392,10 +10415,11 @@ subprograms.
 @item
 @cindex pragma Inline
 @findex Inline
-Either @code{pragma Inline} applies to the subprogram, or it is local to
-the unit and called once from within it, or it is small and optimization
-level @option{-O2} is specified, or automatic inlining (optimization level
-@option{-O3}) is specified.
+Any one of the following applies: @code{pragma Inline} is applied to the
+subprogram and the @option{^-gnatn^/INLINE^} switch is specified; the
+subprogram is local to the unit and called once from within it; the
+subprogram is small and optimization level @option{-O2} is specified;
+optimization level @option{-O3}) is specified.
 @end itemize
 
 @noindent
@@ -10419,9 +10443,7 @@ The call appears in a body (not in a package spec).
 There is a @code{pragma Inline} for the subprogram.
 
 @item
-@cindex @option{-gnatn} (@command{gcc})
-The @option{^-gnatn^/INLINE^} switch
-is used in the @command{gcc} command line
+The @option{^-gnatn^/INLINE^} switch is used on the command line.
 @end itemize
 
 Even if all these conditions are met, it may not be possible for
@@ -11525,6 +11547,7 @@ recognized by GNAT:
    Convention_Identifier
    Debug_Policy
    Detect_Blocking
+   Default_Storage_Pool
    Discard_Names
    Elaboration_Checks
    Eliminate
@@ -17291,21 +17314,24 @@ supplied.
 @cindex Report file (for @code{gnatcheck})
 
 @noindent
-The @command{gnatcheck} tool outputs on @file{stdout} all messages concerning
-rule violations.
-It also creates a text file  that
-contains the complete report of the last gnatcheck run. By default this file
-is named named @file{^gnatcheck.out^GNATCHECK.OUT^} and it is located in the
+The @command{gnatcheck} tool outputs on @file{stderr} all messages concerning
+rule violations except if running in quiet mode.  It also creates a text file
+that contains the complete report of the last gnatcheck run. By default this file
+is named @file{^gnatcheck.out^GNATCHECK.OUT^} and it is located in the
 current directory; the @option{^-o^/OUTPUT^} option can be used to change the
 name and/or location of the report file. This report contains:
+
 @itemize @bullet
-@item date and time of @command{gnatcheck} run, the version of
-the tool that has generated this report and the full parameters
-of the  @command{gnatcheck} invocation;
-@item list of enabled rules;
-@item total number of detected violations;
-@item list of source files where rule violations have been detected;
-@item list of source files where no violations have been detected.
+
+@item general details of the @command{gnatcheck} run: date and time of the run,
+the version of the tool that has generated this report, full parameters
+of the  @command{gnatcheck} invocation, reference to the list of checked
+sources and applied rules (coding standard);
+@item summary of the run (number of checked sources and detected violations);
+@item list of exempted coding standard violations;
+@item list of non-exempted coding standard violations;
+@item list of problems in the definition of exemption sections;
+@item list of language violations (compile-time errors) detected in processed sources;
 @end itemize
 
 @node General gnatcheck Switches
@@ -18090,6 +18116,8 @@ constants. Function macros (macros with arguments) are partially translated
 as comments, to be completed manually if needed.
 @item some extensions (e.g. vector types) are not supported
 @item pointers to pointers or complex structures are mapped to System.Address
+@item identifiers with identical name (except casing) will generate compilation
+      errors (e.g. @code{shm_get} vs @code{SHM_GET}).
 @end itemize
 
 The code generated is using the Ada 2005 syntax, which makes it
@@ -27714,11 +27742,11 @@ into the DLL. This is done by using the standard @command{gnatmake} tool.
 
 @item building the DLL
 
-To build the DLL you must use @command{gcc}'s @option{-shared}
-option. It is quite simple to use this method:
+To build the DLL you must use @command{gcc}'s @option{-shared} and
+@option{-shared-libgcc} options. It is quite simple to use this method:
 
 @smallexample
-$ gcc -shared -o api.dll obj1.o obj2.o @dots{}
+$ gcc -shared -shared-libgcc -o api.dll obj1.o obj2.o @dots{}
 @end smallexample
 
 It is important to note that in this case all symbols found in the
@@ -27727,7 +27755,7 @@ the set of symbols to export by passing to @command{gcc} a definition
 file, @pxref{The Definition File}. For example:
 
 @smallexample
-$ gcc -shared -o api.dll api.def obj1.o obj2.o @dots{}
+$ gcc -shared -shared-libgcc -o api.dll api.def obj1.o obj2.o @dots{}
 @end smallexample
 
 If you use a definition file you must export the elaboration procedures

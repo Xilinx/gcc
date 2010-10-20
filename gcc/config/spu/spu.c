@@ -150,7 +150,8 @@ char regs_ever_allocated[FIRST_PSEUDO_REGISTER];
 
 /*  Prototypes and external defs.  */
 static void spu_option_override (void);
-static void spu_option_optimization (int, int);
+static void spu_option_init_struct (struct gcc_options *opts);
+static void spu_option_default_params (void);
 static void spu_init_builtins (void);
 static tree spu_builtin_decl (unsigned, bool);
 static bool spu_scalar_mode_supported_p (enum machine_mode mode);
@@ -190,6 +191,10 @@ static tree spu_handle_vector_attribute (tree * node, tree name, tree args,
 static int spu_naked_function_p (tree func);
 static bool spu_pass_by_reference (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 				   const_tree type, bool named);
+static rtx spu_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			     const_tree type, bool named);
+static void spu_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+				      const_tree type, bool named);
 static tree spu_build_builtin_va_list (void);
 static void spu_va_start (tree, rtx);
 static tree spu_gimplify_va_arg_expr (tree valist, tree type,
@@ -391,6 +396,12 @@ static const struct attribute_spec spu_attribute_table[] =
 #undef TARGET_PASS_BY_REFERENCE
 #define TARGET_PASS_BY_REFERENCE spu_pass_by_reference
 
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG spu_function_arg
+
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE spu_function_arg_advance
+
 #undef TARGET_MUST_PASS_IN_STACK
 #define TARGET_MUST_PASS_IN_STACK must_pass_in_stack_var_size
 
@@ -469,20 +480,31 @@ static const struct attribute_spec spu_attribute_table[] =
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE spu_option_override
 
-#undef TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION spu_option_optimization
+#undef TARGET_OPTION_INIT_STRUCT
+#define TARGET_OPTION_INIT_STRUCT spu_option_init_struct
+
+#undef TARGET_OPTION_DEFAULT_PARAMS
+#define TARGET_OPTION_DEFAULT_PARAMS spu_option_default_params
+
+#undef TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO  sjlj_except_unwind_info
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 static void
-spu_option_optimization (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
+spu_option_init_struct (struct gcc_options *opts)
+{
+  /* With so many registers this is better on by default. */
+  opts->x_flag_rename_registers = 1;
+}
+
+/* Implement TARGET_OPTION_DEFAULT_PARAMS.  */
+static void
+spu_option_default_params (void)
 {
   /* Override some of the default param values.  With so many registers
      larger values are better for these params.  */
-  MAX_PENDING_LIST_LENGTH = 128;
-
-  /* With so many registers this is better on by default. */
-  flag_rename_registers = 1;
+  set_default_param_value (PARAM_MAX_PENDING_LIST_LENGTH, 128);
 }
 
 /* Implement TARGET_OPTION_OVERRIDE.  */
@@ -491,9 +513,10 @@ spu_option_override (void)
 {
   /* Small loops will be unpeeled at -O3.  For SPU it is more important
      to keep code small by default.  */
-  if (!flag_unroll_loops && !flag_peel_loops
-      && !PARAM_SET_P (PARAM_MAX_COMPLETELY_PEEL_TIMES))
-    PARAM_VALUE (PARAM_MAX_COMPLETELY_PEEL_TIMES) = 1;
+  if (!flag_unroll_loops && !flag_peel_loops)
+    maybe_set_param_value (PARAM_MAX_COMPLETELY_PEEL_TIMES, 1,
+			   global_options.x_param_values,
+			   global_options_set.x_param_values);
 
   flag_omit_frame_pointer = 1;
 
@@ -3991,10 +4014,10 @@ spu_function_value (const_tree type, const_tree func ATTRIBUTE_UNUSED)
   return gen_rtx_REG (mode, FIRST_RETURN_REGNUM);
 }
 
-rtx
-spu_function_arg (CUMULATIVE_ARGS cum,
+static rtx
+spu_function_arg (CUMULATIVE_ARGS *cum,
 		  enum machine_mode mode,
-		  tree type, int named ATTRIBUTE_UNUSED)
+		  const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   int byte_size;
 
@@ -4025,6 +4048,19 @@ spu_function_arg (CUMULATIVE_ARGS cum,
     }
   else
     return gen_rtx_REG (mode, FIRST_ARG_REGNUM + cum);
+}
+
+static void
+spu_function_arg_advance (CUMULATIVE_ARGS * cum, enum machine_mode mode,
+			  const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  *cum += (type && TREE_CODE (TYPE_SIZE (type)) != INTEGER_CST
+	   ? 1
+	   : mode == BLKmode
+	   ? ((int_size_in_bytes (type) + 15) / 16)
+	   : mode == VOIDmode
+	   ? 1
+	   : HARD_REGNO_NREGS (cum, mode));
 }
 
 /* Variable sized types are passed by reference.  */
@@ -4235,7 +4271,7 @@ spu_setup_incoming_varargs (CUMULATIVE_ARGS * cum, enum machine_mode mode,
 
       /* cum currently points to the last named argument, we want to
          start at the next argument. */
-      FUNCTION_ARG_ADVANCE (ncum, mode, type, 1);
+      spu_function_arg_advance (&ncum, mode, type, true);
 
       offset = -STACK_POINTER_OFFSET;
       for (regno = ncum; regno < MAX_REGISTER_ARGS; regno++)
@@ -5713,8 +5749,7 @@ spu_init_builtins (void)
 
       sprintf (name, "__builtin_%s", d->name);
       spu_builtin_decls[i] =
-	add_builtin_function (name, p, END_BUILTINS + i, BUILT_IN_MD,
-			      NULL, NULL_TREE);
+	add_builtin_function (name, p, i, BUILT_IN_MD, NULL, NULL_TREE);
       if (d->fcode == SPU_MASK_FOR_LOAD)
 	TREE_READONLY (spu_builtin_decls[i]) = 1;	
 
@@ -6642,7 +6677,7 @@ spu_expand_builtin (tree exp,
 		    int ignore ATTRIBUTE_UNUSED)
 {
   tree fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
-  unsigned int fcode = DECL_FUNCTION_CODE (fndecl) - END_BUILTINS;
+  unsigned int fcode = DECL_FUNCTION_CODE (fndecl);
   struct spu_builtin_description *d;
 
   if (fcode < NUM_SPU_BUILTINS)

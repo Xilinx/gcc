@@ -1,3 +1,239 @@
+2010-10-20  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-common.h (finish_file): Removed.
+	(objc_write_global_declarations): New.
+	* c-opts.c (c_common_parse_file): Do not call finish_file.
+	* stub-objc.c (objc_write_global_declarations): New.
+	
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented parsing @synthesize and @dynamic for
+	Objective-C/Objective-C++.
+	* c-common.h (enum rid): Add RID_AT_SYNTHESIZE and RID_AT_DYNAMIC.
+	(objc_add_synthesize_declaration): New.
+	(objc_add_dynamic_declaration): New.
+	* c-common.c (c_common_reswords): Add synthesize and dynamic.
+	* stub-objc.c (objc_add_synthesize_declaration): New.
+	(objc_add_dynamic_declaration): New.
+	
+2010-10-18  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/46041
+	* c-cppbuiltin.c (mode_has_fma): Move function here from
+	builtins.c.  Don't use the fma optab, instead just use the
+	HAVE_fma* macros, so that __FP_FAST_FMA* will be defined when
+	using -save-temps.
+
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+
+	2005-11-08  Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4330422
+	* c-common.h (objc_non_volatilized_type): New declaration
+	* stub-objc.c (objc_non_volatilized_type): New stub.
+
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+
+	2006-03-27 Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4133425
+	* c-common.h (objc_diagnose_private_ivar): New decl.
+	* stub-objc.c (objc_diagnose_private_ivar): New stub.
+
+2010-10-17  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* c-common.c (c_common_reswords): Add package, RID_AT_PACKAGE.
+	* c-common.h (enum rid): Add RID_AT_PACKAGE.
+	(objc_ivar_visibility_kind): New enum.
+	(objc_set_visibility): Adjust prototype to use visibility enum.
+	* stub-objc.c (objc_set_visibility): Adjust stub to use
+	visibility enum.
+
+2010-10-14  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* c-cppbuiltin.c (builtin_define_float_constants): Emit
+	__FP_FAST_FMA, __FP_FAST_FMAF, and __FP_FAST_FMAL if the machine
+	has the appropriate fma builtins.
+	(c_cpp_builtins): Adjust call to builtin_define_float_constants.
+
+2010-10-14  Iain Sandoe  <iains@gcc.gnu.org>
+
+	merge from FSF apple 'trunk' branch.
+	2006 Fariborz Jahanian <fjahanian@apple.com>
+
+	Radars 4436866, 4505126, 4506903, 4517826
+	* c-common.c (c_common_resword): Define @property and its attributes.
+	* c-common.h: Define property attribute enum entries.
+	(OBJC_IS_PATTR_KEYWORD): New.
+	(objc_property_attribute_kind): New enum.
+	Declare objc_set_property_attr (), objc_add_property_variable (),
+	objc_build_getter_call () and objc_build_setter_call ().
+	* stub-objc.c (objc_set_property_attr): New stub.
+	(objc_add_property_variable): Likewise.
+	(objc_build_getter_call): Likewise.
+	(objc_build_setter_call) Likewise.
+
+2010-10-13  Iain Sandoe  <iains@gcc.gnu.org>
+
+	merge from FSF apple 'trunk' branch.
+	2006-04-26 Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 3803157 (method attributes)
+	* c-common.c (handle_deprecated_attribute): Recognize
+	objc methods as valid declarations.
+	* c-common.h: Declare objc_method_decl ().
+	* stub-objc.c (objc_method_decl): New stub.
+
+2010-10-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (parse_optimize_options): Call
+	decode_cmdline_options_to_array_default_mask before
+	decode_options.  Update arguments to decode_options.
+	* c-common.h (c_common_init_options_struct): Declare.
+	* c-opts.c (c_common_init_options_struct): New.  Split out from
+	c_common_init_options.
+
+2010-10-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented fast enumeration for Objective-C.
+	* c-common.h (objc_finish_foreach_loop): New.
+	* stub-objc.c (objc_finish_foreach_loop): New.
+
+2010-10-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (struct diagnostic_context): Don't declare here.
+	(c_common_initialize_diagnostics): Declare using
+	diagnostic_context typedef.
+	* c-opts.c (c_common_handle_option): Pass global_dc to
+	handle_generated_option.
+
+2010-10-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-opts.c (c_common_handle_option): Pass &global_options_set to
+	handle_generated_option.
+
+2010-10-03  Ian Lance Taylor  <iant@google.com>
+
+	* c.opt (-fplan9-extensions): New option.
+
+2010-10-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* c-cppbuiltin.c (define__GNUC__, builtin_define_type_precision):
+	Remove.
+	(c_cpp_builtins): Call functions from cppbuiltin.c instead
+	of duplicating code.
+
+2010-09-30  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* c-common.c: Add two new entries for @optional
+	and @required keywords.
+
+	merge from FSF 'apple/trunk' branch.
+	2006-01-30  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4386773
+	* c-common.h (RID_AT_OPTIONAL, RID_AT_REQUIRED): Two new
+	objective-c keywords.
+	(objc_set_method_opt): New declaration.
+	* stub-objc.c (objc_set_method_opt): New stub.
+	
+2010-09-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (handle_optimize_attribute): Pass &global_options to
+	cl_optimization_save and cl_optimization_restore.
+	* c-opts.c (c_common_handle_option): Pass &global_options to
+	handle_generated_option.
+	* c-pragma.c (handle_pragma_diagnostic): Use option_flag_var.
+	(handle_pragma_pop_options, handle_pragma_reset_options): Pass
+	&global_options to cl_optimization_restore.
+
+2010-09-30  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-lex.c (c_lex_with_flags): Updated comments for CPP_AT_NAME
+	Objective-C/Objective-C++ keywords.
+
+2010-09-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.	
+	
+	2005-10-04  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4281748
+	* c-common.h (objc_check_global_decl): New declaration.
+	* stub-objc.c (objc_check_global_decl): New stub.
+
+2010-09-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* c.opt: Don't use VarExists.
+
+2010-09-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (c_cpp_error): Update names of diagnostic_context
+	members.
+	* c-cppbuiltin.c (c_cpp_builtins_optimize_pragma): Update names of
+	cl_optimization members.
+	* c-opts.c (warning_as_error_callback, c_common_handle_option,
+	sanitize_cpp_opts, finish_options): Update names of cpp_options
+	members.
+
+2010-09-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-common.h (OBJC_IS_CXX_KEYWORD): New macro.  Updated comments.
+	(objc_is_reserved_word): Removed.
+	* c-common.c: Updated comments.
+	* c-lex.c (c_lex_with_flags): Use OBJC_IS_CXX_KEYWORD instead of
+	objc_is_reserved_word.
+	* stub-objc.c (objc_is_reserved_word): Removed.
+
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* c-common.h (objc_add_method_declaration): Adjust prototype to 
+	include attributes.
+	(objc_start_method_definition): Likewise.
+	(objc_build_keyword_decl): Likewise.
+	* stub-objc.c:(objc_add_method_declaration): Handle attributes.
+	(objc_start_method_definition): Likewise.
+	(objc_build_keyword_decl): Likewise.
+
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* c-common.h (objc_start_class_interface): Adjust prototype.
+	(objc_start_category_interface): Likewise.
+	(objc_start_protocol): Likewise.
+	* stub-objc.c (objc_start_protocol): Adjust for extra argument.
+	(objc_start_class_interface): Likewise.
+	(objc_start_category_interface): Likewise.
+
+2010-09-27  Ian Lance Taylor  <iant@google.com>
+
+	* c-common.c (c_common_attribute_table): Add no_split_stack.
+	(handle_no_split_stack_attribute): New static function.
+
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.	
+
+	2005-12-15  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4229905	
+	* c-common.h (objc_have_common_type): New declaration.
+	* stub-objc.c (objc_have_common_type): New stub.
+
+	2005-06-22  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4154928
+	* c-common.h (objc_common_type): New prototype.
+	* stub-objc.c (objc_common_type): New stub.	
+
+2010-09-24  Jan Hubicka  <jh@suse.cz>
+
+	* c-common.c (handle_leaf_attribute): New function.
+	(struct attribute_spec c_common_att): Add leaf.
+
 2010-09-22  Joseph Myers  <joseph@codesourcery.com>
 
 	* c.opt (-all-warnings, -ansi, -assert, -assert=, -comments,

@@ -439,7 +439,7 @@ score7_legitimize_address (rtx x)
    is a named (fixed) argument rather than a variable one.  */
 static void
 score7_classify_arg (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
-                     tree type, int named, struct score7_arg_info *info)
+                     const_tree type, bool named, struct score7_arg_info *info)
 {
   int even_reg_p;
   unsigned int num_words, max_regs;
@@ -640,11 +640,13 @@ score7_option_override (void)
 {
   flag_pic = false;
   if (!flag_pic)
-    score7_sdata_max = g_switch_set ? g_switch_value : SCORE7_DEFAULT_SDATA_MAX;
+    score7_sdata_max = (global_options_set.x_g_switch_value
+			? g_switch_value
+			: SCORE7_DEFAULT_SDATA_MAX);
   else
     {
       score7_sdata_max = 0;
-      if (g_switch_set && (g_switch_value != 0))
+      if (global_options_set.x_g_switch_value && (g_switch_value != 0))
         warning (0, "-fPIC and -G are incompatible");
     }
 
@@ -789,10 +791,10 @@ score7_initial_elimination_offset (int from,
     }
 }
 
-/* Implement FUNCTION_ARG_ADVANCE macro.  */
+/* Implement TARGET_FUNCTION_ARG_ADVANCE hook.  */
 void
 score7_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-                             tree type, int named)
+                             const_tree type, bool named)
 {
   struct score7_arg_info info;
   score7_classify_arg (cum, mode, type, named, &info);
@@ -812,10 +814,10 @@ score7_arg_partial_bytes (CUMULATIVE_ARGS *cum,
   return info.stack_words > 0 ? info.reg_words * UNITS_PER_WORD : 0;
 }
 
-/* Implement FUNCTION_ARG macro.  */
+/* Implement TARGET_FUNCTION_ARG hook.  */
 rtx
 score7_function_arg (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
-                     tree type, int named)
+                     const_tree type, bool named)
 {
   struct score7_arg_info info;
 

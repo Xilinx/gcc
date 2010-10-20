@@ -560,11 +560,11 @@ all:
 ###
 
 # This is the list of directories that may be needed in RPATH_ENVVAR
-# so that prorgams built for the target machine work.
+# so that programs built for the target machine work.
 TARGET_LIB_PATH = $(TARGET_LIB_PATH_libstdc++-v3)$(TARGET_LIB_PATH_libmudflap)$(TARGET_LIB_PATH_libssp)$(TARGET_LIB_PATH_libgomp)$(HOST_LIB_PATH_gcc)
 
 @if target-libstdc++-v3
-TARGET_LIB_PATH_libstdc++-v3 = $$r/$(TARGET_SUBDIR)/libstdc++-v3/.libs:
+TARGET_LIB_PATH_libstdc++-v3 = $$r/$(TARGET_SUBDIR)/libstdc++-v3/src/.libs:
 @endif target-libstdc++-v3
 
 @if target-libmudflap
@@ -57909,6 +57909,38 @@ all-stage4-gcc: maybe-all-stage4-libiberty
 all-stageprofile-gcc: maybe-all-stageprofile-libiberty
 all-stagefeedback-gcc: maybe-all-stagefeedback-libiberty
 all-gcc: maybe-all-fixincludes
+info-gcc: maybe-all-build-libiberty
+
+info-stage1-gcc: maybe-all-build-libiberty
+info-stage2-gcc: maybe-all-build-libiberty
+info-stage3-gcc: maybe-all-build-libiberty
+info-stage4-gcc: maybe-all-build-libiberty
+info-stageprofile-gcc: maybe-all-build-libiberty
+info-stagefeedback-gcc: maybe-all-build-libiberty
+dvi-gcc: maybe-all-build-libiberty
+
+dvi-stage1-gcc: maybe-all-build-libiberty
+dvi-stage2-gcc: maybe-all-build-libiberty
+dvi-stage3-gcc: maybe-all-build-libiberty
+dvi-stage4-gcc: maybe-all-build-libiberty
+dvi-stageprofile-gcc: maybe-all-build-libiberty
+dvi-stagefeedback-gcc: maybe-all-build-libiberty
+pdf-gcc: maybe-all-build-libiberty
+
+pdf-stage1-gcc: maybe-all-build-libiberty
+pdf-stage2-gcc: maybe-all-build-libiberty
+pdf-stage3-gcc: maybe-all-build-libiberty
+pdf-stage4-gcc: maybe-all-build-libiberty
+pdf-stageprofile-gcc: maybe-all-build-libiberty
+pdf-stagefeedback-gcc: maybe-all-build-libiberty
+html-gcc: maybe-all-build-libiberty
+
+html-stage1-gcc: maybe-all-build-libiberty
+html-stage2-gcc: maybe-all-build-libiberty
+html-stage3-gcc: maybe-all-build-libiberty
+html-stage4-gcc: maybe-all-build-libiberty
+html-stageprofile-gcc: maybe-all-build-libiberty
+html-stagefeedback-gcc: maybe-all-build-libiberty
 install-gcc: maybe-install-fixincludes
 configure-libcpp: configure-libiberty
 

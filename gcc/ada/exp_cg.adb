@@ -24,7 +24,6 @@
 ------------------------------------------------------------------------------
 
 with Atree;    use Atree;
-with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
 with Exp_Disp; use Exp_Disp;
@@ -110,11 +109,9 @@ package body Exp_CG is
 
    begin
       --  No output if the "ci" output file has not been previously opened
-      --  by toplev.c. Temporarily the output is also disabled with -gnatd.Z
+      --  by toplev.c
 
-      if Callgraph_Info_File = Null_Address
-        or else not Debug_Flag_Dot_ZZ
-      then
+      if Callgraph_Info_File = Null_Address then
          return;
       end if;
 
@@ -173,7 +170,8 @@ package body Exp_CG is
       ---------------------------
 
       function Homonym_Suffix_Length (E : Entity_Id) return Natural is
-         Prefix_Length : constant := 2; --  Length of prefix "__"
+         Prefix_Length : constant := 2;
+         --  Length of prefix "__"
 
          H  : Entity_Id;
          Nr : Nat := 1;
@@ -200,11 +198,13 @@ package body Exp_CG is
             else
                declare
                   Result : Natural := Prefix_Length + 1;
+
                begin
                   while Nr >= 10 loop
                      Result := Result + 1;
                      Nr := Nr / 10;
                   end loop;
+
                   return Result;
                end;
             end if;
@@ -213,8 +213,9 @@ package body Exp_CG is
 
       --  Local variables
 
-      Full_Name : constant String := Get_Name_String (Chars (E));
-      TSS_Name  : TSS_Name_Type;
+      Full_Name     : constant String := Get_Name_String (Chars (E));
+      Suffix_Length : Natural;
+      TSS_Name      : TSS_Name_Type;
 
    --  Start of processing for Is_Predefined_Dispatching_Operation
 
@@ -223,14 +224,32 @@ package body Exp_CG is
          return False;
       end if;
 
+      --  Search for and strip suffix for body-nested package entities
+
+      Suffix_Length := Homonym_Suffix_Length (E);
+      for J in reverse Full_Name'First + 2 .. Full_Name'Last loop
+         if Full_Name (J) = 'X' then
+
+            --  Include the "X", "Xb", "Xn", ... in the part of the
+            --  suffix to be removed.
+
+            Suffix_Length := Suffix_Length + Full_Name'Last - J + 1;
+            exit;
+         end if;
+
+         exit when Full_Name (J) /= 'b' and then Full_Name (J) /= 'n';
+      end loop;
+
       --  Most predefined primitives have internally generated names. Equality
       --  must be treated differently; the predefined operation is recognized
       --  as a homogeneous binary operator that returns Boolean.
 
       if Full_Name'Length > TSS_Name_Type'Length then
          TSS_Name :=
-           TSS_Name_Type (Full_Name (Full_Name'Last - TSS_Name'Length + 1
-                           .. Full_Name'Last));
+           TSS_Name_Type
+             (Full_Name
+               (Full_Name'Last - TSS_Name'Length - Suffix_Length + 1
+                  .. Full_Name'Last - Suffix_Length));
 
          if        TSS_Name = TSS_Stream_Read
            or else TSS_Name = TSS_Stream_Write
@@ -273,25 +292,7 @@ package body Exp_CG is
                                     Name_uDisp_Requeue,
                                     Name_uDisp_Timed_Select);
 
-               Suffix_Length : Natural;
-
             begin
-               --  Search for and strip suffix for body-nested package entities
-
-               Suffix_Length := Homonym_Suffix_Length (E);
-               for J in reverse Full_Name'First + 2 .. Full_Name'Last loop
-                  if Full_Name (J) = 'X' then
-
-                     --  Include the "X", "Xb", "Xn", ... in the part of the
-                     --  suffix to be removed.
-
-                     Suffix_Length := Suffix_Length + Full_Name'Last - J + 1;
-                     exit;
-                  end if;
-
-                  exit when Full_Name (J) /= 'b' and then Full_Name (J) /= 'n';
-               end loop;
-
                for J in Predef_Names_95'Range loop
                   Get_Name_String (Predef_Names_95 (J));
 
@@ -320,7 +321,7 @@ package body Exp_CG is
                   end if;
                end loop;
 
-               if Ada_Version >= Ada_05 then
+               if Ada_Version >= Ada_2005 then
                   for J in Predef_Names_05'Range loop
                      Get_Name_String (Predef_Names_05 (J));
 
@@ -389,11 +390,12 @@ package body Exp_CG is
    -----------------
 
    function Slot_Number (Prim : Entity_Id) return Uint is
+      E : constant Entity_Id := Ultimate_Alias (Prim);
    begin
-      if Is_Predefined_Dispatching_Operation (Prim) then
-         return -DT_Position (Prim);
+      if Is_Predefined_Dispatching_Operation (E) then
+         return -DT_Position (E);
       else
-         return DT_Position (Prim);
+         return DT_Position (E);
       end if;
    end Slot_Number;
 
@@ -405,6 +407,7 @@ package body Exp_CG is
       Nul   : constant Character := Character'First;
       Line  : String (Str'First .. Str'Last + 1);
       Errno : Integer;
+
    begin
       --  Add the null character to the string as required by fputs
 
@@ -476,7 +479,12 @@ package body Exp_CG is
             (Find_Dispatching_Type (Ultimate_Alias (Prim)),
              Root_Type (Ctrl_Typ))
       then
-         Write_Int (UI_To_Int (Slot_Number (Ultimate_Alias (Prim))));
+         --  This is a special case in which we generate in the ci file the
+         --  slot number of the renaming primitive (i.e. Base2) but instead of
+         --  generating the name of this renaming entity we reference directly
+         --  the renamed entity (i.e. Base).
+
+         Write_Int (UI_To_Int (Slot_Number (Prim)));
          Write_Char (':');
          Write_Name
            (Chars (Find_Dispatching_Type (Ultimate_Alias (Prim))));
@@ -569,9 +577,15 @@ package body Exp_CG is
       while Present (Elmt) loop
          Prim := Node (Elmt);
 
-         --  Display only primitives overriden or defined
+         --  Skip internal entities associated with overridden interface
+         --  primitives, and also inherited primitives.
 
-         if Present (Alias (Prim)) then
+         if Present (Interface_Alias (Prim))
+           or else
+             (Present (Alias (Prim))
+               and then Find_Dispatching_Type (Prim) /=
+                        Find_Dispatching_Type (Alias (Prim)))
+         then
             goto Continue;
          end if;
 
@@ -587,7 +601,14 @@ package body Exp_CG is
 
          Write_Int (UI_To_Int (Slot_Number (Prim)));
          Write_Char (':');
-         Write_Name (Chars (Prim));
+
+         --  Handle renamed primitives
+
+         if Present (Alias (Prim)) then
+            Write_Name (Chars (Ultimate_Alias (Prim)));
+         else
+            Write_Name (Chars (Prim));
+         end if;
 
          --  Display overriding of parent primitives
 
@@ -619,8 +640,8 @@ package body Exp_CG is
                   Int_Alias := Interface_Alias (Prim_Op);
 
                   if Present (Int_Alias)
-                    and then not Is_Ancestor
-                                   (Find_Dispatching_Type (Int_Alias), Typ)
+                    and then
+                      not Is_Ancestor (Find_Dispatching_Type (Int_Alias), Typ)
                     and then (Alias (Prim_Op)) = Prim
                   then
                      Write_Char (',');

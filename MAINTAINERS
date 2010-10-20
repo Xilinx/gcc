@@ -72,6 +72,7 @@ m68k port		Andreas Schwab		schwab@linux-m68k.org
 m68k-motorola-sysv port	Philippe De Muyter	phdm@macqel.be
 mcore port		Nick Clifton		nickc@redhat.com
 mep port		DJ Delorie		dj@redhat.com
+microblaze		Michael Eager		eager@eagercon.com
 mips port		Eric Christopher	echristo@apple.com
 mips port		Richard Sandiford	rdsandiford@googlemail.com
 mmix port		Hans-Peter Nilsson	hp@bitrange.com
@@ -120,6 +121,8 @@ netbsd			Krister Walfridsson	krister.walfridsson@gmail.com
 sh-linux-gnu		Kaz Kojima		kkojima@gcc.gnu.org
 RTEMS Ports		Joel Sherrill		joel@oarcorp.com
 RTEMS Ports		Ralf Corsepius		ralf.corsepius@rtems.org
+VMS			Douglas Rupp		rupp@gnat.com
+VMS			Tristan Gingold		gingold@adacore.com
 VxWorks ports		Nathan Sidwell		nathan@codesourcery.com
 windows, cygwin, mingw	Christopher Faylor	cgf@gcc.gnu.org
 windows, cygwin, mingw	Kai Tietz		kai.tietz@onevision.com
@@ -263,6 +266,7 @@ Fortran			Brooks Moses		brooks.moses@codesourcery.com
 Fortran			Tobias Schlüter		tobias.schlueter@physik.uni-muenchen.de
 Fortran			Paul Thomas		pault@gcc.gnu.org
 Fortran			Janus Weil		janus@gcc.gnu.org
+gengtype/GTY		Laurynas Biveinis       laurynas.biveinis@gmail.com
 Graphite		Daniel Berlin		dberlin@dberlin.org
 Graphite 		Tobias Grosser		grosser@fim.uni-passau.de
 Graphite		Sebastian Pop		sebastian.pop@amd.com
@@ -297,7 +301,6 @@ Peter Bergner					bergner@vnet.ibm.com
 Jan Beulich					jbeulich@novell.com
 David Billinghurst				David.Billinghurst@riotinto.com
 Tomas Bily					tbily@suse.cz
-Laurynas Biveinis				laurynas.biveinis@gmail.com
 Eric Blake					ericb@gcc.gnu.org
 Phil Blundell					pb@futuretv.com
 Hans Boehm					hboehm@gcc.gnu.org
@@ -448,7 +451,6 @@ Craig Rodrigues					rodrigc@gcc.gnu.org
 Erven Rohou					erven.rohou@inria.fr
 Ira Rosen					irar@il.ibm.com
 Maciej W. Rozycki				macro@linux-mips.org
-Douglas Rupp					rupp@gnat.com
 Silvius Rus					rus@google.com
 Matthew Sachs					msachs@apple.com
 Iain Sandoe					iains@gcc.gnu.org

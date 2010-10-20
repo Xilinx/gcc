@@ -1405,6 +1405,11 @@ instantiate_new_reg (rtx x, HOST_WIDE_INT *poffset)
 #endif
       offset = cfa_offset;
     }
+  else if (x == virtual_preferred_stack_boundary_rtx)
+    {
+      new_rtx = GEN_INT (crtl->preferred_stack_boundary / BITS_PER_UNIT);
+      offset = 0;
+    }
   else
     return NULL_RTX;
 
@@ -3578,7 +3583,7 @@ gimplify_parameters (void)
 		       && compare_tree_int (DECL_SIZE_UNIT (parm),
 					    STACK_CHECK_MAX_VAR_SIZE) > 0))
 		{
-		  local = create_tmp_var (type, get_name (parm));
+		  local = create_tmp_reg (type, get_name (parm));
 		  DECL_IGNORED_P (local) = 0;
 		  /* If PARM was addressable, move that flag over
 		     to the local copy, as its address will be taken,
@@ -3592,7 +3597,7 @@ gimplify_parameters (void)
 		  tree ptr_type, addr;
 
 		  ptr_type = build_pointer_type (type);
-		  addr = create_tmp_var (ptr_type, get_name (parm));
+		  addr = create_tmp_reg (ptr_type, get_name (parm));
 		  DECL_IGNORED_P (addr) = 0;
 		  local = build_fold_indirect_ref (addr);
 
@@ -4249,7 +4254,7 @@ invoke_set_current_function_hook (tree fndecl)
       if (optimization_current_node != opts)
 	{
 	  optimization_current_node = opts;
-	  cl_optimization_restore (TREE_OPTIMIZATION (opts));
+	  cl_optimization_restore (&global_options, TREE_OPTIMIZATION (opts));
 	}
 
       targetm.set_current_function (fndecl);
@@ -4892,7 +4897,7 @@ expand_function_end (void)
   /* Output the label for the actual return from the function.  */
   emit_label (return_label);
 
-  if (USING_SJLJ_EXCEPTIONS)
+  if (targetm.except_unwind_info () == UI_SJLJ)
     {
       /* Let except.c know where it should emit the call to unregister
 	 the function context for sjlj exceptions.  */
@@ -5050,7 +5055,8 @@ expand_function_end (void)
   /* @@@ This is a kludge.  We want to ensure that instructions that
      may trap are not moved into the epilogue by scheduling, because
      we don't always emit unwind information for the epilogue.  */
-  if (!USING_SJLJ_EXCEPTIONS && cfun->can_throw_non_call_exceptions)
+  if (cfun->can_throw_non_call_exceptions
+      && targetm.except_unwind_info () != UI_SJLJ)
     emit_insn (gen_blockage ());
 
   /* If stack protection is enabled for this function, check the guard.  */
@@ -5209,17 +5215,50 @@ emit_return_into_block (basic_block bb)
 static void
 thread_prologue_and_epilogue_insns (void)
 {
-  int inserted = 0;
+  bool inserted;
+  rtx seq, epilogue_end;
+  edge entry_edge;
   edge e;
-#if defined (HAVE_sibcall_epilogue) || defined (HAVE_epilogue) || defined (HAVE_return) || defined (HAVE_prologue)
-  rtx seq;
-#endif
-#if defined (HAVE_epilogue) || defined(HAVE_return)
-  rtx epilogue_end = NULL_RTX;
-#endif
   edge_iterator ei;
 
   rtl_profile_for_bb (ENTRY_BLOCK_PTR);
+
+  inserted = false;
+  seq = NULL_RTX;
+  epilogue_end = NULL_RTX;
+
+  /* Can't deal with multiple successors of the entry block at the
+     moment.  Function should always have at least one entry
+     point.  */
+  gcc_assert (single_succ_p (ENTRY_BLOCK_PTR));
+  entry_edge = single_succ_edge (ENTRY_BLOCK_PTR);
+
+  if (flag_split_stack
+      && (lookup_attribute ("no_split_stack", DECL_ATTRIBUTES (cfun->decl))
+	  == NULL))
+    {
+#ifndef HAVE_split_stack_prologue
+      gcc_unreachable ();
+#else
+      gcc_assert (HAVE_split_stack_prologue);
+
+      start_sequence ();
+      emit_insn (gen_split_stack_prologue ());
+      seq = get_insns ();
+      end_sequence ();
+
+      record_insns (seq, NULL, &prologue_insn_hash);
+      set_insn_locators (seq, prologue_locator);
+
+      /* This relies on the fact that committing the edge insertion
+	 will look for basic blocks within the inserted instructions,
+	 which in turn relies on the fact that we are not in CFG
+	 layout mode here.  */
+      insert_insn_on_edge (seq, entry_edge);
+      inserted = true;
+#endif
+    }
+
 #ifdef HAVE_prologue
   if (HAVE_prologue)
     {
@@ -5246,13 +5285,8 @@ thread_prologue_and_epilogue_insns (void)
       end_sequence ();
       set_insn_locators (seq, prologue_locator);
 
-      /* Can't deal with multiple successors of the entry block
-         at the moment.  Function should always have at least one
-         entry point.  */
-      gcc_assert (single_succ_p (ENTRY_BLOCK_PTR));
-
-      insert_insn_on_edge (seq, single_succ_edge (ENTRY_BLOCK_PTR));
-      inserted = 1;
+      insert_insn_on_edge (seq, entry_edge);
+      inserted = true;
     }
 #endif
 
@@ -5422,7 +5456,7 @@ thread_prologue_and_epilogue_insns (void)
       end_sequence ();
 
       insert_insn_on_edge (seq, e);
-      inserted = 1;
+      inserted = true;
     }
   else
 #endif

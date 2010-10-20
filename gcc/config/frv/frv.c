@@ -265,7 +265,6 @@ frv_cpu_t frv_cpu_type = CPU_TYPE;	/* value of -mcpu= */
 
 static bool frv_handle_option			(size_t, const char *, int);
 static void frv_option_override			(void);
-static void frv_option_optimization		(int, int);
 static bool frv_legitimate_address_p		(enum machine_mode, rtx, bool);
 static int frv_default_flags_for_cpu		(void);
 static int frv_string_begins_with		(const_tree, const char *);
@@ -432,8 +431,6 @@ static bool frv_class_likely_spilled_p 		(reg_class_t);
 #define TARGET_HANDLE_OPTION frv_handle_option
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE frv_option_override
-#undef TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION frv_option_optimization
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS frv_init_builtins
 #undef TARGET_EXPAND_BUILTIN
@@ -572,7 +569,7 @@ frv_const_unspec_p (rtx x, struct frv_unspec *unspec)
 
 	  if (frv_small_data_reloc_p (unspec->symbol, unspec->reloc)
 	      && unspec->offset > 0
-	      && (unsigned HOST_WIDE_INT) unspec->offset < g_switch_value)
+	      && unspec->offset < g_switch_value)
 	    return true;
 	}
     }
@@ -611,11 +608,6 @@ frv_handle_option (size_t code, const char *arg, int value)
 {
   switch (code)
     {
-    case OPT_G:
-      g_switch_value = value;
-      g_switch_set = true;
-      return true;
-
     case OPT_mcpu_:
       if (strcmp (arg, "simple") == 0)
 	frv_cpu_type = FRV_CPU_SIMPLE;
@@ -692,9 +684,8 @@ frv_option_override (void)
       if (!flag_pic)		/* -fPIC */
 	flag_pic = 2;
 
-      if (! g_switch_set)	/* -G0 */
+      if (!global_options_set.x_g_switch_value)	/* -G0 */
 	{
-	  g_switch_set = 1;
 	  g_switch_value = 0;
 	}
     }
@@ -786,7 +777,7 @@ frv_option_override (void)
     }
 
   /* Check for small data option */
-  if (!g_switch_set)
+  if (!global_options_set.x_g_switch_value && !TARGET_LIBPIC)
     g_switch_value = SDATA_DEFAULT_SIZE;
 
   /* A C expression which defines the machine-dependent operand
@@ -850,25 +841,6 @@ frv_option_override (void)
     frv_type_to_unit[i] = ARRAY_SIZE (frv_unit_codes);
 
   init_machine_status = frv_init_machine_status;
-}
-
-
-/* Implement TARGET_OPTION_OPTIMIZATION.
-
-   On the FRV, possibly disable VLIW packing which is done by the 2nd
-   scheduling pass at the current time.  */
-static void
-frv_option_optimization (int level, int size ATTRIBUTE_UNUSED)
-{
-  if (level >= 2)
-    {
-#ifdef DISABLE_SCHED2
-      flag_schedule_insns_after_reload = 0;
-#endif
-#ifdef ENABLE_RCSP
-      flag_rcsp = 1;
-#endif
-    }
 }
 
 
@@ -4067,7 +4039,7 @@ frv_emit_movsi (rtx dest, rtx src)
 	  || (GET_CODE (src) == REG
 	      && IN_RANGE_P (REGNO (src),
 			     FIRST_VIRTUAL_REGISTER,
-			     LAST_VIRTUAL_REGISTER))))
+			     LAST_VIRTUAL_POINTER_REGISTER))))
     {
       emit_insn (gen_rtx_SET (VOIDmode, dest, copy_to_mode_reg (SImode, src)));
       return TRUE;
@@ -9570,7 +9542,7 @@ frv_in_small_data_p (const_tree decl)
     }
 
   size = int_size_in_bytes (TREE_TYPE (decl));
-  if (size > 0 && (unsigned HOST_WIDE_INT) size <= g_switch_value)
+  if (size > 0 && size <= g_switch_value)
     return true;
 
   return false;

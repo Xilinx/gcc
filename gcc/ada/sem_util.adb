@@ -245,6 +245,28 @@ package body Sem_Util is
       Analyze (N);
    end Add_Global_Declaration;
 
+   -----------------
+   -- Addressable --
+   -----------------
+
+   --  For now, just 8/16/32/64. but analyze later if AAMP is special???
+
+   function Addressable (V : Uint) return Boolean is
+   begin
+      return V = Uint_8  or else
+             V = Uint_16 or else
+             V = Uint_32 or else
+             V = Uint_64;
+   end Addressable;
+
+   function Addressable (V : Int) return Boolean is
+   begin
+      return V = 8  or else
+             V = 16 or else
+             V = 32 or else
+             V = 64;
+   end Addressable;
+
    -----------------------
    -- Alignment_In_Bits --
    -----------------------
@@ -1671,6 +1693,27 @@ package body Sem_Util is
       Formal_Derived : Boolean := False;
       Id             : Entity_Id;
 
+      function Match (E : Entity_Id) return Boolean;
+      --  True if E's base type is B_Type, or E is of an anonymous access type
+      --  and the base type of its designated type is B_Type.
+
+      -----------
+      -- Match --
+      -----------
+
+      function Match (E : Entity_Id) return Boolean is
+         Etyp : Entity_Id := Etype (E);
+
+      begin
+         if Ekind (Etyp) = E_Anonymous_Access_Type then
+            Etyp := Designated_Type (Etyp);
+         end if;
+
+         return Base_Type (Etyp) = B_Type;
+      end Match;
+
+   --  Start of processing for Collect_Primitive_Operations
+
    begin
       --  For tagged types, the primitive operations are collected as they
       --  are declared, and held in an explicit list which is simply returned.
@@ -1739,19 +1782,13 @@ package body Sem_Util is
             then
                Is_Prim := False;
 
-               if Base_Type (Etype (Id)) = B_Type then
+               if Match (Id) then
                   Is_Prim := True;
+
                else
                   Formal := First_Formal (Id);
                   while Present (Formal) loop
-                     if Base_Type (Etype (Formal)) = B_Type then
-                        Is_Prim := True;
-                        exit;
-
-                     elsif Ekind (Etype (Formal)) = E_Anonymous_Access_Type
-                       and then Base_Type
-                         (Designated_Type (Etype (Formal))) = B_Type
-                     then
+                     if Match (Formal) then
                         Is_Prim := True;
                         exit;
                      end if;
@@ -2693,6 +2730,12 @@ package body Sem_Util is
       elsif Ekind (Dynamic_Scope) = E_Task_Type then
          return Get_Task_Body_Procedure (Dynamic_Scope);
 
+      elsif Ekind (Dynamic_Scope) = E_Limited_Private_Type
+        and then Present (Full_View (Dynamic_Scope))
+        and then Ekind (Full_View (Dynamic_Scope)) = E_Task_Type
+      then
+         return Get_Task_Body_Procedure (Full_View (Dynamic_Scope));
+
       --  No body is generated if the protected operation is eliminated
 
       elsif Convention (Dynamic_Scope) = Convention_Protected
@@ -3467,71 +3510,6 @@ package body Sem_Util is
          return N;
       end if;
    end First_Actual;
-
-   -------------------------
-   -- Full_Qualified_Name --
-   -------------------------
-
-   function Full_Qualified_Name (E : Entity_Id) return String_Id is
-      Res : String_Id;
-      pragma Warnings (Off, Res);
-
-      function Internal_Full_Qualified_Name (E : Entity_Id) return String_Id;
-      --  Compute recursively the qualified name without NUL at the end
-
-      ----------------------------------
-      -- Internal_Full_Qualified_Name --
-      ----------------------------------
-
-      function Internal_Full_Qualified_Name (E : Entity_Id) return String_Id is
-         Ent         : Entity_Id := E;
-         Parent_Name : String_Id := No_String;
-
-      begin
-         --  Deals properly with child units
-
-         if Nkind (Ent) = N_Defining_Program_Unit_Name then
-            Ent := Defining_Identifier (Ent);
-         end if;
-
-         --  Compute qualification recursively (only "Standard" has no scope)
-
-         if Present (Scope (Scope (Ent))) then
-            Parent_Name := Internal_Full_Qualified_Name (Scope (Ent));
-         end if;
-
-         --  Every entity should have a name except some expanded blocks
-         --  don't bother about those.
-
-         if Chars (Ent) = No_Name then
-            return Parent_Name;
-         end if;
-
-         --  Add a period between Name and qualification
-
-         if Parent_Name /= No_String then
-            Start_String (Parent_Name);
-            Store_String_Char (Get_Char_Code ('.'));
-
-         else
-            Start_String;
-         end if;
-
-         --  Generates the entity name in upper case
-
-         Get_Decoded_Name_String (Chars (Ent));
-         Set_All_Upper_Case;
-         Store_String_Chars (Name_Buffer (1 .. Name_Len));
-         return End_String;
-      end Internal_Full_Qualified_Name;
-
-   --  Start of processing for Full_Qualified_Name
-
-   begin
-      Res := Internal_Full_Qualified_Name (E);
-      Store_String_Char (Get_Char_Code (ASCII.NUL));
-      return End_String;
-   end Full_Qualified_Name;
 
    -----------------------
    -- Gather_Components --
@@ -5302,6 +5280,18 @@ package body Sem_Util is
       end if;
    end Has_Tagged_Component;
 
+   -------------------------
+   -- Implementation_Kind --
+   -------------------------
+
+   function Implementation_Kind (Subp : Entity_Id) return Name_Id is
+      Impl_Prag : constant Node_Id := Get_Rep_Pragma (Subp, Name_Implemented);
+   begin
+      pragma Assert (Present (Impl_Prag));
+      return
+        Chars (Expression (Last (Pragma_Argument_Associations (Impl_Prag))));
+   end Implementation_Kind;
+
    --------------------------
    -- Implements_Interface --
    --------------------------
@@ -5579,7 +5569,8 @@ package body Sem_Util is
    begin
       Save_Interps (N, New_Prefix);
 
-      Rewrite (N, Make_Explicit_Dereference (Sloc (N), Prefix => New_Prefix));
+      Rewrite (N,
+        Make_Explicit_Dereference (Sloc (Parent (N)), Prefix => New_Prefix));
 
       Set_Etype (N, Designated_Type (Etype (New_Prefix)));
 
@@ -5610,6 +5601,7 @@ package body Sem_Util is
 
          if Is_Entity_Name (New_Prefix) then
             Ent := Entity (New_Prefix);
+            Pref := New_Prefix;
 
          --  For a retrieval of a subcomponent of some composite object,
          --  retrieve the ultimate entity if there is one.
@@ -5631,8 +5623,10 @@ package body Sem_Util is
             end if;
          end if;
 
+         --  Place the reference on the entity node.
+
          if Present (Ent) then
-            Generate_Reference (Ent, New_Prefix);
+            Generate_Reference (Ent, Pref);
          end if;
       end if;
    end Insert_Explicit_Dereference;
@@ -6089,14 +6083,14 @@ package body Sem_Util is
             --  (despite the fact that 3.10.2(26/2) and 8.5.1(5/2) are
             --  semantic rules -- these rules are acknowledged to need fixing).
 
-            if Ada_Version < Ada_05 then
+            if Ada_Version < Ada_2005 then
                if Is_Access_Type (Prefix_Type)
                  or else Nkind (P) = N_Explicit_Dereference
                then
                   return False;
                end if;
 
-            elsif Ada_Version >= Ada_05 then
+            elsif Ada_Version >= Ada_2005 then
                if Is_Access_Type (Prefix_Type) then
 
                   --  If the access type is pool-specific, and there is no
@@ -6136,7 +6130,7 @@ package body Sem_Util is
 
               and then (Is_Declared_Within_Variant (Comp)
                           or else Has_Discriminant_Dependent_Constraint (Comp))
-              and then (not P_Aliased or else Ada_Version >= Ada_05)
+              and then (not P_Aliased or else Ada_Version >= Ada_2005)
             then
                return True;
 
@@ -6965,7 +6959,7 @@ package body Sem_Util is
       --  because they denote entities that are not necessarily visible.
       --  Neither of them can apply to a protected type.
 
-      return Ada_Version >= Ada_05
+      return Ada_Version >= Ada_2005
         and then Is_Entity_Name (N)
         and then Present (Entity (N))
         and then Is_Protected_Type (Entity (N))
@@ -8050,7 +8044,7 @@ package body Sem_Util is
       Formal : Entity_Id;
 
    begin
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Present (First_Formal (E))
       then
          Formal := Next_Formal (First_Formal (E));
@@ -9476,7 +9470,10 @@ package body Sem_Util is
                if Comes_From_Source (Exp)
                  or else Modification_Comes_From_Source
                then
-                  if Has_Pragma_Unmodified (Ent) then
+                  --  Give warning if pragma unmodified given and we are
+                  --  sure this is a modification.
+
+                  if Has_Pragma_Unmodified (Ent) and then Sure then
                      Error_Msg_NE ("?pragma Unmodified given for &!", N, Ent);
                   end if;
 
@@ -9681,7 +9678,7 @@ package body Sem_Util is
          --  version of the code causes regressions in several tests that are
          --  compiled with -gnat95. ???)
 
-         if Ada_Version < Ada_05 then
+         if Ada_Version < Ada_2005 then
             if Is_Entity_Name (Name (Obj)) then
                return Subprogram_Access_Level (Entity (Name (Obj)));
             else

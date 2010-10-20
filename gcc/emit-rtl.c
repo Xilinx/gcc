@@ -589,12 +589,12 @@ gen_rtx_REG (enum machine_mode mode, unsigned int regno)
       if (regno == FRAME_POINTER_REGNUM
 	  && (!reload_completed || frame_pointer_needed))
 	return frame_pointer_rtx;
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
       if (regno == HARD_FRAME_POINTER_REGNUM
 	  && (!reload_completed || frame_pointer_needed))
 	return hard_frame_pointer_rtx;
 #endif
-#if FRAME_POINTER_REGNUM != ARG_POINTER_REGNUM && HARD_FRAME_POINTER_REGNUM != ARG_POINTER_REGNUM
+#if FRAME_POINTER_REGNUM != ARG_POINTER_REGNUM && !HARD_FRAME_POINTER_IS_ARG_POINTER
       if (regno == ARG_POINTER_REGNUM)
 	return arg_pointer_rtx;
 #endif
@@ -1660,7 +1660,11 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	  else
 	    MEM_NOTRAP_P (ref) = 1;
 	}
-      else
+      else if (TREE_CODE (base) == INDIRECT_REF
+	       || TREE_CODE (base) == MEM_REF
+	       || TREE_CODE (base) == TARGET_MEM_REF
+	       || TREE_CODE (base) == ARRAY_REF
+	       || TREE_CODE (base) == ARRAY_RANGE_REF)
 	MEM_NOTRAP_P (ref) = TREE_THIS_NOTRAP (base);
 
       base = get_base_address (base);
@@ -2236,7 +2240,6 @@ get_spill_slot_decl (bool force_build_p)
   DECL_ARTIFICIAL (d) = 1;
   DECL_IGNORED_P (d) = 1;
   TREE_USED (d) = 1;
-  TREE_THIS_NOTRAP (d) = 1;
   spill_slot_decl = d;
 
   rd = gen_rtx_MEM (BLKmode, frame_pointer_rtx);
@@ -3977,6 +3980,13 @@ delete_insns_since (rtx from)
 void
 reorder_insns_nobb (rtx from, rtx to, rtx after)
 {
+#ifdef ENABLE_CHECKING
+  rtx x;
+  for (x = from; x != to; x = NEXT_INSN (x))
+    gcc_assert (after != x);
+  gcc_assert (after != to);
+#endif
+
   /* Splice this bunch out of where it is now.  */
   if (PREV_INSN (from))
     NEXT_INSN (PREV_INSN (from)) = NEXT_INSN (to);
@@ -5376,6 +5386,8 @@ init_virtual_regs (void)
   regno_reg_rtx[VIRTUAL_STACK_DYNAMIC_REGNUM] = virtual_stack_dynamic_rtx;
   regno_reg_rtx[VIRTUAL_OUTGOING_ARGS_REGNUM] = virtual_outgoing_args_rtx;
   regno_reg_rtx[VIRTUAL_CFA_REGNUM] = virtual_cfa_rtx;
+  regno_reg_rtx[VIRTUAL_PREFERRED_STACK_BOUNDARY_REGNUM]
+    = virtual_preferred_stack_boundary_rtx;
 }
 
 
@@ -5698,6 +5710,8 @@ init_emit_regs (void)
   virtual_outgoing_args_rtx =
     gen_raw_REG (Pmode, VIRTUAL_OUTGOING_ARGS_REGNUM);
   virtual_cfa_rtx = gen_raw_REG (Pmode, VIRTUAL_CFA_REGNUM);
+  virtual_preferred_stack_boundary_rtx =
+    gen_raw_REG (Pmode, VIRTUAL_PREFERRED_STACK_BOUNDARY_REGNUM);
 
   /* Initialize RTL for commonly used hard registers.  These are
      copied into regno_reg_rtx as we begin to compile each function.  */

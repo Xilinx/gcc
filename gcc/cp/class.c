@@ -282,7 +282,7 @@ build_base_path (enum tree_code code,
 
   if (!want_pointer)
     /* This must happen before the call to save_expr.  */
-    expr = cp_build_unary_op (ADDR_EXPR, expr, 0, tf_warning_or_error);
+    expr = cp_build_addr_expr (expr, tf_warning_or_error);
   else
     expr = mark_rvalue_use (expr);
 
@@ -557,8 +557,7 @@ convert_to_base_statically (tree expr, tree base)
 	 when processing a template because they do not handle C++-specific
 	 trees.  */
       gcc_assert (!processing_template_decl);
-      expr = cp_build_unary_op (ADDR_EXPR, expr, /*noconvert=*/1, 
-                             tf_warning_or_error);
+      expr = cp_build_addr_expr (expr, tf_warning_or_error);
       if (!integer_zerop (BINFO_OFFSET (base)))
         expr = fold_build2_loc (input_location,
 			    POINTER_PLUS_EXPR, pointer_type, expr,
@@ -661,8 +660,7 @@ build_vfn_ref (tree instance_ptr, tree idx)
      vtable entry is treated as a function pointer.  */
   if (TARGET_VTABLE_USES_DESCRIPTORS)
     aref = build1 (NOP_EXPR, TREE_TYPE (aref),
-		   cp_build_unary_op (ADDR_EXPR, aref, /*noconvert=*/1,
-                                   tf_warning_or_error));
+		   cp_build_addr_expr (aref, tf_warning_or_error));
 
   /* Remember this as a method reference, for later devirtualization.  */
   aref = build3 (OBJ_TYPE_REF, TREE_TYPE (aref), aref, instance_ptr, idx);
@@ -1517,12 +1515,31 @@ fixup_type_variants (tree t)
       TYPE_VFIELD (variants) = TYPE_VFIELD (t);
       TYPE_METHODS (variants) = TYPE_METHODS (t);
       TYPE_FIELDS (variants) = TYPE_FIELDS (t);
-
-      /* All variants of a class have the same attributes.  */
-      TYPE_ATTRIBUTES (variants) = TYPE_ATTRIBUTES (t);
     }
 }
 
+/* Early variant fixups: we apply attributes at the beginning of the class
+   definition, and we need to fix up any variants that have already been
+   made via elaborated-type-specifier so that check_qualified_type works.  */
+
+void
+fixup_attribute_variants (tree t)
+{
+  tree variants;
+
+  if (!t)
+    return;
+
+  for (variants = TYPE_NEXT_VARIANT (t);
+       variants;
+       variants = TYPE_NEXT_VARIANT (variants))
+    {
+      /* These are the two fields that check_qualified_type looks at and
+	 are affected by attributes.  */
+      TYPE_ATTRIBUTES (variants) = TYPE_ATTRIBUTES (t);
+      TYPE_ALIGN (variants) = TYPE_ALIGN (t);
+    }
+}
 
 /* Set memoizing fields and bits of T (and its variants) for later
    use.  */
@@ -6464,7 +6481,7 @@ resolve_address_of_overloaded_function (tree target_type,
     }
 
   if (TYPE_PTRFN_P (target_type) || TYPE_PTRMEMFUNC_P (target_type))
-    return cp_build_unary_op (ADDR_EXPR, fn, 0, flags);
+    return cp_build_addr_expr (fn, flags);
   else
     {
       /* The target must be a REFERENCE_TYPE.  Above, cp_build_unary_op

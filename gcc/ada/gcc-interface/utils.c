@@ -79,6 +79,9 @@ tree gnat_std_decls[(int) ADT_LAST];
 /* Functions to call for each of the possible raise reasons.  */
 tree gnat_raise_decls[(int) LAST_REASON_CODE + 1];
 
+/* Functions to call with extra info for each of the possible raise reasons.  */
+tree gnat_raise_decls_ext[(int) LAST_REASON_CODE + 1];
+
 /* Forward declarations for handlers of attributes.  */
 static tree handle_const_attribute (tree *, tree, tree, int, bool *);
 static tree handle_nothrow_attribute (tree *, tree, tree, int, bool *);
@@ -87,6 +90,7 @@ static tree handle_novops_attribute (tree *, tree, tree, int, bool *);
 static tree handle_nonnull_attribute (tree *, tree, tree, int, bool *);
 static tree handle_sentinel_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noreturn_attribute (tree *, tree, tree, int, bool *);
+static tree handle_leaf_attribute (tree *, tree, tree, int, bool *);
 static tree handle_malloc_attribute (tree *, tree, tree, int, bool *);
 static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_vector_size_attribute (tree *, tree, tree, int, bool *);
@@ -108,6 +112,7 @@ const struct attribute_spec gnat_internal_attribute_table[] =
   { "nonnull",      0, -1, false, true,  true,  handle_nonnull_attribute },
   { "sentinel",     0, 1,  false, true,  true,  handle_sentinel_attribute },
   { "noreturn",     0, 0,  true,  false, false, handle_noreturn_attribute },
+  { "leaf",         0, 0,  true,  false, false, handle_leaf_attribute },
   { "malloc",       0, 0,  true,  false, false, handle_malloc_attribute },
   { "type generic", 0, 0,  false, true, true, handle_type_generic_attribute },
 
@@ -961,17 +966,6 @@ add_parallel_type (tree decl, tree parallel_type)
   SET_DECL_PARALLEL_TYPE (d, parallel_type);
 }
 
-/* Return the parallel type associated to a type, if any.  */
-
-tree
-get_parallel_type (tree type)
-{
-  if (TYPE_STUB_DECL (type))
-    return DECL_PARALLEL_TYPE (TYPE_STUB_DECL (type));
-  else
-    return NULL_TREE;
-}
-
 /* Utility function of above to merge LAST_SIZE, the previous size of a record
    with FIRST_BIT and SIZE that describe a field.  SPECIAL is true if this
    represents a QUAL_UNION_TYPE in which case we must look for COND_EXPRs and
@@ -1792,7 +1786,6 @@ create_subprog_decl (tree subprog_name, tree asm_name,
 
   DECL_EXTERNAL (subprog_decl)  = extern_flag;
   TREE_PUBLIC (subprog_decl)    = public_flag;
-  TREE_STATIC (subprog_decl)	= 1;
   TREE_READONLY (subprog_decl)  = TYPE_READONLY (subprog_type);
   TREE_THIS_VOLATILE (subprog_decl) = TYPE_VOLATILE (subprog_type);
   TREE_SIDE_EFFECTS (subprog_decl) = TYPE_VOLATILE (subprog_type);
@@ -1839,6 +1832,9 @@ begin_subprog_body (tree subprog_decl)
   tree param_decl;
 
   announce_function (subprog_decl);
+
+  /* This function is being defined.  */
+  TREE_STATIC (subprog_decl) = 1;
 
   current_function_decl = subprog_decl;
 
@@ -3169,24 +3165,35 @@ convert_vms_descriptor32 (tree gnu_type, tree gnu_expr, Entity_Id gnat_subprog)
 
 /* Convert GNU_EXPR, a pointer to a VMS descriptor, to GNU_TYPE, a regular
    pointer or fat pointer type.  GNU_EXPR_ALT_TYPE is the alternate (32-bit)
-   pointer type of GNU_EXPR.  GNAT_SUBPROG is the subprogram to which the
-   VMS descriptor is passed.  */
+   pointer type of GNU_EXPR.  BY_REF is true if the result is to be used by
+   reference.  GNAT_SUBPROG is the subprogram to which the VMS descriptor is
+   passed.  */
 
 static tree
 convert_vms_descriptor (tree gnu_type, tree gnu_expr, tree gnu_expr_alt_type,
-			Entity_Id gnat_subprog)
+			bool by_ref, Entity_Id gnat_subprog)
 {
   tree desc_type = TREE_TYPE (TREE_TYPE (gnu_expr));
   tree desc = build1 (INDIRECT_REF, desc_type, gnu_expr);
   tree mbo = TYPE_FIELDS (desc_type);
   const char *mbostr = IDENTIFIER_POINTER (DECL_NAME (mbo));
   tree mbmo = DECL_CHAIN (DECL_CHAIN (DECL_CHAIN (mbo)));
-  tree is64bit, gnu_expr32, gnu_expr64;
+  tree real_type, is64bit, gnu_expr32, gnu_expr64;
+
+  if (by_ref)
+    real_type = TREE_TYPE (gnu_type);
+  else
+    real_type = gnu_type;
 
   /* If the field name is not MBO, it must be 32-bit and no alternate.
      Otherwise primary must be 64-bit and alternate 32-bit.  */
   if (strcmp (mbostr, "MBO") != 0)
-    return convert_vms_descriptor32 (gnu_type, gnu_expr, gnat_subprog);
+    {
+      tree ret = convert_vms_descriptor32 (real_type, gnu_expr, gnat_subprog);
+      if (by_ref)
+	ret = build_unary_op (ADDR_EXPR, gnu_type, ret);
+      return ret;
+    }
 
   /* Build the test for 64-bit descriptor.  */
   mbo = build3 (COMPONENT_REF, TREE_TYPE (mbo), desc, mbo, NULL_TREE);
@@ -3201,9 +3208,13 @@ convert_vms_descriptor (tree gnu_type, tree gnu_expr, tree gnu_expr_alt_type,
 					integer_minus_one_node));
 
   /* Build the 2 possible end results.  */
-  gnu_expr64 = convert_vms_descriptor64 (gnu_type, gnu_expr, gnat_subprog);
+  gnu_expr64 = convert_vms_descriptor64 (real_type, gnu_expr, gnat_subprog);
+  if (by_ref)
+    gnu_expr64 =  build_unary_op (ADDR_EXPR, gnu_type, gnu_expr64);
   gnu_expr = fold_convert (gnu_expr_alt_type, gnu_expr);
-  gnu_expr32 = convert_vms_descriptor32 (gnu_type, gnu_expr, gnat_subprog);
+  gnu_expr32 = convert_vms_descriptor32 (real_type, gnu_expr, gnat_subprog);
+  if (by_ref)
+    gnu_expr32 =  build_unary_op (ADDR_EXPR, gnu_type, gnu_expr32);
 
   return build3 (COND_EXPR, gnu_type, is64bit, gnu_expr64, gnu_expr32);
 }
@@ -3215,7 +3226,7 @@ void
 build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
 {
   tree gnu_subprog_type, gnu_subprog_addr, gnu_subprog_call;
-  tree gnu_stub_param, gnu_arg_types, gnu_param;
+  tree gnu_subprog_param, gnu_stub_param, gnu_param;
   tree gnu_stub_decl = DECL_FUNCTION_STUB (gnu_subprog);
   VEC(tree,gc) *gnu_param_vec = NULL;
 
@@ -3233,17 +3244,21 @@ build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
   /* Loop over the parameters of the stub and translate any of them
      passed by descriptor into a by reference one.  */
   for (gnu_stub_param = DECL_ARGUMENTS (gnu_stub_decl),
-       gnu_arg_types = TYPE_ARG_TYPES (gnu_subprog_type);
+       gnu_subprog_param = DECL_ARGUMENTS (gnu_subprog);
        gnu_stub_param;
        gnu_stub_param = TREE_CHAIN (gnu_stub_param),
-       gnu_arg_types = TREE_CHAIN (gnu_arg_types))
+       gnu_subprog_param = TREE_CHAIN (gnu_subprog_param))
     {
       if (DECL_BY_DESCRIPTOR_P (gnu_stub_param))
-	gnu_param
-	  = convert_vms_descriptor (TREE_VALUE (gnu_arg_types),
-				    gnu_stub_param,
-				    DECL_PARM_ALT_TYPE (gnu_stub_param),
-				    gnat_subprog);
+	{
+	  gcc_assert (DECL_BY_REF_P (gnu_subprog_param));
+	  gnu_param
+	    = convert_vms_descriptor (TREE_TYPE (gnu_subprog_param),
+				      gnu_stub_param,
+				      DECL_PARM_ALT_TYPE (gnu_stub_param),
+				      DECL_BY_DOUBLE_REF_P (gnu_subprog_param),
+				      gnat_subprog);
+	}
       else
 	gnu_param = gnu_stub_param;
 
@@ -5178,6 +5193,28 @@ handle_noreturn_attribute (tree *node, tree name, tree ARG_UNUSED (args),
     {
       warning (OPT_Wattributes, "%qs attribute ignored",
 	       IDENTIFIER_POINTER (name));
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
+/* Handle a "leaf" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_leaf_attribute (tree *node, tree name,
+		       tree ARG_UNUSED (args),
+		       int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  if (!TREE_PUBLIC (*node))
+    {
+      warning (OPT_Wattributes, "%qE attribute has no effect", name);
       *no_add_attrs = true;
     }
 

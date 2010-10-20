@@ -1965,6 +1965,25 @@ begin
                  or else Linker_Options.Table (J) (1 .. 2) = "-l"
                  or else Linker_Options.Table (J) (1 .. 3) = "-Wl"
                  or else Linker_Options.Table (J) (1 .. 3) = "-sh"
+                 or else Linker_Options.Table (J) (1 .. 2) = "-O"
+                 or else Linker_Options.Table (J) (1 .. 2) = "-g"
+               then
+                  Linker_Options.Table (J .. Linker_Options.Last - 1) :=
+                    Linker_Options.Table (J + 1 .. Linker_Options.Last);
+                  Linker_Options.Decrement_Last;
+                  Num_Args := Num_Args - 1;
+               end if;
+            end loop;
+
+         elsif AAMP_On_Target then
+
+            --  Remove extraneous flags not relevant for AAMP
+
+            for J in reverse Linker_Options.First .. Linker_Options.Last loop
+               if Linker_Options.Table (J)'Length = 0
+                 or else Linker_Options.Table (J) (1 .. 3) = "-Wl"
+                 or else Linker_Options.Table (J) (1 .. 3) = "-sh"
+                 or else Linker_Options.Table (J) (1 .. 2) = "-O"
                  or else Linker_Options.Table (J) (1 .. 2) = "-g"
                then
                   Linker_Options.Table (J .. Linker_Options.Last - 1) :=
@@ -1982,10 +2001,12 @@ begin
             for J in reverse Linker_Options.First .. Linker_Options.Last loop
 
                --  Remove flags that are not accepted
+
                if Linker_Options.Table (J)'Length = 0
                  or else Linker_Options.Table (J) (1 .. 2) = "-l"
                  or else Linker_Options.Table (J) (1 .. 3) = "-Wl"
                  or else Linker_Options.Table (J) (1 .. 3) = "-sh"
+                 or else Linker_Options.Table (J) (1 .. 2) = "-O"
                  or else Linker_Options.Table (J) (1 .. 8) = "-Xlinker"
                  or else Linker_Options.Table (J) (1 .. 9) = "-mthreads"
                then

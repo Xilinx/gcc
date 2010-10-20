@@ -297,11 +297,9 @@ resolve_formal_arglist (gfc_symbol *proc)
 	  continue;
 	}
 
-      if (sym->ts.type == BT_UNKNOWN)
-	{
-	  if (!sym->attr.function || sym->result == sym)
-	    gfc_set_default_type (sym, 1, sym->ns);
-	}
+      if (sym->ts.type == BT_UNKNOWN && !proc->attr.intrinsic
+	  && (!sym->attr.function || sym->result == sym))
+	gfc_set_default_type (sym, 1, sym->ns);
 
       gfc_resolve_array_spec (sym->as, 0);
 
@@ -1396,7 +1394,7 @@ is_illegal_recursion (gfc_symbol* sym, gfc_namespace* context)
 static gfc_try
 resolve_intrinsic (gfc_symbol *sym, locus *loc)
 {
-  gfc_intrinsic_sym* isym;
+  gfc_intrinsic_sym* isym = NULL;
   const char* symstd;
 
   if (sym->formal)
@@ -1407,7 +1405,12 @@ resolve_intrinsic (gfc_symbol *sym, locus *loc)
      gfc_find_subroutine directly to check whether it is a function or
      subroutine.  */
 
-  if ((isym = gfc_find_function (sym->name)))
+  if (sym->intmod_sym_id)
+    isym = gfc_intrinsic_function_by_id ((gfc_isym_id) sym->intmod_sym_id);
+  else
+    isym = gfc_find_function (sym->name);
+
+  if (isym)
     {
       if (sym->ts.type != BT_UNKNOWN && gfc_option.warn_surprising
 	  && !sym->attr.implicit_type)
@@ -5401,6 +5404,7 @@ static gfc_try
 check_typebound_baseobject (gfc_expr* e)
 {
   gfc_expr* base;
+  gfc_try return_value = FAILURE;
 
   base = extract_compcall_passed_object (e);
   if (!base)
@@ -5412,7 +5416,7 @@ check_typebound_baseobject (gfc_expr* e)
     {
       gfc_error ("Base object for type-bound procedure call at %L is of"
 		 " ABSTRACT type '%s'", &e->where, base->ts.u.derived->name);
-      return FAILURE;
+      goto cleanup;
     }
 
   /* If the procedure called is NOPASS, the base object must be scalar.  */
@@ -5420,7 +5424,7 @@ check_typebound_baseobject (gfc_expr* e)
     {
       gfc_error ("Base object for NOPASS type-bound procedure call at %L must"
 		 " be scalar", &e->where);
-      return FAILURE;
+      goto cleanup;
     }
 
   /* FIXME: Remove once PR 41177 (this problem) is fixed completely.  */
@@ -5428,10 +5432,14 @@ check_typebound_baseobject (gfc_expr* e)
     {
       gfc_error ("Non-scalar base object at %L currently not implemented",
 		 &e->where);
-      return FAILURE;
+      goto cleanup;
     }
 
-  return SUCCESS;
+  return_value = SUCCESS;
+
+cleanup:
+  gfc_free_expr (base);
+  return return_value;
 }
 
 
@@ -5711,13 +5719,12 @@ resolve_typebound_function (gfc_expr* e)
 
   /* Deal with typebound operators for CLASS objects.  */
   expr = e->value.compcall.base_object;
-  if (expr && expr->symtree->n.sym->ts.type == BT_CLASS
-	&& e->value.compcall.name)
+  if (expr && expr->ts.type == BT_CLASS && e->value.compcall.name)
     {
       /* Since the typebound operators are generic, we have to ensure
 	 that any delays in resolution are corrected and that the vtab
 	 is present.  */
-      ts = expr->symtree->n.sym->ts;
+      ts = expr->ts;
       declared = ts.u.derived;
       c = gfc_find_component (declared, "$vptr", true, true);
       if (c->ts.u.derived == NULL)
@@ -5729,7 +5736,7 @@ resolve_typebound_function (gfc_expr* e)
       /* Use the generic name if it is there.  */
       name = name ? name : e->value.function.esym->name;
       e->symtree = expr->symtree;
-      expr->symtree->n.sym->ts.u.derived = declared;
+      e->ref = gfc_copy_ref (expr->ref);
       gfc_add_component_ref (e, "$vptr");
       gfc_add_component_ref (e, name);
       e->value.function.esym = NULL;
@@ -6703,6 +6710,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
     {
       /* Set up default initializer if needed.  */
       gfc_typespec ts;
+      gfc_expr *init_e;
 
       if (code->ext.alloc.ts.type == BT_DERIVED)
 	ts = code->ext.alloc.ts;
@@ -6712,9 +6720,8 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
       if (ts.type == BT_CLASS)
 	ts = ts.u.derived->components->ts;
 
-      if (ts.type == BT_DERIVED && gfc_has_default_initializer(ts.u.derived))
+      if (ts.type == BT_DERIVED && (init_e = gfc_default_initializer (&ts)))
 	{
-	  gfc_expr *init_e = gfc_default_initializer (&ts);
 	  gfc_code *init_st = gfc_get_code ();
 	  init_st->loc = code->loc;
 	  init_st->op = EXEC_INIT_ASSIGN;
@@ -7570,7 +7577,11 @@ resolve_assoc_var (gfc_symbol* sym, bool resolve_target)
       sym->attr.target = (tsym->attr.target || tsym->attr.pointer);
     }
 
-  sym->ts = target->ts;
+  /* Get type if this was not already set.  Note that it can be
+     some other type than the target in case this is a SELECT TYPE
+     selector!  So we must not update when the type is already there.  */
+  if (sym->ts.type == BT_UNKNOWN)
+    sym->ts = target->ts;
   gcc_assert (sym->ts.type != BT_UNKNOWN);
 
   /* See if this is a valid association-to-variable.  */
@@ -7673,8 +7684,8 @@ resolve_select_type (gfc_code *code, gfc_namespace *old_ns)
 	      error++;
 	      continue;
 	    }
-	  else
-	    default_case = body;
+
+	  default_case = body;
 	}
     }
     
@@ -7916,11 +7927,18 @@ resolve_transfer (gfc_code *code)
 		      && exp->expr_type != EXPR_FUNCTION))
     return;
 
+  /* If we are reading, the variable will be changed.  Note that
+     code->ext.dt may be NULL if the TRANSFER is related to
+     an INQUIRE statement -- but in this case, we are not reading, either.  */
+  if (code->ext.dt && code->ext.dt->dt_io_kind->value.iokind == M_READ
+      && gfc_check_vardef_context (exp, false, _("item in READ")) == FAILURE)
+    return;
+
   sym = exp->symtree->n.sym;
   ts = &sym->ts;
 
   /* Go to actual component transferred.  */
-  for (ref = code->expr1->ref; ref; ref = ref->next)
+  for (ref = exp->ref; ref; ref = ref->next)
     if (ref->type == REF_COMPONENT)
       ts = &ref->u.c.component->ts;
 
@@ -11069,15 +11087,12 @@ add_dt_to_dt_list (gfc_symbol *derived)
 
   for (dt_list = gfc_derived_types; dt_list; dt_list = dt_list->next)
     if (derived == dt_list->derived)
-      break;
+      return;
 
-  if (dt_list == NULL)
-    {
-      dt_list = gfc_get_dt_list ();
-      dt_list->next = gfc_derived_types;
-      dt_list->derived = derived;
-      gfc_derived_types = dt_list;
-    }
+  dt_list = gfc_get_dt_list ();
+  dt_list->next = gfc_derived_types;
+  dt_list->derived = derived;
+  gfc_derived_types = dt_list;
 }
 
 

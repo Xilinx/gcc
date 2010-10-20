@@ -224,7 +224,7 @@ extern const struct real_format pdp11_d_format;
 #define HARD_REGNO_MODE_OK(REGNO, MODE) \
 (((REGNO) < 8)?						\
   ((GET_MODE_BITSIZE(MODE) <= 16) 			\
-   || (GET_MODE_BITSIZE(MODE) == 32 && !((REGNO) & 1)))	\
+   || (GET_MODE_BITSIZE(MODE) >= 32 && !((REGNO) & 1)))	\
   :(MODE) == DFmode)
     
 
@@ -467,40 +467,6 @@ extern int current_first_parm_offset;
 
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
  ((CUM) = 0)
-
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  
-
-*/
-
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
- ((CUM) += ((MODE) != BLKmode			\
-	    ? (GET_MODE_SIZE (MODE))		\
-	    : (int_size_in_bytes (TYPE))))	
-
-/* Determine where to put an argument to a function.
-   Value is zero to push the argument on the stack,
-   or a hard register in which to store the argument.
-
-   MODE is the argument's machine mode.
-   TYPE is the data type of the argument (as a tree).
-    This is null for libcalls where that information may
-    not be available.
-   CUM is a variable of type CUMULATIVE_ARGS which gives info about
-    the preceding args and about the function being called.
-   NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).  */
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED)  0
-
-/* Define where a function finds its arguments.
-   This would be different from FUNCTION_ARG if we had register windows.  */
-/*
-#define FUNCTION_INCOMING_ARG(CUM, MODE, TYPE, NAMED)	\
-  FUNCTION_ARG (CUM, MODE, TYPE, NAMED)
-*/
 
 /* Output assembler code to FILE to increment profiler label # LABELNO
    for profiling a function entry.  */
@@ -767,7 +733,6 @@ extern int may_call_alloca;
   pdp11_register_move_cost (CLASS1, CLASS2)
 
 /* Tell emit-rtl.c how to initialize special values on a per-function base.  */
-extern int optimize;
 extern struct rtx_def *cc0_reg_rtx;
 
 #define CC_STATUS_MDEP rtx

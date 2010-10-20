@@ -403,6 +403,10 @@ package Exp_Util is
    --  Force_Evaluation further guarantees that all evaluations will yield
    --  the same result.
 
+   function Fully_Qualified_Name_String (E : Entity_Id) return String_Id;
+   --  Generates the string literal corresponding to the fully qualified name
+   --  of entity E with an ASCII.NUL appended at the end of the name.
+
    procedure Generate_Poll_Call (N : Node_Id);
    --  If polling is active, then a call to the Poll routine is built,
    --  and then inserted before the given node N and analyzed.
@@ -557,6 +561,12 @@ package Exp_Util is
    --  subexpression yields a value that is known at compile time to be null
    --  and returns True if so. Returns False otherwise. It is an error to call
    --  this function if N is not of an access type.
+
+   function Make_Invariant_Call (Expr : Node_Id) return Node_Id;
+   --  Expr is an object of a type which Has_Invariants set (and which thus
+   --  also has an Invariant_Procedure set). If invariants are enabled, this
+   --  function returns a call to the Invariant procedure passing Expr as the
+   --  argument.
 
    function Make_Subtype_From_Expr
      (E       : Node_Id;

@@ -617,15 +617,21 @@ extern int arm_arch_hwdiv;
 /* Align definitions of arrays, unions and structures so that
    initializations and copies can be made more efficient.  This is not
    ABI-changing, so it only affects places where we can see the
-   definition.  */
-#define DATA_ALIGNMENT(EXP, ALIGN)					\
-  ((((ALIGN) < BITS_PER_WORD)                                           \
+   definition. Increasing the alignment tends to introduce padding,
+   so don't do this when optimizing for size/conserving stack space. */
+#define ARM_EXPAND_ALIGNMENT(COND, EXP, ALIGN)				\
+  (((COND) && ((ALIGN) < BITS_PER_WORD)					\
     && (TREE_CODE (EXP) == ARRAY_TYPE					\
 	|| TREE_CODE (EXP) == UNION_TYPE				\
 	|| TREE_CODE (EXP) == RECORD_TYPE)) ? BITS_PER_WORD : (ALIGN))
 
+/* Align global data. */
+#define DATA_ALIGNMENT(EXP, ALIGN)			\
+  ARM_EXPAND_ALIGNMENT(!optimize_size, EXP, ALIGN)
+
 /* Similarly, make sure that objects on the stack are sensibly aligned.  */
-#define LOCAL_ALIGNMENT(EXP, ALIGN) DATA_ALIGNMENT(EXP, ALIGN)
+#define LOCAL_ALIGNMENT(EXP, ALIGN)				\
+  ARM_EXPAND_ALIGNMENT(!flag_conserve_stack, EXP, ALIGN)
 
 /* Setting STRUCTURE_SIZE_BOUNDARY to 32 produces more efficient code, but the
    value set in previous versions of this toolchain was 8, which produces more
@@ -948,13 +954,10 @@ extern int arm_structure_size_boundary;
 #define FIRST_HI_REGNUM		8
 #define LAST_HI_REGNUM		11
 
-#ifndef TARGET_UNWIND_INFO
-/* We use sjlj exceptions for backwards compatibility.  */
-#define MUST_USE_SJLJ_EXCEPTIONS 1
+/* Overridden by config/arm/bpabi.h.  */
+#ifndef ARM_UNWIND_INFO
+#define ARM_UNWIND_INFO  0
 #endif
-
-/* We can generate DWARF2 Unwind info, even though we don't use it.  */
-#define DWARF2_UNWIND_INFO 1
 
 /* Use r0 and r1 to pass exception handling information.  */
 #define EH_RETURN_DATA_REGNO(N) (((N) < 2) ? N : INVALID_REGNUM)
@@ -991,6 +994,9 @@ extern int arm_structure_size_boundary;
   (TARGET_ARM					\
    ? ARM_HARD_FRAME_POINTER_REGNUM		\
    : THUMB_HARD_FRAME_POINTER_REGNUM)
+
+#define HARD_FRAME_POINTER_IS_FRAME_POINTER 0
+#define HARD_FRAME_POINTER_IS_ARG_POINTER 0
 
 #define FP_REGNUM	                HARD_FRAME_POINTER_REGNUM
 
@@ -1245,8 +1251,8 @@ enum reg_class
   { 0x0000DF00, 0x00000000, 0x00000000, 0x00000000 }, /* HI_REGS */	\
   { 0x01000000, 0x00000000, 0x00000000, 0x00000000 }, /* CC_REG */	\
   { 0x00000000, 0x00000000, 0x00000000, 0x80000000 }, /* VFPCC_REG */	\
-  { 0x0200DFFF, 0x00000000, 0x00000000, 0x00000000 }, /* GENERAL_REGS */ \
-  { 0x0200FFFF, 0x00000000, 0x00000000, 0x00000000 }, /* CORE_REGS */	\
+  { 0x0000DFFF, 0x00000000, 0x00000000, 0x00000000 }, /* GENERAL_REGS */ \
+  { 0x0000FFFF, 0x00000000, 0x00000000, 0x00000000 }, /* CORE_REGS */	\
   { 0xFAFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x7FFFFFFF }  /* ALL_REGS */	\
 }
 
@@ -2032,13 +2038,6 @@ typedef struct
 #endif
 
 #define ARM_OUTPUT_FN_UNWIND(F, PROLOGUE) arm_output_fn_unwind (F, PROLOGUE)
-
-#ifdef TARGET_UNWIND_INFO
-#define ARM_EABI_UNWIND_TABLES \
-  ((!USING_SJLJ_EXCEPTIONS && flag_exceptions) || flag_unwind_tables)
-#else
-#define ARM_EABI_UNWIND_TABLES 0
-#endif
 
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx
    and check its validity for a certain class.

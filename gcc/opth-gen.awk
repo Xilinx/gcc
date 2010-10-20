@@ -70,15 +70,31 @@ print ""
 print "#ifndef OPTIONS_H"
 print "#define OPTIONS_H"
 print ""
-print "extern int target_flags_explicit;"
+print "#include \"flag-types.h\""
 print ""
 
 have_save = 0;
 
+print "#if !defined(IN_LIBGCC2) && !defined(IN_TARGET_LIBS) && !defined(IN_RTS)"
+print "#ifndef GENERATOR_FILE"
+print "struct gcc_options\n{"
+print "#endif"
+
 for (i = 0; i < n_extra_vars; i++) {
 	var = extra_vars[i]
 	sub(" *=.*", "", var)
-	print "extern " var ";"
+	orig_var = var
+	name = var
+	type = var
+	sub("^.*[ *]", "", name)
+	sub(" *" name "$", "", type)
+	var_seen[name] = 1
+	print "#ifdef GENERATOR_FILE"
+	print "extern " orig_var ";"
+	print "#else"
+	print "  " type " x_" name ";"
+	print "#define " name " global_options.x_" name
+	print "#endif"
 }
 
 for (i = 0; i < n_opts; i++) {
@@ -93,8 +109,30 @@ for (i = 0; i < n_opts; i++) {
 		continue;
 
 	var_seen[name] = 1;
+	print "#ifdef GENERATOR_FILE"
 	print "extern " var_type(flags[i]) name ";"
+	print "#else"
+	print "  " var_type(flags[i]) "x_" name ";"
+	print "#define " name " global_options.x_" name
+	print "#endif"
 }
+for (i = 0; i < n_opts; i++) {
+	name = static_var(opts[i], flags[i]);
+	if (name != "") {
+		print "#ifndef GENERATOR_FILE"
+		print "  " var_type(flags[i]) "x_" name ";"
+		print "#define x_" name " do_not_use"
+		print "#endif"
+	}
+}
+print "#ifndef GENERATOR_FILE"
+print "};"
+print "extern struct gcc_options global_options;"
+print "extern const struct gcc_options global_options_init;"
+print "extern struct gcc_options global_options_set;"
+print "#define target_flags_explicit global_options_set.x_target_flags"
+print "#endif"
+print "#endif"
 print ""
 
 # All of the optimization switches gathered together so they can be saved and restored.
@@ -114,8 +152,8 @@ n_opt_char = 2;
 n_opt_short = 0;
 n_opt_int = 0;
 n_opt_other = 0;
-var_opt_char[0] = "unsigned char optimize";
-var_opt_char[1] = "unsigned char optimize_size";
+var_opt_char[0] = "unsigned char x_optimize";
+var_opt_char[1] = "unsigned char x_optimize_size";
 
 for (i = 0; i < n_opts; i++) {
 	if (flag_set_p("Optimization", flags[i])) {
@@ -129,16 +167,16 @@ for (i = 0; i < n_opts; i++) {
 		var_opt_seen[name]++;
 		otype = var_type_struct(flags[i]);
 		if (otype ~ "^((un)?signed +)?int *$")
-			var_opt_int[n_opt_int++] = otype name;
+			var_opt_int[n_opt_int++] = otype "x_" name;
 
 		else if (otype ~ "^((un)?signed +)?short *$")
-			var_opt_short[n_opt_short++] = otype name;
+			var_opt_short[n_opt_short++] = otype "x_" name;
 
 		else if (otype ~ "^((un)?signed +)?char *$")
-			var_opt_char[n_opt_char++] = otype name;
+			var_opt_char[n_opt_char++] = otype "x_" name;
 
 		else
-			var_opt_other[n_opt_other++] = otype name;
+			var_opt_other[n_opt_other++] = otype "x_" name;
 	}
 }
 
@@ -172,13 +210,13 @@ n_target_int = 0;
 n_target_other = 0;
 
 for (i = 0; i < n_target_save; i++) {
-	if (target_save_decl[i] ~ "^((un)?signed +)?int +[_a-zA-Z0-9]+$")
+	if (target_save_decl[i] ~ "^((un)?signed +)?int +[_" alnum "]+$")
 		var_target_int[n_target_int++] = target_save_decl[i];
 
-	else if (target_save_decl[i] ~ "^((un)?signed +)?short +[_a-zA-Z0-9]+$")
+	else if (target_save_decl[i] ~ "^((un)?signed +)?short +[_" alnum "]+$")
 		var_target_short[n_target_short++] = target_save_decl[i];
 
-	else if (target_save_decl[i] ~ "^((un)?signed +)?char +[_a-zA-Z0-9]+$")
+	else if (target_save_decl[i] ~ "^((un)?signed +)?char +[_ " alnum "]+$")
 		var_target_char[n_target_char++] = target_save_decl[i];
 
 	else
@@ -198,20 +236,20 @@ if (have_save) {
 			var_save_seen[name]++;
 			otype = var_type_struct(flags[i])
 			if (otype ~ "^((un)?signed +)?int *$")
-				var_target_int[n_target_int++] = otype name;
+				var_target_int[n_target_int++] = otype "x_" name;
 
 			else if (otype ~ "^((un)?signed +)?short *$")
-				var_target_short[n_target_short++] = otype name;
+				var_target_short[n_target_short++] = otype "x_" name;
 
 			else if (otype ~ "^((un)?signed +)?char *$")
-				var_target_char[n_target_char++] = otype name;
+				var_target_char[n_target_char++] = otype "x_" name;
 
 			else
-				var_target_other[n_target_other++] = otype name;
+				var_target_other[n_target_other++] = otype "x_" name;
 		}
 	}
 } else {
-	var_target_int[n_target_int++] = "int target_flags";
+	var_target_int[n_target_int++] = "int x_target_flags";
 }
 
 for (i = 0; i < n_target_other; i++) {
@@ -234,19 +272,19 @@ print "};";
 print "";
 print "";
 print "/* Save optimization variables into a structure.  */"
-print "extern void cl_optimization_save (struct cl_optimization *);";
+print "extern void cl_optimization_save (struct cl_optimization *, struct gcc_options *);";
 print "";
 print "/* Restore optimization variables from a structure.  */";
-print "extern void cl_optimization_restore (struct cl_optimization *);";
+print "extern void cl_optimization_restore (struct gcc_options *, struct cl_optimization *);";
 print "";
 print "/* Print optimization variables from a structure.  */";
 print "extern void cl_optimization_print (FILE *, int, struct cl_optimization *);";
 print "";
 print "/* Save selected option variables into a structure.  */"
-print "extern void cl_target_option_save (struct cl_target_option *);";
+print "extern void cl_target_option_save (struct cl_target_option *, struct gcc_options *);";
 print "";
 print "/* Restore selected option variables from a structure.  */"
-print "extern void cl_target_option_restore (struct cl_target_option *);";
+print "extern void cl_target_option_restore (struct gcc_options *, struct cl_target_option *);";
 print "";
 print "/* Print target option variables from a structure.  */";
 print "extern void cl_target_option_print (FILE *, int, struct cl_target_option *);";
@@ -316,7 +354,7 @@ print ""
 
 for (i = 0; i < n_langs; i++) {
 	macros[i] = "CL_" langs[i]
-	gsub( "[^A-Za-z0-9_]", "X", macros[i] )
+	gsub( "[^" alnum "_]", "X", macros[i] )
 	s = substr("            ", length (macros[i]))
 	print "#define " macros[i] s " (1 << " i ")"
     }

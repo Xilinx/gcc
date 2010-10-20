@@ -2164,6 +2164,7 @@ gfc_free_structure_ctor_component (gfc_structure_ctor_component *comp)
 {
   gfc_free (comp->name);
   gfc_free_expr (comp->val);
+  gfc_free (comp);
 }
 
 
@@ -2413,8 +2414,9 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result,
   /* No component should be left, as this should have caused an error in the
      loop constructing the component-list (name that does not correspond to any
      component in the structure definition).  */
-  if (comp_head && sym->attr.extension)
+  if (comp_head)
     {
+      gcc_assert (sym->attr.extension);
       for (comp_iter = comp_head; comp_iter; comp_iter = comp_iter->next)
 	{
 	  gfc_error ("component '%s' at %L has already been set by a "
@@ -2423,8 +2425,6 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result,
 	}
       goto cleanup;
     }
-  else
-    gcc_assert (!comp_head);
 
   e = gfc_get_structure_constructor_expr (BT_DERIVED, 0, &where);
   e->ts.u.derived = sym;

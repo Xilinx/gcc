@@ -2392,8 +2392,7 @@ df_sort_and_compress_refs (VEC(df_ref,stack) **ref_vec)
          of DF_REF_COMPARE.  */
       if (i == count - 1)
         return;
-      qsort (VEC_address (df_ref, *ref_vec), count, sizeof (df_ref),
-	     df_ref_compare);
+      VEC_qsort (df_ref, *ref_vec, df_ref_compare);
     }
 
   for (i=0; i<count-dist; i++)
@@ -2492,8 +2491,7 @@ df_sort_and_compress_mws (VEC(df_mw_hardreg_ptr,stack) **mw_vec)
         }
     }
   else
-    qsort (VEC_address (df_mw_hardreg_ptr, *mw_vec), count,
-	   sizeof (struct df_mw_hardreg *), df_mw_compare);
+    VEC_qsort (df_mw_hardreg_ptr, *mw_vec, df_mw_compare);
 
   for (i=0; i<count-dist; i++)
     {
@@ -3406,7 +3404,7 @@ df_insn_refs_collect (struct df_collection_rec* collection_rec,
                          regno_reg_rtx[FRAME_POINTER_REGNUM],
                          NULL, bb, insn_info,
                          DF_REF_REG_USE, 0);
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
           df_ref_record (DF_REF_BASE, collection_rec,
                          regno_reg_rtx[HARD_FRAME_POINTER_REGNUM],
                          NULL, bb, insn_info,
@@ -3604,7 +3602,7 @@ df_get_regular_block_artificial_uses (bitmap regular_block_artificial_uses)
 	 reference of the frame pointer.  */
       bitmap_set_bit (regular_block_artificial_uses, FRAME_POINTER_REGNUM);
 
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
       bitmap_set_bit (regular_block_artificial_uses, HARD_FRAME_POINTER_REGNUM);
 #endif
 
@@ -3656,7 +3654,7 @@ df_get_eh_block_artificial_uses (bitmap eh_block_artificial_uses)
       if (frame_pointer_needed)
 	{
 	  bitmap_set_bit (eh_block_artificial_uses, FRAME_POINTER_REGNUM);
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
 	  bitmap_set_bit (eh_block_artificial_uses, HARD_FRAME_POINTER_REGNUM);
 #endif
 	}
@@ -3744,7 +3742,7 @@ df_get_entry_block_def_set (bitmap entry_block_defs)
       /* Any reference to any pseudo before reload is a potential
 	 reference of the frame pointer.  */
       bitmap_set_bit (entry_block_defs, FRAME_POINTER_REGNUM);
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
       /* If they are different, also mark the hard frame pointer as live.  */
       if (!LOCAL_REGNO (HARD_FRAME_POINTER_REGNUM))
 	bitmap_set_bit (entry_block_defs, HARD_FRAME_POINTER_REGNUM);
@@ -3877,7 +3875,7 @@ df_get_exit_block_use_set (bitmap exit_block_uses)
   if ((!reload_completed) || frame_pointer_needed)
     {
       bitmap_set_bit (exit_block_uses, FRAME_POINTER_REGNUM);
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
       /* If they are different, also mark the hard frame pointer as live.  */
       if (!LOCAL_REGNO (HARD_FRAME_POINTER_REGNUM))
 	bitmap_set_bit (exit_block_uses, HARD_FRAME_POINTER_REGNUM);

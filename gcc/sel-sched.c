@@ -1236,7 +1236,7 @@ mark_unavailable_hard_regs (def_t def, struct reg_rename *reg_rename_p,
      frame pointer, or we could not discover its class.  */
   if (fixed_regs[regno]
       || global_regs[regno]
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
       || (frame_pointer_needed && regno == HARD_FRAME_POINTER_REGNUM)
 #else
       || (frame_pointer_needed && regno == FRAME_POINTER_REGNUM)
@@ -1263,7 +1263,7 @@ mark_unavailable_hard_regs (def_t def, struct reg_rename *reg_rename_p,
 	SET_HARD_REG_BIT (reg_rename_p->unavailable_hard_regs,
                           FRAME_POINTER_REGNUM + i);
 
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
       for (i = hard_regno_nregs[HARD_FRAME_POINTER_REGNUM][Pmode]; i--;)
 	SET_HARD_REG_BIT (reg_rename_p->unavailable_hard_regs,
                           HARD_FRAME_POINTER_REGNUM + i);
@@ -3719,8 +3719,7 @@ fill_vec_av_set (av_set_t av, blist_t bnds, fence_t fence,
     }
 
   /* Sort the vector.  */
-  qsort (VEC_address (expr_t, vec_av_set), VEC_length (expr_t, vec_av_set),
-         sizeof (expr_t), sel_rank_for_schedule);
+  VEC_qsort (expr_t, vec_av_set, sel_rank_for_schedule);
 
   /* We record maximal priority of insns in av set for current instruction
      group.  */
@@ -3934,8 +3933,7 @@ fill_vec_av_set (av_set_t av, blist_t bnds, fence_t fence,
     gcc_assert (min_need_stall == 0);
 
   /* Sort the vector.  */
-  qsort (VEC_address (expr_t, vec_av_set), VEC_length (expr_t, vec_av_set),
-         sizeof (expr_t), sel_rank_for_schedule);
+  VEC_qsort (expr_t, vec_av_set, sel_rank_for_schedule);
 
   if (sched_verbose >= 4)
     {

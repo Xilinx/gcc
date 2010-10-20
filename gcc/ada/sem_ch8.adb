@@ -64,6 +64,7 @@ with Sinfo.CN; use Sinfo.CN;
 with Snames;   use Snames;
 with Style;    use Style;
 with Table;
+with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 
@@ -953,13 +954,13 @@ package body Sem_Ch8 is
 
       --  Ada 2005 (AI-327)
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Nkind (Nam) = N_Attribute_Reference
         and then Attribute_Name (Nam) = Name_Priority
       then
          null;
 
-      elsif Ada_Version >= Ada_05
+      elsif Ada_Version >= Ada_2005
         and then Nkind (Nam) in N_Has_Entity
       then
          declare
@@ -1102,7 +1103,7 @@ package body Sem_Ch8 is
 
       --  Ada 2005 (AI-327)
 
-      elsif Ada_Version >= Ada_05
+      elsif Ada_Version >= Ada_2005
         and then Nkind (Nam) = N_Attribute_Reference
         and then Attribute_Name (Nam) = Name_Priority
       then
@@ -2078,8 +2079,7 @@ package body Sem_Ch8 is
          Analyze_Renamed_Character (N, New_S, Present (Rename_Spec));
          return;
 
-      elsif (not Is_Entity_Name (Nam)
-              and then Nkind (Nam) /= N_Operator_Symbol)
+      elsif not Is_Entity_Name (Nam)
         or else not Is_Overloadable (Entity (Nam))
       then
          Error_Msg_N ("expect valid subprogram name in renaming", N);
@@ -2099,6 +2099,21 @@ package body Sem_Ch8 is
 
       if No (Old_S) then
          Old_S := Find_Renamed_Entity (N, Name (N), New_S, Is_Actual);
+
+         --  The visible operation may be an inherited abstract operation that
+         --  was overridden in the private part, in which case a call will
+         --  dispatch to the overriding operation. Use the overriding one in
+         --  the renaming declaration, to prevent spurious errors below.
+
+         if Is_Overloadable (Old_S)
+           and then Is_Abstract_Subprogram (Old_S)
+           and then No (DTC_Entity (Old_S))
+           and then Present (Alias (Old_S))
+           and then not Is_Abstract_Subprogram (Alias (Old_S))
+           and then Is_Overriding_Operation (Alias (Old_S))
+         then
+            Old_S := Alias (Old_S);
+         end if;
 
          --  When the renamed subprogram is overloaded and used as an actual
          --  of a generic, its entity is set to the first available homonym.
@@ -2128,7 +2143,7 @@ package body Sem_Ch8 is
          --  when performing a null exclusion check between a renaming and a
          --  renamed subprogram that has been found to be illegal.
 
-         if Ada_Version >= Ada_05
+         if Ada_Version >= Ada_2005
            and then Entity (Nam) /= Any_Id
          then
             Check_Null_Exclusion
@@ -2434,7 +2449,7 @@ package body Sem_Ch8 is
       --  is dispatching. Test is skipped if some previous error was detected
       --  that set Old_S to Any_Id.
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Old_S /= Any_Id
         and then not Is_Dispatching_Operation (Old_S)
         and then Is_Dispatching_Operation (New_S)
@@ -2919,7 +2934,11 @@ package body Sem_Ch8 is
       --  type is still not frozen). We exclude from this processing generic
       --  formal subprograms found in instantiations and AST_Entry renamings.
 
-      if not Present (Corresponding_Formal_Spec (N))
+      --  We must exclude VM targets because entity AST_Handler is defined in
+      --  package System.Aux_Dec which is not available in those platforms.
+
+      if VM_Target = No_VM
+        and then not Present (Corresponding_Formal_Spec (N))
         and then Etype (Nam) /= RTE (RE_AST_Handler)
       then
          declare
@@ -3062,7 +3081,7 @@ package body Sem_Ch8 is
 
       --  The replacement of a discriminant by the corresponding discriminal
       --  is not done for a task discriminant that appears in a default
-      --  expression of an entry parameter. See Expand_Discriminant in exp_ch2
+      --  expression of an entry parameter. See Exp_Ch2.Expand_Discriminant
       --  for details on their handling.
 
       elsif Is_Concurrent_Type (Scope (E)) then
@@ -3342,24 +3361,25 @@ package body Sem_Ch8 is
       Id        : Entity_Id;
       Elmt      : Elmt_Id;
 
-      function Is_Primitive_Operator
+      function Is_Primitive_Operator_In_Use
         (Op : Entity_Id;
          F  : Entity_Id) return Boolean;
       --  Check whether Op is a primitive operator of a use-visible type
 
-      ---------------------------
-      -- Is_Primitive_Operator --
-      ---------------------------
+      ----------------------------------
+      -- Is_Primitive_Operator_In_Use --
+      ----------------------------------
 
-      function Is_Primitive_Operator
+      function Is_Primitive_Operator_In_Use
         (Op : Entity_Id;
          F  : Entity_Id) return Boolean
       is
          T : constant Entity_Id := Etype (F);
       begin
-         return In_Use (T)
+         return (In_Use (T)
+                  or else Present (Current_Use_Clause (Base_Type (T))))
            and then Scope (T) = Scope (Op);
-      end Is_Primitive_Operator;
+      end Is_Primitive_Operator_In_Use;
 
    --  Start of processing for End_Use_Package
 
@@ -3390,11 +3410,12 @@ package body Sem_Ch8 is
 
                   if Nkind (Id) = N_Defining_Operator_Symbol
                        and then
-                         (Is_Primitive_Operator (Id, First_Formal (Id))
+                         (Is_Primitive_Operator_In_Use
+                           (Id, First_Formal (Id))
                             or else
                           (Present (Next_Formal (First_Formal (Id)))
                              and then
-                               Is_Primitive_Operator
+                               Is_Primitive_Operator_In_Use
                                  (Id, Next_Formal (First_Formal (Id)))))
                   then
                      null;
@@ -5661,7 +5682,7 @@ package body Sem_Ch8 is
                   --  view of a type.
 
                   if not Is_Tagged_Type (T)
-                    and then Ada_Version >= Ada_05
+                    and then Ada_Version >= Ada_2005
                   then
                      if From_With_Type (T) then
                         Error_Msg_N
@@ -5686,7 +5707,7 @@ package body Sem_Ch8 is
                   end if;
 
                   Set_Is_Tagged_Type (T);
-                  Set_Primitive_Operations (T, New_Elmt_List);
+                  Set_Direct_Primitive_Operations (T, New_Elmt_List);
                   Make_Class_Wide_Type (T);
                   Set_Entity (N, Class_Wide_Type (T));
                   Set_Etype  (N, Class_Wide_Type (T));
@@ -5867,7 +5888,7 @@ package body Sem_Ch8 is
                   --  nor anywhere else in the declaration because entries
                   --  cannot have access parameters.
 
-                  if Ada_Version >= Ada_05
+                  if Ada_Version >= Ada_2005
                     and then Nkind (Parent (N)) = N_Access_Definition
                   then
                      Set_Entity (N, T_Name);
@@ -5893,7 +5914,7 @@ package body Sem_Ch8 is
                   --  In Ada 2005, a protected name can be used in an access
                   --  definition within its own body.
 
-                  if Ada_Version >= Ada_05
+                  if Ada_Version >= Ada_2005
                     and then Nkind (Parent (N)) = N_Access_Definition
                   then
                      Set_Entity (N, T_Name);
@@ -6615,18 +6636,36 @@ package body Sem_Ch8 is
 
    procedure Pop_Scope is
       SST : Scope_Stack_Entry renames Scope_Stack.Table (Scope_Stack.Last);
+      S   : constant Entity_Id := SST.Entity;
 
    begin
       if Debug_Flag_E then
          Write_Info;
       end if;
 
+      --  Set Default_Storage_Pool field of the library unit if necessary
+
+      if Ekind_In (S, E_Package, E_Generic_Package)
+        and then
+          Nkind (Parent (Unit_Declaration_Node (S))) = N_Compilation_Unit
+      then
+         declare
+            Aux : constant Node_Id :=
+                    Aux_Decls_Node (Parent (Unit_Declaration_Node (S)));
+         begin
+            if No (Default_Storage_Pool (Aux)) then
+               Set_Default_Storage_Pool (Aux, Default_Pool);
+            end if;
+         end;
+      end if;
+
       Scope_Suppress           := SST.Save_Scope_Suppress;
       Local_Suppress_Stack_Top := SST.Save_Local_Suppress_Stack_Top;
       Check_Policy_List        := SST.Save_Check_Policy_List;
+      Default_Pool             := SST.Save_Default_Storage_Pool;
 
       if Debug_Flag_W then
-         Write_Str ("--> exiting scope: ");
+         Write_Str ("<-- exiting scope: ");
          Write_Name (Chars (Current_Scope));
          Write_Str (", Depth=");
          Write_Int (Int (Scope_Stack.Last));
@@ -6644,7 +6683,7 @@ package body Sem_Ch8 is
            or else
          SST.Actions_To_Be_Wrapped_After  /= No_List
       then
-         return;
+         raise Program_Error;
       end if;
 
       --  Free last subprogram name if allocated, and pop scope
@@ -6658,7 +6697,7 @@ package body Sem_Ch8 is
    ---------------
 
    procedure Push_Scope (S : Entity_Id) is
-      E : Entity_Id;
+      E : constant Entity_Id := Scope (S);
 
    begin
       if Ekind (S) = E_Void then
@@ -6696,6 +6735,7 @@ package body Sem_Ch8 is
          SST.Save_Scope_Suppress           := Scope_Suppress;
          SST.Save_Local_Suppress_Stack_Top := Local_Suppress_Stack_Top;
          SST.Save_Check_Policy_List        := Check_Policy_List;
+         SST.Save_Default_Storage_Pool     := Default_Pool;
 
          if Scope_Stack.Last > Scope_Stack.First then
             SST.Component_Alignment_Default := Scope_Stack.Table
@@ -6732,8 +6772,6 @@ package body Sem_Ch8 is
         and then Scope (S) /= Standard_Standard
         and then not Is_Child_Unit (S)
       then
-         E := Scope (S);
-
          if Nkind (E) not in N_Entity then
             return;
          end if;
@@ -6754,6 +6792,22 @@ package body Sem_Ch8 is
                                   (S, Suppress_Value_Tracking_On_Call (E));
             Set_Categorization_From_Scope (E => S, Scop => E);
          end if;
+      end if;
+
+      if Is_Child_Unit (S)
+        and then Present (E)
+        and then Ekind_In (E, E_Package, E_Generic_Package)
+        and then
+          Nkind (Parent (Unit_Declaration_Node (E))) = N_Compilation_Unit
+      then
+         declare
+            Aux : constant Node_Id :=
+                    Aux_Decls_Node (Parent (Unit_Declaration_Node (E)));
+         begin
+            if Present (Default_Storage_Pool (Aux)) then
+               Default_Pool := Default_Storage_Pool (Aux);
+            end if;
+         end;
       end if;
    end Push_Scope;
 

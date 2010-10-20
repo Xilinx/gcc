@@ -22,7 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "coretypes.h"
 #include "opts.h"
-#include "options.h"
+#include "flags.h"
 #include "diagnostic.h"
 #include "tm.h" /* For SWITCH_TAKES_ARG, WORD_SWITCH_TAKES_ARG and
 		   TARGET_OPTION_TRANSLATE_TABLE.  */
@@ -799,28 +799,37 @@ keep:
 }
 
 /* Handle option DECODED for the language indicated by LANG_MASK,
-   using the handlers in HANDLERS.  KIND is the diagnostic_t if this
-   is a diagnostics option, DK_UNSPECIFIED otherwise.  Returns false
-   if the switch was invalid.  */
+   using the handlers in HANDLERS and setting fields in OPTS and
+   OPTS_SET.  KIND is the diagnostic_t if this is a diagnostics
+   option, DK_UNSPECIFIED otherwise.  GENERATED_P is true for an
+   option generated as part of processing another option or otherwise
+   generated internally, false for one explicitly passed by the user.
+   Returns false if the switch was invalid.  DC is the diagnostic
+   context for options affecting diagnostics state, or NULL.  */
 
 bool
-handle_option (const struct cl_decoded_option *decoded,
+handle_option (struct gcc_options *opts,
+	       struct gcc_options *opts_set,
+	       const struct cl_decoded_option *decoded,
 	       unsigned int lang_mask, int kind,
-	       const struct cl_option_handlers *handlers)
+	       const struct cl_option_handlers *handlers,
+	       bool generated_p, diagnostic_context *dc)
 {
   size_t opt_index = decoded->opt_index;
   const char *arg = decoded->arg;
   int value = decoded->value;
   const struct cl_option *option = &cl_options[opt_index];
+  void *flag_var = option_flag_var (opt_index, opts);
   size_t i;
 
-  if (option->flag_var)
-    set_option (opt_index, value, arg, kind);
+  if (flag_var)
+    set_option (opts, (generated_p ? NULL : opts_set),
+		opt_index, value, arg, kind, dc);
 
   for (i = 0; i < handlers->num_handlers; i++)
     if (option->flags & handlers->handlers[i].mask)
       {
-	if (!handlers->handlers[i].handler (decoded,
+	if (!handlers->handlers[i].handler (opts, opts_set, decoded,
 					    lang_mask, kind, handlers))
 	  return false;
 	else
@@ -837,14 +846,18 @@ handle_option (const struct cl_decoded_option *decoded,
    command line.  */
 
 bool
-handle_generated_option (size_t opt_index, const char *arg, int value,
+handle_generated_option (struct gcc_options *opts,
+			 struct gcc_options *opts_set,
+			 size_t opt_index, const char *arg, int value,
 			 unsigned int lang_mask, int kind,
-			 const struct cl_option_handlers *handlers)
+			 const struct cl_option_handlers *handlers,
+			 diagnostic_context *dc)
 {
   struct cl_decoded_option decoded;
 
   generate_option (opt_index, arg, value, lang_mask, &decoded);
-  return handle_option (&decoded, lang_mask, kind, handlers);
+  return handle_option (opts, opts_set, &decoded, lang_mask, kind, handlers,
+			true, dc);
 }
 
 /* Fill in *DECODED with an option described by OPT_INDEX, ARG and
@@ -903,12 +916,17 @@ generate_option_input_file (const char *file,
 }
 
 /* Handle the switch DECODED for the language indicated by LANG_MASK,
-   using the handlers in *HANDLERS.  */
+   using the handlers in *HANDLERS and setting fields in OPTS and
+   OPTS_SET and using diagnostic context DC (if not NULL) for
+   diagnostic options.  */
 
 void
-read_cmdline_option (struct cl_decoded_option *decoded,
+read_cmdline_option (struct gcc_options *opts,
+		     struct gcc_options *opts_set,
+		     struct cl_decoded_option *decoded,
 		     unsigned int lang_mask,
-		     const struct cl_option_handlers *handlers)
+		     const struct cl_option_handlers *handlers,
+		     diagnostic_context *dc)
 {
   const struct cl_option *option;
   const char *opt = decoded->orig_option_with_args_text;
@@ -959,49 +977,79 @@ read_cmdline_option (struct cl_decoded_option *decoded,
 
   gcc_assert (!decoded->errors);
 
-  if (!handle_option (decoded, lang_mask, DK_UNSPECIFIED, handlers))
+  if (!handle_option (opts, opts_set, decoded, lang_mask, DK_UNSPECIFIED,
+		      handlers, false, dc))
     error ("unrecognized command line option %qs", opt);
 }
 
-/* Set any variable for option OPT_INDEX according to VALUE and ARG,
-   diagnostic kind KIND.  */
+/* Set any field in OPTS, and OPTS_SET if not NULL, for option
+   OPT_INDEX according to VALUE and ARG, diagnostic kind KIND, using
+   diagnostic context DC if not NULL for diagnostic
+   classification.  */
 
 void
-set_option (int opt_index, int value, const char *arg, int kind)
+set_option (struct gcc_options *opts, struct gcc_options *opts_set,
+	    int opt_index, int value, const char *arg, int kind,
+	    diagnostic_context *dc)
 {
   const struct cl_option *option = &cl_options[opt_index];
+  void *flag_var = option_flag_var (opt_index, opts);
+  void *set_flag_var = NULL;
 
-  if (!option->flag_var)
+  if (!flag_var)
     return;
+
+  if (opts_set != NULL)
+    set_flag_var = option_flag_var (opt_index, opts_set);
 
   switch (option->var_type)
     {
     case CLVC_BOOLEAN:
-	*(int *) option->flag_var = value;
+	*(int *) flag_var = value;
+	if (set_flag_var)
+	  *(int *) set_flag_var = 1;
 	break;
 
     case CLVC_EQUAL:
-	*(int *) option->flag_var = (value
-				     ? option->var_value
-				     : !option->var_value);
+	*(int *) flag_var = (value
+			     ? option->var_value
+			     : !option->var_value);
+	if (set_flag_var)
+	  *(int *) set_flag_var = 1;
 	break;
 
     case CLVC_BIT_CLEAR:
     case CLVC_BIT_SET:
 	if ((value != 0) == (option->var_type == CLVC_BIT_SET))
-	  *(int *) option->flag_var |= option->var_value;
+	  *(int *) flag_var |= option->var_value;
 	else
-	  *(int *) option->flag_var &= ~option->var_value;
-	if (option->flag_var == &target_flags)
-	  target_flags_explicit |= option->var_value;
+	  *(int *) flag_var &= ~option->var_value;
+	if (set_flag_var)
+	  *(int *) set_flag_var |= option->var_value;
 	break;
 
     case CLVC_STRING:
-	*(const char **) option->flag_var = arg;
+	*(const char **) flag_var = arg;
+	if (set_flag_var)
+	  *(const char **) set_flag_var = "";
 	break;
     }
 
-  if ((diagnostic_t) kind != DK_UNSPECIFIED)
-    diagnostic_classify_diagnostic (global_dc, opt_index, (diagnostic_t) kind,
+  if ((diagnostic_t) kind != DK_UNSPECIFIED
+      && dc != NULL)
+    diagnostic_classify_diagnostic (dc, opt_index, (diagnostic_t) kind,
 				    UNKNOWN_LOCATION);
+}
+
+/* Return the address of the flag variable for option OPT_INDEX in
+   options structure OPTS, or NULL if there is no flag variable.  */
+
+void *
+option_flag_var (int opt_index, struct gcc_options *opts)
+{
+  const struct cl_option *option = &cl_options[opt_index];
+
+  if (option->flag_var_offset == (unsigned short) -1)
+    return NULL;
+  return (void *)(((char *) opts) + option->flag_var_offset);
 }

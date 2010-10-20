@@ -3013,7 +3013,8 @@ get_base_address (tree t)
       && TREE_CODE (TREE_OPERAND (t, 0)) == ADDR_EXPR)
     t = TREE_OPERAND (TREE_OPERAND (t, 0), 0);
 
-  if (SSA_VAR_P (t)
+  if (TREE_CODE (t) == SSA_NAME
+      || DECL_P (t)
       || TREE_CODE (t) == STRING_CST
       || TREE_CODE (t) == CONSTRUCTOR
       || INDIRECT_REF_P (t)
@@ -3659,6 +3660,10 @@ gimple_types_compatible_p_1 (tree t1, tree t2, enum gtc_mode mode,
 
 	goto different_types;
       }
+
+    case NULLPTR_TYPE:
+      /* There is only one decltype(nullptr).  */
+      goto same_types;
 
     case INTEGER_TYPE:
     case BOOLEAN_TYPE:

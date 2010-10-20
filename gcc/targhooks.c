@@ -979,10 +979,19 @@ default_builtin_support_vector_misalignment (enum machine_mode mode,
 /* By default, only attempt to parallelize bitwise operations, and
    possibly adds/subtracts using bit-twiddling.  */
 
-unsigned int
-default_units_per_simd_word (enum machine_mode mode ATTRIBUTE_UNUSED)
+enum machine_mode
+default_preferred_simd_mode (enum machine_mode mode ATTRIBUTE_UNUSED)
 {
-  return UNITS_PER_WORD;
+  return word_mode;
+}
+
+/* By default only the size derived from the preferred vector mode
+   is tried.  */
+
+unsigned int
+default_autovectorize_vector_sizes (void)
+{
+  return 0;
 }
 
 /* Determine whether or not a pointer mode is valid. Assume defaults
@@ -1221,16 +1230,107 @@ default_profile_before_prologue (void)
 #endif
 }
 
+/* The default implementation of TARGET_PREFERRED_RELOAD_CLASS.  */
+
+reg_class_t
+default_preferred_reload_class (rtx x ATTRIBUTE_UNUSED,
+			        reg_class_t rclass)
+{
+#ifdef PREFERRED_RELOAD_CLASS 
+  return (reg_class_t) PREFERRED_RELOAD_CLASS (x, (enum reg_class) rclass);
+#else
+  return rclass;
+#endif
+}
+
+/* The default implementation of TARGET_OUTPUT_PREFERRED_RELOAD_CLASS.  */
+
+reg_class_t
+default_preferred_output_reload_class (rtx x ATTRIBUTE_UNUSED,
+				       reg_class_t rclass)
+{
+#ifdef PREFERRED_OUTPUT_RELOAD_CLASS
+  return PREFERRED_OUTPUT_RELOAD_CLASS (x, (enum reg_class) rclass);
+#else
+  return rclass;
+#endif
+}
+
 /* The default implementation of TARGET_CLASS_LIKELY_SPILLED_P.  */
 
 bool
 default_class_likely_spilled_p (reg_class_t rclass)
 {
-#ifndef CLASS_LIKELY_SPILLED_P
   return (reg_class_size[(int) rclass] == 1);
-#else
-  return CLASS_LIKELY_SPILLED_P ((enum reg_class) rclass);
+}
+
+/* Determine the debugging unwind mechanism for the target.  */
+
+enum unwind_info_type
+default_debug_unwind_info (void)
+{
+  /* If the target wants to force the use of dwarf2 unwind info, let it.  */
+  /* ??? Change all users to the hook, then poison this.  */
+#ifdef DWARF2_FRAME_INFO
+  if (DWARF2_FRAME_INFO)
+    return UI_DWARF2;
 #endif
+
+  /* Otherwise, only turn it on if dwarf2 debugging is enabled.  */
+#ifdef DWARF2_DEBUGGING_INFO
+  if (write_symbols == DWARF2_DEBUG || write_symbols == VMS_AND_DWARF2_DEBUG)
+    return UI_DWARF2;
+#endif
+
+  return UI_NONE;
+}
+
+/* Determine the exception handling mechanism for the target.  */
+
+enum unwind_info_type
+default_except_unwind_info (void)
+{
+  /* ??? Change the one user to the hook, then poison this.  */
+#ifdef MUST_USE_SJLJ_EXCEPTIONS
+  if (MUST_USE_SJLJ_EXCEPTIONS)
+    return UI_SJLJ;
+#endif
+
+  /* Obey the configure switch to turn on sjlj exceptions.  */
+#ifdef CONFIG_SJLJ_EXCEPTIONS
+  if (CONFIG_SJLJ_EXCEPTIONS)
+    return UI_SJLJ;
+#endif
+
+  /* ??? Change all users to the hook, then poison this.  */
+#ifdef DWARF2_UNWIND_INFO
+  if (DWARF2_UNWIND_INFO)
+    return UI_DWARF2;
+#endif
+
+  return UI_SJLJ;
+}
+
+/* To be used by targets that force dwarf2 unwind enabled.  */
+
+enum unwind_info_type
+dwarf2_except_unwind_info (void)
+{
+  /* Obey the configure switch to turn on sjlj exceptions.  */
+#ifdef CONFIG_SJLJ_EXCEPTIONS
+  if (CONFIG_SJLJ_EXCEPTIONS)
+    return UI_SJLJ;
+#endif
+
+  return UI_DWARF2;
+}
+
+/* To be used by targets that force sjlj unwind enabled.  */
+
+enum unwind_info_type
+sjlj_except_unwind_info (void)
+{
+  return UI_SJLJ;
 }
 
 #include "gt-targhooks.h"

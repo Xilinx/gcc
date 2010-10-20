@@ -1229,6 +1229,10 @@ destructors, but requires __cxa_atexit in libc.  This option is currently
 only available on systems with GNU libc.  When enabled, this will cause
 @option{-fuse-cxa-atexit} to be passed by default.
 
+@item --enable-indirect-function
+Define if you want to enable the @code{ifunc} attribute.  This option is
+currently only available on systems with GNU libc on certain targets.
+
 @item --enable-target-optspace
 Specify that target
 libraries should be optimized for code space instead of code speed.
@@ -1570,7 +1574,10 @@ they are installed (@samp{--with-gmp=@var{gmpinstalldir}},
 @option{--with-mpc-lib=@var{mpcinstalldir}/lib} and
 @option{--with-mpc-include=@var{mpcinstalldir}/include}.  If these
 shorthand assumptions are not correct, you can use the explicit
-include and lib options directly.
+include and lib options directly.  You might also need to ensure the
+shared libraries can be found by the dynamic linker when building and
+using GCC, for example by setting the runtime shared library path
+variable (@env{LD_LIBRARY_PATH} on GNU/Linux and Solaris systems).
 
 @item --with-ppl=@var{pathname}
 @itemx --with-ppl-include=@var{pathname}
@@ -1983,6 +1990,36 @@ Exec prefix where libart is installed (optional).
 Do not try to compile and run a test libart program.
 
 @end table
+
+@subsubheading Overriding @command{configure} test results
+
+Sometimes, it might be necessary to override the result of some
+@command{configure} test, for example in order to ease porting to a new
+system or work around a bug in a test.  The toplevel @command{configure}
+script provides three variables for this:
+
+@table @code
+
+@item build_configargs
+@cindex @code{build_configargs}
+The contents of this variable is passed to all build @command{configure}
+scripts.
+
+@item host_configargs
+@cindex @code{host_configargs}
+The contents of this variable is passed to all host @command{configure}
+scripts.
+
+@item target_configargs
+@cindex @code{target_configargs}
+The contents of this variable is passed to all target @command{configure}
+scripts.
+
+@end table
+
+In order to avoid shell and @command{make} quoting issues for complex
+overrides, you can pass a setting for @env{CONFIG_SITE} and set
+variables in the site file.
 
 @html
 <hr />
@@ -2787,7 +2824,7 @@ Development Tools for the Renesas H8/300[HS] Series}.
 HP-UX:
 @itemize
 @item
-@uref{http://hpux.cs.utah.edu/,,HP-UX Porting Center};
+@uref{http://hpux.connect.org.uk/,,HP-UX Porting Center};
 
 @item
 @uref{ftp://sunsite.informatik.rwth-aachen.de/pub/packages/gcc_hpux/,,Binaries for HP-UX 11.00 at Aachen University of Technology}.
@@ -2802,10 +2839,30 @@ Development Tools for the Motorola 68HC11/68HC12}.
 OpenServer/Unixware}.
 
 @item
-Solaris 2 (SPARC, Intel)---@uref{http://www.sunfreeware.com/,,Sunfreeware}.
+Solaris 2 (SPARC, Intel):
+@itemize
+@item
+@uref{http://www.sunfreeware.com/,,Sunfreeware}
 
 @item
-SGI---@uref{http://freeware.sgi.com/,,SGI Freeware}.
+@uref{http://www.blastwave.org/,,Blastwave}
+
+@item
+@uref{http://www.opencsw.org/,,OpenCSW}
+
+@item
+@uref{http://jupiterrise.com/tgcware/,,TGCware}
+@end itemize
+
+@item
+SGI IRIX:
+@itemize
+@item
+@uref{http://nekochan.net/,,Nekoware}
+
+@item
+@uref{http://jupiterrise.com/tgcware/,,TGCware}
+@end itemize
 
 @item
 Microsoft Windows:
@@ -2927,6 +2984,8 @@ information are.
 @uref{#m68k-uclinux,,m68k-uclinux}
 @item
 @uref{#mep-x-elf,,mep-*-elf}
+@item
+@uref{#microblaze-x-elf,,microblaze-*-elf}
 @item
 @uref{#mips-x-x,,mips-*-*}
 @item
@@ -3793,6 +3852,13 @@ original ABI by configuring for @samp{m68k-uclinuxoldabi} or
 @end html
 @heading @anchor{mep-x-elf}mep-*-elf
 Toshiba Media embedded Processor.
+This configuration is intended for embedded systems.
+
+@html
+<hr />
+@end html
+@heading @anchor{microblaze-x-elf}microblaze-*-elf
+Xilinx MicroBlaze processor.
 This configuration is intended for embedded systems.
 
 @html

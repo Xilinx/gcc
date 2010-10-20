@@ -29,6 +29,7 @@ extern void ix86_setup_frame_addresses (void);
 extern HOST_WIDE_INT ix86_initial_elimination_offset (int, int);
 extern void ix86_expand_prologue (void);
 extern void ix86_expand_epilogue (int);
+extern void ix86_expand_split_stack_prologue (void);
 
 extern void ix86_output_addr_vec_elt (FILE *, int);
 extern void ix86_output_addr_diff_elt (FILE *, int, int);
@@ -117,7 +118,7 @@ extern bool ix86_expand_int_vcond (rtx[]);
 extern void ix86_expand_sse_unpack (rtx[], bool, bool);
 extern void ix86_expand_sse4_unpack (rtx[], bool, bool);
 extern bool ix86_expand_int_addcc (rtx[]);
-extern void ix86_expand_call (rtx, rtx, rtx, rtx, rtx, int);
+extern rtx ix86_expand_call (rtx, rtx, rtx, rtx, rtx, int);
 extern void x86_initialize_trampoline (rtx, rtx, rtx);
 extern rtx ix86_zero_extend_to_Pmode (rtx);
 extern void ix86_split_long_move (rtx[]);
@@ -139,7 +140,6 @@ extern rtx ix86_libcall_value (enum machine_mode);
 extern bool ix86_function_arg_regno_p (int);
 extern void ix86_asm_output_function_label (FILE *, const char *, tree);
 extern int ix86_function_arg_boundary (enum machine_mode, const_tree);
-extern bool ix86_solaris_return_in_memory (const_tree, const_tree);
 extern rtx ix86_force_to_memory (enum machine_mode, rtx);
 extern void ix86_free_from_memory (enum machine_mode);
 extern void ix86_call_abi_override (const_tree);
@@ -153,8 +153,6 @@ extern bool ix86_secondary_memory_needed (enum reg_class, enum reg_class,
 					  enum machine_mode, int);
 extern bool ix86_cannot_change_mode_class (enum machine_mode,
 					   enum machine_mode, enum reg_class);
-extern enum reg_class ix86_preferred_reload_class (rtx, enum reg_class);
-extern enum reg_class ix86_preferred_output_reload_class (rtx, enum reg_class);
 extern int ix86_mode_needed (int, rtx);
 extern void emit_i387_cw_initialization (int);
 extern void x86_order_regs_for_local_alloc (void);

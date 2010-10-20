@@ -545,6 +545,16 @@ proper position among the other output files.  */
 #define MFLIB_SPEC "%{fmudflap|fmudflapth: -export-dynamic}"
 #endif
 
+/* When using -fsplit-stack we need to wrap pthread_create, in order
+   to initialize the stack guard.  We always use wrapping, rather than
+   shared library ordering, and we keep the wrapper function in
+   libgcc.  This is not yet a real spec, though it could become one;
+   it is currently just stuffed into LINK_SPEC.  FIXME: This wrapping
+   only works with GNU ld and gold.  FIXME: This is incompatible with
+   -fmudflap when linking statically, which wants to do its own
+   wrapping.  */
+#define STACK_SPLIT_SPEC " %{fsplit-stack: --wrap=pthread_create}"
+
 /* config.h can define LIBGCC_SPEC to override how and when libgcc.a is
    included.  */
 #ifndef LIBGCC_SPEC
@@ -657,7 +667,8 @@ proper position among the other output files.  */
    "%X %{o*} %{A} %{d} %{e*} %{m} %{N} %{n} %{r}\
     %{s} %{t} %{u*} %{x} %{z} %{Z} %{!A:%{!nostdlib:%{!nostartfiles:%S}}}\
     %{static:} %{L*} %(mfwrap) %(link_libgcc) %o\
-    %{fopenmp|ftree-parallelize-loops=*:%:include(libgomp.spec)%(link_gomp)} %(mflib)\
+    %{fopenmp|ftree-parallelize-loops=*:%:include(libgomp.spec)%(link_gomp)}\
+    %(mflib) " STACK_SPLIT_SPEC "\
     %{fprofile-arcs|fprofile-generate*|coverage:-lgcov}\
     %{!nostdlib:%{!nodefaultlibs:%(link_ssp) %(link_gcc_c_sequence)}}\
     %{!A:%{!nostdlib:%{!nostartfiles:%E}}} %{T*} }}}}}}"
@@ -3139,7 +3150,9 @@ static int last_language_n_infiles;
    handle_option.  */
 
 static bool
-driver_handle_option (const struct cl_decoded_option *decoded,
+driver_handle_option (struct gcc_options *opts,
+		      struct gcc_options *opts_set,
+		      const struct cl_decoded_option *decoded,
 		      unsigned int lang_mask ATTRIBUTE_UNUSED, int kind,
 		      const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
 {
@@ -3150,6 +3163,8 @@ driver_handle_option (const struct cl_decoded_option *decoded,
   bool validated = false;
   bool do_save = true;
 
+  gcc_assert (opts == &global_options);
+  gcc_assert (opts_set == &global_options_set);
   gcc_assert (kind == DK_UNSPECIFIED);
 
   switch (opt_index)
@@ -3790,7 +3805,9 @@ process_command (unsigned int decoded_options_count,
 	  continue;
 	}
 
-      read_cmdline_option (decoded_options + j, CL_DRIVER, &handlers);
+      read_cmdline_option (&global_options, &global_options_set,
+			   decoded_options + j, CL_DRIVER, &handlers,
+			   global_dc);
     }
 
   /* If -save-temps=obj and -o name, create the prefix to use for %b.
@@ -6118,6 +6135,8 @@ main (int argc, char **argv)
   if (argv != old_argv)
     at_file_supplied = true;
 
+  global_options = global_options_init;
+
   decode_cmdline_options_to_array (argc, CONST_CAST2 (const char **, char **,
 						      argv),
 				   CL_DRIVER,
@@ -6810,10 +6829,10 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 			  fuse_linker_plugin + strlen (fuse_linker_plugin), 0))
 	{
 	  linker_plugin_file_spec = find_a_file (&exec_prefixes,
-						 "liblto_plugin.so", R_OK,
+						 LTOPLUGINSONAME, R_OK,
 						 false);
 	  if (!linker_plugin_file_spec)
-	    fatal_error ("-fuse-linker-plugin, but liblto_plugin.so not found");
+	    fatal_error ("-fuse-linker-plugin, but " LTOPLUGINSONAME " not found");
 
 	  lto_libgcc_spec = find_a_file (&startfile_prefixes, "libgcc.a",
 					 R_OK, true);

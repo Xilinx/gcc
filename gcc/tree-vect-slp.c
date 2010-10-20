@@ -1643,6 +1643,7 @@ vect_slp_analyze_bb (basic_block bb)
   int max_vf = MAX_VECTORIZATION_FACTOR;
   bool data_dependence_in_bb = false;
 
+  current_vector_size = 0;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "===vect_slp_analyze_bb===\n");
@@ -1810,8 +1811,8 @@ vect_update_slp_costs_according_to_vf (loop_vec_info loop_vinfo)
 
 /* For constant and loop invariant defs of SLP_NODE this function returns
    (vector) defs (VEC_OPRNDS) that will be used in the vectorized stmts.
-   OP_NUM determines if we gather defs for operand 0 or operand 1 of the scalar
-   stmts. NUMBER_OF_VECTORS is the number of vector defs to create.  
+   OP_NUM determines if we gather defs for operand 0 or operand 1 of the RHS of
+   scalar stmts.  NUMBER_OF_VECTORS is the number of vector defs to create.
    REDUC_INDEX is the index of the reduction operand in the statements, unless
    it is -1.  */
 
@@ -1835,10 +1836,10 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
   VEC (tree, heap) *voprnds = VEC_alloc (tree, heap, number_of_vectors);
   bool constant_p, is_store;
   tree neutral_op = NULL;
+  enum tree_code code = gimple_assign_rhs_code (stmt);
 
   if (STMT_VINFO_DEF_TYPE (stmt_vinfo) == vect_reduction_def)
     {
-      enum tree_code code = gimple_assign_rhs_code (stmt);
       if (reduc_index == -1)
         {
           VEC_free (tree, heap, *vec_oprnds);
@@ -1898,9 +1899,16 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
   else
     constant_p = false;
 
-  vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
-  gcc_assert (vector_type);
+  /* For POINTER_PLUS_EXPR we use the type of the constant/invariant itself.
+     If OP is the first operand of POINTER_PLUS_EXPR, its type is the type of
+     the statement, so it's OK to use OP's type for both first and second
+     operands.  */
+  if (code == POINTER_PLUS_EXPR)
+    vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
+  else
+    vector_type = STMT_VINFO_VECTYPE (stmt_vinfo);
 
+  gcc_assert (vector_type);
   nunits = TYPE_VECTOR_SUBPARTS (vector_type);
 
   /* NUMBER_OF_COPIES is the number of times we need to use the same values in
@@ -2177,20 +2185,18 @@ static bool
 vect_get_mask_element (gimple stmt, int first_mask_element, int m,
                        int mask_nunits, bool only_one_vec, int index,
                        int *mask, int *current_mask_element,
-                       bool *need_next_vector)
+                       bool *need_next_vector, int *number_of_mask_fixes,
+                       bool *mask_fixed, bool *needs_first_vector)
 {
   int i;
-  static int number_of_mask_fixes = 1;
-  static bool mask_fixed = false;
-  static bool needs_first_vector = false;
 
   /* Convert to target specific representation.  */
   *current_mask_element = first_mask_element + m;
   /* Adjust the value in case it's a mask for second and third vectors.  */
-  *current_mask_element -= mask_nunits * (number_of_mask_fixes - 1);
+  *current_mask_element -= mask_nunits * (*number_of_mask_fixes - 1);
 
   if (*current_mask_element < mask_nunits)
-    needs_first_vector = true;
+    *needs_first_vector = true;
 
   /* We have only one input vector to permute but the mask accesses values in
      the next vector as well.  */
@@ -2208,7 +2214,7 @@ vect_get_mask_element (gimple stmt, int first_mask_element, int m,
   /* The mask requires the next vector.  */
   if (*current_mask_element >= mask_nunits * 2)
     {
-      if (needs_first_vector || mask_fixed)
+      if (*needs_first_vector || *mask_fixed)
         {
           /* We either need the first vector too or have already moved to the
              next vector. In both cases, this permutation needs three
@@ -2226,23 +2232,23 @@ vect_get_mask_element (gimple stmt, int first_mask_element, int m,
       /* We move to the next vector, dropping the first one and working with
          the second and the third - we need to adjust the values of the mask
          accordingly.  */
-      *current_mask_element -= mask_nunits * number_of_mask_fixes;
+      *current_mask_element -= mask_nunits * *number_of_mask_fixes;
 
       for (i = 0; i < index; i++)
-        mask[i] -= mask_nunits * number_of_mask_fixes;
+        mask[i] -= mask_nunits * *number_of_mask_fixes;
 
-      (number_of_mask_fixes)++;
-      mask_fixed = true;
+      (*number_of_mask_fixes)++;
+      *mask_fixed = true;
     }
 
-  *need_next_vector = mask_fixed;
+  *need_next_vector = *mask_fixed;
 
   /* This was the last element of this mask. Start a new one.  */
   if (index == mask_nunits - 1)
     {
-      number_of_mask_fixes = 1;
-      mask_fixed = false;
-      needs_first_vector = false;
+      *number_of_mask_fixes = 1;
+      *mask_fixed = false;
+      *needs_first_vector = false;
     }
 
   return true;
@@ -2268,6 +2274,9 @@ vect_transform_slp_perm_load (gimple stmt, VEC (tree, heap) *dr_chain,
   int index, unroll_factor, *mask, current_mask_element, ncopies;
   bool only_one_vec = false, need_next_vector = false;
   int first_vec_index, second_vec_index, orig_vec_stmts_num, vect_stmts_counter;
+  int number_of_mask_fixes = 1;
+  bool mask_fixed = false;
+  bool needs_first_vector = false;
 
   if (!targetm.vectorize.builtin_vec_perm)
     {
@@ -2351,7 +2360,9 @@ vect_transform_slp_perm_load (gimple stmt, VEC (tree, heap) *dr_chain,
                 {
                   if (!vect_get_mask_element (stmt, first_mask_element, m,
                                    mask_nunits, only_one_vec, index, mask,
-                                   &current_mask_element, &need_next_vector))
+                                   &current_mask_element, &need_next_vector,
+                                   &number_of_mask_fixes, &mask_fixed,
+                                   &needs_first_vector))
                     return false;
 
                   mask[index++] = current_mask_element;

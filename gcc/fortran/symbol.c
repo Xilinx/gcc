@@ -2049,6 +2049,9 @@ free_components (gfc_component *p)
       gfc_free_array_spec (p->as);
       gfc_free_expr (p->initializer);
 
+      gfc_free_formal_arglist (p->formal);
+      gfc_free_namespace (p->formal_ns);
+
       gfc_free (p);
     }
 }
@@ -3252,6 +3255,22 @@ void gfc_free_charlen (gfc_charlen *cl, gfc_charlen *end)
 }
 
 
+/* Free entry list structs.  */
+
+static void
+free_entry_list (gfc_entry_list *el)
+{
+  gfc_entry_list *next;
+
+  if (el == NULL)
+    return;
+
+  next = el->next;
+  gfc_free (el);
+  free_entry_list (next);
+}
+
+
 /* Free a namespace structure and everything below it.  Interface
    lists associated with intrinsic operators are not freed.  These are
    taken care of when a specific name is freed.  */
@@ -3281,6 +3300,7 @@ gfc_free_namespace (gfc_namespace *ns)
   gfc_free_charlen (ns->cl_list, NULL);
   free_st_labels (ns->st_labels);
 
+  free_entry_list (ns->entries);
   gfc_free_equiv (ns->equiv);
   gfc_free_equiv_lists (ns->equiv_lists);
   gfc_free_use_stmts (ns->use_stmts);
@@ -3948,7 +3968,6 @@ gen_shape_param (gfc_formal_arglist **head,
   gfc_symtree *param_symtree = NULL;
   gfc_formal_arglist *formal_arg = NULL;
   const char *shape_param = "gfc_shape_array__";
-  int i;
 
   if (shape_param_name != NULL)
     shape_param = shape_param_name;
@@ -3974,15 +3993,9 @@ gen_shape_param (gfc_formal_arglist **head,
   /* Initialize the kind to default integer.  However, it will be overridden
      during resolution to match the kind of the SHAPE parameter given as
      the actual argument (to allow for any valid integer kind).  */
-  param_sym->ts.kind = gfc_default_integer_kind;   
+  param_sym->ts.kind = gfc_default_integer_kind;
   param_sym->as = gfc_get_array_spec ();
 
-  /* Clear out the dimension info for the array.  */
-  for (i = 0; i < GFC_MAX_DIMENSIONS; i++)
-    {
-      param_sym->as->lower[i] = NULL;
-      param_sym->as->upper[i] = NULL;
-    }
   param_sym->as->rank = 1;
   param_sym->as->lower[0] = gfc_get_int_expr (gfc_default_integer_kind,
 					      NULL, 1);
@@ -4190,6 +4203,7 @@ gfc_copy_formal_args_ppc (gfc_component *dest, gfc_symbol *src)
     }
 
   /* Add the interface to the symbol.  */
+  gfc_free_formal_arglist (dest->formal);
   dest->formal = head;
   dest->attr.if_source = IFSRC_DECL;
 
@@ -4280,6 +4294,13 @@ std_for_isocbinding_symbol (int id)
         return d;
 #include "iso-c-binding.def"
 #undef NAMED_INTCST
+
+#define NAMED_FUNCTION(a,b,c,d) \
+      case a:\
+        return d;
+#include "iso-c-binding.def"
+#undef NAMED_FUNCTION
+
        default:
          return GFC_STD_F2003;
     }

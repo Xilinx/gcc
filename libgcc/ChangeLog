@@ -1,3 +1,49 @@
+2010-10-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/arm/bpabi.h: New file.
+	* config/frv/frv-abi.h: New file.
+
+2010-10-01  Ian Lance Taylor  <iant@google.com>
+
+	* config/t-stack(LIB2ADD_ST): Set instead of LIB2ADD.
+	* config/i386/t-stack-i386 (LIB2ADD_ST): Likewise.
+
+2010-10-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/45858
+	* config.host: Add the missing `$'.
+
+2010-09-30  Michael Eager  <eager@eagercon.com>
+
+	* config.host: Add microblaze*-*-*.
+	* config/microblaze/{divsi3.asm,divsi3_table.c,moddi3.asm,modsi3.asm,
+	muldi3_hard.asm,mulsi3.asm,stack_overflow_exit.asm,t-microblaze,
+	udivsi3.asm,umodsi3.asm}:  New.
+
+2010-09-28  Ian Lance Taylor  <iant@google.com>
+
+	* configure.ac: Adjust CFI test to test assembler directly rather
+	than checking gcc preprocessor macro.
+	* configure: Rebuild.
+
+2010-09-27  Ian Lance Taylor  <iant@google.com>
+
+	* configure.ac: Test whether assembler supports CFI directives.
+	* config.host: Only add t-stack and i386/t-stack-i386 to
+	tmake_file if libgcc_cv_cfi is "yes".
+	* configure: Rebuild.
+
+2010-09-27  Ian Lance Taylor  <iant@google.com>
+
+	* generic-morestack.h: New file.
+	* generic-morestack.c: New file.
+	* generic-morestack-thread.c: New file.
+	* config/i386/morestack.S: New file.
+	* config/t-stack: New file.
+	* config/i386/t-stack-i386: New file.
+	* config.host (i[34567]86-*-linux* and friends): Add t-stack and
+	i386/t-stack-i386 to tmake_file.
+
 2010-09-21  Iain Sandoe  <iains@gcc.gnu.org>
 
 	* Makefile.in (libgcc-extra-parts):  Check for static archives and

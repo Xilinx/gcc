@@ -2677,7 +2677,15 @@ A register indirect address without offset.
 @item Z
 Symbolic references to the control bus.
 
+@end table
 
+@item MicroBlaze---@file{config/microblaze/constraints.md}
+@table @code
+@item d
+A general register (@code{r0} to @code{r31}).
+
+@item z
+A status register (@code{rmsr}, @code{$fcc1} to @code{$fcc7}).
 
 @end table
 
@@ -3939,6 +3947,16 @@ means of constraints requiring operands 1 and 0 to be the same location.
 @itemx @samp{umin@var{m}3}, @samp{umax@var{m}3}
 @itemx @samp{and@var{m}3}, @samp{ior@var{m}3}, @samp{xor@var{m}3}
 Similar, for other arithmetic operations.
+
+@cindex @code{fma@var{m}4} instruction pattern
+@item @samp{fma@var{m}4}
+Multiply operand 2 and operand 1, then add operand 3, storing the
+result in operand 0.  All operands must have mode @var{m}.  This
+pattern is used to implement the @code{fma}, @code{fmaf}, and
+@code{fmal} builtin functions from the ISO C99 standard.  The
+@code{fma} operation may produce different results than doing the
+multiply followed by the add if the machine does not perform a
+rounding step between the operations.
 
 @cindex @code{min@var{m}3} instruction pattern
 @cindex @code{max@var{m}3} instruction pattern

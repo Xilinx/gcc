@@ -308,6 +308,7 @@ static tree handle_hot_attribute (tree *, tree, tree, int, bool *);
 static tree handle_cold_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noinline_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noclone_attribute (tree *, tree, tree, int, bool *);
+static tree handle_leaf_attribute (tree *, tree, tree, int, bool *);
 static tree handle_always_inline_attribute (tree *, tree, tree, int,
 					    bool *);
 static tree handle_gnu_inline_attribute (tree *, tree, tree, int, bool *);
@@ -357,6 +358,7 @@ static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
 static tree handle_target_attribute (tree *, tree, tree, int, bool *);
 static tree handle_optimize_attribute (tree *, tree, tree, int, bool *);
+static tree handle_no_split_stack_attribute (tree *, tree, tree, int, bool *);
 static tree handle_fnspec_attribute (tree *, tree, tree, int, bool *);
 
 static void check_function_nonnull (tree, int, tree *);
@@ -379,8 +381,13 @@ static int resort_field_decl_cmp (const void *, const void *);
    If -fno-asm is used, D_ASM is added to the mask.  If
    -fno-gnu-keywords is used, D_EXT is added.  If -fno-asm and C in
    C89 mode, D_EXT89 is added for both -fno-asm and -fno-gnu-keywords.
-   In C with -Wc++-compat, we warn if D_CXXWARN is set.  */
+   In C with -Wc++-compat, we warn if D_CXXWARN is set.
 
+   Note the complication of the D_CXX_OBJC keywords.  These are
+   reserved words such as 'class'.  In C++, 'class' is a reserved
+   word.  In Objective-C++ it is too.  In Objective-C, it is a
+   reserved word too, but only if it follows an '@' sign.
+*/
 const struct c_common_resword c_common_reswords[] =
 {
   { "_Bool",		RID_BOOL,      D_CONLY },
@@ -534,6 +541,12 @@ const struct c_common_resword c_common_reswords[] =
   { "selector",		RID_AT_SELECTOR,	D_OBJC },
   { "finally",		RID_AT_FINALLY,		D_OBJC },
   { "synchronized",	RID_AT_SYNCHRONIZED,	D_OBJC },
+  { "optional",		RID_AT_OPTIONAL,	D_OBJC },
+  { "required",		RID_AT_REQUIRED,	D_OBJC },
+  { "property",		RID_AT_PROPERTY,	D_OBJC },
+  { "package",		RID_AT_PACKAGE,		D_OBJC },
+  { "synthesize",	RID_AT_SYNTHESIZE,	D_OBJC },
+  { "dynamic",		RID_AT_DYNAMIC,		D_OBJC },
   /* These are recognized only in protocol-qualifier context
      (see above) */
   { "bycopy",		RID_BYCOPY,		D_OBJC },
@@ -542,6 +555,12 @@ const struct c_common_resword c_common_reswords[] =
   { "inout",		RID_INOUT,		D_OBJC },
   { "oneway",		RID_ONEWAY,		D_OBJC },
   { "out",		RID_OUT,		D_OBJC },
+  /* These are recognized inside a property attribute list */
+  { "readonly",		RID_READONLY,		D_OBJC }, 
+  { "copies",		RID_COPIES,		D_OBJC },
+  { "getter",		RID_GETTER,		D_OBJC }, 
+  { "setter",		RID_SETTER,		D_OBJC }, 
+  { "ivar",		RID_IVAR,		D_OBJC }, 
 };
 
 const unsigned int num_c_common_reswords =
@@ -570,6 +589,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_noinline_attribute },
   { "noclone",                0, 0, true,  false, false,
 			      handle_noclone_attribute },
+  { "leaf",                   0, 0, true,  false, false,
+			      handle_leaf_attribute },
   { "always_inline",          0, 0, true,  false, false,
 			      handle_always_inline_attribute },
   { "gnu_inline",             0, 0, true,  false, false,
@@ -658,6 +679,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_target_attribute },
   { "optimize",               1, -1, true, false, false,
 			      handle_optimize_attribute },
+  { "no_split_stack",	      0, 0, true,  false, false,
+			      handle_no_split_stack_attribute },
   /* For internal use (marking of builtins and runtime functions) only.
      The name contains space to prevent its usage in source code.  */
   { "fn spec",	 	      1, 1, false, true, true,
@@ -5873,6 +5896,28 @@ handle_gnu_inline_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
+/* Handle a "leaf" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_leaf_attribute (tree *node, tree name,
+		       tree ARG_UNUSED (args),
+		       int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  if (!TREE_PUBLIC (*node))
+    {
+      warning (OPT_Wattributes, "%qE attribute has no effect on unit local functions", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
 /* Handle an "artificial" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -7154,7 +7199,8 @@ handle_deprecated_attribute (tree *node, tree name,
 	  || TREE_CODE (decl) == PARM_DECL
 	  || TREE_CODE (decl) == VAR_DECL
 	  || TREE_CODE (decl) == FUNCTION_DECL
-	  || TREE_CODE (decl) == FIELD_DECL)
+	  || TREE_CODE (decl) == FIELD_DECL
+	  || objc_method_decl (TREE_CODE (decl)))
 	TREE_DEPRECATED (decl) = 1;
       else
 	warn = 1;
@@ -7767,8 +7813,11 @@ parse_optimize_options (tree args, bool attr_p)
   saved_flag_strict_aliasing = flag_strict_aliasing;
 
   /* Now parse the options.  */
-  decode_options (opt_argc, opt_argv, &decoded_options,
-		  &decoded_options_count);
+  decode_cmdline_options_to_array_default_mask (opt_argc, opt_argv,
+						&decoded_options,
+						&decoded_options_count);
+  decode_options (&global_options, &global_options_set,
+		  decoded_options, decoded_options_count);
 
   targetm.override_options_after_change();
 
@@ -7798,12 +7847,13 @@ handle_optimize_attribute (tree *node, tree name, tree args,
       tree old_opts = DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node);
 
       /* Save current options.  */
-      cl_optimization_save (&cur_opts);
+      cl_optimization_save (&cur_opts, &global_options);
 
       /* If we previously had some optimization options, use them as the
 	 default.  */
       if (old_opts)
-	cl_optimization_restore (TREE_OPTIMIZATION (old_opts));
+	cl_optimization_restore (&global_options,
+				 TREE_OPTIMIZATION (old_opts));
 
       /* Parse options, and update the vector.  */
       parse_optimize_options (args, true);
@@ -7811,7 +7861,33 @@ handle_optimize_attribute (tree *node, tree name, tree args,
 	= build_optimization_node ();
 
       /* Restore current options.  */
-      cl_optimization_restore (&cur_opts);
+      cl_optimization_restore (&global_options, &cur_opts);
+    }
+
+  return NULL_TREE;
+}
+
+/* Handle a "no_split_stack" attribute.  */
+
+static tree
+handle_no_split_stack_attribute (tree *node, tree name,
+				 tree ARG_UNUSED (args),
+				 int ARG_UNUSED (flags),
+				 bool *no_add_attrs)
+{
+  tree decl = *node;
+
+  if (TREE_CODE (decl) != FUNCTION_DECL)
+    {
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"%qE attribute applies only to functions", name);
+      *no_add_attrs = true;
+    }
+  else if (DECL_INITIAL (decl))
+    {
+      error_at (DECL_SOURCE_LOCATION (decl),
+		"can%'t set %qE attribute after definition", name);
+      *no_add_attrs = true;
     }
 
   return NULL_TREE;
@@ -8252,7 +8328,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
 {
   diagnostic_info diagnostic;
   diagnostic_t dlevel;
-  bool save_warn_system_headers = global_dc->warn_system_headers;
+  bool save_warn_system_headers = global_dc->dc_warn_system_headers;
   bool ret;
 
   switch (level)
@@ -8260,7 +8336,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
     case CPP_DL_WARNING_SYSHDR:
       if (flag_no_output)
 	return false;
-      global_dc->warn_system_headers = 1;
+      global_dc->dc_warn_system_headers = 1;
       /* Fall through.  */
     case CPP_DL_WARNING:
       if (flag_no_output)
@@ -8297,7 +8373,7 @@ c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level, int reason,
                                     c_option_controlling_cpp_error (reason));
   ret = report_diagnostic (&diagnostic);
   if (level == CPP_DL_WARNING_SYSHDR)
-    global_dc->warn_system_headers = save_warn_system_headers;
+    global_dc->dc_warn_system_headers = save_warn_system_headers;
   return ret;
 }
 

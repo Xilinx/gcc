@@ -1,3 +1,372 @@
+2010-10-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/45866
+	* include/std/ratio (ratio<>::type): Add.
+	(ratio_add<>::num, ratio_add<>::den,
+	ratio_subtract<>::num, ratio_subtract<>::den,
+	ratio_multiply<>::num, ratio_multiply<>::den,
+	ratio_divide<>::num, ratio_divide<>::den): Likewise.
+	* testsuite/20_util/ratio/operations/45866.cc: New.
+
+2010-10-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h (forward_list<>::erase_after): Return
+	an iterator.
+	(_M_erase_after): Return _Fwd_list_node_base*.
+	* include/bits/forward_list.tcc: Likewise.
+	* include/debug/forward_list: Likewise.
+	* testsuite/23_containers/forward_list/modifiers/3.cc: Update
+	and extend.
+	* testsuite/util/exception/safety.h (erase_base<forward_list<>>):
+	Adjust.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Adjust dg-error line number.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2010-10-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/43554
+	* include/profile/forward_list: New file.
+	* include/std/forward_list: Include <profile/forward_list>.
+	* include/Makefile.am: Add.
+	* testsuite/23_containers/forward_list/capacity/1.cc: Adjust.
+	* include/Makefile.in: Regenerate.
+
+2010-10-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/functional (function<>::operator==, operator!=):
+	Remove, per LWG 1240.
+	* testsuite/20_util/function/cmp/cmp_neg.cc: Adjust dg-* directives.
+
+2010-10-13  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/45990
+	* include/bits/regex.h (regex_traits::isctype): DR 1337.
+
+2010-10-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.h (discrete_distribution<>::param_type::
+	param_type()): Default construct the vectors.
+	(discrete_distribution<>::param_type::probabilities): Adjust.
+	(discrete_distribution<>::probabilities): Likewise.
+	(discrete_distribution<>::max): Likewise.
+	(piecewise_constant_distribution<>::param_type::
+	param_type()): Default construct the vectors.
+	(piecewise_constant_distribution<>::param_type::intervals): Adjust.
+	(piecewise_constant_distribution<>::param_type::densities): Likewise.
+	(piecewise_constant_distribution<>::intervals): Likewise.
+	(piecewise_constant_distribution<>::densities): Likewise.
+	(piecewise_constant_distribution<>::min): Likewise.
+	(piecewise_constant_distribution<>::max): Likewise.
+	(piecewise_linear_distribution<>::param_type::
+	param_type()): Default construct the vectors.
+	(piecewise_linear_distribution<>::param_type::intervals): Adjust.
+	(piecewise_linear_distribution<>::param_type::densities): Likewise.
+	(piecewise_linear_distribution<>::intervals): Likewise.
+	(piecewise_linear_distribution<>::densities): Likewise.
+	(piecewise_linear_distribution<>::min): Likewise.
+	(piecewise_linear_distribution<>::max): Likewise.
+	* include/bits/random.tcc (discrete_distribution<>::param_type::
+	_M_initialize): Deal quickly with raw _M_prob equivalent to
+	a default constructed param_type, just clear the vector.
+	(discrete_distribution<>::operator()): Early return 0 for a
+	default constructed distribution.
+	(piecewise_constant_distribution<>::param_type::_M_initialize):
+	Likewise for _M_int and _M_den.
+	(piecewise_constant_distribution<>::operator()): Early return
+	for a default constructed distribution.
+	(piecewise_linear_distribution<>::param_type::_M_initialize):
+	Likewise.
+	(piecewise_linear_distribution<>::operator()): Early return
+	for a default constructed distribution.
+	* testsuite/26_numerics/random/discrete_distribution/operators/
+	call-default.cc: New.
+	* testsuite/26_numerics/random/piecewise_constant_distribution/
+	operators/call-default.cc: Likewise.
+
+2010-10-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.h (discrete_distribution<>::param_type):
+	Disable move operations.
+	(piecewise_constant_distribution<>::param_type): Likewise.
+	(piecewise_linear_distribution<>::param_type): Likewise.
+
+	* include/bits/random.h (discrete_distribution<>::param_type::
+	param_type()): Simplify, don't use _M_initialize.
+	(piecewise_constant_distribution<>::param_type::param_type()):
+	Likewise.
+	(piecewise_linear_distribution<>::param_type::param_type()):
+	Likewise.
+
+2010-10-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.tcc (piecewise_linear_distribution<>::
+	operator()): Don't crash when the dist is default-constructed.
+	* testsuite/26_numerics/random/piecewise_linear_distribution/
+	operators/call-default.cc: New.
+
+2010-10-11  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/23_containers/bitset/cons/2.cc: Tweak.
+
+2010-10-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/bitset (bitset<>::bitset(const _CharT*,
+	typename std::basic_string<>::size_type, _CharT, _CharT)):
+	Implement new proposed resolution for DR 1325.
+	* include/debug/bitset: Likewise.
+	* include/profile/bitset: Likewise.
+	* testsuite/23_containers/bitset/cons/dr1325-1.cc: New.
+	* testsuite/23_containers/bitset/cons/dr1325-2.cc: Likewise.
+
+2010-10-11  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/api.xml: Add link to 4.5 generated docs.
+
+2010-10-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/future (_Result_alloc): Derive from _Alloc,
+	exploit the Empty Base Optimization.
+
+2010-10-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/45403
+	* python/libstdcxx/v6/printers.py: Check for lazy_string support.
+
+2010-10-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/future (uses_allocator<packaged_task<>,>): Add;
+	minor formatting tweaks.
+
+2010-10-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/future: Enable allocator support.
+	* testsuite/30_threads/packaged_task/cons/alloc.cc: Expect PASS.
+	* testsuite/30_threads/promise/cons/alloc.cc: Expect PASS.
+
+2010-10-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/45893
+	* include/std/functional (bind): Implement DR 817 and add support
+	for volatile-qualified call wrappers.
+	* include/std/mutex (call_once): Implement DR 891.
+	* include/std/thread (thread::thread): Implement DR 929.
+	* include/std/future: Optimise use of std::bind.
+	* testsuite/20_util/bind/cv_quals.cc: Test volatile-qualification.
+	* testsuite/20_util/bind/move.cc: New.
+
+2010-10-07  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR libstdc++/45841
+	* testsuite/lib/libstdc++.exp (check_v3_target_fileio): Rewrite to
+	use an actual testsuite file and machinery, not ".".  Specifically
+	check that incorrectly seeking backwards from 0 yields an error,
+	and that reading, seeking backwards and reading again works.
+
+	* testsuite/libstdc++-dg/conformance.exp: Apply
+	check_v3_target_fileio as a gate for tests in
+	subdirectories matching the substring _filebuf.
+
+2010-10-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/locale_facets_nonio.tcc (time_get<>::
+	_M_extract_via_format): Tighten somewhat error checking.
+	* testsuite/22_locale/time_get/get_time/char/6.cc: New.
+	* testsuite/22_locale/time_get/get_time/wchar_t/6.cc: Likewise.
+
+2010-10-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/45924
+	* include/std/functional (_Bind_result::operator()): Do not expand
+	template parameter pack in forward call.
+	* testsuite/20_util/bind/45924.cc: New.
+
+2010-10-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/functional (struct _Weak_result_type_impl): Add
+	specializazions for cv-qualified function types, for variadic
+	function types and pointers and references to function types,
+	and for pointers to member function types.
+	(struct _Reference_wrapper_base): Add specializations for
+	cv-qualified unary and binary function types.
+	* testsuite/20_util/reference_wrapper/result_type.cc: New.
+	* testsuite/20_util/reference_wrapper/typedefs-2.cc: Likewise.
+
+2010-10-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libstdc++/45863
+	* scripts/extract_symvers: Restore revision 164879.
+	Only use pvs on SunOS.
+
+2010-10-05  David Krauss  <potswa@mac.com>
+
+	PR libstdc++/45841
+	* include/bits/fstream.h (basic_filebuf::underflow): Overflow
+	success does not preclude returning failure.
+	(basic_filebuf::pbackfail): Likewise.
+	(basic_filebuf::xsputn): Fix indentation problem.
+	(basic_filebuf::xsgetn): Likewise. Also, add similar overflow
+	call to enable optimized case from write mode.
+	* testsuite/27_io/basic_filebuf/underflow/char/45841.cc: New.
+	* testsuite/27_io/basic_filebuf/underflow/wchar_t/45841.cc: Likewise.
+
+2010-10-05  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/locale_facets_nonio.h (time_get::get_time): Doc typo.
+	(time_get::get_date): Likewise.
+
+2010-10-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/type_traits (_GLIBCXX_HAS_NESTED_TYPE): Add.
+	* include/std/functional (_Has_result_type_helper,
+	_Has_result_type): Remove; use the above to define __has_result_type.
+	* include/bits/stl_iterator_base_types.h: Use the above to define
+	__has_iterator_category.
+	* include/bits/allocator.h (__has_allocator_type): Use the above.
+	* include/bits/cpp_type_traits.h (__has_iterator_category,
+	__is_iterator): Remove.
+
+2010-10-05  Sebastian Huber  <sebastian.huber@embedded-brains.de>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/44647
+	* libsupc++/Makefile.am (sources): Add bad_alloc.cc.
+	* libsupc++/new_handler.cc (bad_alloc): Move to ...
+	* libsupc++/bad_alloc.cc (bad_alloc): ... here, new file.
+	* libsupc++/Makefile.in: Regenerate.
+
+2010-10-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/functional (function<>::swap): Use std::swap.
+	* include/tr1/functional (function<>::swap): Likewise.
+
+2010-10-04  Andreas Schwab  <schwab@redhat.com>
+
+	* acinclude.m4 (GLIBCXX_ENABLE): Properly quote argument to
+	AC_HELP_STRING.  Double quote expansion of _g_help.
+	(GLIBCXX_ENABLE_LIBSTDCXX_TIME): Double quote third argument of
+	GLIBCXX_ENABLE.
+	(GLIBCXX_ENABLE_CHEADERS): Likewise.
+	(GLIBCXX_ENABLE_CLOCALE): Likewise.
+	(GLIBCXX_ENABLE_ALLOCATOR): Likewise.
+	(GLIBCXX_ENABLE_CSTDIO): Likewise.
+	(GLIBCXX_ENABLE_SYMVERS): Likewise.
+	* configure: Regenerate.
+
+2010-10-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR libstdc++/45863
+	* scripts/extract_symvers: Revert the pvs change.
+
+2010-10-01  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* scripts/extract_symvers: Add support for tracking TLS symbols.
+	* testsuite/util/testsuite_abi.h (symbol::category): Add tls type.
+	* testsuite/util/testsuite_abi.cc: Set symbol type to tls when
+	appropriate, collect size info.
+
+2010-10-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* scripts/extract_symvers: Use pvs if present.
+	* config/abi/post/solaris2.8/baseline_symbols.txt: New file.
+	* config/abi/post/solaris2.8/sparcv9/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/amd64/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/sparcv9/baseline_symbols.txt: Likewise.
+	* configure.host (i?86-*-solaris2*): Remove.
+	(sparc*-*-solaris2*): Remove.
+	(*-*-solaris2.[89]): Use solaris2.8 baseline.
+	(*-*-solaris2.1[0-9]): Use solaris2.10 baseline.
+	* testsuite/Makefile.am (new-abi-baseline): Add missing /.
+	* testsuite/Makefile.in: Regenerate.
+
+2010-09-30  Michael Eager  <eager@eagercon.com>
+
+	* config/cpu/microblaze/cpu_defines.h: New. Define
+	_GLIBCXX_NO_VERBOSE_TERMINATE for MicroBlaze.
+
+2010-09-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/Makefile.am: Add debug/forward_list.
+	* include/Makefile.in: Regenerate.
+
+	* testsuite/util/testsuite_container_traits.h (traits_base):
+	Add has_erase_after and hash_insert_after typedefs.
+	(traits<forward_list<>>): Adjust.
+	* testsuite/util/exception/safety.h (erase_point, erase_range,
+	insert_point): Deal correctly with forward_list.
+	* include/Makefile.am: Add.
+
+2010-09-29  François Dumont  <francois.cppdevs@free.fr>
+
+	* src/debug.cc: Add forward_list specific debug messages.
+	* include/debug/forward_list: New.
+	* include/debug/formatter.h: Add debug message ids and before begin
+	iterator state.
+	* include/debug/macros.h (__glibcxx_check_insert_after,
+	__glibcxx_check_insert_range_after, __glibcxx_check_erase_after,
+	__glibcxx_check_erase_range_after): Add.
+	* include/debug/safe_iterator.h (_BeforeBeginHelper): Add.
+	(_Safe_iterator<>::_M_before_dereferenceable,
+	_Safe_iterator<>::_M_is_before_begin): Add.
+	(_Safe_iterator<>::_M_dereferenceable, _Safe_iterator<>::_M_is_end,
+	_Safe_iterator<>::_M_incrementable): Adjust.
+	* include/std/forward_list: Include debug/forward when _GLIBCXX_DEBUG
+	defined.
+	* include/bits/forward_list.h, forward_list.tcc: Put in std::__norm
+	when debug mode is active.
+	* testsuite/23_containers/forward_list/capacity/1.cc: Fix to compile
+	even in debug mode.
+	* testsuite/23_containers/forward_list/debug/erase_after1.cc,
+	erase_after2.cc, erase_after3.cc, erase_after4.cc, erase_after5.cc,
+	insert_after1.cc,erase_after6.cc, erase_after7.cc, insert_after2.cc,
+	erase_after8.cc, insert_after3.cc, erase_after9.cc: New
+
+2010-09-28  DJ Delorie  <dj@redhat.com>
+
+	* libsupc++/hash_bytes.cc (_Hash_bytes): Replace "clength" with
+	"len" for "unusual sizeof(size_t)" case.
+
+2010-09-28  Matt Austern  <austern@google.com>
+
+	* testsuite/20_util/hash/chi2_quality.cc: New.
+	* testsuite/20_util/hash/quality.cc: Likewise.
+
+2010-09-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/allocator.h (allocator_arg_t, allocator_arg,
+	uses_allocator): Add.
+	* testsuite/20_util/uses_allocator/value.cc: New.
+	* testsuite/20_util/uses_allocator/requirements/typedefs.cc: Likewise.
+	* testsuite/20_util/uses_allocator/requirements/
+	explicit_instantiation.cc: Likewise.
+	* include/bits/stl_queue.h (uses_allocator<queue>,
+	uses_allocator<priority_queue>): Add.
+	* include/bits/stl_stack.h (uses_allocator<stack>): Likewise.
+
+	* include/bits/stl_pair.h (piecewise_construct): Add.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust dg-error
+	line number.
+
+2010-09-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/c_std/cmath (__pow_helper): Remove.
+	(__cmath_power): Remove declaration.
+	* include/c_global/cmath: Likewise.
+	* include/std/complex (__complex_pow_unsigned): Add.
+	(pow(const complex<_Tp>&, int)): Use the latter.
+	* include/c_std/cmath.tcc: Remove file.
+	* include/c_global/cmath.tcc: Likewise.
+	* acinclude.m4: Adjust.
+	* include/Makefile.am: Likewise.
+	* configure: Regenerate.
+	* include/Makefile.in: Likewise.
+
 2010-09-22  David Krauss  <potswa@mac.com>
 
 	PR libstdc++/45628

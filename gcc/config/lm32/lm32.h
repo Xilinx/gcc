@@ -68,8 +68,6 @@
 #undef  LIB_SPEC
 #define LIB_SPEC "%{!T*:-T sim.ld}"
 
-extern int target_flags;
-
 /* Add -G xx support.  */
 
 #undef  SWITCH_TAKES_ARG
@@ -228,8 +226,6 @@ enum reg_class
     (G_REG_P (REGNO) || G_REG_P ((unsigned) reg_renumber[REGNO]))
 
 #define REGNO_OK_FOR_INDEX_P(REGNO) 0
-
-#define PREFERRED_RELOAD_CLASS(X,CLASS) (CLASS)
 
 /*----------------------------------------*/
 /* Stack Layout and Calling Conventions.  */
@@ -431,7 +427,7 @@ enum reg_class
 #undef  ASM_OUTPUT_ALIGNED_LOCAL
 #define ASM_OUTPUT_ALIGNED_LOCAL(FILE, NAME, SIZE, ALIGN)		\
 do {									\
-  if ((SIZE) <= g_switch_value)						\
+  if ((SIZE) <= (unsigned HOST_WIDE_INT) g_switch_value)		\
     switch_to_section (sbss_section);					\
   else									\
     switch_to_section (bss_section);					\
@@ -448,7 +444,7 @@ do {									\
 #define ASM_OUTPUT_ALIGNED_COMMON(FILE, NAME, SIZE, ALIGN)		\
 do 									\
 {									\
-  if ((SIZE) <= g_switch_value)						\
+  if ((SIZE) <= (unsigned HOST_WIDE_INT) g_switch_value)		\
     {									\
       switch_to_section (sbss_section);					\
       (*targetm.asm_out.globalize_label) (FILE, NAME);			\

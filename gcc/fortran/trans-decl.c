@@ -1044,6 +1044,7 @@ gfc_get_symbol_decl (gfc_symbol * sym)
   tree length = NULL_TREE;
   tree attributes;
   int byref;
+  bool intrinsic_array_parameter = false;
 
   gcc_assert (sym->attr.referenced
 		|| sym->attr.use_assoc
@@ -1089,7 +1090,7 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 	  else
 	    length = sym->ts.u.cl->backend_decl;
 	  if (TREE_CODE (length) == VAR_DECL
-	      && DECL_CONTEXT (length) == NULL_TREE)
+	      && DECL_FILE_SCOPE_P (length))
 	    {
 	      /* Add the string length to the same context as the symbol.  */
 	      if (DECL_CONTEXT (sym->backend_decl) == current_function_decl)
@@ -1132,11 +1133,18 @@ gfc_get_symbol_decl (gfc_symbol * sym)
   if (sym->backend_decl)
     return sym->backend_decl;
 
+  /* Special case for array-valued named constants from intrinsic
+     procedures; those are inlined.  */
+  if (sym->attr.use_assoc && sym->from_intmod
+      && sym->attr.flavor == FL_PARAMETER)
+    intrinsic_array_parameter = true;
+
   /* If use associated and whole file compilation, use the module
      declaration.  */
   if (gfc_option.flag_whole_file
-	&& sym->attr.flavor == FL_VARIABLE
-	&& sym->attr.use_assoc
+	&& (sym->attr.flavor == FL_VARIABLE
+	    || sym->attr.flavor == FL_PARAMETER)
+	&& sym->attr.use_assoc && !intrinsic_array_parameter
 	&& sym->module)
     {
       gfc_gsymbol *gsym;
@@ -1200,7 +1208,7 @@ gfc_get_symbol_decl (gfc_symbol * sym)
   if (sym->module)
     {
       gfc_set_decl_assembler_name (decl, gfc_sym_mangled_identifier (sym));
-      if (sym->attr.use_assoc)
+      if (sym->attr.use_assoc && !intrinsic_array_parameter)
 	DECL_IGNORED_P (decl) = 1;
     }
 
@@ -1226,7 +1234,7 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 	  && !sym->attr.data
 	  && !sym->attr.allocatable
 	  && (sym->value && !sym->ns->proc_name->attr.is_main_program)
-	  && !sym->attr.use_assoc))
+	  && !(sym->attr.use_assoc && !intrinsic_array_parameter)))
     gfc_defer_symbol_init (sym);
 
   gfc_finish_var_decl (decl, sym);
@@ -1280,7 +1288,14 @@ gfc_get_symbol_decl (gfc_symbol * sym)
   if (sym->attr.assign)
     gfc_add_assign_aux_vars (sym);
 
-  if (TREE_STATIC (decl) && !sym->attr.use_assoc
+  if (intrinsic_array_parameter)
+    {
+      TREE_STATIC (decl) = 1;
+      DECL_EXTERNAL (decl) = 0;
+    }
+
+  if (TREE_STATIC (decl)
+      && !(sym->attr.use_assoc && !intrinsic_array_parameter)
       && (sym->attr.save || sym->ns->proc_name->attr.is_main_program
 	  || gfc_option.flag_max_stack_var_size == 0
 	  || sym->attr.data || sym->ns->proc_name->attr.flavor == FL_MODULE))
@@ -1439,13 +1454,13 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
 	  tree save_fn_decl = current_function_decl;
 
 	  current_function_decl = NULL_TREE;
-	  gfc_get_backend_locus (&old_loc);
+	  gfc_save_backend_locus (&old_loc);
 	  push_cfun (cfun);
 
 	  gfc_create_function_decl (gsym->ns, true);
 
 	  pop_cfun ();
-	  gfc_set_backend_locus (&old_loc);
+	  gfc_restore_backend_locus (&old_loc);
 	  current_function_decl = save_fn_decl;
 	}
 
@@ -1631,9 +1646,9 @@ build_function_decl (gfc_symbol * sym, bool global)
 
   /* Allow only one nesting level.  Allow public declarations.  */
   gcc_assert (current_function_decl == NULL_TREE
-	      || DECL_CONTEXT (current_function_decl) == NULL_TREE
-	      || TREE_CODE (DECL_CONTEXT (current_function_decl))
-		 == NAMESPACE_DECL);
+	      || DECL_FILE_SCOPE_P (current_function_decl)
+	      || (TREE_CODE (DECL_CONTEXT (current_function_decl))
+		  == NAMESPACE_DECL));
 
   type = gfc_get_function_type (sym);
   fndecl = build_decl (input_location,
@@ -1643,10 +1658,6 @@ build_function_decl (gfc_symbol * sym, bool global)
 
   attributes = add_attributes_to_decl (attr, NULL_TREE);
   decl_attributes (&fndecl, attributes, 0);
-
-  /* Perform name mangling if this is a top level or module procedure.  */
-  if (current_function_decl == NULL_TREE)
-    gfc_set_decl_assembler_name (fndecl, gfc_sym_mangled_function_id (sym));
 
   /* Figure out the return type of the declared function, and build a
      RESULT_DECL for it.  If this is a subroutine with alternate
@@ -1695,12 +1706,11 @@ build_function_decl (gfc_symbol * sym, bool global)
      layout_decl (result_decl, 0);  */
 
   /* Set up all attributes for the function.  */
-  DECL_CONTEXT (fndecl) = current_function_decl;
   DECL_EXTERNAL (fndecl) = 0;
 
   /* This specifies if a function is globally visible, i.e. it is
      the opposite of declaring static in C.  */
-  if (DECL_CONTEXT (fndecl) == NULL_TREE
+  if (!current_function_decl
       && !sym->attr.entry_master && !sym->attr.is_main_program)
     TREE_PUBLIC (fndecl) = 1;
 
@@ -1728,6 +1738,10 @@ build_function_decl (gfc_symbol * sym, bool global)
     pushdecl_top_level (fndecl);
   else
     pushdecl (fndecl);
+
+  /* Perform name mangling if this is a top level or module procedure.  */
+  if (current_function_decl == NULL_TREE)
+    gfc_set_decl_assembler_name (fndecl, gfc_sym_mangled_function_id (sym));
 
   sym->backend_decl = fndecl;
 }
@@ -1976,7 +1990,7 @@ trans_function_start (gfc_symbol * sym)
   /* Let the world know what we're about to do.  */
   announce_function (fndecl);
 
-  if (DECL_CONTEXT (fndecl) == NULL_TREE)
+  if (DECL_FILE_SCOPE_P (fndecl))
     {
       /* Create RTL for function declaration.  */
       rest_of_decl_compilation (fndecl, 1, 0);
@@ -2014,7 +2028,7 @@ build_entry_thunks (gfc_namespace * ns, bool global)
   /* This should always be a toplevel function.  */
   gcc_assert (current_function_decl == NULL_TREE);
 
-  gfc_get_backend_locus (&old_loc);
+  gfc_save_backend_locus (&old_loc);
   for (el = ns->entries; el; el = el->next)
     {
       VEC(tree,gc) *args = NULL;
@@ -2178,7 +2192,7 @@ build_entry_thunks (gfc_namespace * ns, bool global)
 	}
     }
 
-  gfc_set_backend_locus (&old_loc);
+  gfc_restore_backend_locus (&old_loc);
 }
 
 
@@ -3322,11 +3336,11 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 					    NULL_TREE);
 		    }
 
-		  gfc_get_backend_locus (&loc);
+		  gfc_save_backend_locus (&loc);
 		  gfc_set_backend_locus (&sym->declared_at);
 		  gfc_trans_auto_array_allocation (sym->backend_decl,
 						   sym, block);
-		  gfc_set_backend_locus (&loc);
+		  gfc_restore_backend_locus (&loc);
 		}
 	      break;
 
@@ -3398,20 +3412,20 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	gfc_trans_deferred_array (sym, block);
       else if (sym->ts.type == BT_CHARACTER)
 	{
-	  gfc_get_backend_locus (&loc);
+	  gfc_save_backend_locus (&loc);
 	  gfc_set_backend_locus (&sym->declared_at);
 	  if (sym->attr.dummy || sym->attr.result)
 	    gfc_trans_dummy_character (sym, sym->ts.u.cl, block);
 	  else
 	    gfc_trans_auto_character_variable (sym, block);
-	  gfc_set_backend_locus (&loc);
+	  gfc_restore_backend_locus (&loc);
 	}
       else if (sym->attr.assign)
 	{
-	  gfc_get_backend_locus (&loc);
+	  gfc_save_backend_locus (&loc);
 	  gfc_set_backend_locus (&sym->declared_at);
 	  gfc_trans_assign_aux_var (sym, block);
-	  gfc_set_backend_locus (&loc);
+	  gfc_restore_backend_locus (&loc);
 	}
       else if (sym->ts.type == BT_DERIVED
 		 && sym->value
@@ -3583,7 +3597,7 @@ gfc_create_module_variable (gfc_symbol * sym)
   if ((sym->attr.in_common || sym->attr.in_equivalence) && sym->backend_decl)
     {
       decl = sym->backend_decl;
-      gcc_assert (DECL_CONTEXT (decl) == NULL_TREE);
+      gcc_assert (DECL_FILE_SCOPE_P (decl));
       gcc_assert (sym->ns->proc_name->attr.flavor == FL_MODULE);
       DECL_CONTEXT (decl) = sym->ns->proc_name->backend_decl;
       gfc_module_add_decl (cur_module, decl);
@@ -3610,7 +3624,6 @@ gfc_create_module_variable (gfc_symbol * sym)
 
   /* Create the variable.  */
   pushdecl (decl);
-  gcc_assert (DECL_CONTEXT (decl) == NULL_TREE);
   gcc_assert (sym->ns->proc_name->attr.flavor == FL_MODULE);
   DECL_CONTEXT (decl) = sym->ns->proc_name->backend_decl;
   rest_of_decl_compilation (decl, 1, 0);
@@ -4667,7 +4680,7 @@ gfc_generate_function_code (gfc_namespace * ns)
   /* Reset recursion-check variable.  */
   if ((gfc_option.rtcheck & GFC_RTCHECK_RECURSION)
 	 && !is_recursive
-	 && !gfc_option.flag_openmp
+	 && !gfc_option.gfc_flag_openmp
 	 && recurcheckvar != NULL_TREE)
     {
       gfc_add_modify (&cleanup, recurcheckvar, boolean_false_node);

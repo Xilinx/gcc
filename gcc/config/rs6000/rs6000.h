@@ -46,6 +46,10 @@
 #define TARGET_AIX 0
 #endif
 
+#ifndef TARGET_AIX_OS
+#define TARGET_AIX_OS 0
+#endif
+
 /* Control whether function entry points use a "dot" symbol when
    ABI_AIX.  */
 #define DOT_SYMBOLS 1
@@ -471,7 +475,6 @@ extern int rs6000_float_gprs;
 extern int rs6000_alignment_flags;
 extern const char *rs6000_sched_insert_nops_str;
 extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
-extern int rs6000_xilinx_fpu;
 
 /* Describe which vector unit to use for a given machine mode.  */
 enum rs6000_vector {
@@ -2417,9 +2420,6 @@ extern char rs6000_reg_names[][8];	/* register names (0 vs. %r0).  */
 /* #define  MACHINE_no_sched_speculative_load */
 
 /* General flags.  */
-extern int flag_pic;
-extern int optimize;
-extern int flag_expensive_optimizations;
 extern int frame_pointer_needed;
 
 /* Classification of the builtin functions to properly set the declaration tree

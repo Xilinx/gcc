@@ -29,6 +29,10 @@ along with GCC; see the file COPYING3.  If not see
 #define skip_leading_substring(whole,  part) \
    (strncmp (whole, part, strlen (part)) ? NULL : whole + strlen (part))
 
+/* Decoded options, and number of such options.  */
+extern struct cl_decoded_option *save_decoded_options;
+extern unsigned int save_decoded_options_count;
+
 extern int toplev_main (int, char **);
 extern void strip_off_ending (char *, int);
 extern void rest_of_decl_compilation (tree, int, int);
@@ -93,13 +97,6 @@ extern const char * default_pch_valid_p (const void *, size_t);
 
 /* The hashtable, so that the C front ends can pass it to cpplib.  */
 extern struct ht *ident_hash;
-
-/* This function can be used by targets to set the flags originally
-    implied by -ffast-math and -fno-fast-math.  */
-
-extern void set_fast_math_flags         (int);
-
-extern void set_unsafe_math_optimizations_flags (int);
 
 /* Handle -d switch.  */
 extern void decode_d_option		(const char *);

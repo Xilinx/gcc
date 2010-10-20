@@ -31,6 +31,7 @@ with GNAT.Dynamic_Tables;
 with Table;
 
 with Prj.Attr; use Prj.Attr;
+with Prj.Env;
 
 package Prj.Tree is
 
@@ -295,7 +296,8 @@ package Prj.Tree is
    pragma Inline (Expression_Kind_Of);
    --  Only valid for N_Literal_String, N_Attribute_Declaration,
    --  N_Variable_Declaration, N_Typed_Variable_Declaration, N_Expression,
-   --  N_Term, N_Variable_Reference or N_Attribute_Reference nodes.
+   --  N_Term, N_Variable_Reference, N_Attribute_Reference nodes or
+   --  N_External_Value.
 
    function Is_Extending_All
      (Node    : Project_Node_Id;
@@ -758,7 +760,8 @@ package Prj.Tree is
    pragma Inline (Set_Expression_Kind_Of);
    --  Only valid for N_Literal_String, N_Attribute_Declaration,
    --  N_Variable_Declaration, N_Typed_Variable_Declaration, N_Expression,
-   --  N_Term, N_Variable_Reference or N_Attribute_Reference nodes.
+   --  N_Term, N_Variable_Reference, N_Attribute_Reference or N_External_Value
+   --  nodes.
 
    procedure Set_Is_Extending_All
      (Node    : Project_Node_Id;
@@ -1474,12 +1477,7 @@ package Prj.Tree is
       --  The target name, if any, specified with the gprbuild or gprclean
       --  switch --target=.
 
-      Project_Path : String_Access := null;
-      --  The project path, manipulated through subprograms in prj-ext.ads.
-      --  As a special case, if the first character is '#:" or this variable is
-      --  unset, this means that the PATH has not been fully initialized yet
-      --  (although subprograms prj-ext.ads will properly take care of that).
-      --
+      Project_Path : aliased Prj.Env.Project_Search_Path;
       --  The project path is tree specific, since we might want to load
       --  simultaneously multiple projects, each with its own search path, in
       --  particular when using different compilers with different default

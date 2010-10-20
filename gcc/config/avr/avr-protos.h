@@ -24,7 +24,6 @@
 extern int function_arg_regno_p (int r);
 extern void avr_cpu_cpp_builtins (struct cpp_reader * pfile);
 extern int avr_ret_register (void);
-extern bool class_likely_spilled_p (int c);
 extern enum reg_class avr_regno_reg_class (int r);
 extern void asm_globalize_label (FILE *file, const char *name);
 extern void avr_asm_declare_function_name (FILE *, const char *, tree);
@@ -43,15 +42,8 @@ extern int avr_progmem_p (tree decl, tree attributes);
 #ifdef RTX_CODE /* inside TREE_CODE */
 extern void init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
 				  rtx libname, tree fndecl);
-extern rtx function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-			 tree type, int named);
 #endif /* RTX_CODE inside TREE_CODE */
 
-#ifdef HAVE_MACHINE_MODES /* inside TREE_CODE */
-extern void function_arg_advance (CUMULATIVE_ARGS *cum,
-				  enum machine_mode mode, tree type,
-				  int named);
-#endif /* HAVE_MACHINE_MODES inside TREE_CODE*/
 #endif /* TREE_CODE */
 
 #ifdef RTX_CODE
@@ -91,7 +83,6 @@ extern void avr_output_bld (rtx operands[], int bit_nr);
 extern void avr_output_addr_vec_elt (FILE *stream, int value);
 extern const char *avr_out_sbxx_branch (rtx insn, rtx operands[]);
 
-extern enum reg_class preferred_reload_class (rtx x, enum reg_class rclass);
 extern int extra_constraint_Q (rtx x);
 extern int adjust_insn_length (rtx insn, int len);
 extern rtx avr_libcall_value (enum machine_mode mode);

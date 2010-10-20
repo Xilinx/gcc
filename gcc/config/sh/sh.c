@@ -184,6 +184,8 @@ static rtx gen_block_redirect (rtx, int, int);
 static void sh_reorg (void);
 static void sh_option_override (void);
 static void sh_option_optimization (int, int);
+static void sh_option_init_struct (struct gcc_options *);
+static void sh_option_default_params (void);
 static void output_stack_adjust (int, rtx, int, HARD_REG_SET *, bool);
 static rtx frame_insn (rtx);
 static rtx push (int);
@@ -342,6 +344,10 @@ static const struct attribute_spec sh_attribute_table[] =
 #define TARGET_OPTION_OVERRIDE sh_option_override
 #undef TARGET_OPTION_OPTIMIZATION
 #define TARGET_OPTION_OPTIMIZATION sh_option_optimization
+#undef TARGET_OPTION_INIT_STRUCT
+#define TARGET_OPTION_INIT_STRUCT sh_option_init_struct
+#undef TARGET_OPTION_DEFAULT_PARAMS
+#define TARGET_OPTION_DEFAULT_PARAMS sh_option_default_params
 
 #undef TARGET_PRINT_OPERAND
 #define TARGET_PRINT_OPERAND sh_print_operand
@@ -722,17 +728,24 @@ sh_option_optimization (int level, int size)
       if (!size)
 	target_flags |= MASK_SAVE_ALL_TARGET_REGS;
     }
-  /* Likewise, we can't meaningfully test TARGET_SH2E / TARGET_IEEE
-     here, so leave it to TARGET_OPTION_OVERRIDE to set
-    flag_finite_math_only.  We set it to 2 here so we know if the user
-    explicitly requested this to be on or off.  */
-  flag_finite_math_only = 2;
-  /* If flag_schedule_insns is 1, we set it to 2 here so we know if
-     the user explicitly requested this to be on or off.  */
-  if (flag_schedule_insns > 0)
-    flag_schedule_insns = 2;
+}
 
-  set_param_value ("simultaneous-prefetches", 2);
+/* Implement TARGET_OPTION_INIT_STRUCT.  */
+static void
+sh_option_init_struct (struct gcc_options *opts)
+{
+  /* We can't meaningfully test TARGET_SH2E / TARGET_IEEE
+     here, so leave it to TARGET_OPTION_OVERRIDE to set
+     flag_finite_math_only.  We set it to 2 here so we know if the user
+     explicitly requested this to be on or off.  */
+  opts->x_flag_finite_math_only = 2;
+}
+
+/* Implement TARGET_OPTION_DEFAULT_PARAMS.  */
+static void
+sh_option_default_params (void)
+{
+  set_default_param_value (PARAM_SIMULTANEOUS_PREFETCHES, 2);
 }
 
 /* Implement TARGET_OPTION_OVERRIDE macro.  Validate and override 
@@ -915,11 +928,12 @@ sh_option_override (void)
          <http://gcc.gnu.org/ml/gcc-patches/2005-10/msg00816.html>.  */
       else if (flag_exceptions)
 	{
-	  if (flag_schedule_insns == 1)
+	  if (flag_schedule_insns && global_options_set.x_flag_schedule_insns)
 	    warning (0, "ignoring -fschedule-insns because of exception handling bug");
 	  flag_schedule_insns = 0;
 	}
-      else if (flag_schedule_insns == 2)
+      else if (flag_schedule_insns
+	       && !global_options_set.x_flag_schedule_insns)
 	flag_schedule_insns = 0;
     }
 
@@ -6860,6 +6874,7 @@ sh_expand_prologue (void)
   int d_rounding = 0;
   int save_flags = target_flags;
   int pretend_args;
+  int stack_usage;
   tree sp_switch_attr
     = lookup_attribute ("sp_switch", DECL_ATTRIBUTES (current_function_decl));
 
@@ -6876,6 +6891,7 @@ sh_expand_prologue (void)
   output_stack_adjust (-pretend_args
 		       - crtl->args.info.stack_regs * 8,
 		       stack_pointer_rtx, 0, NULL, false);
+  stack_usage = pretend_args + crtl->args.info.stack_regs * 8;
 
   if (TARGET_SHCOMPACT && flag_pic && crtl->args.info.call_cookie)
     /* We're going to use the PIC register to load the address of the
@@ -6934,6 +6950,7 @@ sh_expand_prologue (void)
 			))
 		break;
 	      push (rn);
+	      stack_usage += GET_MODE_SIZE (SImode);
 	    }
 	}
     }
@@ -7006,6 +7023,7 @@ sh_expand_prologue (void)
 
       output_stack_adjust (-(save_size + d_rounding), stack_pointer_rtx,
 			   0, NULL, true);
+      stack_usage += save_size + d_rounding;
 
       sh5_schedule_saves (&live_regs_mask, &schedule, offset_base);
       tmp_pnt = schedule.temps;
@@ -7157,7 +7175,10 @@ sh_expand_prologue (void)
       gcc_assert (entry->offset == d_rounding);
     }
   else
-    push_regs (&live_regs_mask, current_function_interrupt);
+    {
+      push_regs (&live_regs_mask, current_function_interrupt);
+      stack_usage += d;
+    }
 
   if (flag_pic && df_regs_ever_live_p (PIC_OFFSET_TABLE_REGNUM))
     emit_insn (gen_GOTaddr2picreg ());
@@ -7181,6 +7202,7 @@ sh_expand_prologue (void)
 
   output_stack_adjust (-rounded_frame_size (d) + d_rounding,
 		       stack_pointer_rtx, 0, NULL, true);
+  stack_usage += rounded_frame_size (d) - d_rounding;
 
   if (frame_pointer_needed)
     frame_insn (GEN_MOV (hard_frame_pointer_rtx, stack_pointer_rtx));
@@ -7194,6 +7216,9 @@ sh_expand_prologue (void)
 		      "__GCC_shcompact_incoming_args", SFUNC_GOT);
       emit_insn (gen_shcompact_incoming_args ());
     }
+
+  if (flag_stack_usage)
+    current_function_static_stack_size = stack_usage;
 }
 
 void

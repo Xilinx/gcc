@@ -24,6 +24,10 @@
 #undef  TARGET_AIX
 #define TARGET_AIX 1
 
+/* Linux64.h wants to redefine TARGET_AIX based on -m64, but it can't be used
+   in the #if conditional in options-default.h, so provide another macro.  */
+#define TARGET_AIX_OS 1
+
 /* AIX always has a TOC.  */
 #define TARGET_NO_TOC 0
 #define TARGET_TOC 1
@@ -206,13 +210,6 @@
 #define FP_SAVE_INLINE(FIRST_REG) ((FIRST_REG) == 62 || (FIRST_REG) == 63)
 /* And similarly for general purpose registers.  */
 #define GP_SAVE_INLINE(FIRST_REG) ((FIRST_REG) < 32)
-
-/* __throw will restore its own return address to be the same as the
-   return address of the function that the throw is being made to.
-   This is unfortunate, because we want to check the original
-   return address to see if we need to restore the TOC.
-   So we have to squirrel it away with this.  */
-#define SETUP_FRAME_ADDRESSES() rs6000_aix_emit_builtin_unwind_init ()
 
 /* If the current unwind info (FS) does not contain explicit info
    saving R2, then we have to do a minor amount of code reading to

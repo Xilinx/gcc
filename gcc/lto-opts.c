@@ -1,6 +1,6 @@
 /* LTO IL options.
 
-   Copyright 2009 Free Software Foundation, Inc.
+   Copyright 2009, 2010 Free Software Foundation, Inc.
    Contributed by Simon Baldwin <simonb@google.com>
 
 This file is part of GCC.
@@ -31,7 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "options.h"
 #include "target.h"
-#include "diagnostic-core.h"
+#include "diagnostic.h"
 #include "toplev.h"
 #include "lto-streamer.h"
 
@@ -399,15 +399,17 @@ lto_reissue_options (void)
 
   FOR_EACH_VEC_ELT (opt_t, opts, i, o)
     {
-      const struct cl_option *option = &cl_options[o->code];
+      void *flag_var = option_flag_var (o->code, &global_options);
 
-      if (option->flag_var)
-	set_option (o->code, o->value, o->arg, 0 /*DK_UNSPECIFIED*/);
+      if (flag_var)
+	set_option (&global_options, &global_options_set,
+		    o->code, o->value, o->arg,
+		    DK_UNSPECIFIED, global_dc);
 
       if (o->type == CL_TARGET)
 	targetm.handle_option (o->code, o->arg, o->value);
       else if (o->type == CL_COMMON)
-	gcc_assert (option->flag_var);
+	gcc_assert (flag_var);
       else
 	gcc_unreachable ();
     }

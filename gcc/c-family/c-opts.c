@@ -157,7 +157,7 @@ warning_as_error_callback (int option_index)
 	break;
 
       case OPT_Wdeprecated:
-	cpp_opts->warn_deprecated = 1;
+	cpp_opts->cpp_warn_deprecated = 1;
 	break;
 
       case OPT_Wcomment:
@@ -173,11 +173,11 @@ warning_as_error_callback (int option_index)
 	break;
 
       case OPT_Wtraditional:
-	cpp_opts->warn_traditional = 1;
+	cpp_opts->cpp_warn_traditional = 1;
 	break;
 
       case OPT_Wlong_long:
-	cpp_opts->warn_long_long = 1;
+	cpp_opts->cpp_warn_long_long = 1;
 	break;
 
       case OPT_Wendif_labels:
@@ -273,6 +273,19 @@ c_common_complain_wrong_lang_p (const struct cl_option *option)
   return true;
 }
 
+/* Initialize options structure OPTS.  */
+void
+c_common_init_options_struct (struct gcc_options *opts)
+{
+  opts->x_flag_exceptions = c_dialect_cxx ();
+  opts->x_warn_pointer_arith = c_dialect_cxx ();
+  opts->x_warn_write_strings = c_dialect_cxx ();
+  opts->x_flag_warn_unused_result = true;
+
+  /* By default, C99-like requirements for complex multiply and divide.  */
+  opts->x_flag_complex_method = 2;
+}
+
 /* Common initialization before calling option handlers.  */
 void
 c_common_init_options (unsigned int decoded_options_count,
@@ -293,14 +306,6 @@ c_common_init_options (unsigned int decoded_options_count,
   /* Reset to avoid warnings on internal definitions.  We set it just
      before passing on command-line options to cpplib.  */
   cpp_opts->warn_dollars = 0;
-
-  flag_exceptions = c_dialect_cxx ();
-  warn_pointer_arith = c_dialect_cxx ();
-  warn_write_strings = c_dialect_cxx();
-  flag_warn_unused_result = true;
-
-  /* By default, C99-like requirements for complex multiply and divide.  */
-  flag_complex_method = 2;
 
   deferred_opts = XNEWVEC (struct deferred_opt, decoded_options_count);
 
@@ -436,8 +441,9 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wall:
       warn_unused = value;
       set_Wformat (value);
-      handle_generated_option (OPT_Wimplicit, NULL, value,
-			       c_family_lang_mask, kind, handlers);
+      handle_generated_option (&global_options, &global_options_set,
+			       OPT_Wimplicit, NULL, value,
+			       c_family_lang_mask, kind, handlers, global_dc);
       warn_char_subscripts = value;
       warn_missing_braces = value;
       warn_parentheses = value;
@@ -508,7 +514,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_Wdeprecated:
-      cpp_opts->warn_deprecated = value;
+      cpp_opts->cpp_warn_deprecated = value;
       break;
 
     case OPT_Wendif_labels:
@@ -530,11 +536,15 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wimplicit:
       gcc_assert (value == 0 || value == 1);
       if (warn_implicit_int == -1)
-	handle_generated_option (OPT_Wimplicit_int, NULL, value,
-				 c_family_lang_mask, kind, handlers);
+	handle_generated_option (&global_options, &global_options_set,
+				 OPT_Wimplicit_int, NULL, value,
+				 c_family_lang_mask, kind, handlers,
+				 global_dc);
       if (warn_implicit_function_declaration == -1)
-	handle_generated_option (OPT_Wimplicit_function_declaration, NULL,
-				 value, c_family_lang_mask, kind, handlers);
+	handle_generated_option (&global_options, &global_options_set,
+				 OPT_Wimplicit_function_declaration, NULL,
+				 value, c_family_lang_mask, kind, handlers,
+				 global_dc);
       break;
 
     case OPT_Winvalid_pch:
@@ -567,7 +577,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_Wtraditional:
-      cpp_opts->warn_traditional = value;
+      cpp_opts->cpp_warn_traditional = value;
       break;
 
     case OPT_Wtrigraphs:
@@ -788,7 +798,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 	 is not overridden.  */
     case OPT_pedantic_errors:
     case OPT_pedantic:
-      cpp_opts->pedantic = 1;
+      cpp_opts->cpp_pedantic = 1;
       cpp_opts->warn_endif_labels = 1;
       if (warn_pointer_sign == -1)
 	warn_pointer_sign = 1;
@@ -1150,7 +1160,6 @@ c_common_parse_file (int set_yydebug)
       pch_init ();
       push_file_scope ();
       c_parse_file ();
-      finish_file ();
       pop_file_scope ();
       /* And end the main input file, if the debug writer wants it  */
       if (debug_hooks->start_end_main_source_file)
@@ -1314,7 +1323,7 @@ sanitize_cpp_opts (void)
   if (warn_long_long == -1)
     warn_long_long = ((pedantic || warn_traditional)
 		      && (c_dialect_cxx () ? cxx_dialect == cxx98 : !flag_isoc99));
-  cpp_opts->warn_long_long = warn_long_long;
+  cpp_opts->cpp_warn_long_long = warn_long_long;
 
   /* Similarly with -Wno-variadic-macros.  No check for c99 here, since
      this also turns off warnings about GCCs extension.  */
@@ -1381,7 +1390,7 @@ finish_options (void)
 	 conflict with the specified standard, and since a strictly
 	 conforming program cannot contain a '$', we do not condition
 	 their acceptance on the -std= setting.  */
-      cpp_opts->warn_dollars = (cpp_opts->pedantic && !cpp_opts->c99);
+      cpp_opts->warn_dollars = (cpp_opts->cpp_pedantic && !cpp_opts->c99);
 
       cb_file_change (parse_in,
 		      linemap_add (line_table, LC_RENAME, 0,

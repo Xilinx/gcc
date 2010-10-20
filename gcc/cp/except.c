@@ -295,9 +295,8 @@ decl_is_java_type (tree decl, int err)
 /* Select the personality routine to be used for exception handling,
    or issue an error if we need two different ones in the same
    translation unit.
-   ??? At present eh_personality_decl is set to
-   __gxx_personality_(sj|v)0 in init_exception_processing - should it
-   be done here instead?  */
+   ??? At present DECL_FUNCTION_PERSONALITY is set via
+   LANG_HOOKS_EH_PERSONALITY.  Should it be done here instead?  */
 void
 choose_personality_routine (enum languages lang)
 {
@@ -376,7 +375,7 @@ initialize_handler_parm (tree decl, tree exp)
      pointer catch parm with the address of the temporary.  */
   if (TREE_CODE (init_type) == REFERENCE_TYPE
       && TYPE_PTR_P (TREE_TYPE (init_type)))
-    exp = cp_build_unary_op (ADDR_EXPR, exp, 1, tf_warning_or_error);
+    exp = cp_build_addr_expr (exp, tf_warning_or_error);
 
   exp = ocp_convert (init_type, exp, CONV_IMPLICIT|CONV_FORCE_TEMP, 0);
 

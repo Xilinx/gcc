@@ -1333,7 +1333,8 @@ build_cloog_prog (scop_p scop, CloogProgram *prog,
   /* Extract scalar dimensions to simplify the code generation problem.  */
   cloog_program_extract_scalars (prog, scattering, options);
 
-  /* Dump a .cloog input file, if requested.  */
+  /* Dump a .cloog input file, if requested.  This feature is only
+     enabled in the Graphite branch.  */
   if (flag_graphite_dump_cloog)
     {
       static size_t file_scop_number = 0;

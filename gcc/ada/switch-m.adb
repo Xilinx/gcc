@@ -28,8 +28,10 @@ with Makeutl;  use Makeutl;
 with Osint;    use Osint;
 with Opt;      use Opt;
 with Prj;      use Prj;
-with Prj.Ext;  use Prj.Ext;
+with Prj.Env;  use Prj.Env;
 with Table;
+
+with System.Multiprocessors; use System.Multiprocessors;
 
 package body Switch.M is
 
@@ -664,8 +666,8 @@ package body Switch.M is
          elsif Switch_Chars'Length > 3
            and then Switch_Chars (Ptr .. Ptr + 1) = "aP"
          then
-            Add_Search_Project_Directory
-              (Project_Node_Tree,
+            Add_Directories
+              (Project_Node_Tree.Project_Path,
                Switch_Chars (Ptr + 2 .. Switch_Chars'Last));
 
          elsif C = 'v' and then Switch_Chars'Length = 3 then
@@ -751,14 +753,23 @@ package body Switch.M is
             Ptr := Ptr + 1;
 
             declare
-               Max_Proc : Pos;
+               Max_Proc : Nat;
+
             begin
-               Scan_Pos (Switch_Chars, Max, Ptr, Max_Proc, C);
+               Scan_Nat (Switch_Chars, Max, Ptr, Max_Proc, C);
 
                if Ptr <= Max then
                   Bad_Switch (Switch_Chars);
 
                else
+                  if Max_Proc = 0 then
+                     Max_Proc := Nat (Number_Of_CPUs);
+
+                     if Max_Proc = 0 then
+                        Max_Proc := 1;
+                     end if;
+                  end if;
+
                   Maximum_Processes := Positive (Max_Proc);
                end if;
             end;
@@ -813,7 +824,7 @@ package body Switch.M is
                --  Processing for C switch
 
                when 'C' =>
-                  Create_Mapping_File := True;
+                  Opt.Create_Mapping_File := True;
 
                --  Processing for D switch
 

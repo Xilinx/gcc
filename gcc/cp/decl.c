@@ -3417,6 +3417,7 @@ cxx_init_decl_processing (void)
   gcc_assert (global_namespace == NULL_TREE);
   global_namespace = build_lang_decl (NAMESPACE_DECL, global_scope_name,
 				      void_type_node);
+  DECL_CONTEXT (global_namespace) = build_translation_unit_decl (NULL_TREE);
   TREE_PUBLIC (global_namespace) = 1;
   begin_scope (sk_namespace, global_namespace);
 
@@ -3551,15 +3552,14 @@ cxx_init_decl_processing (void)
     global_delete_fndecl = push_cp_library_fn (DELETE_EXPR, deltype);
     push_cp_library_fn (VEC_DELETE_EXPR, deltype);
 
-    nullptr_type_node = make_node (LANG_TYPE);
+    nullptr_type_node = make_node (NULLPTR_TYPE);
     TYPE_SIZE (nullptr_type_node) = bitsize_int (GET_MODE_BITSIZE (ptr_mode));
     TYPE_SIZE_UNIT (nullptr_type_node) = size_int (GET_MODE_SIZE (ptr_mode));
     TYPE_UNSIGNED (nullptr_type_node) = 1;
     TYPE_PRECISION (nullptr_type_node) = GET_MODE_BITSIZE (ptr_mode);
     SET_TYPE_MODE (nullptr_type_node, Pmode);
     record_builtin_type (RID_MAX, "decltype(nullptr)", nullptr_type_node);
-    nullptr_node = make_node (INTEGER_CST);
-    TREE_TYPE (nullptr_node) = nullptr_type_node;
+    nullptr_node = build_int_cst (nullptr_type_node, 0);
   }
 
   abort_fndecl
@@ -4163,16 +4163,9 @@ start_decl (const cp_declarator *declarator,
       || decl == error_mark_node)
     return error_mark_node;
 
-  context = DECL_CONTEXT (decl);
-
-  if (context)
-    {
-      *pushed_scope_p = push_scope (context);
-
-      /* We are only interested in class contexts, later.  */
-      if (TREE_CODE (context) == NAMESPACE_DECL)
-	context = NULL_TREE;
-    }
+  context = CP_DECL_CONTEXT (decl);
+  if (context != global_namespace)
+    *pushed_scope_p = push_scope (context);
 
   if (initialized)
     /* Is it valid for this decl to have an initializer at all?
@@ -4241,7 +4234,7 @@ start_decl (const cp_declarator *declarator,
       && lookup_attribute ("noinline", DECL_ATTRIBUTES (decl)))
     warning (0, "inline function %q+D given attribute noinline", decl);
 
-  if (context && COMPLETE_TYPE_P (complete_type (context)))
+  if (TYPE_P (context) && COMPLETE_TYPE_P (complete_type (context)))
     {
       if (TREE_CODE (decl) == VAR_DECL)
 	{
@@ -5802,7 +5795,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  && !COMPLETE_TYPE_P (TREE_TYPE (decl)))
 	TYPE_DECL_SUPPRESS_DEBUG (decl) = 1;
 
-      rest_of_decl_compilation (decl, DECL_CONTEXT (decl) == NULL_TREE,
+      rest_of_decl_compilation (decl, DECL_FILE_SCOPE_P (decl),
 				at_eof);
       goto finish_end;
     }
@@ -6131,7 +6124,7 @@ get_atexit_node (void)
 
 	   int __cxa_atexit (void (*)(void *), void *, void *)
 
-	 We build up the argument types and then then function type
+	 We build up the argument types and then the function type
 	 itself.  */
       tree argtype0, argtype1, argtype2;
 
@@ -6167,7 +6160,7 @@ get_atexit_node (void)
 
 	   int atexit (void (*)());
 
-	 We build up the argument types and then then function type
+	 We build up the argument types and then the function type
 	 itself.  */
       fn_ptr_type = get_atexit_fn_ptr_type ();
       /* Build the final atexit type.  */
@@ -6354,8 +6347,8 @@ register_dtor_fn (tree decl)
 	   in, and, in general, it's cheaper to pass NULL than any
 	   other value.  */
 	addr = null_pointer_node;
-      arg2 = cp_build_unary_op (ADDR_EXPR, get_dso_handle_node (), 0,
-                                tf_warning_or_error);
+      arg2 = cp_build_addr_expr (get_dso_handle_node (),
+				 tf_warning_or_error);
       if (targetm.cxx.use_aeabi_atexit ())
 	{
 	  arg1 = cleanup;
@@ -6888,8 +6881,7 @@ grokfndecl (tree ctype,
 	   && strncmp (IDENTIFIER_POINTER (declarator)+2, "builtin_", 8) == 0))
       && current_lang_name == lang_name_cplusplus
       && ctype == NULL_TREE
-      /* NULL_TREE means global namespace.  */
-      && DECL_CONTEXT (decl) == NULL_TREE)
+      && DECL_FILE_SCOPE_P (decl))
     SET_DECL_LANGUAGE (decl, lang_c);
 
   /* Should probably propagate const out from type to decl I bet (mrs).  */
@@ -7402,11 +7394,15 @@ compute_array_index_type (tree name, tree size)
       type = TREE_TYPE (size);
     }
 
+  /* A type is dependent if it is...an array type constructed from any
+     dependent type or whose size is specified by a constant expression
+     that is value-dependent.  */
   /* We can only call value_dependent_expression_p on integral constant
      expressions; the parser adds a dummy NOP_EXPR with TREE_SIDE_EFFECTS
      set if this isn't one.  */
   if (processing_template_decl
-      && (TREE_SIDE_EFFECTS (size) || value_dependent_expression_p (size)))
+      && (dependent_type_p (type)
+	  || TREE_SIDE_EFFECTS (size) || value_dependent_expression_p (size)))
     {
       /* We cannot do any checking for a SIZE that isn't known to be
 	 constant. Just build the index type and mark that it requires
@@ -7532,10 +7528,16 @@ compute_array_index_type (tree name, tree size)
     {
       tree t = build_index_type (itype);
       TYPE_CANONICAL (abi_1_itype) = TYPE_CANONICAL (t);
-      return abi_1_itype;
+      itype = abi_1_itype;
     }
   else
-    return build_index_type (itype);
+    itype = build_index_type (itype);
+
+  /* If the index type were dependent, we would have returned early, so
+     remember that it isn't.  */
+  TYPE_DEPENDENT_P (itype) = 0;
+  TYPE_DEPENDENT_P_VALID (itype) = 1;
+  return itype;
 }
 
 /* Returns the scope (if any) in which the entity declared by
@@ -12058,7 +12060,7 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
 	 with any previous declarations; if the original declaration
 	 has a linkage specification, that specification applies to
 	 the definition as well, and may affect the mangled name.  */
-      if (!DECL_CONTEXT (decl1))
+      if (DECL_FILE_SCOPE_P (decl1))
 	maybe_apply_pragma_weak (decl1);
     }
 
@@ -12664,7 +12666,7 @@ finish_function (int flags)
   if (!processing_template_decl
       && !cp_function_chain->can_throw
       && !flag_non_call_exceptions
-      && !DECL_REPLACEABLE_P (fndecl))
+      && !decl_replaceable_p (fndecl))
     TREE_NOTHROW (fndecl) = 1;
 
   /* This must come after expand_function_end because cleanups might

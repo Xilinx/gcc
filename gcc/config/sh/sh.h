@@ -503,8 +503,6 @@ extern enum sh_divide_strategy_e sh_div_strategy;
 
 #define SUBTARGET_OVERRIDE_OPTIONS (void) 0
 
-extern const char *sh_fixed_range_str;
-
 
 /* Target machine storage layout.  */
 
@@ -2030,12 +2028,6 @@ struct sh_args {
    floating point types equivalent to `float'.  */
 #define DOUBLE_TYPE_SIZE ((TARGET_SH2E && ! TARGET_SH4 && ! TARGET_SH2A_DOUBLE) ? 32 : 64)
 
-#if defined(__SH2E__) || defined(__SH3E__) || defined( __SH2A_SINGLE_ONLY__) || defined( __SH4_SINGLE_ONLY__)
-#define LIBGCC2_DOUBLE_TYPE_SIZE 32
-#else
-#define LIBGCC2_DOUBLE_TYPE_SIZE 64
-#endif
-
 /* 'char' is signed by default.  */
 #define DEFAULT_SIGNED_CHAR  1
 
@@ -2545,8 +2537,6 @@ enum processor_type {
 
 #define sh_cpu_attr ((enum attr_cpu)sh_cpu)
 extern enum processor_type sh_cpu;
-
-extern int optimize; /* needed for gen_casesi.  */
 
 enum mdep_reorg_phase_e
 {

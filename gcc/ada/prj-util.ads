@@ -86,7 +86,8 @@ package Prj.Util is
       Src_Index              : Int := 0;
       In_Array               : Array_Element_Id;
       In_Tree                : Project_Tree_Ref;
-      Force_Lower_Case_Index : Boolean := False) return Variable_Value;
+      Force_Lower_Case_Index : Boolean := False;
+      Allow_Wildcards        : Boolean := False) return Variable_Value;
    --  Get a string array component (single String or String list). Returns
    --  Nil_Variable_Value if no component Index or if In_Array is null.
    --
@@ -101,8 +102,9 @@ package Prj.Util is
       Attribute_Or_Array_Name : Name_Id;
       In_Package              : Package_Id;
       In_Tree                 : Project_Tree_Ref;
-      Force_Lower_Case_Index  : Boolean := False) return Variable_Value;
-   --  In a specific package,
+      Force_Lower_Case_Index  : Boolean := False;
+      Allow_Wildcards         : Boolean := False) return Variable_Value;
+   --  In a specific package:
    --   - if there exists an array Attribute_Or_Array_Name with an index Name,
    --     returns the corresponding component (depending on the attribute, the
    --     index may or may not be case sensitive, see previous function),
@@ -132,8 +134,8 @@ package Prj.Util is
      (Name        : Name_Id;
       In_Packages : Package_Id;
       In_Tree     : Project_Tree_Ref) return Package_Id;
-   --  Returns a specified package in a package list. Returns No_Package if
-   --  In_Packages is null or if Name is not the name of a package in
+   --  Returns a specified package in a package list. Returns No_Package
+   --  if In_Packages is null or if Name is not the name of a package in
    --  Package_List. The caller must ensure that Name is in lower case.
 
    function Value_Of
@@ -148,9 +150,9 @@ package Prj.Util is
      (S          : String;
       Max_Length : Positive;
       Separator  : Character);
-   --  Output string S using Output.Write_Str. If S is too long to fit in
-   --  one line of Max_Length, cut it in several lines, using Separator as
-   --  the last character of each line, if possible.
+   --  Output string S using Output.Write_Str. If S is too long to fit in one
+   --  line of Max_Length, cut it in several lines, using Separator as the last
+   --  character of each line, if possible.
 
    type Text_File is limited private;
    --  Represents a text file (default is invalid text file)
@@ -160,32 +162,92 @@ package Prj.Util is
    --  closed.
 
    procedure Open (File : out Text_File; Name : String);
-   --  Open a text file to read (file is invalid if text file cannot be opened)
+   --  Open a text file to read (File is invalid if text file cannot be opened)
+
+   procedure Create (File : out Text_File; Name : String);
+   --  Create a text file to write (File is invaid if text file cannot be
+   --  created).
 
    function End_Of_File (File : Text_File) return Boolean;
    --  Returns True if the end of the text file File has been reached. Fails if
-   --  File is invalid.
+   --  File is invalid. Return True if File is an out file.
 
    procedure Get_Line
      (File : Text_File;
       Line : out String;
       Last : out Natural);
-   --  Reads a line from an open text file (fails if file is invalid)
+   --  Reads a line from an open text file (fails if File is invalid or in an
+   --  out file).
+
+   procedure Put (File : Text_File; S : String);
+   procedure Put_Line (File : Text_File; Line : String);
+   --  Output a string or a line to an out text file (fails if File is invalid
+   --  or in an in file).
 
    procedure Close (File : in out Text_File);
    --  Close an open text file. File becomes invalid. Fails if File is already
-   --  invalid.
+   --  invalid or if an out file cannot be closed successfully.
+
+   -----------------------
+   -- Source info files --
+   -----------------------
+
+   procedure Write_Source_Info_File (Tree : Project_Tree_Ref);
+   --  Create a new source info file, with the path name specified in the
+   --  project tree data. Issue a warning if it is not possible to create
+   --  the new file.
+
+   procedure Read_Source_Info_File (Tree : Project_Tree_Ref);
+   --  Check if there is a source info file specified for the project Tree. If
+   --  so, attempt to read it. If the file exists and is successfully read, set
+   --  the flag Source_Info_File_Exists to True for the tree.
+
+   type Source_Info_Data is record
+      Project             : Name_Id;
+      Language            : Name_Id;
+      Kind                : Source_Kind;
+      Display_Path_Name   : Name_Id;
+      Path_Name           : Name_Id;
+      Unit_Name           : Name_Id := No_Name;
+      Index               : Int := 0;
+      Naming_Exception    : Boolean := False;
+   end record;
+   --  Data read from a source info file for a single source
+
+   type Source_Info is access all Source_Info_Data;
+   No_Source_Info : constant Source_Info := null;
+
+   type Source_Info_Iterator is private;
+   --  Iterator to get the sources for a single project
+
+   procedure Initialize
+     (Iter        : out Source_Info_Iterator;
+      For_Project : Name_Id);
+   --  Initiaize Iter for the project
+
+   function Source_Info_Of (Iter : Source_Info_Iterator) return Source_Info;
+   --  Get the source info for the source corresponding to the current value of
+   --  the iterator. Returns No_Source_Info if there is no source corresponding
+   --  to the iterator.
+
+   procedure Next (Iter : in out Source_Info_Iterator);
+   --  Advance the iterator to the next source in the project
 
 private
-
    type Text_File_Data is record
       FD                  : File_Descriptor := Invalid_FD;
+      Out_File            : Boolean := False;
       Buffer              : String (1 .. 1_000);
-      Buffer_Len          : Natural;
+      Buffer_Len          : Natural := 0;
       Cursor              : Natural := 0;
       End_Of_File_Reached : Boolean := False;
    end record;
 
    type Text_File is access Text_File_Data;
+
+   type Source_Info_Iterator is record
+      Info : Source_Info;
+      Next : Natural;
+   end record;
 
 end Prj.Util;

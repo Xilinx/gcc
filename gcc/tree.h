@@ -32,7 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "real.h"
 #include "fixed-value.h"
 #include "alias.h"
-#include "options.h"
+#include "flags.h"
 
 /* Codes of tree nodes */
 
@@ -601,7 +601,7 @@ struct GTY(()) tree_common {
            all types
 
        TREE_THIS_NOTRAP in
-          INDIRECT_REF, ARRAY_REF, ARRAY_RANGE_REF
+          INDIRECT_REF, MEM_REF, TARGET_MEM_REF, ARRAY_REF, ARRAY_RANGE_REF
 
    deprecated_flag:
 
@@ -1255,7 +1255,9 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    (or slice of the array) always belongs to the range of the array.
    I.e. that the access will not trap, provided that the access to
    the base to the array will not trap.  */
-#define TREE_THIS_NOTRAP(NODE) ((NODE)->base.nothrow_flag)
+#define TREE_THIS_NOTRAP(NODE) \
+  (TREE_CHECK5 (NODE, INDIRECT_REF, MEM_REF, TARGET_MEM_REF, ARRAY_REF,	\
+		ARRAY_RANGE_REF)->base.nothrow_flag)
 
 /* In a VAR_DECL, PARM_DECL or FIELD_DECL, or any kind of ..._REF node,
    nonzero means it may not be the lhs of an assignment.
@@ -1296,8 +1298,10 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    In a BLOCK, this means that the block contains variables that are used.  */
 #define TREE_USED(NODE) ((NODE)->base.used_flag)
 
-/* In a FUNCTION_DECL, nonzero means a call to the function cannot throw
-   an exception.  In a CALL_EXPR, nonzero means the call cannot throw.  */
+/* In a FUNCTION_DECL, nonzero means a call to the function cannot
+   throw an exception.  In a CALL_EXPR, nonzero means the call cannot
+   throw.  We can't easily check the node type here as the C++
+   frontend also uses this flag (for AGGR_INIT_EXPR).  */
 #define TREE_NOTHROW(NODE) ((NODE)->base.nothrow_flag)
 
 /* In a CALL_EXPR, means that it's safe to use the target of the call
@@ -2620,8 +2624,9 @@ struct GTY(()) tree_decl_minimal {
   (FUNCTION_DECL_CHECK (NODE)->function_decl.personality)
 
 /* Nonzero for a given ..._DECL node means that the name of this node should
-   be ignored for symbolic debug purposes.  Moreover, for a FUNCTION_DECL,
-   the body of the function should also be ignored.  */
+   be ignored for symbolic debug purposes.  For a TYPE_DECL, this means that
+   the associated type should be ignored.  For a FUNCTION_DECL, the body of
+   the function should also be ignored.  */
 #define DECL_IGNORED_P(NODE) \
   (DECL_COMMON_CHECK (NODE)->decl_common.ignored_flag)
 
@@ -2687,10 +2692,13 @@ struct GTY(()) tree_decl_minimal {
 #define DECL_LANG_FLAG_8(NODE) \
   (DECL_COMMON_CHECK (NODE)->decl_common.lang_flag_8)
 
+/* Nonzero for a scope which is equal to file scope.  */
+#define SCOPE_FILE_SCOPE_P(EXP)	\
+  (! (EXP) || TREE_CODE (EXP) == TRANSLATION_UNIT_DECL)
 /* Nonzero for a decl which is at file scope.  */
-#define DECL_FILE_SCOPE_P(EXP) 					\
-  (! DECL_CONTEXT (EXP)						\
-   || TREE_CODE (DECL_CONTEXT (EXP)) == TRANSLATION_UNIT_DECL)
+#define DECL_FILE_SCOPE_P(EXP) SCOPE_FILE_SCOPE_P (DECL_CONTEXT (EXP))
+/* Nonzero for a type which is at file scope.  */
+#define TYPE_FILE_SCOPE_P(EXP) SCOPE_FILE_SCOPE_P (TYPE_CONTEXT (EXP))
 
 /* Nonzero for a decl that is decorated using attribute used.
    This indicates to compiler tools that this decl needs to be preserved.  */
@@ -3001,31 +3009,6 @@ struct GTY(()) tree_parm_decl {
 /* Used in TREE_PUBLIC decls to indicate that copies of this DECL in
    multiple translation units should be merged.  */
 #define DECL_ONE_ONLY(NODE) (DECL_COMDAT_GROUP (NODE) != NULL_TREE)
-
-/* A replaceable function is one which may be replaced at link-time
-   with an entirely different definition, provided that the
-   replacement has the same type.  For example, functions declared
-   with __attribute__((weak)) on most systems are replaceable.
-
-   COMDAT functions are not replaceable, since all definitions of the
-   function must be equivalent.  It is important that COMDAT functions
-   not be treated as replaceable so that use of C++ template
-   instantiations is not penalized.
-
-   In other respects, the condition is usually equivalent to whether
-   the function binds to the current module (shared library or executable).
-   However, weak functions can always be overridden by earlier TUs
-   in the same module, even if they bind locally to that module.
-
-   For example, DECL_REPLACEABLE is used to determine whether or not a
-   function (including a template instantiation) which is not
-   explicitly declared "inline" can be inlined.  If the function is
-   DECL_REPLACEABLE then it is not safe to do the inlining, since the
-   implementation chosen at link-time may be different.  However, a
-   function that is not DECL_REPLACEABLE can be inlined, since all
-   versions of the function will be functionally identical.  */
-#define DECL_REPLACEABLE_P(NODE) \
-  (!DECL_COMDAT (NODE) && (DECL_WEAK (NODE) || !targetm.binds_local_p (NODE)))
 
 /* The name of the object as the assembler will see it (but before any
    translations made by ASM_OUTPUT_LABELREF).  Often this is the same
@@ -5224,6 +5207,8 @@ extern tree build_duplicate_type (tree);
 /* Function does not read or write memory (but may have side effects, so
    it does not necessarily fit ECF_CONST).  */
 #define ECF_NOVOPS		  (1 << 9)
+/* The function does not lead to calls within current function unit.  */
+#define ECF_LEAF		  (1 << 10)
 
 extern int flags_from_decl_or_type (const_tree);
 extern int call_expr_flags (const_tree);
@@ -5297,6 +5282,8 @@ extern void process_pending_assemble_externals (void);
 extern void finish_aliases_1 (void);
 extern void finish_aliases_2 (void);
 extern void remove_unreachable_alias_pairs (void);
+extern bool decl_replaceable_p (tree);
+extern bool decl_binds_to_current_def_p (tree);
 
 /* In stmt.c */
 extern void expand_computed_goto (tree);

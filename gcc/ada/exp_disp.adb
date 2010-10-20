@@ -464,6 +464,57 @@ package body Exp_Disp is
       end if;
    end Build_Static_Dispatch_Tables;
 
+   ------------------------------
+   -- Convert_Tag_To_Interface --
+   ------------------------------
+
+   function Convert_Tag_To_Interface
+     (Typ  : Entity_Id;
+      Expr : Node_Id) return Node_Id
+   is
+      Loc       : constant Source_Ptr := Sloc (Expr);
+      Anon_Type : Entity_Id;
+      Result    : Node_Id;
+
+   begin
+      pragma Assert (Is_Class_Wide_Type (Typ)
+        and then Is_Interface (Typ)
+        and then
+          ((Nkind (Expr) = N_Selected_Component
+             and then Is_Tag (Entity (Selector_Name (Expr))))
+           or else
+           (Nkind (Expr) = N_Function_Call
+             and then RTE_Available (RE_Displace)
+             and then Entity (Name (Expr)) = RTE (RE_Displace))));
+
+      Anon_Type := Create_Itype (E_Anonymous_Access_Type, Expr);
+      Set_Directly_Designated_Type (Anon_Type, Typ);
+      Set_Etype (Anon_Type, Anon_Type);
+      Set_Can_Never_Be_Null (Anon_Type);
+
+      --  Decorate the size and alignment attributes of the anonymous access
+      --  type, as required by gigi.
+
+      Layout_Type (Anon_Type);
+
+      if Nkind (Expr) = N_Selected_Component
+        and then Is_Tag (Entity (Selector_Name (Expr)))
+      then
+         Result :=
+           Make_Explicit_Dereference (Loc,
+             Unchecked_Convert_To (Anon_Type,
+               Make_Attribute_Reference (Loc,
+                 Prefix         => Expr,
+                 Attribute_Name => Name_Address)));
+      else
+         Result :=
+           Make_Explicit_Dereference (Loc,
+             Unchecked_Convert_To (Anon_Type, Expr));
+      end if;
+
+      return Result;
+   end Convert_Tag_To_Interface;
+
    -------------------
    -- CPP_Num_Prims --
    -------------------
@@ -553,7 +604,7 @@ package body Exp_Disp is
       elsif TSS_Name = TSS_Deep_Finalize then
          return Uint_10;
 
-      elsif Ada_Version >= Ada_05 then
+      elsif Ada_Version >= Ada_2005 then
          if Chars (E) = Name_uDisp_Asynchronous_Select then
             return Uint_11;
 
@@ -1152,15 +1203,18 @@ package body Exp_Disp is
       pragma Assert (Iface_Tag /= Empty);
 
       --  Keep separate access types to interfaces because one internal
-      --  function is used to handle the null value (see following comment)
+      --  function is used to handle the null value (see following comments)
 
       if not Is_Access_Type (Etype (N)) then
+
+         --  Statically displace the pointer to the object to reference
+         --  the component containing the secondary dispatch table.
+
          Rewrite (N,
-           Unchecked_Convert_To (Etype (N),
+           Convert_Tag_To_Interface (Class_Wide_Type (Iface_Typ),
              Make_Selected_Component (Loc,
                Prefix => Relocate_Node (Expression (N)),
-               Selector_Name =>
-                 New_Occurrence_Of (Iface_Tag, Loc))));
+               Selector_Name => New_Occurrence_Of (Iface_Tag, Loc))));
 
       else
          --  Build internal function to handle the case in which the
@@ -1917,7 +1971,7 @@ package body Exp_Disp is
 
    function Is_Predefined_Interface_Primitive (E : Entity_Id) return Boolean is
    begin
-      return Ada_Version >= Ada_05
+      return Ada_Version >= Ada_2005
         and then (Chars (E) = Name_uDisp_Asynchronous_Select or else
                   Chars (E) = Name_uDisp_Conditional_Select  or else
                   Chars (E) = Name_uDisp_Get_Prim_Op_Kind    or else
@@ -4006,8 +4060,7 @@ package body Exp_Disp is
             Append_To (Prim_Ops_Aggr_List, Make_Null (Loc));
 
          elsif Is_Abstract_Type (Typ)
-           or else not Static_Dispatch_Tables
-           or else not Is_Library_Level_Tagged_Type (Typ)
+           or else not Building_Static_DT (Typ)
          then
             for J in 1 .. Nb_Prim loop
                Append_To (Prim_Ops_Aggr_List, Make_Null (Loc));
@@ -4263,6 +4316,8 @@ package body Exp_Disp is
       if Has_Dispatch_Table (Typ)
         or else No (Access_Disp_Table (Typ))
         or else Is_CPP_Class (Typ)
+        or else Convention (Typ) = Convention_CIL
+        or else Convention (Typ) = Convention_Java
       then
          return Result;
 
@@ -4332,7 +4387,7 @@ package body Exp_Disp is
             Prim_Elmt := First_Elmt (Primitive_Operations (Typ));
             while Present (Prim_Elmt) loop
                Prim    := Node (Prim_Elmt);
-               Frnodes := Freeze_Entity (Prim, Loc);
+               Frnodes := Freeze_Entity (Prim, Typ);
 
                declare
                   F : Entity_Id;
@@ -4429,8 +4484,7 @@ package body Exp_Disp is
          end loop;
       end if;
 
-      --  Get the _tag entity and the number of primitives of its dispatch
-      --  table.
+      --  Get the _tag entity and number of primitives of its dispatch table
 
       DT_Ptr  := Node (First_Elmt (Access_Disp_Table (Typ)));
       Nb_Prim := UI_To_Int (DT_Entry_Count (First_Tag_Component (Typ)));
@@ -4600,7 +4654,7 @@ package body Exp_Disp is
           Object_Definition   => New_Reference_To (Standard_String, Loc),
           Expression =>
             Make_String_Literal (Loc,
-              Full_Qualified_Name (First_Subtype (Typ)))));
+              Fully_Qualified_Name_String (First_Subtype (Typ)))));
 
       Set_Is_Statically_Allocated (Exname);
       Set_Is_True_Constant (Exname);
@@ -4625,6 +4679,7 @@ package body Exp_Disp is
       --            External_Tag       => Cstring_Ptr!(Exname'Address))
       --            HT_Link            => HT_Link'Address,
       --            Transportable      => <<boolean-value>>,
+      --            Type_Is_Abstract   => <<boolean-value>>,
       --            RC_Offset          => <<integer-value>>,
       --            [ Size_Func         => Size_Prim'Access ]
       --            [ Interfaces_Table  => <<access-value>> ]
@@ -4713,7 +4768,7 @@ package body Exp_Disp is
                               New_External_Name (Tname, 'A'));
 
             Full_Name   : constant String_Id :=
-                            Full_Qualified_Name (First_Subtype (Typ));
+                            Fully_Qualified_Name_String (First_Subtype (Typ));
             Str1_Id     : String_Id;
             Str2_Id     : String_Id;
 
@@ -4891,6 +4946,22 @@ package body Exp_Disp is
             New_Occurrence_Of (Transportable, Loc));
       end;
 
+      --  Type_Is_Abstract (Ada 2012: AI05-0173). This functionality is
+      --  not available in the HIE runtime.
+
+      if RTE_Record_Component_Available (RE_Type_Is_Abstract) then
+         declare
+            Type_Is_Abstract : Entity_Id;
+
+         begin
+            Type_Is_Abstract :=
+              Boolean_Literals (Is_Abstract_Type (Typ));
+
+            Append_To (TSD_Aggr_List,
+               New_Occurrence_Of (Type_Is_Abstract, Loc));
+         end;
+      end if;
+
       --  RC_Offset: These are the valid values and their meaning:
 
       --   >0: For simple types with controlled components is
@@ -4968,6 +5039,7 @@ package body Exp_Disp is
             declare
                Prim_Elmt : Elmt_Id;
                Prim      : Entity_Id;
+               Size_Comp : Node_Id;
 
             begin
                Prim_Elmt := First_Elmt (Primitive_Operations (Typ));
@@ -4978,15 +5050,15 @@ package body Exp_Disp is
                      Prim := Ultimate_Alias (Prim);
 
                      if Is_Abstract_Subprogram (Prim) then
-                        Append_To (TSD_Aggr_List,
+                        Size_Comp :=
                           Unchecked_Convert_To (RTE (RE_Size_Ptr),
-                            New_Reference_To (RTE (RE_Null_Address), Loc)));
+                            New_Reference_To (RTE (RE_Null_Address), Loc));
                      else
-                        Append_To (TSD_Aggr_List,
+                        Size_Comp :=
                           Unchecked_Convert_To (RTE (RE_Size_Ptr),
                             Make_Attribute_Reference (Loc,
                               Prefix => New_Reference_To (Prim, Loc),
-                              Attribute_Name => Name_Unrestricted_Access)));
+                              Attribute_Name => Name_Unrestricted_Access));
                      end if;
 
                      exit;
@@ -4994,6 +5066,9 @@ package body Exp_Disp is
 
                   Next_Elmt (Prim_Elmt);
                end loop;
+
+               pragma Assert (Present (Size_Comp));
+               Append_To (TSD_Aggr_List, Size_Comp);
             end;
          end if;
       end if;
@@ -5145,7 +5220,7 @@ package body Exp_Disp is
       --  constrained by the number of non-predefined primitive operations.
 
       if RTE_Record_Component_Available (RE_SSD) then
-         if Ada_Version >= Ada_05
+         if Ada_Version >= Ada_2005
            and then Has_DT (Typ)
            and then Is_Concurrent_Record_Type (Typ)
            and then Has_Interfaces (Typ)
@@ -5540,9 +5615,7 @@ package body Exp_Disp is
          if Nb_Prim = 0 then
             Append_To (Prim_Ops_Aggr_List, Make_Null (Loc));
 
-         elsif not Static_Dispatch_Tables
-           or else not Is_Library_Level_Tagged_Type (Typ)
-         then
+         elsif not Building_Static_DT (Typ) then
             for J in 1 .. Nb_Prim loop
                Append_To (Prim_Ops_Aggr_List, Make_Null (Loc));
             end loop;
@@ -5694,9 +5767,7 @@ package body Exp_Disp is
       --  because the whole dispatch table (including inherited primitives) has
       --  been already built.
 
-      if Static_Dispatch_Tables
-        and then Is_Library_Level_Tagged_Type (Typ)
-      then
+      if Building_Static_DT (Typ) then
          null;
 
       --  If the ancestor is a CPP_Class type we inherit the dispatch tables
@@ -5959,7 +6030,7 @@ package body Exp_Disp is
       --  a limited interface. Skip this step in Ravenscar profile or when
       --  general dispatching is forbidden.
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Is_Concurrent_Record_Type (Typ)
         and then Has_Interfaces (Typ)
         and then not Restriction_Active (No_Dispatching_Calls)
@@ -6192,11 +6263,14 @@ package body Exp_Disp is
       --  Import the dispatch table DT of tagged type Tag_Typ. Required to
       --  generate forward references and statically allocate the table. For
       --  primary dispatch tables that require no dispatch table generate:
+
       --     DT : static aliased constant Non_Dispatch_Table_Wrapper;
-      --     $pragma import (ada, DT);
+      --     pragma Import (Ada, DT);
+
       --  Otherwise generate:
+
       --     DT : static aliased constant Dispatch_Table_Wrapper (Nb_Prim);
-      --     $pragma import (ada, DT);
+      --     pragma Import (Ada, DT);
 
       ---------------
       -- Import_DT --
@@ -6221,8 +6295,7 @@ package body Exp_Disp is
 
          Get_External_Name (DT, True);
          Set_Interface_Name (DT,
-           Make_String_Literal (Loc,
-             Strval => String_From_Name_Buffer));
+           Make_String_Literal (Loc, Strval => String_From_Name_Buffer));
 
          --  Ensure proper Sprint output of this implicit importation
 
@@ -6234,9 +6307,7 @@ package body Exp_Disp is
 
          --  No dispatch table required
 
-         if not Is_Secondary_DT
-           and then not Has_DT (Tag_Typ)
-         then
+         if not Is_Secondary_DT and then not Has_DT (Tag_Typ) then
             Append_To (Result,
               Make_Object_Declaration (Loc,
                 Defining_Identifier => DT,
@@ -6252,8 +6323,8 @@ package body Exp_Disp is
             Nb_Prim :=
               UI_To_Int (DT_Entry_Count (First_Tag_Component (Tag_Typ)));
 
-            --  If the tagged type has no primitives we add a dummy slot
-            --  whose address will be the tag of this type.
+            --  If the tagged type has no primitives we add a dummy slot whose
+            --  address will be the tag of this type.
 
             if Nb_Prim = 0 then
                DT_Constr_List :=
@@ -6313,8 +6384,8 @@ package body Exp_Disp is
       --  For CPP types there is no need to build the dispatch tables since
       --  they are imported from the C++ side. If the CPP type has an IP then
       --  we declare now the variable that will store the copy of the C++ tag.
-      --  If the CPP type is an interface, we need the variable as well,
-      --  because it becomes the pointer to the corresponding secondary table.
+      --  If the CPP type is an interface, we need the variable as well because
+      --  it becomes the pointer to the corresponding secondary table.
 
       if Is_CPP_Class (Typ) then
          if Has_CPP_Constructors (Typ) or else Is_Interface (Typ) then
@@ -6342,7 +6413,7 @@ package body Exp_Disp is
          Append_Elmt (Predef_Prims_Ptr, Access_Disp_Table (Typ));
 
          --  Import the forward declaration of the Dispatch Table wrapper
-         --  record (Make_DT will take care of its exportation)
+         --  record (Make_DT will take care of exporting it).
 
          if Building_Static_DT (Typ) then
             Set_Dispatch_Table_Wrappers (Typ, New_Elmt_List);
@@ -6428,12 +6499,12 @@ package body Exp_Disp is
       if Has_Interfaces (Typ) then
          Collect_Interface_Components (Typ, Typ_Comps);
 
-         --  For each interface type we build an unique external name
-         --  associated with its secondary dispatch table. This name is used to
-         --  declare an object that references this secondary dispatch table,
-         --  value that will be used for the elaboration of Typ's objects and
-         --  also for the elaboration of objects of derivations of Typ that do
-         --  not override the primitives of this interface type.
+         --  For each interface type we build a unique external name associated
+         --  with its secondary dispatch table. This name is used to declare an
+         --  object that references this secondary dispatch table, whose value
+         --  will be used for the elaboration of Typ objects, and also for the
+         --  elaboration of objects of types derived from Typ that do not
+         --  override the primitives of this interface type.
 
          Suffix_Index := 1;
 
@@ -6449,7 +6520,7 @@ package body Exp_Disp is
                Typ_Name := Name_Find;
 
                --  Declare variables that will store the copy of the C++
-               --  secondary tags
+               --  secondary tags.
 
                Iface_DT_Ptr :=
                  Make_Defining_Identifier (Loc,
@@ -6656,9 +6727,10 @@ package body Exp_Disp is
             --  Add the freezing nodes of these declarations; required to avoid
             --  generating these freezing nodes in wrong scopes (for example in
             --  the IC routine of a derivation of Typ).
+            --  What is an "IC routine"? Is "init_proc" meant here???
 
-            Append_List_To (Result, Freeze_Entity (DT_Prims, Loc));
-            Append_List_To (Result, Freeze_Entity (DT_Prims_Acc, Loc));
+            Append_List_To (Result, Freeze_Entity (DT_Prims, Typ));
+            Append_List_To (Result, Freeze_Entity (DT_Prims_Acc, Typ));
 
             --  Mark entity of dispatch table. Required by the back end to
             --  handle them properly.
@@ -7465,7 +7537,11 @@ package body Exp_Disp is
          --  excluded from this check because interfaces must be visible in
          --  the public and private part (RM 7.3 (7.3/2))
 
-         if Is_Abstract_Type (Typ)
+         --  We disable this check in CodePeer mode, to accomodate legacy
+         --  Ada code.
+
+         if not CodePeer_Mode
+           and then Is_Abstract_Type (Typ)
            and then Is_Abstract_Subprogram (Prim)
            and then Present (Alias (Prim))
            and then not Is_Interface
@@ -7965,7 +8041,7 @@ package body Exp_Disp is
             Write_Int (Int (Alias (Prim)));
 
             --  If the DTC_Entity attribute is already set we can also output
-            --  the name of the interface covered by this primitive (if any)
+            --  the name of the interface covered by this primitive (if any).
 
             if Present (DTC_Entity (Alias (Prim)))
               and then Is_Interface (Scope (DTC_Entity (Alias (Prim))))
@@ -7976,6 +8052,11 @@ package body Exp_Disp is
 
             if Present (Interface_Alias (Prim)) then
                Write_Str  (", AI_Alias of ");
+
+               if Is_Null_Interface_Primitive (Interface_Alias (Prim)) then
+                  Write_Str ("null primitive ");
+               end if;
+
                Write_Name
                  (Chars (Find_Dispatching_Type (Interface_Alias (Prim))));
                Write_Char (':');

@@ -245,7 +245,19 @@ package body Switch.C is
 
             when 'C' =>
                Ptr := Ptr + 1;
-               CodePeer_Mode := True;
+
+               if not CodePeer_Mode then
+                  CodePeer_Mode := True;
+
+                  --  Suppress compiler warnings by default, since what we are
+                  --  interested in here is what CodePeer can find out. Note
+                  --  that if -gnatwxxx is specified after -gnatC on the
+                  --  command line, we do not want to override this setting in
+                  --  Adjust_Global_Switches, and assume that the user wants to
+                  --  get both warnings from GNAT and CodePeer messages.
+
+                  Warning_Mode := Suppress;
+               end if;
 
             --  Processing for d switch
 
@@ -410,6 +422,12 @@ package body Switch.C is
                        ("-gnateD" & Switch_Chars (Ptr .. Max));
                      Ptr := Max + 1;
 
+                  --  -gnateE (extra exception information)
+
+                  when 'E' =>
+                     Exception_Extra_Info := True;
+                     Ptr := Ptr + 1;
+
                   --  -gnatef (full source path for brief error messages)
 
                   when 'f' =>
@@ -536,7 +554,7 @@ package body Switch.C is
                --  implicit setting here, since for example, we want
                --  Preelaborate_05 treated as Preelaborate
 
-               Ada_Version := Ada_12;
+               Ada_Version := Ada_2012;
                Ada_Version_Explicit := Ada_Version;
 
                --  Set default warnings and style checks for -gnatg
@@ -1046,7 +1064,7 @@ package body Switch.C is
                   Bad_Switch ("-gnat0" & Switch_Chars (Ptr .. Max));
                else
                   Ptr := Ptr + 1;
-                  Ada_Version := Ada_05;
+                  Ada_Version := Ada_2005;
                   Ada_Version_Explicit := Ada_Version;
                end if;
 
@@ -1063,7 +1081,7 @@ package body Switch.C is
                   Bad_Switch ("-gnat1" & Switch_Chars (Ptr .. Max));
                else
                   Ptr := Ptr + 1;
-                  Ada_Version := Ada_12;
+                  Ada_Version := Ada_2012;
                   Ada_Version_Explicit := Ada_Version;
                end if;
 
@@ -1074,10 +1092,10 @@ package body Switch.C is
                   Bad_Switch ("-gnat" & Switch_Chars (Ptr .. Max));
 
                elsif Switch_Chars (Ptr .. Ptr + 3) = "2005" then
-                  Ada_Version := Ada_05;
+                  Ada_Version := Ada_2005;
 
                elsif Switch_Chars (Ptr .. Ptr + 3) = "2012" then
-                  Ada_Version := Ada_12;
+                  Ada_Version := Ada_2012;
 
                else
                   Bad_Switch ("-gnat" & Switch_Chars (Ptr .. Ptr + 3));

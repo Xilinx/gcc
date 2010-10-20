@@ -286,13 +286,20 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #endif
 #endif
 
-/* This determines whether or not we support weak symbols.  */
+/* This determines whether or not we support weak symbols.  SUPPORTS_WEAK
+   must be a preprocessor constant.  */
 #ifndef SUPPORTS_WEAK
 #if defined (ASM_WEAKEN_LABEL) || defined (ASM_WEAKEN_DECL)
 #define SUPPORTS_WEAK 1
 #else
 #define SUPPORTS_WEAK 0
 #endif
+#endif
+
+/* This determines whether or not we support weak symbols during target
+   code generation.  TARGET_SUPPORTS_WEAK can be any valid C expression.  */
+#ifndef TARGET_SUPPORTS_WEAK
+#define TARGET_SUPPORTS_WEAK (SUPPORTS_WEAK)
 #endif
 
 /* This determines whether or not we support the discriminator
@@ -376,8 +383,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 /* If we have a definition of INCOMING_RETURN_ADDR_RTX, assume that
    the rest of the DWARF 2 frame unwind support is also provided.  */
-#if !defined (DWARF2_UNWIND_INFO) && defined (INCOMING_RETURN_ADDR_RTX) \
-    && !defined (TARGET_UNWIND_INFO)
+#if !defined (DWARF2_UNWIND_INFO) && defined (INCOMING_RETURN_ADDR_RTX)
 #define DWARF2_UNWIND_INFO 1
 #endif
 
@@ -1238,49 +1244,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    functions.
 */
 
-/* Just because the user configured --with-sjlj-exceptions=no doesn't
-   mean that we can use call frame exceptions.  Detect that the target
-   has appropriate support.  */
-
-#ifndef MUST_USE_SJLJ_EXCEPTIONS
-# if defined (EH_RETURN_DATA_REGNO)			\
-       && (defined (TARGET_UNWIND_INFO)			\
-	   || (DWARF2_UNWIND_INFO			\
-	       && (defined (EH_RETURN_HANDLER_RTX)	\
-		   || defined (HAVE_eh_return))))
-#  define MUST_USE_SJLJ_EXCEPTIONS	0
-# else
-#  define MUST_USE_SJLJ_EXCEPTIONS	1
-# endif
-#endif
-
-#ifdef CONFIG_SJLJ_EXCEPTIONS
-# if CONFIG_SJLJ_EXCEPTIONS == 1
-#  define USING_SJLJ_EXCEPTIONS		1
-# endif
-# if CONFIG_SJLJ_EXCEPTIONS == 0
-#  define USING_SJLJ_EXCEPTIONS		0
-#  if !defined(EH_RETURN_DATA_REGNO)
-    #error "EH_RETURN_DATA_REGNO required"
-#  endif
-#  if ! (defined(TARGET_UNWIND_INFO) || DWARF2_UNWIND_INFO)
-    #error "{DWARF2,TARGET}_UNWIND_INFO required"
-#  endif
-#  if !defined(TARGET_UNWIND_INFO) \
-	&& !(defined(EH_RETURN_HANDLER_RTX) || defined(HAVE_eh_return))
-    #error "EH_RETURN_HANDLER_RTX or eh_return required"
-#  endif
-/* Usually the above error checks will have already triggered an
-   error, but backends may set MUST_USE_SJLJ_EXCEPTIONS for their own
-   reasons.  */
-#  if MUST_USE_SJLJ_EXCEPTIONS
-    #error "Must use SJLJ exceptions but configured not to"
-#  endif
-# endif
-#else
-# define USING_SJLJ_EXCEPTIONS		MUST_USE_SJLJ_EXCEPTIONS
-#endif
-
 /* The default branch cost is 1.  */
 #ifndef BRANCH_COST
 #define BRANCH_COST(speed_p, predictable_p) 1
@@ -1388,7 +1351,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define STACK_OLD_CHECK_PROTECT STACK_CHECK_PROTECT
 #else
 #define STACK_OLD_CHECK_PROTECT \
- (USING_SJLJ_EXCEPTIONS ? 75 * UNITS_PER_WORD : 8 * 1024)
+ (targetm.except_unwind_info () == UI_SJLJ ? 75 * UNITS_PER_WORD : 8 * 1024)
 #endif
 
 /* Minimum amount of stack required to recover from an anticipated stack
@@ -1396,7 +1359,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    of stack required to propagate an exception.  */
 #ifndef STACK_CHECK_PROTECT
 #define STACK_CHECK_PROTECT \
- (USING_SJLJ_EXCEPTIONS ? 75 * UNITS_PER_WORD : 12 * 1024)
+ (targetm.except_unwind_info () == UI_SJLJ ? 75 * UNITS_PER_WORD : 12 * 1024)
 #endif
 
 /* Make the maximum frame size be the largest we can and still only need

@@ -1,3 +1,451 @@
+2010-10-20  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
+
+	PR c++/46056
+	* parser.c (cp_convert_range_for): Call cp_finish_decl
+	instead of finish_expr_stmt.
+
+2010-10-20  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* cp-lang.c (finish_file): Removed.
+	* decl2.c (cp_write_global_declarations): Call
+	objc_write_global_declarations when compiling Objective-C++.
+	
+2010-10-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/46046
+	* pt.c (add_to_template_args): Check extra_args for error_mark_node.
+	(coerce_template_parms): Likewise for args.
+
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented parsing @synthesize and @dynamic for Objective-C++.
+	* parser.c (cp_parser_objc_method_definition_list): Recognize
+	RID_AT_SYNTHESIZE and RID_AT_DYNAMIC.
+	(cp_parser_objc_at_dynamic_declaration): New.
+	(cp_parser_objc_at_synthesize_declaration): New.
+
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_parser_objc_identifier_list): Check the return
+	value of cp_parser_identifier and react if it is error_mark_node.
+
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from apple/trunk branch on FSF servers.
+
+	2005-03-01 Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4451818
+	* call.c (standard_conversion, implicit_conversion): Ignore
+	'volatile' attribute of artificially volatized type in objc when
+	evaluating various conversion weights.
+
+	2005-11-08  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4330422
+	* typeck.c (comp_ptr_ttypes_real): Remove the hack. un-volatize the
+	artiificially 'volatized' type before doing pointer comparison.
+
+2010-10-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/46015
+	* semantics.c (finish_goto_stmt): Call mark_rvalue_use on computed
+	goto destination.
+
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from apple/trunk branch on FSF servers.
+
+	2006-04-19 Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4516785
+	* parser.c (cp_parser_simple_type_specifier): Don't lookup for
+	objc object types if type is scope qualified.
+
+2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from apple/trunk branch on FSF servers.
+
+	2006-03-27 Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4133425
+	* lex.c (unqualified_name_lookup_error): Issue diagnostic
+	for private 'ivar' access.
+
+2010-10-17  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* parser.c (cp_parser_objc_visibility_spec): Update to use visibility
+	enum, and handle @package.
+
+2010-10-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45983
+	* tree.c (cp_build_qualified_type_real): Don't reuse a variant
+	with a different typedef variant of the element type.
+
+2010-10-14  Iain Sandoe  <iains@gcc.gnu.org>
+
+	merge from FSF apple 'trunk' branch.
+	2006 Fariborz Jahanian <fjahanian@apple.com>
+
+	Radars 4436866, 4505126, 4506903, 4517826
+	* typeck.c (finish_class_member_access_expr): Handle CLASS.property
+	syntax.
+	(cp_build_modify_expr): Likewise.
+	* parser.c (cp_parser_objc_method_prototype_list): Handle @property.
+	(cp_parser_objc_method_definition_list): Likewise.
+	(cp_parser_objc_property_decl): New.
+	(cp_parser_objc_property_attrlist): New.
+	(cp_parser_objc_at_property): New.
+
+2010-10-14  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/44561
+	* cp-tree.h (NULLPTR_TYPE_P): Adjust.
+	* decl.c (cxx_init_decl_processing): Build a NULLPTR_TYPE node,
+	use build_int_cst.
+	* error.c (dump_type): Handle NULLPTR_TYPE.
+	(dump_type_prefix): Likewise.
+	(dump_type_suffix): Likewise.
+	* mangle.c (write_type): Likewise.
+	* name-lookup.c (arg_assoc_type): Likewise.
+	* rtti.c (typeinfo_in_lib_p): Likewise.
+	* pt.c (tsubst): Likewise.
+
+2010-10-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45984
+	* class.c (fixup_attribute_variants): New fn.
+	* cp-tree.h: Declare it.
+	* pt.c (instantiate_class_template): Call it.
+	* semantics.c (begin_class_definition): Call it.
+
+2010-10-13  Richard Henderson  <rth@redhat.com>
+
+	* cp-lang.c (cp_eh_personality): Update call to
+	build_personality_function.
+	* except.c (choose_personality_routine): Update function comment.
+
+2010-10-13  Richard Guenther  <rguenther@suse.de>
+
+	* tree.c (cp_free_lang_data): Free DECL_NAMESPACE_USERS and
+	clear DECL_CHAIN of NAMESPACE_DECLs.
+
+2010-10-11  Martin Jambor  <mjambor@suse.cz>
+
+	PR c++/45562
+	* cp-tree.h (current_class_ref): Check that cp_function_chain is
+	non-NULL.
+	* call.c (build_cxx_call): Likewise.
+
+2010-10-10  Jason Merrill  <jason@redhat.com>
+
+	* pt.c (tsubst_default_argument): Handle DEFAULT_ARG.
+	(tsubst_default_arguments): Only do this once for cloned fns.
+	(tsubst): Use typedef_variant_p.  Handle LANG_TYPE.  Don't
+	handle expressions.
+	(tsubst_expr): Avoid calling tsubst_expr for non-expressions.
+	(tsubst_copy_and_build): Likewise.
+	(tsubst_initializer_list): Likewise.
+	(tsubst_copy): Change default to gcc_unreachable.  Handle
+	OVERLOAD and PTRMEM_CST.
+
+2010-10-10  Jason Merrill  <jason@redhat.com>
+
+	PR lto/45959
+	PR lto/45960
+	* pt.c (tsubst_copy) [INTEGER_CST]: Instantiate the type.
+
+2010-10-07  Andi Kleen  <ak@linux.intel.com>
+
+	* Make-lang.in (c++_OBJS): Remove dummy-checksum.o.
+	(cc1plus-dummy): Remove.
+	(cc1plus-checksum): Change to run checksum over object files
+        and options only.
+
+2010-10-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* cp-objcp-common.h (LANG_HOOKS_INIT_OPTIONS_STRUCT): Define.
+
+2010-10-07  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* cp-tree.def: Changed type of AT_ENCODE_EXPR from tcc_unary to
+	tcc_expression.
+	* cxx-pretty-print.c (pp_cxx_unary_expression): Added case for
+	AT_ENCODE_EXPR.
+	* error.c (dump_expr): Added case for AT_ENCODE_EXPR.
+	* pt.c (tsubst_copy): Added case for AT_ENCODE_EXPR.
+	(value_dependent_expression_p): Added case for AT_ENCODE_EXPR.
+	(type_dependent_expression_p): Added case for AT_ENCODE_EXPR.
+	* parser.c (cp_parser_objc_encode_expression): Updated comment.
+
+2010-10-07  Nicola Pero  <nicola@nicola.brainstorm.co.uk>
+
+	Merge from apple/trunk branch on FSF servers.
+
+	2006-04-26  Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4508851
+	* parser.c (cp_parser_objc_interstitial_code): Recognize
+	and parse RID_NAMESPACE keyword.
+
+2010-10-07  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* parser.c (cp_parser_objc_method_tail_params_opt): Peek new token after
+	finding ellipsis, before checking for attributes.
+
+2010-10-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from apple/trunk branch on FSF servers.
+	* cp-tree.def: Added AT_ENCODE_EXPR here instead of to the no
+	longer existing gcc/c-common.def.
+
+	2005-12-14  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4278774
+	* pt.c (tsubst_copy_and_build): Instantiate @endcode(T).
+	* parser.c (cp_parser_objc_encode_expression): Build a templatized
+	parse tree for @encode(T).
+
+	2005-12-14  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4278774
+	* c-common.def: Add new expression code AT_ENCODE_EXPR.
+
+2010-10-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR c++/45908
+	* typeck.c (cp_build_addr_expr_1): Add check for incomplete types in
+	code folding offsetof-like computations.
+
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc++/31125
+	* parser.c (cp_parser_objc_class_interface): If no identifier
+	follows an @interface token, stop parsing the interface after
+	printing an error.
+	(cp_parser_objc_class_implementation): If no identifier follows an
+	@implementation token, stop parsing the implementation after
+	printing an error.
+
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc++/23707
+	* parser.c (cp_parser_objc_method_keyword_params): If the required
+	colon is not found while parsing parameters, stop parsing them.
+
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc++/31126
+	* parser.c (cp_parser_objc_class_ivars): Do not eat the EOF or
+	@end after detecting it.  Print an error if @end is found without
+	a '}'.
+	(cp_parser_objc_method_prototype_list): Do not eat the EOF after
+	detecting it.  Fixed reading the next token when continuing
+	because of an error in a method signature.  Print an error if EOF
+	is found without an '@end'.
+	(cp_parser_objc_method_definition_list): Same change.
+
+2010-10-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from apple/trunk branch on FSF servers:
+
+	2005-10-17  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4290840
+	* parser.c (cp_parser_objc_method_keyword_params): Check for valid
+	method parameters and issue error.
+	(cp_parser_objc_method_definition_list): Check for invalid tokens
+	which cannot start a function definition.
+
+	2005-10-14  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4294425
+	* parser.c (cp_parser_objc_message_args): Check for missing message
+	arguments and syntax error.
+
+	2005-10-13  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4261146
+	* parser.c (cp_parser_objc_class_ivars): Check for @end/eof while
+	looking for '}'.
+
+	2005-08-15  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4093475
+	* parser.c (cp_parser_objc_interstitial_code): Catch stray
+	'{' and '}' tokens and issue appropriate errors.
+
+	2005-08-02  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4185810
+	(cp_parser_statement_seq_opt): In addition to '}' and
+	end-of-file, a statement sequence may also be terminated
+	by a stray '@end'.
+
+2010-10-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* cp-tree.h (cxx_print_error_function,
+	cxx_initialize_diagnostics): Declare using diagnostic_context
+	typedef.
+
+2010-10-04  Andi Kleen <ak@linux.intel.com>
+
+	* Make-lang.in (g++, cc1plus): Add + to build rule.
+
+2010-10-04  Jason Merrill  <jason@redhat.com>
+
+	* tree.c (decl_storage_duration): New.
+	* cp-tree.h: Declare it.
+	(duration_kind): Return values.
+
+2010-10-03  Jason Merrill  <jason@redhat.com>
+
+	* typeck.c (require_complete_type_sfinae): Add complain parm to...
+	(require_complete_type): ...this function.
+	(cp_build_array_ref, convert_arguments): Use it.
+	(convert_for_initialization, cp_build_modify_expr): Likewise.
+	* cp-tree.h: Declare it.
+	* call.c (build_over_call): Use it.
+
+2010-09-30  Iain Sandoe  <iains@gcc.gnu.org>
+
+	merge from FSF 'apple/trunk' branch.
+	2006-01-30  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4386773
+	* cp/parser.c (cp_parser_objc_interstitial_code): For
+	@optional/@required set the optional/required flag.
+
+2010-09-30  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_lexer_get_preprocessor_token): Tidied up comments
+	and indentation when finding an Objective-C++ CPP_AT_NAME token.
+
+2010-09-29  Richard Guenther  <rguenther@suse.de>
+
+	* cp-tree.h (CP_DECL_CONTEXT): Check DECL_FILE_SCOPE_P.
+	(CP_TYPE_CONTEXT): Similar.
+	(FROB_CONTEXT): Frob global_namespace to the global
+	TRANSLATION_UNIT_DECL.
+	* decl.c (cxx_init_decl_processing): Build a TRANSLATION_UNIT_DECL,
+	set DECL_CONTEXT of global_namespace to it.
+	(start_decl): Use CP_DECL_CONTEXT and test TYPE_P
+	instead of zeroing context.
+	(cp_finish_decl): Use DECL_FILE_SCOPE_P.
+	(grokfndecl): Likewise.
+	(start_preparsed_function): Likewise.
+	* name-lookup.c (maybe_push_decl): Use DECL_NAMESPACE_SCOPE_P.
+	(namespace_binding): Use SCOPE_FILE_SCOPE_P.
+	* pt.c (template_class_depth): Use CP_TYPE_CONTEXT.
+	(is_specialization_of_friend): Use CP_DECL_CONTEXT.
+	(push_template_decl_real): Likewise.
+	(tsubst_friend_class): Likewise.  Adjust context comparisons.
+	(instantiate_class_template): Use CP_TYPE_CONTEXT.
+	(tsubst): Do not substitute into TRANSLATION_UNIT_DECL.
+	* cxx-pretty-print.c (pp_cxx_nested_name_specifier): Use
+	SCOPE_FILE_SCOPE_P.
+
+2010-09-29  Yao Qi  <yao@codesourcery.com>
+
+	* decl.c (get_atexit_node): Fix typo.
+
+2010-09-28  Jason Merrill  <jason@redhat.com>
+
+	* tree.c (lvalue_kind): Rename from lvalue_p_1, make nonstatic.
+	(real_lvalue_p): Take const_tree.
+	* cp-tree.h: Adjust.
+	* typeck.c (lvalue_or_else): Make temporary arg a permerror.
+	(cp_build_addr_expr_1): Likewise.
+
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	Partially merged from apple/trunk branch on FSF servers:
+	2006-04-26 Fariborz Jahanian <fjahanian@apple.com>
+	Radar 3803157 (method attributes)
+
+	* parser.c (cp_parser_objc_method_keyword_params): Handle attributes.
+	(cp_parser_objc_method_tail_params_opt): Likewise.
+	(cp_parser_objc_method_signature): Likewise.
+	(cp_parser_objc_method_maybe_bad_prefix_attributes): New.
+	(cp_parser_objc_method_prototype_list): Handle attributes.
+	(cp_parser_objc_method_definition_list): Likewise.
+
+2010-09-28  Richard Henderson  <rth@redhat.com>
+
+	* cp-lang.c: Include "target.h".
+	(cp_eh_personality): Use targetm.except_unwind_info.
+	* Make-lang.in (cp-lang.o): Update deps.
+
+2010-09-28  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* parser.c (cp_parser_objc_valid_prefix_attributes): New.
+	(cp_parser_declaration): Parse prefix attributes for ObjC++.
+	(cp_parser_objc_protocol_declaration): Handle attributes.
+	(cp_parser_objc_class_interface): Likewise.
+	(cp_parser_objc_declaration): Likewise.
+
+2010-09-27  Jason Merrill  <jason@redhat.com>
+
+	Require lvalues as specified by the standard.
+	* typeck.c (lvalue_or_else): Use real_lvalue_p.
+	(cp_build_addr_expr_1): Split out of cp_build_unary_op.
+	(cp_build_addr_expr, cp_build_addr_expr_strict): Interfaces.
+	(decay_conversion, get_member_function_from_ptrfunc): Adjust.
+	(build_x_unary_op, build_reinterpret_cast_1): Adjust.
+	(build_const_cast_1): Adjust.
+	* cp-tree.h: Declare new fns.
+	* call.c (build_this, convert_like_real, build_over_call): Adjust.
+	(initialize_reference): Adjust.
+	* class.c (build_base_path, convert_to_base_statically): Adjust.
+	(build_vfn_ref, resolve_address_of_overloaded_function): Adjust.
+	* cvt.c (build_up_reference, convert_to_reference): Adjust.
+	* decl.c (register_dtor_fn): Adjust.
+	* decl2.c (build_offset_ref_call_from_tree): Adjust.
+	* except.c (initialize_handler_parm): Adjust.
+	* init.c (build_offset_ref, build_delete, build_vec_delete): Adjust.
+	* rtti.c (build_dynamic_cast_1, tinfo_base_init): Adjust.
+	* tree.c (stabilize_expr): Adjust.
+
+2010-09-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from apple/trunk branch on FSF servers:
+
+	2005-12-15  Fariborz Jahanian <fjahanian@apple.com>
+
+	Radar 4229905
+	* typeck.c (composite_pointer_type): Call objc_have_common_type
+	when comparing two objective-c pointer types.
+
+	2005-07-18  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4175534
+	* call.c (standard_conversion): Do not issue warnings when
+	comparing ObjC pointer types.
+
+	2005-06-22  Ziemowit Laski  <zlaski@apple.com>
+
+	Radar 4154928
+	* call.c (standard_conversion): Allow for a pointer conversion
+	between any two ObjC pointer types.
+	* typeck.c (composite_pointer_type): Determine common type
+	for two ObjC pointer types.
+
+2010-09-24  Jan Hubicka  <jh@suse.cz>
+
+	* decl.c (finish_function): Use decl_replaceable_p
+	* method.c (make_alias_for_thunk): Update call of
+	cgraph_same_body_alias.
+
+2010-09-24  Jason Merrill  <jason@redhat.com>
+
+	* decl.c (compute_array_index_type): Remember type dependence of
+	array bound.
+	* pt.c (dependent_type_p_r): Don't recompute it here.
+
+	* error.c (dump_expr) [CASE_CONVERT]: Print conversion between
+	reference and pointer to the same type as "*" or "&".
+
 2010-09-24  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* typeck.c (warn_args_num): Use warning 'too many arguments to

@@ -160,6 +160,10 @@ static bool pa_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 				  const_tree, bool);
 static int pa_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				 tree, bool);
+static void pa_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+				     const_tree, bool);
+static rtx pa_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+			    const_tree, bool);
 static struct machine_function * pa_init_machine_status (void);
 static reg_class_t pa_secondary_reload (bool, rtx, reg_class_t,
 					enum machine_mode,
@@ -334,6 +338,10 @@ static size_t n_deferred_plabels = 0;
 #define TARGET_CALLEE_COPIES hook_bool_CUMULATIVE_ARGS_mode_tree_bool_true
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES pa_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG pa_function_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE pa_function_arg_advance
 
 #undef TARGET_EXPAND_BUILTIN_SAVEREGS
 #define TARGET_EXPAND_BUILTIN_SAVEREGS hppa_builtin_saveregs
@@ -520,7 +528,7 @@ pa_option_override (void)
      call frame information.  There is no benefit in using this optimization
      on PA8000 and later processors.  */
   if (pa_cpu >= PROCESSOR_8000
-      || (! USING_SJLJ_EXCEPTIONS && flag_exceptions)
+      || (targetm.except_unwind_info () == UI_DWARF2 && flag_exceptions)
       || flag_unwind_tables)
     target_flags &= ~MASK_JUMP_IN_DELAY;
 
@@ -1657,7 +1665,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
 
      Use scratch_reg to hold the address of the memory location.
 
-     The proper fix is to change PREFERRED_RELOAD_CLASS to return
+     The proper fix is to change TARGET_PREFERRED_RELOAD_CLASS to return
      NO_REGS when presented with a const_int and a register class
      containing only FP registers.  Doing so unfortunately creates
      more problems than it solves.   Fix this for 2.5.  */
@@ -5762,7 +5770,7 @@ static reg_class_t
 pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 		     enum machine_mode mode, secondary_reload_info *sri)
 {
-  int is_symbolic, regno;
+  int regno;
   enum reg_class rclass = (enum reg_class) rclass_i;
 
   /* Handle the easy stuff first.  */
@@ -5794,6 +5802,23 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
       sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
 		    : CODE_FOR_reload_indi_r1);
       return NO_REGS;
+    }
+
+  /* Secondary reloads of symbolic operands require %r1 as a scratch
+     register when we're generating PIC code and when the operand isn't
+     readonly.  */
+  if (symbolic_expression_p (x))
+    {
+      if (GET_CODE (x) == HIGH)
+	x = XEXP (x, 0);
+
+      if (flag_pic || !read_only_operand (x, VOIDmode))
+	{
+	  gcc_assert (mode == SImode || mode == DImode);
+	  sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
+			: CODE_FOR_reload_indi_r1);
+	  return NO_REGS;
+	}
     }
 
   /* Profiling showed the PA port spends about 1.3% of its compilation
@@ -5858,51 +5883,9 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
   if (regno >= 0 && regno < FIRST_PSEUDO_REGISTER
       && (REGNO_REG_CLASS (regno) == SHIFT_REGS
       && FP_REG_CLASS_P (rclass)))
-    {
-      sri->icode = (in_p
-		    ? direct_optab_handler (reload_in_optab, mode)
-		    : direct_optab_handler (reload_out_optab, mode));
-      return NO_REGS;
-    }
-
-  /* Secondary reloads of symbolic operands require %r1 as a scratch
-     register when we're generating PIC code and when the operand isn't
-     readonly.  */
-  if (GET_CODE (x) == HIGH)
-    x = XEXP (x, 0);
-
-  /* Profiling has showed GCC spends about 2.6% of its compilation
-     time in symbolic_operand from calls inside pa_secondary_reload_class.
-     So, we use an inline copy to avoid useless work.  */
-  switch (GET_CODE (x))
-    {
-      rtx op;
-
-      case SYMBOL_REF:
-        is_symbolic = !SYMBOL_REF_TLS_MODEL (x);
-        break;
-      case LABEL_REF:
-        is_symbolic = 1;
-        break;
-      case CONST:
-	op = XEXP (x, 0);
-	is_symbolic = (GET_CODE (op) == PLUS
-		       && ((GET_CODE (XEXP (op, 0)) == SYMBOL_REF
-			    && !SYMBOL_REF_TLS_MODEL (XEXP (op, 0)))
-			   || GET_CODE (XEXP (op, 0)) == LABEL_REF)
-		       && GET_CODE (XEXP (op, 1)) == CONST_INT);
-        break;
-      default:
-        is_symbolic = 0;
-        break;
-    }
-
-  if (is_symbolic && (flag_pic || !read_only_operand (x, VOIDmode)))
-    {
-      gcc_assert (mode == SImode || mode == DImode);
-      sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
-		    : CODE_FOR_reload_indi_r1);
-    }
+    sri->icode = (in_p
+		  ? direct_optab_handler (reload_in_optab, mode)
+		  : direct_optab_handler (reload_out_optab, mode));
 
   return NO_REGS;
 }
@@ -9390,6 +9373,23 @@ pa_function_value_regno_p (const unsigned int regno)
   return false;
 }
 
+/* Update the data in CUM to advance over an argument
+   of mode MODE and data type TYPE.
+   (TYPE is null for libcalls where that information may not be available.)  */
+
+static void
+pa_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			 const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  int arg_size = FUNCTION_ARG_SIZE (mode, type);
+
+  cum->nargs_prototype--;
+  cum->words += (arg_size
+		 + ((cum->words & 01)
+		    && type != NULL_TREE
+		    && arg_size > 1));
+}
+
 /* Return the location of a parameter that is passed in a register or NULL
    if the parameter has any component that is passed in memory.
 
@@ -9398,9 +9398,9 @@ pa_function_value_regno_p (const unsigned int regno)
 
    ??? We might want to restructure this so that it looks more like other
    ports.  */
-rtx
-function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
-	      int named ATTRIBUTE_UNUSED)
+static rtx
+pa_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		 const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   int max_arg_words = (TARGET_64BIT ? 8 : 4);
   int alignment = 0;

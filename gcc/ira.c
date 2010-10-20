@@ -168,8 +168,6 @@ along with GCC; see the file COPYING3.  If not see
        process.  It is done in each region on top-down traverse of the
        region tree (file ira-color.c).  There are following subpasses:
 
-       * Optional aggressive coalescing of allocnos in the region.
-
        * Putting allocnos onto the coloring stack.  IRA uses Briggs
          optimistic coloring which is a major improvement over
          Chaitin's coloring.  Therefore IRA does not spill allocnos at
@@ -399,8 +397,8 @@ setup_class_hard_regs (void)
       CLEAR_HARD_REG_SET (processed_hard_reg_set);
       for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
 	{
-	  ira_non_ordered_class_hard_regs[cl][0] = -1;
-	  ira_class_hard_reg_index[cl][0] = -1;
+	  ira_non_ordered_class_hard_regs[cl][i] = -1;
+	  ira_class_hard_reg_index[cl][i] = -1;
 	}
       for (n = 0, i = 0; i < FIRST_PSEUDO_REGISTER; i++)
 	{
@@ -1389,7 +1387,7 @@ ira_setup_eliminable_regset (void)
       else
 	df_set_regs_ever_live (eliminables[i].from, true);
     }
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
   if (!TEST_HARD_REG_BIT (crtl->asm_clobbers, HARD_FRAME_POINTER_REGNUM))
     {
       SET_HARD_REG_BIT (eliminable_regset, HARD_FRAME_POINTER_REGNUM);

@@ -4223,6 +4223,9 @@ expand_assignment (tree to, tree from, bool nontemporal)
 	reg = copy_to_mode_reg (op_mode1, reg);
 
       insn = GEN_FCN (icode) (mem, reg);
+      /* The movmisalign<mode> pattern cannot fail, else the assignment would
+         silently be omitted.  */
+      gcc_assert (insn != NULL_RTX);
       emit_insn (insn);
       return;
     }
@@ -4633,62 +4636,26 @@ store_expr (tree exp, rtx target, int call_param_p, bool nontemporal)
 
       return NULL_RTX;
     }
-  else if (TREE_CODE (exp) == STRING_CST
+  else if ((TREE_CODE (exp) == STRING_CST
+	    || (TREE_CODE (exp) == MEM_REF
+		&& TREE_CODE (TREE_OPERAND (exp, 0)) == ADDR_EXPR
+		&& TREE_CODE (TREE_OPERAND (TREE_OPERAND (exp, 0), 0))
+		   == STRING_CST
+		&& integer_zerop (TREE_OPERAND (exp, 1))))
 	   && !nontemporal && !call_param_p
-	   && TREE_STRING_LENGTH (exp) > 0
-	   && TYPE_MODE (TREE_TYPE (exp)) == BLKmode)
+	   && MEM_P (target))
     {
       /* Optimize initialization of an array with a STRING_CST.  */
       HOST_WIDE_INT exp_len, str_copy_len;
       rtx dest_mem;
+      tree str = TREE_CODE (exp) == STRING_CST
+		 ? exp : TREE_OPERAND (TREE_OPERAND (exp, 0), 0);
 
       exp_len = int_expr_size (exp);
       if (exp_len <= 0)
 	goto normal_expr;
 
-      str_copy_len = strlen (TREE_STRING_POINTER (exp));
-      if (str_copy_len < TREE_STRING_LENGTH (exp) - 1)
-	goto normal_expr;
-
-      str_copy_len = TREE_STRING_LENGTH (exp);
-      if ((STORE_MAX_PIECES & (STORE_MAX_PIECES - 1)) == 0)
-	{
-	  str_copy_len += STORE_MAX_PIECES - 1;
-	  str_copy_len &= ~(STORE_MAX_PIECES - 1);
-	}
-      str_copy_len = MIN (str_copy_len, exp_len);
-      if (!can_store_by_pieces (str_copy_len, builtin_strncpy_read_str,
-				CONST_CAST(char *, TREE_STRING_POINTER (exp)),
-				MEM_ALIGN (target), false))
-	goto normal_expr;
-
-      dest_mem = target;
-
-      dest_mem = store_by_pieces (dest_mem,
-				  str_copy_len, builtin_strncpy_read_str,
-				  CONST_CAST(char *, TREE_STRING_POINTER (exp)),
-				  MEM_ALIGN (target), false,
-				  exp_len > str_copy_len ? 1 : 0);
-      if (exp_len > str_copy_len)
-	clear_storage (adjust_address (dest_mem, BLKmode, 0),
-		       GEN_INT (exp_len - str_copy_len),
-		       BLOCK_OP_NORMAL);
-      return NULL_RTX;
-    }
-  else if (TREE_CODE (exp) == MEM_REF
-	   && TREE_CODE (TREE_OPERAND (exp, 0)) == ADDR_EXPR
-	   && TREE_CODE (TREE_OPERAND (TREE_OPERAND (exp, 0), 0)) == STRING_CST
-	   && integer_zerop (TREE_OPERAND (exp, 1))
-	   && !nontemporal && !call_param_p
-	   && TYPE_MODE (TREE_TYPE (exp)) == BLKmode)
-    {
-      /* Optimize initialization of an array with a STRING_CST.  */
-      HOST_WIDE_INT exp_len, str_copy_len;
-      rtx dest_mem;
-      tree str = TREE_OPERAND (TREE_OPERAND (exp, 0), 0);
-
-      exp_len = int_expr_size (exp);
-      if (exp_len <= 0)
+      if (TREE_STRING_LENGTH (str) <= 0)
 	goto normal_expr;
 
       str_copy_len = strlen (TREE_STRING_POINTER (str));
@@ -4696,14 +4663,15 @@ store_expr (tree exp, rtx target, int call_param_p, bool nontemporal)
 	goto normal_expr;
 
       str_copy_len = TREE_STRING_LENGTH (str);
-      if ((STORE_MAX_PIECES & (STORE_MAX_PIECES - 1)) == 0)
+      if ((STORE_MAX_PIECES & (STORE_MAX_PIECES - 1)) == 0
+	  && TREE_STRING_POINTER (str)[TREE_STRING_LENGTH (str) - 1] == '\0')
 	{
 	  str_copy_len += STORE_MAX_PIECES - 1;
 	  str_copy_len &= ~(STORE_MAX_PIECES - 1);
 	}
       str_copy_len = MIN (str_copy_len, exp_len);
       if (!can_store_by_pieces (str_copy_len, builtin_strncpy_read_str,
-				CONST_CAST(char *, TREE_STRING_POINTER (str)),
+				CONST_CAST (char *, TREE_STRING_POINTER (str)),
 				MEM_ALIGN (target), false))
 	goto normal_expr;
 
@@ -4711,7 +4679,8 @@ store_expr (tree exp, rtx target, int call_param_p, bool nontemporal)
 
       dest_mem = store_by_pieces (dest_mem,
 				  str_copy_len, builtin_strncpy_read_str,
-				  CONST_CAST(char *, TREE_STRING_POINTER (str)),
+				  CONST_CAST (char *,
+					      TREE_STRING_POINTER (str)),
 				  MEM_ALIGN (target), false,
 				  exp_len > str_copy_len ? 1 : 0);
       if (exp_len > str_copy_len)
@@ -8445,6 +8414,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       gcc_assert (!context
 		  || context == current_function_decl
 		  || TREE_STATIC (exp)
+		  || DECL_EXTERNAL (exp)
 		  /* ??? C++ creates functions that are not TREE_STATIC.  */
 		  || TREE_CODE (exp) == FUNCTION_DECL);
 
@@ -8674,6 +8644,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 
 	    /* Nor can the insn generator.  */
 	    insn = GEN_FCN (icode) (reg, temp);
+	    gcc_assert (insn != NULL_RTX);
 	    emit_insn (insn);
 
 	    return reg;
@@ -8830,7 +8801,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		 && TREE_READONLY (array) && ! TREE_SIDE_EFFECTS (array)
 		 && TREE_CODE (array) == VAR_DECL && DECL_INITIAL (array)
 		 && TREE_CODE (DECL_INITIAL (array)) != ERROR_MARK
-		 && targetm.binds_local_p (array))
+		 && const_value_known_p (array))
 	  {
 	    if (TREE_CODE (index) == INTEGER_CST)
 	      {
@@ -9854,12 +9825,14 @@ string_constant (tree arg, tree *ptr_offset)
       *ptr_offset = fold_convert (sizetype, offset);
       return array;
     }
-  else if (TREE_CODE (array) == VAR_DECL)
+  else if (TREE_CODE (array) == VAR_DECL
+	   || TREE_CODE (array) == CONST_DECL)
     {
       int length;
 
       /* Variables initialized to string literals can be handled too.  */
       if (!const_value_known_p (array)
+	  || !DECL_INITIAL (array)
 	  || TREE_CODE (DECL_INITIAL (array)) != STRING_CST)
 	return 0;
 
@@ -10282,13 +10255,31 @@ const_vector_from_tree (tree exp)
   return gen_rtx_CONST_VECTOR (mode, v);
 }
 
-
-/* Build a decl for a EH personality function named NAME. */
+/* Build a decl for a personality function given a language prefix.  */
 
 tree
-build_personality_function (const char *name)
+build_personality_function (const char *lang)
 {
+  const char *unwind_and_version;
   tree decl, type;
+  char *name;
+
+  switch (targetm.except_unwind_info ())
+    {
+    case UI_NONE:
+      return NULL;
+    case UI_SJLJ:
+      unwind_and_version = "_sj0";
+      break;
+    case UI_DWARF2:
+    case UI_TARGET:
+      unwind_and_version = "_v0";
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  name = ACONCAT (("__", lang, "_personality", unwind_and_version, NULL));
 
   type = build_function_type_list (integer_type_node, integer_type_node,
 				   long_long_unsigned_type_node,

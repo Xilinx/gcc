@@ -172,7 +172,7 @@ in the following sections.
 @gccoptlist{-ansi  -std=@var{standard}  -fgnu89-inline @gol
 -aux-info @var{filename} @gol
 -fno-asm  -fno-builtin  -fno-builtin-@var{function} @gol
--fhosted  -ffreestanding -fopenmp -fms-extensions @gol
+-fhosted  -ffreestanding -fopenmp -fms-extensions -fplan9-extensions @gol
 -trigraphs  -no-integrated-cpp  -traditional  -traditional-cpp @gol
 -fallow-single-precision  -fcond-mismatch -flax-vector-conversions @gol
 -fsigned-bitfields  -fsigned-char @gol
@@ -336,7 +336,8 @@ Objective-C and Objective-C++ Dialects}.
 -falign-labels[=@var{n}] -falign-loops[=@var{n}] -fassociative-math @gol
 -fauto-inc-dec -fbranch-probabilities -fbranch-target-load-optimize @gol
 -fbranch-target-load-optimize2 -fbtr-bb-exclusive -fcaller-saves @gol
--fcheck-data-deps -fconserve-stack -fcprop-registers -fcrossjumping @gol
+-fcheck-data-deps -fcombine-stack-adjustments -fconserve-stack @gol
+-fcprop-registers -fcrossjumping @gol
 -fcse-follow-jumps -fcse-skip-blocks -fcx-fortran-rules @gol
 -fcx-limited-range @gol
 -fdata-sections -fdce -fdce @gol
@@ -350,15 +351,15 @@ Objective-C and Objective-C++ Dialects}.
 -finline-small-functions -fipa-cp -fipa-cp-clone -fipa-matrix-reorg @gol
 -fipa-pta -fipa-profile -fipa-pure-const -fipa-reference @gol
 -fipa-struct-reorg -fira-algorithm=@var{algorithm} @gol
--fira-region=@var{region} -fira-coalesce @gol
+-fira-region=@var{region} @gol
 -fira-loop-pressure -fno-ira-share-save-slots @gol
 -fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
 -fivopts -fkeep-inline-functions -fkeep-static-consts @gol
 -floop-block -floop-flatten -floop-interchange -floop-strip-mine @gol
--floop-parallelize-all -flto -flto-compression-level -flto-report @gol
--fltrans -fltrans-output-list -fmerge-all-constants -fmerge-constants @gol
--fmodulo-sched -fmodulo-sched-allow-regmoves -fmove-loop-invariants @gol
--fmudflap -fmudflapir -fmudflapth -fno-branch-count-reg @gol
+-floop-parallelize-all -flto -flto-compression-level -flto-partition=@var{alg} @gol
+-flto-report -fltrans -fltrans-output-list -fmerge-all-constants @gol
+-fmerge-constants -fmodulo-sched -fmodulo-sched-allow-regmoves @gol
+-fmove-loop-invariants fmudflap -fmudflapir -fmudflapth -fno-branch-count-reg @gol
 -fno-default-inline @gol
 -fno-defer-pop -fno-function-cse -fno-guess-branch-probability @gol
 -fno-inline -fno-math-errno -fno-peephole -fno-peephole2 @gol
@@ -603,7 +604,8 @@ Objective-C and Objective-C++ Dialects}.
 -minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
 -m96bit-long-double  -mregparm=@var{num}  -msseregparm @gol
--mveclibabi=@var{type} -mpc32 -mpc64 -mpc80 -mstackrealign @gol
+-mveclibabi=@var{type} -mvect8-ret-in-mem @gol
+-mpc32 -mpc64 -mpc80 -mstackrealign @gol
 -momit-leaf-frame-pointer  -mno-red-zone -mno-tls-direct-seg-refs @gol
 -mcmodel=@var{code-model} -mabi=@var{name} @gol
 -m32  -m64 -mlarge-data-threshold=@var{num} @gol
@@ -683,6 +685,13 @@ Objective-C and Objective-C++ Dialects}.
 -mdc -mdiv -meb -mel -mio-volatile -ml -mleadz -mm -mminmax @gol
 -mmult -mno-opts -mrepeat -ms -msatur -msdram -msim -msimnovec -mtf @gol
 -mtiny=@var{n}}
+
+@emph{MicroBlaze Options}
+@gccoptlist{-msoft-float -mhard-float -msmall-divides -mcpu=@var{cpu} @gol
+-mmemcpy -mxl-soft-mul -mxl-soft-div -mxl-barrel-shift @gol
+-mxl-pattern-compare -mxl-stack-check -mxl-gp-opt -mno-clearbss @gol
+-mxl-multiply-high -mxl-float-convert -mxl-float-sqrt @gol
+-mxl-mode-@var{app-model}}
 
 @emph{MIPS Options}
 @gccoptlist{-EL  -EB  -march=@var{arch}  -mtune=@var{arch} @gol
@@ -842,6 +851,10 @@ See RS/6000 and PowerPC Options.
 -madjust-unroll -mindexed-addressing -mgettrcost=@var{number} -mpt-fixed @gol
 -maccumulate-outgoing-args -minvalid-symbols}
 
+@emph{Solaris 2 Options}
+@gccoptlist{-mimpure-text  -mno-impure-text @gol
+-threads -pthreads -pthread}
+
 @emph{SPARC Options}
 @gccoptlist{-mcpu=@var{cpu-type} @gol
 -mtune=@var{cpu-type} @gol
@@ -850,11 +863,10 @@ See RS/6000 and PowerPC Options.
 -mfaster-structs  -mno-faster-structs @gol
 -mfpu  -mno-fpu  -mhard-float  -msoft-float @gol
 -mhard-quad-float  -msoft-quad-float @gol
--mimpure-text  -mno-impure-text  -mlittle-endian @gol
+-mlittle-endian @gol
 -mstack-bias  -mno-stack-bias @gol
 -munaligned-doubles  -mno-unaligned-doubles @gol
--mv8plus  -mno-v8plus  -mvis  -mno-vis
--threads -pthreads -pthread}
+-mv8plus  -mno-v8plus  -mvis  -mno-vis}
 
 @emph{SPU Options}
 @gccoptlist{-mwarn-reloc -merror-reloc @gol
@@ -929,10 +941,10 @@ See S/390 and zSeries Options.
 -fshort-double  -fshort-wchar @gol
 -fverbose-asm  -fpack-struct[=@var{n}]  -fstack-check @gol
 -fstack-limit-register=@var{reg}  -fstack-limit-symbol=@var{sym} @gol
--fno-stack-limit @gol
+-fno-stack-limit -fsplit-stack @gol
 -fleading-underscore  -ftls-model=@var{model} @gol
 -ftrapv  -fwrapv  -fbounds-check @gol
--fvisibility}
+-fvisibility -fstrict-volatile-bitfields}
 @end table
 
 @menu
@@ -1689,6 +1701,16 @@ struct ABC @{
 Some cases of unnamed fields in structures and unions are only
 accepted with this option.  @xref{Unnamed Fields,,Unnamed struct/union
 fields within structs/unions}, for details.
+
+@item -fplan9-extensions
+Accept some non-standard constructs used in Plan 9 code.
+
+This enables @option{-fms-extensions}, permits passing pointers to
+structures with anonymous fields to functions which expect pointers to
+elements of the type of the field, and permits referring to anonymous
+fields declared using a typedef.  @xref{Unnamed Fields,,Unnamed
+struct/union fields within structs/unions}, for details.  This is only
+supported for C, not C++.
 
 @item -trigraphs
 @opindex trigraphs
@@ -2518,11 +2540,11 @@ used.
 
 @item -fno-nil-receivers
 @opindex fno-nil-receivers
-Assume that all Objective-C message dispatches (e.g.,
-@code{[receiver message:arg]}) in this translation unit ensure that the receiver
-is not @code{nil}.  This allows for more efficient entry points in the runtime
-to be used.  Currently, this option is only available in conjunction with
-the NeXT runtime on Mac OS X 10.3 and later.
+Assume that all Objective-C message dispatches (@code{[receiver
+message:arg]}) in this translation unit ensure that the receiver is
+not @code{nil}.  This allows for more efficient entry points in the
+runtime to be used.  Currently, this option is only available in
+conjunction with the NeXT runtime on Mac OS X 10.3 and later.
 
 @item -fobjc-call-cxx-cdtors
 @opindex fobjc-call-cxx-cdtors
@@ -2535,14 +2557,15 @@ is a C++ object with a non-trivial destructor, and if so, synthesize a
 special @code{- (void) .cxx_destruct} method that will run
 all such default destructors, in reverse order.
 
-The @code{- (id) .cxx_construct} and/or @code{- (void) .cxx_destruct} methods
-thusly generated will only operate on instance variables declared in the
-current Objective-C class, and not those inherited from superclasses.  It
-is the responsibility of the Objective-C runtime to invoke all such methods
-in an object's inheritance hierarchy.  The @code{- (id) .cxx_construct} methods
-will be invoked by the runtime immediately after a new object
-instance is allocated; the @code{- (void) .cxx_destruct} methods will
-be invoked immediately before the runtime deallocates an object instance.
+The @code{- (id) .cxx_construct} and @code{- (void) .cxx_destruct}
+methods thusly generated will only operate on instance variables
+declared in the current Objective-C class, and not those inherited
+from superclasses.  It is the responsibility of the Objective-C
+runtime to invoke all such methods in an object's inheritance
+hierarchy.  The @code{- (id) .cxx_construct} methods will be invoked
+by the runtime immediately after a new object instance is allocated;
+the @code{- (void) .cxx_destruct} methods will be invoked immediately
+before the runtime deallocates an object instance.
 
 As of this writing, only the NeXT runtime on Mac OS X 10.4 and later has
 support for invoking the @code{- (id) .cxx_construct} and
@@ -2555,100 +2578,20 @@ accomplished via the comm page.
 
 @item -fobjc-exceptions
 @opindex fobjc-exceptions
-Enable syntactic support for structured exception handling in Objective-C,
-similar to what is offered by C++ and Java.  This option is
-unavailable in conjunction with the NeXT runtime on Mac OS X 10.2 and
-earlier.
-
-@smallexample
-  @@try @{
-    @dots{}
-       @@throw expr;
-    @dots{}
-  @}
-  @@catch (AnObjCClass *exc) @{
-    @dots{}
-      @@throw expr;
-    @dots{}
-      @@throw;
-    @dots{}
-  @}
-  @@catch (AnotherClass *exc) @{
-    @dots{}
-  @}
-  @@catch (id allOthers) @{
-    @dots{}
-  @}
-  @@finally @{
-    @dots{}
-      @@throw expr;
-    @dots{}
-  @}
-@end smallexample
-
-The @code{@@throw} statement may appear anywhere in an Objective-C or
-Objective-C++ program; when used inside of a @code{@@catch} block, the
-@code{@@throw} may appear without an argument (as shown above), in which case
-the object caught by the @code{@@catch} will be rethrown.
-
-Note that only (pointers to) Objective-C objects may be thrown and
-caught using this scheme.  When an object is thrown, it will be caught
-by the nearest @code{@@catch} clause capable of handling objects of that type,
-analogously to how @code{catch} blocks work in C++ and Java.  A
-@code{@@catch(id @dots{})} clause (as shown above) may also be provided to catch
-any and all Objective-C exceptions not caught by previous @code{@@catch}
-clauses (if any).
-
-The @code{@@finally} clause, if present, will be executed upon exit from the
-immediately preceding @code{@@try @dots{} @@catch} section.  This will happen
-regardless of whether any exceptions are thrown, caught or rethrown
-inside the @code{@@try @dots{} @@catch} section, analogously to the behavior
-of the @code{finally} clause in Java.
-
-There are several caveats to using the new exception mechanism:
-
-@itemize @bullet
-@item
-Although currently designed to be binary compatible with @code{NS_HANDLER}-style
-idioms provided by the @code{NSException} class, the new
-exceptions can only be used on Mac OS X 10.3 (Panther) and later
-systems, due to additional functionality needed in the (NeXT) Objective-C
-runtime.
-
-@item
-As mentioned above, the new exceptions do not support handling
-types other than Objective-C objects.   Furthermore, when used from
-Objective-C++, the Objective-C exception model does not interoperate with C++
-exceptions at this time.  This means you cannot @code{@@throw} an exception
-from Objective-C and @code{catch} it in C++, or vice versa
-(i.e., @code{throw @dots{} @@catch}).
-@end itemize
-
-The @option{-fobjc-exceptions} switch also enables the use of synchronization
-blocks for thread-safe execution:
-
-@smallexample
-  @@synchronized (ObjCClass *guard) @{
-    @dots{}
-  @}
-@end smallexample
-
-Upon entering the @code{@@synchronized} block, a thread of execution shall
-first check whether a lock has been placed on the corresponding @code{guard}
-object by another thread.  If it has, the current thread shall wait until
-the other thread relinquishes its lock.  Once @code{guard} becomes available,
-the current thread will place its own lock on it, execute the code contained in
-the @code{@@synchronized} block, and finally relinquish the lock (thereby
-making @code{guard} available to other threads).
-
-Unlike Java, Objective-C does not allow for entire methods to be marked
-@code{@@synchronized}.  Note that throwing exceptions out of
-@code{@@synchronized} blocks is allowed, and will cause the guarding object
-to be unlocked properly.
+Enable syntactic support for structured exception handling in
+Objective-C, similar to what is offered by C++ and Java.  This option
+is required to use the Objective-C keywords @code{@@try},
+@code{@@throw}, @code{@@catch}, @code{@@finally} and
+@code{@@synchronized}.  This option is available with both the GNU
+runtime and the NeXT runtime (but not available in conjunction with
+the NeXT runtime on Mac OS X 10.2 and earlier).
 
 @item -fobjc-gc
 @opindex fobjc-gc
-Enable garbage collection (GC) in Objective-C and Objective-C++ programs.
+Enable garbage collection (GC) in Objective-C and Objective-C++
+programs.  This option is only available with the NeXT runtime; the
+GNU runtime has a different garbage collection implementation that
+does not require special compiler flags.
 
 @item -freplace-objc-classes
 @opindex freplace-objc-classes
@@ -2670,6 +2613,8 @@ which improves run-time performance.  Specifying the @option{-fzero-link} flag
 suppresses this behavior and causes calls to @code{objc_getClass("@dots{}")}
 to be retained.  This is useful in Zero-Link debugging mode, since it allows
 for individual class implementations to be modified during program execution.
+The GNU runtime currently always retains calls to @code{objc_get_class("@dots{}")}
+regardless of command line options.
 
 @item -gen-decls
 @opindex gen-decls
@@ -6473,11 +6418,6 @@ irregular register set, the third one results in faster and generates
 decent code and the smallest size code, and the default value usually
 give the best results in most cases and for most architectures.
 
-@item -fira-coalesce
-@opindex fira-coalesce
-Do optimistic register coalescing.  This option might be profitable for
-architectures with big regular register files.
-
 @item -fira-loop-pressure
 @opindex fira-loop-pressure
 Use IRA to evaluate register pressure in loops for decision to move
@@ -6685,6 +6625,13 @@ This option is always enabled by default on certain machines, usually
 those which have no call-preserved registers to use instead.
 
 Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
+
+@item -fcombine-stack-adjustments
+@opindex fcombine-stack-adjustments
+Tracks stack adjustments (pushes and pops) and stack memory references
+and then tries to find ways to combine them.
+
+Enabled by default at @option{-O1} and higher.
 
 @item -fconserve-stack
 @opindex fconserve-stack
@@ -7674,6 +7621,13 @@ for this to work. This will likely only work if @env{MAKE} is
 GNU make.
 
 Disabled by default.
+
+@item -flto-partition=@var{alg}
+@opindex flto-partition
+Specify partitioning algorithm used by @option{-fwhopr} mode.  The value is
+either @code{1to1} to specify partitioning corresponding to source files
+or @code{balanced} to specify partitioning into, if possible, equally sized
+chunks.  The default value is @code{balanced}.
 
 @item -fwpa
 @opindex fwpa
@@ -8868,6 +8822,16 @@ parameter in order to perform devirtualization.
 @option{devirt-type-list-size} is the maximum number of types it
 stores per a single formal parameter of a function.
 
+@item lto-partitions
+Specify desired nuber of partitions produced during WHOPR copmilation.
+Number of partitions should exceed number of CPUs used for compilatoin.
+Default value is 32.
+
+@item lto-minpartition
+Size of minimal paritition for WHOPR (in estimated instructions).
+This prevents expenses of splitting very small programs into too many
+partitions.
+
 @end table
 @end table
 
@@ -9940,6 +9904,7 @@ platform.
 * M68hc1x Options::
 * MCore Options::
 * MeP Options::
+* MicroBlaze Options::
 * MIPS Options::
 * MMIX Options::
 * MN10300 Options::
@@ -9951,6 +9916,7 @@ platform.
 * S/390 and zSeries Options::
 * Score Options::
 * SH Options::
+* Solaris 2 Options::
 * SPARC Options::
 * SPU Options::
 * System V Options::
@@ -12359,6 +12325,16 @@ function by using the function attribute @samp{sseregparm}.
 modules with the same value, including any libraries.  This includes
 the system libraries and startup modules.
 
+@item -mvect8-ret-in-mem
+@opindex mvect8-ret-in-mem
+Return 8-byte vectors in memory instead of MMX registers.  This is the
+default on Solaris~8 and 9 and VxWorks to match the ABI of the Sun
+Studio compilers until version 12.  Later compiler versions (starting
+with Studio 12 Update~1) follow the ABI used by other x86 targets, which
+is the default on Solaris~10 and later.  @emph{Only} use this option if
+you need to remain compatible with existing code produced by those
+previous compiler versions or older versions of GCC.
+
 @item -mpc32
 @itemx -mpc64
 @itemx -mpc80
@@ -13910,6 +13886,104 @@ Variables that are @var{n} bytes or smaller will be allocated to the
 @code{.tiny} section.  These variables use the @code{$gp} base
 register.  The default for this option is 4, but note that there's a
 65536 byte limit to the @code{.tiny} section.
+
+@end table
+
+@node MicroBlaze Options
+@subsection MicroBlaze Options
+@cindex MicroBlaze Options
+
+@table @gcctabopt
+
+@item -msoft-float
+@opindex msoft-float
+Use software emulation for floating point (default).
+
+@item -mhard-float
+@opindex mhard-float
+Use hardware floating point instructions.
+
+@item -mmemcpy
+@opindex mmemcpy
+Do not optimize block moves, use @code{memcpy}.
+
+@item -mno-clearbss
+@opindex mno-clearbss
+This option is deprecated.  Use @option{-fno-zero-initialized-in-bss} instead.
+
+@item -mcpu=@var{cpu-type}
+@opindex mcpu=
+Use features of and schedule code for given CPU.
+Supported values are in the format @samp{v@var{X}.@var{YY}.@var{Z}}, 
+where @var{X} is a major version, @var{YY} is the minor version, and 
+@var{Z} is compatiblity code.  Example values are @samp{v3.00.a}, 
+@samp{v4.00.b}, @samp{v5.00.a}, @samp{v5.00.b}, @samp{v5.00.b}, @samp{v6.00.a}. 
+
+@item -mxl-soft-mul
+@opindex mxl-soft-mul
+Use software multiply emulation (default).
+
+@item -mxl-soft-div
+@opindex mxl-soft-div
+Use software emulation for divides (default).
+
+@item -mxl-barrel-shift
+@opindex mxl-barrel-shift
+Use the hardware barrel shifter.
+
+@item -mxl-pattern-compare
+@opindex mxl-pattern-compare
+Use pattern compare instructions.
+
+@item -msmall-divides
+@opindex msmall-divides
+Use table lookup optimization for small signed integer divisions.
+
+@item -mxl-stack-check
+@opindex mxl-stack-check
+This option is deprecated.  Use -fstack-check instead.
+
+@item -mxl-gp-opt
+@opindex mxl-gp-opt
+Use GP relative sdata/sbss sections.
+
+@item -mxl-multiply-high
+@opindex mxl-multiply-high
+Use multiply high instructions for high part of 32x32 multiply.
+
+@item -mxl-float-convert
+@opindex mxl-float-convert
+Use hardware floating point converstion instructions.
+
+@item -mxl-float-sqrt
+@opindex mxl-float-sqrt
+Use hardware floating point square root instruction.
+
+@item -mxl-mode-@var{app-model}
+Select application model @var{app-model}.  Valid models are 
+@table @samp
+@item executable
+normal executable (default), uses startup code @file{crt0.o}.
+
+@item xmdstub
+for use with Xilinx Microprocessor Debugger (XMD) based 
+software intrusive debug agent called xmdstub. This uses startup file 
+@file{crt1.o} and sets the start address of the program to be 0x800.
+
+@item bootstrap
+for applications that are loaded using a bootloader.
+This model uses startup file @file{crt2.o} which does not contain a processor 
+reset vector handler. This is suitable for transferring control on a 
+processor reset to the bootloader rather than the application.
+
+@item novectors
+for applications that do not require any of the 
+MicroBlaze vectors. This option may be useful for applications running
+within a monitoring application. This model uses @file{crt3.o} as a startup file.
+@end table
+
+Option @option{-xl-mode-@var{app-model}} is a deprecated alias for 
+@option{-mxl-mode-@var{app-model}}.
 
 @end table
 
@@ -16701,6 +16775,51 @@ It will then prevent cross-basic-block cse, hoisting and most scheduling
 of symbol loads.  The default is @option{-mno-invalid-symbols}.
 @end table
 
+@node Solaris 2 Options
+@subsection Solaris 2 Options
+@cindex Solaris 2 options
+
+These @samp{-m} options are supported on Solaris 2:
+
+@table @gcctabopt
+@item -mimpure-text
+@opindex mimpure-text
+@option{-mimpure-text}, used in addition to @option{-shared}, tells
+the compiler to not pass @option{-z text} to the linker when linking a
+shared object.  Using this option, you can link position-dependent
+code into a shared object.
+
+@option{-mimpure-text} suppresses the ``relocations remain against
+allocatable but non-writable sections'' linker error message.
+However, the necessary relocations will trigger copy-on-write, and the
+shared object is not actually shared across processes.  Instead of
+using @option{-mimpure-text}, you should compile all source code with
+@option{-fpic} or @option{-fPIC}.
+
+@end table
+
+These switches are supported in addition to the above on Solaris 2:
+
+@table @gcctabopt
+@item -threads
+@opindex threads
+Add support for multithreading using the Solaris threads library.  This
+option sets flags for both the preprocessor and linker.  This option does
+not affect the thread safety of object code produced by the compiler or
+that of libraries supplied with it.
+
+@item -pthreads
+@opindex pthreads
+Add support for multithreading using the POSIX threads library.  This
+option sets flags for both the preprocessor and linker.  This option does
+not affect the thread safety of object code produced  by the compiler or
+that of libraries supplied with it.
+
+@item -pthread
+@opindex pthread
+This is a synonym for @option{-pthreads}.
+@end table
+
 @node SPARC Options
 @subsection SPARC Options
 @cindex SPARC options
@@ -16788,22 +16907,6 @@ However, the use of this changed alignment directly violates the SPARC
 ABI@.  Thus, it's intended only for use on targets where the developer
 acknowledges that their resulting code will not be directly in line with
 the rules of the ABI@.
-
-@item -mimpure-text
-@opindex mimpure-text
-@option{-mimpure-text}, used in addition to @option{-shared}, tells
-the compiler to not pass @option{-z text} to the linker when linking a
-shared object.  Using this option, you can link position-dependent
-code into a shared object.
-
-@option{-mimpure-text} suppresses the ``relocations remain against
-allocatable but non-writable sections'' linker error message.
-However, the necessary relocations will trigger copy-on-write, and the
-shared object is not actually shared across processes.  Instead of
-using @option{-mimpure-text}, you should compile all source code with
-@option{-fpic} or @option{-fPIC}.
-
-This option is only available on SunOS and Solaris.
 
 @item -mcpu=@var{cpu_type}
 @opindex mcpu
@@ -16951,28 +17054,6 @@ With @option{-mstack-bias}, GCC assumes that the stack pointer, and
 frame pointer if present, are offset by @minus{}2047 which must be added back
 when making stack frame references.  This is the default in 64-bit mode.
 Otherwise, assume no such offset is present.
-@end table
-
-These switches are supported in addition to the above on Solaris:
-
-@table @gcctabopt
-@item -threads
-@opindex threads
-Add support for multithreading using the Solaris threads library.  This
-option sets flags for both the preprocessor and linker.  This option does
-not affect the thread safety of object code produced by the compiler or
-that of libraries supplied with it.
-
-@item -pthreads
-@opindex pthreads
-Add support for multithreading using the POSIX threads library.  This
-option sets flags for both the preprocessor and linker.  This option does
-not affect the thread safety of object code produced  by the compiler or
-that of libraries supplied with it.
-
-@item -pthread
-@opindex pthread
-This is a synonym for @option{-pthreads}.
 @end table
 
 @node SPU Options
@@ -17340,22 +17421,6 @@ specifies that a console application is to be generated, by
 instructing the linker to set the PE header subsystem type
 required for console applications.
 This is the default behavior for Cygwin and MinGW targets.
-
-@item -mcygwin
-@opindex mcygwin
-This option is available for Cygwin targets.  It specifies that
-the Cygwin internal interface is to be used for predefined
-preprocessor macros, C runtime libraries and related linker
-paths and options.  For Cygwin targets this is the default behavior.
-This option is deprecated and will be removed in a future release.
-
-@item -mno-cygwin
-@opindex mno-cygwin
-This option is available for Cygwin targets.  It specifies that
-the MinGW internal interface is to be used instead of Cygwin's, by
-setting MinGW-related predefined macros and linker paths and default
-library options.
-This option is deprecated and will be removed in a future release.
 
 @item -mdll
 @opindex mdll
@@ -17970,6 +18035,25 @@ and grows downwards, you can use the flags
 @option{-Wl,--defsym,__stack_limit=0x7ffe0000} to enforce a stack limit
 of 128KB@.  Note that this may only work with the GNU linker.
 
+@item -fsplit-stack
+@opindex fsplit-stack
+Generate code to automatically split the stack before it overflows.
+The resulting program has a discontiguous stack which can only
+overflow if the program is unable to allocate any more memory.  This
+is most useful when running threaded programs, as it is no longer
+necessary to calculate a good stack size to use for each thread.  This
+is currently only implemented for the i386 and x86_64 backends running
+GNU/Linux.
+
+When code compiled with @option{-fsplit-stack} calls code compiled
+without @option{-fsplit-stack}, there may not be much stack space
+available for the latter code to run.  If compiling all code,
+including library code, with @option{-fsplit-stack} is not an option,
+then the linker can fix up these calls so that the code compiled
+without @option{-fsplit-stack} always has a large stack.  Support for
+this is implemented in the gold linker in GNU binutils release 2.21
+and later.
+
 @item -fleading-underscore
 @opindex fleading-underscore
 This option and its counterpart, @option{-fno-leading-underscore}, forcibly
@@ -18059,6 +18143,7 @@ An overview of these techniques, their benefits and how to use them
 is at @uref{http://gcc.gnu.org/@/wiki/@/Visibility}.
 
 @item -fstrict-volatile-bitfields
+@opindex fstrict-volatile-bitfields
 This option should be used if accesses to volatile bitfields (or other
 structure fields, although the compiler usually honors those types
 anyway) should use a single access in a mode of the same size as the

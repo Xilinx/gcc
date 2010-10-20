@@ -19,6 +19,14 @@
 
 # Some common subroutines for use by opt[ch]-gen.awk.
 
+# Define some helpful character classes, for portability.
+BEGIN {
+	lower = "abcdefghijklmnopqrstuvwxyz"
+	upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	digit = "0123456789"
+	alnum = lower "" upper "" digit
+}
+
 # Return nonzero if FLAGS contains a flag matching REGEX.
 function flag_set_p(regex, flags)
 {
@@ -120,14 +128,14 @@ function needs_state_p(flags)
 		&& !flag_set_p("Ignore", flags))
 }
 
-# If FLAGS describes an option that needs a static state variable,
-# return the name of that variable, otherwise return "".  NAME is
-# the name of the option.
+# If FLAGS describes an option that needs state without a public
+# variable name, return the name of that field, minus the initial
+# "x_", otherwise return "".  NAME is the name of the option.
 function static_var(name, flags)
 {
 	if (global_state_p(flags) || !needs_state_p(flags))
 		return ""
-	gsub ("[^A-Za-z0-9]", "_", name)
+	gsub ("[^" alnum "]", "_", name)
 	return "VAR_" name
 }
 
@@ -193,20 +201,18 @@ function var_ref(name, flags)
 {
 	name = var_name(flags) static_var(name, flags)
 	if (name != "")
-		return "&" name
+		return "offsetof (struct gcc_options, x_" name ")"
 	if (opt_args("Mask", flags) != "")
-		return "&target_flags"
+		return "offsetof (struct gcc_options, x_target_flags)"
 	if (opt_args("InverseMask", flags) != "")
-		return "&target_flags"
-	return "0"
+		return "offsetof (struct gcc_options, x_target_flags)"
+	return "-1"
 }
 
 # Given the option called NAME return a sanitized version of its name.
 function opt_sanitized_name(name)
 {
-	if (name == "gdwarf+")
-		name = "gdwarfplus"
-	gsub ("[^A-Za-z0-9]", "_", name)
+	gsub ("[^" alnum "]", "_", name)
 	return name
 }
 

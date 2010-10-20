@@ -112,21 +112,16 @@ int vms_file_stats_name (const char *, long long *, long *, char *, int *);
 #define DWARF2_INDIRECT_STRING_SUPPORT_MISSING_ON_TARGET 0
 #endif
 
-#ifndef DWARF2_UNWIND_INFO
-#define DWARF2_UNWIND_INFO 0
+/* ??? Poison these here until it can be done generically.  They've been
+   totally replaced in this file; make sure it stays that way.  */
+#undef DWARF2_UNWIND_INFO
+#undef DWARF2_FRAME_INFO
+#if (GCC_VERSION >= 3000)
+ #pragma GCC poison DWARF2_UNWIND_INFO DWARF2_FRAME_INFO
 #endif
 
 #ifndef INCOMING_RETURN_ADDR_RTX
 #define INCOMING_RETURN_ADDR_RTX  (gcc_unreachable (), NULL_RTX)
-#endif
-
-#ifndef DWARF2_FRAME_INFO
-# ifdef DWARF2_DEBUGGING_INFO
-#  define DWARF2_FRAME_INFO \
-  (write_symbols == DWARF2_DEBUG || write_symbols == VMS_AND_DWARF2_DEBUG)
-# else
-#  define DWARF2_FRAME_INFO 0
-# endif
 #endif
 
 /* Map register numbers held in the call frame info that gcc has
@@ -148,13 +143,20 @@ dwarf2out_do_frame (void)
   /* We want to emit correct CFA location expressions or lists, so we
      have to return true if we're going to output debug info, even if
      we're not going to output frame or unwind info.  */
-  return (write_symbols == DWARF2_DEBUG
-	  || write_symbols == VMS_AND_DWARF2_DEBUG
-	  || DWARF2_FRAME_INFO || saved_do_cfi_asm
-	  || (DWARF2_UNWIND_INFO
-	      && (flag_unwind_tables
-		  || (flag_exceptions && ! USING_SJLJ_EXCEPTIONS)))
-	  );
+  if (write_symbols == DWARF2_DEBUG || write_symbols == VMS_AND_DWARF2_DEBUG)
+    return true;
+
+  if (saved_do_cfi_asm)
+    return true;
+
+  if (targetm.debug_unwind_info () == UI_DWARF2)
+    return true;
+
+  if ((flag_unwind_tables || flag_exceptions)
+      && targetm.except_unwind_info () == UI_DWARF2)
+    return true;
+
+  return false;
 }
 
 /* Decide whether to emit frame unwind via assembler directives.  */
@@ -167,10 +169,10 @@ dwarf2out_do_cfi_asm (void)
 #ifdef MIPS_DEBUGGING_INFO
   return false;
 #endif
-  if (!flag_dwarf2_cfi_asm || !dwarf2out_do_frame ())
-    return false;
   if (saved_do_cfi_asm)
     return true;
+  if (!flag_dwarf2_cfi_asm || !dwarf2out_do_frame ())
+    return false;
   if (!HAVE_GAS_CFI_PERSONALITY_DIRECTIVE)
     return false;
 
@@ -183,15 +185,12 @@ dwarf2out_do_cfi_asm (void)
   if ((enc & 0x70) != 0 && (enc & 0x70) != DW_EH_PE_pcrel)
     return false;
 
-  if (!HAVE_GAS_CFI_SECTIONS_DIRECTIVE)
-    {
-#ifdef TARGET_UNWIND_INFO
-      return false;
-#else
-      if (USING_SJLJ_EXCEPTIONS || (!flag_unwind_tables && !flag_exceptions))
-	return false;
-#endif
-    }
+  /* If we can't get the assembler to emit only .debug_frame, and we don't need
+     dwarf2 unwind info for exceptions, then emit .debug_frame by hand.  */
+  if (!HAVE_GAS_CFI_SECTIONS_DIRECTIVE
+      && !flag_unwind_tables && !flag_exceptions
+      && targetm.except_unwind_info () != UI_DWARF2)
+    return false;
 
   saved_do_cfi_asm = true;
   return true;
@@ -790,8 +789,9 @@ dwarf2out_cfi_label (bool force)
     }
   else
     {
-      ASM_GENERATE_INTERNAL_LABEL (label, "LCFI", dwarf2out_cfi_label_num++);
-      ASM_OUTPUT_LABEL (asm_out_file, label);
+      int num = dwarf2out_cfi_label_num++;
+      ASM_GENERATE_INTERNAL_LABEL (label, "LCFI", num);
+      ASM_OUTPUT_DEBUG_LABEL (asm_out_file, "LCFI", num);
     }
 
   return label;
@@ -3975,20 +3975,18 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   char * dup_label;
   dw_fde_ref fde;
   section *fnsec;
+  bool do_frame;
 
   current_function_func_begin_label = NULL;
 
-#ifdef TARGET_UNWIND_INFO
-  /* ??? current_function_func_begin_label is also used by except.c
-     for call-site information.  We must emit this label if it might
-     be used.  */
-  if ((! flag_exceptions || USING_SJLJ_EXCEPTIONS)
-      && ! dwarf2out_do_frame ())
+  do_frame = dwarf2out_do_frame ();
+
+  /* ??? current_function_func_begin_label is also used by except.c for
+     call-site information.  We must emit this label if it might be used.  */
+  if (!do_frame
+      && (!flag_exceptions
+	  || targetm.except_unwind_info () != UI_TARGET))
     return;
-#else
-  if (! dwarf2out_do_frame ())
-    return;
-#endif
 
   fnsec = function_section (current_function_decl);
   switch_to_section (fnsec);
@@ -3999,11 +3997,9 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   dup_label = xstrdup (label);
   current_function_func_begin_label = dup_label;
 
-#ifdef TARGET_UNWIND_INFO
   /* We can elide the fde allocation if we're not emitting debug info.  */
-  if (! dwarf2out_do_frame ())
+  if (!do_frame)
     return;
-#endif
 
   /* Expand the fde table if necessary.  */
   if (fde_table_in_use == fde_table_allocated)
@@ -4172,7 +4168,8 @@ dwarf2out_frame_init (void)
   /* On entry, the Canonical Frame Address is at SP.  */
   dwarf2out_def_cfa (NULL, STACK_POINTER_REGNUM, INCOMING_FRAME_SP_OFFSET);
 
-  if (DWARF2_UNWIND_INFO || DWARF2_FRAME_INFO)
+  if (targetm.debug_unwind_info () == UI_DWARF2
+      || targetm.except_unwind_info () == UI_DWARF2)
     initial_return_save (INCOMING_RETURN_ADDR_RTX);
 }
 
@@ -4180,14 +4177,13 @@ void
 dwarf2out_frame_finish (void)
 {
   /* Output call frame information.  */
-  if (DWARF2_FRAME_INFO)
+  if (targetm.debug_unwind_info () == UI_DWARF2)
     output_call_frame_info (0);
 
-#ifndef TARGET_UNWIND_INFO
   /* Output another copy for the unwinder.  */
-  if (! USING_SJLJ_EXCEPTIONS && (flag_unwind_tables || flag_exceptions))
+  if ((flag_unwind_tables || flag_exceptions)
+      && targetm.except_unwind_info () == UI_DWARF2)
     output_call_frame_info (1);
-#endif
 }
 
 /* Note that the current function section is being used for code.  */
@@ -4380,6 +4376,8 @@ typedef struct GTY(()) dw_loc_list_struct {
 		      Only on head of list */
   const char *section; /* Section this loclist is relative to */
   dw_loc_descr_ref expr;
+  hashval_t hash;
+  bool emitted;
 } dw_loc_list_node;
 
 static dw_loc_descr_ref int_loc_descriptor (HOST_WIDE_INT);
@@ -10887,6 +10885,10 @@ output_loc_list (dw_loc_list_ref list_head)
 {
   dw_loc_list_ref curr = list_head;
 
+  if (list_head->emitted)
+    return;
+  list_head->emitted = true;
+
   ASM_OUTPUT_LABEL (asm_out_file, list_head->ll_symbol);
 
   /* Walk the location list, and output each range + expression.  */
@@ -12609,6 +12611,7 @@ is_base_type (tree type)
     case METHOD_TYPE:
     case POINTER_TYPE:
     case REFERENCE_TYPE:
+    case NULLPTR_TYPE:
     case OFFSET_TYPE:
     case LANG_TYPE:
     case VECTOR_TYPE:
@@ -14166,8 +14169,32 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	}
       break;
 
-    case COMPARE:
     case IF_THEN_ELSE:
+      {
+	dw_loc_descr_ref op2, bra_node, drop_node;
+	op0 = mem_loc_descriptor (XEXP (rtl, 0), mode,
+				  VAR_INIT_STATUS_INITIALIZED);
+	op1 = mem_loc_descriptor (XEXP (rtl, 1), mode,
+				  VAR_INIT_STATUS_INITIALIZED);
+	op2 = mem_loc_descriptor (XEXP (rtl, 2), mode,
+				  VAR_INIT_STATUS_INITIALIZED);
+	if (op0 == NULL || op1 == NULL || op2 == NULL)
+	  break;
+
+	mem_loc_result = op1;
+	add_loc_descr (&mem_loc_result, op2);
+	add_loc_descr (&mem_loc_result, op0);
+	bra_node = new_loc_descr (DW_OP_bra, 0, 0);
+	add_loc_descr (&mem_loc_result, bra_node);
+	add_loc_descr (&mem_loc_result, new_loc_descr (DW_OP_swap, 0, 0));
+	drop_node = new_loc_descr (DW_OP_drop, 0, 0);
+	add_loc_descr (&mem_loc_result, drop_node);
+	bra_node->dw_loc_oprnd1.val_class = dw_val_class_loc;
+	bra_node->dw_loc_oprnd1.v.val_loc = drop_node;
+      }
+      break;
+
+    case COMPARE:
     case ROTATE:
     case ROTATERT:
     case TRUNCATE:
@@ -16571,7 +16598,7 @@ rtl_for_decl_location (tree decl)
 	       && (!REG_P (XEXP (rtl, 0))
 		   || REGNO (XEXP (rtl, 0)) == HARD_FRAME_POINTER_REGNUM
 		   || REGNO (XEXP (rtl, 0)) == STACK_POINTER_REGNUM
-#if ARG_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_ARG_POINTER
 		   || REGNO (XEXP (rtl, 0)) == ARG_POINTER_REGNUM
 #endif
 		     )
@@ -17821,14 +17848,21 @@ add_calling_convention_attribute (dw_die_ref subr_die, tree decl)
   value = ((enum dwarf_calling_convention)
 	   targetm.dwarf_calling_convention (TREE_TYPE (decl)));
 
-  /* DWARF doesn't provide a way to identify a program's source-level
-     entry point.  DW_AT_calling_convention attributes are only meant
-     to describe functions' calling conventions.  However, lacking a
-     better way to signal the Fortran main program, we use this for the
-     time being, following existing custom.  */
   if (is_fortran ()
       && !strcmp (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)), "MAIN__"))
-    value = DW_CC_program;
+    {
+      /* DWARF 2 doesn't provide a way to identify a program's source-level
+	entry point.  DW_AT_calling_convention attributes are only meant
+	to describe functions' calling conventions.  However, lacking a
+	better way to signal the Fortran main program, we used this for 
+	a long time, following existing custom.  Now, DWARF 4 has 
+	DW_AT_main_subprogram, which we add below, but some tools still
+	rely on the old way, which we thus keep.  */
+      value = DW_CC_program;
+
+      if (dwarf_version >= 4 || !dwarf_strict)
+	add_AT_flag (subr_die, DW_AT_main_subprogram, 1);
+    }
 
   /* Only add the attribute if the backend requests it, and
      is not DW_CC_normal.  */
@@ -20189,6 +20223,7 @@ gen_type_die_with_usage (tree type, dw_die_ref context_die,
       /* No DIEs needed for fundamental types.  */
       break;
 
+    case NULLPTR_TYPE:
     case LANG_TYPE:
       /* Just use DW_TAG_unspecified_type.  */
       {
@@ -20600,7 +20635,7 @@ gen_namespace_die (tree decl, dw_die_ref context_die)
       dw_die_ref origin_die
 	= force_decl_die (DECL_ABSTRACT_ORIGIN (decl));
 
-      if (DECL_CONTEXT (decl) == NULL_TREE
+      if (DECL_FILE_SCOPE_P (decl)
 	  || TREE_CODE (DECL_CONTEXT (decl)) == NAMESPACE_DECL)
 	context_die = setup_namespace_context (decl, comp_unit_die ());
       /* Now create the namespace alias DIE.  */
@@ -20650,7 +20685,7 @@ gen_decl_die (tree decl, tree origin, dw_die_ref context_die)
       /* Don't output any DIEs to represent mere function declarations,
 	 unless they are class members or explicit block externs.  */
       if (DECL_INITIAL (decl_or_origin) == NULL_TREE
-          && DECL_CONTEXT (decl_or_origin) == NULL_TREE
+          && DECL_FILE_SCOPE_P (decl_or_origin)
 	  && (current_function_decl == NULL_TREE
 	      || DECL_ARTIFICIAL (decl_or_origin)))
 	break;
@@ -21805,13 +21840,11 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
 static void
 dwarf2out_assembly_start (void)
 {
-  if (HAVE_GAS_CFI_SECTIONS_DIRECTIVE && dwarf2out_do_cfi_asm ())
-    {
-#ifndef TARGET_UNWIND_INFO
-      if (USING_SJLJ_EXCEPTIONS || (!flag_unwind_tables && !flag_exceptions))
-#endif
-	fprintf (asm_out_file, "\t.cfi_sections\t.debug_frame\n");
-    }
+  if (HAVE_GAS_CFI_SECTIONS_DIRECTIVE
+      && dwarf2out_do_cfi_asm ()
+      && (!(flag_unwind_tables || flag_exceptions)
+	  || targetm.except_unwind_info () != UI_DWARF2))
+    fprintf (asm_out_file, "\t.cfi_sections\t.debug_frame\n");
 }
 
 /* A helper function for dwarf2out_finish called through
@@ -22382,7 +22415,376 @@ resolve_addr (dw_die_ref die)
 
   FOR_EACH_CHILD (die, c, resolve_addr (c));
 }
+
+/* Helper routines for optimize_location_lists.
+   This pass tries to share identical local lists in .debug_loc
+   section.  */
 
+/* Iteratively hash operands of LOC opcode.  */
+
+static inline hashval_t
+hash_loc_operands (dw_loc_descr_ref loc, hashval_t hash)
+{
+  dw_val_ref val1 = &loc->dw_loc_oprnd1;
+  dw_val_ref val2 = &loc->dw_loc_oprnd2;
+
+  switch (loc->dw_loc_opc)
+    {
+    case DW_OP_const4u:
+    case DW_OP_const8u:
+      if (loc->dtprel)
+	goto hash_addr;
+      /* FALLTHRU */
+    case DW_OP_const1u:
+    case DW_OP_const1s:
+    case DW_OP_const2u:
+    case DW_OP_const2s:
+    case DW_OP_const4s:
+    case DW_OP_const8s:
+    case DW_OP_constu:
+    case DW_OP_consts:
+    case DW_OP_pick:
+    case DW_OP_plus_uconst:
+    case DW_OP_breg0:
+    case DW_OP_breg1:
+    case DW_OP_breg2:
+    case DW_OP_breg3:
+    case DW_OP_breg4:
+    case DW_OP_breg5:
+    case DW_OP_breg6:
+    case DW_OP_breg7:
+    case DW_OP_breg8:
+    case DW_OP_breg9:
+    case DW_OP_breg10:
+    case DW_OP_breg11:
+    case DW_OP_breg12:
+    case DW_OP_breg13:
+    case DW_OP_breg14:
+    case DW_OP_breg15:
+    case DW_OP_breg16:
+    case DW_OP_breg17:
+    case DW_OP_breg18:
+    case DW_OP_breg19:
+    case DW_OP_breg20:
+    case DW_OP_breg21:
+    case DW_OP_breg22:
+    case DW_OP_breg23:
+    case DW_OP_breg24:
+    case DW_OP_breg25:
+    case DW_OP_breg26:
+    case DW_OP_breg27:
+    case DW_OP_breg28:
+    case DW_OP_breg29:
+    case DW_OP_breg30:
+    case DW_OP_breg31:
+    case DW_OP_regx:
+    case DW_OP_fbreg:
+    case DW_OP_piece:
+    case DW_OP_deref_size:
+    case DW_OP_xderef_size:
+      hash = iterative_hash_object (val1->v.val_int, hash);
+      break;
+    case DW_OP_skip:
+    case DW_OP_bra:
+      {
+	int offset;
+
+	gcc_assert (val1->val_class == dw_val_class_loc);
+	offset = val1->v.val_loc->dw_loc_addr - (loc->dw_loc_addr + 3);
+	hash = iterative_hash_object (offset, hash);
+      }
+      break;
+    case DW_OP_implicit_value:
+      hash = iterative_hash_object (val1->v.val_unsigned, hash);
+      switch (val2->val_class)
+	{
+	case dw_val_class_const:
+	  hash = iterative_hash_object (val2->v.val_int, hash);
+	  break;
+	case dw_val_class_vec:
+	  {
+	    unsigned int elt_size = val2->v.val_vec.elt_size;
+	    unsigned int len = val2->v.val_vec.length;
+
+	    hash = iterative_hash_object (elt_size, hash);
+	    hash = iterative_hash_object (len, hash);
+	    hash = iterative_hash (val2->v.val_vec.array,
+				   len * elt_size, hash);
+	  }
+	  break;
+	case dw_val_class_const_double:
+	  hash = iterative_hash_object (val2->v.val_double.low, hash);
+	  hash = iterative_hash_object (val2->v.val_double.high, hash);
+	  break;
+	case dw_val_class_addr:
+	  hash = iterative_hash_rtx (val2->v.val_addr, hash);
+	  break;
+	default:
+	  gcc_unreachable ();
+	}
+      break;
+    case DW_OP_bregx:
+    case DW_OP_bit_piece:
+      hash = iterative_hash_object (val1->v.val_int, hash);
+      hash = iterative_hash_object (val2->v.val_int, hash);
+      break;
+    case DW_OP_addr:
+    hash_addr:
+      if (loc->dtprel)
+	{
+	  unsigned char dtprel = 0xd1;
+	  hash = iterative_hash_object (dtprel, hash);
+	}
+      hash = iterative_hash_rtx (val1->v.val_addr, hash);
+      break;
+    case DW_OP_GNU_implicit_pointer:
+      hash = iterative_hash_object (val2->v.val_int, hash);
+      break;
+
+    default:
+      /* Other codes have no operands.  */
+      break;
+    }
+  return hash;
+}
+
+/* Iteratively hash the whole DWARF location expression LOC.  */
+
+static inline hashval_t
+hash_locs (dw_loc_descr_ref loc, hashval_t hash)
+{
+  dw_loc_descr_ref l;
+  bool sizes_computed = false;
+  /* Compute sizes, so that DW_OP_skip/DW_OP_bra can be checksummed.  */
+  size_of_locs (loc);
+
+  for (l = loc; l != NULL; l = l->dw_loc_next)
+    {
+      enum dwarf_location_atom opc = l->dw_loc_opc;
+      hash = iterative_hash_object (opc, hash);
+      if ((opc == DW_OP_skip || opc == DW_OP_bra) && !sizes_computed)
+	{
+	  size_of_locs (loc);
+	  sizes_computed = true;
+	}
+      hash = hash_loc_operands (l, hash);
+    }
+  return hash;
+}
+
+/* Compute hash of the whole location list LIST_HEAD.  */
+
+static inline void
+hash_loc_list (dw_loc_list_ref list_head)
+{
+  dw_loc_list_ref curr = list_head;
+  hashval_t hash = 0;
+
+  for (curr = list_head; curr != NULL; curr = curr->dw_loc_next)
+    {
+      hash = iterative_hash (curr->begin, strlen (curr->begin) + 1, hash);
+      hash = iterative_hash (curr->end, strlen (curr->end) + 1, hash);
+      if (curr->section)
+	hash = iterative_hash (curr->section, strlen (curr->section) + 1,
+			       hash);
+      hash = hash_locs (curr->expr, hash);
+    }
+  list_head->hash = hash;
+}
+
+/* Return true if X and Y opcodes have the same operands.  */
+
+static inline bool
+compare_loc_operands (dw_loc_descr_ref x, dw_loc_descr_ref y)
+{
+  dw_val_ref valx1 = &x->dw_loc_oprnd1;
+  dw_val_ref valx2 = &x->dw_loc_oprnd2;
+  dw_val_ref valy1 = &y->dw_loc_oprnd1;
+  dw_val_ref valy2 = &y->dw_loc_oprnd2;
+
+  switch (x->dw_loc_opc)
+    {
+    case DW_OP_const4u:
+    case DW_OP_const8u:
+      if (x->dtprel)
+	goto hash_addr;
+      /* FALLTHRU */
+    case DW_OP_const1u:
+    case DW_OP_const1s:
+    case DW_OP_const2u:
+    case DW_OP_const2s:
+    case DW_OP_const4s:
+    case DW_OP_const8s:
+    case DW_OP_constu:
+    case DW_OP_consts:
+    case DW_OP_pick:
+    case DW_OP_plus_uconst:
+    case DW_OP_breg0:
+    case DW_OP_breg1:
+    case DW_OP_breg2:
+    case DW_OP_breg3:
+    case DW_OP_breg4:
+    case DW_OP_breg5:
+    case DW_OP_breg6:
+    case DW_OP_breg7:
+    case DW_OP_breg8:
+    case DW_OP_breg9:
+    case DW_OP_breg10:
+    case DW_OP_breg11:
+    case DW_OP_breg12:
+    case DW_OP_breg13:
+    case DW_OP_breg14:
+    case DW_OP_breg15:
+    case DW_OP_breg16:
+    case DW_OP_breg17:
+    case DW_OP_breg18:
+    case DW_OP_breg19:
+    case DW_OP_breg20:
+    case DW_OP_breg21:
+    case DW_OP_breg22:
+    case DW_OP_breg23:
+    case DW_OP_breg24:
+    case DW_OP_breg25:
+    case DW_OP_breg26:
+    case DW_OP_breg27:
+    case DW_OP_breg28:
+    case DW_OP_breg29:
+    case DW_OP_breg30:
+    case DW_OP_breg31:
+    case DW_OP_regx:
+    case DW_OP_fbreg:
+    case DW_OP_piece:
+    case DW_OP_deref_size:
+    case DW_OP_xderef_size:
+      return valx1->v.val_int == valy1->v.val_int;
+    case DW_OP_skip:
+    case DW_OP_bra:
+      gcc_assert (valx1->val_class == dw_val_class_loc
+		  && valy1->val_class == dw_val_class_loc
+		  && x->dw_loc_addr == y->dw_loc_addr);
+      return valx1->v.val_loc->dw_loc_addr == valy1->v.val_loc->dw_loc_addr;
+    case DW_OP_implicit_value:
+      if (valx1->v.val_unsigned != valy1->v.val_unsigned
+	  || valx2->val_class != valy2->val_class)
+	return false;
+      switch (valx2->val_class)
+	{
+	case dw_val_class_const:
+	  return valx2->v.val_int == valy2->v.val_int;
+	case dw_val_class_vec:
+	  return valx2->v.val_vec.elt_size == valy2->v.val_vec.elt_size
+		 && valx2->v.val_vec.length == valy2->v.val_vec.length
+		 && memcmp (valx2->v.val_vec.array, valy2->v.val_vec.array,
+			    valx2->v.val_vec.elt_size
+			    * valx2->v.val_vec.length) == 0;
+	case dw_val_class_const_double:
+	  return valx2->v.val_double.low == valy2->v.val_double.low
+		 && valx2->v.val_double.high == valy2->v.val_double.high;
+	case dw_val_class_addr:
+	  return rtx_equal_p (valx2->v.val_addr, valy2->v.val_addr);
+	default:
+	  gcc_unreachable ();
+	}
+    case DW_OP_bregx:
+    case DW_OP_bit_piece:
+      return valx1->v.val_int == valy1->v.val_int
+	     && valx2->v.val_int == valy2->v.val_int;
+    case DW_OP_addr:
+    hash_addr:
+      return rtx_equal_p (valx1->v.val_addr, valx2->v.val_addr);
+    case DW_OP_GNU_implicit_pointer:
+      return valx1->val_class == dw_val_class_die_ref
+	     && valx1->val_class == valy1->val_class
+	     && valx1->v.val_die_ref.die == valy1->v.val_die_ref.die
+	     && valx2->v.val_int == valy2->v.val_int;
+    default:
+      /* Other codes have no operands.  */
+      return true;
+    }
+}
+
+/* Return true if DWARF location expressions X and Y are the same.  */
+
+static inline bool
+compare_locs (dw_loc_descr_ref x, dw_loc_descr_ref y)
+{
+  for (; x != NULL && y != NULL; x = x->dw_loc_next, y = y->dw_loc_next)
+    if (x->dw_loc_opc != y->dw_loc_opc
+	|| x->dtprel != y->dtprel
+	|| !compare_loc_operands (x, y))
+      break;
+  return x == NULL && y == NULL;
+}
+
+/* Return precomputed hash of location list X.  */
+
+static hashval_t
+loc_list_hash (const void *x)
+{
+  return ((const struct dw_loc_list_struct *) x)->hash;
+}
+
+/* Return 1 if location lists X and Y are the same.  */
+
+static int
+loc_list_eq (const void *x, const void *y)
+{
+  const struct dw_loc_list_struct *a = (const struct dw_loc_list_struct *) x;
+  const struct dw_loc_list_struct *b = (const struct dw_loc_list_struct *) y;
+  if (a == b)
+    return 1;
+  if (a->hash != b->hash)
+    return 0;
+  for (; a != NULL && b != NULL; a = a->dw_loc_next, b = b->dw_loc_next)
+    if (strcmp (a->begin, b->begin) != 0
+	|| strcmp (a->end, b->end) != 0
+	|| (a->section == NULL) != (b->section == NULL)
+	|| (a->section && strcmp (a->section, b->section) != 0)
+	|| !compare_locs (a->expr, b->expr))
+      break;
+  return a == NULL && b == NULL;
+}
+
+/* Recursively optimize location lists referenced from DIE
+   children and share them whenever possible.  */
+
+static void
+optimize_location_lists_1 (dw_die_ref die, htab_t htab)
+{
+  dw_die_ref c;
+  dw_attr_ref a;
+  unsigned ix;
+  void **slot;
+
+  FOR_EACH_VEC_ELT (dw_attr_node, die->die_attr, ix, a)
+    if (AT_class (a) == dw_val_class_loc_list)
+      {
+	dw_loc_list_ref list = AT_loc_list (a);
+	/* TODO: perform some optimizations here, before hashing
+	   it and storing into the hash table.  */
+	hash_loc_list (list);
+	slot = htab_find_slot_with_hash (htab, list, list->hash,
+					 INSERT);
+	if (*slot == NULL)
+	  *slot = (void *) list;
+	else
+	  a->dw_attr_val.v.val_loc_list = (dw_loc_list_ref) *slot;
+      }
+
+  FOR_EACH_CHILD (die, c, optimize_location_lists_1 (c, htab));
+}
+
+/* Optimize location lists referenced from DIE
+   children and share them whenever possible.  */
+
+static void
+optimize_location_lists (dw_die_ref die)
+{
+  htab_t htab = htab_create (500, loc_list_hash, loc_list_eq, NULL);
+  optimize_location_lists_1 (die, htab);
+  htab_delete (htab);
+}
+
 /* Output stuff that dwarf requires at the end of every file,
    and generate the DWARF-2 debugging info.  */
 
@@ -22602,6 +23004,9 @@ dwarf2out_finish (const char *filename)
 
   if (debug_info_level >= DINFO_LEVEL_VERBOSE)
     add_AT_macptr (comp_unit_die (), DW_AT_macro_info, macinfo_section_label);
+
+  if (have_location_lists)
+    optimize_location_lists (die);
 
   /* Output all of the compilation units.  We put the main one last so that
      the offsets are available to output_pubnames.  */

@@ -351,7 +351,7 @@ ENABLE_GOLD=no)
             configdirs="$configdirs gold"
 	    ;;
 	  *)
-            configdirs="`echo " ${configdirs} " | sed -e 's/ ld / gold /'`"
+            configdirs=`echo " ${configdirs} " | sed -e 's/ ld / gold /'`
 	    ;;
 	  esac
 	  ENABLE_GOLD=yes
@@ -887,7 +887,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs ld binutils gprof target-libgloss ${libgcj}"
     ;;
   microblaze*)
-    noconfigdirs="$noconfigdirs gprof ${libgcj}"
+    noconfigdirs="$noconfigdirs gprof target-libssp ${libgcj}"
     ;;
   mips*-sde-elf*)
     skipdirs="$skipdirs target-libiberty"
@@ -968,7 +968,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs bfd binutils gas gcc gdb ld target-libstdc++-v3 opcodes target-libgloss ${libgcj}"
     ;;
   v850*-*-*)
-    noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
   vax-*-vms)
     noconfigdirs="$noconfigdirs bfd binutils gdb ld target-newlib opcodes target-libgloss ${libgcj}"
@@ -1786,9 +1786,11 @@ to specify its location.])
   # Flags needed for libelf.
   AC_SUBST(libelflibs)
   AC_SUBST(libelfinc)
+  # ELF platforms build the lto-plugin when GOLD is in use.
+  build_lto_plugin=${ENABLE_GOLD}
 fi],[if test x"$default_enable_lto" = x"yes" ; then
     case $target in
-      *-apple-darwin*) ;;
+      *-apple-darwin* | *-cygwin* | *-mingw*) ;;
       # On other non-ELF platforms, LTO must be explicitly enabled.
       *) enable_lto=no ;;
     esac
@@ -1799,13 +1801,18 @@ fi],[if test x"$default_enable_lto" = x"yes" ; then
   # warn during gcc/ subconfigure; unless you're bootstrapping with
   # -flto it won't be needed until after installation anyway.
     case $target in
-      *-cygwin*|*-mingw* | *-apple-darwin*) ;;
+      *-cygwin* | *-mingw* | *-apple-darwin*) ;;
       *) if test x"$enable_lto" = x"yes"; then
 	AC_MSG_ERROR([LTO support is not enabled for this target.])
         fi
       ;;
     esac
   fi
+  # Among non-ELF, only Windows platforms support the lto-plugin so far.
+  case $target in
+    *-cygwin* | *-mingw*) build_lto_plugin=yes ;;
+    *) ;;
+  esac
   default_enable_lto=no])
 
 
@@ -1884,7 +1891,7 @@ if test -d ${srcdir}/gcc; then
       *,lto,*) ;;
       *) enable_languages="${enable_languages},lto" ;;
     esac
-    if test "${ENABLE_GOLD}" = "yes" ; then
+    if test "${build_lto_plugin}" = "yes" ; then
       configdirs="$configdirs lto-plugin"
       extra_host_libiberty_configure_flags=--enable-shared
     fi
@@ -2969,10 +2976,18 @@ if test "$silent" = yes; then
 fi
 baseargs="$baseargs --disable-option-checking"
 
+# Record and document user additions to sub configure arguments.
+AC_ARG_VAR([build_configargs],
+	   [additional configure arguments for build directories])
+AC_ARG_VAR([host_configargs],
+	   [additional configure arguments for host directories])
+AC_ARG_VAR([target_configargs],
+	   [additional configure arguments for target directories])
+
 # For the build-side libraries, we just need to pretend we're native,
 # and not use the same cache file.  Multilibs are neither needed nor
 # desired.
-build_configargs="--cache-file=../config.cache ${baseargs}"
+build_configargs="$build_configargs --cache-file=../config.cache ${baseargs}"
 
 # For host modules, accept cache file option, or specification as blank.
 case "${cache_file}" in
@@ -2986,9 +3001,9 @@ esac
 
 # Host dirs don't like to share a cache file either, horribly enough.
 # This seems to be due to autoconf 2.5x stupidity.
-host_configargs="--cache-file=./config.cache ${extra_host_args} ${baseargs}"
+host_configargs="$host_configargs --cache-file=./config.cache ${extra_host_args} ${baseargs}"
 
-target_configargs=${baseargs}
+target_configargs="$target_configargs ${baseargs}"
 
 # Passing a --with-cross-host argument lets the target libraries know
 # whether they are being built with a cross-compiler or being built

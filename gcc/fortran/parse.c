@@ -693,7 +693,7 @@ next_free (void)
 	  return decode_gcc_attribute ();
 
 	}
-      else if (c == '$' && gfc_option.flag_openmp)
+      else if (c == '$' && gfc_option.gfc_flag_openmp)
 	{
 	  int i;
 
@@ -780,7 +780,7 @@ next_fixed (void)
 
 	      return decode_gcc_attribute ();
 	    }
-	  else if (c == '$' && gfc_option.flag_openmp)
+	  else if (c == '$' && gfc_option.gfc_flag_openmp)
 	    {
 	      for (i = 0; i < 4; i++, c = gfc_next_char_literal (0))
 		gcc_assert ((char) gfc_wide_tolower (c) == "$omp"[i]);
@@ -3237,6 +3237,13 @@ parse_associate (void)
       sym->assoc = a;
       sym->declared_at = a->where;
       gfc_set_sym_referenced (sym);
+
+      /* Initialize the typespec.  It is not available in all cases,
+	 however, as it may only be set on the target during resolution.
+	 Still, sometimes it helps to have it right now -- especially
+	 for parsing component references on the associate-name
+	 in case of assication to a derived-type.  */
+      sym->ts = a->target->ts;
     }
 
   accept_statement (ST_ASSOCIATE);

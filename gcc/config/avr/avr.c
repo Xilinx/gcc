@@ -92,6 +92,11 @@ static bool avr_hard_regno_scratch_ok (unsigned int);
 static unsigned int avr_case_values_threshold (void);
 static bool avr_frame_pointer_required_p (void);
 static bool avr_can_eliminate (const int, const int);
+static bool avr_class_likely_spilled_p (reg_class_t c);
+static rtx avr_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+			     const_tree, bool);
+static void avr_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+				      const_tree, bool);
 
 /* Allocate registers from r25 to r8 for parameters for function calls.  */
 #define FIRST_CUM_REG 26
@@ -167,6 +172,10 @@ static const struct attribute_spec avr_attribute_table[] =
 #define TARGET_ADDRESS_COST avr_address_cost
 #undef TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG avr_reorg
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG avr_function_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE avr_function_arg_advance
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS avr_legitimize_address
@@ -192,6 +201,9 @@ static const struct attribute_spec avr_attribute_table[] =
 #define TARGET_FRAME_POINTER_REQUIRED avr_frame_pointer_required_p
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE avr_can_eliminate
+
+#undef TARGET_CLASS_LIKELY_SPILLED_P
+#define TARGET_CLASS_LIKELY_SPILLED_P avr_class_likely_spilled_p
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE avr_option_override
@@ -743,6 +755,9 @@ expand_prologue (void)
             }
         }
     }
+
+  if (flag_stack_usage)
+    current_function_static_stack_size = cfun->machine->stack_usage;
 }
 
 /* Output summary at end of function prologue.  */
@@ -1559,9 +1574,9 @@ avr_num_arg_regs (enum machine_mode mode, tree type)
 /* Controls whether a function argument is passed
    in a register, and which register.  */
 
-rtx
-function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
-	      int named ATTRIBUTE_UNUSED)
+static rtx
+avr_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		  const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   int bytes = avr_num_arg_regs (mode, type);
 
@@ -1574,9 +1589,9 @@ function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
 /* Update the summarizer variable CUM to advance past an argument
    in the argument list.  */
    
-void
-function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
-		      int named ATTRIBUTE_UNUSED)
+static void
+avr_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			  const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   int bytes = avr_num_arg_regs (mode, type);
 
@@ -4762,8 +4777,8 @@ gas_output_ascii(FILE *file, const char *str, size_t length)
    assigned to registers of class CLASS would likely be spilled
    because registers of CLASS are needed for spill registers.  */
 
-bool
-class_likely_spilled_p (int c)
+static bool
+avr_class_likely_spilled_p (reg_class_t c)
 {
   return (c != ALL_REGS && c != ADDW_REGS);
 }
@@ -5823,16 +5838,6 @@ avr_function_value (const_tree type,
     offs = GET_MODE_SIZE (DImode);
   
   return gen_rtx_REG (BLKmode, RET_REGISTER + 2 - offs);
-}
-
-/* Places additional restrictions on the register class to
-   use when it is necessary to copy value X into a register
-   in class CLASS.  */
-
-enum reg_class
-preferred_reload_class (rtx x ATTRIBUTE_UNUSED, enum reg_class rclass)
-{
-  return rclass;
 }
 
 int

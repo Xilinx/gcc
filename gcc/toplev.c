@@ -127,8 +127,8 @@ static bool no_backend;
 #define MAX_LINE 75
 
 /* Decoded options, and number of such options.  */
-static struct cl_decoded_option *save_decoded_options;
-static unsigned int save_decoded_options_count;
+struct cl_decoded_option *save_decoded_options;
+unsigned int save_decoded_options_count;
 
 /* Name of top-level original source file (what was input to cpp).
    This comes from the #-command at the beginning of the actual input.
@@ -155,11 +155,6 @@ const char *aux_base_name;
 /* Prefix for profile data files */
 const char *profile_data_prefix;
 
-/* A mask of target_flags that includes bit X if X was set or cleared
-   on the command line.  */
-
-int target_flags_explicit;
-
 /* Debug hooks - dependent upon command line options.  */
 
 const struct gcc_debug_hooks *debug_hooks;
@@ -173,22 +168,6 @@ enum graph_dump_types graph_dump_format;
 /* Name for output file of assembly code, specified with -o.  */
 
 const char *asm_file_name;
-
-/* Nonzero means do optimizations.  -O.
-   Particular numeric values stand for particular amounts of optimization;
-   thus, -O2 stores 2 here.  However, the optimizations beyond the basic
-   ones are not controlled directly by this variable.  Instead, they are
-   controlled by individual `flag_...' variables that are defaulted
-   based on this variable.  */
-
-int optimize = 0;
-
-/* Nonzero means optimize for size.  -Os.
-   The only valid values are zero and nonzero. When optimize_size is
-   nonzero, optimize defaults to 2, but certain individual code
-   bloating optimizations are disabled.  */
-
-int optimize_size = 0;
 
 /* True if this is the lto front end.  This is used to disable
    gimple generation and lowering passes that are normally run on the
@@ -219,12 +198,6 @@ unsigned local_tick;
 
 /* -f flags.  */
 
-/* 0 means straightforward implementation of complex divide acceptable.
-   1 means wide ranges of inputs must work for complex divide.
-   2 means C99-like requirements for complex multiply and divide.  */
-
-int flag_complex_method = 1;
-
 /* Nonzero means we should be saving declaration info into a .X file.  */
 
 int flag_gen_aux_info = 0;
@@ -249,12 +222,6 @@ int flag_next_runtime = 0;
 /* Set to the default thread-local storage (tls) model to use.  */
 
 enum tls_model flag_tls_default = TLS_MODEL_GLOBAL_DYNAMIC;
-
-/* Set the default region and algorithm for the integrated register
-   allocator.  */
-
-enum ira_algorithm flag_ira_algorithm = IRA_ALGORITHM_CB;
-enum ira_region flag_ira_region = IRA_REGION_MIXED;
 
 /* Set the default for excess precision.  */
 
@@ -314,18 +281,15 @@ typedef struct
 }
 lang_independent_options;
 
-/* Nonzero if subexpressions must be evaluated from left-to-right.  */
-int flag_evaluation_order = 0;
-
 /* The user symbol prefix after having resolved same.  */
 const char *user_label_prefix;
 
 static const param_info lang_independent_params[] = {
 #define DEFPARAM(ENUM, OPTION, HELP, DEFAULT, MIN, MAX) \
-  { OPTION, DEFAULT, false, MIN, MAX, HELP },
+  { OPTION, DEFAULT, MIN, MAX, HELP },
 #include "params.def"
 #undef DEFPARAM
-  { NULL, 0, false, 0, 0, NULL }
+  { NULL, 0, 0, 0, NULL }
 };
 
 /* Output files for assembler code (real compiler output)
@@ -1316,7 +1280,7 @@ print_switch_values (print_switch_fn_type print_fn)
 
   for (j = 0; j < cl_options_count; j++)
     if ((cl_options[j].flags & CL_REPORT)
-	&& option_enabled (j) > 0)
+	&& option_enabled (j, &global_options) > 0)
       pos = print_single_switch (print_fn, pos,
 				 SWITCH_TYPE_ENABLED, cl_options[j].opt_text);
 
@@ -1398,10 +1362,10 @@ option_affects_pch_p (int option, struct cl_option_state *state)
 {
   if ((cl_options[option].flags & CL_TARGET) == 0)
     return false;
-  if (cl_options[option].flag_var == &target_flags)
+  if (option_flag_var (option, &global_options) == &target_flags)
     if (targetm.check_pch_target_flags)
       return false;
-  return get_option_state (option, state);
+  return get_option_state (&global_options, option, state);
 }
 
 /* Default version of get_pch_validity.
@@ -1685,10 +1649,13 @@ general_init (const char *argv0)
   /* Set a default printer.  Language specific initializations will
      override it later.  */
   pp_format_decoder (global_dc->printer) = &default_tree_printer;
-  global_dc->show_option_requested = flag_diagnostics_show_option;
-  global_dc->show_column = flag_show_column;
+  global_dc->show_option_requested
+    = global_options_init.x_flag_diagnostics_show_option;
+  global_dc->show_column
+    = global_options_init.x_flag_show_column;
   global_dc->internal_error = plugins_internal_error_function;
   global_dc->option_enabled = option_enabled;
+  global_dc->option_state = &global_options;
   global_dc->option_name = option_name;
 
   /* Trap fatal signals, e.g. SIGSEGV, and convert them to ICE messages.  */
@@ -1728,11 +1695,13 @@ general_init (const char *argv0)
 
   /* Register the language-independent parameters.  */
   add_params (lang_independent_params, LAST_PARAM);
+  targetm.target_option.default_params ();
 
   /* This must be done after add_params but before argument processing.  */
   init_ggc_heuristics();
   init_optimization_passes ();
   statistics_early_init ();
+  finish_params ();
 }
 
 /* Return true if the current target supports -fsection-anchors.  */
@@ -2427,10 +2396,29 @@ toplev_main (int argc, char **argv)
   /* Initialization of GCC's environment, and diagnostics.  */
   general_init (argv[0]);
 
+  /* One-off initialization of options that does not need to be
+     repeated when options are added for particular functions.  */
+  init_options_once ();
+
+  /* Initialize global options structures; this must be repeated for
+     each structure used for parsing options.  */
+  init_options_struct (&global_options, &global_options_set);
+  lang_hooks.init_options_struct (&global_options);
+
+  /* Convert the options to an array.  */
+  decode_cmdline_options_to_array_default_mask (argc,
+						CONST_CAST2 (const char **,
+							     char **, argv),
+						&save_decoded_options,
+						&save_decoded_options_count);
+
+  /* Perform language-specific options initialization.  */
+  lang_hooks.init_options (save_decoded_options_count, save_decoded_options);
+
   /* Parse the options and do minimal processing; basically just
      enough to default flags appropriately.  */
-  decode_options (argc, CONST_CAST2 (const char **, char **, argv),
-		  &save_decoded_options, &save_decoded_options_count);
+  decode_options (&global_options, &global_options_set,
+		  save_decoded_options, save_decoded_options_count);
 
   init_local_tick ();
 

@@ -748,6 +748,7 @@ apply_poly_transforms (scop_p scop)
   FILE *graphite_file;
   static size_t file_scop_number = 0;
 
+  /* This feature is only enabled in the Graphite branch.  */
   if (flag_graphite_read)
     {
       graphite_file = init_graphite_in_file (file_scop_number);
@@ -785,6 +786,7 @@ apply_poly_transforms (scop_p scop)
   if (flag_loop_flatten)
     transform_done |= flatten_all_loops (scop);
 
+  /* This feature is only enabled in the Graphite branch.  */
   if (flag_graphite_write)
     {
       graphite_file = init_graphite_out_file (file_scop_number);

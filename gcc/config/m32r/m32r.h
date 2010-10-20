@@ -653,12 +653,6 @@ extern enum reg_class m32r_regno_reg_class[FIRST_PSEUDO_REGISTER];
 
 #define REGNO_OK_FOR_INDEX_P(REGNO) REGNO_OK_FOR_BASE_P(REGNO)
 
-/* Given an rtx X being reloaded into a reg required to be
-   in class CLASS, return the class of reg to actually use.
-   In general this is just CLASS; but on some machines
-   in some cases it is preferable to use a more restrictive class.  */
-#define PREFERRED_RELOAD_CLASS(X,CLASS) (CLASS)
-
 /* Return the maximum number of consecutive registers
    needed to represent mode MODE in a register of class CLASS.  */
 #define CLASS_MAX_NREGS(CLASS, MODE) \
@@ -1227,7 +1221,8 @@ L2:     .word STATIC
   do									\
     {									\
       if (! TARGET_SDATA_NONE						\
-	  && (SIZE) > 0 && (SIZE) <= g_switch_value)			\
+	  && (SIZE) > 0							\
+	  && (SIZE) <= (unsigned HOST_WIDE_INT) g_switch_value)		\
 	fprintf ((FILE), "%s", SCOMMON_ASM_OP);				\
       else								\
 	fprintf ((FILE), "%s", COMMON_ASM_OP);				\
@@ -1240,7 +1235,8 @@ L2:     .word STATIC
   do									\
     {									\
       if (! TARGET_SDATA_NONE						\
-          && (SIZE) > 0 && (SIZE) <= g_switch_value)			\
+          && (SIZE) > 0							\
+	  && (SIZE) <= (unsigned HOST_WIDE_INT) g_switch_value)		\
         switch_to_section (get_named_section (NULL, ".sbss", 0));	\
       else								\
         switch_to_section (bss_section);				\

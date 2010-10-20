@@ -44,6 +44,11 @@ objc_is_object_ptr (tree ARG_UNUSED (arg))
   return 0;
 }
 
+bool objc_diagnose_private_ivar (tree ARG_UNUSED (arg))
+{
+  return false;
+}
+
 tree
 objc_lookup_ivar (tree other, tree ARG_UNUSED (arg))
 {
@@ -56,8 +61,19 @@ objc_check_decl (tree ARG_UNUSED (decl))
 {
 }
 
-int
-objc_is_reserved_word (tree ARG_UNUSED (ident))
+void
+objc_check_global_decl (tree ARG_UNUSED (decl))
+{
+}
+
+tree
+objc_non_volatilized_type (tree type)
+{
+  return type;
+}
+
+tree
+objc_common_type (tree ARG_UNUSED (type1), tree ARG_UNUSED (type2))
 {
   return 0;
 }
@@ -65,6 +81,13 @@ objc_is_reserved_word (tree ARG_UNUSED (ident))
 bool
 objc_compare_types (tree ARG_UNUSED (ltyp), tree ARG_UNUSED (rtyp),
 		    int ARG_UNUSED (argno), tree ARG_UNUSED (callee))
+{
+  return false;
+}
+
+bool
+objc_have_common_type (tree ARG_UNUSED (ltyp), tree ARG_UNUSED (rtyp),
+		       int ARG_UNUSED (argno), tree ARG_UNUSED (callee))
 {
   return false;
 }
@@ -109,21 +132,29 @@ objc_declare_protocols (tree ARG_UNUSED (list))
 
 void
 objc_start_protocol (tree ARG_UNUSED (proto),
-		     tree ARG_UNUSED (protorefs))
+		     tree ARG_UNUSED (protorefs),
+		     tree ARG_UNUSED (attribs))
+{
+}
+
+void 
+objc_set_method_opt (bool ARG_UNUSED (optional))
 {
 }
 
 void
 objc_start_class_interface (tree ARG_UNUSED (name),
 			    tree ARG_UNUSED (super),
-			    tree ARG_UNUSED (protos))
+			    tree ARG_UNUSED (protos),
+			    tree ARG_UNUSED (attribs))
 {
 }
 
 void
 objc_start_category_interface (tree ARG_UNUSED (name),
 			       tree ARG_UNUSED (categ),
-			       tree ARG_UNUSED (protos))
+			       tree ARG_UNUSED (protos),
+			       tree ARG_UNUSED (attribs))
 {
 }
 
@@ -143,7 +174,7 @@ objc_add_instance_variable (tree ARG_UNUSED (decl))
 }
 
 void
-objc_set_visibility (int ARG_UNUSED (vis))
+objc_set_visibility (objc_ivar_visibility_kind ARG_UNUSED (vis))
 {
 }
 
@@ -180,12 +211,14 @@ objc_finish_implementation (void)
 }
 
 void
-objc_add_method_declaration (tree ARG_UNUSED (signature))
+objc_add_method_declaration (tree ARG_UNUSED (signature),
+			     tree ARG_UNUSED (attributes))
 {
 }
 
 bool
-objc_start_method_definition (tree ARG_UNUSED (signature))
+objc_start_method_definition (tree ARG_UNUSED (signature),
+			      tree ARG_UNUSED (attributes))
 {
   return true;
 }
@@ -195,10 +228,17 @@ objc_finish_method_definition (tree ARG_UNUSED (fndecl))
 {
 }
 
+bool 
+objc_method_decl (enum tree_code ARG_UNUSED(opcode))
+{
+  return false;
+}
+
 tree
 objc_build_keyword_decl (tree ARG_UNUSED (selector),
 			 tree ARG_UNUSED (type),
-			 tree ARG_UNUSED (identifier))
+			 tree ARG_UNUSED (identifier),
+			 tree ARG_UNUSED (attributes))
 {
   return 0;
 }
@@ -285,6 +325,42 @@ objc_get_class_ivars (tree ARG_UNUSED (name))
   return 0;
 }
 
+void
+objc_set_property_attr (location_t ARG_UNUSED (loc),
+			objc_property_attribute_kind ARG_UNUSED (code),
+			tree ARG_UNUSED (identifier))
+{
+}
+
+void
+objc_add_property_variable (tree ARG_UNUSED (prop))
+{
+}
+
+tree
+objc_build_getter_call (tree ARG_UNUSED (datum), tree ARG_UNUSED (component))
+{
+  return 0;
+}
+
+tree
+objc_build_setter_call (tree ARG_UNUSED (lhs), tree ARG_UNUSED (rhs))
+{
+  return 0;
+}
+
+void
+objc_add_synthesize_declaration (location_t ARG_UNUSED (start_locus), 
+				 tree ARG_UNUSED (property_and_ivar_list))
+{
+}
+
+void
+objc_add_dynamic_declaration (location_t ARG_UNUSED (start_locus), 
+			      tree ARG_UNUSED (property_list))
+{
+}
+
 tree
 objc_build_throw_stmt (location_t ARG_UNUSED (loc), tree ARG_UNUSED (expr))
 {
@@ -331,4 +407,17 @@ objc_generate_write_barrier (tree ARG_UNUSED (lhs),
 			     tree ARG_UNUSED (rhs))
 {
   return 0;
+}
+
+void
+objc_finish_foreach_loop (location_t ARG_UNUSED (location), tree ARG_UNUSED (object_expression),
+			  tree ARG_UNUSED (collection_expression), tree ARG_UNUSED (for_body),
+			  tree ARG_UNUSED (break_label), tree ARG_UNUSED (continue_label))
+{
+  return;
+}
+
+void
+objc_write_global_declarations (void)
+{
 }
