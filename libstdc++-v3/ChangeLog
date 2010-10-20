@@ -1,5 +1,16 @@
 2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
 
+	* include/bits/stream_iterator.h: Add constexpr as per N3126 draft.
+	* include/bits/streambuf_iterator.h: Same.
+	* include/std/complex: Same.
+	* testsuite/24_iterators/istream_iterator/cons/constexpr.cc: New.
+	* testsuite/24_iterators/istreambuf_iterator/cons/constexpr.cc: New.
+	* testsuite/26_numerics/complex/cons/constexpr.cc: New.
+	* testsuite/26_numerics/complex/requirements/constexpr_functions.cc: 
+	New.
+
+2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
+
 	* include/bits/char_traits.h: Add constexpr as per N3126 draft.
 	* testsuite/21_strings/char_traits/requirements/constexpr_functions.cc:
 	New.
