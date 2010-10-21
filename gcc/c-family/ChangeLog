@@ -1,3 +1,9 @@
+2010-10-20  Jason Merrill  <jason@redhat.com>
+
+	* c-common.c (check_case_value): Remove special C++ handling.
+
+	* c-common.c (c_common_reswords): Add __is_literal_type.
+
 2010-10-06  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	Implemented fast enumeration for Objective-C.

@@ -1,3 +1,11 @@
+2009-12-15  Gabriel Dos Reis  <gdr@cse.tamu.edu>
+
+	* tree.h (VAR_DECL_P): New predicate macro.
+	(FUNCTION_DECL_P): Likewise.
+	(tree_base::lang_flag_7): New language flag.
+	(tree_base::spare): Decrease precision by one.
+	(TREE_LANG_FLAG_7): New.
+
 2010-10-07  Martin Jambor  <mjambor@suse.cz>
 
 	* tree-sra.c (struct access): New field grp_assignment_write.
@@ -21059,14 +21067,6 @@
 	* c-typeck.c (build_binary_op): Warn ordered comparison of pointer
 	with null pointer and also warn about ordered comparison of zero with
 	pointer if -Wextra.
-
-2009-12-15  Gabriel Dos Reis  <gdr@cse.tamu.edu>
-
-	* tree.h (VAR_DECL_P): New predicate macro.
-	(FUNCTION_DECL_P): Likewise.
-	(tree_base::lang_flag_7): New language flag.
-	(tree_base::spare): Decrease precision by one.
-	(TREE_LANG_FLAG_7): New.
 
 2010-05-05  Andreas Simbuerger  <simbuerg@fim.uni-passau.de>
 
