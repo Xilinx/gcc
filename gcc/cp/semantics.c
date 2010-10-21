@@ -5492,7 +5492,8 @@ build_constexpr_constructor_member_initializers (tree type, tree body)
 {
   VEC(constructor_elt,gc) *vec = NULL;
   bool ok = true;
-  if (TREE_CODE (body) == MUST_NOT_THROW_EXPR)
+  if (TREE_CODE (body) == MUST_NOT_THROW_EXPR
+      || TREE_CODE (body) == EH_SPEC_BLOCK)
     body = TREE_OPERAND (body, 0);
   if (TREE_CODE (body) == BIND_EXPR)
     body = BIND_EXPR_BODY (body);
