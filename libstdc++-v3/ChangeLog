@@ -1,5 +1,31 @@
 2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
 
+	* include/bits/random.h: Adjust for constexpr as per N3126 draft.
+	* testsuite/26_numerics/random/discard_block_engine/requirements/
+	constexpr_data.cc: New.
+	* testsuite/26_numerics/random/discard_block_engine/requirements/
+	constexpr_functions.cc: New.
+	* testsuite/26_numerics/random/independent_bits_engine/requirements/
+	constexpr_functions.cc: New.
+	* testsuite/26_numerics/random/linear_congruential_engine/requirements/
+	constexpr_data.cc: New.
+	* testsuite/26_numerics/random/linear_congruential_engine/requirements/
+	constexpr_functions.cc: New.
+	* testsuite/26_numerics/random/mersenne_twister_engine/requirements/
+	constexpr_data.cc: New.
+	* testsuite/26_numerics/random/mersenne_twister_engine/requirements/
+	constexpr_functions.cc: New.
+	* testsuite/26_numerics/random/shuffle_order_engine/requirements/
+	constexpr_data.cc: New.
+	* testsuite/26_numerics/random/shuffle_order_engine/requirements/
+	constexpr_functions.cc: New.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/requirements/
+	constexpr_data.cc: New.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/requirements/
+	constexpr_functions.cc: New.
+
+2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
+
 	* include/bits/stream_iterator.h: Add constexpr as per N3126 draft.
 	* include/bits/streambuf_iterator.h: Same.
 	* include/std/complex: Same.
