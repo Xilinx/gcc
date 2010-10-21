@@ -6,7 +6,7 @@
 	* testsuite/24_iterators/istream_iterator/cons/constexpr.cc: New.
 	* testsuite/24_iterators/istreambuf_iterator/cons/constexpr.cc: New.
 	* testsuite/26_numerics/complex/cons/constexpr.cc: New.
-	* testsuite/26_numerics/complex/requirements/constexpr_functions.cc: 
+	* testsuite/26_numerics/complex/requirements/constexpr_functions.cc:
 	New.
 
 2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>

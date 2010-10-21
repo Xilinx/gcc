@@ -897,18 +897,18 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      constexpr result_type
+      static constexpr result_type
       min()
-      { return _M_b.min(); }
+      { return _RandomNumberEngine::min(); }
 
       /**
        * @brief Gets the maximum value in the generated random number range.
        *
        * @todo This should be constexpr.
        */
-      constexpr result_type
+      static constexpr result_type
       max()
-      { return _M_b.max(); }
+      { return _RandomNumberEngine::max(); }
 
       /**
        * @brief Discard a sequence of random numbers.
@@ -1112,7 +1112,7 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      constexpr result_type
+      static constexpr result_type
       min()
       { return 0U; }
 
@@ -1121,7 +1121,7 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      constexpr result_type
+      static constexpr result_type
       max()
       { return __detail::_Shift<_UIntType, __w>::__value - 1; }
 
@@ -1348,18 +1348,18 @@ namespace std
        *
        * @todo This should be constexpr.
        */
-      constexpr result_type
+      static constexpr result_type
       min()
-      { return _M_b.min(); }
+      { return _RandomNumberEngine::min(); }
 
       /**
        * Gets the maximum value in the generated random number range.
        *
        * @todo This should be constexpr.
        */
-      constexpr result_type
+      static constexpr result_type
       max()
-      { return _M_b.max(); }
+      { return _RandomNumberEngine::max(); }
 
       /**
        * Discard a sequence of random numbers.
