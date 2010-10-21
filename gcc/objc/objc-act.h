@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 
 bool objc_init (void);
 const char *objc_printable_name (tree, int);
-void objc_finish_file (void);
 tree objc_fold_obj_type_ref (tree, tree);
 int objc_gimplify_expr (tree *, gimple_seq *, gimple_seq *);
 tree objc_eh_runtime_type (tree);
@@ -157,6 +156,9 @@ struct GTY(()) hashed_entry {
 extern GTY ((length ("SIZEHASHTABLE"))) hash *nst_method_hash_list;
 extern GTY ((length ("SIZEHASHTABLE"))) hash *cls_method_hash_list;
 
+extern GTY ((length ("SIZEHASHTABLE"))) hash *cls_name_hash_list;
+extern GTY ((length ("SIZEHASHTABLE"))) hash *als_name_hash_list;
+
 #define SIZEHASHTABLE		257
 
 /* Objective-C/Objective-C++ @implementation list.  */
@@ -174,7 +176,6 @@ extern GTY(()) struct imp_entry *imp_list;
 extern GTY(()) int imp_count;	/* `@implementation' */
 extern GTY(()) int cat_count;	/* `@category' */
 
-extern GTY(()) enum tree_code objc_inherit_code;
 extern GTY(()) objc_ivar_visibility_kind objc_ivar_visibility;
 
 /* Objective-C/Objective-C++ global tree enumeration.  */
@@ -201,8 +202,6 @@ enum objc_tree_index
     OCTI_NST_TYPE,
     OCTI_PROTO_TYPE,
 
-    OCTI_CLS_CHAIN,
-    OCTI_ALIAS_CHAIN,
     OCTI_INTF_CHAIN,
     OCTI_PROTO_CHAIN,
     OCTI_IMPL_CHAIN,
@@ -339,8 +338,6 @@ extern GTY(()) tree objc_global_trees[OCTI_MAX];
 	(TREE_CODE (TYPE) == POINTER_TYPE				\
 	 && TREE_TYPE (TYPE) == objc_super_template)
 
-#define class_chain		objc_global_trees[OCTI_CLS_CHAIN]
-#define alias_chain		objc_global_trees[OCTI_ALIAS_CHAIN]
 #define interface_chain		objc_global_trees[OCTI_INTF_CHAIN]
 #define protocol_chain		objc_global_trees[OCTI_PROTO_CHAIN]
 #define implemented_classes	objc_global_trees[OCTI_IMPL_CHAIN]

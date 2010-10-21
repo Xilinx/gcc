@@ -1,5 +1,86 @@
-2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+2010-10-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/45919
+	* gcc.c-torture/compile/pr45919.c: New test.
+
+	PR tree-optimization/46066
+	* gcc.dg/autopar/pr46066.c: New test.
+
+2010-10-20  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR c++/46024
+	* g++.dg/warn/miss-format-1.C: Enclose dg-error target list in braces.
+
+2010-10-20  Rodrigo Rivas Costa  <rodrigorivascosta@gmail.com>
+
+	PR c++/46056
+	* g++.dg/cpp0x/range-for7.C: New.
+
+2010-10-20  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/45667
+	* g++.dg/lto/20101020-1_0.h: New testcase.
+	* g++.dg/lto/20101020-1_0.C: Likewise.
+	* g++.dg/lto/20101020-1_1.C: Likewise.
+
+2010-10-20  Dmitry Melnik  <dm@ispras.ru>
+
+	* gcc.dg/20101013-1.c: New test.
+
+2010-10-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/46085
+	* gcc.target/i386/pr46085-1.c: New.
+	* gcc.target/i386/pr46085-2.c: Likewise.
+
+2010-10-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45860
+	* gcc.dg/torture/pr45860.c: New testcase.
+
+2010-10-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr25.adb: New test.
+	* gnat.dg/discr25_pkg.ad[sb]: New helper.
+
+2010-10-20  Olivier Hainque  <hainque@adacore.com>
+
+	* gcc.target/powerpc/ehreturn.c: New test.
+
+2010-10-20  Nicola Pero  <nicola.pero@meta-innovation.com>
 	
+	Merge from 'apple/trunk' branch on FSF servers.  Test adapted to
+	not require Foundation and run with the GNU runtime as well.
+
+	2006-03-13  Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4439126
+	* obj-c++.dg/template-8.mm: New.	
+
+2010-10-20  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/23709
+	* objc.dg/pr23709.m: New.
+	* obj-c++.dg/pr23709.m: New.	
+
+2010-10-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        PR c++/46046
+        * g++.dg/template/crash104.C: New.
+
+2010-10-19  Richard Henderson  <rth@redhat.com>
+
+	* gcc.target/i386/fma3-fma.c: New.
+	* gcc.target/i386/fma3-builtin.c: New.
+	* gcc.target/i386/fma4-builtin.c: New.
+
+2010-10-19  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/46081
+	* gcc.dg/ipa/ipa-pta-10.c: Adjust.
+
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
 	Merge from 'apple/trunk' branch on FSF servers.
 
 	2006-03-16 Fariborz Jahanian <fjahanian@apple.com>
@@ -17,31 +98,31 @@
 	* obj-c++.dg/property/dynamic-1.mm: New.
 	* obj-c++.dg/property/synthesize-1.mm: New.
 
-2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>	
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc.dg/at-class-1.m: New.
-	* objc.dg/at-class-1.mm: New.	
-	
+	* objc.dg/at-class-1.mm: New.
+
 2010-10-18  Steve Ellcey  <sje@cup.hp.com>
 
 	* gcc.c-torture/compile/920625-1.c: Remove dg-prune-output lines.
 
 2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
-	
+
 	Merge from 'apple/trunk' branch on FSF servers.
 
 	2006-01-17  Fariborz Jahanian <fjahanian@apple.com>
 
 	Radar 4407151
 	* obj-c++.dg/template-7.mm: New.
-	
+
 2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc.dg/proto-qual-1.m: Adjust test for GNU runtime to match
 	bugfix.
 
 2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
-	
+
 	Merge from 'apple/trunk' branch on FSF servers.
 
 	2005-03-01 Fariborz Jahanian <fjahanian@apple.com>
@@ -64,7 +145,7 @@
 	* objc.dg/try-catch-11.m: New
 	* objc.dg/try-catch-12.m: New
 	* objc.dg/try-catch-13.m: New
-	
+
 2010-10-18  Richard Henderson  <rth@redhat.com>
 
 	* gcc.target/ia64/20101014.c: Fix double-paste of test case.
@@ -104,16 +185,16 @@
 	* gcc.c-torture/execute/pr46019.c: New test.
 
 2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
-	
+
 	Merge from 'apple/trunk' branch on FSF servers.
-	
+
 	2006-04-19 Fariborz Jahanian <fjahanian@apple.com>
 
 	Radar 4516785
 	* obj-c++.dg/method-namespace-2.mm: New.
-	
+
 2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
-	
+
 	Merge from 'apple/trunk' branch on FSF servers.
 
 	2006-03-27 Fariborz Jahanian <fjahanian@apple.com>
@@ -121,7 +202,7 @@
 	Radar 4133425
 	* objc.dg/private-1.m: Test modified.
 	* obj-c++.dg/private-1.mm: Test modified.
-	
+
 2010-10-17  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR testsuite/45987
@@ -1827,7 +1908,7 @@
 
 	* gfortran.dg/promotion.f90: Fix options.
 
-2010-09-11  Rodrigo Rivas <rodrigorivascosta@gmail.com>
+2010-09-11  Rodrigo Rivas  <rodrigorivascosta@gmail.com>
 
 	* g++.dg/cpp0x/range-for1.C: New.
 	* g++.dg/cpp0x/range-for2.C: New.
@@ -1842,7 +1923,7 @@
 	and counts. Check that transpose is not called.
 	* gfortran.dg/transpose_2.f90: Update error message.
 
-2010-09-10  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
+2010-09-10  Rodrigo Rivas Costa  <rodrigorivascosta@gmail.com>
 
 	PR c++/43824
 	* g++.dg/lookup/strong-using-1.C: Set dg-options to "".

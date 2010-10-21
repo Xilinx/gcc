@@ -37,6 +37,7 @@ with Exp_Ch7;  use Exp_Ch7;
 with Exp_Ch9;  use Exp_Ch9;
 with Exp_Disp; use Exp_Disp;
 with Exp_Fixd; use Exp_Fixd;
+with Exp_Intr; use Exp_Intr;
 with Exp_Pakd; use Exp_Pakd;
 with Exp_Tss;  use Exp_Tss;
 with Exp_Util; use Exp_Util;
@@ -3351,7 +3352,7 @@ package body Exp_Ch4 is
 
          --    number-of-elements * component_type'Max_Size_In_Storage_Elements
 
-         --  which avoids this problem. All this is a big bogus, but it does
+         --  which avoids this problem. All this is a bit bogus, but it does
          --  mean we catch common cases of trying to allocate arrays that
          --  are too large, and which in the absence of a check results in
          --  undetected chaos ???
@@ -4348,23 +4349,24 @@ package body Exp_Ch4 is
             R    : constant Node_Id := Relocate_Node (Alt);
 
          begin
-            if Is_Entity_Name (Alt)
-              and then Is_Type (Entity (Alt))
+            if (Is_Entity_Name (Alt) and then Is_Type (Entity (Alt)))
+              or else Nkind (Alt) = N_Range
             then
                Cond :=
                  Make_In (Sloc (Alt),
                    Left_Opnd  => L,
                    Right_Opnd => R);
             else
-               Cond := Make_Op_Eq (Sloc (Alt),
-                 Left_Opnd  => L,
-                 Right_Opnd => R);
+               Cond :=
+                 Make_Op_Eq (Sloc (Alt),
+                   Left_Opnd  => L,
+                   Right_Opnd => R);
             end if;
 
             return Cond;
          end Make_Cond;
 
-      --  Start of proessing for Expand_N_In
+      --  Start of processing for Expand_N_In
 
       begin
          Alt := Last (Alternatives (N));
@@ -4418,7 +4420,7 @@ package body Exp_Ch4 is
       --  Check case of explicit test for an expression in range of its
       --  subtype. This is suspicious usage and we replace it with a 'Valid
       --  test and give a warning. For floating point types however, this is a
-      --  standard way to check for finite numbers, and using 'Valid vould
+      --  standard way to check for finite numbers, and using 'Valid would
       --  typically be a pessimization.
 
       if Is_Scalar_Type (Etype (Lop))
@@ -4474,7 +4476,9 @@ package body Exp_Ch4 is
             --  the same as the type of the expression.
 
          begin
-            --  If test is explicit x'first .. x'last, replace by valid check
+            --  If test is explicit x'First .. x'Last, replace by valid check
+
+            --  Could use some individual comments for this complex test ???
 
             if Is_Scalar_Type (Ltyp)
               and then Nkind (Lo_Orig) = N_Attribute_Reference
@@ -4668,7 +4672,7 @@ package body Exp_Ch4 is
 
                return;
 
-            --  If type is scalar type, rewrite as x in t'first .. t'last.
+            --  If type is scalar type, rewrite as x in t'First .. t'Last.
             --  This reason we do this is that the bounds may have the wrong
             --  type if they come from the original type definition. Also this
             --  way we get all the processing above for an explicit range.
@@ -5184,6 +5188,10 @@ package body Exp_Ch4 is
             Set_Etype (N, Standard_Boolean);
             Adjust_Result_Type (N, Typ);
          end if;
+
+      elsif Is_Intrinsic_Subprogram (Entity (N)) then
+         Expand_Intrinsic_Call (N, Entity (N));
+
       end if;
    end Expand_N_Op_And;
 
@@ -7145,6 +7153,10 @@ package body Exp_Ch4 is
             Set_Etype (N, Standard_Boolean);
             Adjust_Result_Type (N, Typ);
          end if;
+
+      elsif Is_Intrinsic_Subprogram (Entity (N)) then
+         Expand_Intrinsic_Call (N, Entity (N));
+
       end if;
    end Expand_N_Op_Or;
 
@@ -7340,6 +7352,10 @@ package body Exp_Ch4 is
          Adjust_Condition (Right_Opnd (N));
          Set_Etype (N, Standard_Boolean);
          Adjust_Result_Type (N, Typ);
+
+      elsif Is_Intrinsic_Subprogram (Entity (N)) then
+         Expand_Intrinsic_Call (N, Entity (N));
+
       end if;
    end Expand_N_Op_Xor;
 
@@ -7376,6 +7392,91 @@ package body Exp_Ch4 is
          Generate_Range_Check (Operand, Target_Type, CE_Range_Check_Failed);
       end if;
    end Expand_N_Qualified_Expression;
+
+   ------------------------------------
+   -- Expand_N_Quantified_Expression --
+   ------------------------------------
+
+   procedure Expand_N_Quantified_Expression (N : Node_Id) is
+      Loc      : constant Source_Ptr := Sloc (N);
+      Iterator : constant Node_Id := Loop_Parameter_Specification (N);
+      Cond     : constant Node_Id := Condition (N);
+
+      Actions : List_Id;
+      Decl    : Node_Id;
+      Test    : Node_Id;
+      Tnn     : Entity_Id;
+
+      --  We expand
+      --      for all X in range => Cond
+      --    into
+      --        R := True;
+      --        for all X in range loop
+      --           if not Cond then
+      --              R := False;
+      --              exit;
+      --           end if;
+      --        end loop;
+      --
+      --  Conversely, an existentially quantified expression becomes:
+      --
+      --        R := False;
+      --        for all X in range loop
+      --           if Cond then
+      --              R := True;
+      --              exit;
+      --           end if;
+      --        end loop;
+
+   begin
+      Actions := New_List;
+      Tnn := Make_Temporary (Loc, 'T');
+      Decl := Make_Object_Declaration (Loc,
+        Defining_Identifier => Tnn,
+        Object_Definition   => New_Occurrence_Of (Standard_Boolean, Loc));
+
+      Append_To (Actions, Decl);
+
+      if All_Present (N) then
+         Set_Expression (Decl, New_Occurrence_Of (Standard_True, Loc));
+
+         Test :=
+           Make_If_Statement (Loc,
+             Condition =>
+                Make_Op_Not (Loc, Relocate_Node (Cond)),
+             Then_Statements => New_List (
+               Make_Assignment_Statement (Loc,
+                 Name => New_Occurrence_Of (Tnn, Loc),
+                 Expression => New_Occurrence_Of (Standard_False, Loc)),
+               Make_Exit_Statement (Loc)));
+      else
+         Set_Expression (Decl, New_Occurrence_Of (Standard_False, Loc));
+
+         Test :=
+           Make_If_Statement (Loc,
+             Condition => Relocate_Node (Cond),
+             Then_Statements => New_List (
+               Make_Assignment_Statement (Loc,
+                 Name => New_Occurrence_Of (Tnn, Loc),
+                 Expression => New_Occurrence_Of (Standard_True, Loc)),
+               Make_Exit_Statement (Loc)));
+      end if;
+
+      Append_To (Actions,
+        Make_Loop_Statement (Loc,
+          Iteration_Scheme =>
+            Make_Iteration_Scheme (Loc,
+              Loop_Parameter_Specification => Iterator),
+              Statements => New_List (Test),
+              End_Label  => Empty));
+
+      Rewrite (N,
+        Make_Expression_With_Actions (Loc,
+          Expression => New_Occurrence_Of (Tnn, Loc),
+          Actions    => Actions));
+
+      Analyze_And_Resolve (N, Standard_Boolean);
+   end Expand_N_Quantified_Expression;
 
    ---------------------------------
    -- Expand_N_Selected_Component --
@@ -8145,7 +8246,7 @@ package body Exp_Ch4 is
          end if;
 
          Rewrite (N, Relocate_Node (Operand));
-         return;
+         goto Done;
       end if;
 
       --  Nothing to do if this is the second argument of read. This is a
@@ -8156,7 +8257,34 @@ package body Exp_Ch4 is
         and then Attribute_Name (Parent (N)) = Name_Read
         and then Next (First (Expressions (Parent (N)))) = N
       then
-         return;
+         goto Done;
+      end if;
+
+      --  Check for case of converting to a type that has an invariant
+      --  associated with it. This required an invariant check. We convert
+
+      --    typ (expr)
+
+      --  into
+
+      --    do invariant_check (typ (expr)) in typ (expr);
+
+      --  using Duplicate_Subexpr to avoid multiple side effects
+
+      --  Note: the Comes_From_Source check, and then the resetting of this
+      --  flag prevents what would otherwise be an infinite recursion.
+
+      if Present (Invariant_Procedure (Target_Type))
+        and then Comes_From_Source (N)
+      then
+         Set_Comes_From_Source (N, False);
+         Rewrite (N,
+           Make_Expression_With_Actions (Loc,
+             Actions    => New_List (
+               Make_Invariant_Call (Duplicate_Subexpr (N))),
+             Expression => Duplicate_Subexpr_No_Checks (N)));
+         Analyze_And_Resolve (N, Target_Type);
+         goto Done;
       end if;
 
       --  Here if we may need to expand conversion
@@ -8229,7 +8357,7 @@ package body Exp_Ch4 is
                 Expression   => Opnd));
 
             Analyze_And_Resolve (N, Target_Type);
-            return;
+            goto Done;
          end;
       end if;
 
@@ -8302,7 +8430,7 @@ package body Exp_Ch4 is
                       Type_Access_Level (Target_Type)
          then
             Raise_Accessibility_Error;
-            return;
+            goto Done;
          end if;
       end if;
 
@@ -8330,7 +8458,7 @@ package body Exp_Ch4 is
          --  Sem_Ch8, and the expansion can interfere with this error check.
 
          if Is_Access_Type (Target_Type) and then Is_Renamed_Object (N) then
-            return;
+            goto Done;
          end if;
 
          --  Otherwise, proceed with processing tagged conversion
@@ -8412,7 +8540,7 @@ package body Exp_Ch4 is
 
             if Is_Interface (Actual_Op_Typ) then
                Expand_Interface_Conversion (N, Is_Static => False);
-               return;
+               goto Done;
             end if;
 
             if not Tag_Checks_Suppressed (Actual_Targ_Typ) then
@@ -8766,8 +8894,13 @@ package body Exp_Ch4 is
         and then (Vax_Float (Operand_Type) or else Vax_Float (Target_Type))
       then
          Expand_Vax_Conversion (N);
-         return;
+         goto Done;
       end if;
+
+      --  Here at end of processing
+
+      <<Done>>
+         null;
    end Expand_N_Type_Conversion;
 
    -----------------------------------

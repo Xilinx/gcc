@@ -192,6 +192,7 @@ package body Sem_Res is
    procedure Resolve_Op_Expon                  (N : Node_Id; Typ : Entity_Id);
    procedure Resolve_Op_Not                    (N : Node_Id; Typ : Entity_Id);
    procedure Resolve_Qualified_Expression      (N : Node_Id; Typ : Entity_Id);
+   procedure Resolve_Quantified_Expression     (N : Node_Id; Typ : Entity_Id);
    procedure Resolve_Range                     (N : Node_Id; Typ : Entity_Id);
    procedure Resolve_Real_Literal              (N : Node_Id; Typ : Entity_Id);
    procedure Resolve_Reference                 (N : Node_Id; Typ : Entity_Id);
@@ -2697,6 +2698,9 @@ package body Sem_Res is
 
             when N_Qualified_Expression
                              => Resolve_Qualified_Expression     (N, Ctx_Type);
+
+            when N_Quantified_Expression
+                             => Resolve_Quantified_Expression    (N, Ctx_Type);
 
             when N_Raise_xxx_Error
                              => Set_Etype (N, Ctx_Type);
@@ -5930,16 +5934,28 @@ package body Sem_Res is
          Set_Entity_With_Style_Check (N, E);
          Eval_Entity_Name (N);
 
-      --  Allow use of subtype only if it is a concurrent type where we are
-      --  currently inside the body. This will eventually be expanded into a
-      --  call to Self (for tasks) or _object (for protected objects). Any
-      --  other use of a subtype is invalid.
+      --  Case of subtype name appearing as an operand in expression
 
       elsif Is_Type (E) then
+
+         --  Allow use of subtype if it is a concurrent type where we are
+         --  currently inside the body. This will eventually be expanded into a
+         --  call to Self (for tasks) or _object (for protected objects). Any
+         --  other use of a subtype is invalid.
+
          if Is_Concurrent_Type (E)
            and then In_Open_Scopes (E)
          then
             null;
+
+         --  Allow reference to type specifically marked as being OK in this
+         --  context (this is used for example for type names in invariants).
+
+         elsif OK_To_Reference (E) then
+            null;
+
+         --  Any other use is an eror
+
          else
             Error_Msg_N
                ("invalid use of subtype mark in expression or call", N);
@@ -7755,6 +7771,18 @@ package body Sem_Res is
       Eval_Qualified_Expression (N);
    end Resolve_Qualified_Expression;
 
+   -----------------------------------
+   -- Resolve_Quantified_Expression --
+   -----------------------------------
+
+   procedure Resolve_Quantified_Expression (N : Node_Id; Typ : Entity_Id) is
+   begin
+      --  The loop structure is already resolved during its analysis, only the
+      --  resolution of the condition needs to be done.
+
+      Resolve (Condition (N), Typ);
+   end Resolve_Quantified_Expression;
+
    -------------------
    -- Resolve_Range --
    -------------------
@@ -8880,7 +8908,7 @@ package body Sem_Res is
             Orig_T := Etype (Parent (N));
          end if;
 
-         --  if we have an entity name, then give the warning if the entity
+         --  If we have an entity name, then give the warning if the entity
          --  is the right type, or if it is a loop parameter covered by the
          --  original type (that's needed because loop parameters have an
          --  odd subtype coming from the bounds).
@@ -8908,12 +8936,13 @@ package body Sem_Res is
                null;
 
             --  Finally, if this type conversion occurs in a context that
-            --  requires a prefix, and the expression is a qualified
-            --  expression, then the type conversion is not redundant,
-            --  because a qualified expression is not a prefix, whereas a
-            --  type conversion is. For example, "X := T'(Funx(...)).Y;" is
-            --  illegal. because a selected component requires a prefix, but
-            --  a type conversion makes it legal: "X := T(T'(Funx(...))).Y;"
+            --  requires a prefix, and the expression is a qualified expression
+            --  then the type conversion is not redundant, because a qualified
+            --  expression is not a prefix, whereas a type conversion is. For
+            --  example, "X := T'(Funx(...)).Y;" is illegal because a selected
+            --  component requires a prefix, but a type conversion makes it
+            --  legal: "X := T(T'(Funx(...))).Y;"
+
             --  In Ada 2012, a qualified expression is a name, so this idiom is
             --  no longer needed, but we still suppress the warning because it
             --  seems unfriendly for warnings to pop up when you switch to the
@@ -9515,9 +9544,9 @@ package body Sem_Res is
             --  be used when generating attributes of the string, for example
             --  in the context of a slice assignment.
 
-            Set_Etype        (Index_Subtype, Base_Type (Index_Type));
-            Set_Size_Info    (Index_Subtype, Index_Type);
-            Set_RM_Size      (Index_Subtype, RM_Size (Index_Type));
+            Set_Etype     (Index_Subtype, Base_Type (Index_Type));
+            Set_Size_Info (Index_Subtype, Index_Type);
+            Set_RM_Size   (Index_Subtype, RM_Size (Index_Type));
 
             Array_Subtype := Create_Itype (E_Array_Subtype, N);
 
@@ -9568,7 +9597,7 @@ package body Sem_Res is
 
             --     ityp (x)
 
-            --  with the Float_Truncate flag set, which is more efficient
+            --  with the Float_Truncate flag set, which is more efficient.
 
             then
                Rewrite (Operand,
@@ -9696,8 +9725,8 @@ package body Sem_Res is
       --  Specifically test for validity of tagged conversions
 
       function Valid_Array_Conversion return Boolean;
-      --  Check index and component conformance, and accessibility levels
-      --  if the component types are anonymous access types (Ada 2005)
+      --  Check index and component conformance, and accessibility levels if
+      --  the component types are anonymous access types (Ada 2005).
 
       ----------------------
       -- Conversion_Check --
@@ -9931,10 +9960,9 @@ package body Sem_Res is
             --  is no context type and the removal of the spurious operations
             --  must be done explicitly here.
 
-            --  The node may be labelled overloaded, but still contain only
-            --  one interpretation because others were discarded in previous
-            --  filters. If this is the case, retain the single interpretation
-            --  if legal.
+            --  The node may be labelled overloaded, but still contain only one
+            --  interpretation because others were discarded earlier. If this
+            --  is the case, retain the single interpretation if legal.
 
             Get_First_Interp (Operand, I, It);
             Opnd_Type := It.Typ;
@@ -10049,8 +10077,7 @@ package body Sem_Res is
            or else Opnd_Type = Any_Composite
            or else Opnd_Type = Any_String
          then
-            Error_Msg_N
-              ("illegal operand for array conversion", Operand);
+            Error_Msg_N ("illegal operand for array conversion", Operand);
             return False;
          else
             return Valid_Array_Conversion;
@@ -10342,11 +10369,11 @@ package body Sem_Res is
          end Check_Limited;
 
       --  Access to subprogram types. If the operand is an access parameter,
-      --  the type has a deeper accessibility that any master, and cannot
-      --  be assigned. We must make an exception if the conversion is part
-      --  of an assignment and the target is the return object of an extended
-      --  return statement, because in that case the accessibility check
-      --  takes place after the return.
+      --  the type has a deeper accessibility that any master, and cannot be
+      --  assigned. We must make an exception if the conversion is part of an
+      --  assignment and the target is the return object of an extended return
+      --  statement, because in that case the accessibility check takes place
+      --  after the return.
 
       elsif Is_Access_Subprogram_Type (Target_Type)
         and then No (Corresponding_Remote_Type (Opnd_Type))
@@ -10434,7 +10461,8 @@ package body Sem_Res is
       --  If both are tagged types, check legality of view conversions
 
       elsif Is_Tagged_Type (Target_Type)
-        and then Is_Tagged_Type (Opnd_Type)
+              and then
+            Is_Tagged_Type (Opnd_Type)
       then
          return Valid_Tagged_Conversion (Target_Type, Opnd_Type);
 
@@ -10443,8 +10471,8 @@ package body Sem_Res is
       elsif Root_Type (Target_Type) = Root_Type (Opnd_Type) then
          return True;
 
-      --  In an instance or an inlined body, there may be inconsistent
-      --  views of the same type, or of types derived from a common root.
+      --  In an instance or an inlined body, there may be inconsistent views of
+      --  the same type, or of types derived from a common root.
 
       elsif (In_Instance or In_Inlined_Body)
         and then

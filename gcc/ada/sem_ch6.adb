@@ -207,7 +207,8 @@ package body Sem_Ch6 is
    --  conditions for the body and assembling and inserting the _postconditions
    --  procedure. N is the node for the subprogram body and Body_Id/Spec_Id are
    --  the entities for the body and separate spec (if there is no separate
-   --  spec, Spec_Id is Empty).
+   --  spec, Spec_Id is Empty). Note that invariants also provide a source
+   --  of postconditions, which are also handled in this procedure.
 
    procedure Set_Formal_Validity (Formal_Id : Entity_Id);
    --  Formal_Id is an formal parameter entity. This procedure deals with
@@ -2940,7 +2941,6 @@ package body Sem_Ch6 is
       if Nkind (N) = N_Function_Specification then
          Set_Ekind (Designator, E_Function);
          Set_Mechanism (Designator, Default_Mechanism);
-
       else
          Set_Ekind (Designator, E_Procedure);
          Set_Etype (Designator, Standard_Void_Type);
@@ -3011,13 +3011,16 @@ package body Sem_Ch6 is
 
       elsif Nkind (N) = N_Function_Specification then
          Push_Scope (Designator);
-
          Analyze_Return_Type (N);
-
          End_Scope;
       end if;
 
+      --  Function case
+
       if Nkind (N) = N_Function_Specification then
+
+         --  Deal with operator symbol case
+
          if Nkind (Designator) = N_Defining_Operator_Symbol then
             Valid_Operator_Definition (Designator);
          end if;
@@ -3041,7 +3044,7 @@ package body Sem_Ch6 is
                Error_Msg_N
                  ("function that returns abstract type must be abstract", N);
 
-            --  Ada 2012 (AI-0073): extend this test to subprograms with an
+            --  Ada 2012 (AI-0073): Extend this test to subprograms with an
             --  access result whose designated type is abstract.
 
             elsif Nkind (Result_Definition (N)) = N_Access_Definition
@@ -5472,7 +5475,6 @@ package body Sem_Ch6 is
             end if;
 
             Desig_1 := Find_Designated_Type (Type_1);
-
             Desig_2 := Find_Designated_Type (Type_2);
 
             --  If the context is an instance association for a formal
@@ -5493,7 +5495,8 @@ package body Sem_Ch6 is
             --  of an incomplete Class_Wide_Type are illegal.
 
             if Is_Class_Wide_Type (Desig_1)
-              and then Is_Class_Wide_Type (Desig_2)
+                 and then
+               Is_Class_Wide_Type (Desig_2)
             then
                return
                  Conforming_Types
@@ -6944,7 +6947,7 @@ package body Sem_Ch6 is
 
    procedure List_Inherited_Pre_Post_Aspects (E : Entity_Id) is
    begin
-      if Opt.List_Inherited_Pre_Post
+      if Opt.List_Inherited_Aspects
         and then (Is_Subprogram (E) or else Is_Generic_Subprogram (E))
       then
          declare
@@ -7518,13 +7521,13 @@ package body Sem_Ch6 is
             In_Scope := True;
 
          --  The enclosing scope is not a synchronized type and the subprogram
-         --  has no formals
+         --  has no formals.
 
          elsif No (First_Formal (Def_Id)) then
             return;
 
          --  The subprogram has formals and hence it may be a primitive of a
-         --  concurrent type
+         --  concurrent type.
 
          else
             Typ := Etype (First_Formal (Def_Id));
@@ -7573,7 +7576,7 @@ package body Sem_Ch6 is
             Subp      : Entity_Id := Empty;
 
          begin
-            --  Traverse the homonym chain, looking at a potentially
+            --  Traverse the homonym chain, looking for a potentially
             --  overridden subprogram that belongs to an implemented
             --  interface.
 
@@ -7591,7 +7594,7 @@ package body Sem_Ch6 is
                   null;
 
                --  Entries and procedures can override abstract or null
-               --  interface procedures
+               --  interface procedures.
 
                elsif (Ekind (Def_Id) = E_Procedure
                         or else Ekind (Def_Id) = E_Entry)
@@ -7652,23 +7655,20 @@ package body Sem_Ch6 is
                Hom := Homonym (Hom);
             end loop;
 
-            --  After examining all candidates for overriding, we are
-            --  left with the best match which is a mode incompatible
-            --  interface routine. Do not emit an error if the Expander
-            --  is active since this error will be detected later on
-            --  after all concurrent types are expanded and all wrappers
-            --  are built. This check is meant for spec-only
-            --  compilations.
+            --  After examining all candidates for overriding, we are left with
+            --  the best match which is a mode incompatible interface routine.
+            --  Do not emit an error if the Expander is active since this error
+            --  will be detected later on after all concurrent types are
+            --  expanded and all wrappers are built. This check is meant for
+            --  spec-only compilations.
 
-            if Present (Candidate)
-              and then not Expander_Active
-            then
+            if Present (Candidate) and then not Expander_Active then
                Iface_Typ :=
                  Find_Parameter_Type (Parent (First_Formal (Candidate)));
 
-               --  Def_Id is primitive of a protected type, declared
-               --  inside the type, and the candidate is primitive of a
-               --  limited or synchronized interface.
+               --  Def_Id is primitive of a protected type, declared inside the
+               --  type, and the candidate is primitive of a limited or
+               --  synchronized interface.
 
                if In_Scope
                  and then Is_Protected_Type (Typ)
@@ -7678,15 +7678,12 @@ package body Sem_Ch6 is
                       or else Is_Synchronized_Interface (Iface_Typ)
                       or else Is_Task_Interface (Iface_Typ))
                then
-                  --  Must reword this message, comma before to in -gnatj
-                  --  mode ???
-
                   Error_Msg_NE
                     ("first formal of & must be of mode `OUT`, `IN OUT`"
                       & " or access-to-variable", Typ, Candidate);
                   Error_Msg_N
-                    ("\to be overridden by protected procedure or entry "
-                      & "(RM 9.4(11.9/2))", Typ);
+                    ("\in order to be overridden by protected procedure or "
+                      & "entry (RM 9.4(11.9/2))", Typ);
                end if;
             end if;
 
@@ -7775,7 +7772,7 @@ package body Sem_Ch6 is
          --  Inside_Freeze_Actions is non zero when S corresponds with an
          --  internal entity that links an interface primitive with its
          --  covering primitive through attribute Interface_Alias (see
-         --  Add_Internal_Interface_Entities)
+         --  Add_Internal_Interface_Entities).
 
          if Inside_Freezing_Actions = 0
            and then Is_Package_Or_Generic_Package (Current_Scope)
@@ -7846,9 +7843,7 @@ package body Sem_Ch6 is
          --  dispatch table anyway, because it can be dispatched to even if it
          --  cannot be called directly.
 
-         elsif Present (Alias (S))
-           and then not Comes_From_Source (S)
-         then
+         elsif Present (Alias (S)) and then not Comes_From_Source (S) then
             Set_Scope (S, Current_Scope);
 
             if Is_Dispatching_Operation (Alias (S)) then
@@ -8629,8 +8624,10 @@ package body Sem_Ch6 is
    is
       Loc   : constant Source_Ptr := Sloc (N);
       Prag  : Node_Id;
-      Subp  : Entity_Id;
       Parms : List_Id;
+
+      Designator : Entity_Id;
+      --  Subprogram designator, set from Spec_Id if present, else Body_Id
 
       Precond : Node_Id := Empty;
       --  Set non-Empty if we prepend precondition to the declarations. This
@@ -8641,8 +8638,8 @@ package body Sem_Ch6 is
       --  Precondition inherited from parent subprogram
 
       Inherited : constant Subprogram_List :=
-                    Inherited_Subprograms (Spec_Id);
-      --  List of subprograms inherited by this subprogram, null if no Spec_Id
+                     Inherited_Subprograms (Spec_Id);
+      --  List of subprograms inherited by this subprogram
 
       Plist : List_Id := No_List;
       --  List of generated postconditions
@@ -8654,6 +8651,10 @@ package body Sem_Ch6 is
       --  empty, this is the case of inheriting a PPC, where we must change
       --  references to parameters of the inherited subprogram to point to the
       --  corresponding parameters of the current subprogram.
+
+      function Invariants_Present return Boolean;
+      --  Determines if any invariants are present for any OUT or IN OUT
+      --  parameters of the subprogram, or (for a function) for the return.
 
       --------------
       -- Grab_PPC --
@@ -8680,7 +8681,7 @@ package body Sem_Ch6 is
             begin
                Map := New_Elmt_List;
                PF := First_Formal (Pspec);
-               CF := First_Formal (Spec_Id);
+               CF := First_Formal (Designator);
                while Present (PF) loop
                   Append_Elmt (PF, Map);
                   Append_Elmt (CF, Map);
@@ -8752,9 +8753,49 @@ package body Sem_Ch6 is
          return CP;
       end Grab_PPC;
 
+      ------------------------
+      -- Invariants_Present --
+      ------------------------
+
+      function Invariants_Present return Boolean is
+         Formal     : Entity_Id;
+
+      begin
+         --  Check function return result
+
+         if Ekind (Designator) /= E_Procedure
+           and then Has_Invariants (Etype (Designator))
+         then
+            return True;
+         end if;
+
+         --  Check parameters
+
+         Formal := First_Formal (Designator);
+         while Present (Formal) loop
+            if Ekind (Formal) /= E_In_Parameter
+              and then Has_Invariants (Etype (Formal))
+            then
+               return True;
+            end if;
+
+            Next_Formal (Formal);
+         end loop;
+
+         return False;
+      end Invariants_Present;
+
    --  Start of processing for Process_PPCs
 
    begin
+      --  Capture designator from spec if present, else from body
+
+      if Present (Spec_Id) then
+         Designator := Spec_Id;
+      else
+         Designator := Body_Id;
+      end if;
+
       --  Grab preconditions from spec
 
       if Present (Spec_Id) then
@@ -8890,6 +8931,9 @@ package body Sem_Ch6 is
       --        pragma Check (Postcondition, condition [,message]);
       --        pragma Check (Postcondition, condition [,message]);
       --        ...
+      --        Invariant_Procedure (_Result) ...
+      --        Invariant_Procedure (Arg1)
+      --        ...
       --     end;
 
       --  First we deal with the postconditions in the body
@@ -8941,7 +8985,7 @@ package body Sem_Ch6 is
       --  Now deal with any postconditions from the spec
 
       if Present (Spec_Id) then
-         declare
+         Spec_Postconditions : declare
             procedure Process_Post_Conditions
               (Spec  : Node_Id;
                Class : Boolean);
@@ -8991,6 +9035,8 @@ package body Sem_Ch6 is
                end loop;
             end Process_Post_Conditions;
 
+         --  Start of processing for Spec_Postconditions
+
          begin
             if Present (Spec_PPC_List (Spec_Id)) then
                Process_Post_Conditions (Spec_Id, Class => False);
@@ -9003,32 +9049,79 @@ package body Sem_Ch6 is
                   Process_Post_Conditions (Inherited (J), Class => True);
                end if;
             end loop;
-         end;
+         end Spec_Postconditions;
       end if;
 
-      --  If we had any postconditions and expansion is enabled, build
-      --  the _Postconditions procedure.
+      --  If we had any postconditions and expansion is enabled, or if the
+      --  procedure has invariants, then build the _Postconditions procedure.
 
-      if Present (Plist)
+      if (Present (Plist) or else Invariants_Present)
         and then Expander_Active
       then
-         Subp := Defining_Entity (N);
+         if No (Plist) then
+            Plist := Empty_List;
+         end if;
 
-         if Etype (Subp) /= Standard_Void_Type then
-            Parms := New_List (
-              Make_Parameter_Specification (Loc,
-                Defining_Identifier =>
-                  Make_Defining_Identifier (Loc,
-                    Chars => Name_uResult),
-                Parameter_Type => New_Occurrence_Of (Etype (Subp), Loc)));
+         --  Special processing for function case
+
+         if Ekind (Designator) /= E_Procedure then
+            declare
+               Rent : constant Entity_Id :=
+                        Make_Defining_Identifier (Loc,
+                          Chars => Name_uResult);
+               Ftyp : constant Entity_Id := Etype (Designator);
+
+            begin
+               Set_Etype (Rent, Ftyp);
+
+               --  Add argument for return
+
+               Parms :=
+                 New_List (
+                   Make_Parameter_Specification (Loc,
+                     Parameter_Type      => New_Occurrence_Of (Ftyp, Loc),
+                     Defining_Identifier => Rent));
+
+               --  Add invariant call if returning type with invariants
+
+               if Present (Invariant_Procedure (Etype (Rent))) then
+                  Append_To (Plist,
+                    Make_Invariant_Call (New_Occurrence_Of (Rent, Loc)));
+               end if;
+            end;
+
+         --  Procedure rather than a function
+
          else
             Parms := No_List;
          end if;
 
+         --  Add invariant calls for parameters. Note that this is done for
+         --  functions as well, since in Ada 2012 they can have IN OUT args.
+
+         declare
+            Formal : Entity_Id;
+
+         begin
+            Formal := First_Formal (Designator);
+            while Present (Formal) loop
+               if Ekind (Formal) /= E_In_Parameter
+                 and then Present (Invariant_Procedure (Etype (Formal)))
+               then
+                  Append_To (Plist,
+                    Make_Invariant_Call (New_Occurrence_Of (Formal, Loc)));
+               end if;
+
+               Next_Formal (Formal);
+            end loop;
+         end;
+
+         --  Build and insert postcondition procedure
+
          declare
             Post_Proc : constant Entity_Id :=
-                   Make_Defining_Identifier (Loc,
-                     Chars => Name_uPostconditions);
+                          Make_Defining_Identifier (Loc,
+                            Chars => Name_uPostconditions);
             --  The entity for the _Postconditions procedure
 
          begin
@@ -9048,20 +9141,12 @@ package body Sem_Ch6 is
             --  If this is a procedure, set the Postcondition_Proc attribute on
             --  the proper defining entity for the subprogram.
 
-            if Etype (Subp) = Standard_Void_Type then
-               if Present (Spec_Id) then
-                  Set_Postcondition_Proc (Spec_Id, Post_Proc);
-               else
-                  Set_Postcondition_Proc (Body_Id, Post_Proc);
-               end if;
+            if Ekind (Designator) = E_Procedure then
+               Set_Postcondition_Proc (Designator, Post_Proc);
             end if;
          end;
 
-         if Present (Spec_Id) then
-            Set_Has_Postconditions (Spec_Id);
-         else
-            Set_Has_Postconditions (Body_Id);
-         end if;
+         Set_Has_Postconditions (Designator);
       end if;
    end Process_PPCs;
 

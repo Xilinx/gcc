@@ -177,6 +177,11 @@ begin
    Write_Switch_Char ("eD?");
    Write_Line ("Define or redefine preprocessing symbol, e.g. -gnateDsym=val");
 
+   --  Line for -gnateE switch
+
+   Write_Switch_Char ("eE");
+   Write_Line ("Generate extra information in exception messages");
+
    --  Line for -gnatef switch
 
    Write_Switch_Char ("ef");
@@ -438,10 +443,8 @@ begin
                                                   "elaboration pragma");
    Write_Line ("        L*   turn off warnings for missing " &
                                                   "elaboration pragma");
-   Write_Line ("        .l*  turn on info messages for inherited pre/" &
-                                                  "postconditions");
-   Write_Line ("        .L   turn off info messages for inherited pre/" &
-                                                  "postconditions");
+   Write_Line ("        .l*  turn on info messages for inherited aspects");
+   Write_Line ("        .L   turn off info messages for inherited aspects");
    Write_Line ("        m+   turn on warnings for variable assigned " &
                                                   "but not read");
    Write_Line ("        M*   turn off warnings for variable assigned " &

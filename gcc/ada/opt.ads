@@ -363,11 +363,11 @@ package Opt is
    --  GNAT
    --  Used to record the storage pool name (or null literal) that is the
    --  argument of an applicable pragma Default_Storage_Pool.
-   --    Empty: No pragma Default_Storage_Pool applies.
+   --    Empty:       No pragma Default_Storage_Pool applies.
    --    N_Null node: "pragma Default_Storage_Pool (null);" applies.
-   --    otherwise: "pragma Default_Storage_Pool (X);" applies, and
-   --    this points to the name X.
-   --  Push_Scope and Pop_Scope in Sem_Ch8 save and restore this.
+   --    otherwise:   "pragma Default_Storage_Pool (X);" applies, and
+   --                 this points to the name X.
+   --  Push_Scope and Pop_Scope in Sem_Ch8 save and restore this value.
 
    Detect_Blocking : Boolean := False;
    --  GNAT
@@ -454,10 +454,16 @@ package Opt is
    --  It is used to set Warn_On_Exception_Propagation True if the restriction
    --  No_Exception_Propagation is set.
 
+   Exception_Extra_Info : Boolean := False;
+   --  GNAT
+   --  True when switch -gnateE is used. When True, generate extra information
+   --  associated with exception messages (in particular range and index
+   --  checks).
+
    Exception_Locations_Suppressed : Boolean := False;
    --  GNAT
-   --  This flag is set True if a Suppress_Exception_Locations configuration
-   --  pragma is currently active.
+   --  Set to True if a Suppress_Exception_Locations configuration pragma is
+   --  currently active.
 
    type Exception_Mechanism_Type is
    --  Determines the handling of exceptions. See Exp_Ch11 for details
@@ -739,10 +745,10 @@ package Opt is
    --  Set to True to skip compile and bind steps (except when Bind_Only is
    --  set to True).
 
-   List_Inherited_Pre_Post : Boolean := True;
+   List_Inherited_Aspects : Boolean := True;
    --  GNAT
-   --  List inherited preconditions and postconditions from Pre'Class and
-   --  Post'Class aspects for ancestor subprograms.
+   --  List inherited invariants, preconditions, and postconditions from
+   --  Invariant'Class, Pre'Class, and Post'Class aspects.
 
    List_Restrictions : Boolean := False;
    --  GNATBIND

@@ -137,7 +137,6 @@ package Snames is
    --  Names of aspects for which there are no matching pragmas or attributes
    --  so that they need to be included for aspect specification use.
 
-   Name_Invariant                      : constant Name_Id := N + $;
    Name_Post                           : constant Name_Id := N + $;
    Name_Pre                            : constant Name_Id := N + $;
    Name_Predicate                      : constant Name_Id := N + $;
@@ -483,6 +482,7 @@ package Snames is
    Name_Interface_Name                 : constant Name_Id := N + $; -- GNAT
    Name_Interrupt_Handler              : constant Name_Id := N + $;
    Name_Interrupt_Priority             : constant Name_Id := N + $;
+   Name_Invariant                      : constant Name_Id := N + $; -- GNAT
    Name_Java_Constructor               : constant Name_Id := N + $; -- GNAT
    Name_Java_Interface                 : constant Name_Id := N + $; -- GNAT
    Name_Keep_Names                     : constant Name_Id := N + $; -- GNAT
@@ -764,6 +764,7 @@ package Snames is
    Name_Machine_Rounds                 : constant Name_Id := N + $;
    Name_Machine_Size                   : constant Name_Id := N + $; -- GNAT
    Name_Mantissa                       : constant Name_Id := N + $; -- Ada 83
+   Name_Max_Alignment_For_Allocation   : constant Name_Id := N + $; -- Ada 12
    Name_Max_Size_In_Storage_Elements   : constant Name_Id := N + $;
    Name_Maximum_Alignment              : constant Name_Id := N + $; -- GNAT
    Name_Mechanism_Code                 : constant Name_Id := N + $; -- GNAT
@@ -984,6 +985,7 @@ package Snames is
    Name_Reverse                          : constant Name_Id := N + $;
    Name_Select                           : constant Name_Id := N + $;
    Name_Separate                         : constant Name_Id := N + $;
+   Name_Some                             : constant Name_Id := N + $;
    Name_Subtype                          : constant Name_Id := N + $;
    Name_Task                             : constant Name_Id := N + $;
    Name_Terminate                        : constant Name_Id := N + $;
@@ -1282,6 +1284,7 @@ package Snames is
       Attribute_Machine_Rounds,
       Attribute_Machine_Size,
       Attribute_Mantissa,
+      Attribute_Max_Alignment_For_Allocation,
       Attribute_Max_Size_In_Storage_Elements,
       Attribute_Maximum_Alignment,
       Attribute_Mechanism_Code,
@@ -1564,6 +1567,7 @@ package Snames is
       Pragma_Interface_Name,
       Pragma_Interrupt_Handler,
       Pragma_Interrupt_Priority,
+      Pragma_Invariant,
       Pragma_Java_Constructor,
       Pragma_Java_Interface,
       Pragma_Keep_Names,

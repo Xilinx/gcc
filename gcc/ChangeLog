@@ -1,3 +1,219 @@
+2010-10-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* basic-block.h (find_fallthru_edge): Define.
+	* cfgcleanup.c (merge_blocks_move): Use it.
+	(try_crossjump_bb): Likewise.
+	* cfglayout.c (fixup_reorder_chains): Likewise.
+	(fixup_fallthru_exit_predecessor): Likewise.
+	* cfgrtl.c (rtl_split_edge): Likewise.
+	(rtl_verify_flow_info): Likewise.
+	* function.c (thread_prologue_and_epilogue_insns): Likewise.
+	* gimple-pretty-print.c (dump_implicit_edges): Likewise.
+	* ifcvt.c (block_fallthru): Likewise.
+	* reload1.c (fixup_abnormal_edges): Likewise.
+	* sched-ebb.c (being_schedule_ready): Likewise.
+	(schedule_ebb): Likwise.
+	* sched-rgn.c (find_single_block_region): Likewise.
+	* sel-sched-ir.c (bb_ends_ebb_p): Likewise.
+	* tree-complex.c (expand_complex_move): Likewise.
+	* sched-int.h (find_fallthru_edge): Rename to...
+	(find_fallthru_edge_from): ...this.
+	* haifa-sched.c (find_fallthru_edge): Rename to...
+	(find_fallthru_edge_from): ...this.  Use new find_fallthru_edge.
+	(init_before_recovery): Call find_fallthru_edge_from.
+	* sel-sched-ir.c (merge_fences): Likewise.
+	* sel-sched.c (in_fallthru_bb_p): Likewise.
+	(move_cond_jump): Likewise.
+
+2010-10-20  Paul Koning  <ni1d@arrl.net>
+
+	* config/pdp11/pdp11.md (various): Fix conditions on a number of
+	insn to check for target 11/40 or higher.
+
+2010-10-20  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (c_parser_objc_method_type): Mark inline.  Return a
+	bool instead of a tree.
+	(c_parser_objc_method_decl): Added bool argument.  Updated call to
+	objc_build_method_signature.
+	(c_parser_objc_method_definition): Do not call
+	objc_set_method_type.  Updated calls to c_parser_objc_method_type,
+	c_parser_objc_method_decl and objc_start_method_definition.
+	(c_parser_objc_methodproto): Do not call objc_set_method_type.
+	Updated calls to c_parser_objc_method_type,
+	c_parser_objc_method_decl and objc_add_method_declaration.
+	
+2010-10-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/45919
+	* tree-ssa-ccp.c (fold_nonarray_ctor_reference): Handle flexible
+	array members.
+
+	PR tree-optimization/46066
+	* tree-parloops.c (create_parallel_loop): Use gsi_last_nondebug_bb
+	instead of gsi_last_bb.
+
+2010-10-20  DJ Delorie  <dj@redhat.com>
+
+	* config/m32c/m32c.c (m32c_option_override): Always disable
+	function-cse in 16-bit mode.  Indirect calls are always worse than
+	direct calls as there is no 16-bit indirect call opcode.
+	(m32c_override_options_after_change): New, likewise.
+
+2010-10-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* ifcvt.c (noce_emit_cmove): If both of the values are SUBREGs, try
+	emitting the conditional move in the inner mode of the SUBREG.
+
+2010-10-20  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/ia64/ia64.h (PREFERRED_RELOAD_CLASS): Remove macros.
+	* config/ia64/ia64-protos.h (ia64_preferred_reload_class): Remove.
+	* config/ia64/ia64.c (TARGET_PREFERRED_RELOAD_CLASS): Define.
+	(ia64_preferred_reload_class): Make static.  Change rclass argument
+	and result types from enum reg_class to reg_class_t.
+
+2010-10-20  Pat Haugen  <pthaugen@us.ibm.com>
+
+	* tree-ssa-ter.c (find_replaceable_in_bb): Allow replacement over
+	call for single operand expression.
+
+2010-10-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-optimize.c (execute_fixup_cfg): Purge dead abnormal call edges
+	if there is a call statement to pure or const function in the block.
+
+2010-10-20  Paul Koning  <pkoning@equallogic.com>
+
+	Fix several build errors for pdp11 target.
+	* config/pdp11/pdp11.md (*cmpdf): Fix tstd operands.
+	(cbranchdf4): Conditional on TARGET_FPU.
+	(movdf): Ditto; correct alternatives check.
+	(movmemhi): Fix predicate and constraint.
+	* config/pdp11/pdp11.h (HARD_REGNO_MODE_OK): Handle 64 bit mode.
+
+2010-10-20  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/45667
+	* lto-streamer-out.c (output_gimple_stmt): Fix typo.
+	* tree-cfg.c (verify_gimple_call): Properly get the call fndecl.
+	(verify_gimple_assign_single): Disable ADDR_EXPR type check
+	when in LTO.
+
+2010-10-20  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR fortran/42169
+	* ira-emit.c (store_can_be_removed_p): Return false instead of
+	gcc_unreachable.
+
+2010-10-20  Dmitry Melnik  <dm@ispras.ru>
+
+	* fold-const.c (fold_binary_loc): New transformation.
+
+2010-10-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/46085
+	* config/i386/sse.md (reduc_splus_v8sf): Updated.
+	(reduc_splus_v4df): Likewise.
+
+2010-10-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45860
+	* tree-ssa-phiopt.c (cond_store_replacement): Do not do
+	conditional store replacement for non-register type stores.
+
+2010-10-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* stor-layout.c (skip_simple_constant_arithmetic): New function.
+	(self_referential_size): Use it instead of skip_simple_arithmetic.
+
+2010-10-20  Olivier Hainque  <hainque@adacore.com>
+
+	* config/rs6000/rs6000.c (rs6000_reg_live_or_pic_offset_p):
+	If the current function calls eh_return, claim live all registers
+	that we need to check for liveness otherwise.
+
+2010-10-20  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-decl.c (c_write_global_declarations): Call
+	objc_write_global_declarations when compiling Objective-C.
+	* c-lang.c (finish_file): Removed.
+
+2010-10-19  DJ Delorie  <dj@redhat.com>
+
+	* doc/tm.texi.in (TARGET_ASM_JUMP_ALIGN_MAX_SKIP): New.
+	(TARGET_ASM_LABEL_ALIGN_AFTER_BARRIER_MAX_SKIP): Change to hook.
+	(TARGET_ASM_LOOP_ALIGN_MAX_SKIP): Likewise.
+	(TARGET_ASM_LABEL_ALIGN_MAX_SKIP): Likewise.
+	* doc/tm.texi: Regenerate.
+	* targhooks.h (default_label_align_after_barrier_max_skip,
+	default_loop_align_max_skip, default_label_align_max_skip,
+	default_jump_align_max_skip): Declare.
+	* target.def (label_align_after_barrier_max_skip): New.
+	(loop_align_max_skip): New.
+	(label_align_max_skip): New.
+	(jump_align_max_skip): New.
+	* system.h (poison): Add those macros to the list.
+	* final.c (LABEL_ALIGN_MAX_SKIP): Remove.
+	(LOOP_ALIGN_MAX_SKIP): Remove.
+	(LABEL_ALIGN_AFTER_BARRIER_MAX_SKIP): Remove.
+	(JUMP_ALIGN_MAX_SKIP): Remove.
+	(default_label_align_after_barrier_max_skip): New.
+	(default_loop_align_max_skip): New.
+	(default_label_align_max_skip): New.
+	(default_jump_align_max_skip): New.
+	(compute_alignments): Use the new hooks.
+	(shorten_branches): Likewise.
+	
+2010-10-19  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (bdesc_multi_arg): Use fma4i_fmadd_<mode>.
+	* config/i386/sse.md (fma<mode>4): Enable for FMA & SSE_MATH.
+	(fma4i_fmadd_<mode>): New.
+	(*split_fma, *split_fms, *split_fnma, *split_fnms): Rename from
+	fma4_fm*_<mode> and adjust to be pre-reload splitters to the 
+	standard fma patterns.
+	(fmaddsub_<mode>): Rename from fma4i_fmaddsub_<mode> and
+	enable for FMA.
+	(*fma_fmadd_<mode>, *fma_fmsub_<mode>): New.
+	(*fma_fmadd_<mode>, *fma_fmsub_<mode>): New.
+	(*fma_fmaddsub_<mode>, *fma_fmsubadd_<mode>): New.
+
+2010-10-19  Paul Koning  <pkoning@equallogic.com>
+
+	* lower-subreg.c (resolve_shift_zext): Delete conditional code for
+	WORDS_BIG_ENDIAN != BYTES_BIG_ENDIAN.
+
+2010-10-19  Richard Henderson  <rth@redhat.com>
+
+	* config/ia64/ia64.md (fmasf4, *fmssf4, *nfmasf4): New.
+	(fmadf4, *fmsdf4, *nfmadf4): New.
+	(fmaxf4, *fmsxf4, *nfmaxf4): New.
+
+2010-10-19  Michael Eager  <eager@eagercon.com>
+
+	* config/microblaze/microblaze.c (TARGET_EXCEPT_UNWIND_INFO): 
+	Use sjlj unwind info for exceptions.
+
+2010-10-19  Francois-Xavier Coudert<fxcoudert@gcc.gnu.org>
+
+	PR fortran/43414
+	* dwarf2out.c (add_calling_convention_attribute): Flag main
+	Fortran subroutine with DW_AT_main_subprogram.
+
+2010-10-19  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.c (rx_function_value): Small integer types are
+	promotes to SImode.
+	(rx_promote_function_mode): New function.
+	(TARGET_PROMOTE_FUNCTION_MODE): Define.
+
+2010-10-19  Nick Clifton  <nickc@redhat.com>
+
+	* config/mep/mep.c (mep_print_operand): Use
+	targetm.strip_name_encoding.
+	(mep_output_aligned_common): Likewise.
+
 2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* gengtype.c (new_structure): Remove ad-hoc "location_s"
 	processing.
