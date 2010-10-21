@@ -1,4 +1,7 @@
 
+2010-10-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* pygmentize-melt: MELT :keywords are decorators.
+
 2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh: typo.
 

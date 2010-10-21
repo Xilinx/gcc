@@ -248,8 +248,8 @@ class MeltLexer(RegexLexer):
             # The macrostring
             (r'#\{',  Operator, 'macrostring'),
 
-            # constants
-            (r'(#t|#f)', Name.Constant),
+            # MELT :keywords
+            (r':[a-zA-Z0-9_]+', Name.Decorator),
 
             # special operators
             (r"('|#|`|,@|,|\.)", Operator),
