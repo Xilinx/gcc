@@ -6306,6 +6306,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
     case TRY_CATCH_EXPR:
     case CLEANUP_POINT_EXPR:
     case MUST_NOT_THROW_EXPR:
+    case SAVE_EXPR:
       r = cxx_eval_constant_expression (call, TREE_OPERAND (t, 0),
 					allow_non_constant, addr,
 					non_constant_p);
@@ -6396,7 +6397,6 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
     case REALPART_EXPR:
     case IMAGPART_EXPR:
     case CONJ_EXPR:
-    case SAVE_EXPR:
     case FIX_TRUNC_EXPR:
     case FLOAT_EXPR:
     case NEGATE_EXPR:
