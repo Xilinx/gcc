@@ -1043,11 +1043,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       _GLIBCXX_CONSTEXPR complex(_ComplexT __z) : _M_value(__z) { }
 
-      complex(float __r = 0.0f, float __i = 0.0f)
-      {
-	__real__ _M_value = __r;
-	__imag__ _M_value = __i;
-      }
+      _GLIBCXX_CONSTEXPR complex(float __r = 0.0f, float __i = 0.0f)
+      : _M_value(__r + __i * 1.0fi) { }
 
       explicit _GLIBCXX_CONSTEXPR complex(const complex<double>&);
       explicit _GLIBCXX_CONSTEXPR complex(const complex<long double>&);	
@@ -1186,11 +1183,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       _GLIBCXX_CONSTEXPR complex(_ComplexT __z) : _M_value(__z) { }
 
-      complex(double __r = 0.0, double __i = 0.0)
-      {
-	__real__ _M_value = __r;
-	__imag__ _M_value = __i;
-      }
+      _GLIBCXX_CONSTEXPR complex(double __r = 0.0, double __i = 0.0)
+      : _M_value(__r + __i * 1.0fi) { }
 
       _GLIBCXX_CONSTEXPR complex(const complex<float>& __z)
       : _M_value(__z.__rep()) { }
@@ -1330,11 +1324,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       _GLIBCXX_CONSTEXPR complex(_ComplexT __z) : _M_value(__z) { }
 
-      complex(long double __r = 0.0L, long double __i = 0.0L)
-      {
-	__real__ _M_value = __r;
-	__imag__ _M_value = __i;
-      }
+      _GLIBCXX_CONSTEXPR complex(long double __r = 0.0L, 
+				 long double __i = 0.0L)
+      : _M_value(__r + __i * 1.0fi) { }
 
       _GLIBCXX_CONSTEXPR complex(const complex<float>& __z)
       : _M_value(__z.__rep()) { }
