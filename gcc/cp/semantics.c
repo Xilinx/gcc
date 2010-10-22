@@ -5571,14 +5571,17 @@ typedef struct GTY(()) constexpr_call {
      is a parameter _DECL and the TREE_VALUE is the value of the parameter.
      Note: This arrangement is made to accomodate the use of
      iterative_hash_template_arg (see pt.c).  If you change this
-     representation, also change the implementation of the function
-     constexpr_call_hash.  */
+     representation, also change the hash calculation in
+     cxx_eval_call_expression.  */
   tree bindings;
   /* Result of the call.
        NULL means the call is being evaluated.
        error_mark_node means that the evaluation was erroneous;
        otherwise, the actuall value of the call.  */
   tree result;
+  /* The hash of this call; we remember it here to avoid having to
+     recalculate it when expanding the hash table.  */
+  hashval_t hash;
 } constexpr_call;
 
 /* A table of all constexpr calls that have been evaluated by the
@@ -5595,8 +5598,7 @@ static hashval_t
 constexpr_call_hash (const void *p)
 {
   const constexpr_call *info = (const constexpr_call *) p;
-  return iterative_hash_template_arg (info->bindings,
-				      constexpr_fundef_hash (info->fundef));
+  return info->hash;
 }
 
 /* Return 1 if the objects pointed to by P and Q represent calls
@@ -5807,7 +5809,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
   location_t loc = EXPR_LOCATION (t);
   tree fun = get_function_named_in_call (t);
   tree result;
-  constexpr_call new_call = { NULL, NULL, NULL };
+  constexpr_call new_call = { NULL, NULL, NULL, 0 };
   constexpr_call **slot;
   if (loc == UNKNOWN_LOCATION)
     loc = input_location;
@@ -5864,6 +5866,10 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
 			       allow_non_constant, non_constant_p);
   if (*non_constant_p)
     return t;
+
+  new_call.hash
+    = iterative_hash_template_arg (new_call.bindings,
+				   constexpr_fundef_hash (new_call.fundef));
 
   /* If we have seen this call before, we are done.  */
   maybe_initialize_constexpr_call_table ();
@@ -5932,8 +5938,10 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
 bool
 reduced_constant_expression_p (tree t)
 {
+  /* FIXME speed this up, it's taking 16% of compile time on sieve testcase.  */
   if (cxx_dialect >= cxx0x && TREE_OVERFLOW_P (t))
-    /* In C++0x, integer overflow makes this not a constant expression.  */
+    /* In C++0x, integer overflow makes this not a constant expression.
+       FIXME arithmetic overflow is different from conversion truncation */
     return false;
   /* FIXME are we calling this too much?  */
   return initializer_constant_valid_p (t, TREE_TYPE (t)) != NULL_TREE;
