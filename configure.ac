@@ -1531,7 +1531,7 @@ pplinc=
 # we need PPL 0.10.2 at least, but 0.11 is better
 # See http://www.cs.unipr.it/ppl/
 ppl_major_version=0
-ppl_minor_version=11
+ppl_minor_version=10
 
 AC_ARG_WITH(ppl, [  --with-ppl=PATH         Specify prefix directory for the installed PPL package
                           Equivalent to --with-ppl-include=PATH/include
