@@ -12726,7 +12726,6 @@ finish_function (int flags)
   tree fndecl = current_function_decl;
   tree fntype, ctype = NULL_TREE;
   int inclass_inline = (flags & 2) != 0;
-  int nested;
 
   /* When we get some parse errors, we can end up without a
      current_function_decl, so cope.  */
@@ -12738,7 +12737,6 @@ finish_function (int flags)
 
   record_key_method_defined (fndecl);
 
-  nested = function_depth > 1;
   fntype = TREE_TYPE (fndecl);
 
   /*  TREE_READONLY (fndecl) = 1;
@@ -12953,11 +12951,7 @@ finish_function (int flags)
   --function_depth;
 
   /* Clean up.  */
-  if (! nested)
-    /* Let the error reporting routines know that we're outside a
-       function.  For a nested function, this value is used in
-       cxx_pop_function_context and then reset via pop_function_context.  */
-    current_function_decl = NULL_TREE;
+  current_function_decl = NULL_TREE;
 
   defer_mark_used_calls = false;
   if (deferred_mark_used_calls)
