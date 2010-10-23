@@ -637,9 +637,12 @@ namespace std
       typedef duration::period period;
       typedef chrono::time_point<system_clock, duration> time_point;
 
+#if 0
+      // FIXME disabled until GC bug is fixed
       static_assert(system_clock::duration::min()
 		    < system_clock::duration::zero(),
 		    "a clock's minimum duration cannot be less than its epoch");
+#endif
 
       static const bool is_monotonic = false;
 
