@@ -16217,7 +16217,15 @@ cp_parser_initializer_clause (cp_parser* parser, bool* non_constant_p)
 					/*allow_non_constant_p=*/true,
 					non_constant_p);
       if (!*non_constant_p)
-	initializer = fold_non_dependent_expr (initializer);
+	{
+	  /* We only want to fold if this is really a constant
+	     expression.  FIXME Actually, we don't want to fold here, but in
+	     cp_finish_decl.  */
+	  tree folded = fold_non_dependent_expr (initializer);
+	  folded = maybe_constant_value (folded);
+	  if (TREE_CONSTANT (folded))
+	    initializer = folded;
+	}
     }
   else
     initializer = cp_parser_braced_list (parser, non_constant_p);
