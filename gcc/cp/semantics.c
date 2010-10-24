@@ -6167,7 +6167,7 @@ cxx_eval_logical_expression (const constexpr_call *call, tree t,
 }
 
 /* Subroutine of cxx_eval_constant_expression.
-   The expression tree T denotes a C-style array of a C-style
+   The expression tree T denotes a C-style array or a C-style
    aggregate.  Reduce it to a constant expression.  */
 
 static tree
@@ -6223,6 +6223,117 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t,
   t = build_constructor (TREE_TYPE (t), n);
   TREE_CONSTANT (t) = true;
   return t;
+}
+
+/* Subroutine of cxx_eval_constant_expression.
+   The expression tree T is a VEC_INIT_EXPR which denotes the desired
+   initialization of a non-static data member of array type.  Reduce it to a
+   CONSTRUCTOR.
+
+   Note that this is only intended to support the initializations done by
+   defaulted constructors for classes with non-static data members of array
+   type.  In this case, VEC_INIT_EXPR_INIT will either be NULL_TREE for the
+   default constructor, or a COMPONENT_REF for the copy/move
+   constructor.  */
+
+static tree
+cxx_eval_vec_init_1 (const constexpr_call *call, tree atype, tree init,
+		     bool allow_non_constant, bool addr,
+		     bool *non_constant_p)
+{
+  tree elttype = TREE_TYPE (atype);
+  int max = tree_low_cst (array_type_nelts (atype), 0);
+  VEC(constructor_elt,gc) *n = VEC_alloc (constructor_elt, gc, max + 1);
+  int i;
+
+  /* For the default constructor, build up a call to the default
+     constructor of the element type.  We only need to handle class types
+     here, as for a constructor to be constexpr, all members must be
+     initialized, which for a defaulted default constructor means they must
+     be of a class type with a user-provided (and constexpr) default
+     constructor.  FIXME do we actually check that in implicitly_declare_fn? */
+  if (!init)
+    {
+      VEC(tree,gc) *argvec = make_tree_vector ();
+      init = build_special_member_call (NULL_TREE, complete_ctor_identifier,
+					&argvec, elttype, LOOKUP_NORMAL,
+					tf_warning_or_error);
+      release_tree_vector (argvec);
+      init = cxx_eval_constant_expression (call, init, allow_non_constant,
+					   addr, non_constant_p);
+    }
+
+  if (*non_constant_p && !allow_non_constant)
+    goto fail;
+
+  for (i = 0; i <= max; ++i)
+    {
+      tree idx = build_int_cst (size_type_node, i);
+      tree eltinit;
+      if (TREE_CODE (elttype) == ARRAY_TYPE)
+	{
+	  /* A multidimensional array; recurse.  */
+	  eltinit = cp_build_array_ref (input_location, init, idx,
+					tf_warning_or_error);
+	  eltinit = cxx_eval_vec_init_1 (call, elttype, eltinit,
+					 allow_non_constant, addr,
+					 non_constant_p);
+	}
+      else if (TREE_CODE (init) == CONSTRUCTOR)
+	{
+	  /* Initializing an element using the call to the default
+	     constructor we just built above.  */
+	  eltinit = unshare_expr (init);
+	}
+      else
+	{
+	  /* Copying an element.  */
+	  VEC(tree,gc) *argvec;
+	  gcc_assert (same_type_ignoring_top_level_qualifiers_p
+		      (atype, TREE_TYPE (init)));
+	  eltinit = cp_build_array_ref (input_location, init, idx,
+					tf_warning_or_error);
+	  if (!real_lvalue_p (init))
+	    eltinit = move (eltinit);
+	  argvec = make_tree_vector ();
+	  VEC_quick_push (tree, argvec, eltinit);
+	  eltinit = (build_special_member_call
+		     (NULL_TREE, complete_ctor_identifier, &argvec,
+		      elttype, LOOKUP_NORMAL, tf_warning_or_error));
+	  release_tree_vector (argvec);
+	  eltinit = cxx_eval_constant_expression
+	    (call, eltinit, allow_non_constant, addr, non_constant_p);
+	}
+      if (*non_constant_p && !allow_non_constant)
+	goto fail;
+      CONSTRUCTOR_APPEND_ELT (n, idx, eltinit);
+    }
+
+  if (!*non_constant_p)
+    {
+      init = build_constructor (TREE_TYPE (atype), n);
+      TREE_CONSTANT (init) = true;
+      return init;
+    }
+
+ fail:
+  VEC_free (constructor_elt, gc, n);
+  return init;
+}
+
+static tree
+cxx_eval_vec_init (const constexpr_call *call, tree t,
+		   bool allow_non_constant, bool addr,
+		   bool *non_constant_p)
+{
+  tree atype = TREE_TYPE (t);
+  tree init = VEC_INIT_EXPR_INIT (t);
+  tree r = cxx_eval_vec_init_1 (call, atype, init, allow_non_constant,
+				addr, non_constant_p);
+  if (*non_constant_p)
+    return t;
+  else
+    return r;
 }
 
 /* Attempt to reduce the expression T to a constant value.
@@ -6515,6 +6626,16 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
     case CONSTRUCTOR:
       r = cxx_eval_bare_aggregate (call, t, allow_non_constant, addr,
 				   non_constant_p);
+      break;
+
+    case VEC_INIT_EXPR:
+      /* We can get this in a defaulted constructor for a class with a
+	 non-static data member of array type.  Either the initializer will
+	 be NULL, meaning default-initialization, or it will be an lvalue
+	 or xvalue of the same type, meaning direct-initialization from the
+	 corresponding member.  */
+      r = cxx_eval_vec_init (call, t, allow_non_constant, addr,
+			     non_constant_p);
       break;
 
     case CONVERT_EXPR:
@@ -7140,6 +7261,13 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
       if (flags & tf_error)
         error ("expression %qE is not a constant-expression", t);
       return false;
+
+    case VEC_INIT_EXPR:
+      /* We should only see this in a defaulted constructor for a class
+	 with a non-static data member of array type; if we get here we
+	 know this is a potential constant expression.  */
+      gcc_assert (DECL_DEFAULTED_FN (current_function_decl));
+      return true;
 
     default:
       sorry ("unexpected ast of kind %s", tree_code_name[TREE_CODE (t)]);
