@@ -1,4 +1,4 @@
-2010-10-21  Benjamin Kosnik  <bkoz@redhat.com>
+2010-10-22  Benjamin Kosnik  <bkoz@redhat.com>
 
 	PR libstdc++/46134
 	* include/std/chrono: Use default constructor.

@@ -225,8 +225,6 @@ namespace std
        *
        * The minimum depends on the @p __c parameter: if it is zero, the
        * minimum generated must be > 0, otherwise 0 is allowed.
-       *
-       * @todo This should be constexpr.
        */
       static constexpr result_type
       min()
@@ -234,8 +232,6 @@ namespace std
 
       /**
        * @brief Gets the largest possible value in the output range.
-       *
-       * @todo This should be constexpr.
        */
       static constexpr result_type
       max()
@@ -243,8 +239,6 @@ namespace std
 
       /**
        * @brief Discard a sequence of random numbers.
-       *
-       * @todo Look for a faster way to do discard.
        */
       void
       discard(unsigned long long __z)
@@ -444,8 +438,6 @@ namespace std
 
       /**
        * @brief Gets the smallest possible value in the output range.
-       *
-       * @todo This should be constexpr.
        */
       static constexpr result_type
       min()
@@ -453,8 +445,6 @@ namespace std
 
       /**
        * @brief Gets the largest possible value in the output range.
-       *
-       * @todo This should be constexpr.
        */
       static constexpr result_type
       max()
@@ -462,8 +452,6 @@ namespace std
 
       /**
        * @brief Discard a sequence of random numbers.
-       *
-       * @todo Look for a faster way to do discard.
        */
       void
       discard(unsigned long long __z)
@@ -660,8 +648,6 @@ namespace std
       /**
        * @brief Gets the inclusive minimum value of the range of random
        * integers returned by this generator.
-       *
-       * @todo This should be constexpr.
        */
       static constexpr result_type
       min()
@@ -670,8 +656,6 @@ namespace std
       /**
        * @brief Gets the inclusive maximum value of the range of random
        * integers returned by this generator.
-       *
-       * @todo This should be constexpr.
        */
       static constexpr result_type
       max()
@@ -679,8 +663,6 @@ namespace std
 
       /**
        * @brief Discard a sequence of random numbers.
-       *
-       * @todo Look for a faster way to do discard.
        */
       void
       discard(unsigned long long __z)
@@ -894,8 +876,6 @@ namespace std
 
       /**
        * @brief Gets the minimum value in the generated random number range.
-       *
-       * @todo This should be constexpr.
        */
       static constexpr result_type
       min()
@@ -903,8 +883,6 @@ namespace std
 
       /**
        * @brief Gets the maximum value in the generated random number range.
-       *
-       * @todo This should be constexpr.
        */
       static constexpr result_type
       max()
@@ -912,8 +890,6 @@ namespace std
 
       /**
        * @brief Discard a sequence of random numbers.
-       *
-       * @todo Look for a faster way to do discard.
        */
       void
       discard(unsigned long long __z)
@@ -1109,8 +1085,6 @@ namespace std
 
       /**
        * @brief Gets the minimum value in the generated random number range.
-       *
-       * @todo This should be constexpr.
        */
       static constexpr result_type
       min()
@@ -1118,8 +1092,6 @@ namespace std
 
       /**
        * @brief Gets the maximum value in the generated random number range.
-       *
-       * @todo This should be constexpr.
        */
       static constexpr result_type
       max()
@@ -1127,8 +1099,6 @@ namespace std
 
       /**
        * @brief Discard a sequence of random numbers.
-       *
-       * @todo Look for a faster way to do discard.
        */
       void
       discard(unsigned long long __z)
@@ -1345,8 +1315,6 @@ namespace std
 
       /**
        * Gets the minimum value in the generated random number range.
-       *
-       * @todo This should be constexpr.
        */
       static constexpr result_type
       min()
@@ -1354,8 +1322,6 @@ namespace std
 
       /**
        * Gets the maximum value in the generated random number range.
-       *
-       * @todo This should be constexpr.
        */
       static constexpr result_type
       max()
@@ -1363,8 +1329,6 @@ namespace std
 
       /**
        * Discard a sequence of random numbers.
-       *
-       * @todo Look for a faster way to do discard.
        */
       void
       discard(unsigned long long __z)
