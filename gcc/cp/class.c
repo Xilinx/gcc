@@ -2653,7 +2653,15 @@ add_implicitly_declared_members (tree t,
   if (! TYPE_HAS_USER_CONSTRUCTOR (t))
     {
       TYPE_HAS_DEFAULT_CONSTRUCTOR (t) = 1;
-      CLASSTYPE_LAZY_DEFAULT_CTOR (t) = 1;
+      if (TYPE_HAS_TRIVIAL_DFLT (t))
+	{
+	  TYPE_HAS_CONSTEXPR_CTOR (t) = 1;
+	  CLASSTYPE_LAZY_DEFAULT_CTOR (t) = 1;
+	}
+      else
+	/* We need to go ahead and declare this to set
+	   TYPE_HAS_CONSTEXPR_CTOR.  */
+	lazily_declare_fn (sfk_constructor, t);
     }
 
   /* [class.ctor]

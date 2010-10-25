@@ -1009,6 +1009,13 @@ walk_field_subobs (tree fields, tree fnname, special_function_kind sfk,
 
 	  if (bad && deleted_p)
 	    *deleted_p = true;
+
+	  /* For an implicitly-defined default constructor to be constexpr,
+	     every member must have a user-provided default constructor.  */
+	  /* FIXME will need adjustment for non-static data member
+	     initializers.  */
+	  if (constexpr_p && !CLASS_TYPE_P (mem_type))
+	    *constexpr_p = false;
 	}
 
       if (!CLASS_TYPE_P (mem_type))
@@ -1060,7 +1067,6 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
   tree cleanup_spec;
   bool cleanup_trivial = true;
   bool cleanup_deleted = false;
-  bool cleanup_constexpr = true;
 
   cleanup_spec
     = (cxx_dialect >= cxx0x ? noexcept_true_spec : empty_except_spec);
@@ -1202,7 +1208,7 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 	  rval = locate_fn_flags (base_binfo, complete_dtor_identifier,
 				  NULL_TREE, flags, complain);
 	  process_subob_fn (rval, false, &cleanup_spec, &cleanup_trivial,
-			    &cleanup_deleted, &cleanup_constexpr, NULL,
+			    &cleanup_deleted, NULL, NULL,
 			    basetype);
 	}
 
@@ -1247,7 +1253,7 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 	      rval = locate_fn_flags (base_binfo, complete_dtor_identifier,
 				      NULL_TREE, flags, complain);
 	      process_subob_fn (rval, false, &cleanup_spec, &cleanup_trivial,
-				&cleanup_deleted, &cleanup_constexpr, NULL,
+				&cleanup_deleted, NULL, NULL,
 				basetype);
 	    }
 	}
@@ -1267,7 +1273,7 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
     walk_field_subobs (TYPE_FIELDS (ctype), complete_dtor_identifier,
 		       sfk_destructor, TYPE_UNQUALIFIED, false,
 		       false, false, &cleanup_spec, &cleanup_trivial,
-		       &cleanup_deleted, &cleanup_constexpr,
+		       &cleanup_deleted, NULL,
 		       NULL, flags, complain);
 
   pop_scope (scope);
@@ -1280,8 +1286,6 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
     {
       if (deleted_p && cleanup_deleted)
 	*deleted_p = true;
-      if (constexpr_p && !cleanup_constexpr)
-	*constexpr_p = false;
       if (spec_p)
 	*spec_p = merge_exception_specifiers (*spec_p, cleanup_spec);
     }
