@@ -5051,8 +5051,16 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
       if (TREE_CODE (expr) != INTEGER_CST)
 	{
 	  if (complain & tf_error)
-	    error ("%qE is not a valid template argument for type %qT "
-		   "because it is a non-constant expression", expr, type);
+	    {
+	      tree e = expr;
+	      STRIP_NOPS (e);
+	      if (TREE_OVERFLOW_P (e))
+		error ("%qE is not a valid template argument for type %qT "
+		       "because of arithmetic overflow", expr, type);
+	      else
+		error ("%qE is not a valid template argument for type %qT "
+		       "because it is a non-constant expression", expr, type);
+	    }
 	  return NULL_TREE;
 	}
 
