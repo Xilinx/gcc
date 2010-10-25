@@ -1509,7 +1509,7 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
   if (cxx_dialect >= cxx0x)
     {
       DECL_DELETED_FN (fn) = deleted_p;
-      DECL_DECLARED_CONSTEXPR_P (fn) = constexpr_p;
+      DECL_DECLARED_CONSTEXPR_P (fn) = constexpr_p && !deleted_p;
     }
   DECL_NOT_REALLY_EXTERN (fn) = 1;
   DECL_DECLARED_INLINE_P (fn) = 1;
