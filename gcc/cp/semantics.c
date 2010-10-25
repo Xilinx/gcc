@@ -6193,7 +6193,9 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t,
 	goto fail;
       if (elt != ce->value)
 	changed = true;
-      if (TREE_CODE (type) != ARRAY_TYPE && DECL_CONTEXT (ce->index) != type)
+      if (TREE_CODE (type) != ARRAY_TYPE
+	  && !(same_type_ignoring_top_level_qualifiers_p
+	       (DECL_CONTEXT (ce->index), type)))
 	{
 	  /* Push our vtable pointer down into the base where it belongs.  */
 	  tree vptr_base = DECL_CONTEXT (ce->index);
