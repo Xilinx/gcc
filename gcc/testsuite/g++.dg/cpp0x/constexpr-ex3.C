@@ -5,7 +5,7 @@
 struct A
 {
   int i;
-  constexpr A(int _i) { i = _i; } // { dg-error "constructor does not have empty body" }
+  constexpr A(int _i) { i = _i; } // { dg-error "empty body|uninitialized member" }
 };
 
 template <class T>

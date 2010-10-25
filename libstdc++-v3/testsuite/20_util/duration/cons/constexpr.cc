@@ -24,6 +24,6 @@
 int main()
 {
   __gnu_test::constexpr_default_constructible test;
-  test.operator()<std::chrono::duration<long>>();
+  //  test.operator()<std::chrono::duration<long>>();
   return 0;
 }
