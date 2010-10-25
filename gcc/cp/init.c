@@ -533,7 +533,8 @@ perform_member_init (tree member, tree init)
 		       "uninitialized member %qD with %<const%> type %qT",
 		       member, type);
 
-	  if (DECL_DECLARED_CONSTEXPR_P (current_function_decl))
+	  if (DECL_DECLARED_CONSTEXPR_P (current_function_decl)
+	      && !type_has_constexpr_default_constructor (type))
 	    {
 	      if (!DECL_TEMPLATE_INSTANTIATION (current_function_decl))
 		error ("uninitialized member %qD in %<constexpr%> constructor",
@@ -886,7 +887,9 @@ emit_mem_initializers (tree mem_inits)
 			"initialized in the copy constructor",
 			BINFO_TYPE (subobject));
 
-	  if (DECL_DECLARED_CONSTEXPR_P (current_function_decl))
+	  if (DECL_DECLARED_CONSTEXPR_P (current_function_decl)
+	      && !(type_has_constexpr_default_constructor
+		   (BINFO_TYPE (subobject))))
 	    {
 	      if (!DECL_TEMPLATE_INSTANTIATION (current_function_decl))
 		error ("uninitialized base %qT in %<constexpr%> constructor",
