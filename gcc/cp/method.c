@@ -1089,11 +1089,40 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
       *deleted_p = false;
     }
 
+  ctor_p = false;
+  assign_p = false;
+  check_vdtor = false;
+  switch (sfk)
+    {
+    case sfk_move_assignment:
+    case sfk_copy_assignment:
+      assign_p = true;
+      fnname = ansi_assopname (NOP_EXPR);
+      break;
+
+    case sfk_destructor:
+      check_vdtor = true;
+      /* The synthesized method will call base dtors, but check complete
+	 here to avoid having to deal with VTT.  */
+      fnname = complete_dtor_identifier;
+      break;
+
+    case sfk_constructor:
+    case sfk_move_constructor:
+    case sfk_copy_constructor:
+      ctor_p = true;
+      fnname = complete_ctor_identifier;
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
   /* If that user-written default constructor would satisfy the
      requirements of a constexpr constructor (7.1.5), the
      implicitly-defined default constructor is constexpr.  */
   if (constexpr_p)
-    *constexpr_p = (sfk == sfk_constructor);
+    *constexpr_p = ctor_p;
 
   move_p = false;
   switch (sfk)
@@ -1130,35 +1159,6 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
       && (!copy_arg_p || cxx_dialect < cxx0x))
     return;
 #endif
-
-  ctor_p = false;
-  assign_p = false;
-  check_vdtor = false;
-  switch (sfk)
-    {
-    case sfk_move_assignment:
-    case sfk_copy_assignment:
-      assign_p = true;
-      fnname = ansi_assopname (NOP_EXPR);
-      break;
-
-    case sfk_destructor:
-      check_vdtor = true;
-      /* The synthesized method will call base dtors, but check complete
-	 here to avoid having to deal with VTT.  */
-      fnname = complete_dtor_identifier;
-      break;
-
-    case sfk_constructor:
-    case sfk_move_constructor:
-    case sfk_copy_constructor:
-      ctor_p = true;
-      fnname = complete_ctor_identifier;
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
 
   ++cp_unevaluated_operand;
   ++c_inhibit_evaluation_warnings;
