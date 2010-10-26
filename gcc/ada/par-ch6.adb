@@ -84,10 +84,13 @@ package body Ch6 is
    --  subprogram renaming declaration or subprogram generic instantiation.
    --  It also handles the new Ada 2012 parameterized expression form
 
-   --  SUBPROGRAM_DECLARATION ::= SUBPROGRAM_SPECIFICATION;
+   --  SUBPROGRAM_DECLARATION ::=
+   --    SUBPROGRAM_SPECIFICATION
+   --     [ASPECT_SPECIFICATIONS];
 
    --  ABSTRACT_SUBPROGRAM_DECLARATION ::=
-   --    SUBPROGRAM_SPECIFICATION is abstract;
+   --    SUBPROGRAM_SPECIFICATION is abstract
+   --      [ASPECT_SPECIFICATIONS];
 
    --  SUBPROGRAM_SPECIFICATION ::=
    --      procedure DEFINING_PROGRAM_UNIT_NAME PARAMETER_PROFILE
@@ -218,7 +221,7 @@ package body Ch6 is
 
       if Is_Overriding or else Not_Overriding then
 
-         --  Note that if we are not in Ada_05 mode, error messages have
+         --  Note that if we are not in Ada_2005 mode, error messages have
          --  already been given, so no need to give another message here.
 
          --  An overriding indicator is allowed for subprogram declarations,
@@ -305,7 +308,7 @@ package body Ch6 is
 
             Set_Defining_Unit_Name (Inst_Node, Name_Node);
             Set_Generic_Associations (Inst_Node, P_Generic_Actual_Part_Opt);
-            TF_Semicolon;
+            P_Aspect_Specifications (Inst_Node);
             Pop_Scope_Stack; -- Don't need scope stack entry in this case
 
             if Is_Overriding then
@@ -367,7 +370,7 @@ package body Ch6 is
          --  Ada 2005 (AI-318-02)
 
          if Token = Tok_Access then
-            if Ada_Version < Ada_05 then
+            if Ada_Version < Ada_2005 then
                Error_Msg_SC
                  ("anonymous access result type is an Ada 2005 extension");
                Error_Msg_SC ("\unit must be compiled with -gnat05 switch");
@@ -445,13 +448,19 @@ package body Ch6 is
          end if;
       end if;
 
+      --  Subprogram declaration ended by aspect specifications
+
+      if Aspect_Specifications_Present then
+         goto Subprogram_Declaration;
+
       --  Deal with case of semicolon ending a subprogram declaration
 
-      if Token = Tok_Semicolon then
+      elsif Token = Tok_Semicolon then
          if not Pf_Flags.Decl then
             T_Is;
          end if;
 
+         Save_Scan_State (Scan_State);
          Scan; -- past semicolon
 
          --  If semicolon is immediately followed by IS, then ignore the
@@ -476,6 +485,7 @@ package body Ch6 is
             goto Subprogram_Body;
 
          else
+            Restore_Scan_State (Scan_State);
             goto Subprogram_Declaration;
          end if;
 
@@ -525,13 +535,13 @@ package body Ch6 is
                Set_Specification (Absdec_Node, Specification_Node);
                Pop_Scope_Stack; -- discard unneeded entry
                Scan; -- past ABSTRACT
-               TF_Semicolon;
+               P_Aspect_Specifications (Absdec_Node);
                return Absdec_Node;
 
             --  Ada 2005 (AI-248): Parse a null procedure declaration
 
             elsif Token = Tok_Null then
-               if Ada_Version < Ada_05 then
+               if Ada_Version < Ada_2005 then
                   Error_Msg_SP ("null procedures are an Ada 2005 extension");
                   Error_Msg_SP ("\unit must be compiled with -gnat05 switch");
                end if;
@@ -544,7 +554,6 @@ package body Ch6 is
                   Set_Null_Present (Specification_Node);
                end if;
 
-               TF_Semicolon;
                goto Subprogram_Declaration;
 
             --  Check for IS NEW with Formal_Part present and handle nicely
@@ -571,6 +580,11 @@ package body Ch6 is
             else
                goto Subprogram_Body;
             end if;
+
+         --  Aspect specifications present
+
+         elsif Aspect_Specifications_Present then
+            goto Subprogram_Declaration;
 
          --  Here we have a missing IS or missing semicolon, we always guess
          --  a missing semicolon, since we are pretty good at fixing up a
@@ -710,7 +724,7 @@ package body Ch6 is
 
                   --  Check we are in Ada 2012 mode
 
-                  if Ada_Version < Ada_12 then
+                  if Ada_Version < Ada_2012 then
                      Error_Msg_SC
                        ("parameterized expression is an Ada 2012 feature!");
                      Error_Msg_SC
@@ -770,6 +784,7 @@ package body Ch6 is
          Decl_Node :=
            New_Node (N_Subprogram_Declaration, Sloc (Specification_Node));
          Set_Specification (Decl_Node, Specification_Node);
+         P_Aspect_Specifications (Decl_Node);
 
          --  If this is a context in which a subprogram body is permitted,
          --  set active SIS entry in case (see section titled "Handling
@@ -842,7 +857,7 @@ package body Ch6 is
          --  Ada 2005 (AI-318-02)
 
          if Token = Tok_Access then
-            if Ada_Version < Ada_05 then
+            if Ada_Version < Ada_2005 then
                Error_Msg_SC
                  ("anonymous access result type is an Ada 2005 extension");
                Error_Msg_SC ("\unit must be compiled with -gnat05 switch");
@@ -1678,7 +1693,7 @@ package body Ch6 is
          --  Extended_return_statement (Ada 2005 only -- AI-318):
 
          else
-            if Ada_Version < Ada_05 then
+            if Ada_Version < Ada_2005 then
                Error_Msg_SP
                  (" extended_return_statement is an Ada 2005 extension");
                Error_Msg_SP ("\unit must be compiled with -gnat05 switch");

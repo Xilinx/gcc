@@ -995,7 +995,7 @@ lto_balanced_map (void)
   struct cgraph_node **order = XNEWVEC (struct cgraph_node *, cgraph_max_uid);
   int i, postorder_len;
   struct cgraph_node *node;
-  int total_size = 0;
+  int total_size = 0, best_total_size = 0;
   int partition_size;
   ltrans_partition partition;
   unsigned int last_visited_cgraph_node = 0, last_visited_varpool_node = 0;
@@ -1017,7 +1017,7 @@ lto_balanced_map (void)
       if (partition_cgraph_node_p (node))
 	{
 	  order[n_nodes++] = node;
-          total_size += node->local.inline_summary.self_size;
+          total_size += node->global.size;
 	}
     }
   free (postorder);
@@ -1035,6 +1035,7 @@ lto_balanced_map (void)
   for (i = 0; i < n_nodes; i++)
     {
       add_cgraph_node_to_partition (partition, order[i]);
+      total_size -= order[i]->global.size;
 
       /* Once we added a new node to the partition, we also want to add
          all referenced variables unless they was already added into some
@@ -1069,7 +1070,6 @@ lto_balanced_map (void)
 				last_visited_cgraph_node);
 	      refs = &node->ref_list;
 
-	      total_size -= node->local.inline_summary.self_size;
 	      last_visited_cgraph_node++;
 
 	      gcc_assert (node->analyzed);
@@ -1195,6 +1195,7 @@ lto_balanced_map (void)
 				     partition->cgraph_set->nodes);
 	  best_n_varpool_nodes = VEC_length (varpool_node_ptr,
 					     partition->varpool_set->nodes);
+	  best_total_size = total_size;
 	}
       if (cgraph_dump_file)
 	fprintf (cgraph_dump_file, "Step %i: added %s, size %i, cost %i/%i best %i/%i, step %i\n", i,
@@ -1218,6 +1219,7 @@ lto_balanced_map (void)
 	  partition = new_partition ("");
 	  last_visited_cgraph_node = 0;
 	  last_visited_varpool_node = 0;
+	  total_size = best_total_size;
 	  cost = 0;
 
 	  if (cgraph_dump_file)
@@ -1473,8 +1475,7 @@ lto_wpa_write_files (void)
   blen = strlen (temp_filename);
 
   n_sets = VEC_length (ltrans_partition, ltrans_partitions);
-  qsort (VEC_address (ltrans_partition, ltrans_partitions), n_sets,
-	 sizeof (ltrans_partition), cmp_partitions);
+  VEC_qsort (ltrans_partition, ltrans_partitions, cmp_partitions);
   for (i = 0; i < n_sets; i++)
     {
       size_t len;
@@ -1709,10 +1710,14 @@ lto_fixup_type (tree t, void *data)
 	LTO_FIXUP_SUBTREE (TYPE_CONTEXT (t));
     }
 
-  /* TYPE_CANONICAL does not need to be fixed up, instead it should
-     always point to ourselves at this time as we never fixup
-     non-canonical ones.  */
-  gcc_assert (TYPE_CANONICAL (t) == t);
+  /* Compute the canonical type of t and fix that up.  From this point
+     there are no longer any types with TYPE_STRUCTURAL_EQUALITY_P
+     and its type-based alias problems.  */
+  if (!TYPE_CANONICAL (t))
+    {
+      TYPE_CANONICAL (t) = gimple_register_canonical_type (t);
+      LTO_FIXUP_SUBTREE (TYPE_CANONICAL (t));
+    }
 
   /* The following re-creates proper variant lists while fixing up
      the variant leaders.  We do not stream TYPE_NEXT_VARIANT so the

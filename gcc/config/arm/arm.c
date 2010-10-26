@@ -217,7 +217,6 @@ static tree arm_build_builtin_va_list (void);
 static void arm_expand_builtin_va_start (tree, rtx);
 static tree arm_gimplify_va_arg_expr (tree, tree, gimple_seq *, gimple_seq *);
 static void arm_option_override (void);
-static void arm_option_optimization (int, int);
 static bool arm_handle_option (size_t, const char *, int);
 static void arm_target_help (void);
 static unsigned HOST_WIDE_INT arm_shift_truncation_mask (enum machine_mode);
@@ -286,6 +285,15 @@ static const struct attribute_spec arm_attribute_table[] =
 #endif
   { NULL,           0, 0, false, false, false, NULL }
 };
+
+/* Set default optimization options.  */
+static const struct default_options arm_option_optimization_table[] =
+  {
+    /* Enable section anchors by default at -O1 or higher.  */
+    { OPT_LEVELS_1_PLUS, OPT_fsection_anchors, NULL, 1 },
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 /* Initialize the GCC target structure.  */
 #if TARGET_DLLIMPORT_DECL_ATTRIBUTES
@@ -333,8 +341,8 @@ static const struct attribute_spec arm_attribute_table[] =
 #define TARGET_HELP arm_target_help
 #undef  TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE arm_option_override
-#undef  TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION arm_option_optimization
+#undef  TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE arm_option_optimization_table
 
 #undef  TARGET_COMP_TYPE_ATTRIBUTES
 #define TARGET_COMP_TYPE_ATTRIBUTES arm_comp_type_attributes
@@ -1218,6 +1226,7 @@ arm_build_builtin_va_list (void)
 			     va_list_type);
   DECL_ARTIFICIAL (va_list_name) = 1;
   TYPE_NAME (va_list_type) = va_list_name;
+  TYPE_STUB_DECL (va_list_type) = va_list_name;
   /* Create the __ap field.  */
   ap_field = build_decl (BUILTINS_LOCATION,
 			 FIELD_DECL, 
@@ -1953,13 +1962,18 @@ arm_option_override (void)
       flag_reorder_blocks = 1;
     }
 
-  if (!PARAM_SET_P (PARAM_GCSE_UNRESTRICTED_COST)
-      && flag_pic)
+  if (flag_pic)
     /* Hoisting PIC address calculations more aggressively provides a small,
        but measurable, size reduction for PIC code.  Therefore, we decrease
        the bar for unrestricted expression hoisting to the cost of PIC address
        calculation, which is 2 instructions.  */
-    set_param_value ("gcse-unrestricted-cost", 2);
+    maybe_set_param_value (PARAM_GCSE_UNRESTRICTED_COST, 2,
+			   global_options.x_param_values,
+			   global_options_set.x_param_values);
+
+  /* ARM EABI defaults to strict volatile bitfields.  */
+  if (TARGET_AAPCS_BASED && flag_strict_volatile_bitfields < 0)
+    flag_strict_volatile_bitfields = 1;
 
   /* Register global variables with the garbage collector.  */
   arm_add_gc_roots ();
@@ -22815,17 +22829,6 @@ arm_order_regs_for_local_alloc (void)
   if (TARGET_THUMB)
     memcpy (reg_alloc_order, thumb_core_reg_alloc_order,
             sizeof (thumb_core_reg_alloc_order));
-}
-
-/* Set default optimization options.  */
-static void
-arm_option_optimization (int level, int size ATTRIBUTE_UNUSED)
-{
-  /* Enable section anchors by default at -O1 or higher.
-     Use 2 to distinguish from an explicit -fsection-anchors
-     given on the command line.  */
-  if (level > 0)
-    flag_section_anchors = 2;
 }
 
 /* Implement TARGET_FRAME_POINTER_REQUIRED.  */

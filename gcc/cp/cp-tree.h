@@ -1056,7 +1056,8 @@ struct GTY(()) language_function {
   (cfun && cp_function_chain					\
    ? cp_function_chain->x_current_class_ptr : NULL_TREE)
 #define current_class_ref \
-  (cfun ? cp_function_chain->x_current_class_ref : NULL_TREE)
+  ((cfun && cp_function_chain)                                  \
+   ? cp_function_chain->x_current_class_ref : NULL_TREE)
 
 /* The EH_SPEC_BLOCK for the exception-specifiers for the current
    function, if any.  */
@@ -3041,9 +3042,7 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    || TREE_CODE (TYPE) == COMPLEX_TYPE)
 
 /* True iff TYPE is cv decltype(nullptr).  */
-#define NULLPTR_TYPE_P(TYPE)				\
-  (TREE_CODE (TYPE) == LANG_TYPE			\
-   && TYPE_MAIN_VARIANT (TYPE) == nullptr_type_node)
+#define NULLPTR_TYPE_P(TYPE) (TREE_CODE (TYPE) == NULLPTR_TYPE)
 
 /* [basic.types]
 
@@ -3092,6 +3091,16 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    (0).  */
 #define SET_SCOPED_ENUM_P(TYPE, VAL)                    \
   (ENUM_IS_SCOPED (TYPE) = (VAL))
+
+#define SET_OPAQUE_ENUM_P(TYPE, VAL)                    \
+  (ENUM_IS_OPAQUE (TYPE) = (VAL))
+
+#define OPAQUE_ENUM_P(TYPE)				\
+  (TREE_CODE (TYPE) == ENUMERAL_TYPE && ENUM_IS_OPAQUE (TYPE))
+
+/* Determines whether an ENUMERAL_TYPE has an explicit
+   underlying type.  */
+#define ENUM_FIXED_UNDERLYING_TYPE_P(NODE) (TYPE_LANG_FLAG_3 (NODE))
 
 /* Returns the underlying type of the given enumeration type. The
    underlying type is determined in different ways, depending on the
@@ -4706,6 +4715,7 @@ extern bool type_has_move_assign		(tree);
 extern void defaulted_late_check		(tree);
 extern bool defaultable_fn_check		(tree);
 extern void fixup_type_variants			(tree);
+extern void fixup_attribute_variants		(tree);
 extern tree* decl_cloned_function_p		(const_tree, bool);
 extern void clone_function_decl			(tree, int);
 extern void adjust_clone_args			(tree);
@@ -4781,7 +4791,8 @@ extern bool grok_op_properties			(tree, bool);
 extern tree xref_tag				(enum tag_types, tree, tag_scope, bool);
 extern tree xref_tag_from_type			(tree, tree, tag_scope);
 extern bool xref_basetypes			(tree, tree);
-extern tree start_enum				(tree, tree, bool);
+extern tree start_enum				(tree, tree, tree, bool, bool *);
+extern void finish_enum_value_list		(tree);
 extern void finish_enum				(tree);
 extern void build_enumerator			(tree, tree, tree, location_t);
 extern tree lookup_enumerator			(tree, tree);

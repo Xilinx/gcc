@@ -23,6 +23,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Aspects;  use Aspects;
 with Atree;    use Atree;
 with Checks;   use Checks;
 with Einfo;    use Einfo;
@@ -49,10 +50,11 @@ with Sem_Res;  use Sem_Res;
 with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
 with Sem_Warn; use Sem_Warn;
+with Sinput;   use Sinput;
 with Snames;   use Snames;
 with Stand;    use Stand;
 with Sinfo;    use Sinfo;
-with Table;
+with Stringt;  use Stringt;
 with Targparm; use Targparm;
 with Ttypes;   use Ttypes;
 with Tbuild;   use Tbuild;
@@ -75,16 +77,44 @@ package body Sem_Ch13 is
    --  inherited from a derived type that is no longer appropriate for the
    --  new Esize value. In this case, we reset the Alignment to unknown.
 
+   procedure Build_Predicate_Function
+     (Typ   : Entity_Id;
+      FDecl : out Node_Id;
+      FBody : out Node_Id);
+   --  If Typ has predicates (indicated by Has_Predicates being set for Typ,
+   --  then either there are pragma Invariant entries on the rep chain for the
+   --  type (note that Predicate aspects are converted to pragam Predicate), or
+   --  there are inherited aspects from a parent type, or ancestor subtypes,
+   --  or interfaces. This procedure builds the spec and body for the Predicate
+   --  function that tests these predicates, returning them in PDecl and Pbody
+   --  and setting Predicate_Procedure for Typ. In some error situations no
+   --  procedure is built, in which case PDecl/PBody are empty on return.
+
+   procedure Build_Static_Predicate
+     (Typ  : Entity_Id;
+      Expr : Node_Id;
+      Nam  : Name_Id);
+   --  Given a predicated type Typ, where Typ is a discrete static subtype,
+   --  whose predicate expression is Expr, tests if Expr is a static predicate,
+   --  and if so, builds the predicate range list. Nam is the name of the one
+   --  argument to the predicate function. Occurrences of the type name in the
+   --  predicate expression have been replaced by identifer references to this
+   --  name, which is unique, so any identifier with Chars matching Nam must be
+   --  a reference to the type. If the predicate is non-static, this procedure
+   --  returns doing nothing. If the predicate is static, then the predicate
+   --  list is stored in Static_Predicate (Typ), and the Expr is rewritten as
+   --  a canonicalized membership operation.
+
    function Get_Alignment_Value (Expr : Node_Id) return Uint;
    --  Given the expression for an alignment value, returns the corresponding
    --  Uint value. If the value is inappropriate, then error messages are
    --  posted as required, and a value of No_Uint is returned.
 
    function Is_Operational_Item (N : Node_Id) return Boolean;
-   --  A specification for a stream attribute is allowed before the full
-   --  type is declared, as explained in AI-00137 and the corrigendum.
-   --  Attributes that do not specify a representation characteristic are
-   --  operational attributes.
+   --  A specification for a stream attribute is allowed before the full type
+   --  is declared, as explained in AI-00137 and the corrigendum. Attributes
+   --  that do not specify a representation characteristic are operational
+   --  attributes.
 
    procedure New_Stream_Subprogram
      (N    : Node_Id;
@@ -619,6 +649,515 @@ package body Sem_Ch13 is
       end if;
    end Alignment_Check_For_Esize_Change;
 
+   -----------------------------------
+   -- Analyze_Aspect_Specifications --
+   -----------------------------------
+
+   procedure Analyze_Aspect_Specifications
+     (N : Node_Id;
+      E : Entity_Id;
+      L : List_Id)
+   is
+      Aspect : Node_Id;
+      Aitem  : Node_Id;
+      Ent    : Node_Id;
+
+      Ins_Node : Node_Id := N;
+      --  Insert pragmas (except Pre/Post/Invariant/Predicate) after this node
+
+      --  The general processing involves building an attribute definition
+      --  clause or a pragma node that corresponds to the access type. Then
+      --  one of two things happens:
+
+      --  If we are required to delay the evaluation of this aspect to the
+      --  freeze point, we preanalyze the relevant argument, and then attach
+      --  the corresponding pragma/attribute definition clause to the aspect
+      --  specification node, which is then placed in the Rep Item chain.
+      --  In this case we mark the entity with the Has_Delayed_Aspects flag,
+      --  and we evaluate the rep item at the freeze point.
+
+      --  If no delay is required, we just insert the pragma or attribute
+      --  after the declaration, and it will get processed by the normal
+      --  circuit. The From_Aspect_Specification flag is set on the pragma
+      --  or attribute definition node in either case to activate special
+      --  processing (e.g. not traversing the list of homonyms for inline).
+
+      Delay_Required : Boolean;
+      --  Set True if delay is required
+
+   begin
+      --  Return if no aspects
+
+      if L = No_List then
+         return;
+      end if;
+
+      --  Return if already analyzed (avoids duplicate calls in some cases
+      --  where type declarations get rewritten and proessed twice).
+
+      if Analyzed (N) then
+         return;
+      end if;
+
+      --  Loop through apsects
+
+      Aspect := First (L);
+      while Present (Aspect) loop
+         declare
+            Loc  : constant Source_Ptr := Sloc (Aspect);
+            Id   : constant Node_Id    := Identifier (Aspect);
+            Expr : constant Node_Id    := Expression (Aspect);
+            Nam  : constant Name_Id    := Chars (Id);
+            A_Id : constant Aspect_Id  := Get_Aspect_Id (Nam);
+            Anod : Node_Id;
+            T    : Entity_Id;
+
+            Eloc : Source_Ptr := Sloc (Expr);
+            --  Source location of expression, modified when we split PPC's
+
+         begin
+            Set_Entity (Aspect, E);
+            Ent := New_Occurrence_Of (E, Sloc (Id));
+
+            --  Check for duplicate aspect. Note that the Comes_From_Source
+            --  test allows duplicate Pre/Post's that we generate internally
+            --  to escape being flagged here.
+
+            Anod := First (L);
+            while Anod /= Aspect loop
+               if Nam = Chars (Identifier (Anod))
+                 and then Comes_From_Source (Aspect)
+               then
+                  Error_Msg_Name_1 := Nam;
+                  Error_Msg_Sloc := Sloc (Anod);
+
+                  --  Case of same aspect specified twice
+
+                  if Class_Present (Anod) = Class_Present (Aspect) then
+                     if not Class_Present (Anod) then
+                        Error_Msg_NE
+                          ("aspect% for & previously given#",
+                           Id, E);
+                     else
+                        Error_Msg_NE
+                          ("aspect `%''Class` for & previously given#",
+                           Id, E);
+                     end if;
+
+                  --  Case of Pre and Pre'Class both specified
+
+                  elsif Nam = Name_Pre then
+                     if Class_Present (Aspect) then
+                        Error_Msg_NE
+                          ("aspect `Pre''Class` for & is not allowed here",
+                           Id, E);
+                        Error_Msg_NE
+                          ("\since aspect `Pre` previously given#",
+                           Id, E);
+
+                     else
+                        Error_Msg_NE
+                          ("aspect `Pre` for & is not allowed here",
+                           Id, E);
+                        Error_Msg_NE
+                          ("\since aspect `Pre''Class` previously given#",
+                           Id, E);
+                     end if;
+                  end if;
+
+                  goto Continue;
+               end if;
+
+               Next (Anod);
+            end loop;
+
+            --  Processing based on specific aspect
+
+            case A_Id is
+
+               --  No_Aspect should be impossible
+
+               when No_Aspect =>
+                  raise Program_Error;
+
+               --  Aspects taking an optional boolean argument. For all of
+               --  these we just create a matching pragma and insert it,
+               --  setting flag Cancel_Aspect if the expression is False.
+
+               when Aspect_Ada_2005                     |
+                    Aspect_Ada_2012                     |
+                    Aspect_Atomic                       |
+                    Aspect_Atomic_Components            |
+                    Aspect_Discard_Names                |
+                    Aspect_Favor_Top_Level              |
+                    Aspect_Inline                       |
+                    Aspect_Inline_Always                |
+                    Aspect_No_Return                    |
+                    Aspect_Pack                         |
+                    Aspect_Persistent_BSS               |
+                    Aspect_Preelaborable_Initialization |
+                    Aspect_Pure_Function                |
+                    Aspect_Shared                       |
+                    Aspect_Suppress_Debug_Info          |
+                    Aspect_Unchecked_Union              |
+                    Aspect_Universal_Aliasing           |
+                    Aspect_Unmodified                   |
+                    Aspect_Unreferenced                 |
+                    Aspect_Unreferenced_Objects         |
+                    Aspect_Volatile                     |
+                    Aspect_Volatile_Components          =>
+
+                  --  Build corresponding pragma node
+
+                  Aitem :=
+                    Make_Pragma (Loc,
+                      Pragma_Argument_Associations => New_List (Ent),
+                      Pragma_Identifier            =>
+                        Make_Identifier (Sloc (Id), Chars (Id)));
+
+                  --  Deal with missing expression case, delay never needed
+
+                  if No (Expr) then
+                     Delay_Required := False;
+
+                  --  Expression is present
+
+                  else
+                     Preanalyze_Spec_Expression (Expr, Standard_Boolean);
+
+                     --  If preanalysis gives a static expression, we don't
+                     --  need to delay (this will happen often in practice).
+
+                     if Is_OK_Static_Expression (Expr) then
+                        Delay_Required := False;
+
+                        if Is_False (Expr_Value (Expr)) then
+                           Set_Aspect_Cancel (Aitem);
+                        end if;
+
+                     --  If we don't get a static expression, then delay, the
+                     --  expression may turn out static by freeze time.
+
+                     else
+                        Delay_Required := True;
+                     end if;
+                  end if;
+
+               --  Aspects corresponding to attribute definition clauses
+
+               when Aspect_Address        |
+                    Aspect_Alignment      |
+                    Aspect_Bit_Order      |
+                    Aspect_Component_Size |
+                    Aspect_External_Tag   |
+                    Aspect_Machine_Radix  |
+                    Aspect_Object_Size    |
+                    Aspect_Size           |
+                    Aspect_Storage_Pool   |
+                    Aspect_Storage_Size   |
+                    Aspect_Stream_Size    |
+                    Aspect_Value_Size     =>
+
+                  --  Preanalyze the expression with the appropriate type
+
+                  case A_Id is
+                     when Aspect_Address      =>
+                        T := RTE (RE_Address);
+                     when Aspect_Bit_Order    =>
+                        T := RTE (RE_Bit_Order);
+                     when Aspect_External_Tag =>
+                        T := Standard_String;
+                     when Aspect_Storage_Pool =>
+                        T := Class_Wide_Type (RTE (RE_Root_Storage_Pool));
+                     when others              =>
+                        T := Any_Integer;
+                  end case;
+
+                  Preanalyze_Spec_Expression (Expr, T);
+
+                  --  Construct the attribute definition clause
+
+                  Aitem :=
+                    Make_Attribute_Definition_Clause (Loc,
+                      Name       => Ent,
+                      Chars      => Chars (Id),
+                      Expression => Relocate_Node (Expr));
+
+                  --  We do not need a delay if we have a static expression
+
+                  if Is_OK_Static_Expression (Expression (Aitem)) then
+                     Delay_Required := False;
+
+                  --  Here a delay is required
+
+                  else
+                     Delay_Required := True;
+                  end if;
+
+               --  Aspects corresponding to pragmas with two arguments, where
+               --  the first argument is a local name referring to the entity,
+               --  and the second argument is the aspect definition expression.
+
+               when Aspect_Suppress   |
+                    Aspect_Unsuppress =>
+
+                  --  Construct the pragma
+
+                  Aitem :=
+                    Make_Pragma (Loc,
+                      Pragma_Argument_Associations => New_List (
+                        New_Occurrence_Of (E, Eloc),
+                        Relocate_Node (Expr)),
+                      Pragma_Identifier            =>
+                        Make_Identifier (Sloc (Id), Chars (Id)));
+
+                  --  We don't have to play the delay game here, since the only
+                  --  values are check names which don't get analyzed anyway.
+
+                  Delay_Required := False;
+
+               --  Aspects corresponding to stream routines
+
+               when Aspect_Input  |
+                    Aspect_Output |
+                    Aspect_Read   |
+                    Aspect_Write  =>
+
+                  --  Construct the attribute definition clause
+
+                  Aitem :=
+                    Make_Attribute_Definition_Clause (Loc,
+                      Name       => Ent,
+                      Chars      => Chars (Id),
+                      Expression => Relocate_Node (Expr));
+
+                  --  These are always delayed (typically the subprogram that
+                  --  is referenced cannot have been declared yet, since it has
+                  --  a reference to the type for which this aspect is defined.
+
+                  Delay_Required := True;
+
+               --  Aspects corresponding to pragmas with two arguments, where
+               --  the second argument is a local name referring to the entity,
+               --  and the first argument is the aspect definition expression.
+
+               when Aspect_Warnings =>
+
+                  --  Construct the pragma
+
+                  Aitem :=
+                    Make_Pragma (Loc,
+                      Pragma_Argument_Associations => New_List (
+                        Relocate_Node (Expr),
+                        New_Occurrence_Of (E, Eloc)),
+                      Pragma_Identifier            =>
+                        Make_Identifier (Sloc (Id), Chars (Id)),
+                      Class_Present                => Class_Present (Aspect));
+
+                  --  We don't have to play the delay game here, since the only
+                  --  values are check names which don't get analyzed anyway.
+
+                  Delay_Required := False;
+
+               --  Aspects Pre/Post generate Precondition/Postcondition pragmas
+               --  with a first argument that is the expression, and a second
+               --  argument that is an informative message if the test fails.
+               --  This is inserted right after the declaration, to get the
+               --  required pragma placement. The processing for the pragmas
+               --  takes care of the required delay.
+
+               when Aspect_Pre | Aspect_Post => declare
+                  Pname : Name_Id;
+
+               begin
+                  if A_Id = Aspect_Pre then
+                     Pname := Name_Precondition;
+                  else
+                     Pname := Name_Postcondition;
+                  end if;
+
+                  --  If the expressions is of the form A and then B, then
+                  --  we generate separate Pre/Post aspects for the separate
+                  --  clauses. Since we allow multiple pragmas, there is no
+                  --  problem in allowing multiple Pre/Post aspects internally.
+
+                  --  We do not do this for Pre'Class, since we have to put
+                  --  these conditions together in a complex OR expression
+
+                  if Pname = Name_Postcondition
+                       or else not Class_Present (Aspect)
+                  then
+                     while Nkind (Expr) = N_And_Then loop
+                        Insert_After (Aspect,
+                          Make_Aspect_Specification (Sloc (Right_Opnd (Expr)),
+                            Identifier    => Identifier (Aspect),
+                            Expression    => Relocate_Node (Right_Opnd (Expr)),
+                            Class_Present => Class_Present (Aspect),
+                            Split_PPC     => True));
+                        Rewrite (Expr, Relocate_Node (Left_Opnd (Expr)));
+                        Eloc := Sloc (Expr);
+                     end loop;
+                  end if;
+
+                  --  Build the precondition/postcondition pragma
+
+                  Aitem :=
+                    Make_Pragma (Loc,
+                      Pragma_Identifier            =>
+                        Make_Identifier (Sloc (Id),
+                          Chars => Pname),
+                      Class_Present                => Class_Present (Aspect),
+                      Split_PPC                    => Split_PPC (Aspect),
+                      Pragma_Argument_Associations => New_List (
+                        Make_Pragma_Argument_Association (Eloc,
+                          Chars      => Name_Check,
+                          Expression => Relocate_Node (Expr))));
+
+                  --  Add message unless exception messages are suppressed
+
+                  if not Opt.Exception_Locations_Suppressed then
+                     Append_To (Pragma_Argument_Associations (Aitem),
+                       Make_Pragma_Argument_Association (Eloc,
+                         Chars     => Name_Message,
+                         Expression =>
+                           Make_String_Literal (Eloc,
+                             Strval => "failed "
+                                       & Get_Name_String (Pname)
+                                       & " from "
+                                       & Build_Location_String (Eloc))));
+                  end if;
+
+                  Set_From_Aspect_Specification (Aitem, True);
+
+                  --  For Pre/Post cases, insert immediately after the entity
+                  --  declaration, since that is the required pragma placement.
+                  --  Note that for these aspects, we do not have to worry
+                  --  about delay issues, since the pragmas themselves deal
+                  --  with delay of visibility for the expression analysis.
+
+                  --  If the entity is a library-level subprogram, the pre/
+                  --  postconditions must be treated as late pragmas.
+
+                  if Nkind (Parent (N)) = N_Compilation_Unit then
+                     Add_Global_Declaration (Aitem);
+                  else
+                     Insert_After (N, Aitem);
+                  end if;
+
+                  goto Continue;
+               end;
+
+               --  Invariant aspects generate a corresponding pragma with a
+               --  first argument that is the entity, and the second argument
+               --  is the expression and anthird argument with an appropriate
+               --  message. This is inserted right after the declaration, to
+               --  get the required pragma placement. The pragma processing
+               --  takes care of the required delay.
+
+               when Aspect_Invariant =>
+
+                  --  Construct the pragma
+
+                  Aitem :=
+                    Make_Pragma (Loc,
+                      Pragma_Argument_Associations =>
+                        New_List (Ent, Relocate_Node (Expr)),
+                      Class_Present                => Class_Present (Aspect),
+                      Pragma_Identifier            =>
+                        Make_Identifier (Sloc (Id), Name_Invariant));
+
+                  --  Add message unless exception messages are suppressed
+
+                  if not Opt.Exception_Locations_Suppressed then
+                     Append_To (Pragma_Argument_Associations (Aitem),
+                       Make_Pragma_Argument_Association (Eloc,
+                         Chars      => Name_Message,
+                         Expression =>
+                           Make_String_Literal (Eloc,
+                             Strval => "failed invariant from "
+                                       & Build_Location_String (Eloc))));
+                  end if;
+
+                  Set_From_Aspect_Specification (Aitem, True);
+
+                  --  For Invariant case, insert immediately after the entity
+                  --  declaration. We do not have to worry about delay issues
+                  --  since the pragma processing takes care of this.
+
+                  Insert_After (N, Aitem);
+                  goto Continue;
+
+               --  Predicate aspects generate a corresponding pragma with a
+               --  first argument that is the entity, and the second argument
+               --  is the expression. This is inserted immediately after the
+               --  declaration, to get the required pragma placement. The
+               --  pragma processing takes care of the required delay.
+
+               when Aspect_Predicate =>
+
+                  --  Construct the pragma
+
+                  Aitem :=
+                    Make_Pragma (Loc,
+                      Pragma_Argument_Associations =>
+                        New_List (Ent, Relocate_Node (Expr)),
+                      Class_Present                => Class_Present (Aspect),
+                      Pragma_Identifier            =>
+                        Make_Identifier (Sloc (Id), Name_Predicate));
+
+                  Set_From_Aspect_Specification (Aitem, True);
+
+                  --  Make sure we have a freeze node (it might otherwise be
+                  --  missing in cases like subtype X is Y, and we would not
+                  --  have a place to build the predicate function).
+
+                  Ensure_Freeze_Node (E);
+
+                  --  For Predicate case, insert immediately after the entity
+                  --  declaration. We do not have to worry about delay issues
+                  --  since the pragma processing takes care of this.
+
+                  Insert_After (N, Aitem);
+                  goto Continue;
+            end case;
+
+            Set_From_Aspect_Specification (Aitem, True);
+
+            --  If a delay is required, we delay the freeze (not much point in
+            --  delaying the aspect if we don't delay the freeze!). The pragma
+            --  or clause is then attached to the aspect specification which
+            --  is placed in the rep item list.
+
+            if Delay_Required then
+               Ensure_Freeze_Node (E);
+               Set_Is_Delayed_Aspect (Aitem);
+               Set_Has_Delayed_Aspects (E);
+               Set_Aspect_Rep_Item (Aspect, Aitem);
+               Record_Rep_Item (E, Aspect);
+
+            --  If no delay required, insert the pragma/clause in the tree
+
+            else
+               --  For Pre/Post cases, insert immediately after the entity
+               --  declaration, since that is the required pragma placement.
+
+               if A_Id = Aspect_Pre or else A_Id = Aspect_Post then
+                  Insert_After (N, Aitem);
+
+               --  For all other cases, insert in sequence
+
+               else
+                  Insert_After (Ins_Node, Aitem);
+                  Ins_Node := Aitem;
+               end if;
+            end if;
+         end;
+
+         <<Continue>>
+            Next (Aspect);
+      end loop;
+   end Analyze_Aspect_Specifications;
+
    -----------------------
    -- Analyze_At_Clause --
    -----------------------
@@ -684,6 +1223,12 @@ package body Sem_Ch13 is
       procedure Analyze_Stream_TSS_Definition (TSS_Nam : TSS_Name_Type);
       --  Common processing for 'Read, 'Write, 'Input and 'Output attribute
       --  definition clauses.
+
+      function Duplicate_Clause return Boolean;
+      --  This routine checks if the aspect for U_Ent being given by attribute
+      --  definition clause N is for an aspect that has already been specified,
+      --  and if so gives an error message. If there is a duplicate, True is
+      --  returned, otherwise if there is no error, False is returned.
 
       -----------------------------------
       -- Analyze_Stream_TSS_Definition --
@@ -821,6 +1366,40 @@ package body Sem_Ch13 is
          end if;
       end Analyze_Stream_TSS_Definition;
 
+      ----------------------
+      -- Duplicate_Clause --
+      ----------------------
+
+      function Duplicate_Clause return Boolean is
+         A : Node_Id;
+
+      begin
+         --  Nothing to do if this attribute definition clause comes from
+         --  an aspect specification, since we could not be duplicating an
+         --  explicit clause, and we dealt with the case of duplicated aspects
+         --  in Analyze_Aspect_Specifications.
+
+         if From_Aspect_Specification (N) then
+            return False;
+         end if;
+
+         --  Otherwise current clause may duplicate previous clause or a
+         --  previously given aspect specification for the same aspect.
+
+         A := Get_Rep_Item_For_Entity (U_Ent, Chars (N));
+
+         if Present (A) then
+            if Entity (A) = U_Ent then
+               Error_Msg_Name_1 := Chars (N);
+               Error_Msg_Sloc := Sloc (A);
+               Error_Msg_NE ("aspect% for & previously given#", N, U_Ent);
+               return True;
+            end if;
+         end if;
+
+         return False;
+      end Duplicate_Clause;
+
    --  Start of processing for Analyze_Attribute_Definition_Clause
 
    begin
@@ -929,6 +1508,8 @@ package body Sem_Ch13 is
          return;
       end if;
 
+      Set_Entity (N, U_Ent);
+
       --  Switch on particular attribute
 
       case Id is
@@ -970,8 +1551,8 @@ package body Sem_Ch13 is
                return;
             end if;
 
-            if Present (Address_Clause (U_Ent)) then
-               Error_Msg_N ("address already given for &", Nam);
+            if Duplicate_Clause then
+               null;
 
             --  Case of address clause for subprogram
 
@@ -1236,9 +1817,8 @@ package body Sem_Ch13 is
             then
                Error_Msg_N ("alignment cannot be given for &", Nam);
 
-            elsif Has_Alignment_Clause (U_Ent) then
-               Error_Msg_Sloc := Sloc (Alignment_Clause (U_Ent));
-               Error_Msg_N ("alignment clause previously given#", N);
+            elsif Duplicate_Clause then
+               null;
 
             elsif Align /= No_Uint then
                Set_Has_Alignment_Clause (U_Ent);
@@ -1266,6 +1846,9 @@ package body Sem_Ch13 is
             if not Is_Record_Type (U_Ent) then
                Error_Msg_N
                  ("Bit_Order can only be defined for record type", Nam);
+
+            elsif Duplicate_Clause then
+               null;
 
             else
                Analyze_And_Resolve (Expr, RTE (RE_Bit_Order));
@@ -1298,34 +1881,6 @@ package body Sem_Ch13 is
             Biased   : Boolean;
             New_Ctyp : Entity_Id;
             Decl     : Node_Id;
-            Ignore   : Boolean := False;
-
-            procedure Complain_CS (T : String);
-            --  Outputs error messages for incorrect CS clause for aliased or
-            --  atomic components (T is "aliased" or "atomic");
-
-            -----------------
-            -- Complain_CS --
-            -----------------
-
-            procedure Complain_CS (T : String) is
-            begin
-               if Known_Static_Esize (Ctyp) then
-                  Error_Msg_N
-                    ("incorrect component size for " & T & " components", N);
-                  Error_Msg_Uint_1 := Esize (Ctyp);
-                  Error_Msg_N ("\only allowed value is^", N);
-
-               else
-                  Error_Msg_N
-                    ("component size cannot be given for " & T & " components",
-                     N);
-               end if;
-
-               return;
-            end Complain_CS;
-
-         --  Start of processing for Component_Size_Case
 
          begin
             if not Is_Array_Type (U_Ent) then
@@ -1336,51 +1891,20 @@ package body Sem_Ch13 is
             Btype := Base_Type (U_Ent);
             Ctyp := Component_Type (Btype);
 
-            if Has_Component_Size_Clause (Btype) then
-               Error_Msg_N
-                 ("component size clause for& previously given", Nam);
+            if Duplicate_Clause then
+               null;
+
+            elsif Rep_Item_Too_Early (Btype, N) then
+               null;
 
             elsif Csize /= No_Uint then
                Check_Size (Expr, Ctyp, Csize, Biased);
 
-               --  Case where component size has no effect
-
-               if Known_Static_Esize (Ctyp)
-                 and then Known_Static_RM_Size (Ctyp)
-                 and then Esize (Ctyp) = RM_Size (Ctyp)
-                 and then (Esize (Ctyp) = 8  or else
-                           Esize (Ctyp) = 16 or else
-                           Esize (Ctyp) = 32 or else
-                           Esize (Ctyp) = 64)
-               then
-                  Ignore := True;
-
-               --  Cannot give component size for aliased/atomic components
-
-               elsif Has_Aliased_Components (Btype)
-                 or else Is_Aliased (Ctyp)
-               then
-                  Complain_CS ("aliased");
-
-               elsif Has_Atomic_Components (Btype)
-                  or else Is_Atomic (Ctyp)
-               then
-                  Complain_CS ("atomic");
-
-               --  Warn for case of atomic type
-
-               elsif Is_Atomic (Btype) then
-                  Error_Msg_NE
-                    ("non-atomic components of type& may not be accessible "
-                     & "by separate tasks?", N, Btype);
-               end if;
-
-               --  For the biased case, build a declaration for a subtype
-               --  that will be used to represent the biased subtype that
-               --  reflects the biased representation of components. We need
-               --  this subtype to get proper conversions on referencing
-               --  elements of the array. Note that component size clauses
-               --  are ignored in VM mode.
+               --  For the biased case, build a declaration for a subtype that
+               --  will be used to represent the biased subtype that reflects
+               --  the biased representation of components. We need the subtype
+               --  to get proper conversions on referencing elements of the
+               --  array. Note: component size clauses are ignored in VM mode.
 
                if VM_Target = No_VM then
                   if Biased then
@@ -1435,10 +1959,7 @@ package body Sem_Ch13 is
                end if;
 
                Set_Has_Component_Size_Clause (Btype, True);
-
-               if not Ignore then
-                  Set_Has_Non_Standard_Rep (Btype, True);
-               end if;
+               Set_Has_Non_Standard_Rep (Btype, True);
             end if;
          end Component_Size_Case;
 
@@ -1452,28 +1973,33 @@ package body Sem_Ch13 is
                Error_Msg_N ("should be a tagged type", Nam);
             end if;
 
-            Analyze_And_Resolve (Expr, Standard_String);
+            if Duplicate_Clause then
+               null;
 
-            if not Is_Static_Expression (Expr) then
-               Flag_Non_Static_Expr
-                 ("static string required for tag name!", Nam);
-            end if;
-
-            if VM_Target = No_VM then
-               Set_Has_External_Tag_Rep_Clause (U_Ent);
             else
-               Error_Msg_Name_1 := Attr;
-               Error_Msg_N
-                 ("% attribute unsupported in this configuration", Nam);
-            end if;
+               Analyze_And_Resolve (Expr, Standard_String);
 
-            if not Is_Library_Level_Entity (U_Ent) then
-               Error_Msg_NE
-                 ("?non-unique external tag supplied for &", N, U_Ent);
-               Error_Msg_N
-                 ("?\same external tag applies to all subprogram calls", N);
-               Error_Msg_N
-                 ("?\corresponding internal tag cannot be obtained", N);
+               if not Is_Static_Expression (Expr) then
+                  Flag_Non_Static_Expr
+                    ("static string required for tag name!", Nam);
+               end if;
+
+               if VM_Target = No_VM then
+                  Set_Has_External_Tag_Rep_Clause (U_Ent);
+               else
+                  Error_Msg_Name_1 := Attr;
+                  Error_Msg_N
+                    ("% attribute unsupported in this configuration", Nam);
+               end if;
+
+               if not Is_Library_Level_Entity (U_Ent) then
+                  Error_Msg_NE
+                    ("?non-unique external tag supplied for &", N, U_Ent);
+                  Error_Msg_N
+                    ("?\same external tag applies to all subprogram calls", N);
+                  Error_Msg_N
+                    ("?\corresponding internal tag cannot be obtained", N);
+               end if;
             end if;
          end External_Tag;
 
@@ -1498,9 +2024,8 @@ package body Sem_Ch13 is
             if not Is_Decimal_Fixed_Point_Type (U_Ent) then
                Error_Msg_N ("decimal fixed-point type expected for &", Nam);
 
-            elsif Has_Machine_Radix_Clause (U_Ent) then
-               Error_Msg_Sloc := Sloc (Alignment_Clause (U_Ent));
-               Error_Msg_N ("machine radix clause previously given#", N);
+            elsif Duplicate_Clause then
+               null;
 
             elsif Radix /= No_Uint then
                Set_Has_Machine_Radix_Clause (U_Ent);
@@ -1532,8 +2057,8 @@ package body Sem_Ch13 is
             if not Is_Type (U_Ent) then
                Error_Msg_N ("Object_Size cannot be given for &", Nam);
 
-            elsif Has_Object_Size_Clause (U_Ent) then
-               Error_Msg_N ("Object_Size already given for &", Nam);
+            elsif Duplicate_Clause then
+               null;
 
             else
                Check_Size (Expr, U_Ent, Size, Biased);
@@ -1587,8 +2112,8 @@ package body Sem_Ch13 is
          begin
             FOnly := True;
 
-            if Has_Size_Clause (U_Ent) then
-               Error_Msg_N ("size already given for &", Nam);
+            if Duplicate_Clause then
+               null;
 
             elsif not Is_Type (U_Ent)
               and then Ekind (U_Ent) /= E_Variable
@@ -1770,8 +2295,7 @@ package body Sem_Ch13 is
                  ("storage pool cannot be given for a derived access type",
                   Nam);
 
-            elsif Has_Storage_Size_Clause (U_Ent) then
-               Error_Msg_N ("storage size already given for &", Nam);
+            elsif Duplicate_Clause then
                return;
 
             elsif Present (Associated_Storage_Pool (U_Ent)) then
@@ -1900,8 +2424,8 @@ package body Sem_Ch13 is
                  ("storage size cannot be given for a derived access type",
                   Nam);
 
-            elsif Has_Storage_Size_Clause (Btype) then
-               Error_Msg_N ("storage size already given for &", Nam);
+            elsif Duplicate_Clause then
+               null;
 
             else
                Analyze_And_Resolve (Expr, Any_Integer);
@@ -1945,8 +2469,8 @@ package body Sem_Ch13 is
                Check_Restriction (No_Implementation_Attributes, N);
             end if;
 
-            if Has_Stream_Size_Clause (U_Ent) then
-               Error_Msg_N ("Stream_Size already given for &", Nam);
+            if Duplicate_Clause then
+               null;
 
             elsif Is_Elementary_Type (U_Ent) then
                if Size /= System_Storage_Unit
@@ -1990,11 +2514,8 @@ package body Sem_Ch13 is
             if not Is_Type (U_Ent) then
                Error_Msg_N ("Value_Size cannot be given for &", Nam);
 
-            elsif Present
-                   (Get_Attribute_Definition_Clause
-                     (U_Ent, Attribute_Value_Size))
-            then
-               Error_Msg_N ("Value_Size already given for &", Nam);
+            elsif Duplicate_Clause then
+               null;
 
             elsif Is_Array_Type (U_Ent)
               and then not Is_Constrained (U_Ent)
@@ -2465,7 +2986,7 @@ package body Sem_Ch13 is
       --  also used to locate primitives covering interfaces when processing
       --  generics (see Derive_Subprograms).
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Ekind (E) = E_Record_Type
         and then Is_Tagged_Type (E)
         and then not Is_Interface (E)
@@ -2545,6 +3066,23 @@ package body Sem_Ch13 is
       end if;
 
       Inside_Freezing_Actions := Inside_Freezing_Actions - 1;
+
+      --  If we have a type with predicates, build predicate function
+
+      if Is_Type (E) and then Has_Predicates (E) then
+         declare
+            FDecl : Node_Id;
+            FBody : Node_Id;
+
+         begin
+            Build_Predicate_Function (E, FDecl, FBody);
+
+            if Present (FDecl) then
+               Insert_After (N, FBody);
+               Insert_After (N, FDecl);
+            end if;
+         end;
+      end if;
    end Analyze_Freeze_Entity;
 
    ------------------------------------------
@@ -2976,6 +3514,1410 @@ package body Sem_Ch13 is
          end;
       end if;
    end Analyze_Record_Representation_Clause;
+
+   -------------------------------
+   -- Build_Invariant_Procedure --
+   -------------------------------
+
+   --  The procedure that is constructed here has the form
+
+   --  procedure typInvariant (Ixxx : typ) is
+   --  begin
+   --     pragma Check (Invariant, exp, "failed invariant from xxx");
+   --     pragma Check (Invariant, exp, "failed invariant from xxx");
+   --     ...
+   --     pragma Check (Invariant, exp, "failed inherited invariant from xxx");
+   --     ...
+   --  end typInvariant;
+
+   procedure Build_Invariant_Procedure
+     (Typ   : Entity_Id;
+      PDecl : out Node_Id;
+      PBody : out Node_Id)
+   is
+      Loc   : constant Source_Ptr := Sloc (Typ);
+      Stmts : List_Id;
+      Spec  : Node_Id;
+      SId   : Entity_Id;
+
+      procedure Add_Invariants (T : Entity_Id; Inherit : Boolean);
+      --  Appends statements to Stmts for any invariants in the rep item chain
+      --  of the given type. If Inherit is False, then we only process entries
+      --  on the chain for the type Typ. If Inherit is True, then we ignore any
+      --  Invariant aspects, but we process all Invariant'Class aspects, adding
+      --  "inherited" to the exception message and generating an informational
+      --  message about the inheritance of an invariant.
+
+      Object_Name : constant Name_Id := New_Internal_Name ('I');
+      --  Name for argument of invariant procedure
+
+      --------------------
+      -- Add_Invariants --
+      --------------------
+
+      procedure Add_Invariants (T : Entity_Id; Inherit : Boolean) is
+         Ritem : Node_Id;
+         Arg1  : Node_Id;
+         Arg2  : Node_Id;
+         Arg3  : Node_Id;
+         Exp   : Node_Id;
+         Loc   : Source_Ptr;
+         Assoc : List_Id;
+         Str   : String_Id;
+
+         function Replace_Node (N : Node_Id) return Traverse_Result;
+         --  Process single node for traversal to replace type references
+
+         procedure Replace_Type is new Traverse_Proc (Replace_Node);
+         --  Traverse an expression changing every occurrence of an entity
+         --  reference to type T with a reference to the object argument.
+
+         ------------------
+         -- Replace_Node --
+         ------------------
+
+         function Replace_Node (N : Node_Id) return Traverse_Result is
+         begin
+            --  Case of entity name referencing the type
+
+            if Is_Entity_Name (N)
+              and then Entity (N) = T
+            then
+               --  Invariant'Class, replace with T'Class (obj)
+
+               if Class_Present (Ritem) then
+                  Rewrite (N,
+                    Make_Type_Conversion (Loc,
+                      Subtype_Mark =>
+                        Make_Attribute_Reference (Loc,
+                          Prefix         =>
+                            New_Occurrence_Of (T, Loc),
+                          Attribute_Name => Name_Class),
+                      Expression =>
+                        Make_Identifier (Loc,
+                          Chars => Object_Name)));
+
+               --  Invariant, replace with obj
+
+               else
+                  Rewrite (N,
+                    Make_Identifier (Loc,
+                      Chars => Object_Name));
+               end if;
+
+               --  All done with this node
+
+               return Skip;
+
+            --  Not an instance of the type entity, keep going
+
+            else
+               return OK;
+            end if;
+         end Replace_Node;
+
+      --  Start of processing for Add_Invariants
+
+      begin
+         Ritem := First_Rep_Item (T);
+         while Present (Ritem) loop
+            if Nkind (Ritem) = N_Pragma
+              and then Pragma_Name (Ritem) = Name_Invariant
+            then
+               Arg1 := First (Pragma_Argument_Associations (Ritem));
+               Arg2 := Next (Arg1);
+               Arg3 := Next (Arg2);
+
+               Arg1 := Get_Pragma_Arg (Arg1);
+               Arg2 := Get_Pragma_Arg (Arg2);
+
+               --  For Inherit case, ignore Invariant, process only Class case
+
+               if Inherit then
+                  if not Class_Present (Ritem) then
+                     goto Continue;
+                  end if;
+
+               --  For Inherit false, process only item for right type
+
+               else
+                  if Entity (Arg1) /= Typ then
+                     goto Continue;
+                  end if;
+               end if;
+
+               if No (Stmts) then
+                  Stmts := Empty_List;
+               end if;
+
+               Exp := New_Copy_Tree (Arg2);
+               Loc := Sloc (Exp);
+
+               --  We need to replace any occurrences of the name of the type
+               --  with references to the object, converted to type'Class in
+               --  the case of Invariant'Class aspects. We do this by first
+               --  doing a preanalysis, to identify all the entities, then
+               --  we traverse looking for the type entity, and doing the
+               --  necessary substitution. The preanalysis is done with the
+               --  special OK_To_Reference flag set on the type, so that if
+               --  we get an occurrence of this type, it will be reognized
+               --  as legitimate.
+
+               Set_OK_To_Reference (T, True);
+               Preanalyze_Spec_Expression (Exp, Standard_Boolean);
+               Set_OK_To_Reference (T, False);
+
+               --  Do the traversal
+
+               Replace_Type (Exp);
+
+               --  Build first two arguments for Check pragma
+
+               Assoc := New_List (
+                 Make_Pragma_Argument_Association (Loc,
+                    Expression =>
+                      Make_Identifier (Loc,
+                        Chars => Name_Invariant)),
+                  Make_Pragma_Argument_Association (Loc,
+                    Expression => Exp));
+
+               --  Add message if present in Invariant pragma
+
+               if Present (Arg3) then
+                  Str := Strval (Get_Pragma_Arg (Arg3));
+
+                  --  If inherited case, and message starts "failed invariant",
+                  --  change it to be "failed inherited invariant".
+
+                  if Inherit then
+                     String_To_Name_Buffer (Str);
+
+                     if Name_Buffer (1 .. 16) = "failed invariant" then
+                        Insert_Str_In_Name_Buffer ("inherited ", 8);
+                        Str := String_From_Name_Buffer;
+                     end if;
+                  end if;
+
+                  Append_To (Assoc,
+                    Make_Pragma_Argument_Association (Loc,
+                      Expression => Make_String_Literal (Loc, Str)));
+               end if;
+
+               --  Add Check pragma to list of statements
+
+               Append_To (Stmts,
+                 Make_Pragma (Loc,
+                   Pragma_Identifier            =>
+                     Make_Identifier (Loc,
+                       Chars => Name_Check),
+                   Pragma_Argument_Associations => Assoc));
+
+               --  If Inherited case and option enabled, output info msg. Note
+               --  that we know this is a case of Invariant'Class.
+
+               if Inherit and Opt.List_Inherited_Aspects then
+                  Error_Msg_Sloc := Sloc (Ritem);
+                  Error_Msg_N
+                    ("?info: & inherits `Invariant''Class` aspect from #",
+                     Typ);
+               end if;
+            end if;
+
+         <<Continue>>
+            Next_Rep_Item (Ritem);
+         end loop;
+      end Add_Invariants;
+
+   --  Start of processing for Build_Invariant_Procedure
+
+   begin
+      Stmts := No_List;
+      PDecl := Empty;
+      PBody := Empty;
+
+      --  Add invariants for the current type
+
+      Add_Invariants (Typ, Inherit => False);
+
+      --  Add invariants for parent types
+
+      declare
+         Current_Typ : Entity_Id;
+         Parent_Typ  : Entity_Id;
+
+      begin
+         Current_Typ := Typ;
+         loop
+            Parent_Typ := Etype (Current_Typ);
+
+            if Is_Private_Type (Parent_Typ)
+              and then Present (Full_View (Base_Type (Parent_Typ)))
+            then
+               Parent_Typ := Full_View (Base_Type (Parent_Typ));
+            end if;
+
+            exit when Parent_Typ = Current_Typ;
+
+            Current_Typ := Parent_Typ;
+            Add_Invariants (Current_Typ, Inherit => True);
+         end loop;
+      end;
+
+      --  Build the procedure if we generated at least one Check pragma
+
+      if Stmts /= No_List then
+
+         --  Build procedure declaration
+
+         pragma Assert (Has_Invariants (Typ));
+         SId :=
+           Make_Defining_Identifier (Loc,
+             Chars => New_External_Name (Chars (Typ), "Invariant"));
+         Set_Has_Invariants (SId);
+         Set_Invariant_Procedure (Typ, SId);
+
+         Spec :=
+           Make_Procedure_Specification (Loc,
+             Defining_Unit_Name       => SId,
+             Parameter_Specifications => New_List (
+               Make_Parameter_Specification (Loc,
+                 Defining_Identifier =>
+                   Make_Defining_Identifier (Loc,
+                     Chars => Object_Name),
+                 Parameter_Type =>
+                   New_Occurrence_Of (Typ, Loc))));
+
+         PDecl :=
+           Make_Subprogram_Declaration (Loc,
+             Specification => Spec);
+
+         --  Build procedure body
+
+         SId :=
+           Make_Defining_Identifier (Loc,
+             Chars => New_External_Name (Chars (Typ), "Invariant"));
+
+         Spec :=
+           Make_Procedure_Specification (Loc,
+             Defining_Unit_Name       => SId,
+             Parameter_Specifications => New_List (
+               Make_Parameter_Specification (Loc,
+                 Defining_Identifier =>
+                   Make_Defining_Identifier (Loc,
+                     Chars => Object_Name),
+                 Parameter_Type =>
+                   New_Occurrence_Of (Typ, Loc))));
+
+         PBody :=
+           Make_Subprogram_Body (Loc,
+             Specification              => Spec,
+             Declarations               => Empty_List,
+             Handled_Statement_Sequence =>
+               Make_Handled_Sequence_Of_Statements (Loc,
+                 Statements => Stmts));
+      end if;
+   end Build_Invariant_Procedure;
+
+   ------------------------------
+   -- Build_Predicate_Function --
+   ------------------------------
+
+   --  The procedure that is constructed here has the form
+
+   --  function typPredicate (Ixxx : typ) return Boolean is
+   --  begin
+   --     return
+   --        exp1 and then exp2 and then ...
+   --        and then typ1Predicate (typ1 (Ixxx))
+   --        and then typ2Predicate (typ2 (Ixxx))
+   --        and then ...;
+   --  end typPredicate;
+
+   --  Here exp1, and exp2 are expressions from Predicate pragmas. Note that
+   --  this is the point at which these expressions get analyzed, providing the
+   --  required delay, and typ1, typ2, are entities from which predicates are
+   --  inherited. Note that we do NOT generate Check pragmas, that's because we
+   --  use this function even if checks are off, e.g. for membership tests.
+
+   procedure Build_Predicate_Function
+     (Typ   : Entity_Id;
+      FDecl : out Node_Id;
+      FBody : out Node_Id)
+   is
+      Loc  : constant Source_Ptr := Sloc (Typ);
+      Spec : Node_Id;
+      SId  : Entity_Id;
+
+      Expr : Node_Id;
+      --  This is the expression for the return statement in the function. It
+      --  is build by connecting the component predicates with AND THEN.
+
+      procedure Add_Call (T : Entity_Id);
+      --  Includes a call to the predicate function for type T in Expr if T
+      --  has predicates and Predicate_Function (T) is non-empty.
+
+      procedure Add_Predicates;
+      --  Appends expressions for any Predicate pragmas in the rep item chain
+      --  Typ to Expr. Note that we look only at items for this exact entity.
+      --  Inheritance of predicates for the parent type is done by calling the
+      --  Predicate_Function of the parent type, using Add_Call above.
+
+      Object_Name : constant Name_Id := New_Internal_Name ('I');
+      --  Name for argument of Predicate procedure
+
+      --------------
+      -- Add_Call --
+      --------------
+
+      procedure Add_Call (T : Entity_Id) is
+         Exp : Node_Id;
+
+      begin
+         if Present (T) and then Present (Predicate_Function (T)) then
+            Set_Has_Predicates (Typ);
+
+            --  Build the call to the predicate function of T
+
+            Exp :=
+              Make_Predicate_Call
+                (T,
+                 Convert_To (T,
+                   Make_Identifier (Loc, Chars => Object_Name)));
+
+            --  Add call to evolving expression, using AND THEN if needed
+
+            if No (Expr) then
+               Expr := Exp;
+            else
+               Expr :=
+                 Make_And_Then (Loc,
+                   Left_Opnd  => Relocate_Node (Expr),
+                   Right_Opnd => Exp);
+            end if;
+
+            --  Output info message on inheritance if required. Note we do not
+            --  give this information for generic actual types, since it is
+            --  unwelcome noise in that case in instantiations. We also
+            --  generally suppress the message in instantiations.
+
+            if Opt.List_Inherited_Aspects
+              and then not Is_Generic_Actual_Type (Typ)
+              and then Instantiation_Depth (Sloc (Typ)) = 0
+            then
+               Error_Msg_Sloc := Sloc (Predicate_Function (T));
+               Error_Msg_Node_2 := T;
+               Error_Msg_N ("?info: & inherits predicate from & #", Typ);
+            end if;
+         end if;
+      end Add_Call;
+
+      --------------------
+      -- Add_Predicates --
+      --------------------
+
+      procedure Add_Predicates is
+         Ritem : Node_Id;
+         Arg1  : Node_Id;
+         Arg2  : Node_Id;
+
+         function Replace_Node (N : Node_Id) return Traverse_Result;
+         --  Process single node for traversal to replace type references
+
+         procedure Replace_Type is new Traverse_Proc (Replace_Node);
+         --  Traverse an expression changing every occurrence of an entity
+         --  reference to type T with a reference to the object argument.
+
+         ------------------
+         -- Replace_Node --
+         ------------------
+
+         function Replace_Node (N : Node_Id) return Traverse_Result is
+         begin
+            --  Case of entity name referencing the type
+
+            if Is_Entity_Name (N) and then Entity (N) = Typ then
+
+               --  Replace with object
+
+               Rewrite (N,
+                 Make_Identifier (Loc,
+                   Chars => Object_Name));
+
+               --  All done with this node
+
+               return Skip;
+
+            --  Not an occurrence of the type entity, keep going
+
+            else
+               return OK;
+            end if;
+         end Replace_Node;
+
+      --  Start of processing for Add_Predicates
+
+      begin
+         Ritem := First_Rep_Item (Typ);
+         while Present (Ritem) loop
+            if Nkind (Ritem) = N_Pragma
+              and then Pragma_Name (Ritem) = Name_Predicate
+            then
+               Arg1 := First (Pragma_Argument_Associations (Ritem));
+               Arg2 := Next (Arg1);
+
+               Arg1 := Get_Pragma_Arg (Arg1);
+               Arg2 := Get_Pragma_Arg (Arg2);
+
+               --  See if this predicate pragma is for the current type
+
+               if Entity (Arg1) = Typ then
+
+                  --  We have a match, this entry is for our subtype
+
+                  --  First We need to replace any occurrences of the name of
+                  --  the type with references to the object. We do this by
+                  --  first doing a preanalysis, to identify all the entities,
+                  --  then we traverse looking for the type entity, doing the
+                  --  needed substitution. The preanalysis is done with the
+                  --  special OK_To_Reference flag set on the type, so that if
+                  --  we get an occurrence of this type, it will be recognized
+                  --  as legitimate.
+
+                  Set_OK_To_Reference (Typ, True);
+                  Preanalyze_Spec_Expression (Arg2, Standard_Boolean);
+                  Set_OK_To_Reference (Typ, False);
+                  Replace_Type (Arg2);
+
+                  --  OK, replacement complete, now we can add the expression
+
+                  if No (Expr) then
+                     Expr := Relocate_Node (Arg2);
+
+                  --  There already was a predicate, so add to it
+
+                  else
+                     Expr :=
+                       Make_And_Then (Loc,
+                         Left_Opnd  => Relocate_Node (Expr),
+                         Right_Opnd => Relocate_Node (Arg2));
+                  end if;
+               end if;
+            end if;
+
+            Next_Rep_Item (Ritem);
+         end loop;
+      end Add_Predicates;
+
+   --  Start of processing for Build_Predicate_Function
+
+   begin
+      --  Initialize for construction of statement list
+
+      Expr  := Empty;
+      FDecl := Empty;
+      FBody := Empty;
+
+      --  Return if already built or if type does not have predicates
+
+      if not Has_Predicates (Typ)
+        or else Present (Predicate_Function (Typ))
+      then
+         return;
+      end if;
+
+      --  Add Predicates for the current type
+
+      Add_Predicates;
+
+      --  Add predicates for ancestor if present
+
+      declare
+         Atyp : constant Entity_Id := Nearest_Ancestor (Typ);
+      begin
+         if Present (Atyp) then
+            Add_Call (Atyp);
+         end if;
+      end;
+
+      --  If we have predicates, build the function
+
+      if Present (Expr) then
+
+         --  Deal with static predicate case
+
+         if Ekind_In (Typ, E_Enumeration_Subtype,
+                           E_Modular_Integer_Subtype,
+                           E_Signed_Integer_Subtype)
+           and then Is_Static_Subtype (Typ)
+         then
+            Build_Static_Predicate (Typ, Expr, Object_Name);
+         end if;
+
+         --  Build function declaration
+
+         pragma Assert (Has_Predicates (Typ));
+         SId :=
+           Make_Defining_Identifier (Loc,
+             Chars => New_External_Name (Chars (Typ), "Predicate"));
+         Set_Has_Predicates (SId);
+         Set_Predicate_Function (Typ, SId);
+
+         Spec :=
+           Make_Function_Specification (Loc,
+             Defining_Unit_Name       => SId,
+             Parameter_Specifications => New_List (
+               Make_Parameter_Specification (Loc,
+                 Defining_Identifier =>
+                   Make_Defining_Identifier (Loc, Chars => Object_Name),
+                 Parameter_Type      => New_Occurrence_Of (Typ, Loc))),
+             Result_Definition        =>
+               New_Occurrence_Of (Standard_Boolean, Loc));
+
+         FDecl :=
+           Make_Subprogram_Declaration (Loc,
+             Specification => Spec);
+
+         --  Build function body
+
+         SId :=
+           Make_Defining_Identifier (Loc,
+             Chars => New_External_Name (Chars (Typ), "Predicate"));
+
+         Spec :=
+           Make_Function_Specification (Loc,
+             Defining_Unit_Name       => SId,
+             Parameter_Specifications => New_List (
+               Make_Parameter_Specification (Loc,
+                 Defining_Identifier =>
+                   Make_Defining_Identifier (Loc, Chars => Object_Name),
+                 Parameter_Type =>
+                   New_Occurrence_Of (Typ, Loc))),
+             Result_Definition        =>
+               New_Occurrence_Of (Standard_Boolean, Loc));
+
+         FBody :=
+           Make_Subprogram_Body (Loc,
+             Specification              => Spec,
+             Declarations               => Empty_List,
+             Handled_Statement_Sequence =>
+               Make_Handled_Sequence_Of_Statements (Loc,
+                 Statements => New_List (
+                   Make_Simple_Return_Statement (Loc,
+                     Expression => Expr))));
+      end if;
+   end Build_Predicate_Function;
+
+   ----------------------------
+   -- Build_Static_Predicate --
+   ----------------------------
+
+   procedure Build_Static_Predicate
+     (Typ  : Entity_Id;
+      Expr : Node_Id;
+      Nam  : Name_Id)
+   is
+      Loc : constant Source_Ptr := Sloc (Expr);
+
+      Non_Static : exception;
+      --  Raised if something non-static is found
+
+      Btyp : constant Entity_Id := Base_Type (Typ);
+
+      BLo : constant Uint := Expr_Value (Type_Low_Bound  (Btyp));
+      BHi : constant Uint := Expr_Value (Type_High_Bound (Btyp));
+      --  Low bound and high bound value of base type of Typ
+
+      TLo : constant Uint := Expr_Value (Type_Low_Bound  (Typ));
+      THi : constant Uint := Expr_Value (Type_High_Bound (Typ));
+      --  Low bound and high bound values of static subtype Typ
+
+      type REnt is record
+         Lo, Hi : Uint;
+      end record;
+      --  One entry in a Rlist value, a single REnt (range entry) value
+      --  denotes one range from Lo to Hi. To represent a single value
+      --  range Lo = Hi = value.
+
+      type RList is array (Nat range <>) of REnt;
+      --  A list of ranges. The ranges are sorted in increasing order,
+      --  and are disjoint (there is a gap of at least one value between
+      --  each range in the table). A value is in the set of ranges in
+      --  Rlist if it lies within one of these ranges
+
+      False_Range : constant RList :=
+                      RList'(1 .. 0 => REnt'(No_Uint, No_Uint));
+      --  An empty set of ranges represents a range list that can never be
+      --  satisfied, since there are no ranges in which the value could lie,
+      --  so it does not lie in any of them. False_Range is a canonical value
+      --  for this empty set, but general processing should test for an Rlist
+      --  with length zero (see Is_False predicate), since other null ranges
+      --  may appear which must be treated as False.
+
+      True_Range : constant RList := RList'(1 => REnt'(BLo, BHi));
+      --  Range representing True, value must be in the base range
+
+      function "and" (Left, Right : RList) return RList;
+      --  And's together two range lists, returning a range list. This is
+      --  a set intersection operation.
+
+      function "or" (Left, Right : RList) return RList;
+      --  Or's together two range lists, returning a range list. This is a
+      --  set union operation.
+
+      function "not" (Right : RList) return RList;
+      --  Returns complement of a given range list, i.e. a range list
+      --  representing all the values in TLo .. THi that are not in the
+      --  input operand Right.
+
+      function Build_Val (V : Uint) return Node_Id;
+      --  Return an analyzed N_Identifier node referencing this value, suitable
+      --  for use as an entry in the Static_Predicate list. This node is typed
+      --  with the base type.
+
+      function Build_Range (Lo, Hi : Uint) return Node_Id;
+      --  Return an analyzed N_Range node referencing this range, suitable
+      --  for use as an entry in the Static_Predicate list. This node is typed
+      --  with the base type.
+
+      function Get_RList (Exp : Node_Id) return RList;
+      --  This is a recursive routine that converts the given expression into
+      --  a list of ranges, suitable for use in building the static predicate.
+
+      function Is_False (R : RList) return Boolean;
+      pragma Inline (Is_False);
+      --  Returns True if the given range list is empty, and thus represents
+      --  a False list of ranges that can never be satsified.
+
+      function Is_True (R : RList) return Boolean;
+      --  Returns True if R trivially represents the True predicate by having
+      --  a single range from BLo to BHi.
+
+      function Is_Type_Ref (N : Node_Id) return Boolean;
+      pragma Inline (Is_Type_Ref);
+      --  Returns if True if N is a reference to the type for the predicate in
+      --  the expression (i.e. if it is an identifier whose Chars field matches
+      --  the Nam given in the call).
+
+      function Lo_Val (N : Node_Id) return Uint;
+      --  Given static expression or static range from a Static_Predicate list,
+      --  gets expression value or low bound of range.
+
+      function Hi_Val (N : Node_Id) return Uint;
+      --  Given static expression or static range from a Static_Predicate list,
+      --  gets expression value of high bound of range.
+
+      function Membership_Entry (N : Node_Id) return RList;
+      --  Given a single membership entry (range, value, or subtype), returns
+      --  the corresponding range list. Raises Static_Error if not static.
+
+      function Membership_Entries (N : Node_Id) return RList;
+      --  Given an element on an alternatives list of a membership operation,
+      --  returns the range list corresponding to this entry and all following
+      --  entries (i.e. returns the "or" of this list of values).
+
+      function Stat_Pred (Typ : Entity_Id) return RList;
+      --  Given a type, if it has a static predicate, then return the predicate
+      --  as a range list, otherwise raise Non_Static.
+
+      -----------
+      -- "and" --
+      -----------
+
+      function "and" (Left, Right : RList) return RList is
+         FEnt : REnt;
+         --  First range of result
+
+         SLeft : Nat := Left'First;
+         --  Start of rest of left entries
+
+         SRight : Nat := Right'First;
+         --  Start of rest of right entries
+
+      begin
+         --  If either range is True, return the other
+
+         if Is_True (Left) then
+            return Right;
+         elsif Is_True (Right) then
+            return Left;
+         end if;
+
+         --  If either range is False, return False
+
+         if Is_False (Left) or else Is_False (Right) then
+            return False_Range;
+         end if;
+
+         --  Loop to remove entries at start that are disjoint, and thus
+         --  just get discarded from the result entirely.
+
+         loop
+            --  If no operands left in either operand, result is false
+
+            if SLeft > Left'Last or else SRight > Right'Last then
+               return False_Range;
+
+            --  Discard first left operand entry if disjoint with right
+
+            elsif Left (SLeft).Hi < Right (SRight).Lo then
+               SLeft := SLeft + 1;
+
+            --  Discard first right operand entry if disjoint with left
+
+            elsif Right (SRight).Hi < Left (SLeft).Lo then
+               SRight := SRight + 1;
+
+            --  Otherwise we have an overlapping entry
+
+            else
+               exit;
+            end if;
+         end loop;
+
+         --  Now we have two non-null operands, and first entries overlap.
+         --  The first entry in the result will be the overlapping part of
+         --  these two entries.
+
+         FEnt := REnt'(Lo => UI_Max (Left (SLeft).Lo, Right (SRight).Lo),
+                       Hi => UI_Min (Left (SLeft).Hi, Right (SRight).Hi));
+
+         --  Now we can remove the entry that ended at a lower value, since
+         --  its contribution is entirely contained in Fent.
+
+         if Left (SLeft).Hi <= Right (SRight).Hi then
+            SLeft := SLeft + 1;
+         else
+            SRight := SRight + 1;
+         end if;
+
+         --  Compute result by concatenating this first entry with the "and"
+         --  of the remaining parts of the left and right operands. Note that
+         --  if either of these is empty, "and" will yield empty, so that we
+         --  will end up with just Fent, which is what we want in that case.
+
+         return
+           FEnt & (Left (SLeft .. Left'Last) and Right (SRight .. Right'Last));
+      end "and";
+
+      -----------
+      -- "not" --
+      -----------
+
+      function "not" (Right : RList) return RList is
+      begin
+         --  Return True if False range
+
+         if Is_False (Right) then
+            return True_Range;
+         end if;
+
+         --  Return False if True range
+
+         if Is_True (Right) then
+            return False_Range;
+         end if;
+
+         --  Here if not trivial case
+
+         declare
+            Result : RList (1 .. Right'Length + 1);
+            --  May need one more entry for gap at beginning and end
+
+            Count : Nat := 0;
+            --  Number of entries stored in Result
+
+         begin
+            --  Gap at start
+
+            if Right (Right'First).Lo > TLo then
+               Count := Count + 1;
+               Result (Count) := REnt'(TLo, Right (Right'First).Lo - 1);
+            end if;
+
+            --  Gaps between ranges
+
+            for J in Right'First .. Right'Last - 1 loop
+               Count := Count + 1;
+               Result (Count) :=
+                 REnt'(Right (J).Hi + 1, Right (J + 1).Lo - 1);
+            end loop;
+
+            --  Gap at end
+
+            if Right (Right'Last).Hi < THi then
+               Count := Count + 1;
+               Result (Count) := REnt'(Right (Right'Last).Hi + 1, THi);
+            end if;
+
+            return Result (1 .. Count);
+         end;
+      end "not";
+
+      ----------
+      -- "or" --
+      ----------
+
+      function "or" (Left, Right : RList) return RList is
+         FEnt : REnt;
+         --  First range of result
+
+         SLeft : Nat := Left'First;
+         --  Start of rest of left entries
+
+         SRight : Nat := Right'First;
+         --  Start of rest of right entries
+
+      begin
+         --  If either range is True, return True
+
+         if Is_True (Left) or else Is_True (Right) then
+            return True_Range;
+         end if;
+
+         --  If either range is False (empty), return the other
+
+         if Is_False (Left) then
+            return Right;
+         elsif Is_False (Right) then
+            return Left;
+         end if;
+
+         --  Initialize result first entry from left or right operand
+         --  depending on which starts with the lower range.
+
+         if Left (SLeft).Lo < Right (SRight).Lo then
+            FEnt := Left (SLeft);
+            SLeft := SLeft + 1;
+         else
+            FEnt := Right (SRight);
+            SRight := SRight + 1;
+         end if;
+
+         --  This loop eats ranges from left and right operands that
+         --  are contiguous with the first range we are gathering.
+
+         loop
+            --  Eat first entry in left operand if contiguous or
+            --  overlapped by gathered first operand of result.
+
+            if SLeft <= Left'Last
+              and then Left (SLeft).Lo <= FEnt.Hi + 1
+            then
+               FEnt.Hi := UI_Max (FEnt.Hi, Left (SLeft).Hi);
+               SLeft := SLeft + 1;
+
+               --  Eat first entry in right operand if contiguous or
+               --  overlapped by gathered right operand of result.
+
+            elsif SRight <= Right'Last
+              and then Right (SRight).Lo <= FEnt.Hi + 1
+            then
+               FEnt.Hi := UI_Max (FEnt.Hi, Right (SRight).Hi);
+               SRight := SRight + 1;
+
+               --  All done if no more entries to eat!
+
+            else
+               exit;
+            end if;
+         end loop;
+
+         --  Obtain result as the first entry we just computed, concatenated
+         --  to the "or" of the remaining results (if one operand is empty,
+         --  this will just concatenate with the other
+
+         return
+           FEnt & (Left (SLeft .. Left'Last) or Right (SRight .. Right'Last));
+      end "or";
+
+      -----------------
+      -- Build_Range --
+      -----------------
+
+      function Build_Range (Lo, Hi : Uint) return Node_Id is
+         Result : Node_Id;
+      begin
+         if Lo = Hi then
+            return Build_Val (Hi);
+         else
+            Result :=
+              Make_Range (Loc,
+                Low_Bound  => Build_Val (Lo),
+                High_Bound => Build_Val (Hi));
+            Set_Etype (Result, Btyp);
+            Set_Analyzed (Result);
+            return Result;
+         end if;
+      end Build_Range;
+
+      ---------------
+      -- Build_Val --
+      ---------------
+
+      function Build_Val (V : Uint) return Node_Id is
+         Result : Node_Id;
+
+      begin
+         if Is_Enumeration_Type (Typ) then
+            Result := Get_Enum_Lit_From_Pos (Typ, V, Loc);
+         else
+            Result := Make_Integer_Literal (Loc, Intval => V);
+         end if;
+
+         Set_Etype (Result, Btyp);
+         Set_Is_Static_Expression (Result);
+         Set_Analyzed (Result);
+         return Result;
+      end Build_Val;
+
+      ---------------
+      -- Get_RList --
+      ---------------
+
+      function Get_RList (Exp : Node_Id) return RList is
+         Op  : Node_Kind;
+         Val : Uint;
+
+      begin
+         --  Static expression can only be true or false
+
+         if Is_OK_Static_Expression (Exp) then
+
+            --  For False
+
+            if Expr_Value (Exp) = 0 then
+               return False_Range;
+            else
+               return True_Range;
+            end if;
+         end if;
+
+         --  Otherwise test node type
+
+         Op := Nkind (Exp);
+
+         case Op is
+
+            --  And
+
+            when N_Op_And | N_And_Then =>
+               return Get_RList (Left_Opnd (Exp))
+                        and
+                      Get_RList (Right_Opnd (Exp));
+
+            --  Or
+
+            when N_Op_Or | N_Or_Else =>
+               return Get_RList (Left_Opnd (Exp))
+                        or
+                      Get_RList (Right_Opnd (Exp));
+
+            --  Not
+
+            when N_Op_Not =>
+               return not Get_RList (Right_Opnd (Exp));
+
+            --  Comparisons of type with static value
+
+            when N_Op_Compare =>
+               --  Type is left operand
+
+               if Is_Type_Ref (Left_Opnd (Exp))
+                 and then Is_OK_Static_Expression (Right_Opnd (Exp))
+               then
+                  Val := Expr_Value (Right_Opnd (Exp));
+
+                  --  Typ is right operand
+
+               elsif Is_Type_Ref (Right_Opnd (Exp))
+                 and then Is_OK_Static_Expression (Left_Opnd (Exp))
+               then
+                  Val := Expr_Value (Left_Opnd (Exp));
+
+                  --  Invert sense of comparison
+
+                  case Op is
+                     when N_Op_Gt => Op := N_Op_Lt;
+                     when N_Op_Lt => Op := N_Op_Gt;
+                     when N_Op_Ge => Op := N_Op_Le;
+                     when N_Op_Le => Op := N_Op_Ge;
+                     when others  => null;
+                  end case;
+
+                  --  Other cases are non-static
+
+               else
+                  raise Non_Static;
+               end if;
+
+               --  Construct range according to comparison operation
+
+               case Op is
+                  when N_Op_Eq =>
+                     return RList'(1 => REnt'(Val, Val));
+
+                  when N_Op_Ge =>
+                     return RList'(1 => REnt'(Val, BHi));
+
+                  when N_Op_Gt =>
+                     return RList'(1 => REnt'(Val + 1, BHi));
+
+                  when N_Op_Le =>
+                     return RList'(1 => REnt'(BLo, Val));
+
+                  when N_Op_Lt =>
+                     return RList'(1 => REnt'(BLo, Val - 1));
+
+                  when N_Op_Ne =>
+                     return RList'(REnt'(BLo, Val - 1),
+                                   REnt'(Val + 1, BHi));
+
+                  when others  =>
+                     raise Program_Error;
+               end case;
+
+            --  Membership (IN)
+
+            when N_In =>
+               if not Is_Type_Ref (Left_Opnd (Exp)) then
+                  raise Non_Static;
+               end if;
+
+               if Present (Right_Opnd (Exp)) then
+                  return Membership_Entry (Right_Opnd (Exp));
+               else
+                  return Membership_Entries (First (Alternatives (Exp)));
+               end if;
+
+            --  Negative membership (NOT IN)
+
+            when N_Not_In =>
+               if not Is_Type_Ref (Left_Opnd (Exp)) then
+                  raise Non_Static;
+               end if;
+
+               if Present (Right_Opnd (Exp)) then
+                  return not Membership_Entry (Right_Opnd (Exp));
+               else
+                  return not Membership_Entries (First (Alternatives (Exp)));
+               end if;
+
+            --  Function call, may be call to static predicate
+
+            when N_Function_Call =>
+               if Is_Entity_Name (Name (Exp)) then
+                  declare
+                     Ent : constant Entity_Id := Entity (Name (Exp));
+                  begin
+                     if Has_Predicates (Ent) then
+                        return Stat_Pred (Etype (First_Formal (Ent)));
+                     end if;
+                  end;
+               end if;
+
+               --  Other function call cases are non-static
+
+               raise Non_Static;
+
+            --  Qualified expression, dig out the expression
+
+            when N_Qualified_Expression =>
+               return Get_RList (Expression (Exp));
+
+            --  Xor operator
+
+            when N_Op_Xor =>
+               return (Get_RList (Left_Opnd (Exp))
+                        and not Get_RList (Right_Opnd (Exp)))
+                 or   (Get_RList (Right_Opnd (Exp))
+                        and not Get_RList (Left_Opnd (Exp)));
+
+            --  Any other node type is non-static
+
+            when others =>
+               raise Non_Static;
+         end case;
+      end Get_RList;
+
+      ------------
+      -- Hi_Val --
+      ------------
+
+      function Hi_Val (N : Node_Id) return Uint is
+      begin
+         if Is_Static_Expression (N) then
+            return Expr_Value (N);
+         else
+            pragma Assert (Nkind (N) = N_Range);
+            return Expr_Value (High_Bound (N));
+         end if;
+      end Hi_Val;
+
+      --------------
+      -- Is_False --
+      --------------
+
+      function Is_False (R : RList) return Boolean is
+      begin
+         return R'Length = 0;
+      end Is_False;
+
+      -------------
+      -- Is_True --
+      -------------
+
+      function Is_True (R : RList) return Boolean is
+      begin
+         return R'Length = 1
+           and then R (R'First).Lo = BLo
+           and then R (R'First).Hi = BHi;
+      end Is_True;
+
+      -----------------
+      -- Is_Type_Ref --
+      -----------------
+
+      function Is_Type_Ref (N : Node_Id) return Boolean is
+      begin
+         return Nkind (N) = N_Identifier and then Chars (N) = Nam;
+      end Is_Type_Ref;
+
+      ------------
+      -- Lo_Val --
+      ------------
+
+      function Lo_Val (N : Node_Id) return Uint is
+      begin
+         if Is_Static_Expression (N) then
+            return Expr_Value (N);
+         else
+            pragma Assert (Nkind (N) = N_Range);
+            return Expr_Value (Low_Bound (N));
+         end if;
+      end Lo_Val;
+
+      ------------------------
+      -- Membership_Entries --
+      ------------------------
+
+      function Membership_Entries (N : Node_Id) return RList is
+      begin
+         if No (Next (N)) then
+            return Membership_Entry (N);
+         else
+            return Membership_Entry (N) or Membership_Entries (Next (N));
+         end if;
+      end Membership_Entries;
+
+      ----------------------
+      -- Membership_Entry --
+      ----------------------
+
+      function Membership_Entry (N : Node_Id) return RList is
+         Val : Uint;
+         SLo : Uint;
+         SHi : Uint;
+
+      begin
+         --  Range case
+
+         if Nkind (N) = N_Range then
+            if not Is_Static_Expression (Low_Bound (N))
+                 or else
+               not Is_Static_Expression (High_Bound (N))
+            then
+               raise Non_Static;
+            else
+               SLo := Expr_Value (Low_Bound  (N));
+               SHi := Expr_Value (High_Bound (N));
+               return RList'(1 => REnt'(SLo, SHi));
+            end if;
+
+         --  Static expression case
+
+         elsif Is_Static_Expression (N) then
+            Val := Expr_Value (N);
+            return RList'(1 => REnt'(Val, Val));
+
+         --  Identifier (other than static expression) case
+
+         else pragma Assert (Nkind (N) = N_Identifier);
+
+            --  Type case
+
+            if Is_Type (Entity (N)) then
+
+               --  If type has predicates, process them
+
+               if Has_Predicates (Entity (N)) then
+                  return Stat_Pred (Entity (N));
+
+               --  For static subtype without predicates, get range
+
+               elsif Is_Static_Subtype (Entity (N)) then
+                  SLo := Expr_Value (Type_Low_Bound  (Entity (N)));
+                  SHi := Expr_Value (Type_High_Bound (Entity (N)));
+                  return RList'(1 => REnt'(SLo, SHi));
+
+               --  Any other type makes us non-static
+
+               else
+                  raise Non_Static;
+               end if;
+
+            --  Any other kind of identifier in predicate (e.g. a non-static
+            --  expression value) means this is not a static predicate.
+
+            else
+               raise Non_Static;
+            end if;
+         end if;
+      end Membership_Entry;
+
+      ---------------
+      -- Stat_Pred --
+      ---------------
+
+      function Stat_Pred (Typ : Entity_Id) return RList is
+      begin
+         --  Not static if type does not have static predicates
+
+         if not Has_Predicates (Typ)
+           or else No (Static_Predicate (Typ))
+         then
+            raise Non_Static;
+         end if;
+
+         --  Otherwise we convert the predicate list to a range list
+
+         declare
+            Result : RList (1 .. List_Length (Static_Predicate (Typ)));
+            P      : Node_Id;
+
+         begin
+            P := First (Static_Predicate (Typ));
+            for J in Result'Range loop
+               Result (J) := REnt'(Lo_Val (P), Hi_Val (P));
+               Next (P);
+            end loop;
+
+            return Result;
+         end;
+      end Stat_Pred;
+
+   --  Start of processing for Build_Static_Predicate
+
+   begin
+      --  Now analyze the expression to see if it is a static predicate
+
+      declare
+         Ranges : constant RList := Get_RList (Expr);
+         --  Range list from expression if it is static
+
+         Plist : List_Id;
+
+      begin
+         --  Convert range list into a form for the static predicate. In the
+         --  Ranges array, we just have raw ranges, these must be converted
+         --  to properly typed and analyzed static expressions or range nodes.
+
+         --  Note: here we limit ranges to the ranges of the subtype, so that
+         --  a predicate is always false for values outside the subtype. That
+         --  seems fine, such values are invalid anyway, and considering them
+         --  to fail the predicate seems allowed and friendly, and furthermore
+         --  simplifies processing for case statements and loops.
+
+         Plist := New_List;
+
+         for J in Ranges'Range loop
+            declare
+               Lo : Uint := Ranges (J).Lo;
+               Hi : Uint := Ranges (J).Hi;
+
+            begin
+               --  Ignore completely out of range entry
+
+               if Hi < TLo or else Lo > THi then
+                  null;
+
+                  --  Otherwise process entry
+
+               else
+                  --  Adjust out of range value to subtype range
+
+                  if Lo < TLo then
+                     Lo := TLo;
+                  end if;
+
+                  if Hi > THi then
+                     Hi := THi;
+                  end if;
+
+                  --  Convert range into required form
+
+                  if Lo = Hi then
+                     Append_To (Plist, Build_Val (Lo));
+                  else
+                     Append_To (Plist, Build_Range (Lo, Hi));
+                  end if;
+               end if;
+            end;
+         end loop;
+
+         --  Processing was successful and all entries were static, so now we
+         --  can store the result as the predicate list.
+
+         Set_Static_Predicate (Typ, Plist);
+
+         --  The processing for static predicates put the expression into
+         --  canonical form as a series of ranges. It also eliminated
+         --  duplicates and collapsed and combined ranges. We might as well
+         --  replace the alternatives list of the right operand of the
+         --  membership test with the static predicate list, which will
+         --  usually be more efficient.
+
+         declare
+            New_Alts : constant List_Id := New_List;
+            Old_Node : Node_Id;
+            New_Node : Node_Id;
+
+         begin
+            Old_Node := First (Plist);
+            while Present (Old_Node) loop
+               New_Node := New_Copy (Old_Node);
+
+               if Nkind (New_Node) = N_Range then
+                  Set_Low_Bound  (New_Node, New_Copy (Low_Bound  (Old_Node)));
+                  Set_High_Bound (New_Node, New_Copy (High_Bound (Old_Node)));
+               end if;
+
+               Append_To (New_Alts, New_Node);
+               Next (Old_Node);
+            end loop;
+
+            --  If empty list, replace by False
+
+            if Is_Empty_List (New_Alts) then
+               Rewrite (Expr, New_Occurrence_Of (Standard_False, Loc));
+
+            --  Else replace by set membership test
+
+            else
+               Rewrite (Expr,
+                 Make_In (Loc,
+                   Left_Opnd    => Make_Identifier (Loc, Nam),
+                   Right_Opnd   => Empty,
+                   Alternatives => New_Alts));
+            end if;
+         end;
+      end;
+
+   --  If non-static, return doing nothing
+
+   exception
+      when Non_Static =>
+         return;
+   end Build_Static_Predicate;
 
    -----------------------------------
    -- Check_Constant_Address_Clause --
@@ -4234,6 +6176,8 @@ package body Sem_Ch13 is
 
    procedure Initialize is
    begin
+      Address_Clause_Checks.Init;
+      Independence_Checks.Init;
       Unchecked_Conversions.Init;
    end Initialize;
 
@@ -5128,6 +7072,292 @@ package body Sem_Ch13 is
          end;
       end loop;
    end Validate_Address_Clauses;
+
+   ---------------------------
+   -- Validate_Independence --
+   ---------------------------
+
+   procedure Validate_Independence is
+      SU   : constant Uint := UI_From_Int (System_Storage_Unit);
+      N    : Node_Id;
+      E    : Entity_Id;
+      IC   : Boolean;
+      Comp : Entity_Id;
+      Addr : Node_Id;
+      P    : Node_Id;
+
+      procedure Check_Array_Type (Atyp : Entity_Id);
+      --  Checks if the array type Atyp has independent components, and
+      --  if not, outputs an appropriate set of error messages.
+
+      procedure No_Independence;
+      --  Output message that independence cannot be guaranteed
+
+      function OK_Component (C : Entity_Id) return Boolean;
+      --  Checks one component to see if it is independently accessible, and
+      --  if so yields True, otherwise yields False if independent access
+      --  cannot be guaranteed. This is a conservative routine, it only
+      --  returns True if it knows for sure, it returns False if it knows
+      --  there is a problem, or it cannot be sure there is no problem.
+
+      procedure Reason_Bad_Component (C : Entity_Id);
+      --  Outputs continuation message if a reason can be determined for
+      --  the component C being bad.
+
+      ----------------------
+      -- Check_Array_Type --
+      ----------------------
+
+      procedure Check_Array_Type (Atyp : Entity_Id) is
+         Ctyp : constant Entity_Id := Component_Type (Atyp);
+
+      begin
+         --  OK if no alignment clause, no pack, and no component size
+
+         if not Has_Component_Size_Clause (Atyp)
+           and then not Has_Alignment_Clause (Atyp)
+           and then not Is_Packed (Atyp)
+         then
+            return;
+         end if;
+
+         --  Check actual component size
+
+         if not Known_Component_Size (Atyp)
+           or else not (Addressable (Component_Size (Atyp))
+                          and then Component_Size (Atyp) < 64)
+           or else Component_Size (Atyp) mod Esize (Ctyp) /= 0
+         then
+            No_Independence;
+
+            --  Bad component size, check reason
+
+            if Has_Component_Size_Clause (Atyp) then
+               P :=
+                 Get_Attribute_Definition_Clause
+                   (Atyp, Attribute_Component_Size);
+
+               if Present (P) then
+                  Error_Msg_Sloc := Sloc (P);
+                  Error_Msg_N ("\because of Component_Size clause#", N);
+                  return;
+               end if;
+            end if;
+
+            if Is_Packed (Atyp) then
+               P := Get_Rep_Pragma (Atyp, Name_Pack);
+
+               if Present (P) then
+                  Error_Msg_Sloc := Sloc (P);
+                  Error_Msg_N ("\because of pragma Pack#", N);
+                  return;
+               end if;
+            end if;
+
+            --  No reason found, just return
+
+            return;
+         end if;
+
+         --  Array type is OK independence-wise
+
+         return;
+      end Check_Array_Type;
+
+      ---------------------
+      -- No_Independence --
+      ---------------------
+
+      procedure No_Independence is
+      begin
+         if Pragma_Name (N) = Name_Independent then
+            Error_Msg_NE
+              ("independence cannot be guaranteed for&", N, E);
+         else
+            Error_Msg_NE
+              ("independent components cannot be guaranteed for&", N, E);
+         end if;
+      end No_Independence;
+
+      ------------------
+      -- OK_Component --
+      ------------------
+
+      function OK_Component (C : Entity_Id) return Boolean is
+         Rec  : constant Entity_Id := Scope (C);
+         Ctyp : constant Entity_Id := Etype (C);
+
+      begin
+         --  OK if no component clause, no Pack, and no alignment clause
+
+         if No (Component_Clause (C))
+           and then not Is_Packed (Rec)
+           and then not Has_Alignment_Clause (Rec)
+         then
+            return True;
+         end if;
+
+         --  Here we look at the actual component layout. A component is
+         --  addressable if its size is a multiple of the Esize of the
+         --  component type, and its starting position in the record has
+         --  appropriate alignment, and the record itself has appropriate
+         --  alignment to guarantee the component alignment.
+
+         --  Make sure sizes are static, always assume the worst for any
+         --  cases where we cannot check static values.
+
+         if not (Known_Static_Esize (C)
+                  and then Known_Static_Esize (Ctyp))
+         then
+            return False;
+         end if;
+
+         --  Size of component must be addressable or greater than 64 bits
+         --  and a multiple of bytes.
+
+         if not Addressable (Esize (C))
+           and then Esize (C) < Uint_64
+         then
+            return False;
+         end if;
+
+         --  Check size is proper multiple
+
+         if Esize (C) mod Esize (Ctyp) /= 0 then
+            return False;
+         end if;
+
+         --  Check alignment of component is OK
+
+         if not Known_Component_Bit_Offset (C)
+           or else Component_Bit_Offset (C) < Uint_0
+           or else Component_Bit_Offset (C) mod Esize (Ctyp) /= 0
+         then
+            return False;
+         end if;
+
+         --  Check alignment of record type is OK
+
+         if not Known_Alignment (Rec)
+           or else (Alignment (Rec) * SU) mod Esize (Ctyp) /= 0
+         then
+            return False;
+         end if;
+
+         --  All tests passed, component is addressable
+
+         return True;
+      end OK_Component;
+
+      --------------------------
+      -- Reason_Bad_Component --
+      --------------------------
+
+      procedure Reason_Bad_Component (C : Entity_Id) is
+         Rec  : constant Entity_Id := Scope (C);
+         Ctyp : constant Entity_Id := Etype (C);
+
+      begin
+         --  If component clause present assume that's the problem
+
+         if Present (Component_Clause (C)) then
+            Error_Msg_Sloc := Sloc (Component_Clause (C));
+            Error_Msg_N ("\because of Component_Clause#", N);
+            return;
+         end if;
+
+         --  If pragma Pack clause present, assume that's the problem
+
+         if Is_Packed (Rec) then
+            P := Get_Rep_Pragma (Rec, Name_Pack);
+
+            if Present (P) then
+               Error_Msg_Sloc := Sloc (P);
+               Error_Msg_N ("\because of pragma Pack#", N);
+               return;
+            end if;
+         end if;
+
+         --  See if record has bad alignment clause
+
+         if Has_Alignment_Clause (Rec)
+           and then Known_Alignment (Rec)
+           and then (Alignment (Rec) * SU) mod Esize (Ctyp) /= 0
+         then
+            P := Get_Attribute_Definition_Clause (Rec, Attribute_Alignment);
+
+            if Present (P) then
+               Error_Msg_Sloc := Sloc (P);
+               Error_Msg_N ("\because of Alignment clause#", N);
+            end if;
+         end if;
+
+         --  Couldn't find a reason, so return without a message
+
+         return;
+      end Reason_Bad_Component;
+
+   --  Start of processing for Validate_Independence
+
+   begin
+      for J in Independence_Checks.First .. Independence_Checks.Last loop
+         N  := Independence_Checks.Table (J).N;
+         E  := Independence_Checks.Table (J).E;
+         IC := Pragma_Name (N) = Name_Independent_Components;
+
+         --  Deal with component case
+
+         if Ekind (E) = E_Discriminant or else Ekind (E) = E_Component then
+            if not OK_Component (E) then
+               No_Independence;
+               Reason_Bad_Component (E);
+               goto Continue;
+            end if;
+         end if;
+
+         --  Deal with record with Independent_Components
+
+         if IC and then Is_Record_Type (E) then
+            Comp := First_Component_Or_Discriminant (E);
+            while Present (Comp) loop
+               if not OK_Component (Comp) then
+                  No_Independence;
+                  Reason_Bad_Component (Comp);
+                  goto Continue;
+               end if;
+
+               Next_Component_Or_Discriminant (Comp);
+            end loop;
+         end if;
+
+         --  Deal with address clause case
+
+         if Is_Object (E) then
+            Addr := Address_Clause (E);
+
+            if Present (Addr) then
+               No_Independence;
+               Error_Msg_Sloc := Sloc (Addr);
+               Error_Msg_N ("\because of Address clause#", N);
+               goto Continue;
+            end if;
+         end if;
+
+         --  Deal with independent components for array type
+
+         if IC and then Is_Array_Type (E) then
+            Check_Array_Type (E);
+         end if;
+
+         --  Deal with independent components for array object
+
+         if IC and then Is_Object (E) and then Is_Array_Type (Etype (E)) then
+            Check_Array_Type (Etype (E));
+         end if;
+
+      <<Continue>> null;
+      end loop;
+   end Validate_Independence;
 
    -----------------------------------
    -- Validate_Unchecked_Conversion --

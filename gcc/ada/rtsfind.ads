@@ -265,6 +265,7 @@ package Rtsfind is
       System_Machine_Code,
       System_Mantissa,
       System_Memcop,
+      System_Multiprocessors,
       System_Pack_03,
       System_Pack_05,
       System_Pack_06,
@@ -800,6 +801,7 @@ package Rtsfind is
      RE_Image_Boolean,                   -- System.Img_Bool
 
      RE_Image_Character,                 -- System.Img_Char
+     RE_Image_Character_05,              -- System.Img_Char
 
      RE_Image_Decimal,                   -- System.Img_Dec
 
@@ -837,6 +839,8 @@ package Rtsfind is
      RE_Asm_Output_Operand,              -- System.Machine_Code
 
      RE_Mantissa_Value,                  -- System_Mantissa
+
+     RE_CPU_Range,                       -- System.Multiprocessors
 
      RE_Bits_03,                         -- System.Pack_03
      RE_Get_03,                          -- System.Pack_03
@@ -1134,6 +1138,7 @@ package Rtsfind is
      RE_Raise_Program_Error_Unknown_Tag, -- System.Partition_Interface
      RE_Register_Passive_Package,        -- System.Partition_Interface
      RE_Register_Receiving_Stub,         -- System.Partition_Interface
+     RE_Request,                         -- System.Partition_Interface
      RE_Request_Access,                  -- System.Partition_Interface
      RE_RCI_Locator,                     -- System.Partition_Interface
      RE_RCI_Subp_Info,                   -- System.Partition_Interface
@@ -1173,12 +1178,11 @@ package Rtsfind is
      RE_NVList_Ref,                      -- System.Partition_Interface
      RE_NVList_Create,                   -- System.Partition_Interface
      RE_NVList_Add_Item,                 -- System.Partition_Interface
-     RE_Request_Create,                  -- System.Partition_Interface
-     RE_Request_Invoke,                  -- System.Partition_Interface
      RE_Request_Arguments,               -- System.Partition_Interface
-     RE_Request_Set_Out,                 -- System.Partition_Interface
+     RE_Request_Invoke,                  -- System.Partition_Interface
      RE_Request_Raise_Occurrence,        -- System.Partition_Interface
-     RE_Request_Destroy,                 -- System.Partition_Interface
+     RE_Request_Set_Out,                 -- System.Partition_Interface
+     RE_Request_Setup,                   -- System.Partition_Interface
      RE_Nil_Exc_List,                    -- System.Partition_Interface
      RE_Servant,                         -- System.Partition_Interface
      RE_Move_Any_Value,                  -- System.Partition_Interface
@@ -1424,6 +1428,8 @@ package Rtsfind is
      RE_Activation_Chain,                -- System.Tasking
      RE_Activation_Chain_Access,         -- System.Tasking
      RE_Storage_Size,                    -- System.Tasking
+
+     RE_Unspecified_CPU,                 -- System.Tasking
 
      RE_Abort_Defer,                     -- System.Soft_Links
      RE_Abort_Undefer,                   -- System.Soft_Links
@@ -1972,6 +1978,7 @@ package Rtsfind is
      RE_Image_Boolean                    => System_Img_Bool,
 
      RE_Image_Character                  => System_Img_Char,
+     RE_Image_Character_05               => System_Img_Char,
 
      RE_Image_Decimal                    => System_Img_Dec,
 
@@ -2009,6 +2016,8 @@ package Rtsfind is
      RE_Asm_Output_Operand               => System_Machine_Code,
 
      RE_Mantissa_Value                   => System_Mantissa,
+
+     RE_CPU_Range                        => System_Multiprocessors,
 
      RE_Bits_03                          => System_Pack_03,
      RE_Get_03                           => System_Pack_03,
@@ -2306,6 +2315,7 @@ package Rtsfind is
      RE_Raise_Program_Error_Unknown_Tag  => System_Partition_Interface,
      RE_Register_Passive_Package         => System_Partition_Interface,
      RE_Register_Receiving_Stub          => System_Partition_Interface,
+     RE_Request                          => System_Partition_Interface,
      RE_Request_Access                   => System_Partition_Interface,
      RE_RCI_Locator                      => System_Partition_Interface,
      RE_RCI_Subp_Info                    => System_Partition_Interface,
@@ -2336,12 +2346,11 @@ package Rtsfind is
      RE_NVList_Ref                       => System_Partition_Interface,
      RE_NVList_Create                    => System_Partition_Interface,
      RE_NVList_Add_Item                  => System_Partition_Interface,
-     RE_Request_Create                   => System_Partition_Interface,
-     RE_Request_Invoke                   => System_Partition_Interface,
      RE_Request_Arguments                => System_Partition_Interface,
-     RE_Request_Set_Out                  => System_Partition_Interface,
+     RE_Request_Invoke                   => System_Partition_Interface,
      RE_Request_Raise_Occurrence         => System_Partition_Interface,
-     RE_Request_Destroy                  => System_Partition_Interface,
+     RE_Request_Set_Out                  => System_Partition_Interface,
+     RE_Request_Setup                    => System_Partition_Interface,
      RE_Nil_Exc_List                     => System_Partition_Interface,
      RE_Servant                          => System_Partition_Interface,
      RE_Move_Any_Value                   => System_Partition_Interface,
@@ -2596,6 +2605,8 @@ package Rtsfind is
      RE_Activation_Chain                 => System_Tasking,
      RE_Activation_Chain_Access          => System_Tasking,
      RE_Storage_Size                     => System_Tasking,
+
+     RE_Unspecified_CPU                  => System_Tasking,
 
      RE_Abort_Defer                      => System_Soft_Links,
      RE_Abort_Undefer                    => System_Soft_Links,

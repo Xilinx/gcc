@@ -72,8 +72,6 @@ static tree cp_eh_personality (void);
 	function_parameter_expanded_from_pack_p
 #undef LANG_HOOKS_GET_GENERIC_FUNCTION_DECL
 #define LANG_HOOKS_GET_GENERIC_FUNCTION_DECL get_function_template_decl
-#undef LANG_HOOKS_DECL_PRINTABLE_NAME
-#define LANG_HOOKS_DECL_PRINTABLE_NAME	cxx_printable_name
 #undef LANG_HOOKS_DWARF_NAME
 #define LANG_HOOKS_DWARF_NAME cxx_dwarf_name
 #undef LANG_HOOKS_INIT_TS
@@ -154,11 +152,6 @@ cp_classify_record (tree type)
   return RECORD_IS_STRUCT;
 }
 
-void
-finish_file (void)
-{
-}
-
 static GTY(()) tree cp_eh_personality_decl;
 
 static tree
@@ -166,17 +159,8 @@ cp_eh_personality (void)
 {
   if (!cp_eh_personality_decl)
     {
-      const char *name;
-
-      name = (targetm.except_unwind_info () == UI_SJLJ
-	      ? (pragma_java_exceptions
-		 ? "__gcj_personality_sj0"
-		 : "__gxx_personality_sj0")
-	      : (pragma_java_exceptions
-		 ? "__gcj_personality_v0"
-		 : "__gxx_personality_v0"));
-
-      cp_eh_personality_decl = build_personality_function (name);
+      const char *lang = (pragma_java_exceptions ? "gcj" : "gxx");
+      cp_eh_personality_decl = build_personality_function (lang);
     }
 
   return cp_eh_personality_decl;

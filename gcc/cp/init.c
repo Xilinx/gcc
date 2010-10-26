@@ -2873,6 +2873,7 @@ build_vec_init (tree base, tree maxindex, tree init,
   bool is_global;
   tree const_init = NULL_TREE;
   tree obase = base;
+  bool xvalue = false;
 
   if (TREE_CODE (atype) == ARRAY_TYPE && TYPE_DOMAIN (atype))
     maxindex = array_type_nelts (atype);
@@ -2963,6 +2964,8 @@ build_vec_init (tree base, tree maxindex, tree init,
      checking.  Evaluate the initializer before entering the try block.  */
   if (from_array && init && TREE_CODE (init) != CONSTRUCTOR)
     {
+      if (lvalue_kind (init) & clk_rvalueref)
+	xvalue = true;
       base2 = decay_conversion (init);
       itype = TREE_TYPE (base2);
       base2 = get_temp_regvar (itype, base2);
@@ -3116,7 +3119,11 @@ build_vec_init (tree base, tree maxindex, tree init,
 	  tree from;
 
 	  if (base2)
-	    from = build1 (INDIRECT_REF, itype, base2);
+	    {
+	      from = build1 (INDIRECT_REF, itype, base2);
+	      if (xvalue)
+		from = move (from);
+	    }
 	  else
 	    from = NULL_TREE;
 

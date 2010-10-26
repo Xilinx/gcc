@@ -1230,6 +1230,32 @@ default_profile_before_prologue (void)
 #endif
 }
 
+/* The default implementation of TARGET_PREFERRED_RELOAD_CLASS.  */
+
+reg_class_t
+default_preferred_reload_class (rtx x ATTRIBUTE_UNUSED,
+			        reg_class_t rclass)
+{
+#ifdef PREFERRED_RELOAD_CLASS 
+  return (reg_class_t) PREFERRED_RELOAD_CLASS (x, (enum reg_class) rclass);
+#else
+  return rclass;
+#endif
+}
+
+/* The default implementation of TARGET_OUTPUT_PREFERRED_RELOAD_CLASS.  */
+
+reg_class_t
+default_preferred_output_reload_class (rtx x ATTRIBUTE_UNUSED,
+				       reg_class_t rclass)
+{
+#ifdef PREFERRED_OUTPUT_RELOAD_CLASS
+  return PREFERRED_OUTPUT_RELOAD_CLASS (x, (enum reg_class) rclass);
+#else
+  return rclass;
+#endif
+}
+
 /* The default implementation of TARGET_CLASS_LIKELY_SPILLED_P.  */
 
 bool
@@ -1306,5 +1332,10 @@ sjlj_except_unwind_info (void)
 {
   return UI_SJLJ;
 }
+
+const struct default_options empty_optimization_table[] =
+  {
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 #include "gt-targhooks.h"

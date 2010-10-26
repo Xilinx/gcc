@@ -500,6 +500,10 @@ dump_type (tree t, int flags)
       pp_cxx_right_paren (cxx_pp);
       break;
 
+    case NULLPTR_TYPE:
+      pp_string (cxx_pp, "std::nullptr_t");
+      break;
+
     default:
       pp_unsupported_tree (cxx_pp, t);
       /* Fall through to error.  */
@@ -728,6 +732,7 @@ dump_type_prefix (tree t, int flags)
     case DECLTYPE_TYPE:
     case TYPE_PACK_EXPANSION:
     case FIXED_POINT_TYPE:
+    case NULLPTR_TYPE:
       dump_type (t, flags);
       pp_base (cxx_pp)->padding = pp_before;
       break;
@@ -830,6 +835,7 @@ dump_type_suffix (tree t, int flags)
     case DECLTYPE_TYPE:
     case TYPE_PACK_EXPANSION:
     case FIXED_POINT_TYPE:
+    case NULLPTR_TYPE:
       break;
 
     default:
@@ -892,6 +898,18 @@ dump_decl (tree t, int flags)
 {
   if (t == NULL_TREE)
     return;
+
+  /* If doing Objective-C++, give Objective-C a chance to demangle
+     Objective-C method names.  */
+  if (c_dialect_objc ())
+    {
+      const char *demangled = objc_maybe_printable_name (t, flags);
+      if (demangled)
+	{
+	  pp_string (cxx_pp, demangled);
+	  return;
+	}
+    }
 
   switch (TREE_CODE (t))
     {
@@ -2145,6 +2163,14 @@ dump_expr (tree t, int flags)
 	dump_type (TREE_OPERAND (t, 0), flags);
       else
 	dump_expr (TREE_OPERAND (t, 0), flags);
+      pp_cxx_right_paren (cxx_pp);
+      break;
+
+    case AT_ENCODE_EXPR:
+      pp_cxx_ws_string (cxx_pp, "@encode");
+      pp_cxx_whitespace (cxx_pp);
+      pp_cxx_left_paren (cxx_pp);
+      dump_type (TREE_OPERAND (t, 0), flags);
       pp_cxx_right_paren (cxx_pp);
       break;
 
