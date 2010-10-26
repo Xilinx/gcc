@@ -159,19 +159,11 @@ crtbegin.o%s"
 #define COPROC_SELECTION_TABLE \
 {"default", ISA_EXT1}
 /* end-coproc-selection-table */
-
-#define CAN_DEBUG_WITHOUT_FP
 
 
 #define BITS_BIG_ENDIAN 0
 #define BYTES_BIG_ENDIAN (TARGET_LITTLE_ENDIAN ? 0 : 1)
 #define WORDS_BIG_ENDIAN (TARGET_LITTLE_ENDIAN ? 0 : 1)
-
-#ifdef __LITTLE_ENDIAN__
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#else
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#endif
 
 #define UNITS_PER_WORD 4
 

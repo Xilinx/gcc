@@ -374,7 +374,8 @@ enum exception_info_kind
   /* Range exception information: file:line + index, first, last.  */
   exception_range,
   /* Column exception information: file:line:column.  */
-  exception_column};
+  exception_column
+};
 
 extern GTY(()) tree gnat_std_decls[(int) ADT_LAST];
 extern GTY(()) tree gnat_raise_decls[(int) LAST_REASON_CODE + 1];
@@ -775,6 +776,11 @@ extern tree build_unary_op (enum tree_code op_code, tree result_type,
 /* Similar, but for COND_EXPR.  */
 extern tree build_cond_expr (tree result_type, tree condition_operand,
                              tree true_operand, tree false_operand);
+
+/* Similar, but for COMPOUND_EXPR.  */
+
+extern tree build_compound_expr (tree result_type, tree stmt_operand,
+				 tree expr_operand);
 
 /* Similar, but for RETURN_EXPR.  */
 extern tree build_return_expr (tree ret_obj, tree ret_val);

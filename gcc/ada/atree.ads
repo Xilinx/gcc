@@ -537,9 +537,8 @@ package Atree is
 
    function Parent            (N : Node_Id) return Node_Id;
    pragma Inline (Parent);
-   --  Returns the parent of a node if the node is not a list member, or
-   --  else the parent of the list containing the node if the node is a
-   --  list member.
+   --  Returns the parent of a node if the node is not a list member, or else
+   --  the parent of the list containing the node if the node is a list member.
 
    function No                (N : Node_Id) return Boolean;
    pragma Inline (No);
@@ -1096,6 +1095,9 @@ package Atree is
 
       function List14 (N : Node_Id) return List_Id;
       pragma Inline (List14);
+
+      function List25 (N : Node_Id) return List_Id;
+      pragma Inline (List25);
 
       function Elist1 (N : Node_Id) return Elist_Id;
       pragma Inline (Elist1);
@@ -2159,6 +2161,9 @@ package Atree is
 
       procedure Set_List14 (N : Node_Id; Val : List_Id);
       pragma Inline (Set_List14);
+
+      procedure Set_List25 (N : Node_Id; Val : List_Id);
+      pragma Inline (Set_List25);
 
       procedure Set_Elist1 (N : Node_Id; Val : Elist_Id);
       pragma Inline (Set_Elist1);

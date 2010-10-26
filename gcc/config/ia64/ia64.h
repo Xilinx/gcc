@@ -148,12 +148,6 @@ extern enum processor_type ia64_tune;
 
 #define WORDS_BIG_ENDIAN (TARGET_BIG_ENDIAN != 0)
 
-#if defined(__BIG_ENDIAN__)
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#else
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#endif
-
 #define UNITS_PER_WORD 8
 
 #define POINTER_SIZE (TARGET_ILP32 ? 32 : 64)
@@ -992,9 +986,6 @@ enum reg_class
 #define STATIC_CHAIN_REGNUM 15
 
 /* Eliminating the Frame Pointer and the Arg Pointer */
-
-/* Show we can debug even without a frame pointer.  */
-#define CAN_DEBUG_WITHOUT_FP
 
 /* If defined, this macro specifies a table of register pairs used to eliminate
    unneeded registers that point into the stack frame.  */

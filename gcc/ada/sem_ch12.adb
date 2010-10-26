@@ -470,12 +470,6 @@ package body Sem_Ch12 is
    --  Used to determine whether its body should be elaborated to allow
    --  front-end inlining.
 
-   function Is_Generic_Formal (E : Entity_Id) return Boolean;
-   --  Utility to determine whether a given entity is declared by means of
-   --  of a formal parameter declaration. Used to set properly the visibility
-   --  of generic formals of a generic package declared with a box or with
-   --  partial parametrization.
-
    procedure Set_Instance_Env
      (Gen_Unit : Entity_Id;
       Act_Unit : Entity_Id);
@@ -1055,7 +1049,7 @@ package body Sem_Ch12 is
          --  defining identifier for it.
 
          Decl := New_Copy_Tree (F);
-         Id := Make_Defining_Identifier (Sloc (F_Id), Chars => Chars (F_Id));
+         Id := Make_Defining_Identifier (Sloc (F_Id), Chars (F_Id));
 
          if Nkind (F) in N_Formal_Subprogram_Declaration then
             Set_Defining_Unit_Name (Specification (Decl), Id);
@@ -1381,7 +1375,7 @@ package body Sem_Ch12 is
                when N_Use_Package_Clause |
                     N_Use_Type_Clause    =>
                   if Nkind (Original_Node (I_Node)) =
-                    N_Formal_Package_Declaration
+                                     N_Formal_Package_Declaration
                   then
                      Append (New_Copy_Tree (Formal), Assoc);
                   else
@@ -3320,12 +3314,13 @@ package body Sem_Ch12 is
             end if;
          end;
 
-         --  If we are generating the calling stubs from the instantiation of
-         --  a generic RCI package, we will not use the body of the generic
-         --  package.
+         --  If we are generating calling stubs, we never need a body for an
+         --  instantiation from source. However normal processing occurs for
+         --  any generic instantiation appearing in generated code, since we
+         --  do not generate stubs in that case.
 
          if Distribution_Stub_Mode = Generate_Caller_Stub_Body
-           and then Is_Compilation_Unit (Defining_Entity (N))
+              and then Comes_From_Source (N)
          then
             Needs_Body := False;
          end if;
@@ -4005,6 +4000,9 @@ package body Sem_Ch12 is
          Analyze (Pack_Decl);
          Check_Formal_Packages (Pack_Id);
          Set_Is_Generic_Instance (Pack_Id, False);
+
+         --  Why do we clear Is_Generic_Instance??? We set it 20 lines
+         --  above???
 
          --  Body of the enclosing package is supplied when instantiating the
          --  subprogram body, after semantic analysis is completed.
@@ -5503,6 +5501,7 @@ package body Sem_Ch12 is
            and then Is_Private_Type (Designated_Type (T))
            and then not Has_Private_View (N)
            and then Present (Full_View (Designated_Type (T)))
+           and then Used_As_Generic_Actual (T)
          then
             Switch_View (Designated_Type (T));
 
@@ -9456,7 +9455,7 @@ package body Sem_Ch12 is
          I2 := First_Index (Act_T);
          for J in 1 .. Formal_Dimensions loop
 
-            --  If the indices of the actual were given by a subtype_mark,
+            --  If the indexes of the actual were given by a subtype_mark,
             --  the index was transformed into a range attribute. Retrieve
             --  the original type mark for checking.
 
@@ -10479,29 +10478,6 @@ package body Sem_Ch12 is
 
       return Decl_Nodes;
    end Instantiate_Type;
-
-   -----------------------
-   -- Is_Generic_Formal --
-   -----------------------
-
-   function Is_Generic_Formal (E : Entity_Id) return Boolean is
-      Kind : Node_Kind;
-   begin
-      if No (E) then
-         return False;
-      else
-         Kind := Nkind (Parent (E));
-         return
-           Nkind_In (Kind, N_Formal_Object_Declaration,
-                           N_Formal_Package_Declaration,
-                           N_Formal_Type_Declaration)
-             or else
-               (Is_Formal_Subprogram (E)
-                 and then
-                   Nkind (Parent (Parent (E))) in
-                     N_Formal_Subprogram_Declaration);
-      end if;
-   end Is_Generic_Formal;
 
    ---------------------
    -- Is_In_Main_Unit --

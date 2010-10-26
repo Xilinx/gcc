@@ -931,6 +931,8 @@ extern int complete_array_type (tree *, tree, bool);
 
 extern tree builtin_type_for_size (int, bool);
 
+extern void c_common_mark_addressable_vec (tree);
+
 extern void warn_array_subscript_with_type_char (tree);
 extern void warn_about_parentheses (enum tree_code,
 				    enum tree_code, tree,
@@ -1046,6 +1048,7 @@ extern tree objc_build_getter_call (tree, tree);
 extern tree objc_build_setter_call (tree, tree);
 extern void objc_add_synthesize_declaration (location_t, tree);
 extern void objc_add_dynamic_declaration (location_t, tree);
+extern const char * objc_maybe_printable_name (tree, int);
 
 /* The following are provided by the C and C++ front-ends, and called by
    ObjC/ObjC++.  */

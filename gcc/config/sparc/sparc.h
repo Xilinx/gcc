@@ -496,9 +496,6 @@ extern enum cmodel sparc_cmodel;
 /* ??? This should be 32 bits for v9 but what can we do?  */
 #define WCHAR_TYPE "short unsigned int"
 #define WCHAR_TYPE_SIZE 16
-
-/* Show we can debug even without a frame pointer.  */
-#define CAN_DEBUG_WITHOUT_FP
 
 /* Mask of all CPU selection flags.  */
 #define MASK_ISA \
@@ -584,14 +581,6 @@ extern struct sparc_cpu_select sparc_select[];
 /* Define this if most significant word of a multiword number is the lowest
    numbered.  */
 #define WORDS_BIG_ENDIAN 1
-
-/* Define this to set the endianness to use in libgcc2.c, which can
-   not depend on target_flags.  */
-#if defined (__LITTLE_ENDIAN__) || defined(__LITTLE_ENDIAN_DATA__)
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#else
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#endif
 
 #define MAX_BITS_PER_WORD	64
 

@@ -486,16 +486,23 @@ perform_member_init (tree member, tree init)
     }
   else if (TYPE_NEEDS_CONSTRUCTING (type))
     {
-      if (init != NULL_TREE
-	  && TREE_CODE (type) == ARRAY_TYPE
-	  && TREE_CHAIN (init) == NULL_TREE
-	  && TREE_CODE (TREE_TYPE (TREE_VALUE (init))) == ARRAY_TYPE)
+      if (TREE_CODE (type) == ARRAY_TYPE)
 	{
-	  /* Initialization of one array from another.  */
-	  finish_expr_stmt (build_vec_init (decl, NULL_TREE, TREE_VALUE (init),
-					    /*explicit_value_init_p=*/false,
-					    /* from_array=*/1,
-                                            tf_warning_or_error));
+	  if (init)
+	    {
+	      gcc_assert (TREE_CHAIN (init) == NULL_TREE);
+	      init = TREE_VALUE (init);
+	    }
+	  if (init == NULL_TREE
+	      || same_type_ignoring_top_level_qualifiers_p (type,
+							    TREE_TYPE (init)))
+	    {
+	      init = build_vec_init_expr (type, init);
+	      init = build2 (INIT_EXPR, type, decl, init);
+	      finish_expr_stmt (init);
+	    }
+	  else
+	    error ("invalid initializer for array member %q#D", member);
 	}
       else
 	{
@@ -2849,6 +2856,7 @@ build_vec_init (tree base, tree maxindex, tree init,
   tree try_block = NULL_TREE;
   int num_initialized_elts = 0;
   bool is_global;
+  bool xvalue = false;
 
   if (TREE_CODE (atype) == ARRAY_TYPE && TYPE_DOMAIN (atype))
     maxindex = array_type_nelts (atype);
@@ -2939,6 +2947,8 @@ build_vec_init (tree base, tree maxindex, tree init,
      checking.  Evaluate the initializer before entering the try block.  */
   if (from_array && init && TREE_CODE (init) != CONSTRUCTOR)
     {
+      if (lvalue_kind (init) & clk_rvalueref)
+	xvalue = true;
       base2 = decay_conversion (init);
       itype = TREE_TYPE (base2);
       base2 = get_temp_regvar (itype, base2);
@@ -3033,7 +3043,11 @@ build_vec_init (tree base, tree maxindex, tree init,
 	  tree from;
 
 	  if (base2)
-	    from = build1 (INDIRECT_REF, itype, base2);
+	    {
+	      from = build1 (INDIRECT_REF, itype, base2);
+	      if (xvalue)
+		from = move (from);
+	    }
 	  else
 	    from = NULL_TREE;
 

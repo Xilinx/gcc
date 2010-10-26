@@ -117,8 +117,8 @@
   [(SF "ss") (DF "sd") (V4SF "ps") (V2DF "pd") (V8SF "ps") (V4DF "pd")
    (V8SI "ps") (V4DI "pd")])
 (define_mode_attr ssescalarmodesuffix 
-  [(SF "ss") (DF "sd") (V4SF "ss") (V2DF "sd") (V8SF "ss") (V4DF "sd")
-   (V4SI "d")])
+  [(SF "ss") (DF "sd") (V4SF "ss") (V2DF "sd") (V8SF "ss") (V8SI "ss")
+   (V4DF "sd") (V4SI "d") (V4DI "sd")])
 
 ;; Mapping of the max integer size for xop rotate immediate constraint
 (define_mode_attr sserotatemax [(V16QI "7") (V8HI "15") (V4SI "31") (V2DI "63")])
@@ -382,7 +382,18 @@
   DONE;
 })
 
-(define_insn "avx_movu<ssemodesuffix><avxmodesuffix>"
+(define_expand "avx_movu<ssemodesuffix><avxmodesuffix>"
+  [(set (match_operand:AVXMODEF2P 0 "nonimmediate_operand" "")
+	(unspec:AVXMODEF2P
+	  [(match_operand:AVXMODEF2P 1 "nonimmediate_operand" "")]
+	  UNSPEC_MOVU))]
+  "AVX_VEC_FLOAT_MODE_P (<MODE>mode)"
+{
+  if (MEM_P (operands[0]) && MEM_P (operands[1]))
+    operands[1] = force_reg (<MODE>mode, operands[1]);
+})
+
+(define_insn "*avx_movu<ssemodesuffix><avxmodesuffix>"
   [(set (match_operand:AVXMODEF2P 0 "nonimmediate_operand" "=x,m")
 	(unspec:AVXMODEF2P
 	  [(match_operand:AVXMODEF2P 1 "nonimmediate_operand" "xm,x")]
@@ -408,7 +419,18 @@
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")])
 
-(define_insn "<sse>_movu<ssemodesuffix>"
+(define_expand "<sse>_movu<ssemodesuffix>"
+  [(set (match_operand:SSEMODEF2P 0 "nonimmediate_operand" "")
+	(unspec:SSEMODEF2P
+	  [(match_operand:SSEMODEF2P 1 "nonimmediate_operand" "")]
+	  UNSPEC_MOVU))]
+  "SSE_VEC_FLOAT_MODE_P (<MODE>mode)"
+{
+  if (MEM_P (operands[0]) && MEM_P (operands[1]))
+    operands[1] = force_reg (<MODE>mode, operands[1]);
+})
+
+(define_insn "*<sse>_movu<ssemodesuffix>"
   [(set (match_operand:SSEMODEF2P 0 "nonimmediate_operand" "=x,m")
 	(unspec:SSEMODEF2P
 	  [(match_operand:SSEMODEF2P 1 "nonimmediate_operand" "xm,x")]
@@ -420,7 +442,18 @@
    (set_attr "movu" "1")
    (set_attr "mode" "<MODE>")])
 
-(define_insn "avx_movdqu<avxmodesuffix>"
+(define_expand "avx_movdqu<avxmodesuffix>"
+  [(set (match_operand:AVXMODEQI 0 "nonimmediate_operand" "")
+	(unspec:AVXMODEQI
+	  [(match_operand:AVXMODEQI 1 "nonimmediate_operand" "")]
+	  UNSPEC_MOVU))]
+  "TARGET_AVX"
+{
+  if (MEM_P (operands[0]) && MEM_P (operands[1]))
+    operands[1] = force_reg (<MODE>mode, operands[1]);
+})
+
+(define_insn "*avx_movdqu<avxmodesuffix>"
   [(set (match_operand:AVXMODEQI 0 "nonimmediate_operand" "=x,m")
 	(unspec:AVXMODEQI
 	  [(match_operand:AVXMODEQI 1 "nonimmediate_operand" "xm,x")]
@@ -432,7 +465,17 @@
    (set_attr "prefix" "vex")
    (set_attr "mode" "<avxvecmode>")])
 
-(define_insn "sse2_movdqu"
+(define_expand "sse2_movdqu"
+  [(set (match_operand:V16QI 0 "nonimmediate_operand" "")
+	(unspec:V16QI [(match_operand:V16QI 1 "nonimmediate_operand" "")]
+		      UNSPEC_MOVU))]
+  "TARGET_SSE2"
+{
+  if (MEM_P (operands[0]) && MEM_P (operands[1]))
+    operands[1] = force_reg (V16QImode, operands[1]);
+})
+
+(define_insn "*sse2_movdqu"
   [(set (match_operand:V16QI 0 "nonimmediate_operand" "=x,m")
 	(unspec:V16QI [(match_operand:V16QI 1 "nonimmediate_operand" "xm,x")]
 		      UNSPEC_MOVU))]
@@ -541,6 +584,49 @@
 	  (match_operand:VEC_FLOAT_MODE 1 "register_operand" "")))]
   ""
   "ix86_expand_fp_absneg_operator (<CODE>, <MODE>mode, operands); DONE;")
+
+(define_insn_and_split "*avx_absneg<mode>2"
+  [(set (match_operand:AVXMODEF2P 0 "register_operand" "=x,x")
+	(match_operator:AVXMODEF2P 3 "absneg_operator"
+	  [(match_operand:AVXMODEF2P 1 "nonimmediate_operand" "x,m")]))
+   (use (match_operand:AVXMODEF2P 2 "nonimmediate_operand" "xm,x"))]
+  "AVX_VEC_FLOAT_MODE_P (<MODE>mode)"
+  "#"
+  "&& reload_completed"
+  [(const_int 0)]
+{
+  rtx t;
+
+  if (MEM_P (operands[1]))
+    t = gen_rtx_fmt_ee (GET_CODE (operands[3]) == NEG ? XOR : AND,
+			<MODE>mode, operands[2], operands[1]);
+  else
+    t = gen_rtx_fmt_ee (GET_CODE (operands[3]) == NEG ? XOR : AND,
+			<MODE>mode, operands[1], operands[2]);
+  t = gen_rtx_SET (VOIDmode, operands[0], t);
+  emit_insn (t);
+  DONE;
+})
+
+(define_insn_and_split "*sse_absneg<mode>2"
+  [(set (match_operand:SSEMODEF2P 0 "register_operand" "=x,x")
+	(match_operator:SSEMODEF2P 3 "absneg_operator"
+	  [(match_operand:SSEMODEF2P 1 "nonimmediate_operand" "0,xm")]))
+   (use (match_operand:SSEMODEF2P 2 "nonimmediate_operand" "xm,0"))]
+  "SSE_VEC_FLOAT_MODE_P (<MODE>mode)"
+  "#"
+  "&& reload_completed"
+  [(const_int 0)]
+{
+  rtx t;
+
+  t = operands[rtx_equal_p (operands[0], operands[1]) ? 2 : 1];
+  t = gen_rtx_fmt_ee (GET_CODE (operands[3]) == NEG ? XOR : AND,
+		      <MODE>mode, operands[0], t);
+  t = gen_rtx_SET (VOIDmode, operands[0], t);
+  emit_insn (t);
+  DONE;
+})
 
 (define_expand "<plusminus_insn><mode>3"
   [(set (match_operand:AVX256MODEF2P 0 "register_operand" "")
@@ -2226,6 +2312,7 @@
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "vector,double")
    (set_attr "amdfam10_decode" "vector,double")
+   (set_attr "bdver1_decode" "double,direct")
    (set_attr "mode" "SF")])
 
 (define_insn "*avx_cvtsi2ssq"
@@ -2255,6 +2342,7 @@
    (set_attr "prefix_rex" "1")
    (set_attr "athlon_decode" "vector,double")
    (set_attr "amdfam10_decode" "vector,double")
+   (set_attr "bdver1_decode" "double,direct")
    (set_attr "mode" "SF")])
 
 (define_insn "sse_cvtss2si"
@@ -2268,6 +2356,7 @@
   "%vcvtss2si\t{%1, %0|%0, %1}"
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
+   (set_attr "bdver1_decode" "double,double")
    (set_attr "prefix_rep" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "SI")])
@@ -2281,6 +2370,7 @@
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
    (set_attr "amdfam10_decode" "double,double")
+   (set_attr "bdver1_decode" "double,double")
    (set_attr "prefix_rep" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "SI")])
@@ -2296,6 +2386,7 @@
   "%vcvtss2si{q}\t{%1, %0|%0, %1}"
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
+   (set_attr "bdver1_decode" "double,double")
    (set_attr "prefix_rep" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "DI")])
@@ -2309,6 +2400,7 @@
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
    (set_attr "amdfam10_decode" "double,double")
+   (set_attr "bdver1_decode" "double,double")
    (set_attr "prefix_rep" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "DI")])
@@ -2324,6 +2416,7 @@
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
    (set_attr "amdfam10_decode" "double,double")
+   (set_attr "bdver1_decode" "double,double")
    (set_attr "prefix_rep" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "SI")])
@@ -2339,6 +2432,7 @@
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
    (set_attr "amdfam10_decode" "double,double")
+   (set_attr "bdver1_decode" "double,double")
    (set_attr "prefix_rep" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "DI")])
@@ -2453,7 +2547,8 @@
   [(set_attr "type" "ssecvt")
    (set_attr "unit" "mmx")
    (set_attr "prefix_data16" "1")
-   (set_attr "mode" "DI")])
+   (set_attr "mode" "DI")
+   (set_attr "bdver1_decode" "double")])
 
 (define_insn "sse2_cvttpd2pi"
   [(set (match_operand:V2SI 0 "register_operand" "=y")
@@ -2463,7 +2558,8 @@
   [(set_attr "type" "ssecvt")
    (set_attr "unit" "mmx")
    (set_attr "prefix_data16" "1")
-   (set_attr "mode" "TI")])
+   (set_attr "mode" "TI")
+   (set_attr "bdver1_decode" "double")])
 
 (define_insn "*avx_cvtsi2sd"
   [(set (match_operand:V2DF 0 "register_operand" "=x")
@@ -2490,7 +2586,8 @@
   [(set_attr "type" "sseicvt")
    (set_attr "mode" "DF")
    (set_attr "athlon_decode" "double,direct")
-   (set_attr "amdfam10_decode" "vector,double")])
+   (set_attr "amdfam10_decode" "vector,double")
+   (set_attr "bdver1_decode" "double,direct")])
 
 (define_insn "*avx_cvtsi2sdq"
   [(set (match_operand:V2DF 0 "register_operand" "=x")
@@ -2519,7 +2616,8 @@
    (set_attr "prefix_rex" "1")
    (set_attr "mode" "DF")
    (set_attr "athlon_decode" "double,direct")
-   (set_attr "amdfam10_decode" "vector,double")])
+   (set_attr "amdfam10_decode" "vector,double")
+   (set_attr "bdver1_decode" "double,direct")])
 
 (define_insn "sse2_cvtsd2si"
   [(set (match_operand:SI 0 "register_operand" "=r,r")
@@ -2532,6 +2630,7 @@
   "%vcvtsd2si\t{%1, %0|%0, %1}"
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
+   (set_attr "bdver1_decode" "double,double")
    (set_attr "prefix_rep" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "SI")])
@@ -2545,6 +2644,7 @@
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
    (set_attr "amdfam10_decode" "double,double")
+   (set_attr "bdver1_decode" "double,double")
    (set_attr "prefix_rep" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "SI")])
@@ -2560,6 +2660,7 @@
   "%vcvtsd2siq\t{%1, %0|%0, %1}"
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
+   (set_attr "bdver1_decode" "double,double")
    (set_attr "prefix_rep" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "DI")])
@@ -2573,6 +2674,7 @@
   [(set_attr "type" "sseicvt")
    (set_attr "athlon_decode" "double,vector")
    (set_attr "amdfam10_decode" "double,double")
+   (set_attr "bdver1_decode" "double,double")
    (set_attr "prefix_rep" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "DI")])
@@ -2590,7 +2692,8 @@
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "SI")
    (set_attr "athlon_decode" "double,vector")
-   (set_attr "amdfam10_decode" "double,double")])
+   (set_attr "amdfam10_decode" "double,double")
+   (set_attr "bdver1_decode" "double,double")])
 
 (define_insn "sse2_cvttsd2siq"
   [(set (match_operand:DI 0 "register_operand" "=r,r")
@@ -2605,7 +2708,8 @@
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "DI")
    (set_attr "athlon_decode" "double,vector")
-   (set_attr "amdfam10_decode" "double,double")])
+   (set_attr "amdfam10_decode" "double,double")
+   (set_attr "bdver1_decode" "double,double")])
 
 (define_insn "avx_cvtdq2pd256"
   [(set (match_operand:V4DF 0 "register_operand" "=x")
@@ -2673,7 +2777,8 @@
    (set_attr "prefix_data16" "0")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")
-   (set_attr "amdfam10_decode" "double")])
+   (set_attr "amdfam10_decode" "double")
+   (set_attr "bdver1_decode" "double")])
 
 (define_insn "avx_cvttpd2dq256"
   [(set (match_operand:V4SI 0 "register_operand" "=x")
@@ -2703,7 +2808,8 @@
   [(set_attr "type" "ssecvt")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")
-   (set_attr "amdfam10_decode" "double")])
+   (set_attr "amdfam10_decode" "double")
+   (set_attr "bdver1_decode" "double")])
 
 (define_insn "*avx_cvtsd2ss"
   [(set (match_operand:V4SF 0 "register_operand" "=x")
@@ -2732,6 +2838,7 @@
   [(set_attr "type" "ssecvt")
    (set_attr "athlon_decode" "vector,double")
    (set_attr "amdfam10_decode" "vector,double")
+   (set_attr "bdver1_decode" "direct,direct")
    (set_attr "mode" "SF")])
 
 (define_insn "*avx_cvtss2sd"
@@ -2762,6 +2869,7 @@
   "cvtss2sd\t{%2, %0|%0, %2}"
   [(set_attr "type" "ssecvt")
    (set_attr "amdfam10_decode" "vector,double")
+   (set_attr "bdver1_decode" "direct,direct")
    (set_attr "mode" "DF")])
 
 (define_insn "avx_cvtpd2ps256"
@@ -2796,7 +2904,8 @@
    (set_attr "prefix_data16" "1")
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "V4SF")
-   (set_attr "amdfam10_decode" "double")])
+   (set_attr "amdfam10_decode" "double")
+   (set_attr "bdver1_decode" "double")])
 
 (define_insn "avx_cvtps2pd256"
   [(set (match_operand:V4DF 0 "register_operand" "=x")
@@ -2832,7 +2941,8 @@
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "V2DF")
    (set_attr "prefix_data16" "0")
-   (set_attr "amdfam10_decode" "direct")])
+   (set_attr "amdfam10_decode" "direct")
+   (set_attr "bdver1_decode" "double")])
 
 (define_expand "vec_unpacks_hi_v4sf"
   [(set (match_dup 2)

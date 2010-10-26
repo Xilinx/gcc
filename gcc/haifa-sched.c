@@ -2479,14 +2479,7 @@ max_issue (struct ready_list *ready, int privileged_n, state_t state,
   /* Init max_points.  */
   max_points = 0;
   more_issue = issue_rate - cycle_issued_insns;
-
-  /* ??? We used to assert here that we never issue more insns than issue_rate.
-     However, some targets (e.g. MIPS/SB1) claim lower issue rate than can be
-     achieved to get better performance.  Until these targets are fixed to use
-     scheduler hooks to manipulate insns priority instead, the assert should
-     be disabled.
-
-     gcc_assert (more_issue >= 0);  */
+  gcc_assert (more_issue >= 0);
 
   for (i = 0; i < n_ready; i++)
     if (!ready_try [i])
@@ -2727,14 +2720,12 @@ choose_ready (struct ready_list *ready, rtx *insn_ptr)
 	  {
 	    insn = ready_element (ready, i);
 
-#ifdef ENABLE_CHECKING
 	    /* If this insn is recognizable we should have already
 	       recognized it earlier.
 	       ??? Not very clear where this is supposed to be done.
 	       See dep_cost_1.  */
-	    gcc_assert (INSN_CODE (insn) >= 0
-			|| recog_memoized (insn) < 0);
-#endif
+	    gcc_checking_assert (INSN_CODE (insn) >= 0
+				 || recog_memoized (insn) < 0);
 
 	    ready_try [i]
 	      = (/* INSN_CODE check can be omitted here as it is also done later

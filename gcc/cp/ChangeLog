@@ -1,3 +1,77 @@
+2010-10-26  Jason Merrill  <jason@redhat.com>
+
+	* tree.c (build_vec_init_expr): Split out from...
+	(build_array_copy): ...here.
+	* init.c (perform_member_init): Use it.
+	* cp-tree.h: Declare it.
+	* cp-gimplify.c (cp_gimplify_init_expr): Don't gimplify the slot for
+	VEC_INIT_EXPR and AGGR_INIT_EXPR here.  Drop pre/post parameters.
+	(cp_gimplify_expr): Handle array default-initialization via
+	VEC_INIT_EXPR.
+
+	* pt.c (lookup_template_class): push_tinst_level around call to
+	coerce_template_parms.
+
+	* tree.c (stabilize_expr): Handle xvalues properly.
+
+	* call.c (build_over_call): Use argarray[0] for 'this' argument.
+
+	* decl.c (finish_function): Don't look at function_depth.
+
+2010-10-25  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
+
+	Implement opaque-enum-specifiers for C++0x.
+	* cp-tree.h (SET_OPAQUE_ENUM_P): New.
+	(OPAQUE_ENUM_P): New.
+	(ENUM_FIXED_UNDERLYING_TYPE_P): New.
+	(start_enum): Update prototype.
+	(finish_enum_value_list): New prototype.
+	* parser.c (cp_parser_elaborated_type_specifier): Issue a pedwarn if
+	"enum class" is used in an elaborated-type-specifier.
+	(cp_parser_enum_specifier): Rewrite to parse opaque-enum-specifiers.
+	* decl.c (copy_type_enum): New.
+	(finish_enum_value_list): New, with code from finish_enum.
+	(finish_enum): A lot of code removed. Added a gcc_assert.
+	(start_enum): Add parameters enumtype and is_new.
+	Rewrite to work with opaque-enum-specifiers.
+	* pt.c (maybe_process_partial_specialization): Allow for template
+	specialization of enumerations, with a pedwarn.
+	(lookup_template_class): Update call to start_enum. Call to
+	SET_OPAQUE_ENUM_P.
+	(tsubst_enum): Call to begin_scope, finish_scope and
+	finish_enum_value_list.
+
+2010-10-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Removed Objective-C++ specific replacement of cxx_printable_name.
+	* cp-objcp-common.h: Added LANG_HOOKS_DECL_PRINTABLE_NAME, set
+	to cxx_printable_name for both C++ and Objective-C++.
+	* cp-lang.h: Removed LANG_HOOKS_DECL_PRINTABLE_NAME.
+
+	* error.c (dump_decl): For Objective-C++, call
+	objc_maybe_printable_name here ...
+	* tree.c (cxx_printable_name_internal): ... instead of here.
+	
+2010-10-23  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* tree.c (cxx_printable_name_internal): In Objective-C++, call
+	objc_maybe_printable_name.
+
+2010-10-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46129
+	* pt.c (instantiate_class_template): Don't instantiate default
+	arguments.
+
+	PR c++/46103
+	* init.c (build_vec_init): Handle memberwise move.
+
+2010-10-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/46117
+	* call.c (add_function_candidate): Don't use TREE_VALUE on null
+	parmnode.
+
 2010-10-20  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* parser.c (cp_parser_objc_method_type): Mark inline.  Return a
@@ -6,9 +80,9 @@
 	cp_parser_objc_method_type and to objc_build_method_signature.
 	(cp_parser_objc_method_prototype_list): Updated calls to
 	objc_add_method_declaration.  Use token->type to determine if it
-	is a class method or not.	
+	is a class method or not.
 	(cp_parser_objc_method_definition_list): Same change.
-	
+
 2010-10-20  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
 
 	PR c++/46056
@@ -20,7 +94,7 @@
 	* cp-lang.c (finish_file): Removed.
 	* decl2.c (cp_write_global_declarations): Call
 	objc_write_global_declarations when compiling Objective-C++.
-	
+
 2010-10-19  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/46046

@@ -124,8 +124,7 @@ package body Ch3 is
       elsif Nkind_In (N, N_In, N_Not_In)
         and then Paren_Count (N) = 0
       then
-         Error_Msg_N
-           ("|this expression must be parenthesized in Ada 2012 mode!", N);
+         Error_Msg_N ("|this expression must be parenthesized!", N);
       end if;
    end Check_Restricted_Expression;
 
@@ -251,9 +250,7 @@ package body Ch3 is
       --  and we need to fix it.
 
       if Nkind (Ident_Node) = N_Defining_Identifier then
-         Ident_Node :=
-           Make_Identifier (Sloc (Ident_Node),
-             Chars => Chars (Ident_Node));
+         Ident_Node := Make_Identifier (Sloc (Ident_Node), Chars (Ident_Node));
       end if;
 
       --  Change identifier to defining identifier if not in error
@@ -506,9 +503,7 @@ package body Ch3 is
             when Tok_Left_Paren =>
                Typedef_Node := P_Enumeration_Type_Definition;
 
-               End_Labl :=
-                 Make_Identifier (Token_Ptr,
-                   Chars => Chars (Ident_Node));
+               End_Labl := Make_Identifier (Token_Ptr, Chars (Ident_Node));
                Set_Comes_From_Source (End_Labl, False);
 
                Set_End_Label (Typedef_Node, End_Labl);
@@ -524,9 +519,7 @@ package body Ch3 is
                if Nkind (Typedef_Node) = N_Derived_Type_Definition
                  and then Present (Record_Extension_Part (Typedef_Node))
                then
-                  End_Labl :=
-                    Make_Identifier (Token_Ptr,
-                      Chars => Chars (Ident_Node));
+                  End_Labl := Make_Identifier (Token_Ptr, Chars (Ident_Node));
                   Set_Comes_From_Source (End_Labl, False);
 
                   Set_End_Label
@@ -542,9 +535,7 @@ package body Ch3 is
             when Tok_Record =>
                Typedef_Node := P_Record_Definition;
 
-               End_Labl :=
-                 Make_Identifier (Token_Ptr,
-                   Chars => Chars (Ident_Node));
+               End_Labl := Make_Identifier (Token_Ptr, Chars (Ident_Node));
                Set_Comes_From_Source (End_Labl, False);
 
                Set_End_Label (Typedef_Node, End_Labl);
@@ -599,8 +590,7 @@ package body Ch3 is
                      Set_Limited_Present (Typedef_Node, True);
 
                      End_Labl :=
-                       Make_Identifier (Token_Ptr,
-                         Chars => Chars (Ident_Node));
+                       Make_Identifier (Token_Ptr, Chars (Ident_Node));
                      Set_Comes_From_Source (End_Labl, False);
 
                      Set_End_Label (Typedef_Node, End_Labl);
@@ -622,8 +612,7 @@ package body Ch3 is
                      Set_Tagged_Present (Typedef_Node, True);
 
                      End_Labl :=
-                       Make_Identifier (Token_Ptr,
-                         Chars => Chars (Ident_Node));
+                       Make_Identifier (Token_Ptr, Chars (Ident_Node));
                      Set_Comes_From_Source (End_Labl, False);
 
                      Set_End_Label (Typedef_Node, End_Labl);
@@ -706,8 +695,7 @@ package body Ch3 is
                     and then Present (Record_Extension_Part (Typedef_Node))
                   then
                      End_Labl :=
-                       Make_Identifier (Token_Ptr,
-                                        Chars => Chars (Ident_Node));
+                       Make_Identifier (Token_Ptr, Chars (Ident_Node));
                      Set_Comes_From_Source (End_Labl, False);
 
                      Set_End_Label
@@ -3784,7 +3772,7 @@ package body Ch3 is
       --  Ada 2005 (AI-345): In case of interfaces with a null list of
       --  interfaces we build a record_definition node.
 
-      if Token = Tok_Semicolon then
+      if Token = Tok_Semicolon or else Aspect_Specifications_Present then
          Typedef_Node := New_Node (N_Record_Definition, Token_Ptr);
 
          Set_Abstract_Present  (Typedef_Node);

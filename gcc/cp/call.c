@@ -1613,9 +1613,10 @@ add_function_candidate (struct z_candidate **candidates,
   /* Kludge: When looking for a function from a subobject while generating
      an implicit copy/move constructor/operator=, don't consider anything
      that takes (a reference to) an unrelated type.  See c++/44909.  */
-  else if ((flags & LOOKUP_SPECULATIVE)
-	   || (current_function_decl
-	       && DECL_DEFAULTED_FN (current_function_decl)))
+  else if (parmlist
+	   && ((flags & LOOKUP_SPECULATIVE)
+	       || (current_function_decl
+		   && DECL_DEFAULTED_FN (current_function_decl))))
     {
       if (DECL_CONSTRUCTOR_P (fn))
 	i = 1;
@@ -5963,9 +5964,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	 INIT_EXPR to collapse the temp into our target.  Otherwise, if the
 	 ctor is trivial, do a bitwise copy with a simple TARGET_EXPR for a
 	 temp or an INIT_EXPR otherwise.  */
-      fa = (cand->first_arg != NULL_TREE
-	    ? cand->first_arg
-	    : VEC_index (tree, args, 0));
+      fa = argarray[0];
       if (integer_zerop (fa))
 	{
 	  if (TREE_CODE (arg) == TARGET_EXPR)
@@ -6040,6 +6039,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 
       return val;
     }
+  /* FIXME handle trivial default constructor and destructor, too.  */
 
   if (!already_used)
     mark_used (fn);

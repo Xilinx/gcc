@@ -414,6 +414,8 @@ package body Exp_Ch13 is
          Rewrite (N, Make_Null_Statement (Sloc (N)));
       end if;
 
+      --  Pop scope if we installed one for the analysis
+
       if In_Other_Scope then
          if Ekind (Current_Scope) = E_Package then
             End_Package_Scope (E_Scope);

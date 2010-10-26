@@ -1,4 +1,8 @@
 
+2010-10-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	MELT branch merged with trunk rev 165980
+
 2010-10-22  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* configure.ac: test for PPL 0.10 (not 0.11)

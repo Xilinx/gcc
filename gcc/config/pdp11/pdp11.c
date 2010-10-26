@@ -42,11 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target-def.h"
 #include "df.h"
 
-/*
-#define FPU_REG_P(X)	((X)>=8 && (X)<14)
-#define CPU_REG_P(X)	((X)>=0 && (X)<8)
-*/
-
 /* this is the current value returned by the macro FIRST_PARM_OFFSET 
    defined in tm.h */
 int current_first_parm_offset;
@@ -68,11 +63,11 @@ const struct real_format pdp11_f_format =
     encode_pdp11_f,
     decode_pdp11_f,
     2,
-    1,
     24,
     24,
     -127,
     127,
+    15,
     15,
     false,
     false,
@@ -89,11 +84,11 @@ const struct real_format pdp11_d_format =
     encode_pdp11_d,
     decode_pdp11_d,
     2,
-    1,
     56,
     56,
     -127,
     127,
+    15,
     15,
     false,
     false,
@@ -145,7 +140,6 @@ decode_pdp11_d (const struct real_format *fmt ATTRIBUTE_UNUSED,
 /* rtx cc0_reg_rtx; - no longer needed? */
 
 static bool pdp11_handle_option (size_t, const char *, int);
-static void pdp11_option_optimization (int, int);
 static void pdp11_option_init_struct (struct gcc_options *);
 static rtx find_addr_reg (rtx); 
 static const char *singlemove_string (rtx *);
@@ -162,6 +156,14 @@ static rtx pdp11_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
 			       const_tree, bool);
 static void pdp11_function_arg_advance (CUMULATIVE_ARGS *,
 					enum machine_mode, const_tree, bool);
+
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+
+static const struct default_options pdp11_option_optimization_table[] =
+  {
+    { OPT_LEVELS_3_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_BYTE_OP
@@ -188,8 +190,8 @@ static void pdp11_function_arg_advance (CUMULATIVE_ARGS *,
   (MASK_FPU | MASK_45 | MASK_ABSHI_BUILTIN | TARGET_UNIX_ASM_DEFAULT)
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION pdp11_handle_option
-#undef TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION pdp11_option_optimization
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE pdp11_option_optimization_table
 #undef TARGET_OPTION_INIT_STRUCT
 #define TARGET_OPTION_INIT_STRUCT pdp11_option_init_struct
 
@@ -233,18 +235,6 @@ pdp11_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
     }
 }
 
-/* Implement TARGET_OPTION_OPTIMIZATION.  */
-
-static void
-pdp11_option_optimization (int level, int size ATTRIBUTE_UNUSED)
-{
-  if (level >= 3)
-    {
-      flag_omit_frame_pointer = 1;
-      /* flag_unroll_loops = 1; */
-    }
-}
-
 /* Implement TARGET_OPTION_INIT_STRUCT.  */
 
 static void
@@ -253,34 +243,6 @@ pdp11_option_init_struct (struct gcc_options *opts)
   opts->x_flag_finite_math_only = 0;
   opts->x_flag_trapping_math = 0;
   opts->x_flag_signaling_nans = 0;
-}
-
-/* Nonzero if OP is a valid second operand for an arithmetic insn.  */
-
-int
-arith_operand (rtx op, enum machine_mode mode)
-{
-  return (register_operand (op, mode) || GET_CODE (op) == CONST_INT);
-}
-
-int
-const_immediate_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
-{
-  return (GET_CODE (op) == CONST_INT);
-}
-
-int 
-immediate15_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
-{
-    return (GET_CODE (op) == CONST_INT && ((INTVAL (op) & 0x8000) == 0x0000));
-}
-
-int
-expand_shift_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
-{
-    return (GET_CODE (op) == CONST_INT 
-	    && abs (INTVAL(op)) > 1 
-	    && abs (INTVAL(op)) <= 4);
 }
 
 /*
@@ -328,7 +290,7 @@ pdp11_output_function_prologue (FILE *stream, HOST_WIDE_INT size)
 	asm_fprintf (stream, "\tsub $%#wo, sp\n", fsize);
 
     /* save CPU registers  */
-    for (regno = 0; regno < 8; regno++)				
+    for (regno = 0; regno <= PC_REGNUM; regno++)				
       if (df_regs_ever_live_p (regno) && ! call_used_regs[regno])	
 	    if (! ((regno == FRAME_POINTER_REGNUM)			
 		   && frame_pointer_needed))				
@@ -338,7 +300,7 @@ pdp11_output_function_prologue (FILE *stream, HOST_WIDE_INT size)
     /* via_ac specifies the ac to use for saving ac4, ac5 */
     via_ac = -1;
     
-    for (regno = 8; regno < FIRST_PSEUDO_REGISTER ; regno++) 
+    for (regno = AC0_REGNUM; regno <= AC5_REGNUM ; regno++) 
     {
 	/* ac0 - ac3 */						
 	if (LOAD_FPU_REG_P(regno)
@@ -399,7 +361,7 @@ pdp11_output_function_epilogue (FILE *stream, HOST_WIDE_INT size)
 	/* hope this is safe - m68k does it also .... */		
         df_set_regs_ever_live (FRAME_POINTER_REGNUM, false);
 								
-	for (i =7, j = 0 ; i >= 0 ; i--)				
+	for (i = PC_REGNUM, j = 0 ; i >= 0 ; i--)				
 	  if (df_regs_ever_live_p (i) && ! call_used_regs[i])		
 		j++;
 	
@@ -407,22 +369,22 @@ pdp11_output_function_epilogue (FILE *stream, HOST_WIDE_INT size)
 	k = 2*j;
 	
 	/* change fp -> r5 due to the compile error on libgcc2.c */
-	for (i =7 ; i >= 0 ; i--)					
+	for (i = PC_REGNUM ; i >= 0 ; i--)					
 	  if (df_regs_ever_live_p (i) && ! call_used_regs[i])		
 		fprintf(stream, "\tmov %#" HOST_WIDE_INT_PRINT "o(r5), %s\n",
 			(-fsize-2*j--)&0xffff, reg_names[i]);
 
 	/* get ACs */						
-	via_ac = FIRST_PSEUDO_REGISTER -1;
+	via_ac = AC5_REGNUM;
 	
-	for (i = FIRST_PSEUDO_REGISTER; i > 7; i--)
+	for (i = AC5_REGNUM; i >= AC0_REGNUM; i--)
 	  if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	    {
 		via_ac = i;
 		k += 8;
 	    }
 	
-	for (i = FIRST_PSEUDO_REGISTER; i > 7; i--)
+	for (i = AC5_REGNUM; i >= AC0_REGNUM; i--)
 	{
 	    if (LOAD_FPU_REG_P(i)
 		&& df_regs_ever_live_p (i)
@@ -451,14 +413,14 @@ pdp11_output_function_epilogue (FILE *stream, HOST_WIDE_INT size)
     }								
     else								
     {		   
-	via_ac = FIRST_PSEUDO_REGISTER -1;
+      via_ac = AC5_REGNUM;
 	
 	/* get ACs */
-	for (i = FIRST_PSEUDO_REGISTER; i > 7; i--)
+	for (i = AC5_REGNUM; i >= AC0_REGNUM; i--)
 	  if (df_regs_ever_live_p (i) && call_used_regs[i])
 		via_ac = i;
 	
-	for (i = FIRST_PSEUDO_REGISTER; i > 7; i--)
+	for (i = AC5_REGNUM; i >= AC0_REGNUM; i--)
 	{
 	    if (LOAD_FPU_REG_P(i)
 		&& df_regs_ever_live_p (i)
@@ -476,7 +438,7 @@ pdp11_output_function_epilogue (FILE *stream, HOST_WIDE_INT size)
 	    }
 	}
 
-	for (i=7; i >= 0; i--)					
+	for (i = PC_REGNUM; i >= 0; i--)					
 	  if (df_regs_ever_live_p (i) && !call_used_regs[i])		
 		fprintf(stream, "\tmov (sp)+, %s\n", reg_names[i]);	
 								
@@ -1255,13 +1217,13 @@ output_jump (enum rtx_code code, int inv, int length)
 	
     switch (length)
     {
-      case 1:
+      case 2:
 	
 	sprintf(buf, "%s %%l1", inv ? neg : pos);
 	
 	return buf;
 	
-      case 3:
+      case 6:
 	
 	sprintf(buf, "%s JMP_%d\n\tjmp %%l1\nJMP_%d:", inv ? pos : neg, x, x);
 	

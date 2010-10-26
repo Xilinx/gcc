@@ -6369,10 +6369,10 @@ code_motion_process_successors (insn_t insn, av_set_t orig_ops,
      bookkeeping generated for another fence or for another path in current
      move_op.  */
   gcc_assert (res == 1
-              || (res == 0
-                  && av_set_could_be_blocked_by_bookkeeping_p (orig_ops,
+	      || (res == 0
+		  && av_set_could_be_blocked_by_bookkeeping_p (orig_ops,
 							       static_params))
-              || res == -1);
+	      || res == -1);
 #endif
 
   /* Merge data, clean up, etc.  */
