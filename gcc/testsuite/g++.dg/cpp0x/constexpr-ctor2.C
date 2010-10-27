@@ -1,4 +1,4 @@
-// { dg-do compile }
+// { dg-options -std=c++0x }
 
 struct A
 {
