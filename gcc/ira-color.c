@@ -2832,8 +2832,6 @@ ira_reassign_pseudos (int *spilled_pseudo_regs, int num,
 		    {
 		      spilled_pseudo_regs[num++] = ALLOCNO_REGNO (conflict_a);
 		      bitmap_set_bit (temp, ALLOCNO_REGNO (conflict_a));
-		      /* ?!? This seems wrong.  */
-		      bitmap_set_bit (consideration_allocno_bitmap,
 		    }
 	        }
 	    }
