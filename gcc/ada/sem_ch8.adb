@@ -1968,7 +1968,7 @@ package body Sem_Ch8 is
 
          --  Ada 2005: check overriding indicator
 
-         if Is_Overriding_Operation (Rename_Spec) then
+         if Present (Overridden_Operation (Rename_Spec)) then
             if Must_Not_Override (Specification (N)) then
                Error_Msg_NE
                  ("subprogram& overrides inherited operation",
@@ -2110,7 +2110,7 @@ package body Sem_Ch8 is
            and then No (DTC_Entity (Old_S))
            and then Present (Alias (Old_S))
            and then not Is_Abstract_Subprogram (Alias (Old_S))
-           and then Is_Overriding_Operation (Alias (Old_S))
+           and then Present (Overridden_Operation (Alias (Old_S)))
          then
             Old_S := Alias (Old_S);
          end if;
@@ -2480,16 +2480,19 @@ package body Sem_Ch8 is
 
       --  A useful warning, suggested by Ada Bug Finder (Ada-Europe 2005)
       --  is to warn if an operator is being renamed as a different operator.
+      --  If the operator is predefined, examine the kind of the entity, not
+      --  the abbreviated declaration in Standard.
 
       if Comes_From_Source (N)
         and then Present (Old_S)
-        and then Nkind (Old_S) = N_Defining_Operator_Symbol
+        and then
+          (Nkind (Old_S) = N_Defining_Operator_Symbol
+            or else Ekind (Old_S) = E_Operator)
         and then Nkind (New_S) = N_Defining_Operator_Symbol
         and then Chars (Old_S) /= Chars (New_S)
       then
          Error_Msg_NE
-           ("?& is being renamed as a different operator",
-             New_S, Old_S);
+           ("?& is being renamed as a different operator", N, Old_S);
       end if;
 
       --  Check for renaming of obsolescent subprogram
@@ -5481,9 +5484,6 @@ package body Sem_Ch8 is
 
          --  Reference to type name in predicate/invariant expression
 
-         elsif OK_To_Reference (Etype (P)) then
-            Analyze_Selected_Component (N);
-
          elsif Is_Appropriate_For_Entry_Prefix (P_Type)
            and then not In_Open_Scopes (P_Name)
            and then (not Is_Concurrent_Type (Etype (P_Name))
@@ -6004,9 +6004,8 @@ package body Sem_Ch8 is
       while Present (Id)
         and then Id /= Priv_Id
       loop
-         if Is_Standard_Character_Type (Id)
-           and then Id = Base_Type (Id)
-         then
+         if Is_Standard_Character_Type (Id) and then Is_Base_Type (Id) then
+
             --  We replace the node with the literal itself, resolve as a
             --  character, and set the type correctly.
 
@@ -6167,9 +6166,7 @@ package body Sem_Ch8 is
 
          when Name_Op_And | Name_Op_Not | Name_Op_Or  | Name_Op_Xor =>
             while Id  /= Priv_Id loop
-               if Valid_Boolean_Arg (Id)
-                 and then Id = Base_Type (Id)
-               then
+               if Valid_Boolean_Arg (Id) and then Is_Base_Type (Id) then
                   Add_Implicit_Operator (Id);
                   return True;
                end if;
@@ -6183,7 +6180,7 @@ package body Sem_Ch8 is
             while Id  /= Priv_Id loop
                if Is_Type (Id)
                  and then not Is_Limited_Type (Id)
-                 and then Id = Base_Type (Id)
+                 and then Is_Base_Type (Id)
                then
                   Add_Implicit_Operator (Standard_Boolean, Id);
                   return True;
@@ -6197,9 +6194,9 @@ package body Sem_Ch8 is
          when Name_Op_Lt | Name_Op_Le | Name_Op_Gt | Name_Op_Ge =>
             while Id  /= Priv_Id loop
                if (Is_Scalar_Type (Id)
-                 or else (Is_Array_Type (Id)
-                           and then Is_Scalar_Type (Component_Type (Id))))
-                 and then Id = Base_Type (Id)
+                    or else (Is_Array_Type (Id)
+                              and then Is_Scalar_Type (Component_Type (Id))))
+                 and then Is_Base_Type (Id)
                then
                   Add_Implicit_Operator (Standard_Boolean, Id);
                   return True;
@@ -6219,9 +6216,7 @@ package body Sem_Ch8 is
               Name_Op_Divide   |
               Name_Op_Expon    =>
             while Id  /= Priv_Id loop
-               if Is_Numeric_Type (Id)
-                 and then Id = Base_Type (Id)
-               then
+               if Is_Numeric_Type (Id) and then Is_Base_Type (Id) then
                   Add_Implicit_Operator (Id);
                   return True;
                end if;
@@ -6233,8 +6228,9 @@ package body Sem_Ch8 is
 
          when Name_Op_Concat =>
             while Id  /= Priv_Id loop
-               if Is_Array_Type (Id) and then Number_Dimensions (Id) = 1
-                 and then Id = Base_Type (Id)
+               if Is_Array_Type (Id)
+                 and then Number_Dimensions (Id) = 1
+                 and then Is_Base_Type (Id)
                then
                   Add_Implicit_Operator (Id);
                   return True;

@@ -5769,7 +5769,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	}
     }
 
-  if (FUNCTION_DECL_P (decl))
+  if (TREE_CODE (decl) == FUNCTION_DECL)
     validate_constexpr_fundecl (decl);
 
   else if (!ensure_literal_type_for_constexpr_object (decl))
@@ -10398,7 +10398,7 @@ grok_special_member_properties (tree decl)
       else if (is_list_ctor (decl))
 	TYPE_HAS_LIST_CTOR (class_type) = 1;
 
-      if (DECL_DECLARED_CONSTEXPR_P (STRIP_TEMPLATE (decl))
+      if (DECL_DECLARED_CONSTEXPR_P (decl)
 	  && !copy_fn_p (decl) && !move_fn_p (decl))
 	TYPE_HAS_CONSTEXPR_CTOR (class_type) = 1;
     }

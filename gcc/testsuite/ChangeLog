@@ -1,3 +1,116 @@
+2010-10-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/avx-vzeroupper-1.c: Add -mtune=generic.
+	* gcc.target/i386/avx-vzeroupper-2.c: Likewise.
+
+	* gcc.target/i386/avx-vzeroupper-3.c: New.
+	* gcc.target/i386/avx-vzeroupper-4.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-5.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-6.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-7.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-8.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-9.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-10.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-11.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-12.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-13.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-14.c: Likewise.
+
+2010-10-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* obj-c.dg/property/at-property-4.m: New.
+	* obj-c++.dg/property/at-property-4.mm: New.
+	* obj-c++.dg/property/property-neg-5.m: Updated testcase for
+	updates in warning.
+	* obj-c++.dg/property/property-neg-5.mm: Updated testcase for
+	updates in warning.
+	
+2010-10-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/property/at-property-1.m: New.	
+	* objc.dg/property/at-property-2.m: New.
+	* objc.dg/property/at-property-3.m: New.
+	* objc.dg/ivar-invalid-type-1.m: New.
+	* obj-c++.dg/property/at-property-1.mm: New.
+	* obj-c++.dg/property/at-property-2.mm: New.
+	* obj-c++.dg/property/at-property-3.mm: New.	
+	* obj-c++.dg/ivar-invalid-type-1.mm: New.
+	* objc.dg/property/property-neg-6.m: Updated testcase for updates
+	in error reporting.
+
+2010-10-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/46010
+	* gfortran.dg/namelist_66.f90: New test.
+	* gfortran.dg/fmt_t_6.f: Fix whitespace.
+
+2010-10-26  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42647
+	* gfortran.dg/allocatable_scalar_9.f90: Extended.
+	* gfortran.dg/allocatable_scalar_10.f90: New.
+	* gfortran.dg/class_19.f03: Extended.
+
+2010-10-26  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/45736
+	* testsuite/gcc.dg/lto/pr45736_0.c: New function.
+
+2010-10-26  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/46167
+	* gcc.dg/vect/O-pr46167.c: New.
+	* gcc.dg/vect/vect.exp: Run tests with -O.
+
+2010-10-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/44948
+	* g++.dg/abi/param2.C: Add -Wno-psabi for ilp32 x86.
+	* g++.dg/vect/pr33860a.cc: Likewise.
+	* gcc.c-torture/compile/20070522-1.c: Likewise.
+	* gcc.dg/compat/struct-align-1_x.c: Likewise.
+	* gcc.dg/compat/struct-align-1_y.c: Likewise.
+	* gcc.dg/compat/struct-align-2_x.c: Likewise.
+	* gcc.dg/compat/struct-align-2_y.c: Likewise.
+	* gcc.dg/pr44136.c: Likewise.
+
+	* gcc.c-torture/compile/pr33617.c: Add -Wno-psabi for x86.
+	* gcc.dg/compat/vector-1_x.c: Likewise.
+	* gcc.dg/compat/vector-1_y.c: Likewise.
+	* gcc.dg/compat/vector-2_x.c: Likewise.
+	* gcc.dg/compat/vector-2_y.c: Likewise.
+	* gcc.dg/pr43300.c: Likewise.
+
+	* gcc.dg/compat/vector-1a_x.c: Add -Wno-psabi.
+	* gcc.dg/compat/vector-1a_y.c: Likewise.
+	* gcc.dg/compat/vector-1b_x.c: Likewise.
+	* gcc.dg/compat/vector-1b_y.c: Likewise.
+	* gcc.dg/compat/vector-2a_x.c: Likewise.
+	* gcc.dg/compat/vector-2a_y.c: Likewise.
+	* gcc.dg/compat/vector-2b_x.c: Likewise.
+	* gcc.dg/compat/vector-2b_y.c: Likewise.
+	* gcc.target/i386/pr39162.c: Likewise.
+	* gcc.target/i386/pr40906-2.c: Likewise.
+	* gcc.target/i386/sse-5.c: Likewise.
+
+	* gcc.dg/pr35442.c: Prune ABI change warnings.
+
+	* gcc.c-torture/execute/pr38151.x: New.
+	* gcc.target/i386/pr44948-1a.c: Likewise.
+	* gcc.target/i386/pr44948-1b.c: Likewise.
+	* gcc.target/i386/pr44948-2a.c: Likewise.
+	* gcc.target/i386/pr44948-2b.c: Likewise.
+
+2010-10-26  Ian Lance Taylor  <iant@google.com>
+
+	PR middle-end/45687
+	* gcc.c-torture/execute/20101025-1.c: New test.
+
+2010-10-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45451
+	* gfortran.dg/class_allocate_5.f90: New.
+
 2010-10-25  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
 
 	Implement opaque-enum-specifiers for C++0x

@@ -2155,7 +2155,7 @@ package body Sem_Ch4 is
 
       P_T := Base_Type (Etype (P));
 
-      if Is_Entity_Name (P) then
+      if Is_Entity_Name (P) and then Present (Entity (P)) then
          U_N := Entity (P);
 
          if Is_Type (U_N) then
@@ -2277,8 +2277,8 @@ package body Sem_Ch4 is
 
    procedure Analyze_Membership_Op (N : Node_Id) is
       Loc   : constant Source_Ptr := Sloc (N);
-      L     : constant Node_Id     := Left_Opnd (N);
-      R     : constant Node_Id     := Right_Opnd (N);
+      L     : constant Node_Id    := Left_Opnd (N);
+      R     : constant Node_Id    := Right_Opnd (N);
 
       Index : Interp_Index;
       It    : Interp;
@@ -5581,13 +5581,6 @@ package body Sem_Ch4 is
          Enode := Selector_Name (N);
 
       else
-         return False;
-      end if;
-
-      --  If OK_To_Reference is set for the entity, then don't complain, it
-      --  means we are doing a preanalysis in which such complaints are wrong.
-
-      if OK_To_Reference (Entity (Enode)) then
          return False;
       end if;
 

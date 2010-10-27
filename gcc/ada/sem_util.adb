@@ -1890,7 +1890,7 @@ package body Sem_Util is
                   if Chars (Id) = Name_Op_Eq
                     and then Is_Dispatching_Operation (Id)
                     and then Present (Alias (Id))
-                    and then Is_Overriding_Operation (Alias (Id))
+                    and then Present (Overridden_Operation (Alias (Id)))
                     and then Base_Type (Etype (First_Entity (Id))) =
                                Base_Type (Etype (First_Entity (Alias (Id))))
                   then
@@ -5121,36 +5121,50 @@ package body Sem_Util is
 
             --  We are interested only in components and discriminants
 
-            if Ekind_In (Ent, E_Component, E_Discriminant) then
+            Exp := Empty;
 
-               --  Get default expression if any. If there is no declaration
-               --  node, it means we have an internal entity. The parent and
-               --  tag fields are examples of such entities. For these cases,
-               --  we just test the type of the entity.
+            case Ekind (Ent) is
+               when E_Component =>
 
-               if Present (Declaration_Node (Ent)) then
-                  Exp := Expression (Declaration_Node (Ent));
-               else
-                  Exp := Empty;
-               end if;
+                  --  Get default expression if any. If there is no declaration
+                  --  node, it means we have an internal entity. The parent and
+                  --  tag fields are examples of such entities. For such cases,
+                  --  we just test the type of the entity.
 
-               --  A component has PI if it has no default expression and the
-               --  component type has PI.
-
-               if No (Exp) then
-                  if not Has_Preelaborable_Initialization (Etype (Ent)) then
-                     Has_PE := False;
-                     exit;
+                  if Present (Declaration_Node (Ent)) then
+                     Exp := Expression (Declaration_Node (Ent));
                   end if;
 
-               --  Require the default expression to be preelaborable
+               when E_Discriminant =>
 
-               elsif not Is_Preelaborable_Expression (Exp) then
+                  --  Note: for a renamed discriminant, the Declaration_Node
+                  --  may point to the one from the ancestor, and have a
+                  --  different expression, so use the proper attribute to
+                  --  retrieve the expression from the derived constraint.
+
+                  Exp := Discriminant_Default_Value (Ent);
+
+               when others =>
+                  goto Check_Next_Entity;
+            end case;
+
+            --  A component has PI if it has no default expression and the
+            --  component type has PI.
+
+            if No (Exp) then
+               if not Has_Preelaborable_Initialization (Etype (Ent)) then
                   Has_PE := False;
                   exit;
                end if;
+
+            --  Require the default expression to be preelaborable
+
+            elsif not Is_Preelaborable_Expression (Exp) then
+               Has_PE := False;
+               exit;
             end if;
 
+         <<Check_Next_Entity>>
             Next_Entity (Ent);
          end loop;
       end Check_Components;
@@ -6859,22 +6873,22 @@ package body Sem_Util is
    -----------------------------------
 
    function Is_Partially_Initialized_Type
-     (Typ          : Entity_Id;
-      Include_Null : Boolean := True) return Boolean
+     (Typ              : Entity_Id;
+      Include_Implicit : Boolean := True) return Boolean
    is
    begin
       if Is_Scalar_Type (Typ) then
          return False;
 
       elsif Is_Access_Type (Typ) then
-         return Include_Null;
+         return Include_Implicit;
 
       elsif Is_Array_Type (Typ) then
 
          --  If component type is partially initialized, so is array type
 
          if Is_Partially_Initialized_Type
-              (Component_Type (Typ), Include_Null)
+              (Component_Type (Typ), Include_Implicit)
          then
             return True;
 
@@ -6888,9 +6902,10 @@ package body Sem_Util is
 
       elsif Is_Record_Type (Typ) then
 
-         --  A discriminated type is always partially initialized
+         --  A discriminated type is always partially initialized if in
+         --  all mode
 
-         if Has_Discriminants (Typ) then
+         if Has_Discriminants (Typ) and then Include_Implicit then
             return True;
 
          --  A tagged type is always partially initialized
@@ -6929,7 +6944,7 @@ package body Sem_Util is
                      --  initialized, then the enclosing record type is also.
 
                      elsif Is_Partially_Initialized_Type
-                             (Etype (Ent), Include_Null)
+                             (Etype (Ent), Include_Implicit)
                      then
                         return True;
                      end if;
@@ -6969,7 +6984,7 @@ package body Sem_Util is
             if No (U) then
                return True;
             else
-               return Is_Partially_Initialized_Type (U, Include_Null);
+               return Is_Partially_Initialized_Type (U, Include_Implicit);
             end if;
          end;
 
@@ -9633,6 +9648,29 @@ package body Sem_Util is
 
                if Modification_Comes_From_Source then
                   Generate_Reference (Ent, Exp, 'm');
+
+                  --  If the target of the assignment is the bound variable
+                  --  in an iterator, indicate that the corresponding array
+                  --  or container is also modified.
+
+                  if Ada_Version >= Ada_2012
+                    and then
+                      Nkind (Parent (Ent)) = N_Iterator_Specification
+                  then
+                     declare
+                        Domain : constant Node_Id := Name (Parent (Ent));
+
+                     begin
+                        --  TBD : in the full version of the construct, the
+                        --  domain of iteration can be given by an expression.
+
+                        if Is_Entity_Name (Domain) then
+                           Generate_Reference      (Entity (Domain), Exp, 'm');
+                           Set_Is_True_Constant    (Entity (Domain), False);
+                           Set_Never_Set_In_Source (Entity (Domain), False);
+                        end if;
+                     end;
+                  end if;
                end if;
 
                Check_Nested_Access (Ent);
@@ -9942,9 +9980,7 @@ package body Sem_Util is
       --  If S overrides an inherted subprogram S2 the original corresponding
       --  operation of S is the original corresponding operation of S2
 
-      elsif Is_Overriding_Operation (S)
-        and then Present (Overridden_Operation (S))
-      then
+      elsif Present (Overridden_Operation (S)) then
          return Original_Corresponding_Operation (Overridden_Operation (S));
 
       --  otherwise it is S itself

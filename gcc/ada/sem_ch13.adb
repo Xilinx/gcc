@@ -44,6 +44,7 @@ with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Aux;  use Sem_Aux;
 with Sem_Ch3;  use Sem_Ch3;
+with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
@@ -77,18 +78,15 @@ package body Sem_Ch13 is
    --  inherited from a derived type that is no longer appropriate for the
    --  new Esize value. In this case, we reset the Alignment to unknown.
 
-   procedure Build_Predicate_Function
-     (Typ   : Entity_Id;
-      FDecl : out Node_Id;
-      FBody : out Node_Id);
+   procedure Build_Predicate_Function (Typ : Entity_Id; N : Node_Id);
    --  If Typ has predicates (indicated by Has_Predicates being set for Typ,
    --  then either there are pragma Invariant entries on the rep chain for the
    --  type (note that Predicate aspects are converted to pragam Predicate), or
-   --  there are inherited aspects from a parent type, or ancestor subtypes,
-   --  or interfaces. This procedure builds the spec and body for the Predicate
-   --  function that tests these predicates, returning them in PDecl and Pbody
-   --  and setting Predicate_Procedure for Typ. In some error situations no
-   --  procedure is built, in which case PDecl/PBody are empty on return.
+   --  there are inherited aspects from a parent type, or ancestor subtypes.
+   --  This procedure builds the spec and body for the Predicate function that
+   --  tests these predicates. N is the freeze node for the type. The spec of
+   --  the function is inserted before the freeze node, and the body of the
+   --  funtion is inserted after the freeze node.
 
    procedure Build_Static_Predicate
      (Typ  : Entity_Id;
@@ -135,6 +133,17 @@ package body Sem_Ch13 is
    --  declaration, so that the attribute specification is handled as a
    --  renaming_as_body. For tagged types, the specification is one of the
    --  primitive specs.
+
+   generic
+      with procedure Replace_Type_Reference (N : Node_Id);
+   procedure Replace_Type_References_Generic (N : Node_Id; TName : Name_Id);
+   --  This is used to scan an expression for a predicate or invariant aspect
+   --  replacing occurrences of the name TName (the name of the subtype to
+   --  which the aspect applies) with appropriate references to the parameter
+   --  of the predicate function or invariant procedure. The procedure passed
+   --  as a generic parameter does the actual replacement of node N, which is
+   --  either a simple direct reference to TName, or a selected component that
+   --  represents an appropriately qualified occurrence of TName.
 
    procedure Set_Biased
      (E      : Entity_Id;
@@ -381,62 +390,69 @@ package body Sem_Ch13 is
                   declare
                      Fbit : constant Uint :=
                               Static_Integer (First_Bit (CC));
+                     Lbit : constant Uint :=
+                              Static_Integer (Last_Bit (CC));
 
                   begin
-                     --  Case of component with size > max machine scalar
+                     --  Case of component with last bit >= max machine scalar
 
-                     if Esize (Comp) > Max_Machine_Scalar_Size then
+                     if Lbit >= Max_Machine_Scalar_Size then
 
-                        --  Must begin on byte boundary
+                        --  This is allowed only if first bit is zero, and
+                        --  last bit + 1 is a multiple of storage unit size.
 
-                        if Fbit mod SSU /= 0 then
-                           Error_Msg_N
-                             ("illegal first bit value for "
-                              & "reverse bit order",
-                              First_Bit (CC));
-                           Error_Msg_Uint_1 := SSU;
-                           Error_Msg_Uint_2 := Max_Machine_Scalar_Size;
+                        if Fbit = 0 and then (Lbit + 1) mod SSU = 0 then
 
-                           Error_Msg_N
-                             ("\must be a multiple of ^ "
-                              & "if size greater than ^",
-                              First_Bit (CC));
+                           --  This is the case to give a warning if enabled
 
-                           --  Must end on byte boundary
-
-                        elsif Esize (Comp) mod SSU /= 0 then
-                           Error_Msg_N
-                             ("illegal last bit value for "
-                              & "reverse bit order",
-                              Last_Bit (CC));
-                           Error_Msg_Uint_1 := SSU;
-                           Error_Msg_Uint_2 := Max_Machine_Scalar_Size;
-
-                           Error_Msg_N
-                             ("\must be a multiple of ^ if size "
-                              & "greater than ^",
-                              Last_Bit (CC));
-
-                           --  OK, give warning if enabled
-
-                        elsif Warn_On_Reverse_Bit_Order then
-                           Error_Msg_N
-                             ("multi-byte field specified with "
-                              & "  non-standard Bit_Order?", CC);
-
-                           if Bytes_Big_Endian then
+                           if Warn_On_Reverse_Bit_Order then
                               Error_Msg_N
-                                ("\bytes are not reversed "
-                                 & "(component is big-endian)?", CC);
+                                ("multi-byte field specified with "
+                                 & "  non-standard Bit_Order?", CC);
+
+                              if Bytes_Big_Endian then
+                                 Error_Msg_N
+                                   ("\bytes are not reversed "
+                                    & "(component is big-endian)?", CC);
+                              else
+                                 Error_Msg_N
+                                   ("\bytes are not reversed "
+                                    & "(component is little-endian)?", CC);
+                              end if;
+                           end if;
+
+                        --  Give error message for RM 13.4.1(10) violation
+
+                        else
+                           Error_Msg_FE
+                             ("machine scalar rules not followed for&",
+                              First_Bit (CC), Comp);
+
+                           Error_Msg_Uint_1 := Lbit;
+                           Error_Msg_Uint_2 := Max_Machine_Scalar_Size;
+                           Error_Msg_F
+                             ("\last bit (^) exceeds maximum machine "
+                              & "scalar size (^)",
+                              First_Bit (CC));
+
+                           if (Lbit + 1) mod SSU /= 0 then
+                              Error_Msg_Uint_1 := SSU;
+                              Error_Msg_F
+                                ("\and is not a multiple of Storage_Unit (^) "
+                                 & "('R'M 13.4.1(10))",
+                                 First_Bit (CC));
+
                            else
-                              Error_Msg_N
-                                ("\bytes are not reversed "
-                                 & "(component is little-endian)?", CC);
+                              Error_Msg_Uint_1 := Fbit;
+                              Error_Msg_F
+                                ("\and first bit (^) is non-zero "
+                                 & "('R'M 13.4.1(10))",
+                                 First_Bit (CC));
                            end if;
                         end if;
 
-                        --  Case where size is not greater than max machine
-                        --  scalar. For now, we just count these.
+                     --  OK case of machine scalar related component clause,
+                     --  For now, just count them.
 
                      else
                         Num_CC := Num_CC + 1;
@@ -500,17 +516,31 @@ package body Sem_Ch13 is
                --  Start of processing for Sort_CC
 
             begin
-               --  Collect the component clauses
+               --  Collect the machine scalar relevant component clauses
 
                Num_CC := 0;
                Comp   := First_Component_Or_Discriminant (R);
                while Present (Comp) loop
-                  if Present (Component_Clause (Comp))
-                    and then Esize (Comp) <= Max_Machine_Scalar_Size
-                  then
-                     Num_CC := Num_CC + 1;
-                     Comps (Num_CC) := Comp;
-                  end if;
+                  declare
+                     CC   : constant Node_Id := Component_Clause (Comp);
+
+                  begin
+                     --  Collect only component clauses whose last bit is less
+                     --  than machine scalar size. Any component clause whose
+                     --  last bit exceeds this value does not take part in
+                     --  machine scalar layout considerations. The test for
+                     --  Error_Posted makes sure we exclude component clauses
+                     --  for which we already posted an error.
+
+                     if Present (CC)
+                       and then not Error_Posted (Last_Bit (CC))
+                       and then Static_Integer (Last_Bit (CC)) <
+                                Max_Machine_Scalar_Size
+                     then
+                        Num_CC := Num_CC + 1;
+                        Comps (Num_CC) := Comp;
+                     end if;
+                  end;
 
                   Next_Component_Or_Discriminant (Comp);
                end loop;
@@ -1004,8 +1034,7 @@ package body Sem_Ch13 is
                   Aitem :=
                     Make_Pragma (Loc,
                       Pragma_Identifier            =>
-                        Make_Identifier (Sloc (Id),
-                          Chars => Pname),
+                        Make_Identifier (Sloc (Id), Pname),
                       Class_Present                => Class_Present (Aspect),
                       Split_PPC                    => Split_PPC (Aspect),
                       Pragma_Argument_Associations => New_List (
@@ -3070,18 +3099,7 @@ package body Sem_Ch13 is
       --  If we have a type with predicates, build predicate function
 
       if Is_Type (E) and then Has_Predicates (E) then
-         declare
-            FDecl : Node_Id;
-            FBody : Node_Id;
-
-         begin
-            Build_Predicate_Function (E, FDecl, FBody);
-
-            if Present (FDecl) then
-               Insert_After (N, FBody);
-               Insert_After (N, FDecl);
-            end if;
-         end;
+         Build_Predicate_Function (E, N);
       end if;
    end Analyze_Freeze_Entity;
 
@@ -3530,15 +3548,16 @@ package body Sem_Ch13 is
    --     ...
    --  end typInvariant;
 
-   procedure Build_Invariant_Procedure
-     (Typ   : Entity_Id;
-      PDecl : out Node_Id;
-      PBody : out Node_Id)
-   is
+   procedure Build_Invariant_Procedure (Typ : Entity_Id; N : Node_Id) is
       Loc   : constant Source_Ptr := Sloc (Typ);
       Stmts : List_Id;
       Spec  : Node_Id;
       SId   : Entity_Id;
+      PDecl : Node_Id;
+      PBody : Node_Id;
+
+      Visible_Decls : constant List_Id := Visible_Declarations (N);
+      Private_Decls : constant List_Id := Private_Declarations (N);
 
       procedure Add_Invariants (T : Entity_Id; Inherit : Boolean);
       --  Appends statements to Stmts for any invariants in the rep item chain
@@ -3550,6 +3569,10 @@ package body Sem_Ch13 is
 
       Object_Name : constant Name_Id := New_Internal_Name ('I');
       --  Name for argument of invariant procedure
+
+      Object_Entity : constant Node_Id :=
+                        Make_Defining_Identifier (Loc, Object_Name);
+      --  The procedure declaration entity for the argument
 
       --------------------
       -- Add_Invariants --
@@ -3565,56 +3588,49 @@ package body Sem_Ch13 is
          Assoc : List_Id;
          Str   : String_Id;
 
-         function Replace_Node (N : Node_Id) return Traverse_Result;
-         --  Process single node for traversal to replace type references
+         procedure Replace_Type_Reference (N : Node_Id);
+         --  Replace a single occurrence N of the subtype name with a reference
+         --  to the formal of the predicate function. N can be an identifier
+         --  referencing the subtype, or a selected component, representing an
+         --  appropriately qualified occurrence of the subtype name.
 
-         procedure Replace_Type is new Traverse_Proc (Replace_Node);
-         --  Traverse an expression changing every occurrence of an entity
-         --  reference to type T with a reference to the object argument.
+         procedure Replace_Type_References is
+           new Replace_Type_References_Generic (Replace_Type_Reference);
+         --  Traverse an expression replacing all occurrences of the subtype
+         --  name with appropriate references to the object that is the formal
+         --  parameter of the predicate function. Note that we must ensure
+         --  that the type and entity information is properly set in the
+         --  replacement node, since we will do a Preanalyze call of this
+         --  expression without proper visibility of the procedure argument.
 
-         ------------------
-         -- Replace_Node --
-         ------------------
+         ----------------------------
+         -- Replace_Type_Reference --
+         ----------------------------
 
-         function Replace_Node (N : Node_Id) return Traverse_Result is
+         procedure Replace_Type_Reference (N : Node_Id) is
          begin
-            --  Case of entity name referencing the type
+            --  Invariant'Class, replace with T'Class (obj)
 
-            if Is_Entity_Name (N)
-              and then Entity (N) = T
-            then
-               --  Invariant'Class, replace with T'Class (obj)
+            if Class_Present (Ritem) then
+               Rewrite (N,
+                 Make_Type_Conversion (Loc,
+                   Subtype_Mark =>
+                     Make_Attribute_Reference (Loc,
+                       Prefix         => New_Occurrence_Of (T, Loc),
+                       Attribute_Name => Name_Class),
+                   Expression   => Make_Identifier (Loc, Object_Name)));
 
-               if Class_Present (Ritem) then
-                  Rewrite (N,
-                    Make_Type_Conversion (Loc,
-                      Subtype_Mark =>
-                        Make_Attribute_Reference (Loc,
-                          Prefix         =>
-                            New_Occurrence_Of (T, Loc),
-                          Attribute_Name => Name_Class),
-                      Expression =>
-                        Make_Identifier (Loc,
-                          Chars => Object_Name)));
+               Set_Entity (Expression (N), Object_Entity);
+               Set_Etype  (Expression (N), Typ);
 
-               --  Invariant, replace with obj
-
-               else
-                  Rewrite (N,
-                    Make_Identifier (Loc,
-                      Chars => Object_Name));
-               end if;
-
-               --  All done with this node
-
-               return Skip;
-
-            --  Not an instance of the type entity, keep going
+            --  Invariant, replace with obj
 
             else
-               return OK;
+               Rewrite (N, Make_Identifier (Loc, Object_Name));
+               Set_Entity (N, Object_Entity);
+               Set_Etype  (N, Typ);
             end if;
-         end Replace_Node;
+         end Replace_Type_Reference;
 
       --  Start of processing for Add_Invariants
 
@@ -3655,31 +3671,24 @@ package body Sem_Ch13 is
 
                --  We need to replace any occurrences of the name of the type
                --  with references to the object, converted to type'Class in
-               --  the case of Invariant'Class aspects. We do this by first
-               --  doing a preanalysis, to identify all the entities, then
-               --  we traverse looking for the type entity, and doing the
-               --  necessary substitution. The preanalysis is done with the
-               --  special OK_To_Reference flag set on the type, so that if
-               --  we get an occurrence of this type, it will be reognized
-               --  as legitimate.
+               --  the case of Invariant'Class aspects.
 
-               Set_OK_To_Reference (T, True);
+               Replace_Type_References (Exp, Chars (T));
+
+               --  Now we need to preanalyze the expression to properly capture
+               --  the visibility in the visible part. The expression will not
+               --  be analyzed for real until the body is analyzed, but that is
+               --  at the end of the private part and has the wrong visibility.
+
+               Set_Parent (Exp, N);
                Preanalyze_Spec_Expression (Exp, Standard_Boolean);
-               Set_OK_To_Reference (T, False);
-
-               --  Do the traversal
-
-               Replace_Type (Exp);
 
                --  Build first two arguments for Check pragma
 
                Assoc := New_List (
                  Make_Pragma_Argument_Association (Loc,
-                    Expression =>
-                      Make_Identifier (Loc,
-                        Chars => Name_Invariant)),
-                  Make_Pragma_Argument_Association (Loc,
-                    Expression => Exp));
+                   Expression => Make_Identifier (Loc, Name_Invariant)),
+                 Make_Pragma_Argument_Association (Loc, Expression => Exp));
 
                --  Add message if present in Invariant pragma
 
@@ -3708,8 +3717,7 @@ package body Sem_Ch13 is
                Append_To (Stmts,
                  Make_Pragma (Loc,
                    Pragma_Identifier            =>
-                     Make_Identifier (Loc,
-                       Chars => Name_Check),
+                     Make_Identifier (Loc, Name_Check),
                    Pragma_Argument_Associations => Assoc));
 
                --  If Inherited case and option enabled, output info msg. Note
@@ -3734,6 +3742,7 @@ package body Sem_Ch13 is
       Stmts := No_List;
       PDecl := Empty;
       PBody := Empty;
+      Set_Etype (Object_Entity, Typ);
 
       --  Add invariants for the current type
 
@@ -3769,7 +3778,6 @@ package body Sem_Ch13 is
 
          --  Build procedure declaration
 
-         pragma Assert (Has_Invariants (Typ));
          SId :=
            Make_Defining_Identifier (Loc,
              Chars => New_External_Name (Chars (Typ), "Invariant"));
@@ -3781,15 +3789,10 @@ package body Sem_Ch13 is
              Defining_Unit_Name       => SId,
              Parameter_Specifications => New_List (
                Make_Parameter_Specification (Loc,
-                 Defining_Identifier =>
-                   Make_Defining_Identifier (Loc,
-                     Chars => Object_Name),
-                 Parameter_Type =>
-                   New_Occurrence_Of (Typ, Loc))));
+                 Defining_Identifier => Object_Entity,
+                 Parameter_Type      => New_Occurrence_Of (Typ, Loc))));
 
-         PDecl :=
-           Make_Subprogram_Declaration (Loc,
-             Specification => Spec);
+         PDecl := Make_Subprogram_Declaration (Loc, Specification => Spec);
 
          --  Build procedure body
 
@@ -3803,10 +3806,8 @@ package body Sem_Ch13 is
              Parameter_Specifications => New_List (
                Make_Parameter_Specification (Loc,
                  Defining_Identifier =>
-                   Make_Defining_Identifier (Loc,
-                     Chars => Object_Name),
-                 Parameter_Type =>
-                   New_Occurrence_Of (Typ, Loc))));
+                   Make_Defining_Identifier (Loc, Object_Name),
+                 Parameter_Type => New_Occurrence_Of (Typ, Loc))));
 
          PBody :=
            Make_Subprogram_Body (Loc,
@@ -3815,6 +3816,27 @@ package body Sem_Ch13 is
              Handled_Statement_Sequence =>
                Make_Handled_Sequence_Of_Statements (Loc,
                  Statements => Stmts));
+
+         --  Insert procedure declaration and spec at the appropriate points.
+         --  Skip this if there are no private declarations (that's an error
+         --  that will be diagnosed elsewhere, and there is no point in having
+         --  an invariant procedure set if the full declaration is missing).
+
+         if Present (Private_Decls) then
+
+            --  The spec goes at the end of visible declarations, but they have
+            --  already been analyzed, so we need to explicitly do the analyze.
+
+            Append_To (Visible_Decls, PDecl);
+            Analyze (PDecl);
+
+            --  The body goes at the end of the private declarations, which we
+            --  have not analyzed yet, so we do not need to perform an explicit
+            --  analyze call. We skip this if there are no private declarations
+            --  (this is an error that will be caught elsewhere);
+
+            Append_To (Private_Decls, PBody);
+         end if;
       end if;
    end Build_Invariant_Procedure;
 
@@ -3839,14 +3861,12 @@ package body Sem_Ch13 is
    --  inherited. Note that we do NOT generate Check pragmas, that's because we
    --  use this function even if checks are off, e.g. for membership tests.
 
-   procedure Build_Predicate_Function
-     (Typ   : Entity_Id;
-      FDecl : out Node_Id;
-      FBody : out Node_Id)
-   is
+   procedure Build_Predicate_Function (Typ : Entity_Id; N : Node_Id) is
       Loc  : constant Source_Ptr := Sloc (Typ);
       Spec : Node_Id;
       SId  : Entity_Id;
+      FDecl : Node_Id;
+      FBody : Node_Id;
 
       Expr : Node_Id;
       --  This is the expression for the return statement in the function. It
@@ -3880,9 +3900,7 @@ package body Sem_Ch13 is
 
             Exp :=
               Make_Predicate_Call
-                (T,
-                 Convert_To (T,
-                   Make_Identifier (Loc, Chars => Object_Name)));
+                (T, Convert_To (T, Make_Identifier (Loc, Object_Name)));
 
             --  Add call to evolving expression, using AND THEN if needed
 
@@ -3898,11 +3916,14 @@ package body Sem_Ch13 is
             --  Output info message on inheritance if required. Note we do not
             --  give this information for generic actual types, since it is
             --  unwelcome noise in that case in instantiations. We also
-            --  generally suppress the message in instantiations.
+            --  generally suppress the message in instantiations, and also
+            --  if it involves internal names.
 
             if Opt.List_Inherited_Aspects
               and then not Is_Generic_Actual_Type (Typ)
               and then Instantiation_Depth (Sloc (Typ)) = 0
+              and then not Is_Internal_Name (Chars (T))
+              and then not Is_Internal_Name (Chars (Typ))
             then
                Error_Msg_Sloc := Sloc (Predicate_Function (T));
                Error_Msg_Node_2 := T;
@@ -3920,39 +3941,26 @@ package body Sem_Ch13 is
          Arg1  : Node_Id;
          Arg2  : Node_Id;
 
-         function Replace_Node (N : Node_Id) return Traverse_Result;
-         --  Process single node for traversal to replace type references
+         procedure Replace_Type_Reference (N : Node_Id);
+         --  Replace a single occurrence N of the subtype name with a reference
+         --  to the formal of the predicate function. N can be an identifier
+         --  referencing the subtype, or a selected component, representing an
+         --  appropriately qualified occurrence of the subtype name.
 
-         procedure Replace_Type is new Traverse_Proc (Replace_Node);
-         --  Traverse an expression changing every occurrence of an entity
-         --  reference to type T with a reference to the object argument.
+         procedure Replace_Type_References is
+           new Replace_Type_References_Generic (Replace_Type_Reference);
+         --  Traverse an expression changing every occurrence of an identifier
+         --  whose name mathches the name of the subtype with a reference to
+         --  the formal parameter of the predicate function.
 
-         ------------------
-         -- Replace_Node --
-         ------------------
+         ----------------------------
+         -- Replace_Type_Reference --
+         ----------------------------
 
-         function Replace_Node (N : Node_Id) return Traverse_Result is
+         procedure Replace_Type_Reference (N : Node_Id) is
          begin
-            --  Case of entity name referencing the type
-
-            if Is_Entity_Name (N) and then Entity (N) = Typ then
-
-               --  Replace with object
-
-               Rewrite (N,
-                 Make_Identifier (Loc,
-                   Chars => Object_Name));
-
-               --  All done with this node
-
-               return Skip;
-
-            --  Not an occurrence of the type entity, keep going
-
-            else
-               return OK;
-            end if;
-         end Replace_Node;
+            Rewrite (N, Make_Identifier (Loc, Object_Name));
+         end Replace_Type_Reference;
 
       --  Start of processing for Add_Predicates
 
@@ -3975,18 +3983,9 @@ package body Sem_Ch13 is
                   --  We have a match, this entry is for our subtype
 
                   --  First We need to replace any occurrences of the name of
-                  --  the type with references to the object. We do this by
-                  --  first doing a preanalysis, to identify all the entities,
-                  --  then we traverse looking for the type entity, doing the
-                  --  needed substitution. The preanalysis is done with the
-                  --  special OK_To_Reference flag set on the type, so that if
-                  --  we get an occurrence of this type, it will be recognized
-                  --  as legitimate.
+                  --  the type with references to the object.
 
-                  Set_OK_To_Reference (Typ, True);
-                  Preanalyze_Spec_Expression (Arg2, Standard_Boolean);
-                  Set_OK_To_Reference (Typ, False);
-                  Replace_Type (Arg2);
+                  Replace_Type_References (Arg2, Chars (Typ));
 
                   --  OK, replacement complete, now we can add the expression
 
@@ -4014,8 +4013,6 @@ package body Sem_Ch13 is
       --  Initialize for construction of statement list
 
       Expr  := Empty;
-      FDecl := Empty;
-      FBody := Empty;
 
       --  Return if already built or if type does not have predicates
 
@@ -4043,16 +4040,6 @@ package body Sem_Ch13 is
 
       if Present (Expr) then
 
-         --  Deal with static predicate case
-
-         if Ekind_In (Typ, E_Enumeration_Subtype,
-                           E_Modular_Integer_Subtype,
-                           E_Signed_Integer_Subtype)
-           and then Is_Static_Subtype (Typ)
-         then
-            Build_Static_Predicate (Typ, Expr, Object_Name);
-         end if;
-
          --  Build function declaration
 
          pragma Assert (Has_Predicates (Typ));
@@ -4068,14 +4055,12 @@ package body Sem_Ch13 is
              Parameter_Specifications => New_List (
                Make_Parameter_Specification (Loc,
                  Defining_Identifier =>
-                   Make_Defining_Identifier (Loc, Chars => Object_Name),
+                   Make_Defining_Identifier (Loc, Object_Name),
                  Parameter_Type      => New_Occurrence_Of (Typ, Loc))),
              Result_Definition        =>
                New_Occurrence_Of (Standard_Boolean, Loc));
 
-         FDecl :=
-           Make_Subprogram_Declaration (Loc,
-             Specification => Spec);
+         FDecl := Make_Subprogram_Declaration (Loc, Specification => Spec);
 
          --  Build function body
 
@@ -4089,7 +4074,7 @@ package body Sem_Ch13 is
              Parameter_Specifications => New_List (
                Make_Parameter_Specification (Loc,
                  Defining_Identifier =>
-                   Make_Defining_Identifier (Loc, Chars => Object_Name),
+                   Make_Defining_Identifier (Loc, Object_Name),
                  Parameter_Type =>
                    New_Occurrence_Of (Typ, Loc))),
              Result_Definition        =>
@@ -4104,6 +4089,21 @@ package body Sem_Ch13 is
                  Statements => New_List (
                    Make_Simple_Return_Statement (Loc,
                      Expression => Expr))));
+
+         --  Insert declaration before freeze node and body after
+
+         Insert_Before_And_Analyze (N, FDecl);
+         Insert_After_And_Analyze  (N, FBody);
+
+         --  Deal with static predicate case
+
+         if Ekind_In (Typ, E_Enumeration_Subtype,
+                           E_Modular_Integer_Subtype,
+                           E_Signed_Integer_Subtype)
+           and then Is_Static_Subtype (Typ)
+         then
+            Build_Static_Predicate (Typ, Expr, Object_Name);
+         end if;
       end if;
    end Build_Predicate_Function;
 
@@ -4461,7 +4461,7 @@ package body Sem_Ch13 is
          if Is_Enumeration_Type (Typ) then
             Result := Get_Enum_Lit_From_Pos (Typ, V, Loc);
          else
-            Result := Make_Integer_Literal (Loc, Intval => V);
+            Result := Make_Integer_Literal (Loc, V);
          end if;
 
          Set_Etype (Result, Btyp);
@@ -4908,6 +4908,13 @@ package body Sem_Ch13 is
                    Left_Opnd    => Make_Identifier (Loc, Nam),
                    Right_Opnd   => Empty,
                    Alternatives => New_Alts));
+
+               --  Resolve new expression in function context
+
+               Install_Formals (Predicate_Function (Typ));
+               Push_Scope (Predicate_Function (Typ));
+               Analyze_And_Resolve (Expr, Standard_Boolean);
+               Pop_Scope;
             end if;
          end;
       end;
@@ -5510,18 +5517,10 @@ package body Sem_Ch13 is
 
          Set_Component_Clause (Fent,
            Make_Component_Clause (Loc,
-             Component_Name =>
-               Make_Identifier (Loc,
-                 Chars => Name_uTag),
+             Component_Name => Make_Identifier (Loc, Name_uTag),
 
-             Position  =>
-               Make_Integer_Literal (Loc,
-                 Intval => Uint_0),
-
-             First_Bit =>
-               Make_Integer_Literal (Loc,
-                 Intval => Uint_0),
-
+             Position  => Make_Integer_Literal (Loc, Uint_0),
+             First_Bit => Make_Integer_Literal (Loc, Uint_0),
              Last_Bit  =>
                Make_Integer_Literal (Loc,
                  UI_From_Int (System_Address_Size))));
@@ -6530,8 +6529,7 @@ package body Sem_Ch13 is
 
       else
          Subp_Id :=
-           Make_Defining_Identifier (Loc,
-             Chars => New_External_Name (Sname, 'V'));
+           Make_Defining_Identifier (Loc, New_External_Name (Sname, 'V'));
          Subp_Decl :=
            Make_Object_Declaration (Loc,
              Defining_Identifier => Subp_Id,
@@ -6692,6 +6690,113 @@ package body Sem_Ch13 is
       Record_Rep_Item (T, N);
       return False;
    end Rep_Item_Too_Late;
+
+   -------------------------------------
+   -- Replace_Type_References_Generic --
+   -------------------------------------
+
+   procedure Replace_Type_References_Generic (N : Node_Id; TName : Name_Id) is
+
+      function Replace_Node (N : Node_Id) return Traverse_Result;
+      --  Processes a single node in the traversal procedure below, checking
+      --  if node N should be replaced, and if so, doing the replacement.
+
+      procedure Replace_Type_Refs is new Traverse_Proc (Replace_Node);
+      --  This instantiation provides the body of Replace_Type_References
+
+      ------------------
+      -- Replace_Node --
+      ------------------
+
+      function Replace_Node (N : Node_Id) return Traverse_Result is
+         S : Entity_Id;
+         P : Node_Id;
+
+      begin
+         --  Case of identifier
+
+         if Nkind (N) = N_Identifier then
+
+            --  If not the type name, all done with this node
+
+            if Chars (N) /= TName then
+               return Skip;
+
+            --  Otherwise do the replacement and we are done with this node
+
+            else
+               Replace_Type_Reference (N);
+               return Skip;
+            end if;
+
+         --  Case of selected component (which is what a qualification
+         --  looks like in the unanalyzed tree, which is what we have.
+
+         elsif Nkind (N) = N_Selected_Component then
+
+            --  If selector name is not our type, keeping going (we might
+            --  still have an occurrence of the type in the prefix).
+
+            if Nkind (Selector_Name (N)) /= N_Identifier
+              or else Chars (Selector_Name (N)) /= TName
+            then
+               return OK;
+
+            --  Selector name is our type, check qualification
+
+            else
+               --  Loop through scopes and prefixes, doing comparison
+
+               S := Current_Scope;
+               P := Prefix (N);
+               loop
+                  --  Continue if no more scopes or scope with no name
+
+                  if No (S) or else Nkind (S) not in N_Has_Chars then
+                     return OK;
+                  end if;
+
+                  --  Do replace if prefix is an identifier matching the
+                  --  scope that we are currently looking at.
+
+                  if Nkind (P) = N_Identifier
+                    and then Chars (P) = Chars (S)
+                  then
+                     Replace_Type_Reference (N);
+                     return Skip;
+                  end if;
+
+                  --  Go check scope above us if prefix is itself of the
+                  --  form of a selected component, whose selector matches
+                  --  the scope we are currently looking at.
+
+                  if Nkind (P) = N_Selected_Component
+                    and then Nkind (Selector_Name (P)) = N_Identifier
+                    and then Chars (Selector_Name (P)) = Chars (S)
+                  then
+                     S := Scope (S);
+                     P := Prefix (P);
+
+                  --  For anything else, we don't have a match, so keep on
+                  --  going, there are still some weird cases where we may
+                  --  still have a replacement within the prefix.
+
+                  else
+                     return OK;
+                  end if;
+               end loop;
+            end if;
+
+            --  Continue for any other node kind
+
+         else
+            return OK;
+         end if;
+      end Replace_Node;
+
+   begin
+      Replace_Type_Refs (N);
+   end Replace_Type_References_Generic;
 
    -------------------------
    -- Same_Representation --

@@ -3181,7 +3181,7 @@ build_user_type_conversion (tree totype, tree expr, int flags)
    non-type arguments) to convert it to the parameter type.
 
    If conversion is successful, returns the converted expression;
-   otherwise, returns EXPR.  */
+   otherwise, returns error_mark_node.  */
 
 tree
 build_integral_nontype_arg_conv (tree type, tree expr, tsubst_flags_t complain)
@@ -3235,6 +3235,8 @@ build_integral_nontype_arg_conv (tree type, tree expr, tsubst_flags_t complain)
 
   if (conv)
     expr = convert_like (conv, expr, complain);
+  else
+    expr = error_mark_node;
 
   /* Free all the conversions we allocated.  */
   obstack_free (&conversion_obstack, p);
@@ -6042,9 +6044,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	 INIT_EXPR to collapse the temp into our target.  Otherwise, if the
 	 ctor is trivial, do a bitwise copy with a simple TARGET_EXPR for a
 	 temp or an INIT_EXPR otherwise.  */
-      fa = (cand->first_arg != NULL_TREE
-	    ? cand->first_arg
-	    : VEC_index (tree, args, 0));
+      fa = argarray[0];
       if (integer_zerop (fa))
 	{
 	  if (TREE_CODE (arg) == TARGET_EXPR)
@@ -6119,6 +6119,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 
       return val;
     }
+  /* FIXME handle trivial default constructor and destructor, too.  */
 
   if (!already_used)
     mark_used (fn);

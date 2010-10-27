@@ -5045,14 +5045,14 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
      (_conv.integral_) are applied.  */
   if (INTEGRAL_OR_ENUMERATION_TYPE_P (type))
     {
-      expr = build_integral_nontype_arg_conv (type, expr, complain);
-      if (!error_operand_p (expr))
-	expr_type = TREE_TYPE (expr);
+      tree t = build_integral_nontype_arg_conv (type, expr, complain);
+      /* FIXME cxx_constant_value */
+      t = maybe_constant_value (t);
+      if (t != error_mark_node)
+	expr = t;
 
-      if (!INTEGRAL_OR_ENUMERATION_TYPE_P (expr_type))
+      if (!same_type_ignoring_top_level_qualifiers_p (type, TREE_TYPE (expr)))
 	return error_mark_node;
-
-      expr = maybe_constant_value (expr);
 
       /* Notice that there are constant expressions like '4 % 0' which
 	 do not fold into integer constants.  */
@@ -5071,16 +5071,6 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
 	    }
 	  return NULL_TREE;
 	}
-
-      /* At this point, an implicit conversion does what we want,
-	 because we already know that the expression is of integral
-	 type.  */
-      expr = perform_implicit_conversion (type, expr, complain);
-      if (expr == error_mark_node)
-	return error_mark_node;
-
-      /* Conversion was allowed: fold it to a bare integer constant.  */
-      expr = fold (expr);
     }
   /* [temp.arg.nontype]/5, bullet 2
 
