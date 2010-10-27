@@ -6944,6 +6944,11 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
               error ("%qE is not a function name", fun);
             return false;
           }
+	/* Skip initial arguments to base constructors.  */
+	if (DECL_BASE_CONSTRUCTOR_P (fun))
+	  i = num_artificial_parms_for (fun);
+	else
+	  i = 0;
 	fun = DECL_ORIGIN (fun);
         if (builtin_valid_in_constant_expr_p (fun))
           return true;
@@ -6954,7 +6959,7 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
               error ("%qD is not %<constexpr%>", fun);
             return false;
           }
-        for (i = 0; i < nargs; ++i)
+        for (; i < nargs; ++i)
           {
             tree x = get_nth_callarg (t, i);
             /* A call to a non-static member function takes the
