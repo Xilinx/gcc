@@ -1065,13 +1065,9 @@ check_noexcept_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
 	    return TREE_NOTHROW (fn) ? NULL_TREE : fn;
 	  /* A call to a constexpr function is noexcept if the call
 	     is a constant expression.  */
-	  /* FIXME should operate on full expression.  */
-	  if (DECL_DECLARED_CONSTEXPR_P (fn))
-	    {
-	      t = maybe_constant_value (t);
-	      if (TREE_CONSTANT (t))
-		return NULL_TREE;
-	    }
+	  if (DECL_DECLARED_CONSTEXPR_P (fn)
+	      && is_sub_constant_expr (t))
+	    return NULL_TREE;
 	}
       if (!TYPE_NOTHROW_P (type))
 	return fn;

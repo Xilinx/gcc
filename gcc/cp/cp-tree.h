@@ -5243,6 +5243,7 @@ extern tree ensure_literal_type_for_constexpr_object (tree);
 extern tree cxx_constant_value (tree);
 extern tree maybe_constant_value (tree);
 extern tree maybe_constant_init (tree);
+extern bool is_sub_constant_expr (tree);
 extern bool reduced_constant_expression_p (tree);
 
 enum {
