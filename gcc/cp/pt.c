@@ -13316,6 +13316,7 @@ fn_type_unification (tree fn,
       processing_template_decl += incomplete;
       /* Any constant-expressions in the function signature are evaluated,
 	 regardless of the context of overload resolution.  */
+      /* FIXME this is the wrong place to handle this.  */
       cp_unevaluated_operand = 0;
       fntype = tsubst (fntype, converted_args, tf_none, NULL_TREE);
       cp_unevaluated_operand = save_uneval;

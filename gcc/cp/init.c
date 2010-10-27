@@ -1451,6 +1451,7 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
 	}
     }
 
+  /* FIXME put back convert_to_void?  */
   if (TREE_SIDE_EFFECTS (rval))
     finish_expr_stmt (rval);
 }

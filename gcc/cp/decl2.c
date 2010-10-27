@@ -4200,8 +4200,7 @@ mark_used (tree decl)
 	   && DECL_DECLARED_CONSTEXPR_P (decl)))
       && !DECL_INITIAL (decl)
       && DECL_LANG_SPECIFIC (decl)
-      && DECL_TEMPLATE_INSTANTIATION (decl)
-      && DECL_INITIAL (DECL_TEMPLATE_RESULT (DECL_TI_TEMPLATE (decl))))
+      && DECL_TEMPLATE_INSTANTIATION (decl))
     {
       /* Instantiating a function will result in garbage collection.  We
 	 must treat this situation as if we were within the body of a

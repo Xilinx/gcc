@@ -1065,6 +1065,7 @@ check_noexcept_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
 	    return TREE_NOTHROW (fn) ? NULL_TREE : fn;
 	  /* A call to a constexpr function is noexcept if the call
 	     is a constant expression.  */
+	  /* FIXME should operate on full expression.  */
 	  if (DECL_DECLARED_CONSTEXPR_P (fn))
 	    {
 	      t = maybe_constant_value (t);
@@ -1207,6 +1208,7 @@ build_noexcept_spec (tree expr, int complain)
      it until instantiation.  */
   if (!processing_template_decl)
     {
+      /* FIXME cxx_constant_value.  */
       expr = maybe_constant_value (expr);
       expr = perform_implicit_conversion_flags (boolean_type_node, expr,
 						complain,

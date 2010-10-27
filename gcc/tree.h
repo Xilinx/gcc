@@ -108,16 +108,6 @@ extern const enum tree_code_class tree_code_type[];
 #define DECL_P(CODE)\
         (TREE_CODE_CLASS (TREE_CODE (CODE)) == tcc_declaration)
 
-/* Nonzero if NODE represents a VAR_DECL.  */
-
-#define VAR_DECL_P(NODE) \
-  (TREE_CODE (NODE) == VAR_DECL)
-
-/* Nonzero if NODE represents a FUNCTION_DECL.  */
-
-#define FUNCTION_DECL_P(NODE) \
-  (TREE_CODE (NODE) == FUNCTION_DECL)
-
 /* Nonzero if DECL represents a VAR_DECL or FUNCTION_DECL.  */
 
 #define VAR_OR_FUNCTION_DECL_P(DECL)\

@@ -1455,11 +1455,14 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
 
   synthesized_method_walk (type, kind, const_p, &raises, &trivial_p,
 			   &deleted_p, &constexpr_p, false);
+  /* Don't bother marking a deleted constructor as constexpr.  */
+  if (deleted_p)
+    constexpr_p = false;
   /* A trivial copy/move constructor is also a constexpr constructor.  */
-  if (trivial_p
-      && (kind == sfk_copy_constructor
-	  || kind == sfk_move_constructor))
-    constexpr_p = true;
+  else if (trivial_p && cxx_dialect >= cxx0x
+	   && (kind == sfk_copy_constructor
+	       || kind == sfk_move_constructor))
+    gcc_assert (constexpr_p);
 
   if (!trivial_p && type_has_trivial_fn (type, kind))
     type_set_nontrivial_flag (type, kind);
@@ -1511,7 +1514,7 @@ implicitly_declare_fn (special_function_kind kind, tree type, bool const_p)
   if (cxx_dialect >= cxx0x)
     {
       DECL_DELETED_FN (fn) = deleted_p;
-      DECL_DECLARED_CONSTEXPR_P (fn) = constexpr_p && !deleted_p;
+      DECL_DECLARED_CONSTEXPR_P (fn) = constexpr_p;
     }
   DECL_NOT_REALLY_EXTERN (fn) = 1;
   DECL_DECLARED_INLINE_P (fn) = 1;

@@ -2938,6 +2938,7 @@ finish_case_label (location_t loc, tree low_value, tree high_value)
   if (!check_switch_goto (switch_stack->level))
     return error_mark_node;
 
+  /* FIXME use cxx_constant_value  */
   if (low_value)
     low_value = maybe_constant_value (low_value);
   if (high_value)

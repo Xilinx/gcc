@@ -4618,6 +4618,7 @@ finish_static_assert (tree condition, tree message, location_t location,
   /* Fold the expression and convert it to a boolean value. */
   condition = fold_non_dependent_expr (condition);
   condition = cp_convert (boolean_type_node, condition);
+  /* FIXME why don't we just use cxx_constant_value here?  */
   condition = maybe_constant_value (condition);
 
   if (TREE_CODE (condition) == INTEGER_CST && !integer_zerop (condition))
@@ -5288,7 +5289,7 @@ ensure_literal_type_for_constexpr_object (tree decl)
   return decl;
 }
 
-/* Representationof entries in the constexpr function definition table.  */
+/* Representation of entries in the constexpr function definition table.  */
 
 typedef struct GTY(()) constexpr_fundef {
   tree decl;
@@ -5471,10 +5472,16 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
 	{
 	  /* We don't put out anything for an empty base.  */
 	  gcc_assert (is_empty_class (memtype));
-	  return true;
+	  /* But if the constructor used isn't constexpr, leave in the call
+	     so we complain later.  */
+	  if (potential_constant_expression (t, tf_none))
+	    return true;
 	}
-      gcc_assert (TREE_CODE (member) == ADDR_EXPR);
-      member = TREE_OPERAND (member, 0);
+      else
+	{
+	  gcc_assert (TREE_CODE (member) == ADDR_EXPR);
+	  member = TREE_OPERAND (member, 0);
+	}
       /* We don't use build_cplus_new here because it complains about
 	 abstract bases.  T has the wrong type, but
 	 cxx_eval_constant_expression doesn't care.  */
@@ -5676,7 +5683,7 @@ get_function_named_in_call (tree t)
       break;
     }
   if (TREE_CODE (fun) == ADDR_EXPR
-      && FUNCTION_DECL_P (TREE_OPERAND (fun, 0)))
+      && TREE_CODE (TREE_OPERAND (fun, 0)) == FUNCTION_DECL)
     fun = TREE_OPERAND (fun, 0);
   return fun;
 }
@@ -6252,8 +6259,7 @@ cxx_eval_vec_init_1 (const constexpr_call *call, tree atype, tree init,
      constructor of the element type.  We only need to handle class types
      here, as for a constructor to be constexpr, all members must be
      initialized, which for a defaulted default constructor means they must
-     be of a class type with a user-provided (and constexpr) default
-     constructor.  FIXME do we actually check that in implicitly_declare_fn? */
+     be of a class type with a constexpr default constructor.  */
   if (!init)
     {
       VEC(tree,gc) *argvec = make_tree_vector ();
@@ -7006,7 +7012,8 @@ potential_constant_expression (tree t, tsubst_flags_t flags)
     case VIEW_CONVERT_EXPR:
       /* -- an array-to-pointer conversion that is applied to an lvalue
             that designates an object with thread or automatic storage
-            duration;  FIXME not implemented as it breaks constexpr arrays
+            duration;  FIXME not implemented as it breaks constexpr arrays;
+	    need to fix the standard
          -- a type conversion from a pointer or pointer-to-member type
             to a literal type.  */
       {
