@@ -13221,7 +13221,6 @@ fn_type_unification (tree fn,
   tree fntype;
   int result;
   bool incomplete_argument_packs_p = false;
-  int save_uneval = cp_unevaluated_operand;
 
   gcc_assert (TREE_CODE (fn) == TEMPLATE_DECL);
 
@@ -13314,12 +13313,7 @@ fn_type_unification (tree fn,
         incomplete = NUM_TMPL_ARGS (explicit_targs) != NUM_TMPL_ARGS (targs);
 
       processing_template_decl += incomplete;
-      /* Any constant-expressions in the function signature are evaluated,
-	 regardless of the context of overload resolution.  */
-      /* FIXME this is the wrong place to handle this.  */
-      cp_unevaluated_operand = 0;
       fntype = tsubst (fntype, converted_args, tf_none, NULL_TREE);
-      cp_unevaluated_operand = save_uneval;
       processing_template_decl -= incomplete;
 
       if (fntype == error_mark_node)
@@ -13406,10 +13400,7 @@ fn_type_unification (tree fn,
        substitution results in an invalid type, as described above,
        type deduction fails.  */
     {
-      tree substed;
-      cp_unevaluated_operand = 0;
-      substed = tsubst (TREE_TYPE (fn), targs, tf_none, NULL_TREE);
-      cp_unevaluated_operand = save_uneval;
+      tree substed = tsubst (TREE_TYPE (fn), targs, tf_none, NULL_TREE);
       if (substed == error_mark_node)
 	return 1;
 

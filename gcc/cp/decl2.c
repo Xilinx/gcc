@@ -4165,10 +4165,6 @@ mark_used (tree decl)
       return;
     }
 
-  /* If we don't need a value, then we don't need to synthesize DECL.  */
-  if (cp_unevaluated_operand != 0)
-    return;
-
   /* We can only check DECL_ODR_USED on variables or functions with
      DECL_LANG_SPECIFIC set, and these are also the only decls that we
      might need special handling for.  */
@@ -4211,6 +4207,10 @@ mark_used (tree decl)
 			/*expl_inst_class_mem_p=*/false);
       --function_depth;
     }
+
+  /* If we don't need a value, then we don't need to synthesize DECL.  */
+  if (cp_unevaluated_operand != 0)
+    return;
 
   if (processing_template_decl)
     return;
