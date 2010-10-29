@@ -622,7 +622,7 @@ namespace __gnu_test
 	struct _Concept
 	{
 	  void __constraint()
-	  { constexpr _Tp __v; }
+	  { constexpr _Tp __v { }; }
 	};
 
 	void (_Concept::*__x)() __attribute__((unused))
