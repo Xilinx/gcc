@@ -36,6 +36,11 @@ namespace __gnu_test
 	    constexpr auto v1(_Ttesttype::min());
 	    constexpr auto v2(_Ttesttype::max());
 	    constexpr auto v3(_Ttesttype::zero());
+
+	    constexpr _Ttesttype obj { };
+	    constexpr auto v4 = obj.count();
+	    constexpr auto v5 = -obj;
+	    constexpr auto v6 = +obj;
 	  }
 	};
 
@@ -48,6 +53,6 @@ namespace __gnu_test
 int main()
 {
   __gnu_test::constexpr_member_functions test;
-  test.operator()<std::chrono::duration<long>>();
+  test.operator()<std::chrono::nanoseconds>();
   return 0;
 }
