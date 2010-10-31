@@ -640,7 +640,7 @@ namespace __gnu_test
 	{
 	  void __constraint()
 	  {
-	    const _Tbasetype __v = 0;
+	    const _Tbasetype __v { };
 	    constexpr _Ttesttype __t(__v);
 	  }
 	};

@@ -1,4 +1,4 @@
-// { dg-do compile { xfail *-*-* } }
+// { dg-do compile }
 // { dg-options "-std=gnu++0x" }
 
 // Copyright (C) 2010 Free Software Foundation, Inc.
@@ -13,7 +13,7 @@
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-/
+
 // You should have received a copy of the GNU General Public License along
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
@@ -33,14 +33,11 @@ namespace __gnu_test
 	{
 	  void __constraint()
 	  {
-#if 1
-	    constexpr auto v1(_Ttesttype::min());
-	    constexpr auto v2(_Ttesttype::max());
-#else
+	    // constexpr auto v1(_Ttesttype::min());
+	    // constexpr auto v2(_Ttesttype::max());
+
 	    constexpr _Ttesttype obj;
-	    constexpr auto v1 = obj.min();
-	    constexpr auto v2 = obj.max();
-#endif
+	    constexpr auto v3 = obj.time_since_epoch();
 	  }
 	};
 
@@ -54,6 +51,6 @@ int main()
 {
   using namespace std::chrono;
   __gnu_test::constexpr_member_functions test;
-  test.operator()<time_point<system_clock>>();  // { dg-excess-errors "" }
+  test.operator()<time_point<system_clock>>();
   return 0;
 }

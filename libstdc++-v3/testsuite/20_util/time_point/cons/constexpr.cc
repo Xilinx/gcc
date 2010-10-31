@@ -29,7 +29,9 @@ int main()
   test1.operator()<time_point<system_clock>>();
 
   __gnu_test::constexpr_single_value_constructible test2;
-  test2.operator()<time_point<system_clock>, seconds>();
+  // test2.operator()<time_point<system_clock>, seconds>();
+  // test2.operator()<time_point<system_clock, seconds>, 
+  //  		      time_point<system_clock, minutes>>();
 
   return 0;
 }
