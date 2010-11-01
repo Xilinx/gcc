@@ -77,7 +77,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 
       constexpr _Base_bitset(unsigned long long __val)
       : _M_w({ __val
-#if (__LONG_LONG_MAX__ * 2ULL + 1) > (__LONG_MAX__ * 2UL + 1)
+#if __SIZEOF_LONG_LONG__ > __SIZEOF_LONG__
 	       , __val >> _GLIBCXX_BITSET_BITS_PER_WORD
 #endif
        }) { }
