@@ -23,11 +23,17 @@
 
 int main()
 {
-  __gnu_test::constexpr_default_constructible test1;
-  test1.operator()<std::chrono::seconds>();
+  using namespace std::chrono;
+  typedef time_point<system_clock, hours> 	to_type;
+  typedef time_point<system_clock, minutes> 	from_type;
 
-  __gnu_test::constexpr_single_value_constructible test2;
-  test2.operator()<std::chrono::seconds, std::chrono::seconds::rep>();
-  test2.operator()<std::chrono::minutes, std::chrono::hours>();
+  // constexpr
+  constexpr minutes m(6000);
+  constexpr hours h(19);
+  constexpr to_type tpm(h); // time_point object with minutes
+  constexpr from_type tph(m); // time_point object with hours
+
+  constexpr auto res(time_point_cast<hours>(tpm));
+
   return 0;
 }

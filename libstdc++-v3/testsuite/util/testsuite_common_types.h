@@ -621,6 +621,7 @@ namespace __gnu_test
       {
 	struct _Concept
 	{
+	  // Have to have user-defined default ctor for this to work.
 	  void __constraint()
 	  { constexpr _Tp __v; }
 	};
@@ -638,9 +639,14 @@ namespace __gnu_test
       {
 	struct _Concept
 	{
+	  // Additional constraint on _Tbasetype needed.
+	  // Either assume user-defined default ctor as per
+	  // constexpr_default_constructible and provide no
+	  // initializer, provide an initializer, or assume empty-list
+	  // init-able. Choose the latter.
 	  void __constraint()
 	  {
-	    const _Tbasetype __v { };
+	    constexpr _Tbasetype __v { };
 	    constexpr _Ttesttype __t(__v);
 	  }
 	};

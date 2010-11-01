@@ -226,7 +226,7 @@ namespace std
 	       enable_if<treat_as_floating_point<rep>::value
 			 || (ratio_divide<_Period2, period>::type::den == 1
 			     && !treat_as_floating_point<_Rep2>::value)>::type>
-	  duration(const duration<_Rep2, _Period2>& __d)
+	  constexpr duration(const duration<_Rep2, _Period2>& __d)
 	  : __r(duration_cast<duration>(__d).count()) { }
 
 	~duration() = default;
@@ -502,13 +502,13 @@ namespace std
 	constexpr time_point() : __d(duration::zero())
 	{ }
 
-	explicit time_point(const duration& __dur) 
-        : __d(duration::zero() + __dur)
+	constexpr explicit time_point(const duration& __dur)
+	: __d(__dur)
 	{ }
 
 	// conversions
 	template<typename _Duration2>
-	  time_point(const time_point<clock, _Duration2>& __t)
+	  constexpr time_point(const time_point<clock, _Duration2>& __t)
 	  : __d(__t.time_since_epoch())
 	  { }
 
@@ -533,11 +533,11 @@ namespace std
 	}
 
 	// special values
-	static const time_point
+	static constexpr time_point
 	min()
 	{ return time_point(duration::min()); }
 
-	static const time_point
+	static constexpr time_point
 	max()
 	{ return time_point(duration::max()); }
 
@@ -547,7 +547,7 @@ namespace std
 
     /// time_point_cast
     template<typename _ToDuration, typename _Clock, typename _Duration>
-      inline typename enable_if<__is_duration<_ToDuration>::value,
+      inline constexpr typename enable_if<__is_duration<_ToDuration>::value,
 				time_point<_Clock, _ToDuration>>::type
       time_point_cast(const time_point<_Clock, _Duration>& __t)
       {
