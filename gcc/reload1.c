@@ -674,10 +674,8 @@ has_nonexceptional_receiver (void)
   /* Now see if there's a reachable block with an exceptional incoming
      edge.  */
   FOR_EACH_BB (bb)
-    if (bb->flags & BB_REACHABLE)
-      FOR_EACH_EDGE (e, ei, bb->preds)
-	if (e->flags & EDGE_ABNORMAL)
-	  return true;
+    if (bb->flags & BB_REACHABLE && bb_has_abnormal_pred (bb))
+      return true;
 
   /* No exceptional block reached exit unexceptionally.  */
   return false;
@@ -9277,9 +9275,7 @@ fixup_abnormal_edges (void)
 	      BB_END (bb) = insn;
 	      insn = NEXT_INSN (insn);
 
-	      FOR_EACH_EDGE (e, ei, bb->succs)
-		if (e->flags & EDGE_FALLTHRU)
-		  break;
+	      e = find_fallthru_edge (bb->succs);
 
 	      while (insn && insn != stop)
 		{

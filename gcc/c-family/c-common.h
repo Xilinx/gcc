@@ -148,6 +148,7 @@ enum rid
   RID_AT_THROW,	   RID_AT_TRY,       RID_AT_CATCH,
   RID_AT_FINALLY,  RID_AT_SYNCHRONIZED, 
   RID_AT_OPTIONAL, RID_AT_REQUIRED, RID_AT_PROPERTY,
+  RID_AT_SYNTHESIZE, RID_AT_DYNAMIC,
   RID_AT_INTERFACE,
   RID_AT_IMPLEMENTATION,
 
@@ -787,8 +788,6 @@ extern HOST_WIDE_INT c_common_to_target_charset (HOST_WIDE_INT);
 
 /* This is the basic parsing function.  */
 extern void c_parse_file (void);
-/* This is misnamed, it actually performs end-of-compilation processing.  */
-extern void finish_file	(void);
 
 extern void warn_for_omitted_condop (location_t, tree);
 
@@ -932,6 +931,8 @@ extern int complete_array_type (tree *, tree, bool);
 
 extern tree builtin_type_for_size (int, bool);
 
+extern void c_common_mark_addressable_vec (tree);
+
 extern void warn_array_subscript_with_type_char (tree);
 extern void warn_about_parentheses (enum tree_code,
 				    enum tree_code, tree,
@@ -980,11 +981,13 @@ extern void c_parse_error (const char *, enum cpp_ttype, tree, unsigned char);
 
 /* The following ObjC/ObjC++ functions are called by the C and/or C++
    front-ends; they all must have corresponding stubs in stub-objc.c.  */
+extern void objc_write_global_declarations (void);
 extern tree objc_is_class_name (tree);
 extern tree objc_is_object_ptr (tree);
 extern void objc_check_decl (tree);
 extern void objc_check_global_decl (tree);
 extern tree objc_common_type (tree, tree);
+extern tree objc_non_volatilized_type (tree);
 extern bool objc_compare_types (tree, tree, int, tree);
 extern bool objc_have_common_type (tree, tree, int, tree);
 extern bool objc_diagnose_private_ivar (tree);
@@ -1019,10 +1022,9 @@ extern void objc_start_category_implementation (tree, tree);
 extern void objc_continue_implementation (void);
 extern void objc_finish_implementation (void);
 extern void objc_set_visibility (objc_ivar_visibility_kind);
-extern void objc_set_method_type (enum tree_code);
-extern tree objc_build_method_signature (tree, tree, tree, bool);
-extern void objc_add_method_declaration (tree, tree);
-extern bool objc_start_method_definition (tree, tree);
+extern tree objc_build_method_signature (bool, tree, tree, tree, bool);
+extern void objc_add_method_declaration (bool, tree, tree);
+extern bool objc_start_method_definition (bool, tree, tree);
 extern void objc_finish_method_definition (tree);
 extern void objc_add_instance_variable (tree);
 extern tree objc_build_keyword_decl (tree, tree, tree, tree);
@@ -1044,6 +1046,9 @@ extern bool  objc_method_decl (enum tree_code);
 extern void objc_add_property_variable (tree);
 extern tree objc_build_getter_call (tree, tree);
 extern tree objc_build_setter_call (tree, tree);
+extern void objc_add_synthesize_declaration (location_t, tree);
+extern void objc_add_dynamic_declaration (location_t, tree);
+extern const char * objc_maybe_printable_name (tree, int);
 
 /* The following are provided by the C and C++ front-ends, and called by
    ObjC/ObjC++.  */

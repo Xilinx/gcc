@@ -67,6 +67,12 @@ objc_check_global_decl (tree ARG_UNUSED (decl))
 }
 
 tree
+objc_non_volatilized_type (tree type)
+{
+  return type;
+}
+
+tree
 objc_common_type (tree ARG_UNUSED (type1), tree ARG_UNUSED (type2))
 {
   return 0;
@@ -173,11 +179,6 @@ objc_set_visibility (objc_ivar_visibility_kind ARG_UNUSED (vis))
 }
 
 void
-objc_set_method_type (enum tree_code ARG_UNUSED (code))
-{
-}
-
-void
 objc_start_class_implementation (tree ARG_UNUSED (name),
 				 tree ARG_UNUSED (super))
 {
@@ -205,13 +206,15 @@ objc_finish_implementation (void)
 }
 
 void
-objc_add_method_declaration (tree ARG_UNUSED (signature),
+objc_add_method_declaration (bool ARG_UNUSED (is_class_method),
+			     tree ARG_UNUSED (signature),
 			     tree ARG_UNUSED (attributes))
 {
 }
 
 bool
-objc_start_method_definition (tree ARG_UNUSED (signature),
+objc_start_method_definition (bool ARG_UNUSED (is_class_method),
+			      tree ARG_UNUSED (signature),
 			      tree ARG_UNUSED (attributes))
 {
   return true;
@@ -238,7 +241,8 @@ objc_build_keyword_decl (tree ARG_UNUSED (selector),
 }
 
 tree
-objc_build_method_signature (tree ARG_UNUSED (rettype),
+objc_build_method_signature (bool ARG_UNUSED (is_class_method),
+			     tree ARG_UNUSED (rettype),
 			     tree ARG_UNUSED (selectors),
 			     tree ARG_UNUSED (optparms),
 			     bool ARG_UNUSED (ellipsis))
@@ -343,6 +347,25 @@ objc_build_setter_call (tree ARG_UNUSED (lhs), tree ARG_UNUSED (rhs))
   return 0;
 }
 
+void
+objc_add_synthesize_declaration (location_t ARG_UNUSED (start_locus), 
+				 tree ARG_UNUSED (property_and_ivar_list))
+{
+}
+
+void
+objc_add_dynamic_declaration (location_t ARG_UNUSED (start_locus), 
+			      tree ARG_UNUSED (property_list))
+{
+}
+
+const char *
+objc_maybe_printable_name (tree ARG_UNUSED (decl), 
+			   int ARG_UNUSED (v))
+{
+  return NULL;
+}
+
 tree
 objc_build_throw_stmt (location_t ARG_UNUSED (loc), tree ARG_UNUSED (expr))
 {
@@ -397,4 +420,9 @@ objc_finish_foreach_loop (location_t ARG_UNUSED (location), tree ARG_UNUSED (obj
 			  tree ARG_UNUSED (break_label), tree ARG_UNUSED (continue_label))
 {
   return;
+}
+
+void
+objc_write_global_declarations (void)
+{
 }

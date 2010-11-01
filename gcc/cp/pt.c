@@ -490,7 +490,7 @@ add_to_template_args (tree args, tree extra_args)
   int i;
   int j;
 
-  if (args == NULL_TREE)
+  if (args == NULL_TREE || extra_args == error_mark_node)
     return extra_args;
 
   extra_depth = TMPL_ARGS_DEPTH (extra_args);
@@ -907,8 +907,16 @@ maybe_process_partial_specialization (tree type)
     }
   else if (processing_specialization)
     {
-      error ("explicit specialization of non-template %qT", type);
-      return error_mark_node;
+       /* Someday C++0x may allow for enum template specialization.  */
+      if (cxx_dialect > cxx98 && TREE_CODE (type) == ENUMERAL_TYPE
+	  && CLASS_TYPE_P (context) && CLASSTYPE_USE_TEMPLATE (context))
+	pedwarn (input_location, OPT_pedantic, "template specialization "
+		 "of %qD not allowed by ISO C++", type);
+      else
+	{
+	  error ("explicit specialization of non-template %qT", type);
+	  return error_mark_node;
+	}
     }
 
   return type;
@@ -5970,6 +5978,9 @@ coerce_template_parms (tree parms,
      parameters.  */
   int variadic_p = 0;
 
+  if (args == error_mark_node)
+    return error_mark_node;
+
   nparms = TREE_VEC_LENGTH (parms);
 
   /* Determine if there are any parameter packs.  */
@@ -6654,10 +6665,10 @@ lookup_template_class (tree d1,
 	  if (!is_dependent_type)
 	    {
 	      set_current_access_from_decl (TYPE_NAME (template_type));
-	      t = start_enum (TYPE_IDENTIFIER (template_type),
-                              tsubst (ENUM_UNDERLYING_TYPE (template_type),
-                                      arglist, complain, in_decl),
-                              SCOPED_ENUM_P (template_type));
+	      t = start_enum (TYPE_IDENTIFIER (template_type), NULL_TREE,
+			      tsubst (ENUM_UNDERLYING_TYPE (template_type),
+				      arglist, complain, in_decl),
+			      SCOPED_ENUM_P (template_type), NULL);
 	    }
 	  else
             {
@@ -6668,6 +6679,7 @@ lookup_template_class (tree d1,
               t = cxx_make_type (ENUMERAL_TYPE);
               SET_SCOPED_ENUM_P (t, SCOPED_ENUM_P (template_type));
             }
+          SET_OPAQUE_ENUM_P (t, OPAQUE_ENUM_P (template_type));
 	}
       else
 	{
@@ -8235,17 +8247,12 @@ instantiate_class_template (tree type)
   finish_struct_1 (type);
   TYPE_BEING_DEFINED (type) = 0;
 
-  /* Now that the class is complete, instantiate default arguments for
-     any member functions.  We don't do this earlier because the
-     default arguments may reference members of the class.  */
-  if (!PRIMARY_TEMPLATE_P (templ))
-    for (t = TYPE_METHODS (type); t; t = DECL_CHAIN (t))
-      if (TREE_CODE (t) == FUNCTION_DECL
-	  /* Implicitly generated member functions will not have template
-	     information; they are not instantiations, but instead are
-	     created "fresh" for each instantiation.  */
-	  && DECL_TEMPLATE_INFO (t))
-	tsubst_default_arguments (t);
+  /* We don't instantiate default arguments for member functions.  14.7.1:
+
+     The implicit instantiation of a class template specialization causes
+     the implicit instantiation of the declarations, but not of the
+     definitions or default arguments, of the class member functions,
+     member classes, static data members and member templates....  */
 
   /* Some typedefs referenced from within the template code need to be access
      checked at template instantiation time, i.e now. These types were
@@ -17311,6 +17318,9 @@ tsubst_enum (tree tag, tree newtag, tree args)
 {
   tree e;
 
+  if (SCOPED_ENUM_P (newtag))
+    begin_scope (sk_scoped_enum, newtag);
+
   for (e = TYPE_VALUES (tag); e; e = TREE_CHAIN (e))
     {
       tree value;
@@ -17331,7 +17341,12 @@ tsubst_enum (tree tag, tree newtag, tree args)
 	(DECL_NAME (decl), value, newtag, DECL_SOURCE_LOCATION (decl));
     }
 
+  if (SCOPED_ENUM_P (newtag))
+    finish_scope ();
+
+  finish_enum_value_list (newtag);
   finish_enum (newtag);
+
   DECL_SOURCE_LOCATION (TYPE_NAME (newtag))
     = DECL_SOURCE_LOCATION (TYPE_NAME (tag));
 }

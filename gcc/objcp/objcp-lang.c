@@ -43,8 +43,6 @@ static tree objcxx_eh_personality (void);
 #define LANG_HOOKS_NAME "GNU Objective-C++"
 #undef LANG_HOOKS_INIT
 #define LANG_HOOKS_INIT objc_init
-#undef LANG_HOOKS_DECL_PRINTABLE_NAME
-#define LANG_HOOKS_DECL_PRINTABLE_NAME	objc_printable_name
 #undef LANG_HOOKS_GIMPLIFY_EXPR 
 #define LANG_HOOKS_GIMPLIFY_EXPR objc_gimplify_expr
 #undef LANG_HOOKS_INIT_TS
@@ -154,13 +152,6 @@ objcxx_eh_personality (void)
   if (!objcp_eh_personality_decl)
     objcp_eh_personality_decl = build_personality_function ("gxx");
   return objcp_eh_personality_decl;
-}
-
-
-void
-finish_file (void)
-{
-  objc_finish_file ();
 }
 
 #include "gtype-objcp.h"

@@ -545,6 +545,8 @@ const struct c_common_resword c_common_reswords[] =
   { "required",		RID_AT_REQUIRED,	D_OBJC },
   { "property",		RID_AT_PROPERTY,	D_OBJC },
   { "package",		RID_AT_PACKAGE,		D_OBJC },
+  { "synthesize",	RID_AT_SYNTHESIZE,	D_OBJC },
+  { "dynamic",		RID_AT_DYNAMIC,		D_OBJC },
   /* These are recognized only in protocol-qualifier context
      (see above) */
   { "bycopy",		RID_BYCOPY,		D_OBJC },
@@ -8700,6 +8702,18 @@ complete_array_type (tree *ptype, tree initial_value, bool do_default)
   *ptype = type;
   return failure;
 }
+
+/* Like c_mark_addressable but don't check register qualifier.  */
+void 
+c_common_mark_addressable_vec (tree t)
+{   
+  while (handled_component_p (t))
+    t = TREE_OPERAND (t, 0);
+  if (TREE_CODE (t) != VAR_DECL && TREE_CODE (t) != PARM_DECL)
+    return;
+  TREE_ADDRESSABLE (t) = 1;
+}
+
 
 
 /* Used to help initialize the builtin-types.def table.  When a type of

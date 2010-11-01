@@ -1166,6 +1166,9 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 /* Used to mark scoped enums.  */
 #define ENUM_IS_SCOPED(NODE) (ENUMERAL_TYPE_CHECK (NODE)->base.static_flag)
 
+/* Determines whether an ENUMERAL_TYPE has defined the list of constants. */
+#define ENUM_IS_OPAQUE(NODE) (ENUMERAL_TYPE_CHECK (NODE)->base.private_flag)
+
 /* In an expr node (usually a conversion) this means the node was made
    implicitly and should not lead to any sort of warning.  In a decl node,
    warnings concerning the decl should be suppressed.  This is used at
@@ -5069,7 +5072,6 @@ extern bool merge_ranges (int *, tree *, tree *, int, tree, tree, int,
 extern void set_builtin_user_assembler_name (tree decl, const char *asmspec);
 extern bool is_simple_builtin (tree);
 extern bool is_inexpensive_builtin (tree);
-extern bool mode_has_fma (enum machine_mode mode);
 
 /* In convert.c */
 extern tree strip_float_extensions (tree);

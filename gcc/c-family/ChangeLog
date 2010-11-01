@@ -1,12 +1,70 @@
+2010-10-23  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-common.h (objc_maybe_printable_name): New.
+	* stub-objc.c (objc_maybe_printable_name): New.
+
+2010-10-22  Artjoms Sinkarovs <artyom.shinakroff@gmail.com>
+	Andrew Pinski <pinskia@gmail.com>
+
+	* c-common.h (c_common_mark_addressable_vec): Declare.
+	* c-common.c (c_common_mark_addressable_vec): New function.
+
+2010-10-20  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-common.h (objc_set_method_type): Removed.
+	(objc_add_method_declaration): Added boolean argument.
+	(objc_start_method_definition): Same change.
+	(objc_build_method_signature): Same change.
+	* stub-objc.c (objc_set_method_type): Removed.
+	(objc_add_method_declaration): Added boolean argument.
+	(objc_start_method_definition): Same change.
+	(objc_build_method_signature): Same change.
+
+2010-10-20  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-common.h (finish_file): Removed.
+	(objc_write_global_declarations): New.
+	* c-opts.c (c_common_parse_file): Do not call finish_file.
+	* stub-objc.c (objc_write_global_declarations): New.
+	
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented parsing @synthesize and @dynamic for
+	Objective-C/Objective-C++.
+	* c-common.h (enum rid): Add RID_AT_SYNTHESIZE and RID_AT_DYNAMIC.
+	(objc_add_synthesize_declaration): New.
+	(objc_add_dynamic_declaration): New.
+	* c-common.c (c_common_reswords): Add synthesize and dynamic.
+	* stub-objc.c (objc_add_synthesize_declaration): New.
+	(objc_add_dynamic_declaration): New.
+	
+2010-10-18  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/46041
+	* c-cppbuiltin.c (mode_has_fma): Move function here from
+	builtins.c.  Don't use the fma optab, instead just use the
+	HAVE_fma* macros, so that __FP_FAST_FMA* will be defined when
+	using -save-temps.
+
+2010-10-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Merge from 'apple/trunk' branch on FSF servers.
+
+	2005-11-08  Fariborz Jahanian <fjahanian@apple.com>
+
+        Radar 4330422
+	* c-common.h (objc_non_volatilized_type): New declaration
+	* stub-objc.c (objc_non_volatilized_type): New stub.
+
 2010-10-17  Nicola Pero  <nicola.pero@meta-innovation.com>
 
-	Merge from 'apple/trunk' branch on FSF servers.		
+	Merge from 'apple/trunk' branch on FSF servers.
 
 	2006-03-27 Fariborz Jahanian <fjahanian@apple.com>
 
         Radar 4133425
 	* c-common.h (objc_diagnose_private_ivar): New decl.
-	* stub-objc.c (objc_diagnose_private_ivar): New stub.	
+	* stub-objc.c (objc_diagnose_private_ivar): New stub.
 
 2010-10-17  Iain Sandoe  <iains@gcc.gnu.org>
 
@@ -14,7 +72,7 @@
 	* c-common.h (enum rid): Add RID_AT_PACKAGE.
 	(objc_ivar_visibility_kind): New enum.
 	(objc_set_visibility): Adjust prototype to use visibility enum.
-	* stub-objc.c (objc_set_visibility): Adjust stub to use 
+	* stub-objc.c (objc_set_visibility): Adjust stub to use
 	visibility enum.
 
 2010-10-14  Michael Meissner  <meissner@linux.vnet.ibm.com>
