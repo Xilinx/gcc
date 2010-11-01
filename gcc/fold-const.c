@@ -15641,18 +15641,6 @@ fold_indirect_ref_1 (location_t loc, tree type, tree op0)
 	  tree index = bitsize_int (0);
 	  return fold_build3_loc (loc, BIT_FIELD_REF, type, op, part_width, index);
 	}
-      /* *(foo *)&struct_with_foo_field => COMPONENT_REF */
-      else if (RECORD_OR_UNION_TYPE_P (optype))
-	{
-	  tree field = TYPE_FIELDS (optype);
-	  for (; field; field = DECL_CHAIN (field))
-	    if (TREE_CODE (field) == FIELD_DECL
-		&& integer_zerop (DECL_FIELD_OFFSET (field))
-		&& (TYPE_MAIN_VARIANT (TREE_TYPE (field))
-		    == TYPE_MAIN_VARIANT (type)))
-	      return fold_build3_loc (loc, COMPONENT_REF, type, op, field,
-				      NULL_TREE);
-	}
     }
 
   if (TREE_CODE (sub) == POINTER_PLUS_EXPR
@@ -15707,18 +15695,6 @@ fold_indirect_ref_1 (location_t loc, tree type, tree op0)
 			    NULL_TREE, NULL_TREE);
 	      SET_EXPR_LOCATION (op0, loc);
 	      return op0;
-	    }
-	  /* ((foo *)&struct_with_foo_field)[1] => COMPONENT_REF */
-	  else if (RECORD_OR_UNION_TYPE_P (op00type))
-	    {
-	      tree field = TYPE_FIELDS (op00type);
-	      for (; field; field = DECL_CHAIN (field))
-		if (TREE_CODE (field) == FIELD_DECL
-		    && tree_int_cst_equal (byte_position (field), op01)
-		    && (TYPE_MAIN_VARIANT (TREE_TYPE (field))
-			== TYPE_MAIN_VARIANT (type)))
-		  return fold_build3_loc (loc, COMPONENT_REF, type, op00,
-					  field, NULL_TREE);
 	    }
 	}
     }

@@ -1730,6 +1730,7 @@ constant_value_1 (tree decl, bool integral_p)
 	 initializer for the static data member is not processed
 	 until needed; we need it now.  */
       mark_used (decl);
+      mark_rvalue_use (decl);
       init = DECL_INITIAL (decl);
       if (init == error_mark_node)
 	{

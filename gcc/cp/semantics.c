@@ -4618,7 +4618,6 @@ finish_static_assert (tree condition, tree message, location_t location,
   /* Fold the expression and convert it to a boolean value. */
   condition = fold_non_dependent_expr (condition);
   condition = cp_convert (boolean_type_node, condition);
-  /* FIXME why don't we just use cxx_constant_value here?  */
   condition = maybe_constant_value (condition);
 
   if (TREE_CODE (condition) == INTEGER_CST && !integer_zerop (condition))
@@ -6344,6 +6343,136 @@ cxx_eval_vec_init (const constexpr_call *call, tree t,
     return r;
 }
 
+/* A less strict version of fold_indirect_ref_1, which requires cv-quals to
+   match.  We want to be less strict for simple *& folding; if we have a
+   non-const temporary that we access through a const pointer, that should
+   work.  We handle this here rather than change fold_indirect_ref_1
+   because we're dealing with things like ADDR_EXPR of INTEGER_CST which
+   don't really make sense outside of constant expression evaluation.  Also
+   we want to allow folding to COMPONENT_REF, which could cause trouble
+   with TBAA in fold_indirect_ref_1.  */
+
+static tree
+cxx_eval_indirect_ref (const constexpr_call *call, tree t,
+		       bool allow_non_constant, bool addr,
+		       bool *non_constant_p)
+{
+  tree orig_op0 = TREE_OPERAND (t, 0);
+  tree op0 = cxx_eval_constant_expression (call, orig_op0, allow_non_constant,
+					   /*addr*/false, non_constant_p);
+  tree type, sub, subtype, r;
+  bool empty_base;
+
+  /* Don't VERIFY_CONSTANT here.  */
+  if (*non_constant_p)
+    return t;
+
+  type = TREE_TYPE (t);
+  sub = op0;
+  r = NULL_TREE;
+  empty_base = false;
+
+  STRIP_NOPS (sub);
+  subtype = TREE_TYPE (sub);
+  gcc_assert (POINTER_TYPE_P (subtype));
+
+  if (TREE_CODE (sub) == ADDR_EXPR)
+    {
+      tree op = TREE_OPERAND (sub, 0);
+      tree optype = TREE_TYPE (op);
+
+      if (same_type_ignoring_top_level_qualifiers_p (optype, type))
+	r = op;
+      /* Also handle conversion to an empty base class, which
+	 is represented with a NOP_EXPR.  */
+      else if (!addr && is_empty_class (type)
+	       && CLASS_TYPE_P (optype)
+	       && DERIVED_FROM_P (type, optype))
+	{
+	  r = op;
+	  empty_base = true;
+	}
+      /* *(foo *)&struct_with_foo_field => COMPONENT_REF */
+      else if (RECORD_OR_UNION_TYPE_P (optype))
+	{
+	  tree field = TYPE_FIELDS (optype);
+	  for (; field; field = DECL_CHAIN (field))
+	    if (TREE_CODE (field) == FIELD_DECL
+		&& integer_zerop (byte_position (field))
+		&& (same_type_ignoring_top_level_qualifiers_p
+		    (TREE_TYPE (field), type)))
+	      {
+		r = fold_build3 (COMPONENT_REF, type, op, field, NULL_TREE);
+		break;
+	      }
+	}
+    }
+  else if (TREE_CODE (sub) == POINTER_PLUS_EXPR
+	   && TREE_CODE (TREE_OPERAND (sub, 1)) == INTEGER_CST)
+    {
+      tree op00 = TREE_OPERAND (sub, 0);
+      tree op01 = TREE_OPERAND (sub, 1);
+
+      STRIP_NOPS (op00);
+      if (TREE_CODE (op00) == ADDR_EXPR)
+	{
+	  tree op00type;
+	  op00 = TREE_OPERAND (op00, 0);
+	  op00type = TREE_TYPE (op00);
+
+	  /* ((foo *)&struct_with_foo_field)[1] => COMPONENT_REF */
+	  if (RECORD_OR_UNION_TYPE_P (op00type))
+	    {
+	      tree field = TYPE_FIELDS (op00type);
+	      for (; field; field = DECL_CHAIN (field))
+		if (TREE_CODE (field) == FIELD_DECL
+		    && tree_int_cst_equal (byte_position (field), op01)
+		    && (same_type_ignoring_top_level_qualifiers_p
+			(TREE_TYPE (field), type)))
+		  {
+		    r = fold_build3 (COMPONENT_REF, type, op00,
+				     field, NULL_TREE);
+		    break;
+		  }
+	    }
+	}
+    }
+
+  /* Let build_fold_indirect_ref handle the cases it does fine with.  */
+  if (r == NULL_TREE)
+    r = build_fold_indirect_ref (op0);
+  if (TREE_CODE (r) != INDIRECT_REF)
+    r = cxx_eval_constant_expression (call, r, allow_non_constant,
+				      addr, non_constant_p);
+  else if (TREE_CODE (sub) == ADDR_EXPR
+	   || TREE_CODE (sub) == POINTER_PLUS_EXPR)
+    {
+      gcc_assert (!same_type_ignoring_top_level_qualifiers_p
+		  (TREE_TYPE (TREE_TYPE (sub)), TREE_TYPE (t)));
+      /* FIXME Mike Miller wants this to be OK.  */
+      if (!allow_non_constant)
+	error ("accessing value of %qE through a %qT glvalue in a "
+	       "constant expression", build_fold_indirect_ref (sub),
+	       TREE_TYPE (t));
+      *non_constant_p = true;
+      return t;
+    }
+
+  /* If we're pulling out the value of an empty base, make sure
+     that the whole object is constant and then return an empty
+     CONSTRUCTOR.  */
+  if (empty_base)
+    {
+      VERIFY_CONSTANT (r);
+      r = build_constructor (TREE_TYPE (t), NULL);
+      TREE_CONSTANT (r) = true;
+    }
+
+  if (TREE_CODE (r) == INDIRECT_REF && TREE_OPERAND (r, 0) == orig_op0)
+    return t;
+  return r;
+}
+
 /* Attempt to reduce the expression T to a constant value.
    On failure, issue diagnostic and return error_mark_node.  */
 /* FIXME unify with c_fully_fold */
@@ -6441,84 +6570,27 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 					non_constant_p);
       break;
 
+      /* These differ from cxx_eval_unary_expression in that this doesn't
+	 check for a constant operand or result; an address can be
+	 constant without its operand being, and vice versa.  */
     case INDIRECT_REF:
+      r = cxx_eval_indirect_ref (call, t, allow_non_constant, addr,
+				 non_constant_p);
+      break;
+
     case ADDR_EXPR:
       {
-	/* These differ from cxx_eval_unary_expression in that this doesn't
-	   check for a constant operand or result; an address can be
-	   constant without its operand being, and vice versa.  */
 	tree oldop = TREE_OPERAND (t, 0);
-	enum tree_code code = TREE_CODE (t);
 	tree op = cxx_eval_constant_expression (call, oldop,
 						allow_non_constant,
-						code == ADDR_EXPR,
+						/*addr*/true,
 						non_constant_p);
 	/* Don't VERIFY_CONSTANT here.  */
 	if (*non_constant_p)
 	  return t;
-	/* These functions do more aggressive folding than fold itself.  */
-	if (code == ADDR_EXPR)
-	  r = build_fold_addr_expr_with_type (op, TREE_TYPE (t));
-	else
-	  {
-	    bool empty_base = false;
-	    tree sub = op;
-	    STRIP_NOPS (sub);
-	    r = NULL_TREE;
-	    if (TREE_CODE (sub) == ADDR_EXPR)
-	      {
-		/* We want to be less strict for simple *& folding than
-		   fold_indirect_ref_1, which requires cv-quals to match.
-		   If we have a non-const temporary that we access through
-		   a const pointer, that should work.  Handle this here
-		   rather than change fold_indirect_ref_1 because we're
-		   dealing with things like ADDR_EXPR of INTEGER_CST which
-		   don't really make sense outside of constant expression
-		   evaluation.  */
-		tree in = TREE_OPERAND (sub, 0);
-		if (same_type_ignoring_top_level_qualifiers_p
-		    (TREE_TYPE (in), TREE_TYPE (t)))
-		  r = in;
-		/* Also handle conversion to an empty base class, which
-		   is represented with a NOP_EXPR.  */
-		else if (!addr && is_empty_class (TREE_TYPE (t))
-			 && CLASS_TYPE_P (TREE_TYPE (in))
-			 && DERIVED_FROM_P (TREE_TYPE (t), TREE_TYPE (in)))
-		  {
-		    r = in;
-		    empty_base = true;
-		  }
-	      }
-	    if (!r)
-	      r = build_fold_indirect_ref (op);
-	    if (TREE_CODE (r) != INDIRECT_REF)
-	      r = cxx_eval_constant_expression (call, r, allow_non_constant,
-						addr, non_constant_p);
-	    else if (TREE_CODE (sub) == ADDR_EXPR
-		     || TREE_CODE (sub) == POINTER_PLUS_EXPR)
-	      {
-		gcc_assert (!same_type_ignoring_top_level_qualifiers_p
-			    (TREE_TYPE (TREE_TYPE (sub)), TREE_TYPE (t)));
-		/* FIXME Mike Miller wants this to be OK.  */
-		if (!allow_non_constant)
-		  error ("accessing value of %qE through a %qT glvalue in a "
-			 "constant expression", build_fold_indirect_ref (sub),
-			 TREE_TYPE (t));
-		*non_constant_p = true;
-		return t;
-	      }
-
-	    /* If we're pulling out the value of an empty base, make sure
-	       that the whole object is constant and then return an empty
-	       CONSTRUCTOR.  */
-	    if (empty_base)
-	      {
-		VERIFY_CONSTANT (r);
-		r = build_constructor (TREE_TYPE (t), NULL);
-		TREE_CONSTANT (r) = true;
-	      }
-	  }
-	if (TREE_CODE (r) == code && TREE_OPERAND (r, 0) == oldop)
+	/* This function does more aggressive folding than fold itself.  */
+	r = build_fold_addr_expr_with_type (op, TREE_TYPE (t));
+	if (TREE_CODE (r) == ADDR_EXPR && TREE_OPERAND (r, 0) == oldop)
 	  return t;
 	break;
       }

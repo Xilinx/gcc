@@ -2935,11 +2935,10 @@ finish_case_label (location_t loc, tree low_value, tree high_value)
   if (!check_switch_goto (switch_stack->level))
     return error_mark_node;
 
-  /* FIXME use cxx_constant_value  */
   if (low_value)
-    low_value = maybe_constant_value (low_value);
+    low_value = cxx_constant_value (low_value);
   if (high_value)
-    high_value = maybe_constant_value (high_value);
+    high_value = cxx_constant_value (high_value);
 
   r = c_add_case_label (loc, switch_stack->cases, cond,
 			SWITCH_STMT_TYPE (switch_stack->switch_stmt),

@@ -5046,7 +5046,6 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
   if (INTEGRAL_OR_ENUMERATION_TYPE_P (type))
     {
       tree t = build_integral_nontype_arg_conv (type, expr, complain);
-      /* FIXME cxx_constant_value */
       t = maybe_constant_value (t);
       if (t != error_mark_node)
 	expr = t;
@@ -5060,14 +5059,9 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
 	{
 	  if (complain & tf_error)
 	    {
-	      tree e = expr;
-	      STRIP_NOPS (e);
-	      if (TREE_OVERFLOW_P (e))
-		error ("%qE is not a valid template argument for type %qT "
-		       "because of arithmetic overflow", expr, type);
-	      else
-		error ("%qE is not a valid template argument for type %qT "
-		       "because it is a non-constant expression", expr, type);
+	      error ("%qE is not a valid template argument for type %qT "
+		     "because it is a non-constant expression", expr, type);
+	      cxx_constant_value (expr);
 	    }
 	  return NULL_TREE;
 	}
