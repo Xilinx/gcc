@@ -305,15 +305,6 @@ extern enum m32r_sdata m32r_sdata;
 #ifndef SUBTARGET_OVERRIDE_OPTIONS
 #define SUBTARGET_OVERRIDE_OPTIONS
 #endif
-
-#ifndef SUBTARGET_OPTIMIZATION_OPTIONS
-#define SUBTARGET_OPTIMIZATION_OPTIONS
-#endif
-
-/* Define this macro if debugging can be performed even without a
-   frame pointer.  If this macro is defined, GCC will turn on the
-   `-fomit-frame-pointer' option whenever `-O' is specified.  */
-#define CAN_DEBUG_WITHOUT_FP
 
 /* Target machine storage layout.  */
 
@@ -327,12 +318,6 @@ extern enum m32r_sdata m32r_sdata;
 /* Define this if most significant word of a multiword number is the lowest
    numbered.  */
 #define WORDS_BIG_ENDIAN (TARGET_LITTLE_ENDIAN == 0)
-
-/* Define this macro if WORDS_BIG_ENDIAN is not constant.  This must
-   be a constant value with the same meaning as WORDS_BIG_ENDIAN,
-   which will be used only when compiling libgcc2.c.  Typically the
-   value will be set based on preprocessor defines.  */
-/*#define LIBGCC2_WORDS_BIG_ENDIAN 1*/
 
 /* Width of a word, in units (bytes).  */
 #define UNITS_PER_WORD 4

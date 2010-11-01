@@ -4021,7 +4021,7 @@ spu_function_arg (CUMULATIVE_ARGS *cum,
 {
   int byte_size;
 
-  if (cum >= MAX_REGISTER_ARGS)
+  if (*cum >= MAX_REGISTER_ARGS)
     return 0;
 
   byte_size = ((mode == BLKmode)
@@ -4029,7 +4029,7 @@ spu_function_arg (CUMULATIVE_ARGS *cum,
 
   /* The ABI does not allow parameters to be passed partially in
      reg and partially in stack. */
-  if ((cum + (byte_size + 15) / 16) > MAX_REGISTER_ARGS)
+  if ((*cum + (byte_size + 15) / 16) > MAX_REGISTER_ARGS)
     return 0;
 
   /* Make sure small structs are left justified in a register. */
@@ -4042,12 +4042,12 @@ spu_function_arg (CUMULATIVE_ARGS *cum,
 	byte_size = 4;
       smode = smallest_mode_for_size (byte_size * BITS_PER_UNIT, MODE_INT);
       gr_reg = gen_rtx_EXPR_LIST (VOIDmode,
-				  gen_rtx_REG (smode, FIRST_ARG_REGNUM + cum),
+				  gen_rtx_REG (smode, FIRST_ARG_REGNUM + *cum),
 				  const0_rtx);
       return gen_rtx_PARALLEL (mode, gen_rtvec (1, gr_reg));
     }
   else
-    return gen_rtx_REG (mode, FIRST_ARG_REGNUM + cum);
+    return gen_rtx_REG (mode, FIRST_ARG_REGNUM + *cum);
 }
 
 static void
@@ -4114,7 +4114,7 @@ spu_build_builtin_va_list (void)
   DECL_ALIGN (f_skip) = 128;
   DECL_USER_ALIGN (f_skip) = 1;
 
-  TREE_CHAIN (record) = type_decl;
+  TYPE_STUB_DECL (record) = type_decl;
   TYPE_NAME (record) = type_decl;
   TYPE_FIELDS (record) = f_args;
   DECL_CHAIN (f_args) = f_skip;

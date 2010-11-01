@@ -821,14 +821,14 @@ struct processor_costs amdfam10_cost = {
 
 struct processor_costs bdver1_cost = {
   COSTS_N_INSNS (1),			/* cost of an add instruction */
-  COSTS_N_INSNS (2),			/* cost of a lea instruction */
+  COSTS_N_INSNS (1),			/* cost of a lea instruction */
   COSTS_N_INSNS (1),			/* variable shift costs */
   COSTS_N_INSNS (1),			/* constant shift costs */
-  {COSTS_N_INSNS (3),			/* cost of starting multiply for QI */
+  {COSTS_N_INSNS (4),			/* cost of starting multiply for QI */
    COSTS_N_INSNS (4),			/*				 HI */
-   COSTS_N_INSNS (3),			/*				 SI */
-   COSTS_N_INSNS (4),			/*				 DI */
-   COSTS_N_INSNS (5)},			/*			      other */
+   COSTS_N_INSNS (4),			/*				 SI */
+   COSTS_N_INSNS (6),			/*				 DI */
+   COSTS_N_INSNS (6)},			/*			      other */
   0,					/* cost of multiply per each bit set */
   {COSTS_N_INSNS (19),			/* cost of a divide/mod for QI */
    COSTS_N_INSNS (35),			/*			    HI */
@@ -840,26 +840,26 @@ struct processor_costs bdver1_cost = {
   8,					/* "large" insn */
   9,					/* MOVE_RATIO */
   4,				     /* cost for loading QImode using movzbl */
-  {3, 4, 3},				/* cost of loading integer registers
+  {5, 5, 4},				/* cost of loading integer registers
 					   in QImode, HImode and SImode.
 					   Relative to reg-reg move (2).  */
-  {3, 4, 3},				/* cost of storing integer registers */
-  4,					/* cost of reg,reg fld/fst */
-  {4, 4, 12},				/* cost of loading fp registers
+  {4, 4, 4},				/* cost of storing integer registers */
+  2,					/* cost of reg,reg fld/fst */
+  {5, 5, 12},				/* cost of loading fp registers
 		   			   in SFmode, DFmode and XFmode */
-  {6, 6, 8},				/* cost of storing fp registers
+  {4, 4, 8},				/* cost of storing fp registers
  		   			   in SFmode, DFmode and XFmode */
   2,					/* cost of moving MMX register */
-  {3, 3},				/* cost of loading MMX registers
+  {4, 4},				/* cost of loading MMX registers
 					   in SImode and DImode */
   {4, 4},				/* cost of storing MMX registers
 					   in SImode and DImode */
   2,					/* cost of moving SSE register */
-  {4, 4, 3},				/* cost of loading SSE registers
+  {4, 4, 4},				/* cost of loading SSE registers
 					   in SImode, DImode and TImode */
-  {4, 4, 5},				/* cost of storing SSE registers
+  {4, 4, 4},				/* cost of storing SSE registers
 					   in SImode, DImode and TImode */
-  3,					/* MMX or SSE register to integer */
+  2,					/* MMX or SSE register to integer */
   					/* On K8:
 					    MOVD reg64, xmmreg Double FSTORE 4
 					    MOVD reg32, xmmreg Double FSTORE 4
@@ -868,8 +868,8 @@ struct processor_costs bdver1_cost = {
 							       1/1  1/1
 					    MOVD reg32, xmmreg Double FADD 3
 							       1/1  1/1 */
-  64,					/* size of l1 cache.  */
-  1024,					/* size of l2 cache.  */
+  16,					/* size of l1 cache.  */
+  2048,					/* size of l2 cache.  */
   64,					/* size of prefetch block */
   /* New AMD processors never drop prefetches; if they cannot be performed
      immediately, they are queued.  We set number of simultaneous prefetches
@@ -878,12 +878,12 @@ struct processor_costs bdver1_cost = {
      time).  */
   100,					/* number of parallel prefetches */
   2,					/* Branch cost */
-  COSTS_N_INSNS (4),			/* cost of FADD and FSUB insns.  */
-  COSTS_N_INSNS (4),			/* cost of FMUL instruction.  */
-  COSTS_N_INSNS (19),			/* cost of FDIV instruction.  */
+  COSTS_N_INSNS (6),			/* cost of FADD and FSUB insns.  */
+  COSTS_N_INSNS (6),			/* cost of FMUL instruction.  */
+  COSTS_N_INSNS (42),			/* cost of FDIV instruction.  */
   COSTS_N_INSNS (2),			/* cost of FABS instruction.  */
   COSTS_N_INSNS (2),			/* cost of FCHS instruction.  */
-  COSTS_N_INSNS (35),			/* cost of FSQRT instruction.  */
+  COSTS_N_INSNS (52),			/* cost of FSQRT instruction.  */
 
   /*  BDVER1 has optimized REP instruction for medium sized blocks, but for
       very small blocks it is better to use loop. For large blocks, libcall
@@ -893,15 +893,15 @@ struct processor_costs bdver1_cost = {
   {{libcall, {{8, loop}, {24, unrolled_loop},
 	      {2048, rep_prefix_4_byte}, {-1, libcall}}},
    {libcall, {{48, unrolled_loop}, {8192, rep_prefix_8_byte}, {-1, libcall}}}},
-  4,					/* scalar_stmt_cost.  */
-  2,					/* scalar load_cost.  */
-  2,					/* scalar_store_cost.  */
+  6,					/* scalar_stmt_cost.  */
+  4,					/* scalar load_cost.  */
+  4,					/* scalar_store_cost.  */
   6,					/* vec_stmt_cost.  */
   0,					/* vec_to_scalar_cost.  */
   2,					/* scalar_to_vec_cost.  */
-  2,					/* vec_align_load_cost.  */
-  2,					/* vec_unalign_load_cost.  */
-  2,					/* vec_store_cost.  */
+  4,					/* vec_align_load_cost.  */
+  4,					/* vec_unalign_load_cost.  */
+  4,					/* vec_store_cost.  */
   2,					/* cond_taken_branch_cost.  */
   1,					/* cond_not_taken_branch_cost.  */
 };
@@ -3272,6 +3272,10 @@ ix86_option_override_internal (bool main_args_p)
 #define USE_IX86_FRAME_POINTER 0
 #endif
 
+#ifndef USE_X86_64_FRAME_POINTER
+#define USE_X86_64_FRAME_POINTER 0
+#endif
+
   /* Set the default values for switches whose default depends on TARGET_64BIT
      in case they weren't overwritten by command line options.  */
   if (TARGET_64BIT)
@@ -3279,7 +3283,7 @@ ix86_option_override_internal (bool main_args_p)
       if (optimize > 1 && !global_options_set.x_flag_zee)
         flag_zee = 1;
       if (optimize >= 1 && !global_options_set.x_flag_omit_frame_pointer)
-	flag_omit_frame_pointer = 1;
+	flag_omit_frame_pointer = !USE_X86_64_FRAME_POINTER;
       if (flag_asynchronous_unwind_tables == 2)
 	flag_asynchronous_unwind_tables = 1;
       if (flag_pcc_struct_return == 2)
@@ -4525,20 +4529,19 @@ x86_output_aligned_bss (FILE *file, tree decl ATTRIBUTE_UNUSED,
   ASM_OUTPUT_SKIP (file, size ? size : 1);
 }
 
-static void
-ix86_option_optimization (int level, int size ATTRIBUTE_UNUSED)
-{
-  /* For -O2 and beyond, turn off -fschedule-insns by default.  It tends to
-     make the problem with not enough registers even worse.  */
+static const struct default_options ix86_option_optimization_table[] =
+  {
+    /* Turn off -fschedule-insns by default.  It tends to make the
+       problem with not enough registers even worse.  */
 #ifdef INSN_SCHEDULING
-  if (level > 1)
-    flag_schedule_insns = 0;
+    { OPT_LEVELS_ALL, OPT_fschedule_insns, NULL, 0 },
 #endif
 
 #ifdef SUBTARGET_OPTIMIZATION_OPTIONS
-  SUBTARGET_OPTIMIZATION_OPTIONS;
+    SUBTARGET_OPTIMIZATION_OPTIONS,
 #endif
-}
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 /* Implement TARGET_OPTION_INIT_STRUCT.  */
 
@@ -6597,24 +6600,10 @@ contains_aligned_value_p (const_tree type)
   return false;
 }
 
-/* Gives the alignment boundary, in bits, of an argument with the
-   specified mode and type.  */
-
-int
-ix86_function_arg_boundary (enum machine_mode mode, const_tree type)
+static int
+ix86_old_function_arg_boundary (enum machine_mode mode, const_tree type,
+				int align)
 {
-  int align;
-  if (type)
-    {
-      /* Since the main variant type is used for call, we convert it to
-	 the main variant type.  */
-      type = TYPE_MAIN_VARIANT (type);
-      align = TYPE_ALIGN (type);
-    }
-  else
-    align = GET_MODE_ALIGNMENT (mode);
-  if (align < PARM_BOUNDARY)
-    align = PARM_BOUNDARY;
   /* In 32bit, only _Decimal128 and __float128 are aligned to their
      natural boundaries.  */
   if (!TARGET_64BIT && mode != TDmode && mode != TFmode)
@@ -6639,6 +6628,48 @@ ix86_function_arg_boundary (enum machine_mode mode, const_tree type)
     }
   if (align > BIGGEST_ALIGNMENT)
     align = BIGGEST_ALIGNMENT;
+  return align;
+}
+
+/* Gives the alignment boundary, in bits, of an argument with the
+   specified mode and type.  */
+
+int
+ix86_function_arg_boundary (enum machine_mode mode, const_tree type)
+{
+  int align;
+  if (type)
+    {
+      /* Since the main variant type is used for call, we convert it to
+	 the main variant type.  */
+      type = TYPE_MAIN_VARIANT (type);
+      align = TYPE_ALIGN (type);
+    }
+  else
+    align = GET_MODE_ALIGNMENT (mode);
+  if (align < PARM_BOUNDARY)
+    align = PARM_BOUNDARY;
+  else
+    {
+      static bool warned;
+      int saved_align = align;
+
+      if (!TARGET_64BIT && align < 128)
+	align = PARM_BOUNDARY;
+
+      if (warn_psabi
+	  && !warned
+	  && align != ix86_old_function_arg_boundary (mode, type,
+						      saved_align))
+	{
+	  warned = true;
+	  inform (input_location,
+		  "The ABI of passing parameter with %dbyte"
+		  " alignment has changed in GCC 4.6",
+		  align / BITS_PER_UNIT);
+	}
+    }
+
   return align;
 }
 
@@ -7001,7 +7032,7 @@ ix86_build_builtin_va_list_abi (enum calling_abi abi)
   DECL_FIELD_CONTEXT (f_ovf) = record;
   DECL_FIELD_CONTEXT (f_sav) = record;
 
-  TREE_CHAIN (record) = type_decl;
+  TYPE_STUB_DECL (record) = type_decl;
   TYPE_NAME (record) = type_decl;
   TYPE_FIELDS (record) = f_gpr;
   DECL_CHAIN (f_gpr) = f_fpr;
@@ -7216,7 +7247,6 @@ ix86_va_start (tree valist, rtx nextarg)
   tree f_gpr, f_fpr, f_ovf, f_sav;
   tree gpr, fpr, ovf, sav, t;
   tree type;
-
   rtx ovf_rtx;
 
   if (flag_split_stack
@@ -15898,7 +15928,7 @@ void
 ix86_expand_fp_absneg_operator (enum rtx_code code, enum machine_mode mode,
 				rtx operands[])
 {
-  rtx mask, set, use, clob, dst, src;
+  rtx mask, set, dst, src;
   bool use_sse = false;
   bool vector_mode = VECTOR_MODE_P (mode);
   enum machine_mode vmode = mode;
@@ -15926,26 +15956,26 @@ ix86_expand_fp_absneg_operator (enum rtx_code code, enum machine_mode mode,
   dst = operands[0];
   src = operands[1];
 
-  if (vector_mode)
+  set = gen_rtx_fmt_e (code, mode, src);
+  set = gen_rtx_SET (VOIDmode, dst, set);
+
+  if (mask)
     {
-      set = gen_rtx_fmt_ee (code == NEG ? XOR : AND, mode, src, mask);
-      set = gen_rtx_SET (VOIDmode, dst, set);
-      emit_insn (set);
+      rtx use, clob;
+      rtvec par;
+
+      use = gen_rtx_USE (VOIDmode, mask);
+      if (vector_mode)
+	par = gen_rtvec (2, set, use);
+      else
+	{
+          clob = gen_rtx_CLOBBER (VOIDmode, gen_rtx_REG (CCmode, FLAGS_REG));
+	  par = gen_rtvec (3, set, use, clob);
+        }
+      emit_insn (gen_rtx_PARALLEL (VOIDmode, par));
     }
   else
-    {
-      set = gen_rtx_fmt_e (code, mode, src);
-      set = gen_rtx_SET (VOIDmode, dst, set);
-      if (mask)
-        {
-          use = gen_rtx_USE (VOIDmode, mask);
-          clob = gen_rtx_CLOBBER (VOIDmode, gen_rtx_REG (CCmode, FLAGS_REG));
-          emit_insn (gen_rtx_PARALLEL (VOIDmode,
-				       gen_rtvec (3, set, use, clob)));
-        }
-      else
-	emit_insn (set);
-    }
+    emit_insn (set);
 }
 
 /* Expand a copysign operation.  Special case operand 0 being a constant.  */
@@ -22765,34 +22795,12 @@ enum ix86_builtins
   IX86_BUILTIN_VFMADDSD,
   IX86_BUILTIN_VFMADDPS,
   IX86_BUILTIN_VFMADDPD,
-  IX86_BUILTIN_VFMSUBSS,
-  IX86_BUILTIN_VFMSUBSD,
-  IX86_BUILTIN_VFMSUBPS,
-  IX86_BUILTIN_VFMSUBPD,
-  IX86_BUILTIN_VFMADDSUBPS,
-  IX86_BUILTIN_VFMADDSUBPD,
-  IX86_BUILTIN_VFMSUBADDPS,
-  IX86_BUILTIN_VFMSUBADDPD,
-  IX86_BUILTIN_VFNMADDSS,
-  IX86_BUILTIN_VFNMADDSD,
-  IX86_BUILTIN_VFNMADDPS,
-  IX86_BUILTIN_VFNMADDPD,
-  IX86_BUILTIN_VFNMSUBSS,
-  IX86_BUILTIN_VFNMSUBSD,
-  IX86_BUILTIN_VFNMSUBPS,
-  IX86_BUILTIN_VFNMSUBPD,
   IX86_BUILTIN_VFMADDPS256,
   IX86_BUILTIN_VFMADDPD256,
-  IX86_BUILTIN_VFMSUBPS256,
-  IX86_BUILTIN_VFMSUBPD256,
+  IX86_BUILTIN_VFMADDSUBPS,
+  IX86_BUILTIN_VFMADDSUBPD,
   IX86_BUILTIN_VFMADDSUBPS256,
   IX86_BUILTIN_VFMADDSUBPD256,
-  IX86_BUILTIN_VFMSUBADDPS256,
-  IX86_BUILTIN_VFMSUBADDPD256,
-  IX86_BUILTIN_VFNMADDPS256,
-  IX86_BUILTIN_VFNMADDPD256,
-  IX86_BUILTIN_VFNMSUBPS256,
-  IX86_BUILTIN_VFNMSUBPD256,
 
   IX86_BUILTIN_VPCMOV,
   IX86_BUILTIN_VPCMOV_V2DI,
@@ -23949,43 +23957,38 @@ static const struct builtin_description bdesc_args[] =
 
 static const struct builtin_description bdesc_multi_arg[] =
 {
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_vmfmaddv4sf4,     "__builtin_ia32_vfmaddss",    IX86_BUILTIN_VFMADDSS,    UNKNOWN,      (int)MULTI_ARG_3_SF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_vmfmaddv2df4,     "__builtin_ia32_vfmaddsd",    IX86_BUILTIN_VFMADDSD,    UNKNOWN,      (int)MULTI_ARG_3_DF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmaddv4sf4,       "__builtin_ia32_vfmaddps",    IX86_BUILTIN_VFMADDPS,    UNKNOWN,      (int)MULTI_ARG_3_SF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmaddv2df4,       "__builtin_ia32_vfmaddpd",    IX86_BUILTIN_VFMADDPD,    UNKNOWN,      (int)MULTI_ARG_3_DF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_vmfmsubv4sf4,     "__builtin_ia32_vfmsubss",    IX86_BUILTIN_VFMSUBSS,    UNKNOWN,      (int)MULTI_ARG_3_SF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_vmfmsubv2df4,     "__builtin_ia32_vfmsubsd",    IX86_BUILTIN_VFMSUBSD,    UNKNOWN,      (int)MULTI_ARG_3_DF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmsubv4sf4,       "__builtin_ia32_vfmsubps",    IX86_BUILTIN_VFMSUBPS,    UNKNOWN,      (int)MULTI_ARG_3_SF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmsubv2df4,       "__builtin_ia32_vfmsubpd",    IX86_BUILTIN_VFMSUBPD,    UNKNOWN,      (int)MULTI_ARG_3_DF },
+  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_vmfmadd_v4sf,
+    "__builtin_ia32_vfmaddss", IX86_BUILTIN_VFMADDSS,
+    UNKNOWN, (int)MULTI_ARG_3_SF },
+  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_vmfmadd_v2df,
+    "__builtin_ia32_vfmaddsd", IX86_BUILTIN_VFMADDSD,
+    UNKNOWN, (int)MULTI_ARG_3_DF },
 
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_vmfnmaddv4sf4,    "__builtin_ia32_vfnmaddss",   IX86_BUILTIN_VFNMADDSS,   UNKNOWN,      (int)MULTI_ARG_3_SF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_vmfnmaddv2df4,    "__builtin_ia32_vfnmaddsd",   IX86_BUILTIN_VFNMADDSD,   UNKNOWN,      (int)MULTI_ARG_3_DF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fnmaddv4sf4,      "__builtin_ia32_vfnmaddps",   IX86_BUILTIN_VFNMADDPS,   UNKNOWN,      (int)MULTI_ARG_3_SF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fnmaddv2df4,      "__builtin_ia32_vfnmaddpd",   IX86_BUILTIN_VFNMADDPD,   UNKNOWN,      (int)MULTI_ARG_3_DF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_vmfnmsubv4sf4,    "__builtin_ia32_vfnmsubss",   IX86_BUILTIN_VFNMSUBSS,   UNKNOWN,      (int)MULTI_ARG_3_SF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_vmfnmsubv2df4,    "__builtin_ia32_vfnmsubsd",   IX86_BUILTIN_VFNMSUBSD,   UNKNOWN,      (int)MULTI_ARG_3_DF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fnmsubv4sf4,      "__builtin_ia32_vfnmsubps",   IX86_BUILTIN_VFNMSUBPS,   UNKNOWN,      (int)MULTI_ARG_3_SF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fnmsubv2df4,      "__builtin_ia32_vfnmsubpd",   IX86_BUILTIN_VFNMSUBPD,   UNKNOWN,      (int)MULTI_ARG_3_DF },
+  { OPTION_MASK_ISA_FMA | OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmadd_v4sf,
+    "__builtin_ia32_vfmaddps", IX86_BUILTIN_VFMADDPS,
+    UNKNOWN, (int)MULTI_ARG_3_SF },
+  { OPTION_MASK_ISA_FMA | OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmadd_v2df,
+    "__builtin_ia32_vfmaddpd", IX86_BUILTIN_VFMADDPD,
+    UNKNOWN, (int)MULTI_ARG_3_DF },
+  { OPTION_MASK_ISA_FMA | OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmadd_v8sf,
+    "__builtin_ia32_vfmaddps256", IX86_BUILTIN_VFMADDPS256,
+    UNKNOWN, (int)MULTI_ARG_3_SF2 },
+  { OPTION_MASK_ISA_FMA | OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmadd_v4df,
+    "__builtin_ia32_vfmaddpd256", IX86_BUILTIN_VFMADDPD256,
+    UNKNOWN, (int)MULTI_ARG_3_DF2 },
 
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmaddsubv4sf4,	   "__builtin_ia32_vfmaddsubps", IX86_BUILTIN_VFMADDSUBPS,    UNKNOWN,      (int)MULTI_ARG_3_SF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmaddsubv2df4,	   "__builtin_ia32_vfmaddsubpd", IX86_BUILTIN_VFMADDSUBPD,    UNKNOWN,      (int)MULTI_ARG_3_DF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmsubaddv4sf4,	   "__builtin_ia32_vfmsubaddps", IX86_BUILTIN_VFMSUBADDPS,    UNKNOWN,      (int)MULTI_ARG_3_SF },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmsubaddv2df4,	   "__builtin_ia32_vfmsubaddpd", IX86_BUILTIN_VFMSUBADDPD,    UNKNOWN,      (int)MULTI_ARG_3_DF },
-
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmaddv8sf4256,       "__builtin_ia32_vfmaddps256",    IX86_BUILTIN_VFMADDPS256,    UNKNOWN,      (int)MULTI_ARG_3_SF2 },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmaddv4df4256,       "__builtin_ia32_vfmaddpd256",    IX86_BUILTIN_VFMADDPD256,    UNKNOWN,      (int)MULTI_ARG_3_DF2 },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmsubv8sf4256,       "__builtin_ia32_vfmsubps256",    IX86_BUILTIN_VFMSUBPS256,    UNKNOWN,      (int)MULTI_ARG_3_SF2 },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmsubv4df4256,       "__builtin_ia32_vfmsubpd256",    IX86_BUILTIN_VFMSUBPD256,    UNKNOWN,      (int)MULTI_ARG_3_DF2 },
-
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fnmaddv8sf4256,      "__builtin_ia32_vfnmaddps256",   IX86_BUILTIN_VFNMADDPS256,   UNKNOWN,      (int)MULTI_ARG_3_SF2 },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fnmaddv4df4256,      "__builtin_ia32_vfnmaddpd256",   IX86_BUILTIN_VFNMADDPD256,   UNKNOWN,      (int)MULTI_ARG_3_DF2 },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fnmsubv8sf4256,      "__builtin_ia32_vfnmsubps256",   IX86_BUILTIN_VFNMSUBPS256,   UNKNOWN,      (int)MULTI_ARG_3_SF2 },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fnmsubv4df4256,      "__builtin_ia32_vfnmsubpd256",   IX86_BUILTIN_VFNMSUBPD256,   UNKNOWN,      (int)MULTI_ARG_3_DF2 },
-
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmaddsubv8sf4,	   "__builtin_ia32_vfmaddsubps256", IX86_BUILTIN_VFMADDSUBPS256,    UNKNOWN,      (int)MULTI_ARG_3_SF2 },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmaddsubv4df4,	   "__builtin_ia32_vfmaddsubpd256", IX86_BUILTIN_VFMADDSUBPD256,    UNKNOWN,      (int)MULTI_ARG_3_DF2 },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmsubaddv8sf4,	   "__builtin_ia32_vfmsubaddps256", IX86_BUILTIN_VFMSUBADDPS256,    UNKNOWN,      (int)MULTI_ARG_3_SF2 },
-  { OPTION_MASK_ISA_FMA4, CODE_FOR_fma4i_fmsubaddv4df4,	   "__builtin_ia32_vfmsubaddpd256", IX86_BUILTIN_VFMSUBADDPD256,    UNKNOWN,      (int)MULTI_ARG_3_DF2 },
+  { OPTION_MASK_ISA_FMA | OPTION_MASK_ISA_FMA4, CODE_FOR_fmaddsub_v4sf,
+    "__builtin_ia32_vfmaddsubps", IX86_BUILTIN_VFMADDSUBPS,
+    UNKNOWN, (int)MULTI_ARG_3_SF },
+  { OPTION_MASK_ISA_FMA | OPTION_MASK_ISA_FMA4, CODE_FOR_fmaddsub_v2df,
+    "__builtin_ia32_vfmaddsubpd", IX86_BUILTIN_VFMADDSUBPD,
+    UNKNOWN, (int)MULTI_ARG_3_DF },
+  { OPTION_MASK_ISA_FMA | OPTION_MASK_ISA_FMA4, CODE_FOR_fmaddsub_v8sf,
+    "__builtin_ia32_vfmaddsubps256", IX86_BUILTIN_VFMADDSUBPS256,
+    UNKNOWN, (int)MULTI_ARG_3_SF2 },
+  { OPTION_MASK_ISA_FMA | OPTION_MASK_ISA_FMA4, CODE_FOR_fmaddsub_v4df,
+    "__builtin_ia32_vfmaddsubpd256", IX86_BUILTIN_VFMADDSUBPD256,
+    UNKNOWN, (int)MULTI_ARG_3_DF2 },
 
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_pcmov_v2di,        "__builtin_ia32_vpcmov",      IX86_BUILTIN_VPCMOV,	 UNKNOWN,      (int)MULTI_ARG_3_DI },
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_pcmov_v2di,        "__builtin_ia32_vpcmov_v2di", IX86_BUILTIN_VPCMOV_V2DI, UNKNOWN,      (int)MULTI_ARG_3_DI },
@@ -24039,8 +24042,8 @@ static const struct builtin_description bdesc_multi_arg[] =
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_vmfrczv2df2,       "__builtin_ia32_vfrczsd",     IX86_BUILTIN_VFRCZSD,     UNKNOWN,      (int)MULTI_ARG_2_DF },
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_frczv4sf2,         "__builtin_ia32_vfrczps",     IX86_BUILTIN_VFRCZPS,     UNKNOWN,      (int)MULTI_ARG_1_SF },
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_frczv2df2,         "__builtin_ia32_vfrczpd",     IX86_BUILTIN_VFRCZPD,     UNKNOWN,      (int)MULTI_ARG_1_DF },
-  { OPTION_MASK_ISA_XOP, CODE_FOR_xop_frczv8sf2256,         "__builtin_ia32_vfrczps256",  IX86_BUILTIN_VFRCZPS256,  UNKNOWN,      (int)MULTI_ARG_1_SF2 },
-  { OPTION_MASK_ISA_XOP, CODE_FOR_xop_frczv4df2256,         "__builtin_ia32_vfrczpd256",  IX86_BUILTIN_VFRCZPD256,  UNKNOWN,      (int)MULTI_ARG_1_DF2 },
+  { OPTION_MASK_ISA_XOP, CODE_FOR_xop_frczv8sf2,         "__builtin_ia32_vfrczps256",  IX86_BUILTIN_VFRCZPS256,  UNKNOWN,      (int)MULTI_ARG_1_SF2 },
+  { OPTION_MASK_ISA_XOP, CODE_FOR_xop_frczv4df2,         "__builtin_ia32_vfrczpd256",  IX86_BUILTIN_VFRCZPD256,  UNKNOWN,      (int)MULTI_ARG_1_DF2 },
 
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_phaddbw,           "__builtin_ia32_vphaddbw",    IX86_BUILTIN_VPHADDBW,    UNKNOWN,      (int)MULTI_ARG_1_QI_HI },
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_phaddbd,           "__builtin_ia32_vphaddbd",    IX86_BUILTIN_VPHADDBD,    UNKNOWN,      (int)MULTI_ARG_1_QI_SI },
@@ -24433,6 +24436,10 @@ ix86_init_builtins (void)
 
   if (TARGET_64BIT)
     ix86_init_builtins_va_builtins_abi ();
+
+#ifdef SUBTARGET_INIT_BUILTINS
+  SUBTARGET_INIT_BUILTINS;
+#endif
 }
 
 /* Return the ix86 builtin for CODE.  */
@@ -26125,8 +26132,28 @@ ix86_builtin_vectorized_function (tree fndecl, tree type_out,
 	}
       break;
 
+    case BUILT_IN_FMA:
+      if (out_mode == DFmode && in_mode == DFmode)
+	{
+	  if (out_n == 2 && in_n == 2)
+	    return ix86_builtins[IX86_BUILTIN_VFMADDPD];
+	  if (out_n == 4 && in_n == 4)
+	    return ix86_builtins[IX86_BUILTIN_VFMADDPD256];
+	}
+      break;
+
+    case BUILT_IN_FMAF:
+      if (out_mode == SFmode && in_mode == SFmode)
+	{
+	  if (out_n == 4 && in_n == 4)
+	    return ix86_builtins[IX86_BUILTIN_VFMADDPS];
+	  if (out_n == 8 && in_n == 8)
+	    return ix86_builtins[IX86_BUILTIN_VFMADDPS256];
+	}
+      break;
+
     default:
-      ;
+      break;
     }
 
   /* Dispatch to a handler for a vectorization library.  */
@@ -33260,8 +33287,8 @@ ix86_autovectorize_vector_sizes (void)
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE ix86_option_override
-#undef TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION ix86_option_optimization
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE ix86_option_optimization_table
 #undef TARGET_OPTION_INIT_STRUCT
 #define TARGET_OPTION_INIT_STRUCT ix86_option_init_struct
 

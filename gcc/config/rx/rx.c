@@ -830,7 +830,32 @@ rx_function_value (const_tree ret_type,
 		   const_tree fn_decl_or_type ATTRIBUTE_UNUSED,
 		   bool       outgoing ATTRIBUTE_UNUSED)
 {
-  return gen_rtx_REG (TYPE_MODE (ret_type), FUNC_RETURN_REGNUM);
+  enum machine_mode mode = TYPE_MODE (ret_type);
+
+  /* RX ABI specifies that small integer types are
+     promoted to int when returned by a function.  */
+  if (GET_MODE_SIZE (mode) > 0 && GET_MODE_SIZE (mode) < 4)
+    return gen_rtx_REG (SImode, FUNC_RETURN_REGNUM);
+    
+  return gen_rtx_REG (mode, FUNC_RETURN_REGNUM);
+}
+
+/* TARGET_PROMOTE_FUNCTION_MODE must behave in the same way with
+   regard to function returns as does TARGET_FUNCTION_VALUE.  */
+
+static enum machine_mode
+rx_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
+			  enum machine_mode mode,
+			  int * punsignedp,
+			  const_tree funtype ATTRIBUTE_UNUSED,
+			  int for_return)
+{
+  if (for_return != 1
+      || GET_MODE_SIZE (mode) >= 4
+      || GET_MODE_SIZE (mode) < 1)
+    return mode;
+
+  return SImode;
 }
 
 static bool
@@ -2228,6 +2253,13 @@ rx_option_override (void)
   rx_override_options_after_change ();
 }
 
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options rx_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
+
 
 static bool
 rx_allocate_stack_slots_for_args (void)
@@ -2824,6 +2856,12 @@ rx_memory_move_cost (enum machine_mode mode, enum reg_class regclass, bool in)
 
 #undef  TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE			rx_option_override
+
+#undef  TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE	rx_option_optimization_table
+
+#undef  TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE		rx_promote_function_mode
 
 #undef  TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE
 #define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE	rx_override_options_after_change

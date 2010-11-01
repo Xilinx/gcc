@@ -1363,6 +1363,13 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #endif
   { NULL,        0, 0, false, false, false, NULL }
 };
+
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options rs6000_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 #ifndef MASK_STRICT_ALIGN
 #define MASK_STRICT_ALIGN 0
@@ -1607,6 +1614,9 @@ static const struct attribute_spec rs6000_attribute_table[] =
 
 #undef TARGET_OPTION_DEFAULT_PARAMS
 #define TARGET_OPTION_DEFAULT_PARAMS rs6000_option_default_params
+
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE rs6000_option_optimization_table
 
 #undef TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION \
@@ -9215,7 +9225,7 @@ rs6000_build_builtin_va_list (void)
   DECL_FIELD_CONTEXT (f_ovf) = record;
   DECL_FIELD_CONTEXT (f_sav) = record;
 
-  TREE_CHAIN (record) = type_decl;
+  TYPE_STUB_DECL (record) = type_decl;
   TYPE_NAME (record) = type_decl;
   TYPE_FIELDS (record) = f_gpr;
   DECL_CHAIN (f_gpr) = f_fpr;
@@ -19690,7 +19700,12 @@ rs6000_make_savres_rtx (rs6000_stack_t *info,
 static bool
 rs6000_reg_live_or_pic_offset_p (int reg)
 {
-  return ((df_regs_ever_live_p (reg)
+  /* If the function calls eh_return, claim used all the registers that would
+     be checked for liveness otherwise.  This is required for the PIC offset
+     register with -mminimal-toc on AIX, as it is advertised as "fixed" for
+     register allocation purposes in this case.  */
+
+  return (((crtl->calls_eh_return || df_regs_ever_live_p (reg))
            && (!call_used_regs[reg]
                || (reg == RS6000_PIC_OFFSET_TABLE_REGNUM
                    && TARGET_TOC && TARGET_MINIMAL_TOC)))

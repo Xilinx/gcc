@@ -202,7 +202,6 @@ static rtx gen_fr_spill_x (rtx, rtx, rtx);
 static rtx gen_fr_restore_x (rtx, rtx, rtx);
 
 static void ia64_option_override (void);
-static void ia64_option_optimization (int, int);
 static void ia64_option_default_params (void);
 static bool ia64_can_eliminate (const int, const int);
 static enum machine_mode hfa_element_mode (const_tree, bool);
@@ -324,6 +323,8 @@ static void ia64_override_options_after_change (void);
 
 static void ia64_dwarf_handle_frame_unspec (const char *, rtx, int);
 static tree ia64_builtin_decl (unsigned, bool);
+
+static reg_class_t ia64_preferred_reload_class (rtx, reg_class_t);
 
 /* Table of valid machine attributes.  */
 static const struct attribute_spec ia64_attribute_table[] =
@@ -338,6 +339,16 @@ static const struct attribute_spec ia64_attribute_table[] =
     ia64_handle_version_id_attribute },
   { NULL,	       0, 0, false, false, false, NULL }
 };
+
+/* Implement overriding of the optimization options.  */
+static const struct default_options ia64_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+#ifdef SUBTARGET_OPTIMIZATION_OPTIONS
+    SUBTARGET_OPTIMIZATION_OPTIONS,
+#endif
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ATTRIBUTE_TABLE
@@ -371,8 +382,8 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE ia64_option_override
-#undef TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION ia64_option_optimization
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE ia64_option_optimization_table
 #undef TARGET_OPTION_DEFAULT_PARAMS
 #define TARGET_OPTION_DEFAULT_PARAMS ia64_option_default_params
 
@@ -594,6 +605,9 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE
 #define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE ia64_override_options_after_change
+
+#undef TARGET_PREFERRED_RELOAD_CLASS
+#define TARGET_PREFERRED_RELOAD_CLASS ia64_preferred_reload_class
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -5346,11 +5360,11 @@ ia64_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
     return 10;
 }
 
-/* Implement PREFERRED_RELOAD_CLASS.  Place additional restrictions on RCLASS
-   to use when copying X into that class.  */
+/* Implement TARGET_PREFERRED_RELOAD_CLASS.  Place additional restrictions
+   on RCLASS to use when copying X into that class.  */
 
-enum reg_class
-ia64_preferred_reload_class (rtx x, enum reg_class rclass)
+static reg_class_t
+ia64_preferred_reload_class (rtx x, reg_class_t rclass)
 {
   switch (rclass)
     {
@@ -5875,15 +5889,14 @@ rws_access_regno (int regno, struct reg_flags flags, int pred)
 	  break;
 
 	case 1:
-	  /* The register has been written via a predicate.  If this is
-	     not a complementary predicate, then we need a barrier.  */
-	  /* ??? This assumes that P and P+1 are always complementary
-	     predicates for P even.  */
+	  /* The register has been written via a predicate.  Treat
+	     it like a unconditional write and do not try to check
+	     for complementary pred reg in earlier write.  */
 	  if (flags.is_and && rws_sum[regno].written_by_and)
 	    ;
 	  else if (flags.is_or && rws_sum[regno].written_by_or)
 	    ;
-	  else if ((rws_sum[regno].first_pred ^ 1) != pred)
+	  else
 	    need_barrier = 1;
 	  if (!in_safe_group_barrier)
 	    rws_update (regno, flags, pred);
@@ -5944,12 +5957,9 @@ rws_access_regno (int regno, struct reg_flags flags, int pred)
 	  break;
 
 	case 1:
-	  /* The register has been written via a predicate.  If this is
-	     not a complementary predicate, then we need a barrier.  */
-	  /* ??? This assumes that P and P+1 are always complementary
-	     predicates for P even.  */
-	  if ((rws_sum[regno].first_pred ^ 1) != pred)
-	    need_barrier = 1;
+	  /* The register has been written via a predicate, assume we
+	     need a barrier (don't check for complementary regs).  */
+	  need_barrier = 1;
 	  break;
 
 	case 2:
@@ -10832,16 +10842,6 @@ ia64_invalid_binary_op (int op ATTRIBUTE_UNUSED, const_tree type1, const_tree ty
   if (TYPE_MODE (type1) == RFmode || TYPE_MODE (type2) == RFmode)
     return N_("invalid operation on %<__fpreg%>");
   return NULL;
-}
-
-/* Implement overriding of the optimization options.  */
-static void
-ia64_option_optimization (int level ATTRIBUTE_UNUSED,
-			  int size ATTRIBUTE_UNUSED)
-{
-#ifdef SUBTARGET_OPTIMIZATION_OPTIONS
-  SUBTARGET_OPTIMIZATION_OPTIONS;
-#endif
 }
 
 /* Implement TARGET_OPTION_DEFAULT_PARAMS.  */
