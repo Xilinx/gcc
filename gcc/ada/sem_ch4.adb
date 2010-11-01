@@ -46,6 +46,7 @@ with Sem_Aux;  use Sem_Aux;
 with Sem_Case; use Sem_Case;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch3;  use Sem_Ch3;
+with Sem_Ch5;  use Sem_Ch5;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Disp; use Sem_Disp;
@@ -1136,7 +1137,6 @@ package body Sem_Ch4 is
       Exp_Type  : Entity_Id;
       Exp_Btype : Entity_Id;
 
-      Last_Choice    : Nat;
       Dont_Care      : Boolean;
       Others_Present : Boolean;
 
@@ -1152,8 +1152,6 @@ package body Sem_Ch4 is
            Process_Non_Static_Choice => Non_Static_Choice_Error,
            Process_Associated_Node   => No_OP);
       use Case_Choices_Processing;
-
-      Case_Table : Choice_Table_Type (1 .. Number_Of_Choices (N));
 
       -----------------------------
       -- Non_Static_Choice_Error --
@@ -1251,8 +1249,7 @@ package body Sem_Ch4 is
 
       --  Call instantiated Analyze_Choices which does the rest of the work
 
-      Analyze_Choices
-        (N, Exp_Type, Case_Table, Last_Choice, Dont_Care, Others_Present);
+      Analyze_Choices (N, Exp_Type, Dont_Care, Others_Present);
 
       if Exp_Type = Universal_Integer and then not Others_Present then
          Error_Msg_N
@@ -2158,7 +2155,7 @@ package body Sem_Ch4 is
 
       P_T := Base_Type (Etype (P));
 
-      if Is_Entity_Name (P) then
+      if Is_Entity_Name (P) and then Present (Entity (P)) then
          U_N := Entity (P);
 
          if Is_Type (U_N) then
@@ -2279,8 +2276,9 @@ package body Sem_Ch4 is
    ---------------------------
 
    procedure Analyze_Membership_Op (N : Node_Id) is
-      L     : constant Node_Id := Left_Opnd (N);
-      R     : constant Node_Id := Right_Opnd (N);
+      Loc   : constant Source_Ptr := Sloc (N);
+      L     : constant Node_Id    := Left_Opnd (N);
+      R     : constant Node_Id    := Right_Opnd (N);
 
       Index : Interp_Index;
       It    : Interp;
@@ -2442,14 +2440,38 @@ package body Sem_Ch4 is
             end loop;
          end if;
 
-      --  If not a range, it can only be a subtype mark, or else there
-      --  is a more basic error, to be diagnosed in Find_Type.
+      --  If not a range, it can be a subtype mark, or else it is a degenerate
+      --  membership test with a singleton value, i.e. a test for equality.
 
       else
-         Find_Type (R);
-
-         if Is_Entity_Name (R) then
+         Analyze (R);
+         if Is_Entity_Name (R)
+           and then Is_Type (Entity (R))
+         then
+            Find_Type (R);
             Check_Fully_Declared (Entity (R), R);
+
+         elsif Ada_Version >= Ada_2012 then
+            if Nkind (N) = N_In then
+               Rewrite (N,
+                 Make_Op_Eq (Loc,
+                   Left_Opnd  => L,
+                   Right_Opnd => R));
+            else
+               Rewrite (N,
+                 Make_Op_Ne (Loc,
+                   Left_Opnd  => L,
+                   Right_Opnd => R));
+            end if;
+
+            Analyze (N);
+            return;
+
+         else
+            --  In previous version of the language this is an error that will
+            --  be diagnosed below.
+
+            Find_Type (R);
          end if;
       end if;
 
@@ -2876,6 +2898,11 @@ package body Sem_Ch4 is
                      if All_Errors_Mode then
                         Error_Msg_Sloc := Sloc (Nam);
 
+                        if Etype (Formal) = Any_Type then
+                           Error_Msg_N
+                             ("there is no legal actual parameter", Actual);
+                        end if;
+
                         if Is_Overloadable (Nam)
                           and then Present (Alias (Nam))
                           and then not Comes_From_Source (Nam)
@@ -3175,6 +3202,54 @@ package body Sem_Ch4 is
 
       Set_Etype  (N, T);
    end Analyze_Qualified_Expression;
+
+   -----------------------------------
+   -- Analyze_Quantified_Expression --
+   -----------------------------------
+
+   procedure Analyze_Quantified_Expression (N : Node_Id) is
+      Loc : constant Source_Ptr := Sloc (N);
+      Ent : constant Entity_Id :=
+              New_Internal_Entity
+                (E_Loop, Current_Scope, Sloc (N), 'L');
+
+      Iterator : Node_Id;
+
+   begin
+      Set_Etype  (Ent,  Standard_Void_Type);
+      Set_Parent (Ent, N);
+
+      if Present (Loop_Parameter_Specification (N)) then
+         Iterator :=
+           Make_Iteration_Scheme (Loc,
+              Loop_Parameter_Specification =>
+                Loop_Parameter_Specification (N));
+      else
+         Iterator :=
+           Make_Iteration_Scheme (Loc,
+              Iterator_Specification =>
+                Iterator_Specification (N));
+      end if;
+
+      Push_Scope (Ent);
+      Set_Parent (Iterator, N);
+      Analyze_Iteration_Scheme (Iterator);
+
+      --  The loop specification may have been converted into an
+      --  iterator specification during its analysis. Update the
+      --  quantified node accordingly.
+
+      if Present (Iterator_Specification (Iterator)) then
+         Set_Iterator_Specification
+           (N, Iterator_Specification (Iterator));
+         Set_Loop_Parameter_Specification (N, Empty);
+      end if;
+
+      Analyze (Condition (N));
+      End_Scope;
+
+      Set_Etype (N, Standard_Boolean);
+   end Analyze_Quantified_Expression;
 
    -------------------
    -- Analyze_Range --
@@ -5596,7 +5671,6 @@ package body Sem_Ch4 is
                          or else Is_Array_Type (Etype (L))
                          or else Is_Array_Type (Etype (R)))
             then
-
                if Nkind (N) = N_Op_Concat then
                   if Etype (L) /= Any_Composite
                     and then Is_Array_Type (Etype (L))
@@ -6346,8 +6420,8 @@ package body Sem_Ch4 is
 
          if Present (Arr_Type) then
 
-            --  Verify that the actuals (excluding the object)
-            --  match the types of the indices.
+            --  Verify that the actuals (excluding the object) match the types
+            --  of the indexes.
 
             declare
                Actual : Node_Id;

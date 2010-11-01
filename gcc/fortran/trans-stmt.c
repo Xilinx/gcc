@@ -602,25 +602,25 @@ gfc_trans_stop (gfc_code *code, bool error_stop)
     {
       tmp = build_int_cst (gfc_int4_type_node, 0);
       tmp = build_call_expr_loc (input_location,
-			     	 error_stop ? gfor_fndecl_error_stop_string
+				 error_stop ? gfor_fndecl_error_stop_string
 				 : gfor_fndecl_stop_string,
-			     	 2, build_int_cst (pchar_type_node, 0), tmp);
+				 2, build_int_cst (pchar_type_node, 0), tmp);
     }
   else if (code->expr1->ts.type == BT_INTEGER)
     {
       gfc_conv_expr (&se, code->expr1);
       tmp = build_call_expr_loc (input_location,
-      				 error_stop ? gfor_fndecl_error_stop_numeric
-			   	 : gfor_fndecl_stop_numeric, 1,
+				 error_stop ? gfor_fndecl_error_stop_numeric
+				 : gfor_fndecl_stop_numeric_f08, 1, 
 				 fold_convert (gfc_int4_type_node, se.expr));
     }
   else
     {
       gfc_conv_expr_reference (&se, code->expr1);
       tmp = build_call_expr_loc (input_location,
-			     	 error_stop ? gfor_fndecl_error_stop_string
+				 error_stop ? gfor_fndecl_error_stop_string
 				 : gfor_fndecl_stop_string,
-			     	 2, se.expr, se.string_length);
+				 2, se.expr, se.string_length);
     }
 
   gfc_add_expr_to_block (&se.pre, tmp);
@@ -4487,8 +4487,12 @@ gfc_trans_allocate (gfc_code * code)
 	  /* Initialization via SOURCE block
 	     (or static default initializer).  */
 	  gfc_expr *rhs = gfc_copy_expr (code->expr3);
-	  if (al->expr->ts.type == BT_CLASS)
+	  if (al->expr->ts.type == BT_CLASS && rhs->expr_type == EXPR_VARIABLE
+	      && rhs->ts.type != BT_CLASS)
+	    tmp = gfc_trans_assignment (expr, rhs, false, false);
+	  else if (al->expr->ts.type == BT_CLASS)
 	    {
+	      /* TODO: One needs to do a deep-copy for BT_CLASS; cf. PR 46174.  */
 	      gfc_se dst,src;
 	      if (rhs->ts.type == BT_CLASS)
 		gfc_add_component_ref (rhs, "$data");

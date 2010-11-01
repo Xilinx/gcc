@@ -84,7 +84,7 @@ package body Exp_Attr is
       Check : Boolean);
    --  The body for a stream subprogram may be generated outside of the scope
    --  of the type. If the type is fully private, it may depend on the full
-   --  view of other types (e.g. indices) that are currently private as well.
+   --  view of other types (e.g. indexes) that are currently private as well.
    --  We install the declarations of the package in which the type is declared
    --  before compiling the body in what is its proper environment. The Check
    --  parameter indicates if checks are to be suppressed for the stream body.
@@ -1644,17 +1644,30 @@ package body Exp_Attr is
                --  internally for passing to the Extra_Constrained parameter.
 
                else
-                  Res := Is_Constrained (Underlying_Type (Etype (Ent)));
+                  --  In Ada 2012, test for case of a limited tagged type, in
+                  --  which case the attribute is always required to return
+                  --  True. The underlying type is tested, to make sure we also
+                  --  return True for cases where there is an unconstrained
+                  --  object with an untagged limited partial view which has
+                  --  defaulted discriminants (such objects always produce a
+                  --  False in earlier versions of Ada). (Ada 2012: AI05-0214)
+
+                  Res := Is_Constrained (Underlying_Type (Etype (Ent)))
+                           or else
+                             (Ada_Version >= Ada_2012
+                               and then Is_Tagged_Type (Underlying_Type (Ptyp))
+                               and then Is_Limited_Type (Ptyp));
                end if;
 
-               Rewrite (N,
-                 New_Reference_To (Boolean_Literals (Res), Loc));
+               Rewrite (N, New_Reference_To (Boolean_Literals (Res), Loc));
             end;
 
          --  Prefix is not an entity name. These are also cases where we can
          --  always tell at compile time by looking at the form and type of the
          --  prefix. If an explicit dereference of an object with constrained
-         --  partial view, this is unconstrained (Ada 2005 AI-363).
+         --  partial view, this is unconstrained (Ada 2005: AI95-0363). If the
+         --  underlying type is a limited tagged type, then Constrained is
+         --  required to always return True (Ada 2012: AI05-0214).
 
          else
             Rewrite (N,
@@ -1663,9 +1676,12 @@ package body Exp_Attr is
                   not Is_Variable (Pref)
                     or else
                      (Nkind (Pref) = N_Explicit_Dereference
-                        and then
-                          not Has_Constrained_Partial_View (Base_Type (Ptyp)))
-                    or else Is_Constrained (Underlying_Type (Ptyp))),
+                       and then
+                         not Has_Constrained_Partial_View (Base_Type (Ptyp)))
+                    or else Is_Constrained (Underlying_Type (Ptyp))
+                    or else (Ada_Version >= Ada_2012
+                              and then Is_Tagged_Type (Underlying_Type (Ptyp))
+                              and then Is_Limited_Type (Ptyp))),
                 Loc));
          end if;
 
@@ -1866,16 +1882,13 @@ package body Exp_Attr is
               Make_Pragma (Loc,
                 Chars => Name_Import,
                 Pragma_Argument_Associations => New_List (
-                  Make_Pragma_Argument_Association (Loc,
-                    Expression => Lang),
+                  Make_Pragma_Argument_Association (Loc, Expression => Lang),
 
                   Make_Pragma_Argument_Association (Loc,
-                    Expression =>
-                      Make_Identifier (Loc, Chars (Ent))),
+                    Expression => Make_Identifier (Loc, Chars (Ent))),
 
                   Make_Pragma_Argument_Association (Loc,
-                    Expression =>
-                      Make_String_Literal (Loc, Str))))));
+                    Expression => Make_String_Literal (Loc, Str))))));
 
             Set_Entity (N, Ent);
             Rewrite (N, New_Occurrence_Of (Ent, Loc));
@@ -3517,16 +3530,16 @@ package body Exp_Attr is
 
                   Object_Parm :=
                     Make_Attribute_Reference (Loc,
-                       Prefix =>
-                         Make_Selected_Component (Loc,
-                           Prefix =>
-                             Unchecked_Convert_To (New_Itype,
-                               New_Reference_To
-                                 (First_Entity
-                                   (Protected_Body_Subprogram (Subprg)),
-                                  Loc)),
-                           Selector_Name =>
-                             Make_Identifier (Loc, Name_uObject)),
+                      Prefix =>
+                        Make_Selected_Component (Loc,
+                          Prefix =>
+                            Unchecked_Convert_To (New_Itype,
+                              New_Reference_To
+                                (First_Entity
+                                  (Protected_Body_Subprogram (Subprg)),
+                                 Loc)),
+                          Selector_Name =>
+                            Make_Identifier (Loc, Name_uObject)),
                        Attribute_Name => Name_Unchecked_Access);
                end;
 
@@ -3541,8 +3554,7 @@ package body Exp_Attr is
                                     (First_Entity
                                       (Protected_Body_Subprogram (Subprg)),
                                        Loc),
-                        Selector_Name =>
-                          Make_Identifier (Loc, Name_uObject)),
+                        Selector_Name => Make_Identifier (Loc, Name_uObject)),
                     Attribute_Name => Name_Unchecked_Access);
             end if;
 
@@ -4711,9 +4723,7 @@ package body Exp_Attr is
 
          function Make_Range_Test return Node_Id;
          --  Build the code for a range test of the form
-         --    Btyp!(Pref) >= Btyp!(Ptyp'First)
-         --      and then
-         --    Btyp!(Pref) <= Btyp!(Ptyp'Last)
+         --    Btyp!(Pref) in Btyp!(Ptyp'First) .. Btyp!(Ptyp'Last)
 
          ---------------------
          -- Make_Range_Test --
@@ -4732,24 +4742,17 @@ package body Exp_Attr is
             end if;
 
             return
-              Make_And_Then (Loc,
-                Left_Opnd =>
-                  Make_Op_Ge (Loc,
-                    Left_Opnd =>
-                      Unchecked_Convert_To (Btyp, Temp),
-
-                    Right_Opnd =>
+              Make_In (Loc,
+                Left_Opnd  =>
+                  Unchecked_Convert_To (Btyp, Temp),
+                Right_Opnd =>
+                  Make_Range (Loc,
+                    Low_Bound =>
                       Unchecked_Convert_To (Btyp,
                         Make_Attribute_Reference (Loc,
                           Prefix => New_Occurrence_Of (Ptyp, Loc),
-                          Attribute_Name => Name_First))),
-
-                Right_Opnd =>
-                  Make_Op_Le (Loc,
-                    Left_Opnd =>
-                      Unchecked_Convert_To (Btyp, Temp),
-
-                    Right_Opnd =>
+                          Attribute_Name => Name_First)),
+                    High_Bound =>
                       Unchecked_Convert_To (Btyp,
                         Make_Attribute_Reference (Loc,
                           Prefix => New_Occurrence_Of (Ptyp, Loc),
@@ -4780,53 +4783,54 @@ package body Exp_Attr is
                Ftp : Entity_Id;
 
             begin
-               --  For vax fpt types, call appropriate routine in special vax
-               --  floating point unit. We do not have to worry about loads in
-               --  this case, since these types have no signalling NaN's.
 
-               if Vax_Float (Btyp) then
-                  Expand_Vax_Valid (N);
+               case Float_Rep (Btyp) is
 
-               --  The AAMP back end handles Valid for floating-point types
+                  --  For vax fpt types, call appropriate routine in special
+                  --  vax floating point unit. No need to worry about loads in
+                  --  this case, since these types have no signalling NaN's.
 
-               elsif Is_AAMP_Float (Btyp) then
-                  Analyze_And_Resolve (Pref, Ptyp);
-                  Set_Etype (N, Standard_Boolean);
-                  Set_Analyzed (N);
+                  when VAX_Native => Expand_Vax_Valid (N);
 
-               --  Non VAX float case
+                  --  The AAMP back end handles Valid for floating-point types
 
-               else
-                  Find_Fat_Info (Ptyp, Ftp, Pkg);
+                  when AAMP =>
+                     Analyze_And_Resolve (Pref, Ptyp);
+                     Set_Etype (N, Standard_Boolean);
+                     Set_Analyzed (N);
 
-                  --  If the floating-point object might be unaligned, we need
-                  --  to call the special routine Unaligned_Valid, which makes
-                  --  the needed copy, being careful not to load the value into
-                  --  any floating-point register. The argument in this case is
-                  --  obj'Address (see Unaligned_Valid routine in Fat_Gen).
+                  when IEEE_Binary =>
+                     Find_Fat_Info (Ptyp, Ftp, Pkg);
 
-                  if Is_Possibly_Unaligned_Object (Pref) then
-                     Expand_Fpt_Attribute
-                       (N, Pkg, Name_Unaligned_Valid,
-                        New_List (
-                          Make_Attribute_Reference (Loc,
-                            Prefix => Relocate_Node (Pref),
-                            Attribute_Name => Name_Address)));
+                     --  If the floating-point object might be unaligned, we
+                     --  need to call the special routine Unaligned_Valid,
+                     --  which makes the needed copy, being careful not to
+                     --  load the value into any floating-point register.
+                     --  The argument in this case is obj'Address (see
+                     --  Unaligned_Valid routine in Fat_Gen).
 
-                  --  In the normal case where we are sure the object is
-                  --  aligned, we generate a call to Valid, and the argument in
-                  --  this case is obj'Unrestricted_Access (after converting
-                  --  obj to the right floating-point type).
+                     if Is_Possibly_Unaligned_Object (Pref) then
+                        Expand_Fpt_Attribute
+                          (N, Pkg, Name_Unaligned_Valid,
+                           New_List (
+                             Make_Attribute_Reference (Loc,
+                               Prefix => Relocate_Node (Pref),
+                               Attribute_Name => Name_Address)));
 
-                  else
-                     Expand_Fpt_Attribute
-                       (N, Pkg, Name_Valid,
-                        New_List (
-                          Make_Attribute_Reference (Loc,
-                            Prefix => Unchecked_Convert_To (Ftp, Pref),
-                            Attribute_Name => Name_Unrestricted_Access)));
-                  end if;
-               end if;
+                     --  In the normal case where we are sure the object is
+                     --  aligned, we generate a call to Valid, and the argument
+                     --  in this case is obj'Unrestricted_Access (after
+                     --  converting obj to the right floating-point type).
+
+                     else
+                        Expand_Fpt_Attribute
+                          (N, Pkg, Name_Valid,
+                           New_List (
+                             Make_Attribute_Reference (Loc,
+                               Prefix => Unchecked_Convert_To (Ftp, Pref),
+                               Attribute_Name => Name_Unrestricted_Access)));
+                     end if;
+               end case;
 
                --  One more task, we still need a range check. Required
                --  only if we have a constraint, since the Valid routine
@@ -5310,8 +5314,8 @@ package body Exp_Attr is
       --  that the result is in range.
 
       when Attribute_Aft                          |
-           Attribute_Max_Size_In_Storage_Elements
-      =>
+           Attribute_Max_Alignment_For_Allocation |
+           Attribute_Max_Size_In_Storage_Elements =>
          Apply_Universal_Integer_Attribute_Checks (N);
 
       --  The following attributes should not appear at this stage, since they
@@ -5399,9 +5403,13 @@ package body Exp_Attr is
 
    --  These checks are not generated for modular types, since the proper
    --  semantics for Succ and Pred on modular types is to wrap, not raise CE.
+   --  We also suppress these checks if we are the right side of an assignment
+   --  statement or the expression of an object declaration, where the flag
+   --  Suppress_Assignment_Checks is set for the assignment/declaration.
 
    procedure Expand_Pred_Succ (N : Node_Id) is
       Loc  : constant Source_Ptr := Sloc (N);
+      P    : constant Node_Id    := Parent (N);
       Cnam : Name_Id;
 
    begin
@@ -5411,18 +5419,22 @@ package body Exp_Attr is
          Cnam := Name_Last;
       end if;
 
-      Insert_Action (N,
-        Make_Raise_Constraint_Error (Loc,
-          Condition =>
-            Make_Op_Eq (Loc,
-              Left_Opnd =>
-                Duplicate_Subexpr_Move_Checks (First (Expressions (N))),
-              Right_Opnd =>
-                Make_Attribute_Reference (Loc,
-                  Prefix =>
-                    New_Reference_To (Base_Type (Etype (Prefix (N))), Loc),
-                  Attribute_Name => Cnam)),
-          Reason => CE_Overflow_Check_Failed));
+      if not Nkind_In (P, N_Assignment_Statement, N_Object_Declaration)
+        or else not Suppress_Assignment_Checks (P)
+      then
+         Insert_Action (N,
+           Make_Raise_Constraint_Error (Loc,
+             Condition =>
+               Make_Op_Eq (Loc,
+                 Left_Opnd =>
+                   Duplicate_Subexpr_Move_Checks (First (Expressions (N))),
+                 Right_Opnd =>
+                   Make_Attribute_Reference (Loc,
+                     Prefix =>
+                       New_Reference_To (Base_Type (Etype (Prefix (N))), Loc),
+                     Attribute_Name => Cnam)),
+             Reason => CE_Overflow_Check_Failed));
+      end if;
    end Expand_Pred_Succ;
 
    -------------------
@@ -5477,7 +5489,7 @@ package body Exp_Attr is
                raise Program_Error;
          end case;
 
-      --  If neither the base type nor the root type is VAX_Float then VAX
+      --  If neither the base type nor the root type is VAX_Native then VAX
       --  float is out of the picture, and we can just use the root type.
 
       else

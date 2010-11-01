@@ -1,3 +1,65 @@
+2010-10-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45451
+	* trans-stmt.c (gfc_trans_allocate): Do a deep-copy for SOURCE=.
+
+	PR fortran/43018
+	* trans-array.c (duplicate_allocatable): Use size of type and not
+	the size of the pointer to the type.
+
+2010-10-25  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/46140
+	* fortran/scanner.c (include_line): Check return value of load_file.
+
+2010-10-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46122
+	* expr.c (gfc_check_vardef_context): Fix PROTECTED check.
+
+2010-10-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46060
+	* match.h (gfc_matching_ptr_assignment): New global variable to indicate
+	we're currently matching a (non-proc-)pointer assignment.
+	* decl.c (match_pointer_init): Set it.
+	* match.c (gfc_match_pointer_assignment): Ditto.
+	* primary.c (matching_actual_arglist): New global variable to indicate
+	we're currently matching an actual argument list.
+	(gfc_match_actual_arglist): Set it.
+	(gfc_match_varspec): Reject procedure pointer component calls with
+	missing argument list.
+
+2010-10-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46067
+	* interface.c (gfc_compare_interfaces): Switch arguments of type
+	comparison (important for polymorphic variables).
+
+2010-10-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46100
+	* expr.c (gfc_check_vardef_context): Treat pointer functions
+	as variables.
+
+2010-10-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/46079
+	* trans_stmt.c (gfc_trans_stop): Fix whitespace.  Build a call to new
+	F08 numeric stop function.
+	* trans.h: Add declaration for gfor_fndecl_stop_numeric_f08.
+	* trans-decl.c (gfc_build_builtin_function_decls): Build declaration
+	for stop_numeric_f08.
+
+2010-10-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* gfortran.h: Remove definition of bt enumerator.
+	* libgfortran.h: Add bt enumerator type alighned with defintion.
+	Remove the dtype enumerator, no longer used.
+	previously given in libgfortran/io.h
+	* trans-types.c: Use new bt enumerator.
+	* trans-io.c: Likewise.
+
 2010-10-16  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	* trans-io.c (gfc_build_io_library_fndecls):
@@ -19,6 +81,7 @@
 	the iocall with the original version, otherwise the version
 	with _WRITE.
 	(transfer_array_desc):  Likewise.
+
 2010-10-15  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/45186

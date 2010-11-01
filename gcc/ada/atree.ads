@@ -193,8 +193,8 @@ package Atree is
    --   Uint6         Synonym for Field6 typed as Uint (Empty = Uint_0)
 
    --   Similar definitions for Field7 to Field28 (and Node7-Node28,
-   --   Elist7-Elist28, Uint7-Uint28, Ureal7-Ureal28). Note that not all
-   --   these functions are defined, only the ones that are actually used.
+   --   Elist7-Elist28, Uint7-Uint28, Ureal7-Ureal28). Note that not all these
+   --   functions are defined, only the ones that are actually used.
 
    function Last_Node_Id return Node_Id;
    pragma Inline (Last_Node_Id);
@@ -277,7 +277,7 @@ package Atree is
 
    --  Field1-5 fields are set to Empty
 
-   --  Field6-22 fields in extended nodes are set to Empty
+   --  Field6-29 fields in extended nodes are set to Empty
 
    --  Parent is set to Empty
 
@@ -537,9 +537,8 @@ package Atree is
 
    function Parent            (N : Node_Id) return Node_Id;
    pragma Inline (Parent);
-   --  Returns the parent of a node if the node is not a list member, or
-   --  else the parent of the list containing the node if the node is a
-   --  list member.
+   --  Returns the parent of a node if the node is not a list member, or else
+   --  the parent of the list containing the node if the node is a list member.
 
    function No                (N : Node_Id) return Boolean;
    pragma Inline (No);
@@ -1097,6 +1096,9 @@ package Atree is
       function List14 (N : Node_Id) return List_Id;
       pragma Inline (List14);
 
+      function List25 (N : Node_Id) return List_Id;
+      pragma Inline (List25);
+
       function Elist1 (N : Node_Id) return Elist_Id;
       pragma Inline (Elist1);
 
@@ -1111,6 +1113,9 @@ package Atree is
 
       function Elist8 (N : Node_Id) return Elist_Id;
       pragma Inline (Elist8);
+
+      function Elist10 (N : Node_Id) return Elist_Id;
+      pragma Inline (Elist10);
 
       function Elist13 (N : Node_Id) return Elist_Id;
       pragma Inline (Elist13);
@@ -2157,6 +2162,9 @@ package Atree is
       procedure Set_List14 (N : Node_Id; Val : List_Id);
       pragma Inline (Set_List14);
 
+      procedure Set_List25 (N : Node_Id; Val : List_Id);
+      pragma Inline (Set_List25);
+
       procedure Set_Elist1 (N : Node_Id; Val : Elist_Id);
       pragma Inline (Set_Elist1);
 
@@ -2171,6 +2179,9 @@ package Atree is
 
       procedure Set_Elist8 (N : Node_Id; Val : Elist_Id);
       pragma Inline (Set_Elist8);
+
+      procedure Set_Elist10 (N : Node_Id; Val : Elist_Id);
+      pragma Inline (Set_Elist10);
 
       procedure Set_Elist13 (N : Node_Id; Val : Elist_Id);
       pragma Inline (Set_Elist13);

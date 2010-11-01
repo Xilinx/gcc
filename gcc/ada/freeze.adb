@@ -2062,9 +2062,7 @@ package body Freeze is
 
          --  Set OK_To_Reorder_Components depending on debug flags
 
-         if Rec = Base_Type (Rec)
-           and then Convention (Rec) = Convention_Ada
-         then
+         if Is_Base_Type (Rec) and then Convention (Rec) = Convention_Ada then
             if (Has_Discriminants (Rec) and then Debug_Flag_Dot_V)
                   or else
                (not Has_Discriminants (Rec) and then Debug_Flag_Dot_R)
@@ -3096,18 +3094,31 @@ package body Freeze is
             end if;
 
             --  If ancestor subtype present, freeze that first. Note that this
-            --  will also get the base type frozen.
+            --  will also get the base type frozen. Need RM reference ???
 
             Atype := Ancestor_Subtype (E);
 
             if Present (Atype) then
                Freeze_And_Append (Atype, N, Result);
 
-            --  Otherwise freeze the base type of the entity before freezing
-            --  the entity itself (RM 13.14(15)).
+            --  No ancestor subtype present
 
-            elsif E /= Base_Type (E) then
-               Freeze_And_Append (Base_Type (E), N, Result);
+            else
+               --  See if we have a nearest ancestor that has a predicate.
+               --  That catches the case of derived type with a predicate.
+               --  Need RM reference here ???
+
+               Atype := Nearest_Ancestor (E);
+
+               if Present (Atype) and then Has_Predicates (Atype) then
+                  Freeze_And_Append (Atype, N, Result);
+               end if;
+
+               --  Freeze base type before freezing the entity (RM 13.14(15))
+
+               if E /= Base_Type (E) then
+                  Freeze_And_Append (Base_Type (E), N, Result);
+               end if;
             end if;
 
          --  For a derived type, freeze its parent type first (RM 13.14(15))
@@ -3464,9 +3475,9 @@ package body Freeze is
                   end;
                end if;
 
-               --  If any of the index types was an enumeration type with
-               --  a non-standard rep clause, then we indicate that the
-               --  array type is always packed (even if it is not bit packed).
+               --  If any of the index types was an enumeration type with a
+               --  non-standard rep clause, then we indicate that the array
+               --  type is always packed (even if it is not bit packed).
 
                if Non_Standard_Enum then
                   Set_Has_Non_Standard_Rep (Base_Type (E));
@@ -3805,9 +3816,7 @@ package body Freeze is
             --  these till the freeze-point since we need the small and range
             --  values. We only do these checks for base types
 
-            if Is_Ordinary_Fixed_Point_Type (E)
-              and then E = Base_Type (E)
-            then
+            if Is_Ordinary_Fixed_Point_Type (E) and then Is_Base_Type (E) then
                if Small_Value (E) < Ureal_2_M_80 then
                   Error_Msg_Name_1 := Name_Small;
                   Error_Msg_N
@@ -3845,6 +3854,28 @@ package body Freeze is
             end if;
 
          elsif Is_Access_Type (E) then
+
+            --  If a pragma Default_Storage_Pool applies, and this type has no
+            --  Storage_Pool or Storage_Size clause (which must have occurred
+            --  before the freezing point), then use the default. This applies
+            --  only to base types.
+
+            if Present (Default_Pool)
+              and then Is_Base_Type (E)
+              and then not Has_Storage_Size_Clause (E)
+              and then No (Associated_Storage_Pool (E))
+            then
+               --  Case of pragma Default_Storage_Pool (null)
+
+               if Nkind (Default_Pool) = N_Null then
+                  Set_No_Pool_Assigned (E);
+
+               --  Case of pragma Default_Storage_Pool (storage_pool_NAME)
+
+               else
+                  Set_Associated_Storage_Pool (E, Entity (Default_Pool));
+               end if;
+            end if;
 
             --  Check restriction for standard storage pool
 
@@ -4570,8 +4601,12 @@ package body Freeze is
             --  The current scope may be that of a constrained component of
             --  an enclosing record declaration, which is above the current
             --  scope in the scope stack.
+            --  If the expression is within a top-level pragma, as for a pre-
+            --  condition on a library-level subprogram, nothing to do.
 
-            if Is_Record_Type (Scope (Current_Scope)) then
+            if not Is_Compilation_Unit (Current_Scope)
+              and then Is_Record_Type (Scope (Current_Scope))
+            then
                Pos := Pos - 1;
             end if;
 

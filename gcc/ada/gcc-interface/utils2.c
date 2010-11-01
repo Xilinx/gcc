@@ -28,6 +28,7 @@
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
+#include "flags.h"
 #include "ggc.h"
 #include "output.h"
 #include "tree-inline.h"
@@ -47,11 +48,6 @@
 #include "ada-tree.h"
 #include "gigi.h"
 
-static tree find_common_type (tree, tree);
-static tree compare_arrays (tree, tree, tree);
-static tree nonbinary_modular_operation (enum tree_code, tree, tree, tree);
-static tree build_simple_component_ref (tree, tree, tree, bool);
-
 /* Return the base type of TYPE.  */
 
 tree
@@ -1024,6 +1020,11 @@ build_unary_op (enum tree_code op_code, tree result_type, tree operand)
       gcc_assert (TREE_CODE (get_base_type (result_type)) == BOOLEAN_TYPE);
 #endif
       result = invert_truthvalue_loc (EXPR_LOCATION (operand), operand);
+      /* When not optimizing, fold the result as invert_truthvalue_loc
+	 doesn't fold the result of comparisons.  This is intended to undo
+	 the trick used for boolean rvalues in gnat_to_gnu.  */
+      if (!optimize)
+	result = fold (result);
       break;
 
     case ATTR_ADDR_EXPR:
@@ -1371,6 +1372,33 @@ build_cond_expr (tree result_type, tree condition_operand,
   return result;
 }
 
+/* Similar, but for COMPOUND_EXPR.  */
+
+tree
+build_compound_expr (tree result_type, tree stmt_operand, tree expr_operand)
+{
+  bool addr_p = false;
+  tree result;
+
+  /* If the result type is unconstrained, take the address of the operand and
+     then dereference the result.  Likewise if the result type is passed by
+     reference, but this is natively handled in the gimplifier.  */
+  if (TREE_CODE (result_type) == UNCONSTRAINED_ARRAY_TYPE
+      || CONTAINS_PLACEHOLDER_P (TYPE_SIZE (result_type)))
+    {
+      result_type = build_pointer_type (result_type);
+      expr_operand = build_unary_op (ADDR_EXPR, result_type, expr_operand);
+      addr_p = true;
+    }
+
+  result = fold_build2 (COMPOUND_EXPR, result_type, stmt_operand,
+			expr_operand);
+
+  if (addr_p)
+    result = build_unary_op (INDIRECT_REF, NULL_TREE, result);
+
+  return result;
+}
 /* Similar, but for RETURN_EXPR.  If RET_VAL is non-null, build a RETURN_EXPR
    around the assignment of RET_VAL to RET_OBJ.  Otherwise just build a bare
    RETURN_EXPR around RESULT_OBJ, which may be null in this case.  */
@@ -1518,6 +1546,113 @@ build_call_raise (int msg, Node_Id gnat_node, char kind)
 			       build_pointer_type (unsigned_char_type_node),
 			       filename),
 		       build_int_cst (NULL_TREE, line_number));
+}
+
+/* Similar to build_call_raise, for an index or range check exception as
+   determined by MSG, with extra information generated of the form
+   "INDEX out of range FIRST..LAST".  */
+
+tree
+build_call_raise_range (int msg, Node_Id gnat_node,
+			tree index, tree first, tree last)
+{
+  tree call;
+  tree fndecl = gnat_raise_decls_ext[msg];
+  tree filename;
+  int line_number, column_number;
+  const char *str;
+  int len;
+
+  str
+    = (Debug_Flag_NN || Exception_Locations_Suppressed)
+      ? ""
+      : (gnat_node != Empty && Sloc (gnat_node) != No_Location)
+        ? IDENTIFIER_POINTER
+          (get_identifier (Get_Name_String
+			   (Debug_Source_Name
+			    (Get_Source_File_Index (Sloc (gnat_node))))))
+        : ref_filename;
+
+  len = strlen (str);
+  filename = build_string (len, str);
+  if (gnat_node != Empty && Sloc (gnat_node) != No_Location)
+    {
+      line_number = Get_Logical_Line_Number (Sloc (gnat_node));
+      column_number = Get_Column_Number (Sloc (gnat_node));
+    }
+  else
+    {
+      line_number = input_line;
+      column_number = 0;
+    }
+
+  TREE_TYPE (filename) = build_array_type (unsigned_char_type_node,
+					   build_index_type (size_int (len)));
+
+  call = build_call_nary (TREE_TYPE (TREE_TYPE (fndecl)),
+                          build_unary_op (ADDR_EXPR, NULL_TREE, fndecl),
+                          6,
+			  build1 (ADDR_EXPR,
+				  build_pointer_type (unsigned_char_type_node),
+				  filename),
+			  build_int_cst (NULL_TREE, line_number),
+			  build_int_cst (NULL_TREE, column_number),
+			  convert (integer_type_node, index),
+			  convert (integer_type_node, first),
+			  convert (integer_type_node, last));
+  TREE_SIDE_EFFECTS (call) = 1;
+  return call;
+}
+
+/* Similar to build_call_raise, with extra information about the column
+   where the check failed.  */
+
+tree
+build_call_raise_column (int msg, Node_Id gnat_node)
+{
+  tree fndecl = gnat_raise_decls_ext[msg];
+  tree call;
+  tree filename;
+  int line_number, column_number;
+  const char *str;
+  int len;
+
+  str
+    = (Debug_Flag_NN || Exception_Locations_Suppressed)
+      ? ""
+      : (gnat_node != Empty && Sloc (gnat_node) != No_Location)
+        ? IDENTIFIER_POINTER
+          (get_identifier (Get_Name_String
+			   (Debug_Source_Name
+			    (Get_Source_File_Index (Sloc (gnat_node))))))
+        : ref_filename;
+
+  len = strlen (str);
+  filename = build_string (len, str);
+  if (gnat_node != Empty && Sloc (gnat_node) != No_Location)
+    {
+      line_number = Get_Logical_Line_Number (Sloc (gnat_node));
+      column_number = Get_Column_Number (Sloc (gnat_node));
+    }
+  else
+    {
+      line_number = input_line;
+      column_number = 0;
+    }
+
+  TREE_TYPE (filename) = build_array_type (unsigned_char_type_node,
+					   build_index_type (size_int (len)));
+
+  call = build_call_nary (TREE_TYPE (TREE_TYPE (fndecl)),
+                          build_unary_op (ADDR_EXPR, NULL_TREE, fndecl),
+                          3,
+			  build1 (ADDR_EXPR,
+				  build_pointer_type (unsigned_char_type_node),
+				  filename),
+			  build_int_cst (NULL_TREE, line_number),
+			  build_int_cst (NULL_TREE, column_number));
+  TREE_SIDE_EFFECTS (call) = 1;
+  return call;
 }
 
 /* qsort comparer for the bit positions of two constructor elements

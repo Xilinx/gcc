@@ -79,6 +79,9 @@ tree gnat_std_decls[(int) ADT_LAST];
 /* Functions to call for each of the possible raise reasons.  */
 tree gnat_raise_decls[(int) LAST_REASON_CODE + 1];
 
+/* Likewise, but with extra info for each of the possible raise reasons.  */
+tree gnat_raise_decls_ext[(int) LAST_REASON_CODE + 1];
+
 /* Forward declarations for handlers of attributes.  */
 static tree handle_const_attribute (tree *, tree, tree, int, bool *);
 static tree handle_nothrow_attribute (tree *, tree, tree, int, bool *);
@@ -1783,7 +1786,6 @@ create_subprog_decl (tree subprog_name, tree asm_name,
 
   DECL_EXTERNAL (subprog_decl)  = extern_flag;
   TREE_PUBLIC (subprog_decl)    = public_flag;
-  TREE_STATIC (subprog_decl)	= 1;
   TREE_READONLY (subprog_decl)  = TYPE_READONLY (subprog_type);
   TREE_THIS_VOLATILE (subprog_decl) = TYPE_VOLATILE (subprog_type);
   TREE_SIDE_EFFECTS (subprog_decl) = TYPE_VOLATILE (subprog_type);
@@ -1830,6 +1832,9 @@ begin_subprog_body (tree subprog_decl)
   tree param_decl;
 
   announce_function (subprog_decl);
+
+  /* This function is being defined.  */
+  TREE_STATIC (subprog_decl) = 1;
 
   current_function_decl = subprog_decl;
 
@@ -3422,6 +3427,7 @@ update_pointer_to (tree old_type, tree new_type)
       for (; ptr; ptr = TYPE_NEXT_PTR_TO (ptr))
 	for (t = TYPE_MAIN_VARIANT (ptr); t; t = TYPE_NEXT_VARIANT (t))
 	  TREE_TYPE (t) = new_type;
+      TYPE_POINTER_TO (old_type) = NULL_TREE;
 
       /* Chain REF and its variants at the end.  */
       new_ref = TYPE_REFERENCE_TO (new_type);
@@ -3438,6 +3444,7 @@ update_pointer_to (tree old_type, tree new_type)
       for (; ref; ref = TYPE_NEXT_REF_TO (ref))
 	for (t = TYPE_MAIN_VARIANT (ref); t; t = TYPE_NEXT_VARIANT (t))
 	  TREE_TYPE (t) = new_type;
+      TYPE_REFERENCE_TO (old_type) = NULL_TREE;
     }
 
   /* Now deal with the unconstrained array case.  In this case the pointer

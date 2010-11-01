@@ -1,3 +1,14 @@
+2010-10-23  James E. Wilson  <wilson@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-10-20  Ian Lance Taylor  <iant@google.com>
+
+	* Makefile.def (target_modules): Set lib_path to src/.libs for
+	libstdc++-v3 module.
+	* Makefile.tpl: Fix typo in TARGET_LIB_PATH comment.
+	* Makefile.in: Rebuild.
+
 2010-10-18  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* MAINTAINERS (Reviewers): Add myself for gengtype/GTY.

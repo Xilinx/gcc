@@ -1790,31 +1790,15 @@ ifeq ($(strip $(filter-out powerpc% linux%,$(arch) $(osys))),)
   s-intman.adb<s-intman-posix.adb \
   s-linux.ads<s-linux.ads \
   s-osinte.adb<s-osinte-posix.adb \
-  s-osinte.ads<s-osinte-linux.ads \
-  s-osprim.adb<s-osprim-posix.adb \
-  s-taprop.adb<s-taprop-linux.adb \
-  s-tasinf.ads<s-tasinf-linux.ads \
-  s-tasinf.adb<s-tasinf-linux.adb \
-  s-taspri.ads<s-taspri-posix-noaltstack.ads \
   s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
   g-sercom.adb<g-sercom-linux.adb \
+  g-trasym.adb<g-trasym-dwarf.adb \
   $(ATOMICS_TARGET_PAIRS)
 
-  LIBGNAT_TARGET_PAIRS_32 = \
-  system.ads<system-linux-ppc.ads
-
-  LIBGNAT_TARGET_PAIRS_64 = \
-  system.ads<system-linux-ppc64.ads
-
-  ifeq ($(strip $(shell $(GCC_FOR_TARGET) $(GNATLIBCFLAGS) -print-multi-os-directory)),../lib64)
-    LIBGNAT_TARGET_PAIRS = \
-    $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_64)
-  else
-    LIBGNAT_TARGET_PAIRS = \
-    $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_32)
-  endif
-
   ifeq ($(strip $(filter-out xenomai,$(THREAD_KIND))),)
+    LIBGNAT_TARGET_PAIRS = \
+      $(LIBGNAT_TARGET_PAIRS_COMMON)
+
     LIBGNAT_TARGET_PAIRS += \
     s-osinte.ads<s-osinte-linux-xenomai.ads \
     s-osprim.adb<s-osprim-linux-xenomai.adb \
@@ -1822,14 +1806,27 @@ ifeq ($(strip $(filter-out powerpc% linux%,$(arch) $(osys))),)
     s-taspri.ads<s-taspri-linux-xenomai.ads \
     system.ads<system-linux-ppc-xenomai.ads
   else
+    LIBGNAT_TARGET_PAIRS_32 = \
+    system.ads<system-linux-ppc.ads
+
+    LIBGNAT_TARGET_PAIRS_64 = \
+    system.ads<system-linux-ppc64.ads
+
+    ifeq ($(strip $(shell $(GCC_FOR_TARGET) $(GNATLIBCFLAGS) -print-multi-os-directory)),../lib64)
+      LIBGNAT_TARGET_PAIRS = \
+      $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_64)
+    else
+      LIBGNAT_TARGET_PAIRS = \
+      $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_32)
+    endif
+
     LIBGNAT_TARGET_PAIRS += \
     s-osinte.ads<s-osinte-linux.ads \
     s-osprim.adb<s-osprim-posix.adb \
     s-taprop.adb<s-taprop-linux.adb \
     s-tasinf.ads<s-tasinf-linux.ads \
     s-tasinf.adb<s-tasinf-linux.adb \
-    s-taspri.ads<s-taspri-posix-noaltstack.ads \
-    system.ads<system-linux-ppc.ads
+    s-taspri.ads<s-taspri-posix-noaltstack.ads
   endif
 
   TOOLS_TARGET_PAIRS =  \
@@ -2215,13 +2212,13 @@ endif
 LIBGNAT_SRCS = adadecode.c adadecode.h adaint.c adaint.h	\
   argv.c cio.c cstreams.c errno.c exit.c cal.c ctrl_c.c env.c env.h	\
   arit64.c raise.h raise.c sysdep.c aux-io.c init.c initialize.c	\
-  seh_init.c final.c tracebak.c tb-alvms.c tb-alvxw.c tb-gcc.c		\
-  expect.c mkdir.c socket.c gsocket.h targext.c $(EXTRA_LIBGNAT_SRCS)
+  locales.c seh_init.c final.c tracebak.c tb-alvms.c tb-alvxw.c         \
+  tb-gcc.c expect.c mkdir.c socket.c gsocket.h targext.c $(EXTRA_LIBGNAT_SRCS)
 
 LIBGNAT_OBJS = adadecode.o adaint.o argv.o cio.o cstreams.o ctrl_c.o	\
   errno.o exit.o env.o raise.o sysdep.o aux-io.o init.o initialize.o	\
-  seh_init.o cal.o arit64.o final.o tracebak.o expect.o mkdir.o		\
-  socket.o targext.o $(EXTRA_LIBGNAT_OBJS)
+  locales.o seh_init.o cal.o arit64.o final.o tracebak.o expect.o       \
+  mkdir.o socket.o targext.o $(EXTRA_LIBGNAT_OBJS)
 
 # NOTE ??? - when the -I option for compiling Ada code is made to work,
 #  the library installation will change and there will be a
@@ -2756,8 +2753,8 @@ errno.o   : errno.c
 exit.o    : adaint.h exit.c
 expect.o  : expect.c
 final.o   : final.c
-gmem.o    : gmem.c
 link.o    : link.c
+locales.o : locales.c
 mkdir.o   : mkdir.c
 socket.o  : socket.c gsocket.h
 sysdep.o  : sysdep.c
