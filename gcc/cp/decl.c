@@ -2897,10 +2897,7 @@ pop_switch (void)
   location_t switch_location;
 
   /* Emit warnings as needed.  */
-  if (EXPR_HAS_LOCATION (cs->switch_stmt))
-    switch_location = EXPR_LOCATION (cs->switch_stmt);
-  else
-    switch_location = input_location;
+  switch_location = EXPR_LOC_OR_HERE (cs->switch_stmt);
   if (!processing_template_decl)
     c_do_switch_warnings (cs->cases, switch_location,
 			  SWITCH_STMT_TYPE (cs->switch_stmt),
@@ -9739,8 +9736,11 @@ grokdeclarator (const cp_declarator *declarator,
 	    else
 	      {
                 if (constexpr_p)
-                  error ("non-static data member %qE declared %<constexpr%>",
-                         unqualified_id);
+		  {
+		    error ("non-static data member %qE declared %<constexpr%>",
+			   unqualified_id);
+		    constexpr_p = false;
+		  }
 		decl = build_decl (input_location,
 				   FIELD_DECL, unqualified_id, type);
 		DECL_NONADDRESSABLE_P (decl) = bitfield;
