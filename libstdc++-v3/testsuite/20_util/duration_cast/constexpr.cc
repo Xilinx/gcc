@@ -1,9 +1,7 @@
 // { dg-do compile }
 // { dg-options "-std=gnu++0x" }
-// { dg-require-cstdint "" }
-// 2008-07-31 Chris Fairles <chris.fairles@gmail.com>
 
-// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -20,18 +18,20 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-
 #include <chrono>
+#include <testsuite_common_types.h>
 
-void test01()
+int main()
 {
-  // Check if period is a ratio
-  typedef int rep_type;
-  typedef int period_type;
-  typedef std::chrono::duration<rep_type, period_type> test_type;
-  test_type d;
-}
+  using namespace std::chrono;
 
-// { dg-error "must be a specialization of ratio" "" { target *-*-* } 211 }
-// { dg-error "instantiated from here" "" { target *-*-* } 32 }
-// { dg-excess-errors "In instantiation of" }
+  // non-constexpr
+  minutes mn1(6000);
+  hours hr1 = duration_cast<hours>(mn1);
+
+  // constexpr
+  constexpr minutes mn2(6000);
+  constexpr hours hr2 = duration_cast<hours>(mn2);
+
+  return 0;
+}

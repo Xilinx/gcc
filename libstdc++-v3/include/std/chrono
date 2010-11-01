@@ -96,7 +96,8 @@ namespace std
       struct __duration_cast_impl
       {
 	template<typename _Rep, typename _Period>
-	  static _ToDuration __cast(const duration<_Rep, _Period>& __d)
+	  static constexpr _ToDuration 
+	  __cast(const duration<_Rep, _Period>& __d)
 	  {
 	    return _ToDuration(static_cast<
 	      typename _ToDuration::rep>(static_cast<_CR>(__d.count())
@@ -109,7 +110,8 @@ namespace std
       struct __duration_cast_impl<_ToDuration, _CF, _CR, true, true>
       {
 	template<typename _Rep, typename _Period>
-	  static _ToDuration __cast(const duration<_Rep, _Period>& __d)
+	  static constexpr _ToDuration 
+	  __cast(const duration<_Rep, _Period>& __d)
 	  {
 	    return _ToDuration(
 	      static_cast<typename _ToDuration::rep>(__d.count()));
@@ -120,7 +122,8 @@ namespace std
       struct __duration_cast_impl<_ToDuration, _CF, _CR, true, false>
       {
 	template<typename _Rep, typename _Period>
-	  static _ToDuration __cast(const duration<_Rep, _Period>& __d)
+	  static constexpr _ToDuration 
+	  __cast(const duration<_Rep, _Period>& __d)
 	  {
 	    return _ToDuration(static_cast<typename _ToDuration::rep>(
 	      static_cast<_CR>(__d.count()) / static_cast<_CR>(_CF::den)));
@@ -131,7 +134,8 @@ namespace std
       struct __duration_cast_impl<_ToDuration, _CF, _CR, false, true>
       {
 	template<typename _Rep, typename _Period>
-	  static _ToDuration __cast(const duration<_Rep, _Period>& __d)
+	  static constexpr _ToDuration 
+	  __cast(const duration<_Rep, _Period>& __d)
 	  {
 	    return _ToDuration(static_cast<typename _ToDuration::rep>(
 	      static_cast<_CR>(__d.count()) * static_cast<_CR>(_CF::num)));
@@ -150,7 +154,7 @@ namespace std
 
     /// duration_cast
     template<typename _ToDuration, typename _Rep, typename _Period>
-      inline typename enable_if<__is_duration<_ToDuration>::value,
+      inline constexpr typename enable_if<__is_duration<_ToDuration>::value,
 				_ToDuration>::type
       duration_cast(const duration<_Rep, _Period>& __d)
       {
@@ -216,13 +220,13 @@ namespace std
 			 && (treat_as_floating_point<rep>::value
 			     || !treat_as_floating_point<_Rep2>::value)>::type>
 	  constexpr explicit duration(const _Rep2& __rep)
-	  : __r(static_cast<rep>(__rep)) { }
+	    : __r(static_cast<rep>(__rep)) { }
 
 	template<typename _Rep2, typename _Period2, typename = typename
 	       enable_if<treat_as_floating_point<rep>::value
 			 || (ratio_divide<_Period2, period>::type::den == 1
 			     && !treat_as_floating_point<_Rep2>::value)>::type>
-	  constexpr duration(const duration<_Rep2, _Period2>& __d)
+	  duration(const duration<_Rep2, _Period2>& __d)
 	  : __r(duration_cast<duration>(__d).count()) { }
 
 	~duration() = default;
@@ -495,11 +499,11 @@ namespace std
 	typedef typename duration::rep	  	rep;
 	typedef typename duration::period	period;
 
-	time_point() : __d(duration::zero())
+	constexpr time_point() : __d(duration::zero())
 	{ }
 
-	explicit time_point(const duration& __dur)
-	: __d(duration::zero() + __dur)
+	explicit time_point(const duration& __dur) 
+        : __d(duration::zero() + __dur)
 	{ }
 
 	// conversions
@@ -587,37 +591,37 @@ namespace std
       { return __lhs.time_since_epoch() - __rhs.time_since_epoch(); }
 
     template<typename _Clock, typename _Duration1, typename _Duration2>
-      inline bool
+      inline constexpr bool
       operator==(const time_point<_Clock, _Duration1>& __lhs,
 		 const time_point<_Clock, _Duration2>& __rhs)
       { return __lhs.time_since_epoch() == __rhs.time_since_epoch(); }
 
     template<typename _Clock, typename _Duration1, typename _Duration2>
-      inline bool
+      inline constexpr bool
       operator!=(const time_point<_Clock, _Duration1>& __lhs,
 		 const time_point<_Clock, _Duration2>& __rhs)
       { return !(__lhs == __rhs); }
 
     template<typename _Clock, typename _Duration1, typename _Duration2>
-      inline bool
+      inline constexpr bool
       operator<(const time_point<_Clock, _Duration1>& __lhs,
 		const time_point<_Clock, _Duration2>& __rhs)
       { return  __lhs.time_since_epoch() < __rhs.time_since_epoch(); }
 
     template<typename _Clock, typename _Duration1, typename _Duration2>
-      inline bool
+      inline constexpr bool
       operator<=(const time_point<_Clock, _Duration1>& __lhs,
 		 const time_point<_Clock, _Duration2>& __rhs)
       { return !(__rhs < __lhs); }
 
     template<typename _Clock, typename _Duration1, typename _Duration2>
-      inline bool
+      inline constexpr bool
       operator>(const time_point<_Clock, _Duration1>& __lhs,
 		const time_point<_Clock, _Duration2>& __rhs)
       { return __rhs < __lhs; }
 
     template<typename _Clock, typename _Duration1, typename _Duration2>
-      inline bool
+      inline constexpr bool
       operator>=(const time_point<_Clock, _Duration1>& __lhs,
 		 const time_point<_Clock, _Duration2>& __rhs)
       { return !(__lhs < __rhs); }

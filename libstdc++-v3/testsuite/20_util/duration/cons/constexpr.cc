@@ -24,10 +24,10 @@
 int main()
 {
   __gnu_test::constexpr_default_constructible test1;
-  test1.operator()<std::mega>();
   test1.operator()<std::chrono::seconds>();
 
   __gnu_test::constexpr_single_value_constructible test2;
   test2.operator()<std::chrono::seconds, std::chrono::seconds::rep>();
+  // test2.operator()<std::chrono::minutes, std::chrono::hours>();
   return 0;
 }
