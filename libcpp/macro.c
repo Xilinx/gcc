@@ -1515,15 +1515,14 @@ _cpp_save_parameter (cpp_reader *pfile, cpp_macro *macro, cpp_hashnode *node)
 
   ((cpp_hashnode **) BUFF_FRONT (pfile->a_buff))[macro->paramc++] = node;
   node->flags |= NODE_MACRO_ARG;
-  len = macro->paramc * sizeof (union _cpp_hashnode_value);
-  if (len > pfile->macro_buffer_len)
+  len = macro->paramc;
+  if (len > pfile->param_buffer_len)
     {
-      pfile->macro_buffer = XRESIZEVEC (unsigned char, pfile->macro_buffer,
-                                        len);
-      pfile->macro_buffer_len = len;
+      pfile->param_buffer = XRESIZEVEC (union _cpp_hashnode_value,
+					pfile->param_buffer, len);
+      pfile->param_buffer_len = len;
     }
-  ((union _cpp_hashnode_value *) pfile->macro_buffer)[macro->paramc - 1]
-    = node->value;
+  pfile->param_buffer[macro->paramc - 1] = node->value;
   
   node->value.arg_index  = macro->paramc;
   return false;
@@ -1888,7 +1887,7 @@ _cpp_create_definition (cpp_reader *pfile, cpp_hashnode *node)
     {
       struct cpp_hashnode *node = macro->params[i];
       node->flags &= ~ NODE_MACRO_ARG;
-      node->value = ((union _cpp_hashnode_value *) pfile->macro_buffer)[i];
+      node->value = pfile->param_buffer[i];
     }
 
   if (!ok)

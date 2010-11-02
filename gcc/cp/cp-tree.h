@@ -5632,6 +5632,18 @@ extern tree cxx_omp_clause_dtor			(tree, tree);
 extern void cxx_omp_finish_clause		(tree);
 extern bool cxx_omp_privatize_by_reference	(const_tree);
 
+/* In parser.c  */
+
+#define PPH_POP_TIMEVAR_AND_RETURN(TV, T)				\
+  do {									\
+    pph_catch_name_lookup (T);						\
+    POP_TIMEVAR_AND_RETURN(TV, T);					\
+  } while (0)
+
+extern void pph_catch_tree (tree);
+extern void pph_uncatch_tree (tree);
+extern void pph_catch_name_lookup (tree);
+
 /* -- end of C++ */
 
 #endif /* ! GCC_CP_TREE_H */

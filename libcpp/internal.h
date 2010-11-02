@@ -115,9 +115,6 @@ extern unsigned char *_cpp_unaligned_alloc (cpp_reader *, size_t);
 #define BUFF_FRONT(BUFF) ((BUFF)->cur)
 #define BUFF_LIMIT(BUFF) ((BUFF)->limit)
 
-/* #include types.  */
-enum include_type {IT_INCLUDE, IT_INCLUDE_NEXT, IT_IMPORT, IT_CMDLINE};
-
 union utoken
 {
   const cpp_token *token;
@@ -326,6 +323,57 @@ struct def_pragma_macro {
   unsigned int is_undef : 1;
 };
 
+
+/* A lookaside identifier table for subsets of the token stream.  */
+
+/* The lookaside entry.  */
+struct lae {
+  hashnode node;		/* The entry in hash_table.  */
+  unsigned int hash;		/* Hash value.  */
+  unsigned int length;		/* Macro value length.  */
+  const char *value;		/* Macro value string.  */
+};
+
+/* The lookaside table.  */
+struct cpp_lookaside {
+  struct lae *entries;		/* The entry storage.  */
+  unsigned int order;		/* 2^order slots in the entries array.  */
+  unsigned int active;		/* Number of active entries.  */
+  struct obstack *strings;	/* For macro value storage.  */
+  unsigned int max_length;	/* Largest string encountered.  */
+
+  /* Table usage statistics.  */
+  unsigned long long searches;		/* Number of calls to lt_lookup.  */
+  unsigned long long comparisons;	/* Key comparisons.  */
+  unsigned long long strcmps;		/* Key comparisons using strcmp.  */
+  unsigned long long collisions;	/* Found unwanted hash or key.  */
+  unsigned long long misses;		/* Searches not found in table.  */
+  unsigned long long insertions;	/* Number insertions in table.  */
+  unsigned long long macrovalue;	/* Number of macro values computed.  */
+  unsigned long long resizes;		/* Had to resize (grow) the table.  */
+  unsigned long long bumps;		/* Collisions in the resize process.  */
+  unsigned long long iterations;	/* Cells iterated over table.  */
+  unsigned long long empties;		/* Number of table empty/capture.  */
+
+  /* Table debugging.  */
+  unsigned int flag_pth_debug;
+};
+
+/* Lookup an identifer in the lookaside table,
+   and failing that, lookup in the main hash table.
+   The return will always be non-null.  */
+cpp_hashnode *
+lt_lookup (cpp_reader *pfile,
+           const unsigned char *identifier,
+           size_t length,
+           unsigned int hash);
+
+/* The hash parameter is obtained with the following function,
+   or with the HT_... macros in include/symtab.h. */
+unsigned int
+ht_calc_hash (const unsigned char *str, size_t len);
+
+
 /* A cpp_reader encapsulates the "state" of a pre-processor run.
    Applying cpp_get_token repeatedly yields a stream of pre-processor
    tokens.  Usually, there is only one cpp_reader object active.  */
@@ -413,6 +461,10 @@ struct cpp_reader
   unsigned char *macro_buffer;
   unsigned int macro_buffer_len;
 
+  /* Buffer to save parameter values during macro parameter processing.  */
+  union _cpp_hashnode_value *param_buffer;
+  unsigned int param_buffer_len;
+
   /* Descriptor for converting from the source character set to the
      execution character set.  */
   struct cset_converter narrow_cset_desc;
@@ -461,6 +513,7 @@ struct cpp_reader
 
   /* Identifier hash table.  */
   struct ht *hash_table;
+  cpp_lookaside *lookaside_table;
 
   /* Expression parser stack.  */
   struct op *op_stack, *op_limit;
@@ -574,7 +627,7 @@ extern bool _cpp_find_failed (_cpp_file *);
 extern void _cpp_mark_file_once_only (cpp_reader *, struct _cpp_file *);
 extern void _cpp_fake_include (cpp_reader *, const char *);
 extern bool _cpp_stack_file (cpp_reader *, _cpp_file*, bool);
-extern bool _cpp_stack_include (cpp_reader *, const char *, int,
+extern bool _cpp_stack_include (cpp_reader *, const char *, const char *, int,
 				enum include_type);
 extern int _cpp_compare_file_date (cpp_reader *, const char *, int);
 extern void _cpp_report_missing_guards (cpp_reader *);

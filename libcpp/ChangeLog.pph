@@ -1,0 +1,92 @@
+2010-11-02  Lawrence Crowl  <crowl@google.com>
+	    Diego Novillo  <dnovillo@google.com>
+
+	* symtab.c: Include internal.h
+	(ht_calc_hash): Rename from calc_hash.  Declare extern.
+	Adjust all users.
+	(cpp_lt_exchange): New.
+	(cpp_lt_create): New.
+	(cpp_lt_statistics): New.
+	(cpp_lt_destroy): New.
+	(cpp_lt_num_entries): New.
+	(cpp_lt_max_length): New.
+	(cpp_lt_take_strings): New.
+	(cpp_lt_forall): New.
+	(lt_query_macro): New.
+	(lt_macro_value): New.
+	(cpp_lt_capture): New.
+	(cpp_lt_verify): New.
+	(cpp_lt_define_syntax): New.
+	(cpp_lt_replay): New.
+	(LT_MASK): Define.
+	(LT_FIRST): Define.
+	(LT_NEXT): Define.
+	(lt_resize): New.
+	(lt_lookup): New.
+	* macro.c (_cpp_save_parameter): Re-write to use new
+	param_buffer field to avoid clobbering macro_buffer.
+	* include/cpplib.h (lexer_state): Define.
+	(enum include_type): Define.
+	(cpp_reset_lexer_state): Define.
+	(cpp_restore_lexer_state): Define.
+	(struct cpp_offset): Define.
+	(cpp_buffer_start): Declare.
+	(cpp_buffer_end): Declare.
+	(cpp_lookup_with_hash): Declare.
+	(cpp_peek_sym): Declare.
+	(cpp_dump_identifier): Declare.
+	(cpp_debug_identifier): Declare.
+	(cpp_dump_identifiers): Declare.
+	(cpp_debug_identifiers): Declare.
+	(cpp_push_include_type): Declare.
+	(cpp_get_pos): Declare.
+	(cpp_set_pos): Declare.
+	(cpp_return_at_eof): Declare.
+	* include/symtab.h (cpp_lookaside): Define.
+	(struct cpp_ident_use): Declare.
+	(struct cpp_idents_used): Declare.
+	(cpp_lt_exchange): Declare.
+	(cpp_lt_create): Declare.
+	(cpp_lt_destroy): Declare.
+	(cpp_lt_capture): Declare.
+	(cpp_lt_verify): Declare.
+	(cpp_lt_replay): Declare.
+	(cpp_lt_num_entries): Declare.
+	(cpp_lt_max_length): Declare.
+	(cpp_lt_take_strings): Declare.
+	(*cpp_lookback): Declare.
+	(cpp_lt_forall): Declare.
+	(cpp_lt_statistics): Declare.
+	* files.c (cpp_buffer_start): Define.
+	(cpp_buffer_end): Define.
+	(_cpp_stack_include): Add argument dname.  Adjust
+	all users.
+	(cpp_push_include_type): New.
+	(cpp_get_pos): New.
+	(cpp_set_pos): New.
+	(cpp_return_at_eof): New.
+	* init.c (cpp_create_reader): Initialize field
+	lookaside_table.
+	(cpp_destroy): Free field param_buffer, if needed.
+	* identifiers.c (cpp_lookup_with_hash): New.
+	(cpp_lookup): Call it.
+	(cpp_peek_sym): New.
+	(cpp_dump_identifier): New.
+	(cpp_debug_identifier): New.
+	(cpp_dump_identifiers_r): New.
+	(cpp_dump_identifiers): New.
+	(cpp_debug_identifiers): New.
+	* internal.h	(revision 166136):
+	(struct lae): Declare.
+	(struct cpp_lookaside): Declare.
+	(lt_lookup): Declare.
+	(ht_calc_hash): Declare.
+	(struct cpp_reader): Add fields param_buffer,
+	param_buffer_len and lookaside_table.
+	(_cpp_stack_include): Add new const char * argument.
+	* lex.c (lex_identifier_intern): Call cpp_lookup_with_hash.
+	(lex_identifier): Likewise.
+	(_cpp_lex_token): Initialize result to NULL.
+	(cpp_reset_lexer_state): New.
+	(cpp_restore_lexer_state): New.
+	* charset.c (_cpp_interpret_identifier): Call cpp_lookup.

@@ -1,0 +1,208 @@
+2010-11-02  Lawrence Crowl  <crowl@google.com>
+	    Diego Novillo  <dnovillo@google.com>
+
+	* decl.c: Include langhooks.h
+	(duplicate_decls_internal): Rename from duplicate_decls
+	(duplicate_decls): New wrapper around
+	duplicate_decls_internal.
+	* Make-lang.in (cp/decl.o): Add dependency on langhooks.h
+	(cp/parser.o): Add dependency on pointer-set.h,
+	fixed-value.h, MD5_H, HASTHTAB_H, tree-pass.h,
+	TREE_INLINE_H and tree-pretty-print.h.
+	(cp/name-lookup.o): Add dependency on tree-pretty-print.h
+	* rtti.c (create_pseudo_type_info): Mark TYPE_NAME of
+	PSEUDO_TYPE as artificial.
+	* cp-gimplify.c	(cp_genericize): Add FIXME note.
+	* parser.c: Include timevar.h, pointer-set.h,
+	fixed-value.h, cpplib.h, line-map.h, md5.h, hashtab.h,
+	tree-pass.h, tree-inline.h and tree-pretty-print.h.
+	(struct cp_token): Add field purged_p.
+	Adjust all users of CPP_PURGED.
+	(eof_token): Adjust.
+	(struct cp_lexer): Convert buffer into a VEC.
+	Remove field buffer_length.
+	Adjust all users.
+	(cp_token_cache_ptr): New typedef.
+	(struct cp_token_ident_d): Declare.
+	(cp_token_ident): New typedef.
+	(struct cp_token_hunk): Declare.
+	(cp_token_hunk_ptr): New typedef.
+	(DIGEST_LEN): Define.
+	(struct pth_image): Define.
+	(pth_image_ptr): New typedef.
+	(struct pth_include): Define.
+	(pth_include_ptr): New typedef.
+	(struct pth_state): Declare.
+	(struct pth_stats_d): Declare.
+	(pth_stats): Declare.
+	(PTH_STATS_INCR): Define.
+	(struct pph_stats_d): Declare.
+	(pph_stats): Declare.
+	(PPH_STATS_INCR): Define.
+	(pph_decl_head_token_cache): Declare.
+	(pph_decl_body_token_cache): Declare.
+	(struct pph_decl_deps_d): Declare.
+	(pph_decl_deps): Declare.
+	(pph_tree_catcher): Declare.
+	(pph_name_lookups): Declare.
+	(pph_name_lookups_set): Declare.
+	(pph_nl_token_map): Declare.
+	(pph_logfile): Declare.
+	(pph_print_trees_tokens): Declare.
+	(cp_lexer_print_token): Always declare.
+	(CPP_PURGED): Remove.  Replace all uses with
+	token->purged_p.
+	(N_CP_TTYPES): Adjust.
+	(cp_lexer_dump_tokens): Move earlier in the file.
+	(cp_lexer_debug_tokens): New.
+	(pathnames_equal_p): New.
+	(pph_debug_location): New.
+	(pph_debug_loc_of_tree): New.
+	(pth_image_dir_hash): New.
+	(pth_image_dir_eq): New.
+	(pth_get_state): New.
+	(pth_id_str): New.
+	(pth_header_len): New.
+	(PTH_EXTENSION): Define.
+	(pth_name_for): New.
+	(pth_file_for): New.
+	(pth_get_md5_digest): New.
+	(pth_get_index_from_type): New.
+	(pth_write_uint): New.
+	(pth_write_sizet): New.
+	(pth_write_bytes): New.
+	(pth_write_string): New.
+	(pth_write_number): New.
+	(pth_save_token_value): New.
+	(pth_save_token): New.
+	(pth_write_header): New.
+	(pth_dump_identifiers): New.
+	(pth_debug_identifiers): New.
+	(pth_dump_hunk): New.
+	(pth_debug_hunk): New.
+	(pth_dump_include): New.
+	(pth_debug_include): New.
+	(pth_dump_token_hunks_1): New.
+	(pth_dump_token_hunks): New.
+	(pth_debug_token_hunks): New.
+	(pth_dump_image): New.
+	(pth_debug_image): New.
+	(pth_show_image_stats): New.
+	(pth_dump_state): New.
+	(pth_debug_state): New.
+	(pth_save_identifiers): New.
+	(pth_save_hunk): New.
+	(pth_save_include): New.
+	(pth_save_image): New.
+	(pth_get_type_from_index): New.
+	(pth_read_uint): New.
+	(pth_read_sizet): New.
+	(pth_read_bytes): New.
+	(pth_read_string): New.
+	(pth_read_string_alloc): New.
+	(pth_load_number): New.
+	(pth_load_token_value): New.
+	(pth_load_identifiers): New.
+	(pth_load_hunk): New.
+	(pth_create_include): New.
+	(pth_load_include): New.
+	(pth_load_image): New.
+	(pth_have_valid_image_for): New.
+	(pth_new_image): New.
+	(pth_image_lookup): New.
+	(pth_append_hunk): New.
+	(pth_hunk_is_valid_p): New.
+	(pth_image_can_be_used): New.
+	(cp_lexer_finished_p): New.
+	(cp_lexer_get_tokens): New.
+	(pth_get_dir_and_name): New.
+	(pth_process_text_file): New.
+	(pth_image_to_lexer): New.
+	(pth_lexer_to_image): New.
+	(pth_get_file_transition): New.
+	(pth_leave_file): New.
+	(pth_enter_file): New.
+	(pth_file_change): New.
+	(pth_include_handler): New.
+	(pth_init): New.
+	(pth_print_stats): New.
+	(pth_finish): New.
+	(cp_lexer_alloc): New.
+	(cp_lexer_new_main): Rewrite to support -fpth.
+	(cp_lexer_get_preprocessor_token): Flag error if -fpth
+	is used together with PCH.
+	(cp_lexer_consume_token): Call PPH_STATS_INCR.
+	(cp_lexer_print_token): Remove "PURGED" string.
+	Show CPP_NUMBER tokens.
+	Do not abort if token->type is outside of TOKEN_NAMES.
+	(pph_log_exposed): New.
+	(pph_allocate_catcher_memory): New.
+	(pph_free_catcher_memory): New.
+	(pph_start_exposed): New.
+	(pph_lookup_head_token_cache_for): New.
+	(pph_lookup_body_token_cache_for): New.
+	(pph_set_head_token_cache_for): New.
+	(pph_set_body_token_cache_for): New.
+	(pph_copy_decls_into_cache): New.
+	(pph_copy_decls_outof_cache): New.
+	(pph_stop_exposed): New.
+	(cp_parser_declaration): Call pph_start_exposed and
+	pph_stop_exposed for several cases.
+	(cp_parser_elaborated_type_specifier): Add tracing code
+	for -fpph-debug.
+	(cp_parser_class_specifier): Add FIXME notes.
+	(cp_parser_lookup_name_1): Rename from cp_parser_lookup_name.
+	(cp_parser_lookup_name): Call it.
+	Call pph_catch_name_lookup with the result.
+	(pph_debug_tree): New.
+	(pph_debug_type): New.
+	(pph_tree_caught_p): New.
+	(pph_catch_head_tokens_for): New.
+	(pph_catch_body_tokens_for): New.
+	(pph_lookup_dependencies_for): New.
+	(pph_set_dependencies_for): New.
+	(is_namespace): New.
+	(pph_null_exposed): New.
+	(pph_live_exposed): New.
+	(pph_find_exposed_for): New.
+	(pph_catch_dependencies_for): New.
+	(pph_catch_tree): New.
+	(pph_uncatch_tree): New.
+	(pph_locate_name_lookups_in): New.
+	(pph_print_copy_tokens): New.
+	(pph_print_token_range): New.
+	(pph_print_dependence): New.
+	(pph_print_depend_template): New.
+	(pph_print_depend_decl): New.
+	(pph_print_depend_type): New.
+	(pph_print_depend_type_type): New.
+	(pph_print_depend_func_type): New.
+	(pph_print_depend_var_type): New.
+	(pph_get_decl_exposure): New.
+	(pph_print_dependences): New.
+	(pph_print_declaration_head): New.
+	(pph_print_declaration_body): New.
+	(pph_find_special_methods): New.
+	(pph_implicit_class_cost): New.
+	(pph_print_declaration): New.
+	(pph_print_declarations): New.
+	(pph_print_trees_tokens): New.
+	(pph_catch_name_lookup): New.
+	(pph_print_stats): New.
+	(pph_init): New.
+	(pph_finish): New.
+	(c_parse_file): Call pph_init and pph_finish.
+	* call.c (implicit_conversion): Call pph_catch_name_lookup.
+	(build_new_op): Call pph_catch_name_lookup.
+	(convert_like_real): Call pph_catch_name_lookup.
+	(build_new_method_call): Call pph_catch_name_lookup.
+	* cp-objcp-common.h (LANG_HOOKS_PPH_CATCH_TREE): Define.
+	(LANG_HOOKS_PPH_UNCATCH_TREE): Define.
+	* cp-tree.h (PPH_POP_TIMEVAR_AND_RETURN): Define.
+	Replace every call to POP_TIMEVAR_AND_RETURN with
+	PPH_POP_TIMEVAR_AND_RETURN.
+	(pph_catch_tree): Declare.
+	(pph_uncatch_tree): Declare.
+	(pph_catch_name_lookup): Declare.
+	* name-lookup.c: Include tree-pretty-print.h
+	(add_decl_to_level): Add tracing for -fpph-debug.

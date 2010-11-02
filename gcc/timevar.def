@@ -48,6 +48,20 @@ DEFTIMEVAR (TV_PCH_PTR_SORT          , "PCH pointer sort")
 DEFTIMEVAR (TV_PCH_RESTORE           , "PCH main state restore")
 DEFTIMEVAR (TV_PCH_CPP_RESTORE       , "PCH preprocessor state restore")
 
+/* Time spent handling PTH state.  */
+DEFTIMEVAR (TV_PTH_DEPENDENCY        , "PTH dependency checks")
+DEFTIMEVAR (TV_PTH_MANAGE            , "PTH bookkeeping")
+DEFTIMEVAR (TV_PTH_MD5               , "PTH MD5 signatures")
+DEFTIMEVAR (TV_PTH_LOAD              , "PTH stream load")
+DEFTIMEVAR (TV_PTH_SAVE              , "PTH stream save")
+DEFTIMEVAR (TV_PTH_SKIP_TOKENS       , "PTH skip cached tokens")
+DEFTIMEVAR (TV_PTH_INIT              , "PTH initialization")
+
+/* Time spent handling PPH state.  */
+DEFTIMEVAR (TV_PPH_CACHE_IN          , "PPH cache in")
+DEFTIMEVAR (TV_PPH_CACHE_OUT         , "PPH cache out")
+DEFTIMEVAR (TV_PPH_MANAGE            , "PPH bookkeeping")
+
 DEFTIMEVAR (TV_CGRAPH                , "callgraph construction")
 DEFTIMEVAR (TV_CGRAPHOPT             , "callgraph optimization")
 DEFTIMEVAR (TV_VARPOOL               , "varpool construction")

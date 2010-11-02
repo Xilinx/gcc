@@ -231,9 +231,11 @@ cpp_create_reader (enum c_lang lang, hash_table *table,
   _cpp_init_files (pfile);
 
   _cpp_init_hashtable (pfile, table);
+  pfile->lookaside_table = NULL;
 
   return pfile;
 }
+
 
 /* Set the line_table entry in PFILE.  This is called after reading a
    PCH file, as the old line_table will be incorrect.  */
@@ -266,6 +268,13 @@ cpp_destroy (cpp_reader *pfile)
       free (pfile->macro_buffer);
       pfile->macro_buffer = NULL;
       pfile->macro_buffer_len = 0;
+    }
+
+  if (pfile->param_buffer)
+    {
+      free (pfile->param_buffer);
+      pfile->param_buffer = NULL;
+      pfile->param_buffer_len = 0;
     }
 
   if (pfile->deps)

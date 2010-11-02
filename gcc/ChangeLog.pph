@@ -1,0 +1,30 @@
+2010-11-02  Lawrence Crowl  <crowl@google.com>
+	    Diego Novillo  <dnovillo@google.com>
+
+	* tree-pretty-print.c (dump_generic_node): Protect
+	against NULL TREE_TYPE.
+	* c-family/c.opt (fpph, fpph-debug, fpph-decls,
+	fpph-logfile, pph-stats): Add.
+	(fpth, fpth-debug, fpth-stats, fpth-md5): Add.
+	* c-family/c-opts.c (c_common_finish): Do not write a
+	deps file when generating PTH images.
+	* tree.c (make_node_stat): Call
+	lang_hooks.pph_catch_tree, if defined.
+	* input.h (LOCATION_COLUMN): Define.
+	* timevar.def (TV_PTH_DEPENDENCY): Define.
+	(TV_PTH_MANAGE): Define.
+	(TV_PTH_MD5): Define.
+	(TV_PTH_LOAD): Define.
+	(TV_PTH_SAVE): Define.
+	(TV_PTH_SKIP_TOKENS): Define.
+	(TV_PTH_INIT): Define.
+	(TV_PPH_CACHE_IN): Define.
+	(TV_PPH_CACHE_OUT): Define.
+	(TV_PPH_MANAGE): Define.
+	* langhooks.h: Add fields pph_catch_tree and pph_uncatch_tree.
+	* tree-inline.c (copy_tree_r): Tolerate STATEMENT_LISTs
+	when DATA is not NULL.
+	* langhooks-def.h (LANG_HOOKS_PPH_UNCATCH_TREE): Define.
+	(LANG_HOOKS_PPH_CATCH_TREE): Define.
+	(LANG_HOOKS_INITIALIZER): Add LANG_HOOKS_PPH_UNCATCH_TREE
+	and LANG_HOOKS_PPH_CATCH_TREE.

@@ -101,4 +101,87 @@ extern void ht_load (hash_table *ht, hashnode *entries,
 /* Dump allocation statistics to stderr.  */
 extern void ht_dump_statistics (hash_table *);
 
+
+/* A lookaside identifier table for subsets of the token stream.  */
+
+typedef struct cpp_lookaside cpp_lookaside;
+
+/* A summary of the identifier uses captured by the lookaside table.  */
+
+typedef struct GTY(()) cpp_ident_use
+{
+  unsigned int ident_len;
+  const char *ident_str;
+  unsigned int before_len;
+  const char *before_str;
+  unsigned int after_len;
+  const char *after_str;
+} cpp_ident_use;
+
+typedef struct GTY(()) cpp_idents_used
+{
+  unsigned int max_length;
+  unsigned int num_entries;
+  cpp_ident_use *entries;
+  struct obstack * GTY((skip)) strings;
+} cpp_idents_used;
+
+/* Exchange the reader's current lookaside table with a new table.
+   To deactivate the lookaside table, set it to NULL.
+   The current table is the return value.
+   Clients are responsible for creating and destroying the tables.  */
+cpp_lookaside *
+cpp_lt_exchange (struct cpp_reader *pfile, cpp_lookaside *desired);
+
+/* Create the lookaside table.  */
+cpp_lookaside *
+cpp_lt_create (unsigned int order, unsigned int debug);
+
+/* Frees all memory associated with a lookaside table.  */
+void
+cpp_lt_destroy (cpp_lookaside *table);
+
+/* Captures the current state of the lookaside table,
+   together with macro definition state before and after the table,
+   and then empties the table.  */
+cpp_idents_used
+cpp_lt_capture (struct cpp_reader *pfile);
+
+/* Verifies that the previously captured identifiers
+   are consistent with the current state of the reader.
+   If not, set the bad_use and cur_def to indicate the first  
+   inconsistency.  A null means 'not a macro'.  */
+bool
+cpp_lt_verify (struct cpp_reader *reader, cpp_idents_used* identifiers,
+               cpp_ident_use **bad_use, const char **cur_def);
+
+/* Replay the macro definitions captured by the table of identifiers used
+   into the reader state.  */
+void
+cpp_lt_replay (struct cpp_reader *reader, cpp_idents_used* identifiers);
+
+/* Query the number of entries in the lookaside table.  */
+unsigned int
+cpp_lt_num_entries (cpp_lookaside *table);
+
+/* Query the string length in the lookaside table.  */
+unsigned int
+cpp_lt_max_length (cpp_lookaside *table);
+
+/* Take ownership of the obstack holding strings in the lookaside table.  */
+struct obstack *
+cpp_lt_take_strings (cpp_lookaside *table);
+
+/* Visit all the entries in the lookaside table.  */
+typedef void (*cpp_lookback) (void *passthru,
+                              const char *ident_str, unsigned int ident_len,
+                              const char *macro_str, unsigned int macro_len);
+void
+cpp_lt_forall (cpp_lookaside *table, cpp_lookback grok, void *passthru);
+
+/* Dump the lookaside table statistics to stderr.  */
+void
+cpp_lt_statistics (struct cpp_reader *pfile);
+
+
 #endif /* LIBCPP_SYMTAB_H */

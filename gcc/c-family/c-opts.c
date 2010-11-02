@@ -1183,6 +1183,12 @@ c_common_finish (void)
 {
   FILE *deps_stream = NULL;
 
+  /* FIXME.  Hack!  When using a PTH image, we did not allow the 
+     pre-processor to keep track of dependencies, so we cannot
+     write them out.  */
+  if (flag_pth)
+    return;
+
   /* Don't write the deps file if there are errors.  */
   if (cpp_opts->deps.style != DEPS_NONE && !seen_error ())
     {

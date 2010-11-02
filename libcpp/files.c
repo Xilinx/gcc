@@ -32,6 +32,9 @@ along with this program; see the file COPYING3.  If not see
 #include "md5.h"
 #include <dirent.h>
 
+const cpp_offset cpp_buffer_start = {0, 0, 0};
+const cpp_offset cpp_buffer_end = {-1, -1, -1};
+
 /* Variable length record files on VMS will have a stat size that includes
    record control characters that won't be included in the read size.  */
 #ifdef VMS
@@ -174,8 +177,9 @@ static bool find_file_in_dir (cpp_reader *pfile, _cpp_file *file,
 static bool read_file_guts (cpp_reader *pfile, _cpp_file *file);
 static bool read_file (cpp_reader *pfile, _cpp_file *file);
 static bool should_stack_file (cpp_reader *, _cpp_file *file, bool import);
-static struct cpp_dir *search_path_head (cpp_reader *, const char *fname,
-				 int angle_brackets, enum include_type);
+static struct cpp_dir *search_path_head (cpp_reader *, const char *dname,
+				 const char *fname, int angle_brackets,
+				 enum include_type);
 static const char *dir_name_of_file (_cpp_file *file);
 static void open_file_failed (cpp_reader *pfile, _cpp_file *file, int);
 static struct file_hash_entry *search_cache (struct file_hash_entry *head,
@@ -843,11 +847,12 @@ _cpp_mark_file_once_only (cpp_reader *pfile, _cpp_file *file)
 }
 
 /* Return the directory from which searching for FNAME should start,
-   considering the directive TYPE and ANGLE_BRACKETS.  If there is
-   nothing left in the path, returns NULL.  */
+   considering the directive TYPE and ANGLE_BRACKETS.  If ANGLE_BRACKETS
+   is 0, TYPE is IT_INCLUDE and DNAME is given, it returns a directory
+   entry for DNAME.  If there is nothing left in the path, returns NULL.  */
 static struct cpp_dir *
-search_path_head (cpp_reader *pfile, const char *fname, int angle_brackets,
-		  enum include_type type)
+search_path_head (cpp_reader *pfile, const char *dname, const char *fname,
+		  int angle_brackets, enum include_type type)
 {
   cpp_dir *dir;
   _cpp_file *file;
@@ -873,7 +878,7 @@ search_path_head (cpp_reader *pfile, const char *fname, int angle_brackets,
   else if (pfile->quote_ignores_source_dir)
     dir = pfile->quote_include;
   else
-    return make_cpp_dir (pfile, dir_name_of_file (file),
+    return make_cpp_dir (pfile, (dname) ? dname : dir_name_of_file (file),
 			 pfile->buffer ? pfile->buffer->sysp : 0);
 
   if (dir == NULL)
@@ -906,13 +911,13 @@ dir_name_of_file (_cpp_file *file)
    including HEADER, and the command line -imacros and -include.
    Returns true if a buffer was stacked.  */
 bool
-_cpp_stack_include (cpp_reader *pfile, const char *fname, int angle_brackets,
-		    enum include_type type)
+_cpp_stack_include (cpp_reader *pfile, const char *dname, const char *fname,
+		    int angle_brackets, enum include_type type)
 {
   struct cpp_dir *dir;
   _cpp_file *file;
 
-  dir = search_path_head (pfile, fname, angle_brackets, type);
+  dir = search_path_head (pfile, dname, fname, angle_brackets, type);
   if (!dir)
     return false;
 
@@ -1325,7 +1330,7 @@ _cpp_compare_file_date (cpp_reader *pfile, const char *fname,
   _cpp_file *file;
   struct cpp_dir *dir;
 
-  dir = search_path_head (pfile, fname, angle_brackets, IT_INCLUDE);
+  dir = search_path_head (pfile, NULL, fname, angle_brackets, IT_INCLUDE);
   if (!dir)
     return -1;
 
@@ -1347,7 +1352,20 @@ _cpp_compare_file_date (cpp_reader *pfile, const char *fname,
 bool
 cpp_push_include (cpp_reader *pfile, const char *fname)
 {
-  return _cpp_stack_include (pfile, fname, false, IT_CMDLINE);
+  return _cpp_stack_include (pfile, NULL, fname, false, IT_CMDLINE);
+}
+
+/* Pushes the given file onto the buffer stack.  Returns true if
+   successful.  This is similar to cpp_push_include but it also
+   allows to specify whether a #include, #include_next or #import
+   should be used.  If ANGLE_BRACKETS is true, it searches
+   the file in the system include path.  */
+bool
+cpp_push_include_type (cpp_reader *pfile, const char *dname,
+		       const char *fname, bool angle_brackets,
+		       enum include_type itype)
+{
+  return _cpp_stack_include (pfile, dname, fname, angle_brackets, itype);
 }
 
 /* Do appropriate cleanup when a file INC's buffer is popped off the
@@ -1824,4 +1842,54 @@ check_file_against_entries (cpp_reader *pfile ATTRIBUTE_UNUSED,
   d.check_included = check_included;
   return bsearch (&d, pchf->entries, pchf->count, sizeof (struct pchf_entry),
 		  pchf_compare) != NULL;
+}
+
+
+/* Return the current position (in bytes) into BUFFER where the next
+   token will be read from.  */
+
+cpp_offset
+cpp_get_pos (cpp_buffer *buffer)
+{
+  cpp_offset pos;
+
+  pos.cur = (buffer->cur) ? buffer->cur - buffer->buf : 0;
+  pos.line_base = (buffer->line_base) ? buffer->line_base - buffer->buf : 0;
+  pos.next_line = (buffer->next_line) ? buffer->next_line - buffer->buf : 0;
+
+  return pos;
+}
+
+
+/* Set the current position (in bytes) into BUFFER where the next
+   token should be read from.  */
+
+void
+cpp_set_pos (cpp_buffer *buffer, cpp_offset pos)
+{
+  if (pos.cur == cpp_buffer_end.cur)
+    buffer->cur = buffer->line_base = buffer->next_line = buffer->rlimit;
+  else if (pos.cur == cpp_buffer_start.cur)
+    {
+      buffer->cur = buffer->line_base = NULL;
+      buffer->next_line = buffer->buf;
+    }
+  else
+    {
+      buffer->cur = buffer->buf + pos.cur;
+      buffer->line_base = buffer->buf + pos.line_base;
+      buffer->next_line = buffer->buf + pos.next_line;
+    }
+}
+
+
+/* Set the return-at-eof marker for BUFFER to VAL.  If VAL is true, a
+   CPP_EOF token will be returned when the reader find the end of
+   file.  Otherwise, the reader will transparently continue reading the
+   including file.  */
+
+void
+cpp_return_at_eof (cpp_buffer *buffer, bool val)
+{
+  buffer->return_at_eof = val;
 }

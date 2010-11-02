@@ -255,7 +255,7 @@ cp/decl.o: cp/decl.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   output.h toplev.h $(HASHTAB_H) $(RTL_H) \
   cp/operators.def $(TM_P_H) $(TREE_INLINE_H) $(DIAGNOSTIC_H) $(C_PRAGMA_H) \
   debug.h gt-cp-decl.h $(TIMEVAR_H) $(TARGET_H) $(PLUGIN_H) \
-  intl.h tree-iterator.h $(SPLAY_TREE_H)
+  intl.h tree-iterator.h $(SPLAY_TREE_H) langhooks.h
 cp/decl2.o: cp/decl2.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   output.h toplev.h $(C_COMMON_H) gt-cp-decl2.h $(CGRAPH_H) \
   $(C_PRAGMA_H) $(TREE_DUMP_H) intl.h $(TARGET_H) $(GIMPLE_H) $(POINTER_SET_H) \
@@ -310,13 +310,15 @@ cp/optimize.o: cp/optimize.c $(CXX_TREE_H) $(TM_H) \
 cp/mangle.o: cp/mangle.c $(CXX_TREE_H) $(TM_H) toplev.h $(REAL_H) \
   gt-cp-mangle.h $(TARGET_H) $(TM_P_H) $(CGRAPH_H)
 cp/parser.o: cp/parser.c $(CXX_TREE_H) $(TM_H) $(DIAGNOSTIC_CORE_H) \
-  gt-cp-parser.h output.h $(TARGET_H) $(PLUGIN_H) intl.h
+  gt-cp-parser.h output.h $(TARGET_H) $(PLUGIN_H) intl.h \
+  pointer-set.h fixed-value.h $(MD5_H) $(HASHTAB_H) tree-pass.h \
+  $(TREE_INLINE_H) tree-pretty-print.h
 cp/cp-gimplify.o: cp/cp-gimplify.c $(CXX_TREE_H) toplev.h $(C_COMMON_H) \
 	$(TM_H) coretypes.h pointer-set.h tree-iterator.h
 
 cp/name-lookup.o: cp/name-lookup.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(TM_H) $(CXX_TREE_H) $(TIMEVAR_H) gt-cp-name-lookup.h toplev.h \
-	$(DIAGNOSTIC_CORE_H) $(FLAGS_H) debug.h
+	$(DIAGNOSTIC_CORE_H) $(FLAGS_H) debug.h tree-pretty-print.h
 
 cp/cxx-pretty-print.o: cp/cxx-pretty-print.c $(CXX_PRETTY_PRINT_H) \
   $(CONFIG_H) $(SYSTEM_H) $(TM_H) coretypes.h $(CXX_TREE_H) tree-pretty-print.h

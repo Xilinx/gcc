@@ -23,6 +23,7 @@ along with this program; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "symtab.h"
+#include "internal.h"
 
 /* The code below is a specialization of Vladimir Makarov's expandable
    hash tables (see libiberty/hashtab.c).  The abstraction penalty was
@@ -30,7 +31,6 @@ along with this program; see the file COPYING3.  If not see
    intrinsically how to calculate a hash value, and how to compare an
    existing entry with a potential new one.  */
 
-static unsigned int calc_hash (const unsigned char *, size_t);
 static void ht_expand (hash_table *);
 static double approx_sqrt (double);
 
@@ -39,8 +39,8 @@ static double approx_sqrt (double);
 
 /* Calculate the hash of the string STR of length LEN.  */
 
-static unsigned int
-calc_hash (const unsigned char *str, size_t len)
+unsigned int
+ht_calc_hash (const unsigned char *str, size_t len)
 {
   size_t n = len;
   unsigned int r = 0;
@@ -94,7 +94,7 @@ hashnode
 ht_lookup (hash_table *table, const unsigned char *str, size_t len,
 	   enum ht_lookup_option insert)
 {
-  return ht_lookup_with_hash (table, str, len, calc_hash (str, len),
+  return ht_lookup_with_hash (table, str, len, ht_calc_hash (str, len),
 			      insert);
 }
 
@@ -360,4 +360,552 @@ approx_sqrt (double x)
     }
   while (d > .0001);
   return s;
+}
+
+
+/* Lookaside Identifier Hash Table */
+
+cpp_lookaside *
+cpp_lt_exchange (cpp_reader *pfile, cpp_lookaside *desired)
+{
+  cpp_lookaside *current = pfile->lookaside_table;
+  pfile->lookaside_table = desired;
+  return current;
+}
+
+cpp_lookaside *
+cpp_lt_create (unsigned int order, unsigned int debug)
+{
+  unsigned int slots = 1 << order;
+  cpp_lookaside *table = XCNEW (cpp_lookaside);
+  table->entries = XCNEWVEC (struct lae, slots);
+  table->order = order;
+  table->active = 0;
+
+  table->max_length = 0;
+  table->strings = XCNEW (struct obstack);
+  /* Strings need no alignment.  */
+  _obstack_begin (table->strings, 0, 0,
+		  (void *(*) (long)) xmalloc,
+		  (void (*) (void *)) free);
+  obstack_alignment_mask (table->strings) = 0;
+
+  table->searches = 0;
+  table->comparisons = 0;
+  table->strcmps = 0;
+  table->collisions = 0;
+  table->misses = 0;
+  table->insertions = 0;
+  table->macrovalue = 0;
+  table->resizes = 0;
+  table->bumps = 0;
+  table->iterations = 0;
+  table->empties = 0;
+
+  table->flag_pth_debug = debug;
+
+  return table;
+}
+
+void
+cpp_lt_statistics (cpp_reader *pfile)
+{
+  struct cpp_lookaside *table = pfile->lookaside_table;
+  fprintf (stderr, "lookaside ");
+  fprintf (stderr, "order=%u, ",	table->order);
+  fprintf (stderr, "active=%u, ",	table->active);
+  fprintf (stderr, "search=%llu, ",	table->searches);
+  fprintf (stderr, "compare=%llu, ",	table->comparisons);
+  fprintf (stderr, "strcmp=%llu, ",	table->strcmps);
+  fprintf (stderr, "collide=%llu, ",	table->collisions);
+  fprintf (stderr, "miss=%llu, ",	table->misses);
+  fprintf (stderr, "insert=%llu, ",	table->insertions);
+  fprintf (stderr, "macro=%llu, ",	table->macrovalue);
+  fprintf (stderr, "resize=%llu, ",	table->resizes);
+  fprintf (stderr, "bump=%llu, ",	table->bumps);
+  fprintf (stderr, "iterations=%llu, ",	table->iterations);
+  fprintf (stderr, "empties=%llu\n",	table->empties);
+  table->searches = 0;
+  table->comparisons = 0;
+  table->strcmps = 0;
+  table->collisions = 0;
+  table->misses = 0;
+  table->insertions = 0;
+  table->macrovalue = 0;
+  table->resizes = 0;
+  table->bumps = 0;
+  table->iterations = 0;
+  table->empties = 0;
+}
+
+void 
+cpp_lt_destroy (cpp_lookaside *table)
+{
+  if (table->strings)
+    {
+      obstack_free (table->strings, NULL);
+      free (table->strings);
+    }
+  free (table->entries);
+  free (table);
+}
+
+unsigned int
+cpp_lt_num_entries (cpp_lookaside *table)
+{
+  return table->active;
+}
+
+unsigned int
+cpp_lt_max_length (cpp_lookaside *table)
+{
+  return table->max_length;
+}
+
+struct obstack *
+cpp_lt_take_strings (cpp_lookaside *table)
+{
+  struct obstack *strings = table->strings;
+  table->strings = NULL;
+  return strings;
+}
+
+void
+cpp_lt_forall (cpp_lookaside *table, cpp_lookback grok, void *passthru)
+{
+  unsigned int slots = 1 << table->order;
+  struct lae *entries = table->entries;
+  unsigned int index;
+  for (index = 0; index < slots ; ++index)
+    {
+      hashnode node = entries[index].node;
+      if (node)
+        grok (passthru, (const char *)node->str, node->len,
+              entries[index].value, entries[index].length);
+    }
+}
+
+/* Query a CPP_NODE for its macro value from PFILE.  */
+
+static const char *
+lt_query_macro (cpp_reader *pfile, cpp_hashnode *cpp_node)
+{
+  const char *definition = NULL;
+  if (cpp_node->flags & NODE_BUILTIN)
+    {
+      const char *str = (const char *)cpp_node->ident.str;
+      if (   strcmp(str, "__DATE__") == 0
+          || strcmp(str, "__TIME__") == 0
+          || strcmp(str, "__FILE__") == 0
+          || strcmp(str, "__LINE__") == 0)
+        definition = str;
+      else
+        {
+          static char *string = 0;
+          static unsigned int space = 0;
+          unsigned int front, back, needed;
+          const char *value;
+
+          value = (const char *)_cpp_builtin_macro_text (pfile, cpp_node);
+          front = strlen (str);
+          back = strlen (value);
+          needed = front + 1 + back + 1;
+	  if (space < needed)
+            {
+              if (string != NULL)
+                free (string);
+              string = XCNEWVEC (char, needed);
+              space = needed;
+            }
+          strcpy (string, str);
+          string[front] = '=';
+          strcpy (string + front + 1, value);
+
+	  definition = string;
+        }
+    }
+  else
+    definition = (const char *) cpp_macro_definition (pfile, cpp_node);
+
+  if (pfile->lookaside_table->flag_pth_debug >= 3)
+    fprintf (stderr, "PTH: macro %s is %s\n",
+                     (const char *)cpp_node->ident.str,
+                     definition);
+
+  return definition;
+}
+
+/* Capture the current STRING definition of a macro for the
+   libcpp NODE and store it in the look ASIDE table of the PFILE. */
+
+static unsigned int
+lt_macro_value (const char** string, cpp_lookaside *aside,
+                cpp_reader *pfile, cpp_hashnode *cpp_node)
+{
+  const char *definition = lt_query_macro (pfile, cpp_node);
+  size_t macro_len = strlen (definition);
+  *string = (const char *) obstack_copy0 (aside->strings, definition, macro_len);
+  if (macro_len > aside->max_length)
+    aside->max_length = macro_len;
+  ++aside->macrovalue;
+  return macro_len;
+}
+
+/* Capture the identifier state in the lookaside table of PFILE
+   and then empty the lookaside table.  */
+
+cpp_idents_used
+cpp_lt_capture (cpp_reader *pfile)
+{
+  cpp_idents_used used;
+  cpp_lookaside *aside = pfile->lookaside_table;
+  unsigned int num_entries = aside->active;
+  unsigned int slots = 1 << aside->order;
+  unsigned int table_index;
+  unsigned int summary_index = 0;
+  
+  used.num_entries = aside->active;
+  used.entries = XCNEWVEC (cpp_ident_use, num_entries);
+
+  for (table_index = 0; table_index < slots ; ++table_index)
+    {
+      struct lae *table_entry = aside->entries + table_index;
+      hashnode node = table_entry->node;
+      if (node)
+        {
+          cpp_ident_use *summary_entry;
+          cpp_hashnode *cpp_node;
+
+          summary_entry = used.entries + summary_index++;
+          summary_entry->ident_len = node->len;
+          summary_entry->ident_str = (const char *)node->str;
+          summary_entry->before_len = table_entry->length;
+          summary_entry->before_str = table_entry->value;
+
+          /* Capture any macro value.  */
+          cpp_node = CPP_HASHNODE (node);
+          if (cpp_node->type == NT_MACRO)
+              summary_entry->after_len = lt_macro_value
+                  (&summary_entry->after_str, aside, pfile, cpp_node);
+          /* else .after_str and .after_len are still zero initialized.  */
+        }
+    }
+
+  /* Now empty out the lookaside table. */
+  memset (aside->entries, 0, slots * sizeof (struct lae));
+  aside->active = 0;
+
+  /* Take the strings from the table and give to the summary.  */
+  used.strings = aside->strings;
+  aside->strings = NULL;
+  used.max_length = aside->max_length;
+
+  /* Create a new string table.  */
+  aside->max_length = 0;
+  aside->strings = XCNEW (struct obstack);
+  /* Strings need no alignment.  */
+  _obstack_begin (aside->strings, 0, 0,
+		  (void *(*) (long)) xmalloc,
+		  (void (*) (void *)) free);
+  obstack_alignment_mask (aside->strings) = 0;
+
+  aside->iterations += slots;
+  ++aside->empties;
+
+  return used;
+}
+
+/* Verify that the INDENTIFIERS have before states that consistent
+   with the current identifier definitions in the READER.
+   If not, set the BAD_USE and CUR_DEF to indicate the first
+   inconsistency.  A null means 'not a macro'.  */
+
+bool
+cpp_lt_verify (cpp_reader *reader, cpp_idents_used* identifiers,
+               cpp_ident_use **bad_use, const char **cur_def)
+{
+  unsigned int i;
+  unsigned int num_entries = identifiers->num_entries;
+  cpp_ident_use *entries = identifiers->entries;
+
+  *bad_use = NULL;
+  *cur_def = NULL;
+
+  for (i = 0; i < num_entries; ++i)
+    {
+      cpp_hashnode *cpp_node;
+      cpp_ident_use *entry = entries + i;
+      const char *ident_str = entry->ident_str;
+      unsigned int ident_len = entry->ident_len;
+      const char *before_str = entry->before_str;
+      unsigned int before_len = entry->before_len;
+      cpp_node = cpp_peek_sym (reader, (const unsigned char *)ident_str,
+                               ident_len);
+      if (cpp_node == NULL)
+	{
+	  /* The symbol used to exist, but it doesn't now.  */
+	  if (before_str != NULL)
+	    {
+	      *bad_use = entry;
+	      *cur_def = NULL;
+	      goto fail;
+	    }
+	}
+      else if (before_len == -1U)
+        {
+          /* It was not saved as a macro.  */
+          if (cpp_node->type == NT_MACRO)
+            {
+              /* But it is a macro now!  */
+              *bad_use = entry;
+              *cur_def = (const char*) lt_query_macro (reader, cpp_node);
+              goto fail;
+            }
+          /* Otherwise, both agree it is not a macro.  */
+        }
+      else
+        {
+          /* It was saved as a macro.  */
+          const char *definition;
+
+          if (cpp_node->type != NT_MACRO)
+            {
+              /* But it is not a macro now!  */
+              *bad_use = entry;
+              *cur_def = NULL;
+              goto fail;
+            }
+          /* Otherwise, both agree it is a macro.  */
+          definition = lt_query_macro (reader, cpp_node);
+          /* strlen is required to avoid the prefix problem.  */
+          if (definition == NULL
+              || before_len != strlen (definition)
+              || memcmp (definition, before_str, before_len) != 0)
+            {
+              /* They do not have the same value.  */
+              *bad_use = entry;
+              *cur_def = definition;
+              goto fail;
+            }
+        }
+    }
+/* pass: */
+  *bad_use = NULL;
+  *cur_def = NULL;
+  return true;
+
+fail:
+  return false;
+}
+
+/* Produce the macro definition syntax NEEDED by cpp_define from
+   the syntax GIVEN by cpp_macro_definition.  */
+
+static void
+cpp_lt_define_syntax (char *needed, const char *given)
+{
+  char c;
+
+  c = *given++;
+
+  /* Copy over macro identifier.  */
+  while (   ('0' <= c && c <= '9')
+         || ('A' <= c && c <= 'Z')
+         || ('a' <= c && c <= 'z')
+         ||             (c == '_'))
+    {
+      *needed++ = c;
+      c = *given++;
+    }
+
+  if (c == '(')
+    {
+      /* Copy over parameter list.  */
+      while (c != ')')
+        {
+          *needed++ = c;
+          c = *given++;
+        }
+
+      /* Copy over trailing parenthesis.  */
+      *needed++ = c;
+      c = *given++;
+    }
+
+  /* Replace definition space by assignment.  */
+  /* (c == ' ') */
+  *needed++ = '=';
+  c = *given++;
+
+  /* Copy over macro identifier.  */
+  while (c != '\0')
+    {
+      *needed++ = c;
+      c = *given++;
+    }
+
+  *needed++ = '\0';
+}
+
+/* Replay the macro definitions captured by the table of IDENTIFIERS
+   into the READER state.  */
+
+void
+cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers)
+{
+  unsigned int i;
+  unsigned int num_entries = identifiers->num_entries;
+  cpp_ident_use *entries = identifiers->entries;
+  char *buffer = XCNEWVEC (char, identifiers->max_length + 1);
+
+  /* Prevent the lexer from invalidating the tokens we've read so far.  */
+  reader->keep_tokens++;
+
+  for (i = 0; i < num_entries; ++i)
+    {
+      cpp_ident_use *entry = entries + i;
+      const char *ident_str = entry->ident_str;
+      const char *before_str = entry->before_str;
+      const char *after_str = entry->after_str;
+      if (before_str == NULL)
+        {
+          if (after_str != NULL)
+            {
+              cpp_lt_define_syntax (buffer, after_str);
+              cpp_define (reader, buffer);
+            }
+          /* else consistently not macros */
+        }
+      else
+        {
+          if (after_str == NULL)
+            {
+              cpp_undef (reader, ident_str);
+            }
+          else if (strcmp (before_str, after_str) != 0)
+            {
+              cpp_undef (reader, ident_str);
+              cpp_lt_define_syntax (buffer, after_str);
+              cpp_define (reader, buffer);
+            }
+          /* else macro with the same definition */
+        }
+    }
+
+  reader->keep_tokens--;
+
+  free (buffer);
+}
+
+/* Mappings from hash to index.  */
+#define LT_MASK(order) (~(~0 << (order)))
+#define LT_FIRST(hash, order, mask) (((hash) ^ ((hash) >> (order))) & (mask))
+#define LT_NEXT(index, mask) (((index) + 1) & (mask))
+/* Linear probing.  */
+
+static void
+lt_resize (cpp_lookaside *aside, unsigned int old_order, unsigned int new_order)
+{
+  unsigned int old_index;
+  unsigned int old_slots = 1 << old_order;
+  unsigned int new_slots = 1 << new_order;
+  unsigned int new_mask = LT_MASK (new_order);
+  struct lae *old_entries = aside->entries;
+  struct lae *new_entries = XCNEWVEC (struct lae, new_slots);
+  for ( old_index = 0; old_index < old_slots; ++old_index )
+    {
+      hashnode node = old_entries[old_index].node;
+      if (node)
+        {
+          unsigned int hash = old_entries[old_index].hash;
+          unsigned int new_index = LT_FIRST (hash, new_order, new_mask);
+          hashnode probe = new_entries[new_index].node;
+          while (probe)
+            {
+              new_index = LT_NEXT (new_index, new_mask);
+              probe = new_entries[new_index].node;
+              ++aside->bumps;
+            }
+          new_entries[new_index].node = node;
+          new_entries[new_index].hash = hash;
+          new_entries[new_index].length = old_entries[old_index].length;
+          new_entries[new_index].value = old_entries[old_index].value;
+        }
+    }
+  free (old_entries);
+  aside->entries = new_entries;
+  aside->order = new_order;
+  ++aside->resizes;
+}
+
+cpp_hashnode *
+lt_lookup (cpp_reader *pfile,
+           const unsigned char *identifier,
+           size_t length,
+           unsigned int hash)
+{
+  cpp_lookaside *aside = pfile->lookaside_table;
+  /* Compress the hash to an index.
+     Assume there is sufficient entropy in the lowest 2*order bits.  */
+  unsigned int order = aside->order;
+  unsigned int mask = LT_MASK (order);
+  unsigned int index = LT_FIRST (hash, order, mask);
+  cpp_hashnode *cpp_node;
+
+  /* Search the lookaside table.  */
+  struct lae *entries = aside->entries;
+  hashnode node = entries[index].node;
+  ++aside->searches;
+
+  /* Hashes have no sentinel value, so an entry is empty iff there is
+     a null node value. */
+  while (node)
+    {
+      if (entries[index].hash == hash)
+        {
+          ++aside->comparisons;
+          if (node->len == length)
+            {
+              ++aside->strcmps;
+	      if (memcmp (node->str, identifier, length) == 0)
+                return CPP_HASHNODE (node);
+            }
+        }
+
+      ++aside->collisions;
+      index = LT_NEXT (index, mask);
+      node = entries[index].node;
+    }
+
+  ++aside->misses;
+
+  node = ht_lookup_with_hash
+	(pfile->hash_table, identifier, length, hash, HT_ALLOC);
+  cpp_node = CPP_HASHNODE(node);
+
+  /* Do not save macro parameter names; they don't affect verification.  */
+  if (cpp_node->flags & NODE_MACRO_ARG)
+    return cpp_node;
+
+  ++aside->insertions;
+
+  /* Fill out new entry.  */
+  ++aside->active;
+  entries[index].node = node;
+  entries[index].hash = hash;
+  if (length > aside->max_length)
+    aside->max_length = length;
+
+  /* Capture any macro value.  */
+  if (cpp_node->type == NT_MACRO)
+    entries[index].length = lt_macro_value
+            (&entries[index].value, aside, pfile, cpp_node);
+  /* else .value and .length are still zero from initialization.  */
+
+  /* Check table load factor.  */
+  if (aside->active >= (unsigned)(1 << (order - 1)))
+      /* Table is at least half full; double it.  */
+      lt_resize (aside, order, order + 1);
+
+  return cpp_node;
 }

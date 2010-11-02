@@ -1676,8 +1676,7 @@ _cpp_interpret_identifier (cpp_reader *pfile, const uchar *id, size_t len)
 	  }
       }
 
-  return CPP_HASHNODE (ht_lookup (pfile->hash_table, 
-				  buf, bufp - buf, HT_ALLOC));
+  return cpp_lookup (pfile, buf, bufp - buf);
 }
 
 /* Convert an input buffer (containing the complete contents of one

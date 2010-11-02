@@ -61,6 +61,7 @@ extern location_t input_location;
 
 #define LOCATION_FILE(LOC) ((expand_location (LOC)).file)
 #define LOCATION_LINE(LOC) ((expand_location (LOC)).line)
+#define LOCATION_COLUMN(LOC) ((expand_location (LOC)).column)
 
 #define input_line LOCATION_LINE (input_location)
 #define input_filename LOCATION_FILE (input_location)

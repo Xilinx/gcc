@@ -86,22 +86,48 @@ _cpp_destroy_hashtable (cpp_reader *pfile)
     }
 }
 
+/* Returns the hash entry for the STR of length LEN with hash HASH,
+   creating one if necessary.  The return is not NULL.  */
+cpp_hashnode *
+cpp_lookup_with_hash (cpp_reader *pfile,
+                      const unsigned char *str, unsigned int len,
+                      unsigned int hash)
+{
+  cpp_hashnode *n;
+
+  if (pfile->lookaside_table)
+    n = lt_lookup (pfile, str, len, hash);
+  else
+    n = CPP_HASHNODE (ht_lookup_with_hash (pfile->hash_table, str, len,
+                                           hash, HT_ALLOC));
+
+  return n;
+}
+
 /* Returns the hash entry for the STR of length LEN, creating one
-   if necessary.  */
+   if necessary.  The return is not NULL.  */
 cpp_hashnode *
 cpp_lookup (cpp_reader *pfile, const unsigned char *str, unsigned int len)
 {
-  /* ht_lookup cannot return NULL.  */
-  return CPP_HASHNODE (ht_lookup (pfile->hash_table, str, len, HT_ALLOC));
+  unsigned int hash = ht_calc_hash (str, len);
+  return cpp_lookup_with_hash (pfile, str, len, hash);
+}
+
+/* Returns the hash entry for STR of length LEN from PFILE's symbol
+   table.  If no entry exists, it returns NULL.  */
+cpp_hashnode *
+cpp_peek_sym (cpp_reader *pfile, const unsigned char *str, unsigned int len)
+{
+  cpp_hashnode *node;
+  node = CPP_HASHNODE (ht_lookup (pfile->hash_table, str, len, HT_NO_INSERT));
+  return node;
 }
 
 /* Determine whether the str STR, of length LEN, is a defined macro.  */
 int
 cpp_defined (cpp_reader *pfile, const unsigned char *str, int len)
 {
-  cpp_hashnode *node;
-
-  node = CPP_HASHNODE (ht_lookup (pfile->hash_table, str, len, HT_NO_INSERT));
+  cpp_hashnode *node = cpp_peek_sym (pfile, str, len);
 
   /* If it's of type NT_MACRO, it cannot be poisoned.  */
   return node && node->type == NT_MACRO;
@@ -118,4 +144,57 @@ void
 cpp_forall_identifiers (cpp_reader *pfile, cpp_cb cb, void *v)
 {
   ht_forall (pfile->hash_table, (ht_cb) cb, v);
+}
+
+/* Dump a single identifier in PFILE to FILE.  */
+void
+cpp_dump_identifier (cpp_reader *pfile, FILE *file, cpp_hashnode *node)
+{
+  const unsigned char *name;
+  unsigned int len;
+
+  name = NODE_NAME (node);
+  len = NODE_LEN (node);
+
+  fprintf (file, "%.*s ", len, name);
+  if (node->is_directive)
+    fprintf (file, " [directive]");
+
+  if (node->type == NT_MACRO)
+    fprintf (file, " = %s", cpp_macro_definition (pfile, node));
+
+  fprintf (file, "\n");
+}
+
+
+/* Dump a single identifier in PFILE to stderr.  */
+void
+cpp_debug_identifier (cpp_reader *pfile, cpp_hashnode *node)
+{
+  cpp_dump_identifier (pfile, stderr, node);
+}
+
+
+/* Callback for cpp_dump_identifiers.  */
+static int
+cpp_dump_identifiers_r (cpp_reader *pfile, cpp_hashnode *node, void *data)
+{
+  cpp_dump_identifier (pfile, (FILE *) data, node);
+  return 1;
+}
+
+
+/* Dump all identifiers in PFILE to FILE.  */
+void
+cpp_dump_identifiers (cpp_reader *pfile, FILE *file)
+{
+  cpp_forall_identifiers (pfile, cpp_dump_identifiers_r, file);
+}
+
+
+/* Dump all identifiers in PFILE to stderr.  */
+void
+cpp_debug_identifiers (cpp_reader *pfile)
+{
+  cpp_dump_identifiers (pfile, stderr);
 }

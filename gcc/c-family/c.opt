@@ -897,6 +897,26 @@ fplan9-extensions
 C ObjC Var(flag_plan9_extensions)
 Enable Plan 9 language extensions
 
+fpph
+C++ Var(flag_pph)
+-fpph   Enable pre-parsed header (PPH) support
+
+fpph-debug=
+C++ Joined RejectNegative UInteger Var(flag_pph_debug)
+-fpph-debug=N   Enable debugging output at level N from PPH support
+
+fpph-decls=
+C++ Joined RejectNegative UInteger Var(flag_pph_decls)
+-fpph-decls=N   Enable declaration identifier output at level N from PPH support
+
+fpph-logfile=
+C++ Joined RejectNegative Var(flag_pph_logfile)
+-fpph-logfile=<file-name>	Emit PPH debug information to <file-name>
+
+fpph-stats
+C++ Var(flag_pph_stats)
+-fpph-stats	Enable statistics gathering for PPH
+
 fpreprocessed
 C ObjC C++ ObjC++
 Treat the input file as already preprocessed
@@ -904,6 +924,22 @@ Treat the input file as already preprocessed
 fpretty-templates
 C++ ObjC++ Var(flag_pretty_templates) Init(1)
 -fno-pretty-templates Do not pretty-print template specializations as the template signature followed by the arguments
+
+fpth
+C++ Var(flag_pth)
+-fpth	Enable pre-tokenized header (PTH) support
+
+fpth-debug=
+C++ Joined RejectNegative UInteger Var(flag_pth_debug)
+-fpth-debug=N	Enable debugging output at level N from PTH support
+
+fpth-stats
+C++ Var(flag_pth_stats)
+-fpth-stats	Enable statistics gathering for PTH
+
+fpth-md5
+C++ Var(flag_pth_md5)
+-fpth-md5   Use MD5 digests instead of timestamps to determine if a header file has changed
 
 freplace-objc-classes
 ObjC ObjC++ Var(flag_replace_objc_classes)

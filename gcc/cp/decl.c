@@ -53,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "splay-tree.h"
 #include "plugin.h"
+#include "langhooks.h"
 
 /* Possible cases of bad specifiers type used by bad_specifiers. */
 enum bad_spec_place {
@@ -1167,8 +1168,8 @@ validate_constexpr_redeclaration (tree old_decl, tree new_decl)
 
    NEWDECL_IS_FRIEND is true if NEWDECL was declared as a friend.  */
 
-tree
-duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
+static tree
+duplicate_decls_internal (tree newdecl, tree olddecl, bool newdecl_is_friend)
 {
   unsigned olddecl_uid = DECL_UID (olddecl);
   int olddecl_friend = 0, types_match = 0, hidden_friend = 0;
@@ -2273,6 +2274,35 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 
   return olddecl;
 }
+
+
+/* Wrapper for duplicate_decls_internal used by PPH support to
+   decide whether NEWDECL or OLDDECL should be removed from the
+   AST catching data structures.  This is necessary when NEWDECL
+   is a re-declaration of OLDDECL.  */
+
+tree
+duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
+{
+  tree gooddecl, baddecl;
+
+  gooddecl = duplicate_decls_internal (newdecl, olddecl, newdecl_is_friend);
+
+  /* If duplicate_decls_internal returns NULL, it means that NEWDECL
+     is not a re-declaration of OLDDECL, so nothing needs to be done
+     in that case.  */
+  if (gooddecl == NULL_TREE)
+    return NULL_TREE;
+
+  baddecl = (gooddecl == newdecl) ? olddecl : newdecl;
+  if (lang_hooks.pph_uncatch_tree)
+    lang_hooks.pph_uncatch_tree (baddecl);
+
+  if (lang_hooks.pph_catch_tree)
+    lang_hooks.pph_catch_tree (gooddecl);
+
+  return gooddecl;
+}
 
 /* Return zero if the declaration NEWDECL is valid
    when the declaration OLDDECL (assumed to be for the same name)
@@ -2531,7 +2561,7 @@ lookup_label (tree id)
     POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, decl);
 
   decl = make_label_decl (id, /*local_p=*/0);
-  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, decl);
+  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, decl);
 }
 
 /* Declare a local label named ID.  */
@@ -2832,7 +2862,7 @@ define_label (location_t location, tree name)
   if (DECL_INITIAL (decl) != NULL_TREE)
     {
       error ("duplicate label %qD", decl);
-      POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+      PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
     }
   else
     {
@@ -2851,7 +2881,7 @@ define_label (location_t location, tree name)
       ent->uses = NULL;
     }
 
-  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, decl);
+  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, decl);
 }
 
 struct cp_switch
@@ -11009,7 +11039,7 @@ xref_tag (enum tag_types tag_code, tree name,
 			       scope, template_header_p);
 
   if (t == error_mark_node)
-    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+    PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
 
   if (scope != ts_current && t && current_class_type
       && template_class_depth (current_class_type)
@@ -11064,12 +11094,13 @@ xref_tag (enum tag_types tag_code, tree name,
       if (code == ENUMERAL_TYPE)
 	{
 	  error ("use of enum %q#D without previous declaration", name);
-	  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+	  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
 	}
       else
 	{
 	  t = make_class_type (code);
 	  TYPE_CONTEXT (t) = context;
+          /* FIXME pph: creating incomplete class.  */
 	  t = pushtag (name, t, scope);
 	}
     }
@@ -11078,7 +11109,7 @@ xref_tag (enum tag_types tag_code, tree name,
       if (template_header_p && MAYBE_CLASS_TYPE_P (t))
         {
 	  if (!redeclare_class_template (t, current_template_parms))
-            POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+            PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
         }
       else if (!processing_template_decl
 	       && CLASS_TYPE_P (t)
@@ -11086,7 +11117,7 @@ xref_tag (enum tag_types tag_code, tree name,
 	{
 	  error ("redeclaration of %qT as a non-template", t);
 	  error ("previous declaration %q+D", t);
-	  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+	  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
 	}
 
       /* Make injected friend class visible.  */
@@ -11104,7 +11135,7 @@ xref_tag (enum tag_types tag_code, tree name,
 	}
     }
 
-  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
+  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
 }
 
 tree

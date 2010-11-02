@@ -1215,6 +1215,7 @@ create_pseudo_type_info (int tk, const char *real_name, ...)
   /* Create the pseudo type.  */
   pseudo_type = make_class_type (RECORD_TYPE);
   finish_builtin_struct (pseudo_type, pseudo_name, fields, NULL_TREE);
+  DECL_ARTIFICIAL (TYPE_NAME (pseudo_type)) = 1; /* FIXME pph: Right? */
   CLASSTYPE_AS_BASE (pseudo_type) = pseudo_type;
 
   ti = VEC_index (tinfo_s, tinfo_descs, tk);

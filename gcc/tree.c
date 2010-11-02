@@ -888,6 +888,8 @@ make_node_stat (enum tree_code code MEM_STAT_DECL)
       if (TREE_CODE (t) == LABEL_DECL)
 	LABEL_DECL_UID (t) = -1;
 
+      if (lang_hooks.pph_catch_tree)
+	lang_hooks.pph_catch_tree (t);
       break;
 
     case tcc_type:

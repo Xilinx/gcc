@@ -4257,7 +4257,7 @@ optimize_inline_calls (tree fn)
 /* Passed to walk_tree.  Copies the node pointed to, if appropriate.  */
 
 tree
-copy_tree_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
+copy_tree_r (tree *tp, int *walk_subtrees, void *data)
 {
   enum tree_code code = TREE_CODE (*tp);
   enum tree_code_class cl = TREE_CODE_CLASS (code);
@@ -4318,7 +4318,12 @@ copy_tree_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
     *walk_subtrees = 0;
   else if (TREE_CODE_CLASS (code) == tcc_constant)
     *walk_subtrees = 0;
-  else
+  else if (data == NULL)
+    /* FIXME pph.  DATA is non-NULL only when called from
+       pph_copy_decls_into_cache.  We don't really need to handle
+       STATEMENT_LISTs properly, just do the copy to collect rough
+       timings.  This routine will need to be revamped when we are
+       caching for real.  */
     gcc_assert (code != STATEMENT_LIST);
   return NULL_TREE;
 }

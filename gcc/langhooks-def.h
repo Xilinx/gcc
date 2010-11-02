@@ -112,6 +112,8 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 #define LANG_HOOKS_BUILTIN_FUNCTION	lhd_builtin_function
 #define LANG_HOOKS_BUILTIN_FUNCTION_EXT_SCOPE	LANG_HOOKS_BUILTIN_FUNCTION
 #define LANG_HOOKS_EXPR_TO_DECL		lhd_expr_to_decl
+#define LANG_HOOKS_PPH_CATCH_TREE	NULL
+#define LANG_HOOKS_PPH_UNCATCH_TREE	NULL
 #define LANG_HOOKS_TO_TARGET_CHARSET	lhd_to_target_charset
 #define LANG_HOOKS_INIT_TS		lhd_do_nothing
 #define LANG_HOOKS_EH_PERSONALITY	lhd_gcc_personality
@@ -308,7 +310,9 @@ extern void lhd_end_section (void);
   LANG_HOOKS_EH_RUNTIME_TYPE, \
   LANG_HOOKS_EH_PROTECT_CLEANUP_ACTIONS, \
   LANG_HOOKS_EH_USE_CXA_END_CLEANUP, \
-  LANG_HOOKS_DEEP_UNSHARING \
+  LANG_HOOKS_DEEP_UNSHARING, \
+  LANG_HOOKS_PPH_CATCH_TREE, \
+  LANG_HOOKS_PPH_UNCATCH_TREE, \
 }
 
 #endif /* GCC_LANG_HOOKS_DEF_H */

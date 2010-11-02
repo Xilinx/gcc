@@ -37,6 +37,7 @@ typedef struct cpp_hashnode cpp_hashnode;
 typedef struct cpp_macro cpp_macro;
 typedef struct cpp_callbacks cpp_callbacks;
 typedef struct cpp_dir cpp_dir;
+typedef struct lexer_state lexer_state;
 
 struct answer;
 struct _cpp_file;
@@ -607,6 +608,9 @@ enum cpp_builtin_type
   BT_LAST_USER = BT_FIRST_USER + 31
 };
 
+/* #include types.  */
+enum include_type {IT_INCLUDE, IT_INCLUDE_NEXT, IT_IMPORT, IT_CMDLINE};
+
 #define CPP_HASHNODE(HNODE)	((cpp_hashnode *) (HNODE))
 #define HT_NODE(NODE)		((ht_identifier *) (NODE))
 #define NODE_LEN(NODE)		HT_LEN (&(NODE)->ident)
@@ -915,6 +919,8 @@ extern const char *cpp_type2name (enum cpp_ttype, unsigned char flags);
    string literal.  Handles all relevant diagnostics.  */
 extern cppchar_t cpp_parse_escape (cpp_reader *, const unsigned char ** pstr,
 				   const unsigned char *limit, int wide);
+extern lexer_state *cpp_reset_lexer_state (cpp_reader *);
+extern void cpp_restore_lexer_state (cpp_reader *, lexer_state *);
 
 /* Structure used to hold a comment block at a given location in the
    source code.  */
@@ -942,6 +948,27 @@ typedef struct
   int allocated;
 } cpp_comment_table;
 
+/* Structure describing an offset into a cpp_buffer.  */
+
+typedef struct GTY(()) cpp_offset
+{
+  /* Distance, in bytes, from the start of the buffer to the current
+     character location.  */
+  size_t cur;
+
+  /* Distance, in bytes, from the start of the buffer to the start of
+     the current physical line.  */
+  size_t line_base;
+
+  /* Distance, in bytes, from the start of the buffer to the start of
+     the next logical line (the start of the to-be-cleaned line).  */
+  size_t next_line;
+} cpp_offset;
+
+/* Constants for cpp_get_pos and cpp_set_pos.  */
+extern const cpp_offset cpp_buffer_start;
+extern const cpp_offset cpp_buffer_end;
+
 /* Returns the table of comments encountered by the preprocessor. This
    table is only populated when pfile->state.save_comments is true. */
 extern cpp_comment_table *cpp_get_comments (cpp_reader *);
@@ -952,9 +979,18 @@ extern cpp_comment_table *cpp_get_comments (cpp_reader *);
    table if it is not already there.  */
 extern cpp_hashnode *cpp_lookup (cpp_reader *, const unsigned char *,
 				 unsigned int);
+extern cpp_hashnode *cpp_lookup_with_hash
+    (cpp_reader *, const unsigned char *, unsigned int, unsigned int);
+extern cpp_hashnode *cpp_peek_sym (cpp_reader *, const unsigned char *,
+				   unsigned int);
 
+/* In identifiers.c */
 typedef int (*cpp_cb) (cpp_reader *, cpp_hashnode *, void *);
 extern void cpp_forall_identifiers (cpp_reader *, cpp_cb, void *);
+extern void cpp_dump_identifier (cpp_reader *, FILE *, cpp_hashnode *);
+extern void cpp_debug_identifier (cpp_reader *, cpp_hashnode *);
+extern void cpp_dump_identifiers (cpp_reader *, FILE *);
+extern void cpp_debug_identifiers (cpp_reader *);
 
 /* In macro.c */
 extern void cpp_scan_nooutput (cpp_reader *);
@@ -967,6 +1003,8 @@ extern bool cpp_included (cpp_reader *, const char *);
 extern bool cpp_included_before (cpp_reader *, const char *, source_location);
 extern void cpp_make_system_header (cpp_reader *, int, int);
 extern bool cpp_push_include (cpp_reader *, const char *);
+extern bool cpp_push_include_type (cpp_reader *, const char *, const char *,
+				   bool, enum include_type);
 extern void cpp_change_file (cpp_reader *, enum lc_reason, const char *);
 extern const char *cpp_get_path (struct _cpp_file *);
 extern cpp_dir *cpp_get_dir (struct _cpp_file *);
@@ -974,6 +1012,9 @@ extern cpp_buffer *cpp_get_buffer (cpp_reader *);
 extern struct _cpp_file *cpp_get_file (cpp_buffer *);
 extern cpp_buffer *cpp_get_prev (cpp_buffer *);
 extern void cpp_clear_file_cache (cpp_reader *);
+extern cpp_offset cpp_get_pos (cpp_buffer *);
+extern void cpp_set_pos (cpp_buffer *, cpp_offset);
+extern void cpp_return_at_eof (cpp_buffer *, bool);
 
 /* In pch.c */
 struct save_macro_data;

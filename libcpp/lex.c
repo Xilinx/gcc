@@ -1075,8 +1075,7 @@ lex_identifier_intern (cpp_reader *pfile, const uchar *base)
     }
   len = cur - base;
   hash = HT_HASHFINISH (hash, len);
-  result = CPP_HASHNODE (ht_lookup_with_hash (pfile->hash_table,
-					      base, len, hash, HT_ALLOC));
+  result = cpp_lookup_with_hash (pfile, base, len, hash);
 
   /* Rarely, identifiers require diagnostics when lexed.  */
   if (__builtin_expect ((result->flags & NODE_DIAGNOSTIC)
@@ -1151,8 +1150,7 @@ lex_identifier (cpp_reader *pfile, const uchar *base, bool starts_ucn,
       len = cur - base;
       hash = HT_HASHFINISH (hash, len);
 
-      result = CPP_HASHNODE (ht_lookup_with_hash (pfile->hash_table,
-						  base, len, hash, HT_ALLOC));
+      result = cpp_lookup_with_hash (pfile, base, len, hash);
     }
 
   /* Rarely, identifiers require diagnostics when lexed.  */
@@ -1795,6 +1793,7 @@ _cpp_lex_token (cpp_reader *pfile)
 {
   cpp_token *result;
 
+  result = NULL;
   for (;;)
     {
       if (pfile->cur_token == pfile->cur_run->limit)
@@ -2835,4 +2834,28 @@ cpp_token_val_index (cpp_token *tok)
     default:
       return CPP_TOKEN_FLD_NONE;
     }
+}
+
+/* Reset the lexer state in PFILE and return its previous setting.  */
+
+lexer_state *
+cpp_reset_lexer_state (cpp_reader *pfile)
+{
+  lexer_state *s;
+  
+  s = (lexer_state *) xmalloc (sizeof (lexer_state));
+  memcpy (s, &pfile->state, sizeof (pfile->state));
+  memset (&pfile->state, 0, sizeof (pfile->state));
+
+  return s;
+}
+
+
+/* Restore the lexer state in PFILE to S.  */
+
+void
+cpp_restore_lexer_state (cpp_reader *pfile, lexer_state *s)
+{
+  memcpy (&pfile->state, s, sizeof (pfile->state));
+  free (s);
 }

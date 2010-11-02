@@ -32,6 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "debug.h"
 #include "c-family/c-pragma.h"
+#include "tree-pretty-print.h"
 
 /* The bindings for a particular name in a particular scope.  */
 
@@ -560,7 +561,15 @@ add_decl_to_level (tree decl, cxx_scope *b)
 	     && (TREE_STATIC (decl) || DECL_EXTERNAL (decl)))
 	    || (TREE_CODE (decl) == FUNCTION_DECL
 		&& (!TREE_PUBLIC (decl) || DECL_DECLARED_INLINE_P (decl))))
-	  VEC_safe_push (tree, gc, b->static_decls, decl);
+          {
+	    VEC_safe_push (tree, gc, b->static_decls, decl);
+            if (flag_pph_debug >= 3)
+              {
+                fprintf (stderr, "Adding %p to static_decls:\n", (void*)decl);
+                print_generic_expr (stderr, decl, 0);
+                fprintf (stderr, "\n");
+              }
+          }
     }
 }
 
@@ -1745,16 +1754,16 @@ identifier_type_value (tree id)
   timevar_push (TV_NAME_LOOKUP);
   /* There is no type with that name, anywhere.  */
   if (REAL_IDENTIFIER_TYPE_VALUE (id) == NULL_TREE)
-    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, NULL_TREE);
+    PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, NULL_TREE);
   /* This is not the type marker, but the real thing.  */
   if (REAL_IDENTIFIER_TYPE_VALUE (id) != global_type_node)
-    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, REAL_IDENTIFIER_TYPE_VALUE (id));
+    PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, REAL_IDENTIFIER_TYPE_VALUE (id));
   /* Have to search for it. It must be on the global level, now.
      Ask lookup_name not to return non-types.  */
   id = lookup_name_real (id, 2, 1, /*block_p=*/true, 0, LOOKUP_COMPLAIN);
   if (id)
-    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, TREE_TYPE (id));
-  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, NULL_TREE);
+    PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, TREE_TYPE (id));
+  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, NULL_TREE);
 }
 
 /* Return the IDENTIFIER_GLOBAL_VALUE of T, for use in common code, since
@@ -2028,7 +2037,7 @@ pushdecl_with_scope (tree x, cxx_scope *level, bool is_friend)
       current_binding_level = b;
     }
   current_function_decl = function_decl;
-  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, x);
+  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, x);
 }
 
 /* DECL is a FUNCTION_DECL for a non-member function, which may have
@@ -4482,7 +4491,7 @@ lookup_type_scope (tree name, tag_scope scope)
       while (b)
 	{
 	  if (iter->scope == b)
-	    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, val);
+	    PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, val);
 
 	  if (b->kind == sk_cleanup || b->kind == sk_template_parms
 	      || b->kind == sk_function_parms)
@@ -4495,7 +4504,7 @@ lookup_type_scope (tree name, tag_scope scope)
 	}
     }
 
-  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, NULL_TREE);
+  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, NULL_TREE);
 }
 
 /* Similar to `lookup_name' but look only in the innermost non-class
@@ -4528,7 +4537,7 @@ lookup_name_innermost_nonclass_level (tree name)
 	  if (binding->scope == b
 	      && !(TREE_CODE (binding->value) == VAR_DECL
 		   && DECL_DEAD_FOR_LOCAL (binding->value)))
-	    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, binding->value);
+	    PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, binding->value);
 
 	  if (b->kind == sk_cleanup)
 	    b = b->level_chain;
@@ -4537,7 +4546,7 @@ lookup_name_innermost_nonclass_level (tree name)
 	}
     }
 
-  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
+  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
 }
 
 /* Returns true iff DECL is a block-scope extern declaration of a function
@@ -5105,7 +5114,7 @@ lookup_arg_dependent (tree name, tree fns, VEC(tree,gc) *args,
   release_tree_vector (k.classes);
   release_tree_vector (k.namespaces);
     
-  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, fns);
+  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, fns);
 }
 
 /* Add namespace to using_directives. Return NULL_TREE if nothing was
@@ -5302,12 +5311,12 @@ pushtag (tree name, tree type, tag_scope scope)
       decl = maybe_process_template_type_declaration
 	(type, scope == ts_within_enclosing_non_class, b);
       if (decl == error_mark_node)
-	POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, decl);
+	PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, decl);
 
       if (b->kind == sk_class)
 	{
 	  if (!TYPE_BEING_DEFINED (current_class_type))
-	    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+	    PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
 
 	  if (!PROCESSING_REAL_TEMPLATE_DECL_P ())
 	    /* Put this TYPE_DECL on the TYPE_FIELDS list for the
@@ -5322,7 +5331,7 @@ pushtag (tree name, tree type, tag_scope scope)
 	{
 	  decl = pushdecl_with_scope (decl, b, /*is_friend=*/false);
 	  if (decl == error_mark_node)
-	    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, decl);
+	    PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, decl);
 	}
 
       if (! in_class)
@@ -5361,7 +5370,7 @@ pushtag (tree name, tree type, tag_scope scope)
   TREE_PUBLIC (decl) = 1;
   determine_visibility (decl);
 
-  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, type);
+  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, type);
 }
 
 /* Subroutines for reverting temporarily to top-level for instantiation

@@ -1124,7 +1124,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	}
       if (DECL_NAME (node))
 	dump_decl_name (buffer, node, flags);
-      else if (TYPE_NAME (TREE_TYPE (node)) != node)
+      else if (TREE_TYPE (node) && TYPE_NAME (TREE_TYPE (node)) != node)
 	{
 	  if ((TREE_CODE (TREE_TYPE (node)) == RECORD_TYPE
 	       || TREE_CODE (TREE_TYPE (node)) == UNION_TYPE)
