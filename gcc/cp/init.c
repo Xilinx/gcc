@@ -486,16 +486,23 @@ perform_member_init (tree member, tree init)
     }
   else if (TYPE_NEEDS_CONSTRUCTING (type))
     {
-      if (init != NULL_TREE
-	  && TREE_CODE (type) == ARRAY_TYPE
-	  && TREE_CHAIN (init) == NULL_TREE
-	  && TREE_CODE (TREE_TYPE (TREE_VALUE (init))) == ARRAY_TYPE)
+      if (TREE_CODE (type) == ARRAY_TYPE)
 	{
-	  /* Initialization of one array from another.  */
-	  finish_expr_stmt (build_vec_init (decl, NULL_TREE, TREE_VALUE (init),
-					    /*explicit_value_init_p=*/false,
-					    /* from_array=*/1,
-                                            tf_warning_or_error));
+	  if (init)
+	    {
+	      gcc_assert (TREE_CHAIN (init) == NULL_TREE);
+	      init = TREE_VALUE (init);
+	    }
+	  if (init == NULL_TREE
+	      || same_type_ignoring_top_level_qualifiers_p (type,
+							    TREE_TYPE (init)))
+	    {
+	      init = build_vec_init_expr (type, init);
+	      init = build2 (INIT_EXPR, type, decl, init);
+	      finish_expr_stmt (init);
+	    }
+	  else
+	    error ("invalid initializer for array member %q#D", member);
 	}
       else
 	{
@@ -525,6 +532,15 @@ perform_member_init (tree member, tree init)
 	    permerror (DECL_SOURCE_LOCATION (current_function_decl),
 		       "uninitialized member %qD with %<const%> type %qT",
 		       member, type);
+
+	  if (DECL_DECLARED_CONSTEXPR_P (current_function_decl)
+	      && !type_has_constexpr_default_constructor (type))
+	    {
+	      if (!DECL_TEMPLATE_INSTANTIATION (current_function_decl))
+		error ("uninitialized member %qD in %<constexpr%> constructor",
+		       member);
+	      DECL_DECLARED_CONSTEXPR_P (current_function_decl) = false;
+	    }
 
 	  core_type = strip_array_types (type);
 	  if (CLASS_TYPE_P (core_type)
@@ -857,17 +873,30 @@ emit_mem_initializers (tree mem_inits)
       tree subobject = TREE_PURPOSE (mem_inits);
       tree arguments = TREE_VALUE (mem_inits);
 
-      /* If these initializations are taking place in a copy constructor,
-	 the base class should probably be explicitly initialized if there
-	 is a user-defined constructor in the base class (other than the
-	 default constructor, which will be called anyway).  */
-      if (extra_warnings && !arguments
-	  && DECL_COPY_CONSTRUCTOR_P (current_function_decl)
-	  && type_has_user_nondefault_constructor (BINFO_TYPE (subobject)))
-	warning_at (DECL_SOURCE_LOCATION (current_function_decl), OPT_Wextra,
-		    "base class %q#T should be explicitly initialized in the "
-		    "copy constructor",
-		    BINFO_TYPE (subobject));
+      if (arguments == NULL_TREE)
+	{
+	  /* If these initializations are taking place in a copy constructor,
+	     the base class should probably be explicitly initialized if there
+	     is a user-defined constructor in the base class (other than the
+	     default constructor, which will be called anyway).  */
+	  if (extra_warnings
+	      && DECL_COPY_CONSTRUCTOR_P (current_function_decl)
+	      && type_has_user_nondefault_constructor (BINFO_TYPE (subobject)))
+	    warning_at (DECL_SOURCE_LOCATION (current_function_decl),
+			OPT_Wextra, "base class %q#T should be explicitly "
+			"initialized in the copy constructor",
+			BINFO_TYPE (subobject));
+
+	  if (DECL_DECLARED_CONSTEXPR_P (current_function_decl)
+	      && !(type_has_constexpr_default_constructor
+		   (BINFO_TYPE (subobject))))
+	    {
+	      if (!DECL_TEMPLATE_INSTANTIATION (current_function_decl))
+		error ("uninitialized base %qT in %<constexpr%> constructor",
+		       BINFO_TYPE (subobject));
+	      DECL_DECLARED_CONSTEXPR_P (current_function_decl) = false;
+	    }
+	}
 
       /* Initialize the base.  */
       if (BINFO_VIRTUAL_P (subobject))

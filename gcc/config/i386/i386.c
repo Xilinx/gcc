@@ -56,6 +56,293 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "dwarf2out.h"
 #include "sched-int.h"
+
+typedef struct block_info_def
+{
+  /* TRUE if the upper 128bits of any AVX registers are live at exit.  */
+  bool upper_128bits_set;
+  /* TRUE if block has been processed.  */
+  bool done;
+} *block_info;
+
+#define BLOCK_INFO(B)   ((block_info) (B)->aux)
+
+enum call_avx256_state
+{
+  /* Callee returns 256bit AVX register.  */
+  callee_return_avx256 = -1,
+  /* Callee returns and passes 256bit AVX register.  */
+  callee_return_pass_avx256,
+  /* Callee passes 256bit AVX register.  */
+  callee_pass_avx256,
+  /* Callee doesn't return nor passe 256bit AVX register, or no
+     256bit AVX register in function return.  */
+  call_no_avx256,
+  /* vzeroupper intrinsic.  */
+  vzeroupper_intrinsic
+};
+
+/* Check if a 256bit AVX register is referenced in stores.   */
+
+static void
+check_avx256_stores (rtx dest, const_rtx set, void *data)
+{
+  if ((REG_P (dest)
+       && VALID_AVX256_REG_MODE (GET_MODE (dest)))
+      || (GET_CODE (set) == SET
+	  && REG_P (SET_SRC (set))
+	  && VALID_AVX256_REG_MODE (GET_MODE (SET_SRC (set)))))
+    {
+      bool *upper_128bits_set = (bool *) data;
+      *upper_128bits_set = true;
+    }
+}
+
+/* Helper function for move_or_delete_vzeroupper_1.  Look for vzeroupper
+   in basic block BB.  Delete it if upper 128bit AVX registers are
+   unused.  If it isn't deleted, move it to just before a jump insn.
+   
+   UPPER_128BITS_LIVE is TRUE if the upper 128bits of any AVX registers
+   are live at entry.  */
+
+static void
+move_or_delete_vzeroupper_2 (basic_block bb, bool upper_128bits_set)
+{
+  rtx curr_insn, next_insn, prev_insn, insn;
+
+  if (dump_file)
+    fprintf (dump_file, " BB [%i] entry: upper 128bits: %d\n",
+	     bb->index, upper_128bits_set);
+
+  for (curr_insn = BB_HEAD (bb);
+       curr_insn && curr_insn != NEXT_INSN (BB_END (bb));
+       curr_insn = next_insn)
+    {
+      int avx256;
+
+      next_insn = NEXT_INSN (curr_insn);
+
+      if (!NONDEBUG_INSN_P (curr_insn))
+	continue;
+
+      /* Search for vzeroupper.  */
+      insn = PATTERN (curr_insn);
+      if (GET_CODE (insn) == UNSPEC_VOLATILE
+	  && XINT (insn, 1) == UNSPECV_VZEROUPPER)
+	{
+	  /* Found vzeroupper.  */
+	  if (dump_file)
+	    {
+	      fprintf (dump_file, "Found vzeroupper:\n");
+	      print_rtl_single (dump_file, curr_insn);
+	    }
+	}
+      else
+	{
+	  /* Check vzeroall intrinsic.  */
+	  if (GET_CODE (insn) == PARALLEL
+	      && GET_CODE (XVECEXP (insn, 0, 0)) == UNSPEC_VOLATILE
+	      && XINT (XVECEXP (insn, 0, 0), 1) == UNSPECV_VZEROALL)
+	    upper_128bits_set = false;
+	  else if (!upper_128bits_set)
+	    {
+	      /* Check if upper 128bits of AVX registers are used.  */
+	      note_stores (insn, check_avx256_stores,
+			   &upper_128bits_set);
+	    }
+	  continue;
+	}
+
+      avx256 = INTVAL (XVECEXP (insn, 0, 0));
+
+      if (!upper_128bits_set)
+	{
+	  /* Since the upper 128bits are cleared, callee must not pass
+	     256bit AVX register.  We only need to check if callee
+	     returns 256bit AVX register.  */
+	  upper_128bits_set = avx256 == callee_return_avx256;
+
+	  /* Remove unnecessary vzeroupper since upper 128bits are
+	     cleared.  */
+	  if (dump_file)
+	    {
+	      fprintf (dump_file, "Delete redundant vzeroupper:\n");
+	      print_rtl_single (dump_file, curr_insn);
+	    }
+	  delete_insn (curr_insn);
+	  continue;
+	}
+      else if (avx256 == callee_return_pass_avx256
+	       || avx256 == callee_pass_avx256)
+	{
+	  /* Callee passes 256bit AVX register.  Check if callee
+	     returns 256bit AVX register.  */
+	  upper_128bits_set = avx256 == callee_return_pass_avx256;
+
+	  /* Must remove vzeroupper since callee passes 256bit AVX
+	     register.  */
+	  if (dump_file)
+	    {
+	      fprintf (dump_file, "Delete callee pass vzeroupper:\n");
+	      print_rtl_single (dump_file, curr_insn);
+	    }
+	  delete_insn (curr_insn);
+	  continue;
+	}
+
+      /* Find the jump after vzeroupper.  */
+      prev_insn = curr_insn;
+      if (avx256 == vzeroupper_intrinsic)
+	{
+	  /* For vzeroupper intrinsic, check if there is another
+	     vzeroupper.  */
+	  insn = NEXT_INSN (curr_insn);
+	  while (insn)
+	    {
+	      if (NONJUMP_INSN_P (insn)
+		  && GET_CODE (PATTERN (insn)) == UNSPEC_VOLATILE
+		  && XINT (PATTERN (insn), 1) == UNSPECV_VZEROUPPER)
+		{
+		  if (dump_file)
+		    {
+		      fprintf (dump_file,
+			       "Delete redundant vzeroupper intrinsic:\n");
+		      print_rtl_single (dump_file, curr_insn);
+		    }
+		  delete_insn (curr_insn);
+		  insn = NULL;
+		  continue;
+		}
+
+	      if (JUMP_P (insn) || CALL_P (insn))
+		break;
+	      prev_insn = insn;
+	      insn = NEXT_INSN (insn);
+	      if (insn == NEXT_INSN (BB_END (bb)))
+		break;
+	    }
+
+	  /* Continue if redundant vzeroupper intrinsic is deleted.  */
+	  if (!insn)
+	    continue;
+	}
+      else
+	{
+	  /* Find the next jump/call.  */
+	  insn = NEXT_INSN (curr_insn);
+	  while (insn)
+	    {
+	      if (JUMP_P (insn) || CALL_P (insn))
+		break;
+	      prev_insn = insn;
+	      insn = NEXT_INSN (insn);
+	      if (insn == NEXT_INSN (BB_END (bb)))
+		break;
+	    }
+
+	  if (!insn)
+	    gcc_unreachable();
+	}
+
+      /* Keep vzeroupper.  */
+      upper_128bits_set = false;
+
+      /* Also allow label as the next instruction.  */
+      if (insn == NEXT_INSN (BB_END (bb)) && !LABEL_P (insn))
+	gcc_unreachable();
+
+      /* Move vzeroupper before jump/call if neeeded.  */
+      if (curr_insn != prev_insn)
+	{
+	  reorder_insns_nobb (curr_insn, curr_insn, prev_insn);
+	  if (dump_file)
+	    {
+	      fprintf (dump_file, "Move vzeroupper after:\n");
+	      print_rtl_single (dump_file, prev_insn);
+	      fprintf (dump_file, "before:\n");
+	      print_rtl_single (dump_file, insn);
+	    }
+	}
+
+      next_insn = NEXT_INSN (insn);
+    }
+
+  BLOCK_INFO (bb)->upper_128bits_set = upper_128bits_set;
+
+  if (dump_file)
+    fprintf (dump_file, " BB [%i] exit: upper 128bits: %d\n",
+	     bb->index, upper_128bits_set);
+}
+
+/* Helper function for move_or_delete_vzeroupper.  Process vzeroupper
+   in BLOCK and its predecessor blocks recursively.  */
+
+static void
+move_or_delete_vzeroupper_1 (basic_block block)
+{
+  edge e;
+  edge_iterator ei;
+  bool upper_128bits_set;
+
+  if (dump_file)
+    fprintf (dump_file, " Process BB [%i]: status: %d\n",
+	     block->index, BLOCK_INFO (block)->done);
+
+  if (BLOCK_INFO (block)->done)
+    return;
+
+  BLOCK_INFO (block)->done = true;
+
+  upper_128bits_set = false;
+
+  /* Process all predecessor edges of this block.  */
+  FOR_EACH_EDGE (e, ei, block->preds)
+    {
+      if (e->src == block)
+	continue;
+      move_or_delete_vzeroupper_1 (e->src);
+      if (BLOCK_INFO (e->src)->upper_128bits_set)
+	upper_128bits_set = true;
+    }
+
+  /* Process this block.  */
+  move_or_delete_vzeroupper_2 (block, upper_128bits_set);
+}
+
+/* Go through the instruction stream looking for vzeroupper.  Delete
+   it if upper 128bit AVX registers are unused.  If it isn't deleted,
+   move it to just before a jump insn.  */
+
+static void
+move_or_delete_vzeroupper (void)
+{
+  edge e;
+  edge_iterator ei;
+
+  /* Set up block info for each basic block.  */
+  alloc_aux_for_blocks (sizeof (struct block_info_def));
+
+  /* Process successor blocks of all entry points.  */
+  if (dump_file)
+    fprintf (dump_file, "Process all entry points\n");
+
+  FOR_EACH_EDGE (e, ei, ENTRY_BLOCK_PTR->succs)
+    {
+      move_or_delete_vzeroupper_2 (e->dest,
+				   cfun->machine->caller_pass_avx256_p);
+      BLOCK_INFO (e->dest)->done = true;
+    }
+
+  /* Process predecessor blocks of all exit points.  */
+  if (dump_file)
+    fprintf (dump_file, "Process all exit points\n");
+
+  FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
+    move_or_delete_vzeroupper_1 (e->src);
+
+  free_aux_for_blocks ();
+}
+
 static rtx legitimize_dllimport_symbol (rtx, bool);
 
 #ifndef CHECK_STACK_LIMIT
@@ -1864,6 +2151,7 @@ struct ix86_frame
   HOST_WIDE_INT frame_pointer_offset;
   HOST_WIDE_INT hard_frame_pointer_offset;
   HOST_WIDE_INT stack_pointer_offset;
+  HOST_WIDE_INT hfp_save_offset;
   HOST_WIDE_INT reg_save_offset;
   HOST_WIDE_INT sse_reg_save_offset;
 
@@ -2633,6 +2921,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
     { "-mtls-direct-seg-refs",		MASK_TLS_DIRECT_SEG_REFS },
     { "-mvect8-ret-in-mem",		MASK_VECT8_RETURNS },
     { "-m8bit-idiv",			MASK_USE_8BIT_IDIV },
+    { "-mvzeroupper",			MASK_VZEROUPPER },
   };
 
   const char *opts[ARRAY_SIZE (isa_opts) + ARRAY_SIZE (flag_opts) + 6][2];
@@ -3285,7 +3574,7 @@ ix86_option_override_internal (bool main_args_p)
       if (optimize >= 1 && !global_options_set.x_flag_omit_frame_pointer)
 	flag_omit_frame_pointer = !USE_X86_64_FRAME_POINTER;
       if (flag_asynchronous_unwind_tables == 2)
-	flag_asynchronous_unwind_tables = 1;
+	flag_unwind_tables = flag_asynchronous_unwind_tables = 1;
       if (flag_pcc_struct_return == 2)
 	flag_pcc_struct_return = 0;
     }
@@ -3489,10 +3778,19 @@ ix86_option_override_internal (bool main_args_p)
   ix86_preferred_stack_boundary = PREFERRED_STACK_BOUNDARY_DEFAULT;
   if (ix86_preferred_stack_boundary_string)
     {
+      int min = (TARGET_64BIT ? 4 : 2);
+      int max = (TARGET_SEH ? 4 : 12);
+
       i = atoi (ix86_preferred_stack_boundary_string);
-      if (i < (TARGET_64BIT ? 4 : 2) || i > 12)
-	error ("%spreferred-stack-boundary=%d%s is not between %d and 12",
-	       prefix, i, suffix, TARGET_64BIT ? 4 : 2);
+      if (i < min || i > max)
+	{
+	  if (min == max)
+	    error ("%spreferred-stack-boundary%s is not supported "
+		   "for this target", prefix, suffix);
+	  else
+	    error ("%spreferred-stack-boundary=%d%s is not between %d and %d",
+		   prefix, i, suffix, min, max);
+	}
       else
 	ix86_preferred_stack_boundary = (1 << i) * BITS_PER_UNIT;
     }
@@ -3699,7 +3997,13 @@ ix86_option_override_internal (bool main_args_p)
         sorry ("-mfentry isn't supported for 32-bit in combination with -fpic");
       flag_fentry = 0;
     }
-  if (flag_fentry < 0)
+  else if (TARGET_SEH)
+    {
+      if (flag_fentry == 0)
+	sorry ("-mno-fentry isn't compatible with SEH");
+      flag_fentry = 1;
+    }
+  else if (flag_fentry < 0)
    {
 #if defined(PROFILE_BEFORE_PROLOGUE)
      flag_fentry = 1;
@@ -3712,6 +4016,60 @@ ix86_option_override_internal (bool main_args_p)
   if (main_args_p)
     target_option_default_node = target_option_current_node
       = build_target_option_node ();
+
+  if (TARGET_AVX)
+    {
+      /* Enable vzeroupper pass by default for TARGET_AVX.  */
+      if (!(target_flags_explicit & MASK_VZEROUPPER))
+	target_flags |= MASK_VZEROUPPER;
+    }
+  else 
+    {
+      /* Disable vzeroupper pass if TARGET_AVX is disabled.  */
+      target_flags &= ~MASK_VZEROUPPER;
+    }
+}
+
+/* Return TRUE if type TYPE and mode MODE use 256bit AVX modes.  */
+
+static bool
+use_avx256_p (enum machine_mode mode, const_tree type)
+{
+  return (VALID_AVX256_REG_MODE (mode)
+	  || (type
+	      && TREE_CODE (type) == VECTOR_TYPE
+	      && int_size_in_bytes (type) == 32));
+}
+
+/* Return TRUE if VAL is passed in register with 256bit AVX modes.  */
+
+static bool
+function_pass_avx256_p (const_rtx val)
+{
+  if (!val)
+    return false;
+
+  if (REG_P (val) && VALID_AVX256_REG_MODE (GET_MODE (val)))
+    return true;
+
+  if (GET_CODE (val) == PARALLEL)
+    {
+      int i;
+      rtx r;
+
+      for (i = XVECLEN (val, 0) - 1; i >= 0; i--)
+	{
+	  r = XVECEXP (val, 0, i);
+	  if (GET_CODE (r) == EXPR_LIST
+	      && XEXP (r, 0)
+	      && REG_P (XEXP (r, 0))
+	      && (GET_MODE (XEXP (r, 0)) == OImode
+		  || VALID_AVX256_REG_MODE (GET_MODE (XEXP (r, 0)))))
+	    return true;
+	}
+    }
+
+  return false;
 }
 
 /* Implement the TARGET_OPTION_OVERRIDE hook.  */
@@ -4626,7 +4984,14 @@ ix86_function_ok_for_sibcall (tree decl, tree exp)
 	return false;
     }
   else if (VOID_TYPE_P (TREE_TYPE (DECL_RESULT (cfun->decl))))
-    ;
+    {
+      /* Disable sibcall if we need to generate vzeroupper after
+	 callee returns.  */
+      if (TARGET_VZEROUPPER
+	  && cfun->machine->callee_return_avx256_p
+	  && !cfun->machine->caller_return_avx256_p)
+	return false;
+    }
   else if (!rtx_equal_p (a, b))
     return false;
 
@@ -5187,6 +5552,10 @@ ix86_asm_output_function_label (FILE *asm_out_file, const char *fname,
         fprintf (asm_out_file, ASM_LONG " %#x\n", filler_cc);
     }
 
+#ifdef SUBTARGET_ASM_UNWIND_INIT
+  SUBTARGET_ASM_UNWIND_INIT (asm_out_file);
+#endif
+
   ASM_OUTPUT_LABEL (asm_out_file, fname);
 
   /* Output magic byte marker, if hot-patch attribute is set.  */
@@ -5243,15 +5612,54 @@ void
 init_cumulative_args (CUMULATIVE_ARGS *cum,  /* Argument info to initialize */
 		      tree fntype,	/* tree ptr for function decl */
 		      rtx libname,	/* SYMBOL_REF of library name or 0 */
-		      tree fndecl)
+		      tree fndecl,
+		      int caller)
 {
-  struct cgraph_local_info *i = fndecl ? cgraph_local_info (fndecl) : NULL;
+  struct cgraph_local_info *i;
+  tree fnret_type;
+
   memset (cum, 0, sizeof (*cum));
 
+  /* Initialize for the current callee.  */
+  if (caller)
+    {
+      cfun->machine->callee_pass_avx256_p = false;
+      cfun->machine->callee_return_avx256_p = false;
+    }
+
   if (fndecl)
-   cum->call_abi = ix86_function_abi (fndecl);
+    {
+      i = cgraph_local_info (fndecl);
+      cum->call_abi = ix86_function_abi (fndecl);
+      fnret_type = TREE_TYPE (TREE_TYPE (fndecl));
+    }
   else
-   cum->call_abi = ix86_function_type_abi (fntype);
+    {
+      i = NULL;
+      cum->call_abi = ix86_function_type_abi (fntype);
+      if (fntype)
+	fnret_type = TREE_TYPE (fntype);
+      else
+	fnret_type = NULL;
+    }
+
+  if (TARGET_VZEROUPPER && fnret_type)
+    {
+      rtx fnret_value = ix86_function_value (fnret_type, fntype,
+					     false);
+      if (function_pass_avx256_p (fnret_value))
+	{
+	  /* The return value of this function uses 256bit AVX modes.  */
+	  cfun->machine->use_avx256_p = true;
+	  if (caller)
+	    cfun->machine->callee_return_avx256_p = true;
+	  else
+	    cfun->machine->caller_return_avx256_p = true;
+	}
+    }
+
+  cum->caller = caller;
+
   /* Set up the number of registers to use for passing arguments.  */
 
   if (cum->call_abi == MS_ABI && !ACCUMULATE_OUTGOING_ARGS)
@@ -6488,6 +6896,7 @@ ix86_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode omode,
 {
   enum machine_mode mode = omode;
   HOST_WIDE_INT bytes, words;
+  rtx arg;
 
   if (mode == BLKmode)
     bytes = int_size_in_bytes (type);
@@ -6501,11 +6910,23 @@ ix86_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode omode,
     mode = type_natural_mode (type, cum);
 
   if (TARGET_64BIT && (cum ? cum->call_abi : ix86_abi) == MS_ABI)
-    return function_arg_ms_64 (cum, mode, omode, named, bytes);
+    arg = function_arg_ms_64 (cum, mode, omode, named, bytes);
   else if (TARGET_64BIT)
-    return function_arg_64 (cum, mode, omode, type, named);
+    arg = function_arg_64 (cum, mode, omode, type, named);
   else
-    return function_arg_32 (cum, mode, omode, type, bytes, words);
+    arg = function_arg_32 (cum, mode, omode, type, bytes, words);
+
+  if (TARGET_VZEROUPPER && function_pass_avx256_p (arg))
+    {
+      /* This argument uses 256bit AVX modes.  */
+      cfun->machine->use_avx256_p = true;
+      if (cum->caller)
+	cfun->machine->callee_pass_avx256_p = true;
+      else
+	cfun->machine->caller_pass_avx256_p = true;
+    }
+
+  return arg;
 }
 
 /* A C expression that indicates when an argument must be passed by
@@ -6551,10 +6972,12 @@ ix86_pass_by_reference (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
   return 0;
 }
 
-/* Return true when TYPE should be 128bit aligned for 32bit argument passing
-   ABI.  */
+/* Return true when TYPE should be 128bit aligned for 32bit argument
+   passing ABI.  XXX: This function is obsolete and is only used for
+   checking psABI compatibility with previous versions of GCC.  */
+
 static bool
-contains_aligned_value_p (const_tree type)
+ix86_compat_aligned_value_p (const_tree type)
 {
   enum machine_mode mode = TYPE_MODE (type);
   if (((TARGET_SSE && SSE_REG_MODE_P (mode))
@@ -6581,7 +7004,7 @@ contains_aligned_value_p (const_tree type)
 	    for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
 	      {
 		if (TREE_CODE (field) == FIELD_DECL
-		    && contains_aligned_value_p (TREE_TYPE (field)))
+		    && ix86_compat_aligned_value_p (TREE_TYPE (field)))
 		  return true;
 	      }
 	    break;
@@ -6589,7 +7012,7 @@ contains_aligned_value_p (const_tree type)
 
 	case ARRAY_TYPE:
 	  /* Just for use if some languages passes arrays by value.  */
-	  if (contains_aligned_value_p (TREE_TYPE (type)))
+	  if (ix86_compat_aligned_value_p (TREE_TYPE (type)))
 	    return true;
 	  break;
 
@@ -6600,9 +7023,13 @@ contains_aligned_value_p (const_tree type)
   return false;
 }
 
+/* Return the alignment boundary for MODE and TYPE with alignment ALIGN.
+   XXX: This function is obsolete and is only used for checking psABI
+   compatibility with previous versions of GCC.  */
+
 static int
-ix86_old_function_arg_boundary (enum machine_mode mode, const_tree type,
-				int align)
+ix86_compat_function_arg_boundary (enum machine_mode mode,
+				   const_tree type, int align)
 {
   /* In 32bit, only _Decimal128 and __float128 are aligned to their
      natural boundaries.  */
@@ -6622,13 +7049,66 @@ ix86_old_function_arg_boundary (enum machine_mode mode, const_tree type,
 	}
       else
 	{
-	  if (!contains_aligned_value_p (type))
+	  if (!ix86_compat_aligned_value_p (type))
 	    align = PARM_BOUNDARY;
 	}
     }
   if (align > BIGGEST_ALIGNMENT)
     align = BIGGEST_ALIGNMENT;
   return align;
+}
+
+/* Return true when TYPE should be 128bit aligned for 32bit argument
+   passing ABI.  */
+
+static bool
+ix86_contains_aligned_value_p (const_tree type)
+{
+  enum machine_mode mode = TYPE_MODE (type);
+
+  if (mode == XFmode || mode == XCmode)
+    return false;
+
+  if (TYPE_ALIGN (type) < 128)
+    return false;
+
+  if (AGGREGATE_TYPE_P (type))
+    {
+      /* Walk the aggregates recursively.  */
+      switch (TREE_CODE (type))
+	{
+	case RECORD_TYPE:
+	case UNION_TYPE:
+	case QUAL_UNION_TYPE:
+	  {
+	    tree field;
+
+	    /* Walk all the structure fields.  */
+	    for (field = TYPE_FIELDS (type);
+		 field;
+		 field = DECL_CHAIN (field))
+	      {
+		if (TREE_CODE (field) == FIELD_DECL
+		    && ix86_contains_aligned_value_p (TREE_TYPE (field)))
+		  return true;
+	      }
+	    break;
+	  }
+
+	case ARRAY_TYPE:
+	  /* Just for use if some languages passes arrays by value.  */
+	  if (ix86_contains_aligned_value_p (TREE_TYPE (type)))
+	    return true;
+	  break;
+
+	default:
+	  gcc_unreachable ();
+	}
+    }
+  else
+    return TYPE_ALIGN (type) >= 128;
+
+  return false;
 }
 
 /* Gives the alignment boundary, in bits, of an argument with the
@@ -6654,13 +7134,25 @@ ix86_function_arg_boundary (enum machine_mode mode, const_tree type)
       static bool warned;
       int saved_align = align;
 
-      if (!TARGET_64BIT && align < 128)
-	align = PARM_BOUNDARY;
+      if (!TARGET_64BIT)
+	{
+	  /* i386 ABI defines XFmode arguments to be 4 byte aligned.  */
+	  if (!type)
+	    {
+	      if (mode == XFmode || mode == XCmode)
+		align = PARM_BOUNDARY;
+	    }
+	  else if (!ix86_contains_aligned_value_p (type))
+	    align = PARM_BOUNDARY;
+
+	  if (align < 128)
+	    align = PARM_BOUNDARY;
+	}
 
       if (warn_psabi
 	  && !warned
-	  && align != ix86_old_function_arg_boundary (mode, type,
-						      saved_align))
+	  && align != ix86_compat_function_arg_boundary (mode, type,
+							 saved_align))
 	{
 	  warned = true;
 	  inform (input_location,
@@ -8462,17 +8954,25 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
   gcc_assert (preferred_alignment >= STACK_BOUNDARY / BITS_PER_UNIT);
   gcc_assert (preferred_alignment <= stack_alignment_needed);
 
+  /* For SEH we have to limit the amount of code movement into the prologue.
+     At present we do this via a BLOCKAGE, at which point there's very little
+     scheduling that can be done, which means that there's very little point
+     in doing anything except PUSHs.  */
+  if (TARGET_SEH)
+    cfun->machine->use_fast_prologue_epilogue = false;
+
   /* During reload iteration the amount of registers saved can change.
      Recompute the value as needed.  Do not recompute when amount of registers
      didn't change as reload does multiple calls to the function and does not
      expect the decision to change within single iteration.  */
-  if (!optimize_function_for_size_p (cfun)
-      && cfun->machine->use_fast_prologue_epilogue_nregs != frame->nregs)
+  else if (!optimize_function_for_size_p (cfun)
+           && cfun->machine->use_fast_prologue_epilogue_nregs != frame->nregs)
     {
       int count = frame->nregs;
       struct cgraph_node *node = cgraph_node (current_function_decl);
 
       cfun->machine->use_fast_prologue_epilogue_nregs = count;
+
       /* The fast prologue uses move instead of push to save registers.  This
          is significantly longer, but also executes faster as modern hardware
          can execute the moves in parallel, but can't do that for push/pop.
@@ -8514,7 +9014,9 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
   /* Skip saved base pointer.  */
   if (frame_pointer_needed)
     offset += UNITS_PER_WORD;
+  frame->hfp_save_offset = offset;
 
+  /* The traditional frame pointer location is at the top of the frame.  */
   frame->hard_frame_pointer_offset = offset;
 
   /* Register save area */
@@ -8597,6 +9099,27 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
   else
     frame->red_zone_size = 0;
   frame->stack_pointer_offset -= frame->red_zone_size;
+
+  /* The SEH frame pointer location is near the bottom of the frame.
+     This is enforced by the fact that the difference between the
+     stack pointer and the frame pointer is limited to 240 bytes in
+     the unwind data structure.  */
+  if (TARGET_SEH)
+    {
+      HOST_WIDE_INT diff;
+
+      /* If we can leave the frame pointer where it is, do so.  */
+      diff = frame->stack_pointer_offset - frame->hard_frame_pointer_offset;
+      if (diff > 240 || (diff & 15) != 0)
+	{
+	  /* Ideally we'd determine what portion of the local stack frame
+	     (within the constraint of the lowest 240) is most heavily used.
+	     But without that complication, simply bias the frame pointer
+	     by 128 bytes so as to maximize the amount of the local stack
+	     frame that is addressable with 8-bit offsets.  */
+	  frame->hard_frame_pointer_offset = frame->stack_pointer_offset - 128;
+	}
+    }
 }
 
 /* This is semi-inlined memory_address_length, but simplified
@@ -9529,7 +10052,8 @@ ix86_expand_prologue (void)
       /* Check if profiling is active and we shall use profiling before
          prologue variant. If so sorry.  */
       if (crtl->profile && flag_fentry != 0)
-        sorry ("ms_hook_prologue attribute isn't compatible with -mfentry for 32-bit");
+        sorry ("ms_hook_prologue attribute isn't compatible "
+	       "with -mfentry for 32-bit");
 
       /* In ix86_asm_output_function_label we emitted:
 	 8b ff     movl.s %edi,%edi
@@ -9658,14 +10182,16 @@ ix86_expand_prologue (void)
       insn = emit_insn (gen_push (hard_frame_pointer_rtx));
       RTX_FRAME_RELATED_P (insn) = 1;
 
-      insn = emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx);
-      RTX_FRAME_RELATED_P (insn) = 1;
+      if (m->fs.sp_offset == frame.hard_frame_pointer_offset)
+	{
+	  insn = emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx);
+	  RTX_FRAME_RELATED_P (insn) = 1;
 
-      if (m->fs.cfa_reg == stack_pointer_rtx)
-        m->fs.cfa_reg = hard_frame_pointer_rtx;
-      gcc_assert (m->fs.sp_offset == frame.hard_frame_pointer_offset);
-      m->fs.fp_offset = m->fs.sp_offset;
-      m->fs.fp_valid = true;
+	  if (m->fs.cfa_reg == stack_pointer_rtx)
+	    m->fs.cfa_reg = hard_frame_pointer_rtx;
+	  m->fs.fp_offset = m->fs.sp_offset;
+	  m->fs.fp_valid = true;
+	}
     }
 
   int_registers_saved = (frame.nregs == 0);
@@ -9818,12 +10344,15 @@ ix86_expand_prologue (void)
       insn = emit_insn (adjust_stack_insn (stack_pointer_rtx,
 					   stack_pointer_rtx, eax));
 
-      if (m->fs.cfa_reg == stack_pointer_rtx)
+      /* Note that SEH directives need to continue tracking the stack
+	 pointer even after the frame pointer has been set up.  */
+      if (m->fs.cfa_reg == stack_pointer_rtx || TARGET_SEH)
 	{
-	  m->fs.cfa_offset += allocate;
+	  if (m->fs.cfa_reg == stack_pointer_rtx)
+	    m->fs.cfa_offset += allocate;
 
 	  RTX_FRAME_RELATED_P (insn) = 1;
-	  add_reg_note (insn, REG_CFA_ADJUST_CFA,
+	  add_reg_note (insn, REG_FRAME_RELATED_EXPR,
 			gen_rtx_SET (VOIDmode, stack_pointer_rtx,
 				     plus_constant (stack_pointer_rtx,
 						    -allocate)));
@@ -9844,6 +10373,22 @@ ix86_expand_prologue (void)
 	}
     }
   gcc_assert (m->fs.sp_offset == frame.stack_pointer_offset);
+
+  /* If we havn't already set up the frame pointer, do so now.  */
+  if (frame_pointer_needed && !m->fs.fp_valid)
+    {
+      insn = ix86_gen_add3 (hard_frame_pointer_rtx, stack_pointer_rtx,
+			    GEN_INT (frame.stack_pointer_offset
+				     - frame.hard_frame_pointer_offset));
+      insn = emit_insn (insn);
+      RTX_FRAME_RELATED_P (insn) = 1;
+      add_reg_note (insn, REG_CFA_ADJUST_CFA, NULL);
+
+      if (m->fs.cfa_reg == stack_pointer_rtx)
+	m->fs.cfa_reg = hard_frame_pointer_rtx;
+      m->fs.fp_offset = frame.hard_frame_pointer_offset;
+      m->fs.fp_valid = true;
+    }
 
   if (!int_registers_saved)
     ix86_emit_save_regs_using_mov (frame.reg_save_offset);
@@ -9914,6 +10459,11 @@ ix86_expand_prologue (void)
   /* Emit cld instruction if stringops are used in the function.  */
   if (TARGET_CLD && ix86_current_function_needs_cld)
     emit_insn (gen_cld ());
+
+  /* SEH requires that the prologue end within 256 bytes of the start of
+     the function.  Prevent instruction schedules that would extend that.  */
+  if (TARGET_SEH)
+    emit_insn (gen_blockage ());
 }
 
 /* Emit code to restore REG using a POP insn.  */
@@ -10138,13 +10688,16 @@ ix86_expand_epilogue (int style)
   if (crtl->calls_eh_return && style != 2)
     frame.reg_save_offset -= 2 * UNITS_PER_WORD;
 
+  /* EH_RETURN requires the use of moves to function properly.  */
+  if (crtl->calls_eh_return)
+    restore_regs_via_mov = true;
+  /* SEH requires the use of pops to identify the epilogue.  */
+  else if (TARGET_SEH)
+    restore_regs_via_mov = false;
   /* If we're only restoring one register and sp is not valid then
      using a move instruction to restore the register since it's
      less work than reloading sp and popping the register.  */
-  if (!m->fs.sp_valid && frame.nregs <= 1)
-    restore_regs_via_mov = true;
-  /* EH_RETURN requires the use of moves to function properly.  */
-  else if (crtl->calls_eh_return)
+  else if (!m->fs.sp_valid && frame.nregs <= 1)
     restore_regs_via_mov = true;
   else if (TARGET_EPILOGUE_USING_MOVE
 	   && cfun->machine->use_fast_prologue_epilogue
@@ -10256,6 +10809,22 @@ ix86_expand_epilogue (int style)
     }
   else
     {
+      /* SEH requires that the function end with (1) a stack adjustment
+	 if necessary, (2) a sequence of pops, and (3) a return or
+	 jump instruction.  Prevent insns from the function body from
+	 being scheduled into this sequence.  */
+      if (TARGET_SEH)
+	{
+	  /* Prevent a catch region from being adjacent to the standard
+	     epilogue sequence.  Unfortuantely crtl->uses_eh_lsda nor
+	     several other flags that would be interesting to test are
+	     not yet set up.  */
+	  if (flag_non_call_exceptions)
+	    emit_insn (gen_nops (const1_rtx));
+	  else
+	    emit_insn (gen_blockage ());
+	}
+
       /* First step is to deallocate the stack frame so that we can
 	 pop the registers.  */
       if (!m->fs.sp_valid)
@@ -10283,7 +10852,7 @@ ix86_expand_epilogue (int style)
     {
       /* If the stack pointer is valid and pointing at the frame
 	 pointer store address, then we only need a pop.  */
-      if (m->fs.sp_valid && m->fs.sp_offset == frame.hard_frame_pointer_offset)
+      if (m->fs.sp_valid && m->fs.sp_offset == frame.hfp_save_offset)
 	ix86_emit_restore_reg_using_pop (hard_frame_pointer_rtx);
       /* Leave results in shorter dependency chains on CPUs that are
 	 able to grok it fast.  */
@@ -10351,6 +10920,15 @@ ix86_expand_epilogue (int style)
     {
       m->fs = frame_state_save;
       return;
+    }
+
+  /* Emit vzeroupper if needed.  */
+  if (TARGET_VZEROUPPER
+      && cfun->machine->use_avx256_p
+      && !cfun->machine->caller_return_avx256_p)
+    {
+      cfun->machine->use_vzeroupper_p = 1;
+      emit_insn (gen_avx_vzeroupper (GEN_INT (call_no_avx256))); 
     }
 
   if (crtl->args.pops_args && crtl->args.size)
@@ -15011,6 +15589,13 @@ ix86_expand_binary_operator (enum rtx_code code, enum machine_mode mode,
       /* Reload doesn't know about the flags register, and doesn't know that
          it doesn't want to clobber it.  We can only do this with PLUS.  */
       gcc_assert (code == PLUS);
+      emit_insn (op);
+    }
+  else if (reload_completed
+	   && code == PLUS
+	   && !rtx_equal_p (dst, src1))
+    {
+      /* This is going to be an LEA; avoid splitting it later.  */
       emit_insn (op);
     }
   else
@@ -20910,6 +21495,25 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
 			       + 2, vec));
     }
 
+  /* Emit vzeroupper if needed.  */
+  if (TARGET_VZEROUPPER && cfun->machine->use_avx256_p)
+    {
+      int avx256;
+      cfun->machine->use_vzeroupper_p = 1;
+      if (cfun->machine->callee_pass_avx256_p)
+	{
+	  if (cfun->machine->callee_return_avx256_p)
+	    avx256 = callee_return_pass_avx256;
+	  else
+	    avx256 = callee_pass_avx256;
+	}
+      else if (cfun->machine->callee_return_avx256_p)
+	avx256 = callee_return_avx256;
+      else
+	avx256 = call_no_avx256;
+      emit_insn (gen_avx_vzeroupper (GEN_INT (avx256))); 
+    }
+
   call = emit_call_insn (call);
   if (use)
     CALL_INSN_FUNCTION_USAGE (call) = use;
@@ -20917,6 +21521,73 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
   return call;
 }
 
+/* Output the assembly for a call instruction.  */
+
+const char *
+ix86_output_call_insn (rtx insn, rtx call_op, int addr_op)
+{
+  bool direct_p = constant_call_address_operand (call_op, Pmode);
+  bool seh_nop_p = false;
+
+  gcc_assert (addr_op == 0 || addr_op == 1);
+
+  if (SIBLING_CALL_P (insn))
+    {
+      if (direct_p)
+	return addr_op ? "jmp\t%P1" : "jmp\t%P0";
+      /* SEH epilogue detection requires the indirect branch case
+	 to include REX.W.  */
+      else if (TARGET_SEH)
+	return addr_op ? "rex.W jmp %A1" : "rex.W jmp %A0";
+      else
+	return addr_op ? "jmp\t%A1" : "jmp\t%A0";
+    }
+
+  /* SEH unwinding can require an extra nop to be emitted in several
+     circumstances.  Determine if we have one of those.  */
+  if (TARGET_SEH)
+    {
+      rtx i;
+
+      for (i = NEXT_INSN (insn); i ; i = NEXT_INSN (i))
+	{
+	  /* If we get to another real insn, we don't need the nop.  */
+	  if (INSN_P (i))
+	    break;
+
+	  /* If we get to the epilogue note, prevent a catch region from
+	     being adjacent to the standard epilogue sequence.  If non-
+	     call-exceptions, we'll have done this during epilogue emission. */
+	  if (NOTE_P (i) && NOTE_KIND (i) == NOTE_INSN_EPILOGUE_BEG
+	      && !flag_non_call_exceptions
+	      && !can_throw_internal (insn))
+	    {
+	      seh_nop_p = true;
+	      break;
+	    }
+	}
+
+      /* If we didn't find a real insn following the call, prevent the
+	 unwinder from looking into the next function.  */
+      if (i == NULL)
+	seh_nop_p = true;
+    }
+
+  if (direct_p)
+    {
+      if (seh_nop_p)
+	return addr_op ? "call\t%P1\n\tnop" : "call\t%P0\n\tnop";
+      else
+	return addr_op ? "call\t%P1" : "call\t%P0";
+    }
+  else
+    {
+      if (seh_nop_p)
+	return addr_op ? "call\t%A1\n\tnop" : "call\t%A0\n\tnop";
+      else
+	return addr_op ? "call\t%A1" : "call\t%A0";
+    }
+}
 
 /* Clear stack slot assignments remembered from previous functions.
    This is called from INIT_EXPANDERS once before RTL is emitted for each
@@ -21653,6 +22324,9 @@ ix86_local_alignment (tree exp, enum machine_mode mode,
       decl = NULL;
     }
 
+  if (use_avx256_p (mode, type))
+    cfun->machine->use_avx256_p = true;
+
   /* Don't do dynamic stack realignment for long long objects with
      -mpreferred-stack-boundary=2.  */
   if (!TARGET_64BIT
@@ -21748,9 +22422,6 @@ ix86_minimum_alignment (tree exp, enum machine_mode mode,
 {
   tree type, decl;
 
-  if (TARGET_64BIT || align != 64 || ix86_preferred_stack_boundary >= 64)
-    return align;
-
   if (exp && DECL_P (exp))
     {
       type = TREE_TYPE (exp);
@@ -21761,6 +22432,12 @@ ix86_minimum_alignment (tree exp, enum machine_mode mode,
       type = exp;
       decl = NULL;
     }
+
+  if (use_avx256_p (mode, type))
+    cfun->machine->use_avx256_p = true;
+
+  if (TARGET_64BIT || align != 64 || ix86_preferred_stack_boundary >= 64)
+    return align;
 
   /* Don't do dynamic stack realignment for long long objects with
      -mpreferred-stack-boundary=2.  */
@@ -25505,6 +26182,8 @@ ix86_expand_special_args_builtin (const struct builtin_description *d,
   switch ((enum ix86_builtin_func_type) d->flag)
     {
     case VOID_FTYPE_VOID:
+      if (icode == CODE_FOR_avx_vzeroupper)
+	target = GEN_INT (vzeroupper_intrinsic);
       emit_insn (GEN_FCN (icode) (target));
       return 0;
     case VOID_FTYPE_UINT64:
@@ -28542,6 +29221,10 @@ ix86_reorg (void)
 	ix86_avoid_jump_mispredicts ();
 #endif
     }
+
+  /* Run the vzeroupper optimization if needed.  */
+  if (cfun->machine->use_vzeroupper_p)
+    move_or_delete_vzeroupper ();
 }
 
 /* Return nonzero when QImode register that must be represented via REX prefix

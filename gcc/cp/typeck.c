@@ -2595,7 +2595,7 @@ finish_class_member_access_expr (tree object, tree name, bool template_p,
     }
   else if (c_dialect_objc ()
 	   && TREE_CODE (name) == IDENTIFIER_NODE
-	   && (expr = objc_build_getter_call (object, name)))
+	   && (expr = objc_maybe_build_component_ref (object, name)))
     return expr;
     
   /* [expr.ref]
@@ -6764,7 +6764,7 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	{
 	  if (c_dialect_objc ())
 	    {
-	      result = objc_build_setter_call (lhs, rhs);
+	      result = objc_maybe_build_modify_expr (lhs, rhs);
 	      if (result)
 		return result;
 	    }
@@ -6809,7 +6809,7 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	  modifycode = NOP_EXPR;
 	  if (c_dialect_objc ())
 	    {
-	      result = objc_build_setter_call (lhs, newrhs);
+	      result = objc_maybe_build_modify_expr (lhs, newrhs);
 	      if (result)
 		return result;
 	    }
@@ -7529,8 +7529,7 @@ convert_for_assignment (tree type, tree rhs,
       && TREE_CODE (TREE_TYPE (rhs)) != BOOLEAN_TYPE
       && (complain & tf_warning))
     {
-      location_t loc = EXPR_HAS_LOCATION (rhs) 
-	? EXPR_LOCATION (rhs) : input_location;
+      location_t loc = EXPR_LOC_OR_HERE (rhs);
 
       warning_at (loc, OPT_Wparentheses,
 		  "suggest parentheses around assignment used as truth value");
