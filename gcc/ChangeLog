@@ -1,3 +1,155 @@
+2010-11-01  Jason Merrill  <jason@redhat.com>
+
+	* fold-const.c (fold_indirect_ref_1): Handle folding
+	POINTER_PLUS_EXPR to ARRAY_REF.
+
+2010-11-01  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (TARGET_DELEGITIMIZE_ADDRESS): Redefine.
+	(sh_delegitimize_address): New function.
+
+2010-11-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/alpha/alpha.h (WORD_SWITCH_TAKES_ARG): Remove.
+	* config/cris/cris.h (WORD_SWITCH_TAKES_ARG): Remove.
+	(CC1_SPEC): Don't handle -target.
+	* config/darwin.h (WORD_SWITCH_TAKES_ARG): Remove single-argument
+	options.
+	* config/darwin.opt (Zallowable_client, Zbundle_loader,
+	Zdylib_file, Zexported_symbols_list, Zfn_seg_addr_table_filename,
+	Zimage_base, Zinit, Zinstall_name, Zmultiply_defined,
+	Zmultiplydefinedunused, Zseg_addr_table, Zsegs_read_only_addr,
+	Zsegs_read_write_addr, Zumbrella, Zunexported_symbols_list,
+	Zweak_reference_mismatches, client_name, compatibility_version,
+	current_version, dylinker_install_name, pagezero_size,
+	read_only_relocs, seg1addr, segs_read_only_addr,
+	segs_read_write_addr, sub_library, sub_umbrella): New.
+	* config/freebsd-spec.h (BSD_WORD_SWITCH_TAKES_ARG): Remove.
+	* config/freebsd.h (WORD_SWITCH_TAKES_ARG): Remove.
+	* config/freebsd.opt: New.
+	* config/interix.h (WORD_SWITCH_TAKES_ARG): Remove.
+	* config/mips/iris6.h (WORD_SWITCH_TAKES_ARG): Remove.
+	* config/rpath.opt: New.
+	* config.gcc (*-*-freebsd*): Use rpath.opt and freebsd.opt.
+	(alpha*-dec-osf5.1*, i[34567]86-*-interix3*, mips-sgi-irix6.5*):
+	Use rpath.opt.
+
+2010-11-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt (R, T, Tbss, Tdata, Ttext, h, z): New.
+	* defaults.h (DEFAULT_SWITCH_TAKES_ARG, SWITCH_TAKES_ARG): Remove.
+	(DEFAULT_WORD_SWITCH_TAKES_ARG): Define to 0.
+	* doc/tm.texi.in (SWITCH_TAKES_ARG): Remove.
+	(WORD_SWITCH_TAKES_ARG): Don't refer to SWITCH_TAKES_ARG.
+	Document that options in .opt files do not need to be included.
+	* doc/tm.texi: Regenerate.
+	* gcc.c (LINK_COMMAND_SPEC): Don't include %{x}.
+	* opts-common.c: Update comment on tm.h include.
+	(decode_cmdline_option): Don't use SWITCH_TAKES_ARG.
+	* system.h (SWITCH_TAKES_ARG): Poison.
+	* config/alpha/alpha.h (SWITCH_TAKES_ARG): Remove.
+	* config/darwin.h (WORD_SWITCH_TAKES_ARG): Remove options included
+	in darwin.opt.
+	(LINK_COMMAND_SPEC_A): Don't include %{x}.
+	* config/fr30/fr30.h (SWITCH_TAKES_ARG, WORD_SWITCH_TAKES_ARG):
+	Remove.
+	* config/freebsd-spec.h (FBSD_SWITCH_TAKES_ARG): Remove.
+	* config/freebsd.h (SWITCH_TAKES_ARG): Remove.
+	* config/frv/frv.h (SWITCH_TAKES_ARG, WORD_SWITCH_TAKES_ARG):
+	Remove.
+	* config/i386/djgpp.h (LINK_COMMAND_SPEC): Don't include %{x}.
+	* config/ia64/ia64.h (SWITCH_TAKES_ARG): Remove.
+	* config/interix.h (WORD_SWITCH_TAKES_ARG): Don't handle -T
+	options.
+	* config/lm32/lm32.h (SWITCH_TAKES_ARG): Remove.
+	* config/m32r/m32r.h (SWITCH_TAKES_ARG, WORD_SWITCH_TAKES_ARG):
+	Remove.
+	* config/microblaze/microblaze.h (SWITCH_TAKES_ARG): Remove.
+	* config/mips/mips.h (SWITCH_TAKES_ARG): Remove.
+	* config/mips/netbsd.h (SWITCH_TAKES_ARG): Remove.
+	* config/mips/vxworks.h (SWITCH_TAKES_ARG): Remove.
+	* config/netbsd-aout.h (SWITCH_TAKES_ARG): Remove.
+	* config/netbsd-elf.h (SWITCH_TAKES_ARG): Remove.
+	* config/openbsd.h (SWITCH_TAKES_ARG): Remove.
+	* config/rs6000/sysv4.h (SWITCH_TAKES_ARG): Remove.
+	* config/score/score.h (SWITCH_TAKES_ARG): Remove.
+	* config/sol2.h (SWITCH_TAKES_ARG): Remove.
+	* config/sparc/sp-elf.h (SWITCH_TAKES_ARG): Remove.
+	* config/sparc/sp64-elf.h (SWITCH_TAKES_ARG): Remove.
+	* config/sparc/sparc.h (ASM_SPEC): Don't include %{R}.
+	* config/svr4.h (SWITCH_TAKES_ARG, WORD_SWITCH_TAKES_ARG): Remove.
+
+2010-11-01  Paul Koning  <ni1d@arrl.net>
+
+	* config/pdp11/pdp11.md: Use iterators.
+	(addqi3, subqi3, iorsi3, xorsi3): Delete. 
+	
+2010-11-01  Steve Ellcey  <sje@cup.hp.com>
+
+	* defaults.h (TARGET_VTABLE_USES_DESCRIPTORS): Move under ifdef
+	GCC_INSN_FLAGS_H.
+	* libgcov.c (__gcov_indirect_call_profiler): Set
+	VTABLE_USES_DESCRIPTORS if TARGET_VTABLE_USES_DESCRIPTORS is
+	defined and use in place of TARGET_VTABLE_USES_DESCRIPTORS.
+
+2010-11-01  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR tree-optimization/46259
+
+	Revert:
+
+	2010-10-30  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree-vect-stmts.c (vect_get_vec_def_for_operand): Use
+	build_vector_from_val.
+
+2010-11-01  DJ Delorie  <dj@redhat.com>
+
+	* config/rx/rx.h (TARGET_CPU_CPP_BUILTINS): Add define for RX610
+	as well as an assertion.
+
+2010-11-01  Paul Koning  <ni1d@arrl.net>
+
+	* config/pdp11/pdp11.c (pdp11_return_in_memory): Return vector and
+	complex modes in memory.
+
+2010-11-01  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.c (build_vector_from_val): Use useless_type_conversion_p.
+
+2010-11-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/45250
+	* var-tracking.c (cfa_base_rtx): Move definition earlier in the file.
+	(cfa_base_offset): New variable.
+	(compute_cfa_pointer): Use cfa_base_rtx and cfa_base_offset.
+	(adjust_mems): Don't do any sp or hfp replacements if cfa_base_rtx
+	is NULL.
+	(vt_init_cfa_base): Initialize cfa_base_offset.
+
+2010-11-01  Alan Modra  <amodra@gmail.com>
+
+	PR target/46030
+	* config/rs6000/rs6000.c (struct rs6000_stack): Add reload_completed
+	and savres_strategy.
+	(stack_info): New file scope var.
+	(rs6000_init_machine_status): Init stack_info.
+	(SAVRES_INLINE_FPRS, SAVRES_INLINE_GPRS,
+	SAVRES_NOINLINE_GPRS_SAVES_LR, SAVRES_NOINLINE_FPRS_SAVES_LR,
+	SAVRES_NOINLINE_FPRS_DOESNT_RESTORE_LR): Replace with..
+	(SAVE_INLINE_FPRS, SAVE_INLINE_GPRS, REST_INLINE_FPRS, REST_INLINE_GPRS,
+	SAVE_NOINLINE_GPRS_SAVES_LR, SAVE_NOINLINE_FPRS_SAVES_LR
+	REST_NOINLINE_FPRS_DOESNT_RESTORE_LR): ..this.  Update all refs.
+	(rs6000_savres_strategy): Rewrite.
+	(rs6000_stack_info): Use "stack_info" in place of local "info".
+	Return cached stack info when reload_completed unless ENABLE_CHECKING
+	in which case confirm newly calculated stack info matches old info.
+	Delay calculation of lr_save_p, set it for out of line gp save/restore
+	as well as fp.  Call rs6000_savres_strategy from here..
+	(rs6000_emit_prologue, rs6000_emit_epilogue): ..rather than here.
+	(rs6000_output_function_prologue): Use info->savres_strategy to
+	determine whether fp save/restore externs need to be emitted.
+
 2010-10-31  Jason Merrill  <jason@redhat.com>
 
 	* tree.h (EXPR_LOC_OR_HERE): New macro.
@@ -3395,14 +3547,6 @@
 	* doc/objc.texi (Fast enumeration protocol): Mention that
 	'unsigned int' can also be used instead of 'unsigned long' in
 	countByEnumeratingWithState:objects:count:.
-
-2009-12-15  Gabriel Dos Reis  <gdr@cse.tamu.edu>
-
-	* tree.h (VAR_DECL_P): New predicate macro.
-	(FUNCTION_DECL_P): Likewise.
-	(tree_base::lang_flag_7): New language flag.
-	(tree_base::spare): Decrease precision by one.
-	(TREE_LANG_FLAG_7): New.
 
 2010-10-07  Martin Jambor  <mjambor@suse.cz>
 

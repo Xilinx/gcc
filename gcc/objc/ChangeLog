@@ -1,3 +1,45 @@
+2010-11-01  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented format and noreturn attributes for Objective-C methods.
+	* objc-act.c (objc_start_method_definition): If method attributes
+	are specified emit a warning and ignore them.
+	(build_objc_method_call): Moved deprecation warnings from here ...
+	(objc_finish_message_expr): to here.  Do not emit deprecation
+	warnings if the receiver is of type 'id'.
+	(really_start_method): Install 'deprecation' and 'noreturn'
+	attributes.
+	(objc_decl_method_attributes): Carefully filter out the list of
+	attributes, allowing only "noreturn", "format", "sentinel" and
+	"deprecated".  In the case of "format", adjust the arguments.
+	Always process the attributes in the same way no matter if
+	"sentinel" is in the list or not.
+	
+2010-11-01  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-act.c (objc_maybe_build_component_ref): Warn about using
+	deprecated properties.
+	(objc_maybe_printable_name): Support PROPERTY_DECL.
+	
+2010-11-01  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented Objective-C 2.0 property accessors.	
+	* objc-act.h (enum objc_tree_index): Added OCTI_GET_PROPERTY_DECL,
+	OCTI_SET_PROPERTY_DECL, OCTI_COPY_STRUCT_DECL,
+	OCTI_GET_PROPERTY_STRUCT_DECL and OCTI_SET_PROPERTY_STRUCT_DECL.
+	(objc_getProperty_decl): New.
+	(objc_setProperty_decl): New.
+	(objc_copyStruct_decl): New.
+	(objc_getPropertyStruct_decl): New.
+	(objc_setPropertyStruct_decl): New.
+	* objc-act.c (build_objc_property_accessor_helpers): New.
+	(synth_module_prologue): Call
+	build_objc_property_accessor_helpers.
+	(lookup_ivar): New.
+	(objc_synthesize_getter): Implemented synthesizing getters that
+	work with properties that are not nonatomic, assign properties.
+	(objc_synthesize_setter): Implemented synthesizing setters that
+	work with properties that are not nonatomic, assign properties.
+	
 2010-10-30  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	Implemented Objective-C 2.0 @property, @synthesize and @dynamic.

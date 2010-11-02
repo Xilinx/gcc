@@ -1,3 +1,9 @@
+2010-11-01  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented format and noreturn attributes for Objective-C methods.
+	* c-common.c (handle_noreturn_attribute): Recognize 'noreturn'
+	attribute for Objective-C methods.
+
 2010-10-31  Jason Merrill  <jason@redhat.com>
 
 	* c-common.c (conversion_warning, warn_for_collisions_1): Use
@@ -176,12 +182,6 @@
 	* c-common.h (c_common_init_options_struct): Declare.
 	* c-opts.c (c_common_init_options_struct): New.  Split out from
 	c_common_init_options.
-
-2010-10-20  Jason Merrill  <jason@redhat.com>
-
-	* c-common.c (check_case_value): Remove special C++ handling.
-
-	* c-common.c (c_common_reswords): Add __is_literal_type.
 
 2010-10-06  Nicola Pero  <nicola.pero@meta-innovation.com>
 

@@ -1,11 +1,63 @@
-2010-10-23  Benjamin Kosnik  <bkoz@redhat.com>
+2010-11-01  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/chrono: Extend constexpr application.
+	* testsuite/util/testsuite_common_types.h
+	(constexpr_default_constructible, constexpr_single_value_constructible)
+	: Add comments about implied constraints.
+	* testsuite/20_util/duration/cons/constexpr.cc: Activate all tests.
+	* testsuite/20_util/time_point/cons/constexpr.cc: Same.
+	* testsuite/20_util/time_point/requirements/constexpr_functions.cc:
+	Same.
+	* testsuite/20_util/ratio/cons/cons_overflow_neg.cc: Adjust line
+	numbers.
+	* testsuite/20_util/time_point_cast/constexpr.cc: New.
+
+	* include/std/bitset: Use __SIZEOF_* macros to re-create original
+	logic instead of slipshod application of
+	std::numeric_limits<T>::max() macros.
+	* testsuite/util/testsuite_common_types.h
+	(constexpr_default_constructible): Modify.
+
+	* include/std/chrono: Tested constexpr.
+	* testsuite/20_util/duration_cast/constexpr.cc: New.
+	* testsuite/20_util/time_point/cons/constexpr.cc: New.
+
+	* testsuite/20_util/duration/cons/constexpr.cc: Add single_value tests.
+	* testsuite/20_util/duration/requirements/typedefs_neg1.cc: Adjust
+	line numbers.
+	* testsuite/20_util/duration/requirements/typedefs_neg2.cc: Same.
+	* testsuite/20_util/duration/requirements/typedefs_neg3.cc: Same.
+	* testsuite/20_util/time_point/cons/constexpr.cc: Add single_value
+	tests.
+	* testsuite/20_util/time_point/requirements/constexpr_functions.cc: Add.
+
+	* testsuite/util/testsuite_common_types.h: Adjust init.
+
+	* include/std/chrono (duration): Remove defaulted constructor,
+	replace with mem-init list.
+	* testsuite/20_util/duration/cons/constexpr.cc: Add single value.
+	* testsuite/20_util/duration/requirements/constexpr_functions.cc:
+	Add non-static member functions.
+
+	* testsuite/20_util/default_delete/cons/constexpr.cc: New, xfail.
+	* testsuite/20_util/enable_shared_from_this/cons/constexpr.cc: Same.
+	* testsuite/20_util/shared_ptr/cons/constexpr.cc: Same.
+	* testsuite/20_util/time_point/requirements/constexpr_functions.cc:
+	Same.
+	* testsuite/20_util/unique_ptr/cons/constexpr.cc: Same.
+	* testsuite/20_util/weak_ptr/cons/constexpr.cc: Same.
+
+	* include/std/bitset: Add constexpr as per N3126 draft.
+	* testsuite/23_containers/bitset/cons/constexpr.cc: New.
+	* testsuite/23_containers/bitset/requirements/constexpr_functions.cc:
+	New.
+
+	* testsuite/util/testsuite_common_types.h: Reset condition.
 
 	* include/bits/random.h: Remove misleading comments.
 	* include/bits/regex.h: Add constexpr.
 	* testsuite/28_regex/05_constants/syntax_option_type.cc: Add tests.
 	* testsuite/28_regex/08_basic_regex/requirements/constexpr_data.cc: New.
-
-2010-10-22  Benjamin Kosnik  <bkoz@redhat.com>
 
 	PR libstdc++/46134
 	* include/std/chrono: Use default constructor.
@@ -16,8 +68,6 @@
 	* include/std/complex: Adjust complex specialization default
 	constructors for constexpr.
 	* testsuite/26_numerics/complex/cons/constexpr.cc: Enable tests.
-
-2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* include/bits/random.h: Adjust for constexpr as per N3126 draft.
 	* testsuite/26_numerics/random/discard_block_engine/requirements/
@@ -43,8 +93,6 @@
 	* testsuite/26_numerics/random/subtract_with_carry_engine/requirements/
 	constexpr_functions.cc: New.
 
-2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
-
 	* include/bits/stream_iterator.h: Add constexpr as per N3126 draft.
 	* include/bits/streambuf_iterator.h: Same.
 	* include/std/complex: Same.
@@ -54,24 +102,16 @@
 	* testsuite/26_numerics/complex/requirements/constexpr_functions.cc:
 	New.
 
-2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
-
 	* include/bits/char_traits.h: Add constexpr as per N3126 draft.
 	* testsuite/21_strings/char_traits/requirements/constexpr_functions.cc:
 	New.
-
-2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* include/tr1_impl/array: Add constexpr as per N3126 draft.
 	* testsuite/23_containers/array/requirements/
 	constexpr_functions.cc: New.
 
-2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
-
 	* include/bits/shared_ptr.h: Revert changes.
 	* include/bits/unique_ptr.h: Same.
-
-2010-10-20  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* include/std/chrono: Adjust.
 	* include/tr1_impl/type_traits: Same.
@@ -96,8 +136,6 @@
 	* testsuite/29_atomics/atomic_integral/cons/copy_neg.cc: Same.
 	* testsuite/29_atomics/atomic_integral/operators/bitwise_neg.cc: Same.
 
-2010-10-19  Benjamin Kosnik  <bkoz@redhat.com>
-
 	* include/bits/allocator.h: Add constexpr as per N3126 draft.
 	* include/bits/ios_base.h: Same.
 	* include/bits/shared_ptr.h: Same.
@@ -120,8 +158,6 @@
 	* doc/doxygen/user.cfg.in: Replace _GLIBCXX_USE_CONSTEXPR,
 	_GLIBCXX_CONSTEXPR for doxygen generation.
 
-2010-10-18  Benjamin Kosnik  <bkoz@redhat.com>
-
 	* src/limits.cc: Undef.
 	* testsuite/29_atomics/atomic/cons/constexpr.cc: Adjust.
 	* testsuite/29_atomics/atomic_address/cons/constexpr.cc: Same.
@@ -130,8 +166,6 @@
 	* testsuite/18_support/numeric_limits/constexpr.cc: To...
 	* testsuite/18_support/numeric_limits/requirements/
 	constexpr_data.cc, constexpr_functions.cc: ...this
-
-2010-10-15  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* testsuite/util/testsuite_common_types.h
 	(constexpr_single_value_constructible): Add.
@@ -150,15 +184,11 @@
 	* testsuite/29_atomics/atomic_integral/operators/decrement_neg.cc: Same.
 	* testsuite/29_atomics/atomic_integral/operators/increment_neg.cc: Same.
 
-2010-10-15  Benjamin Kosnik  <bkoz@redhat.com>
-
 	* include/bits/c++config (_GLIBCXX_CONSTEXPR): Add.
 	(_GLIBCXX_USE_CONSTEXPR): Add.
 	* include/std/limits: Use it.
 	* src/limits.cc: Adjust.
 	* testsuite/ext/profile/mutex_extensions.cc: Change line number.
-
-2010-10-15  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* include/bits/atomic_0.h: Rework for N3126 draft, add constexpr.
 	* include/bits/atomic_2.h: Same.
@@ -193,6 +223,21 @@
 	* testsuite/29_atomics/headers/stdatomic.h/types.c: Same.
 
 	* testsuite/util/testsuite_abi.cc: Add GLIBCXX_3.4.16.
+
+2010-11-01  Jason Merrill  <jason@redhat.com>
+
+	* libsupc++/initializer_list: Decorate with constexpr.
+
+2010-11-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/45999
+	* python/libstdcxx/v6/printers.py (StdVectorPrinter): Replace
+	conditional expression with backward-compatible if-else.
+
+2010-11-01  Jie Zhang  <jie@codesourcery.com>
+
+	* config/abi/pre/gnu.ver: Export __emutls_v._ZSt11__once_call
+	and __emutls_v._ZSt15__once_callable.
 
 2010-10-31  Paolo Carlini  <paolo.carlini@oracle.com>
 
@@ -1087,13 +1132,13 @@
 
 2010-09-03  François Dumont <francois.cppdevs@free.fr>
 
-	* testsuite/lib/libstdc++.exp ([check_v3_target_debug_mode]): Fix so
-	that it really detects when debug mode is activated.
-	* testsuite/util/debug/construct_neg.h, insert_neg.h, assign_neg.h:
-	Remove, content moved...
-	* testsuite/util/debug/checks.h: ... here. Modify checks to take the
+        * testsuite/lib/libstdc++.exp ([check_v3_target_debug_mode]): Fix so
+        that it really detects when debug mode is activated.
+        * testsuite/util/debug/construct_neg.h, insert_neg.h, assign_neg.h:
+        Remove, content moved...
+        * testsuite/util/debug/checks.h: ... here. Modify checks to take the
 	type of the container to test rather than an intermediate container
-	type traits helper.
+        type traits helper.
 	* testsuite/23_containers/unordered_map/debug/insert1_neg.cc: Update to
 	use dg-require-debug-mode when necessary and use new check functions.
 	* testsuite/23_containers/unordered_map/debug/construct1_neg.cc:
@@ -1310,89 +1355,89 @@
 
 2010-08-29  François Dumont  <francois.cppdevs@free.fr>
 
-	* include/bits/stl_algobase.h (_Iter_base):  Move...
-	* include/bits/stl_iterator_base_types.h: ...here.
-	* include/debug/functions.h (__check_valid_range, __check_string,
+        * include/bits/stl_algobase.h (_Iter_base):  Move...
+        * include/bits/stl_iterator_base_types.h: ...here.
+        * include/debug/functions.h (__check_valid_range, __check_string,
 	__check_sorted): Fix to not depend on _GLIBCXX_DEBUG; include
 	formatter.h and use formatting macros for a consistent debug result.
-	* include/debug/formatter.h (__check_singular): Declare; do not
+        * include/debug/formatter.h (__check_singular): Declare; do not
 	include debug.h.
-	* include/debug/debug.h: Do not include formatter.h.
-	* include/debug/safe_iterator.h (_Safe_iterator::_Base_Iterator)
-	rename to iterator_type.
+        * include/debug/debug.h: Do not include formatter.h.
+        * include/debug/safe_iterator.h (_Safe_iterator::_Base_Iterator)
+        rename to iterator_type.
 	(__gnu_debug::__base): Add.
-	* include/debug/set.h: Use everywhere __gnu_debug::__base once
+        * include/debug/set.h: Use everywhere __gnu_debug::__base once
 	iterator range valided.
-	* include/debug/unordered_map: Likewise.
-	* include/debug/multiset.h: Likewise.
-	* include/debug/vector: Likewise.
-	* include/debug/unordered_set: Likewise.
-	* include/debug/deque: Likewise.
-	* include/debug/map.h: Likewise.
-	* include/debug/string: Likewise.
-	* include/debug/list: Likewise.
-	* include/debug/multimap.h: Likewise.
-	* testsuite/23_containers/util/debug/assign_neg.h: New test cases on
-	debug checks performed on container assign operation.
-	* testsuite/23_containers/util/debug/construct_neg.h: New test cases
-	on debug checks on constructors.
-	* testsuite/23_containers/util/debug/insert_neg.h: New test cases on
-	debug checks performed on container insert operations.
-	* testsuite/23_containers/unordered_map/debug/cont_traits.h,
-	debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
-	construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
-	insert3_neg.cc, insert4_neg.cc: New.
-	* testsuite/23_containers/multimap/debug/cont_traits.h,
-	debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
-	construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
-	insert3_neg.cc, insert4_neg.cc: Likewise.
-	* testsuite/23_containers/set/debug/cont_traits.h,
-	debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
-	construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
-	insert3_neg.cc, insert4_neg.cc: Likewise.
-	* testsuite/23_containers/unordered_multimap/debug/cont_traits.h,
-	debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
-	construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
-	insert3_neg.cc, insert4_neg.cc: Likewise.
-	* testsuite/23_containers/unordered_set/debug/cont_traits.h,
-	debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
-	construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
-	insert3_neg.cc, insert4_neg.cc: Likewise.
-	* testsuite/23_containers/multiset/debug/cont_traits.h,
-	debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
-	construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
-	insert3_neg.cc, insert4_neg.cc: Likewise.
-	* testsuite/23_containers/unordered_multiset/debug/cont_traits.h,
-	debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
-	construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
-	insert3_neg.cc, insert4_neg.cc: Likewise.
-	* testsuite/23_containers/map/debug/cont_traits.h,
-	debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
-	construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
-	insert3_neg.cc, insert4_neg.cc: Likewise.
-	* testsuite/23_containers/vector/debug/cont_traits.h,
-	debug_cont_traits.h, assign1_neg.cc, assign2_neg.cc, assign3_neg.cc,
-	assign4_neg.cc, construct1_neg.cc, construct2_neg.cc,
-	construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
-	insert3_neg.cc, insert4_neg.cc: Likewise.
-	* testsuite/23_containers/deque/debug/cont_traits.h,
-	debug_cont_traits.h, assign1_neg.cc, assign2_neg.cc, assign3_neg.cc,
-	assign4_neg.cc, construct1_neg.cc, construct2_neg.cc,
-	construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
-	insert3_neg.cc, insert4_neg.cc: Likewise.
+        * include/debug/unordered_map: Likewise.
+        * include/debug/multiset.h: Likewise.
+        * include/debug/vector: Likewise.
+        * include/debug/unordered_set: Likewise.
+        * include/debug/deque: Likewise.
+        * include/debug/map.h: Likewise.
+        * include/debug/string: Likewise.
+        * include/debug/list: Likewise.
+        * include/debug/multimap.h: Likewise.
+        * testsuite/23_containers/util/debug/assign_neg.h: New test cases on
+        debug checks performed on container assign operation.
+        * testsuite/23_containers/util/debug/construct_neg.h: New test cases
+        on debug checks on constructors.
+        * testsuite/23_containers/util/debug/insert_neg.h: New test cases on
+        debug checks performed on container insert operations.
+        * testsuite/23_containers/unordered_map/debug/cont_traits.h,
+        debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
+        construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
+        insert3_neg.cc, insert4_neg.cc: New.
+        * testsuite/23_containers/multimap/debug/cont_traits.h,
+        debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
+        construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
+        insert3_neg.cc, insert4_neg.cc: Likewise.
+        * testsuite/23_containers/set/debug/cont_traits.h,
+        debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
+        construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
+        insert3_neg.cc, insert4_neg.cc: Likewise.
+        * testsuite/23_containers/unordered_multimap/debug/cont_traits.h,
+        debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
+        construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
+        insert3_neg.cc, insert4_neg.cc: Likewise.
+        * testsuite/23_containers/unordered_set/debug/cont_traits.h,
+        debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
+        construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
+        insert3_neg.cc, insert4_neg.cc: Likewise.
+        * testsuite/23_containers/multiset/debug/cont_traits.h,
+        debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
+        construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
+        insert3_neg.cc, insert4_neg.cc: Likewise.
+        * testsuite/23_containers/unordered_multiset/debug/cont_traits.h,
+        debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
+        construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
+        insert3_neg.cc, insert4_neg.cc: Likewise.
+        * testsuite/23_containers/map/debug/cont_traits.h,
+        debug_cont_traits.h, construct1_neg.cc, construct2_neg.cc,
+        construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
+        insert3_neg.cc, insert4_neg.cc: Likewise.
+        * testsuite/23_containers/vector/debug/cont_traits.h,
+        debug_cont_traits.h, assign1_neg.cc, assign2_neg.cc, assign3_neg.cc,
+        assign4_neg.cc, construct1_neg.cc, construct2_neg.cc,
+        construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
+        insert3_neg.cc, insert4_neg.cc: Likewise.
+        * testsuite/23_containers/deque/debug/cont_traits.h,
+        debug_cont_traits.h, assign1_neg.cc, assign2_neg.cc, assign3_neg.cc,
+        assign4_neg.cc, construct1_neg.cc, construct2_neg.cc,
+        construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
+        insert3_neg.cc, insert4_neg.cc: Likewise.
 	* testsuite/23_containers/list/debug/cont_traits.h,
-	debug_cont_traits.h, assign1_neg.cc, assign2_neg.cc, assign3_neg.cc,
-	assign4_neg.cc, construct1_neg.cc, construct2_neg.cc,
-	construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
-	insert3_neg.cc, insert4_neg.cc: Likewise.
-	* testsuite/performance/23_containers/range_construct/
+        debug_cont_traits.h, assign1_neg.cc, assign2_neg.cc, assign3_neg.cc,
+        assign4_neg.cc, construct1_neg.cc, construct2_neg.cc,
+        construct3_neg.cc, construct4_neg.cc, insert1_neg.cc, insert2_neg.cc,
+        insert3_neg.cc, insert4_neg.cc: Likewise.
+        * testsuite/performance/23_containers/range_construct/
 	list_construct1.cc: New, validate performance impact of the patch
 	on the debug mode.
-	* testsuite/performance/23_containers/range_construct/
+        * testsuite/performance/23_containers/range_construct/
 	list_construct2.cc: Likewise.
-	* testsuite/performance/23_containers/range_construct/
+        * testsuite/performance/23_containers/range_construct/
 	vector_construct.cc: Likewise.
-	* testsuite/performance/23_containers/range_construct/
+        * testsuite/performance/23_containers/range_construct/
 	deque_construct.cc: Likewise.
 
 2010-08-26  Benjamin Kosnik  <bkoz@redhat.com>
@@ -2688,18 +2733,18 @@
 
 2010-06-08  Johannes Singler  <singler@kit.edu>
 
-	* include/parallel/find.h
-	(__find_template(.., growing_blocks_tag)): Make block size
-	proportional to current position.
-	* include/parallel/settings.h (_Settings): Introduce new tuning
-	parameter find_scale_factor to the end of the struct, defaults to
-	0.01f.
+        * include/parallel/find.h
+        (__find_template(.., growing_blocks_tag)): Make block size
+        proportional to current position.
+        * include/parallel/settings.h (_Settings): Introduce new tuning
+        parameter find_scale_factor to the end of the struct, defaults to
+        0.01f.
 
 2010-06-08  Johannes Singler  <singler@kit.edu>
 
-	* include/parallel/partial_sum.h
-	(__parallel_partial_sum_linear):
-	Correctly calculate part lengths for partial_sum_dilation!=1.
+        * include/parallel/partial_sum.h
+        (__parallel_partial_sum_linear):
+        Correctly calculate part lengths for partial_sum_dilation!=1.
 
 2010-06-07  Paolo Carlini  <paolo.carlini@oracle.com>
 
@@ -2929,7 +2974,7 @@
 	* doc/xml/manual/status_cxx200x.xml: Update.
 
 2010-06-05  Magnus Fromreide  <magfr@lysator.liu.se>
-	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+            Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* include/std/functional (function): Add nullptr_t support.
 	* include/bits/shared_ptr.h (shared_ptr): Likewise.
@@ -2980,7 +3025,7 @@
 2010-06-03  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/bits/c++config (std::size_t, std::ptrdiff_t,
-	std::nullptr_t): Provide typedefs.
+        std::nullptr_t): Provide typedefs.
 	* include/c_std/cstddef: Don't provide std::size_t and
 	std::ptrdiff_t here.
 	* include/c_global/cstddef: Likewise.
@@ -3760,11 +3805,11 @@
 
 2010-04-22  Johannes Singler  <singler@kit.edu>
 
-	* include/parallel/partition.h (__parallel_partition):
-	Improve scalability by:
-	-introducing new variables __leftold, __rightold, __dist, thus
-	-getting rid of omp lock by using atomic operations
-	-getting rid of two omp barriers
+        * include/parallel/partition.h (__parallel_partition):
+        Improve scalability by:
+        -introducing new variables __leftold, __rightold, __dist, thus
+        -getting rid of omp lock by using atomic operations
+        -getting rid of two omp barriers
 
 2010-04-22  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
@@ -3814,10 +3859,10 @@
 
 2010-03-30  Johannes Singler  <singler@kit.edu>
 
-	* include/parallel/random_shuffle.h
-	(__parallel_random_shuffle_drs) : Take as many threads as
-	possible, i. e. favor parallelism over cache efficiency.
-	Use own PRNG also for the 1 thread case.
+        * include/parallel/random_shuffle.h
+        (__parallel_random_shuffle_drs) : Take as many threads as
+        possible, i. e. favor parallelism over cache efficiency.
+        Use own PRNG also for the 1 thread case.
 
 2010-03-30  Paolo Carlini  <paolo.carlini@oracle.com>
 
@@ -3884,14 +3929,14 @@
 
 2010-03-22  Johannes Singler  <singler@kit.edu>
 
-	* include/parallel/numeric (inner_product, partial_sum):
-	Precede subsequent call with _GLIBCXX_STD_P:: to avoid ambiguity
-	between __gnu_parallel:: and std::
-	* include/parallel/algobase.h (equal): Likewise.
-	* include/parallel/algo.h (find_first_of, search_n, merge, nth_element,
-	partial_sort, max_element, min_element): Likewise.
-	* include/parallel/partial_sum.h (__parallel_partial_sum_linear):
-	Qualify accumulate call with __gnu_parallel::.
+        * include/parallel/numeric (inner_product, partial_sum):
+        Precede subsequent call with _GLIBCXX_STD_P:: to avoid ambiguity
+        between __gnu_parallel:: and std::
+        * include/parallel/algobase.h (equal): Likewise.
+        * include/parallel/algo.h (find_first_of, search_n, merge, nth_element,
+        partial_sort, max_element, min_element): Likewise.
+        * include/parallel/partial_sum.h (__parallel_partial_sum_linear):
+        Qualify accumulate call with __gnu_parallel::.
 
 2010-03-22  Paolo Carlini  <paolo.carlini@oracle.com>
 
