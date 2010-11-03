@@ -4021,7 +4021,10 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
 
   cgraph_create_edge (node,
 		      cgraph_node (built_in_decls[BUILT_IN_TM_IRREVOCABLE]),
-		      g, 0, 0, bb->loop_depth);
+		      g, 0,
+		      compute_call_stmt_bb_frequency (node->decl,
+						      gimple_bb (g)),
+		      bb->loop_depth);
 }
 
 /* Construct a call to TM_GETTMCLONE and insert it before GSI.  */

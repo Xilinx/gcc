@@ -1,3 +1,9 @@
+2010-11-03  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR/45985
+	* trans-mem.c (ipa_tm_insert_irr_call): Pass frequency to
+	cgraph_create_edge.
+
 2010-07-27  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (expand_call_tm): Handle return slot optimization.
