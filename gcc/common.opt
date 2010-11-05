@@ -58,6 +58,10 @@ bool flag_warn_unused_result = false
 Variable
 int *param_values
 
+; Floating-point contraction mode, fast by default.
+Variable
+enum fp_contract_mode flag_fp_contract_mode = FP_CONTRACT_FAST
+
 ###
 Driver
 
@@ -290,8 +294,23 @@ Ofast
 Common Optimization
 Optimize for speed disregarding exact standards compliance
 
+R
+Driver Joined Separate
+
 S
 Driver
+
+T
+Driver Joined Separate
+
+Tbss
+Driver Separate
+
+Tdata
+Driver Separate
+
+Ttext
+Driver Separate
 
 W
 Common RejectNegative Warning Alias(Wextra)
@@ -939,6 +958,10 @@ Does nothing.  Preserved for backward compatibility.
 fforward-propagate
 Common Report Var(flag_forward_propagate) Optimization
 Perform a forward propagation pass on RTL
+
+ffp-contract=
+Common Joined RejectNegative
+-ffp-contract=[off|on|fast] Perform floating-point expression contraction.
 
 ; Nonzero means don't put addresses of constant functions in registers.
 ; Used for compiling the Unix kernel, where strange substitutions are
@@ -1983,6 +2006,9 @@ gxcoff+
 Common JoinedOrMissing Negative(gcoff)
 Generate debug information in extended XCOFF format
 
+h
+Driver Joined Separate
+
 iplugindir=
 Common Joined Var(plugindir_string) Init(0)
 -iplugindir=<dir>	Set <dir> to be the default plugin directory
@@ -2123,5 +2149,8 @@ Driver
 pie
 Common RejectNegative Negative(shared)
 Create a position independent executable
+
+z
+Driver Joined Separate
 
 ; This comment is to ensure we retain the blank line above.

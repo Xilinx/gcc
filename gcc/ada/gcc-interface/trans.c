@@ -469,13 +469,12 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 						      integer_type_node,
 						      t))),
 	   NULL_TREE, false, true, true, NULL, Empty);
-
-      for (i = 0; i < (int) ARRAY_SIZE (gnat_raise_decls); i++)
-	gnat_raise_decls[i] = decl;
       TREE_THIS_VOLATILE (decl) = 1;
       TREE_SIDE_EFFECTS (decl) = 1;
       TREE_TYPE (decl)
 	= build_qualified_type (TREE_TYPE (decl), TYPE_QUAL_VOLATILE);
+      for (i = 0; i < (int) ARRAY_SIZE (gnat_raise_decls); i++)
+	gnat_raise_decls[i] = decl;
     }
   else
     {
@@ -647,37 +646,42 @@ build_raise_check (int check, tree void_tree, enum exception_info_kind kind)
   if (kind != exception_simple)
     {
       sprintf (name, "__gnat_rcheck_%.2d_ext", check);
-      result = create_subprog_decl
-	(get_identifier (name), NULL_TREE,
-	 build_function_type
+      result
+	= create_subprog_decl
+	  (get_identifier (name), NULL_TREE,
+	   build_function_type
 	   (void_type_node,
 	    tree_cons
-	      (NULL_TREE,
-	       build_pointer_type (unsigned_char_type_node),
-	       tree_cons (NULL_TREE, integer_type_node,
-		 tree_cons (NULL_TREE, integer_type_node,
-		   kind == exception_column ? void_tree :
-		     tree_cons (NULL_TREE, integer_type_node,
-		       tree_cons (NULL_TREE, integer_type_node, void_tree)))))),
-	 NULL_TREE, false, true, true, NULL, Empty);
+	    (NULL_TREE, build_pointer_type (unsigned_char_type_node),
+	     tree_cons (NULL_TREE, integer_type_node,
+			tree_cons (NULL_TREE, integer_type_node,
+				   kind == exception_column
+				   ? void_tree
+				   : tree_cons (NULL_TREE, integer_type_node,
+						tree_cons (NULL_TREE,
+							   integer_type_node,
+							   void_tree)))))),
+	   NULL_TREE, false, true, true, NULL, Empty);
     }
   else
     {
       sprintf (name, "__gnat_rcheck_%.2d", check);
-      result = create_subprog_decl
-	(get_identifier (name), NULL_TREE,
-	 build_function_type
+      result
+	= create_subprog_decl
+	  (get_identifier (name), NULL_TREE,
+	   build_function_type
 	   (void_type_node,
 	    tree_cons
-	      (NULL_TREE,
-	       build_pointer_type (unsigned_char_type_node),
-	       tree_cons (NULL_TREE, integer_type_node, void_tree))),
-	 NULL_TREE, false, true, true, NULL, Empty);
+	    (NULL_TREE, build_pointer_type (unsigned_char_type_node),
+	     tree_cons (NULL_TREE, integer_type_node, void_tree))),
+	   NULL_TREE, false, true, true, NULL, Empty);
     }
+
   TREE_THIS_VOLATILE (result) = 1;
   TREE_SIDE_EFFECTS (result) = 1;
   TREE_TYPE (result)
     = build_qualified_type (TREE_TYPE (result), TYPE_QUAL_VOLATILE);
+
   return result;
 }
 
@@ -1735,12 +1739,13 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 
 	/* Cache the expression we have just computed.  Since we want to do it
 	   at run time, we force the use of a SAVE_EXPR and let the gimplifier
-	   create the temporary.  */
+	   create the temporary in the outermost binding level.  We will make
+	   sure in Subprogram_Body_to_gnu that it is evaluated on all possible
+	   paths by forcing its evaluation on entry of the function.  */
 	if (pa)
 	  {
 	    gnu_result
 	      = build1 (SAVE_EXPR, TREE_TYPE (gnu_result), gnu_result);
-	    TREE_SIDE_EFFECTS (gnu_result) = 1;
 	    if (attribute == Attr_First)
 	      pa->first = gnu_result;
 	    else if (attribute == Attr_Last)
@@ -2630,8 +2635,9 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
 
   VEC_pop (tree, gnu_return_label_stack);
 
-  /* If we populated the parameter attributes cache, we need to make sure
-     that the cached expressions are evaluated on all possible paths.  */
+  /* If we populated the parameter attributes cache, we need to make sure that
+     the cached expressions are evaluated on all the possible paths leading to
+     their uses.  So we force their evaluation on entry of the function.  */
   cache = DECL_STRUCT_FUNCTION (gnu_subprog_decl)->language->parm_attr_cache;
   if (cache)
     {
@@ -2643,11 +2649,11 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
       FOR_EACH_VEC_ELT (parm_attr, cache, i, pa)
 	{
 	  if (pa->first)
-	    add_stmt_with_node (pa->first, gnat_node);
+	    add_stmt_with_node_force (pa->first, gnat_node);
 	  if (pa->last)
-	    add_stmt_with_node (pa->last, gnat_node);
+	    add_stmt_with_node_force (pa->last, gnat_node);
 	  if (pa->length)
-	    add_stmt_with_node (pa->length, gnat_node);
+	    add_stmt_with_node_force (pa->length, gnat_node);
 	}
 
       add_stmt (gnu_result);
@@ -5602,8 +5608,8 @@ gnat_to_gnu (Node_Id gnat_node)
     case N_Raise_Program_Error:
     case N_Raise_Storage_Error:
       {
-	int reason = UI_To_Int (Reason (gnat_node));
-	Node_Id cond = Condition (gnat_node);
+	const int reason = UI_To_Int (Reason (gnat_node));
+	const Node_Id cond = Condition (gnat_node);
 	bool handled = false;
 
 	if (type_annotate_only)
@@ -5622,8 +5628,8 @@ gnat_to_gnu (Node_Id gnat_node)
 	  {
 	    if (reason == CE_Access_Check_Failed)
 	      {
-		handled = true;
 		gnu_result = build_call_raise_column (reason, gnat_node);
+		handled = true;
 	      }
 	    else if ((reason == CE_Index_Check_Failed
 		      || reason == CE_Range_Check_Failed
@@ -5640,12 +5646,14 @@ gnat_to_gnu (Node_Id gnat_node)
 		    && Known_Esize (type)
 		    && UI_To_Int (Esize (type)) <= 32)
 		  {
+		    Node_Id right_op = Right_Opnd (op);
+		    gnu_result
+		      = build_call_raise_range
+		        (reason, gnat_node,
+		         gnat_to_gnu (index),                  /* index */
+		         gnat_to_gnu (Low_Bound (right_op)),   /* first */
+		         gnat_to_gnu (High_Bound (right_op))); /* last  */
 		    handled = true;
-		    gnu_result = build_call_raise_range
-		      (reason, gnat_node,
-		       gnat_to_gnu (index),                         /* index */
-		       gnat_to_gnu (Low_Bound (Right_Opnd (op))),   /* first */
-		       gnat_to_gnu (High_Bound (Right_Opnd (op)))); /* last  */
 		  }
 	      }
 	  }
@@ -5654,20 +5662,18 @@ gnat_to_gnu (Node_Id gnat_node)
 	  {
 	    set_expr_location_from_node (gnu_result, gnat_node);
 	    gnu_result = build3 (COND_EXPR, void_type_node,
-	    			 gnat_to_gnu (cond),
+				 gnat_to_gnu (cond),
 				 gnu_result, alloc_stmt_list ());
 	  }
 	else
 	  {
 	    gnu_result = build_call_raise (reason, gnat_node, kind);
 
-	    /* If the type is VOID, this is a statement, so we need to
-	       generate the code for the call.  Handle a Condition, if there
-	       is one.  */
+	    /* If the type is VOID, this is a statement, so we need to generate
+	       the code for the call.  Handle a Condition, if there is one.  */
 	    if (TREE_CODE (gnu_result_type) == VOID_TYPE)
 	      {
 		set_expr_location_from_node (gnu_result, gnat_node);
-
 		if (Present (cond))
 		  gnu_result = build3 (COND_EXPR, void_type_node,
 				       gnat_to_gnu (cond),
@@ -5965,7 +5971,8 @@ start_stmt_group (void)
   current_stmt_group = group;
 }
 
-/* Add GNU_STMT to the current statement group.  */
+/* Add GNU_STMT to the current statement group.  If it is an expression with
+   no effects, it is ignored.  */
 
 void
 add_stmt (tree gnu_stmt)
@@ -5973,7 +5980,15 @@ add_stmt (tree gnu_stmt)
   append_to_statement_list (gnu_stmt, &current_stmt_group->stmt_list);
 }
 
-/* Similar, but set the location of GNU_STMT to that of GNAT_NODE.  */
+/* Similar, but the statement is always added, regardless of side-effects.  */
+
+void
+add_stmt_force (tree gnu_stmt)
+{
+  append_to_statement_list_force (gnu_stmt, &current_stmt_group->stmt_list);
+}
+
+/* Like add_stmt, but set the location of GNU_STMT to that of GNAT_NODE.  */
 
 void
 add_stmt_with_node (tree gnu_stmt, Node_Id gnat_node)
@@ -5981,6 +5996,16 @@ add_stmt_with_node (tree gnu_stmt, Node_Id gnat_node)
   if (Present (gnat_node))
     set_expr_location_from_node (gnu_stmt, gnat_node);
   add_stmt (gnu_stmt);
+}
+
+/* Similar, but the statement is always added, regardless of side-effects.  */
+
+void
+add_stmt_with_node_force (tree gnu_stmt, Node_Id gnat_node)
+{
+  if (Present (gnat_node))
+    set_expr_location_from_node (gnu_stmt, gnat_node);
+  add_stmt_force (gnu_stmt);
 }
 
 /* Add a declaration statement for GNU_DECL to the current statement group.

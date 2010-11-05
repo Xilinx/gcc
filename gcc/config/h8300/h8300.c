@@ -45,6 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "target.h"
 #include "target-def.h"
+#include "df.h"
 
 /* Classifies a h8300_src_operand or h8300_dst_operand.
 
@@ -639,7 +640,7 @@ push (int rn)
   else
     x = gen_push_h8300hs_normal (reg);
   x = F (emit_insn (x), true);
-  REG_NOTES (x) = gen_rtx_EXPR_LIST (REG_INC, stack_pointer_rtx, 0);
+  add_reg_note (x, REG_INC, stack_pointer_rtx);
 }
 
 /* Emit an insn to pop register RN.  */
@@ -657,7 +658,7 @@ pop (int rn)
   else
     x = gen_pop_h8300hs_normal (reg);
   x = emit_insn (x);
-  REG_NOTES (x) = gen_rtx_EXPR_LIST (REG_INC, stack_pointer_rtx, 0);
+  add_reg_note (x, REG_INC, stack_pointer_rtx);
 }
 
 /* Emit an instruction to push or pop NREGS consecutive registers
@@ -1095,11 +1096,14 @@ h8300_pr_saveall (struct cpp_reader *pfile ATTRIBUTE_UNUSED)
 /* If the next function argument with MODE and TYPE is to be passed in
    a register, return a reg RTX for the hard register in which to pass
    the argument.  CUM represents the state after the last argument.
-   If the argument is to be pushed, NULL_RTX is returned.  */
+   If the argument is to be pushed, NULL_RTX is returned.
 
-rtx
-function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-	      tree type, int named)
+   On the H8/300 all normal args are pushed, unless -mquickcall in which
+   case the first 3 arguments are passed in registers.  */
+
+static rtx
+h8300_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		    const_tree type, bool named)
 {
   static const char *const hand_list[] = {
     "__main",
@@ -1163,6 +1167,20 @@ function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 
   return result;
 }
+
+/* Update the data in CUM to advance over an argument
+   of mode MODE and data type TYPE.
+   (TYPE is null for libcalls where that information may not be available.)  */
+
+static void
+h8300_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			    const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  cum->nbytes += (mode != BLKmode
+		  ? (GET_MODE_SIZE (mode) + UNITS_PER_WORD - 1) & -UNITS_PER_WORD
+		  : (int_size_in_bytes (type) + UNITS_PER_WORD - 1) & -UNITS_PER_WORD);
+}
+
 
 /* Compute the cost of an and insn.  */
 
@@ -3117,7 +3135,7 @@ compute_plussi_length (rtx *operands)
 
 /* Compute which flag bits are valid after an addition insn.  */
 
-int
+enum attr_cc
 compute_plussi_cc (rtx *operands)
 {
   enum machine_mode mode = GET_MODE (operands[0]);
@@ -3501,7 +3519,7 @@ compute_logical_op_length (enum machine_mode mode, rtx *operands)
 
 /* Compute which flag bits are valid after a logical insn.  */
 
-int
+enum attr_cc
 compute_logical_op_cc (enum machine_mode mode, rtx *operands)
 {
   /* Figure out the logical op that we need to perform.  */
@@ -3752,7 +3770,7 @@ output_h8sx_shift (rtx *operands, int suffix, int optype)
 /* Emit code to do shifts.  */
 
 bool
-expand_a_shift (enum machine_mode mode, int code, rtx operands[])
+expand_a_shift (enum machine_mode mode, enum rtx_code code, rtx operands[])
 {
   switch (h8sx_classify_shift (mode, code, operands[2]))
     {
@@ -3797,7 +3815,7 @@ enum shift_mode
 struct shift_insn
 {
   const char *const assembler;
-  const int cc_valid;
+  const enum attr_cc cc_valid;
 };
 
 /* Assembler instruction shift table.
@@ -3965,10 +3983,10 @@ struct shift_info {
   const char *shift2;
 
   /* CC status for SHIFT_INLINE.  */
-  int cc_inline;
+  enum attr_cc cc_inline;
 
   /* CC status  for SHIFT_SPECIAL.  */
-  int cc_special;
+  enum attr_cc cc_special;
 };
 
 static void get_shift_alg (enum shift_type,
@@ -4798,7 +4816,7 @@ compute_a_shift_length (rtx insn ATTRIBUTE_UNUSED, rtx *operands)
 
 /* Compute which flag bits are valid after a shift insn.  */
 
-int
+enum attr_cc
 compute_a_shift_cc (rtx insn ATTRIBUTE_UNUSED, rtx *operands)
 {
   rtx shift = operands[3];
@@ -5914,6 +5932,12 @@ h8300_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
 
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY h8300_return_in_memory
+
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG h8300_function_arg
+
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE h8300_function_arg_advance
 
 #undef  TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG h8300_reorg

@@ -104,14 +104,6 @@ typedef struct stat gfstat_t;
 #define PATH_MAX 1024
 #endif
 
-#ifndef PROT_READ
-#define PROT_READ 1
-#endif
-
-#ifndef PROT_WRITE
-#define PROT_WRITE 2
-#endif
-
 /* These flags aren't defined on all targets (mingw32), so provide them
    here.  */
 #ifndef S_IRGRP
@@ -174,6 +166,27 @@ fallback_access (const char *path, int mode)
 /* Unix and internal stream I/O module */
 
 static const int BUFFER_SIZE = 8192;
+
+typedef struct
+{
+  stream st;
+
+  gfc_offset buffer_offset;	/* File offset of the start of the buffer */
+  gfc_offset physical_offset;	/* Current physical file offset */
+  gfc_offset logical_offset;	/* Current logical file offset */
+  gfc_offset file_length;	/* Length of the file, -1 if not seekable. */
+
+  char *buffer;                 /* Pointer to the buffer.  */
+  int fd;                       /* The POSIX file descriptor.  */
+
+  int active;			/* Length of valid bytes in the buffer */
+
+  int ndirty;			/* Dirty bytes starting at buffer_offset */
+
+  int special_file;		/* =1 if the fd refers to a special file */
+}
+unix_stream;
+
 
 /* fix_fd()-- Given a file descriptor, make sure it is not one of the
  * standard descriptors, returning a non-standard descriptor.  If the
@@ -849,15 +862,6 @@ mem_close (unix_stream * s)
   define functional equivalents of the following.
 *********************************************************************/
 
-/* empty_internal_buffer()-- Zero the buffer of Internal file */
-
-void
-empty_internal_buffer(stream *strm)
-{
-  unix_stream * s = (unix_stream *) strm;
-  memset(s->buffer, ' ', s->file_length);
-}
-
 /* open_internal()-- Returns a stream structure from a character(kind=1)
    internal file */
 
@@ -919,7 +923,7 @@ open_internal4 (char *base, int length, gfc_offset offset)
  * around it. */
 
 static stream *
-fd_to_stream (int fd, int prot)
+fd_to_stream (int fd)
 {
   gfstat_t statbuf;
   unix_stream *s;
@@ -931,7 +935,6 @@ fd_to_stream (int fd, int prot)
   s->buffer_offset = 0;
   s->physical_offset = 0;
   s->logical_offset = 0;
-  s->prot = prot;
 
   /* Get the current length of the file. */
 
@@ -1231,7 +1234,7 @@ regular_file (st_parameter_open *opp, unit_flags *flags)
 stream *
 open_external (st_parameter_open *opp, unit_flags *flags)
 {
-  int fd, prot;
+  int fd;
 
   if (flags->status == STATUS_SCRATCH)
     {
@@ -1256,25 +1259,7 @@ open_external (st_parameter_open *opp, unit_flags *flags)
     return NULL;
   fd = fix_fd (fd);
 
-  switch (flags->action)
-    {
-    case ACTION_READ:
-      prot = PROT_READ;
-      break;
-
-    case ACTION_WRITE:
-      prot = PROT_WRITE;
-      break;
-
-    case ACTION_READWRITE:
-      prot = PROT_READ | PROT_WRITE;
-      break;
-
-    default:
-      internal_error (&opp->common, "open_external(): Bad action");
-    }
-
-  return fd_to_stream (fd, prot);
+  return fd_to_stream (fd);
 }
 
 
@@ -1284,7 +1269,7 @@ open_external (st_parameter_open *opp, unit_flags *flags)
 stream *
 input_stream (void)
 {
-  return fd_to_stream (STDIN_FILENO, PROT_READ);
+  return fd_to_stream (STDIN_FILENO);
 }
 
 
@@ -1300,7 +1285,7 @@ output_stream (void)
   setmode (STDOUT_FILENO, O_BINARY);
 #endif
 
-  s = fd_to_stream (STDOUT_FILENO, PROT_WRITE);
+  s = fd_to_stream (STDOUT_FILENO);
   return s;
 }
 
@@ -1317,7 +1302,7 @@ error_stream (void)
   setmode (STDERR_FILENO, O_BINARY);
 #endif
 
-  s = fd_to_stream (STDERR_FILENO, PROT_WRITE);
+  s = fd_to_stream (STDERR_FILENO);
   return s;
 }
 
@@ -1822,14 +1807,18 @@ stream_isatty (stream *s)
 }
 
 char *
+#ifdef HAVE_TTYNAME
+stream_ttyname (stream *s)
+{
+  return ttyname (((unix_stream *) s)->fd);
+}
+#else
 stream_ttyname (stream *s __attribute__ ((unused)))
 {
-#ifdef HAVE_TTYNAME
-  return ttyname (((unix_stream *) s)->fd);
-#else
   return NULL;
-#endif
 }
+#endif
+
 
 
 /* How files are stored:  This is an operating-system specific issue,

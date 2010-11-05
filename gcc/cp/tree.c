@@ -441,7 +441,8 @@ build_cplus_new (tree type, tree init)
 
   if (TREE_CODE (rval) == AGGR_INIT_EXPR)
     slot = AGGR_INIT_EXPR_SLOT (rval);
-  else if (TREE_CODE (rval) == CALL_EXPR)
+  else if (TREE_CODE (rval) == CALL_EXPR
+	   || TREE_CODE (rval) == CONSTRUCTOR)
     slot = build_local_temp (type);
   else
     return rval;
@@ -1095,22 +1096,6 @@ strip_typedefs (tree t)
   return cp_build_qualified_type (result, cp_type_quals (t));
 }
 
-/* Setup a TYPE_DECL node as a typedef representation.
-   See comments of set_underlying_type in c-common.c.  */
-
-void
-cp_set_underlying_type (tree t)
-{
-  set_underlying_type (t);
-  /* If T is a template type parm, make it require structural equality.
-     This is useful when comparing two template type parms,
-     because it forces the comparison of the template parameters of their
-     decls.  */
-  if (TREE_CODE (TREE_TYPE (t)) == TEMPLATE_TYPE_PARM)
-    SET_TYPE_STRUCTURAL_EQUALITY (TREE_TYPE (t));
-}
-
-
 /* Makes a copy of BINFO and TYPE, which is to be inherited into a
    graph dominated by T.  If BINFO is NULL, TYPE is a dependent base,
    and we do a shallow copy.  If BINFO is non-NULL, we do a deep copy.
@@ -3234,6 +3219,7 @@ bool
 cast_valid_in_integral_constant_expression_p (tree type)
 {
   return (INTEGRAL_OR_ENUMERATION_TYPE_P (type)
+	  || cxx_dialect >= cxx0x
 	  || dependent_type_p (type)
 	  || type == error_mark_node);
 }
