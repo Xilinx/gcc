@@ -1,3 +1,106 @@
+2010-11-08  Jason Merrill  <jason@redhat.com>
+
+	* testsuite/20_util/ratio/cons/cons_overflow_neg.cc: Adjust
+	expected error.
+
+2010-11-08  Benjamin Kosnik  <bkoz@redhat.com>
+
+        * include/std/complex (operator==, !=): Mark constexpr.
+        * testsuite/26_numerics/complex/comparison_operators/constexpr.cc: New.
+
+2010-11-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_tree.h (_Rb_tree<>::_M_erase_aux): Add.
+	(_Rb_tree<>::erase(iterator)): Fix in C++0x mode to take
+	const_iterator; remove redundant overload in C++03 mode.
+	(_Rb_tree<>::erase(iterator, iterator)): Likewise.
+	* include/bits/stl_map.h (map<>::erase): Adjust.
+	(map<>::insert): Fix signature in C++0x mode.
+	* include/bits/stl_set.h (set<>::erase): Likewise.
+	(set<>::insert): Likewise.
+	* include/bits/stl_multimap.h (multimap<>::erase): Likewise.
+	(multimap<>::insert): Likewise.
+	* include/bits/stl_multiset.h (multiset<>::erase): Likewise.
+	(multiset<>::insert): Fix signature in C++0x mode.
+	* include/profile/set.h: Adjust.
+	* include/profile/multiset.h: Likewise.
+	* include/profile/map.h: Likewise.
+	* include/profile/multimap.h: Likewise.
+	* testsuite/util/exception/safety.h (erase_base, insert_base):
+	Update.
+
+2010-11-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/profile/unordered_map (unordered_map<>::operator[](_Key&&)):
+	Add.
+
+2010-11-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/profile/bitset (bitset<>::bitset(), bitset<>::
+	bitset(unsigned long long)): Add constexpr specifier.
+
+2010-11-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/bitset: Do not derive from _Safe_sequence_base in
+	C++0x mode, otherwise std::bitset isn't a literal type anymore;
+	adjust everywhere.
+
+	* include/debug/bitset (bitset<>::bitset(), bitset<>::
+	bitset(unsigned long long)):  Add missing constexpr specifier.
+
+2010-11-05  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/user.cfg.in: Add typeindex.
+
+	* testsuite/util/testsuite_common_types.h (constexpr_comparison_eq_ne,
+	constexpr_comparison_operators): New.
+	* testsuite/20_util/duration/comparisons: Move...
+	* testsuite/20_util/duration/comparison_operators: ...here.
+	* testsuite/20_util/duration/comparison_operators/constexpr.cc: New.
+	* testsuite/20_util/time_point/comparison_operators/constexpr.cc: Add.
+
+	* testsuite/29_atomics/atomic_integral/cons/assign_neg.cc: Adjust line
+	numbers.
+	* testsuite/29_atomics/atomic_integral/cons/copy_neg.cc: Same.
+	* testsuite/29_atomics/atomic/cons/assign_neg.cc: Same.
+	* testsuite/29_atomics/atomic/cons/copy_neg.cc: Same.
+
+2010-11-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/shared_ptr.h (shared_ptr<>::__shared_ptr(),
+	shared_ptr<>::shared_ptr(nullptr_t), weak_ptr<>::weak_ptr(),
+	enable_shared_from_this::enable_shared_from_this()): Add constexpr
+	specifier.
+	* include/bits/shared_ptr_base.h (__shared_count::__shared_count(),
+	__shared_count::__shared_count(), __shared_ptr<>::__shared_ptr(),
+	__shared_ptr<>::__shared_ptr(nullptr_t), __weak_ptr<>::__weak_ptr(),
+	__enable_shared_from_this::__enable_shared_from_this()): Likewise.
+	* include/bits/unique_ptr.h (default_delete,
+	unique_ptr<>::unique_ptr(), unique_ptr<>::unique_ptr(nullptr_t)):
+	Likewise.
+	* testsuite/20_util/default_delete/cons/constexpr.cc: Do not xfail.
+	* testsuite/20_util/shared_ptr/cons/constexpr.cc: Remove, the test
+	cannot work for a non-literal type like std::shared_ptr.
+	* testsuite/20_util/weak_ptr/cons/constexpr.cc: Likewise.
+	* testsuite/util/testsuite_common_types.h: Add comments.
+	* testsuite/20_util/unique_ptr/cons/constexpr.cc: Likewise.
+	* testsuite/20_util/shared_ptr/cons/43820.cc: Adjust dg-error line
+	numbers.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Likewise.
+
+2010-11-05  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/user.cfg.in: Remove tr1_impl headers.
+
+	* testsuite/tr1/4_metaprogramming/integral_constant/requirements/
+	constexpr_data.cc: New.
+
+	* testsuite/util/testsuite_tr1.h (LType, LTypeDerived, NLType): New.
+	* testsuite/20_util/is_literal_type/value.cc: New.
+	* testsuite/20_util/is_literal_type/requirements/typedefs.cc: Name.
+	* testsuite/20_util/is_literal_type/requirements/
+	explicit_instantiation.cc: New.
+
 2010-11-04  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/46303

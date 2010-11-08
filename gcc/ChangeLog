@@ -1,3 +1,241 @@
+2010-11-08  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/46378
+	* config/rs6000/rs6000.c (rs6000_option_override_internal): Don't
+	turn on ISA 2.04 rounding instructions for power5.
+
+	* config/rs6000/rs6000.md (friz): Friz is an ISA 2.04 instruciton,
+	not ISA 2.02.
+
+	PR target/45585
+	* config/rs6000/darwin.md (movdi_low): Allow DImode values to be
+	in FPR registers.
+	(movdi_low_st): Ditto.
+
+2010-11-08  Joern Rennecke  <amylaar@spamcop.net>
+	    Richard Henderson <rth@redhat.com>
+
+	PR target/44758
+	* config/frv/frv.md (attribute cpu): Cast value to enum attr_cpu.
+	(attribute acc_group): Cast value to enum attr_acc_group.
+	(*movdi_nodouble+6): Use gen_int_mode.
+	* config/frv/frv-protos.h (frv_trampoline_size): Declare no matter
+	if RTX_CODE is defined or not.
+	* config/frv/frv.c (enum frv_io_type): New enum, broken out of
+	struct frv_io.
+	(frv_handle_option): Mark parameter value with ATTRIBUTE_UNUSED.
+	(frv_frame_access, frv_expand_prologue): Remove unused variables.
+	(frv_expand_block_clear): Likewise.
+	(frv_trampoline_init): Use LCT_NORMAL.
+	(struct frv_packet_group): New struct, broken out of type of
+	frv_packet.
+	(frv_start_packet, frv_reorder_packet): Initialize group to GROUP_I,
+	use cast in loop counter increment.
+	(frv_extract_membar): Cast HOST_WIDE_INT to enum frv_io_type before
+	assigning to io->type.
+	(bdesc_set): Use rtx_code UNKNOWN in initializer.
+	(bdesc_1arg, bdesc_2arg, bdesc_int_void2arg): Likewise.
+	(bdesc_prefetches, bdesc_cut, bdesc_2argimm, bdesc_void2arg): Likewise.
+	(bdesc_void3arg, bdesc_voidacc, bdesc_loads, bdesc_stores): Likewise.
+	(frv_read_argument): Use expand_normal.
+
+	PR target/44757 
+	* config/lm32/lm32.h (LEGITIMATE_CONSTANT_P): Call
+	lm32_legitimate_constant_p.
+	* config/lm32/lm32.md (ashlsi3): Remove unused variable.
+	* config/lm32/lm32.c (gen_int_relational): Make new block for
+	LE / LT / LEU / LTU case.  Declare variables at start of block.
+	(lm32_block_move_inline): Use XALLOCAVEC.
+
+2010-11-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/i386/i386.c (ix86_function_arg_boundary): Fix warning
+	message.
+
+2010-11-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* gengtype (get_output_file_for_structure): Ensure type is union
+	or struct.
+	(write_splay_tree_allocator_def): Use
+	get_output_file_with_visibility.
+
+2010-11-08  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.c (s390_handle_arch_option): Set type and flags
+	to defined values in case of an error.
+	(s390_option_override): Skip further processing if the -march
+	parameter wasn't recognized.
+
+2010-11-08  Joern Rennecke  <amylaar@spamcop.net>
+
+	* caller-save.c (reg_save_code): After HARD_REGNO_MODE_OK check fails,
+	assert that REG is a hard register number before using it as an index.
+
+	PR bootstrap/46358
+	* config/i386/i386.c (ix86_expand_split_stack_prologue):
+	Avoid warnings when HOST_WIDE_INT is 32 bit.
+
+2010-11-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/46208
+	* config/sparc/sparc.c (TARGET_PROMOTE_PROTOTYPES): Delete.
+	(sparc_promote_prototypes): Likewise.
+	(sparc_promote_function_mode): Promote in 32-bit mode as well.
+	(sparc_return_in_memory): Remove superfluous parentheses.
+	(sparc_struct_value_rtx): Fix long lines.
+	(sparc_function_value_1): Promote in 32-bit mode as well.
+
+2010-11-08  Andrey Belevantsev  <abel@ispras.ru>
+
+	 PR rtl-optimization/45352
+	* sel-sched.c (find_best_expr): Do not set pneed_stall when
+	the variable_issue hook is not implemented.
+	(fill_insns): Remove dead variable stall_iterations.
+	(init_seqno_1): Force EBB start for resetting sched cycles on any
+	successor blocks of the rescheduled region.
+	(sel_sched_region_1): Use bitmap_bit_p instead of bitmap_clear_bit.
+	(reset_sched_cycles_in_current_ebb): Add debug printing.
+	New variable issued_insns.  Advance state when we have issued
+	issue_rate insns.
+
+2010-11-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* gengtype (main): Get here's position using POS_HERE macro for
+	do*typedef calls.
+
+2010-11-07  Ian Lance Taylor  <iant@google.com>
+
+	PR target/46089
+	* config/i386/i386.c (split_stack_fn_large): New static variable.
+	(ix86_expand_split_stack_prologue): Handle large model.
+
+2010-11-07  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* config/m68k/m68k.c (m68k_delegitimize_address): Update to handle
+	all possible addressing modes.
+
+2010-11-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR tree-optimization/46346
+	* tree-ssa-forwprop.c (rhs_to_tree): Handle GIMPLE_TERNARY_RHS.
+
+2010-11-07  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c: Revert previous patch.
+	* config/mips/mips.md: Likewise.
+
+2010-11-07  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_rtx_costs): Handle FMA.
+	* config/mips/mips.md (*madd4<mode>, *madd3<mode>, *msub4<mode>)
+	(*msub3<mode>, *nmadd4<mode>_fastmath, *nmadd3<mode>_fastmath)
+	(*nmsub4<mode>_fastmath, *nmsub3<mode>_fastmath): Delete.
+	(*nmadd4<mode>, *nmadd3<mode>. *nmsub4<mode>, *nmsub3<mode>): Redefine
+	to use FMA.
+	(fma<mode>4, *fma<mode>4_madd3, *fma<mode>4_madd4): New patterns.
+	(fms<mode>4, *fms<mode>4_msub3, *fms<mode>4_msub4): Likewise.
+	(fnms<mode>4, *fnms<mode>4_nmadd3, *fnms<mode>4_nmadd4): Likewise.
+	(fnma<mode>4, *fnma<mode>4_nmsub3, *fnma<mode>4_nmsub4): Likewise.
+
+2010-11-06  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c/43384
+	* c-decl.c (lookup_label): Labels can only be referenced in a
+	function's scope.
+	(store_parm_decls_oldstyle): Skip erroneous parameters.
+
+2010-11-06  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/fr30/fr30.h (FUNCTION_VALUE_REGNO_P, FUNCTION_VALUE,
+	LIBCALL_VALUE): Remove macros.
+	* config/fr30/fr30.c (TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE,
+	TARGET_FUNCTION_VALUE_REGNO_P): Define.
+	(fr30_function_value_regno_p, fr30_function_value,
+	fr30_libcall_value): New functions.
+
+2010-11-06  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR middle-end/46314
+	* target.def (generate_internal_label): New asm_out hook.
+	* output.h (default_generate_internal_label): Declare.
+	* varasm.c (default_generate_internal_label): Define.
+
+2010-11-06  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR target/44981
+	* doc/extend.tex (format): Document NSString extension.
+	(format_arg): Likewise.
+	(Darwin Format Checks): New section.
+	* doc/tm.texi: Document string object hooks (generated).
+	* doc/tm.texi.in (TARGET_OBJC_CONSTRUCT_STRING_OBJECT) Rename.
+	(TARGET_STRING_OBJECT_REF_TYPE_P): New.
+	(TARGET_CHECK_STRING_OBJECT_FORMAT_ARG): New.
+	* target.def (objc_construct_string_object): Rename, amend
+	documentation.
+	(string_object_ref_type_p): New hook.
+	(check_string_object_format_arg): New hook.
+	* c-parser.c (c_parser_attributes): Allow objective-c class names as
+	attribute identifiers.
+	* config/darwin-c.c (darwin_cfstring_ref_p): New.
+	(darwin_check_cfstring_format_arg): New.
+	(darwin_additional_format_types): New.
+	* config/darwin-protos.h (darwin_cfstring_ref_p) New.
+	(darwin_check_cfstring_format_arg): New.
+	* config/darwin.h (TARGET_OBJC_CONSTRUCT_STRING_OBJECT) Renamed.
+	(TARGET_STRING_OBJECT_REF_TYPE_P): New.
+	(TARGET_N_FORMAT_TYPES): New.
+	(TARGET_CHECK_STRING_OBJECT_FORMAT_ARG): New.
+
+2010-11-06  Eric Botcazou  <ebotcazou@adacore.com>
+	    Pascal Obry  <obry@adacore.com>
+
+	* config/i386/cygming.h (DWARF_FRAME_REGISTERS): Redefine.  Use 33
+	in 64-bit mode and 17 otherwise.
+
+2010-11-06  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	PR debug/45939
+	* var-tracking.c (emit_note_insn_var_location): Make sure that
+	call related var location notes come before the normal ones.
+
+2010-11-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/46326
+	* config/i386/i386.c (ix86_delegitimize_address): Fix a typo
+	in the last change.
+
+2010-11-05  Ian Lance Taylor  <iant@google.com>
+
+	* explow.c (allocate_dynamic_stack_space): Check MALLOC_ABI_ALIGNMENT.
+
+2010-11-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/44772
+	* c-decl.c (warn_cxx_compat_finish_struct): Don't call
+	pointer_set_contains if DECL_NAME is NULL.
+
+2010-11-05  Ian Lance Taylor  <iant@google.com>
+
+	PR target/46084
+	* explow.c (allocate_dynamic_stack_space): If flag_split_stack,
+	request enough additional space for alignment, and force alignment.
+
+2010-11-05  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/i386.c (legitimate_pic_address_disp_p):
+	Handle UNSPEC_PCREL.
+	(ix86_legitimate_address_p): Likewise.
+	(legitimize_pic_address): Likewise.
+	(output_pic_addr_const): Likewise.
+	(ix86_delegitimize_address): Likewise.
+	(ix86_find_base_term): Likewise.
+	(memory_address_length): Likewise.
+	(x86_output_mi_thunk): Handle special case x64
+	for non local binding.
+	* config/i386/i386.md (UNSPEC_PCREL): New.
+	* config/i386/winnt.c (i386_pe_binds_local_p):
+	Allow weak symbol for x64 windows with non-local binding.
+
 2010-11-05  Jakub Jelinek  <jakub@redhat.com>
 
 	PR target/45670
@@ -90,8 +328,7 @@
 
 2010-11-05  Jakub Jelinek  <jakub@redhat.com>
 
-	* cfgexpand.c (expand_debug_expr): Handle MEM_REF
-	with non-zero offset.
+	* cfgexpand.c (expand_debug_expr): Handle MEM_REF with non-zero offset.
 
 	PR tree-optimization/46099
 	* tree-parloops.c (take_address_of): Add GSI argument.  Return NULL

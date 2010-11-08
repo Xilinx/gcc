@@ -7147,7 +7147,7 @@ ix86_function_arg_boundary (enum machine_mode mode, const_tree type)
 	{
 	  warned = true;
 	  inform (input_location,
-		  "The ABI of passing parameter with %dbyte"
+		  "The ABI for passing parameters with %d-byte"
 		  " alignment has changed in GCC 4.6",
 		  align / BITS_PER_UNIT);
 	}
@@ -11050,6 +11050,11 @@ split_stack_prologue_scratch_regno (void)
 
 static GTY(()) rtx split_stack_fn;
 
+/* A SYMBOL_REF for the more stack function when using the large
+   model.  */
+
+static GTY(()) rtx split_stack_fn_large;
+
 /* Handle -fsplit-stack.  These are the first instructions in the
    function, even before the regular prologue.  */
 
@@ -11062,6 +11067,7 @@ ix86_expand_split_stack_prologue (void)
   rtx label, limit, current, jump_insn, allocate_rtx, call_insn, call_fusage;
   rtx scratch_reg = NULL_RTX;
   rtx varargs_label = NULL_RTX;
+  rtx fn;
 
   gcc_assert (flag_split_stack && reload_completed);
 
@@ -11125,6 +11131,10 @@ ix86_expand_split_stack_prologue (void)
   add_reg_note (jump_insn, REG_BR_PROB,
 		GEN_INT (REG_BR_PROB_BASE - REG_BR_PROB_BASE / 100));
 
+  if (split_stack_fn == NULL_RTX)
+    split_stack_fn = gen_rtx_SYMBOL_REF (Pmode, "__morestack");
+  fn = split_stack_fn;
+
   /* Get more stack space.  We pass in the desired stack space and the
      size of the arguments to copy to the new stack.  In 32-bit mode
      we push the parameters; __morestack will return on a new stack
@@ -11135,9 +11145,10 @@ ix86_expand_split_stack_prologue (void)
   call_fusage = NULL_RTX;
   if (TARGET_64BIT)
     {
-      rtx reg;
+      rtx reg10, reg11;
 
-      reg = gen_rtx_REG (Pmode, R10_REG);
+      reg10 = gen_rtx_REG (Pmode, R10_REG);
+      reg11 = gen_rtx_REG (Pmode, R11_REG);
 
       /* If this function uses a static chain, it will be in %r10.
 	 Preserve it across the call to __morestack.  */
@@ -11146,24 +11157,69 @@ ix86_expand_split_stack_prologue (void)
 	  rtx rax;
 
 	  rax = gen_rtx_REG (Pmode, AX_REG);
-	  emit_move_insn (rax, reg);
+	  emit_move_insn (rax, reg10);
 	  use_reg (&call_fusage, rax);
 	}
 
-      emit_move_insn (reg, allocate_rtx);
-      use_reg (&call_fusage, reg);
-      reg = gen_rtx_REG (Pmode, R11_REG);
-      emit_move_insn (reg, GEN_INT (args_size));
-      use_reg (&call_fusage, reg);
+      if (ix86_cmodel == CM_LARGE || ix86_cmodel == CM_LARGE_PIC)
+	{
+	  HOST_WIDE_INT argval;
+
+	  /* When using the large model we need to load the address
+	     into a register, and we've run out of registers.  So we
+	     switch to a different calling convention, and we call a
+	     different function: __morestack_large.  We pass the
+	     argument size in the upper 32 bits of r10 and pass the
+	     frame size in the lower 32 bits.  */
+	  gcc_assert ((allocate & (HOST_WIDE_INT) 0xffffffff) == allocate);
+	  gcc_assert (((unsigned HOST_WIDE_INT) args_size & 0xffffffff)
+		      == (unsigned HOST_WIDE_INT) args_size);
+
+	  if (split_stack_fn_large == NULL_RTX)
+	    split_stack_fn_large =
+	      gen_rtx_SYMBOL_REF (Pmode, "__morestack_large_model");
+
+	  if (ix86_cmodel == CM_LARGE_PIC)
+	    {
+	      rtx label, x;
+
+	      label = gen_label_rtx ();
+	      emit_label (label);
+	      LABEL_PRESERVE_P (label) = 1;
+	      emit_insn (gen_set_rip_rex64 (reg10, label));
+	      emit_insn (gen_set_got_offset_rex64 (reg11, label));
+	      emit_insn (gen_adddi3 (reg10, reg10, reg11));
+	      x = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, split_stack_fn_large),
+				  UNSPEC_GOT);
+	      x = gen_rtx_CONST (Pmode, x);
+	      emit_move_insn (reg11, x);
+	      x = gen_rtx_PLUS (Pmode, reg10, reg11);
+	      x = gen_const_mem (Pmode, x);
+	      emit_move_insn (reg11, x);
+	    }
+	  else
+	    emit_move_insn (reg11, split_stack_fn_large);
+
+	  fn = reg11;
+
+	  argval = (((HOST_WIDE_INT) args_size << 16) << 16) + allocate;
+	  emit_move_insn (reg10, GEN_INT (argval));
+	}
+      else
+	{
+	  emit_move_insn (reg10, allocate_rtx);
+	  emit_move_insn (reg11, GEN_INT (args_size));
+	  use_reg (&call_fusage, reg11);
+	}
+
+      use_reg (&call_fusage, reg10);
     }
   else
     {
       emit_insn (gen_push (GEN_INT (args_size)));
       emit_insn (gen_push (allocate_rtx));
     }
-  if (split_stack_fn == NULL_RTX)
-    split_stack_fn = gen_rtx_SYMBOL_REF (Pmode, "__morestack");
-  call_insn = ix86_expand_call (NULL_RTX, gen_rtx_MEM (QImode, split_stack_fn),
+  call_insn = ix86_expand_call (NULL_RTX, gen_rtx_MEM (QImode, fn),
 				GEN_INT (UNITS_PER_WORD), constm1_rtx,
 				NULL_RTX, 0);
   add_function_usage_to (call_insn, call_fusage);
@@ -11718,6 +11774,7 @@ legitimate_pic_address_disp_p (rtx disp)
       if (GET_CODE (disp) != UNSPEC
 	  || (XINT (disp, 1) != UNSPEC_GOTPCREL
 	      && XINT (disp, 1) != UNSPEC_GOTOFF
+	      && XINT (disp, 1) != UNSPEC_PCREL
 	      && XINT (disp, 1) != UNSPEC_PLTOFF))
 	return false;
 
@@ -11900,6 +11957,7 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	    return false;
 
 	  case UNSPEC_GOTPCREL:
+	  case UNSPEC_PCREL:
 	    gcc_assert (flag_pic);
 	    goto is_legitimate_pic;
 
@@ -12127,7 +12185,19 @@ legitimize_pic_address (rtx orig, rtx reg)
             }
         }
 
-      if (TARGET_64BIT && ix86_cmodel != CM_LARGE_PIC)
+      /* For x64 PE-COFF there is no GOT table.  So we use address
+         directly.  */
+      if (TARGET_64BIT && DEFAULT_ABI == MS_ABI)
+      {
+	  new_rtx = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, addr), UNSPEC_PCREL);
+	  new_rtx = gen_rtx_CONST (Pmode, new_rtx);
+
+	  if (reg == 0)
+	    reg = gen_reg_rtx (Pmode);
+  	  emit_move_insn (reg, new_rtx);
+	  new_rtx = reg;
+      }
+      else if (TARGET_64BIT && ix86_cmodel != CM_LARGE_PIC)
 	{
 	  new_rtx = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, addr), UNSPEC_GOTPCREL);
 	  new_rtx = gen_rtx_CONST (Pmode, new_rtx);
@@ -12836,6 +12906,10 @@ output_pic_addr_const (FILE *file, rtx x, int code)
 	case UNSPEC_PLTOFF:
 	  fputs ("@PLTOFF", file);
 	  break;
+	case UNSPEC_PCREL:
+	  fputs (ASSEMBLER_DIALECT == ASM_ATT ?
+		 "(%rip)" : "[rip]", file);
+	  break;
 	case UNSPEC_GOTPCREL:
 	  fputs (ASSEMBLER_DIALECT == ASM_ATT ?
 		 "@GOTPCREL(%rip)" : "@GOTPCREL[rip]", file);
@@ -12994,7 +13068,8 @@ ix86_delegitimize_address (rtx x)
     {
       if (GET_CODE (x) != CONST
 	  || GET_CODE (XEXP (x, 0)) != UNSPEC
-	  || XINT (XEXP (x, 0), 1) != UNSPEC_GOTPCREL
+	  || (XINT (XEXP (x, 0), 1) != UNSPEC_GOTPCREL
+	      && XINT (XEXP (x, 0), 1) != UNSPEC_PCREL)
 	  || !MEM_P (orig_x))
 	return ix86_delegitimize_tls_address (orig_x);
       x = XVECEXP (XEXP (x, 0), 0, 0);
@@ -13091,7 +13166,8 @@ ix86_find_base_term (rtx x)
 	      || GET_CODE (XEXP (term, 1)) == CONST_DOUBLE))
 	term = XEXP (term, 0);
       if (GET_CODE (term) != UNSPEC
-	  || XINT (term, 1) != UNSPEC_GOTPCREL)
+	  || (XINT (term, 1) != UNSPEC_GOTPCREL
+	      && XINT (term, 1) != UNSPEC_PCREL))
 	return x;
 
       return XVECEXP (term, 0, 0);
@@ -21803,6 +21879,7 @@ memory_address_length (rtx addr)
 		  || SYMBOL_REF_TLS_MODEL (symbol) != 0)
 	      && (GET_CODE (symbol) != UNSPEC
 		  || (XINT (symbol, 1) != UNSPEC_GOTPCREL
+		      && XINT (symbol, 1) != UNSPEC_PCREL
 		      && XINT (symbol, 1) != UNSPEC_GOTNTPOFF)))
 	    len += 1;
 	}
@@ -29112,7 +29189,8 @@ x86_output_mi_thunk (FILE *file,
   xops[0] = XEXP (DECL_RTL (function), 0);
   if (TARGET_64BIT)
     {
-      if (!flag_pic || targetm.binds_local_p (function))
+      if (!flag_pic || targetm.binds_local_p (function)
+	  || DEFAULT_ABI == MS_ABI)
 	output_asm_insn ("jmp\t%P0", xops);
       /* All thunks should be in the same object as their target,
 	 and thus binds_local_p should be true.  */

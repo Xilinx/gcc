@@ -1,3 +1,220 @@
+2010-11-08  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/expr/overflow1.C: New.
+	* g++.dg/warn/overflow-warn-1.C: Add expected diagnostics.
+	* g++.dg/warn/overflow-warn-3.C: Remove unnecessary line number.
+	* g++.dg/warn/overflow-warn-4.C: Add expected diagnostics.
+	* g++.dg/warn/overflow-warn-5.C: Don't expect wrong warning.
+
+2010-11-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/pr35442.c: Adapt warning.
+
+	PR target/46280
+	* g++.dg/eh/simd-2.C: Add -msse to dg-options, add
+	dg-require-effective-target sse_runtime for for i?86-*-*, x86_64-*-*.
+	* g++.dg/torture/pr36444.C: Add dg-options -msse for
+	i?86-*-* x86_64-*-*.
+	* g++.dg/torture/pr36445.C: Likewise.
+	* gcc.c-torture/compile/pr34856.c: Likewise.
+	* gcc.c-torture/compile/pr39928-1.c: Likewise.
+	* gcc.c-torture/compile/vector-1.c: Likewise.
+	* gcc.c-torture/compile/vector-2.c: Likewise.
+	* gcc.dg/pr32912-1.c: Likewise.
+	* gcc.c-torture/execute/va-arg-25.c: Move ...
+	* gcc.dg/torture/va-arg-25.c: ... here.
+	Add dg-do run.
+	Add dg-options -msse, dg-require-effective-target sse_runtime for
+	for i?86-*-*, x86_64-*-*.
+	* gcc.c-torture/execute/vector-1.c: Likewise.
+	* gcc.c-torture/execute/vector-2.c: Likewise.
+	* gcc.dg/tree-ssa/forwprop-5.c: Add -msse to dg-options for
+	i?86-*-*, x86_64-*-*.
+	* gcc.dg/tree-ssa/fre-vce-1.c: Likewise.
+	* gcc.dg/tree-ssa/sra-4.c: Likewise.
+	* gcc.dg/tree-ssa/vector-1.c: Likewise.
+	* gcc.dg/tree-ssa/vector-2.c: Likewise.
+	* gcc.target/i386/vect-args.c: Add -Wno-psabi to dg-options.
+
+2010-11-08  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc.dg/torture/pr45982.c: Add -std=c99
+	* gcc.dg/torture/pr45623.c: Ditto.
+	
+2010-11-08  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc/testsuite/g++.dg/abi/covariant1.C: Fix scan-assembler.
+	* gcc/testsuite/g++.dg/abi/covariant6.C: Ditto.
+
+2010-11-08  Kai Tietz  <kai.tietz@onevision.com>
+
+        PR target/28627
+        * g++.dg/ext/dllimport7.C: Adjust second error check and
+        allow test for x86_64 mingw, too.
+
+2010-11-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46344
+	* gfortran.dg/class_28.f03: New.
+
+2010-11-08  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/45352
+	gcc.dg/pr45352.c, gcc.dg/pr45352-1.c, gcc.dg/pr45352-2.c: New tests.
+	gcc.target/i386/pr45352.c, gcc.target/i386/pr45352-1.c,
+	gcc.target/i386/pr45352-2.c: New tests. 
+
+2010-11-06  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR libobjc/36610
+	* objc.dg/torture/forward-1.m: Re-enable for gnu-runtime, XFAIL the run for
+	all but m32 x86.
+	
+2010-11-07  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* g++.dg/debug/dwarf2/nested-2.C: Adjust pattern to also match "|"
+	as comment character.
+
+2010-11-07  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips.exp: Revert previous patch.
+	* gcc.target/mips/fma-1.c: Delete.
+	* gcc.target/mips/fma-2.c: Likewise.
+	* gcc.target/mips/fma-3.c: Likewise.
+	* gcc.target/mips/fma-4.c: Likewise.
+	* gcc.target/mips/fma-5.c: Likewise.
+	* gcc.target/mips/fma-6.c: Likewise.
+	* gcc.target/mips/fma-7.c: Likewise.
+	* gcc.target/mips/fma-8.c: Likewise.
+	* gcc.target/mips/fma-9.c: Likewise.
+	* gcc.target/mips/fma-10.c: Likewise.
+	* gcc.target/mips/fma-11.c: Likewise.
+	* gcc.target/mips/fma-12.c: Likewise.
+	* gcc.target/mips/fma-13.c: Likewise.
+	* gcc.target/mips/fma-14.c: Likewise.
+	* gcc.target/mips/fma-15.c: Likewise.
+	* gcc.target/mips/fma-16.c: Likewise.
+	* gcc.target/mips/fma-17.c: Likewise.
+	* gcc.target/mips/fma-18.c: Likewise.
+	* gcc.target/mips/fma-19.c: Likewise.
+	* gcc.target/mips/fma-20.c: Likewise.
+
+2010-11-07  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips.exp: Add support for -ffp-contract.
+	* gcc.target/mips/fma-1.c: New test.
+	* gcc.target/mips/fma-2.c: Likewise.
+	* gcc.target/mips/fma-3.c: Likewise.
+	* gcc.target/mips/fma-4.c: Likewise.
+	* gcc.target/mips/fma-5.c: Likewise.
+	* gcc.target/mips/fma-6.c: Likewise.
+	* gcc.target/mips/fma-7.c: Likewise.
+	* gcc.target/mips/fma-8.c: Likewise.
+	* gcc.target/mips/fma-9.c: Likewise.
+	* gcc.target/mips/fma-10.c: Likewise.
+	* gcc.target/mips/fma-11.c: Likewise.
+	* gcc.target/mips/fma-12.c: Likewise.
+	* gcc.target/mips/fma-13.c: Likewise.
+	* gcc.target/mips/fma-14.c: Likewise.
+	* gcc.target/mips/fma-15.c: Likewise.
+	* gcc.target/mips/fma-16.c: Likewise.
+	* gcc.target/mips/fma-17.c: Likewise.
+	* gcc.target/mips/fma-18.c: Likewise.
+	* gcc.target/mips/fma-19.c: Likewise.
+	* gcc.target/mips/fma-20.c: Likewise.
+
+2010-11-06  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-ctor3.C: New.
+
+2010-11-06  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c/43384
+	* gcc.dg/parser-error-3.c: New test.
+
+2010-11-06  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/45332
+	* g++.dg/parse/semicolon2.C: New testcase.
+	* g++.dg/ext/asmspec1.C: Adjust.
+	* g++.dg/init/new13.C: Adjust.
+	* g++.dg/parse/ctor5.C: Adjust.
+
+2010-11-06  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46330
+	* gfortran.dg/class_27.f03: New.
+
+2010-11-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Fixed using the Objective-C 2.0 dot-syntax with self and super.
+	* objc.dg/property/dotsyntax-5.m: New.
+	* objc.dg/property/dotsyntax-6.m: New.
+	* objc.dg/property/dotsyntax-7.m: New.
+	* objc.dg/property/dotsyntax-8.m: New.
+	* objc.dg/property/dotsyntax-9.m: New.
+	* objc.dg/property/dotsyntax-10.m: New.
+	* objc.dg/property/dotsyntax-11.m: New.
+	* obj-c++.dg/property/dotsyntax-5.mm: New.
+	* obj-c++.dg/property/dotsyntax-6.mm: New.
+	* obj-c++.dg/property/dotsyntax-7.mm: New.
+	* obj-c++.dg/property/dotsyntax-8.mm: New.
+	* obj-c++.dg/property/dotsyntax-9.mm: New.
+	* obj-c++.dg/property/dotsyntax-10.mm: New.
+	* obj-c++.dg/property/dotsyntax-11.mm: New.
+
+2010-11-06  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* obj-c++.dg/encode-3.mm: Provide a different string check for the
+	NeXT runtime when the type is READONLY.
+
+2010-11-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/387-2.c: Skip if -march= is specified.
+	* gcc.target/i386/387-6.c: Ditto.
+	* gcc.target/i386/387-3.c: Add -mfancy-math-387 to dg-options.
+	* gcc.target/i386/387-4.c: Ditto.
+	* gcc.target/i386/387-7.c: Ditto.
+	* gcc.target/i386/387-8.c: Ditto.
+	* gcc.target/i386/387-9.c: Ditto.
+	* gcc.target/i386/387-10.c: Ditto.
+	* gcc.target/i386/387-11.c: Ditto.
+	* gcc.target/i386/387-12.c: Ditto.
+
+	* gcc.target/i386/funcspec-8.c: Add -mno-sse3 to dg-options.
+
+2010-11-06  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR target/44981
+	* gcc.dg/darwin-cfstring-format-1.c: New.
+	* gcc.dg/warn-nsstring.c: New.
+	* objc.dg/fsf-nsstring-format-1.m: New.
+	* obj-c++.dg/fsf-nsstring-format-1.mm: New.
+	* obj-c++.dg/torture/strings/const-cfstring-1.mm: Update for darwin10
+	linker warning.
+
+2010-11-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45473
+	* g++.dg/inherit/virtual6.C: New.
+
+2010-11-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/44772
+	* gcc.dg/Wcxx-compat-21.c: New test.
+
+2010-11-05  Ian Lance Taylor  <iant@google.com>
+
+	PR target/46084
+	* gcc.target/i386/pr46084.c: New test.
+
+2010-11-05  Steve Ellcey  <sje@cup.hp.com>
+
+	* lib/target-supports.exp (check_function_available): Use -fno-builtin.
+	* (check_effective_target_mempcpy): New.
+	* gcc.c-torture/execute/pr45636.c: Move this...
+	* gcc.dg/torture/pr45636.c: to here.  Add add dg- directives.
+
 2010-11-05  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* gcc.target/i386/i386.exp (FLAGS): Remove.
@@ -72,8 +289,7 @@
 
 2010-11-04  Bud Davis	<jimmied@smu.edu>
 
-	* gfortran.dg/intrinsic_numeric_arg.f: Add test to check
-	error message.
+	* gfortran.dg/intrinsic_numeric_arg.f: Add test to check error message.
 
 2010-11-04  Chao-ying Fu  <fu@mips.com>
 

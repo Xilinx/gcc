@@ -3013,7 +3013,7 @@ lookup_label (tree name)
   tree label;
   struct c_label_vars *label_vars;
 
-  if (current_function_decl == 0)
+  if (current_function_scope == 0)
     {
       error ("label %qE referenced outside of any function", name);
       return 0;
@@ -6877,7 +6877,8 @@ warn_cxx_compat_finish_struct (tree fieldlist)
 
       for (x = fieldlist; x != NULL_TREE; x = DECL_CHAIN (x))
 	{
-	  if (pointer_set_contains (tset, DECL_NAME (x)))
+	  if (DECL_NAME (x) != NULL_TREE
+	      && pointer_set_contains (tset, DECL_NAME (x)))
 	    {
 	      warning_at (DECL_SOURCE_LOCATION (x), OPT_Wc___compat,
 			  ("using %qD as both field and typedef name is "
@@ -7846,6 +7847,9 @@ store_parm_decls_oldstyle (tree fndecl, const struct c_arg_info *arg_info)
       if (b && B_IN_CURRENT_SCOPE (b))
 	{
 	  decl = b->decl;
+	  /* Skip erroneous parameters.  */
+	  if (decl == error_mark_node)
+	    continue;
 	  /* If we got something other than a PARM_DECL it is an error.  */
 	  if (TREE_CODE (decl) != PARM_DECL)
 	    error_at (DECL_SOURCE_LOCATION (decl),

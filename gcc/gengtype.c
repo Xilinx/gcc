@@ -2641,8 +2641,11 @@ output_type_enum (outf_p of, type_p s)
 static outf_p
 get_output_file_for_structure (const_type_p s, type_p *param)
 {
-  const char *fn = s->u.s.line.file;
+  const char *fn;
   int i;
+
+  gcc_assert (UNION_OR_STRUCT_P (s));
+  fn = s->u.s.line.file;
 
   /* This is a hack, and not the good kind either.  */
   for (i = NUM_PARAM - 1; i >= 0; i--)
@@ -4066,7 +4069,7 @@ output_typename (outf_p of, const_type_p t)
 static void
 write_splay_tree_allocator_def (const_type_p s)
 {
-  outf_p of = get_output_file_for_structure (s, NULL);
+  outf_p of = get_output_file_with_visibility (NULL);
   oprintf (of, "void * ggc_alloc_splay_tree_");
   output_typename (of, s);
   oprintf (of, " (int sz, void * nl)\n");
@@ -4535,28 +4538,21 @@ main (int argc, char **argv)
       /* These types are set up with #define or else outside of where
          we can see them.  We should initialize them before calling
          read_input_list.  */
-      pos.file = this_file;
-      pos.line = __LINE__ + 1;
-      do_scalar_typedef ("CUMULATIVE_ARGS", &pos);
-      pos.line++;
-      do_scalar_typedef ("REAL_VALUE_TYPE", &pos);
-      pos.line++;
-      do_scalar_typedef ("FIXED_VALUE_TYPE", &pos);
-      pos.line++;
-      do_scalar_typedef ("double_int", &pos);
-      pos.line++;
-      do_scalar_typedef ("uint64_t", &pos);
-      pos.line++;
-      do_scalar_typedef ("uint8", &pos);
-      pos.line++;
-      do_scalar_typedef ("jword", &pos);
-      pos.line++;
-      do_scalar_typedef ("JCF_u2", &pos);
-      pos.line++;
-      do_scalar_typedef ("void", &pos);
-      pos.line++;
-      do_typedef ("PTR", create_pointer (resolve_typedef ("void", &pos)),
-		  &pos);
+#define POS_HERE(Call) do { pos.file = this_file; pos.line = __LINE__; \
+	Call;} while(0)
+      POS_HERE (do_scalar_typedef ("CUMULATIVE_ARGS", &pos));
+      POS_HERE (do_scalar_typedef ("REAL_VALUE_TYPE", &pos));
+      POS_HERE (do_scalar_typedef ("FIXED_VALUE_TYPE", &pos));
+      POS_HERE (do_scalar_typedef ("double_int", &pos));
+      POS_HERE (do_scalar_typedef ("uint64_t", &pos));
+      POS_HERE (do_scalar_typedef ("uint8", &pos));
+      POS_HERE (do_scalar_typedef ("jword", &pos));
+      POS_HERE (do_scalar_typedef ("JCF_u2", &pos));
+      POS_HERE (do_scalar_typedef ("void", &pos));
+      POS_HERE (do_typedef ("PTR", 
+			    create_pointer (resolve_typedef ("void", &pos)),
+			    &pos));
+#undef POS_HERE
       read_input_list (inputlist);
       for (i = 0; i < num_gt_files; i++)
 	{

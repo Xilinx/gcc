@@ -1,4 +1,4 @@
-// { dg-do compile { xfail *-*-* } }
+// { dg-do compile }
 // { dg-options "-std=gnu++0x" }
 
 // Copyright (C) 2010 Free Software Foundation, Inc.
@@ -18,16 +18,35 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-#include <memory>
+#include <type_traits>
 #include <testsuite_common_types.h>
+
+namespace __gnu_test
+{
+  struct constexpr_member_data
+  {
+    template<typename _Ttesttype>
+      void
+      operator()()
+      {
+	struct _Concept
+	{
+	  void __constraint()
+	  {
+	    constexpr auto v __attribute__((unused)) (_Ttesttype::value);
+	  }
+	};
+
+	_Concept c;
+	c.__constraint();
+      }
+  };
+}
 
 int main()
 {
-  __gnu_test::constexpr_default_constructible test1;
-  test1.operator()<std::shared_ptr<int>>();  // { dg-excess-errors "" }
-
-  __gnu_test::constexpr_single_value_constructible test2;
-  test2.operator()<std::shared_ptr<int>, std::nullptr_t>();  // { dg-excess-errors "" }
-
+  __gnu_test::constexpr_member_data test;
+  test.operator()<std::integral_constant<unsigned short, 69>>();
+  test.operator()<std::integral_constant<bool, true>>();
   return 0;
 }
