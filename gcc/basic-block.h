@@ -246,13 +246,7 @@ enum bb_flags
 
   /* Set on blocks that cannot be threaded through.
      Only used in cfgcleanup.c.  */
-  BB_NONTHREADABLE_BLOCK = 1 << 11,
-
-  /* Set on blocks that were modified in some way.  This bit is set in
-     df_set_bb_dirty, but not cleared by df_analyze, so it can be used
-     to test whether a block has been modified prior to a df_analyze
-     call.  */
-  BB_MODIFIED = 1 << 12
+  BB_NONTHREADABLE_BLOCK = 1 << 11
 };
 
 /* Dummy flag for convenience in the hot/cold partitioning code.  */
@@ -880,9 +874,6 @@ extern void set_bb_copy (basic_block, basic_block);
 extern basic_block get_bb_copy (basic_block);
 void set_loop_copy (struct loop *, struct loop *);
 struct loop *get_loop_copy (struct loop *);
-
-
-extern rtx insert_insn_end_bb_new (rtx, basic_block);
 
 #include "cfghooks.h"
 

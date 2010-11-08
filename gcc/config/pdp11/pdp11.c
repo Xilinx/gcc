@@ -1630,18 +1630,18 @@ pdp11_cannot_change_mode_class (enum machine_mode from,
 loading is easier into LOAD_FPU_REGS than FPU_REGS! */
 
 static reg_class_t
-pdp11_preferred_reload_class (rtx x, reg_class_t class)
+pdp11_preferred_reload_class (rtx x, reg_class_t rclass)
 {
-  if (class == FPU_REGS)
+  if (rclass == FPU_REGS)
     return LOAD_FPU_REGS;
-  if (class == ALL_REGS)
+  if (rclass == ALL_REGS)
     {
       if (FLOAT_MODE_P (GET_MODE (x)))
 	return LOAD_FPU_REGS;
       else
 	return GENERAL_REGS;
     }
-  return class;
+  return rclass;
 }
 
 /* TARGET_PREFERRED_OUTPUT_RELOAD_CLASS
@@ -1654,18 +1654,18 @@ pdp11_preferred_reload_class (rtx x, reg_class_t class)
 loading is easier into LOAD_FPU_REGS than FPU_REGS! */
 
 static reg_class_t
-pdp11_preferred_output_reload_class (rtx x, reg_class_t class)
+pdp11_preferred_output_reload_class (rtx x, reg_class_t rclass)
 {
-  if (class == FPU_REGS)
+  if (rclass == FPU_REGS)
     return LOAD_FPU_REGS;
-  if (class == ALL_REGS)
+  if (rclass == ALL_REGS)
     {
       if (FLOAT_MODE_P (GET_MODE (x)))
 	return LOAD_FPU_REGS;
       else
 	return GENERAL_REGS;
     }
-  return class;
+  return rclass;
 }
 
 
@@ -1674,7 +1674,7 @@ pdp11_preferred_output_reload_class (rtx x, reg_class_t class)
    FPU registers AC4 and AC5 (class NO_LOAD_FPU_REGS) require an 
    intermediate register (AC0-AC3: LOAD_FPU_REGS).  Everything else
    can be loade/stored directly.  */
-reg_class_t 
+static reg_class_t 
 pdp11_secondary_reload (bool in_p ATTRIBUTE_UNUSED,
 			rtx x,
 			reg_class_t reload_class,
@@ -1816,14 +1816,12 @@ output_addr_const_pdp11 (FILE *file, rtx x)
 static bool
 pdp11_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 {
-  /* Should probably return DImode and DFmode in memory, lest
-     we fill up all regs!
-
-     have to, else we crash - exception: maybe return result in 
-     ac0 if DFmode and FPU present - compatibility problem with
-     libraries for non-floating point....  */
+  /* Integers 32 bits and under, and scalar floats (if FPU), are returned
+     in registers.  The rest go into memory.  */
   return (TYPE_MODE (type) == DImode
-	  || (FLOAT_MODE_P (TYPE_MODE (type)) && ! TARGET_AC0));
+	  || (FLOAT_MODE_P (TYPE_MODE (type)) && ! TARGET_AC0)
+	  || TREE_CODE (type) == VECTOR_TYPE
+	  || COMPLEX_MODE_P (TYPE_MODE (type)));
 }
 
 /* Worker function for TARGET_FUNCTION_VALUE.

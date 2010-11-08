@@ -2292,10 +2292,13 @@ check_inquiry (gfc_expr *e, int not_restricted)
 	   with LEN, as required by the standard.  */
 	if (i == 5 && not_restricted
 	    && ap->expr->symtree->n.sym->ts.type == BT_CHARACTER
-	    && ap->expr->symtree->n.sym->ts.u.cl->length == NULL)
+	    && (ap->expr->symtree->n.sym->ts.u.cl->length == NULL
+		|| ap->expr->symtree->n.sym->ts.deferred))
 	  {
-	    gfc_error ("Assumed character length variable '%s' in constant "
-		       "expression at %L", e->symtree->n.sym->name, &e->where);
+	    gfc_error ("Assumed or deferred character length variable '%s' "
+			" in constant expression at %L",
+			ap->expr->symtree->n.sym->name,
+			&ap->expr->where);
 	      return MATCH_ERROR;
 	  }
 	else if (not_restricted && check_init_expr (ap->expr) == FAILURE)
@@ -3453,6 +3456,10 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
       gfc_error ("Different ranks in pointer assignment at %L", &lvalue->where);
       return FAILURE;
     }
+
+  if (lvalue->ts.type == BT_CLASS && rvalue->ts.type == BT_DERIVED)
+    /* Make sure the vtab is present.  */
+    gfc_find_derived_vtab (rvalue->ts.u.derived);
 
   /* Check rank remapping.  */
   if (rank_remap)

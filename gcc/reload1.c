@@ -2228,7 +2228,7 @@ spill_failure (rtx insn, enum reg_class rclass)
 static void
 delete_dead_insn (rtx insn)
 {
-  rtx prev = prev_real_insn (insn);
+  rtx prev = prev_active_insn (insn);
   rtx prev_dest;
 
   /* If the previous insn sets a register that dies in our insn, delete it
@@ -6141,7 +6141,9 @@ failed_reload (rtx insn, int r)
 static int
 set_reload_reg (int i, int r)
 {
-  int regno;
+  /* regno is 'set but not used' if HARD_REGNO_MODE_OK doesn't use its first
+     parameter.  */
+  int regno ATTRIBUTE_UNUSED;
   rtx reg = spill_reg_rtx[i];
 
   if (reg == 0 || GET_MODE (reg) != rld[r].mode)

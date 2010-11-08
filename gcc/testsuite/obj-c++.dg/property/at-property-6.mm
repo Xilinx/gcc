@@ -1,5 +1,6 @@
 /* Contributed by Nicola Pero <nicola.pero@meta-innovation.com>, October 2010.  */
 /* { dg-do run } */
+/* { dg-xfail-run-if "Needs OBJC2 ABI" { *-*-darwin* && { lp64 && { ! objc2 } } } { "-fnext-runtime" } { "" } } */
 
 /* Test the property syntax with non-synthesized setter/getter
    and with standard names.  */
@@ -13,7 +14,7 @@
   Class isa;
   int a;
 }
-@property int a;
+@property (nonatomic) int a;
 + (id) initialize;
 + (id) alloc;
 - (id) init;

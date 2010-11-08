@@ -473,7 +473,7 @@ resolve_unique_section (tree decl, int reloc ATTRIBUTE_UNUSED,
    ??? It is believed that this function will work in most cases so such
    support is localized here.  */
 
-static void
+static void ATTRIBUTE_UNUSED
 asm_output_bss (FILE *file, tree decl ATTRIBUTE_UNUSED,
 		const char *name,
 		unsigned HOST_WIDE_INT size ATTRIBUTE_UNUSED,
@@ -6605,6 +6605,16 @@ default_emit_unwind_label (FILE * stream ATTRIBUTE_UNUSED,
 void
 default_emit_except_table_label (FILE * stream ATTRIBUTE_UNUSED)
 {
+}
+
+/* This is how to output an internal numbered label where PREFIX is
+   the class of label and LABELNO is the number within the class.  */
+
+void
+default_generate_internal_label (char *buf, const char *prefix,
+				 unsigned long labelno)
+{
+  ASM_GENERATE_INTERNAL_LABEL (buf, prefix, labelno);
 }
 
 /* This is how to output an internal numbered label where PREFIX is

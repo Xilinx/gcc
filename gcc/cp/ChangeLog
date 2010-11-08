@@ -1,3 +1,294 @@
+2010-11-06  Jason Merrill  <jason@redhat.com>
+
+	* init.c (perform_member_init): Use build_vec_init_expr for
+	value-init of arrays, too.
+	* cp-gimplify.c (cp_gimplify_expr): Use VEC_INIT_EXPR_VALUE_INIT.
+	* cp-tree.h (VEC_INIT_EXPR_IS_CONSTEXPR): New macro.
+	(VEC_INIT_EXPR_VALUE_INIT): New macro.
+	* semantics.c (potential_constant_expression): No longer static.
+	Check VEC_INIT_EXPR_IS_CONSTEXPR.
+	* tree.c (build_vec_init_expr): Handle value-init.  Set
+	VEC_INIT_EXPR_IS_CONSTEXPR and VEC_INIT_EXPR_VALUE_INIT.
+
+2010-11-06  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/45332
+	* parser.c (cp_lexer_previous_token): New function.
+	(cp_parser_member_declaration): Use previous token for error
+	messages.  Assume semicolon presence rather than grovelling for
+	the next one.
+
+2010-11-06  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR middle-end/46314
+	* method.c (make_alias_for_thunk):
+	Use targetm.asm_out.generate_internal_label.
+
+2010-11-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45473
+	* search.c (look_for_overrides): A constructor is never virtual.
+
+2010-11-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/46160
+	* cp-gimplify.c (cp_gimplify_expr): Drop volatile MEM_REFs
+	on the RHS to avoid infinite recursion with gimplify_expr.
+
+2010-11-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46304
+	* pt.c (tsubst_copy): Handle COMPLEX_CST.
+
+2010-11-04  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Fixed using the Objective-C 2.0 dot-syntax with class names.	
+	* parser.c (cp_parser_primary_expression): Recognize Objective-C
+	2.0 dot-syntax with class names and process it.
+	(cp_parser_nonclass_name): Recognize Objective-C 2.0 dot-syntax
+	with class names.
+	(cp_parser_class_name): Same change.
+	(cp_parser_simple_type_specifier): Tidied comments.
+	
+2010-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46298
+	* semantics.c (build_constexpr_constructor_member_initializers):
+	Handle an enclosing STATEMENT_LIST.
+
+	* semantics.c (speculative_access_check): New.
+	* cp-tree.h: Declare it.
+	* call.c (build_over_call): Use it.
+	* class.c (type_has_constexpr_default_constructor): Use locate_ctor.
+	* method.c (locate_ctor): Use push/pop_deferring_access_checks.
+
+2010-11-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46293
+	* semantics.c (build_data_member_initialization): Handle
+	value-init of aggregate empty base.
+
+	PR c++/46289
+	* call.c (can_convert_array): New fn.
+	(build_aggr_conv): Use it.
+
+	PR c++/46289
+	* semantics.c (build_constexpr_constructor_member_initializers):
+	Avoid ICE on error.
+
+2010-11-02  Dodji Seketeli  <dodji@redhat.com>
+
+	* cp-tree.h (enum tsubst_flags)<tf_no_class_instantiations>:
+	Remove.
+	* pt.c (tsubst): Remove the use of tf_no_class_instantiations.
+
+2010-11-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46277
+	* init.c (expand_default_init): Avoid ICE if we can't figure out
+	which function is being called.
+
+2010-11-02  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* class.c (build_base_path, add_vcall_offset): Use build_zero_cst
+	instead of fold_convert.
+	* init.c (build_zero_init): Likewise.
+	* typeck.c (cp_build_binary_op): Likewise.
+
+2010-11-02  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/46170
+	PR c++/46162
+	* pt.c (check_valid_ptrmem_cst_expr): Add a complain parameter to
+	 control diagnostic.
+	(convert_nontype_argument, convert_nontype_argument): Pass the
+	complain parameter down to check_valid_ptrmem_cst_expr.
+
+2010-11-02  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/45606
+	* cp-tree.h (TEMPLATE_TYPE_PARM_SIBLING_PARMS): Remove.
+	(struct template_parm_index_s)<num_siblings>: New field.
+	(TEMPLATE_PARM_NUM_SIBLINGS): New accessor.
+	(process_template_parm): Extend the API to accept the number of
+	template parms in argument.
+	(cp_set_underlying_type): Remove this.
+	* class.c (build_self_reference): Require canonical type equality
+	back on the self reference of class.
+	* decl2.c (grokfield): Require canonical type equality back on
+	typedef class fields.
+	* name-lookup.c (pushdecl_maybe_friend): Require canonical type
+	equality back on typedefs.
+	* parser.c (cp_parser_template_parameter_list): Do not require
+	canonical type equality on dependent types created during template
+	parameters parsing.
+	* pt.c (fixup_template_type_parm_type, fixup_template_parm_index)
+	(fixup_template_parm, fixup_template_parms): New private
+	functions.
+	(current_template_args): Declare this.
+	(process_template_parm): Pass the total number of template parms
+	to canonical_type_parameter.
+	(build_template_parm_index): Add a new argument to carry the total
+	number of template parms.
+	(reduce_template_parm_level, process_template_parm, make_auto):
+	Adjust.
+	(current_template_args): Fix this for template template
+	parameters.
+	(tsubst_template_parm): Split out of ...
+	(tsubst_template_parms): ... this.
+	(reduce_template_parm_level): Don't loose
+	TEMPLATE_PARM_NUM_SIBLINGS when cloning a TEMPLATE_PARM_INDEX.
+	(template_parm_to_arg): Extracted this function from
+	current_template_args. Make it represent invalid template parms
+	with an error_mark_node instead of a LIST_TREE containing an
+	error_mark_node.
+	(current_template_args): Use template_parm_to_arg.
+	(dependent_template_arg_p): Consider an invalid template argument
+	as dependent.
+	(end_template_parm_list): Do not update template sibling parms
+	here anymore. Use fixup_template_parms instead.
+	(process_template_parm): Pass the number of template parms to
+	canonical_type_parameter.
+	(make_auto): Require structural equality on auto
+	TEMPLATE_TYPE_PARM for now.
+	(unify)<BOUND_TEMPLATE_TEMPLATE_PARM>: Coerce template parameters
+	using all the arguments deduced so far.
+	(tsubst)<TEMPLATE_TYPE_PARM>: Pass the number of sibling parms to
+	canonical_type_parameter.
+	* tree.c (cp_set_underlying_type): Remove.
+	* typeck.c (get_template_parms_of_dependent_type)
+	(incompatible_dependent_types_p): Remove.
+	(structural_comptypes): Do not call incompatible_dependent_types_p
+	anymore.
+	(comp_template_parms_position): Re-organized. Take the length of
+	template parms list in account.
+
+2010-11-01  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (call_stack, call_stack_tick, cx_error_context): New.
+	(last_cx_error_tick, push_cx_call_context, pop_cx_call_context): New.
+	(cxx_eval_call_expression): Call push/pop_cx_call_context instead
+	of giving follow-on errors.
+	* error.c (maybe_print_constexpr_context): New.
+	(cp_diagnostic_starter): Call it.
+	* cp-tree.h: Declare cx_error_context.
+
+	* semantics.c (cxx_eval_constant_expression): Explain
+	unacceptable use of variable better.
+
+2010-11-01  Gabriel Dos Reis  <gdr@cse.tamu.edu>
+	    Jason Merrill  <jason@redhat.com>
+
+	* call.c (null_ptr_cst_p): Use maybe_constant_value.
+	(set_up_extended_ref_temp): Support constant initialization.
+	(initialize_reference): Adjust.
+	* class.c (check_bitfield_decl): Use cxx_constant_value.
+	* cvt.c (ocp_convert): Don't use integral_constant_value when
+	converting to class type.
+	* decl.c (finish_case_label): Use maybe_constant_value.
+	(build_init_list_var_init): Support constant initialization.
+	(check_initializer): Likewise.  Reorganize.
+	(cp_finish_decl): Likewise.
+	(expand_static_init): Likewise.
+	(compute_array_index_type): Use maybe_constant_value.
+	Add complain parm.
+	(create_array_type_for_decl, grokdeclarator): Pass it.
+	(build_enumerator): Use cxx_constant_value.
+	* decl2.c (grokfield): Use maybe_constant_init.
+	* except.c (check_noexcept_r): Handle constexpr.
+	(build_noexcept_spec): Use maybe_constant_value.
+	* init.c (expand_default_init): Support constant initialization.
+	(build_vec_init): Likewise.
+	(constant_value_1): Adjust.
+	(build_new_1): Adjust.
+	* parser.c (cp_parser_constant_expression): Allow non-integral
+	in C++0x mode.
+	(cp_parser_direct_declarator): Don't fold yet in C++0x mode.
+	(cp_parser_initializer_clause): Toss folded result if non-constant.
+	* pt.c (fold_decl_constant_value): Remove.
+	(convert_nontype_argument): Use maybe_constant_value.  Give clearer
+	error about overflow.
+	(tsubst): Move array bounds handling into compute_array_index_type.
+	(value_dependent_expression_p): Handle constant CALL_EXPR.
+	(tsubst_decl): Don't set
+	DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P yet.
+	(tsubst_expr) [DECL_EXPR]: Pass it into cp_finish_decl.
+	(instantiate_decl): Here too.
+	* semantics.c (finish_static_assert): Use maybe_constant_value.
+	(ensure_literal_type_for_constexpr_object): Make sure type is complete.
+	(potential_constant_expression): Use maybe_constant_value.
+	* tree.c (cast_valid_in_integral_constant_expression_p): Any cast
+	is potentially valid in C++0x.
+	* typeck2.c (store_init_value): Handle constant init.
+	(check_narrowing): Use maybe_constant_value.
+	(build_functional_cast): Set TREE_CONSTANT on literal T().
+	* cp-tree.h (DECL_INTEGRAL_CONSTANT_VAR_P): Remove.
+	(LOOKUP_ALREADY_DIGESTED): New.
+	(compute_array_index_type): Adjust prototype.
+
+	* semantics.c (constexpr_call): New datatype.
+	(constexpr_call_table): New global table.
+	(constexpr_call_hash): New.
+	(constexpr_call_equal): Likewise.
+	(maybe_initialize_constexpr_call_table): Likewise.
+	(lookup_parameter_binding): Likewise.
+	(cxx_eval_builtin_function_call): Likewise.
+	(cxx_bind_parameters_in_call): Likewise.
+	(cxx_eval_call_expression): Likewise.
+	(cxx_eval_unary_expression): Likewise.
+	(cxx_eval_binary_expression): Likewise.
+	(cxx_eval_conditional_expression): Likewise.
+	(cxx_eval_array_reference): Likewise.
+	(cxx_eval_component_reference): Likewise.
+	(cxx_eval_logical_expression): Likewise.
+	(cxx_eval_object_construction): Likewise.
+	(cxx_eval_constant_expression): Likewise.
+	(cxx_eval_indirect_ref): Likewise.
+	(cxx_constant_value): Likewise.
+	(cxx_eval_bare_aggregate): Likewise.
+	(adjust_temp_type): New.
+	(reduced_constant_expression_p): New.
+	(verify_constant): New.
+	(cxx_eval_vec_init, cxx_eval_vec_init_1): New.
+	(cxx_eval_outermost_constant_expr): New.
+	(maybe_constant_value, maybe_constant_init): New.
+	(cxx_eval_constant_expression): Use them.
+	* pt.c (iterative_hash_template_arg): No longer static.
+	* cp-tree.h: Declare fns.
+
+	* cp-tree.h (register_constexpr_fundef): Declare.
+	* decl.c (maybe_save_function_definition): New.
+	(finish_function): Use it.
+	* semantics.c (constexpr_fundef): New datatype.
+	(constexpr_fundef_table): New global table.
+	(constexpr_fundef_equal): New.
+	(constexpr_fundef_hash): Likewise.
+	(retrieve_constexpr_fundef): Likewise.
+	(validate_constexpr_fundecl): Store in the table.
+	(build_data_member_initialization): New fn.
+	(build_constexpr_constructor_member_initializers): New.
+	(register_constexpr_fundef): Define.
+	(is_this_parameter): New.
+	(get_function_named_in_call): Likewise.
+	(get_nth_callarg): Likewise.
+	(check_automatic_or_tls): New.
+	(morally_constexpr_builtin_function_p): New.
+	(potential_constant_expression): New.
+
+2010-11-01  Jason Merrill  <jason@redhat.com>
+
+	* decl2.c (decl_constant_var_p): New fn.
+	(decl_maybe_constant_var_p): New fn.
+	(mark_used): Rework instantiation of things needed for constant
+	expressions.
+	* cp-tree.h: Declare new fns.
+	* pt.c (instantiate_decl): Handle cp_unevaluated_operand.
+	(always_instantiate_p): Use decl_maybe_constant_var_p.
+	(instantiate_decl): Don't defer constexpr functions.
+	* repo.c (repo_emit_p): Use decl_maybe_constant_var_p.
+	* semantics.c (finish_id_expression): Use decl_constant_var_p.
+	Check for valid name in constant expr after mark_used.
+
 2010-10-31  Jason Merrill  <jason@redhat.com>
 
 	* class.c (is_really_empty_class): Work when type is not complete.

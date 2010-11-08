@@ -1,3 +1,127 @@
+2010-11-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Fixed using the Objective-C 2.0 syntax with self and super.
+	* objc-act.c (OBJC_LOOKUP_NO_INSTANCE_METHODS_OF_ROOT_CLASS): New.
+	(maybe_make_artificial_property_decl): Added 'implementation'
+	argument.  Use OBJC_LOOKUP_NO_INSTANCE_METHODS_OF_ROOT_CLASS when
+	looking up getters or setters for a class.  If an implementation
+	is specified, search it as well for a getter or setter.
+	(objc_maybe_build_component_ref): Updated calls to
+	maybe_make_artificial_property_decl; added code to deal with
+	'self' and 'super' and with methods declared locally in the
+	implementation.  Store the getter call expression in the
+	PROPERTY_REF instead of throwing it away.
+	(objc_build_class_component_ref): Updated calls to
+	maybe_make_artificial_property_decl, and store the getter call
+	expression in PROPERTY_REF instead of throwing it away.
+	(lookup_method_static): Implemented
+	OBJC_LOOKUP_NO_INSTANCE_METHODS_OF_ROOT_CLASS option.
+	(objc_gimplify_property_ref): Do not build the getter method call
+	here; instead use the one stored in the PROPERTY_REF.  If it's not
+	there, produce helpful error messages.
+	* objc-tree.def (PROPERTY_REF): Increased the number of operands
+	from 2 to 3.  Updated comments.
+	* objc-act.h (PROPERTY_REF_GETTER_CALL): New.
+	
+2010-11-06  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR target/44981
+	* objc-act.c (objc_build_string_object): Amend for renamed hook.
+	(objc_string_ref_type_p): New.
+	(objc_check_format_arg): New.
+
+2010-11-04  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Fixed using the Objective-C 2.0 dot-syntax with class names.	
+	* objc-act.c (objc_build_class_component_ref): New.
+
+2010-11-03  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-act.c (objc_add_dynamic_declaration): Allow @dynamic in a
+	category.
+	(objc_type_valid_for_messaging): Added 'accept_classes' argument;
+	if set to 'true', return 'true' for Class objects.  Do not remove
+	more than on pointer indirection.
+	(objc_add_property_declaration): Only warn about 'assign'
+	semantics for Objective-C objects if warn_property_assign_default;
+	and do not warn if the property is readonly or if the type is a Class.
+	(objc_finish_foreach_loop): Updated calls to
+	objc_type_valid_for_messaging.
+	
+2010-11-03  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented -fobjc-std=objc1 flag.
+	* objc-act.c (objc_start_class_interface): If attributes are
+	specified when flag_objc1_only is set, print an error.
+	(objc_start_category_interface): Same change.
+	(objc_start_protocol): Same change.
+	(objc_add_method_declaration): Same change.
+	(objc_start_method_definition): Same change.
+	(objc_build_keyword_decl): Same change.
+	(objc_set_visibility): If OBJC_IVAR_VIS_PACKAGE is used when
+	flag_objc1_set is set, print an error.
+	(objc_set_method_opt): If flag_objc1_only is set, print an error.
+	(objc_add_property_declaration): Same change.
+	(objc_add_synthesize_declaration): Same change.
+	(objc_add_dynamic_declaration): Same change.
+	(objc_finish_foreach_loop): Same change.
+	(objc_maybe_build_component_ref): If flag_objc1_only is set,
+	return immediately.
+
+2010-11-03  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-act.c (maybe_make_artificial_property_decl): New.
+	(objc_maybe_build_component_ref): Call
+	maybe_make_artificial_property_decl if a property can not be
+	found.  Do not call objc_finish_message_expr if
+	PROPERTY_HAS_NO_GETTER.
+	* objc-act.h Updated comments.
+	(PROPERTY_HAS_NO_GETTER): New.
+	(PROPERTY_HAS_NO_SETTER): New.
+	* objc-tree.def: Updated comment.
+	
+2010-11-01  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented format and noreturn attributes for Objective-C methods.
+	* objc-act.c (objc_start_method_definition): If method attributes
+	are specified emit a warning and ignore them.
+	(build_objc_method_call): Moved deprecation warnings from here ...
+	(objc_finish_message_expr): to here.  Do not emit deprecation
+	warnings if the receiver is of type 'id'.
+	(really_start_method): Install 'deprecation' and 'noreturn'
+	attributes.
+	(objc_decl_method_attributes): Carefully filter out the list of
+	attributes, allowing only "noreturn", "format", "sentinel" and
+	"deprecated".  In the case of "format", adjust the arguments.
+	Always process the attributes in the same way no matter if
+	"sentinel" is in the list or not.
+	
+2010-11-01  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-act.c (objc_maybe_build_component_ref): Warn about using
+	deprecated properties.
+	(objc_maybe_printable_name): Support PROPERTY_DECL.
+	
+2010-11-01  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	Implemented Objective-C 2.0 property accessors.	
+	* objc-act.h (enum objc_tree_index): Added OCTI_GET_PROPERTY_DECL,
+	OCTI_SET_PROPERTY_DECL, OCTI_COPY_STRUCT_DECL,
+	OCTI_GET_PROPERTY_STRUCT_DECL and OCTI_SET_PROPERTY_STRUCT_DECL.
+	(objc_getProperty_decl): New.
+	(objc_setProperty_decl): New.
+	(objc_copyStruct_decl): New.
+	(objc_getPropertyStruct_decl): New.
+	(objc_setPropertyStruct_decl): New.
+	* objc-act.c (build_objc_property_accessor_helpers): New.
+	(synth_module_prologue): Call
+	build_objc_property_accessor_helpers.
+	(lookup_ivar): New.
+	(objc_synthesize_getter): Implemented synthesizing getters that
+	work with properties that are not nonatomic, assign properties.
+	(objc_synthesize_setter): Implemented synthesizing setters that
+	work with properties that are not nonatomic, assign properties.
+	
 2010-10-30  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	Implemented Objective-C 2.0 @property, @synthesize and @dynamic.

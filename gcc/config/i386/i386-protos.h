@@ -119,6 +119,7 @@ extern void ix86_expand_sse_unpack (rtx[], bool, bool);
 extern void ix86_expand_sse4_unpack (rtx[], bool, bool);
 extern bool ix86_expand_int_addcc (rtx[]);
 extern rtx ix86_expand_call (rtx, rtx, rtx, rtx, rtx, int);
+extern void ix86_split_call_vzeroupper (rtx, rtx);
 extern void x86_initialize_trampoline (rtx, rtx, rtx);
 extern rtx ix86_zero_extend_to_Pmode (rtx);
 extern void ix86_split_long_move (rtx[]);
@@ -271,3 +272,21 @@ extern enum attr_cpu ix86_schedule;
 #endif
 
 extern const char * ix86_output_call_insn (rtx insn, rtx call_op, int addr_op);
+
+#ifdef RTX_CODE
+/* Target data for multipass lookahead scheduling.
+   Currently used for Core 2/i7 tuning.  */
+struct ix86_first_cycle_multipass_data_
+{
+  /* The length (in bytes) of ifetch block in this solution.  */
+  int ifetch_block_len;
+  /* Number of instructions in ifetch block in this solution.  */
+  int ifetch_block_n_insns;
+  /* Bitmap to remember changes to ready_try for backtracking.  */
+  sbitmap ready_try_change;
+  /* Size of the bitmap.  */
+  int ready_try_change_size;
+};
+# define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DATA_T	\
+  struct ix86_first_cycle_multipass_data_
+#endif /* RTX_CODE */

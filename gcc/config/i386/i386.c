@@ -108,163 +108,119 @@ check_avx256_stores (rtx dest, const_rtx set, void *data)
 static void
 move_or_delete_vzeroupper_2 (basic_block bb, bool upper_128bits_set)
 {
-  rtx curr_insn, next_insn, prev_insn, insn;
+  rtx insn;
+  rtx vzeroupper_insn = NULL_RTX;
+  rtx pat;
+  int avx256;
 
   if (dump_file)
     fprintf (dump_file, " BB [%i] entry: upper 128bits: %d\n",
 	     bb->index, upper_128bits_set);
 
-  for (curr_insn = BB_HEAD (bb);
-       curr_insn && curr_insn != NEXT_INSN (BB_END (bb));
-       curr_insn = next_insn)
+  insn = BB_HEAD (bb);
+  while (insn != BB_END (bb))
     {
-      int avx256;
+      insn = NEXT_INSN (insn);
 
-      next_insn = NEXT_INSN (curr_insn);
-
-      if (!NONDEBUG_INSN_P (curr_insn))
+      if (!NONDEBUG_INSN_P (insn))
 	continue;
 
-      /* Search for vzeroupper.  */
-      insn = PATTERN (curr_insn);
-      if (GET_CODE (insn) == UNSPEC_VOLATILE
-	  && XINT (insn, 1) == UNSPECV_VZEROUPPER)
+      /* Move vzeroupper before jump/call.  */
+      if (JUMP_P (insn) || CALL_P (insn))
 	{
-	  /* Found vzeroupper.  */
+	  if (!vzeroupper_insn)
+	    continue;
+
+	  if (PREV_INSN (insn) != vzeroupper_insn)
+	    {
+	      if (dump_file)
+		{
+		  fprintf (dump_file, "Move vzeroupper after:\n");
+		  print_rtl_single (dump_file, PREV_INSN (insn));
+		  fprintf (dump_file, "before:\n");
+		  print_rtl_single (dump_file, insn);
+		}
+	      reorder_insns_nobb (vzeroupper_insn, vzeroupper_insn,
+				  PREV_INSN (insn));
+	    }
+	  vzeroupper_insn = NULL_RTX;
+	  continue;
+	}
+
+      pat = PATTERN (insn);
+
+      /* Check insn for vzeroupper intrinsic.  */
+      if (GET_CODE (pat) == UNSPEC_VOLATILE
+	  && XINT (pat, 1) == UNSPECV_VZEROUPPER)
+	{
 	  if (dump_file)
 	    {
+	      /* Found vzeroupper intrinsic.  */
 	      fprintf (dump_file, "Found vzeroupper:\n");
-	      print_rtl_single (dump_file, curr_insn);
+	      print_rtl_single (dump_file, insn);
 	    }
 	}
       else
 	{
-	  /* Check vzeroall intrinsic.  */
-	  if (GET_CODE (insn) == PARALLEL
-	      && GET_CODE (XVECEXP (insn, 0, 0)) == UNSPEC_VOLATILE
-	      && XINT (XVECEXP (insn, 0, 0), 1) == UNSPECV_VZEROALL)
-	    upper_128bits_set = false;
-	  else if (!upper_128bits_set)
+	  /* Check insn for vzeroall intrinsic.  */
+	  if (GET_CODE (pat) == PARALLEL
+	      && GET_CODE (XVECEXP (pat, 0, 0)) == UNSPEC_VOLATILE
+	      && XINT (XVECEXP (pat, 0, 0), 1) == UNSPECV_VZEROALL)
 	    {
-	      /* Check if upper 128bits of AVX registers are used.  */
-	      note_stores (insn, check_avx256_stores,
-			   &upper_128bits_set);
+	      upper_128bits_set = false;
+
+	      /* Delete pending vzeroupper insertion.  */
+	      if (vzeroupper_insn)
+		{
+		  delete_insn (vzeroupper_insn);
+		  vzeroupper_insn = NULL_RTX;
+		}
 	    }
+	  else if (!upper_128bits_set)
+	    note_stores (pat, check_avx256_stores, &upper_128bits_set);
 	  continue;
 	}
 
-      avx256 = INTVAL (XVECEXP (insn, 0, 0));
+      /* Process vzeroupper intrinsic.  */
+      avx256 = INTVAL (XVECEXP (pat, 0, 0));
 
       if (!upper_128bits_set)
 	{
 	  /* Since the upper 128bits are cleared, callee must not pass
 	     256bit AVX register.  We only need to check if callee
 	     returns 256bit AVX register.  */
-	  upper_128bits_set = avx256 == callee_return_avx256;
+	  upper_128bits_set = (avx256 == callee_return_avx256);
 
-	  /* Remove unnecessary vzeroupper since upper 128bits are
-	     cleared.  */
+	  /* Remove unnecessary vzeroupper since
+	     upper 128bits are cleared.  */
 	  if (dump_file)
 	    {
 	      fprintf (dump_file, "Delete redundant vzeroupper:\n");
-	      print_rtl_single (dump_file, curr_insn);
+	      print_rtl_single (dump_file, insn);
 	    }
-	  delete_insn (curr_insn);
-	  continue;
+	  delete_insn (insn);
 	}
       else if (avx256 == callee_return_pass_avx256
 	       || avx256 == callee_pass_avx256)
 	{
 	  /* Callee passes 256bit AVX register.  Check if callee
 	     returns 256bit AVX register.  */
-	  upper_128bits_set = avx256 == callee_return_pass_avx256;
+	  upper_128bits_set = (avx256 == callee_return_pass_avx256);
 
-	  /* Must remove vzeroupper since callee passes 256bit AVX
-	     register.  */
+	  /* Must remove vzeroupper since
+	     callee passes in 256bit AVX register.  */
 	  if (dump_file)
 	    {
 	      fprintf (dump_file, "Delete callee pass vzeroupper:\n");
-	      print_rtl_single (dump_file, curr_insn);
+	      print_rtl_single (dump_file, insn);
 	    }
-	  delete_insn (curr_insn);
-	  continue;
-	}
-
-      /* Find the jump after vzeroupper.  */
-      prev_insn = curr_insn;
-      if (avx256 == vzeroupper_intrinsic)
-	{
-	  /* For vzeroupper intrinsic, check if there is another
-	     vzeroupper.  */
-	  insn = NEXT_INSN (curr_insn);
-	  while (insn)
-	    {
-	      if (NONJUMP_INSN_P (insn)
-		  && GET_CODE (PATTERN (insn)) == UNSPEC_VOLATILE
-		  && XINT (PATTERN (insn), 1) == UNSPECV_VZEROUPPER)
-		{
-		  if (dump_file)
-		    {
-		      fprintf (dump_file,
-			       "Delete redundant vzeroupper intrinsic:\n");
-		      print_rtl_single (dump_file, curr_insn);
-		    }
-		  delete_insn (curr_insn);
-		  insn = NULL;
-		  continue;
-		}
-
-	      if (JUMP_P (insn) || CALL_P (insn))
-		break;
-	      prev_insn = insn;
-	      insn = NEXT_INSN (insn);
-	      if (insn == NEXT_INSN (BB_END (bb)))
-		break;
-	    }
-
-	  /* Continue if redundant vzeroupper intrinsic is deleted.  */
-	  if (!insn)
-	    continue;
+	  delete_insn (insn);
 	}
       else
 	{
-	  /* Find the next jump/call.  */
-	  insn = NEXT_INSN (curr_insn);
-	  while (insn)
-	    {
-	      if (JUMP_P (insn) || CALL_P (insn))
-		break;
-	      prev_insn = insn;
-	      insn = NEXT_INSN (insn);
-	      if (insn == NEXT_INSN (BB_END (bb)))
-		break;
-	    }
-
-	  if (!insn)
-	    gcc_unreachable();
+	  upper_128bits_set = false;
+	  vzeroupper_insn = insn;
 	}
-
-      /* Keep vzeroupper.  */
-      upper_128bits_set = false;
-
-      /* Also allow label as the next instruction.  */
-      if (insn == NEXT_INSN (BB_END (bb)) && !LABEL_P (insn))
-	gcc_unreachable();
-
-      /* Move vzeroupper before jump/call if neeeded.  */
-      if (curr_insn != prev_insn)
-	{
-	  reorder_insns_nobb (curr_insn, curr_insn, prev_insn);
-	  if (dump_file)
-	    {
-	      fprintf (dump_file, "Move vzeroupper after:\n");
-	      print_rtl_single (dump_file, prev_insn);
-	      fprintf (dump_file, "before:\n");
-	      print_rtl_single (dump_file, insn);
-	    }
-	}
-
-      next_insn = NEXT_INSN (insn);
     }
 
   BLOCK_INFO (bb)->upper_128bits_set = upper_128bits_set;
@@ -1642,6 +1598,8 @@ const struct processor_costs *ix86_cost = &pentium_cost;
 #define m_PENT4  (1<<PROCESSOR_PENTIUM4)
 #define m_NOCONA  (1<<PROCESSOR_NOCONA)
 #define m_CORE2  (1<<PROCESSOR_CORE2)
+#define m_COREI7_32  (1<<PROCESSOR_COREI7_32)
+#define m_COREI7_64  (1<<PROCESSOR_COREI7_64)
 #define m_ATOM  (1<<PROCESSOR_ATOM)
 
 #define m_GEODE  (1<<PROCESSOR_GEODE)
@@ -1654,8 +1612,8 @@ const struct processor_costs *ix86_cost = &pentium_cost;
 #define m_BDVER1  (1<<PROCESSOR_BDVER1)
 #define m_AMD_MULTIPLE  (m_K8 | m_ATHLON | m_AMDFAM10 | m_BDVER1)
 
-#define m_GENERIC32 (1<<PROCESSOR_GENERIC32)
-#define m_GENERIC64 (1<<PROCESSOR_GENERIC64)
+#define m_GENERIC32 (1<<PROCESSOR_GENERIC32 | m_COREI7_32)
+#define m_GENERIC64 (1<<PROCESSOR_GENERIC64 | m_COREI7_64)
 
 /* Generic instruction choice should be common subset of supported CPUs
    (PPro/PENT4/NOCONA/CORE2/Athlon/K8).  */
@@ -2461,6 +2419,10 @@ static const struct ptt processor_target_table[PROCESSOR_max] =
   {&k8_cost, 16, 7, 16, 7, 16},
   {&nocona_cost, 0, 0, 0, 0, 0},
   {&core2_cost, 16, 10, 16, 10, 16},
+  /* Core i7 32-bit.  */
+  {&generic32_cost, 16, 10, 16, 10, 16},
+  /* Core i7 64-bit.  */
+  {&generic64_cost, 16, 10, 16, 10, 16},
   {&generic32_cost, 16, 7, 16, 7, 16},
   {&generic64_cost, 16, 10, 16, 10, 16},
   {&amdfam10_cost, 32, 24, 32, 7, 32},
@@ -2483,6 +2445,7 @@ static const char *const cpu_names[TARGET_CPU_DEFAULT_max] =
   "prescott",
   "nocona",
   "core2",
+  "corei7",
   "atom",
   "geode",
   "k6",
@@ -3183,6 +3146,9 @@ ix86_option_override_internal (bool main_args_p)
       {"core2", PROCESSOR_CORE2, CPU_CORE2,
 	PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
 	| PTA_SSSE3 | PTA_CX16},
+      {"corei7", PROCESSOR_COREI7_64, CPU_GENERIC64,
+       PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
+       | PTA_SSSE3 | PTA_SSE4_1 | PTA_SSE4_2 | PTA_CX16},
       {"atom", PROCESSOR_ATOM, CPU_ATOM,
 	PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
 	| PTA_SSSE3 | PTA_CX16 | PTA_MOVBE},
@@ -3522,23 +3488,45 @@ ix86_option_override_internal (bool main_args_p)
       {
 	ix86_schedule = processor_alias_table[i].schedule;
 	ix86_tune = processor_alias_table[i].processor;
-	if (TARGET_64BIT && !(processor_alias_table[i].flags & PTA_64BIT))
+	if (TARGET_64BIT)
 	  {
-	    if (ix86_tune_defaulted)
+	    if (!(processor_alias_table[i].flags & PTA_64BIT))
 	      {
-		ix86_tune_string = "x86-64";
-		for (i = 0; i < pta_size; i++)
-		  if (! strcmp (ix86_tune_string,
-				processor_alias_table[i].name))
-		    break;
-		ix86_schedule = processor_alias_table[i].schedule;
-		ix86_tune = processor_alias_table[i].processor;
+		if (ix86_tune_defaulted)
+		  {
+		    ix86_tune_string = "x86-64";
+		    for (i = 0; i < pta_size; i++)
+		      if (! strcmp (ix86_tune_string,
+				    processor_alias_table[i].name))
+			break;
+		    ix86_schedule = processor_alias_table[i].schedule;
+		    ix86_tune = processor_alias_table[i].processor;
+		  }
+		else
+		  error ("CPU you selected does not support x86-64 "
+			 "instruction set");
 	      }
-	    else
-	      error ("CPU you selected does not support x86-64 "
-		     "instruction set");
 	  }
-        /* Intel CPUs have always interpreted SSE prefetch instructions as
+	else
+	  {
+	    /* Adjust tuning when compiling for 32-bit ABI.  */
+	    switch (ix86_tune)
+	      {
+	      case PROCESSOR_GENERIC64:
+		ix86_tune = PROCESSOR_GENERIC32;
+		ix86_schedule = CPU_PENTIUMPRO;
+		break;
+
+	      case PROCESSOR_COREI7_64:
+		ix86_tune = PROCESSOR_COREI7_32;
+		ix86_schedule = CPU_PENTIUMPRO;
+		break;
+
+	      default:
+		break;
+	      }
+	  }
+	/* Intel CPUs have always interpreted SSE prefetch instructions as
 	   NOPs; so, we can enable SSE prefetch instructions even when
 	   -mtune (rather than -march) points us to a processor that has them.
 	   However, the VIA C3 gives a SIGILL, so we only do that for i686 and
@@ -4942,8 +4930,11 @@ ix86_function_ok_for_sibcall (tree decl, tree exp)
 
   /* If we are generating position-independent code, we cannot sibcall
      optimize any indirect call, or a direct call to a global function,
-     as the PLT requires %ebx be live.  */
-  if (!TARGET_64BIT && flag_pic && (!decl || !targetm.binds_local_p (decl)))
+     as the PLT requires %ebx be live. (Darwin does not have a PLT.)  */
+  if (!TARGET_MACHO
+      && !TARGET_64BIT 
+      && flag_pic 
+      && (!decl || !targetm.binds_local_p (decl)))
     return false;
 
   /* If we need to align the outgoing stack, then sibcalling would
@@ -11575,6 +11566,12 @@ legitimate_constant_p (rtx x)
       if (TARGET_DLLIMPORT_DECL_ATTRIBUTES
 	  && SYMBOL_REF_DLLIMPORT_P (x))
 	return false;
+
+#if TARGET_MACHO
+      /* mdynamic-no-pic */
+      if (MACHO_DYNAMIC_NO_PIC_P)
+	return machopic_symbol_defined_p (x);
+#endif
       break;
 
     case CONST_DOUBLE:
@@ -11721,6 +11718,7 @@ legitimate_pic_address_disp_p (rtx disp)
       if (GET_CODE (disp) != UNSPEC
 	  || (XINT (disp, 1) != UNSPEC_GOTPCREL
 	      && XINT (disp, 1) != UNSPEC_GOTOFF
+	      && XINT (disp, 1) != UNSPEC_PCREL
 	      && XINT (disp, 1) != UNSPEC_PLTOFF))
 	return false;
 
@@ -11903,6 +11901,7 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	    return false;
 
 	  case UNSPEC_GOTPCREL:
+	  case UNSPEC_PCREL:
 	    gcc_assert (flag_pic);
 	    goto is_legitimate_pic;
 
@@ -11945,9 +11944,15 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 		/* Non-constant pic memory reference.  */
 		return false;
 	    }
-	  else if (! legitimate_pic_address_disp_p (disp))
+	  else if ((!TARGET_MACHO || flag_pic)
+		    && ! legitimate_pic_address_disp_p (disp))
 	    /* Displacement is an invalid pic construct.  */
 	    return false;
+#if TARGET_MACHO
+	  else if (MACHO_DYNAMIC_NO_PIC_P && !legitimate_constant_p (disp))
+	    /* displacment must be referenced via non_lazy_pointer */
+	    return false;
+#endif
 
           /* This code used to verify that a symbolic pic displacement
 	     includes the pic_offset_table_rtx register.
@@ -12124,7 +12129,19 @@ legitimize_pic_address (rtx orig, rtx reg)
             }
         }
 
-      if (TARGET_64BIT && ix86_cmodel != CM_LARGE_PIC)
+      /* For x64 PE-COFF there is no GOT table.  So we use address
+         directly.  */
+      if (TARGET_64BIT && DEFAULT_ABI == MS_ABI)
+      {
+	  new_rtx = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, addr), UNSPEC_PCREL);
+	  new_rtx = gen_rtx_CONST (Pmode, new_rtx);
+
+	  if (reg == 0)
+	    reg = gen_reg_rtx (Pmode);
+  	  emit_move_insn (reg, new_rtx);
+	  new_rtx = reg;
+      }
+      else if (TARGET_64BIT && ix86_cmodel != CM_LARGE_PIC)
 	{
 	  new_rtx = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, addr), UNSPEC_GOTPCREL);
 	  new_rtx = gen_rtx_CONST (Pmode, new_rtx);
@@ -12556,6 +12573,11 @@ ix86_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
   if (flag_pic && SYMBOLIC_CONST (x))
     return legitimize_pic_address (x, 0);
 
+#if TARGET_MACHO
+  if (MACHO_DYNAMIC_NO_PIC_P && SYMBOLIC_CONST (x))
+    return machopic_indirect_data_reference (x, 0);
+#endif
+
   /* Canonicalize shifts by 0, 1, 2, 3 into multiply */
   if (GET_CODE (x) == ASHIFT
       && CONST_INT_P (XEXP (x, 1))
@@ -12828,6 +12850,10 @@ output_pic_addr_const (FILE *file, rtx x, int code)
 	case UNSPEC_PLTOFF:
 	  fputs ("@PLTOFF", file);
 	  break;
+	case UNSPEC_PCREL:
+	  fputs (ASSEMBLER_DIALECT == ASM_ATT ?
+		 "(%rip)" : "[rip]", file);
+	  break;
 	case UNSPEC_GOTPCREL:
 	  fputs (ASSEMBLER_DIALECT == ASM_ATT ?
 		 "@GOTPCREL(%rip)" : "@GOTPCREL[rip]", file);
@@ -12986,7 +13012,8 @@ ix86_delegitimize_address (rtx x)
     {
       if (GET_CODE (x) != CONST
 	  || GET_CODE (XEXP (x, 0)) != UNSPEC
-	  || XINT (XEXP (x, 0), 1) != UNSPEC_GOTPCREL
+	  || (XINT (XEXP (x, 0), 1) != UNSPEC_GOTPCREL
+	      && XINT (XEXP (x, 0), 1) != UNSPEC_PCREL)
 	  || !MEM_P (orig_x))
 	return ix86_delegitimize_tls_address (orig_x);
       x = XVECEXP (XEXP (x, 0), 0, 0);
@@ -13083,7 +13110,8 @@ ix86_find_base_term (rtx x)
 	      || GET_CODE (XEXP (term, 1)) == CONST_DOUBLE))
 	term = XEXP (term, 0);
       if (GET_CODE (term) != UNSPEC
-	  || XINT (term, 1) != UNSPEC_GOTPCREL)
+	  || (XINT (term, 1) != UNSPEC_GOTPCREL
+	      && XINT (term, 1) != UNSPEC_PCREL))
 	return x;
 
       return XVECEXP (term, 0, 0);
@@ -14053,7 +14081,7 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	}
       if (CONST_INT_P (x))
 	fprintf (file, HOST_WIDE_INT_PRINT_DEC, INTVAL (x));
-      else if (flag_pic)
+      else if (flag_pic || MACHOPIC_INDIRECT)
 	output_pic_addr_const (file, x, code);
       else
 	output_addr_const (file, x);
@@ -14992,6 +15020,9 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
   rtx op0, op1;
   enum tls_model model;
 
+  if (VALID_AVX256_REG_MODE (mode))
+    cfun->machine->use_avx256_p = true;
+
   op0 = operands[0];
   op1 = operands[1];
 
@@ -15034,25 +15065,43 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
 	}
     }
 
-  if (flag_pic && mode == Pmode && symbolic_operand (op1, Pmode))
+  if ((flag_pic || MACHOPIC_INDIRECT) 
+       && mode == Pmode && symbolic_operand (op1, Pmode))
     {
       if (TARGET_MACHO && !TARGET_64BIT)
 	{
 #if TARGET_MACHO
-	  if (MACHOPIC_PURE)
+	  /* dynamic-no-pic */
+	  if (MACHOPIC_INDIRECT)
 	    {
 	      rtx temp = ((reload_in_progress
 			   || ((op0 && REG_P (op0))
 			       && mode == Pmode))
 			  ? op0 : gen_reg_rtx (Pmode));
 	      op1 = machopic_indirect_data_reference (op1, temp);
-	      op1 = machopic_legitimize_pic_address (op1, mode,
-						     temp == op1 ? 0 : temp);
+	      if (MACHOPIC_PURE)
+		op1 = machopic_legitimize_pic_address (op1, mode,
+						       temp == op1 ? 0 : temp);
 	    }
-	  else if (MACHOPIC_INDIRECT)
-	    op1 = machopic_indirect_data_reference (op1, 0);
-	  if (op0 == op1)
+	  if (op0 != op1 && GET_CODE (op0) != MEM)
+	    {
+	      rtx insn = gen_rtx_SET (VOIDmode, op0, op1);
+	      emit_insn (insn);
+	      return;
+	    }
+	  if (GET_CODE (op0) == MEM)
+	    op1 = force_reg (Pmode, op1);
+	  else
+	    {
+	      rtx temp = op0;
+	      if (GET_CODE (temp) != REG)
+		temp = gen_reg_rtx (Pmode);
+	      temp = legitimize_pic_address (op1, temp);
+	      if (temp == op0)
 	    return;
+	      op1 = temp;
+	    }
+      /* dynamic-no-pic */
 #endif
 	}
       else
@@ -15117,6 +15166,9 @@ ix86_expand_vector_move (enum machine_mode mode, rtx operands[])
 {
   rtx op0 = operands[0], op1 = operands[1];
   unsigned int align = GET_MODE_ALIGNMENT (mode);
+
+  if (VALID_AVX256_REG_MODE (mode))
+    cfun->machine->use_avx256_p = true;
 
   /* Force constants other than zero into memory.  We do not know how
      the instructions used to build constants modify the upper 64 bits
@@ -15223,6 +15275,9 @@ void
 ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 {
   rtx op0, op1, m;
+
+  if (VALID_AVX256_REG_MODE (mode))
+    cfun->machine->use_avx256_p = true;
 
   op0 = operands[0];
   op1 = operands[1];
@@ -21495,10 +21550,12 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
 			       + 2, vec));
     }
 
-  /* Emit vzeroupper if needed.  */
+  /* Add UNSPEC_CALL_NEEDS_VZEROUPPER decoration.  */
   if (TARGET_VZEROUPPER && cfun->machine->use_avx256_p)
     {
+      rtx unspec;
       int avx256;
+
       cfun->machine->use_vzeroupper_p = 1;
       if (cfun->machine->callee_pass_avx256_p)
 	{
@@ -21511,7 +21568,17 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
 	avx256 = callee_return_avx256;
       else
 	avx256 = call_no_avx256;
-      emit_insn (gen_avx_vzeroupper (GEN_INT (avx256))); 
+
+      if (reload_completed)
+	emit_insn (gen_avx_vzeroupper (GEN_INT (avx256)));
+      else
+	{
+	  unspec = gen_rtx_UNSPEC (VOIDmode,
+				   gen_rtvec (1, GEN_INT (avx256)),
+				   UNSPEC_CALL_NEEDS_VZEROUPPER);
+	  call = gen_rtx_PARALLEL (VOIDmode,
+				   gen_rtvec (2, call, unspec));
+	}
     }
 
   call = emit_call_insn (call);
@@ -21519,6 +21586,14 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
     CALL_INSN_FUNCTION_USAGE (call) = use;
 
   return call;
+}
+
+void
+ix86_split_call_vzeroupper (rtx insn, rtx vzeroupper)
+{
+  rtx call = XVECEXP (PATTERN (insn), 0, 0);
+  emit_insn (gen_avx_vzeroupper (vzeroupper));
+  emit_call_insn (call);
 }
 
 /* Output the assembly for a call instruction.  */
@@ -21748,6 +21823,7 @@ memory_address_length (rtx addr)
 		  || SYMBOL_REF_TLS_MODEL (symbol) != 0)
 	      && (GET_CODE (symbol) != UNSPEC
 		  || (XINT (symbol, 1) != UNSPEC_GOTPCREL
+		      && XINT (symbol, 1) != UNSPEC_PCREL
 		      && XINT (symbol, 1) != UNSPEC_GOTNTPOFF)))
 	    len += 1;
 	}
@@ -22203,8 +22279,261 @@ ia32_multipass_dfa_lookahead (void)
     case PROCESSOR_K6:
       return 1;
 
+    case PROCESSOR_CORE2:
+    case PROCESSOR_COREI7_32:
+    case PROCESSOR_COREI7_64:
+      /* Generally, we want haifa-sched:max_issue() to look ahead as far
+	 as many instructions can be executed on a cycle, i.e.,
+	 issue_rate.  I wonder why tuning for many CPUs does not do this.  */
+      return ix86_issue_rate ();
+
     default:
       return 0;
+    }
+}
+
+
+
+/* Model decoder of Core 2/i7.
+   Below hooks for multipass scheduling (see haifa-sched.c:max_issue)
+   track the instruction fetch block boundaries and make sure that long
+   (9+ bytes) instructions are assigned to D0.  */
+
+/* Maximum length of an insn that can be handled by
+   a secondary decoder unit.  '8' for Core 2/i7.  */
+static int core2i7_secondary_decoder_max_insn_size;
+
+/* Ifetch block size, i.e., number of bytes decoder reads per cycle.
+   '16' for Core 2/i7.  */
+static int core2i7_ifetch_block_size;
+
+/* Maximum number of instructions decoder can handle per cycle.
+   '6' for Core 2/i7.  */
+static int core2i7_ifetch_block_max_insns;
+
+typedef struct ix86_first_cycle_multipass_data_ *
+  ix86_first_cycle_multipass_data_t;
+typedef const struct ix86_first_cycle_multipass_data_ *
+  const_ix86_first_cycle_multipass_data_t;
+
+/* A variable to store target state across calls to max_issue within
+   one cycle.  */
+static struct ix86_first_cycle_multipass_data_ _ix86_first_cycle_multipass_data,
+  *ix86_first_cycle_multipass_data = &_ix86_first_cycle_multipass_data;
+
+/* Initialize DATA.  */
+static void
+core2i7_first_cycle_multipass_init (void *_data)
+{
+  ix86_first_cycle_multipass_data_t data
+    = (ix86_first_cycle_multipass_data_t) _data;
+
+  data->ifetch_block_len = 0;
+  data->ifetch_block_n_insns = 0;
+  data->ready_try_change = NULL;
+  data->ready_try_change_size = 0;
+}
+
+/* Advancing the cycle; reset ifetch block counts.  */
+static void
+core2i7_dfa_post_advance_cycle (void)
+{
+  ix86_first_cycle_multipass_data_t data = ix86_first_cycle_multipass_data;
+
+  gcc_assert (data->ifetch_block_n_insns <= core2i7_ifetch_block_max_insns);
+
+  data->ifetch_block_len = 0;
+  data->ifetch_block_n_insns = 0;
+}
+
+static int min_insn_size (rtx);
+
+/* Filter out insns from ready_try that the core will not be able to issue
+   on current cycle due to decoder.  */
+static void
+core2i7_first_cycle_multipass_filter_ready_try
+(const_ix86_first_cycle_multipass_data_t data,
+ char *ready_try, int n_ready, bool first_cycle_insn_p)
+{
+  while (n_ready--)
+    {
+      rtx insn;
+      int insn_size;
+
+      if (ready_try[n_ready])
+	continue;
+
+      insn = get_ready_element (n_ready);
+      insn_size = min_insn_size (insn);
+
+      if (/* If this is a too long an insn for a secondary decoder ...  */
+	  (!first_cycle_insn_p
+	   && insn_size > core2i7_secondary_decoder_max_insn_size)
+	  /* ... or it would not fit into the ifetch block ...  */
+	  || data->ifetch_block_len + insn_size > core2i7_ifetch_block_size
+	  /* ... or the decoder is full already ...  */
+	  || data->ifetch_block_n_insns + 1 > core2i7_ifetch_block_max_insns)
+	/* ... mask the insn out.  */
+	{
+	  ready_try[n_ready] = 1;
+
+	  if (data->ready_try_change)
+	    SET_BIT (data->ready_try_change, n_ready);
+	}
+    }
+}
+
+/* Prepare for a new round of multipass lookahead scheduling.  */
+static void
+core2i7_first_cycle_multipass_begin (void *_data, char *ready_try, int n_ready,
+				     bool first_cycle_insn_p)
+{
+  ix86_first_cycle_multipass_data_t data
+    = (ix86_first_cycle_multipass_data_t) _data;
+  const_ix86_first_cycle_multipass_data_t prev_data
+    = ix86_first_cycle_multipass_data;
+
+  /* Restore the state from the end of the previous round.  */
+  data->ifetch_block_len = prev_data->ifetch_block_len;
+  data->ifetch_block_n_insns = prev_data->ifetch_block_n_insns;
+
+  /* Filter instructions that cannot be issued on current cycle due to
+     decoder restrictions.  */
+  core2i7_first_cycle_multipass_filter_ready_try (data, ready_try, n_ready,
+						  first_cycle_insn_p);
+}
+
+/* INSN is being issued in current solution.  Account for its impact on
+   the decoder model.  */
+static void
+core2i7_first_cycle_multipass_issue (void *_data, char *ready_try, int n_ready,
+				     rtx insn, const void *_prev_data)
+{
+  ix86_first_cycle_multipass_data_t data
+    = (ix86_first_cycle_multipass_data_t) _data;
+  const_ix86_first_cycle_multipass_data_t prev_data
+    = (const_ix86_first_cycle_multipass_data_t) _prev_data;
+
+  int insn_size = min_insn_size (insn);
+
+  data->ifetch_block_len = prev_data->ifetch_block_len + insn_size;
+  data->ifetch_block_n_insns = prev_data->ifetch_block_n_insns + 1;
+  gcc_assert (data->ifetch_block_len <= core2i7_ifetch_block_size
+	      && data->ifetch_block_n_insns <= core2i7_ifetch_block_max_insns);
+
+  /* Allocate or resize the bitmap for storing INSN's effect on ready_try.  */
+  if (!data->ready_try_change)
+    {
+      data->ready_try_change = sbitmap_alloc (n_ready);
+      data->ready_try_change_size = n_ready;
+    }
+  else if (data->ready_try_change_size < n_ready)
+    {
+      data->ready_try_change = sbitmap_resize (data->ready_try_change,
+					       n_ready, 0);
+      data->ready_try_change_size = n_ready;
+    }
+  sbitmap_zero (data->ready_try_change);
+
+  /* Filter out insns from ready_try that the core will not be able to issue
+     on current cycle due to decoder.  */
+  core2i7_first_cycle_multipass_filter_ready_try (data, ready_try, n_ready,
+						  false);
+}
+
+/* Revert the effect on ready_try.  */
+static void
+core2i7_first_cycle_multipass_backtrack (const void *_data,
+					 char *ready_try,
+					 int n_ready ATTRIBUTE_UNUSED)
+{
+  const_ix86_first_cycle_multipass_data_t data
+    = (const_ix86_first_cycle_multipass_data_t) _data;
+  unsigned int i = 0;
+  sbitmap_iterator sbi;
+
+  gcc_assert (sbitmap_last_set_bit (data->ready_try_change) < n_ready);
+  EXECUTE_IF_SET_IN_SBITMAP (data->ready_try_change, 0, i, sbi)
+    {
+      ready_try[i] = 0;
+    }
+}
+
+/* Save the result of multipass lookahead scheduling for the next round.  */
+static void
+core2i7_first_cycle_multipass_end (const void *_data)
+{
+  const_ix86_first_cycle_multipass_data_t data
+    = (const_ix86_first_cycle_multipass_data_t) _data;
+  ix86_first_cycle_multipass_data_t next_data
+    = ix86_first_cycle_multipass_data;
+
+  if (data != NULL)
+    {
+      next_data->ifetch_block_len = data->ifetch_block_len;
+      next_data->ifetch_block_n_insns = data->ifetch_block_n_insns;
+    }
+}
+
+/* Deallocate target data.  */
+static void
+core2i7_first_cycle_multipass_fini (void *_data)
+{
+  ix86_first_cycle_multipass_data_t data
+    = (ix86_first_cycle_multipass_data_t) _data;
+
+  if (data->ready_try_change)
+    {
+      sbitmap_free (data->ready_try_change);
+      data->ready_try_change = NULL;
+      data->ready_try_change_size = 0;
+    }
+}
+
+/* Prepare for scheduling pass.  */
+static void
+ix86_sched_init_global (FILE *dump ATTRIBUTE_UNUSED,
+			int verbose ATTRIBUTE_UNUSED,
+			int max_uid ATTRIBUTE_UNUSED)
+{
+  /* Install scheduling hooks for current CPU.  Some of these hooks are used
+     in time-critical parts of the scheduler, so we only set them up when
+     they are actually used.  */
+  switch (ix86_tune)
+    {
+    case PROCESSOR_CORE2:
+    case PROCESSOR_COREI7_32:
+    case PROCESSOR_COREI7_64:
+      targetm.sched.dfa_post_advance_cycle
+	= core2i7_dfa_post_advance_cycle;
+      targetm.sched.first_cycle_multipass_init
+	= core2i7_first_cycle_multipass_init;
+      targetm.sched.first_cycle_multipass_begin
+	= core2i7_first_cycle_multipass_begin;
+      targetm.sched.first_cycle_multipass_issue
+	= core2i7_first_cycle_multipass_issue;
+      targetm.sched.first_cycle_multipass_backtrack
+	= core2i7_first_cycle_multipass_backtrack;
+      targetm.sched.first_cycle_multipass_end
+	= core2i7_first_cycle_multipass_end;
+      targetm.sched.first_cycle_multipass_fini
+	= core2i7_first_cycle_multipass_fini;
+
+      /* Set decoder parameters.  */
+      core2i7_secondary_decoder_max_insn_size = 8;
+      core2i7_ifetch_block_size = 16;
+      core2i7_ifetch_block_max_insns = 6;
+      break;
+
+    default:
+      targetm.sched.dfa_post_advance_cycle = NULL;
+      targetm.sched.first_cycle_multipass_init = NULL;
+      targetm.sched.first_cycle_multipass_begin = NULL;
+      targetm.sched.first_cycle_multipass_issue = NULL;
+      targetm.sched.first_cycle_multipass_backtrack = NULL;
+      targetm.sched.first_cycle_multipass_end = NULL;
+      targetm.sched.first_cycle_multipass_fini = NULL;
+      break;
     }
 }
 
@@ -28389,36 +28718,81 @@ machopic_output_stub (FILE *file, const char *symb, const char *stub)
 
   sprintf (lazy_ptr_name, "L%d$lz", label);
 
-  if (MACHOPIC_PURE)
+  if (MACHOPIC_ATT_STUB)
+    switch_to_section (darwin_sections[machopic_picsymbol_stub3_section]);
+  else if (MACHOPIC_PURE)
+    {
+      if (TARGET_DEEP_BRANCH_PREDICTION)
+	switch_to_section (darwin_sections[machopic_picsymbol_stub2_section]);
+      else
     switch_to_section (darwin_sections[machopic_picsymbol_stub_section]);
+    }
   else
     switch_to_section (darwin_sections[machopic_symbol_stub_section]);
 
   fprintf (file, "%s:\n", stub);
   fprintf (file, "\t.indirect_symbol %s\n", symbol_name);
 
-  if (MACHOPIC_PURE)
+  if (MACHOPIC_ATT_STUB)
     {
-      fprintf (file, "\tcall\tLPC$%d\nLPC$%d:\tpopl\t%%eax\n", label, label);
-      fprintf (file, "\tmovl\t%s-LPC$%d(%%eax),%%edx\n", lazy_ptr_name, label);
-      fprintf (file, "\tjmp\t*%%edx\n");
+      fprintf (file, "\thlt ; hlt ; hlt ; hlt ; hlt\n");
+    }
+  else if (MACHOPIC_PURE)
+    {
+      /* PIC stub.  */
+      if (TARGET_DEEP_BRANCH_PREDICTION)
+	{
+	  /* 25-byte PIC stub using "CALL get_pc_thunk".  */
+	  rtx tmp = gen_rtx_REG (SImode, 2 /* ECX */);
+	  output_set_got (tmp, NULL_RTX);	/* "CALL ___<cpu>.get_pc_thunk.cx".  */
+	  fprintf (file, "LPC$%d:\tmovl\t%s-LPC$%d(%%ecx),%%ecx\n", label, lazy_ptr_name, label);
+	}
+      else
+	{
+	  /* 26-byte PIC stub using inline picbase: "CALL L42 ! L42: pop %eax".  */
+	  fprintf (file, "\tcall LPC$%d\nLPC$%d:\tpopl %%ecx\n", label, label);
+	  fprintf (file, "\tmovl %s-LPC$%d(%%ecx),%%ecx\n", lazy_ptr_name, label);
+	}
+      fprintf (file, "\tjmp\t*%%ecx\n");
     }
   else
     fprintf (file, "\tjmp\t*%s\n", lazy_ptr_name);
+
+  /* The AT&T-style ("self-modifying") stub is not lazily bound, thus
+     it needs no stub-binding-helper.  */
+  if (MACHOPIC_ATT_STUB)
+    return;
 
   fprintf (file, "%s:\n", binder_name);
 
   if (MACHOPIC_PURE)
     {
-      fprintf (file, "\tlea\t%s-LPC$%d(%%eax),%%eax\n", lazy_ptr_name, label);
-      fputs ("\tpushl\t%eax\n", file);
+      fprintf (file, "\tlea\t%s-%s(%%ecx),%%ecx\n", lazy_ptr_name, binder_name);
+      fprintf (file, "\tpushl\t%%ecx\n");
     }
   else
     fprintf (file, "\tpushl\t$%s\n", lazy_ptr_name);
 
   fputs ("\tjmp\tdyld_stub_binding_helper\n", file);
 
+  /* N.B. Keep the correspondence of these
+     'symbol_ptr/symbol_ptr2/symbol_ptr3' sections consistent with the
+     old-pic/new-pic/non-pic stubs; altering this will break
+     compatibility with existing dylibs.  */
+  if (MACHOPIC_PURE)
+    {
+      /* PIC stubs.  */
+      if (TARGET_DEEP_BRANCH_PREDICTION)
+	/* 25-byte PIC stub using "CALL get_pc_thunk".  */
+	switch_to_section (darwin_sections[machopic_lazy_symbol_ptr2_section]);
+      else
+	/* 26-byte PIC stub using inline picbase: "CALL L42 ! L42: pop %ebx".  */
   switch_to_section (darwin_sections[machopic_lazy_symbol_ptr_section]);
+    }
+  else
+    /* 16-byte -mdynamic-no-pic stub.  */
+    switch_to_section(darwin_sections[machopic_lazy_symbol_ptr3_section]);
+
   fprintf (file, "%s:\n", lazy_ptr_name);
   fprintf (file, "\t.indirect_symbol %s\n", symbol_name);
   fprintf (file, ASM_LONG "%s\n", binder_name);
@@ -28759,7 +29133,8 @@ x86_output_mi_thunk (FILE *file,
   xops[0] = XEXP (DECL_RTL (function), 0);
   if (TARGET_64BIT)
     {
-      if (!flag_pic || targetm.binds_local_p (function))
+      if (!flag_pic || targetm.binds_local_p (function)
+	  || DEFAULT_ABI == MS_ABI)
 	output_asm_insn ("jmp\t%P0", xops);
       /* All thunks should be in the same object as their target,
 	 and thus binds_local_p should be true.  */
@@ -33915,6 +34290,8 @@ ix86_autovectorize_vector_sizes (void)
 #undef TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA
 #define TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA i386_asm_output_addr_const_extra 
 
+#undef TARGET_SCHED_INIT_GLOBAL
+#define TARGET_SCHED_INIT_GLOBAL ix86_sched_init_global
 #undef TARGET_SCHED_ADJUST_COST
 #define TARGET_SCHED_ADJUST_COST ix86_adjust_cost
 #undef TARGET_SCHED_ISSUE_RATE

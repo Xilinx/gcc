@@ -502,6 +502,19 @@ cp_lexer_token_at (cp_lexer *lexer ATTRIBUTE_UNUSED, cp_token_position pos)
   return pos;
 }
 
+static inline cp_token *
+cp_lexer_previous_token (cp_lexer *lexer)
+{
+  cp_token_position tp;
+
+  if (lexer->next_token == &eof_token)
+    tp = lexer->last_token - 1;
+  else
+    tp = cp_lexer_token_position (lexer, true);
+
+  return cp_lexer_token_at (lexer, tp);
+}
+
 /* nonzero if we are presently saving tokens.  */
 
 static inline int
@@ -3908,6 +3921,22 @@ cp_parser_primary_expression (cp_parser *parser,
 	    if (ambiguous_decls)
 	      return error_mark_node;
 
+	    /* In Objective-C++, we may have an Objective-C 2.0
+	       dot-syntax for classes here.  */
+	    if (c_dialect_objc ()
+		&& cp_lexer_peek_token (parser->lexer)->type == CPP_DOT
+		&& TREE_CODE (decl) == TYPE_DECL
+		&& objc_is_class_name (decl))
+	      {
+		tree component;
+		cp_lexer_consume_token (parser->lexer);
+		component = cp_parser_identifier (parser);
+		if (component == error_mark_node)
+		  return error_mark_node;
+
+		return objc_build_class_component_ref (id_expression, component);
+	      }
+
 	    /* In Objective-C++, an instance variable (ivar) may be preferred
 	       to whatever cp_parser_lookup_name() found.  */
 	    decl = objc_lookup_ivar (decl, id_expression);
@@ -7176,7 +7205,8 @@ cp_parser_constant_expression (cp_parser* parser,
   saved_non_integral_constant_expression_p = parser->non_integral_constant_expression_p;
   /* We are now parsing a constant-expression.  */
   parser->integral_constant_expression_p = true;
-  parser->allow_non_integral_constant_expression_p = allow_non_constant_p;
+  parser->allow_non_integral_constant_expression_p
+    = (allow_non_constant_p || cxx_dialect >= cxx0x);
   parser->non_integral_constant_expression_p = false;
   /* Although the grammar says "conditional-expression", we parse an
      "assignment-expression", which also permits "throw-expression"
@@ -7195,7 +7225,8 @@ cp_parser_constant_expression (cp_parser* parser,
     = saved_allow_non_integral_constant_expression_p;
   if (allow_non_constant_p)
     *non_constant_p = parser->non_integral_constant_expression_p;
-  else if (parser->non_integral_constant_expression_p)
+  else if (parser->non_integral_constant_expression_p
+	   && cxx_dialect < cxx0x)
     expression = error_mark_node;
   parser->non_integral_constant_expression_p
     = saved_non_integral_constant_expression_p;
@@ -11043,6 +11074,13 @@ cp_parser_template_parameter_list (cp_parser* parser)
   tree parameter_list = NULL_TREE;
 
   begin_template_parm_list ();
+
+  /* The loop below parses the template parms.  We first need to know
+     the total number of template parms to be able to compute proper
+     canonical types of each dependent type. So after the loop, when
+     we know the total number of template parms,
+     end_template_parm_list computes the proper canonical types and
+     fixes up the dependent types accordingly.  */
   while (true)
     {
       tree parameter;
@@ -11061,11 +11099,11 @@ cp_parser_template_parameter_list (cp_parser* parser)
 						parm_loc,
 						parameter,
 						is_non_type,
-                                                is_parameter_pack);
+						is_parameter_pack,
+						0);
       else
        {
          tree err_parm = build_tree_list (parameter, parameter);
-         TREE_VALUE (err_parm) = error_mark_node;
          parameter_list = chainon (parameter_list, err_parm);
        }
 
@@ -12777,14 +12815,14 @@ cp_parser_simple_type_specifier (cp_parser* parser,
       return error_mark_node;
     }
 
-  /* There is no valid C++ program where a non-template type is
-     followed by a "<".  That usually indicates that the user thought
-     that the type was a template.  */
   if (type && type != error_mark_node)
     {
-      /* As a last-ditch effort, see if TYPE is an Objective-C type.
-	 If it is, then the '<'...'>' enclose protocol names rather than
-	 template arguments, and so everything is fine.  */
+      /* See if TYPE is an Objective-C type, and if so, parse and
+	 accept any protocol references following it.  Do this before
+	 the cp_parser_check_for_invalid_template_id() call, because
+	 Objective-C types can be followed by '<...>' which would
+	 enclose protocol names rather than template arguments, and so
+	 everything is fine.  */
       if (c_dialect_objc () && !parser->scope
 	  && (objc_is_id (type) || objc_is_class_name (type)))
 	{
@@ -12799,6 +12837,9 @@ cp_parser_simple_type_specifier (cp_parser* parser,
 	  return qual_type;
 	}
 
+      /* There is no valid C++ program where a non-template type is
+	 followed by a "<".  That usually indicates that the user
+	 thought that the type was a template.  */
       cp_parser_check_for_invalid_template_id (parser, TREE_TYPE (type),
 					       token->location);
     }
@@ -12879,9 +12920,17 @@ cp_parser_nonclass_name (cp_parser* parser)
       if (type)
 	type_decl = TYPE_NAME (type);
     }
-  
+
   /* Issue an error if we did not find a type-name.  */
-  if (TREE_CODE (type_decl) != TYPE_DECL)
+  if (TREE_CODE (type_decl) != TYPE_DECL
+      /* In Objective-C, we have the complication that class names are
+	 normally type names and start declarations (eg, the
+	 "NSObject" in "NSObject *object;"), but can be used in an
+	 Objective-C 2.0 dot-syntax (as in "NSObject.version") which
+	 is an expression.  So, a classname followed by a dot is not a
+	 valid type-name.  */
+      || (objc_is_class_name (TREE_TYPE (type_decl))
+	  && cp_lexer_peek_token (parser->lexer)->type == CPP_DOT))
     {
       if (!cp_parser_simulate_error (parser))
 	cp_parser_name_lookup_error (parser, identifier, type_decl,
@@ -14975,8 +15024,8 @@ cp_parser_direct_declarator (cp_parser* parser,
 		= cp_parser_constant_expression (parser,
 						 /*allow_non_constant=*/true,
 						 &non_constant_p);
-	      if (!non_constant_p)
-		bounds = fold_non_dependent_expr (bounds);
+	      if (!non_constant_p || cxx_dialect >= cxx0x)
+		/* OK */;
 	      /* Normally, the array bound must be an integral constant
 		 expression.  However, as an extension, we allow VLAs
 		 in function scopes as long as they aren't part of a
@@ -16408,7 +16457,15 @@ cp_parser_initializer_clause (cp_parser* parser, bool* non_constant_p)
 					/*allow_non_constant_p=*/true,
 					non_constant_p);
       if (!*non_constant_p)
-	initializer = fold_non_dependent_expr (initializer);
+	{
+	  /* We only want to fold if this is really a constant
+	     expression.  FIXME Actually, we don't want to fold here, but in
+	     cp_finish_decl.  */
+	  tree folded = fold_non_dependent_expr (initializer);
+	  folded = maybe_constant_value (folded);
+	  if (TREE_CONSTANT (folded))
+	    initializer = folded;
+	}
     }
   else
     initializer = cp_parser_braced_list (parser, non_constant_p);
@@ -16697,7 +16754,12 @@ cp_parser_class_name (cp_parser *parser,
     }
   else if (TREE_CODE (decl) != TYPE_DECL
 	   || TREE_TYPE (decl) == error_mark_node
-	   || !MAYBE_CLASS_TYPE_P (TREE_TYPE (decl)))
+	   || !MAYBE_CLASS_TYPE_P (TREE_TYPE (decl))
+	   /* In Objective-C 2.0, a classname followed by '.' starts a
+	      dot-syntax expression, and it's not a type-name.  */
+	   || (c_dialect_objc ()
+	       && cp_lexer_peek_token (parser->lexer)->type == CPP_DOT 
+	       && objc_is_class_name (decl)))
     decl = error_mark_node;
 
   if (decl == error_mark_node)
@@ -17578,6 +17640,8 @@ cp_parser_member_declaration (cp_parser* parser)
     }
   else
     {
+      bool assume_semicolon = false;
+
       /* See if these declarations will be friends.  */
       friend_p = cp_parser_friend_p (&decl_specifiers);
 
@@ -17771,11 +17835,18 @@ cp_parser_member_declaration (cp_parser* parser)
 	  else if (cp_lexer_next_token_is_not (parser->lexer,
 					       CPP_SEMICOLON))
 	    {
-	      cp_parser_error (parser, "expected %<;%>");
-	      /* Skip tokens until we find a `;'.  */
-	      cp_parser_skip_to_end_of_statement (parser);
+	      /* The next token might be a ways away from where the
+		 actual semicolon is missing.  Find the previous token
+		 and use that for our error position.  */
+	      cp_token *token = cp_lexer_previous_token (parser->lexer);
+	      error_at (token->location,
+			"expected %<;%> at end of member declaration");
 
-	      break;
+	      /* Assume that the user meant to provide a semicolon.  If
+		 we were to cp_parser_skip_to_end_of_statement, we might
+		 skip to a semicolon inside a member function definition
+		 and issue nonsensical error messages.  */
+	      assume_semicolon = true;
 	    }
 
 	  if (decl)
@@ -17787,6 +17858,9 @@ cp_parser_member_declaration (cp_parser* parser)
 	      if (TREE_CODE (decl) == FUNCTION_DECL)
 		cp_parser_save_default_args (parser, decl);
 	    }
+
+	  if (assume_semicolon)
+	    return;
 	}
     }
 

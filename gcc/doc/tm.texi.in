@@ -99,33 +99,6 @@ from being defined in the @file{.h} file to being part of the
 @c prevent bad page break with this line
 You can control the compilation driver.
 
-@defmac SWITCH_TAKES_ARG (@var{char})
-A C expression which determines whether the option @option{-@var{char}}
-takes arguments.  The value should be the number of arguments that
-option takes--zero, for many options.
-
-By default, this macro is defined as
-@code{DEFAULT_SWITCH_TAKES_ARG}, which handles the standard options
-properly.  You need not define @code{SWITCH_TAKES_ARG} unless you
-wish to add additional options which take arguments.  Any redefinition
-should call @code{DEFAULT_SWITCH_TAKES_ARG} and then check for
-additional options.
-@end defmac
-
-@defmac WORD_SWITCH_TAKES_ARG (@var{name})
-A C expression which determines whether the option @option{-@var{name}}
-takes arguments.  The value should be the number of arguments that
-option takes--zero, for many options.  This macro rather than
-@code{SWITCH_TAKES_ARG} is used for multi-character option names.
-
-By default, this macro is defined as
-@code{DEFAULT_WORD_SWITCH_TAKES_ARG}, which handles the standard options
-properly.  You need not define @code{WORD_SWITCH_TAKES_ARG} unless you
-wish to add additional options which take arguments.  Any redefinition
-should call @code{DEFAULT_WORD_SWITCH_TAKES_ARG} and then check for
-additional options.
-@end defmac
-
 @defmac TARGET_OPTION_TRANSLATE_TABLE
 If defined, a list of pairs of strings, the first of which is a
 potential command line target to the @file{gcc} driver program, and the
@@ -742,7 +715,11 @@ only available in the C (and related language) front ends, then you
 should use @code{TARGET_HANDLE_C_OPTION} instead.
 @end deftypefn
 
-@hook TARGET_OBJC_CONSTRUCT_STRING
+@hook TARGET_OBJC_CONSTRUCT_STRING_OBJECT
+
+@hook TARGET_STRING_OBJECT_REF_TYPE_P
+
+@hook TARGET_CHECK_STRING_OBJECT_FORMAT_ARG
 
 @defmac TARGET_VERSION
 This macro is a C statement to print on @code{stderr} a string
@@ -6652,6 +6629,33 @@ zero for @var{insn}, the insn will be not chosen to
 be issued.
 
 The default is that any ready insns can be chosen to be issued.
+@end deftypefn
+
+@hook TARGET_SCHED_FIRST_CYCLE_MULTIPASS_BEGIN
+This hook prepares the target backend for a new round of multipass
+scheduling.
+@end deftypefn
+
+@hook TARGET_SCHED_FIRST_CYCLE_MULTIPASS_ISSUE
+This hook is called when multipass scheduling evaluates instruction INSN.
+@end deftypefn
+
+@hook TARGET_SCHED_FIRST_CYCLE_MULTIPASS_BACKTRACK
+This is called when multipass scheduling backtracks from evaluation of
+an instruction.
+@end deftypefn
+
+@hook TARGET_SCHED_FIRST_CYCLE_MULTIPASS_END
+This hook notifies the target about the result of the concluded current
+round of multipass scheduling.
+@end deftypefn
+
+@hook TARGET_SCHED_FIRST_CYCLE_MULTIPASS_INIT
+This hook initilizes target-specific data used in multipass scheduling.
+@end deftypefn
+
+@hook TARGET_SCHED_FIRST_CYCLE_MULTIPASS_FINI
+This hook finilizes target-specific data used in multipass scheduling.
 @end deftypefn
 
 @hook TARGET_SCHED_DFA_NEW_CYCLE

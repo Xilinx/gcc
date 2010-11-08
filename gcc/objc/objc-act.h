@@ -62,6 +62,11 @@ tree objc_eh_personality (void);
 
 /* TREE_TYPE is the type (int, float, etc) of the property.  */
 
+/* DECL_ARTIFICIAL is set to 1 if the PROPERTY_DECL is an artificial
+   property declaration created when the dot-syntax object.component
+   is used with no actual @property matching the component, but a
+   valid getter/setter.  */
+
 /* PROPERTY_NAME is the name of the property.  */
 #define PROPERTY_NAME(DECL) DECL_NAME(DECL)
 
@@ -99,9 +104,21 @@ typedef enum objc_property_assign_semantics {
    declaration has been parsed); otherwise, it is set to 0.  */
 #define PROPERTY_DYNAMIC(DECL) DECL_LANG_FLAG_2 (DECL)
 
+/* PROPERTY_HAS_NO_GETTER can be 0 or 1.  Normally it is 0, but if
+   this is an artificial PROPERTY_DECL that we generate even without a
+   getter, it is set to 1.  */
+#define PROPERTY_HAS_NO_GETTER(DECL) DECL_LANG_FLAG_3 (DECL)
+
+/* PROPERTY_HAS_NO_SETTER can be 0 or 1.  Normally it is 0, but if
+   this is an artificial PROPERTY_DECL that we generate even without a
+   setter, it is set to 1.  */
+#define PROPERTY_HAS_NO_SETTER(DECL) DECL_LANG_FLAG_4 (DECL)
 
 /* PROPERTY_REF.  A PROPERTY_REF represents an 'object.property'
-   expression.  */
+   expression.  It is normally used for property access, but when
+   the Objective-C 2.0 "dot-syntax" (object.component) is used
+   with no matching property, a PROPERTY_REF is still created to
+   represent it, with an artificial PROPERTY_DECL.  */
 
 /* PROPERTY_REF_OBJECT is the object whose property we are
    accessing.  */
@@ -109,8 +126,19 @@ typedef enum objc_property_assign_semantics {
 
 /* PROPERTY_REF_PROPERTY_DECL is the PROPERTY_DECL for the property
    used in the expression.  From it, you can get the property type,
-   and the getter/setter names.  */
+   and the getter/setter names.  This PROPERTY_DECL could be artificial
+   if we are processing an 'object.component' syntax with no matching 
+   declared property.  */
 #define PROPERTY_REF_PROPERTY_DECL(NODE) TREE_OPERAND (PROPERTY_REF_CHECK (NODE), 1)
+
+/* PROPERTY_REF_GETTER_CALL is the getter call expression, ready to
+   use at gimplify time if needed.  Generating the getter call
+   requires modifying the selector table, and, in the case of
+   self/super, requires the context to be generated correctly.  The
+   gimplify stage is too late to do these things, so we generate the
+   getter call earlier instead, and keep it here in case we need to
+   use it.  */
+#define PROPERTY_REF_GETTER_CALL(NODE) TREE_OPERAND (PROPERTY_REF_CHECK (NODE), 2)
 
 
 /* CLASS_INTERFACE_TYPE, CLASS_IMPLEMENTATION_TYPE,
@@ -339,6 +367,12 @@ enum objc_tree_index
     OCTI_FAST_ENUM_STATE_TEMP,
     OCTI_ENUM_MUTATION_DECL,
 
+    OCTI_GET_PROPERTY_DECL,
+    OCTI_SET_PROPERTY_DECL,
+    OCTI_COPY_STRUCT_DECL,
+    OCTI_GET_PROPERTY_STRUCT_DECL,
+    OCTI_SET_PROPERTY_STRUCT_DECL,
+
     OCTI_MAX
 };
 
@@ -505,5 +539,14 @@ extern GTY(()) tree objc_global_trees[OCTI_MAX];
                                 objc_global_trees[OCTI_FAST_ENUM_STATE_TEMP]
 #define objc_enumeration_mutation_decl		\
                                 objc_global_trees[OCTI_ENUM_MUTATION_DECL]
+
+/* Declarations of functions used when synthesizing property
+   accessors.  */
+#define objc_getProperty_decl       objc_global_trees[OCTI_GET_PROPERTY_DECL]
+#define objc_setProperty_decl       objc_global_trees[OCTI_SET_PROPERTY_DECL]
+#define objc_copyStruct_decl        objc_global_trees[OCTI_COPY_STRUCT_DECL]
+#define objc_getPropertyStruct_decl objc_global_trees[OCTI_GET_PROPERTY_STRUCT_DECL]
+#define objc_setPropertyStruct_decl objc_global_trees[OCTI_SET_PROPERTY_STRUCT_DECL]
+
 
 #endif /* GCC_OBJC_ACT_H */

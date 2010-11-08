@@ -2360,6 +2360,7 @@ expand_debug_expr (tree exp)
 	case DOT_PROD_EXPR:
 	case WIDEN_MULT_PLUS_EXPR:
 	case WIDEN_MULT_MINUS_EXPR:
+	case FMA_EXPR:
 	  goto ternary;
 
 	case TRUTH_ANDIF_EXPR:
@@ -2551,14 +2552,19 @@ expand_debug_expr (tree exp)
       }
 
     case MEM_REF:
-      /* ??? FIXME.  */
-      if (!integer_zerop (TREE_OPERAND (exp, 1)))
-	return NULL;
-      /* Fallthru.  */
     case INDIRECT_REF:
       op0 = expand_debug_expr (TREE_OPERAND (exp, 0));
       if (!op0)
 	return NULL;
+
+      if (TREE_CODE (exp) == MEM_REF)
+	{
+	  op1 = expand_debug_expr (TREE_OPERAND (exp, 1));
+	  if (!op1 || !CONST_INT_P (op1))
+	    return NULL;
+
+	  op0 = plus_constant (op0, INTVAL (op1));
+	}
 
       if (POINTER_TYPE_P (TREE_TYPE (exp)))
 	as = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (exp)));
@@ -3073,7 +3079,7 @@ expand_debug_expr (tree exp)
 	  if (i < TYPE_VECTOR_SUBPARTS (TREE_TYPE (exp)))
 	    {
 	      op1 = expand_debug_expr
-		(fold_convert (TREE_TYPE (TREE_TYPE (exp)), integer_zero_node));
+		(build_zero_cst (TREE_TYPE (TREE_TYPE (exp))));
 
 	      if (!op1)
 		return NULL;
@@ -3200,6 +3206,9 @@ expand_debug_expr (tree exp)
 	  return gen_rtx_PLUS (mode, op0, op1);
 	}
       return NULL;
+
+    case FMA_EXPR:
+      return gen_rtx_FMA (mode, op0, op1, op2);
 
     default:
     flag_unsupported:

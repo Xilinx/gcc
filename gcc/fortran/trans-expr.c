@@ -187,7 +187,7 @@ gfc_conv_missing_dummy (gfc_se * se, gfc_expr * arg, gfc_typespec ts, int kind)
     {
       tmp = build3_loc (input_location, COND_EXPR, TREE_TYPE (se->expr),
 			present, se->expr,
-			fold_convert (TREE_TYPE (se->expr), integer_zero_node));
+			build_zero_cst (TREE_TYPE (se->expr)));
       tmp = gfc_evaluate_now (tmp, &se->pre);
       se->expr = tmp;
     }
@@ -3634,7 +3634,7 @@ fill_with_spaces (tree start, tree type, tree size)
 
   /* Exit condition.  */
   cond = fold_build2_loc (input_location, LE_EXPR, boolean_type_node, i,
-			  fold_convert (sizetype, integer_zero_node));
+			  build_zero_cst (sizetype));
   tmp = build1_v (GOTO_EXPR, exit_label);
   tmp = fold_build3_loc (input_location, COND_EXPR, void_type_node, cond, tmp,
 			 build_empty_stmt (input_location));
@@ -5925,7 +5925,7 @@ gfc_trans_class_assign (gfc_expr *expr1, gfc_expr *expr2, gfc_exec_op op)
 	  gcc_assert (vtab);
 	  rhs = gfc_get_expr ();
 	  rhs->expr_type = EXPR_VARIABLE;
-	  gfc_find_sym_tree (vtab->name, NULL, 1, &st);
+	  gfc_find_sym_tree (vtab->name, vtab->ns, 1, &st);
 	  rhs->symtree = st;
 	  rhs->ts = vtab->ts;
 	}

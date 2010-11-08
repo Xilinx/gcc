@@ -1,5 +1,6 @@
 /* Contributed by Nicola Pero <nicola.pero@meta-innovation.com>, October 2010.  */
 /* { dg-do run } */
+/* { dg-xfail-run-if "Needs OBJC2 ABI" { *-*-darwin* && { lp64 && { ! objc2 } } } { "-fnext-runtime" } { "" } } */
 
 /* Test the property syntax in a number of expressions.  */
 
@@ -12,7 +13,10 @@
   Class isa;
   int a;
 }
-@property int a;
+/* Use the simplest synthesized accessor (assign, nonatomic) as we are
+   not testing the synthesized accessors in this test, just the
+   property syntax.  */
+@property (nonatomic) int a;
 + (id) initialize;
 + (id) alloc;
 - (id) init;

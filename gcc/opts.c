@@ -1239,8 +1239,8 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set)
     {
       if (flag_lto_partition_balanced && flag_lto_partition_1to1)
 	error ("Only one -flto-partitoin value can be specified");
-      if (!flag_whopr)
-	error ("-flto-partitoin has effect only with -fwhopr");
+      if (!flag_whopr && !flag_wpa && !flag_ltrans)
+	error ("-flto-partition has no effect without -fwhopr");
     }
 
   /* Reconcile -flto and -fwhopr.  Set additional flags as appropriate and
@@ -1899,6 +1899,18 @@ common_handle_option (struct gcc_options *opts,
     case OPT_fdump_:
       if (!dump_switch_p (arg))
 	return false;
+      break;
+
+    case OPT_ffp_contract_:
+      if (!strcmp (arg, "on"))
+	/* Not implemented, fall back to conservative FP_CONTRACT_OFF.  */
+	flag_fp_contract_mode = FP_CONTRACT_OFF;
+      else if (!strcmp (arg, "off"))
+	flag_fp_contract_mode = FP_CONTRACT_OFF;
+      else if (!strcmp (arg, "fast"))
+	flag_fp_contract_mode = FP_CONTRACT_FAST;
+      else
+	error ("unknown floating point contraction style \"%s\"", arg);
       break;
 
     case OPT_fexcess_precision_:

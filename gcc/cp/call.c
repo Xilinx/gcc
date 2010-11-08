@@ -466,15 +466,24 @@ null_ptr_cst_p (tree t)
      A null pointer constant is an integral constant expression
      (_expr.const_) rvalue of integer type that evaluates to zero or
      an rvalue of type std::nullptr_t. */
-  t = integral_constant_value (t);
-  if (t == null_node
-      || NULLPTR_TYPE_P (TREE_TYPE (t)))
+  if (NULLPTR_TYPE_P (TREE_TYPE (t)))
     return true;
-  if (CP_INTEGRAL_TYPE_P (TREE_TYPE (t)) && integer_zerop (t))
+  if (CP_INTEGRAL_TYPE_P (TREE_TYPE (t)))
     {
-      STRIP_NOPS (t);
-      if (!TREE_OVERFLOW (t))
-	return true;
+      if (cxx_dialect >= cxx0x)
+	{
+	  t = fold_non_dependent_expr (t);
+	  t = maybe_constant_value (t);
+	  if (TREE_CONSTANT (t) && integer_zerop (t))
+	    return true;
+	}
+      else
+	{
+	  t = integral_constant_value (t);
+	  STRIP_NOPS (t);
+	  if (integer_zerop (t) && !TREE_OVERFLOW (t))
+	    return true;
+	}
     }
   return false;
 }
@@ -630,6 +639,29 @@ build_list_conv (tree type, tree ctor, int flags)
   return t;
 }
 
+/* Subroutine of build_aggr_conv: check whether CTOR, a braced-init-list,
+   is a valid aggregate initializer for array type ATYPE.  */
+
+static bool
+can_convert_array (tree atype, tree ctor, int flags)
+{
+  unsigned i;
+  tree elttype = TREE_TYPE (atype);
+  for (i = 0; i < CONSTRUCTOR_NELTS (ctor); ++i)
+    {
+      tree val = CONSTRUCTOR_ELT (ctor, i)->value;
+      bool ok;
+      if (TREE_CODE (elttype) == ARRAY_TYPE
+	  && TREE_CODE (val) == CONSTRUCTOR)
+	ok = can_convert_array (elttype, val, flags);
+      else
+	ok = can_convert_arg (elttype, TREE_TYPE (val), val, flags);
+      if (!ok)
+	return false;
+    }
+  return true;
+}
+
 /* Represent a conversion from CTOR, a braced-init-list, to TYPE, an
    aggregate class, if such a conversion is possible.  */
 
@@ -643,24 +675,31 @@ build_aggr_conv (tree type, tree ctor, int flags)
 
   for (; field; field = next_initializable_field (DECL_CHAIN (field)))
     {
+      tree ftype = TREE_TYPE (field);
+      tree val;
+      bool ok;
+
       if (i < CONSTRUCTOR_NELTS (ctor))
-	{
-	  constructor_elt *ce = CONSTRUCTOR_ELT (ctor, i);
-	  if (!can_convert_arg (TREE_TYPE (field), TREE_TYPE (ce->value),
-				ce->value, flags))
-	    return NULL;
-	  ++i;
-	  if (TREE_CODE (type) == UNION_TYPE)
-	    break;
-	}
+	val = CONSTRUCTOR_ELT (ctor, i)->value;
       else
 	{
 	  if (empty_ctor == NULL_TREE)
 	    empty_ctor = build_constructor (init_list_type_node, NULL);
-	  if (!can_convert_arg (TREE_TYPE (field), TREE_TYPE (empty_ctor),
-				empty_ctor, flags))
-	    return NULL;
+	  val = empty_ctor;
 	}
+      ++i;
+
+      if (TREE_CODE (ftype) == ARRAY_TYPE
+	  && TREE_CODE (val) == CONSTRUCTOR)
+	ok = can_convert_array (ftype, val, flags);
+      else
+	ok = can_convert_arg (ftype, TREE_TYPE (val), val, flags);
+
+      if (!ok)
+	return NULL;
+
+      if (TREE_CODE (type) == UNION_TYPE)
+	break;
     }
 
   if (i < CONSTRUCTOR_NELTS (ctor))
@@ -5784,15 +5823,9 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	access_fn = fn;
       if (flags & LOOKUP_SPECULATIVE)
 	{
-	  /* If we're checking for implicit delete, we don't want access
-	     control errors.  */
-	  if (!accessible_p (cand->access_path, access_fn, true))
-	    {
-	      /* Unless we're under maybe_explain_implicit_delete.  */
-	      if (flags & LOOKUP_COMPLAIN)
-		enforce_access (cand->access_path, access_fn, fn);
-	      return error_mark_node;
-	    }
+	  if (!speculative_access_check (cand->access_path, access_fn, fn,
+					 !!(flags & LOOKUP_COMPLAIN)))
+	    return error_mark_node;
 	}
       else
 	perform_or_defer_access_check (cand->access_path, access_fn, fn);
@@ -7907,9 +7940,32 @@ set_up_extended_ref_temp (tree decl, tree expr, tree *cleanup, tree *initp)
      VAR.  */
   if (TREE_CODE (expr) != TARGET_EXPR)
     expr = get_target_expr (expr);
-  /* Create the INIT_EXPR that will initialize the temporary
-     variable.  */
-  init = build2 (INIT_EXPR, type, var, expr);
+
+  /* If the initializer is constant, put it in DECL_INITIAL so we get
+     static initialization and use in constant expressions.  */
+  init = maybe_constant_init (expr);
+  if (TREE_CONSTANT (init))
+    {
+      if (literal_type_p (type) && CP_TYPE_CONST_NON_VOLATILE_P (type))
+	{
+	  /* 5.19 says that a constant expression can include an
+	     lvalue-rvalue conversion applied to "a glvalue of literal type
+	     that refers to a non-volatile temporary object initialized
+	     with a constant expression".  Rather than try to communicate
+	     that this VAR_DECL is a temporary, just mark it constexpr.
+
+	     Currently this is only useful for initializer_list temporaries,
+	     since reference vars can't appear in constant expressions.  */
+	  DECL_DECLARED_CONSTEXPR_P (var) = true;
+	  TREE_CONSTANT (var) = true;
+	}
+      DECL_INITIAL (var) = init;
+      init = NULL_TREE;
+    }
+  else
+    /* Create the INIT_EXPR that will initialize the temporary
+       variable.  */
+    init = build2 (INIT_EXPR, type, var, expr);
   if (at_function_scope_p ())
     {
       add_decl_expr (var);
@@ -8067,7 +8123,8 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup,
 					build_pointer_type (base_conv_type),
 					/*check_access=*/true,
 					/*nonnull=*/true, complain);
-	      expr = build2 (COMPOUND_EXPR, TREE_TYPE (expr), init, expr);
+	      if (init)
+		expr = build2 (COMPOUND_EXPR, TREE_TYPE (expr), init, expr);
 	    }
 	  else
 	    /* Take the address of EXPR.  */

@@ -229,6 +229,12 @@
 #endif
 
 
+/* Define if your assembler supports DSPR1 mult. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_DSPR1_MULT
+#endif
+
+
 /* Define if your assembler supports .dtprelword. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_DTPRELWORD
@@ -823,24 +829,6 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_DLFCN_H
-#endif
-
-
-/* Define to 1 if you have the `elf_getshdrstrndx' function. */
-#ifndef USED_FOR_TARGET
-#undef HAVE_ELF_GETSHDRSTRNDX
-#endif
-
-
-/* Define to 1 if you have the `elf_getshstrndx' function. */
-#ifndef USED_FOR_TARGET
-#undef HAVE_ELF_GETSHSTRNDX
-#endif
-
-
-/* Define if elf_getshstrndx has gABI conformant return values. */
-#ifndef USED_FOR_TARGET
-#undef HAVE_ELF_GETSHSTRNDX_GABI
 #endif
 
 
@@ -1522,12 +1510,6 @@
 #endif
 
 
-/* Define if libelf is in use. */
-#ifndef USED_FOR_TARGET
-#undef HAVE_libelf
-#endif
-
-
 /* Define as const if the declaration of iconv() needs const. */
 #ifndef USED_FOR_TARGET
 #undef ICONV_CONST
@@ -1767,6 +1749,18 @@
 #  undef WORDS_BIGENDIAN
 # endif
 #endif
+
+/* Number of bits in a file offset, on hosts where this is settable. */
+#ifndef USED_FOR_TARGET
+#undef _FILE_OFFSET_BITS
+#endif
+
+
+/* Define for large files, on AIX-style hosts. */
+#ifndef USED_FOR_TARGET
+#undef _LARGE_FILES
+#endif
+
 
 /* Define to 1 if on MINIX. */
 #ifndef USED_FOR_TARGET

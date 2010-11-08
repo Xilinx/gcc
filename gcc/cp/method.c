@@ -252,7 +252,7 @@ make_alias_for_thunk (tree function)
   tree alias;
   char buf[256];
 
-  ASM_GENERATE_INTERNAL_LABEL (buf, "LTHUNK", thunk_labelno);
+  targetm.asm_out.generate_internal_label (buf, "LTHUNK", thunk_labelno);
   thunk_labelno++;
 
   alias = make_alias_for (function, get_identifier (buf));
@@ -849,8 +849,12 @@ get_dtor (tree type)
 tree
 locate_ctor (tree type)
 {
-  tree fn = locate_fn_flags (type, complete_ctor_identifier, NULL_TREE,
-			     LOOKUP_SPECULATIVE, tf_none);
+  tree fn;
+
+  push_deferring_access_checks (dk_no_check);
+  fn = locate_fn_flags (type, complete_ctor_identifier, NULL_TREE,
+			LOOKUP_SPECULATIVE, tf_none);
+  pop_deferring_access_checks ();
   if (fn == error_mark_node)
     return NULL_TREE;
   return fn;

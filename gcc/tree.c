@@ -1362,7 +1362,7 @@ build_vector_from_ctor (tree type, VEC(constructor_elt,gc) *v)
     list = tree_cons (NULL_TREE, value, list);
   for (; idx < TYPE_VECTOR_SUBPARTS (type); ++idx)
     list = tree_cons (NULL_TREE,
-		      fold_convert (TREE_TYPE (type), integer_zero_node), list);
+		      build_zero_cst (TREE_TYPE (type)), list);
   return build_vector (type, nreverse (list));
 }
 
@@ -1376,8 +1376,8 @@ build_vector_from_val (tree vectype, tree sc)
   if (sc == error_mark_node)
     return sc;
 
-  gcc_assert (lang_hooks.types_compatible_p (TREE_TYPE (sc),
-					     TREE_TYPE (vectype)));
+  gcc_assert (useless_type_conversion_p (TREE_TYPE (sc),
+					 TREE_TYPE (vectype)));
 
   v = VEC_alloc (constructor_elt, gc, nunits);
   for (i = 0; i < nunits; ++i)
@@ -1599,22 +1599,52 @@ build_one_cst (tree type)
     case COMPLEX_TYPE:
       return build_complex (type,
 			    build_one_cst (TREE_TYPE (type)),
-			    fold_convert (TREE_TYPE (type), integer_zero_node));
+			    build_zero_cst (TREE_TYPE (type)));
 
     default:
       gcc_unreachable ();
     }
 }
 
-/* Build 0 constant of type TYPE.  This is used by constructor folding and thus
-   the constant should correspond zero in memory representation.  */
+/* Build 0 constant of type TYPE.  This is used by constructor folding
+   and thus the constant should be represented in memory by
+   zero(es).  */
 
 tree
 build_zero_cst (tree type)
 {
-  if (!AGGREGATE_TYPE_P (type))
-    return fold_convert (type, integer_zero_node);
-  return build_constructor (type, NULL);
+  switch (TREE_CODE (type))
+    {
+    case INTEGER_TYPE: case ENUMERAL_TYPE: case BOOLEAN_TYPE:
+    case POINTER_TYPE: case REFERENCE_TYPE:
+    case OFFSET_TYPE:
+      return build_int_cst (type, 0);
+
+    case REAL_TYPE:
+      return build_real (type, dconst0);
+
+    case FIXED_POINT_TYPE:
+      return build_fixed (type, FCONST0 (TYPE_MODE (type)));
+
+    case VECTOR_TYPE:
+      {
+	tree scalar = build_zero_cst (TREE_TYPE (type));
+
+	return build_vector_from_val (type, scalar);
+      }
+
+    case COMPLEX_TYPE:
+      {
+	tree zero = build_zero_cst (TREE_TYPE (type));
+
+	return build_complex (type, zero, zero);
+      }
+
+    default:
+      if (!AGGREGATE_TYPE_P (type))
+	return fold_convert (type, integer_zero_node);
+      return build_constructor (type, NULL);
+    }
 }
 
 
@@ -10906,16 +10936,17 @@ lhd_gcc_personality (void)
 tree
 get_binfo_at_offset (tree binfo, HOST_WIDE_INT offset, tree expected_type)
 {
-  tree type;
+  tree type = TREE_TYPE (binfo);
 
-  type = TREE_TYPE (binfo);
-  while (offset > 0)
+  while (true)
     {
-      tree base_binfo, found_binfo;
       HOST_WIDE_INT pos, size;
       tree fld;
       int i;
 
+      gcc_checking_assert (offset >= 0);
+      if (type == expected_type)
+	  return binfo;
       if (TREE_CODE (type) != RECORD_TYPE)
 	return NULL_TREE;
 
@@ -10929,27 +10960,28 @@ get_binfo_at_offset (tree binfo, HOST_WIDE_INT offset, tree expected_type)
 	  if (pos <= offset && (pos + size) > offset)
 	    break;
 	}
-      if (!fld)
+      if (!fld || !DECL_ARTIFICIAL (fld))
 	return NULL_TREE;
 
-      found_binfo = NULL_TREE;
-      for (i = 0; BINFO_BASE_ITERATE (binfo, i, base_binfo); i++)
-	if (TREE_TYPE (base_binfo) == TREE_TYPE (fld))
-	  {
-	    found_binfo = base_binfo;
-	    break;
-	  }
-
-      if (!found_binfo)
-	return NULL_TREE;
+      /* Offset 0 indicates the primary base, whose vtable contents are
+	 represented in the binfo for the derived class.  */
+      if (offset != 0)
+	{
+	  tree base_binfo, found_binfo = NULL_TREE;
+	  for (i = 0; BINFO_BASE_ITERATE (binfo, i, base_binfo); i++)
+	    if (TREE_TYPE (base_binfo) == TREE_TYPE (fld))
+	      {
+		found_binfo = base_binfo;
+		break;
+	      }
+	  if (!found_binfo)
+	    return NULL_TREE;
+	  binfo = found_binfo;
+	}
 
       type = TREE_TYPE (fld);
-      binfo = found_binfo;
       offset -= pos;
     }
-  if (type != expected_type)
-    return NULL_TREE;
-  return binfo;
 }
 
 /* Returns true if X is a typedef decl.  */
