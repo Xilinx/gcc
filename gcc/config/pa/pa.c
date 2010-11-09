@@ -84,9 +84,12 @@ hppa_fpstore_bypass_p (rtx out_insn, rtx in_insn)
 #endif
 #endif
 
+static void pa_option_override (void);
 static void copy_reg_pointer (rtx, rtx);
 static void fix_range (const char *);
 static bool pa_handle_option (size_t, const char *, int);
+static int hppa_register_move_cost (enum machine_mode mode, reg_class_t,
+				    reg_class_t);
 static int hppa_address_cost (rtx, bool);
 static bool hppa_rtx_costs (rtx, int, int, int *, bool);
 static inline rtx force_mode (enum machine_mode, rtx);
@@ -104,6 +107,8 @@ static void store_reg_modify (int, int, HOST_WIDE_INT);
 static void load_reg (int, HOST_WIDE_INT, int);
 static void set_reg_plus_d (int, int, HOST_WIDE_INT, int);
 static rtx pa_function_value (const_tree, const_tree, bool);
+static rtx pa_libcall_value (enum machine_mode, const_rtx);
+static bool pa_function_value_regno_p (const unsigned int);
 static void pa_output_function_prologue (FILE *, HOST_WIDE_INT);
 static void update_total_code_bytes (unsigned int);
 static void pa_output_function_epilogue (FILE *, HOST_WIDE_INT);
@@ -155,6 +160,10 @@ static bool pa_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 				  const_tree, bool);
 static int pa_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				 tree, bool);
+static void pa_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+				     const_tree, bool);
+static rtx pa_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+			    const_tree, bool);
 static struct machine_function * pa_init_machine_status (void);
 static reg_class_t pa_secondary_reload (bool, rtx, reg_class_t,
 					enum machine_mode,
@@ -168,6 +177,9 @@ static void pa_asm_trampoline_template (FILE *);
 static void pa_trampoline_init (rtx, tree, rtx);
 static rtx pa_trampoline_adjust_address (rtx);
 static rtx pa_delegitimize_address (rtx);
+static bool pa_print_operand_punct_valid_p (unsigned char);
+static rtx pa_internal_arg_pointer (void);
+static bool pa_can_eliminate (const int, const int);
 
 /* The following extra sections are only used for SOM.  */
 static GTY(()) section *som_readonly_data_section;
@@ -213,6 +225,9 @@ static size_t n_deferred_plabels = 0;
 
 /* Initialize the GCC target structure.  */
 
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE pa_option_override
+
 #undef TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.half\t"
 #undef TARGET_ASM_ALIGNED_SI_OP
@@ -235,6 +250,10 @@ static size_t n_deferred_plabels = 0;
 
 #undef TARGET_FUNCTION_VALUE
 #define TARGET_FUNCTION_VALUE pa_function_value
+#undef TARGET_LIBCALL_VALUE
+#define TARGET_LIBCALL_VALUE pa_libcall_value
+#undef TARGET_FUNCTION_VALUE_REGNO_P
+#define TARGET_FUNCTION_VALUE_REGNO_P pa_function_value_regno_p
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS hppa_legitimize_address
@@ -269,6 +288,9 @@ static size_t n_deferred_plabels = 0;
 #define TARGET_ASM_FILE_END output_deferred_plabels
 #endif
 
+#undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P pa_print_operand_punct_valid_p
+
 #if !defined(USE_COLLECT2)
 #undef TARGET_ASM_CONSTRUCTOR
 #define TARGET_ASM_CONSTRUCTOR pa_asm_out_constructor
@@ -284,6 +306,8 @@ static size_t n_deferred_plabels = 0;
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS pa_init_builtins
 
+#undef TARGET_REGISTER_MOVE_COST
+#define TARGET_REGISTER_MOVE_COST hppa_register_move_cost
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS hppa_rtx_costs
 #undef TARGET_ADDRESS_COST
@@ -314,6 +338,10 @@ static size_t n_deferred_plabels = 0;
 #define TARGET_CALLEE_COPIES hook_bool_CUMULATIVE_ARGS_mode_tree_bool_true
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES pa_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG pa_function_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE pa_function_arg_advance
 
 #undef TARGET_EXPAND_BUILTIN_SAVEREGS
 #define TARGET_EXPAND_BUILTIN_SAVEREGS hppa_builtin_saveregs
@@ -342,6 +370,10 @@ static size_t n_deferred_plabels = 0;
 #define TARGET_TRAMPOLINE_ADJUST_ADDRESS pa_trampoline_adjust_address
 #undef TARGET_DELEGITIMIZE_ADDRESS
 #define TARGET_DELEGITIMIZE_ADDRESS pa_delegitimize_address
+#undef TARGET_INTERNAL_ARG_POINTER
+#define TARGET_INTERNAL_ARG_POINTER pa_internal_arg_pointer
+#undef TARGET_CAN_ELIMINATE
+#define TARGET_CAN_ELIMINATE pa_can_eliminate
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -487,14 +519,16 @@ pa_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
     }
 }
 
-void
-override_options (void)
+/* Implement the TARGET_OPTION_OVERRIDE hook.  */
+
+static void
+pa_option_override (void)
 {
   /* Unconditional branches in the delay slot are not compatible with dwarf2
      call frame information.  There is no benefit in using this optimization
      on PA8000 and later processors.  */
   if (pa_cpu >= PROCESSOR_8000
-      || (! USING_SJLJ_EXCEPTIONS && flag_exceptions)
+      || (targetm.except_unwind_info () == UI_DWARF2 && flag_exceptions)
       || flag_unwind_tables)
     target_flags &= ~MASK_JUMP_IN_DELAY;
 
@@ -1297,6 +1331,32 @@ hppa_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
   return orig;
 }
 
+/* Implement the TARGET_REGISTER_MOVE_COST hook.
+
+   Compute extra cost of moving data between one register class
+   and another.
+
+   Make moves from SAR so expensive they should never happen.  We used to
+   have 0xffff here, but that generates overflow in rare cases.
+
+   Copies involving a FP register and a non-FP register are relatively
+   expensive because they must go through memory.
+
+   Other copies are reasonably cheap.  */
+
+static int
+hppa_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
+			 reg_class_t from, reg_class_t to)
+{
+  if (from == SHIFT_REGS)
+    return 0x100;
+  else if ((FP_REG_CLASS_P (from) && ! FP_REG_CLASS_P (to))
+           || (FP_REG_CLASS_P (to) && ! FP_REG_CLASS_P (from)))
+    return 16;
+  else
+    return 2;
+}
+
 /* For the HPPA, REG and REG+CONST is cost 0
    and addresses involving symbolic constants are cost 2.
 
@@ -1605,7 +1665,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
 
      Use scratch_reg to hold the address of the memory location.
 
-     The proper fix is to change PREFERRED_RELOAD_CLASS to return
+     The proper fix is to change TARGET_PREFERRED_RELOAD_CLASS to return
      NO_REGS when presented with a const_int and a register class
      containing only FP registers.  Doing so unfortunately creates
      more problems than it solves.   Fix this for 2.5.  */
@@ -3688,6 +3748,8 @@ hppa_expand_prologue (void)
     local_fsize += STARTING_FRAME_OFFSET;
 
   actual_fsize = compute_frame_size (size, &save_fregs);
+  if (flag_stack_usage)
+    current_function_static_stack_size = actual_fsize;
 
   /* Compute a few things we will use often.  */
   tmpreg = gen_rtx_REG (word_mode, 1);
@@ -3714,11 +3776,11 @@ hppa_expand_prologue (void)
 	     pointer by actual_fsize bytes.  Two versions, first
 	     handles small (<8k) frames.  The second handles large (>=8k)
 	     frames.  */
-	  insn = emit_move_insn (tmpreg, frame_pointer_rtx);
+	  insn = emit_move_insn (tmpreg, hard_frame_pointer_rtx);
 	  if (DO_FRAME_NOTES)
 	    RTX_FRAME_RELATED_P (insn) = 1;
 
-	  insn = emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+	  insn = emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx);
 	  if (DO_FRAME_NOTES)
 	    RTX_FRAME_RELATED_P (insn) = 1;
 
@@ -3762,7 +3824,7 @@ hppa_expand_prologue (void)
 				       GEN_INT (TARGET_64BIT ? -8 : -4));
 
 	      emit_move_insn (gen_rtx_MEM (word_mode, addr),
-			      frame_pointer_rtx);
+			      hard_frame_pointer_rtx);
 	    }
 	  else
 	    emit_insn (gen_blockage ());
@@ -3805,7 +3867,7 @@ hppa_expand_prologue (void)
 	      if (regno == INVALID_REGNUM)
 		break;
 
-	      store_reg (regno, offset, FRAME_POINTER_REGNUM);
+	      store_reg (regno, offset, HARD_FRAME_POINTER_REGNUM);
 	      offset += UNITS_PER_WORD;
 	    }
 	}
@@ -3813,7 +3875,7 @@ hppa_expand_prologue (void)
       for (i = 18; i >= 4; i--)
 	if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	  {
-	    store_reg (i, offset, FRAME_POINTER_REGNUM);
+	    store_reg (i, offset, HARD_FRAME_POINTER_REGNUM);
 	    offset += UNITS_PER_WORD;
 	    gr_saved++;
 	  }
@@ -3902,8 +3964,8 @@ hppa_expand_prologue (void)
 	 save area.  */
       if (frame_pointer_needed)
 	{
-	  set_reg_plus_d (1, FRAME_POINTER_REGNUM, offset, 0);
-	  base = frame_pointer_rtx;
+	  set_reg_plus_d (1, HARD_FRAME_POINTER_REGNUM, offset, 0);
+	  base = hard_frame_pointer_rtx;
 	}
       else
 	{
@@ -4101,7 +4163,7 @@ hppa_expand_epilogue (void)
       ret_off = TARGET_64BIT ? -16 : -20;
       if (frame_pointer_needed)
 	{
-	  load_reg (2, ret_off, FRAME_POINTER_REGNUM);
+	  load_reg (2, ret_off, HARD_FRAME_POINTER_REGNUM);
 	  ret_off = 0;
 	}
       else
@@ -4132,7 +4194,7 @@ hppa_expand_epilogue (void)
 	      if (regno == INVALID_REGNUM)
 		break;
 
-	      load_reg (regno, offset, FRAME_POINTER_REGNUM);
+	      load_reg (regno, offset, HARD_FRAME_POINTER_REGNUM);
 	      offset += UNITS_PER_WORD;
 	    }
 	}
@@ -4140,7 +4202,7 @@ hppa_expand_epilogue (void)
       for (i = 18; i >= 4; i--)
 	if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	  {
-	    load_reg (i, offset, FRAME_POINTER_REGNUM);
+	    load_reg (i, offset, HARD_FRAME_POINTER_REGNUM);
 	    offset += UNITS_PER_WORD;
 	  }
     }
@@ -4199,7 +4261,7 @@ hppa_expand_epilogue (void)
     {
       /* Adjust the register to index off of.  */
       if (frame_pointer_needed)
-	set_reg_plus_d (1, FRAME_POINTER_REGNUM, offset, 0);
+	set_reg_plus_d (1, HARD_FRAME_POINTER_REGNUM, offset, 0);
       else
 	set_reg_plus_d (1, STACK_POINTER_REGNUM, offset, 0);
 
@@ -4227,8 +4289,9 @@ hppa_expand_epilogue (void)
     {
       rtx delta = GEN_INT (-64);
 
-      set_reg_plus_d (STACK_POINTER_REGNUM, FRAME_POINTER_REGNUM, 64, 0);
-      emit_insn (gen_pre_load (frame_pointer_rtx, stack_pointer_rtx, delta));
+      set_reg_plus_d (STACK_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM, 64, 0);
+      emit_insn (gen_pre_load (hard_frame_pointer_rtx,
+			       stack_pointer_rtx, delta));
     }
   /* If we were deferring a callee register restore, do it now.  */
   else if (merge_sp_adjust_with_load)
@@ -4799,6 +4862,20 @@ pa_adjust_insn_length (rtx insn, int length)
 	return 0;
     }
   return 0;
+}
+
+/* Implement the TARGET_PRINT_OPERAND_PUNCT_VALID_P hook.  */
+
+static bool
+pa_print_operand_punct_valid_p (unsigned char code)
+{
+  if (code == '@'
+      || code == '#'
+      || code == '*'
+      || code == '^')
+    return true;
+
+  return false;
 }
 
 /* Print operand X (an rtx) in assembler syntax to file FILE.
@@ -5693,7 +5770,7 @@ static reg_class_t
 pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 		     enum machine_mode mode, secondary_reload_info *sri)
 {
-  int is_symbolic, regno;
+  int regno;
   enum reg_class rclass = (enum reg_class) rclass_i;
 
   /* Handle the easy stuff first.  */
@@ -5725,6 +5802,23 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
       sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
 		    : CODE_FOR_reload_indi_r1);
       return NO_REGS;
+    }
+
+  /* Secondary reloads of symbolic operands require %r1 as a scratch
+     register when we're generating PIC code and when the operand isn't
+     readonly.  */
+  if (symbolic_expression_p (x))
+    {
+      if (GET_CODE (x) == HIGH)
+	x = XEXP (x, 0);
+
+      if (flag_pic || !read_only_operand (x, VOIDmode))
+	{
+	  gcc_assert (mode == SImode || mode == DImode);
+	  sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
+			: CODE_FOR_reload_indi_r1);
+	  return NO_REGS;
+	}
     }
 
   /* Profiling showed the PA port spends about 1.3% of its compilation
@@ -5789,51 +5883,9 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
   if (regno >= 0 && regno < FIRST_PSEUDO_REGISTER
       && (REGNO_REG_CLASS (regno) == SHIFT_REGS
       && FP_REG_CLASS_P (rclass)))
-    {
-      sri->icode = (in_p
-		    ? direct_optab_handler (reload_in_optab, mode)
-		    : direct_optab_handler (reload_out_optab, mode));
-      return NO_REGS;
-    }
-
-  /* Secondary reloads of symbolic operands require %r1 as a scratch
-     register when we're generating PIC code and when the operand isn't
-     readonly.  */
-  if (GET_CODE (x) == HIGH)
-    x = XEXP (x, 0);
-
-  /* Profiling has showed GCC spends about 2.6% of its compilation
-     time in symbolic_operand from calls inside pa_secondary_reload_class.
-     So, we use an inline copy to avoid useless work.  */
-  switch (GET_CODE (x))
-    {
-      rtx op;
-
-      case SYMBOL_REF:
-        is_symbolic = !SYMBOL_REF_TLS_MODEL (x);
-        break;
-      case LABEL_REF:
-        is_symbolic = 1;
-        break;
-      case CONST:
-	op = XEXP (x, 0);
-	is_symbolic = (GET_CODE (op) == PLUS
-		       && ((GET_CODE (XEXP (op, 0)) == SYMBOL_REF
-			    && !SYMBOL_REF_TLS_MODEL (XEXP (op, 0)))
-			   || GET_CODE (XEXP (op, 0)) == LABEL_REF)
-		       && GET_CODE (XEXP (op, 1)) == CONST_INT);
-        break;
-      default:
-        is_symbolic = 0;
-        break;
-    }
-
-  if (is_symbolic && (flag_pic || !read_only_operand (x, VOIDmode)))
-    {
-      gcc_assert (mode == SImode || mode == DImode);
-      sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
-		    : CODE_FOR_reload_indi_r1);
-    }
+    sri->icode = (in_p
+		  ? direct_optab_handler (reload_in_optab, mode)
+		  : direct_optab_handler (reload_out_optab, mode));
 
   return NO_REGS;
 }
@@ -5858,7 +5910,7 @@ pa_eh_return_handler_rtx (void)
 {
   rtx tmp;
 
-  tmp = gen_rtx_PLUS (word_mode, frame_pointer_rtx,
+  tmp = gen_rtx_PLUS (word_mode, hard_frame_pointer_rtx,
 		      TARGET_64BIT ? GEN_INT (-16) : GEN_INT (-20));
   tmp = gen_rtx_MEM (word_mode, tmp);
   tmp->volatil = 1;
@@ -5944,9 +5996,7 @@ hppa_builtin_saveregs (void)
 {
   rtx offset, dest;
   tree fntype = TREE_TYPE (current_function_decl);
-  int argadj = ((!(TYPE_ARG_TYPES (fntype) != 0
-		   && (TREE_VALUE (tree_last (TYPE_ARG_TYPES (fntype)))
-		       != void_type_node)))
+  int argadj = ((!stdarg_p (fntype))
 		? UNITS_PER_WORD : 0);
 
   if (argadj)
@@ -9237,7 +9287,7 @@ pa_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
    Small structures must be returned in a PARALLEL on PA64 in order
    to match the HP Compiler ABI.  */
 
-rtx
+static rtx
 pa_function_value (const_tree valtype, 
                    const_tree func ATTRIBUTE_UNUSED, 
                    bool outgoing ATTRIBUTE_UNUSED)
@@ -9298,6 +9348,48 @@ pa_function_value (const_tree valtype,
   return gen_rtx_REG (valmode, 28);
 }
 
+/* Implement the TARGET_LIBCALL_VALUE hook.  */
+
+static rtx
+pa_libcall_value (enum machine_mode mode,
+		  const_rtx fun ATTRIBUTE_UNUSED)
+{
+  if (! TARGET_SOFT_FLOAT
+      && (mode == SFmode || mode == DFmode))
+    return  gen_rtx_REG (mode, 32);
+  else
+    return  gen_rtx_REG (mode, 28);
+}
+
+/* Implement the TARGET_FUNCTION_VALUE_REGNO_P hook.  */
+
+static bool
+pa_function_value_regno_p (const unsigned int regno)
+{
+  if (regno == 28
+      || (! TARGET_SOFT_FLOAT &&  regno == 32))
+    return true;
+
+  return false;
+}
+
+/* Update the data in CUM to advance over an argument
+   of mode MODE and data type TYPE.
+   (TYPE is null for libcalls where that information may not be available.)  */
+
+static void
+pa_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			 const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  int arg_size = FUNCTION_ARG_SIZE (mode, type);
+
+  cum->nargs_prototype--;
+  cum->words += (arg_size
+		 + ((cum->words & 01)
+		    && type != NULL_TREE
+		    && arg_size > 1));
+}
+
 /* Return the location of a parameter that is passed in a register or NULL
    if the parameter has any component that is passed in memory.
 
@@ -9306,9 +9398,9 @@ pa_function_value (const_tree valtype,
 
    ??? We might want to restructure this so that it looks more like other
    ports.  */
-rtx
-function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
-	      int named ATTRIBUTE_UNUSED)
+static rtx
+pa_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		 const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   int max_arg_words = (TARGET_64BIT ? 8 : 4);
   int alignment = 0;
@@ -10015,4 +10107,48 @@ pa_delegitimize_address (rtx orig_x)
   return x;
 }
 
+static rtx
+pa_internal_arg_pointer (void)
+{
+  /* The argument pointer and the hard frame pointer are the same in
+     the 32-bit runtime, so we don't need a copy.  */
+  if (TARGET_64BIT)
+    return copy_to_reg (virtual_incoming_args_rtx);
+  else
+    return virtual_incoming_args_rtx;
+}
+
+/* Given FROM and TO register numbers, say whether this elimination is allowed.
+   Frame pointer elimination is automatically handled.  */
+
+static bool
+pa_can_eliminate (const int from, const int to)
+{
+  /* The argument cannot be eliminated in the 64-bit runtime.  */
+  if (TARGET_64BIT && from == ARG_POINTER_REGNUM)
+    return false;
+
+  return (from == HARD_FRAME_POINTER_REGNUM && to == STACK_POINTER_REGNUM
+          ? ! frame_pointer_needed
+          : true);
+}
+
+/* Define the offset between two registers, FROM to be eliminated and its
+   replacement TO, at the start of a routine.  */
+HOST_WIDE_INT
+pa_initial_elimination_offset (int from, int to)
+{
+  HOST_WIDE_INT offset;
+
+  if ((from == HARD_FRAME_POINTER_REGNUM || from == FRAME_POINTER_REGNUM)
+      && to == STACK_POINTER_REGNUM)
+    offset = -compute_frame_size (get_frame_size (), 0);
+  else if (from == FRAME_POINTER_REGNUM && to == HARD_FRAME_POINTER_REGNUM)
+    offset = 0;
+  else
+    gcc_unreachable ();
+
+  return offset;
+}
+
 #include "gt-pa.h"

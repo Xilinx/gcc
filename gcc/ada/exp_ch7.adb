@@ -392,7 +392,7 @@ package body Exp_Ch7 is
           Typ   => Typ,
           Stmts => Make_Deep_Array_Body (Initialize_Case, Typ)));
 
-      if not Is_Inherently_Limited_Type (Typ) then
+      if not Is_Immutably_Limited_Type (Typ) then
          Set_TSS (Typ,
            Make_Deep_Proc (
              Prim  => Adjust_Case,
@@ -502,7 +502,7 @@ package body Exp_Ch7 is
           Typ   => Typ,
           Stmts => Make_Deep_Record_Body (Initialize_Case, Typ)));
 
-      if not Is_Inherently_Limited_Type (Typ) then
+      if not Is_Immutably_Limited_Type (Typ) then
          Set_TSS (Typ,
            Make_Deep_Proc (
              Prim  => Adjust_Case,
@@ -1098,7 +1098,7 @@ package body Exp_Ch7 is
       --  releasing or some finalizations are needed or in the context
       --  of tasking
 
-      if Uses_Sec_Stack  (Current_Scope)
+      if Uses_Sec_Stack (Current_Scope)
         and then not Sec_Stack_Needed_For_Return (Current_Scope)
       then
          null;
@@ -1739,11 +1739,7 @@ package body Exp_Ch7 is
          end if;
 
       else
-         if Is_Dynamic_Scope (E) then
-            S := E;
-         else
-            S := Enclosing_Dynamic_Scope (E);
-         end if;
+         S := Nearest_Dynamic_Scope (E);
 
          --  When the finalization chain entity is 'Error', it means that there
          --  should not be any chain at that level and that the enclosing one
@@ -2725,7 +2721,7 @@ package body Exp_Ch7 is
       Res            : constant List_Id := New_List;
 
    begin
-      if Is_Inherently_Limited_Type (Typ) then
+      if Is_Immutably_Limited_Type (Typ) then
          Controller_Typ := RTE (RE_Limited_Record_Controller);
       else
          Controller_Typ := RTE (RE_Record_Controller);

@@ -52,7 +52,7 @@ union GTY((desc ("gimple_tree_node_structure (&%h)"),
     lang_tree_node
 {
   union tree_node GTY ((tag ("TS_GIMPLE_GENERIC"),
-			desc ("gimple_tree_node_structure (&%h)"))) generic;
+			desc ("tree_node_structure (&%h)"))) generic;
 };
 
 #endif /* GIMPLE_GIMPLE_TREE_H  */

@@ -49,6 +49,15 @@
 
 #endif /* VxWorks */
 
+#if (defined (__mips) && defined (__sgi)) || defined (__APPLE__)
+#include <unistd.h>
+#endif
+
+#if defined (__hpux__)
+#include <sys/param.h>
+#include <sys/pstat.h>
+#endif
+
 #ifdef VMS
 #define _POSIX_EXIT 1
 #define HOST_EXECUTABLE_SUFFIX ".exe"
@@ -579,10 +588,29 @@ __gnat_get_maximum_file_name_length (void)
 int
 __gnat_get_file_names_case_sensitive (void)
 {
-#if defined (VMS) || defined (WINNT)
-  return 0;
+  const char *sensitive = getenv ("GNAT_FILE_NAME_CASE_SENSITIVE");
+
+  if (sensitive != NULL
+      && (sensitive[0] == '0' || sensitive[0] == '1')
+      && sensitive[1] == '\0')
+    return sensitive[0] - '0';
+  else
+#if defined (VMS) || defined (WINNT) || defined (__APPLE__)
+    return 0;
 #else
-  return 1;
+    return 1;
+#endif
+}
+
+/* Return nonzero if environment variables are case sensitive.  */
+
+int
+__gnat_get_env_vars_case_sensitive (void)
+{
+#if defined (VMS) || defined (WINNT)
+ return 0;
+#else
+ return 1;
 #endif
 }
 
@@ -783,7 +811,10 @@ __gnat_fopen (char *path, char *mode, int encoding ATTRIBUTE_UNUSED)
 }
 
 FILE *
-__gnat_freopen (char *path, char *mode, FILE *stream, int encoding ATTRIBUTE_UNUSED)
+__gnat_freopen (char *path,
+		char *mode,
+		FILE *stream,
+		int encoding ATTRIBUTE_UNUSED)
 {
 #if defined (_WIN32) && ! defined (__vxworks) && ! defined (IS_CROSS)
   TCHAR wpath[GNAT_MAX_PATH_LEN];
@@ -1066,7 +1097,8 @@ __gnat_stat_to_attr (int fd, char* name, struct file_attributes* attr)
     attr->file_length = statbuf.st_size;  /* all systems */
 
 #ifndef __MINGW32__
-  /* on Windows requires extra system call, see comment in __gnat_file_exists_attr */
+  /* on Windows requires extra system call, see comment in
+     __gnat_file_exists_attr */
   attr->exists = !ret;
 #endif
 
@@ -2007,7 +2039,8 @@ __gnat_is_readable_file_attr (char* name, struct file_attributes* attr)
      {
         ZeroMemory (&GenericMapping, sizeof (GENERIC_MAPPING));
         GenericMapping.GenericRead = GENERIC_READ;
-        attr->readable = __gnat_check_OWNER_ACL (wname, FILE_READ_DATA, GenericMapping);
+	attr->readable =
+	  __gnat_check_OWNER_ACL (wname, FILE_READ_DATA, GenericMapping);
      }
      else
         attr->readable = GetFileAttributes (wname) != INVALID_FILE_ATTRIBUTES;
@@ -2080,7 +2113,8 @@ __gnat_is_executable_file_attr (char* name, struct file_attributes* attr)
          ZeroMemory (&GenericMapping, sizeof (GENERIC_MAPPING));
          GenericMapping.GenericExecute = GENERIC_EXECUTE;
 
-         attr->executable = __gnat_check_OWNER_ACL (wname, FILE_EXECUTE, GenericMapping);
+         attr->executable =
+           __gnat_check_OWNER_ACL (wname, FILE_EXECUTE, GenericMapping);
        }
      else
        attr->executable = GetFileAttributes (wname) != INVALID_FILE_ATTRIBUTES
@@ -2337,6 +2371,32 @@ __gnat_dup2 (int oldfd, int newfd)
 #else
   return dup2 (oldfd, newfd);
 #endif
+}
+
+int
+__gnat_number_of_cpus (void)
+{
+  int cores = 1;
+
+#if defined (linux) || defined (sun) || defined (AIX) \
+    || (defined (__alpha__)  && defined (_osf_)) || defined (__APPLE__)
+  cores = (int) sysconf (_SC_NPROCESSORS_ONLN);
+
+#elif (defined (__mips) && defined (__sgi))
+  cores = (int) sysconf (_SC_NPROC_ONLN);
+
+#elif defined (__hpux__)
+  struct pst_dynamic psd;
+  if (pstat_getdynamic (&psd, sizeof (psd), 1, 0) != -1)
+    cores = (int) psd.psd_proc_cnt;
+
+#elif defined (_WIN32)
+  SYSTEM_INFO sysinfo;
+  GetSystemInfo (&sysinfo);
+  cores = (int) sysinfo.dwNumberOfProcessors;
+#endif
+
+  return cores;
 }
 
 /* WIN32 code to implement a wait call that wait for any child process.  */
@@ -2663,7 +2723,8 @@ __gnat_locate_regular_file (char *file_name, char *path_val)
 
   {
     /* The result has to be smaller than path_val + file_name.  */
-    char *file_path = (char *) alloca (strlen (path_val) + strlen (file_name) + 2);
+    char *file_path =
+      (char *) alloca (strlen (path_val) + strlen (file_name) + 2);
 
     for (;;)
       {
@@ -2719,8 +2780,9 @@ __gnat_locate_exec (char *exec_name, char *path_val)
   char *ptr;
   if (!strstr (exec_name, HOST_EXECUTABLE_SUFFIX))
     {
-      char *full_exec_name
-        = (char *) alloca (strlen (exec_name) + strlen (HOST_EXECUTABLE_SUFFIX) + 1);
+      char *full_exec_name =
+        (char *) alloca
+	  (strlen (exec_name) + strlen (HOST_EXECUTABLE_SUFFIX) + 1);
 
       strcpy (full_exec_name, exec_name);
       strcat (full_exec_name, HOST_EXECUTABLE_SUFFIX);
@@ -3600,33 +3662,6 @@ void __main (void) {}
 #endif
 #endif
 
-#if defined (linux) || defined(__GLIBC__)
-/* pthread affinity support */
-
-int __gnat_pthread_setaffinity_np (pthread_t th,
-			           size_t cpusetsize,
-			           const void *cpuset);
-
-#ifdef CPU_SETSIZE
-#include <pthread.h>
-int
-__gnat_pthread_setaffinity_np (pthread_t th,
-			       size_t cpusetsize,
-			       const cpu_set_t *cpuset)
-{
-  return pthread_setaffinity_np (th, cpusetsize, cpuset);
-}
-#else
-int
-__gnat_pthread_setaffinity_np (pthread_t th ATTRIBUTE_UNUSED,
-			       size_t cpusetsize ATTRIBUTE_UNUSED,
-			       const void *cpuset ATTRIBUTE_UNUSED)
-{
-  return 0;
-}
-#endif
-#endif
-
 #if defined (linux)
 /* There is no function in the glibc to retrieve the LWP of the current
    thread. We need to do a system call in order to retrieve this
@@ -3635,5 +3670,51 @@ __gnat_pthread_setaffinity_np (pthread_t th ATTRIBUTE_UNUSED,
 void *__gnat_lwp_self (void)
 {
    return (void *) syscall (__NR_gettid);
+}
+
+/* For the affinity functions, there are systems which do not provide
+   the required support, so we create a wrapper to check its availability
+   before calling. */
+
+extern int pthread_setaffinity_np (pthread_t th,
+				   size_t cpusetsize,
+				   const void *cpuset)
+ __attribute__((weak));
+
+extern int pthread_attr_setaffinity_np (pthread_attr_t *__attr,
+					size_t cpusetsize,
+					const void *cpuset)
+ __attribute__((weak));
+
+int __gnat_pthread_setaffinity_np (pthread_t th,
+				   size_t cpusetsize,
+				   const void *cpuset);
+
+int __gnat_pthread_attr_setaffinity_np (pthread_attr_t *__attr,
+					size_t cpusetsize,
+					const void *cpuset);
+
+int
+__gnat_pthread_setaffinity_np (pthread_t th,
+			       size_t cpusetsize,
+			       const void *cpuset)
+{
+  /* Call the underlying OS operation if available */
+  if (pthread_setaffinity_np)
+    return pthread_setaffinity_np (th, cpusetsize, cpuset);
+  else
+    return 0;
+}
+
+int
+__gnat_pthread_attr_setaffinity_np (pthread_attr_t *__attr,
+				    size_t cpusetsize,
+				    const void *cpuset)
+{
+  /* Call the underlying OS operation if available */
+  if (pthread_attr_setaffinity_np)
+    return pthread_attr_setaffinity_np (__attr, cpusetsize, cpuset);
+  else
+    return 0;
 }
 #endif

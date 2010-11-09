@@ -295,12 +295,22 @@ enum c_declarator_kind {
   cdk_attrs
 };
 
+typedef struct GTY(()) c_arg_tag_d {
+  /* The argument name.  */
+  tree id;
+  /* The type of the argument.  */
+  tree type;
+} c_arg_tag;
+
+DEF_VEC_O(c_arg_tag);
+DEF_VEC_ALLOC_O(c_arg_tag,gc);
+
 /* Information about the parameters in a function declarator.  */
 struct c_arg_info {
   /* A list of parameter decls.  */
   tree parms;
   /* A list of structure, union and enum tags defined.  */
-  tree tags;
+  VEC(c_arg_tag,gc) *tags;
   /* A list of argument types to go in the FUNCTION_TYPE.  */
   tree types;
   /* A list of non-parameter decls (notably enumeration constants)
@@ -417,8 +427,9 @@ extern int quals_from_declspecs (const struct c_declspecs *);
 extern struct c_declarator *build_array_declarator (location_t, tree,
     						    struct c_declspecs *,
 						    bool, bool);
-extern tree build_enumerator (location_t, struct c_enum_contents *, tree, tree);
-extern tree check_for_loop_decls (location_t);
+extern tree build_enumerator (location_t, location_t, struct c_enum_contents *,
+			      tree, tree);
+extern tree check_for_loop_decls (location_t, bool);
 extern void mark_forward_parm_decls (void);
 extern void declare_parm_level (void);
 extern void undeclared_variable (location_t, tree);
@@ -434,6 +445,7 @@ extern tree finish_enum (tree, tree, tree);
 extern void finish_function (void);
 extern tree finish_struct (location_t, tree, tree, tree,
 			   struct c_struct_parse_info *);
+extern struct c_arg_info *build_arg_info (void);
 extern struct c_arg_info *get_parm_info (bool);
 extern tree grokfield (location_t, struct c_declarator *,
 		       struct c_declspecs *, tree, tree *);

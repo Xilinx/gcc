@@ -37,8 +37,8 @@ tree objc_eh_personality (void);
 
 /* Objective-C structures */
 
-#define CLASS_LANG_SLOT_ELTS		5
-#define PROTOCOL_LANG_SLOT_ELTS		2
+#define CLASS_LANG_SLOT_ELTS		7
+#define PROTOCOL_LANG_SLOT_ELTS		7
 #define OBJC_INFO_SLOT_ELTS		2
 
 /* KEYWORD_DECL */
@@ -52,6 +52,15 @@ tree objc_eh_personality (void);
 #define METHOD_ADD_ARGS_ELLIPSIS_P(DECL) ((DECL)->decl_common.lang_flag_0)
 #define METHOD_DEFINITION(DECL) ((DECL)->decl_common.initial)
 #define METHOD_ENCODING(DECL) ((DECL)->decl_minimal.context)
+#define METHOD_TYPE_ATTRIBUTES(DECL) ((DECL)->decl_common.abstract_origin)
+#define METHOD_PROPERTY_CONTEXT(DECL) ((DECL)->decl_common.size_unit)
+
+#define PROPERTY_NAME(DECL) ((DECL)->decl_minimal.name)
+#define PROPERTY_GETTER_NAME(DECL) ((DECL)->decl_non_common.arguments)
+#define PROPERTY_SETTER_NAME(DECL) ((DECL)->decl_non_common.result)
+#define PROPERTY_IVAR_NAME(DECL) ((DECL)->decl_common.initial)
+#define PROPERTY_READONLY(DECL) ((DECL)->decl_minimal.context)
+#define PROPERTY_COPIES(DECL) ((DECL)->decl_common.size_unit)
 
 /* CLASS_INTERFACE_TYPE, CLASS_IMPLEMENTATION_TYPE,
    CATEGORY_INTERFACE_TYPE, CATEGORY_IMPLEMENTATION_TYPE,
@@ -65,12 +74,21 @@ tree objc_eh_personality (void);
 #define CLASS_STATIC_TEMPLATE(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 2)
 #define CLASS_CATEGORY_LIST(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 3)
 #define CLASS_PROTOCOL_LIST(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 4)
+#define TOTAL_CLASS_RAW_IVARS(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 5)
+
 #define PROTOCOL_NAME(CLASS) ((CLASS)->type.name)
 #define PROTOCOL_LIST(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 0)
 #define PROTOCOL_NST_METHODS(CLASS) ((CLASS)->type.minval)
 #define PROTOCOL_CLS_METHODS(CLASS) ((CLASS)->type.maxval)
 #define PROTOCOL_FORWARD_DECL(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 1)
 #define PROTOCOL_DEFINED(CLASS) TREE_USED (CLASS)
+#define PROTOCOL_OPTIONAL_CLS_METHODS(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 2)
+#define PROTOCOL_OPTIONAL_NST_METHODS(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 3)
+
+/* For CATEGORY_INTERFACE_TYPE, CLASS_INTERFACE_TYPE or PROTOCOL_INTERFACE_TYPE */
+#define CLASS_PROPERTY_DECL(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 6)
+/* For CLASS_IMPLEMENTATION_TYPE or CATEGORY_IMPLEMENTATION_TYPE. */
+#define IMPL_PROPERTY_DECL(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 6)
 
 /* ObjC-specific information pertaining to RECORD_TYPEs are stored in
    the LANG_SPECIFIC structures, which may itself need allocating first.  */
@@ -157,7 +175,7 @@ extern GTY(()) int imp_count;	/* `@implementation' */
 extern GTY(()) int cat_count;	/* `@category' */
 
 extern GTY(()) enum tree_code objc_inherit_code;
-extern GTY(()) int objc_public_flag;
+extern GTY(()) objc_ivar_visibility_kind objc_ivar_visibility;
 
 /* Objective-C/Objective-C++ global tree enumeration.  */
 
@@ -266,6 +284,9 @@ enum objc_tree_index
     OCTI_ASSIGN_IVAR_FAST_DECL,
     OCTI_ASSIGN_GLOBAL_DECL,
     OCTI_ASSIGN_STRONGCAST_DECL,
+
+    OCTI_FAST_ENUM_STATE_TEMP,
+    OCTI_ENUM_MUTATION_DECL,
 
     OCTI_MAX
 };
@@ -431,5 +452,9 @@ extern GTY(()) tree objc_global_trees[OCTI_MAX];
 #define string_class_decl	objc_global_trees[OCTI_STRING_CLASS_DECL]
 #define internal_const_str_type	objc_global_trees[OCTI_INTERNAL_CNST_STR_TYPE]
 #define UOBJC_SUPER_decl	objc_global_trees[OCTI_SUPER_DECL]
+#define objc_fast_enumeration_state_template	\
+                                objc_global_trees[OCTI_FAST_ENUM_STATE_TEMP]
+#define objc_enumeration_mutation_decl		\
+                                objc_global_trees[OCTI_ENUM_MUTATION_DECL]
 
 #endif /* GCC_OBJC_ACT_H */

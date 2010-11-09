@@ -900,6 +900,11 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
       else if (expr && string_conv_p (to, expr, 0))
 	/* converting from string constant to char *.  */
 	conv = build_conv (ck_qual, to, conv);
+      /* Allow conversions among compatible ObjC pointer types (base
+	 conversions have been already handled above).  */
+      else if (c_dialect_objc ()
+	       && objc_compare_types (to, from, -4, NULL_TREE))
+	conv = build_conv (ck_ptr, to, conv);
       else if (ptr_reasonably_similar (to_pointee, from_pointee))
 	{
 	  conv = build_conv (ck_ptr, to, conv);
@@ -999,6 +1004,9 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
 bool
 reference_related_p (tree t1, tree t2)
 {
+  if (t1 == error_mark_node || t2 == error_mark_node)
+    return false;
+
   t1 = TYPE_MAIN_VARIANT (t1);
   t2 = TYPE_MAIN_VARIANT (t2);
 
@@ -1454,7 +1462,7 @@ implicit_conversion (tree to, tree from, tree expr, bool c_cast_p,
 	  tree elt;
 
 	  if (nelts == 0)
-	    elt = integer_zero_node;
+	    elt = build_value_init (to, tf_none);
 	  else if (nelts == 1)
 	    elt = CONSTRUCTOR_ELT (expr, 0)->value;
 	  else
@@ -1598,8 +1606,10 @@ add_function_candidate (struct z_candidate **candidates,
 
   /* Kludge: When looking for a function from a subobject while generating
      an implicit copy/move constructor/operator=, don't consider anything
-     that takes (a reference to) a different type.  See c++/44909.  */
-  else if (flags & LOOKUP_SPECULATIVE)
+     that takes (a reference to) an unrelated type.  See c++/44909.  */
+  else if ((flags & LOOKUP_SPECULATIVE)
+	   || (current_function_decl
+	       && DECL_DEFAULTED_FN (current_function_decl)))
     {
       if (DECL_CONSTRUCTOR_P (fn))
 	i = 1;
@@ -1611,8 +1621,8 @@ add_function_candidate (struct z_candidate **candidates,
       if (i && len == i)
 	{
 	  parmnode = chain_index (i-1, parmlist);
-	  if (!(same_type_ignoring_top_level_qualifiers_p
-		(non_reference (TREE_VALUE (parmnode)), ctype)))
+	  if (!reference_related_p (non_reference (TREE_VALUE (parmnode)),
+				    ctype))
 	    viable = 0;
 	}
     }
@@ -2328,12 +2338,11 @@ add_builtin_candidates (struct z_candidate **candidates, enum tree_code code,
 {
   int ref1, i;
   int enum_p = 0;
-  tree type, argtypes[3];
+  tree type, argtypes[3], t;
   /* TYPES[i] is the set of possible builtin-operator parameter types
-     we will consider for the Ith argument.  These are represented as
-     a TREE_LIST; the TREE_VALUE of each node is the potential
-     parameter type.  */
-  tree types[2];
+     we will consider for the Ith argument.  */
+  VEC(tree,gc) *types[2];
+  unsigned ix;
 
   for (i = 0; i < 3; ++i)
     {
@@ -2395,7 +2404,8 @@ add_builtin_candidates (struct z_candidate **candidates, enum tree_code code,
       ref1 = 0;
     }
 
-  types[0] = types[1] = NULL_TREE;
+  types[0] = make_tree_vector ();
+  types[1] = make_tree_vector ();
 
   for (i = 0; i < 2; ++i)
     {
@@ -2414,11 +2424,11 @@ add_builtin_candidates (struct z_candidate **candidates, enum tree_code code,
 	  if (code == COND_EXPR)
 	    {
 	      if (real_lvalue_p (args[i]))
-		types[i] = tree_cons
-		  (NULL_TREE, build_reference_type (argtypes[i]), types[i]);
+		VEC_safe_push (tree, gc, types[i],
+			       build_reference_type (argtypes[i]));
 
-	      types[i] = tree_cons
-		(NULL_TREE, TYPE_MAIN_VARIANT (argtypes[i]), types[i]);
+	      VEC_safe_push (tree, gc, types[i],
+			     TYPE_MAIN_VARIANT (argtypes[i]));
 	    }
 
 	  else if (! convs)
@@ -2434,54 +2444,60 @@ add_builtin_candidates (struct z_candidate **candidates, enum tree_code code,
 		continue;
 
 	      if (code == COND_EXPR && TREE_CODE (type) == REFERENCE_TYPE)
-		types[i] = tree_cons (NULL_TREE, type, types[i]);
+		VEC_safe_push (tree, gc, types[i], type);
 
 	      type = non_reference (type);
 	      if (i != 0 || ! ref1)
 		{
 		  type = TYPE_MAIN_VARIANT (type_decays_to (type));
 		  if (enum_p && TREE_CODE (type) == ENUMERAL_TYPE)
-		    types[i] = tree_cons (NULL_TREE, type, types[i]);
+		    VEC_safe_push (tree, gc, types[i], type);
 		  if (INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (type))
 		    type = type_promotes_to (type);
 		}
 
-	      if (! value_member (type, types[i]))
-		types[i] = tree_cons (NULL_TREE, type, types[i]);
+	      if (! vec_member (type, types[i]))
+		VEC_safe_push (tree, gc, types[i], type);
 	    }
 	}
       else
 	{
 	  if (code == COND_EXPR && real_lvalue_p (args[i]))
-	    types[i] = tree_cons
-	      (NULL_TREE, build_reference_type (argtypes[i]), types[i]);
+	    VEC_safe_push (tree, gc, types[i],
+			   build_reference_type (argtypes[i]));
 	  type = non_reference (argtypes[i]);
 	  if (i != 0 || ! ref1)
 	    {
 	      type = TYPE_MAIN_VARIANT (type_decays_to (type));
 	      if (enum_p && UNSCOPED_ENUM_P (type))
-		types[i] = tree_cons (NULL_TREE, type, types[i]);
+		VEC_safe_push (tree, gc, types[i], type);
 	      if (INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (type))
 		type = type_promotes_to (type);
 	    }
-	  types[i] = tree_cons (NULL_TREE, type, types[i]);
+	  VEC_safe_push (tree, gc, types[i], type);
 	}
     }
 
   /* Run through the possible parameter types of both arguments,
      creating candidates with those parameter types.  */
-  for (; types[0]; types[0] = TREE_CHAIN (types[0]))
+  FOR_EACH_VEC_ELT_REVERSE (tree, types[0], ix, t)
     {
-      if (types[1])
-	for (type = types[1]; type; type = TREE_CHAIN (type))
+      unsigned jx;
+      tree u;
+
+      if (!VEC_empty (tree, types[1]))
+	FOR_EACH_VEC_ELT_REVERSE (tree, types[1], jx, u)
 	  add_builtin_candidate
-	    (candidates, code, code2, fnname, TREE_VALUE (types[0]),
-	     TREE_VALUE (type), args, argtypes, flags);
+	    (candidates, code, code2, fnname, t,
+	     u, args, argtypes, flags);
       else
 	add_builtin_candidate
-	  (candidates, code, code2, fnname, TREE_VALUE (types[0]),
+	  (candidates, code, code2, fnname, t,
 	   NULL_TREE, args, argtypes, flags);
     }
+
+  release_tree_vector (types[0]);
+  release_tree_vector (types[1]);
 }
 
 
@@ -2724,7 +2740,7 @@ build_this (tree obj)
   if (processing_template_decl)
     return build_address (obj);
 
-  return cp_build_unary_op (ADDR_EXPR, obj, 0, tf_warning_or_error);
+  return cp_build_addr_expr (obj, tf_warning_or_error);
 }
 
 /* Returns true iff functions are equivalent. Equivalent functions are
@@ -3150,7 +3166,7 @@ resolve_args (VEC(tree,gc) *args)
   unsigned int ix;
   tree arg;
 
-  for (ix = 0; VEC_iterate (tree, args, ix, arg); ++ix)
+  FOR_EACH_VEC_ELT (tree, args, ix, arg)
     {
       if (error_operand_p (arg))
 	return NULL;
@@ -3998,6 +4014,10 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
       /* In this case, there is always a common type.  */
       result_type = type_after_usual_arithmetic_conversions (arg2_type,
 							     arg3_type);
+      do_warn_double_promotion (result_type, arg2_type, arg3_type,
+				"implicit conversion from %qT to %qT to "
+				"match other result of conditional",
+				input_location);
 
       if (TREE_CODE (arg2_type) == ENUMERAL_TYPE
 	  && TREE_CODE (arg3_type) == ENUMERAL_TYPE)
@@ -5039,7 +5059,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	{
 	  int nelts = CONSTRUCTOR_NELTS (expr);
 	  if (nelts == 0)
-	    expr = integer_zero_node;
+	    expr = build_value_init (totype, tf_warning_or_error);
 	  else if (nelts == 1)
 	    expr = CONSTRUCTOR_ELT (expr, 0)->value;
 	  else
@@ -5137,7 +5157,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  /* We are going to bind a reference directly to a base-class
 	     subobject of EXPR.  */
 	  /* Build an expression for `*((base*) &expr)'.  */
-	  expr = cp_build_unary_op (ADDR_EXPR, expr, 0, complain);
+	  expr = cp_build_addr_expr (expr, complain);
 	  expr = convert_to_base (expr, build_pointer_type (totype),
 				  !c_cast_p, /*nonnull=*/true, complain);
 	  expr = cp_build_indirect_ref (expr, RO_IMPLICIT_CONVERSION, complain);
@@ -5186,16 +5206,21 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
            VA_ARG_EXPR and CONSTRUCTOR expressions are special cases
            that need temporaries, even when their types are reference
            compatible with the type of reference being bound, so the
-           upcoming call to cp_build_unary_op (ADDR_EXPR, expr, ...)
-           doesn't fail.  */
+           upcoming call to cp_build_addr_expr doesn't fail.  */
 	if (convs->need_temporary_p
 	    || TREE_CODE (expr) == CONSTRUCTOR
 	    || TREE_CODE (expr) == VA_ARG_EXPR)
 	  {
-	    tree type = convs->u.next->type;
+	    /* Otherwise, a temporary of type "cv1 T1" is created and
+	       initialized from the initializer expression using the rules
+	       for a non-reference copy-initialization (8.5).  */
+
+	    tree type = TREE_TYPE (ref_type);
 	    cp_lvalue_kind lvalue = real_lvalue_p (expr);
 
-	    if (!CP_TYPE_CONST_NON_VOLATILE_P (TREE_TYPE (ref_type))
+	    gcc_assert (same_type_ignoring_top_level_qualifiers_p
+			(type, convs->u.next->type));
+	    if (!CP_TYPE_CONST_NON_VOLATILE_P (type)
 		&& !TYPE_REF_IS_RVALUE (ref_type))
 	      {
 		if (complain & tf_error)
@@ -5238,7 +5263,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 
 	/* Take the address of the thing to which we will bind the
 	   reference.  */
-	expr = cp_build_unary_op (ADDR_EXPR, expr, 1, complain);
+	expr = cp_build_addr_expr (expr, complain);
 	if (expr == error_mark_node)
 	  return error_mark_node;
 
@@ -5290,11 +5315,14 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 tree
 convert_arg_to_ellipsis (tree arg)
 {
+  tree arg_type;
+
   /* [expr.call]
 
      The lvalue-to-rvalue, array-to-pointer, and function-to-pointer
      standard conversions are performed.  */
   arg = decay_conversion (arg);
+  arg_type = TREE_TYPE (arg);
   /* [expr.call]
 
      If the argument has integral or enumeration type that is subject
@@ -5302,21 +5330,29 @@ convert_arg_to_ellipsis (tree arg)
      type that is subject to the floating point promotion
      (_conv.fpprom_), the value of the argument is converted to the
      promoted type before the call.  */
-  if (TREE_CODE (TREE_TYPE (arg)) == REAL_TYPE
-      && (TYPE_PRECISION (TREE_TYPE (arg))
+  if (TREE_CODE (arg_type) == REAL_TYPE
+      && (TYPE_PRECISION (arg_type)
 	  < TYPE_PRECISION (double_type_node))
-      && !DECIMAL_FLOAT_MODE_P (TYPE_MODE (TREE_TYPE (arg))))
-    arg = convert_to_real (double_type_node, arg);
-  else if (NULLPTR_TYPE_P (TREE_TYPE (arg)))
+      && !DECIMAL_FLOAT_MODE_P (TYPE_MODE (arg_type)))
+    {
+      if (warn_double_promotion && !c_inhibit_evaluation_warnings)
+	warning (OPT_Wdouble_promotion,
+		 "implicit conversion from %qT to %qT when passing "
+		 "argument to function",
+		 arg_type, double_type_node);
+      arg = convert_to_real (double_type_node, arg);
+    }
+  else if (NULLPTR_TYPE_P (arg_type))
     arg = null_pointer_node;
-  else if (INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (arg)))
+  else if (INTEGRAL_OR_ENUMERATION_TYPE_P (arg_type))
     arg = perform_integral_promotions (arg);
 
   arg = require_complete_type (arg);
+  arg_type = TREE_TYPE (arg);
 
   if (arg != error_mark_node
-      && (type_has_nontrivial_copy_init (TREE_TYPE (arg))
-	  || TYPE_HAS_NONTRIVIAL_DESTRUCTOR (TREE_TYPE (arg))))
+      && (type_has_nontrivial_copy_init (arg_type)
+	  || TYPE_HAS_NONTRIVIAL_DESTRUCTOR (arg_type)))
     {
       /* [expr.call] 5.2.2/7:
 	 Passing a potentially-evaluated argument of class type (Clause 9)
@@ -5331,7 +5367,7 @@ convert_arg_to_ellipsis (tree arg)
 	 it is not potentially-evaluated.  */
       if (cp_unevaluated_operand == 0)
 	error ("cannot pass objects of non-trivially-copyable "
-	       "type %q#T through %<...%>", TREE_TYPE (arg));
+	       "type %q#T through %<...%>", arg_type);
     }
 
   return arg;
@@ -5412,7 +5448,7 @@ convert_default_arg (tree type, tree arg, tree fn, int parmnum)
     }
 
   /* Detect recursion.  */
-  for (i = 0; VEC_iterate (tree, default_arg_context, i, t); ++i)
+  FOR_EACH_VEC_ELT (tree, default_arg_context, i, t)
     if (t == fn)
       {
 	error ("recursive evaluation of default argument for %q#D", fn);
@@ -5609,7 +5645,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	  ++nargs;
 	  alcarray = XALLOCAVEC (tree, nargs);
 	  alcarray[0] = first_arg;
-	  for (ix = 0; VEC_iterate (tree, args, ix, arg); ++ix)
+	  FOR_EACH_VEC_ELT (tree, args, ix, arg)
 	    alcarray[ix + 1] = arg;
 	  argarray = alcarray;
 	}
@@ -5619,7 +5655,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       if (TREE_THIS_VOLATILE (fn) && cfun)
 	current_function_returns_abnormally = 1;
       if (!VOID_TYPE_P (return_type))
-	require_complete_type (return_type);
+	require_complete_type_sfinae (return_type, complain);
       return convert_from_reference (expr);
     }
 
@@ -5974,7 +6010,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 
 	  arg2 = TYPE_SIZE_UNIT (as_base);
 	  arg1 = arg;
-	  arg0 = cp_build_unary_op (ADDR_EXPR, to, 0, complain);
+	  arg0 = cp_build_addr_expr (to, complain);
 
 	  if (!can_trust_pointer_alignment ())
 	    {
@@ -6046,7 +6082,8 @@ build_cxx_call (tree fn, int nargs, tree *argarray)
   fndecl = get_callee_fndecl (fn);
   if ((!fndecl || !TREE_NOTHROW (fndecl))
       && at_function_scope_p ()
-      && cfun)
+      && cfun
+      && cp_function_chain)
     cp_function_chain->can_throw = 1;
 
   /* Check that arguments to builtin functions match the expectations.  */
@@ -6189,7 +6226,7 @@ build_special_member_call (tree instance, tree name, VEC(tree,gc) **args,
   if (TYPE_P (binfo))
     {
       /* Resolve the name.  */
-      if (!complete_type_or_else (binfo, NULL_TREE))
+      if (!complete_type_or_maybe_complain (binfo, NULL_TREE, complain))
 	return error_mark_node;
 
       binfo = TYPE_BINFO (binfo);
@@ -6827,9 +6864,8 @@ compare_ics (conversion *ics1, conversion *ics2)
       /* We couldn't make up our minds; try to figure it out below.  */
     }
 
-  if (ics1->ellipsis_p || ics1->kind == ck_list)
-    /* Both conversions are ellipsis conversions or both are building a
-       std::initializer_list.  */
+  if (ics1->ellipsis_p)
+    /* Both conversions are ellipsis conversions.  */
     return 0;
 
   /* User-defined  conversion sequence U1 is a better conversion sequence
@@ -6838,16 +6874,24 @@ compare_ics (conversion *ics1, conversion *ics2)
      ond standard conversion sequence of U1 is  better  than  the  second
      standard conversion sequence of U2.  */
 
-  if (ics1->user_conv_p)
+  /* Handle list-conversion with the same code even though it isn't always
+     ranked as a user-defined conversion and it doesn't have a second
+     standard conversion sequence; it will still have the desired effect.
+     Specifically, we need to do the reference binding comparison at the
+     end of this function.  */
+
+  if (ics1->user_conv_p || ics1->kind == ck_list)
     {
       conversion *t1;
       conversion *t2;
 
       for (t1 = ics1; t1->kind != ck_user; t1 = t1->u.next)
-	if (t1->kind == ck_ambig || t1->kind == ck_aggr)
+	if (t1->kind == ck_ambig || t1->kind == ck_aggr
+	    || t1->kind == ck_list)
 	  break;
       for (t2 = ics2; t2->kind != ck_user; t2 = t2->u.next)
-	if (t2->kind == ck_ambig || t2->kind == ck_aggr)
+	if (t2->kind == ck_ambig || t2->kind == ck_aggr
+	    || t2->kind == ck_list)
 	  break;
 
       if (t1->kind != t2->kind)
@@ -7950,7 +7994,7 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup,
 	    }
 	  else
 	    /* Take the address of EXPR.  */
-	    expr = cp_build_unary_op (ADDR_EXPR, expr, 0, tf_warning_or_error);
+	    expr = cp_build_addr_expr (expr, tf_warning_or_error);
 	  /* If a BASE_CONV was required, perform it now.  */
 	  if (base_conv_type)
 	    expr = (perform_implicit_conversion

@@ -145,6 +145,8 @@ decode_pdp11_d (const struct real_format *fmt ATTRIBUTE_UNUSED,
 /* rtx cc0_reg_rtx; - no longer needed? */
 
 static bool pdp11_handle_option (size_t, const char *, int);
+static void pdp11_option_optimization (int, int);
+static void pdp11_option_init_struct (struct gcc_options *);
 static rtx find_addr_reg (rtx); 
 static const char *singlemove_string (rtx *);
 static bool pdp11_assemble_integer (rtx, unsigned int, int);
@@ -156,6 +158,10 @@ static rtx pdp11_function_value (const_tree, const_tree, bool);
 static rtx pdp11_libcall_value (enum machine_mode, const_rtx);
 static bool pdp11_function_value_regno_p (const unsigned int);
 static void pdp11_trampoline_init (rtx, tree, rtx);
+static rtx pdp11_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+			       const_tree, bool);
+static void pdp11_function_arg_advance (CUMULATIVE_ARGS *,
+					enum machine_mode, const_tree, bool);
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_BYTE_OP
@@ -182,9 +188,18 @@ static void pdp11_trampoline_init (rtx, tree, rtx);
   (MASK_FPU | MASK_45 | MASK_ABSHI_BUILTIN | TARGET_UNIX_ASM_DEFAULT)
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION pdp11_handle_option
+#undef TARGET_OPTION_OPTIMIZATION
+#define TARGET_OPTION_OPTIMIZATION pdp11_option_optimization
+#undef TARGET_OPTION_INIT_STRUCT
+#define TARGET_OPTION_INIT_STRUCT pdp11_option_init_struct
 
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS pdp11_rtx_costs
+
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG pdp11_function_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE pdp11_function_arg_advance
 
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY pdp11_return_in_memory
@@ -216,6 +231,28 @@ pdp11_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
     default:
       return true;
     }
+}
+
+/* Implement TARGET_OPTION_OPTIMIZATION.  */
+
+static void
+pdp11_option_optimization (int level, int size ATTRIBUTE_UNUSED)
+{
+  if (level >= 3)
+    {
+      flag_omit_frame_pointer = 1;
+      /* flag_unroll_loops = 1; */
+    }
+}
+
+/* Implement TARGET_OPTION_INIT_STRUCT.  */
+
+static void
+pdp11_option_init_struct (struct gcc_options *opts)
+{
+  opts->x_flag_finite_math_only = 0;
+  opts->x_flag_trapping_math = 0;
+  opts->x_flag_signaling_nans = 0;
 }
 
 /* Nonzero if OP is a valid second operand for an arithmetic insn.  */
@@ -1070,7 +1107,7 @@ static const int move_costs[N_REG_CLASSES][N_REG_CLASSES] =
    -- as we do here with 22 -- or not ? */
 
 int 
-register_move_cost(enum reg_class c1, enum reg_class c2)
+pdp11_register_move_cost (enum reg_class c1, enum reg_class c2)
 {
     return move_costs[(int)c1][(int)c2];
 }
@@ -1815,4 +1852,43 @@ pdp11_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
   mem = adjust_address (m_tramp, HImode, 4);
   emit_move_insn (mem, GEN_INT (0x0058));
   emit_move_insn (mem, fnaddr);
+}
+
+/* Worker function for TARGET_FUNCTION_ARG.
+
+   Determine where to put an argument to a function.
+   Value is zero to push the argument on the stack,
+   or a hard register in which to store the argument.
+
+   MODE is the argument's machine mode.
+   TYPE is the data type of the argument (as a tree).
+    This is null for libcalls where that information may
+    not be available.
+   CUM is a variable of type CUMULATIVE_ARGS which gives info about
+    the preceding args and about the function being called.
+   NAMED is nonzero if this argument is a named parameter
+    (otherwise it is an extra parameter matching an ellipsis).  */
+
+static rtx
+pdp11_function_arg (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
+		    enum machine_mode mode ATTRIBUTE_UNUSED,
+		    const_tree type ATTRIBUTE_UNUSED,
+		    bool named ATTRIBUTE_UNUSED)
+{
+  return NULL_RTX;
+}
+
+/* Worker function for TARGET_FUNCTION_ARG_ADVANCE.
+
+   Update the data in CUM to advance over an argument of mode MODE and
+   data type TYPE.  (TYPE is null for libcalls where that information
+   may not be available.)  */
+
+static void
+pdp11_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			    const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  *cum += (mode != BLKmode
+	   ? GET_MODE_SIZE (mode)
+	   : int_size_in_bytes (type));
 }

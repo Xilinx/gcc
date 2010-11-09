@@ -282,7 +282,7 @@ build_base_path (enum tree_code code,
 
   if (!want_pointer)
     /* This must happen before the call to save_expr.  */
-    expr = cp_build_unary_op (ADDR_EXPR, expr, 0, tf_warning_or_error);
+    expr = cp_build_addr_expr (expr, tf_warning_or_error);
   else
     expr = mark_rvalue_use (expr);
 
@@ -557,8 +557,7 @@ convert_to_base_statically (tree expr, tree base)
 	 when processing a template because they do not handle C++-specific
 	 trees.  */
       gcc_assert (!processing_template_decl);
-      expr = cp_build_unary_op (ADDR_EXPR, expr, /*noconvert=*/1, 
-                             tf_warning_or_error);
+      expr = cp_build_addr_expr (expr, tf_warning_or_error);
       if (!integer_zerop (BINFO_OFFSET (base)))
         expr = fold_build2_loc (input_location,
 			    POINTER_PLUS_EXPR, pointer_type, expr,
@@ -661,8 +660,7 @@ build_vfn_ref (tree instance_ptr, tree idx)
      vtable entry is treated as a function pointer.  */
   if (TARGET_VTABLE_USES_DESCRIPTORS)
     aref = build1 (NOP_EXPR, TREE_TYPE (aref),
-		   cp_build_unary_op (ADDR_EXPR, aref, /*noconvert=*/1,
-                                   tf_warning_or_error));
+		   cp_build_addr_expr (aref, tf_warning_or_error));
 
   /* Remember this as a method reference, for later devirtualization.  */
   aref = build3 (OBJ_TYPE_REF, TREE_TYPE (aref), aref, instance_ptr, idx);
@@ -1517,12 +1515,31 @@ fixup_type_variants (tree t)
       TYPE_VFIELD (variants) = TYPE_VFIELD (t);
       TYPE_METHODS (variants) = TYPE_METHODS (t);
       TYPE_FIELDS (variants) = TYPE_FIELDS (t);
-
-      /* All variants of a class have the same attributes.  */
-      TYPE_ATTRIBUTES (variants) = TYPE_ATTRIBUTES (t);
     }
 }
 
+/* Early variant fixups: we apply attributes at the beginning of the class
+   definition, and we need to fix up any variants that have already been
+   made via elaborated-type-specifier so that check_qualified_type works.  */
+
+void
+fixup_attribute_variants (tree t)
+{
+  tree variants;
+
+  if (!t)
+    return;
+
+  for (variants = TYPE_NEXT_VARIANT (t);
+       variants;
+       variants = TYPE_NEXT_VARIANT (variants))
+    {
+      /* These are the two fields that check_qualified_type looks at and
+	 are affected by attributes.  */
+      TYPE_ATTRIBUTES (variants) = TYPE_ATTRIBUTES (t);
+      TYPE_ALIGN (variants) = TYPE_ALIGN (t);
+    }
+}
 
 /* Set memoizing fields and bits of T (and its variants) for later
    use.  */
@@ -2048,7 +2065,7 @@ get_vcall_index (tree fn, tree type)
   tree_pair_p p;
   unsigned ix;
 
-  for (ix = 0; VEC_iterate (tree_pair_s, indices, ix, p); ix++)
+  FOR_EACH_VEC_ELT (tree_pair_s, indices, ix, p)
     if ((DECL_DESTRUCTOR_P (fn) && DECL_DESTRUCTOR_P (p->purpose))
 	|| same_signature_p (fn, p->purpose))
       return p->value;
@@ -6464,7 +6481,7 @@ resolve_address_of_overloaded_function (tree target_type,
     }
 
   if (TYPE_PTRFN_P (target_type) || TYPE_PTRMEMFUNC_P (target_type))
-    return cp_build_unary_op (ADDR_EXPR, fn, 0, flags);
+    return cp_build_addr_expr (fn, flags);
   else
     {
       /* The target must be a REFERENCE_TYPE.  Above, cp_build_unary_op
@@ -6807,7 +6824,13 @@ note_name_declared_in_class (tree name, tree decl)
     = current_class_stack[current_class_depth - 1].names_used;
   if (!names_used)
     return;
-
+  /* The C language allows members to be declared with a type of the same
+     name, and the C++ standard says this diagnostic is not required.  So
+     allow it in extern "C" blocks unless predantic is specified.
+     Allow it in all cases if -ms-extensions is specified.  */
+  if ((!pedantic && current_lang_name == lang_name_c)
+      || flag_ms_extensions)
+    return;
   n = splay_tree_lookup (names_used, (splay_tree_key) name);
   if (n)
     {
@@ -7790,9 +7813,14 @@ build_vtbl_initializer (tree binfo,
 	  if (DECL_PURE_VIRTUAL_P (fn_original))
 	    {
 	      fn = abort_fndecl;
-	      if (abort_fndecl_addr == NULL)
-		abort_fndecl_addr = build1 (ADDR_EXPR, vfunc_ptr_type_node, fn);
-	      init = abort_fndecl_addr;
+	      if (!TARGET_VTABLE_USES_DESCRIPTORS)
+		{
+		  if (abort_fndecl_addr == NULL)
+		    abort_fndecl_addr
+		      = fold_convert (vfunc_ptr_type_node,
+				      build_fold_addr_expr (fn));
+		  init = abort_fndecl_addr;
+		}
 	    }
 	  else
 	    {
@@ -7804,7 +7832,9 @@ build_vtbl_initializer (tree binfo,
 		}
 	      /* Take the address of the function, considering it to be of an
 		 appropriate generic type.  */
-	      init = build1 (ADDR_EXPR, vfunc_ptr_type_node, fn);
+	      if (!TARGET_VTABLE_USES_DESCRIPTORS)
+		init = fold_convert (vfunc_ptr_type_node,
+				     build_fold_addr_expr (fn));
 	    }
 	}
 
@@ -7819,8 +7849,7 @@ build_vtbl_initializer (tree binfo,
 	    for (i = 0; i < TARGET_VTABLE_USES_DESCRIPTORS; ++i)
 	      {
 		tree fdesc = build2 (FDESC_EXPR, vfunc_ptr_type_node,
-				     TREE_OPERAND (init, 0),
-				     build_int_cst (NULL_TREE, i));
+				     fn, build_int_cst (NULL_TREE, i));
 		TREE_CONSTANT (fdesc) = 1;
 
 		CONSTRUCTOR_APPEND_ELT (*inits, NULL_TREE, fdesc);
@@ -8119,7 +8148,7 @@ add_vcall_offset (tree orig_fn, tree binfo, vtbl_init_data *vid)
      signature as FN, then we do not need a second vcall offset.
      Check the list of functions already present in the derived
      class vtable.  */
-  for (i = 0; VEC_iterate (tree, vid->fns, i, derived_entry); ++i)
+  FOR_EACH_VEC_ELT (tree, vid->fns, i, derived_entry)
     {
       if (same_signature_p (derived_entry, orig_fn)
 	  /* We only use one vcall offset for virtual destructors,

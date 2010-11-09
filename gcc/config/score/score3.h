@@ -1,5 +1,5 @@
 /* score3.h for Sunplus S+CORE processor
-   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Sunnorth
 
    This file is part of GCC.
@@ -90,7 +90,7 @@ extern section *score3_select_rtx_section (enum machine_mode mode, rtx x,
 extern bool score3_in_small_data_p (tree decl);
 extern void score3_asm_file_start (void);
 extern void score3_asm_file_end (void);
-extern void score3_override_options (void);
+extern void score3_option_override (void);
 extern int score3_reg_class (int regno);
 extern enum reg_class score3_preferred_reload_class (rtx x ATTRIBUTE_UNUSED,
                                                      enum reg_class rclass);
@@ -107,16 +107,16 @@ score3_initial_elimination_offset (int from,
                                    int to ATTRIBUTE_UNUSED);
 extern void score3_function_arg_advance (CUMULATIVE_ARGS *cum,
                                          enum machine_mode mode,
-                                         tree type,
-                                         int named);
+                                         const_tree type,
+                                         bool named);
 extern int score3_arg_partial_bytes (CUMULATIVE_ARGS *cum,
                                      enum machine_mode mode,
                                      tree type,
                                      bool named);
 extern rtx score3_function_arg (const CUMULATIVE_ARGS *cum,
                                 enum machine_mode mode,
-                                tree type,
-                                int named);
+                                const_tree type,
+                                bool named);
 extern rtx score3_function_value (tree valtype,
                                   tree func ATTRIBUTE_UNUSED,
                                   enum machine_mode mode);

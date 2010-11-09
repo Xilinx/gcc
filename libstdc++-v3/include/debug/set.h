@@ -79,7 +79,9 @@ namespace __debug
         set(_InputIterator __first, _InputIterator __last,
 	    const _Compare& __comp = _Compare(),
 	    const _Allocator& __a = _Allocator())
-	: _Base(__gnu_debug::__check_valid_range(__first, __last), __last,
+	: _Base(__gnu_debug::__base(__gnu_debug::__check_valid_range(__first,
+								     __last)),
+		__gnu_debug::__base(__last),
 		__comp, __a) { }
 
       set(const set& __x)
@@ -90,7 +92,7 @@ namespace __debug
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       set(set&& __x)
-      : _Base(std::forward<set>(__x)), _Safe_base()
+      : _Base(std::move(__x)), _Safe_base()
       { this->_M_swap(__x); }
 
       set(initializer_list<value_type> __l,
@@ -209,7 +211,8 @@ namespace __debug
         insert(_InputIterator __first, _InputIterator __last)
         {
 	  __glibcxx_check_valid_range(__first, __last);
-	  _Base::insert(__first, __last);
+	  _Base::insert(__gnu_debug::__base(__first),
+			__gnu_debug::__base(__last));
 	}
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__

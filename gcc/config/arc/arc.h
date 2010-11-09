@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, Argonaut ARC cpu.
    Copyright (C) 1994, 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2004, 2005,
-   2007, 2008, 2009 Free Software Foundation, Inc.
+   2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -82,24 +82,9 @@ extern int arc_cpu_type;
 /* Check if CPU is an extension and set `arc_cpu_type' and `arc_mangle_cpu'
    appropriately.  The result should be nonzero if the cpu is recognized,
    otherwise zero.  This is intended to be redefined in a cover file.
-   This is used by arc_init.  */
+   This is used by arc_handle_option.  */
 #define ARC_EXTENSION_CPU(cpu) 0
 
-/* Sometimes certain combinations of command options do not make
-   sense on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
-
-   Don't use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.  */
-
-
-#define OVERRIDE_OPTIONS \
-do {				\
-  /* These need to be done at start up.  It's convenient to do them here.  */ \
-  arc_init ();			\
-} while (0)
 
 /* Target machine storage layout.  */
 
@@ -390,13 +375,6 @@ extern enum reg_class arc_regno_reg_class[FIRST_PSEUDO_REGISTER];
 ((REGNO) < 32 || (unsigned) reg_renumber[REGNO] < 32)
 #define REGNO_OK_FOR_INDEX_P(REGNO) \
 ((REGNO) < 32 || (unsigned) reg_renumber[REGNO] < 32)
-
-/* Given an rtx X being reloaded into a reg required to be
-   in class CLASS, return the class of reg to actually use.
-   In general this is just CLASS; but on some machines
-   in some cases it is preferable to use a more restrictive class.  */
-#define PREFERRED_RELOAD_CLASS(X,CLASS) \
-(CLASS)
 
 /* Return the maximum number of consecutive registers
    needed to represent mode MODE in a register of class CLASS.  */

@@ -2351,12 +2351,10 @@ try_replace_reg (rtx from, rtx to, rtx insn)
 	  && validate_change (insn, &SET_SRC (set), src, 0))
 	success = 1;
 
-      /* If we've failed to do replacement, have a single SET, don't already
-	 have a note, and have no special SET, add a REG_EQUAL note to not
-	 lose information.  */
-      if (!success && note == 0 && set != 0
-	  && GET_CODE (SET_DEST (set)) != ZERO_EXTRACT
-	  && GET_CODE (SET_DEST (set)) != STRICT_LOW_PART)
+      /* If we've failed perform the replacement, have a single SET to
+	 a REG destination and don't yet have a note, add a REG_EQUAL note
+	 to not lose information.  */
+      if (!success && note == 0 && set != 0 && REG_P (SET_DEST (set)))
 	note = set_unique_reg_note (insn, REG_EQUAL, copy_rtx (src));
     }
 
@@ -4413,9 +4411,7 @@ hoist_code (void)
 
   /* Walk over each basic block looking for potentially hoistable
      expressions, nothing gets hoisted from the entry block.  */
-  for (dom_tree_walk_index = 0;
-       VEC_iterate (basic_block, dom_tree_walk, dom_tree_walk_index, bb);
-       dom_tree_walk_index++)
+  FOR_EACH_VEC_ELT (basic_block, dom_tree_walk, dom_tree_walk_index, bb)
     {
       domby = get_dominated_to_depth (CDI_DOMINATORS, bb, MAX_HOIST_DEPTH);
 
@@ -4468,7 +4464,7 @@ hoist_code (void)
 	      /* We've found a potentially hoistable expression, now
 		 we look at every block BB dominates to see if it
 		 computes the expression.  */
-	      for (j = 0; VEC_iterate (basic_block, domby, j, dominated); j++)
+	      FOR_EACH_VEC_ELT (basic_block, domby, j, dominated)
 		{
 		  int max_distance;
 
@@ -4552,9 +4548,7 @@ hoist_code (void)
 
 	      /* Walk through occurences of I'th expressions we want
 		 to hoist to BB and make the transformations.  */
-	      for (j = 0;
-		   VEC_iterate (occr_t, occrs_to_hoist, j, occr);
-		   j++)
+	      FOR_EACH_VEC_ELT (occr_t, occrs_to_hoist, j, occr)
 		{
 		  rtx insn;
 		  rtx set;

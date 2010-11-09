@@ -245,6 +245,28 @@ package body Sem_Util is
       Analyze (N);
    end Add_Global_Declaration;
 
+   -----------------
+   -- Addressable --
+   -----------------
+
+   --  For now, just 8/16/32/64. but analyze later if AAMP is special???
+
+   function Addressable (V : Uint) return Boolean is
+   begin
+      return V = Uint_8  or else
+             V = Uint_16 or else
+             V = Uint_32 or else
+             V = Uint_64;
+   end Addressable;
+
+   function Addressable (V : Int) return Boolean is
+   begin
+      return V = 8  or else
+             V = 16 or else
+             V = 32 or else
+             V = 64;
+   end Addressable;
+
    -----------------------
    -- Alignment_In_Bits --
    -----------------------
@@ -1564,22 +1586,48 @@ package body Sem_Util is
 
       function Search_Tag (Iface : Entity_Id) return Entity_Id is
          ADT : Elmt_Id;
-
       begin
-         ADT := Next_Elmt (Next_Elmt (First_Elmt (Access_Disp_Table (T))));
+         if not Is_CPP_Class (T) then
+            ADT := Next_Elmt (Next_Elmt (First_Elmt (Access_Disp_Table (T))));
+         else
+            ADT := Next_Elmt (First_Elmt (Access_Disp_Table (T)));
+         end if;
+
          while Present (ADT)
-            and then Ekind (Node (ADT)) = E_Constant
+            and then Is_Tag (Node (ADT))
             and then Related_Type (Node (ADT)) /= Iface
          loop
-            --  Skip the secondary dispatch tables of Iface
+            --  Skip secondary dispatch table referencing thunks to user
+            --  defined primitives covered by this interface.
 
+            pragma Assert (Has_Suffix (Node (ADT), 'P'));
             Next_Elmt (ADT);
-            Next_Elmt (ADT);
-            Next_Elmt (ADT);
-            Next_Elmt (ADT);
+
+            --  Skip secondary dispatch tables of Ada types
+
+            if not Is_CPP_Class (T) then
+
+               --  Skip secondary dispatch table referencing thunks to
+               --  predefined primitives.
+
+               pragma Assert (Has_Suffix (Node (ADT), 'Y'));
+               Next_Elmt (ADT);
+
+               --  Skip secondary dispatch table referencing user-defined
+               --  primitives covered by this interface.
+
+               pragma Assert (Has_Suffix (Node (ADT), 'D'));
+               Next_Elmt (ADT);
+
+               --  Skip secondary dispatch table referencing predefined
+               --  primitives.
+
+               pragma Assert (Has_Suffix (Node (ADT), 'Z'));
+               Next_Elmt (ADT);
+            end if;
          end loop;
 
-         pragma Assert (Ekind (Node (ADT)) = E_Constant);
+         pragma Assert (Is_Tag (Node (ADT)));
          return Node (ADT);
       end Search_Tag;
 
@@ -2499,6 +2547,28 @@ package body Sem_Util is
       end if;
    end Designate_Same_Unit;
 
+   --------------------------
+   -- Enclosing_CPP_Parent --
+   --------------------------
+
+   function Enclosing_CPP_Parent (Typ : Entity_Id) return Entity_Id is
+      Parent_Typ : Entity_Id := Typ;
+
+   begin
+      while not Is_CPP_Class (Parent_Typ)
+         and then Etype (Parent_Typ) /= Parent_Typ
+      loop
+         Parent_Typ := Etype (Parent_Typ);
+
+         if Is_Private_Type (Parent_Typ) then
+            Parent_Typ := Full_View (Base_Type (Parent_Typ));
+         end if;
+      end loop;
+
+      pragma Assert (Is_CPP_Class (Parent_Typ));
+      return Parent_Typ;
+   end Enclosing_CPP_Parent;
+
    ----------------------------
    -- Enclosing_Generic_Body --
    ----------------------------
@@ -2644,6 +2714,12 @@ package body Sem_Util is
 
       elsif Ekind (Dynamic_Scope) = E_Task_Type then
          return Get_Task_Body_Procedure (Dynamic_Scope);
+
+      elsif Ekind (Dynamic_Scope) = E_Limited_Private_Type
+        and then Present (Full_View (Dynamic_Scope))
+        and then Ekind (Full_View (Dynamic_Scope)) = E_Task_Type
+      then
+         return Get_Task_Body_Procedure (Full_View (Dynamic_Scope));
 
       --  No body is generated if the protected operation is eliminated
 
@@ -3419,71 +3495,6 @@ package body Sem_Util is
          return N;
       end if;
    end First_Actual;
-
-   -------------------------
-   -- Full_Qualified_Name --
-   -------------------------
-
-   function Full_Qualified_Name (E : Entity_Id) return String_Id is
-      Res : String_Id;
-      pragma Warnings (Off, Res);
-
-      function Internal_Full_Qualified_Name (E : Entity_Id) return String_Id;
-      --  Compute recursively the qualified name without NUL at the end
-
-      ----------------------------------
-      -- Internal_Full_Qualified_Name --
-      ----------------------------------
-
-      function Internal_Full_Qualified_Name (E : Entity_Id) return String_Id is
-         Ent         : Entity_Id := E;
-         Parent_Name : String_Id := No_String;
-
-      begin
-         --  Deals properly with child units
-
-         if Nkind (Ent) = N_Defining_Program_Unit_Name then
-            Ent := Defining_Identifier (Ent);
-         end if;
-
-         --  Compute qualification recursively (only "Standard" has no scope)
-
-         if Present (Scope (Scope (Ent))) then
-            Parent_Name := Internal_Full_Qualified_Name (Scope (Ent));
-         end if;
-
-         --  Every entity should have a name except some expanded blocks
-         --  don't bother about those.
-
-         if Chars (Ent) = No_Name then
-            return Parent_Name;
-         end if;
-
-         --  Add a period between Name and qualification
-
-         if Parent_Name /= No_String then
-            Start_String (Parent_Name);
-            Store_String_Char (Get_Char_Code ('.'));
-
-         else
-            Start_String;
-         end if;
-
-         --  Generates the entity name in upper case
-
-         Get_Decoded_Name_String (Chars (Ent));
-         Set_All_Upper_Case;
-         Store_String_Chars (Name_Buffer (1 .. Name_Len));
-         return End_String;
-      end Internal_Full_Qualified_Name;
-
-   --  Start of processing for Full_Qualified_Name
-
-   begin
-      Res := Internal_Full_Qualified_Name (E);
-      Store_String_Char (Get_Char_Code (ASCII.NUL));
-      return End_String;
-   end Full_Qualified_Name;
 
    -----------------------
    -- Gather_Components --
@@ -5208,6 +5219,16 @@ package body Sem_Util is
       end if;
    end Has_Stream;
 
+   ----------------
+   -- Has_Suffix --
+   ----------------
+
+   function Has_Suffix (E : Entity_Id; Suffix : Character) return Boolean is
+   begin
+      Get_Name_String (Chars (E));
+      return Name_Buffer (Name_Len) = Suffix;
+   end Has_Suffix;
+
    --------------------------
    -- Has_Tagged_Component --
    --------------------------
@@ -5243,6 +5264,18 @@ package body Sem_Util is
          return False;
       end if;
    end Has_Tagged_Component;
+
+   -------------------------
+   -- Implementation_Kind --
+   -------------------------
+
+   function Implementation_Kind (Subp : Entity_Id) return Name_Id is
+      Impl_Prag : constant Node_Id := Get_Rep_Pragma (Subp, Name_Implemented);
+   begin
+      pragma Assert (Present (Impl_Prag));
+      return
+        Chars (Expression (Last (Pragma_Argument_Associations (Impl_Prag))));
+   end Implementation_Kind;
 
    --------------------------
    -- Implements_Interface --
@@ -5552,6 +5585,7 @@ package body Sem_Util is
 
          if Is_Entity_Name (New_Prefix) then
             Ent := Entity (New_Prefix);
+            Pref := New_Prefix;
 
          --  For a retrieval of a subcomponent of some composite object,
          --  retrieve the ultimate entity if there is one.
@@ -5573,8 +5607,10 @@ package body Sem_Util is
             end if;
          end if;
 
+         --  Place the reference on the entity node.
+
          if Present (Ent) then
-            Generate_Reference (Ent, New_Prefix);
+            Generate_Reference (Ent, Pref);
          end if;
       end if;
    end Insert_Explicit_Dereference;
@@ -6031,14 +6067,14 @@ package body Sem_Util is
             --  (despite the fact that 3.10.2(26/2) and 8.5.1(5/2) are
             --  semantic rules -- these rules are acknowledged to need fixing).
 
-            if Ada_Version < Ada_05 then
+            if Ada_Version < Ada_2005 then
                if Is_Access_Type (Prefix_Type)
                  or else Nkind (P) = N_Explicit_Dereference
                then
                   return False;
                end if;
 
-            elsif Ada_Version >= Ada_05 then
+            elsif Ada_Version >= Ada_2005 then
                if Is_Access_Type (Prefix_Type) then
 
                   --  If the access type is pool-specific, and there is no
@@ -6078,7 +6114,7 @@ package body Sem_Util is
 
               and then (Is_Declared_Within_Variant (Comp)
                           or else Has_Discriminant_Dependent_Constraint (Comp))
-              and then (not P_Aliased or else Ada_Version >= Ada_05)
+              and then (not P_Aliased or else Ada_Version >= Ada_2005)
             then
                return True;
 
@@ -6514,7 +6550,7 @@ package body Sem_Util is
       --  the corresponding procedure has been created, and which therefore do
       --  not have an assigned scope.
 
-      if Ekind (E) in Formal_Kind then
+      if Is_Formal (E) then
          return False;
       end if;
 
@@ -6907,7 +6943,7 @@ package body Sem_Util is
       --  because they denote entities that are not necessarily visible.
       --  Neither of them can apply to a protected type.
 
-      return Ada_Version >= Ada_05
+      return Ada_Version >= Ada_2005
         and then Is_Entity_Name (N)
         and then Present (Entity (N))
         and then Is_Protected_Type (Entity (N))
@@ -7992,7 +8028,7 @@ package body Sem_Util is
       Formal : Entity_Id;
 
    begin
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Present (First_Formal (E))
       then
          Formal := Next_Formal (First_Formal (E));
@@ -9418,7 +9454,10 @@ package body Sem_Util is
                if Comes_From_Source (Exp)
                  or else Modification_Comes_From_Source
                then
-                  if Has_Pragma_Unmodified (Ent) then
+                  --  Give warning if pragma unmodified given and we are
+                  --  sure this is a modification.
+
+                  if Has_Pragma_Unmodified (Ent) and then Sure then
                      Error_Msg_NE ("?pragma Unmodified given for &!", N, Ent);
                   end if;
 
@@ -9623,7 +9662,7 @@ package body Sem_Util is
          --  version of the code causes regressions in several tests that are
          --  compiled with -gnat95. ???)
 
-         if Ada_Version < Ada_05 then
+         if Ada_Version < Ada_2005 then
             if Is_Entity_Name (Name (Obj)) then
                return Subprogram_Access_Level (Entity (Name (Obj)));
             else
@@ -10474,20 +10513,24 @@ package body Sem_Util is
    begin
       --  First case, both are entities with same entity
 
-      if K1 in N_Has_Entity
-        and then K2 in N_Has_Entity
-        and then Present (Entity (N1))
-        and then Present (Entity (N2))
-        and then (Ekind (Entity (N1)) = E_Variable
-                    or else
-                  Ekind (Entity (N1)) = E_Constant)
-        and then Entity (N1) = Entity (N2)
-      then
-         return True;
+      if K1 in N_Has_Entity and then K2 in N_Has_Entity then
+         declare
+            EN1 : constant Entity_Id := Entity (N1);
+            EN2 : constant Entity_Id := Entity (N2);
+         begin
+            if Present (EN1) and then Present (EN2)
+              and then (Ekind_In (EN1, E_Variable, E_Constant)
+                         or else Is_Formal (EN1))
+              and then EN1 = EN2
+            then
+               return True;
+            end if;
+         end;
+      end if;
 
       --  Second case, selected component with same selector, same record
 
-      elsif K1 = N_Selected_Component
+      if K1 = N_Selected_Component
         and then K2 = N_Selected_Component
         and then Chars (Selector_Name (N1)) = Chars (Selector_Name (N2))
       then

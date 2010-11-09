@@ -2044,7 +2044,6 @@ maybe_lvalue_p (const_tree x)
   case COMPONENT_REF:
   case MEM_REF:
   case INDIRECT_REF:
-  case MISALIGNED_INDIRECT_REF:
   case ARRAY_REF:
   case ARRAY_RANGE_REF:
   case BIT_FIELD_REF:
@@ -2587,20 +2586,22 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
       switch (TREE_CODE (arg0))
 	{
 	case INDIRECT_REF:
-	case MISALIGNED_INDIRECT_REF:
 	case REALPART_EXPR:
 	case IMAGPART_EXPR:
 	  return OP_SAME (0);
 
 	case MEM_REF:
-	  /* Require equal access sizes.  We can have incomplete types
-	     for array references of variable-sized arrays from the
-	     Fortran frontent though.  */
+	  /* Require equal access sizes, and similar pointer types.
+	     We can have incomplete types for array references of
+	     variable-sized arrays from the Fortran frontent
+	     though.  */
 	  return ((TYPE_SIZE (TREE_TYPE (arg0)) == TYPE_SIZE (TREE_TYPE (arg1))
 		   || (TYPE_SIZE (TREE_TYPE (arg0))
 		       && TYPE_SIZE (TREE_TYPE (arg1))
 		       && operand_equal_p (TYPE_SIZE (TREE_TYPE (arg0)),
 					   TYPE_SIZE (TREE_TYPE (arg1)), flags)))
+		  && (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_OPERAND (arg0, 1)))
+		      == TYPE_MAIN_VARIANT (TREE_TYPE (TREE_OPERAND (arg1, 1))))
 		  && OP_SAME (0) && OP_SAME (1));
 
 	case ARRAY_REF:
@@ -3985,9 +3986,9 @@ make_range (tree exp, int *pin_p, tree *plow, tree *phigh,
 	  n_high = range_binop (MINUS_EXPR, exp_type,
 				build_int_cst (exp_type, 0),
 				0, low, 0);
-	  low = n_low, high = n_high;
-	  exp = arg0;
-	  continue;
+	  if (n_high != 0 && TREE_OVERFLOW (n_high))
+	    break;
+	  goto normalize;
 
 	case BIT_NOT_EXPR:
 	  /* ~ X -> -X - 1  */
@@ -4021,6 +4022,7 @@ make_range (tree exp, int *pin_p, tree *plow, tree *phigh,
 	  if (TYPE_OVERFLOW_UNDEFINED (arg0_type))
 	    *strict_overflow_p = true;
 
+	normalize:
 	  /* Check for an unsigned range which has wrapped around the maximum
 	     value thus making n_high < n_low, and normalize it.  */
 	  if (n_low && n_high && tree_int_cst_lt (n_high, n_low))
@@ -7596,8 +7598,7 @@ build_fold_addr_expr_with_type_loc (location_t loc, tree t, tree ptrtype)
   if (TREE_CODE (t) == WITH_SIZE_EXPR)
     t = TREE_OPERAND (t, 0);
 
-  if (TREE_CODE (t) == INDIRECT_REF
-      || TREE_CODE (t) == MISALIGNED_INDIRECT_REF)
+  if (TREE_CODE (t) == INDIRECT_REF)
     {
       t = TREE_OPERAND (t, 0);
 
@@ -8682,6 +8683,7 @@ fold_comparison (location_t loc, enum tree_code code, tree type,
       else if (TREE_CODE (arg0) == POINTER_PLUS_EXPR)
 	{
 	  base0 = TREE_OPERAND (arg0, 0);
+	  STRIP_SIGN_NOPS (base0);
 	  if (TREE_CODE (base0) == ADDR_EXPR)
 	    {
 	      base0 = TREE_OPERAND (base0, 0);
@@ -8704,6 +8706,7 @@ fold_comparison (location_t loc, enum tree_code code, tree type,
       else if (TREE_CODE (arg1) == POINTER_PLUS_EXPR)
 	{
 	  base1 = TREE_OPERAND (arg1, 0);
+	  STRIP_SIGN_NOPS (base1);
 	  if (TREE_CODE (base1) == ADDR_EXPR)
 	    {
 	      base1 = TREE_OPERAND (base1, 0);
@@ -11068,6 +11071,126 @@ fold_binary_loc (location_t loc,
 			      fold_convert_loc (loc, type, arg0));
 	}
 
+      /* For constants M and N, if M == (1LL << cst) - 1 && (N & M) == M,
+	 ((A & N) + B) & M -> (A + B) & M
+	 Similarly if (N & M) == 0,
+	 ((A | N) + B) & M -> (A + B) & M
+	 and for - instead of + (or unary - instead of +)
+	 and/or ^ instead of |.
+	 If B is constant and (B & M) == 0, fold into A & M.  */
+      if (host_integerp (arg1, 1))
+	{
+	  unsigned HOST_WIDE_INT cst1 = tree_low_cst (arg1, 1);
+	  if (~cst1 && (cst1 & (cst1 + 1)) == 0
+	      && INTEGRAL_TYPE_P (TREE_TYPE (arg0))
+	      && (TREE_CODE (arg0) == PLUS_EXPR
+		  || TREE_CODE (arg0) == MINUS_EXPR
+		  || TREE_CODE (arg0) == NEGATE_EXPR)
+	      && (TYPE_OVERFLOW_WRAPS (TREE_TYPE (arg0))
+		  || TREE_CODE (TREE_TYPE (arg0)) == INTEGER_TYPE))
+	    {
+	      tree pmop[2];
+	      int which = 0;
+	      unsigned HOST_WIDE_INT cst0;
+
+	      /* Now we know that arg0 is (C + D) or (C - D) or
+		 -C and arg1 (M) is == (1LL << cst) - 1.
+		 Store C into PMOP[0] and D into PMOP[1].  */
+	      pmop[0] = TREE_OPERAND (arg0, 0);
+	      pmop[1] = NULL;
+	      if (TREE_CODE (arg0) != NEGATE_EXPR)
+		{
+		  pmop[1] = TREE_OPERAND (arg0, 1);
+		  which = 1;
+		}
+
+	      if (!host_integerp (TYPE_MAX_VALUE (TREE_TYPE (arg0)), 1)
+		  || (tree_low_cst (TYPE_MAX_VALUE (TREE_TYPE (arg0)), 1)
+		      & cst1) != cst1)
+		which = -1;
+
+	      for (; which >= 0; which--)
+		switch (TREE_CODE (pmop[which]))
+		  {
+		  case BIT_AND_EXPR:
+		  case BIT_IOR_EXPR:
+		  case BIT_XOR_EXPR:
+		    if (TREE_CODE (TREE_OPERAND (pmop[which], 1))
+			!= INTEGER_CST)
+		      break;
+		    /* tree_low_cst not used, because we don't care about
+		       the upper bits.  */
+		    cst0 = TREE_INT_CST_LOW (TREE_OPERAND (pmop[which], 1));
+		    cst0 &= cst1;
+		    if (TREE_CODE (pmop[which]) == BIT_AND_EXPR)
+		      {
+			if (cst0 != cst1)
+			  break;
+		      }
+		    else if (cst0 != 0)
+		      break;
+		    /* If C or D is of the form (A & N) where
+		       (N & M) == M, or of the form (A | N) or
+		       (A ^ N) where (N & M) == 0, replace it with A.  */
+		    pmop[which] = TREE_OPERAND (pmop[which], 0);
+		    break;
+		  case INTEGER_CST:
+		    /* If C or D is a N where (N & M) == 0, it can be
+		       omitted (assumed 0).  */
+		    if ((TREE_CODE (arg0) == PLUS_EXPR
+			 || (TREE_CODE (arg0) == MINUS_EXPR && which == 0))
+			&& (TREE_INT_CST_LOW (pmop[which]) & cst1) == 0)
+		      pmop[which] = NULL;
+		    break;
+		  default:
+		    break;
+		  }
+
+	      /* Only build anything new if we optimized one or both arguments
+		 above.  */
+	      if (pmop[0] != TREE_OPERAND (arg0, 0)
+		  || (TREE_CODE (arg0) != NEGATE_EXPR
+		      && pmop[1] != TREE_OPERAND (arg0, 1)))
+		{
+		  tree utype = TREE_TYPE (arg0);
+		  if (! TYPE_OVERFLOW_WRAPS (TREE_TYPE (arg0)))
+		    {
+		      /* Perform the operations in a type that has defined
+			 overflow behavior.  */
+		      utype = unsigned_type_for (TREE_TYPE (arg0));
+		      if (pmop[0] != NULL)
+			pmop[0] = fold_convert_loc (loc, utype, pmop[0]);
+		      if (pmop[1] != NULL)
+			pmop[1] = fold_convert_loc (loc, utype, pmop[1]);
+		    }
+
+		  if (TREE_CODE (arg0) == NEGATE_EXPR)
+		    tem = fold_build1_loc (loc, NEGATE_EXPR, utype, pmop[0]);
+		  else if (TREE_CODE (arg0) == PLUS_EXPR)
+		    {
+		      if (pmop[0] != NULL && pmop[1] != NULL)
+			tem = fold_build2_loc (loc, PLUS_EXPR, utype,
+					       pmop[0], pmop[1]);
+		      else if (pmop[0] != NULL)
+			tem = pmop[0];
+		      else if (pmop[1] != NULL)
+			tem = pmop[1];
+		      else
+			return build_int_cst (type, 0);
+		    }
+		  else if (pmop[0] == NULL)
+		    tem = fold_build1_loc (loc, NEGATE_EXPR, utype, pmop[1]);
+		  else
+		    tem = fold_build2_loc (loc, MINUS_EXPR, utype,
+					   pmop[0], pmop[1]);
+		  /* TEM is now the new binary +, - or unary - replacement.  */
+		  tem = fold_build2_loc (loc, BIT_AND_EXPR, utype, tem,
+					 fold_convert_loc (loc, utype, arg1));
+		  return fold_convert_loc (loc, type, tem);
+		}
+	    }
+	}
+
       t1 = distribute_bit_expr (loc, code, type, arg0, arg1);
       if (t1 != NULL_TREE)
 	return t1;
@@ -11488,7 +11611,13 @@ fold_binary_loc (location_t loc,
 	  if (integer_pow2p (sval) && tree_int_cst_sgn (sval) > 0)
 	    {
 	      tree sh_cnt = TREE_OPERAND (arg1, 1);
-	      unsigned long pow2 = exact_log2 (TREE_INT_CST_LOW (sval));
+	      unsigned long pow2;
+
+	      if (TREE_INT_CST_LOW (sval))
+		pow2 = exact_log2 (TREE_INT_CST_LOW (sval));
+	      else
+		pow2 = exact_log2 (TREE_INT_CST_HIGH (sval))
+		       + HOST_BITS_PER_WIDE_INT;
 
 	      if (strict_overflow_p)
 		fold_overflow_warning (("assuming signed overflow does not "
@@ -13645,7 +13774,7 @@ fold_check_failed (const_tree expr ATTRIBUTE_UNUSED, const_tree ret ATTRIBUTE_UN
 static void
 fold_checksum_tree (const_tree expr, struct md5_ctx *ctx, htab_t ht)
 {
-  const void **slot;
+  void **slot;
   enum tree_code code;
   union tree_node buf;
   int i, len;
@@ -13657,10 +13786,10 @@ recursive_label:
 	      && sizeof (struct tree_type) <= sizeof (struct tree_function_decl));
   if (expr == NULL)
     return;
-  slot = (const void **) htab_find_slot (ht, expr, INSERT);
+  slot = (void **) htab_find_slot (ht, expr, INSERT);
   if (*slot != NULL)
     return;
-  *slot = expr;
+  *slot = CONST_CAST_TREE (expr);
   code = TREE_CODE (expr);
   if (TREE_CODE_CLASS (code) == tcc_declaration
       && DECL_ASSEMBLER_NAME_SET_P (expr))

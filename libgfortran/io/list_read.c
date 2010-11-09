@@ -2757,10 +2757,11 @@ get_name:
 	  goto nml_err_ret;
 	}
 
-      if (!component_flag)
+      if (*pprev_nl == NULL || !component_flag)
 	first_nl = nl;
 
       root_nl = nl;
+
       component_flag = 1;
 
       c = next_char (dtp);
@@ -2959,21 +2960,11 @@ find_nml_name:
       if (nml_get_obj_data (dtp, &prev_nl, nml_err_msg, sizeof nml_err_msg)
 			    == FAILURE)
 	{
-	  gfc_unit *u;
-
 	  if (dtp->u.p.current_unit->unit_number != options.stdin_unit)
 	    goto nml_err_ret;
-
-	  u = find_unit (options.stderr_unit);
-	  st_printf ("%s\n", nml_err_msg);
-	  if (u != NULL)
-	    {
-	      sflush (u->s);
-	      unlock_unit (u);
-	    }
+	  generate_error (&dtp->common, LIBERROR_READ_VALUE, nml_err_msg);
         }
-
-   }
+    }
 
   dtp->u.p.eof_jump = NULL;
   free_saved (dtp);

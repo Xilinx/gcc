@@ -412,7 +412,7 @@ abstract_virtuals_error (tree decl, tree type)
 	      "  because the following virtual functions are pure within %qT:",
 	      type);
 
-      for (ix = 0; VEC_iterate (tree, pure, ix, fn); ix++)
+      FOR_EACH_VEC_ELT (tree, pure, ix, fn)
 	inform (input_location, "\t%+#D", fn);
       /* Now truncate the vector.  This leaves it non-null, so we know
 	 there are pure virtuals, but empty so we don't list them out
@@ -1035,7 +1035,7 @@ process_init_constructor_array (tree type, tree init)
   if (!unbounded && VEC_length (constructor_elt, v)  > len)
     error ("too many initializers for %qT", type);
 
-  for (i = 0; VEC_iterate (constructor_elt, v, i, ce); ++i)
+  FOR_EACH_VEC_ELT (constructor_elt, v, i, ce)
     {
       if (ce->index)
 	{
@@ -1606,7 +1606,7 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
 
      then the slot being initialized will be filled in.  */
 
-  if (!complete_type_or_else (type, NULL_TREE))
+  if (!complete_type_or_maybe_complain (type, NULL_TREE, complain))
     return error_mark_node;
   if (abstract_virtuals_error (NULL_TREE, type))
     return error_mark_node;
@@ -1631,7 +1631,7 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
 	 just calling the constructor, so fall through.  */
       && !TYPE_HAS_USER_CONSTRUCTOR (type))
     {
-      exp = build_value_init (type);
+      exp = build_value_init (type, complain);
       return get_target_expr (exp);
     }
 

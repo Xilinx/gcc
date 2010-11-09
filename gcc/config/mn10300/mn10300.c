@@ -43,6 +43,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "target.h"
 #include "target-def.h"
+#include "df.h"
 
 /* This is used by GOTaddr2picreg to uniquely identify
    UNSPEC_INT_LABELs.  */
@@ -69,6 +70,7 @@ enum processor_type mn10300_processor = PROCESSOR_DEFAULT;
 
 
 static bool mn10300_handle_option (size_t, const char *, int);
+static void mn10300_option_override (void);
 static bool mn10300_legitimate_address_p (enum machine_mode, rtx, bool);
 static int mn10300_address_cost_1 (rtx, int *);
 static int mn10300_address_cost (rtx, bool);
@@ -92,6 +94,9 @@ static void mn10300_asm_output_mi_thunk (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_
 static bool mn10300_can_output_mi_thunk (const_tree, HOST_WIDE_INT, HOST_WIDE_INT, const_tree);
 
 /* Initialize the GCC target structure.  */
+#undef  TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO sjlj_except_unwind_info
+
 #undef TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.hword\t"
 
@@ -112,6 +117,8 @@ static bool mn10300_can_output_mi_thunk (const_tree, HOST_WIDE_INT, HOST_WIDE_IN
 #define TARGET_DEFAULT_TARGET_FLAGS MASK_MULT_BUG | MASK_PTR_A0D0
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION mn10300_handle_option
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE mn10300_option_override
 
 #undef  TARGET_ENCODE_SECTION_INFO
 #define TARGET_ENCODE_SECTION_INFO mn10300_encode_section_info
@@ -177,10 +184,10 @@ mn10300_handle_option (size_t code,
     }
 }
 
-/* Implement OVERRIDE_OPTIONS.  */
+/* Implement TARGET_OPTION_OVERRIDE.  */
 
-void
-mn10300_override_options (void)
+static void
+mn10300_option_override (void)
 {
   if (TARGET_AM33)
     target_flags &= ~MASK_MULT_BUG;
@@ -208,7 +215,7 @@ print_operand (FILE *file, rtx x, int code)
     {
       case 'b':
       case 'B':
-	if (cc_status.mdep.fpCC)
+	if (GET_MODE (XEXP (x, 0)) == CC_FLOATmode)
 	  {
 	    switch (code == 'b' ? GET_CODE (x)
 		    : reverse_condition_maybe_unordered (GET_CODE (x)))
@@ -658,6 +665,13 @@ mn10300_get_live_callee_saved_regs (void)
   return mask;
 }
 
+static rtx
+F (rtx r)
+{
+  RTX_FRAME_RELATED_P (r) = 1;
+  return r;
+}
+
 /* Generate an instruction that pushes several registers onto the stack.
    Register K will be saved if bit K in MASK is set.  The function does
    nothing if MASK is zero.
@@ -699,11 +713,11 @@ mn10300_gen_multiple_store (int mask)
 
       /* Create the instruction that updates the stack pointer.  */
       XVECEXP (par, 0, 0)
-	= gen_rtx_SET (SImode,
-		       stack_pointer_rtx,
-		       gen_rtx_PLUS (SImode,
-				     stack_pointer_rtx,
-				     GEN_INT (-count * 4)));
+	= F (gen_rtx_SET (SImode,
+			  stack_pointer_rtx,
+			  gen_rtx_PLUS (SImode,
+					stack_pointer_rtx,
+					GEN_INT (-count * 4))));
 
       /* Create each store.  */
       pari = 1;
@@ -714,14 +728,13 @@ mn10300_gen_multiple_store (int mask)
 					stack_pointer_rtx,
 					GEN_INT (-pari * 4));
 	    XVECEXP(par, 0, pari)
-	      = gen_rtx_SET (VOIDmode,
-			     gen_rtx_MEM (SImode, address),
-			     gen_rtx_REG (SImode, i));
+	      = F (gen_rtx_SET (VOIDmode,
+				gen_rtx_MEM (SImode, address),
+				gen_rtx_REG (SImode, i)));
 	    pari += 1;
 	  }
 
-      par = emit_insn (par);
-      RTX_FRAME_RELATED_P (par) = 1;
+      F (emit_insn (par));
     }
 }
 
@@ -748,7 +761,6 @@ expand_prologue (void)
 	     save_a0_no_merge } strategy;
       unsigned int strategy_size = (unsigned)-1, this_strategy_size;
       rtx reg;
-      rtx insn;
 
       /* We have several different strategies to save FP registers.
 	 We can store them using SP offsets, which is beneficial if
@@ -888,25 +900,25 @@ expand_prologue (void)
 	{
 	case save_sp_no_merge:
 	case save_a0_no_merge:
-	  emit_insn (gen_addsi3 (stack_pointer_rtx,
-				 stack_pointer_rtx,
-				 GEN_INT (-4 * num_regs_to_save)));
+	  F (emit_insn (gen_addsi3 (stack_pointer_rtx,
+				    stack_pointer_rtx,
+				    GEN_INT (-4 * num_regs_to_save))));
 	  xsize = 0;
 	  break;
 
 	case save_sp_partial_merge:
-	  emit_insn (gen_addsi3 (stack_pointer_rtx,
-				 stack_pointer_rtx,
-				 GEN_INT (-128)));
+	  F (emit_insn (gen_addsi3 (stack_pointer_rtx,
+				    stack_pointer_rtx,
+				    GEN_INT (-128))));
 	  xsize = 128 - 4 * num_regs_to_save;
 	  size -= xsize;
 	  break;
 
 	case save_sp_merge:
 	case save_a0_merge:
-	  emit_insn (gen_addsi3 (stack_pointer_rtx,
-				 stack_pointer_rtx,
-				 GEN_INT (-(size + 4 * num_regs_to_save))));
+	  F (emit_insn (gen_addsi3 (stack_pointer_rtx,
+				    stack_pointer_rtx,
+				    GEN_INT (-(size + 4 * num_regs_to_save)))));
 	  /* We'll have to adjust FP register saves according to the
 	     frame size.  */
 	  xsize = size;
@@ -931,9 +943,9 @@ expand_prologue (void)
 	case save_a0_merge:
 	case save_a0_no_merge:
 	  reg = gen_rtx_REG (SImode, FIRST_ADDRESS_REGNUM);
-	  emit_insn (gen_movsi (reg, stack_pointer_rtx));
+	  F (emit_insn (gen_movsi (reg, stack_pointer_rtx)));
 	  if (xsize)
-	    emit_insn (gen_addsi3 (reg, reg, GEN_INT (xsize)));
+	    F (emit_insn (gen_addsi3 (reg, reg, GEN_INT (xsize))));
 	  reg = gen_rtx_POST_INC (SImode, reg);
 	  break;
 
@@ -964,22 +976,21 @@ expand_prologue (void)
 		xsize += 4;
 	      }
 
-	    insn = emit_insn (gen_movsi (gen_rtx_MEM (SImode, addr),
-					 gen_rtx_REG (SImode, i)));
-
-	    RTX_FRAME_RELATED_P (insn) = 1;
+	    F (emit_insn (gen_movsf (gen_rtx_MEM (SFmode, addr),
+				     gen_rtx_REG (SFmode, i))));
 	  }
     }
 
   /* Now put the frame pointer into the frame pointer register.  */
   if (frame_pointer_needed)
-    emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+    F (emit_move_insn (frame_pointer_rtx, stack_pointer_rtx));
 
   /* Allocate stack for this frame.  */
   if (size)
-    emit_insn (gen_addsi3 (stack_pointer_rtx,
-			   stack_pointer_rtx,
-			   GEN_INT (-size)));
+    F (emit_insn (gen_addsi3 (stack_pointer_rtx,
+			      stack_pointer_rtx,
+			      GEN_INT (-size))));
+
   if (flag_pic && df_regs_ever_live_p (PIC_OFFSET_TABLE_REGNUM))
     emit_insn (gen_GOTaddr2picreg ());
 }
@@ -992,7 +1003,7 @@ expand_epilogue (void)
   /* SIZE includes the fixed stack space needed for function calls.  */
   size = get_frame_size () + crtl->outgoing_args_size;
   size += (crtl->outgoing_args_size ? 4 : 0);
-
+  
   if (TARGET_AM33_2 && fp_regs_to_save ())
     {
       int num_regs_to_save = fp_regs_to_save (), i;
@@ -1166,8 +1177,8 @@ expand_epilogue (void)
 
 	    size += 4;
 
-	    emit_insn (gen_movsi (gen_rtx_REG (SImode, i),
-				  gen_rtx_MEM (SImode, addr)));
+	    emit_insn (gen_movsf (gen_rtx_REG (SFmode, i),
+				  gen_rtx_MEM (SFmode, addr)));
 	  }
 
       /* If we were using the restore_a1 strategy and the number of
@@ -1218,59 +1229,6 @@ expand_epilogue (void)
 		    (GEN_INT (size + REG_SAVE_BYTES)));
   else
     emit_jump_insn (gen_return_internal ());
-}
-
-/* Update the condition code from the insn.  */
-
-void
-notice_update_cc (rtx body, rtx insn)
-{
-  switch (get_attr_cc (insn))
-    {
-    case CC_NONE:
-      /* Insn does not affect CC at all.  */
-      break;
-
-    case CC_NONE_0HIT:
-      /* Insn does not change CC, but the 0'th operand has been changed.  */
-      if (cc_status.value1 != 0
-	  && reg_overlap_mentioned_p (recog_data.operand[0], cc_status.value1))
-	cc_status.value1 = 0;
-      break;
-
-    case CC_SET_ZN:
-      /* Insn sets the Z,N flags of CC to recog_data.operand[0].
-	 V,C are unusable.  */
-      CC_STATUS_INIT;
-      cc_status.flags |= CC_NO_CARRY | CC_OVERFLOW_UNUSABLE;
-      cc_status.value1 = recog_data.operand[0];
-      break;
-
-    case CC_SET_ZNV:
-      /* Insn sets the Z,N,V flags of CC to recog_data.operand[0].
-	 C is unusable.  */
-      CC_STATUS_INIT;
-      cc_status.flags |= CC_NO_CARRY;
-      cc_status.value1 = recog_data.operand[0];
-      break;
-
-    case CC_COMPARE:
-      /* The insn is a compare instruction.  */
-      CC_STATUS_INIT;
-      cc_status.value1 = SET_SRC (body);
-      if (GET_CODE (cc_status.value1) == COMPARE
-	  && GET_MODE (XEXP (cc_status.value1, 0)) == SFmode)
-	cc_status.mdep.fpCC = 1;
-      break;
-
-    case CC_CLOBBER:
-      /* Insn doesn't leave CC in a usable state.  */
-      CC_STATUS_INIT;
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
 }
 
 /* Recognize the PARALLEL rtx generated by mn10300_gen_multiple_store().
@@ -1397,11 +1355,6 @@ mn10300_secondary_reload_class (enum reg_class rclass, enum machine_mode mode,
 		  || XEXP (in, 1) == stack_pointer_rtx))))
     return ADDRESS_REGS;
 
-  if (GET_CODE (in) == PLUS
-      && (XEXP (in, 0) == stack_pointer_rtx
-	  || XEXP (in, 1) == stack_pointer_rtx))
-    return GENERAL_REGS;
-
   if (TARGET_AM33_2
       && rclass == FP_REGS)
     {
@@ -1409,7 +1362,7 @@ mn10300_secondary_reload_class (enum reg_class rclass, enum machine_mode mode,
 	 constant address.  */
       if (GET_CODE (in) == MEM
 	  && CONSTANT_ADDRESS_P (XEXP (in, 0)))
-	return (TARGET_AM33 ? DATA_OR_EXTENDED_REGS : DATA_REGS);
+	return DATA_OR_EXTENDED_REGS;
 
       /* Handle case were a pseudo may not get a hard register
 	 but has an equivalent memory location defined.  */
@@ -1417,7 +1370,7 @@ mn10300_secondary_reload_class (enum reg_class rclass, enum machine_mode mode,
 	  && REGNO (inner) >= FIRST_PSEUDO_REGISTER
 	  && reg_equiv_mem [REGNO (inner)]
 	  && CONSTANT_ADDRESS_P (XEXP (reg_equiv_mem [REGNO (inner)], 0)))
-	return (TARGET_AM33 ? DATA_OR_EXTENDED_REGS : DATA_REGS);
+	return DATA_OR_EXTENDED_REGS;
     }
 
   /* Otherwise assume no secondary reloads are needed.  */
@@ -1493,9 +1446,7 @@ mn10300_builtin_saveregs (void)
 {
   rtx offset, mem;
   tree fntype = TREE_TYPE (current_function_decl);
-  int argadj = ((!(TYPE_ARG_TYPES (fntype) != 0
-                   && (TREE_VALUE (tree_last (TYPE_ARG_TYPES (fntype)))
-                       != void_type_node)))
+  int argadj = ((!stdarg_p (fntype))
                 ? UNITS_PER_WORD : 0);
   alias_set_type set = get_varargs_alias_set ();
 
@@ -1682,9 +1633,10 @@ mn10300_function_value_regno_p (const unsigned int regno)
  return (regno == FIRST_DATA_REGNUM || regno == FIRST_ADDRESS_REGNUM);
 }
 
-/* Output a tst insn.  */
+/* Output a compare insn.  */
+
 const char *
-output_tst (rtx operand, rtx insn)
+mn10300_output_cmp (rtx operand, rtx insn)
 {
   rtx temp;
   int past_call = 0;
@@ -1772,19 +1724,6 @@ output_tst (rtx operand, rtx insn)
   return "cmp 0,%0";
 }
 
-int
-impossible_plus_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
-{
-  if (GET_CODE (op) != PLUS)
-    return 0;
-
-  if (XEXP (op, 0) == stack_pointer_rtx
-      || XEXP (op, 1) == stack_pointer_rtx)
-    return 1;
-
-  return 0;
-}
-
 /* Similarly, but when using a zero_extract pattern for a btst where
    the source operand might end up in memory.  */
 int
@@ -1839,7 +1778,7 @@ symbolic_operand (register rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
 
    But on a few ports with segmented architectures and indexed addressing
    (mn10300, hppa) it is used to rewrite certain problematical addresses.  */
-rtx
+static rtx
 mn10300_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 			    enum machine_mode mode ATTRIBUTE_UNUSED)
 {
@@ -1927,7 +1866,7 @@ legitimate_pic_operand_p (rtx x)
     {
       if (fmt[i] == 'E')
 	{
-	  register int j;
+	  int j;
 
 	  for (j = XVECLEN (x, i) - 1; j >= 0; j--)
 	    if (! legitimate_pic_operand_p (XVECEXP (x, i, j)))
@@ -1954,7 +1893,7 @@ legitimate_pic_operand_p (rtx x)
    workaround and solution, see the comments in pa.c before the
    function record_unscaled_index_insn_codes.  */
 
-bool
+static bool
 mn10300_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   if (CONSTANT_ADDRESS_P (x)
@@ -1995,12 +1934,62 @@ mn10300_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 	  if (GET_CODE (index) == CONST
 	      && GET_CODE (XEXP (index, 0)) != PLUS
 	      && (! flag_pic
- 		  || legitimate_pic_operand_p (index)))
+ 		  || (legitimate_pic_operand_p (index)
+		      && GET_MODE_SIZE (mode) == 4)))
 	    return TRUE;
 	}
     }
 
   return FALSE;
+}
+
+/* Used by LEGITIMATE_CONSTANT_P().  Returns TRUE if X is a valid
+   constant.  Note that some "constants" aren't valid, such as TLS
+   symbols and unconverted GOT-based references, so we eliminate
+   those here.  */
+
+bool
+mn10300_legitimate_constant_p (rtx x)
+{
+  switch (GET_CODE (x))
+    {
+    case CONST:
+      x = XEXP (x, 0);
+
+      if (GET_CODE (x) == PLUS)
+	{
+	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
+	    return false;
+	  x = XEXP (x, 0);
+	}
+
+      /* Only some unspecs are valid as "constants".  */
+      if (GET_CODE (x) == UNSPEC)
+	{
+	  rtx sym = XVECEXP (x, 0, 0);
+	  switch (XINT (x, 1))
+	    {
+	    case UNSPEC_INT_LABEL:
+	    case UNSPEC_PIC:
+	    case UNSPEC_GOT:
+	    case UNSPEC_GOTOFF:
+	    case UNSPEC_PLT:
+	      return true;
+	    default:
+	      return false;
+	    }
+	}
+
+      /* We must have drilled down to a symbol.  */
+      if (!symbolic_operand (x, Pmode))
+	return false;
+      break;
+
+    default:
+      break;
+    }
+
+  return true;
 }
 
 static int
@@ -2137,7 +2126,7 @@ mn10300_rtx_costs (rtx x, int code, int outer_code, int *total, bool speed ATTRI
 bool
 mn10300_wide_const_load_uses_clr (rtx operands[2])
 {
-  long val[2];
+  long val[2] = {0, 0};
 
   if (GET_CODE (operands[0]) != REG
       || REGNO_REG_CLASS (REGNO (operands[0])) != DATA_REGS)
@@ -2201,7 +2190,8 @@ mn10300_encode_section_info (tree decl, rtx rtl, int first ATTRIBUTE_UNUSED)
    were solely optimizing for space, but we keep it "reasonable" to avoid
    serious code efficiency lossage.  */
 
-unsigned int mn10300_case_values_threshold (void)
+static unsigned int
+mn10300_case_values_threshold (void)
 {
   return 6;
 }
@@ -2296,3 +2286,48 @@ mn10300_can_output_mi_thunk (const_tree    thunk_fndecl ATTRIBUTE_UNUSED,
 {
   return true;
 }
+
+bool
+mn10300_hard_regno_mode_ok (unsigned int regno, enum machine_mode mode)
+{
+  if (REGNO_REG_CLASS (regno) == FP_REGS
+      || REGNO_REG_CLASS (regno) == FP_ACC_REGS)
+    /* Do not store integer values in FP registers.  */
+    return GET_MODE_CLASS (mode) == MODE_FLOAT && ((regno & 1) == 0);
+  
+  if (((regno) & 1) == 0 || GET_MODE_SIZE (mode) == 4)
+    return true;
+
+  if (REGNO_REG_CLASS (regno) == DATA_REGS
+      || (TARGET_AM33 && REGNO_REG_CLASS (regno) == ADDRESS_REGS)
+      || REGNO_REG_CLASS (regno) == EXTENDED_REGS)
+    return GET_MODE_SIZE (mode) <= 4;
+  
+  return false;
+}
+
+bool
+mn10300_modes_tieable (enum machine_mode mode1, enum machine_mode mode2)
+{
+  if (GET_MODE_CLASS (mode1) == MODE_FLOAT
+      && GET_MODE_CLASS (mode2) != MODE_FLOAT)
+    return false;
+
+  if (GET_MODE_CLASS (mode2) == MODE_FLOAT
+      && GET_MODE_CLASS (mode1) != MODE_FLOAT)
+    return false;
+
+  if (TARGET_AM33
+      || mode1 == mode2
+      || (GET_MODE_SIZE (mode1) <= 4 && GET_MODE_SIZE (mode2) <= 4))
+    return true;
+
+  return false;
+}
+
+enum machine_mode
+mn10300_select_cc_mode (rtx x)
+{
+  return (GET_MODE_CLASS (GET_MODE (x)) == MODE_FLOAT) ? CC_FLOATmode : CCmode;
+}
+

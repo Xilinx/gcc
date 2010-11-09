@@ -24,6 +24,10 @@
 #undef  TARGET_AIX
 #define TARGET_AIX 1
 
+/* Linux64.h wants to redefine TARGET_AIX based on -m64, but it can't be used
+   in the #if conditional in options-default.h, so provide another macro.  */
+#define TARGET_AIX_OS 1
+
 /* AIX always has a TOC.  */
 #define TARGET_NO_TOC 0
 #define TARGET_TOC 1
@@ -156,7 +160,7 @@
 %{p:-L%R/lib/profiled -L%R/usr/lib/profiled} %{!shared:%{g*:-lg}} -lc"
 
 /* Static linking with shared libstdc++ requires libsupc++ as well.  */
-#define LIBSTDCXX_STATIC "-lsupc++"
+#define LIBSTDCXX_STATIC "supc++"
 
 /* This now supports a natural alignment mode.  */
 /* AIX word-aligns FP doubles but doubleword-aligns 64-bit ints.  */
@@ -207,13 +211,6 @@
 /* And similarly for general purpose registers.  */
 #define GP_SAVE_INLINE(FIRST_REG) ((FIRST_REG) < 32)
 
-/* __throw will restore its own return address to be the same as the
-   return address of the function that the throw is being made to.
-   This is unfortunate, because we want to check the original
-   return address to see if we need to restore the TOC.
-   So we have to squirrel it away with this.  */
-#define SETUP_FRAME_ADDRESSES() rs6000_aix_emit_builtin_unwind_init ()
-
 /* If the current unwind info (FS) does not contain explicit info
    saving R2, then we have to do a minor amount of code reading to
    figure out if it was saved.  The big problem here is that the
@@ -260,3 +257,6 @@
 
 /* WINT_TYPE */
 #define WINT_TYPE "int"
+
+/* Static stack checking is supported by means of probes.  */
+#define STACK_CHECK_STATIC_BUILTIN 1

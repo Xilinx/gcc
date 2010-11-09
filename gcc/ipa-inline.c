@@ -251,6 +251,12 @@ cgraph_clone_inlined_nodes (struct cgraph_edge *e, bool duplicate,
 	 In that case just go ahead and re-use it.  */
       if (!e->callee->callers->next_caller
 	  && cgraph_can_remove_if_no_direct_calls_p (e->callee)
+	  /* Inlining might enable more devirtualizing, so we want to remove
+	     those only after all devirtualizable virtual calls are processed.
+	     Lacking may edges in callgraph we just preserve them post
+	     inlining.  */
+	  && (!DECL_VIRTUAL_P (e->callee->decl)
+	      || (!DECL_COMDAT (e->callee->decl) && !DECL_EXTERNAL (e->callee->decl)))
 	  /* Don't reuse if more than one function shares a comdat group.
 	     If the other function(s) are needed, we need to emit even
 	     this function out of line.  */
@@ -480,13 +486,19 @@ cgraph_default_inline_p (struct cgraph_node *n, cgraph_inline_failed_t *reason)
 	*reason = CIF_FUNCTION_NOT_INLINE_CANDIDATE;
       return false;
     }
-
   if (!n->analyzed)
     {
       if (reason)
 	*reason = CIF_BODY_NOT_AVAILABLE;
       return false;
     }
+  if (cgraph_function_body_availability (n) <= AVAIL_OVERWRITABLE)
+    {
+      if (reason)
+	*reason = CIF_OVERWRITABLE;
+      return false;
+    }
+
 
   if (DECL_DECLARED_INLINE_P (decl))
     {
@@ -697,11 +709,11 @@ update_caller_keys (fibheap_t heap, struct cgraph_node *node,
   cgraph_inline_failed_t failed_reason;
 
   if (!node->local.inlinable
+      || cgraph_function_body_availability (node) <= AVAIL_OVERWRITABLE
       || node->global.inlined_to)
     return;
-  if (bitmap_bit_p (updated_nodes, node->uid))
+  if (!bitmap_set_bit (updated_nodes, node->uid))
     return;
-  bitmap_set_bit (updated_nodes, node->uid);
   node->global.estimated_growth = INT_MIN;
 
   /* See if there is something to do.  */
@@ -750,6 +762,7 @@ update_callee_keys (fibheap_t heap, struct cgraph_node *node,
       {
 	if (e->inline_failed
 	    && e->callee->local.inlinable
+	    && cgraph_function_body_availability (e->callee) >= AVAIL_AVAILABLE
 	    && !bitmap_bit_p (updated_nodes, e->callee->uid))
 	  {
 	    node->global.estimated_growth = INT_MIN;
@@ -1018,6 +1031,7 @@ add_new_edges_to_heap (fibheap_t heap, VEC (cgraph_edge_p, heap) *new_edges)
 
       gcc_assert (!edge->aux);
       if (edge->callee->local.inlinable
+	  && edge->inline_failed
 	  && cgraph_default_inline_p (edge->callee, &edge->inline_failed))
         edge->aux = fibheap_insert (heap, cgraph_edge_badness (edge, false), edge);
     }
@@ -1500,6 +1514,7 @@ cgraph_decide_inlining (void)
 	      && !node->callers->next_caller
 	      && cgraph_will_be_removed_from_program_if_no_direct_calls (node)
 	      && node->local.inlinable
+	      && cgraph_function_body_availability (node) >= AVAIL_AVAILABLE
 	      && node->callers->inline_failed
 	      && node->callers->caller != node
 	      && node->callers->caller->global.inlined_to != node
@@ -1826,36 +1841,6 @@ struct gimple_opt_pass pass_early_inline =
  }
 };
 
-/* When inlining shall be performed.  */
-static bool
-cgraph_gate_ipa_early_inlining (void)
-{
-  return (flag_early_inlining
-	  && !in_lto_p
-	  && (flag_branch_probabilities || flag_test_coverage
-	      || profile_arc_flag));
-}
-
-/* IPA pass wrapper for early inlining pass.  We need to run early inlining
-   before tree profiling so we have stand alone IPA pass for doing so.  */
-struct simple_ipa_opt_pass pass_ipa_early_inline =
-{
- {
-  SIMPLE_IPA_PASS,
-  "einline_ipa",			/* name */
-  cgraph_gate_ipa_early_inlining,	/* gate */
-  NULL,					/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  TV_INLINE_HEURISTICS,			/* tv_id */
-  0,	                                /* properties_required */
-  0,					/* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  TODO_dump_cgraph 		        /* todo_flags_finish */
- }
-};
 
 /* See if statement might disappear after inlining.  We are not terribly
    sophisficated, basically looking for simple abstraction penalty wrappers.  */

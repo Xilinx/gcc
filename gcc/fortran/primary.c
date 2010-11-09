@@ -242,7 +242,7 @@ match_hollerith_constant (gfc_expr **result)
   locus old_loc;
   gfc_expr *e = NULL;
   const char *msg;
-  int num;
+  int num, pad;
   int i;  
 
   old_loc = gfc_current_locus;
@@ -279,7 +279,10 @@ match_hollerith_constant (gfc_expr **result)
 	  e = gfc_get_constant_expr (BT_HOLLERITH, gfc_default_character_kind,
 				     &gfc_current_locus);
 
-	  e->representation.string = XCNEWVEC (char, num + 1);
+	  /* Calculate padding needed to fit default integer memory.  */
+	  pad = gfc_default_integer_kind - (num % gfc_default_integer_kind);
+
+	  e->representation.string = XCNEWVEC (char, num + pad + 1);
 
 	  for (i = 0; i < num; i++)
 	    {
@@ -294,8 +297,13 @@ match_hollerith_constant (gfc_expr **result)
 	      e->representation.string[i] = (unsigned char) c;
 	    }
 
-	  e->representation.string[num] = '\0';
-	  e->representation.length = num;
+	  /* Now pad with blanks and end with a null char.  */
+	  for (i = 0; i < pad; i++)
+	    e->representation.string[num + i] = ' ';
+
+	  e->representation.string[num + i] = '\0';
+	  e->representation.length = num + pad;
+	  e->ts.u.pad = pad;
 
 	  *result = e;
 	  return MATCH_YES;
@@ -1748,6 +1756,13 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 	}
     }
 
+  /* For associate names, we may not yet know whether they are arrays or not.
+     Thus if we have one and parentheses follow, we have to assume that it
+     actually is one for now.  The final decision will be made at
+     resolution time, of course.  */
+  if (sym->assoc && gfc_peek_ascii_char () == '(')
+    sym->attr.dimension = 1;
+
   if ((equiv_flag && gfc_peek_ascii_char () == '(')
       || gfc_peek_ascii_char () == '[' || sym->attr.codimension
       || (sym->attr.dimension && !sym->attr.proc_pointer
@@ -1992,7 +2007,6 @@ gfc_variable_attr (gfc_expr *expr, gfc_typespec *ts)
   if (expr->expr_type != EXPR_VARIABLE && expr->expr_type != EXPR_FUNCTION)
     gfc_internal_error ("gfc_variable_attr(): Expression isn't a variable");
 
-  ref = expr->ref;
   sym = expr->symtree->n.sym;
   attr = sym->attr;
 
@@ -2016,7 +2030,7 @@ gfc_variable_attr (gfc_expr *expr, gfc_typespec *ts)
   if (ts != NULL && expr->ts.type == BT_UNKNOWN)
     *ts = sym->ts;
 
-  for (; ref; ref = ref->next)
+  for (ref = expr->ref; ref; ref = ref->next)
     switch (ref->type)
       {
       case REF_ARRAY:
@@ -2081,6 +2095,7 @@ gfc_variable_attr (gfc_expr *expr, gfc_typespec *ts)
   attr.pointer = pointer;
   attr.allocatable = allocatable;
   attr.target = target;
+  attr.save = sym->attr.save;
 
   return attr;
 }
@@ -2149,6 +2164,7 @@ gfc_free_structure_ctor_component (gfc_structure_ctor_component *comp)
 {
   gfc_free (comp->name);
   gfc_free_expr (comp->val);
+  gfc_free (comp);
 }
 
 
@@ -2398,8 +2414,9 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result,
   /* No component should be left, as this should have caused an error in the
      loop constructing the component-list (name that does not correspond to any
      component in the structure definition).  */
-  if (comp_head && sym->attr.extension)
+  if (comp_head)
     {
+      gcc_assert (sym->attr.extension);
       for (comp_iter = comp_head; comp_iter; comp_iter = comp_iter->next)
 	{
 	  gfc_error ("component '%s' at %L has already been set by a "
@@ -2408,8 +2425,6 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result,
 	}
       goto cleanup;
     }
-  else
-    gcc_assert (!comp_head);
 
   e = gfc_get_structure_constructor_expr (BT_DERIVED, 0, &where);
   e->ts.u.derived = sym;
@@ -2970,17 +2985,7 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
   switch (sym->attr.flavor)
     {
     case FL_VARIABLE:
-      if (sym->attr.is_protected && sym->attr.use_assoc)
-	{
-	  gfc_error ("Assigning to PROTECTED variable at %C");
-	  return MATCH_ERROR;
-	}
-      if (sym->assoc && !sym->assoc->variable)
-	{
-	  gfc_error ("'%s' associated to expression can't appear in a variable"
-		     " definition context at %C", sym->name);
-	  return MATCH_ERROR;
-	}
+      /* Everything is alright.  */
       break;
 
     case FL_UNKNOWN:
@@ -3012,22 +3017,24 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
 
     case FL_PARAMETER:
       if (equiv_flag)
-	gfc_error ("Named constant at %C in an EQUIVALENCE");
-      else
-	gfc_error ("Cannot assign to a named constant at %C");
-      return MATCH_ERROR;
+	{
+	  gfc_error ("Named constant at %C in an EQUIVALENCE");
+	  return MATCH_ERROR;
+	}
+      /* Otherwise this is checked for and an error given in the
+	 variable definition context checks.  */
       break;
 
     case FL_PROCEDURE:
       /* Check for a nonrecursive function result variable.  */
       if (sym->attr.function
-          && !sym->attr.external
-          && sym->result == sym
-          && (gfc_is_function_return_value (sym, gfc_current_ns)
-              || (sym->attr.entry
-                  && sym->ns == gfc_current_ns)
-              || (sym->attr.entry
-                  && sym->ns == gfc_current_ns->parent)))
+	  && !sym->attr.external
+	  && sym->result == sym
+	  && (gfc_is_function_return_value (sym, gfc_current_ns)
+	      || (sym->attr.entry
+		  && sym->ns == gfc_current_ns)
+	      || (sym->attr.entry
+		  && sym->ns == gfc_current_ns->parent)))
 	{
 	  /* If a function result is a derived type, then the derived
 	     type may still have to be resolved.  */

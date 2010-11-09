@@ -236,9 +236,7 @@ decode_statement (void)
   match m;
   char c;
 
-#ifdef GFC_DEBUG
-  gfc_symbol_state ();
-#endif
+  gfc_enforce_clean_symbol_state ();
 
   gfc_clear_error ();	/* Clear any pending errors.  */
   gfc_clear_warning ();	/* Clear any pending warnings.  */
@@ -484,9 +482,7 @@ decode_omp_directive (void)
   locus old_locus;
   char c;
 
-#ifdef GFC_DEBUG
-  gfc_symbol_state ();
-#endif
+  gfc_enforce_clean_symbol_state ();
 
   gfc_clear_error ();	/* Clear any pending errors.  */
   gfc_clear_warning ();	/* Clear any pending warnings.  */
@@ -588,9 +584,7 @@ decode_gcc_attribute (void)
 {
   locus old_locus;
 
-#ifdef GFC_DEBUG
-  gfc_symbol_state ();
-#endif
+  gfc_enforce_clean_symbol_state ();
 
   gfc_clear_error ();	/* Clear any pending errors.  */
   gfc_clear_warning ();	/* Clear any pending warnings.  */
@@ -699,7 +693,7 @@ next_free (void)
 	  return decode_gcc_attribute ();
 
 	}
-      else if (c == '$' && gfc_option.flag_openmp)
+      else if (c == '$' && gfc_option.gfc_flag_openmp)
 	{
 	  int i;
 
@@ -786,7 +780,7 @@ next_fixed (void)
 
 	      return decode_gcc_attribute ();
 	    }
-	  else if (c == '$' && gfc_option.flag_openmp)
+	  else if (c == '$' && gfc_option.gfc_flag_openmp)
 	    {
 	      for (i = 0; i < 4; i++, c = gfc_next_char_literal (0))
 		gcc_assert ((char) gfc_wide_tolower (c) == "$omp"[i]);
@@ -879,7 +873,6 @@ blank_line:
   return ST_NONE;
 }
 
-extern gfc_symbol *changed_syms;
 
 /* Return the next non-ST_NONE statement to the caller.  We also worry
    about including files and the ends of include files at this stage.  */
@@ -890,8 +883,7 @@ next_statement (void)
   gfc_statement st;
   locus old_locus;
 
-  /* We start with a clean state.  */
-  gcc_assert (changed_syms == NULL);
+  gfc_enforce_clean_symbol_state ();
 
   gfc_new_block = NULL;
 
@@ -997,6 +989,13 @@ push_state (gfc_state_data *p, gfc_compile_state new_state, gfc_symbol *sym)
   p->sym = sym;
   p->head = p->tail = NULL;
   p->do_variable = NULL;
+
+  /* If this the state of a construct like BLOCK, DO or IF, the corresponding
+     construct statement was accepted right before pushing the state.  Thus,
+     the construct's gfc_code is available as tail of the parent state.  */
+  gcc_assert (gfc_state_stack);
+  p->construct = gfc_state_stack->tail;
+
   gfc_state_stack = p;
 }
 
@@ -3214,7 +3213,6 @@ parse_associate (void)
   gfc_state_data s;
   gfc_statement st;
   gfc_association_list* a;
-  gfc_code* assignTail;
 
   gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ASSOCIATE construct at %C");
 
@@ -3224,46 +3222,29 @@ parse_associate (void)
   new_st.ext.block.ns = my_ns;
   gcc_assert (new_st.ext.block.assoc);
 
-  /* Add all associations to expressions as BLOCK variables, and create
-     assignments to them giving their values.  */
+  /* Add all associate-names as BLOCK variables.  Creating them is enough
+     for now, they'll get their values during trans-* phase.  */
   gfc_current_ns = my_ns;
-  assignTail = NULL;
   for (a = new_st.ext.block.assoc; a; a = a->next)
-    if (!a->variable)
-      {
-	gfc_code* newAssign;
+    {
+      gfc_symbol* sym;
 
-	if (gfc_get_sym_tree (a->name, NULL, &a->st, false))
-	  gcc_unreachable ();
+      if (gfc_get_sym_tree (a->name, NULL, &a->st, false))
+	gcc_unreachable ();
 
-	/* Note that in certain cases, the target-expression's type is not yet
-	   known and so we have to adapt the symbol's ts also during resolution
-	   for these cases.  */
-	a->st->n.sym->ts = a->target->ts;
-	a->st->n.sym->attr.flavor = FL_VARIABLE;
-	a->st->n.sym->assoc = a;
-	gfc_set_sym_referenced (a->st->n.sym);
+      sym = a->st->n.sym;
+      sym->attr.flavor = FL_VARIABLE;
+      sym->assoc = a;
+      sym->declared_at = a->where;
+      gfc_set_sym_referenced (sym);
 
-	/* Create the assignment to calculate the expression and set it.  */
-	newAssign = gfc_get_code ();
-	newAssign->op = EXEC_ASSIGN;
-	newAssign->loc = gfc_current_locus;
-	newAssign->expr1 = gfc_get_variable_expr (a->st);
-	newAssign->expr2 = a->target;
-
-	/* Hang it in.  */
-	if (assignTail)
-	  assignTail->next = newAssign;
-	else
-	  gfc_current_ns->code = newAssign;
-	assignTail = newAssign;
-      }
-    else
-      {
-	gfc_error ("Association to variables is not yet supported at %C");
-	return;
-      }
-  gcc_assert (assignTail);
+      /* Initialize the typespec.  It is not available in all cases,
+	 however, as it may only be set on the target during resolution.
+	 Still, sometimes it helps to have it right now -- especially
+	 for parsing component references on the associate-name
+	 in case of assication to a derived-type.  */
+      sym->ts = a->target->ts;
+    }
 
   accept_statement (ST_ASSOCIATE);
   push_state (&s, COMP_ASSOCIATE, my_ns->proc_name);
@@ -3277,7 +3258,7 @@ loop:
 
     case_end:
       accept_statement (st);
-      assignTail->next = gfc_state_stack->head;
+      my_ns->code = gfc_state_stack->head;
       break;
 
     default:

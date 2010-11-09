@@ -1,5 +1,5 @@
 /* Definitions for Toshiba Media Processor
-   Copyright (C) 2001, 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright (C) 2001, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
@@ -108,8 +108,6 @@ crtbegin.o%s"
     }						\
   while (0)
 
-extern int target_flags;
-
 /* Controlled by MeP-Integrator.  */
 #define TARGET_H1		0
 
@@ -133,8 +131,6 @@ extern int target_flags;
 #define TARGET_COPRO_MULT	0
 
 #define TARGET_VERSION fprintf (stderr, " (Toshiba Media Processor (MeP))");
-
-#define OVERRIDE_OPTIONS mep_override_options ();
 
 /* The MeP config tool will add TARGET_OPTION_TRANSLATE_TABLE here.  */
 #define TARGET_OPTION_TRANSLATE_TABLE \
@@ -165,8 +161,6 @@ extern int target_flags;
 /* end-coproc-selection-table */
 
 #define CAN_DEBUG_WITHOUT_FP
-
-#define OPTIMIZATION_OPTIONS(LEVEL, FOR_SIZE) mep_optimization_options ()
 
 
 #define BITS_BIG_ENDIAN 0
@@ -276,7 +270,7 @@ extern int target_flags;
   }
 
 #define CONDITIONAL_REGISTER_USAGE \
-	mep_conditional_register_usage (fixed_regs, call_used_regs);
+	mep_conditional_register_usage ();
 
 #define REG_ALLOC_ORDER {						\
   /* core registers */							\
@@ -505,14 +499,6 @@ extern unsigned int mep_selected_isa;
 
 
 
-/* The ABI is thus: Arguments are in $1, $2, $3, $4, stack.  Arguments
-   larger than 4 bytes are passed indirectly.  Return value in 0,
-   unless bigger than 4 bytes, then the caller passes a pointer as the
-   first arg.  For varargs, we copy $1..$4 to the stack.  */
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-	mep_function_arg (CUM, MODE, TYPE, NAMED)
-
 #define FUNCTION_ARG_CALLEE_COPIES(CUM, MODE, TYPE, NAMED) 1
 
 typedef struct
@@ -523,9 +509,6 @@ typedef struct
 
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, FNDECL, N_NAMED_ARGS) \
 	mep_init_cumulative_args (& (CUM), FNTYPE, LIBNAME, FNDECL)
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)		\
-	mep_arg_advance (& (CUM), MODE, TYPE, NAMED)
 
 #define FUNCTION_ARG_REGNO_P(REGNO) \
 	(((REGNO) >= 1 && (REGNO) <= 4) \

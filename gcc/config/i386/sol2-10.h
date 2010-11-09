@@ -84,14 +84,17 @@ along with GCC; see the file COPYING3.  If not see
 #define SUBTARGET_OVERRIDE_OPTIONS				\
   do								\
     {								\
-      if (flag_omit_frame_pointer == 2)				\
+      if (!global_options_set.x_flag_omit_frame_pointer)	\
 	flag_omit_frame_pointer = 0;				\
     }								\
   while (0)
 
+/* Override i386/sol2.h version: return 8-byte vectors in MMX registers if
+   possible, matching Sun Studio 12 Update 1+ compilers and other x86
+   targets.  */
 #undef TARGET_SUBTARGET_DEFAULT
-#define TARGET_SUBTARGET_DEFAULT (MASK_80387 | MASK_IEEE_FP	\
-				  | MASK_FLOAT_RETURNS)
+#define TARGET_SUBTARGET_DEFAULT \
+	(MASK_80387 | MASK_IEEE_FP | MASK_FLOAT_RETURNS)
 
 #define SUBTARGET_OPTIMIZATION_OPTIONS			\
   do							\

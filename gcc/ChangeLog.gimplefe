@@ -1,3 +1,7 @@
+2010-11-09  Diego Novillo  <dnovillo@google.com>
+
+	Merge with mainline rev 165633.
+
 2010-08-13  Diego Novillo  <dnovillo@google.com>
 
 	* lto/lto-lang.c (LANG_HOOKS_NAME): Update.

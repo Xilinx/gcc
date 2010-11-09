@@ -41,11 +41,11 @@ main()
   return 0;
 }
 
-// { dg-warning "note" "" { target *-*-* } 324 }
-// { dg-warning "note" "" { target *-*-* } 423 }
-// { dg-warning "note" "" { target *-*-* } 862 }
-// { dg-warning "note" "" { target *-*-* } 510 }
-// { dg-warning "note" "" { target *-*-* } 1005 }
+// { dg-warning "note" "" { target *-*-* } 347 }
+// { dg-warning "note" "" { target *-*-* } 466 }
+// { dg-warning "note" "" { target *-*-* } 883 }
+// { dg-warning "note" "" { target *-*-* } 580 }
+// { dg-warning "note" "" { target *-*-* } 1027 }
 // { dg-warning "note" "" { target *-*-* } 340 }
 // { dg-warning "note" "" { target *-*-* } 290 }
-// { dg-warning "note" "" { target *-*-* } 197 }
+// { dg-warning "note" "" { target *-*-* } 200 }

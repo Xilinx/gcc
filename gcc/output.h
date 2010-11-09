@@ -632,12 +632,16 @@ extern void default_asm_declare_constant_name (FILE *, const char *,
 					       const_tree, HOST_WIDE_INT);
 extern void default_file_start (void);
 extern void file_end_indicate_exec_stack (void);
+extern void file_end_indicate_split_stack (void);
 
 extern void default_elf_asm_output_external (FILE *file, tree,
 					     const char *);
 extern int maybe_assemble_visibility (tree);
 
 extern int default_address_cost (rtx, bool);
+
+/* Output stack usage information.  */
+extern void output_stack_usage (void);
 
 /* dbxout helper functions */
 #if defined DBX_DEBUGGING_INFO || defined XCOFF_DEBUGGING_INFO

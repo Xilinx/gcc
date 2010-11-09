@@ -5758,7 +5758,7 @@ compute_bb_dataflow (basic_block bb)
   dataflow_set_copy (&old_out, out);
   dataflow_set_copy (out, in);
 
-  for (i = 0; VEC_iterate (micro_operation, VTI (bb)->mos, i, mo); i++)
+  FOR_EACH_VEC_ELT (micro_operation, VTI (bb)->mos, i, mo)
     {
       rtx insn = mo->insn;
 
@@ -7133,6 +7133,19 @@ vt_expand_loc_dummy (rtx loc, htab_t vars, bool *pcur_loc_changed)
 #ifdef ENABLE_RTL_CHECKING
 /* Used to verify that cur_loc_changed updating is safe.  */
 static struct pointer_map_t *emitted_notes;
+
+/* Strip REG_POINTER from REGs and MEM_POINTER from MEMs in order to
+   avoid differences in commutative operand simplification.  */
+static rtx
+strip_pointer_flags (rtx x, const_rtx old_rtx ATTRIBUTE_UNUSED,
+		     void *data ATTRIBUTE_UNUSED)
+{
+  if (REG_P (x) && REG_POINTER (x))
+    return gen_rtx_REG (GET_MODE (x), REGNO (x));
+  if (MEM_P (x) && MEM_POINTER (x))
+    return gen_rtx_MEM (GET_MODE (x), XEXP (x, 0));
+  return NULL_RTX;
+}
 #endif
 
 /* Emit the NOTE_INSN_VAR_LOCATION for variable *VARP.  DATA contains
@@ -7331,9 +7344,22 @@ emit_note_insn_var_location (void **varp, void *data)
       rtx pnote = (rtx) *note_slot;
       if (!var->cur_loc_changed && (pnote || PAT_VAR_LOCATION_LOC (note_vl)))
 	{
+	  rtx old_vl, new_vl;
 	  gcc_assert (pnote);
-	  gcc_assert (rtx_equal_p (PAT_VAR_LOCATION_LOC (pnote),
-				   PAT_VAR_LOCATION_LOC (note_vl)));
+	  old_vl = PAT_VAR_LOCATION_LOC (pnote);
+	  new_vl = PAT_VAR_LOCATION_LOC (note_vl);
+	  if (!rtx_equal_p (old_vl, new_vl))
+	    {
+	      /* There might be differences caused by REG_POINTER
+		 differences.  REG_POINTER affects
+		 swap_commutative_operands_p.  */
+	      old_vl = simplify_replace_fn_rtx (old_vl, NULL_RTX,
+						strip_pointer_flags, NULL);
+	      new_vl = simplify_replace_fn_rtx (new_vl, NULL_RTX,
+						strip_pointer_flags, NULL);
+	      gcc_assert (rtx_equal_p (old_vl, new_vl));
+	      PAT_VAR_LOCATION_LOC (note_vl) = new_vl;
+	    }
 	}
       *note_slot = (void *) note_vl;
     }
@@ -7683,7 +7709,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
   dataflow_set_clear (set);
   dataflow_set_copy (set, &VTI (bb)->in);
 
-  for (i = 0; VEC_iterate (micro_operation, VTI (bb)->mos, i, mo); i++)
+  FOR_EACH_VEC_ELT (micro_operation, VTI (bb)->mos, i, mo)
     {
       rtx insn = mo->insn;
 
@@ -7978,7 +8004,7 @@ vt_emit_notes (void)
       unsigned int i;
       rtx val;
 
-      for (i = 0; VEC_iterate (rtx, preserved_values, i, val); i++)
+      FOR_EACH_VEC_ELT (rtx, preserved_values, i, val)
 	add_cselib_value_chains (dv_from_value (val));
       changed_variables_stack = VEC_alloc (variable, heap, 40);
       changed_values_stack = VEC_alloc (rtx, heap, 40);
@@ -8008,7 +8034,7 @@ vt_emit_notes (void)
       unsigned int i;
       rtx val;
 
-      for (i = 0; VEC_iterate (rtx, preserved_values, i, val); i++)
+      FOR_EACH_VEC_ELT (rtx, preserved_values, i, val)
 	remove_cselib_value_chains (dv_from_value (val));
       gcc_assert (htab_elements (value_chains) == 0);
     }

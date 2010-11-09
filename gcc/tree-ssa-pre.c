@@ -855,9 +855,8 @@ bitmap_set_replace_value (bitmap_set_t set, unsigned int lookfor,
   exprset = VEC_index (bitmap_set_t, value_expressions, lookfor);
   FOR_EACH_EXPR_ID_IN_SET (exprset, i, bi)
     {
-      if (bitmap_bit_p (&set->expressions, i))
+      if (bitmap_clear_bit (&set->expressions, i))
 	{
-	  bitmap_clear_bit (&set->expressions, i);
 	  bitmap_set_bit (&set->expressions, get_expression_id (expr));
 	  return;
 	}
@@ -1887,7 +1886,7 @@ phi_translate_set (bitmap_set_t dest, bitmap_set_t set, basic_block pred,
     }
 
   exprs = sorted_array_from_bitmap_set (set);
-  for (i = 0; VEC_iterate (pre_expr, exprs, i, expr); i++)
+  FOR_EACH_VEC_ELT (pre_expr, exprs, i, expr)
     {
       pre_expr translated;
       translated = phi_translate (expr, set, NULL, pred, phiblock);
@@ -2151,7 +2150,7 @@ valid_in_sets (bitmap_set_t set1, bitmap_set_t set2, pre_expr expr,
 	vn_reference_op_t vro;
 	unsigned int i;
 
-	for (i = 0; VEC_iterate (vn_reference_op_s, ref->operands, i, vro); i++)
+	FOR_EACH_VEC_ELT (vn_reference_op_s, ref->operands, i, vro)
 	  {
 	    if (!vro_valid_in_sets (set1, set2, vro))
 	      return false;
@@ -2185,7 +2184,7 @@ dependent_clean (bitmap_set_t set1, bitmap_set_t set2, basic_block block)
   pre_expr expr;
   int i;
 
-  for (i = 0; VEC_iterate (pre_expr, exprs, i, expr); i++)
+  FOR_EACH_VEC_ELT (pre_expr, exprs, i, expr)
     {
       if (!valid_in_sets (set1, set2, expr, block))
 	bitmap_remove_from_set (set1, expr);
@@ -2204,7 +2203,7 @@ clean (bitmap_set_t set, basic_block block)
   pre_expr expr;
   int i;
 
-  for (i = 0; VEC_iterate (pre_expr, exprs, i, expr); i++)
+  FOR_EACH_VEC_ELT (pre_expr, exprs, i, expr)
     {
       if (!valid_in_sets (set, NULL, expr, block))
 	bitmap_remove_from_set (set, expr);
@@ -2338,7 +2337,7 @@ compute_antic_aux (basic_block block, bool block_has_abnormal_pred_edge)
       else
 	bitmap_set_copy (ANTIC_OUT, ANTIC_IN (first));
 
-      for (i = 0; VEC_iterate (basic_block, worklist, i, bprime); i++)
+      FOR_EACH_VEC_ELT (basic_block, worklist, i, bprime)
 	{
 	  if (!gimple_seq_empty_p (phi_nodes (bprime)))
 	    {
@@ -2481,7 +2480,7 @@ compute_partial_antic_aux (basic_block block,
 	}
       if (VEC_length (basic_block, worklist) > 0)
 	{
-	  for (i = 0; VEC_iterate (basic_block, worklist, i, bprime); i++)
+	  FOR_EACH_VEC_ELT (basic_block, worklist, i, bprime)
 	    {
 	      unsigned int i;
 	      bitmap_iterator bi;
@@ -2773,10 +2772,10 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
       break;
     case TARGET_MEM_REF:
       {
+	pre_expr op0expr, op1expr;
+	tree genop0 = NULL_TREE, genop1 = NULL_TREE;
 	vn_reference_op_t nextop = VEC_index (vn_reference_op_s, ref->operands,
-					      *operand);
-	pre_expr op0expr;
-	tree genop0 = NULL_TREE;
+					      ++*operand);
 	tree baseop = create_component_ref_by_pieces_1 (block, ref, operand,
 							stmts, domstmt);
 	if (!baseop)
@@ -2789,16 +2788,16 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	    if (!genop0)
 	      return NULL_TREE;
 	  }
-	if (DECL_P (baseop))
-	  return build6 (TARGET_MEM_REF, currop->type,
-			 baseop, NULL_TREE,
-			 genop0, currop->op1, currop->op2,
-			 unshare_expr (nextop->op1));
-	else
-	  return build6 (TARGET_MEM_REF, currop->type,
-			 NULL_TREE, baseop,
-			 genop0, currop->op1, currop->op2,
-			 unshare_expr (nextop->op1));
+	if (nextop->op0)
+	  {
+	    op1expr = get_or_alloc_expr_for (nextop->op0);
+	    genop1 = find_or_generate_expression (block, op1expr,
+						  stmts, domstmt);
+	    if (!genop1)
+	      return NULL_TREE;
+	  }
+	return build5 (TARGET_MEM_REF, currop->type,
+		       baseop, currop->op2, genop0, currop->op1, genop1);
       }
       break;
     case ADDR_EXPR:
@@ -2820,26 +2819,6 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	  return NULL_TREE;
 	folded = fold_build1 (currop->opcode, currop->type,
 			      genop0);
-	return folded;
-      }
-      break;
-    case MISALIGNED_INDIRECT_REF:
-      {
-	tree folded;
-	tree genop1 = create_component_ref_by_pieces_1 (block, ref,
-							operand,
-							stmts, domstmt);
-	if (!genop1)
-	  return NULL_TREE;
-	genop1 = fold_convert (build_pointer_type (currop->type),
-			       genop1);
-
-	if (currop->opcode == MISALIGNED_INDIRECT_REF)
-	  folded = fold_build2 (currop->opcode, currop->type,
-				genop1, currop->op1);
-	else
-	  folded = fold_build1 (currop->opcode, currop->type,
-				genop1);
 	return folded;
       }
       break;
@@ -3264,7 +3243,7 @@ inhibit_phi_insertion (basic_block bb, pre_expr expr)
      memory reference is a simple induction variable.  In other
      cases the vectorizer won't do anything anyway (either it's
      loop invariant or a complicated expression).  */
-  for (i = 0; VEC_iterate (vn_reference_op_s, ops, i, op); ++i)
+  FOR_EACH_VEC_ELT (vn_reference_op_s, ops, i, op)
     {
       switch (op->opcode)
 	{
@@ -3551,7 +3530,7 @@ do_regular_insertion (basic_block block, basic_block dom)
   pre_expr expr;
   int i;
 
-  for (i = 0; VEC_iterate (pre_expr, exprs, i, expr); i++)
+  FOR_EACH_VEC_ELT (pre_expr, exprs, i, expr)
     {
       if (expr->kind != NAME)
 	{
@@ -3697,7 +3676,7 @@ do_partial_partial_insertion (basic_block block, basic_block dom)
   pre_expr expr;
   int i;
 
-  for (i = 0; VEC_iterate (pre_expr, exprs, i, expr); i++)
+  FOR_EACH_VEC_ELT (pre_expr, exprs, i, expr)
     {
       if (expr->kind != NAME)
 	{
@@ -4478,7 +4457,7 @@ eliminate (void)
   /* We cannot remove stmts during BB walk, especially not release SSA
      names there as this confuses the VN machinery.  The stmts ending
      up in to_remove are either stores or simple copies.  */
-  for (i = 0; VEC_iterate (gimple, to_remove, i, stmt); ++i)
+  FOR_EACH_VEC_ELT (gimple, to_remove, i, stmt)
     {
       tree lhs = gimple_assign_lhs (stmt);
       tree rhs = gimple_assign_rhs1 (stmt);
@@ -4503,9 +4482,12 @@ eliminate (void)
       if (TREE_CODE (lhs) != SSA_NAME
 	  || has_zero_uses (lhs))
 	{
+	  basic_block bb = gimple_bb (stmt);
 	  gsi = gsi_for_stmt (stmt);
 	  unlink_stmt_vdef (stmt);
 	  gsi_remove (&gsi, true);
+	  if (gimple_purge_dead_eh_edges (bb))
+	    todo |= TODO_cleanup_cfg;
 	  if (TREE_CODE (lhs) == SSA_NAME)
 	    bitmap_clear_bit (inserted_exprs, SSA_NAME_VERSION (lhs));
 	  release_defs (stmt);
@@ -4740,8 +4722,7 @@ init_pre (bool do_fre)
   postorder = XNEWVEC (int, n_basic_blocks - NUM_FIXED_BLOCKS);
   my_rev_post_order_compute (postorder, false);
 
-  FOR_ALL_BB (bb)
-    bb->aux = XCNEWVEC (struct bb_bitmap_sets, 1);
+  alloc_aux_for_blocks (sizeof (struct bb_bitmap_sets));
 
   calculate_dominance_info (CDI_POST_DOMINATORS);
   calculate_dominance_info (CDI_DOMINATORS);
@@ -4773,8 +4754,6 @@ init_pre (bool do_fre)
 static void
 fini_pre (bool do_fre)
 {
-  basic_block bb;
-
   free (postorder);
   VEC_free (bitmap_set_t, heap, value_expressions);
   BITMAP_FREE (inserted_exprs);
@@ -4786,11 +4765,7 @@ fini_pre (bool do_fre)
   htab_delete (expression_to_id);
   VEC_free (unsigned, heap, name_to_id);
 
-  FOR_ALL_BB (bb)
-    {
-      free (bb->aux);
-      bb->aux = NULL;
-    }
+  free_aux_for_blocks ();
 
   free_dominance_info (CDI_POST_DOMINATORS);
 

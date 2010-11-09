@@ -42,8 +42,13 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef ELFOSABI_NONE
 # define ELFOSABI_NONE 0
 #endif
+
 #ifndef ELFOSABI_LINUX
 # define ELFOSABI_LINUX 3
+#endif
+
+#ifndef SHN_XINDEX
+# define SHN_XINDEX 0xffff
 #endif
 
 
@@ -479,7 +484,6 @@ validate_file (lto_elf_file *elf_file)
       error ("could not read ELF identification information: %s",
 	      elf_errmsg (0));
       return false;
-	     
     }
 
   if (!cached_file_attrs.initialized)
@@ -522,7 +526,10 @@ validate_file (lto_elf_file *elf_file)
 
       if (memcmp (elf_ident_buf, cached_file_attrs.elf_ident,
 		  sizeof cached_file_attrs.elf_ident))
-	return false;
+	{
+	  error ("incompatible ELF identification");
+	  return false;
+	}
     }
 
   /* Check that the input file is a relocatable object file with the correct
@@ -672,7 +679,7 @@ lto_obj_file_open (const char *filename, bool writable)
 			     NULL);
   if (!elf_file->elf)
     {
-      error ("could not open ELF file: %s", elf_errmsg (0));
+      error ("could not open %s as an ELF file: %s", fname, elf_errmsg (0));
       goto fail;
     }
 

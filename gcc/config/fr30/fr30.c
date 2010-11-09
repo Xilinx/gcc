@@ -172,6 +172,9 @@ static void fr30_trampoline_init (rtx, tree, rtx);
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT fr30_trampoline_init
 
+#undef TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO sjlj_except_unwind_info
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 
@@ -844,9 +847,8 @@ fr30_move_double (rtx * operands)
       else if (src_code == MEM)
 	{
 	  rtx addr = XEXP (src, 0);
-	  int dregno = REGNO (dest);
-	  rtx dest0 = operand_subword (dest, 0, TRUE, mode);;
-	  rtx dest1 = operand_subword (dest, 1, TRUE, mode);;
+	  rtx dest0 = operand_subword (dest, 0, TRUE, mode);
+	  rtx dest1 = operand_subword (dest, 1, TRUE, mode);
 	  rtx new_mem;
 	  
 	  gcc_assert (GET_CODE (addr) == REG);

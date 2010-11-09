@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for ARM.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Pieter `Tiggr' Schoenmakers (rcpieter@win.tue.nl)
    and Martin Simmons (@harleqn.co.uk).
@@ -125,6 +125,24 @@ enum target_cpus
 
 /* The processor for which instructions should be scheduled.  */
 extern enum processor_type arm_tune;
+
+enum arm_sync_generator_tag
+  {
+    arm_sync_generator_omn,
+    arm_sync_generator_omrn
+  };
+
+/* Wrapper to pass around a polymorphic pointer to a sync instruction
+   generator and.  */
+struct arm_sync_generator
+{
+  enum arm_sync_generator_tag op;
+  union
+  {
+    rtx (* omn) (rtx, rtx, rtx);
+    rtx (* omrn) (rtx, rtx, rtx, rtx);
+  } u;
+};
 
 typedef enum arm_cond_code
 {
@@ -270,6 +288,20 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
    for Thumb-2.  */
 #define TARGET_UNIFIED_ASM TARGET_THUMB2
 
+/* Nonzero if this chip provides the DMB instruction.  */
+#define TARGET_HAVE_DMB		(arm_arch7)
+
+/* Nonzero if this chip implements a memory barrier via CP15.  */
+#define TARGET_HAVE_DMB_MCR	(arm_arch6k && ! TARGET_HAVE_DMB)
+
+/* Nonzero if this chip implements a memory barrier instruction.  */
+#define TARGET_HAVE_MEMORY_BARRIER (TARGET_HAVE_DMB || TARGET_HAVE_DMB_MCR)
+
+/* Nonzero if this chip supports ldrex and strex */
+#define TARGET_HAVE_LDREX	((arm_arch6 && TARGET_ARM) || arm_arch7)
+
+/* Nonzero if this chip supports ldrex{bhd} and strex{bhd}.  */
+#define TARGET_HAVE_LDREXBHD	((arm_arch6k && TARGET_ARM) || arm_arch7)
 
 /* True iff the full BPABI is being used.  If TARGET_BPABI is true,
    then TARGET_AAPCS_BASED must be true -- but the converse does not
@@ -403,6 +435,12 @@ extern int arm_arch5e;
 /* Nonzero if this chip supports the ARM Architecture 6 extensions.  */
 extern int arm_arch6;
 
+/* Nonzero if this chip supports the ARM Architecture 6k extensions.  */
+extern int arm_arch6k;
+
+/* Nonzero if this chip supports the ARM Architecture 7 extensions.  */
+extern int arm_arch7;
+
 /* Nonzero if instructions not present in the 'M' profile can be used.  */
 extern int arm_arch_notm;
 
@@ -459,11 +497,6 @@ extern int arm_arch_hwdiv;
 /* The frame pointer register used in gcc has nothing to do with debugging;
    that is controlled by the APCS-FRAME option.  */
 #define CAN_DEBUG_WITHOUT_FP
-
-#define OVERRIDE_OPTIONS  arm_override_options ()
-
-#define OPTIMIZATION_OPTIONS(LEVEL,SIZE)		\
-	arm_optimization_options ((LEVEL), (SIZE))
 
 /* Nonzero if PIC code requires explicit qualifiers to generate
    PLT and GOT relocs rather than the assembler doing so implicitly.
@@ -542,12 +575,6 @@ extern int arm_arch_hwdiv;
 
 #define UNITS_PER_WORD	4
 
-/* Use the option -mvectorize-with-neon-quad to override the use of doubleword
-   registers when autovectorizing for Neon, at least until multiple vector
-   widths are supported properly by the middle-end.  */
-#define UNITS_PER_SIMD_WORD(MODE) \
-  (TARGET_NEON ? (TARGET_NEON_VECTORIZE_QUAD ? 16 : 8) : UNITS_PER_WORD)
-
 /* True if natural alignment is used for doubleword types.  */
 #define ARM_DOUBLEWORD_ALIGN	TARGET_AAPCS_BASED
 
@@ -590,15 +617,21 @@ extern int arm_arch_hwdiv;
 /* Align definitions of arrays, unions and structures so that
    initializations and copies can be made more efficient.  This is not
    ABI-changing, so it only affects places where we can see the
-   definition.  */
-#define DATA_ALIGNMENT(EXP, ALIGN)					\
-  ((((ALIGN) < BITS_PER_WORD)                                           \
+   definition. Increasing the alignment tends to introduce padding,
+   so don't do this when optimizing for size/conserving stack space. */
+#define ARM_EXPAND_ALIGNMENT(COND, EXP, ALIGN)				\
+  (((COND) && ((ALIGN) < BITS_PER_WORD)					\
     && (TREE_CODE (EXP) == ARRAY_TYPE					\
 	|| TREE_CODE (EXP) == UNION_TYPE				\
 	|| TREE_CODE (EXP) == RECORD_TYPE)) ? BITS_PER_WORD : (ALIGN))
 
+/* Align global data. */
+#define DATA_ALIGNMENT(EXP, ALIGN)			\
+  ARM_EXPAND_ALIGNMENT(!optimize_size, EXP, ALIGN)
+
 /* Similarly, make sure that objects on the stack are sensibly aligned.  */
-#define LOCAL_ALIGNMENT(EXP, ALIGN) DATA_ALIGNMENT(EXP, ALIGN)
+#define LOCAL_ALIGNMENT(EXP, ALIGN)				\
+  ARM_EXPAND_ALIGNMENT(!flag_conserve_stack, EXP, ALIGN)
 
 /* Setting STRUCTURE_SIZE_BOUNDARY to 32 produces more efficient code, but the
    value set in previous versions of this toolchain was 8, which produces more
@@ -921,13 +954,10 @@ extern int arm_structure_size_boundary;
 #define FIRST_HI_REGNUM		8
 #define LAST_HI_REGNUM		11
 
-#ifndef TARGET_UNWIND_INFO
-/* We use sjlj exceptions for backwards compatibility.  */
-#define MUST_USE_SJLJ_EXCEPTIONS 1
+/* Overridden by config/arm/bpabi.h.  */
+#ifndef ARM_UNWIND_INFO
+#define ARM_UNWIND_INFO  0
 #endif
-
-/* We can generate DWARF2 Unwind info, even though we don't use it.  */
-#define DWARF2_UNWIND_INFO 1
 
 /* Use r0 and r1 to pass exception handling information.  */
 #define EH_RETURN_DATA_REGNO(N) (((N) < 2) ? N : INVALID_REGNUM)
@@ -964,6 +994,9 @@ extern int arm_structure_size_boundary;
   (TARGET_ARM					\
    ? ARM_HARD_FRAME_POINTER_REGNUM		\
    : THUMB_HARD_FRAME_POINTER_REGNUM)
+
+#define HARD_FRAME_POINTER_IS_FRAME_POINTER 0
+#define HARD_FRAME_POINTER_IS_ARG_POINTER 0
 
 #define FP_REGNUM	                HARD_FRAME_POINTER_REGNUM
 
@@ -1218,8 +1251,8 @@ enum reg_class
   { 0x0000DF00, 0x00000000, 0x00000000, 0x00000000 }, /* HI_REGS */	\
   { 0x01000000, 0x00000000, 0x00000000, 0x00000000 }, /* CC_REG */	\
   { 0x00000000, 0x00000000, 0x00000000, 0x80000000 }, /* VFPCC_REG */	\
-  { 0x0200DFFF, 0x00000000, 0x00000000, 0x00000000 }, /* GENERAL_REGS */ \
-  { 0x0200FFFF, 0x00000000, 0x00000000, 0x00000000 }, /* CORE_REGS */	\
+  { 0x0000DFFF, 0x00000000, 0x00000000, 0x00000000 }, /* GENERAL_REGS */ \
+  { 0x0000FFFF, 0x00000000, 0x00000000, 0x00000000 }, /* CORE_REGS */	\
   { 0xFAFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x7FFFFFFF }  /* ALL_REGS */	\
 }
 
@@ -1256,13 +1289,6 @@ enum reg_class
    ? reg_classes_intersect_p (FPA_REGS, (CLASS))	\
      || reg_classes_intersect_p (VFP_REGS, (CLASS))	\
    : 0)
-
-/* We need to define this for LO_REGS on thumb.  Otherwise we can end up
-   using r0-r4 for function arguments, r7 for the stack frame and don't
-   have enough left over to do doubleword arithmetic.  */
-#define CLASS_LIKELY_SPILLED_P(CLASS)	\
-    ((TARGET_THUMB && (CLASS) == LO_REGS)	\
-     || (CLASS) == CC_REG)
 
 /* The class value for index registers, and the one for base regs.  */
 #define INDEX_REG_CLASS  (TARGET_THUMB1 ? LO_REGS : GENERAL_REGS)
@@ -1699,27 +1725,6 @@ typedef struct
   MACHMODE aapcs_vfp_rmode;
 } CUMULATIVE_ARGS;
 
-/* Define where to put the arguments to a function.
-   Value is zero to push the argument on the stack,
-   or a hard register in which to store the argument.
-
-   MODE is the argument's machine mode.
-   TYPE is the data type of the argument (as a tree).
-    This is null for libcalls where that information may
-    not be available.
-   CUM is a variable of type CUMULATIVE_ARGS which gives info about
-    the preceding args and about the function being called.
-   NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).
-
-   On the ARM, normally the first 16 bytes are passed in registers r0-r3; all
-   other arguments are passed on the stack.  If (NAMED == 0) (which happens
-   only in assign_parms, since TARGET_SETUP_INCOMING_VARARGS is
-   defined), say it is passed in the stack (function_prologue will
-   indeed make it pass in the stack if necessary).  */
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  arm_function_arg (&(CUM), (MODE), (TYPE), (NAMED))
-
 #define FUNCTION_ARG_PADDING(MODE, TYPE) \
   (arm_pad_arg_upward (MODE, TYPE) ? upward : downward)
 
@@ -1737,12 +1742,6 @@ typedef struct
    On the ARM, the offset starts at 0.  */
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, FNDECL, N_NAMED_ARGS) \
   arm_init_cumulative_args (&(CUM), (FNTYPE), (LIBNAME), (FNDECL))
-
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  */
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
-  arm_function_arg_advance (&(CUM), (MODE), (TYPE), (NAMED))
 
 /* If defined, a C expression that gives the alignment boundary, in bits, of an
    argument with the specified mode and type.  If it is not defined,
@@ -2039,13 +2038,6 @@ typedef struct
 #endif
 
 #define ARM_OUTPUT_FN_UNWIND(F, PROLOGUE) arm_output_fn_unwind (F, PROLOGUE)
-
-#ifdef TARGET_UNWIND_INFO
-#define ARM_EABI_UNWIND_TABLES \
-  ((!USING_SJLJ_EXCEPTIONS && flag_exceptions) || flag_unwind_tables)
-#else
-#define ARM_EABI_UNWIND_TABLES 0
-#endif
 
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx
    and check its validity for a certain class.
@@ -2425,10 +2417,6 @@ extern int making_const_table;
        ? ((~ (unsigned HOST_WIDE_INT) 0)			\
 	  & ~ (unsigned HOST_WIDE_INT) 0xffffffff)		\
        : 0))))
-
-#define OUTPUT_ADDR_CONST_EXTRA(file, x, fail)		\
-  if (arm_output_addr_const_extra (file, x) == FALSE)	\
-    goto fail
 
 /* A C expression whose value is RTL representing the value of the return
    address for the frame COUNT steps up from the current frame.  */

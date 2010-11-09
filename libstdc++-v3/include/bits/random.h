@@ -28,6 +28,9 @@
  *  You should not attempt to use it directly.
  */
 
+#ifndef _RANDOM_H
+#define _RANDOM_H 1
+
 #include <vector>
 
 namespace std
@@ -4695,7 +4698,7 @@ namespace std
 
 	param_type()
 	: _M_prob(), _M_cp()
-	{ _M_initialize(); }
+	{ }
 
 	template<typename _InputIterator>
 	  param_type(_InputIterator __wbegin,
@@ -4711,9 +4714,13 @@ namespace std
 	  param_type(size_t __nw, double __xmin, double __xmax,
 		     _Func __fw);
 
+	// See: http://cpp-next.com/archive/2010/10/implicit-move-must-go/
+	param_type(const param_type&) = default;
+	param_type& operator=(const param_type&) = default;
+
 	std::vector<double>
 	probabilities() const
-	{ return _M_prob; }
+	{ return _M_prob.empty() ? std::vector<double>(1, 1.0) : _M_prob; }
 
 	friend bool
 	operator==(const param_type& __p1, const param_type& __p2)
@@ -4764,7 +4771,10 @@ namespace std
        */
       std::vector<double>
       probabilities() const
-      { return _M_param.probabilities(); }
+      {
+	return _M_param._M_prob.empty()
+	  ? std::vector<double>(1, 1.0) : _M_param._M_prob;
+      }
 
       /**
        * @brief Returns the parameter set of the distribution.
@@ -4793,7 +4803,10 @@ namespace std
        */
       result_type
       max() const
-      { return this->_M_param._M_prob.size() - 1; }
+      {
+	return _M_param._M_prob.empty()
+	  ? result_type(0) : result_type(_M_param._M_prob.size() - 1);
+      }
 
       /**
        * @brief Generating functions.
@@ -4887,7 +4900,7 @@ namespace std
 
 	param_type()
 	: _M_int(), _M_den(), _M_cp()
-	{ _M_initialize(); }
+	{ }
 
 	template<typename _InputIteratorB, typename _InputIteratorW>
 	  param_type(_InputIteratorB __bfirst,
@@ -4901,13 +4914,26 @@ namespace std
 	  param_type(size_t __nw, _RealType __xmin, _RealType __xmax,
 		     _Func __fw);
 
+	// See: http://cpp-next.com/archive/2010/10/implicit-move-must-go/
+	param_type(const param_type&) = default;
+	param_type& operator=(const param_type&) = default;
+
 	std::vector<_RealType>
 	intervals() const
-	{ return _M_int; }
+	{
+	  if (_M_int.empty())
+	    {
+	      std::vector<_RealType> __tmp(2);
+	      __tmp[1] = _RealType(1);
+	      return __tmp;
+	    }
+	  else
+	    return _M_int;
+	}
 
 	std::vector<double>
 	densities() const
-	{ return _M_den; }
+	{ return _M_den.empty() ? std::vector<double>(1, 1.0) : _M_den; }
 
 	friend bool
 	operator==(const param_type& __p1, const param_type& __p2)
@@ -4964,14 +4990,26 @@ namespace std
        */
       std::vector<_RealType>
       intervals() const
-      { return _M_param.intervals(); }
+      {
+	if (_M_param._M_int.empty())
+	  {
+	    std::vector<_RealType> __tmp(2);
+	    __tmp[1] = _RealType(1);
+	    return __tmp;
+	  }
+	else
+	  return _M_param._M_int;
+      }
 
       /**
        * @brief Returns a vector of the probability densities.
        */
       std::vector<double>
       densities() const
-      { return _M_param.densities(); }
+      {
+	return _M_param._M_den.empty()
+	  ? std::vector<double>(1, 1.0) : _M_param._M_den;
+      }
 
       /**
        * @brief Returns the parameter set of the distribution.
@@ -4993,14 +5031,20 @@ namespace std
        */
       result_type
       min() const
-      { return this->_M_param._M_int.front(); }
+      {
+	return _M_param._M_int.empty()
+	  ? result_type(0) : _M_param._M_int.front();
+      }
 
       /**
        * @brief Returns the least upper bound value of the distribution.
        */
       result_type
       max() const
-      { return this->_M_param._M_int.back(); }
+      {
+	return _M_param._M_int.empty()
+	  ? result_type(1) : _M_param._M_int.back();
+      }
 
       /**
        * @brief Generating functions.
@@ -5095,7 +5139,7 @@ namespace std
 
 	param_type()
 	: _M_int(), _M_den(), _M_cp(), _M_m()
-	{ _M_initialize(); }
+	{ }
 
 	template<typename _InputIteratorB, typename _InputIteratorW>
 	  param_type(_InputIteratorB __bfirst,
@@ -5109,13 +5153,26 @@ namespace std
 	  param_type(size_t __nw, _RealType __xmin, _RealType __xmax,
 		     _Func __fw);
 
+	// See: http://cpp-next.com/archive/2010/10/implicit-move-must-go/
+	param_type(const param_type&) = default;
+	param_type& operator=(const param_type&) = default;
+
 	std::vector<_RealType>
 	intervals() const
-	{ return _M_int; }
+	{
+	  if (_M_int.empty())
+	    {
+	      std::vector<_RealType> __tmp(2);
+	      __tmp[1] = _RealType(1);
+	      return __tmp;
+	    }
+	  else
+	    return _M_int;
+	}
 
 	std::vector<double>
 	densities() const
-	{ return _M_den; }
+	{ return _M_den.empty() ? std::vector<double>(2, 1.0) : _M_den; }
 
 	friend bool
 	operator==(const param_type& __p1, const param_type& __p2)
@@ -5174,7 +5231,16 @@ namespace std
        */
       std::vector<_RealType>
       intervals() const
-      { return _M_param.intervals(); }
+      {
+	if (_M_param._M_int.empty())
+	  {
+	    std::vector<_RealType> __tmp(2);
+	    __tmp[1] = _RealType(1);
+	    return __tmp;
+	  }
+	else
+	  return _M_param._M_int;
+      }
 
       /**
        * @brief Return a vector of the probability densities of the
@@ -5182,7 +5248,10 @@ namespace std
        */
       std::vector<double>
       densities() const
-      { return _M_param.densities(); }
+      {
+	return _M_param._M_den.empty()
+	  ? std::vector<double>(2, 1.0) : _M_param._M_den;
+      }
 
       /**
        * @brief Returns the parameter set of the distribution.
@@ -5204,14 +5273,20 @@ namespace std
        */
       result_type
       min() const
-      { return this->_M_param._M_int.front(); }
+      {
+	return _M_param._M_int.empty()
+	  ? result_type(0) : _M_param._M_int.front();
+      }
 
       /**
        * @brief Returns the least upper bound value of the distribution.
        */
       result_type
       max() const
-      { return this->_M_param._M_int.back(); }
+      {
+	return _M_param._M_int.empty()
+	  ? result_type(1) : _M_param._M_int.back();
+      }
 
       /**
        * @brief Generating functions.
@@ -5337,6 +5412,6 @@ namespace std
   /* @} */ // group random_utilities
 
   /* @} */ // group random
-
 }
 
+#endif

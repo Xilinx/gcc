@@ -351,6 +351,7 @@ funcs="$funcs vprintf"
 funcs="$funcs vsnprintf"
 funcs="$funcs vsprintf"
 funcs="$funcs waitpid"
+funcs="$funcs setproctitle"
 
 # Also in the old function.def file: alloca, vfork, getopt.
 
@@ -373,7 +374,8 @@ if test "x" = "y"; then
     on_exit \
     psignal pstat_getdynamic pstat_getstatic putenv \
     random realpath rename rindex \
-    sbrk setenv sigsetmask snprintf stpcpy stpncpy strcasecmp strchr strdup \
+    sbrk setenv setproctitle sigsetmask snprintf stpcpy stpncpy strcasecmp strchr \
+    strdup \
      strerror strncasecmp strndup strrchr strsignal strstr strtod strtol \
      strtoul strverscmp sysconf sysctl sysmp \
     table times tmpnam \
@@ -533,6 +535,16 @@ fi
 AC_SUBST(CHECK)
 AC_SUBST(target_header_dir)
 
+# check for prctl PR_SET_NAME
+AC_LINK_IFELSE([AC_LANG_SOURCE([[
+#include <sys/prctl.h>
+int main()
+{
+  return (prctl(PR_SET_NAME, "foo") == 0) ? 0 : 1;
+}
+]])], AC_DEFINE(HAVE_PRCTL_SET_NAME, 1,
+	[Define if you have prctl PR_SET_NAME]))
+
 case "${host}" in
   *-*-cygwin* | *-*-mingw*)
     AC_DEFINE(HAVE_SYS_ERRLIST)
@@ -671,10 +683,10 @@ fi
 
 # Figure out which version of pexecute to use.
 case "${host}" in
-     *-*-mingw* | *-*-winnt*)	pexecute=./pex-win32.o  ;;
-     *-*-msdosdjgpp*)		pexecute=./pex-djgpp.o  ;;
-     *-*-msdos*)		pexecute=./pex-msdos.o  ;;
-     *)				pexecute=./pex-unix.o   ;;
+     *-*-mingw* | *-*-winnt*)	pexecute=pex-win32  ;;
+     *-*-msdosdjgpp*)		pexecute=pex-djgpp  ;;
+     *-*-msdos*)		pexecute=pex-msdos  ;;
+     *)				pexecute=pex-unix   ;;
 esac
 AC_SUBST(pexecute)
 

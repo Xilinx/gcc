@@ -32,6 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "cp-objcp-common.h"
 #include "hashtab.h"
+#include "target.h"
 
 enum c_language_kind c_language = clk_cxx;
 static void cp_init_ts (void);
@@ -165,16 +166,8 @@ cp_eh_personality (void)
 {
   if (!cp_eh_personality_decl)
     {
-      if (!pragma_java_exceptions)
-	cp_eh_personality_decl
-	  = build_personality_function (USING_SJLJ_EXCEPTIONS
-					? "__gxx_personality_sj0"
-					: "__gxx_personality_v0");
-      else
-	cp_eh_personality_decl
-	  = build_personality_function (USING_SJLJ_EXCEPTIONS
-					? "__gcj_personality_sj0"
-					: "__gcj_personality_v0");
+      const char *lang = (pragma_java_exceptions ? "gcj" : "gxx");
+      cp_eh_personality_decl = build_personality_function (lang);
     }
 
   return cp_eh_personality_decl;

@@ -145,12 +145,28 @@ DEFHOOK
  void, (FILE *stream),
  default_emit_except_table_label)
 
+/* Emit a directive for setting the personality for the function.  */
+DEFHOOK
+(emit_except_personality,
+ "If the target implements @code{TARGET_ASM_UNWIND_EMIT}, this hook may be\
+ used to emit a directive to install a personality hook into the unwind\
+ info.  This hook should not be used if dwarf2 unwind info is used.",
+ void, (rtx personality),
+ NULL)
+
 /* Emit any directives required to unwind this instruction.  */
 DEFHOOK
 (unwind_emit,
  "",
  void, (FILE *stream, rtx insn),
  NULL)
+
+DEFHOOKPOD
+(unwind_emit_before_insn,
+ "True if the @code{TARGET_ASM_UNWIND_EMIT} hook should be called before\
+ the assembly for @var{insn} has been emitted, false if the hook should\
+ be called afterward.",
+ bool, true)
 
 /* Output an internal label.  */
 DEFHOOK
@@ -414,6 +430,12 @@ DEFHOOK
  for the file format in use is appropriate.",
  void ,(FILE *file, const char *name),
  default_asm_output_source_filename)
+
+DEFHOOK
+(output_addr_const_extra,
+ "",
+ bool, (FILE *file, rtx x),
+ default_asm_output_addr_const_extra)
 
 /* ??? The TARGET_PRINT_OPERAND* hooks are part of the asm_out struct,
    even though that is not reflected in the macro name to override their
@@ -755,6 +777,24 @@ DEFHOOK
  "",
  int, (struct ddg *g), NULL)
 
+/* The following member value is a function that initializes dispatch
+   schedling and adds instructions to dispatch window according to its
+   parameters.  */
+DEFHOOK
+(dispatch_do,
+"",
+void, (rtx insn, int x),
+hook_void_rtx_int)
+
+/* The following member value is a a function that returns true is
+   dispatch schedling is supported in hardware and condition passed
+   as the second parameter is true.  */
+DEFHOOK
+(dispatch,
+"",
+bool, (rtx insn, int x),
+hook_bool_rtx_int_false)
+
 HOOK_VECTOR_END (sched)
 
 /* Functions relating to vectorization.  */
@@ -839,6 +879,24 @@ DEFHOOK
  bool,
  (enum machine_mode mode, const_tree type, int misalignment, bool is_packed),
  default_builtin_support_vector_misalignment)
+
+/* Returns the preferred mode for SIMD operations for the specified
+   scalar mode.  */
+DEFHOOK
+(preferred_simd_mode,
+ "",
+ enum machine_mode,
+ (enum machine_mode mode),
+ default_preferred_simd_mode)
+
+/* Returns a mask of vector sizes to iterate over when auto-vectorizing
+   after processing the preferred one derived from preferred_simd_mode.  */
+DEFHOOK
+(autovectorize_vector_sizes,
+ "",
+ unsigned int,
+ (void),
+ default_autovectorize_vector_sizes)
 
 HOOK_VECTOR_END (vectorize)
 
@@ -1631,6 +1689,16 @@ DEFHOOK
  tree, (void),
  default_external_stack_protect_fail)
 
+DEFHOOK
+(supports_split_stack,
+ "Whether this target supports splitting the stack.  This is called\
+ after options have been parsed, so the target may reject splitting\
+ the stack in some configurations.  The default version of this hook\
+ returns false.  If @var{report} is true, this function may issue a warning\
+ or error; if @var{report} is false, it must simply return a value",
+ bool, (bool),
+ hook_bool_bool_false)
+
 /* Returns NULL if target supports the insn within a doloop block,
    otherwise it returns an error message.  */
 DEFHOOK
@@ -1782,7 +1850,7 @@ DEFHOOK_UNDOC
 DEFHOOK_UNDOC
 (function_arg,
  "",
- rtx, (const CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
+ rtx, (CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
        bool named),
  default_function_arg)
 
@@ -1792,7 +1860,7 @@ DEFHOOK_UNDOC
 DEFHOOK_UNDOC
 (function_incoming_arg,
  "",
- rtx, (const CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
+ rtx, (CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
        bool named),
  default_function_incoming_arg)
 
@@ -1964,6 +2032,30 @@ DEFHOOK
  (bool in_p, rtx x, reg_class_t reload_class, enum machine_mode reload_mode,
   secondary_reload_info *sri),
  default_secondary_reload)
+
+/* Given an rtx X being reloaded into a reg required to be in class CLASS,
+   return the class of reg to actually use.  */
+DEFHOOK
+(preferred_reload_class,
+ "",
+ reg_class_t,
+ (rtx x, reg_class_t rclass),
+ default_preferred_reload_class)
+
+/* Like TARGET_PREFERRED_RELOAD_CLASS, but for output reloads instead of
+   input reloads.  */
+DEFHOOK
+(preferred_output_reload_class,
+ "",
+ reg_class_t,
+ (rtx x, reg_class_t rclass),
+ default_preferred_output_reload_class)
+
+DEFHOOK
+(class_likely_spilled_p,
+ "",
+ bool, (reg_class_t rclass),
+ default_class_likely_spilled_p)
 
 /* This target hook allows the backend to perform additional
    processing while initializing for variable expansion.  */
@@ -2257,7 +2349,27 @@ DEFHOOK
 (override,
  "",
  void, (void),
- default_target_option_override)
+ hook_void_void)
+
+/* Set default optimizations for the target.  */
+DEFHOOK
+(optimization,
+ "",
+ void, (int level, int size),
+ hook_void_int_int)
+
+DEFHOOK
+(default_params,
+"Set target-dependent default values for @option{--param} settings, using\
+ calls to @code{set_default_param_value}.",
+ void, (void),
+ hook_void_void)
+
+DEFHOOK
+(init_struct,
+"Set target-dependent initial values of fields in @var{opts}.",
+ void, (struct gcc_options *opts),
+ hook_void_gcc_optionsp)
 
 /* Function to determine if one function can inline another function.  */
 #undef HOOK_PREFIX
@@ -2278,6 +2390,20 @@ DEFHOOK
  "",
  void, (bitmap regs),
  hook_void_bitmap)
+
+/* Determine the type of unwind info to emit for debugging.  */
+DEFHOOK
+(debug_unwind_info,
+ "",
+ enum unwind_info_type, (void),
+ default_debug_unwind_info)
+
+/* Determine the type of unwind info to emit for exceptions.  */
+DEFHOOK
+(except_unwind_info,
+ "",
+ enum unwind_info_type, (void),
+ default_except_unwind_info)
 
 /* Leave the boolean fields at the end.  */
 

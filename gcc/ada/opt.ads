@@ -64,15 +64,21 @@ package Opt is
    --  GNATBIND, GNATLINK
    --  Set True if binder file to be generated in Ada rather than C
 
-   type Ada_Version_Type is (Ada_83, Ada_95, Ada_05, Ada_12);
+   type Ada_Version_Type is (Ada_83, Ada_95, Ada_2005, Ada_2012);
+   pragma Ordered (Ada_Version_Type);
    --  Versions of Ada for Ada_Version below. Note that these are ordered,
    --  so that tests like Ada_Version >= Ada_95 are legitimate and useful.
+   --  Think twice before using "="; Ada_Version >= Ada_2012 is more likely
+   --  what you want, because it will apply to future versions of the language.
 
-   Ada_Version_Default : constant Ada_Version_Type := Ada_05;
+   Ada_Version_Default : constant Ada_Version_Type := Ada_2005;
    pragma Warnings (Off, Ada_Version_Default);
    --  GNAT
    --  Default Ada version if no switch given. The Warnings off is to kill
    --  constant condition warnings.
+   --
+   --  WARNING: some scripts rely on the format of this line of code. Any
+   --  change must be coordinated with the scripts requirements.
 
    Ada_Version : Ada_Version_Type := Ada_Version_Default;
    --  GNAT
@@ -89,7 +95,7 @@ package Opt is
    --  the rare cases (notably for pragmas Preelaborate_05 and Pure_05)
    --  where in the run-time we want the explicit version set.
 
-   Ada_Version_Runtime : Ada_Version_Type := Ada_12;
+   Ada_Version_Runtime : Ada_Version_Type := Ada_2012;
    --  GNAT
    --  Ada version used to compile the runtime. Used to set Ada_Version (but
    --  not Ada_Version_Explicit) when compiling predefined or internal units.
@@ -723,6 +729,11 @@ package Opt is
    --  Set to True to skip compile and bind steps (except when Bind_Only is
    --  set to True).
 
+   List_Inherited_Pre_Post : Boolean := True;
+   --  GNAT
+   --  List inherited preconditions and postconditions from Pre'Class and
+   --  Post'Class aspects for ancestor subprograms.
+
    List_Restrictions : Boolean := False;
    --  GNATBIND
    --  Set to True to list restrictions pragmas that could apply to partition
@@ -906,6 +917,12 @@ package Opt is
    --  GNATMAKE
    --  Set to True when an object directory is specified with option -D
 
+   One_Compilation_Per_Obj_Dir : Boolean := False;
+   --  GNATMAKE, GPRBUILD
+   --  Set to True with switch --single-compile-per-obj-dir. When True, there
+   --  cannot be simultaneous compilations with the object files in the same
+   --  object directory, if project files are used.
+
    type Operating_Mode_Type is (Check_Syntax, Check_Semantics, Generate_Code);
    Operating_Mode : Operating_Mode_Type := Generate_Code;
    --  GNAT
@@ -1078,7 +1095,12 @@ package Opt is
    --  GNAT
    --  Set True if a pragma Short_Circuit_And_Or applies to the current unit.
 
+   Short_Descriptors : Boolean := False;
+   --  GNAT
+   --  Set True if a pragma Short_Descriptors applies to the current unit.
+
    Sprint_Line_Limit : Nat := 72;
+   --  GNAT
    --  Limit values for chopping long lines in Sprint output, can be reset
    --  by use of NNN parameter with -gnatG or -gnatD switches.
 
@@ -1295,6 +1317,7 @@ package Opt is
    --  information sent to standard output, also header, copyright and summary)
 
    type Verbosity_Level_Type is (None, Low, Medium, High);
+   pragma Ordered (Verbosity_Level_Type);
    Verbosity_Level : Verbosity_Level_Type := High;
    --  GNATMAKE, GPRMAKE
    --  Modified by gnatmake or gprmake switches -v, -vl, -vm, -vh. Indicates
@@ -1313,6 +1336,12 @@ package Opt is
    --  GNAT
    --  Set to True to generate all warnings on Ada 2005 compatibility issues,
    --  including warnings on Ada 2005 obsolescent features used in Ada 2005
+   --  mode. Set False by -gnatwY.
+
+   Warn_On_Ada_2012_Compatibility : Boolean := True;
+   --  GNAT
+   --  Set to True to generate all warnings on Ada 2012 compatibility issues,
+   --  including warnings on Ada 2012 obsolescent features used in Ada 2012
    --  mode. Set False by -gnatwY.
 
    Warn_On_Parameter_Order : Boolean := False;
@@ -1445,6 +1474,13 @@ package Opt is
    --  Set to True to generate warnings for unchecked conversions that may have
    --  non-portable semantics (e.g. because sizes of types differ). The default
    --  is that this warning is enabled.
+
+   Warn_On_Unordered_Enumeration_Type : Boolean := False;
+   --  GNAT
+   --  Set to True to generate warnings for inappropriate uses (comparisons
+   --  and explicit ranges) on unordered enumeration types (which includes
+   --  all enumeration types for which pragma Ordered is not given). The
+   --  default is that this warning is disabled.
 
    Warn_On_Unrecognized_Pragma : Boolean := True;
    --  GNAT
@@ -1632,6 +1668,14 @@ package Opt is
    --  flag is used to set the initial value for Polling_Required at the start
    --  of analyzing each unit.
 
+   Short_Descriptors_Config : Boolean;
+   --  GNAT
+   --  This is the value of the configuration switch that controls the use of
+   --  Short_Descriptors for setting descriptor default sizes. It can be set
+   --  True by the use of the pragma Short_Descriptors in the gnat.adc file.
+   --  This flag is used to set the initial value for Short_Descriptors at the
+   --  start of analyzing each unit.
+
    Use_VADS_Size_Config : Boolean;
    --  GNAT
    --  This is the value of the configuration switch that controls the use of
@@ -1761,6 +1805,7 @@ private
       Optimize_Alignment_Local       : Boolean;
       Persistent_BSS_Mode            : Boolean;
       Polling_Required               : Boolean;
+      Short_Descriptors              : Boolean;
       Use_VADS_Size                  : Boolean;
    end record;
 

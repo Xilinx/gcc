@@ -157,11 +157,10 @@ warning_as_error_callback (int option_index)
 	break;
 
       case OPT_Wdeprecated:
-	cpp_opts->warn_deprecated = 1;
+	cpp_opts->cpp_warn_deprecated = 1;
 	break;
 
       case OPT_Wcomment:
-      case OPT_Wcomments:
 	cpp_opts->warn_comments = 1;
 	break;
 
@@ -174,11 +173,11 @@ warning_as_error_callback (int option_index)
 	break;
 
       case OPT_Wtraditional:
-	cpp_opts->warn_traditional = 1;
+	cpp_opts->cpp_warn_traditional = 1;
 	break;
 
       case OPT_Wlong_long:
-	cpp_opts->warn_long_long = 1;
+	cpp_opts->cpp_warn_long_long = 1;
 	break;
 
       case OPT_Wendif_labels:
@@ -274,6 +273,19 @@ c_common_complain_wrong_lang_p (const struct cl_option *option)
   return true;
 }
 
+/* Initialize options structure OPTS.  */
+void
+c_common_init_options_struct (struct gcc_options *opts)
+{
+  opts->x_flag_exceptions = c_dialect_cxx ();
+  opts->x_warn_pointer_arith = c_dialect_cxx ();
+  opts->x_warn_write_strings = c_dialect_cxx ();
+  opts->x_flag_warn_unused_result = true;
+
+  /* By default, C99-like requirements for complex multiply and divide.  */
+  opts->x_flag_complex_method = 2;
+}
+
 /* Common initialization before calling option handlers.  */
 void
 c_common_init_options (unsigned int decoded_options_count,
@@ -294,14 +306,6 @@ c_common_init_options (unsigned int decoded_options_count,
   /* Reset to avoid warnings on internal definitions.  We set it just
      before passing on command-line options to cpplib.  */
   cpp_opts->warn_dollars = 0;
-
-  flag_exceptions = c_dialect_cxx ();
-  warn_pointer_arith = c_dialect_cxx ();
-  warn_write_strings = c_dialect_cxx();
-  flag_warn_unused_result = true;
-
-  /* By default, C99-like requirements for complex multiply and divide.  */
-  flag_complex_method = 2;
 
   deferred_opts = XNEWVEC (struct deferred_opt, decoded_options_count);
 
@@ -437,8 +441,9 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wall:
       warn_unused = value;
       set_Wformat (value);
-      handle_option (OPT_Wimplicit, NULL, value, c_family_lang_mask, kind,
-		     handlers);
+      handle_generated_option (&global_options, &global_options_set,
+			       OPT_Wimplicit, NULL, value,
+			       c_family_lang_mask, kind, handlers, global_dc);
       warn_char_subscripts = value;
       warn_missing_braces = value;
       warn_parentheses = value;
@@ -493,7 +498,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_Wcomment:
-    case OPT_Wcomments:
       cpp_opts->warn_comments = value;
       break;
 
@@ -510,7 +514,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_Wdeprecated:
-      cpp_opts->warn_deprecated = value;
+      cpp_opts->cpp_warn_deprecated = value;
       break;
 
     case OPT_Wendif_labels:
@@ -519,13 +523,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_Werror:
       global_dc->warning_as_error_requested = value;
-      break;
-
-    case OPT_Werror_implicit_function_declaration:
-      /* For backward compatibility, this is the same as
-	 -Werror=implicit-function-declaration.  */
-      enable_warning_as_error ("implicit-function-declaration", value,
-			       CL_C | CL_ObjC, handlers);
       break;
 
     case OPT_Wformat:
@@ -539,15 +536,15 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wimplicit:
       gcc_assert (value == 0 || value == 1);
       if (warn_implicit_int == -1)
-	handle_option (OPT_Wimplicit_int, NULL, value,
-		       c_family_lang_mask, kind, handlers);
+	handle_generated_option (&global_options, &global_options_set,
+				 OPT_Wimplicit_int, NULL, value,
+				 c_family_lang_mask, kind, handlers,
+				 global_dc);
       if (warn_implicit_function_declaration == -1)
-	handle_option (OPT_Wimplicit_function_declaration, NULL, value,
-		       c_family_lang_mask, kind, handlers);
-      break;
-
-    case OPT_Wimport:
-      /* Silently ignore for now.  */
+	handle_generated_option (&global_options, &global_options_set,
+				 OPT_Wimplicit_function_declaration, NULL,
+				 value, c_family_lang_mask, kind, handlers,
+				 global_dc);
       break;
 
     case OPT_Winvalid_pch:
@@ -580,7 +577,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_Wtraditional:
-      cpp_opts->warn_traditional = value;
+      cpp_opts->cpp_warn_traditional = value;
       break;
 
     case OPT_Wtrigraphs:
@@ -632,25 +629,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 	  flag_cond_mismatch = value;
 	  break;
 	}
-      /* Fall through.  */
-
-    case OPT_fall_virtual:
-    case OPT_falt_external_templates:
-    case OPT_fenum_int_equiv:
-    case OPT_fexternal_templates:
-    case OPT_fguiding_decls:
-    case OPT_fhonor_std:
-    case OPT_fhuge_objects:
-    case OPT_flabels_ok:
-    case OPT_fname_mangling_version_:
-    case OPT_fnew_abi:
-    case OPT_fnonnull_objects:
-    case OPT_fsquangle:
-    case OPT_fstrict_prototype:
-    case OPT_fthis_is_variable:
-    case OPT_fvtable_thunks:
-    case OPT_fxref:
-    case OPT_fvtable_gc:
       warning (0, "switch %qs is no longer supported", option->opt_text);
       break;
 
@@ -681,10 +659,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       constant_string_class_name = arg;
       break;
 
-    case OPT_fdefault_inline:
-      /* Ignore.  */
-      break;
-
     case OPT_fextended_identifiers:
       cpp_opts->extended_identifiers = value;
       break;
@@ -693,21 +667,12 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       flag_next_runtime = !value;
       break;
 
-    case OPT_fhandle_exceptions:
-      warning (0, "-fhandle-exceptions has been renamed -fexceptions (and is now on by default)");
-      flag_exceptions = value;
-      break;
-
     case OPT_fnext_runtime:
       flag_next_runtime = value;
       break;
 
     case OPT_foperator_names:
       cpp_opts->operator_names = value;
-      break;
-
-    case OPT_foptional_diags:
-      /* Ignore.  */
       break;
 
     case OPT_fpch_deps:
@@ -752,8 +717,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_ftemplate_depth_:
-      /* Kept for backwards compatibility.  */
-    case OPT_ftemplate_depth_eq:
       max_tinst_depth = value;
       break;
 
@@ -835,7 +798,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 	 is not overridden.  */
     case OPT_pedantic_errors:
     case OPT_pedantic:
-      cpp_opts->pedantic = 1;
+      cpp_opts->cpp_pedantic = 1;
       cpp_opts->warn_endif_labels = 1;
       if (warn_pointer_sign == -1)
 	warn_pointer_sign = 1;
@@ -847,11 +810,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_print_objc_runtime_info:
       print_struct_values = 1;
-      break;
-
-    case OPT_print_pch_checksum:
-      c_common_print_pch_checksum (stdout);
-      exit_after_options = true;
       break;
 
     case OPT_remap:
@@ -870,30 +828,23 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 	set_std_cxx0x (code == OPT_std_c__0x /* ISO */);
       break;
 
-    case OPT_std_c89:
     case OPT_std_c90:
-    case OPT_std_iso9899_1990:
     case OPT_std_iso9899_199409:
       if (!preprocessing_asm_p)
 	set_std_c89 (code == OPT_std_iso9899_199409 /* c94 */, true /* ISO */);
       break;
 
-    case OPT_std_gnu89:
     case OPT_std_gnu90:
       if (!preprocessing_asm_p)
 	set_std_c89 (false /* c94 */, false /* ISO */);
       break;
 
     case OPT_std_c99:
-    case OPT_std_c9x:
-    case OPT_std_iso9899_1999:
-    case OPT_std_iso9899_199x:
       if (!preprocessing_asm_p)
 	set_std_c99 (true /* ISO */);
       break;
 
     case OPT_std_gnu99:
-    case OPT_std_gnu9x:
       if (!preprocessing_asm_p)
 	set_std_c99 (false /* ISO */);
       break;
@@ -1373,7 +1324,7 @@ sanitize_cpp_opts (void)
   if (warn_long_long == -1)
     warn_long_long = ((pedantic || warn_traditional)
 		      && (c_dialect_cxx () ? cxx_dialect == cxx98 : !flag_isoc99));
-  cpp_opts->warn_long_long = warn_long_long;
+  cpp_opts->cpp_warn_long_long = warn_long_long;
 
   /* Similarly with -Wno-variadic-macros.  No check for c99 here, since
      this also turns off warnings about GCCs extension.  */
@@ -1440,7 +1391,7 @@ finish_options (void)
 	 conflict with the specified standard, and since a strictly
 	 conforming program cannot contain a '$', we do not condition
 	 their acceptance on the -std= setting.  */
-      cpp_opts->warn_dollars = (cpp_opts->pedantic && !cpp_opts->c99);
+      cpp_opts->warn_dollars = (cpp_opts->cpp_pedantic && !cpp_opts->c99);
 
       cb_file_change (parse_in,
 		      linemap_add (line_table, LC_RENAME, 0,

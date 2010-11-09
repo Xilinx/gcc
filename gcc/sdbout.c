@@ -495,6 +495,7 @@ plain_type_1 (tree type, int level)
   switch (TREE_CODE (type))
     {
     case VOID_TYPE:
+    case NULLPTR_TYPE:
       return T_VOID;
     case BOOLEAN_TYPE:
     case INTEGER_TYPE:
@@ -1484,7 +1485,7 @@ sdbout_finish (const char *main_filename ATTRIBUTE_UNUSED)
   size_t i;
   tree decl;
 
-  for (i = 0; VEC_iterate (tree, deferred_global_decls, i, decl); i++)
+  FOR_EACH_VEC_ELT (tree, deferred_global_decls, i, decl)
     sdbout_symbol (decl, 0);
 }
 

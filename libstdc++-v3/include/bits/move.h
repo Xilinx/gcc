@@ -50,31 +50,24 @@ _GLIBCXX_END_NAMESPACE
 #include <type_traits> // Brings in std::declval too.
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
-
-  /// identity
-  template<typename _Tp>
-    struct identity
-    {
-      typedef _Tp type;
-    };
-
+  
   /// forward (as per N2835)
   /// Forward lvalues as rvalues.
   template<typename _Tp>
     inline typename enable_if<!is_lvalue_reference<_Tp>::value, _Tp&&>::type
-    forward(typename std::identity<_Tp>::type& __t)
+    forward(typename std::common_type<_Tp>::type& __t)
     { return static_cast<_Tp&&>(__t); }
 
   /// Forward rvalues as rvalues.
   template<typename _Tp>
     inline typename enable_if<!is_lvalue_reference<_Tp>::value, _Tp&&>::type
-    forward(typename std::identity<_Tp>::type&& __t)
+    forward(typename std::common_type<_Tp>::type&& __t)
     { return static_cast<_Tp&&>(__t); }
 
   // Forward lvalues as lvalues.
   template<typename _Tp>
     inline typename enable_if<is_lvalue_reference<_Tp>::value, _Tp>::type
-    forward(typename std::identity<_Tp>::type __t)
+    forward(typename std::common_type<_Tp>::type __t)
     { return __t; }
 
   // Prevent forwarding rvalues as const lvalues.
@@ -109,10 +102,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 _GLIBCXX_END_NAMESPACE
 
-#define _GLIBCXX_MOVE(_Tp) std::move(_Tp)
+#define _GLIBCXX_MOVE(__val) std::move(__val)
 #define _GLIBCXX_FORWARD(_Tp, __val) std::forward<_Tp>(__val)
 #else
-#define _GLIBCXX_MOVE(_Tp) (_Tp)
+#define _GLIBCXX_MOVE(__val) (__val)
 #define _GLIBCXX_FORWARD(_Tp, __val) (__val)
 #endif
 

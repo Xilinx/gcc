@@ -858,6 +858,7 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 		  *tp = fold_build2 (MEM_REF, TREE_TYPE (*tp),
 				     ptr, TREE_OPERAND (*tp, 1));
 		  TREE_THIS_VOLATILE (*tp) = TREE_THIS_VOLATILE (old);
+		  TREE_THIS_NOTRAP (*tp) = TREE_THIS_NOTRAP (old);
 		}
 	      TREE_NO_WARNING (*tp) = TREE_NO_WARNING (old);
 	      *walk_subtrees = 0;
@@ -1087,6 +1088,8 @@ copy_tree_body_r (tree *tp, int *walk_subtrees, void *data)
 	              *tp = build1 (INDIRECT_REF, type, new_tree);
 		      TREE_THIS_VOLATILE (*tp) = TREE_THIS_VOLATILE (old);
 		      TREE_SIDE_EFFECTS (*tp) = TREE_SIDE_EFFECTS (old);
+		      TREE_READONLY (*tp) = TREE_READONLY (old);
+		      TREE_THIS_NOTRAP (*tp) = TREE_THIS_NOTRAP (old);
 		    }
 		}
 	      *walk_subtrees = 0;
@@ -1558,7 +1561,8 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 	  tree new_rhs;
 	  new_rhs = force_gimple_operand_gsi (&seq_gsi,
 					      gimple_assign_rhs1 (stmt),
-					      true, NULL, false, GSI_NEW_STMT);
+					      true, NULL, false,
+					      GSI_CONTINUE_LINKING);
 	  gimple_assign_set_rhs1 (stmt, new_rhs);
 	  id->regimplify = false;
 	}
@@ -1741,7 +1745,8 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		     most common reason for missing edges).  */
 		  gcc_assert (dest->needed || !dest->analyzed
 			      || dest->address_taken
-		  	      || !id->src_node->analyzed);
+		  	      || !id->src_node->analyzed
+			      || !id->dst_node->analyzed);
 		  if (id->transform_call_graph_edges == CB_CGE_MOVE_CLONES)
 		    cgraph_create_edge_including_clones
 		      (id->dst_node, dest, orig_stmt, stmt, bb->count,
@@ -1976,12 +1981,13 @@ copy_phis_for_bb (basic_block bb, copy_body_data *id)
   edge_iterator ei;
   gimple phi;
   gimple_stmt_iterator si;
+  edge new_edge;
+  bool inserted = false;
 
   for (si = gsi_start (phi_nodes (bb)); !gsi_end_p (si); gsi_next (&si))
     {
       tree res, new_res;
       gimple new_phi;
-      edge new_edge;
 
       phi = gsi_stmt (si);
       res = PHI_RESULT (phi);
@@ -2021,13 +2027,19 @@ copy_phis_for_bb (basic_block bb, copy_body_data *id)
 		{
 		  gimple_seq stmts = NULL;
 		  new_arg = force_gimple_operand (new_arg, &stmts, true, NULL);
-		  gsi_insert_seq_on_edge_immediate (new_edge, stmts);
+		  gsi_insert_seq_on_edge (new_edge, stmts);
+		  inserted = true;
 		}
 	      add_phi_arg (new_phi, new_arg, new_edge,
 			   gimple_phi_arg_location_from_edge (phi, old_edge));
 	    }
 	}
     }
+
+  /* Commit the delayed edge insertions.  */
+  if (inserted)
+    FOR_EACH_EDGE (new_edge, ei, new_bb->preds)
+      gsi_commit_one_edge_insert (new_edge, NULL);
 }
 
 
@@ -2370,7 +2382,7 @@ copy_debug_stmts (copy_body_data *id)
   if (!id->debug_stmts)
     return;
 
-  for (i = 0; VEC_iterate (gimple, id->debug_stmts, i, stmt); i++)
+  FOR_EACH_VEC_ELT (gimple, id->debug_stmts, i, stmt)
     copy_debug_stmt (stmt, id);
 
   VEC_free (gimple, heap, id->debug_stmts);
@@ -3197,12 +3209,6 @@ tree_inlinable_function_p (tree fn)
       inlinable = false;
     }
 
-  /* Don't auto-inline anything that might not be bound within
-     this unit of translation.  */
-  else if (!DECL_DECLARED_INLINE_P (fn)
-	   && DECL_REPLACEABLE_P (fn))
-    inlinable = false;
-
   else if (!function_attribute_inlinable_p (fn))
     {
       if (do_warning)
@@ -3707,20 +3713,6 @@ add_local_variables (struct function *callee, struct function *caller,
       }
 }
 
-/* Fetch callee declaration from the call graph edge going from NODE and
-   associated with STMR call statement.  Return NULL_TREE if not found.  */
-static tree
-get_indirect_callee_fndecl (struct cgraph_node *node, gimple stmt)
-{
-  struct cgraph_edge *cs;
-
-  cs = cgraph_edge (node, stmt);
-  if (cs && !cs->indirect_unknown_callee)
-    return cs->callee->decl;
-
-  return NULL_TREE;
-}
-
 /* If STMT is a GIMPLE_CALL, replace it with its inline expansion.  */
 
 static bool
@@ -3754,11 +3746,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
      If we cannot, then there is no hope of inlining the function.  */
   fn = gimple_call_fndecl (stmt);
   if (!fn)
-    {
-      fn = get_indirect_callee_fndecl (id->dst_node, stmt);
-      if (!fn)
-	goto egress;
-    }
+    goto egress;
 
   /* Turn forward declarations into real ones.  */
   fn = cgraph_node (fn)->decl;
@@ -4178,6 +4166,7 @@ optimize_inline_calls (tree fn)
   basic_block bb;
   int last = n_basic_blocks;
   struct gimplify_ctx gctx;
+  bool inlined_p = false;
 
   /* There is no point in performing inlining if errors have already
      occurred -- and we might crash if we try to inline invalid
@@ -4217,7 +4206,7 @@ optimize_inline_calls (tree fn)
      follow it; we'll trudge through them, processing their CALL_EXPRs
      along the way.  */
   FOR_EACH_BB (bb)
-    gimple_expand_calls_inline (bb, &id);
+    inlined_p |= gimple_expand_calls_inline (bb, &id);
 
   pop_gimplify_context (NULL);
 
@@ -4233,18 +4222,19 @@ optimize_inline_calls (tree fn)
     }
 #endif
 
-  /* Fold the statements before compacting/renumbering the basic blocks.  */
+  /* Fold queued statements.  */
   fold_marked_statements (last, id.statements_to_fold);
   pointer_set_destroy (id.statements_to_fold);
 
   gcc_assert (!id.debug_stmts);
 
-  /* Renumber the (code) basic_blocks consecutively.  */
-  compact_blocks ();
+  /* If we didn't inline into the function there is nothing to do.  */
+  if (!inlined_p)
+    return 0;
+
   /* Renumber the lexical scoping (non-code) blocks consecutively.  */
   number_blocks (fn);
 
-  fold_cond_expr_cond ();
   delete_unreachable_blocks_update_callgraph (&id);
 #ifdef ENABLE_CHECKING
   verify_cgraph_node (id.dst_node);
@@ -4257,6 +4247,7 @@ optimize_inline_calls (tree fn)
   return (TODO_update_ssa
 	  | TODO_cleanup_cfg
 	  | (gimple_in_ssa_p (cfun) ? TODO_remove_unused_locals : 0)
+	  | (gimple_in_ssa_p (cfun) ? TODO_update_address_taken : 0)
 	  | (profile_status != PROFILE_ABSENT ? TODO_rebuild_frequencies : 0));
 }
 
@@ -5133,9 +5124,6 @@ tree_function_versioning (tree old_decl, tree new_decl,
       				     args_to_skip, &vars);
 
   DECL_INITIAL (new_decl) = remap_blocks (DECL_INITIAL (id.src_fn), &id);
-
-  /* Renumber the lexical scoping (non-code) blocks consecutively.  */
-  number_blocks (id.dst_fn);
 
   declare_inline_vars (DECL_INITIAL (new_decl), vars);
 
