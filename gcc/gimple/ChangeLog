@@ -1,3 +1,19 @@
+2010-11-10  Sandeep Soni  <soni.sandeepb@gmail.com>
+	    Diego Novillo  <dnovillo@google.com>
+
+	* parser.c (gimple_parse_expect_rhs1): Change ifs to switch.
+	(gimple_parse_expect_rhs2): Likewise.
+	(gimple_parse_expect_op1): Likewise.
+	(gimple_parse_expect_op2): Likewise.
+	(gimple_parse_expect_argument): Likewise.
+	(gimple parse_record_type,
+	gimple_parse_union_type,
+	gimple_parse_enum_type,
+	gimple_parse_expect_const_decl,
+	gimple_parse_expect_field_decl,
+	gimple_parse_type): Add.
+	(gimple_main): Call gimple_parse_type.
+
 2010-08-12  Diego Novillo  <dnovillo@google.com>
 
 	* parser.c (gimple parse_expect_op1,

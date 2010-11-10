@@ -124,25 +124,27 @@ gimple_parse_expect_rhs1 (cpp_reader *p)
      would be more stuff added here as we go on.  */
 
   /* ??? Can there be more possibilities than these ?  */
-  if (next_token->type == CPP_MULT)
+  switch (next_token->type)
     {
+    case CPP_MULT:
+    case CPP_AND:
       next_token = cpp_get_token (p);
       gimple_parse_expect_token (p, CPP_NAME);
+      break;
+
+    case CPP_NAME:
+    case CPP_NUMBER:
+    case CPP_STRING:
+      next_token = cpp_get_token (p);
+      break;
+
+    default:
+      break;
     }
-  else if (next_token->type == CPP_AND)
-    {
-      next_token = cpp_get_token (p);
-      gimple_parse_expect_token (p, CPP_NAME);    
-    }
-  else if (next_token->type == CPP_NAME)
-      next_token = cpp_get_token (p);
-  else if (next_token->type == CPP_NUMBER)
-      next_token = cpp_get_token (p);
-  else if (next_token->type == CPP_STRING)
-      next_token = cpp_get_token (p);      
 
   gimple_parse_expect_token (p, CPP_COMMA); 
 }
+
 
 /* Helper for gimple_parse_assign_stmt. The token read from reader P should 
    be the second operand in rhs of the tuple.  */
@@ -155,19 +157,18 @@ gimple_parse_expect_rhs2 (cpp_reader *p)
 
   /* ??? Can there be more possibilities than these ?  */
 
-  if (next_token->type == CPP_NAME)
+  switch (next_token->type)
     {
-      /* Handle a special case, this can be NULL too. 
+    case CPP_NAME:
+      /* Handle a special case, this can be NULL too.  */
 
-      if (!strcasecmp ((const char *) cpp_token_as_text (p, next_token), "Null"));
-        {
-          
-        }  */
-
+    case CPP_NUMBER:
       next_token = cpp_get_token (p);
+      break;
+
+    default:
+      break;
     }
-  else if (next_token->type == CPP_NUMBER)
-      next_token = cpp_get_token (p);      
 
   gimple_parse_expect_token (p, CPP_GREATER);  
 }
@@ -192,10 +193,16 @@ gimple_parse_expect_op1 (cpp_reader *p)
   const cpp_token *next_token;
   next_token = cpp_peek_token (p, 0);
 
-  if(next_token->type == CPP_NAME)
-    next_token = cpp_get_token (p);
-  else if (next_token->type == CPP_NUMBER)
-    next_token = cpp_get_token (p);
+  switch (next_token->type)
+    {
+    case CPP_NAME:
+    case CPP_NUMBER:
+      next_token = cpp_get_token (p);
+      break;
+
+    default:
+      break;
+    }
 
   gimple_parse_expect_token (p, CPP_COMMA);  
 }
@@ -209,16 +216,21 @@ gimple_parse_expect_op2 (cpp_reader *p)
   const cpp_token *next_token;
   next_token = cpp_peek_token (p, 0);
 
-  if(next_token->type == CPP_NAME)
-    next_token = cpp_get_token (p);
-  else if (next_token->type == CPP_NUMBER)
-    next_token = cpp_get_token (p);
-  else if (next_token->type == CPP_STRING)
-    next_token = cpp_get_token (p);
-  else if (next_token->type == CPP_AND)
+  switch (next_token->type)
     {
+    case CPP_NAME:
+    case CPP_NUMBER:
+    case CPP_STRING:
+      next_token = cpp_get_token (p);
+      break;
+
+    case CPP_AND:
       next_token = cpp_get_token (p);
       gimple_parse_expect_token (p, CPP_NAME);
+      break;
+
+    default:
+      break;
     }
 
   gimple_parse_expect_token (p, CPP_COMMA);  
@@ -363,17 +375,22 @@ gimple_parse_expect_argument (cpp_reader *p)
 
   next_token = cpp_peek_token (p, 0);
 
-  if (next_token->type == CPP_NUMBER)
-    next_token = cpp_get_token (p);
-  else if (next_token->type == CPP_NAME)
-    next_token = cpp_get_token (p);
-  else if (next_token->type == CPP_MULT)
+  switch (next_token->type)
     {
+    case CPP_NUMBER:
+    case CPP_NAME:
+      next_token = cpp_get_token (p);
+      break;
+
+    case CPP_MULT:
       next_token = cpp_get_token (p);
       gimple_parse_expect_token (p, CPP_NAME);
+      break;
+
+    default:
+      error ("Incorrect way to specify an argument");
+      break;
     }
-  else
-    error ("Incorrect way to specify an argument");
 }
 
 /* Parse a gimple_call tuple that is read from the reader P. For now we only 
@@ -414,8 +431,9 @@ gimple_parse_return_stmt (cpp_reader *p)
   gimple_parse_expect_token (p, CPP_GREATER);  
 }
 
-/* The TOK read from the reader P is looked up for a match. Calls the 
-   corresponding function to do the parsing for the match.  */
+/* The TOK read from the reader P is looked up for a match.  Calls the 
+   corresponding function to do the parsing for the match.  Gets called
+   for recognizing the statements in a function body.  */
 
 static void 
 gimple_parse_stmt (cpp_reader *p, const cpp_token *tok)
@@ -461,6 +479,216 @@ gimple_parse_stmt (cpp_reader *p, const cpp_token *tok)
 }
 
 
+/* Helper for gimple_parse_expect_record_type and
+   gimple_parse_expect_union_type. The field_decl's
+   are read from cpp_reader P.  */
+ 
+static void
+gimple_parse_expect_field_decl (cpp_reader *p)
+{
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NUMBER);
+  gimple_parse_expect_token (p, CPP_RSHIFT);
+
+}
+
+
+/* The tuple syntax can be extended to types and declarations. The description
+   of how it can be done is provided before each recognizer function.  */ 
+
+/* <RECORD_TYPE<Name,Size,Field1,Field2,...FieldN>>
+   where each of the FIELDi is a FIELD_DECL or a VAR_DECL, the representation 
+   of which is given below.  
+
+   For Ex: 
+   Given a source code declaration as :
+
+   struct some_struct {
+   int first_var;
+   float second_var;
+   };
+
+   The tuple representation is done as :
+   RECORD_TYPE <some_struct,8,FIELD_DECL<first_var,INTEGER_TYPE<4>>,FIELD_DECL<second_var,REAL_TYPE<4>>>
+*/   
+
+/* Recognizer function for Record declarations. The record tuple is read
+   from cpp_reader P.  */
+ 
+static void
+gimple_parse_record_type (cpp_reader *p)
+{
+  const cpp_token *next_token;
+
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_NUMBER);
+
+  for (;;)
+    {
+      next_token = cpp_peek_token (p, 0);
+      if (next_token->type == CPP_GREATER)
+        {
+          next_token = cpp_get_token (p);
+          break;
+        }
+      else if (next_token->type == CPP_COMMA)
+        {
+          next_token = cpp_get_token (p);
+          gimple_parse_expect_field_decl (p);
+        }
+    }  
+}
+
+
+/* <UNION_TYPE<Name,Size,Field1,Field2,...FieldN>>
+   where each of the FIELDi is a FIELD_DECL or a VAR_DECL, the representation 
+   of which is given below.  
+
+   For Ex: 
+   Given a source code declaration as :
+   union some_union {
+   int first_var;
+   float second_var;
+   };
+
+   The tuple representation is done as :
+   UNION_TYPE <some_union,4,FIELD_DECL<first_var,INTEGER_TYPE<4>>,FIELD_DECL<second_var,<REAL_TYPE<4>>>
+*/
+
+/* Recognizer function for Union declarations. The union tuple is read
+   from cpp_reader P.  */
+
+static void
+gimple_parse_union_type (cpp_reader *p)
+{
+  const cpp_token *next_token;
+
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_NUMBER);
+
+  for (;;)
+    {
+      next_token = cpp_peek_token (p, 0);
+      if (next_token->type == CPP_GREATER)
+        {
+          next_token = cpp_get_token (p);
+          break;
+        }
+      else if (next_token->type == CPP_COMMA)
+        {
+          next_token = cpp_get_token (p);
+          gimple_parse_expect_field_decl (p);
+        }
+    }  
+}
+
+
+/* Helper for gimple_parse_enum_type. It is used to recognize a field in the
+   enumeral. The field is read from the cpp_reader P.  */  
+
+static void
+gimple_parse_expect_const_decl (cpp_reader *p)
+{
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_NUMBER);
+  gimple_parse_expect_token (p, CPP_GREATER);  
+}
+
+
+/* <ENUMERAL_TYPE<Name,Size,Field1,Field2,...FieldN>>
+   where each of the FIELDi is itself a pair of the form <Name,Value>.  
+
+   For Ex: 
+   Given a source code declaration as :
+   enum some_enum {
+   FIRST = 1,
+   SECOND = 2,
+   LAST = 5
+   };
+
+   The tuple representation is done as :
+   ENUMERAL_TYPE<some_enum,3,<FIRST,1>,<SECOND,2>,<LAST,5>>
+*/
+
+static void
+gimple_parse_enum_type (cpp_reader *p)
+{
+  const cpp_token *next_token;
+
+  gimple_parse_expect_token (p, CPP_LESS);
+  gimple_parse_expect_token (p, CPP_NAME);
+  gimple_parse_expect_token (p, CPP_COMMA);
+  gimple_parse_expect_token (p, CPP_NUMBER);
+
+  for (;;)
+    {
+      next_token = cpp_peek_token (p, 0);
+      if (next_token->type == CPP_RSHIFT)
+	{
+	  next_token = cpp_get_token (p);
+	  break;
+	}
+      else if (next_token->type == CPP_COMMA)
+	{
+	  next_token = cpp_get_token (p);
+	  gimple_parse_expect_const_decl (p);
+	}
+    }  
+}
+
+
+/* The TOK read from the reader P is looked up for a match. Calls the
+   corresponding function to do the parsing for the match. Gets called
+   for recognizing the type and variable declarations. */
+
+static void
+gimple_parse_type (cpp_reader *p, const cpp_token *tok)
+{
+  const char *text;
+  int i;
+
+  text = (const char *) cpp_token_as_text (p, tok);
+
+  for (i = ERROR_MARK; i < LAST_AND_UNUSED_TREE_CODE; i++)
+    if (strcasecmp (text, tree_code_name[i]) == 0)
+      break;
+
+  if (i == LAST_AND_UNUSED_TREE_CODE)
+    error ("Invalid type code used");
+  else
+    {
+      switch (i)
+	{
+	case RECORD_TYPE:
+	  gimple_parse_record_type (p);
+	  break;
+
+	case UNION_TYPE:
+	  gimple_parse_union_type (p);
+	  break;
+
+	case ENUMERAL_TYPE:
+	  gimple_parse_enum_type (p);
+	  break;
+
+	default:
+	  break;
+	}
+    }      
+}
+
+
 /* Main entry point for the GIMPLE front end.  */
 
 void
@@ -471,21 +699,26 @@ gimple_main (int debug_p ATTRIBUTE_UNUSED)
   const cpp_token *tok;
   const char *input_file = "/tmp/gimple.txt";
   const char *output_file;
-
+  bool inside_type_section_p = true;
   struct line_maps *line_tab;
+
   line_tab = ggc_alloc_cleared_line_maps ();
   linemap_init (line_tab);
   p = cpp_create_reader (CLK_GNUC99, ident_hash, line_tab);
-  output_file = cpp_read_main_file (p,input_file);
+  output_file = cpp_read_main_file (p, input_file);
   if (output_file)
     {
       tok = cpp_get_token (p);
       while (tok->type != CPP_EOF)
 	{
-	  gimple_parse_stmt (p, tok);
+	  if (inside_type_section_p)
+	    gimple_parse_type (p, tok);
+	  else
+	    gimple_parse_stmt (p, tok);
 	  tok = cpp_get_token (p);
 	}
     }
-  cpp_finish (p,NULL);
+
+  cpp_finish (p, NULL);
   cpp_destroy (p);   
 }
