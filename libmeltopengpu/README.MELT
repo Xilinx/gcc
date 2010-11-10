@@ -1,0 +1,20 @@
+## file libmeltopengpu/README.MELT
+
+## inside the GCC MELT branch
+
+## work funded thru the OpenGPU project http://opengpu.net/ 
+
+The libmeltopengpu library for the target system contains some simple
+support routines for hooks to OpenCL
+
+OpenCL is an industrial standard for running numerical intensive
+parallel computations on graphical processing units. See
+http://en.wikipedia.org/wiki/OpenCL and http://www.khronos.org/opencl/
+for more. OpenCL provides a C-like dialect which is translated to
+binary code for the GPUs.
+
+I (Basile Starynkevitch) <basile@starynkevitch.net> am using the ATI
+Stream implementation (currently 2.2) on a single ATI5850 or ATI5750
+graphical card on a PC running Linux/Debian/AMD64 or
+Linux/Ubuntu/AMD64.
+
