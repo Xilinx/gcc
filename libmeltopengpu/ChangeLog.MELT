@@ -1,5 +1,8 @@
 
 2010-11-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* meltopengpu-runtime.c: Set svn:keywords to Id
+
+2010-11-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{ created directory libmeltopengpu }}
 	* README.MELT: New file.
 	* meltopengpu-runtime.c: New file.
