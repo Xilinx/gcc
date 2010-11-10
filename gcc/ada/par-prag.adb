@@ -1129,6 +1129,7 @@ begin
            Pragma_Convention                    |
            Pragma_Debug_Policy                  |
            Pragma_Detect_Blocking               |
+           Pragma_Default_Storage_Pool          |
            Pragma_Dimension                     |
            Pragma_Discard_Names                 |
            Pragma_Eliminate                     |
@@ -1171,6 +1172,7 @@ begin
            Pragma_Interrupt_Handler             |
            Pragma_Interrupt_State               |
            Pragma_Interrupt_Priority            |
+           Pragma_Invariant                     |
            Pragma_Java_Constructor              |
            Pragma_Java_Interface                |
            Pragma_Keep_Names                    |
@@ -1203,6 +1205,7 @@ begin
            Pragma_Persistent_BSS                |
            Pragma_Postcondition                 |
            Pragma_Precondition                  |
+           Pragma_Predicate                     |
            Pragma_Preelaborate                  |
            Pragma_Preelaborate_05               |
            Pragma_Priority                      |

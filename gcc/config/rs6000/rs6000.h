@@ -625,9 +625,6 @@ extern unsigned char rs6000_recip_bits[];
 /* The default CPU for TARGET_OPTION_OVERRIDE.  */
 #define OPTION_TARGET_CPU_DEFAULT TARGET_CPU_DEFAULT
 
-/* Show we can debug even without a frame pointer.  */
-#define CAN_DEBUG_WITHOUT_FP
-
 /* Target pragma.  */
 #define REGISTER_TARGET_PRAGMAS() do {				\
   c_register_pragma (0, "longcall", rs6000_pragma_longcall);	\
@@ -2387,6 +2384,9 @@ extern char rs6000_reg_names[][8];	/* register names (0 vs. %r0).  */
 #define ASM_OUTPUT_ALIGN(FILE,LOG)	\
   if ((LOG) != 0)			\
     fprintf (FILE, "\t.align %d\n", (LOG))
+
+/* How to align the given loop. */
+#define LOOP_ALIGN(LABEL)  rs6000_loop_align(LABEL)
 
 /* Pick up the return address upon entry to a procedure. Used for
    dwarf2 unwind information.  This also enables the table driven

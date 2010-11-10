@@ -1319,28 +1319,28 @@ gfc_get_dtype (tree type)
   switch (TREE_CODE (etype))
     {
     case INTEGER_TYPE:
-      n = GFC_DTYPE_INTEGER;
+      n = BT_INTEGER;
       break;
 
     case BOOLEAN_TYPE:
-      n = GFC_DTYPE_LOGICAL;
+      n = BT_LOGICAL;
       break;
 
     case REAL_TYPE:
-      n = GFC_DTYPE_REAL;
+      n = BT_REAL;
       break;
 
     case COMPLEX_TYPE:
-      n = GFC_DTYPE_COMPLEX;
+      n = BT_COMPLEX;
       break;
 
     /* We will never have arrays of arrays.  */
     case RECORD_TYPE:
-      n = GFC_DTYPE_DERIVED;
+      n = BT_DERIVED;
       break;
 
     case ARRAY_TYPE:
-      n = GFC_DTYPE_CHARACTER;
+      n = BT_CHARACTER;
       break;
 
     default:
@@ -1936,10 +1936,12 @@ gfc_copy_dt_decls_ifequal (gfc_symbol *from, gfc_symbol *to,
   for (; to_cm; to_cm = to_cm->next, from_cm = from_cm->next)
     {
       to_cm->backend_decl = from_cm->backend_decl;
-      if ((!from_cm->attr.pointer || from_gsym)
-	      && from_cm->ts.type == BT_DERIVED)
+      if (from_cm->ts.type == BT_DERIVED
+	  && (!from_cm->attr.pointer || from_gsym))
 	gfc_get_derived_type (to_cm->ts.u.derived);
-
+      else if (from_cm->ts.type == BT_CLASS
+	       && (!CLASS_DATA (from_cm)->attr.class_pointer || from_gsym))
+	gfc_get_derived_type (to_cm->ts.u.derived);
       else if (from_cm->ts.type == BT_CHARACTER)
 	to_cm->ts.u.cl->backend_decl = from_cm->ts.u.cl->backend_decl;
     }

@@ -1143,120 +1143,30 @@ comp_array_types (const_tree t1, const_tree t2, bool allow_redeclaration)
 static bool
 comp_template_parms_position (tree t1, tree t2)
 {
+  tree index1, index2;
   gcc_assert (t1 && t2
 	      && TREE_CODE (t1) == TREE_CODE (t2)
 	      && (TREE_CODE (t1) == BOUND_TEMPLATE_TEMPLATE_PARM
 		  || TREE_CODE (t1) == TEMPLATE_TEMPLATE_PARM
 		  || TREE_CODE (t1) == TEMPLATE_TYPE_PARM));
 
-      if (TEMPLATE_TYPE_IDX (t1) != TEMPLATE_TYPE_IDX (t2)
-	  || TEMPLATE_TYPE_LEVEL (t1) != TEMPLATE_TYPE_LEVEL (t2)
-          || (TEMPLATE_TYPE_PARAMETER_PACK (t1) 
-              != TEMPLATE_TYPE_PARAMETER_PACK (t2)))
-	return false;
+  index1 = TEMPLATE_TYPE_PARM_INDEX (TYPE_MAIN_VARIANT (t1));
+  index2 = TEMPLATE_TYPE_PARM_INDEX (TYPE_MAIN_VARIANT (t2));
 
-      return true;
-}
-
-/* Subroutine of incompatible_dependent_types_p.
-   Return the template parameter of the dependent type T.
-   If T is a typedef, return the template parameters of
-   the _decl_ of the typedef. T must be a dependent type.  */
-
-static tree
-get_template_parms_of_dependent_type (tree t)
-{
-  tree tinfo = NULL_TREE, tparms = NULL_TREE;
-
-  /* First, try the obvious case of getting the
-     template info from T itself.  */
-  if ((tinfo = get_template_info (t)))
-    ;
-  else if (TREE_CODE (t) == TEMPLATE_TYPE_PARM)
-    return TEMPLATE_TYPE_PARM_SIBLING_PARMS (t);
-  else if (typedef_variant_p (t)
-	   && !NAMESPACE_SCOPE_P (TYPE_NAME (t)))
-    tinfo = get_template_info (DECL_CONTEXT (TYPE_NAME (t)));
-  /* If T is a TYPENAME_TYPE which context is a template type
-     parameter, get the template parameters from that context.  */
-  else if (TYPE_CONTEXT (t)
-	   && TREE_CODE (TYPE_CONTEXT (t)) == TEMPLATE_TYPE_PARM)
-   return TEMPLATE_TYPE_PARM_SIBLING_PARMS (TYPE_CONTEXT (t));
-  else if (TYPE_CONTEXT (t)
-	   && !NAMESPACE_SCOPE_P (t))
-    tinfo = get_template_info (TYPE_CONTEXT (t));
-
-  if (tinfo)
-    tparms = DECL_TEMPLATE_PARMS (TI_TEMPLATE (tinfo));
-
-  return tparms;
-}
-
-/* Subroutine of structural_comptypes.
-   Compare the dependent types T1 and T2.
-   Return TRUE if we are sure they can't be equal, FALSE otherwise.
-   The whole point of this function is to support cases where either T1 or
-   T2 is a typedef. In those cases, we need to compare the template parameters
-   of the _decl_ of the typedef. If those don't match then we know T1
-   and T2 cannot be equal.  */
-
-static bool
-incompatible_dependent_types_p (tree t1, tree t2)
-{
-  tree tparms1 = NULL_TREE, tparms2 = NULL_TREE;
-  bool t1_typedef_variant_p, t2_typedef_variant_p;
-
-  if (!uses_template_parms (t1) || !uses_template_parms (t2))
+  /* If T1 and T2 belong to template parm lists of different size,
+     let's assume they are different.  */
+  if (TEMPLATE_PARM_NUM_SIBLINGS (index1)
+      != TEMPLATE_PARM_NUM_SIBLINGS (index2))
     return false;
 
-  if (TREE_CODE (t1) == TEMPLATE_TYPE_PARM)
-    {
-      /* If T1 and T2 don't have the same relative position in their
-	 template parameters set, they can't be equal.  */
-      if (!comp_template_parms_position (t1, t2))
-	return true;
-    }
-
-  t1_typedef_variant_p = typedef_variant_p (t1);
-  t2_typedef_variant_p = typedef_variant_p (t2);
-
-  /* Either T1 or T2 must be a typedef.  */
-  if (!t1_typedef_variant_p && !t2_typedef_variant_p)
+  /* Then compare their relative position.  */
+  if (TEMPLATE_PARM_IDX (index1) != TEMPLATE_PARM_IDX (index2)
+      || TEMPLATE_PARM_LEVEL (index1) != TEMPLATE_PARM_LEVEL (index2)
+      || (TEMPLATE_PARM_PARAMETER_PACK (index1)
+	  != TEMPLATE_PARM_PARAMETER_PACK (index2)))
     return false;
 
-  if (!t1_typedef_variant_p || !t2_typedef_variant_p)
-    /* Either T1 or T2 is not a typedef so we cannot compare the
-       template parms of the typedefs of T1 and T2.
-       At this point, if the main variant type of T1 and T2 are equal
-       it means the two types can't be incompatible, from the perspective
-       of this function.  */
-    if (TYPE_MAIN_VARIANT (t1) == TYPE_MAIN_VARIANT (t2))
-      return false;
-
-  /* So if we reach this point, it means either T1 or T2 is a typedef variant.
-     Let's compare their template parameters.  */
-
-  tparms1 = get_template_parms_of_dependent_type (t1);
-  tparms2 = get_template_parms_of_dependent_type (t2);
-
-  /* If T2 is a template type parm and if we could not get the template
-     parms it belongs to, that means we have not finished parsing the
-     full set of template parameters of the template declaration it
-     belongs to yet. If we could get the template parms T1 belongs to,
-     that mostly means T1 and T2 belongs to templates that are
-     different and incompatible.  */
-  if (TREE_CODE (t1) == TEMPLATE_TYPE_PARM
-      && (tparms1 == NULL_TREE || tparms2 == NULL_TREE)
-      && tparms1 != tparms2)
-    return true;
-
-  if (tparms1 == NULL_TREE
-      || tparms2 == NULL_TREE
-      || tparms1 == tparms2)
-    return false;
-
-  /* And now compare the mighty template parms!  */
-  return !comp_template_parms (tparms1, tparms2);
+  return true;
 }
 
 /* Subroutine in comptypes.  */
@@ -1299,12 +1209,6 @@ structural_comptypes (tree t1, tree t2, int strict)
       && type_memfn_quals (t1) != type_memfn_quals (t2))
     return false;
   if (TYPE_FOR_JAVA (t1) != TYPE_FOR_JAVA (t2))
-    return false;
-
-  /* If T1 and T2 are dependent typedefs then check upfront that
-     the template parameters of their typedef DECLs match before
-     going down checking their subtypes.  */
-  if (incompatible_dependent_types_p (t1, t2))
     return false;
 
   /* Allow for two different type nodes which have essentially the same
@@ -1407,8 +1311,10 @@ structural_comptypes (tree t1, tree t2, int strict)
       break;
 
     case TEMPLATE_TYPE_PARM:
-      /* If incompatible_dependent_types_p called earlier didn't decide
-         T1 and T2 were different, they might be equal.  */
+      /* If T1 and T2 don't have the same relative position in their
+	 template parameters set, they can't be equal.  */
+      if (!comp_template_parms_position (t1, t2))
+	return false;
       break;
 
     case TYPENAME_TYPE:
@@ -1930,6 +1836,9 @@ decay_conversion (tree exp)
       return error_mark_node;
     }
 
+  /* FIXME remove? at least need to remember that this isn't really a
+     constant expression if EXP isn't decl_constant_var_p, like with
+     C_MAYBE_CONST_EXPR.  */
   exp = decl_constant_value (exp);
   if (error_operand_p (exp))
     return error_mark_node;
@@ -2595,7 +2504,7 @@ finish_class_member_access_expr (tree object, tree name, bool template_p,
     }
   else if (c_dialect_objc ()
 	   && TREE_CODE (name) == IDENTIFIER_NODE
-	   && (expr = objc_build_getter_call (object, name)))
+	   && (expr = objc_maybe_build_component_ref (object, name)))
     return expr;
     
   /* [expr.ref]
@@ -4138,8 +4047,7 @@ cp_build_binary_op (location_t location,
 	      tree e1 = cp_build_binary_op (location,
 					    EQ_EXPR,
 	  			            pfn0,	
-				      	    fold_convert (TREE_TYPE (pfn0),
-							  integer_zero_node),
+				      	    build_zero_cst (TREE_TYPE (pfn0)),
 					    complain);
 	      tree e2 = cp_build_binary_op (location,
 					    BIT_AND_EXPR, 
@@ -4229,8 +4137,7 @@ cp_build_binary_op (location_t location,
 				       complain);
 	      e2 = cp_build_binary_op (location, EQ_EXPR,
 				       pfn0,
-				       fold_convert (TREE_TYPE (pfn0),
-						     integer_zero_node),
+				       build_zero_cst (TREE_TYPE (pfn0)),
 				       complain);
 	      e2 = cp_build_binary_op (location,
 				       TRUTH_ANDIF_EXPR, e2, e1, complain);
@@ -4255,8 +4162,7 @@ cp_build_binary_op (location_t location,
 	      e2 = cp_build_binary_op (location,
 				       EQ_EXPR,
 		      		       pfn0,
-			   	       fold_convert (TREE_TYPE (pfn0),
-						     integer_zero_node),
+			   	       build_zero_cst (TREE_TYPE (pfn0)),
 				       complain);
 	      e1 = cp_build_binary_op (location,
 				       TRUTH_ORIF_EXPR, e1, e2, complain);
@@ -5811,33 +5717,6 @@ convert_ptrmem (tree type, tree expr, bool allow_inverse_p,
 			     allow_inverse_p, c_cast_p, complain);
 }
 
-/* If EXPR is an INTEGER_CST and ORIG is an arithmetic constant, return
-   a version of EXPR that has TREE_OVERFLOW set if it is set in ORIG.
-   Otherwise, return EXPR unchanged.  */
-
-static tree
-ignore_overflows (tree expr, tree orig)
-{
-  if (TREE_CODE (expr) == INTEGER_CST
-      && CONSTANT_CLASS_P (orig)
-      && TREE_CODE (orig) != STRING_CST
-      && TREE_OVERFLOW (expr) != TREE_OVERFLOW (orig))
-    {
-      if (!TREE_OVERFLOW (orig))
-	/* Ensure constant sharing.  */
-	expr = build_int_cst_wide (TREE_TYPE (expr),
-				   TREE_INT_CST_LOW (expr),
-				   TREE_INT_CST_HIGH (expr));
-      else
-	{
-	  /* Avoid clobbering a shared constant.  */
-	  expr = copy_node (expr);
-	  TREE_OVERFLOW (expr) = TREE_OVERFLOW (orig);
-	}
-    }
-  return expr;
-}
-
 /* Perform a static_cast from EXPR to TYPE.  When C_CAST_P is true,
    this static_cast is being attempted as one of the possible casts
    allowed by a C-style cast.  (In that case, accessibility of base
@@ -5851,7 +5730,6 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
 {
   tree intype;
   tree result;
-  tree orig;
 
   /* Assume the cast is valid.  */
   *valid_p = true;
@@ -5908,8 +5786,14 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
       expr = build_base_path (MINUS_EXPR, build_address (expr),
 			      base, /*nonnull=*/false);
       /* Convert the pointer to a reference -- but then remember that
-	 there are no expressions with reference type in C++.  */
-      return convert_from_reference (cp_fold_convert (type, expr));
+	 there are no expressions with reference type in C++.
+
+         We call rvalue so that there's an actual tree code
+         (NON_LVALUE_EXPR) for the static_cast; otherwise, if the operand
+         is a variable with the same type, the conversion would get folded
+         away, leaving just the variable and causing lvalue_kind to give
+         the wrong answer.  */
+      return convert_from_reference (rvalue (cp_fold_convert (type, expr)));
     }
 
   /* "An lvalue of type cv1 T1 can be cast to type rvalue reference to
@@ -5923,8 +5807,6 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
       expr = build_typed_address (expr, type);
       return convert_from_reference (expr);
     }
-
-  orig = expr;
 
   /* Resolve overloaded address here rather than once in
      implicit_conversion and again in the inverse code below.  */
@@ -5945,9 +5827,6 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
   if (result)
     {
       result = convert_from_reference (result);
-
-      /* Ignore any integer overflow caused by the cast.  */
-      result = ignore_overflows (result, orig);
 
       /* [expr.static.cast]
 
@@ -5988,13 +5867,7 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
        || SCALAR_FLOAT_TYPE_P (type))
       && (INTEGRAL_OR_ENUMERATION_TYPE_P (intype)
 	  || SCALAR_FLOAT_TYPE_P (intype)))
-    {
-      expr = ocp_convert (type, expr, CONV_C_CAST, LOOKUP_NORMAL);
-
-      /* Ignore any integer overflow caused by the cast.  */
-      expr = ignore_overflows (expr, orig);
-      return expr;
-    }
+    return ocp_convert (type, expr, CONV_C_CAST, LOOKUP_NORMAL);
 
   if (TYPE_PTR_P (type) && TYPE_PTR_P (intype)
       && CLASS_TYPE_P (TREE_TYPE (type))
@@ -6764,7 +6637,7 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	{
 	  if (c_dialect_objc ())
 	    {
-	      result = objc_build_setter_call (lhs, rhs);
+	      result = objc_maybe_build_modify_expr (lhs, rhs);
 	      if (result)
 		return result;
 	    }
@@ -6809,7 +6682,7 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	  modifycode = NOP_EXPR;
 	  if (c_dialect_objc ())
 	    {
-	      result = objc_build_setter_call (lhs, newrhs);
+	      result = objc_maybe_build_modify_expr (lhs, newrhs);
 	      if (result)
 		return result;
 	    }
@@ -7529,8 +7402,7 @@ convert_for_assignment (tree type, tree rhs,
       && TREE_CODE (TREE_TYPE (rhs)) != BOOLEAN_TYPE
       && (complain & tf_warning))
     {
-      location_t loc = EXPR_HAS_LOCATION (rhs) 
-	? EXPR_LOCATION (rhs) : input_location;
+      location_t loc = EXPR_LOC_OR_HERE (rhs);
 
       warning_at (loc, OPT_Wparentheses,
 		  "suggest parentheses around assignment used as truth value");
@@ -8006,12 +7878,13 @@ comp_ptr_ttypes_real (tree to, tree from, int constp)
 	  /* In Objective-C++, some types may have been 'volatilized' by
 	     the compiler for EH; when comparing them here, the volatile
 	     qualification must be ignored.  */
-	  bool objc_quals_match = objc_type_quals_match (to, from);
+	  tree nv_to = objc_non_volatilized_type (to);
+	  tree nv_from = objc_non_volatilized_type (from);
 
-	  if (!at_least_as_qualified_p (to, from) && !objc_quals_match)
+	  if (!at_least_as_qualified_p (nv_to, nv_from))
 	    return 0;
 
-	  if (!at_least_as_qualified_p (from, to) && !objc_quals_match)
+	  if (!at_least_as_qualified_p (nv_from, nv_to))
 	    {
 	      if (constp == 0)
 		return 0;
@@ -8019,7 +7892,7 @@ comp_ptr_ttypes_real (tree to, tree from, int constp)
 	    }
 
 	  if (constp > 0)
-	    constp &= TYPE_READONLY (to);
+	    constp &= TYPE_READONLY (nv_to);
 	}
 
       if (TREE_CODE (to) == VECTOR_TYPE)

@@ -53,9 +53,6 @@ do {						\
 
 #define ASM_EXTRA_SPEC ""
 
-#define SWITCH_TAKES_ARG(CHAR)						\
-  (DEFAULT_SWITCH_TAKES_ARG (CHAR) || (CHAR) == 'G')
-
 /* Variables which are this size or smaller are put in the sdata/sbss
    sections.  */
 extern unsigned int ia64_section_threshold;
@@ -147,12 +144,6 @@ extern enum processor_type ia64_tune;
    significant word has the lowest number.  */
 
 #define WORDS_BIG_ENDIAN (TARGET_BIG_ENDIAN != 0)
-
-#if defined(__BIG_ENDIAN__)
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#else
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#endif
 
 #define UNITS_PER_WORD 8
 
@@ -849,14 +840,6 @@ enum reg_class
    This is needed for POST_MODIFY.  */
 #define REGNO_OK_FOR_INDEX_P(NUM) REGNO_OK_FOR_BASE_P (NUM)
 
-/* A C expression that places additional restrictions on the register class to
-   use when it is necessary to copy value X into a register in class CLASS.
-   The value is a register class; perhaps CLASS, or perhaps another, smaller
-   class.  */
-
-#define PREFERRED_RELOAD_CLASS(X, CLASS) \
-  ia64_preferred_reload_class (X, CLASS)
-
 /* You should define this macro to indicate to the reload phase that it may
    need to allocate at least one register for a reload in addition to the
    register to contain the data.  Specifically, if copying X to a register
@@ -1001,9 +984,6 @@ enum reg_class
 
 /* Eliminating the Frame Pointer and the Arg Pointer */
 
-/* Show we can debug even without a frame pointer.  */
-#define CAN_DEBUG_WITHOUT_FP
-
 /* If defined, this macro specifies a table of register pairs used to eliminate
    unneeded registers that point into the stack frame.  */
 
@@ -1042,19 +1022,6 @@ enum reg_class
 #define FR_RET_FIRST FR_REG (8)
 #define FR_RET_LAST  FR_REG (15)
 #define AR_ARG_FIRST OUT_REG (0)
-
-/* A C expression that controls whether a function argument is passed in a
-   register, and which register.  */
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  ia64_function_arg (&CUM, MODE, TYPE, NAMED, 0)
-
-/* Define this macro if the target machine has "register windows", so that the
-   register in which a function sees an arguments is not necessarily the same
-   as the one in which the caller passed the argument.  */
-
-#define FUNCTION_INCOMING_ARG(CUM, MODE, TYPE, NAMED) \
-  ia64_function_arg (&CUM, MODE, TYPE, NAMED, 1)
 
 /* A C type for declaring a variable that is used as the first argument of
    `FUNCTION_ARG' and other related values.  For some target machines, the type
@@ -1102,14 +1069,6 @@ do {									\
   (CUM).atypes[3] = (CUM).atypes[4] = (CUM).atypes[5] = I64;            \
   (CUM).atypes[6] = (CUM).atypes[7] = I64;                              \
 } while (0)
-
-/* A C statement (sans semicolon) to update the summarizer variable CUM to
-   advance past an argument in the argument list.  The values MODE, TYPE and
-   NAMED describe that argument.  Once this is done, the variable CUM is
-   suitable for analyzing the *following* argument with `FUNCTION_ARG'.  */
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED) \
- ia64_function_arg_advance (&CUM, MODE, TYPE, NAMED)
 
 /* If defined, a C expression that gives the alignment boundary, in bits, of an
    argument with the specified mode and type.  */

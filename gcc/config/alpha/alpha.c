@@ -208,6 +208,13 @@ static void unicosmk_gen_dsib (unsigned long *);
 static void unicosmk_output_ssib (FILE *, const char *);
 static int unicosmk_need_dex (rtx);
 
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options alpha_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
+
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
@@ -5665,7 +5672,7 @@ alpha_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 #if TARGET_ABI_OPEN_VMS
     {
       if (mode == VOIDmode)
-	return alpha_arg_info_reg_val (cum);
+	return alpha_arg_info_reg_val (*cum);
 
       num_args = cum->num_args;
       if (num_args >= 6
@@ -5887,7 +5894,7 @@ alpha_build_builtin_va_list (void)
   record = (*lang_hooks.types.make_type) (RECORD_TYPE);
   type_decl = build_decl (BUILTINS_LOCATION,
 			  TYPE_DECL, get_identifier ("__va_list_tag"), record);
-  TREE_CHAIN (record) = type_decl;
+  TYPE_STUB_DECL (record) = type_decl;
   TYPE_NAME (record) = type_decl;
 
   /* C++? SET_IS_AGGR_TYPE (record, 1); */
@@ -11139,6 +11146,9 @@ alpha_init_libfuncs (void)
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE alpha_option_override
+
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE alpha_option_optimization_table
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
 #undef TARGET_MANGLE_TYPE

@@ -139,14 +139,6 @@ typedef enum
 { FORM_FREE, FORM_FIXED, FORM_UNKNOWN }
 gfc_source_form;
 
-/* Basic types.  BT_VOID is used by ISO C Binding so funcs like c_f_pointer
-   can take any arg with the pointer attribute as a param.  */
-typedef enum
-{ BT_UNKNOWN = 1, BT_INTEGER, BT_REAL, BT_COMPLEX, BT_LOGICAL, BT_CHARACTER,
-  BT_DERIVED, BT_CLASS, BT_PROCEDURE, BT_HOLLERITH, BT_VOID
-}
-bt;
-
 /* Expression node types.  */
 typedef enum
 { EXPR_OP = 1, EXPR_FUNCTION, EXPR_CONSTANT, EXPR_VARIABLE,
@@ -893,7 +885,7 @@ typedef struct gfc_charlen
   struct gfc_charlen *next;
   bool length_from_typespec; /* Length from explicit array ctor typespec?  */
   tree backend_decl;
-  tree passed_length; /* Length argument explicitelly passed.  */
+  tree passed_length; /* Length argument explicitly passed.  */
 
   int resolved;
 }
@@ -918,7 +910,8 @@ typedef struct
   struct gfc_symbol *interface;	/* For PROCEDURE declarations.  */
   int is_c_interop;
   int is_iso_c;
-  bt f90_type; 
+  bt f90_type;
+  bool deferred;
 }
 gfc_typespec;
 
@@ -2186,7 +2179,8 @@ typedef struct
   int max_continue_fixed;
   int max_continue_free;
   int max_identifier_length;
-  int dump_parse_tree;
+  int dump_fortran_original;
+  int dump_fortran_optimized;
 
   int warn_aliasing;
   int warn_ampersand;
@@ -2883,6 +2877,11 @@ gfc_try gfc_check_same_strlen (const gfc_expr*, const gfc_expr*, const char*);
 
 /* class.c */
 void gfc_add_component_ref (gfc_expr *, const char *);
+#define gfc_add_data_component(e)     gfc_add_component_ref(e,"_data")
+#define gfc_add_vptr_component(e)     gfc_add_component_ref(e,"_vptr")
+#define gfc_add_hash_component(e)     gfc_add_component_ref(e,"_hash")
+#define gfc_add_size_component(e)     gfc_add_component_ref(e,"_size")
+#define gfc_add_def_init_component(e) gfc_add_component_ref(e,"_def_init")
 gfc_expr *gfc_class_null_initializer (gfc_typespec *);
 gfc_try gfc_build_class_symbol (gfc_typespec *, symbol_attribute *,
 				gfc_array_spec **, bool);

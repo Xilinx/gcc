@@ -557,6 +557,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
     private:
       iterator
+      _M_const_cast_iter(const_iterator __cit)
+      { return iterator(static_cast<_Link_type>
+			(const_cast<_Base_ptr>(__cit._M_node))); }
+
+      iterator
       _M_insert_(_Const_Base_ptr __x, _Const_Base_ptr __y,
 		 const value_type& __v);
 
@@ -702,22 +707,29 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         void
         _M_insert_equal(_InputIterator __first, _InputIterator __last);
 
+    private:
+      void
+      _M_erase_aux(const_iterator __position);
+
+      void
+      _M_erase_aux(const_iterator __first, const_iterator __last);
+
+    public:
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // DR 130. Associative erase should return an iterator.
       iterator
-      erase(iterator __position);
-
-      // _GLIBCXX_RESOLVE_LIB_DEFECTS
-      // DR 130. Associative erase should return an iterator.
-      const_iterator
-      erase(const_iterator __position);
+      erase(const_iterator __position)
+      {
+	const_iterator __result = __position;
+	++__result;
+	_M_erase_aux(__position);
+	return _M_const_cast_iter(__result);
+      }
 #else
       void
-      erase(iterator __position);
-
-      void
-      erase(const_iterator __position);
+      erase(const_iterator __position)
+      { _M_erase_aux(__position); }
 #endif
       size_type
       erase(const key_type& __x);
@@ -726,18 +738,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // DR 130. Associative erase should return an iterator.
       iterator
-      erase(iterator __first, iterator __last);
-
-      // _GLIBCXX_RESOLVE_LIB_DEFECTS
-      // DR 130. Associative erase should return an iterator.
-      const_iterator
-      erase(const_iterator __first, const_iterator __last);
+      erase(const_iterator __first, const_iterator __last)
+      {
+	_M_erase_aux(__first, __last);
+	return _M_const_cast_iter(__last);
+      }
 #else
       void
-      erase(iterator __first, iterator __last);
-
-      void
-      erase(const_iterator __first, const_iterator __last);
+      erase(const_iterator __first, const_iterator __last)
+      { _M_erase_aux(__first, __last); }
 #endif
       void
       erase(const key_type* __first, const key_type* __last);
@@ -1273,8 +1282,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
       else
 	// Equivalent keys.
-	return iterator(static_cast<_Link_type>
-			(const_cast<_Base_ptr>(__position._M_node)));
+	return _M_const_cast_iter(__position);
     }
 
   template<typename _Key, typename _Val, typename _KeyOfValue,
@@ -1353,64 +1361,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  _M_insert_equal_(end(), *__first);
       }
 
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-  // _GLIBCXX_RESOLVE_LIB_DEFECTS
-  // DR 130. Associative erase should return an iterator.
   template<typename _Key, typename _Val, typename _KeyOfValue,
            typename _Compare, typename _Alloc>
-    typename _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::iterator
+    void
     _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
-    erase(iterator __position)
-    {
-      iterator __result = __position;
-      ++__result;
-      _Link_type __y =
-	static_cast<_Link_type>(_Rb_tree_rebalance_for_erase
-				(__position._M_node,
-				 this->_M_impl._M_header));
-      _M_destroy_node(__y);
-      --_M_impl._M_node_count;
-      return __result;
-    }
-
-  // _GLIBCXX_RESOLVE_LIB_DEFECTS
-  // DR 130. Associative erase should return an iterator.
-  template<typename _Key, typename _Val, typename _KeyOfValue,
-           typename _Compare, typename _Alloc>
-    typename _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::const_iterator
-    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
-    erase(const_iterator __position)
-    {
-      const_iterator __result = __position;
-      ++__result;
-      _Link_type __y =
-	static_cast<_Link_type>(_Rb_tree_rebalance_for_erase
-				(const_cast<_Base_ptr>(__position._M_node),
-				 this->_M_impl._M_header));
-      _M_destroy_node(__y);
-      --_M_impl._M_node_count;
-      return __result;
-    }
-#else
-  template<typename _Key, typename _Val, typename _KeyOfValue,
-           typename _Compare, typename _Alloc>
-    inline void
-    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
-    erase(iterator __position)
-    {
-      _Link_type __y =
-	static_cast<_Link_type>(_Rb_tree_rebalance_for_erase
-				(__position._M_node,
-				 this->_M_impl._M_header));
-      _M_destroy_node(__y);
-      --_M_impl._M_node_count;
-    }
-
-  template<typename _Key, typename _Val, typename _KeyOfValue,
-           typename _Compare, typename _Alloc>
-    inline void
-    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
-    erase(const_iterator __position)
+    _M_erase_aux(const_iterator __position)
     {
       _Link_type __y =
 	static_cast<_Link_type>(_Rb_tree_rebalance_for_erase
@@ -1419,7 +1374,19 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       _M_destroy_node(__y);
       --_M_impl._M_node_count;
     }
-#endif
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    void
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    _M_erase_aux(const_iterator __first, const_iterator __last)
+    {
+      if (__first == begin() && __last == end())
+	clear();
+      else
+	while (__first != __last)
+	  erase(__first++);
+    }
 
   template<typename _Key, typename _Val, typename _KeyOfValue,
            typename _Compare, typename _Alloc>
@@ -1432,76 +1399,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       erase(__p.first, __p.second);
       return __old_size - size();
     }
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-  // _GLIBCXX_RESOLVE_LIB_DEFECTS
-  // DR 130. Associative erase should return an iterator.
-  template<typename _Key, typename _Val, typename _KeyOfValue,
-           typename _Compare, typename _Alloc>
-    typename _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::iterator
-    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
-    erase(iterator __first, iterator __last)
-    {
-      if (__first == begin() && __last == end())
-        {
-	  clear();
-	  return end();
-        }
-      else
-        {
-	  while (__first != __last)
-	    erase(__first++);
-	  return __last;
-        }
-    }
-
-  // _GLIBCXX_RESOLVE_LIB_DEFECTS
-  // DR 130. Associative erase should return an iterator.
-  template<typename _Key, typename _Val, typename _KeyOfValue,
-           typename _Compare, typename _Alloc>
-    typename _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::const_iterator
-    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
-    erase(const_iterator __first, const_iterator __last)
-    {
-      if (__first == begin() && __last == end())
-        {
-	  clear();
-	  return end();
-        }
-      else
-        {
-	  while (__first != __last)
-	    erase(__first++);
-	  return __last;
-        }
-    }
-#else
-  template<typename _Key, typename _Val, typename _KeyOfValue,
-           typename _Compare, typename _Alloc>
-    void
-    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
-    erase(iterator __first, iterator __last)
-    {
-      if (__first == begin() && __last == end())
-	clear();
-      else
-	while (__first != __last)
-	  erase(__first++);
-    }
-
-  template<typename _Key, typename _Val, typename _KeyOfValue,
-           typename _Compare, typename _Alloc>
-    void
-    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
-    erase(const_iterator __first, const_iterator __last)
-    {
-      if (__first == begin() && __last == end())
-	clear();
-      else
-	while (__first != __last)
-	  erase(__first++);
-    }
-#endif
 
   template<typename _Key, typename _Val, typename _KeyOfValue,
            typename _Compare, typename _Alloc>

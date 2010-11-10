@@ -68,6 +68,8 @@ extern bool default_print_operand_punct_valid_p (unsigned char);
 extern bool default_asm_output_addr_const_extra (FILE *, rtx);
 
 extern bool default_scalar_mode_supported_p (enum machine_mode);
+extern bool targhook_words_big_endian (void);
+extern bool targhook_float_words_big_endian (void);
 extern bool default_decimal_float_supported_p (void);
 extern bool default_fixed_point_supported_p (void);
 
@@ -162,3 +164,12 @@ extern enum unwind_info_type default_debug_unwind_info (void);
 extern enum unwind_info_type default_except_unwind_info (void);
 extern enum unwind_info_type dwarf2_except_unwind_info (void);
 extern enum unwind_info_type sjlj_except_unwind_info (void);
+
+extern int default_label_align_after_barrier_max_skip (rtx);
+extern int default_loop_align_max_skip (rtx);
+extern int default_label_align_max_skip (rtx);
+extern int default_jump_align_max_skip (rtx);
+
+extern enum machine_mode default_get_reg_raw_mode(int);
+
+extern const struct default_options empty_optimization_table[];

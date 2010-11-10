@@ -1166,6 +1166,9 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 /* Used to mark scoped enums.  */
 #define ENUM_IS_SCOPED(NODE) (ENUMERAL_TYPE_CHECK (NODE)->base.static_flag)
 
+/* Determines whether an ENUMERAL_TYPE has defined the list of constants. */
+#define ENUM_IS_OPAQUE(NODE) (ENUMERAL_TYPE_CHECK (NODE)->base.private_flag)
+
 /* In an expr node (usually a conversion) this means the node was made
    implicitly and should not lead to any sort of warning.  In a decl node,
    warnings concerning the decl should be suppressed.  This is used at
@@ -1595,6 +1598,7 @@ struct GTY(()) tree_constructor {
   (EXPR_P ((NODE)) ? (NODE)->exp.locus : UNKNOWN_LOCATION)
 #define SET_EXPR_LOCATION(NODE, LOCUS) EXPR_CHECK ((NODE))->exp.locus = (LOCUS)
 #define EXPR_HAS_LOCATION(NODE) (EXPR_LOCATION (NODE) != UNKNOWN_LOCATION)
+#define EXPR_LOC_OR_HERE(NODE) (EXPR_HAS_LOCATION (NODE) ? (NODE)->exp.locus : input_location)
 #define EXPR_FILENAME(NODE) LOCATION_FILE (EXPR_CHECK ((NODE))->exp.locus)
 #define EXPR_LINENO(NODE) LOCATION_LINE (EXPR_CHECK (NODE)->exp.locus)
 
@@ -2332,8 +2336,7 @@ struct GTY(()) tree_type {
     int GTY ((tag ("0"))) address;
     const char * GTY ((tag ("1"))) pointer;
     struct die_struct * GTY ((tag ("2"))) die;
-  } GTY ((desc ("debug_hooks == &sdb_debug_hooks ? 1 : debug_hooks == &dwarf2_debug_hooks ? 2 : 0"),
-	  descbits ("2"))) symtab;
+  } GTY ((desc ("debug_hooks == &sdb_debug_hooks ? 1 : debug_hooks == &dwarf2_debug_hooks ? 2 : 0"))) symtab;
   tree name;
   tree minval;
   tree maxval;
@@ -4034,6 +4037,7 @@ extern tree build_int_cst_type (tree, HOST_WIDE_INT);
 extern tree build_int_cst_wide (tree, unsigned HOST_WIDE_INT, HOST_WIDE_INT);
 extern tree build_vector (tree, tree);
 extern tree build_vector_from_ctor (tree, VEC(constructor_elt,gc) *);
+extern tree build_vector_from_val (tree, tree);
 extern tree build_constructor (tree, VEC(constructor_elt,gc) *);
 extern tree build_constructor_single (tree, tree, tree);
 extern tree build_constructor_from_list (tree, tree);
@@ -4584,11 +4588,8 @@ extern tree skip_simple_arithmetic (tree);
 
 enum tree_node_structure_enum tree_node_structure (const_tree);
 
-/* Return 1 if EXP contains a PLACEHOLDER_EXPR; i.e., if it represents a size
-   or offset that depends on a field within a record.
-
-   Note that we only allow such expressions within simple arithmetic
-   or a COND_EXPR.  */
+/* Return true if EXP contains a PLACEHOLDER_EXPR, i.e. if it represents a
+   size or offset that depends on a field within a record.  */
 
 extern bool contains_placeholder_p (const_tree);
 
@@ -4598,9 +4599,9 @@ extern bool contains_placeholder_p (const_tree);
 #define CONTAINS_PLACEHOLDER_P(EXP) \
   ((EXP) != 0 && ! TREE_CONSTANT (EXP) && contains_placeholder_p (EXP))
 
-/* Return 1 if any part of the computation of TYPE involves a PLACEHOLDER_EXPR.
-   This includes size, bounds, qualifiers (for QUAL_UNION_TYPE) and field
-   positions.  */
+/* Return true if any part of the structure of TYPE involves a PLACEHOLDER_EXPR
+   directly.  This includes size, bounds, qualifiers (for QUAL_UNION_TYPE) and
+   field positions.  */
 
 extern bool type_contains_placeholder_p (tree);
 
@@ -4949,6 +4950,7 @@ extern void fold_defer_overflow_warnings (void);
 extern void fold_undefer_overflow_warnings (bool, const_gimple, int);
 extern void fold_undefer_and_ignore_overflow_warnings (void);
 extern bool fold_deferring_overflow_warnings_p (void);
+extern tree fold_fma (location_t, tree, tree, tree, tree);
 
 enum operand_equal_flag
 {
@@ -5069,7 +5071,6 @@ extern bool merge_ranges (int *, tree *, tree *, int, tree, tree, int,
 extern void set_builtin_user_assembler_name (tree decl, const char *asmspec);
 extern bool is_simple_builtin (tree);
 extern bool is_inexpensive_builtin (tree);
-extern bool mode_has_fma (enum machine_mode mode);
 
 /* In convert.c */
 extern tree strip_float_extensions (tree);

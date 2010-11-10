@@ -242,10 +242,9 @@ remap_ssa_name (tree name, copy_body_data *id)
 	    {
 	      gimple_stmt_iterator gsi = gsi_last_bb (id->entry_bb);
 	      gimple init_stmt;
+	      tree zero = build_zero_cst (TREE_TYPE (new_tree));
 
-	      init_stmt = gimple_build_assign (new_tree,
-		                               fold_convert (TREE_TYPE (new_tree),
-					       		    integer_zero_node));
+	      init_stmt = gimple_build_assign (new_tree, zero);
 	      gsi_insert_after (&gsi, init_stmt, GSI_NEW_STMT);
 	      SSA_NAME_IS_DEFAULT_DEF (new_tree) = 0;
 	    }
@@ -3284,6 +3283,7 @@ estimate_operator_cost (enum tree_code code, eni_weights *weights,
     case POINTER_PLUS_EXPR:
     case MINUS_EXPR:
     case MULT_EXPR:
+    case FMA_EXPR:
 
     case ADDR_SPACE_CONVERT_EXPR:
     case FIXED_CONVERT_EXPR:
@@ -4010,7 +4010,10 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
     }
 
   if (purge_dead_abnormal_edges)
-    gimple_purge_dead_abnormal_call_edges (return_block);
+    {
+      gimple_purge_dead_eh_edges (return_block);
+      gimple_purge_dead_abnormal_call_edges (return_block);
+    }
 
   /* If the value of the new expression is ignored, that's OK.  We
      don't warn about this for CALL_EXPRs, so we shouldn't warn about

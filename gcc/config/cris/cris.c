@@ -129,10 +129,15 @@ static bool cris_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 				    const_tree, bool);
 static int cris_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				   tree, bool);
+static rtx cris_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+			      const_tree, bool);
+static rtx cris_function_incoming_arg (CUMULATIVE_ARGS *,
+				       enum machine_mode, const_tree, bool);
+static void cris_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+				       const_tree, bool);
 static tree cris_md_asm_clobbers (tree, tree, tree);
 
 static bool cris_handle_option (size_t, const char *, int);
-static void cris_option_optimization (int, int);
 static void cris_option_override (void);
 
 static bool cris_frame_pointer_required (void);
@@ -149,6 +154,14 @@ int cris_max_stackframe = 0;
 
 /* This is the parsed result of the "-march=" option, if given.  */
 int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
+
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+
+static const struct default_options cris_option_optimization_table[] =
+  {
+    { OPT_LEVELS_2_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 #undef TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.word\t"
@@ -207,6 +220,12 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 #define TARGET_PASS_BY_REFERENCE cris_pass_by_reference
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES cris_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG cris_function_arg
+#undef TARGET_FUNCTION_INCOMING_ARG
+#define TARGET_FUNCTION_INCOMING_ARG cris_function_incoming_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE cris_function_arg_advance
 #undef TARGET_MD_ASM_CLOBBERS
 #define TARGET_MD_ASM_CLOBBERS cris_md_asm_clobbers
 #undef TARGET_DEFAULT_TARGET_FLAGS
@@ -218,8 +237,8 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE cris_option_override
-#undef TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION cris_option_optimization
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE cris_option_optimization_table
 
 #undef TARGET_ASM_TRAMPOLINE_TEMPLATE
 #define TARGET_ASM_TRAMPOLINE_TEMPLATE cris_asm_trampoline_template
@@ -2422,15 +2441,6 @@ cris_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
   return true;
 }
 
-/* Implement TARGET_OPTION_OPTIMIZATION.  */
-
-static void
-cris_option_optimization (int level, int size)
-{
-  if (level >= 2 || size)
-    flag_omit_frame_pointer = 1;
-}
-
 /* The TARGET_OPTION_OVERRIDE worker.
    As is the norm, this also parses -mfoo=bar type parameters.  */
 
@@ -3891,6 +3901,51 @@ cris_arg_partial_bytes (CUMULATIVE_ARGS *ca, enum machine_mode mode,
     return UNITS_PER_WORD;
   else
     return 0;
+}
+
+static rtx
+cris_function_arg_1 (const CUMULATIVE_ARGS *ca,
+		     enum machine_mode mode ATTRIBUTE_UNUSED,
+		     const_tree type ATTRIBUTE_UNUSED,
+		     bool named, bool incoming)
+{
+  if ((!incoming || named) && ca->regs < CRIS_MAX_ARGS_IN_REGS)
+    return gen_rtx_REG (mode, CRIS_FIRST_ARG_REG + ca->regs);
+  else
+    return NULL_RTX;
+}
+
+/* Worker function for TARGET_FUNCTION_ARG.
+   The void_type_node is sent as a "closing" call.  */
+
+static rtx
+cris_function_arg (CUMULATIVE_ARGS *ca, enum machine_mode mode,
+		   const_tree type, bool named)
+{
+  return cris_function_arg_1 (ca, mode, type, named, false);
+}
+
+/* Worker function for TARGET_FUNCTION_INCOMING_ARG.
+
+   The differences between this and the previous, is that this one checks
+   that an argument is named, since incoming stdarg/varargs arguments are
+   pushed onto the stack, and we don't have to check against the "closing"
+   void_type_node TYPE parameter.  */
+
+static rtx
+cris_function_incoming_arg (CUMULATIVE_ARGS *ca, enum machine_mode mode,
+			    const_tree type, bool named)
+{
+  return cris_function_arg_1 (ca, mode, type, named, true);
+}
+
+/* Worker function for TARGET_FUNCTION_ARG_ADVANCE.  */
+
+static void
+cris_function_arg_advance (CUMULATIVE_ARGS *ca, enum machine_mode mode,
+			   const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  ca->regs += (3 + CRIS_FUNCTION_ARG_SIZE (mode, type)) / 4;
 }
 
 /* Worker function for TARGET_MD_ASM_CLOBBERS.  */

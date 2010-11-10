@@ -177,6 +177,7 @@ static tree create_variant_part_from (tree, VEC(variant_desc,heap) *, tree,
 				      tree, VEC(subst_pair,heap) *);
 static void copy_and_substitute_in_size (tree, tree, VEC(subst_pair,heap) *);
 static void rest_of_type_decl_compilation_no_defer (tree);
+static void finish_fat_pointer_type (tree, tree);
 
 /* The relevant constituents of a subprogram binding to a GCC builtin.  Used
    to pass around calls performing profile compatibilty checks.  */
@@ -188,7 +189,6 @@ typedef struct {
 } intrin_binding_t;
 
 static bool intrin_profiles_compatible_p (intrin_binding_t *);
-
 
 /* Given GNAT_ENTITY, a GNAT defining identifier node, which denotes some Ada
    entity, return the equivalent GCC tree for that entity (a ..._DECL node)
@@ -1915,23 +1915,13 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	/* Build the fat pointer type.  Use a "void *" object instead of
 	   a pointer to the array type since we don't have the array type
 	   yet (it will reference the fat pointer via the bounds).  */
-	tem = chainon (chainon (NULL_TREE,
-				create_field_decl (get_identifier ("P_ARRAY"),
-						   ptr_void_type_node,
-						   gnu_fat_type, NULL_TREE,
-						   NULL_TREE, 0, 0)),
-		       create_field_decl (get_identifier ("P_BOUNDS"),
-					  gnu_ptr_template,
-					  gnu_fat_type, NULL_TREE,
-					  NULL_TREE, 0, 0));
-
-	/* Make sure we can put this into a register.  */
-	TYPE_ALIGN (gnu_fat_type) = MIN (BIGGEST_ALIGNMENT, 2 * POINTER_SIZE);
-
-	/* Do not emit debug info for this record type since the types of its
-	   fields are still incomplete at this point.  */
-	finish_record_type (gnu_fat_type, tem, 0, false);
-	TYPE_FAT_POINTER_P (gnu_fat_type) = 1;
+	tem
+	  = create_field_decl (get_identifier ("P_ARRAY"), ptr_void_type_node,
+			       gnu_fat_type, NULL_TREE, NULL_TREE, 0, 0);
+	TREE_CHAIN (tem)
+	  = create_field_decl (get_identifier ("P_BOUNDS"), gnu_ptr_template,
+			       gnu_fat_type, NULL_TREE, NULL_TREE, 0, 0);
+	finish_fat_pointer_type (gnu_fat_type, tem);
 
 	/* Build a reference to the template from a PLACEHOLDER_EXPR that
 	   is the fat pointer.  This will be used to access the individual
@@ -1942,7 +1932,6 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	gnu_template_reference
 	  = build_unary_op (INDIRECT_REF, gnu_template_type, tem);
 	TREE_READONLY (gnu_template_reference) = 1;
-	TREE_THIS_NOTRAP (gnu_template_reference) = 1;
 
 	/* Now create the GCC type for each index and add the fields for that
 	   index to the template.  */
@@ -3588,15 +3577,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		  = create_field_decl (get_identifier ("P_BOUNDS"),
 				       gnu_ptr_template, gnu_type,
 				       NULL_TREE, NULL_TREE, 0, 0);
-
-		/* Make sure we can place this into a register.  */
-		TYPE_ALIGN (gnu_type)
-		  = MIN (BIGGEST_ALIGNMENT, 2 * POINTER_SIZE);
-		TYPE_FAT_POINTER_P (gnu_type) = 1;
-
-		/* Do not emit debug info for this record type since the types
-		   of its fields are incomplete.  */
-		finish_record_type (gnu_type, fields, 0, false);
+		finish_fat_pointer_type (gnu_type, fields);
 
 		TYPE_OBJECT_RECORD_TYPE (gnu_desig_type)
 		  = make_node (RECORD_TYPE);
@@ -3941,7 +3922,6 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	bool return_by_direct_ref_p = false;
 	bool return_by_invisi_ref_p = false;
 	bool return_unconstrained_p = false;
-	bool has_copy_in_out = false;
 	bool has_stub = false;
 	int parmnum;
 
@@ -4194,15 +4174,31 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 	    if (copy_in_copy_out)
 	      {
-		if (!has_copy_in_out)
+		if (!gnu_cico_list)
 		  {
-		    gcc_assert (TREE_CODE (gnu_return_type) == VOID_TYPE);
-		    gnu_return_type = make_node (RECORD_TYPE);
+		    tree gnu_new_ret_type = make_node (RECORD_TYPE);
+
+		    /* If this is a function, we also need a field for the
+		       return value to be placed.  */
+		    if (TREE_CODE (gnu_return_type) != VOID_TYPE)
+		      {
+			gnu_field
+			  = create_field_decl (get_identifier ("RETVAL"),
+					       gnu_return_type,
+					       gnu_new_ret_type, NULL_TREE,
+					       NULL_TREE, 0, 0);
+			Sloc_to_locus (Sloc (gnat_entity),
+				       &DECL_SOURCE_LOCATION (gnu_field));
+			gnu_field_list = gnu_field;
+			gnu_cico_list
+			  = tree_cons (gnu_field, void_type_node, NULL_TREE);
+		      }
+
+		    gnu_return_type = gnu_new_ret_type;
 		    TYPE_NAME (gnu_return_type) = get_identifier ("RETURN");
 		    /* Set a default alignment to speed up accesses.  */
 		    TYPE_ALIGN (gnu_return_type)
 		      = get_mode_alignment (ptr_mode);
-		    has_copy_in_out = true;
 		  }
 
 		gnu_field
@@ -5109,6 +5105,28 @@ rest_of_type_decl_compilation_no_defer (tree decl)
 
       rest_of_type_compilation (t, toplev);
     }
+}
+
+/* Given a record type RECORD_TYPE and a list of FIELD_DECL nodes FIELD_LIST,
+   finish constructing the record type as a fat pointer type.  */
+
+static void
+finish_fat_pointer_type (tree record_type, tree field_list)
+{
+  /* Make sure we can put it into a register.  */
+  TYPE_ALIGN (record_type) = MIN (BIGGEST_ALIGNMENT, 2 * POINTER_SIZE);
+
+  /* Show what it really is.  */
+  TYPE_FAT_POINTER_P (record_type) = 1;
+
+  /* Do not emit debug info for it since the types of its fields may still be
+     incomplete at this point.  */
+  finish_record_type (record_type, field_list, 0, false);
+
+  /* Force type_contains_placeholder_p to return true on it.  Although the
+     PLACEHOLDER_EXPRs are referenced only indirectly, this isn't a pointer
+     type but the representation of the unconstrained array.  */
+  TYPE_CONTAINS_PLACEHOLDER_INTERNAL (record_type) = 2;
 }
 
 /* Finalize any From_With_Type incomplete types.  We do this after processing

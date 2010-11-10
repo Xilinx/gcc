@@ -1,6 +1,6 @@
 /* Xstormy16 target functions.
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
    This file is part of GCC.
@@ -1247,11 +1247,10 @@ xstormy16_function_profiler (void)
   sorry ("function_profiler support");
 }
 
-/* Return an updated summarizer variable CUM to advance past an
-   argument in the argument list.  The values MODE, TYPE and NAMED
-   describe that argument.  Once this is done, the variable CUM is
-   suitable for analyzing the *following* argument with
-   `FUNCTION_ARG', etc.
+/* Update CUM to advance past an argument in the argument list.  The
+   values MODE, TYPE and NAMED describe that argument.  Once this is
+   done, the variable CUM is suitable for analyzing the *following*
+   argument with `TARGET_FUNCTION_ARG', etc.
 
    This function need not do anything if the argument in question was
    passed on the stack.  The compiler knows how to track the amount of
@@ -1259,25 +1258,23 @@ xstormy16_function_profiler (void)
    it makes life easier for xstormy16_build_va_list if it does update
    the word count.  */
 
-CUMULATIVE_ARGS
-xstormy16_function_arg_advance (CUMULATIVE_ARGS cum, enum machine_mode mode,
-				tree type, int named ATTRIBUTE_UNUSED)
+static void
+xstormy16_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+				const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   /* If an argument would otherwise be passed partially in registers,
      and partially on the stack, the whole of it is passed on the
      stack.  */
-  if (cum < NUM_ARGUMENT_REGISTERS
-      && cum + XSTORMY16_WORD_SIZE (type, mode) > NUM_ARGUMENT_REGISTERS)
-    cum = NUM_ARGUMENT_REGISTERS;
+  if (*cum < NUM_ARGUMENT_REGISTERS
+      && *cum + XSTORMY16_WORD_SIZE (type, mode) > NUM_ARGUMENT_REGISTERS)
+    *cum = NUM_ARGUMENT_REGISTERS;
 
-  cum += XSTORMY16_WORD_SIZE (type, mode);
-
-  return cum;
+  *cum += XSTORMY16_WORD_SIZE (type, mode);
 }
 
-rtx
-xstormy16_function_arg (CUMULATIVE_ARGS cum, enum machine_mode mode,
-			tree type, int named ATTRIBUTE_UNUSED)
+static rtx
+xstormy16_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   if (mode == VOIDmode)
     return const0_rtx;
@@ -1314,7 +1311,7 @@ xstormy16_build_builtin_va_list (void)
   DECL_FIELD_CONTEXT (f_1) = record;
   DECL_FIELD_CONTEXT (f_2) = record;
 
-  TREE_CHAIN (record) = type_decl;
+  TYPE_STUB_DECL (record) = type_decl;
   TYPE_NAME (record) = type_decl;
   TYPE_FIELDS (record) = f_1;
   DECL_CHAIN (f_1) = f_2;
@@ -2623,6 +2620,13 @@ xstormy16_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
   return (size == -1 || size > UNITS_PER_WORD * NUM_ARGUMENT_REGISTERS);
 }
 
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options xstorym16_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
+
 #undef  TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.hword\t"
 #undef  TARGET_ASM_ALIGNED_SI_OP
@@ -2656,6 +2660,11 @@ xstormy16_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 #undef  TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_true
 
+#undef  TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG xstormy16_function_arg
+#undef  TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE xstormy16_function_arg_advance
+
 #undef  TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY xstormy16_return_in_memory
 
@@ -2670,6 +2679,9 @@ xstormy16_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT xstormy16_trampoline_init
+
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE xstorym16_option_optimization_table
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

@@ -2130,8 +2130,9 @@ build_component_ref (location_t loc, tree datum, tree component)
   if (!objc_is_public (datum, component))
     return error_mark_node;
 
+  /* Detect Objective-C property syntax object.property.  */
   if (c_dialect_objc ()
-      && (ref = objc_build_getter_call (datum, component)))
+      && (ref = objc_maybe_build_component_ref (datum, component)))
     return ref;
 
   /* See if there is a field or component with name COMPONENT.  */
@@ -2305,6 +2306,9 @@ build_indirect_ref (location_t loc, tree ptr, ref_operator errstring)
    arrays that are not lvalues (for example, members of structures returned
    by functions).
 
+   For vector types, allow vector[i] but not i[vector], and create
+   *(((type*)&vectortype) + i) for the expression.
+
    LOC is the location to use for the returned expression.  */
 
 tree
@@ -2317,13 +2321,17 @@ build_array_ref (location_t loc, tree array, tree index)
     return error_mark_node;
 
   if (TREE_CODE (TREE_TYPE (array)) != ARRAY_TYPE
-      && TREE_CODE (TREE_TYPE (array)) != POINTER_TYPE)
+      && TREE_CODE (TREE_TYPE (array)) != POINTER_TYPE
+      /* Allow vector[index] but not index[vector].  */
+      && TREE_CODE (TREE_TYPE (array)) != VECTOR_TYPE)
     {
       tree temp;
       if (TREE_CODE (TREE_TYPE (index)) != ARRAY_TYPE
 	  && TREE_CODE (TREE_TYPE (index)) != POINTER_TYPE)
 	{
-	  error_at (loc, "subscripted value is neither array nor pointer");
+          error_at (loc, 
+            "subscripted value is neither array nor pointer nor vector");
+
 	  return error_mark_node;
 	}
       temp = array;
@@ -2353,6 +2361,27 @@ build_array_ref (location_t loc, tree array, tree index)
   index = default_conversion (index);
 
   gcc_assert (TREE_CODE (TREE_TYPE (index)) == INTEGER_TYPE);
+  
+  /* For vector[index], convert the vector to a 
+     pointer of the underlying type.  */
+  if (TREE_CODE (TREE_TYPE (array)) == VECTOR_TYPE)
+    {
+      tree type = TREE_TYPE (array);
+      tree type1;
+
+      if (TREE_CODE (index) == INTEGER_CST)
+        if (!host_integerp (index, 1) 
+            || ((unsigned HOST_WIDE_INT) tree_low_cst (index, 1) 
+               >= TYPE_VECTOR_SUBPARTS (TREE_TYPE (array))))
+          warning_at (loc, OPT_Warray_bounds, "index value is out of bound");
+     
+      c_common_mark_addressable_vec (array);
+      type = build_qualified_type (TREE_TYPE (type), TYPE_QUALS (type));
+      type = build_pointer_type (type);
+      type1 = build_pointer_type (TREE_TYPE (array));
+      array = build1 (ADDR_EXPR, type1, array);
+      array = convert (type, array);
+    }
 
   if (TREE_CODE (TREE_TYPE (array)) == ARRAY_TYPE)
     {
@@ -2792,7 +2821,7 @@ build_function_call_vec (location_t loc, tree function, VEC(tree,gc) *params,
 					  build_constructor (return_type, 0),
 					  false);
 	  else
-	    rhs = fold_convert_loc (loc, return_type, integer_zero_node);
+	    rhs = build_zero_cst (return_type);
 
 	  return require_complete_type (build2 (COMPOUND_EXPR, return_type,
 						trap, rhs));
@@ -4841,8 +4870,8 @@ build_modify_expr (location_t location, tree lhs, tree lhs_origtype,
   if (TREE_CODE (lhs) == ERROR_MARK || TREE_CODE (rhs) == ERROR_MARK)
     return error_mark_node;
 
-  /* For ObjC, defer this check until we have assessed CLASS.property.   */
-  if (!c_dialect_objc () && !lvalue_or_else (lhs, lv_assign))
+  /* For ObjC properties, defer this check.  */
+  if (!objc_is_property_ref (lhs) && !lvalue_or_else (lhs, lv_assign))
     return error_mark_node;
 
   if (TREE_CODE (rhs) == EXCESS_PRECISION_EXPR)
@@ -4885,9 +4914,13 @@ build_modify_expr (location_t location, tree lhs, tree lhs_origtype,
 
   if (c_dialect_objc ())
     {
-      result = objc_build_setter_call (lhs, newrhs);
+      /* Check if we are modifying an Objective-C property reference;
+	 if so, we need to generate setter calls.  */
+      result = objc_maybe_build_modify_expr (lhs, newrhs);
       if (result)
 	return result;
+
+      /* Else, do the check that we postponed for Objective-C.  */
       if (!lvalue_or_else (lhs, lv_assign))
 	return error_mark_node;
     }
@@ -9699,7 +9732,21 @@ build_binary_op (location_t location, enum tree_code code,
 	 Also set SHORT_SHIFT if shifting rightward.  */
 
     case RSHIFT_EXPR:
-      if ((code0 == INTEGER_TYPE || code0 == FIXED_POINT_TYPE)
+      if (code0 == VECTOR_TYPE && code1 == INTEGER_TYPE
+          && TREE_CODE (TREE_TYPE (type0)) == INTEGER_TYPE)
+        {
+          result_type = type0;
+          converted = 1;
+        }
+      else if (code0 == VECTOR_TYPE && code1 == VECTOR_TYPE
+	  && TREE_CODE (TREE_TYPE (type0)) == INTEGER_TYPE
+          && TREE_CODE (TREE_TYPE (type1)) == INTEGER_TYPE
+          && TYPE_VECTOR_SUBPARTS (type0) == TYPE_VECTOR_SUBPARTS (type1))
+	{
+	  result_type = type0;
+	  converted = 1;
+	}
+      else if ((code0 == INTEGER_TYPE || code0 == FIXED_POINT_TYPE)
 	  && code1 == INTEGER_TYPE)
 	{
 	  if (TREE_CODE (op1) == INTEGER_CST)
@@ -9726,9 +9773,10 @@ build_binary_op (location_t location, enum tree_code code,
 
 	  /* Use the type of the value to be shifted.  */
 	  result_type = type0;
-	  /* Convert the shift-count to an integer, regardless of size
-	     of value being shifted.  */
-	  if (TYPE_MAIN_VARIANT (TREE_TYPE (op1)) != integer_type_node)
+	  /* Convert the non vector shift-count to an integer, regardless
+	     of size of value being shifted.  */
+	  if (TREE_CODE (TREE_TYPE (op1)) != VECTOR_TYPE
+	      && TYPE_MAIN_VARIANT (TREE_TYPE (op1)) != integer_type_node)
 	    op1 = convert (integer_type_node, op1);
 	  /* Avoid converting op1 to result_type later.  */
 	  converted = 1;
@@ -9736,7 +9784,21 @@ build_binary_op (location_t location, enum tree_code code,
       break;
 
     case LSHIFT_EXPR:
-      if ((code0 == INTEGER_TYPE || code0 == FIXED_POINT_TYPE)
+      if (code0 == VECTOR_TYPE && code1 == INTEGER_TYPE
+          && TREE_CODE (TREE_TYPE (type0)) == INTEGER_TYPE)
+        {
+          result_type = type0;
+          converted = 1;
+        }
+      else if (code0 == VECTOR_TYPE && code1 == VECTOR_TYPE
+	  && TREE_CODE (TREE_TYPE (type0)) == INTEGER_TYPE
+          && TREE_CODE (TREE_TYPE (type1)) == INTEGER_TYPE
+          && TYPE_VECTOR_SUBPARTS (type0) == TYPE_VECTOR_SUBPARTS (type1))
+	{
+	  result_type = type0;
+	  converted = 1;
+	}
+      else if ((code0 == INTEGER_TYPE || code0 == FIXED_POINT_TYPE)
 	  && code1 == INTEGER_TYPE)
 	{
 	  if (TREE_CODE (op1) == INTEGER_CST)
@@ -9758,9 +9820,10 @@ build_binary_op (location_t location, enum tree_code code,
 
 	  /* Use the type of the value to be shifted.  */
 	  result_type = type0;
-	  /* Convert the shift-count to an integer, regardless of size
-	     of value being shifted.  */
-	  if (TYPE_MAIN_VARIANT (TREE_TYPE (op1)) != integer_type_node)
+	  /* Convert the non vector shift-count to an integer, regardless
+	     of size of value being shifted.  */
+	  if (TREE_CODE (TREE_TYPE (op1)) != VECTOR_TYPE
+	      && TYPE_MAIN_VARIANT (TREE_TYPE (op1)) != integer_type_node)
 	    op1 = convert (integer_type_node, op1);
 	  /* Avoid converting op1 to result_type later.  */
 	  converted = 1;

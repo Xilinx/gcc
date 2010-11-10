@@ -603,6 +603,7 @@ gen_rtx_REG (enum machine_mode mode, unsigned int regno)
 	return return_address_pointer_rtx;
 #endif
       if (regno == (unsigned) PIC_OFFSET_TABLE_REGNUM
+	  && PIC_OFFSET_TABLE_REGNUM != INVALID_REGNUM
 	  && fixed_regs[PIC_OFFSET_TABLE_REGNUM])
 	return pic_offset_table_rtx;
       if (regno == STACK_POINTER_REGNUM)
@@ -1839,10 +1840,8 @@ set_mem_attributes (rtx ref, tree t, int objectp)
 void
 set_mem_alias_set (rtx mem, alias_set_type set)
 {
-#ifdef ENABLE_CHECKING
   /* If the new and old alias sets don't conflict, something is wrong.  */
-  gcc_assert (alias_sets_conflict_p (set, MEM_ALIAS_SET (mem)));
-#endif
+  gcc_checking_assert (alias_sets_conflict_p (set, MEM_ALIAS_SET (mem)));
 
   MEM_ATTRS (mem) = get_mem_attrs (set, MEM_EXPR (mem), MEM_OFFSET (mem),
 				   MEM_SIZE (mem), MEM_ALIGN (mem),
@@ -2730,11 +2729,10 @@ repeat:
   return;
 }
 
-/* Clear all the USED bits in X to allow copy_rtx_if_shared to be used
-   to look for shared sub-parts.  */
+/* Set the USED bit in X and its non-shareable subparts to FLAG.  */
 
-void
-reset_used_flags (rtx x)
+static void
+mark_used_flags (rtx x, int flag)
 {
   int i, j;
   enum rtx_code code;
@@ -2780,7 +2778,7 @@ repeat:
       break;
     }
 
-  RTX_FLAG (x, used) = 0;
+  RTX_FLAG (x, used) = flag;
 
   format_ptr = GET_RTX_FORMAT (code);
   length = GET_RTX_LENGTH (code);
@@ -2795,15 +2793,24 @@ repeat:
               x = XEXP (x, i);
 	      goto repeat;
             }
-	  reset_used_flags (XEXP (x, i));
+	  mark_used_flags (XEXP (x, i), flag);
 	  break;
 
 	case 'E':
 	  for (j = 0; j < XVECLEN (x, i); j++)
-	    reset_used_flags (XVECEXP (x, i, j));
+	    mark_used_flags (XVECEXP (x, i, j), flag);
 	  break;
 	}
     }
+}
+
+/* Clear all the USED bits in X to allow copy_rtx_if_shared to be used
+   to look for shared sub-parts.  */
+
+void
+reset_used_flags (rtx x)
+{
+  mark_used_flags (x, 0);
 }
 
 /* Set all the USED bits in X to allow copy_rtx_if_shared to be used
@@ -2812,64 +2819,7 @@ repeat:
 void
 set_used_flags (rtx x)
 {
-  int i, j;
-  enum rtx_code code;
-  const char *format_ptr;
-
-  if (x == 0)
-    return;
-
-  code = GET_CODE (x);
-
-  /* These types may be freely shared so we needn't do any resetting
-     for them.  */
-
-  switch (code)
-    {
-    case REG:
-    case DEBUG_EXPR:
-    case VALUE:
-    case CONST_INT:
-    case CONST_DOUBLE:
-    case CONST_FIXED:
-    case CONST_VECTOR:
-    case SYMBOL_REF:
-    case CODE_LABEL:
-    case PC:
-    case CC0:
-      return;
-
-    case DEBUG_INSN:
-    case INSN:
-    case JUMP_INSN:
-    case CALL_INSN:
-    case NOTE:
-    case LABEL_REF:
-    case BARRIER:
-      /* The chain of insns is not being copied.  */
-      return;
-
-    default:
-      break;
-    }
-
-  RTX_FLAG (x, used) = 1;
-
-  format_ptr = GET_RTX_FORMAT (code);
-  for (i = 0; i < GET_RTX_LENGTH (code); i++)
-    {
-      switch (*format_ptr++)
-	{
-	case 'e':
-	  set_used_flags (XEXP (x, i));
-	  break;
-
-	case 'E':
-	  for (j = 0; j < XVECLEN (x, i); j++)
-	    set_used_flags (XVECEXP (x, i, j));
-	  break;
-	}
-    }
+  mark_used_flags (x, 1);
 }
 
 /* Copy X if necessary so that it won't be altered by changes in OTHER.

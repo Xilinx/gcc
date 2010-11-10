@@ -1,3 +1,231 @@
+2010-11-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46313
+	* gfortran.h (gfc_add_data_component,gfc_add_vptr_component,
+	gfc_add_hash_component,gfc_add_size_component,
+	gfc_add_def_init_component): New macros.
+	* class.c (gfc_add_component_ref): Renamed data component.
+	(get_unique_type_string): New function.
+	(gfc_build_class_symbol): Use 'get_unique_type_string' to construct
+	uniques names for the class containers. Rename components.
+	(gfc_find_derived_vtab): Use 'get_unique_type_string' to construct
+	uniques names for the vtab symbols. Rename components.
+	* decl.c (attr_decl1): Renamed class container components.
+	* iresolve.c (gfc_resolve_extends_type_of): Ditto.
+	* match.c (select_type_set_tmp): Renamed temporaries.
+	* module.c (read_module): Renamed vtab and vtype symbols.
+	* resolve.c (resolve_structure_cons,resolve_typebound_function,
+	resolve_typebound_subroutine,resolve_deallocate_expr,
+	resolve_select_type,resolve_fl_derived): Renamed class container and
+	vtab components.
+	* trans-array.c (structure_alloc_comps): Ditto.
+	* trans-decl.c (gfc_trans_deferred_vars): Ditto.
+	* trans-expr.c (gfc_conv_derived_to_class,gfc_conv_structure,
+	gfc_trans_class_init_assign,gfc_trans_class_assign): Ditto.
+	* trans-intrinsic.c (gfc_conv_intrinsic_sizeof,
+	gfc_conv_intrinsic_storage_size,gfc_conv_allocated,gfc_conv_associated,
+	gfc_conv_same_type_as): Ditto.
+	* trans-stmt.c (gfc_trans_allocate): Ditto.
+
+2010-11-08  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/43899
+	* trans-decl.c (generate_local_decl): Do not generate unused warning
+	for variables in namelists.
+
+2010-11-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46344
+	* decl.c (build_struct): Build vtab immediately if derived type
+	has already been declared.
+
+2010-11-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46344
+	* trans-types.c (gfc_copy_dt_decls_ifequal): Handle CLASS components.
+
+2010-11-06  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46330
+	* trans-expr.c (gfc_trans_class_assign): Find 'vtab' symbol in correct
+	namespace.
+
+2010-11-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45451
+	PR fortran/46174
+	* class.c (gfc_find_derived_vtab): Improved search for existing vtab.
+	Add component '$copy' to vtype symbol for polymorphic deep copying.
+	* expr.c (gfc_check_pointer_assign): Make sure the vtab is generated
+	during resolution stage.
+	* resolve.c (resolve_codes): Don't resolve code if namespace is already
+	resolved.
+	* trans-stmt.c (gfc_trans_allocate): Call '$copy' procedure for
+	polymorphic ALLOCATE statements with SOURCE.
+
+2010-11-03  Thomas Koenig  <tkoenig@gcc.gnu.org>
+	    Paul Thomas  <pault@gcc.gnu.org>
+
+	* dump-parse-tree.c (code_indent):  Take label into acount
+	when calculating indent.
+	(show_typespec):  Also display class.
+	(show_attr):  Add module name to argument.
+	Don't show UNKNOWN for flavor, access and save. Don't show
+	SAVE_NONE.  Don't show INTENT_UNKNOWN.  Show module for use
+	association.  Show intent only for dummy arguments.
+	Set length of shown symbol names to minimum of 12.
+	Show attributes header.
+	(show_symbol):  Adjust show_level.
+	(show_symtree):  Clear up display for ambiguous.  Show if symbol
+	was imported from namespace.
+	(show_code_node):  Clear up indenting.  Traverse symtree and
+	show code directly instead of calling show_namespace.
+
+2010-11-02  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* trans-decl.c (add_argument_checking): Use build_zero_cst instead of
+	fold_convert.
+	* trans-expr.c (gfc_conv_missing_dummy, fill_with_spaces): Likewise.
+	* trans-stmt.c (gfc_trans_do): Likewise.
+
+2010-11-02  Steven G. Kargl  < kargl@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45170
+	* array.c (gfc_match_array_constructor): Reject deferred type
+	parameter (DTP) in type-spec.
+	* decl.c (char_len_param_value, match_char_length,
+	gfc_match_char_spec, build_sym, variable_decl,
+	enumerator_decl): Support DTP.
+	* expr.c (check_inquiry): Fix check due to support for DTP.
+	* gfortran.h (gfc_typespec): Add Boolean 'deferred'.
+	* misc.c (gfc_clear_ts): Set it to false.
+	* match.c (gfc_match_allocate): Support DTP.
+	* resolve.c (resolve_allocate_expr): Not-implemented error for DTP.
+	(resolve_fl_variable): Add DTP constraint check.
+	* trans-decl.c (gfc_trans_deferred_vars): Add not-implemented
+	error for DTP.
+
+2010-11-01  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/46152
+	* fortran/match.c (match_derived_type_spec): Reoplace gfc_match_symbol
+	with a gfc_find_symbol to prevent namespace pollution.  Remove dead
+	code.
+	(match_type_spec): Remove parsing of '::'.  Collapse character
+	kind checking to one location.
+	(gfc_match_allocate): Use correct locus in error message.
+
+2010-10-30  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* gfortran.h (gfc_option_t):  Replace dump_parse_tree by
+	dump_fortran_original and add dump_fortran_optimized.
+	* lang.opt: Add fdump-fortran-original and
+	fdump-fortran-optimized.  Document that fdump-parse-tree is
+	deprecated.
+	* gfortran.texi: Add -fdump-fortran-original and
+	-fdump-fortran-optimized.  -fdump-parse-tree is deprecated.
+	* frontend-passes.c (gfc_run_passes):  If optimizing and
+	if gfc_option.dump_fortran_optimized is set, dump the parse tree
+	after optimization.
+	* parse.c:  Rename gfc_option.dump_parse_tree to
+	gfc_option.dump_fortran_original.
+	* options.c (gfc_init_options):  Rename gfc_option.dump_parse_tree
+	to gfc_option.dump_fortran_original and handle
+	gfc_option.dump_fortran_optimize.
+	(gfc_post_options): Rename gfc_option.dump_parse_tree
+	to gfc_option.dump_fortran_original.
+	(gfc_handle_option):  Rename OPT_fdump_parse_tree to
+	OPT_fdump_fortran_original and gfc_option.dump_parse_tree
+	to gfc_option.dump_fortran_original.  Handle
+	OPT_fdump_fortran_optimized.
+
+2010-10-30  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/44917
+	PR fortran/44926
+	PR fortran/46196
+	* interface.c (count_types_test): Symmetrize type check.
+	(generic_correspondence): Ditto.
+
+2010-10-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46161
+	* interface.c (compare_allocatable): Handle polymorphic allocatables.
+	(compare_parameter): Add two error messages for polymorphic dummies.
+
+2010-10-26  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/42647
+	* trans.h (gfc_deallocate_scalar_with_status): New prototype.
+	* trans.c (gfc_deallocate_scalar_with_status): New function for
+	deallocation of allocatable scalars.
+	* trans-array.c (structure_alloc_comps): Call it here ...
+	* trans-decl.c (gfc_trans_deferred_vars): ... here ...
+	* trans-stmt.c (gfc_trans_deallocate): ... and here.
+
+2010-10-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45451
+	* trans-stmt.c (gfc_trans_allocate): Do a deep-copy for SOURCE=.
+
+	PR fortran/43018
+	* trans-array.c (duplicate_allocatable): Use size of type and not
+	the size of the pointer to the type.
+
+2010-10-25  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/46140
+	* fortran/scanner.c (include_line): Check return value of load_file.
+
+2010-10-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46122
+	* expr.c (gfc_check_vardef_context): Fix PROTECTED check.
+
+2010-10-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46060
+	* match.h (gfc_matching_ptr_assignment): New global variable to indicate
+	we're currently matching a (non-proc-)pointer assignment.
+	* decl.c (match_pointer_init): Set it.
+	* match.c (gfc_match_pointer_assignment): Ditto.
+	* primary.c (matching_actual_arglist): New global variable to indicate
+	we're currently matching an actual argument list.
+	(gfc_match_actual_arglist): Set it.
+	(gfc_match_varspec): Reject procedure pointer component calls with
+	missing argument list.
+
+2010-10-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46067
+	* interface.c (gfc_compare_interfaces): Switch arguments of type
+	comparison (important for polymorphic variables).
+
+2010-10-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46100
+	* expr.c (gfc_check_vardef_context): Treat pointer functions
+	as variables.
+
+2010-10-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/46079
+	* trans_stmt.c (gfc_trans_stop): Fix whitespace.  Build a call to new
+	F08 numeric stop function.
+	* trans.h: Add declaration for gfor_fndecl_stop_numeric_f08.
+	* trans-decl.c (gfc_build_builtin_function_decls): Build declaration
+	for stop_numeric_f08.
+
+2010-10-18  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* gfortran.h: Remove definition of bt enumerator.
+	* libgfortran.h: Add bt enumerator type alighned with defintion.
+	Remove the dtype enumerator, no longer used.
+	previously given in libgfortran/io.h
+	* trans-types.c: Use new bt enumerator.
+	* trans-io.c: Likewise.
+
 2010-10-16  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	* trans-io.c (gfc_build_io_library_fndecls):
@@ -19,6 +247,7 @@
 	the iocall with the original version, otherwise the version
 	with _WRITE.
 	(transfer_array_desc):  Likewise.
+
 2010-10-15  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/45186

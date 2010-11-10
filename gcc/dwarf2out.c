@@ -2552,7 +2552,9 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 
 	    regno = REGNO (XEXP (XEXP (dest, 0), 0));
 
-	    if (cfa_store.reg == (unsigned) regno)
+	    if (cfa.reg == (unsigned) regno)
+	      offset -= cfa.offset;
+	    else if (cfa_store.reg == (unsigned) regno)
 	      offset -= cfa_store.offset;
 	    else
 	      {
@@ -2568,7 +2570,9 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	  {
 	    int regno = REGNO (XEXP (dest, 0));
 
-	    if (cfa_store.reg == (unsigned) regno)
+	    if (cfa.reg == (unsigned) regno)
+	      offset = -cfa.offset;
+	    else if (cfa_store.reg == (unsigned) regno)
 	      offset = -cfa_store.offset;
 	    else
 	      {
@@ -12715,15 +12719,14 @@ modified_type_die (tree type, int is_const_type, int is_volatile_type,
       && TYPE_NAME (qualified_type)
       && TREE_CODE (TYPE_NAME (qualified_type)) == TYPE_DECL)
     {
-#ifdef ENABLE_CHECKING
-      gcc_assert (TREE_CODE (TREE_TYPE (TYPE_NAME (qualified_type)))
-		  == INTEGER_TYPE
-		  && TYPE_PRECISION (TREE_TYPE (TYPE_NAME (qualified_type)))
-		     == TYPE_PRECISION (qualified_type)
-		  && TYPE_UNSIGNED (TREE_TYPE (TYPE_NAME (qualified_type)))
-		     == TYPE_UNSIGNED (qualified_type));
-#endif
-      qualified_type = TREE_TYPE (TYPE_NAME (qualified_type));
+      tree t = TREE_TYPE (TYPE_NAME (qualified_type));
+
+      gcc_checking_assert (TREE_CODE (t) == INTEGER_TYPE
+			   && TYPE_PRECISION (t)
+			   == TYPE_PRECISION (qualified_type)
+			   && TYPE_UNSIGNED (t)
+			   == TYPE_UNSIGNED (qualified_type));
+      qualified_type = t;
     }
 
   /* If we do, then we can just use its DIE, if it exists.  */
@@ -17736,7 +17739,7 @@ scope_die_for (tree t, dw_die_ref context_die)
   if (containing_scope && TREE_CODE (containing_scope) == FUNCTION_TYPE)
     containing_scope = NULL_TREE;
 
-  if (containing_scope == NULL_TREE)
+  if (SCOPE_FILE_SCOPE_P (containing_scope))
     scope_die = comp_unit_die ();
   else if (TYPE_P (containing_scope))
     {
@@ -17848,14 +17851,21 @@ add_calling_convention_attribute (dw_die_ref subr_die, tree decl)
   value = ((enum dwarf_calling_convention)
 	   targetm.dwarf_calling_convention (TREE_TYPE (decl)));
 
-  /* DWARF doesn't provide a way to identify a program's source-level
-     entry point.  DW_AT_calling_convention attributes are only meant
-     to describe functions' calling conventions.  However, lacking a
-     better way to signal the Fortran main program, we use this for the
-     time being, following existing custom.  */
   if (is_fortran ()
       && !strcmp (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)), "MAIN__"))
-    value = DW_CC_program;
+    {
+      /* DWARF 2 doesn't provide a way to identify a program's source-level
+	entry point.  DW_AT_calling_convention attributes are only meant
+	to describe functions' calling conventions.  However, lacking a
+	better way to signal the Fortran main program, we used this for 
+	a long time, following existing custom.  Now, DWARF 4 has 
+	DW_AT_main_subprogram, which we add below, but some tools still
+	rely on the old way, which we thus keep.  */
+      value = DW_CC_program;
+
+      if (dwarf_version >= 4 || !dwarf_strict)
+	add_AT_flag (subr_die, DW_AT_main_subprogram, 1);
+    }
 
   /* Only add the attribute if the backend requests it, and
      is not DW_CC_normal.  */
@@ -18306,9 +18316,13 @@ gen_enumeration_type_die (tree type, dw_die_ref context_die)
 			  scope_die_for (type, context_die), type);
       equate_type_number_to_die (type, type_die);
       add_name_attribute (type_die, type_tag (type));
-      if ((dwarf_version >= 4 || !dwarf_strict)
-	  && ENUM_IS_SCOPED (type))
-	add_AT_flag (type_die, DW_AT_enum_class, 1);
+      if (dwarf_version >= 4 || !dwarf_strict)
+	{
+	  if (ENUM_IS_SCOPED (type))
+	    add_AT_flag (type_die, DW_AT_enum_class, 1);
+	  if (ENUM_IS_OPAQUE (type))
+	    add_AT_flag (type_die, DW_AT_declaration, 1);
+	}
     }
   else if (! TYPE_SIZE (type))
     return type_die;

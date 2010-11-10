@@ -68,15 +68,12 @@
 #ifndef TARGET_VERSION
 #define TARGET_VERSION TARGET_VERSION_INTERNAL (stderr)
 #endif
-
-#define CAN_DEBUG_WITHOUT_FP
 
 /* Storage Layout.  */
 
 #define BITS_BIG_ENDIAN 		0
 #define BYTES_BIG_ENDIAN 		1 
 #define WORDS_BIG_ENDIAN 		1
-#define LIBGCC2_WORDS_BIG_ENDIAN	1
 #define BITS_PER_WORD 			32
 #define MAX_BITS_PER_WORD 		64
 #define UNITS_PER_WORD 			4
@@ -362,9 +359,6 @@ enum reg_class
 
 /* Function Arguments in Registers.  */
 
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  function_arg (& CUM, MODE, TYPE, NAMED)
-
 #define MAX_ARGS_IN_REGISTERS 8
 
 typedef struct iq2000_args
@@ -385,9 +379,6 @@ typedef struct iq2000_args
    For a library call, FNTYPE is 0.  */
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
   init_cumulative_args (& CUM, FNTYPE, LIBNAME)				\
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)			\
-  function_arg_advance (& CUM, MODE, TYPE, NAMED)
 
 #define FUNCTION_ARG_PADDING(MODE, TYPE)				\
   (! BYTES_BIG_ENDIAN							\

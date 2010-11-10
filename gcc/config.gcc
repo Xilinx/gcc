@@ -219,8 +219,6 @@ default_gnu_indirect_function=no
 target_gtfiles=
 need_64bit_hwint=
 need_64bit_isa=
-# Selects the object file format reader/writer used by LTO.
-lto_binary_reader=lto-elf
 
 # Don't carry these over build->host->target.  Please.
 xm_file=
@@ -528,6 +526,7 @@ case ${target} in
       ;;
   esac
   fbsd_tm_file="${fbsd_tm_file} freebsd-spec.h freebsd.h freebsd-stdint.h"
+  extra_options="$extra_options rpath.opt freebsd.opt"
   case ${target} in
     *-*-freebsd[345].*)
       :;;
@@ -727,6 +726,7 @@ alpha*-dec-osf5.1*)
 	tmake_file="alpha/t-alpha alpha/t-ieee alpha/t-crtfm alpha/t-osf5"
 	tm_file="${tm_file} alpha/osf5.h"
 	tm_defines="${tm_defines} TARGET_SUPPORT_ARCH=1"
+	extra_options="${extra_options} rpath.opt"
 	extra_headers=va_list.h
 	use_gcc_stdint=provide
 	case ${enable_threads} in
@@ -1158,15 +1158,11 @@ i[34567]86-*-darwin*)
 	# support.
 	with_cpu=${with_cpu:-generic}
 	tmake_file="${tmake_file} t-slibgcc-darwin i386/t-crtpc i386/t-crtfm"
-	extra_options="${extra_options} i386/darwin.opt"
-	lto_binary_reader=lto-macho
 	;;
 x86_64-*-darwin*)
 	with_cpu=${with_cpu:-generic}
 	tmake_file="${tmake_file} ${cpu_type}/t-darwin64 t-slibgcc-darwin i386/t-crtpc i386/t-crtfm"
 	tm_file="${tm_file} ${cpu_type}/darwin64.h"
-	extra_options="${extra_options} i386/darwin.opt"
-	lto_binary_reader=lto-macho
 	;;
 i[34567]86-*-elf*)
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h newlib-stdint.h i386/i386elf.h"
@@ -1421,7 +1417,6 @@ i[34567]86-*-pe | i[34567]86-*-cygwin*)
 		thread_file='posix'
 	fi
 	use_gcc_stdint=wrap
-	lto_binary_reader=lto-coff
 	;;
 i[34567]86-*-mingw* | x86_64-*-mingw*)
 	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h i386/mingw32.h"
@@ -1494,7 +1489,6 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 	cxx_target_objs="${cxx_target_objs} winnt-cxx.o msformat-c.o"
 	default_use_cxa_atexit=yes
 	use_gcc_stdint=wrap
-	lto_binary_reader=lto-coff
 	case ${enable_threads} in
 	  "" | yes | win32)	  thread_file='win32'
 	  tmake_file="${tmake_file} i386/t-gthr-win32"
@@ -1518,6 +1512,7 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 i[34567]86-*-interix3*)
 	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h i386/i386-interix.h i386/i386-interix3.h interix.h interix3.h"
 	tmake_file="${tmake_file} i386/t-interix"
+	extra_options="${extra_options} rpath.opt"
 	extra_objs=winnt.o
 	target_gtfiles="\$(srcdir)/config/i386/winnt.c"
 	if test x$enable_threads = xyes ; then
@@ -1784,6 +1779,7 @@ microblaze*-*-*)
 mips-sgi-irix6.5*)
 	tm_file="elfos.h ${tm_file} mips/iris6.h"
 	tmake_file="mips/t-iris mips/t-iris6 mips/t-slibgcc-irix"
+	extra_options="${extra_options} rpath.opt"
 	target_cpu_default="MASK_ABICALLS"
 	tm_defines="${tm_defines} MIPS_ISA_DEFAULT=3 MIPS_ABI_DEFAULT=ABI_N32"
 	# Only IRIX Development Foundation 1.3 for IRIX 6.5 provides stdint.h.
@@ -1983,6 +1979,7 @@ pdp11-*-*)
 picochip-*)
 	tm_file="${tm_file} newlib-stdint.h"
 	use_gcc_stdint=wrap
+	tmake_file="picochip/t-picochip t-pnt16-warn"
         ;;
 # port not yet contributed
 #powerpc-*-openbsd*)
@@ -2004,7 +2001,6 @@ powerpc-*-darwin*)
 	    ;;
 	esac
 	tmake_file="${tmake_file} t-slibgcc-darwin"
-	lto_binary_reader=lto-macho
 	extra_headers=altivec.h
 	;;
 powerpc64-*-darwin*)
@@ -2012,7 +2008,6 @@ powerpc64-*-darwin*)
 	extra_parts="crt2.o"
 	tmake_file="${tmake_file} ${cpu_type}/t-darwin64 t-slibgcc-darwin"
 	tm_file="${tm_file} ${cpu_type}/darwin8.h ${cpu_type}/darwin64.h"
-	lto_binary_reader=lto-macho
 	extra_headers=altivec.h
 	;;
 powerpc*-*-freebsd*)
@@ -2328,6 +2323,9 @@ sh-*-symbianelf* | sh[12346l]*-*-symbianelf* | \
 	sh64*)
 		tmake_file="${tmake_file} sh/t-sh64"
 		tm_file="${tm_file} sh/sh64.h"
+		if test x$with_newlib = xyes; then
+			tm_file="${tm_file} newlib-stdint.h"
+		fi
 		extra_headers="shmedia.h ushmedia.h sshmedia.h"
 		;;
 	*-*-symbianelf*)
@@ -2997,6 +2995,9 @@ if test x$with_fpmath != x; then
   case ${target} in
     i[34567]86-*-* | x86_64-*-*)
       case ${with_fpmath} in
+      avx)
+	tm_file="${tm_file} i386/avxmath.h"
+	;;
       sse)
 	tm_file="${tm_file} i386/ssemath.h"
 	;;

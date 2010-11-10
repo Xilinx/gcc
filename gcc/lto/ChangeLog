@@ -1,3 +1,41 @@
+2010-11-02  Ian Lance Taylor  <iant@google.com>
+
+	* lto-object.c: New file.
+	* lto-elf.c: Remove file.
+	* lto-macho.c: Remove file.
+	* lto-macho.h: Remove file.
+	* lto-coff.c: Remove file.
+	* lto-coff.h: Remove file.
+	* Make-lang.in (LTO_OBJS): Change lto/$(LTO_BINARY_READER).o to
+	lto/lto-object.o.
+	($(LTO_EXE)): Remove $(LTO_USE_LIBELF)
+	(lto/lto-objfile.o): New target.
+	(lto/lto-elf.o, lto/lto-coff.o, lto/lto-macho.o): Remove targets.
+	(lto/lto.o): Remove $(LIBIBERTY_H).
+
+2010-10-22  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (add_cgraph_node_to_partition,
+	add_varpool_node_to_partition): Add debug info.
+	(lto_1_to_1_map, lto_balanced_map): Do not re-add already
+	partitioned nodes.
+	(do_whole_program_analysis): Set function flags before dumping.
+
+2010-10-22  Richard Guenther  <rguenther@suse.de>
+
+	* lto.c (lto_fixup_type): Fixup TYPE_CANONICAL again, via
+	the new gimple_register_canonical_type.
+
+2010-10-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/45954
+	* config-lang.in (boot_language): Set to $enable_lto.
+
+2010-10-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR lto/45638
+	* Make-lang.in (check-lto): New dummy target.
+
 2010-10-14  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* lto-elf.c (SHN_XINDEX): Define if not already defined.

@@ -84,8 +84,6 @@ extern enum picochip_dfa_type picochip_schedule_type;
 #define TARGET_HAS_MAC_UNIT (picochip_has_mac_unit)
 #define TARGET_HAS_MULTIPLY (picochip_has_mac_unit || picochip_has_mul_unit)
 
-#define CAN_DEBUG_WITHOUT_FP 1
-
 #define TARGET_VERSION fprintf(stderr, "(picoChip)");
 
 /* Storage Layout */
@@ -552,7 +550,7 @@ do {                                                                         \
 
 #define ASM_FORMAT_PRIVATE_NAME(OUTPUT, NAME, LABELNO)  \
 ( (OUTPUT) = (char *) alloca (strlen ((NAME)) + 15),    \
-  sprintf ((OUTPUT), "%s___%d", (NAME), (LABELNO)))
+  sprintf ((OUTPUT), "%s___%lu", (NAME), (unsigned long)(LABELNO)))
 
 /* Macros Controlling Initialization Routines  */
 
@@ -624,7 +622,7 @@ do {                                                                         \
 /* Assembler Commands for Alignment  */
 
 #define ASM_OUTPUT_SKIP(STREAM,BYTES) \
-  fprintf(STREAM, ".skip %u\n", BYTES);
+  fprintf(STREAM, ".skip "HOST_WIDE_INT_PRINT_UNSIGNED"\n", BYTES);
 #define ASM_OUTPUT_ALIGN(STREAM,POWER) \
   fprintf(STREAM, ".align %u\n", 1 << POWER);
 

@@ -7,7 +7,7 @@
 --                                 S p e c                                  --
 --                                                                          --
 --          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
---                                                                          --
+--                                                                         --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
 -- ware  Foundation;  either version 3,  or (at your option) any later ver- --
@@ -337,6 +337,20 @@ package Einfo is
 --       on the list. A stack is required to handle the case of nested select
 --       statements referencing the same entry.
 
+--    Access_Disp_Table (Elist16) [implementation base type only]
+--       Present in record type entities. For a tagged type, points to the
+--       dispatch tables associated with the tagged type. The first two
+--       entities correspond with the primary dispatch table: 1) primary
+--       dispatch table with user-defined primitives, 2) primary dispatch table
+--       with predefined primitives. For each interface type covered by the
+--       tagged type we also have: 3) secondary dispatch table with thunks of
+--       primitives covering user-defined interface primitives, 4) secondary
+--       dispatch table with thunks of predefined primitives, 5) secondary
+--       dispatch table with user-defined primitives, and 6) secondary dispatch
+--       table with predefined primitives. The last entity of this list is an
+--       access type declaration used to expand dispatching calls through the
+--       primary dispatch table. For a non-tagged record, contains Empty.
+
 --    Actual_Subtype (Node17)
 --       Present in variables, constants, and formal parameters. This is the
 --       subtype imposed by the value of the object, as opposed to its nominal
@@ -354,20 +368,6 @@ package Einfo is
 --       Etype of the object is directly the constrained subtype. This is
 --       rather irregular, and the semantic checks that depend on the nominal
 --       subtype being unconstrained use flag Is_Constr_Subt_For_U_Nominal(qv).
-
---    Access_Disp_Table (Elist16) [implementation base type only]
---       Present in record type entities. For a tagged type, points to the
---       dispatch tables associated with the tagged type. The first two
---       entities correspond with the primary dispatch table: 1) primary
---       dispatch table with user-defined primitives, 2) primary dispatch table
---       with predefined primitives. For each interface type covered by the
---       tagged type we also have: 3) secondary dispatch table with thunks of
---       primitives covering user-defined interface primitives, 4) secondary
---       dispatch table with thunks of predefined primitives, 5) secondary
---       dispatch table with user-defined primitives, and 6) secondary dispatch
---       table with predefined primitives. The last entity of this list is an
---       access type declaration used to expand dispatching calls through the
---       primary dispatch table. For a non-tagged record, contains Empty.
 
 --    Address_Clause (synthesized)
 --       Applies to entries, objects and subprograms. Set if an address clause
@@ -504,7 +504,7 @@ package Einfo is
 --       which can never have a null value. This is set True for constant
 --       access values initialized to a non-null value. This is also True for
 --       all access parameters in Ada 83 and Ada 95 modes, and for access
---       parameters that explicily exlude null in Ada 2005.
+--       parameters that explicily exclude null in Ada 2005.
 --
 --       This is used to avoid unnecessary resetting of the Is_Known_Non_Null
 --       flag for such entities. In Ada 2005 mode, this is also used when
@@ -692,13 +692,15 @@ package Einfo is
 --       details of the use of this field.
 
 --    Declaration_Node (synthesized)
---       Applies to all entities. Returns the tree node for the declaration
---       that declared the entity. Normally this is just the Parent of the
---       entity. One exception arises with child units, where the parent of
---       the entity is a selected component or a defining program unit name.
---       Another exception is that if the entity is an incomplete type that
---       has been completed, then we obtain the declaration node denoted by
---       the full type, i.e. the full type declaration node.
+--       Applies to all entities. Returns the tree node for the construct that
+--       declared the entity. Normally this is just the Parent of the entity.
+--       One exception arises with child units, where the parent of the entity
+--       is a selected component/defining program unit name. Another exception
+--       is that if the entity is an incomplete type that has been completed,
+--       then we obtain the declaration node denoted by the full type, i.e. the
+--       full type declaration node. Also note that for subprograms, this
+--       returns the {function,procedure}_specification, not the subprogram_
+--       declaration.
 
 --    Default_Expr_Function (Node21)
 --       Present in parameters. It holds the entity of the parameterless
@@ -769,14 +771,13 @@ package Einfo is
 --       Present in floating point types and subtypes and decimal types and
 --       subtypes. Contains the Digits value specified in the declaration.
 
---    Direct_Primitive_Operations (Elist15)
---       Present in tagged record types and subtypes, in tagged private types
---       and in tagged incomplete types. Points to an element list of entities
---       for primitive operations for the tagged type. Not present in untagged
---       types (it is an error to reference the primitive operations field of a
---       type that is not tagged). In order to fulfill the C++ ABI, entities of
---       primitives that come from source must be stored in this list following
---       their order of occurrence in the sources. For incomplete types the
+--    Direct_Primitive_Operations (Elist10)
+--       Present in tagged types and subtypes (including synchronized types),
+--       in tagged private types and in tagged incomplete types. Element list
+--       of entities for primitive operations of the tagged type. Not present
+--       in untagged types. In order to follow the C++ ABI, entities of
+--       primitives that come from source must be stored in this list in the
+--       order of their occurrence in the sources. For incomplete types the
 --       list is always empty.
 
 --    Directly_Designated_Type (Node20)
@@ -851,10 +852,11 @@ package Einfo is
 --       index starting at 1 and ranging up to number of discriminants.
 
 --    Dispatch_Table_Wrappers (Elist26) [implementation base type only]
---       Present in library level record type entities if we are generating
---       statically allocated dispatch tables. For a tagged type, points to
---       the list of dispatch table wrappers associated with the tagged type.
---       For a non-tagged record, contains No_Elist.
+--       Present in record type [with private] entities. Set in library level
+--       record type entities if we are generating statically allocated
+--       dispatch tables. For a tagged type, points to the list of dispatch
+--       table wrappers associated with the tagged type. For a non-tagged
+--       record, contains No_Elist.
 
 --    DTC_Entity (Node16)
 --       Present in function and procedure entities. Set to Empty unless
@@ -1048,6 +1050,9 @@ package Einfo is
 --       a class wide type, points to the parent type. For a subprogram or
 --       subprogram type, Etype has the return type of a function or is set
 --       to Standard_Void_Type to represent a procedure.
+--
+--       Note one obscure case: for pragma Default_Storage_Pool (null), the
+--       Etype of the N_Null node is Empty.
 
 --    Exception_Code (Uint22)
 --       Present in exception entitites. Set to zero unless either an
@@ -1248,7 +1253,7 @@ package Einfo is
 --          Alignment attribute definition clause
 --          Machine_Attribute pragma
 --          Link_Alias pragma
---          Link-Section pragma
+--          Linker_Section pragma
 --          Weak_External pragma
 --
 --       If any of these items are present, then the flag Has_Gigi_Rep_Item
@@ -1258,6 +1263,11 @@ package Einfo is
 --       messages can easily locate the relevant nodes for posting errors.
 --       Note in particular that size clauses are present only for this
 --       purpose, and should only be accessed if Has_Size_Clause is set.
+
+--    Float_Rep (Uint10)
+--       Present in floating-point entities. Contains a value of type
+--       Float_Rep_Kind. Together with the Digits_Value uniquely defines
+--       the floating-point representation to be used.
 
 --    Freeze_Node (Node7)
 --       Present in all entities. If there is an associated freeze node for
@@ -1283,7 +1293,10 @@ package Einfo is
 --       Present in all type and subtype entities and in deferred constants.
 --       References the entity for the corresponding full type declaration.
 --       For all types other than private and incomplete types, this field
---       always contains Empty. See also Underlying_Type.
+--       always contains Empty. If an incomplete type E1 is completed by a
+--       private type E2 whose full type declaration entity is E3 then the
+--       full view of E1 is E2, and the full view of E2 is E3. See also
+--       Underlying_Type.
 
 --    Generic_Homonym (Node11)
 --       Present in generic packages. The generic homonym is the entity of
@@ -1500,6 +1513,27 @@ package Einfo is
 --       definition contains at least one procedure to which a pragma
 --       Interrupt_Handler applies.
 
+--    Has_Invariants (Flag232)
+--       Present in all type entities and in subprogram entities. Set True in
+--       private types if an Invariant or Invariant'Class aspect applies to the
+--       type, or if the type inherits one or more Invariant'Class aspects.
+--       Also set in the corresponding full type. Note: if this flag is set
+--       True, then usually the Invariant_Procedure attribute is set once the
+--       type is frozen, however this may not be true in some error situations.
+--       Note that it might be the full type which has inheritable invariants,
+--       and then the flag will also be set in the private type. Also set in
+--       the invariant procedure entity, to distinguish it among entries in the
+--       Subprograms_For_Type.
+
+--    Has_Inheritable_Invariants (Flag248)
+--       Present in all type entities. Set True in private types from which one
+--       or more Invariant'Class aspects will be inherited if a another type is
+--       derived from the type (i.e. those types which have an Invariant'Class
+--       aspect, or which inherit one or more Invariant'Class aspects). Also
+--       set in the corresponding full types. Note that it might be the full
+--       type which has inheritable invariants, and in this case the flag will
+--       also be set in the private type.
+
 --    Has_Machine_Radix_Clause (Flag83)
 --       Present in decimal types and subtypes, set if a Machine_Radix
 --       representation clause is present. This flag is used to detect
@@ -1617,7 +1651,9 @@ package Einfo is
 --    Has_Pragma_Pure_Function (Flag179)
 --       Present in all entities. If set, indicates that a valid pragma
 --       Pure_Function was given for the entity. In some cases, we need to
---       know that Is_Pure was explicitly set using this pragma.
+--       know that Is_Pure was explicitly set using this pragma. We also set
+--       this flag for some internal entities that we know should be treated
+--       as pure for optimization purposes.
 
 --    Has_Pragma_Thread_Local_Storage (Flag169)
 --       Present in all entities. If set, indicates that a valid pragma
@@ -1646,6 +1682,13 @@ package Einfo is
 --       (but unlike the case with pragma Unreferenced, it is ok to reference
 --       such an object and no warning is generated.
 
+--    Has_Predicates (Flag250)
+--       Present in all entities. Set in type and subtype entities if a pragma
+--       Predicate or Predicate aspect applies to the type, or if it inherits a
+--       Predicate aspect from its parent or progenitor types. Also set in the
+--       predicate function entity, to distinguish it among entries in the
+--       Subprograms_For_Type.
+
 --    Has_Primitive_Operations (Flag120) [base type only]
 --       Present in all type entities. Set if at least one primitive operation
 --       is defined for the type.
@@ -1660,7 +1703,7 @@ package Einfo is
 --       of a private type declaration or its corresponding full declaration.
 --       This flag is thus preserved when the full and the partial views are
 --       exchanged, to indicate if a full type declaration is a completion.
---       Used for semantic checks in E.4 (18), and elsewhere.
+--       Used for semantic checks in E.4(18) and elsewhere.
 
 --    Has_Qualified_Name (Flag161)
 --       Present in all entities. Set True if the name in the Chars field
@@ -1711,10 +1754,10 @@ package Einfo is
 --       representation clause, and thus is not inherited by a derived type.
 --       This flag is always False for non-record types.
 
---    Has_Specified_Stream_Input  (Flag190)
+--    Has_Specified_Stream_Input (Flag190)
 --    Has_Specified_Stream_Output (Flag191)
---    Has_Specified_Stream_Read   (Flag192)
---    Has_Specified_Stream_Write  (Flag193)
+--    Has_Specified_Stream_Read (Flag192)
+--    Has_Specified_Stream_Write (Flag193)
 --       Present in all type and subtype entities. Set for a given view if the
 --       corresponding stream-oriented attribute has been defined by an
 --       attribute definition clause. When such a clause occurs, a TSS is set
@@ -1874,7 +1917,20 @@ package Einfo is
 --       object fields. A pragma Import for a component can define the
 --       External_Name of the imported Java field (which is generally needed,
 --       because Java names are case sensitive).
+
+--    Invariant_Procedure (synthesized)
+--       Present in types and subtypes. Set for private types if one or more
+--       Invariant, or Invariant'Class, or inherited Invariant'Class aspects
+--       apply to the type. Points to the entity for a procedure which checks
+--       the invariant. This invariant procedure takes a single argument of the
+--       given type, and returns if the invariant holds, or raises exception
+--       Assertion_Error with an appropriate message if it does not hold. This
+--       attribute is present but always empty for private subtypes. This
+--       attribute is also set for the corresponding full type.
 --
+--       Note: the reason this is marked as a synthesized attribute is that the
+--       way this is stored is as an element of the Subprograms_For_Type field.
+
 --    In_Use (Flag8)
 --       Present in packages and types. Set when analyzing a use clause for
 --       the corresponding entity. Reset at end of corresponding declarative
@@ -1937,6 +1993,9 @@ package Einfo is
 --    Is_Asynchronous (Flag81)
 --       Present in all type entities and in procedure entities. Set
 --       if a pragma Asynchronous applies to the entity.
+
+--    Is_Base_Type (synthesized)
+--       Applies to type and subtype entities. True if entity is a base type
 
 --    Is_Bit_Packed_Array (Flag122) [implementation base type only]
 --       Present in all entities. This flag is set for a packed array type that
@@ -2429,10 +2488,6 @@ package Einfo is
 --    Is_Ordinary_Fixed_Point_Type (synthesized)
 --       Applies to all entities, true for ordinary fixed point types and
 --       subtypes.
-
---    Is_Overriding_Operation (Flag39)
---       Present in subprograms. Set if the subprogram is a primitive
---       operation of a derived type, that overrides an inherited operation.
 
 --    Is_Package_Or_Generic_Package (synthesized)
 --       Applies to all entities. True for packages and generic packages.
@@ -3008,12 +3063,6 @@ package Einfo is
 --       Empty if there are no more formals. The list returned includes
 --       all the extra formals (see description of Extra_Formal field)
 
---    Next_Girder_Discriminant (synthesized)
---       Applies to discriminants. Set only for a discriminant returned by
---       a call to First/Next_Girder_Discriminant. Returns next girder
---       discriminant, if there are more (see complete description in
---       First_Girder_Discriminant), or Empty if there are no more.
-
 --    Next_Index (synthesized)
 --       Applies to array types and subtypes and to string types and
 --       subtypes. Yields the next index. The first index is obtained by
@@ -3218,10 +3267,20 @@ package Einfo is
 
 --    Primitive_Operations (synthesized)
 --       Present in concurrent types, tagged record types and subtypes, tagged
---       private types and tagged incomplete types. For concurrent types that
---       have available their Corresponding_Record_Type (CRT) returns the list
---       of Direct_Primitive_Operations of its CRT; otherwise returns No_Elist.
---       For all the other types returns its Direct_Primitive_Operations.
+--       private types and tagged incomplete types. For concurrent types whose
+--       Corresponding_Record_Type (CRT) is available, returns the list of
+--       Direct_Primitive_Operations of its CRT; otherwise returns No_Elist.
+--       For all the other types returns the Direct_Primitive_Operations.
+
+--    Predicate_Function (synthesized)
+--       Present in all types. Set for types for which (Has_Predicates is True)
+--       and for which a predicate procedure has been built that tests that the
+--       specified predicates are True. Contains the entity for the function
+--       which takes a single argument of the given type, and returns True if
+--       the predicate holds and False if it does not.
+--
+--       Note: the reason this is marked as a synthesized attribute is that the
+--       way this is stored is as an element of the Subprograms_For_Type field.
 
 --    Prival (Node17)
 --       Present in private components of protected types. Refers to the entity
@@ -3302,12 +3361,6 @@ package Einfo is
 --       formal. The reason we distinguish this kind of reference is that
 --       we have a separate warning for variables that are only assigned and
 --       never read, and out parameters are a special case.
-
---    Referenced_Object (Node10)
---       Present in all type entities. Set non-Empty only for type entities
---       constructed for unconstrained objects, or objects that depend on
---       discriminants. Points to the expression from which the actual
---       subtype of the object can be evaluated.
 
 --    Register_Exception_Call (Node20)
 --       Present in exception entities. When an exception is declared,
@@ -3551,6 +3604,16 @@ package Einfo is
 --       textual appearance. Note that this includes precondition/postcondition
 --       pragmas generated to correspond to Pre/Post aspects.
 
+--    Static_Predicate (List25)
+--       Present in discrete types/subtypes with predicates (Has_Predicates
+--       set True). Points to a list of expression and N_Range nodes that
+--       represent the predicate in canonical form. The canonical form has
+--       entries sorted in ascending order, with all duplicates eliminated,
+--       and adjacent ranges coalesced, so that there is always a gap in the
+--       values between successive entries. The entries in this list are
+--       fully analyzed and typed with the base type of the subtype. Note
+--       that all entries are static and have values within the subtype range.
+
 --    Storage_Size_Variable (Node15) [implementation base type only]
 --       Present in access types and task type entities. This flag is set
 --       if a valid and effective pragma Storage_Size applies to the base
@@ -3596,6 +3659,16 @@ package Einfo is
 --       value represents the low bound of the literal. This is a copy of
 --       the low bound of the applicable index constraint if there is one,
 --       or a copy of the low bound of the index base type if not.
+
+--    Subprograms_For_Type (Node29)
+--       Present in all type entities, and in subprogram entities. This is used
+--       to hold a list of subprogram entities for subprograms associated with
+--       the type, linked through the Suprogram_List field of the subprogram
+--       entity. Basically this is a way of multiplexing the single field to
+--       hold more than one entity (since we ran out of space in some type
+--       entities). This is currently used for Invariant_Procedure and also
+--       for Predicate_Function, and clients will always use the latter two
+--       names to access entries in this list.
 
 --    Suppress_Elaboration_Warnings (Flag148)
 --       Present in all entities, can be set only for subprogram entities and
@@ -3723,11 +3796,6 @@ package Einfo is
 --       entries). Set to True when secondary stack is used in this scope and
 --       must be released on exit unless Sec_Stack_Needed_For_Return is set.
 
---    Vax_Float (Flag151) [base type only]
---       Present in all type and subtype entities. Set only on the base type of
---       float types with Vax format. The particular format is determined by
---       the Digits_Value value which is 6,9,15 for F_Float, D_Float, G_Float.
-
 --    Warnings_Off (Flag96)
 --       Present in all entities. Set if a pragma Warnings (Off, entity-name)
 --       is used to suppress warnings for a given entity. It is also used by
@@ -3814,11 +3882,11 @@ package Einfo is
    type Entity_Kind is (
 
       E_Void,
-      --  The initial Ekind value for a newly created entity. Also used as
-      --  the Ekind for Standard_Void_Type, a type entity in Standard used
-      --  as a dummy type for the return type of a procedure (the reason we
-      --  create this type is to share the circuits for performing overload
-      --  resolution on calls).
+      --  The initial Ekind value for a newly created entity. Also used as the
+      --  Ekind for Standard_Void_Type, a type entity in Standard used as a
+      --  dummy type for the return type of a procedure (the reason we create
+      --  this type is to share the circuits for performing overload resolution
+      --  on calls).
 
       -------------
       -- Objects --
@@ -4605,6 +4673,7 @@ package Einfo is
    --    Has_Pragma_Thread_Local_Storage     (Flag169)
    --    Has_Pragma_Unmodified               (Flag233)
    --    Has_Pragma_Unreferenced             (Flag180)
+   --    Has_Predicates                      (Flag250)
    --    Has_Private_Declaration             (Flag155)
    --    Has_Qualified_Name                  (Flag161)
    --    Has_Stream_Size_Clause              (Flag184)
@@ -4692,12 +4761,13 @@ package Einfo is
 
    --    Associated_Node_For_Itype           (Node8)
    --    Class_Wide_Type                     (Node9)
-   --    Referenced_Object                   (Node10)
    --    Full_View                           (Node11)
    --    Esize                               (Uint12)
    --    RM_Size                             (Uint13)
    --    Alignment                           (Uint14)
    --    Related_Expression                  (Node24)
+   --    Current_Use_Clause                  (Node27)
+   --    Subprograms_For_Type                (Node29)
 
    --    Depends_On_Private                  (Flag14)
    --    Discard_Names                       (Flag88)
@@ -4710,6 +4780,8 @@ package Einfo is
    --    Has_Complex_Representation          (Flag140)  (base type only)
    --    Has_Constrained_Partial_View        (Flag187)
    --    Has_Discriminants                   (Flag5)
+   --    Has_Inheritable_Invariants          (Flag248)
+   --    Has_Invariants                      (Flag232)
    --    Has_Non_Standard_Rep                (Flag75)   (base type only)
    --    Has_Object_Size_Clause              (Flag172)
    --    Has_Pragma_Preelab_Init             (Flag221)
@@ -4757,7 +4829,9 @@ package Einfo is
    --    Base_Type                           (synth)
    --    Has_Private_Ancestor                (synth)
    --    Implementation_Base_Type            (synth)
+   --    Invariant_Procedure                 (synth)
    --    Is_Access_Protected_Subprogram_Type (synth)
+   --    Predicate_Function                  (synth)
    --    Root_Type                           (synth)
    --    Size_Clause                         (synth)
 
@@ -4848,6 +4922,7 @@ package Einfo is
 
    --  E_Class_Wide_Type
    --  E_Class_Wide_Subtype
+   --    Direct_Primitive_Operations         (Elist10)
    --    Cloned_Subtype                      (Node16)   (subtype case only)
    --    First_Entity                        (Node17)
    --    Equivalent_Type                     (Node18)   (always Empty for type)
@@ -4996,6 +5071,7 @@ package Einfo is
    --    First_Literal                       (Node17)
    --    Scalar_Range                        (Node20)
    --    Enum_Pos_To_Rep                     (Node23)   (type only)
+   --    Static_Predicate                    (List25)
    --    Has_Biased_Representation           (Flag139)
    --    Has_Contiguous_Rep                  (Flag181)
    --    Has_Enumeration_Rep_Clause          (Flag66)
@@ -5023,9 +5099,22 @@ package Einfo is
    --  E_Floating_Point_Type
    --  E_Floating_Point_Subtype
    --    Digits_Value                        (Uint17)
+   --    Float_Rep                           (Uint10)   (Float_Rep_Kind)
+   --    Machine_Emax_Value                  (synth)
+   --    Machine_Emin_Value                  (synth)
+   --    Machine_Mantissa_Value              (synth)
+   --    Machine_Radix_Value                 (synth)
+   --    Model_Emin_Value                    (synth)
+   --    Model_Epsilon_Value                 (synth)
+   --    Model_Mantissa_Value                (synth)
+   --    Model_Small_Value                   (synth)
+   --    Safe_Emax_Value                     (synth)
+   --    Safe_First_Value                    (synth)
+   --    Safe_Last_Value                     (synth)
    --    Scalar_Range                        (Node20)
    --    Type_Low_Bound                      (synth)
    --    Type_High_Bound                     (synth)
+   --    Vax_Float                           (synth)
    --    (plus type attributes)
 
    --  E_Function
@@ -5055,6 +5144,7 @@ package Einfo is
    --    Overridden_Operation                (Node26)
    --    Wrapped_Entity                      (Node27)   (non-generic case only)
    --    Extra_Formals                       (Node28)
+   --    Subprograms_For_Type                (Node29)
    --    Body_Needed_For_SAL                 (Flag40)
    --    Elaboration_Entity_Required         (Flag174)
    --    Default_Expressions_Processed       (Flag108)
@@ -5063,6 +5153,7 @@ package Einfo is
    --    Discard_Names                       (Flag88)
    --    Has_Completion                      (Flag26)
    --    Has_Controlling_Result              (Flag98)
+   --    Has_Invariants                      (Flag232)
    --    Has_Master_Entity                   (Flag21)
    --    Has_Missing_Return                  (Flag142)
    --    Has_Nested_Block_With_Handler       (Flag101)
@@ -5077,7 +5168,6 @@ package Einfo is
    --    Is_Instantiated                     (Flag126)  (generic case only)
    --    Is_Intrinsic_Subprogram             (Flag64)
    --    Is_Machine_Code_Subprogram          (Flag137)  (non-generic case only)
-   --    Is_Overriding_Operation             (Flag39)   (non-generic case only)
    --    Is_Primitive                        (Flag218)
    --    Is_Primitive_Wrapper                (Flag195)  (non-generic case only)
    --    Is_Private_Descendant               (Flag53)
@@ -5120,6 +5210,7 @@ package Einfo is
 
    --  E_Incomplete_Type
    --  E_Incomplete_Subtype
+   --    Direct_Primitive_Operations         (Elist10)
    --    Non_Limited_View                    (Node17)
    --    Private_Dependents                  (Elist18)
    --    Discriminant_Constraint             (Elist21)
@@ -5181,6 +5272,7 @@ package Einfo is
    --    Modulus                             (Uint17)    (base type only)
    --    Original_Array_Type                 (Node21)
    --    Scalar_Range                        (Node20)
+   --    Static_Predicate                    (List25)
    --    Non_Binary_Modulus                  (Flag58)    (base type only)
    --    Has_Biased_Representation           (Flag139)
    --    Type_Low_Bound                      (synth)
@@ -5195,11 +5287,13 @@ package Einfo is
    --    First_Entity                        (Node17)
    --    Alias                               (Node18)
    --    Last_Entity                         (Node20)
+   --    Overridden_Operation                (Node26)
+   --    Subprograms_For_Type                (Node29)
+   --    Has_Invariants                      (Flag232)
    --    Has_Postconditions                  (Flag240)
    --    Is_Machine_Code_Subprogram          (Flag137)
    --    Is_Pure                             (Flag44)
    --    Is_Intrinsic_Subprogram             (Flag64)
-   --    Is_Overriding_Operation             (Flag39)
    --    Is_Primitive                        (Flag218)
    --    Is_Thunk                            (Flag225)
    --    Default_Expressions_Processed       (Flag108)
@@ -5274,7 +5368,7 @@ package Einfo is
 
    --  E_Private_Type
    --  E_Private_Subtype
-   --    Direct_Primitive_Operations         (Elist15)
+   --    Direct_Primitive_Operations         (Elist10)
    --    First_Entity                        (Node17)
    --    Private_Dependents                  (Elist18)
    --    Underlying_Full_View                (Node19)
@@ -5323,6 +5417,7 @@ package Einfo is
    --    Delay_Subprogram_Descriptors        (Flag50)
    --    Discard_Names                       (Flag88)
    --    Has_Completion                      (Flag26)
+   --    Has_Invariants                      (Flag232)
    --    Has_Master_Entity                   (Flag21)
    --    Has_Nested_Block_With_Handler       (Flag101)
    --    Has_Postconditions                  (Flag240)
@@ -5337,7 +5432,6 @@ package Einfo is
    --    Is_Intrinsic_Subprogram             (Flag64)
    --    Is_Machine_Code_Subprogram          (Flag137)  (non-generic case only)
    --    Is_Null_Init_Proc                   (Flag178)
-   --    Is_Overriding_Operation             (Flag39)   (non-generic case only)
    --    Is_Primitive                        (Flag218)
    --    Is_Primitive_Wrapper                (Flag195)  (non-generic case only)
    --    Is_Private_Descendant               (Flag53)
@@ -5363,6 +5457,7 @@ package Einfo is
 
    --  E_Protected_Type
    --  E_Protected_Subtype
+   --    Direct_Primitive_Operations         (Elist10)
    --    Entry_Bodies_Array                  (Node15)
    --    First_Private_Entity                (Node16)
    --    First_Entity                        (Node17)
@@ -5381,9 +5476,8 @@ package Einfo is
 
    --  E_Record_Type
    --  E_Record_Subtype
-   --    Direct_Primitive_Operations         (Elist15)
+   --    Direct_Primitive_Operations         (Elist10)
    --    Access_Disp_Table                   (Elist16)  (base type only)
-   --    Dispatch_Table_Wrappers             (Elist26)  (base type only)
    --    Cloned_Subtype                      (Node16)   (subtype case only)
    --    First_Entity                        (Node17)
    --    Corresponding_Concurrent_Type       (Node18)
@@ -5393,6 +5487,7 @@ package Einfo is
    --    Corresponding_Remote_Type           (Node22)
    --    Stored_Constraint                   (Elist23)
    --    Interfaces                          (Elist25)
+   --    Dispatch_Table_Wrappers             (Elist26)  (base type only)
    --    Underlying_Record_View              (Node28)   (base type only)
    --    Component_Alignment                 (special)  (base type only)
    --    C_Pass_By_Copy                      (Flag125)  (base type only)
@@ -5414,9 +5509,8 @@ package Einfo is
 
    --  E_Record_Type_With_Private
    --  E_Record_Subtype_With_Private
-   --    Direct_Primitive_Operations         (Elist15)
+   --    Direct_Primitive_Operations         (Elist10)
    --    Access_Disp_Table                   (Elist16)  (base type only)
-   --    Dispatch_Table_Wrappers             (Elist26)  (base type only)
    --    First_Entity                        (Node17)
    --    Private_Dependents                  (Elist18)
    --    Underlying_Full_View                (Node19)
@@ -5425,6 +5519,7 @@ package Einfo is
    --    Private_View                        (Node22)
    --    Stored_Constraint                   (Elist23)
    --    Interfaces                          (Elist25)
+   --    Dispatch_Table_Wrappers             (Elist26)  (base type only)
    --    Has_Completion                      (Flag26)
    --    Has_Record_Rep_Clause               (Flag65)   (base type only)
    --    Has_External_Tag_Rep_Clause         (Flag110)
@@ -5446,6 +5541,7 @@ package Einfo is
    --  E_Signed_Integer_Type
    --  E_Signed_Integer_Subtype
    --    Scalar_Range                        (Node20)
+   --    Static_Predicate                    (List25)
    --    Has_Biased_Representation           (Flag139)
    --    Type_Low_Bound                      (synth)
    --    Type_High_Bound                     (synth)
@@ -5488,6 +5584,7 @@ package Einfo is
 
    --  E_Task_Type
    --  E_Task_Subtype
+   --    Direct_Primitive_Operations         (Elist10)
    --    Storage_Size_Variable               (Node15)   (base type only)
    --    First_Private_Entity                (Node16)
    --    First_Entity                        (Node17)
@@ -5578,6 +5675,15 @@ package Einfo is
       Calign_Component_Size,   -- natural alignment for component size
       Calign_Component_Size_4, -- natural for size <= 4, 4 for size >= 4
       Calign_Storage_Unit);    -- all components byte aligned
+
+   ----------------------------------
+   -- Floating Point Repesentation --
+   ----------------------------------
+
+   type Float_Rep_Kind is (
+      IEEE_Binary,  -- IEEE 754p conform binary format
+      VAX_Native,   -- VAX D, F, G or H format
+      AAMP);        -- AAMP format
 
    ---------------
    -- Iterators --
@@ -5758,6 +5864,7 @@ package Einfo is
    subtype B is Boolean;
    subtype C is Component_Alignment_Kind;
    subtype E is Entity_Id;
+   subtype F is Float_Rep_Kind;
    subtype M is Mechanism_Type;
    subtype N is Node_Id;
    subtype U is Uint;
@@ -5863,6 +5970,7 @@ package Einfo is
    function First_Optional_Parameter            (Id : E) return E;
    function First_Private_Entity                (Id : E) return E;
    function First_Rep_Item                      (Id : E) return N;
+   function Float_Rep                           (Id : E) return F;
    function Freeze_Node                         (Id : E) return N;
    function From_With_Type                      (Id : E) return B;
    function Full_View                           (Id : E) return E;
@@ -5894,7 +6002,9 @@ package Einfo is
    function Has_Fully_Qualified_Name            (Id : E) return B;
    function Has_Gigi_Rep_Item                   (Id : E) return B;
    function Has_Homonym                         (Id : E) return B;
+   function Has_Inheritable_Invariants          (Id : E) return B;
    function Has_Initial_Value                   (Id : E) return B;
+   function Has_Invariants                      (Id : E) return B;
    function Has_Interrupt_Handler               (Id : E) return B;
    function Has_Machine_Radix_Clause            (Id : E) return B;
    function Has_Master_Entity                   (Id : E) return B;
@@ -5920,6 +6030,7 @@ package Einfo is
    function Has_Pragma_Unmodified               (Id : E) return B;
    function Has_Pragma_Unreferenced             (Id : E) return B;
    function Has_Pragma_Unreferenced_Objects     (Id : E) return B;
+   function Has_Predicates                      (Id : E) return B;
    function Has_Primitive_Operations            (Id : E) return B;
    function Has_Qualified_Name                  (Id : E) return B;
    function Has_RACW                            (Id : E) return B;
@@ -6098,7 +6209,6 @@ package Einfo is
    function Referenced                          (Id : E) return B;
    function Referenced_As_LHS                   (Id : E) return B;
    function Referenced_As_Out_Parameter         (Id : E) return B;
-   function Referenced_Object                   (Id : E) return N;
    function Register_Exception_Call             (Id : E) return N;
    function Related_Array_Object                (Id : E) return E;
    function Related_Expression                  (Id : E) return N;
@@ -6126,6 +6236,7 @@ package Einfo is
    function Small_Value                         (Id : E) return R;
    function Spec_Entity                         (Id : E) return E;
    function Spec_PPC_List                       (Id : E) return N;
+   function Static_Predicate                    (Id : E) return S;
    function Storage_Size_Variable               (Id : E) return E;
    function Static_Elaboration_Desired          (Id : E) return B;
    function Static_Initialization               (Id : E) return N;
@@ -6133,6 +6244,7 @@ package Einfo is
    function Strict_Alignment                    (Id : E) return B;
    function String_Literal_Length               (Id : E) return U;
    function String_Literal_Low_Bound            (Id : E) return N;
+   function Subprograms_For_Type                (Id : E) return E;
    function Suppress_Elaboration_Warnings       (Id : E) return B;
    function Suppress_Init_Proc                  (Id : E) return B;
    function Suppress_Style_Checks               (Id : E) return B;
@@ -6201,7 +6313,6 @@ package Einfo is
    function Is_Object                           (Id : E) return B;
    function Is_Ordinary_Fixed_Point_Type        (Id : E) return B;
    function Is_Overloadable                     (Id : E) return B;
-   function Is_Overriding_Operation             (Id : E) return B;
    function Is_Private_Type                     (Id : E) return B;
    function Is_Protected_Type                   (Id : E) return B;
    function Is_Real_Type                        (Id : E) return B;
@@ -6235,6 +6346,7 @@ package Einfo is
    function Has_Private_Ancestor                (Id : E) return B;
    function Has_Private_Declaration             (Id : E) return B;
    function Implementation_Base_Type            (Id : E) return E;
+   function Is_Base_Type                        (Id : E) return B;
    function Is_Boolean_Type                     (Id : E) return B;
    function Is_Constant_Object                  (Id : E) return B;
    function Is_Discriminal                      (Id : E) return B;
@@ -6251,6 +6363,14 @@ package Einfo is
    function Is_Task_Record_Type                 (Id : E) return B;
    function Is_Wrapper_Package                  (Id : E) return B;
    function Last_Formal                         (Id : E) return E;
+   function Machine_Emax_Value                  (Id : E) return U;
+   function Machine_Emin_Value                  (Id : E) return U;
+   function Machine_Mantissa_Value              (Id : E) return U;
+   function Machine_Radix_Value                 (Id : E) return U;
+   function Model_Emin_Value                    (Id : E) return U;
+   function Model_Epsilon_Value                 (Id : E) return R;
+   function Model_Mantissa_Value                (Id : E) return U;
+   function Model_Small_Value                   (Id : E) return R;
    function Next_Component                      (Id : E) return E;
    function Next_Component_Or_Discriminant      (Id : E) return E;
    function Next_Discriminant                   (Id : E) return E;
@@ -6264,6 +6384,9 @@ package Einfo is
    function Parameter_Mode                      (Id : E) return Formal_Kind;
    function Primitive_Operations                (Id : E) return L;
    function Root_Type                           (Id : E) return E;
+   function Safe_Emax_Value                     (Id : E) return U;
+   function Safe_First_Value                    (Id : E) return R;
+   function Safe_Last_Value                     (Id : E) return R;
    function Scope_Depth_Set                     (Id : E) return B;
    function Size_Clause                         (Id : E) return N;
    function Stream_Size_Clause                  (Id : E) return N;
@@ -6281,7 +6404,7 @@ package Einfo is
    --  predicate is true only if the value is set (Known) and is set to a
    --  compile time known value. Note that in the case of Alignment and
    --  Normalized_First_Bit, dynamic values are not possible, so we do not
-   --  need a separate Known_Static calls in these cases. The not set (unknown
+   --  need a separate Known_Static calls in these cases. The not set (unknown)
    --  values are as follows:
 
    --    Alignment               Uint_0 or No_Uint
@@ -6427,6 +6550,7 @@ package Einfo is
    procedure Set_First_Optional_Parameter        (Id : E; V : E);
    procedure Set_First_Private_Entity            (Id : E; V : E);
    procedure Set_First_Rep_Item                  (Id : E; V : N);
+   procedure Set_Float_Rep                       (Id : E; V : F);
    procedure Set_Freeze_Node                     (Id : E; V : N);
    procedure Set_From_With_Type                  (Id : E; V : B := True);
    procedure Set_Full_View                       (Id : E; V : E);
@@ -6458,7 +6582,9 @@ package Einfo is
    procedure Set_Has_Fully_Qualified_Name        (Id : E; V : B := True);
    procedure Set_Has_Gigi_Rep_Item               (Id : E; V : B := True);
    procedure Set_Has_Homonym                     (Id : E; V : B := True);
+   procedure Set_Has_Inheritable_Invariants      (Id : E; V : B := True);
    procedure Set_Has_Initial_Value               (Id : E; V : B := True);
+   procedure Set_Has_Invariants                  (Id : E; V : B := True);
    procedure Set_Has_Machine_Radix_Clause        (Id : E; V : B := True);
    procedure Set_Has_Master_Entity               (Id : E; V : B := True);
    procedure Set_Has_Missing_Return              (Id : E; V : B := True);
@@ -6483,6 +6609,7 @@ package Einfo is
    procedure Set_Has_Pragma_Unmodified           (Id : E; V : B := True);
    procedure Set_Has_Pragma_Unreferenced         (Id : E; V : B := True);
    procedure Set_Has_Pragma_Unreferenced_Objects (Id : E; V : B := True);
+   procedure Set_Has_Predicates                  (Id : E; V : B := True);
    procedure Set_Has_Primitive_Operations        (Id : E; V : B := True);
    procedure Set_Has_Private_Declaration         (Id : E; V : B := True);
    procedure Set_Has_Qualified_Name              (Id : E; V : B := True);
@@ -6577,7 +6704,6 @@ package Einfo is
    procedure Set_Is_Obsolescent                  (Id : E; V : B := True);
    procedure Set_Is_Only_Out_Parameter           (Id : E; V : B := True);
    procedure Set_Is_Optional_Parameter           (Id : E; V : B := True);
-   procedure Set_Is_Overriding_Operation         (Id : E; V : B := True);
    procedure Set_Is_Package_Body_Entity          (Id : E; V : B := True);
    procedure Set_Is_Packed                       (Id : E; V : B := True);
    procedure Set_Is_Packed_Array_Type            (Id : E; V : B := True);
@@ -6669,7 +6795,6 @@ package Einfo is
    procedure Set_Referenced                      (Id : E; V : B := True);
    procedure Set_Referenced_As_LHS               (Id : E; V : B := True);
    procedure Set_Referenced_As_Out_Parameter     (Id : E; V : B := True);
-   procedure Set_Referenced_Object               (Id : E; V : N);
    procedure Set_Register_Exception_Call         (Id : E; V : N);
    procedure Set_Related_Array_Object            (Id : E; V : E);
    procedure Set_Related_Expression              (Id : E; V : N);
@@ -6697,6 +6822,7 @@ package Einfo is
    procedure Set_Small_Value                     (Id : E; V : R);
    procedure Set_Spec_Entity                     (Id : E; V : E);
    procedure Set_Spec_PPC_List                   (Id : E; V : N);
+   procedure Set_Static_Predicate                (Id : E; V : S);
    procedure Set_Storage_Size_Variable           (Id : E; V : E);
    procedure Set_Static_Elaboration_Desired      (Id : E; V : B);
    procedure Set_Static_Initialization           (Id : E; V : N);
@@ -6704,6 +6830,7 @@ package Einfo is
    procedure Set_Strict_Alignment                (Id : E; V : B := True);
    procedure Set_String_Literal_Length           (Id : E; V : U);
    procedure Set_String_Literal_Low_Bound        (Id : E; V : N);
+   procedure Set_Subprograms_For_Type            (Id : E; V : E);
    procedure Set_Suppress_Elaboration_Warnings   (Id : E; V : B := True);
    procedure Set_Suppress_Init_Proc              (Id : E; V : B := True);
    procedure Set_Suppress_Style_Checks           (Id : E; V : B := True);
@@ -6716,13 +6843,22 @@ package Einfo is
    procedure Set_Unset_Reference                 (Id : E; V : N);
    procedure Set_Used_As_Generic_Actual          (Id : E; V : B := True);
    procedure Set_Uses_Sec_Stack                  (Id : E; V : B := True);
-   procedure Set_Vax_Float                       (Id : E; V : B := True);
    procedure Set_Warnings_Off                    (Id : E; V : B := True);
    procedure Set_Warnings_Off_Used               (Id : E; V : B := True);
    procedure Set_Warnings_Off_Used_Unmodified    (Id : E; V : B := True);
    procedure Set_Warnings_Off_Used_Unreferenced  (Id : E; V : B := True);
    procedure Set_Was_Hidden                      (Id : E; V : B := True);
    procedure Set_Wrapped_Entity                  (Id : E; V : E);
+
+   ---------------------------------------------------
+   -- Access to Subprograms in Subprograms_For_Type --
+   ---------------------------------------------------
+
+   function Invariant_Procedure                 (Id : E) return N;
+   function Predicate_Function                  (Id : E) return N;
+
+   procedure Set_Invariant_Procedure            (Id : E; V : E);
+   procedure Set_Predicate_Function             (Id : E; V : E);
 
    -----------------------------------
    -- Field Initialization Routines --
@@ -7001,9 +7137,10 @@ package Einfo is
    procedure Write_Field26_Name (Id : Entity_Id);
    procedure Write_Field27_Name (Id : Entity_Id);
    procedure Write_Field28_Name (Id : Entity_Id);
-   --  These routines are used to output a nice symbolic name for the given
-   --  field, depending on the Ekind. No blanks or end of lines are output,
-   --  just the characters of the field name.
+   procedure Write_Field29_Name (Id : Entity_Id);
+   --  These routines are used in Treepr to output a nice symbolic name for
+   --  the given field, depending on the Ekind. No blanks or end of lines are
+   --  output, just the characters of the field name.
 
    --------------------
    -- Inline Pragmas --
@@ -7134,7 +7271,9 @@ package Einfo is
    pragma Inline (Has_Fully_Qualified_Name);
    pragma Inline (Has_Gigi_Rep_Item);
    pragma Inline (Has_Homonym);
+   pragma Inline (Has_Inheritable_Invariants);
    pragma Inline (Has_Initial_Value);
+   pragma Inline (Has_Invariants);
    pragma Inline (Has_Machine_Radix_Clause);
    pragma Inline (Has_Master_Entity);
    pragma Inline (Has_Missing_Return);
@@ -7158,6 +7297,7 @@ package Einfo is
    pragma Inline (Has_Pragma_Unmodified);
    pragma Inline (Has_Pragma_Unreferenced);
    pragma Inline (Has_Pragma_Unreferenced_Objects);
+   pragma Inline (Has_Predicates);
    pragma Inline (Has_Primitive_Operations);
    pragma Inline (Has_Private_Declaration);
    pragma Inline (Has_Qualified_Name);
@@ -7286,7 +7426,6 @@ package Einfo is
    pragma Inline (Is_Package_Body_Entity);
    pragma Inline (Is_Ordinary_Fixed_Point_Type);
    pragma Inline (Is_Overloadable);
-   pragma Inline (Is_Overriding_Operation);
    pragma Inline (Is_Packed);
    pragma Inline (Is_Packed_Array_Type);
    pragma Inline (Is_Potentially_Use_Visible);
@@ -7387,7 +7526,6 @@ package Einfo is
    pragma Inline (Referenced);
    pragma Inline (Referenced_As_LHS);
    pragma Inline (Referenced_As_Out_Parameter);
-   pragma Inline (Referenced_Object);
    pragma Inline (Register_Exception_Call);
    pragma Inline (Related_Array_Object);
    pragma Inline (Related_Expression);
@@ -7415,6 +7553,7 @@ package Einfo is
    pragma Inline (Small_Value);
    pragma Inline (Spec_Entity);
    pragma Inline (Spec_PPC_List);
+   pragma Inline (Static_Predicate);
    pragma Inline (Storage_Size_Variable);
    pragma Inline (Static_Elaboration_Desired);
    pragma Inline (Static_Initialization);
@@ -7422,6 +7561,7 @@ package Einfo is
    pragma Inline (Strict_Alignment);
    pragma Inline (String_Literal_Length);
    pragma Inline (String_Literal_Low_Bound);
+   pragma Inline (Subprograms_For_Type);
    pragma Inline (Suppress_Elaboration_Warnings);
    pragma Inline (Suppress_Init_Proc);
    pragma Inline (Suppress_Style_Checks);
@@ -7434,7 +7574,6 @@ package Einfo is
    pragma Inline (Unset_Reference);
    pragma Inline (Used_As_Generic_Actual);
    pragma Inline (Uses_Sec_Stack);
-   pragma Inline (Vax_Float);
    pragma Inline (Warnings_Off);
    pragma Inline (Warnings_Off_Used);
    pragma Inline (Warnings_Off_Used_Unmodified);
@@ -7568,7 +7707,9 @@ package Einfo is
    pragma Inline (Set_Has_Fully_Qualified_Name);
    pragma Inline (Set_Has_Gigi_Rep_Item);
    pragma Inline (Set_Has_Homonym);
+   pragma Inline (Set_Has_Inheritable_Invariants);
    pragma Inline (Set_Has_Initial_Value);
+   pragma Inline (Set_Has_Invariants);
    pragma Inline (Set_Has_Machine_Radix_Clause);
    pragma Inline (Set_Has_Master_Entity);
    pragma Inline (Set_Has_Missing_Return);
@@ -7592,6 +7733,7 @@ package Einfo is
    pragma Inline (Set_Has_Pragma_Unmodified);
    pragma Inline (Set_Has_Pragma_Unreferenced);
    pragma Inline (Set_Has_Pragma_Unreferenced_Objects);
+   pragma Inline (Set_Has_Predicates);
    pragma Inline (Set_Has_Primitive_Operations);
    pragma Inline (Set_Has_Private_Declaration);
    pragma Inline (Set_Has_Qualified_Name);
@@ -7687,7 +7829,6 @@ package Einfo is
    pragma Inline (Set_Is_Obsolescent);
    pragma Inline (Set_Is_Only_Out_Parameter);
    pragma Inline (Set_Is_Optional_Parameter);
-   pragma Inline (Set_Is_Overriding_Operation);
    pragma Inline (Set_Is_Package_Body_Entity);
    pragma Inline (Set_Is_Packed);
    pragma Inline (Set_Is_Packed_Array_Type);
@@ -7778,7 +7919,6 @@ package Einfo is
    pragma Inline (Set_Referenced);
    pragma Inline (Set_Referenced_As_LHS);
    pragma Inline (Set_Referenced_As_Out_Parameter);
-   pragma Inline (Set_Referenced_Object);
    pragma Inline (Set_Register_Exception_Call);
    pragma Inline (Set_Related_Array_Object);
    pragma Inline (Set_Related_Expression);
@@ -7805,6 +7945,7 @@ package Einfo is
    pragma Inline (Set_Small_Value);
    pragma Inline (Set_Spec_Entity);
    pragma Inline (Set_Spec_PPC_List);
+   pragma Inline (Set_Static_Predicate);
    pragma Inline (Set_Storage_Size_Variable);
    pragma Inline (Set_Static_Elaboration_Desired);
    pragma Inline (Set_Static_Initialization);
@@ -7812,6 +7953,7 @@ package Einfo is
    pragma Inline (Set_Strict_Alignment);
    pragma Inline (Set_String_Literal_Length);
    pragma Inline (Set_String_Literal_Low_Bound);
+   pragma Inline (Set_Subprograms_For_Type);
    pragma Inline (Set_Suppress_Elaboration_Warnings);
    pragma Inline (Set_Suppress_Init_Proc);
    pragma Inline (Set_Suppress_Style_Checks);
@@ -7824,7 +7966,6 @@ package Einfo is
    pragma Inline (Set_Unset_Reference);
    pragma Inline (Set_Used_As_Generic_Actual);
    pragma Inline (Set_Uses_Sec_Stack);
-   pragma Inline (Set_Vax_Float);
    pragma Inline (Set_Warnings_Off);
    pragma Inline (Set_Warnings_Off_Used);
    pragma Inline (Set_Warnings_Off_Used_Unmodified);
@@ -7841,6 +7982,7 @@ package Einfo is
    --  things here which are small, but not of the canonical attribute
    --  access/set format that can be handled by xeinfo.
 
+   pragma Inline (Is_Base_Type);
    pragma Inline (Is_Package_Or_Generic_Package);
    pragma Inline (Is_Volatile);
    pragma Inline (Is_Wrapper_Package);

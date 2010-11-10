@@ -87,6 +87,7 @@ tree gfc_static_ctors;
 tree gfor_fndecl_pause_numeric;
 tree gfor_fndecl_pause_string;
 tree gfor_fndecl_stop_numeric;
+tree gfor_fndecl_stop_numeric_f08;
 tree gfor_fndecl_stop_string;
 tree gfor_fndecl_error_stop_numeric;
 tree gfor_fndecl_error_stop_string;
@@ -2802,6 +2803,12 @@ gfc_build_builtin_function_decls (void)
   /* STOP doesn't return.  */
   TREE_THIS_VOLATILE (gfor_fndecl_stop_numeric) = 1;
 
+  gfor_fndecl_stop_numeric_f08 = gfc_build_library_function_decl (
+	get_identifier (PREFIX("stop_numeric_f08")),
+	void_type_node, 1, gfc_int4_type_node);
+  /* STOP doesn't return.  */
+  TREE_THIS_VOLATILE (gfor_fndecl_stop_numeric_f08) = 1;
+
   gfor_fndecl_stop_string = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("stop_string")), ".R.",
 	void_type_node, 2, pchar_type_node, gfc_int4_type_node);
@@ -3386,7 +3393,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 
 	      e = gfc_lval_expr_from_sym (sym);
 	      if (sym->ts.type == BT_CLASS)
-		gfc_add_component_ref (e, "$data");
+		gfc_add_data_component (e);
 
 	      gfc_init_se (&se, NULL);
 	      se.want_pointer = 1;
@@ -3401,13 +3408,16 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 
 	      /* Deallocate when leaving the scope. Nullifying is not
 		 needed.  */
-	      tmp = NULL;
 	      if (!sym->attr.result)
-		tmp = gfc_deallocate_with_status (se.expr, NULL_TREE,
-						  true, NULL);
+		tmp = gfc_deallocate_scalar_with_status (se.expr, NULL, true,
+							 NULL, sym->ts);
+	      else
+		tmp = NULL;
 	      gfc_add_init_cleanup (block, gfc_finish_block (&init), tmp);
 	    }
 	}
+      else if (sym->ts.deferred)
+	gfc_fatal_error ("Deferred type parameter not yet supported");
       else if (sym_has_alloc_comp)
 	gfc_trans_deferred_array (sym, block);
       else if (sym->ts.type == BT_CHARACTER)
@@ -4007,9 +4017,10 @@ generate_local_decl (gfc_symbol * sym)
 	}
 
       /* Warn for unused variables, but not if they're inside a common
-	 block or are use-associated.  */
+	 block, a namelist, or are use-associated.  */
       else if (warn_unused_variable
-	       && !(sym->attr.in_common || sym->attr.use_assoc || sym->mark))
+	       && !(sym->attr.in_common || sym->attr.use_assoc || sym->mark
+		    || sym->attr.in_namelist))
 	gfc_warning ("Unused variable '%s' declared at %L", sym->name,
 		     &sym->declared_at);
 
@@ -4206,8 +4217,7 @@ add_argument_checking (stmtblock_t *block, gfc_symbol *sym)
 	    not_0length = fold_build2_loc (input_location, NE_EXPR,
 					   boolean_type_node,
 					   cl->passed_length,
-					   fold_convert (gfc_charlen_type_node,
-							 integer_zero_node));
+					   build_zero_cst (gfc_charlen_type_node));
 	    /* The symbol needs to be referenced for gfc_get_symbol_decl.  */
 	    fsym->attr.referenced = 1;
 	    not_absent = gfc_conv_expr_present (fsym);

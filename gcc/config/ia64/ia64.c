@@ -202,7 +202,6 @@ static rtx gen_fr_spill_x (rtx, rtx, rtx);
 static rtx gen_fr_restore_x (rtx, rtx, rtx);
 
 static void ia64_option_override (void);
-static void ia64_option_optimization (int, int);
 static void ia64_option_default_params (void);
 static bool ia64_can_eliminate (const int, const int);
 static enum machine_mode hfa_element_mode (const_tree, bool);
@@ -210,6 +209,14 @@ static void ia64_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode,
 					 tree, int *, int);
 static int ia64_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				   tree, bool);
+static rtx ia64_function_arg_1 (const CUMULATIVE_ARGS *, enum machine_mode,
+				const_tree, bool, bool);
+static rtx ia64_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+			      const_tree, bool);
+static rtx ia64_function_incoming_arg (CUMULATIVE_ARGS *,
+				       enum machine_mode, const_tree, bool);
+static void ia64_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+				       const_tree, bool);
 static bool ia64_function_ok_for_sibcall (tree, tree);
 static bool ia64_return_in_memory (const_tree, const_tree);
 static rtx ia64_function_value (const_tree, const_tree, bool);
@@ -324,6 +331,9 @@ static void ia64_override_options_after_change (void);
 
 static void ia64_dwarf_handle_frame_unspec (const char *, rtx, int);
 static tree ia64_builtin_decl (unsigned, bool);
+
+static reg_class_t ia64_preferred_reload_class (rtx, reg_class_t);
+static enum machine_mode ia64_get_reg_raw_mode (int regno);
 
 /* Table of valid machine attributes.  */
 static const struct attribute_spec ia64_attribute_table[] =
@@ -338,6 +348,16 @@ static const struct attribute_spec ia64_attribute_table[] =
     ia64_handle_version_id_attribute },
   { NULL,	       0, 0, false, false, false, NULL }
 };
+
+/* Implement overriding of the optimization options.  */
+static const struct default_options ia64_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+#ifdef SUBTARGET_OPTIMIZATION_OPTIONS
+    SUBTARGET_OPTIMIZATION_OPTIONS,
+#endif
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ATTRIBUTE_TABLE
@@ -371,8 +391,8 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE ia64_option_override
-#undef TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION ia64_option_optimization
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE ia64_option_optimization_table
 #undef TARGET_OPTION_DEFAULT_PARAMS
 #define TARGET_OPTION_DEFAULT_PARAMS ia64_option_default_params
 
@@ -470,6 +490,12 @@ static const struct attribute_spec ia64_attribute_table[] =
 #define TARGET_FUNCTION_OK_FOR_SIBCALL ia64_function_ok_for_sibcall
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES ia64_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG ia64_function_arg
+#undef TARGET_FUNCTION_INCOMING_ARG
+#define TARGET_FUNCTION_INCOMING_ARG ia64_function_incoming_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE ia64_function_arg_advance
 
 #undef TARGET_ASM_OUTPUT_MI_THUNK
 #define TARGET_ASM_OUTPUT_MI_THUNK ia64_output_mi_thunk
@@ -534,6 +560,10 @@ static const struct attribute_spec ia64_attribute_table[] =
 #define TARGET_STRICT_ARGUMENT_NAMING hook_bool_CUMULATIVE_ARGS_true
 #undef TARGET_MUST_PASS_IN_STACK
 #define TARGET_MUST_PASS_IN_STACK must_pass_in_stack_var_size
+#undef TARGET_GET_RAW_RESULT_MODE
+#define TARGET_GET_RAW_RESULT_MODE ia64_get_reg_raw_mode
+#undef TARGET_GET_RAW_ARG_MODE
+#define TARGET_GET_RAW_ARG_MODE ia64_get_reg_raw_mode
 
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR ia64_gimplify_va_arg
@@ -594,6 +624,9 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE
 #define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE ia64_override_options_after_change
+
+#undef TARGET_PREFERRED_RELOAD_CLASS
+#define TARGET_PREFERRED_RELOAD_CLASS ia64_preferred_reload_class
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -4236,7 +4269,7 @@ hfa_element_mode (const_tree type, bool nested)
 /* Return the number of words required to hold a quantity of TYPE and MODE
    when passed as an argument.  */
 static int
-ia64_function_arg_words (tree type, enum machine_mode mode)
+ia64_function_arg_words (const_tree type, enum machine_mode mode)
 {
   int words;
 
@@ -4262,7 +4295,8 @@ ia64_function_arg_words (tree type, enum machine_mode mode)
    all as if they had 16 byte alignment.  Such aggregates can occur
    only if gcc extensions are used.  */
 static int
-ia64_function_arg_offset (CUMULATIVE_ARGS *cum, tree type, int words)
+ia64_function_arg_offset (const CUMULATIVE_ARGS *cum,
+			  const_tree type, int words)
 {
   /* No registers are skipped on VMS.  */
   if (TARGET_ABI_OPEN_VMS || (cum->words & 1) == 0)
@@ -4281,9 +4315,9 @@ ia64_function_arg_offset (CUMULATIVE_ARGS *cum, tree type, int words)
 /* ??? 128-bit quad-precision floats are always passed in general
    registers.  */
 
-rtx
-ia64_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
-		   int named, int incoming)
+static rtx
+ia64_function_arg_1 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		     const_tree type, bool named, bool incoming)
 {
   int basereg = (incoming ? GR_ARG_FIRST : AR_ARG_FIRST);
   int words = ia64_function_arg_words (type, mode);
@@ -4472,6 +4506,25 @@ ia64_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
     }
 }
 
+/* Implement TARGET_FUNCION_ARG target hook.  */
+
+static rtx
+ia64_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		   const_tree type, bool named)
+{
+  return ia64_function_arg_1 (cum, mode, type, named, false);
+}
+
+/* Implement TARGET_FUNCION_INCOMING_ARG target hook.  */
+
+static rtx
+ia64_function_incoming_arg (CUMULATIVE_ARGS *cum,
+			    enum machine_mode mode,
+			    const_tree type, bool named)
+{
+  return ia64_function_arg_1 (cum, mode, type, named, true);
+}
+
 /* Return number of bytes, at the beginning of the argument, that must be
    put in registers.  0 is the argument is entirely in registers or entirely
    in memory.  */
@@ -4517,9 +4570,9 @@ ia64_arg_type (enum machine_mode mode)
 /* Update CUM to point after this argument.  This is patterned after
    ia64_function_arg.  */
 
-void
+static void
 ia64_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-			   tree type, int named)
+			   const_tree type, bool named)
 {
   int words = ia64_function_arg_words (type, mode);
   int offset = ia64_function_arg_offset (cum, type, words);
@@ -5346,11 +5399,11 @@ ia64_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
     return 10;
 }
 
-/* Implement PREFERRED_RELOAD_CLASS.  Place additional restrictions on RCLASS
-   to use when copying X into that class.  */
+/* Implement TARGET_PREFERRED_RELOAD_CLASS.  Place additional restrictions
+   on RCLASS to use when copying X into that class.  */
 
-enum reg_class
-ia64_preferred_reload_class (rtx x, enum reg_class rclass)
+static reg_class_t
+ia64_preferred_reload_class (rtx x, reg_class_t rclass)
 {
   switch (rclass)
     {
@@ -5875,15 +5928,14 @@ rws_access_regno (int regno, struct reg_flags flags, int pred)
 	  break;
 
 	case 1:
-	  /* The register has been written via a predicate.  If this is
-	     not a complementary predicate, then we need a barrier.  */
-	  /* ??? This assumes that P and P+1 are always complementary
-	     predicates for P even.  */
+	  /* The register has been written via a predicate.  Treat
+	     it like a unconditional write and do not try to check
+	     for complementary pred reg in earlier write.  */
 	  if (flags.is_and && rws_sum[regno].written_by_and)
 	    ;
 	  else if (flags.is_or && rws_sum[regno].written_by_or)
 	    ;
-	  else if ((rws_sum[regno].first_pred ^ 1) != pred)
+	  else
 	    need_barrier = 1;
 	  if (!in_safe_group_barrier)
 	    rws_update (regno, flags, pred);
@@ -5944,12 +5996,9 @@ rws_access_regno (int regno, struct reg_flags flags, int pred)
 	  break;
 
 	case 1:
-	  /* The register has been written via a predicate.  If this is
-	     not a complementary predicate, then we need a barrier.  */
-	  /* ??? This assumes that P and P+1 are always complementary
-	     predicates for P even.  */
-	  if ((rws_sum[regno].first_pred ^ 1) != pred)
-	    need_barrier = 1;
+	  /* The register has been written via a predicate, assume we
+	     need a barrier (don't check for complementary regs).  */
+	  need_barrier = 1;
 	  break;
 
 	case 2:
@@ -10834,16 +10883,6 @@ ia64_invalid_binary_op (int op ATTRIBUTE_UNUSED, const_tree type1, const_tree ty
   return NULL;
 }
 
-/* Implement overriding of the optimization options.  */
-static void
-ia64_option_optimization (int level ATTRIBUTE_UNUSED,
-			  int size ATTRIBUTE_UNUSED)
-{
-#ifdef SUBTARGET_OPTIMIZATION_OPTIONS
-  SUBTARGET_OPTIMIZATION_OPTIONS;
-#endif
-}
-
 /* Implement TARGET_OPTION_DEFAULT_PARAMS.  */
 static void
 ia64_option_default_params (void)
@@ -10959,5 +10998,12 @@ ia64_dconst_0_375 (void)
   return ia64_dconst_0_375_rtx;
 }
 
+static enum machine_mode
+ia64_get_reg_raw_mode (int regno)
+{
+  if (FR_REGNO_P (regno))
+    return XFmode;
+  return default_get_reg_raw_mode(regno);
+}
 
 #include "gt-ia64.h"

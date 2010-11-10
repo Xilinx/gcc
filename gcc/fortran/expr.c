@@ -2292,10 +2292,13 @@ check_inquiry (gfc_expr *e, int not_restricted)
 	   with LEN, as required by the standard.  */
 	if (i == 5 && not_restricted
 	    && ap->expr->symtree->n.sym->ts.type == BT_CHARACTER
-	    && ap->expr->symtree->n.sym->ts.u.cl->length == NULL)
+	    && (ap->expr->symtree->n.sym->ts.u.cl->length == NULL
+		|| ap->expr->symtree->n.sym->ts.deferred))
 	  {
-	    gfc_error ("Assumed character length variable '%s' in constant "
-		       "expression at %L", e->symtree->n.sym->name, &e->where);
+	    gfc_error ("Assumed or deferred character length variable '%s' "
+			" in constant expression at %L",
+			ap->expr->symtree->n.sym->name,
+			&ap->expr->where);
 	      return MATCH_ERROR;
 	  }
 	else if (not_restricted && check_init_expr (ap->expr) == FAILURE)
@@ -3454,6 +3457,10 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
       return FAILURE;
     }
 
+  if (lvalue->ts.type == BT_CLASS && rvalue->ts.type == BT_DERIVED)
+    /* Make sure the vtab is present.  */
+    gfc_find_derived_vtab (rvalue->ts.u.derived);
+
   /* Check rank remapping.  */
   if (rank_remap)
     {
@@ -4316,7 +4323,18 @@ gfc_check_vardef_context (gfc_expr* e, bool pointer, const char* context)
   symbol_attribute attr;
   gfc_ref* ref;
 
-  if (e->expr_type != EXPR_VARIABLE)
+  if (!pointer && e->expr_type == EXPR_FUNCTION
+      && e->symtree->n.sym->result->attr.pointer)
+    {
+      if (!(gfc_option.allow_std & GFC_STD_F2008))
+	{
+	  if (context)
+	    gfc_error ("Fortran 2008: Pointer functions in variable definition"
+		       " context (%s) at %L", context, &e->where);
+	  return FAILURE;
+	}
+    }
+  else if (e->expr_type != EXPR_VARIABLE)
     {
       if (context)
 	gfc_error ("Non-variable expression in variable definition context (%s)"
@@ -4389,7 +4407,7 @@ gfc_check_vardef_context (gfc_expr* e, bool pointer, const char* context)
     }
 
   /* PROTECTED and use-associated.  */
-  if (sym->attr.is_protected && sym->attr.use_assoc)
+  if (sym->attr.is_protected && sym->attr.use_assoc  && check_intentin)
     {
       if (pointer && is_pointer)
 	{

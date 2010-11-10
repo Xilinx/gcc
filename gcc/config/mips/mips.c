@@ -589,6 +589,10 @@ static const char *mips_hi_relocs[NUM_SYMBOL_TYPES];
 /* Target state for MIPS16.  */
 struct target_globals *mips16_globals;
 
+/* Cached value of can_issue_more. This is cached in mips_variable_issue hook
+   and returned from mips_sched_reorder2.  */
+static int cached_can_issue_more;
+
 /* Index R is the smallest register class that contains register R.  */
 const enum reg_class mips_regno_to_class[FIRST_PSEUDO_REGISTER] = {
   LEA_REGS,	LEA_REGS,	M16_REGS,	V1_REG,
@@ -12436,11 +12440,11 @@ mips_sched_init (FILE *file ATTRIBUTE_UNUSED, int verbose ATTRIBUTE_UNUSED,
   mips_ls2.falu1_turn_p = true;
 }
 
-/* Implement TARGET_SCHED_REORDER and TARGET_SCHED_REORDER2.  */
+/* Subroutine used by TARGET_SCHED_REORDER and TARGET_SCHED_REORDER2.  */
 
-static int
-mips_sched_reorder (FILE *file ATTRIBUTE_UNUSED, int verbose ATTRIBUTE_UNUSED,
-		    rtx *ready, int *nreadyp, int cycle ATTRIBUTE_UNUSED)
+static void
+mips_sched_reorder_1 (FILE *file ATTRIBUTE_UNUSED, int verbose ATTRIBUTE_UNUSED,
+		      rtx *ready, int *nreadyp, int cycle ATTRIBUTE_UNUSED)
 {
   if (!reload_completed
       && TUNE_MACC_CHAINS
@@ -12455,8 +12459,26 @@ mips_sched_reorder (FILE *file ATTRIBUTE_UNUSED, int verbose ATTRIBUTE_UNUSED,
 
   if (TUNE_74K)
     mips_74k_agen_reorder (ready, *nreadyp);
+}
 
+/* Implement TARGET_SCHED_REORDER.  */
+
+static int
+mips_sched_reorder (FILE *file ATTRIBUTE_UNUSED, int verbose ATTRIBUTE_UNUSED,
+		    rtx *ready, int *nreadyp, int cycle ATTRIBUTE_UNUSED)
+{
+  mips_sched_reorder_1 (file, verbose, ready, nreadyp, cycle);
   return mips_issue_rate ();
+}
+
+/* Implement TARGET_SCHED_REORDER2.  */
+
+static int
+mips_sched_reorder2 (FILE *file ATTRIBUTE_UNUSED, int verbose ATTRIBUTE_UNUSED,
+		     rtx *ready, int *nreadyp, int cycle ATTRIBUTE_UNUSED)
+{
+  mips_sched_reorder_1 (file, verbose, ready, nreadyp, cycle);
+  return cached_can_issue_more;
 }
 
 /* Update round-robin counters for ALU1/2 and FALU1/2.  */
@@ -12516,6 +12538,7 @@ mips_variable_issue (FILE *file ATTRIBUTE_UNUSED, int verbose ATTRIBUTE_UNUSED,
 	      || recog_memoized (insn) < 0
 	      || get_attr_type (insn) != TYPE_MULTI);
 
+  cached_can_issue_more = more;
   return more;
 }
 
@@ -12707,6 +12730,8 @@ AVAIL_NON_MIPS16 (cache, TARGET_CACHE_BUILTIN)
 #define CODE_FOR_mips_subq_ph CODE_FOR_subv2hi3
 #define CODE_FOR_mips_subu_qb CODE_FOR_subv4qi3
 #define CODE_FOR_mips_mul_ph CODE_FOR_mulv2hi3
+#define CODE_FOR_mips_mult CODE_FOR_mulsidi3_32bit
+#define CODE_FOR_mips_multu CODE_FOR_umulsidi3_32bit
 
 #define CODE_FOR_loongson_packsswh CODE_FOR_vec_pack_ssat_v2si
 #define CODE_FOR_loongson_packsshb CODE_FOR_vec_pack_ssat_v4hi
@@ -12905,17 +12930,17 @@ static const struct mips_builtin_description mips_builtins[] = {
   DIRECT_BUILTIN (extpdp, MIPS_SI_FTYPE_DI_SI, dsp_32),
   DIRECT_BUILTIN (shilo, MIPS_DI_FTYPE_DI_SI, dsp_32),
   DIRECT_BUILTIN (mthlip, MIPS_DI_FTYPE_DI_SI, dsp_32),
+  DIRECT_BUILTIN (madd, MIPS_DI_FTYPE_DI_SI_SI, dsp_32),
+  DIRECT_BUILTIN (maddu, MIPS_DI_FTYPE_DI_USI_USI, dsp_32),
+  DIRECT_BUILTIN (msub, MIPS_DI_FTYPE_DI_SI_SI, dsp_32),
+  DIRECT_BUILTIN (msubu, MIPS_DI_FTYPE_DI_USI_USI, dsp_32),
+  DIRECT_BUILTIN (mult, MIPS_DI_FTYPE_SI_SI, dsp_32),
+  DIRECT_BUILTIN (multu, MIPS_DI_FTYPE_USI_USI, dsp_32),
 
   /* The following are for the MIPS DSP ASE REV 2 (32-bit only).  */
   DIRECT_BUILTIN (dpa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
   DIRECT_BUILTIN (dps_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
-  DIRECT_BUILTIN (madd, MIPS_DI_FTYPE_DI_SI_SI, dspr2_32),
-  DIRECT_BUILTIN (maddu, MIPS_DI_FTYPE_DI_USI_USI, dspr2_32),
-  DIRECT_BUILTIN (msub, MIPS_DI_FTYPE_DI_SI_SI, dspr2_32),
-  DIRECT_BUILTIN (msubu, MIPS_DI_FTYPE_DI_USI_USI, dspr2_32),
   DIRECT_BUILTIN (mulsa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
-  DIRECT_BUILTIN (mult, MIPS_DI_FTYPE_SI_SI, dspr2_32),
-  DIRECT_BUILTIN (multu, MIPS_DI_FTYPE_USI_USI, dspr2_32),
   DIRECT_BUILTIN (dpax_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
   DIRECT_BUILTIN (dpsx_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
   DIRECT_BUILTIN (dpaqx_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
@@ -15876,6 +15901,13 @@ mips_option_override (void)
   mips_set_mips16_mode (false);
 }
 
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options mips_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
+
 /* Swap the register information for registers I and I + 1, which
    currently have the wrong endianness.  Note that the registers'
    fixedness and call-clobberedness might have been set on the
@@ -16143,10 +16175,8 @@ mips_mulsidi3_gen_fn (enum rtx_code ext_code)
     }
   else
     {
-      if (TARGET_FIX_R4000)
+      if (TARGET_FIX_R4000 && !ISA_HAS_DSP)
 	return signed_p ? gen_mulsidi3_32bit_r4000 : gen_umulsidi3_32bit_r4000;
-      if (ISA_HAS_DSPR2)
-	return signed_p ? gen_mips_mult : gen_mips_multu;
       return signed_p ? gen_mulsidi3_32bit : gen_umulsidi3_32bit;
     }
 }
@@ -16390,6 +16420,8 @@ mips_shift_truncation_mask (enum machine_mode mode)
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE mips_option_override
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE mips_option_optimization_table
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS mips_legitimize_address
@@ -16408,7 +16440,7 @@ mips_shift_truncation_mask (enum machine_mode mode)
 #undef TARGET_SCHED_REORDER
 #define TARGET_SCHED_REORDER mips_sched_reorder
 #undef TARGET_SCHED_REORDER2
-#define TARGET_SCHED_REORDER2 mips_sched_reorder
+#define TARGET_SCHED_REORDER2 mips_sched_reorder2
 #undef TARGET_SCHED_VARIABLE_ISSUE
 #define TARGET_SCHED_VARIABLE_ISSUE mips_variable_issue
 #undef TARGET_SCHED_ADJUST_COST

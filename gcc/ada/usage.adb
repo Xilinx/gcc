@@ -177,6 +177,11 @@ begin
    Write_Switch_Char ("eD?");
    Write_Line ("Define or redefine preprocessing symbol, e.g. -gnateDsym=val");
 
+   --  Line for -gnateE switch
+
+   Write_Switch_Char ("eE");
+   Write_Line ("Generate extra information in exception messages");
+
    --  Line for -gnatef switch
 
    Write_Switch_Char ("ef");
@@ -201,6 +206,11 @@ begin
 
    Write_Switch_Char ("ep=?");
    Write_Line ("Specify preprocessing data file, e.g. -gnatep=prep.data");
+
+   --  Line for -gnateP switch
+
+   Write_Switch_Char ("eP");
+   Write_Line ("Pure/Prelaborate errors generate warnings rather than errors");
 
    --  Line for -gnateS switch
 
@@ -420,8 +430,8 @@ begin
    Write_Line ("        F*   turn off warnings for unreferenced formal");
    Write_Line ("        g*+  turn on warnings for unrecognized pragma");
    Write_Line ("        G    turn off warnings for unrecognized pragma");
-   Write_Line ("        h    turn on warnings for hiding variable");
-   Write_Line ("        H*   turn off warnings for hiding variable");
+   Write_Line ("        h    turn on warnings for hiding declarations");
+   Write_Line ("        H*   turn off warnings for hiding declarations");
    Write_Line ("        .h   turn on warnings for holes in records");
    Write_Line ("        .H*  turn off warnings for holes in records");
    Write_Line ("        i*+  turn on warnings for implementation unit");
@@ -438,10 +448,8 @@ begin
                                                   "elaboration pragma");
    Write_Line ("        L*   turn off warnings for missing " &
                                                   "elaboration pragma");
-   Write_Line ("        .l*  turn on info messages for inherited pre/" &
-                                                  "postconditions");
-   Write_Line ("        .L   turn off info messages for inherited pre/" &
-                                                  "postconditions");
+   Write_Line ("        .l*  turn on info messages for inherited aspects");
+   Write_Line ("        .L   turn off info messages for inherited aspects");
    Write_Line ("        m+   turn on warnings for variable assigned " &
                                                   "but not read");
    Write_Line ("        M*   turn off warnings for variable assigned " &

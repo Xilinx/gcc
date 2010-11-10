@@ -45,6 +45,7 @@ with Sem;      use Sem;
 with Sem_Aux;  use Sem_Aux;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Eval; use Sem_Eval;
+with Sem_Prag; use Sem_Prag;
 with Sem_Res;  use Sem_Res;
 with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
@@ -339,9 +340,9 @@ package body Exp_Util is
    --  local to the init proc for the array type, and is called for each one
    --  of the components. The constructed image has the form of an indexed
    --  component, whose prefix is the outer variable of the array type.
-   --  The n-dimensional array type has known indices Index, Index2...
+   --  The n-dimensional array type has known indexes Index, Index2...
    --  Id_Ref is an indexed component form created by the enclosing init proc.
-   --  Its successive indices are Val1, Val2, ... which are the loop variables
+   --  Its successive indexes are Val1, Val2, ... which are the loop variables
    --  in the loops that call the individual task init proc on each component.
 
    --  The generated function has the following structure:
@@ -403,7 +404,7 @@ package body Exp_Util is
       --  String to hold result
 
       Val : Node_Id;
-      --  Value of successive indices
+      --  Value of successive indexes
 
       Sum : Node_Id;
       --  Expression to compute total size of string
@@ -2827,6 +2828,7 @@ package body Exp_Util is
                N_Index_Or_Discriminant_Constraint       |
                N_Indexed_Component                      |
                N_Integer_Literal                        |
+               N_Iterator_Specification                 |
                N_Itype_Reference                        |
                N_Label                                  |
                N_Loop_Parameter_Specification           |
@@ -2876,6 +2878,7 @@ package body Exp_Util is
                N_Push_Program_Error_Label               |
                N_Push_Storage_Error_Label               |
                N_Qualified_Expression                   |
+               N_Quantified_Expression                  |
                N_Range                                  |
                N_Range_Constraint                       |
                N_Real_Literal                           |
@@ -3987,6 +3990,34 @@ package body Exp_Util is
       return Equiv_Type;
    end Make_CW_Equivalent_Type;
 
+   -------------------------
+   -- Make_Invariant_Call --
+   -------------------------
+
+   function Make_Invariant_Call (Expr : Node_Id) return Node_Id is
+      Loc : constant Source_Ptr := Sloc (Expr);
+      Typ : constant Entity_Id  := Etype (Expr);
+
+   begin
+      pragma Assert
+        (Has_Invariants (Typ) and then Present (Invariant_Procedure (Typ)));
+
+      if Check_Enabled (Name_Invariant)
+           or else
+         Check_Enabled (Name_Assertion)
+      then
+         return
+           Make_Procedure_Call_Statement (Loc,
+             Name                   =>
+               New_Occurrence_Of (Invariant_Procedure (Typ), Loc),
+             Parameter_Associations => New_List (Relocate_Node (Expr)));
+
+      else
+         return
+           Make_Null_Statement (Loc);
+      end if;
+   end Make_Invariant_Call;
+
    ------------------------
    -- Make_Literal_Range --
    ------------------------
@@ -4055,6 +4086,47 @@ package body Exp_Util is
           Right_Opnd =>
             Make_Integer_Literal (Loc, 0));
    end Make_Non_Empty_Check;
+
+   -------------------------
+   -- Make_Predicate_Call --
+   -------------------------
+
+   function Make_Predicate_Call
+     (Typ  : Entity_Id;
+      Expr : Node_Id) return Node_Id
+   is
+      Loc : constant Source_Ptr := Sloc (Expr);
+
+   begin
+      pragma Assert (Present (Predicate_Function (Typ)));
+
+      return
+        Make_Function_Call (Loc,
+          Name                   =>
+            New_Occurrence_Of (Predicate_Function (Typ), Loc),
+          Parameter_Associations => New_List (Relocate_Node (Expr)));
+   end Make_Predicate_Call;
+
+   --------------------------
+   -- Make_Predicate_Check --
+   --------------------------
+
+   function Make_Predicate_Check
+     (Typ  : Entity_Id;
+      Expr : Node_Id) return Node_Id
+   is
+      Loc : constant Source_Ptr := Sloc (Expr);
+
+   begin
+      return
+        Make_Pragma (Loc,
+          Pragma_Identifier            => Make_Identifier (Loc, Name_Check),
+          Pragma_Argument_Associations => New_List (
+            Make_Pragma_Argument_Association (Loc,
+              Expression => Make_Identifier (Loc, Name_Predicate)),
+            Make_Pragma_Argument_Association (Loc,
+              Expression => Make_Predicate_Call (Typ, Expr))));
+   end Make_Predicate_Check;
 
    ----------------------------
    -- Make_Subtype_From_Expr --
@@ -4640,7 +4712,14 @@ package body Exp_Util is
          --  some cases, and an assignment can modify the component
          --  designated by N, so we need to create a temporary for it.
 
+         --  The guard testing for Entity being present is needed at least
+         --  in the case of rewritten predicate expressions, and may be
+         --  appropriate elsewhere. Obviously we can't go testing the entity
+         --  field if it does not exist, so it's reasonable to say that this
+         --  is not the renaming case if it does not exist.
+
          elsif Is_Entity_Name (Original_Node (N))
+           and then Present (Entity (Original_Node (N)))
            and then Is_Renaming_Of_Object (Entity (Original_Node (N)))
            and then Ekind (Entity (Original_Node (N))) /= E_Constant
          then
@@ -5509,7 +5588,7 @@ package body Exp_Util is
          declare
             CS : constant Boolean := Comes_From_Source (N);
          begin
-            Rewrite (N, Make_Identifier (Sloc (N), Chars => Chars (E)));
+            Rewrite (N, Make_Identifier (Sloc (N), Chars (E)));
             Set_Entity (N, E);
             Set_Comes_From_Source (N, CS);
             Set_Analyzed (N, True);

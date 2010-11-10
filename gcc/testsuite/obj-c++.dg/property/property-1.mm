@@ -9,11 +9,11 @@
 {
   int iVar;
 }
-@property int FooBar;
+@property (setter=MySetter:) int FooBar;
 @end
 
 @implementation Bar
-@property (ivar = iVar, setter = MySetter:) int FooBar;
+@synthesize FooBar=iVar;
 
 - (void) MySetter : (int) value { iVar = value; }
 

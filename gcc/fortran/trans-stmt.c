@@ -602,25 +602,25 @@ gfc_trans_stop (gfc_code *code, bool error_stop)
     {
       tmp = build_int_cst (gfc_int4_type_node, 0);
       tmp = build_call_expr_loc (input_location,
-			     	 error_stop ? gfor_fndecl_error_stop_string
+				 error_stop ? gfor_fndecl_error_stop_string
 				 : gfor_fndecl_stop_string,
-			     	 2, build_int_cst (pchar_type_node, 0), tmp);
+				 2, build_int_cst (pchar_type_node, 0), tmp);
     }
   else if (code->expr1->ts.type == BT_INTEGER)
     {
       gfc_conv_expr (&se, code->expr1);
       tmp = build_call_expr_loc (input_location,
-      				 error_stop ? gfor_fndecl_error_stop_numeric
-			   	 : gfor_fndecl_stop_numeric, 1,
+				 error_stop ? gfor_fndecl_error_stop_numeric
+				 : gfor_fndecl_stop_numeric_f08, 1, 
 				 fold_convert (gfc_int4_type_node, se.expr));
     }
   else
     {
       gfc_conv_expr_reference (&se, code->expr1);
       tmp = build_call_expr_loc (input_location,
-			     	 error_stop ? gfor_fndecl_error_stop_string
+				 error_stop ? gfor_fndecl_error_stop_string
 				 : gfor_fndecl_stop_string,
-			     	 2, se.expr, se.string_length);
+				 2, se.expr, se.string_length);
     }
 
   gfc_add_expr_to_block (&se.pre, tmp);
@@ -1126,7 +1126,7 @@ gfc_trans_do (gfc_code * code, tree exit_cond)
   if (gfc_option.rtcheck & GFC_RTCHECK_DO)
     {
       tmp = fold_build2_loc (input_location, EQ_EXPR, boolean_type_node, step,
-			     fold_convert (type, integer_zero_node));
+			     build_zero_cst (type));
       gfc_trans_runtime_check (true, false, tmp, &block, &code->loc,
 			       "DO step value is zero");
     }
@@ -1138,7 +1138,7 @@ gfc_trans_do (gfc_code * code, tree exit_cond)
     return gfc_trans_simple_do (code, &block, dovar, from, to, step, exit_cond);
 
   pos_step = fold_build2_loc (loc, GT_EXPR, boolean_type_node, step,
-			      fold_convert (type, integer_zero_node));
+			      build_zero_cst (type));
 
   if (TREE_CODE (type) == INTEGER_TYPE)
     utype = unsigned_type_for (type);
@@ -4388,7 +4388,7 @@ gfc_trans_allocate (gfc_code * code)
       expr = gfc_copy_expr (al->expr);
 
       if (expr->ts.type == BT_CLASS)
-	gfc_add_component_ref (expr, "$data");
+	gfc_add_data_component (expr);
 
       gfc_init_se (&se, NULL);
       gfc_start_block (&se.pre);
@@ -4409,8 +4409,8 @@ gfc_trans_allocate (gfc_code * code)
 		  gfc_expr *sz;
 		  gfc_se se_sz;
 		  sz = gfc_copy_expr (code->expr3);
-		  gfc_add_component_ref (sz, "$vptr");
-		  gfc_add_component_ref (sz, "$size");
+		  gfc_add_vptr_component (sz);
+		  gfc_add_size_component (sz);
 		  gfc_init_se (&se_sz, NULL);
 		  gfc_conv_expr (&se_sz, sz);
 		  gfc_free_expr (sz);
@@ -4489,15 +4489,31 @@ gfc_trans_allocate (gfc_code * code)
 	  gfc_expr *rhs = gfc_copy_expr (code->expr3);
 	  if (al->expr->ts.type == BT_CLASS)
 	    {
-	      gfc_se dst,src;
+	      gfc_se call;
+	      gfc_actual_arglist *actual;
+	      gfc_expr *ppc;
+	      gfc_init_se (&call, NULL);
+	      /* Do a polymorphic deep copy.  */
+	      actual = gfc_get_actual_arglist ();
+	      actual->expr = gfc_copy_expr (rhs);
 	      if (rhs->ts.type == BT_CLASS)
-		gfc_add_component_ref (rhs, "$data");
-	      gfc_init_se (&dst, NULL);
-	      gfc_init_se (&src, NULL);
-	      gfc_conv_expr (&dst, expr);
-	      gfc_conv_expr (&src, rhs);
-	      gfc_add_block_to_block (&block, &src.pre);
-	      tmp = gfc_build_memcpy_call (dst.expr, src.expr, memsz);
+		gfc_add_data_component (actual->expr);
+	      actual->next = gfc_get_actual_arglist ();
+	      actual->next->expr = gfc_copy_expr (al->expr);
+	      gfc_add_data_component (actual->next->expr);
+	      if (rhs->ts.type == BT_CLASS)
+		{
+		  ppc = gfc_copy_expr (rhs);
+		  gfc_add_vptr_component (ppc);
+		}
+	      else
+		ppc = gfc_lval_expr_from_sym (gfc_find_derived_vtab (rhs->ts.u.derived));
+	      gfc_add_component_ref (ppc, "_copy");
+	      gfc_conv_procedure_call (&call, ppc->symtree->n.sym, actual,
+					ppc, NULL);
+	      gfc_add_expr_to_block (&call.pre, call.expr);
+	      gfc_add_block_to_block (&call.pre, &call.post);
+	      tmp = gfc_finish_block (&call.pre);
 	    }
 	  else
 	    tmp = gfc_trans_assignment (gfc_expr_to_initialize (expr),
@@ -4511,8 +4527,8 @@ gfc_trans_allocate (gfc_code * code)
 	  /* Default-initialization via MOLD (polymorphic).  */
 	  gfc_expr *rhs = gfc_copy_expr (code->expr3);
 	  gfc_se dst,src;
-	  gfc_add_component_ref (rhs, "$vptr");
-	  gfc_add_component_ref (rhs, "$def_init");
+	  gfc_add_vptr_component (rhs);
+	  gfc_add_def_init_component (rhs);
 	  gfc_init_se (&dst, NULL);
 	  gfc_init_se (&src, NULL);
 	  gfc_conv_expr (&dst, expr);
@@ -4533,13 +4549,13 @@ gfc_trans_allocate (gfc_code * code)
 
 	  /* Initialize VPTR for CLASS objects.  */
 	  lhs = gfc_expr_to_initialize (expr);
-	  gfc_add_component_ref (lhs, "$vptr");
+	  gfc_add_vptr_component (lhs);
 	  rhs = NULL;
 	  if (code->expr3 && code->expr3->ts.type == BT_CLASS)
 	    {
 	      /* Polymorphic SOURCE: VPTR must be determined at run time.  */
 	      rhs = gfc_copy_expr (code->expr3);
-	      gfc_add_component_ref (rhs, "$vptr");
+	      gfc_add_vptr_component (rhs);
 	      tmp = gfc_trans_pointer_assignment (lhs, rhs);
 	      gfc_add_expr_to_block (&block, tmp);
 	      gfc_free_expr (rhs);
@@ -4672,30 +4688,32 @@ gfc_trans_deallocate (gfc_code *code)
       se.descriptor_only = 1;
       gfc_conv_expr (&se, expr);
 
-      if (expr->ts.type == BT_DERIVED && expr->ts.u.derived->attr.alloc_comp)
-        {
-	  gfc_ref *ref;
-	  gfc_ref *last = NULL;
-	  for (ref = expr->ref; ref; ref = ref->next)
-	    if (ref->type == REF_COMPONENT)
-	      last = ref;
-
-	  /* Do not deallocate the components of a derived type
-	     ultimate pointer component.  */
-	  if (!(last && last->u.c.component->attr.pointer)
-		&& !(!last && expr->symtree->n.sym->attr.pointer))
-	    {
-	      tmp = gfc_deallocate_alloc_comp (expr->ts.u.derived, se.expr,
-					       expr->rank);
-	      gfc_add_expr_to_block (&se.pre, tmp);
-	    }
-	}
-
       if (expr->rank)
-	tmp = gfc_array_deallocate (se.expr, pstat, expr);
+	{
+	  if (expr->ts.type == BT_DERIVED && expr->ts.u.derived->attr.alloc_comp)
+	    {
+	      gfc_ref *ref;
+	      gfc_ref *last = NULL;
+	      for (ref = expr->ref; ref; ref = ref->next)
+		if (ref->type == REF_COMPONENT)
+		  last = ref;
+
+	      /* Do not deallocate the components of a derived type
+		ultimate pointer component.  */
+	      if (!(last && last->u.c.component->attr.pointer)
+		    && !(!last && expr->symtree->n.sym->attr.pointer))
+		{
+		  tmp = gfc_deallocate_alloc_comp (expr->ts.u.derived, se.expr,
+						  expr->rank);
+		  gfc_add_expr_to_block (&se.pre, tmp);
+		}
+	    }
+	  tmp = gfc_array_deallocate (se.expr, pstat, expr);
+	}
       else
 	{
-	  tmp = gfc_deallocate_with_status (se.expr, pstat, false, expr);
+	  tmp = gfc_deallocate_scalar_with_status (se.expr, pstat, false,
+						   expr, expr->ts);
 	  gfc_add_expr_to_block (&se.pre, tmp);
 
 	  tmp = fold_build2_loc (input_location, MODIFY_EXPR, void_type_node,

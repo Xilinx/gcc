@@ -1,3 +1,38 @@
+2010-11-09  David Edelsohn  <dje.gcc@gmail.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-11-04  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* configure.ac (*-*-darwin*): Use mh-darwin for all Darwin variants.
+	* configure: Regenerate.
+	* config/mh-ppc-darwin: Rename to mh-darwin.
+
+2010-11-03  Ian Lance Taylor  <iant@google.com>
+	    Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR lto/46273
+	* configure.ac: Remove libelf tests.  Build lto-plugin on ELF always
+	and on other supported platforms whenever LTO is enabled.
+	* configure: Rebuild.
+
+2010-11-02  Alan Modra  <amodra@gmail.com>
+
+	PR binutils/12110
+	* configure.ac: Error when source path contains spaces.
+	* configure: Regenerate.
+
+2010-10-23  James E. Wilson  <wilson@codesourcery.com>
+
+	* MAINTAINERS: Update my email address.
+
+2010-10-20  Ian Lance Taylor  <iant@google.com>
+
+	* Makefile.def (target_modules): Set lib_path to src/.libs for
+	libstdc++-v3 module.
+	* Makefile.tpl: Fix typo in TARGET_LIB_PATH comment.
+	* Makefile.in: Rebuild.
+
 2010-10-18  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* MAINTAINERS (Reviewers): Add myself for gengtype/GTY.

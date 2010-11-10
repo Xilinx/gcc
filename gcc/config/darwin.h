@@ -42,7 +42,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    like a.out and partly like COFF, with additional features like
    multi-architecture binary support.  */
 
-#define OBJECT_FORMAT_MACHO
+#define DARWIN_X86 0
+#define DARWIN_PPC 0
 
 /* Don't assume anything about the header files.  */
 #define NO_IMPLICIT_EXTERN_C
@@ -193,52 +194,6 @@ extern GTY(()) int darwin_ms_struct;
     darwin_override_options ();						\
   } while (0)
 
-/* These compiler options take n arguments.  */
-
-#undef  WORD_SWITCH_TAKES_ARG
-#define WORD_SWITCH_TAKES_ARG(STR)              \
-  (DEFAULT_WORD_SWITCH_TAKES_ARG (STR) ? 1 :    \
-   !strcmp (STR, "Zallowable_client") ? 1 :     \
-   !strcmp (STR, "arch") ? 1 :                  \
-   !strcmp (STR, "arch_only") ? 1 :             \
-   !strcmp (STR, "Zbundle_loader") ? 1 :        \
-   !strcmp (STR, "client_name") ? 1 :           \
-   !strcmp (STR, "compatibility_version") ? 1 : \
-   !strcmp (STR, "current_version") ? 1 :       \
-   !strcmp (STR, "Zdylib_file") ? 1 :           \
-   !strcmp (STR, "Zexported_symbols_list") ? 1 : \
-   !strcmp (STR, "Zimage_base") ? 1 :           \
-   !strcmp (STR, "Zinit") ? 1 :                 \
-   !strcmp (STR, "Zinstall_name") ? 1 :         \
-   !strcmp (STR, "Zmultiplydefinedunused") ? 1 : \
-   !strcmp (STR, "Zmultiply_defined") ? 1 :     \
-   !strcmp (STR, "precomp-trustfile") ? 1 :     \
-   !strcmp (STR, "read_only_relocs") ? 1 :      \
-   !strcmp (STR, "sectcreate") ? 3 :            \
-   !strcmp (STR, "sectorder") ? 3 :             \
-   !strcmp (STR, "Zsegaddr") ? 2 :              \
-   !strcmp (STR, "Zsegs_read_only_addr") ? 1 :  \
-   !strcmp (STR, "Zsegs_read_write_addr") ? 1 : \
-   !strcmp (STR, "Zseg_addr_table") ? 1 :       \
-   !strcmp (STR, "Zfn_seg_addr_table_filename") ? 1 :\
-   !strcmp (STR, "seg1addr") ? 1 :              \
-   !strcmp (STR, "segprot") ? 3 :               \
-   !strcmp (STR, "sub_library") ? 1 :           \
-   !strcmp (STR, "sub_umbrella") ? 1 :          \
-   !strcmp (STR, "Zumbrella") ? 1 :             \
-   !strcmp (STR, "undefined") ? 1 :             \
-   !strcmp (STR, "Zunexported_symbols_list") ? 1 : \
-   !strcmp (STR, "Zweak_reference_mismatches") ? 1 : \
-   !strcmp (STR, "pagezero_size") ? 1 :         \
-   !strcmp (STR, "segs_read_only_addr") ? 1 :   \
-   !strcmp (STR, "segs_read_write_addr") ? 1 :  \
-   !strcmp (STR, "sectalign") ? 3 :             \
-   !strcmp (STR, "sectobjectsymbols") ? 2 :     \
-   !strcmp (STR, "segcreate") ? 3 :             \
-   !strcmp (STR, "dylinker_install_name") ? 1 : \
-   !strcmp (STR, "iframework") ? 1 : \
-   0)
-
 #define SUBTARGET_C_COMMON_OVERRIDE_OPTIONS do {                        \
     if (flag_mkernel || flag_apple_kext)				\
       {									\
@@ -271,7 +226,7 @@ extern GTY(()) int darwin_ms_struct;
 #define LINK_COMMAND_SPEC_A \
    "%{!fdump=*:%{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:\
     %(linker) %l %X %{d} %{s} %{t} %{Z} %{u*} \
-    %{A} %{e*} %{m} %{r} %{x} \
+    %{A} %{e*} %{m} %{r} \
     %{o*}%{!o:-o a.out} \
     %{!A:%{!nostdlib:%{!nostartfiles:%S}}} \
     %{L*} %(link_libgcc) %o %{fprofile-arcs|fprofile-generate*|coverage:-lgcov} \
@@ -752,6 +707,14 @@ int darwin_label_is_anonymous_local_objc_name (const char *name);
 #undef	MAX_OFILE_ALIGNMENT
 #define MAX_OFILE_ALIGNMENT (0x8000 * 8)
 
+/* The generic version, archs should over-ride where required.  */
+#define MACHOPIC_NL_SYMBOL_PTR_SECTION ".non_lazy_symbol_pointer"
+
+/* These are used by -fbranch-probabilities */
+#define HOT_TEXT_SECTION_NAME "__TEXT,__text,regular,pure_instructions"
+#define UNLIKELY_EXECUTED_TEXT_SECTION_NAME \
+                              "__TEXT,__unlikely,regular,pure_instructions"
+
 /* Declare the section variables.  */
 #ifndef USED_FOR_TARGET
 enum darwin_section_enum {
@@ -852,9 +815,12 @@ enum machopic_addr_class {
 
 /* Macros defining the various PIC cases.  */
 
-#define MACHO_DYNAMIC_NO_PIC_P	(TARGET_DYNAMIC_NO_PIC)
+#undef  MACHO_DYNAMIC_NO_PIC_P
+#define MACHO_DYNAMIC_NO_PIC_P	(TARGET_MACHO_DYNAMIC_NO_PIC)
+#undef  MACHOPIC_INDIRECT
 #define MACHOPIC_INDIRECT	(flag_pic || MACHO_DYNAMIC_NO_PIC_P)
 #define MACHOPIC_JUST_INDIRECT	(MACHO_DYNAMIC_NO_PIC_P)
+#undef  MACHOPIC_PURE
 #define MACHOPIC_PURE		(flag_pic && ! MACHO_DYNAMIC_NO_PIC_P)
 
 #undef TARGET_ENCODE_SECTION_INFO
@@ -1053,6 +1019,21 @@ __enable_execute_stack (void *addr)                                     \
    2.95.  */
 #define TARGET_CXX_CDTOR_RETURNS_THIS (darwin_kextabi_p)
 #define TARGET_KEXTABI flag_apple_kext
+
+/* We have target-specific builtins.  */
+#define TARGET_FOLD_BUILTIN darwin_fold_builtin
+
+#define TARGET_OBJC_CONSTRUCT_STRING_OBJECT \
+  darwin_objc_construct_string
+
+#define TARGET_STRING_OBJECT_REF_TYPE_P \
+  darwin_cfstring_ref_p
+
+#define TARGET_N_FORMAT_TYPES 1
+#define TARGET_FORMAT_TYPES darwin_additional_format_types
+
+#define TARGET_CHECK_STRING_OBJECT_FORMAT_ARG \
+  darwin_check_cfstring_format_arg
 
 #define TARGET_HAS_TARGETCM 1
 

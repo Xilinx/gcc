@@ -99,48 +99,6 @@ from being defined in the @file{.h} file to being part of the
 @c prevent bad page break with this line
 You can control the compilation driver.
 
-@defmac SWITCH_TAKES_ARG (@var{char})
-A C expression which determines whether the option @option{-@var{char}}
-takes arguments.  The value should be the number of arguments that
-option takes--zero, for many options.
-
-By default, this macro is defined as
-@code{DEFAULT_SWITCH_TAKES_ARG}, which handles the standard options
-properly.  You need not define @code{SWITCH_TAKES_ARG} unless you
-wish to add additional options which take arguments.  Any redefinition
-should call @code{DEFAULT_SWITCH_TAKES_ARG} and then check for
-additional options.
-@end defmac
-
-@defmac WORD_SWITCH_TAKES_ARG (@var{name})
-A C expression which determines whether the option @option{-@var{name}}
-takes arguments.  The value should be the number of arguments that
-option takes--zero, for many options.  This macro rather than
-@code{SWITCH_TAKES_ARG} is used for multi-character option names.
-
-By default, this macro is defined as
-@code{DEFAULT_WORD_SWITCH_TAKES_ARG}, which handles the standard options
-properly.  You need not define @code{WORD_SWITCH_TAKES_ARG} unless you
-wish to add additional options which take arguments.  Any redefinition
-should call @code{DEFAULT_WORD_SWITCH_TAKES_ARG} and then check for
-additional options.
-@end defmac
-
-@defmac SWITCH_CURTAILS_COMPILATION (@var{char})
-A C expression which determines whether the option @option{-@var{char}}
-stops compilation before the generation of an executable.  The value is
-boolean, nonzero if the option does stop an executable from being
-generated, zero otherwise.
-
-By default, this macro is defined as
-@code{DEFAULT_SWITCH_CURTAILS_COMPILATION}, which handles the standard
-options properly.  You need not define
-@code{SWITCH_CURTAILS_COMPILATION} unless you wish to add additional
-options which affect the generation of an executable.  Any redefinition
-should call @code{DEFAULT_SWITCH_CURTAILS_COMPILATION} and then check
-for additional options.
-@end defmac
-
 @defmac TARGET_OPTION_TRANSLATE_TABLE
 If defined, a list of pairs of strings, the first of which is a
 potential command line target to the @file{gcc} driver program, and the
@@ -757,6 +715,18 @@ only available in the C (and related language) front ends, then you
 should use @code{TARGET_HANDLE_C_OPTION} instead.
 @end deftypefn
 
+@deftypefn {Target Hook} tree TARGET_OBJC_CONSTRUCT_STRING_OBJECT (tree @var{string})
+Targets may provide a string object type that can be used within and between C, C++ and their respective Objective-C dialects. A string object might, for example, embed encoding and length information. These objects are considered opaque to the compiler and handled as references. An ideal implementation makes the composition of the string object match that of the Objective-C @code{NSString} (@code{NXString} for GNUStep), allowing efficient interworking between C-only and Objective-C code. If a target implements string objects then this hook should return a reference to such an object constructed from the normal `C' string representation provided in @var{string}. At present, the hook is used by Objective-C only, to obtain a common-format string object when the target provides one.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_STRING_OBJECT_REF_TYPE_P (const_tree @var{stringref})
+If a target implements string objects then this hook should return @code{true} if @var{stringref} is a valid reference to such an object.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_CHECK_STRING_OBJECT_FORMAT_ARG (tree @var{format_arg}, tree @var{args_list})
+If a target implements string objects then this hook should should  provide a facility to check the function arguments in @var{args_list}  against the format specifiers in @var{format_arg} where the type of  @var{format_arg} is one recognized as a valid string reference type.
+@end deftypefn
+
 @defmac TARGET_VERSION
 This macro is a C statement to print on @code{stderr} a string
 describing the particular machine description choice.  Every machine
@@ -791,26 +761,19 @@ used to alter option flag variables which only exist in those
 frontends.
 @end defmac
 
-@deftypefn {Target Hook} void TARGET_OPTION_OPTIMIZATION (int @var{level}, int @var{size})
+@deftypevr {Target Hook} {const struct default_options *} TARGET_OPTION_OPTIMIZATION_TABLE
 Some machines may desire to change what optimizations are performed for
-various optimization levels.   This hook, if defined, is executed once
+various optimization levels.   This variable, if defined, describes
+options to enable at particular sets of optimization levels.  These
+options are processed once
 just after the optimization level is determined and before the remainder
-of the command options have been parsed.  Values set in this macro are
-used as the default values for the other command line options.
+of the command options have been parsed, so may be overridden by other
+options passed explicily.
 
-@var{level} is the optimization level specified; 2 if @option{-O2} is
-specified, 1 if @option{-O} is specified, and 0 if neither is specified.
-
-@var{size} is nonzero if @option{-Os} is specified and zero otherwise.
-
-This macro is run once at program startup and when the optimization
+This processing is run once at program startup and when the optimization
 options are changed via @code{#pragma GCC optimize} or by using the
 @code{optimize} attribute.
-
-@strong{Do not examine @code{write_symbols} in
-this hook!}  The debugging options are not supposed to alter the
-generated code.
-@end deftypefn
+@end deftypevr
 
 @deftypefn {Target Hook} void TARGET_OPTION_INIT_STRUCT (struct gcc_options *@var{opts})
 Set target-dependent initial values of fields in @var{opts}.
@@ -826,12 +789,6 @@ This hook is called in response to the user invoking
 chance to display extra information on the target specific command
 line options found in its @file{.opt} file.
 @end deftypefn
-
-@defmac CAN_DEBUG_WITHOUT_FP
-Define this macro if debugging can be performed even without a frame
-pointer.  If this macro is defined, GCC will turn on the
-@option{-fomit-frame-pointer} option whenever @option{-O} is specified.
-@end defmac
 
 @defmac SWITCHABLE_TARGET
 Some targets need to switch between substantially different subtargets
@@ -940,13 +897,6 @@ most significant word has the lowest number.  This applies to both
 memory locations and registers; GCC fundamentally assumes that the
 order of words in memory is the same as the order in registers.  This
 macro need not be a constant.
-@end defmac
-
-@defmac LIBGCC2_WORDS_BIG_ENDIAN
-Define this macro if @code{WORDS_BIG_ENDIAN} is not constant.  This must be a
-constant value with the same meaning as @code{WORDS_BIG_ENDIAN}, which will be
-used only when compiling @file{libgcc2.c}.  Typically the value will be set
-based on preprocessor defines.
 @end defmac
 
 @defmac FLOAT_WORDS_BIG_ENDIAN
@@ -2517,17 +2467,6 @@ added to another register (as well as added to a displacement).
 @defmac REGNO_OK_FOR_BASE_P (@var{num})
 A C expression which is nonzero if register number @var{num} is
 suitable for use as a base register in operand addresses.
-Like @code{TARGET_LEGITIMATE_ADDRESS_P}, this macro should also
-define a strict and a non-strict variant.  Both variants behave
-the same for hard register; for pseudos, the strict variant will
-pass only those that have been allocated to a valid hard registers,
-while the non-strict variant will pass all pseudos.
-
-@findex REG_OK_STRICT
-Compiler source files that want to use the strict variant of this and
-other macros define the macro @code{REG_OK_STRICT}.  You should use an
-@code{#ifdef REG_OK_STRICT} conditional to define the strict variant in
-that case and the non-strict variant otherwise.
 @end defmac
 
 @defmac REGNO_MODE_OK_FOR_BASE_P (@var{num}, @var{mode})
@@ -2539,8 +2478,6 @@ you define this macro, the compiler will use it instead of
 @code{REGNO_OK_FOR_BASE_P}.  The mode may be @code{VOIDmode} for
 addresses that appear outside a @code{MEM}, i.e., as an
 @code{address_operand}.
-
-This macro also has strict and non-strict variants.
 @end defmac
 
 @defmac REGNO_MODE_OK_FOR_REG_BASE_P (@var{num}, @var{mode})
@@ -2553,8 +2490,6 @@ than other base register uses.
 
 Use of this macro is deprecated; please use the more general
 @code{REGNO_MODE_CODE_OK_FOR_BASE_P}.
-
-This macro also has strict and non-strict variants.
 @end defmac
 
 @defmac REGNO_MODE_CODE_OK_FOR_BASE_P (@var{num}, @var{mode}, @var{outer_code}, @var{index_code})
@@ -2567,8 +2502,6 @@ address, @code{ADDRESS} for something that occurs in an
 corresponding index expression if @var{outer_code} is @code{PLUS};
 @code{SCRATCH} otherwise.  The mode may be @code{VOIDmode} for addresses
 that appear outside a @code{MEM}, i.e., as an @code{address_operand}.
-
-This macro also has strict and non-strict variants.
 @end defmac
 
 @defmac REGNO_OK_FOR_INDEX_P (@var{num})
@@ -2585,8 +2518,6 @@ labeling is used must fit the machine's constraints of which registers
 may serve in each capacity.  The compiler will try both labelings,
 looking for one that is valid, and will reload one or both registers
 only if neither labeling works.
-
-This macro also has strict and non-strict variants.
 @end defmac
 
 @deftypefn {Target Hook} reg_class_t TARGET_PREFERRED_RELOAD_CLASS (rtx @var{x}, reg_class_t @var{rclass})
@@ -4637,6 +4568,14 @@ This macro has effect in @option{-fpcc-struct-return} mode, but it does
 nothing when you use @option{-freg-struct-return} mode.
 @end defmac
 
+@deftypefn {Target Hook} {enum machine_mode} TARGET_GET_RAW_RESULT_MODE (int @var{regno})
+This target hook returns the mode to be used when accessing raw return registers in @code{__builtin_return}.  Define this macro if the value in @var{reg_raw_mode} is not correct.
+@end deftypefn
+
+@deftypefn {Target Hook} {enum machine_mode} TARGET_GET_RAW_ARG_MODE (int @var{regno})
+This target hook returns the mode to be used when accessing raw argument registers in @code{__builtin_apply_args}.  Define this macro if the value in @var{reg_raw_mode} is not correct.
+@end deftypefn
+
 @node Caller Saves
 @subsection Caller-Saves Register Allocation
 
@@ -5516,8 +5455,13 @@ has this syntax:
 @noindent
 and should @code{goto @var{label}} if the address @var{x} is a valid
 address on the target machine for a memory operand of mode @var{mode}.
-Whether the strict or non-strict variants are desired is defined by
-the @code{REG_OK_STRICT} macro introduced earlier in this section.
+
+@findex REG_OK_STRICT
+Compiler source files that want to use the strict variant of this
+macro define the macro @code{REG_OK_STRICT}.  You should use an
+@code{#ifdef REG_OK_STRICT} conditional to define the strict variant in
+that case and the non-strict variant otherwise.
+
 Using the hook is usually simpler because it limits the number of
 files that are recompiled when changes are made.
 @end deftypefn
@@ -6701,6 +6645,33 @@ zero for @var{insn}, the insn will be not chosen to
 be issued.
 
 The default is that any ready insns can be chosen to be issued.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_FIRST_CYCLE_MULTIPASS_BEGIN (void *@var{data}, char *@var{ready_try}, int @var{n_ready}, bool @var{first_cycle_insn_p})
+This hook prepares the target backend for a new round of multipass
+scheduling.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_FIRST_CYCLE_MULTIPASS_ISSUE (void *@var{data}, char *@var{ready_try}, int @var{n_ready}, rtx @var{insn}, const void *@var{prev_data})
+This hook is called when multipass scheduling evaluates instruction INSN.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_FIRST_CYCLE_MULTIPASS_BACKTRACK (const void *@var{data}, char *@var{ready_try}, int @var{n_ready})
+This is called when multipass scheduling backtracks from evaluation of
+an instruction.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_FIRST_CYCLE_MULTIPASS_END (const void *@var{data})
+This hook notifies the target about the result of the concluded current
+round of multipass scheduling.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_FIRST_CYCLE_MULTIPASS_INIT (void *@var{data})
+This hook initilizes target-specific data used in multipass scheduling.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_FIRST_CYCLE_MULTIPASS_FINI (void *@var{data})
+This hook finilizes target-specific data used in multipass scheduling.
 @end deftypefn
 
 @deftypefn {Target Hook} int TARGET_SCHED_DFA_NEW_CYCLE (FILE *@var{dump}, int @var{verbose}, rtx @var{insn}, int @var{last_clock}, int @var{clock}, int *@var{sort_p})
@@ -8978,6 +8949,12 @@ to set the variable @var{align_jumps} in the target's
 selection in @var{align_jumps} in a @code{JUMP_ALIGN} implementation.
 @end defmac
 
+@deftypefn {Target Hook} int TARGET_ASM_JUMP_ALIGN_MAX_SKIP (rtx @var{label})
+The maximum number of bytes to skip before @var{label} when applying
+@code{JUMP_ALIGN}.  This works only if
+@code{ASM_OUTPUT_MAX_SKIP_ALIGN} is defined.
+@end deftypefn
+
 @defmac LABEL_ALIGN_AFTER_BARRIER (@var{label})
 The alignment (log base 2) to put in front of @var{label}, which follows
 a @code{BARRIER}.
@@ -8987,11 +8964,11 @@ to be done at such a time.  Most machine descriptions do not currently
 define the macro.
 @end defmac
 
-@defmac LABEL_ALIGN_AFTER_BARRIER_MAX_SKIP
-The maximum number of bytes to skip when applying
+@deftypefn {Target Hook} int TARGET_ASM_LABEL_ALIGN_AFTER_BARRIER_MAX_SKIP (rtx @var{label})
+The maximum number of bytes to skip before @var{label} when applying
 @code{LABEL_ALIGN_AFTER_BARRIER}.  This works only if
 @code{ASM_OUTPUT_MAX_SKIP_ALIGN} is defined.
-@end defmac
+@end deftypefn
 
 @defmac LOOP_ALIGN (@var{label})
 The alignment (log base 2) to put in front of @var{label}, which follows
@@ -9007,10 +8984,11 @@ to set the variable @code{align_loops} in the target's
 selection in @code{align_loops} in a @code{LOOP_ALIGN} implementation.
 @end defmac
 
-@defmac LOOP_ALIGN_MAX_SKIP
-The maximum number of bytes to skip when applying @code{LOOP_ALIGN}.
-This works only if @code{ASM_OUTPUT_MAX_SKIP_ALIGN} is defined.
-@end defmac
+@deftypefn {Target Hook} int TARGET_ASM_LOOP_ALIGN_MAX_SKIP (rtx @var{label})
+The maximum number of bytes to skip when applying @code{LOOP_ALIGN} to
+@var{label}.  This works only if @code{ASM_OUTPUT_MAX_SKIP_ALIGN} is
+defined.
+@end deftypefn
 
 @defmac LABEL_ALIGN (@var{label})
 The alignment (log base 2) to put in front of @var{label}.
@@ -9023,10 +9001,11 @@ to set the variable @code{align_labels} in the target's
 selection in @code{align_labels} in a @code{LABEL_ALIGN} implementation.
 @end defmac
 
-@defmac LABEL_ALIGN_MAX_SKIP
-The maximum number of bytes to skip when applying @code{LABEL_ALIGN}.
-This works only if @code{ASM_OUTPUT_MAX_SKIP_ALIGN} is defined.
-@end defmac
+@deftypefn {Target Hook} int TARGET_ASM_LABEL_ALIGN_MAX_SKIP (rtx @var{label})
+The maximum number of bytes to skip when applying @code{LABEL_ALIGN}
+to @var{label}.  This works only if @code{ASM_OUTPUT_MAX_SKIP_ALIGN}
+is defined.
+@end deftypefn
 
 @defmac ASM_OUTPUT_SKIP (@var{stream}, @var{nbytes})
 A C statement to output to the stdio stream @var{stream} an assembler

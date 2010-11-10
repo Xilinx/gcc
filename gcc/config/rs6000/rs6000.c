@@ -51,6 +51,7 @@
 #include "langhooks.h"
 #include "reload.h"
 #include "cfglayout.h"
+#include "cfgloop.h"
 #include "sched-int.h"
 #include "gimple.h"
 #include "tree-flow.h"
@@ -73,6 +74,7 @@
 
 /* Structure used to define the rs6000 stack */
 typedef struct rs6000_stack {
+  int reload_completed;		/* stack info won't change from here on */
   int first_gp_reg_save;	/* first callee saved GP register used */
   int first_fp_reg_save;	/* first callee saved FP register used */
   int first_altivec_reg_save;	/* first callee saved AltiVec register used */
@@ -109,6 +111,7 @@ typedef struct rs6000_stack {
   int spe_padding_size;
   HOST_WIDE_INT total_size;	/* total bytes allocated for stack */
   int spe_64bit_regs_used;
+  int savres_strategy;
 } rs6000_stack_t;
 
 /* A C structure for machine-specific, per-function data.
@@ -154,6 +157,9 @@ static GTY(()) bool rs6000_sched_groups;
 /* Align branch targets.  */
 static GTY(()) bool rs6000_align_branch_targets;
 
+/* Non-zero to allow overriding loop alignment. */
+static int can_override_loop_align = 0;
+
 /* Support for -msched-costly-dep option.  */
 const char *rs6000_sched_costly_dep_str;
 enum rs6000_dependence_cost rs6000_sched_costly_dep;
@@ -191,7 +197,7 @@ static GTY(()) int common_mode_defined;
 
 /* Label number of label created for -mrelocatable, to call to so we can
    get the address of the GOT section */
-int rs6000_pic_labelno;
+static int rs6000_pic_labelno;
 
 #ifdef USING_ELFOS_H
 /* Which abi to adhere to */
@@ -994,7 +1000,6 @@ static rtx rs6000_make_savres_rtx (rs6000_stack_t *, rtx, int,
 static bool rs6000_reg_live_or_pic_offset_p (int);
 static tree rs6000_builtin_vectorized_libmass (tree, tree, tree);
 static tree rs6000_builtin_vectorized_function (tree, tree, tree);
-static int rs6000_savres_strategy (rs6000_stack_t *, bool, int, int);
 static void rs6000_restore_saved_cr (rtx, int);
 static bool rs6000_output_addr_const_extra (FILE *, rtx);
 static void rs6000_output_function_prologue (FILE *, HOST_WIDE_INT);
@@ -1139,6 +1144,7 @@ static void rs6000_option_override (void);
 static void rs6000_option_init_struct (struct gcc_options *);
 static void rs6000_option_default_params (void);
 static bool rs6000_handle_option (size_t, const char *, int);
+static int rs6000_loop_align_max_skip (rtx);
 static void rs6000_parse_tls_size_option (void);
 static void rs6000_parse_yes_no_option (const char *, const char *, int *);
 static int first_altivec_reg_to_save (void);
@@ -1363,6 +1369,13 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #endif
   { NULL,        0, 0, false, false, false, NULL }
 };
+
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options rs6000_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 #ifndef MASK_STRICT_ALIGN
 #define MASK_STRICT_ALIGN 0
@@ -1599,6 +1612,9 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION rs6000_handle_option
 
+#undef TARGET_ASM_LOOP_ALIGN_MAX_SKIP
+#define TARGET_ASM_LOOP_ALIGN_MAX_SKIP rs6000_loop_align_max_skip
+
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE rs6000_option_override
 
@@ -1607,6 +1623,9 @@ static const struct attribute_spec rs6000_attribute_table[] =
 
 #undef TARGET_OPTION_DEFAULT_PARAMS
 #define TARGET_OPTION_DEFAULT_PARAMS rs6000_option_default_params
+
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE rs6000_option_optimization_table
 
 #undef TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION \
@@ -2356,21 +2375,11 @@ darwin_rs6000_override_options (void)
      off.  */
   rs6000_altivec_abi = 1;
   TARGET_ALTIVEC_VRSAVE = 1;
-  if (DEFAULT_ABI == ABI_DARWIN)
-  {
-    if (MACHO_DYNAMIC_NO_PIC_P)
-      {
-        if (flag_pic)
-            warning (0, "-mdynamic-no-pic overrides -fpic or -fPIC");
-        flag_pic = 0;
-      }
-    else if (flag_pic == 1)
-      {
-        flag_pic = 2;
-      }
-    if (TARGET_64BIT)
+
+  if (DEFAULT_ABI == ABI_DARWIN
+      && TARGET_64BIT)
       darwin_one_byte_bool = 1;
-  }
+
   if (TARGET_64BIT && ! TARGET_POWERPC64)
     {
       target_flags |= MASK_POWERPC64;
@@ -2568,7 +2577,8 @@ rs6000_option_override_internal (const char *default_cpu)
   /* Masks for instructions set at various powerpc ISAs.  */
   enum {
     ISA_2_1_MASKS = MASK_MFCRF,
-    ISA_2_2_MASKS = (ISA_2_1_MASKS | MASK_POPCNTB | MASK_FPRND),
+    ISA_2_2_MASKS = (ISA_2_1_MASKS | MASK_POPCNTB),
+    ISA_2_4_MASKS = (ISA_2_2_MASKS | MASK_FPRND),
 
     /* For ISA 2.05, do not add MFPGPR, since it isn't in ISA 2.06, and don't
        add ALTIVEC, since in general it isn't a win on power6.  In ISA 2.04,
@@ -2737,7 +2747,9 @@ rs6000_option_override_internal (const char *default_cpu)
     target_flags |= (ISA_2_5_MASKS_SERVER & ~target_flags_explicit);
   else if (TARGET_CMPB)
     target_flags |= (ISA_2_5_MASKS_EMBEDDED & ~target_flags_explicit);
-  else if (TARGET_POPCNTB || TARGET_FPRND)
+  else if (TARGET_FPRND)
+    target_flags |= (ISA_2_4_MASKS & ~target_flags_explicit);
+  else if (TARGET_POPCNTB)
     target_flags |= (ISA_2_2_MASKS & ~target_flags_explicit);
   else if (TARGET_ALTIVEC)
     target_flags |= (MASK_PPC_GFXOPT & ~target_flags_explicit);
@@ -3025,7 +3037,10 @@ rs6000_option_override_internal (const char *default_cpu)
 	  if (align_jumps <= 0)
 	    align_jumps = 16;
 	  if (align_loops <= 0)
-	    align_loops = 16;
+	    {
+	      can_override_loop_align = 1;
+	      align_loops = 16;
+	    }
 	}
       if (align_jumps_max_skip <= 0)
 	align_jumps_max_skip = 15;
@@ -3268,6 +3283,38 @@ rs6000_builtin_mask_for_load (void)
     return altivec_builtin_mask_for_load;
   else
     return 0;
+}
+
+/* Implement LOOP_ALIGN. */
+int
+rs6000_loop_align (rtx label)
+{
+  basic_block bb;
+  int ninsns;
+
+  /* Don't override loop alignment if -falign-loops was specified. */
+  if (!can_override_loop_align)
+    return align_loops_log;
+
+  bb = BLOCK_FOR_INSN (label);
+  ninsns = num_loop_insns(bb->loop_father);
+
+  /* Align small loops to 32 bytes to fit in an icache sector, otherwise return default. */
+  if (ninsns > 4 && ninsns <= 8
+      && (rs6000_cpu == PROCESSOR_POWER4
+	  || rs6000_cpu == PROCESSOR_POWER5
+	  || rs6000_cpu == PROCESSOR_POWER6
+	  || rs6000_cpu == PROCESSOR_POWER7))
+    return 5;
+  else
+    return align_loops_log;
+}
+
+/* Implement TARGET_LOOP_ALIGN_MAX_SKIP. */
+static int
+rs6000_loop_align_max_skip (rtx label)
+{
+  return (1 << rs6000_loop_align (label)) - 1;
 }
 
 /* Implement targetm.vectorize.builtin_conversion.
@@ -9215,7 +9262,7 @@ rs6000_build_builtin_va_list (void)
   DECL_FIELD_CONTEXT (f_ovf) = record;
   DECL_FIELD_CONTEXT (f_sav) = record;
 
-  TREE_CHAIN (record) = type_decl;
+  TYPE_STUB_DECL (record) = type_decl;
   TYPE_NAME (record) = type_decl;
   TYPE_FIELDS (record) = f_gpr;
   DECL_CHAIN (f_gpr) = f_fpr;
@@ -9251,7 +9298,7 @@ rs6000_va_start (tree valist, rtx nextarg)
   f_ovf = DECL_CHAIN (f_res);
   f_sav = DECL_CHAIN (f_ovf);
 
-  valist = build_va_arg_indirect_ref (valist);
+  valist = build_simple_mem_ref (valist);
   gpr = build3 (COMPONENT_REF, TREE_TYPE (f_gpr), valist, f_gpr, NULL_TREE);
   fpr = build3 (COMPONENT_REF, TREE_TYPE (f_fpr), unshare_expr (valist),
 		f_fpr, NULL_TREE);
@@ -15151,6 +15198,8 @@ rs6000_got_register (rtx value ATTRIBUTE_UNUSED)
   return pic_offset_table_rtx;
 }
 
+static rs6000_stack_t stack_info;
+
 /* Function to init struct machine_function.
    This will be called, via a pointer variable,
    from push_function_context.  */
@@ -15158,6 +15207,7 @@ rs6000_got_register (rtx value ATTRIBUTE_UNUSED)
 static struct machine_function *
 rs6000_init_machine_status (void)
 {
+  stack_info.reload_completed = 0;
   return ggc_alloc_cleared_machine_function ();
 }
 
@@ -17201,7 +17251,9 @@ rs6000_emit_minmax (rtx dest, enum rtx_code code, rtx op0, rtx op1)
   rtx target;
 
   /* VSX/altivec have direct min/max insns.  */
-  if ((code == SMAX || code == SMIN) && VECTOR_UNIT_ALTIVEC_OR_VSX_P (mode))
+  if ((code == SMAX || code == SMIN)
+      && (VECTOR_UNIT_ALTIVEC_OR_VSX_P (mode)
+	  || (mode == SFmode && VECTOR_UNIT_VSX_P (DFmode))))
     {
       emit_insn (gen_rtx_SET (VOIDmode,
 			      dest,
@@ -18040,6 +18092,107 @@ is_altivec_return_reg (rtx reg, void *xyes)
 }
 
 
+/* Determine the strategy for savings/restoring registers.  */
+
+enum {
+  SAVRES_MULTIPLE = 0x1,
+  SAVE_INLINE_FPRS = 0x2,
+  SAVE_INLINE_GPRS = 0x4,
+  REST_INLINE_FPRS = 0x8,
+  REST_INLINE_GPRS = 0x10,
+  SAVE_NOINLINE_GPRS_SAVES_LR = 0x20,
+  SAVE_NOINLINE_FPRS_SAVES_LR = 0x40,
+  REST_NOINLINE_FPRS_DOESNT_RESTORE_LR = 0x80
+};
+
+static int
+rs6000_savres_strategy (rs6000_stack_t *info,
+			bool using_static_chain_p)
+{
+  int strategy = 0;
+
+  if (TARGET_MULTIPLE
+      && !TARGET_POWERPC64
+      && !(TARGET_SPE_ABI && info->spe_64bit_regs_used)
+      && info->first_gp_reg_save < 31
+      && no_global_regs_above (info->first_gp_reg_save, /*gpr=*/true))
+    strategy |= SAVRES_MULTIPLE;
+
+  if (crtl->calls_eh_return
+      || cfun->machine->ra_need_lr
+      || info->total_size > 32767)
+    strategy |= (SAVE_INLINE_FPRS | REST_INLINE_FPRS
+		 | SAVE_INLINE_GPRS | REST_INLINE_GPRS);
+
+  if (info->first_fp_reg_save == 64
+      || FP_SAVE_INLINE (info->first_fp_reg_save)
+      /* The out-of-line FP routines use double-precision stores;
+	 we can't use those routines if we don't have such stores.  */
+      || (TARGET_HARD_FLOAT && !TARGET_DOUBLE_FLOAT)
+      || !no_global_regs_above (info->first_fp_reg_save, /*gpr=*/false))
+    strategy |= SAVE_INLINE_FPRS | REST_INLINE_FPRS;
+
+  if (info->first_gp_reg_save == 32
+      || GP_SAVE_INLINE (info->first_gp_reg_save)
+      || !((strategy & SAVRES_MULTIPLE)
+	   || no_global_regs_above (info->first_gp_reg_save, /*gpr=*/true)))
+    strategy |= SAVE_INLINE_GPRS | REST_INLINE_GPRS;
+
+  /* Don't bother to try to save things out-of-line if r11 is occupied
+     by the static chain.  It would require too much fiddling and the
+     static chain is rarely used anyway.  */
+  if (using_static_chain_p)
+    strategy |= SAVE_INLINE_FPRS | SAVE_INLINE_GPRS;
+
+  /* If we are going to use store multiple, then don't even bother
+     with the out-of-line routines, since the store-multiple
+     instruction will always be smaller.  */
+  if ((strategy & SAVRES_MULTIPLE))
+    strategy |= SAVE_INLINE_GPRS;
+
+  /* The situation is more complicated with load multiple.  We'd
+     prefer to use the out-of-line routines for restores, since the
+     "exit" out-of-line routines can handle the restore of LR and the
+     frame teardown.  However if doesn't make sense to use the
+     out-of-line routine if that is the only reason we'd need to save
+     LR, and we can't use the "exit" out-of-line gpr restore if we
+     have saved some fprs; In those cases it is advantageous to use
+     load multiple when available.  */
+  if ((strategy & SAVRES_MULTIPLE)
+      && (!info->lr_save_p
+	  || info->first_fp_reg_save != 64))
+    strategy |= REST_INLINE_GPRS;
+
+  /* We can only use load multiple or the out-of-line routines to
+     restore if we've used store multiple or out-of-line routines
+     in the prologue, i.e. if we've saved all the registers from
+     first_gp_reg_save.  Otherwise, we risk loading garbage.  */
+  if ((strategy & (SAVE_INLINE_GPRS | SAVRES_MULTIPLE)) == SAVE_INLINE_GPRS)
+    strategy |= REST_INLINE_GPRS;
+
+  /* Saving CR interferes with the exit routines used on the SPE, so
+     just punt here.  */
+  if (TARGET_SPE_ABI
+      && info->spe_64bit_regs_used
+      && info->cr_save_p)
+    strategy |= REST_INLINE_GPRS;
+
+#ifdef POWERPC_LINUX
+  if (TARGET_64BIT)
+    {
+      if (!(strategy & SAVE_INLINE_FPRS))
+	strategy |= SAVE_NOINLINE_FPRS_SAVES_LR;
+      else if (!(strategy & SAVE_INLINE_GPRS)
+	       && info->first_fp_reg_save == 64)
+	strategy |= SAVE_NOINLINE_GPRS_SAVES_LR;
+    }
+#else
+  if (TARGET_AIX && !(strategy & REST_INLINE_FPRS))
+    strategy |= REST_NOINLINE_FPRS_DOESNT_RESTORE_LR;
+#endif
+  return strategy;
+}
+
 /* Calculate the stack information for the current function.  This is
    complicated by having two separate calling sequences, the AIX calling
    sequence and the V.4 calling sequence.
@@ -18140,15 +18293,26 @@ is_altivec_return_reg (rtx reg, void *xyes)
 static rs6000_stack_t *
 rs6000_stack_info (void)
 {
-  static rs6000_stack_t info;
-  rs6000_stack_t *info_ptr = &info;
+#ifdef ENABLE_CHECKING
+  static rs6000_stack_t info_save;
+#endif
+  rs6000_stack_t *info_ptr = &stack_info;
   int reg_size = TARGET_32BIT ? 4 : 8;
   int ehrd_size;
   int save_align;
   int first_gp;
   HOST_WIDE_INT non_fixed_size;
+  bool using_static_chain_p;
 
-  memset (&info, 0, sizeof (info));
+#ifdef ENABLE_CHECKING
+  memcpy (&info_save, &stack_info, sizeof stack_info);
+#else
+  if (reload_completed && info_ptr->reload_completed)
+    return info_ptr;
+#endif
+
+  memset (&stack_info, 0, sizeof (stack_info));
+  info_ptr->reload_completed = reload_completed;
 
   if (TARGET_SPE)
     {
@@ -18204,23 +18368,6 @@ rs6000_stack_info (void)
   /* Does this function call anything?  */
   info_ptr->calls_p = (! current_function_is_leaf
 		       || cfun->machine->ra_needs_full_frame);
-
-  /* Determine if we need to save the link register.  */
-  if ((DEFAULT_ABI == ABI_AIX
-       && crtl->profile
-       && !TARGET_PROFILE_KERNEL)
-#ifdef TARGET_RELOCATABLE
-      || (TARGET_RELOCATABLE && (get_pool_size () != 0))
-#endif
-      || (info_ptr->first_fp_reg_save != 64
-	  && !FP_SAVE_INLINE (info_ptr->first_fp_reg_save))
-      || (DEFAULT_ABI == ABI_V4 && cfun->calls_alloca)
-      || info_ptr->calls_p
-      || rs6000_ra_ever_killed ())
-    {
-      info_ptr->lr_save_p = 1;
-      df_set_regs_ever_live (LR_REGNO, true);
-    }
 
   /* Determine if we need to save the condition code registers.  */
   if (df_regs_ever_live_p (CR2_REGNO)
@@ -18390,6 +18537,33 @@ rs6000_stack_info (void)
   info_ptr->total_size = RS6000_ALIGN (non_fixed_size + info_ptr->fixed_size,
 				       ABI_STACK_BOUNDARY / BITS_PER_UNIT);
 
+  /* Determine if we need to save the link register.  */
+  if (info_ptr->calls_p
+      || (DEFAULT_ABI == ABI_AIX
+	  && crtl->profile
+	  && !TARGET_PROFILE_KERNEL)
+      || (DEFAULT_ABI == ABI_V4 && cfun->calls_alloca)
+#ifdef TARGET_RELOCATABLE
+      || (TARGET_RELOCATABLE && (get_pool_size () != 0))
+#endif
+      || rs6000_ra_ever_killed ())
+    info_ptr->lr_save_p = 1;
+
+  using_static_chain_p = (cfun->static_chain_decl != NULL_TREE
+			  && df_regs_ever_live_p (STATIC_CHAIN_REGNUM)
+			  && call_used_regs[STATIC_CHAIN_REGNUM]);
+  info_ptr->savres_strategy = rs6000_savres_strategy (info_ptr,
+						      using_static_chain_p);
+
+  if (!(info_ptr->savres_strategy & SAVE_INLINE_GPRS)
+      || !(info_ptr->savres_strategy & SAVE_INLINE_FPRS)
+      || !(info_ptr->savres_strategy & REST_INLINE_GPRS)
+      || !(info_ptr->savres_strategy & REST_INLINE_FPRS))
+    info_ptr->lr_save_p = 1;
+
+  if (info_ptr->lr_save_p)
+    df_set_regs_ever_live (LR_REGNO, true);
+
   /* Determine if we need to allocate any stack frame:
 
      For AIX we need to push the stack if a frame pointer is needed
@@ -18441,6 +18615,10 @@ rs6000_stack_info (void)
   if (! info_ptr->cr_save_p)
     info_ptr->cr_save_offset = 0;
 
+#ifdef ENABLE_CHECKING
+  gcc_assert (!(reload_completed && info_save.reload_completed)
+	      || memcmp (&info_save, &stack_info, sizeof stack_info) == 0);
+#endif
   return info_ptr;
 }
 
@@ -18768,7 +18946,8 @@ rs6000_emit_load_toc_table (int fromprolog)
       char buf[30];
       rtx lab, tmp1, tmp2, got;
 
-      ASM_GENERATE_INTERNAL_LABEL (buf, "LCF", rs6000_pic_labelno);
+      lab = gen_label_rtx ();
+      ASM_GENERATE_INTERNAL_LABEL (buf, "L", CODE_LABEL_NUMBER (lab));
       lab = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (buf));
       if (flag_pic == 2)
 	got = gen_rtx_SYMBOL_REF (Pmode, toc_label_name);
@@ -18781,8 +18960,7 @@ rs6000_emit_load_toc_table (int fromprolog)
 	  tmp2 = gen_reg_rtx (Pmode);
 	}
       emit_insn (gen_load_toc_v4_PIC_1 (lab));
-      emit_move_insn (tmp1,
-			     gen_rtx_REG (Pmode, LR_REGNO));
+      emit_move_insn (tmp1, gen_rtx_REG (Pmode, LR_REGNO));
       emit_insn (gen_load_toc_v4_PIC_3b (tmp2, tmp1, got, lab));
       emit_insn (gen_load_toc_v4_PIC_3c (dest, tmp2, got, lab));
     }
@@ -18809,8 +18987,7 @@ rs6000_emit_load_toc_table (int fromprolog)
 	  symL = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (buf));
 
 	  emit_insn (gen_load_toc_v4_PIC_1 (symF));
-	  emit_move_insn (dest,
-			  gen_rtx_REG (Pmode, LR_REGNO));
+	  emit_move_insn (dest, gen_rtx_REG (Pmode, LR_REGNO));
 	  emit_insn (gen_load_toc_v4_PIC_2 (temp0, dest, symL, symF));
 	}
       else
@@ -19690,113 +19867,18 @@ rs6000_make_savres_rtx (rs6000_stack_t *info,
 static bool
 rs6000_reg_live_or_pic_offset_p (int reg)
 {
-  return ((df_regs_ever_live_p (reg)
+  /* If the function calls eh_return, claim used all the registers that would
+     be checked for liveness otherwise.  This is required for the PIC offset
+     register with -mminimal-toc on AIX, as it is advertised as "fixed" for
+     register allocation purposes in this case.  */
+
+  return (((crtl->calls_eh_return || df_regs_ever_live_p (reg))
            && (!call_used_regs[reg]
                || (reg == RS6000_PIC_OFFSET_TABLE_REGNUM
                    && TARGET_TOC && TARGET_MINIMAL_TOC)))
           || (reg == RS6000_PIC_OFFSET_TABLE_REGNUM
               && ((DEFAULT_ABI == ABI_V4 && flag_pic != 0)
                   || (DEFAULT_ABI == ABI_DARWIN && flag_pic))));
-}
-
-enum {
-  SAVRES_MULTIPLE = 0x1,
-  SAVRES_INLINE_FPRS = 0x2,
-  SAVRES_INLINE_GPRS = 0x4,
-  SAVRES_NOINLINE_GPRS_SAVES_LR = 0x8,
-  SAVRES_NOINLINE_FPRS_SAVES_LR = 0x10,
-  SAVRES_NOINLINE_FPRS_DOESNT_RESTORE_LR = 0x20
-};
-
-/* Determine the strategy for savings/restoring registers.  */
-
-static int
-rs6000_savres_strategy (rs6000_stack_t *info, bool savep,
-			int using_static_chain_p, int sibcall)
-{
-  bool using_multiple_p;
-  bool common;
-  bool savres_fprs_inline;
-  bool savres_gprs_inline;
-  bool noclobber_global_gprs
-    = no_global_regs_above (info->first_gp_reg_save, /*gpr=*/true);
-  int strategy;
-
-  using_multiple_p = (TARGET_MULTIPLE && ! TARGET_POWERPC64
-		      && (!TARGET_SPE_ABI
-			  || info->spe_64bit_regs_used == 0)
-		      && info->first_gp_reg_save < 31
-		      && noclobber_global_gprs);
-  /* Don't bother to try to save things out-of-line if r11 is occupied
-     by the static chain.  It would require too much fiddling and the
-     static chain is rarely used anyway.  */
-  common = (using_static_chain_p
-	    || sibcall
-	    || crtl->calls_eh_return
-	    || !info->lr_save_p
-	    || cfun->machine->ra_need_lr
-	    || info->total_size > 32767);
-  savres_fprs_inline = (common
-			|| info->first_fp_reg_save == 64
-			|| !no_global_regs_above (info->first_fp_reg_save,
-						  /*gpr=*/false)
-			/* The out-of-line FP routines use
-			   double-precision stores; we can't use those
-			   routines if we don't have such stores.  */
-			|| (TARGET_HARD_FLOAT && !TARGET_DOUBLE_FLOAT)
-			|| FP_SAVE_INLINE (info->first_fp_reg_save));
-  savres_gprs_inline = (common
-			/* Saving CR interferes with the exit routines
-			   used on the SPE, so just punt here.  */
-			|| (!savep
-			    && TARGET_SPE_ABI
-			    && info->spe_64bit_regs_used != 0
-			    && info->cr_save_p != 0)
-			|| info->first_gp_reg_save == 32
-			|| !noclobber_global_gprs
-			|| GP_SAVE_INLINE (info->first_gp_reg_save));
-
-  if (savep)
-    /* If we are going to use store multiple, then don't even bother
-     with the out-of-line routines, since the store-multiple instruction
-     will always be smaller.  */
-    savres_gprs_inline = savres_gprs_inline || using_multiple_p;
-  else
-    {
-      /* The situation is more complicated with load multiple.  We'd
-         prefer to use the out-of-line routines for restores, since the
-         "exit" out-of-line routines can handle the restore of LR and
-         the frame teardown.  But we can only use the out-of-line
-         routines if we know that we've used store multiple or
-         out-of-line routines in the prologue, i.e. if we've saved all
-         the registers from first_gp_reg_save.  Otherwise, we risk
-         loading garbage from the stack.  Furthermore, we can only use
-         the "exit" out-of-line gpr restore if we haven't saved any
-         fprs.  */
-      bool saved_all = !savres_gprs_inline || using_multiple_p;
-
-      if (saved_all && info->first_fp_reg_save != 64)
-	/* We can't use the exit routine; use load multiple if it's
-	   available.  */
-	savres_gprs_inline = savres_gprs_inline || using_multiple_p;
-    }
-
-  strategy = (using_multiple_p
-	      | (savres_fprs_inline << 1)
-	      | (savres_gprs_inline << 2));
-#ifdef POWERPC_LINUX
-  if (TARGET_64BIT)
-    {
-      if (!savres_fprs_inline)
-	strategy |= SAVRES_NOINLINE_FPRS_SAVES_LR;
-      else if (!savres_gprs_inline && info->first_fp_reg_save == 64)
-	strategy |= SAVRES_NOINLINE_GPRS_SAVES_LR;
-    }
-#else
-  if (TARGET_AIX && !savres_fprs_inline)
-    strategy |= SAVRES_NOINLINE_FPRS_DOESNT_RESTORE_LR;
-#endif
-  return strategy;
 }
 
 /* Emit function prologue as insns.  */
@@ -19847,12 +19929,10 @@ rs6000_emit_prologue (void)
       reg_size = 8;
     }
 
-  strategy = rs6000_savres_strategy (info, /*savep=*/true,
-				     /*static_chain_p=*/using_static_chain_p,
-				     /*sibcall=*/0);
+  strategy = info->savres_strategy;
   using_store_multiple = strategy & SAVRES_MULTIPLE;
-  saving_FPRs_inline = strategy & SAVRES_INLINE_FPRS;
-  saving_GPRs_inline = strategy & SAVRES_INLINE_GPRS;
+  saving_FPRs_inline = strategy & SAVE_INLINE_FPRS;
+  saving_GPRs_inline = strategy & SAVE_INLINE_GPRS;
 
   /* For V.4, update stack before we do any saving and set back pointer.  */
   if (! WORLD_SAVE_P (info)
@@ -20022,8 +20102,8 @@ rs6000_emit_prologue (void)
 			     gen_rtx_REG (Pmode, LR_REGNO));
       RTX_FRAME_RELATED_P (insn) = 1;
 
-      if (!(strategy & (SAVRES_NOINLINE_GPRS_SAVES_LR
-			| SAVRES_NOINLINE_FPRS_SAVES_LR)))
+      if (!(strategy & (SAVE_NOINLINE_GPRS_SAVES_LR
+			| SAVE_NOINLINE_FPRS_SAVES_LR)))
 	{
 	  addr = gen_rtx_PLUS (Pmode, frame_reg_rtx,
 			       GEN_INT (info->lr_save_offset + sp_offset));
@@ -20083,7 +20163,7 @@ rs6000_emit_prologue (void)
 				    DFmode,
 				    /*savep=*/true, /*gpr=*/false,
 				    /*lr=*/(strategy
-					    & SAVRES_NOINLINE_FPRS_SAVES_LR)
+					    & SAVE_NOINLINE_FPRS_SAVES_LR)
 					   != 0);
       insn = emit_insn (par);
       rs6000_frame_related (insn, frame_ptr_rtx, info->total_size,
@@ -20210,7 +20290,7 @@ rs6000_emit_prologue (void)
 				    reg_mode,
 				    /*savep=*/true, /*gpr=*/true,
 				    /*lr=*/(strategy
-					    & SAVRES_NOINLINE_GPRS_SAVES_LR)
+					    & SAVE_NOINLINE_GPRS_SAVES_LR)
 					   != 0);
       insn = emit_insn (par);
       rs6000_frame_related (insn, frame_ptr_rtx, info->total_size,
@@ -20518,19 +20598,23 @@ rs6000_output_function_prologue (FILE *file,
 
   /* Write .extern for any function we will call to save and restore
      fp values.  */
-  if (info->first_fp_reg_save < 64
-      && !FP_SAVE_INLINE (info->first_fp_reg_save))
+  if (info->first_fp_reg_save < 64)
     {
       char *name;
       int regno = info->first_fp_reg_save - 32;
 
-      name = rs6000_savres_routine_name (info, regno, /*savep=*/true,
-					 /*gpr=*/false, /*lr=*/false);
-      fprintf (file, "\t.extern %s\n", name);
-
-      name = rs6000_savres_routine_name (info, regno, /*savep=*/false,
-					 /*gpr=*/false, /*lr=*/true);
-      fprintf (file, "\t.extern %s\n", name);
+      if ((info->savres_strategy & SAVE_INLINE_FPRS) == 0)
+	{
+	  name = rs6000_savres_routine_name (info, regno, /*savep=*/true,
+					     /*gpr=*/false, /*lr=*/false);
+	  fprintf (file, "\t.extern %s\n", name);
+	}
+      if ((info->savres_strategy & REST_INLINE_FPRS) == 0)
+	{
+	  name = rs6000_savres_routine_name (info, regno, /*savep=*/false,
+					     /*gpr=*/false, /*lr=*/true);
+	  fprintf (file, "\t.extern %s\n", name);
+	}
     }
 
   /* Write .extern for AIX common mode routines, if needed.  */
@@ -20676,11 +20760,10 @@ rs6000_emit_epilogue (int sibcall)
       reg_size = 8;
     }
 
-  strategy = rs6000_savres_strategy (info, /*savep=*/false,
-				     /*static_chain_p=*/0, sibcall);
+  strategy = info->savres_strategy;
   using_load_multiple = strategy & SAVRES_MULTIPLE;
-  restoring_FPRs_inline = strategy & SAVRES_INLINE_FPRS;
-  restoring_GPRs_inline = strategy & SAVRES_INLINE_GPRS;
+  restoring_FPRs_inline = sibcall || (strategy & REST_INLINE_FPRS);
+  restoring_GPRs_inline = sibcall || (strategy & REST_INLINE_GPRS);
   using_mtcr_multiple = (rs6000_cpu == PROCESSOR_PPC601
 			 || rs6000_cpu == PROCESSOR_PPC603
 			 || rs6000_cpu == PROCESSOR_PPC750
@@ -20698,7 +20781,7 @@ rs6000_emit_epilogue (int sibcall)
 				     && !frame_pointer_needed));
   restore_lr = (info->lr_save_p
 		&& (restoring_FPRs_inline
-		    || (strategy & SAVRES_NOINLINE_FPRS_DOESNT_RESTORE_LR))
+		    || (strategy & REST_NOINLINE_FPRS_DOESNT_RESTORE_LR))
 		&& (restoring_GPRs_inline
 		    || info->first_fp_reg_save < 64));
 
@@ -21337,7 +21420,7 @@ rs6000_emit_epilogue (int sibcall)
   if (!sibcall)
     {
       rtvec p;
-      bool lr = (strategy & SAVRES_NOINLINE_FPRS_DOESNT_RESTORE_LR) == 0;
+      bool lr = (strategy & REST_NOINLINE_FPRS_DOESNT_RESTORE_LR) == 0;
       if (! restoring_FPRs_inline)
 	p = rtvec_alloc (4 + 64 - info->first_fp_reg_save);
       else

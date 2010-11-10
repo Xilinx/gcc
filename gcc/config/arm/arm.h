@@ -494,10 +494,6 @@ extern int arm_arch_hwdiv;
 #define TARGET_DEFAULT  (MASK_APCS_FRAME)
 #endif
 
-/* The frame pointer register used in gcc has nothing to do with debugging;
-   that is controlled by the APCS-FRAME option.  */
-#define CAN_DEBUG_WITHOUT_FP
-
 /* Nonzero if PIC code requires explicit qualifiers to generate
    PLT and GOT relocs rather than the assembler doing so implicitly.
    Subtargets can override these if required.  */
@@ -559,14 +555,6 @@ extern int arm_arch_hwdiv;
    numbered.
    This is always false, even when in big-endian mode.  */
 #define WORDS_BIG_ENDIAN  (BYTES_BIG_ENDIAN && ! TARGET_LITTLE_WORDS)
-
-/* LIBGCC2_WORDS_BIG_ENDIAN has to be a constant, so we define this based
-   on processor pre-defineds when compiling libgcc2.c.  */
-#if defined(__ARMEB__) && !defined(__ARMWEL__)
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#else
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#endif
 
 /* Define this if most significant word of doubles is the lowest numbered.
    The rules are different based on whether or not we use FPA-format,

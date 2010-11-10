@@ -64,6 +64,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target-def.h"
 #include "ggc.h"
 #include "hard-reg-set.h"
+#include "regs.h"
 #include "reload.h"
 #include "optabs.h"
 #include "recog.h"
@@ -422,6 +423,19 @@ default_scalar_mode_supported_p (enum machine_mode mode)
     default:
       gcc_unreachable ();
     }
+}
+
+/* Make some target macros useable by target-independent code.  */
+bool
+targhook_words_big_endian (void)
+{
+  return !!WORDS_BIG_ENDIAN;
+}
+
+bool
+targhook_float_words_big_endian (void)
+{
+  return !!FLOAT_WORDS_BIG_ENDIAN;
 }
 
 /* True if the target supports decimal floating point.  */
@@ -1332,5 +1346,19 @@ sjlj_except_unwind_info (void)
 {
   return UI_SJLJ;
 }
+
+/* To be used by targets where reg_raw_mode doesn't return the right
+   mode for registers used in apply_builtin_return and apply_builtin_arg.  */
+
+enum machine_mode
+default_get_reg_raw_mode(int regno)
+{
+  return reg_raw_mode[regno];
+}
+
+const struct default_options empty_optimization_table[] =
+  {
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 #include "gt-targhooks.h"

@@ -211,12 +211,10 @@ replace_exp (use_operand_p op_p, tree val)
 void
 propagate_tree_value (tree *op_p, tree val)
 {
-#if defined ENABLE_CHECKING
-  gcc_assert (!(TREE_CODE (val) == SSA_NAME
-                && *op_p
-		&& TREE_CODE (*op_p) == SSA_NAME
-		&& !may_propagate_copy (*op_p, val)));
-#endif
+  gcc_checking_assert (!(TREE_CODE (val) == SSA_NAME
+			 && *op_p
+			 && TREE_CODE (*op_p) == SSA_NAME
+			 && !may_propagate_copy (*op_p, val)));
 
   if (TREE_CODE (val) == SSA_NAME)
     *op_p = val;
@@ -248,7 +246,7 @@ propagate_tree_value_into_stmt (gimple_stmt_iterator *gsi, tree val)
   else if (gimple_code (stmt) == GIMPLE_COND)
     {
       tree lhs = NULL_TREE;
-      tree rhs = fold_convert (TREE_TYPE (val), integer_zero_node);
+      tree rhs = build_zero_cst (TREE_TYPE (val));
       propagate_tree_value (&lhs, val);
       gimple_cond_set_code (stmt, NE_EXPR);
       gimple_cond_set_lhs (stmt, lhs);

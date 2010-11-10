@@ -1977,7 +1977,7 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
   index_type count[GFC_MAX_DIMENSIONS];
   index_type extent[GFC_MAX_DIMENSIONS];
   index_type stride[GFC_MAX_DIMENSIONS];
-  index_type stride0, rank, size, type, n;
+  index_type stride0, rank, size, n;
   size_t tsize;
   char *data;
   bt iotype;
@@ -1985,39 +1985,8 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
   if ((dtp->common.flags & IOPARM_LIBRETURN_MASK) != IOPARM_LIBRETURN_OK)
     return;
 
-  type = GFC_DESCRIPTOR_TYPE (desc);
-  size = GFC_DESCRIPTOR_SIZE (desc);
-
-  /* FIXME: What a kludge: Array descriptors and the IO library use
-     different enums for types.  */
-  switch (type)
-    {
-    case GFC_DTYPE_UNKNOWN:
-      iotype = BT_NULL;  /* Is this correct?  */
-      break;
-    case GFC_DTYPE_INTEGER:
-      iotype = BT_INTEGER;
-      break;
-    case GFC_DTYPE_LOGICAL:
-      iotype = BT_LOGICAL;
-      break;
-    case GFC_DTYPE_REAL:
-      iotype = BT_REAL;
-      break;
-    case GFC_DTYPE_COMPLEX:
-      iotype = BT_COMPLEX;
-      break;
-    case GFC_DTYPE_CHARACTER:
-      iotype = BT_CHARACTER;
-      size = charlen;
-      break;
-    case GFC_DTYPE_DERIVED:
-      internal_error (&dtp->common,
-		"Derived type I/O should have been handled via the frontend.");
-      break;
-    default:
-      internal_error (&dtp->common, "transfer_array(): Bad type");
-    }
+  iotype = (bt) GFC_DESCRIPTOR_TYPE (desc);
+  size = iotype == BT_CHARACTER ? charlen : GFC_DESCRIPTOR_SIZE (desc);
 
   rank = GFC_DESCRIPTOR_RANK (desc);
   for (n = 0; n < rank; n++)
@@ -2677,7 +2646,8 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
     }
 
   /* Bugware for badly written mixed C-Fortran I/O.  */
-  flush_if_preconnected(dtp->u.p.current_unit->s);
+  if (!is_internal_unit (dtp))
+    flush_if_preconnected(dtp->u.p.current_unit->s);
 
   dtp->u.p.current_unit->mode = dtp->u.p.mode;
 
@@ -2697,7 +2667,10 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
       else
 	{
 	  if ((cf & IOPARM_DT_LIST_FORMAT) != 0)
-	    dtp->u.p.transfer = list_formatted_read;
+	    {
+	        dtp->u.p.last_char = EOF - 1;
+		dtp->u.p.transfer = list_formatted_read;
+	    }
 	  else
 	    dtp->u.p.transfer = formatted_transfer;
 	}
@@ -3393,7 +3366,6 @@ next_record (st_parameter_dt *dtp, int done)
 static void
 finalize_transfer (st_parameter_dt *dtp)
 {
-  jmp_buf eof_jump;
   GFC_INTEGER_4 cf = dtp->common.flags;
 
   if ((dtp->common.flags & IOPARM_DT_HAS_SIZE) != 0)
@@ -3424,13 +3396,6 @@ finalize_transfer (st_parameter_dt *dtp)
   dtp->u.p.transfer = NULL;
   if (dtp->u.p.current_unit == NULL)
     return;
-
-  dtp->u.p.eof_jump = &eof_jump;
-  if (setjmp (eof_jump))
-    {
-      generate_error (&dtp->common, LIBERROR_END, NULL);
-      return;
-    }
 
   if ((cf & IOPARM_DT_LIST_FORMAT) != 0 && dtp->u.p.mode == READING)
     {
