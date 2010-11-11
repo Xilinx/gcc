@@ -2004,7 +2004,21 @@ build_tm_store (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 
   simple_type = TREE_VALUE (TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (fn))));
 
-  if (!useless_type_conversion_p (simple_type, type))
+  if (TREE_CODE (rhs) == CONSTRUCTOR)
+    {
+      /* Handle the easy initialization to zero.  */
+      if (CONSTRUCTOR_ELTS (rhs) == 0)
+	rhs = build_int_cst (type, 0);
+      else
+	{
+	  /* ...otherwise punt to the caller and probably use
+	    BUILT_IN_TM_MEMMOVE, because we can't wrap a
+	    VIEW_CONVERT_EXPR around a CONSTRUCTOR (below) and produce
+	    valid gimple.  */
+	  return NULL;
+	}
+    }
+  else if (!useless_type_conversion_p (simple_type, type))
     {
       gimple g;
       tree temp;

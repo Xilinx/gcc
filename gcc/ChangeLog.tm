@@ -1,3 +1,7 @@
+2010-11-11  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (build_tm_store): Handle constructors.
+
 2010-11-03  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR/45985
