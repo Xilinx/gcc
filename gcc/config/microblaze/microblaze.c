@@ -451,6 +451,12 @@ microblaze_tls_referenced_p (rtx x)
   return for_each_rtx (&x, microblaze_tls_operand_p_1, NULL);
 }
 
+bool
+microblaze_cannot_force_const_mem (rtx x)
+{
+	return microblaze_tls_referenced_p(x);
+}
+
 /* Return TRUE if X references a SYMBOL_REF.  */
 int
 symbol_mentioned_p (rtx x)
@@ -1427,16 +1433,11 @@ microblaze_address_cost (rtx addr, bool speed ATTRIBUTE_UNUSED)
 
 int legitimate_pic_operand_p (rtx x)
 {
-
-#if 0
-  /* REVISIT: Is this check required ? gcc already knows this is a TLS 
-     variable */
-   if (microblaze_tls_referenced_p(x) )
-      return 0;
-#endif
-
   if (flag_pic == 2 && (symbol_mentioned_p(x) || label_mentioned_p(x) ))
     return 0;
+
+  if ( microblaze_tls_referenced_p(x) )
+	return 0;
 
   return 1;
 }
@@ -1444,6 +1445,9 @@ int legitimate_pic_operand_p (rtx x)
 int
 legitimate_const_operand_p (rtx x)
 {
+
+  if (microblaze_cannot_force_const_mem(x))
+	return 0;
 
   if (GET_CODE (x) == CONST_DOUBLE)
     {
@@ -3500,6 +3504,9 @@ microblaze_adjust_cost (rtx insn ATTRIBUTE_UNUSED, rtx link,
 
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS                microblaze_rtx_costs
+
+#undef TARGET_CANNOT_FORCE_CONST_MEM
+#define TARGET_CANNOT_FORCE_CONST_MEM   microblaze_cannot_force_const_mem
 
 #undef TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST             microblaze_address_cost
