@@ -1,3 +1,18 @@
+2010-11-17  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR/46269
+	* gimple-pretty-print.c (dump_gimple_call): Add clone attribute to
+	dump.
+	* trans-mem.c (tm_region_init_1): Proceed even if there are not
+	exit_blocks.
+	(gate_tm_init): Initialize irr_blocks.
+	(execute_tm_mark): Stop at irrevocable blocks for clones too.
+	(ipa_tm_note_irrevocable): Do not mark callers as irrevocable if
+	they are marked safe or pure.
+	(ipa_tm_scan_irr_function): Only dump irrevocable blocks if we
+	have them.
+	(ipa_tm_execute): Rework irrevocable marking logic.
+
 2010-11-11  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (build_tm_store): Handle constructors.

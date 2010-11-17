@@ -1732,7 +1732,8 @@ tm_region_init_1 (struct tm_region *region, basic_block bb)
   gimple_stmt_iterator gsi;
   gimple g;
 
-  if (!region || !region->exit_blocks)
+  if (!region
+      || (!region->irr_blocks && !region->exit_blocks))
     return region;
 
   /* Check to see if this is the end of a region by seeing if it 
@@ -1746,8 +1747,9 @@ tm_region_init_1 (struct tm_region *region, basic_block bb)
 	  tree fn = gimple_call_fndecl (g);
 	  if (fn && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL)
 	    {
-	      if (DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT
-		  || DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT_EH)
+	      if ((DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT
+		   || DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT_EH)
+		  && region->exit_blocks)
 		{
 		  bitmap_set_bit (region->exit_blocks, bb->index);
 		  region = region->outer;
@@ -1831,6 +1833,10 @@ gate_tm_init (void)
 	obstack_alloc (&tm_obstack.obstack, sizeof (struct tm_region));
       memset (region, 0, sizeof (*region));
       region->entry_block = single_succ (ENTRY_BLOCK_PTR);
+      /* For a clone, the entire function is the region.  But even if
+	 we don't need to record any exit blocks, we may need to
+	 record irrevocable blocks.  */
+      region->irr_blocks = BITMAP_ALLOC (&tm_obstack);
 
       tm_region_init (region);
     }
@@ -2285,6 +2291,7 @@ execute_tm_mark (void)
   for (region = all_tm_regions; region ; region = region->next)
     {
       tm_log_init ();
+      /* If we have a transaction...  */
       if (region->exit_blocks)
 	{
 	  unsigned int subcode
@@ -2307,9 +2314,17 @@ execute_tm_mark (void)
 	  VEC_free (basic_block, heap, queue);
 	}
       else
+	/* ...otherwise, we're a clone and the entire function is the
+	   region.  */
 	{
 	  FOR_EACH_BB (bb)
-	    expand_block_tm (region, bb);
+	    {
+	      /* Stop at irrevocable blocks.  */
+	      if (region->irr_blocks
+		  && bitmap_bit_p (region->irr_blocks, bb->index))
+		break;
+	      expand_block_tm (region, bb);
+	    }
 	}
       tm_log_emit ();
     }
@@ -3452,6 +3467,11 @@ ipa_tm_note_irrevocable (struct cgraph_node *node,
       /* Don't examine recursive calls.  */
       if (e->caller == node)
 	continue;
+      /* Even if we think we can go irrevocable, believe the user
+	 above all.  */
+      if (is_tm_safe (e->caller->decl)
+	  || is_tm_pure (e->caller->decl))
+	continue;
       if (gimple_call_in_transaction_p (e->call_stmt))
 	d->want_irr_scan_normal = true;
       maybe_push_queue (e->caller, worklist_p, &d->in_worklist);
@@ -3714,20 +3734,20 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
 	d->irrevocable_blocks_clone = new_irr;
       else
 	d->irrevocable_blocks_normal = new_irr;
+
+      if (dump_file)
+	{
+	  const char *dname;
+	  bitmap_iterator bmi;
+	  unsigned i;
+
+	  dname = lang_hooks.decl_printable_name (current_function_decl, 2);
+	  EXECUTE_IF_SET_IN_BITMAP (new_irr, 0, i, bmi)
+	    fprintf (dump_file, "%s: bb %d goes irrevocable\n", dname, i);
+	}
     }
   else
     BITMAP_FREE (new_irr);
-
-  if (dump_file)
-    {
-      const char *dname;
-      bitmap_iterator bmi;
-      unsigned i;
-
-      dname = lang_hooks.decl_printable_name (current_function_decl, 2);
-      EXECUTE_IF_SET_IN_BITMAP (new_irr, 0, i, bmi)
-	fprintf (dump_file, "%s: bb %d goes irrevocable\n", dname, i);
-    }
 
   VEC_free (basic_block, heap, queue);
   pop_cfun ();
@@ -4394,12 +4414,19 @@ ipa_tm_execute (void)
 
       /* Some callees cannot be arbitrarily cloned.  These will always be
 	 irrevocable.  Mark these now, so that we need not scan them.  */
-      if (is_tm_irrevocable (node->decl)
-	  || (a >= AVAIL_OVERWRITABLE
-	      && !tree_versionable_function_p (node->decl)))
+      if (is_tm_irrevocable (node->decl))
 	ipa_tm_note_irrevocable (node, &worklist);
-      else if (a >= AVAIL_OVERWRITABLE && !d->is_irrevocable)
-	ipa_tm_scan_calls_clone (node, &tm_callees);
+      else if (a <= AVAIL_NOT_AVAILABLE
+	       && !is_tm_safe (node->decl)
+	       && !is_tm_pure (node->decl))
+	ipa_tm_note_irrevocable (node, &worklist);
+      else if (a >= AVAIL_OVERWRITABLE)
+	{
+	  if (!tree_versionable_function_p (node->decl))
+	    ipa_tm_note_irrevocable (node, &worklist);
+	  else if (!d->is_irrevocable)
+	    ipa_tm_scan_calls_clone (node, &tm_callees);
+	}
     }
 
   /* Iterate scans until no more work to be done.  Prefer not to use
