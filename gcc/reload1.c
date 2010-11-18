@@ -453,6 +453,10 @@ static bool gen_reload_chain_without_interm_reg_p (int, int);
 static int reloads_conflict (int, int);
 static rtx gen_reload (rtx, rtx, int, enum reload_type);
 static rtx emit_insn_if_valid_for_reload (rtx);
+
+/* Return whether or not X is a REG or (SUBREG (REG)).  */
+#define REG_OR_SUBREG_P(X) \
+  (REG_P (X) || (GET_CODE (X) == SUBREG && REG_P (SUBREG_REG (X))))
 
 /* Initialize the reload pass.  This is called at the beginning of compilation
    and may be called again if the target is reinitialized.  */
@@ -1037,6 +1041,11 @@ reload (rtx first, int global)
 	}
     }
 
+  df_finish_pass (true);
+  df_scan_alloc (NULL);
+  df_scan_blocks ();
+  df_analyze ();
+
   /* Use the reload registers where necessary
      by generating move instructions to move the must-be-register
      values into or out of the reload registers.  */
@@ -1052,6 +1061,8 @@ reload (rtx first, int global)
 
       gcc_assert (verify_initial_elim_offsets ());
     }
+
+  df_finish_pass (true);
 
   /* If we were able to eliminate the frame pointer, show that it is no
      longer live at the start of any basic block.  If it ls live by
@@ -6186,6 +6197,55 @@ set_reload_reg (int i, int r)
   return 0;
 }
 
+/* If OBJ is or references a reg in SPILL_REG_SEARCH, then add the register
+   to MY_SPILL_REG_ORDER (filling in from the end of the array since these
+   are less desirable spill registers).  */
+static void
+mark_spill_regs (rtx obj, HARD_REG_SET *spill_reg_search,
+		 int *my_spill_reg_order, int *count)
+{
+  int regno;
+
+  if (GET_CODE (obj) == SUBREG)
+    obj = SUBREG_REG (obj);
+
+  if (GET_CODE (obj) != REG)
+    return;
+
+  /* If this is a pseudo, see if the pseudo was allocated to a spill reg
+     or if the pseudo was recently reloaded into a spill reg.  */
+  if (REGNO (obj) >= FIRST_PSEUDO_REGISTER)
+    {
+      regno = reg_renumber [REGNO (obj)];
+      if (regno == -1 && reg_last_reload_reg[REGNO (obj)])
+	{
+	  /* OBJ was reloaded into a hard reg, now see if the hard
+ 	     reg still contains OBJ.  If true, then we mark that we
+	     found the hard reg (spill reg).  If not, then we don't
+	     care.  */
+	  rtx tmp = reg_last_reload_reg [REGNO (obj)];
+          if (reg_reloaded_contents[REGNO (tmp)] == (int)REGNO (obj))
+	    regno = REGNO (tmp);
+	  else
+	    regno = -1;
+	}
+    }
+  else
+    regno = REGNO (obj);
+
+  if (regno == -1)
+    return;
+
+  if (TEST_HARD_REG_BIT (*spill_reg_search, regno))
+    {
+      /* We start filling in from the end of the array since the
+	 first register we find is the worst and each we find is
+	 progressively better.  */
+      my_spill_reg_order[n_spills - (*count)++ - 1] = regno;
+      CLEAR_HARD_REG_BIT (*spill_reg_search, regno);
+    }
+}
+
 /* Find a spill register to use as a reload register for reload R.
    LAST_RELOAD is nonzero if this is the last reload for the insn being
    processed.
@@ -6216,6 +6276,101 @@ allocate_reload_reg (struct insn_chain *chain ATTRIBUTE_UNUSED, int r,
 
   int force_group = rld[r].nregs > 1 && ! last_reload;
 
+  /* The set of spill registers we have not yet seen while scaning
+     insns.  */
+  HARD_REG_SET spill_reg_search;
+
+  /* Preferred ordering of hard regs for spilling in this insn.
+ 
+     In the past we had a static order for selecting PILL_REGS and
+     we just used spill regs in a round-robin fashion (to improve
+     the possibility that a reload could be inherited).
+
+     A much better method is to prefer the spill reg which is unused
+     for the longest period of time after the insn requiring reloads,
+     with some exceptions.  This exposes more inheritance opportunities
+     and makes inheritance more stable/predictable (less dependent on
+     the last register which was used as a spill).  */
+  int insn_spill_reg_order[FIRST_PSEUDO_REGISTER];
+  int spill_regs_found = 0;
+  rtx insn;
+
+
+  memset (insn_spill_reg_order, -1, FIRST_PSEUDO_REGISTER * sizeof (int));
+  COPY_HARD_REG_SET (spill_reg_search, used_spill_regs);
+
+  /* Search forward from the insn needing reloads for all the registers
+     in SPILL_REG_SEARCH.  Stop when we either find all the spill regs
+     or we hit the end of the basic block containing the insn needing
+     reloads (chain->insn).  */
+  for (insn = chain->insn, spill_regs_found = 0;
+       insn && BLOCK_FOR_INSN (insn) == BLOCK_FOR_INSN (chain->insn);
+       insn = NEXT_INSN (insn))
+    {
+      df_ref *def_rec, *use_rec;
+      rtx set;
+
+      if (!NONDEBUG_INSN_P (insn))
+	continue;
+
+      /* If this is a reg-reg copy of the in-reload or out-reload
+         register, then ignore any hard regs referenced by the
+	 other operand as using those regs for the reload reg
+         will often allow the copy to be eliminated.  Ideally we'd
+         put those spill regs at the start of our list.  */
+      set = single_set (insn);
+      if (set
+	  && REG_OR_SUBREG_P (SET_SRC (set))
+	  && REG_OR_SUBREG_P (SET_DEST (set))
+	  && ((rld[r].in
+	       && REG_OR_SUBREG_P (rld[r].in)
+	       && reg_overlap_mentioned_p (rld[r].in, SET_DEST (set)))
+	      || (rld[r].out
+		  && REG_OR_SUBREG_P (rld[r].out)
+		  && reg_overlap_mentioned_p (rld[r].out, SET_SRC (set)))))
+	continue;
+
+      /* Mark any spill regs that are used or set by INSN.  */
+      for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
+	mark_spill_regs (DF_REF_REG (*def_rec), &spill_reg_search,
+			 insn_spill_reg_order, &spill_regs_found);
+
+      for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
+	mark_spill_regs (DF_REF_REG (*use_rec), &spill_reg_search,
+			 insn_spill_reg_order, &spill_regs_found);
+
+      /* If we found all the spill regs, then we can stop scanning insns.  */
+      if (hard_reg_set_empty_p (spill_reg_search))
+	break;
+    }
+
+  /* If we didn't find all the spill regs, then use the old round robin
+     technique for the leftovers.  The leftovers are actually better
+     spill regs than the ones found during the scan, so fill
+     INSN_SPILL_REG_ORDER from the start.  */
+  if (!hard_reg_set_empty_p (spill_reg_search))
+    {
+      int i = last_spill_reg;
+      for (spill_regs_found = 0, count = 0; count < n_spills; count++)
+        {
+	  int regnum;
+
+	  i++;
+	  if (i >= n_spills)
+	    i -= n_spills;
+	  regnum = spill_regs[i];
+	  if (TEST_HARD_REG_BIT (spill_reg_search, regnum))
+	    {
+	      insn_spill_reg_order[spill_regs_found++] = regnum;
+	      CLEAR_HARD_REG_BIT (spill_reg_search, regnum);
+	    }
+        }
+    }
+
+  /* If there's anything left in SPILL_REG_SEARCH, something has gone
+     horribly wrong.  Abort now to make debugging easier.  */
+  gcc_assert (hard_reg_set_empty_p (spill_reg_search));
+
   /* If we want a single register and haven't yet found one,
      take any reg in the right class and not in use.
      If we want a consecutive group, here is where we look for it.
@@ -6244,10 +6399,7 @@ allocate_reload_reg (struct insn_chain *chain ATTRIBUTE_UNUSED, int r,
 	  int rclass = (int) rld[r].rclass;
 	  int regnum;
 
-	  i++;
-	  if (i >= n_spills)
-	    i -= n_spills;
-	  regnum = spill_regs[i];
+	  regnum = insn_spill_reg_order[count];
 
 	  if ((reload_reg_free_p (regnum, rld[r].opnum,
 				  rld[r].when_needed)
@@ -6315,6 +6467,11 @@ allocate_reload_reg (struct insn_chain *chain ATTRIBUTE_UNUSED, int r,
   /* We should have found a spill register by now.  */
   if (count >= n_spills)
     return 0;
+
+  /* Now map back from a hard regno, to the index in SPILL_REG_RTX.  */
+  for (i = 0; i < n_spills; i++)
+    if (insn_spill_reg_order[count]  == spill_regs[i])
+      break;
 
   /* I is the index in SPILL_REG_RTX of the reload register we are to
      allocate.  Get an rtx for it and find its register number.  */

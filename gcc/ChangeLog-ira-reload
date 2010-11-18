@@ -1,3 +1,11 @@
+2010-11-18  Jeff Law <law@redhat.com>
+
+	* reload1.c (REG_OR_SUBREG_P): Define.
+	(reload): Update DF information just prior to emitting reloads.
+	(mark_spill_regs): New.
+	(allocate_reload_reg): Scan forward from the insn needing reloads
+	to determine desirability of each spill reg.
+
 2010-08-04  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (create_new_allocno_for_spilling): Set the new allocno's
