@@ -445,7 +445,7 @@ df_scan_start_dump (FILE *file ATTRIBUTE_UNUSED)
 	  }
 	if (DF_REG_EQ_USE_COUNT (i))
 	  {
-	    fprintf (file, "%s%dd", sep, DF_REG_EQ_USE_COUNT (i));
+	    fprintf (file, "%s%de", sep, DF_REG_EQ_USE_COUNT (i));
 	    ecount += DF_REG_EQ_USE_COUNT (i);
 	  }
 	fprintf (file, "} ");
@@ -461,8 +461,10 @@ df_scan_start_dump (FILE *file ATTRIBUTE_UNUSED)
 	    icount++;
 	}
 
-  fprintf (file, "\n;;    total ref usage %d{%dd,%du,%de} in %d{%d regular + %d call} insns.\n",
-	   dcount + ucount + ecount, dcount, ucount, ecount, icount + ccount, icount, ccount);
+  fprintf (file, "\n;;    total ref usage %d{%dd,%du,%de}"
+		 " in %d{%d regular + %d call} insns.\n",
+		 dcount + ucount + ecount, dcount, ucount, ecount,
+		 icount + ccount, icount, ccount);
 }
 
 /* Dump the bb_info for a given basic block. */
@@ -1261,9 +1263,7 @@ df_insn_rescan (rtx insn)
     }
 
   df_refs_add_to_chains (&collection_rec, bb, insn);
-  if (DEBUG_INSN_P (insn))
-    df_set_bb_dirty_nonlr (bb);
-  else
+  if (!DEBUG_INSN_P (insn))
     df_set_bb_dirty (bb);
 
   VEC_free (df_ref, stack, collection_rec.def_vec);

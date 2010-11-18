@@ -1002,7 +1002,8 @@ pdp11_assemble_integer (rtx x, unsigned int size, int aligned_p)
       {
       case 1:
 	fprintf (asm_out_file, "\t.byte\t");
-	output_addr_const_pdp11 (asm_out_file, x);
+	output_addr_const_pdp11 (asm_out_file, GEN_INT (INTVAL (x) & 0xff));
+;
 	fprintf (asm_out_file, " /* char */\n");
 	return true;
 
@@ -1739,9 +1740,7 @@ output_addr_const_pdp11 (FILE *file, rtx x)
       break;
 
     case CONST_INT:
-      /* Should we check for constants which are too big?  Maybe cutting
-	 them off to 16 bits is OK?  */
-      fprintf (file, "%#ho", (unsigned short) INTVAL (x));
+      fprintf (file, "%#o", (int) INTVAL (x) & 0xffff);
       break;
 
     case CONST:

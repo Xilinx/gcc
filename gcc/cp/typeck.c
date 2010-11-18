@@ -5233,6 +5233,13 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 
 	inc = cp_convert (argtype, inc);
 
+	/* If 'arg' is an Objective-C PROPERTY_REF expression, then we
+	   need to ask Objective-C to build the increment or decrement
+	   expression for it.  */
+	if (objc_is_property_ref (arg))
+	  return objc_build_incr_expr_for_property_ref (input_location, code, 
+							arg, inc);	
+
 	/* Complain about anything else that is not a true lvalue.  */
 	if (!lvalue_or_else (arg, ((code == PREINCREMENT_EXPR
 				    || code == POSTINCREMENT_EXPR)
@@ -5884,7 +5891,8 @@ build_static_cast_1 (tree type, tree expr, bool c_cast_p,
       base = lookup_base (TREE_TYPE (type), TREE_TYPE (intype),
 			  c_cast_p ? ba_unique : ba_check,
 			  NULL);
-      return build_base_path (MINUS_EXPR, expr, base, /*nonnull=*/false);
+      expr = build_base_path (MINUS_EXPR, expr, base, /*nonnull=*/false);
+      return cp_fold_convert(type, expr);
     }
 
   if ((TYPE_PTRMEM_P (type) && TYPE_PTRMEM_P (intype))

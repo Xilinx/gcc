@@ -420,6 +420,7 @@ static bool sparc_tls_referenced_p (rtx);
 static rtx sparc_legitimize_tls_address (rtx);
 static rtx sparc_legitimize_pic_address (rtx, rtx);
 static rtx sparc_legitimize_address (rtx, rtx, enum machine_mode);
+static rtx sparc_delegitimize_address (rtx);
 static bool sparc_mode_dependent_address_p (const_rtx);
 static bool sparc_pass_by_reference (CUMULATIVE_ARGS *,
 				     enum machine_mode, const_tree, bool);
@@ -431,6 +432,8 @@ static rtx sparc_function_arg (CUMULATIVE_ARGS *,
 			       enum machine_mode, const_tree, bool);
 static rtx sparc_function_incoming_arg (CUMULATIVE_ARGS *,
 					enum machine_mode, const_tree, bool);
+static unsigned int sparc_function_arg_boundary (enum machine_mode,
+						 const_tree);
 static int sparc_arg_partial_bytes (CUMULATIVE_ARGS *,
 				    enum machine_mode, tree, bool);
 static void sparc_dwarf_handle_frame_unspec (const char *, rtx, int);
@@ -524,6 +527,8 @@ static const struct default_options sparc_option_optimization_table[] =
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS sparc_legitimize_address
+#undef TARGET_DELEGITIMIZE_ADDRESS
+#define TARGET_DELEGITIMIZE_ADDRESS sparc_delegitimize_address
 #undef TARGET_MODE_DEPENDENT_ADDRESS_P
 #define TARGET_MODE_DEPENDENT_ADDRESS_P sparc_mode_dependent_address_p
 
@@ -576,6 +581,8 @@ static const struct default_options sparc_option_optimization_table[] =
 #define TARGET_FUNCTION_ARG sparc_function_arg
 #undef TARGET_FUNCTION_INCOMING_ARG
 #define TARGET_FUNCTION_INCOMING_ARG sparc_function_incoming_arg
+#undef TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY sparc_function_arg_boundary
 
 #undef TARGET_EXPAND_BUILTIN_SAVEREGS
 #define TARGET_EXPAND_BUILTIN_SAVEREGS sparc_builtin_saveregs
@@ -3568,6 +3575,24 @@ sparc_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
   return x;
 }
 
+/* Delegitimize an address that was legitimized by the above function.  */
+
+static rtx
+sparc_delegitimize_address (rtx x)
+{
+  x = delegitimize_mem_from_attrs (x);
+
+  if (GET_CODE (x) == LO_SUM
+      && GET_CODE (XEXP (x, 1)) == UNSPEC
+      && XINT (XEXP (x, 1), 1) == UNSPEC_TLSLE)
+    {
+      x = XVECEXP (XEXP (x, 1), 0, 0);
+      gcc_assert (GET_CODE (x) == SYMBOL_REF);
+    }
+
+  return x;
+}
+
 /* SPARC implementation of LEGITIMIZE_RELOAD_ADDRESS.  Returns a value to
    replace the input X, or the original X if no replacement is called for.
    The output parameter *WIN is 1 if the calling macro should goto WIN,
@@ -5726,6 +5751,18 @@ sparc_function_incoming_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 			     const_tree type, bool named)
 {
   return sparc_function_arg_1 (cum, mode, type, named, true);
+}
+
+/* For sparc64, objects requiring 16 byte alignment are passed that way.  */
+
+static unsigned int
+sparc_function_arg_boundary (enum machine_mode mode, const_tree type)
+{
+  return ((TARGET_ARCH64
+	   && (GET_MODE_ALIGNMENT (mode) == 128
+	       || (type && TYPE_ALIGN (type) == 128)))
+	  ? 128
+	  : PARM_BOUNDARY);
 }
 
 /* For an arg passed partly in registers and partly in memory,

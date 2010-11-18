@@ -24,6 +24,11 @@ along with GCC; see the file COPYING3.   If not see
 #ifndef MELT_INCLUDED_
 #define MELT_INCLUDED_
 
+/* In the generated gtype-desc.c, file diagnostic.h is not included,
+   so we declare these functions explicitly! */
+
+extern void error (const char *, ...);
+extern void fatal_error (const char *, ...);
 
 #if __GNUC__ >= 4
 #define MELT_MODULE_VISIBILITY  __attribute__ ((visibility ("hidden")))
@@ -32,6 +37,7 @@ along with GCC; see the file COPYING3.   If not see
 #define MELT_MODULE_VISIBILITY
 #define MELT_PUBLIC_VISIBILITY
 #endif
+
 
 /* we need PPL because some static inline functions use it below
    (e.g. melt_raw_new_ppl_empty_constraint_system). This is notably

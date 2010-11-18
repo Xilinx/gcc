@@ -2225,6 +2225,8 @@ static bool ext_80387_constants_init = 0;
 static struct machine_function * ix86_init_machine_status (void);
 static rtx ix86_function_value (const_tree, const_tree, bool);
 static bool ix86_function_value_regno_p (const unsigned int);
+static unsigned int ix86_function_arg_boundary (enum machine_mode,
+						const_tree);
 static rtx ix86_static_chain (const_tree, bool);
 static int ix86_function_regparm (const_tree, const_tree);
 static void ix86_compute_frame_layout (struct ix86_frame *);
@@ -2325,6 +2327,8 @@ static int ix86_isa_flags_explicit;
 #define OPTION_MASK_ISA_ABM_SET \
   (OPTION_MASK_ISA_ABM | OPTION_MASK_ISA_POPCNT)
 
+#define OPTION_MASK_ISA_BMI_SET OPTION_MASK_ISA_BMI
+#define OPTION_MASK_ISA_TBM_SET OPTION_MASK_ISA_TBM
 #define OPTION_MASK_ISA_POPCNT_SET OPTION_MASK_ISA_POPCNT
 #define OPTION_MASK_ISA_CX16_SET OPTION_MASK_ISA_CX16
 #define OPTION_MASK_ISA_SAHF_SET OPTION_MASK_ISA_SAHF
@@ -2379,6 +2383,8 @@ static int ix86_isa_flags_explicit;
 #define OPTION_MASK_ISA_AES_UNSET OPTION_MASK_ISA_AES
 #define OPTION_MASK_ISA_PCLMUL_UNSET OPTION_MASK_ISA_PCLMUL
 #define OPTION_MASK_ISA_ABM_UNSET OPTION_MASK_ISA_ABM
+#define OPTION_MASK_ISA_BMI_UNSET OPTION_MASK_ISA_BMI
+#define OPTION_MASK_ISA_TBM_UNSET OPTION_MASK_ISA_TBM
 #define OPTION_MASK_ISA_POPCNT_UNSET OPTION_MASK_ISA_POPCNT
 #define OPTION_MASK_ISA_CX16_UNSET OPTION_MASK_ISA_CX16
 #define OPTION_MASK_ISA_SAHF_UNSET OPTION_MASK_ISA_SAHF
@@ -2681,6 +2687,32 @@ ix86_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED, int value)
 	}
       return true;
 
+    case OPT_mbmi:
+      if (value)
+	{
+	  ix86_isa_flags |= OPTION_MASK_ISA_BMI_SET;
+	  ix86_isa_flags_explicit |= OPTION_MASK_ISA_BMI_SET;
+	}
+      else
+	{
+	  ix86_isa_flags &= ~OPTION_MASK_ISA_BMI_UNSET;
+	  ix86_isa_flags_explicit |= OPTION_MASK_ISA_BMI_UNSET;
+	}
+      return true;
+
+    case OPT_mtbm:
+      if (value)
+	{
+	  ix86_isa_flags |= OPTION_MASK_ISA_TBM_SET;
+	  ix86_isa_flags_explicit |= OPTION_MASK_ISA_TBM_SET;
+	}
+      else
+	{
+	  ix86_isa_flags &= ~OPTION_MASK_ISA_TBM_UNSET;
+	  ix86_isa_flags_explicit |= OPTION_MASK_ISA_TBM_UNSET;
+	}
+      return true;
+
     case OPT_mpopcnt:
       if (value)
 	{
@@ -2849,6 +2881,8 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
     { "-m3dnowa",	OPTION_MASK_ISA_3DNOW_A },
     { "-mmmx",		OPTION_MASK_ISA_MMX },
     { "-mabm",		OPTION_MASK_ISA_ABM },
+    { "-mbmi",		OPTION_MASK_ISA_BMI },
+    { "-mtbm",		OPTION_MASK_ISA_TBM },
     { "-mpopcnt",	OPTION_MASK_ISA_POPCNT },
     { "-mmovbe",	OPTION_MASK_ISA_MOVBE },
     { "-mcrc32",	OPTION_MASK_ISA_CRC32 },
@@ -3104,7 +3138,10 @@ ix86_option_override_internal (bool main_args_p)
       PTA_LWP = 1 << 23,
       PTA_FSGSBASE = 1 << 24,
       PTA_RDRND = 1 << 25,
-      PTA_F16C = 1 << 26
+      PTA_F16C = 1 << 26,
+      PTA_BMI = 1 << 27,
+      PTA_TBM = 1 << 28
+      /* if this reaches 32, need to widen struct pta flags below */
     };
 
   static struct pta
@@ -3261,8 +3298,8 @@ ix86_option_override_internal (bool main_args_p)
         error ("bad value (%s) for %stune=%s %s",
 	       ix86_tune_string, prefix, suffix, sw);
       else if (!strcmp (ix86_tune_string, "x86-64"))
-        warning (OPT_Wdeprecated, "%stune=x86-64%s is deprecated.  Use "
-                 "%stune=k8%s or %stune=generic%s instead as appropriate.",
+        warning (OPT_Wdeprecated, "%stune=x86-64%s is deprecated; use "
+                 "%stune=k8%s or %stune=generic%s instead as appropriate",
                  prefix, suffix, prefix, suffix, prefix, suffix);
     }
   else
@@ -3439,6 +3476,12 @@ ix86_option_override_internal (bool main_args_p)
 	if (processor_alias_table[i].flags & PTA_ABM
 	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_ABM))
 	  ix86_isa_flags |= OPTION_MASK_ISA_ABM;
+	if (processor_alias_table[i].flags & PTA_BMI
+	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_BMI))
+	  ix86_isa_flags |= OPTION_MASK_ISA_BMI;
+	if (processor_alias_table[i].flags & PTA_TBM
+	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_TBM))
+	  ix86_isa_flags |= OPTION_MASK_ISA_TBM;
 	if (processor_alias_table[i].flags & PTA_CX16
 	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_CX16))
 	  ix86_isa_flags |= OPTION_MASK_ISA_CX16;
@@ -3982,13 +4025,14 @@ ix86_option_override_internal (bool main_args_p)
   if (!TARGET_64BIT && flag_pic)
     {
       if (flag_fentry > 0)
-        sorry ("-mfentry isn't supported for 32-bit in combination with -fpic");
+        sorry ("-mfentry isn%'t supported for 32-bit in combination "
+	       "with -fpic");
       flag_fentry = 0;
     }
   else if (TARGET_SEH)
     {
       if (flag_fentry == 0)
-	sorry ("-mno-fentry isn't compatible with SEH");
+	sorry ("-mno-fentry isn%'t compatible with SEH");
       flag_fentry = 1;
     }
   else if (flag_fentry < 0)
@@ -4276,6 +4320,8 @@ ix86_valid_target_attribute_inner_p (tree args, char *p_strings[])
     /* isa options */
     IX86_ATTR_ISA ("3dnow",	OPT_m3dnow),
     IX86_ATTR_ISA ("abm",	OPT_mabm),
+    IX86_ATTR_ISA ("bmi",	OPT_mbmi),
+    IX86_ATTR_ISA ("tbm",	OPT_mtbm),
     IX86_ATTR_ISA ("aes",	OPT_maes),
     IX86_ATTR_ISA ("avx",	OPT_mavx),
     IX86_ATTR_ISA ("mmx",	OPT_mmmx),
@@ -5294,10 +5340,10 @@ ix86_function_sseregparm (const_tree type, const_tree decl, bool warn)
 	  if (warn)
 	    {
 	      if (decl)
-		error ("Calling %qD with attribute sseregparm without "
+		error ("calling %qD with attribute sseregparm without "
 		       "SSE/SSE2 enabled", decl);
 	      else
-		error ("Calling %qT with attribute sseregparm without "
+		error ("calling %qT with attribute sseregparm without "
 		       "SSE/SSE2 enabled", type);
 	    }
 	  return 0;
@@ -5959,7 +6005,7 @@ classify_argument (enum machine_mode mode, const_tree type,
 			    {
 			      warned = true;
 			      inform (input_location,
-				      "The ABI of passing struct with"
+				      "the ABI of passing struct with"
 				      " a flexible array member has"
 				      " changed in GCC 4.4");
 			    }
@@ -6075,7 +6121,7 @@ classify_argument (enum machine_mode mode, const_tree type,
 		{
 		  warned = true;
 		  inform (input_location,
-			  "The ABI of passing union with long double"
+			  "the ABI of passing union with long double"
 			  " has changed in GCC 4.4");
 		}
 	      return 0;
@@ -6190,7 +6236,7 @@ classify_argument (enum machine_mode mode, const_tree type,
 	    {
 	      warned = true;
 	      inform (input_location,
-		      "The ABI of passing structure with complex float"
+		      "the ABI of passing structure with complex float"
 		      " member has changed in GCC 4.4");
 	    }
 	  classes[1] = X86_64_SSESF_CLASS;
@@ -7018,9 +7064,9 @@ ix86_compat_aligned_value_p (const_tree type)
    XXX: This function is obsolete and is only used for checking psABI
    compatibility with previous versions of GCC.  */
 
-static int
+static unsigned int
 ix86_compat_function_arg_boundary (enum machine_mode mode,
-				   const_tree type, int align)
+				   const_tree type, unsigned int align)
 {
   /* In 32bit, only _Decimal128 and __float128 are aligned to their
      natural boundaries.  */
@@ -7105,10 +7151,10 @@ ix86_contains_aligned_value_p (const_tree type)
 /* Gives the alignment boundary, in bits, of an argument with the
    specified mode and type.  */
 
-int
+static unsigned int
 ix86_function_arg_boundary (enum machine_mode mode, const_tree type)
 {
-  int align;
+  unsigned int align;
   if (type)
     {
       /* Since the main variant type is used for call, we convert it to
@@ -7123,7 +7169,7 @@ ix86_function_arg_boundary (enum machine_mode mode, const_tree type)
   else
     {
       static bool warned;
-      int saved_align = align;
+      unsigned int saved_align = align;
 
       if (!TARGET_64BIT)
 	{
@@ -8113,7 +8159,7 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
      alignment is beyond MAX_SUPPORTED_STACK_ALIGNMENT, it will be
      aligned at MAX_SUPPORTED_STACK_ALIGNMENT.  We will match callee
      here with caller.  */
-  arg_boundary = FUNCTION_ARG_BOUNDARY (VOIDmode, type);
+  arg_boundary = ix86_function_arg_boundary (VOIDmode, type);
   if ((unsigned int) arg_boundary > MAX_SUPPORTED_STACK_ALIGNMENT)
     arg_boundary = MAX_SUPPORTED_STACK_ALIGNMENT;
 
@@ -9374,6 +9420,7 @@ pro_epilogue_adjust_stack (rtx dest, rtx src, rtx offset,
 {
   struct machine_function *m = cfun->machine;
   rtx insn;
+  bool add_frame_related_expr = false;
 
   if (! TARGET_64BIT)
     insn = gen_pro_epilogue_adjust_stack_si_add (dest, src, offset);
@@ -9394,7 +9441,7 @@ pro_epilogue_adjust_stack (rtx dest, rtx src, rtx offset,
 	}
       insn = emit_insn (gen_rtx_SET (DImode, tmp, offset));
       if (style < 0)
-	RTX_FRAME_RELATED_P (insn) = 1;
+	add_frame_related_expr = true;
 
       insn = gen_pro_epilogue_adjust_stack_di_add (dest, src, tmp);
     }
@@ -9417,7 +9464,15 @@ pro_epilogue_adjust_stack (rtx dest, rtx src, rtx offset,
       RTX_FRAME_RELATED_P (insn) = 1;
     }
   else if (style < 0)
-    RTX_FRAME_RELATED_P (insn) = 1;
+    {
+      RTX_FRAME_RELATED_P (insn) = 1;
+      if (add_frame_related_expr)
+	{
+	  rtx r = gen_rtx_PLUS (Pmode, src, offset);
+	  r = gen_rtx_SET (VOIDmode, dest, r);
+	  add_reg_note (insn, REG_FRAME_RELATED_EXPR, r);
+	}
+    }
 
   if (dest == stack_pointer_rtx)
     {
@@ -10043,7 +10098,7 @@ ix86_expand_prologue (void)
       /* Check if profiling is active and we shall use profiling before
          prologue variant. If so sorry.  */
       if (crtl->profile && flag_fentry != 0)
-        sorry ("ms_hook_prologue attribute isn't compatible "
+        sorry ("ms_hook_prologue attribute isn%'t compatible "
 	       "with -mfentry for 32-bit");
 
       /* In ix86_asm_output_function_label we emitted:
@@ -11063,7 +11118,7 @@ ix86_expand_split_stack_prologue (void)
 {
   struct ix86_frame frame;
   HOST_WIDE_INT allocate;
-  int args_size;
+  unsigned HOST_WIDE_INT args_size;
   rtx label, limit, current, jump_insn, allocate_rtx, call_insn, call_fusage;
   rtx scratch_reg = NULL_RTX;
   rtx varargs_label = NULL_RTX;
@@ -11172,8 +11227,7 @@ ix86_expand_split_stack_prologue (void)
 	     argument size in the upper 32 bits of r10 and pass the
 	     frame size in the lower 32 bits.  */
 	  gcc_assert ((allocate & (HOST_WIDE_INT) 0xffffffff) == allocate);
-	  gcc_assert (((unsigned HOST_WIDE_INT) args_size & 0xffffffff)
-		      == (unsigned HOST_WIDE_INT) args_size);
+	  gcc_assert ((args_size & 0xffffffff) == args_size);
 
 	  if (split_stack_fn_large == NULL_RTX)
 	    split_stack_fn_large =
@@ -11202,7 +11256,7 @@ ix86_expand_split_stack_prologue (void)
 
 	  fn = reg11;
 
-	  argval = (((HOST_WIDE_INT) args_size << 16) << 16) + allocate;
+	  argval = ((args_size << 16) << 16) + allocate;
 	  emit_move_insn (reg10, GEN_INT (argval));
 	}
       else
@@ -24017,6 +24071,16 @@ enum ix86_builtins
 
   IX86_BUILTIN_CLZS,
 
+  /* BMI instructions.  */
+  IX86_BUILTIN_BEXTR32,
+  IX86_BUILTIN_BEXTR64,
+  IX86_BUILTIN_CTZS,
+
+  /* TBM instructions.  */
+  IX86_BUILTIN_BEXTRI32,
+  IX86_BUILTIN_BEXTRI64,
+
+
   /* FSGSBASE instructions.  */
   IX86_BUILTIN_RDFSBASE32,
   IX86_BUILTIN_RDFSBASE64,
@@ -24955,6 +25019,15 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_AVX, CODE_FOR_copysignv4df3,  "__builtin_ia32_copysignpd256", IX86_BUILTIN_CPYSGNPD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_V4DF },
 
   { OPTION_MASK_ISA_ABM, CODE_FOR_clzhi2_abm,   "__builtin_clzs",   IX86_BUILTIN_CLZS,    UNKNOWN,     (int) UINT16_FTYPE_UINT16 },
+
+  /* BMI */
+  { OPTION_MASK_ISA_BMI, CODE_FOR_bmi_bextr_si, "__builtin_ia32_bextr_u32", IX86_BUILTIN_BEXTR32, UNKNOWN, (int) UINT_FTYPE_UINT_UINT },
+  { OPTION_MASK_ISA_BMI, CODE_FOR_bmi_bextr_di, "__builtin_ia32_bextr_u64", IX86_BUILTIN_BEXTR64, UNKNOWN, (int) UINT64_FTYPE_UINT64_UINT64 },
+  { OPTION_MASK_ISA_BMI, CODE_FOR_ctzhi2,       "__builtin_ctzs",           IX86_BUILTIN_CTZS,    UNKNOWN, (int) UINT16_FTYPE_UINT16 },
+
+  /* TBM */
+  { OPTION_MASK_ISA_TBM, CODE_FOR_tbm_bextri_si, "__builtin_ia32_bextri_u32", IX86_BUILTIN_BEXTRI32, UNKNOWN, (int) UINT_FTYPE_UINT_UINT },
+  { OPTION_MASK_ISA_TBM, CODE_FOR_tbm_bextri_di, "__builtin_ia32_bextri_u64", IX86_BUILTIN_BEXTRI64, UNKNOWN, (int) UINT64_FTYPE_UINT64_UINT64 },
 
   /* F16C */
   { OPTION_MASK_ISA_F16C, CODE_FOR_vcvtph2ps, "__builtin_ia32_vcvtph2ps", IX86_BUILTIN_CVTPH2PS, UNKNOWN, (int) V4SF_FTYPE_V8HI },
@@ -27066,6 +27139,32 @@ ix86_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
       emit_insn (gen_lwp_slwpcb (target));
       return target;
 
+    case IX86_BUILTIN_BEXTRI32:
+    case IX86_BUILTIN_BEXTRI64:
+      arg0 = CALL_EXPR_ARG (exp, 0);
+      arg1 = CALL_EXPR_ARG (exp, 1);
+      op0 = expand_normal (arg0);
+      op1 = expand_normal (arg1);
+      icode = (fcode == IX86_BUILTIN_BEXTRI32
+	  ? CODE_FOR_tbm_bextri_si
+	  : CODE_FOR_tbm_bextri_di);
+      if (!CONST_INT_P (op1))
+        {
+          error ("last argument must be an immediate");
+          return const0_rtx;
+        }
+      else
+        {
+          unsigned char length = (INTVAL (op1) >> 8) & 0xFF;
+          unsigned char lsb_index = INTVAL (op1) & 0xFF;
+          op1 = GEN_INT (length);
+          op2 = GEN_INT (lsb_index);
+          pat = GEN_FCN (icode) (target, op0, op1, op2);
+          if (pat)
+            emit_insn (pat);
+          return target;
+        }
+
     default:
       break;
     }
@@ -28498,6 +28597,31 @@ ix86_rtx_costs (rtx x, int code, int outer_code_i, int *total, bool speed)
 	    *total = cost->shift_var;
 	}
       return false;
+
+    case FMA:
+      {
+	rtx sub;
+
+        gcc_assert (FLOAT_MODE_P (mode));
+        gcc_assert (TARGET_FMA || TARGET_FMA4);
+
+        /* ??? SSE scalar/vector cost should be used here.  */
+        /* ??? Bald assumption that fma has the same cost as fmul.  */
+        *total = cost->fmul;
+	*total += rtx_cost (XEXP (x, 1), FMA, speed);
+
+        /* Negate in op0 or op2 is free: FMS, FNMA, FNMS.  */
+	sub = XEXP (x, 0);
+	if (GET_CODE (sub) == NEG)
+	  sub = XEXP (x, 0);
+	*total += rtx_cost (sub, FMA, speed);
+
+	sub = XEXP (x, 2);
+	if (GET_CODE (sub) == NEG)
+	  sub = XEXP (x, 0);
+	*total += rtx_cost (sub, FMA, speed);
+	return true;
+      }
 
     case MULT:
       if (SSE_FLOAT_MODE_P (mode) && TARGET_SSE_MATH)
@@ -34395,8 +34519,7 @@ ix86_autovectorize_vector_sizes (void)
 #define TARGET_DEFAULT_TARGET_FLAGS	\
   (TARGET_DEFAULT			\
    | TARGET_SUBTARGET_DEFAULT		\
-   | TARGET_TLS_DIRECT_SEG_REFS_DEFAULT \
-   | MASK_FUSED_MADD)
+   | TARGET_TLS_DIRECT_SEG_REFS_DEFAULT)
 
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION ix86_handle_option
@@ -34458,6 +34581,8 @@ ix86_autovectorize_vector_sizes (void)
 #define TARGET_FUNCTION_ARG_ADVANCE ix86_function_arg_advance
 #undef TARGET_FUNCTION_ARG
 #define TARGET_FUNCTION_ARG ix86_function_arg
+#undef TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY ix86_function_arg_boundary
 #undef TARGET_PASS_BY_REFERENCE
 #define TARGET_PASS_BY_REFERENCE ix86_pass_by_reference
 #undef TARGET_INTERNAL_ARG_POINTER

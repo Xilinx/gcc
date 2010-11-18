@@ -223,7 +223,8 @@ do {									\
     }									\
 									\
   else if (TARGET_RELOCATABLE)						\
-    flag_pic = 2;							\
+    if (!flag_pic)							\
+      flag_pic = 2;							\
 } while (0)
 
 #ifndef RS6000_BI_ARCH
@@ -840,7 +841,7 @@ SVR4_ASM_SPEC \
 #define LINK_START_FREEBSD_SPEC	""
 
 #define LINK_OS_FREEBSD_SPEC "\
-  %{p:%nconsider using `-pg' instead of `-p' with gprof(1)} \
+  %{p:%nconsider using '-pg' instead of '-p' with gprof(1)} \
   %{v:-V} \
   %{assert*} %{R*} %{rpath*} %{defsym*} \
   %{shared:-Bshareable %{h*} %{soname*}} \

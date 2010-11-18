@@ -3325,8 +3325,13 @@ first<Duo>
 #
 --format=gnu-v3 --no-params
 _Z3fooIiFvdEiEvv
-void foo<int, void ()(double), int>()
-foo<int, void ()(double), int>
+void foo<int, void (double), int>()
+foo<int, void (double), int>
+#
+--format=gnu-v3 --no-params
+_Z1fIFvvEEvv
+void f<void ()>()
+f<void ()>
 #
 --format=gnu-v3 --no-params
 _ZN1N1fE
@@ -3605,8 +3610,8 @@ std::_Alloc_traits<std::basic_string<char, std::string_char_traits<char>, libcw:
 #
 --format=gnu-v3 --no-params
 _GLOBAL__I__Z2fnv
-global constructors keyed to _Z2fnv
-global constructors keyed to _Z2fnv
+global constructors keyed to fn()
+global constructors keyed to fn()
 #
 --format=gnu-v3 --no-params
 _Z1rM1GFivEMS_KFivES_M1HFivES1_4whatIKS_E5what2IS8_ES3_

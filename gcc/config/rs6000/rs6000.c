@@ -1185,6 +1185,8 @@ static void rs6000_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 					 const_tree, bool);
 static rtx rs6000_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
 				const_tree, bool);
+static unsigned int rs6000_function_arg_boundary (enum machine_mode,
+						  const_tree);
 static void rs6000_move_block_from_reg (int regno, rtx x, int nregs);
 static void setup_incoming_varargs (CUMULATIVE_ARGS *,
 				    enum machine_mode, tree,
@@ -1587,6 +1589,8 @@ static const struct default_options rs6000_option_optimization_table[] =
 #define TARGET_FUNCTION_ARG_ADVANCE rs6000_function_arg_advance
 #undef TARGET_FUNCTION_ARG
 #define TARGET_FUNCTION_ARG rs6000_function_arg
+#undef TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY rs6000_function_arg_boundary
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST rs6000_build_builtin_va_list
@@ -2284,16 +2288,13 @@ rs6000_init_hard_regno_mode_ok (void)
 
   if (rs6000_recip_control)
     {
-      if (!TARGET_FUSED_MADD)
-	warning (0, "-mrecip requires -mfused-madd");
       if (!flag_finite_math_only)
 	warning (0, "-mrecip requires -ffinite-math or -ffast-math");
       if (flag_trapping_math)
 	warning (0, "-mrecip requires -fno-trapping-math or -ffast-math");
       if (!flag_reciprocal_math)
 	warning (0, "-mrecip requires -freciprocal-math or -ffast-math");
-      if (TARGET_FUSED_MADD && flag_finite_math_only && !flag_trapping_math
-	  && flag_reciprocal_math)
+      if (flag_finite_math_only && !flag_trapping_math && flag_reciprocal_math)
 	{
 	  if (RS6000_RECIP_HAVE_RE_P (SFmode)
 	      && (rs6000_recip_control & RECIP_SF_DIV) != 0)
@@ -2662,7 +2663,7 @@ rs6000_option_override_internal (const char *default_cpu)
       if (TARGET_ALTIVEC)
 	error ("AltiVec not supported in this target");
       if (TARGET_SPE)
-	error ("Spe not supported in this target");
+	error ("SPE not supported in this target");
     }
 
   /* Disable Cell microcode if we are optimizing for the Cell
@@ -3250,7 +3251,7 @@ rs6000_option_override_internal (const char *default_cpu)
 
 	      if (i == ARRAY_SIZE (recip_options))
 		{
-		  error ("Unknown option for -mrecip=%s", q);
+		  error ("unknown option for -mrecip=%s", q);
 		  invert = false;
 		  mask = 0;
 		}
@@ -4317,25 +4318,25 @@ rs6000_handle_option (size_t code, const char *arg, int value)
       else if (! strcmp (arg, "d64"))
 	{
 	  rs6000_darwin64_abi = 1;
-	  warning (0, "Using darwin64 ABI");
+	  warning (0, "using darwin64 ABI");
 	}
       else if (! strcmp (arg, "d32"))
 	{
 	  rs6000_darwin64_abi = 0;
-	  warning (0, "Using old darwin ABI");
+	  warning (0, "using old darwin ABI");
 	}
 
       else if (! strcmp (arg, "ibmlongdouble"))
 	{
 	  rs6000_explicit_options.ieee = true;
 	  rs6000_ieeequad = 0;
-	  warning (0, "Using IBM extended precision long double");
+	  warning (0, "using IBM extended precision long double");
 	}
       else if (! strcmp (arg, "ieeelongdouble"))
 	{
 	  rs6000_explicit_options.ieee = true;
 	  rs6000_ieeequad = 1;
-	  warning (0, "Using IEEE extended precision long double");
+	  warning (0, "using IEEE extended precision long double");
 	}
 
       else
@@ -4377,7 +4378,7 @@ rs6000_handle_option (size_t code, const char *arg, int value)
       rs6000_long_double_type_size = RS6000_DEFAULT_LONG_DOUBLE_SIZE;
       if (value != 64 && value != 128)
 	{
-	  error ("Unknown switch -mlong-double-%s", arg);
+	  error ("unknown switch -mlong-double-%s", arg);
 	  rs6000_long_double_type_size = RS6000_DEFAULT_LONG_DOUBLE_SIZE;
 	  return false;
 	}
@@ -7850,8 +7851,8 @@ function_arg_padding (enum machine_mode mode, const_tree type)
    Quadword align Altivec vectors.
    Quadword align large synthetic vector types.   */
 
-int
-function_arg_boundary (enum machine_mode mode, const_tree type)
+static unsigned int
+rs6000_function_arg_boundary (enum machine_mode mode, const_tree type)
 {
   if (DEFAULT_ABI == ABI_V4
       && (GET_MODE_SIZE (mode) == 8
@@ -7887,7 +7888,7 @@ rs6000_parm_start (enum machine_mode mode, const_tree type,
   unsigned int align;
   unsigned int parm_offset;
 
-  align = function_arg_boundary (mode, type) / PARM_BOUNDARY - 1;
+  align = rs6000_function_arg_boundary (mode, type) / PARM_BOUNDARY - 1;
   parm_offset = DEFAULT_ABI == ABI_V4 ? 2 : 6;
   return nwords + (-(parm_offset + nwords) & align);
 }
@@ -9399,7 +9400,7 @@ rs6000_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
       unsigned HOST_WIDE_INT align, boundary;
       tree valist_tmp = get_initialized_tmp_var (valist, pre_p, NULL);
       align = PARM_BOUNDARY / BITS_PER_UNIT;
-      boundary = FUNCTION_ARG_BOUNDARY (TYPE_MODE (type), type);
+      boundary = rs6000_function_arg_boundary (TYPE_MODE (type), type);
       if (boundary > MAX_SUPPORTED_STACK_ALIGNMENT)
 	boundary = MAX_SUPPORTED_STACK_ALIGNMENT;
       boundary /= BITS_PER_UNIT;
@@ -9631,7 +9632,7 @@ def_builtin (int mask, const char *name, tree type, int code)
     {
       tree t;
       if (rs6000_builtin_decls[code])
-	fatal_error ("internal error: builtin function to %s already processed.",
+	fatal_error ("internal error: builtin function to %s already processed",
 		     name);
 
       rs6000_builtin_decls[code] = t =
@@ -9684,7 +9685,7 @@ def_builtin (int mask, const char *name, tree type, int code)
 
 static const struct builtin_description bdesc_3arg[] =
 {
-  { MASK_ALTIVEC, CODE_FOR_altivec_vmaddfp, "__builtin_altivec_vmaddfp", ALTIVEC_BUILTIN_VMADDFP },
+  { MASK_ALTIVEC, CODE_FOR_fmav4sf4, "__builtin_altivec_vmaddfp", ALTIVEC_BUILTIN_VMADDFP },
   { MASK_ALTIVEC, CODE_FOR_altivec_vmhaddshs, "__builtin_altivec_vmhaddshs", ALTIVEC_BUILTIN_VMHADDSHS },
   { MASK_ALTIVEC, CODE_FOR_altivec_vmhraddshs, "__builtin_altivec_vmhraddshs", ALTIVEC_BUILTIN_VMHRADDSHS },
   { MASK_ALTIVEC, CODE_FOR_altivec_vmladduhm, "__builtin_altivec_vmladduhm", ALTIVEC_BUILTIN_VMLADDUHM},
@@ -9694,7 +9695,7 @@ static const struct builtin_description bdesc_3arg[] =
   { MASK_ALTIVEC, CODE_FOR_altivec_vmsumshm, "__builtin_altivec_vmsumshm", ALTIVEC_BUILTIN_VMSUMSHM },
   { MASK_ALTIVEC, CODE_FOR_altivec_vmsumuhs, "__builtin_altivec_vmsumuhs", ALTIVEC_BUILTIN_VMSUMUHS },
   { MASK_ALTIVEC, CODE_FOR_altivec_vmsumshs, "__builtin_altivec_vmsumshs", ALTIVEC_BUILTIN_VMSUMSHS },
-  { MASK_ALTIVEC, CODE_FOR_altivec_vnmsubfp, "__builtin_altivec_vnmsubfp", ALTIVEC_BUILTIN_VNMSUBFP },
+  { MASK_ALTIVEC, CODE_FOR_nfmsv4sf4, "__builtin_altivec_vnmsubfp", ALTIVEC_BUILTIN_VNMSUBFP },
   { MASK_ALTIVEC, CODE_FOR_altivec_vperm_v2df, "__builtin_altivec_vperm_2df", ALTIVEC_BUILTIN_VPERM_2DF },
   { MASK_ALTIVEC, CODE_FOR_altivec_vperm_v2di, "__builtin_altivec_vperm_2di", ALTIVEC_BUILTIN_VPERM_2DI },
   { MASK_ALTIVEC, CODE_FOR_altivec_vperm_v4sf, "__builtin_altivec_vperm_4sf", ALTIVEC_BUILTIN_VPERM_4SF },
@@ -9736,15 +9737,15 @@ static const struct builtin_description bdesc_3arg[] =
   { MASK_ALTIVEC, CODE_FOR_nothing, "__builtin_vec_perm", ALTIVEC_BUILTIN_VEC_PERM },
   { MASK_ALTIVEC, CODE_FOR_nothing, "__builtin_vec_sel", ALTIVEC_BUILTIN_VEC_SEL },
 
-  { MASK_VSX, CODE_FOR_vsx_fmaddv2df4, "__builtin_vsx_xvmadddp", VSX_BUILTIN_XVMADDDP },
-  { MASK_VSX, CODE_FOR_vsx_fmsubv2df4, "__builtin_vsx_xvmsubdp", VSX_BUILTIN_XVMSUBDP },
-  { MASK_VSX, CODE_FOR_vsx_fnmaddv2df4, "__builtin_vsx_xvnmadddp", VSX_BUILTIN_XVNMADDDP },
-  { MASK_VSX, CODE_FOR_vsx_fnmsubv2df4, "__builtin_vsx_xvnmsubdp", VSX_BUILTIN_XVNMSUBDP },
+  { MASK_VSX, CODE_FOR_fmav2df4, "__builtin_vsx_xvmadddp", VSX_BUILTIN_XVMADDDP },
+  { MASK_VSX, CODE_FOR_fmsv2df4, "__builtin_vsx_xvmsubdp", VSX_BUILTIN_XVMSUBDP },
+  { MASK_VSX, CODE_FOR_nfmav2df4, "__builtin_vsx_xvnmadddp", VSX_BUILTIN_XVNMADDDP },
+  { MASK_VSX, CODE_FOR_nfmsv2df4, "__builtin_vsx_xvnmsubdp", VSX_BUILTIN_XVNMSUBDP },
 
-  { MASK_VSX, CODE_FOR_vsx_fmaddv4sf4, "__builtin_vsx_xvmaddsp", VSX_BUILTIN_XVMADDSP },
-  { MASK_VSX, CODE_FOR_vsx_fmsubv4sf4, "__builtin_vsx_xvmsubsp", VSX_BUILTIN_XVMSUBSP },
-  { MASK_VSX, CODE_FOR_vsx_fnmaddv4sf4, "__builtin_vsx_xvnmaddsp", VSX_BUILTIN_XVNMADDSP },
-  { MASK_VSX, CODE_FOR_vsx_fnmsubv4sf4, "__builtin_vsx_xvnmsubsp", VSX_BUILTIN_XVNMSUBSP },
+  { MASK_VSX, CODE_FOR_fmav4sf4, "__builtin_vsx_xvmaddsp", VSX_BUILTIN_XVMADDSP },
+  { MASK_VSX, CODE_FOR_fmsv4sf4, "__builtin_vsx_xvmsubsp", VSX_BUILTIN_XVMSUBSP },
+  { MASK_VSX, CODE_FOR_nfmav4sf4, "__builtin_vsx_xvnmaddsp", VSX_BUILTIN_XVNMADDSP },
+  { MASK_VSX, CODE_FOR_nfmsv4sf4, "__builtin_vsx_xvnmsubsp", VSX_BUILTIN_XVNMSUBSP },
 
   { MASK_ALTIVEC, CODE_FOR_nothing, "__builtin_vec_msub", VSX_BUILTIN_VEC_MSUB },
   { MASK_ALTIVEC, CODE_FOR_nothing, "__builtin_vec_nmadd", VSX_BUILTIN_VEC_NMADD },
@@ -9789,12 +9790,12 @@ static const struct builtin_description bdesc_3arg[] =
   { MASK_VSX, CODE_FOR_vsx_xxsldwi_v16qi, "__builtin_vsx_xxsldwi_16qi", VSX_BUILTIN_XXSLDWI_16QI },
   { MASK_VSX, CODE_FOR_nothing, "__builtin_vsx_xxsldwi", VSX_BUILTIN_VEC_XXSLDWI },
 
-  { 0, CODE_FOR_paired_msub, "__builtin_paired_msub", PAIRED_BUILTIN_MSUB },
-  { 0, CODE_FOR_paired_madd, "__builtin_paired_madd", PAIRED_BUILTIN_MADD },
+  { 0, CODE_FOR_fmsv2sf4, "__builtin_paired_msub", PAIRED_BUILTIN_MSUB },
+  { 0, CODE_FOR_fmav2sf4, "__builtin_paired_madd", PAIRED_BUILTIN_MADD },
   { 0, CODE_FOR_paired_madds0, "__builtin_paired_madds0", PAIRED_BUILTIN_MADDS0 },
   { 0, CODE_FOR_paired_madds1, "__builtin_paired_madds1", PAIRED_BUILTIN_MADDS1 },
-  { 0, CODE_FOR_paired_nmsub, "__builtin_paired_nmsub", PAIRED_BUILTIN_NMSUB },
-  { 0, CODE_FOR_paired_nmadd, "__builtin_paired_nmadd", PAIRED_BUILTIN_NMADD },
+  { 0, CODE_FOR_nfmsv2sf4, "__builtin_paired_nmsub", PAIRED_BUILTIN_NMSUB },
+  { 0, CODE_FOR_nfmav2sf4, "__builtin_paired_nmadd", PAIRED_BUILTIN_NMADD },
   { 0, CODE_FOR_paired_sum0, "__builtin_paired_sum0", PAIRED_BUILTIN_SUM0 },
   { 0, CODE_FOR_paired_sum1, "__builtin_paired_sum1", PAIRED_BUILTIN_SUM1 },
   { 0, CODE_FOR_selv2sf4, "__builtin_paired_selv2sf4", PAIRED_BUILTIN_SELV2SF4 },
@@ -19708,7 +19709,7 @@ rs6000_savres_routine_name (rs6000_stack_t *info, int regno,
 	}
     }
   else if (DEFAULT_ABI == ABI_DARWIN)
-    sorry ("Out-of-line save/restore routines not supported on Darwin");
+    sorry ("out-of-line save/restore routines not supported on Darwin");
 
   sprintf (savres_routine_name, "%s%d%s", prefix, regno, suffix);
 
@@ -26390,112 +26391,65 @@ rs6000_load_constant_and_splat (enum machine_mode mode, REAL_VALUE_TYPE dconst)
   return reg;
 }
 
-/* Generate a FMADD instruction:
-	dst = (m1 * m2) + a
-
-   generating different RTL based on the fused multiply/add switch.  */
+/* Generate an FMA instruction.  */
 
 static void
-rs6000_emit_madd (rtx dst, rtx m1, rtx m2, rtx a)
+rs6000_emit_madd (rtx target, rtx m1, rtx m2, rtx a)
 {
-  enum machine_mode mode = GET_MODE (dst);
+  enum machine_mode mode = GET_MODE (target);
+  rtx dst;
 
-  if (!TARGET_FUSED_MADD)
-    {
-      /* For the simple ops, use the generator function, rather than assuming
-	 that the RTL is standard.  */
-      enum insn_code mcode = optab_handler (smul_optab, mode);
-      enum insn_code acode = optab_handler (add_optab, mode);
-      gen_2arg_fn_t gen_mul = (gen_2arg_fn_t) GEN_FCN (mcode);
-      gen_2arg_fn_t gen_add = (gen_2arg_fn_t) GEN_FCN (acode);
-      rtx mreg = gen_reg_rtx (mode);
+  dst = expand_ternary_op (mode, fma_optab, m1, m2, a, target, 0);
+  gcc_assert (dst != NULL);
 
-      gcc_assert (mcode != CODE_FOR_nothing && acode != CODE_FOR_nothing);
-      emit_insn (gen_mul (mreg, m1, m2));
-      emit_insn (gen_add (dst, mreg, a));
-    }
-
-  else
-    emit_insn (gen_rtx_SET (VOIDmode, dst,
-			    gen_rtx_PLUS (mode,
-					  gen_rtx_MULT (mode, m1, m2),
-					  a)));
+  if (dst != target)
+    emit_move_insn (target, dst);
 }
 
-/* Generate a FMSUB instruction:
-	dst = (m1 * m2) - a
-
-   generating different RTL based on the fused multiply/add switch.  */
+/* Generate a FMSUB instruction: dst = fma(m1, m2, -a).  */
 
 static void
-rs6000_emit_msub (rtx dst, rtx m1, rtx m2, rtx a)
+rs6000_emit_msub (rtx target, rtx m1, rtx m2, rtx a)
 {
-  enum machine_mode mode = GET_MODE (dst);
+  enum machine_mode mode = GET_MODE (target);
+  rtx dst;
 
-  if (!TARGET_FUSED_MADD
-      || (mode == V4SFmode && VECTOR_UNIT_ALTIVEC_P (V4SFmode)))
-    {
-      /* For the simple ops, use the generator function, rather than assuming
-	 that the RTL is standard.  */
-      enum insn_code mcode = optab_handler (smul_optab, mode);
-      enum insn_code scode = optab_handler (add_optab, mode);
-      gen_2arg_fn_t gen_mul = (gen_2arg_fn_t) GEN_FCN (mcode);
-      gen_2arg_fn_t gen_sub = (gen_2arg_fn_t) GEN_FCN (scode);
-      rtx mreg = gen_reg_rtx (mode);
-
-      gcc_assert (mcode != CODE_FOR_nothing && scode != CODE_FOR_nothing);
-      emit_insn (gen_mul (mreg, m1, m2));
-      emit_insn (gen_sub (dst, mreg, a));
-    }
-
+  /* Altivec does not support fms directly;
+     generate in terms of fma in that case.  */
+  if (optab_handler (fms_optab, mode) != CODE_FOR_nothing)
+    dst = expand_ternary_op (mode, fms_optab, m1, m2, a, target, 0);
   else
-    emit_insn (gen_rtx_SET (VOIDmode, dst,
-			    gen_rtx_MINUS (mode,
-					   gen_rtx_MULT (mode, m1, m2),
-					   a)));
+    {
+      a = expand_unop (mode, neg_optab, a, NULL_RTX, 0);
+      dst = expand_ternary_op (mode, fma_optab, m1, m2, a, target, 0);
+    }
+  gcc_assert (dst != NULL);
+
+  if (dst != target)
+    emit_move_insn (target, dst);
 }
-
-/* Generate a FNMSUB instruction:
-	dst = - ((m1 * m2) - a)
-
-   Which is equivalent to (except in the prescence of -0.0):
-	dst = a - (m1 * m2)
-
-   generating different RTL based on the fast-math and fused multiply/add
-   switches.  */
+    
+/* Generate a FNMSUB instruction: dst = -fma(m1, m2, -a).  */
 
 static void
 rs6000_emit_nmsub (rtx dst, rtx m1, rtx m2, rtx a)
 {
   enum machine_mode mode = GET_MODE (dst);
+  rtx r;
 
-  if (!TARGET_FUSED_MADD)
-    {
-      /* For the simple ops, use the generator function, rather than assuming
-	 that the RTL is standard.  */
-      enum insn_code mcode = optab_handler (smul_optab, mode);
-      enum insn_code scode = optab_handler (sub_optab, mode);
-      gen_2arg_fn_t gen_mul = (gen_2arg_fn_t) GEN_FCN (mcode);
-      gen_2arg_fn_t gen_sub = (gen_2arg_fn_t) GEN_FCN (scode);
-      rtx mreg = gen_reg_rtx (mode);
+  /* This is a tad more complicated, since the fnma_optab is for
+     a different expression: fma(-m1, m2, a), which is the same
+     thing except in the case of signed zeros.
 
-      gcc_assert (mcode != CODE_FOR_nothing && scode != CODE_FOR_nothing);
-      emit_insn (gen_mul (mreg, m1, m2));
-      emit_insn (gen_sub (dst, a, mreg));
-    }
+     Fortunately we know that if FMA is supported that FNMSUB is
+     also supported in the ISA.  Just expand it directly.  */
 
-  else
-    {
-      rtx m = gen_rtx_MULT (mode, m1, m2);
+  gcc_assert (optab_handler (fma_optab, mode) != CODE_FOR_nothing);
 
-      if (!HONOR_SIGNED_ZEROS (mode))
-	emit_insn (gen_rtx_SET (VOIDmode, dst, gen_rtx_MINUS (mode, a, m)));
-
-      else
-	emit_insn (gen_rtx_SET (VOIDmode, dst,
-				gen_rtx_NEG (mode,
-					     gen_rtx_MINUS (mode, m, a))));
-    }
+  r = gen_rtx_NEG (mode, a);
+  r = gen_rtx_FMA (mode, m1, m2, r);
+  r = gen_rtx_NEG (mode, r);
+  emit_insn (gen_rtx_SET (VOIDmode, dst, r));
 }
 
 /* Newton-Raphson approximation of floating point divide with just 2 passes
@@ -27230,82 +27184,30 @@ rs6000_address_for_fpconvert (rtx x)
   addr = XEXP (x, 0);
   if (! legitimate_indirect_address_p (addr, strict_p)
       && ! legitimate_indexed_address_p (addr, strict_p))
-    x = replace_equiv_address (x, copy_addr_to_reg (addr));
+    {
+      if (GET_CODE (addr) == PRE_INC || GET_CODE (addr) == PRE_DEC)
+	{
+	  rtx reg = XEXP (addr, 0);
+	  HOST_WIDE_INT size = GET_MODE_SIZE (GET_MODE (x));
+	  rtx size_rtx = GEN_INT ((GET_CODE (addr) == PRE_DEC) ? -size : size);
+	  gcc_assert (REG_P (reg));
+	  emit_insn (gen_add3_insn (reg, reg, size_rtx));
+	  addr = reg;
+	}
+      else if (GET_CODE (addr) == PRE_MODIFY)
+	{
+	  rtx reg = XEXP (addr, 0);
+	  rtx expr = XEXP (addr, 1);
+	  gcc_assert (REG_P (reg));
+	  gcc_assert (GET_CODE (expr) == PLUS);
+	  emit_insn (gen_add3_insn (reg, XEXP (expr, 0), XEXP (expr, 1)));
+	  addr = reg;
+	}
+
+      x = replace_equiv_address (x, copy_addr_to_reg (addr));
+    }
 
   return x;
-}
-
-/* Expand 32-bit int -> floating point conversions.  Return true if
-   successful.  */
-
-void
-rs6000_expand_convert_si_to_sfdf (rtx dest, rtx src, bool unsigned_p)
-{
-  enum machine_mode dmode = GET_MODE (dest);
-  rtx (*func_si) (rtx, rtx, rtx, rtx);
-  rtx (*func_si_mem) (rtx, rtx);
-  rtx (*func_di) (rtx, rtx);
-  rtx reg, stack;
-
-  gcc_assert (GET_MODE (src) == SImode);
-
-  if (dmode == SFmode)
-    {
-      if (unsigned_p)
-	{
-	  gcc_assert (TARGET_FCFIDUS && TARGET_LFIWZX);
-	  func_si = gen_floatunssisf2_lfiwzx;
-	  func_si_mem = gen_floatunssisf2_lfiwzx_mem;
-	  func_di = gen_floatunsdisf2;
-	}
-      else
-	{
-	  gcc_assert (TARGET_FCFIDS && TARGET_LFIWAX);
-	  func_si = gen_floatsisf2_lfiwax;
-	  func_si_mem = gen_floatsisf2_lfiwax_mem;
-	  func_di = gen_floatdisf2;
-	}
-    }
-
-  else if (dmode == DFmode)
-    {
-      if (unsigned_p)
-	{
-	  gcc_assert (TARGET_FCFIDU && TARGET_LFIWZX);
-	  func_si = gen_floatunssidf2_lfiwzx;
-	  func_si_mem = gen_floatunssidf2_lfiwzx_mem;
-	  func_di = gen_floatunsdidf2;
-	}
-      else
-	{
-	  gcc_assert (TARGET_FCFID && TARGET_LFIWAX);
-	  func_si = gen_floatsidf2_lfiwax;
-	  func_si_mem = gen_floatsidf2_lfiwax_mem;
-	  func_di = gen_floatdidf2;
-	}
-    }
-
-  else
-    gcc_unreachable ();
-
-  if (MEM_P (src))
-    {
-      src = rs6000_address_for_fpconvert (src);
-      emit_insn (func_si_mem (dest, src));
-    }
-  else if (!TARGET_MFPGPR)
-    {
-      reg = gen_reg_rtx (DImode);
-      stack = rs6000_allocate_stack_temp (SImode, false, true);
-      emit_insn (func_si (dest, src, stack, reg));
-    }
-  else
-    {
-      if (!REG_P (src))
-	src = force_reg (SImode, src);
-      reg = convert_to_mode (DImode, src, unsigned_p);
-      emit_insn (func_di (dest, reg));
-    }
 }
 
 #include "gt-rs6000.h"

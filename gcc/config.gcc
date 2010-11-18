@@ -311,29 +311,31 @@ i[34567]86-*-*)
 	cpu_type=i386
 	c_target_objs="i386-c.o"
 	cxx_target_objs="i386-c.o"
+	extra_options="${extra_options} fused-madd.opt"
 	extra_headers="cpuid.h mmintrin.h mm3dnow.h xmmintrin.h emmintrin.h
 		       pmmintrin.h tmmintrin.h ammintrin.h smmintrin.h
 		       nmmintrin.h bmmintrin.h fma4intrin.h wmmintrin.h
 		       immintrin.h x86intrin.h avxintrin.h xopintrin.h
 		       ia32intrin.h cross-stdarg.h lwpintrin.h popcntintrin.h
-		       abmintrin.h"
+		       abmintrin.h bmiintrin.h tbmintrin.h"
 	;;
 x86_64-*-*)
 	cpu_type=i386
 	c_target_objs="i386-c.o"
 	cxx_target_objs="i386-c.o"
+	extra_options="${extra_options} fused-madd.opt"
 	extra_headers="cpuid.h mmintrin.h mm3dnow.h xmmintrin.h emmintrin.h
 		       pmmintrin.h tmmintrin.h ammintrin.h smmintrin.h
 		       nmmintrin.h bmmintrin.h fma4intrin.h wmmintrin.h
 		       immintrin.h x86intrin.h avxintrin.h xopintrin.h
 		       ia32intrin.h cross-stdarg.h lwpintrin.h popcntintrin.h
-		       abmintrin.h"
+		       abmintrin.h bmiintrin.h tbmintrin.h"
 	need_64bit_hwint=yes
 	;;
 ia64-*-*)
 	extra_headers=ia64intrin.h
 	need_64bit_hwint=yes
-	extra_options="${extra_options} g.opt"
+	extra_options="${extra_options} g.opt fused-madd.opt"
 	;;
 hppa*-*-*)
 	cpu_type=pa
@@ -370,11 +372,11 @@ powerpc*-*-*)
 		cpu_is_64bit=yes
 		;;
 	esac
-	extra_options="${extra_options} g.opt"
+	extra_options="${extra_options} g.opt fused-madd.opt"
 	;;
 rs6000*-*-*)
 	need_64bit_hwint=yes
-	extra_options="${extra_options} g.opt"
+	extra_options="${extra_options} g.opt fused-madd.opt"
 	;;
 score*-*-*)
 	cpu_type=score
@@ -391,11 +393,15 @@ spu*-*-*)
 s390*-*-*)
 	cpu_type=s390
 	need_64bit_hwint=yes
+	extra_options="${extra_options} fused-madd.opt"
 	;;
 # Note the 'l'; we need to be able to match e.g. "shle" or "shl".
 sh[123456789lbe]*-*-* | sh-*-*)
 	cpu_type=sh
 	need_64bit_hwint=yes
+	;;
+xtensa*-*-*)
+	extra_options="${extra_options} fused-madd.opt"
 	;;
 esac
 
@@ -1979,6 +1985,7 @@ pdp11-*-*)
 picochip-*)
 	tm_file="${tm_file} newlib-stdint.h"
 	use_gcc_stdint=wrap
+	tmake_file="picochip/t-picochip t-pnt16-warn"
         ;;
 # port not yet contributed
 #powerpc-*-openbsd*)

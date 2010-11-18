@@ -197,8 +197,7 @@ cgraph_decide_is_function_needed (struct cgraph_node *node, tree decl)
 	    && !(DECL_CONTEXT (decl)
 		 && TREE_CODE (DECL_CONTEXT (decl)) == FUNCTION_DECL)))
        && !flag_whole_program
-       && !flag_lto
-       && !flag_whopr)
+       && !flag_lto)
       && !DECL_COMDAT (decl) && !DECL_EXTERNAL (decl))
     return true;
 
@@ -468,22 +467,22 @@ verify_cgraph_node (struct cgraph_node *node)
       }
   if (node->count < 0)
     {
-      error ("Execution count is negative");
+      error ("execution count is negative");
       error_found = true;
     }
   if (node->global.inlined_to && node->local.externally_visible)
     {
-      error ("Externally visible inline clone");
+      error ("externally visible inline clone");
       error_found = true;
     }
   if (node->global.inlined_to && node->address_taken)
     {
-      error ("Inline clone with address taken");
+      error ("inline clone with address taken");
       error_found = true;
     }
   if (node->global.inlined_to && node->needed)
     {
-      error ("Inline clone is needed");
+      error ("inline clone is needed");
       error_found = true;
     }
   for (e = node->indirect_calls; e; e = e->next_callee)
@@ -944,6 +943,7 @@ cgraph_analyze_functions (void)
 	  fprintf (cgraph_dump_file, " %s", cgraph_node_name (node));
       fprintf (cgraph_dump_file, "\n\nInitial ");
       dump_cgraph (cgraph_dump_file);
+      dump_varpool (cgraph_dump_file);
     }
 
   if (cgraph_dump_file)
@@ -973,6 +973,7 @@ cgraph_analyze_functions (void)
     {
       fprintf (cgraph_dump_file, "\n\nReclaimed ");
       dump_cgraph (cgraph_dump_file);
+      dump_varpool (cgraph_dump_file);
     }
   bitmap_obstack_release (NULL);
   first_analyzed = cgraph_nodes;
@@ -1817,6 +1818,7 @@ cgraph_optimize (void)
     {
       fprintf (cgraph_dump_file, "\nFinal ");
       dump_cgraph (cgraph_dump_file);
+      dump_varpool (cgraph_dump_file);
     }
 #ifdef ENABLE_CHECKING
   verify_cgraph ();

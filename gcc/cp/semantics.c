@@ -5522,6 +5522,48 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
   return true;
 }
 
+/* Make sure that there are no statements after LAST in the constructor
+   body represented by LIST.  */
+
+bool
+check_constexpr_ctor_body (tree last, tree list)
+{
+  bool ok = true;
+  if (TREE_CODE (list) == STATEMENT_LIST)
+    {
+      tree_stmt_iterator i = tsi_last (list);
+      for (; !tsi_end_p (i); tsi_prev (&i))
+	{
+	  tree t = tsi_stmt (i);
+	  if (t == last)
+	    break;
+	  if (TREE_CODE (t) == BIND_EXPR)
+	    {
+	      if (!check_constexpr_ctor_body (last, BIND_EXPR_BODY (t)))
+		return false;
+	      else
+		continue;
+	    }
+	  /* We currently allow typedefs and static_assert.
+	     FIXME allow them in the standard, too.  */
+	  if (TREE_CODE (t) != STATIC_ASSERT)
+	    {
+	      ok = false;
+	      break;
+	    }
+	}
+    }
+  else if (list != last
+	   && TREE_CODE (list) != STATIC_ASSERT)
+    ok = false;
+  if (!ok)
+    {
+      error ("constexpr constructor does not have empty body");
+      DECL_DECLARED_CONSTEXPR_P (current_function_decl) = false;
+    }
+  return ok;
+}
+
 /* Build compile-time evalable representations of member-initializer list
    for a constexpr constructor.  */
 
@@ -6222,6 +6264,45 @@ cxx_eval_component_reference (const constexpr_call *call, tree t,
 }
 
 /* Subroutine of cxx_eval_constant_expression.
+   Attempt to reduce a field access of a value of class type that is
+   expressed as a BIT_FIELD_REF.  */
+
+static tree
+cxx_eval_bit_field_ref (const constexpr_call *call, tree t,
+			bool allow_non_constant, bool addr,
+			bool *non_constant_p)
+{
+  tree orig_whole = TREE_OPERAND (t, 0);
+  tree whole = cxx_eval_constant_expression (call, orig_whole,
+					     allow_non_constant, addr,
+					     non_constant_p);
+  tree start, field, value;
+  unsigned HOST_WIDE_INT i;
+
+  if (whole == orig_whole)
+    return t;
+  /* Don't VERIFY_CONSTANT here; we only want to check that we got a
+     CONSTRUCTOR.  */
+  if (!*non_constant_p && TREE_CODE (whole) != CONSTRUCTOR)
+    {
+      if (!allow_non_constant)
+	error ("%qE is not a constant expression", orig_whole);
+      *non_constant_p = true;
+    }
+  if (*non_constant_p)
+    return t;
+
+  start = TREE_OPERAND (t, 2);
+  FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (whole), i, field, value)
+    {
+      if (bit_position (field) == start)
+	return value;
+    }
+  gcc_unreachable();
+  return error_mark_node;
+}
+
+/* Subroutine of cxx_eval_constant_expression.
    Evaluate a short-circuited logical expression T in the context
    of a given constexpr CALL.  BAILOUT_VALUE is the value for
    early return.  CONTINUE_VALUE is used here purely for
@@ -6797,6 +6878,11 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
     case COMPONENT_REF:
       r = cxx_eval_component_reference (call, t, allow_non_constant, addr,
 					non_constant_p);
+      break;
+
+    case BIT_FIELD_REF:
+      r = cxx_eval_bit_field_ref (call, t, allow_non_constant, addr,
+				  non_constant_p);
       break;
 
     case COND_EXPR:

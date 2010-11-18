@@ -2076,9 +2076,6 @@ struct GTY(()) tree_block {
 #define TYPE_MIN_VALUE(NODE) (NUMERICAL_TYPE_CHECK (NODE)->type.minval)
 #define TYPE_MAX_VALUE(NODE) (NUMERICAL_TYPE_CHECK (NODE)->type.maxval)
 #define TYPE_PRECISION(NODE) (TYPE_CHECK (NODE)->type.precision)
-#define TYPE_SYMTAB_ADDRESS(NODE) (TYPE_CHECK (NODE)->type.symtab.address)
-#define TYPE_SYMTAB_POINTER(NODE) (TYPE_CHECK (NODE)->type.symtab.pointer)
-#define TYPE_SYMTAB_DIE(NODE) (TYPE_CHECK (NODE)->type.symtab.die)
 #define TYPE_NAME(NODE) (TYPE_CHECK (NODE)->type.name)
 #define TYPE_NEXT_VARIANT(NODE) (TYPE_CHECK (NODE)->type.next_variant)
 #define TYPE_MAIN_VARIANT(NODE) (TYPE_CHECK (NODE)->type.main_variant)
@@ -2300,6 +2297,33 @@ extern enum machine_mode vector_type_mode (const_tree);
 #define TYPE_CONTAINS_PLACEHOLDER_INTERNAL(NODE) \
   (TYPE_CHECK (NODE)->type.contains_placeholder_bits)
 
+/* The debug output functions use the symtab union field to store
+   information specific to the debugging format.  The different debug
+   output hooks store different types in the union field.  These three
+   macros are used to access different fields in the union.  The debug
+   hooks are responsible for consistently using only a specific
+   macro.  */
+
+/* Symtab field as an integer.  Used by stabs generator in dbxout.c to
+   hold the type's number in the generated stabs.  */
+#define TYPE_SYMTAB_ADDRESS(NODE) (TYPE_CHECK (NODE)->type.symtab.address)
+
+/* Symtab field as a string.  Used by COFF generator in sdbout.c to
+   hold struct/union type tag names.  */
+#define TYPE_SYMTAB_POINTER(NODE) (TYPE_CHECK (NODE)->type.symtab.pointer)
+
+/* Symtab field as a pointer to a DWARF DIE.  Used by DWARF generator
+   in dwarf2out.c to point to the DIE generated for the type.  */
+#define TYPE_SYMTAB_DIE(NODE) (TYPE_CHECK (NODE)->type.symtab.die)
+
+/* The garbage collector needs to know the interpretation of the
+   symtab field.  These constants represent the different types in the
+   union.  */
+
+#define TYPE_SYMTAB_IS_ADDRESS (0)
+#define TYPE_SYMTAB_IS_POINTER (1)
+#define TYPE_SYMTAB_IS_DIE (2)
+
 struct die_struct;
 
 struct GTY(()) tree_type {
@@ -2333,10 +2357,10 @@ struct GTY(()) tree_type {
   tree pointer_to;
   tree reference_to;
   union tree_type_symtab {
-    int GTY ((tag ("0"))) address;
-    const char * GTY ((tag ("1"))) pointer;
-    struct die_struct * GTY ((tag ("2"))) die;
-  } GTY ((desc ("debug_hooks == &sdb_debug_hooks ? 1 : debug_hooks == &dwarf2_debug_hooks ? 2 : 0"))) symtab;
+    int GTY ((tag ("TYPE_SYMTAB_IS_ADDRESS"))) address;
+    const char * GTY ((tag ("TYPE_SYMTAB_IS_POINTER"))) pointer;
+    struct die_struct * GTY ((tag ("TYPE_SYMTAB_IS_DIE"))) die;
+  } GTY ((desc ("debug_hooks->tree_type_symtab_field"))) symtab;
   tree name;
   tree minval;
   tree maxval;
@@ -3887,11 +3911,6 @@ extern GTY(()) tree integer_types[itk_none];
 #define int128_integer_type_node	integer_types[itk_int128]
 #define int128_unsigned_type_node	integer_types[itk_unsigned_int128]
 
-/* Set to the default thread-local storage (tls) model to use.  */
-
-extern enum tls_model flag_tls_default;
-
-
 /* A pointer-to-function member type looks like:
 
      struct {
@@ -4588,11 +4607,8 @@ extern tree skip_simple_arithmetic (tree);
 
 enum tree_node_structure_enum tree_node_structure (const_tree);
 
-/* Return 1 if EXP contains a PLACEHOLDER_EXPR; i.e., if it represents a size
-   or offset that depends on a field within a record.
-
-   Note that we only allow such expressions within simple arithmetic
-   or a COND_EXPR.  */
+/* Return true if EXP contains a PLACEHOLDER_EXPR, i.e. if it represents a
+   size or offset that depends on a field within a record.  */
 
 extern bool contains_placeholder_p (const_tree);
 
@@ -4602,9 +4618,9 @@ extern bool contains_placeholder_p (const_tree);
 #define CONTAINS_PLACEHOLDER_P(EXP) \
   ((EXP) != 0 && ! TREE_CONSTANT (EXP) && contains_placeholder_p (EXP))
 
-/* Return 1 if any part of the computation of TYPE involves a PLACEHOLDER_EXPR.
-   This includes size, bounds, qualifiers (for QUAL_UNION_TYPE) and field
-   positions.  */
+/* Return true if any part of the structure of TYPE involves a PLACEHOLDER_EXPR
+   directly.  This includes size, bounds, qualifiers (for QUAL_UNION_TYPE) and
+   field positions.  */
 
 extern bool type_contains_placeholder_p (tree);
 

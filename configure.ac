@@ -28,6 +28,7 @@ m4_include([ltoptions.m4])
 m4_include([ltsugar.m4])
 m4_include([ltversion.m4])
 m4_include([lt~obsolete.m4])
+m4_include([config/cloog.m4])
 
 AC_INIT(move-if-change)
 AC_PREREQ(2.64)
@@ -194,6 +195,7 @@ target_libraries="target-libgcc \
 		target-libstdc++-v3 \
 		target-libmudflap \
 		target-libssp \
+		target-libquadmath \
 		target-libgfortran \
 		target-boehm-gc \
 		${libgcj} \
@@ -1272,9 +1274,9 @@ have_gmp=no
 AC_ARG_WITH(mpc, [  --with-mpc=PATH        specify prefix directory for installed MPC package.
                           Equivalent to --with-mpc-include=PATH/include
                           plus --with-mpc-lib=PATH/lib])
-AC_ARG_WITH(mpc_include, [  --with-mpc-include=PATH
+AC_ARG_WITH(mpc-include, [  --with-mpc-include=PATH
                           specify directory for installed MPC include files])
-AC_ARG_WITH(mpc_lib, [  --with-mpc-lib=PATH    specify directory for the installed MPC library])
+AC_ARG_WITH(mpc-lib, [  --with-mpc-lib=PATH    specify directory for the installed MPC library])
 
 if test "x$with_mpc" != x; then
   gmplibs="-L$with_mpc/lib $gmplibs"
@@ -1305,9 +1307,9 @@ Use --with-mpfr=PATH or --with-mpfr-include=PATH plus --with-mpfr-lib=PATH]))
 AC_ARG_WITH(mpfr, [  --with-mpfr=PATH        specify prefix directory for installed MPFR package.
                           Equivalent to --with-mpfr-include=PATH/include
                           plus --with-mpfr-lib=PATH/lib])
-AC_ARG_WITH(mpfr_include, [  --with-mpfr-include=PATH
+AC_ARG_WITH(mpfr-include, [  --with-mpfr-include=PATH
                           specify directory for installed MPFR include files])
-AC_ARG_WITH(mpfr_lib, [  --with-mpfr-lib=PATH    specify directory for the installed MPFR library])
+AC_ARG_WITH(mpfr-lib, [  --with-mpfr-lib=PATH    specify directory for the installed MPFR library])
 
 if test "x$with_mpfr" != x; then
   gmplibs="-L$with_mpfr/lib $gmplibs"
@@ -1338,8 +1340,8 @@ Use --with-gmp=PATH or --with-gmp-include=PATH plus --with-gmp-lib=PATH]))
 AC_ARG_WITH(gmp, [  --with-gmp=PATH         specify prefix directory for the installed GMP package.
                           Equivalent to --with-gmp-include=PATH/include
                           plus --with-gmp-lib=PATH/lib])
-AC_ARG_WITH(gmp_include, [  --with-gmp-include=PATH specify directory for installed GMP include files])
-AC_ARG_WITH(gmp_lib, [  --with-gmp-lib=PATH     specify directory for the installed GMP library])
+AC_ARG_WITH(gmp-include, [  --with-gmp-include=PATH specify directory for installed GMP include files])
+AC_ARG_WITH(gmp-lib, [  --with-gmp-lib=PATH     specify directory for the installed GMP library])
 
 
 if test "x$with_gmp" != x; then
@@ -1543,8 +1545,8 @@ ppl_minor_version=10
 AC_ARG_WITH(ppl, [  --with-ppl=PATH         Specify prefix directory for the installed PPL package
                           Equivalent to --with-ppl-include=PATH/include
                           plus --with-ppl-lib=PATH/lib])
-AC_ARG_WITH(ppl_include, [  --with-ppl-include=PATH Specify directory for installed PPL include files])
-AC_ARG_WITH(ppl_lib, [  --with-ppl-lib=PATH     Specify the directory for the installed PPL library])
+AC_ARG_WITH(ppl-include, [  --with-ppl-include=PATH Specify directory for installed PPL include files])
+AC_ARG_WITH(ppl-lib, [  --with-ppl-lib=PATH     Specify the directory for the installed PPL library])
 
 case $with_ppl in 
   no)
@@ -1593,68 +1595,38 @@ AC_SUBST(pplinc)
 
 
 # Check for CLOOG
-clooglibs=" -lcloog "
-clooginc=" -DCLOOG_PPL_BACKEND "
 
-AC_ARG_WITH(cloog, [  --with-cloog=PATH       Specify prefix directory for the installed CLooG-PPL package
-                          Equivalent to --with-cloog-include=PATH/include
-                          plus --with-cloog-lib=PATH/lib])
-AC_ARG_WITH(cloog_include, [  --with-cloog-include=PATH Specify directory for installed CLooG include files])
-AC_ARG_WITH(cloog_lib, [  --with-cloog-lib=PATH   Specify the directory for the installed CLooG library])
-
+dnl Provide configure switches and initialize clooginc & clooglibs
+dnl with user input.
+CLOOG_INIT_FLAGS
 if test "x$with_ppl" = "xno"; then
   with_cloog=no
 fi
-
-case $with_cloog in 
-  no)
-    clooglibs=
-    clooginc=
-    ;;
-  "" | yes)
-    ;;
-  *)
-    clooglibs="-L$with_cloog/lib -lcloog"
-    clooginc="-I$with_cloog/include -DCLOOG_PPL_BACKEND "
-    ;;
-esac
-if test "x$with_cloog_include" != x; then
-  clooginc="-I$with_cloog_include -DCLOOG_PPL_BACKEND "
+if test "x${with_cloog}" = x && test "x${with_cloog_include}" = x \
+  && test "x${with_cloog_lib}" = x && test -d ${srcdir}/cloog; then
+  clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/'"$lt_cv_objdir"' '
+  clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include '
 fi
-if test "x$with_cloog_lib" != x; then
-  clooglibs="-L$with_cloog_lib -lcloog"
-fi
-if test "x$with_cloog$with_cloog_include$with_cloog_lib" = x && test -d ${srcdir}/cloog; then
-  clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/'"$lt_cv_objdir"' -lcloog '
-  clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include -DCLOOG_PPL_BACKEND '
-  enable_cloog_version_check=no
-fi
+if test "x$with_cloog" != "xno"; then
+  dnl Version check for CLooG-Org
+  dnl As long as there is no new release of CLooG,
+  dnl we will check for 0.14.0.
+  dnl
+  dnl The first git revision that will work with
+  dnl GCC is: bd91b845a65805c290d43fc1bef8139864a163fb
+  dnl This is enforced implictly, as this is the commit that
+  dnl introduced the versioning information used within our
+  dnl checks.
+  dnl
+  dnl If we're using CLooG-Legacy, the provided version information
+  dnl will be ignored.
+  CLOOG_CHECK_VERSION(0,14,0)
 
-AC_ARG_ENABLE(cloog-version-check,
-[  --disable-cloog-version-check  disable check for CLooG version],
-ENABLE_CLOOG_CHECK=$enableval,
-ENABLE_CLOOG_CHECK=yes)
-
-if test "x$with_cloog" != "xno" -a "${ENABLE_CLOOG_CHECK}" = "yes"; then
-  saved_CFLAGS="$CFLAGS"
-  CFLAGS="$CFLAGS $clooginc $gmpinc $pplinc"
-  AC_MSG_CHECKING([for version 0.15.5 (or later revision) of CLooG])
-  AC_TRY_COMPILE([#include "cloog/cloog.h"],[
-  #if CLOOG_VERSION_MAJOR != 0 || CLOOG_VERSION_MINOR != 15 || CLOOG_VERSION_REVISION < 5
-  choke me
-  #endif
-  ], [AC_TRY_COMPILE([#include "cloog/cloog.h"],[
-  #if CLOOG_VERSION_MAJOR != 0 || CLOOG_VERSION_MINOR != 15 || CLOOG_VERSION_REVISION < 9
-  choke me
-  #endif
-  ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([buggy but acceptable])])],
-  [AC_MSG_RESULT([no]); clooglibs= ; clooginc= ])
-  CFLAGS="$saved_CFLAGS"
+  dnl Only execute fail-action, if CLooG has been
+  dnl requested.
+  CLOOG_IF_FAILED([
+    AC_MSG_ERROR([Unable to find a usable CLooG. See config.log for details.])])
 fi
-
-# Flags needed for CLOOG
-AC_SUBST(clooglibs)
-AC_SUBST(clooginc)
 
 # Check for LTO support.
 AC_ARG_ENABLE(lto,
@@ -2937,7 +2909,7 @@ case " $target_configdirs " in
        # to it.  This is right: we don't want to search that directory
        # for binaries, but we want the header files in there, so add
        # them explicitly.
-       FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -isystem $$r/$(HOST_SUBDIR)/gcc/include'
+       FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -isystem $$r/$(HOST_SUBDIR)/gcc/include -isystem $$r/$(HOST_SUBDIR)/gcc/include-fixed'
 
        # Someone might think of using the pre-installed headers on
        # Canadian crosses, in case the installed compiler is not fully

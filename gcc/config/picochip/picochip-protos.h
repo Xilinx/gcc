@@ -1,7 +1,7 @@
 /* Prototypes for exported functions defined in picochip.c
 
    Copyright (C) 2000, 2001, 2008, 2009, 2010 Free Software Foundation, Inc.
-   Contributed by picoChip Designs Ltd. (http://www.picochip.com)
+   Contributed by Picochip Ltd. (http://www.picochip.com)
    Maintained by Daniel Towner (daniel.towner@picochip.com) and
    Hariharan Sandanagobalane (hariharan@picochip.com).
 
@@ -65,8 +65,6 @@ extern int picochip_absolute_memory_operand (rtx op, enum machine_mode mode);
 
 extern rtx picochip_function_value (const_tree valtype, const_tree func, bool outgoing);
 extern int picochip_symbol_offset (rtx operand);
-
-extern int picochip_get_function_arg_boundary (enum machine_mode mode);
 
 extern reg_class_t picochip_secondary_reload(bool in_p,
                                  rtx x,

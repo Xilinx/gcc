@@ -375,7 +375,7 @@ visit_hist (void **slot, void *data)
   histogram_value hist = *(histogram_value *) slot;
   if (!pointer_set_contains (visited, hist))
     {
-      error ("Dead histogram");
+      error ("dead histogram");
       dump_histogram_value (stderr, hist);
       debug_gimple_stmt (hist->hvalue.stmt);
       error_found = true;
@@ -466,7 +466,7 @@ check_counter (gimple stmt, const char * name,
               : DECL_SOURCE_LOCATION (current_function_decl);
       if (flag_profile_correction)
         {
-	  inform (locus, "Correcting inconsistent value profile: "
+	  inform (locus, "correcting inconsistent value profile: "
 		  "%s profiler overall count (%d) does not match BB count "
                   "(%d)", name, (int)*all, (int)bb_count);
 	  *all = bb_count;
@@ -476,7 +476,7 @@ check_counter (gimple stmt, const char * name,
 	}
       else
 	{
-	  error_at (locus, "Corrupted value profile: %s "
+	  error_at (locus, "corrupted value profile: %s "
 		    "profiler overall count (%d) does not match BB count (%d)",
 		    name, (int)*all, (int)bb_count);
 	  return true;
@@ -702,6 +702,7 @@ gimple_divmod_fixed_value_transform (gimple_stmt_iterator *si)
     }
 
   gimple_assign_set_rhs_from_tree (si, result);
+  update_stmt (gsi_stmt (*si));
 
   return true;
 }
@@ -851,6 +852,7 @@ gimple_mod_pow2_value_transform (gimple_stmt_iterator *si)
   result = gimple_mod_pow2 (stmt, prob, count, all);
 
   gimple_assign_set_rhs_from_tree (si, result);
+  update_stmt (gsi_stmt (*si));
 
   return true;
 }
@@ -1051,6 +1053,7 @@ gimple_mod_subtract_transform (gimple_stmt_iterator *si)
   result = gimple_mod_subtract (stmt, prob1, prob2, i, count1, count2, all);
 
   gimple_assign_set_rhs_from_tree (si, result);
+  update_stmt (gsi_stmt (*si));
 
   return true;
 }

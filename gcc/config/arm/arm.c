@@ -65,6 +65,7 @@ typedef struct minipool_fixup   Mfix;
 void (*arm_lang_output_object_attributes_hook)(void);
 
 /* Forward function declarations.  */
+static bool arm_needs_doubleword_align (enum machine_mode, const_tree);
 static int arm_compute_static_chain_stack_bytes (void);
 static arm_stack_offsets *arm_get_frame_offsets (void);
 static void arm_add_gc_roots (void);
@@ -168,6 +169,7 @@ static rtx arm_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
 			     const_tree, bool);
 static void arm_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 				      const_tree, bool);
+static unsigned int arm_function_arg_boundary (enum machine_mode, const_tree);
 static rtx aapcs_allocate_return_reg (enum machine_mode, const_tree,
 				      const_tree);
 static int aapcs_select_return_coproc (const_tree, const_tree);
@@ -415,6 +417,8 @@ static const struct default_options arm_option_optimization_table[] =
 #define TARGET_FUNCTION_ARG arm_function_arg
 #undef TARGET_FUNCTION_ARG_ADVANCE
 #define TARGET_FUNCTION_ARG_ADVANCE arm_function_arg_advance
+#undef TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY arm_function_arg_boundary
 
 #undef  TARGET_SETUP_INCOMING_VARARGS
 #define TARGET_SETUP_INCOMING_VARARGS arm_setup_incoming_varargs
@@ -3797,9 +3801,9 @@ arm_get_pcs_model (const_tree type, const_tree decl)
       if (user_convention)
 	{
 	  if (user_pcs > ARM_PCS_AAPCS_LOCAL)
-	    sorry ("Non-AAPCS derived PCS variant");
+	    sorry ("non-AAPCS derived PCS variant");
 	  else if (base_rules && user_pcs != ARM_PCS_AAPCS)
-	    error ("Variadic functions must use the base AAPCS variant");
+	    error ("variadic functions must use the base AAPCS variant");
 	}
 
       if (base_rules)
@@ -4527,7 +4531,7 @@ arm_init_cumulative_args (CUMULATIVE_ARGS *pcum, tree fntype,
 
 
 /* Return true if mode/type need doubleword alignment.  */
-bool
+static bool
 arm_needs_doubleword_align (enum machine_mode mode, const_tree type)
 {
   return (GET_MODE_ALIGNMENT (mode) > PARM_BOUNDARY
@@ -4604,6 +4608,14 @@ arm_function_arg (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
     return NULL_RTX;
 
   return gen_rtx_REG (mode, pcum->nregs);
+}
+
+static unsigned int
+arm_function_arg_boundary (enum machine_mode mode, const_tree type)
+{
+  return (ARM_DOUBLEWORD_ALIGN && arm_needs_doubleword_align (mode, type)
+	  ? DOUBLEWORD_ALIGNMENT
+	  : PARM_BOUNDARY);
 }
 
 static int
@@ -19045,7 +19057,9 @@ neon_builtin_compare (const void *a, const void *b)
 static enum insn_code
 locate_neon_builtin_icode (int fcode, neon_itype *itype)
 {
-  neon_builtin_datum key, *found;
+  neon_builtin_datum key
+    = { NULL, (neon_itype) 0, 0, { CODE_FOR_nothing }, 0, 0 };
+  neon_builtin_datum *found;
   int idx;
 
   key.base_fcode = fcode;
@@ -22900,7 +22914,7 @@ arm_count (int label,
    it to output_asm_insn.  Provides a mechanism to construct the
    output pattern on the fly.  Note the hard limit on the pattern
    buffer size.  */
-static void
+static void ATTRIBUTE_PRINTF_4
 arm_output_asm_insn (emit_f emit, int label, rtx *operands,
 		     const char *pattern, ...)
 {

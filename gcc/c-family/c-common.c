@@ -2324,10 +2324,26 @@ warn_for_collisions (struct tlist *list)
 static int
 warning_candidate_p (tree x)
 {
-  /* !VOID_TYPE_P (TREE_TYPE (x)) is workaround for cp/tree.c
+  if (DECL_P (x) && DECL_ARTIFICIAL (x))
+    return 0;
+
+  /* VOID_TYPE_P (TREE_TYPE (x)) is workaround for cp/tree.c
      (lvalue_p) crash on TRY/CATCH. */
-  return !(DECL_P (x) && DECL_ARTIFICIAL (x))
-    && TREE_TYPE (x) && !VOID_TYPE_P (TREE_TYPE (x)) && lvalue_p (x);
+  if (TREE_TYPE (x) == NULL_TREE || VOID_TYPE_P (TREE_TYPE (x)))
+    return 0;
+
+  if (!lvalue_p (x))
+    return 0;
+
+  /* No point to track non-const calls, they will never satisfy
+     operand_equal_p.  */
+  if (TREE_CODE (x) == CALL_EXPR && (call_expr_flags (x) & ECF_CONST) == 0)
+    return 0;
+
+  if (TREE_CODE (x) == STRING_CST)
+    return 0;
+
+  return 1;
 }
 
 /* Return nonzero if X and Y appear to be the same candidate (or NULL) */
@@ -6408,7 +6424,7 @@ handle_mode_attribute (tree *node, tree name, tree args,
 	  if (ALL_FIXED_POINT_MODE_P (mode)
 	      && TYPE_UNSIGNED (type) != UNSIGNED_FIXED_POINT_MODE_P (mode))
 	    {
-	      error ("signness of type and machine mode %qs don't match", p);
+	      error ("signedness of type and machine mode %qs don%'t match", p);
 	      return NULL_TREE;
 	    }
 	  /* For fixed-point modes, we need to pass saturating info.  */
@@ -7804,7 +7820,8 @@ parse_optimize_options (tree args, bool attr_p)
 						&decoded_options,
 						&decoded_options_count);
   decode_options (&global_options, &global_options_set,
-		  decoded_options, decoded_options_count);
+		  decoded_options, decoded_options_count,
+		  input_location, global_dc);
 
   targetm.override_options_after_change();
 

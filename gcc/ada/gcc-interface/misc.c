@@ -77,7 +77,7 @@ extern void _ada_gnat1drv (void);
 /* The parser for the language.  For us, we process the GNAT tree.  */
 
 static void
-gnat_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
+gnat_parse_file (void)
 {
   int seh[2];
 
@@ -102,7 +102,7 @@ gnat_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 
 static bool
 gnat_handle_option (size_t scode, const char *arg ATTRIBUTE_UNUSED, int value,
-		    int kind ATTRIBUTE_UNUSED,
+		    int kind ATTRIBUTE_UNUSED, location_t loc ATTRIBUTE_UNUSED,
 		    const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
 {
   enum opt_code code = (enum opt_code) scode;

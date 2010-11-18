@@ -1,3 +1,70 @@
+2010-11-17  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-opts.c (c_common_parse_file): Take no arguments.
+	* c-common.h (c_common_parse_file): Update prototype.
+
+2010-11-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/46401
+	* c-common.c (warning_candidate_p): Don't track non-const calls
+	or STRING_CSTs.
+
+2010-11-15  Ian Lance Taylor  <iant@google.com>
+
+	* c-lex.c (init_c_lex): Set macro debug callbacks if
+	flag_dump_go_spec is set.
+
+2010-11-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-common.h (objc_build_incr_expr_for_property_ref): New.
+	* stub-objc.c (objc_build_incr_expr_for_property_ref): New.
+
+2010-11-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR preprocessor/45038
+	* c-cppbuiltin.c (c_cpp_builtins): Use different format for C++
+	dialects.
+
+2010-11-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (c_family_lang_mask): Declare.
+	* c-opts.c (c_family_lang_mask): Make extern.
+	* c-pragma.c (handle_pragma_diagnostic): Use
+	control_warning_option.
+
+2010-11-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (parse_optimize_options): Update call to
+	decode_options.
+	* c-common.h (c_common_handle_option): Update prototype.
+	* c-opts.c (c_common_handle_option): Take location_t parameter and
+	pass it to other functions.
+
+2010-11-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-opts.c (warning_as_error_callback): Remove.
+	(c_common_initialize_diagnostics): Don't call
+	register_warning_as_error_callback.
+	(c_common_handle_option): Handle -Werror=normalized= here.
+
+2010-11-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (handle_mode_attribute): Use %' and word "signedness"
+	in diagnostic.
+	* c-opts.c (c_common_parse_file): Start diagnostics with lowercase
+	letter.
+	* c-pragma.c (handle_pragma_target, handle_pragma_optimize):
+	Remove trailing '.' from diagnostics.
+	* c.opt (Wwrite-strings_: Avoid '`' in help text.
+
+2010-11-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (parse_optimize_options): Pass global_dc to
+	decode_options.
+	* c-opts.c (c_common_handle_option): Pass &global_options to
+	set_Wstrict_aliasing.
+	* c.opt (v): Don't mark Common or document here.
+
 2010-11-06  Iain Sandoe  <iains@gcc.gnu.org>
 
 	PR target/44981

@@ -696,7 +696,7 @@ extern void set_Wformat (int);
 extern tree handle_format_attribute (tree *, tree, tree, int, bool *);
 extern tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
 extern bool attribute_takes_identifier_p (const_tree);
-extern bool c_common_handle_option (size_t, const char *, int, int,
+extern bool c_common_handle_option (size_t, const char *, int, int, location_t,
 				    const struct cl_option_handlers *);
 extern tree c_common_type_for_mode (enum machine_mode, int);
 extern tree c_common_type_for_size (unsigned int, int);
@@ -762,6 +762,7 @@ extern void set_compound_literal_name (tree decl);
 
 extern tree build_va_arg (location_t, tree, tree);
 
+extern const unsigned int c_family_lang_mask;
 extern unsigned int c_common_option_lang_mask (void);
 extern void c_common_initialize_diagnostics (diagnostic_context *);
 extern bool c_common_complain_wrong_lang_p (const struct cl_option *);
@@ -770,7 +771,7 @@ extern void c_common_init_options (unsigned int, struct cl_decoded_option *);
 extern bool c_common_post_options (const char **);
 extern bool c_common_init (void);
 extern void c_common_finish (void);
-extern void c_common_parse_file (int);
+extern void c_common_parse_file (void);
 extern alias_set_type c_common_get_alias_set (tree);
 extern void c_register_builtin_type (tree, const char*);
 extern bool c_promoting_integer_type_p (const_tree);
@@ -1039,6 +1040,8 @@ extern void objc_add_property_declaration (location_t, tree, bool, bool, bool,
 extern tree objc_maybe_build_component_ref (tree, tree);
 extern tree objc_build_class_component_ref (tree, tree);
 extern tree objc_maybe_build_modify_expr (tree, tree);
+extern tree objc_build_incr_expr_for_property_ref (location_t, enum tree_code, 
+						   tree, tree);
 extern void objc_add_synthesize_declaration (location_t, tree);
 extern void objc_add_dynamic_declaration (location_t, tree);
 extern const char * objc_maybe_printable_name (tree, int);

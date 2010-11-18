@@ -37,7 +37,6 @@ struct diagnostic_info;
 
 extern void lhd_do_nothing (void);
 extern void lhd_do_nothing_t (tree);
-extern void lhd_do_nothing_i (int);
 extern void lhd_do_nothing_f (struct function *);
 extern tree lhd_pass_through_t (tree);
 extern bool lhd_post_options (const char **);
@@ -68,7 +67,7 @@ extern void lhd_initialize_diagnostics (diagnostic_context *);
 extern void lhd_init_options (unsigned int,
 			      struct cl_decoded_option *);
 extern bool lhd_complain_wrong_lang_p (const struct cl_option *);
-extern bool lhd_handle_option (size_t, const char *, int, int,
+extern bool lhd_handle_option (size_t, const char *, int, int, location_t,
 			       const struct cl_option_handlers *);
 extern tree lhd_callgraph_analyze_expr (tree *, int *);
 
@@ -85,7 +84,7 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 #define LANG_HOOKS_IDENTIFIER_SIZE	sizeof (struct lang_identifier)
 #define LANG_HOOKS_INIT			hook_bool_void_false
 #define LANG_HOOKS_FINISH		lhd_do_nothing
-#define LANG_HOOKS_PARSE_FILE		lhd_do_nothing_i
+#define LANG_HOOKS_PARSE_FILE		lhd_do_nothing
 #define LANG_HOOKS_OPTION_LANG_MASK	hook_uint_void_0
 #define LANG_HOOKS_INIT_OPTIONS_STRUCT	hook_void_gcc_optionsp
 #define LANG_HOOKS_INIT_OPTIONS		lhd_init_options

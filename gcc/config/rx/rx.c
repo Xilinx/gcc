@@ -822,6 +822,13 @@ rx_function_arg_advance (Fargs * cum, Mmode mode, const_tree type,
   *cum += rx_function_arg_size (mode, type);
 }
 
+static unsigned int
+rx_function_arg_boundary (Mmode mode ATTRIBUTE_UNUSED,
+			  const_tree type ATTRIBUTE_UNUSED)
+{
+  return 32;
+}
+
 /* Return an RTL describing where a function return value of type RET_TYPE
    is held.  */
 
@@ -846,7 +853,7 @@ rx_function_value (const_tree ret_type,
 static enum machine_mode
 rx_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
 			  enum machine_mode mode,
-			  int * punsignedp,
+			  int * punsignedp ATTRIBUTE_UNUSED,
 			  const_tree funtype ATTRIBUTE_UNUSED,
 			  int for_return)
 {
@@ -2000,7 +2007,7 @@ rx_expand_builtin_round (rtx arg, rtx target)
 }
 
 static int
-valid_psw_flag (rtx op, char *which)
+valid_psw_flag (rtx op, const char *which)
 {
   static int mvtc_inform_done = 0;
 
@@ -2206,7 +2213,7 @@ rx_handle_option (size_t code, const char *  arg ATTRIBUTE_UNUSED, int value)
       
     case OPT_fpu:
       if (rx_cpu_type == RX200)
-	error ("The RX200 cpu does not have FPU hardware");
+	error ("the RX200 cpu does not have FPU hardware");
       break;
 
     default:
@@ -2306,7 +2313,8 @@ rx_file_start (void)
 static bool
 rx_is_ms_bitfield_layout (const_tree record_type ATTRIBUTE_UNUSED)
 {
-  return TRUE;
+  /* The packed attribute overrides the MS behaviour.  */
+  return ! TYPE_PACKED (record_type);
 }
 
 /* Try to generate code for the "isnv" pattern which inserts bits
@@ -2744,7 +2752,7 @@ rx_compare_redundant (rtx cmp)
 }
 
 static int
-rx_memory_move_cost (enum machine_mode mode, enum reg_class regclass, bool in)
+rx_memory_move_cost (enum machine_mode mode, reg_class_t regclass, bool in)
 {
   return 2 + memory_move_secondary_cost (mode, regclass, in);
 }
@@ -2814,6 +2822,9 @@ rx_memory_move_cost (enum machine_mode mode, enum reg_class regclass, bool in)
 
 #undef  TARGET_FUNCTION_ARG_ADVANCE
 #define TARGET_FUNCTION_ARG_ADVANCE     	rx_function_arg_advance
+
+#undef	TARGET_FUNCTION_ARG_BOUNDARY
+#define	TARGET_FUNCTION_ARG_BOUNDARY		rx_function_arg_boundary
 
 #undef  TARGET_SET_CURRENT_FUNCTION
 #define TARGET_SET_CURRENT_FUNCTION		rx_set_current_function

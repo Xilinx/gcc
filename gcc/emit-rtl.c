@@ -2526,6 +2526,8 @@ verify_rtl_sharing (void)
 {
   rtx p;
 
+  timevar_push (TV_VERIFY_RTL_SHARING);
+
   for (p = get_insns (); p; p = NEXT_INSN (p))
     if (INSN_P (p))
       {
@@ -2552,6 +2554,8 @@ verify_rtl_sharing (void)
 	verify_rtx_sharing (PATTERN (p), p);
 	verify_rtx_sharing (REG_NOTES (p), p);
       }
+
+  timevar_pop (TV_VERIFY_RTL_SHARING);
 }
 
 /* Go through all the RTL insn bodies and copy any invalid shared structure.
@@ -3867,7 +3871,7 @@ remove_insn (rtx insn)
   if (!BARRIER_P (insn)
       && (bb = BLOCK_FOR_INSN (insn)))
     {
-      if (INSN_P (insn))
+      if (NONDEBUG_INSN_P (insn))
 	df_set_bb_dirty (bb);
       if (BB_HEAD (bb) == insn)
 	{

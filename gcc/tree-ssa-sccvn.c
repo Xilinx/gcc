@@ -2167,41 +2167,17 @@ visit_copy (tree lhs, tree rhs)
   return set_ssa_val_to (lhs, rhs);
 }
 
-/* Visit a unary operator RHS, value number it, and return true if the
+/* Visit a nary operator RHS, value number it, and return true if the
    value number of LHS has changed as a result.  */
 
 static bool
-visit_unary_op (tree lhs, gimple stmt)
+visit_nary_op (tree lhs, gimple stmt)
 {
   bool changed = false;
   tree result = vn_nary_op_lookup_stmt (stmt, NULL);
 
   if (result)
-    {
-      changed = set_ssa_val_to (lhs, result);
-    }
-  else
-    {
-      changed = set_ssa_val_to (lhs, lhs);
-      vn_nary_op_insert_stmt (stmt, lhs);
-    }
-
-  return changed;
-}
-
-/* Visit a binary operator RHS, value number it, and return true if the
-   value number of LHS has changed as a result.  */
-
-static bool
-visit_binary_op (tree lhs, gimple stmt)
-{
-  bool changed = false;
-  tree result = vn_nary_op_lookup_stmt (stmt, NULL);
-
-  if (result)
-    {
-      changed = set_ssa_val_to (lhs, result);
-    }
+    changed = set_ssa_val_to (lhs, result);
   else
     {
       changed = set_ssa_val_to (lhs, lhs);
@@ -2909,10 +2885,9 @@ visit_use (tree use)
 		  switch (get_gimple_rhs_class (gimple_assign_rhs_code (stmt)))
 		    {
 		    case GIMPLE_UNARY_RHS:
-		      changed = visit_unary_op (lhs, stmt);
-		      break;
 		    case GIMPLE_BINARY_RHS:
-		      changed = visit_binary_op (lhs, stmt);
+		    case GIMPLE_TERNARY_RHS:
+		      changed = visit_nary_op (lhs, stmt);
 		      break;
 		    case GIMPLE_SINGLE_RHS:
 		      switch (TREE_CODE_CLASS (gimple_assign_rhs_code (stmt)))
@@ -2921,10 +2896,10 @@ visit_use (tree use)
 			  /* VOP-less references can go through unary case.  */
 			  if ((gimple_assign_rhs_code (stmt) == REALPART_EXPR
 			       || gimple_assign_rhs_code (stmt) == IMAGPART_EXPR
-			       || gimple_assign_rhs_code (stmt) == VIEW_CONVERT_EXPR )
+			       || gimple_assign_rhs_code (stmt) == VIEW_CONVERT_EXPR)
 			      && TREE_CODE (TREE_OPERAND (gimple_assign_rhs1 (stmt), 0)) == SSA_NAME)
 			    {
-			      changed = visit_unary_op (lhs, stmt);
+			      changed = visit_nary_op (lhs, stmt);
 			      break;
 			    }
 			  /* Fallthrough.  */
@@ -2935,7 +2910,7 @@ visit_use (tree use)
 			case tcc_expression:
 			  if (gimple_assign_rhs_code (stmt) == ADDR_EXPR)
 			    {
-			      changed = visit_unary_op (lhs, stmt);
+			      changed = visit_nary_op (lhs, stmt);
 			      break;
 			    }
 			  /* Fallthrough.  */
@@ -3108,9 +3083,20 @@ process_scc (VEC (tree, heap) *scc)
   if (VEC_length (tree, scc) == 1)
     {
       tree use = VEC_index (tree, scc, 0);
-      if (!VN_INFO (use)->use_processed)
-	visit_use (use);
-      return;
+      if (VN_INFO (use)->use_processed)
+	return;
+      /* We need to make sure it doesn't form a cycle itself, which can
+	 happen for self-referential PHI nodes.  In that case we would
+	 end up inserting an expression with VN_TOP operands into the
+	 valid table which makes us derive bogus equivalences later.
+	 The cheapest way to check this is to assume it for all PHI nodes.  */
+      if (gimple_code (SSA_NAME_DEF_STMT (use)) == GIMPLE_PHI)
+	/* Fallthru to iteration.  */ ;
+      else
+	{
+	  visit_use (use);
+	  return;
+	}
     }
 
   /* Iterate over the SCC with the optimistic table until it stops

@@ -96,7 +96,7 @@ enum ia64_inline_type
 /* Default target_flags if no switches are specified  */
 
 #ifndef TARGET_DEFAULT
-#define TARGET_DEFAULT (MASK_DWARF2_ASM | MASK_FUSED_MADD)
+#define TARGET_DEFAULT (MASK_DWARF2_ASM)
 #endif
 
 #ifndef TARGET_CPU_DEFAULT
@@ -1069,15 +1069,6 @@ do {									\
   (CUM).atypes[3] = (CUM).atypes[4] = (CUM).atypes[5] = I64;            \
   (CUM).atypes[6] = (CUM).atypes[7] = I64;                              \
 } while (0)
-
-/* If defined, a C expression that gives the alignment boundary, in bits, of an
-   argument with the specified mode and type.  */
-
-/* Return the alignment boundary in bits for an argument with a specified
-   mode and type.  */
-
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE) \
-  ia64_function_arg_boundary (MODE, TYPE)
 
 /* A C expression that is nonzero if REGNO is the number of a hard register in
    which function arguments are sometimes passed.  This does *not* include

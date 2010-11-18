@@ -188,16 +188,6 @@ process_references (struct ipa_ref_list *list,
     }
 }
 
-/* Return true when function NODE can be removed from callgraph
-   if all direct calls are eliminated.  */
-
-static inline bool
-varpool_can_remove_if_no_refs (struct varpool_node *node)
-{
-  return (!node->force_output && !node->used_from_other_partition
-  	  && (DECL_COMDAT (node->decl) || !node->externally_visible));
-}
-
 /* Return true when function can be marked local.  */
 
 static bool
@@ -269,7 +259,8 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
     {
       vnode->next_needed = NULL;
       vnode->prev_needed = NULL;
-      if (!varpool_can_remove_if_no_refs (vnode))
+      if (vnode->analyzed
+	  && !varpool_can_remove_if_no_refs (vnode))
 	{
 	  vnode->needed = false;
 	  varpool_mark_needed_node (vnode);
@@ -938,7 +929,7 @@ function_and_variable_visibility (bool whole_program)
 static unsigned int
 local_function_and_variable_visibility (void)
 {
-  return function_and_variable_visibility (flag_whole_program && !flag_lto && !flag_whopr);
+  return function_and_variable_visibility (flag_whole_program && !flag_lto);
 }
 
 struct simple_ipa_opt_pass pass_ipa_function_and_variable_visibility =

@@ -99,26 +99,6 @@ from being defined in the @file{.h} file to being part of the
 @c prevent bad page break with this line
 You can control the compilation driver.
 
-@defmac TARGET_OPTION_TRANSLATE_TABLE
-If defined, a list of pairs of strings, the first of which is a
-potential command line target to the @file{gcc} driver program, and the
-second of which is a space-separated (tabs and other whitespace are not
-supported) list of options with which to replace the first option.  The
-target defining this list is responsible for assuring that the results
-are valid.  Replacement options may not be the @code{--opt} style, they
-must be the @code{-opt} style.  It is the intention of this macro to
-provide a mechanism for substitution that affects the multilibs chosen,
-such as one option that enables many options, some of which select
-multilibs.  Example nonsensical definition, where @option{-malt-abi},
-@option{-EB}, and @option{-mspoo} cause different multilibs to be chosen:
-
-@smallexample
-#define TARGET_OPTION_TRANSLATE_TABLE \
-@{ "-fast",   "-march=fast-foo -malt-abi -I/usr/fast-foo" @}, \
-@{ "-compat", "-EB -malign=4 -mspoo" @}
-@end smallexample
-@end defmac
-
 @defmac DRIVER_SELF_SPECS
 A list of specs for the driver itself.  It should be a suitable
 initializer for an array of strings, with no surrounding braces.
@@ -1134,6 +1114,8 @@ If this macro is not defined, then @var{basic-align} is used.
 
 One use of this macro is to increase alignment of medium-size data to
 make it all fit in fewer cache lines.
+
+It the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
 @defmac STACK_SLOT_ALIGNMENT (@var{type}, @var{mode}, @var{basic-align})
@@ -1149,6 +1131,8 @@ be used.
 
 This macro is to set alignment of stack slot to the maximum alignment
 of all possible modes which the slot may have.
+
+It the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
 @defmac LOCAL_DECL_ALIGNMENT (@var{decl})
@@ -1161,6 +1145,8 @@ is used.
 
 One use of this macro is to increase alignment of medium-size data to
 make it all fit in fewer cache lines.
+
+It the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
 @defmac MINIMUM_ALIGNMENT (@var{exp}, @var{mode}, @var{align})
@@ -3871,6 +3857,8 @@ alignment.  Then the definition should be
 @smallexample
 #define PUSH_ROUNDING(BYTES) (((BYTES) + 1) & ~1)
 @end smallexample
+
+It the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
 @findex current_function_outgoing_args_size
@@ -4202,8 +4190,8 @@ to pad out an argument with extra space.  The value should be of type
 @code{downward} to pad below, or @code{none} to inhibit padding.
 
 The @emph{amount} of padding is always just enough to reach the next
-multiple of @code{FUNCTION_ARG_BOUNDARY}; this macro does not control
-it.
+multiple of @code{TARGET_FUNCTION_ARG_BOUNDARY}; this macro does not
+control it.
 
 This macro has a default definition which is right for most systems.
 For little-endian machines, the default is to pad upward.  For
@@ -4230,11 +4218,11 @@ a three byte aggregate may be passed in the high part of a register if so
 required.
 @end defmac
 
-@defmac FUNCTION_ARG_BOUNDARY (@var{mode}, @var{type})
-If defined, a C expression that gives the alignment boundary, in bits,
-of an argument with the specified mode and type.  If it is not defined,
-@code{PARM_BOUNDARY} is used for all arguments.
-@end defmac
+@deftypefn {Target Hook} {unsigned int} TARGET_FUNCTION_ARG_BOUNDARY (enum machine_mode @var{mode}, const_tree @var{type})
+This hook returns the the alignment boundary, in bits, of an argument
+with the specified mode and type.  The default hook returns
+@code{PARM_BOUNDARY} for all arguments.
+@end deftypefn
 
 @defmac FUNCTION_ARG_REGNO_P (@var{regno})
 A C expression that is nonzero if @var{regno} is the number of a hard
@@ -8443,16 +8431,24 @@ part of a cross compiler always uses @command{nm} for the target machine.
 Define this macro as a C string constant containing the file name to use
 to execute @command{nm}.  The default is to search the path normally for
 @command{nm}.
+@end defmac
+
+@defmac NM_FLAGS
+@command{collect2} calls @command{nm} to scan object files for static
+constructors and destructors and LTO info.  By default, @option{-n} is
+passed.  Define @code{NM_FLAGS} to a C string constant if other options
+are needed to get the same output formut as GNU @command{nm -n}
+produces.
+@end defmac
 
 If your system supports shared libraries and has a program to list the
 dynamic dependencies of a given library or executable, you can define
 these macros to enable support for running initialization and
 termination functions in shared libraries:
-@end defmac
 
 @defmac LDD_SUFFIX
 Define this macro to a C string constant containing the name of the program
-which lists dynamic dependencies, like @command{"ldd"} under SunOS 4.
+which lists dynamic dependencies, like @command{ldd} under SunOS 4.
 @end defmac
 
 @defmac PARSE_LDD_OUTPUT (@var{ptr})
@@ -8489,6 +8485,22 @@ If defined, a C initializer for an array of structures containing a name
 and a register number.  This macro defines additional names for hard
 registers, thus allowing the @code{asm} option in declarations to refer
 to registers using alternate names.
+@end defmac
+
+@defmac OVERLAPPING_REGISTER_NAMES
+If defined, a C initializer for an array of structures containing a
+name, a register number and a count of the number of consecutive
+machine registers the name overlaps.  This macro defines additional
+names for hard registers, thus allowing the @code{asm} option in
+declarations to refer to registers using alternate names.  Unlike
+@code{ADDITIONAL_REGISTER_NAMES}, this macro should be used when the
+register name implies multiple underlying registers.
+
+This macro should be used when it is important that a clobber in an
+@code{asm} statement clobbers all the underlying values implied by the
+register name.  For example, on ARM, clobbering the double-precision
+VFP register ``d0'' implies clobbering both single-precision registers
+``s0'' and ``s1''.
 @end defmac
 
 @defmac ASM_OUTPUT_OPCODE (@var{stream}, @var{ptr})
