@@ -106,13 +106,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef _Tp                       element_type;
       typedef _Dp                       deleter_type;
 
-      static_assert(!std::is_pointer<deleter_type>::value,
-		    "constructed with null function pointer deleter");
-
       // Constructors.
       constexpr unique_ptr()
       : _M_t()
-      { }
+      { static_assert(!std::is_pointer<deleter_type>::value,
+		     "constructed with null function pointer deleter"); }
 
       explicit
       unique_ptr(pointer __p)
@@ -132,8 +130,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		      "rvalue deleter bound to reference"); }
 
       constexpr unique_ptr(nullptr_t)
-      : _M_t(pointer(), deleter_type())
-      { }
+      : _M_t()
+      { static_assert(!std::is_pointer<deleter_type>::value,
+		     "constructed with null function pointer deleter"); }
 
       // Move constructors.
       unique_ptr(unique_ptr&& __u)
@@ -269,18 +268,17 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef _Tp		 	element_type;
       typedef _Dp                       deleter_type;
 
-      static_assert(!std::is_pointer<deleter_type>::value,
-		    "constructed with null function pointer deleter");
-
       // Constructors.
       constexpr unique_ptr()
-      : _M_t(pointer(), deleter_type())
-      { }
+      : _M_t()
+      { static_assert(!std::is_pointer<deleter_type>::value,
+		     "constructed with null function pointer deleter"); }
 
       explicit
       unique_ptr(pointer __p)
       : _M_t(__p, deleter_type())
-      { }
+      { static_assert(!std::is_pointer<deleter_type>::value,
+		     "constructed with null function pointer deleter"); }
 
       unique_ptr(pointer __p,
 	  typename std::conditional<std::is_reference<deleter_type>::value,
@@ -293,10 +291,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       { static_assert(!std::is_reference<deleter_type>::value,
 		      "rvalue deleter bound to reference"); }
 
-      /* TODO: use delegating constructor */
       constexpr unique_ptr(nullptr_t)
-      : _M_t(pointer(), deleter_type())
-      { }
+      : _M_t()
+      { static_assert(!std::is_pointer<deleter_type>::value,
+		     "constructed with null function pointer deleter"); }
 
       // Move constructors.
       unique_ptr(unique_ptr&& __u)

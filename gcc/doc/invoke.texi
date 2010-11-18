@@ -229,7 +229,8 @@ Objective-C and Objective-C++ Dialects}.
 
 @item Warning Options
 @xref{Warning Options,,Options to Request or Suppress Warnings}.
-@gccoptlist{-fsyntax-only  -pedantic  -pedantic-errors @gol
+@gccoptlist{-fsyntax-only  fmax-errors=@var{n}  -pedantic @gol
+-pedantic-errors @gol
 -w  -Wextra  -Wall  -Waddress  -Waggregate-return  -Warray-bounds @gol
 -Wno-attributes -Wno-builtin-macro-redefined @gol
 -Wc++-compat -Wc++0x-compat -Wcast-align  -Wcast-qual  @gol
@@ -598,7 +599,7 @@ Objective-C and Objective-C++ Dialects}.
 -mcld -mcx16 -msahf -mmovbe -mcrc32 -mrecip -mvzeroupper @gol
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
 -maes -mpclmul -mfsgsbase -mrdrnd -mf16c -mfused-madd @gol
--msse4a -m3dnow -mpopcnt -mabm -mfma4 -mxop -mlwp @gol
+-msse4a -m3dnow -mpopcnt -mabm -mbmi -mtbm -mfma4 -mxop -mlwp @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
 -minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
@@ -2774,6 +2775,15 @@ warnings but control the kinds of diagnostics produced by GCC.
 @item -fsyntax-only
 @opindex fsyntax-only
 Check the code for syntax errors, but don't do anything beyond that.
+
+@item -fmax-errors=@var{n}
+@opindex fmax-errors
+Limits the maximum number of error messages to @var{n}, at which point
+GCC bails out rather than attempting to continue processing the source
+code.  If @var{n} is 0 (the default), there is no limit on the number
+of error messages produced.  If @option{-Wfatal-errors} is also
+specified, then @option{-Wfatal-errors} takes precedence over this
+option.
 
 @item -w
 @opindex w
@@ -7429,14 +7439,14 @@ and those merged by attribute @code{externally_visible} become static functions
 and in effect are optimized more aggressively by interprocedural optimizers. If @command{gold} is used as the linker plugin, @code{externally_visible} attributes are automatically added to functions (not variable yet due to a current @command{gold} issue) that are accessed outside of LTO objects according to resolution file produced by @command{gold}.  For other linkers that cannot generate resolution file, explicit @code{externally_visible} attributes are still necessary.
 While this option is equivalent to proper use of the @code{static} keyword for
 programs consisting of a single file, in combination with option
-@option{-flto} or @option{-fwhopr} this flag can be used to
+@option{-flto} this flag can be used to
 compile many smaller scale programs since the functions and variables become
 local for the whole combined compilation unit, not for the single source file
 itself.
 
 This option implies @option{-fwhole-file} for Fortran programs.
 
-@item -flto
+@item -flto[=@var{n}]
 @opindex flto
 This option runs the standard link-time optimizer.  When invoked
 with source code, it generates GIMPLE (one of GCC's internal
@@ -7575,12 +7585,13 @@ If you are not using @command{gold} and/or do not specify
 will be extracted and linked as usual, but they will not participate
 in the LTO optimization process.
 
-Link time optimizations do not require the presence of the whole
-program to operate.  If the program does not require any symbols to
-be exported, it is possible to combine @option{-flto} and
-@option{-fwhopr} with @option{-fwhole-program} to allow the
-interprocedural optimizers to use more aggressive assumptions which
-may lead to improved optimization opportunities.
+Link time optimizations do not require the presence of the whole program to
+operate.  If the program does not require any symbols to be exported, it is
+possible to combine @option{-flto} and with @option{-fwhole-program} to allow
+the interprocedural optimizers to use more aggressive assumptions which may
+lead to improved optimization opportunities. 
+Use of @option{-fwhole-program} is not needed when linker plugin is
+active (see @option{-fuse-linker-plugin}).
 
 Regarding portability: the current implementation of LTO makes no
 attempt at generating bytecode that can be ported between different
@@ -7589,22 +7600,8 @@ strict version check, so bytecode files generated in one version of
 GCC will not work with an older/newer version of GCC.
 
 Link time optimization does not play well with generating debugging
-information.  Combining @option{-flto} or @option{-fwhopr} with
+information.  Combining @option{-flto} with
 @option{-g} is experimental.
-
-This option is disabled by default.
-
-@item -fwhopr[=@var{n}]
-@opindex fwhopr
-This option is identical in functionality to @option{-flto} but it
-differs in how the final link stage is executed.  Instead of loading
-all the function bodies in memory, the callgraph is analyzed and
-optimization decisions are made (whole program analysis or WPA). Once
-optimization decisions are made, the callgraph is partitioned and the
-different sections are compiled separately (local transformations or
-LTRANS)@.  This process allows optimizations on very large programs
-that otherwise would not fit in memory.  This option enables
-@option{-fwpa} and @option{-fltrans} automatically.
 
 If you specify the optional @var{n} the link stage is executed in
 parallel using @var{n} parallel jobs by utilizing an installed
@@ -7618,14 +7615,16 @@ The parent Makefile will need a @samp{+} prepended to the command recipe
 for this to work. This will likely only work if @env{MAKE} is 
 GNU make.
 
-Disabled by default.
+This option is disabled by default.
 
 @item -flto-partition=@var{alg}
 @opindex flto-partition
 Specify partitioning algorithm used by @option{-fwhopr} mode.  The value is
 either @code{1to1} to specify partitioning corresponding to source files
 or @code{balanced} to specify partitioning into, if possible, equally sized
-chunks.  The default value is @code{balanced}.
+chunks.  Specifying @code{none} as an algorithm disables partitioning
+and streaming completely.
+The default value is @code{balanced}.
 
 @item -fwpa
 @opindex fwpa
@@ -8335,13 +8334,18 @@ whose probability exceeds given threshold (in percents).  The default value is
 
 @item early-inlining-insns
 Specify growth that early inliner can make.  In effect it increases amount of
-inlining for code having large abstraction penalty.  The default value is 8.
+inlining for code having large abstraction penalty.  The default value is 10.
 
 @item max-early-inliner-iterations
 @itemx max-early-inliner-iterations
 Limit of iterations of early inliner.  This basically bounds number of nested
 indirect calls early inliner can resolve.  Deeper chains are still handled by
 late inlining.
+
+@item comdat-sharing-probability
+@itemx comdat-sharing-probability
+Probability (in percent) that C++ inline function with comdat visibility
+will be shared acroess multiple compilation units.  The default value is 20.
 
 @item min-vect-loop-bound
 The minimum number of iterations under which a loop will not get vectorized
@@ -12445,6 +12449,10 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-popcnt
 @itemx -mabm
 @itemx -mno-abm
+@itemx -mbmi
+@itemx -mno-bmi
+@itemx -mtbm
+@itemx -mno-tbm
 @opindex mmmx
 @opindex mno-mmx
 @opindex msse
@@ -12453,7 +12461,7 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX,
 SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, FSGSBASE, RDRND,
-F16C, SSE4A, FMA4, XOP, LWP, ABM or 3DNow!@: extended instruction sets.
+F16C, SSE4A, FMA4, XOP, LWP, ABM, BMI, or 3DNow!@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
 disabled by these switches.
@@ -14027,7 +14035,7 @@ The processor names are:
 @samp{34kc}, @samp{34kf2_1}, @samp{34kf1_1},
 @samp{74kc}, @samp{74kf2_1}, @samp{74kf1_1}, @samp{74kf3_2},
 @samp{1004kc}, @samp{1004kf2_1}, @samp{1004kf1_1},
-@samp{loongson2e}, @samp{loongson2f},
+@samp{loongson2e}, @samp{loongson2f}, @samp{loongson3a},
 @samp{m4k},
 @samp{octeon},
 @samp{orion},

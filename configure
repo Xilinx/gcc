@@ -765,6 +765,7 @@ enable_ppl_version_check
 with_cloog
 with_cloog_include
 with_cloog_lib
+enable_cloog_backend
 enable_cloog_version_check
 enable_lto
 enable_stage1_languages
@@ -1451,7 +1452,12 @@ Optional Features:
   --enable-libssp         build libssp directory
   --enable-build-with-cxx build with C++ compiler instead of C compiler
   --disable-ppl-version-check    disable check for PPL version
-  --disable-cloog-version-check  disable check for CLooG version
+  --enable-cloog-backend=backend
+				isl: The cloog.org isl backend
+				ppl-legacy: The legacy ppl backend - default
+				ppl: The cloog.org ppl backend
+  --disable-cloog-version-check
+                          disable check for CLooG version
   --enable-lto            enable link time optimization support
   --enable-stage1-languages[=all]   choose additional languages to build during
                           stage1.  Mostly useful for compiler development.
@@ -1502,11 +1508,14 @@ Optional Packages:
                           plus --with-ppl-lib=PATH/lib
   --with-ppl-include=PATH Specify directory for installed PPL include files
   --with-ppl-lib=PATH     Specify the directory for the installed PPL library
-  --with-cloog=PATH       Specify prefix directory for the installed CLooG-PPL package
-                          Equivalent to --with-cloog-include=PATH/include
-                          plus --with-cloog-lib=PATH/lib
-  --with-cloog-include=PATH Specify directory for installed CLooG include files
-  --with-cloog-lib=PATH   Specify the directory for the installed CLooG library
+  --with-cloog=PATH       Specify prefix directory for the installed CLooG-PPL
+                          package. Equivalent to
+                          --with-cloog-include=PATH/include plus
+                          --with-cloog-lib=PATH/lib
+  --with-cloog-include=PATH
+                          Specify directory for installed CLooG include files
+  --with-cloog-lib=PATH   Specify the directory for the installed CLooG
+                          library
   --with-build-sysroot=SYSROOT
                           use sysroot as the system root during the build
   --with-debug-prefix-map='A=B C=D ...'
@@ -5651,8 +5660,7 @@ fi
 
 
 # Check for CLOOG
-clooglibs=" -lcloog "
-clooginc=" -DCLOOG_PPL_BACKEND "
+
 
 
 # Check whether --with-cloog was given.
@@ -5673,35 +5681,20 @@ if test "${with_cloog_lib+set}" = set; then :
 fi
 
 
-if test "x$with_ppl" = "xno"; then
-  with_cloog=no
+  # Check whether --enable-cloog-backend was given.
+if test "${enable_cloog_backend+set}" = set; then :
+  enableval=$enable_cloog_backend;  if   test "x${enableval}" = "xisl"; then
+	cloog_backend=isl
+      elif test "x${enableval}" = "xppl"; then
+	cloog_backend=ppl
+      else
+	cloog_backend=ppl-legacy
+      fi
+else
+  cloog_backend=ppl-legacy
 fi
 
-case $with_cloog in
-  no)
-    clooglibs=
-    clooginc=
-    ;;
-  "" | yes)
-    ;;
-  *)
-    clooglibs="-L$with_cloog/lib -lcloog"
-    clooginc="-I$with_cloog/include -DCLOOG_PPL_BACKEND "
-    ;;
-esac
-if test "x$with_cloog_include" != x; then
-  clooginc="-I$with_cloog_include -DCLOOG_PPL_BACKEND "
-fi
-if test "x$with_cloog_lib" != x; then
-  clooglibs="-L$with_cloog_lib -lcloog"
-fi
-if test "x$with_cloog$with_cloog_include$with_cloog_lib" = x && test -d ${srcdir}/cloog; then
-  clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/'"$lt_cv_objdir"' -lcloog '
-  clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include -DCLOOG_PPL_BACKEND '
-  enable_cloog_version_check=no
-fi
-
-# Check whether --enable-cloog-version-check was given.
+  # Check whether --enable-cloog-version-check was given.
 if test "${enable_cloog_version_check+set}" = set; then :
   enableval=$enable_cloog_version_check; ENABLE_CLOOG_CHECK=$enableval
 else
@@ -5709,22 +5702,238 @@ else
 fi
 
 
-if test "x$with_cloog" != "xno" -a "${ENABLE_CLOOG_CHECK}" = "yes"; then
-  saved_CFLAGS="$CFLAGS"
-  CFLAGS="$CFLAGS $clooginc $gmpinc $pplinc"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for version 0.15.5 (or later revision) of CLooG" >&5
+  # Initialize clooglibs and clooginc.
+  case $with_cloog in
+    no)
+      clooglibs=
+      clooginc=
+      ;;
+    "" | yes)
+      ;;
+    *)
+      clooglibs="-L$with_cloog/lib"
+      clooginc="-I$with_cloog/include"
+      ;;
+  esac
+  if test "x${with_cloog_include}" != x ; then
+    clooginc="-I$with_cloog_include"
+  fi
+  if test "x${with_cloog_lib}" != x; then
+    clooglibs="-L$with_cloog_lib"
+  fi
+
+
+
+
+
+if test "x$with_ppl" = "xno"; then
+  with_cloog=no
+fi
+if test "x${with_cloog}" = x && test "x${with_cloog_include}" = x \
+  && test "x${with_cloog_lib}" = x && test -d ${srcdir}/cloog; then
+  clooglibs='-L$$r/$(HOST_SUBDIR)/cloog/'"$lt_cv_objdir"' '
+  clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include '
+fi
+if test "x$with_cloog" != "xno"; then
+
+
+
+  _cloog_saved_CFLAGS=$CFLAGS
+  _cloog_saved_CPPFLAGS=$CPPFLAGS
+  _cloog_saved_LDFLAGS=$LDFLAGS
+  _cloog_saved_LIBS=$LIBS
+
+  _cloogorginc="-DCLOOG_INT_GMP -DCLOOG_ORG"
+
+    CFLAGS="${CFLAGS} ${clooginc} ${gmpinc}"
+  CPPFLAGS="${CPPFLAGS} ${_cloogorginc}"
+  LDFLAGS="${LDFLAGS} ${clooglibs}"
+
+  case $cloog_backend in
+    "ppl-legacy")
+    CFLAGS="${CFLAGS} ${pplinc}"
+    LDFLAGS="${LDFLAGS} ${ppllibs}"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for installed CLooG PPL Legacy" >&5
+$as_echo_n "checking for installed CLooG PPL Legacy... " >&6; }
+if test "${gcc_cv_cloog_type+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  LIBS="-lcloog ${_cloog_saved_LIBS}"
+      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include "cloog/cloog.h"
+int
+main ()
+{
+#ifndef CLOOG_PPL_BACKEND
+    choke me
+   #endif
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  gcc_cv_cloog_type="PPL Legacy"
+else
+  gcc_cv_cloog_type=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_cloog_type" >&5
+$as_echo "$gcc_cv_cloog_type" >&6; }
+    ;;
+    "isl")
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for installed CLooG ISL" >&5
+$as_echo_n "checking for installed CLooG ISL... " >&6; }
+if test "${gcc_cv_cloog_type+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  LIBS="-lcloog-isl ${_cloog_saved_LIBS}"
+      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include "cloog/cloog.h"
+int
+main ()
+{
+cloog_version ()
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  gcc_cv_cloog_type="ISL"
+else
+  gcc_cv_cloog_type=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_cloog_type" >&5
+$as_echo "$gcc_cv_cloog_type" >&6; }
+    ;;
+    "ppl")
+    CFLAGS="${CFLAGS} ${pplinc}"
+    LDFLAGS="${LDFLAGS} ${ppllibs}"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for installed CLooG PPL" >&5
+$as_echo_n "checking for installed CLooG PPL... " >&6; }
+if test "${gcc_cv_cloog_type+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  LIBS="-lcloog-ppl ${_cloog_saved_LIBS}"
+      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include "cloog/cloog.h"
+   #include "cloog/ppl/cloog.h"
+int
+main ()
+{
+cloog_version ()
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  gcc_cv_cloog_type="PPL"
+else
+  gcc_cv_cloog_type=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_cloog_type" >&5
+$as_echo "$gcc_cv_cloog_type" >&6; }
+    ;;
+    *)
+      gcc_cv_cloog_type=""
+  esac
+
+  case $gcc_cv_cloog_type in
+    "PPL Legacy")
+      clooginc="${clooginc}"
+      clooglibs="${clooglibs} -lcloog"
+      cloog_org=no
+      ;;
+    "ISL")
+      clooginc="${clooginc} ${_cloogorginc}"
+      clooglibs="${clooglibs} -lcloog-isl"
+      cloog_org=yes
+      ;;
+    "PPL")
+      clooginc="${clooginc} ${_cloogorginc}"
+      clooglibs="${clooglibs} -lcloog-ppl"
+      cloog_org=yes
+      ;;
+    *)
+      clooglibs=
+      clooginc=
+      cloog_org=
+      ;;
+  esac
+
+  LIBS=$_cloog_saved_LIBS
+  CFLAGS=$_cloog_saved_CFLAGS
+  CPPFLAGS=$_cloog_saved_CPPFLAGS
+  LDFLAGS=$_cloog_saved_LDFLAGS
+
+
+
+
+
+  if test "${ENABLE_CLOOG_CHECK}" = yes ; then
+    _cloog_saved_CFLAGS=$CFLAGS
+    _cloog_saved_LDFLAGS=$LDFLAGS
+
+    CFLAGS="${_cloog_saved_CFLAGS} ${clooginc} ${pplinc} ${gmpinc}"
+    LDFLAGS="${_cloog_saved_LDFLAGS} ${clooglibs} ${ppllibs}"
+
+    if test "${cloog_org}" = yes ; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for version 0.14.0 of CLooG" >&5
+$as_echo_n "checking for version 0.14.0 of CLooG... " >&6; }
+if test "${gcc_cv_cloog_ct_0_14_0+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include "cloog/cloog.h"
+int
+main ()
+{
+#if CLOOG_VERSION_MAJOR != 0 \
+    || CLOOG_VERSION_MINOR != 14 \
+    || CLOOG_VERSION_REVISION < 0
+    choke me
+   #endif
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gcc_cv_cloog_ct_0_14_0=yes
+else
+  gcc_cv_cloog_ct_0_14_0=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_cloog_ct_0_14_0" >&5
+$as_echo "$gcc_cv_cloog_ct_0_14_0" >&6; }
+    elif test "${cloog_org}" = no ; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for version 0.15.5 (or later revision) of CLooG" >&5
 $as_echo_n "checking for version 0.15.5 (or later revision) of CLooG... " >&6; }
+if test "${gcc_cv_cloog_ct_0_15_5+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include "cloog/cloog.h"
 int
 main ()
 {
-
-  #if CLOOG_VERSION_MAJOR != 0 || CLOOG_VERSION_MINOR != 15 || CLOOG_VERSION_REVISION < 5
-  choke me
-  #endif
-
+#if CLOOG_VERSION_MAJOR != 0 \
+    || CLOOG_VERSION_MINOR != 15 \
+    || CLOOG_VERSION_REVISION < 5
+    choke me
+   #endif
   ;
   return 0;
 }
@@ -5736,34 +5945,66 @@ if ac_fn_c_try_compile "$LINENO"; then :
 int
 main ()
 {
-
-  #if CLOOG_VERSION_MAJOR != 0 || CLOOG_VERSION_MINOR != 15 || CLOOG_VERSION_REVISION < 9
-  choke me
-  #endif
-
+#if CLOOG_VERSION_MAJOR != 0 \
+    || CLOOG_VERSION_MINOR != 15 \
+    || CLOOG_VERSION_REVISION < 9
+    choke me
+   #endif
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
+  gcc_cv_cloog_ct_0_15_5=yes
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: buggy but acceptable" >&5
-$as_echo "buggy but acceptable" >&6; }
+  gcc_cv_cloog_ct_0_15_5="buggy but acceptable"
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }; clooglibs= ; clooginc=
+  gcc_cv_cloog_ct_0_15_5=no
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  CFLAGS="$saved_CFLAGS"
 fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_cloog_ct_0_15_5" >&5
+$as_echo "$gcc_cv_cloog_ct_0_15_5" >&6; }
+    fi
 
-# Flags needed for CLOOG
+    CFLAGS=$_cloog_saved_CFLAGS
+    LDFLAGS=$_cloog_saved_LDFLAGS
+  fi
 
 
+
+
+
+
+
+  if test "x${with_cloog}" != x \
+    || test "x${with_cloog_include}" != x \
+    || test "x${with_cloog_lib}" != x ; then
+    graphite_requested=yes
+  else
+    graphite_requested=no
+  fi
+
+
+
+  if test "${gcc_cv_cloog_ct_0_14_0}" = no \
+    || test "${gcc_cv_cloog_rt_0_14_0}" = no \
+    || test "${gcc_cv_cloog_ct_0_15_5}" = no; then
+    clooglibs=
+    clooginc=
+  fi
+
+  if test "${graphite_requested}" = yes \
+    && test "x${clooglibs}" = x \
+    && test "x${clooginc}" = x ; then
+
+    as_fn_error "Unable to find a usable CLooG. See config.log for details." "$LINENO" 5
+  fi
+
+
+fi
 
 # Check for LTO support.
 # Check whether --enable-lto was given.
@@ -7128,7 +7369,7 @@ case " $target_configdirs " in
        # to it.  This is right: we don't want to search that directory
        # for binaries, but we want the header files in there, so add
        # them explicitly.
-       FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -isystem $$r/$(HOST_SUBDIR)/gcc/include'
+       FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -isystem $$r/$(HOST_SUBDIR)/gcc/include -isystem $$r/$(HOST_SUBDIR)/gcc/include-fixed'
 
        # Someone might think of using the pre-installed headers on
        # Canadian crosses, in case the installed compiler is not fully

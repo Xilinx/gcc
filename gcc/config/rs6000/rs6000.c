@@ -2577,7 +2577,8 @@ rs6000_option_override_internal (const char *default_cpu)
   /* Masks for instructions set at various powerpc ISAs.  */
   enum {
     ISA_2_1_MASKS = MASK_MFCRF,
-    ISA_2_2_MASKS = (ISA_2_1_MASKS | MASK_POPCNTB | MASK_FPRND),
+    ISA_2_2_MASKS = (ISA_2_1_MASKS | MASK_POPCNTB),
+    ISA_2_4_MASKS = (ISA_2_2_MASKS | MASK_FPRND),
 
     /* For ISA 2.05, do not add MFPGPR, since it isn't in ISA 2.06, and don't
        add ALTIVEC, since in general it isn't a win on power6.  In ISA 2.04,
@@ -2661,7 +2662,7 @@ rs6000_option_override_internal (const char *default_cpu)
       if (TARGET_ALTIVEC)
 	error ("AltiVec not supported in this target");
       if (TARGET_SPE)
-	error ("Spe not supported in this target");
+	error ("SPE not supported in this target");
     }
 
   /* Disable Cell microcode if we are optimizing for the Cell
@@ -2746,7 +2747,9 @@ rs6000_option_override_internal (const char *default_cpu)
     target_flags |= (ISA_2_5_MASKS_SERVER & ~target_flags_explicit);
   else if (TARGET_CMPB)
     target_flags |= (ISA_2_5_MASKS_EMBEDDED & ~target_flags_explicit);
-  else if (TARGET_POPCNTB || TARGET_FPRND)
+  else if (TARGET_FPRND)
+    target_flags |= (ISA_2_4_MASKS & ~target_flags_explicit);
+  else if (TARGET_POPCNTB)
     target_flags |= (ISA_2_2_MASKS & ~target_flags_explicit);
   else if (TARGET_ALTIVEC)
     target_flags |= (MASK_PPC_GFXOPT & ~target_flags_explicit);
@@ -3247,7 +3250,7 @@ rs6000_option_override_internal (const char *default_cpu)
 
 	      if (i == ARRAY_SIZE (recip_options))
 		{
-		  error ("Unknown option for -mrecip=%s", q);
+		  error ("unknown option for -mrecip=%s", q);
 		  invert = false;
 		  mask = 0;
 		}
@@ -4314,25 +4317,25 @@ rs6000_handle_option (size_t code, const char *arg, int value)
       else if (! strcmp (arg, "d64"))
 	{
 	  rs6000_darwin64_abi = 1;
-	  warning (0, "Using darwin64 ABI");
+	  warning (0, "using darwin64 ABI");
 	}
       else if (! strcmp (arg, "d32"))
 	{
 	  rs6000_darwin64_abi = 0;
-	  warning (0, "Using old darwin ABI");
+	  warning (0, "using old darwin ABI");
 	}
 
       else if (! strcmp (arg, "ibmlongdouble"))
 	{
 	  rs6000_explicit_options.ieee = true;
 	  rs6000_ieeequad = 0;
-	  warning (0, "Using IBM extended precision long double");
+	  warning (0, "using IBM extended precision long double");
 	}
       else if (! strcmp (arg, "ieeelongdouble"))
 	{
 	  rs6000_explicit_options.ieee = true;
 	  rs6000_ieeequad = 1;
-	  warning (0, "Using IEEE extended precision long double");
+	  warning (0, "using IEEE extended precision long double");
 	}
 
       else
@@ -4374,7 +4377,7 @@ rs6000_handle_option (size_t code, const char *arg, int value)
       rs6000_long_double_type_size = RS6000_DEFAULT_LONG_DOUBLE_SIZE;
       if (value != 64 && value != 128)
 	{
-	  error ("Unknown switch -mlong-double-%s", arg);
+	  error ("unknown switch -mlong-double-%s", arg);
 	  rs6000_long_double_type_size = RS6000_DEFAULT_LONG_DOUBLE_SIZE;
 	  return false;
 	}
@@ -9628,7 +9631,7 @@ def_builtin (int mask, const char *name, tree type, int code)
     {
       tree t;
       if (rs6000_builtin_decls[code])
-	fatal_error ("internal error: builtin function to %s already processed.",
+	fatal_error ("internal error: builtin function to %s already processed",
 		     name);
 
       rs6000_builtin_decls[code] = t =
@@ -19705,7 +19708,7 @@ rs6000_savres_routine_name (rs6000_stack_t *info, int regno,
 	}
     }
   else if (DEFAULT_ABI == ABI_DARWIN)
-    sorry ("Out-of-line save/restore routines not supported on Darwin");
+    sorry ("out-of-line save/restore routines not supported on Darwin");
 
   sprintf (savres_routine_name, "%s%d%s", prefix, regno, suffix);
 
@@ -27227,82 +27230,30 @@ rs6000_address_for_fpconvert (rtx x)
   addr = XEXP (x, 0);
   if (! legitimate_indirect_address_p (addr, strict_p)
       && ! legitimate_indexed_address_p (addr, strict_p))
-    x = replace_equiv_address (x, copy_addr_to_reg (addr));
+    {
+      if (GET_CODE (addr) == PRE_INC || GET_CODE (addr) == PRE_DEC)
+	{
+	  rtx reg = XEXP (addr, 0);
+	  HOST_WIDE_INT size = GET_MODE_SIZE (GET_MODE (x));
+	  rtx size_rtx = GEN_INT ((GET_CODE (addr) == PRE_DEC) ? -size : size);
+	  gcc_assert (REG_P (reg));
+	  emit_insn (gen_add3_insn (reg, reg, size_rtx));
+	  addr = reg;
+	}
+      else if (GET_CODE (addr) == PRE_MODIFY)
+	{
+	  rtx reg = XEXP (addr, 0);
+	  rtx expr = XEXP (addr, 1);
+	  gcc_assert (REG_P (reg));
+	  gcc_assert (GET_CODE (expr) == PLUS);
+	  emit_insn (gen_add3_insn (reg, XEXP (expr, 0), XEXP (expr, 1)));
+	  addr = reg;
+	}
+
+      x = replace_equiv_address (x, copy_addr_to_reg (addr));
+    }
 
   return x;
-}
-
-/* Expand 32-bit int -> floating point conversions.  Return true if
-   successful.  */
-
-void
-rs6000_expand_convert_si_to_sfdf (rtx dest, rtx src, bool unsigned_p)
-{
-  enum machine_mode dmode = GET_MODE (dest);
-  rtx (*func_si) (rtx, rtx, rtx, rtx);
-  rtx (*func_si_mem) (rtx, rtx);
-  rtx (*func_di) (rtx, rtx);
-  rtx reg, stack;
-
-  gcc_assert (GET_MODE (src) == SImode);
-
-  if (dmode == SFmode)
-    {
-      if (unsigned_p)
-	{
-	  gcc_assert (TARGET_FCFIDUS && TARGET_LFIWZX);
-	  func_si = gen_floatunssisf2_lfiwzx;
-	  func_si_mem = gen_floatunssisf2_lfiwzx_mem;
-	  func_di = gen_floatunsdisf2;
-	}
-      else
-	{
-	  gcc_assert (TARGET_FCFIDS && TARGET_LFIWAX);
-	  func_si = gen_floatsisf2_lfiwax;
-	  func_si_mem = gen_floatsisf2_lfiwax_mem;
-	  func_di = gen_floatdisf2;
-	}
-    }
-
-  else if (dmode == DFmode)
-    {
-      if (unsigned_p)
-	{
-	  gcc_assert (TARGET_FCFIDU && TARGET_LFIWZX);
-	  func_si = gen_floatunssidf2_lfiwzx;
-	  func_si_mem = gen_floatunssidf2_lfiwzx_mem;
-	  func_di = gen_floatunsdidf2;
-	}
-      else
-	{
-	  gcc_assert (TARGET_FCFID && TARGET_LFIWAX);
-	  func_si = gen_floatsidf2_lfiwax;
-	  func_si_mem = gen_floatsidf2_lfiwax_mem;
-	  func_di = gen_floatdidf2;
-	}
-    }
-
-  else
-    gcc_unreachable ();
-
-  if (MEM_P (src))
-    {
-      src = rs6000_address_for_fpconvert (src);
-      emit_insn (func_si_mem (dest, src));
-    }
-  else if (!TARGET_MFPGPR)
-    {
-      reg = gen_reg_rtx (DImode);
-      stack = rs6000_allocate_stack_temp (SImode, false, true);
-      emit_insn (func_si (dest, src, stack, reg));
-    }
-  else
-    {
-      if (!REG_P (src))
-	src = force_reg (SImode, src);
-      reg = convert_to_mode (DImode, src, unsigned_p);
-      emit_insn (func_di (dest, reg));
-    }
 }
 
 #include "gt-rs6000.h"

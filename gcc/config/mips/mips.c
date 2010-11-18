@@ -374,10 +374,6 @@ struct GTY(())  machine_function {
      split_insns pass; see mips_must_initialize_gp_p () for details.  */
   bool must_restore_gp_when_clobbered_p;
 
-  /* True if we have emitted an instruction to initialize
-     mips16_gp_pseudo_rtx.  */
-  bool initialized_mips16_gp_pseudo_p;
-
   /* True if this is an interrupt handler.  */
   bool interrupt_handler_p;
 
@@ -779,6 +775,7 @@ static const struct mips_cpu_info mips_cpu_info_table[] = {
   { "sb1a", PROCESSOR_SB1A, 64, PTF_AVOID_BRANCHLIKELY },
   { "sr71000", PROCESSOR_SR71000, 64, PTF_AVOID_BRANCHLIKELY },
   { "xlr", PROCESSOR_XLR, 64, 0 },
+  { "loongson3a", PROCESSOR_LOONGSON_3A, 64, PTF_AVOID_BRANCHLIKELY },
 
   /* MIPS64 Release 2 processors.  */
   { "octeon", PROCESSOR_OCTEON, 65, PTF_AVOID_BRANCHLIKELY }
@@ -977,6 +974,9 @@ static const struct mips_rtx_cost_data
     DEFAULT_COSTS
   },
   { /* Loongson-2F */
+    DEFAULT_COSTS
+  },
+  { /* Loongson-3A */
     DEFAULT_COSTS
   },
   { /* M4k */
@@ -2650,15 +2650,10 @@ static rtx
 mips16_gp_pseudo_reg (void)
 {
   if (cfun->machine->mips16_gp_pseudo_rtx == NULL_RTX)
-    cfun->machine->mips16_gp_pseudo_rtx = gen_reg_rtx (Pmode);
-
-  /* Don't emit an instruction to initialize the pseudo register if
-     we are being called from the tree optimizers' cost-calculation
-     routines.  */
-  if (!cfun->machine->initialized_mips16_gp_pseudo_p
-      && (current_ir_type () != IR_GIMPLE || currently_expanding_to_rtl))
     {
       rtx insn, scan;
+
+      cfun->machine->mips16_gp_pseudo_rtx = gen_reg_rtx (Pmode);
 
       push_topmost_sequence ();
 
@@ -2670,8 +2665,6 @@ mips16_gp_pseudo_reg (void)
       emit_insn_after (insn, scan);
 
       pop_topmost_sequence ();
-
-      cfun->machine->initialized_mips16_gp_pseudo_p = true;
     }
 
   return cfun->machine->mips16_gp_pseudo_rtx;
@@ -2686,8 +2679,11 @@ mips_pic_base_register (rtx temp)
   if (!TARGET_MIPS16)
     return pic_offset_table_rtx;
 
-  if (can_create_pseudo_p ())
+  if (currently_expanding_to_rtl)
     return mips16_gp_pseudo_reg ();
+
+  if (can_create_pseudo_p ())
+    temp = gen_reg_rtx (Pmode);
 
   if (TARGET_USE_GOT)
     /* The first post-reload split exposes all references to $gp
@@ -6516,11 +6512,7 @@ mips_expand_call (enum mips_call_type type, rtx result, rtx addr,
 void
 mips_split_call (rtx insn, rtx call_pattern)
 {
-  rtx new_insn;
-
-  new_insn = emit_call_insn (call_pattern);
-  CALL_INSN_FUNCTION_USAGE (new_insn)
-    = copy_rtx (CALL_INSN_FUNCTION_USAGE (insn));
+  emit_call_insn (call_pattern);
   if (!find_reg_note (insn, REG_NORETURN, 0))
     /* Pick a temporary register that is suitable for both MIPS16 and
        non-MIPS16 code.  $4 and $5 are used for returning complex double
@@ -12040,6 +12032,7 @@ mips_issue_rate (void)
 
     case PROCESSOR_LOONGSON_2E:
     case PROCESSOR_LOONGSON_2F:
+    case PROCESSOR_LOONGSON_3A:
       return 4;
 
     default:

@@ -653,7 +653,8 @@ type_internals_preclude_sra_p (tree type)
 	    if (TREE_THIS_VOLATILE (fld)
 		|| !DECL_FIELD_OFFSET (fld) || !DECL_SIZE (fld)
 		|| !host_integerp (DECL_FIELD_OFFSET (fld), 1)
-		|| !host_integerp (DECL_SIZE (fld), 1))
+		|| !host_integerp (DECL_SIZE (fld), 1)
+		|| (DECL_BIT_FIELD (fld) && AGGREGATE_TYPE_P (ft)))
 	      return true;
 
 	    if (AGGREGATE_TYPE_P (ft)
@@ -1390,7 +1391,7 @@ build_ref_for_offset (location_t loc, tree base, HOST_WIDE_INT offset,
 
 /* Construct a memory reference to a part of an aggregate BASE at the given
    OFFSET and of the same type as MODEL.  In case this is a reference to a
-   bit-field, the function will replicate the last component_ref of model's
+   component, the function will replicate the last COMPONENT_REF of model's
    expr to access it.  GSI and INSERT_AFTER have the same meaning as in
    build_ref_for_offset.  */
 
@@ -1399,12 +1400,9 @@ build_ref_for_model (location_t loc, tree base, HOST_WIDE_INT offset,
 		     struct access *model, gimple_stmt_iterator *gsi,
 		     bool insert_after)
 {
-  if (TREE_CODE (model->expr) == COMPONENT_REF
-      && DECL_BIT_FIELD (TREE_OPERAND (model->expr, 1)))
+  if (TREE_CODE (model->expr) == COMPONENT_REF)
     {
-      /* This access represents a bit-field.  */
       tree t, exp_type;
-
       offset -= int_bit_position (TREE_OPERAND (model->expr, 1));
       exp_type = TREE_TYPE (TREE_OPERAND (model->expr, 0));
       t = build_ref_for_offset (loc, base, offset, exp_type, gsi, insert_after);

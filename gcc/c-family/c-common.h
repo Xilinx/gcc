@@ -696,7 +696,7 @@ extern void set_Wformat (int);
 extern tree handle_format_attribute (tree *, tree, tree, int, bool *);
 extern tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
 extern bool attribute_takes_identifier_p (const_tree);
-extern bool c_common_handle_option (size_t, const char *, int, int,
+extern bool c_common_handle_option (size_t, const char *, int, int, location_t,
 				    const struct cl_option_handlers *);
 extern tree c_common_type_for_mode (enum machine_mode, int);
 extern tree c_common_type_for_size (unsigned int, int);
@@ -762,6 +762,7 @@ extern void set_compound_literal_name (tree decl);
 
 extern tree build_va_arg (location_t, tree, tree);
 
+extern const unsigned int c_family_lang_mask;
 extern unsigned int c_common_option_lang_mask (void);
 extern void c_common_initialize_diagnostics (diagnostic_context *);
 extern bool c_common_complain_wrong_lang_p (const struct cl_option *);

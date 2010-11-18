@@ -1503,7 +1503,7 @@ convert_mult_to_fma (gimple mul_stmt)
 {
   tree mul_result = gimple_assign_lhs (mul_stmt);
   tree type = TREE_TYPE (mul_result);
-  gimple use_stmt, fma_stmt;
+  gimple use_stmt, neguse_stmt, fma_stmt;
   use_operand_p use_p;
   imm_use_iterator imm_iter;
 
@@ -1529,16 +1529,13 @@ convert_mult_to_fma (gimple mul_stmt)
   FOR_EACH_IMM_USE_FAST (use_p, imm_iter, mul_result)
     {
       enum tree_code use_code;
+      tree result = mul_result;
+      bool negate_p = false;
 
       use_stmt = USE_STMT (use_p);
 
-      if (!is_gimple_assign (use_stmt))
-	return false;
-      use_code = gimple_assign_rhs_code (use_stmt);
-      /* ???  We need to handle NEGATE_EXPR to eventually form fnms.  */
-      if (use_code != PLUS_EXPR
-	  && use_code != MINUS_EXPR)
-	return false;
+      if (is_gimple_debug (use_stmt))
+	continue;
 
       /* For now restrict this operations to single basic blocks.  In theory
 	 we would want to support sinking the multiplication in
@@ -1552,32 +1549,85 @@ convert_mult_to_fma (gimple mul_stmt)
       if (gimple_bb (use_stmt) != gimple_bb (mul_stmt))
 	return false;
 
+      if (!is_gimple_assign (use_stmt))
+	return false;
+
+      use_code = gimple_assign_rhs_code (use_stmt);
+
+      /* A negate on the multiplication leads to FNMA.  */
+      if (use_code == NEGATE_EXPR)
+	{
+	  result = gimple_assign_lhs (use_stmt);
+
+	  /* Make sure the negate statement becomes dead with this
+	     single transformation.  */
+	  if (!single_imm_use (gimple_assign_lhs (use_stmt),
+			       &use_p, &neguse_stmt))
+	    return false;
+
+	  /* Re-validate.  */
+	  use_stmt = neguse_stmt;
+	  if (gimple_bb (use_stmt) != gimple_bb (mul_stmt))
+	    return false;
+	  if (!is_gimple_assign (use_stmt))
+	    return false;
+
+	  use_code = gimple_assign_rhs_code (use_stmt);
+	  negate_p = true;
+	}
+
+      switch (use_code)
+	{
+	case MINUS_EXPR:
+	  if (gimple_assign_rhs2 (use_stmt) == result)
+	    negate_p = !negate_p;
+	  break;
+	case PLUS_EXPR:
+	  break;
+	default:
+	  /* FMA can only be formed from PLUS and MINUS.  */
+	  return false;
+	}
+
       /* We can't handle a * b + a * b.  */
       if (gimple_assign_rhs1 (use_stmt) == gimple_assign_rhs2 (use_stmt))
 	return false;
 
-      /* If the target doesn't support a * b - c then drop the ball.  */
-      if (gimple_assign_rhs1 (use_stmt) == mul_result
-	  && use_code == MINUS_EXPR
-	  && optab_handler (fms_optab, TYPE_MODE (type)) == CODE_FOR_nothing)
-	return false;
-
-      /* If the target doesn't support -a * b + c then drop the ball.  */
-      if (gimple_assign_rhs2 (use_stmt) == mul_result
-	  && use_code == MINUS_EXPR
-	  && optab_handler (fnma_optab, TYPE_MODE (type)) == CODE_FOR_nothing)
-	return false;
-
-      /* We don't yet generate -a * b - c below yet.  */
+      /* While it is possible to validate whether or not the exact form
+	 that we've recognized is available in the backend, the assumption
+	 is that the transformation is never a loss.  For instance, suppose
+	 the target only has the plain FMA pattern available.  Consider
+	 a*b-c -> fma(a,b,-c): we've exchanged MUL+SUB for FMA+NEG, which
+	 is still two operations.  Consider -(a*b)-c -> fma(-a,b,-c): we
+	 still have 3 operations, but in the FMA form the two NEGs are
+	 independant and could be run in parallel.  */
     }
 
   FOR_EACH_IMM_USE_STMT (use_stmt, imm_iter, mul_result)
     {
-      tree addop, mulop1;
       gimple_stmt_iterator gsi = gsi_for_stmt (use_stmt);
+      enum tree_code use_code;
+      tree addop, mulop1, result = mul_result;
+      bool negate_p = false;
 
-      mulop1 = gimple_assign_rhs1 (mul_stmt);
-      if (gimple_assign_rhs1 (use_stmt) == mul_result)
+      if (is_gimple_debug (use_stmt))
+	continue;
+
+      use_code = gimple_assign_rhs_code (use_stmt);
+      if (use_code == NEGATE_EXPR)
+	{
+	  result = gimple_assign_lhs (use_stmt);
+	  single_imm_use (gimple_assign_lhs (use_stmt), &use_p, &neguse_stmt);
+	  gsi_remove (&gsi, true);
+	  release_defs (use_stmt);
+
+	  use_stmt = neguse_stmt;
+	  gsi = gsi_for_stmt (use_stmt);
+	  use_code = gimple_assign_rhs_code (use_stmt);
+	  negate_p = true;
+	}
+
+      if (gimple_assign_rhs1 (use_stmt) == result)
 	{
 	  addop = gimple_assign_rhs2 (use_stmt);
 	  /* a * b - c -> a * b + (-c)  */
@@ -1593,12 +1643,16 @@ convert_mult_to_fma (gimple mul_stmt)
 	  addop = gimple_assign_rhs1 (use_stmt);
 	  /* a - b * c -> (-b) * c + a */
 	  if (gimple_assign_rhs_code (use_stmt) == MINUS_EXPR)
-	    mulop1 = force_gimple_operand_gsi (&gsi,
-					       build1 (NEGATE_EXPR,
-						       type, mulop1),
-					       true, NULL_TREE, true,
-					       GSI_SAME_STMT);
+	    negate_p = !negate_p;
 	}
+
+      mulop1 = gimple_assign_rhs1 (mul_stmt);
+      if (negate_p)
+	mulop1 = force_gimple_operand_gsi (&gsi,
+					   build1 (NEGATE_EXPR,
+						   type, mulop1),
+					   true, NULL_TREE, true,
+					   GSI_SAME_STMT);
 
       fma_stmt = gimple_build_assign_with_ops3 (FMA_EXPR,
 						gimple_assign_lhs (use_stmt),

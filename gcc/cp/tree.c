@@ -67,7 +67,8 @@ lvalue_kind (const_tree ref)
 	  == REFERENCE_TYPE)
     return lvalue_kind (TREE_OPERAND (ref, 0));
 
-  if (TREE_CODE (TREE_TYPE (ref)) == REFERENCE_TYPE)
+  if (TREE_TYPE (ref)
+      && TREE_CODE (TREE_TYPE (ref)) == REFERENCE_TYPE)
     {
       /* unnamed rvalue references are rvalues */
       if (TYPE_REF_IS_RVALUE (TREE_TYPE (ref))
@@ -1763,11 +1764,10 @@ bot_manip (tree* tp, int* walk_subtrees, void* data)
   splay_tree target_remap = ((splay_tree) data);
   tree t = *tp;
 
-  if (!TYPE_P (t) && TREE_CONSTANT (t))
+  if (!TYPE_P (t) && TREE_CONSTANT (t) && !TREE_SIDE_EFFECTS (t))
     {
       /* There can't be any TARGET_EXPRs or their slot variables below
-	 this point.  We used to check !TREE_SIDE_EFFECTS, but then we
-	 failed to copy an ADDR_EXPR of the slot VAR_DECL.  */
+	 this point.  */
       *walk_subtrees = 0;
       return NULL_TREE;
     }

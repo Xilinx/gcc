@@ -645,13 +645,13 @@ do_build_copy_assign (tree fndecl)
 
 	  if (CP_TYPE_CONST_P (expr_type))
 	    {
-	      error ("non-static const member %q#D, can't use default "
+	      error ("non-static const member %q#D, can%'t use default "
 		     "assignment operator", field);
 	      continue;
 	    }
 	  else if (TREE_CODE (expr_type) == REFERENCE_TYPE)
 	    {
-	      error ("non-static reference member %q#D, can't use "
+	      error ("non-static reference member %q#D, can%'t use "
 		     "default assignment operator", field);
 	      continue;
 	    }
@@ -976,13 +976,13 @@ walk_field_subobs (tree fields, tree fnname, special_function_kind sfk,
 	  if (CP_TYPE_CONST_P (mem_type) && !CLASS_TYPE_P (mem_type))
 	    {
 	      if (msg)
-		error ("non-static const member %q#D, can't use default "
+		error ("non-static const member %q#D, can%'t use default "
 		       "assignment operator", field);
 	    }
 	  else if (TREE_CODE (mem_type) == REFERENCE_TYPE)
 	    {
 	      if (msg)
-		error ("non-static reference member %q#D, can't use "
+		error ("non-static reference member %q#D, can%'t use "
 		       "default assignment operator", field);
 	    }
 	  else
@@ -1628,12 +1628,6 @@ defaultable_fn_check (tree fn)
 	  }
       if (TYPE_BEING_DEFINED (DECL_CONTEXT (fn)))
 	{
-	  if (DECL_NONCONVERTING_P (fn))
-	    error ("%qD declared explicit cannot be defaulted in the class "
-		   "body", fn);
-	  if (current_access_specifier != access_public_node)
-	    error ("%qD declared with non-public access cannot be defaulted "
-		   "in the class body", fn);
 	  if (TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn)))
 	    error ("function %q+D defaulted on its first declaration "
 		   "must not have an exception-specification", fn);
