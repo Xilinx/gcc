@@ -1,5 +1,9 @@
 
 2010-11-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (install-melt-dynlib, install-melt-cfiles)
+	(install-melt-meltfiles, install-melt-otherfiles): Use DESTDIR.
+
+2010-11-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_new_split_string): Stop splitting when
 	null character!
 
