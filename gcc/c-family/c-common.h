@@ -822,6 +822,7 @@ extern void warn_for_omitted_condop (location_t, tree);
 extern tree do_case (location_t, tree, tree);
 extern tree build_stmt (location_t, enum tree_code, ...);
 extern tree build_case_label (location_t, tree, tree, tree);
+extern tree build_real_imag_expr (location_t, enum tree_code, tree);
 
 /* These functions must be defined by each front-end which implements
    a variant of the C language.  They are used in c-common.c.  */
@@ -995,7 +996,7 @@ extern int objc_is_public (tree, tree);
 extern tree objc_is_id (tree);
 extern void objc_declare_alias (tree, tree);
 extern void objc_declare_class (tree);
-extern void objc_declare_protocols (tree);
+extern void objc_declare_protocols (tree, tree);
 extern tree objc_build_message_expr (tree);
 extern tree objc_finish_message_expr (tree, tree, tree);
 extern tree objc_build_selector_expr (location_t, tree);

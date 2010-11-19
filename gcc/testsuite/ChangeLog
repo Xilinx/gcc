@@ -1,3 +1,54 @@
+2010-11-19  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/attributes/proto-attribute-1.m: Updated.
+	* objc.dg/attributes/proto-attribute-2.m: New.
+	* objc.dg/attributes/proto-attribute-3.m: New.
+	* obj-c++.dg/attributes/proto-attribute-1.mm: Updated.
+	* obj-c++.dg/attributes/proto-attribute-2.mm: New.
+	* obj-c++.dg/attributes/proto-attribute-3.mm: New.	
+
+2010-11-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/lto/20090210_1.c: Do not pass -fPIC on the SPARC.
+
+2010-11-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/tree-ssa/20040204-1.c: Do not XFAIL on the SPARC.
+
+2010-11-18  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc.dg/vect/slp-reduc-3.c: Make check dependent on vect_unpack.
+	* gcc.dg/vect/slp-reduc-6.c: Ditto, plus add alignment.
+
+2010-11-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/46534
+	* gcc.c-torture/compile/pr46534.c: New test.
+
+2010-11-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/atomic4.ad[sb]: New test.
+	* gnat.dg/volatile4.adb: Likewise.
+
+2010-11-18  Richard Henderson  <rth@redhat.com>
+
+	* gcc.target/i386/pr46470.c: Skip for 32-bit PIC.
+
+2010-11-18  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c/33193
+	* c-c++-common/pr33193.c: New test.
+
+2010-11-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46172
+	* gcc.dg/torture/pr46172.c: New testcase.
+
+2010-11-18  Jeff Law  <law@redhat.com>
+
+	PR middle-end-optimization/46297
+	* gfortran.dg/pr46297.f: New test.
+
 2010-11-17  Steve Ellcey  <sje@cup.hp.com>
 
 	PR middle-end/31490

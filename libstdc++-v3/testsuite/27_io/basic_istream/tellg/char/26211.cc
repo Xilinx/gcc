@@ -1,6 +1,6 @@
-// 2003-02-26  Carlo Wood  <carlo@alinoe.com>
+// 2010-11-18  Paolo Carlini  <paolo.carlini@oracle.com>
 
-// Copyright (C) 2003, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2010 Free Software Foundation
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -17,17 +17,33 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-// IA 64 C++ ABI - 5.1 External Names (a.k.a. Mangling)
-
+#include <istream>
+#include <sstream>
 #include <testsuite_hooks.h>
 
-// libcwd tests
+// libstdc++/26211
+void test01()
+{
+  using namespace std;
+  bool test __attribute__((unused)) = true;
+
+  typedef istringstream::pos_type pos_type;
+
+  istringstream iss("Duos for Doris");
+  ostringstream oss;
+
+  VERIFY( iss.tellg() == pos_type(0) );
+
+  iss >> oss.rdbuf();
+  VERIFY( iss.rdstate() == iss.eofbit );
+  VERIFY( iss.tellg() == pos_type(-1) );
+
+  iss.clear();
+  VERIFY( iss.tellg() == pos_type(14) );
+}
+
 int main()
 {
-  using namespace __gnu_test;
-
-  // cplus-dem CORE
-  verify_demangle("_GLOBAL__I__Z2fnv", "global constructors keyed to fn()");
-
+  test01();
   return 0;
 }
