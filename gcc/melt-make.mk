@@ -205,7 +205,9 @@ warmelt2n: warmelt2n.modlis $(WARMELT_BASE2NSO)
 ## compiled source 
 
 ## order is important
-XTRAMELT_FILES= xtramelt-ana-base.melt xtramelt-ana-simple.melt xtramelt-parse-infix-syntax.melt
+XTRAMELT_FILES= xtramelt-ana-base.melt xtramelt-ana-simple.melt \
+	xtramelt-parse-infix-syntax.melt xtramelt-opengpu.melt
+
 XTRAMELT_SRCFILES= $(patsubst %.melt, $(melt_make_source_dir)/%.melt, $(XTRAMELT_FILES))
 XTRAMELT_SRCARGLIST:=$(shell echo $(realpath $(XTRAMELT_SRCFILES))|sed 's: :,:g')
 XTRAMELT_BASE= $(basename $(XTRAMELT_FILES))
@@ -555,6 +557,15 @@ xtramelt-parse-infix-syntax.c:  $(melt_make_source_dir)/xtramelt-parse-infix-syn
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTCCFILE1) $(meltarg_init)="@warmelt2:xtramelt-ana-base:xtramelt-ana-simple" \
+	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	      $(meltarg_output)=$@   empty-file-for-melt.c
+	ls -l $@
+
+xtramelt-opengpu.c:  $(melt_make_source_dir)/xtramelt-opengpu.melt  warmelt2.modlis $(WARMELT_BASE2SO)  xtramelt-ana-base.so xtramelt-ana-simple.so  xtramelt-parse-infix-syntax.so $(melt_make_gencdeps)  \
+  empty-file-for-melt.c  warmelt-predef.melt melt-predef.h melt-run.h melt-runtime.h $(melt_make_cc1_dependency)
+	@echo generating $@ using $(WARMELT_BASE2SO)
+	-rm -f $@
+	$(MELTCCFILE1) $(meltarg_init)="@warmelt2:xtramelt-ana-base:xtramelt-ana-simple:xtramelt-parse-infix-syntax" \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_output)=$@   empty-file-for-melt.c
 	ls -l $@

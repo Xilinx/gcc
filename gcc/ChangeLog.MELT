@@ -1,4 +1,16 @@
 
+2010-11-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_new_split_string): Stop splitting when
+	null character!
+
+	* Makefile.in (MELT_RAW_CFLAGS): Force -O, which is always added
+	to compile MELT generated C code.
+
+	* melt-make.mk (XTRAMELT_FILES): added xtramelt-opengpu.melt file.
+	(xtramelt-opengpu.c): New target.
+
+	* melt/xtramelt-opengpu.melt: Added new file stub.
+
 2010-11-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk rev 166377

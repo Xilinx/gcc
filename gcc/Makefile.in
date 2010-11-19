@@ -5323,7 +5323,10 @@ melt_default_modules_list=melt-default-modules
 ## We need the PPLINC and other *INC ande we need to not have
 ## PLUGINCFLAGS which change from stage2 to stage3.
 ## These flags are wired in the MELT runtime!
-MELT_RAW_CFLAGS= $(X_CFLAGS) $(CFLAGS) $(XCFLAGS) $(INTERNAL_CFLAGS) @DEFS@ \
+## Notice that we explicitly add -O here to MELT_RAW_CFLAGS!
+MELT_RAW_CFLAGS= \
+           -O \
+	   $(X_CFLAGS) $(CFLAGS) $(XCFLAGS) $(INTERNAL_CFLAGS) @DEFS@ \
 	   $(CPPINC) $(GMPINC) $(DECNUMINC) \
 	   $(PPLINC) $(CLOOGINC) 
 

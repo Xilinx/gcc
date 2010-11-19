@@ -5947,6 +5947,8 @@ meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr_p)
       else 
 	strv = meltgc_new_string_raw_len (obj_discrv, pc, strlen (pc));
       meltgc_append_list ((melt_ptr_t) lisv, (melt_ptr_t) strv);
+      if (cursep && *cursep == 0)
+	break;
     }
  end:
   MELT_EXITFRAME ();

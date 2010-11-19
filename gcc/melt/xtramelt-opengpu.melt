@@ -1,0 +1,55 @@
+;; -*- Lisp -*-
+;; file xtramelt-opengpu.melt
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(comment "***
+    Copyright 2010 Free Software Foundation, Inc.
+    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+    [funded within OpenGPU french project: http://opengpu.net/ ]
+
+    This file is part of GCC.
+
+    GCC is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3, or (at your option)
+    any later version.
+
+    GCC is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.
+***")
+
+;; the opengpu passes translate some Gimple into OpenCL.
+(defun install_opengpu_passes ()
+  (assert_msg "install_opengpu_passes not implemented")
+)
+
+(defun opengpu_docmd (cmd moduldata)
+  (let ( (:long optimlevel 0)
+	 )
+    (code_chunk getoptimlevel
+	   #{ /* $GETOPTIMLEVEL */
+	   $OPTIMLEVEL = (long) optimize ;
+	   }#)
+    (if (<i optimlevel 2)
+	(warningmsg_plain 
+	 "opengpu MELT mode requires -O2 optimization at least")
+      (progn
+	(install_opengpu_passes)
+	(return :true)))
+    ))
+
+(definstance opengpu_mode
+  class_melt_mode
+  :named_name '"opengpu"
+  :meltmode_help '"transforming some numerical loops [with -O2 at least]
+into OpenCL code running on GPU"
+  :meltmode_fun opengpu_docmd
+)
+
+(install_melt_mode opengpu_mode)
+;; eof $Id$
