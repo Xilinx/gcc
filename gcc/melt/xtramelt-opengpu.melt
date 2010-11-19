@@ -23,10 +23,38 @@
     <http://www.gnu.org/licenses/>.
 ***")
 
+
+(defun opengpudetect_gate (pass)
+  (debug_msg pass "opengpudetect_gate start")
+  (debug_msg pass "opengpudetect_gate end")
+  (return :true)
+)
+
+(defun opengpudetect_exec (pass)
+  (debug_msg pass "opengpudetect_exec start")
+  (code_chunk dbgcfun #{ /* $dbgcfun :: */
+	      debugeprintf("opengpudetect_exec start cfun=%p cfg=%p", 
+			   (void*)cfun, cfun?cfun->cfg:NULL) ; 
+	      }#) 
+)
+
+
 ;; the opengpu passes translate some Gimple into OpenCL.
 (defun install_opengpu_passes ()
-  (assert_msg "install_opengpu_passes not implemented")
-)
+  (let ( (opengpudetect_pass
+	  (instance class_gcc_simple_ipa_pass
+		    :named_name '"meltopengpu_detect"
+		    :gccpass_gate opengpudetect_gate
+		    :gccpass_exec opengpudetect_exec
+		    :gccpass_data (make_maptree discr_map_trees 100)
+		    :gccpass_properties_required ()
+		    :gccpass_todo_flags_finish '"dump_func"
+		    ))
+	 )
+;;; register our pass after the "tree_profile_ipa" pass from
+;;; gcc/tree-profile.c
+    (install_melt_gcc_pass opengpudetect_pass "after" "tree_profile_ipa" 0)
+    ))
 
 (defun opengpu_docmd (cmd moduldata)
   (let ( (:long optimlevel 0)
