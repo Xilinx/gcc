@@ -1,3 +1,11 @@
+2010-11-19  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR/46270
+	* trans-mem.c: New global pending_edge_inserts_p.
+	(expand_call_tm): Handle throwing calls.
+	(execute_tm_mark): Handle clones and transactions the same.
+	Flush pending statements if necessary.
+
 2010-11-17  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR/46269

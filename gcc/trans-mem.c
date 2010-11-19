@@ -1680,6 +1680,10 @@ struct tm_region
   bitmap irr_blocks;
 };
 
+/* True if there are pending edge statements to be committed for the
+   current function being scanned in the tmmark pass.  */
+bool pending_edge_inserts_p;
+
 static struct tm_region *all_tm_regions;
 static bitmap_obstack tm_obstack;
 
@@ -2173,13 +2177,44 @@ expand_call_tm (struct tm_region *region,
     {
       tree tmp = make_rename_temp (TREE_TYPE (lhs), NULL);
       location_t loc = gimple_location (stmt);
+      edge fallthru_edge = NULL;
+
+      /* Remember if the call was going to throw.  */
+      if (stmt_can_throw_internal (stmt))
+	{
+	  edge_iterator ei;
+	  edge e;
+	  basic_block bb = gimple_bb (stmt);
+
+	  FOR_EACH_EDGE (e, ei, bb->succs)
+	    if (e->flags & EDGE_FALLTHRU)
+	      {
+		fallthru_edge = e;
+		break;
+	      }
+	}
 
       gimple_call_set_lhs (stmt, tmp);
       update_stmt (stmt);
       stmt = gimple_build_assign (lhs, tmp);
       gimple_set_location (stmt, loc);
-      gsi_insert_after (gsi, stmt, GSI_CONTINUE_LINKING);
-      expand_assign_tm (region, gsi);
+
+      /* We cannot throw in the middle of a BB.  If the call was going
+	 to throw, place the instrumentation on the fallthru edge, so
+	 the call remains the last statement in the block.  */
+      if (fallthru_edge)
+	{
+	  gimple_seq fallthru_seq = gimple_seq_alloc_with_stmt (stmt);
+	  gimple_stmt_iterator fallthru_gsi = gsi_start (fallthru_seq);
+	  expand_assign_tm (region, &fallthru_gsi);
+	  gsi_insert_seq_on_edge (fallthru_edge, fallthru_seq);
+	  pending_edge_inserts_p = true;
+	}
+      else
+	{
+	  gsi_insert_after (gsi, stmt, GSI_CONTINUE_LINKING);
+	  expand_assign_tm (region, gsi);
+	}
 
       transaction_subcode_ior (region, GTMA_HAVE_STORE);
     }
@@ -2287,6 +2322,7 @@ execute_tm_mark (void)
   size_t i;
 
   queue = VEC_alloc (basic_block, heap, 10);
+  pending_edge_inserts_p = false;
 
   for (region = all_tm_regions; region ; region = region->next)
     {
@@ -2304,31 +2340,21 @@ execute_tm_mark (void)
 	  else
 	    subcode &= GTMA_DECLARATION_MASK;
 	  gimple_transaction_set_subcode (region->transaction_stmt, subcode);
+	}
 
-	  queue = get_tm_region_blocks (region->entry_block,
-					region->exit_blocks,
-					region->irr_blocks,
-					/*stop_at_irr_p=*/true);
-	  for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
-	    expand_block_tm (region, bb);
-	  VEC_free (basic_block, heap, queue);
-	}
-      else
-	/* ...otherwise, we're a clone and the entire function is the
-	   region.  */
-	{
-	  FOR_EACH_BB (bb)
-	    {
-	      /* Stop at irrevocable blocks.  */
-	      if (region->irr_blocks
-		  && bitmap_bit_p (region->irr_blocks, bb->index))
-		break;
-	      expand_block_tm (region, bb);
-	    }
-	}
+      queue = get_tm_region_blocks (region->entry_block,
+				    region->exit_blocks,
+				    region->irr_blocks,
+				    /*stop_at_irr_p=*/true);
+      for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
+	expand_block_tm (region, bb);
+      VEC_free (basic_block, heap, queue);
+
       tm_log_emit ();
     }
 
+  if (pending_edge_inserts_p)
+    gsi_commit_edge_inserts ();
   return 0;
 }
 
