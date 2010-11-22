@@ -1,5 +1,9 @@
 
 2010-11-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c: replaced strerror by xstrerror everywhere, while
+	merging with trunk 167021.
+
+2010-11-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltchar_p): renamed char_p type as meltchar_p
 	to avoid clashes.
 

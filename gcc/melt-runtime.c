@@ -3486,18 +3486,18 @@ melt_output_strbuf_to_file (melt_ptr_t sbuf, const char*filnam)
   fil = fopen(namdot, "w");
   if (!fil)
     melt_fatal_error ("failed to open MELT output file %s [%s]",
-			namdot, strerror(errno));
+			namdot, xstrerror (errno));
   if (fwrite (melt_strbuf_str (sbuf), (size_t) melt_strbuf_usedlength (sbuf),
 	      (size_t) 1, fil) <= 0)
     melt_fatal_error ("failed to write %d bytes into MELT output file %s [%s]",
-		 melt_strbuf_usedlength (sbuf), namdot, strerror(errno));
+		 melt_strbuf_usedlength (sbuf), namdot, xstrerror (errno));
   if (fclose (fil)) 
     melt_fatal_error ("failed to close MELT output file %s [%s]",
-		 namdot, strerror(errno));
+		 namdot, xstrerror (errno));
   fil = NULL;
   if (rename (namdot, filnam))
     melt_fatal_error ("failed to rename MELT output file from %s to %s [%s]",
-		 namdot, filnam, strerror(errno));
+		 namdot, filnam, xstrerror (errno));
   free (namdot);
 }
 
@@ -7230,10 +7230,10 @@ meltgc_make_melt_module (melt_ptr_t src_p, melt_ptr_t out_p, const char*maketarg
     {
       if (IS_ABSOLUTE_PATH(outso))
 	error ("MELT failed to generate module %s [%s]", 
-	       outso, strerror (errno));
+	       outso, xstrerror (errno));
       else
 	error ("MELT failed to generate module %s in %s [%s]", 
-	       outso, mycwd, strerror (errno));
+	       outso, mycwd, xstrerror (errno));
     }
  end:
   free (srcdup);
@@ -10104,7 +10104,7 @@ do_finalize_melt (void)
 	/* @@@ I don't know if it should be a warning or a fatal error -
 	   we are finalizing! */
 	warning (0, "failed to rmdir melt tempdir %s (%s)",
-		 tempdir_melt, strerror (errno));
+		 tempdir_melt, xstrerror (errno));
     }
   /* Clear the vector of MELT file paths read */
   while (parsedmeltfilevect && !VEC_empty (meltchar_p, parsedmeltfilevect))
@@ -10760,7 +10760,8 @@ open_meltpp_file(void)
 #else  /* !MELT_IS_PLUGIN */
       meltppfilename = make_temp_file (".meltmem");
       if (!meltppfilename)
-	melt_fatal_error ("failed to get melt memory temporary file %s", strerror(errno));
+	melt_fatal_error ("failed to get melt memory temporary file %s", 
+			  xstrerror(errno));
 #endif	/* MELT_IS_PLUGIN */
     }
   meltppfile = fopen (meltppfilename, "w+");
@@ -10784,7 +10785,7 @@ close_meltpp_file(void)
   meltppbuffer = (char*) xcalloc(1, meltppbufsiz);
   if (fread (meltppbuffer, meltppbufsiz, 1, meltppfile) <= 0)
     melt_fatal_error ("failed to re-read melt buffer temporary file (%s)",
-		      strerror (errno));
+		      xstrerror (errno));
   fclose (meltppfile);
 #endif
   meltppfile = NULL;

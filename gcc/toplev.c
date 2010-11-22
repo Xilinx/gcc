@@ -145,6 +145,12 @@ unsigned int save_decoded_options_count;
 
 const char *main_input_filename;
 
+/* Pointer to base name in main_input_filename, with directories and a
+   single final extension removed, and the length of this base
+   name.  */
+const char *main_input_basename;
+int main_input_baselength;
+
 /* Used to enable -fvar-tracking, -fweb and -frename-registers according
    to optimize in process_options ().  */
 #define AUTODETECT_VALUE 2
@@ -2382,6 +2388,8 @@ toplev_main (int argc, char **argv)
   decode_options (&global_options, &global_options_set,
 		  save_decoded_options, save_decoded_options_count,
 		  UNKNOWN_LOCATION, global_dc);
+
+  handle_common_deferred_options ();
 
   init_local_tick ();
 

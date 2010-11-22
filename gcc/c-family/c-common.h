@@ -675,6 +675,7 @@ extern tree (*make_fname_decl) (location_t, tree, int);
 extern void c_register_addr_space (const char *str, addr_space_t as);
 
 /* In c-common.c.  */
+extern bool in_late_binary_op;
 extern const char *c_addr_space_name (addr_space_t as);
 extern tree identifier_global_value (tree);
 extern void record_builtin_type (enum rid, const char *, tree);
@@ -735,6 +736,10 @@ extern bool valid_location_for_stdc_pragma_p (void);
 extern void set_float_const_decimal64 (void);
 extern void clear_float_const_decimal64 (void);
 extern bool float_const_decimal64_p (void);
+
+extern bool keyword_begins_type_specifier (enum rid);
+extern bool keyword_is_storage_class_specifier (enum rid);
+extern bool keyword_is_type_qualifier (enum rid);
 
 #define c_sizeof(LOC, T)  c_sizeof_or_alignof_type (LOC, T, true, 1)
 #define c_alignof(LOC, T) c_sizeof_or_alignof_type (LOC, T, false, 1)

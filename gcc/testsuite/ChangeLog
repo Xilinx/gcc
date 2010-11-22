@@ -1,3 +1,97 @@
+2010-11-21  Richard Henderson  <rth@redhat.com>
+
+	PR rtl-optimization/46571
+	* gcc.dg/pr46571.c: New.
+
+2010-11-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* g++.dg/lto/20090303_0.C: Do not pass -fPIC on the SPARC.
+
+2010-11-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/46533
+	* gcc.dg/inline-2.c: Do not scan for "jsr" on alpha*-*-*  targets.
+
+2010-11-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* g++.dg/cpp/_Pragma1.C: Test for all non-Solaris targets.
+	* gcc.dg/cpp/_Pragma6.c: Test for all non-Solaris targets.
+	* gcc.dg/pack-test-1.c: Test for all non-default_packed targets.
+	* gcc.dg/pack-test-2.c: Test for all targets.
+	* gcc.dg/pragma-align.c: Test for all targets.
+	* gcc.dg/pragma-pack-4.c: Do not skip for AVR.
+	* gcc.dg/ucnid-10.c: Test for all targets.
+
+2010-11-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.target/sparc/sparc-align-1.c: New test.
+
+2010-11-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/16189
+	PR c++/36888
+	PR c++/45331
+	* g++.dg/parse/semicolon3.C: New test.
+	* g++.dg/debug/pr22514.C: Adjust.
+	* g++.dg/init/error1.C: Adjust.
+	* g++.dg/other/bitfield3.C: Adjust.
+	* g++.dg/other/semicolon.C: Adjust.
+	* g++.dg/parse/error14.C: Adjust.
+	* g++.dg/parse/error5.C: Adjust.
+	* g++.dg/parse/parameter-declaration-1.C: Adjust.
+	* g++.dg/template/pr23510.C: Adjust.
+	* g++.dg/template/pr39425.C: Adjust.
+	* g++.old-deja/g++.robertl/eb125.C: Adjust.
+
+2010-11-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46561
+	* gcc.dg/autopar/pr46561.c: New test.
+
+	PR c++/46538
+	* g++.dg/other/error34.C: New test.
+
+	PR c++/46526
+	* g++.dg/cpp0x/constexpr-base3.C: New test.
+
+	PR tree-optimization/45830
+	* gcc.target/i386/pr45830.c: New test.
+	* gcc.c-torture/execute/pr45830.c: New test.
+
+2010-11-19  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/attributes/class-attribute-1.m: Rewritten.
+	* objc.dg/attributes/class-attribute-2.m: Same change.
+	* obj-c++.dg/attributes/class-attribute-1.mm: Same change.
+	* obj-c++.dg/attributes/class-attribute-2.mm: Same change.
+	* objc.dg/fobjc-std-1.m: Updated.
+	* obj-c++.dg/fobjc-std-1.mm: Updated.
+
+2010-11-19  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/46077
+	* gcc.dg/vect/O3-pr46077.c: New testcase.
+
+2010-11-19  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/46547
+	* gcc.c-torture/compile/pr46547-1.c: New test.
+
+2010-11-19  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/gcc-defs.exp (gcc-set-multilib-library-path): Use eval to
+	exec $compiler.
+	* lib/gfortran.exp (gfortran_link_flags): Remove braces around
+	$GFORTRAN_UNDER_TEST.
+	(gfortran_init): Use -B to specify specpath, add trailing /.
+
+2010-11-19  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-target-1.c: New file to test target
+	attributes on PowerPC.
+	* gcc.target/powerpc/ppc-target-2.c: Ditto.
+	* gcc.target/powerpc/ppc-target-3.c: Ditto.
+
 2010-11-19  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc.dg/attributes/proto-attribute-1.m: Updated.
@@ -5,7 +99,7 @@
 	* objc.dg/attributes/proto-attribute-3.m: New.
 	* obj-c++.dg/attributes/proto-attribute-1.mm: Updated.
 	* obj-c++.dg/attributes/proto-attribute-2.mm: New.
-	* obj-c++.dg/attributes/proto-attribute-3.mm: New.	
+	* obj-c++.dg/attributes/proto-attribute-3.mm: New.
 
 2010-11-19  Eric Botcazou  <ebotcazou@adacore.com>
 

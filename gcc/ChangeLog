@@ -1,3 +1,629 @@
+2010-11-21  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* system.h (FUNCTION_ARG_BOUNDARY): Really poison.
+
+2010-11-21  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* target.def (conditional_register_usage): Define.
+	* reginfo.c (init_reg_sets_1): Call
+	targetm.conditional_register_usage.
+	* system.h (CONDITIONAL_REGISTER_USAGE): Poison.
+	* doc/tm.texi.in (CONDITIONAL_REGISTER_USAGE): Adjust language
+	for making it a hook.
+	* doc/tm.texi: Regenerate.
+	* config/alpha/alpha.h (CONDITIONAL_REGISTER_USAGE): Move logic...
+	* config/alpha/alpha.c (alpha_conditional_register_usage): ...here.
+	New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/arc/arc.h (CONDITIONAL_REGISTER_USAGE): Move logic...
+	* config/arc/arc.c (arc_conditional_register_usage): ...here.
+	New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/arm/arm.h (CONDITIONAL_REGISTER_USAGE): Move logic...
+	* config/arm/arm.c (arm_conditional_register_usage): ...here.
+	New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/bfin/bfin.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/bfin/bfin-protos.h (conditional_register_usage): Delete.
+	* config/bfin/bfin.c (conditional_register_usage): Move code into...
+	(bfin_conditional_register_usage): ...here.  New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/cris/cris.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/cris/cris-protos.h (cris_conditional_register_usage): Delete.
+	* config/cris/cris.c (cris_conditional_register_usage): Make static.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/fr30/fr30.h (FIXED_REGISTERS): Adjust comment.
+	* config/frv/frv.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/frv/frv-protos.h (frv_conditional_register_usage): Delete.
+	* config/frv/frv.c (frv_conditional_register_usage): Make static.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/h8300/h8300.h (CONDITIONAL_REGISTER_USAGE): Move logic...
+	* config/h8300/h8300.c (h8300_conditional_register_usage): ...here.
+	New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/i386/i386.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/i386/i386-protos.h (ix86_conditional_register_usage): Delete.
+	* config/i386/i386.c (ix86_conditional_register_usage): Make static.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/m32c/m32c.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/m32c/m32c-protos.h (m32c_conditional_register_usage): Delete.
+	* config/m32c/m32c.c (m32c_conditional_register_usage): Make static.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/m32r/m32r.h (CONDITIONAL_REGISTER_USAGE): Move logic...
+	* config/m32r/m32r.c (m32r_conditional_register_usage): ...here.
+	New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/m68hc11/m68hc11.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/m68hc11/m68hc11-protos.h (m68hc11_conditional_register_usage):
+	Delete.
+	* config/m68hc11/m68hc11.c (m68hc11_conditional_register_usage): Make
+	static.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/mep/mep.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/mep/mep-protos.h (mep_conditional_register_usage): Delete.
+	* config/mep/mep.c (mep_conditional_register_usage): Make static.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/mips/mips.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/mips/mips-protos.h (mips_conditional_register_usage): Delete.
+	* config/mips/mips.c (mips_conditional_register_usage): Make static.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/mmix/mmix.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/mmix/mmix-protos.h (mmix_conditional_register_usage): Delete.
+	* config/mmix/mmix.c (mmix_conditional_register_usage): Make static.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/mn10300/mn10300.h (CONDITIONAL_REGISTER_USAGE): Move logic...
+	* config/mn10300/mn10300.c (mn10300_conditional_register_usage):
+	...here.  New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/pa/pa32-regs.h (CONDITIONAL_REGISTER_USAGE): Move logic...
+	* config/pa/pa64-regs.h (CONDITIONAL_REGISTER_USAGE): ...with this...
+	* config/pa/pa.c (pa_conditional_register_usage): ...here.
+	New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/pdp11/pdp11.h (CONDITIONAL_REGISTER_USAGE): Move logic...
+	* config/pdp11/pdp11.c (pdp11_conditional_register_usage): ...here.
+	New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/rs6000/rs6000.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/rs6000/rs6000-protos.h (rs6000_conditional_register_usage):
+	Delete.
+	* config/rs6000/rs6000.c (rs6000_conditional_register_usage): Make
+	static.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/rx/rx.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/rx/rx-protos.h (rx_conditional_register_usage): Delete.
+	* config/rx/rx.c (rx_conditional_register_usage): Make static.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/s390/s390.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/s390/s390-protos.h (s390_conditional_register_usage): Delete.
+	* config/s390/s390.c (s390_conditional_register_usage): Make static.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/score/score.h (CONDITIONAL_REGISTER_USAGE): Move logic...
+	* config/score/score.c (score_conditional_register_usage): ...here.
+	New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/sh/sh.h (CONDITIONAL_REGISTER_USAGE): Move logic...
+	* config/sh/sh.c (sh_conditional_register_usage): ...here.
+	New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/sparc/sparc.h (CONDITIONAL_REGISTER_USAGE): Move logic...
+	* config/sparc/sparc.c (sparc_conditional_register_usage): ...here.
+	New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/spu/spu.h (CONDITIONAL_REGISTER_USAGE): Delete.
+	* config/spu/spu-protos.h (spu_conditional_register_usage): Delete.
+	* config/spu/spu.c (spu_conditional_register_usage): Make static.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+	* config/v850/v850.h (CONDITIONAL_REGISTER_USAGE): Move logic...
+	* config/v850/v850.c (v850_conditional_register_usage): ...here.
+	New function.
+	(TARGET_CONDITIONAL_REGISTER_USAGE): Define.
+
+2010-11-21  Jan Hubicka  <jh@suse.cz>
+	    Dominique d'Humieres <dominiq@lps.ens.ft>
+
+	PR target/46510
+	* tree-emutls.c (get_emutls_init_templ_addr, new_emutls_decl): Do not
+	finalize external decls.
+
+2010-11-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* system.h (strerror): Poison.
+
+2010-11-21  Richard Henderson  <rth@redhat.com>
+
+	* config/ia64/ia64.c (ia64_expand_builtin): Use the correct mode
+	for infq/huge_valq.
+
+2010-11-21  Richard Henderson  <rth@redhat.com>
+
+	PR rtl-optimization/46571
+	* gcse.c (hash_scan_set): Use next_nonnote_nondebug_insn.
+	(compute_hash_table_work): Use NONDEBUG_INSN_P.
+
+2010-11-21  Paul Koning  <ni1d@arrl.net>
+
+	* config/mips/pdp11.md (negsi2): Fix wrong code.
+
+2010-11-21  Paul Koning  <ni1d@arrl.net>
+
+	* config/mips/pdp11.c (pdp11_legitimate_address_p): New function.
+	* config/mips/pdp11.h (GO_IF_LEGITIMATE_ADDRESS): Delete.
+
+2010-11-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/mips/mips.c (machine_function): Rename load_label_length to
+	load_label_num_insns.
+	(mips_load_label_length): Rename to...
+	(mips_load_label_num_insns): ...this.  Adjust to first renaming.
+	(mips_adjust_insn_length): Adjust to second renaming.  Fix thinko.
+
+2010-11-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/46533
+	* config/alpha/predicates.md (direct_call_operand): Return false
+	for !TARGET_SMALL_TEXT targets.
+
+2010-11-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* doc/tm.texi.in (HANDLE_SYSV_PRAGMA,
+	HANDLE_PRAGMA_PACK_PUSH_POP): Remove.
+	(HANDLE_PRAGMA_PACK_WITH_EXPANSION): Don't refer to
+	HANDLE_SYSV_PRAGMA.
+	* doc/tm.texi: Regenerate.
+	* system.h (HANDLE_PRAGMA_PACK_PUSH_POP, HANDLE_SYSV_PRAGMA,
+	HANDLE_PRAGMA_WEAK): Poison.
+	* config/alpha/elf.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/alpha/linux.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/alpha/osf5.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/alpha/vms.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/arm/arm.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/arm/netbsd.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/cris/cris.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/darwin.h (HANDLE_SYSV_PRAGMA): Don't define.
+	(HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/elfos.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/freebsd.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/frv/frv.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/i386/cygming.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/i386/djgpp.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/i386/i386-interix.h (HANDLE_SYSV_PRAGMA): Don't define.
+	(HANDLE_PRAGMA_WEAK): Don't undefine.
+	* config/i386/netware.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/i386/vxworks.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/ia64/hpux.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/ia64/ia64.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/interix.h (HANDLE_SYSV_PRAGMA): Don't define.
+	(HANDLE_PRAGMA_WEAK): Don't undefine.
+	* config/linux.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/m32r/linux.h (HANDLE_SYSV_PRAGMA): Don't define.
+	(HANDLE_PRAGMA_PACK): Don't undefine.
+	* config/m32r/m32r.h (HANDLE_SYSV_PRAGMA): Don't undefine.
+	* config/mep/mep.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/mips/elf.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/mips/sde.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/mmix/mmix.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/netbsd.h (HANDLE_SYSV_PRAGMA): Don't define.
+	(HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/openbsd.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/pa/pa-hpux.h (HANDLE_SYSV_PRAGMA): Don't define.
+	(HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/rs6000/aix.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/rs6000/sysv4.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/rx/rx.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/score/elf.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/spu/spu.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+	* config/stormy16/stormy16.h (HANDLE_SYSV_PRAGMA): Don't define.
+	* config/xtensa/elf.h (HANDLE_PRAGMA_PACK_PUSH_POP): Don't define.
+
+2010-11-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/31100
+	* config/sparc/sparc.h (ASM_OUTPUT_ALIGN_WITH_NOP): Move to...
+	* config/sparc/sol2.h (ASM_OUTPUT_ALIGN_WITH_NOP): ...here.
+	* config/sparc/sol2-gas.h (ASM_OUTPUT_ALIGN_WITH_NOP): Undefine.
+
+2010-11-20  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (ld_plugin_symbol_resolution_names): New.
+	(dump_cgraph_node): Dump resolution.
+	* cgraph.h (ld_plugin_symbol_resolution_names): Declare.
+	(cgraph_comdat_can_be_unshared_p): Dclare.
+	* lto-streamer-out.c (produce_symtab): Use
+	cgraph_comdat_can_be_unshared_p.
+	* ipa.c (cgraph_address_taken_from_non_vtable_p): New function.
+	(cgraph_comdat_can_be_unshared_p): New function based on logic
+	in cgraph_externally_visible_p.
+	(cgraph_externally_visible_p): Use it.
+	(varpool_externally_visible_p): Virtual tables can be unshared.
+	* varpool.c (dump_varpool_node): Dump resolution.
+
+2010-11-20  Jan Hubicka  <jh@suse.cz>
+
+	* stmt.c (lshift_cheap_p): Support properly optimize_insn_for_speed_p.
+
+2010-11-20  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR other/46202
+	* Makefile.in (install_sh, INSTALL_STRIP_PROGRAM): New variables.
+	(AR_FOR_TARGET, RANLIB_FOR_TARGET, STRIP_FOR_TARGET): Fix
+	shell quoting.
+	(STRIP_FOR_TARGET): Look for in-tree strip under name strip-new.
+	(install-strip): New target.
+	(STRIPPROG): New variable, exported if STRIP is set.
+	* doc/install.texi (Final install): Minor markup and code style
+	fixes.  Document install-strip target.
+
+2010-11-20  Paul Koning  <ni1d@arrl.net>
+
+	* config/pdp11/pdp11-protos.h (pdp11_initial_elimination_offset,
+	pdp11_regno_reg_class): New functions.
+	* config/pdp11/pdp11.md (define_constants): Add register numbers.
+	* config/pdp11/pdp11.c (pdp11_regno_reg_class,
+	pdp11_sp_frame_offset, pdp11_initial_elimination_offset): New
+	functions.
+	* config/pdp11/pdp11.h (FIXED_REGISTERS, CALL_USED_REGISTERS): Add
+	frame pointer and argument pointer pseudo-registers.
+	(ARG_POINTER_REGNUM): Define.
+	(REG_CLASS_CONTENTS, REGNO_REG_CLASS): Add frame pointer and
+	argument pointer.
+	(FIRST_PARM_OFFSET): Update for argument pointer.
+	(INITIAL_FRAME_POINTER_OFFSET): Delete.
+	(ELIMINABLE_REGS, INITIAL_ELIMINATION_OFFSET): New macros.
+	(REGNO_OK_FOR_BASE_P, REGNO_OK_FOR_INDEX_P, REGISTER_NAMES): Add
+	frame pointer and argument pointer.
+
+2010-11-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46561
+	* tree-parloops.c (try_create_redunction_list): Ignore debug stmts
+	when looking for immediate uses.
+
+	PR tree-optimization/45830
+	* stmt.c (expand_switch_using_bit_tests_p): New function.
+	(expand_case): Use it.
+	* tree.h (expand_switch_using_bit_tests_p): New prototype.
+	* tree-switch-conversion.c (struct switch_conv_info): Add
+	bit_test_uniq, bit_test_count and bit_test_bb fields.
+	(check_range): Fix a comment.
+	(check_process_case): Compute bit_test_uniq and bit_test_count.
+	(create_temp_arrays): Use XCNEWVEC, merge 3 arrays into one
+	allocation.
+	(free_temp_arrays): Use XDELETEVEC, adjust for the 3 arrays merging.
+	(constructor_contains_same_values_p): Use FOR_EACH_VEC_ELT.
+	(array_value_type): New function.
+	(build_one_array): Use it, if it returned different type,
+	fold_convert all constructor fields and convert back to the
+	wider type in the generated code.
+	(process_switch): Initialize bit_test_uniq, bit_test_count and
+	bit_test_bb fields.  Don't optimize if expand_switch_using_bit_tests_p
+	returned true.
+
+2010-11-19  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/46077
+	* tree-chrec.c (eq_evolutions_p): Accept some expressions.
+
+2010-11-19  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/mn10300/mn10300.h (OUTPUT_ADDR_CONST_EXTRA): Remove.
+	* config/mn10300/mn10300.c (mn10300_asm_output_addr_const_extra): New
+	function.
+	(TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA): Define.
+
+2010-11-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* mode-switching.c (optimize_mode_switching): Use
+	FOR_BB_INSNS instead of open-coded loop.
+	* cfgrtl.c (redirect_branch_edge): Ditto.
+
+2010-11-19  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR target/46436
+	* config/m68hc11/m68hc11.c (m68hc11_gen_highpart): Split shift count
+	to accomodate 32 bit HOST_WIDE_INT.
+	(m68hc11_emit_logical): Remove unused variable insn.
+	(m68hc11_check_z_replacement) <CLOBBER>: Set this_insn_uses_ix and
+	this_insn_uses_iy before use.
+
+	PR target/46434
+	* config/crx/crx.c (crx_expand_epilogue): Remove unused variable.
+
+2010-11-19  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/46547
+	* c-tree.h (in_late_binary_op): Move to c-family/c-common.h.
+	* c-typeck.c (in_late_binary_op): Move to c-family/c-common.c.
+
+2010-11-19  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* doc/extend.texi (Function attributes): Document PowerPC target
+	attributes that are supported.
+	(Pragmas): Document that PowerPC now supports target pragmas.
+
+	* doc/options.texi (TargetVariable): Document TargetVariable,
+	HeaderInclude, and SourceInclude.
+
+	* doc/invoke.texi (-mfused-madd): Document that -mfused-madd is
+	mapped to -ffp-contract=fast, and -mno-fused-madd is mapped to
+	-ffp-contract=off.
+
+	* optc-gen.awk: Add support for TargetVariable, HeaderInclude, and
+	SourceInclude directives.  Fix a cut+paste error with target save
+	enum variables.  Sort enums in the structures after ints and
+	before shorts.
+	* opth-gen.awk: Ditto.
+
+	* configure.ac: Add support for HeaderInclude and SourceInclude option
+	directives to add the appropriate files to the dependency lists.
+	* configure: Regenerate.
+	* Makefile.in (OPTIONS_H_EXTRA): New variable for HeaderInclude.
+	(OPTIONS_C_EXTRA): New variable for SourceInclude.
+	(OPTIONS_H): Add $(OPTIONS_H_EXTRA).
+	(options.o): Add $(OPTIONS_C_EXTRA) dependency.
+	(gcc-options.o): Ditto.
+	* opt-include.awk: New awk script to handle HeaderInclude and
+	TargetInclude.
+
+	* config/rs6000/aix.opt (-mxl-compat): Mark option as Save so it
+	gets saved in the target options.
+	* config/rs6000/linux64.opt (-mprofile-kernel): Ditto.
+	* config/rs6000/sysv4.opt (-mbit-align): Ditto.
+	(-mprototype): Ditto.
+	(-mbit-word): ditto.
+	(-mregnames): Ditto.
+	(-msecure-plt): Ditto.
+	(-mbss-plt): Ditto.
+	* config/rs6000/rs6000.opt (-mpowerpc-gpopt): Ditto.
+	(-mpowerpc-gfxopt): Ditto.
+	(-mmfcrf): Ditto.
+	(-mpopcntb): Ditto.
+	(-mfprnd): Ditto.
+	(-mcmpb): Ditto.
+	(-mmmfpgpr): Ditto.
+	(-maltivec): Ditto.
+	(-mhard-dfp): Ditto.
+	(-mmulhw): Ditto.
+	(-mdlmzb): Ditto.
+	(-mmultiple): Ditto.
+	(-mstring): Ditto.
+	(-mpopcntd): Ditto.
+	(-mfriz): Ditto.
+	(-mvsx): Ditto.
+	(-mno-update): Ditto.
+	(-mavoid-indexed-addresses): Ditto.
+	(-mtls-markers): Ditto.
+	(-msched-epilog): Ditto.
+	(-msched-prolog): Ditto.
+	(-maix-struct-return): Ditto.
+	(-msvr4-struct-return): Ditto.
+	(-mxl-compat): Ditto.
+	(-mrecip-precision): Ditto.
+	(-mfp-in-toc): Ditto.
+	(-msum-in-toc): Ditto.
+	(-mvrsave): Ditto.
+	(-mblock-move-inline-limit=): Ditto.
+	(-misel): Ditto.
+	(-mpaired): Ditto.
+	(-mlongcall): Ditto.
+	(-mgen-cell-microcode): Ditto.
+	(-mwarn-cell-microcode): Ditto.
+	(-mwarn-altivec-long): Ditto.
+	(-mprioritize-restricted-insns=): Ditto.
+	(-msingle-float): Ditto.
+	(-mdouble-float): Ditto.
+	(-msimple-fpu): Ditto.
+	(-mxilinx-fpu): Ditto.
+	* config/rs6000/aix64.opt (-mpe): Ditto.
+
+	* config/rs6000/rs6000.opt (HeaderInclude): Include rs6000-opts.h.
+	(rs6000_cpu): Move variable to be a target variable.  Rename
+	cmodel to rs6000_current_cmodel because of macro conflict.  Merge
+	-mdebug=<xxx> variables into a single int.
+	(rs6000_always_hint): Ditto.
+	(rs6000_sched_groups): Ditto.
+	(rs6000_align_branch_targets): Ditto.
+	(rs6000_sched_costly_dep): Ditto.
+	(rs6000_sched_insert_nops): Ditto.
+	(rs6000_long_double_type_size): Ditto.
+	(rs6000_ieeequad): Ditto.
+	(rs6000_altivec_abi): Ditto.
+	(rs6000_spe): Ditto.
+	(rs6000_spe_abi): Ditto.
+	(rs6000_float_gprs): Ditto.
+	(rs6000_darwin64_abi): Ditto.
+	(can_override_loop_align): Ditto.
+	(rs6000_sdata): Ditto.
+	(rs6000_tls_size): Ditto.
+	(rs6000_current_abi): Ditto.
+	(rs6000_traceback): Ditto.
+	(rs6000_alignment_flags): Ditto.
+	(rs6000_current_cmodel): Ditto.
+	(rs6000_recip_control): Ditto.
+	(rs6000_cpu_index): Ditto.
+	(rs6000_tune_index): Ditto.
+	(rs6000_debug): Ditto.
+	(rs6000_target_flags_explict): Ditto.
+
+	* config/rs6000/rs6000-protos.h (rs6000_pragma_target_parse): Add
+	declaration.
+
+	* config/rs6000/linux64.h (rs6000_current_cmode): Rename from
+	cmodel.  Change all uses.
+
+	* config/rs6000/rs6000.c (rs6000_always_hint): Move to
+	rs6000.opt.  Combine -mdebug=<xxx> variables into a single int.
+	Rename cmodel to rs6000_current_cmodel.
+	(rs6000_sched_groups): Ditto.
+	(rs6000_align_branch_targets): Ditto.
+	(rs6000_sched_costly_dep): Ditto.
+	(rs6000_sched_insert_nops): Ditto.
+	(rs6000_long_double_type_size): Ditto.
+	(rs6000_ieeequad): Ditto.
+	(rs6000_altivec_abi): Ditto.
+	(rs6000_spe): Ditto.
+	(rs6000_spe_abi): Ditto.
+	(rs6000_float_gprs): Ditto.
+	(rs6000_darwin64_abi): Ditto.
+	(can_override_loop_align): Ditto.
+	(rs6000_sdata): Ditto.
+	(rs6000_tls_size): Ditto.
+	(rs6000_current_abi): Ditto.
+	(rs6000_traceback): Ditto.
+	(rs6000_alignment_flags): Ditto.
+	(rs6000_current_cmodel): Ditto.
+	(rs6000_recip_control): Ditto.
+	(rs6000_cpu_index): Ditto.
+	(rs6000_tune_index): Ditto.
+	(rs6000_debug): Ditto.
+	(rs6000_target_flags_explict): Ditto.
+	(rs6000_sched_insert_nops_str): Make static.
+	(rs6000_sched_costly_dep_str): Ditto.
+	(rs6000_recip_name): Ditto.
+	(rs6000_abi_name): Ditto.
+	(rs6000_sdata_name): Ditto.
+	(enum rs6000_traceback_name): Move to rs6000-opts.h.
+	(rs6000_parse_tls_size_option): Delete.
+	(rs6000_valid_attribute_p): New function for target attributes and
+	pragmas.
+	(rs6000_function_specific_save): Ditto.
+	(rs6000_function_specific_restore): Ditto.
+	(rs6000_function_specific_print): Ditto.
+	(rs6000_can_inline_p): Ditto.
+	(rs6000_set_current_function): Ditto.
+	(rs6000_inner_target_options): Ditto.
+	(rs6000_debug_target_options): Ditto.
+	(rs6000_pragma_target_parse): Ditto.
+	(TARGET_OPTION_VALID_ATTRIBUTE_P): Define target hooks for target
+	attributes and pragmas.
+	(TARGET_OPTION_SAVE): Ditto.
+	(TARGET_OPTION_RESTORE): Ditto.
+	(TARGET_OPTION_PRINT): Ditto.
+	(TARGET_CAN_INLINE_P): Ditto.
+	(TARGET_SET_CURRENT_FUNCTION): Ditto.
+	(POWER_MASKS): Move to file level scope from the
+	rs6000_option_override_internal function.
+	(POWERPC_MASKS): Ditto.
+	(ISA_*_MASKS): Ditto.
+	(struct rs6000_ptt): Ditto.
+	(processor_target_table): Ditto.
+	(rs6000_cpu_name_lookup): Map cpu name to an index in
+	processor_target_table.
+	(rs6000_debug_reg_global): Print more information on processor
+	options for -mdebug=reg.
+	(rs6000_init_hard_regno_mode_ok): Add support for target
+	attributes and pragmas.  Merge all -mdebug=<xxx> fields into one.
+	Allow -mdebug=val1,val2.  Rename cmodel variable.
+	(rs6000_option_override_internal): Ditto.
+	(rs6000_option_override): Ditto.
+	(rs6000_handle_option): Ditto.
+	(rs6000_conditional_register_usage): Add debug trace message.
+	(struct rs6000_opt_mask): New for target attribute/pragma support.
+	(rs6000_opt_masks): Ditto.
+	(struct rs6000_opt_var): Ditto.
+	(rs6000_opt_vars): Ditto.
+	(rs6000_previous_function): Ditto.
+
+	* config/rs6000/rs6000.h (top level): Include rs6000-opts.h if it
+	wasn't already included.
+	(enum rs6000_cmodel): Move to rs6000-opts.h or rs6000.opt.
+	(enum processor_type): Ditto.
+	(rs6000_cpu): Ditto.
+	(enum fpu_type_t): Ditto.
+	(fpu_type): Ditto.
+	(enum rs6000_dependence_cost): Ditto.
+	(enum rs6000_nop_insertion): Ditto.
+	(enum group_termination): Ditto.
+	(rs6000_long_double_type_size): Ditto.
+	(rs6000_ieeequad): Ditto.
+	(rs6000_altivec_abi): Ditto.
+	(rs6000_spe_abi): Ditto.
+	(rs6000_spe): Ditto.
+	(rs6000_float_gprs): Ditto.
+	(rs6000_alignment_flags): Ditto.
+	(rs6000_sched_insert_nops): Ditto.
+	(enum rs6000_vector): Ditto.
+	(enum rs6000_abi): Ditto.
+	(rs6000_current_opt): Ditto.
+	(rs6000_debug_*): Delete.
+	(MASK_DEBUG*): Combine -mdebug=xxxx into one int.
+	(TARGET_DEBUG*): Ditto.
+
+	* config/rs6000/rs6000-opts.h: New header file to define the enums
+	that are used in target variables that are now defined in rs6000.opt.
+
+	* config/rs6000/sysv4.h (enum rs6000_sdata_type): Move to
+	rs6000-opts.h.
+	(rs6000_sdata): Ditto.
+	(rs6000_abi_name): Delete.
+	(rs6000_sdata_name): Ditto.
+	(rs6000_tls_size_string): Ditto.
+
+2010-11-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt (debug_struct_ordinary, debug_struct_generic): New
+	Variable entries.
+	* dwarf2out.c (matches_main_base, dump_struct_debug, DUMP_GSTRUCT,
+	should_emit_struct_debug): Move from opts.c.
+	* flag-types.h (enum debug_struct_file): Move from opts.c.
+	* flags.h (should_emit_struct_debug): Remove.
+	(base_of_path): Declare.
+	(set_struct_debug_option): Add gcc_options parameter.
+	* optc-gen.awk, opth-gen.awk: Handle array variables.
+	* opts.c (enum debug_struct_file, debug_struct_ordinary,
+	debug_struct_generic): Remove.
+	(set_struct_debug_option): Add gcc_options parameter.
+	(base_of_path): Remove static.
+	(main_input_basename, main_input_baselength, matches_main_base,
+	dump_struct_debug, DUMP_GSTRUCT, should_emit_struct_debug):
+	Remove.
+	* toplev.c (main_input_basename, main_input_baselength): Define
+	here.
+	* toplev.h (main_input_basename, main_input_baselength): Declare
+	here.
+
+2010-11-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt (flag_instrument_functions_exclude_functions,
+	flag_instrument_functions_exclude_files): New Variable definitions.
+	* flags.h (flag_instrument_functions_exclude_p): Don't declare.
+	* gimplify.c (char_p): Declare type and vectors.
+	(flag_instrument_functions_exclude_p): Moved from opts.c.  Make static.
+	* opts.c (flag_instrument_functions_exclude_functions,
+	flag_instrument_functions_exclude_files): Remove.
+	(add_comma_separated_to_vector): Take void **.
+	(flag_instrument_functions_exclude_p): Move to gimplify.c.
+	(common_handle_option): Use options structure for
+	-finstrument-functions-exclude- options.
+
+2010-11-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* doc/options.texi (Var): Document effects of Defer.
+	(Defer): Document.
+	* opt-functions.awk (var_type, var_set): Handle deferred options.
+	* opts-common.c (set_option): Handle CLVC_DEFER.
+	* common.opt (fcall-saved-, fcall-used-, fdump-, ffixed-,
+	fplugin=, fplugin-arg-, fstack-limit, fstack-limit-register=,
+	fstack-limit-symbol=): Mark as deferred.
+	* opts.c: Don't include rtl.h, ggc.h, output.h, tree-pass.h or
+	plugin.h.
+	(print_filtered_help): Don't report state of CLVC_DEFER options.
+	(common_handle_option): Move code for OPT_fcall_used_,
+	OPT_fcall_saved_, OPT_fdump_, OPT_ffixed_, OPT_fplugin_,
+	OPT_fplugin_arg_, OPT_fstack_limit, OPT_fstack_limit_register_ and
+	OPT_fstack_limit_symbol_ to opts-global.c.
+	(option_enabled, get_option_state): Handle CLVC_DEFER.
+	* opts.h: Include vec.h.
+	(enum cl_var_type): Add CLVC_DEFER.
+	(cl_deferred_option): Define type and vectors.
+	(handle_common_deferred_options): Declare.
+	* opts-global.c: New.
+	* toplev.c (toplev_main): Call handle_common_deferred_options
+	* Makefile.in (OPTS_H): Include $(VEC_H).
+	(OBJS-common): Include opts-global.o.
+	(opts.o): Update dependencies.
+	(opts-global.o): Add dependencies.
+
 2010-11-19  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* c-parser.c (c_parser_objc_protocol_definition): Pass attributes

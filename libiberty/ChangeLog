@@ -1,3 +1,17 @@
+2010-11-20  Anthony Green  <green@moxielogic.com>
+
+	* configure.ac: Turn PR_SET_NAME link test into a test for
+	sys/prctl.h.
+	* configure, config.in: Rebuilt.
+	* setproctitle.c: Test for HAVE_SYS_PRCTL_H.
+	(setproctitle) Test for PR_SET_NAME definition.
+
+2010-11-20  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR other/46202
+	* Makefile.in (install-strip): New phony target.
+	(install): Also mark as phony.
+
 2010-11-16  Ian Lance Taylor  <iant@google.com>
 
 	* simple-object.c (simple_object_attributes_merge): Rename from

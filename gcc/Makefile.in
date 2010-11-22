@@ -22,7 +22,7 @@
 #<http://www.gnu.org/licenses/>.
 
 # The targets for external use include:
-# all, doc, install, install-cross, install-cross-rest,
+# all, doc, install, install-cross, install-cross-rest, install-strip,
 # uninstall, TAGS, mostlyclean, clean, distclean, maintainer-clean.
 
 # This is the default target.
@@ -256,6 +256,8 @@ LN_S=@LN_S@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_SCRIPT = @INSTALL@
+install_sh = $(SHELL) $(srcdir)/../install-sh
+INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 MAKEINFO = @MAKEINFO@
 MAKEINFOFLAGS = --no-split
 TEXI2DVI = texi2dvi
@@ -394,7 +396,7 @@ AR_FOR_TARGET := $(shell \
     if [ "$(host)" = "$(target)" ] ; then \
       echo $(AR); \
     else \
-       t='$(program_transform_name)'; echo ar | sed -e $$t ; \
+       t='$(program_transform_name)'; echo ar | sed -e "$$t" ; \
     fi; \
   fi)
 AR_FLAGS_FOR_TARGET =
@@ -409,20 +411,20 @@ RANLIB_FOR_TARGET := $(shell \
     if [ "$(host)" = "$(target)" ] ; then \
       echo $(RANLIB); \
     else \
-       t='$(program_transform_name)'; echo ranlib | sed -e $$t ; \
+       t='$(program_transform_name)'; echo ranlib | sed -e "$$t" ; \
     fi; \
   fi)
 ORIGINAL_LD_FOR_TARGET = @ORIGINAL_LD_FOR_TARGET@
 ORIGINAL_NM_FOR_TARGET = @ORIGINAL_NM_FOR_TARGET@
 NM_FOR_TARGET = ./nm
 STRIP_FOR_TARGET := $(shell \
-  if [ -f $(objdir)/../binutils/strip ] ; then \
-    echo $(objdir)/../binutils/strip ; \
+  if [ -f $(objdir)/../binutils/strip-new ] ; then \
+    echo $(objdir)/../binutils/strip-new ; \
   else \
     if [ "$(host)" = "$(target)" ] ; then \
       echo strip; \
     else \
-       t='$(program_transform_name)'; echo strip | sed -e $$t ; \
+       t='$(program_transform_name)'; echo strip | sed -e "$$t" ; \
     fi; \
   fi)
 
@@ -813,6 +815,16 @@ T_TARGET : $(T_TARGET)
 # at build time.
 SPECS = specs
 
+# Extra include files that are defined by HeaderInclude directives in
+# the .opt files
+OPTIONS_H_EXTRA =
+
+# Extra include files that are defined by SourceInclude directives in
+# the .opt files
+OPTIONS_C_EXTRA =
+
+@option_includes@
+
 # End of variables for you to override.
 
 # GTM_H lists the config files that the generator files depend on,
@@ -900,7 +912,7 @@ RECOG_H = recog.h
 ALIAS_H = alias.h coretypes.h
 EMIT_RTL_H = emit-rtl.h
 FLAGS_H = flags.h coretypes.h flag-types.h $(OPTIONS_H)
-OPTIONS_H = options.h flag-types.h
+OPTIONS_H = options.h flag-types.h $(OPTIONS_H_EXTRA)
 FUNCTION_H = function.h $(TREE_H) $(HASHTAB_H) vecprim.h $(TM_H)
 EXPR_H = expr.h insn-config.h $(FUNCTION_H) $(RTL_H) $(FLAGS_H) $(TREE_H) $(MACHMODE_H) $(EMIT_RTL_H)
 OPTABS_H = optabs.h insn-codes.h
@@ -939,7 +951,7 @@ PREDICT_H = predict.h predict.def
 CPPLIB_H = $(srcdir)/../libcpp/include/line-map.h \
 	$(srcdir)/../libcpp/include/cpplib.h
 INPUT_H = $(srcdir)/../libcpp/include/line-map.h input.h
-OPTS_H = $(INPUT_H) opts.h
+OPTS_H = $(INPUT_H) $(VEC_H) opts.h
 DECNUM_H = $(DECNUM)/decContext.h $(DECNUM)/decDPD.h $(DECNUM)/decNumber.h \
 	$(DECNUMFMT)/decimal32.h $(DECNUMFMT)/decimal64.h \
 	$(DECNUMFMT)/decimal128.h $(DECNUMFMT)/decimal128Local.h
@@ -1304,6 +1316,7 @@ OBJS-common = \
 	optabs.o \
 	options.o \
 	opts-common.o \
+	opts-global.o \
 	opts.o \
 	params.o \
 	passes.o \
@@ -2251,9 +2264,10 @@ s-options-h: optionlist $(srcdir)/opt-functions.awk $(srcdir)/opth-gen.awk
 	$(STAMP) $@
 
 options.o: options.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TARGET_H) $(FLAGS_H) \
-	$(TM_H) $(OPTS_H) intl.h
+	$(TM_H) $(OPTS_H) intl.h $(OPTIONS_C_EXTRA)
 
-gcc-options.o: options.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(OPTS_H) intl.h
+gcc-options.o: options.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(OPTS_H) intl.h \
+	$(OPTIONS_C_EXTRA)
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(OUTPUT_OPTION) \
 		-DGCC_DRIVER options.c
 
@@ -2827,10 +2841,13 @@ fold-const.o : fold-const.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 diagnostic.o : diagnostic.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    version.h $(INPUT_H) intl.h $(DIAGNOSTIC_H) diagnostic.def
 opts.o : opts.c $(OPTS_H) $(OPTIONS_H) $(TOPLEV_H) $(DIAGNOSTIC_CORE_H) $(CONFIG_H) $(SYSTEM_H) \
-   coretypes.h $(TREE_H) $(TM_H) langhooks.h $(GGC_H) $(EXPR_H) $(RTL_H) \
-   output.h $(DIAGNOSTIC_H) $(TM_P_H) $(INSN_ATTR_H) intl.h $(TARGET_H) \
-   $(FLAGS_H) $(PARAMS_H) $(TREE_PASS_H) $(DBGCNT_H) debug.h \
-   $(PLUGIN_H) $(EXCEPT_H) $(LTO_STREAMER_H) opts-diagnostic.h
+   coretypes.h $(TREE_H) $(TM_H) langhooks.h $(EXPR_H) \
+   $(DIAGNOSTIC_H) $(TM_P_H) $(INSN_ATTR_H) intl.h $(TARGET_H) \
+   $(FLAGS_H) $(PARAMS_H) $(DBGCNT_H) debug.h \
+   $(EXCEPT_H) $(LTO_STREAMER_H) opts-diagnostic.h
+opts-global.o : opts-global.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+   $(DIAGNOSTIC_CORE_H) $(OPTS_H) $(FLAGS_H) $(GGC_H) $(TM_H) $(RTL_H) \
+   output.h $(PLUGIN_H) $(TREE_PASS_H)
 opts-common.o : opts-common.c $(OPTS_H) $(FLAGS_H) $(CONFIG_H) $(SYSTEM_H) \
    coretypes.h intl.h $(DIAGNOSTIC_H) $(TM_H)
 targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
@@ -4561,7 +4578,7 @@ maintainer-clean:
 	-rm -f gcc.??s gcc.*aux
 	-rm -f $(gcc_docdir)/*.info $(gcc_docdir)/*.1 $(gcc_docdir)/*.7 $(gcc_docdir)/*.dvi $(gcc_docdir)/*.pdf
 #
-# Entry points `install' and `uninstall'.
+# Entry points `install', `install-strip', and `uninstall'.
 # Also use `install-collect2' to install collect2 when the config files don't.
 
 # Copy the compiler files into directories where they will be run.
@@ -4574,6 +4591,13 @@ install: install-common $(INSTALL_HEADERS) \
 ifeq ($(enable_plugin),yes)
 install: install-plugin
 endif
+
+install-strip: override INSTALL_PROGRAM = $(INSTALL_STRIP_PROGRAM)
+ifneq ($(STRIP),)
+install-strip: STRIPPROG = $(STRIP)
+export STRIPPROG
+endif
+install-strip: install
 
 # Handle cpp installation.
 install-cpp: installdirs cpp$(exeext)

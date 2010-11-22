@@ -151,8 +151,6 @@ extern enum rx_cpu_types  rx_cpu_type;
 
 #define LEGITIMATE_CONSTANT_P(X) 	rx_is_legitimate_constant (X)
 
-#define HANDLE_PRAGMA_PACK_PUSH_POP	1
-
 #define HAVE_PRE_DECCREMENT		1
 #define HAVE_POST_INCREMENT		1
 
@@ -246,9 +244,6 @@ enum reg_class
 {							\
   1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1	\
 }
-
-#define CONDITIONAL_REGISTER_USAGE			\
-  rx_conditional_register_usage ()
 
 #define LIBCALL_VALUE(MODE)				\
   gen_rtx_REG (((GET_MODE_CLASS (MODE) != MODE_INT	\
