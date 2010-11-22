@@ -1,5 +1,30 @@
 
 2010-11-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (REALGTMELTPLUGINFILES): filtering out
+	everymelt-*.[ch] file. Added temporarily a warning!
+
+	{{regenerated files}}
+	* melt/generated/warmelt-first.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerated.
+	* melt/generated/warmelt-normal.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerated.
+	* melt/generated/warmelt-normatch.0+03.c: Regenerated.
+	* melt/generated/warmelt-macro.0.c: Regenerated.
+	* melt/generated/warmelt-debug.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+01.c: Regenerated.
+	* melt/generated/warmelt-genobj.0.c: Regenerated.
+	* melt/generated/warmelt-normal.0+02.c: Regenerated.
+	* melt/generated/warmelt-base.0.c: Regenerated.
+	* melt/generated/warmelt-normatch.0.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-outobj.0+04.c: New file.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerated.
+	* melt/generated/warmelt-debug.0.c: Regenerated.
+
+2010-11-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt: use stdump orelse stderr for out...
 
 	* melt/xtramelt-opengpu.melt: added more debug.

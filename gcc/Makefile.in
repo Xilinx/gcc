@@ -3855,7 +3855,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
 ## automount-ed file systems).  This could be useful in plugin mode of
 ## gengtype.
 REALGTFILES = $(foreach f, $(GTFILES), $(if $(patsubst [%],,$f), $(realpath $f), $f))
-REALGTMELTPLUGINFILES = $(foreach f, $(filter-out $(MELT_RUNTIME_C) $(MELT_H), $(GTFILES)), $(if $(patsubst [%],,$f), $(realpath $f), $f))
+REALGTMELTPLUGINFILES = $(foreach f, $(filter-out $(MELT_RUNTIME_C) $(MELT_H) %melt-%.h %melt-%.c, $(GTFILES)), $(if $(patsubst [%],,$f), $(realpath $f), $f))
 
 # Compute the list of GT header files from the corresponding C sources,
 # possibly nested within config or language subdirectories.  Match gengtype's
@@ -5514,7 +5514,9 @@ gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c $(srcdir)/melt-runtime.h gtyp
 	(cd $(srcdir); md5sum melt-runtime.h melt-runtime.c) >> $@
 	echo "*/" >> $@
 
-upgrade-warmelt: $(WARMELT_BASESO) gtyp-real-meltplugin-input.list gt-melt-runtime-plugin.h 
+## gengtype is currently broken in plugin mode...
+$(warning upgrade-warmelt discard gengtype error)
+upgrade-warmelt: $(WARMELT_BASESO) gtyp-real-meltplugin-input.list 
 	$(MAKE) Makefile warmelt.modlis
 # we used to have a move-if-change of the generated files, but an mv
 # is better...
@@ -5542,6 +5544,8 @@ upgrade-warmelt: $(WARMELT_BASESO) gtyp-real-meltplugin-input.list gt-melt-runti
 	    mv  $(srcdir)/melt/$$f-tmp  $(srcdir)/melt/generated/$$f; \
           done; \
 	done
+## temporary quirk.... when gengtype is buggy in plugin mode...
+	-$(MAKE) -k gt-melt-runtime-plugin.h
 ## copy gt-melt-runtime-plugin.h
 	cp gt-melt-runtime-plugin.h $(srcdir)/melt/generated/
 ## rebuild warmelt1 to be sure
