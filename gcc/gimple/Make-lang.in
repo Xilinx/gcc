@@ -24,7 +24,7 @@
 GIMPLE_EXE = gimple1$(exeext)
 # The GIMPLE-specific object files inclued in $(GIMPLE_EXE).
 GIMPLE_OBJS = gimple/gimple-lang.o gimple/parser.o attribs.o
-GIMPLE_PARSER_H = gimple/parser.h
+GIMPLE_PARSER_H = gimple/parser.h $(CPPLIB_H) $(VEC_H)
 GIMPLE_TREE_H = gimple/gimple-tree.h
 
 # Rules
@@ -75,10 +75,10 @@ $(GIMPLE_EXE): $(GIMPLE_OBJS) $(BACKEND) $(LIBDEPS)
 
 # Dependencies
 gimple/gimple-lang.o: gimple/gimple-lang.c $(CONFIG_H) $(SYSTEM_H) \
-	coretypes.h flags.h $(TM_H) $(TREE_H) $(TARGET_H) \
-	langhooks.h $(LANGHOOKS_DEF_H) debug.h $(GIMPLE_PARSER_H) \
-	$(DIAGNOSTIC_CORE_H) $(TOPLEV_H) $(GIMPLE_TREE_H) \
-	$(GGC_H) gtype-gimple.h gt-gimple-gimple-lang.h
+	coretypes.h $(TREE_H) $(TARGET_H) langhooks.h $(LANGHOOKS_DEF_H) \
+	debug.h $(GIMPLE_PARSER_H) $(GIMPLE_H) $(TOPLEV_H) $(GIMPLE_TREE_H) \
+	diagnostic-core.h $(TOPLEV_H) $(GGC_H) gtype-gimple.h \
+	gt-gimple-gimple-lang.h
 gimple/parser.o: gimple/parser.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
-	$(CPPLIB_H) $(INPUT_H) $(DIAGNOSTIC_H) $(TREE_H) $(GIMPLE_H) \
-	$(TOPLEV_H) $(GIMPLE_PARSER_H)
+	$(DIAGNOSTIC_H) $(TOPLEV_H) $(TIMEVAR_H) $(TREE_H) $(GIMPLE_H) \
+	$(GIMPLE_PARSER_H) $(GGC_H) gt-gimple-parser.h

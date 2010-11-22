@@ -22,21 +22,27 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "cpplib.h"
-#include "input.h"
 #include "diagnostic.h"
+#include "toplev.h"
+#include "timevar.h"
 #include "tree.h"
 #include "gimple.h"
-#include "toplev.h"
 #include "parser.h"
+#include "ggc.h"
+
+/* The GIMPLE parser.  Note: do not use this variable directly.  It is
+   declared here only to serve as a root for the GC machinery.  The
+   parser pointer should be passed as a parameter to every function
+   that needs to access it.  */
+static GTY(()) gimple_parser *parser_gc_root__;
 
 /* Consumes a token if the EXPECTED_TOKEN_TYPE is exactly the one we 
    are looking for. The token is obtained by reading it from the reader P.  */
  
-static const cpp_token * 
+static const gimple_token * 
 gimple_parse_expect_token (cpp_reader *p, enum cpp_ttype expected_token_type)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
 
   next_token = cpp_peek_token (p, 0);
 
@@ -65,7 +71,7 @@ gimple_parse_expect_token (cpp_reader *p, enum cpp_ttype expected_token_type)
 static void
 gimple_parse_expect_subcode (cpp_reader *p)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
   const char *text;
   int i;
 
@@ -98,7 +104,7 @@ gimple_parse_expect_subcode (cpp_reader *p)
 static void 
 gimple_parse_expect_lhs (cpp_reader *p)
 {  
-  const cpp_token *next_token;
+  const gimple_token *next_token;
 
   /* Just before the name of the identifier we might get the symbol 
      of dereference too. If we do get it then consume that token, else
@@ -117,7 +123,7 @@ gimple_parse_expect_lhs (cpp_reader *p)
 static void 
 gimple_parse_expect_rhs1 (cpp_reader *p)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
   next_token = cpp_peek_token (p, 0);
 
   /* Currently there is duplication in the following blocks but there
@@ -152,7 +158,7 @@ gimple_parse_expect_rhs1 (cpp_reader *p)
 static void 
 gimple_parse_expect_rhs2 (cpp_reader *p)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
   next_token = cpp_peek_token (p, 0);
 
   /* ??? Can there be more possibilities than these ?  */
@@ -190,7 +196,7 @@ gimple_parse_assign_stmt (cpp_reader *p)
 static void
 gimple_parse_expect_op1 (cpp_reader *p)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
   next_token = cpp_peek_token (p, 0);
 
   switch (next_token->type)
@@ -213,7 +219,7 @@ gimple_parse_expect_op1 (cpp_reader *p)
 static void
 gimple_parse_expect_op2 (cpp_reader *p)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
   next_token = cpp_peek_token (p, 0);
 
   switch (next_token->type)
@@ -302,7 +308,7 @@ gimple_parse_label_stmt (cpp_reader *p)
 static void
 gimple_parse_switch_stmt (cpp_reader *p)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
 
   gimple_parse_expect_token (p, CPP_LESS);
   gimple_parse_expect_token (p, CPP_NAME);
@@ -353,7 +359,7 @@ gimple_parse_expect_function_name (cpp_reader *p)
 static void
 gimple_parse_expect_return_var (cpp_reader *p)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
 
   next_token = cpp_peek_token (p, 0);
 
@@ -371,7 +377,7 @@ gimple_parse_expect_return_var (cpp_reader *p)
 static void
 gimple_parse_expect_argument (cpp_reader *p)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
 
   next_token = cpp_peek_token (p, 0);
 
@@ -399,7 +405,7 @@ gimple_parse_expect_argument (cpp_reader *p)
 static void
 gimple_parse_call_stmt (cpp_reader *p)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
 
   gimple_parse_expect_function_name (p);
   gimple_parse_expect_return_var (p);
@@ -436,7 +442,7 @@ gimple_parse_return_stmt (cpp_reader *p)
    for recognizing the statements in a function body.  */
 
 static void 
-gimple_parse_stmt (cpp_reader *p, const cpp_token *tok)
+gimple_parse_stmt (cpp_reader *p, const gimple_token *tok)
 {
   const char *text;
   int i;
@@ -523,7 +529,7 @@ gimple_parse_expect_field_decl (cpp_reader *p)
 static void
 gimple_parse_record_type (cpp_reader *p)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
 
   gimple_parse_expect_token (p, CPP_LESS);
   gimple_parse_expect_token (p, CPP_NAME);
@@ -568,7 +574,7 @@ gimple_parse_record_type (cpp_reader *p)
 static void
 gimple_parse_union_type (cpp_reader *p)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
 
   gimple_parse_expect_token (p, CPP_LESS);
   gimple_parse_expect_token (p, CPP_NAME);
@@ -624,7 +630,7 @@ gimple_parse_expect_const_decl (cpp_reader *p)
 static void
 gimple_parse_enum_type (cpp_reader *p)
 {
-  const cpp_token *next_token;
+  const gimple_token *next_token;
 
   gimple_parse_expect_token (p, CPP_LESS);
   gimple_parse_expect_token (p, CPP_NAME);
@@ -653,7 +659,7 @@ gimple_parse_enum_type (cpp_reader *p)
    for recognizing the type and variable declarations. */
 
 static void
-gimple_parse_type (cpp_reader *p, const cpp_token *tok)
+gimple_parse_type (cpp_reader *p, const gimple_token *tok)
 {
   const char *text;
   int i;
@@ -689,36 +695,113 @@ gimple_parse_type (cpp_reader *p, const cpp_token *tok)
 }
 
 
+/* Initialize the lexer.  */
+
+static gimple_lexer *
+gl_init (gimple_parser *p)
+{
+  gimple_lexer *l;
+
+  l = ggc_alloc_cleared_gimple_lexer ();
+  l->parser = p;
+  l->filename = main_input_filename;
+  l->reader = cpp_create_reader (CLK_GNUC99, p->ident_hash, p->line_table);
+  l->filename = cpp_read_main_file (l->reader, l->filename);
+  l->cur_token_ix = 0;
+
+  return l;
+}
+
+
+/* Initialize the parser data structures.  */
+
+static gimple_parser *
+gp_init (int debug_p)
+{
+  gimple_parser *p = ggc_alloc_cleared_gimple_parser ();
+  p->debug_p = debug_p;
+  line_table = p->line_table = ggc_alloc_cleared_line_maps ();
+  p->ident_hash = ident_hash;
+  linemap_init (p->line_table);
+  p->lexer = gl_init (p);
+
+  return p;
+}
+
+
+/* Get all the tokens from the file in LEXER.  */
+
+static void
+gl_lex (gimple_lexer *lexer)
+{
+  const gimple_token *gimple_tok;
+
+  timevar_push (TV_CPP);
+
+  do
+    {
+      location_t loc;
+
+      gimple_tok = cpp_get_token_with_location (lexer->reader, &loc);
+      if (gimple_tok->type != CPP_EOF)
+	VEC_safe_push (gimple_token, gc, lexer->tokens, gimple_tok);
+    }
+  while (gimple_tok->type != CPP_EOF);
+
+  timevar_pop (TV_CPP);
+}
+
+
+/* Consume the next token from PARSER.  */
+
+static gimple_token *
+gl_consume_token (gimple_lexer *lexer)
+{
+  return VEC_index (gimple_token, lexer->tokens, lexer->cur_token_ix++);
+}
+
+/* Parse the translation unit in PARSER.  */
+
+static void
+gp_parse (gimple_parser *parser)
+{
+  while (!VEC_empty (gimple_token, parser->lexer->tokens))
+    {
+      gimple_token *tok = gl_consume_token (parser->lexer);
+      if (1)
+	gimple_parse_type (parser->lexer->reader, tok);
+      else
+	gimple_parse_stmt (parser->lexer->reader, tok);
+    }
+}
+
+
+/* Finalize parsing and release allocated memory in PARSER.  */
+
+static void
+gp_finish (gimple_parser *parser)
+{
+  cpp_finish (parser->lexer->reader, NULL);
+  cpp_destroy (parser->lexer->reader);
+  parser_gc_root__ = NULL;
+}
+
+
 /* Main entry point for the GIMPLE front end.  */
 
 void
-gimple_main (int debug_p ATTRIBUTE_UNUSED)
+gimple_main (int debug_p)
 {
-  /* We invoke the parser here.  */
-  cpp_reader *p;
-  const cpp_token *tok;
-  const char *input_file = "/tmp/gimple.txt";
-  const char *output_file;
-  bool inside_type_section_p = true;
-  struct line_maps *line_tab;
+  gimple_parser *parser;
 
-  line_tab = ggc_alloc_cleared_line_maps ();
-  linemap_init (line_tab);
-  p = cpp_create_reader (CLK_GNUC99, ident_hash, line_tab);
-  output_file = cpp_read_main_file (p, input_file);
-  if (output_file)
-    {
-      tok = cpp_get_token (p);
-      while (tok->type != CPP_EOF)
-	{
-	  if (inside_type_section_p)
-	    gimple_parse_type (p, tok);
-	  else
-	    gimple_parse_stmt (p, tok);
-	  tok = cpp_get_token (p);
-	}
-    }
+  parser_gc_root__ = parser = gp_init (debug_p);
 
-  cpp_finish (p, NULL);
-  cpp_destroy (p);   
+  if (parser->lexer->filename == NULL)
+    return;
+
+  gl_lex (parser->lexer);
+  gp_parse (parser);
+  gp_finish (parser);
 }
+
+#include "gt-gimple-parser.h"

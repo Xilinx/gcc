@@ -22,6 +22,6 @@ language="gimple"
 compilers="gimple1\$(exeext)"
 stagestuff="gimple1\$(exeext)"
 
-gtfiles="\$(srcdir)/gimple/gimple-tree.h \$(srcdir)/gimple/gimple-lang.c"
+gtfiles="\$(srcdir)/gimple/gimple-tree.h \$(srcdir)/gimple/gimple-lang.c \$(srcdir)/gimple/parser.h \$(srcdir)/gimple/parser.c"
 
 build_by_default=yes

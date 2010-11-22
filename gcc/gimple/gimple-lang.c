@@ -22,8 +22,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "flags.h"
-#include "tm.h"
 #include "tree.h"
 #include "target.h"
 #include "langhooks.h"
@@ -37,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 
 static tree handle_noreturn_attribute (tree *, tree, tree, int, bool *);
 static tree handle_const_attribute (tree *, tree, tree, int, bool *);
+static tree handle_leaf_attribute (tree *, tree, tree, int, bool *);
 static tree handle_malloc_attribute (tree *, tree, tree, int, bool *);
 static tree handle_pure_attribute (tree *, tree, tree, int, bool *);
 static tree handle_novops_attribute (tree *, tree, tree, int, bool *);
@@ -56,6 +55,8 @@ const struct attribute_spec gimple_attribute_table[] =
   /* The same comments as for noreturn attributes apply to const ones.  */
   { "const",                  0, 0, true,  false, false,
 			      handle_const_attribute },
+  { "leaf",                   0, 0, true,  false, false,
+			      handle_leaf_attribute },
   { "malloc",                 0, 0, true,  false, false,
 			      handle_malloc_attribute },
   { "pure",                   0, 0, true,  false, false,
@@ -206,6 +207,29 @@ handle_const_attribute (tree *node, tree ARG_UNUSED (name),
 			     TREE_THIS_VOLATILE (TREE_TYPE (type))));
   else
     gcc_unreachable ();
+
+  return NULL_TREE;
+}
+
+
+/* Handle a "leaf" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_leaf_attribute (tree *node, tree name,
+		       tree ARG_UNUSED (args),
+		       int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  if (!TREE_PUBLIC (*node))
+    {
+      warning (OPT_Wattributes, "%qE attribute has no effect on unit local functions", name);
+      *no_add_attrs = true;
+    }
 
   return NULL_TREE;
 }

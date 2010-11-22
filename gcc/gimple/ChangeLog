@@ -1,3 +1,29 @@
+2010-11-22  Diego Novillo  <dnovillo@google.com>
+
+	* Make-lang.in (GIMPLE_PARSER_H): Add CPPLIB_H and VEC_H
+	(gimple-lang.o, parser.o): Fix dependencies.
+	* parser.h: Include cpplib.h and vec.h.
+	(struct gimple_lexer): Define.
+	(struct gimple_parser): Define.
+	(gimple_token): Define.
+	* config-lang.in (gtfiles): Add parser.h and parser.c
+	* gimple-lang.c: Do not include flags.h nor tm.h.
+	(handle_leaf_attribute): New.
+	(gimple_attributes): Add attribute 'leaf'.
+	* parser.c: Do not include cpplib.h nor input.h.
+	Include toplev.h, timevar.h.
+	Move include of ggc.h earlier in the file.
+	Change all references to cpp_token with gimple_token.
+	(parser_gc_root__): New.
+	(gl_init): New.
+	(gp_init): New.
+	(gl_lex): New.
+	(gl_consume_token): New.
+	(gp_parse): New.
+	(gp_finish): New.
+	(gimple_main): Call gp_init, gl_lex, gp_parse and
+	gp_finish.
+
 2010-11-10  Sandeep Soni  <soni.sandeepb@gmail.com>
 	    Diego Novillo  <dnovillo@google.com>
 
