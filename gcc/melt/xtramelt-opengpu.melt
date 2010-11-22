@@ -36,6 +36,8 @@
 	      debugeprintf("opengpudetect_exec start cfun=%p cfg=%p", 
 			   (void*)cfun, cfun?cfun->cfg:NULL) ; 
 	      }#) 
+  (debug_msg pass "opengpudetect_exec end")
+  (return :true)
 )
 
 

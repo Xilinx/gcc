@@ -69,8 +69,12 @@ $FILENAM and $LINENO}#
 	     (boxedmaxdepth (make_integerbox discr_integer (debug_depth))) ;;;; @@@ DEBUGDEPTH
 	     )
 	(code_chunk getdbgcounter #{$dbgcounter = melt_dbgcounter}#)
-	;; it may happen that OUT is null, e.g. because the dumpfile
-	;; is not yet initialized in initial_system_data...
+	;; if we don't have a dumpfile, use stderr
+	(if (null out)
+	    (setq out (get_field :sysdata_stderr initial_system_data)))
+	;; it may happen that OUT is null, e.g. because the dumpfile &
+	;; the stderr are not yet initialized in
+	;; initial_system_data...
 	(if (null out)
 	    (setq out (make_strbuf discr_strbuf)))
 	(assert_msg "check good out" (is_out out))

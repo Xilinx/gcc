@@ -1,5 +1,13 @@
 
 2010-11-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt: use stdump orelse stderr for out...
+
+	* melt/xtramelt-opengpu.melt: added more debug.
+
+	* testsuite/melt/topengpu-1.c: added #include <stdlib.h> needed
+	for size_t and removed atoi...
+
+2010-11-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c: replaced strerror by xstrerror everywhere, while
 	merging with trunk 167021.
 

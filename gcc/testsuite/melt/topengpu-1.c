@@ -6,6 +6,8 @@
  ./cc1 -fmelt=opengpu -fmelt-module-path=. -fmelt-source-path=. -fmelt-debug -O2 -c $GCCMELT_SOURCE/gcc/testsuite/melt/topengpu-1.c
 */
 
+#include <stdlib.h>
+
 struct gsl_block_struct
 {
   size_t size;
@@ -29,27 +31,6 @@ typedef struct
   gsl_matrix matrix;
 } _gsl_matrix_view;
 
-/* Convert a string to a long integer.  */
-extern long int strtol (__const char *__restrict __nptr,
-			char **__restrict __endptr, int __base)
-  __attribute__ ((__nothrow__)) __attribute__ ((__nonnull__ (1)));
-
-/* Convert a string to a floating-point number.  */
-extern double strtod (__const char *__restrict __nptr,
-		      char **__restrict __endptr)
-  __attribute__ ((__nothrow__)) __attribute__ ((__nonnull__ (1)));
-
-
-extern __inline int __attribute__ ((__nothrow__)) atoi (__const char *__nptr)
-{
-  return (int) strtol (__nptr, (char **) ((void *) 0), 10);
-}
-
-extern __inline double
-  __attribute__ ((__nothrow__)) atof (__const char *__nptr)
-{
-  return strtod (__nptr, (char **) ((void *) 0));
-}
 
 extern void say_error (const char *msg);
 
