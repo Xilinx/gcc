@@ -217,12 +217,12 @@ static GTY(()) VEC(melt_ptr_t,gc) *bscanvec;
 
 static void* proghandle;
 
+/* We have a melt prefix to minimize conflict with other code. */
+typedef char *meltchar_p;
 
-typedef char *char_p;
-
-DEF_VEC_P (char_p);
-DEF_VEC_ALLOC_P (char_p, heap);
-static VEC (char_p, heap)* parsedmeltfilevect;
+DEF_VEC_P (meltchar_p);
+DEF_VEC_ALLOC_P (meltchar_p, heap);
+static VEC (meltchar_p, heap)* parsedmeltfilevect;
 /* *INDENT-ON* */
 
 /* to code case ALL_MELTOBMAG_SPECIAL_CASES: */
@@ -7530,7 +7530,7 @@ skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
 	  /* find the newpath in the parsedmeltfilevect or push it
 	     there */
 	  for (ix = 0;
-	       VEC_iterate (char_p, parsedmeltfilevect, ix, curpath);
+	       VEC_iterate (meltchar_p, parsedmeltfilevect, ix, curpath);
 	       ix++)
 	    {
 	      if (curpath && !strcmp(newpath, curpath))
@@ -7539,7 +7539,7 @@ skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
 	  if (!newpathdup)
 	    {
 	      newpathdup = xstrdup (newpath);
-	      VEC_safe_push (char_p, heap, parsedmeltfilevect, newpathdup);
+	      VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, newpathdup);
 	    }
 	  map = linemap_add(line_table, LC_RENAME_VERBATIM,
 			    false, newpathdup, newlineno);
@@ -7577,7 +7577,7 @@ skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
 	  /* find the newpath in the parsedmeltfilevect or push it
 	     there */
 	  for (ix = 0;
-	       VEC_iterate (char_p, parsedmeltfilevect, ix, curpath);
+	       VEC_iterate (meltchar_p, parsedmeltfilevect, ix, curpath);
 	       ix++)
 	    {
 	      if (curpath && !strcmp(newpath, curpath))
@@ -7586,7 +7586,7 @@ skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
 	  if (!newpathdup)
 	    {
 	      newpathdup = xstrdup (newpath);
-	      VEC_safe_push (char_p, heap, parsedmeltfilevect, newpathdup);
+	      VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, newpathdup);
 	    }
 	  map = linemap_add(line_table, LC_RENAME_VERBATIM,
 			    false, newpathdup, newlineno);
@@ -7955,7 +7955,7 @@ meltgc_open_infix_file (const char* filnam)
   /* Store the filnamdup in the parsedmeltfilevect vector to be able
      to free them at end; we need to duplicate filnam because
      linemap_add store pointers to it. */
-  VEC_safe_push (char_p, heap, parsedmeltfilevect, filnamdup);
+  VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, filnamdup);
   debugeprintf ("meltgc_open_infix_file filnamdup %s", filnamdup);
   fil = fopen (filnamdup, "rt");
   if (!fil)
@@ -9279,7 +9279,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
   /* Store the filnamdup in the parsedmeltfilevect vector to be able
      to free them at end; we need to duplicate filnam because
      linemap_add store pointers to it. */
-  VEC_safe_push (char_p, heap, parsedmeltfilevect, filnamdup);
+  VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, filnamdup);
   debugeprintf ("meltgc_read_file filnamdup %s locnam %s", filnamdup, locnam);
   fil = fopen (filnamdup, "rt");
   if (!fil)
@@ -9928,7 +9928,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
   countdbgstr = melt_argument ("debugskip");
-  parsedmeltfilevect = VEC_alloc (char_p, heap, 12);
+  parsedmeltfilevect = VEC_alloc (meltchar_p, heap, 12);
 
 #ifdef MELT_IS_PLUGIN
   /* when MELT is a plugin, we need to process the debug
@@ -10070,29 +10070,29 @@ do_finalize_melt (void)
   if (tempdir_melt[0])
     {
       DIR *tdir = opendir (tempdir_melt);
-      VEC (char_p, heap) * dirvec = 0;
+      VEC (meltchar_p, heap) * dirvec = 0;
       int nbdelfil = 0;
       struct dirent *dent = 0;
       if (!tdir)
 	melt_fatal_error ("failed to open tempdir %s %m", tempdir_melt);
-      dirvec = VEC_alloc (char_p, heap, 30);
+      dirvec = VEC_alloc (meltchar_p, heap, 30);
       while ((dent = readdir (tdir)) != NULL)
 	{
 	  if (dent->d_name[0] && dent->d_name[0] != '.')
 	    /* this skips  '.' & '..' and we have no  .* file */
-	    VEC_safe_push (char_p, heap, dirvec,
+	    VEC_safe_push (meltchar_p, heap, dirvec,
 			   concat (tempdir_melt, "/", dent->d_name, NULL));
 	}
       closedir (tdir);
-      while (!VEC_empty (char_p, dirvec))
+      while (!VEC_empty (meltchar_p, dirvec))
 	{
-	  char *tfilnam = VEC_pop (char_p, dirvec);
+	  char *tfilnam = VEC_pop (meltchar_p, dirvec);
 	  debugeprintf ("melt_finalize remove file %s", tfilnam);
 	  if (!remove (tfilnam))
 	    nbdelfil++;
 	  free (tfilnam);
 	};
-      VEC_free (char_p, heap, dirvec);
+      VEC_free (meltchar_p, heap, dirvec);
       if (nbdelfil>0)
 	inform (UNKNOWN_LOCATION, "MELT removed %d temporary files from %s",
 		nbdelfil, tempdir_melt);
@@ -10107,14 +10107,14 @@ do_finalize_melt (void)
 		 tempdir_melt, strerror (errno));
     }
   /* Clear the vector of MELT file paths read */
-  while (parsedmeltfilevect && !VEC_empty (char_p, parsedmeltfilevect))
+  while (parsedmeltfilevect && !VEC_empty (meltchar_p, parsedmeltfilevect))
     {
-      char *parsedfilnam = VEC_pop (char_p, parsedmeltfilevect);
+      char *parsedfilnam = VEC_pop (meltchar_p, parsedmeltfilevect);
       if (parsedfilnam)
 	*parsedfilnam = 0;
       free (parsedfilnam);
     };
-  VEC_free (char_p, heap, parsedmeltfilevect);
+  VEC_free (meltchar_p, heap, parsedmeltfilevect);
   dbgprintf ("do_finalize_melt ended melt_nb_modules=%d", melt_nb_modules);
  end:
   MELT_EXITFRAME ();

@@ -1,4 +1,8 @@
 
+2010-11-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltchar_p): renamed char_p type as meltchar_p
+	to avoid clashes.
+
 2010-11-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* gcc/testsuite/melt/topengpu-1.c: new file.
 	* melt/xtramelt-opengpu.melt: Added pass.
