@@ -126,7 +126,7 @@ objc_declare_class (tree ARG_UNUSED (list))
 }
 
 void
-objc_declare_protocols (tree ARG_UNUSED (list))
+objc_declare_protocols (tree ARG_UNUSED (list), tree ARG_UNUSED (attributes))
 {
 }
 
@@ -357,6 +357,15 @@ objc_build_class_component_ref (tree ARG_UNUSED (datum), tree ARG_UNUSED (compon
 
 tree
 objc_maybe_build_modify_expr (tree ARG_UNUSED (lhs), tree ARG_UNUSED (rhs))
+{
+  return 0;
+}
+
+tree
+objc_build_incr_expr_for_property_ref (location_t ARG_UNUSED (location),
+				       enum tree_code ARG_UNUSED (code),
+				       tree ARG_UNUSED (argument),
+				       tree ARG_UNUSED (increment))
 {
   return 0;
 }

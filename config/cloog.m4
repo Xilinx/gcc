@@ -28,20 +28,19 @@ AC_DEFUN([CLOOG_INIT_FLAGS],
       [Specify prefix directory for the installed CLooG-PPL package.
        Equivalent to --with-cloog-include=PATH/include
        plus --with-cloog-lib=PATH/lib])])
-  AC_ARG_WITH(cloog_include,
+  AC_ARG_WITH([cloog-include],
     [AS_HELP_STRING(
       [--with-cloog-include=PATH],
       [Specify directory for installed CLooG include files])])
-  AC_ARG_WITH(cloog_lib,
+  AC_ARG_WITH([cloog-lib],
     [AS_HELP_STRING(
       [--with-cloog-lib=PATH],
       [Specify the directory for the installed CLooG library])])
 
   AC_ARG_ENABLE(cloog-backend,
-    [  --enable-cloog-backend[=backend]
-				isl: The cloog.org isl backend
-				ppl-legacy: The legacy ppl backend - default
-				ppl: The cloog.org ppl backend],
+    [AS_HELP_STRING(
+      [--enable-cloog-backend[[=BACKEND]]],
+      [set the CLooG BACKEND used to either isl, ppl or ppl-legacy (default)])],
     [ if   test "x${enableval}" = "xisl"; then
 	cloog_backend=isl
       elif test "x${enableval}" = "xppl"; then

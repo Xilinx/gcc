@@ -195,11 +195,13 @@ target_libraries="target-libgcc \
 		target-libstdc++-v3 \
 		target-libmudflap \
 		target-libssp \
+		target-libquadmath \
 		target-libgfortran \
 		target-boehm-gc \
 		${libgcj} \
 		target-libobjc \
-		target-libada"
+		target-libada \
+		target-libgo"
 
 # these tools are built using the target libraries, and are intended to
 # run only in the target environment
@@ -449,7 +451,8 @@ yes)
   ;;
 no)
   # Make sure we get it printed in the list of not supported target libs.
-  noconfigdirs="$noconfigdirs ${libgcj}"
+  # Don't disable libffi, though, other languages use it.
+  noconfigdirs="$noconfigdirs `echo ${libgcj} | sed -e 's/target-libffi//'`"
   ;;
 esac
 
@@ -1208,6 +1211,7 @@ if test "${build}" != "${host}" ; then
   CXX_FOR_BUILD=${CXX_FOR_BUILD-g++}
   GCJ_FOR_BUILD=${GCJ_FOR_BUILD-gcj}
   GFORTRAN_FOR_BUILD=${GFORTRAN_FOR_BUILD-gfortran}
+  GOC_FOR_BUILD=${GOC_FOR_BUILD-gccgo}
   DLLTOOL_FOR_BUILD=${DLLTOOL_FOR_BUILD-dlltool}
   LD_FOR_BUILD=${LD_FOR_BUILD-ld}
   NM_FOR_BUILD=${NM_FOR_BUILD-nm}
@@ -1221,6 +1225,7 @@ else
   CXX_FOR_BUILD="\$(CXX)"
   GCJ_FOR_BUILD="\$(GCJ)"
   GFORTRAN_FOR_BUILD="\$(GFORTRAN)"
+  GOC_FOR_BUILD="\$(GOC)"
   DLLTOOL_FOR_BUILD="\$(DLLTOOL)"
   LD_FOR_BUILD="\$(LD)"
   NM_FOR_BUILD="\$(NM)"
@@ -1273,9 +1278,9 @@ have_gmp=no
 AC_ARG_WITH(mpc, [  --with-mpc=PATH        specify prefix directory for installed MPC package.
                           Equivalent to --with-mpc-include=PATH/include
                           plus --with-mpc-lib=PATH/lib])
-AC_ARG_WITH(mpc_include, [  --with-mpc-include=PATH
+AC_ARG_WITH(mpc-include, [  --with-mpc-include=PATH
                           specify directory for installed MPC include files])
-AC_ARG_WITH(mpc_lib, [  --with-mpc-lib=PATH    specify directory for the installed MPC library])
+AC_ARG_WITH(mpc-lib, [  --with-mpc-lib=PATH    specify directory for the installed MPC library])
 
 if test "x$with_mpc" != x; then
   gmplibs="-L$with_mpc/lib $gmplibs"
@@ -1306,9 +1311,9 @@ Use --with-mpfr=PATH or --with-mpfr-include=PATH plus --with-mpfr-lib=PATH]))
 AC_ARG_WITH(mpfr, [  --with-mpfr=PATH        specify prefix directory for installed MPFR package.
                           Equivalent to --with-mpfr-include=PATH/include
                           plus --with-mpfr-lib=PATH/lib])
-AC_ARG_WITH(mpfr_include, [  --with-mpfr-include=PATH
+AC_ARG_WITH(mpfr-include, [  --with-mpfr-include=PATH
                           specify directory for installed MPFR include files])
-AC_ARG_WITH(mpfr_lib, [  --with-mpfr-lib=PATH    specify directory for the installed MPFR library])
+AC_ARG_WITH(mpfr-lib, [  --with-mpfr-lib=PATH    specify directory for the installed MPFR library])
 
 if test "x$with_mpfr" != x; then
   gmplibs="-L$with_mpfr/lib $gmplibs"
@@ -1339,8 +1344,8 @@ Use --with-gmp=PATH or --with-gmp-include=PATH plus --with-gmp-lib=PATH]))
 AC_ARG_WITH(gmp, [  --with-gmp=PATH         specify prefix directory for the installed GMP package.
                           Equivalent to --with-gmp-include=PATH/include
                           plus --with-gmp-lib=PATH/lib])
-AC_ARG_WITH(gmp_include, [  --with-gmp-include=PATH specify directory for installed GMP include files])
-AC_ARG_WITH(gmp_lib, [  --with-gmp-lib=PATH     specify directory for the installed GMP library])
+AC_ARG_WITH(gmp-include, [  --with-gmp-include=PATH specify directory for installed GMP include files])
+AC_ARG_WITH(gmp-lib, [  --with-gmp-lib=PATH     specify directory for the installed GMP library])
 
 
 if test "x$with_gmp" != x; then
@@ -1539,8 +1544,8 @@ pplinc=
 AC_ARG_WITH(ppl, [  --with-ppl=PATH         Specify prefix directory for the installed PPL package
                           Equivalent to --with-ppl-include=PATH/include
                           plus --with-ppl-lib=PATH/lib])
-AC_ARG_WITH(ppl_include, [  --with-ppl-include=PATH Specify directory for installed PPL include files])
-AC_ARG_WITH(ppl_lib, [  --with-ppl-lib=PATH     Specify the directory for the installed PPL library])
+AC_ARG_WITH(ppl-include, [  --with-ppl-include=PATH Specify directory for installed PPL include files])
+AC_ARG_WITH(ppl-lib, [  --with-ppl-lib=PATH     Specify the directory for the installed PPL library])
 
 case $with_ppl in 
   no)
@@ -1706,11 +1711,13 @@ if test -d ${srcdir}/gcc; then
       # an apparent bug in bash 1.12 on linux.
       ${srcdir}/gcc/[[*]]/config-lang.in) ;;
       *)
-        # From the config-lang.in, get $language, $lang_requires
+        # From the config-lang.in, get $language, $lang_requires, and
+        # $lang_requires_boot_languages.
         language=
         lang_requires=
+        lang_requires_boot_languages=
         . ${lang_frag}
-        for other in ${lang_requires} ; do
+        for other in ${lang_requires} ${lang_requires_boot_languages}; do
           case ,${enable_languages}, in
 	    *,$other,*) ;;
 	    *,all,*) ;;
@@ -1719,6 +1726,22 @@ if test -d ${srcdir}/gcc; then
 	      enable_languages="${enable_languages},${other}"
 	      ;;
 	  esac
+        done
+	for other in ${lang_requires_boot_languages} ; do
+	  if test "$other" != "c"; then
+	    case ,${enable_stage1_languages}, in
+	      *,$other,*) ;;
+	      *,all,*) ;;
+	      *)
+		case ,${enable_languages}, in
+		  *,$language,*)
+		    echo " '$other' language required by '$language' in stage 1; enabling" 1>&2
+		    enable_stage1_languages="$enable_stage1_languages,${other}"
+		    ;;
+		esac
+		;;
+	    esac
+          fi
         done
         ;;
     esac
@@ -1742,6 +1765,9 @@ if test -d ${srcdir}/gcc; then
 
   missing_languages=`echo ",$enable_languages," | sed -e s/,all,/,/ -e s/,c,/,/ `
   potential_languages=,c,
+
+  enabled_target_libs=
+  disabled_target_libs=
 
   for lang_frag in ${srcdir}/gcc/*/config-lang.in .. ; do
     case ${lang_frag} in
@@ -1820,17 +1846,20 @@ if test -d ${srcdir}/gcc; then
 	case $add_this_lang in
 	  unsupported)
             # Remove language-dependent dirs.
-            eval noconfigdirs='"$noconfigdirs "'\"$target_libs $lang_dirs\"
+	    disabled_target_libs="$disabled_target_libs $target_libs"
+	    noconfigdirs="$noconfigdirs $lang_dirs"
 	    ;;
 	  no)
             # Remove language-dependent dirs; still show language as supported.
-            eval noconfigdirs='"$noconfigdirs "'\"$target_libs $lang_dirs\"
+	    disabled_target_libs="$disabled_target_libs $target_libs"
+	    noconfigdirs="$noconfigdirs $lang_dirs"
             potential_languages="${potential_languages}${language},"
 	    ;;
           yes)
 	    new_enable_languages="${new_enable_languages}${language},"
             potential_languages="${potential_languages}${language},"
 	    missing_languages=`echo "$missing_languages" | sed "s/,$language,/,/"`
+	    enabled_target_libs="$enabled_target_libs $target_libs"
 	    case "${boot_language}:,$enable_stage1_languages," in
 	      yes:* | *:*,$language,* | *:*,yes, | *:*,all,)
 		# Add to (comma-separated) list of stage 1 languages.
@@ -1847,6 +1876,17 @@ if test -d ${srcdir}/gcc; then
         ;;
     esac
   done
+
+  # Add target libraries which are only needed for disabled languages
+  # to noconfigdirs.
+  if test -n "$disabled_target_libs"; then
+    for dir in $disabled_target_libs; do
+      case " $enabled_target_libs " in
+      *" ${dir} "*) ;;
+      *) noconfigdirs="$noconfigdirs $dir" ;;
+      esac
+    done
+  fi
 
   AC_ARG_ENABLE(stage1-languages,
 [  --enable-stage1-languages@<:@=all@:>@   choose additional languages to build during
@@ -3033,6 +3073,7 @@ AC_SUBST(CXX_FOR_BUILD)
 AC_SUBST(DLLTOOL_FOR_BUILD)
 AC_SUBST(GCJ_FOR_BUILD)
 AC_SUBST(GFORTRAN_FOR_BUILD)
+AC_SUBST(GOC_FOR_BUILD)
 AC_SUBST(LDFLAGS_FOR_BUILD)
 AC_SUBST(LD_FOR_BUILD)
 AC_SUBST(NM_FOR_BUILD)
@@ -3143,6 +3184,7 @@ NCN_STRICT_CHECK_TARGET_TOOLS(CXX_FOR_TARGET, c++ g++ cxx gxx)
 NCN_STRICT_CHECK_TARGET_TOOLS(GCC_FOR_TARGET, gcc, ${CC_FOR_TARGET})
 NCN_STRICT_CHECK_TARGET_TOOLS(GCJ_FOR_TARGET, gcj)
 NCN_STRICT_CHECK_TARGET_TOOLS(GFORTRAN_FOR_TARGET, gfortran)
+NCN_STRICT_CHECK_TARGET_TOOLS(GOC_FOR_TARGET, gccgo)
 
 ACX_CHECK_INSTALLED_TARGET_TOOL(AR_FOR_TARGET, ar)
 ACX_CHECK_INSTALLED_TARGET_TOOL(AS_FOR_TARGET, as)
@@ -3173,12 +3215,14 @@ GCC_TARGET_TOOL(gcj, GCJ_FOR_TARGET, GCJ,
 		[gcc/gcj -B$$r/$(HOST_SUBDIR)/gcc/], java)
 GCC_TARGET_TOOL(gfortran, GFORTRAN_FOR_TARGET, GFORTRAN,
 		[gcc/gfortran -B$$r/$(HOST_SUBDIR)/gcc/], fortran)
+GCC_TARGET_TOOL(gccgo, GOC_FOR_TARGET, GOC,
+		[gcc/gccgo -B$$r/$(HOST_SUBDIR)/gcc/], go)
 GCC_TARGET_TOOL(ld, LD_FOR_TARGET, LD, [ld/ld-new])
 GCC_TARGET_TOOL(lipo, LIPO_FOR_TARGET, LIPO)
 GCC_TARGET_TOOL(nm, NM_FOR_TARGET, NM, [binutils/nm-new])
 GCC_TARGET_TOOL(objdump, OBJDUMP_FOR_TARGET, OBJDUMP, [binutils/objdump])
 GCC_TARGET_TOOL(ranlib, RANLIB_FOR_TARGET, RANLIB, [binutils/ranlib])
-GCC_TARGET_TOOL(strip, STRIP_FOR_TARGET, STRIP, [binutils/strip])
+GCC_TARGET_TOOL(strip, STRIP_FOR_TARGET, STRIP, [binutils/strip-new])
 GCC_TARGET_TOOL(windres, WINDRES_FOR_TARGET, WINDRES, [binutils/windres])
 GCC_TARGET_TOOL(windmc, WINDMC_FOR_TARGET, WINDMC, [binutils/windmc])
 

@@ -51,13 +51,6 @@ enum impl_conv {
   ic_return
 };
 
-/* Whether we are building a boolean conversion inside
-   convert_for_assignment, or some other late binary operation.  If
-   build_binary_op is called (from code shared with C++) in this case,
-   then the operands have already been folded and the result will not
-   be folded again, so C_MAYBE_CONST_EXPR should not be generated.  */
-bool in_late_binary_op;
-
 /* The level of nesting inside "__alignof__".  */
 int in_alignof;
 
@@ -3561,26 +3554,10 @@ build_unary_op (location_t location,
       goto return_build_unary_op;
 
     case REALPART_EXPR:
-      if (TREE_CODE (arg) == COMPLEX_CST)
-	ret = TREE_REALPART (arg);
-      else if (TREE_CODE (TREE_TYPE (arg)) == COMPLEX_TYPE)
-	ret = fold_build1_loc (location,
-			       REALPART_EXPR, TREE_TYPE (TREE_TYPE (arg)), arg);
-      else
-	ret = arg;
-      if (eptype && TREE_CODE (eptype) == COMPLEX_TYPE)
-	eptype = TREE_TYPE (eptype);
-      goto return_build_unary_op;
-
     case IMAGPART_EXPR:
-      if (TREE_CODE (arg) == COMPLEX_CST)
-	ret = TREE_IMAGPART (arg);
-      else if (TREE_CODE (TREE_TYPE (arg)) == COMPLEX_TYPE)
-	ret = fold_build1_loc (location,
-			       IMAGPART_EXPR, TREE_TYPE (TREE_TYPE (arg)), arg);
-      else
-	ret = omit_one_operand_loc (location, TREE_TYPE (arg),
-				integer_zero_node, arg);
+      ret = build_real_imag_expr (location, code, arg);
+      if (ret == error_mark_node)
+	return error_mark_node;
       if (eptype && TREE_CODE (eptype) == COMPLEX_TYPE)
 	eptype = TREE_TYPE (eptype);
       goto return_build_unary_op;
@@ -3603,11 +3580,13 @@ build_unary_op (location_t location,
 	  goto return_build_unary_op;
 	}
 
-      /* Complain about anything that is not a true lvalue.  */
-      if (!lvalue_or_else (arg, ((code == PREINCREMENT_EXPR
-				  || code == POSTINCREMENT_EXPR)
-				 ? lv_increment
-				 : lv_decrement)))
+      /* Complain about anything that is not a true lvalue.  In
+	 Objective-C, skip this check for property_refs.  */
+      if (!objc_is_property_ref (arg) 
+	  && !lvalue_or_else (arg, ((code == PREINCREMENT_EXPR
+				     || code == POSTINCREMENT_EXPR)
+				    ? lv_increment
+				    : lv_decrement)))
 	return error_mark_node;
 
       if (warn_cxx_compat && TREE_CODE (TREE_TYPE (arg)) == ENUMERAL_TYPE)
@@ -3714,6 +3693,13 @@ build_unary_op (location_t location,
 	    inc = integer_one_node;
 	    inc = convert (argtype, inc);
 	  }
+
+	/* If 'arg' is an Objective-C PROPERTY_REF expression, then we
+	   need to ask Objective-C to build the increment or decrement
+	   expression for it.  */
+	if (objc_is_property_ref (arg))
+	  return objc_build_incr_expr_for_property_ref (location, code, 
+							arg, inc);
 
 	/* Report a read-only lvalue.  */
 	if (TYPE_READONLY (argtype))
