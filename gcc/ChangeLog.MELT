@@ -1,5 +1,10 @@
 
 2010-11-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt: slightly improved iterators with
+	better generated comments.
+	* melt/xtramelt-opengpu.melt: added iteration which core dumps...
+
+2010-11-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (REALGTMELTPLUGINFILES): filtering out
 	everymelt-*.[ch] file. Added temporarily a warning!
 

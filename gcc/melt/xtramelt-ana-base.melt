@@ -2296,7 +2296,7 @@
   eachcgrfun 				;state symbol
   (:tree funtree :gimple_seq funbody)	;local formals
   ;; before expansion
-  #{
+  #{ /* $EACHCGRFUN + */
    struct cgraph_node *$eachcgrfun#_nd = NULL; 
    for ($eachcgrfun#_nd = cgraph_nodes; 
 	$eachcgrfun#_nd != NULL; 
@@ -2312,7 +2312,7 @@
      $funbody = $eachcgrfun#_bdy;
   }#
    ;;after expansion
-   #{ } }#  )
+   #{ } /* $EACHCGRFUN - */ }#  )
 
 
 ;;; iterate on every cgraph_node which is a function with a CFG and an
@@ -2322,7 +2322,7 @@
   eachcgrblo				;state symbol
   (:tree funtree :basic_block funbb)	;local formals
   ;;before expansion
-  #{
+  #{ /* $EACHCGRBLO + */
    struct cgraph_node *$eachcgrblo#_nd = NULL; 
    for ($eachcgrblo#_nd = cgraph_nodes; 
    $eachcgrblo#_nd != NULL; 
@@ -2344,7 +2344,7 @@
    $funbb = $eachcgrblo#_bb;
   }#
   ;;after expansion
-  #{ } }# )
+  #{ } /* $EACHCGRBLO - */ }# )
 
 ;;;;;;;;;;;;;;;;
 ;;;; iterate on every cgraph_node which is a declaration

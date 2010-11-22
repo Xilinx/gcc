@@ -32,13 +32,31 @@
 
 (defun opengpudetect_exec (pass)
   (debug_msg pass "opengpudetect_exec start")
-  (code_chunk dbgcfun #{ /* $dbgcfun :: */
-	      debugeprintf("opengpudetect_exec start cfun=%p cfg=%p", 
-			   (void*)cfun, cfun?cfun->cfg:NULL) ; 
-	      }#) 
+  (let ( (:long passcounter 0)
+	 )
+    (code_chunk 
+     incrpasscount #{ /* $INCRPASSCOUNT */
+     static long $INCRPASSCOUNT#_count;
+     $INCRPASSCOUNT#_count++;
+     $PASSCOUNTER = $INCRPASSCOUNT#_count;
+     }#)
+  (code_chunk 
+   dbgcfun #{ /* $dbgcfun :: */
+   debugeprintf("opengpudetect_exec start cfun=%p cfg=%p passcounter #%ld", 
+		(void*)cfun, cfun?cfun->cfg:NULL, $PASSCOUNTER) ; 
+   gcc_assert (cfun == NULL);
+   }#) 
+  (each_cgraph_fun_entryblock
+   ()
+   (:tree fundcl :basic_block funbb)
+   (debugtree "opengpudetect_exec fundcl" fundcl)
+   ;; following gives a SIGSEGV !!!
+   (compile_warning "dont work correctly but SIGSEGV")
+   (debugbasicblock "opengpudetect_exec funbb" funbb)
+   )
   (debug_msg pass "opengpudetect_exec end")
   (return :true)
-)
+))
 
 
 ;; the opengpu passes translate some Gimple into OpenCL.
