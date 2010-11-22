@@ -440,6 +440,7 @@ FIBHEAP_H   = $(srcdir)/../include/fibheap.h
 PARTITION_H = $(srcdir)/../include/partition.h
 MD5_H	    = $(srcdir)/../include/md5.h
 DWARF2_H    = $(srcdir)/../include/dwarf2.h
+XREGEX_H    =  $(srcdir)/../include/xregex.h
 
 # Linker plugin API headers
 LINKER_PLUGIN_API_H = $(srcdir)/../include/plugin-api.h
@@ -3173,7 +3174,7 @@ dse.o : dse.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
 fwprop.o : fwprop.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(TOPLEV_H) $(DIAGNOSTIC_CORE_H) insn-config.h $(RECOG_H) $(FLAGS_H) $(OBSTACK_H) $(BASIC_BLOCK_H) \
    output.h $(DF_H) alloc-pool.h $(TIMEVAR_H) $(TREE_PASS_H) $(TARGET_H) \
-   $(TM_P_H) $(CFGLOOP_H) $(EMIT_RTL_H) domwalk.h
+   $(TM_P_H) $(CFGLOOP_H) $(EMIT_RTL_H) domwalk.h sparseset.h
 web.o : web.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    hard-reg-set.h $(FLAGS_H) $(BASIC_BLOCK_H) $(FUNCTION_H) output.h $(TOPLEV_H) $(DIAGNOSTIC_CORE_H) \
    insn-config.h $(RECOG_H) $(DF_H) $(OBSTACK_H) $(TIMEVAR_H) $(TREE_PASS_H)
@@ -3992,7 +3993,8 @@ build/gengtype-lex.o : gengtype-lex.c gengtype.h $(BCONFIG_H) $(SYSTEM_H)
 build/gengtype-parse.o : gengtype-parse.c gengtype.h $(BCONFIG_H)	\
   $(SYSTEM_H)
 build/gengtype.o : gengtype.c $(BCONFIG_H) $(SYSTEM_H) gengtype.h 	\
-  rtl.def insn-notes.def errors.h double-int.h $(HASHTAB_H)
+  rtl.def insn-notes.def errors.h double-int.h $(HASHTAB_H)             \
+  $(OBSTACK_H) $(XREGEX_H)
 build/genmddeps.o: genmddeps.c $(BCONFIG_H) $(SYSTEM_H) coretypes.h	\
   errors.h $(READ_MD_H)
 build/genmodes.o : genmodes.c $(BCONFIG_H) $(SYSTEM_H) errors.h		\

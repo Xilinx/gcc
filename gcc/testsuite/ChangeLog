@@ -1,3 +1,29 @@
+2010-11-22  Ian Bolton  <ian.bolton@arm.com>
+
+	* testsuite/c-c++-common/pr44832.c: Use -fno-short-enums option for
+	"target short_enums".
+	* testsuite/gcc.c-torture/compile/pr39845.c: Likewise.
+
+2010-11-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/pr28796-2.c: SKIP on SPARC/Solaris 8.
+
+	PR rtl-optimization/46603
+	* gcc.dg/vect/slp-multitypes-2.c: XFAIL execution on SPARC 32-bit.
+
+	PR testsuite/46230
+	* gcc.dg/vect/vect-peel-3.c (main): Prevent initialization loop from
+	being vectorized.  Adjust dg-final pattern.
+	* gcc.dg/vect/pr46009.c: Add vect_int_mult target selector.
+
+	* gcc.dg/vect: Do not include <stdio.h> in testcases.
+	* gcc.dg/vect/costmodel/ppc: Likewise.
+
+2010-11-22  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/45652
+	* gcc.dg/pr45652.c: New.
+
 2010-11-21  Richard Henderson  <rth@redhat.com>
 
 	PR rtl-optimization/46571

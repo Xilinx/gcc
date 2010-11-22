@@ -1,3 +1,73 @@
+2010-11-22  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* gimple-pretty-print.c (dump_bb_header): Add check for cfun.
+
+2010-11-22  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/44970
+	* Makefile.in (fwprop.o) Add sparseset.h.
+	* fwprop.c: Include sparseset.h
+	(struct find_occurrence_data, find_occurrence_callback,
+	find_occurrence): Remove.
+	(active_defs, active_defs_check, register_active_defs,
+	update_df_init, update_uses): New.
+	(update_df): Rewrite.
+	(try_fwprop_subst, forward_propagate_asm): Add calls to
+	update_df_init and update_df.
+	(fwprop_init): Allocate active_defs and active_defs_check.
+	(fwprop_done): Free them.
+	(fwprop, fwprop_addr): Adjust comments.
+	* df.h (df_uses_create): Declare.
+	* df-scan.c (df_install_ref_incremental): Break out of df_ref_create.
+	(df_ref_create): Return result of df_ref_create_structure directly.
+	(df_ref_create_structure): Call df_install_ref_incremental when
+	no collection_rec is passed.
+	(df_ref_record): Do not create multiword hard reg info when no
+	collection_rec is passed.
+	(df_uses_create): New. 
+
+2010-11-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/43057
+	* fold-const.c (pedantic_non_lvalue_loc): Unshare x before
+	setting location.
+
+2010-11-22  Richard Guenther  <rguenther@suse.de>
+
+	* gimple-fold.c (maybe_fold_reference): When canonicalizing
+	MEM_REFs, preserve volatileness.
+	* cgraphbuild.c (mark_address): Properly check for FUNCTION_DECL
+	addresses.
+
+2010-11-22  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-ccp.c (get_base_constructor): Remove superfluous breaks.
+
+2010-11-22  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/45652
+	* alias.c (get_reg_base_value): New.
+	* rtl.h (get_reg_base_value): Add prototype.
+	* sel-sched.c (init_regs_for_mode): Use it.  Don't use registers with
+	non-null REG_BASE_VALUE for renaming.
+
+2010-11-22  Jeremie Salvucci  <jeremie.salvucci@free.fr>
+	    Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* gengtype.c: Include xregex.h and obstack.h
+	Added comments about role of get_output_file_with_visibility and
+	our regexpr machinery.
+	(frul_actionrout_t, struct file_rule_st): New.
+	(hader_dot_h_frul, source_dot_c_frul): New functions.
+	(NULL_REGEX,  NULL_FRULACT): New.
+	(files_rules): New.
+	(matching_file_name_substitute): New function.
+	(get_output_file_with_visibility): Updated comments and rewritten
+	to use the new files_rules machinery.
+
+	* Makefile.in (XREGEX_H): Added variable.
+	(build/gengtype.o): Added dependencies for xregex.h and obstack.h
+
 2010-11-21  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* system.h (FUNCTION_ARG_BOUNDARY): Really poison.
@@ -168,8 +238,7 @@
 
 	* doc/tm.texi.in (HANDLE_SYSV_PRAGMA,
 	HANDLE_PRAGMA_PACK_PUSH_POP): Remove.
-	(HANDLE_PRAGMA_PACK_WITH_EXPANSION): Don't refer to
-	HANDLE_SYSV_PRAGMA.
+	(HANDLE_PRAGMA_PACK_WITH_EXPANSION): Don't refer to HANDLE_SYSV_PRAGMA.
 	* doc/tm.texi: Regenerate.
 	* system.h (HANDLE_PRAGMA_PACK_PUSH_POP, HANDLE_SYSV_PRAGMA,
 	HANDLE_PRAGMA_WEAK): Poison.
