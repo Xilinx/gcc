@@ -3,7 +3,8 @@
    http://www.gnu.org/software/gsl/ */
 
 /* run in $GCCMELT_BUILD/gcc 
- ./cc1 -fmelt=opengpu -fmelt-module-path=. -fmelt-source-path=. -fmelt-debug -O2 -c $GCCMELT_SOURCE/gcc/testsuite/melt/topengpu-1.c
+  ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/topengpu-1.c .
+ ./cc1 -fmelt=opengpu -fmelt-module-path=. -fmelt-source-path=. -fmelt-debug -O2  topengpu-1.c
 */
 
 #include <stdlib.h>

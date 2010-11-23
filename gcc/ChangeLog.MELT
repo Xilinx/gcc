@@ -1,4 +1,10 @@
 
+2010-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/topengpu-1.c: improved comment.
+	* melt/warmelt-macro.melt: start adding (define ...) ie
+	class_source_define and mexpand_define.
+	* melt/xtramelt-opengpu.melt: added more debug printing.
+
 2010-11-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: slightly improved iterators with
 	better generated comments.

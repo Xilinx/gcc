@@ -32,6 +32,10 @@
 
 (defun opengpudetect_exec (pass)
   (debug_msg pass "opengpudetect_exec start")
+  (debug_msg (get_field :sysdata_dumpfile initial_system_data)
+	     "opengpudetect_exec ?dumpfile?")
+  (debug_msg (get_field :sysdata_stderr initial_system_data)
+	     "opengpudetect_exec stderr")
   (let ( (:long passcounter 0)
 	 )
     (code_chunk 
@@ -46,14 +50,15 @@
 		(void*)cfun, cfun?cfun->cfg:NULL, $PASSCOUNTER) ; 
    gcc_assert (cfun == NULL);
    }#) 
+  (debug_msg pass "opengpudetect_exec before each_cgraph_fun_entryblock")
   (each_cgraph_fun_entryblock
    ()
    (:tree fundcl :basic_block funbb)
    (debugtree "opengpudetect_exec fundcl" fundcl)
-   ;; following gives a SIGSEGV !!!
-   (compile_warning "dont work correctly but SIGSEGV")
    (debugbasicblock "opengpudetect_exec funbb" funbb)
    )
+  (debug_msg pass "opengpudetect_exec after each_cgraph_fun_entryblock")
+  ;;
   (debug_msg pass "opengpudetect_exec end")
   (return :true)
 ))
@@ -87,6 +92,10 @@
 	(warningmsg_plain 
 	 "opengpu MELT mode requires -O2 optimization at least")
       (progn
+	(debug_msg (get_field :sysdata_dumpfile initial_system_data)
+		   "opengpu_docmd ?dumpfile?")
+	(debug_msg (get_field :sysdata_stderr initial_system_data)
+		   "opengpu_docmd ?stderr?")
 	(install_opengpu_passes)
 	(return :true)))
     ))

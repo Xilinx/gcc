@@ -236,6 +236,12 @@ documentation $SEXPSYN_DOC.}#
 	   sdef_doc			;documentation string or list
 	   ))
 
+;;;; define a value
+(defclass class_source_define
+  :doc #{The $CLASS_SOURCE_DEFINE is for value definitions. Field
+ $SDEFINE_EXPR is the expression of the value bound to $SDEF_NAME.}#
+  :fields (sdefine_expr))
+
 ;;; superclass for all definitions with formal arglist
 (defclass class_source_definition_formal
   :doc #{The internal $CLASS_SOURCE_DEFINITION_FORMAL is the super-class of all definitions
@@ -2390,6 +2396,48 @@ of ctype @code{:value}. The expressions in the @var{body} are evaluated
 in sequence. The value of the last is returned. See also $RETURN and
 $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VALUES to be visible outside its module.}#)
 
+
+;;;;;;;;;;;;;;;;;; the define expander
+;;;(DEFINE name expr [:doc documentation])
+(defun mexpand_define (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (defname ())
+	 (defexpr ())
+	 (defdoc ())
+	 )
+#| ;; this match fail to be compiled with the old match implementation...
+    (match cont 
+	   (?(list ?_ 
+		   ?(and ?name ?(instance class_symbol))
+		   ?expr)
+	     (setq defname name)
+	     (setq defexpr expr)
+	     )
+	   (?(list ?_
+		   ?(and ?name ?(instance class_symbol))
+		   ?expr
+		   :doc ?doc)
+	     (setq defname name)
+	     (setq defexpr expr)
+	     (setq defdoc doc))
+	   (?_
+	    
+	    (error_plain loc "bad syntax for (DEFINE name expr [:doc documentation])"_)
+	    (return)))
+|#
+;;;;
+    (assert_msg "$@$ mexpand_define unimplemented")
+    ))
+
+(install_initial_macro 'define mexpand_define)
+(export_macro define mexpand_define
+	      :doc #{The $DEFINE macro defines a named non-recursive
+value.  Syntax is ($DEFINE @var{name} @var{expr} 
+[:doc @var{documentation}]). Use $EXPORT_VALUES to make that name visible
+outside its module.}#)
 
 ;;;;;;;;;;;;;;;; the defclass expander
 
@@ -5427,6 +5475,7 @@ condition is a string such as "4.5." or a list of strings.}#)
  class_source_defobjcommon
  class_source_defprimitive
  class_source_defselector
+ class_source_define
  class_source_defun
  class_source_defunmatcher
  class_source_exit
