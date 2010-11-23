@@ -1026,9 +1026,9 @@
     ;; don't bother do_each_cfun_body here.. it is not done...
     (each_cgraph_fun_entryblock
      ()
-     (:tree decl :basic_block bbent)
+     (:tree decl :basic_block bbent bbexit)
      (debugtree "smallana exec eachcgraph decl" decl)
-     (smallana_cfun_entbb sman decl bbent)
+     (smallana_cfun_entbb sman decl bbent bbexit)
      )
     ;;
     (debug_msg sman "smallanapass_exec sman after eachentrybb")

@@ -2319,32 +2319,38 @@
 ;;; entryblock
 (defciterator each_cgraph_fun_entryblock
   ()					;startformals
-  eachcgrblo				;state symbol
-  (:tree funtree :basic_block funbb)	;local formals
+  EACHCGRAFUNENTRBLO				;state symbol
+  (:tree funtree :basic_block funentrybb funexitbb)	;local formals
   ;;before expansion
-  #{ /* $EACHCGRBLO + */
-   struct cgraph_node *$eachcgrblo#_nd = NULL; 
-   for ($eachcgrblo#_nd = cgraph_nodes; 
-   $eachcgrblo#_nd != NULL; 
-   $eachcgrblo#_nd = $eachcgrblo#_nd->next) {
-   tree  $eachcgrblo#_dcl = NULL;
-   basic_block  $eachcgrblo#_bb = NULL;
-   struct function *$eachcgrblo#_fun = NULL;
-   $eachcgrblo#_dcl = $eachcgrblo#_nd->decl;
-   if (! $eachcgrblo#_dcl) continue;
-   if (TREE_CODE($eachcgrblo#_dcl) != FUNCTION_DECL) continue;
-   $eachcgrblo#_fun = DECL_STRUCT_FUNCTION($eachcgrblo#_dcl);
-   if (!$eachcgrblo#_fun) continue;
+  #{ /* $EACHCGRAFUNENTRBLO + */
+   struct cgraph_node *$EACHCGRAFUNENTRBLO#_nd = NULL; 
+   for ($EACHCGRAFUNENTRBLO#_nd = cgraph_nodes; 
+   $EACHCGRAFUNENTRBLO#_nd != NULL; 
+   $EACHCGRAFUNENTRBLO#_nd = $EACHCGRAFUNENTRBLO#_nd->next) {
+   tree  $EACHCGRAFUNENTRBLO#_dcl = NULL;
+   basic_block  $EACHCGRAFUNENTRBLO#_entrybb = NULL;
+   basic_block  $EACHCGRAFUNENTRBLO#_exitbb = NULL;
+   struct function *$EACHCGRAFUNENTRBLO#_fun = NULL;
+   $EACHCGRAFUNENTRBLO#_dcl = $EACHCGRAFUNENTRBLO#_nd->decl;
+   if (! $EACHCGRAFUNENTRBLO#_dcl) continue;
+   if (TREE_CODE($EACHCGRAFUNENTRBLO#_dcl) != FUNCTION_DECL) continue;
+   $EACHCGRAFUNENTRBLO#_fun = DECL_STRUCT_FUNCTION($EACHCGRAFUNENTRBLO#_dcl);
+   if (!$EACHCGRAFUNENTRBLO#_fun) continue;
    /* this assert fails when in a pass without control flow graph */
-   melt_assertmsg ($eachcgrblo#_fun->cfg != NULL, 
-		   "no cfg in each_cgraph_fun_entryblock $eachcgrblo");
-   $eachcgrblo#_bb = ENTRY_BLOCK_PTR_FOR_FUNCTION($eachcgrblo#_fun);
-   if (! $eachcgrblo#_bb) continue;
-   $funtree = $eachcgrblo#_dcl;
-   $funbb = $eachcgrblo#_bb;
+   melt_assertmsg ("no cfg in each_cgraph_fun_entryblock $EACHCGRAFUNENTRBLO",
+		   $EACHCGRAFUNENTRBLO#_fun->cfg != NULL);
+   $EACHCGRAFUNENTRBLO#_entrybb = 
+     ENTRY_BLOCK_PTR_FOR_FUNCTION ($EACHCGRAFUNENTRBLO#_fun);
+   if (! $EACHCGRAFUNENTRBLO#_entrybb) continue;
+   $EACHCGRAFUNENTRBLO#_exitbb = 
+     EXIT_BLOCK_PTR_FOR_FUNCTION ($EACHCGRAFUNENTRBLO#_fun);
+   if (! $EACHCGRAFUNENTRBLO#_exitbb) continue;
+   $funtree = $EACHCGRAFUNENTRBLO#_dcl;
+   $funentrybb = $EACHCGRAFUNENTRBLO#_entrybb;
+   $funexitbb = $EACHCGRAFUNENTRBLO#_exitbb;
   }#
   ;;after expansion
-  #{ } /* $EACHCGRBLO - */ }# )
+  #{ } /* $EACHCGRAFUNENTRBLO - */ }# )
 
 ;;;;;;;;;;;;;;;;
 ;;;; iterate on every cgraph_node which is a declaration

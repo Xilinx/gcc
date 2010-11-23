@@ -1,5 +1,14 @@
 
 2010-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt: Improve each_cgraph_fun_entryblock
+	which also gives the exit block.
+
+	* melt/xtramelt-ana-simple.melt: Change smallanapass_exec for
+	above improvement.
+
+	* melt/xtramelt-opengpu.melt: Change opengpudetect_exec likewise.
+
+2010-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/topengpu-1.c: improved comment.
 	* melt/warmelt-macro.melt: start adding (define ...) ie
 	class_source_define and mexpand_define.

@@ -53,9 +53,10 @@
   (debug_msg pass "opengpudetect_exec before each_cgraph_fun_entryblock")
   (each_cgraph_fun_entryblock
    ()
-   (:tree fundcl :basic_block funbb)
+   (:tree fundcl :basic_block funentrybb funexitbb)
    (debugtree "opengpudetect_exec fundcl" fundcl)
-   (debugbasicblock "opengpudetect_exec funbb" funbb)
+   (debugbasicblock "opengpudetect_exec funentrybb" funentrybb)
+   (debugbasicblock "opengpudetect_exec funexitbb" funexitbb)
    )
   (debug_msg pass "opengpudetect_exec after each_cgraph_fun_entryblock")
   ;;
