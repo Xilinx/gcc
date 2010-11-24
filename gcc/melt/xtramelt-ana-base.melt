@@ -2319,7 +2319,7 @@
 ;;; entryblock
 (defciterator each_cgraph_fun_entryblock
   ()					;startformals
-  EACHCGRAFUNENTRBLO				;state symbol
+  eachcgrafunentrblo				;state symbol
   (:tree funtree :basic_block funentrybb funexitbb)	;local formals
   ;;before expansion
   #{ /* $EACHCGRAFUNENTRBLO + */
@@ -2351,6 +2351,41 @@
   }#
   ;;after expansion
   #{ } /* $EACHCGRAFUNENTRBLO - */ }# )
+
+
+;; iterator on every cgraph_node which is a function with a CFG, and
+;; retrieve its entry block, exit block, vector of blocks, vector of
+;; edges
+(defciterator each_cgraph_fun_call_flow_graph
+  ()	      ;start formals
+  eachcgrafuncfg
+  (:tree funtree :basic_block funentrybb funexitbb :value bbvect edgevec)
+  ;; before expansion
+  #{ /* $EACHCGRAFUNCFG + */
+   struct cgraph_node *$EACHCGRAFUNCFG#_nd = NULL; 
+   for ($EACHCGRAFUNCFG#_nd = cgraph_nodes; 
+        $EACHCGRAFUNCFG#_nd != NULL; 
+        $EACHCGRAFUNCFG#_nd = $EACHCGRAFUNCFG#_nd->next) {
+      tree  $EACHCGRAFUNCFG#_dcl = NULL;
+      basic_block  $EACHCGRAFUNCFG#_entrybb = NULL;
+      basic_block  $EACHCGRAFUNCFG#_exitbb = NULL;
+      struct function *$EACHCGRAFUNCFG#_fun = NULL;
+      $EACHCGRAFUNCFG#_dcl = $EACHCGRAFUNCFG#_nd->decl;
+      if (! $EACHCGRAFUNCFG#_dcl) 
+        continue;
+      if (TREE_CODE($EACHCGRAFUNCFG#_dcl) != FUNCTION_DECL) 
+        continue;
+   $EACHCGRAFUNCFG#_fun = DECL_STRUCT_FUNCTION($EACHCGRAFUNCFG#_dcl);
+   if (!$EACHCGRAFUNCFG#_fun) 
+        continue;
+   /* this assert fails when in a pass without control flow graph */
+   melt_assertmsg ("no cfg in each_cgraph_fun_call_flow_graph $EACHCGRAFUNCFG",
+		   $EACHCGRAFUNCFG#_fun->cfg != NULL);
+#error each_cgraph_fun_call_flow_graph incomplete $EACHCGRAFUNCFG
+  }#
+  ;; after expansion
+  #{ /* $EACHCGRAFUNCFG - */
+  }#)
 
 ;;;;;;;;;;;;;;;;
 ;;;; iterate on every cgraph_node which is a declaration

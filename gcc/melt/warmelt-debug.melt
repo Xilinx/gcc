@@ -68,7 +68,9 @@ $FILENAM and $LINENO}#
 	     (occmap (make_mapobject discr_map_objects 50))
 	     (boxedmaxdepth (make_integerbox discr_integer (debug_depth))) ;;;; @@@ DEBUGDEPTH
 	     )
-	(code_chunk getdbgcounter #{$dbgcounter = melt_dbgcounter}#)
+	(code_chunk getdbgcounter 
+		    #{/*$GETDBGCOUNTER*/ $dbgcounter = melt_dbgcounter;
+		    }#)
 	;; if we don't have a dumpfile, use stderr
 	(if (null out)
 	    (setq out (get_field :sysdata_stderr initial_system_data)))
@@ -78,16 +80,6 @@ $FILENAM and $LINENO}#
 	(if (null out)
 	    (setq out (make_strbuf discr_strbuf)))
 	(assert_msg "check good out" (is_out out))
-	(let ( (:long nulloutfile 0) )
-	  (code_chunk getfile #{ 
-		      if (melt_is_file($out))
-		      $nulloutfile = (melt_get_file($out)==NULL)?1:0	;
-		      }#)
-	  (if nulloutfile 
-	      (progn 
-		(shortbacktrace_dbg "debug_msg_fun null output file" 5)
-		(setq out (get_field :sysdata_stderr initial_system_data))
-		)))
 	(let ( 
 	      (dbgi (instance class_debug_information
 			      :dbgi_out out

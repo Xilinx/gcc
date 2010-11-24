@@ -1,4 +1,10 @@
 
+2010-11-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/topengpu-1.c: improved comment.
+	* melt/warmelt-debug.melt: improved for stddump...
+	* melt/xtramelt-ana-base.melt: adding each_cgraph_fun_call_flow_graph
+	* melt/xtramelt-opengpu.melt: more
+
 2010-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: Improve each_cgraph_fun_entryblock
 	which also gives the exit block.

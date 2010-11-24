@@ -32,17 +32,26 @@
 
 (defun opengpudetect_exec (pass)
   (debug_msg pass "opengpudetect_exec start")
-  (debug_msg (get_field :sysdata_dumpfile initial_system_data)
-	     "opengpudetect_exec ?dumpfile?")
-  (debug_msg (get_field :sysdata_stderr initial_system_data)
-	     "opengpudetect_exec stderr")
   (let ( (:long passcounter 0)
+	 (stddump (get_field :sysdata_dumpfile initial_system_data))
+	 (stderr (get_field :sysdata_stderr initial_system_data))
 	 )
+  (debug_msg stddump "opengpudetect_exec stddump")
+  (debug_msg stderr "opengpudetect_exec stderr")
     (code_chunk 
      incrpasscount #{ /* $INCRPASSCOUNT */
      static long $INCRPASSCOUNT#_count;
      $INCRPASSCOUNT#_count++;
      $PASSCOUNTER = $INCRPASSCOUNT#_count;
+     melt_cbreak ("opengpudetect_exec $INCRPASSCOUNT");
+     debugeprintf ("stddump %p isfile %s dump FILE %p",
+		   $STDDUMP, melt_is_file($STDDUMP)?"yes":"no", 
+		   (void*)dump_file);
+     debugeprintf ("stderr %p isfile %s stderr FILE %p",
+		   $STDERR, melt_is_file($STDERR)?"yes":"no", 
+		   (void*)stderr);
+     /* the dbgprintf goes to the dump_file */
+     dbgprintf ("opengpudetect_exec start $PASSCOUNTER= %ld", $PASSCOUNTER);
      }#)
   (code_chunk 
    dbgcfun #{ /* $dbgcfun :: */
@@ -93,10 +102,6 @@
 	(warningmsg_plain 
 	 "opengpu MELT mode requires -O2 optimization at least")
       (progn
-	(debug_msg (get_field :sysdata_dumpfile initial_system_data)
-		   "opengpu_docmd ?dumpfile?")
-	(debug_msg (get_field :sysdata_stderr initial_system_data)
-		   "opengpu_docmd ?stderr?")
 	(install_opengpu_passes)
 	(return :true)))
     ))
