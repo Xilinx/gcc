@@ -1,3 +1,20 @@
+2010-11-23  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/24358
+	* lang-specs.h: Added objective-c-cpp-output.  Mapped .mi to
+	objective-c-cpp-output instead of objc-cpp-output.  Print a
+	deprecation note every time objc-cpp-output is requested.
+
+2010-11-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* objc-act.c (write_symbols): Don't declare here.
+
+2010-11-22  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/41108
+	* objc-act.c (objc_generate_write_barrier): Added assert to make sure
+	this function is only called with the next runtime.
+
 2010-11-20  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c/46547

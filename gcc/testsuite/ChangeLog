@@ -1,3 +1,79 @@
+2010-11-24  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/43218
+	* gcc.dg/lto/20100423-1_0.c: Enable for all LTO modes.
+
+2010-11-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/46614
+	* gcc.dg/pr46614.c: New test.
+
+2010-11-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46638
+	* gfortran.dg/transfer_simplify_10.f90: New.
+
+2010-11-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/46629
+	* gfortran.dg/lto/pr46629_0.f90: New test.
+
+2010-11-24  Mingjie Xing  <mingjie.xing@gmail.com>
+
+	* gcc.target/mips/loongson3a-muldiv-1.c: New test.
+	* gcc.target/mips/loongson3a-muldiv-2.c: New test.
+
+2010-11-23  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/opts-5.c: New test.
+
+2010-11-23  Jeffrey Yasskin <jyasskin@google.com>
+
+	PR c++/46527
+	* g++.dg/debug/dwarf2/pr46527.C: New test.
+
+2010-11-23  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* gcc.dg/darwin-cfstring-1.c: Adjust format messages.
+
+2010-11-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/46499
+	* gcc.dg/pr46499-1.c: New test.
+	* gcc.dg/pr46499-2.c: New test.
+
+2010-11-23  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* gcc.target/i386/alias-1.c: Require alias support.
+
+2010-11-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/graphite/graphite.exp: Use check_vect_support_and_set_flags
+	for vectorizer tests.
+	* gcc.dg/graphite/vect-pr43423.c: Add "dg-do compile" dg directive.
+	* gcc.dg/graphite/pr40281.c: Remove "dg-do compile" dg directive.
+	* gcc.dg/graphite/pr41888.c: Ditto.
+	* gcc.dg/graphite/pr42729.c: Ditto.
+
+2010-11-22  Mingjie Xing  <mingjie.xing@gmail.com>
+	    Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/target-supports.exp (check_vect_support_and_set_flags): New
+	procedure to check if the target supports vectorizer tests. Set
+	DEFAULT_VECTCFLAGS and dg-do-what-default depending on vectorization
+	capabilites.
+	* gcc.dg/vect/vect.exp: Use check_vect_support_and_set_flags.
+	* g++.dg/vect/vect.exp: Ditto.
+	* gfortran.dg/vect/vect.exp: Ditto.
+
+2010-11-22  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/34033
+	* objc.dg/strings-1.m: New.
+	* objc.dg/strings-2.m: New.
+	* obj-c++.dg/strings-1.mm: New.
+	* obj-c++.dg/strings-2.mm: New.
+
 2010-11-22  Ian Bolton  <ian.bolton@arm.com>
 
 	* testsuite/c-c++-common/pr44832.c: Use -fno-short-enums option for
@@ -6446,6 +6522,7 @@
 
 2010-07-16  Iain Sandoe  <iains@gcc.gnu.org>
 
+	PR testsuite/43925
 	* lib/plugin-support.exp (plugin-test-execute):
 	Add ${gcc_objdir}/intl to includes.
 

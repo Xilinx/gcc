@@ -405,10 +405,6 @@ static int objc_collecting_ivars = 0;
 
 static char *errbuf;	/* Buffer for error diagnostics */
 
-/* Data imported from tree.c.  */
-
-extern enum debug_info_type write_symbols;
-
 
 static int flag_typed_selectors;
 
@@ -4654,6 +4650,10 @@ objc_generate_write_barrier (tree lhs, enum tree_code modifycode, tree rhs)
 {
   tree result = NULL_TREE, outer;
   int strong_cast_p = 0, outer_gc_p = 0, indirect_p = 0;
+
+  /* This function is currently only used with the next runtime with
+     garbage collection enabled (-fobjc-gc).  */
+  gcc_assert (flag_next_runtime);
 
   /* See if we have any lhs casts, and strip them out.  NB: The lvalue casts
      will have been transformed to the form '*(type *)&expr'.  */
