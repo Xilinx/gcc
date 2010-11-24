@@ -4513,6 +4513,7 @@ ipa_tm_execute (void)
 
       for (e = node->callers; e ; e = e->next_caller)
 	if (!is_tm_safe (e->caller->decl)
+	    && !is_tm_pure (e->caller->decl)
 	    && !e->caller->local.tm_may_enter_irr)
 	  maybe_push_queue (e->caller, &worklist, &d->in_worklist);
     }

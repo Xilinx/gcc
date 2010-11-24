@@ -1,3 +1,9 @@
+2010-11-23  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR/45940
+	* trans-mem.c (ipa_tm_execute): Do not push caller into worklist
+	if it is tm_pure.
+
 2010-11-19  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR/46270
