@@ -1,4 +1,8 @@
 
+2010-11-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt: Add each_cgraph_fun_call_flow_graph.
+	* melt/xtramelt-opengpu.net: Use it.
+
 2010-11-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/topengpu-1.c: improved comment.
 	* melt/warmelt-debug.melt: improved for stddump...

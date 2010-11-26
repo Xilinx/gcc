@@ -59,15 +59,16 @@
 		(void*)cfun, cfun?cfun->cfg:NULL, $PASSCOUNTER) ; 
    gcc_assert (cfun == NULL);
    }#) 
-  (debug_msg pass "opengpudetect_exec before each_cgraph_fun_entryblock")
-  (each_cgraph_fun_entryblock
+  (debug_msg pass "opengpudetect_exec before each_cgraph_fun_call_flow_graph")
+  (each_cgraph_fun_call_flow_graph
    ()
-   (:tree fundcl :basic_block funentrybb funexitbb)
+   (:tree fundcl :basic_block funentrybb funexitbb :value bbtup tmp)
    (debugtree "opengpudetect_exec fundcl" fundcl)
    (debugbasicblock "opengpudetect_exec funentrybb" funentrybb)
    (debugbasicblock "opengpudetect_exec funexitbb" funexitbb)
+   (debug_msg bbtup "opengpudetect_exec bbtup")
    )
-  (debug_msg pass "opengpudetect_exec after each_cgraph_fun_entryblock")
+  (debug_msg pass "opengpudetect_exec after each_cgraph_fun_call_flow_graph")
   ;;
   (debug_msg pass "opengpudetect_exec end")
   (return :true)
