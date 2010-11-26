@@ -1957,36 +1957,6 @@ dump_alias_graphs (VEC (data_reference_p, heap) *drs)
     }
 }
 
-/* Recompute all the data references of BB and add them to the
-   GBB_DATA_REFS vector.  */
-
-static void
-analyze_drs (scop_p scop, basic_block bb)
-{
-  loop_p nest;
-  poly_bb_p pbb;
-  gimple_stmt_iterator gsi;
-  gimple_bb_p gbb;
-
-  if (!bb_in_sese_p (bb, SCOP_REGION (scop)))
-    return;
-
-  nest = outermost_loop_in_sese (SCOP_REGION (scop), bb);
-  pbb = pbb_from_bb (bb);
-  gbb = PBB_BLACK_BOX (pbb);
-
-  VEC_free (data_reference_p, heap, GBB_DATA_REFS (gbb));
-  GBB_DATA_REFS (gbb) = VEC_alloc (data_reference_p, heap, 3);
-
-  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-    {
-      gimple stmt = gsi_stmt (gsi);
-      if (!is_gimple_debug (stmt))
-	graphite_find_data_references_in_stmt (nest, stmt,
-					       &GBB_DATA_REFS (gbb));
-    }
-}
-
 /* Build data references in SCOP.  */
 
 static void
@@ -2000,14 +1970,11 @@ build_scop_drs (scop_p scop)
   /* Remove all the PBBs that do not have data references: these basic
      blocks are not handled in the polyhedral representation.  */
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
-    {
-      analyze_drs (scop, GBB_BB (PBB_BLACK_BOX (pbb)));
-      if (VEC_empty (data_reference_p, GBB_DATA_REFS (PBB_BLACK_BOX (pbb))))
-	{
-	  VEC_ordered_remove (poly_bb_p, SCOP_BBS (scop), i);
-	  i--;
-	}
-    }
+    if (VEC_empty (data_reference_p, GBB_DATA_REFS (PBB_BLACK_BOX (pbb))))
+      {
+	VEC_ordered_remove (poly_bb_p, SCOP_BBS (scop), i);
+	i--;
+      }
 
   FOR_EACH_VEC_ELT (poly_bb_p, SCOP_BBS (scop), i, pbb)
     for (j = 0; VEC_iterate (data_reference_p,
@@ -2052,21 +2019,73 @@ gsi_for_phi_node (gimple stmt)
   return psi;
 }
 
+/* Analyze all the data references of STMTS and add them to the
+   GBB_DATA_REFS vector of BB.  */
+
+static void
+analyze_drs_in_stmts (scop_p scop, basic_block bb, VEC (gimple, heap) *stmts)
+{
+  loop_p nest;
+  poly_bb_p pbb;
+  gimple_bb_p gbb;
+  gimple stmt;
+  int i;
+
+  if (!bb_in_sese_p (bb, SCOP_REGION (scop)))
+    return;
+
+  nest = outermost_loop_in_sese (SCOP_REGION (scop), bb);
+  pbb = pbb_from_bb (bb);
+  gbb = gbb_from_bb (bb);
+
+  FOR_EACH_VEC_ELT (gimple, stmts, i, stmt)
+    if (!is_gimple_debug (stmt))
+      graphite_find_data_references_in_stmt (nest, stmt,
+					     &GBB_DATA_REFS (gbb));
+}
+
+/* Insert STMT at the end of the STMTS sequence and then insert the
+   statements from STMTS at INSERT_GSI and call analyze_drs_in_stmts
+   on STMTS.  */
+
+static void
+insert_stmts (scop_p scop, gimple stmt, gimple_seq stmts,
+	      gimple_stmt_iterator insert_gsi)
+{
+  gimple_stmt_iterator gsi;
+  VEC (gimple, heap) *x = VEC_alloc (gimple, heap, 3);
+
+  if (!stmts)
+    stmts = gimple_seq_alloc ();
+
+  gsi = gsi_last (stmts);
+  gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
+  for (gsi = gsi_start (stmts); !gsi_end_p (gsi); gsi_next (&gsi))
+    VEC_safe_push (gimple, heap, x, gsi_stmt (gsi));
+
+  gsi_insert_seq_before (&insert_gsi, stmts, GSI_SAME_STMT);
+  analyze_drs_in_stmts (scop, gsi_bb (insert_gsi), x);
+  VEC_free (gimple, heap, x);
+}
+
 /* Insert the assignment "RES := EXPR" just after AFTER_STMT.  */
 
 static void
-insert_out_of_ssa_copy (tree res, tree expr, gimple after_stmt)
+insert_out_of_ssa_copy (scop_p scop, tree res, tree expr, gimple after_stmt)
 {
   gimple_seq stmts;
   gimple_stmt_iterator si;
   gimple_stmt_iterator gsi;
   tree var = force_gimple_operand (expr, &stmts, true, NULL_TREE);
   gimple stmt = gimple_build_assign (res, var);
+  VEC (gimple, heap) *x = VEC_alloc (gimple, heap, 3);
 
   if (!stmts)
     stmts = gimple_seq_alloc ();
   si = gsi_last (stmts);
   gsi_insert_after (&si, stmt, GSI_NEW_STMT);
+  for (gsi = gsi_start (stmts); !gsi_end_p (gsi); gsi_next (&gsi))
+    VEC_safe_push (gimple, heap, x, gsi_stmt (gsi));
 
   if (gimple_code (after_stmt) == GIMPLE_PHI)
     {
@@ -2078,6 +2097,9 @@ insert_out_of_ssa_copy (tree res, tree expr, gimple after_stmt)
       gsi = gsi_for_stmt (after_stmt);
       gsi_insert_seq_after (&gsi, stmts, GSI_NEW_STMT);
     }
+
+  analyze_drs_in_stmts (scop, gimple_bb (after_stmt), x);
+  VEC_free (gimple, heap, x);
 }
 
 /* Creates a poly_bb_p for basic_block BB from the existing PBB.  */
@@ -2114,12 +2136,16 @@ insert_out_of_ssa_copy_on_edge (scop_p scop, edge e, tree res, tree expr)
   tree var = force_gimple_operand (expr, &stmts, true, NULL_TREE);
   gimple stmt = gimple_build_assign (res, var);
   basic_block bb;
+  VEC (gimple, heap) *x = VEC_alloc (gimple, heap, 3);
 
   if (!stmts)
     stmts = gimple_seq_alloc ();
 
   gsi = gsi_last (stmts);
   gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
+  for (gsi = gsi_start (stmts); !gsi_end_p (gsi); gsi_next (&gsi))
+    VEC_safe_push (gimple, heap, x, gsi_stmt (gsi));
+
   gsi_insert_seq_on_edge (e, stmts);
   gsi_commit_edge_inserts ();
   bb = gimple_bb (stmt);
@@ -2129,6 +2155,9 @@ insert_out_of_ssa_copy_on_edge (scop_p scop, edge e, tree res, tree expr)
 
   if (!gbb_from_bb (bb))
     new_pbb_from_pbb (scop, pbb_from_bb (e->src), bb);
+
+  analyze_drs_in_stmts (scop, bb, x);
+  VEC_free (gimple, heap, x);
 }
 
 /* Creates a zero dimension array of the same type as VAR.  */
@@ -2270,7 +2299,7 @@ rewrite_close_phi_out_of_ssa (scop_p scop, gimple_stmt_iterator *psi)
       stmt = gimple_build_assign (res, zero_dim_array);
 
       if (TREE_CODE (arg) == SSA_NAME)
-	insert_out_of_ssa_copy (zero_dim_array, arg,
+	insert_out_of_ssa_copy (scop, zero_dim_array, arg,
 				SSA_NAME_DEF_STMT (arg));
       else
 	insert_out_of_ssa_copy_on_edge (scop, single_pred_edge (bb),
@@ -2278,8 +2307,9 @@ rewrite_close_phi_out_of_ssa (scop_p scop, gimple_stmt_iterator *psi)
     }
 
   remove_phi_node (psi, false);
-  gsi_insert_before (&gsi, stmt, GSI_NEW_STMT);
   SSA_NAME_DEF_STMT (res) = stmt;
+
+  insert_stmts (scop, stmt, NULL, gsi_after_labels (bb));
 }
 
 /* Rewrite out of SSA the reduction phi node at PSI by creating a zero
@@ -2294,7 +2324,6 @@ rewrite_phi_out_of_ssa (scop_p scop, gimple_stmt_iterator *psi)
   tree res = gimple_phi_result (phi);
   tree var = SSA_NAME_VAR (res);
   tree zero_dim_array = create_zero_dim_array (var, "phi_out_of_ssa");
-  gimple_stmt_iterator gsi;
   gimple stmt;
   gimple_seq stmts;
 
@@ -2307,7 +2336,7 @@ rewrite_phi_out_of_ssa (scop_p scop, gimple_stmt_iterator *psi)
 	 pattern matching of the vectorizer.  */
       if (TREE_CODE (arg) == SSA_NAME
 	  && e->src == bb->loop_father->latch)
-	insert_out_of_ssa_copy (zero_dim_array, arg,
+	insert_out_of_ssa_copy (scop, zero_dim_array, arg,
 				SSA_NAME_DEF_STMT (arg));
       else
 	insert_out_of_ssa_copy_on_edge (scop, e, zero_dim_array, arg);
@@ -2315,18 +2344,11 @@ rewrite_phi_out_of_ssa (scop_p scop, gimple_stmt_iterator *psi)
 
   var = force_gimple_operand (zero_dim_array, &stmts, true, NULL_TREE);
 
-  if (!stmts)
-    stmts = gimple_seq_alloc ();
-
   stmt = gimple_build_assign (res, var);
   remove_phi_node (psi, false);
   SSA_NAME_DEF_STMT (res) = stmt;
 
-  gsi = gsi_last (stmts);
-  gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
-
-  gsi = gsi_after_labels (bb);
-  gsi_insert_seq_before (&gsi, stmts, GSI_NEW_STMT);
+  insert_stmts (scop, stmt, stmts, gsi_after_labels (bb));
 }
 
 /* Rewrite the degenerate phi node at position PSI from the degenerate
@@ -2396,7 +2418,7 @@ rewrite_reductions_out_of_ssa (scop_p scop)
    read from ZERO_DIM_ARRAY.  */
 
 static void
-rewrite_cross_bb_scalar_dependence (tree zero_dim_array,
+rewrite_cross_bb_scalar_dependence (scop_p scop, tree zero_dim_array,
 				    tree def, gimple use_stmt)
 {
   tree var = SSA_NAME_VAR (def);
@@ -2404,14 +2426,11 @@ rewrite_cross_bb_scalar_dependence (tree zero_dim_array,
   tree name = make_ssa_name (var, name_stmt);
   ssa_op_iter iter;
   use_operand_p use_p;
-  gimple_stmt_iterator gsi;
 
   gcc_assert (gimple_code (use_stmt) != GIMPLE_PHI);
 
   gimple_assign_set_lhs (name_stmt, name);
-
-  gsi = gsi_for_stmt (use_stmt);
-  gsi_insert_before (&gsi, name_stmt, GSI_NEW_STMT);
+  insert_stmts (scop, name_stmt, NULL, gsi_for_stmt (use_stmt));
 
   FOR_EACH_SSA_USE_OPERAND (use_p, use_stmt, iter, SSA_OP_ALL_USES)
     if (operand_equal_p (def, USE_FROM_PTR (use_p), 0))
@@ -2535,12 +2554,12 @@ rewrite_cross_bb_scalar_deps (scop_p scop, gimple_stmt_iterator *gsi)
 	  {
 	    zero_dim_array = create_zero_dim_array
 	      (SSA_NAME_VAR (def), "Cross_BB_scalar_dependence");
-	    insert_out_of_ssa_copy (zero_dim_array, def,
+	    insert_out_of_ssa_copy (scop, zero_dim_array, def,
 				    SSA_NAME_DEF_STMT (def));
 	    gsi_next (gsi);
 	  }
 
-	rewrite_cross_bb_scalar_dependence (zero_dim_array,
+	rewrite_cross_bb_scalar_dependence (scop, zero_dim_array,
 					    def, use_stmt);
       }
 
@@ -2627,7 +2646,10 @@ split_reduction_stmt (scop_p scop, gimple stmt)
 {
   basic_block bb = gimple_bb (stmt);
   poly_bb_p pbb = pbb_from_bb (bb);
+  gimple_bb_p gbb = gbb_from_bb (bb);
   edge e1;
+  int i;
+  data_reference_p dr;
 
   /* Do not split basic blocks with no writes to memory: the reduction
      will be the only write to memory.  */
@@ -2643,6 +2665,22 @@ split_reduction_stmt (scop_p scop, gimple stmt)
       gimple_stmt_iterator gsi = gsi_last_bb (bb);
       gsi_prev (&gsi);
       e1 = split_pbb (scop, pbb, bb, gsi_stmt (gsi));
+    }
+
+  /* A part of the data references will end in a different basic block
+     after the split: move the DRs from the original GBB to the newly
+     created GBB1.  */
+  FOR_EACH_VEC_ELT (data_reference_p, GBB_DATA_REFS (gbb), i, dr)
+    {
+      basic_block bb1 = gimple_bb (DR_STMT (dr));
+
+      if (bb1 != bb)
+	{
+	  gimple_bb_p gbb1 = gbb_from_bb (bb1);
+	  VEC_safe_push (data_reference_p, heap, GBB_DATA_REFS (gbb1), dr);
+	  VEC_ordered_remove (data_reference_p, GBB_DATA_REFS (gbb), i);
+	  i--;
+	}
     }
 
   return e1->dest;
@@ -2871,18 +2909,19 @@ detect_commutative_reduction (gimple stmt, VEC (gimple, heap) **in,
    knowing that its recursive phi node is LOOP_PHI.  */
 
 static void
-translate_scalar_reduction_to_array_for_stmt (tree red, gimple stmt,
-					      gimple loop_phi)
+translate_scalar_reduction_to_array_for_stmt (scop_p scop, tree red,
+					      gimple stmt, gimple loop_phi)
 {
   tree res = gimple_phi_result (loop_phi);
   gimple assign = gimple_build_assign (res, red);
-  gimple_stmt_iterator insert_gsi = gsi_after_labels (gimple_bb (loop_phi));
+  gimple_stmt_iterator gsi;
 
-  gsi_insert_before (&insert_gsi, assign, GSI_SAME_STMT);
+  insert_stmts (scop, assign, NULL, gsi_after_labels (gimple_bb (loop_phi)));
 
   assign = gimple_build_assign (red, gimple_assign_lhs (stmt));
-  insert_gsi = gsi_for_stmt (stmt);
-  gsi_insert_after (&insert_gsi, assign, GSI_SAME_STMT);
+  gsi = gsi_for_stmt (stmt);
+  gsi_next (&gsi);
+  insert_stmts (scop, assign, NULL, gsi);
 }
 
 /* Removes the PHI node and resets all the debug stmts that are using
@@ -2954,13 +2993,13 @@ translate_scalar_reduction_to_array (scop_p scop,
 	  red = create_zero_dim_array
 	    (gimple_assign_lhs (stmt), "Commutative_Associative_Reduction");
 	  translate_scalar_reduction_to_array_for_stmt
-	    (red, stmt, VEC_index (gimple, in, 1));
+	    (scop, red, stmt, VEC_index (gimple, in, 1));
 	  continue;
 	}
 
       if (i == VEC_length (gimple, in) - 1)
 	{
-	  insert_out_of_ssa_copy (gimple_phi_result (close_phi), red,
+	  insert_out_of_ssa_copy (scop, gimple_phi_result (close_phi), red,
 				  close_phi);
 	  insert_out_of_ssa_copy_on_edge
 	    (scop, edge_initial_value_for_loop_phi (loop_phi),
