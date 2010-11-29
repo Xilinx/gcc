@@ -83,13 +83,18 @@
 		    :gccpass_gate opengpudetect_gate
 		    :gccpass_exec opengpudetect_exec
 		    :gccpass_data (make_maptree discr_map_trees 100)
-		    :gccpass_properties_required ()
-		    :gccpass_todo_flags_finish '"dump_func"
+		    :gccpass_properties_required (list '"ssa" '"cfg")
+		    :gccpass_todo_flags_finish
+		      (list  '"dump_func" '"dump_cgraph")
 		    ))
 	 )
 ;;; register our pass after the "tree_profile_ipa" pass from
 ;;; gcc/tree-profile.c
-    (install_melt_gcc_pass opengpudetect_pass "after" "tree_profile_ipa" 0)
+    (install_melt_gcc_pass opengpudetect_pass "after" "inline" 0)
+;;; don't register it after the "cp" [interprocedural constant propagation]
+;;; pass from gcc/ipa-cp.c
+;;; don't register it after the "inline" [inline decision heuristics] pass
+;;; from gcc/ipa-inline.c
     ))
 
 (defun opengpu_docmd (cmd moduldata)

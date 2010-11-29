@@ -1537,7 +1537,12 @@ execute_one_pass (struct opt_pass *pass)
   invoke_plugin_callbacks (PLUGIN_PASS_EXECUTION, pass);
 
   if (!quiet_flag && !cfun)
-    fprintf (stderr, " <%s>", pass->name ? pass->name : "");
+    fprintf (stderr, " <%s/%d%c>", pass->name ? pass->name : "", 
+	     pass->static_pass_number,
+	     (pass->type == SIMPLE_IPA_PASS)?'S'
+	     :(pass->type == IPA_PASS)?'I':
+	     '?'
+	     );
 
   /* Note that the folders should only create gimple expressions.
      This is a hack until the new folder is ready.  */

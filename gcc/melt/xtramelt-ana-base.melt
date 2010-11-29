@@ -2381,6 +2381,7 @@
       $EACHCGRAFUNCFG#_fun = DECL_STRUCT_FUNCTION($EACHCGRAFUNCFG#_dcl);
       if (!$EACHCGRAFUNCFG#_fun) 
         continue;
+      debugeprintf("$EACHCGRAFUNCFG#_fun %p", $EACHCGRAFUNCFG#_fun);
       $TMPV = NULL;
       /* this assert fails when in a pass without control flow graph */
       melt_assertmsg ("no cfg in each_cgraph_fun_call_flow_graph $EACHCGRAFUNCFG",

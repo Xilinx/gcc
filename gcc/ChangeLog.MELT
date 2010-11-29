@@ -1,4 +1,21 @@
 
+2010-11-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* passes.c: Display more about executed passes.
+
+	* melt-predef.list: Add CLASS_GCC_TRANSFORM_IPA_PASS.
+
+	* melt/warmelt-first.melt: Add class_gcc_any_ipa_pass &
+	class_gcc_transform_ipa_pass.
+
+	* melt/xtramelt-ana-base.melt: Add debugeprintf inside
+	each_cgraph_fun_call_flow_graph.
+
+	* melt/xtramelt-opengpu.melt: Add comment about other pass positions.
+	and more gccpass_todo_* flags.
+
+	* testsuite/melt/topengpu-1.c: Update comment.
+
+
 2010-11-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: Add each_cgraph_fun_call_flow_graph.
 	* melt/xtramelt-opengpu.net: Use it.

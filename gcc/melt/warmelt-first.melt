@@ -689,13 +689,27 @@ list of them.}# )
   
 )
 
+(defclass class_gcc_any_ipa_pass
+  :super class_gcc_pass
+  :fields ()
+  :doc #{  The $CLASS_GCC_ANY_IPA_PASS is the common class for every GCC 
+inter procedural analysis [IPA] pass descriptors. }#)
+
 (defclass class_gcc_simple_ipa_pass
   :predef CLASS_GCC_SIMPLE_IPA_PASS
-  :super class_gcc_pass
+  :super class_gcc_any_ipa_pass
   :fields ( )
   :doc #{ The $CLASS_GCC_SIMPLE_IPA_PASS is for GCC simple IPA pass
 descriptors. }# )
 
+(defclass class_gcc_transform_ipa_pass
+  :predef CLASS_GCC_TRANSFORM_IPA_PASS
+  :super class_gcc_any_ipa_pass
+  :fields ( gccpass_stmt_fixup
+	    gccpass_function_transform
+	    gccpass_variable_transform )
+  :doc #{ The $CLASS_GCC_TRANSFORM_IPA_PASS is for GCC full IPA pass
+descriptors which don't read or write any LTO information. }#)
 
 ;;;; mode 
 (defclass class_melt_mode
@@ -3505,7 +3519,9 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_gcc_gimple_pass
  class_gcc_pass
  class_gcc_rtl_pass
+ class_gcc_any_ipa_pass
  class_gcc_simple_ipa_pass
+ class_gcc_transform_ipa_pass
  class_initial_generation_context
  class_infix_additive_symbol
  class_infix_any_symbol
