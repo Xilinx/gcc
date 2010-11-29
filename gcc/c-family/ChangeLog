@@ -1,3 +1,28 @@
+2010-11-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-cppbuiltin.c (c_cpp_builtins): Pass &global_options to
+	targetm.except_unwind_info.
+
+2010-11-23  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-opts.c (c_common_handle_option): Pass location to
+	set_struct_debug_option.
+
+2010-11-23  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (visibility_options): Move from ../opts.c.
+	* c-common.h (struct visibility_flags, visibility_options):
+	Declare here.
+	* c-opts.c (finish_options): Rename to c_finish_options.
+	(c_common_init): Update call to finish_options.
+
+2010-11-22  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/34033
+	* c-lex.c (lex_string): Check that each string in an Objective-C
+	string concat sequence starts with either one or zero '@', and
+	that there are no spurious '@' signs at the end.
+
 2010-11-20  Joseph Myers  <joseph@codesourcery.com>
 
 	* c-pragma.c: Remove conditionals on HANDLE_PRAGMA_PACK,
