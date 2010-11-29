@@ -860,6 +860,26 @@ tm_log_eq (const void *p1, const void *p2)
 {
   const struct tm_log_entry *log1 = (const struct tm_log_entry *) p1;
   const struct tm_log_entry *log2 = (const struct tm_log_entry *) p2;
+
+  /* FIXME:
+
+     rth: I suggest that we get rid of the component refs etc.
+     I.e. resolve the reference to base + offset.
+
+     We may need to actually finish a merge with mainline for this,
+     since we'd like to be presented with Richi's MEM_REF_EXPRs more
+     often than not.  But in the meantime your tm_log_entry could save
+     the results of get_inner_reference.
+
+     See: g++.dg/tm/pr46653.C
+  */
+
+  /* Special case plain equality because operand_equal_p() below will
+     return FALSE if the addresses are equal but they have
+     side-effects (e.g. a volatile address).  */
+  if (log1->addr == log2->addr)
+    return true;
+
   return operand_equal_p (log1->addr, log2->addr, 0);
 }
 

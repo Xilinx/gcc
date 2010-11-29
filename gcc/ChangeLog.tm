@@ -1,3 +1,8 @@
+2010-11-29  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR/46653
+	* trans-mem.c (tm_log_eq): Return true for identical addresses.
+
 2010-11-23  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR/45940
