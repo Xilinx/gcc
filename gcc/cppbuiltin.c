@@ -28,6 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "cpp-id-data.h"
 #include "cppbuiltin.h"
+#include "target.h"
 
 
 /* Parse a BASEVER version string of the format "major.minor.patchlevel"
@@ -156,6 +157,11 @@ define_builtin_macros_for_type_sizes (cpp_reader *pfile)
 
       cpp_define (pfile, "__BYTE_ORDER__=__ORDER_PDP_ENDIAN__");
     }
+
+  cpp_define_formatted (pfile, "__FLOAT_WORD_ORDER__=%s",
+                        (targetm.float_words_big_endian ()
+                         ? "__ORDER_BIG_ENDIAN__"
+                         : "__ORDER_LITTLE_ENDIAN__"));
 
   /* ptr_type_node can't be used here since ptr_mode is only set when
      toplev calls backend_init which is not done with -E switch.  */

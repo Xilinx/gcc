@@ -1309,14 +1309,8 @@ default_debug_unwind_info (void)
 /* Determine the exception handling mechanism for the target.  */
 
 enum unwind_info_type
-default_except_unwind_info (void)
+default_except_unwind_info (struct gcc_options *opts ATTRIBUTE_UNUSED)
 {
-  /* ??? Change the one user to the hook, then poison this.  */
-#ifdef MUST_USE_SJLJ_EXCEPTIONS
-  if (MUST_USE_SJLJ_EXCEPTIONS)
-    return UI_SJLJ;
-#endif
-
   /* Obey the configure switch to turn on sjlj exceptions.  */
 #ifdef CONFIG_SJLJ_EXCEPTIONS
   if (CONFIG_SJLJ_EXCEPTIONS)
@@ -1335,7 +1329,7 @@ default_except_unwind_info (void)
 /* To be used by targets that force dwarf2 unwind enabled.  */
 
 enum unwind_info_type
-dwarf2_except_unwind_info (void)
+dwarf2_except_unwind_info (struct gcc_options *opts ATTRIBUTE_UNUSED)
 {
   /* Obey the configure switch to turn on sjlj exceptions.  */
 #ifdef CONFIG_SJLJ_EXCEPTIONS
@@ -1349,7 +1343,7 @@ dwarf2_except_unwind_info (void)
 /* To be used by targets that force sjlj unwind enabled.  */
 
 enum unwind_info_type
-sjlj_except_unwind_info (void)
+sjlj_except_unwind_info (struct gcc_options *opts ATTRIBUTE_UNUSED)
 {
   return UI_SJLJ;
 }

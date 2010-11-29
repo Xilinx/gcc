@@ -1,3 +1,166 @@
+2010-11-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/exceptions-1.m: New.
+	* objc.dg/exceptions-2.m: New.
+	* objc.dg/exceptions-3.m: New.
+	* objc.dg/exceptions-4.m: New.
+	* objc.dg/exceptions-5.m: New.
+	* obj-c++.dg/exceptions-1.mm: New.
+	* obj-c++.dg/exceptions-2.mm: New.
+	* obj-c++.dg/exceptions-3.mm: New.
+	* obj-c++.dg/exceptions-4.mm: New.
+	* obj-c++.dg/exceptions-5.mm: New.
+
+2010-11-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* obj-c++.dg/property/at-property-1.mm: Fixed testcase.
+	* obj-c++.dg/property/at-property-16.mm: Fixed testcase.
+	* obj-c++.dg/property/at-property-20.mm: Fixed testcase.
+
+2010-11-28  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46662
+	* gfortran.dg/proc_ptr_comp_pass_7.f90: New.
+
+2010-11-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/aliasing2.adb (dg-final): Robustify pattern matching.
+	* gnat.dg/pack9.adb (dg-final): Likewise.
+
+2010-11-28  Paul Thomas  <pault@gcc.gnu.org
+
+	PR fortran/35810
+	* gfortran.dg/realloc_on_assign_1.f03: New test.
+	* gfortran.dg/realloc_on_assign_2.f03: New test.
+	* gfortran.dg/transpose_2.f90: dg-option -fno-realloc-lhs.
+	* gfortran.dg/unpack_bounds_1.f90: The same.
+	* gfortran.dg/cshift_bounds_2.f90: The same.
+	* gfortran.dg/matmul_bounds_2.f90: The same.
+	* gfortran.dg/matmul_bounds_3.f90: The same.
+	* gfortran.dg/matmul_bounds_4.f90: The same.
+	* gfortran.dg/matmul_bounds_5.f90: The same.
+
+2010-11-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46638
+	PR fortran/46668
+	* gfortran.dg/transfer_simplify_10.f90: Fix endian issue.
+
+2010-11-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc++/46222	
+	* obj-c++.dg/property/at-property-2.mm: Uncommented testcase.
+
+2010-11-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/property/at-property-24.m: New.
+	* objc.dg/property/at-property-25.m: New.	
+	* obj-c++.dg/property/at-property-24.mm: New.
+	* obj-c++.dg/property/at-property-25.mm: New.
+
+2010-11-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/protocol-qualifier-1.m: New.	
+	* objc.dg/protocol-qualifier-2.m: New.
+	* obj-c++.dg/protocol-qualifier-1.mm: New.	
+	* obj-c++.dg/protocol-qualifier-2.mm: New.
+
+2010-11-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/gnat.exp: Load gcc.exp.
+	(gnat_target_compile): Use gcc_target_compile for *.c sources.
+	* gnat.dg/sse_nolib.adb: Use dg-require-effective-target sse_runtime.
+
+2010-11-26  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/46648
+	* gcc.dg/lto/20101125-1_0.c: New testcase.
+	* gcc.dg/lto/20101125-1_1.c: Likewise.
+
+2010-11-22   Bud Davis  <jmdavis@link.com>
+
+	* arith_divide_no_check.f
+	 ,arith_divide.f,old_style_init.f90: new tests.
+
+2010-11-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR tree-optimization/46665
+	* gfortran.dg/pr46665.f90: New.
+
+2010-11-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/46647
+	* gcc.dg/pr46647.c: New test.
+
+2010-11-25  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46581
+	* gfortran.dg/select_type_19.f03: New.
+
+2010-11-25  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/ivar-problem-1.m: New.
+	* obj-c++.dg/ivar-problem-1.mm: New.
+
+2010-11-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/46637
+	* gcc.c-torture/compile/pr46637.c: New test.
+
+2010-11-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gfortran.dg/pr46519-1.f: Add -mtune=generic.
+
+2010-11-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/46647
+	* gcc.target/i386/pr46647.c: New.
+
+2010-11-25  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.dg/dll-8.c: New.
+
+2010-11-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization7.adb: Remove dg-require-effective-target.
+	* gnat.dg/sse_nolib.adb: Likewise.
+
+2010-11-25  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/46585
+	* gcc.dg/pr46585.c: New.
+
+2010-11-24  Richard Henderson  <rth@redhat.com>
+
+	* lib/target-supports.exp (vect_widen_sum_hi_to_si_pattern,
+	vect_widen_mult_hi_to_si, vect_sdot_qi, vect_udot_qi, vect_sdot_hi,
+	vect_unpack, vect_int_mult, vect_extract_even_odd,
+	vect_extract_even_odd_wide, vect_interleave): Enable for ia64.
+
+2010-11-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/46519
+	* gfortran.dg/pr46519-1.f: New.
+
+2010-11-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/46519
+	* gcc.target/i386/avx-vzeroupper-10.c: Expect no avx_vzeroupper.
+	* gcc.target/i386/avx-vzeroupper-11.c: Likewise.
+
+	* gcc.target/i386/avx-vzeroupper-14.c: Replace -O0 with -O2.
+	* gcc.target/i386/avx-vzeroupper-15.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-16.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-17.c: Likewise.
+
+	* gcc.target/i386/avx-vzeroupper-20.c: New.
+	* gcc.target/i386/avx-vzeroupper-21.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-22.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-23.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-24.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-25.c: Likewise.
+	* gcc.target/i386/avx-vzeroupper-26.c: Likewise.
+
 2010-11-24  Richard Guenther  <rguenther@suse.de>
 
 	PR lto/43218

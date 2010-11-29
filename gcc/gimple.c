@@ -1873,15 +1873,14 @@ gimple_call_return_flags (const_gimple stmt)
     }
 }
 
+
 /* Return true if GS is a copy assignment.  */
 
 bool
 gimple_assign_copy_p (gimple gs)
 {
-  return gimple_code (gs) == GIMPLE_ASSIGN
-         && get_gimple_rhs_class (gimple_assign_rhs_code (gs))
-	    == GIMPLE_SINGLE_RHS
-	 && is_gimple_val (gimple_op (gs, 1));
+  return (gimple_assign_single_p (gs)
+	  && is_gimple_val (gimple_op (gs, 1)));
 }
 
 
@@ -1890,27 +1889,11 @@ gimple_assign_copy_p (gimple gs)
 bool
 gimple_assign_ssa_name_copy_p (gimple gs)
 {
-  return (gimple_code (gs) == GIMPLE_ASSIGN
-	  && (get_gimple_rhs_class (gimple_assign_rhs_code (gs))
-	      == GIMPLE_SINGLE_RHS)
+  return (gimple_assign_single_p (gs)
 	  && TREE_CODE (gimple_assign_lhs (gs)) == SSA_NAME
 	  && TREE_CODE (gimple_assign_rhs1 (gs)) == SSA_NAME);
 }
 
-
-/* Return true if GS is an assignment with a singleton RHS, i.e.,
-   there is no operator associated with the assignment itself.
-   Unlike gimple_assign_copy_p, this predicate returns true for
-   any RHS operand, including those that perform an operation
-   and do not have the semantics of a copy, such as COND_EXPR.  */
-
-bool
-gimple_assign_single_p (gimple gs)
-{
-  return (gimple_code (gs) == GIMPLE_ASSIGN
-          && get_gimple_rhs_class (gimple_assign_rhs_code (gs))
-	     == GIMPLE_SINGLE_RHS);
-}
 
 /* Return true if GS is an assignment with a unary RHS, but the
    operator has no effect on the assigned value.  The logic is adapted
@@ -1929,7 +1912,7 @@ gimple_assign_single_p (gimple gs)
 bool
 gimple_assign_unary_nop_p (gimple gs)
 {
-  return (gimple_code (gs) == GIMPLE_ASSIGN
+  return (is_gimple_assign (gs)
           && (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (gs))
               || gimple_assign_rhs_code (gs) == NON_LVALUE_EXPR)
           && gimple_assign_rhs1 (gs) != error_mark_node
@@ -2950,15 +2933,6 @@ is_gimple_min_lval (tree t)
   return (is_gimple_id (t) || TREE_CODE (t) == MEM_REF);
 }
 
-/* Return true if T is a typecast operation.  */
-
-bool
-is_gimple_cast (tree t)
-{
-  return (CONVERT_EXPR_P (t)
-          || TREE_CODE (t) == FIX_TRUNC_EXPR);
-}
-
 /* Return true if T is a valid function operand of a CALL_EXPR.  */
 
 bool
@@ -3515,27 +3489,23 @@ gtc_visit (tree t1, tree t2, enum gtc_mode mode,
 
   if ((slot = pointer_map_contains (sccstate, p)) != NULL)
     cstate = (struct sccs *)*slot;
+  /* Not yet visited.  DFS recurse.  */
   if (!cstate)
     {
-      bool res;
-      /* Not yet visited.  DFS recurse.  */
-      res = gimple_types_compatible_p_1 (t1, t2, mode, p,
-					 sccstack, sccstate, sccstate_obstack);
-      if (!cstate)
-	cstate = (struct sccs *)* pointer_map_contains (sccstate, p);
+      gimple_types_compatible_p_1 (t1, t2, mode, p,
+				   sccstack, sccstate, sccstate_obstack);
+      cstate = (struct sccs *)* pointer_map_contains (sccstate, p);
       state->low = MIN (state->low, cstate->low);
-      /* If the type is no longer on the SCC stack and thus is not part
-	 of the parents SCC, return its state.  Otherwise we will
-	 ignore this pair and assume equality.  */
-      if (!cstate->on_sccstack)
-	return res;
     }
+  /* If the type is still on the SCC stack adjust the parents low.  */
   if (cstate->dfsnum < state->dfsnum
       && cstate->on_sccstack)
     state->low = MIN (cstate->dfsnum, state->low);
 
-  /* We are part of our parents SCC, skip this entry and return true.  */
-  return true;
+  /* Return the current lattice value.  We start with an equality
+     assumption so types part of a SCC will be optimistically
+     treated equal unless proven otherwise.  */
+  return cstate->u.same_p;
 }
 
 /* Worker for gimple_types_compatible.
@@ -3559,6 +3529,9 @@ gimple_types_compatible_p_1 (tree t1, tree t2, enum gtc_mode mode,
   state->dfsnum = gtc_next_dfs_num++;
   state->low = state->dfsnum;
   state->on_sccstack = true;
+  /* Start with an equality assumption.  As we DFS recurse into child
+     SCCs this assumption may get revisited.  */
+  state->u.same_p = 1;
 
   /* If their attributes are not the same they can't be the same type.  */
   if (!attribute_list_equal (TYPE_ATTRIBUTES (t1), TYPE_ATTRIBUTES (t2)))
@@ -3822,22 +3795,22 @@ different_types:
 
   /* Common exit path for types that are compatible.  */
 same_types:
-  state->u.same_p = 1;
-  goto pop;
+  gcc_assert (state->u.same_p == 1);
 
 pop:
   if (state->low == state->dfsnum)
     {
       type_pair_t x;
 
-      /* Pop off the SCC and set its cache values.  */
+      /* Pop off the SCC and set its cache values to the final
+         comparison result.  */
       do
 	{
 	  struct sccs *cstate;
 	  x = VEC_pop (type_pair_t, *sccstack);
 	  cstate = (struct sccs *)*pointer_map_contains (sccstate, x);
 	  cstate->on_sccstack = false;
-	  x->same_p[mode] = cstate->u.same_p;
+	  x->same_p[mode] = state->u.same_p;
 	}
       while (x != p);
     }

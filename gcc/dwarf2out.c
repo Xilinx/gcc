@@ -153,7 +153,7 @@ dwarf2out_do_frame (void)
     return true;
 
   if ((flag_unwind_tables || flag_exceptions)
-      && targetm.except_unwind_info () == UI_DWARF2)
+      && targetm.except_unwind_info (&global_options) == UI_DWARF2)
     return true;
 
   return false;
@@ -189,7 +189,7 @@ dwarf2out_do_cfi_asm (void)
      dwarf2 unwind info for exceptions, then emit .debug_frame by hand.  */
   if (!HAVE_GAS_CFI_SECTIONS_DIRECTIVE
       && !flag_unwind_tables && !flag_exceptions
-      && targetm.except_unwind_info () != UI_DWARF2)
+      && targetm.except_unwind_info (&global_options) != UI_DWARF2)
     return false;
 
   saved_do_cfi_asm = true;
@@ -4072,7 +4072,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
      call-site information.  We must emit this label if it might be used.  */
   if (!do_frame
       && (!flag_exceptions
-	  || targetm.except_unwind_info () != UI_TARGET))
+	  || targetm.except_unwind_info (&global_options) != UI_TARGET))
     return;
 
   fnsec = function_section (current_function_decl);
@@ -4256,7 +4256,7 @@ dwarf2out_frame_init (void)
   dwarf2out_def_cfa (NULL, STACK_POINTER_REGNUM, INCOMING_FRAME_SP_OFFSET);
 
   if (targetm.debug_unwind_info () == UI_DWARF2
-      || targetm.except_unwind_info () == UI_DWARF2)
+      || targetm.except_unwind_info (&global_options) == UI_DWARF2)
     initial_return_save (INCOMING_RETURN_ADDR_RTX);
 }
 
@@ -4269,7 +4269,7 @@ dwarf2out_frame_finish (void)
 
   /* Output another copy for the unwinder.  */
   if ((flag_unwind_tables || flag_exceptions)
-      && targetm.except_unwind_info () == UI_DWARF2)
+      && targetm.except_unwind_info (&global_options) == UI_DWARF2)
     output_call_frame_info (1);
 }
 
@@ -21676,6 +21676,14 @@ dwarf2out_begin_function (tree fun)
 {
   if (function_section (fun) != text_section)
     have_multiple_function_sections = true;
+  else if (flag_reorder_blocks_and_partition && !cold_text_section)
+    {
+      gcc_assert (current_function_decl == fun);
+      cold_text_section = unlikely_text_section ();
+      switch_to_section (cold_text_section);
+      ASM_OUTPUT_LABEL (asm_out_file, cold_text_section_label);
+      switch_to_section (current_function_section ());
+    }
 
   dwarf2out_note_section_used ();
 }
@@ -21996,13 +22004,6 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
 
   switch_to_section (text_section);
   ASM_OUTPUT_LABEL (asm_out_file, text_section_label);
-  if (flag_reorder_blocks_and_partition)
-    {
-      cold_text_section = unlikely_text_section ();
-      switch_to_section (cold_text_section);
-      ASM_OUTPUT_LABEL (asm_out_file, cold_text_section_label);
-    }
-
 }
 
 /* Called before cgraph_optimize starts outputtting functions, variables
@@ -22014,7 +22015,7 @@ dwarf2out_assembly_start (void)
   if (HAVE_GAS_CFI_SECTIONS_DIRECTIVE
       && dwarf2out_do_cfi_asm ()
       && (!(flag_unwind_tables || flag_exceptions)
-	  || targetm.except_unwind_info () != UI_DWARF2))
+	  || targetm.except_unwind_info (&global_options) != UI_DWARF2))
     fprintf (asm_out_file, "\t.cfi_sections\t.debug_frame\n");
 }
 
@@ -22965,7 +22966,6 @@ dwarf2out_finish (const char *filename)
   limbo_die_node *node, *next_node;
   comdat_type_node *ctnode;
   htab_t comdat_type_table;
-  dw_die_ref die = 0;
   unsigned int i;
 
   gen_remaining_tmpl_value_param_die_attribute ();
@@ -22998,8 +22998,8 @@ dwarf2out_finish (const char *filename)
      instance.  */
   for (node = limbo_die_list; node; node = next_node)
     {
+      dw_die_ref die = node->die;
       next_node = node->next;
-      die = node->die;
 
       if (die->die_parent == NULL)
 	{
@@ -23108,9 +23108,9 @@ dwarf2out_finish (const char *filename)
   /* Output a terminator label for the .text section.  */
   switch_to_section (text_section);
   targetm.asm_out.internal_label (asm_out_file, TEXT_END_LABEL, 0);
-  if (flag_reorder_blocks_and_partition)
+  if (cold_text_section)
     {
-      switch_to_section (unlikely_text_section ());
+      switch_to_section (cold_text_section);
       targetm.asm_out.internal_label (asm_out_file, COLD_END_LABEL, 0);
     }
 
@@ -23177,7 +23177,7 @@ dwarf2out_finish (const char *filename)
     add_AT_macptr (comp_unit_die (), DW_AT_macro_info, macinfo_section_label);
 
   if (have_location_lists)
-    optimize_location_lists (die);
+    optimize_location_lists (comp_unit_die ());
 
   /* Output all of the compilation units.  We put the main one last so that
      the offsets are available to output_pubnames.  */
@@ -23222,7 +23222,7 @@ dwarf2out_finish (const char *filename)
       ASM_GENERATE_INTERNAL_LABEL (loc_section_label,
 				   DEBUG_LOC_SECTION_LABEL, 0);
       ASM_OUTPUT_LABEL (asm_out_file, loc_section_label);
-      output_location_lists (die);
+      output_location_lists (comp_unit_die ());
     }
 
   /* Output public names table if necessary.  */
