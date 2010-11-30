@@ -66,7 +66,6 @@ with Style;
 with Stylesw;  use Stylesw;
 with Targparm; use Targparm;
 with Ttypes;   use Ttypes;
-with Ttypef;   use Ttypef;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 with Urealp;   use Urealp;
@@ -211,6 +210,13 @@ package body Sem_Attr is
       procedure Analyze_Access_Attribute;
       --  Used for Access, Unchecked_Access, Unrestricted_Access attributes.
       --  Internally, Id distinguishes which of the three cases is involved.
+
+      procedure Bad_Attribute_For_Predicate;
+      --  Output error message for use of a predicate (First, Last, Range) not
+      --  allowed with a type that has predicates. If the type is a generic
+      --  actual, then the message is a warning, and we generate code to raise
+      --  program error with an appropriate reason. No error message is given
+      --  for internally generated uses of the attributes.
 
       procedure Check_Array_Or_Scalar_Type;
       --  Common procedure used by First, Last, Range attribute to check
@@ -826,6 +832,19 @@ package body Sem_Attr is
             Error_Attr_P ("prefix of % attribute must be aliased");
          end if;
       end Analyze_Access_Attribute;
+
+      ---------------------------------
+      -- Bad_Attribute_For_Predicate --
+      ---------------------------------
+
+      procedure Bad_Attribute_For_Predicate is
+      begin
+         if Comes_From_Source (N) then
+            Error_Msg_Name_1 := Aname;
+            Bad_Predicated_Subtype_Use
+              ("type& has predicates, attribute % not allowed", N, P_Type);
+         end if;
+      end Bad_Attribute_For_Predicate;
 
       --------------------------------
       -- Check_Array_Or_Scalar_Type --
@@ -3079,6 +3098,7 @@ package body Sem_Attr is
 
       when Attribute_First =>
          Check_Array_Or_Scalar_Type;
+         Bad_Attribute_For_Predicate;
 
       ---------------
       -- First_Bit --
@@ -3293,6 +3313,7 @@ package body Sem_Attr is
 
       when Attribute_Last =>
          Check_Array_Or_Scalar_Type;
+         Bad_Attribute_For_Predicate;
 
       --------------
       -- Last_Bit --
@@ -3646,6 +3667,24 @@ package body Sem_Attr is
       ---------
 
       when Attribute_Old =>
+
+         --  The attribute reference is a primary. If expressions follow, the
+         --  attribute reference is an indexable object, so rewrite the node
+         --  accordingly.
+
+         if Present (E1) then
+            Rewrite (N,
+              Make_Indexed_Component (Loc,
+                Prefix      =>
+                  Make_Attribute_Reference (Loc,
+                    Prefix         => Relocate_Node (Prefix (N)),
+                    Attribute_Name => Name_Old),
+                Expressions => Expressions (N)));
+
+            Analyze (N);
+            return;
+         end if;
+
          Check_E0;
          Set_Etype (N, P_Type);
 
@@ -3670,8 +3709,8 @@ package body Sem_Attr is
             Subp : Entity_Id := Current_Subprogram;
 
             function Process (N : Node_Id) return Traverse_Result;
-            --  Check that N does not contain references to local variables
-            --  or other local entities of Subp.
+            --  Check that N does not contain references to local variables or
+            --  other local entities of Subp.
 
             -------------
             -- Process --
@@ -3707,10 +3746,10 @@ package body Sem_Attr is
                if Present (Enclosing_Subprogram (Current_Subprogram)) then
 
                   --  Check that there is no reference to the enclosing
-                  --  subprogram local variables. Otherwise, we might end
-                  --  up being called from the enclosing subprogram and thus
-                  --  using 'Old on a local variable which is not defined
-                  --  at entry time.
+                  --  subprogram local variables. Otherwise, we might end up
+                  --  being called from the enclosing subprogram and thus using
+                  --  'Old on a local variable which is not defined at entry
+                  --  time.
 
                   Subp := Enclosing_Subprogram (Current_Subprogram);
                   Check_No_Local (P);
@@ -3756,8 +3795,7 @@ package body Sem_Attr is
             elsif Is_Entity_Name (P)
               and then Is_Pure (Entity (P))
             then
-               Error_Attr_P
-                 ("prefix of % attribute must not be declared pure");
+               Error_Attr_P ("prefix of% attribute must not be declared pure");
             end if;
          end if;
 
@@ -3880,6 +3918,7 @@ package body Sem_Attr is
 
       when Attribute_Range =>
          Check_Array_Or_Scalar_Type;
+         Bad_Attribute_For_Predicate;
 
          if Ada_Version = Ada_83
            and then Is_Scalar_Type (P_Type)
@@ -3979,9 +4018,7 @@ package body Sem_Attr is
                   Error_Attr;
                end if;
 
-               Rewrite (N,
-                 Make_Identifier (Sloc (N),
-                   Chars => Name_uResult));
+               Rewrite (N, Make_Identifier (Sloc (N), Name_uResult));
                Analyze_And_Resolve (N, Etype (PS));
 
             else
@@ -4922,35 +4959,6 @@ package body Sem_Attr is
       --  but compile time known value given by Val. It includes the
       --  necessary checks for out of range values.
 
-      procedure Float_Attribute_Universal_Integer
-        (IEEES_Val : Int;
-         IEEEL_Val : Int;
-         IEEEX_Val : Int;
-         VAXFF_Val : Int;
-         VAXDF_Val : Int;
-         VAXGF_Val : Int;
-         AAMPS_Val : Int;
-         AAMPL_Val : Int);
-      --  This procedure evaluates a float attribute with no arguments that
-      --  returns a universal integer result. The parameters give the values
-      --  for the possible floating-point root types. See ttypef for details.
-      --  The prefix type is a float type (and is thus not a generic type).
-
-      procedure Float_Attribute_Universal_Real
-        (IEEES_Val : String;
-         IEEEL_Val : String;
-         IEEEX_Val : String;
-         VAXFF_Val : String;
-         VAXDF_Val : String;
-         VAXGF_Val : String;
-         AAMPS_Val : String;
-         AAMPL_Val : String);
-      --  This procedure evaluates a float attribute with no arguments that
-      --  returns a universal real result. The parameters give the values
-      --  required for the possible floating-point root types in string
-      --  format as real literals with a possible leading minus sign.
-      --  The prefix type is a float type (and is thus not a generic type).
-
       function Fore_Value return Nat;
       --  Computes the Fore value for the current attribute prefix, which is
       --  known to be a static fixed-point type. Used by Fore and Width.
@@ -5051,103 +5059,6 @@ package body Sem_Attr is
              and then
            Compile_Time_Known_Value (Type_High_Bound (Typ));
       end Compile_Time_Known_Bounds;
-
-      ---------------------------------------
-      -- Float_Attribute_Universal_Integer --
-      ---------------------------------------
-
-      procedure Float_Attribute_Universal_Integer
-        (IEEES_Val : Int;
-         IEEEL_Val : Int;
-         IEEEX_Val : Int;
-         VAXFF_Val : Int;
-         VAXDF_Val : Int;
-         VAXGF_Val : Int;
-         AAMPS_Val : Int;
-         AAMPL_Val : Int)
-      is
-         Val  : Int;
-         Digs : constant Nat := UI_To_Int (Digits_Value (P_Base_Type));
-
-      begin
-         if Vax_Float (P_Base_Type) then
-            if Digs = VAXFF_Digits then
-               Val := VAXFF_Val;
-            elsif Digs = VAXDF_Digits then
-               Val := VAXDF_Val;
-            else pragma Assert (Digs = VAXGF_Digits);
-               Val := VAXGF_Val;
-            end if;
-
-         elsif Is_AAMP_Float (P_Base_Type) then
-            if Digs = AAMPS_Digits then
-               Val := AAMPS_Val;
-            else pragma Assert (Digs = AAMPL_Digits);
-               Val := AAMPL_Val;
-            end if;
-
-         else
-            if Digs = IEEES_Digits then
-               Val := IEEES_Val;
-            elsif Digs = IEEEL_Digits then
-               Val := IEEEL_Val;
-            else pragma Assert (Digs = IEEEX_Digits);
-               Val := IEEEX_Val;
-            end if;
-         end if;
-
-         Fold_Uint (N, UI_From_Int (Val), True);
-      end Float_Attribute_Universal_Integer;
-
-      ------------------------------------
-      -- Float_Attribute_Universal_Real --
-      ------------------------------------
-
-      procedure Float_Attribute_Universal_Real
-        (IEEES_Val : String;
-         IEEEL_Val : String;
-         IEEEX_Val : String;
-         VAXFF_Val : String;
-         VAXDF_Val : String;
-         VAXGF_Val : String;
-         AAMPS_Val : String;
-         AAMPL_Val : String)
-      is
-         Val  : Node_Id;
-         Digs : constant Nat := UI_To_Int (Digits_Value (P_Base_Type));
-
-      begin
-         if Vax_Float (P_Base_Type) then
-            if Digs = VAXFF_Digits then
-               Val := Real_Convert (VAXFF_Val);
-            elsif Digs = VAXDF_Digits then
-               Val := Real_Convert (VAXDF_Val);
-            else pragma Assert (Digs = VAXGF_Digits);
-               Val := Real_Convert (VAXGF_Val);
-            end if;
-
-         elsif Is_AAMP_Float (P_Base_Type) then
-            if Digs = AAMPS_Digits then
-               Val := Real_Convert (AAMPS_Val);
-            else pragma Assert (Digs = AAMPL_Digits);
-               Val := Real_Convert (AAMPL_Val);
-            end if;
-
-         else
-            if Digs = IEEES_Digits then
-               Val := Real_Convert (IEEES_Val);
-            elsif Digs = IEEEL_Digits then
-               Val := Real_Convert (IEEEL_Val);
-            else pragma Assert (Digs = IEEEX_Digits);
-               Val := Real_Convert (IEEEX_Val);
-            end if;
-         end if;
-
-         Set_Sloc (Val, Loc);
-         Rewrite (N, Val);
-         Set_Is_Static_Expression (N, Static);
-         Analyze_And_Resolve (N, C_Type);
-      end Float_Attribute_Universal_Real;
 
       ----------------
       -- Fore_Value --
@@ -6402,45 +6313,21 @@ package body Sem_Attr is
       ------------------
 
       when Attribute_Machine_Emax =>
-         Float_Attribute_Universal_Integer (
-           IEEES_Machine_Emax,
-           IEEEL_Machine_Emax,
-           IEEEX_Machine_Emax,
-           VAXFF_Machine_Emax,
-           VAXDF_Machine_Emax,
-           VAXGF_Machine_Emax,
-           AAMPS_Machine_Emax,
-           AAMPL_Machine_Emax);
+         Fold_Uint (N, Machine_Emax_Value (P_Type), Static);
 
       ------------------
       -- Machine_Emin --
       ------------------
 
       when Attribute_Machine_Emin =>
-         Float_Attribute_Universal_Integer (
-           IEEES_Machine_Emin,
-           IEEEL_Machine_Emin,
-           IEEEX_Machine_Emin,
-           VAXFF_Machine_Emin,
-           VAXDF_Machine_Emin,
-           VAXGF_Machine_Emin,
-           AAMPS_Machine_Emin,
-           AAMPL_Machine_Emin);
+         Fold_Uint (N, Machine_Emin_Value (P_Type), Static);
 
       ----------------------
       -- Machine_Mantissa --
       ----------------------
 
       when Attribute_Machine_Mantissa =>
-         Float_Attribute_Universal_Integer (
-           IEEES_Machine_Mantissa,
-           IEEEL_Machine_Mantissa,
-           IEEEX_Machine_Mantissa,
-           VAXFF_Machine_Mantissa,
-           VAXDF_Machine_Mantissa,
-           VAXGF_Machine_Mantissa,
-           AAMPS_Machine_Mantissa,
-           AAMPL_Machine_Mantissa);
+         Fold_Uint (N, Machine_Mantissa_Value (P_Type), Static);
 
       -----------------------
       -- Machine_Overflows --
@@ -6731,60 +6618,28 @@ package body Sem_Attr is
       ----------------
 
       when Attribute_Model_Emin =>
-         Float_Attribute_Universal_Integer (
-           IEEES_Model_Emin,
-           IEEEL_Model_Emin,
-           IEEEX_Model_Emin,
-           VAXFF_Model_Emin,
-           VAXDF_Model_Emin,
-           VAXGF_Model_Emin,
-           AAMPS_Model_Emin,
-           AAMPL_Model_Emin);
+         Fold_Uint (N, Model_Emin_Value (P_Base_Type), Static);
 
       -------------------
       -- Model_Epsilon --
       -------------------
 
       when Attribute_Model_Epsilon =>
-         Float_Attribute_Universal_Real (
-           IEEES_Model_Epsilon'Universal_Literal_String,
-           IEEEL_Model_Epsilon'Universal_Literal_String,
-           IEEEX_Model_Epsilon'Universal_Literal_String,
-           VAXFF_Model_Epsilon'Universal_Literal_String,
-           VAXDF_Model_Epsilon'Universal_Literal_String,
-           VAXGF_Model_Epsilon'Universal_Literal_String,
-           AAMPS_Model_Epsilon'Universal_Literal_String,
-           AAMPL_Model_Epsilon'Universal_Literal_String);
+         Fold_Ureal (N, Model_Epsilon_Value (P_Base_Type), Static);
 
       --------------------
       -- Model_Mantissa --
       --------------------
 
       when Attribute_Model_Mantissa =>
-         Float_Attribute_Universal_Integer (
-           IEEES_Model_Mantissa,
-           IEEEL_Model_Mantissa,
-           IEEEX_Model_Mantissa,
-           VAXFF_Model_Mantissa,
-           VAXDF_Model_Mantissa,
-           VAXGF_Model_Mantissa,
-           AAMPS_Model_Mantissa,
-           AAMPL_Model_Mantissa);
+         Fold_Uint (N, Model_Mantissa_Value (P_Base_Type), Static);
 
       -----------------
       -- Model_Small --
       -----------------
 
       when Attribute_Model_Small =>
-         Float_Attribute_Universal_Real (
-           IEEES_Model_Small'Universal_Literal_String,
-           IEEEL_Model_Small'Universal_Literal_String,
-           IEEEX_Model_Small'Universal_Literal_String,
-           VAXFF_Model_Small'Universal_Literal_String,
-           VAXDF_Model_Small'Universal_Literal_String,
-           VAXGF_Model_Small'Universal_Literal_String,
-           AAMPS_Model_Small'Universal_Literal_String,
-           AAMPL_Model_Small'Universal_Literal_String);
+         Fold_Ureal (N, Model_Small_Value (P_Base_Type), Static);
 
       -------------
       -- Modulus --
@@ -7002,30 +6857,14 @@ package body Sem_Attr is
       ---------------
 
       when Attribute_Safe_Emax =>
-         Float_Attribute_Universal_Integer (
-           IEEES_Safe_Emax,
-           IEEEL_Safe_Emax,
-           IEEEX_Safe_Emax,
-           VAXFF_Safe_Emax,
-           VAXDF_Safe_Emax,
-           VAXGF_Safe_Emax,
-           AAMPS_Safe_Emax,
-           AAMPL_Safe_Emax);
+         Fold_Uint (N, Safe_Emax_Value (P_Type), Static);
 
       ----------------
       -- Safe_First --
       ----------------
 
       when Attribute_Safe_First =>
-         Float_Attribute_Universal_Real (
-           IEEES_Safe_First'Universal_Literal_String,
-           IEEEL_Safe_First'Universal_Literal_String,
-           IEEEX_Safe_First'Universal_Literal_String,
-           VAXFF_Safe_First'Universal_Literal_String,
-           VAXDF_Safe_First'Universal_Literal_String,
-           VAXGF_Safe_First'Universal_Literal_String,
-           AAMPS_Safe_First'Universal_Literal_String,
-           AAMPL_Safe_First'Universal_Literal_String);
+         Fold_Ureal (N, Safe_First_Value (P_Type), Static);
 
       ----------------
       -- Safe_Large --
@@ -7036,15 +6875,7 @@ package body Sem_Attr is
             Fold_Ureal
               (N, Expr_Value_R (Type_High_Bound (P_Base_Type)), Static);
          else
-            Float_Attribute_Universal_Real (
-              IEEES_Safe_Large'Universal_Literal_String,
-              IEEEL_Safe_Large'Universal_Literal_String,
-              IEEEX_Safe_Large'Universal_Literal_String,
-              VAXFF_Safe_Large'Universal_Literal_String,
-              VAXDF_Safe_Large'Universal_Literal_String,
-              VAXGF_Safe_Large'Universal_Literal_String,
-              AAMPS_Safe_Large'Universal_Literal_String,
-              AAMPL_Safe_Large'Universal_Literal_String);
+            Fold_Ureal (N, Safe_Last_Value (P_Type), Static);
          end if;
 
       ---------------
@@ -7052,15 +6883,7 @@ package body Sem_Attr is
       ---------------
 
       when Attribute_Safe_Last =>
-         Float_Attribute_Universal_Real (
-           IEEES_Safe_Last'Universal_Literal_String,
-           IEEEL_Safe_Last'Universal_Literal_String,
-           IEEEX_Safe_Last'Universal_Literal_String,
-           VAXFF_Safe_Last'Universal_Literal_String,
-           VAXDF_Safe_Last'Universal_Literal_String,
-           VAXGF_Safe_Last'Universal_Literal_String,
-           AAMPS_Safe_Last'Universal_Literal_String,
-           AAMPL_Safe_Last'Universal_Literal_String);
+         Fold_Ureal (N, Safe_Last_Value (P_Type), Static);
 
       ----------------
       -- Safe_Small --
@@ -7078,15 +6901,7 @@ package body Sem_Attr is
          --  Ada 83 Safe_Small for floating-point cases
 
          else
-            Float_Attribute_Universal_Real (
-              IEEES_Safe_Small'Universal_Literal_String,
-              IEEEL_Safe_Small'Universal_Literal_String,
-              IEEEX_Safe_Small'Universal_Literal_String,
-              VAXFF_Safe_Small'Universal_Literal_String,
-              VAXDF_Safe_Small'Universal_Literal_String,
-              VAXGF_Safe_Small'Universal_Literal_String,
-              AAMPS_Safe_Small'Universal_Literal_String,
-              AAMPL_Safe_Small'Universal_Literal_String);
+            Fold_Ureal (N, Model_Small_Value (P_Type), Static);
          end if;
 
       -----------
@@ -7866,9 +7681,9 @@ package body Sem_Attr is
    --  Start of processing for Resolve_Attribute
 
    begin
-      --  If error during analysis, no point in continuing, except for
-      --  array types, where we get  better recovery by using unconstrained
-      --  indices than nothing at all (see Check_Array_Type).
+      --  If error during analysis, no point in continuing, except for array
+      --  types, where we get better recovery by using unconstrained indexes
+      --  than nothing at all (see Check_Array_Type).
 
       if Error_Posted (N)
         and then Attr_Id /= Attribute_First
@@ -8790,6 +8605,11 @@ package body Sem_Attr is
 
                Rewrite (N, Make_Range (Loc, LB, HB));
                Analyze_And_Resolve (N, Typ);
+
+               --  Ensure that the expanded range does not have side effects
+
+               Force_Evaluation (LB);
+               Force_Evaluation (HB);
 
                --  Normally after resolving attribute nodes, Eval_Attribute
                --  is called to do any possible static evaluation of the node.

@@ -2282,6 +2282,15 @@ package body Sem_Eval is
          return;
       end if;
 
+      --  Ignore if types involved have predicates
+
+      if Present (Predicate_Function (Etype (Left)))
+           or else
+         Present (Predicate_Function (Etype (Right)))
+      then
+         return;
+      end if;
+
       --  Case of right operand is a subtype name
 
       if Is_Entity_Name (Right) then
@@ -4572,9 +4581,9 @@ package body Sem_Eval is
          then
             return True;
 
-         --  Base types must match, but we don't check that (should
-         --  we???) but we do at least check that both types are
-         --  real, or both types are not real.
+         --  Base types must match, but we don't check that (should we???) but
+         --  we do at least check that both types are real, or both types are
+         --  not real.
 
          elsif Is_Real_Type (T1) /= Is_Real_Type (T2) then
             return False;
@@ -4611,14 +4620,11 @@ package body Sem_Eval is
       --  Access types
 
       elsif Is_Access_Type (T1) then
-         return not Is_Constrained (T2)
-                  or else Subtypes_Statically_Match
-                            (Designated_Type (T1), Designated_Type (T2));
-
-         --  Also check that null exclusion matches (AI05-0086-1)
-         --  commented out because this causes many mail test failures ???
-
-         --  and then Can_Never_Be_Null (T1) = Can_Never_Be_Null (T2);
+         return (not Is_Constrained (T2)
+                  or else (Subtypes_Statically_Match
+                             (Designated_Type (T1), Designated_Type (T2))))
+           and then not (Can_Never_Be_Null (T2)
+                          and then not Can_Never_Be_Null (T1));
 
       --  All other cases
 
@@ -5426,8 +5432,8 @@ package body Sem_Eval is
          when N_Type_Conversion =>
             Why_Not_Static (Expression (N));
 
-            if not Is_Scalar_Type (Etype (Prefix (N)))
-              or else not Is_Static_Subtype (Etype (Prefix (N)))
+            if not Is_Scalar_Type (Entity (Subtype_Mark (N)))
+              or else not Is_Static_Subtype (Entity (Subtype_Mark (N)))
             then
                Error_Msg_N
                  ("static conversion requires static scalar subtype result " &

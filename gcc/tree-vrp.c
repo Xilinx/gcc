@@ -243,9 +243,7 @@ supports_overflow_infinity (const_tree type)
 static inline tree
 make_overflow_infinity (tree val)
 {
-#ifdef ENABLE_CHECKING
-  gcc_assert (val != NULL_TREE && CONSTANT_CLASS_P (val));
-#endif
+  gcc_checking_assert (val != NULL_TREE && CONSTANT_CLASS_P (val));
   val = copy_node (val);
   TREE_OVERFLOW (val) = 1;
   return val;
@@ -256,9 +254,7 @@ make_overflow_infinity (tree val)
 static inline tree
 negative_overflow_infinity (tree type)
 {
-#ifdef ENABLE_CHECKING
-  gcc_assert (supports_overflow_infinity (type));
-#endif
+  gcc_checking_assert (supports_overflow_infinity (type));
   return make_overflow_infinity (vrp_val_min (type));
 }
 
@@ -267,9 +263,7 @@ negative_overflow_infinity (tree type)
 static inline tree
 positive_overflow_infinity (tree type)
 {
-#ifdef ENABLE_CHECKING
-  gcc_assert (supports_overflow_infinity (type));
-#endif
+  gcc_checking_assert (supports_overflow_infinity (type));
   return make_overflow_infinity (vrp_val_max (type));
 }
 
@@ -332,9 +326,7 @@ avoid_overflow_infinity (tree val)
     return vrp_val_max (TREE_TYPE (val));
   else
     {
-#ifdef ENABLE_CHECKING
-      gcc_assert (vrp_val_is_min (val));
-#endif
+      gcc_checking_assert (vrp_val_is_min (val));
       return vrp_val_min (TREE_TYPE (val));
     }
 }
@@ -2464,6 +2456,22 @@ extract_range_from_binary_expr (value_range_t *vr,
 	    }
 	}
 
+      /* For divisions, if flag_non_call_exceptions is true, we must
+	 not eliminate a division by zero.  */
+      if ((code == TRUNC_DIV_EXPR
+	   || code == FLOOR_DIV_EXPR
+	   || code == CEIL_DIV_EXPR
+	   || code == EXACT_DIV_EXPR
+	   || code == ROUND_DIV_EXPR)
+	  && cfun->can_throw_non_call_exceptions
+	  && (vr1.type != VR_RANGE
+	      || symbolic_range_p (&vr1)
+	      || range_includes_zero_p (&vr1)))
+	{
+	  set_value_range_to_varying (vr);
+	  return;
+	}
+
       /* For divisions, if op0 is VR_RANGE, we can deduce a range
 	 even if op1 is VR_VARYING, VR_ANTI_RANGE, symbolic or can
 	 include 0.  */
@@ -3395,13 +3403,18 @@ adjust_range_with_scev (value_range_t *vr, struct loop *loop,
     {
       value_range_t maxvr = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
       double_int dtmp;
-      dtmp = double_int_mul (tree_to_double_int (step),
-			     double_int_sub (loop->nb_iterations_upper_bound,
-					     double_int_one));
+      bool unsigned_p = TYPE_UNSIGNED (TREE_TYPE (step));
+      int overflow = 0;
+
+      dtmp = double_int_mul_with_sign (tree_to_double_int (step),
+                                       double_int_sub (
+                                           loop->nb_iterations_upper_bound,
+                                           double_int_one),
+                                       unsigned_p, &overflow);
       tem = double_int_to_tree (TREE_TYPE (init), dtmp);
       /* If the multiplication overflowed we can't do a meaningful
 	 adjustment.  */
-      if (double_int_equal_p (dtmp, tree_to_double_int (tem)))
+      if (!overflow && double_int_equal_p (dtmp, tree_to_double_int (tem)))
 	{
 	  extract_range_from_binary_expr (&maxvr, PLUS_EXPR,
 					  TREE_TYPE (init), init, tem);
@@ -4131,13 +4144,11 @@ register_new_assert_for (tree name, tree expr,
   assert_locus_t n, loc, last_loc;
   basic_block dest_bb;
 
-#if defined ENABLE_CHECKING
-  gcc_assert (bb == NULL || e == NULL);
+  gcc_checking_assert (bb == NULL || e == NULL);
 
   if (e == NULL)
-    gcc_assert (gimple_code (gsi_stmt (si)) != GIMPLE_COND
-		&& gimple_code (gsi_stmt (si)) != GIMPLE_SWITCH);
-#endif
+    gcc_checking_assert (gimple_code (gsi_stmt (si)) != GIMPLE_COND
+			 && gimple_code (gsi_stmt (si)) != GIMPLE_SWITCH);
 
   /* Never build an assert comparing against an integer constant with
      TREE_OVERFLOW set.  This confuses our undefined overflow warning
@@ -5059,10 +5070,9 @@ process_assert_insertions_for (tree name, assert_locus_t loc)
     {
       /* We have been asked to insert the assertion on an edge.  This
 	 is used only by COND_EXPR and SWITCH_EXPR assertions.  */
-#if defined ENABLE_CHECKING
-      gcc_assert (gimple_code (gsi_stmt (loc->si)) == GIMPLE_COND
-	  || gimple_code (gsi_stmt (loc->si)) == GIMPLE_SWITCH);
-#endif
+      gcc_checking_assert (gimple_code (gsi_stmt (loc->si)) == GIMPLE_COND
+			   || (gimple_code (gsi_stmt (loc->si))
+			       == GIMPLE_SWITCH));
 
       gsi_insert_on_edge (loc->e, assert_stmt);
       return true;

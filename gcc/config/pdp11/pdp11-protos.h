@@ -21,10 +21,6 @@ along with GCC; see the file COPYING3.  If not see
 
 /* declarations */
 #ifdef RTX_CODE
-extern int arith_operand (rtx, enum machine_mode);
-extern int const_immediate_operand (rtx, enum machine_mode);
-extern int expand_shift_operand (rtx, enum machine_mode);
-extern int immediate15_operand (rtx, enum machine_mode);
 extern int simple_memory_operand (rtx, enum machine_mode);
 
 extern int legitimate_const_double_p (rtx);
@@ -35,7 +31,13 @@ extern const char *output_move_quad (rtx *);
 extern const char *output_block_move (rtx *);
 extern const char *output_jump (enum rtx_code, int, int);
 extern void print_operand_address (FILE *, rtx);
-extern int pdp11_register_move_cost (enum reg_class, enum reg_class);
+extern bool pdp11_cannot_change_mode_class (enum machine_mode,
+                                            enum machine_mode, enum reg_class);
+extern bool pdp11_secondary_memory_needed (reg_class_t, reg_class_t, 
+					   enum machine_mode);
+extern int pdp11_initial_elimination_offset (int, int);
+extern enum reg_class pdp11_regno_reg_class (int);
+
 #endif /* RTX_CODE */
 
 extern void output_ascii (FILE *, const char *, int);

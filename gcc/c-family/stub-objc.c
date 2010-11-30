@@ -2,7 +2,7 @@
    that are called from within the C and C++ front-ends,
    respectively.
    Copyright (C) 1991, 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2007, 2009 Free Software Foundation, Inc.
+   2004, 2005, 2007, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -126,7 +126,7 @@ objc_declare_class (tree ARG_UNUSED (list))
 }
 
 void
-objc_declare_protocols (tree ARG_UNUSED (list))
+objc_declare_protocols (tree ARG_UNUSED (list), tree ARG_UNUSED (attributes))
 {
 }
 
@@ -179,11 +179,6 @@ objc_set_visibility (objc_ivar_visibility_kind ARG_UNUSED (vis))
 }
 
 void
-objc_set_method_type (enum tree_code ARG_UNUSED (code))
-{
-}
-
-void
 objc_start_class_implementation (tree ARG_UNUSED (name),
 				 tree ARG_UNUSED (super))
 {
@@ -211,13 +206,15 @@ objc_finish_implementation (void)
 }
 
 void
-objc_add_method_declaration (tree ARG_UNUSED (signature),
+objc_add_method_declaration (bool ARG_UNUSED (is_class_method),
+			     tree ARG_UNUSED (signature),
 			     tree ARG_UNUSED (attributes))
 {
 }
 
 bool
-objc_start_method_definition (tree ARG_UNUSED (signature),
+objc_start_method_definition (bool ARG_UNUSED (is_class_method),
+			      tree ARG_UNUSED (signature),
 			      tree ARG_UNUSED (attributes))
 {
   return true;
@@ -244,7 +241,8 @@ objc_build_keyword_decl (tree ARG_UNUSED (selector),
 }
 
 tree
-objc_build_method_signature (tree ARG_UNUSED (rettype),
+objc_build_method_signature (bool ARG_UNUSED (is_class_method),
+			     tree ARG_UNUSED (rettype),
 			     tree ARG_UNUSED (selectors),
 			     tree ARG_UNUSED (optparms),
 			     bool ARG_UNUSED (ellipsis))
@@ -326,25 +324,48 @@ objc_get_class_ivars (tree ARG_UNUSED (name))
 }
 
 void
-objc_set_property_attr (location_t ARG_UNUSED (loc),
-			objc_property_attribute_kind ARG_UNUSED (code),
-			tree ARG_UNUSED (identifier))
+objc_add_property_declaration (location_t ARG_UNUSED (location), 
+			       tree ARG_UNUSED (decl),
+			       bool ARG_UNUSED (parsed_property_readonly),
+			       bool ARG_UNUSED (parsed_property_readwrite),
+			       bool ARG_UNUSED (parsed_property_assign),
+			       bool ARG_UNUSED (parsed_property_retain),
+			       bool ARG_UNUSED (parsed_property_copy),
+			       bool ARG_UNUSED (parsed_property_nonatomic),
+			       tree ARG_UNUSED (parsed_property_getter_ident),
+			       tree ARG_UNUSED (parsed_property_setter_ident))
 {
 }
 
-void
-objc_add_property_variable (tree ARG_UNUSED (prop))
-{
-}
-
-tree
-objc_build_getter_call (tree ARG_UNUSED (datum), tree ARG_UNUSED (component))
+bool
+objc_is_property_ref (tree ARG_UNUSED (node))
 {
   return 0;
 }
 
 tree
-objc_build_setter_call (tree ARG_UNUSED (lhs), tree ARG_UNUSED (rhs))
+objc_maybe_build_component_ref (tree ARG_UNUSED (datum), tree ARG_UNUSED (component))
+{
+  return 0;
+}
+
+tree
+objc_build_class_component_ref (tree ARG_UNUSED (datum), tree ARG_UNUSED (component))
+{
+  return 0;
+}
+
+tree
+objc_maybe_build_modify_expr (tree ARG_UNUSED (lhs), tree ARG_UNUSED (rhs))
+{
+  return 0;
+}
+
+tree
+objc_build_incr_expr_for_property_ref (location_t ARG_UNUSED (location),
+				       enum tree_code ARG_UNUSED (code),
+				       tree ARG_UNUSED (argument),
+				       tree ARG_UNUSED (increment))
 {
   return 0;
 }
@@ -359,6 +380,13 @@ void
 objc_add_dynamic_declaration (location_t ARG_UNUSED (start_locus), 
 			      tree ARG_UNUSED (property_list))
 {
+}
+
+const char *
+objc_maybe_printable_name (tree ARG_UNUSED (decl), 
+			   int ARG_UNUSED (v))
+{
+  return NULL;
 }
 
 tree
@@ -419,5 +447,17 @@ objc_finish_foreach_loop (location_t ARG_UNUSED (location), tree ARG_UNUSED (obj
 
 void
 objc_write_global_declarations (void)
+{
+}
+
+bool
+objc_string_ref_type_p (tree ARG_UNUSED (strp))
+{
+   return false;
+}
+
+void
+objc_check_format_arg (tree ARG_UNUSED (format_arg), 
+		       tree ARG_UNUSED (args_list))
 {
 }

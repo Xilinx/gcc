@@ -56,6 +56,7 @@ enum availability
 struct lto_file_decl_data;
 
 extern const char * const cgraph_availability_names[];
+extern const char * const ld_plugin_symbol_resolution_names[];
 
 /* Function inlining information.  */
 
@@ -177,20 +178,6 @@ struct GTY(()) cgraph_clone_info
   VEC(ipa_replace_map_p,gc)* tree_map;
   bitmap args_to_skip;
   bitmap combined_args_to_skip;
-};
-
-enum node_frequency {
-  /* This function most likely won't be executed at all.
-     (set only when profile feedback is available or via function attribute). */
-  NODE_FREQUENCY_UNLIKELY_EXECUTED,
-  /* For functions that are known to be executed once (i.e. constructors, destructors
-     and main function.  */
-  NODE_FREQUENCY_EXECUTED_ONCE,
-  /* The default value.  */
-  NODE_FREQUENCY_NORMAL,
-  /* Optimize this function hard
-     (set only when profile feedback is available or via function attribute). */
-  NODE_FREQUENCY_HOT
 };
 
 
@@ -602,9 +589,8 @@ struct cgraph_node * cgraph_create_virtual_clone (struct cgraph_node *old_node,
 						  const char *clone_name);
 
 void cgraph_set_nothrow_flag (struct cgraph_node *, bool);
-void cgraph_set_readonly_flag (struct cgraph_node *, bool);
-void cgraph_set_pure_flag (struct cgraph_node *, bool);
-void cgraph_set_looping_const_or_pure_flag (struct cgraph_node *, bool);
+void cgraph_set_const_flag (struct cgraph_node *, bool, bool);
+void cgraph_set_pure_flag (struct cgraph_node *, bool, bool);
 tree clone_function_name (tree decl, const char *);
 bool cgraph_node_cannot_return (struct cgraph_node *);
 bool cgraph_edge_cannot_lead_to_return (struct cgraph_edge *);
@@ -696,6 +682,7 @@ void varpool_node_set_remove (varpool_node_set, struct varpool_node *);
 void dump_varpool_node_set (FILE *, varpool_node_set);
 void debug_varpool_node_set (varpool_node_set);
 void ipa_discover_readonly_nonaddressable_vars (void);
+bool cgraph_comdat_can_be_unshared_p (struct cgraph_node *);
 
 /* In predict.c  */
 bool cgraph_maybe_hot_edge_p (struct cgraph_edge *e);
@@ -909,6 +896,7 @@ varpool_node_set_nonempty_p (varpool_node_set set)
 static inline bool
 cgraph_only_called_directly_p (struct cgraph_node *node)
 {
+  gcc_assert (!node->global.inlined_to);
   return (!node->needed && !node->address_taken
 	  && !node->reachable_from_other_partition
 	  && !DECL_STATIC_CONSTRUCTOR (node->decl)
@@ -922,7 +910,22 @@ cgraph_only_called_directly_p (struct cgraph_node *node)
 static inline bool
 cgraph_can_remove_if_no_direct_calls_p (struct cgraph_node *node)
 {
+  /* Extern inlines can always go, we will use the external definition.  */
+  if (DECL_EXTERNAL (node->decl))
+    return true;
   return !node->address_taken && cgraph_can_remove_if_no_direct_calls_and_refs_p (node);
+}
+
+/* Return true when function NODE can be removed from callgraph
+   if all direct calls are eliminated.  */
+
+static inline bool
+varpool_can_remove_if_no_refs (struct varpool_node *node)
+{
+  return (!node->force_output && !node->used_from_other_partition
+	  && (flag_toplevel_reorder || DECL_COMDAT (node->decl)
+	      || DECL_ARTIFICIAL (node->decl))
+  	  && (DECL_COMDAT (node->decl) || !node->externally_visible));
 }
 
 /* Return true when all references to VNODE must be visible in ipa_ref_list.

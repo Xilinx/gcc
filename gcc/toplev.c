@@ -28,16 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include <signal.h>
-
-#ifdef HAVE_SYS_RESOURCE_H
-# include <sys/resource.h>
-#endif
-
-#ifdef HAVE_SYS_TIMES_H
-# include <sys/times.h>
-#endif
-
 #include "line-map.h"
 #include "input.h"
 #include "tree.h"
@@ -111,14 +101,10 @@ static void process_options (void);
 static void backend_init (void);
 static int lang_dependent_init (const char *);
 static void init_asm_output (const char *);
-static void finalize (void);
+static void finalize (bool);
 
 static void crash_signal (int) ATTRIBUTE_NORETURN;
-static void setup_core_dumping (void);
 static void compile_file (void);
-
-/* Nonzero to dump debug info whilst parsing (-dy option).  */
-static int set_yydebug;
 
 /* True if we don't need a backend (e.g. preprocessing only).  */
 static bool no_backend;
@@ -136,38 +122,19 @@ unsigned int save_decoded_options_count;
 
 const char *main_input_filename;
 
+/* Pointer to base name in main_input_filename, with directories and a
+   single final extension removed, and the length of this base
+   name.  */
+const char *main_input_basename;
+int main_input_baselength;
+
 /* Used to enable -fvar-tracking, -fweb and -frename-registers according
    to optimize in process_options ().  */
 #define AUTODETECT_VALUE 2
 
-/* Name to use as base of names for dump output files.  */
-
-const char *dump_base_name;
-
-/* Directory used for dump output files.  */
-
-const char *dump_dir_name;
-
-/* Name to use as a base for auxiliary output files.  */
-
-const char *aux_base_name;
-
-/* Prefix for profile data files */
-const char *profile_data_prefix;
-
 /* Debug hooks - dependent upon command line options.  */
 
 const struct gcc_debug_hooks *debug_hooks;
-
-/* Other flags saying which kinds of debugging dump have been requested.  */
-
-int rtl_dump_and_exit;
-int flag_print_asm_name;
-enum graph_dump_types graph_dump_format;
-
-/* Name for output file of assembly code, specified with -o.  */
-
-const char *asm_file_name;
 
 /* True if this is the lto front end.  This is used to disable
    gimple generation and lowering passes that are normally run on the
@@ -175,10 +142,6 @@ const char *asm_file_name;
    they have already been done before the gimple was written.  */
 
 bool in_lto_p = false;
-
-/* Nonzero if we should write GIMPLE bytecode for link-time optimization.  */
-
-int flag_generate_lto;
 
 /* The FUNCTION_DECL for the function currently being compiled,
    or 0 if between functions.  */
@@ -198,19 +161,6 @@ unsigned local_tick;
 
 /* -f flags.  */
 
-/* Nonzero means we should be saving declaration info into a .X file.  */
-
-int flag_gen_aux_info = 0;
-
-/* Specified name of aux-info file.  */
-
-const char *aux_info_file_name;
-
-/* Nonzero if we are compiling code for a shared library, zero for
-   executable.  */
-
-int flag_shlib;
-
 /* Generate code for GNU or NeXT Objective-C runtime environment.  */
 
 #ifdef NEXT_OBJC_RUNTIME
@@ -219,35 +169,9 @@ int flag_next_runtime = 1;
 int flag_next_runtime = 0;
 #endif
 
-/* Set to the default thread-local storage (tls) model to use.  */
-
-enum tls_model flag_tls_default = TLS_MODEL_GLOBAL_DYNAMIC;
-
-/* Set the default for excess precision.  */
-
-enum excess_precision flag_excess_precision_cmdline = EXCESS_PRECISION_DEFAULT;
-
-/* Nonzero means change certain warnings into errors.
-   Usually these are warnings about failure to conform to some standard.  */
-
-int flag_pedantic_errors = 0;
-
 /* Nonzero means make permerror produce warnings instead of errors.  */
 
 int flag_permissive = 0;
-
-/* -dA causes debug commentary information to be produced in
-   the generated assembly code (to make it more readable).  This option
-   is generally only of use to those who actually need to read the
-   generated assembly code (perhaps while debugging the compiler itself).
-   Currently, this switch is only used by dwarfout.c; however, it is intended
-   to be a catchall for printing debug information in the assembler file.  */
-
-int flag_debug_asm = 0;
-
-/* -dP causes the rtl to be emitted as a comment in assembly.  */
-
-int flag_dump_rtl_in_asm = 0;
 
 /* When non-NULL, indicates that whenever space is allocated on the
    stack, the resulting stack pointer must not pass this
@@ -524,48 +448,6 @@ crash_signal (int signo)
     }
 
   internal_error ("%s", strsignal (signo));
-}
-
-/* Arrange to dump core on error.  (The regular error message is still
-   printed first, except in the case of abort().)  */
-
-static void
-setup_core_dumping (void)
-{
-#ifdef SIGABRT
-  signal (SIGABRT, SIG_DFL);
-#endif
-#if defined(HAVE_SETRLIMIT)
-  {
-    struct rlimit rlim;
-    if (getrlimit (RLIMIT_CORE, &rlim) != 0)
-      fatal_error ("getting core file size maximum limit: %m");
-    rlim.rlim_cur = rlim.rlim_max;
-    if (setrlimit (RLIMIT_CORE, &rlim) != 0)
-      fatal_error ("setting core file size limit to maximum: %m");
-  }
-#endif
-  diagnostic_abort_on_error (global_dc);
-}
-
-
-/* Strip off a legitimate source ending from the input string NAME of
-   length LEN.  Rather than having to know the names used by all of
-   our front ends, we strip off an ending of a period followed by
-   up to five characters.  (Java uses ".class".)  */
-
-void
-strip_off_ending (char *name, int len)
-{
-  int i;
-  for (i = 2; i < 6 && len > i; i++)
-    {
-      if (name[len - i] == '.')
-	{
-	  name[len - i] = '\0';
-	  break;
-	}
-    }
 }
 
 /* Output a quoted string.  */
@@ -916,7 +798,7 @@ compile_file (void)
 
   /* Call the parser, which parses the entire file (calling
      rest_of_compilation for each function).  */
-  lang_hooks.parse_file (set_yydebug);
+  lang_hooks.parse_file ();
 
   /* Compilation is now finished except for writing
      what's left of the symbol table output.  */
@@ -1011,54 +893,6 @@ compile_file (void)
      into the assembly file here, and hence we can not output anything to the
      assembly file after this point.  */
   targetm.asm_out.file_end ();
-}
-
-/* Parse a -d... command line switch.  */
-
-void
-decode_d_option (const char *arg)
-{
-  int c;
-
-  while (*arg)
-    switch (c = *arg++)
-      {
-      case 'A':
-	flag_debug_asm = 1;
-	break;
-      case 'p':
-	flag_print_asm_name = 1;
-	break;
-      case 'P':
-	flag_dump_rtl_in_asm = 1;
-	flag_print_asm_name = 1;
-	break;
-      case 'v':
-	graph_dump_format = vcg;
-	break;
-      case 'x':
-	rtl_dump_and_exit = 1;
-	break;
-      case 'y':
-	set_yydebug = 1;
-	break;
-      case 'D':	/* These are handled by the preprocessor.  */
-      case 'I':
-      case 'M':
-      case 'N':
-      case 'U':
-	break;
-      case 'H':
-	setup_core_dumping();
-	break;
-      case 'a':
-	enable_rtl_dump_file ();
-	break;
-
-      default:
-	  warning (0, "unrecognized gcc debugging option: %c", c);
-	break;
-      }
 }
 
 /* Indexed by enum debug_info_type.  */
@@ -1612,7 +1446,7 @@ open_auxiliary_file (const char *ext)
   filename = concat (aux_base_name, ".", ext, NULL);
   file = fopen (filename, "w");
   if (!file)
-    fatal_error ("can't open %s for writing: %m", filename);
+    fatal_error ("can%'t open %s for writing: %m", filename);
   free (filename);
   return file;
 }
@@ -1751,6 +1585,8 @@ process_options (void)
      This can happen with incorrect pre-processed input. */
   debug_hooks = &do_nothing_debug_hooks;
 
+  maximum_field_alignment = initial_max_fld_align * BITS_PER_UNIT;
+
   /* This replaces set_Wunused.  */
   if (warn_unused_function == -1)
     warn_unused_function = warn_unused;
@@ -1834,11 +1670,7 @@ process_options (void)
   if (flag_unroll_all_loops)
     flag_unroll_loops = 1;
 
-  /* The loop unrolling code assumes that cse will be run after loop.
-     web and rename-registers also help when run after loop unrolling.  */
-  if (flag_rerun_cse_after_loop == AUTODETECT_VALUE)
-    flag_rerun_cse_after_loop = flag_unroll_loops || flag_peel_loops;
-
+  /* web and rename-registers help when run after loop unrolling.  */
   if (flag_web == AUTODETECT_VALUE)
     flag_web = flag_unroll_loops || flag_peel_loops;
 
@@ -1977,6 +1809,12 @@ process_options (void)
       flag_var_tracking = 0;
       flag_var_tracking_uninit = 0;
     }
+
+  /* The debug hooks are used to implement -fdump-go-spec because it
+     gives a simple and stable API for all the information we need to
+     dump.  */
+  if (flag_dump_go_spec != NULL)
+    debug_hooks = dump_go_spec_init (flag_dump_go_spec, debug_hooks);
 
   /* If the user specifically requested variable tracking with tagging
      uninitialized variables, we need to turn on variable tracking.
@@ -2307,7 +2145,7 @@ dump_memory_report (bool final)
 /* Clean up: close opened files, etc.  */
 
 static void
-finalize (void)
+finalize (bool no_backend)
 {
   /* Close the dump files.  */
   if (flag_gen_aux_info)
@@ -2334,10 +2172,14 @@ finalize (void)
   if (stack_usage_file)
     fclose (stack_usage_file);
 
-  statistics_fini ();
-  finish_optimization_passes ();
+  if (!no_backend)
+    {
+      statistics_fini ();
 
-  ira_finish_once ();
+      finish_optimization_passes ();
+
+      ira_finish_once ();
+    }
 
   if (mem_report)
     dump_memory_report (true);
@@ -2374,7 +2216,7 @@ do_compile (void)
       if (lang_dependent_init (main_input_filename))
 	compile_file ();
 
-      finalize ();
+      finalize (no_backend);
     }
 
   /* Stop timing and print the times.  */
@@ -2418,7 +2260,10 @@ toplev_main (int argc, char **argv)
   /* Parse the options and do minimal processing; basically just
      enough to default flags appropriately.  */
   decode_options (&global_options, &global_options_set,
-		  save_decoded_options, save_decoded_options_count);
+		  save_decoded_options, save_decoded_options_count,
+		  UNKNOWN_LOCATION, global_dc);
+
+  handle_common_deferred_options ();
 
   init_local_tick ();
 

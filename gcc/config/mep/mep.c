@@ -231,6 +231,7 @@ static tree mep_build_builtin_va_list (void);
 static void mep_expand_va_start (tree, rtx);
 static tree mep_gimplify_va_arg_expr (tree, tree, gimple_seq *, gimple_seq *);
 static bool mep_can_eliminate (const int, const int);
+static void mep_conditional_register_usage (void);
 static void mep_trampoline_init (rtx, tree, rtx);
 
 #define WANT_GCC_DEFINITIONS
@@ -278,7 +279,7 @@ mep_set_leaf_registers (int enable)
       mep_leaf_registers[i] = enable;
 }
 
-void
+static void
 mep_conditional_register_usage (void)
 {
   int i;
@@ -295,16 +296,20 @@ mep_conditional_register_usage (void)
     global_regs[i] = 1;
 }
 
-static void
-mep_option_optimization (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
-{
-  /* The first scheduling pass often increases register pressure and tends
-     to result in more spill code.  Only run it when specifically asked.  */
-  flag_schedule_insns = 0;
 
-  /* Using $fp doesn't gain us much, even when debugging is important.  */
-  flag_omit_frame_pointer = 1;
-}
+static const struct default_options mep_option_optimization_table[] =
+  {
+    /* The first scheduling pass often increases register pressure and
+       tends to result in more spill code.  Only run it when
+       specifically asked.  */
+    { OPT_LEVELS_ALL, OPT_fschedule_insns, NULL, 0 },
+
+    /* Using $fp doesn't gain us much, even when debugging is
+       important.  */
+    { OPT_LEVELS_ALL, OPT_fomit_frame_pointer, NULL, 1 },
+
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 static void
 mep_option_override (void)
@@ -1266,9 +1271,11 @@ mep_legitimate_address (enum machine_mode mode, rtx x, int strict)
 
 int
 mep_legitimize_reload_address (rtx *x, enum machine_mode mode, int opnum,
-			       enum reload_type type,
+			       int type_i,
 			       int ind_levels ATTRIBUTE_UNUSED)
 {
+  enum reload_type type = (enum reload_type) type_i;
+
   if (GET_CODE (*x) == PLUS
       && GET_CODE (XEXP (*x, 0)) == MEM
       && GET_CODE (XEXP (*x, 1)) == REG)
@@ -2093,7 +2100,7 @@ mep_secondary_copro_reload_class (enum reg_class rclass, rtx x)
 
 /* Copying X to register in RCLASS.  */
 
-int
+enum reg_class
 mep_secondary_input_reload_class (enum reg_class rclass,
 				  enum machine_mode mode ATTRIBUTE_UNUSED,
 				  rtx x)
@@ -2114,12 +2121,12 @@ mep_secondary_input_reload_class (enum reg_class rclass,
 #if DEBUG_RELOAD
   fprintf (stderr, " - requires %s\n", reg_class_names[rv]);
 #endif
-  return rv;
+  return (enum reg_class) rv;
 }
 
 /* Copying register in RCLASS to X.  */
 
-int
+enum reg_class
 mep_secondary_output_reload_class (enum reg_class rclass,
 				   enum machine_mode mode ATTRIBUTE_UNUSED,
 				   rtx x)
@@ -2141,7 +2148,7 @@ mep_secondary_output_reload_class (enum reg_class rclass,
   fprintf (stderr, " - requires %s\n", reg_class_names[rv]);
 #endif
 
-  return rv;
+  return (enum reg_class) rv;
 }
 
 /* Implement SECONDARY_MEMORY_NEEDED.  */
@@ -3800,7 +3807,7 @@ mep_narrow_volatile_bitfield (void)
 /* Implement FUNCTION_VALUE.  All values are returned in $0.  */
 
 rtx
-mep_function_value (tree type, tree func ATTRIBUTE_UNUSED)
+mep_function_value (const_tree type, const_tree func ATTRIBUTE_UNUSED)
 {
   if (TARGET_IVC2 && VECTOR_TYPE_P (type))
     return gen_rtx_REG (TYPE_MODE (type), 48);
@@ -4062,7 +4069,7 @@ mep_validate_vliw (tree *node, tree name, tree args ATTRIBUTE_UNUSED,
       if (TREE_CODE (*node) == POINTER_TYPE
  	  && !gave_pointer_note)
  	{
- 	  inform (input_location, "To describe a pointer to a VLIW function, use syntax like this:");
+ 	  inform (input_location, "to describe a pointer to a VLIW function, use syntax like this:");
  	  inform (input_location, "  typedef int (__vliw *vfuncptr) ();");
  	  gave_pointer_note = 1;
  	}
@@ -4070,7 +4077,7 @@ mep_validate_vliw (tree *node, tree name, tree args ATTRIBUTE_UNUSED,
       if (TREE_CODE (*node) == ARRAY_TYPE
  	  && !gave_array_note)
  	{
- 	  inform (input_location, "To describe an array of VLIW function pointers, use syntax like this:");
+ 	  inform (input_location, "to describe an array of VLIW function pointers, use syntax like this:");
  	  inform (input_location, "  typedef int (__vliw *vfuncptr[]) ();");
  	  gave_array_note = 1;
  	}
@@ -7426,8 +7433,8 @@ mep_asm_init_sections (void)
 #define TARGET_HANDLE_OPTION            mep_handle_option
 #undef  TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE		mep_option_override
-#undef  TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION	mep_option_optimization
+#undef  TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE	mep_option_optimization_table
 #undef  TARGET_DEFAULT_TARGET_FLAGS
 #define TARGET_DEFAULT_TARGET_FLAGS	TARGET_DEFAULT
 #undef  TARGET_ALLOCATE_INITIAL_VALUE
@@ -7448,6 +7455,8 @@ mep_asm_init_sections (void)
 #define	TARGET_GIMPLIFY_VA_ARG_EXPR	mep_gimplify_va_arg_expr
 #undef  TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE            mep_can_eliminate
+#undef  TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE	mep_conditional_register_usage
 #undef  TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT		mep_trampoline_init
 

@@ -1800,7 +1800,11 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
      simply rewriting this into "res += -x[i]".  Avoid changing
      gimple instruction for the first simple tests and only do this
      if we're allowed to change code at all.  */
-  if (code == MINUS_EXPR && modify)
+  if (code == MINUS_EXPR
+      && modify
+      && (op1 = gimple_assign_rhs1 (def_stmt))
+      && TREE_CODE (op1) == SSA_NAME
+      && SSA_NAME_DEF_STMT (op1) == phi)
     code = PLUS_EXPR;
 
   if (check_reduction
@@ -2725,13 +2729,11 @@ get_initial_def_for_induction (gimple iv_phi)
 			      expr, step_expr);
     }
 
-  t = NULL_TREE;
-  for (i = 0; i < nunits; i++)
-    t = tree_cons (NULL_TREE, unshare_expr (new_name), t);
+  t = unshare_expr (new_name);
   gcc_assert (CONSTANT_CLASS_P (new_name));
   stepvectype = get_vectype_for_scalar_type (TREE_TYPE (new_name));
   gcc_assert (stepvectype);
-  vec = build_vector (stepvectype, t);
+  vec = build_vector_from_val (stepvectype, t);
   vec_step = vect_init_vector (iv_phi, vec, stepvectype, NULL);
 
 
@@ -2785,11 +2787,9 @@ get_initial_def_for_induction (gimple iv_phi)
       expr = build_int_cst (TREE_TYPE (step_expr), nunits);
       new_name = fold_build2 (MULT_EXPR, TREE_TYPE (step_expr),
 			      expr, step_expr);
-      t = NULL_TREE;
-      for (i = 0; i < nunits; i++)
-	t = tree_cons (NULL_TREE, unshare_expr (new_name), t);
+      t = unshare_expr (new_name);
       gcc_assert (CONSTANT_CLASS_P (new_name));
-      vec = build_vector (stepvectype, t);
+      vec = build_vector_from_val (stepvectype, t);
       vec_step = vect_init_vector (iv_phi, vec, stepvectype, NULL);
 
       vec_def = induc_def;
@@ -3021,14 +3021,7 @@ get_initial_def_for_reduction (gimple stmt, tree init_val,
             break;
           }
 
-        for (i = nunits - 1; i >= 0; --i)
-          t = tree_cons (NULL_TREE, init_value, t);
-
-        if (TREE_CONSTANT (init_val))
-          init_def = build_vector (vectype, t);
-        else
-          init_def = build_constructor_from_list (vectype, t);
-
+	init_def = build_vector_from_val (vectype, init_value);
         break;
 
       default:
@@ -3193,7 +3186,8 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
 
   /* Get the loop-entry arguments.  */
   if (slp_node)
-    vect_get_slp_defs (slp_node, &vec_initial_defs, NULL, reduc_index);
+    vect_get_slp_defs (reduction_op, NULL_TREE, slp_node, &vec_initial_defs,
+                       NULL, reduc_index);
   else
     {
       vec_initial_defs = VEC_alloc (tree, heap, 1);
@@ -3918,7 +3912,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
   VEC (tree, heap) *vec_oprnds0 = NULL, *vec_oprnds1 = NULL, *vect_defs = NULL;
   VEC (gimple, heap) *phis = NULL;
   int vec_num;
-  tree def0, def1;
+  tree def0, def1, tem;
 
   if (nested_in_vect_loop_p (loop, stmt))
     {
@@ -3965,7 +3959,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
 
   gcc_assert (is_gimple_assign (stmt));
 
-  /* Flatten RHS */
+  /* Flatten RHS.  */
   switch (get_gimple_rhs_class (gimple_assign_rhs_code (stmt)))
     {
     case GIMPLE_SINGLE_RHS:
@@ -4009,8 +4003,6 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
      reduction variable.  */
   for (i = 0; i < op_type-1; i++)
     {
-      tree tem;
-
       /* The condition of COND_EXPR is checked in vectorizable_condition().  */
       if (i == 0 && code == COND_EXPR)
         continue;
@@ -4035,8 +4027,10 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
         }
     }
 
-  is_simple_use = vect_is_simple_use (ops[i], loop_vinfo, NULL, &def_stmt,
-				      &def, &dt);
+  is_simple_use = vect_is_simple_use_1 (ops[i], loop_vinfo, NULL, &def_stmt,
+					&def, &dt, &tem);
+  if (!vectype_in)
+    vectype_in = tem;
   gcc_assert (is_simple_use);
   gcc_assert (dt == vect_reduction_def
               || dt == vect_nested_cycle
@@ -4332,8 +4326,20 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
       /* Handle uses.  */
       if (j == 0)
         {
+          tree op0, op1 = NULL_TREE;
+
+          op0 = ops[!reduc_index];
+          if (op_type == ternary_op)
+            {
+              if (reduc_index == 0)
+                op1 = ops[2];
+              else
+                op1 = ops[1];
+            }
+
           if (slp_node)
-            vect_get_slp_defs (slp_node, &vec_oprnds0, &vec_oprnds1, -1);
+            vect_get_slp_defs (op0, op1, slp_node, &vec_oprnds0, &vec_oprnds1,
+                               -1);
           else
             {
               loop_vec_def0 = vect_get_vec_def_for_operand (ops[!reduc_index],
@@ -4341,13 +4347,8 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
               VEC_quick_push (tree, vec_oprnds0, loop_vec_def0);
               if (op_type == ternary_op)
                {
-                 if (reduc_index == 0)
-                   loop_vec_def1 = vect_get_vec_def_for_operand (ops[2], stmt,
-                                                                 NULL);
-                 else
-                   loop_vec_def1 = vect_get_vec_def_for_operand (ops[1], stmt,
-                                                                 NULL);
-
+                 loop_vec_def1 = vect_get_vec_def_for_operand (op1, stmt,
+                                                               NULL);
                  VEC_quick_push (tree, vec_oprnds1, loop_vec_def1);
                }
             }

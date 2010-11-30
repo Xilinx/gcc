@@ -1,7 +1,7 @@
 /*{{{  Comment.  */ 
 
 /* Definitions of FR30 target. 
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2007, 2008, 2009
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Cygnus Solutions.
 
@@ -22,15 +22,6 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 /*}}}*/ 
-/*{{{  Driver configuration.  */ 
-
-/* Defined in svr4.h.  */
-#undef SWITCH_TAKES_ARG
-
-/* Defined in svr4.h.  */
-#undef WORD_SWITCH_TAKES_ARG
-
-/*}}}*/ 
 /*{{{  Run-time target specifications.  */ 
 
 #undef  ASM_SPEC
@@ -49,8 +40,6 @@ along with GCC; see the file COPYING3.  If not see
    while (0)
 
 #define TARGET_VERSION fprintf (stderr, " (fr30)");
-
-#define CAN_DEBUG_WITHOUT_FP
 
 #undef  STARTFILE_SPEC
 #define STARTFILE_SPEC "crt0.o%s crti.o%s crtbegin.o%s"
@@ -191,8 +180,9 @@ along with GCC; see the file COPYING3.  If not see
 
    The table initialized from this macro, and the table initialized by the
    following one, may be overridden at run time either automatically, by the
-   actions of the macro `CONDITIONAL_REGISTER_USAGE', or by the user with the
-   command options `-ffixed-REG', `-fcall-used-REG' and `-fcall-saved-REG'.  */
+   actions of the macro `TARGET_CONDITIONAL_REGISTER_USAGE', or by the user
+   with the command options `-ffixed-REG', `-fcall-used-REG' and
+   `-fcall-saved-REG'.  */
 #define FIXED_REGISTERS 			\
   { 1, 0, 0, 0, 0, 0, 0, 0, 	/*  0 -  7 */ 	\
     0, 0, 0, 0, 0, 0, 0, 1,	/*  8 - 15 */ 	\
@@ -557,12 +547,6 @@ enum reg_class
      
 #define FR30_NUM_ARG_REGS	 4
 
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED)			\
-  (  (NAMED) == 0                    ? NULL_RTX			\
-   : targetm.calls.must_pass_in_stack (MODE, TYPE) ? NULL_RTX	\
-   : (CUM) >= FR30_NUM_ARG_REGS      ? NULL_RTX			\
-   : gen_rtx_REG (MODE, CUM + FIRST_ARG_REGNUM))
-
 /* A C type for declaring a variable that is used as the first argument of
    `FUNCTION_ARG' and other related values.  For some target machines, the type
    `int' suffices and can hold the number of bytes of argument so far.
@@ -596,17 +580,6 @@ enum reg_class
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
   (CUM) = 0
 
-/* A C statement (sans semicolon) to update the summarizer variable CUM to
-   advance past an argument in the argument list.  The values MODE, TYPE and
-   NAMED describe that argument.  Once this is done, the variable CUM is
-   suitable for analyzing the *following* argument with `FUNCTION_ARG', etc.
-
-   This macro need not do anything if the argument in question was passed on
-   the stack.  The compiler knows how to track the amount of stack space used
-   for arguments without any special help.  */
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)			\
-  (CUM) += (NAMED) * fr30_num_arg_regs (MODE, TYPE)
-
 /* A C expression that is nonzero if REGNO is the number of a hard register in
    which function arguments are sometimes passed.  This does *not* include
    implicit arguments such as the static chain and the structure-value address.
@@ -614,31 +587,6 @@ enum reg_class
    function arguments are pushed on the stack.  */
 #define FUNCTION_ARG_REGNO_P(REGNO) \
   ((REGNO) >= FIRST_ARG_REGNUM && ((REGNO) < FIRST_ARG_REGNUM + FR30_NUM_ARG_REGS))
-
-/*}}}*/ 
-/*{{{  How Scalar Function Values are Returned.  */ 
-
-#define FUNCTION_VALUE(VALTYPE, FUNC) \
-     gen_rtx_REG (TYPE_MODE (VALTYPE), RETURN_VALUE_REGNUM)
-
-/* A C expression to create an RTX representing the place where a library
-   function returns a value of mode MODE.  If the precise function being called
-   is known, FUNC is a tree node (`FUNCTION_DECL') for it; otherwise, FUNC is a
-   null pointer.  This makes it possible to use a different value-returning
-   convention for specific functions when all their calls are known.
-
-   Note that "library function" in this context means a compiler support
-   routine, used to perform arithmetic, whose name is known specially by the
-   compiler and was not mentioned in the C code being compiled.
-
-   The definition of `LIBRARY_VALUE' need not be concerned aggregate data
-   types, because none of the library functions returns such types.  */
-#define LIBCALL_VALUE(MODE) gen_rtx_REG (MODE, RETURN_VALUE_REGNUM)
-
-/* A C expression that is nonzero if REGNO is the number of a hard register in
-   which the values of called function may come back.  */
-
-#define FUNCTION_VALUE_REGNO_P(REGNO) ((REGNO) == RETURN_VALUE_REGNUM)
 
 /*}}}*/ 
 /*{{{  How Large Values are Returned.  */ 

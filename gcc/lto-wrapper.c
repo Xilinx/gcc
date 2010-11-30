@@ -32,7 +32,7 @@ along with GCC; see the file COPYING3.  If not see
    The above will print something like
    /tmp/ccwbQ8B2.lto.o
 
-   If -fwhopr is used instead, more than one file might be produced
+   If WHOPR is used instead, more than one file might be produced
    ./ccXj2DTk.lto.ltrans.o
    ./ccCJuXGv.lto.ltrans.o
 */
@@ -40,18 +40,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include <errno.h>
-#include <signal.h>
-#if ! defined( SIGCHLD ) && defined( SIGCLD )
-#  define SIGCHLD SIGCLD
-#endif
 #include "intl.h"
-#include "libiberty.h"
 #include "obstack.h"
-
-#ifndef HAVE_KILL
-#define kill(p,s) raise(s)
-#endif
 
 int debug;				/* true if -save-temps.  */
 int verbose;				/* true if -v.  */
@@ -304,6 +294,7 @@ run_gcc (unsigned argc, char *argv[])
   bool seen_o = false;
   int parallel = 0;
   int jobserver = 0;
+  bool no_partition = false;
 
   /* Get the driver and options.  */
   collect_gcc = getenv ("COLLECT_GCC");
@@ -366,22 +357,23 @@ run_gcc (unsigned argc, char *argv[])
 	if (strcmp (option, "-v") == 0)
 	  verbose = 1;
 
+	if (strcmp (option, "-flto-partition=none") == 0)
+	  no_partition = true;
 	/* We've handled these LTO options, do not pass them on.  */
-	if (strcmp (option, "-flto") == 0)
-	  lto_mode = LTO_MODE_LTO;
-	else if (strncmp (option, "-fwhopr", 7) == 0)
+	if (strncmp (option, "-flto=", 6) == 0
+	    || !strcmp (option, "-flto"))
 	  {
 	    lto_mode = LTO_MODE_WHOPR;
-	    if (option[7] == '=')
+	    if (option[5] == '=')
 	      {
-		if (!strcmp (option + 8, "jobserver"))
+		if (!strcmp (option + 6, "jobserver"))
 		  {
 		    jobserver = 1;
 		    parallel = 1;
 		  }
 		else
 		  {
-		    parallel = atoi (option+8);
+		    parallel = atoi (option + 6);
 		    if (parallel <= 1)
 		      parallel = 0;
 		  }
@@ -390,6 +382,12 @@ run_gcc (unsigned argc, char *argv[])
 	else
 	  *argv_ptr++ = option;
       }
+  if (no_partition)
+    {
+      lto_mode = LTO_MODE_LTO;
+      jobserver = 0;
+      parallel = 0;
+    }
 
   if (linker_output)
     {

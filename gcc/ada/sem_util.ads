@@ -93,6 +93,21 @@ package Sem_Util is
    --  not end with a ? (this is used when the caller wants to parameterize
    --  whether an error or warning is given.
 
+   procedure Bad_Predicated_Subtype_Use
+     (Msg : String;
+      N   : Node_Id;
+      Typ : Entity_Id);
+   --  This is called when Typ, a predicated subtype, is used in a context
+   --  which does not allow the use of a predicated subtype. Msg is passed
+   --  to Error_Msg_FE to output an appropriate message using N as the
+   --  location, and Typ as the entity. The caller must set up any insertions
+   --  other than the & for the type itself. Note that if Typ is a generic
+   --  actual type, then the message will be output as a warning, and a
+   --  raise Program_Error is inserted using Insert_Action with node N as
+   --  the insertion point. Node N also supplies the source location for
+   --  construction of the raise node. If Typ is NOT a type with predicates
+   --  this call has no effect.
+
    function Build_Actual_Subtype
      (T : Entity_Id;
       N : Node_Or_Entity_Id) return Node_Id;
@@ -196,6 +211,13 @@ package Sem_Util is
    --  On exit Ifaces_List, Components_List and Tags_List have the same number
    --  of elements, and elements at the same position on these tables provide
    --  information on the same interface type.
+
+   procedure Collect_Parents
+     (T             : Entity_Id;
+      List          : out Elist_Id;
+      Use_Full_View : Boolean := True);
+   --  Collect all the parents of Typ. Use_Full_View is used to collect them
+   --  using the full-view of private parents (if available).
 
    function Collect_Primitive_Operations (T : Entity_Id) return Elist_Id;
    --  Called upon type derivation and extension. We scan the declarative part
@@ -458,11 +480,12 @@ package Sem_Util is
    function Get_Enum_Lit_From_Pos
      (T   : Entity_Id;
       Pos : Uint;
-      Loc : Source_Ptr) return Entity_Id;
+      Loc : Source_Ptr) return Node_Id;
    --  This function obtains the E_Enumeration_Literal entity for the specified
-   --  value from the enumeration type or subtype T. The second argument is the
-   --  Pos value, which is assumed to be in range. The third argument supplies
-   --  a source location for constructed nodes returned by this function.
+   --  value from the enumeration type or subtype T and returns an identifier
+   --  node referencing this value. The second argument is the Pos value, which
+   --  is assumed to be in range. The third argument supplies a source location
+   --  for constructed nodes returned by this function.
 
    procedure Get_Library_Unit_Name_String (Decl_Node : Node_Id);
    --  Retrieve the fully expanded name of the library unit declared by
@@ -646,14 +669,6 @@ package Sem_Util is
    --  whether they have been completed by a full constant declaration or an
    --  Import pragma. Emit the error message if that is not the case.
 
-   function Is_AAMP_Float (E : Entity_Id) return Boolean;
-   --  Defined for all type entities. Returns True only for the base type of
-   --  float types with AAMP format. The particular format is determined by the
-   --  Digits_Value value which is 6 for the 32-bit floating point type, or 9
-   --  for the 48-bit type. This is not an attribute function (like VAX_Float)
-   --  in order to not use up an extra flag and to prevent the dependency of
-   --  Einfo on Targparm which would be required for a synthesized attribute.
-
    function Is_Actual_Out_Parameter (N : Node_Id) return Boolean;
    --  Determines if N is an actual parameter of out mode in a subprogram call
 
@@ -753,12 +768,21 @@ package Sem_Util is
    --  the Is_Variable sense) with a non-tagged type target are considered view
    --  conversions and hence variables.
 
-   function Is_Partially_Initialized_Type (Typ : Entity_Id) return Boolean;
+   function Is_Partially_Initialized_Type
+     (Typ              : Entity_Id;
+      Include_Implicit : Boolean := True) return Boolean;
    --  Typ is a type entity. This function returns true if this type is partly
    --  initialized, meaning that an object of the type is at least partly
    --  initialized (in particular in the record case, that at least one
    --  component has an initialization expression). Note that initialization
    --  resulting from the use of pragma Normalized_Scalars does not count.
+   --  Include_Implicit controls whether implicit initialiation of access
+   --  values to null, and of discriminant values, is counted as making the
+   --  type be partially initialized. For the default setting of True, these
+   --  implicit cases do count, and discriminated types or types containing
+   --  access values not explicitly initialized will return True. Otherwise
+   --  if Include_Implicit is False, these cases do not count as making the
+   --  type be partially initialied.
 
    function Is_Potentially_Persistent_Type (T : Entity_Id) return Boolean;
    --  Determines if type T is a potentially persistent type. A potentially
@@ -1052,6 +1076,12 @@ package Sem_Util is
    --  (e.g. target of assignment, or out parameter), and to False if the
    --  modification is only potential (e.g. address of entity taken).
 
+   function Original_Corresponding_Operation (S : Entity_Id) return Entity_Id;
+   --  [Ada 2012: AI05-0125-1]: If S is an inherited dispatching primitive S2,
+   --  or overrides an inherited dispatching primitive S2, the original
+   --  corresponding operation of S is the original corresponding operation of
+   --  S2. Otherwise, it is S itself.
+
    function Object_Access_Level (Obj : Node_Id) return Uint;
    --  Return the accessibility level of the view of the object Obj.
    --  For convenience, qualified expressions applied to object names
@@ -1082,10 +1112,6 @@ package Sem_Util is
    --  (e for spec, t for body, see Lib.Xref spec for details). The
    --  parameter Ent gives the entity to which the End_Label refers,
    --  and to which cross-references are to be generated.
-
-   function Real_Convert (S : String) return Node_Id;
-   --  S is a possibly signed syntactically valid real literal. The result
-   --  returned is an N_Real_Literal node representing the literal value.
 
    function References_Generic_Formal_Type (N : Node_Id) return Boolean;
    --  Returns True if the expression Expr contains any references to a
@@ -1289,6 +1315,13 @@ package Sem_Util is
    pragma Inline (Unqualify);
    --  Removes any qualifications from Expr. For example, for T1'(T2'(X)), this
    --  returns X. If Expr is not a qualified expression, returns Expr.
+
+   function Visible_Ancestors (Typ : Entity_Id) return Elist_Id;
+   --  [Ada 2012:AI-0125-1]: Collect all the visible parents and progenitors
+   --  of a type extension or private extension declaration. If the full-view
+   --  of private parents and progenitors is available then it is used to
+   --  generate the list of visible ancestors; otherwise their partial
+   --  view is added to the resulting list.
 
    function Within_Init_Proc return Boolean;
    --  Determines if Current_Scope is within an init proc

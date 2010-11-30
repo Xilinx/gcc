@@ -176,6 +176,7 @@ resolve_procedure_interface (gfc_symbol *sym)
       sym->attr.recursive = ifc->attr.recursive;
       sym->attr.always_explicit = ifc->attr.always_explicit;
       sym->attr.ext_attr |= ifc->attr.ext_attr;
+      sym->attr.is_bind_c = ifc->attr.is_bind_c;
       /* Copy array spec.  */
       sym->as = gfc_copy_array_spec (ifc->as);
       if (sym->as)
@@ -988,9 +989,9 @@ resolve_structure_cons (gfc_expr *expr, int init)
 	  !gfc_compare_types (&cons->expr->ts, &comp->ts))
 	{
 	  t = FAILURE;
-	  if (strcmp (comp->name, "$extends") == 0)
+	  if (strcmp (comp->name, "_extends") == 0)
 	    {
-	      /* Can afford to be brutal with the $extends initializer.
+	      /* Can afford to be brutal with the _extends initializer.
 		 The derived type can get lost because it is PRIVATE
 		 but it is not usage constrained by the standard.  */
 	      cons->expr->ts = comp->ts;
@@ -5382,9 +5383,18 @@ update_ppc_arglist (gfc_expr* e)
   if (!po)
     return FAILURE;
 
+  /* F08:R739.  */
   if (po->rank > 0)
     {
       gfc_error ("Passed-object at %L must be scalar", &e->where);
+      return FAILURE;
+    }
+
+  /* F08:C611.  */
+  if (po->ts.type == BT_DERIVED && po->ts.u.derived->attr.abstract)
+    {
+      gfc_error ("Base object for procedure-pointer component call at %L is of"
+		 " ABSTRACT type '%s'", &e->where, po->ts.u.derived->name);
       return FAILURE;
     }
 
@@ -5412,6 +5422,7 @@ check_typebound_baseobject (gfc_expr* e)
 
   gcc_assert (base->ts.type == BT_DERIVED || base->ts.type == BT_CLASS);
 
+  /* F08:C611.  */
   if (base->ts.type == BT_DERIVED && base->ts.u.derived->attr.abstract)
     {
       gfc_error ("Base object for type-bound procedure call at %L is of"
@@ -5419,7 +5430,8 @@ check_typebound_baseobject (gfc_expr* e)
       goto cleanup;
     }
 
-  /* If the procedure called is NOPASS, the base object must be scalar.  */
+  /* F08:C1230. If the procedure called is NOPASS,
+     the base object must be scalar.  */
   if (e->value.compcall.tbp->nopass && base->rank > 0)
     {
       gfc_error ("Base object for NOPASS type-bound procedure call at %L must"
@@ -5427,7 +5439,7 @@ check_typebound_baseobject (gfc_expr* e)
       goto cleanup;
     }
 
-  /* FIXME: Remove once PR 41177 (this problem) is fixed completely.  */
+  /* FIXME: Remove once PR 43214 is fixed (TBP with non-scalar PASS).  */
   if (base->rank > 0)
     {
       gfc_error ("Non-scalar base object at %L currently not implemented",
@@ -5726,7 +5738,7 @@ resolve_typebound_function (gfc_expr* e)
 	 is present.  */
       ts = expr->ts;
       declared = ts.u.derived;
-      c = gfc_find_component (declared, "$vptr", true, true);
+      c = gfc_find_component (declared, "_vptr", true, true);
       if (c->ts.u.derived == NULL)
 	c->ts.u.derived = gfc_find_derived_vtab (declared);
 
@@ -5737,7 +5749,7 @@ resolve_typebound_function (gfc_expr* e)
       name = name ? name : e->value.function.esym->name;
       e->symtree = expr->symtree;
       e->ref = gfc_copy_ref (expr->ref);
-      gfc_add_component_ref (e, "$vptr");
+      gfc_add_vptr_component (e);
       gfc_add_component_ref (e, name);
       e->value.function.esym = NULL;
       return SUCCESS;
@@ -5760,7 +5772,7 @@ resolve_typebound_function (gfc_expr* e)
       return resolve_compcall (e, NULL);
     }
 
-  c = gfc_find_component (declared, "$data", true, true);
+  c = gfc_find_component (declared, "_data", true, true);
   declared = c->ts.u.derived;
 
   /* Treat the call as if it is a typebound procedure, in order to roll
@@ -5776,8 +5788,8 @@ resolve_typebound_function (gfc_expr* e)
   if (new_ref)  
     e->ref = new_ref;
 
-  /* '$vptr' points to the vtab, which contains the procedure pointers.  */
-  gfc_add_component_ref (e, "$vptr");
+  /* '_vptr' points to the vtab, which contains the procedure pointers.  */
+  gfc_add_vptr_component (e);
   gfc_add_component_ref (e, name);
 
   /* Recover the typespec for the expression.  This is really only
@@ -5816,7 +5828,7 @@ resolve_typebound_subroutine (gfc_code *code)
 	 is present.  */
       ts = expr->symtree->n.sym->ts;
       declared = ts.u.derived;
-      c = gfc_find_component (declared, "$vptr", true, true);
+      c = gfc_find_component (declared, "_vptr", true, true);
       if (c->ts.u.derived == NULL)
 	c->ts.u.derived = gfc_find_derived_vtab (declared);
 
@@ -5827,7 +5839,7 @@ resolve_typebound_subroutine (gfc_code *code)
       name = name ? name : code->expr1->value.function.esym->name;
       code->expr1->symtree = expr->symtree;
       expr->symtree->n.sym->ts.u.derived = declared;
-      gfc_add_component_ref (code->expr1, "$vptr");
+      gfc_add_vptr_component (code->expr1);
       gfc_add_component_ref (code->expr1, name);
       code->expr1->value.function.esym = NULL;
       return SUCCESS;
@@ -5861,8 +5873,8 @@ resolve_typebound_subroutine (gfc_code *code)
   if (new_ref)
     code->expr1->ref = new_ref;
 
-  /* '$vptr' points to the vtab, which contains the procedure pointers.  */
-  gfc_add_component_ref (code->expr1, "$vptr");
+  /* '_vptr' points to the vtab, which contains the procedure pointers.  */
+  gfc_add_vptr_component (code->expr1);
   gfc_add_component_ref (code->expr1, name);
 
   /* Recover the typespec for the expression.  This is really only
@@ -6404,7 +6416,7 @@ resolve_deallocate_expr (gfc_expr *e)
   if (e->ts.type == BT_CLASS)
     {
       /* Only deallocate the DATA component.  */
-      gfc_add_component_ref (e, "$data");
+      gfc_add_data_component (e);
     }
 
   return SUCCESS;
@@ -6856,6 +6868,12 @@ check_symbols:
     }
 
 success:
+  if (e->ts.deferred)
+    {
+      gfc_error ("Support for entity at %L with deferred type parameter "
+		 "not yet implemented", &e->where);
+      return FAILURE;
+    }
   return SUCCESS;
 
 failure:
@@ -7729,8 +7747,8 @@ resolve_select_type (gfc_code *code, gfc_namespace *old_ns)
     ns->code->next = new_st;
   code = new_st;
   code->op = EXEC_SELECT;
-  gfc_add_component_ref (code->expr1, "$vptr");
-  gfc_add_component_ref (code->expr1, "$hash");
+  gfc_add_vptr_component (code->expr1);
+  gfc_add_hash_component (code->expr1);
 
   /* Loop over TYPE IS / CLASS IS cases.  */
   for (body = code->block; body; body = body->block)
@@ -7750,14 +7768,14 @@ resolve_select_type (gfc_code *code, gfc_namespace *old_ns)
 	 'global' one).  */
 
       if (c->ts.type == BT_CLASS)
-	sprintf (name, "tmp$class$%s", c->ts.u.derived->name);
+	sprintf (name, "__tmp_class_%s", c->ts.u.derived->name);
       else
-	sprintf (name, "tmp$type$%s", c->ts.u.derived->name);
+	sprintf (name, "__tmp_type_%s", c->ts.u.derived->name);
       st = gfc_find_symtree (ns->sym_root, name);
       gcc_assert (st->n.sym->assoc);
       st->n.sym->assoc->target = gfc_get_variable_expr (code->expr1->symtree);
       if (c->ts.type == BT_DERIVED)
-	gfc_add_component_ref (st->n.sym->assoc->target, "$data");
+	gfc_add_data_component (st->n.sym->assoc->target);
 
       new_st = gfc_get_code ();
       new_st->op = EXEC_BLOCK;
@@ -7874,7 +7892,7 @@ resolve_select_type (gfc_code *code, gfc_namespace *old_ns)
 	  /* Set up arguments.  */
 	  new_st->expr1->value.function.actual = gfc_get_actual_arglist ();
 	  new_st->expr1->value.function.actual->expr = gfc_get_variable_expr (code->expr1->symtree);
-	  gfc_add_component_ref (new_st->expr1->value.function.actual->expr, "$vptr");
+	  gfc_add_vptr_component (new_st->expr1->value.function.actual->expr);
 	  vtab = gfc_find_derived_vtab (body->ext.case_list->ts.u.derived);
 	  st = gfc_find_symtree (vtab->ns->sym_root, vtab->name);
 	  new_st->expr1->value.function.actual->next = gfc_get_actual_arglist ();
@@ -7941,6 +7959,15 @@ resolve_transfer (gfc_code *code)
   for (ref = exp->ref; ref; ref = ref->next)
     if (ref->type == REF_COMPONENT)
       ts = &ref->u.c.component->ts;
+
+  if (ts->type == BT_CLASS)
+    {
+      /* FIXME: Test for defined input/output.  */
+      gfc_error ("Data transfer element at %L cannot be polymorphic unless "
+                "it is processed by a defined input/output procedure",
+                &code->loc);
+      return;
+    }
 
   if (ts->type == BT_DERIVED)
     {
@@ -9092,8 +9119,9 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	case EXEC_FORALL:
 	  resolve_forall_iterators (code->ext.forall_iterator);
 
-	  if (code->expr1 != NULL && code->expr1->ts.type != BT_LOGICAL)
-	    gfc_error ("FORALL mask clause at %L requires a LOGICAL "
+	  if (code->expr1 != NULL
+	      && (code->expr1->ts.type != BT_LOGICAL || code->expr1->rank))
+	    gfc_error ("FORALL mask clause at %L requires a scalar LOGICAL "
 		       "expression", &code->expr1->where);
 	  break;
 
@@ -9370,6 +9398,7 @@ resolve_index_expr (gfc_expr *e)
 
   return SUCCESS;
 }
+
 
 /* Resolve a charlen structure.  */
 
@@ -9684,6 +9713,7 @@ apply_default_init_local (gfc_symbol *sym)
   build_init_assign (sym, init);
 }
 
+
 /* Resolution of common features of flavors variable and procedure.  */
 
 static gfc_try
@@ -9847,12 +9877,22 @@ resolve_fl_variable (gfc_symbol *sym, int mp_flag)
       return FAILURE;
     }
 
+  /* Constraints on deferred type parameter.  */
+  if (sym->ts.deferred && !(sym->attr.pointer || sym->attr.allocatable))
+    {
+      gfc_error ("Entity '%s' at %L has a deferred type parameter and "
+		 "requires either the pointer or allocatable attribute",
+		     sym->name, &sym->declared_at);
+      return FAILURE;
+    }
+
   if (sym->ts.type == BT_CHARACTER)
     {
       /* Make sure that character string variables with assumed length are
 	 dummy arguments.  */
       e = sym->ts.u.cl->length;
-      if (e == NULL && !sym->attr.dummy && !sym->attr.result)
+      if (e == NULL && !sym->attr.dummy && !sym->attr.result
+	  && !sym->ts.deferred)
 	{
 	  gfc_error ("Entity with assumed character length at %L must be a "
 		     "dummy argument or a PARAMETER", &sym->declared_at);
@@ -11175,8 +11215,8 @@ resolve_fl_derived (gfc_symbol *sym)
   if (sym->attr.is_class && sym->ts.u.derived == NULL)
     {
       /* Fix up incomplete CLASS symbols.  */
-      gfc_component *data = gfc_find_component (sym, "$data", true, true);
-      gfc_component *vptr = gfc_find_component (sym, "$vptr", true, true);
+      gfc_component *data = gfc_find_component (sym, "_data", true, true);
+      gfc_component *vptr = gfc_find_component (sym, "_vptr", true, true);
       if (vptr->ts.u.derived == NULL)
 	{
 	  gfc_symbol *vtab = gfc_find_derived_vtab (data->ts.u.derived);
@@ -11472,6 +11512,13 @@ resolve_fl_derived (gfc_symbol *sym)
 			     "'%s', which is PUBLIC at %L", c->name,
 			     sym->name, &sym->declared_at) == FAILURE)
 	return FAILURE;
+
+      if ((sym->attr.sequence || sym->attr.is_bind_c) && c->ts.type == BT_CLASS)
+	{
+	  gfc_error ("Polymorphic component %s at %L in SEQUENCE or BIND(C) "
+		     "type %s", c->name, &c->loc, sym->name);
+	  return FAILURE;
+	}
 
       if (sym->attr.sequence)
 	{
@@ -13312,6 +13359,9 @@ resolve_codes (gfc_namespace *ns)
 {
   gfc_namespace *n;
   bitmap_obstack old_obstack;
+
+  if (ns->resolved == 1)
+    return;
 
   for (n = ns->contained; n; n = n->sibling)
     resolve_codes (n);

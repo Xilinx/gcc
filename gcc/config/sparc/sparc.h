@@ -450,7 +450,7 @@ extern enum cmodel sparc_cmodel;
 /* Special flags to the Sun-4 assembler when using pipe for input.  */
 
 #define ASM_SPEC "\
-%{R} %{!pg:%{!p:%{fpic|fPIC|fpie|fPIE:-k}}} %{keep-local-as-symbols:-L} \
+%{!pg:%{!p:%{fpic|fPIC|fpie|fPIE:-k}}} %{keep-local-as-symbols:-L} \
 %(asm_cpu) %(asm_relax)"
 
 #define AS_NEEDS_DASH_FOR_PIPED_INPUT
@@ -496,9 +496,6 @@ extern enum cmodel sparc_cmodel;
 /* ??? This should be 32 bits for v9 but what can we do?  */
 #define WCHAR_TYPE "short unsigned int"
 #define WCHAR_TYPE_SIZE 16
-
-/* Show we can debug even without a frame pointer.  */
-#define CAN_DEBUG_WITHOUT_FP
 
 /* Mask of all CPU selection flags.  */
 #define MASK_ISA \
@@ -520,7 +517,8 @@ extern enum cmodel sparc_cmodel;
 
 /* MASK_APP_REGS must always be the default because that's what
    FIXED_REGISTERS is set to and -ffixed- is processed before
-   CONDITIONAL_REGISTER_USAGE is called (where we process -mno-app-regs).  */
+   TARGET_CONDITIONAL_REGISTER_USAGE is called (where we process
+   -mno-app-regs).  */
 #define TARGET_DEFAULT (MASK_APP_REGS + MASK_FPU)
 
 /* Processor type.
@@ -584,14 +582,6 @@ extern struct sparc_cpu_select sparc_select[];
 /* Define this if most significant word of a multiword number is the lowest
    numbered.  */
 #define WORDS_BIG_ENDIAN 1
-
-/* Define this to set the endianness to use in libgcc2.c, which can
-   not depend on target_flags.  */
-#if defined (__LITTLE_ENDIAN__) || defined(__LITTLE_ENDIAN_DATA__)
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#else
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#endif
 
 #define MAX_BITS_PER_WORD	64
 
@@ -767,7 +757,7 @@ extern struct sparc_cpu_select sparc_select[];
    stack frames.
 
    Registers fixed in arch32 and not arch64 (or vice-versa) are marked in
-   CONDITIONAL_REGISTER_USAGE in order to properly handle -ffixed-.
+   TARGET_CONDITIONAL_REGISTER_USAGE in order to properly handle -ffixed-.
 */
 
 #define FIXED_REGISTERS  \
@@ -812,57 +802,6 @@ extern struct sparc_cpu_select sparc_select[];
   1, 1, 1, 1, 1, 1, 1, 1,	\
 				\
   1, 1, 1, 1, 1, 1}
-
-/* If !TARGET_FPU, then make the fp registers and fp cc regs fixed so that
-   they won't be allocated.  */
-
-#define CONDITIONAL_REGISTER_USAGE				\
-do								\
-  {								\
-    if (PIC_OFFSET_TABLE_REGNUM != INVALID_REGNUM)		\
-      {								\
-	fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;		\
-	call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;		\
-      }								\
-    /* If the user has passed -f{fixed,call-{used,saved}}-g5 */	\
-    /* then honor it.  */					\
-    if (TARGET_ARCH32 && fixed_regs[5])				\
-      fixed_regs[5] = 1;					\
-    else if (TARGET_ARCH64 && fixed_regs[5] == 2)		\
-      fixed_regs[5] = 0;					\
-    if (! TARGET_V9)						\
-      {								\
-	int regno;						\
-	for (regno = SPARC_FIRST_V9_FP_REG;			\
-	     regno <= SPARC_LAST_V9_FP_REG;			\
-	     regno++)						\
-	  fixed_regs[regno] = 1;				\
-	/* %fcc0 is used by v8 and v9.  */			\
-	for (regno = SPARC_FIRST_V9_FCC_REG + 1;		\
-	     regno <= SPARC_LAST_V9_FCC_REG;			\
-	     regno++)						\
-	  fixed_regs[regno] = 1;				\
-      }								\
-    if (! TARGET_FPU)						\
-      {								\
-	int regno;						\
-	for (regno = 32; regno < SPARC_LAST_V9_FCC_REG; regno++) \
-	  fixed_regs[regno] = 1;				\
-      }								\
-    /* If the user has passed -f{fixed,call-{used,saved}}-g2 */	\
-    /* then honor it.  Likewise with g3 and g4.  */		\
-    if (fixed_regs[2] == 2)					\
-      fixed_regs[2] = ! TARGET_APP_REGS;			\
-    if (fixed_regs[3] == 2)					\
-      fixed_regs[3] = ! TARGET_APP_REGS;			\
-    if (TARGET_ARCH32 && fixed_regs[4] == 2)			\
-      fixed_regs[4] = ! TARGET_APP_REGS;			\
-    else if (TARGET_CM_EMBMEDANY)				\
-      fixed_regs[4] = 1;					\
-    else if (fixed_regs[4] == 2)				\
-      fixed_regs[4] = 0;					\
-  }								\
-while (0)
 
 /* Return number of consecutive hard regs needed starting at reg REGNO
    to hold something of mode MODE.
@@ -1452,17 +1391,6 @@ init_cumulative_args (& (CUM), (FNTYPE), (LIBNAME), (FNDECL));
 #define FUNCTION_ARG_PADDING(MODE, TYPE) \
 function_arg_padding ((MODE), (TYPE))
 
-/* If defined, a C expression that gives the alignment boundary, in bits,
-   of an argument with the specified mode and type.  If it is not defined,
-   PARM_BOUNDARY is used for all arguments.
-   For sparc64, objects requiring 16 byte alignment are passed that way.  */
-
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE) \
-((TARGET_ARCH64					\
-  && (GET_MODE_ALIGNMENT (MODE) == 128		\
-      || ((TYPE) && TYPE_ALIGN (TYPE) == 128)))	\
- ? 128 : PARM_BOUNDARY)
-
 
 /* Generate the special assembly code needed to tell the assembler whatever
    it might need to know about the return value of a function.
@@ -2034,13 +1962,6 @@ do {									\
 #define ASM_OUTPUT_ALIGN(FILE,LOG)	\
   if ((LOG) != 0)			\
     fprintf (FILE, "\t.align %d\n", (1<<(LOG)))
-
-/* This is how to output an assembler line that says to advance
-   the location counter to a multiple of 2**LOG bytes using the
-   "nop" instruction as padding.  */
-#define ASM_OUTPUT_ALIGN_WITH_NOP(FILE,LOG)   \
-  if ((LOG) != 0)                             \
-    fprintf (FILE, "\t.align %d,0x1000000\n", (1<<(LOG)))
 
 #define ASM_OUTPUT_SKIP(FILE,SIZE)  \
   fprintf (FILE, "\t.skip "HOST_WIDE_INT_PRINT_UNSIGNED"\n", (SIZE))

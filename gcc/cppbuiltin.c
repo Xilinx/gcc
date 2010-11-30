@@ -28,6 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "cpp-id-data.h"
 #include "cppbuiltin.h"
+#include "target.h"
 
 
 /* Parse a BASEVER version string of the format "major.minor.patchlevel"
@@ -90,7 +91,7 @@ define_builtin_macros_for_compilation_flags (cpp_reader *pfile)
   if (optimize)
     cpp_define (pfile, "__OPTIMIZE__");
 
-  if (fast_math_flags_set_p ())
+  if (fast_math_flags_set_p (&global_options))
     cpp_define (pfile, "__FAST_MATH__");
   if (flag_signaling_nans)
     cpp_define (pfile, "__SUPPORT_SNAN__");
@@ -137,6 +138,30 @@ define_builtin_macros_for_type_sizes (cpp_reader *pfile)
 			TYPE_PRECISION (char_type_node));
   cpp_define_formatted (pfile, "__BIGGEST_ALIGNMENT__=%d",
 			BIGGEST_ALIGNMENT / BITS_PER_UNIT);
+
+  /* Define constants useful for implementing endian.h.  */
+  cpp_define (pfile, "__ORDER_LITTLE_ENDIAN__=1234");
+  cpp_define (pfile, "__ORDER_BIG_ENDIAN__=4321");
+  cpp_define (pfile, "__ORDER_PDP_ENDIAN__=3412");
+
+  if (WORDS_BIG_ENDIAN == BYTES_BIG_ENDIAN)
+    cpp_define_formatted (pfile, "__BYTE_ORDER__=%s",
+			  (WORDS_BIG_ENDIAN
+			   ? "__ORDER_BIG_ENDIAN__"
+			   : "__ORDER_LITTLE_ENDIAN__"));
+  else
+    {
+      /* Assert that we're only dealing with the PDP11 case.  */
+      gcc_assert (!BYTES_BIG_ENDIAN);
+      gcc_assert (WORDS_BIG_ENDIAN);
+
+      cpp_define (pfile, "__BYTE_ORDER__=__ORDER_PDP_ENDIAN__");
+    }
+
+  cpp_define_formatted (pfile, "__FLOAT_WORD_ORDER__=%s",
+                        (targetm.float_words_big_endian ()
+                         ? "__ORDER_BIG_ENDIAN__"
+                         : "__ORDER_LITTLE_ENDIAN__"));
 
   /* ptr_type_node can't be used here since ptr_mode is only set when
      toplev calls backend_init which is not done with -E switch.  */

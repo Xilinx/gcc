@@ -143,6 +143,25 @@ static tree fold_relational_const (enum tree_code, tree, tree, tree);
 static tree fold_convert_const (enum tree_code, tree, tree);
 
 
+/* Similar to protected_set_expr_location, but never modify x in place,
+   if location can and needs to be set, unshare it.  */
+
+static inline tree
+protected_set_expr_location_unshare (tree x, location_t loc)
+{
+  if (CAN_HAVE_LOCATION_P (x)
+      && EXPR_LOCATION (x) != loc
+      && !(TREE_CODE (x) == SAVE_EXPR
+	   || TREE_CODE (x) == TARGET_EXPR
+	   || TREE_CODE (x) == BIND_EXPR))
+    {
+      x = copy_node (x);
+      SET_EXPR_LOCATION (x, loc);
+    }
+  return x;
+}
+
+
 /* We know that A1 + B1 = SUM1, using 2's complement arithmetic and ignoring
    overflow.  Suppose A, B and SUM have the same respective signs as A1, B1,
    and SUM1.  Then this yields nonzero if overflow occurred during the
@@ -727,10 +746,7 @@ negate_expr (tree t)
 
   tem = fold_negate_expr (loc, t);
   if (!tem)
-    {
-      tem = build1 (NEGATE_EXPR, TREE_TYPE (t), t);
-      SET_EXPR_LOCATION (tem, loc);
-    }
+    tem = build1_loc (loc, NEGATE_EXPR, TREE_TYPE (t), t);
   return fold_convert_loc (loc, type, tem);
 }
 
@@ -841,8 +857,6 @@ split_tree (tree in, enum tree_code code, tree *conp, tree *litp,
 static tree
 associate_trees (location_t loc, tree t1, tree t2, enum tree_code code, tree type)
 {
-  tree tem;
-
   if (t1 == 0)
     return t2;
   else if (t2 == 0)
@@ -857,11 +871,15 @@ associate_trees (location_t loc, tree t1, tree t2, enum tree_code code, tree typ
       if (code == PLUS_EXPR)
 	{
 	  if (TREE_CODE (t1) == NEGATE_EXPR)
-	    tem = build2 (MINUS_EXPR, type, fold_convert_loc (loc, type, t2),
-			  fold_convert_loc (loc, type, TREE_OPERAND (t1, 0)));
+	    return build2_loc (loc, MINUS_EXPR, type,
+			       fold_convert_loc (loc, type, t2),
+			       fold_convert_loc (loc, type,
+						 TREE_OPERAND (t1, 0)));
 	  else if (TREE_CODE (t2) == NEGATE_EXPR)
-	    tem = build2 (MINUS_EXPR, type, fold_convert_loc (loc, type, t1),
-			  fold_convert_loc (loc, type, TREE_OPERAND (t2, 0)));
+	    return build2_loc (loc, MINUS_EXPR, type,
+			       fold_convert_loc (loc, type, t1),
+			       fold_convert_loc (loc, type,
+						 TREE_OPERAND (t2, 0)));
 	  else if (integer_zerop (t2))
 	    return fold_convert_loc (loc, type, t1);
 	}
@@ -871,16 +889,12 @@ associate_trees (location_t loc, tree t1, tree t2, enum tree_code code, tree typ
 	    return fold_convert_loc (loc, type, t1);
 	}
 
-      tem = build2 (code, type, fold_convert_loc (loc, type, t1),
-		    fold_convert_loc (loc, type, t2));
-      goto associate_trees_exit;
+      return build2_loc (loc, code, type, fold_convert_loc (loc, type, t1),
+			 fold_convert_loc (loc, type, t2));
     }
 
   return fold_build2_loc (loc, code, type, fold_convert_loc (loc, type, t1),
-		      fold_convert_loc (loc, type, t2));
- associate_trees_exit:
-  protected_set_expr_location (tem, loc);
-  return tem;
+			  fold_convert_loc (loc, type, t2));
 }
 
 /* Check whether TYPE1 and TYPE2 are equivalent integer types, suitable
@@ -1796,16 +1810,10 @@ fold_convert_const (enum tree_code code, tree type, tree arg1)
 static tree
 build_zero_vector (tree type)
 {
-  tree elem, list;
-  int i, units;
+  tree t;
 
-  elem = fold_convert_const (NOP_EXPR, TREE_TYPE (type), integer_zero_node);
-  units = TYPE_VECTOR_SUBPARTS (type);
-
-  list = NULL_TREE;
-  for (i = 0; i < units; i++)
-    list = tree_cons (NULL_TREE, elem, list);
-  return build_vector (type, list);
+  t = fold_convert_const (NOP_EXPR, TREE_TYPE (type), integer_zero_node);
+  return build_vector_from_val (type, t);
 }
 
 /* Returns true, if ARG is convertible to TYPE using a NOP_EXPR.  */
@@ -2021,7 +2029,7 @@ fold_convert_loc (location_t loc, tree type, tree arg)
       gcc_unreachable ();
     }
  fold_convert_exit:
-  protected_set_expr_location (tem, loc);
+  protected_set_expr_location_unshare (tem, loc);
   return tem;
 }
 
@@ -2085,9 +2093,7 @@ non_lvalue_loc (location_t loc, tree x)
 
   if (! maybe_lvalue_p (x))
     return x;
-  x = build1 (NON_LVALUE_EXPR, TREE_TYPE (x), x);
-  SET_EXPR_LOCATION (x, loc);
-  return x;
+  return build1_loc (loc, NON_LVALUE_EXPR, TREE_TYPE (x), x);
 }
 
 /* Nonzero means lvalues are limited to those valid in pedantic ANSI C.
@@ -2103,8 +2109,8 @@ pedantic_non_lvalue_loc (location_t loc, tree x)
 {
   if (pedantic_lvalues)
     return non_lvalue_loc (loc, x);
-  protected_set_expr_location (x, loc);
-  return x;
+
+  return protected_set_expr_location_unshare (x, loc);
 }
 
 /* Given a tree comparison code, return the code that is the logical inverse
@@ -2641,6 +2647,14 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
 	case TRUTH_ORIF_EXPR:
 	  return OP_SAME (0) && OP_SAME (1);
 
+	case FMA_EXPR:
+	case WIDEN_MULT_PLUS_EXPR:
+	case WIDEN_MULT_MINUS_EXPR:
+	  if (!OP_SAME (2))
+	    return 0;
+	  /* The multiplcation operands are commutative.  */
+	  /* FALLTHRU */
+
 	case TRUTH_AND_EXPR:
 	case TRUTH_OR_EXPR:
 	case TRUTH_XOR_EXPR:
@@ -2654,6 +2668,8 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
 				      TREE_OPERAND (arg1, 0), flags));
 
 	case COND_EXPR:
+	case VEC_COND_EXPR:
+	case DOT_PROD_EXPR:
 	  return OP_SAME (0) && OP_SAME (1) && OP_SAME (2);
 
 	default:
@@ -2968,22 +2984,14 @@ omit_one_operand_loc (location_t loc, tree type, tree result, tree omitted)
   /* If the resulting operand is an empty statement, just return the omitted
      statement casted to void. */
   if (IS_EMPTY_STMT (t) && TREE_SIDE_EFFECTS (omitted))
-    {
-      t = build1 (NOP_EXPR, void_type_node, fold_ignored_result (omitted));
-      goto omit_one_operand_exit;
-    }
+    return build1_loc (loc, NOP_EXPR, void_type_node,
+		       fold_ignored_result (omitted));
 
   if (TREE_SIDE_EFFECTS (omitted))
-    {
-      t = build2 (COMPOUND_EXPR, type, fold_ignored_result (omitted), t);
-      goto omit_one_operand_exit;
-    }
+    return build2_loc (loc, COMPOUND_EXPR, type,
+		       fold_ignored_result (omitted), t);
 
   return non_lvalue_loc (loc, t);
-
- omit_one_operand_exit:
-  protected_set_expr_location (t, loc);
-  return t;
 }
 
 /* Similar, but call pedantic_non_lvalue instead of non_lvalue.  */
@@ -2997,22 +3005,14 @@ pedantic_omit_one_operand_loc (location_t loc, tree type, tree result,
   /* If the resulting operand is an empty statement, just return the omitted
      statement casted to void. */
   if (IS_EMPTY_STMT (t) && TREE_SIDE_EFFECTS (omitted))
-    {
-      t = build1 (NOP_EXPR, void_type_node, fold_ignored_result (omitted));
-      goto pedantic_omit_one_operand_exit;
-    }
+    return build1_loc (loc, NOP_EXPR, void_type_node,
+		       fold_ignored_result (omitted));
 
   if (TREE_SIDE_EFFECTS (omitted))
-    {
-      t = build2 (COMPOUND_EXPR, type, fold_ignored_result (omitted), t);
-      goto pedantic_omit_one_operand_exit;
-    }
+    return build2_loc (loc, COMPOUND_EXPR, type,
+		       fold_ignored_result (omitted), t);
 
   return pedantic_non_lvalue_loc (loc, t);
-
- pedantic_omit_one_operand_exit:
-  protected_set_expr_location (t, loc);
-  return t;
 }
 
 /* Return a tree for the case when the result of an expression is RESULT
@@ -3026,20 +3026,14 @@ pedantic_omit_one_operand_loc (location_t loc, tree type, tree result,
 
 tree
 omit_two_operands_loc (location_t loc, tree type, tree result,
-		   tree omitted1, tree omitted2)
+		       tree omitted1, tree omitted2)
 {
   tree t = fold_convert_loc (loc, type, result);
 
   if (TREE_SIDE_EFFECTS (omitted2))
-    {
-      t = build2 (COMPOUND_EXPR, type, omitted2, t);
-      SET_EXPR_LOCATION (t, loc);
-    }
+    t = build2_loc (loc, COMPOUND_EXPR, type, omitted2, t);
   if (TREE_SIDE_EFFECTS (omitted1))
-    {
-      t = build2 (COMPOUND_EXPR, type, omitted1, t);
-      SET_EXPR_LOCATION (t, loc);
-    }
+    t = build2_loc (loc, COMPOUND_EXPR, type, omitted1, t);
 
   return TREE_CODE (t) != COMPOUND_EXPR ? non_lvalue_loc (loc, t) : t;
 }
@@ -3055,7 +3049,7 @@ omit_two_operands_loc (location_t loc, tree type, tree result,
 tree
 fold_truth_not_expr (location_t loc, tree arg)
 {
-  tree t, type = TREE_TYPE (arg);
+  tree type = TREE_TYPE (arg);
   enum tree_code code = TREE_CODE (arg);
   location_t loc1, loc2;
 
@@ -3076,9 +3070,8 @@ fold_truth_not_expr (location_t loc, tree arg)
       if (code == ERROR_MARK)
 	return NULL_TREE;
 
-      t = build2 (code, type, TREE_OPERAND (arg, 0), TREE_OPERAND (arg, 1));
-      SET_EXPR_LOCATION (t, loc);
-      return t;
+      return build2_loc (loc, code, type, TREE_OPERAND (arg, 0),
+			 TREE_OPERAND (arg, 1));
     }
 
   switch (code)
@@ -3093,10 +3086,9 @@ fold_truth_not_expr (location_t loc, tree arg)
 	loc1 = loc;
       if (loc2 == UNKNOWN_LOCATION)
 	loc2 = loc;
-      t = build2 (TRUTH_OR_EXPR, type,
-		  invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)),
-		  invert_truthvalue_loc (loc2, TREE_OPERAND (arg, 1)));
-      break;
+      return build2_loc (loc, TRUTH_OR_EXPR, type,
+			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)),
+			 invert_truthvalue_loc (loc2, TREE_OPERAND (arg, 1)));
 
     case TRUTH_OR_EXPR:
       loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
@@ -3105,10 +3097,9 @@ fold_truth_not_expr (location_t loc, tree arg)
 	loc1 = loc;
       if (loc2 == UNKNOWN_LOCATION)
 	loc2 = loc;
-      t = build2 (TRUTH_AND_EXPR, type,
-		  invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)),
-		  invert_truthvalue_loc (loc2, TREE_OPERAND (arg, 1)));
-      break;
+      return build2_loc (loc, TRUTH_AND_EXPR, type,
+			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)),
+			 invert_truthvalue_loc (loc2, TREE_OPERAND (arg, 1)));
 
     case TRUTH_XOR_EXPR:
       /* Here we can invert either operand.  We invert the first operand
@@ -3117,13 +3108,12 @@ fold_truth_not_expr (location_t loc, tree arg)
 	 negation of the second operand.  */
 
       if (TREE_CODE (TREE_OPERAND (arg, 1)) == TRUTH_NOT_EXPR)
-	t = build2 (TRUTH_XOR_EXPR, type, TREE_OPERAND (arg, 0),
-		    TREE_OPERAND (TREE_OPERAND (arg, 1), 0));
+	return build2_loc (loc, TRUTH_XOR_EXPR, type, TREE_OPERAND (arg, 0),
+			   TREE_OPERAND (TREE_OPERAND (arg, 1), 0));
       else
-	t = build2 (TRUTH_XOR_EXPR, type,
-		    invert_truthvalue_loc (loc, TREE_OPERAND (arg, 0)),
-		    TREE_OPERAND (arg, 1));
-      break;
+	return build2_loc (loc, TRUTH_XOR_EXPR, type,
+			   invert_truthvalue_loc (loc, TREE_OPERAND (arg, 0)),
+			   TREE_OPERAND (arg, 1));
 
     case TRUTH_ANDIF_EXPR:
       loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
@@ -3132,10 +3122,9 @@ fold_truth_not_expr (location_t loc, tree arg)
 	loc1 = loc;
       if (loc2 == UNKNOWN_LOCATION)
 	loc2 = loc;
-      t = build2 (TRUTH_ORIF_EXPR, type,
-		  invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)),
-		  invert_truthvalue_loc (loc2, TREE_OPERAND (arg, 1)));
-      break;
+      return build2_loc (loc, TRUTH_ORIF_EXPR, type,
+			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)),
+			 invert_truthvalue_loc (loc2, TREE_OPERAND (arg, 1)));
 
     case TRUTH_ORIF_EXPR:
       loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
@@ -3144,10 +3133,9 @@ fold_truth_not_expr (location_t loc, tree arg)
 	loc1 = loc;
       if (loc2 == UNKNOWN_LOCATION)
 	loc2 = loc;
-      t = build2 (TRUTH_ANDIF_EXPR, type,
-		  invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)),
-		  invert_truthvalue_loc (loc2, TREE_OPERAND (arg, 1)));
-      break;
+      return build2_loc (loc, TRUTH_ANDIF_EXPR, type,
+			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)),
+			 invert_truthvalue_loc (loc2, TREE_OPERAND (arg, 1)));
 
     case TRUTH_NOT_EXPR:
       return TREE_OPERAND (arg, 0);
@@ -3167,22 +3155,20 @@ fold_truth_not_expr (location_t loc, tree arg)
 	/* A COND_EXPR may have a throw as one operand, which
 	   then has void type.  Just leave void operands
 	   as they are.  */
-	t = build3 (COND_EXPR, type, TREE_OPERAND (arg, 0),
-		    VOID_TYPE_P (TREE_TYPE (arg1))
-		    ? arg1 : invert_truthvalue_loc (loc1, arg1),
-		    VOID_TYPE_P (TREE_TYPE (arg2))
-		    ? arg2 : invert_truthvalue_loc (loc2, arg2));
-	break;
+	return build3_loc (loc, COND_EXPR, type, TREE_OPERAND (arg, 0),
+			   VOID_TYPE_P (TREE_TYPE (arg1))
+			   ? arg1 : invert_truthvalue_loc (loc1, arg1),
+			   VOID_TYPE_P (TREE_TYPE (arg2))
+			   ? arg2 : invert_truthvalue_loc (loc2, arg2));
       }
 
     case COMPOUND_EXPR:
       loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 1));
       if (loc1 == UNKNOWN_LOCATION)
 	loc1 = loc;
-      t = build2 (COMPOUND_EXPR, type,
-		  TREE_OPERAND (arg, 0),
-		  invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 1)));
-      break;
+      return build2_loc (loc, COMPOUND_EXPR, type,
+			 TREE_OPERAND (arg, 0),
+			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 1)));
 
     case NON_LVALUE_EXPR:
       loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
@@ -3192,10 +3178,7 @@ fold_truth_not_expr (location_t loc, tree arg)
 
     CASE_CONVERT:
       if (TREE_CODE (TREE_TYPE (arg)) == BOOLEAN_TYPE)
-	{
-	  t = build1 (TRUTH_NOT_EXPR, type, arg);
-	  break;
-	}
+	return build1_loc (loc, TRUTH_NOT_EXPR, type, arg);
 
       /* ... fall through ...  */
 
@@ -3203,37 +3186,27 @@ fold_truth_not_expr (location_t loc, tree arg)
       loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
       if (loc1 == UNKNOWN_LOCATION)
 	loc1 = loc;
-      t = build1 (TREE_CODE (arg), type,
-		  invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)));
-      break;
+      return build1_loc (loc, TREE_CODE (arg), type,
+			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)));
 
     case BIT_AND_EXPR:
       if (!integer_onep (TREE_OPERAND (arg, 1)))
 	return NULL_TREE;
-      t = build2 (EQ_EXPR, type, arg, build_int_cst (type, 0));
-      break;
+      return build2_loc (loc, EQ_EXPR, type, arg, build_int_cst (type, 0));
 
     case SAVE_EXPR:
-      t = build1 (TRUTH_NOT_EXPR, type, arg);
-      break;
+      return build1_loc (loc, TRUTH_NOT_EXPR, type, arg);
 
     case CLEANUP_POINT_EXPR:
       loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
       if (loc1 == UNKNOWN_LOCATION)
 	loc1 = loc;
-      t = build1 (CLEANUP_POINT_EXPR, type,
-		  invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)));
-      break;
+      return build1_loc (loc, CLEANUP_POINT_EXPR, type,
+			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)));
 
     default:
-      t = NULL_TREE;
-      break;
+      return NULL_TREE;
     }
-
-  if (t)
-    SET_EXPR_LOCATION (t, loc);
-
-  return t;
 }
 
 /* Return a simplified tree node for the truth-negation of ARG.  This
@@ -3253,10 +3226,7 @@ invert_truthvalue_loc (location_t loc, tree arg)
 
   tem = fold_truth_not_expr (loc, arg);
   if (!tem)
-    {
-      tem = build1 (TRUTH_NOT_EXPR, TREE_TYPE (arg), arg);
-      SET_EXPR_LOCATION (tem, loc);
-    }
+    tem = build1_loc (loc, TRUTH_NOT_EXPR, TREE_TYPE (arg), arg);
 
   return tem;
 }
@@ -3382,9 +3352,8 @@ make_bit_field_ref (location_t loc, tree inner, tree type,
       || TYPE_UNSIGNED (bftype) == !unsignedp)
     bftype = build_nonstandard_integer_type (bitsize, 0);
 
-  result = build3 (BIT_FIELD_REF, bftype, inner,
-		   size_int (bitsize), bitsize_int (bitpos));
-  SET_EXPR_LOCATION (result, loc);
+  result = build3_loc (loc, BIT_FIELD_REF, bftype, inner,
+		       size_int (bitsize), bitsize_int (bitpos));
 
   if (bftype != type)
     result = fold_convert_loc (loc, type, result);
@@ -3563,10 +3532,8 @@ optimize_bit_field_compare (location_t loc, enum tree_code code,
 				  size_int (lbitpos)),
 		     mask);
 
-  lhs = build2 (code, compare_type,
-		build2 (BIT_AND_EXPR, unsigned_type, lhs, mask),
-		rhs);
-  SET_EXPR_LOCATION (lhs, loc);
+  lhs = build2_loc (loc, code, compare_type,
+		    build2 (BIT_AND_EXPR, unsigned_type, lhs, mask), rhs);
   return lhs;
 }
 
@@ -3992,9 +3959,8 @@ make_range (tree exp, int *pin_p, tree *plow, tree *phigh,
 
 	case BIT_NOT_EXPR:
 	  /* ~ X -> -X - 1  */
-	  exp = build2 (MINUS_EXPR, exp_type, negate_expr (arg0),
-			build_int_cst (exp_type, 1));
-	  SET_EXPR_LOCATION (exp, loc);
+	  exp = build2_loc (loc, MINUS_EXPR, exp_type, negate_expr (arg0),
+			    build_int_cst (exp_type, 1));
 	  continue;
 
 	case PLUS_EXPR:  case MINUS_EXPR:
@@ -4912,13 +4878,9 @@ fold_range_test (location_t loc, enum tree_code code, tree type,
 	 unless we are at top level or LHS contains a PLACEHOLDER_EXPR, in
 	 which cases we can't do this.  */
       if (simple_operand_p (lhs))
-	{
-	  tem = build2 (code == TRUTH_ANDIF_EXPR
-			? TRUTH_AND_EXPR : TRUTH_OR_EXPR,
-			type, op0, op1);
-	  SET_EXPR_LOCATION (tem, loc);
-	  return tem;
-	}
+	return build2_loc (loc, code == TRUTH_ANDIF_EXPR
+			   ? TRUTH_AND_EXPR : TRUTH_OR_EXPR,
+			   type, op0, op1);
 
       else if (lang_hooks.decls.global_bindings_p () == 0
 	       && ! CONTAINS_PLACEHOLDER_P (lhs))
@@ -4935,11 +4897,9 @@ fold_range_test (location_t loc, enum tree_code code, tree type,
 	      if (strict_overflow_p)
 		fold_overflow_warning (warnmsg,
 				       WARN_STRICT_OVERFLOW_COMPARISON);
-	      tem = build2 (code == TRUTH_ANDIF_EXPR
-			    ? TRUTH_AND_EXPR : TRUTH_OR_EXPR,
-			    type, lhs, rhs);
-	      SET_EXPR_LOCATION (tem, loc);
-	      return tem;
+	      return build2_loc (loc, code == TRUTH_ANDIF_EXPR
+				 ? TRUTH_AND_EXPR : TRUTH_OR_EXPR,
+				 type, lhs, rhs);
 	    }
 	}
     }
@@ -5153,7 +5113,6 @@ fold_truthop (location_t loc, enum tree_code code, tree truth_type,
   if (simple_operand_p (ll_arg)
       && simple_operand_p (lr_arg))
     {
-      tree result;
       if (operand_equal_p (ll_arg, rl_arg, 0)
           && operand_equal_p (lr_arg, rr_arg, 0))
 	{
@@ -5194,13 +5153,10 @@ fold_truthop (location_t loc, enum tree_code code, tree truth_type,
 	  && rcode == NE_EXPR && integer_zerop (rr_arg)
 	  && TREE_TYPE (ll_arg) == TREE_TYPE (rl_arg)
 	  && INTEGRAL_TYPE_P (TREE_TYPE (ll_arg)))
-	{
-	  result = build2 (NE_EXPR, truth_type,
+	return build2_loc (loc, NE_EXPR, truth_type,
 			   build2 (BIT_IOR_EXPR, TREE_TYPE (ll_arg),
 				   ll_arg, rl_arg),
 			   build_int_cst (TREE_TYPE (ll_arg), 0));
-	  goto fold_truthop_exit;
-	}
 
       /* Convert (a == 0) && (b == 0) into (a | b) == 0.  */
       if (code == TRUTH_AND_EXPR
@@ -5208,21 +5164,15 @@ fold_truthop (location_t loc, enum tree_code code, tree truth_type,
 	  && rcode == EQ_EXPR && integer_zerop (rr_arg)
 	  && TREE_TYPE (ll_arg) == TREE_TYPE (rl_arg)
 	  && INTEGRAL_TYPE_P (TREE_TYPE (ll_arg)))
-	{
-	  result = build2 (EQ_EXPR, truth_type,
+	return build2_loc (loc, EQ_EXPR, truth_type,
 			   build2 (BIT_IOR_EXPR, TREE_TYPE (ll_arg),
 				   ll_arg, rl_arg),
 			   build_int_cst (TREE_TYPE (ll_arg), 0));
-	  goto fold_truthop_exit;
-	}
 
       if (LOGICAL_OP_NON_SHORT_CIRCUIT)
 	{
 	  if (code != orig_code || lhs != orig_lhs || rhs != orig_rhs)
-	    {
-	      result = build2 (code, truth_type, lhs, rhs);
-	      goto fold_truthop_exit;
-	    }
+	    return build2_loc (loc, code, truth_type, lhs, rhs);
 	  return NULL_TREE;
 	}
     }
@@ -5413,8 +5363,7 @@ fold_truthop (location_t loc, enum tree_code code, tree truth_type,
 	  if (! all_ones_mask_p (lr_mask, rnbitsize))
 	    rhs = build2 (BIT_AND_EXPR, rntype, rhs, lr_mask);
 
-	  result = build2 (wanted_code, truth_type, lhs, rhs);
-	  goto fold_truthop_exit;
+	  return build2_loc (loc, wanted_code, truth_type, lhs, rhs);
 	}
 
       /* There is still another way we can do something:  If both pairs of
@@ -5467,8 +5416,7 @@ fold_truthop (location_t loc, enum tree_code code, tree truth_type,
 	  if (! all_ones_mask_p (lr_mask, lr_bitsize + rr_bitsize))
 	    rhs = build2 (BIT_AND_EXPR, type, rhs, lr_mask);
 
-	  result = build2 (wanted_code, truth_type, lhs, rhs);
-	  goto fold_truthop_exit;
+	  return build2_loc (loc, wanted_code, truth_type, lhs, rhs);
 	}
 
       return 0;
@@ -5504,17 +5452,10 @@ fold_truthop (location_t loc, enum tree_code code, tree truth_type,
 
   ll_mask = const_binop (BIT_IOR_EXPR, ll_mask, rl_mask);
   if (! all_ones_mask_p (ll_mask, lnbitsize))
-    {
-      result = build2 (BIT_AND_EXPR, lntype, result, ll_mask);
-      SET_EXPR_LOCATION (result, loc);
-    }
+    result = build2_loc (loc, BIT_AND_EXPR, lntype, result, ll_mask);
 
-  result = build2 (wanted_code, truth_type, result,
-		   const_binop (BIT_IOR_EXPR, l_const, r_const));
-
- fold_truthop_exit:
-  SET_EXPR_LOCATION (result, loc);
-  return result;
+  return build2_loc (loc, wanted_code, truth_type, result,
+		     const_binop (BIT_IOR_EXPR, l_const, r_const));
 }
 
 /* Optimize T, which is a comparison of a MIN_EXPR or MAX_EXPR with a
@@ -7603,10 +7544,7 @@ build_fold_addr_expr_with_type_loc (location_t loc, tree t, tree ptrtype)
       t = TREE_OPERAND (t, 0);
 
       if (TREE_TYPE (t) != ptrtype)
-	{
-	  t = build1 (NOP_EXPR, ptrtype, t);
-	  SET_EXPR_LOCATION (t, loc);
-	}
+	t = build1_loc (loc, NOP_EXPR, ptrtype, t);
     }
   else if (TREE_CODE (t) == MEM_REF
       && integer_zerop (TREE_OPERAND (t, 1)))
@@ -7619,10 +7557,7 @@ build_fold_addr_expr_with_type_loc (location_t loc, tree t, tree ptrtype)
 	t = fold_convert_loc (loc, ptrtype, t);
     }
   else
-    {
-      t = build1 (ADDR_EXPR, ptrtype, t);
-      SET_EXPR_LOCATION (t, loc);
-    }
+    t = build1_loc (loc, ADDR_EXPR, ptrtype, t);
 
   return t;
 }
@@ -7723,16 +7658,14 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
 			 (TREE_TYPE (TREE_OPERAND (TREE_OPERAND (tem, 1), 0))))
 		     && TYPE_PRECISION (TREE_TYPE (tem)) <= BITS_PER_WORD)
 		  || flag_syntax_only))
-	    {
-	      tem = build1 (code, type,
-			    build3 (COND_EXPR,
-				    TREE_TYPE (TREE_OPERAND
-					       (TREE_OPERAND (tem, 1), 0)),
-				    TREE_OPERAND (tem, 0),
-				    TREE_OPERAND (TREE_OPERAND (tem, 1), 0),
-				    TREE_OPERAND (TREE_OPERAND (tem, 2), 0)));
-	      SET_EXPR_LOCATION (tem, loc);
-	    }
+	    tem = build1_loc (loc, code, type,
+			      build3 (COND_EXPR,
+				      TREE_TYPE (TREE_OPERAND
+						 (TREE_OPERAND (tem, 1), 0)),
+				      TREE_OPERAND (tem, 0),
+				      TREE_OPERAND (TREE_OPERAND (tem, 1), 0),
+				      TREE_OPERAND (TREE_OPERAND (tem, 2),
+						    0)));
 	  return tem;
 	}
       else if (COMPARISON_CLASS_P (arg0))
@@ -7895,10 +7828,9 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
 	     unless assigning a bitfield.  */
 	  tem = fold_build1_loc (loc, code, type, TREE_OPERAND (op0, 1));
 	  /* First do the assignment, then return converted constant.  */
-	  tem = build2 (COMPOUND_EXPR, TREE_TYPE (tem), op0, tem);
+	  tem = build2_loc (loc, COMPOUND_EXPR, TREE_TYPE (tem), op0, tem);
 	  TREE_NO_WARNING (tem) = 1;
 	  TREE_USED (tem) = 1;
-	  SET_EXPR_LOCATION (tem, loc);
 	  return tem;
 	}
 
@@ -8234,7 +8166,7 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
 
     case IMAGPART_EXPR:
       if (TREE_CODE (TREE_TYPE (arg0)) != COMPLEX_TYPE)
-	return fold_convert_loc (loc, type, integer_zero_node);
+	return build_zero_cst (type);
       if (TREE_CODE (arg0) == COMPLEX_EXPR)
 	return omit_one_operand_loc (loc, type, TREE_OPERAND (arg0, 1),
 				 TREE_OPERAND (arg0, 0));
@@ -9289,7 +9221,7 @@ fold_mult_zconjz (location_t loc, tree type, tree expr)
 		     fold_build2_loc (loc, MULT_EXPR, itype, rpart, rpart),
 		     fold_build2_loc (loc, MULT_EXPR, itype, ipart, ipart));
   return fold_build2_loc (loc, COMPLEX_EXPR, type, tem,
-		      fold_convert_loc (loc, itype, integer_zero_node));
+			  build_zero_cst (itype));
 }
 
 
@@ -9520,8 +9452,8 @@ fold_binary_loc (location_t loc,
 	  tem = fold_build2_loc (loc, code, type,
 			     fold_convert_loc (loc, TREE_TYPE (op0),
 					       TREE_OPERAND (arg0, 1)), op1);
-	  tem = build2 (COMPOUND_EXPR, type, TREE_OPERAND (arg0, 0), tem);
-	  goto fold_binary_exit;
+	  return build2_loc (loc, COMPOUND_EXPR, type, TREE_OPERAND (arg0, 0),
+			     tem);
 	}
       if (TREE_CODE (arg1) == COMPOUND_EXPR
 	  && reorder_operands_p (arg0, TREE_OPERAND (arg1, 0)))
@@ -9529,8 +9461,8 @@ fold_binary_loc (location_t loc,
 	  tem = fold_build2_loc (loc, code, type, op0,
 			     fold_convert_loc (loc, TREE_TYPE (op1),
 					       TREE_OPERAND (arg1, 1)));
-	  tem = build2 (COMPOUND_EXPR, type, TREE_OPERAND (arg1, 0), tem);
-	  goto fold_binary_exit;
+	  return build2_loc (loc, COMPOUND_EXPR, type, TREE_OPERAND (arg1, 0),
+			     tem);
 	}
 
       if (TREE_CODE (arg0) == COND_EXPR || COMPARISON_CLASS_P (arg0))
@@ -9929,12 +9861,10 @@ fold_binary_loc (location_t loc,
 		&& ((TREE_INT_CST_LOW (tree01) + TREE_INT_CST_LOW (tree11))
 		    == TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (arg0, 0)))))
 	      {
-		tem = build2 (LROTATE_EXPR,
-			      TREE_TYPE (TREE_OPERAND (arg0, 0)),
-			      TREE_OPERAND (arg0, 0),
-			      code0 == LSHIFT_EXPR
-			      ? tree01 : tree11);
-		SET_EXPR_LOCATION (tem, loc);
+		tem = build2_loc (loc, LROTATE_EXPR,
+				  TREE_TYPE (TREE_OPERAND (arg0, 0)),
+				  TREE_OPERAND (arg0, 0),
+				  code0 == LSHIFT_EXPR ? tree01 : tree11);
 		return fold_convert_loc (loc, type, tem);
 	      }
 	    else if (code11 == MINUS_EXPR)
@@ -10281,7 +10211,7 @@ fold_binary_loc (location_t loc,
 
       if ((!FLOAT_TYPE_P (type) || !HONOR_NANS (TYPE_MODE (type)))
 	  && operand_equal_p (arg0, arg1, 0))
-	return fold_convert_loc (loc, type, integer_zero_node);
+	return build_zero_cst (type);
 
       /* A - B -> A + (-B) if B is easily negatable.  */
       if (negate_expr_p (arg1)
@@ -10668,7 +10598,7 @@ fold_binary_loc (location_t loc,
       if (TREE_CODE (arg0) == BIT_NOT_EXPR
 	  && operand_equal_p (TREE_OPERAND (arg0, 0), arg1, 0))
 	{
-	  t1 = fold_convert_loc (loc, type, integer_zero_node);
+	  t1 = build_zero_cst (type);
 	  t1 = fold_unary_loc (loc, BIT_NOT_EXPR, type, t1);
 	  return omit_one_operand_loc (loc, type, t1, arg1);
 	}
@@ -10677,7 +10607,7 @@ fold_binary_loc (location_t loc,
       if (TREE_CODE (arg1) == BIT_NOT_EXPR
 	  && operand_equal_p (arg0, TREE_OPERAND (arg1, 0), 0))
 	{
-	  t1 = fold_convert_loc (loc, type, integer_zero_node);
+	  t1 = build_zero_cst (type);
 	  t1 = fold_unary_loc (loc, BIT_NOT_EXPR, type, t1);
 	  return omit_one_operand_loc (loc, type, t1, arg0);
 	}
@@ -10807,7 +10737,7 @@ fold_binary_loc (location_t loc,
       if (TREE_CODE (arg0) == BIT_NOT_EXPR
 	  && operand_equal_p (TREE_OPERAND (arg0, 0), arg1, 0))
 	{
-	  t1 = fold_convert_loc (loc, type, integer_zero_node);
+	  t1 = build_zero_cst (type);
 	  t1 = fold_unary_loc (loc, BIT_NOT_EXPR, type, t1);
 	  return omit_one_operand_loc (loc, type, t1, arg1);
 	}
@@ -10816,7 +10746,7 @@ fold_binary_loc (location_t loc,
       if (TREE_CODE (arg1) == BIT_NOT_EXPR
 	  && operand_equal_p (arg0, TREE_OPERAND (arg1, 0), 0))
 	{
-	  t1 = fold_convert_loc (loc, type, integer_zero_node);
+	  t1 = build_zero_cst (type);
 	  t1 = fold_unary_loc (loc, BIT_NOT_EXPR, type, t1);
 	  return omit_one_operand_loc (loc, type, t1, arg0);
 	}
@@ -13129,13 +13059,10 @@ fold_binary_loc (location_t loc,
 	  && TYPE_UNSIGNED (TREE_TYPE (arg0))
 	  && TREE_CODE (arg1) == LSHIFT_EXPR
 	  && integer_onep (TREE_OPERAND (arg1, 0)))
-	{
-	  tem = build2 (code == LT_EXPR ? EQ_EXPR : NE_EXPR, type,
-			build2 (RSHIFT_EXPR, TREE_TYPE (arg0), arg0,
-				TREE_OPERAND (arg1, 1)),
-			build_int_cst (TREE_TYPE (arg0), 0));
-	  goto fold_binary_exit;
-	}
+	return build2_loc (loc, code == LT_EXPR ? EQ_EXPR : NE_EXPR, type,
+			   build2 (RSHIFT_EXPR, TREE_TYPE (arg0), arg0,
+				   TREE_OPERAND (arg1, 1)),
+			   build_int_cst (TREE_TYPE (arg0), 0));
 
       if ((code == LT_EXPR || code == GE_EXPR)
 	  && TYPE_UNSIGNED (TREE_TYPE (arg0))
@@ -13143,14 +13070,11 @@ fold_binary_loc (location_t loc,
 	  && TREE_CODE (TREE_OPERAND (arg1, 0)) == LSHIFT_EXPR
 	  && integer_onep (TREE_OPERAND (TREE_OPERAND (arg1, 0), 0)))
 	{
-	  tem = build2 (code == LT_EXPR ? EQ_EXPR : NE_EXPR, type,
-			fold_convert_loc (loc, TREE_TYPE (arg0),
-					  build2 (RSHIFT_EXPR,
-						  TREE_TYPE (arg0), arg0,
-						  TREE_OPERAND (TREE_OPERAND (arg1, 0),
-								1))),
-			build_int_cst (TREE_TYPE (arg0), 0));
-	  goto fold_binary_exit;
+	  tem = build2 (RSHIFT_EXPR, TREE_TYPE (arg0), arg0,
+			TREE_OPERAND (TREE_OPERAND (arg1, 0), 1));
+	  return build2_loc (loc, code == LT_EXPR ? EQ_EXPR : NE_EXPR, type,
+			     fold_convert_loc (loc, TREE_TYPE (arg0), tem),
+			     build_int_cst (TREE_TYPE (arg0), 0));
 	}
 
       return NULL_TREE;
@@ -13244,9 +13168,6 @@ fold_binary_loc (location_t loc,
     default:
       return NULL_TREE;
     } /* switch (code) */
- fold_binary_exit:
-  protected_set_expr_location (tem, loc);
-  return tem;
 }
 
 /* Callback for walk_tree, looking for LABEL_EXPR.  Return *TP if it is
@@ -13287,10 +13208,10 @@ contains_label_p (tree st)
 
 tree
 fold_ternary_loc (location_t loc, enum tree_code code, tree type,
-	      tree op0, tree op1, tree op2)
+		  tree op0, tree op1, tree op2)
 {
   tree tem;
-  tree arg0 = NULL_TREE, arg1 = NULL_TREE;
+  tree arg0 = NULL_TREE, arg1 = NULL_TREE, arg2 = NULL_TREE;
   enum tree_code_class kind = TREE_CODE_CLASS (code);
 
   gcc_assert (IS_EXPR_CODE_CLASS (kind)
@@ -13316,6 +13237,12 @@ fold_ternary_loc (location_t loc, enum tree_code code, tree type,
     {
       arg1 = op1;
       STRIP_NOPS (arg1);
+    }
+
+  if (op2)
+    {
+      arg2 = op2;
+      STRIP_NOPS (arg2);
     }
 
   switch (code)
@@ -13604,7 +13531,7 @@ fold_ternary_loc (location_t loc, enum tree_code code, tree type,
 	      if (elements)
 		return TREE_VALUE (elements);
 	      else
-		return fold_convert_loc (loc, type, integer_zero_node);
+		return build_zero_cst (type);
 	    }
 	}
 
@@ -13615,6 +13542,17 @@ fold_ternary_loc (location_t loc, enum tree_code code, tree type,
 	return fold_convert_loc (loc, type, arg0);
 
       return NULL_TREE;
+
+    case FMA_EXPR:
+      /* For integers we can decompose the FMA if possible.  */
+      if (TREE_CODE (arg0) == INTEGER_CST
+	  && TREE_CODE (arg1) == INTEGER_CST)
+	return fold_build2_loc (loc, PLUS_EXPR, type,
+				const_binop (MULT_EXPR, arg0, arg1), arg2);
+      if (integer_zerop (arg2))
+	return fold_build2_loc (loc, MULT_EXPR, type, arg0, arg1);
+
+      return fold_fma (loc, type, arg0, arg1, arg2);
 
     default:
       return NULL_TREE;
@@ -13996,10 +13934,7 @@ fold_build1_stat_loc (location_t loc,
 
   tem = fold_unary_loc (loc, code, type, op0);
   if (!tem)
-    {
-      tem = build1_stat (code, type, op0 PASS_MEM_STAT);
-      SET_EXPR_LOCATION (tem, loc);
-    }
+    tem = build1_stat_loc (loc, code, type, op0 PASS_MEM_STAT);
 
 #ifdef ENABLE_FOLD_CHECKING
   md5_init_ctx (&ctx);
@@ -14047,10 +13982,7 @@ fold_build2_stat_loc (location_t loc,
 
   tem = fold_binary_loc (loc, code, type, op0, op1);
   if (!tem)
-    {
-      tem = build2_stat (code, type, op0, op1 PASS_MEM_STAT);
-      SET_EXPR_LOCATION (tem, loc);
-    }
+    tem = build2_stat_loc (loc, code, type, op0, op1 PASS_MEM_STAT);
 
 #ifdef ENABLE_FOLD_CHECKING
   md5_init_ctx (&ctx);
@@ -14112,10 +14044,7 @@ fold_build3_stat_loc (location_t loc, enum tree_code code, tree type,
   gcc_assert (TREE_CODE_CLASS (code) != tcc_vl_exp);
   tem = fold_ternary_loc (loc, code, type, op0, op1, op2);
   if (!tem)
-    {
-      tem =  build3_stat (code, type, op0, op1, op2 PASS_MEM_STAT);
-      SET_EXPR_LOCATION (tem, loc);
-    }
+    tem = build3_stat_loc (loc, code, type, op0, op1, op2 PASS_MEM_STAT);
 
 #ifdef ENABLE_FOLD_CHECKING
   md5_init_ctx (&ctx);
@@ -15631,9 +15560,8 @@ fold_indirect_ref_1 (location_t loc, tree type, tree op0)
 	  tree min_val = size_zero_node;
 	  if (type_domain && TYPE_MIN_VALUE (type_domain))
 	    min_val = TYPE_MIN_VALUE (type_domain);
-	  op0 = build4 (ARRAY_REF, type, op, min_val, NULL_TREE, NULL_TREE);
-	  SET_EXPR_LOCATION (op0, loc);
-	  return op0;
+	  return build4_loc (loc, ARRAY_REF, type, op, min_val,
+			     NULL_TREE, NULL_TREE);
 	}
       /* *(foo *)&complexfoo => __real__ complexfoo */
       else if (TREE_CODE (optype) == COMPLEX_TYPE
@@ -15649,53 +15577,57 @@ fold_indirect_ref_1 (location_t loc, tree type, tree op0)
 	}
     }
 
-  /* ((foo*)&vectorfoo)[1] => BIT_FIELD_REF<vectorfoo,...> */
   if (TREE_CODE (sub) == POINTER_PLUS_EXPR
       && TREE_CODE (TREE_OPERAND (sub, 1)) == INTEGER_CST)
     {
       tree op00 = TREE_OPERAND (sub, 0);
       tree op01 = TREE_OPERAND (sub, 1);
-      tree op00type;
 
       STRIP_NOPS (op00);
-      op00type = TREE_TYPE (op00);
-      if (TREE_CODE (op00) == ADDR_EXPR
-          && TREE_CODE (TREE_TYPE (op00type)) == VECTOR_TYPE
-          && type == TREE_TYPE (TREE_TYPE (op00type)))
+      if (TREE_CODE (op00) == ADDR_EXPR)
 	{
-	  HOST_WIDE_INT offset = tree_low_cst (op01, 0);
-	  tree part_width = TYPE_SIZE (type);
-	  unsigned HOST_WIDE_INT part_widthi = tree_low_cst (part_width, 0)/BITS_PER_UNIT;
-	  unsigned HOST_WIDE_INT indexi = offset * BITS_PER_UNIT;
-	  tree index = bitsize_int (indexi);
+	  tree op00type;
+	  op00 = TREE_OPERAND (op00, 0);
+	  op00type = TREE_TYPE (op00);
 
-	  if (offset/part_widthi <= TYPE_VECTOR_SUBPARTS (TREE_TYPE (op00type)))
-	    return fold_build3_loc (loc,
-				BIT_FIELD_REF, type, TREE_OPERAND (op00, 0),
-				part_width, index);
+	  /* ((foo*)&vectorfoo)[1] => BIT_FIELD_REF<vectorfoo,...> */
+	  if (TREE_CODE (op00type) == VECTOR_TYPE
+	      && type == TREE_TYPE (op00type))
+	    {
+	      HOST_WIDE_INT offset = tree_low_cst (op01, 0);
+	      tree part_width = TYPE_SIZE (type);
+	      unsigned HOST_WIDE_INT part_widthi = tree_low_cst (part_width, 0)/BITS_PER_UNIT;
+	      unsigned HOST_WIDE_INT indexi = offset * BITS_PER_UNIT;
+	      tree index = bitsize_int (indexi);
 
-	}
-    }
+	      if (offset/part_widthi <= TYPE_VECTOR_SUBPARTS (op00type))
+		return fold_build3_loc (loc,
+					BIT_FIELD_REF, type, op00,
+					part_width, index);
 
-
-  /* ((foo*)&complexfoo)[1] => __imag__ complexfoo */
-  if (TREE_CODE (sub) == POINTER_PLUS_EXPR
-      && TREE_CODE (TREE_OPERAND (sub, 1)) == INTEGER_CST)
-    {
-      tree op00 = TREE_OPERAND (sub, 0);
-      tree op01 = TREE_OPERAND (sub, 1);
-      tree op00type;
-
-      STRIP_NOPS (op00);
-      op00type = TREE_TYPE (op00);
-      if (TREE_CODE (op00) == ADDR_EXPR
- 	  && TREE_CODE (TREE_TYPE (op00type)) == COMPLEX_TYPE
-	  && type == TREE_TYPE (TREE_TYPE (op00type)))
-	{
-	  tree size = TYPE_SIZE_UNIT (type);
-	  if (tree_int_cst_equal (size, op01))
-	    return fold_build1_loc (loc, IMAGPART_EXPR, type,
-				TREE_OPERAND (op00, 0));
+	    }
+	  /* ((foo*)&complexfoo)[1] => __imag__ complexfoo */
+	  else if (TREE_CODE (op00type) == COMPLEX_TYPE
+		   && type == TREE_TYPE (op00type))
+	    {
+	      tree size = TYPE_SIZE_UNIT (type);
+	      if (tree_int_cst_equal (size, op01))
+		return fold_build1_loc (loc, IMAGPART_EXPR, type, op00);
+	    }
+	  /* ((foo *)&fooarray)[1] => fooarray[1] */
+	  else if (TREE_CODE (op00type) == ARRAY_TYPE
+		   && type == TREE_TYPE (op00type))
+	    {
+	      tree type_domain = TYPE_DOMAIN (op00type);
+	      tree min_val = size_zero_node;
+	      if (type_domain && TYPE_MIN_VALUE (type_domain))
+		min_val = TYPE_MIN_VALUE (type_domain);
+	      op01 = size_binop_loc (loc, EXACT_DIV_EXPR, op01,
+				     TYPE_SIZE_UNIT (type));
+	      op01 = size_binop_loc (loc, PLUS_EXPR, op01, min_val);
+	      return build4_loc (loc, ARRAY_REF, type, op00, op01,
+				 NULL_TREE, NULL_TREE);
+	    }
 	}
     }
 
@@ -15709,9 +15641,8 @@ fold_indirect_ref_1 (location_t loc, tree type, tree op0)
       type_domain = TYPE_DOMAIN (TREE_TYPE (sub));
       if (type_domain && TYPE_MIN_VALUE (type_domain))
 	min_val = TYPE_MIN_VALUE (type_domain);
-      op0 = build4 (ARRAY_REF, type, sub, min_val, NULL_TREE, NULL_TREE);
-      SET_EXPR_LOCATION (op0, loc);
-      return op0;
+      return build4_loc (loc, ARRAY_REF, type, sub, min_val, NULL_TREE,
+			 NULL_TREE);
     }
 
   return NULL_TREE;
@@ -15729,9 +15660,7 @@ build_fold_indirect_ref_loc (location_t loc, tree t)
   if (sub)
     return sub;
 
-  t = build1 (INDIRECT_REF, type, t);
-  SET_EXPR_LOCATION (t, loc);
-  return t;
+  return build1_loc (loc, INDIRECT_REF, type, t);
 }
 
 /* Given an INDIRECT_REF T, return either T or a simplified version.  */

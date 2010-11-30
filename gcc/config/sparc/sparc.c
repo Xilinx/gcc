@@ -405,7 +405,6 @@ static rtx sparc_tls_got (void);
 static const char *get_some_local_dynamic_name (void);
 static int get_some_local_dynamic_name_1 (rtx *, void *);
 static bool sparc_rtx_costs (rtx, int, int, int *, bool);
-static bool sparc_promote_prototypes (const_tree);
 static rtx sparc_function_value (const_tree, const_tree, bool);
 static rtx sparc_libcall_value (enum machine_mode, const_rtx);
 static bool sparc_function_value_regno_p (const unsigned int);
@@ -421,6 +420,7 @@ static bool sparc_tls_referenced_p (rtx);
 static rtx sparc_legitimize_tls_address (rtx);
 static rtx sparc_legitimize_pic_address (rtx, rtx);
 static rtx sparc_legitimize_address (rtx, rtx, enum machine_mode);
+static rtx sparc_delegitimize_address (rtx);
 static bool sparc_mode_dependent_address_p (const_rtx);
 static bool sparc_pass_by_reference (CUMULATIVE_ARGS *,
 				     enum machine_mode, const_tree, bool);
@@ -432,6 +432,8 @@ static rtx sparc_function_arg (CUMULATIVE_ARGS *,
 			       enum machine_mode, const_tree, bool);
 static rtx sparc_function_incoming_arg (CUMULATIVE_ARGS *,
 					enum machine_mode, const_tree, bool);
+static unsigned int sparc_function_arg_boundary (enum machine_mode,
+						 const_tree);
 static int sparc_arg_partial_bytes (CUMULATIVE_ARGS *,
 				    enum machine_mode, tree, bool);
 static void sparc_dwarf_handle_frame_unspec (const char *, rtx, int);
@@ -439,6 +441,7 @@ static void sparc_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static void sparc_file_end (void);
 static bool sparc_frame_pointer_required (void);
 static bool sparc_can_eliminate (const int, const int);
+static void sparc_conditional_register_usage (void);
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
 static const char *sparc_mangle_type (const_tree);
 #endif
@@ -476,6 +479,13 @@ enum processor_type sparc_cpu;
 
 /* Whetheran FPU option was specified.  */
 static bool fpu_option_set = false;
+
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options sparc_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 /* Initialize the GCC target structure.  */
 
@@ -518,6 +528,8 @@ static bool fpu_option_set = false;
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS sparc_legitimize_address
+#undef TARGET_DELEGITIMIZE_ADDRESS
+#define TARGET_DELEGITIMIZE_ADDRESS sparc_delegitimize_address
 #undef TARGET_MODE_DEPENDENT_ADDRESS_P
 #define TARGET_MODE_DEPENDENT_ADDRESS_P sparc_mode_dependent_address_p
 
@@ -547,9 +559,6 @@ static bool fpu_option_set = false;
 #undef TARGET_PROMOTE_FUNCTION_MODE
 #define TARGET_PROMOTE_FUNCTION_MODE sparc_promote_function_mode
 
-#undef TARGET_PROMOTE_PROTOTYPES
-#define TARGET_PROMOTE_PROTOTYPES sparc_promote_prototypes
-
 #undef TARGET_FUNCTION_VALUE
 #define TARGET_FUNCTION_VALUE sparc_function_value
 #undef TARGET_LIBCALL_VALUE
@@ -573,6 +582,8 @@ static bool fpu_option_set = false;
 #define TARGET_FUNCTION_ARG sparc_function_arg
 #undef TARGET_FUNCTION_INCOMING_ARG
 #define TARGET_FUNCTION_INCOMING_ARG sparc_function_incoming_arg
+#undef TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY sparc_function_arg_boundary
 
 #undef TARGET_EXPAND_BUILTIN_SAVEREGS
 #define TARGET_EXPAND_BUILTIN_SAVEREGS sparc_builtin_saveregs
@@ -612,6 +623,8 @@ static bool fpu_option_set = false;
 #define TARGET_HANDLE_OPTION sparc_handle_option
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE sparc_option_override
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE sparc_option_optimization_table
 
 #if TARGET_GNU_TLS && defined(HAVE_AS_SPARC_UA_PCREL)
 #undef TARGET_ASM_OUTPUT_DWARF_DTPREL
@@ -626,6 +639,9 @@ static bool fpu_option_set = false;
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE sparc_can_eliminate
+
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE sparc_conditional_register_usage
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
 #undef TARGET_MANGLE_TYPE
@@ -3563,6 +3579,24 @@ sparc_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
   return x;
 }
 
+/* Delegitimize an address that was legitimized by the above function.  */
+
+static rtx
+sparc_delegitimize_address (rtx x)
+{
+  x = delegitimize_mem_from_attrs (x);
+
+  if (GET_CODE (x) == LO_SUM
+      && GET_CODE (XEXP (x, 1)) == UNSPEC
+      && XINT (XEXP (x, 1), 1) == UNSPEC_TLSLE)
+    {
+      x = XVECEXP (XEXP (x, 1), 0, 0);
+      gcc_assert (GET_CODE (x) == SYMBOL_REF);
+    }
+
+  return x;
+}
+
 /* SPARC implementation of LEGITIMIZE_RELOAD_ADDRESS.  Returns a value to
    replace the input X, or the original X if no replacement is called for.
    The output parameter *WIN is 1 if the calling macro should goto WIN,
@@ -4900,15 +4934,6 @@ init_cumulative_args (struct sparc_args *cum, tree fntype,
   cum->libcall_p = fntype == 0;
 }
 
-/* Handle the TARGET_PROMOTE_PROTOTYPES target hook.
-   When a prototype says `char' or `short', really pass an `int'.  */
-
-static bool
-sparc_promote_prototypes (const_tree fntype ATTRIBUTE_UNUSED)
-{
-  return TARGET_ARCH32 ? true : false;
-}
-
 /* Handle promotion of pointer and integer arguments.  */
 
 static enum machine_mode
@@ -4924,12 +4949,8 @@ sparc_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
       return Pmode;
     }
 
-  /* For TARGET_ARCH64 we need this, as we don't have instructions
-     for arithmetic operations which do zero/sign extension at the same time,
-     so without this we end up with a srl/sra after every assignment to an
-     user variable,  which means very very bad code.  */
-  if (TARGET_ARCH64
-      && GET_MODE_CLASS (mode) == MODE_INT
+  /* Integral arguments are passed as full words, as per the ABI.  */
+  if (GET_MODE_CLASS (mode) == MODE_INT
       && GET_MODE_SIZE (mode) < UNITS_PER_WORD)
     return word_mode;
 
@@ -5736,6 +5757,18 @@ sparc_function_incoming_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
   return sparc_function_arg_1 (cum, mode, type, named, true);
 }
 
+/* For sparc64, objects requiring 16 byte alignment are passed that way.  */
+
+static unsigned int
+sparc_function_arg_boundary (enum machine_mode mode, const_tree type)
+{
+  return ((TARGET_ARCH64
+	   && (GET_MODE_ALIGNMENT (mode) == 128
+	       || (type && TYPE_ALIGN (type) == 128)))
+	  ? 128
+	  : PARM_BOUNDARY);
+}
+
 /* For an arg passed partly in registers and partly in memory,
    this is the number of bytes of registers used.
    For args passed entirely in registers or entirely in memory, zero.
@@ -5950,8 +5983,8 @@ sparc_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
        integers are returned like floats of the same size, that is in
        registers.  Return all vector floats like structure and unions;
        note that they always have BLKmode like the latter.  */
-    return ((TYPE_MODE (type) == BLKmode
-	     && (unsigned HOST_WIDE_INT) int_size_in_bytes (type) > 32));
+    return (TYPE_MODE (type) == BLKmode
+	    && (unsigned HOST_WIDE_INT) int_size_in_bytes (type) > 32);
 }
 
 /* Handle the TARGET_STRUCT_VALUE target hook.
@@ -5992,22 +6025,22 @@ sparc_struct_value_rtx (tree fndecl, int incoming)
 	  tree size = TYPE_SIZE_UNIT (TREE_TYPE (fndecl));
 	  rtx size_rtx = GEN_INT (TREE_INT_CST_LOW (size) & 0xfff);
 	  /* Construct a temporary return value */
-	  rtx temp_val = assign_stack_local (Pmode, TREE_INT_CST_LOW (size), 0);
+	  rtx temp_val
+	    = assign_stack_local (Pmode, TREE_INT_CST_LOW (size), 0);
 
-	  /* Implement SPARC 32-bit psABI callee returns struck checking
-	     requirements:
+	  /* Implement SPARC 32-bit psABI callee return struct checking:
 
-	      Fetch the instruction where we will return to and see if
+	     Fetch the instruction where we will return to and see if
 	     it's an unimp instruction (the most significant 10 bits
 	     will be zero).  */
 	  emit_move_insn (scratch, gen_rtx_MEM (SImode,
 						plus_constant (ret_rtx, 8)));
 	  /* Assume the size is valid and pre-adjust */
 	  emit_insn (gen_add3_insn (ret_rtx, ret_rtx, GEN_INT (4)));
-	  emit_cmp_and_jump_insns (scratch, size_rtx, EQ, const0_rtx, SImode, 0, endlab);
+	  emit_cmp_and_jump_insns (scratch, size_rtx, EQ, const0_rtx, SImode,
+				   0, endlab);
 	  emit_insn (gen_sub3_insn (ret_rtx, ret_rtx, GEN_INT (4)));
-	  /* Assign stack temp:
-	     Write the address of the memory pointed to by temp_val into
+	  /* Write the address of the memory pointed to by temp_val into
 	     the memory pointed to by mem */
 	  emit_move_insn (mem, XEXP (temp_val, 0));
 	  emit_label (endlab);
@@ -6098,11 +6131,18 @@ sparc_function_value_1 (const_tree type, enum machine_mode mode,
 	    mclass = MODE_INT;
 	}
 
-      /* This must match sparc_promote_function_mode.
-	 ??? Maybe 32-bit pointers should actually remain in Pmode?  */
+      /* We should only have pointer and integer types at this point.  This
+	 must match sparc_promote_function_mode.  */
       else if (mclass == MODE_INT && GET_MODE_SIZE (mode) < UNITS_PER_WORD)
 	mode = word_mode;
     }
+
+  /* We should only have pointer and integer types at this point.  This must
+     match sparc_promote_function_mode.  */
+  else if (TARGET_ARCH32
+	   && mclass == MODE_INT
+	   && GET_MODE_SIZE (mode) < UNITS_PER_WORD)
+    mode = word_mode;
 
   if ((mclass == MODE_FLOAT || mclass == MODE_COMPLEX_FLOAT) && TARGET_FPU)
     regno = SPARC_FP_ARG_FIRST;
@@ -6113,9 +6153,8 @@ sparc_function_value_1 (const_tree type, enum machine_mode mode,
 }
 
 /* Handle TARGET_FUNCTION_VALUE.
-
-   On SPARC the value is found in the first "output" register, but the called
-   function leaves it in the first "input" register.  */
+   On the SPARC, the value is found in the first "output" register, but the
+   called function leaves it in the first "input" register.  */
 
 static rtx
 sparc_function_value (const_tree valtype,
@@ -6134,9 +6173,9 @@ sparc_libcall_value (enum machine_mode mode,
   return sparc_function_value_1 (NULL_TREE, mode, false);
 }
 
-/* Handle FUNCTION_VALUE_REGNO_P.  
-   On SPARC, the first "output" reg is used for integer values, and
-   the first floating point register is used for floating point values.  */
+/* Handle FUNCTION_VALUE_REGNO_P.
+   On the SPARC, the first "output" reg is used for integer values, and the
+   first floating point register is used for floating point values.  */
 
 static bool
 sparc_function_value_regno_p (const unsigned int regno)
@@ -7720,7 +7759,8 @@ sparc_type_code (register tree type)
 
 	case VECTOR_TYPE:
 	case BOOLEAN_TYPE:	/* Boolean truth value type.  */
-	case LANG_TYPE:		/* ? */
+	case LANG_TYPE:
+	case NULLPTR_TYPE:
 	  return qualifiers;
 
 	default:
@@ -8738,7 +8778,7 @@ sparc_fold_builtin (tree fndecl, int n_args ATTRIBUTE_UNUSED,
   if (ignore
       && icode != CODE_FOR_alignaddrsi_vis
       && icode != CODE_FOR_alignaddrdi_vis)
-    return fold_convert (rtype, integer_zero_node);
+    return build_zero_cst (rtype);
 
   switch (icode)
     {
@@ -9583,6 +9623,56 @@ sparc_can_eliminate (const int from ATTRIBUTE_UNUSED, const int to)
 {
   return (to == HARD_FRAME_POINTER_REGNUM
           || !targetm.frame_pointer_required ());
+}
+
+/* If !TARGET_FPU, then make the fp registers and fp cc regs fixed so that
+   they won't be allocated.  */
+
+static void
+sparc_conditional_register_usage (void)
+{
+  if (PIC_OFFSET_TABLE_REGNUM != INVALID_REGNUM)
+    {
+      fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;
+      call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;
+    }
+  /* If the user has passed -f{fixed,call-{used,saved}}-g5 */
+  /* then honor it.  */
+  if (TARGET_ARCH32 && fixed_regs[5])
+    fixed_regs[5] = 1;
+  else if (TARGET_ARCH64 && fixed_regs[5] == 2)
+    fixed_regs[5] = 0;
+  if (! TARGET_V9)
+    {
+      int regno;
+      for (regno = SPARC_FIRST_V9_FP_REG;
+	   regno <= SPARC_LAST_V9_FP_REG;
+	   regno++)
+	fixed_regs[regno] = 1;
+      /* %fcc0 is used by v8 and v9.  */
+      for (regno = SPARC_FIRST_V9_FCC_REG + 1;
+	   regno <= SPARC_LAST_V9_FCC_REG;
+	   regno++)
+	fixed_regs[regno] = 1;
+    }
+  if (! TARGET_FPU)
+    {
+      int regno;
+      for (regno = 32; regno < SPARC_LAST_V9_FCC_REG; regno++)
+	fixed_regs[regno] = 1;
+    }
+  /* If the user has passed -f{fixed,call-{used,saved}}-g2 */
+  /* then honor it.  Likewise with g3 and g4.  */
+  if (fixed_regs[2] == 2)
+    fixed_regs[2] = ! TARGET_APP_REGS;
+  if (fixed_regs[3] == 2)
+    fixed_regs[3] = ! TARGET_APP_REGS;
+  if (TARGET_ARCH32 && fixed_regs[4] == 2)
+    fixed_regs[4] = ! TARGET_APP_REGS;
+  else if (TARGET_CM_EMBMEDANY)
+    fixed_regs[4] = 1;
+  else if (fixed_regs[4] == 2)
+    fixed_regs[4] = 0;
 }
 
 #include "gt-sparc.h"

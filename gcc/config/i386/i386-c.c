@@ -122,6 +122,11 @@ ix86_target_macros_internal (int isa_flag,
       def_or_undef (parse_in, "__core2");
       def_or_undef (parse_in, "__core2__");
       break;
+    case PROCESSOR_COREI7_32:
+    case PROCESSOR_COREI7_64:
+      def_or_undef (parse_in, "__corei7");
+      def_or_undef (parse_in, "__corei7__");
+      break;
     case PROCESSOR_ATOM:
       def_or_undef (parse_in, "__atom");
       def_or_undef (parse_in, "__atom__");
@@ -197,6 +202,10 @@ ix86_target_macros_internal (int isa_flag,
     case PROCESSOR_CORE2:
       def_or_undef (parse_in, "__tune_core2__");
       break;
+    case PROCESSOR_COREI7_32:
+    case PROCESSOR_COREI7_64:
+      def_or_undef (parse_in, "__tune_corei7__");
+      break;
     case PROCESSOR_ATOM:
       def_or_undef (parse_in, "__tune_atom__");
       break;
@@ -244,6 +253,10 @@ ix86_target_macros_internal (int isa_flag,
     def_or_undef (parse_in, "__LWP__");
   if (isa_flag & OPTION_MASK_ISA_ABM)
     def_or_undef (parse_in, "__ABM__");
+  if (isa_flag & OPTION_MASK_ISA_BMI)
+    def_or_undef (parse_in, "__BMI__");
+  if (isa_flag & OPTION_MASK_ISA_TBM)
+    def_or_undef (parse_in, "__TBM__");
   if (isa_flag & OPTION_MASK_ISA_POPCNT)
     def_or_undef (parse_in, "__POPCNT__");
   if (isa_flag & OPTION_MASK_ISA_FSGSBASE)

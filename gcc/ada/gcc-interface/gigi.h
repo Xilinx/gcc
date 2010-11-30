@@ -57,11 +57,18 @@ extern void rest_of_type_decl_compilation (tree t);
 /* Start a new statement group chained to the previous group.  */
 extern void start_stmt_group (void);
 
-/* Add GNU_STMT to the current BLOCK_STMT node.  */
+/* Add GNU_STMT to the current statement group.  If it is an expression with
+   no effects, it is ignored.  */
 extern void add_stmt (tree gnu_stmt);
 
-/* Similar, but set the location of GNU_STMT to that of GNAT_NODE.  */
+/* Similar, but the statement is always added, regardless of side-effects.  */
+extern void add_stmt_force (tree gnu_stmt);
+
+/* Like add_stmt, but set the location of GNU_STMT to that of GNAT_NODE.  */
 extern void add_stmt_with_node (tree gnu_stmt, Node_Id gnat_node);
+
+/* Similar, but the statement is always added, regardless of side-effects.  */
+extern void add_stmt_with_node_force (tree gnu_stmt, Node_Id gnat_node);
 
 /* Return code corresponding to the current code group.  It is normally
    a STATEMENT_LIST, but may also be a BIND_EXPR or TRY_FINALLY_EXPR if
@@ -374,7 +381,8 @@ enum exception_info_kind
   /* Range exception information: file:line + index, first, last.  */
   exception_range,
   /* Column exception information: file:line:column.  */
-  exception_column};
+  exception_column
+};
 
 extern GTY(()) tree gnat_std_decls[(int) ADT_LAST];
 extern GTY(()) tree gnat_raise_decls[(int) LAST_REASON_CODE + 1];
@@ -775,6 +783,11 @@ extern tree build_unary_op (enum tree_code op_code, tree result_type,
 /* Similar, but for COND_EXPR.  */
 extern tree build_cond_expr (tree result_type, tree condition_operand,
                              tree true_operand, tree false_operand);
+
+/* Similar, but for COMPOUND_EXPR.  */
+
+extern tree build_compound_expr (tree result_type, tree stmt_operand,
+				 tree expr_operand);
 
 /* Similar, but for RETURN_EXPR.  */
 extern tree build_return_expr (tree ret_obj, tree ret_val);

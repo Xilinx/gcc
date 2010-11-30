@@ -82,7 +82,10 @@ enum rid
 
   /* ObjC ("PATTR" reserved words - they do not appear after a '@' 
      and are keywords only as property attributes)  */
-  RID_READONLY, RID_COPIES, RID_GETTER, RID_SETTER, RID_IVAR,
+  RID_GETTER, RID_SETTER,
+  RID_READONLY, RID_READWRITE,
+  RID_ASSIGN, RID_RETAIN, RID_COPY,
+  RID_NONATOMIC,
 
   /* C (reserved and imaginary types not implemented, so any use is a
      syntax error) */
@@ -134,7 +137,7 @@ enum rid
   RID_IS_EMPTY,                RID_IS_ENUM,
   RID_IS_POD,                  RID_IS_POLYMORPHIC,
   RID_IS_STD_LAYOUT,           RID_IS_TRIVIAL,
-  RID_IS_UNION,
+  RID_IS_UNION,                RID_IS_LITERAL_TYPE,
 
   /* C++0x */
   RID_CONSTEXPR, RID_DECLTYPE, RID_NOEXCEPT, RID_NULLPTR, RID_STATIC_ASSERT,
@@ -187,8 +190,8 @@ enum rid
   RID_LAST_AT = RID_AT_IMPLEMENTATION,
   RID_FIRST_PQ = RID_IN,
   RID_LAST_PQ = RID_ONEWAY,
-  RID_FIRST_PATTR = RID_READONLY,
-  RID_LAST_PATTR = RID_IVAR
+  RID_FIRST_PATTR = RID_GETTER,
+  RID_LAST_PATTR = RID_NONATOMIC
 };
 
 #define OBJC_IS_AT_KEYWORD(rid) \
@@ -431,16 +434,6 @@ extern c_language_kind c_language;
 #define c_dialect_cxx()		((c_language & clk_cxx) != 0)
 #define c_dialect_objc()	((c_language & clk_objc) != 0)
 
-/* ObjC Property Attribute types.  */
-typedef enum objc_property_attribute_kind {
-  OBJC_PATTR_INIT	= 0,
-  OBJC_PATTR_READONLY	= 1,
-  OBJC_PATTR_GETTER	= 2,
-  OBJC_PATTR_SETTER	= 3,
-  OBJC_PATTR_IVAR	= 4,
-  OBJC_PATTR_COPIES	= 5
-} objc_property_attribute_kind;
-
 /* ObjC ivar visibility types.  */
 typedef enum objc_ivar_visibility_kind {
   OBJC_IVAR_VIS_PROTECTED = 0,
@@ -667,6 +660,15 @@ extern bool done_lexing;
 #define C_TYPE_OBJECT_OR_INCOMPLETE_P(type) \
   (!C_TYPE_FUNCTION_P (type))
 
+struct visibility_flags
+{
+  unsigned inpragma : 1;	/* True when in #pragma GCC visibility.  */
+  unsigned inlines_hidden : 1;	/* True when -finlineshidden in effect.  */
+};
+
+/* Global visibility options.  */
+extern struct visibility_flags visibility_options;
+
 /* Attribute table common to the C front ends.  */
 extern const struct attribute_spec c_common_attribute_table[];
 extern const struct attribute_spec c_common_format_attribute_table[];
@@ -682,6 +684,7 @@ extern tree (*make_fname_decl) (location_t, tree, int);
 extern void c_register_addr_space (const char *str, addr_space_t as);
 
 /* In c-common.c.  */
+extern bool in_late_binary_op;
 extern const char *c_addr_space_name (addr_space_t as);
 extern tree identifier_global_value (tree);
 extern void record_builtin_type (enum rid, const char *, tree);
@@ -703,7 +706,7 @@ extern void set_Wformat (int);
 extern tree handle_format_attribute (tree *, tree, tree, int, bool *);
 extern tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
 extern bool attribute_takes_identifier_p (const_tree);
-extern bool c_common_handle_option (size_t, const char *, int, int,
+extern bool c_common_handle_option (size_t, const char *, int, int, location_t,
 				    const struct cl_option_handlers *);
 extern tree c_common_type_for_mode (enum machine_mode, int);
 extern tree c_common_type_for_size (unsigned int, int);
@@ -743,6 +746,10 @@ extern void set_float_const_decimal64 (void);
 extern void clear_float_const_decimal64 (void);
 extern bool float_const_decimal64_p (void);
 
+extern bool keyword_begins_type_specifier (enum rid);
+extern bool keyword_is_storage_class_specifier (enum rid);
+extern bool keyword_is_type_qualifier (enum rid);
+
 #define c_sizeof(LOC, T)  c_sizeof_or_alignof_type (LOC, T, true, 1)
 #define c_alignof(LOC, T) c_sizeof_or_alignof_type (LOC, T, false, 1)
 
@@ -769,6 +776,7 @@ extern void set_compound_literal_name (tree decl);
 
 extern tree build_va_arg (location_t, tree, tree);
 
+extern const unsigned int c_family_lang_mask;
 extern unsigned int c_common_option_lang_mask (void);
 extern void c_common_initialize_diagnostics (diagnostic_context *);
 extern bool c_common_complain_wrong_lang_p (const struct cl_option *);
@@ -777,7 +785,7 @@ extern void c_common_init_options (unsigned int, struct cl_decoded_option *);
 extern bool c_common_post_options (const char **);
 extern bool c_common_init (void);
 extern void c_common_finish (void);
-extern void c_common_parse_file (int);
+extern void c_common_parse_file (void);
 extern alias_set_type c_common_get_alias_set (tree);
 extern void c_register_builtin_type (tree, const char*);
 extern bool c_promoting_integer_type_p (const_tree);
@@ -828,6 +836,7 @@ extern void warn_for_omitted_condop (location_t, tree);
 extern tree do_case (location_t, tree, tree);
 extern tree build_stmt (location_t, enum tree_code, ...);
 extern tree build_case_label (location_t, tree, tree, tree);
+extern tree build_real_imag_expr (location_t, enum tree_code, tree);
 
 /* These functions must be defined by each front-end which implements
    a variant of the C language.  They are used in c-common.c.  */
@@ -931,6 +940,8 @@ extern int complete_array_type (tree *, tree, bool);
 
 extern tree builtin_type_for_size (int, bool);
 
+extern void c_common_mark_addressable_vec (tree);
+
 extern void warn_array_subscript_with_type_char (tree);
 extern void warn_about_parentheses (enum tree_code,
 				    enum tree_code, tree,
@@ -999,7 +1010,7 @@ extern int objc_is_public (tree, tree);
 extern tree objc_is_id (tree);
 extern void objc_declare_alias (tree, tree);
 extern void objc_declare_class (tree);
-extern void objc_declare_protocols (tree);
+extern void objc_declare_protocols (tree, tree);
 extern tree objc_build_message_expr (tree);
 extern tree objc_finish_message_expr (tree, tree, tree);
 extern tree objc_build_selector_expr (location_t, tree);
@@ -1020,10 +1031,9 @@ extern void objc_start_category_implementation (tree, tree);
 extern void objc_continue_implementation (void);
 extern void objc_finish_implementation (void);
 extern void objc_set_visibility (objc_ivar_visibility_kind);
-extern void objc_set_method_type (enum tree_code);
-extern tree objc_build_method_signature (tree, tree, tree, bool);
-extern void objc_add_method_declaration (tree, tree);
-extern bool objc_start_method_definition (tree, tree);
+extern tree objc_build_method_signature (bool, tree, tree, tree, bool);
+extern void objc_add_method_declaration (bool, tree, tree);
+extern bool objc_start_method_definition (bool, tree, tree);
 extern void objc_finish_method_definition (tree);
 extern void objc_add_instance_variable (tree);
 extern tree objc_build_keyword_decl (tree, tree, tree, tree);
@@ -1039,14 +1049,20 @@ extern tree objc_generate_static_init_call (tree);
 extern tree objc_generate_write_barrier (tree, enum tree_code, tree);
 extern void objc_set_method_opt (bool);
 extern void objc_finish_foreach_loop (location_t, tree, tree, tree, tree, tree);
-extern void objc_set_property_attr 
-  (location_t, objc_property_attribute_kind, tree);
 extern bool  objc_method_decl (enum tree_code);
-extern void objc_add_property_variable (tree);
-extern tree objc_build_getter_call (tree, tree);
-extern tree objc_build_setter_call (tree, tree);
+extern void objc_add_property_declaration (location_t, tree, bool, bool, bool, 
+					   bool, bool, bool, tree, tree);
+extern tree objc_maybe_build_component_ref (tree, tree);
+extern tree objc_build_class_component_ref (tree, tree);
+extern tree objc_maybe_build_modify_expr (tree, tree);
+extern tree objc_build_incr_expr_for_property_ref (location_t, enum tree_code, 
+						   tree, tree);
 extern void objc_add_synthesize_declaration (location_t, tree);
 extern void objc_add_dynamic_declaration (location_t, tree);
+extern const char * objc_maybe_printable_name (tree, int);
+extern bool objc_is_property_ref (tree);
+extern bool objc_string_ref_type_p (tree);
+extern void objc_check_format_arg (tree, tree);
 
 /* The following are provided by the C and C++ front-ends, and called by
    ObjC/ObjC++.  */

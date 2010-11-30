@@ -177,6 +177,7 @@ static tree create_variant_part_from (tree, VEC(variant_desc,heap) *, tree,
 				      tree, VEC(subst_pair,heap) *);
 static void copy_and_substitute_in_size (tree, tree, VEC(subst_pair,heap) *);
 static void rest_of_type_decl_compilation_no_defer (tree);
+static void finish_fat_pointer_type (tree, tree);
 
 /* The relevant constituents of a subprogram binding to a GCC builtin.  Used
    to pass around calls performing profile compatibilty checks.  */
@@ -188,7 +189,6 @@ typedef struct {
 } intrin_binding_t;
 
 static bool intrin_profiles_compatible_p (intrin_binding_t *);
-
 
 /* Given GNAT_ENTITY, a GNAT defining identifier node, which denotes some Ada
    entity, return the equivalent GCC tree for that entity (a ..._DECL node)
@@ -1915,23 +1915,13 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	/* Build the fat pointer type.  Use a "void *" object instead of
 	   a pointer to the array type since we don't have the array type
 	   yet (it will reference the fat pointer via the bounds).  */
-	tem = chainon (chainon (NULL_TREE,
-				create_field_decl (get_identifier ("P_ARRAY"),
-						   ptr_void_type_node,
-						   gnu_fat_type, NULL_TREE,
-						   NULL_TREE, 0, 0)),
-		       create_field_decl (get_identifier ("P_BOUNDS"),
-					  gnu_ptr_template,
-					  gnu_fat_type, NULL_TREE,
-					  NULL_TREE, 0, 0));
-
-	/* Make sure we can put this into a register.  */
-	TYPE_ALIGN (gnu_fat_type) = MIN (BIGGEST_ALIGNMENT, 2 * POINTER_SIZE);
-
-	/* Do not emit debug info for this record type since the types of its
-	   fields are still incomplete at this point.  */
-	finish_record_type (gnu_fat_type, tem, 0, false);
-	TYPE_FAT_POINTER_P (gnu_fat_type) = 1;
+	tem
+	  = create_field_decl (get_identifier ("P_ARRAY"), ptr_void_type_node,
+			       gnu_fat_type, NULL_TREE, NULL_TREE, 0, 0);
+	TREE_CHAIN (tem)
+	  = create_field_decl (get_identifier ("P_BOUNDS"), gnu_ptr_template,
+			       gnu_fat_type, NULL_TREE, NULL_TREE, 0, 0);
+	finish_fat_pointer_type (gnu_fat_type, tem);
 
 	/* Build a reference to the template from a PLACEHOLDER_EXPR that
 	   is the fat pointer.  This will be used to access the individual
@@ -1942,7 +1932,6 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	gnu_template_reference
 	  = build_unary_op (INDIRECT_REF, gnu_template_type, tem);
 	TREE_READONLY (gnu_template_reference) = 1;
-	TREE_THIS_NOTRAP (gnu_template_reference) = 1;
 
 	/* Now create the GCC type for each index and add the fields for that
 	   index to the template.  */
@@ -3588,15 +3577,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		  = create_field_decl (get_identifier ("P_BOUNDS"),
 				       gnu_ptr_template, gnu_type,
 				       NULL_TREE, NULL_TREE, 0, 0);
-
-		/* Make sure we can place this into a register.  */
-		TYPE_ALIGN (gnu_type)
-		  = MIN (BIGGEST_ALIGNMENT, 2 * POINTER_SIZE);
-		TYPE_FAT_POINTER_P (gnu_type) = 1;
-
-		/* Do not emit debug info for this record type since the types
-		   of its fields are incomplete.  */
-		finish_record_type (gnu_type, fields, 0, false);
+		finish_fat_pointer_type (gnu_type, fields);
 
 		TYPE_OBJECT_RECORD_TYPE (gnu_desig_type)
 		  = make_node (RECORD_TYPE);
@@ -3846,19 +3827,15 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
     /* Subprogram Entities
 
-       The following access functions are defined for subprograms (functions
-       or procedures):
+       The following access functions are defined for subprograms:
 
+		Etype       	Return type or Standard_Void_Type.
 		First_Formal	The first formal parameter.
 		Is_Imported     Indicates that the subprogram has appeared in
 				an INTERFACE or IMPORT pragma.  For now we
 				assume that the external language is C.
 		Is_Exported     Likewise but for an EXPORT pragma.
 		Is_Inlined      True if the subprogram is to be inlined.
-
-       In addition for function subprograms we have:
-
-		Etype       	Return type of the function.
 
        Each parameter is first checked by calling must_pass_by_ref on its
        type to determine if it is passed by reference.  For parameters which
@@ -3892,18 +3869,16 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
     case E_Function:
     case E_Procedure:
       {
+	/* The type returned by a function or else Standard_Void_Type for a
+	   procedure.  */
+	Entity_Id gnat_return_type = Etype (gnat_entity);
+	tree gnu_return_type;
 	/* The first GCC parameter declaration (a PARM_DECL node).  The
 	   PARM_DECL nodes are chained through the TREE_CHAIN field, so this
 	   actually is the head of this parameter list.  */
 	tree gnu_param_list = NULL_TREE;
 	/* Likewise for the stub associated with an exported procedure.  */
 	tree gnu_stub_param_list = NULL_TREE;
-	/* The type returned by a function.  If the subprogram is a procedure
-	   this type should be void_type_node.  */
-	tree gnu_return_type = void_type_node;
-	/* List of fields in return type of procedure with copy-in copy-out
-	   parameters.  */
-	tree gnu_field_list = NULL_TREE;
 	/* Non-null for subprograms containing parameters passed by copy-in
 	   copy-out (Ada In Out or Out parameters not passed by reference),
 	   in which case it is the list of nodes used to specify the values
@@ -3913,6 +3888,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   corresponding to that field.  This list will be saved in the
 	   TYPE_CI_CO_LIST field of the FUNCTION_TYPE node we create.  */
 	tree gnu_cico_list = NULL_TREE;
+	/* List of fields in return type of procedure with copy-in copy-out
+	   parameters.  */
+	tree gnu_field_list = NULL_TREE;
 	/* If an import pragma asks to map this subprogram to a GCC builtin,
 	   this is the builtin DECL node.  */
 	tree gnu_builtin_decl = NULL_TREE;
@@ -3924,7 +3902,6 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	bool public_flag = Is_Public (gnat_entity) || imported_p;
 	bool extern_flag
 	  = (Is_Public (gnat_entity) && !definition) || imported_p;
-
        /* The semantics of "pure" in Ada essentially matches that of "const"
           in the back-end.  In particular, both properties are orthogonal to
           the "nothrow" property if the EH circuitry is explicit in the
@@ -3936,12 +3913,10 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	bool const_flag
 	  = (Exception_Mechanism == Back_End_Exceptions
 	     && Is_Pure (gnat_entity));
-
 	bool volatile_flag = No_Return (gnat_entity);
 	bool return_by_direct_ref_p = false;
 	bool return_by_invisi_ref_p = false;
 	bool return_unconstrained_p = false;
-	bool has_copy_in_out = false;
 	bool has_stub = false;
 	int parmnum;
 
@@ -3962,8 +3937,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    if (Ekind (Alias (gnat_entity)) == E_Enumeration_Literal)
 	      gnat_to_gnu_entity (Etype (Alias (gnat_entity)), NULL_TREE, 0);
 
-	    gnu_decl = gnat_to_gnu_entity (Alias (gnat_entity),
-					   gnu_expr, 0);
+	    gnu_decl = gnat_to_gnu_entity (Alias (gnat_entity), gnu_expr, 0);
 
 	    /* Elaborate any Itypes in the parameters of this entity.  */
 	    for (gnat_temp = First_Formal_With_Extras (gnat_entity);
@@ -3998,97 +3972,92 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   In the current state we neither warn nor err, and calls will just
 	   be handled as for regular subprograms.  */
 
-	if (kind == E_Function || kind == E_Subprogram_Type)
-	  gnu_return_type = gnat_to_gnu_type (Etype (gnat_entity));
-
-	/* If this function returns by reference, make the actual return
-	   type of this function the pointer and mark the decl.  */
-	if (Returns_By_Ref (gnat_entity))
+	/* Look into the return type and get its associated GCC tree.  If it
+	   is not void, compute various flags for the subprogram type.  */
+	if (Ekind (gnat_return_type) == E_Void)
+	  gnu_return_type = void_type_node;
+	else
 	  {
-	    gnu_return_type = build_pointer_type (gnu_return_type);
-	    return_by_direct_ref_p = true;
+	    gnu_return_type = gnat_to_gnu_type (gnat_return_type);
+
+	    /* If this function returns by reference, make the actual return
+	       type the pointer type and make a note of that.  */
+	    if (Returns_By_Ref (gnat_entity))
+	      {
+		gnu_return_type = build_pointer_type (gnu_return_type);
+		return_by_direct_ref_p = true;
+	      }
+
+	    /* If we are supposed to return an unconstrained array type, make
+	       the actual return type the fat pointer type.  */
+	    else if (TREE_CODE (gnu_return_type) == UNCONSTRAINED_ARRAY_TYPE)
+	      {
+		gnu_return_type = TREE_TYPE (gnu_return_type);
+		return_unconstrained_p = true;
+	      }
+
+	    /* Likewise, if the return type requires a transient scope, the
+	       return value will be allocated on the secondary stack so the
+	       actual return type is the pointer type.  */
+	    else if (Requires_Transient_Scope (gnat_return_type))
+	      {
+		gnu_return_type = build_pointer_type (gnu_return_type);
+		return_unconstrained_p = true;
+	      }
+
+	    /* If the Mechanism is By_Reference, ensure this function uses the
+	       target's by-invisible-reference mechanism, which may not be the
+	       same as above (e.g. it might be passing an extra parameter).  */
+	    else if (kind == E_Function
+		     && Mechanism (gnat_entity) == By_Reference)
+	      return_by_invisi_ref_p = true;
+
+	    /* Likewise, if the return type is itself By_Reference.  */
+	    else if (TREE_ADDRESSABLE (gnu_return_type))
+	      return_by_invisi_ref_p = true;
+
+	    /* If the type is a padded type and the underlying type would not
+	       be passed by reference or the function has a foreign convention,
+	       return the underlying type.  */
+	    else if (TYPE_IS_PADDING_P (gnu_return_type)
+		     && (!default_pass_by_ref
+			  (TREE_TYPE (TYPE_FIELDS (gnu_return_type)))
+			 || Has_Foreign_Convention (gnat_entity)))
+	      gnu_return_type = TREE_TYPE (TYPE_FIELDS (gnu_return_type));
+
+	    /* If the return type is unconstrained, that means it must have a
+	       maximum size.  Use the padded type as the effective return type.
+	       And ensure the function uses the target's by-invisible-reference
+	       mechanism to avoid copying too much data when it returns.  */
+	    if (CONTAINS_PLACEHOLDER_P (TYPE_SIZE (gnu_return_type)))
+	      {
+		gnu_return_type
+		  = maybe_pad_type (gnu_return_type,
+				    max_size (TYPE_SIZE (gnu_return_type),
+					      true),
+				    0, gnat_entity, false, false, false, true);
+		return_by_invisi_ref_p = true;
+	      }
+
+	    /* If the return type has a size that overflows, we cannot have
+	       a function that returns that type.  This usage doesn't make
+	       sense anyway, so give an error here.  */
+	    if (TYPE_SIZE_UNIT (gnu_return_type)
+		&& TREE_CONSTANT (TYPE_SIZE_UNIT (gnu_return_type))
+		&& TREE_OVERFLOW (TYPE_SIZE_UNIT (gnu_return_type)))
+	      {
+		post_error ("cannot return type whose size overflows",
+			    gnat_entity);
+		gnu_return_type = copy_node (gnu_return_type);
+		TYPE_SIZE (gnu_return_type) = bitsize_zero_node;
+		TYPE_SIZE_UNIT (gnu_return_type) = size_zero_node;
+		TYPE_MAIN_VARIANT (gnu_return_type) = gnu_return_type;
+		TYPE_NEXT_VARIANT (gnu_return_type) = NULL_TREE;
+	      }
 	  }
 
-	/* If the Mechanism is By_Reference, ensure this function uses the
-	   target's by-invisible-reference mechanism, which may not be the
-	   same as above (e.g. it might be passing an extra parameter).
-
-	   Prior to GCC 4, this was handled by just setting TREE_ADDRESSABLE
-	   on the result type.  Everything required to pass by invisible
-	   reference using the target's mechanism (e.g. an extra parameter)
-	   was handled at RTL expansion time.
-
-	   This doesn't work with GCC 4 any more for several reasons.  First,
-	   the gimplification process might need to create temporaries of this
-	   type and the gimplifier ICEs on such attempts; that's why the flag
-	   is now set on the function type instead.  Second, the middle-end
-	   now also relies on a different attribute, DECL_BY_REFERENCE on the
-	   RESULT_DECL, and expects the by-invisible-reference-ness to be made
-	   explicit in the function body.  */
-	else if (kind == E_Function && Mechanism (gnat_entity) == By_Reference)
-	  return_by_invisi_ref_p = true;
-
-	/* If we are supposed to return an unconstrained array, actually return
-	   a fat pointer and make a note of that.  */
-	else if (TREE_CODE (gnu_return_type) == UNCONSTRAINED_ARRAY_TYPE)
-	  {
-	    gnu_return_type = TREE_TYPE (gnu_return_type);
-	    return_unconstrained_p = true;
-	  }
-
-	/* If the type requires a transient scope, the result is allocated
-	   on the secondary stack, so the result type of the function is
-	   just a pointer.  */
-	else if (Requires_Transient_Scope (Etype (gnat_entity)))
-	  {
-	    gnu_return_type = build_pointer_type (gnu_return_type);
-	    return_unconstrained_p = true;
-	  }
-
-	/* If the type is a padded type and the underlying type would not
-	   be passed by reference or this function has a foreign convention,
-	   return the underlying type.  */
-	else if (TYPE_IS_PADDING_P (gnu_return_type)
-		 && (!default_pass_by_ref (TREE_TYPE
-					   (TYPE_FIELDS (gnu_return_type)))
-		     || Has_Foreign_Convention (gnat_entity)))
-	  gnu_return_type = TREE_TYPE (TYPE_FIELDS (gnu_return_type));
-
-	/* If the return type is unconstrained, that means it must have a
-	   maximum size.  Use the padded type as the effective return type.
-	   And ensure the function uses the target's by-invisible-reference
-	   mechanism to avoid copying too much data when it returns.  */
-	if (CONTAINS_PLACEHOLDER_P (TYPE_SIZE (gnu_return_type)))
-	  {
-	    gnu_return_type
-	      = maybe_pad_type (gnu_return_type,
-				max_size (TYPE_SIZE (gnu_return_type), true),
-				0, gnat_entity, false, false, false, true);
-	    return_by_invisi_ref_p = true;
-	  }
-
-	/* If the return type has a size that overflows, we cannot have
-	   a function that returns that type.  This usage doesn't make
-	   sense anyway, so give an error here.  */
-	if (TYPE_SIZE_UNIT (gnu_return_type)
-	    && TREE_CONSTANT (TYPE_SIZE_UNIT (gnu_return_type))
-	    && TREE_OVERFLOW (TYPE_SIZE_UNIT (gnu_return_type)))
-	  {
-	    post_error ("cannot return type whose size overflows",
-			gnat_entity);
-	    gnu_return_type = copy_node (gnu_return_type);
-	    TYPE_SIZE (gnu_return_type) = bitsize_zero_node;
-	    TYPE_SIZE_UNIT (gnu_return_type) = size_zero_node;
-	    TYPE_MAIN_VARIANT (gnu_return_type) = gnu_return_type;
-	    TYPE_NEXT_VARIANT (gnu_return_type) = NULL_TREE;
-	  }
-
-	/* Look at all our parameters and get the type of
-	   each.  While doing this, build a copy-out structure if
-	   we need one.  */
-
-	/* Loop over the parameters and get their associated GCC tree.
-	   While doing this, build a copy-out structure if we need one.  */
+	/* Loop over the parameters and get their associated GCC tree.  While
+	   doing this, build a copy-in copy-out structure if we need one.  */
 	for (gnat_param = First_Formal_With_Extras (gnat_entity), parmnum = 0;
 	     Present (gnat_param);
 	     gnat_param = Next_Formal_With_Extras (gnat_param), parmnum++)
@@ -4194,15 +4163,31 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 	    if (copy_in_copy_out)
 	      {
-		if (!has_copy_in_out)
+		if (!gnu_cico_list)
 		  {
-		    gcc_assert (TREE_CODE (gnu_return_type) == VOID_TYPE);
-		    gnu_return_type = make_node (RECORD_TYPE);
+		    tree gnu_new_ret_type = make_node (RECORD_TYPE);
+
+		    /* If this is a function, we also need a field for the
+		       return value to be placed.  */
+		    if (TREE_CODE (gnu_return_type) != VOID_TYPE)
+		      {
+			gnu_field
+			  = create_field_decl (get_identifier ("RETVAL"),
+					       gnu_return_type,
+					       gnu_new_ret_type, NULL_TREE,
+					       NULL_TREE, 0, 0);
+			Sloc_to_locus (Sloc (gnat_entity),
+				       &DECL_SOURCE_LOCATION (gnu_field));
+			gnu_field_list = gnu_field;
+			gnu_cico_list
+			  = tree_cons (gnu_field, void_type_node, NULL_TREE);
+		      }
+
+		    gnu_return_type = gnu_new_ret_type;
 		    TYPE_NAME (gnu_return_type) = get_identifier ("RETURN");
 		    /* Set a default alignment to speed up accesses.  */
 		    TYPE_ALIGN (gnu_return_type)
 		      = get_mode_alignment (ptr_mode);
-		    has_copy_in_out = true;
 		  }
 
 		gnu_field
@@ -4898,13 +4883,17 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	Set_RM_Size (gnat_entity, annotate_value (rm_size (gnu_type)));
     }
 
-  if (!Comes_From_Source (gnat_entity) && DECL_P (gnu_decl))
-    DECL_ARTIFICIAL (gnu_decl) = 1;
+  /* If we really have a ..._DECL node, set a couple of flags on it.  But we
+     cannot do that if we are reusing the ..._DECL node made for a renamed
+     object, since the predicates don't apply to it but to GNAT_ENTITY.  */
+  if (DECL_P (gnu_decl) && !(Present (Renamed_Object (gnat_entity)) && saved))
+    {
+      if (!Comes_From_Source (gnat_entity))
+	DECL_ARTIFICIAL (gnu_decl) = 1;
 
-  if (!debug_info_p && DECL_P (gnu_decl)
-      && TREE_CODE (gnu_decl) != FUNCTION_DECL
-      && No (Renamed_Object (gnat_entity)))
-    DECL_IGNORED_P (gnu_decl) = 1;
+      if (!debug_info_p && TREE_CODE (gnu_decl) != FUNCTION_DECL)
+	DECL_IGNORED_P (gnu_decl) = 1;
+    }
 
   /* If we haven't already, associate the ..._DECL node that we just made with
      the input GNAT entity node.  */
@@ -5109,6 +5098,28 @@ rest_of_type_decl_compilation_no_defer (tree decl)
 
       rest_of_type_compilation (t, toplev);
     }
+}
+
+/* Given a record type RECORD_TYPE and a list of FIELD_DECL nodes FIELD_LIST,
+   finish constructing the record type as a fat pointer type.  */
+
+static void
+finish_fat_pointer_type (tree record_type, tree field_list)
+{
+  /* Make sure we can put it into a register.  */
+  TYPE_ALIGN (record_type) = MIN (BIGGEST_ALIGNMENT, 2 * POINTER_SIZE);
+
+  /* Show what it really is.  */
+  TYPE_FAT_POINTER_P (record_type) = 1;
+
+  /* Do not emit debug info for it since the types of its fields may still be
+     incomplete at this point.  */
+  finish_record_type (record_type, field_list, 0, false);
+
+  /* Force type_contains_placeholder_p to return true on it.  Although the
+     PLACEHOLDER_EXPRs are referenced only indirectly, this isn't a pointer
+     type but the representation of the unconstrained array.  */
+  TYPE_CONTAINS_PLACEHOLDER_INTERNAL (record_type) = 2;
 }
 
 /* Finalize any From_With_Type incomplete types.  We do this after processing

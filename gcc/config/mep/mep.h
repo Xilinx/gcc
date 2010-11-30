@@ -132,17 +132,6 @@ crtbegin.o%s"
 
 #define TARGET_VERSION fprintf (stderr, " (Toshiba Media Processor (MeP))");
 
-/* The MeP config tool will add TARGET_OPTION_TRANSLATE_TABLE here.  */
-#define TARGET_OPTION_TRANSLATE_TABLE \
-  {"-mall-opts", "-maverage -mmult -mdiv -mbitops -mleadz \
-                  -mabsdiff -mminmax -mclip -msatur -mdebug" }, \
-  {"-mno-opts", "-mno-average -mno-mult -mno-div -mno-bitops -mno-leadz \
-                  -mno-absdiff -mno-minmax -mno-clip -mno-satur -mno-debug" }, \
-  {"-mfar", "-ml -mtf -mc=far" } \
-/* start-target-option-table */ \
-, {"-mconfig=default", "-mconfig=default -mmult -mdiv -D__MEP_CONFIG_ISA=1" } \
-/* end-target-option-table */
-
 /* The MeP config tool will replace this as appropriate.  */
 #define DEFAULT_ENDIAN_SPEC "%{!meb: -mel}"
 
@@ -152,26 +141,24 @@ crtbegin.o%s"
 /* Don't add an endian option when building the libraries.  */
 #define DRIVER_SELF_SPECS \
   "%{!mlibrary:" DEFAULT_ENDIAN_SPEC "}", \
-  "%{mlibrary: " LIBRARY_CONFIG_SPEC " %{!mel:-meb}}"
+  "%{mlibrary: " LIBRARY_CONFIG_SPEC " %{!mel:-meb}}", \
+  "%{mall-opts:-maverage -mmult -mdiv -mbitops -mleadz \
+     -mabsdiff -mminmax -mclip -msatur -mdebug} %<mall-opts", \
+  "%{mno-opts:-mno-average -mno-mult -mno-div -mno-bitops -mno-leadz \
+     -mno-absdiff -mno-minmax -mno-clip -mno-satur -mno-debug} %<mno-opts", \
+  "%{mfar:-ml -mtf -mc=far} %<mfar", \
+  "%{mconfig=default:-mmult -mdiv -D__MEP_CONFIG_ISA=1}"
 
 /* The MeP config tool will add COPROC_SELECTION_TABLE here.  */
 /* start-coproc-selection-table */
 #define COPROC_SELECTION_TABLE \
 {"default", ISA_EXT1}
 /* end-coproc-selection-table */
-
-#define CAN_DEBUG_WITHOUT_FP
 
 
 #define BITS_BIG_ENDIAN 0
 #define BYTES_BIG_ENDIAN (TARGET_LITTLE_ENDIAN ? 0 : 1)
 #define WORDS_BIG_ENDIAN (TARGET_LITTLE_ENDIAN ? 0 : 1)
-
-#ifdef __LITTLE_ENDIAN__
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#else
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#endif
 
 #define UNITS_PER_WORD 4
 
@@ -268,9 +255,6 @@ crtbegin.o%s"
   /* virtual arg pointer */				\
   1, CALL_USED_SHADOW_REGISTERS				\
   }
-
-#define CONDITIONAL_REGISTER_USAGE \
-	mep_conditional_register_usage ();
 
 #define REG_ALLOC_ORDER {						\
   /* core registers */							\
@@ -409,7 +393,7 @@ enum reg_class
   { 0xffffffff, 0xffffffff, 0xffffffff, 0x0001ffff }, /* ALL_REGS */ \
   }
 
-#define REGNO_REG_CLASS(REGNO) mep_regno_reg_class (REGNO)
+#define REGNO_REG_CLASS(REGNO) (enum reg_class) mep_regno_reg_class (REGNO)
 
 #define IRA_COVER_CLASSES { GENERAL_REGS, CONTROL_REGS, CR_REGS, CCR_REGS, LIM_REG_CLASSES }
 
@@ -817,8 +801,6 @@ typedef struct
 
 #define REGISTER_TARGET_PRAGMAS()	 mep_register_pragmas ()
 
-#define HANDLE_PRAGMA_PACK_PUSH_POP 1
-   
 /* If defined, a C expression to determine the base term of address X.
    This macro is used in only one place: `find_base_term' in alias.c.
 

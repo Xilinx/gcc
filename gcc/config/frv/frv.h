@@ -35,33 +35,6 @@
 
 /* Driver configuration.  */
 
-/* A C expression which determines whether the option `-CHAR' takes arguments.
-   The value should be the number of arguments that option takes-zero, for many
-   options.
-
-   By default, this macro is defined to handle the standard options properly.
-   You need not define it unless you wish to add additional options which take
-   arguments.
-
-   Defined in svr4.h.  */
-#undef  SWITCH_TAKES_ARG
-#define SWITCH_TAKES_ARG(CHAR)                                          \
-  (DEFAULT_SWITCH_TAKES_ARG (CHAR) || (CHAR) == 'G')
-
-/* A C expression which determines whether the option `-NAME' takes arguments.
-   The value should be the number of arguments that option takes-zero, for many
-   options.  This macro rather than `SWITCH_TAKES_ARG' is used for
-   multi-character option names.
-
-   By default, this macro is defined as `DEFAULT_WORD_SWITCH_TAKES_ARG', which
-   handles the standard options properly.  You need not define
-   `WORD_SWITCH_TAKES_ARG' unless you wish to add additional options which take
-   arguments.  Any redefinition should call `DEFAULT_WORD_SWITCH_TAKES_ARG' and
-   then check for additional options.
-
-   Defined in svr4.h.  */
-#undef WORD_SWITCH_TAKES_ARG
-
 /* -fpic and -fPIC used to imply the -mlibrary-pic multilib, but with
     FDPIC which multilib to use depends on whether FDPIC is in use or
     not.  The trick we use is to introduce -multilib-library-pic as a
@@ -327,13 +300,6 @@
           fprintf (stderr, " (68k, MIT syntax)");
         #endif  */
 #define TARGET_VERSION fprintf (stderr, _(" (frv)"))
-
-/* Define this macro if debugging can be performed even without a frame
-   pointer.  If this macro is defined, GCC will turn on the
-   `-fomit-frame-pointer' option whenever `-O' is specified.  */
-/* Frv needs a specific frame layout that includes the frame pointer.  */
-
-#define CAN_DEBUG_WITHOUT_FP
 
 #define LABEL_ALIGN_AFTER_BARRIER(LABEL) (TARGET_ALIGN_LABELS ? 3 : 0)
 
@@ -817,28 +783,6 @@
 	1,				/* 170, LCR - Loop count reg */	\
 	1, 1				/* 171-172, iacc0 */		\
 }
-
-/* Zero or more C statements that may conditionally modify two variables
-   `fixed_regs' and `call_used_regs' (both of type `char []') after they have
-   been initialized from the two preceding macros.
-
-   This is necessary in case the fixed or call-clobbered registers depend on
-   target flags.
-
-   You need not define this macro if it has no work to do.
-
-   If the usage of an entire class of registers depends on the target flags,
-   you may indicate this to GCC by using this macro to modify `fixed_regs' and
-   `call_used_regs' to 1 for each of the registers in the classes which should
-   not be used by GCC.  Also define the macro `REG_CLASS_FROM_LETTER' to return
-   `NO_REGS' if it is called with a letter for a class that shouldn't be used.
-
-   (However, if this class is not included in `GENERAL_REGS' and all of the
-   insn patterns whose constraints permit this class are controlled by target
-   switches, then GCC will automatically avoid using these registers when the
-   target switches are opposed to them.)  */
-
-#define CONDITIONAL_REGISTER_USAGE frv_conditional_register_usage ()
 
 
 /* Order of allocation of registers.  */
@@ -1553,23 +1497,6 @@ typedef struct frv_stack {
 
 #define FRV_NUM_ARG_REGS        6
 
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED)                    \
-  frv_function_arg (&CUM, MODE, TYPE, NAMED, FALSE)
-
-/* Define this macro if the target machine has "register windows", so that the
-   register in which a function sees an arguments is not necessarily the same
-   as the one in which the caller passed the argument.
-
-   For such machines, `FUNCTION_ARG' computes the register in which the caller
-   passes the value, and `FUNCTION_INCOMING_ARG' should be defined in a similar
-   fashion to tell the function being called where the arguments will arrive.
-
-   If `FUNCTION_INCOMING_ARG' is not defined, `FUNCTION_ARG' serves both
-   purposes.  */
-
-#define FUNCTION_INCOMING_ARG(CUM, MODE, TYPE, NAMED)			\
-  frv_function_arg (&CUM, MODE, TYPE, NAMED, TRUE)
-
 /* A C type for declaring a variable that is used as the first argument of
    `FUNCTION_ARG' and other related values.  For some target machines, the type
    `int' suffices and can hold the number of bytes of argument so far.
@@ -1611,24 +1538,6 @@ typedef struct frv_stack {
 
 #define INIT_CUMULATIVE_INCOMING_ARGS(CUM, FNTYPE, LIBNAME) \
   frv_init_cumulative_args (&CUM, FNTYPE, LIBNAME, NULL, TRUE)
-
-/* A C statement (sans semicolon) to update the summarizer variable CUM to
-   advance past an argument in the argument list.  The values MODE, TYPE and
-   NAMED describe that argument.  Once this is done, the variable CUM is
-   suitable for analyzing the *following* argument with `FUNCTION_ARG', etc.
-
-   This macro need not do anything if the argument in question was passed on
-   the stack.  The compiler knows how to track the amount of stack space used
-   for arguments without any special help.  */
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)			\
-  frv_function_arg_advance (&CUM, MODE, TYPE, NAMED)
-
-/* If defined, a C expression that gives the alignment boundary, in bits, of an
-   argument with the specified mode and type.  If it is not defined,
-   `PARM_BOUNDARY' is used for all arguments.  */
-
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE) \
-  frv_function_arg_boundary (MODE, TYPE)
 
 /* A C expression that is nonzero if REGNO is the number of a hard register in
    which function arguments are sometimes passed.  This does *not* include
@@ -2374,13 +2283,6 @@ fprintf (STREAM, "\t.word .L%d\n", VALUE)
    called, in `call' RTL expressions.  On most machines this should be
    `QImode'.  */
 #define FUNCTION_MODE QImode
-
-/* Define this macro to handle System V style pragmas: #pragma pack and
-   #pragma weak.  Note, #pragma weak will only be supported if SUPPORT_WEAK is
-   defined.
-
-   Defined in svr4.h.  */
-#define HANDLE_SYSV_PRAGMA 1
 
 /* A C expression for the maximum number of instructions to execute via
    conditional execution instructions instead of a branch.  A value of

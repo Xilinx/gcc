@@ -147,10 +147,6 @@ struct GTY(()) machine_function
 #define TARGET_VERSION \
   fprintf (stderr, " (MMIX)")
 
-/* This one will have to wait a little bit; right now we can't debug
-   neither with or without a frame-pointer.  */
-/* #define CAN_DEBUG_WITHOUT_FP */
-
 
 /* Node: Per-Function Data */
 #define INIT_EXPANDERS mmix_init_expanders ()
@@ -278,8 +274,6 @@ struct GTY(()) machine_function
    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, \
    1, 1, 1, 1, 1, 1, 1 \
  }
-
-#define CONDITIONAL_REGISTER_USAGE mmix_conditional_register_usage ()
 
 #define INCOMING_REGNO(OUT) mmix_opposite_regno (OUT, 0)
 
@@ -890,8 +884,6 @@ typedef struct { int regs; int lib; } CUMULATIVE_ARGS;
 #define FUNCTION_MODE QImode
 
 #define NO_IMPLICIT_EXTERN_C
-
-#define HANDLE_SYSV_PRAGMA 1
 
 /* These are checked.  */
 #define DOLLARS_IN_IDENTIFIERS 0

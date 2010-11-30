@@ -87,6 +87,7 @@ tree gfc_static_ctors;
 tree gfor_fndecl_pause_numeric;
 tree gfor_fndecl_pause_string;
 tree gfor_fndecl_stop_numeric;
+tree gfor_fndecl_stop_numeric_f08;
 tree gfor_fndecl_stop_string;
 tree gfor_fndecl_error_stop_numeric;
 tree gfor_fndecl_error_stop_string;
@@ -554,6 +555,7 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
   if (sym->attr.volatile_)
     {
       TREE_THIS_VOLATILE (decl) = 1;
+      TREE_SIDE_EFFECTS (decl) = 1;
       new_type = build_qualified_type (TREE_TYPE (decl), TYPE_QUAL_VOLATILE);
       TREE_TYPE (decl) = new_type;
     } 
@@ -1943,9 +1945,18 @@ create_function_arglist (gfc_symbol * sym)
       if (f->sym->attr.proc_pointer)
         type = build_pointer_type (type);
 
+      if (f->sym->attr.volatile_)
+	type = build_qualified_type (type, TYPE_QUAL_VOLATILE);
+
       /* Build the argument declaration.  */
       parm = build_decl (input_location,
 			 PARM_DECL, gfc_sym_identifier (f->sym), type);
+
+      if (f->sym->attr.volatile_)
+	{
+	  TREE_THIS_VOLATILE (parm) = 1;
+	  TREE_SIDE_EFFECTS (parm) = 1;
+	}
 
       /* Fill in arg stuff.  */
       DECL_CONTEXT (parm) = fndecl;
@@ -2802,6 +2813,12 @@ gfc_build_builtin_function_decls (void)
   /* STOP doesn't return.  */
   TREE_THIS_VOLATILE (gfor_fndecl_stop_numeric) = 1;
 
+  gfor_fndecl_stop_numeric_f08 = gfc_build_library_function_decl (
+	get_identifier (PREFIX("stop_numeric_f08")),
+	void_type_node, 1, gfc_int4_type_node);
+  /* STOP doesn't return.  */
+  TREE_THIS_VOLATILE (gfor_fndecl_stop_numeric_f08) = 1;
+
   gfor_fndecl_stop_string = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("stop_string")), ".R.",
 	void_type_node, 2, pchar_type_node, gfc_int4_type_node);
@@ -2935,7 +2952,7 @@ gfc_trans_auto_character_variable (gfc_symbol * sym, gfc_wrapped_block * block)
   gcc_assert (sym->backend_decl);
   gcc_assert (sym->ts.u.cl && sym->ts.u.cl->length);
 
-  gfc_start_block (&init);
+  gfc_init_block (&init);
 
   /* Evaluate the string length expression.  */
   gfc_conv_string_length (sym->ts.u.cl, NULL, &init);
@@ -3148,91 +3165,6 @@ init_intent_out_dt (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 }
 
 
-/* Do proper initialization for ASSOCIATE names.  */
-
-static void
-trans_associate_var (gfc_symbol* sym, gfc_wrapped_block* block)
-{
-  gfc_expr* e;
-  tree tmp;
-
-  gcc_assert (sym->assoc);
-  e = sym->assoc->target;
-
-  /* Do a `pointer assignment' with updated descriptor (or assign descriptor
-     to array temporary) for arrays with either unknown shape or if associating
-     to a variable.  */
-  if (sym->attr.dimension
-      && (sym->as->type == AS_DEFERRED || sym->assoc->variable))
-    {
-      gfc_se se;
-      gfc_ss* ss;
-      tree desc;
-
-      desc = sym->backend_decl;
-
-      /* If association is to an expression, evaluate it and create temporary.
-	 Otherwise, get descriptor of target for pointer assignment.  */
-      gfc_init_se (&se, NULL);
-      ss = gfc_walk_expr (e);
-      if (sym->assoc->variable)
-	{
-	  se.direct_byref = 1;
-	  se.expr = desc;
-	}
-      gfc_conv_expr_descriptor (&se, e, ss);
-
-      /* If we didn't already do the pointer assignment, set associate-name
-	 descriptor to the one generated for the temporary.  */
-      if (!sym->assoc->variable)
-	{
-	  int dim;
-
-	  gfc_add_modify (&se.pre, desc, se.expr);
-
-	  /* The generated descriptor has lower bound zero (as array
-	     temporary), shift bounds so we get lower bounds of 1.  */
-	  for (dim = 0; dim < e->rank; ++dim)
-	    gfc_conv_shift_descriptor_lbound (&se.pre, desc,
-					      dim, gfc_index_one_node);
-	}
-
-      /* Done, register stuff as init / cleanup code.  */
-      gfc_add_init_cleanup (block, gfc_finish_block (&se.pre),
-			    gfc_finish_block (&se.post));
-    }
-
-  /* Do a scalar pointer assignment; this is for scalar variable targets.  */
-  else if (gfc_is_associate_pointer (sym))
-    {
-      gfc_se se;
-
-      gcc_assert (!sym->attr.dimension);
-
-      gfc_init_se (&se, NULL);
-      gfc_conv_expr (&se, e);
-
-      tmp = TREE_TYPE (sym->backend_decl);
-      tmp = gfc_build_addr_expr (tmp, se.expr);
-      gfc_add_modify (&se.pre, sym->backend_decl, tmp);
-      
-      gfc_add_init_cleanup (block, gfc_finish_block( &se.pre),
-			    gfc_finish_block (&se.post));
-    }
-
-  /* Do a simple assignment.  This is for scalar expressions, where we
-     can simply use expression assignment.  */
-  else
-    {
-      gfc_expr* lhs;
-
-      lhs = gfc_lval_expr_from_sym (sym);
-      tmp = gfc_trans_assignment (lhs, e, false, true);
-      gfc_add_init_cleanup (block, tmp, NULL_TREE);
-    }
-}
-
-
 /* Generate function entry and exit code, and add it to the function body.
    This includes:
     Allocation and initialization of array variables.
@@ -3299,8 +3231,9 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
       bool sym_has_alloc_comp = (sym->ts.type == BT_DERIVED)
 				   && sym->ts.u.derived->attr.alloc_comp;
       if (sym->assoc)
-	trans_associate_var (sym, block);
-      else if (sym->attr.dimension)
+	continue;
+
+      if (sym->attr.dimension)
 	{
 	  switch (sym->as->type)
 	    {
@@ -3386,7 +3319,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 
 	      e = gfc_lval_expr_from_sym (sym);
 	      if (sym->ts.type == BT_CLASS)
-		gfc_add_component_ref (e, "$data");
+		gfc_add_data_component (e);
 
 	      gfc_init_se (&se, NULL);
 	      se.want_pointer = 1;
@@ -3401,13 +3334,16 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 
 	      /* Deallocate when leaving the scope. Nullifying is not
 		 needed.  */
-	      tmp = NULL;
 	      if (!sym->attr.result)
-		tmp = gfc_deallocate_with_status (se.expr, NULL_TREE,
-						  true, NULL);
+		tmp = gfc_deallocate_scalar_with_status (se.expr, NULL, true,
+							 NULL, sym->ts);
+	      else
+		tmp = NULL;
 	      gfc_add_init_cleanup (block, gfc_finish_block (&init), tmp);
 	    }
 	}
+      else if (sym->ts.deferred)
+	gfc_fatal_error ("Deferred type parameter not yet supported");
       else if (sym_has_alloc_comp)
 	gfc_trans_deferred_array (sym, block);
       else if (sym->ts.type == BT_CHARACTER)
@@ -4007,9 +3943,10 @@ generate_local_decl (gfc_symbol * sym)
 	}
 
       /* Warn for unused variables, but not if they're inside a common
-	 block or are use-associated.  */
+	 block, a namelist, or are use-associated.  */
       else if (warn_unused_variable
-	       && !(sym->attr.in_common || sym->attr.use_assoc || sym->mark))
+	       && !(sym->attr.in_common || sym->attr.use_assoc || sym->mark
+		    || sym->attr.in_namelist))
 	gfc_warning ("Unused variable '%s' declared at %L", sym->name,
 		     &sym->declared_at);
 
@@ -4206,8 +4143,7 @@ add_argument_checking (stmtblock_t *block, gfc_symbol *sym)
 	    not_0length = fold_build2_loc (input_location, NE_EXPR,
 					   boolean_type_node,
 					   cl->passed_length,
-					   fold_convert (gfc_charlen_type_node,
-							 integer_zero_node));
+					   build_zero_cst (gfc_charlen_type_node));
 	    /* The symbol needs to be referenced for gfc_get_symbol_decl.  */
 	    fsym->attr.referenced = 1;
 	    not_absent = gfc_conv_expr_present (fsym);
@@ -4870,21 +4806,12 @@ gfc_generate_block_data (gfc_namespace * ns)
 /* Process the local variables of a BLOCK construct.  */
 
 void
-gfc_process_block_locals (gfc_namespace* ns, gfc_association_list* assoc)
+gfc_process_block_locals (gfc_namespace* ns)
 {
   tree decl;
 
   gcc_assert (saved_local_decls == NULL_TREE);
   generate_local_vars (ns);
-
-  /* Mark associate names to be initialized.  The symbol's namespace may not
-     be the BLOCK's, we have to force this so that the deferring
-     works as expected.  */
-  for (; assoc; assoc = assoc->next)
-    {
-      assoc->st->n.sym->ns = ns;
-      gfc_defer_symbol_init (assoc->st->n.sym);
-    }
 
   decl = saved_local_decls;
   while (decl)

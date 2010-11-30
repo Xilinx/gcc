@@ -689,7 +689,7 @@ merge_fences (fence_t f, insn_t insn,
 
       /* Find fallthrough edge.  */
       gcc_assert (BLOCK_FOR_INSN (insn)->prev_bb);
-      candidate = find_fallthru_edge (BLOCK_FOR_INSN (insn)->prev_bb);
+      candidate = find_fallthru_edge_from (BLOCK_FOR_INSN (insn)->prev_bb);
 
       if (!candidate
           || (candidate->src != BLOCK_FOR_INSN (last_scheduled_insn)
@@ -942,6 +942,7 @@ get_clear_regset_from_pool (void)
 void
 return_regset_to_pool (regset rs)
 {
+  gcc_assert (rs);
   regset_pool.diff--;
 
   if (regset_pool.n == regset_pool.s)
@@ -1175,6 +1176,9 @@ vinsn_init (vinsn_t vi, insn_t insn, bool force_unique_p)
   VINSN_COUNT (vi) = 0;
   vi->cost = -1;
 
+  if (INSN_NOP_P (insn))
+    return;
+
   if (DF_INSN_UID_SAFE_GET (INSN_UID (insn)) != NULL)
     init_id_from_df (VINSN_ID (vi), insn, force_unique_p);
   else
@@ -1256,9 +1260,12 @@ vinsn_delete (vinsn_t vi)
 {
   gcc_assert (VINSN_COUNT (vi) == 0);
 
-  return_regset_to_pool (VINSN_REG_SETS (vi));
-  return_regset_to_pool (VINSN_REG_USES (vi));
-  return_regset_to_pool (VINSN_REG_CLOBBERS (vi));
+  if (!INSN_NOP_P (VINSN_INSN_RTX (vi)))
+    {
+      return_regset_to_pool (VINSN_REG_SETS (vi));
+      return_regset_to_pool (VINSN_REG_USES (vi));
+      return_regset_to_pool (VINSN_REG_CLOBBERS (vi));
+    }
 
   free (vi);
 }
@@ -1595,7 +1602,7 @@ static void
 init_expr (expr_t expr, vinsn_t vi, int spec, int use, int priority,
 	   int sched_times, int orig_bb_index, ds_t spec_done_ds,
 	   ds_t spec_to_check_ds, int orig_sched_cycle,
-	   VEC(expr_history_def, heap) *history, bool target_available,
+	   VEC(expr_history_def, heap) *history, signed char target_available,
            bool was_substituted, bool was_renamed, bool needs_spec_check_p,
            bool cant_move)
 {
@@ -3562,7 +3569,7 @@ sel_recompute_toporder (void)
 
 /* Tidy the possibly empty block BB.  */
 static bool
-maybe_tidy_empty_bb (basic_block bb, bool recompute_toporder_p)
+maybe_tidy_empty_bb (basic_block bb)
 {
   basic_block succ_bb, pred_bb;
   edge e;
@@ -3612,10 +3619,29 @@ maybe_tidy_empty_bb (basic_block bb, bool recompute_toporder_p)
 
           if (!(e->flags & EDGE_FALLTHRU))
             {
-              recompute_toporder_p |= sel_redirect_edge_and_branch (e, succ_bb);
+	      /* We can not invalidate computed topological order by moving
+	         the edge destination block (E->SUCC) along a fallthru edge.  */
+              sel_redirect_edge_and_branch (e, succ_bb);
               rescan_p = true;
               break;
             }
+	  /* If the edge is fallthru, but PRED_BB ends in a conditional jump
+	     to BB (so there is no non-fallthru edge from PRED_BB to BB), we
+	     still have to adjust it.  */
+	  else if (single_succ_p (pred_bb) && any_condjump_p (BB_END (pred_bb)))
+	    {
+	      /* If possible, try to remove the unneeded conditional jump.  */
+	      if (INSN_SCHED_TIMES (BB_END (pred_bb)) == 0
+		  && !IN_CURRENT_FENCE_P (BB_END (pred_bb)))
+		{
+		  if (!sel_remove_insn (BB_END (pred_bb), false, false))
+		    tidy_fallthru_edge (e);
+		}
+	      else
+		sel_redirect_edge_and_branch (e, succ_bb);
+	      rescan_p = true;
+	      break;
+	    }
         }
     }
 
@@ -3631,13 +3657,6 @@ maybe_tidy_empty_bb (basic_block bb, bool recompute_toporder_p)
       remove_empty_bb (bb, true);
     }
 
-  if (recompute_toporder_p)
-    sel_recompute_toporder ();
-
-#ifdef ENABLE_CHECKING
-  verify_backedges ();
-#endif
-
   return true;
 }
 
@@ -3651,7 +3670,7 @@ tidy_control_flow (basic_block xbb, bool full_tidying)
   insn_t first, last;
 
   /* First check whether XBB is empty.  */
-  changed = maybe_tidy_empty_bb (xbb, false);
+  changed = maybe_tidy_empty_bb (xbb);
   if (changed || !full_tidying)
     return changed;
 
@@ -3715,10 +3734,15 @@ tidy_control_flow (basic_block xbb, bool full_tidying)
          that contained that jump, becomes empty too.  In such case
          remove it too.  */
       if (sel_bb_empty_p (xbb->prev_bb))
-        changed = maybe_tidy_empty_bb (xbb->prev_bb, recompute_toporder_p);
-      else if (recompute_toporder_p)
+        changed = maybe_tidy_empty_bb (xbb->prev_bb);
+      if (recompute_toporder_p)
 	sel_recompute_toporder ();
     }
+
+#ifdef ENABLE_CHECKING
+  verify_backedges ();
+#endif
+
   return changed;
 }
 
@@ -3733,7 +3757,7 @@ purge_empty_blocks (void)
     {
       basic_block b = BASIC_BLOCK (BB_TO_BLOCK (i));
 
-      if (maybe_tidy_empty_bb (b, false))
+      if (maybe_tidy_empty_bb (b))
 	continue;
 
       i++;
@@ -4667,7 +4691,6 @@ bb_ends_ebb_p (basic_block bb)
 {
   basic_block next_bb = bb_next_bb (bb);
   edge e;
-  edge_iterator ei;
 
   if (next_bb == EXIT_BLOCK_PTR
       || bitmap_bit_p (forced_ebb_heads, next_bb->index)
@@ -4680,13 +4703,13 @@ bb_ends_ebb_p (basic_block bb)
   if (!in_current_region_p (next_bb))
     return true;
 
-  FOR_EACH_EDGE (e, ei, bb->succs)
-    if ((e->flags & EDGE_FALLTHRU) != 0)
-      {
-	gcc_assert (e->dest == next_bb);
-
-	return false;
-      }
+  e = find_fallthru_edge (bb->succs);
+  if (e)
+    {
+      gcc_assert (e->dest == next_bb);
+      
+      return false;
+    }
 
   return true;
 }
@@ -5591,7 +5614,7 @@ setup_nop_and_exit_insns (void)
   gcc_assert (nop_pattern == NULL_RTX
 	      && exit_insn == NULL_RTX);
 
-  nop_pattern = gen_nop ();
+  nop_pattern = constm1_rtx;
 
   start_sequence ();
   emit_insn (nop_pattern);

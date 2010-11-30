@@ -64,7 +64,6 @@ enum m32r_sdata m32r_sdata = M32R_SDATA_DEFAULT;
 /* Forward declaration.  */
 static bool  m32r_handle_option (size_t, const char *, int);
 static void  m32r_option_override (void);
-static void  m32r_option_optimization (int, int);
 static void  init_reg_tables (void);
 static void  block_move_call (rtx, rtx, rtx);
 static int   m32r_is_insn (rtx);
@@ -102,6 +101,7 @@ static rtx m32r_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
 static void m32r_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 				       const_tree, bool);
 static bool m32r_can_eliminate (const int, const int);
+static void m32r_conditional_register_usage (void);
 static void m32r_trampoline_init (rtx, tree, rtx);
 
 /* M32R specific attributes.  */
@@ -113,6 +113,13 @@ static const struct attribute_spec m32r_attribute_table[] =
   { "model",     1, 1, true,  false, false, m32r_handle_model_attribute },
   { NULL,        0, 0, false, false, false, NULL }
 };
+
+static const struct default_options m32r_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_1_PLUS, OPT_fregmove, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 /* Initialize the GCC target structure.  */
 #undef  TARGET_ATTRIBUTE_TABLE
@@ -154,8 +161,8 @@ static const struct attribute_spec m32r_attribute_table[] =
 #define TARGET_HANDLE_OPTION m32r_handle_option
 #undef  TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE m32r_option_override
-#undef  TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION m32r_option_optimization
+#undef  TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE m32r_option_optimization_table
 
 #undef  TARGET_ENCODE_SECTION_INFO
 #define TARGET_ENCODE_SECTION_INFO m32r_encode_section_info
@@ -197,6 +204,9 @@ static const struct attribute_spec m32r_attribute_table[] =
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE m32r_can_eliminate
+
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE m32r_conditional_register_usage
 
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT m32r_trampoline_init
@@ -276,18 +286,6 @@ m32r_option_override (void)
      It's convenient to do them here.  */
   m32r_init ();
   SUBTARGET_OVERRIDE_OPTIONS;
-}
-
-static void
-m32r_option_optimization (int level, int size)
-{
-  if (level == 1)
-    flag_regmove = 1;
-
-  if (size)
-    flag_omit_frame_pointer = 1;
-
-  SUBTARGET_OPTIMIZATION_OPTIONS;
 }
 
 /* Vectors to keep interesting information about registers where it can easily
@@ -1590,7 +1588,7 @@ m32r_compute_frame_size (int size)	/* # of var. bytes allocated.  */
 {
   unsigned int regno;
   unsigned int total_size, var_size, args_size, pretend_size, extra_size;
-  unsigned int reg_size, frame_size;
+  unsigned int reg_size;
   unsigned int gmask;
   enum m32r_function_type fn_type;
   int interrupt_p;
@@ -1632,7 +1630,7 @@ m32r_compute_frame_size (int size)	/* # of var. bytes allocated.  */
      handler will do the right thing if this changes total_size.  */
   total_size = M32R_STACK_ALIGN (total_size);
 
-  frame_size = total_size - (pretend_size + reg_size);
+  /* frame_size = total_size - (pretend_size + reg_size); */
 
   /* Save computed information.  */
   current_frame_info.total_size   = total_size;
@@ -1980,7 +1978,6 @@ m32r_legitimize_pic_address (rtx orig, rtx reg)
   if (GET_CODE (orig) == SYMBOL_REF || GET_CODE (orig) == LABEL_REF)
     {
       rtx pic_ref, address;
-      rtx insn;
       int subregs = 0;
 
       if (reg == 0)
@@ -2010,12 +2007,7 @@ m32r_legitimize_pic_address (rtx orig, rtx reg)
 
       emit_insn (gen_addsi3 (address, address, pic_offset_table_rtx));
       pic_ref = gen_const_mem (Pmode, address);
-      insn = emit_move_insn (reg, pic_ref);
-#if 0
-      /* Put a REG_EQUAL note on this insn, so that it can be optimized
-         by loop.  */
-      set_unique_reg_note (insn, REG_EQUAL, orig);
-#endif
+      emit_move_insn (reg, pic_ref);
       return reg;
     }
   else if (GET_CODE (orig) == CONST)
@@ -2848,4 +2840,14 @@ m32r_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 		       LCT_NORMAL, VOIDmode, 3, XEXP (m_tramp, 0), Pmode,
 		       gen_int_mode (TRAMPOLINE_SIZE, SImode), SImode,
 		       GEN_INT (3), SImode);
+}
+
+static void
+m32r_conditional_register_usage (void)
+{
+  if (flag_pic)
+    {
+      fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;
+      call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;
+    }
 }

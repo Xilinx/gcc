@@ -216,7 +216,7 @@ typedef struct gfc_ss
      loops the terms appear in.  This will be 1 for the RHS expressions,
      2 for the LHS expressions, and 3(=1|2) for the temporary.  The bit
      'where' suppresses precalculation of scalars in WHERE assignments.  */
-  unsigned useflags:2, where:1;
+  unsigned useflags:2, where:1, is_alloc_lhs:1;
 }
 gfc_ss;
 #define gfc_get_ss() XCNEW (gfc_ss)
@@ -532,6 +532,7 @@ tree gfc_allocate_with_status (stmtblock_t *, tree, tree);
 
 /* Generate code to deallocate an array.  */
 tree gfc_deallocate_with_status (tree, tree, bool, gfc_expr*);
+tree gfc_deallocate_scalar_with_status (tree, tree, bool, gfc_expr*, gfc_typespec);
 
 /* Generate code to call realloc().  */
 tree gfc_call_realloc (stmtblock_t *, tree, tree);
@@ -553,7 +554,7 @@ tree gfc_build_library_function_decl_with_spec (tree name, const char *spec,
 						tree rettype, int nargs, ...);
 
 /* Process the local variable decls of a block construct.  */
-void gfc_process_block_locals (gfc_namespace*, gfc_association_list*);
+void gfc_process_block_locals (gfc_namespace*);
 
 /* Output initialization/clean-up code that was deferred.  */
 void gfc_trans_deferred_vars (gfc_symbol*, gfc_wrapped_block *);
@@ -589,6 +590,7 @@ void gfc_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *, tree);
 extern GTY(()) tree gfor_fndecl_pause_numeric;
 extern GTY(()) tree gfor_fndecl_pause_string;
 extern GTY(()) tree gfor_fndecl_stop_numeric;
+extern GTY(()) tree gfor_fndecl_stop_numeric_f08;
 extern GTY(()) tree gfor_fndecl_stop_string;
 extern GTY(()) tree gfor_fndecl_error_stop_numeric;
 extern GTY(()) tree gfor_fndecl_error_stop_string;
@@ -752,51 +754,6 @@ struct GTY((variable_size)) lang_decl {
 #define GFC_TYPE_ARRAY_SPAN(node) (TYPE_LANG_SPECIFIC(node)->span)
 #define GFC_TYPE_ARRAY_BASE_DECL(node, internal) \
   (TYPE_LANG_SPECIFIC(node)->base_decl[(internal)])
-
-
-/* Create _loc version of build[0-9].  */
-
-static inline tree
-build1_stat_loc (location_t loc, enum tree_code code, tree type,
-		 tree op MEM_STAT_DECL)
-{
-  tree t = build1_stat (code, type, op PASS_MEM_STAT);
-  SET_EXPR_LOCATION (t, loc);
-  return t;
-}
-#define build1_loc(l,c,t1,t2) build1_stat_loc (l,c,t1,t2 MEM_STAT_INFO)
-
-static inline tree
-build2_stat_loc (location_t loc, enum tree_code code, tree type, tree arg0,
-		 tree op MEM_STAT_DECL)
-{
-  tree t = build2_stat (code, type, arg0, op PASS_MEM_STAT);
-  SET_EXPR_LOCATION (t, loc);
-  return t;
-}
-#define build2_loc(l,c,t1,t2,t3) build2_stat_loc (l,c,t1,t2,t3 MEM_STAT_INFO)
-
-static inline tree
-build3_stat_loc (location_t loc, enum tree_code code, tree type, tree arg0,
-		 tree arg1, tree op MEM_STAT_DECL)
-{
-  tree t = build3_stat (code, type, arg0, arg1, op PASS_MEM_STAT);
-  SET_EXPR_LOCATION (t, loc);
-  return t;
-}
-#define build3_loc(l,c,t1,t2,t3,t4) \
-  build3_stat_loc (l,c,t1,t2,t3,t4 MEM_STAT_INFO)
-
-static inline tree
-build4_stat_loc (location_t loc, enum tree_code code, tree type, tree arg0,
-		 tree arg1, tree arg2, tree op MEM_STAT_DECL)
-{
-  tree t = build4_stat (code, type, arg0, arg1, arg2, op PASS_MEM_STAT);
-  SET_EXPR_LOCATION (t, loc);
-  return t;
-}
-#define build4_loc(l,c,t1,t2,t3,t4,t5) \
-  build4_stat_loc (l,c,t1,t2,t3,t4,t5 MEM_STAT_INFO)
 
 
 /* Build an expression with void type.  */

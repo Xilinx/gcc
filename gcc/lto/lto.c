@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "diagnostic-core.h"
 #include "tm.h"
-#include "libiberty.h"
 #include "cgraph.h"
 #include "ggc.h"
 #include "tree-ssa-operands.h"
@@ -45,20 +44,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "lto-streamer.h"
 #include "splay-tree.h"
 #include "params.h"
-
-/* This needs to be included after config.h.  Otherwise, _GNU_SOURCE will not
-   be defined in time to set __USE_GNU in the system headers, and strsignal
-   will not be declared.  */
-#if HAVE_MMAP_FILE
-#include <sys/mman.h>
-#endif
-
-/* Handle opening elf files on hosts, such as Windows, that may use 
-   text file handling that will break binary access.  */
-
-#ifndef O_BINARY
-# define O_BINARY 0
-#endif
 
 static GTY(()) tree first_personality_decl;
 
@@ -392,7 +377,7 @@ lto_resolution_read (splay_tree file_ids, FILE *resolution, lto_file *file)
 
       t = fscanf (resolution, "%u %x %26s %*[^\n]\n", &index, &id, r_str);
       if (t != 3)
-        internal_error ("Invalid line in the resolution file.");
+        internal_error ("invalid line in the resolution file");
       if (index > max_index)
 	max_index = index;
 
@@ -405,13 +390,13 @@ lto_resolution_read (splay_tree file_ids, FILE *resolution, lto_file *file)
 	    }
 	}
       if (j == lto_resolution_str_len)
-	internal_error ("Invalid resolution in the resolution file.");
+	internal_error ("invalid resolution in the resolution file");
 
       if (!(nd && nd->key == id))
 	{
 	  nd = splay_tree_lookup (file_ids, id);
 	  if (nd == NULL)
-	    internal_error ("Resolution sub id %x not in object file", id);
+	    internal_error ("resolution sub id %x not in object file", id);
 	}
 
       file_data = (struct lto_file_decl_data *)nd->value;
@@ -496,7 +481,7 @@ lto_file_finalize (struct lto_file_decl_data *file_data, lto_file *file)
   data = lto_get_section_data (file_data, LTO_section_decls, NULL, &len);
   if (data == NULL)
     {
-      internal_error ("Cannot read LTO decls from %s", file_data->file_name);
+      internal_error ("cannot read LTO decls from %s", file_data->file_name);
       return;
     }
   lto_read_decls (file_data, data, file_data->resolutions);
@@ -760,7 +745,12 @@ add_cgraph_node_to_partition (ltrans_partition part, struct cgraph_node *node)
   part->insns += node->local.inline_summary.self_size;
 
   if (node->aux)
-    node->in_other_partition = 1;
+    {
+      node->in_other_partition = 1;
+      if (cgraph_dump_file)
+        fprintf (cgraph_dump_file, "Node %s/%i now used in multiple partitions\n",
+		 cgraph_node_name (node), node->uid);
+    }
   node->aux = (void *)((size_t)node->aux + 1);
 
   cgraph_node_set_add (part->cgraph_set, node);
@@ -785,7 +775,12 @@ add_varpool_node_to_partition (ltrans_partition part, struct varpool_node *vnode
   varpool_node_set_add (part->varpool_set, vnode);
 
   if (vnode->aux)
-    vnode->in_other_partition = 1;
+    {
+      vnode->in_other_partition = 1;
+      if (cgraph_dump_file)
+        fprintf (cgraph_dump_file, "Varpool node %s now used in multiple partitions\n",
+		 varpool_node_name (vnode));
+    }
   vnode->aux = (void *)((size_t)vnode->aux + 1);
 
   add_references_to_partition (part, &vnode->ref_list);
@@ -856,6 +851,7 @@ partition_varpool_node_p (struct varpool_node *vnode)
   /* Constant pool and comdat are always only in partitions they are needed.  */
   if (DECL_IN_CONSTANT_POOL (vnode->decl)
       || (DECL_COMDAT (vnode->decl)
+	  && !vnode->force_output
 	  && !varpool_used_from_object_file_p (vnode)))
     return false;
   return true;
@@ -911,7 +907,8 @@ lto_1_to_1_map (void)
 	  npartitions++;
 	}
 
-      add_cgraph_node_to_partition (partition, node);
+      if (!node->aux)
+        add_cgraph_node_to_partition (partition, node);
     }
 
   for (vnode = varpool_nodes; vnode; vnode = vnode->next)
@@ -930,7 +927,8 @@ lto_1_to_1_map (void)
 	  npartitions++;
 	}
 
-      add_varpool_node_to_partition (partition, vnode);
+      if (!vnode->aux)
+        add_varpool_node_to_partition (partition, vnode);
     }
   for (node = cgraph_nodes; node; node = node->next)
     node->aux = NULL;
@@ -1005,6 +1003,8 @@ lto_balanced_map (void)
     INT_MAX, best_internal = 0;
   int npartitions;
 
+  for (vnode = varpool_nodes; vnode; vnode = vnode->next)
+    gcc_assert (!vnode->aux);
   /* Until we have better ordering facility, use toplogical order.
      Include only nodes we will partition and compute estimate of program
      size.  Note that since nodes that are not partitioned might be put into
@@ -1034,7 +1034,8 @@ lto_balanced_map (void)
 
   for (i = 0; i < n_nodes; i++)
     {
-      add_cgraph_node_to_partition (partition, order[i]);
+      if (!order[i]->aux)
+        add_cgraph_node_to_partition (partition, order[i]);
       total_size -= order[i]->global.size;
 
       /* Once we added a new node to the partition, we also want to add
@@ -1198,8 +1199,8 @@ lto_balanced_map (void)
 	  best_total_size = total_size;
 	}
       if (cgraph_dump_file)
-	fprintf (cgraph_dump_file, "Step %i: added %s, size %i, cost %i/%i best %i/%i, step %i\n", i,
-		 cgraph_node_name (order[i]), partition->insns, cost, internal,
+	fprintf (cgraph_dump_file, "Step %i: added %s/%i, size %i, cost %i/%i best %i/%i, step %i\n", i,
+		 cgraph_node_name (order[i]), order[i]->uid, partition->insns, cost, internal,
 		 best_cost, best_internal, best_i);
       /* Partition is too large, unwind into step when best cost was reached and
 	 start new partition.  */
@@ -1710,10 +1711,14 @@ lto_fixup_type (tree t, void *data)
 	LTO_FIXUP_SUBTREE (TYPE_CONTEXT (t));
     }
 
-  /* TYPE_CANONICAL does not need to be fixed up, instead it should
-     always point to ourselves at this time as we never fixup
-     non-canonical ones.  */
-  gcc_assert (TYPE_CANONICAL (t) == t);
+  /* Compute the canonical type of t and fix that up.  From this point
+     there are no longer any types with TYPE_STRUCTURAL_EQUALITY_P
+     and its type-based alias problems.  */
+  if (!TYPE_CANONICAL (t))
+    {
+      TYPE_CANONICAL (t) = gimple_register_canonical_type (t);
+      LTO_FIXUP_SUBTREE (TYPE_CANONICAL (t));
+    }
 
   /* The following re-creates proper variant lists while fixing up
      the variant leaders.  We do not stream TYPE_NEXT_VARIANT so the
@@ -2175,6 +2180,11 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
   /* Merge global decls.  */
   lto_symtab_merge_decls ();
 
+  /* If there were errors during symbol merging bail out, we have no
+     good way to recover here.  */
+  if (seen_error ())
+    fatal_error ("errors during merging of translation units");
+
   /* Fixup all decls and types and free the type hash tables.  */
   lto_fixup_decls (all_file_decl_data);
   free_gimple_type_tables ();
@@ -2310,13 +2320,13 @@ do_whole_program_analysis (void)
       dump_memory_report (false);
     }
 
+  cgraph_function_flags_ready = true;
+
   if (cgraph_dump_file)
     {
       dump_cgraph (cgraph_dump_file);
       dump_varpool (cgraph_dump_file);
     }
-
-  cgraph_function_flags_ready = true;
   bitmap_obstack_initialize (NULL);
   ipa_register_cgraph_hooks ();
   cgraph_state = CGRAPH_STATE_IPA_SSA;
@@ -2417,7 +2427,7 @@ lto_process_name (void)
      simply applies them.  */
 
 void
-lto_main (int debug_p ATTRIBUTE_UNUSED)
+lto_main (void)
 {
   lto_process_name ();
 

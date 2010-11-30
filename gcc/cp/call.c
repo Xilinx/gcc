@@ -466,15 +466,24 @@ null_ptr_cst_p (tree t)
      A null pointer constant is an integral constant expression
      (_expr.const_) rvalue of integer type that evaluates to zero or
      an rvalue of type std::nullptr_t. */
-  t = integral_constant_value (t);
-  if (t == null_node
-      || NULLPTR_TYPE_P (TREE_TYPE (t)))
+  if (NULLPTR_TYPE_P (TREE_TYPE (t)))
     return true;
-  if (CP_INTEGRAL_TYPE_P (TREE_TYPE (t)) && integer_zerop (t))
+  if (CP_INTEGRAL_TYPE_P (TREE_TYPE (t)))
     {
-      STRIP_NOPS (t);
-      if (!TREE_OVERFLOW (t))
-	return true;
+      if (cxx_dialect >= cxx0x)
+	{
+	  t = fold_non_dependent_expr (t);
+	  t = maybe_constant_value (t);
+	  if (TREE_CONSTANT (t) && integer_zerop (t))
+	    return true;
+	}
+      else
+	{
+	  t = integral_constant_value (t);
+	  STRIP_NOPS (t);
+	  if (integer_zerop (t) && !TREE_OVERFLOW (t))
+	    return true;
+	}
     }
   return false;
 }
@@ -630,6 +639,29 @@ build_list_conv (tree type, tree ctor, int flags)
   return t;
 }
 
+/* Subroutine of build_aggr_conv: check whether CTOR, a braced-init-list,
+   is a valid aggregate initializer for array type ATYPE.  */
+
+static bool
+can_convert_array (tree atype, tree ctor, int flags)
+{
+  unsigned i;
+  tree elttype = TREE_TYPE (atype);
+  for (i = 0; i < CONSTRUCTOR_NELTS (ctor); ++i)
+    {
+      tree val = CONSTRUCTOR_ELT (ctor, i)->value;
+      bool ok;
+      if (TREE_CODE (elttype) == ARRAY_TYPE
+	  && TREE_CODE (val) == CONSTRUCTOR)
+	ok = can_convert_array (elttype, val, flags);
+      else
+	ok = can_convert_arg (elttype, TREE_TYPE (val), val, flags);
+      if (!ok)
+	return false;
+    }
+  return true;
+}
+
 /* Represent a conversion from CTOR, a braced-init-list, to TYPE, an
    aggregate class, if such a conversion is possible.  */
 
@@ -643,24 +675,31 @@ build_aggr_conv (tree type, tree ctor, int flags)
 
   for (; field; field = next_initializable_field (DECL_CHAIN (field)))
     {
+      tree ftype = TREE_TYPE (field);
+      tree val;
+      bool ok;
+
       if (i < CONSTRUCTOR_NELTS (ctor))
-	{
-	  constructor_elt *ce = CONSTRUCTOR_ELT (ctor, i);
-	  if (!can_convert_arg (TREE_TYPE (field), TREE_TYPE (ce->value),
-				ce->value, flags))
-	    return NULL;
-	  ++i;
-	  if (TREE_CODE (type) == UNION_TYPE)
-	    break;
-	}
+	val = CONSTRUCTOR_ELT (ctor, i)->value;
       else
 	{
 	  if (empty_ctor == NULL_TREE)
 	    empty_ctor = build_constructor (init_list_type_node, NULL);
-	  if (!can_convert_arg (TREE_TYPE (field), TREE_TYPE (empty_ctor),
-				empty_ctor, flags))
-	    return NULL;
+	  val = empty_ctor;
 	}
+      ++i;
+
+      if (TREE_CODE (ftype) == ARRAY_TYPE
+	  && TREE_CODE (val) == CONSTRUCTOR)
+	ok = can_convert_array (ftype, val, flags);
+      else
+	ok = can_convert_arg (ftype, TREE_TYPE (val), val, flags);
+
+      if (!ok)
+	return NULL;
+
+      if (TREE_CODE (type) == UNION_TYPE)
+	break;
     }
 
   if (i < CONSTRUCTOR_NELTS (ctor))
@@ -1054,7 +1093,7 @@ convert_class_to_reference (tree reference_type, tree s, tree expr, int flags)
   if (!expr)
     return NULL;
 
-  conversions = lookup_conversions (s, /*lookup_template_convs_p=*/true);
+  conversions = lookup_conversions (s);
   if (!conversions)
     return NULL;
 
@@ -1613,9 +1652,10 @@ add_function_candidate (struct z_candidate **candidates,
   /* Kludge: When looking for a function from a subobject while generating
      an implicit copy/move constructor/operator=, don't consider anything
      that takes (a reference to) an unrelated type.  See c++/44909.  */
-  else if ((flags & LOOKUP_SPECULATIVE)
-	   || (current_function_decl
-	       && DECL_DEFAULTED_FN (current_function_decl)))
+  else if (parmlist
+	   && ((flags & LOOKUP_SPECULATIVE)
+	       || (current_function_decl
+		   && DECL_DEFAULTED_FN (current_function_decl))))
     {
       if (DECL_CONSTRUCTOR_P (fn))
 	i = 1;
@@ -1982,6 +2022,7 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
 
     case INDIRECT_REF:
       if (TREE_CODE (type1) == POINTER_TYPE
+	  && is_complete (TREE_TYPE (type1))
 	  && (TYPE_PTROB_P (type1)
 	      || TREE_CODE (TREE_TYPE (type1)) == FUNCTION_TYPE))
 	break;
@@ -2424,8 +2465,7 @@ add_builtin_candidates (struct z_candidate **candidates, enum tree_code code,
 	  if (i == 0 && code == MODIFY_EXPR && code2 == NOP_EXPR)
 	    return;
 
-	  convs = lookup_conversions (argtypes[i],
-				      /*lookup_template_convs_p=*/false);
+	  convs = lookup_conversions (argtypes[i]);
 
 	  if (code == COND_EXPR)
 	    {
@@ -2988,8 +3028,7 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
 	     reference to it)...  */
 	}
       else
-	conv_fns = lookup_conversions (fromtype,
-				       /*lookup_template_convs_p=*/true);
+	conv_fns = lookup_conversions (fromtype);
     }
 
   candidates = 0;
@@ -3162,6 +3201,76 @@ build_user_type_conversion (tree totype, tree expr, int flags)
       return convert_from_reference (expr);
     }
   return NULL_TREE;
+}
+
+/* Subroutine of convert_nontype_argument.
+
+   EXPR is an argument for a template non-type parameter of integral or
+   enumeration type.  Do any necessary conversions (that are permitted for
+   non-type arguments) to convert it to the parameter type.
+
+   If conversion is successful, returns the converted expression;
+   otherwise, returns error_mark_node.  */
+
+tree
+build_integral_nontype_arg_conv (tree type, tree expr, tsubst_flags_t complain)
+{
+  conversion *conv;
+  void *p;
+  tree t;
+
+  if (error_operand_p (expr))
+    return error_mark_node;
+
+  gcc_assert (INTEGRAL_OR_ENUMERATION_TYPE_P (type));
+
+  /* Get the high-water mark for the CONVERSION_OBSTACK.  */
+  p = conversion_obstack_alloc (0);
+
+  conv = implicit_conversion (type, TREE_TYPE (expr), expr,
+			      /*c_cast_p=*/false,
+			      LOOKUP_IMPLICIT);
+
+  /* for a non-type template-parameter of integral or
+     enumeration type, integral promotions (4.5) and integral
+     conversions (4.7) are applied.  */
+  /* It should be sufficient to check the outermost conversion step, since
+     there are no qualification conversions to integer type.  */
+  if (conv)
+    switch (conv->kind)
+      {
+	/* A conversion function is OK.  If it isn't constexpr, we'll
+	   complain later that the argument isn't constant.  */
+      case ck_user:
+	/* The lvalue-to-rvalue conversion is OK.  */
+      case ck_rvalue:
+      case ck_identity:
+	break;
+
+      case ck_std:
+	t = conv->u.next->type;
+	if (INTEGRAL_OR_ENUMERATION_TYPE_P (t))
+	  break;
+
+	if (complain & tf_error)
+	  error ("conversion from %qT to %qT not considered for "
+		 "non-type template argument", t, type);
+	/* and fall through.  */
+
+      default:
+	conv = NULL;
+	break;
+      }
+
+  if (conv)
+    expr = convert_like (conv, expr, complain);
+  else
+    expr = error_mark_node;
+
+  /* Free all the conversions we allocated.  */
+  obstack_free (&conversion_obstack, p);
+
+  return expr;
 }
 
 /* Do any initial processing on the arguments to a function call.  */
@@ -3475,7 +3584,7 @@ build_op_call (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
 		      LOOKUP_NORMAL, &candidates);
     }
 
-  convs = lookup_conversions (type, /*lookup_template_convs_p=*/true);
+  convs = lookup_conversions (type);
 
   for (; convs; convs = TREE_CHAIN (convs))
     {
@@ -5114,7 +5223,8 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 					  1, false, false, complain);
 	    if (sub == error_mark_node)
 	      return sub;
-	    check_narrowing (TREE_TYPE (sub), val);
+	    if (!BRACE_ENCLOSED_INITIALIZER_P (val))
+	      check_narrowing (TREE_TYPE (sub), val);
 	    CONSTRUCTOR_APPEND_ELT (CONSTRUCTOR_ELTS (new_ctor), NULL_TREE, sub);
 	  }
 	/* Build up the array.  */
@@ -5179,6 +5289,10 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	   conversion (i.e. the second step of copy-initialization), so
 	   don't allow any more.  */
 	flags |= LOOKUP_NO_CONVERSION;
+      if (TREE_CODE (expr) == TARGET_EXPR
+	  && TARGET_EXPR_LIST_INIT_P (expr))
+	/* Copy-list-initialization doesn't actually involve a copy.  */
+	return expr;
       expr = build_temp (expr, totype, flags, &diag_kind, complain);
       if (diag_kind && fn)
 	{
@@ -5712,15 +5826,9 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	access_fn = fn;
       if (flags & LOOKUP_SPECULATIVE)
 	{
-	  /* If we're checking for implicit delete, we don't want access
-	     control errors.  */
-	  if (!accessible_p (cand->access_path, access_fn, true))
-	    {
-	      /* Unless we're under maybe_explain_implicit_delete.  */
-	      if (flags & LOOKUP_COMPLAIN)
-		enforce_access (cand->access_path, access_fn, fn);
-	      return error_mark_node;
-	    }
+	  if (!speculative_access_check (cand->access_path, access_fn, fn,
+					 !!(flags & LOOKUP_COMPLAIN)))
+	    return error_mark_node;
 	}
       else
 	perform_or_defer_access_check (cand->access_path, access_fn, fn);
@@ -5944,15 +6052,9 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       else
 	arg = cp_build_indirect_ref (arg, RO_NULL, complain);
 
-      if (TREE_CODE (arg) == TARGET_EXPR
-	  && TARGET_EXPR_LIST_INIT_P (arg))
-	{
-	  /* Copy-list-initialization doesn't require the constructor
-	     to be defined.  */
-	}
       /* [class.copy]: the copy constructor is implicitly defined even if
 	 the implementation elided its use.  */
-      else if (!trivial)
+      if (!trivial || DECL_DELETED_FN (fn))
 	{
 	  mark_used (fn);
 	  already_used = true;
@@ -5963,9 +6065,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	 INIT_EXPR to collapse the temp into our target.  Otherwise, if the
 	 ctor is trivial, do a bitwise copy with a simple TARGET_EXPR for a
 	 temp or an INIT_EXPR otherwise.  */
-      fa = (cand->first_arg != NULL_TREE
-	    ? cand->first_arg
-	    : VEC_index (tree, args, 0));
+      fa = argarray[0];
       if (integer_zerop (fa))
 	{
 	  if (TREE_CODE (arg) == TARGET_EXPR)
@@ -5983,7 +6083,8 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	}
     }
   else if (DECL_OVERLOADED_OPERATOR_P (fn) == NOP_EXPR
-	   && trivial_fn_p (fn))
+	   && trivial_fn_p (fn)
+	   && !DECL_DELETED_FN (fn))
     {
       tree to = stabilize_reference
 	(cp_build_indirect_ref (argarray[0], RO_NULL, complain));
@@ -6040,6 +6141,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 
       return val;
     }
+  /* FIXME handle trivial default constructor and destructor, too.  */
 
   if (!already_used)
     mark_used (fn);
@@ -6536,7 +6638,7 @@ build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
     {
       if (complain & tf_error)
 	{
-	  if (!COMPLETE_TYPE_P (basetype))
+	  if (!COMPLETE_OR_OPEN_TYPE_P (basetype))
 	    cxx_incomplete_type_error (instance_ptr, basetype);
 	  else if (optype)
 	    error ("no matching function for call to %<%T::operator %T(%A)%#V%>",
@@ -7836,9 +7938,32 @@ set_up_extended_ref_temp (tree decl, tree expr, tree *cleanup, tree *initp)
      VAR.  */
   if (TREE_CODE (expr) != TARGET_EXPR)
     expr = get_target_expr (expr);
-  /* Create the INIT_EXPR that will initialize the temporary
-     variable.  */
-  init = build2 (INIT_EXPR, type, var, expr);
+
+  /* If the initializer is constant, put it in DECL_INITIAL so we get
+     static initialization and use in constant expressions.  */
+  init = maybe_constant_init (expr);
+  if (TREE_CONSTANT (init))
+    {
+      if (literal_type_p (type) && CP_TYPE_CONST_NON_VOLATILE_P (type))
+	{
+	  /* 5.19 says that a constant expression can include an
+	     lvalue-rvalue conversion applied to "a glvalue of literal type
+	     that refers to a non-volatile temporary object initialized
+	     with a constant expression".  Rather than try to communicate
+	     that this VAR_DECL is a temporary, just mark it constexpr.
+
+	     Currently this is only useful for initializer_list temporaries,
+	     since reference vars can't appear in constant expressions.  */
+	  DECL_DECLARED_CONSTEXPR_P (var) = true;
+	  TREE_CONSTANT (var) = true;
+	}
+      DECL_INITIAL (var) = init;
+      init = NULL_TREE;
+    }
+  else
+    /* Create the INIT_EXPR that will initialize the temporary
+       variable.  */
+    init = build2 (INIT_EXPR, type, var, expr);
   if (at_function_scope_p ())
     {
       add_decl_expr (var);
@@ -7996,7 +8121,8 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup,
 					build_pointer_type (base_conv_type),
 					/*check_access=*/true,
 					/*nonnull=*/true, complain);
-	      expr = build2 (COMPOUND_EXPR, TREE_TYPE (expr), init, expr);
+	      if (init)
+		expr = build2 (COMPOUND_EXPR, TREE_TYPE (expr), init, expr);
 	    }
 	  else
 	    /* Take the address of EXPR.  */

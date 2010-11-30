@@ -494,10 +494,6 @@ extern int arm_arch_hwdiv;
 #define TARGET_DEFAULT  (MASK_APCS_FRAME)
 #endif
 
-/* The frame pointer register used in gcc has nothing to do with debugging;
-   that is controlled by the APCS-FRAME option.  */
-#define CAN_DEBUG_WITHOUT_FP
-
 /* Nonzero if PIC code requires explicit qualifiers to generate
    PLT and GOT relocs rather than the assembler doing so implicitly.
    Subtargets can override these if required.  */
@@ -559,14 +555,6 @@ extern int arm_arch_hwdiv;
    numbered.
    This is always false, even when in big-endian mode.  */
 #define WORDS_BIG_ENDIAN  (BYTES_BIG_ENDIAN && ! TARGET_LITTLE_WORDS)
-
-/* LIBGCC2_WORDS_BIG_ENDIAN has to be a constant, so we define this based
-   on processor pre-defineds when compiling libgcc2.c.  */
-#if defined(__ARMEB__) && !defined(__ARMWEL__)
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#else
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#endif
 
 /* Define this if most significant word of doubles is the lowest numbered.
    The rules are different based on whether or not we use FPA-format,
@@ -710,7 +698,7 @@ extern int arm_structure_size_boundary;
 			elimination code won't get rid of sfp.  It tracks
 			fp exactly at all times.
 
-   *: See CONDITIONAL_REGISTER_USAGE  */
+   *: See TARGET_CONDITIONAL_REGISTER_USAGE  */
 
 /*
   	mvf0		Cirrus floating point result
@@ -801,107 +789,6 @@ extern int arm_structure_size_boundary;
 #ifndef SUBTARGET_CONDITIONAL_REGISTER_USAGE
 #define SUBTARGET_CONDITIONAL_REGISTER_USAGE
 #endif
-
-#define CONDITIONAL_REGISTER_USAGE				\
-{								\
-  int regno;							\
-								\
-  if (TARGET_SOFT_FLOAT || TARGET_THUMB1 || !TARGET_FPA)	\
-    {								\
-      for (regno = FIRST_FPA_REGNUM;				\
-	   regno <= LAST_FPA_REGNUM; ++regno)			\
-	fixed_regs[regno] = call_used_regs[regno] = 1;		\
-    }								\
-								\
-  if (TARGET_THUMB1 && optimize_size)				\
-    {                                                           \
-      /* When optimizing for size on Thumb-1, it's better not	\
-        to use the HI regs, because of the overhead of		\
-        stacking them.  */                                      \
-      for (regno = FIRST_HI_REGNUM;				\
-	   regno <= LAST_HI_REGNUM; ++regno)			\
-	fixed_regs[regno] = call_used_regs[regno] = 1;		\
-    }								\
-								\
-  /* The link register can be clobbered by any branch insn,	\
-     but we have no way to track that at present, so mark	\
-     it as unavailable.  */					\
-  if (TARGET_THUMB1)						\
-    fixed_regs[LR_REGNUM] = call_used_regs[LR_REGNUM] = 1;	\
-								\
-  if (TARGET_32BIT && TARGET_HARD_FLOAT)			\
-    {								\
-      if (TARGET_MAVERICK)					\
-	{							\
-	  for (regno = FIRST_FPA_REGNUM;			\
-	       regno <= LAST_FPA_REGNUM; ++ regno)		\
-	    fixed_regs[regno] = call_used_regs[regno] = 1;	\
-	  for (regno = FIRST_CIRRUS_FP_REGNUM;			\
-	       regno <= LAST_CIRRUS_FP_REGNUM; ++ regno)	\
-	    {							\
-	      fixed_regs[regno] = 0;				\
-	      call_used_regs[regno] = regno < FIRST_CIRRUS_FP_REGNUM + 4; \
-	    }							\
-	}							\
-      if (TARGET_VFP)						\
-	{							\
-	  /* VFPv3 registers are disabled when earlier VFP	\
-	     versions are selected due to the definition of	\
-	     LAST_VFP_REGNUM.  */				\
-	  for (regno = FIRST_VFP_REGNUM;			\
-	       regno <= LAST_VFP_REGNUM; ++ regno)		\
-	    {							\
-	      fixed_regs[regno] = 0;				\
-	      call_used_regs[regno] = regno < FIRST_VFP_REGNUM + 16 \
-	      	|| regno >= FIRST_VFP_REGNUM + 32;		\
-	    }							\
-	}							\
-    }								\
-								\
-  if (TARGET_REALLY_IWMMXT)					\
-    {								\
-      regno = FIRST_IWMMXT_GR_REGNUM;				\
-      /* The 2002/10/09 revision of the XScale ABI has wCG0     \
-         and wCG1 as call-preserved registers.  The 2002/11/21  \
-         revision changed this so that all wCG registers are    \
-         scratch registers.  */					\
-      for (regno = FIRST_IWMMXT_GR_REGNUM;			\
-	   regno <= LAST_IWMMXT_GR_REGNUM; ++ regno)		\
-	fixed_regs[regno] = 0;					\
-      /* The XScale ABI has wR0 - wR9 as scratch registers,     \
-	 the rest as call-preserved registers.  */		\
-      for (regno = FIRST_IWMMXT_REGNUM;				\
-	   regno <= LAST_IWMMXT_REGNUM; ++ regno)		\
-	{							\
-	  fixed_regs[regno] = 0;				\
-	  call_used_regs[regno] = regno < FIRST_IWMMXT_REGNUM + 10; \
-	}							\
-    }								\
-								\
-  if ((unsigned) PIC_OFFSET_TABLE_REGNUM != INVALID_REGNUM)	\
-    {								\
-      fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;			\
-      call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;		\
-    }								\
-  else if (TARGET_APCS_STACK)					\
-    {								\
-      fixed_regs[10]     = 1;					\
-      call_used_regs[10] = 1;					\
-    }								\
-  /* -mcaller-super-interworking reserves r11 for calls to	\
-     _interwork_r11_call_via_rN().  Making the register global	\
-     is an easy way of ensuring that it remains valid for all	\
-     calls.  */							\
-  if (TARGET_APCS_FRAME || TARGET_CALLER_INTERWORKING		\
-      || TARGET_TPCS_FRAME || TARGET_TPCS_LEAF_FRAME)		\
-    {								\
-      fixed_regs[ARM_HARD_FRAME_POINTER_REGNUM] = 1;		\
-      call_used_regs[ARM_HARD_FRAME_POINTER_REGNUM] = 1;	\
-      if (TARGET_CALLER_INTERWORKING)				\
-	global_regs[ARM_HARD_FRAME_POINTER_REGNUM] = 1;		\
-    }								\
-  SUBTARGET_CONDITIONAL_REGISTER_USAGE				\
-}
 
 /* These are a couple of extensions to the formats accepted
    by asm_fprintf:
@@ -1743,14 +1630,6 @@ typedef struct
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, FNDECL, N_NAMED_ARGS) \
   arm_init_cumulative_args (&(CUM), (FNTYPE), (LIBNAME), (FNDECL))
 
-/* If defined, a C expression that gives the alignment boundary, in bits, of an
-   argument with the specified mode and type.  If it is not defined,
-   `PARM_BOUNDARY' is used for all arguments.  */
-#define FUNCTION_ARG_BOUNDARY(MODE,TYPE) \
-   ((ARM_DOUBLEWORD_ALIGN && arm_needs_doubleword_align (MODE, TYPE)) \
-   ? DOUBLEWORD_ALIGNMENT \
-   : PARM_BOUNDARY )
-
 /* 1 if N is a possible register number for function argument passing.
    On the ARM, r0-r3 are used to pass args.  */
 #define FUNCTION_ARG_REGNO_P(REGNO)					\
@@ -2117,9 +1996,6 @@ typedef struct
 #define ARM_INDEX_REGISTER_RTX_P(X)  \
   (GET_CODE (X) == REG && ARM_REG_OK_FOR_INDEX_P (X))
 
-/* Define this for compatibility reasons. */
-#define HANDLE_PRAGMA_PACK_PUSH_POP
-
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */
 #define CASE_VECTOR_MODE Pmode

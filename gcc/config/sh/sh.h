@@ -98,8 +98,6 @@ do { \
 		  ? "__LITTLE_ENDIAN__" : "__BIG_ENDIAN__"); \
 } while (0)
 
-#define CAN_DEBUG_WITHOUT_FP 
-
 /* Value should be nonzero if functions must have frame pointers.
    Zero means the frame pointer need not be set up (and parms may be accessed
    via the stack pointer) in functions that seem suitable.  */
@@ -108,51 +106,6 @@ do { \
 #define SUBTARGET_FRAME_POINTER_REQUIRED 0
 #endif
 
-#define CONDITIONAL_REGISTER_USAGE do					\
-{									\
-  int regno;								\
-  for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno ++)		\
-    if (! VALID_REGISTER_P (regno))					\
-      fixed_regs[regno] = call_used_regs[regno] = 1;			\
-  /* R8 and R9 are call-clobbered on SH5, but not on earlier SH ABIs.  */ \
-  if (TARGET_SH5)							\
-    {									\
-      call_used_regs[FIRST_GENERAL_REG + 8]				\
-	= call_used_regs[FIRST_GENERAL_REG + 9] = 1;			\
-      call_really_used_regs[FIRST_GENERAL_REG + 8]			\
-	= call_really_used_regs[FIRST_GENERAL_REG + 9] = 1;		\
-    }									\
-  if (TARGET_SHMEDIA)							\
-    {									\
-      regno_reg_class[FIRST_GENERAL_REG] = GENERAL_REGS;		\
-      CLEAR_HARD_REG_SET (reg_class_contents[FP0_REGS]);		\
-      regno_reg_class[FIRST_FP_REG] = FP_REGS;				\
-    }									\
-  if (flag_pic)								\
-    {									\
-      fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;				\
-      call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;			\
-    }									\
-  /* Renesas saves and restores mac registers on call.  */		\
-  if (TARGET_HITACHI && ! TARGET_NOMACSAVE)				\
-    {									\
-      call_really_used_regs[MACH_REG] = 0;				\
-      call_really_used_regs[MACL_REG] = 0;				\
-    }									\
-  for (regno = FIRST_FP_REG + (TARGET_LITTLE_ENDIAN != 0);		\
-       regno <= LAST_FP_REG; regno += 2)				\
-    SET_HARD_REG_BIT (reg_class_contents[DF_HI_REGS], regno);		\
-  if (TARGET_SHMEDIA)							\
-    {									\
-      for (regno = FIRST_TARGET_REG; regno <= LAST_TARGET_REG; regno ++)\
-	if (! fixed_regs[regno] && call_really_used_regs[regno])	\
-	  SET_HARD_REG_BIT (reg_class_contents[SIBCALL_REGS], regno);	\
-    }									\
-  else									\
-    for (regno = FIRST_GENERAL_REG; regno <= LAST_GENERAL_REG; regno++)	\
-      if (! fixed_regs[regno] && call_really_used_regs[regno])		\
-	SET_HARD_REG_BIT (reg_class_contents[SIBCALL_REGS], regno);	\
-} while (0)
 
 /* Nonzero if this is an ELF target - compile time only */
 #define TARGET_ELF 0
@@ -518,14 +471,6 @@ extern enum sh_divide_strategy_e sh_div_strategy;
    numbered.  */
 #define WORDS_BIG_ENDIAN (TARGET_LITTLE_ENDIAN == 0)
 
-/* Define this to set the endianness to use in libgcc2.c, which can
-   not depend on target_flags.  */
-#if defined(__LITTLE_ENDIAN__)
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#else
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#endif
-
 #define MAX_BITS_PER_WORD 64
 
 /* Width in bits of an `int'.  We want just 32-bits, even if words are
@@ -623,7 +568,7 @@ extern enum sh_divide_strategy_e sh_div_strategy;
   barrier_align (LABEL_AFTER_BARRIER)
 
 #define LOOP_ALIGN(A_LABEL) \
-  ((! optimize || TARGET_HARD_SH4 || TARGET_SMALLCODE) \
+  ((! optimize || TARGET_HARD_SH4 || optimize_size) \
    ? 0 : sh_loop_align (A_LABEL))
 
 #define LABEL_ALIGN(A_LABEL) \
@@ -816,8 +761,8 @@ extern char sh_additional_register_names[ADDREGNAMES_SIZE] \
   (GENERAL_REGISTER_P (REGNO) || FP_REGISTER_P (REGNO) \
    || TARGET_REGISTER_P (REGNO))
 
-/* This is to be used in CONDITIONAL_REGISTER_USAGE, to mark registers
-   that should be fixed.  */
+/* This is to be used in TARGET_CONDITIONAL_REGISTER_USAGE, to mark
+   registers that should be fixed.  */
 #define VALID_REGISTER_P(REGNO) \
   (SHMEDIA_REGISTER_P (REGNO) || XD_REGISTER_P (REGNO) \
    || (REGNO) == AP_REG || (REGNO) == RAP_REG \
@@ -918,8 +863,8 @@ extern char sh_additional_register_names[ADDREGNAMES_SIZE] \
   1,	  1,								\
 }
 
-/* CONDITIONAL_REGISTER_USAGE might want to make a register call-used, yet
-   fixed, like PIC_OFFSET_TABLE_REGNUM.  */
+/* TARGET_CONDITIONAL_REGISTER_USAGE might want to make a register
+   call-used, yet fixed, like PIC_OFFSET_TABLE_REGNUM.  */
 #define CALL_REALLY_USED_REGISTERS CALL_USED_REGISTERS
 
 /* Only the lower 32-bits of R10-R14 are guaranteed to be preserved
@@ -1157,7 +1102,7 @@ enum reg_class
   { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00300000 },	\
 /* FPUL_REGS:  */							\
   { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00400000 },	\
-/* SIBCALL_REGS: Initialized in CONDITIONAL_REGISTER_USAGE.  */	\
+/* SIBCALL_REGS: Initialized in TARGET_CONDITIONAL_REGISTER_USAGE.  */	\
   { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },	\
 /* GENERAL_REGS:  */							\
   { 0xffffffff, 0xffffffff, 0x00000000, 0x00000000, 0x03020000 },	\
@@ -1165,7 +1110,7 @@ enum reg_class
   { 0x00000000, 0x00000000, 0x00000001, 0x00000000, 0x00000000 },	\
 /* FP_REGS:  */								\
   { 0x00000000, 0x00000000, 0xffffffff, 0xffffffff, 0x00000000 },	\
-/* DF_HI_REGS:  Initialized in CONDITIONAL_REGISTER_USAGE.  */		\
+/* DF_HI_REGS:  Initialized in TARGET_CONDITIONAL_REGISTER_USAGE.  */		\
   { 0x00000000, 0x00000000, 0xffffffff, 0xffffffff, 0x0000ff00 },	\
 /* DF_REGS:  */								\
   { 0x00000000, 0x00000000, 0xffffffff, 0xffffffff, 0x0000ff00 },	\
@@ -1781,7 +1726,7 @@ struct sh_args {
 
 /* Alignment required for a trampoline in bits .  */
 #define TRAMPOLINE_ALIGNMENT \
-  ((CACHE_LOG < 3 || (TARGET_SMALLCODE && ! TARGET_HARVARD)) ? 32 \
+  ((CACHE_LOG < 3 || (optimize_size && ! TARGET_HARVARD)) ? 32 \
    : TARGET_SHMEDIA ? 256 : 64)
 
 /* A C expression whose value is RTL representing the value of the return
@@ -1813,11 +1758,11 @@ struct sh_args {
 
 #define MOVE_BY_PIECES_P(SIZE, ALIGN) \
   (move_by_pieces_ninsns (SIZE, ALIGN, MOVE_MAX_PIECES + 1) \
-   < (TARGET_SMALLCODE ? 2 : ((ALIGN >= 32) ? 16 : 2)))
+   < (optimize_size ? 2 : ((ALIGN >= 32) ? 16 : 2)))
 
 #define STORE_BY_PIECES_P(SIZE, ALIGN) \
   (move_by_pieces_ninsns (SIZE, ALIGN, STORE_MAX_PIECES + 1) \
-   < (TARGET_SMALLCODE ? 2 : ((ALIGN >= 32) ? 16 : 2)))
+   < (optimize_size ? 2 : ((ALIGN >= 32) ? 16 : 2)))
 
 #define SET_BY_PIECES_P(SIZE, ALIGN) STORE_BY_PIECES_P(SIZE, ALIGN)
 
@@ -2597,7 +2542,7 @@ extern int current_function_interrupt;
 #define ACCUMULATE_OUTGOING_ARGS TARGET_ACCUMULATE_OUTGOING_ARGS
 
 #define SH_DYNAMIC_SHIFT_COST \
-  (TARGET_HARD_SH4 ? 1 : TARGET_SH3 ? (TARGET_SMALLCODE ? 1 : 2) : 20)
+  (TARGET_HARD_SH4 ? 1 : TARGET_SH3 ? (optimize_size ? 1 : 2) : 20)
 
 
 #define NUM_MODES_FOR_MODE_SWITCHING { FP_MODE_NONE }

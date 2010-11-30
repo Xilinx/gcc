@@ -410,8 +410,8 @@ package body Sem_Prag is
       --  case, and if found, issues an appropriate error message.
 
       procedure Check_First_Subtype (Arg : Node_Id);
-      --  Checks that Arg, whose expression is an entity name referencing a
-      --  subtype, does not reference a type that is not a first subtype.
+      --  Checks that Arg, whose expression is an entity name, references a
+      --  first subtype.
 
       procedure Check_In_Main_Program;
       --  Common checks for pragmas that appear within a main program
@@ -901,11 +901,67 @@ package body Sem_Prag is
             Error_Pragma_Arg ("argument for pragma% must be local name", Argx);
          end if;
 
-         if Is_Entity_Name (Argx)
-           and then Scope (Entity (Argx)) /= Current_Scope
-         then
-            Error_Pragma_Arg
-              ("pragma% argument must be in same declarative part", Arg);
+         --  No further check required if not an entity name
+
+         if not Is_Entity_Name (Argx) then
+            null;
+
+         else
+            declare
+               OK   : Boolean;
+               Ent  : constant Entity_Id := Entity (Argx);
+               Scop : constant Entity_Id := Scope (Ent);
+            begin
+               --  Case of a pragma applied to a compilation unit: pragma must
+               --  occur immediately after the program unit in the compilation.
+
+               if Is_Compilation_Unit (Ent) then
+                  declare
+                     Decl : constant Node_Id := Unit_Declaration_Node (Ent);
+                  begin
+                     --  Case of pragma placed immediately after spec
+
+                     if Parent (N) = Aux_Decls_Node (Parent (Decl)) then
+                        OK := True;
+
+                     --  Case of pragma placed immediately after body
+
+                     elsif Nkind (Decl) = N_Subprogram_Declaration
+                             and then Present (Corresponding_Body (Decl))
+                     then
+                        OK := Parent (N) =
+                                Aux_Decls_Node
+                                  (Parent (Unit_Declaration_Node
+                                             (Corresponding_Body (Decl))));
+
+                     --  All other cases are illegal
+
+                     else
+                        OK := False;
+                     end if;
+                  end;
+
+               --  Special restricted placement rule from 10.2.1(11.8/2)
+
+               elsif Is_Generic_Formal (Ent)
+                       and then Prag_Id = Pragma_Preelaborable_Initialization
+               then
+                  OK := List_Containing (N) =
+                          Generic_Formal_Declarations
+                            (Unit_Declaration_Node (Scop));
+
+               --  Default case, just check that the pragma occurs in the scope
+               --  of the entity denoted by the name.
+
+               else
+                  OK := Current_Scope = Scop;
+               end if;
+
+               if not OK then
+                  Error_Pragma_Arg
+                    ("pragma% argument must be in same declarative part", Arg);
+               end if;
+            end;
          end if;
       end Check_Arg_Is_Local_Name;
 
@@ -920,8 +976,7 @@ package body Sem_Prag is
          Check_Arg_Is_Identifier (Argx);
 
          if not Is_Locking_Policy_Name (Chars (Argx)) then
-            Error_Pragma_Arg
-              ("& is not a valid locking policy name", Argx);
+            Error_Pragma_Arg ("& is not a valid locking policy name", Argx);
          end if;
       end Check_Arg_Is_Locking_Policy;
 
@@ -976,7 +1031,6 @@ package body Sem_Prag is
             Error_Pragma_Arg ("invalid argument for pragma%", Argx);
          end if;
       end Check_Arg_Is_One_Of;
-
       ---------------------------------
       -- Check_Arg_Is_Queuing_Policy --
       ---------------------------------
@@ -988,8 +1042,7 @@ package body Sem_Prag is
          Check_Arg_Is_Identifier (Argx);
 
          if not Is_Queuing_Policy_Name (Chars (Argx)) then
-            Error_Pragma_Arg
-              ("& is not a valid queuing policy name", Argx);
+            Error_Pragma_Arg ("& is not a valid queuing policy name", Argx);
          end if;
       end Check_Arg_Is_Queuing_Policy;
 
@@ -1144,19 +1197,19 @@ package body Sem_Prag is
          Typ     : constant Entity_Id := Etype (Comp_Id);
 
          function Inside_Generic_Body (Id : Entity_Id) return Boolean;
-         --  Determine whether entity Id appears inside a generic body
+         --  Determine whether entity Id appears inside a generic body.
+         --  Shouldn't this be in a more general place ???
 
          -------------------------
          -- Inside_Generic_Body --
          -------------------------
 
          function Inside_Generic_Body (Id : Entity_Id) return Boolean is
-            S : Entity_Id := Id;
+            S : Entity_Id;
 
          begin
-            while Present (S)
-              and then S /= Standard_Standard
-            loop
+            S := Id;
+            while Present (S) and then S /= Standard_Standard loop
                if Ekind (S) = E_Generic_Package
                  and then In_Package_Body (S)
                then
@@ -1286,10 +1339,23 @@ package body Sem_Prag is
 
       procedure Check_First_Subtype (Arg : Node_Id) is
          Argx : constant Node_Id := Get_Pragma_Arg (Arg);
+         Ent  : constant Entity_Id := Entity (Argx);
+
       begin
-         if not Is_First_Subtype (Entity (Argx)) then
+         if Is_First_Subtype (Ent) then
+            null;
+
+         elsif Is_Type (Ent) then
             Error_Pragma_Arg
               ("pragma% cannot apply to subtype", Argx);
+
+         elsif Is_Object (Ent) then
+            Error_Pragma_Arg
+              ("pragma% cannot apply to object, requires a type", Argx);
+
+         else
+            Error_Pragma_Arg
+              ("pragma% cannot apply to&, requires a type", Argx);
          end if;
       end Check_First_Subtype;
 
@@ -2854,6 +2920,7 @@ package body Sem_Prag is
 
          --  C_Pass_By_Copy is treated as a synonym for convention C (this is
          --  tested again below to set the critical flag).
+
          if Cname = Name_C_Pass_By_Copy then
             C := Convention_C;
 
@@ -3861,6 +3928,14 @@ package body Sem_Prag is
                then
                   null;
 
+               --  The pragma does not apply to primitives of interfaces
+
+               elsif Is_Dispatching_Operation (Def_Id)
+                 and then Present (Find_Dispatching_Type (Def_Id))
+                 and then Is_Interface (Find_Dispatching_Type (Def_Id))
+               then
+                  null;
+
                --  Verify that the homonym is in the same declarative part (not
                --  just the same scope).
 
@@ -3980,10 +4055,10 @@ package body Sem_Prag is
            and then C = Convention_CPP
          then
             --  Types treated as CPP classes are treated as limited, but we
-            --  don't require them to be declared this way. A warning is
-            --  issued to encourage the user to declare them as limited.
-            --  This is not an error, for compatibility reasons, because
-            --  these types have been supported this way for some time.
+            --  don't require them to be declared this way. A warning is issued
+            --  to encourage the user to declare them as limited. This is not
+            --  an error, for compatibility reasons, because these types have
+            --  been supported this way for some time.
 
             if not Is_Limited_Type (Def_Id) then
                Error_Msg_N
@@ -5410,7 +5485,20 @@ package body Sem_Prag is
 
       --    Set required restrictions (see System.Rident for detailed list)
 
+      --    Set the No_Dependence rules
+      --      No_Dependence => Ada.Asynchronous_Task_Control
+      --      No_Dependence => Ada.Calendar
+      --      No_Dependence => Ada.Execution_Time.Group_Budget
+      --      No_Dependence => Ada.Execution_Time.Timers
+      --      No_Dependence => Ada.Task_Attributes
+      --      No_Dependence => System.Multiprocessors.Dispatching_Domains
+
       procedure Set_Ravenscar_Profile (N : Node_Id) is
+         Prefix_Entity   : Entity_Id;
+         Selector_Entity : Entity_Id;
+         Prefix_Node     : Node_Id;
+         Node            : Node_Id;
+
       begin
          --  pragma Task_Dispatching_Policy (FIFO_Within_Priorities)
 
@@ -5459,6 +5547,106 @@ package body Sem_Prag is
 
          Set_Profile_Restrictions
            (Ravenscar, N, Warn => Treat_Restrictions_As_Warnings);
+
+         --  Set the No_Dependence restrictions
+
+         --  The following No_Dependence restrictions:
+         --    No_Dependence => Ada.Asynchronous_Task_Control
+         --    No_Dependence => Ada.Calendar
+         --    No_Dependence => Ada.Task_Attributes
+         --  are already set by previous call to Set_Profile_Restrictions.
+
+         --  Set the following restrictions which were added to Ada 2005:
+         --    No_Dependence => Ada.Execution_Time.Group_Budget
+         --    No_Dependence => Ada.Execution_Time.Timers
+
+         if Ada_Version >= Ada_2005 then
+            Name_Buffer (1 .. 3) := "ada";
+            Name_Len := 3;
+
+            Prefix_Entity := Make_Identifier (Loc, Name_Find);
+
+            Name_Buffer (1 .. 14) := "execution_time";
+            Name_Len := 14;
+
+            Selector_Entity := Make_Identifier (Loc, Name_Find);
+
+            Prefix_Node :=
+              Make_Selected_Component
+                (Sloc          => Loc,
+                 Prefix        => Prefix_Entity,
+                 Selector_Name => Selector_Entity);
+
+            Name_Buffer (1 .. 13) := "group_budgets";
+            Name_Len := 13;
+
+            Selector_Entity := Make_Identifier (Loc, Name_Find);
+
+            Node :=
+              Make_Selected_Component
+                (Sloc          => Loc,
+                 Prefix        => Prefix_Node,
+                 Selector_Name => Selector_Entity);
+
+            Set_Restriction_No_Dependence
+              (Unit    => Node,
+               Warn    => Treat_Restrictions_As_Warnings,
+               Profile => Ravenscar);
+
+            Name_Buffer (1 .. 6) := "timers";
+            Name_Len := 6;
+
+            Selector_Entity := Make_Identifier (Loc, Name_Find);
+
+            Node :=
+              Make_Selected_Component
+                (Sloc          => Loc,
+                 Prefix        => Prefix_Node,
+                 Selector_Name => Selector_Entity);
+
+            Set_Restriction_No_Dependence
+              (Unit    => Node,
+               Warn    => Treat_Restrictions_As_Warnings,
+               Profile => Ravenscar);
+         end if;
+
+         --  Set the following restrictions which was added to Ada 2012 (see
+         --  AI-0171):
+         --    No_Dependence => System.Multiprocessors.Dispatching_Domains
+
+         if Ada_Version >= Ada_2012 then
+            Name_Buffer (1 .. 6) := "system";
+            Name_Len := 6;
+
+            Prefix_Entity := Make_Identifier (Loc, Name_Find);
+
+            Name_Buffer (1 .. 15) := "multiprocessors";
+            Name_Len := 15;
+
+            Selector_Entity := Make_Identifier (Loc, Name_Find);
+
+            Prefix_Node :=
+              Make_Selected_Component
+                (Sloc          => Loc,
+                 Prefix        => Prefix_Entity,
+                 Selector_Name => Selector_Entity);
+
+            Name_Buffer (1 .. 19) := "dispatching_domains";
+            Name_Len := 19;
+
+            Selector_Entity := Make_Identifier (Loc, Name_Find);
+
+            Node :=
+              Make_Selected_Component
+                (Sloc          => Loc,
+                 Prefix        => Prefix_Node,
+                 Selector_Name => Selector_Entity);
+
+            Set_Restriction_No_Dependence
+              (Unit    => Node,
+               Warn    => Treat_Restrictions_As_Warnings,
+               Profile => Ravenscar);
+         end if;
       end Set_Ravenscar_Profile;
 
    --  Start of processing for Analyze_Pragma
@@ -5844,9 +6032,7 @@ package body Sem_Prag is
             Expr := Get_Pragma_Arg (Arg1);
             Newa := New_List (
               Make_Pragma_Argument_Association (Loc,
-                Expression =>
-                  Make_Identifier (Loc,
-                    Chars => Name_Assertion)),
+                Expression => Make_Identifier (Loc, Name_Assertion)),
 
               Make_Pragma_Argument_Association (Sloc (Expr),
                 Expression => Expr));
@@ -5895,14 +6081,11 @@ package body Sem_Prag is
 
                 Pragma_Argument_Associations => New_List (
                   Make_Pragma_Argument_Association (Loc,
-                    Expression =>
-                      Make_Identifier (Loc,
-                        Chars => Name_Assertion)),
+                    Expression => Make_Identifier (Loc, Name_Assertion)),
 
                   Make_Pragma_Argument_Association (Loc,
                     Expression =>
-                      Make_Identifier (Sloc (Policy),
-                        Chars => Chars (Policy))))));
+                      Make_Identifier (Sloc (Policy), Chars (Policy))))));
 
             Set_Analyzed (N);
             Set_Next_Pragma (N, Opt.Check_Policy_List);
@@ -10872,11 +11055,15 @@ package body Sem_Prag is
             Check_First_Subtype (Arg1);
             Ent := Entity (Get_Pragma_Arg (Arg1));
 
-            if not Is_Private_Type (Ent)
-              and then not Is_Protected_Type (Ent)
+            if not (Is_Private_Type (Ent)
+                      or else
+                    Is_Protected_Type (Ent)
+                      or else
+                    (Is_Generic_Type (Ent) and then Is_Derived_Type (Ent)))
             then
                Error_Pragma_Arg
-                 ("pragma % can only be applied to private or protected type",
+                 ("pragma % can only be applied to private, formal derived or "
+                  & "protected type",
                   Arg1);
             end if;
 
@@ -11036,9 +11223,7 @@ package body Sem_Prag is
                    Chars => Name_Check,
                    Pragma_Argument_Associations => New_List (
                      Make_Pragma_Argument_Association (Loc,
-                       Expression =>
-                         Make_Identifier (Loc,
-                           Chars => Name_Precondition)),
+                       Expression => Make_Identifier (Loc, Name_Precondition)),
 
                      Make_Pragma_Argument_Association (Sloc (Arg1),
                        Expression => Relocate_Node (Get_Pragma_Arg (Arg1))))));
@@ -11052,6 +11237,46 @@ package body Sem_Prag is
                Analyze (N);
             end if;
          end Precondition;
+
+         ---------------
+         -- Predicate --
+         ---------------
+
+         --  pragma Predicate
+         --    ([Entity =>]    type_LOCAL_NAME,
+         --     [Check  =>]    EXPRESSION);
+
+         when Pragma_Predicate => Predicate : declare
+            Type_Id : Node_Id;
+            Typ     : Entity_Id;
+
+            Discard : Boolean;
+            pragma Unreferenced (Discard);
+
+         begin
+            GNAT_Pragma;
+            Check_Arg_Count (2);
+            Check_Optional_Identifier (Arg1, Name_Entity);
+            Check_Optional_Identifier (Arg2, Name_Check);
+
+            Check_Arg_Is_Local_Name (Arg1);
+
+            Type_Id := Get_Pragma_Arg (Arg1);
+            Find_Type (Type_Id);
+            Typ := Entity (Type_Id);
+
+            if Typ = Any_Type then
+               return;
+            end if;
+
+            --  The remaining processing is simply to link the pragma on to
+            --  the rep item chain, for processing when the type is frozen.
+            --  This is accomplished by a call to Rep_Item_Too_Late. We also
+            --  mark the type as having predicates.
+
+            Set_Has_Predicates (Typ);
+            Discard := Rep_Item_Too_Late (Typ, N, FOnly => True);
+         end Predicate;
 
          ------------------
          -- Preelaborate --
@@ -13543,27 +13768,39 @@ package body Sem_Prag is
       PP : Node_Id;
 
    begin
+      --  Loop through entries in check policy list
+
       PP := Opt.Check_Policy_List;
       loop
+         --  If there are no specific entries that matched, then we let the
+         --  setting of assertions govern. Note that this provides the needed
+         --  compatibility with the RM for the cases of assertion, invariant,
+         --  precondition, predicate, and postcondition.
+
          if No (PP) then
             return Assertions_Enabled;
 
-         elsif
-           Nam = Chars (Expression (First (Pragma_Argument_Associations (PP))))
-         then
-            case
-              Chars (Expression (Last (Pragma_Argument_Associations (PP))))
-            is
-            when Name_On | Name_Check =>
-               return True;
-            when Name_Off | Name_Ignore =>
-               return False;
-            when others =>
-               raise Program_Error;
-            end case;
+         --  Here we have an entry see if it matches
 
          else
-            PP := Next_Pragma (PP);
+            declare
+               PPA : constant List_Id := Pragma_Argument_Associations (PP);
+
+            begin
+               if Nam = Chars (Get_Pragma_Arg (First (PPA))) then
+                  case (Chars (Get_Pragma_Arg (Last (PPA)))) is
+                     when Name_On | Name_Check =>
+                        return True;
+                     when Name_Off | Name_Ignore =>
+                        return False;
+                     when others =>
+                        raise Program_Error;
+                  end case;
+
+               else
+                  PP := Next_Pragma (PP);
+               end if;
+            end;
          end if;
       end loop;
    end Check_Enabled;
@@ -13806,6 +14043,7 @@ package body Sem_Prag is
       Pragma_Persistent_BSS                =>  0,
       Pragma_Postcondition                 => -1,
       Pragma_Precondition                  => -1,
+      Pragma_Predicate                     => -1,
       Pragma_Preelaborate                  => -1,
       Pragma_Preelaborate_05               => -1,
       Pragma_Priority                      => -1,
@@ -14011,9 +14249,7 @@ package body Sem_Prag is
              Chars                        => Name_Suppress,
              Pragma_Argument_Associations => New_List (
                Make_Pragma_Argument_Association (Sloc (N),
-                 Expression =>
-                   Make_Identifier (Sloc (N),
-                     Chars => Name_All_Checks)))));
+                 Expression => Make_Identifier (Sloc (N), Name_All_Checks)))));
       end if;
 
       --  Nothing else to do at the current time!

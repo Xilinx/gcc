@@ -22,9 +22,6 @@
 - longlong.h?
 */
 
-#undef SWITCH_TAKES_ARG
-#undef WORD_SWITCH_TAKES_ARG
-#undef HANDLE_SYSV_PRAGMA
 #undef SIZE_TYPE
 #undef PTRDIFF_TYPE
 #undef WCHAR_TYPE
@@ -93,12 +90,6 @@
 #ifndef	TARGET_VERSION
 #define TARGET_VERSION fprintf (stderr, " (m32r)")
 #endif
-
-/* Switch  Recognition by gcc.c.  Add -G xx support.  */
-
-#undef  SWITCH_TAKES_ARG
-#define SWITCH_TAKES_ARG(CHAR) \
-(DEFAULT_SWITCH_TAKES_ARG (CHAR) || (CHAR) == 'G')
 
 /* Names to predefine in the preprocessor for this target machine.  */
 /* __M32R__ is defined by the existing compiler so we use that.  */
@@ -305,15 +296,6 @@ extern enum m32r_sdata m32r_sdata;
 #ifndef SUBTARGET_OVERRIDE_OPTIONS
 #define SUBTARGET_OVERRIDE_OPTIONS
 #endif
-
-#ifndef SUBTARGET_OPTIMIZATION_OPTIONS
-#define SUBTARGET_OPTIMIZATION_OPTIONS
-#endif
-
-/* Define this macro if debugging can be performed even without a
-   frame pointer.  If this macro is defined, GCC will turn on the
-   `-fomit-frame-pointer' option whenever `-O' is specified.  */
-#define CAN_DEBUG_WITHOUT_FP
 
 /* Target machine storage layout.  */
 
@@ -327,12 +309,6 @@ extern enum m32r_sdata m32r_sdata;
 /* Define this if most significant word of a multiword number is the lowest
    numbered.  */
 #define WORDS_BIG_ENDIAN (TARGET_LITTLE_ENDIAN == 0)
-
-/* Define this macro if WORDS_BIG_ENDIAN is not constant.  This must
-   be a constant value with the same meaning as WORDS_BIG_ENDIAN,
-   which will be used only when compiling libgcc2.c.  Typically the
-   value will be set based on preprocessor defines.  */
-/*#define LIBGCC2_WORDS_BIG_ENDIAN 1*/
 
 /* Width of a word, in units (bytes).  */
 #define UNITS_PER_WORD 4
@@ -479,30 +455,6 @@ extern enum m32r_sdata m32r_sdata;
 }
 
 #define CALL_REALLY_USED_REGISTERS CALL_USED_REGISTERS
-
-/* Zero or more C statements that may conditionally modify two variables
-   `fixed_regs' and `call_used_regs' (both of type `char []') after they
-   have been initialized from the two preceding macros.
-
-   This is necessary in case the fixed or call-clobbered registers depend
-   on target flags.
-
-   You need not define this macro if it has no work to do.  */
-
-#ifdef SUBTARGET_CONDITIONAL_REGISTER_USAGE
-#define CONDITIONAL_REGISTER_USAGE SUBTARGET_CONDITIONAL_REGISTER_USAGE
-#else
-#define CONDITIONAL_REGISTER_USAGE			 \
-  do							 \
-    {							 \
-      if (flag_pic)					 \
-       {						 \
-         fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;	 \
-         call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;	 \
-       }						 \
-    }							 \
-  while (0)
-#endif
 
 /* If defined, an initializer for a vector of integers, containing the
    numbers of hard registers in the order in which GCC should
@@ -803,15 +755,6 @@ extern enum reg_class m32r_regno_reg_class[FIRST_PSEUDO_REGISTER];
 #define FUNCTION_ARG_REGNO_P(N) \
   ((unsigned) (N) < M32R_MAX_PARM_REGS)
 
-/* If defined, a C expression that gives the alignment boundary, in bits,
-   of an argument with the specified mode and type.  If it is not defined, 
-   PARM_BOUNDARY is used for all arguments.  */
-#if 0
-/* We assume PARM_BOUNDARY == UNITS_PER_WORD here.  */
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE) \
-  (((TYPE) ? TYPE_ALIGN (TYPE) : GET_MODE_BITSIZE (MODE)) <= PARM_BOUNDARY \
-   ? PARM_BOUNDARY : 2 * PARM_BOUNDARY)
-#endif
 
 /* Function results.  */
 

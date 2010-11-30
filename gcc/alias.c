@@ -1291,6 +1291,14 @@ record_set (rtx dest, const_rtx set, void *data ATTRIBUTE_UNUSED)
   reg_seen[regno] = 1;
 }
 
+/* Return REG_BASE_VALUE for REGNO.  Selective scheduler uses this to avoid
+   using hard registers with non-null REG_BASE_VALUE for renaming.  */
+rtx
+get_reg_base_value (unsigned int regno)
+{
+  return VEC_index (rtx, reg_base_value, regno);
+}
+
 /* If a value is known for REGNO, return it.  */
 
 rtx
@@ -2459,7 +2467,7 @@ true_dependence_1 (const_rtx mem, enum machine_mode mem_mode, rtx mem_addr,
 
   /* We cannot use aliases_everything_p to test MEM, since we must look
      at MEM_ADDR, rather than XEXP (mem, 0).  */
-  if (mem_mode == QImode || GET_CODE (mem_addr) == AND)
+  if (GET_CODE (mem_addr) == AND)
     return 1;
 
   /* ??? In true_dependence we also allow BLKmode to alias anything.  Why
@@ -2655,7 +2663,7 @@ may_alias_p (const_rtx mem, const_rtx x)
 
   /* We cannot use aliases_everything_p to test MEM, since we must look
      at MEM_ADDR, rather than XEXP (mem, 0).  */
-  if (GET_MODE (mem) == QImode || GET_CODE (mem_addr) == AND)
+  if (GET_CODE (mem_addr) == AND)
     return 1;
 
   if (fixed_scalar_and_varying_struct_p (mem, x, mem_addr, x_addr,
@@ -2904,6 +2912,15 @@ init_alias_analysis (void)
   free (reg_seen);
   reg_seen = 0;
   timevar_pop (TV_ALIAS_ANALYSIS);
+}
+
+/* Equate REG_BASE_VALUE (reg1) to REG_BASE_VALUE (reg2).
+   Special API for var-tracking pass purposes.  */
+
+void
+vt_equate_reg_base_value (const_rtx reg1, const_rtx reg2)
+{
+  VEC_replace (rtx, reg_base_value, REGNO (reg1), REG_BASE_VALUE (reg2));
 }
 
 void

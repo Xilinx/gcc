@@ -372,14 +372,6 @@ SOFT_REG_FIRST+28, SOFT_REG_FIRST+29,SOFT_REG_FIRST+30,SOFT_REG_FIRST+31
 /* X, D, Y, SP,PC,A, B, CCR, Z, FP, ZTMP,ZR,XYR, D1 - 32,     SOFT-FP, AP */
 
 
-/* Define this macro to change register usage conditional on target flags.
-
-   The soft-registers are disabled or enabled according to the
-  -msoft-reg-count=<n> option.  */
-
-
-#define CONDITIONAL_REGISTER_USAGE (m68hc11_conditional_register_usage ())
-
 /* List the order in which to allocate registers.  Each register must be
    listed once, even those in FIXED_REGISTERS.  */
 #define REG_ALLOC_ORDER							\
@@ -889,27 +881,6 @@ typedef struct m68hc11_args
    function whose data type is FNTYPE. For a library call, FNTYPE is 0.  */
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
     (m68hc11_init_cumulative_args (&CUM, FNTYPE, LIBNAME))
-
-/* Update the data in CUM to advance over an argument of mode MODE and data
-   type TYPE. (TYPE is null for libcalls where that information may not be
-   available.) */
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED) \
-    (m68hc11_function_arg_advance (&CUM, MODE, TYPE, NAMED))
-
-/* Define where to put the arguments to a function.
-   Value is zero to push the argument on the stack,
-   or a hard register in which to store the argument.
-
-   MODE is the argument's machine mode.
-   TYPE is the data type of the argument (as a tree).
-    This is null for libcalls where that information may
-    not be available.
-   CUM is a variable of type CUMULATIVE_ARGS which gives info about
-    the preceding args and about the function being called.
-   NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).  */
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  (m68hc11_function_arg (&CUM, MODE, TYPE, NAMED))
 
 /* Define the profitability of saving registers around calls.
 

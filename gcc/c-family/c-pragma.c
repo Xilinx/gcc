@@ -54,10 +54,8 @@ typedef struct GTY(()) align_stack {
 
 static GTY(()) struct align_stack * alignment_stack;
 
-#ifdef HANDLE_PRAGMA_PACK
 static void handle_pragma_pack (cpp_reader *);
 
-#ifdef HANDLE_PRAGMA_PACK_PUSH_POP
 /* If we have a "global" #pragma pack(<n>) in effect when the first
    #pragma pack(push,<n>) is encountered, this stores the value of
    maximum_field_alignment in effect.  When the final pop_alignment()
@@ -125,13 +123,6 @@ pop_alignment (tree id)
 
   alignment_stack = entry;
 }
-#else  /* not HANDLE_PRAGMA_PACK_PUSH_POP */
-#define SET_GLOBAL_ALIGNMENT(ALIGN) (maximum_field_alignment = (ALIGN))
-#define push_alignment(ID, N) \
-    GCC_BAD ("#pragma pack(push[, id], <n>) is not supported on this target")
-#define pop_alignment(ID) \
-    GCC_BAD ("#pragma pack(pop[, id], <n>) is not supported on this target")
-#endif /* HANDLE_PRAGMA_PACK_PUSH_POP */
 
 /* #pragma pack ()
    #pragma pack (N)
@@ -244,7 +235,6 @@ handle_pragma_pack (cpp_reader * ARG_UNUSED (dummy))
     case pop:   pop_alignment (id);	       break;
     }
 }
-#endif  /* HANDLE_PRAGMA_PACK */
 
 typedef struct GTY(()) pending_weak_d
 {
@@ -257,7 +247,6 @@ DEF_VEC_ALLOC_O(pending_weak,gc);
 
 static GTY(()) VEC(pending_weak,gc) *pending_weaks;
 
-#ifdef HANDLE_PRAGMA_WEAK
 static void apply_pragma_weak (tree, tree);
 static void handle_pragma_weak (cpp_reader *);
 
@@ -380,17 +369,6 @@ handle_pragma_weak (cpp_reader * ARG_UNUSED (dummy))
       pe->value = value;
     }
 }
-#else
-void
-maybe_apply_pragma_weak (tree ARG_UNUSED (decl))
-{
-}
-
-void
-maybe_apply_pending_pragma_weaks (void)
-{
-}
-#endif /* HANDLE_PRAGMA_WEAK */
 
 /* GCC supports two #pragma directives for renaming the external
    symbol associated with a declaration (DECL_ASSEMBLER_NAME), for
@@ -617,7 +595,6 @@ maybe_apply_renaming_pragma (tree decl, tree asmname)
 }
 
 
-#ifdef HANDLE_PRAGMA_VISIBILITY
 static void handle_pragma_visibility (cpp_reader *);
 
 static VEC (int, heap) *visstack;
@@ -710,8 +687,6 @@ handle_pragma_visibility (cpp_reader *dummy ATTRIBUTE_UNUSED)
     warning (OPT_Wpragmas, "junk at end of %<#pragma GCC visibility%>");
 }
 
-#endif
-
 static void
 handle_pragma_diagnostic(cpp_reader *ARG_UNUSED(dummy))
 {
@@ -720,6 +695,7 @@ handle_pragma_diagnostic(cpp_reader *ARG_UNUSED(dummy))
   enum cpp_ttype token;
   diagnostic_t kind;
   tree x;
+  struct cl_option_handlers handlers;
 
   token = pragma_lex (&x);
   if (token != CPP_NAME)
@@ -748,18 +724,14 @@ handle_pragma_diagnostic(cpp_reader *ARG_UNUSED(dummy))
   if (token != CPP_STRING)
     GCC_BAD ("missing option after %<#pragma GCC diagnostic%> kind");
   option_string = TREE_STRING_POINTER (x);
+  set_default_handlers (&handlers);
   for (option_index = 0; option_index < cl_options_count; option_index++)
     if (strcmp (cl_options[option_index].opt_text, option_string) == 0)
       {
-	void *flag_var = option_flag_var (option_index, &global_options);
-
-	/* This overrides -Werror, for example.  */
-	diagnostic_classify_diagnostic (global_dc, option_index, kind, input_location);
-	/* This makes sure the option is enabled, like -Wfoo would do.  */
-	if (cl_options[option_index].var_type == CLVC_BOOLEAN
-	    && flag_var
-	    && kind != DK_IGNORED)
-	    *(int *) flag_var = 1;
+	control_warning_option (option_index, (int) kind, kind != DK_IGNORED,
+				input_location, c_family_lang_mask, &handlers,
+				&global_options, &global_options_set,
+				global_dc);
 	return;
       }
   GCC_BAD ("unknown option after %<#pragma GCC diagnostic%> kind");
@@ -816,7 +788,7 @@ handle_pragma_target(cpp_reader *ARG_UNUSED(dummy))
 	    token = pragma_lex (&x);
 	  else
 	    GCC_BAD ("%<#pragma GCC target (string [,string]...)%> does "
-		     "not have a final %<)%>.");
+		     "not have a final %<)%>");
 	}
 
       if (token != CPP_EOF)
@@ -884,7 +856,7 @@ handle_pragma_optimize (cpp_reader *ARG_UNUSED(dummy))
 	    token = pragma_lex (&x);
 	  else
 	    GCC_BAD ("%<#pragma GCC optimize (string [,string]...)%> does "
-		     "not have a final %<)%>.");
+		     "not have a final %<)%>");
 	}
 
       if (token != CPP_EOF)
@@ -1319,19 +1291,13 @@ init_pragma (void)
     cpp_register_deferred_pragma (parse_in, "GCC", "pch_preprocess",
 				  PRAGMA_GCC_PCH_PREPROCESS, false, false);
 
-#ifdef HANDLE_PRAGMA_PACK
 #ifdef HANDLE_PRAGMA_PACK_WITH_EXPANSION
   c_register_pragma_with_expansion (0, "pack", handle_pragma_pack);
 #else
   c_register_pragma (0, "pack", handle_pragma_pack);
 #endif
-#endif
-#ifdef HANDLE_PRAGMA_WEAK
   c_register_pragma (0, "weak", handle_pragma_weak);
-#endif
-#ifdef HANDLE_PRAGMA_VISIBILITY
   c_register_pragma ("GCC", "visibility", handle_pragma_visibility);
-#endif
 
   c_register_pragma ("GCC", "diagnostic", handle_pragma_diagnostic);
   c_register_pragma ("GCC", "target", handle_pragma_target);

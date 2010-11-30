@@ -464,10 +464,13 @@ package body Ada.Exceptions is
    procedure Rcheck_31 (File : System.Address; Line : Integer);
    procedure Rcheck_32 (File : System.Address; Line : Integer);
    procedure Rcheck_33 (File : System.Address; Line : Integer);
+   procedure Rcheck_34 (File : System.Address; Line : Integer);
 
    procedure Rcheck_00_Ext
      (File : System.Address; Line, Column : Integer);
    procedure Rcheck_05_Ext
+     (File : System.Address; Line, Column, Index, First, Last : Integer);
+   procedure Rcheck_06_Ext
      (File : System.Address; Line, Column, Index, First, Last : Integer);
    procedure Rcheck_12_Ext
      (File : System.Address; Line, Column, Index, First, Last : Integer);
@@ -506,9 +509,11 @@ package body Ada.Exceptions is
    pragma Export (C, Rcheck_31, "__gnat_rcheck_31");
    pragma Export (C, Rcheck_32, "__gnat_rcheck_32");
    pragma Export (C, Rcheck_33, "__gnat_rcheck_33");
+   pragma Export (C, Rcheck_34, "__gnat_rcheck_34");
 
    pragma Export (C, Rcheck_00_Ext, "__gnat_rcheck_00_ext");
    pragma Export (C, Rcheck_05_Ext, "__gnat_rcheck_05_ext");
+   pragma Export (C, Rcheck_06_Ext, "__gnat_rcheck_06_ext");
    pragma Export (C, Rcheck_12_Ext, "__gnat_rcheck_12_ext");
 
    --  None of these procedures ever returns (they raise an exception!). By
@@ -548,9 +553,11 @@ package body Ada.Exceptions is
    pragma No_Return (Rcheck_30);
    pragma No_Return (Rcheck_32);
    pragma No_Return (Rcheck_33);
+   pragma No_Return (Rcheck_34);
 
    pragma No_Return (Rcheck_00_Ext);
    pragma No_Return (Rcheck_05_Ext);
+   pragma No_Return (Rcheck_06_Ext);
    pragma No_Return (Rcheck_12_Ext);
 
    ---------------------------------------------
@@ -581,24 +588,26 @@ package body Ada.Exceptions is
    Rmsg_16 : constant String := "attempt to take address of"       &
                                 " intrinsic subprogram"            & NUL;
    Rmsg_17 : constant String := "all guards closed"                & NUL;
-   Rmsg_18 : constant String := "Current_Task referenced in entry" &
+   Rmsg_18 : constant String := "improper use of generic subtype"  &
+                                " with predicate"                  & NUL;
+   Rmsg_19 : constant String := "Current_Task referenced in entry" &
                                 " body"                            & NUL;
-   Rmsg_19 : constant String := "duplicated entry address"         & NUL;
-   Rmsg_20 : constant String := "explicit raise"                   & NUL;
-   Rmsg_21 : constant String := "finalize/adjust raised exception" & NUL;
-   Rmsg_22 : constant String := "implicit return with No_Return"   & NUL;
-   Rmsg_23 : constant String := "misaligned address value"         & NUL;
-   Rmsg_24 : constant String := "missing return"                   & NUL;
-   Rmsg_25 : constant String := "overlaid controlled object"       & NUL;
-   Rmsg_26 : constant String := "potentially blocking operation"   & NUL;
-   Rmsg_27 : constant String := "stubbed subprogram called"        & NUL;
-   Rmsg_28 : constant String := "unchecked union restriction"      & NUL;
-   Rmsg_29 : constant String := "actual/returned class-wide"       &
+   Rmsg_20 : constant String := "duplicated entry address"         & NUL;
+   Rmsg_21 : constant String := "explicit raise"                   & NUL;
+   Rmsg_22 : constant String := "finalize/adjust raised exception" & NUL;
+   Rmsg_23 : constant String := "implicit return with No_Return"   & NUL;
+   Rmsg_24 : constant String := "misaligned address value"         & NUL;
+   Rmsg_25 : constant String := "missing return"                   & NUL;
+   Rmsg_26 : constant String := "overlaid controlled object"       & NUL;
+   Rmsg_27 : constant String := "potentially blocking operation"   & NUL;
+   Rmsg_28 : constant String := "stubbed subprogram called"        & NUL;
+   Rmsg_29 : constant String := "unchecked union restriction"      & NUL;
+   Rmsg_30 : constant String := "actual/returned class-wide"       &
                                 " value not transportable"         & NUL;
-   Rmsg_30 : constant String := "empty storage pool"               & NUL;
-   Rmsg_31 : constant String := "explicit raise"                   & NUL;
-   Rmsg_32 : constant String := "infinite recursion"               & NUL;
-   Rmsg_33 : constant String := "object too large"                 & NUL;
+   Rmsg_31 : constant String := "empty storage pool"               & NUL;
+   Rmsg_32 : constant String := "explicit raise"                   & NUL;
+   Rmsg_33 : constant String := "infinite recursion"               & NUL;
+   Rmsg_34 : constant String := "object too large"                 & NUL;
 
    -----------------------
    -- Polling Interface --
@@ -1202,7 +1211,7 @@ package body Ada.Exceptions is
 
    procedure Rcheck_30 (File : System.Address; Line : Integer) is
    begin
-      Raise_Storage_Error_Msg (File, Line, Rmsg_30'Address);
+      Raise_Program_Error_Msg (File, Line, Rmsg_30'Address);
    end Rcheck_30;
 
    procedure Rcheck_31 (File : System.Address; Line : Integer) is
@@ -1220,6 +1229,11 @@ package body Ada.Exceptions is
       Raise_Storage_Error_Msg (File, Line, Rmsg_33'Address);
    end Rcheck_33;
 
+   procedure Rcheck_34 (File : System.Address; Line : Integer) is
+   begin
+      Raise_Storage_Error_Msg (File, Line, Rmsg_34'Address);
+   end Rcheck_34;
+
    procedure Rcheck_00_Ext (File : System.Address; Line, Column : Integer) is
    begin
       Raise_Constraint_Error_Msg (File, Line, Column, Rmsg_00'Address);
@@ -1232,10 +1246,20 @@ package body Ada.Exceptions is
               Rmsg_05 (Rmsg_05'First .. Rmsg_05'Last - 1) & ASCII.LF &
               "index " & Image (Index) & " not in " & Image (First) &
               ".." & Image (Last) & ASCII.NUL;
-
    begin
       Raise_Constraint_Error_Msg (File, Line, Column, Msg'Address);
    end Rcheck_05_Ext;
+
+   procedure Rcheck_06_Ext
+     (File : System.Address; Line, Column, Index, First, Last : Integer)
+   is
+      Msg : constant String :=
+              Rmsg_06 (Rmsg_06'First .. Rmsg_06'Last - 1) & ASCII.LF &
+              "value " & Image (Index) & " not in " & Image (First) &
+              ".." & Image (Last) & ASCII.NUL;
+   begin
+      Raise_Constraint_Error_Msg (File, Line, Column, Msg'Address);
+   end Rcheck_06_Ext;
 
    procedure Rcheck_12_Ext
      (File : System.Address; Line, Column, Index, First, Last : Integer)
@@ -1244,7 +1268,6 @@ package body Ada.Exceptions is
               Rmsg_12 (Rmsg_12'First .. Rmsg_12'Last - 1) & ASCII.LF &
               "value " & Image (Index) & " not in " & Image (First) &
               ".." & Image (Last) & ASCII.NUL;
-
    begin
       Raise_Constraint_Error_Msg (File, Line, Column, Msg'Address);
    end Rcheck_12_Ext;
@@ -1255,7 +1278,6 @@ package body Ada.Exceptions is
 
    procedure Reraise is
       Excep : constant EOA := Get_Current_Excep.all;
-
    begin
       Abort_Defer.all;
       Exception_Propagation.Setup_Exception (Excep, Excep, Reraised => True);
@@ -1397,7 +1419,6 @@ package body Ada.Exceptions is
    ---------------
 
    procedure To_Stderr (C : Character) is
-
       type int is new Integer;
 
       procedure put_char_stderr (C : int);

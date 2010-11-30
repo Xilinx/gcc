@@ -28,32 +28,16 @@ along with GCC; see the file COPYING3.  If not see
 
 #if !defined(IN_LIBGCC2) && !defined(IN_TARGET_LIBS) && !defined(IN_RTS)
 
-/* Specify which kind of debugging info to generate.  */
-extern enum debug_info_type write_symbols;
-
 /* Names of debug_info_type, for error messages.  */
 extern const char *const debug_type_names[];
 
-/* Specify how much debugging info to generate.  */
-extern enum debug_info_level debug_info_level;
-
-extern bool should_emit_struct_debug (tree type_decl, enum debug_info_usage);
-extern void set_struct_debug_option (const char *value);
-
-/* Nonzero means use GNU-only extensions in the generated symbolic
-   debugging information.  */
-extern bool use_gnu_debug_info_extensions;
+extern void strip_off_ending (char *, int);
+extern int base_of_path (const char *path, const char **base_out);
 
 /* Run the second compilation of -fcompare-debug.  Not defined using
    Var in common.opt because this is used in Ada code and so must be
    an actual variable not a macro.  */
 extern int flag_compare_debug;
-
-/* The default visibility for all symbols (unless overridden).  */
-extern enum symbol_visibility default_visibility;
-
-/* Global visibility options.  */
-extern struct visibility_flags visibility_options;
 
 /* True if this is the LTO front end (lto1).  This is used to disable
    gimple generation and lowering passes that are normally run on the
@@ -62,83 +46,32 @@ extern struct visibility_flags visibility_options;
 
 extern bool in_lto_p;
 
-/* Nonzero if we should write GIMPLE bytecode for link-time optimization.  */
+/* Return true iff flags are set as if -ffast-math.  */
+extern bool fast_math_flags_set_p (const struct gcc_options *);
+extern bool fast_math_flags_struct_set_p (struct cl_optimization *);
 
-extern int flag_generate_lto;
-
-/* Used to set the level of -Wstrict-aliasing, when no level is specified.
-   The external way to set the default level is to use
+/* Used to set the level of -Wstrict-aliasing in OPTS, when no level
+   is specified.  The external way to set the default level is to use
    -Wstrict-aliasing=level.
    ONOFF is assumed to take value 1 when -Wstrict-aliasing is specified,
    and 0 otherwise.  After calling this function, wstrict_aliasing will be
    set to the default value of -Wstrict_aliasing=level.  */
 
-extern void set_Wstrict_aliasing (int onoff);
-
-/* Nonzero means warn about any objects definitions whose size is larger
-   than N bytes.  Also want about function definitions whose returned
-   values are larger than N bytes. The value N is in `larger_than_size'.  */
-
-extern bool warn_larger_than;
-extern HOST_WIDE_INT larger_than_size;
-
-/* Nonzero means warn about any function whose frame size is larger
-   than N bytes. */
-
-extern bool warn_frame_larger_than;
-extern HOST_WIDE_INT frame_larger_than_size;
-
-/* Nonzero for -dp: annotate the assembly with a comment describing the
-   pattern and alternative used.  */
-
-extern int flag_print_asm_name;
+extern void set_Wstrict_aliasing (struct gcc_options *opts, int onoff);
 
 /* Now the symbols that are set with `-f' switches.  */
-
-/* Nonzero if we are only using compiler to check syntax errors.  */
-
-extern int rtl_dump_and_exit;
-
-/* Nonzero means we should save auxiliary info into a .X file.  */
-
-extern int flag_gen_aux_info;
 
 /* True if printing into -fdump-final-insns= dump.  */
 
 extern bool final_insns_dump_p;
 
-/* Nonzero means change certain warnings into errors.
-   Usually these are warnings about failure to conform to some standard.  */
-
-extern int flag_pedantic_errors;
-
 /* Nonzero means make permerror produce warnings instead of errors.  */
 
 extern int flag_permissive;
 
-/* Nonzero if we are compiling code for a shared library, zero for
-   executable.  */
-
-extern int flag_shlib;
-
-/* -dA causes debug information to be produced in
-   the generated assembly code (to make it more readable).  This option
-   is generally only of use to those who actually need to read the
-   generated assembly code (perhaps while debugging the compiler itself).
-   Currently, this switch is only used by dwarfout.c; however, it is intended
-   to be a catchall for printing debug information in the assembler file.  */
-
-extern int flag_debug_asm;
-
 /* Generate code for GNU or NeXT Objective-C runtime environment.  */
 
 extern int flag_next_runtime;
-
-extern int flag_dump_rtl_in_asm;
-
-/* The excess precision specified on the command line, or defaulted by
-   the front end.  */
-extern enum excess_precision flag_excess_precision_cmdline;
 
 /* Other basic status info about current function.  */
 
@@ -187,8 +120,6 @@ extern struct target_flag_state *this_target_flag_state;
 /* Nonzero if we dump in VCG format, not plain text.  */
 extern int dump_for_graph;
 
-extern enum graph_dump_types graph_dump_format;
-
 extern enum stack_check_type flag_stack_check;
 
 /* Returns TRUE if generated code should match ABI version N or
@@ -196,10 +127,6 @@ extern enum stack_check_type flag_stack_check;
 
 #define abi_version_at_least(N) \
   (flag_abi_version == 0 || flag_abi_version >= (N))
-
-/* Return whether the function should be excluded from
-   instrumentation.  */
-extern bool flag_instrument_functions_exclude_p (tree fndecl);
 
 /* True if overflow wraps around for the given integral type.  That
    is, TYPE_MAX + 1 == TYPE_MIN.  */

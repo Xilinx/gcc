@@ -1577,10 +1577,15 @@ package body Ch4 is
    -- 4.4  Expression --
    ---------------------
 
+   --  This procedure parses EXPRESSION or CHOICE_EXPRESSION
+
    --  EXPRESSION ::=
-   --    RELATION {and RELATION} | RELATION {and then RELATION}
-   --  | RELATION {or RELATION}  | RELATION {or else RELATION}
-   --  | RELATION {xor RELATION}
+   --    RELATION {LOGICAL_OPERATOR RELATION}
+
+   --  CHOICE_EXPRESSION ::=
+   --    CHOICE_RELATION {LOGICAL_OPERATOR CHOICE_RELATION}
+
+   --  LOGICAL_OPERATOR ::= and | and then | or | or else | xor
 
    --  On return, Expr_Form indicates the categorization of the expression
    --  EF_Range_Attr is not a possible value (if a range attribute is found,
@@ -1766,9 +1771,19 @@ package body Ch4 is
    -- 4.4  Relation --
    -------------------
 
-   --  RELATION ::=
+   --  This procedure scans both relations and choice relations
+
+   --  CHOICE_RELATION ::=
    --    SIMPLE_EXPRESSION [RELATIONAL_OPERATOR SIMPLE_EXPRESSION]
-   --  | SIMPLE_EXPRESSION [not] in MEMBERSHIP_CHOICE_LIST
+
+   --  RELATION ::=
+   --    SIMPLE_EXPRESSION [not] in MEMBERSHIP_CHOICE_LIST
+
+   --  MEMBERSHIP_CHOICE_LIST ::=
+   --    MEMBERSHIP_CHOICE {'|' MEMBERSHIP CHOICE}
+
+   --  MEMBERSHIP_CHOICE ::=
+   --    CHOICE_EXPRESSION | RANGE | SUBTYPE_MARK
 
    --  On return, Expr_Form indicates the categorization of the expression
 
@@ -2514,7 +2529,8 @@ package body Ch4 is
    --    for QUANTIFIER ITERATOR_SPECIFICATION => PREDICATE
 
    function P_Quantified_Expression return Node_Id is
-      Node1 : Node_Id;
+      I_Spec : Node_Id;
+      Node1  : Node_Id;
 
    begin
       Scan;  --  past FOR
@@ -2524,9 +2540,9 @@ package body Ch4 is
       if Token = Tok_All then
          Set_All_Present (Node1);
 
-      --  We treat Some as a non-reserved keyword, so it appears to
-      --  the scanner as an identifier. If Some is made into a reserved
-      --  work, the check below is against Tok_Some.
+      --  We treat Some as a non-reserved keyword, so it appears to the scanner
+      --  as an identifier. If Some is made into a reserved word, the check
+      --  below is against Tok_Some.
 
       elsif Token /= Tok_Identifier
         or else Chars (Token_Node) /= Name_Some
@@ -2535,8 +2551,15 @@ package body Ch4 is
          raise Error_Resync;
       end if;
 
-      Scan;
-      Set_Loop_Parameter_Specification (Node1, P_Loop_Parameter_Specification);
+      Scan; -- past SOME
+      I_Spec := P_Loop_Parameter_Specification;
+
+      if Nkind (I_Spec) = N_Loop_Parameter_Specification then
+         Set_Loop_Parameter_Specification (Node1, I_Spec);
+      else
+         Set_Iterator_Specification (Node1, I_Spec);
+      end if;
+
       if Token = Tok_Arrow then
          Scan;
          Set_Condition (Node1, P_Expression);

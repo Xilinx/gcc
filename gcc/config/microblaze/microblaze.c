@@ -22,7 +22,6 @@
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include <signal.h>
 #include "tm.h"
 #include "rtl.h"
 #include "regs.h"
@@ -729,7 +728,7 @@ microblaze_block_move_straight (rtx dest, rtx src, HOST_WIDE_INT length)
   delta = bits / BITS_PER_UNIT;
 
   /* Allocate a buffer for the temporary registers.  */
-  regs = alloca (sizeof (rtx) * length / delta);
+  regs = XALLOCAVEC (rtx, length / delta);
 
   /* Load as many BITS-sized chunks as possible.  Use a normal load if
      the source has enough alignment, otherwise use left/right pairs.  */
@@ -1088,9 +1087,9 @@ init_cumulative_args (CUMULATIVE_ARGS * cum, tree fntype,
 
 /* Advance the argument to the next argument position.  */
 
-void
-function_arg_advance (CUMULATIVE_ARGS * cum, enum machine_mode mode,
-		      tree type, int named ATTRIBUTE_UNUSED)
+static void
+microblaze_function_arg_advance (CUMULATIVE_ARGS * cum, enum machine_mode mode,
+				 const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   cum->arg_number++;
   switch (mode)
@@ -1143,9 +1142,10 @@ function_arg_advance (CUMULATIVE_ARGS * cum, enum machine_mode mode,
 /* Return an RTL expression containing the register for the given mode,
    or 0 if the argument is to be passed on the stack.  */
 
-rtx
-function_arg (CUMULATIVE_ARGS * cum, enum machine_mode mode, 
-	      tree type ATTRIBUTE_UNUSED, int named ATTRIBUTE_UNUSED)
+static rtx
+microblaze_function_arg (CUMULATIVE_ARGS * cum, enum machine_mode mode, 
+			 const_tree type ATTRIBUTE_UNUSED,
+			 bool named ATTRIBUTE_UNUSED)
 {
   rtx ret;
   int regbase = -1;
@@ -1284,7 +1284,7 @@ microblaze_handle_option (size_t code,
       warning (0, "-mno-clearbss is deprecated; use -fno-zero-initialized-in-bss");
       break;
     case OPT_mxl_stack_check:
-      warning (0, "-mxl_stack_check is deprecated; use -fstack-check.");
+      warning (0, "-mxl_stack_check is deprecated; use -fstack-check");
       break;
     }
   return true;
@@ -1316,7 +1316,9 @@ microblaze_option_override (void)
   if (ver < 0)
     {
       /* No hardware exceptions in earlier versions. So no worries.  */
-      // microblaze_select_flags &= ~(MICROBLAZE_MASK_NO_UNSAFE_DELAY);
+#if 0
+      microblaze_select_flags &= ~(MICROBLAZE_MASK_NO_UNSAFE_DELAY);
+#endif
       microblaze_no_unsafe_delay = 0;
       microblaze_pipe = MICROBLAZE_PIPE_3;
     }
@@ -1324,7 +1326,9 @@ microblaze_option_override (void)
 	   || (MICROBLAZE_VERSION_COMPARE (microblaze_select_cpu, "v4.00.b")
 	       == 0))
     {
-      // microblaze_select_flags |= (MICROBLAZE_MASK_NO_UNSAFE_DELAY);
+#if 0
+      microblaze_select_flags |= (MICROBLAZE_MASK_NO_UNSAFE_DELAY);
+#endif
       microblaze_no_unsafe_delay = 1;
       microblaze_pipe = MICROBLAZE_PIPE_3;
     }
@@ -1332,7 +1336,9 @@ microblaze_option_override (void)
     {
       /* We agree to use 5 pipe-stage model even on area optimized 3 
          pipe-stage variants.  */
-      // microblaze_select_flags &= ~(MICROBLAZE_MASK_NO_UNSAFE_DELAY);
+#if 0
+      microblaze_select_flags &= ~(MICROBLAZE_MASK_NO_UNSAFE_DELAY);
+#endif
       microblaze_no_unsafe_delay = 0;
       microblaze_pipe = MICROBLAZE_PIPE_5;
       if (MICROBLAZE_VERSION_COMPARE (microblaze_select_cpu, "v5.00.a") == 0
@@ -1361,7 +1367,9 @@ microblaze_option_override (void)
   /* Always use DFA scheduler.  */
   microblaze_sched_use_dfa = 1;
 
-  // microblaze_abicalls = MICROBLAZE_ABICALLS_NO;
+#if 0
+  microblaze_abicalls = MICROBLAZE_ABICALLS_NO;
+#endif
 
   /* Initialize the high, low values for legit floating point constants.  */
   real_maxval (&dfhigh, 0, DFmode);
@@ -1422,6 +1430,13 @@ microblaze_option_override (void)
 	}
     }
 }
+
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options microblaze_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 /* Return true if FUNC is an interrupt function as specified
    by the "interrupt_handler" attribute.  */
@@ -1837,7 +1852,7 @@ print_operand (FILE * file, rtx op, int letter)
 	      break;
 	    case ADDRESS_INVALID:
 	    case ADDRESS_PLT:
-	      fatal_insn ("Invalid address", op);
+	      fatal_insn ("invalid address", op);
 	    }
 	}
     }
@@ -2060,7 +2075,7 @@ save_restore_insns (int prologue)
     0, isr_mem_rtx = 0;
   rtx isr_msr_rtx = 0, insn;
   long mask = current_frame_info.mask;
-  HOST_WIDE_INT base_offset, gp_offset;
+  HOST_WIDE_INT gp_offset;
   int regno;
 
   if (frame_pointer_needed
@@ -2086,7 +2101,6 @@ save_restore_insns (int prologue)
   gcc_assert (gp_offset > 0);
 
   base_reg_rtx = stack_pointer_rtx;
-  base_offset = 0;
 
   /* For interrupt_handlers, need to save/restore the MSR.  */
   if (interrupt_handler)
@@ -2261,7 +2275,8 @@ microblaze_expand_prologue (void)
 	  passed_mode = Pmode;
 	}
 
-      entry_parm = FUNCTION_ARG (args_so_far, passed_mode, passed_type, 1);
+      entry_parm = targetm.calls.function_arg (&args_so_far, passed_mode,
+					       passed_type, true);
 
       if (entry_parm)
 	{
@@ -2281,7 +2296,8 @@ microblaze_expand_prologue (void)
 	  break;
 	}
 
-      FUNCTION_ARG_ADVANCE (args_so_far, passed_mode, passed_type, 1);
+      targetm.calls.function_arg_advance (&args_so_far, passed_mode,
+					  passed_type, true);
 
       next_arg = TREE_CHAIN (cur_arg);
       if (next_arg == 0)
@@ -2295,7 +2311,8 @@ microblaze_expand_prologue (void)
 
   /* Split parallel insn into a sequence of insns.  */
 
-  next_arg_reg = FUNCTION_ARG (args_so_far, VOIDmode, void_type_node, 1);
+  next_arg_reg = targetm.calls.function_arg (&args_so_far, VOIDmode,
+					     void_type_node, true);
   if (next_arg_reg != 0 && GET_CODE (next_arg_reg) == PARALLEL)
     {
       rtvec adjust = XVEC (next_arg_reg, 0);
@@ -2380,9 +2397,8 @@ microblaze_expand_prologue (void)
 
   if (flag_pic == 2 && df_regs_ever_live_p (MB_ABI_PIC_ADDR_REGNUM))
     {
-      rtx insn;
       SET_REGNO (pic_offset_table_rtx, MB_ABI_PIC_ADDR_REGNUM);
-      insn = emit_insn (gen_set_got (pic_offset_table_rtx));	/* setting GOT.  */
+      emit_insn (gen_set_got (pic_offset_table_rtx));	/* setting GOT.  */
     }
 
   /* If we are profiling, make sure no instructions are scheduled before
@@ -2507,9 +2523,9 @@ microblaze_can_use_return_insn (void)
 
 /* Implement TARGET_SECONDARY_RELOAD.  */
 
-static enum reg_class
+static reg_class_t
 microblaze_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED, 
-			     enum reg_class rclass, enum machine_mode mode ATTRIBUTE_UNUSED, 
+			     reg_class_t rclass, enum machine_mode mode ATTRIBUTE_UNUSED, 
 			     secondary_reload_info *sri ATTRIBUTE_UNUSED)
 {
   if (rclass == ST_REGS)
@@ -2535,6 +2551,8 @@ microblaze_globalize_label (FILE * stream, const char *name)
 static bool
 microblaze_elf_in_small_data_p (const_tree decl)
 {
+  HOST_WIDE_INT size;
+
   if (!TARGET_XLGPOPT)
     return false;
 
@@ -2556,7 +2574,7 @@ microblaze_elf_in_small_data_p (const_tree decl)
 	return true;
     }
 
-  HOST_WIDE_INT size = int_size_in_bytes (TREE_TYPE (decl));
+  size = int_size_in_bytes (TREE_TYPE (decl));
 
   return (size > 0 && size <= microblaze_section_threshold);
 }
@@ -2613,10 +2631,10 @@ microblaze_expand_move (enum machine_mode mode, rtx operands[])
 	  rtx addr = XEXP (operands[0], 0);
 	  if (GET_CODE (addr) == SYMBOL_REF)
 	    {
+	      rtx ptr_reg, result;
+
 	      if (reload_in_progress)
 		df_set_regs_ever_live (PIC_OFFSET_TABLE_REGNUM, true);
-
-	      rtx ptr_reg, result;
 
 	      addr = expand_pic_symbol_ref (mode, addr);
 	      ptr_reg = gen_reg_rtx (Pmode);
@@ -2992,6 +3010,12 @@ microblaze_adjust_cost (rtx insn ATTRIBUTE_UNUSED, rtx link,
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES	function_arg_partial_bytes
 
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG		microblaze_function_arg
+
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE	microblaze_function_arg_advance
+
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE 		microblaze_can_eliminate
 
@@ -3027,6 +3051,9 @@ microblaze_adjust_cost (rtx insn ATTRIBUTE_UNUSED, rtx link,
 
 #undef  TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE		microblaze_option_override 
+
+#undef  TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE microblaze_option_optimization_table
 
 #undef TARGET_EXCEPT_UNWIND_INFO
 #define TARGET_EXCEPT_UNWIND_INFO  sjlj_except_unwind_info

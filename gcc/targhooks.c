@@ -64,6 +64,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target-def.h"
 #include "ggc.h"
 #include "hard-reg-set.h"
+#include "regs.h"
 #include "reload.h"
 #include "optabs.h"
 #include "recog.h"
@@ -424,6 +425,19 @@ default_scalar_mode_supported_p (enum machine_mode mode)
     }
 }
 
+/* Make some target macros useable by target-independent code.  */
+bool
+targhook_words_big_endian (void)
+{
+  return !!WORDS_BIG_ENDIAN;
+}
+
+bool
+targhook_float_words_big_endian (void)
+{
+  return !!FLOAT_WORDS_BIG_ENDIAN;
+}
+
 /* True if the target supports decimal floating point.  */
 
 bool
@@ -591,6 +605,13 @@ default_function_incoming_arg (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 #else
   gcc_unreachable ();
 #endif
+}
+
+unsigned int
+default_function_arg_boundary (enum machine_mode mode ATTRIBUTE_UNUSED,
+			       const_tree type ATTRIBUTE_UNUSED)
+{
+  return PARM_BOUNDARY;
 }
 
 void
@@ -1288,14 +1309,8 @@ default_debug_unwind_info (void)
 /* Determine the exception handling mechanism for the target.  */
 
 enum unwind_info_type
-default_except_unwind_info (void)
+default_except_unwind_info (struct gcc_options *opts ATTRIBUTE_UNUSED)
 {
-  /* ??? Change the one user to the hook, then poison this.  */
-#ifdef MUST_USE_SJLJ_EXCEPTIONS
-  if (MUST_USE_SJLJ_EXCEPTIONS)
-    return UI_SJLJ;
-#endif
-
   /* Obey the configure switch to turn on sjlj exceptions.  */
 #ifdef CONFIG_SJLJ_EXCEPTIONS
   if (CONFIG_SJLJ_EXCEPTIONS)
@@ -1314,7 +1329,7 @@ default_except_unwind_info (void)
 /* To be used by targets that force dwarf2 unwind enabled.  */
 
 enum unwind_info_type
-dwarf2_except_unwind_info (void)
+dwarf2_except_unwind_info (struct gcc_options *opts ATTRIBUTE_UNUSED)
 {
   /* Obey the configure switch to turn on sjlj exceptions.  */
 #ifdef CONFIG_SJLJ_EXCEPTIONS
@@ -1328,9 +1343,23 @@ dwarf2_except_unwind_info (void)
 /* To be used by targets that force sjlj unwind enabled.  */
 
 enum unwind_info_type
-sjlj_except_unwind_info (void)
+sjlj_except_unwind_info (struct gcc_options *opts ATTRIBUTE_UNUSED)
 {
   return UI_SJLJ;
 }
+
+/* To be used by targets where reg_raw_mode doesn't return the right
+   mode for registers used in apply_builtin_return and apply_builtin_arg.  */
+
+enum machine_mode
+default_get_reg_raw_mode(int regno)
+{
+  return reg_raw_mode[regno];
+}
+
+const struct default_options empty_optimization_table[] =
+  {
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 #include "gt-targhooks.h"

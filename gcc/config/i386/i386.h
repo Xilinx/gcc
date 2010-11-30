@@ -59,6 +59,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_LWP	OPTION_ISA_LWP
 #define TARGET_ROUND	OPTION_ISA_ROUND
 #define TARGET_ABM	OPTION_ISA_ABM
+#define TARGET_BMI	OPTION_ISA_BMI
+#define TARGET_TBM	OPTION_ISA_TBM
 #define TARGET_POPCNT	OPTION_ISA_POPCNT
 #define TARGET_SAHF	OPTION_ISA_SAHF
 #define TARGET_MOVBE	OPTION_ISA_MOVBE
@@ -239,6 +241,9 @@ extern const struct processor_costs ix86_size_cost;
 #define TARGET_ATHLON_K8 (TARGET_K8 || TARGET_ATHLON)
 #define TARGET_NOCONA (ix86_tune == PROCESSOR_NOCONA)
 #define TARGET_CORE2 (ix86_tune == PROCESSOR_CORE2)
+#define TARGET_COREI7_32 (ix86_tune == PROCESSOR_COREI7_32)
+#define TARGET_COREI7_64 (ix86_tune == PROCESSOR_COREI7_64)
+#define TARGET_COREI7 (TARGET_COREI7_32 || TARGET_COREI7_64)
 #define TARGET_GENERIC32 (ix86_tune == PROCESSOR_GENERIC32)
 #define TARGET_GENERIC64 (ix86_tune == PROCESSOR_GENERIC64)
 #define TARGET_GENERIC (TARGET_GENERIC32 || TARGET_GENERIC64)
@@ -476,19 +481,21 @@ extern tree x86_mfence;
 #define TARGET_SUBTARGET64_DEFAULT 0
 #define TARGET_SUBTARGET64_ISA_DEFAULT 0
 
-/* This is not really a target flag, but is done this way so that
-   it's analogous to similar code for Mach-O on PowerPC.  darwin.h
-   redefines this to 1.  */
+/* Replace MACH-O, ifdefs by in-line tests, where possible. 
+   (a) Macros defined in config/i386/darwin.h  */
 #define TARGET_MACHO 0
-
-/* Branch island 'stubs' are emitted for earlier versions of darwin.
-   This provides a default (over-ridden in darwin.h.)  */
-#ifndef TARGET_MACHO_BRANCH_ISLANDS
 #define TARGET_MACHO_BRANCH_ISLANDS 0
-#endif
+#define MACHOPIC_ATT_STUB 0
+/* (b) Macros defined in config/darwin.h  */
+#define MACHO_DYNAMIC_NO_PIC_P 0
+#define MACHOPIC_INDIRECT 0
+#define MACHOPIC_PURE 0
 
 /* For the Windows 64-bit ABI.  */
 #define TARGET_64BIT_MS_ABI (TARGET_64BIT && ix86_cfun_abi () == MS_ABI)
+
+/* This is re-defined by cygming.h.  */
+#define TARGET_SEH 0
 
 /* Available call abi.  */
 enum calling_abi
@@ -545,7 +552,7 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #ifndef CC1_CPU_SPEC
 #define CC1_CPU_SPEC_1 "\
 %{msse5:-mavx \
-%n'-msse5' was removed.\n}"
+%n'-msse5' was removed\n}"
 
 #ifndef HAVE_LOCAL_CPU_DETECT
 #define CC1_CPU_SPEC CC1_CPU_SPEC_1
@@ -579,6 +586,7 @@ enum target_cpu_default
   TARGET_CPU_DEFAULT_prescott,
   TARGET_CPU_DEFAULT_nocona,
   TARGET_CPU_DEFAULT_core2,
+  TARGET_CPU_DEFAULT_corei7,
   TARGET_CPU_DEFAULT_atom,
 
   TARGET_CPU_DEFAULT_geode,
@@ -836,13 +844,6 @@ enum target_cpu_default
   ix86_minimum_alignment (EXP, MODE, ALIGN)
 
 
-/* If defined, a C expression that gives the alignment boundary, in
-   bits, of an argument with the specified mode and type.  If it is
-   not defined, `PARM_BOUNDARY' is used for all arguments.  */
-
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE) \
-  ix86_function_arg_boundary ((MODE), (TYPE))
-
 /* Set this nonzero if move instructions will actually fail to work
    when given unaligned data.  */
 #define STRICT_ALIGNMENT 0
@@ -898,7 +899,7 @@ enum target_cpu_default
    64 bit targets, one if the register if fixed on both 32 and 64
    bit targets, two if it is only fixed on 32bit targets and three
    if its only fixed on 64bit targets.
-   Proper values are computed in the CONDITIONAL_REGISTER_USAGE.
+   Proper values are computed in TARGET_CONDITIONAL_REGISTER_USAGE.
  */
 #define FIXED_REGISTERS						\
 /*ax,dx,cx,bx,si,di,bp,sp,st,st1,st2,st3,st4,st5,st6,st7*/	\
@@ -926,7 +927,7 @@ enum target_cpu_default
    64 bit targets, one if the register if call used on both 32 and 64
    bit targets, two if it is only call used on 32bit targets and three
    if its only call used on 64bit targets.
-   Proper values are computed in the CONDITIONAL_REGISTER_USAGE.
+   Proper values are computed in TARGET_CONDITIONAL_REGISTER_USAGE.
 */
 #define CALL_USED_REGISTERS					\
 /*ax,dx,cx,bx,si,di,bp,sp,st,st1,st2,st3,st4,st5,st6,st7*/	\
@@ -965,9 +966,6 @@ enum target_cpu_default
 
 
 #define OVERRIDE_ABI_FORMAT(FNDECL) ix86_call_abi_override (FNDECL)
-
-/* Macro to conditionally modify fixed_regs/call_used_regs.  */
-#define CONDITIONAL_REGISTER_USAGE  ix86_conditional_register_usage ()
 
 /* Return number of consecutive hard regs needed starting at reg REGNO
    to hold something of mode MODE.
@@ -1250,7 +1248,8 @@ enum reg_class
    for a vector of HARD_REG_SET of length N_REG_CLASSES.
 
    Note that the default setting of CLOBBERED_REGS is for 32-bit; this
-   is adjusted by CONDITIONAL_REGISTER_USAGE for the 64-bit ABI in effect.  */
+   is adjusted by TARGET_CONDITIONAL_REGISTER_USAGE for the 64-bit ABI
+   in effect.  */
 
 #define REG_CLASS_CONTENTS						\
 {     { 0x00,     0x0 },						\
@@ -1507,6 +1506,7 @@ typedef struct ix86_args {
   int mmx_nregs;		/* # mmx registers available for passing */
   int mmx_regno;		/* next available mmx register number */
   int maybe_vaarg;		/* true for calls to possibly vardic fncts.  */
+  int caller;			/* true if it is caller.  */
   int float_in_sse;		/* Set to 1 or 2 for 32bit targets if
 				   SFmode/DFmode arguments should be passed
 				   in SSE registers.  Otherwise 0.  */
@@ -1519,7 +1519,8 @@ typedef struct ix86_args {
    For a library call, FNTYPE is 0.  */
 
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, FNDECL, N_NAMED_ARGS) \
-  init_cumulative_args (&(CUM), (FNTYPE), (LIBNAME), (FNDECL))
+  init_cumulative_args (&(CUM), (FNTYPE), (LIBNAME), (FNDECL), \
+			(N_NAMED_ARGS) != -1)
 
 /* Output assembler code to FILE to increment profiler label # LABELNO
    for profiling a function entry.  */
@@ -2035,8 +2036,7 @@ do {									\
 	"call " CRT_MKSTR(__USER_LABEL_PREFIX__) #FUNC "\n"	\
 	TEXT_SECTION_ASM_OP);
 
-/* Which processor to schedule for. The cpu attribute defines a list that
-   mirrors this list, so changes to i386.md must be made at the same time.  */
+/* Which processor to tune code generation for.  */
 
 enum processor_type
 {
@@ -2051,6 +2051,8 @@ enum processor_type
   PROCESSOR_K8,
   PROCESSOR_NOCONA,
   PROCESSOR_CORE2,
+  PROCESSOR_COREI7_32,
+  PROCESSOR_COREI7_64,
   PROCESSOR_GENERIC32,
   PROCESSOR_GENERIC64,
   PROCESSOR_AMDFAM10,
@@ -2242,6 +2244,9 @@ struct GTY(()) machine_frame_state
   BOOL_BITFIELD realigned : 1;
 };
 
+/* Private to winnt.c.  */
+struct seh_frame_state;
+
 struct GTY(()) machine_function {
   struct stack_local_entry *stack_locals;
   const char *some_ld_name;
@@ -2289,9 +2294,27 @@ struct GTY(()) machine_function {
      stack below the return address.  */
   BOOL_BITFIELD static_chain_on_stack : 1;
 
+  /* Nonzero if caller passes 256bit AVX modes.  */
+  BOOL_BITFIELD caller_pass_avx256_p : 1;
+
+  /* Nonzero if caller returns 256bit AVX modes.  */
+  BOOL_BITFIELD caller_return_avx256_p : 1;
+
+  /* Nonzero if the current callee passes 256bit AVX modes.  */
+  BOOL_BITFIELD callee_pass_avx256_p : 1;
+
+  /* Nonzero if the current callee returns 256bit AVX modes.  */
+  BOOL_BITFIELD callee_return_avx256_p : 1;
+
+  /* Nonzero if rescan vzerouppers in the current function is needed.  */
+  BOOL_BITFIELD rescan_vzeroupper_p : 1;
+
   /* During prologue/epilogue generation, the current frame state.
      Otherwise, the frame state at the end of the prologue.  */
   struct machine_frame_state fs;
+
+  /* During SEH output, this is non-null.  */
+  struct seh_frame_state * GTY((skip(""))) seh;
 };
 #endif
 
@@ -2332,6 +2355,14 @@ struct GTY(()) machine_function {
 
 extern void debug_ready_dispatch (void);
 extern void debug_dispatch_window (int);
+
+/* The value at zero is only defined for the BMI instructions
+   LZCNT and TZCNT, not the BSR/BSF insns in the original isa.  */
+#define CTZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE) \
+	((VALUE) = GET_MODE_BITSIZE (MODE), TARGET_BMI)
+#define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE) \
+	((VALUE) = GET_MODE_BITSIZE (MODE), TARGET_BMI)
+
 
 /*
 Local variables:

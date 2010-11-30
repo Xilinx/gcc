@@ -895,9 +895,7 @@ bitmap_value_insert_into_set (bitmap_set_t set, pre_expr expr)
 {
   unsigned int val = get_expr_value_id (expr);
 
-#ifdef ENABLE_CHECKING
-  gcc_assert (expr->id == get_or_alloc_expression_id (expr));
-#endif
+  gcc_checking_assert (expr->id == get_or_alloc_expression_id (expr));
 
   /* Constant values are always considered to be part of the set.  */
   if (value_id_constant_p (val))
@@ -2608,10 +2606,8 @@ compute_antic (void)
 						      block->index));
 	    }
 	}
-#ifdef ENABLE_CHECKING
       /* Theoretically possible, but *highly* unlikely.  */
-      gcc_assert (num_iterations < 500);
-#endif
+      gcc_checking_assert (num_iterations < 500);
     }
 
   statistics_histogram_event (cfun, "compute_antic iterations",
@@ -2640,10 +2636,8 @@ compute_antic (void)
 							    block->index));
 		}
 	    }
-#ifdef ENABLE_CHECKING
 	  /* Theoretically possible, but *highly* unlikely.  */
-	  gcc_assert (num_iterations < 500);
-#endif
+	  gcc_checking_assert (num_iterations < 500);
 	}
       statistics_histogram_event (cfun, "compute_partial_antic iterations",
 				  num_iterations);
@@ -4370,6 +4364,7 @@ eliminate (void)
 		{
 		  bool can_make_abnormal_goto
 		    = stmt_can_make_abnormal_goto (stmt);
+		  bool was_noreturn = gimple_call_noreturn_p (stmt);
 
 		  if (dump_file && (dump_flags & TDF_DETAILS))
 		    {
@@ -4381,6 +4376,11 @@ eliminate (void)
 
 		  gimple_call_set_fn (stmt, fn);
 		  update_stmt (stmt);
+
+		  /* When changing a call into a noreturn call, cfg cleanup
+		     is needed to fix up the noreturn call.  */
+		  if (!was_noreturn && gimple_call_noreturn_p (stmt))
+		    todo |= TODO_cleanup_cfg;
 
 		  /* If we removed EH side-effects from the statement, clean
 		     its EH information.  */

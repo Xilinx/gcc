@@ -1362,8 +1362,6 @@ get_base_constructor (tree base, HOST_WIDE_INT *bit_offset)
 	  && (TREE_STATIC (base) || DECL_EXTERNAL (base)))
         return error_mark_node;
       return DECL_INITIAL (base);
-      
-      break;
 
     case ARRAY_REF:
     case COMPONENT_REF:
@@ -1372,12 +1370,10 @@ get_base_constructor (tree base, HOST_WIDE_INT *bit_offset)
 	return NULL_TREE;
       *bit_offset +=  bit_offset2;
       return get_base_constructor (base, bit_offset);
-      break;
 
     case STRING_CST:
     case CONSTRUCTOR:
       return base;
-      break;
 
     default:
       return NULL_TREE;
@@ -1523,23 +1519,30 @@ fold_nonarray_ctor_reference (tree type, tree ctor,
       double_int bits_per_unit_cst = uhwi_to_double_int (BITS_PER_UNIT);
       double_int bitoffset_end;
 
-      /* Variable sized objects in static constructors makes no sense.  */
+      /* Variable sized objects in static constructors makes no sense,
+	 but field_size can be NULL for flexible array members.  */
       gcc_assert (TREE_CODE (field_offset) == INTEGER_CST
 		  && TREE_CODE (byte_offset) == INTEGER_CST
-		  && TREE_CODE (field_size) == INTEGER_CST);
+		  && (field_size != NULL_TREE
+		      ? TREE_CODE (field_size) == INTEGER_CST
+		      : TREE_CODE (TREE_TYPE (cfield)) == ARRAY_TYPE));
 
       /* Compute bit offset of the field.  */
       bitoffset = double_int_add (tree_to_double_int (field_offset),
 				  double_int_mul (byte_offset_cst,
 						  bits_per_unit_cst));
       /* Compute bit offset where the field ends.  */
-      bitoffset_end = double_int_add (bitoffset,
-				      tree_to_double_int (field_size));
+      if (field_size != NULL_TREE)
+	bitoffset_end = double_int_add (bitoffset,
+					tree_to_double_int (field_size));
+      else
+	bitoffset_end = double_int_zero;
 
       /* Is OFFSET in the range (BITOFFSET, BITOFFSET_END)? */
       if (double_int_cmp (uhwi_to_double_int (offset), bitoffset, 0) >= 0
-	  && double_int_cmp (uhwi_to_double_int (offset),
-			     bitoffset_end, 0) < 0)
+	  && (field_size == NULL_TREE
+	      || double_int_cmp (uhwi_to_double_int (offset),
+				 bitoffset_end, 0) < 0))
 	{
 	  double_int access_end = double_int_add (uhwi_to_double_int (offset),
 						  uhwi_to_double_int (size));

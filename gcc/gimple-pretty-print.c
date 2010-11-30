@@ -400,6 +400,14 @@ dump_ternary_rhs (pretty_printer *buffer, gimple gs, int spc, int flags)
       pp_character (buffer, '>');
       break;
 
+    case FMA_EXPR:
+      dump_generic_node (buffer, gimple_assign_rhs1 (gs), spc, flags, false);
+      pp_string (buffer, " * ");
+      dump_generic_node (buffer, gimple_assign_rhs2 (gs), spc, flags, false);
+      pp_string (buffer, " + ");
+      dump_generic_node (buffer, gimple_assign_rhs3 (gs), spc, flags, false);
+      break;
+
     default:
       gcc_unreachable ();
     }
@@ -1890,7 +1898,8 @@ dump_bb_header (pretty_printer *buffer, basic_block bb, int indent, int flags)
 	}
     }
   pp_write_text_to_stream (buffer);
-  check_bb_profile (bb, buffer->buffer->stream);
+  if (cfun)
+    check_bb_profile (bb, buffer->buffer->stream);
 }
 
 
@@ -1976,7 +1985,6 @@ dump_implicit_edges (pretty_printer *buffer, basic_block bb, int indent,
 		     int flags)
 {
   edge e;
-  edge_iterator ei;
   gimple stmt;
 
   stmt = last_stmt (bb);
@@ -2004,9 +2012,7 @@ dump_implicit_edges (pretty_printer *buffer, basic_block bb, int indent,
 
   /* If there is a fallthru edge, we may need to add an artificial
      goto to the dump.  */
-  FOR_EACH_EDGE (e, ei, bb->succs)
-    if (e->flags & EDGE_FALLTHRU)
-      break;
+  e = find_fallthru_edge (bb->succs);
 
   if (e && e->dest != bb->next_bb)
     {
