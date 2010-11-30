@@ -5466,8 +5466,8 @@ melt_make_source_dir=$(srcdir)/melt
 melt_make_module_dir=$(objdir)
 melt_make_move=$(SHELL) $(srcdir)/../move-if-change
 ## Don't use := definitions here!
-melt_make_cc1flags= $(MELTHERE_CFLAGS) -I $(melt_build_include_dir)
-melt_cflags= $(MELTHERE_CFLAGS) -I $(melt_build_include_dir) -I.
+melt_make_cc1flags= -I. $(MELTHERE_CFLAGS) -I $(melt_build_include_dir)
+melt_cflags=  -I. $(MELTHERE_CFLAGS) -I $(melt_build_include_dir)
 export melt_cflags
 melt_installed_cflags= $(MELTHERE_CFLAGS) -I $(plugin_includedir)
 ## leave melt_is_plugin as empty 

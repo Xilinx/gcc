@@ -1,6 +1,8 @@
 
 2010-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt_make_cc1flags, melt_cflags): Put -I. in front.
 
+2010-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt: Give an error for inappropriate fields
 	in definstance.
 
