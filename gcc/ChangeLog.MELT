@@ -1,4 +1,42 @@
 
+2010-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normal.melt: Give an error for inappropriate fields
+	in definstance.
+
+	* melt/warmelt-outobj.melt: Change offset in compile2obj_procedure
+	to generate slightly smaller main C file.
+
+	{{regenerated all}}
+	* melt/generated/warmelt-normatch.0+01.c: Regenerate.
+	* melt/generated/warmelt-first.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerate.
+	* melt/generated/warmelt-normal.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0+03.c: Regenerate.
+	* melt/generated/warmelt-macro.0.c: Regenerate.
+	* melt/generated/warmelt-outobj.0.c: Regenerate.
+	* melt/generated/warmelt-debug.0+01.c: Regenerate.
+	* melt/generated/warmelt-first.0+01.c: Regenerate.
+	* melt/generated/warmelt-first.0+02.c: Add new generated file.
+	* melt/generated/warmelt-genobj.0.c: Regenerate.
+	* melt/generated/warmelt-normal.0+01.c: Regenerate.
+	* melt/generated/warmelt-normal.0+02.c: Regenerate.
+	* melt/generated/warmelt-normal.0+03.c: Regenerate.
+	* melt/generated/warmelt-base.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0.c: Regenerate.
+	* melt/generated/warmelt-macro.0+01.c: Regenerate.
+	* melt/generated/warmelt-macro.0+02.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerate.
+	* melt/generated/warmelt-macro.0+03.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+04.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+04.c: Add new generated file.
+	* melt/generated/warmelt-debug.0.c: Regenerate.
+
 2010-11-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* passes.c: Display more about executed passes.
 

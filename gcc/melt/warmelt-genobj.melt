@@ -813,9 +813,9 @@ $SBUF.}#
 	  (obodylist (make_list discr_list))
 	  ;; the number 32 below is the ratio of number of functions
 	  ;; per secondary generated C file. Change it carefully!  the
-	  ;; offset 12 helps to make the first file less big, since it
+	  ;; offset 20 helps to make the first file less big, since it
 	  ;; already contains the huge initialization functions. 
-	  (:long filenum (/iraw (+i funum 12) 32))
+	  (:long filenum (/iraw (+i funum 20) 32))
 	  (:long nbfiles (multiple_length mofiles))
 	  (obrout (instance class_procroutineobj
 			    :named_name (strbuf2string discr_string namsbuf)

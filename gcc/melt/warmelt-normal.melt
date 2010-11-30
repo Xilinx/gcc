@@ -5490,9 +5490,14 @@ source location.}#
 		(:long curoff (obj_num curfld))
 		)
 	   (assert_msg "check curfld" (is_a curfld class_field))
-	   (assert_msg "good curfld"
-		       (== (multiple_nth (unsafe_get_field :class_fields sinstclass) curoff) 
-			   curfld))  
+	   (if (!= (multiple_nth (unsafe_get_field :class_fields sinstclass) curoff) 
+			   curfld)
+	       (progn
+		 (error_strv sloc
+			     "inappropriate field in DEFINSTANCE"
+			     (get_field :named_name curfld)
+			     )
+		 (return)))
 	   (debug_msg curexp "normexp_definstance field curexp")
 	   (multicall
 	    (ncur nbindcur)
