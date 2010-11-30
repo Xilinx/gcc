@@ -238,6 +238,7 @@ documentation $SEXPSYN_DOC.}#
 
 ;;;; define a value
 (defclass class_source_define
+  :super class_source_definition
   :doc #{The $CLASS_SOURCE_DEFINE is for value definitions. Field
  $SDEFINE_EXPR is the expression of the value bound to $SDEF_NAME.}#
   :fields (sdefine_expr))
@@ -2581,9 +2582,9 @@ outside its module.}#)
    (assert_msg "check symb" (is_a symb class_symbol))
    (and (null predef)
 	(null superclass)
-	(warning_strv loc 
-		      "DEFCLASS of a non-predefined class without superclass"
-		      (unsafe_get_field :named_name symb))
+	(error_strv loc 
+		    "DEFCLASS of a non-predefined class without superclass"
+		    (unsafe_get_field :named_name symb))
 	)
    (let ( 
 	 (ancestors (if (is_object superclass)

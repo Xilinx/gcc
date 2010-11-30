@@ -1,5 +1,13 @@
 
 2010-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-predef.list: Adding CLASS_CTYPE_GTY.
+
+	* melt/warmelt-macro.melt (class_source_define): Add missing
+	superclass.
+	(mexpand_defclass): Errror if missing superclass on a
+	non-predefined class.
+
+2010-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt_make_cc1flags, melt_cflags): Put -I. in front.
 
 2010-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
