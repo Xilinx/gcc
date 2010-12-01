@@ -6431,7 +6431,6 @@ allocate_reload_reg (struct insn_chain *chain ATTRIBUTE_UNUSED, int r,
       for (count = 0; count < n_spills; count++)
 	{
 	  int rclass = (int) rld[r].rclass;
-	  int regnum;
 
 	  regnum = insn_spill_reg_order[count];
 
