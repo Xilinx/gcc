@@ -828,7 +828,6 @@ routine procedures.}#
 ;;;; sometimes this selector is used with a null environment, for
 ;;;; instance in the code generation phase
 (defselector get_ctype class_selector
-					;  :named_name (stringconst2val discr_namestring "GET_CTYPE")
   )
 
 ;;; selector to compile a normalized stuff into an object
@@ -2369,6 +2368,7 @@ source location.}#
 	      (sbinder (unsafe_get_field :sletb_binder sb))
 	      (sbexpr (unsafe_get_field :sletb_expr sb)) 
 	      )
+	 (assert_msg "check sbtyp" (is_a sbtyp class_ctype))
 	 ;; issue an inform message if the let binding overrides a previous one
 	 (and
 	  (has_extra_warnings)
@@ -2380,6 +2380,27 @@ source location.}#
 	 (multicall
 	  (nbdexpr nbindings)
 	  (normal_exp sbexpr newenv ncx sbloc)
+	  ;; check that the ctype of the normalized expression
+	  ;; is the same as the let binding's ctype
+	  (let ( (nbctype (get_ctype nbdexpr newenv)) 
+		 )
+	    (assert_msg "check nbctype" (is_a nbctype class_ctype))
+	    (if (!= nbctype sbtyp)
+		(progn
+		  (error_strv 
+		   sbloc
+		   "ctype mismatch in LET binding of local variable"
+		   (get_field :named_name  sbinder))
+		  (inform_strv
+		   sbloc
+		   "expecting ctype in LET binding"
+		   (get_field :named_name sbtyp))
+		  (inform_strv
+		   sbloc
+		   "ctype of binding expression in LET"
+		   (get_field :named_name nbctype))
+		  )))
+	  ;;
 	  (let ( (lastnbinding (pair_head (list_last nbindings))) )
 	    ;; common case of a normalized apply or primitive, hence a
 	    ;; gensymed variable which is the last in the nbindings

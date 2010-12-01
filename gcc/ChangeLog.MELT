@@ -1,5 +1,58 @@
 
 2010-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (FGCCTRIPAPASS_STMT_FIXUP)
+	(FGCCTRIPAPASS_FUNCTION_TRANSFORM)
+	(FGCCTRIPAPASS_VARIABLE_TRANSFORM): Add new enum to access fields
+	inside class_gcc_transform_ipa_pass
+
+	* melt-runtime.c (meltgc_register_pass): Add temporary warning
+	because MELT transform IPA passes are not handled. |FIXME!]
+
+	* melt/warmelt-first.melt (class_gcc_transform_ipa_pass): Name fields
+	gcctripapass_*
+	(container_ctype_gty_dict): New instance.
+	(install_ctype_descr): Use it.
+	(ctype_tree, ctype_gimple, ctype_gimple_seq, ctype_basic_block):
+	Become instances of class_ctype_gty.
+	(ctype_edge, ctype_loop, ctype_rtx): Ditto.
+	(retrieve_dictionnary_ctype_gty): New function.
+
+	* melt/warmelt-normal.melt (normexp_let): Check ctype
+	compatibility in let bindings.
+
+	* melt/warmmelt-genobj.melt (compilmatcher_cmatcher): Fix ctype
+	binding mistake.
+
+	* melt/warmelt-outobj.melt: Adding ctypesupport mode.
+
+	* melt/xtramelt-ana-base.melt (gimple_iterator): Fixed ctype
+	mistake.
+
+	{{regenerated}}
+	* melt/generated/warmelt-first.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerate.
+	* melt/generated/warmelt-normal.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0+03.c: Regenerate.
+	* melt/generated/warmelt-macro.0.c: Regenerate.
+	* melt/generated/warmelt-outobj.0.c: Regenerate.
+	* melt/generated/warmelt-first.0+01.c: Regenerate.
+	* melt/generated/warmelt-first.0+02.c: Regenerate.
+	* melt/generated/warmelt-normal.0+01.c: Regenerate.
+	* melt/generated/warmelt-genobj.0.c: Regenerate.
+	* melt/generated/warmelt-normal.0+02.c: Regenerate.
+	* melt/generated/warmelt-normal.0+03.c: Regenerate.
+	* melt/generated/warmelt-base.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+04.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+04.c: Regenerate.
+	* melt/generated/warmelt-debug.0.c: Regenerate.
+
+2010-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-first.melt (class_ctype_gty): New predefined class.
 
 	{{regenerated all}}

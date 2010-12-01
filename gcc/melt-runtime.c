@@ -12636,6 +12636,16 @@ meltgc_register_pass (melt_ptr_t pass_p,
     meltgc_put_mapstrings((struct meltmapstrings_st*) passdictv,
 			  sipapass->pass.name, (melt_ptr_t) passv);
   }
+  else if (melt_is_instance_of((melt_ptr_t) passv,
+			       (melt_ptr_t) MELT_PREDEF(CLASS_GCC_TRANSFORM_IPA_PASS))) {
+    struct ipa_opt_pass_d* tipapass = NULL;
+    tipapass = XNEW(struct ipa_opt_pass_d);
+    memset(tipapass, 0, sizeof(struct ipa_opt_pass_d));
+    /* FIXME! */
+#warning incomplete transform IPA passes
+    melt_fatal_error ("MELT transform IPA not implemented for passv %p",
+		      passv);
+  }
   /* non simple ipa passes are a different story - TODO! */
   else 
     melt_fatal_error ("MELT cannot register pass %s of unexpected class %s",

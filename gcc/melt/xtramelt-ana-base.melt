@@ -2656,7 +2656,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
   (each_bb_cfun
    ()
    (:basic_block body :tree header)
-   (let ((instructions (gimple_seq_of_basic_block body)))
+   (let ((:gimple_seq instructions (gimple_seq_of_basic_block body)))
      (each_in_gimpleseq
       (instructions)
       (:gimple instruction)

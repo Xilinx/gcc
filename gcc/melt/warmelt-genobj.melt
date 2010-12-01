@@ -5732,10 +5732,11 @@ $SBUF.}#
 				  (+i 5
 				      (*i 2 (+i (multiple_length cmins)
 						(multiple_length cmouts))))))
-	(:long mcxcount (let ( (boxcnt (get_field :mcx_statecounter mcx))
-			      (cnt (+i 1 (get_int boxcnt)) ) )
-			  (put_int boxcnt cnt)
-			  cnt))
+	(:long mcxcount
+	       (let ( (boxcnt (get_field :mcx_statecounter mcx))
+		      (:long cnt (+i 1 (get_int boxcnt)) ) )
+		 (put_int boxcnt cnt)
+		 cnt))
 	;; generate a unique state string
 	(uniqstate (let ( (sbuf (make_strbuf discr_strbuf)) )
 		     (add2sbuf_cident sbuf (get_field :named_name cmstate))

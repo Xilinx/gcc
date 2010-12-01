@@ -737,11 +737,13 @@ descriptors. }# )
 (defclass class_gcc_transform_ipa_pass
   :predef CLASS_GCC_TRANSFORM_IPA_PASS
   :super class_gcc_any_ipa_pass
-  :fields ( gccpass_stmt_fixup
-	    gccpass_function_transform
-	    gccpass_variable_transform )
+  ;; keep the fields list in sync with melt-runtime.h FGCCTRIPAPASS_*
+  :fields ( gcctripapass_stmt_fixup
+	    gcctripapass_function_transform
+	    gcctripapass_variable_transform )
   :doc #{ The $CLASS_GCC_TRANSFORM_IPA_PASS is for GCC full IPA pass
-descriptors which don't read or write any LTO information. }#)
+descriptors which don't read or write any LTO information but are
+plain transforming IPA passes. }#)
 
 ;;;; mode 
 (defclass class_melt_mode
@@ -1887,6 +1889,9 @@ the routine pointer and the constants inside MELT function closure values. See a
   :named_name '"DISCR_ROUTINE")
 
 
+(definstance container_ctype_gty_dict class_container
+  :container_value (make_mapstring discr_map_strings 60))
+
 ;;; by having the install_ctype_descr called inside each ctype
 ;;; initialization, we are sure it is called once for each, because
 ;;; ctype-s are predefined
@@ -1904,6 +1909,10 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
     (unsafe_put_fields ckw :symb_data ctyp)
     (if (is_a altkw class_keyword)
 	(put_fields altkw :symb_data ctyp))
+    (if (is_a ctyp class_ctype_gty)
+	(mapstring_putstr (get_field :container_value container_ctype_gty_dict)
+			  (get_field :named_name ckw)
+			  ctyp))
     ds
     ))
 
@@ -1943,7 +1952,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
 (install_ctype_descr ctype_long "C long unboxed integer")
 
 ;; the C type for gcc trees
-(definstance ctype_tree class_ctype
+(definstance ctype_tree class_ctype_gty
   :doc #{The $CTYPE_TREE is the c-type of raw GCC tree stuff. See also $DISCR_TREE. Keyword is :tree.}#
   :predef CTYPE_TREE
   :named_name  '"CTYPE_TREE"
@@ -1954,11 +1963,29 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :ctype_argfield '"bp_tree"
   :ctype_resfield '"bp_treeptr"
   :ctype_marker '"gt_ggc_mx_tree_node"
+;; GTY ctype
+  :ctypg_boxedmagic '"MELTOBMAG_TREE"
+  :ctypg_mapmagic '"MELTOBMAG_MAPTREES"
+  :ctypg_boxedstruct '"melttree_st"
+  :ctypg_entrystruct '"entrytreemelt_st"
+  :ctypg_mapstruct '"meltmaptrees_st"
+  :ctypg_boxdiscr  discr_tree
+  :ctypg_mapdiscr  discr_map_trees
+  :ctypg_boxfun        '"meltgc_new_tree"
+  :ctypg_unboxfun      '"melt_tree_content"
+  :ctypg_newmapfun     '"meltgc_new_maptrees"
+  :ctypg_mapgetfun     '"melt_get_maptrees"
+  :ctypg_mapputfun     '"melt_put_maptrees"
+  :ctypg_mapremovefun  '"melt_remove_maptrees"
+  :ctypg_mapcountfun   '"melt_count_maptrees"
+  :ctypg_mapsizefun    '"melt_size_maptrees"
+  :ctypg_mapnattfun    '"melt_nthattr_maptrees"
+  :ctypg_mapnvalfun    '"melt_nthval_maptrees"	
   )
 (install_ctype_descr ctype_tree "GCC tree pointer")
 
 ;; the C type for gcc gimples
-(definstance ctype_gimple class_ctype
+(definstance ctype_gimple class_ctype_gty
   :doc #{The $CTYPE_GIMPLE is the c-type of raw GCC gimple stuff. See also $DISCR_GIMPLE. Keyword is :gimple.}#
   :predef CTYPE_GIMPLE
   :named_name  '"CTYPE_GIMPLE"
@@ -1969,11 +1996,29 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :ctype_argfield '"bp_gimple"
   :ctype_resfield '"bp_gimpleptr"
   :ctype_marker '"gt_ggc_mx_gimple_statement_d"
+;; GTY ctype
+  :ctypg_boxedmagic '"MELTOBMAG_GIMPLE"
+  :ctypg_mapmagic '"MELTOBMAG_MAPGIMPLES"
+  :ctypg_boxedstruct '"meltgimple_st"
+  :ctypg_entrystruct '"entrygimplemelt_st"
+  :ctypg_mapstruct '"meltmapgimples_st"
+  :ctypg_boxdiscr  discr_gimple
+  :ctypg_mapdiscr  discr_map_gimples
+  :ctypg_boxfun        '"meltgc_new_gimple"
+  :ctypg_unboxfun      '"melt_gimple_content"
+  :ctypg_newmapfun     '"meltgc_new_mapgimples"
+  :ctypg_mapgetfun     '"melt_get_mapgimples"
+  :ctypg_mapputfun     '"melt_put_mapgimples"
+  :ctypg_mapremovefun  '"melt_remove_mapgimples"
+  :ctypg_mapcountfun   '"melt_count_mapgimples"
+  :ctypg_mapsizefun    '"melt_size_mapgimples"
+  :ctypg_mapnattfun    '"melt_nthattr_mapgimples"
+  :ctypg_mapnvalfun    '"melt_nthval_mapgimples"	
   )
 (install_ctype_descr ctype_gimple "GCC gimple pointer")
 
 ;; the C type for gcc gimple_seq-s
-(definstance ctype_gimple_seq class_ctype
+(definstance ctype_gimple_seq class_ctype_gty
   :doc #{The $CTYPE_GIMPLE_SEQ is the c-type of raw GCC gimple_seq stuff. See also $DISCR_GIMPLE_SEQ. 
 Keyword is :gimple_seq.}#
   :predef CTYPE_GIMPLE_SEQ
@@ -1986,11 +2031,29 @@ Keyword is :gimple_seq.}#
   :ctype_argfield '"bp_gimpleseq"
   :ctype_resfield '"bp_gimpleseqptr"
   :ctype_marker '"gt_ggc_mx_gimple_seq_d"
+;; GTY ctype
+  :ctypg_boxedmagic '"MELTOBMAG_GIMPLESEQ"
+  :ctypg_mapmagic '"MELTOBMAG_MAPGIMPLESEQS"
+  :ctypg_boxedstruct '"meltgimpleseq_st"
+  :ctypg_entrystruct '"entrygimpleseqmelt_st"
+  :ctypg_mapstruct '"meltmapgimpleseqs_st"
+  :ctypg_boxdiscr  discr_gimple_seq
+  :ctypg_mapdiscr  discr_map_gimple_seqs
+  :ctypg_boxfun        '"meltgc_new_gimpleseq"
+  :ctypg_unboxfun      '"melt_gimpleseq_content"
+  :ctypg_newmapfun     '"meltgc_new_mapgimpleseqs"
+  :ctypg_mapgetfun     '"melt_get_mapgimpleseqs"
+  :ctypg_mapputfun     '"melt_put_mapgimpleseqs"
+  :ctypg_mapremovefun  '"melt_remove_mapgimpleseqs"
+  :ctypg_mapcountfun   '"melt_count_mapgimpleseqs"
+  :ctypg_mapsizefun    '"melt_size_mapgimpleseqs"
+  :ctypg_mapnattfun    '"melt_nthattr_mapgimpleseqs"
+  :ctypg_mapnvalfun    '"melt_nthval_mapgimpleseqs"	
   )
 (install_ctype_descr ctype_gimple_seq "GCC gimple_seq pointer")
 
 ;; the C type for gcc basic_blocks
-(definstance ctype_basic_block class_ctype
+(definstance ctype_basic_block class_ctype_gty
   :doc #{The $CTYPE_BASIC_BLOCK is the c-type of raw GCC basic_block stuff. See also $DISCR_BASIC_BLOCK.
 Keyword is :basic_block.}#
   :predef CTYPE_BASIC_BLOCK
@@ -2003,11 +2066,29 @@ Keyword is :basic_block.}#
   :ctype_argfield '"bp_bb"
   :ctype_resfield '"bp_bbptr"
   :ctype_marker '"gt_ggc_mx_basic_block_def"
+;; GTY ctype
+  :ctypg_boxedmagic '"MELTOBMAG_BASICBLOCK"
+  :ctypg_mapmagic '"MELTOBMAG_MAPBASICBLOCKS"
+  :ctypg_boxedstruct '"meltbasicblock_st"
+  :ctypg_entrystruct '"entrybasicblockmelt_st"
+  :ctypg_mapstruct '"meltmapbasicblocks_st"
+  :ctypg_boxdiscr  discr_basic_block
+  :ctypg_mapdiscr  discr_map_basic_blocks
+  :ctypg_boxfun        '"meltgc_new_basicblock"
+  :ctypg_unboxfun      '"melt_basicblock_content"
+  :ctypg_newmapfun     '"meltgc_new_mapbasicblocks"
+  :ctypg_mapgetfun     '"melt_get_mapbasicblocks"
+  :ctypg_mapputfun     '"melt_put_mapbasicblocks"
+  :ctypg_mapremovefun  '"melt_remove_mapbasicblocks"
+  :ctypg_mapcountfun   '"melt_count_mapbasicblocks"
+  :ctypg_mapsizefun    '"melt_size_mapbasicblocks"
+  :ctypg_mapnattfun    '"melt_nthattr_mapbasicblocks"
+  :ctypg_mapnvalfun    '"melt_nthval_mapbasicblocks"	
   )
 (install_ctype_descr ctype_basic_block "GCC basic_block")
 
 ;; the C type for gcc edges
-(definstance ctype_edge class_ctype
+(definstance ctype_edge class_ctype_gty
   :doc #{The $CTYPE_EDGE is the c-type of raw GCC edge stuff. See also $DISCR_EDGE.
 Keyword is :edge.}#
   :predef CTYPE_EDGE
@@ -2019,11 +2100,29 @@ Keyword is :edge.}#
   :ctype_argfield '"bp_edge"
   :ctype_resfield '"bp_edgeptr"
   :ctype_marker '"gt_ggc_mx_edge_def"
+;; GTY ctype
+  :ctypg_boxedmagic '"MELTOBMAG_EDGE"
+  :ctypg_mapmagic '"MELTOBMAG_MAPEDGES"
+  :ctypg_boxedstruct '"meltedge_st"
+  :ctypg_entrystruct '"entryedgemelt_st"
+  :ctypg_mapstruct '"meltmapedges_st"
+  :ctypg_boxdiscr  discr_edge
+  :ctypg_mapdiscr  discr_map_edges
+  :ctypg_boxfun        '"meltgc_new_edge"
+  :ctypg_unboxfun      '"melt_edge_content"
+  :ctypg_newmapfun     '"meltgc_new_mapedges"
+  :ctypg_mapgetfun     '"melt_get_mapedges"
+  :ctypg_mapputfun     '"melt_put_mapedges"
+  :ctypg_mapremovefun  '"melt_remove_mapedges"
+  :ctypg_mapcountfun   '"melt_count_mapedges"
+  :ctypg_mapsizefun    '"melt_size_mapedges"
+  :ctypg_mapnattfun    '"melt_nthattr_mapedges"
+  :ctypg_mapnvalfun    '"melt_nthval_mapedges"	
   )
 (install_ctype_descr ctype_edge "GCC edge")
 
 ;; the C type for gcc loop-s
-(definstance ctype_loop class_ctype
+(definstance ctype_loop class_ctype_gty
   :doc #{The $CTYPE_LOOP is the c-type of raw GCC loop stuff. See also $DISCR_LOOP.
 Keyword is :loop.}#
   :predef CTYPE_LOOP
@@ -2035,11 +2134,29 @@ Keyword is :loop.}#
   :ctype_argfield '"bp_loop"
   :ctype_resfield '"bp_loopptr"
   :ctype_marker '"gt_ggc_mx_loop"
+;; GTY ctype
+  :ctypg_boxedmagic '"MELTOBMAG_LOOP"
+  :ctypg_mapmagic '"MELTOBMAG_MAPLOOPS"
+  :ctypg_boxedstruct '"meltloop_st"
+  :ctypg_entrystruct '"entryloopmelt_st"
+  :ctypg_mapstruct '"meltmaploops_st"
+  :ctypg_boxdiscr  discr_loop
+  :ctypg_mapdiscr  discr_map_loops
+  :ctypg_boxfun        '"meltgc_new_loop"
+  :ctypg_unboxfun      '"melt_loop_content"
+  :ctypg_newmapfun     '"meltgc_new_maploops"
+  :ctypg_mapgetfun     '"melt_get_maploops"
+  :ctypg_mapputfun     '"melt_put_maploops"
+  :ctypg_mapremovefun  '"melt_remove_maploops"
+  :ctypg_mapcountfun   '"melt_count_maploops"
+  :ctypg_mapsizefun    '"melt_size_maploops"
+  :ctypg_mapnattfun    '"melt_nthattr_maploops"
+  :ctypg_mapnvalfun    '"melt_nthval_maploops"	
   )
 (install_ctype_descr ctype_loop "GCC loop")
 
 ;; the C type for gcc rtx-s
-(definstance ctype_rtx class_ctype
+(definstance ctype_rtx class_ctype_gty
   :doc #{The $CTYPE_RTX is the c-type of raw GCC rtx stuff. See also $DISCR_RTX.
 Keyword is :rtx.}#
   :predef CTYPE_RTX
@@ -2051,6 +2168,24 @@ Keyword is :rtx.}#
   :ctype_argfield '"bp_rtx"
   :ctype_resfield '"bp_rtxptr"
   :ctype_marker '"gt_ggc_mx_rtx"
+;; GTY ctype
+  :ctypg_boxedmagic '"MELTOBMAG_RTX"
+  :ctypg_mapmagic '"MELTOBMAG_MAPRTXS"
+  :ctypg_boxedstruct '"meltrtx_st"
+  :ctypg_entrystruct '"entryrtxmelt_st"
+  :ctypg_mapstruct '"meltmaprtxs_st"
+  :ctypg_boxdiscr  discr_rtx
+  :ctypg_mapdiscr  discr_map_rtxs
+  :ctypg_boxfun        '"meltgc_new_rtx"
+  :ctypg_unboxfun      '"melt_rtx_content"
+  :ctypg_newmapfun     '"meltgc_new_maprtxs"
+  :ctypg_mapgetfun     '"melt_get_maprtxs"
+  :ctypg_mapputfun     '"melt_put_maprtxs"
+  :ctypg_mapremovefun  '"melt_remove_maprtxs"
+  :ctypg_mapcountfun   '"melt_count_maprtxs"
+  :ctypg_mapsizefun    '"melt_size_maprtxs"
+  :ctypg_mapnattfun    '"melt_nthattr_maprtxs"
+  :ctypg_mapnvalfun    '"melt_nthval_maprtxs"	
   )
 (install_ctype_descr ctype_rtx "GCC rtx")
 
@@ -3522,6 +3657,9 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 		     f)
  )
 
+(defun retrieve_dictionnary_ctype_gty ()
+  (get_field :container_value container_ctype_gty_dict)
+)
 
 ;;;;;; export the above classes
 (export_class ;;in alphabetical order, one per line, for convenience
@@ -3536,6 +3674,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_cmatcher_binding
  class_cmatcher
  class_ctype
+ class_ctype_gty
  class_described_environment
  class_discriminant 
  class_environment
@@ -3797,6 +3936,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  post_initialization
  put_env
  register_option
+ retrieve_dictionnary_ctype_gty
  routine_every
  )
 

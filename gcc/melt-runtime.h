@@ -3312,7 +3312,7 @@ enum
 };
 
 
-/* fields inside GCC passes */
+/* fields inside GCC passes, i.e. class_gcc_pass */
 enum {
   FGCCPASS_GATE = FNAMED__LAST,	/* the gate closure */
   FGCCPASS_EXEC,		/* the execute closure */
@@ -3322,7 +3322,16 @@ enum {
   FGCCPASS_PROPERTIES_DESTROYED,
   FGCCPASS_TODO_FLAGS_START,
   FGCCPASS_TODO_FLAGS_FINISH,
+  /* The above fields are for every GCC pass in MELT. */
   FGCCPASS__LAST
+};
+
+/* fields inside class_gcc_transform_ipa_pass */
+enum {
+  FGCCTRIPAPASS_STMT_FIXUP = FGCCPASS__LAST,
+  FGCCTRIPAPASS_FUNCTION_TRANSFORM,
+  FGCCTRIPAPASS_VARIABLE_TRANSFORM,
+  FGCCTRIPAPASS__LAST
 };
 
 /* fields inside MELT commands */

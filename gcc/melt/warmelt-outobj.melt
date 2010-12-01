@@ -3455,11 +3455,14 @@
 	 (sortedclasses (sorted_named_dict_tuple
 			 (unsafe_get_field :mocx_expclassdict modctx)))
 	 )
+    (debug_msg sortedfields "output_exported_offsets sortedfields")
+    (debug_msg sortedclasses "output_exported_offsets sortedclasses")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "/* exported field offsets */")
     (multiple_every 
      sortedfields
      (lambda (fld :long ix)
+       (debug_msg fld "output_exported_offsets fld")
        (assert_msg "check fld" (is_a fld class_field))
        (add2sbuf_indentnl implbuf 0)
        (add2sbuf_strconst implbuf "const int meltfieldoff__")
@@ -5257,6 +5260,30 @@
   :meltmode_fun makedoc_docmd
 )
 (install_melt_mode makedoc_mode)
+
+
+;;;;;;;;;;;;;;;;
+
+(defun ctypesupport_docmd (cmd moduldata)
+  (debug_msg cmd "start ctypesupport_docmd cmd")
+  (debug_msg moduldata "start ctypesupport_docmd moduldata")
+  (let (
+	(outarg (or (make_stringconst discr_string (melt_argument "output"))
+		    '"meltctype-"
+		    ))
+	)
+    (assert_msg "$@$unimplemented ctypesupport_docmd")
+))
+
+;;;;;;;;;;;;;;;;
+(definstance ctypesupport_mode
+  class_melt_mode
+  :named_name '"ctypesupport"
+  :meltmode_help '"generate runtime support for GTY-ed ctypes;\n
+\t OUTPUT=generated file prefix"
+  :meltmode_fun ctypesupport_docmd
+)
+(install_melt_mode ctypesupport_mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values 
