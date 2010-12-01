@@ -1,3 +1,21 @@
+2010-11-30  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/28105
+	* trans-array.c (gfc_unlikely): Helper function to mark boolean
+	expr as unlikely.
+	(gfc_array_index_size): Check whether the size overflows.
+	(gfc_array_allocate): Check whether size overflows and generate
+	error.
+
+2010-11-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* trans-common.c: Don't include toplev.h.
+
+2010-11-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* gfortran.h (alloca): Don't include definitions.
+	(NULL): Don't define.
+
 2010-11-28  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/46662

@@ -1,3 +1,25 @@
+2010-11-30  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-common.h (objc_finish_function): New.
+	(objc_non_volatilized_type): Removed.
+	(objc_type_quals_match): Removed.
+	* stub-objc.c (objc_finish_function): New.
+	(objc_non_volatilized_type): Removed.
+	(objc_type_quals_match): Removed.
+	
+2010-11-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (parse_optimize_options): Declare.
+	* c-cppbuiltin.c, c-format.c, c-gimplify.c, c-lex.c, c-omp.c,
+	c-pch.c, c-pragma.c, c-semantics.c: Don't include toplev.h.
+
+2010-11-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-opts.c (check_deps_environment_vars): Use getenv instead of
+	GET_ENVIRONMENT.
+	* c-pch.c (O_BINARY): Don't define here.
+	* c-pragma.h: Include "cpplib.h" instead of <cpplib.h>.
+
 2010-11-25  Joseph Myers  <joseph@codesourcery.com>
 
 	* c-cppbuiltin.c (c_cpp_builtins): Pass &global_options to

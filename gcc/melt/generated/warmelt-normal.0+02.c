@@ -9153,7 +9153,7 @@ lab_endgetargs:;
   ;
   MELT_LOCATION("warmelt-normal.melt:3565:/ putpairhead");
   /*putpairhead*/
-  melt_assertmsg("putpairhead /22cedbf1 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /d9531fe checkpair", melt_magic_discr((melt_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))->hd = (melt_ptr_t) (/*_.CTUPBIND__V36*/ meltfptr[35]);
   ;
   /*^touch*/
@@ -10390,7 +10390,7 @@ lab_endgetargs:;
   ;
   MELT_LOCATION("warmelt-normal.melt:3650:/ putpairhead");
   /*putpairhead*/
-  melt_assertmsg("putpairhead /196aa31a checkpair", melt_magic_discr((melt_ptr_t)(/*_.CLISTBIND__V55*/ meltfptr[54]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /11e070bb checkpair", melt_magic_discr((melt_ptr_t)(/*_.CLISTBIND__V55*/ meltfptr[54]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CLISTBIND__V55*/ meltfptr[54]))->hd = (melt_ptr_t) (/*_.CLISTBIND__V53*/ meltfptr[52]);
   ;
   /*^touch*/

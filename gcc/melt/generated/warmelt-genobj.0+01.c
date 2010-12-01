@@ -1902,7 +1902,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /124e2d6b checkpair", melt_magic_discr((melt_ptr_t)(/*_.OFRESHENV__V69*/ meltfptr[68]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /1419549 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OFRESHENV__V69*/ meltfptr[68]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.OFRESHENV__V69*/ meltfptr[68]))->hd = (melt_ptr_t) (/*_.OFRESHENV__V55*/ meltfptr[54]);
   ;
   /*^touch*/
@@ -2075,7 +2075,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /2a98d97 checkpair", melt_magic_discr((melt_ptr_t)(/*_.BOXLOC__V82*/ meltfptr[81]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /50124f checkpair", melt_magic_discr((melt_ptr_t)(/*_.BOXLOC__V82*/ meltfptr[81]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.BOXLOC__V82*/ meltfptr[81]))->hd = (melt_ptr_t) (/*_.BOXLOC__V54*/ meltfptr[52]);
   ;
   /*^touch*/
@@ -2621,7 +2621,7 @@ lab_endgetargs:;
     
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /37787cca checkpair", melt_magic_discr((melt_ptr_t)(/*_.OVALUEIMPORTER__V127*/ meltfptr[126]))== MELTOBMAG_PAIR);
+    melt_assertmsg("putpairhead /3dfeaa1 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OVALUEIMPORTER__V127*/ meltfptr[126]))== MELTOBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.OVALUEIMPORTER__V127*/ meltfptr[126]))->hd = (melt_ptr_t) (/*_.OVALUEIMPORTER__V60*/ meltfptr[59]);
     ;
     /*^touch*/
@@ -2955,7 +2955,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /26e424d5 checkpair", melt_magic_discr((melt_ptr_t)(/*_.RETINIT__V150*/ meltfptr[120]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /23828334 checkpair", melt_magic_discr((melt_ptr_t)(/*_.RETINIT__V150*/ meltfptr[120]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.RETINIT__V150*/ meltfptr[120]))->hd = (melt_ptr_t) (/*_.RETINIT__V51*/ meltfptr[49]);
   ;
   /*^touch*/
@@ -4682,7 +4682,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /182247c9 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OIMPLOCV__V14*/ meltfptr[13]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /7ca8ab6 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OIMPLOCV__V14*/ meltfptr[13]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.OIMPLOCV__V14*/ meltfptr[13]))->hd = (melt_ptr_t) (/*_.OIMPLOCV__V12*/ meltfptr[11]);
   ;
   /*^touch*/

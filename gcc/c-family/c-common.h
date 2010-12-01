@@ -894,6 +894,8 @@ extern bool c_cpp_error (cpp_reader *, int, int, location_t, unsigned int,
 			 const char *, va_list *)
      ATTRIBUTE_GCC_DIAG(6,0);
 
+extern bool parse_optimize_options (tree, bool);
+
 /* Positive if an implicit `extern "C"' scope has just been entered;
    negative if such a scope has just been exited.  */
 extern GTY(()) int pending_lang_change;
@@ -996,12 +998,10 @@ extern tree objc_is_object_ptr (tree);
 extern void objc_check_decl (tree);
 extern void objc_check_global_decl (tree);
 extern tree objc_common_type (tree, tree);
-extern tree objc_non_volatilized_type (tree);
 extern bool objc_compare_types (tree, tree, int, tree);
 extern bool objc_have_common_type (tree, tree, int, tree);
 extern bool objc_diagnose_private_ivar (tree);
 extern void objc_volatilize_decl (tree);
-extern bool objc_type_quals_match (tree, tree);
 extern tree objc_rewrite_function_call (tree, tree);
 extern tree objc_message_selector (void);
 extern tree objc_lookup_ivar (tree, tree);
@@ -1063,6 +1063,7 @@ extern const char * objc_maybe_printable_name (tree, int);
 extern bool objc_is_property_ref (tree);
 extern bool objc_string_ref_type_p (tree);
 extern void objc_check_format_arg (tree, tree);
+extern void objc_finish_function (void);
 
 /* The following are provided by the C and C++ front-ends, and called by
    ObjC/ObjC++.  */

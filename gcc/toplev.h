@@ -21,8 +21,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef GCC_TOPLEV_H
 #define GCC_TOPLEV_H
-#include "input.h"
-#include "bversion.h"
 
 /* If non-NULL, return one past-the-end of the matching SUBPART of
    the WHOLE string.  */
@@ -49,7 +47,6 @@ extern void init_eh (void);
 extern void announce_function (tree);
 
 extern void warn_deprecated_use (tree, tree);
-extern bool parse_optimize_options (tree, bool);
 
 #ifdef BUFSIZ
 extern void output_quoted_string	(FILE *, const char *);
@@ -90,76 +87,6 @@ extern const char * default_pch_valid_p (const void *, size_t);
 
 /* The hashtable, so that the C front ends can pass it to cpplib.  */
 extern struct ht *ident_hash;
-
-/* Inline versions of the above for speed.  */
-#if GCC_VERSION < 3004
-
-extern int clz_hwi (unsigned HOST_WIDE_INT x);
-extern int ctz_hwi (unsigned HOST_WIDE_INT x);
-extern int ffs_hwi (unsigned HOST_WIDE_INT x);
-
-/* Return log2, or -1 if not exact.  */
-extern int exact_log2                  (unsigned HOST_WIDE_INT);
-
-/* Return floor of log2, with -1 for zero.  */
-extern int floor_log2                  (unsigned HOST_WIDE_INT);
-
-#else /* GCC_VERSION >= 3004 */
-
-/* For convenience, define 0 -> word_size.  */
-static inline int
-clz_hwi (unsigned HOST_WIDE_INT x)
-{
-  if (x == 0)
-    return HOST_BITS_PER_WIDE_INT;
-# if HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONG
-  return __builtin_clzl (x);
-# elif HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONGLONG
-  return __builtin_clzll (x);
-# else
-  return __builtin_clz (x);
-# endif
-}
-
-static inline int
-ctz_hwi (unsigned HOST_WIDE_INT x)
-{
-  if (x == 0)
-    return HOST_BITS_PER_WIDE_INT;
-# if HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONG
-  return __builtin_ctzl (x);
-# elif HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONGLONG
-  return __builtin_ctzll (x);
-# else
-  return __builtin_ctz (x);
-# endif
-}
-
-static inline int
-ffs_hwi (unsigned HOST_WIDE_INT x)
-{
-# if HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONG
-  return __builtin_ffsl (x);
-# elif HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONGLONG
-  return __builtin_ffsll (x);
-# else
-  return __builtin_ffs (x);
-# endif
-}
-
-static inline int
-floor_log2 (unsigned HOST_WIDE_INT x)
-{
-  return HOST_BITS_PER_WIDE_INT - 1 - clz_hwi (x);
-}
-
-static inline int
-exact_log2 (unsigned HOST_WIDE_INT x)
-{
-  return x == (x & -x) && x ? ctz_hwi (x) : -1;
-}
-
-#endif /* GCC_VERSION >= 3004 */
 
 /* Functions used to get and set GCC's notion of in what directory
    compilation was started.  */

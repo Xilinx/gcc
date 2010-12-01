@@ -926,12 +926,12 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /2e05e569 checkpair", melt_magic_discr((melt_ptr_t)(/*_.NSETFLAG__V23*/ meltfptr[22]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /12c673d4 checkpair", melt_magic_discr((melt_ptr_t)(/*_.NSETFLAG__V23*/ meltfptr[22]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.NSETFLAG__V23*/ meltfptr[22]))->hd = (melt_ptr_t) (/*_.NSETFLAG__V18*/ meltfptr[17]);
   ;
   /*^putpairtail*/
   /*putpairtail*/
-  melt_assertmsg("putpairtail /d9adf9d checkpair", melt_magic_discr((melt_ptr_t)(/*_.NSETFLAG__V23*/ meltfptr[22]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairtail /18b931f5 checkpair", melt_magic_discr((melt_ptr_t)(/*_.NSETFLAG__V23*/ meltfptr[22]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.NSETFLAG__V23*/ meltfptr[22]))->tl = (meltpair_ptr_t) (/*_.NJUMP__V24*/ meltfptr[23]);
   ;
   /*^touch*/
@@ -939,7 +939,7 @@ lab_endgetargs:;
   ;
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /ac09fca checkpair", melt_magic_discr((melt_ptr_t)(/*_.NJUMP__V24*/ meltfptr[23]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /2497db17 checkpair", melt_magic_discr((melt_ptr_t)(/*_.NJUMP__V24*/ meltfptr[23]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.NJUMP__V24*/ meltfptr[23]))->hd = (melt_ptr_t) (/*_.NJUMP__V20*/ meltfptr[19]);
   ;
   /*^touch*/
@@ -1439,12 +1439,12 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /20c11296 checkpair", melt_magic_discr((melt_ptr_t)(/*_.NSETFLAG__V24*/ meltfptr[23]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /8b9339b checkpair", melt_magic_discr((melt_ptr_t)(/*_.NSETFLAG__V24*/ meltfptr[23]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.NSETFLAG__V24*/ meltfptr[23]))->hd = (melt_ptr_t) (/*_.NSETFLAG__V19*/ meltfptr[18]);
   ;
   /*^putpairtail*/
   /*putpairtail*/
-  melt_assertmsg("putpairtail /fb2313b checkpair", melt_magic_discr((melt_ptr_t)(/*_.NSETFLAG__V24*/ meltfptr[23]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairtail /19284b25 checkpair", melt_magic_discr((melt_ptr_t)(/*_.NSETFLAG__V24*/ meltfptr[23]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.NSETFLAG__V24*/ meltfptr[23]))->tl = (meltpair_ptr_t) (/*_.NJUMP__V25*/ meltfptr[24]);
   ;
   /*^touch*/
@@ -1452,7 +1452,7 @@ lab_endgetargs:;
   ;
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /2d43ab7f checkpair", melt_magic_discr((melt_ptr_t)(/*_.NJUMP__V25*/ meltfptr[24]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /5a775ad checkpair", melt_magic_discr((melt_ptr_t)(/*_.NJUMP__V25*/ meltfptr[24]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.NJUMP__V25*/ meltfptr[24]))->hd = (melt_ptr_t) (/*_.NJUMP__V21*/ meltfptr[20]);
   ;
   /*^touch*/
@@ -14513,7 +14513,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /139059c6 checkpair", melt_magic_discr((melt_ptr_t)(/*_.NRESBIND__V170*/ meltfptr[169]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /abec979 checkpair", melt_magic_discr((melt_ptr_t)(/*_.NRESBIND__V170*/ meltfptr[169]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.NRESBIND__V170*/ meltfptr[169]))->hd = (melt_ptr_t) (/*_.NRESBIND__V143*/ meltfptr[82]);
   ;
   /*^touch*/

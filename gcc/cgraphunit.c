@@ -844,7 +844,7 @@ process_function_and_variable_attributes (struct cgraph_node *first,
 	}
       if (TARGET_DLLIMPORT_DECL_ATTRIBUTES
 	  && lookup_attribute ("dllexport", DECL_ATTRIBUTES (decl))
-	  && TREE_PUBLIC (node->decl))
+	  && TREE_PUBLIC (vnode->decl))
 	{
 	  if (vnode->finalized)
 	    varpool_mark_needed_node (vnode);
@@ -1707,7 +1707,11 @@ ipa_passes (void)
   invoke_plugin_callbacks (PLUGIN_ALL_IPA_PASSES_START, NULL);
 
   if (!in_lto_p)
-    execute_ipa_pass_list (all_small_ipa_passes);
+    {
+      execute_ipa_pass_list (all_small_ipa_passes);
+      if (seen_error ())
+	return;
+    }
 
   /* If pass_all_early_optimizations was not scheduled, the state of
      the cgraph will not be properly updated.  Update it now.  */
