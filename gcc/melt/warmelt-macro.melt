@@ -2935,12 +2935,18 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 	 (formals ())
 	 )
     (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for (DEFSELECTOR <name> <class> ...)"_))
+	(progn
+	  (error_plain loc "missing symbol for (DEFSELECTOR <name> <class> ...)"_)
+	  (return)))
     (setq curpair (pair_tail curpair))
     (let ( (nam (pair_head curpair)) )
       (if (is_not_a nam class_symbol)
-	  (error_plain loc "missing class name for (DEFSELECTOR <name> <class> ...)"_))
-      (let ( (bnd (find_env env nam)) 
+	  (progn
+	    (error_plain loc "missing class name for (DEFSELECTOR <name> <class> ...)"_)
+	    (return)))
+      (setq claname nam)
+      (debug_msg claname "mexpand_defselector claname")
+      (let ( (bnd (find_env env claname)) 
 	     (fldlist (make_list discr_list))
 	     )
 	(cond 
@@ -2951,19 +2957,27 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 		(is_a (unsafe_get_field :vbind_value bnd) class_class))
 	   (setq clabind bnd)
 	   (setq cla (unsafe_get_field :vbind_value bnd)))
-	 (:else
+	 ((notnull bnd)
+	  (debug_msg bnd "mexpand_defselector faulty bnd")
 	  (error_strv loc "invalid class name for (DEFSELECTOR <name> <class> ...)"_
-		      (unsafe_get_field :named_name nam))
-	  (return ())
+		      (unsafe_get_field :named_name claname))
+	  (return))
+	 (:else
+	  (error_strv loc "unknown class name for (DEFSELECTOR <name> <class> ...)"_
+		      (unsafe_get_field :named_name claname))
+	  (return)
 	  ))
 	;;
-	(setq claname nam)
+	(debug_msg cla "mexpand_defselector cla")
 	(if (not (subclass_or_eq cla class_selector))
 	    (progn
+	      (debug_msg class_selector "mexpand_defselector class_selector")
 	      ;; strangely, this error happens in makedoc mode all the
-	      ;; times. We disable it in that case...
+	      ;; times. We disable it in that case..., but it is the
+	      ;; symptom of another bug...
 	      (if (null (get_field :container_value melt_mode_container))
-		  (error_strv loc "invalid class in (DEFSELECTOR <name> <class>); expecting CLASS_SELECTOR or its subclass"  (unsafe_get_field :named_name claname)))
+		  (error_strv loc "invalid class in (DEFSELECTOR <name> <class>); expecting CLASS_SELECTOR or its subclass"  
+			      (unsafe_get_field :named_name claname)))
 	      (return)))
 	;;
 	(assert_msg "check cla" (is_a cla class_class))

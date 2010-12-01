@@ -1,5 +1,21 @@
 
 2010-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-first.melt: Add space.
+
+	* melt/warmelt-macro.melt (mexpand_defselector): More precise
+	error messages for bad class.
+
+	* melt/warmelt-outobj.melt (orted_named_dict_tuple): Use
+	foreach_in_mapstring.
+	(output_exported_offsets): More debug
+	messages, and generate the count.
+
+	* testsuite/melt/tminiclass.melt: New file.
+
+	* testsuite/melt/test0.melt: 
+
+2010-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{merged with trunk rev 167323, and regenerated}}
 
 	* melt/generated/warmelt-normatch.0+01.c: Regenerate.

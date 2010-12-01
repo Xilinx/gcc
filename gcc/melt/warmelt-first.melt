@@ -1231,6 +1231,7 @@ discriminant $SDICR from it.}#
 (defprimitive mapstring_nth_val (map :long n) :value
   :doc #{Safely retrieve from string-map $MAP its $N-th value or null.}#
   #{(melt_nthval_mapstrings((struct meltmapstrings_st*)($map), (int)($n)))}#)
+
 ;;; iterator inside a map of strings
 (defciterator foreach_in_mapstring
   (:value strmap)

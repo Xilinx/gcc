@@ -3437,12 +3437,15 @@
   (let ( (:long dicnt (mapstring_count dic))
 	 (entlist (make_list discr_list)) 
 	 )
-    (mapstring_every dic 
-		     (lambda (nam ent) 
-		       (assert_msg "check ent named" (is_a ent class_named))
-		       (list_append entlist ent)))
+    (foreach_in_mapstring
+     (dic)
+     (nam ent)
+     (assert_msg "check ent named" (is_a ent class_named))
+     (list_append entlist ent))
     (let ( (rawtup (list_to_multiple entlist))
-	   	   )
+	   )
+      (assert_msg "sorted_named_dict_tuple check tuple length is dict count"
+		  (==i dicnt (multiple_length rawtup)))
       (multiple_sort rawtup compare_named_alpha discr_multiple)
       )
     ))
@@ -3450,15 +3453,20 @@
 (defun output_exported_offsets (modctx declbuf implbuf)
   (debug_msg modctx "output_exported_offsets modctx")
   (assert_msg "check modctx" (is_a modctx class_module_context))
-  (let ( (sortedfields (sorted_named_dict_tuple
-			(unsafe_get_field :mocx_expfieldict modctx)))
-	 (sortedclasses (sorted_named_dict_tuple
-			 (unsafe_get_field :mocx_expclassdict modctx)))
-	 )
+  (let ( 
+	(rawdictfields (unsafe_get_field :mocx_expfieldict modctx))
+	(sortedfields (sorted_named_dict_tuple rawdictfields))
+	(rawdictclasses (unsafe_get_field :mocx_expclassdict modctx))
+	(sortedclasses (sorted_named_dict_tuple rawdictclasses))
+	)
+    (debug_msg rawdictfields "output_exported_offsets rawdictfields")
     (debug_msg sortedfields "output_exported_offsets sortedfields")
+    (debug_msg rawdictclasses "output_exported_offsets rawdictclasses")
     (debug_msg sortedclasses "output_exported_offsets sortedclasses")
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "/* exported field offsets */")
+    (add2sbuf_strconst implbuf "/* exported ")
+    (add2sbuf_longdec implbuf (mapstring_count rawdictfields))
+    (add2sbuf_strconst implbuf " field offsets */")
     (multiple_every 
      sortedfields
      (lambda (fld :long ix)
@@ -3473,7 +3481,9 @@
        ))
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "/* exported class lengths */")
+    (add2sbuf_strconst implbuf "/* exported ")
+    (add2sbuf_longdec implbuf (mapstring_count rawdictclasses))
+    (add2sbuf_strconst implbuf " class lengths */")
     (multiple_every
      sortedclasses
      (lambda (cla :long ix)

@@ -1,0 +1,14 @@
+;; -*- lisp -*-
+;; run in $GCCMELT_BUILD/gcc
+;; 
+(defclass class_my_first 
+	  :super class_root
+	  :fields (myfirst_flda myfirst_fldb)
+)
+
+(defclass class_my_second
+	  :super class_my_first
+	  :fields (mysecond_fldc))
+
+(export_class class_my_first class_my_second)
+;; eof tminiclass.melt
