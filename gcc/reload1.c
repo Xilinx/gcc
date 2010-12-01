@@ -6505,7 +6505,7 @@ allocate_reload_reg (struct insn_chain *chain ATTRIBUTE_UNUSED, int r,
   /* SPILL_REG_ORDER[REGNO] is the index in SPILL_REG_RTX of the reload
      register we are to allocate.  Get an rtx for it and find its register
      number.  */
-  return set_reload_reg (i, r);
+  return set_reload_reg (spill_reg_order[regnum], r);
 }
 
 /* Initialize all the tables needed to allocate reload registers.
