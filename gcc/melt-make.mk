@@ -333,6 +333,8 @@ warmelth2.modlis: $(WARMELT_BASEH2SO)
 	for f in  $(WARMELT_BASEH2); do echo $$f.d >> $@-tmp; done
 	$(melt_make_move) $@-tmp $@
 
+$(warning if MELT build fails try replacing 0.d wih just 0 up to end of targets using 0.d things)
+
 warmelt-base.1.c: $(melt_make_source_dir)/warmelt-base.melt $(melt_make_gencdeps) \
       warmelt-first.1.so  \
       warmelt-base.0.d.so  \
@@ -440,6 +442,8 @@ warmelt-outobj.1.c: $(melt_make_source_dir)/warmelt-outobj.melt $(melt_make_genc
 	$(meltarg_init)=warmelt-first.1:warmelt-base.1:warmelt-debug.1:warmelt-macro.1:warmelt-normal.1:warmelt-normatch.1:warmelt-genobj.1:warmelt-outobj.0.d \
 	      $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24)\
 	      $(meltarg_output)=$@  empty-file-for-melt.c
+
+#### end of targets using 0.d things
 
 ####
 warmelt2.modlis: $(WARMELT_BASE2SO)

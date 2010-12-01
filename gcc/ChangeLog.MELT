@@ -1,6 +1,10 @@
 
 2010-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* gcc/melt-make.mk: Add explanatory temporary warning.
+
+2010-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-first.melt: Add space.
 
 	* melt/warmelt-macro.melt (mexpand_defselector): More precise
@@ -13,7 +17,6 @@
 
 	* testsuite/melt/tminiclass.melt: New file.
 
-	* testsuite/melt/test0.melt: 
 
 2010-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{merged with trunk rev 167323, and regenerated}}
