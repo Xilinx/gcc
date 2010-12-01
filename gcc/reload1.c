@@ -6269,7 +6269,7 @@ static int
 allocate_reload_reg (struct insn_chain *chain ATTRIBUTE_UNUSED, int r,
 		     int last_reload)
 {
-  int i, pass, count, regnum;
+  int pass, count, regnum;
 
   /* If we put this reload ahead, thinking it is a group,
      then insist on finding a group.  Otherwise we can grab a
@@ -6425,8 +6425,6 @@ allocate_reload_reg (struct insn_chain *chain ATTRIBUTE_UNUSED, int r,
 	 We advance it round-robin between insns to use all spill regs
 	 equally, so that inherited reloads have a chance
 	 of leapfrogging each other.  */
-
-      i = last_spill_reg;
 
       for (count = 0; count < n_spills; count++)
 	{
