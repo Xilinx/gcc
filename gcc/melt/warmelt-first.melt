@@ -375,6 +375,38 @@ routine is $CTYPE_MARKER and $CTYPE_DESCR is some descriptive string
 or data. A possible alternate keyword is given by $CTYPE_ALTKEYWORD.
  Adding new c-types requires an update of MELT runtime!}# )
 
+;;; the class describing ctype which are GTY-ed, like tree-s
+(defclass class_ctype_gty
+  :predef CLASS_CTYPE_GTY
+  :super class_ctype
+  :fields (
+;;; obmag are object magic like MELTOBMAG_INT inside melt-runtime.h
+	   ctypg_boxedmagic		;MELT obmag for boxed values
+	   ctypg_mapmagic		;MELT obmag for magic values
+;;; structnames are C struct like meltint_st for boxed
+	   ctypg_boxedstruct		;struct name for boxed values
+	   ctypg_entrystruct 		;struct name for hash entry
+	   ctypg_mapstruct 		;struct name map values
+	   ctypg_boxdiscr		;discriminant for boxed values
+	   ctypg_mapdiscr		;discriminant for map values
+	   ctypg_boxfun			;name of boxing function
+	   ctypg_unboxfun		;name of content unboxing function
+	   ctypg_newmapfun		;name of map creating function
+	   ctypg_mapgetfun		;name of map getting function
+	   ctypg_mapputfun		;name of map putting function
+	   ctypg_mapremovefun		;name of map removing function
+	   ctypg_mapcountfun		;name of map counting function
+	   ctypg_mapsizefun		;name of map size function
+	   ctypg_mapnattfun		;name of map nth attr function
+	   ctypg_mapnvalfun		;name of map nth value function 
+
+	   )
+  :doc #{The $CLASS_CTYPE_GTY is a subclass of $CLASS_CTYPE and
+describes C types which are GTY-ed, that is handled by the Ggc [the
+existing Gcc Garbage Collector].}#
+)
+
+
 
 ;; class of system data -- be careful to keep the FSYSDAT_*
 ;; identifiers from melt-runtime.h in sync!
