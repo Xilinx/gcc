@@ -1,3 +1,17 @@
+2010-12-01  Jeff Law <law@redhat.com>
+
+	* reload1.c: Include params.h.
+	(df_initialized): Declare.
+	(reload): Set df_initialized.
+	(mark_spill_regs): Rename last argument to index.  Simplify
+	array addressing arithmetic.
+	(allocate_reload_reg): Avoid insn scan if there is only one
+	spill register.  Lazily perform the DF rescan.  Clamp the number
+	of insns scanned.  Changes to faciliate array addressing simplification
+	in mark_spill_regs.  Remove unnecessary loop to map from regno to
+	index into spill_reg_rtx.
+	* params.def (PARAM_MAX_RELOAD_FORWARD_SEARCH_INSNS): New param.
+
 2010-11-18  Jeff Law <law@redhat.com>
 
 	* reload1.c (REG_OR_SUBREG_P): Define.

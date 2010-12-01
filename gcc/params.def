@@ -551,6 +551,14 @@ DEFPARAM(PARAM_MAX_RELOAD_SEARCH_INSNS,
 	 "The maximum number of instructions to search backward when looking for equivalent reload",
 	 100, 0, 0)
 
+/* Clamp the number of forward insn scans when prioritizing spill registers to
+   avoid potential compile-time slowdowns in pathological cases. */
+
+DEFPARAM(PARAM_MAX_RELOAD_FORWARD_SEARCH_INSNS,
+	 "max-reload-forward-search-insns",
+	 "The maximum number of instructions to search forward prioritizing spill registers",
+	 20, 0, 0)
+
 DEFPARAM(PARAM_MAX_SCHED_REGION_BLOCKS,
 	 "max-sched-region-blocks",
 	 "The maximum number of blocks in a region to be considered for interblock scheduling",
