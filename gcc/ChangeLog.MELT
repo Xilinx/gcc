@@ -1,7 +1,12 @@
 
+2010-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build.def: New file.
+	* melt-build.tpl: New file.
+
 2010-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
 
-	* gcc/melt-make.mk: Add explanatory temporary warning.
+	* melt-make.mk: Add explanatory temporary warning.
 
 2010-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
 
