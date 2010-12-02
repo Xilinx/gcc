@@ -81,7 +81,7 @@ CXX_AND_OBJCXX_OBJS = cp/call.o cp/decl.o cp/expr.o cp/pt.o cp/typeck2.o \
  cp/typeck.o cp/cvt.o cp/except.o cp/friend.o cp/init.o cp/method.o \
  cp/search.o cp/semantics.o cp/tree.o cp/repo.o cp/dump.o cp/optimize.o \
  cp/mangle.o cp/cp-objcp-common.o cp/name-lookup.o cp/cxx-pretty-print.o \
- cp/cp-gimplify.o tree-mudflap.o $(CXX_C_OBJS)
+ cp/cp-gimplify.o cp/pph.o tree-mudflap.o $(CXX_C_OBJS)
 
 # Language-specific object files for C++.
 CXX_OBJS = cp/cp-lang.o c-family/stub-objc.o $(CXX_AND_OBJCXX_OBJS)
@@ -243,19 +243,23 @@ CXX_TREE_H = $(TREE_H) cp/name-lookup.h cp/cp-tree.h $(C_COMMON_H) \
 	$(FUNCTION_H) \
 	$(SYSTEM_H) coretypes.h $(CONFIG_H) $(TARGET_H) $(GGC_H) \
 	$(srcdir)/../include/hashtab.h
-
+CXX_PARSER_H = tree.h c-family/c-pragma.h cp/parser.h
 CXX_PRETTY_PRINT_H = cp/cxx-pretty-print.h $(C_PRETTY_PRINT_H)
+CXX_PPH_H = $(srcdir)/../libcpp/include/line-map.h $(HASHTAB_H) \
+	$(CXX_PARSER_H) $(TIMEVAR_H) cp/pph.h 
 
 cp/lex.o: cp/lex.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   $(C_PRAGMA_H) toplev.h output.h input.h cp/operators.def $(TM_P_H)
 cp/cp-lang.o: cp/cp-lang.c $(CXX_TREE_H) $(TM_H) toplev.h debug.h langhooks.h \
   $(LANGHOOKS_DEF_H) $(C_COMMON_H) gtype-cp.h gt-cp-cp-lang.h \
-  cp/cp-objcp-common.h $(EXPR_H) $(TARGET_H)
+  cp/cp-objcp-common.h $(EXPR_H) $(TARGET_H) $(CXX_PARSER_H) \
+  $(CXX_PPH_H)
 cp/decl.o: cp/decl.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   output.h toplev.h $(HASHTAB_H) $(RTL_H) \
   cp/operators.def $(TM_P_H) $(TREE_INLINE_H) $(DIAGNOSTIC_H) $(C_PRAGMA_H) \
   debug.h gt-cp-decl.h $(TIMEVAR_H) $(TARGET_H) $(PLUGIN_H) \
-  intl.h tree-iterator.h $(SPLAY_TREE_H) langhooks.h
+  intl.h tree-iterator.h $(SPLAY_TREE_H) langhooks.h \
+  $(CXX_PPH_H)
 cp/decl2.o: cp/decl2.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   output.h toplev.h $(C_COMMON_H) gt-cp-decl2.h $(CGRAPH_H) \
   $(C_PRAGMA_H) $(TREE_DUMP_H) intl.h $(TARGET_H) $(GIMPLE_H) $(POINTER_SET_H) \
@@ -273,7 +277,8 @@ cp/class.o: cp/class.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h \
   $(TARGET_H) convert.h $(CGRAPH_H) $(TREE_DUMP_H) gt-cp-class.h \
   $(SPLAY_TREE_H)
 cp/call.o: cp/call.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h \
-  $(DIAGNOSTIC_CORE_H) intl.h gt-cp-call.h convert.h $(TARGET_H) langhooks.h
+  $(DIAGNOSTIC_CORE_H) intl.h gt-cp-call.h convert.h $(TARGET_H) langhooks.h \
+  $(CXX_PPH_H)
 cp/friend.o: cp/friend.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h
 cp/init.o: cp/init.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   toplev.h $(EXCEPT_H) $(TARGET_H)
@@ -293,7 +298,8 @@ cp/except.o: cp/except.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   toplev.h cp/cfns.h $(TREE_INLINE_H) $(TARGET_H)
 cp/expr.o: cp/expr.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h $(TM_P_H)
 cp/pt.o: cp/pt.c $(CXX_TREE_H) $(TM_H) cp/decl.h cp/cp-objcp-common.h \
-  toplev.h $(TREE_INLINE_H) pointer-set.h gt-cp-pt.h vecprim.h intl.h
+  toplev.h $(TREE_INLINE_H) pointer-set.h gt-cp-pt.h vecprim.h intl.h \
+  $(CXX_PPH_H)
 cp/error.o: cp/error.c $(CXX_TREE_H) $(TM_H) toplev.h $(DIAGNOSTIC_H) \
   $(FLAGS_H) $(REAL_H) $(LANGHOOKS_DEF_H) $(CXX_PRETTY_PRINT_H) \
   tree-diagnostic.h tree-pretty-print.h
@@ -312,13 +318,19 @@ cp/mangle.o: cp/mangle.c $(CXX_TREE_H) $(TM_H) toplev.h $(REAL_H) \
 cp/parser.o: cp/parser.c $(CXX_TREE_H) $(TM_H) $(DIAGNOSTIC_CORE_H) \
   gt-cp-parser.h output.h $(TARGET_H) $(PLUGIN_H) intl.h \
   pointer-set.h fixed-value.h $(MD5_H) $(HASHTAB_H) tree-pass.h \
-  $(TREE_INLINE_H) tree-pretty-print.h
+  $(TREE_INLINE_H) tree-pretty-print.h $(CXX_PARSER_H) \
+  $(CXX_PPH_H)
 cp/cp-gimplify.o: cp/cp-gimplify.c $(CXX_TREE_H) toplev.h $(C_COMMON_H) \
 	$(TM_H) coretypes.h pointer-set.h tree-iterator.h
 
 cp/name-lookup.o: cp/name-lookup.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(TM_H) $(CXX_TREE_H) $(TIMEVAR_H) gt-cp-name-lookup.h toplev.h \
-	$(DIAGNOSTIC_CORE_H) $(FLAGS_H) debug.h tree-pretty-print.h
+	$(DIAGNOSTIC_CORE_H) $(FLAGS_H) debug.h tree-pretty-print.h \
+	$(CXX_PPH_H)
 
 cp/cxx-pretty-print.o: cp/cxx-pretty-print.c $(CXX_PRETTY_PRINT_H) \
   $(CONFIG_H) $(SYSTEM_H) $(TM_H) coretypes.h $(CXX_TREE_H) tree-pretty-print.h
+cp/pph.c: cp/pph.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(CPPLIB_H) \
+	toplev.h $(TREE_H) $(CXX_TREE_H) $(TIMEVAR_H) pointer-set.h \
+	fixed-value.h $(TREE_PASS_H) $(TREE_INLINE_H) tree-pretty-print.h \
+	$(CXX_PARSER_H) $(CXX_PPH_H)

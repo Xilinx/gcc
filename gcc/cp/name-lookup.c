@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "c-family/c-pragma.h"
 #include "tree-pretty-print.h"
+#include "pph.h"
 
 /* The bindings for a particular name in a particular scope.  */
 

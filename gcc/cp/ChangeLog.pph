@@ -1,3 +1,198 @@
+2010-12-02  Diego Novillo  <dnovillo@google.com>
+
+	* pph.c: New file.
+	* pph.h: New file.
+	* parser.h: New file.
+	* decl.c: Include pph.h.
+	* cp/Make-lang.in (CXX_AND_OBJCXX_OBJS): Add cp/pph.o.
+	(CXX_PARSER_H): Define.
+	(CXX_PPH_H): Define.
+	(cp/cp-lang.o): Add dependency on CXX_PARSER_H and
+	CXX_PPH_H.
+	(cp/parser.o): Likewise.
+	(cp/decl.o): Add dependency on CXX_PPH_H.
+	(cp/call.o): Likewise.
+	(cp/pt.o): Likewise.
+	(cp/name-lookup.o): Likewise.
+	(cp/pph.o): New.
+	* cp/cp-lang.c: Include parser.h and pph.h.
+	* cp/pt.c: Include pph.h.
+	* cp/parser.c: Remove inclusion of timevar.h,
+	pointer-set.h, fixed-value.h, cpplib.h, line-map.h,
+	md5.h, hashtab.h, tree-pass.h and tree-inline.h.
+	Include parser.h and pph.h
+	(struct tree_check): Move to parser.h.
+	(struct cp_token): Likewise.
+	(struct cp_lexer): Likewise.
+	(struct cp_token_cache): Likewise.
+	(struct cp_token_ident_d): Likewise.
+	(CPP_KEYWORD): Likewise.
+	(CPP_TEMPLATE_ID): Likewise.
+	(CPP_NESTED_NAME_SPECIFIER): Likewise.
+	(N_CP_TTYPES): Likewise.
+	(enum cp_parser_status_kind): Likewise.
+	(struct cp_parser_context): Likewise.
+	(struct cp_default_arg_entry_d): Likewise.
+	(struct cp_unparsed_functions_entry_d): Likewise.
+	(struct cp_parser): Likewise.
+	(struct cp_token_hunk): Move to pph.h.
+	(DIGEST_LEN): Likewise.
+	(struct pth_image): Likewise.
+	(pth_image_ptr): Likewise.
+	(struct pth_include): Likewise.
+	(pth_include_ptr): Likewise.
+	(struct pth_state): Likewise.
+	(struct pth_stats_d): Likewise.
+	(PTH_STATS_INCR): Likewise.
+	(struct pph_stats_d): Likewise.
+	(PPH_STATS_INCR): Likewise.
+	(pth_stats): Make extern.
+	(pph_stats): Likewise.
+	(cp_lexer_dump_tokens): Likewise.
+	(cp_lexer_debug_tokens): Likewise.
+	(cp_lexer_token_position): Likewise.
+	(cp_lexer_get_tokens): Likewise.
+	(the_parser): Likewise.
+	(pph_decl_head_token_cache): Move to pph.c
+	(pph_decl_body_token_cache): Likewise.
+	(struct pph_decl_deps_d): Likewise.
+	(pph_decl_deps): Likewise.
+	(pph_tree_catcher): Likewise.
+	(pph_name_lookups): Likewise.
+	(pph_name_lookups_set): Likewise.
+	(pph_nl_token_map): Likewise.
+	(pph_logfile): Likewise.
+	(pph_print_tokens): Likewise.
+	(pathnames_equal_p): Likewise.
+	(pph_debug_location): Likewise.
+	(pph_debug_loc_of_tree): Likewise.
+	(pth_image_dir_hash): Likewise.
+	(pth_image_dir_eq): Likewise.
+	(pth_global_state): Likewise.
+	(pth_get_state): Likewise.
+	(pth_id_str): Likewise.
+	(pth_header_len): Likewise.
+	(PTH_EXTENSION): Likewise.
+	(pth_name_for): Likewise.
+	(pth_file_for): Likewise.
+	(pth_get_md5_digest): Likewise.
+	(pth_get_index_from_type): Likewise.
+	(pth_write_uint): Likewise.
+	(pth_write_sizet): Likewise.
+	(pth_write_bytes): Likewise.
+	(pth_write_string): Likewise.
+	(pth_write_number): Likewise.
+	(pth_save_token_value): Likewise.
+	(pth_save_token): Likewise.
+	(pth_write_header): Likewise.
+	(pth_dump_identifiers): Likewise.
+	(pth_debug_identifiers): Likewise.
+	(pth_dump_hunk): Likewise.
+	(pth_debug_hunk): Likewise.
+	(pth_dump_include): Likewise.
+	(pth_debug_include): Likewise.
+	(pth_dump_token_hunks_1): Likewise.
+	(pth_dump_token_hunks): Likewise.
+	(pth_debug_token_hunks): Likewise.
+	(pth_dump_image): Likewise.
+	(pth_debug_image): Likewise.
+	(pth_show_image_stats): Likewise.
+	(pth_dump_state): Likewise.
+	(pth_debug_state): Likewise.
+	(pth_save_identifiers): Likewise.
+	(pth_save_hunk): Likewise.
+	(pth_save_include): Likewise.
+	(pth_save_image): Likewise.
+	(pth_get_type_from_index): Likewise.
+	(pth_read_uint): Likewise.
+	(pth_read_sizet): Likewise.
+	(pth_read_bytes): Likewise.
+	(pth_read_string): Likewise.
+	(pth_read_string_alloc): Likewise.
+	(pth_load_number): Likewise.
+	(pth_load_token_value): Likewise.
+	(pth_load_identifiers): Likewise.
+	(pth_load_hunk): Likewise.
+	(pth_create_include): Likewise.
+	(pth_load_include): Likewise.
+	(pth_load_image): Likewise.
+	(pth_have_valid_image_for): Likewise.
+	(pth_new_image): Likewise.
+	(pth_image_lookup): Likewise.
+	(pth_append_hunk): Likewise.
+	(pth_hunk_is_valid_p): Likewise.
+	(pth_image_can_be_used): Likewise.
+	(pth_get_dir_and_name): Likewise.
+	(pth_process_text_file): Likewise.
+	(pth_image_to_lexer): Likewise.
+	(pth_lexer_to_image): Likewise.
+	(pth_get_file_transition): Likewise.
+	(pth_leave_file): Likewise.
+	(pth_enter_file): Likewise.
+	(pth_file_change): Likewise.
+	(pth_include_handler): Likewise.
+	(pth_init): Likewise.
+	(pth_print_stats): Likewise.
+	(pth_finish): Likewise.
+	(pph_log_exposed): Likewise.
+	(pph_allocate_catcher_memory): Likewise.
+	(pph_free_catcher_memory): Likewise.
+	(pph_start_exposed): Likewise.
+	(pph_lookup_head_token_cache_for): Likewise.
+	(pph_lookup_body_token_cache_for): Likewise.
+	(pph_set_head_token_cache_for): Likewise.
+	(pph_set_body_token_cache_for): Likewise.
+	(pph_copy_decls_into_cache): Likewise.
+	(pph_copy_decls_outof_cache): Likewise.
+	(pph_stop_exposed): Likewise.
+	(pph_debug_tree): Likewise.
+	(pph_debug_type): Likewise.
+	(pph_tree_caught_p): Likewise.
+	(pph_catch_head_tokens_for): Likewise.
+	(pph_catch_body_tokens_for): Likewise.
+	(pph_lookup_dependencies_for): Likewise.
+	(pph_set_dependencies_for): Likewise.
+	(is_namespace): Likewise.
+	(PPH_ARTIFICIAL): Likewise.
+	(pph_null_exposed): Likewise.
+	(pph_live_exposed): Likewise.
+	(pph_find_exposed_for): Likewise.
+	(pph_catch_dependencies_for): Likewise.
+	(pph_catch_tree): Likewise.
+	(pph_uncatch_tree): Likewise.
+	(pph_locate_name_lookups_in): Likewise.
+	(pph_print_copy_tokens): Likewise.
+	(pph_print_token_range): Likewise.
+	(pph_print_dependence): Likewise.
+	(pph_print_depend_template): Likewise.
+	(pph_print_depend_decl): Likewise.
+	(pph_print_depend_type): Likewise.
+	(pph_print_depend_type_type): Likewise.
+	(pph_print_depend_func_type): Likewise.
+	(pph_print_depend_var_type): Likewise.
+	(pph_get_decl_exposure): Likewise.
+	(pph_print_dependences): Likewise.
+	(pph_print_declaration_head): Likewise.
+	(pph_print_declaration_body): Likewise.
+	(pph_find_special_methods): Likewise.
+	(pph_implicit_class_cost): Likewise.
+	(pph_print_declaration): Likewise.
+	(pph_print_declarations): Likewise.
+	(pph_print_trees_tokens): Likewise.
+	(pph_catch_name_lookup): Likewise.
+	(pph_print_stats): Likewise.
+	(pph_init): Likewise.
+	(pph_finish): Likewise.
+	* config-lang.in (gtfiles): Add cp/parser.h, cp/pph.h
+	and cp/pph.c.
+	* call.c: Include pph.h
+	* cp-tree.h (PPH_POP_TIMEVAR_AND_RETURN): Move to
+	pph.h
+	(pph_catch_tree): Likewise.
+	(pph_uncatch_tree): Likewise.
+	(pph_catch_name_lookup): Likewise.
+	* name-lookup.c: Include pph.h.
+
 2010-11-02  Lawrence Crowl  <crowl@google.com>
 	    Diego Novillo  <dnovillo@google.com>
 
