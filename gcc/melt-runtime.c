@@ -7134,10 +7134,9 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
     inform (UNKNOWN_LOCATION,
 	    "not found dynamic stuff using module path %s",
 	    modpathstr);
-  if (melt_module_dir)
-    inform (UNKNOWN_LOCATION,
-	    "not found dynamic stuff using builtin module directory %s",
-	    melt_module_dir);
+  inform (UNKNOWN_LOCATION,
+	  "not found dynamic stuff using builtin module directory %s",
+	  melt_module_dir);
   if (srcpath)
     inform (UNKNOWN_LOCATION, 
 	    "not found dynamic stuff using srcpath %s", 
@@ -9277,6 +9276,8 @@ meltgc_read_file (const char *filnam, const char *locnam)
   FILE *fil = 0;
   struct reading_st *rd = 0;
   char *filnamdup = 0;
+  const char* envpath = getenv ("GCCMELT_SOURCE_PATH");
+  const char* srcpathstr = melt_argument ("source-path");
   MELT_ENTERFRAME (4, NULL);
 #define genv      meltfram__.mcfr_varptr[0]
 #define valv      meltfram__.mcfr_varptr[1]
@@ -9295,8 +9296,46 @@ meltgc_read_file (const char *filnam, const char *locnam)
   VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, filnamdup);
   debugeprintf ("meltgc_read_file filnamdup %s locnam %s", filnamdup, locnam);
   fil = fopen (filnamdup, "rt");
-  if (!fil)
-    melt_fatal_error ("cannot open MELT file %s - %m", filnamdup);
+  /* If needed, find the file in the source path.  */
+  if (!fil && !IS_ABSOLUTE_PATH(filnam)) {
+    free (filnamdup);
+    filnamdup = 0;
+    if (srcpathstr && srcpathstr[0]) 
+      {
+	filnamdup = lookup_path (srcpathstr, filnam, NULL);
+	debugeprintf ("meltgc_read_file filenamdup %s", filnamdup);
+	if (filnamdup) 
+	  fil = fopen (filnamdup, "rt");
+      }
+  }
+  /* If needed, find the file in the environment source path.  */
+  if (envpath && !fil && !IS_ABSOLUTE_PATH(filnam)) {
+    free (filnamdup);
+    filnamdup = lookup_path (envpath, filnam, NULL);
+    debugeprintf ("meltgc_read_file filenamdup %s", filnamdup);
+    if (filnamdup) 
+      fil = fopen (filnamdup, "rt");
+  }
+  /* If needed, find the file in the builtin source directory.  */
+  if (!fil) {
+    free (filnamdup);
+    filnamdup = concat (melt_source_dir, "/", filnam, NULL);
+    fil = fopen (filnamdup, "rt");
+  }
+  if (!fil) 
+    {
+      if (filnam && srcpathstr)
+	inform (UNKNOWN_LOCATION, 
+		"didn't found MELT file %s with source path %s",
+		filnam, srcpathstr);
+      if (envpath)
+	inform (UNKNOWN_LOCATION, 
+		"MELT tried from GCCMELT_SOURCE_PATH=%s environment variable", 
+		envpath);
+      inform (UNKNOWN_LOCATION, "builtin MELT source directory is %s", 
+	      melt_source_dir);
+      melt_fatal_error ("cannot open MELT file %s - %m", filnam);
+    }
   /* warn if the filename has strange characters in its base name,
      notably + */
   {
@@ -9310,7 +9349,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
 	warn = 1;
       }
     if (warn)
-	warning (0, "MELT file name %s has strange characters", filnamdup);
+      warning (0, "MELT file name %s has strange characters", filnamdup);
 
   }
   /*  debugeprintf ("starting loading file %s", filnamdup); */
@@ -9337,7 +9376,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
     fclose (rds.rfil);
   memset (&rds, 0, sizeof(rds));
   rd = 0;
-end:
+ end:
   if (!seqv)
     {
       debugeprintf ("meltgc_read_file filnam %s fail & return NULL", filnamdup);
