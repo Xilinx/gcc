@@ -52,6 +52,8 @@ melt_translator_file = {
 
 melt_translator_file = {
   base = "warmelt-normal";
+  // warmelt-normal.melt contains (load "warmelt-predef.melt")
+  includeload = "warmelt-predef.melt";
   mkvarsuf = NORMAL;
 };
 
@@ -97,3 +99,9 @@ melt_application_file = {
   base = "xtramelt-opengpu";
   mkvarsuf = OPENGPU;
 };
+
+// the various MELT stages which should be melt-stage1 melt-stage2
+// etc...
+melt_stage = melt-stage1;
+melt_stage = melt-stage2;
+melt_stage = melt-stage3;

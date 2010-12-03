@@ -1,5 +1,12 @@
 
 2010-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build.def (melt_stage): New variable.
+	(includeload): New field.
+
+	* melt-build.tpl: Use them.
+
+2010-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_make_load_melt_module): Don't test
 	melt_module_dir...
 	(meltgc_read_file): Look into source path, builtin source
