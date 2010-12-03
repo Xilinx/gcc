@@ -191,22 +191,51 @@ ENDFOR melt_translator_file+]
 	date  +"#$@ generated %F" > $@-tmp
 [+FOR melt_translator_file+]	echo [+base+]-[+(. stageindex)+] >> $@-tmp
 [+ENDFOR melt_translator_file+]	$(melt_make_move) $@-tmp $@
-[+ (define laststage (get "melt_stage"))+]
+[+ (define laststage (get "melt_stage"))
+   (define lastindex stageindex)
++]
 
 .PHONY: warmelt[+(. stageindex)+]
 warmelt[+(. stageindex)+]:  [+melt_stage+] [+melt_stage+]/warmelt-[+(. stageindex)+].modlis
 [+melt_stage+]:
 	if [ -d [+melt_stage+] ]; then true; else mkdir [+melt_stage+]; fi
-
+[+ (define laststage (get "melt_stage"))+]
 ### end of [+melt_stage+]
 
 [+ENDFOR melt_stage+]
+
+######## last stage [+ (. laststage)+]
+MELT_LAST_STAGE=[+ (. laststage)+]
+WARMELT_LAST= warmelt[+ (. lastindex)+]
+WARMELT_LAST_MODLIS= [+ (. laststage)+]/warmelt-[+ (. lastindex)+].modlis
+
+.PHONY: warmelt
+warmelt: $(WARMELT_LAST)
+
+####### final targets
+.PHONY: all-melt melt-all-modules melt-all-sources
+all-melt: melt-modules melt-sources melt-all-modules melt-all-sources
+
+### the final module directory
+melt-modules: 
+	test -d melt-modules/ || mkdir  melt-modules/
+
+### the final source directory
+melt-sources: 
+	test -d melt-sources/ || mkdir  melt-sources/
+
+melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
+              $(melt_make_cc1_dependency)
+[+FOR melt_translator_file+]
+## making [+base+]
+[+ENDFOR melt_translator_file+]
+
 
 ### MELT cleanup
 .PHONY: melt-clean
 melt-clean:
 	rm -rf melt-stage0-static melt-stage0-dynamic \
-[+FOR melt_stage " \\\n"+]           [+melt_stage+][+ENDFOR melt_stage+]
-### last stage [+melt_stage+]
+[+FOR melt_stage " \\\n"+]           [+melt_stage+][+ 
+    (define laststage (get "melt_stage"))+][+ENDFOR melt_stage+]
 
 ## end of generated file melt-build.mk

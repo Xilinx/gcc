@@ -1678,7 +1678,7 @@ $(foreach file,$(ALL_HOST_FRONTEND_OBJS),$(eval CFLAGS-$(file) += -DIN_GCC_FRONT
 # This is what is done in this makefile. Note that mkconfig.sh has a
 # move-if-change built-in
 
-Makefile: config.status $(srcdir)/Makefile.in $(LANG_MAKEFRAGS)
+Makefile: config.status $(srcdir)/Makefile.in $(srcdir)/melt-build.mk $(LANG_MAKEFRAGS)
 	LANGUAGES="$(CONFIG_LANGUAGES)" \
 	CONFIG_HEADERS= \
 	CONFIG_SHELL="$(SHELL)" \
@@ -5443,6 +5443,8 @@ melt.encap: melt-run.d
 	$(MAKE) Makefile
 	echo melt.encap making melt-run-deps
 	$(MAKE) melt-run-deps
+	echo melt.encap making warmelt0 with MELTHERE_CFLAGS= $(MELTHERE_CFLAGS) melt_cflags= $(melt_cflags)
+	$(MAKE) warmelt0
 	echo melt.encap making warmelt1 with MELTHERE_CFLAGS= $(MELTHERE_CFLAGS) melt_cflags= $(melt_cflags)
 ## MELTHERE_CFLAGS & melt_cflags are exported!
 	$(MAKE) warmelt1
@@ -5450,6 +5452,8 @@ melt.encap: melt-run.d
 	$(MAKE) warmelt2
 	echo melt.encap making warmelt
 	$(MAKE) warmelt
+	echo melt.encap making all-melt
+	$(MAKE) all-melt
 	echo making $(melt_default_modules_list).modlis
 	$(MAKE) $(melt_default_modules_list).modlis
 	rm -rf _tempmeltdir*
@@ -5475,8 +5479,15 @@ melt_installed_cflags= $(MELTHERE_CFLAGS) -I $(plugin_includedir)
 ## leave melt_is_plugin as empty 
 melt_is_plugin=
 
+ifdef MELT_NEW_MAKE
+#include $(srcdir)/melt-make.mk
+AUTOGEN= autogen
+$(srcdir)/melt-build.mk: @MAINT@ $(srcdir)/melt-build.def $(srcdir)/melt-build.tpl
+	cd $(srcdir) && $(AUTOGEN) melt-build.def
+include $(srcdir)/melt-build.mk
+else
 include $(srcdir)/melt-make.mk
-
+endif
 
 ####
 #### installing melt generated shared object plugins (at MELT 3rd

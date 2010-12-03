@@ -1,6 +1,11 @@
 
 2010-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-build.tpl: Adding last stage...
+	* Makefile.in: temporary ifdef MELT_NEW_MAKE.
+
+2010-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-build.def (melt_stage): New variable.
 	(includeload): New field.
 
