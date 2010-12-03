@@ -6978,6 +6978,8 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 		  envpath);
 	inform (UNKNOWN_LOCATION, "MELT builtin source directory is %s", 
 		melt_source_dir);
+	inform (UNKNOWN_LOCATION, "MELT current directory is %s", 
+		getpwd ());
       };
     nbexplain++;
   }
@@ -7128,10 +7130,21 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
   inform (UNKNOWN_LOCATION, 
 	  "not found dynamic stuff using tempdir %s", 
 	  melt_tempdir_path (dupmodulnam, NULL));
+  if (modpathstr)
+    inform (UNKNOWN_LOCATION,
+	    "not found dynamic stuff using module path %s",
+	    modpathstr);
+  if (melt_module_dir)
+    inform (UNKNOWN_LOCATION,
+	    "not found dynamic stuff using builtin module directory %s",
+	    melt_module_dir);
   if (srcpath)
     inform (UNKNOWN_LOCATION, 
 	    "not found dynamic stuff using srcpath %s", 
 	    srcpath);
+  inform (UNKNOWN_LOCATION,
+	  "not found dynamic stuff for %s in current directory %s",
+	  dupmodulnam, getpwd());
   melt_fatal_error ("unable to continue since failed to load MELT module %s", 
 	       dupmodulnam);
  dylibfound:

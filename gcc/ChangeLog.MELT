@@ -1,4 +1,10 @@
 
+2010-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_make_load_melt_module): Add additional
+	notice messages on failure.
+
+	* melt-build.def: Improve.
+
 2010-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build.def: New file.
