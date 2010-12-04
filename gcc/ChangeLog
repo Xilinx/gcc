@@ -1,3 +1,495 @@
+2010-12-03  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* doc/tm.texi.in (Cond. Exec. Macros): Rename node from this ...
+	(Cond Exec Macros): ... to this.
+	* doc/tm.texi: Regenerate.
+
+2010-12-03  Jason Merrill  <jason@redhat.com>
+
+	PR debug/46123
+	* dwarf2out.c (gen_tagged_type_die): Don't put local types in
+	a declaration DIE.
+
+2010-12-03  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/arm/arm.c (arm_legitimate_index_p): Split
+	VALID_NEON_QREG_MODE and VALID_NEON_DREG_MODE cases.  Permit
+	slightly larger constants in the latter case.
+	(thumb2_legitimate_index_p): Likewise.
+
+2010-12-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt (N, Q, Qn, Qy, Z, n, r, s, t): New options.
+	* gcc.c (cc1_options): Add %{Qy:}.
+
+2010-12-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.c (LINK_COMMAND_SPEC): Don't handle -A, -d or -m.
+	* config/darwin.h (LINK_COMMAND_SPEC_A): Likewise.
+	* config/i386/djgpp.h (LINK_COMMAND_SPEC): Likewise.
+
+2010-12-03  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/45354
+	* sel-sched-ir.c (jump_leads_only_to_bb_p): Rename to ...
+	(bb_has_removable_jump_to_p): This.  Update all callers. Make static.
+	Allow BBs ending with a conditional jump.  Forbid EDGE_CROSSING jumps.
+	* sel-sched-ir.h (jump_leads_only_to_bb_p): Delete prototype.
+
+2010-12-03  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* basic-block.h (struct edge_prediction): Remove forward
+	declaration.
+	* tree-flow.h (struct edge_prediction): Move from here...
+	* predict.c (struct edge_prediction): ...to here.
+	* cselib.h (struct elt_list): Move from here...
+	* cselib.c (struct elt_list): ...to here.
+
+2010-12-02  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.c (default_compilers): Add entry for ".go".
+	* common.opt: Add -static-libgo as a driver option.
+	* doc/install.texi (Configuration): Mention libgo as an option for
+	--enable-shared.  Mention go as an option for --enable-languages.
+	* doc/invoke.texi (Overall Options): Mention .go as a file name
+	suffix.  Mention go as a -x option.
+	* doc/frontends.texi (G++ and GCC): Mention Go as a supported
+	language.
+	* doc/sourcebuild.texi (Top Level): Mention libgo.
+	* doc/standards.texi (Standards): Add section on Go language.
+	Move references for other languages into their own section.
+	* doc/contrib.texi (Contributors): Mention that I contributed the
+	Go frontend.
+
+2010-12-03  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* tree.h (struct call_expr_arg_iterator_d): Remove GTY tag.
+	(const_call_expr_arg_iterator_d): Likewise.
+	(expanded_location): Likewise.
+	* c-tree.h (struct c_arg_tag_d): Likewise.
+	* dwarf2out.c (struct cfa_loc): Likewise.
+	(struct skeleton_chain_struct): Likewise.
+	* except.c (struct ttypes_filter): Likewise.
+	* cselib.h (struct cselib_val_struct): Likewise.
+	(elt_loc_list): Likewise.
+	(elt_list): Likewise.
+	* varasm.c (struct addr_const): Likewise.
+	* tree-flow.h (struct edge_prediction): Likewise.
+	(struct int_tree_map): Likewise.
+	(struct _edge_var_map): Likewise.
+
+2010-12-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/46768
+	* config/i386/i386.c (initial_ix86_tune_features): Turn on
+	X86_TUNE_INTER_UNIT_MOVES for Core 2 and Core i7.
+
+2010-12-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Allow corei7 for --with-arch=/--with-cpu=.
+
+2010-12-02  Ian Lance Taylor  <iant@google.com>
+
+	* configure.ac: AC_DEFINE ENABLE_BUILD_WITH_CXX.  Check for C++
+	header files unordered_map, tr1/unordered_map, and ext/hash_map.
+	* configure, config.in: Rebuild.
+
+2010-11-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/46685
+	* config/sparc/sparc.c (can_use_mov_pic_label_ref): New predicate.
+	(sparc_expand_move): Call it to decide whether to emit the special
+	mov{si,di}_pic_label_ref patterns.
+	(sparc_legitimize_pic_address): Call it to decide whether to emit
+	the regular PIC sequence for labels.  Fix long line.
+	(sparc_file_end): Set is_thunk for the PIC helper.
+
+2010-12-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.c (build_range_type_1): Do not SET_TYPE_STRUCTURAL_EQUALITY
+	for a non-shared type.
+
+2010-12-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/45297
+	* tree-scalar-evolution.c (interpret_rhs_expr): Handle ADDR_EXPR
+	with MEM_REFs as POINTER_PLUS_EXPR.
+
+2010-12-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/linux.h, config/m32r/linux.h, config/m68k/linux.h,
+	config/sparc/linux.h, config/sparc/linux64.h: Remove comments
+	mentioning /lib/elf.
+
+2010-12-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/bfin/bfin.h (LINK_SPEC): Remove %{b}.
+	* config/frv/frv.h (LINK_SPEC): Remove %{b}.
+	* config/i386/netware.h (LINK_SPEC): Remove %{b}.
+	* config/i386/nto.h (LINK_SPEC): Remove %{b}.
+	* config/lm32/uclinux-elf.h (LINK_SPEC): Remove %{b}.
+	* config/sol2.h (LINK_SPEC): Remove %{b}.
+	* config/svr4.h (LINK_SPEC): Remove %{b}.
+
+2010-12-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/freebsd.h (LINK_SPEC): Cut long comment.
+	* config/i386/linux.h (LINK_SPEC): Cut long comment.
+	* config/i386/netware.h (LINK_SPEC): Remove %{V}.
+	* config/m32r/linux.h (LINK_SPEC): Cut long comment.
+	* config/m68k/linux.h (LINK_SPEC): Cut long comment.
+	* config/sparc/linux.h (LINK_SPEC): Cut long comment.
+	(ASM_SPEC): Remove %{V} and %{v:%{!V:-V}}.
+	* config/sparc/linux64.h (LINK_SPEC): Cut long comment.
+	(ASM_SPEC): Remove %{V} and %{v:%{!V:-V}}.
+	* config/sparc/netbsd-elf.h (ASM_SPEC): Remove %{V} and
+	%{v:%{!V:-V}}.
+
+2010-12-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.c (trad_capable_cpp, default_compilers): Don't handle
+	-ftraditional.
+
+2010-12-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/alpha/freebsd.h (LINK_SPEC): Don't handle -Wl,.
+	* config/bfin/bfin.h (ASM_SPEC): Don't handle -Wa,.
+	* config/frv/frv.h (ASM_SPEC): Don't handle -Wa,.
+	* config/lm32/uclinux-elf.h (LINK_SPEC): Don't handle -Wl,.
+	* config/microblaze/microblaze.h (LINK_SPEC): Don't handle -Wl,.
+	* config/mn10300/linux.h (ASM_SPEC): Don't handle -Wa,.
+	* config/pa/pa-linux.h (ASM_SPEC): Don't handle -Wa,.
+	* config/rs6000/freebsd.h (SVR4_ASM_SPEC): Don't handle -Wa,.
+	* config/rs6000/linux64.h (ASM_SPEC_COMMON): Don't handle -Wa,.
+	* config/rs6000/sysv4.h (LINK_SPEC): Don't handle -Wl,.
+	* config/rs6000/vxworks.h (ASM_SPEC): Don't handle -Wa,.
+	* config/sol2.h (ASM_SPEC): Don't handle -Wa,.
+	* config/sparc/linux.h (ASM_SPEC): Don't handle -Wa,.
+	* config/sparc/linux64.h (ASM_SPEC): Don't handle -Wa,.
+	* config/sparc/sp-elf.h (ASM_SPEC): Don't handle -Wa,.
+	* config/sparc/sysv4.h (ASM_SPEC): Don't handle -Wa,.
+	* config/svr4.h (SVR4_ASM_SPEC): Don't handle -Wa,.
+	* config/vxworks.h (VXWORKS_LINK_SPEC): Don't handle -Wl,.
+
+2010-12-02  Paul Koning  <ni1d@arrl.net>
+
+	* config/pdp11/pdp11.c (output_jump): Map unsigned to signed
+	opcodes if CC_NO_OVERFLOW is set.
+	(notice_update_cc_on_set): Correct setting of CC0 as a side
+	effect; set CC_NO_OVERFLOW for cases where C flag is not
+	meaningful.
+
+2010-12-02  Ian Lance Taylor  <iant@google.com>
+
+	* doc/install.texi (Configuration): Update default for
+	--with-boot-ldflags.
+
+2010-12-02  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c/45062
+	* c-decl.c (grokparms): Set arg_info->parms to NULL_TREE when
+	!funcdef_flag.
+
+2010-12-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/45199
+	* tree-data-ref.c (mem_write_stride_of_same_size_as_unit_type_p): New.
+	(stores_zero_from_loop): Call
+	mem_write_stride_of_same_size_as_unit_type_p.
+	* tree-data-ref.h (stride_of_unit_type_p): New.
+	* tree-loop-distribution.c (generate_memset_zero): Simplified.
+	Call stride_of_unit_type_p.
+	(build_rdg_partition_for_component): Do not call
+	rdg_flag_similar_memory_accesses when
+	flag_tree_loop_distribute_patterns is set.
+
+2010-12-02  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-loop.c (vect_analyze_scalar_cycles_1): Disregard
+	sign-changing conversions for induction detection.
+
+2010-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46723
+	* tree-vect-loop.c (get_initial_def_for_induction): Strip
+	conversions from the induction evolution and apply it to
+	the result instead.
+	* tree-vect-stmts.c (vect_get_vec_def_for_operand): Handle
+	assigns for induction defs.
+
+2010-12-02  Richard Guenther  <rguenther@suse.de>
+
+	* value-prof.c (gimple_ic): Use stmt_ends_bb_p to detect
+	the case we need to split the edge and not the block.
+
+2010-12-02  Bernd Schmidt  <bernds@codesourcery.com>
+
+	DFA model for Core 2 and Core i7 scheduling.
+
+	* config/i386/core2.md: New DFA model for Core 2 and Core i7.
+	* config/i386/i386.c (ix86_option_override_internal): Update entries
+	for Core 2 and Core i7.
+	(ix86_issue_rate): Set issue rate to 3 [be realistic].
+	* config/i386/i386.md: Include "core2.md".
+	(define_attr cpu): Add "corei7".
+
+2010-12-02  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	Define tuning for Core 2 and Core i7.
+
+	* config/i386/i386-c.c (ix86_target_macros_internal): Update.
+	* config/i386/i386.c (core2_cost): Delete, use generic costs instead.
+	(m_CORE2): Replace with m_CORE2_{32,64}.
+	(m_CORE2I7{,_32,_64}): New macros.
+	(m_GENERIC32, m_GENERIC64): Update.
+	(initial_ix86_tune_features, x86_accumulate_outgoing_args,)
+	(x86_arch_always_fancy_math_387): Set m_CORE2I7_32 iff m_GENERIC32 and
+	set m_CORE2I7_64 iff m_GENERIC64.
+	(processor_target_table): Use generic costs for Core 2 and Core i7.
+	(ix86_option_override_internal): Update entries for Core 2 and Core i7.
+	(ix86_issue_rate): Remove entry for Core 2.
+	(ia32_multipass_dfa_lookahead, ix86_sched_init_global): Update.
+	* config/i386/i386.h (TARGET_CORE2_32, TARGET_CORE2_64): New macros.
+	(TARGET_CORE2): Update.
+	(PROCESSOR_CORE2_32, PROCESSOR_CORE2_64): New constants.
+	(PROCESSOR_CORE2): Remove.
+
+2010-12-02  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer.h (LTO_major_version): Bump to 2.
+
+2010-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/44871
+	* gimple.c (canonical_type_hash_cache): New hashtable.
+	(gimple_type_hash): Make a wrapper around ...
+	(gimple_type_hash_1): ... this.  Take gtc_mode argument.
+	(gimple_canonical_type_hash): Likewise.
+	(gtc_visit): Take a gtc_mode argument.
+	(gimple_types_compatible_p_1): Likewise. Do not compare struct
+	tag names or field names when computing canonical types.
+	(gimple_types_compatible_p): Adjust.
+	(visit): Take a gtc_mode argument.
+	(iterative_hash_gimple_type): Likewise.  Do not hash struct tag
+	names or field names when computing hashes of canonical types.
+	(gimple_register_canonical_type): Use gimple_canonical_type_hash
+	for the hash.
+	(print_gimple_types_stats): Dump stats of canonical_type_hash_cache.
+	(free_gimple_type_tables): Free canonical_type_hash_cache.
+
+2010-12-02  Richard Guenther  <rguenther@suse.de>
+	    Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/46663
+	* tree-vect-patterns.c (vect_recog_pow_pattern): Check that
+	FUNCTION_DECL exists and that it's a builtin.
+
+2010-12-02  Jie Zhang  <jie@codesourcery.com>
+
+	PR middle-end/46674
+	* varasm.c (compute_visible_aliases): Handle user set
+	assembler name.
+
+2010-12-01  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000.c (rs6000_option_override_internal): Fix
+	thinko regarding setting -mno-<xxx> debug switches.
+	(rs6000_rtx_costs): Add FMA.  Delete old rtl based FMA costs.
+
+2010-12-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* intl.c: Don't include tm.h.
+	* Makefile.in (intl.o): Don't depend on $(TM_H).
+
+2010-12-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (analyze_drs_in_stmts): Fix set but
+	unused warning.
+	(rewrite_cross_bb_scalar_deps_out_of_ssa): Same.
+
+2010-12-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (analyze_drs): Removed.
+	(build_scop_drs): Do not call analyze_drs.
+	(analyze_drs_in_stmts): New.
+	(insert_stmts): New.
+	(insert_out_of_ssa_copy): Call analyze_drs_in_stmts.
+	(insert_out_of_ssa_copy_on_edge): Same.
+	(rewrite_close_phi_out_of_ssa): Call insert_stmts.
+	(rewrite_phi_out_of_ssa): Same.
+	(rewrite_cross_bb_scalar_dependence): Same.
+	(split_reduction_stmt): Move data references in the new basic blocks.
+	(translate_scalar_reduction_to_array_for_stmt): Call insert_stmts.
+
+2010-12-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* sese.c (rename_uses): Do not handle ADDR_EXPR in LHS of assignments.
+
+2010-12-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/45297
+	* graphite-poly.c (new_poly_bb): Returns a poly_bb_p.  Do not take
+	the reduction bool in parameter.  Clear PBB_IS_REDUCTION.  Set GBB_PBB.
+	* graphite-poly.h (new_poly_bb): Update declaration.
+	(gbb_from_bb): Moved here...
+	(pbb_from_bb): New.
+	* graphite-sese-to-poly.c (var_used_in_not_loop_header_phi_node):
+	Removed.
+	(graphite_stmt_p): Removed.
+	(try_generate_gimple_bb): Returns a gimple_bb_p.  Do not pass in
+	sbitmap reductions.  Always build a gimple_bb_p.  Do not call
+	new_poly_bb.
+	(build_scop_bbs_1): Do not pass in sbitmap reductions.
+	(build_scop_bbs): Same.
+	(gbb_from_bb): ... from here.
+	(add_conditions_to_constraints): Moved up.
+	(analyze_drs): New.
+	(build_scop_drs): Call analyze_drs.  Remove all the PBBs that do
+	not contain data references.
+	(new_pbb_from_pbb): New.
+	(insert_out_of_ssa_copy_on_edge): Call new_pbb_from_pbb after a
+	block is split.
+	(rewrite_close_phi_out_of_ssa): Update call to
+	insert_out_of_ssa_copy_on_edge.
+	(rewrite_reductions_out_of_ssa): Now static.
+	(rewrite_cross_bb_scalar_deps_out_of_ssa): Same.
+	(split_pbb): New.
+	(split_reduction_stmt): Call split_pbb.
+	(translate_scalar_reduction_to_array): Pass in the scop, do not
+	pass in the sbitmap reductions.
+	(rewrite_commutative_reductions_out_of_ssa_close_phi): Same.
+	(rewrite_commutative_reductions_out_of_ssa_loop): Same.
+	(rewrite_commutative_reductions_out_of_ssa): Same.
+	(build_poly_scop): Call build_scop_bbs,
+	rewrite_commutative_reductions_out_of_ssa,
+	rewrite_reductions_out_of_ssa, and
+	rewrite_cross_bb_scalar_deps_out_of_ssa.  Move build_scop_drs
+	before scop_to_lst.
+	* graphite-sese-to-poly.h (rewrite_commutative_reductions_out_of_ssa):
+	Removed declaration.
+	(rewrite_reductions_out_of_ssa): Same.
+	(rewrite_cross_bb_scalar_deps_out_of_ssa): Same.
+	(build_scop_bbs): Same.
+	* graphite.c (graphite_transform_loops): Do not initialize reductions.
+	Do not call build_scop_bbs,
+	rewrite_commutative_reductions_out_of_ssa,
+	rewrite_reductions_out_of_ssa, and
+	rewrite_cross_bb_scalar_deps_out_of_ssa.
+	* sese.h (struct gimple_bb): Add field pbb.
+	(GBB_PBB): New.
+
+2010-12-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (handle_scalar_deps_crossing_scop_limits):
+	New.
+	(rewrite_cross_bb_scalar_deps): Pass in the scop.  Call
+	handle_scalar_deps_crossing_scop_limits.
+	(rewrite_cross_bb_scalar_deps_out_of_ssa): Create an empty BB
+	after the scop.  Update call to rewrite_cross_bb_scalar_deps.
+
+2010-12-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* sese.c (rename_uses): Call recompute_tree_invariant_for_addr_expr
+	when replacing a constant in an ADDR_EXPR.
+
+2010-12-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-blocking.c (lst_do_strip_mine_loop): Extra parameter
+	for the stride.
+	(lst_do_strip_mine): Same.
+	(scop_do_strip_mine): Same.
+	* graphite-poly.c (apply_poly_transforms): Update call to
+	scop_do_strip_mine.
+	* graphite-poly.h (scop_do_strip_mine): Update declaration.
+
+2010-12-01  Jan Hubicka  <jh@suse.cz>
+
+	* tree.c (build_common_builtin_nodes): Do not initialize
+	BUILT_IN_PROFILE_FUNC_ENTER and BUILT_IN_PROFILE_FUNC_EXIT.
+	* builtins.c (expand_builtin_profile_func): Remove.
+	(expand_builtin): Do not handle BUILT_IN_PROFILE_FUNC_ENTER and
+	BUILT_IN_PROFILE_FUNC_EXIT.
+	* builtins.def (profile_func_enter, profile_func_exit): Remove stubs.
+	(__cyg_profile_func_enter, __cyg_profile_func_exit): New.
+	* gimplify.c (gimplify_function_tree): Reorganize code calling
+	profiling functions.
+
+2010-12-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* opts.c: Expand comment on tm.h include.
+
+2010-12-01  Yao Qi  <yao@codesourcery.com>
+
+	* config/arm/predicates.md ("vfp_register_operand"): Return true for
+	VFP_D0_D7_REGS classes.
+
+2010-12-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt (flag_stack_check): New Variable entry.
+	(fcompare-debug-second): Use Var.
+	* flags.h (flag_compare_debug, flag_stack_check): Remove.
+	* opts.c (flag_compare_debug): Remove.
+	(common_handle_option): Don't handle OPT_fcompare_debug_second.
+	Set opts->x_flag_stack_check for OPT_fstack_check_.
+	* toplev.c (flag_stack_check): Remove.
+
+2010-12-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt (main_input_filename, main_input_basename,
+	main_input_baselength): New Variable entries.  From toplev.c.
+	* final.c (output_quoted_string): Move from toplev.c.
+	* output.h (output_quoted_string): Move from toplev.h.
+	* opts-global.c (read_cmdline_options): Use gcc_options pointer to
+	access main_input_filename, main_input_baselength and
+	main_input_basename.
+	* targhooks.c: Include intl.h and opts.h.
+	(option_affects_pch_p, default_get_pch_validity): Move from
+	toplev.c.
+	* targhooks.h (option_affects_pch_p, default_get_pch_validity):
+	Move from toplev.h.
+	* toplev.c (main_input_filename, main_input_basename,
+	main_input_baselength): Move to common.opt.
+	(output_quoted_string): Move to final.c.
+	(warn_deprecated_use): Move to tree.c.
+	(option_affects_pch_p, default_get_pch_validity,
+	pch_option_mismatch, default_pch_valid_p): Move to targhooks.c.
+	* toplev.h (skip_leading_substring): Move to tree-dump.c.
+	(warn_deprecated_use): Move to tree.h.
+	(output_quoted_string): Move to output.h.
+	(main_input_filename, main_input_basename, main_input_baselength):
+	Move to common.opt.
+	(default_get_pch_validity, default_pch_valid_p): Move to
+	targhooks.c.
+	* tree-dump.c (skip_leading_substring): Move from toplev.h.
+	* tree.c (warn_deprecated_use): Move from toplev.c.
+	* tree.h (warn_deprecated_use): Move from toplev.h.
+	* c-typeck.c, config/alpha/alpha.c, config/arc/arc.c,
+	config/arm/arm.c, config/avr/avr.c, config/bfin/bfin.c,
+	config/cris/cris.c, config/crx/crx.c, config/fr30/fr30.c,
+	config/frv/frv.c, config/h8300/h8300.c, config/ia64/ia64.c,
+	config/iq2000/iq2000.c, config/lm32/lm32.c, config/m32c/m32c.c,
+	config/m32r/m32r.c, config/m68hc11/m68hc11.c, config/m68k/m68k.c,
+	config/mcore/mcore.c, config/mep/mep.c,
+	config/microblaze/microblaze.c, config/mips/mips.c,
+	config/mmix/mmix.c, config/mn10300/mn10300.c,
+	config/moxie/moxie.c, config/pa/pa.c, config/pdp11/pdp11.c,
+	config/picochip/picochip.c, config/s390/s390.c,
+	config/score/score.c, config/sh/sh.c, config/sparc/sparc.c,
+	config/spu/spu.c, config/stormy16/stormy16.c, config/v850/v850.c,
+	config/vax/vax.c, config/xtensa/xtensa.c, gimple-low.c,
+	graphite-sese-to-poly.c, plugin.c, tree-cfg.c, tree-inline.c,
+	varasm.c, xcoffout.c: Don't include toplev.h.
+	* Makefile.in (c-typeck.o, tree-inline.o, tree-cfg.o,
+	gimple-low.o, graphite-sese-to-poly.o, targhooks.o, plugin.o,
+	varasm.o, xcoffout.o): Update dependencies.
+	* config/arm/t-arm (arm.o): Update dependencies.
+	* config/spu/t-spu-elf (spu.o): Update dependencies.
+
+2010-12-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46730
+	* value-prof.c (gimple_ic): Always generate a separate merge BB.
+
 2010-11-30  Ian Lance Taylor  <iant@google.com>
 
 	* config/i386/linux.h (ASM_SPEC): Pass -v as -v, not -V.  Remove
@@ -4658,7 +5150,7 @@
 2010-11-02  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/46149
-	* tree-ssa-structalias.c (get_constraint_for_1): Properly handle
+	* tree-ssa-structalias.c (get_constraint_fop_1): Properly handle
 	non-indirect MEM_REF variants.
 
 2010-11-02  Richard Guenther  <rguenther@suse.de>

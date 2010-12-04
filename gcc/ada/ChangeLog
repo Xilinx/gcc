@@ -1,3 +1,24 @@
+2010-12-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc-interface/lang.opt (k8): New option.
+
+2010-12-03  Alexandre Oliva  <aoliva@redhat.com>
+
+	* gnatvsn.adb (Gnat_Version_String): Don't overrun Ver_Len_Max.
+	* gnatvsn.ads (Ver_Len_Max): Bump up to 256.
+	* g-comver.adb (Ver_Len_Max): Likewise.
+
+2010-12-03  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* gcc-interface/decl.c (struct subst_pair_d): Remove GTY tag.
+	(variant_desc_d): Likewise.
+
+2010-12-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc-interface/misc.c (flag_compare_debug, flag_stack_check):
+	Undefine as macros then define as variables.
+	(gnat_post_options): Set variables from global_options.
+
 2010-11-27  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR ada/46574

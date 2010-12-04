@@ -115,7 +115,7 @@ along with GCC; see the file COPYING3.  If not see
    It's safe to pass -s always, even if -g is not used.  */
 #undef ASM_SPEC
 #define ASM_SPEC "\
-%{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Wa,*:%*} -s \
+%{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} -s \
 %{fpic|fpie|fPIC|fPIE:-K PIC} \
 %(asm_cpu) \
 "
@@ -175,7 +175,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef  LINK_SPEC
 #define LINK_SPEC \
   "%{h*} %{v:-V} \
-   %{b} \
    %{!shared:%{!static:%{rdynamic: " RDYNAMIC_SPEC "}}} \
    %{static:-dn -Bstatic} \
    %{shared:-G -dy %{!mimpure-text:-z text}} \

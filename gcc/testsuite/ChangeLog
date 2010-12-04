@@ -1,3 +1,99 @@
+2010-12-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46584
+	* gfortran.dg/quad_1.f90: Remove some complex
+	math checks as they fail on some non-libquadmath
+	systems.
+
+2010-12-04  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/46794
+	* gfortran.dg/power2.f90: New test.
+
+2010-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46123
+	* g++.dg/debug/pr46123.C: New test.
+	* g++.dg/debug/dwarf2/pr46123.C: New test.
+
+2010-12-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46058
+	* g++.dg/template/scope4.C: New.
+
+2010-12-03  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.target/arm/neon-offset-1.c: New test.
+
+2010-12-03  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/45354
+	* gcc.dg/tree-prof/pr45354.c: New.
+
+2010-12-03  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45159
+	* gfortran.dg/dependency_38.f90:  New test.
+
+2010-12-02  Ian Lance Taylor  <iant@google.com>
+
+	* lib/go.exp: New file.
+	* lib/go-dg.exp: New file.
+	* lib/go-torture.exp: New file.
+	* lib/target-supports.exp (check_compile): Match // Go.
+
+2010-12-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/pr46685.c: New test.
+
+2010-12-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/45199
+	* gcc.dg/tree-ssa/ldist-15.c: New.
+	* gcc.dg/tree-ssa/ldist-16.c: New.
+	* gfortran.dg/ldist-pr45199.f: New.
+
+2010-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46723
+	* gcc.dg/torture/pr46723.c: New testcase.
+
+2010-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/44871
+	* g++.dg/lto/20101126-1_0.C: New testcase.
+	* g++.dg/lto/20101126-1_1.c: Likewise.
+
+2010-12-02  Richard Guenther  <rguenther@suse.de>
+            Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/46663
+	* gcc.dg/vect/pr46663.c: New test.
+
+2010-12-02  Jie Zhang  <jie@codesourcery.com>
+
+	PR middle-end/46674
+	* gcc.dg/pr46674.c: New test.
+
+2010-12-02  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/exceptions-6.m: New.
+	* obj-c++.dg/exceptions-6.mm: New.
+
+2010-12-01  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.c-torture/execute/bcp-1.c: Make ready for -fuse-linker-plugin
+
+2010-12-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/45297
+	* gcc.dg/graphite/pr45297.c: New.
+
+2010-12-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46730
+	* g++.dg/tree-prof/indir-call-prof-2.C: New testcase.
+
 2010-11-30  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* gcc.target/powerpc/ppc-fma-7.c: New file, test that (a*b)+c and

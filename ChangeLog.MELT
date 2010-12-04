@@ -1,3 +1,9 @@
+2010-12-04 Basile Starynkevitch  <basile@starynkevitch.net>
+
+        MELT branch merged with trunk rev 167455
+	[inside gcc/ you temporary need to 
+           make MELT_NEW_MAKE=1 MELT_STAGE_ZERO=melt-stage0-static
+        ]
 
 2010-12-01 Basile Starynkevitch  <basile@starynkevitch.net>
 

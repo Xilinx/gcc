@@ -282,7 +282,7 @@ dw_cfi_node;
    It can now be either REG + CFA_OFFSET or *(REG + BASE_OFFSET) + CFA_OFFSET.
    Instead of passing around REG and OFFSET, we pass a copy
    of this structure.  */
-typedef struct GTY(()) cfa_loc {
+typedef struct cfa_loc {
   HOST_WIDE_INT offset;
   HOST_WIDE_INT base_offset;
   unsigned int reg;
@@ -5879,7 +5879,7 @@ typedef struct GTY(()) limbo_die_struct {
 }
 limbo_die_node;
 
-typedef struct GTY(()) skeleton_chain_struct
+typedef struct skeleton_chain_struct
 {
   dw_die_ref old_die;
   dw_die_ref new_die;
@@ -20212,6 +20212,10 @@ gen_tagged_type_die (tree type,
 	 out yet, use a NULL context for now; it will be fixed up in
 	 decls_for_scope.  */
       context_die = lookup_decl_die (TYPE_CONTEXT (type));
+      /* A declaration DIE doesn't count; nested types need to go in the
+	 specification.  */
+      if (context_die && is_declaration_die (context_die))
+	context_die = NULL;
       need_pop = 0;
     }
   else
