@@ -1,10 +1,9 @@
 [+ AutoGen5 template -*- Mode: Makefile -*-
 mk
-+][+COMMENT use 'autogen --trace=everything melt-build.def' 
-in build directory to debug this+]
++][+COMMENT use 'autogen --trace=everything melt-build.def' to debug this+]
 
 # melt-build.mk is generated from melt-build.tpl by 'autogen melt-build.def'
-# DON'T EDIT melt-build.in but only edit: melt-build.tpl or melt-build.def
+# DON'T EDIT melt-build.mk but only edit: melt-build.tpl or melt-build.def
 #
 # Makefile fragment for MELT modules and MELT translator bootstrap.
 #   Copyright (C) 2010  Free Software Foundation
@@ -116,7 +115,7 @@ melt-stage0-dynamic/[+base+]-0.d.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
               GCCMELT_MODULE_BINARY=$@
 
 melt-stage0-dynamic/[+base+]-0.so: melt-stage0-dynamic/[+base+]-0.d.so
-	$(LN_S) $(notdir $<) $@
+	rm $@; $(LN_S) $^
 [+ENDFOR melt_translator_file+]
 
 melt-stage0-static/warmelt-0.modlis: \
@@ -172,8 +171,10 @@ $(MELT_STAGE_ZERO):
 +]                  [+ (. depstage)+]/[+ (. inbase)+]-[+(. depindex)+].so \
 [+ENDFOR melt_translator_file
 +]             empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
-              $(melt_make_cc1_dependency)
-	$(MELTCCFILE1) $(meltarg_init)=\
+              $(melt_make_cc1_dependency)[+IF (= outindex 0)
++]
+	$(MELTCCINIT1) $(meltarg_init)=\[+ELSE+]
+	$(MELTCCFILE1) $(meltarg_init)=\[+ENDIF+]
 [+FOR melt_translator_file ":\\\n"+][+ (define inbase (get "base")) (define inindex (for-index)) 
   (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
   (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
@@ -224,18 +225,131 @@ melt-modules:
 melt-sources: 
 	test -d melt-sources/ || mkdir  melt-sources/
 
-melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
-              $(melt_make_cc1_dependency)
+melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
+              melt-run.h melt-runtime.h melt-predef.h melt-sources \
+              $(melt_make_cc1_dependency) \
+[+FOR melt_translator_file+]	      melt-sources/[+base+].melt \
+	      melt-sources/[+base+].c \
+[+FOR includeload+] 	              melt-sources/[+includeload+] \
+[+ENDFOR includeload+][+ENDFOR melt_translator_file+][+FOR melt_application_file" \\\n"
++]	      melt-sources/[+base+].melt \
+	      melt-sources/[+base+].c [+ENDFOR melt_application_file+]
+
+
+#### melt-sources translator files
 [+FOR melt_translator_file+]
-## making [+base+]
+[+ (define transindex (for-index)) +]
+
+## melt translator [+base+] # [+ (. transindex) +]
+melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
+	cd melt-sources; rm -f [+base+].melt; $(LN_S) $^
+
+[+FOR includeload+]
+melt-sources/[+includeload+]: [+includeload+]
+	cd melt-sources; rm -f [+includeload+]; $(LN_S) $^
+[+ENDFOR includeload+]
+
+melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
++]melt-sources/[+includeload+] [+ENDFOR includeload+] \
+                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
+                    empty-file-for-melt.c melt-run.h melt-runtime.h \
+                    $(melt_make_cc1_dependency)
+[+IF (= transindex 0)+]
+	$(MELTCCINIT1) \[+ELSE+]
+	$(MELTCCFILE1) \[+ENDIF+]
+	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
+	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
+	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
+	     $(meltarg_output)=$@ 
+
+melt-modules/[+base+].so: melt-sources/[+base+].c \
+        $(wildcard  melt-sources/[+base+]+*.c) \
+        melt-run.h melt-runtime.h 
+	$(MELT_MAKE_MODULE) melt_module \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_BINARY=$@
+# end translator [+base+]
+
 [+ENDFOR melt_translator_file+]
 
+#### melt-sources application files
+[+ (define prevapplbase (list)) +]
+[+FOR melt_application_file+]
+
+
+## melt application [+base+]
+melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
+	cd melt-sources; rm -f [+base+].melt; $(LN_S) $^
+
+
+melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
++]melt-sources/[+includeload+] [+ENDFOR includeload+] \
+                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
+                    empty-file-for-melt.c melt-run.h melt-runtime.h \
+                    $(melt_make_cc1_dependency)
+	$(MELTCCFILE1) \
+	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	     $(meltarg_module_path)=melt_modules:$(MELT_LAST_STAGE) \
+	     $(meltarg_source_path)=melt_sources:$(MELT_LAST_STAGE) \
+	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):[+ (. (join ":" prevapplbase))+] \
+	     $(meltarg_output)=$@ 
+
+melt-modules/[+base+].so: melt-sources/[+base+].c \
+        $(wildcard  melt-sources/[+base+]+*.c) \
+        melt-run.h melt-runtime.h 
+	$(MELT_MAKE_MODULE) melt_module \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_BINARY=$@
+
+[+ (define prevapplbase (cons (get "base") prevapplbase)) +]
+# end application [+base+]
+
+[+ENDFOR melt_application_file+]
+
+melt-all-modules: \
+[+FOR melt_translator_file+]    melt-modules/[+base+].so \
+[+ENDFOR melt_translator_file+][+FOR melt_application_file " \\\n"
++]     melt-modules/[+base+].so[+ENDFOR melt_application_file+]
+
+$(melt_default_modules_list).modlis: melt-all-modules
+	date  +"#$@ generated %F" > $@-tmp
+	echo "# translator files" >> $@-tmp
+[+FOR melt_translator_file+]	echo [+base+] >> $@-tmp
+[+ENDFOR melt_translator_file+]
+	echo "# application files" >> $@-tmp
+[+FOR melt_application_file+]	echo [+base+] >> $@-tmp
+[+ENDFOR melt_application_file+]
+	echo "#end $@" >> $@-tmp
+	$(melt_make_move) $@-tmp $@
+
+
+### MELT upgrade
+.PHONY: warmelt-upgrade-translator
+
+warmmelt-upgrade-translator: \
+[+FOR melt_translator_file " \\\n"
++]   melt-sources/[+base+].c \
+         $(wildcard  melt-sources/[+base+]+*.c)[+
+ENDFOR melt_translator_file+]
+[+FOR melt_translator_file+]
+	@echo upgrading MELT translator [+base+]	
+	for f in melt-sources/[+base+]*.c ; do \
+            grep -v '^#line' $$f \
+            | unifdef -UMELTGCC_NOLINENUMBERING \
+                 > $(srcdir)/melt/generated/$$f-tmp; \
+	    $(melt_make_move) $(srcdir)/melt/generated/$$f-tmp \
+                     $(srcdir)/melt/generated/$$f ; \
+        done
+[+ENDFOR melt_translator_file+]
 
 ### MELT cleanup
 .PHONY: melt-clean
 melt-clean:
 	rm -rf melt-stage0-static melt-stage0-dynamic \
-[+FOR melt_stage " \\\n"+]           [+melt_stage+][+ 
-    (define laststage (get "melt_stage"))+][+ENDFOR melt_stage+]
+[+FOR melt_stage+]           [+melt_stage+] \
+[+ENDFOR melt_stage+]               melt-sources melt-modules
 
-## end of generated file melt-build.mk
+## eof melt-build.mk generated from melt-build.tpl & melt-melt-build.def

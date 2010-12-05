@@ -2187,7 +2187,7 @@ melt_getfield_object_at (melt_ptr_t ob, unsigned off, const char*msg, const char
       meltobject_ptr_t pob = (meltobject_ptr_t) ob;
       if (off < pob->obj_len)
 	return pob->obj_vartab[off];
-      error ("checked field access failed (bad offset %d/%d/%d [%s:%d]) - %s", (int)off, (int)pob->obj_len, (int)origoff, fil, lin, msg?msg:"...");
+      error ("checked field access failed (bad offset %d/len %d/origoff %d [%s:%d]) - %s", (int)off, (int)pob->obj_len, (int)origoff, fil, lin, msg?msg:"...");
       return NULL;
     }
   error ("checked field access failed (not object [%s:%d]) - %s", fil, lin, msg?msg:"...");

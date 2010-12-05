@@ -1,4 +1,16 @@
 
+
+2010-12-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build.tpl: Add more generation...
+
+	* melt-runtime.h (melt_getfield_object_at): Improve error emssage.
+
+	* melt/warmelt-base.melt: Added make_string_mixloc_file.
+
+	* melt/warmelt-outobj.melt (outpucod_objputuple): make the assert
+	message unique to help find bugs.
+
 2010-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build.tpl: Adding last stage...

@@ -230,6 +230,11 @@ tail $TL or else null.}#
   :doc #{Retrieve the filename as a raw cstring of a mixed location value $MI.}#
   #{(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mi)))}#)
 
+(defprimitive make_string_mixloc_file (mi dis) :value
+  :doc #{Retrieve the filename as a boxed string of a mixed location value $MI.}#
+  #{(meltgc_new_stringdup((meltobject_ptr_t)($DIS), 
+			  (LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$MI)))))}#)
+
 ;; make a mixloc
 (defprimitive make_mixloc (dis val :long num loc) :value
   :doc #{Make a mixed location value of given discriminant $DIS value $VAL
@@ -1082,6 +1087,7 @@ significant iff ENABLE_CHECKING.}# #{(melt_application_depth() <
  make_string_generated_c_filename
  make_string_nakedbasename
  make_string_tempname_suffixed
+ make_string_mixloc_file
  load_debug_melt_module
  load_melt_module
  generate_debug_melt_module
