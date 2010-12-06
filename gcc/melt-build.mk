@@ -1875,7 +1875,7 @@ $(melt_default_modules_list).modlis: melt-all-modules
 ### MELT upgrade
 .PHONY: warmelt-upgrade-translator
 
-warmmelt-upgrade-translator: \
+warmelt-upgrade-translator: \
    melt-sources/warmelt-first.c \
          $(wildcard  melt-sources/warmelt-first+*.c) \
    melt-sources/warmelt-base.c \
@@ -1892,77 +1892,126 @@ warmmelt-upgrade-translator: \
          $(wildcard  melt-sources/warmelt-genobj+*.c) \
    melt-sources/warmelt-outobj.c \
          $(wildcard  melt-sources/warmelt-outobj+*.c)
+	@echo upgrading the MELT translator
 
 	@echo upgrading MELT translator warmelt-first	
 	for f in melt-sources/warmelt-first*.c ; do \
-            grep -v '^#line' $$f \
+	  bf=`basename $$f | sed s/warmelt-first/warmelt-first.0/`; \
+	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
+          grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
-                 > $(srcdir)/melt/generated/$$f-tmp; \
-	    $(melt_make_move) $(srcdir)/melt/generated/$$f-tmp \
-                     $(srcdir)/melt/generated/$$f ; \
+                 > $(srcdir)/melt/generated/$$bf-tmp; \
+	  ls -l $(srcdir)/melt/generated/$$bf-tmp; \
+	  if [ -f $(srcdir)/melt/generated/$$bf ]; then \
+             mv -f $(srcdir)/melt/generated/$$bf $(srcdir)/melt/generated/$$bf~ ; \
+	  fi ; \
+	  mv -f $(srcdir)/melt/generated/$$bf-tmp \
+                     $(srcdir)/melt/generated/$$bf ; \
         done
 
 	@echo upgrading MELT translator warmelt-base	
 	for f in melt-sources/warmelt-base*.c ; do \
-            grep -v '^#line' $$f \
+	  bf=`basename $$f | sed s/warmelt-base/warmelt-base.0/`; \
+	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
+          grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
-                 > $(srcdir)/melt/generated/$$f-tmp; \
-	    $(melt_make_move) $(srcdir)/melt/generated/$$f-tmp \
-                     $(srcdir)/melt/generated/$$f ; \
+                 > $(srcdir)/melt/generated/$$bf-tmp; \
+	  ls -l $(srcdir)/melt/generated/$$bf-tmp; \
+	  if [ -f $(srcdir)/melt/generated/$$bf ]; then \
+             mv -f $(srcdir)/melt/generated/$$bf $(srcdir)/melt/generated/$$bf~ ; \
+	  fi ; \
+	  mv -f $(srcdir)/melt/generated/$$bf-tmp \
+                     $(srcdir)/melt/generated/$$bf ; \
         done
 
 	@echo upgrading MELT translator warmelt-debug	
 	for f in melt-sources/warmelt-debug*.c ; do \
-            grep -v '^#line' $$f \
+	  bf=`basename $$f | sed s/warmelt-debug/warmelt-debug.0/`; \
+	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
+          grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
-                 > $(srcdir)/melt/generated/$$f-tmp; \
-	    $(melt_make_move) $(srcdir)/melt/generated/$$f-tmp \
-                     $(srcdir)/melt/generated/$$f ; \
+                 > $(srcdir)/melt/generated/$$bf-tmp; \
+	  ls -l $(srcdir)/melt/generated/$$bf-tmp; \
+	  if [ -f $(srcdir)/melt/generated/$$bf ]; then \
+             mv -f $(srcdir)/melt/generated/$$bf $(srcdir)/melt/generated/$$bf~ ; \
+	  fi ; \
+	  mv -f $(srcdir)/melt/generated/$$bf-tmp \
+                     $(srcdir)/melt/generated/$$bf ; \
         done
 
 	@echo upgrading MELT translator warmelt-macro	
 	for f in melt-sources/warmelt-macro*.c ; do \
-            grep -v '^#line' $$f \
+	  bf=`basename $$f | sed s/warmelt-macro/warmelt-macro.0/`; \
+	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
+          grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
-                 > $(srcdir)/melt/generated/$$f-tmp; \
-	    $(melt_make_move) $(srcdir)/melt/generated/$$f-tmp \
-                     $(srcdir)/melt/generated/$$f ; \
+                 > $(srcdir)/melt/generated/$$bf-tmp; \
+	  ls -l $(srcdir)/melt/generated/$$bf-tmp; \
+	  if [ -f $(srcdir)/melt/generated/$$bf ]; then \
+             mv -f $(srcdir)/melt/generated/$$bf $(srcdir)/melt/generated/$$bf~ ; \
+	  fi ; \
+	  mv -f $(srcdir)/melt/generated/$$bf-tmp \
+                     $(srcdir)/melt/generated/$$bf ; \
         done
 
 	@echo upgrading MELT translator warmelt-normal	
 	for f in melt-sources/warmelt-normal*.c ; do \
-            grep -v '^#line' $$f \
+	  bf=`basename $$f | sed s/warmelt-normal/warmelt-normal.0/`; \
+	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
+          grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
-                 > $(srcdir)/melt/generated/$$f-tmp; \
-	    $(melt_make_move) $(srcdir)/melt/generated/$$f-tmp \
-                     $(srcdir)/melt/generated/$$f ; \
+                 > $(srcdir)/melt/generated/$$bf-tmp; \
+	  ls -l $(srcdir)/melt/generated/$$bf-tmp; \
+	  if [ -f $(srcdir)/melt/generated/$$bf ]; then \
+             mv -f $(srcdir)/melt/generated/$$bf $(srcdir)/melt/generated/$$bf~ ; \
+	  fi ; \
+	  mv -f $(srcdir)/melt/generated/$$bf-tmp \
+                     $(srcdir)/melt/generated/$$bf ; \
         done
 
 	@echo upgrading MELT translator warmelt-normatch	
 	for f in melt-sources/warmelt-normatch*.c ; do \
-            grep -v '^#line' $$f \
+	  bf=`basename $$f | sed s/warmelt-normatch/warmelt-normatch.0/`; \
+	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
+          grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
-                 > $(srcdir)/melt/generated/$$f-tmp; \
-	    $(melt_make_move) $(srcdir)/melt/generated/$$f-tmp \
-                     $(srcdir)/melt/generated/$$f ; \
+                 > $(srcdir)/melt/generated/$$bf-tmp; \
+	  ls -l $(srcdir)/melt/generated/$$bf-tmp; \
+	  if [ -f $(srcdir)/melt/generated/$$bf ]; then \
+             mv -f $(srcdir)/melt/generated/$$bf $(srcdir)/melt/generated/$$bf~ ; \
+	  fi ; \
+	  mv -f $(srcdir)/melt/generated/$$bf-tmp \
+                     $(srcdir)/melt/generated/$$bf ; \
         done
 
 	@echo upgrading MELT translator warmelt-genobj	
 	for f in melt-sources/warmelt-genobj*.c ; do \
-            grep -v '^#line' $$f \
+	  bf=`basename $$f | sed s/warmelt-genobj/warmelt-genobj.0/`; \
+	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
+          grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
-                 > $(srcdir)/melt/generated/$$f-tmp; \
-	    $(melt_make_move) $(srcdir)/melt/generated/$$f-tmp \
-                     $(srcdir)/melt/generated/$$f ; \
+                 > $(srcdir)/melt/generated/$$bf-tmp; \
+	  ls -l $(srcdir)/melt/generated/$$bf-tmp; \
+	  if [ -f $(srcdir)/melt/generated/$$bf ]; then \
+             mv -f $(srcdir)/melt/generated/$$bf $(srcdir)/melt/generated/$$bf~ ; \
+	  fi ; \
+	  mv -f $(srcdir)/melt/generated/$$bf-tmp \
+                     $(srcdir)/melt/generated/$$bf ; \
         done
 
 	@echo upgrading MELT translator warmelt-outobj	
 	for f in melt-sources/warmelt-outobj*.c ; do \
-            grep -v '^#line' $$f \
+	  bf=`basename $$f | sed s/warmelt-outobj/warmelt-outobj.0/`; \
+	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
+          grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
-                 > $(srcdir)/melt/generated/$$f-tmp; \
-	    $(melt_make_move) $(srcdir)/melt/generated/$$f-tmp \
-                     $(srcdir)/melt/generated/$$f ; \
+                 > $(srcdir)/melt/generated/$$bf-tmp; \
+	  ls -l $(srcdir)/melt/generated/$$bf-tmp; \
+	  if [ -f $(srcdir)/melt/generated/$$bf ]; then \
+             mv -f $(srcdir)/melt/generated/$$bf $(srcdir)/melt/generated/$$bf~ ; \
+	  fi ; \
+	  mv -f $(srcdir)/melt/generated/$$bf-tmp \
+                     $(srcdir)/melt/generated/$$bf ; \
         done
 
 

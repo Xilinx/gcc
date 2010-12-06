@@ -1,4 +1,4 @@
-/* GCC MELT GENERATED FILE warmelt-normal.0+01.c - DO NOT EDIT */
+/* GCC MELT GENERATED FILE melt-sources/warmelt-normal+01.c - DO NOT EDIT */
 /* secondary MELT generated C file of rank #1 */
 #include "melt-run.h"
 
@@ -7,7 +7,7 @@
 const char used_meltrun_md5_melt_f1[] = MELT_RUN_HASHMD5 /* from melt-run.h */;
 
 
-/**** warmelt-normal.0+01.c declarations ****/
+/**** melt-sources/warmelt-normal+01.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1
 
 /**!!** ***
@@ -868,7 +868,7 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_19 (struct frame_sta
 static void forward_or_mark_module_start_frame_warmelt_normal (struct callframe_melt_st* fp, int marking);
 
 
-/**** warmelt-normal.0+01.c implementations ****/
+/**** melt-sources/warmelt-normal+01.c implementations ****/
 
 
 
@@ -2192,9 +2192,9 @@ lab_endgetargs:;
     
     
     /*^putuple*/
-    /*putupl*/
-    melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V15*/ meltfptr[14]))== MELTOBMAG_MULTIPLE);
-    melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V15*/ meltfptr[14]))));
+    /*putupl#1*/
+    melt_assertmsg("putupl [:939] #1 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V15*/ meltfptr[14]))== MELTOBMAG_MULTIPLE);
+    melt_assertmsg("putupl [:939] #1 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V15*/ meltfptr[14]))));
     ((meltmultiple_ptr_t)(/*_.TUPLREC___V15*/ meltfptr[14]))->tabval[0] = (melt_ptr_t)(/*_.NEXP__V2*/ meltfptr[1]);
     ;
     /*^touch*/
@@ -10936,7 +10936,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /26bd3ba2 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /366f8577 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))->hd = (melt_ptr_t) (/*_.CBIND__V30*/ meltfptr[29]);
   ;
   /*^touch*/
@@ -32685,9 +32685,9 @@ lab_endgetargs:;
   
   
   /*^putuple*/
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V61*/ meltfptr[60]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V61*/ meltfptr[60]))));
+  /*putupl#2*/
+  melt_assertmsg("putupl [:2967] #2 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V61*/ meltfptr[60]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:2967] #2 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V61*/ meltfptr[60]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V61*/ meltfptr[60]))->tabval[0] = (melt_ptr_t)(/*_.WRAP_NORMAL_LETSEQ__V59*/ meltfptr[58]);
   ;
   /*^touch*/
@@ -32998,4 +32998,4 @@ melt_trace_end("NORMEXP_FOREVER", meltcallcount);  melt_topframe = (struct callf
 
 
 
-/**** end of warmelt-normal.0+01.c ****/
+/**** end of melt-sources/warmelt-normal+01.c ****/

@@ -1,4 +1,4 @@
-/* GCC MELT GENERATED FILE warmelt-normal.0+02.c - DO NOT EDIT */
+/* GCC MELT GENERATED FILE melt-sources/warmelt-normal+02.c - DO NOT EDIT */
 /* secondary MELT generated C file of rank #2 */
 #include "melt-run.h"
 
@@ -7,7 +7,7 @@
 const char used_meltrun_md5_melt_f2[] = MELT_RUN_HASHMD5 /* from melt-run.h */;
 
 
-/**** warmelt-normal.0+02.c declarations ****/
+/**** melt-sources/warmelt-normal+02.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1
 
 /**!!** ***
@@ -868,7 +868,7 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_19 (struct frame_sta
 static void forward_or_mark_module_start_frame_warmelt_normal (struct callframe_melt_st* fp, int marking);
 
 
-/**** warmelt-normal.0+02.c implementations ****/
+/**** melt-sources/warmelt-normal+02.c implementations ****/
 
 
 
@@ -2715,9 +2715,9 @@ lab_endgetargs:;
                 
                 
                 /*^putuple*/
-                /*putupl*/
-                melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V53*/ meltfptr[52]))== MELTOBMAG_MULTIPLE);
-                melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V53*/ meltfptr[52]))));
+                /*putupl#3*/
+                melt_assertmsg("putupl [:3138] #3 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V53*/ meltfptr[52]))== MELTOBMAG_MULTIPLE);
+                melt_assertmsg("putupl [:3138] #3 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V53*/ meltfptr[52]))));
                 ((meltmultiple_ptr_t)(/*_.TUPLREC___V53*/ meltfptr[52]))->tabval[0] = (melt_ptr_t)(/*_.RBIND__V50*/ meltfptr[49]);
                 ;
                 /*^touch*/
@@ -2744,9 +2744,9 @@ lab_endgetargs:;
                 
                 
                 /*^putuple*/
-                /*putupl*/
-                melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V55*/ meltfptr[54]))== MELTOBMAG_MULTIPLE);
-                melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V55*/ meltfptr[54]))));
+                /*putupl#4*/
+                melt_assertmsg("putupl [:3142] #4 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V55*/ meltfptr[54]))== MELTOBMAG_MULTIPLE);
+                melt_assertmsg("putupl [:3142] #4 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V55*/ meltfptr[54]))));
                 ((meltmultiple_ptr_t)(/*_.TUPLREC___V55*/ meltfptr[54]))->tabval[0] = (melt_ptr_t)(/*_.RETN__V48*/ meltfptr[47]);
                 ;
                 /*^touch*/
@@ -9046,27 +9046,27 @@ lab_endgetargs:;
   meltgc_touch(/*_.CLOCC__V31*/ meltfptr[30]);
   ;
   MELT_LOCATION("warmelt-normal.melt:3542:/ putuple");
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUP1BIND__V32*/ meltfptr[31]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUP1BIND__V32*/ meltfptr[31]))));
+  /*putupl#5*/
+  melt_assertmsg("putupl [:3542] #5 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUP1BIND__V32*/ meltfptr[31]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:3542] #5 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUP1BIND__V32*/ meltfptr[31]))));
   ((meltmultiple_ptr_t)(/*_.TUP1BIND__V32*/ meltfptr[31]))->tabval[0] = (melt_ptr_t)(/*_.CONSTUPBIND__V30*/ meltfptr[29]);
   ;
   /*^touch*/
   meltgc_touch(/*_.TUP1BIND__V32*/ meltfptr[31]);
   ;
   MELT_LOCATION("warmelt-normal.melt:3543:/ putuple");
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUP1LOC__V33*/ meltfptr[32]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUP1LOC__V33*/ meltfptr[32]))));
+  /*putupl#6*/
+  melt_assertmsg("putupl [:3543] #6 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUP1LOC__V33*/ meltfptr[32]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:3543] #6 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUP1LOC__V33*/ meltfptr[32]))));
   ((meltmultiple_ptr_t)(/*_.TUP1LOC__V33*/ meltfptr[32]))->tabval[0] = (melt_ptr_t)(/*_.CLOCC__V31*/ meltfptr[30]);
   ;
   /*^touch*/
   meltgc_touch(/*_.TUP1LOC__V33*/ meltfptr[32]);
   ;
   MELT_LOCATION("warmelt-normal.melt:3544:/ putuple");
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.NBDY__V34*/ meltfptr[33]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.NBDY__V34*/ meltfptr[33]))));
+  /*putupl#7*/
+  melt_assertmsg("putupl [:3544] #7 checktup", melt_magic_discr((melt_ptr_t)(/*_.NBDY__V34*/ meltfptr[33]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:3544] #7 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.NBDY__V34*/ meltfptr[33]))));
   ((meltmultiple_ptr_t)(/*_.NBDY__V34*/ meltfptr[33]))->tabval[0] = (melt_ptr_t)(/*_.CLOCC__V31*/ meltfptr[30]);
   ;
   /*^touch*/
@@ -9153,7 +9153,7 @@ lab_endgetargs:;
   ;
   MELT_LOCATION("warmelt-normal.melt:3565:/ putpairhead");
   /*putpairhead*/
-  melt_assertmsg("putpairhead /d9531fe checkpair", melt_magic_discr((melt_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /e72773a checkpair", melt_magic_discr((melt_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))->hd = (melt_ptr_t) (/*_.CTUPBIND__V36*/ meltfptr[35]);
   ;
   /*^touch*/
@@ -10301,9 +10301,9 @@ lab_endgetargs:;
   meltgc_touch(/*_.CRECLOCC__V50*/ meltfptr[49]);
   ;
   MELT_LOCATION("warmelt-normal.melt:3631:/ putuple");
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.NBDY__V51*/ meltfptr[50]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.NBDY__V51*/ meltfptr[50]))));
+  /*putupl#8*/
+  melt_assertmsg("putupl [:3631] #8 checktup", melt_magic_discr((melt_ptr_t)(/*_.NBDY__V51*/ meltfptr[50]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:3631] #8 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.NBDY__V51*/ meltfptr[50]))));
   ((meltmultiple_ptr_t)(/*_.NBDY__V51*/ meltfptr[50]))->tabval[0] = (melt_ptr_t)(/*_.CRECLOCC__V50*/ meltfptr[49]);
   ;
   /*^touch*/
@@ -10390,7 +10390,7 @@ lab_endgetargs:;
   ;
   MELT_LOCATION("warmelt-normal.melt:3650:/ putpairhead");
   /*putpairhead*/
-  melt_assertmsg("putpairhead /11e070bb checkpair", melt_magic_discr((melt_ptr_t)(/*_.CLISTBIND__V55*/ meltfptr[54]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /2fa1dc61 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CLISTBIND__V55*/ meltfptr[54]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CLISTBIND__V55*/ meltfptr[54]))->hd = (melt_ptr_t) (/*_.CLISTBIND__V53*/ meltfptr[52]);
   ;
   /*^touch*/
@@ -26766,4 +26766,4 @@ melt_trace_end("FILL_NORMAL_EXPANSION", meltcallcount);  melt_topframe = (struct
 
 
 
-/**** end of warmelt-normal.0+02.c ****/
+/**** end of melt-sources/warmelt-normal+02.c ****/

@@ -335,19 +335,26 @@ $(melt_default_modules_list).modlis: melt-all-modules
 ### MELT upgrade
 .PHONY: warmelt-upgrade-translator
 
-warmmelt-upgrade-translator: \
+warmelt-upgrade-translator: \
 [+FOR melt_translator_file " \\\n"
 +]   melt-sources/[+base+].c \
          $(wildcard  melt-sources/[+base+]+*.c)[+
 ENDFOR melt_translator_file+]
+	@echo upgrading the MELT translator
 [+FOR melt_translator_file+]
 	@echo upgrading MELT translator [+base+]	
 	for f in melt-sources/[+base+]*.c ; do \
-            grep -v '^#line' $$f \
+	  bf=`basename $$f | sed s/[+base+]/[+base+].0/`; \
+	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
+          grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
-                 > $(srcdir)/melt/generated/$$f-tmp; \
-	    $(melt_make_move) $(srcdir)/melt/generated/$$f-tmp \
-                     $(srcdir)/melt/generated/$$f ; \
+                 > $(srcdir)/melt/generated/$$bf-tmp; \
+	  ls -l $(srcdir)/melt/generated/$$bf-tmp; \
+	  if [ -f $(srcdir)/melt/generated/$$bf ]; then \
+             mv -f $(srcdir)/melt/generated/$$bf $(srcdir)/melt/generated/$$bf~ ; \
+	  fi ; \
+	  mv -f $(srcdir)/melt/generated/$$bf-tmp \
+                     $(srcdir)/melt/generated/$$bf ; \
         done
 [+ENDFOR melt_translator_file+]
 

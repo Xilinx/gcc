@@ -1,4 +1,4 @@
-/* GCC MELT GENERATED FILE warmelt-genobj.0+03.c - DO NOT EDIT */
+/* GCC MELT GENERATED FILE melt-sources/warmelt-genobj+03.c - DO NOT EDIT */
 /* secondary MELT generated C file of rank #3 */
 #include "melt-run.h"
 
@@ -7,7 +7,7 @@
 const char used_meltrun_md5_melt_f3[] = MELT_RUN_HASHMD5 /* from melt-run.h */;
 
 
-/**** warmelt-genobj.0+03.c declarations ****/
+/**** melt-sources/warmelt-genobj+03.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1
 
 /**!!** ***
@@ -886,7 +886,7 @@ void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_17 (struct frame_sta
 static void forward_or_mark_module_start_frame_warmelt_genobj (struct callframe_melt_st* fp, int marking);
 
 
-/**** warmelt-genobj.0+03.c implementations ****/
+/**** melt-sources/warmelt-genobj+03.c implementations ****/
 
 
 
@@ -2493,21 +2493,21 @@ lab_endgetargs:;
       
       
       /*^putuple*/
-      /*putupl*/
-      melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))== MELTOBMAG_MULTIPLE);
-      melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))));
+      /*putupl#35*/
+      melt_assertmsg("putupl [:3984] #35 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))== MELTOBMAG_MULTIPLE);
+      melt_assertmsg("putupl [:3984] #35 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))));
       ((meltmultiple_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))->tabval[0] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V47*/ meltfptr[46]);
       ;
       /*^putuple*/
-      /*putupl*/
-      melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))== MELTOBMAG_MULTIPLE);
-      melt_assertmsg("putupl checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))));
+      /*putupl#36*/
+      melt_assertmsg("putupl [:3984] #36 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))== MELTOBMAG_MULTIPLE);
+      melt_assertmsg("putupl [:3984] #36 checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))));
       ((meltmultiple_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))->tabval[1] = (melt_ptr_t)(/*_.MAKE_STRING__V49*/ meltfptr[48]);
       ;
       /*^putuple*/
-      /*putupl*/
-      melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))== MELTOBMAG_MULTIPLE);
-      melt_assertmsg("putupl checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))));
+      /*putupl#37*/
+      melt_assertmsg("putupl [:3984] #37 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))== MELTOBMAG_MULTIPLE);
+      melt_assertmsg("putupl [:3984] #37 checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))));
       ((meltmultiple_ptr_t)(/*_.TUPLREC___V52*/ meltfptr[51]))->tabval[2] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V50*/ meltfptr[49]);
       ;
       /*^touch*/
@@ -2585,21 +2585,21 @@ lab_endgetargs:;
         
         
         /*^putuple*/
-        /*putupl*/
-        melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))== MELTOBMAG_MULTIPLE);
-        melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))));
+        /*putupl#38*/
+        melt_assertmsg("putupl [:3996] #38 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))== MELTOBMAG_MULTIPLE);
+        melt_assertmsg("putupl [:3996] #38 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))));
         ((meltmultiple_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))->tabval[0] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V56*/ meltfptr[47]);
         ;
         /*^putuple*/
-        /*putupl*/
-        melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))== MELTOBMAG_MULTIPLE);
-        melt_assertmsg("putupl checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))));
+        /*putupl#39*/
+        melt_assertmsg("putupl [:3996] #39 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))== MELTOBMAG_MULTIPLE);
+        melt_assertmsg("putupl [:3996] #39 checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))));
         ((meltmultiple_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))->tabval[1] = (melt_ptr_t)(/*_.IPREDEF__V26*/ meltfptr[25]);
         ;
         /*^putuple*/
-        /*putupl*/
-        melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))== MELTOBMAG_MULTIPLE);
-        melt_assertmsg("putupl checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))));
+        /*putupl#40*/
+        melt_assertmsg("putupl [:3996] #40 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))== MELTOBMAG_MULTIPLE);
+        melt_assertmsg("putupl [:3996] #40 checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))));
         ((meltmultiple_ptr_t)(/*_.TUPLREC___V59*/ meltfptr[50]))->tabval[2] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V57*/ meltfptr[48]);
         ;
         /*^touch*/
@@ -11155,33 +11155,33 @@ lab_endgetargs:;
     
     
     /*^putuple*/
-    /*putupl*/
-    melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))== MELTOBMAG_MULTIPLE);
-    melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))));
+    /*putupl#41*/
+    melt_assertmsg("putupl [:4669] #41 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))== MELTOBMAG_MULTIPLE);
+    melt_assertmsg("putupl [:4669] #41 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))));
     ((meltmultiple_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))->tabval[0] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V17*/ meltfptr[16]);
     ;
     /*^putuple*/
-    /*putupl*/
-    melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))== MELTOBMAG_MULTIPLE);
-    melt_assertmsg("putupl checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))));
+    /*putupl#42*/
+    melt_assertmsg("putupl [:4669] #42 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))== MELTOBMAG_MULTIPLE);
+    melt_assertmsg("putupl [:4669] #42 checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))));
     ((meltmultiple_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))->tabval[1] = (melt_ptr_t)(/*_.MAKE_STRING__V19*/ meltfptr[18]);
     ;
     /*^putuple*/
-    /*putupl*/
-    melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))== MELTOBMAG_MULTIPLE);
-    melt_assertmsg("putupl checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))));
+    /*putupl#43*/
+    melt_assertmsg("putupl [:4669] #43 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))== MELTOBMAG_MULTIPLE);
+    melt_assertmsg("putupl [:4669] #43 checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))));
     ((meltmultiple_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))->tabval[2] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V20*/ meltfptr[19]);
     ;
     /*^putuple*/
-    /*putupl*/
-    melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))== MELTOBMAG_MULTIPLE);
-    melt_assertmsg("putupl checkoff", (3>=0 && 3< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))));
+    /*putupl#44*/
+    melt_assertmsg("putupl [:4669] #44 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))== MELTOBMAG_MULTIPLE);
+    melt_assertmsg("putupl [:4669] #44 checkoff", (3>=0 && 3< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))));
     ((meltmultiple_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))->tabval[3] = (melt_ptr_t)(/*_.OVAL__V14*/ meltfptr[13]);
     ;
     /*^putuple*/
-    /*putupl*/
-    melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))== MELTOBMAG_MULTIPLE);
-    melt_assertmsg("putupl checkoff", (4>=0 && 4< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))));
+    /*putupl#45*/
+    melt_assertmsg("putupl [:4669] #45 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))== MELTOBMAG_MULTIPLE);
+    melt_assertmsg("putupl [:4669] #45 checkoff", (4>=0 && 4< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))));
     ((meltmultiple_ptr_t)(/*_.TUPLREC___V23*/ meltfptr[22]))->tabval[4] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V21*/ meltfptr[20]);
     ;
     /*^touch*/
@@ -11272,33 +11272,33 @@ lab_endgetargs:;
       
       
       /*^putuple*/
-      /*putupl*/
-      melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))== MELTOBMAG_MULTIPLE);
-      melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))));
+      /*putupl#46*/
+      melt_assertmsg("putupl [:4684] #46 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))== MELTOBMAG_MULTIPLE);
+      melt_assertmsg("putupl [:4684] #46 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))));
       ((meltmultiple_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))->tabval[0] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V28*/ meltfptr[17]);
       ;
       /*^putuple*/
-      /*putupl*/
-      melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))== MELTOBMAG_MULTIPLE);
-      melt_assertmsg("putupl checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))));
+      /*putupl#47*/
+      melt_assertmsg("putupl [:4684] #47 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))== MELTOBMAG_MULTIPLE);
+      melt_assertmsg("putupl [:4684] #47 checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))));
       ((meltmultiple_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))->tabval[1] = (melt_ptr_t)(/*_.NPRED__V12*/ meltfptr[11]);
       ;
       /*^putuple*/
-      /*putupl*/
-      melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))== MELTOBMAG_MULTIPLE);
-      melt_assertmsg("putupl checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))));
+      /*putupl#48*/
+      melt_assertmsg("putupl [:4684] #48 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))== MELTOBMAG_MULTIPLE);
+      melt_assertmsg("putupl [:4684] #48 checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))));
       ((meltmultiple_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))->tabval[2] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V29*/ meltfptr[18]);
       ;
       /*^putuple*/
-      /*putupl*/
-      melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))== MELTOBMAG_MULTIPLE);
-      melt_assertmsg("putupl checkoff", (3>=0 && 3< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))));
+      /*putupl#49*/
+      melt_assertmsg("putupl [:4684] #49 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))== MELTOBMAG_MULTIPLE);
+      melt_assertmsg("putupl [:4684] #49 checkoff", (3>=0 && 3< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))));
       ((meltmultiple_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))->tabval[3] = (melt_ptr_t)(/*_.OVAL__V14*/ meltfptr[13]);
       ;
       /*^putuple*/
-      /*putupl*/
-      melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))== MELTOBMAG_MULTIPLE);
-      melt_assertmsg("putupl checkoff", (4>=0 && 4< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))));
+      /*putupl#50*/
+      melt_assertmsg("putupl [:4684] #50 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))== MELTOBMAG_MULTIPLE);
+      melt_assertmsg("putupl [:4684] #50 checkoff", (4>=0 && 4< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))));
       ((meltmultiple_ptr_t)(/*_.TUPLREC___V32*/ meltfptr[21]))->tabval[4] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V30*/ meltfptr[19]);
       ;
       /*^touch*/
@@ -12646,7 +12646,7 @@ lab_endgetargs:;
     
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /14bbeb51 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OCONTENVLOC__V11*/ meltfptr[10]))== MELTOBMAG_PAIR);
+    melt_assertmsg("putpairhead /e037170 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OCONTENVLOC__V11*/ meltfptr[10]))== MELTOBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.OCONTENVLOC__V11*/ meltfptr[10]))->hd = (melt_ptr_t) ((/*~OCONTENVLOC*/ meltfclos->tabval[4]));
     ;
     /*^touch*/
@@ -21561,33 +21561,33 @@ lab_endgetargs:;
   
   
   /*^putuple*/
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))));
+  /*putupl#51*/
+  melt_assertmsg("putupl [:5390] #51 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:5390] #51 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))->tabval[0] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V38*/ meltfptr[37]);
   ;
   /*^putuple*/
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))));
+  /*putupl#52*/
+  melt_assertmsg("putupl [:5390] #52 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:5390] #52 checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))->tabval[1] = (melt_ptr_t)(/*_.OMATCHED__V30*/ meltfptr[29]);
   ;
   /*^putuple*/
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))));
+  /*putupl#53*/
+  melt_assertmsg("putupl [:5390] #53 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:5390] #53 checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))->tabval[2] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V39*/ meltfptr[38]);
   ;
   /*^putuple*/
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (3>=0 && 3< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))));
+  /*putupl#54*/
+  melt_assertmsg("putupl [:5390] #54 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:5390] #54 checkoff", (3>=0 && 3< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))->tabval[3] = (melt_ptr_t)(/*_.OCLASS__V29*/ meltfptr[27]);
   ;
   /*^putuple*/
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (4>=0 && 4< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))));
+  /*putupl#55*/
+  melt_assertmsg("putupl [:5390] #55 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:5390] #55 checkoff", (4>=0 && 4< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V42*/ meltfptr[41]))->tabval[4] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V40*/ meltfptr[39]);
   ;
   /*^touch*/
@@ -23158,33 +23158,33 @@ lab_endgetargs:;
   
   
   /*^putuple*/
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))));
+  /*putupl#56*/
+  melt_assertmsg("putupl [:5492] #56 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:5492] #56 checkoff", (0>=0 && 0< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))->tabval[0] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V35*/ meltfptr[34]);
   ;
   /*^putuple*/
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))));
+  /*putupl#57*/
+  melt_assertmsg("putupl [:5492] #57 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:5492] #57 checkoff", (1>=0 && 1< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))->tabval[1] = (melt_ptr_t)(/*_.OMATCHED__V20*/ meltfptr[19]);
   ;
   /*^putuple*/
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))));
+  /*putupl#58*/
+  melt_assertmsg("putupl [:5492] #58 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:5492] #58 checkoff", (2>=0 && 2< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))->tabval[2] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V36*/ meltfptr[35]);
   ;
   /*^putuple*/
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (3>=0 && 3< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))));
+  /*putupl#59*/
+  melt_assertmsg("putupl [:5492] #59 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:5492] #59 checkoff", (3>=0 && 3< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))->tabval[3] = (melt_ptr_t)(/*_.OIDENTICAL__V21*/ meltfptr[20]);
   ;
   /*^putuple*/
-  /*putupl*/
-  melt_assertmsg("putupl checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))== MELTOBMAG_MULTIPLE);
-  melt_assertmsg("putupl checkoff", (4>=0 && 4< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))));
+  /*putupl#60*/
+  melt_assertmsg("putupl [:5492] #60 checktup", melt_magic_discr((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))== MELTOBMAG_MULTIPLE);
+  melt_assertmsg("putupl [:5492] #60 checkoff", (4>=0 && 4< melt_multiple_length((melt_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))));
   ((meltmultiple_ptr_t)(/*_.TUPLREC___V39*/ meltfptr[38]))->tabval[4] = (melt_ptr_t)(/*_.MAKE_STRINGCONST__V37*/ meltfptr[36]);
   ;
   /*^touch*/
@@ -24296,12 +24296,12 @@ lab_endgetargs:;
     
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /18593ccc checkpair", melt_magic_discr((melt_ptr_t)(/*_.OSUCC__V41*/ meltfptr[37]))== MELTOBMAG_PAIR);
+    melt_assertmsg("putpairhead /2c31c778 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OSUCC__V41*/ meltfptr[37]))== MELTOBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.OSUCC__V41*/ meltfptr[37]))->hd = (melt_ptr_t) (/*_.OSUCC__V33*/ meltfptr[32]);
     ;
     /*^putpairtail*/
     /*putpairtail*/
-    melt_assertmsg("putpairtail /c6e2ff5 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OSUCC__V41*/ meltfptr[37]))== MELTOBMAG_PAIR);
+    melt_assertmsg("putpairtail /1cfb01b checkpair", melt_magic_discr((melt_ptr_t)(/*_.OSUCC__V41*/ meltfptr[37]))== MELTOBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.OSUCC__V41*/ meltfptr[37]))->tl = (meltpair_ptr_t) (/*_.GOTOEND__V42*/ meltfptr[38]);
     ;
     /*^touch*/
@@ -24309,7 +24309,7 @@ lab_endgetargs:;
     ;
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /34c11bbf checkpair", melt_magic_discr((melt_ptr_t)(/*_.GOTOEND__V42*/ meltfptr[38]))== MELTOBMAG_PAIR);
+    melt_assertmsg("putpairhead /1a71ab8c checkpair", melt_magic_discr((melt_ptr_t)(/*_.GOTOEND__V42*/ meltfptr[38]))== MELTOBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.GOTOEND__V42*/ meltfptr[38]))->hd = (melt_ptr_t) (/*_.GOTOEND__V23*/ meltfptr[22]);
     ;
     /*^touch*/
@@ -28325,4 +28325,4 @@ melt_trace_end("COMPILMATCHER_CMATCHER", meltcallcount);  melt_topframe = (struc
 
 
 
-/**** end of warmelt-genobj.0+03.c ****/
+/**** end of melt-sources/warmelt-genobj+03.c ****/

@@ -1,4 +1,4 @@
-/* GCC MELT GENERATED FILE warmelt-genobj.0+04.c - DO NOT EDIT */
+/* GCC MELT GENERATED FILE melt-sources/warmelt-genobj+04.c - DO NOT EDIT */
 /* secondary MELT generated C file of rank #4 */
 #include "melt-run.h"
 
@@ -7,7 +7,7 @@
 const char used_meltrun_md5_melt_f4[] = MELT_RUN_HASHMD5 /* from melt-run.h */;
 
 
-/**** warmelt-genobj.0+04.c declarations ****/
+/**** melt-sources/warmelt-genobj+04.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1
 
 /**!!** ***
@@ -886,7 +886,7 @@ void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_17 (struct frame_sta
 static void forward_or_mark_module_start_frame_warmelt_genobj (struct callframe_melt_st* fp, int marking);
 
 
-/**** warmelt-genobj.0+04.c implementations ****/
+/**** melt-sources/warmelt-genobj+04.c implementations ****/
 
 
 
@@ -2938,7 +2938,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /58cfea7 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTCLOS__V69*/ meltfptr[68]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /34cd4d4a checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTCLOS__V69*/ meltfptr[68]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.OTESTCLOS__V69*/ meltfptr[68]))->hd = (melt_ptr_t) (/*_.OTESTCLOS__V38*/ meltfptr[37]);
   ;
   /*^touch*/
@@ -3013,7 +3013,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /2ea06528 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTRES__V74*/ meltfptr[73]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /15f56577 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTRES__V74*/ meltfptr[73]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.OTESTRES__V74*/ meltfptr[73]))->hd = (melt_ptr_t) (/*_.OTESTRES__V37*/ meltfptr[36]);
   ;
   /*^touch*/
@@ -3772,4 +3772,4 @@ melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_mel
 
 
 
-/**** end of warmelt-genobj.0+04.c ****/
+/**** end of melt-sources/warmelt-genobj+04.c ****/
