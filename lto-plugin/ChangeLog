@@ -1,3 +1,22 @@
+2010-12-06  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR target/40125
+	PR lto/46695
+	* configure.ac: Invoke ACX_LT_HOST_FLAGS.
+	* Makefile.am (liblto_plugin_la_LDFLAGS): Use lt_host_flags but
+	override -bindir setting.
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+
+2010-12-05  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac (AC_CHECK_HEADERS): Replaced by AC_HEADER_SYS_WAIT.
+	* lto-plugin.c (WIFEXITED): Define default.
+	(WEXITSTATUS): Likeiwse.
+
 2010-12-01  Kai Tietz  <kai.tietz@onevision.com>
 
 	* config.h.in: Regenerated.

@@ -1,3 +1,28 @@
+2010-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46785
+	* gcc.dg/vect/fast-math-vect-reduc-9.c: New testcase.
+
+2010-12-06  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* gcc.dg/pr46674.c (LABEL3): New macro definition.
+	(LABEL2): Likewise.
+	(LABEL): Likewise.
+	(jelly): Account for user label prefix in asm name.
+
+2010-12-05  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/46794
+	* gfortran.dg/power2.f90: Initialize variables.
+
+2010-12-04  Jan Hubicka  <jh@suse.cz>
+
+	* snprintf-chk.c (ptr): Declare volatile.
+	* strcpy-chk.c (s2, s3, l1): Declare volatile.
+	* snprintf-chk.c (ptr): Declare volatile.
+	* vsprintf-chk.c (ptr): Declare volatile.
+	* vsnprintf-chk.c (ptr): Declare volatile.
+
 2010-12-04  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/46584

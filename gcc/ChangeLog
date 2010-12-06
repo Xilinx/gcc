@@ -1,3 +1,87 @@
+2010-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46785
+	* tree-vect-loop.c (vect_is_simple_reduction_1): Also allow
+	call statements as operand definition.
+
+2010-12-06  Mingjie Xing  <mingjie.xing@gmail.com>
+
+	* doc/tm.texi.in: Fix typo.
+	* doc/tm.texi: Regenerate.
+
+2010-12-05  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config.gcc [hppa[12]*-*-hpux10*, hppa[12]*-*-hpux11*]: Fix typo in
+	last change.
+
+2010-12-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-family/c-common.h: Removed the declarations of all the objc_
+	callbacks, and moved them into c-objc.h.  Removed
+	objc_ivar_visibility_kind and moved it into c-objc.h.
+	* c-family/c-objc.h: New file.
+	* c-family/c-common.c: Include c-objc.h.
+	* c-family/c-format.c: Same change.
+	* c-family/stub-objc.c: Same change.
+	* c-decl.c: Include c-family/c-objc.h.
+	* c-parser.c: Same change.	
+	* c-typeck.c: Same change.
+	* c-config-lang.in (gtfiles): Added c-family/c-objc.h.
+	* Makefile.in (c-decl.o): Depend on c-family/c-objc.h.
+	(c-parser.o): same change.
+	(c-typeck.o): Same change.
+	(c-family/c-format.o): Same change.
+	(c-family/stub-objc.o): Same change.
+	(c-family/c-common.o): Same change.
+	(PLUGIN_HEADERS): Added c-family/c-objc.h.
+	
+2010-12-05  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config.gcc [hppa[12]*-*-hpux10*, hppa[12]*-*-hpux11*]:  Ignore
+	--with-dwarf2 option.
+
+2010-12-03  Jan Hubicka  <jh@suse.cz>
+
+	* lto-streamer-in.c (input_cfg): Fix pasto.
+
+2010-12-03  Jan Hubicka  <jh@suse.cz>
+
+	* ipa.c (cgraph_externally_visible_p): Do not localize builtins
+	and functions with user asm defined names.
+	(varpool_externally_visible_p): Do not localize vars with user
+	asm defined names.
+
+2010-12-03  Jan Hubicka  <jh@suse.cz>
+
+	* dwarf2asm.c (dw2_output_indirect_constant_1): Set DECL_ASSEMBLER_NAME
+	to prevent mangling with lto frontend.
+
+2010-12-03  Jan Hubicka  <jh@suse.cz>
+
+	* Makefile.in (LTO_STREAMER_H): Add GCOV_IO_H.
+	* lto-cgraph.c (merge_profile_summaries): Fix thinko.
+
+2010-12-03  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/46760
+	* cgraph.c (cgraph_create_node): Initialize count_materialization_scale.
+	* cgraph.h (struct cgraph_node): Add count_materialization_scale.
+	* lto-cgraph.c (lto_output_edge): Fix assert.
+	(lto_output_node): Output count_materialization_scale.
+	(output_profile_summary): Output only runs and sum_max.
+	(input_node): Input count_materialization_scale.
+	(input_profile_summary): Read data into file specific gcov summary.
+	(merge_profile_summaries): New function.
+	(input_cgraph): Update call of input_profile_summary;
+	call merge_profile_summaries.
+	* lto-streamer-in.c (input_cfg): Add count_materialization_scale arg;
+	rescale counts at read in.
+	(intput_bb): Likewise.
+	(input_function): Update call of input_bb.
+	(lto_read_body): Update call of input_cfg.
+	* lto-streamer.h: Inlclude gcov-io.h
+	(lto_file_decl_data): Add gcov_ctr_summary.
+
 2010-12-03  Dave Korn  <dave.korn.cygwin@gmail.com>
 
 	* doc/tm.texi.in (Cond. Exec. Macros): Rename node from this ...
