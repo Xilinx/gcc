@@ -291,9 +291,9 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
                     $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=melt_modules:$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=melt_sources:$(MELT_LAST_STAGE) \
-	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):[+ (. (join ":" prevapplbase))+] \
+	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
+	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
+	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):[+ (. (join ":" (reverse prevapplbase)))+] \
 	     $(meltarg_output)=$@ 
 
 melt-modules/[+base+].so: melt-sources/[+base+].c \

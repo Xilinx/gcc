@@ -1,3 +1,5 @@
+;; -*- Lisp -*-
+;; file xtramelt-c-generator.melt
 (comment "***
     Copyright 2010 Free Software Foundation, Inc.
     Contributed by Jeremie Salvucci  <jeremie.salvucci@free.fr>
@@ -846,7 +848,7 @@
 	 (build_instruction_goto datas function sets instruction))))
 
 (defun traverse_function_body (datas function sets :basic_block body)
-  (let ((successor (basicblock_single_succ body))
+  (let ((:basic_block successor (basicblock_single_succ body))
 	(successor_index (make_integerbox discr_integer (basic_block_index successor)))
 	(function_block (instance class_c_generator_block
 			  :block_id (make_integerbox discr_integer (basic_block_index body))

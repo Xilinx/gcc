@@ -1,4 +1,25 @@
 
+2010-12-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in: Remove include melt-make.mk, use melt-build.mk
+	instead.
+	(melt-build.mk): New autogen based rule.
+	(install-melt-dynlib): Use melt-all-modules.
+	(install-melt-cfiles, -install-melt-meltfiles): Use
+	melt-all-sources.
+	(upgrade-warmelt): Use warmelt-upgrade-translator in
+	melt-build.mk
+
+	* melt-make.mk: Remove file.
+
+	* xtramelt-ana-base.melt (tree_real_type): size is a tree!
+
+	* xtramelt-c-generator.melt (traverse_function_body): successor is
+	a basic_block.
+
+	* melt-build.mk: New autogen generated file.
+
+	* melt-build.tpl: Typo in application MELT handing.
 
 2010-12-05  Basile Starynkevitch  <basile@starynkevitch.net>
 

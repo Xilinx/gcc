@@ -1640,7 +1640,7 @@
   (:tree tr)
   (					;output
    :tree type
-   :long size
+   :tree size
   )
   tranyfloaty
 

@@ -5479,39 +5479,36 @@ melt_installed_cflags= $(MELTHERE_CFLAGS) -I $(plugin_includedir)
 ## leave melt_is_plugin as empty 
 melt_is_plugin=
 
-ifdef MELT_NEW_MAKE
-#include $(srcdir)/melt-make.mk
+MELT_STAGE_ZERO=melt-stage0-static
 AUTOGEN= autogen
 $(srcdir)/melt-build.mk: @MAINT@ $(srcdir)/melt-build.def $(srcdir)/melt-build.tpl
 	cd $(srcdir) && $(AUTOGEN) melt-build.def
 include $(srcdir)/melt-build.mk
-else
-include $(srcdir)/melt-make.mk
-endif
+
 
 ####
 #### installing melt generated shared object plugins (at MELT 3rd
 #### stage) and the default melt module list
-install-melt-dynlib: installdirs $(melt_default_modules_list).modlis $(WARMELT_BASESO) $(XTRAMELT_BASESO)
+install-melt-dynlib: installdirs $(melt_default_modules_list).modlis melt-all-modules
 	$(mkinstalldirs) $(DESTDIR)$(melt_module_dir)
 	rm -f  $(melt_module_dir)/$(melt_default_modules_list).modlis	
 	$(INSTALL_DATA) $(melt_default_modules_list).modlis $(DESTDIR)$(melt_module_dir)/$(melt_default_modules_list).modlis
-	for dynfile in  $(WARMELT_BASESO) $(XTRAMELT_BASESO); do \
+	for dynfile in  melt-modules/*.so; do \
 	   rm -f $(melt_module_dir)/$$dynfile; \
 	   $(INSTALL_PROGRAM) -m 755 $$dynfile $(DESTDIR)$(melt_module_dir)/$$dynfile; \
 	done
 
 
 #### installing melt generated C files (at MELT 3rd stage)
-install-melt-cfiles: installdirs $(WARMELT_BASEC) $(XTRAMELT_BASEC)
+install-melt-cfiles: installdirs melt-all-sources
 	$(mkinstalldirs) $(DESTDIR)$(melt_source_dir)
-	for cfile in  $(WARMELT_BASEC) $(XTRAMELT_BASEC); do \
+	for cfile in  melt-modules/*.c; do \
 	  rm -f $(DESTDIR)$(melt_source_dir)/$$cfile; \
 	  $(INSTALL_DATA) $$cfile $(DESTDIR)$(melt_source_dir)/$$cfile ; \
 	done
 
 #### install the MELT source files (in Melt)
-install-melt-meltfiles: installdirs $(WARMELT_SRCFILES) $(XTRAMELT_SRCFILES)
+install-melt-meltfiles: installdirs melt-all-sources
 	$(mkinstalldirs) $(DESTDIR)$(melt_source_dir)
 	for meltfile in  $(WARMELT_FILES) $(XTRAMELT_FILES) ; do \
 	  rm -f $(DESTDIR)$(melt_source_dir)/$$meltfile; \
@@ -5554,32 +5551,7 @@ gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c $(srcdir)/melt-runtime.h gtyp
 $(warning upgrade-warmelt discard gengtype error)
 upgrade-warmelt: $(WARMELT_BASESO) gtyp-real-meltplugin-input.list 
 	$(MAKE) Makefile warmelt.modlis
-# we used to have a move-if-change of the generated files, but an mv
-# is better...
-## build warmelt-first.0*.c
-	@echo upgrade-warmelt building warmelt-first-0.c and secondary files
-	rm -f warmelt-first.0*.c 
-	$(MELTCCINIT1) $(meltarg_init)="@warmelt" \
-	      $(meltarg_arg)=$(srcdir)/melt/warmelt-first.melt \
-	      $(meltarg_output)=warmelt-first.0.c  empty-file-for-melt.c
-	rm -f $(srcdir)/melt/generated/warmelt-first.0*.c
-	for f in warmelt-first.0*.c; do \
-	  grep -v '^#line' $$f | unifdef -UMELTGCC_NOLINENUMBERING  > $(srcdir)/melt/$$f-tmp; \
-	  mv  $(srcdir)/melt/$$f-tmp  $(srcdir)/melt/generated/$$f; \
-	done
-## build other warmelt-*.0*.c
-	for r in $(WARMELT_REST); do \
-	  rm -f $$r.0*.c ; \
-	  echo upgrade-warmelt generating $$r.0 C files; \
-	  $(MELTCCFILE1) $(meltarg_init)="@warmelt" \
-	      $(meltarg_arg)=$(srcdir)/melt/$$r.melt \
-	      $(meltarg_output)=$$r.0.c  empty-file-for-melt.c ; \
-	  rm -f $(srcdir)/melt/generated/$$r.0*.c; \
-	  for f in $$r.0*.c ; do \
-	    grep -v '^#line' $$f | unifdef -UMELTGCC_NOLINENUMBERING  > $(srcdir)/melt/$$f-tmp; \
-	    mv  $(srcdir)/melt/$$f-tmp  $(srcdir)/melt/generated/$$f; \
-          done; \
-	done
+	$(MAKE) warmelt-upgrade-translator
 ## temporary quirk.... when gengtype is buggy in plugin mode...
 	-$(MAKE) -k gt-melt-runtime-plugin.h
 ## copy gt-melt-runtime-plugin.h
