@@ -1,5 +1,23 @@
 
 2010-12-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* common.opt (-fmelt-debug-skip): Add synonym for
+	-fmelt-debugskip.
+	(-fmelt-bootstrapping): Add new flag.
+
+	* melt-runtime.c (flag_melt_bootstrapping): Add for plugins.
+	(melt_argument): Handle debug-skip synonym and bootstrapping.
+	(compile_gencsrc_to_binmodule, meltgc_make_load_melt_module)
+	(meltgc_load_modulelist, meltgc_read_file): Handle bootstrapping
+	by skipping builtin or environment directories.
+	(melt_really_initialize): Show a message when bootstrapping.
+
+	* mel-build.tpl (meltarg_bootstrapping): New.
+	(MELTCCINIT1, MELTCCFILE1): Use it.
+	(empty-file-for-melt.c): Add.
+
+	* melt-built.mk: Regenerate.
+
+2010-12-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in: Remove include melt-make.mk, use melt-build.mk
 	instead.

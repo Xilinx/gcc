@@ -41,6 +41,7 @@ meltarg_source_path=$(if $(melt_is_plugin),-fplugin-arg-melt-source-path,-fmelt-
 meltarg_tempdir=$(if $(melt_is_plugin),-fplugin-arg-melt-tempdir,-fmelt-tempdir)
 
 meltarg_arg=$(if $(melt_is_plugin),-fplugin-arg-melt-arg,-fmelt-arg)
+meltarg_bootstrapping=$(if $(melt_is_plugin),-fplugin-arg-melt-bootstrapping,-fmelt-bootstrapping)
 meltarg_makefile=$(if $(melt_is_plugin),-fplugin-arg-melt-module-makefile,-fmelt-module-makefile)
 meltarg_makecmd=$(if $(melt_is_plugin),-fplugin-arg-melt-module-make-command,-fmelt-module-make-command)
 meltarg_arglist=$(if $(melt_is_plugin),-fplugin-arg-melt-arglist,-fmelt-arglist)
@@ -51,15 +52,13 @@ meltarg_output=$(if $(melt_is_plugin),-fplugin-arg-melt-output,-fmelt-output)
 MELTCCINIT1=$(melt_make_cc1) $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translateinit  \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
 	      $(meltarg_makecmd)=$(MAKE) \
-	      $(meltarg_tempdir)=.  $(MELT_DEBUG)
+	      $(meltarg_tempdir)=. $(meltarg_bootstrapping) $(MELT_DEBUG)
 
 ## the invocation to translate the other files
 MELTCCFILE1=$(melt_make_cc1)  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translatefile  \
-	      $(meltarg_module_path)=.:$(melt_make_module_dir) \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
 	      $(meltarg_makecmd)=$(MAKE) \
-	      $(meltarg_source_path)=.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
-	      $(meltarg_tempdir)=.  $(MELT_DEBUG)
+	      $(meltarg_tempdir)=. $(meltarg_bootstrapping)  $(MELT_DEBUG)
 
 
 vpath %.so $(melt_make_module_dir) . 
@@ -80,6 +79,8 @@ MELT_TRANSLATOR_BASE= \
 MELT_APPLICATION_BASE= \
   [+FOR melt_application_file +] [+base+] \
   [+ENDFOR melt_application_file+]
+
+
 
 ## The cold stage 0 of the translator
 [+FOR melt_translator_file +]
@@ -132,6 +133,11 @@ ENDFOR melt_translator_file+]
 [+FOR melt_translator_file+]	echo [+base+]-0 >> $@-tmp
 [+ENDFOR melt_translator_file+]
 	$(melt_make_move) $@-tmp $@
+
+## An empty file is needed for every MELT translation!
+empty-file-for-melt.c:
+	date +"/* empty-file-for-melt.c %c */" > $@-tmp
+	mv $@-tmp $@
 
 ## can be overridden manually to either melt-stage0-dynamic or
 ## melt-stage0-static

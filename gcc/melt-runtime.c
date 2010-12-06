@@ -100,6 +100,7 @@ extern void gt_ggc_mx_melt_un (void *);
 
 #ifdef MELT_IS_PLUGIN
 int flag_melt_debug;
+int flag_melt_bootstrapping;
 /**
    NOTE:  october 2009
 
@@ -501,7 +502,9 @@ melt_argument (const char* argname)
     return melt_module_make_command_string;
   else if (!strcmp (argname, "debug"))
     return flag_melt_debug?"yes":NULL;
-  else if (!strcmp (argname, "debugskip"))
+  else if (!strcmp (argname, "bootstrapping"))
+    return flag_melt_bootstrapping?"yes":NULL;
+  else if (!strcmp (argname, "debugskip") || !strcmp (argname, "debug-skip"))
     return count_melt_debugskip_string;
   else if (!strcmp (argname, "debug-depth"))
     return melt_debug_depth_string;
@@ -6340,7 +6343,8 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *binfile, const ch
 
   ourcflags = melt_argument ("module-cflags");
   if (!ourcflags || !ourcflags[0])
-    ourcflags = getenv ("GCCMELT_MODULE_CFLAGS");
+    ourcflags = flag_melt_bootstrapping?NULL
+      :(getenv ("GCCMELT_MODULE_CFLAGS"));
   if (!ourcflags || !ourcflags[0]) 
     ourcflags = melt_module_cflags;
 
@@ -6934,7 +6938,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
     }
   }
   else 
-    envpath = getenv ("GCCMELT_SOURCE_PATH");
+    envpath = flag_melt_bootstrapping?NULL:(getenv ("GCCMELT_SOURCE_PATH"));
   /* look into the GCCMELT_SOURCE_PATH environment variable if no
      source path was given */
   if (envpath && *envpath) 
@@ -6950,7 +6954,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
     }
   /* perhaps use make_relative_prefix  for the melt source directory ... */
   /* look into the melt source dir */
-  tmpath = concat (melt_source_dir, "/", dupmodulnam, ".c", NULL);
+  tmpath = flag_melt_bootstrapping?NULL:(concat (melt_source_dir, "/", dupmodulnam, ".c", NULL));
   debugeprintf ("meltgc_make_load_melt_module trying in meltsrcdir %s", tmpath);
   if (tmpath && !access (tmpath, R_OK))
     {
@@ -7034,19 +7038,22 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
       free (tmpath);
       tmpath = NULL;
     }
-  /* check in the builtin melt module directory */
-  tmpath = concat (melt_module_dir, "/", dupmodulnam, NULL);
-  MELT_LOCATION_HERE
-    ("meltgc_make_load_melt_module before load_checked_dylib builtin");
-  dlix = load_checked_dynamic_module_index (tmpath, md5src);
-  debugeprintf ("meltgc_make_load_melt_module dlix=%d meltdynlib tmpath=%s", dlix,
-		tmpath);
-  if (dlix > 0)
+  if (!flag_melt_bootstrapping)
     {
-      dynpath = tmpath;
-      goto dylibfound;
+      /* check in the builtin melt module directory */
+      tmpath = concat (melt_module_dir, "/", dupmodulnam, NULL);
+      MELT_LOCATION_HERE
+	("meltgc_make_load_melt_module before load_checked_dylib builtin");
+      dlix = load_checked_dynamic_module_index (tmpath, md5src);
+      debugeprintf ("meltgc_make_load_melt_module dlix=%d meltdynlib tmpath=%s", dlix,
+		    tmpath);
+      if (dlix > 0)
+	{
+	  dynpath = tmpath;
+	  goto dylibfound;
+	};
+      free (tmpath);
     };
-  free (tmpath);
   tmpath = NULL;
   /* check in the temporary directory */
   debugeprintf ("meltgc_make_load_melt_module modsuf %s", modsuf);
@@ -7289,7 +7296,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
 	goto loadit;
     }
   else
-    envpath = getenv ("GCCMELT_SOURCE_PATH");
+    envpath = flag_melt_bootstrapping?NULL:(getenv ("GCCMELT_SOURCE_PATH"));
   /* check for module list in $GCCMELT_SOURCE_PATH */
   if (envpath && envpath[0]) 
     {
@@ -7299,9 +7306,10 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
     }
   envpath = NULL;
   /* check for module list in builtin melt_source_dir */
-  modlistpath = concat (melt_source_dir,
-			"/", modlistbase, MODLIS_SUFFIX, NULL);
-  if (!access (modlistpath, R_OK))
+  modlistpath = flag_melt_bootstrapping?NULL
+    :(concat (melt_source_dir,
+	      "/", modlistbase, MODLIS_SUFFIX, NULL));
+  if (modlistpath && !access (modlistpath, R_OK))
     goto loadit;
   free (modlistpath);
   modlistpath = 0;
@@ -7313,7 +7321,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
 	goto loadit;
     }
   else
-    envpath = getenv ("GCCMELT_MODULE_PATH");
+    envpath = flag_melt_bootstrapping?NULL:(getenv ("GCCMELT_MODULE_PATH"));
   /* check for module list in $GCCMELT_MODULE_PATH */
   if (envpath && envpath[0]) 
     {
@@ -7323,9 +7331,11 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
     }
   envpath = NULL;
   /* check for module list in melt_module_dir */
-  modlistpath = concat (melt_module_dir,
-			"/", modlistbase, MODLIS_SUFFIX, NULL);
-  if (!access (modlistpath, R_OK))
+  modlistpath 
+    = flag_melt_bootstrapping ? NULL
+    : (concat (melt_module_dir,
+	       "/", modlistbase, MODLIS_SUFFIX, NULL));
+  if (modlistpath && !access (modlistpath, R_OK))
     goto loadit;
   free (modlistpath);
   modlistpath = 0;
@@ -7341,7 +7351,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
   if (srcpathstr && srcpathstr[0]) 
     inform (UNKNOWN_LOCATION, 
 	    "MELT tried to load module list %s from MELT source path %s", modlistbase, srcpathstr);
-  envpath = getenv ("GCCMELT_SOURCE_PATH");
+  envpath = flag_melt_bootstrapping?NULL:(getenv ("GCCMELT_SOURCE_PATH"));
   if (envpath && envpath[0])
     inform (UNKNOWN_LOCATION, 
 	    "MELT tried to load module list %s from GCCMELT_SOURCE_PATH=%s environment variable", 
@@ -7352,7 +7362,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
   if (modpathstr && modpathstr[0]) 
     inform (UNKNOWN_LOCATION, 
 	    "MELT tried to load module list %s from MELT module path %s", modlistbase, modpathstr);
-  envpath = getenv ("GCCMELT_MODULE_PATH");
+  envpath = flag_melt_bootstrapping?NULL:(getenv ("GCCMELT_MODULE_PATH"));
   if (envpath && envpath[0])
     inform (UNKNOWN_LOCATION, 
 	    "MELT tried to load module list %s from GCCMELT_MODULE_PATH=%s environment variable", 
@@ -9276,7 +9286,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
   FILE *fil = 0;
   struct reading_st *rd = 0;
   char *filnamdup = 0;
-  const char* envpath = getenv ("GCCMELT_SOURCE_PATH");
+  const char* envpath = flag_melt_bootstrapping?NULL:(getenv ("GCCMELT_SOURCE_PATH"));
   const char* srcpathstr = melt_argument ("source-path");
   MELT_ENTERFRAME (4, NULL);
 #define genv      meltfram__.mcfr_varptr[0]
@@ -9319,8 +9329,16 @@ meltgc_read_file (const char *filnam, const char *locnam)
   /* If needed, find the file in the builtin source directory.  */
   if (!fil) {
     free (filnamdup);
-    filnamdup = concat (melt_source_dir, "/", filnam, NULL);
-    fil = fopen (filnamdup, "rt");
+    if (!flag_melt_bootstrapping) 
+      {
+	filnamdup = concat (melt_source_dir, "/", filnam, NULL);
+	fil = fopen (filnamdup, "rt");
+      }
+    else
+      {
+	filnamdup = NULL;
+	fil = NULL;
+      }
   }
   if (!fil) 
     {
@@ -9992,7 +10010,31 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     if (dbgstr && (!dbgstr[0] || !strchr("Nn0", dbgstr[0])))
       flag_melt_debug = 1;
   }
+  /* when MELT is a plugin, we need to process the bootstrapping
+     argument. When MELT is a branch, the melt_argument function is
+     using flag_melt_bootstrapping for "bootstrapping" so we don't want this. */
+  { 
+    const char *bootstr = melt_argument ("bootstrapping");
+    /* debug=n or debug=0 is handled as no debug */
+    if (bootstr && (!bootstr[0] || !strchr("Nn0", bootstr[0])))
+      flag_melt_bootstrapping = 1;
+  }
 #endif	/* MELT_IS_PLUGIN */
+  if (flag_melt_bootstrapping) 
+    {
+      char* envpath = NULL;
+      inform  (UNKNOWN_LOCATION, "MELT is bootstrapping so ignore builtin source directory %s and module directory %s",
+	       melt_source_dir, melt_module_dir);
+      if ((envpath = getenv ("GCCMELT_SOURCE_PATH")) != NULL)
+	inform  (UNKNOWN_LOCATION, 
+		 "MELT is bootstrapping so ignore GCCMELT_SOURCE_PATH=%s", 
+		 envpath);
+      if ((envpath = getenv ("GCCMELT_MODULE_PATH")) != NULL)
+	inform  (UNKNOWN_LOCATION,
+		 "MELT is bootstrapping so ignore GCCMELT_MODULE_PATH=%s", 
+		 envpath);
+	
+    }
   if (!modstr || *modstr=='\0')
     {
       debugeprintf ("melt_really_initialize return immediately since no mode (inistr=%s)",
@@ -11605,7 +11647,8 @@ bool melt_wants_single_c_file (void)
   const char* singarg = melt_argument ("single-c-file");
   if (!singarg) 
     {
-      const char* singenv = getenv ("GCCMELT_SINGLE_C_FILE");
+      const char* singenv = 
+	flag_melt_bootstrapping?NULL:(getenv ("GCCMELT_SINGLE_C_FILE"));
       want1 = singenv && singenv[0]!='0' 
 	&& singenv[0]!='N' && singenv[0]!='n';
     }

@@ -825,6 +825,11 @@ fmelt-debug
 Common Report Var(flag_melt_debug)
 Gives lots of debugging stuff for -fmelt analysis
 
+; bootstrapping flag for MELT
+fmelt-bootstrapping
+Common Report Var(flag_melt_bootstrapping)
+Only used to bootstrap the MELT translator
+
 ; debug depth for MELT
 fmelt-debug-depth=
 Common Report Var(melt_debug_depth_string) RejectNegative Joined
@@ -834,6 +839,11 @@ Depth of melt debug printing (should be between 2 and 20)
 fmelt-debugskip=
 Common Report Var(count_melt_debugskip_string) RejectNegative Joined
 Counter of debug prints to skip for -fmelt-debug
+
+; debug skip for above analysis
+fmelt-debug-skip=
+Common Report Var(count_melt_debugskip_string) RejectNegative Joined
+Counter of debug prints to skip for -fmelt-debug, synonym -fmelt-debugskip
 
 ; dynamic module path for MELT
 fmelt-module-path=
