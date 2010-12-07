@@ -1015,7 +1015,8 @@ MELT_LOCATION("warmelt-genobj.melt:2694:/ block");
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJEXPV*/ meltfrout->tabval[1])), (2), "CLASS_OBJEXPV");/*_.INST__V9*/ meltfptr[8] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJEXPV*/ meltfrout->tabval[1])), (2), "CLASS_OBJEXPV");
+  /*_.INST__V9*/ meltfptr[8] =
   newobj; };
  ;
  /*^putslot*/
@@ -1878,7 +1879,8 @@ MELT_LOCATION("warmelt-genobj.melt:2747:/ block");
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJEXPV*/ meltfrout->tabval[1])), (2), "CLASS_OBJEXPV");/*_.INST__V9*/ meltfptr[8] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJEXPV*/ meltfrout->tabval[1])), (2), "CLASS_OBJEXPV");
+  /*_.INST__V9*/ meltfptr[8] =
   newobj; };
  ;
  /*^putslot*/
@@ -2196,7 +2198,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJGETSLOT*/ meltfrout->tabval[5])), (4), "CLASS_OBJGETSLOT");/*_.INST__V17*/ meltfptr[16] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJGETSLOT*/ meltfrout->tabval[5])), (4), "CLASS_OBJGETSLOT");
+  /*_.INST__V17*/ meltfptr[16] =
   newobj; };
  ;
  /*^putslot*/
@@ -2496,7 +2499,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[4])), (3), "CLASS_OBJPLAINBLOCK");/*_.INST__V17*/ meltfptr[16] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[4])), (3), "CLASS_OBJPLAINBLOCK");
+  /*_.INST__V17*/ meltfptr[16] =
   newobj; };
  ;
  /*^putslot*/
@@ -2570,7 +2574,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJTOUCH*/ meltfrout->tabval[14])), (3), "CLASS_OBJTOUCH");/*_.INST__V23*/ meltfptr[22] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJTOUCH*/ meltfrout->tabval[14])), (3), "CLASS_OBJTOUCH");
+  /*_.INST__V23*/ meltfptr[22] =
   newobj; };
  ;
  /*^putslot*/
@@ -2861,7 +2866,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPUTSLOT*/ meltfrout->tabval[3])), (5), "CLASS_OBJPUTSLOT");/*_.INST__V14*/ meltfptr[13] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPUTSLOT*/ meltfrout->tabval[3])), (5), "CLASS_OBJPUTSLOT");
+  /*_.INST__V14*/ meltfptr[13] =
   newobj; };
  ;
  /*^putslot*/
@@ -3241,7 +3247,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJAPPLY*/ meltfrout->tabval[9])), (4), "CLASS_OBJAPPLY");/*_.INST__V21*/ meltfptr[20] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJAPPLY*/ meltfrout->tabval[9])), (4), "CLASS_OBJAPPLY");
+  /*_.INST__V21*/ meltfptr[20] =
   newobj; };
  ;
  /*^putslot*/
@@ -3785,7 +3792,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[10])), (3), "CLASS_OBJPLAINBLOCK");/*_.INST__V23*/ meltfptr[22] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[10])), (3), "CLASS_OBJPLAINBLOCK");
+  /*_.INST__V23*/ meltfptr[22] =
   newobj; };
  ;
  /*^putslot*/
@@ -3896,7 +3904,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJMULTIAPPLY*/ meltfrout->tabval[15])), (5), "CLASS_OBJMULTIAPPLY");/*_.INST__V35*/ meltfptr[34] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJMULTIAPPLY*/ meltfrout->tabval[15])), (5), "CLASS_OBJMULTIAPPLY");
+  /*_.INST__V35*/ meltfptr[34] =
   newobj; };
  ;
  /*^putslot*/
@@ -4929,7 +4938,8 @@ lab_endgetargs:;
    
    /*^rawallocobj*/
    /*rawallocobj*/ { melt_ptr_t newobj = 0;
-    melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCLEAR*/ meltfrout->tabval[0])), (2), "CLASS_OBJCLEAR");/*_.INST__V4*/ meltfptr[3] =
+    melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCLEAR*/ meltfrout->tabval[0])), (2), "CLASS_OBJCLEAR");
+    /*_.INST__V4*/ meltfptr[3] =
     newobj; };
    ;
    /*^putslot*/
@@ -5430,7 +5440,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJMSEND*/ meltfrout->tabval[8])), (5), "CLASS_OBJMSEND");/*_.INST__V27*/ meltfptr[26] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJMSEND*/ meltfrout->tabval[8])), (5), "CLASS_OBJMSEND");
+  /*_.INST__V27*/ meltfptr[26] =
   newobj; };
  ;
  /*^putslot*/
@@ -6201,7 +6212,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[14])), (3), "CLASS_OBJPLAINBLOCK");/*_.INST__V34*/ meltfptr[33] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[14])), (3), "CLASS_OBJPLAINBLOCK");
+  /*_.INST__V34*/ meltfptr[33] =
   newobj; };
  ;
  /*^putslot*/
@@ -6225,7 +6237,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJMULTIMSEND*/ meltfrout->tabval[15])), (6), "CLASS_OBJMULTIMSEND");/*_.INST__V36*/ meltfptr[35] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJMULTIMSEND*/ meltfrout->tabval[15])), (6), "CLASS_OBJMULTIMSEND");
+  /*_.INST__V36*/ meltfptr[35] =
   newobj; };
  ;
  /*^putslot*/
@@ -7258,7 +7271,8 @@ lab_endgetargs:;
    
    /*^rawallocobj*/
    /*rawallocobj*/ { melt_ptr_t newobj = 0;
-    melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCLEAR*/ meltfrout->tabval[0])), (2), "CLASS_OBJCLEAR");/*_.INST__V4*/ meltfptr[3] =
+    melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCLEAR*/ meltfrout->tabval[0])), (2), "CLASS_OBJCLEAR");
+    /*_.INST__V4*/ meltfptr[3] =
     newobj; };
    ;
    /*^putslot*/
@@ -9174,7 +9188,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJINITCLOSURE*/ meltfrout->tabval[7])), (6), "CLASS_OBJINITCLOSURE");/*_.INST__V36*/ meltfptr[35] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJINITCLOSURE*/ meltfrout->tabval[7])), (6), "CLASS_OBJINITCLOSURE");
+  /*_.INST__V36*/ meltfptr[35] =
   newobj; };
  ;
  /*^putslot*/
@@ -9799,7 +9814,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJINITMULTIPLE*/ meltfrout->tabval[8])), (6), "CLASS_OBJINITMULTIPLE");/*_.INST__V28*/ meltfptr[27] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJINITMULTIPLE*/ meltfrout->tabval[8])), (6), "CLASS_OBJINITMULTIPLE");
+  /*_.INST__V28*/ meltfptr[27] =
   newobj; };
  ;
  /*^putslot*/
@@ -10441,7 +10457,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJINITPAIR*/ meltfrout->tabval[7])), (5), "CLASS_OBJINITPAIR");/*_.INST__V35*/ meltfptr[34] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJINITPAIR*/ meltfrout->tabval[7])), (5), "CLASS_OBJINITPAIR");
+  /*_.INST__V35*/ meltfptr[34] =
   newobj; };
  ;
  /*^putslot*/
@@ -10925,7 +10942,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJINITLIST*/ meltfrout->tabval[6])), (5), "CLASS_OBJINITLIST");/*_.INST__V26*/ meltfptr[25] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJINITLIST*/ meltfrout->tabval[6])), (5), "CLASS_OBJINITLIST");
+  /*_.INST__V26*/ meltfptr[25] =
   newobj; };
  ;
  /*^putslot*/
@@ -11560,7 +11578,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJINITOBJECT*/ meltfrout->tabval[8])), (7), "CLASS_OBJINITOBJECT");/*_.INST__V35*/ meltfptr[30] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJINITOBJECT*/ meltfrout->tabval[8])), (7), "CLASS_OBJINITOBJECT");
+  /*_.INST__V35*/ meltfptr[30] =
   newobj; };
  ;
  /*^putslot*/
@@ -11985,7 +12004,8 @@ lab_endgetargs:;
      
      /*^rawallocobj*/
      /*rawallocobj*/ { melt_ptr_t newobj = 0;
-      melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[4])), (3), "CLASS_OBJPLAINBLOCK");/*_.INST__V17*/ meltfptr[16] =
+      melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[4])), (3), "CLASS_OBJPLAINBLOCK");
+      /*_.INST__V17*/ meltfptr[16] =
       newobj; };
      ;
      /*^putslot*/
@@ -12004,7 +12024,8 @@ lab_endgetargs:;
      
      /*^rawallocobj*/
      /*rawallocobj*/ { melt_ptr_t newobj = 0;
-      melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCLEAR*/ meltfrout->tabval[5])), (2), "CLASS_OBJCLEAR");/*_.INST__V19*/ meltfptr[18] =
+      melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCLEAR*/ meltfrout->tabval[5])), (2), "CLASS_OBJCLEAR");
+      /*_.INST__V19*/ meltfptr[18] =
       newobj; };
      ;
      /*^putslot*/
@@ -12135,7 +12156,8 @@ lab_endgetargs:;
      
      /*^rawallocobj*/
      /*rawallocobj*/ { melt_ptr_t newobj = 0;
-      melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOMPUTE*/ meltfrout->tabval[7])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V28*/ meltfptr[27] =
+      melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOMPUTE*/ meltfrout->tabval[7])), (3), "CLASS_OBJCOMPUTE");
+      /*_.INST__V28*/ meltfptr[27] =
       newobj; };
      ;
      /*^putslot*/
@@ -12774,7 +12796,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOMPUTE*/ meltfrout->tabval[3])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V17*/ meltfptr[16] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOMPUTE*/ meltfrout->tabval[3])), (3), "CLASS_OBJCOMPUTE");
+  /*_.INST__V17*/ meltfptr[16] =
   newobj; };
  ;
  /*^putslot*/
@@ -13180,7 +13203,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOMPUTE*/ meltfrout->tabval[3])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V17*/ meltfptr[16] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOMPUTE*/ meltfrout->tabval[3])), (3), "CLASS_OBJCOMPUTE");
+  /*_.INST__V17*/ meltfptr[16] =
   newobj; };
  ;
  /*^putslot*/
@@ -13611,7 +13635,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOMPUTE*/ meltfrout->tabval[3])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V17*/ meltfptr[16] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOMPUTE*/ meltfrout->tabval[3])), (3), "CLASS_OBJCOMPUTE");
+  /*_.INST__V17*/ meltfptr[16] =
   newobj; };
  ;
  /*^putslot*/
@@ -14666,7 +14691,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOMPUTE*/ meltfrout->tabval[3])), (3), "CLASS_OBJCOMPUTE");/*_.INST__V12*/ meltfptr[11] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOMPUTE*/ meltfrout->tabval[3])), (3), "CLASS_OBJCOMPUTE");
+  /*_.INST__V12*/ meltfptr[11] =
   newobj; };
  ;
  /*^putslot*/
@@ -15369,7 +15395,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOND*/ meltfrout->tabval[6])), (4), "CLASS_OBJCOND");/*_.INST__V24*/ meltfptr[23] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOND*/ meltfrout->tabval[6])), (4), "CLASS_OBJCOND");
+  /*_.INST__V24*/ meltfptr[23] =
   newobj; };
  ;
  /*^putslot*/
@@ -15939,7 +15966,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJEXPV*/ meltfrout->tabval[6])), (2), "CLASS_OBJEXPV");/*_.INST__V31*/ meltfptr[30] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJEXPV*/ meltfrout->tabval[6])), (2), "CLASS_OBJEXPV");
+  /*_.INST__V31*/ meltfptr[30] =
   newobj; };
  ;
  /*^putslot*/
@@ -15953,7 +15981,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOND*/ meltfrout->tabval[8])), (4), "CLASS_OBJCOND");/*_.INST__V33*/ meltfptr[32] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOND*/ meltfrout->tabval[8])), (4), "CLASS_OBJCOND");
+  /*_.INST__V33*/ meltfptr[32] =
   newobj; };
  ;
  /*^putslot*/
@@ -16687,7 +16716,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCPPIF*/ meltfrout->tabval[5])), (4), "CLASS_OBJCPPIF");/*_.INST__V25*/ meltfptr[24] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCPPIF*/ meltfrout->tabval[5])), (4), "CLASS_OBJCPPIF");
+  /*_.INST__V25*/ meltfptr[24] =
   newobj; };
  ;
  /*^putslot*/
@@ -17289,7 +17319,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[4])), (3), "CLASS_OBJPLAINBLOCK");/*_.INST__V18*/ meltfptr[17] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[4])), (3), "CLASS_OBJPLAINBLOCK");
+  /*_.INST__V18*/ meltfptr[17] =
   newobj; };
  ;
  /*^putslot*/
@@ -17525,7 +17556,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJFINALRETURN*/ meltfrout->tabval[13])), (1), "CLASS_OBJFINALRETURN");/*_.INST__V32*/ meltfptr[31] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJFINALRETURN*/ meltfrout->tabval[13])), (1), "CLASS_OBJFINALRETURN");
+  /*_.INST__V32*/ meltfptr[31] =
   newobj; };
  ;
  /*^putslot*/
@@ -17729,7 +17761,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPUTXTRARESULT*/ meltfrout->tabval[0])), (3), "CLASS_OBJPUTXTRARESULT");/*_.INST__V6*/ meltfptr[5] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPUTXTRARESULT*/ meltfrout->tabval[0])), (3), "CLASS_OBJPUTXTRARESULT");
+  /*_.INST__V6*/ meltfptr[5] =
   newobj; };
  ;
  /*^putslot*/
@@ -18165,7 +18198,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[6])), (3), "CLASS_OBJPLAINBLOCK");/*_.INST__V24*/ meltfptr[23] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[6])), (3), "CLASS_OBJPLAINBLOCK");
+  /*_.INST__V24*/ meltfptr[23] =
   newobj; };
  ;
  /*^putslot*/
@@ -18365,7 +18399,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJNEWCLOSURE*/ meltfrout->tabval[7])), (5), "CLASS_OBJNEWCLOSURE");/*_.INST__V39*/ meltfptr[38] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJNEWCLOSURE*/ meltfrout->tabval[7])), (5), "CLASS_OBJNEWCLOSURE");
+  /*_.INST__V39*/ meltfptr[38] =
   newobj; };
  ;
  /*^putslot*/
@@ -18678,7 +18713,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPUTCLOSEDV*/ meltfrout->tabval[1])), (4), "CLASS_OBJPUTCLOSEDV");/*_.INST__V8*/ meltfptr[7] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPUTCLOSEDV*/ meltfrout->tabval[1])), (4), "CLASS_OBJPUTCLOSEDV");
+  /*_.INST__V8*/ meltfptr[7] =
   newobj; };
  ;
  /*^putslot*/
@@ -19031,7 +19067,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[8])), (3), "CLASS_OBJPLAINBLOCK");/*_.INST__V24*/ meltfptr[23] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJPLAINBLOCK*/ meltfrout->tabval[8])), (3), "CLASS_OBJPLAINBLOCK");
+  /*_.INST__V24*/ meltfptr[23] =
   newobj; };
  ;
  /*^putslot*/
@@ -19058,7 +19095,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJRAWALLOCOBJ*/ meltfrout->tabval[9])), (5), "CLASS_OBJRAWALLOCOBJ");/*_.INST__V28*/ meltfptr[27] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJRAWALLOCOBJ*/ meltfrout->tabval[9])), (5), "CLASS_OBJRAWALLOCOBJ");
+  /*_.INST__V28*/ meltfptr[27] =
   newobj; };
  ;
  /*^putslot*/

@@ -3,11 +3,11 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[]=
- "4.6.0 20101204 (experimental) [melt-branch revision 167485]";
+ "4.6.0 20101206 (experimental) [melt-branch revision 167494]";
 
 
 /* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[]="43cbf93cd7bc378755ae1a418e12fb4b";
+const char md5prepromeltrun_melt[]="7d05faa9b43525930aa04e069bd6a7d4";
 
 #endif /*MELTGCC_DYNAMIC_OBJSTRUCT*/
 
@@ -1694,7 +1694,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_SOURCE_APPLY*/ meltfrout->tabval[4])), (4), "CLASS_SOURCE_APPLY");/*_.INST__V20*/ meltfptr[19] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_SOURCE_APPLY*/ meltfrout->tabval[4])), (4), "CLASS_SOURCE_APPLY");
+  /*_.INST__V20*/ meltfptr[19] =
   newobj; };
  ;
  /*^putslot*/
@@ -2164,7 +2165,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_SOURCE_MSEND*/ meltfrout->tabval[5])), (5), "CLASS_SOURCE_MSEND");/*_.INST__V28*/ meltfptr[27] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_SOURCE_MSEND*/ meltfrout->tabval[5])), (5), "CLASS_SOURCE_MSEND");
+  /*_.INST__V28*/ meltfptr[27] =
   newobj; };
  ;
  /*^putslot*/
@@ -2927,7 +2929,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_SOURCE_CITERATION*/ meltfrout->tabval[7])), (6), "CLASS_SOURCE_CITERATION");/*_.INST__V57*/ meltfptr[27] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_SOURCE_CITERATION*/ meltfrout->tabval[7])), (6), "CLASS_SOURCE_CITERATION");
+  /*_.INST__V57*/ meltfptr[27] =
   newobj; };
  ;
  /*^putslot*/
@@ -3584,7 +3587,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_SOURCE_CMATCHEXPR*/ meltfrout->tabval[5])), (4), "CLASS_SOURCE_CMATCHEXPR");/*_.INST__V37*/ meltfptr[33] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_SOURCE_CMATCHEXPR*/ meltfrout->tabval[5])), (4), "CLASS_SOURCE_CMATCHEXPR");
+  /*_.INST__V37*/ meltfptr[33] =
   newobj; };
  ;
  /*^putslot*/
@@ -4224,7 +4228,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_SOURCE_FUNMATCHEXPR*/ meltfrout->tabval[5])), (5), "CLASS_SOURCE_FUNMATCHEXPR");/*_.INST__V36*/ meltfptr[35] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_SOURCE_FUNMATCHEXPR*/ meltfrout->tabval[5])), (5), "CLASS_SOURCE_FUNMATCHEXPR");
+  /*_.INST__V36*/ meltfptr[35] =
   newobj; };
  ;
  /*^putslot*/
@@ -7176,7 +7181,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_SOURCE_PRIMITIVE*/ meltfrout->tabval[4])), (4), "CLASS_SOURCE_PRIMITIVE");/*_.INST__V21*/ meltfptr[20] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_SOURCE_PRIMITIVE*/ meltfrout->tabval[4])), (4), "CLASS_SOURCE_PRIMITIVE");
+  /*_.INST__V21*/ meltfptr[20] =
   newobj; };
  ;
  /*^putslot*/
@@ -48450,63 +48456,148 @@ for(ix=0; ix<1595; ix++)
 } /* end forward_or_mark_module_start_frame_warmelt_macro */
 
 
-/* exported 53 field offsets */
-const int meltfieldoff__ANDPAT_CONJ = 3;
-const int meltfieldoff__CTPAT_SUBPA = 3;
-const int meltfieldoff__MSEND_RECV = 4;
-const int meltfieldoff__MSEND_SELSYMB = 3;
-const int meltfieldoff__ORPAT_DISJ = 3;
-const int meltfieldoff__PAT_WEIGHT = 2;
-const int meltfieldoff__SCAM_BODY = 3;
-const int meltfieldoff__SCAM_PATT = 2;
-const int meltfieldoff__SFMATX_FMATBIND = 4;
-const int meltfieldoff__SFMATX_FMATCHER = 3;
-const int meltfieldoff__SFRV_BODY = 3;
-const int meltfieldoff__SIFP_COND = 2;
-const int meltfieldoff__SIF_ELSE = 4;
-const int meltfieldoff__SIF_TEST = 2;
-const int meltfieldoff__SIF_THEN = 3;
-const int meltfieldoff__SLABEL_BIND = 2;
-const int meltfieldoff__SLAM_ARGBIND = 2;
-const int meltfieldoff__SLAM_BODY = 3;
-const int meltfieldoff__SLETB_BINDER = 3;
-const int meltfieldoff__SLETB_EXPR = 4;
-const int meltfieldoff__SLETB_TYPE = 2;
-const int meltfieldoff__SLET_BINDINGS = 2;
-const int meltfieldoff__SLET_BODY = 3;
-const int meltfieldoff__SMAT_CASES = 3;
-const int meltfieldoff__SMAT_MATCHEDX = 2;
-const int meltfieldoff__SMINS_CLABIND = 3;
-const int meltfieldoff__SMINS_CLASS = 2;
-const int meltfieldoff__SMINS_FIELDS = 4;
-const int meltfieldoff__SMULC_BODY = 4;
-const int meltfieldoff__SMULC_CALL = 3;
-const int meltfieldoff__SMULC_RESBIND = 2;
-const int meltfieldoff__SOR_DISJ = 2;
-const int meltfieldoff__SPAC_INARGS = 7;
-const int meltfieldoff__SPAC_OPERATOR = 5;
-const int meltfieldoff__SPAC_OPERBIND = 6;
-const int meltfieldoff__SPAC_OUTARGS = 8;
-const int meltfieldoff__SPATVAR_NBOCC = 4;
-const int meltfieldoff__SPATVAR_SYMB = 3;
-const int meltfieldoff__SPAT_CLASS = 3;
-const int meltfieldoff__SPAT_CONSTX = 3;
-const int meltfieldoff__SPAT_FIELDS = 4;
-const int meltfieldoff__SPRIM_OPER = 3;
-const int meltfieldoff__SPROGN_BODY = 2;
-const int meltfieldoff__SQUOTED = 2;
-const int meltfieldoff__SSTPD_PREDEF = 2;
-const int meltfieldoff__SSTPD_VALUE = 3;
-const int meltfieldoff__SSTQ_EXPR = 3;
-const int meltfieldoff__SSTQ_VAR = 2;
-const int meltfieldoff__SUCME_COMMENT = 2;
-const int meltfieldoff__SUGET_FIELD = 3;
-const int meltfieldoff__SUGET_OBJ = 2;
-const int meltfieldoff__SUPUT_FIELDS = 3;
-const int meltfieldoff__SUPUT_OBJ = 2;
+/* exported 107 field offsets */
+const int meltfieldoff__ANDPAT_CONJ = 3; /* in CLASS_SOURCE_PATTERN_AND */
+const int meltfieldoff__CMEC_COMMENT = 2; /* in CLASS_SOURCE_CURRENT_MODULE_ENVIRONMENT_CONTAINER */
+const int meltfieldoff__CTPAT_SUBPA = 3; /* in CLASS_SOURCE_PATTERN_CONSTRUCT */
+const int meltfieldoff__MSEND_RECV = 4; /* in CLASS_SOURCE_MSEND */
+const int meltfieldoff__MSEND_SELSYMB = 3; /* in CLASS_SOURCE_MSEND */
+const int meltfieldoff__ORPAT_DISJ = 3; /* in CLASS_SOURCE_PATTERN_OR */
+const int meltfieldoff__PAT_WEIGHT = 2; /* in CLASS_SOURCE_PATTERN */
+const int meltfieldoff__PCTX_MEXPANDER = 0; /* in CLASS_PATTERN_EXPANSION_CONTEXT */
+const int meltfieldoff__PCTX_PEXPANDER = 1; /* in CLASS_PATTERN_EXPANSION_CONTEXT */
+const int meltfieldoff__PCTX_VARMAP = 2; /* in CLASS_PATTERN_EXPANSION_CONTEXT */
+const int meltfieldoff__SAPP_FUN = 3; /* in CLASS_SOURCE_APPLY */
+const int meltfieldoff__SARGOP_ARGS = 2; /* in CLASS_SOURCE_ARGUMENTED_OPERATOR */
+const int meltfieldoff__SCAM_BODY = 3; /* in CLASS_SOURCE_MATCH_CASE */
+const int meltfieldoff__SCAM_PATT = 2; /* in CLASS_SOURCE_MATCH_CASE */
+const int meltfieldoff__SCH_CHUNKS = 3; /* in CLASS_SOURCE_CODECHUNK */
+const int meltfieldoff__SCH_GENSYM = 2; /* in CLASS_SOURCE_CODECHUNK */
+const int meltfieldoff__SCITERDEF_CITERATOR = 5; /* in CLASS_SOURCE_DEFCITERATOR */
+const int meltfieldoff__SCITER_BODY = 5; /* in CLASS_SOURCE_CITERATION */
+const int meltfieldoff__SCITER_OPER = 3; /* in CLASS_SOURCE_CITERATION */
+const int meltfieldoff__SCITER_VARBIND = 4; /* in CLASS_SOURCE_CITERATION */
+const int meltfieldoff__SCLASS_CLABIND = 5; /* in CLASS_SOURCE_DEFCLASS */
+const int meltfieldoff__SCLASS_FLDBINDS = 7; /* in CLASS_SOURCE_DEFCLASS */
+const int meltfieldoff__SCLASS_SUPERBIND = 6; /* in CLASS_SOURCE_DEFCLASS */
+const int meltfieldoff__SCMATDEF_CMATCHER = 5; /* in CLASS_SOURCE_DEFCMATCHER */
+const int meltfieldoff__SCMATX_CMATCHER = 3; /* in CLASS_SOURCE_CMATCHEXPR */
+const int meltfieldoff__SCOMM_STR = 2; /* in CLASS_SOURCE_COMMENT */
+const int meltfieldoff__SCWARN_EXPR = 3; /* in CLASS_SOURCE_COMPILEWARNING */
+const int meltfieldoff__SCWARN_MSG = 2; /* in CLASS_SOURCE_COMPILEWARNING */
+const int meltfieldoff__SDEFINE_EXPR = 4; /* in CLASS_SOURCE_DEFINE */
+const int meltfieldoff__SDEFSEL_FORMALS = 9; /* in CLASS_SOURCE_DEFSELECTOR */
+const int meltfieldoff__SDEF_DOC = 3; /* in CLASS_SOURCE_DEFINITION */
+const int meltfieldoff__SDEF_NAME = 2; /* in CLASS_SOURCE_DEFINITION */
+const int meltfieldoff__SEXI_BODY = 3; /* in CLASS_SOURCE_EXIT */
+const int meltfieldoff__SEXPMAC_DOC = 4; /* in CLASS_SOURCE_EXPORT_MACRO */
+const int meltfieldoff__SEXPMAC_MNAME = 2; /* in CLASS_SOURCE_EXPORT_MACRO */
+const int meltfieldoff__SEXPMAC_MVAL = 3; /* in CLASS_SOURCE_EXPORT_MACRO */
+const int meltfieldoff__SEXPORT_NAMES = 2; /* in CLASS_SOURCE_EXPORTCOMMON */
+const int meltfieldoff__SEXPPAT_PVAL = 5; /* in CLASS_SOURCE_EXPORT_PATMACRO */
+const int meltfieldoff__SEXPSYN_DOC = 4; /* in CLASS_SOURCE_EXPORT_SYNONYM */
+const int meltfieldoff__SEXPSYN_NEWNAME = 2; /* in CLASS_SOURCE_EXPORT_SYNONYM */
+const int meltfieldoff__SEXPSYN_OLDNAME = 3; /* in CLASS_SOURCE_EXPORT_SYNONYM */
+const int meltfieldoff__SFEPD_PREDEF = 2; /* in CLASS_SOURCE_FETCH_PREDEFINED */
+const int meltfieldoff__SFLA_EXPR = 3; /* in CLASS_SOURCE_FIELDASSIGN */
+const int meltfieldoff__SFLA_FIELD = 2; /* in CLASS_SOURCE_FIELDASSIGN */
+const int meltfieldoff__SFMATX_FMATBIND = 4; /* in CLASS_SOURCE_FUNMATCHEXPR */
+const int meltfieldoff__SFMATX_FMATCHER = 3; /* in CLASS_SOURCE_FUNMATCHEXPR */
+const int meltfieldoff__SFORMAL_ARGS = 4; /* in CLASS_SOURCE_DEFINITION_FORMAL */
+const int meltfieldoff__SFRV_BODY = 3; /* in CLASS_SOURCE_FOREVER */
+const int meltfieldoff__SFUMATDEF_APPLYF = 8; /* in CLASS_SOURCE_DEFUNMATCHER */
+const int meltfieldoff__SFUMATDEF_DATA = 9; /* in CLASS_SOURCE_DEFUNMATCHER */
+const int meltfieldoff__SFUMATDEF_INS = 5; /* in CLASS_SOURCE_DEFUNMATCHER */
+const int meltfieldoff__SFUMATDEF_MATCHF = 7; /* in CLASS_SOURCE_DEFUNMATCHER */
+const int meltfieldoff__SFUMATDEF_OUTS = 6; /* in CLASS_SOURCE_DEFUNMATCHER */
+const int meltfieldoff__SFUN_BODY = 5; /* in CLASS_SOURCE_DEFUN */
+const int meltfieldoff__SIFP_COND = 2; /* in CLASS_SOURCE_CPPIF */
+const int meltfieldoff__SIFP_ELSE = 4; /* in CLASS_SOURCE_CPPIF */
+const int meltfieldoff__SIFP_THEN = 3; /* in CLASS_SOURCE_CPPIF */
+const int meltfieldoff__SIF_ELSE = 4; /* in CLASS_SOURCE_IFELSE */
+const int meltfieldoff__SIF_TEST = 2; /* in CLASS_SOURCE_IF */
+const int meltfieldoff__SIF_THEN = 3; /* in CLASS_SOURCE_IF */
+const int meltfieldoff__SINST_CLABIND = 6; /* in CLASS_SOURCE_DEFINSTANCE */
+const int meltfieldoff__SINST_CLASS = 5; /* in CLASS_SOURCE_DEFINSTANCE */
+const int meltfieldoff__SINST_FIELDS = 8; /* in CLASS_SOURCE_DEFINSTANCE */
+const int meltfieldoff__SINST_OBJNUM = 7; /* in CLASS_SOURCE_DEFINSTANCE */
+const int meltfieldoff__SLABEL_BIND = 2; /* in CLASS_SOURCE_LABELLED */
+const int meltfieldoff__SLAM_ARGBIND = 2; /* in CLASS_SOURCE_LAMBDA */
+const int meltfieldoff__SLAM_BODY = 3; /* in CLASS_SOURCE_LAMBDA */
+const int meltfieldoff__SLETB_BINDER = 3; /* in CLASS_SOURCE_LET_BINDING */
+const int meltfieldoff__SLETB_EXPR = 4; /* in CLASS_SOURCE_LET_BINDING */
+const int meltfieldoff__SLETB_TYPE = 2; /* in CLASS_SOURCE_LET_BINDING */
+const int meltfieldoff__SLET_BINDINGS = 2; /* in CLASS_SOURCE_LET */
+const int meltfieldoff__SLET_BODY = 3; /* in CLASS_SOURCE_LET */
+const int meltfieldoff__SMAT_CASES = 3; /* in CLASS_SOURCE_MATCH */
+const int meltfieldoff__SMAT_MATCHEDX = 2; /* in CLASS_SOURCE_MATCH */
+const int meltfieldoff__SMINS_CLABIND = 3; /* in CLASS_SOURCE_INSTANCE */
+const int meltfieldoff__SMINS_CLASS = 2; /* in CLASS_SOURCE_INSTANCE */
+const int meltfieldoff__SMINS_FIELDS = 4; /* in CLASS_SOURCE_INSTANCE */
+const int meltfieldoff__SMULC_BODY = 4; /* in CLASS_SOURCE_MULTICALL */
+const int meltfieldoff__SMULC_CALL = 3; /* in CLASS_SOURCE_MULTICALL */
+const int meltfieldoff__SMULC_RESBIND = 2; /* in CLASS_SOURCE_MULTICALL */
+const int meltfieldoff__SOBJ_PREDEF = 4; /* in CLASS_SOURCE_DEFOBJCOMMON */
+const int meltfieldoff__SOR_DISJ = 2; /* in CLASS_SOURCE_OR */
+const int meltfieldoff__SPAC_INARGS = 7; /* in CLASS_SOURCE_PATTERN_COMPOSITE */
+const int meltfieldoff__SPAC_OPERATOR = 5; /* in CLASS_SOURCE_PATTERN_COMPOSITE */
+const int meltfieldoff__SPAC_OPERBIND = 6; /* in CLASS_SOURCE_PATTERN_COMPOSITE */
+const int meltfieldoff__SPAC_OUTARGS = 8; /* in CLASS_SOURCE_PATTERN_COMPOSITE */
+const int meltfieldoff__SPAF_FIELD = 2; /* in CLASS_SOURCE_FIELD_PATTERN */
+const int meltfieldoff__SPAF_PATTERN = 3; /* in CLASS_SOURCE_FIELD_PATTERN */
+const int meltfieldoff__SPATVAR_NBOCC = 4; /* in CLASS_SOURCE_PATTERN_VARIABLE */
+const int meltfieldoff__SPATVAR_SYMB = 3; /* in CLASS_SOURCE_PATTERN_VARIABLE */
+const int meltfieldoff__SPAT_CLASS = 3; /* in CLASS_SOURCE_PATTERN_OBJECT */
+const int meltfieldoff__SPAT_CONSTX = 3; /* in CLASS_SOURCE_PATTERN_CONSTANT */
+const int meltfieldoff__SPAT_FIELDS = 4; /* in CLASS_SOURCE_PATTERN_OBJECT */
+const int meltfieldoff__SPRIM_EXPANSION = 6; /* in CLASS_SOURCE_DEFPRIMITIVE */
+const int meltfieldoff__SPRIM_OPER = 3; /* in CLASS_SOURCE_PRIMITIVE */
+const int meltfieldoff__SPRIM_TYPE = 5; /* in CLASS_SOURCE_DEFPRIMITIVE */
+const int meltfieldoff__SPROGN_BODY = 2; /* in CLASS_SOURCE_PROGN */
+const int meltfieldoff__SQUOTED = 2; /* in CLASS_SOURCE_QUOTE */
+const int meltfieldoff__SSTPD_PREDEF = 2; /* in CLASS_SOURCE_STORE_PREDEFINED */
+const int meltfieldoff__SSTPD_VALUE = 3; /* in CLASS_SOURCE_STORE_PREDEFINED */
+const int meltfieldoff__SSTQ_EXPR = 3; /* in CLASS_SOURCE_SETQ */
+const int meltfieldoff__SSTQ_VAR = 2; /* in CLASS_SOURCE_SETQ */
+const int meltfieldoff__SUCME_COMMENT = 2; /* in CLASS_SOURCE_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER */
+const int meltfieldoff__SUGET_FIELD = 3; /* in CLASS_SOURCE_GET_FIELD */
+const int meltfieldoff__SUGET_OBJ = 2; /* in CLASS_SOURCE_GET_FIELD */
+const int meltfieldoff__SUPUT_FIELDS = 3; /* in CLASS_SOURCE_PUT_FIELDS */
+const int meltfieldoff__SUPUT_OBJ = 2; /* in CLASS_SOURCE_PUT_FIELDS */
 
-/* exported 45 class lengths */
+/* exported 76 class lengths */
+const int meltclasslen__CLASS_PATTERN_EXPANSION_CONTEXT = 3;
+const int meltclasslen__CLASS_SOURCE_APPLY = 4;
+const int meltclasslen__CLASS_SOURCE_ARGUMENTED_OPERATOR = 3;
+const int meltclasslen__CLASS_SOURCE_CITERATION = 6;
+const int meltclasslen__CLASS_SOURCE_CMATCHEXPR = 4;
+const int meltclasslen__CLASS_SOURCE_CODECHUNK = 4;
+const int meltclasslen__CLASS_SOURCE_COMMENT = 3;
+const int meltclasslen__CLASS_SOURCE_COMPILEWARNING = 4;
+const int meltclasslen__CLASS_SOURCE_CPPIF = 5;
+const int meltclasslen__CLASS_SOURCE_CURRENT_MODULE_ENVIRONMENT_CONTAINER = 3;
+const int meltclasslen__CLASS_SOURCE_DEFCITERATOR = 6;
+const int meltclasslen__CLASS_SOURCE_DEFCLASS = 8;
+const int meltclasslen__CLASS_SOURCE_DEFCMATCHER = 6;
+const int meltclasslen__CLASS_SOURCE_DEFINE = 5;
+const int meltclasslen__CLASS_SOURCE_DEFINITION = 4;
+const int meltclasslen__CLASS_SOURCE_DEFINITION_FORMAL = 5;
+const int meltclasslen__CLASS_SOURCE_DEFINSTANCE = 9;
+const int meltclasslen__CLASS_SOURCE_DEFOBJCOMMON = 5;
+const int meltclasslen__CLASS_SOURCE_DEFPRIMITIVE = 7;
+const int meltclasslen__CLASS_SOURCE_DEFSELECTOR = 10;
+const int meltclasslen__CLASS_SOURCE_DEFUN = 6;
+const int meltclasslen__CLASS_SOURCE_DEFUNMATCHER = 10;
+const int meltclasslen__CLASS_SOURCE_EXIT = 4;
 const int meltclasslen__CLASS_SOURCE_EXPORTCOMMON = 3;
+const int meltclasslen__CLASS_SOURCE_EXPORT_CLASS = 3;
+const int meltclasslen__CLASS_SOURCE_EXPORT_MACRO = 5;
+const int meltclasslen__CLASS_SOURCE_EXPORT_PATMACRO = 6;
+const int meltclasslen__CLASS_SOURCE_EXPORT_SYNONYM = 5;
+const int meltclasslen__CLASS_SOURCE_EXPORT_VALUES = 3;
+const int meltclasslen__CLASS_SOURCE_FETCH_PREDEFINED = 3;
+const int meltclasslen__CLASS_SOURCE_FIELDASSIGN = 4;
+const int meltclasslen__CLASS_SOURCE_FIELD_PATTERN = 4;
 const int meltclasslen__CLASS_SOURCE_FOREVER = 4;
 const int meltclasslen__CLASS_SOURCE_FUNMATCHEXPR = 5;
 const int meltclasslen__CLASS_SOURCE_GET_FIELD = 4;

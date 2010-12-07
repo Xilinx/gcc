@@ -3,11 +3,11 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[]=
- "4.6.0 20101204 (experimental) [melt-branch revision 167485]";
+ "4.6.0 20101206 (experimental) [melt-branch revision 167494]";
 
 
 /* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[]="43cbf93cd7bc378755ae1a418e12fb4b";
+const char md5prepromeltrun_melt[]="7d05faa9b43525930aa04e069bd6a7d4";
 
 #endif /*MELTGCC_DYNAMIC_OBJSTRUCT*/
 
@@ -7630,7 +7630,8 @@ lab_endgetargs:;
     
     /*^rawallocobj*/
     /*rawallocobj*/ { melt_ptr_t newobj = 0;
-     melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_CONTAINER*/ meltfrout->tabval[4])), (1), "CLASS_CONTAINER");/*_.INST__V28*/ meltfptr[27] =
+     melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_CONTAINER*/ meltfrout->tabval[4])), (1), "CLASS_CONTAINER");
+     /*_.INST__V28*/ meltfptr[27] =
      newobj; };
     ;
     /*^putslot*/
@@ -42138,90 +42139,90 @@ for(ix=0; ix<1369; ix++)
 
 
 /* exported 84 field offsets */
-const int meltfieldoff__MATCHBIND_DATA = 1;
-const int meltfieldoff__MATCHBIND_NBOCC = 2;
-const int meltfieldoff__MCASE_INDEX = 3;
-const int meltfieldoff__MCASE_MCTXT = 1;
-const int meltfieldoff__MCASE_SOURCE = 2;
-const int meltfieldoff__MCASE_VARMAP = 4;
-const int meltfieldoff__MCTX_CASES = 4;
-const int meltfieldoff__MCTX_ENDLABEL = 9;
-const int meltfieldoff__MCTX_ENV = 5;
-const int meltfieldoff__MCTX_FLAGS = 8;
-const int meltfieldoff__MCTX_MDATA = 6;
-const int meltfieldoff__MCTX_NMATBIND = 3;
-const int meltfieldoff__MCTX_NMATCHED = 2;
-const int meltfieldoff__MCTX_NORMCTXT = 0;
-const int meltfieldoff__MCTX_SOURCE = 1;
-const int meltfieldoff__MCTX_VARHANDLERS = 7;
-const int meltfieldoff__MDATA_CTYPE = 2;
-const int meltfieldoff__MDATA_ORIG = 3;
-const int meltfieldoff__MDATA_STEPS = 4;
-const int meltfieldoff__MDATA_SYMB = 1;
-const int meltfieldoff__MFLAG_RANK = 3;
-const int meltfieldoff__MFLAG_SETSTEP = 5;
-const int meltfieldoff__MFLAG_SPAT = 2;
-const int meltfieldoff__MFLAG_STRING = 4;
-const int meltfieldoff__MSTEPSUCCESS_BINDS = 5;
-const int meltfieldoff__MSTEPSUCCESS_BODY = 6;
-const int meltfieldoff__MSTEPSUCCESS_VAROCC = 4;
-const int meltfieldoff__MSTEPTESTVAR_DATA = 6;
-const int meltfieldoff__MSTEP_CLEARDATA = 3;
-const int meltfieldoff__MSTEP_DATA = 3;
-const int meltfieldoff__MSTEP_ELSE = 5;
-const int meltfieldoff__MSTEP_FLAG = 3;
-const int meltfieldoff__MSTEP_FLAGARGS = 4;
-const int meltfieldoff__MSTEP_INDEX = 4;
-const int meltfieldoff__MSTEP_THEN = 2;
-const int meltfieldoff__MSTGROUP_ELSE = 8;
-const int meltfieldoff__MSTGROUP_START = 6;
-const int meltfieldoff__MSTGROUP_THEN = 7;
-const int meltfieldoff__MSTINS_CLASS = 6;
-const int meltfieldoff__MSTINS_SLOTS = 7;
-const int meltfieldoff__MSTMA_BINDS = 7;
-const int meltfieldoff__MSTMA_INS = 8;
-const int meltfieldoff__MSTMA_MATCHER = 6;
-const int meltfieldoff__MSTMA_OUTS = 9;
-const int meltfieldoff__NAMATCH_BODY = 4;
-const int meltfieldoff__NAMATCH_FLAGS = 5;
-const int meltfieldoff__NAMATCH_MATCHED = 2;
-const int meltfieldoff__NAMATCH_RESULT = 3;
-const int meltfieldoff__NMATCH_MATCHED = 4;
-const int meltfieldoff__NMATCH_STUFFMAP = 3;
-const int meltfieldoff__NMATCH_TESTS = 2;
-const int meltfieldoff__NRPFLA_FLAG = 1;
-const int meltfieldoff__NRPFLA_NMATCH = 2;
-const int meltfieldoff__NTDISJUNCTS = 7;
-const int meltfieldoff__NTDISJ_FRESHORVAR = 8;
-const int meltfieldoff__NTDISJ_SETORVAR = 9;
-const int meltfieldoff__NTEST_COMEFROM = 6;
-const int meltfieldoff__NTEST_ELSE = 3;
-const int meltfieldoff__NTEST_LOCCLIST = 5;
-const int meltfieldoff__NTEST_MATCHED = 1;
-const int meltfieldoff__NTEST_NORMATCH = 4;
-const int meltfieldoff__NTEST_THEN = 2;
-const int meltfieldoff__NTINST_CLASS = 7;
-const int meltfieldoff__NTINST_FIELDLOCS = 8;
-const int meltfieldoff__NTMATCH_INARGS = 9;
-const int meltfieldoff__NTMATCH_MATCHER = 7;
-const int meltfieldoff__NTMATCH_MATNDATA = 8;
-const int meltfieldoff__NTMATCH_OUTLOCS = 10;
-const int meltfieldoff__NTORCLEAR_LOCSYM = 7;
-const int meltfieldoff__NTORTRANSMIT_DST = 7;
-const int meltfieldoff__NTORTRANSMIT_SRC = 8;
-const int meltfieldoff__NTSAME_IDENTICAL = 7;
-const int meltfieldoff__NTSUCCESS_DO = 7;
-const int meltfieldoff__PCTN_BINDLIST = 6;
-const int meltfieldoff__PCTN_ENV = 2;
-const int meltfieldoff__PCTN_MAPATCST = 4;
-const int meltfieldoff__PCTN_MAPATVAR = 3;
-const int meltfieldoff__PCTN_MAPOR = 5;
-const int meltfieldoff__PCTN_NORMCTXT = 0;
-const int meltfieldoff__PCTN_PVARLOCMAP = 8;
-const int meltfieldoff__PCTN_SRC = 1;
-const int meltfieldoff__PCTN_STUFFMAP = 7;
-const int meltfieldoff__PCTN_TESTS = 9;
-const int meltfieldoff__PCTN_VARHANDLERS = 10;
+const int meltfieldoff__MATCHBIND_DATA = 1; /* in CLASS_MATCHED_BINDING */
+const int meltfieldoff__MATCHBIND_NBOCC = 2; /* in CLASS_MATCHED_BINDING */
+const int meltfieldoff__MCASE_INDEX = 3; /* in CLASS_MATCH_CASE */
+const int meltfieldoff__MCASE_MCTXT = 1; /* in CLASS_MATCH_CASE */
+const int meltfieldoff__MCASE_SOURCE = 2; /* in CLASS_MATCH_CASE */
+const int meltfieldoff__MCASE_VARMAP = 4; /* in CLASS_MATCH_CASE */
+const int meltfieldoff__MCTX_CASES = 4; /* in CLASS_MATCHING_CONTEXT */
+const int meltfieldoff__MCTX_ENDLABEL = 9; /* in CLASS_MATCHING_CONTEXT */
+const int meltfieldoff__MCTX_ENV = 5; /* in CLASS_MATCHING_CONTEXT */
+const int meltfieldoff__MCTX_FLAGS = 8; /* in CLASS_MATCHING_CONTEXT */
+const int meltfieldoff__MCTX_MDATA = 6; /* in CLASS_MATCHING_CONTEXT */
+const int meltfieldoff__MCTX_NMATBIND = 3; /* in CLASS_MATCHING_CONTEXT */
+const int meltfieldoff__MCTX_NMATCHED = 2; /* in CLASS_MATCHING_CONTEXT */
+const int meltfieldoff__MCTX_NORMCTXT = 0; /* in CLASS_MATCHING_CONTEXT */
+const int meltfieldoff__MCTX_SOURCE = 1; /* in CLASS_MATCHING_CONTEXT */
+const int meltfieldoff__MCTX_VARHANDLERS = 7; /* in CLASS_MATCHING_CONTEXT */
+const int meltfieldoff__MDATA_CTYPE = 2; /* in CLASS_MATCHED_DATA */
+const int meltfieldoff__MDATA_ORIG = 3; /* in CLASS_MATCHED_DATA */
+const int meltfieldoff__MDATA_STEPS = 4; /* in CLASS_MATCHED_DATA */
+const int meltfieldoff__MDATA_SYMB = 1; /* in CLASS_MATCHED_DATA */
+const int meltfieldoff__MFLAG_RANK = 3; /* in CLASS_MATCH_FLAG */
+const int meltfieldoff__MFLAG_SETSTEP = 5; /* in CLASS_MATCH_FLAG */
+const int meltfieldoff__MFLAG_SPAT = 2; /* in CLASS_MATCH_FLAG */
+const int meltfieldoff__MFLAG_STRING = 4; /* in CLASS_MATCH_FLAG */
+const int meltfieldoff__MSTEPSUCCESS_BINDS = 5; /* in CLASS_MATCH_STEP_SUCCESS_WHEN_FLAG */
+const int meltfieldoff__MSTEPSUCCESS_BODY = 6; /* in CLASS_MATCH_STEP_SUCCESS_WHEN_FLAG */
+const int meltfieldoff__MSTEPSUCCESS_VAROCC = 4; /* in CLASS_MATCH_STEP_SUCCESS_WHEN_FLAG */
+const int meltfieldoff__MSTEPTESTVAR_DATA = 6; /* in CLASS_MATCH_STEP_TEST_VARIABLE */
+const int meltfieldoff__MSTEP_CLEARDATA = 3; /* in CLASS_MATCH_STEP_CLEAR */
+const int meltfieldoff__MSTEP_DATA = 3; /* in CLASS_MATCH_STEP_WITH_DATA */
+const int meltfieldoff__MSTEP_ELSE = 5; /* in CLASS_MATCH_STEP_TEST */
+const int meltfieldoff__MSTEP_FLAG = 3; /* in CLASS_MATCH_STEP_WITH_FLAG */
+const int meltfieldoff__MSTEP_FLAGARGS = 4; /* in CLASS_MATCH_STEP_FLAG_OPERATION */
+const int meltfieldoff__MSTEP_INDEX = 4; /* in CLASS_MATCH_STEP_WITH_DATA */
+const int meltfieldoff__MSTEP_THEN = 2; /* in CLASS_MATCH_STEP_THEN */
+const int meltfieldoff__MSTGROUP_ELSE = 8; /* in CLASS_MATCH_STEP_TEST_GROUP */
+const int meltfieldoff__MSTGROUP_START = 6; /* in CLASS_MATCH_STEP_TEST_GROUP */
+const int meltfieldoff__MSTGROUP_THEN = 7; /* in CLASS_MATCH_STEP_TEST_GROUP */
+const int meltfieldoff__MSTINS_CLASS = 6; /* in CLASS_MATCH_STEP_TEST_INSTANCE */
+const int meltfieldoff__MSTINS_SLOTS = 7; /* in CLASS_MATCH_STEP_TEST_INSTANCE */
+const int meltfieldoff__MSTMA_BINDS = 7; /* in CLASS_MATCH_STEP_TEST_MATCHER */
+const int meltfieldoff__MSTMA_INS = 8; /* in CLASS_MATCH_STEP_TEST_MATCHER */
+const int meltfieldoff__MSTMA_MATCHER = 6; /* in CLASS_MATCH_STEP_TEST_MATCHER */
+const int meltfieldoff__MSTMA_OUTS = 9; /* in CLASS_MATCH_STEP_TEST_MATCHER */
+const int meltfieldoff__NAMATCH_BODY = 4; /* in CLASS_NREP_ALTMATCH */
+const int meltfieldoff__NAMATCH_FLAGS = 5; /* in CLASS_NREP_ALTMATCH */
+const int meltfieldoff__NAMATCH_MATCHED = 2; /* in CLASS_NREP_ALTMATCH */
+const int meltfieldoff__NAMATCH_RESULT = 3; /* in CLASS_NREP_ALTMATCH */
+const int meltfieldoff__NMATCH_MATCHED = 4; /* in CLASS_NREP_MATCH */
+const int meltfieldoff__NMATCH_STUFFMAP = 3; /* in CLASS_NREP_MATCH */
+const int meltfieldoff__NMATCH_TESTS = 2; /* in CLASS_NREP_MATCH */
+const int meltfieldoff__NRPFLA_FLAG = 1; /* in CLASS_NREP_MATCH_FLAG */
+const int meltfieldoff__NRPFLA_NMATCH = 2; /* in CLASS_NREP_MATCH_FLAG */
+const int meltfieldoff__NTDISJUNCTS = 7; /* in CLASS_NORMTESTER_DISJUNCTION */
+const int meltfieldoff__NTDISJ_FRESHORVAR = 8; /* in CLASS_NORMTESTER_DISJUNCTION */
+const int meltfieldoff__NTDISJ_SETORVAR = 9; /* in CLASS_NORMTESTER_DISJUNCTION */
+const int meltfieldoff__NTEST_COMEFROM = 6; /* in CLASS_NORMTESTER_ANY */
+const int meltfieldoff__NTEST_ELSE = 3; /* in CLASS_NORMTESTER_ANY */
+const int meltfieldoff__NTEST_LOCCLIST = 5; /* in CLASS_NORMTESTER_ANY */
+const int meltfieldoff__NTEST_MATCHED = 1; /* in CLASS_NORMTESTER_ANY */
+const int meltfieldoff__NTEST_NORMATCH = 4; /* in CLASS_NORMTESTER_ANY */
+const int meltfieldoff__NTEST_THEN = 2; /* in CLASS_NORMTESTER_ANY */
+const int meltfieldoff__NTINST_CLASS = 7; /* in CLASS_NORMTESTER_INSTANCE */
+const int meltfieldoff__NTINST_FIELDLOCS = 8; /* in CLASS_NORMTESTER_INSTANCE */
+const int meltfieldoff__NTMATCH_INARGS = 9; /* in CLASS_NORMTESTER_MATCHER */
+const int meltfieldoff__NTMATCH_MATCHER = 7; /* in CLASS_NORMTESTER_MATCHER */
+const int meltfieldoff__NTMATCH_MATNDATA = 8; /* in CLASS_NORMTESTER_MATCHER */
+const int meltfieldoff__NTMATCH_OUTLOCS = 10; /* in CLASS_NORMTESTER_MATCHER */
+const int meltfieldoff__NTORCLEAR_LOCSYM = 7; /* in CLASS_NORMTESTER_OR_CLEAR */
+const int meltfieldoff__NTORTRANSMIT_DST = 7; /* in CLASS_NORMTESTER_OR_TRANSMIT */
+const int meltfieldoff__NTORTRANSMIT_SRC = 8; /* in CLASS_NORMTESTER_OR_TRANSMIT */
+const int meltfieldoff__NTSAME_IDENTICAL = 7; /* in CLASS_NORMTESTER_SAME */
+const int meltfieldoff__NTSUCCESS_DO = 7; /* in CLASS_NORMTESTER_SUCCESS */
+const int meltfieldoff__PCTN_BINDLIST = 6; /* in CLASS_PATTERN_CONTEXT */
+const int meltfieldoff__PCTN_ENV = 2; /* in CLASS_PATTERN_CONTEXT */
+const int meltfieldoff__PCTN_MAPATCST = 4; /* in CLASS_PATTERN_CONTEXT */
+const int meltfieldoff__PCTN_MAPATVAR = 3; /* in CLASS_PATTERN_CONTEXT */
+const int meltfieldoff__PCTN_MAPOR = 5; /* in CLASS_PATTERN_CONTEXT */
+const int meltfieldoff__PCTN_NORMCTXT = 0; /* in CLASS_PATTERN_CONTEXT */
+const int meltfieldoff__PCTN_PVARLOCMAP = 8; /* in CLASS_PATTERN_CONTEXT */
+const int meltfieldoff__PCTN_SRC = 1; /* in CLASS_PATTERN_CONTEXT */
+const int meltfieldoff__PCTN_STUFFMAP = 7; /* in CLASS_PATTERN_CONTEXT */
+const int meltfieldoff__PCTN_TESTS = 9; /* in CLASS_PATTERN_CONTEXT */
+const int meltfieldoff__PCTN_VARHANDLERS = 10; /* in CLASS_PATTERN_CONTEXT */
 
 /* exported 35 class lengths */
 const int meltclasslen__CLASS_MATCHED_BINDING = 3;

@@ -3,11 +3,11 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[]=
- "4.6.0 20101204 (experimental) [melt-branch revision 167485]";
+ "4.6.0 20101206 (experimental) [melt-branch revision 167494]";
 
 
 /* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[]="43cbf93cd7bc378755ae1a418e12fb4b";
+const char md5prepromeltrun_melt[]="7d05faa9b43525930aa04e069bd6a7d4";
 
 #endif /*MELTGCC_DYNAMIC_OBJSTRUCT*/
 
@@ -514,7 +514,8 @@ lab_endgetargs:;
    
    /*^rawallocobj*/
    /*rawallocobj*/ { melt_ptr_t newobj = 0;
-    melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_DEBUG_INFORMATION*/ meltfrout->tabval[5])), (3), "CLASS_DEBUG_INFORMATION");/*_.INST__V15*/ meltfptr[14] =
+    melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_DEBUG_INFORMATION*/ meltfrout->tabval[5])), (3), "CLASS_DEBUG_INFORMATION");
+    /*_.INST__V15*/ meltfptr[14] =
     newobj; };
    ;
    /*^putslot*/
@@ -10200,9 +10201,9 @@ for(ix=0; ix<289; ix++)
 
 
 /* exported 3 field offsets */
-const int meltfieldoff__DBGI_MAXDEPTH = 2;
-const int meltfieldoff__DBGI_OCCMAP = 1;
-const int meltfieldoff__DBGI_OUT = 0;
+const int meltfieldoff__DBGI_MAXDEPTH = 2; /* in CLASS_DEBUG_INFORMATION */
+const int meltfieldoff__DBGI_OCCMAP = 1; /* in CLASS_DEBUG_INFORMATION */
+const int meltfieldoff__DBGI_OUT = 0; /* in CLASS_DEBUG_INFORMATION */
 
 /* exported 1 class lengths */
 const int meltclasslen__CLASS_DEBUG_INFORMATION = 3;

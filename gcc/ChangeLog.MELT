@@ -1,4 +1,70 @@
 
+2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Add rules for generating *.d.so & *.n.so modules.
+	Add meltgendoc.texi target.
+
+	* melt-build.mk: Regenerate.
+
+	* Makefile.in (install-melt-dynlib): Correct using basename.
+	(upgrade-warmelt): Use warmelt-upgrade-translator.
+
+	* melt-module.mk (GCCMELT_MODULE_BINARY): Should not end with .so.
+	(MELTMODULE_OPTIMIZED): New variable.
+	(melt_module,melt_module_dynamic,melt_module_rawdynamic): Use it.
+	($(MELTMODULE_OPTIMIZED),$(MELTMODULE_NOLINE),$(GCCMELT_MODULE_WORKSPACE)/%.nolpic.o):
+	Update, notably for explicit -g compilation flag.
+	($(MELTSTAMP)): Update.
+
+	* melt-runtime.h (melt_object_get_field_at, melt_getfield_object):
+	Update for melt_dynobjstruct_getfield_object_at.
+	(melt_dynobjstruct_make_raw_object): Has new deflenptr parameter.
+	(melt_raw_object_create_at, melt_make_raw_object): Provide it.
+
+	* melt-runtime.c (do_finalize_melt): Don't free each parsefilnam
+	in parsedmeltfilevect.
+	(melt_dynobjstruct_fieldoffset_at)
+	(melt_dynobjstruct_classlength_at): Don't fatal, just warn when
+	fail.
+
+	* melt/warmelt-normal.melt (normexp_export_class): Remove a
+	temporary check when retrieving the mocx_expclassdict &
+	:mocx_expfieldict.  Add assert that exported class & field
+	dictionnaries exist.
+
+	* melt/warmelt-outobj.melt (outpucod_objrawallocobj): Output also
+	a comment.
+	(compile_list_sexpr): The  exported class & field
+	dictionnaries exist are made larger.
+
+	{{regenerated}}
+	* melt/generated/warmelt-first.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerate.
+	* melt/generated/warmelt-normal.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0+02.c: Regenerate.
+	* melt/generated/warmelt-normatch.0+03.c: Regenerate.
+	* melt/generated/warmelt-macro.0.c: Regenerate.
+	* melt/generated/warmelt-debug.0+01.c: Regenerate.
+	* melt/generated/warmelt-outobj.0.c: Regenerate.
+	* melt/generated/warmelt-first.0+01.c: Regenerate.
+	* melt/generated/warmelt-normal.0+01.c: Regenerate.
+	* melt/generated/warmelt-genobj.0.c: Regenerate.
+	* melt/generated/warmelt-normal.0+02.c: Regenerate.
+	* melt/generated/warmelt-normal.0+03.c: Regenerate.
+	* melt/generated/warmelt-base.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0.c: Regenerate.
+	* melt/generated/warmelt-macro.0+01.c: Regenerate.
+	* melt/generated/warmelt-macro.0+02.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerate.
+	* melt/generated/warmelt-macro.0+03.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+02.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+04.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+04.c: Regenerate.
+	* melt/generated/warmelt-debug.0.c: Regenerate.
+
 2010-12-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-built.tpl (warmmelt-upgrade-translator): Does work now.
 

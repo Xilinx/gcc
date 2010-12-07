@@ -2861,15 +2861,16 @@
     (add2sbuf_strconst implbuf "), \"")
     (add2sbuf_cencstring implbuf iclaname) 
     (add2sbuf_strconst implbuf "\");")
-    (list_every
+    (foreach_in_list
      destlist
-     (lambda (dst) 
-       (output_c_code dst declbuf implbuf (get_int boxdepthp1))
-       (add2sbuf_strconst implbuf " =")))
-    (add2sbuf_indentnl implbuf (+i depth 1))
-    (add2sbuf_strconst implbuf "newobj; };")
-    (add2sbuf_indentnl implbuf depth)
-    ))
+     (dstpair dst) 
+     (add2sbuf_indentnl implbuf (+i depth 1))
+     (output_c_code dst declbuf implbuf (get_int boxdepthp1))
+     (add2sbuf_strconst implbuf " =")))
+  (add2sbuf_indentnl implbuf (+i depth 1))
+  (add2sbuf_strconst implbuf "newobj; };")
+  (add2sbuf_indentnl implbuf depth)
+  )
 (install_method class_objrawallocobj output_c_code outpucod_objrawallocobj)
 
 
@@ -3527,6 +3528,9 @@
        (add2sbuf_strconst implbuf " = ")
        (add2sbuf_longdec implbuf (get_int fld))
        (add2sbuf_strconst implbuf ";")
+       (add2sbuf_strconst implbuf " /* in ")
+       (add2sbuf_string implbuf (get_field :named_name (get_field :fld_ownclass fld)))
+       (add2sbuf_strconst implbuf " */")
        ))
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
@@ -3780,8 +3784,8 @@
   (let (
 	(modctx (instance class_module_context
 			  :mocx_modulename  (make_string_nakedbasename discr_string modnamstr)
-			  :mocx_expfieldict (make_mapstring discr_map_strings 90)
-			  :mocx_expclassdict (make_mapstring discr_map_strings 40)
+			  :mocx_expfieldict (make_mapstring discr_map_strings 390)
+			  :mocx_expclassdict (make_mapstring discr_map_strings 140)
 			  :mocx_initialenv inienv
 			  :mocx_funcount (make_integerbox discr_integer 0)
 			  :mocx_filetuple ()

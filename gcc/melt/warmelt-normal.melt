@@ -5895,16 +5895,12 @@ source location.}#
 		  )
 	     (debug_msg nclav "normexp_export_class nclav")
 	     (assert_msg "check xclass" (is_a xclass class_class))
-	     (let ( (xclfields (unsafe_get_field :class_fields xclass)) 
-		    ;; temporarily, to be able to melt bootstrap, we
-		    ;; have to check the object length of mocx
-		    (expcladic
-		     (if (>i (object_length mocx) (get_int mocx_expclassdict))
-			 (unsafe_get_field :mocx_expclassdict mocx)))
-		    (expfldic
-		     (if (>i (object_length mocx) (get_int mocx_expfieldict))
-			 (unsafe_get_field :mocx_expfieldict mocx)))
+	     (let ( (xclfields (unsafe_get_field :class_fields xclass))
+		    (expcladic (get_field :mocx_expclassdict mocx))
+		    (expfldic (get_field :mocx_expfieldict mocx))
 		    )
+	       (assert_msg "check expcladic" (is_mapstring expcladic))
+	       (assert_msg "check expfldic" (is_mapstring expfldic))
 	       (mapstring_putstr expcladic (unsafe_get_field :named_name xclass) xclass)
 	       (multiple_every
 		xclfields
@@ -5923,6 +5919,7 @@ source location.}#
 				 (nfld (normal_exported_value fldsym fldata nvaluexporter env ncx sloc bindslist))
 				 )
 			    (assert_msg "check field" (is_a field class_field))
+			    (assert_msg "check expfldic" (is_mapstring expfldic))
 			    (mapstring_putstr expfldic (unsafe_get_field :named_name field) field)
 			    (debug_msg nfld "normexp_export_class nfld")
 			    ))))))))))

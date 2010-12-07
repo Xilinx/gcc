@@ -10200,15 +10200,8 @@ do_finalize_melt (void)
 	warning (0, "failed to rmdir melt tempdir %s (%s)",
 		 tempdir_melt, xstrerror (errno));
     }
-  /* Clear the vector of MELT file paths read */
-  while (parsedmeltfilevect && !VEC_empty (meltchar_p, parsedmeltfilevect))
-    {
-      char *parsedfilnam = VEC_pop (meltchar_p, parsedmeltfilevect);
-      if (parsedfilnam)
-	*parsedfilnam = 0;
-      free (parsedfilnam);
-    };
   VEC_free (meltchar_p, heap, parsedmeltfilevect);
+  parsedmeltfilevect = NULL;
   dbgprintf ("do_finalize_melt ended melt_nb_modules=%d", melt_nb_modules);
  end:
   MELT_EXITFRAME ();
@@ -10266,8 +10259,9 @@ melt_dynobjstruct_fieldoffset_at (const char *fldnam, const char *fil,
   nam = concat ("meltfieldoff__", fldnam, NULL);
   ptr = melt_dlsym_all (nam);
   if (!ptr)
-    melt_fatal_error ("melt failed to find field offset %s - %s (%s:%d)", nam,
-		      dlerror (), fil, lin);
+    warning (0,
+	     "MELT failed to find field offset %s - %s (%s:%d)", nam,
+	     dlerror (), fil, lin);
   free (nam);
   return (int *) ptr;
 }
@@ -10282,8 +10276,9 @@ melt_dynobjstruct_classlength_at (const char *clanam, const char *fil,
   nam = concat ("meltclasslen__", clanam, NULL);
   ptr = melt_dlsym_all (nam);
   if (!ptr)
-    melt_fatal_error ("melt failed to find class length %s - %s (%s:%d)", nam,
-		      dlerror (), fil, lin);
+    warning (0,
+	     "MELT failed to find class length %s - %s (%s:%d)", nam,
+	     dlerror (), fil, lin);
   free (nam);
   return (int *) ptr;
 }

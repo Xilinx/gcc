@@ -8872,7 +8872,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_DEBUG_INFORMATION*/ meltfrout->tabval[3])), (3), "CLASS_DEBUG_INFORMATION");/*_.INST__V7*/ meltfptr[6] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_DEBUG_INFORMATION*/ meltfrout->tabval[3])), (3), "CLASS_DEBUG_INFORMATION");
+  /*_.INST__V7*/ meltfptr[6] =
   newobj; };
  ;
  /*^putslot*/

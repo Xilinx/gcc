@@ -2103,19 +2103,19 @@ melt_dynobjstruct_getfield_object_at (melt_ptr_t ob, unsigned off, const char*fl
   return NULL;
 }
 
-#define melt_object_get_field_at(Slot,Obj,Off,Fldnam,Fil,Lin) do {	\
-  static int *offptr_##Lin;						\
-  Slot =								\
-    melt_dynobjstruct_getfield_object_at((melt_ptr_t)(Obj),	\
-					    (Off),Fldnam,Fil,Lin,	\
-					    &offptr_##Lin);		\
+#define melt_object_get_field_at(Slot,Obj,Off,Fldnam,Fil,Lin) do {      \
+  static int *offptr_##Lin;                                             \
+  Slot =                                                                \
+    melt_dynobjstruct_getfield_object_at((melt_ptr_t)(Obj),             \
+                                            (Off),Fldnam,Fil,Lin,       \
+                                            &offptr_##Lin);             \
 } while(0)
 
 #define melt_object_get_field(Slot,Obj,Off,Fldnam) \
   melt_object_get_field_at(Slot,Obj,Off,Fldnam,__FILE__,__LINE__)
 
 #define melt_getfield_object(Obj,Off,Fldnam)				\
-    melt_dynobjstruct_getfield_object_at((melt_ptr_t)(Obj),	\
+    melt_dynobjstruct_getfield_object_at((melt_ptr_t)(Obj),		\
 					    (Off),Fldnam,__FILE__,	\
                                             __LINE__,			\
 					    (int**)0)
@@ -2145,29 +2145,40 @@ melt_dynobjstruct_putfield_object_at(melt_ptr_t ob, unsigned off, melt_ptr_t val
   static int* ptroff_##Lin;						\
   melt_dynobjstruct_putfield_object_at((melt_ptr_t)(Obj),		\
 					  (Off),			\
-					  (melt_ptr_t)(Val),Fldnam,  \
+					  (melt_ptr_t)(Val),Fldnam,	\
 					  Fil,Lin,			\
 					  &ptroff_##Lin); } while(0)
+
 #define melt_putfield_object(Obj,Off,Val,Fldnam) \
   melt_putfield_object_at(Obj,Off,Val,Fldnam,__FILE__,__LINE__)
 
 
 static inline melt_ptr_t
-melt_dynobjstruct_make_raw_object(melt_ptr_t klas, int len, 
-				     const char*clanam, const char*fil, int lin, int**pptr) {
+melt_dynobjstruct_make_raw_object (melt_ptr_t klas, int len, 
+				  const char*clanam, const char*fil, int lin, 
+				   int**pptr,
+				   int*deflenptr) {
   if (pptr && !*pptr) 
     *pptr = melt_dynobjstruct_classlength_at(clanam,fil,lin);
   if (pptr && *pptr) 
     len = **pptr;
+  if (pptr && !*pptr && deflenptr)
+    {
+      *deflenptr = len;
+      *pptr = deflenptr;
+    }
   return (melt_ptr_t)meltgc_new_raw_object((meltobject_ptr_t)klas,len);
 }
 
-#define melt_raw_object_create_at(Newobj,Klas,Len,Clanam,Fil,Lin) do { \
+#define melt_raw_object_create_at(Newobj,Klas,Len,Clanam,Fil,Lin) do {	\
   static int* ptrlen_##Lin;						\
+  static int deflen_##Lin;						\
   Newobj =								\
-    melt_dynobjstruct_make_raw_object((Klas),(Len),			\
-					 Clanam,Fil,Lin,		\
-					 &ptrlen_##Lin); } while(0)
+    melt_dynobjstruct_make_raw_object					\
+    ( (Klas),(Len),							\
+      Clanam,Fil,Lin,							\
+      &ptrlen_##Lin,							\
+      &deflen_##Lin); } while(0)
 
 #define melt_raw_object_create(Newobj,Klas,Len,Clanam) \
   melt_raw_object_create_at(Newobj,Klas,Len,Clanam,__FILE__,__LINE__)
@@ -2175,7 +2186,7 @@ melt_dynobjstruct_make_raw_object(melt_ptr_t klas, int len,
 #define melt_make_raw_object(Klas,Len,Clanam)			\
     melt_dynobjstruct_make_raw_object((Klas),(Len),			\
 					 Clanam, __FILE__, __LINE__,	\
-					 (int**)0)
+				      (int**)0, (int*)0)
 
 #elif ENABLE_CHECKING
 static inline melt_ptr_t

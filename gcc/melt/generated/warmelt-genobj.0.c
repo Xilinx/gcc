@@ -3,11 +3,11 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[]=
- "4.6.0 20101204 (experimental) [melt-branch revision 167485]";
+ "4.6.0 20101206 (experimental) [melt-branch revision 167494]";
 
 
 /* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[]="43cbf93cd7bc378755ae1a418e12fb4b";
+const char md5prepromeltrun_melt[]="7d05faa9b43525930aa04e069bd6a7d4";
 
 #endif /*MELTGCC_DYNAMIC_OBJSTRUCT*/
 
@@ -3149,7 +3149,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_PROCROUTINEOBJ*/ meltfrout->tabval[7])), (14), "CLASS_PROCROUTINEOBJ");/*_.INST__V37*/ meltfptr[36] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_PROCROUTINEOBJ*/ meltfrout->tabval[7])), (14), "CLASS_PROCROUTINEOBJ");
+  /*_.INST__V37*/ meltfptr[36] =
   newobj; };
  ;
  /*^putslot*/
@@ -3245,7 +3246,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_C_GENERATION_CONTEXT*/ meltfrout->tabval[12])), (9), "CLASS_C_GENERATION_CONTEXT");/*_.INST__V44*/ meltfptr[43] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_C_GENERATION_CONTEXT*/ meltfrout->tabval[12])), (9), "CLASS_C_GENERATION_CONTEXT");
+  /*_.INST__V44*/ meltfptr[43] =
   newobj; };
  ;
  /*^putslot*/
@@ -4116,7 +4118,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJGETARG*/ meltfrout->tabval[6])), (3), "CLASS_OBJGETARG");/*_.INST__V15*/ meltfptr[12] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJGETARG*/ meltfrout->tabval[6])), (3), "CLASS_OBJGETARG");
+  /*_.INST__V15*/ meltfptr[12] =
   newobj; };
  ;
  /*^putslot*/
@@ -4556,7 +4559,8 @@ lab_endgetargs:;
  
  /*^rawallocobj*/
  /*rawallocobj*/ { melt_ptr_t newobj = 0;
-  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOMMENTINSTR*/ meltfrout->tabval[0])), (2), "CLASS_OBJCOMMENTINSTR");/*_.INST__V6*/ meltfptr[5] =
+  melt_raw_object_create(newobj,(melt_ptr_t)((/*!CLASS_OBJCOMMENTINSTR*/ meltfrout->tabval[0])), (2), "CLASS_OBJCOMMENTINSTR");
+  /*_.INST__V6*/ meltfptr[5] =
   newobj; };
  ;
  /*^putslot*/
@@ -50923,124 +50927,124 @@ for(ix=0; ix<1799; ix++)
 
 
 /* exported 118 field offsets */
-const int meltfieldoff__MCX_GOTOELSE = 4;
-const int meltfieldoff__MCX_GOTOTHEN = 3;
-const int meltfieldoff__MCX_LOC = 1;
-const int meltfieldoff__MCX_NORMTESTER = 2;
-const int meltfieldoff__MCX_OLIST = 5;
-const int meltfieldoff__MCX_STATECOUNTER = 7;
-const int meltfieldoff__MCX_SUFFIX = 6;
-const int meltfieldoff__OBAPP_ARGS = 3;
-const int meltfieldoff__OBAPP_CLOS = 2;
-const int meltfieldoff__OBARG_BIND = 2;
-const int meltfieldoff__OBARG_OBLOC = 1;
-const int meltfieldoff__OBCITER_AFTER = 5;
-const int meltfieldoff__OBCITER_BEFORE = 4;
-const int meltfieldoff__OBCITER_CITER = 3;
-const int meltfieldoff__OBCI_COMMENT = 1;
-const int meltfieldoff__OBCOND_ELSE = 3;
-const int meltfieldoff__OBCOND_TEST = 1;
-const int meltfieldoff__OBCOND_THEN = 2;
-const int meltfieldoff__OBCPT_EXPR = 2;
-const int meltfieldoff__OBCX_LOC = 2;
-const int meltfieldoff__OBC_NAME = 3;
-const int meltfieldoff__OBC_OFF = 1;
-const int meltfieldoff__OBC_PROC = 2;
-const int meltfieldoff__OBDI_DESTLIST = 1;
-const int meltfieldoff__OBEXIT_LABEL = 1;
-const int meltfieldoff__OBGNAMED_IOBJ = 1;
-const int meltfieldoff__OBGOTO_PREFIX = 1;
-const int meltfieldoff__OBGOTO_RANK = 2;
-const int meltfieldoff__OBIFP_COND = 1;
-const int meltfieldoff__OBIFP_ELSE = 3;
-const int meltfieldoff__OBIFP_THEN = 2;
-const int meltfieldoff__OBINTERN_IOBJ = 1;
-const int meltfieldoff__OBI_LOC = 0;
-const int meltfieldoff__OBLAB_PREFIX = 1;
-const int meltfieldoff__OBLAB_RANK = 2;
-const int meltfieldoff__OBLOOP_LABEL = 3;
-const int meltfieldoff__OBLOOP_RESV = 4;
-const int meltfieldoff__OBLO_BODYL = 1;
-const int meltfieldoff__OBLO_EPIL = 2;
-const int meltfieldoff__OBL_CNAME = 3;
-const int meltfieldoff__OBL_OFF = 1;
-const int meltfieldoff__OBL_PROC = 2;
-const int meltfieldoff__OBMSND_ARGS = 4;
-const int meltfieldoff__OBMSND_RECV = 3;
-const int meltfieldoff__OBMSND_SEL = 2;
-const int meltfieldoff__OBMULTAPP_XRES = 4;
-const int meltfieldoff__OBMULTSND_XRES = 5;
-const int meltfieldoff__OBNCLO_DISCR = 2;
-const int meltfieldoff__OBNCLO_LEN = 4;
-const int meltfieldoff__OBNCLO_ROUT = 3;
-const int meltfieldoff__OBPREDEF = 1;
-const int meltfieldoff__OBRALLOBJ_CLASS = 2;
-const int meltfieldoff__OBRALLOBJ_CLASSNAME = 4;
-const int meltfieldoff__OBRALLOBJ_LEN = 3;
-const int meltfieldoff__OBROUT_BODY = 3;
-const int meltfieldoff__OBROUT_CNTCITER = 8;
-const int meltfieldoff__OBROUT_CNTLETREC = 9;
-const int meltfieldoff__OBROUT_NBLONG = 5;
-const int meltfieldoff__OBROUT_NBVAL = 4;
-const int meltfieldoff__OBROUT_OTHERS = 6;
-const int meltfieldoff__OBROUT_PROC = 2;
-const int meltfieldoff__OBROUT_RETVAL = 7;
-const int meltfieldoff__OBV_TYPE = 0;
-const int meltfieldoff__OBXRES_OBLOC = 2;
-const int meltfieldoff__OBXRES_RANK = 1;
-const int meltfieldoff__OBX_CONT = 1;
-const int meltfieldoff__OCLR_VLOC = 1;
-const int meltfieldoff__OCOMBLO_COMMENT = 3;
-const int meltfieldoff__OGETSL_FIELD = 3;
-const int meltfieldoff__OGETSL_OBJ = 2;
-const int meltfieldoff__OICLO_ROUT = 5;
-const int meltfieldoff__OIE_CNAME = 1;
-const int meltfieldoff__OIE_DATA = 2;
-const int meltfieldoff__OIE_DISCR = 3;
-const int meltfieldoff__OIE_LOCVAR = 4;
-const int meltfieldoff__OIM_TUPVAL = 5;
-const int meltfieldoff__OIO_CLASS = 6;
-const int meltfieldoff__OIO_PREDEF = 5;
-const int meltfieldoff__OIROUT_DATA = 10;
-const int meltfieldoff__OIROUT_FILL = 12;
-const int meltfieldoff__OIROUT_MODULENAME = 13;
-const int meltfieldoff__OIROUT_PROLOG = 11;
-const int meltfieldoff__OIR_PROCROUTINE = 5;
-const int meltfieldoff__OMALBLO_ALLSTRUCT = 3;
-const int meltfieldoff__OMALBLO_NAME = 4;
-const int meltfieldoff__OMULBLO_SUBCOMP = 3;
-const int meltfieldoff__OPCLOR_CLOS = 1;
-const int meltfieldoff__OPCLOR_ROUT = 2;
-const int meltfieldoff__OPCLOV_CLOS = 1;
-const int meltfieldoff__OPCLOV_CVAL = 3;
-const int meltfieldoff__OPCLOV_OFF = 2;
-const int meltfieldoff__OPRCONST_CVAL = 3;
-const int meltfieldoff__OPRCONST_OFF = 2;
-const int meltfieldoff__OPRCONST_ROUT = 1;
-const int meltfieldoff__OPROUT_FILENUM = 13;
-const int meltfieldoff__OPROUT_FUNAM = 12;
-const int meltfieldoff__OPROUT_GETARGS = 10;
-const int meltfieldoff__OPROUT_LOC = 11;
-const int meltfieldoff__OPUTL_FIRST = 2;
-const int meltfieldoff__OPUTL_LAST = 3;
-const int meltfieldoff__OPUTL_LIST = 1;
-const int meltfieldoff__OPUTP_HEAD = 2;
-const int meltfieldoff__OPUTP_PAIR = 1;
-const int meltfieldoff__OPUTP_TAIL = 2;
-const int meltfieldoff__OPUTU_OFFSET = 2;
-const int meltfieldoff__OPUTU_TUPLED = 1;
-const int meltfieldoff__OPUTU_VALUE = 3;
-const int meltfieldoff__OSLOT_FIELD = 3;
-const int meltfieldoff__OSLOT_ODATA = 1;
-const int meltfieldoff__OSLOT_OFFSET = 2;
-const int meltfieldoff__OSLOT_VALUE = 4;
-const int meltfieldoff__OSPR_OBJECT = 1;
-const int meltfieldoff__OSPR_PREDEF = 2;
-const int meltfieldoff__OTOUCH_COMMENT = 2;
-const int meltfieldoff__OTOUCH_VAL = 1;
-const int meltfieldoff__TCX_FREELIST = 2;
-const int meltfieldoff__TCX_NEXTEST = 3;
-const int meltfieldoff__TCX_NRMATCH = 1;
+const int meltfieldoff__MCX_GOTOELSE = 4; /* in CLASS_MATCHCOMPILCONTEXT */
+const int meltfieldoff__MCX_GOTOTHEN = 3; /* in CLASS_MATCHCOMPILCONTEXT */
+const int meltfieldoff__MCX_LOC = 1; /* in CLASS_MATCHCOMPILCONTEXT */
+const int meltfieldoff__MCX_NORMTESTER = 2; /* in CLASS_MATCHCOMPILCONTEXT */
+const int meltfieldoff__MCX_OLIST = 5; /* in CLASS_MATCHCOMPILCONTEXT */
+const int meltfieldoff__MCX_STATECOUNTER = 7; /* in CLASS_MATCHCOMPILCONTEXT */
+const int meltfieldoff__MCX_SUFFIX = 6; /* in CLASS_MATCHCOMPILCONTEXT */
+const int meltfieldoff__OBAPP_ARGS = 3; /* in CLASS_OBJAPPLY */
+const int meltfieldoff__OBAPP_CLOS = 2; /* in CLASS_OBJAPPLY */
+const int meltfieldoff__OBARG_BIND = 2; /* in CLASS_OBJGETARG */
+const int meltfieldoff__OBARG_OBLOC = 1; /* in CLASS_OBJGETARG */
+const int meltfieldoff__OBCITER_AFTER = 5; /* in CLASS_OBJCITERBLOCK */
+const int meltfieldoff__OBCITER_BEFORE = 4; /* in CLASS_OBJCITERBLOCK */
+const int meltfieldoff__OBCITER_CITER = 3; /* in CLASS_OBJCITERBLOCK */
+const int meltfieldoff__OBCI_COMMENT = 1; /* in CLASS_OBJCOMMENTINSTR */
+const int meltfieldoff__OBCOND_ELSE = 3; /* in CLASS_OBJCOND */
+const int meltfieldoff__OBCOND_TEST = 1; /* in CLASS_OBJCOND */
+const int meltfieldoff__OBCOND_THEN = 2; /* in CLASS_OBJCOND */
+const int meltfieldoff__OBCPT_EXPR = 2; /* in CLASS_OBJCOMPUTE */
+const int meltfieldoff__OBCX_LOC = 2; /* in CLASS_OBJLOCATEDEXPV */
+const int meltfieldoff__OBC_NAME = 3; /* in CLASS_OBJCLOCCV */
+const int meltfieldoff__OBC_OFF = 1; /* in CLASS_OBJCLOCCV */
+const int meltfieldoff__OBC_PROC = 2; /* in CLASS_OBJCLOCCV */
+const int meltfieldoff__OBDI_DESTLIST = 1; /* in CLASS_OBJDESTINSTR */
+const int meltfieldoff__OBEXIT_LABEL = 1; /* in CLASS_OBJEXIT */
+const int meltfieldoff__OBGNAMED_IOBJ = 1; /* in CLASS_OBJGETNAMEDCOMMON */
+const int meltfieldoff__OBGOTO_PREFIX = 1; /* in CLASS_OBJGOTOINSTR */
+const int meltfieldoff__OBGOTO_RANK = 2; /* in CLASS_OBJGOTOINSTR */
+const int meltfieldoff__OBIFP_COND = 1; /* in CLASS_OBJCPPIF */
+const int meltfieldoff__OBIFP_ELSE = 3; /* in CLASS_OBJCPPIF */
+const int meltfieldoff__OBIFP_THEN = 2; /* in CLASS_OBJCPPIF */
+const int meltfieldoff__OBINTERN_IOBJ = 1; /* in CLASS_OBJINTERNCOMMON */
+const int meltfieldoff__OBI_LOC = 0; /* in CLASS_OBJINSTR */
+const int meltfieldoff__OBLAB_PREFIX = 1; /* in CLASS_OBJLABELINSTR */
+const int meltfieldoff__OBLAB_RANK = 2; /* in CLASS_OBJLABELINSTR */
+const int meltfieldoff__OBLOOP_LABEL = 3; /* in CLASS_OBJLOOP */
+const int meltfieldoff__OBLOOP_RESV = 4; /* in CLASS_OBJLOOP */
+const int meltfieldoff__OBLO_BODYL = 1; /* in CLASS_OBJANYBLOCK */
+const int meltfieldoff__OBLO_EPIL = 2; /* in CLASS_OBJANYBLOCK */
+const int meltfieldoff__OBL_CNAME = 3; /* in CLASS_OBJLOCV */
+const int meltfieldoff__OBL_OFF = 1; /* in CLASS_OBJLOCV */
+const int meltfieldoff__OBL_PROC = 2; /* in CLASS_OBJLOCV */
+const int meltfieldoff__OBMSND_ARGS = 4; /* in CLASS_OBJMSEND */
+const int meltfieldoff__OBMSND_RECV = 3; /* in CLASS_OBJMSEND */
+const int meltfieldoff__OBMSND_SEL = 2; /* in CLASS_OBJMSEND */
+const int meltfieldoff__OBMULTAPP_XRES = 4; /* in CLASS_OBJMULTIAPPLY */
+const int meltfieldoff__OBMULTSND_XRES = 5; /* in CLASS_OBJMULTIMSEND */
+const int meltfieldoff__OBNCLO_DISCR = 2; /* in CLASS_OBJNEWCLOSURE */
+const int meltfieldoff__OBNCLO_LEN = 4; /* in CLASS_OBJNEWCLOSURE */
+const int meltfieldoff__OBNCLO_ROUT = 3; /* in CLASS_OBJNEWCLOSURE */
+const int meltfieldoff__OBPREDEF = 1; /* in CLASS_OBJPREDEF */
+const int meltfieldoff__OBRALLOBJ_CLASS = 2; /* in CLASS_OBJRAWALLOCOBJ */
+const int meltfieldoff__OBRALLOBJ_CLASSNAME = 4; /* in CLASS_OBJRAWALLOCOBJ */
+const int meltfieldoff__OBRALLOBJ_LEN = 3; /* in CLASS_OBJRAWALLOCOBJ */
+const int meltfieldoff__OBROUT_BODY = 3; /* in CLASS_ROUTINEOBJ */
+const int meltfieldoff__OBROUT_CNTCITER = 8; /* in CLASS_ROUTINEOBJ */
+const int meltfieldoff__OBROUT_CNTLETREC = 9; /* in CLASS_ROUTINEOBJ */
+const int meltfieldoff__OBROUT_NBLONG = 5; /* in CLASS_ROUTINEOBJ */
+const int meltfieldoff__OBROUT_NBVAL = 4; /* in CLASS_ROUTINEOBJ */
+const int meltfieldoff__OBROUT_OTHERS = 6; /* in CLASS_ROUTINEOBJ */
+const int meltfieldoff__OBROUT_PROC = 2; /* in CLASS_ROUTINEOBJ */
+const int meltfieldoff__OBROUT_RETVAL = 7; /* in CLASS_ROUTINEOBJ */
+const int meltfieldoff__OBV_TYPE = 0; /* in CLASS_OBJVALUE */
+const int meltfieldoff__OBXRES_OBLOC = 2; /* in CLASS_OBJPUTXTRARESULT */
+const int meltfieldoff__OBXRES_RANK = 1; /* in CLASS_OBJPUTXTRARESULT */
+const int meltfieldoff__OBX_CONT = 1; /* in CLASS_OBJEXPV */
+const int meltfieldoff__OCLR_VLOC = 1; /* in CLASS_OBJCLEAR */
+const int meltfieldoff__OCOMBLO_COMMENT = 3; /* in CLASS_OBJCOMMENTEDBLOCK */
+const int meltfieldoff__OGETSL_FIELD = 3; /* in CLASS_OBJGETSLOT */
+const int meltfieldoff__OGETSL_OBJ = 2; /* in CLASS_OBJGETSLOT */
+const int meltfieldoff__OICLO_ROUT = 5; /* in CLASS_OBJINITCLOSURE */
+const int meltfieldoff__OIE_CNAME = 1; /* in CLASS_OBJINITELEM */
+const int meltfieldoff__OIE_DATA = 2; /* in CLASS_OBJINITELEM */
+const int meltfieldoff__OIE_DISCR = 3; /* in CLASS_OBJINITELEM */
+const int meltfieldoff__OIE_LOCVAR = 4; /* in CLASS_OBJINITELEM */
+const int meltfieldoff__OIM_TUPVAL = 5; /* in CLASS_OBJINITMULTIPLE */
+const int meltfieldoff__OIO_CLASS = 6; /* in CLASS_OBJINITOBJECT */
+const int meltfieldoff__OIO_PREDEF = 5; /* in CLASS_OBJINITOBJECT */
+const int meltfieldoff__OIROUT_DATA = 10; /* in CLASS_INITIALROUTINEOBJ */
+const int meltfieldoff__OIROUT_FILL = 12; /* in CLASS_INITIALROUTINEOBJ */
+const int meltfieldoff__OIROUT_MODULENAME = 13; /* in CLASS_INITIALROUTINEOBJ */
+const int meltfieldoff__OIROUT_PROLOG = 11; /* in CLASS_INITIALROUTINEOBJ */
+const int meltfieldoff__OIR_PROCROUTINE = 5; /* in CLASS_OBJINITROUTINE */
+const int meltfieldoff__OMALBLO_ALLSTRUCT = 3; /* in CLASS_OBJMULTIALLOCBLOCK */
+const int meltfieldoff__OMALBLO_NAME = 4; /* in CLASS_OBJMULTIALLOCBLOCK */
+const int meltfieldoff__OMULBLO_SUBCOMP = 3; /* in CLASS_OBJMULTIBLOCK */
+const int meltfieldoff__OPCLOR_CLOS = 1; /* in CLASS_OBJPUTCLOSUROUT */
+const int meltfieldoff__OPCLOR_ROUT = 2; /* in CLASS_OBJPUTCLOSUROUT */
+const int meltfieldoff__OPCLOV_CLOS = 1; /* in CLASS_OBJPUTCLOSEDV */
+const int meltfieldoff__OPCLOV_CVAL = 3; /* in CLASS_OBJPUTCLOSEDV */
+const int meltfieldoff__OPCLOV_OFF = 2; /* in CLASS_OBJPUTCLOSEDV */
+const int meltfieldoff__OPRCONST_CVAL = 3; /* in CLASS_OBJPUTROUTCONST */
+const int meltfieldoff__OPRCONST_OFF = 2; /* in CLASS_OBJPUTROUTCONST */
+const int meltfieldoff__OPRCONST_ROUT = 1; /* in CLASS_OBJPUTROUTCONST */
+const int meltfieldoff__OPROUT_FILENUM = 13; /* in CLASS_PROCROUTINEOBJ */
+const int meltfieldoff__OPROUT_FUNAM = 12; /* in CLASS_PROCROUTINEOBJ */
+const int meltfieldoff__OPROUT_GETARGS = 10; /* in CLASS_PROCROUTINEOBJ */
+const int meltfieldoff__OPROUT_LOC = 11; /* in CLASS_PROCROUTINEOBJ */
+const int meltfieldoff__OPUTL_FIRST = 2; /* in CLASS_OBJPUTLIST */
+const int meltfieldoff__OPUTL_LAST = 3; /* in CLASS_OBJPUTLIST */
+const int meltfieldoff__OPUTL_LIST = 1; /* in CLASS_OBJPUTLIST */
+const int meltfieldoff__OPUTP_HEAD = 2; /* in CLASS_OBJPUTPAIRHEAD */
+const int meltfieldoff__OPUTP_PAIR = 1; /* in CLASS_OBJPUTPAIR */
+const int meltfieldoff__OPUTP_TAIL = 2; /* in CLASS_OBJPUTPAIRTAIL */
+const int meltfieldoff__OPUTU_OFFSET = 2; /* in CLASS_OBJPUTUPLE */
+const int meltfieldoff__OPUTU_TUPLED = 1; /* in CLASS_OBJPUTUPLE */
+const int meltfieldoff__OPUTU_VALUE = 3; /* in CLASS_OBJPUTUPLE */
+const int meltfieldoff__OSLOT_FIELD = 3; /* in CLASS_OBJPUTSLOT */
+const int meltfieldoff__OSLOT_ODATA = 1; /* in CLASS_OBJPUTSLOT */
+const int meltfieldoff__OSLOT_OFFSET = 2; /* in CLASS_OBJPUTSLOT */
+const int meltfieldoff__OSLOT_VALUE = 4; /* in CLASS_OBJPUTSLOT */
+const int meltfieldoff__OSPR_OBJECT = 1; /* in CLASS_OBJSETPREDEF */
+const int meltfieldoff__OSPR_PREDEF = 2; /* in CLASS_OBJSETPREDEF */
+const int meltfieldoff__OTOUCH_COMMENT = 2; /* in CLASS_OBJTOUCH */
+const int meltfieldoff__OTOUCH_VAL = 1; /* in CLASS_OBJTOUCH */
+const int meltfieldoff__TCX_FREELIST = 2; /* in CLASS_TESTERCOMPILCONTEXT */
+const int meltfieldoff__TCX_NEXTEST = 3; /* in CLASS_TESTERCOMPILCONTEXT */
+const int meltfieldoff__TCX_NRMATCH = 1; /* in CLASS_TESTERCOMPILCONTEXT */
 
 /* exported 70 class lengths */
 const int meltclasslen__CLASS_INITIALROUTINEOBJ = 14;

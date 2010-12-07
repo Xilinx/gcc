@@ -5483,7 +5483,7 @@ melt_installed_cflags= $(MELTHERE_CFLAGS) -I $(plugin_includedir)
 ## leave melt_is_plugin as empty 
 melt_is_plugin=
 
-MELT_STAGE_ZERO=melt-stage0-static
+MELT_STAGE_ZERO?=melt-stage0-static
 AUTOGEN= autogen
 $(srcdir)/melt-build.mk: @MAINT@ $(srcdir)/melt-build.def $(srcdir)/melt-build.tpl
 	cd $(srcdir) && $(AUTOGEN) melt-build.def
@@ -5499,7 +5499,7 @@ install-melt-dynlib: installdirs $(melt_default_modules_list).modlis melt-all-mo
 	$(INSTALL_DATA) $(melt_default_modules_list).modlis $(DESTDIR)$(melt_module_dir)/$(melt_default_modules_list).modlis
 	for dynfile in  melt-modules/*.so; do \
 	   rm -f $(melt_module_dir)/$$dynfile; \
-	   $(INSTALL_PROGRAM) -m 755 $$dynfile $(DESTDIR)$(melt_module_dir)/$$dynfile; \
+	   $(INSTALL_PROGRAM) -m 755 $$dynfile $(DESTDIR)$(melt_module_dir)/`basename $$dynfile`; \
 	done
 
 
@@ -5553,8 +5553,8 @@ gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c $(srcdir)/melt-runtime.h gtyp
 
 ## gengtype is currently broken in plugin mode...
 $(warning upgrade-warmelt discard gengtype error)
-upgrade-warmelt: $(WARMELT_BASESO) gtyp-real-meltplugin-input.list 
-	$(MAKE) Makefile warmelt.modlis
+upgrade-warmelt: gtyp-real-meltplugin-input.list 
+	$(MAKE) Makefile $(melt_default_modules_list).modlis
 	$(MAKE) warmelt-upgrade-translator
 ## temporary quirk.... when gengtype is buggy in plugin mode...
 	-$(MAKE) -k gt-melt-runtime-plugin.h
@@ -5562,13 +5562,12 @@ upgrade-warmelt: $(WARMELT_BASESO) gtyp-real-meltplugin-input.list
 	cp gt-melt-runtime-plugin.h $(srcdir)/melt/generated/
 ## rebuild warmelt1 to be sure
 	@echo upgrade-warmelt rebuilding warmelt1
-	$(MAKE)  warmelt1.modlis $(WARMELT_BASE1SO)
+	$(MAKE)  warmelt1
 	@echo upgrade-warmelt complete
 
 
 upgrade-bigmelt: warmeltallbig
 	$(MAKE) Makefile
-	$(MAKE)  $(WARMELT_BASESO)
 	$(MAKE) upgrade-warmelt
 
 
