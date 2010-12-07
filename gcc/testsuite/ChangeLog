@@ -1,3 +1,82 @@
+2010-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/44676
+	* gcc.dg/graphite/id-pr44676.c: New.
+
+2010-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/42327
+	* gcc.dg/tree-ssa/pr42327.c: New.
+
+2010-12-07  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/45330
+	* g++.dg/pr45330.C: New test.
+	* g++.dg/ext/builtin3.C: Adjust.
+	* g++.dg/lookup/error1.C: Adjust.
+	* g++.dg/lookup/koenig5.C: Adjust.
+	* g++.dg/overload/koenig1.C: Adjust.
+	* g++.dg/parse/decl-specifier-1.C: Adjust.
+	* g++.dg/template/static10.C: Adjust.
+	* g++.old-deja/g++.mike/ns5.C: Adjust.
+	* g++.old-deja/g++.mike/ns7.C: Adjust.
+	* g++.old-deja/g++.ns/koenig5.C: Adjust.
+	* g++.old-deja/g++.ns/koenig9.C: Adjust.
+	* g++.old-deja/g++.other/lineno5.C: Adjust.
+
+2010-12-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46832
+	* gcc.c-torture/compile/pr46832.c: New testcase.
+
+2010-12-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46799
+	* gcc.dg/autopar/pr46799.c: New test.
+
+2010-12-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* gfortran.dg/internal_dummy_2.f08: Fix dg-options.
+	* gfortran.dg/internal_dummy_3.f08: Fix dg-options.
+
+2010-12-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/41562
+	* g++.dg/graphite/pr41562.C: New.
+
+	PR middle-end/46185
+	* gcc.dg/graphite/pr46185.c: New.
+
+2010-12-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/foreach-8.m: New.
+
+2010-12-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45997
+	* g++.dg/debug/dwarf2/pr45997-1.C: New test.
+	* g++.dg/debug/dwarf2/pr45997-2.C: New test.
+
+	PR target/43897
+	* gcc.target/ia64/pr43897.c: New test.
+
+	PR debug/46771
+	* gcc.dg/pr46771.c: New test.
+
+	PR rtl-optimization/46777
+	* gcc.dg/pr46777.c: New test.
+
+2010-12-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* ada/acats/run_acats (which): Assign output to temporary
+	variable, only use if successful.
+	Use last field of type output.
+
+2010-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46806
+	* g++.dg/torture/20100825.C: New testcase.
+
 2010-12-06  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/46785
