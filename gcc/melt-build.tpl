@@ -1,7 +1,7 @@
 [+ AutoGen5 template -*- Mode: Makefile -*-
 mk
-+][+COMMENT use 'autogen --trace=everything melt-build.def' to debug this+]
-
++][+COMMENT use 'autogen --trace=everything melt-build.def' to debug this
++]
 # melt-build.mk is generated from melt-build.tpl by 'autogen melt-build.def'
 # DON'T EDIT melt-build.mk but only edit: melt-build.tpl or melt-build.def
 #

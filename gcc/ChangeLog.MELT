@@ -1,6 +1,14 @@
 
 
 2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (install-melt-dynlib): Use DESTDIR everywhere.
+
+	* melt-build.tpl: Update to remove first empty lines in generated
+	melt-build.mk.
+
+	* melt-build.mk: Regenerate.
+
+2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (compile_gencsrc_to_binmodule): Remove any .so
 	.d.so .n.so suffix of the module before passing it as
 	GCCMELT_MODULE_BINARY to make. Also change the maketarget which is

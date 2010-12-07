@@ -5495,7 +5495,7 @@ include $(srcdir)/melt-build.mk
 #### stage) and the default melt module list
 install-melt-dynlib: installdirs $(melt_default_modules_list).modlis melt-all-modules
 	$(mkinstalldirs) $(DESTDIR)$(melt_module_dir)
-	rm -f  $(melt_module_dir)/$(melt_default_modules_list).modlis	
+	rm -f  $(DESTDIR)$(melt_module_dir)/$(melt_default_modules_list).modlis	
 	$(INSTALL_DATA) $(melt_default_modules_list).modlis $(DESTDIR)$(melt_module_dir)/$(melt_default_modules_list).modlis
 	for dynfile in  melt-modules/*.so; do \
 	   rm -f $(melt_module_dir)/$$dynfile; \
