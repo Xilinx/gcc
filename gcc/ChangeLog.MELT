@@ -1,6 +1,12 @@
 
 
 2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build.tpl (melt-sources/[+includeload+]): copy it properly.
+
+	* melt-build.mk: Regenerate.
+
+2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (install-melt-cfiles, install-melt-meltfiles): Use
 	basename.
 

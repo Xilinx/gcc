@@ -1917,7 +1917,9 @@ melt-sources/warmelt-normal.melt: $(melt_make_source_dir)/warmelt-normal.melt
 
 
 melt-sources/warmelt-predef.melt: warmelt-predef.melt
-	cd melt-sources; rm -f warmelt-predef.melt; $(LN_S) $^
+	rm -f melt-sources/warmelt-predef.melt*
+	cp warmelt-predef.melt melt-sources/warmelt-predef.melt-tmp
+	mv  melt-sources/warmelt-predef.melt-tmp  melt-sources/warmelt-predef.melt
 
 
 melt-sources/warmelt-normal.c: melt-sources/warmelt-normal.melt melt-sources/warmelt-predef.melt  \

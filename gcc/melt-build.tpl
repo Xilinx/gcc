@@ -282,7 +282,9 @@ melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
 
 [+FOR includeload+]
 melt-sources/[+includeload+]: [+includeload+]
-	cd melt-sources; rm -f [+includeload+]; $(LN_S) $^
+	rm -f melt-sources/[+includeload+]*
+	cp [+includeload+] melt-sources/[+includeload+]-tmp
+	mv  melt-sources/[+includeload+]-tmp  melt-sources/[+includeload+]
 [+ENDFOR includeload+]
 
 melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
