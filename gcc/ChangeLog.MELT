@@ -1,6 +1,9 @@
 
 
 2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (install-melt-cfiles): Use melt-sources!
+
+2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (install-melt-dynlib): Use DESTDIR everywhere.
 
 	* melt-build.tpl: Update to remove first empty lines in generated

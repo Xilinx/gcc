@@ -5506,7 +5506,7 @@ install-melt-dynlib: installdirs $(melt_default_modules_list).modlis melt-all-mo
 #### installing melt generated C files (at MELT 3rd stage)
 install-melt-cfiles: installdirs melt-all-sources
 	$(mkinstalldirs) $(DESTDIR)$(melt_source_dir)
-	for cfile in  melt-modules/*.c; do \
+	for cfile in  melt-sources/*.c; do \
 	  rm -f $(DESTDIR)$(melt_source_dir)/$$cfile; \
 	  $(INSTALL_DATA) $$cfile $(DESTDIR)$(melt_source_dir)/$$cfile ; \
 	done
