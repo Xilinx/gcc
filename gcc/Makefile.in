@@ -5498,7 +5498,7 @@ install-melt-dynlib: installdirs $(melt_default_modules_list).modlis melt-all-mo
 	rm -f  $(DESTDIR)$(melt_module_dir)/$(melt_default_modules_list).modlis	
 	$(INSTALL_DATA) $(melt_default_modules_list).modlis $(DESTDIR)$(melt_module_dir)/$(melt_default_modules_list).modlis
 	for dynfile in  melt-modules/*.so; do \
-	   rm -f $(melt_module_dir)/$$dynfile; \
+	   rm -f $(DESTDIR)$(melt_module_dir)/`basename $$dynfile`; \
 	   $(INSTALL_PROGRAM) -m 755 $$dynfile $(DESTDIR)$(melt_module_dir)/`basename $$dynfile`; \
 	done
 
@@ -5508,14 +5508,14 @@ install-melt-cfiles: installdirs melt-all-sources
 	$(mkinstalldirs) $(DESTDIR)$(melt_source_dir)
 	for cfile in  melt-sources/*.c; do \
 	  rm -f $(DESTDIR)$(melt_source_dir)/$$cfile; \
-	  $(INSTALL_DATA) $$cfile $(DESTDIR)$(melt_source_dir)/$$cfile ; \
+	  $(INSTALL_DATA) $$cfile $(DESTDIR)$(melt_source_dir)/`basename $$cfile` ; \
 	done
 
 #### install the MELT source files (in Melt)
 install-melt-meltfiles: installdirs melt-all-sources
 	$(mkinstalldirs) $(DESTDIR)$(melt_source_dir)
-	for meltfile in  $(WARMELT_FILES) $(XTRAMELT_FILES) ; do \
-	  rm -f $(DESTDIR)$(melt_source_dir)/$$meltfile; \
+	for meltfile in  melt-sources/*.melt ; do \
+	  rm -f $(DESTDIR)$(melt_source_dir)/`basename $$meltfile`; \
 	  $(INSTALL_DATA) $(srcdir)/melt/$$meltfile  $(DESTDIR)$(melt_source_dir)/$$meltfile; \
 	done
 

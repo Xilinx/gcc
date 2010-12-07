@@ -1,6 +1,10 @@
 
 
 2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (install-melt-cfiles, install-melt-meltfiles): Use
+	basename.
+
+2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (install-melt-cfiles): Use melt-sources!
 
 2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
