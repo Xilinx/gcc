@@ -5516,7 +5516,7 @@ install-melt-meltfiles: installdirs melt-all-sources
 	$(mkinstalldirs) $(DESTDIR)$(melt_source_dir)
 	for meltfile in  melt-sources/*.melt ; do \
 	  rm -f $(DESTDIR)$(melt_source_dir)/`basename $$meltfile`; \
-	  $(INSTALL_DATA) $(srcdir)/melt/$$meltfile  $(DESTDIR)$(melt_source_dir)/$$meltfile; \
+	  $(INSTALL_DATA) $(srcdir)/melt/$$meltfile  $(DESTDIR)$(melt_source_dir)/`basename $$meltfile`; \
 	done
 
 ### install other MELT files, notably *.mk file[s] for make
