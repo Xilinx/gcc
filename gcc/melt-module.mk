@@ -26,6 +26,7 @@
 ####    GCCMELT_MODULE_WORKSPACE=/tmp 
 #### to make moduledir/foo.so 
 
+### See also routine compile_gencsrc_to_binmodule of melt-runtime.c
 
 ifndef GCCMELT_MODULE_SOURCE
 $(error GCCMELT_MODULE_SOURCE not defined)

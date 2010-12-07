@@ -1,4 +1,13 @@
 
+
+2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (compile_gencsrc_to_binmodule): Remove any .so
+	.d.so .n.so suffix of the module before passing it as
+	GCCMELT_MODULE_BINARY to make. Also change the maketarget which is
+	the default topmaketarget.
+
+	* melt-module.mk: Update comment.
+
 2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: Add rules for generating *.d.so & *.n.so modules.
 	Add meltgendoc.texi target.
