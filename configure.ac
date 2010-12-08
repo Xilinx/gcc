@@ -707,8 +707,8 @@ case "${target}" in
       *-*-aout)
 	unsupported_languages="$unsupported_languages fortran"
 	noconfigdirs="$noconfigdirs target-libffi target-boehm-gc";;
-      *-*-elf)
-	noconfigdirs="$noconfigdirs target-boehm-gc";;
+      *-*-elf) # See PR46792 regarding target-libffi.
+	noconfigdirs="$noconfigdirs target-libffi target-boehm-gc";;
       *-*-linux*)
 	noconfigdirs="$noconfigdirs target-newlib target-libgloss";;
       *)
@@ -1561,10 +1561,10 @@ AC_ARG_WITH(boot-ldflags,
    poststage1_ldflags=$withval
  fi],
 [poststage1_ldflags=
- # With --enable-build-with-cxx, default to linking libstdc++ and
- # libgcc statically.  But if the user explicitly specified the
- # libraries to use, trust that they are doing what they want.
- if test "$ENABLE_BUILD_WITH_CXX" = "yes" -a "$poststage1_libs" = ""; then
+ # In stages 2 and 3, default to linking libstdc++ and libgcc
+ # statically.  But if the user explicitly specified the libraries to
+ # use, trust that they are doing what they want.
+ if test "$poststage1_libs" = ""; then
    poststage1_ldflags="-static-libstdc++ -static-libgcc"
  fi])
 AC_SUBST(poststage1_ldflags)
@@ -3235,8 +3235,9 @@ RAW_CXX_FOR_TARGET="$CXX_FOR_TARGET"
 GCC_TARGET_TOOL(ar, AR_FOR_TARGET, AR, [binutils/ar])
 GCC_TARGET_TOOL(as, AS_FOR_TARGET, AS, [gas/as-new])
 GCC_TARGET_TOOL(cc, CC_FOR_TARGET, CC, [gcc/xgcc -B$$r/$(HOST_SUBDIR)/gcc/])
+dnl see comments for CXX_FOR_TARGET_FLAG_TO_PASS
 GCC_TARGET_TOOL(c++, CXX_FOR_TARGET, CXX,
-		[gcc/g++ -B$$r/$(HOST_SUBDIR)/gcc/ -nostdinc++ `if test -f $$r/$(TARGET_SUBDIR)/libstdc++-v3/scripts/testsuite_flags; then $(SHELL) $$r/$(TARGET_SUBDIR)/libstdc++-v3/scripts/testsuite_flags --build-includes; else echo -funconfigured-libstdc++-v3 ; fi` -L$$r/$(TARGET_SUBDIR)/libstdc++-v3/src -L$$r/$(TARGET_SUBDIR)/libstdc++-v3/src/.libs],dnl see comments for CXX_FOR_TARGET_FLAG_TO_PASS
+		[gcc/g++ -B$$r/$(HOST_SUBDIR)/gcc/ -nostdinc++ `if test -f $$r/$(TARGET_SUBDIR)/libstdc++-v3/scripts/testsuite_flags; then $(SHELL) $$r/$(TARGET_SUBDIR)/libstdc++-v3/scripts/testsuite_flags --build-includes; else echo -funconfigured-libstdc++-v3 ; fi` -L$$r/$(TARGET_SUBDIR)/libstdc++-v3/src -L$$r/$(TARGET_SUBDIR)/libstdc++-v3/src/.libs],
 		c++)
 GCC_TARGET_TOOL(c++ for libstdc++, RAW_CXX_FOR_TARGET, CXX,
 		[gcc/xgcc -shared-libgcc -B$$r/$(HOST_SUBDIR)/gcc -nostdinc++ -L$$r/$(TARGET_SUBDIR)/libstdc++-v3/src -L$$r/$(TARGET_SUBDIR)/libstdc++-v3/src/.libs],

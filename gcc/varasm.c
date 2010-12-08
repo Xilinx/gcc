@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "output.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "hashtab.h"
 #include "ggc.h"
 #include "langhooks.h"
@@ -2541,7 +2540,7 @@ assemble_real (REAL_VALUE_TYPE d, enum machine_mode mode, unsigned int align)
    Store them both in the structure *VALUE.
    EXP must be reducible.  */
 
-struct GTY(()) addr_const {
+struct addr_const {
   rtx base;
   HOST_WIDE_INT offset;
 };
@@ -5526,12 +5525,21 @@ compute_visible_aliases (void)
 	{
 	  struct cgraph_node *fnode = NULL;
 	  struct varpool_node *vnode = NULL;
+	  tree asmname = DECL_ASSEMBLER_NAME (p->decl);
+	  const char *str = IDENTIFIER_POINTER (asmname);
+
+	  if (str[0] == '*')
+	    {
+	      str ++;
+	      asmname = get_identifier (str);
+	    }
+
 	  fnode = cgraph_node_for_asm (p->target);
 	  vnode = (fnode == NULL) ? varpool_node_for_asm (p->target) : NULL;
 	  if ((fnode
 	       || vnode
 	       || pointer_set_contains (visible, p->target))
-	      && !pointer_set_insert (visible, DECL_ASSEMBLER_NAME (p->decl)))
+	      && !pointer_set_insert (visible, asmname))
 	    changed = true;
 	}
     }

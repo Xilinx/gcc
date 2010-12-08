@@ -1,3 +1,210 @@
+2010-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46806
+	* g++.dg/torture/20100825.C: New testcase.
+
+2010-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46785
+	* gcc.dg/vect/fast-math-vect-reduc-9.c: New testcase.
+
+2010-12-06  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* gcc.dg/pr46674.c (LABEL3): New macro definition.
+	(LABEL2): Likewise.
+	(LABEL): Likewise.
+	(jelly): Account for user label prefix in asm name.
+
+2010-12-05  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/46794
+	* gfortran.dg/power2.f90: Initialize variables.
+
+2010-12-04  Jan Hubicka  <jh@suse.cz>
+
+	* snprintf-chk.c (ptr): Declare volatile.
+	* strcpy-chk.c (s2, s3, l1): Declare volatile.
+	* snprintf-chk.c (ptr): Declare volatile.
+	* vsprintf-chk.c (ptr): Declare volatile.
+	* vsnprintf-chk.c (ptr): Declare volatile.
+
+2010-12-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46584
+	* gfortran.dg/quad_1.f90: Remove some complex
+	math checks as they fail on some non-libquadmath
+	systems.
+
+2010-12-04  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/46794
+	* gfortran.dg/power2.f90: New test.
+
+2010-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46123
+	* g++.dg/debug/pr46123.C: New test.
+	* g++.dg/debug/dwarf2/pr46123.C: New test.
+
+2010-12-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46058
+	* g++.dg/template/scope4.C: New.
+
+2010-12-03  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.target/arm/neon-offset-1.c: New test.
+
+2010-12-03  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/45354
+	* gcc.dg/tree-prof/pr45354.c: New.
+
+2010-12-03  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45159
+	* gfortran.dg/dependency_38.f90:  New test.
+
+2010-12-02  Ian Lance Taylor  <iant@google.com>
+
+	* lib/go.exp: New file.
+	* lib/go-dg.exp: New file.
+	* lib/go-torture.exp: New file.
+	* lib/target-supports.exp (check_compile): Match // Go.
+
+2010-12-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/pr46685.c: New test.
+
+2010-12-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/45199
+	* gcc.dg/tree-ssa/ldist-15.c: New.
+	* gcc.dg/tree-ssa/ldist-16.c: New.
+	* gfortran.dg/ldist-pr45199.f: New.
+
+2010-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46723
+	* gcc.dg/torture/pr46723.c: New testcase.
+
+2010-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/44871
+	* g++.dg/lto/20101126-1_0.C: New testcase.
+	* g++.dg/lto/20101126-1_1.c: Likewise.
+
+2010-12-02  Richard Guenther  <rguenther@suse.de>
+            Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/46663
+	* gcc.dg/vect/pr46663.c: New test.
+
+2010-12-02  Jie Zhang  <jie@codesourcery.com>
+
+	PR middle-end/46674
+	* gcc.dg/pr46674.c: New test.
+
+2010-12-02  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/exceptions-6.m: New.
+	* obj-c++.dg/exceptions-6.mm: New.
+
+2010-12-01  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.c-torture/execute/bcp-1.c: Make ready for -fuse-linker-plugin
+
+2010-12-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/45297
+	* gcc.dg/graphite/pr45297.c: New.
+
+2010-12-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46730
+	* g++.dg/tree-prof/indir-call-prof-2.C: New testcase.
+
+2010-11-30  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-fma-7.c: New file, test that (a*b)+c and
+	(a*b)-c generates two fma instructions, instead of separate
+	multiply, add, and subtract.
+
+2010-11-30  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/realloc_on_assign_2.f03 (invima): Assign
+	a value to all array elements.
+
+2010-11-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46722
+	* gcc.target/i386/fma4-fma-2.c: New testcase.
+
+2010-11-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/duplicate-class-1.m: New.
+	* obj-c++.dg/duplicate-class-1.mm: New.
+
+2010-11-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/property/dotsyntax-21.m
+	* obj-c++.dg/property/dotsyntax-21.mm
+
+2010-11-29  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/46338
+	* g++.dg/debug/pr46338.C: New.
+
+2010-11-29  Richard Guenther  <rguenther@suse.de>
+	    Zdenek Dvorak  <rakdver@kam.uniff.cz>
+
+	PR tree-optimization/46675
+	* gcc.dg/pr46675.c: New test.
+
+2010-11-29  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* gcc/testsuite/objc.dg/strings-1.m: Move to...
+	* gcc/testsuite/objc.dg/strings/strings-1.m: ... here. Update paths.
+	* gcc/testsuite/objc.dg/strings-2.m: Move to ...
+	* gcc/testsuite/objc.dg/strings/strings-2.m ... here, provide a
+	constructor and class reference for NeXT runtime.  Update paths.
+	* gcc/testsuite/obj-c++.dg/strings-1.m: Move to...
+	* gcc/testsuite/obj-c++.dg/strings/strings-1.m: ... here. Update paths.
+	* gcc/testsuite/obj-c++.dg/strings-2.m: Move to ...
+	* gcc/testsuite/obj-c__.dg/strings/strings-2.m ... here, provide a
+	constructor and class reference for NeXT runtime.  Update paths.
+
+2010-11-29  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42260
+	* g++.dg/conversion/cast2.C: New test.
+
+	PR c++/45383
+	* g++.dg/conversion/cond4.C: Likewise.
+
+2010-11-29  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/45383
+	Reverted patch for PR c++/42260
+	* g++.dg/conversion/cast2.C: Reverted new test.
+
+2010-11-29  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/46101
+	* g++.dg/debug/dwarf2/typedef5.C: New test
+
+2010-11-29  Iain Sandoe  <iains@gcc.gnu.org>
+	    Mike Stump  <mrs@gcc.gnu.org>
+
+	PR target/26427
+	PR target/33120
+	PR testsuite/35710
+	* gcc.target/powerpc/darwin-abi-12.c: Adjust for new allocators.
+	* gcc.dg/pr26427.c: Remove redundant warning for powerpc.
+	* gcc.dg/darwin-comm.c: Adjust for new allocators.
+	* gcc.dg/darwin-sections.c: New test.
+	* g++.dg/ext/instantiate2.C: Adjust for new allocators.
+
 2010-11-29  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc.dg/exceptions-1.m: New.
@@ -48,21 +255,21 @@
 
 2010-11-27  Nicola Pero  <nicola.pero@meta-innovation.com>
 
-	PR objc++/46222	
+	PR objc++/46222
 	* obj-c++.dg/property/at-property-2.mm: Uncommented testcase.
 
 2010-11-27  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc.dg/property/at-property-24.m: New.
-	* objc.dg/property/at-property-25.m: New.	
+	* objc.dg/property/at-property-25.m: New.
 	* obj-c++.dg/property/at-property-24.mm: New.
 	* obj-c++.dg/property/at-property-25.mm: New.
 
 2010-11-27  Nicola Pero  <nicola.pero@meta-innovation.com>
 
-	* objc.dg/protocol-qualifier-1.m: New.	
+	* objc.dg/protocol-qualifier-1.m: New.
 	* objc.dg/protocol-qualifier-2.m: New.
-	* obj-c++.dg/protocol-qualifier-1.mm: New.	
+	* obj-c++.dg/protocol-qualifier-1.mm: New.
 	* obj-c++.dg/protocol-qualifier-2.mm: New.
 
 2010-11-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>

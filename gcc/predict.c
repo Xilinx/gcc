@@ -1,5 +1,5 @@
 /* Branch prediction routines for the GNU compiler.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -44,7 +44,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "except.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "recog.h"
 #include "expr.h"
 #include "predict.h"
@@ -387,6 +386,15 @@ rtl_predicted_by_p (const_basic_block bb, enum br_predictor predictor)
    outgoing edges.  */
 
 static struct pointer_map_t *bb_predictions;
+
+/*  Structure representing predictions in tree level. */
+
+struct edge_prediction {
+    struct edge_prediction *ep_next;
+    edge ep_edge;
+    enum br_predictor ep_predictor;
+    int ep_probability;
+};
 
 /* Return true if the one of outgoing edges is already predicted by
    PREDICTOR.  */

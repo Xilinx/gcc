@@ -45,6 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "target.h"
 #include "c-family/c-common.h"
+#include "c-family/c-objc.h"
 #include "c-family/c-pragma.h"
 #include "diagnostic.h"
 #include "intl.h"
@@ -12810,6 +12811,9 @@ finish_function (int flags)
      current_function_decl, so cope.  */
   if (fndecl == NULL_TREE)
     return error_mark_node;
+
+  if (c_dialect_objc ())
+    objc_finish_function ();
 
   gcc_assert (!defer_mark_used_calls);
   defer_mark_used_calls = true;

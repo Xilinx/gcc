@@ -1,3 +1,49 @@
+2010-12-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-act.c: Include c-family/c-objc.h.
+	* objc-lang.c: Same change.
+	* Make-lang.in (objc/objc-act.o): Depend on
+	c-family/c-objc.h.
+	(objc/objc-lang.o): Same change.
+	* config-lang.in (gtfiles): Added c-family/c-objc.h.
+	
+2010-12-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang-specs.h: Don't handle -ftraditional.
+
+2010-12-02  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-act.c (objc_build_throw_stmt): Return error_mark_node and
+	not NULL_TREE when a @throw is used outside of a @catch block.
+
+2010-11-30  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-act.c (objc_build_volatilized_type): Removed.
+	(objc_non_volatilized_type): Removed.
+	(objc_type_quals_match): Removed.
+	(local_variables_to_volatilize): New.
+	(objc_volatilize_decl): Add the decl to volatilize to
+	local_variables_to_volatilize, but don't volatilize it yet.
+	(objc_finish_function): New.
+	* objc-act.h (local_variables_to_volatilize): New.
+
+2010-11-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+	    Mike Stump  <mikestump@comcast.net>
+
+	Allow 'make check-objc -j2'
+	* Make-lang.in (lang_checks_parallelized): New.
+	(check_objc_parallelize): New.
+	
+2010-11-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-act.c (start_class): When a class is reimplemented,
+	generate an error and avoid adding the class to the list of
+	implemented classes again, but do not return error_mark_node.
+
+2010-11-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-act.c (objc_maybe_build_component_ref): Removed TODO.
+
 2010-11-29  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc-act.c (objc_eh_runtime_type): Avoid ICE if error_mark_node

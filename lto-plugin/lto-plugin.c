@@ -47,7 +47,15 @@ along with this program; see the file COPYING3.  If not see
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
+#ifndef WIFEXITED
+#define WIFEXITED(S) (((S) & 0xff) == 0)
+#endif
+#ifndef WEXITSTATUS
+#define WEXITSTATUS(S) (((S) & 0xff00) >> 8)
+#endif
 #include <libiberty.h>
 #include <hashtab.h>
 #include "../gcc/lto/common.h"

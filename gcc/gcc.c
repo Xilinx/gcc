@@ -35,10 +35,6 @@ compilation is specified by a string called a "spec".  */
 #include "coretypes.h"
 #include "multilib.h" /* before tm.h */
 #include "tm.h"
-#include <signal.h>
-#if ! defined( SIGCHLD ) && defined( SIGCLD )
-#  define SIGCHLD SIGCLD
-#endif
 #include "xregex.h"
 #include "obstack.h"
 #include "intl.h"
@@ -48,18 +44,6 @@ compilation is specified by a string called a "spec".  */
 #include "flags.h"
 #include "opts.h"
 #include "vec.h"
-
-#ifdef HAVE_MMAP_FILE
-# include <sys/mman.h>
-# ifdef HAVE_MINCORE
-/* This is on Solaris.  */
-#  include <sys/types.h>
-# endif
-#endif
-
-#ifndef MAP_FAILED
-# define MAP_FAILED ((void *)-1)
-#endif
 
 /* By default there is no special suffix for target executables.  */
 /* FIXME: when autoconf is fixed, remove the host check - dj */
@@ -86,10 +70,6 @@ static const char dir_separator_str[] = { DIR_SEPARATOR, 0 };
 /* Most every one is fine with LIBRARY_PATH.  For some, it conflicts.  */
 #ifndef LIBRARY_PATH_ENV
 #define LIBRARY_PATH_ENV "LIBRARY_PATH"
-#endif
-
-#ifndef HAVE_KILL
-#define kill(p,s) raise(s)
 #endif
 
 /* If a stage of compilation returns an exit status >= 1,
@@ -661,14 +641,14 @@ proper position among the other output files.  */
     } \
     %{flto*:%<fcompare-debug*} \
     %{flto*} %l " LINK_PIE_SPEC \
-   "%X %{o*} %{A} %{d} %{e*} %{m} %{N} %{n} %{r}\
-    %{s} %{t} %{u*} %{z} %{Z} %{!A:%{!nostdlib:%{!nostartfiles:%S}}}\
+   "%X %{o*} %{e*} %{N} %{n} %{r}\
+    %{s} %{t} %{u*} %{z} %{Z} %{!nostdlib:%{!nostartfiles:%S}}\
     %{static:} %{L*} %(mfwrap) %(link_libgcc) %o\
     %{fopenmp|ftree-parallelize-loops=*:%:include(libgomp.spec)%(link_gomp)}\
     %(mflib) " STACK_SPLIT_SPEC "\
     %{fprofile-arcs|fprofile-generate*|coverage:-lgcov}\
     %{!nostdlib:%{!nodefaultlibs:%(link_ssp) %(link_gcc_c_sequence)}}\
-    %{!A:%{!nostdlib:%{!nostartfiles:%E}}} %{T*} }}}}}}"
+    %{!nostdlib:%{!nostartfiles:%E}} %{T*} }}}}}}"
 #endif
 
 #ifndef LINK_LIBGCC_SPEC
@@ -729,7 +709,7 @@ static const char *sysroot_hdrs_suffix_spec = SYSROOT_HEADERS_SUFFIX_SPEC;
    call cc1 (or cc1obj in objc/lang-specs.h) from the main specs so
    that we default the front end language better.  */
 static const char *trad_capable_cpp =
-"cc1 -E %{traditional|ftraditional|traditional-cpp:-traditional-cpp}";
+"cc1 -E %{traditional|traditional-cpp:-traditional-cpp}";
 
 /* We don't wrap .d files in %W{} since a missing .d file, and
    therefore no dependency entry, confuses make into thinking a .o
@@ -770,7 +750,7 @@ static const char *cc1_options =
  %{!fcompare-debug-second:%{c|S:%{o*:-auxbase-strip %*}%{!o*:-auxbase %b}}}%{!c:%{!S:-auxbase %b}} \
  %{g*} %{O*} %{W*&pedantic*} %{w} %{std*&ansi&trigraphs}\
  %{v:-version} %{pg:-p} %{p} %{f*} %{undef}\
- %{Qn:-fno-ident} %{-help:--help}\
+ %{Qn:-fno-ident} %{Qy:} %{-help:--help}\
  %{-target-help:--target-help}\
  %{-version:--version}\
  %{-help=*:--help=%*}\
@@ -916,6 +896,7 @@ static const struct compiler default_compilers[] =
   {".p", "#Pascal", 0, 0, 0}, {".pas", "#Pascal", 0, 0, 0},
   {".java", "#Java", 0, 0, 0}, {".class", "#Java", 0, 0, 0},
   {".zip", "#Java", 0, 0, 0}, {".jar", "#Java", 0, 0, 0},
+  {".go", "#Go", 0, 1, 0},
   /* Next come the entries for C.  */
   {".c", "@c", 0, 0, 1},
   {"@c",
@@ -923,7 +904,7 @@ static const struct compiler default_compilers[] =
       external preprocessor if -save-temps is given.  */
      "%{E|M|MM:%(trad_capable_cpp) %(cpp_options) %(cpp_debug_options)}\
       %{!E:%{!M:%{!MM:\
-          %{traditional|ftraditional:\
+          %{traditional:\
 %eGNU C no longer supports -traditional without -E}\
       %{save-temps*|traditional-cpp|no-integrated-cpp:%(trad_capable_cpp) \
 	  %(cpp_options) -o %{save-temps*:%b.i} %{!save-temps*:%g.i} \n\
@@ -3506,7 +3487,7 @@ process_command (unsigned int decoded_options_count,
   struct cl_option_handlers handlers;
   unsigned int j;
 
-  GET_ENVIRONMENT (gcc_exec_prefix, "GCC_EXEC_PREFIX");
+  gcc_exec_prefix = getenv ("GCC_EXEC_PREFIX");
 
   n_switches = 0;
   n_infiles = 0;
@@ -3611,7 +3592,7 @@ process_command (unsigned int decoded_options_count,
   /* COMPILER_PATH and LIBRARY_PATH have values
      that are lists of directory names with colons.  */
 
-  GET_ENVIRONMENT (temp, "COMPILER_PATH");
+  temp = getenv ("COMPILER_PATH");
   if (temp)
     {
       const char *startp, *endp;
@@ -3645,7 +3626,7 @@ process_command (unsigned int decoded_options_count,
 	}
     }
 
-  GET_ENVIRONMENT (temp, LIBRARY_PATH_ENV);
+  temp = getenv (LIBRARY_PATH_ENV);
   if (temp && *cross_compile == '0')
     {
       const char *startp, *endp;
@@ -3678,7 +3659,7 @@ process_command (unsigned int decoded_options_count,
     }
 
   /* Use LPATH like LIBRARY_PATH (for the CMU build program).  */
-  GET_ENVIRONMENT (temp, "LPATH");
+  temp = getenv ("LPATH");
   if (temp && *cross_compile == '0')
     {
       const char *startp, *endp;
@@ -6759,7 +6740,8 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
       int i;
 
       for (i = 0; i < n_infiles ; i++)
-	if (infiles[i].language && infiles[i].language[0] != '*')
+	if (infiles[i].incompiler
+	    || (infiles[i].language && infiles[i].language[0] != '*'))
 	  {
 	    set_input (infiles[i].name);
 	    break;

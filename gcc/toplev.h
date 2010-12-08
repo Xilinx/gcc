@@ -21,13 +21,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef GCC_TOPLEV_H
 #define GCC_TOPLEV_H
-#include "input.h"
-#include "bversion.h"
-
-/* If non-NULL, return one past-the-end of the matching SUBPART of
-   the WHOLE string.  */
-#define skip_leading_substring(whole,  part) \
-   (strncmp (whole, part, strlen (part)) ? NULL : whole + strlen (part))
 
 /* Decoded options, and number of such options.  */
 extern struct cl_decoded_option *save_decoded_options;
@@ -48,13 +41,6 @@ extern void init_eh (void);
 
 extern void announce_function (tree);
 
-extern void warn_deprecated_use (tree, tree);
-extern bool parse_optimize_options (tree, bool);
-
-#ifdef BUFSIZ
-extern void output_quoted_string	(FILE *, const char *);
-#endif
-
 extern void wrapup_global_declaration_1 (tree);
 extern bool wrapup_global_declaration_2 (tree);
 extern bool wrapup_global_declarations (tree *, int);
@@ -70,11 +56,6 @@ extern void target_reinit (void);
 /* A unique local time stamp, might be zero if none is available.  */
 extern unsigned local_tick;
 
-/* Top-level source file.  */
-extern const char *main_input_filename;
-extern const char *main_input_basename;
-extern int main_input_baselength;
-
 /* True if the user has tagged the function with the 'section'
    attribute.  */
 
@@ -83,83 +64,10 @@ extern bool user_defined_section_attribute;
 /* See toplev.c.  */
 extern int flag_rerun_cse_after_global_opts;
 
-/* Things to do with target switches.  */
 extern void print_version (FILE *, const char *);
-extern void * default_get_pch_validity (size_t *);
-extern const char * default_pch_valid_p (const void *, size_t);
 
 /* The hashtable, so that the C front ends can pass it to cpplib.  */
 extern struct ht *ident_hash;
-
-/* Inline versions of the above for speed.  */
-#if GCC_VERSION < 3004
-
-extern int clz_hwi (unsigned HOST_WIDE_INT x);
-extern int ctz_hwi (unsigned HOST_WIDE_INT x);
-extern int ffs_hwi (unsigned HOST_WIDE_INT x);
-
-/* Return log2, or -1 if not exact.  */
-extern int exact_log2                  (unsigned HOST_WIDE_INT);
-
-/* Return floor of log2, with -1 for zero.  */
-extern int floor_log2                  (unsigned HOST_WIDE_INT);
-
-#else /* GCC_VERSION >= 3004 */
-
-/* For convenience, define 0 -> word_size.  */
-static inline int
-clz_hwi (unsigned HOST_WIDE_INT x)
-{
-  if (x == 0)
-    return HOST_BITS_PER_WIDE_INT;
-# if HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONG
-  return __builtin_clzl (x);
-# elif HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONGLONG
-  return __builtin_clzll (x);
-# else
-  return __builtin_clz (x);
-# endif
-}
-
-static inline int
-ctz_hwi (unsigned HOST_WIDE_INT x)
-{
-  if (x == 0)
-    return HOST_BITS_PER_WIDE_INT;
-# if HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONG
-  return __builtin_ctzl (x);
-# elif HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONGLONG
-  return __builtin_ctzll (x);
-# else
-  return __builtin_ctz (x);
-# endif
-}
-
-static inline int
-ffs_hwi (unsigned HOST_WIDE_INT x)
-{
-# if HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONG
-  return __builtin_ffsl (x);
-# elif HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONGLONG
-  return __builtin_ffsll (x);
-# else
-  return __builtin_ffs (x);
-# endif
-}
-
-static inline int
-floor_log2 (unsigned HOST_WIDE_INT x)
-{
-  return HOST_BITS_PER_WIDE_INT - 1 - clz_hwi (x);
-}
-
-static inline int
-exact_log2 (unsigned HOST_WIDE_INT x)
-{
-  return x == (x & -x) && x ? ctz_hwi (x) : -1;
-}
-
-#endif /* GCC_VERSION >= 3004 */
 
 /* Functions used to get and set GCC's notion of in what directory
    compilation was started.  */
