@@ -274,10 +274,7 @@ add_sym (const char *name, gfc_isym_id id, enum klass cl, int actual_ok, bt type
       strcat (buf, name);
       next_sym->lib_name = gfc_get_string (buf);
 
-      /* There are no IMPURE ELEMENTAL intrinsics, thus the ELEMENTAL class
-	 also implies PURE.  Additionally, there's the PURE class itself.  */
-      next_sym->pure = (cl == CLASS_ELEMENTAL || cl == CLASS_PURE);
-
+      next_sym->pure = (cl != CLASS_IMPURE);
       next_sym->elemental = (cl == CLASS_ELEMENTAL);
       next_sym->inquiry = (cl == CLASS_INQUIRY);
       next_sym->transformational = (cl == CLASS_TRANSFORMATIONAL);
@@ -814,6 +811,24 @@ find_sym (gfc_intrinsic_sym *start, int n, const char *name)
 }
 
 
+gfc_intrinsic_sym *
+gfc_intrinsic_function_by_id (gfc_isym_id id)
+{
+  gfc_intrinsic_sym *start = functions;
+  int n = nfunc;
+
+  while (true)
+    {
+      gcc_assert (n > 0);
+      if (id == start->id)
+	return start;
+
+      start++;
+      n--;
+    }
+}
+
+
 /* Given a name, find a function in the intrinsic function table.
    Returns NULL if not found.  */
 
@@ -823,10 +838,10 @@ gfc_find_function (const char *name)
   gfc_intrinsic_sym *sym;
 
   sym = find_sym (functions, nfunc, name);
-  if (!sym)
+  if (!sym || sym->from_module)
     sym = find_sym (conversion, nconv, name);
 
-  return sym;
+  return (!sym || sym->from_module) ? NULL : sym;
 }
 
 
@@ -836,7 +851,9 @@ gfc_find_function (const char *name)
 gfc_intrinsic_sym *
 gfc_find_subroutine (const char *name)
 {
-  return find_sym (subroutines, nsub, name);
+  gfc_intrinsic_sym *sym;
+  sym = find_sym (subroutines, nsub, name);
+  return (!sym || sym->from_module) ? NULL : sym;
 }
 
 
@@ -849,7 +866,7 @@ gfc_generic_intrinsic (const char *name)
   gfc_intrinsic_sym *sym;
 
   sym = gfc_find_function (name);
-  return (sym == NULL) ? 0 : sym->generic;
+  return (!sym || sym->from_module) ? 0 : sym->generic;
 }
 
 
@@ -862,7 +879,7 @@ gfc_specific_intrinsic (const char *name)
   gfc_intrinsic_sym *sym;
 
   sym = gfc_find_function (name);
-  return (sym == NULL) ? 0 : sym->specific;
+  return (!sym || sym->from_module) ? 0 : sym->specific;
 }
 
 
@@ -1012,6 +1029,15 @@ make_noreturn (void)
 {
   if (sizing == SZ_NOTHING)
     next_sym[-1].noreturn = 1;
+}
+
+
+/* Mark current intrinsic as module intrinsic.  */
+static void
+make_from_module (void)
+{
+  if (sizing == SZ_NOTHING)
+    next_sym[-1].from_module = 1;
 }
 
 /* Set the attr.value of the current procedure.  */
@@ -2607,10 +2633,23 @@ add_functions (void)
 	     x, BT_UNKNOWN, 0, REQUIRED);
 
   make_generic ("sizeof", GFC_ISYM_SIZEOF, GFC_STD_GNU);
-  
+
+  /* C_SIZEOF is part of ISO_C_BINDING.  */
   add_sym_1 ("c_sizeof", GFC_ISYM_C_SIZEOF, CLASS_INQUIRY, ACTUAL_NO,
 	     BT_INTEGER, ii, GFC_STD_F2008, gfc_check_c_sizeof, NULL, NULL,
 	     x, BT_UNKNOWN, 0, REQUIRED);
+  make_from_module();
+
+  /* COMPILER_OPTIONS and COMPILER_VERSION are part of ISO_FORTRAN_ENV.  */  
+  add_sym_0 ("compiler_options", GFC_ISYM_COMPILER_OPTIONS, CLASS_INQUIRY,
+	     ACTUAL_NO, BT_CHARACTER, dc, GFC_STD_F2008,
+	     NULL, gfc_simplify_compiler_options, NULL);
+  make_from_module();
+
+  add_sym_0 ("compiler_version", GFC_ISYM_COMPILER_VERSION, CLASS_INQUIRY,
+	     ACTUAL_NO, BT_CHARACTER, dc, GFC_STD_F2008,
+	     NULL, gfc_simplify_compiler_version, NULL);
+  make_from_module();
 
   add_sym_1 ("spacing", GFC_ISYM_SPACING, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
 	     gfc_check_x, gfc_simplify_spacing, gfc_resolve_spacing,
@@ -3328,8 +3367,6 @@ add_char_conversions (void)
 void
 gfc_intrinsic_init_1 (void)
 {
-  int i;
-
   nargs = nfunc = nsub = nconv = 0;
 
   /* Create a namespace to hold the resolved intrinsic symbols.  */
@@ -3362,15 +3399,6 @@ gfc_intrinsic_init_1 (void)
 
   /* Character conversion intrinsics need to be treated separately.  */
   add_char_conversions ();
-
-  /* Set the pure flag.  All intrinsic functions are pure, and
-     intrinsic subroutines are pure if they are elemental.  */
-
-  for (i = 0; i < nfunc; i++)
-    functions[i].pure = 1;
-
-  for (i = 0; i < nsub; i++)
-    subroutines[i].pure = subroutines[i].elemental;
 }
 
 
@@ -4012,7 +4040,14 @@ gfc_intrinsic_func_interface (gfc_expr *expr, int error_flag)
 
   name = expr->symtree->n.sym->name;
 
-  isym = specific = gfc_find_function (name);
+  if (expr->symtree->n.sym->intmod_sym_id)
+    {
+      int id = expr->symtree->n.sym->intmod_sym_id;
+      isym = specific = gfc_intrinsic_function_by_id ((gfc_isym_id) id);
+    }
+  else
+    isym = specific = gfc_find_function (name);
+
   if (isym == NULL)
     {
       if (!error_flag)
@@ -4158,7 +4193,7 @@ gfc_intrinsic_sub_interface (gfc_code *c, int error_flag)
       c->resolved_sym->attr.elemental = isym->elemental;
     }
 
-  if (gfc_pure (NULL) && !isym->elemental)
+  if (gfc_pure (NULL) && !isym->pure)
     {
       gfc_error ("Subroutine call to intrinsic '%s' at %L is not PURE", name,
 		 &c->loc);
@@ -4271,7 +4306,7 @@ gfc_convert_type_warn (gfc_expr *expr, gfc_typespec *ts, int eflag, int wflag)
 	    gfc_warning_now ("Conversion from %s to %s at %L",
 			     gfc_typename (&from_ts), gfc_typename (ts),
 			     &expr->where);
-	  else if (gfc_option.warn_conversion
+	  else if (gfc_option.gfc_warn_conversion
 		   && from_ts.kind > ts->kind)
 	    gfc_warning_now ("Possible change of value in conversion "
 			     "from %s to %s at %L", gfc_typename (&from_ts),
@@ -4284,7 +4319,7 @@ gfc_convert_type_warn (gfc_expr *expr, gfc_typespec *ts, int eflag, int wflag)
 	  /* Conversion from REAL/COMPLEX to INTEGER or COMPLEX to REAL
 	     usually comes with a loss of information, regardless of kinds.  */
 	  if (gfc_option.warn_conversion_extra
-	      || gfc_option.warn_conversion)
+	      || gfc_option.gfc_warn_conversion)
 	    gfc_warning_now ("Possible change of value in conversion "
 			     "from %s to %s at %L", gfc_typename (&from_ts),
 			     gfc_typename (ts), &expr->where);
@@ -4293,7 +4328,7 @@ gfc_convert_type_warn (gfc_expr *expr, gfc_typespec *ts, int eflag, int wflag)
 	{
 	  /* If HOLLERITH is involved, all bets are off.  */
 	  if (gfc_option.warn_conversion_extra
-	      || gfc_option.warn_conversion)
+	      || gfc_option.gfc_warn_conversion)
 	    gfc_warning_now ("Conversion from %s to %s at %L",
 			     gfc_typename (&from_ts), gfc_typename (ts),
 			     &expr->where);

@@ -27,7 +27,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "objc-private/common.h"
 #include "objc-private/error.h"
 #include "tconfig.h"
-#include "objc/objc.h"
 #include "objc/objc-api.h"
 #include "objc/hash.h"
 #include "objc/objc-list.h" 
@@ -372,7 +371,7 @@ __objc_write_extension (struct objc_typed_stream *stream, unsigned char code)
     }
 }
 
-inline int
+int
 __objc_write_object (struct objc_typed_stream *stream, id object)
 {
   unsigned char buf = '\0';
@@ -437,7 +436,7 @@ objc_write_object (struct objc_typed_stream *stream, id object)
     }
 }
 
-inline int
+int
 __objc_write_class (struct objc_typed_stream *stream, struct objc_class *class)
 {
   __objc_write_extension (stream, _BX_CLASS);
@@ -466,7 +465,7 @@ objc_write_class (struct objc_typed_stream *stream,
 }
 
 
-inline int 
+int 
 __objc_write_selector (struct objc_typed_stream *stream, SEL selector)
 {
   const char *sel_name;
@@ -509,7 +508,7 @@ objc_write_selector (struct objc_typed_stream *stream, SEL selector)
 ** Read operations 
 */
 
-inline int
+int
 objc_read_char (struct objc_typed_stream *stream, char *val)
 {
   unsigned char buf;
@@ -535,7 +534,7 @@ objc_read_char (struct objc_typed_stream *stream, char *val)
 }
 
 
-inline int
+int
 objc_read_unsigned_char (struct objc_typed_stream *stream, unsigned char *val)
 {
   unsigned char buf;
@@ -555,7 +554,7 @@ objc_read_unsigned_char (struct objc_typed_stream *stream, unsigned char *val)
   return len;
 }
 
-inline int
+int
 objc_read_short (struct objc_typed_stream *stream, short *value)
 {
   unsigned char buf[sizeof (short) + 1];
@@ -582,7 +581,7 @@ objc_read_short (struct objc_typed_stream *stream, short *value)
   return len;
 }
 
-inline int
+int
 objc_read_unsigned_short (struct objc_typed_stream *stream,
 			  unsigned short *value)
 {
@@ -609,7 +608,7 @@ objc_read_unsigned_short (struct objc_typed_stream *stream,
 }
 
 
-inline int
+int
 objc_read_int (struct objc_typed_stream *stream, int *value)
 {
   unsigned char buf[sizeof (int) + 1];
@@ -636,7 +635,7 @@ objc_read_int (struct objc_typed_stream *stream, int *value)
   return len;
 }
 
-inline int
+int
 objc_read_long (struct objc_typed_stream *stream, long *value)
 {
   unsigned char buf[sizeof (long) + 1];
@@ -663,7 +662,7 @@ objc_read_long (struct objc_typed_stream *stream, long *value)
   return len;
 }
 
-inline int
+int
 __objc_read_nbyte_uint (struct objc_typed_stream *stream,
 			unsigned int nbytes, unsigned int *val)
 {
@@ -682,7 +681,7 @@ __objc_read_nbyte_uint (struct objc_typed_stream *stream,
 }
   
 
-inline int
+int
 objc_read_unsigned_int (struct objc_typed_stream *stream,
 			unsigned int *value)
 {
@@ -719,7 +718,7 @@ __objc_read_nbyte_ulong (struct objc_typed_stream *stream,
 }
   
 
-inline int
+int
 objc_read_unsigned_long (struct objc_typed_stream *stream,
 			 unsigned long *value)
 {
@@ -737,7 +736,7 @@ objc_read_unsigned_long (struct objc_typed_stream *stream,
   return len;
 }
 
-inline int
+int
 objc_read_string (struct objc_typed_stream *stream,
 		  char **string)
 {

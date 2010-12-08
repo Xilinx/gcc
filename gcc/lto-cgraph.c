@@ -24,7 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "toplev.h"
 #include "tree.h"
 #include "expr.h"
 #include "flags.h"
@@ -303,6 +302,7 @@ lto_output_edge (struct lto_simple_output_block *ob, struct cgraph_edge *edge,
       gcc_assert (!(flags & (ECF_LOOPING_CONST_OR_PURE
 			     | ECF_MAY_BE_ALLOCA
 			     | ECF_SIBCALL
+			     | ECF_LEAF
 			     | ECF_NOVOPS)));
     }
   lto_output_bitpack (&bp);
@@ -463,6 +463,7 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
 
   lto_output_fn_decl_index (ob->decl_state, ob->main_stream, node->decl);
   lto_output_sleb128_stream (ob->main_stream, node->count);
+  lto_output_sleb128_stream (ob->main_stream, node->count_materialization_scale);
 
   if (tag == LTO_cgraph_analyzed_node)
     {
@@ -518,7 +519,10 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
   bp_pack_value (&bp, node->alias, 1);
   bp_pack_value (&bp, node->finalized_by_frontend, 1);
   bp_pack_value (&bp, node->frequency, 2);
+  bp_pack_value (&bp, node->only_called_at_startup, 1);
+  bp_pack_value (&bp, node->only_called_at_exit, 1);
   lto_output_bitpack (&bp);
+  lto_output_uleb128_stream (ob->main_stream, node->resolution);
 
   if (node->same_body)
     {
@@ -550,6 +554,7 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
 	      lto_output_fn_decl_index (ob->decl_state, ob->main_stream,
 					alias->thunk.alias);
 	    }
+	  lto_output_uleb128_stream (ob->main_stream, alias->resolution);
 	  alias = alias->previous;
 	}
       while (alias);
@@ -578,7 +583,6 @@ lto_output_varpool_node (struct lto_simple_output_block *ob, struct varpool_node
   bp_pack_value (&bp, node->force_output, 1);
   bp_pack_value (&bp, node->finalized, 1);
   bp_pack_value (&bp, node->alias, 1);
-  bp_pack_value (&bp, node->const_value_known, 1);
   gcc_assert (!node->alias || !node->extra_name);
   gcc_assert (node->finalized || !node->analyzed);
   gcc_assert (node->needed);
@@ -611,12 +615,16 @@ lto_output_varpool_node (struct lto_simple_output_block *ob, struct varpool_node
   else
     ref = LCC_NOT_FOUND;
   lto_output_sleb128_stream (ob->main_stream, ref);
+  lto_output_uleb128_stream (ob->main_stream, node->resolution);
 
   if (count)
     {
       lto_output_uleb128_stream (ob->main_stream, count);
       for (alias = node->extra_name; alias; alias = alias->next)
-	lto_output_var_decl_index (ob->decl_state, ob->main_stream, alias->decl);
+	{
+	  lto_output_var_decl_index (ob->decl_state, ob->main_stream, alias->decl);
+	  lto_output_uleb128_stream (ob->main_stream, alias->resolution);
+	}
     }
 }
 
@@ -655,12 +663,12 @@ output_profile_summary (struct lto_simple_output_block *ob)
 {
   if (profile_info)
     {
-      /* We do not output num, it is not terribly useful.  */
+      /* We do not output num, sum_all and run_max, they are not used by
+	 GCC profile feedback and they are difficult to merge from multiple
+	 units.  */
       gcc_assert (profile_info->runs);
       lto_output_uleb128_stream (ob->main_stream, profile_info->runs);
-      lto_output_sleb128_stream (ob->main_stream, profile_info->sum_all);
-      lto_output_sleb128_stream (ob->main_stream, profile_info->run_max);
-      lto_output_sleb128_stream (ob->main_stream, profile_info->sum_max);
+      lto_output_uleb128_stream (ob->main_stream, profile_info->sum_max);
     }
   else
     lto_output_uleb128_stream (ob->main_stream, 0);
@@ -926,7 +934,8 @@ input_overwrite_node (struct lto_file_decl_data *file_data,
 		      unsigned int self_time,
 		      unsigned int time_inlining_benefit,
 		      unsigned int self_size,
-		      unsigned int size_inlining_benefit)
+		      unsigned int size_inlining_benefit,
+		      enum ld_plugin_symbol_resolution resolution)
 {
   node->aux = (void *) tag;
   node->local.inline_summary.estimated_self_stack_size = stack_size;
@@ -972,6 +981,9 @@ input_overwrite_node (struct lto_file_decl_data *file_data,
   node->alias = bp_unpack_value (bp, 1);
   node->finalized_by_frontend = bp_unpack_value (bp, 1);
   node->frequency = (enum node_frequency)bp_unpack_value (bp, 2);
+  node->only_called_at_startup = bp_unpack_value (bp, 1);
+  node->only_called_at_exit = bp_unpack_value (bp, 1);
+  node->resolution = resolution;
 }
 
 /* Output the part of the cgraph in SET.  */
@@ -1019,6 +1031,7 @@ input_node (struct lto_file_decl_data *file_data,
   int size_inlining_benefit = 0;
   unsigned long same_body_count = 0;
   int clone_ref;
+  enum ld_plugin_symbol_resolution resolution;
 
   clone_ref = lto_input_sleb128 (ib);
 
@@ -1034,6 +1047,7 @@ input_node (struct lto_file_decl_data *file_data,
     node = cgraph_node (fn_decl);
 
   node->count = lto_input_sleb128 (ib);
+  node->count_materialization_scale = lto_input_sleb128 (ib);
 
   if (tag == LTO_cgraph_analyzed_node)
     {
@@ -1057,9 +1071,10 @@ input_node (struct lto_file_decl_data *file_data,
 		    "node %d", node->uid);
 
   bp = lto_input_bitpack (ib);
+  resolution = (enum ld_plugin_symbol_resolution)lto_input_uleb128 (ib);
   input_overwrite_node (file_data, node, tag, &bp, stack_size, self_time,
   			time_inlining_benefit, self_size,
-			size_inlining_benefit);
+			size_inlining_benefit, resolution);
 
   /* Store a reference for now, and fix up later to be a pointer.  */
   node->global.inlined_to = (cgraph_node_ptr) (intptr_t) ref;
@@ -1072,6 +1087,7 @@ input_node (struct lto_file_decl_data *file_data,
     {
       tree alias_decl;
       int type;
+      struct cgraph_node *alias;
       decl_index = lto_input_uleb128 (ib);
       alias_decl = lto_file_decl_data_get_fn_decl (file_data, decl_index);
       type = lto_input_uleb128 (ib);
@@ -1080,7 +1096,7 @@ input_node (struct lto_file_decl_data *file_data,
 	  tree real_alias;
 	  decl_index = lto_input_uleb128 (ib);
 	  real_alias = lto_file_decl_data_get_fn_decl (file_data, decl_index);
-	  cgraph_same_body_alias (alias_decl, real_alias);
+	  alias = cgraph_same_body_alias (alias_decl, real_alias);
 	}
       else
         {
@@ -1089,11 +1105,12 @@ input_node (struct lto_file_decl_data *file_data,
 	  tree real_alias;
 	  decl_index = lto_input_uleb128 (ib);
 	  real_alias = lto_file_decl_data_get_fn_decl (file_data, decl_index);
-	  cgraph_add_thunk (alias_decl, fn_decl, type & 2, fixed_offset,
-	  		    virtual_value,
-			    (type & 4) ? size_int (virtual_value) : NULL_TREE,
-			    real_alias);
+	  alias = cgraph_add_thunk (alias_decl, fn_decl, type & 2, fixed_offset,
+				    virtual_value,
+				    (type & 4) ? size_int (virtual_value) : NULL_TREE,
+				    real_alias);
 	}
+       alias->resolution = (enum ld_plugin_symbol_resolution)lto_input_uleb128 (ib);
     }
   return node;
 }
@@ -1123,7 +1140,6 @@ input_varpool_node (struct lto_file_decl_data *file_data,
   node->force_output = bp_unpack_value (&bp, 1);
   node->finalized = bp_unpack_value (&bp, 1);
   node->alias = bp_unpack_value (&bp, 1);
-  node->const_value_known = bp_unpack_value (&bp, 1);
   node->analyzed = node->finalized; 
   node->used_from_other_partition = bp_unpack_value (&bp, 1);
   node->in_other_partition = bp_unpack_value (&bp, 1);
@@ -1138,6 +1154,7 @@ input_varpool_node (struct lto_file_decl_data *file_data,
   ref = lto_input_sleb128 (ib);
   /* Store a reference for now, and fix up later to be a pointer.  */
   node->same_comdat_group = (struct varpool_node *) (intptr_t) ref;
+  node->resolution = (enum ld_plugin_symbol_resolution)lto_input_uleb128 (ib);
   if (aliases_p)
     {
       count = lto_input_uleb128 (ib);
@@ -1145,7 +1162,9 @@ input_varpool_node (struct lto_file_decl_data *file_data,
 	{
 	  tree decl = lto_file_decl_data_get_var_decl (file_data,
 						       lto_input_uleb128 (ib));
-	  varpool_extra_name_alias (decl, var_decl);
+	  struct varpool_node *alias;
+	  alias = varpool_extra_name_alias (decl, var_decl);
+	  alias->resolution = (enum ld_plugin_symbol_resolution)lto_input_uleb128 (ib);
 	}
     }
   return node;
@@ -1408,30 +1427,104 @@ static struct gcov_ctr_summary lto_gcov_summary;
 
 /* Input profile_info from IB.  */
 static void
-input_profile_summary (struct lto_input_block *ib)
+input_profile_summary (struct lto_input_block *ib,
+		       struct lto_file_decl_data *file_data)
 {
   unsigned int runs = lto_input_uleb128 (ib);
   if (runs)
     {
-      if (!profile_info)
-        {
-	  profile_info = &lto_gcov_summary;
-	  lto_gcov_summary.runs = runs;
-	  lto_gcov_summary.sum_all = lto_input_sleb128 (ib);
-	  lto_gcov_summary.run_max = lto_input_sleb128 (ib);
-	  lto_gcov_summary.sum_max = lto_input_sleb128 (ib);
-	}
-      /* We can support this by scaling all counts to nearest common multiple
-         of all different runs, but it is perhaps not worth the effort.  */
-      else if (profile_info->runs != runs
-	       || profile_info->sum_all != lto_input_sleb128 (ib)
-	       || profile_info->run_max != lto_input_sleb128 (ib)
-	       || profile_info->sum_max != lto_input_sleb128 (ib))
-	sorry ("Combining units with different profiles is not supported.");
-      /* We allow some units to have profile and other to not have one.  This will
-         just make unprofiled units to be size optimized that is sane.  */
+      file_data->profile_info.runs = runs;
+      file_data->profile_info.sum_max = lto_input_uleb128 (ib);
+      if (runs > file_data->profile_info.sum_max)
+	fatal_error ("Corrupted profile info in %s: sum_max is smaller than runs",
+		     file_data->file_name);
     }
 
+}
+
+/* Rescale profile summaries to the same number of runs in the whole unit.  */
+
+static void
+merge_profile_summaries (struct lto_file_decl_data **file_data_vec)
+{
+  struct lto_file_decl_data *file_data;
+  unsigned int j;
+  gcov_unsigned_t max_runs = 0;
+  struct cgraph_node *node;
+  struct cgraph_edge *edge;
+
+  /* Find unit with maximal number of runs.  If we ever get serious about
+     roundoff errors, we might also consider computing smallest common
+     multiply.  */
+  for (j = 0; (file_data = file_data_vec[j]) != NULL; j++)
+    if (max_runs < file_data->profile_info.runs)
+      max_runs = file_data->profile_info.runs;
+
+  if (!max_runs)
+    return;
+
+  /* Simple overflow check.  We probably don't need to support that many train
+     runs. Such a large value probably imply data corruption anyway.  */
+  if (max_runs > INT_MAX / REG_BR_PROB_BASE)
+    {
+      sorry ("At most %i profile runs is supported. Perhaps corrupted profile?",
+	     INT_MAX / REG_BR_PROB_BASE);
+      return;
+    }
+
+  profile_info = &lto_gcov_summary;
+  lto_gcov_summary.runs = max_runs;
+  lto_gcov_summary.sum_max = 0;
+
+  /* Rescale all units to the maximal number of runs.
+     sum_max can not be easily merged, as we have no idea what files come from
+     the same run.  We do not use the info anyway, so leave it 0.  */
+  for (j = 0; (file_data = file_data_vec[j]) != NULL; j++)
+    if (file_data->profile_info.runs)
+      {
+	int scale = ((REG_BR_PROB_BASE * max_runs
+		      + file_data->profile_info.runs / 2)
+		     / file_data->profile_info.runs);
+	lto_gcov_summary.sum_max = MAX (lto_gcov_summary.sum_max,
+					(file_data->profile_info.sum_max
+					 * scale
+					 + REG_BR_PROB_BASE / 2)
+					/ REG_BR_PROB_BASE);
+      }
+
+  /* Watch roundoff errors.  */
+  if (lto_gcov_summary.sum_max < max_runs)
+    lto_gcov_summary.sum_max = max_runs;
+
+  /* If merging already happent at WPA time, we are done.  */
+  if (flag_ltrans)
+    return;
+
+  /* Now compute count_materialization_scale of each node.
+     During LTRANS we already have values of count_materialization_scale
+     computed, so just update them.  */
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->local.lto_file_data->profile_info.runs)
+      {
+	int scale;
+
+	scale =
+	   ((node->count_materialization_scale * max_runs
+	     + node->local.lto_file_data->profile_info.runs / 2)
+	    / node->local.lto_file_data->profile_info.runs);
+	node->count_materialization_scale = scale;
+	if (scale < 0)
+	  fatal_error ("Profile information in %s corrupted",
+		       file_data->file_name);
+
+	if (scale == REG_BR_PROB_BASE)
+	  continue;
+	for (edge = node->callees; edge; edge = edge->next_callee)
+	  edge->count = ((edge->count * scale + REG_BR_PROB_BASE / 2)
+			 / REG_BR_PROB_BASE);
+	node->count = ((node->count * scale + REG_BR_PROB_BASE / 2)
+		       / REG_BR_PROB_BASE);
+      }
 }
 
 /* Input and merge the cgraph from each of the .o files passed to
@@ -1455,7 +1548,9 @@ input_cgraph (void)
 
       ib = lto_create_simple_input_block (file_data, LTO_section_cgraph,
 					  &data, &len);
-      input_profile_summary (ib);
+      if (!ib) 
+	fatal_error ("cannot find LTO cgraph in %s", file_data->file_name);
+      input_profile_summary (ib, file_data);
       file_data->cgraph_node_encoder = lto_cgraph_encoder_new ();
       nodes = input_cgraph_1 (file_data, ib);
       lto_destroy_simple_input_block (file_data, LTO_section_cgraph,
@@ -1463,12 +1558,16 @@ input_cgraph (void)
 
       ib = lto_create_simple_input_block (file_data, LTO_section_varpool,
 					  &data, &len);
+      if (!ib)
+	fatal_error ("cannot find LTO varpool in %s", file_data->file_name);
       varpool = input_varpool_1 (file_data, ib);
       lto_destroy_simple_input_block (file_data, LTO_section_varpool,
 				      ib, data, len);
 
       ib = lto_create_simple_input_block (file_data, LTO_section_refs,
 					  &data, &len);
+      if (!ib)
+	fatal_error("cannot find LTO section refs in %s", file_data->file_name);
       input_refs (ib, nodes, varpool);
       lto_destroy_simple_input_block (file_data, LTO_section_refs,
 				      ib, data, len);
@@ -1477,6 +1576,8 @@ input_cgraph (void)
       VEC_free (cgraph_node_ptr, heap, nodes);
       VEC_free (varpool_node_ptr, heap, varpool);
     }
+  merge_profile_summaries (file_data_vec);
+    
 
   /* Clear out the aux field that was used to store enough state to
      tell which nodes should be overwritten.  */

@@ -41,7 +41,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "cselib.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "except.h"
 #include "tree.h"
 #include "target.h"
@@ -1224,7 +1223,6 @@ static void
 reload_combine (void)
 {
   rtx insn, prev;
-  int i;
   basic_block bb;
   unsigned int r;
   int min_labelno, n_labels;
@@ -1292,6 +1290,7 @@ reload_combine (void)
 
   for (insn = get_last_insn (); insn; insn = prev)
     {
+      bool control_flow_insn;
       rtx note;
 
       prev = PREV_INSN (insn);
@@ -1311,7 +1310,8 @@ reload_combine (void)
 
       reload_combine_ruid++;
 
-      if (control_flow_insn_p (insn))
+      control_flow_insn = control_flow_insn_p (insn);
+      if (control_flow_insn)
 	last_jump_ruid = reload_combine_ruid;
 
       if (reload_combine_recognize_const_pattern (insn)
@@ -1339,9 +1339,9 @@ reload_combine (void)
 	        {
 		  unsigned int i;
 		  unsigned int start_reg = REGNO (usage_rtx);
-		  unsigned int num_regs =
-			hard_regno_nregs[start_reg][GET_MODE (usage_rtx)];
-		  unsigned int end_reg  = start_reg + num_regs - 1;
+		  unsigned int num_regs
+		    = hard_regno_nregs[start_reg][GET_MODE (usage_rtx)];
+		  unsigned int end_reg = start_reg + num_regs - 1;
 		  for (i = start_reg; i <= end_reg; i++)
 		    if (GET_CODE (XEXP (link, 0)) == CLOBBER)
 		      {
@@ -1352,10 +1352,9 @@ reload_combine (void)
 		      reg_state[i].use_index = -1;
 	         }
 	     }
-
 	}
-      else if (JUMP_P (insn)
-	       && GET_CODE (PATTERN (insn)) != RETURN)
+
+      if (control_flow_insn && GET_CODE (PATTERN (insn)) != RETURN)
 	{
 	  /* Non-spill registers might be used at the call destination in
 	     some unknown fashion, so we have to mark the unknown use.  */
@@ -1367,20 +1366,19 @@ reload_combine (void)
 	  else
 	    live = &ever_live_at_start;
 
-	  for (i = FIRST_PSEUDO_REGISTER - 1; i >= 0; --i)
-	    if (TEST_HARD_REG_BIT (*live, i))
-	      reg_state[i].use_index = -1;
+	  for (r = 0; r < FIRST_PSEUDO_REGISTER; r++)
+	    if (TEST_HARD_REG_BIT (*live, r))
+	      reg_state[r].use_index = -1;
 	}
 
-      reload_combine_note_use (&PATTERN (insn), insn,
-			       reload_combine_ruid, NULL_RTX);
+      reload_combine_note_use (&PATTERN (insn), insn, reload_combine_ruid,
+			       NULL_RTX);
+
       for (note = REG_NOTES (insn); note; note = XEXP (note, 1))
 	{
-	  if (REG_NOTE_KIND (note) == REG_INC
-	      && REG_P (XEXP (note, 0)))
+	  if (REG_NOTE_KIND (note) == REG_INC && REG_P (XEXP (note, 0)))
 	    {
 	      int regno = REGNO (XEXP (note, 0));
-
 	      reg_state[regno].store_ruid = reload_combine_ruid;
 	      reg_state[regno].real_store_ruid = reload_combine_ruid;
 	      reg_state[regno].use_index = -1;
@@ -1410,6 +1408,31 @@ reload_combine_note_store (rtx dst, const_rtx set, void *data ATTRIBUTE_UNUSED)
 				   GET_MODE (dst));
       dst = SUBREG_REG (dst);
     }
+
+  /* Some targets do argument pushes without adding REG_INC notes.  */
+
+  if (MEM_P (dst))
+    {
+      dst = XEXP (dst, 0);
+      if (GET_CODE (dst) == PRE_INC || GET_CODE (dst) == POST_INC
+	  || GET_CODE (dst) == PRE_DEC || GET_CODE (dst) == POST_DEC)
+	{
+	  regno = REGNO (XEXP (dst, 0));
+	  mode = GET_MODE (XEXP (dst, 0));
+	  for (i = hard_regno_nregs[regno][mode] - 1 + regno; i >= regno; i--)
+	    {
+	      /* We could probably do better, but for now mark the register
+		 as used in an unknown fashion and set/clobbered at this
+		 insn.  */
+	      reg_state[i].use_index = -1;
+	      reg_state[i].store_ruid = reload_combine_ruid;
+	      reg_state[i].real_store_ruid = reload_combine_ruid;
+	    }
+	}
+      else
+        return;
+    }
+
   if (!REG_P (dst))
     return;
   regno += REGNO (dst);
@@ -1645,39 +1668,45 @@ move2add_use_add2_insn (rtx reg, rtx sym, rtx off, rtx insn)
       if (INTVAL (off) == reg_offset [regno])
 	changed = validate_change (insn, &SET_SRC (pat), reg, 0);
     }
-  else if (rtx_cost (new_src, PLUS, speed) < rtx_cost (src, SET, speed)
-	   && have_add2_insn (reg, new_src))
+  else
     {
+      struct full_rtx_costs oldcst, newcst;
       rtx tem = gen_rtx_PLUS (GET_MODE (reg), reg, new_src);
-      changed = validate_change (insn, &SET_SRC (pat), tem, 0);
-    }
-  else if (sym == NULL_RTX && GET_MODE (reg) != BImode)
-    {
-      enum machine_mode narrow_mode;
-      for (narrow_mode = GET_CLASS_NARROWEST_MODE (MODE_INT);
-	   narrow_mode != VOIDmode
-	     && narrow_mode != GET_MODE (reg);
-	   narrow_mode = GET_MODE_WIDER_MODE (narrow_mode))
+
+      get_full_rtx_cost (pat, SET, &oldcst);
+      SET_SRC (pat) = tem;
+      get_full_rtx_cost (pat, SET, &newcst);
+      SET_SRC (pat) = src;
+
+      if (costs_lt_p (&newcst, &oldcst, speed)
+	  && have_add2_insn (reg, new_src))
+	changed = validate_change (insn, &SET_SRC (pat), tem, 0);	
+      else if (sym == NULL_RTX && GET_MODE (reg) != BImode)
 	{
-	  if (have_insn_for (STRICT_LOW_PART, narrow_mode)
-	      && ((reg_offset[regno]
-		   & ~GET_MODE_MASK (narrow_mode))
-		  == (INTVAL (off)
-		      & ~GET_MODE_MASK (narrow_mode))))
+	  enum machine_mode narrow_mode;
+	  for (narrow_mode = GET_CLASS_NARROWEST_MODE (MODE_INT);
+	       narrow_mode != VOIDmode
+		 && narrow_mode != GET_MODE (reg);
+	       narrow_mode = GET_MODE_WIDER_MODE (narrow_mode))
 	    {
-	      rtx narrow_reg = gen_rtx_REG (narrow_mode,
-					    REGNO (reg));
-	      rtx narrow_src = gen_int_mode (INTVAL (off),
-					     narrow_mode);
-	      rtx new_set =
-		gen_rtx_SET (VOIDmode,
-			     gen_rtx_STRICT_LOW_PART (VOIDmode,
-						      narrow_reg),
-			     narrow_src);
-	      changed = validate_change (insn, &PATTERN (insn),
-					 new_set, 0);
-	      if (changed)
-		break;
+	      if (have_insn_for (STRICT_LOW_PART, narrow_mode)
+		  && ((reg_offset[regno] & ~GET_MODE_MASK (narrow_mode))
+		      == (INTVAL (off) & ~GET_MODE_MASK (narrow_mode))))
+		{
+		  rtx narrow_reg = gen_rtx_REG (narrow_mode,
+						REGNO (reg));
+		  rtx narrow_src = gen_int_mode (INTVAL (off),
+						 narrow_mode);
+		  rtx new_set
+		    = gen_rtx_SET (VOIDmode,
+				   gen_rtx_STRICT_LOW_PART (VOIDmode,
+							    narrow_reg),
+				   narrow_src);
+		  changed = validate_change (insn, &PATTERN (insn),
+					     new_set, 0);
+		  if (changed)
+		    break;
+		}
 	    }
 	}
     }
@@ -1705,11 +1734,18 @@ move2add_use_add3_insn (rtx reg, rtx sym, rtx off, rtx insn)
   rtx pat = PATTERN (insn);
   rtx src = SET_SRC (pat);
   int regno = REGNO (reg);
-  int min_cost = INT_MAX;
   int min_regno = 0;
   bool speed = optimize_bb_for_speed_p (BLOCK_FOR_INSN (insn));
   int i;
   bool changed = false;
+  struct full_rtx_costs oldcst, newcst, mincst;
+  rtx plus_expr;
+
+  init_costs_to_max (&mincst);
+  get_full_rtx_cost (pat, SET, &oldcst);
+
+  plus_expr = gen_rtx_PLUS (GET_MODE (reg), reg, const0_rtx);
+  SET_SRC (pat) = plus_expr;
 
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     if (reg_set_luid[i] > move2add_last_label_luid
@@ -1728,22 +1764,25 @@ move2add_use_add3_insn (rtx reg, rtx sym, rtx off, rtx insn)
 	   no-op moves.  */
 	if (new_src == const0_rtx)
 	  {
-	    min_cost = 0;
+	    init_costs_to_zero (&mincst);
 	    min_regno = i;
 	    break;
 	  }
 	else
 	  {
-	    int cost = rtx_cost (new_src, PLUS, speed);
-	    if (cost < min_cost)
+	    XEXP (plus_expr, 1) = new_src;
+	    get_full_rtx_cost (pat, SET, &newcst);
+
+	    if (costs_lt_p (&newcst, &mincst, speed))
 	      {
-		min_cost = cost;
+		mincst = newcst;
 		min_regno = i;
 	      }
 	  }
       }
+  SET_SRC (pat) = src;
 
-  if (min_cost < rtx_cost (src, SET, speed))
+  if (costs_lt_p (&mincst, &oldcst, speed))
     {
       rtx tem;
 
@@ -1879,18 +1918,26 @@ reload_cse_move2add (rtx first)
 			/* See above why we create (set (reg) (reg)) here.  */
 			success
 			  = validate_change (next, &SET_SRC (set), reg, 0);
-		      else if ((rtx_cost (new_src, PLUS, speed)
-				< COSTS_N_INSNS (1) + rtx_cost (src3, SET, speed))
-			       && have_add2_insn (reg, new_src))
+		      else
 			{
-			  rtx newpat = gen_rtx_SET (VOIDmode,
-						    reg,
-						    gen_rtx_PLUS (GET_MODE (reg),
-						 		  reg,
-								  new_src));
-			  success
-			    = validate_change (next, &PATTERN (next),
-					       newpat, 0);
+			  rtx old_src = SET_SRC (set);
+			  struct full_rtx_costs oldcst, newcst;
+			  rtx tem = gen_rtx_PLUS (GET_MODE (reg), reg, new_src);
+
+			  get_full_rtx_cost (set, SET, &oldcst);
+			  SET_SRC (set) = tem;
+			  get_full_rtx_cost (tem, SET, &newcst);
+			  SET_SRC (set) = old_src;
+			  costs_add_n_insns (&oldcst, 1);
+
+			  if (costs_lt_p (&newcst, &oldcst, speed)
+			      && have_add2_insn (reg, new_src))
+			    {
+			      rtx newpat = gen_rtx_SET (VOIDmode, reg, tem);
+			      success
+				= validate_change (next, &PATTERN (next),
+						   newpat, 0);
+			    }
 			}
 		      if (success)
 			delete_insn (insn);

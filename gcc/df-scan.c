@@ -122,6 +122,7 @@ static void df_uses_record (struct df_collection_rec *,
 			    basic_block, struct df_insn_info *,
 			    int ref_flags);
 
+static void df_install_ref_incremental (df_ref);
 static df_ref df_ref_create_structure (enum df_ref_class,
 				       struct df_collection_rec *, rtx, rtx *,
 				       basic_block, struct df_insn_info *,
@@ -445,7 +446,7 @@ df_scan_start_dump (FILE *file ATTRIBUTE_UNUSED)
 	  }
 	if (DF_REG_EQ_USE_COUNT (i))
 	  {
-	    fprintf (file, "%s%dd", sep, DF_REG_EQ_USE_COUNT (i));
+	    fprintf (file, "%s%de", sep, DF_REG_EQ_USE_COUNT (i));
 	    ecount += DF_REG_EQ_USE_COUNT (i);
 	  }
 	fprintf (file, "} ");
@@ -461,8 +462,10 @@ df_scan_start_dump (FILE *file ATTRIBUTE_UNUSED)
 	    icount++;
 	}
 
-  fprintf (file, "\n;;    total ref usage %d{%dd,%du,%de} in %d{%d regular + %d call} insns.\n",
-	   dcount + ucount + ecount, dcount, ucount, ecount, icount + ccount, icount, ccount);
+  fprintf (file, "\n;;    total ref usage %d{%dd,%du,%de}"
+		 " in %d{%d regular + %d call} insns.\n",
+		 dcount + ucount + ecount, dcount, ucount, ecount,
+		 icount + ccount, icount, ccount);
 }
 
 /* Dump the bb_info for a given basic block. */
@@ -678,6 +681,19 @@ df_scan_blocks (void)
     }
 }
 
+/* Create new refs under address LOC within INSN.  This function is
+   only used externally.  REF_FLAGS must be either 0 or DF_REF_IN_NOTE,
+   depending on whether LOC is inside PATTERN (INSN) or a note.  */
+
+void
+df_uses_create (rtx *loc, rtx insn, int ref_flags)
+{
+  gcc_assert (!(ref_flags & ~DF_REF_IN_NOTE));
+  df_uses_record (NULL, loc, DF_REF_REG_USE,
+                  BLOCK_FOR_INSN (insn),
+                  DF_INSN_INFO_GET (insn),
+                  ref_flags);
+}
 
 /* Create a new ref of type DF_REF_TYPE for register REG at address
    LOC within INSN of BB.  This function is only used externally.  */
@@ -688,13 +704,6 @@ df_ref_create (rtx reg, rtx *loc, rtx insn,
 	       enum df_ref_type ref_type,
 	       int ref_flags)
 {
-  df_ref ref;
-  struct df_reg_info **reg_info;
-  struct df_ref_info *ref_info;
-  df_ref *ref_rec;
-  df_ref **ref_rec_ptr;
-  unsigned int count = 0;
-  bool add_to_table;
   enum df_ref_class cl;
 
   df_grow_reg_info ();
@@ -706,8 +715,24 @@ df_ref_create (rtx reg, rtx *loc, rtx insn,
     cl = DF_REF_REGULAR;
   else
     cl = DF_REF_BASE;
-  ref = df_ref_create_structure (cl, NULL, reg, loc, bb, DF_INSN_INFO_GET (insn),
-                                 ref_type, ref_flags);
+
+  return df_ref_create_structure (cl, NULL, reg, loc, bb,
+                                  DF_INSN_INFO_GET (insn),
+                                  ref_type, ref_flags);
+}
+
+static void
+df_install_ref_incremental (df_ref ref)
+{
+  struct df_reg_info **reg_info;
+  struct df_ref_info *ref_info;
+  df_ref *ref_rec;
+  df_ref **ref_rec_ptr;
+  unsigned int count = 0;
+  bool add_to_table;
+
+  rtx insn = DF_REF_INSN (ref);
+  basic_block bb = BLOCK_FOR_INSN (insn);
 
   if (DF_REF_REG_DEF_P (ref))
     {
@@ -796,8 +821,6 @@ df_ref_create (rtx reg, rtx *loc, rtx insn,
      to mark the block dirty ourselves.  */
   if (!DEBUG_INSN_P (DF_REF_INSN (ref)))
     df_set_bb_dirty (bb);
-
-  return ref;
 }
 
 
@@ -1261,9 +1284,7 @@ df_insn_rescan (rtx insn)
     }
 
   df_refs_add_to_chains (&collection_rec, bb, insn);
-  if (DEBUG_INSN_P (insn))
-    df_set_bb_dirty_nonlr (bb);
-  else
+  if (!DEBUG_INSN_P (insn))
     df_set_bb_dirty (bb);
 
   VEC_free (df_ref, stack, collection_rec.def_vec);
@@ -2392,8 +2413,7 @@ df_sort_and_compress_refs (VEC(df_ref,stack) **ref_vec)
          of DF_REF_COMPARE.  */
       if (i == count - 1)
         return;
-      qsort (VEC_address (df_ref, *ref_vec), count, sizeof (df_ref),
-	     df_ref_compare);
+      VEC_qsort (df_ref, *ref_vec, df_ref_compare);
     }
 
   for (i=0; i<count-dist; i++)
@@ -2492,8 +2512,7 @@ df_sort_and_compress_mws (VEC(df_mw_hardreg_ptr,stack) **mw_vec)
         }
     }
   else
-    qsort (VEC_address (df_mw_hardreg_ptr, *mw_vec), count,
-	   sizeof (struct df_mw_hardreg *), df_mw_compare);
+    VEC_qsort (df_mw_hardreg_ptr, *mw_vec, df_mw_compare);
 
   for (i=0; i<count-dist; i++)
     {
@@ -2798,6 +2817,8 @@ df_ref_create_structure (enum df_ref_class cl,
       else
 	VEC_safe_push (df_ref, stack, collection_rec->use_vec, this_ref);
     }
+  else
+    df_install_ref_incremental (this_ref);
 
   return this_ref;
 }
@@ -2841,7 +2862,8 @@ df_ref_record (enum df_ref_class cl,
       /*  If this is a multiword hardreg, we create some extra
 	  datastructures that will enable us to easily build REG_DEAD
 	  and REG_UNUSED notes.  */
-      if ((endregno != regno + 1) && insn_info)
+      if (collection_rec
+	  && (endregno != regno + 1) && insn_info)
 	{
 	  /* Sets to a subreg of a multiword register are partial.
 	     Sets to a non-subreg of a multiword register are not.  */
@@ -3406,7 +3428,7 @@ df_insn_refs_collect (struct df_collection_rec* collection_rec,
                          regno_reg_rtx[FRAME_POINTER_REGNUM],
                          NULL, bb, insn_info,
                          DF_REF_REG_USE, 0);
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
           df_ref_record (DF_REF_BASE, collection_rec,
                          regno_reg_rtx[HARD_FRAME_POINTER_REGNUM],
                          NULL, bb, insn_info,
@@ -3604,7 +3626,7 @@ df_get_regular_block_artificial_uses (bitmap regular_block_artificial_uses)
 	 reference of the frame pointer.  */
       bitmap_set_bit (regular_block_artificial_uses, FRAME_POINTER_REGNUM);
 
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
       bitmap_set_bit (regular_block_artificial_uses, HARD_FRAME_POINTER_REGNUM);
 #endif
 
@@ -3656,7 +3678,7 @@ df_get_eh_block_artificial_uses (bitmap eh_block_artificial_uses)
       if (frame_pointer_needed)
 	{
 	  bitmap_set_bit (eh_block_artificial_uses, FRAME_POINTER_REGNUM);
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
 	  bitmap_set_bit (eh_block_artificial_uses, HARD_FRAME_POINTER_REGNUM);
 #endif
 	}
@@ -3744,7 +3766,7 @@ df_get_entry_block_def_set (bitmap entry_block_defs)
       /* Any reference to any pseudo before reload is a potential
 	 reference of the frame pointer.  */
       bitmap_set_bit (entry_block_defs, FRAME_POINTER_REGNUM);
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
       /* If they are different, also mark the hard frame pointer as live.  */
       if (!LOCAL_REGNO (HARD_FRAME_POINTER_REGNUM))
 	bitmap_set_bit (entry_block_defs, HARD_FRAME_POINTER_REGNUM);
@@ -3877,7 +3899,7 @@ df_get_exit_block_use_set (bitmap exit_block_uses)
   if ((!reload_completed) || frame_pointer_needed)
     {
       bitmap_set_bit (exit_block_uses, FRAME_POINTER_REGNUM);
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
       /* If they are different, also mark the hard frame pointer as live.  */
       if (!LOCAL_REGNO (HARD_FRAME_POINTER_REGNUM))
 	bitmap_set_bit (exit_block_uses, HARD_FRAME_POINTER_REGNUM);

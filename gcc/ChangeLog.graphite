@@ -1,3 +1,420 @@
+2010-11-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (analyze_drs_in_stmts): Fix set but
+	unused warning.
+	(rewrite_cross_bb_scalar_deps_out_of_ssa): Same.
+
+2010-11-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (analyze_drs): Removed.
+	(build_scop_drs): Do not call analyze_drs.
+	(analyze_drs_in_stmts): New.
+	(insert_stmts): New.
+	(insert_out_of_ssa_copy): Call analyze_drs_in_stmts.
+	(insert_out_of_ssa_copy_on_edge): Same.
+	(rewrite_close_phi_out_of_ssa): Call insert_stmts.
+	(rewrite_phi_out_of_ssa): Same.
+	(rewrite_cross_bb_scalar_dependence): Same.
+	(split_reduction_stmt): Move data references in the new basic blocks.
+	(translate_scalar_reduction_to_array_for_stmt): Call insert_stmts.
+
+2010-11-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* sese.c (rename_uses): Do not handle ADDR_EXPR in LHS of assignments.
+
+2010-11-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/45297
+	* graphite-poly.c (new_poly_bb): Returns a poly_bb_p.  Do not take
+	the reduction bool in parameter.  Clear PBB_IS_REDUCTION.  Set GBB_PBB.
+	* graphite-poly.h (new_poly_bb): Update declaration.
+	(gbb_from_bb): Moved here...
+	(pbb_from_bb): New.
+	* graphite-sese-to-poly.c (var_used_in_not_loop_header_phi_node):
+	Removed.
+	(graphite_stmt_p): Removed.
+	(try_generate_gimple_bb): Returns a gimple_bb_p.  Do not pass in
+	sbitmap reductions.  Always build a gimple_bb_p.  Do not call
+	new_poly_bb.
+	(build_scop_bbs_1): Do not pass in sbitmap reductions.
+	(build_scop_bbs): Same.
+	(gbb_from_bb): ... from here.
+	(add_conditions_to_constraints): Moved up.
+	(analyze_drs): New.
+	(build_scop_drs): Call analyze_drs.  Remove all the PBBs that do
+	not contain data references.
+	(new_pbb_from_pbb): New.
+	(insert_out_of_ssa_copy_on_edge): Call new_pbb_from_pbb after a
+	block is split.
+	(rewrite_close_phi_out_of_ssa): Update call to
+	insert_out_of_ssa_copy_on_edge.
+	(rewrite_reductions_out_of_ssa): Now static.
+	(rewrite_cross_bb_scalar_deps_out_of_ssa): Same.
+	(split_pbb): New.
+	(split_reduction_stmt): Call split_pbb.
+	(translate_scalar_reduction_to_array): Pass in the scop, do not
+	pass in the sbitmap reductions.
+	(rewrite_commutative_reductions_out_of_ssa_close_phi): Same.
+	(rewrite_commutative_reductions_out_of_ssa_loop): Same.
+	(rewrite_commutative_reductions_out_of_ssa): Same.
+	(build_poly_scop): Call build_scop_bbs,
+	rewrite_commutative_reductions_out_of_ssa,
+	rewrite_reductions_out_of_ssa, and
+	rewrite_cross_bb_scalar_deps_out_of_ssa.  Move build_scop_drs
+	before scop_to_lst.
+	* graphite-sese-to-poly.h (rewrite_commutative_reductions_out_of_ssa):
+	Removed declaration.
+	(rewrite_reductions_out_of_ssa): Same.
+	(rewrite_cross_bb_scalar_deps_out_of_ssa): Same.
+	(build_scop_bbs): Same.
+	* graphite.c (graphite_transform_loops): Do not initialize reductions.
+	Do not call build_scop_bbs,
+	rewrite_commutative_reductions_out_of_ssa,
+	rewrite_reductions_out_of_ssa, and
+	rewrite_cross_bb_scalar_deps_out_of_ssa.
+	* sese.h (struct gimple_bb): Add field pbb.
+	(GBB_PBB): New.
+
+	* gcc.dg/graphite/pr45297.c: New.
+
+2010-11-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (handle_scalar_deps_crossing_scop_limits):
+	New.
+	(rewrite_cross_bb_scalar_deps): Pass in the scop.  Call
+	handle_scalar_deps_crossing_scop_limits.
+	(rewrite_cross_bb_scalar_deps_out_of_ssa): Create an empty BB
+	after the scop.  Update call to rewrite_cross_bb_scalar_deps.
+
+2010-11-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* sese.c (rename_uses): Call recompute_tree_invariant_for_addr_expr
+	when replacing a constant in an ADDR_EXPR.
+
+2010-10-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-blocking.c (lst_do_strip_mine_loop): Extra parameter
+	for the stride.
+	(lst_do_strip_mine): Same.
+	(scop_do_strip_mine): Same.
+	* graphite-poly.c (apply_poly_transforms): Update call to
+	scop_do_strip_mine.
+	* graphite-poly.h (scop_do_strip_mine): Update declaration.
+
+2010-09-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/45758
+	* graphite.c (graphite_initialize): Call scev_reset.
+
+2010-09-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* sese.h (scev_analyzable_p): Return false for real or floating
+	point.  Only handle INTEGRAL_TYPE_P and POINTER_TYPE_P.
+
+2010-09-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/45758
+	* gfortran.dg/graphite/pr45758.f90: New.
+
+2010-09-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-scop-detection.c (is_scop_p): Free bblist.
+
+2010-09-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (compute_bounds_for_level): Free le
+	and ps.
+	* graphite-poly.c (pbb_number_of_iterations_at_time): Free le and
+	domain.
+	* graphite-sese-to-poly.c (add_upper_bounds_from_estimated_nit):
+	Do not allocate ub_expr, it is passed in initialized.
+
+2010-09-21  Andreas Simbuerger  <simbuerg@fim.uni-passau.de>
+
+	* common.opt (fgraphite-dump-cloog): New flag.
+	* doc/invoke.texi (-fgraphite-dump-cloog): Documented.
+	* graphite-clast-to-gimple.c (init_cloog_input_file): New.
+	(build_cloog_prog): Dump CLooG input file when
+	flag_graphite_dump_cloog is set.
+	* graphite-cloog-compat.h (cloog_program_dump_cloog): New.
+
+2010-09-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Revert previous patch "New flag: -fgraphite-dump-cloog."
+
+2010-09-20  Andreas Simbuerger  <simbuerg@fim.uni-passau.de>
+
+	* common.opt (fgraphite-dump-cloog): New flag.
+	* doc/invoke.texi (-fgraphite-dump-cloog): Documented.
+	* graphite-clast-to-gimple.c (init_cloog_input_file): New.
+	(build_cloog_prog): Dump CLooG input file when
+	flag_graphite_dump_cloog is set.
+
+2010-09-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (graphite_verify): Remove call to
+	verify_dominators for CDI_POST_DOMINATORS.
+	* sese.h: Remove comment about CDI_POST_DOMINATORS.
+	(recompute_all_dominators): Remove call to free_dominance_info
+	for CDI_POST_DOMINATORS.  Remove call to calculate_dominance_info
+	for CDI_POST_DOMINATORS.
+
+2010-09-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (pbb_number_of_iterations_at_time): Only iterate
+	over pbb_dim_iter_domain.
+
+2010-09-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-flattening.c: Fix comments.
+
+2010-09-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Makefile.in (OBJS-common): Add graphite-flattening.o.
+	(graphite-flattening.o): New rule.
+	* common.opt (floop-flatten): New flag.
+	* doc/invoke.texi (-floop-flatten): Documented.
+	* graphite-flattening.c: New.
+	* graphite-poly.c (apply_poly_transforms): Call flatten_all_loops.
+	* graphite-poly.h (flatten_all_loops): Declared.
+	(lst_remove_loop_and_inline_stmts_in_loop_father): New.
+	* tree-ssa-loop.c (gate_graphite_transforms): When flag_loop_flatten
+	is set, also set flag_graphite.
+
+2010-09-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (cloog_checksum): New.
+	* graphite-poly.h (cloog_checksum): Declared.
+
+2010-09-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (pbb_number_of_iterations): Removed.
+	(pbb_number_of_iterations_at_time): Correctly compute the number
+	of iterations in the transformed loop.
+	* graphite-poly.h (pbb_number_of_iterations): Removed.
+
+2010-09-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.h (lst_update_scattering_seq): Removed.
+	(lst_update_scattering): Correctly handle outermost loop dewey
+	renumbering.
+
+2010-09-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-blocking.c (pbb_strip_mine_profitable_p): Renamed
+	lst_strip_mine_profitable_p.  Call lst_niter_for_loop.
+	* graphite-poly.h (lst_niter_for_loop): New.
+
+2010-09-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (apply_poly_transforms): Do not abort when the
+	transform read from disk is not legal.  Call fatal_error instead.
+
+2010-09-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (print_pbb_body): Add missing closing parenthesis.
+	(print_scop_header): Removed.  Inlined in the only call place...
+	(print_scop): ... here.
+
+2010-09-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.h (lst_dewey_number): Use FOR_EACH_VEC_ELT.
+
+2010-09-02  Vladimir Kargov  <kargov@gmail.com>
+
+	* graphite-scop-detection.c (is_valid_expr_p, is_valid_loop_p): New.
+	(is_valid_stmt_p): Add data reference and operation-specific checks.
+	(is_valid_bb_p): Change structure, add loop validity check.
+	(is_scop_p): Move the TODO list
+	(find_scops_new): New.
+	(build_scops_new): Move part of functionality to find_scops_new and
+	build_scops.  Add necessary steps for successful SCoP construction.
+	(build_scops): Compute SCoP sets for both detection algorithms, choose
+	the resulting one depending on static condition.
+
+2010-08-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (graphite_read_scop_file): Fix uninitialize warning.
+
+2010-08-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (dot_deps): Avoid set but not used warning.
+	(dot_deps_stmt): Same.
+	* graphite-poly.c (dot_lst): Same.
+
+2010-08-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-blocking.c (scop_do_strip_mine): Do not call
+	graphite_legal_transform.
+	(scop_do_block): Same.
+
+2010-08-20  Vladimir Kargov  <kargov@gmail.com>
+
+	* graphite-scop-detection.c (graphite_can_represent_loop): Correct the
+	description.
+
+2010-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/45230
+	* gcc.dg/graphite/id-pr45230.c: New.
+
+2010-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-scalar-evolution.c (instantiate_array_ref): New.
+	(instantiate_scev_r): Also handle ARRAY_REFs.
+
+2010-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-scalar-evolution.c (chrec_contains_symbols_defined_in_loop):
+	Do not check for VAR_DECL, PARM_DECL, FUNCTION_DECL, LABEL_DECL,
+	RESULT_DECL, and FIELD_DECL.  Return false for an
+	SSA_NAME_IS_DEFAULT_DEF.
+	(compute_scalar_evolution_in_loop): Do not further analyze the
+	scalar evolution when no_evolution_in_loop_p returns true.
+
+2010-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-chrec.h (evolution_function_is_affine_p): Do not check
+	whether CHREC_LEFT is invariant.  A function is affine when
+	CHREC_RIGHT is invariant.
+
+2010-08-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (reduction_phi_p): Remove check for
+	is_gimple_reg.
+	(rewrite_degenerate_phi): Same.
+	(rewrite_reductions_out_of_ssa): Add check for is_gimple_reg.
+
+2010-08-18  Vladimir Kargov  <kargov@gmail.com>
+
+	* graphite-scop-detection.c (graphite_can_represent_scev,
+	graphite_can_represent_expr, stmt_has_simple_data_refs_p,
+	graphite_can_represent_loop): Remove outermost_loop.
+
+2010-08-17  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/45229
+	* graphite-sese-to-poly.c (rewrite_cross_bb_scalar_deps): Do not
+	handle GIMPLE_CALLs with no LHS.
+
+2010-08-17  Riyadh Baghdadi  <baghdadi.mr@gmail.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/graphite.exp: Add test rules for openscop read/write.
+	Call remove-build-file to clean up the generated *.graphite files.
+
+2010-08-17  Riyadh Baghdadi <baghdadi.mr@gmail.com>
+
+	* doc/invoke.texi (debugging options): Update documentation.
+	(-floop-interchange): Same.
+	(-flopp-strip-mine): Same.
+	(-floop-block): Same.
+	(-fgraphite-read): Add documentation.
+	(-fgraphite-write): Same.
+
+2010-08-17  Riyadh Baghdadi <baghdadi.mr@gmail.com>
+
+	* toplev.c (process_options): Disable graphite loop optimization
+	options when -fgraphite-read flag is used.
+
+2010-08-17  Riyadh Baghdadi <baghdadi.mr@gmail.com>
+
+	* graphite-poly.c (init_graphite_out_file): New.
+	(init_graphite_in_file): New.
+	(apply_poly_transforms): Updated to enable reading and writing of
+	multiple scop files.
+	* toplev.c (init_asm_output): Remove graphite in/out file initialization.
+
+2010-08-17  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-scop-detection.c (graphite_can_represent_scev): Remove
+	redundant checks.
+
+2010-08-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (precision_for_value): Adjust
+	computation of precision by 1.
+
+2010-08-12  Riyadh Baghdadi <baghdadi.mr@gmail.com>
+
+	* graphite-cloog-util.c (openscop_read_cloog_matrix): New.
+	(openscop_read_polyhedron_matrix): New.
+	* graphite-cloog-util.h (openscop_read_polyhedron_matrix): Declared.
+	(openscop_read_N_int): Same.
+	* graphite-poly.c (openscop_read_N_int): New.
+	(openscop_read_one_int): New.
+	(openscop_read_N_string): New.
+	(openscop_read_one_string): New.
+	(openscop_read_powerset_matrix): New.
+	(graphite_read_transforms): Remove.
+	(graphite_read_scatt): New.
+	(graphite_read_scop_file): New.
+	(apply_poly_transforms): Updated to call graphite_read_scop_file.
+
+2010-08-11  Andreas Simbuerger  <simbuerg@fim.uni-passau.de>
+
+	* graphite-poly.c: Change include order.
+
+2010-08-11  Andreas Simbuerger  <simbuerg@fim.uni-passau.de>
+
+	* graphite-cloog-compat.h (cloog_matrix_ncolumns): New.
+	(cloog_matrix_nrows): New.
+
+2010-08-11  Riyadh Baghdadi <baghdadi.mr@gmail.com>
+
+	* graphite-cloog-util.c (openscop_print_cloog_matrix): Remove spaces
+	from matrix lines.
+	* graphite-poly.c (openscop_print_scattering_function_1): Same.
+	(print_scattering_function_1): Same.
+	(openscop_print_pbb_domain): Same.
+	(openscop_print_scop_context): Same.
+	(print_scop_context): Same.
+
+2010-08-11  Riyadh Baghdadi <baghdadi.mr@gmail.com>
+
+	* graphite-poly.c (openscop_print_pdr_polyhedron): Fix indentation.
+	(openscop_print_pdr_polyhedron): Print pph.
+
+2010-07-29  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/graphite.exp: Add compile rules for vect-* files.
+	* gfortran.dg/graphite/graphite.exp: Same.
+	* gcc.dg/graphite/vect-pr43423.c: New.
+
+2010-07-29  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (gcc_type_for_interval): Generate in
+	priority signed types.
+
+2010-07-29  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (max_signed_precision_type): Remove the call
+	to lang_hooks.types.type_for_size.  Call build_nonstandard_integer_type.
+
+2010-07-29  Riyadh Baghdadi <baghdadi.mr@gmail.com>
+
+	* graphite-cloog-util.c (openscop_print_cloog_matrix): New.
+	(openscop_print_polyhedron_matrix): New.
+	* graphite-cloog-util.h (openscop_print_polyhedron_matrix): Declared.
+	* graphite-poly.c (openscop_print_pdr_polyhedron): Same.
+	(openscop_print_pdr_powerset): New.
+	(openscop_print_powerset_matrix): New.
+	(openscop_print_scattering_function_1): New.
+	(print_scattering_function): Add support for scattering names and
+	OpenScop format.
+	(graphite_write_transforms): Remove.
+	(apply_poly_transforms): Updated to call print_scop.
+	(print_pdr_access_layout): Updated to support OpenScop format.
+	(print_pdr): Same.
+	(openscop_print_pbb_domain): New.
+	(print_pbb_body): Added a parameter to allow indicating that pbb_body is
+	not provided.
+	(print_pbb): Updated to call the new print_pbb_body.
+	(openscop_print_scop_context): New.
+	(print_scop_header): New.
+	(print_scop): Updated to call print_scop_header.
+	* graphite-poly.h: Document OpenScop format.
+
 2010-07-29  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-sese-to-poly.c (rewrite_close_phi_out_of_ssa): Add back

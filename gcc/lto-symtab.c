@@ -1,5 +1,5 @@
 /* LTO symbol table.
-   Copyright 2009 Free Software Foundation, Inc.
+   Copyright 2009, 2010 Free Software Foundation, Inc.
    Contributed by CodeSourcery, Inc.
 
 This file is part of GCC.
@@ -22,7 +22,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "tree.h"
 #include "gimple.h"
 #include "ggc.h"
@@ -51,6 +50,8 @@ struct GTY(()) lto_symtab_entry_def
   /* LTO file-data and symbol resolution for this decl.  */
   struct lto_file_decl_data * GTY((skip (""))) file_data;
   enum ld_plugin_symbol_resolution resolution;
+  /* True when resolution was guessed and not read from the file.  */
+  bool guessed;
   /* Pointer to the next entry with the same key.  Before decl merging
      this links all symbols from the different TUs.  After decl merging
      this links merged but incompatible decls, thus all prevailing ones
@@ -208,6 +209,7 @@ lto_cgraph_replace_node (struct cgraph_node *node,
 {
   struct cgraph_edge *e, *next;
   bool no_aliases_please = false;
+  bool compatible_p;
 
   if (cgraph_dump_file)
     {
@@ -238,10 +240,19 @@ lto_cgraph_replace_node (struct cgraph_node *node,
     }
 
   /* Redirect all incoming edges.  */
+  compatible_p
+    = gimple_types_compatible_p (TREE_TYPE (TREE_TYPE (prevailing_node->decl)),
+				 TREE_TYPE (TREE_TYPE (node->decl)), GTC_DIAG);
   for (e = node->callers; e; e = next)
     {
       next = e->next_caller;
       cgraph_redirect_edge_callee (e, prevailing_node);
+      /* If there is a mismatch between the supposed callee return type and
+	 the real one do not attempt to inline this function.
+	 ???  We really need a way to match function signatures for ABI
+	 compatibility and perform related promotions at inlining time.  */
+      if (!compatible_p)
+	e->call_stmt_cannot_inline_p = 1;
     }
   /* Redirect incomming references.  */
   ipa_clone_refering (prevailing_node, NULL, &node->ref_list);
@@ -442,6 +453,7 @@ lto_symtab_resolve_replaceable_p (lto_symtab_entry_t e)
 {
   if (DECL_EXTERNAL (e->decl)
       || DECL_COMDAT (e->decl)
+      || DECL_ONE_ONLY (e->decl)
       || DECL_WEAK (e->decl))
     return true;
 
@@ -513,12 +525,14 @@ lto_symtab_resolve_symbols (void **slot)
       if (!lto_symtab_resolve_can_prevail_p (e))
 	{
 	  e->resolution = LDPR_RESOLVED_IR;
+          e->guessed = true;
 	  continue;
 	}
 
       /* Set a default resolution - the final prevailing one will get
          adjusted later.  */
       e->resolution = LDPR_PREEMPTED_IR;
+      e->guessed = true;
       if (!lto_symtab_resolve_replaceable_p (e))
 	{
 	  if (prevailing)
@@ -572,6 +586,7 @@ found:
     resolution file.  These variables still need manual
     externally_visible attribute.  */
     prevailing->resolution = LDPR_PREVAILING_DEF_IRONLY;
+    prevailing->guessed = true;
 }
 
 /* Merge all decls in the symbol table chain to the prevailing decl and
@@ -740,27 +755,21 @@ lto_symtab_merge_decls_1 (void **slot, void *data ATTRIBUTE_UNUSED)
       && TREE_CODE (prevailing->decl) != VAR_DECL)
     prevailing->next = NULL;
 
-  /* Set used_from_object_file flags.  */
-  if (prevailing->resolution == LDPR_PREVAILING_DEF
-      || prevailing->resolution == LDPR_PREEMPTED_REG
-      || prevailing->resolution == LDPR_RESOLVED_EXEC
-      || prevailing->resolution == LDPR_RESOLVED_DYN)
-    {
-      if (TREE_CODE (prevailing->decl) == FUNCTION_DECL)
-	{
-	  if (prevailing->node->same_body_alias)
-	    prevailing->node->same_body->local.used_from_object_file = true;
-	  else
-	    prevailing->node->local.used_from_object_file = true;
-	}
-      else
-	{
-	  if (prevailing->vnode->alias)
-	    prevailing->vnode->extra_name->used_from_object_file = true;
-	  else
-	    prevailing->vnode->used_from_object_file = true;
-	}
-    }
+  /* Store resolution decision into the callgraph.  
+     In LTRANS don't overwrite information we stored into callgraph at
+     WPA stage.
+
+     Do not bother to store guessed decisions.  Generic code knows how
+     to handle UNKNOWN relocation well.
+
+     The problem with storing guessed decision is whether to use
+     PREVAILING_DEF or PREVAILING_DEF_IRONLY.  First one would disable
+     some whole program optimizations, while ther second would imply
+     to many whole program assumptions.  */
+  if (prevailing->node && !flag_ltrans && !prevailing->guessed)
+    prevailing->node->resolution = prevailing->resolution;
+  else if (prevailing->vnode && !flag_ltrans && !prevailing->guessed)
+    prevailing->vnode->resolution = prevailing->resolution;
   return 1;
 }
 

@@ -1,4 +1,4 @@
-
+\input texinfo  @c -*-texinfo-*-
 @c %**start of header
 @setfilename gfortran.info
 @set copyrights-gfortran 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
@@ -980,7 +980,13 @@ transformational bit intrinsics @code{IALL}, @code{IANY} and @code{IPARITY}.
 @item Support for the @code{STORAGE_SIZE} intrinsic inquiry function.
 
 @item The @code{INT@{8,16,32@}} and @code{REAL@{32,64,128@}} kind type
-parameters of the intrinsic module @code{ISO_FORTRAN_ENV}.
+parameters and the array-valued named constants @code{INTEGER_KINDS},
+@code{LOGICAL_KINDS}, @code{REAL_KINDS} and @code{CHARACTER_KINDS} of
+the intrinsic module @code{ISO_FORTRAN_ENV}.
+
+@item The module procedures @code{C_SIZEOF} of the intrinsic module
+@code{ISO_C_BINDINGS} and @code{COMPILER_VERSION} and @code{COMPILER_OPTIONS}
+of @code{ISO_FORTRAN_ENV}.
 
 @item Experimental coarray support (for one image only), use the
 @option{-fcoarray=single} flag to enable it.
@@ -1061,10 +1067,10 @@ data types are:
 1, 2, 4, 8*, 16*, default: 4 (1)
 
 @item REAL
-4, 8, 10**, 16**, default: 4 (2)
+4, 8, 10*, 16*, default: 4 (2)
 
 @item COMPLEX
-4, 8, 10**, 16**, default: 4 (2)
+4, 8, 10*, 16*, default: 4 (2)
 
 @item CHARACTER
 1, 4, default: 1
@@ -1073,8 +1079,6 @@ data types are:
 
 @noindent
 * = not available on all systems @*
-** = not available on all systems; additionally 10 and 16 are never
-available at the same time @*
 (1) Unless -fdefault-integer-8 is used @*
 (2) Unless -fdefault-real-8 is used
 
@@ -1082,7 +1086,14 @@ available at the same time @*
 The @code{KIND} value matches the storage size in bytes, except for
 @code{COMPLEX} where the storage size is twice as much (or both real and
 imaginary part are a real value of the given size).  It is recommended to use
-the @code{SELECT_*_KIND} intrinsics instead of the concrete values.
+the @code{SELECTED_CHAR_KIND}, @code{SELECTED_INT_KIND} and
+@code{SELECTED_REAL_KIND} intrinsics or the @code{INT8}, @code{INT16},
+@code{INT32}, @code{INT64}, @code{REAL32}, @code{REAL64}, and @code{REAL128}
+parameters of the @code{ISO_FORTRAN_ENV} module instead of the concrete values.
+The available kind parameters can be found in the constant arrays
+@code{CHARACTER_KINDS}, @code{INTEGER_KINDS}, @code{LOGICAL_KINDS} and
+@code{REAL_KINDS} in the @code{ISO_FORTRAN_ENV} module
+(see @ref{ISO_FORTRAN_ENV}).
 
 
 @node Internal representation of LOGICAL variables

@@ -76,7 +76,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "alloc-pool.h"
 #include "tm.h"
-#include "toplev.h"
 #include "tree.h"
 #include "gimple.h"
 #include "cgraph.h"
@@ -188,6 +187,10 @@ struct access
   /* Does this group contain a read access that comes from an assignment
      statement?  This flag is propagated down the access tree.  */
   unsigned grp_assignment_read : 1;
+
+  /* Does this group contain a write access that comes from an assignment
+     statement?  This flag is propagated down the access tree.  */
+  unsigned grp_assignment_write : 1;
 
   /* Other passes of the analysis use this bit to make function
      analyze_access_subtree create scalar replacements for this group if
@@ -364,15 +367,17 @@ dump_access (FILE *f, struct access *access, bool grp)
   if (grp)
     fprintf (f, ", grp_write = %d, total_scalarization = %d, "
 	     "grp_read = %d, grp_hint = %d, grp_assignment_read = %d,"
-	     "grp_covered = %d, grp_unscalarizable_region = %d, "
-	     "grp_unscalarized_data = %d, grp_partial_lhs = %d, "
-	     "grp_to_be_replaced = %d, grp_maybe_modified = %d, "
+	     "grp_assignment_write = %d, grp_covered = %d, "
+	     "grp_unscalarizable_region = %d, grp_unscalarized_data = %d, "
+	     "grp_partial_lhs = %d, grp_to_be_replaced = %d, "
+	     "grp_maybe_modified = %d, "
 	     "grp_not_necessarilly_dereferenced = %d\n",
 	     access->grp_write, access->total_scalarization,
 	     access->grp_read, access->grp_hint, access->grp_assignment_read,
-	     access->grp_covered, access->grp_unscalarizable_region,
-	     access->grp_unscalarized_data, access->grp_partial_lhs,
-	     access->grp_to_be_replaced, access->grp_maybe_modified,
+	     access->grp_assignment_write, access->grp_covered,
+	     access->grp_unscalarizable_region, access->grp_unscalarized_data,
+	     access->grp_partial_lhs, access->grp_to_be_replaced,
+	     access->grp_maybe_modified,
 	     access->grp_not_necessarilly_dereferenced);
   else
     fprintf (f, ", write = %d, total_scalarization = %d, "
@@ -647,7 +652,8 @@ type_internals_preclude_sra_p (tree type)
 	    if (TREE_THIS_VOLATILE (fld)
 		|| !DECL_FIELD_OFFSET (fld) || !DECL_SIZE (fld)
 		|| !host_integerp (DECL_FIELD_OFFSET (fld), 1)
-		|| !host_integerp (DECL_SIZE (fld), 1))
+		|| !host_integerp (DECL_SIZE (fld), 1)
+		|| (DECL_BIT_FIELD (fld) && AGGREGATE_TYPE_P (ft)))
 	      return true;
 
 	    if (AGGREGATE_TYPE_P (ft)
@@ -815,14 +821,12 @@ create_access (tree expr, gimple stmt, bool write)
 
 /* Return true iff TYPE is a RECORD_TYPE with fields that are either of gimple
    register types or (recursively) records with only these two kinds of fields.
-   It also returns false if any of these records has a zero-size field as its
-   last field or has a bit-field.  */
+   It also returns false if any of these records contains a bit-field.  */
 
 static bool
 type_consists_of_records_p (tree type)
 {
   tree fld;
-  bool last_fld_has_zero_size = false;
 
   if (TREE_CODE (type) != RECORD_TYPE)
     return false;
@@ -838,12 +842,7 @@ type_consists_of_records_p (tree type)
 	if (!is_gimple_reg_type (ft)
 	    && !type_consists_of_records_p (ft))
 	  return false;
-
-	last_fld_has_zero_size = tree_low_cst (DECL_SIZE (fld), 1) == 0;
       }
-
-  if (last_fld_has_zero_size)
-    return false;
 
   return true;
 }
@@ -1025,6 +1024,9 @@ build_accesses_from_assign (gimple stmt)
 
   racc = build_access_from_expr_1 (rhs, stmt, false);
   lacc = build_access_from_expr_1 (lhs, stmt, true);
+
+  if (lacc)
+    lacc->grp_assignment_write = 1;
 
   if (racc)
     {
@@ -1388,7 +1390,7 @@ build_ref_for_offset (location_t loc, tree base, HOST_WIDE_INT offset,
 
 /* Construct a memory reference to a part of an aggregate BASE at the given
    OFFSET and of the same type as MODEL.  In case this is a reference to a
-   bit-field, the function will replicate the last component_ref of model's
+   component, the function will replicate the last COMPONENT_REF of model's
    expr to access it.  GSI and INSERT_AFTER have the same meaning as in
    build_ref_for_offset.  */
 
@@ -1397,12 +1399,9 @@ build_ref_for_model (location_t loc, tree base, HOST_WIDE_INT offset,
 		     struct access *model, gimple_stmt_iterator *gsi,
 		     bool insert_after)
 {
-  if (TREE_CODE (model->expr) == COMPONENT_REF
-      && DECL_BIT_FIELD (TREE_OPERAND (model->expr, 1)))
+  if (TREE_CODE (model->expr) == COMPONENT_REF)
     {
-      /* This access represents a bit-field.  */
       tree t, exp_type;
-
       offset -= int_bit_position (TREE_OPERAND (model->expr, 1));
       exp_type = TREE_TYPE (TREE_OPERAND (model->expr, 0));
       t = build_ref_for_offset (loc, base, offset, exp_type, gsi, insert_after);
@@ -1578,8 +1577,7 @@ sort_and_splice_var_accesses (tree var)
   access_count = VEC_length (access_p, access_vec);
 
   /* Sort by <OFFSET, SIZE>.  */
-  qsort (VEC_address (access_p, access_vec), access_count, sizeof (access_p),
-	 compare_access_positions);
+  VEC_qsort (access_p, access_vec, compare_access_positions);
 
   i = 0;
   while (i < access_count)
@@ -1588,6 +1586,7 @@ sort_and_splice_var_accesses (tree var)
       bool grp_write = access->write;
       bool grp_read = !access->write;
       bool grp_assignment_read = access->grp_assignment_read;
+      bool grp_assignment_write = access->grp_assignment_write;
       bool multiple_reads = false;
       bool total_scalarization = access->total_scalarization;
       bool grp_partial_lhs = access->grp_partial_lhs;
@@ -1622,6 +1621,7 @@ sort_and_splice_var_accesses (tree var)
 		grp_read = true;
 	    }
 	  grp_assignment_read |= ac2->grp_assignment_read;
+	  grp_assignment_write |= ac2->grp_assignment_write;
 	  grp_partial_lhs |= ac2->grp_partial_lhs;
 	  unscalarizable_region |= ac2->grp_unscalarizable_region;
 	  total_scalarization |= ac2->total_scalarization;
@@ -1641,6 +1641,7 @@ sort_and_splice_var_accesses (tree var)
       access->grp_write = grp_write;
       access->grp_read = grp_read;
       access->grp_assignment_read = grp_assignment_read;
+      access->grp_assignment_write = grp_assignment_write;
       access->grp_hint = multiple_reads || total_scalarization;
       access->grp_partial_lhs = grp_partial_lhs;
       access->grp_unscalarizable_region = unscalarizable_region;
@@ -1829,17 +1830,50 @@ expr_with_var_bounded_array_refs_p (tree expr)
   return false;
 }
 
-enum mark_read_status { SRA_MR_NOT_READ, SRA_MR_READ, SRA_MR_ASSIGN_READ};
+enum mark_rw_status { SRA_MRRW_NOTHING, SRA_MRRW_DIRECT, SRA_MRRW_ASSIGN};
 
 /* Analyze the subtree of accesses rooted in ROOT, scheduling replacements when
    both seeming beneficial and when ALLOW_REPLACEMENTS allows it.  Also set all
    sorts of access flags appropriately along the way, notably always set
    grp_read and grp_assign_read according to MARK_READ and grp_write when
-   MARK_WRITE is true.  */
+   MARK_WRITE is true.
+
+   Creating a replacement for a scalar access is considered beneficial if its
+   grp_hint is set (this means we are either attempting total scalarization or
+   there is more than one direct read access) or according to the following
+   table:
+
+   Access written to individually (once or more times)
+   |
+   |	Parent written to in an assignment statement
+   |	|
+   |	|	Access read individually _once_
+   |	|	|
+   |   	|	|	Parent read in an assignment statement
+   |	|	|	|
+   |   	|	|	|	Scalarize	Comment
+-----------------------------------------------------------------------------
+   0	0	0	0			No access for the scalar
+   0	0	0	1			No access for the scalar
+   0	0	1	0	No		Single read - won't help
+   0	0	1	1	No		The same case
+   0	1	0	0			No access for the scalar
+   0	1	0	1			No access for the scalar
+   0	1	1	0	Yes		s = *g; return s.i;
+   0	1	1	1       Yes		The same case as above
+   1	0	0	0	No		Won't help
+   1	0	0	1	Yes		s.i = 1; *g = s;
+   1	0	1	0	Yes		s.i = 5; g = s.i;
+   1	0	1	1	Yes		The same case as above
+   1	1	0	0	No		Won't help.
+   1	1	0	1	Yes		s.i = 1; *g = s;
+   1	1	1	0	Yes		s = *g; return s.i;
+   1	1	1	1	Yes		Any of the above yeses  */
 
 static bool
 analyze_access_subtree (struct access *root, bool allow_replacements,
-			enum mark_read_status mark_read, bool mark_write)
+			enum mark_rw_status mark_read,
+			enum mark_rw_status mark_write)
 {
   struct access *child;
   HOST_WIDE_INT limit = root->offset + root->size;
@@ -1847,23 +1881,31 @@ analyze_access_subtree (struct access *root, bool allow_replacements,
   bool scalar = is_gimple_reg_type (root->type);
   bool hole = false, sth_created = false;
   bool direct_read = root->grp_read;
+  bool direct_write = root->grp_write;
 
-  if (mark_read == SRA_MR_ASSIGN_READ)
+  if (root->grp_assignment_read)
+    mark_read = SRA_MRRW_ASSIGN;
+  else if (mark_read == SRA_MRRW_ASSIGN)
     {
       root->grp_read = 1;
       root->grp_assignment_read = 1;
     }
-  if (mark_read == SRA_MR_READ)
+  else if (mark_read == SRA_MRRW_DIRECT)
     root->grp_read = 1;
-  else if (root->grp_assignment_read)
-    mark_read = SRA_MR_ASSIGN_READ;
   else if (root->grp_read)
-    mark_read = SRA_MR_READ;
+    mark_read = SRA_MRRW_DIRECT;
 
-  if (mark_write)
-    root->grp_write = true;
+  if (root->grp_assignment_write)
+    mark_write = SRA_MRRW_ASSIGN;
+  else if (mark_write == SRA_MRRW_ASSIGN)
+    {
+      root->grp_write = 1;
+      root->grp_assignment_write = 1;
+    }
+  else if (mark_write == SRA_MRRW_DIRECT)
+    root->grp_write = 1;
   else if (root->grp_write)
-    mark_write = true;
+    mark_write = SRA_MRRW_DIRECT;
 
   if (root->grp_unscalarizable_region)
     allow_replacements = false;
@@ -1888,7 +1930,8 @@ analyze_access_subtree (struct access *root, bool allow_replacements,
 
   if (allow_replacements && scalar && !root->first_child
       && (root->grp_hint
-	  || (root->grp_write && (direct_read || root->grp_assignment_read))))
+	  || ((direct_write || root->grp_assignment_write)
+	      && (direct_read || root->grp_assignment_read))))
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
@@ -1927,7 +1970,8 @@ analyze_access_trees (struct access *access)
 
   while (access)
     {
-      if (analyze_access_subtree (access, true, SRA_MR_NOT_READ, false))
+      if (analyze_access_subtree (access, true,
+				  SRA_MRRW_NOTHING, SRA_MRRW_NOTHING))
 	ret = true;
       access = access->next_grp;
     }
@@ -2277,8 +2321,7 @@ init_subtree_with_zero (struct access *access, gimple_stmt_iterator *gsi,
       gimple stmt;
 
       stmt = gimple_build_assign (get_access_replacement (access),
-				  fold_convert (access->type,
-						integer_zero_node));
+				  build_zero_cst (access->type));
       if (insert_after)
 	gsi_insert_after (gsi, stmt, GSI_NEW_STMT);
       else
@@ -2582,6 +2625,41 @@ get_repl_default_def_ssa_name (struct access *racc)
   return repl;
 }
 
+/* Return true if REF has a COMPONENT_REF with a bit-field field declaration
+   somewhere in it.  */
+
+static inline bool
+contains_bitfld_comp_ref_p (const_tree ref)
+{
+  while (handled_component_p (ref))
+    {
+      if (TREE_CODE (ref) == COMPONENT_REF
+          && DECL_BIT_FIELD (TREE_OPERAND (ref, 1)))
+        return true;
+      ref = TREE_OPERAND (ref, 0);
+    }
+
+  return false;
+}
+
+/* Return true if REF has an VIEW_CONVERT_EXPR or a COMPONENT_REF with a
+   bit-field field declaration somewhere in it.  */
+
+static inline bool
+contains_vce_or_bfcref_p (const_tree ref)
+{
+  while (handled_component_p (ref))
+    {
+      if (TREE_CODE (ref) == VIEW_CONVERT_EXPR
+	  || (TREE_CODE (ref) == COMPONENT_REF
+	      && DECL_BIT_FIELD (TREE_OPERAND (ref, 1))))
+	return true;
+      ref = TREE_OPERAND (ref, 0);
+    }
+
+  return false;
+}
+
 /* Examine both sides of the assignment statement pointed to by STMT, replace
    them with a scalare replacement if there is one and generate copying of
    replacements if scalarized aggregates have been used in the assignment.  GSI
@@ -2650,6 +2728,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 	     ???  This should move to fold_stmt which we simply should
 	     call after building a VIEW_CONVERT_EXPR here.  */
 	  if (AGGREGATE_TYPE_P (TREE_TYPE (lhs))
+	      && !contains_bitfld_comp_ref_p (lhs)
 	      && !access_has_children_p (lacc))
 	    {
 	      lhs = build_ref_for_offset (loc, lhs, 0, TREE_TYPE (rhs),
@@ -2657,7 +2736,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 	      gimple_assign_set_lhs (*stmt, lhs);
 	    }
 	  else if (AGGREGATE_TYPE_P (TREE_TYPE (rhs))
-		   && !contains_view_convert_expr_p (rhs)
+		   && !contains_vce_or_bfcref_p (rhs)
 		   && !access_has_children_p (racc))
 	    rhs = build_ref_for_offset (loc, rhs, 0, TREE_TYPE (lhs),
 					gsi, false);
@@ -2707,8 +2786,8 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
      This is what the first branch does.  */
 
   if (gimple_has_volatile_ops (*stmt)
-      || contains_view_convert_expr_p (rhs)
-      || contains_view_convert_expr_p (lhs))
+      || contains_vce_or_bfcref_p (rhs)
+      || contains_vce_or_bfcref_p (lhs))
     {
       if (access_has_children_p (racc))
 	generate_subtree_copies (racc->first_child, racc->base, 0, 0, 0,
@@ -3476,8 +3555,7 @@ splice_param_accesses (tree parm, bool *ro_grp)
     return &no_accesses_representant;
   access_count = VEC_length (access_p, access_vec);
 
-  qsort (VEC_address (access_p, access_vec), access_count, sizeof (access_p),
-	 compare_access_positions);
+  VEC_qsort (access_p, access_vec, compare_access_positions);
 
   i = 0;
   total_size = 0;
@@ -4052,7 +4130,7 @@ sra_ipa_modify_assign (gimple *stmt_ptr, gimple_stmt_iterator *gsi,
 	    {
 	      /* V_C_Es of constructors can cause trouble (PR 42714).  */
 	      if (is_gimple_reg_type (TREE_TYPE (*lhs_p)))
-		*rhs_p = fold_convert (TREE_TYPE (*lhs_p), integer_zero_node);
+		*rhs_p = build_zero_cst (TREE_TYPE (*lhs_p));
 	      else
 		*rhs_p = build_constructor (TREE_TYPE (*lhs_p), 0);
 	    }

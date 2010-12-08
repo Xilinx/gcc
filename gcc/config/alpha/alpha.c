@@ -42,7 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "function.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "ggc.h"
 #include "integrate.h"
 #include "tm_p.h"
@@ -50,7 +49,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target-def.h"
 #include "debug.h"
 #include "langhooks.h"
-#include <splay-tree.h>
+#include "splay-tree.h"
 #include "cfglayout.h"
 #include "gimple.h"
 #include "tree-flow.h"
@@ -208,6 +207,13 @@ static void unicosmk_gen_dsib (unsigned long *);
 static void unicosmk_output_ssib (FILE *, const char *);
 static int unicosmk_need_dex (rtx);
 
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options alpha_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
+
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
@@ -215,11 +221,6 @@ alpha_handle_option (size_t code, const char *arg, int value)
 {
   switch (code)
     {
-    case OPT_G:
-      g_switch_value = value;
-      g_switch_set = true;
-      break;
-
     case OPT_mfp_regs:
       if (value == 0)
 	target_flags |= MASK_SOFT_FP;
@@ -487,7 +488,7 @@ alpha_option_override (void)
   }
 
   /* Default the definition of "small data" to 8 bytes.  */
-  if (!g_switch_set)
+  if (!global_options_set.x_g_switch_value)
     g_switch_value = 8;
 
   /* Infer TARGET_SMALL_DATA from -fpic/-fPIC.  */
@@ -775,7 +776,7 @@ alpha_in_small_data_p (const_tree exp)
 
       /* If this is an incomplete type with size 0, then we can't put it
 	 in sdata because it might be too big when completed.  */
-      if (size > 0 && (unsigned HOST_WIDE_INT) size <= g_switch_value)
+      if (size > 0 && size <= g_switch_value)
 	return true;
     }
 
@@ -5639,9 +5640,9 @@ alpha_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
    On Alpha the first 6 words of args are normally in registers
    and the rest are pushed.  */
 
-rtx
-function_arg (CUMULATIVE_ARGS cum, enum machine_mode mode, tree type,
-	      int named ATTRIBUTE_UNUSED)
+static rtx
+alpha_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		    const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   int basereg;
   int num_args;
@@ -5666,87 +5667,22 @@ function_arg (CUMULATIVE_ARGS cum, enum machine_mode mode, tree type,
     }
 
   /* ??? Irritatingly, the definition of CUMULATIVE_ARGS is different for
-     the three platforms, so we can't avoid conditional compilation.  */
+     the two platforms, so we can't avoid conditional compilation.  */
 #if TARGET_ABI_OPEN_VMS
     {
       if (mode == VOIDmode)
-	return alpha_arg_info_reg_val (cum);
+	return alpha_arg_info_reg_val (*cum);
 
-      num_args = cum.num_args;
+      num_args = cum->num_args;
       if (num_args >= 6
 	  || targetm.calls.must_pass_in_stack (mode, type))
 	return NULL_RTX;
     }
-#elif TARGET_ABI_UNICOSMK
-    {
-      int size;
-
-      /* If this is the last argument, generate the call info word (CIW).  */
-      /* ??? We don't include the caller's line number in the CIW because
-	 I don't know how to determine it if debug infos are turned off.  */
-      if (mode == VOIDmode)
-	{
-	  int i;
-	  HOST_WIDE_INT lo;
-	  HOST_WIDE_INT hi;
-	  rtx ciw;
-
-	  lo = 0;
-
-	  for (i = 0; i < cum.num_reg_words && i < 5; i++)
-	    if (cum.reg_args_type[i])
-	      lo |= (1 << (7 - i));
-
-	  if (cum.num_reg_words == 6 && cum.reg_args_type[5])
-	    lo |= 7;
-	  else
-	    lo |= cum.num_reg_words;
-
-#if HOST_BITS_PER_WIDE_INT == 32
-	  hi = (cum.num_args << 20) | cum.num_arg_words;
-#else
-	  lo = lo | ((HOST_WIDE_INT) cum.num_args << 52)
-	    | ((HOST_WIDE_INT) cum.num_arg_words << 32);
-	  hi = 0;
-#endif
-	  ciw = immed_double_const (lo, hi, DImode);
-
-	  return gen_rtx_UNSPEC (DImode, gen_rtvec (1, ciw),
-				 UNSPEC_UMK_LOAD_CIW);
-	}
-
-      size = ALPHA_ARG_SIZE (mode, type, named);
-      num_args = cum.num_reg_words;
-      if (cum.force_stack
-	  || cum.num_reg_words + size > 6
-	  || targetm.calls.must_pass_in_stack (mode, type))
-	return NULL_RTX;
-      else if (type && TYPE_MODE (type) == BLKmode)
-	{
-	  rtx reg1, reg2;
-
-	  reg1 = gen_rtx_REG (DImode, num_args + 16);
-	  reg1 = gen_rtx_EXPR_LIST (DImode, reg1, const0_rtx);
-
-	  /* The argument fits in two registers. Note that we still need to
-	     reserve a register for empty structures.  */
-	  if (size == 0)
-	    return NULL_RTX;
-	  else if (size == 1)
-	    return gen_rtx_PARALLEL (mode, gen_rtvec (1, reg1));
-	  else
-	    {
-	      reg2 = gen_rtx_REG (DImode, num_args + 17);
-	      reg2 = gen_rtx_EXPR_LIST (DImode, reg2, GEN_INT (8));
-	      return gen_rtx_PARALLEL (mode, gen_rtvec (2, reg1, reg2));
-	    }
-	}
-    }
 #elif TARGET_ABI_OSF
     {
-      if (cum >= 6)
+      if (*cum >= 6)
 	return NULL_RTX;
-      num_args = cum;
+      num_args = *cum;
 
       /* VOID is passed as a special flag for "last argument".  */
       if (type == void_type_node)
@@ -5759,6 +5695,26 @@ function_arg (CUMULATIVE_ARGS cum, enum machine_mode mode, tree type,
 #endif
 
   return gen_rtx_REG (mode, num_args + basereg);
+}
+
+/* Update the data in CUM to advance over an argument
+   of mode MODE and data type TYPE.
+   (TYPE is null for libcalls where that information may not be available.)  */
+
+static void
+alpha_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			    const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  bool onstack = targetm.calls.must_pass_in_stack (mode, type);
+  int increment = onstack ? 6 : ALPHA_ARG_SIZE (mode, type, named);
+
+#if TARGET_ABI_OSF
+  *cum += increment;
+#else
+  if (!onstack && cum->num_args < 6)
+    cum->atypes[cum->num_args] = alpha_arg_type (mode);
+  cum->num_args += increment;
+#endif
 }
 
 static int
@@ -5937,7 +5893,7 @@ alpha_build_builtin_va_list (void)
   record = (*lang_hooks.types.make_type) (RECORD_TYPE);
   type_decl = build_decl (BUILTINS_LOCATION,
 			  TYPE_DECL, get_identifier ("__va_list_tag"), record);
-  TREE_CHAIN (record) = type_decl;
+  TYPE_STUB_DECL (record) = type_decl;
   TYPE_NAME (record) = type_decl;
 
   /* C++? SET_IS_AGGR_TYPE (record, 1); */
@@ -6188,7 +6144,7 @@ alpha_setup_incoming_varargs (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
   CUMULATIVE_ARGS cum = *pcum;
 
   /* Skip the current argument.  */
-  FUNCTION_ARG_ADVANCE (cum, mode, type, 1);
+  targetm.calls.function_arg_advance (&cum, mode, type, true);
 
 #if TARGET_ABI_UNICOSMK
   /* On Unicos/Mk, the standard subroutine __T3E_MISMATCH stores all register
@@ -6634,6 +6590,36 @@ static GTY(()) tree alpha_v8qi_s;
 static GTY(()) tree alpha_v4hi_u;
 static GTY(()) tree alpha_v4hi_s;
 
+static GTY(()) tree alpha_builtins[(int) ALPHA_BUILTIN_max];
+
+/* Return the alpha builtin for CODE.  */
+
+static tree
+alpha_builtin_decl (unsigned code, bool initialize_p ATTRIBUTE_UNUSED)
+{
+  if (code >= ALPHA_BUILTIN_max)
+    return error_mark_node;
+  return alpha_builtins[code];
+}
+
+/* Helper function of alpha_init_builtins.  Add the built-in specified
+   by NAME, TYPE, CODE, and ECF.  */
+
+static void
+alpha_builtin_function (const char *name, tree ftype,
+			enum alpha_builtin code, unsigned ecf)
+{
+  tree decl = add_builtin_function (name, ftype, (int) code,
+				    BUILT_IN_MD, NULL, NULL_TREE);
+
+  if (ecf & ECF_CONST)
+    TREE_READONLY (decl) = 1;
+  if (ecf & ECF_NOTHROW)
+    TREE_NOTHROW (decl) = 1;
+
+  alpha_builtins [(int) code] = decl;
+}
+
 /* Helper function of alpha_init_builtins.  Add the COUNT built-in
    functions pointed to by P, with function type FTYPE.  */
 
@@ -6641,26 +6627,19 @@ static void
 alpha_add_builtins (const struct alpha_builtin_def *p, size_t count,
 		    tree ftype)
 {
-  tree decl;
   size_t i;
 
   for (i = 0; i < count; ++i, ++p)
     if ((target_flags & p->target_mask) == p->target_mask)
-      {
-	decl = add_builtin_function (p->name, ftype, p->code, BUILT_IN_MD,
-				     NULL, NULL);
-	if (p->is_const)
-	  TREE_READONLY (decl) = 1;
-	TREE_NOTHROW (decl) = 1;
-      }
+      alpha_builtin_function (p->name, ftype, p->code,
+			      (p->is_const ? ECF_CONST : 0) | ECF_NOTHROW);
 }
-
 
 static void
 alpha_init_builtins (void)
 {
   tree dimode_integer_type_node;
-  tree ftype, decl;
+  tree ftype;
 
   dimode_integer_type_node = lang_hooks.types.type_for_mode (DImode, 0);
 
@@ -6686,30 +6665,26 @@ alpha_init_builtins (void)
 		      ftype);
 
   ftype = build_function_type (ptr_type_node, void_list_node);
-  decl = add_builtin_function ("__builtin_thread_pointer", ftype,
-			       ALPHA_BUILTIN_THREAD_POINTER, BUILT_IN_MD,
-			       NULL, NULL);
-  TREE_NOTHROW (decl) = 1;
+  alpha_builtin_function ("__builtin_thread_pointer", ftype,
+			  ALPHA_BUILTIN_THREAD_POINTER, ECF_NOTHROW);
 
   ftype = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
-  decl = add_builtin_function ("__builtin_set_thread_pointer", ftype,
-			       ALPHA_BUILTIN_SET_THREAD_POINTER, BUILT_IN_MD,
-			       NULL, NULL);
-  TREE_NOTHROW (decl) = 1;
+  alpha_builtin_function ("__builtin_set_thread_pointer", ftype,
+			  ALPHA_BUILTIN_SET_THREAD_POINTER, ECF_NOTHROW);
 
   if (TARGET_ABI_OPEN_VMS)
     {
       ftype = build_function_type_list (ptr_type_node, ptr_type_node,
 					NULL_TREE);
-      add_builtin_function ("__builtin_establish_vms_condition_handler", ftype,
-			    ALPHA_BUILTIN_ESTABLISH_VMS_CONDITION_HANDLER,
-			    BUILT_IN_MD, NULL, NULL_TREE);
+      alpha_builtin_function ("__builtin_establish_vms_condition_handler",
+			      ftype,
+			      ALPHA_BUILTIN_ESTABLISH_VMS_CONDITION_HANDLER,
+			      0);
 
       ftype = build_function_type_list (ptr_type_node, void_type_node,
 					NULL_TREE);
-      add_builtin_function ("__builtin_revert_vms_condition_handler", ftype,
-			    ALPHA_BUILTIN_REVERT_VMS_CONDITION_HANDLER,
-			     BUILT_IN_MD, NULL, NULL_TREE);
+      alpha_builtin_function ("__builtin_revert_vms_condition_handler", ftype,
+			      ALPHA_BUILTIN_REVERT_VMS_CONDITION_HANDLER, 0);
     }
 
   alpha_v8qi_u = build_vector_type (unsigned_intQI_type_node, 8);
@@ -10998,6 +10973,17 @@ alpha_init_libfuncs (void)
     }
 }
 
+/* On the Alpha, we use this to disable the floating-point registers
+   when they don't exist.  */
+
+static void
+alpha_conditional_register_usage (void)
+{
+  int i;
+  if (! TARGET_FPREGS)
+    for (i = 32; i < 63; i++)
+      fixed_regs[i] = call_used_regs[i] = 1;
+}
 
 /* Initialize the GCC target structure.  */
 #if TARGET_ABI_OPEN_VMS
@@ -11082,6 +11068,8 @@ alpha_init_libfuncs (void)
 #undef TARGET_HAVE_TLS
 #define TARGET_HAVE_TLS HAVE_AS_TLS
 
+#undef  TARGET_BUILTIN_DECL
+#define TARGET_BUILTIN_DECL  alpha_builtin_decl
 #undef  TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS alpha_init_builtins
 #undef  TARGET_EXPAND_BUILTIN
@@ -11133,6 +11121,10 @@ alpha_init_libfuncs (void)
 #define TARGET_GIMPLIFY_VA_ARG_EXPR alpha_gimplify_va_arg
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES alpha_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG alpha_function_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE alpha_function_arg_advance
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT alpha_trampoline_init
 
@@ -11165,6 +11157,9 @@ alpha_init_libfuncs (void)
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE alpha_option_override
 
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE alpha_option_optimization_table
+
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
 #undef TARGET_MANGLE_TYPE
 #define TARGET_MANGLE_TYPE alpha_mangle_type
@@ -11172,6 +11167,9 @@ alpha_init_libfuncs (void)
 
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P alpha_legitimate_address_p
+
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE alpha_conditional_register_usage
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

@@ -1,5 +1,6 @@
 /* Definitions for Intel 386 running FreeBSD with ELF format
-   Copyright (C) 1996, 2000, 2002, 2004, 2007 Free Software Foundation, Inc.
+   Copyright (C) 1996, 2000, 2002, 2004, 2007, 2010
+   Free Software Foundation, Inc.
    Contributed by Eric Youngdale.
    Modified for stabs-in-ELF by H.J. Lu.
    Adapted from GNU/Linux version by John Polstra.
@@ -87,20 +88,14 @@ along with GCC; see the file COPYING3.  If not see
 /* Provide a LINK_SPEC appropriate for FreeBSD.  Here we provide support
    for the special GCC options -static and -shared, which allow us to
    link things in one of these three modes by applying the appropriate
-   combinations of options at link-time. We like to support here for
-   as many of the other GNU linker options as possible. But I don't
-   have the time to search for those flags. I am sure how to add
-   support for -soname shared_object_name. H.J.
-
-   I took out %{v:%{!V:-V}}. It is too much :-(. They can use
-   -Wl,-V.
+   combinations of options at link-time.
 
    When the -shared link option is used a final link is not being
    done.  */
 
 #undef	LINK_SPEC
 #define LINK_SPEC "\
-  %{p:%nconsider using `-pg' instead of `-p' with gprof(1)} \
+  %{p:%nconsider using '-pg' instead of '-p' with gprof(1)} \
   %{v:-V} \
   %{assert*} %{R*} %{rpath*} %{defsym*} \
   %{shared:-Bshareable %{h*} %{soname*}} \

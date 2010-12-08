@@ -384,7 +384,8 @@ const struct gcc_debug_hooks dbx_debug_hooks =
   debug_nothing_rtx_rtx,	         /* copy_call_info */
   debug_nothing_uid,		         /* virtual_call */
   debug_nothing_tree_tree,		 /* set_name */
-  0                                      /* start_end_main_source_file */
+  0,                                     /* start_end_main_source_file */
+  TYPE_SYMTAB_IS_ADDRESS                 /* tree_type_symtab_field */
 };
 #endif /* DBX_DEBUGGING_INFO  */
 
@@ -423,7 +424,8 @@ const struct gcc_debug_hooks xcoff_debug_hooks =
   debug_nothing_rtx_rtx,	         /* copy_call_info */
   debug_nothing_uid,		         /* virtual_call */
   debug_nothing_tree_tree,	         /* set_name */
-  0                                      /* start_end_main_source_file */
+  0,                                     /* start_end_main_source_file */
+  TYPE_SYMTAB_IS_ADDRESS                 /* tree_type_symtab_field */
 };
 #endif /* XCOFF_DEBUGGING_INFO  */
 
@@ -1863,6 +1865,7 @@ dbxout_type (tree type, int full)
   switch (TREE_CODE (type))
     {
     case VOID_TYPE:
+    case NULLPTR_TYPE:
     case LANG_TYPE:
       /* For a void type, just define it as itself; i.e., "5=5".
 	 This makes us consider it defined
@@ -2505,8 +2508,7 @@ output_used_types (void)
       htab_traverse (cfun->used_types_hash, output_used_types_helper, &types);
 
       /* Sort by UID to prevent dependence on hash table ordering.  */
-      qsort (VEC_address (tree, types), VEC_length (tree, types),
-	     sizeof (tree), output_types_sort);
+      VEC_qsort (tree, types, output_types_sort);
 
       FOR_EACH_VEC_ELT (tree, types, i, type)
 	debug_queue_symbol (type);
@@ -2822,7 +2824,7 @@ dbxout_symbol (tree decl, int local ATTRIBUTE_UNUSED)
 	  && DECL_INITIAL (decl) != 0
 	  && host_integerp (DECL_INITIAL (decl), 0)
 	  && ! TREE_ASM_WRITTEN (decl)
-	  && (DECL_CONTEXT (decl) == NULL_TREE
+	  && (DECL_FILE_SCOPE_P (decl)
 	      || TREE_CODE (DECL_CONTEXT (decl)) == BLOCK
 	      || TREE_CODE (DECL_CONTEXT (decl)) == NAMESPACE_DECL)
 	  && TREE_PUBLIC (decl) == 0)
@@ -3015,7 +3017,7 @@ dbxout_symbol_location (tree decl, tree type, const char *suffix, rtx home)
 	       || (REG_P (XEXP (home, 0))
 		   && REGNO (XEXP (home, 0)) != HARD_FRAME_POINTER_REGNUM
 		   && REGNO (XEXP (home, 0)) != STACK_POINTER_REGNUM
-#if ARG_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_ARG_POINTER
 		   && REGNO (XEXP (home, 0)) != ARG_POINTER_REGNUM
 #endif
 		   )))
@@ -3429,7 +3431,7 @@ dbxout_parms (tree parms)
 		 && REG_P (XEXP (DECL_RTL (parms), 0))
 		 && REGNO (XEXP (DECL_RTL (parms), 0)) != HARD_FRAME_POINTER_REGNUM
 		 && REGNO (XEXP (DECL_RTL (parms), 0)) != STACK_POINTER_REGNUM
-#if ARG_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_ARG_POINTER
 		 && REGNO (XEXP (DECL_RTL (parms), 0)) != ARG_POINTER_REGNUM
 #endif
 		 )

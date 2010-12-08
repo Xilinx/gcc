@@ -349,6 +349,11 @@ future.lo: future.cc
 future.o: future.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
+debug.lo: debug.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+debug.o: debug.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
 if GLIBCXX_LDBL_COMPAT
 # Use special rules for compatibility-ldbl.cc compilation, as we need to
 # pass -mlong-double-64.
@@ -423,6 +428,7 @@ stamp-debug:
 	  sed -e 's/top_builddir = \.\./top_builddir = ..\/../' \
 	      -e 's/top_build_prefix = \.\./top_build_prefix = ..\/../' \
 	      -e 's/srcdir = \.\./srcdir = ..\/../' \
+	      -e 's/VPATH = \.\./VPATH = ..\/../' \
 	      -e 's/glibcxx_basedir = \.\./glibcxx_basedir = ..\/../' \
 	      -e 's/MKDIR_P = \.\./MKDIR_P = ..\/../' \
 	      -e 's/all-local: build_debug/all-local:/' \

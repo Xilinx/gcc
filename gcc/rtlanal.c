@@ -25,7 +25,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "rtl.h"
 #include "hard-reg-set.h"
 #include "insn-config.h"
@@ -1941,6 +1940,33 @@ remove_reg_equal_equiv_notes (rtx insn)
     }
 }
 
+/* Remove all REG_EQUAL and REG_EQUIV notes referring to REGNO.  */
+
+void
+remove_reg_equal_equiv_notes_for_regno (unsigned int regno)
+{
+  df_ref eq_use;
+
+  if (!df)
+    return;
+
+  /* This loop is a little tricky.  We cannot just go down the chain because
+     it is being modified by some actions in the loop.  So we just iterate
+     over the head.  We plan to drain the list anyway.  */
+  while ((eq_use = DF_REG_EQ_USE_CHAIN (regno)) != NULL)
+    {
+      rtx insn = DF_REF_INSN (eq_use);
+      rtx note = find_reg_equal_equiv_note (insn);
+
+      /* This assert is generally triggered when someone deletes a REG_EQUAL
+	 or REG_EQUIV note by hacking the list manually rather than calling
+	 remove_note.  */
+      gcc_assert (note);
+
+      remove_note (insn, note);
+    }
+}
+
 /* Search LISTP (an EXPR_LIST) for an entry whose first operand is NODE and
    return 1 if it is found.  A simple equality test is used to determine if
    NODE matches.  */
@@ -3589,6 +3615,17 @@ rtx_cost (rtx x, enum rtx_code outer_code ATTRIBUTE_UNUSED, bool speed)
 
   return total;
 }
+
+/* Fill in the structure C with information about both speed and size rtx
+   costs for X, with outer code OUTER.  */
+
+void
+get_full_rtx_cost (rtx x, enum rtx_code outer, struct full_rtx_costs *c)
+{
+  c->speed = rtx_cost (x, outer, true);
+  c->size = rtx_cost (x, outer, false);
+}
+
 
 /* Return cost of address expression X.
    Expect that X is properly formed address reference.

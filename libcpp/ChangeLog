@@ -1,3 +1,57 @@
+2010-11-17  Ian Lance Taylor  <iant@google.com>
+
+	PR bootstrap/45538
+	* configure.ac: Use AC_USE_SYSTEM_EXTENSIONS.  Remove switch of
+	AC_LANG based on ENABLE_BUILD_WITH_CXX.
+
+2010-11-16  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR preprocessor/17349
+	* lex.c (save_comment): Handle in argument passing c++
+	comments special.
+
+2010-11-02  Ian Lance Taylor  <iant@google.com>
+
+	* configure.ac: Use AC_SYS_LARGEFILE.
+	* configure: Rebuild.
+	* config.in: Rebuild.
+
+2010-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* line-map.h (source_location): Remove obsolete comment
+	mentioning location_s.
+
+2010-09-29  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR preprocessor/45362
+	* directives.c (cpp_pop_definition): Make static.
+	(do_pragma_push_macro): Reworked to store text
+	definition.
+	(do_pragma_pop_macro): Add free text definition.
+	(cpp_push_definition): Removed.
+	* include/cpplib.h (cpp_push_definition): Removed.
+	(cpp_pop_definition): Likewise.
+	* internal.h (def_pragma_macro): Remove member 'value'
+	and add new members 'definition', 'line',
+	'syshdr', 'sued' and 'is_undef'.
+	* pch.c (_cpp_restore_pushed_macros): Rework to work
+	on text definition and store additional macro flags.
+	(_cpp_save_pushed_macros): Likewise.
+
+2010-09-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* include/cpplib.h (cpp_options): Rename warn_deprecated,
+	warn_traditional, warn_long_long and pedantic.
+	* directives.c (directive_diagnostics, _cpp_handle_directive):
+	Update names of cpp_options members.
+	* expr.c (cpp_classify_number, eval_token): Update names of
+	cpp_options members.
+	* init.c (cpp_create_reader, post_options): Update names of
+	cpp_options members.
+	* internal.h (CPP_PEDANTIC, CPP_WTRADITIONAL): Update names of
+	cpp_options members.
+	* macro.c (parse_params): Update names of cpp_options members.
+
 2010-09-15  Ian Lance Taylor  <iant@google.com>
 
 	* init.c: Fix type name in comment.

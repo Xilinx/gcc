@@ -62,13 +62,6 @@ lhd_pass_through_t (tree t)
   return t;
 }
 
-/* Do nothing (int).  */
-
-void
-lhd_do_nothing_i (int ARG_UNUSED (i))
-{
-}
-
 /* Do nothing (int, int, int).  Return NULL_TREE.  */
 
 tree
@@ -333,7 +326,7 @@ write_global_declarations (void)
 
 /* Called to perform language-specific initialization of CTX.  */
 void
-lhd_initialize_diagnostics (struct diagnostic_context *ctx ATTRIBUTE_UNUSED)
+lhd_initialize_diagnostics (diagnostic_context *ctx ATTRIBUTE_UNUSED)
 {
 }
 
@@ -356,6 +349,7 @@ bool
 lhd_handle_option (size_t code ATTRIBUTE_UNUSED,
 		   const char *arg ATTRIBUTE_UNUSED,
 		   int value ATTRIBUTE_UNUSED, int kind ATTRIBUTE_UNUSED,
+		   location_t loc ATTRIBUTE_UNUSED,
 		   const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
 {
   return false;

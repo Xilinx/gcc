@@ -137,9 +137,6 @@ enum small_memory_type {
 };
 
 extern struct small_memory_info small_memory[(int)SMALL_MEMORY_max];
-
-/* Show we can debug even without a frame pointer.  */
-#define CAN_DEBUG_WITHOUT_FP
 
 /* Target machine storage layout */
 
@@ -259,18 +256,6 @@ extern struct small_memory_info small_memory[(int)SMALL_MEMORY_max];
   34, 35								\
 }
 
-/* If TARGET_APP_REGS is not defined then add r2 and r5 to
-   the pool of fixed registers. See PR 14505.  */
-#define CONDITIONAL_REGISTER_USAGE             \
-{                                              \
-  if (TARGET_APP_REGS)                         \
-    {                                          \
-     fixed_regs[2] = 0;  call_used_regs[2] = 0;        \
-     fixed_regs[5] = 0;  call_used_regs[5] = 1;        \
-    }                                          \
- }
-
-
 /* Return number of consecutive hard regs needed starting at reg REGNO
    to hold something of mode MODE.
 
@@ -375,13 +360,6 @@ enum reg_class
    || reg_renumber[regno] >= 0)
 
 #define REGNO_OK_FOR_INDEX_P(regno) 0
-
-/* Given an rtx X being reloaded into a reg required to be
-   in class CLASS, return the class of reg to actually use.
-   In general this is just CLASS; but on some machines
-   in some cases it is preferable to use a more restrictive class.  */
-
-#define PREFERRED_RELOAD_CLASS(X,CLASS)  (CLASS)
 
 /* Return the maximum number of consecutive registers
    needed to represent mode MODE in a register of class CLASS.  */
@@ -897,9 +875,6 @@ typedef enum
   { "fp",      29 },                           \
   { "r30",     30 },                           \
   { "lp",      LP_REGNUM} }
-
-#define ASM_OUTPUT_REG_PUSH(FILE,REGNO)
-#define ASM_OUTPUT_REG_POP(FILE,REGNO)
 
 /* This is how to output an element of a case-vector that is absolute.  */
 

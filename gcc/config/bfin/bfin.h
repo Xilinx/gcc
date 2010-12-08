@@ -72,10 +72,6 @@ extern unsigned int bfin_workarounds;
 /* Print subsidiary information on the compiler version in use.  */
 #define TARGET_VERSION fprintf (stderr, " (BlackFin bfin)")
 
-/* Run-time compilation parameters selecting different hardware subsets.  */
-
-extern int target_flags;
-
 /* Predefinition in the preprocessor for this target machine */
 #ifndef TARGET_CPU_CPP_BUILTINS
 #define TARGET_CPU_CPP_BUILTINS()		\
@@ -252,12 +248,11 @@ extern int target_flags;
    Defined in svr4.h.  */
 #undef  ASM_SPEC
 #define ASM_SPEC "\
-%{v} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
+%{v} %{n} %{T} %{Ym,*} %{Yd,*} \
     %{mno-fdpic:-mnopic} %{mfdpic}"
 
 #define LINK_SPEC "\
 %{h*} %{v:-V} \
-%{b} \
 %{mfdpic:-melf32bfinfd -z text} \
 %{static:-dn -Bstatic} \
 %{shared:-G -Bdynamic} \
@@ -501,19 +496,6 @@ extern const char *bfin_library_id_string;
   REG_CC, REG_ARGP,						  \
   REG_LT0, REG_LT1, REG_LC0, REG_LC1, REG_LB0, REG_LB1		  \
 }
-
-/* Macro to conditionally modify fixed_regs/call_used_regs.  */
-#define CONDITIONAL_REGISTER_USAGE			\
-  {							\
-    conditional_register_usage();                       \
-    if (TARGET_FDPIC)					\
-      call_used_regs[FDPIC_REGNO] = 1;			\
-    if (!TARGET_FDPIC && flag_pic)			\
-      {							\
-	fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;	\
-	call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;	\
-      }							\
-  }
 
 /* Define the classes of registers for register constraints in the
    machine description.  Also define ranges of constants.
@@ -819,22 +801,6 @@ typedef struct {
   int call_cookie;		/* Do special things for this call */
 } CUMULATIVE_ARGS;
 
-/* Define where to put the arguments to a function.
-   Value is zero to push the argument on the stack,
-   or a hard register in which to store the argument.
-
-   MODE is the argument's machine mode.
-   TYPE is the data type of the argument (as a tree).
-    This is null for libcalls where that information may
-    not be available.
-   CUM is a variable of type CUMULATIVE_ARGS which gives info about
-    the preceding args and about the function being called.
-   NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).  */
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  (function_arg (&CUM, MODE, TYPE, NAMED))
-
 #define FUNCTION_ARG_REGNO_P(REGNO) function_arg_regno_p (REGNO)
 
 
@@ -843,12 +809,6 @@ typedef struct {
    For a library call, FNTYPE is 0.  */
 #define INIT_CUMULATIVE_ARGS(CUM,FNTYPE,LIBNAME,INDIRECT, N_NAMED_ARGS)	\
   (init_cumulative_args (&CUM, FNTYPE, LIBNAME))
-
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  */
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
-  (function_arg_advance (&CUM, MODE, TYPE, NAMED))
 
 /* Define how to find the value returned by a function.
    VALTYPE is the data type of the value (as a tree).

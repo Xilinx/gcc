@@ -40,23 +40,24 @@ DIST_COMMON = $(top_srcdir)/fragment.am $(srcdir)/Makefile.in \
 	$(srcdir)/Makefile.am $(glibcxxinstall_HEADERS)
 subdir = libsupc++
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/../config/enable.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/../libtool.m4 \
+	$(top_srcdir)/../ltoptions.m4 $(top_srcdir)/../ltsugar.m4 \
+	$(top_srcdir)/../ltversion.m4 $(top_srcdir)/../lt~obsolete.m4 \
+	$(top_srcdir)/crossconfig.m4 $(top_srcdir)/linkage.m4 \
+	$(top_srcdir)/../config/enable.m4 \
 	$(top_srcdir)/../config/futex.m4 \
 	$(top_srcdir)/../config/iconv.m4 \
 	$(top_srcdir)/../config/lead-dot.m4 \
 	$(top_srcdir)/../config/lib-ld.m4 \
 	$(top_srcdir)/../config/lib-link.m4 \
 	$(top_srcdir)/../config/lib-prefix.m4 \
+	$(top_srcdir)/../config/lthostflags.m4 \
 	$(top_srcdir)/../config/multi.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
 	$(top_srcdir)/../config/override.m4 \
 	$(top_srcdir)/../config/stdint.m4 \
 	$(top_srcdir)/../config/unwind_ipinfo.m4 \
-	$(top_srcdir)/../libtool.m4 $(top_srcdir)/../ltoptions.m4 \
-	$(top_srcdir)/../ltsugar.m4 $(top_srcdir)/../ltversion.m4 \
-	$(top_srcdir)/../lt~obsolete.m4 $(top_srcdir)/crossconfig.m4 \
-	$(top_srcdir)/linkage.m4 $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/../config/gc++filt.m4 \
+	$(top_srcdir)/acinclude.m4 $(top_srcdir)/../config/gc++filt.m4 \
 	$(top_srcdir)/../config/tls.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -88,13 +89,13 @@ am__installdirs = "$(DESTDIR)$(toolexeclibdir)" \
 	"$(DESTDIR)$(glibcxxinstalldir)"
 LTLIBRARIES = $(noinst_LTLIBRARIES) $(toolexeclib_LTLIBRARIES)
 libsupc___la_LIBADD =
-am__objects_1 = array_type_info.lo atexit_arm.lo bad_cast.lo \
-	bad_typeid.lo class_type_info.lo del_op.lo del_opnt.lo \
-	del_opv.lo del_opvnt.lo dyncast.lo eh_alloc.lo eh_arm.lo \
-	eh_aux_runtime.lo eh_call.lo eh_catch.lo eh_exception.lo \
-	eh_globals.lo eh_personality.lo eh_ptr.lo eh_term_handler.lo \
-	eh_terminate.lo eh_throw.lo eh_type.lo eh_unex_handler.lo \
-	enum_type_info.lo function_type_info.lo \
+am__objects_1 = array_type_info.lo atexit_arm.lo bad_alloc.lo \
+	bad_cast.lo bad_typeid.lo class_type_info.lo del_op.lo \
+	del_opnt.lo del_opv.lo del_opvnt.lo dyncast.lo eh_alloc.lo \
+	eh_arm.lo eh_aux_runtime.lo eh_call.lo eh_catch.lo \
+	eh_exception.lo eh_globals.lo eh_personality.lo eh_ptr.lo \
+	eh_term_handler.lo eh_terminate.lo eh_throw.lo eh_type.lo \
+	eh_unex_handler.lo enum_type_info.lo function_type_info.lo \
 	fundamental_type_info.lo guard.lo hash_bytes.lo new_handler.lo \
 	new_op.lo new_opnt.lo new_opv.lo new_opvnt.lo \
 	pbase_type_info.lo pmem_type_info.lo pointer_type_info.lo \
@@ -278,6 +279,7 @@ libexecdir = @libexecdir@
 libtool_VERSION = @libtool_VERSION@
 localedir = @localedir@
 localstatedir = @localstatedir@
+lt_host_flags = @lt_host_flags@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 multi_basedir = @multi_basedir@
@@ -338,6 +340,7 @@ headers = \
 sources = \
 	array_type_info.cc \
 	atexit_arm.cc \
+	bad_alloc.cc \
 	bad_cast.cc \
 	bad_typeid.cc \
 	class_type_info.cc \

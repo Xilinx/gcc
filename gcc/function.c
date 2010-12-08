@@ -2565,7 +2565,7 @@ assign_parm_find_stack_rtl (tree parm, struct assign_parm_data_one *data)
   align = BITS_PER_UNIT;
 
   /* If we're padding upward, we know that the alignment of the slot
-     is FUNCTION_ARG_BOUNDARY.  If we're using slot_offset, we're
+     is TARGET_FUNCTION_ARG_BOUNDARY.  If we're using slot_offset, we're
      intentionally forcing upward padding.  Otherwise we have to come
      up with a guess at the alignment based on OFFSET_RTX.  */
   if (data->locate.where_pad != downward || data->entry_parm)
@@ -3330,8 +3330,9 @@ assign_parms (tree fndecl)
       /* Estimate stack alignment from parameter alignment.  */
       if (SUPPORTS_STACK_ALIGNMENT)
         {
-          unsigned int align = FUNCTION_ARG_BOUNDARY (data.promoted_mode,
-						      data.passed_type);
+          unsigned int align
+	    = targetm.calls.function_arg_boundary (data.promoted_mode,
+						   data.passed_type);
 	  align = MINIMUM_ALIGNMENT (data.passed_type, data.promoted_mode,
 				     align);
 	  if (TYPE_ALIGN (data.nominal_type) > align)
@@ -3583,7 +3584,7 @@ gimplify_parameters (void)
 		       && compare_tree_int (DECL_SIZE_UNIT (parm),
 					    STACK_CHECK_MAX_VAR_SIZE) > 0))
 		{
-		  local = create_tmp_var (type, get_name (parm));
+		  local = create_tmp_reg (type, get_name (parm));
 		  DECL_IGNORED_P (local) = 0;
 		  /* If PARM was addressable, move that flag over
 		     to the local copy, as its address will be taken,
@@ -3597,7 +3598,7 @@ gimplify_parameters (void)
 		  tree ptr_type, addr;
 
 		  ptr_type = build_pointer_type (type);
-		  addr = create_tmp_var (ptr_type, get_name (parm));
+		  addr = create_tmp_reg (ptr_type, get_name (parm));
 		  DECL_IGNORED_P (addr) = 0;
 		  local = build_fold_indirect_ref (addr);
 
@@ -3641,9 +3642,10 @@ gimplify_parameters (void)
    FNDECL is the function in which the argument was defined.
 
    There are two types of rounding that are done.  The first, controlled by
-   FUNCTION_ARG_BOUNDARY, forces the offset from the start of the argument
-   list to be aligned to the specific boundary (in bits).  This rounding
-   affects the initial and starting offsets, but not the argument size.
+   TARGET_FUNCTION_ARG_BOUNDARY, forces the offset from the start of the
+   argument list to be aligned to the specific boundary (in bits).  This
+   rounding affects the initial and starting offsets, but not the argument
+   size.
 
    The second, controlled by FUNCTION_ARG_PADDING and PARM_BOUNDARY,
    optionally rounds the size of the parm to PARM_BOUNDARY.  The
@@ -3694,7 +3696,7 @@ locate_and_pad_parm (enum machine_mode passed_mode, tree type, int in_regs,
   sizetree
     = type ? size_in_bytes (type) : size_int (GET_MODE_SIZE (passed_mode));
   where_pad = FUNCTION_ARG_PADDING (passed_mode, type);
-  boundary = FUNCTION_ARG_BOUNDARY (passed_mode, type);
+  boundary = targetm.calls.function_arg_boundary (passed_mode, type);
   locate->where_pad = where_pad;
 
   /* Alignment can't exceed MAX_SUPPORTED_STACK_ALIGNMENT.  */
@@ -4254,7 +4256,7 @@ invoke_set_current_function_hook (tree fndecl)
       if (optimization_current_node != opts)
 	{
 	  optimization_current_node = opts;
-	  cl_optimization_restore (TREE_OPTIMIZATION (opts));
+	  cl_optimization_restore (&global_options, TREE_OPTIMIZATION (opts));
 	}
 
       targetm.set_current_function (fndecl);
@@ -4867,6 +4869,7 @@ expand_function_end (void)
 	      probe_stack_range (STACK_OLD_CHECK_PROTECT, max_frame_size);
 	    seq = get_insns ();
 	    end_sequence ();
+	    set_insn_locators (seq, prologue_locator);
 	    emit_insn_before (seq, stack_check_probe_note);
 	    break;
 	  }
@@ -4897,7 +4900,7 @@ expand_function_end (void)
   /* Output the label for the actual return from the function.  */
   emit_label (return_label);
 
-  if (USING_SJLJ_EXCEPTIONS)
+  if (targetm.except_unwind_info (&global_options) == UI_SJLJ)
     {
       /* Let except.c know where it should emit the call to unregister
 	 the function context for sjlj exceptions.  */
@@ -5055,7 +5058,8 @@ expand_function_end (void)
   /* @@@ This is a kludge.  We want to ensure that instructions that
      may trap are not moved into the epilogue by scheduling, because
      we don't always emit unwind information for the epilogue.  */
-  if (!USING_SJLJ_EXCEPTIONS && cfun->can_throw_non_call_exceptions)
+  if (cfun->can_throw_non_call_exceptions
+      && targetm.except_unwind_info (&global_options) != UI_SJLJ)
     emit_insn (gen_blockage ());
 
   /* If stack protection is enabled for this function, check the guard.  */
@@ -5136,19 +5140,25 @@ record_insns (rtx insns, rtx end, htab_t *hashp)
     }
 }
 
-/* INSN has been duplicated as COPY, as part of duping a basic block.
-   If INSN is an epilogue insn, then record COPY as epilogue as well.  */
+/* INSN has been duplicated or replaced by as COPY, perhaps by duplicating a
+   basic block, splitting or peepholes.  If INSN is a prologue or epilogue
+   insn, then record COPY as well.  */
 
 void
-maybe_copy_epilogue_insn (rtx insn, rtx copy)
+maybe_copy_prologue_epilogue_insn (rtx insn, rtx copy)
 {
+  htab_t hash;
   void **slot;
 
-  if (epilogue_insn_hash == NULL
-      || htab_find (epilogue_insn_hash, insn) == NULL)
-    return;
+  hash = epilogue_insn_hash;
+  if (!hash || !htab_find (hash, insn))
+    {
+      hash = prologue_insn_hash;
+      if (!hash || !htab_find (hash, insn))
+	return;
+    }
 
-  slot = htab_find_slot (epilogue_insn_hash, copy, INSERT);
+  slot = htab_find_slot (hash, copy, INSERT);
   gcc_assert (*slot == NULL);
   *slot = copy;
 }
@@ -5214,17 +5224,50 @@ emit_return_into_block (basic_block bb)
 static void
 thread_prologue_and_epilogue_insns (void)
 {
-  int inserted = 0;
+  bool inserted;
+  rtx seq ATTRIBUTE_UNUSED, epilogue_end ATTRIBUTE_UNUSED;
+  edge entry_edge ATTRIBUTE_UNUSED;
   edge e;
-#if defined (HAVE_sibcall_epilogue) || defined (HAVE_epilogue) || defined (HAVE_return) || defined (HAVE_prologue)
-  rtx seq;
-#endif
-#if defined (HAVE_epilogue) || defined(HAVE_return)
-  rtx epilogue_end = NULL_RTX;
-#endif
   edge_iterator ei;
 
   rtl_profile_for_bb (ENTRY_BLOCK_PTR);
+
+  inserted = false;
+  seq = NULL_RTX;
+  epilogue_end = NULL_RTX;
+
+  /* Can't deal with multiple successors of the entry block at the
+     moment.  Function should always have at least one entry
+     point.  */
+  gcc_assert (single_succ_p (ENTRY_BLOCK_PTR));
+  entry_edge = single_succ_edge (ENTRY_BLOCK_PTR);
+
+  if (flag_split_stack
+      && (lookup_attribute ("no_split_stack", DECL_ATTRIBUTES (cfun->decl))
+	  == NULL))
+    {
+#ifndef HAVE_split_stack_prologue
+      gcc_unreachable ();
+#else
+      gcc_assert (HAVE_split_stack_prologue);
+
+      start_sequence ();
+      emit_insn (gen_split_stack_prologue ());
+      seq = get_insns ();
+      end_sequence ();
+
+      record_insns (seq, NULL, &prologue_insn_hash);
+      set_insn_locators (seq, prologue_locator);
+
+      /* This relies on the fact that committing the edge insertion
+	 will look for basic blocks within the inserted instructions,
+	 which in turn relies on the fact that we are not in CFG
+	 layout mode here.  */
+      insert_insn_on_edge (seq, entry_edge);
+      inserted = true;
+#endif
+    }
+
 #ifdef HAVE_prologue
   if (HAVE_prologue)
     {
@@ -5251,13 +5294,8 @@ thread_prologue_and_epilogue_insns (void)
       end_sequence ();
       set_insn_locators (seq, prologue_locator);
 
-      /* Can't deal with multiple successors of the entry block
-         at the moment.  Function should always have at least one
-         entry point.  */
-      gcc_assert (single_succ_p (ENTRY_BLOCK_PTR));
-
-      insert_insn_on_edge (seq, single_succ_edge (ENTRY_BLOCK_PTR));
-      inserted = 1;
+      insert_insn_on_edge (seq, entry_edge);
+      inserted = true;
     }
 #endif
 
@@ -5282,9 +5320,7 @@ thread_prologue_and_epilogue_insns (void)
       basic_block last;
       rtx label;
 
-      FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
-	if (e->flags & EDGE_FALLTHRU)
-	  break;
+      e = find_fallthru_edge (EXIT_BLOCK_PTR->preds);
       if (e == NULL)
 	goto epilogue_done;
       last = e->src;
@@ -5405,9 +5441,7 @@ thread_prologue_and_epilogue_insns (void)
      There really shouldn't be a mixture -- either all should have
      been converted or none, however...  */
 
-  FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
-    if (e->flags & EDGE_FALLTHRU)
-      break;
+  e = find_fallthru_edge (EXIT_BLOCK_PTR->preds);
   if (e == NULL)
     goto epilogue_done;
 
@@ -5427,7 +5461,7 @@ thread_prologue_and_epilogue_insns (void)
       end_sequence ();
 
       insert_insn_on_edge (seq, e);
-      inserted = 1;
+      inserted = true;
     }
   else
 #endif

@@ -25,7 +25,6 @@
 #include "rtl.h"
 #include "tree.h"
 #include "tm_p.h"
-#include "assert.h"
 #include "mcore.h"
 #include "regs.h"
 #include "hard-reg-set.h"
@@ -41,7 +40,6 @@
 #include "function.h"
 #include "ggc.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "target.h"
 #include "target-def.h"
 #include "df.h"
@@ -142,10 +140,17 @@ static bool       mcore_return_in_memory	(const_tree, const_tree);
 static int        mcore_arg_partial_bytes       (CUMULATIVE_ARGS *,
 						 enum machine_mode,
 						 tree, bool);
+static rtx        mcore_function_arg            (CUMULATIVE_ARGS *,
+						 enum machine_mode,
+						 const_tree, bool);
+static void       mcore_function_arg_advance    (CUMULATIVE_ARGS *,
+						 enum machine_mode,
+						 const_tree, bool);
+static unsigned int mcore_function_arg_boundary (enum machine_mode,
+						 const_tree);
 static void       mcore_asm_trampoline_template (FILE *);
 static void       mcore_trampoline_init		(rtx, tree, rtx);
 static void       mcore_option_override		(void);
-static void       mcore_option_optimization	(int, int);
 
 /* MCore specific attributes.  */
 
@@ -157,6 +162,23 @@ static const struct attribute_spec mcore_attribute_table[] =
   { "naked",     0, 0, true,  false, false, mcore_handle_naked_attribute },
   { NULL,        0, 0, false, false, false, NULL }
 };
+
+/* What options are we going to default to specific settings when
+   -O* happens; the user can subsequently override these settings.
+  
+   Omitting the frame pointer is a very good idea on the MCore.
+   Scheduling isn't worth anything on the current MCore implementation.  */
+
+static const struct default_options mcore_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_ffunction_cse, NULL, 0 },
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_ALL, OPT_fcaller_saves, NULL, 0 },
+    { OPT_LEVELS_ALL, OPT_fschedule_insns, NULL, 0 },
+    { OPT_LEVELS_ALL, OPT_fschedule_insns2, NULL, 0 },
+    { OPT_LEVELS_SIZE, OPT_mhardlit, NULL, 0 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 /* Initialize the GCC target structure.  */
 #undef  TARGET_ASM_EXTERNAL_LIBCALL
@@ -213,6 +235,12 @@ static const struct attribute_spec mcore_attribute_table[] =
 #define TARGET_PASS_BY_REFERENCE  hook_pass_by_reference_must_pass_in_stack
 #undef  TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES	mcore_arg_partial_bytes
+#undef  TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG		mcore_function_arg
+#undef  TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE	mcore_function_arg_advance
+#undef  TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY	mcore_function_arg_boundary
 
 #undef  TARGET_SETUP_INCOMING_VARARGS
 #define TARGET_SETUP_INCOMING_VARARGS	mcore_setup_incoming_varargs
@@ -224,8 +252,11 @@ static const struct attribute_spec mcore_attribute_table[] =
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE mcore_option_override
-#undef TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION mcore_option_optimization
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE mcore_option_optimization_table
+
+#undef TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO sjlj_except_unwind_info
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -1675,7 +1706,6 @@ layout_mcore_frame (struct mcore_frame * infp)
   int nbytes;
   int regarg;
   int localregarg;
-  int localreg;
   int outbounds;
   unsigned int growths;
   int step;
@@ -1720,7 +1750,6 @@ layout_mcore_frame (struct mcore_frame * infp)
 
   regarg      = infp->reg_size + infp->arg_size;
   localregarg = infp->local_size + regarg;
-  localreg    = infp->local_size + infp->reg_size;
   outbounds   = infp->outbound_size + infp->pad_outbound;
   growths     = 0;
 
@@ -1796,7 +1825,7 @@ layout_mcore_frame (struct mcore_frame * infp)
       infp->local_growth = growths;
       all -= step;
 
-      assert (all == 0);
+      gcc_assert (all == 0);
 
       /* Finish off if we need to do so.  */
       if (outbounds)
@@ -1874,8 +1903,8 @@ layout_mcore_frame (struct mcore_frame * infp)
 
   /* Anything else that we've forgotten?, plus a few consistency checks.  */
  finish:
-  assert (infp->reg_offset >= 0);
-  assert (growths <= MAX_STACK_GROWS);
+  gcc_assert (infp->reg_offset >= 0);
+  gcc_assert (growths <= MAX_STACK_GROWS);
   
   for (i = 0; i < growths; i++)
     gcc_assert (!(infp->growth[i] % STACK_BYTES));
@@ -2689,33 +2718,6 @@ mcore_option_override (void)
     target_flags |= MASK_M340;
 }
 
-/* What options are we going to default to specific settings when
-   -O* happens; the user can subsequently override these settings.
-  
-   Omitting the frame pointer is a very good idea on the MCore.
-   Scheduling isn't worth anything on the current MCore implementation.  */
-
-static void
-mcore_option_optimization (int level, int size)
-{
-  if (level)
-    {
-      flag_no_function_cse = 1;
-      flag_omit_frame_pointer = 1;
-
-      if (level >= 2)
-        {
-          flag_caller_saves = 0;
-          flag_schedule_insns = 0;
-          flag_schedule_insns_after_reload = 0;
-        }
-    }
-  if (size)
-    {
-      target_flags &= ~MASK_HARDLIT;
-    }
-}
-
 
 /* Compute the number of word sized registers needed to 
    hold a function argument of mode MODE and type TYPE.  */
@@ -2769,7 +2771,7 @@ handle_structs_in_regs (enum machine_mode mode, const_tree type, int reg)
         }
 
       /* We assume here that NPARM_REGS == 6.  The assert checks this.  */
-      assert (ARRAY_SIZE (arg_regs) == 6);
+      gcc_assert (ARRAY_SIZE (arg_regs) == 6);
       rtvec = gen_rtvec (nregs, arg_regs[0], arg_regs[1], arg_regs[2],
 			  arg_regs[3], arg_regs[4], arg_regs[5]);
       
@@ -2812,9 +2814,9 @@ mcore_function_value (const_tree valtype, const_tree func)
    NPARM_REGS words is at least partially passed in a register unless
    its data type forbids.  */
 
-rtx
-mcore_function_arg (CUMULATIVE_ARGS cum, enum machine_mode mode,
-		    tree type, int named)
+static rtx
+mcore_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		    const_tree type, bool named)
 {
   int arg_reg;
   
@@ -2824,12 +2826,30 @@ mcore_function_arg (CUMULATIVE_ARGS cum, enum machine_mode mode,
   if (targetm.calls.must_pass_in_stack (mode, type))
     return 0;
 
-  arg_reg = ROUND_REG (cum, mode);
+  arg_reg = ROUND_REG (*cum, mode);
   
   if (arg_reg < NPARM_REGS)
     return handle_structs_in_regs (mode, type, FIRST_PARM_REG + arg_reg);
 
   return 0;
+}
+
+static void
+mcore_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			    const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  *cum = (ROUND_REG (*cum, mode)
+	  + (int)named * mcore_num_arg_regs (mode, type));
+}
+
+static unsigned int
+mcore_function_arg_boundary (enum machine_mode mode,
+			     const_tree type ATTRIBUTE_UNUSED)
+{
+  /* Doubles must be aligned to an 8 byte boundary.  */
+  return (mode != BLKmode && GET_MODE_SIZE (mode) == 8
+	  ? BIGGEST_ALIGNMENT
+	  : PARM_BOUNDARY);
 }
 
 /* Returns the number of bytes of argument registers required to hold *part*

@@ -31,11 +31,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-propagate.h"
 #include "target.h"
 
-/* Return true when DECL is static object in other partition.
-   In that case we must prevent folding as we can't refer to
-   the symbol.
+/* Return true when DECL can be referenced from current unit.
+   We can get declarations that are not possible to reference for
+   various reasons:
 
-   We can get into it in two ways:
      1) When analyzing C++ virtual tables.
 	C++ virtual tables do have known constructors even
 	when they are keyed to other compilation unit.
@@ -46,44 +45,64 @@ along with GCC; see the file COPYING3.  If not see
 	to method that was partitioned elsehwere.
 	In this case we have static VAR_DECL or FUNCTION_DECL
 	that has no corresponding callgraph/varpool node
-	declaring the body.  */
-	
+	declaring the body.  
+     3) COMDAT functions referred by external vtables that
+        we devirtualize only during final copmilation stage.
+        At this time we already decided that we will not output
+        the function body and thus we can't reference the symbol
+        directly.  */
+
 static bool
-static_object_in_other_unit_p (tree decl)
+can_refer_decl_in_current_unit_p (tree decl)
 {
   struct varpool_node *vnode;
   struct cgraph_node *node;
 
-  if (!TREE_STATIC (decl)
-      || TREE_PUBLIC (decl) || DECL_COMDAT (decl))
-    return false;
+  if (!TREE_STATIC (decl) && !DECL_EXTERNAL (decl))
+    return true;
   /* External flag is set, so we deal with C++ reference
      to static object from other file.  */
-  if (DECL_EXTERNAL (decl))
+  if (DECL_EXTERNAL (decl) && TREE_STATIC (decl)
+      && TREE_CODE (decl) == VAR_DECL)
     {
       /* Just be sure it is not big in frontend setting
 	 flags incorrectly.  Those variables should never
 	 be finalized.  */
       gcc_checking_assert (!(vnode = varpool_get_node (decl))
 			   || !vnode->finalized);
-      return true;
+      return false;
     }
-  /* We are not at ltrans stage; so don't worry about WHOPR.  */
-  if (!flag_ltrans)
-    return false;
+  /* When function is public, we always can introduce new reference.
+     Exception are the COMDAT functions where introducing a direct
+     reference imply need to include function body in the curren tunit.  */
+  if (TREE_PUBLIC (decl) && !DECL_COMDAT (decl))
+    return true;
+  /* We are not at ltrans stage; so don't worry about WHOPR.
+     Also when still gimplifying all referred comdat functions will be
+     produced.  */
+  if (!flag_ltrans && (!DECL_COMDAT (decl) || !cgraph_function_flags_ready))
+    return true;
+  /* If we already output the function body, we are safe.  */
+  if (TREE_ASM_WRITTEN (decl))
+    return true;
   if (TREE_CODE (decl) == FUNCTION_DECL)
     {
       node = cgraph_get_node (decl);
-      if (!node || !node->analyzed)
-	return true;
+      /* Check that we still have function body and that we didn't took
+         the decision to eliminate offline copy of the function yet.
+         The second is important when devirtualization happens during final
+         compilation stage when making a new reference no longer makes callee
+         to be compiled.  */
+      if (!node || !node->analyzed || node->global.inlined_to)
+	return false;
     }
   else if (TREE_CODE (decl) == VAR_DECL)
     {
       vnode = varpool_get_node (decl);
       if (!vnode || !vnode->finalized)
-	return true;
+	return false;
     }
-  return false;
+  return true;
 }
 
 /* CVAL is value taken from DECL_INITIAL of variable.  Try to transorm it into
@@ -105,10 +124,11 @@ canonicalize_constructor_val (tree cval)
   if (TREE_CODE (cval) == ADDR_EXPR)
     {
       tree base = get_base_address (TREE_OPERAND (cval, 0));
+
       if (base
 	  && (TREE_CODE (base) == VAR_DECL
 	      || TREE_CODE (base) == FUNCTION_DECL)
-	  && static_object_in_other_unit_p (base))
+	  && !can_refer_decl_in_current_unit_p (base))
 	return NULL_TREE;
       if (base && TREE_CODE (base) == VAR_DECL)
 	add_referenced_var (base);
@@ -139,7 +159,7 @@ get_symbol_constant_value (tree sym)
       if (!val
           && (INTEGRAL_TYPE_P (TREE_TYPE (sym))
 	       || SCALAR_FLOAT_TYPE_P (TREE_TYPE (sym))))
-	return fold_convert (TREE_TYPE (sym), integer_zero_node);
+	return build_zero_cst (TREE_TYPE (sym));
     }
 
   return NULL_TREE;
@@ -580,15 +600,15 @@ maybe_fold_reference (tree expr, bool is_lhs)
     }
   /* Canonicalize MEM_REFs invariant address operand.  */
   else if (TREE_CODE (*t) == MEM_REF
-	   && TREE_CODE (TREE_OPERAND (*t, 0)) == ADDR_EXPR
-	   && !DECL_P (TREE_OPERAND (TREE_OPERAND (*t, 0), 0))
-	   && !CONSTANT_CLASS_P (TREE_OPERAND (TREE_OPERAND (*t, 0), 0)))
+	   && !is_gimple_mem_ref_addr (TREE_OPERAND (*t, 0)))
     {
+      bool volatile_p = TREE_THIS_VOLATILE (*t);
       tree tem = fold_binary (MEM_REF, TREE_TYPE (*t),
 			      TREE_OPERAND (*t, 0),
 			      TREE_OPERAND (*t, 1));
       if (tem)
 	{
+	  TREE_THIS_VOLATILE (tem) = volatile_p;
 	  *t = tem;
 	  tem = maybe_fold_reference (expr, is_lhs);
 	  if (tem)
@@ -912,7 +932,21 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
   push_gimplify_context (&gctx);
 
   if (lhs == NULL_TREE)
-    gimplify_and_add (expr, &stmts);
+    {
+      gimplify_and_add (expr, &stmts);
+      /* We can end up with folding a memcpy of an empty class assignment
+	 which gets optimized away by C++ gimplification.  */
+      if (gimple_seq_empty_p (stmts))
+	{
+	  if (gimple_in_ssa_p (cfun))
+	    {
+	      unlink_stmt_vdef (stmt);
+	      release_defs (stmt);
+	    }
+	  gsi_remove (si_p, true);
+	  return;
+	}
+    }
   else
     tmp = get_initialized_tmp_var (expr, &stmts, NULL);
 
@@ -1010,6 +1044,8 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
 	  if (TREE_CODE (gimple_vdef (stmt)) == SSA_NAME)
 	    SSA_NAME_DEF_STMT (gimple_vdef (stmt)) = new_stmt;
 	}
+      else if (reaching_vuse == gimple_vuse (stmt))
+	unlink_stmt_vdef (stmt);
     }
 
   gimple_set_location (new_stmt, gimple_location (stmt));
@@ -1237,7 +1273,7 @@ gimple_fold_builtin (gimple stmt)
 	  /* If the result is not a valid gimple value, or not a cast
 	     of a valid gimple value, then we cannot use the result.  */
 	  if (is_gimple_val (new_val)
-	      || (is_gimple_cast (new_val)
+	      || (CONVERT_EXPR_P (new_val)
 		  && is_gimple_val (TREE_OPERAND (new_val, 0))))
 	    return new_val;
 	}
@@ -1324,22 +1360,6 @@ gimple_fold_builtin (gimple stmt)
   return result;
 }
 
-/* Return the first of the base binfos of BINFO that has virtual functions.  */
-
-static tree
-get_first_base_binfo_with_virtuals (tree binfo)
-{
-  int i;
-  tree base_binfo;
-
-  for (i = 0; BINFO_BASE_ITERATE (binfo, i, base_binfo); i++)
-    if (BINFO_VIRTUALS (base_binfo))
-      return base_binfo;
-
-  return NULL_TREE;
-}
-
-
 /* Search for a base binfo of BINFO that corresponds to TYPE and return it if
    it is found or NULL_TREE if it is not.  */
 
@@ -1377,7 +1397,7 @@ gimple_get_relevant_ref_binfo (tree ref, tree known_binfo)
       if (TREE_CODE (ref) == COMPONENT_REF)
 	{
 	  tree par_type;
-	  tree binfo, base_binfo;
+	  tree binfo;
 	  tree field = TREE_OPERAND (ref, 1);
 
 	  if (!DECL_ARTIFICIAL (field))
@@ -1395,14 +1415,15 @@ gimple_get_relevant_ref_binfo (tree ref, tree known_binfo)
 	      || BINFO_N_BASE_BINFOS (binfo) == 0)
 	    return NULL_TREE;
 
-	  base_binfo = get_first_base_binfo_with_virtuals (binfo);
-	  if (base_binfo && BINFO_TYPE (base_binfo) != TREE_TYPE (field))
+	  /* Offset 0 indicates the primary base, whose vtable contents are
+	     represented in the binfo for the derived class.  */
+	  if (int_bit_position (field) != 0)
 	    {
 	      tree d_binfo;
 
+	      /* Get descendant binfo. */
 	      d_binfo = gimple_get_relevant_ref_binfo (TREE_OPERAND (ref, 0),
 						       known_binfo);
-	      /* Get descendant binfo. */
 	      if (!d_binfo)
 		return NULL_TREE;
 	      return get_base_binfo_for_type (d_binfo, TREE_TYPE (field));
@@ -1429,7 +1450,7 @@ tree
 gimple_fold_obj_type_ref_known_binfo (HOST_WIDE_INT token, tree known_binfo)
 {
   HOST_WIDE_INT i;
-  tree v, fndecl;
+  tree v, fndecl, delta;
 
   v = BINFO_VIRTUALS (known_binfo);
   i = 0;
@@ -1441,11 +1462,30 @@ gimple_fold_obj_type_ref_known_binfo (HOST_WIDE_INT token, tree known_binfo)
     }
 
   fndecl = TREE_VALUE (v);
+  delta = TREE_PURPOSE (v);
+  gcc_assert (host_integerp (delta, 0));
+
+  if (integer_nonzerop (delta))
+    {
+      struct cgraph_node *node = cgraph_get_node (fndecl);
+      HOST_WIDE_INT off = tree_low_cst (delta, 0);
+
+      if (!node)
+        return NULL;
+      for (node = node->same_body; node; node = node->next)
+        if (node->thunk.thunk_p && off == node->thunk.fixed_offset)
+          break;
+      if (node)
+        fndecl = node->decl;
+      else
+        return NULL;
+     }
+
   /* When cgraph node is missing and function is not public, we cannot
      devirtualize.  This can happen in WHOPR when the actual method
      ends up in other partition, because we found devirtualization
      possibility too late.  */
-  if (static_object_in_other_unit_p (fndecl))
+  if (!can_refer_decl_in_current_unit_p (fndecl))
     return NULL;
   return build_fold_addr_expr (fndecl);
 }
@@ -1471,9 +1511,9 @@ gimple_fold_obj_type_ref (tree ref, tree known_type)
   if (binfo)
     {
       HOST_WIDE_INT token = tree_low_cst (OBJ_TYPE_REF_TOKEN (ref), 1);
-      /* If there is no virtual methods fold this to an indirect call.  */
+      /* If there is no virtual methods leave the OBJ_TYPE_REF alone.  */
       if (!BINFO_VIRTUALS (binfo))
-	return OBJ_TYPE_REF_EXPR (ref);
+	return NULL_TREE;
       return gimple_fold_obj_type_ref_known_binfo (token, binfo);
     }
   else

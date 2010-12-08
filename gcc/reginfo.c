@@ -1,7 +1,7 @@
 /* Compute different info about registers.
    Copyright (C) 1987, 1988, 1991, 1992, 1993, 1994, 1995, 1996
    1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009  Free Software Foundation, Inc.
+   2009, 2010  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -43,7 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-config.h"
 #include "recog.h"
 #include "reload.h"
-#include "toplev.h"
 #include "diagnostic-core.h"
 #include "output.h"
 #include "timevar.h"
@@ -342,12 +341,9 @@ init_reg_sets_1 (void)
     inv_reg_alloc_order[reg_alloc_order[i]] = i;
 #endif
 
-  /* This macro allows the fixed or call-used registers
-     and the register classes to depend on target flags.  */
+  /* Let the target tweak things if necessary.  */
 
-#ifdef CONDITIONAL_REGISTER_USAGE
-  CONDITIONAL_REGISTER_USAGE;
-#endif
+  targetm.conditional_register_usage ();
 
   /* Compute number of hard regs in each class.  */
 
@@ -487,7 +483,7 @@ init_reg_sets_1 (void)
 	}
       else if (i == FRAME_POINTER_REGNUM)
 	;
-#if HARD_FRAME_POINTER_REGNUM != FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
       else if (i == HARD_FRAME_POINTER_REGNUM)
 	;
 #endif
@@ -755,36 +751,69 @@ void
 fix_register (const char *name, int fixed, int call_used)
 {
   int i;
+  int reg, nregs;
 
   /* Decode the name and update the primary form of
      the register info.  */
 
-  if ((i = decode_reg_name (name)) >= 0)
+  if ((reg = decode_reg_name_and_count (name, &nregs)) >= 0)
     {
-      if ((i == STACK_POINTER_REGNUM
+      gcc_assert (nregs >= 1);
+      for (i = reg; i < reg + nregs; i++)
+	{
+	  if ((i == STACK_POINTER_REGNUM
 #ifdef HARD_FRAME_POINTER_REGNUM
-	   || i == HARD_FRAME_POINTER_REGNUM
+	       || i == HARD_FRAME_POINTER_REGNUM
 #else
-	   || i == FRAME_POINTER_REGNUM
+	       || i == FRAME_POINTER_REGNUM
 #endif
-	   )
-	  && (fixed == 0 || call_used == 0))
-	{
-	  static const char * const what_option[2][2] = {
-	    { "call-saved", "call-used" },
-	    { "no-such-option", "fixed" }};
+	       )
+	      && (fixed == 0 || call_used == 0))
+	    {
+	      switch (fixed)
+		{
+		case 0:
+		  switch (call_used)
+		    {
+		    case 0:
+		      error ("can%'t use %qs as a call-saved register", name);
+		      break;
 
-	  error ("can't use '%s' as a %s register", name,
-		 what_option[fixed][call_used]);
-	}
-      else
-	{
-	  fixed_regs[i] = fixed;
-	  call_used_regs[i] = call_used;
+		    case 1:
+		      error ("can%'t use %qs as a call-used register", name);
+		      break;
+
+		    default:
+		      gcc_unreachable ();
+		    }
+		  break;
+
+		case 1:
+		  switch (call_used)
+		    {
+		    case 1:
+		      error ("can%'t use %qs as a fixed register", name);
+		      break;
+
+		    case 0:
+		    default:
+		      gcc_unreachable ();
+		    }
+		  break;
+
+		default:
+		  gcc_unreachable ();
+		}
+	    }
+	  else
+	    {
+	      fixed_regs[i] = fixed;
+	      call_used_regs[i] = call_used;
 #ifdef CALL_REALLY_USED_REGISTERS
-	  if (fixed == 0)
-	    call_really_used_regs[i] = call_used;
+	      if (fixed == 0)
+		call_really_used_regs[i] = call_used;
 #endif
+	    }
 	}
     }
   else
@@ -986,7 +1015,7 @@ struct rtl_opt_pass pass_reginfo_init =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  TV_NONE,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -1301,7 +1330,7 @@ init_subregs_of_mode (void)
 
   FOR_EACH_BB (bb)
     FOR_BB_INSNS (bb, insn)
-    if (INSN_P (insn))
+    if (NONDEBUG_INSN_P (insn))
       find_subregs_of_mode (PATTERN (insn));
 }
 

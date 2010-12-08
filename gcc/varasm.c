@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "output.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "hashtab.h"
 #include "ggc.h"
 #include "langhooks.h"
@@ -53,6 +52,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfglayout.h"
 #include "basic-block.h"
 #include "tree-iterator.h"
+#include "pointer-set.h"
 
 #ifdef XCOFF_DEBUGGING_INFO
 #include "xcoffout.h"		/* Needed for external data
@@ -98,6 +98,10 @@ bool first_function_block_is_cold;
    MEM_READONLY_P, but pre-dates it.  */
 
 static alias_set_type const_alias_set;
+
+/* Whether we saw any functions with no_split_stack.  */
+
+static bool saw_no_split_stack;
 
 static const char *strip_reg_name (const char *);
 static int contains_pointers_p (tree);
@@ -363,69 +367,6 @@ create_block_symbol (const char *label, struct object_block *block,
   return symbol;
 }
 
-static void
-initialize_cold_section_name (void)
-{
-  const char *stripped_name;
-  char *name, *buffer;
-  tree dsn;
-
-  gcc_assert (cfun && current_function_decl);
-  if (crtl->subsections.unlikely_text_section_name)
-    return;
-
-  dsn = DECL_SECTION_NAME (current_function_decl);
-  if (flag_function_sections && dsn)
-    {
-      name = (char *) alloca (TREE_STRING_LENGTH (dsn) + 1);
-      memcpy (name, TREE_STRING_POINTER (dsn), TREE_STRING_LENGTH (dsn) + 1);
-
-      stripped_name = targetm.strip_name_encoding (name);
-
-      buffer = ACONCAT ((stripped_name, "_unlikely", NULL));
-      crtl->subsections.unlikely_text_section_name = ggc_strdup (buffer);
-    }
-  else
-    crtl->subsections.unlikely_text_section_name =  UNLIKELY_EXECUTED_TEXT_SECTION_NAME;
-}
-
-/* Tell assembler to switch to unlikely-to-be-executed text section.  */
-
-section *
-unlikely_text_section (void)
-{
-  if (cfun)
-    {
-      if (!crtl->subsections.unlikely_text_section_name)
-	initialize_cold_section_name ();
-
-      return get_named_section (NULL, crtl->subsections.unlikely_text_section_name, 0);
-    }
-  else
-    return get_named_section (NULL, UNLIKELY_EXECUTED_TEXT_SECTION_NAME, 0);
-}
-
-/* When called within a function context, return true if the function
-   has been assigned a cold text section and if SECT is that section.
-   When called outside a function context, return true if SECT is the
-   default cold section.  */
-
-bool
-unlikely_text_section_p (section *sect)
-{
-  const char *name;
-
-  if (cfun)
-    name = crtl->subsections.unlikely_text_section_name;
-  else
-    name = UNLIKELY_EXECUTED_TEXT_SECTION_NAME;
-
-  return (name
-	  && sect
-	  && SECTION_STYLE (sect) == SECTION_NAMED
-	  && strcmp (name, sect->named.name) == 0);
-}
-
 /* Return a section with a particular name and with whatever SECTION_*
    flags section_type_flags deems appropriate.  The name of the section
    is taken from NAME if nonnull, otherwise it is taken from DECL's
@@ -457,7 +398,10 @@ resolve_unique_section (tree decl, int reloc ATTRIBUTE_UNUSED,
       && targetm.have_named_sections
       && (flag_function_or_data_sections
 	  || DECL_ONE_ONLY (decl)))
-    targetm.asm_out.unique_section (decl, reloc);
+    {
+      targetm.asm_out.unique_section (decl, reloc);
+      DECL_HAS_IMPLICIT_SECTION_NAME_P (decl) = true;
+    }
 }
 
 #ifdef BSS_SECTION_ASM_OP
@@ -469,7 +413,7 @@ resolve_unique_section (tree decl, int reloc ATTRIBUTE_UNUSED,
    ??? It is believed that this function will work in most cases so such
    support is localized here.  */
 
-static void
+static void ATTRIBUTE_UNUSED
 asm_output_bss (FILE *file, tree decl ATTRIBUTE_UNUSED,
 		const char *name,
 		unsigned HOST_WIDE_INT size ATTRIBUTE_UNUSED,
@@ -534,6 +478,133 @@ hot_function_section (tree decl)
 }
 #endif
 
+/* Return section for TEXT_SECTION_NAME if DECL or DECL_SECTION_NAME (DECL)
+   is NULL.
+
+   When DECL_SECTION_NAME is non-NULL and it is implicit section and
+   NAMED_SECTION_SUFFIX is non-NULL, then produce section called
+   concatenate the name with NAMED_SECTION_SUFFIX.
+   Otherwise produce "TEXT_SECTION_NAME.IMPLICIT_NAME".  */
+
+section *
+get_named_text_section (tree decl,
+		        const char *text_section_name,
+		        const char *named_section_suffix)
+{
+  if (decl && DECL_SECTION_NAME (decl))
+    {
+      if (named_section_suffix)
+	{
+	  tree dsn = DECL_SECTION_NAME (decl);
+	  const char *stripped_name;
+	  char *name, *buffer;
+
+	  name = (char *) alloca (TREE_STRING_LENGTH (dsn) + 1);
+	  memcpy (name, TREE_STRING_POINTER (dsn),
+		  TREE_STRING_LENGTH (dsn) + 1);
+
+	  stripped_name = targetm.strip_name_encoding (name);
+
+	  buffer = ACONCAT ((stripped_name, named_section_suffix, NULL));
+	  return get_named_section (decl, buffer, 0);
+	}
+      else if (DECL_HAS_IMPLICIT_SECTION_NAME_P (decl))
+	{
+	  const char *name;
+
+	  /* Do not try to split gnu_linkonce functions.  This gets somewhat
+	     slipperly.  */
+	  if (DECL_ONE_ONLY (decl) && !HAVE_COMDAT_GROUP)
+	    return NULL;
+	  name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+	  name = targetm.strip_name_encoding (name);
+	  return get_named_section (decl, ACONCAT ((text_section_name, ".",
+				                   name, NULL)), 0);
+	}
+      else
+	return NULL;
+    }
+  return get_named_section (decl, text_section_name, 0);
+}
+
+/* Choose named function section based on its frequency.  */
+
+section *
+default_function_section (tree decl, enum node_frequency freq,
+			  bool startup, bool exit)
+{
+  /* Startup code should go to startup subsection unless it is
+     unlikely executed (this happens especially with function splitting
+     where we can split away unnecesary parts of static constructors.  */
+  if (startup && freq != NODE_FREQUENCY_UNLIKELY_EXECUTED)
+    return get_named_text_section (decl, ".text.startup", NULL);
+
+  /* Similarly for exit.  */
+  if (exit && freq != NODE_FREQUENCY_UNLIKELY_EXECUTED)
+    return get_named_text_section (decl, ".text.exit", NULL);
+
+  /* Group cold functions together, similarly for hot code.  */
+  switch (freq)
+    {
+      case NODE_FREQUENCY_UNLIKELY_EXECUTED:
+	return get_named_text_section (decl, ".text.unlikely", NULL);
+      case NODE_FREQUENCY_HOT:
+	return get_named_text_section (decl, ".text.hot", NULL);
+      default:
+	return NULL;
+    }
+}
+
+/* Return the section for function DECL.
+
+   If DECL is NULL_TREE, return the text section.  We can be passed
+   NULL_TREE under some circumstances by dbxout.c at least. 
+
+   If FORCE_COLD is true, return cold function section ignoring
+   the frequency info of cgraph_node.  */
+
+static section *
+function_section_1 (tree decl, bool force_cold)
+{
+  section *section = NULL;
+  enum node_frequency freq = NODE_FREQUENCY_NORMAL;
+  bool startup = false, exit = false;
+
+  if (decl)
+    {
+      struct cgraph_node *node = cgraph_node (decl);
+
+      freq = node->frequency;
+      startup = node->only_called_at_startup;
+      exit = node->only_called_at_exit;
+    }
+  if (force_cold)
+    freq = NODE_FREQUENCY_UNLIKELY_EXECUTED;
+
+#ifdef USE_SELECT_SECTION_FOR_FUNCTIONS
+  if (decl != NULL_TREE
+      && DECL_SECTION_NAME (decl) != NULL_TREE)
+    {
+      if (targetm.asm_out.function_section)
+	section = targetm.asm_out.function_section (decl, freq,
+						    startup, exit);
+      if (section)
+	return section;
+      return get_named_section (decl, NULL, 0);
+    }
+  else
+    return targetm.asm_out.select_section
+	    (decl, freq == NODE_FREQUENCY_UNLIKELY_EXECUTED,
+	     DECL_ALIGN (decl));
+#else
+  if (targetm.asm_out.function_section)
+    section = targetm.asm_out.function_section (decl, freq, startup, exit);
+  if (section)
+    return section;
+  return hot_function_section (decl);
+#endif
+}
+
 /* Return the section for function DECL.
 
    If DECL is NULL_TREE, return the text section.  We can be passed
@@ -542,41 +613,41 @@ hot_function_section (tree decl)
 section *
 function_section (tree decl)
 {
-  int reloc = 0;
-
-  if (first_function_block_is_cold)
-    reloc = 1;
-
-#ifdef USE_SELECT_SECTION_FOR_FUNCTIONS
-  if (decl != NULL_TREE
-      && DECL_SECTION_NAME (decl) != NULL_TREE)
-    return reloc ? unlikely_text_section ()
-		 : get_named_section (decl, NULL, 0);
-  else
-    return targetm.asm_out.select_section (decl, reloc, DECL_ALIGN (decl));
-#else
-  return reloc ? unlikely_text_section () : hot_function_section (decl);
-#endif
+  /* Handle cases where function splitting code decides
+     to put function entry point into unlikely executed section
+     despite the fact that the function itself is not cold
+     (i.e. it is called rarely but contains a hot loop that is
+     better to live in hot subsection for the code locality).  */
+  return function_section_1 (decl,
+			     first_function_block_is_cold);
 }
+
+/* Return the section for the current function, take IN_COLD_SECTION_P
+   into account.  */
 
 section *
 current_function_section (void)
 {
-#ifdef USE_SELECT_SECTION_FOR_FUNCTIONS
-  if (current_function_decl != NULL_TREE
-      && DECL_SECTION_NAME (current_function_decl) != NULL_TREE)
-    return in_cold_section_p ? unlikely_text_section ()
-			     : get_named_section (current_function_decl,
-						  NULL, 0);
-  else
-    return targetm.asm_out.select_section (current_function_decl,
-					   in_cold_section_p,
-					   DECL_ALIGN (current_function_decl));
-#else
-  return (in_cold_section_p
-	  ? unlikely_text_section ()
-	  : hot_function_section (current_function_decl));
-#endif
+  return function_section_1 (current_function_decl, in_cold_section_p);
+}
+
+/* Tell assembler to switch to unlikely-to-be-executed text section.  */
+
+section *
+unlikely_text_section (void)
+{
+  return function_section_1 (current_function_decl, true);
+}
+
+/* When called within a function context, return true if the function
+   has been assigned a cold text section and if SECT is that section.
+   When called outside a function context, return true if SECT is the
+   default cold section.  */
+
+bool
+unlikely_text_section_p (section *sect)
+{
+  return sect == function_section_1 (current_function_decl, true);
 }
 
 /* Return the read-only data section associated with function DECL.  */
@@ -759,8 +830,11 @@ set_user_assembler_name (tree decl, const char *name)
    Prefixes such as % are optional.  */
 
 int
-decode_reg_name (const char *asmspec)
+decode_reg_name_and_count (const char *asmspec, int *pnregs)
 {
+  /* Presume just one register is clobbered.  */
+  *pnregs = 1;
+
   if (asmspec != 0)
     {
       int i;
@@ -786,6 +860,25 @@ decode_reg_name (const char *asmspec)
 	    && ! strcmp (asmspec, strip_reg_name (reg_names[i])))
 	  return i;
 
+#ifdef OVERLAPPING_REGISTER_NAMES
+      {
+	static const struct
+	{
+	  const char *const name;
+	  const int number;
+	  const int nregs;
+	} table[] = OVERLAPPING_REGISTER_NAMES;
+
+	for (i = 0; i < (int) ARRAY_SIZE (table); i++)
+	  if (table[i].name[0]
+	      && ! strcmp (asmspec, table[i].name))
+	    {
+	      *pnregs = table[i].nregs;
+	      return table[i].number;
+	    }
+      }
+#endif /* OVERLAPPING_REGISTER_NAMES */
+
 #ifdef ADDITIONAL_REGISTER_NAMES
       {
 	static const struct { const char *const name; const int number; } table[]
@@ -809,6 +902,14 @@ decode_reg_name (const char *asmspec)
 
   return -1;
 }
+
+int
+decode_reg_name (const char *name)
+{
+  int count;
+  return decode_reg_name_and_count (name, &count);
+}
+
 
 /* Return true if DECL's initializer is suitable for a BSS section.  */
 
@@ -1419,8 +1520,6 @@ assemble_start_function (tree decl, const char *fnname)
   char tmp_label[100];
   bool hot_label_written = false;
 
-  crtl->subsections.unlikely_text_section_name = NULL;
-
   first_function_block_is_cold = false;
   if (flag_reorder_blocks_and_partition)
     {
@@ -1478,16 +1577,10 @@ assemble_start_function (tree decl, const char *fnname)
   else if (DECL_SECTION_NAME (decl))
     {
       /* Calls to function_section rely on first_function_block_is_cold
-	 being accurate.  The first block may be cold even if we aren't
-	 doing partitioning, if the entire function was decided by
-	 choose_function_section (predict.c) to be cold.  */
-
-      initialize_cold_section_name ();
-
-      if (crtl->subsections.unlikely_text_section_name
-	  && strcmp (TREE_STRING_POINTER (DECL_SECTION_NAME (decl)),
-		     crtl->subsections.unlikely_text_section_name) == 0)
-	first_function_block_is_cold = true;
+	 being accurate.  */
+      first_function_block_is_cold
+	 = (cgraph_node (current_function_decl)->frequency
+	    == NODE_FREQUENCY_UNLIKELY_EXECUTED);
     }
 
   in_cold_section_p = first_function_block_is_cold;
@@ -1549,6 +1642,9 @@ assemble_start_function (tree decl, const char *fnname)
   /* Standard thing is just output label for the function.  */
   ASM_OUTPUT_FUNCTION_LABEL (asm_out_file, fnname, current_function_decl);
 #endif /* ASM_DECLARE_FUNCTION_NAME */
+
+  if (lookup_attribute ("no_split_stack", DECL_ATTRIBUTES (decl)))
+    saw_no_split_stack = true;
 }
 
 /* Output assembler code associated with defining the size of the
@@ -2046,7 +2142,7 @@ assemble_external (tree decl ATTRIBUTE_UNUSED)
   /* We want to output annotation for weak and external symbols at
      very last to check if they are references or not.  */
 
-  if (SUPPORTS_WEAK
+  if (TARGET_SUPPORTS_WEAK
       && DECL_WEAK (decl)
       /* TREE_STATIC is a weird and abused creature which is not
 	 generally the right test for whether an entity has been
@@ -2444,7 +2540,7 @@ assemble_real (REAL_VALUE_TYPE d, enum machine_mode mode, unsigned int align)
    Store them both in the structure *VALUE.
    EXP must be reducible.  */
 
-struct GTY(()) addr_const {
+struct addr_const {
   rtx base;
   HOST_WIDE_INT offset;
 };
@@ -3894,8 +3990,8 @@ constructor_static_from_elts_p (const_tree ctor)
 {
   return (TREE_CONSTANT (ctor)
 	  && (TREE_CODE (TREE_TYPE (ctor)) == UNION_TYPE
-	      || TREE_CODE (TREE_TYPE (ctor)) == RECORD_TYPE)
-	  && !VEC_empty (constructor_elt, CONSTRUCTOR_ELTS (ctor)));
+	      || TREE_CODE (TREE_TYPE (ctor)) == RECORD_TYPE
+	      || TREE_CODE (TREE_TYPE (ctor)) == ARRAY_TYPE));
 }
 
 static tree initializer_constant_valid_p_1 (tree value, tree endtype,
@@ -5020,7 +5116,7 @@ merge_weak (tree newdecl, tree olddecl)
 {
   if (DECL_WEAK (newdecl) == DECL_WEAK (olddecl))
     {
-      if (DECL_WEAK (newdecl) && SUPPORTS_WEAK)
+      if (DECL_WEAK (newdecl) && TARGET_SUPPORTS_WEAK)
         {
           tree *pwd;
           /* We put the NEWDECL on the weak_decls list at some point
@@ -5057,7 +5153,7 @@ merge_weak (tree newdecl, tree olddecl)
 	warning (0, "weak declaration of %q+D after first use results "
                  "in unspecified behavior", newdecl);
 
-      if (SUPPORTS_WEAK)
+      if (TARGET_SUPPORTS_WEAK)
 	{
 	  /* We put the NEWDECL on the weak_decls list at some point.
 	     Replace it with the OLDDECL.  */
@@ -5091,7 +5187,7 @@ declare_weak (tree decl)
     error ("weak declaration of %q+D must be public", decl);
   else if (TREE_CODE (decl) == FUNCTION_DECL && TREE_ASM_WRITTEN (decl))
     error ("weak declaration of %q+D must precede definition", decl);
-  else if (!SUPPORTS_WEAK)
+  else if (!TARGET_SUPPORTS_WEAK)
     warning (0, "weak declaration of %q+D not supported", decl);
 
   mark_weak (decl);
@@ -5337,7 +5433,7 @@ do_assemble_alias (tree decl, tree target)
 			  IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)),
 			  IDENTIFIER_POINTER (target));
 #else
-      if (!SUPPORTS_WEAK)
+      if (!TARGET_SUPPORTS_WEAK)
 	{
 	  error_at (DECL_SOURCE_LOCATION (decl),
 		    "weakref is not supported in this configuration");
@@ -5357,7 +5453,7 @@ do_assemble_alias (tree decl, tree target)
     }
   if (lookup_attribute ("ifunc", DECL_ATTRIBUTES (decl)))
     {
-#if defined (ASM_OUTPUT_TYPE_DIRECTIVE) && HAVE_GAS_INDIRECT_FUNCTION
+#if defined (ASM_OUTPUT_TYPE_DIRECTIVE) && HAVE_GNU_INDIRECT_FUNCTION
       ASM_OUTPUT_TYPE_DIRECTIVE
 	(asm_out_file, IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)),
 	 IFUNC_ASM_TYPE);
@@ -5408,17 +5504,66 @@ do_assemble_alias (tree decl, tree target)
 }
 
 
+/* Compute the set of indentifier nodes that is generated by aliases
+   whose targets are reachable.  */
+
+static struct pointer_set_t *
+compute_visible_aliases (void)
+{
+  struct pointer_set_t *visible;
+  unsigned i;
+  alias_pair *p;
+  bool changed;
+
+  /* We have to compute the set of visible nodes including aliases
+     themselves.  */
+  visible = pointer_set_create ();
+  do
+    {
+      changed = false;
+      for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); ++i)
+	{
+	  struct cgraph_node *fnode = NULL;
+	  struct varpool_node *vnode = NULL;
+	  tree asmname = DECL_ASSEMBLER_NAME (p->decl);
+	  const char *str = IDENTIFIER_POINTER (asmname);
+
+	  if (str[0] == '*')
+	    {
+	      str ++;
+	      asmname = get_identifier (str);
+	    }
+
+	  fnode = cgraph_node_for_asm (p->target);
+	  vnode = (fnode == NULL) ? varpool_node_for_asm (p->target) : NULL;
+	  if ((fnode
+	       || vnode
+	       || pointer_set_contains (visible, p->target))
+	      && !pointer_set_insert (visible, asmname))
+	    changed = true;
+	}
+    }
+  while (changed);
+
+  return visible;
+}
+
 /* Remove the alias pairing for functions that are no longer in the call
    graph.  */
 
 void
 remove_unreachable_alias_pairs (void)
 {
+  struct pointer_set_t *visible;
   unsigned i;
   alias_pair *p;
 
   if (alias_pairs == NULL)
     return;
+
+  /* We have to compute the set of visible nodes including aliases
+     themselves.  */
+  visible = compute_visible_aliases ();
 
   for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); )
     {
@@ -5428,7 +5573,9 @@ remove_unreachable_alias_pairs (void)
 	  struct varpool_node *vnode = NULL;
 	  fnode = cgraph_node_for_asm (p->target);
 	  vnode = (fnode == NULL) ? varpool_node_for_asm (p->target) : NULL;
-	  if (fnode == NULL && vnode == NULL)
+	  if (!fnode
+	      && !vnode
+	      && !pointer_set_contains (visible, p->target))
 	    {
 	      VEC_unordered_remove (alias_pair, alias_pairs, i);
 	      continue;
@@ -5437,6 +5584,8 @@ remove_unreachable_alias_pairs (void)
 
       i++;
     }
+
+  pointer_set_destroy (visible);
 }
 
 
@@ -5446,8 +5595,16 @@ remove_unreachable_alias_pairs (void)
 void
 finish_aliases_1 (void)
 {
+  struct pointer_set_t *visible;
   unsigned i;
   alias_pair *p;
+
+  if (alias_pairs == NULL)
+    return;
+
+  /* We have to compute the set of visible nodes including aliases
+     themselves.  */
+  visible = compute_visible_aliases ();
 
   FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
     {
@@ -5456,6 +5613,9 @@ finish_aliases_1 (void)
       target_decl = find_decl_and_mark_needed (p->decl, p->target);
       if (target_decl == NULL)
 	{
+	  if (pointer_set_contains (visible, p->target))
+	    continue;
+
 	  if (! (p->emitted_diags & ALIAS_DIAG_TO_UNDEF)
 	      && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
 	    {
@@ -5478,6 +5638,8 @@ finish_aliases_1 (void)
 	  p->emitted_diags |= ALIAS_DIAG_TO_EXTERN;
 	}
     }
+
+  pointer_set_destroy (visible);
 }
 
 /* Second pass of completing pending aliases.  Emit the actual assembly.
@@ -5535,8 +5697,12 @@ assemble_alias (tree decl, tree target)
 # else
       if (!DECL_WEAK (decl))
 	{
-	  error_at (DECL_SOURCE_LOCATION (decl),
-		    "only weak aliases are supported in this configuration");
+	  if (lookup_attribute ("ifunc", DECL_ATTRIBUTES (decl)))
+	    error_at (DECL_SOURCE_LOCATION (decl),
+		      "ifunc is not supported in this configuration");
+	  else	
+	    error_at (DECL_SOURCE_LOCATION (decl),
+		      "only weak aliases are supported in this configuration");
 	  return;
 	}
 # endif
@@ -5625,7 +5791,7 @@ supports_one_only (void)
 {
   if (SUPPORTS_ONE_ONLY)
     return 1;
-  return SUPPORTS_WEAK;
+  return TARGET_SUPPORTS_WEAK;
 }
 
 /* Set up DECL as a public symbol that can be defined in multiple
@@ -5651,7 +5817,7 @@ make_decl_one_only (tree decl, tree comdat_group)
     DECL_COMMON (decl) = 1;
   else
     {
-      gcc_assert (SUPPORTS_WEAK);
+      gcc_assert (TARGET_SUPPORTS_WEAK);
       DECL_WEAK (decl) = 1;
     }
 }
@@ -5772,15 +5938,6 @@ default_section_type_flags (tree decl, const char *name, int reloc)
     flags = SECTION_CODE;
   else if (decl && decl_readonly_section (decl, reloc))
     flags = 0;
-  else if (current_function_decl
-	   && cfun
-	   && crtl->subsections.unlikely_text_section_name
-	   && strcmp (name, crtl->subsections.unlikely_text_section_name) == 0)
-    flags = SECTION_CODE;
-  else if (!decl
-	   && (!current_function_decl || !cfun)
-	   && strcmp (name, UNLIKELY_EXECUTED_TEXT_SECTION_NAME) == 0)
-    flags = SECTION_CODE;
   else
     flags = SECTION_WRITE;
 
@@ -6003,13 +6160,17 @@ categorize_decl_for_section (const_tree decl, int reloc)
 	  /* Here the reloc_rw_mask is not testing whether the section should
 	     be read-only or not, but whether the dynamic link will have to
 	     do something.  If so, we wish to segregate the data in order to
-	     minimize cache misses inside the dynamic linker.  */
-	  if (reloc & targetm.asm_out.reloc_rw_mask ())
+	     minimize cache misses inside the dynamic linker.  If the data
+	     has a section attribute, ignore reloc_rw_mask() so that all data
+             in a given named section is catagorized in the same way.  */
+	  if (reloc & targetm.asm_out.reloc_rw_mask ()
+	      && !lookup_attribute ("section", DECL_ATTRIBUTES (decl)))
 	    ret = reloc == 1 ? SECCAT_DATA_REL_LOCAL : SECCAT_DATA_REL;
 	  else
 	    ret = SECCAT_DATA;
 	}
-      else if (reloc & targetm.asm_out.reloc_rw_mask ())
+      else if (reloc & targetm.asm_out.reloc_rw_mask ()
+	       && !lookup_attribute ("section", DECL_ATTRIBUTES (decl)))
 	ret = reloc == 1 ? SECCAT_DATA_REL_RO_LOCAL : SECCAT_DATA_REL_RO;
       else if (reloc || flag_merge_constants < 2)
 	/* C and C++ don't allow different variables to share the same
@@ -6381,6 +6542,30 @@ default_use_anchors_for_symbol_p (const_rtx symbol)
   return true;
 }
 
+/* Return true when RESOLUTION indicate that symbol will be bound to the
+   definition provided by current .o file.  */
+
+static bool
+resolution_to_local_definition_p (enum ld_plugin_symbol_resolution resolution)
+{
+  return (resolution == LDPR_PREVAILING_DEF
+	  || resolution == LDPR_PREVAILING_DEF_IRONLY);
+}
+
+/* Return true when RESOLUTION indicate that symbol will be bound locally
+   within current executable or DSO.  */
+
+static bool
+resolution_local_p (enum ld_plugin_symbol_resolution resolution)
+{
+  return (resolution == LDPR_PREVAILING_DEF
+	  || resolution == LDPR_PREVAILING_DEF_IRONLY
+	  || resolution == LDPR_PREEMPTED_REG
+	  || resolution == LDPR_PREEMPTED_IR
+	  || resolution == LDPR_RESOLVED_IR
+	  || resolution == LDPR_RESOLVED_EXEC);
+}
+
 /* Assume ELF-ish defaults, since that's pretty much the most liberal
    wrt cross-module name binding.  */
 
@@ -6394,12 +6579,41 @@ bool
 default_binds_local_p_1 (const_tree exp, int shlib)
 {
   bool local_p;
+  bool resolved_locally = false;
+  bool resolved_to_local_def = false;
+
+  /* With resolution file in hands, take look into resolutions.
+     We can't just return true for resolved_localy symbols,
+     because dynamic linking might overwrite symbols
+     in shared libraries.  */
+  if (TREE_CODE (exp) == VAR_DECL && TREE_PUBLIC (exp)
+      && (TREE_STATIC (exp) || DECL_EXTERNAL (exp)))
+    {
+      struct varpool_node *vnode = varpool_get_node (exp);
+      if (vnode && resolution_local_p (vnode->resolution))
+	resolved_locally = true;
+      if (vnode
+	  && resolution_to_local_definition_p (vnode->resolution))
+	resolved_to_local_def = true;
+    }
+  else if (TREE_CODE (exp) == FUNCTION_DECL && TREE_PUBLIC (exp))
+    {
+      struct cgraph_node *node = cgraph_get_node_or_alias (exp);
+      if (node
+	  && resolution_local_p (node->resolution))
+	resolved_locally = true;
+      if (node
+	  && resolution_to_local_definition_p (node->resolution))
+	resolved_to_local_def = true;
+    }
 
   /* A non-decl is an entry in the constant pool.  */
   if (!DECL_P (exp))
     local_p = true;
   /* Weakrefs may not bind locally, even though the weakref itself is
-     always static and therefore local.  */
+     always static and therefore local.
+     FIXME: We can resolve this more curefuly by looking at the weakref
+     alias.  */
   else if (lookup_attribute ("weakref", DECL_ATTRIBUTES (exp)))
     local_p = false;
   /* Static variables are always local.  */
@@ -6407,11 +6621,12 @@ default_binds_local_p_1 (const_tree exp, int shlib)
     local_p = true;
   /* A variable is local if the user has said explicitly that it will
      be.  */
-  else if (DECL_VISIBILITY_SPECIFIED (exp)
+  else if ((DECL_VISIBILITY_SPECIFIED (exp)
+	    || resolved_to_local_def)
 	   && DECL_VISIBILITY (exp) != VISIBILITY_DEFAULT)
     local_p = true;
   /* Variables defined outside this object might not be local.  */
-  else if (DECL_EXTERNAL (exp))
+  else if (DECL_EXTERNAL (exp) && !resolved_locally)
     local_p = false;
   /* If defined in this object and visibility is not default, must be
      local.  */
@@ -6419,16 +6634,17 @@ default_binds_local_p_1 (const_tree exp, int shlib)
     local_p = true;
   /* Default visibility weak data can be overridden by a strong symbol
      in another module and so are not local.  */
-  else if (DECL_WEAK (exp))
+  else if (DECL_WEAK (exp)
+	   && !resolved_locally)
     local_p = false;
   /* If PIC, then assume that any global name can be overridden by
-     symbols resolved from other modules, unless we are compiling with
-     -fwhole-program, which assumes that names are local.  */
+     symbols resolved from other modules.  */
   else if (shlib)
-    local_p = flag_whole_program;
+    local_p = false;
   /* Uninitialized COMMON variable may be unified with symbols
      resolved from other modules.  */
   else if (DECL_COMMON (exp)
+	   && !resolved_locally
 	   && (DECL_INITIAL (exp) == NULL
 	       || DECL_INITIAL (exp) == error_mark_node))
     local_p = false;
@@ -6438,6 +6654,67 @@ default_binds_local_p_1 (const_tree exp, int shlib)
     local_p = true;
 
   return local_p;
+}
+
+/* Return true when references to DECL must bind to current definition in
+   final executable.
+
+   The condition is usually equivalent to whether the function binds to the
+   current module (shared library or executable), that is to binds_local_p.
+   We use this fact to avoid need for another target hook and implement
+   the logic using binds_local_p and just special cases where
+   decl_binds_to_current_def_p is stronger than binds local_p.  In particular
+   the weak definitions (that can be overwritten at linktime by other
+   definition from different object file) and when resolution info is available
+   we simply use the knowledge passed to us by linker plugin.  */
+bool
+decl_binds_to_current_def_p (tree decl)
+{
+  gcc_assert (DECL_P (decl));
+  if (!TREE_PUBLIC (decl))
+    return true;
+  if (!targetm.binds_local_p (decl))
+    return false;
+  /* When resolution is available, just use it.  */
+  if (TREE_CODE (decl) == VAR_DECL && TREE_PUBLIC (decl)
+      && (TREE_STATIC (decl) || DECL_EXTERNAL (decl)))
+    {
+      struct varpool_node *vnode = varpool_get_node (decl);
+      if (vnode
+	  && vnode->resolution != LDPR_UNKNOWN)
+	return resolution_to_local_definition_p (vnode->resolution);
+    }
+  else if (TREE_CODE (decl) == FUNCTION_DECL && TREE_PUBLIC (decl))
+    {
+      struct cgraph_node *node = cgraph_get_node_or_alias (decl);
+      if (node
+	  && node->resolution != LDPR_UNKNOWN)
+	return resolution_to_local_definition_p (node->resolution);
+    }
+  /* Otherwise we have to assume the worst for DECL_WEAK (hidden weaks
+     binds localy but still can be overwritten).
+     This rely on fact that binds_local_p behave as decl_replaceable_p
+     for all other declaration types.  */
+  return !DECL_WEAK (decl);
+}
+
+/* A replaceable function or variable is one which may be replaced
+   at link-time with an entirely different definition, provided that the
+   replacement has the same type.  For example, functions declared
+   with __attribute__((weak)) on most systems are replaceable.
+
+   COMDAT functions are not replaceable, since all definitions of the
+   function must be equivalent.  It is important that COMDAT functions
+   not be treated as replaceable so that use of C++ template
+   instantiations is not penalized.  */
+
+bool
+decl_replaceable_p (tree decl)
+{
+  gcc_assert (DECL_P (decl));
+  if (!TREE_PUBLIC (decl) || DECL_COMDAT (decl))
+    return false;
+  return !decl_binds_to_current_def_p (decl);
 }
 
 /* Default function to output code that will globalize a label.  A
@@ -6478,6 +6755,16 @@ default_emit_unwind_label (FILE * stream ATTRIBUTE_UNUSED,
 void
 default_emit_except_table_label (FILE * stream ATTRIBUTE_UNUSED)
 {
+}
+
+/* This is how to output an internal numbered label where PREFIX is
+   the class of label and LABELNO is the number within the class.  */
+
+void
+default_generate_internal_label (char *buf, const char *prefix,
+				 unsigned long labelno)
+{
+  ASM_GENERATE_INTERNAL_LABEL (buf, prefix, labelno);
 }
 
 /* This is how to output an internal numbered label where PREFIX is
@@ -6533,6 +6820,28 @@ file_end_indicate_exec_stack (void)
   switch_to_section (get_section (".note.GNU-stack", flags, NULL));
 }
 
+/* Emit a special section directive to indicate that this object file
+   was compiled with -fsplit-stack.  This is used to let the linker
+   detect calls between split-stack code and non-split-stack code, so
+   that it can modify the split-stack code to allocate a sufficiently
+   large stack.  We emit another special section if there are any
+   functions in this file which have the no_split_stack attribute, to
+   prevent the linker from warning about being unable to convert the
+   functions if they call non-split-stack code.  */
+
+void
+file_end_indicate_split_stack (void)
+{
+  if (flag_split_stack)
+    {
+      switch_to_section (get_section (".note.GNU-split-stack", SECTION_DEBUG,
+				      NULL));
+      if (saw_no_split_stack)
+	switch_to_section (get_section (".note.GNU-no-split-stack",
+					SECTION_DEBUG, NULL));
+    }
+}
+
 /* Output DIRECTIVE (a C string) followed by a newline.  This is used as
    a get_unnamed_section callback.  */
 
@@ -6559,12 +6868,6 @@ switch_to_section (section *new_section)
   switch (SECTION_STYLE (new_section))
     {
     case SECTION_NAMED:
-      if (cfun
-	  && !crtl->subsections.unlikely_text_section_name
-	  && strcmp (new_section->named.name,
-		     UNLIKELY_EXECUTED_TEXT_SECTION_NAME) == 0)
-	crtl->subsections.unlikely_text_section_name = UNLIKELY_EXECUTED_TEXT_SECTION_NAME;
-
       targetm.asm_out.named_section (new_section->named.name,
 				     new_section->named.common.flags,
 				     new_section->named.decl);

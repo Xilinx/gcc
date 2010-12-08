@@ -60,7 +60,10 @@ oppose_constraint (CloogMatrix *m, int row)
   int k;
 
   /* Do not oppose the first column: it is the eq/ineq one.  */
-  for (k = 1; k < m->NbColumns; k++)
+  /* Cast needed to remove warning that is generated as CLooG isl
+     is using an unsigned int for NbColumns and CLooG PPL is
+     using a signed int for NBColumns.  */
+  for (k = 1; k < (int)m->NbColumns; k++)
     mpz_neg (m->p[row][k], m->p[row][k]);
 }
 
@@ -177,7 +180,10 @@ cloog_matrix_to_ppl_constraint (CloogMatrix *matrix, int row)
   ppl_new_Coefficient (&coef);
   ppl_new_Linear_Expression_with_dimension (&expr, dim);
 
-  for (j = 1; j < matrix->NbColumns - 1; j++)
+  /* Cast needed to remove warning that is generated as CLooG isl
+     is using an unsigned int for NbColumns and CLooG PPL is
+     using a signed int for NBColumns.  */
+  for (j = 1; j < (int)matrix->NbColumns - 1; j++)
     {
       ppl_assign_Coefficient_from_mpz_t (coef, matrix->p[row][j]);
       ppl_Linear_Expression_add_to_coefficient (expr, j - 1, coef);
@@ -207,7 +213,10 @@ new_Constraint_System_from_Cloog_Matrix (ppl_Constraint_System_t *pcs,
 
   ppl_new_Constraint_System (pcs);
 
-  for (i = 0; i < matrix->NbRows; i++)
+  /* Cast needed to remove warning that is generated as CLooG isl
+     is using an unsigned int for NbColumns and CLooG PPL is
+     using a signed int for NBColumns.  */
+  for (i = 0; i < (int)matrix->NbRows; i++)
     {
       ppl_Constraint_t c = cloog_matrix_to_ppl_constraint (matrix, i);
       ppl_Constraint_System_insert_Constraint (*pcs, c);
@@ -296,4 +305,112 @@ new_Cloog_Domain_from_ppl_Pointset_Powerset
 
   return res;
 }
+
+/* Print to FILE the matrix MAT in OpenScop format.  OUTPUT is the number
+   of output dimensions, INPUT is the number of input dimensions, LOCALS
+   is the number of existentially quantified variables and PARAMS is the
+   number of parameters.  */
+
+static void
+openscop_print_cloog_matrix (FILE *file, CloogMatrix *mat,
+			     int output, int input, int locals,
+			     int params)
+{
+  int i, j;
+
+  fprintf (file, "%d %d %d %d %d %d \n", cloog_matrix_nrows (mat),
+	   cloog_matrix_ncolumns (mat), output, input, locals, params);
+
+  for (i = 0; i < cloog_matrix_nrows (mat); i++)
+    {
+      for (j = 0; j < cloog_matrix_ncolumns (mat); j++)
+        if (j == 0)
+	  fprintf (file, "%ld ", mpz_get_si (mat->p[i][j]));
+        else
+	  fprintf (file, "%6ld ", mpz_get_si (mat->p[i][j]));
+
+      fprintf (file, "\n");
+    }
+}
+
+/* Print to FILE the polyhedron PH in OpenScop format.  OUTPUT is the number
+   of output dimensions, INPUT is the number of input dimensions, LOCALS is
+   the number of existentially quantified variables and PARAMS is the number
+   of parameters.  */
+
+void
+openscop_print_polyhedron_matrix (FILE *file, ppl_const_Polyhedron_t ph,
+				  int output, int input, int locals,
+				  int params)
+{
+  CloogMatrix *mat = new_Cloog_Matrix_from_ppl_Polyhedron (ph);
+  openscop_print_cloog_matrix (file, mat, output, input, locals, params);
+  cloog_matrix_free (mat);
+}
+
+/* Read from FILE a matrix in OpenScop format.  OUTPUT is the number of
+   output dimensions, INPUT is the number of input dimensions, LOCALS
+   is the number of existentially quantified variables and PARAMS is the
+   number of parameters.  */
+
+static CloogMatrix *
+openscop_read_cloog_matrix (FILE *file, int *output, int *input, int *locals,
+			    int *params)
+{
+  int nb_rows, nb_cols, i, j;
+  CloogMatrix *mat;
+  int *openscop_matrix_header, *matrix_line;
+
+  openscop_matrix_header = openscop_read_N_int (file, 6);
+
+  nb_rows = openscop_matrix_header[0];
+  nb_cols = openscop_matrix_header[1];
+  *output = openscop_matrix_header[2];
+  *input = openscop_matrix_header[3];
+  *locals = openscop_matrix_header[4];
+  *params = openscop_matrix_header[5];
+
+  free (openscop_matrix_header);
+
+  if (nb_rows == 0 || nb_cols == 0)
+    return NULL;
+
+  mat = cloog_matrix_alloc (nb_rows, nb_cols);
+  mat->NbRows = nb_rows;
+  mat->NbColumns = nb_cols;
+
+  for (i = 0; i < nb_rows; i++)
+    {
+      matrix_line = openscop_read_N_int (file, nb_cols);
+
+      for (j = 0; j < nb_cols; j++)
+        mpz_set_si (mat->p[i][j], matrix_line[j]);
+    }
+
+  return mat;
+}
+
+/* Read from FILE the polyhedron PH in OpenScop format.  OUTPUT is the number
+   of output dimensions, INPUT is the number of input dimensions, LOCALS is
+   the number of existentially quantified variables and PARAMS is the number
+   of parameters.  */
+
+void
+openscop_read_polyhedron_matrix (FILE *file, ppl_Polyhedron_t *ph,
+				 int *output, int *input, int *locals,
+				 int *params)
+{
+  CloogMatrix *mat;
+
+  mat = openscop_read_cloog_matrix (file, output, input, locals, params);
+
+  if (!mat)
+    *ph = NULL;
+  else
+    {
+      new_C_Polyhedron_from_Cloog_Matrix (ph, mat);
+      cloog_matrix_free (mat);
+    }
+}
+
 #endif

@@ -35,12 +35,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-lang.h"
 #include "flags.h"
 #include "output.h"
-#include "toplev.h"
 #include "intl.h"
 #include "target.h"
 #include "tree-iterator.h"
 #include "bitmap.h"
 #include "gimple.h"
+#include "c-family/c-objc.h"
 
 /* Possible cases of implicit bad conversions.  Used to select
    diagnostic messages in convert_for_assignment.  */
@@ -50,13 +50,6 @@ enum impl_conv {
   ic_init,
   ic_return
 };
-
-/* Whether we are building a boolean conversion inside
-   convert_for_assignment, or some other late binary operation.  If
-   build_binary_op is called (from code shared with C++) in this case,
-   then the operands have already been folded and the result will not
-   be folded again, so C_MAYBE_CONST_EXPR should not be generated.  */
-bool in_late_binary_op;
 
 /* The level of nesting inside "__alignof__".  */
 int in_alignof;
@@ -2044,6 +2037,17 @@ lookup_field (tree type, tree component)
 
 		      if (anon)
 			return tree_cons (NULL_TREE, field, anon);
+
+		      /* The Plan 9 compiler permits referring
+			 directly to an anonymous struct/union field
+			 using a typedef name.  */
+		      if (flag_plan9_extensions
+			  && TYPE_NAME (TREE_TYPE (field)) != NULL_TREE
+			  && (TREE_CODE (TYPE_NAME (TREE_TYPE (field)))
+			      == TYPE_DECL)
+			  && (DECL_NAME (TYPE_NAME (TREE_TYPE (field)))
+			      == component))
+			break;
 		    }
 		}
 
@@ -2080,6 +2084,16 @@ lookup_field (tree type, tree component)
 
 	      if (anon)
 		return tree_cons (NULL_TREE, field, anon);
+
+	      /* The Plan 9 compiler permits referring directly to an
+		 anonymous struct/union field using a typedef
+		 name.  */
+	      if (flag_plan9_extensions
+		  && TYPE_NAME (TREE_TYPE (field)) != NULL_TREE
+		  && TREE_CODE (TYPE_NAME (TREE_TYPE (field))) == TYPE_DECL
+		  && (DECL_NAME (TYPE_NAME (TREE_TYPE (field)))
+		      == component))
+		break;
 	    }
 
 	  if (DECL_NAME (field) == component)
@@ -2108,6 +2122,11 @@ build_component_ref (location_t loc, tree datum, tree component)
 
   if (!objc_is_public (datum, component))
     return error_mark_node;
+
+  /* Detect Objective-C property syntax object.property.  */
+  if (c_dialect_objc ()
+      && (ref = objc_maybe_build_component_ref (datum, component)))
+    return ref;
 
   /* See if there is a field or component with name COMPONENT.  */
 
@@ -2280,6 +2299,9 @@ build_indirect_ref (location_t loc, tree ptr, ref_operator errstring)
    arrays that are not lvalues (for example, members of structures returned
    by functions).
 
+   For vector types, allow vector[i] but not i[vector], and create
+   *(((type*)&vectortype) + i) for the expression.
+
    LOC is the location to use for the returned expression.  */
 
 tree
@@ -2292,13 +2314,17 @@ build_array_ref (location_t loc, tree array, tree index)
     return error_mark_node;
 
   if (TREE_CODE (TREE_TYPE (array)) != ARRAY_TYPE
-      && TREE_CODE (TREE_TYPE (array)) != POINTER_TYPE)
+      && TREE_CODE (TREE_TYPE (array)) != POINTER_TYPE
+      /* Allow vector[index] but not index[vector].  */
+      && TREE_CODE (TREE_TYPE (array)) != VECTOR_TYPE)
     {
       tree temp;
       if (TREE_CODE (TREE_TYPE (index)) != ARRAY_TYPE
 	  && TREE_CODE (TREE_TYPE (index)) != POINTER_TYPE)
 	{
-	  error_at (loc, "subscripted value is neither array nor pointer");
+          error_at (loc, 
+            "subscripted value is neither array nor pointer nor vector");
+
 	  return error_mark_node;
 	}
       temp = array;
@@ -2328,6 +2354,27 @@ build_array_ref (location_t loc, tree array, tree index)
   index = default_conversion (index);
 
   gcc_assert (TREE_CODE (TREE_TYPE (index)) == INTEGER_TYPE);
+  
+  /* For vector[index], convert the vector to a 
+     pointer of the underlying type.  */
+  if (TREE_CODE (TREE_TYPE (array)) == VECTOR_TYPE)
+    {
+      tree type = TREE_TYPE (array);
+      tree type1;
+
+      if (TREE_CODE (index) == INTEGER_CST)
+        if (!host_integerp (index, 1) 
+            || ((unsigned HOST_WIDE_INT) tree_low_cst (index, 1) 
+               >= TYPE_VECTOR_SUBPARTS (TREE_TYPE (array))))
+          warning_at (loc, OPT_Warray_bounds, "index value is out of bound");
+     
+      c_common_mark_addressable_vec (array);
+      type = build_qualified_type (TREE_TYPE (type), TYPE_QUALS (type));
+      type = build_pointer_type (type);
+      type1 = build_pointer_type (TREE_TYPE (array));
+      array = build1 (ADDR_EXPR, type1, array);
+      array = convert (type, array);
+    }
 
   if (TREE_CODE (TREE_TYPE (array)) == ARRAY_TYPE)
     {
@@ -2767,7 +2814,7 @@ build_function_call_vec (location_t loc, tree function, VEC(tree,gc) *params,
 					  build_constructor (return_type, 0),
 					  false);
 	  else
-	    rhs = fold_convert_loc (loc, return_type, integer_zero_node);
+	    rhs = build_zero_cst (return_type);
 
 	  return require_complete_type (build2 (COMPOUND_EXPR, return_type,
 						trap, rhs));
@@ -3507,26 +3554,10 @@ build_unary_op (location_t location,
       goto return_build_unary_op;
 
     case REALPART_EXPR:
-      if (TREE_CODE (arg) == COMPLEX_CST)
-	ret = TREE_REALPART (arg);
-      else if (TREE_CODE (TREE_TYPE (arg)) == COMPLEX_TYPE)
-	ret = fold_build1_loc (location,
-			       REALPART_EXPR, TREE_TYPE (TREE_TYPE (arg)), arg);
-      else
-	ret = arg;
-      if (eptype && TREE_CODE (eptype) == COMPLEX_TYPE)
-	eptype = TREE_TYPE (eptype);
-      goto return_build_unary_op;
-
     case IMAGPART_EXPR:
-      if (TREE_CODE (arg) == COMPLEX_CST)
-	ret = TREE_IMAGPART (arg);
-      else if (TREE_CODE (TREE_TYPE (arg)) == COMPLEX_TYPE)
-	ret = fold_build1_loc (location,
-			       IMAGPART_EXPR, TREE_TYPE (TREE_TYPE (arg)), arg);
-      else
-	ret = omit_one_operand_loc (location, TREE_TYPE (arg),
-				integer_zero_node, arg);
+      ret = build_real_imag_expr (location, code, arg);
+      if (ret == error_mark_node)
+	return error_mark_node;
       if (eptype && TREE_CODE (eptype) == COMPLEX_TYPE)
 	eptype = TREE_TYPE (eptype);
       goto return_build_unary_op;
@@ -3549,11 +3580,13 @@ build_unary_op (location_t location,
 	  goto return_build_unary_op;
 	}
 
-      /* Complain about anything that is not a true lvalue.  */
-      if (!lvalue_or_else (arg, ((code == PREINCREMENT_EXPR
-				  || code == POSTINCREMENT_EXPR)
-				 ? lv_increment
-				 : lv_decrement)))
+      /* Complain about anything that is not a true lvalue.  In
+	 Objective-C, skip this check for property_refs.  */
+      if (!objc_is_property_ref (arg) 
+	  && !lvalue_or_else (arg, ((code == PREINCREMENT_EXPR
+				     || code == POSTINCREMENT_EXPR)
+				    ? lv_increment
+				    : lv_decrement)))
 	return error_mark_node;
 
       if (warn_cxx_compat && TREE_CODE (TREE_TYPE (arg)) == ENUMERAL_TYPE)
@@ -3660,6 +3693,13 @@ build_unary_op (location_t location,
 	    inc = integer_one_node;
 	    inc = convert (argtype, inc);
 	  }
+
+	/* If 'arg' is an Objective-C PROPERTY_REF expression, then we
+	   need to ask Objective-C to build the increment or decrement
+	   expression for it.  */
+	if (objc_is_property_ref (arg))
+	  return objc_build_incr_expr_for_property_ref (location, code, 
+							arg, inc);
 
 	/* Report a read-only lvalue.  */
 	if (TYPE_READONLY (argtype))
@@ -4051,7 +4091,6 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
   bool int_const, op1_int_operands, op2_int_operands, int_operands;
   bool ifexp_int_operands;
   tree ret;
-  bool objc_ok;
 
   op1_int_operands = EXPR_INT_CONST_OPERANDS (orig_op1);
   if (op1_int_operands)
@@ -4087,8 +4126,6 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
       error_at (colon_loc, "non-lvalue array in conditional expression");
       return error_mark_node;
     }
-
-  objc_ok = objc_compare_types (type1, type2, -3, NULL_TREE);
 
   if ((TREE_CODE (op1) == EXCESS_PRECISION_EXPR
        || TREE_CODE (op2) == EXCESS_PRECISION_EXPR)
@@ -4255,13 +4292,15 @@ build_conditional_expr (location_t colon_loc, tree ifexp, bool ifexp_bcp,
 	  result_type = build_pointer_type (qualify_type (TREE_TYPE (type2),
 							  TREE_TYPE (type1)));
 	}
+      /* Objective-C pointer comparisons are a bit more lenient.  */
+      else if (objc_have_common_type (type1, type2, -3, NULL_TREE))
+	result_type = objc_common_type (type1, type2);
       else
 	{
 	  int qual = ENCODE_QUAL_ADDR_SPACE (as_common);
 
-	  if (!objc_ok)
-	    pedwarn (colon_loc, 0,
-		     "pointer type mismatch in conditional expression");
+	  pedwarn (colon_loc, 0,
+		   "pointer type mismatch in conditional expression");
 	  result_type = build_pointer_type
 			  (build_qualified_type (void_type_node, qual));
 	}
@@ -4778,8 +4817,9 @@ c_cast_expr (location_t loc, struct c_type_name *type_name, tree expr)
   if (CAN_HAVE_LOCATION_P (ret) && !EXPR_HAS_LOCATION (ret))
     SET_EXPR_LOCATION (ret, loc);
 
-  /* C++ does not permits types to be defined in a cast.  */
-  if (warn_cxx_compat && type_name->specs->tag_defined_p)
+  /* C++ does not permits types to be defined in a cast, but it
+     allows references to incomplete types.  */
+  if (warn_cxx_compat && type_name->specs->typespec_kind == ctsk_tagdef)
     warning_at (loc, OPT_Wc___compat,
 		"defining a type in a cast is invalid in C++");
 
@@ -4817,7 +4857,8 @@ build_modify_expr (location_t location, tree lhs, tree lhs_origtype,
   if (TREE_CODE (lhs) == ERROR_MARK || TREE_CODE (rhs) == ERROR_MARK)
     return error_mark_node;
 
-  if (!lvalue_or_else (lhs, lv_assign))
+  /* For ObjC properties, defer this check.  */
+  if (!objc_is_property_ref (lhs) && !lvalue_or_else (lhs, lv_assign))
     return error_mark_node;
 
   if (TREE_CODE (rhs) == EXCESS_PRECISION_EXPR)
@@ -4856,6 +4897,19 @@ build_modify_expr (location_t location, tree lhs, tree lhs_origtype,
       /* The original type of the right hand side is no longer
 	 meaningful.  */
       rhs_origtype = NULL_TREE;
+    }
+
+  if (c_dialect_objc ())
+    {
+      /* Check if we are modifying an Objective-C property reference;
+	 if so, we need to generate setter calls.  */
+      result = objc_maybe_build_modify_expr (lhs, newrhs);
+      if (result)
+	return result;
+
+      /* Else, do the check that we postponed for Objective-C.  */
+      if (!lvalue_or_else (lhs, lv_assign))
+	return error_mark_node;
     }
 
   /* Give an error for storing in something that is 'const'.  */
@@ -4953,6 +5007,106 @@ build_modify_expr (location_t location, tree lhs, tree lhs_origtype,
   return result;
 }
 
+/* Return whether STRUCT_TYPE has an anonymous field with type TYPE.
+   This is used to implement -fplan9-extensions.  */
+
+static bool
+find_anonymous_field_with_type (tree struct_type, tree type)
+{
+  tree field;
+  bool found;
+
+  gcc_assert (TREE_CODE (struct_type) == RECORD_TYPE
+	      || TREE_CODE (struct_type) == UNION_TYPE);
+  found = false;
+  for (field = TYPE_FIELDS (struct_type);
+       field != NULL_TREE;
+       field = TREE_CHAIN (field))
+    {
+      if (DECL_NAME (field) == NULL
+	  && comptypes (type, TYPE_MAIN_VARIANT (TREE_TYPE (field))))
+	{
+	  if (found)
+	    return false;
+	  found = true;
+	}
+      else if (DECL_NAME (field) == NULL
+	       && (TREE_CODE (TREE_TYPE (field)) == RECORD_TYPE
+		   || TREE_CODE (TREE_TYPE (field)) == UNION_TYPE)
+	       && find_anonymous_field_with_type (TREE_TYPE (field), type))
+	{
+	  if (found)
+	    return false;
+	  found = true;
+	}
+    }
+  return found;
+}
+
+/* RHS is an expression whose type is pointer to struct.  If there is
+   an anonymous field in RHS with type TYPE, then return a pointer to
+   that field in RHS.  This is used with -fplan9-extensions.  This
+   returns NULL if no conversion could be found.  */
+
+static tree
+convert_to_anonymous_field (location_t location, tree type, tree rhs)
+{
+  tree rhs_struct_type, lhs_main_type;
+  tree field, found_field;
+  bool found_sub_field;
+  tree ret;
+
+  gcc_assert (POINTER_TYPE_P (TREE_TYPE (rhs)));
+  rhs_struct_type = TREE_TYPE (TREE_TYPE (rhs));
+  gcc_assert (TREE_CODE (rhs_struct_type) == RECORD_TYPE
+	      || TREE_CODE (rhs_struct_type) == UNION_TYPE);
+
+  gcc_assert (POINTER_TYPE_P (type));
+  lhs_main_type = TYPE_MAIN_VARIANT (TREE_TYPE (type));
+
+  found_field = NULL_TREE;
+  found_sub_field = false;
+  for (field = TYPE_FIELDS (rhs_struct_type);
+       field != NULL_TREE;
+       field = TREE_CHAIN (field))
+    {
+      if (DECL_NAME (field) != NULL_TREE
+	  || (TREE_CODE (TREE_TYPE (field)) != RECORD_TYPE
+	      && TREE_CODE (TREE_TYPE (field)) != UNION_TYPE))
+	continue;
+      if (comptypes (lhs_main_type, TYPE_MAIN_VARIANT (TREE_TYPE (field))))
+	{
+	  if (found_field != NULL_TREE)
+	    return NULL_TREE;
+	  found_field = field;
+	}
+      else if (find_anonymous_field_with_type (TREE_TYPE (field),
+					       lhs_main_type))
+	{
+	  if (found_field != NULL_TREE)
+	    return NULL_TREE;
+	  found_field = field;
+	  found_sub_field = true;
+	}
+    }
+
+  if (found_field == NULL_TREE)
+    return NULL_TREE;
+
+  ret = fold_build3_loc (location, COMPONENT_REF, TREE_TYPE (found_field),
+			 build_fold_indirect_ref (rhs), found_field,
+			 NULL_TREE);
+  ret = build_fold_addr_expr_loc (location, ret);
+
+  if (found_sub_field)
+    {
+      ret = convert_to_anonymous_field (location, type, ret);
+      gcc_assert (ret != NULL_TREE);
+    }
+
+  return ret;
+}
+
 /* Convert value RHS to type TYPE as preparation for an assignment to
    an lvalue of type TYPE.  If ORIGTYPE is not NULL_TREE, it is the
    original type of RHS; this differs from TREE_TYPE (RHS) for enum
@@ -5324,6 +5478,25 @@ convert_for_assignment (location_t location, tree type, tree rhs,
       /* Opaque pointers are treated like void pointers.  */
       is_opaque_pointer = vector_targets_convertible_p (ttl, ttr);
 
+      /* The Plan 9 compiler permits a pointer to a struct to be
+	 automatically converted into a pointer to an anonymous field
+	 within the struct.  */
+      if (flag_plan9_extensions
+	  && (TREE_CODE (mvl) == RECORD_TYPE || TREE_CODE(mvl) == UNION_TYPE)
+	  && (TREE_CODE (mvr) == RECORD_TYPE || TREE_CODE(mvr) == UNION_TYPE)
+	  && mvl != mvr)
+	{
+	  tree new_rhs = convert_to_anonymous_field (location, type, rhs);
+	  if (new_rhs != NULL_TREE)
+	    {
+	      rhs = new_rhs;
+	      rhstype = TREE_TYPE (rhs);
+	      coder = TREE_CODE (rhstype);
+	      ttr = TREE_TYPE (rhstype);
+	      mvr = TYPE_MAIN_VARIANT (ttr);
+	    }
+	}
+
       /* C++ does not allow the implicit conversion void* -> T*.  However,
 	 for the purpose of reducing the number of false positives, we
 	 tolerate the special case of
@@ -5432,20 +5605,16 @@ convert_for_assignment (location_t location, tree type, tree rhs,
 	      if (TYPE_QUALS_NO_ADDR_SPACE (ttr)
 		  & ~TYPE_QUALS_NO_ADDR_SPACE (ttl))
 		{
-		  /* Types differing only by the presence of the 'volatile'
-		     qualifier are acceptable if the 'volatile' has been added
-		     in by the Objective-C EH machinery.  */
-		  if (!objc_type_quals_match (ttl, ttr))
-		    WARN_FOR_QUALIFIERS (location, 0,
-					 G_("passing argument %d of %qE discards "
-					    "%qv qualifier from pointer target type"),
-					 G_("assignment discards %qv qualifier "
-					    "from pointer target type"),
-					 G_("initialization discards %qv qualifier "
-					    "from pointer target type"),
-					 G_("return discards %qv qualifier from "
-					    "pointer target type"),
-					 TYPE_QUALS (ttr) & ~TYPE_QUALS (ttl));
+		  WARN_FOR_QUALIFIERS (location, 0,
+				       G_("passing argument %d of %qE discards "
+					  "%qv qualifier from pointer target type"),
+				       G_("assignment discards %qv qualifier "
+					  "from pointer target type"),
+				       G_("initialization discards %qv qualifier "
+					  "from pointer target type"),
+				       G_("return discards %qv qualifier from "
+					  "pointer target type"),
+				       TYPE_QUALS (ttr) & ~TYPE_QUALS (ttl));
 		}
 	      /* If this is not a case of ignoring a mismatch in signedness,
 		 no warning.  */
@@ -9284,6 +9453,10 @@ build_binary_op (location_t location, enum tree_code code,
      precision.  */
   bool may_need_excess_precision;
 
+  /* True means this is a boolean operation that converts both its
+     operands to truth-values.  */
+  bool boolean_op = false;
+
   if (location == UNKNOWN_LOCATION)
     location = input_location;
 
@@ -9511,6 +9684,7 @@ build_binary_op (location_t location, enum tree_code code,
 	  op0 = c_common_truthvalue_conversion (location, op0);
 	  op1 = c_common_truthvalue_conversion (location, op1);
 	  converted = 1;
+	  boolean_op = true;
 	}
       if (code == TRUTH_ANDIF_EXPR)
 	{
@@ -9541,7 +9715,21 @@ build_binary_op (location_t location, enum tree_code code,
 	 Also set SHORT_SHIFT if shifting rightward.  */
 
     case RSHIFT_EXPR:
-      if ((code0 == INTEGER_TYPE || code0 == FIXED_POINT_TYPE)
+      if (code0 == VECTOR_TYPE && code1 == INTEGER_TYPE
+          && TREE_CODE (TREE_TYPE (type0)) == INTEGER_TYPE)
+        {
+          result_type = type0;
+          converted = 1;
+        }
+      else if (code0 == VECTOR_TYPE && code1 == VECTOR_TYPE
+	  && TREE_CODE (TREE_TYPE (type0)) == INTEGER_TYPE
+          && TREE_CODE (TREE_TYPE (type1)) == INTEGER_TYPE
+          && TYPE_VECTOR_SUBPARTS (type0) == TYPE_VECTOR_SUBPARTS (type1))
+	{
+	  result_type = type0;
+	  converted = 1;
+	}
+      else if ((code0 == INTEGER_TYPE || code0 == FIXED_POINT_TYPE)
 	  && code1 == INTEGER_TYPE)
 	{
 	  if (TREE_CODE (op1) == INTEGER_CST)
@@ -9568,9 +9756,10 @@ build_binary_op (location_t location, enum tree_code code,
 
 	  /* Use the type of the value to be shifted.  */
 	  result_type = type0;
-	  /* Convert the shift-count to an integer, regardless of size
-	     of value being shifted.  */
-	  if (TYPE_MAIN_VARIANT (TREE_TYPE (op1)) != integer_type_node)
+	  /* Convert the non vector shift-count to an integer, regardless
+	     of size of value being shifted.  */
+	  if (TREE_CODE (TREE_TYPE (op1)) != VECTOR_TYPE
+	      && TYPE_MAIN_VARIANT (TREE_TYPE (op1)) != integer_type_node)
 	    op1 = convert (integer_type_node, op1);
 	  /* Avoid converting op1 to result_type later.  */
 	  converted = 1;
@@ -9578,7 +9767,21 @@ build_binary_op (location_t location, enum tree_code code,
       break;
 
     case LSHIFT_EXPR:
-      if ((code0 == INTEGER_TYPE || code0 == FIXED_POINT_TYPE)
+      if (code0 == VECTOR_TYPE && code1 == INTEGER_TYPE
+          && TREE_CODE (TREE_TYPE (type0)) == INTEGER_TYPE)
+        {
+          result_type = type0;
+          converted = 1;
+        }
+      else if (code0 == VECTOR_TYPE && code1 == VECTOR_TYPE
+	  && TREE_CODE (TREE_TYPE (type0)) == INTEGER_TYPE
+          && TREE_CODE (TREE_TYPE (type1)) == INTEGER_TYPE
+          && TYPE_VECTOR_SUBPARTS (type0) == TYPE_VECTOR_SUBPARTS (type1))
+	{
+	  result_type = type0;
+	  converted = 1;
+	}
+      else if ((code0 == INTEGER_TYPE || code0 == FIXED_POINT_TYPE)
 	  && code1 == INTEGER_TYPE)
 	{
 	  if (TREE_CODE (op1) == INTEGER_CST)
@@ -9600,9 +9803,10 @@ build_binary_op (location_t location, enum tree_code code,
 
 	  /* Use the type of the value to be shifted.  */
 	  result_type = type0;
-	  /* Convert the shift-count to an integer, regardless of size
-	     of value being shifted.  */
-	  if (TYPE_MAIN_VARIANT (TREE_TYPE (op1)) != integer_type_node)
+	  /* Convert the non vector shift-count to an integer, regardless
+	     of size of value being shifted.  */
+	  if (TREE_CODE (TREE_TYPE (op1)) != VECTOR_TYPE
+	      && TYPE_MAIN_VARIANT (TREE_TYPE (op1)) != integer_type_node)
 	    op1 = convert (integer_type_node, op1);
 	  /* Avoid converting op1 to result_type later.  */
 	  converted = 1;
@@ -10053,7 +10257,8 @@ build_binary_op (location_t location, enum tree_code code,
   if (build_type == NULL_TREE)
     {
       build_type = result_type;
-      if (type0 != orig_type0 || type1 != orig_type1)
+      if ((type0 != orig_type0 || type1 != orig_type1)
+	  && !boolean_op)
 	{
 	  gcc_assert (may_need_excess_precision && common);
 	  semantic_result_type = c_common_type (orig_type0, orig_type1);

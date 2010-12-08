@@ -31,7 +31,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "function.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "tree-pass.h"
 
 /* The differences between High GIMPLE and Low GIMPLE are the
@@ -844,8 +843,7 @@ lower_builtin_setjmp (gimple_stmt_iterator *gsi)
   /* Build 'DEST = 0' and insert.  */
   if (dest)
     {
-      g = gimple_build_assign (dest, fold_convert_loc (loc, TREE_TYPE (dest),
-						       integer_zero_node));
+      g = gimple_build_assign (dest, build_zero_cst (TREE_TYPE (dest)));
       gimple_set_location (g, loc);
       gimple_set_block (g, gimple_block (stmt));
       gsi_insert_before (gsi, g, GSI_SAME_STMT);

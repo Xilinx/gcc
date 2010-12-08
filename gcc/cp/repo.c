@@ -224,7 +224,7 @@ reopen_repo_file_for_write (void)
 
   if (repo_file == 0)
     {
-      error ("can't create repository information file %qs", repo_name);
+      error ("can%'t create repository information file %qs", repo_name);
       flag_use_repository = 0;
     }
 
@@ -319,7 +319,7 @@ repo_emit_p (tree decl)
 	 available.  Still record them into *.rpo files, so if they
 	 weren't actually emitted and collect2 requests them, they can
 	 be provided.  */
-      if (DECL_INTEGRAL_CONSTANT_VAR_P (decl)
+      if (decl_maybe_constant_var_p (decl)
 	  && DECL_CLASS_SCOPE_P (decl))
 	ret = 2;
     }

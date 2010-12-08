@@ -69,8 +69,6 @@ along with GCC; see the file COPYING3.  If not see
 #define POINTER_SIZE 32
 #define POINTERS_EXTEND_UNSIGNED 0
 
-#define HANDLE_SYSV_PRAGMA 1
-
 #define MAX_OFILE_ALIGNMENT 524288  /* 8 x 2^16 by DEC Ada Test CD40VRA */
 
 /* The maximum alignment 'malloc' honors.  */
@@ -174,18 +172,6 @@ typedef struct {int num_args; enum avms_arg_type atypes[6];} avms_arg_info;
   (CUM).num_args = 0;						\
   (CUM).atypes[0] = (CUM).atypes[1] = (CUM).atypes[2] = I64;	\
   (CUM).atypes[3] = (CUM).atypes[4] = (CUM).atypes[5] = I64;
-
-#undef FUNCTION_ARG_ADVANCE
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)			\
-  if (targetm.calls.must_pass_in_stack (MODE, TYPE))			\
-    (CUM).num_args += 6;						\
-  else									\
-    {									\
-      if ((CUM).num_args < 6)						\
-        (CUM).atypes[(CUM).num_args] = alpha_arg_type (MODE);		\
-									\
-     (CUM).num_args += ALPHA_ARG_SIZE (MODE, TYPE, NAMED);		\
-    }
 
 #define DEFAULT_PCC_STRUCT_RETURN 0
 

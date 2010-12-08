@@ -36,7 +36,6 @@
 #include "expr.h"
 #include "function.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "ggc.h"
 #include "integrate.h"
 #include "tm_p.h"
@@ -141,20 +140,20 @@ v850_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
     }
 }
 
-/* Implement TARGET_OPTION_OPTIMIZATION.  */
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
 
-static void
-v850_option_optimization (int level, int size ATTRIBUTE_UNUSED)
-{
-  if (level)
+static const struct default_options v850_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
     /* Note - we no longer enable MASK_EP when optimizing.  This is
        because of a hardware bug which stops the SLD and SST instructions
        from correctly detecting some hazards.  If the user is sure that
        their hardware is fixed or that their program will not encounter
        the conditions that trigger the bug then they can enable -mep by
        hand.  */
-    target_flags |= MASK_PROLOG_FUNCTION;
-}
+    { OPT_LEVELS_1_PLUS, OPT_mprolog_function, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 /* Handle the TARGET_PASS_BY_REFERENCE target hook.
    Specify whether to pass the argument by reference.  */
@@ -2416,7 +2415,7 @@ construct_save_jarl (rtx op)
   
   if (count <= (TARGET_LONG_CALLS ? 3 : 2)) 
     {
-      error ("bogus JARL construction: %d\n", count);
+      error ("bogus JARL construction: %d", count);
       return NULL;
     }
 
@@ -3064,6 +3063,20 @@ v850_can_eliminate (const int from ATTRIBUTE_UNUSED, const int to)
   return (to == STACK_POINTER_REGNUM ? ! frame_pointer_needed : true);
 }
 
+/* Worker function for TARGET_CONDITIONAL_REGISTER_USAGE.
+
+   If TARGET_APP_REGS is not defined then add r2 and r5 to
+   the pool of fixed registers. See PR 14505.  */
+
+static void
+v850_conditional_register_usage (void)
+{
+  if (TARGET_APP_REGS)
+    {
+     fixed_regs[2] = 0;  call_used_regs[2] = 0;
+     fixed_regs[5] = 0;  call_used_regs[5] = 1;
+    }
+}
 
 /* Worker function for TARGET_ASM_TRAMPOLINE_TEMPLATE.  */
 
@@ -3194,6 +3207,9 @@ static const struct attribute_spec v850_attribute_table[] =
 #undef  TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE v850_can_eliminate
 
+#undef  TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE v850_conditional_register_usage
+
 #undef  TARGET_ASM_TRAMPOLINE_TEMPLATE
 #define TARGET_ASM_TRAMPOLINE_TEMPLATE v850_asm_trampoline_template
 #undef  TARGET_TRAMPOLINE_INIT
@@ -3202,8 +3218,8 @@ static const struct attribute_spec v850_attribute_table[] =
 #undef  TARGET_STRICT_ARGUMENT_NAMING
 #define TARGET_STRICT_ARGUMENT_NAMING v850_strict_argument_naming
 
-#undef  TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION v850_option_optimization
+#undef  TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE v850_option_optimization_table
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

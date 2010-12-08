@@ -115,7 +115,7 @@ along with GCC; see the file COPYING3.  If not see
    It's safe to pass -s always, even if -g is not used.  */
 #undef ASM_SPEC
 #define ASM_SPEC "\
-%{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Wa,*:%*} -s \
+%{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} -s \
 %{fpic|fpie|fPIC|fPIE:-K PIC} \
 %(asm_cpu) \
 "
@@ -175,7 +175,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef  LINK_SPEC
 #define LINK_SPEC \
   "%{h*} %{v:-V} \
-   %{b} \
    %{!shared:%{!static:%{rdynamic: " RDYNAMIC_SPEC "}}} \
    %{static:-dn -Bstatic} \
    %{shared:-G -dy %{!mimpure-text:-z text}} \
@@ -192,14 +191,9 @@ along with GCC; see the file COPYING3.  If not see
 #undef SUPPORTS_INIT_PRIORITY
 #define SUPPORTS_INIT_PRIORITY 0
 
-/* This defines which switch letters take arguments.
-   It is as in svr4.h but with -R added.  */
-#undef SWITCH_TAKES_ARG
-#define SWITCH_TAKES_ARG(CHAR) \
-  (DEFAULT_SWITCH_TAKES_ARG(CHAR) \
-   || (CHAR) == 'R' \
-   || (CHAR) == 'h' \
-   || (CHAR) == 'z')
+/* collect2.c can only parse GNU nm -n output.  Solaris nm needs -png to
+   produce the same format.  */
+#define NM_FLAGS "-png"
 
 #define STDC_0_IN_SYSTEM_HEADERS 1
 

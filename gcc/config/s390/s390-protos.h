@@ -38,7 +38,6 @@ extern HOST_WIDE_INT s390_initial_elimination_offset (int, int);
 extern void s390_emit_prologue (void);
 extern void s390_emit_epilogue (bool);
 extern void s390_function_profiler (FILE *, int);
-extern void s390_conditional_register_usage (void);
 extern void s390_set_has_landing_pad_p (bool);
 extern bool s390_hard_regno_mode_ok (unsigned int, enum machine_mode);
 extern bool s390_hard_regno_rename_ok (unsigned int, unsigned int);
@@ -116,10 +115,7 @@ extern int s390_compare_and_branch_condition_mask (rtx);
 #endif /* RTX_CODE */
 
 #ifdef TREE_CODE
-extern void s390_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
-				       tree, int);
 #ifdef RTX_CODE
-extern rtx s390_function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
 extern rtx s390_function_value (const_tree, const_tree, enum machine_mode);
 #endif /* RTX_CODE */
 #endif /* TREE_CODE */

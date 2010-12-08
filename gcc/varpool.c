@@ -107,7 +107,7 @@ eq_varpool_node (const void *p1, const void *p2)
 
 /* Return varpool node assigned to DECL without creating new one.  */
 struct varpool_node *
-varpool_get_node (tree decl)
+varpool_get_node (const_tree decl)
 {
   struct varpool_node key, **slot;
 
@@ -116,7 +116,7 @@ varpool_get_node (tree decl)
 
   if (!varpool_hash)
     return NULL;
-  key.decl = decl;
+  key.decl = CONST_CAST2 (tree, const_tree, decl);
   slot = (struct varpool_node **)
     htab_find_slot (varpool_hash, &key, NO_INSERT);
   if (!slot)
@@ -241,6 +241,9 @@ dump_varpool_node (FILE *f, struct varpool_node *node)
     fprintf (f, " output");
   if (node->externally_visible)
     fprintf (f, " externally_visible");
+  if (node->resolution != LDPR_UNKNOWN)
+    fprintf (f, " %s",
+ 	     ld_plugin_symbol_resolution_names[(int)node->resolution]);
   if (node->in_other_partition)
     fprintf (f, " in_other_partition");
   else if (node->used_from_other_partition)
@@ -331,32 +334,24 @@ varpool_reset_queue (void)
 bool
 decide_is_variable_needed (struct varpool_node *node, tree decl)
 {
-  if (node->used_from_other_partition)
-    return true;
   /* If the user told us it is used, then it must be so.  */
-  if ((node->externally_visible && !DECL_COMDAT (decl))
-      || node->force_output)
+  if (node->force_output)
     return true;
+
+  gcc_assert (!DECL_EXTERNAL (decl));
 
   /* Externally visible variables must be output.  The exception is
      COMDAT variables that must be output only when they are needed.  */
   if (TREE_PUBLIC (decl)
-      && !flag_whole_program
-      && !flag_lto
-      && !flag_whopr
       && !DECL_COMDAT (decl)
       && !DECL_EXTERNAL (decl))
     return true;
 
   /* When not reordering top level variables, we have to assume that
      we are going to keep everything.  */
-  if (flag_toplevel_reorder)
-    return false;
-
-  /* We want to emit COMDAT variables only when absolutely necessary.  */
-  if (DECL_COMDAT (decl))
-    return false;
-  return true;
+  if (!flag_toplevel_reorder)
+    return true;
+  return false;
 }
 
 /* Return if DECL is constant and its initial value is known (so we can do
@@ -365,8 +360,6 @@ decide_is_variable_needed (struct varpool_node *node, tree decl)
 bool
 const_value_known_p (tree decl)
 {
-  struct varpool_node *vnode;
-
   if (TREE_CODE (decl) != VAR_DECL
       &&TREE_CODE (decl) != CONST_DECL)
     return false;
@@ -386,21 +379,12 @@ const_value_known_p (tree decl)
 
   gcc_assert (TREE_STATIC (decl) || DECL_EXTERNAL (decl));
 
-  /* In WHOPR mode we can put variable into one partition
-     and make it external in the other partition.  In this
-     case we still know the value, but it can't be determined
-     from DECL flags.  For this reason we keep const_value_known
-     flag in varpool nodes.  */
-  if ((vnode = varpool_get_node (decl))
-      && vnode->const_value_known)
-    return true;
-
   /* Variables declared 'const' without an initializer
      have zero as the initializer if they may not be
      overridden at link or run time.  */
   if (!DECL_INITIAL (decl)
       && (DECL_EXTERNAL (decl)
-	  || DECL_REPLACEABLE_P (decl)))
+	  || decl_replaceable_p (decl)))
     return false;
 
   /* Variables declared `const' with an initializer are considered
@@ -439,12 +423,6 @@ varpool_finalize_decl (tree decl)
 
   if (decide_is_variable_needed (node, decl))
     varpool_mark_needed_node (node);
-  /* Since we reclaim unreachable nodes at the end of every language
-     level unit, we need to be conservative about possible entry points
-     there.  */
-  else if (TREE_PUBLIC (decl) && !DECL_COMDAT (decl) && !DECL_EXTERNAL (decl))
-    varpool_mark_needed_node (node);
-  node->const_value_known |= const_value_known_p (node->decl);
   if (cgraph_global_info_ready)
     varpool_assemble_pending_decls ();
 }
@@ -462,7 +440,7 @@ cgraph_variable_initializer_availability (struct varpool_node *node)
   /* If the variable can be overwritten, return OVERWRITABLE.  Takes
      care of at least two notable extensions - the COMDAT variables
      used to share template instantiations in C++.  */
-  if (!(*targetm.binds_local_p) (node->decl) && !DECL_COMDAT (node->decl))
+  if (!decl_replaceable_p (node->decl))
     return AVAIL_OVERWRITABLE;
   return AVAIL_AVAILABLE;
 }
@@ -570,18 +548,14 @@ varpool_remove_unreferenced_decls (void)
 
   while (node)
     {
-      tree decl = node->decl;
       next = node->next_needed;
       node->needed = 0;
 
-      if (node->finalized
-	  && (decide_is_variable_needed (node, decl)
-	      /* ??? Cgraph does not yet rule the world with an iron hand,
-		 and does not control the emission of debug information.
-		 After a variable has its DECL_RTL set, we must assume that
-		 it may be referenced by the debug information, and we can
-		 no longer elide it.  */
-	      || DECL_RTL_SET_P (decl)))
+      if (node->analyzed
+	  && (!varpool_can_remove_if_no_refs (node)
+	      /* We just expanded all function bodies.  See if any of
+		 them needed the variable.  */
+	      || DECL_RTL_SET_P (node->decl)))
 	varpool_mark_needed_node (node);
 
       node = next;
@@ -674,7 +648,7 @@ add_new_static_var (tree type)
 /* Attempt to mark ALIAS as an alias to DECL.  Return TRUE if successful.
    Extra name aliases are output whenever DECL is output.  */
 
-bool
+struct varpool_node *
 varpool_extra_name_alias (tree alias, tree decl)
 {
   struct varpool_node key, *alias_node, *decl_node, **slot;
@@ -695,7 +669,7 @@ varpool_extra_name_alias (tree alias, tree decl)
 
   /* If the varpool_node has been already created, fail.  */
   if (*slot)
-    return false;
+    return NULL;
 
   alias_node = ggc_alloc_cleared_varpool_node ();
   alias_node->decl = alias;
@@ -707,7 +681,26 @@ varpool_extra_name_alias (tree alias, tree decl)
     decl_node->extra_name->prev = alias_node;
   decl_node->extra_name = alias_node;
   *slot = alias_node;
-  return true;
+  return alias_node;
+}
+
+/* Return true when NODE is known to be used from other (non-LTO) object file.
+   Known only when doing LTO via linker plugin.  */
+
+bool
+varpool_used_from_object_file_p (struct varpool_node *node)
+{
+  struct varpool_node *alias;
+
+  if (!TREE_PUBLIC (node->decl))
+    return false;
+  if (resolution_used_from_other_file_p (node->resolution))
+    return true;
+  for (alias = node->extra_name; alias; alias = alias->next)
+    if (TREE_PUBLIC (alias->decl)
+	&& resolution_used_from_other_file_p (alias->resolution))
+      return true;
+  return false;
 }
 
 #include "gt-varpool.h"

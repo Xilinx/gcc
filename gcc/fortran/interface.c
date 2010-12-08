@@ -314,12 +314,42 @@ gfc_match_end_interface (void)
 	{
 
 	  if (current_interface.op == INTRINSIC_ASSIGN)
-	    gfc_error ("Expected 'END INTERFACE ASSIGNMENT (=)' at %C");
+	    {
+	      m = MATCH_ERROR;
+	      gfc_error ("Expected 'END INTERFACE ASSIGNMENT (=)' at %C");
+	    }
 	  else
-	    gfc_error ("Expecting 'END INTERFACE OPERATOR (%s)' at %C",
-		       gfc_op2string (current_interface.op));
+	    {
+	      const char *s1, *s2;
+	      s1 = gfc_op2string (current_interface.op);
+	      s2 = gfc_op2string (op);
 
-	  m = MATCH_ERROR;
+	      /* The following if-statements are used to enforce C1202
+		 from F2003.  */
+	      if ((strcmp(s1, "==") == 0 && strcmp(s2, ".eq.") == 0)
+		  || (strcmp(s1, ".eq.") == 0 && strcmp(s2, "==") == 0))
+		break;
+	      if ((strcmp(s1, "/=") == 0 && strcmp(s2, ".ne.") == 0)
+		  || (strcmp(s1, ".ne.") == 0 && strcmp(s2, "/=") == 0))
+		break;
+	      if ((strcmp(s1, "<=") == 0 && strcmp(s2, ".le.") == 0)
+		  || (strcmp(s1, ".le.") == 0 && strcmp(s2, "<=") == 0))
+		break;
+	      if ((strcmp(s1, "<") == 0 && strcmp(s2, ".lt.") == 0)
+		  || (strcmp(s1, ".lt.") == 0 && strcmp(s2, "<") == 0))
+		break;
+	      if ((strcmp(s1, ">=") == 0 && strcmp(s2, ".ge.") == 0)
+		  || (strcmp(s1, ".ge.") == 0 && strcmp(s2, ">=") == 0))
+		break;
+	      if ((strcmp(s1, ">") == 0 && strcmp(s2, ".gt.") == 0)
+		  || (strcmp(s1, ".gt.") == 0 && strcmp(s2, ">") == 0))
+		break;
+
+	      m = MATCH_ERROR;
+	      gfc_error ("Expecting 'END INTERFACE OPERATOR (%s)' at %C, "
+			 "but got %s", s1, s2);
+	    }
+		
 	}
 
       break;
@@ -842,7 +872,8 @@ count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
       /* Find other nonoptional arguments of the same type/rank.  */
       for (j = i + 1; j < n1; j++)
 	if ((arg[j].sym == NULL || !arg[j].sym->attr.optional)
-	    && compare_type_rank_if (arg[i].sym, arg[j].sym))
+	    && (compare_type_rank_if (arg[i].sym, arg[j].sym)
+	        || compare_type_rank_if (arg[j].sym, arg[i].sym)))
 	  arg[j].flag = k;
 
       k++;
@@ -867,7 +898,8 @@ count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
       ac2 = 0;
 
       for (f = f2; f; f = f->next)
-	if (compare_type_rank_if (arg[i].sym, f->sym))
+	if (compare_type_rank_if (arg[i].sym, f->sym)
+	    || compare_type_rank_if (f->sym, arg[i].sym))
 	  ac2++;
 
       if (ac1 > ac2)
@@ -918,7 +950,8 @@ generic_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
       if (f1->sym->attr.optional)
 	goto next;
 
-      if (f2 != NULL && compare_type_rank (f1->sym, f2->sym))
+      if (f2 != NULL && (compare_type_rank (f1->sym, f2->sym)
+			 || compare_type_rank (f2->sym, f1->sym)))
 	goto next;
 
       /* Now search for a disambiguating keyword argument starting at
@@ -1026,7 +1059,7 @@ gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, const char *name2,
 	  }
 
 	/* Check type and rank.  */
-	if (!compare_type_rank (f1->sym, f2->sym))
+	if (!compare_type_rank (f2->sym, f1->sym))
 	  {
 	    if (errmsg != NULL)
 	      snprintf (errmsg, err_len, "Type/rank mismatch in argument '%s'",
@@ -1345,7 +1378,8 @@ compare_allocatable (gfc_symbol *formal, gfc_expr *actual)
 {
   symbol_attribute attr;
 
-  if (formal->attr.allocatable)
+  if (formal->attr.allocatable
+      || (formal->ts.type == BT_CLASS && CLASS_DATA (formal)->attr.allocatable))
     {
       attr = gfc_expr_attr (actual);
       if (!attr.allocatable)
@@ -1488,6 +1522,28 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 		   formal->name, &actual->where, gfc_typename (&actual->ts),
 		   gfc_typename (&formal->ts));
       return 0;
+    }
+    
+  /* F2003, 12.5.2.5.  */
+  if (formal->ts.type == BT_CLASS
+      && (CLASS_DATA (formal)->attr.class_pointer
+          || CLASS_DATA (formal)->attr.allocatable))
+    {
+      if (actual->ts.type != BT_CLASS)
+	{
+	  if (where)
+	    gfc_error ("Actual argument to '%s' at %L must be polymorphic",
+			formal->name, &actual->where);
+	  return 0;
+	}
+      if (CLASS_DATA (actual)->ts.u.derived
+	  != CLASS_DATA (formal)->ts.u.derived)
+	{
+	  if (where)
+	    gfc_error ("Actual argument to '%s' at %L must have the same "
+		       "declared type", formal->name, &actual->where);
+	  return 0;
+	}
     }
 
   if (formal->attr.codimension)

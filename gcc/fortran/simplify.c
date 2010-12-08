@@ -27,6 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "intrinsic.h"
 #include "target-memory.h"
 #include "constructor.h"
+#include "version.h"  /* For version_string.  */
 
 
 gfc_expr gfc_bad_expr;
@@ -5476,6 +5477,7 @@ gfc_expr *
 gfc_simplify_size (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 {
   mpz_t size;
+  gfc_expr *return_value;
   int d;
   int k = get_kind (BT_INTEGER, kind, "SIZE", gfc_default_integer_kind);
 
@@ -5547,7 +5549,9 @@ gfc_simplify_size (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 	return NULL;
     }
 
-  return gfc_get_int_expr (k, &array->where, mpz_get_si (size));
+  return_value = gfc_get_int_expr (k, &array->where, mpz_get_si (size));
+  mpz_clear (size);
+  return return_value;
 }
 
 
@@ -6732,4 +6736,32 @@ gfc_convert_char_constant (gfc_expr *e, bt type ATTRIBUTE_UNUSED, int kind)
     }
   else
     return NULL;
+}
+
+
+gfc_expr *
+gfc_simplify_compiler_options (void)
+{
+  char *str;
+  gfc_expr *result;
+
+  str = gfc_get_option_string ();
+  result = gfc_get_character_expr (gfc_default_character_kind,
+				   &gfc_current_locus, str, strlen (str));
+  gfc_free (str);
+  return result;
+}
+
+
+gfc_expr *
+gfc_simplify_compiler_version (void)
+{
+  char *buffer;
+  size_t len;
+
+  len = strlen ("GCC version ") + strlen (version_string) + 1;
+  buffer = (char*) alloca (len);
+  snprintf (buffer, len, "GCC version %s", version_string);
+  return gfc_get_character_expr (gfc_default_character_kind,
+                                &gfc_current_locus, buffer, len);
 }

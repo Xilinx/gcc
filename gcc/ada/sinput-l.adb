@@ -30,6 +30,7 @@ with Einfo;    use Einfo;
 with Errout;   use Errout;
 with Fname;    use Fname;
 with Hostparm;
+with Lib;      use Lib;
 with Opt;      use Opt;
 with Osint;    use Osint;
 with Output;   use Output;
@@ -552,9 +553,18 @@ package body Sinput.L is
 
                else
                   --  Output the result of the preprocessing, if requested and
-                  --  the source has been modified by the preprocessing.
+                  --  the source has been modified by the preprocessing. Only
+                  --  do that for the main unit (spec, body and subunits).
 
-                  if Generate_Processed_File and then Modified then
+                  if Generate_Processed_File
+                    and then Modified
+                    and then
+                     ((Compiler_State = Parsing
+                        and then Parsing_Main_Extended_Source)
+                       or else
+                        (Compiler_State = Analyzing
+                          and then Analysing_Subunit_Of_Main))
+                  then
                      declare
                         FD     : File_Descriptor;
                         NB     : Integer;
@@ -591,10 +601,9 @@ package body Sinput.L is
 
                         if not Status then
                            Errout.Error_Msg
-                             ("could not write processed file """ &
+                             ("?could not write processed file """ &
                               Name_Buffer (1 .. Name_Len) & '"',
                               Lo);
-                           return No_Source_File;
                         end if;
                      end;
                   end if;

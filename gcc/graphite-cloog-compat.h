@@ -72,6 +72,8 @@ typedef const char *clast_name_p;
 #define cloog_scattering cloog_domain
 #define cloog_next_scattering cloog_next_domain
 #define cloog_scattering_free cloog_domain_free
+#define cloog_program_dump_cloog(DUMPFILE, PROGRAM, SCATTERINGLIST)\
+  cloog_program_dump_cloog (DUMPFILE, PROGRAM)
 
 #endif
 
@@ -258,6 +260,16 @@ static inline void
 cloog_block_list_set_block (CloogBlockList *bl, CloogBlock *block)
 {
   bl->block = block;
+}
+
+static inline int cloog_matrix_ncolumns (CloogMatrix * m)
+{
+  return m->NbColumns;
+}
+
+static inline int cloog_matrix_nrows (CloogMatrix * m)
+{
+   return m->NbRows;
 }
 #endif /* CLOOG_ORG  */
 #endif /* GRAPHITE_CLOOG_COMPAT_H  */

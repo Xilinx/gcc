@@ -69,7 +69,7 @@ struct gimple_opt_pass pass_all_optimizations =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  TV_NONE,				/* tv_id */
+  TV_OPTIMIZE,				/* tv_id */
   0,					/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -111,7 +111,7 @@ struct simple_ipa_opt_pass pass_early_local_passes =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  TV_NONE,				/* tv_id */
+  TV_EARLY_LOCAL,			/* tv_id */
   0,					/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -203,7 +203,7 @@ struct gimple_opt_pass pass_cleanup_cfg_post_optimizing =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  TV_NONE,				/* tv_id */
+  TV_TREE_CLEANUP_CFG,			/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -271,13 +271,16 @@ execute_fixup_cfg (void)
 	      int flags = gimple_call_flags (stmt);
 	      if (flags & (ECF_CONST | ECF_PURE | ECF_LOOPING_CONST_OR_PURE))
 		{
+		  if (gimple_purge_dead_abnormal_call_edges (bb))
+		    todo |= TODO_cleanup_cfg;
+
 		  if (gimple_in_ssa_p (cfun))
 		    {
 		      todo |= TODO_update_ssa | TODO_cleanup_cfg;
 		      update_stmt (stmt);
 		    }
 		}
-	      
+
 	      if (flags & ECF_NORETURN
 		  && fixup_noreturn_call (stmt))
 		todo |= TODO_cleanup_cfg;
@@ -386,7 +389,7 @@ tree_rest_of_compilation (tree fndecl)
 {
   location_t saved_loc;
 
-  timevar_push (TV_EXPAND);
+  timevar_push (TV_REST_OF_COMPILATION);
 
   gcc_assert (cgraph_global_info_ready);
 
@@ -468,5 +471,5 @@ tree_rest_of_compilation (tree fndecl)
   input_location = saved_loc;
 
   ggc_collect ();
-  timevar_pop (TV_EXPAND);
+  timevar_pop (TV_REST_OF_COMPILATION);
 }

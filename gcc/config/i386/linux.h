@@ -85,18 +85,10 @@ along with GCC; see the file COPYING3.  If not see
 /* Provide a LINK_SPEC appropriate for Linux.  Here we provide support
    for the special GCC options -static and -shared, which allow us to
    link things in one of these three modes by applying the appropriate
-   combinations of options at link-time. We like to support here for
-   as many of the other GNU linker options as possible. But I don't
-   have the time to search for those flags. I am sure how to add
-   support for -soname shared_object_name. H.J.
-
-   I took out %{v:%{!V:-V}}. It is too much :-(. They can use
-   -Wl,-V.
+   combinations of options at link-time.
 
    When the -shared link option is used a final link is not being
    done.  */
-
-/* If ELF is the default format, we should not use /lib/elf.  */
 
 /* These macros may be overridden in k*bsd-gnu.h and i386/k*bsd-gnu.h. */
 #define LINK_EMULATION "elf_i386"
@@ -104,8 +96,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef  ASM_SPEC
 #define ASM_SPEC \
-  "%{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} --32 \
-  %{!mno-sse2avx:%{mavx:-msse2avx}} %{msse2avx:%{!mavx:-msse2avx}}"
+  "%{v} --32 %{!mno-sse2avx:%{mavx:-msse2avx}} %{msse2avx:%{!mavx:-msse2avx}}"
 
 #undef  SUBTARGET_EXTRA_SPECS
 #define SUBTARGET_EXTRA_SPECS \
@@ -218,4 +209,8 @@ along with GCC; see the file COPYING3.  If not see
 #ifdef TARGET_LIBC_PROVIDES_SSP
 /* i386 glibc provides __stack_chk_guard in %gs:0x14.  */
 #define TARGET_THREAD_SSP_OFFSET	0x14
+
+/* We steal the last transactional memory word.  */
+#define TARGET_CAN_SPLIT_STACK
+#define TARGET_THREAD_SPLIT_STACK_OFFSET 0x30
 #endif

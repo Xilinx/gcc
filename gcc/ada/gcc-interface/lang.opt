@@ -83,6 +83,9 @@ Woverlength-strings
 Ada
 ; Documented for C
 
+k8
+Driver
+
 nostdinc
 Ada RejectNegative
 ; Don't look for source files
@@ -100,10 +103,6 @@ Ada
 fRTS=
 Ada Joined RejectNegative
 ; Selects the runtime
-
-gdwarf+
-Ada
-; Explicit request for dwarf debug info with GNAT specific extensions.
 
 gant
 Ada Joined Undocumented

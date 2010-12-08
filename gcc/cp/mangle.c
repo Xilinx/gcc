@@ -1,5 +1,5 @@
 /* Name mangling for the 3.0 C++ ABI.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Written by Alex Samuel <samuel@codesourcery.com>
 
@@ -53,7 +53,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "cp-tree.h"
 #include "obstack.h"
-#include "toplev.h"
 #include "flags.h"
 #include "target.h"
 #include "cgraph.h"
@@ -1943,17 +1942,16 @@ write_type (tree type)
               write_char ('E');
               break;
 
+	    case NULLPTR_TYPE:
+	      write_string ("Dn");
+	      break;
+
 	    case TYPEOF_TYPE:
 	      sorry ("mangling typeof, use decltype instead");
 	      break;
 
 	    case LANG_TYPE:
-	      if (NULLPTR_TYPE_P (type))
-		{
-		  write_string ("Dn");
-		  break;
-		}
-	      /* else fall through.  */
+	      /* fall through.  */
 
 	    default:
 	      gcc_unreachable ();

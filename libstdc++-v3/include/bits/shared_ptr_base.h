@@ -51,6 +51,202 @@
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
+ /**
+   *  @brief  Exception possibly thrown by @c shared_ptr.
+   *  @ingroup exceptions
+   */
+  class bad_weak_ptr : public std::exception
+  {
+  public:
+    virtual char const*
+    what() const throw()
+    { return "std::bad_weak_ptr"; }
+  };
+
+  // Substitute for bad_weak_ptr object in the case of -fno-exceptions.
+  inline void
+  __throw_bad_weak_ptr()
+  {
+#if __EXCEPTIONS
+    throw bad_weak_ptr();
+#else
+    __builtin_abort();
+#endif
+  }
+
+  using __gnu_cxx::_Lock_policy;
+  using __gnu_cxx::__default_lock_policy;
+  using __gnu_cxx::_S_single;
+  using __gnu_cxx::_S_mutex;
+  using __gnu_cxx::_S_atomic;
+
+  // Empty helper class except when the template argument is _S_mutex.
+  template<_Lock_policy _Lp>
+    class _Mutex_base
+    {
+    protected:
+      // The atomic policy uses fully-fenced builtins, single doesn't care.
+      enum { _S_need_barriers = 0 };
+    };
+
+  template<>
+    class _Mutex_base<_S_mutex>
+    : public __gnu_cxx::__mutex
+    {
+    protected:
+      // This policy is used when atomic builtins are not available.
+      // The replacement atomic operations might not have the necessary
+      // memory barriers.
+      enum { _S_need_barriers = 1 };
+    };
+
+  template<_Lock_policy _Lp = __default_lock_policy>
+    class _Sp_counted_base
+    : public _Mutex_base<_Lp>
+    {
+    public:  
+      _Sp_counted_base()
+      : _M_use_count(1), _M_weak_count(1) { }
+      
+      virtual
+      ~_Sp_counted_base() // nothrow 
+      { }
+  
+      // Called when _M_use_count drops to zero, to release the resources
+      // managed by *this.
+      virtual void
+      _M_dispose() = 0; // nothrow
+      
+      // Called when _M_weak_count drops to zero.
+      virtual void
+      _M_destroy() // nothrow
+      { delete this; }
+      
+      virtual void*
+      _M_get_deleter(const std::type_info&) = 0;
+
+      void
+      _M_add_ref_copy()
+      { __gnu_cxx::__atomic_add_dispatch(&_M_use_count, 1); }
+  
+      void
+      _M_add_ref_lock();
+      
+      void
+      _M_release() // nothrow
+      {
+        // Be race-detector-friendly.  For more info see bits/c++config.
+        _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(&_M_use_count);
+	if (__gnu_cxx::__exchange_and_add_dispatch(&_M_use_count, -1) == 1)
+	  {
+            _GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER(&_M_use_count);
+	    _M_dispose();
+	    // There must be a memory barrier between dispose() and destroy()
+	    // to ensure that the effects of dispose() are observed in the
+	    // thread that runs destroy().
+	    // See http://gcc.gnu.org/ml/libstdc++/2005-11/msg00136.html
+	    if (_Mutex_base<_Lp>::_S_need_barriers)
+	      {
+	        _GLIBCXX_READ_MEM_BARRIER;
+	        _GLIBCXX_WRITE_MEM_BARRIER;
+	      }
+
+            // Be race-detector-friendly.  For more info see bits/c++config.
+            _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(&_M_weak_count);
+	    if (__gnu_cxx::__exchange_and_add_dispatch(&_M_weak_count,
+						       -1) == 1)
+              {
+                _GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER(&_M_weak_count);
+	        _M_destroy();
+              }
+	  }
+      }
+  
+      void
+      _M_weak_add_ref() // nothrow
+      { __gnu_cxx::__atomic_add_dispatch(&_M_weak_count, 1); }
+
+      void
+      _M_weak_release() // nothrow
+      {
+        // Be race-detector-friendly. For more info see bits/c++config.
+        _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(&_M_weak_count);
+	if (__gnu_cxx::__exchange_and_add_dispatch(&_M_weak_count, -1) == 1)
+	  {
+            _GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER(&_M_weak_count);
+	    if (_Mutex_base<_Lp>::_S_need_barriers)
+	      {
+	        // See _M_release(),
+	        // destroy() must observe results of dispose()
+	        _GLIBCXX_READ_MEM_BARRIER;
+	        _GLIBCXX_WRITE_MEM_BARRIER;
+	      }
+	    _M_destroy();
+	  }
+      }
+  
+      long
+      _M_get_use_count() const // nothrow
+      {
+        // No memory barrier is used here so there is no synchronization
+        // with other threads.
+        return const_cast<const volatile _Atomic_word&>(_M_use_count);
+      }
+
+    private:  
+      _Sp_counted_base(_Sp_counted_base const&);
+      _Sp_counted_base& operator=(_Sp_counted_base const&);
+
+      _Atomic_word  _M_use_count;     // #shared
+      _Atomic_word  _M_weak_count;    // #weak + (#shared != 0)
+    };
+
+  template<>
+    inline void
+    _Sp_counted_base<_S_single>::
+    _M_add_ref_lock()
+    {
+      if (__gnu_cxx::__exchange_and_add_dispatch(&_M_use_count, 1) == 0)
+	{
+	  _M_use_count = 0;
+	  __throw_bad_weak_ptr();
+	}
+    }
+
+  template<>
+    inline void
+    _Sp_counted_base<_S_mutex>::
+    _M_add_ref_lock()
+    {
+      __gnu_cxx::__scoped_lock sentry(*this);
+      if (__gnu_cxx::__exchange_and_add_dispatch(&_M_use_count, 1) == 0)
+	{
+	  _M_use_count = 0;
+	  __throw_bad_weak_ptr();
+	}
+    }
+
+  template<> 
+    inline void
+    _Sp_counted_base<_S_atomic>::
+    _M_add_ref_lock()
+    {
+      // Perform lock-free add-if-not-zero operation.
+      _Atomic_word __count;
+      do
+	{
+	  __count = _M_use_count;
+	  if (__count == 0)
+	    __throw_bad_weak_ptr();
+	  
+	  // Replace the current counter value with the old value + 1, as
+	  // long as it's not changed meanwhile. 
+	}
+      while (!__sync_bool_compare_and_swap(&_M_use_count, __count,
+					   __count + 1));
+    }
+
+
   // Forward declarations.
   template<typename _Tp, _Lock_policy _Lp = __default_lock_policy>
     class __shared_ptr;
@@ -135,7 +331,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       {
 	_Deleter _M_del;         // copy constructor must not throw
 	_My_Deleter(_Deleter __d, const _Alloc& __a)
-	  : _My_alloc_type(__a), _M_del(__d) { }
+	: _My_alloc_type(__a), _M_del(__d) { }
       };
 
     protected:
@@ -247,7 +443,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     class __shared_count
     {
     public:
-      __shared_count() : _M_pi(0) // nothrow
+      constexpr __shared_count() : _M_pi(0) // nothrow
       { }
 
       template<typename _Ptr>
@@ -308,7 +504,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<typename _Tp, typename _Alloc, typename... _Args>
-	__shared_count(_Sp_make_shared_tag, _Tp*, _Alloc __a, _Args&&... __args)
+	__shared_count(_Sp_make_shared_tag, _Tp*, const _Alloc& __a,
+		       _Args&&... __args)
 	: _M_pi(0)
 	{
 	  typedef _Sp_counted_ptr_inplace<_Tp, _Alloc, _Lp> _Sp_cp_type;
@@ -439,7 +636,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     class __weak_count
     {
     public:
-      __weak_count() : _M_pi(0) // nothrow
+      constexpr __weak_count() : _M_pi(0) // nothrow
       { }
 
       __weak_count(const __shared_count<_Lp>& __r) : _M_pi(__r._M_pi) // nothrow
@@ -555,11 +752,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     public:
       typedef _Tp   element_type;
 
-      __shared_ptr() : _M_ptr(0), _M_refcount() // never throws
+      constexpr __shared_ptr()
+      : _M_ptr(0), _M_refcount() // never throws
       { }
 
       template<typename _Tp1>
-	explicit __shared_ptr(_Tp1* __p) : _M_ptr(__p), _M_refcount(__p)
+	explicit __shared_ptr(_Tp1* __p)
+        : _M_ptr(__p), _M_refcount(__p)
 	{
 	  __glibcxx_function_requires(_ConvertibleConcept<_Tp1*, _Tp*>)
 	  static_assert( sizeof(_Tp1) > 0, "incomplete type" );
@@ -576,8 +775,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
 
       template<typename _Tp1, typename _Deleter, typename _Alloc>
-	__shared_ptr(_Tp1* __p, _Deleter __d, const _Alloc& __a)
-	: _M_ptr(__p), _M_refcount(__p, __d, __a)
+	__shared_ptr(_Tp1* __p, _Deleter __d, _Alloc __a)
+	: _M_ptr(__p), _M_refcount(__p, __d, std::move(__a))
 	{
 	  __glibcxx_function_requires(_ConvertibleConcept<_Tp1*, _Tp*>)
 	  // TODO requires _Deleter CopyConstructible and __d(__p) well-formed
@@ -590,8 +789,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	{ }
 
       template<typename _Deleter, typename _Alloc>
-	__shared_ptr(nullptr_t __p, _Deleter __d, const _Alloc& __a)
-	: _M_ptr(0), _M_refcount(__p, __d, __a)
+        __shared_ptr(nullptr_t __p, _Deleter __d, _Alloc __a)
+	: _M_ptr(0), _M_refcount(__p, __d, std::move(__a))
 	{ }
 
       template<typename _Tp1>
@@ -660,7 +859,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #endif
 
       /* TODO: use delegating constructor */
-      __shared_ptr(nullptr_t) : _M_ptr(0), _M_refcount() // never throws
+      constexpr __shared_ptr(nullptr_t)
+      : _M_ptr(0), _M_refcount() // never throws
       { }
 
       template<typename _Tp1>
@@ -725,8 +925,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       template<typename _Tp1, typename _Deleter, typename _Alloc>
 	void
-	reset(_Tp1* __p, _Deleter __d, const _Alloc& __a)
-	{ __shared_ptr(__p, __d, __a).swap(*this); }
+        reset(_Tp1* __p, _Deleter __d, _Alloc __a)
+        { __shared_ptr(__p, __d, std::move(__a)).swap(*this); }
 
       // Allow class instantiation when _Tp is [cv-qual] void.
       typename std::add_lvalue_reference<_Tp>::type
@@ -779,7 +979,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     protected:
       // This constructor is non-standard, it is used by allocate_shared.
       template<typename _Alloc, typename... _Args>
-	__shared_ptr(_Sp_make_shared_tag __tag, _Alloc __a, _Args&&... __args)
+	__shared_ptr(_Sp_make_shared_tag __tag, const _Alloc& __a,
+		     _Args&&... __args)
 	: _M_ptr(), _M_refcount(__tag, (_Tp*)0, __a,
 				std::forward<_Args>(__args)...)
 	{
@@ -802,7 +1003,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         };
 
       template<typename _Alloc, typename... _Args>
-	__shared_ptr(_Sp_make_shared_tag __tag, _Alloc __a, _Args&&... __args)
+	__shared_ptr(_Sp_make_shared_tag __tag, const _Alloc& __a,
+		     _Args&&... __args)
 	: _M_ptr(), _M_refcount()
         {
 	  typedef typename _Alloc::template rebind<_Tp>::other _Alloc2;
@@ -826,7 +1028,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       template<typename _Tp1, _Lock_policy _Lp1, typename _Alloc,
 	       typename... _Args>
 	friend __shared_ptr<_Tp1, _Lp1>
-	__allocate_shared(_Alloc __a, _Args&&... __args);
+	__allocate_shared(const _Alloc& __a, _Args&&... __args);
 
     private:
       void*
@@ -899,25 +1101,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     : public _Sp_less<__shared_ptr<_Tp, _Lp>>
     { };
 
-  // XXX LessThanComparable<_Tp> concept should provide >, >= and <=
-  template<typename _Tp, _Lock_policy _Lp>
-    inline bool
-    operator>(const __shared_ptr<_Tp, _Lp>& __a,
-	      const __shared_ptr<_Tp, _Lp>& __b)
-    { return __a.get() > __b.get(); }
-
-  template<typename _Tp, _Lock_policy _Lp>
-    inline bool
-    operator>=(const __shared_ptr<_Tp, _Lp>& __a,
-	       const __shared_ptr<_Tp, _Lp>& __b)
-    { return __a.get() >= __b.get(); }
-
-  template<typename _Tp, _Lock_policy _Lp>
-    inline bool
-    operator<=(const __shared_ptr<_Tp, _Lp>& __a,
-	       const __shared_ptr<_Tp, _Lp>& __b)
-    { return __a.get() <= __b.get(); }
-
   // 2.2.3.8 shared_ptr specialized algorithms.
   template<typename _Tp, _Lock_policy _Lp>
     inline void
@@ -967,7 +1150,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     public:
       typedef _Tp element_type;
 
-      __weak_ptr() : _M_ptr(0), _M_refcount() // never throws
+      constexpr __weak_ptr()
+      : _M_ptr(0), _M_refcount() // never throws
       { }
 
       // Generated copy constructor, assignment, destructor are fine.
@@ -1128,7 +1312,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     class __enable_shared_from_this
     {
     protected:
-      __enable_shared_from_this() { }
+      constexpr __enable_shared_from_this() { }
 
       __enable_shared_from_this(const __enable_shared_from_this&) { }
 
@@ -1169,10 +1353,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   template<typename _Tp, _Lock_policy _Lp, typename _Alloc, typename... _Args>
     inline __shared_ptr<_Tp, _Lp>
-    __allocate_shared(_Alloc __a, _Args&&... __args)
+    __allocate_shared(const _Alloc& __a, _Args&&... __args)
     {
-      return __shared_ptr<_Tp, _Lp>(_Sp_make_shared_tag(),
-	  std::forward<_Alloc>(__a), std::forward<_Args>(__args)...);
+      return __shared_ptr<_Tp, _Lp>(_Sp_make_shared_tag(), __a,
+				    std::forward<_Args>(__args)...);
     }
 
   template<typename _Tp, _Lock_policy _Lp, typename... _Args>

@@ -28,10 +28,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "name-lookup.h"
 #include "timevar.h"
-#include "toplev.h"
 #include "diagnostic-core.h"
+#include "intl.h"
 #include "debug.h"
 #include "c-family/c-pragma.h"
+#include "params.h"
 
 /* The bindings for a particular name in a particular scope.  */
 
@@ -872,7 +873,7 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 		     inlining.  */
 		  && (!TYPE_NAME (type)
 		      || TYPE_NAME (type) != DECL_ABSTRACT_ORIGIN (x))))
-	    cp_set_underlying_type (x);
+	    set_underlying_type (x);
 
 	  if (type != error_mark_node
 	      && TYPE_NAME (type)
@@ -992,7 +993,7 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 		/* OK */;
 	      else
 		{
-		  warning (0, "extern declaration of %q#D doesn't match", x);
+		  warning (0, "extern declaration of %q#D doesn%'t match", x);
 		  warning (0, "global declaration %q+#D", oldglobal);
 		}
 	    }
@@ -1169,7 +1170,7 @@ maybe_push_decl (tree decl)
 	  && DECL_CONTEXT (decl) != NULL_TREE
 	  /* Definitions of namespace members outside their namespace are
 	     possible.  */
-	  && TREE_CODE (DECL_CONTEXT (decl)) != NAMESPACE_DECL)
+	  && !DECL_NAMESPACE_SCOPE_P (decl))
       || (TREE_CODE (decl) == TEMPLATE_DECL && !namespace_bindings_p ())
       || type == unknown_type_node
       /* The declaration of a template specialization does not affect
@@ -3068,7 +3069,7 @@ namespace_binding (tree name, tree scope)
 {
   cxx_binding *binding;
 
-  if (scope == NULL)
+  if (SCOPE_FILE_SCOPE_P (scope))
     scope = global_namespace;
   else
     /* Unnecessary for the global namespace because it can't be an alias. */
@@ -3239,7 +3240,6 @@ handle_namespace_attrs (tree ns, tree attributes)
       tree name = TREE_PURPOSE (d);
       tree args = TREE_VALUE (d);
 
-#ifdef HANDLE_PRAGMA_VISIBILITY
       if (is_attribute_p ("visibility", name))
 	{
 	  tree x = args ? TREE_VALUE (args) : NULL_TREE;
@@ -3260,7 +3260,6 @@ handle_namespace_attrs (tree ns, tree attributes)
 	  saw_vis = true;
 	}
       else
-#endif
 	{
 	  warning (OPT_Wattributes, "%qD attribute directive ignored",
 		   name);
@@ -3917,6 +3916,71 @@ remove_hidden_names (tree fns)
     }
 
   return fns;
+}
+
+/* Suggest alternatives for NAME, an IDENTIFIER_NODE for which name
+   lookup failed.  Search through all available namespaces and print out
+   possible candidates.  */
+
+void
+suggest_alternatives_for (tree name)
+{
+  VEC(tree,heap) *candidates = NULL;
+  VEC(tree,heap) *namespaces_to_search = NULL;
+  int max_to_search = PARAM_VALUE (CXX_MAX_NAMESPACES_FOR_DIAGNOSTIC_HELP);
+  int n_searched = 0;
+  tree t;
+  unsigned ix;
+  location_t name_location;
+
+  VEC_safe_push (tree, heap, namespaces_to_search, global_namespace);
+
+  while (!VEC_empty (tree, namespaces_to_search)
+	 && n_searched < max_to_search)
+    {
+      tree scope = VEC_pop (tree, namespaces_to_search);
+      struct scope_binding binding = EMPTY_SCOPE_BINDING;
+      struct cp_binding_level *level = NAMESPACE_LEVEL (scope);
+
+      /* Look in this namespace.  */
+      qualified_lookup_using_namespace (name, scope, &binding, 0);
+
+      n_searched++;
+
+      if (binding.value)
+	VEC_safe_push (tree, heap, candidates, binding.value);
+
+      /* Add child namespaces.  */
+      for (t = level->namespaces; t; t = DECL_CHAIN (t))
+	VEC_safe_push (tree, heap, namespaces_to_search, t);
+    }
+
+  name_location = location_of (name);
+
+  /* If we stopped before we could examine all namespaces, inform the
+     user.  Do this even if we don't have any candidates, since there
+     might be more candidates further down that we weren't able to
+     find.  */
+  if (n_searched >= max_to_search
+      && !VEC_empty (tree, namespaces_to_search))
+    inform (name_location,
+	    "maximum limit of %d namespaces searched for %qE",
+	    max_to_search, name);
+
+  VEC_free (tree, heap, namespaces_to_search);
+
+  /* Nothing useful to report.  */
+  if (VEC_empty (tree, candidates))
+    return;
+
+  inform_n (name_location, VEC_length (tree, candidates),
+	    "suggested alternative:",
+	    "suggested alternatives:");
+
+  FOR_EACH_VEC_ELT (tree, candidates, ix, t)
+    inform (location_of (t), "  %qE", t);
+
+  VEC_free (tree, heap, candidates);
 }
 
 /* Unscoped lookup of a global: iterate over current namespaces,
@@ -4932,6 +4996,7 @@ arg_assoc_type (struct arg_lookup *k, tree type)
     case BOOLEAN_TYPE:
     case FIXED_POINT_TYPE:
     case DECLTYPE_TYPE:
+    case NULLPTR_TYPE:
       return false;
     case RECORD_TYPE:
       if (TYPE_PTRMEMFUNC_P (type))
@@ -4963,7 +5028,6 @@ arg_assoc_type (struct arg_lookup *k, tree type)
       return false;
     case LANG_TYPE:
       gcc_assert (type == unknown_type_node
-		  || NULLPTR_TYPE_P (type)
 		  || type == init_list_type_node);
       return false;
     case TYPE_PACK_EXPANSION:

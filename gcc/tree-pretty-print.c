@@ -801,6 +801,10 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
     case MEM_REF:
       {
 	if (integer_zerop (TREE_OPERAND (node, 1))
+	    /* Dump the types of INTEGER_CSTs explicitly, for we can't
+	       infer them and MEM_ATTR caching will share MEM_REFs
+	       with differently-typed op0s.  */
+	    && TREE_CODE (TREE_OPERAND (node, 0)) != INTEGER_CST
 	    /* Same pointer types, but ignoring POINTER_TYPE vs.
 	       REFERENCE_TYPE.  */
 	    && (TREE_TYPE (TREE_TYPE (TREE_OPERAND (node, 0)))
@@ -1163,6 +1167,10 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	      || (TREE_CODE (op0) == MEM_REF
 		  && TREE_CODE (TREE_OPERAND (op0, 0)) != ADDR_EXPR
 		  && integer_zerop (TREE_OPERAND (op0, 1))
+		  /* Dump the types of INTEGER_CSTs explicitly, for we
+		     can't infer them and MEM_ATTR caching will share
+		     MEM_REFs with differently-typed op0s.  */
+		  && TREE_CODE (TREE_OPERAND (op0, 0)) != INTEGER_CST
 		  /* Same pointer types, but ignoring POINTER_TYPE vs.
 		     REFERENCE_TYPE.  */
 		  && (TREE_TYPE (TREE_TYPE (TREE_OPERAND (op0, 0)))
@@ -2032,6 +2040,16 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       pp_string (buffer, " > ");
       break;
 
+    case FMA_EXPR:
+      pp_string (buffer, " FMA_EXPR < ");
+      dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
+      pp_string (buffer, ", ");
+      dump_generic_node (buffer, TREE_OPERAND (node, 1), spc, flags, false);
+      pp_string (buffer, ", ");
+      dump_generic_node (buffer, TREE_OPERAND (node, 2), spc, flags, false);
+      pp_string (buffer, " > ");
+      break;
+
     case OMP_PARALLEL:
       pp_string (buffer, "#pragma omp parallel");
       dump_omp_clauses (buffer, OMP_PARALLEL_CLAUSES (node), spc, flags);
@@ -2538,6 +2556,7 @@ op_code_prio (enum tree_code code)
     case CEIL_MOD_EXPR:
     case FLOOR_MOD_EXPR:
     case ROUND_MOD_EXPR:
+    case FMA_EXPR:
       return 13;
 
     case TRUTH_NOT_EXPR:

@@ -43,7 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "libfuncs.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "sched-int.h"
 #include "timevar.h"
 #include "target.h"
@@ -202,13 +201,23 @@ static rtx gen_fr_spill_x (rtx, rtx, rtx);
 static rtx gen_fr_restore_x (rtx, rtx, rtx);
 
 static void ia64_option_override (void);
-static void ia64_option_optimization (int, int);
+static void ia64_option_default_params (void);
 static bool ia64_can_eliminate (const int, const int);
 static enum machine_mode hfa_element_mode (const_tree, bool);
 static void ia64_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode,
 					 tree, int *, int);
 static int ia64_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				   tree, bool);
+static rtx ia64_function_arg_1 (const CUMULATIVE_ARGS *, enum machine_mode,
+				const_tree, bool, bool);
+static rtx ia64_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+			      const_tree, bool);
+static rtx ia64_function_incoming_arg (CUMULATIVE_ARGS *,
+				       enum machine_mode, const_tree, bool);
+static void ia64_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+				       const_tree, bool);
+static unsigned int ia64_function_arg_boundary (enum machine_mode,
+						const_tree);
 static bool ia64_function_ok_for_sibcall (tree, tree);
 static bool ia64_return_in_memory (const_tree, const_tree);
 static rtx ia64_function_value (const_tree, const_tree, bool);
@@ -250,6 +259,9 @@ static int ia64_variable_issue (FILE *, int, rtx, int);
 static void ia64_asm_unwind_emit (FILE *, rtx);
 static void ia64_asm_emit_except_personality (rtx);
 static void ia64_asm_init_sections (void);
+
+static enum unwind_info_type ia64_debug_unwind_info (void);
+static enum unwind_info_type ia64_except_unwind_info (struct gcc_options *);
 
 static struct bundle_state *get_free_bundle_state (void);
 static void free_bundle_state (struct bundle_state *);
@@ -319,6 +331,12 @@ static void ia64_trampoline_init (rtx, tree, rtx);
 static void ia64_override_options_after_change (void);
 
 static void ia64_dwarf_handle_frame_unspec (const char *, rtx, int);
+static tree ia64_builtin_decl (unsigned, bool);
+
+static reg_class_t ia64_preferred_reload_class (rtx, reg_class_t);
+static enum machine_mode ia64_get_reg_raw_mode (int regno);
+static section * ia64_hpux_function_section (tree, enum node_frequency,
+					     bool, bool);
 
 /* Table of valid machine attributes.  */
 static const struct attribute_spec ia64_attribute_table[] =
@@ -334,6 +352,16 @@ static const struct attribute_spec ia64_attribute_table[] =
   { NULL,	       0, 0, false, false, false, NULL }
 };
 
+/* Implement overriding of the optimization options.  */
+static const struct default_options ia64_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+#ifdef SUBTARGET_OPTIMIZATION_OPTIONS
+    SUBTARGET_OPTIMIZATION_OPTIONS,
+#endif
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
+
 /* Initialize the GCC target structure.  */
 #undef TARGET_ATTRIBUTE_TABLE
 #define TARGET_ATTRIBUTE_TABLE ia64_attribute_table
@@ -343,6 +371,9 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN ia64_expand_builtin
+
+#undef TARGET_BUILTIN_DECL
+#define TARGET_BUILTIN_DECL ia64_builtin_decl
 
 #undef TARGET_ASM_BYTE_OP
 #define TARGET_ASM_BYTE_OP "\tdata1\t"
@@ -363,8 +394,10 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE ia64_option_override
-#undef TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION ia64_option_optimization
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE ia64_option_optimization_table
+#undef TARGET_OPTION_DEFAULT_PARAMS
+#define TARGET_OPTION_DEFAULT_PARAMS ia64_option_default_params
 
 #undef TARGET_ASM_FUNCTION_PROLOGUE
 #define TARGET_ASM_FUNCTION_PROLOGUE ia64_output_function_prologue
@@ -460,6 +493,14 @@ static const struct attribute_spec ia64_attribute_table[] =
 #define TARGET_FUNCTION_OK_FOR_SIBCALL ia64_function_ok_for_sibcall
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES ia64_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG ia64_function_arg
+#undef TARGET_FUNCTION_INCOMING_ARG
+#define TARGET_FUNCTION_INCOMING_ARG ia64_function_incoming_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE ia64_function_arg_advance
+#undef TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY ia64_function_arg_boundary
 
 #undef TARGET_ASM_OUTPUT_MI_THUNK
 #define TARGET_ASM_OUTPUT_MI_THUNK ia64_output_mi_thunk
@@ -524,6 +565,10 @@ static const struct attribute_spec ia64_attribute_table[] =
 #define TARGET_STRICT_ARGUMENT_NAMING hook_bool_CUMULATIVE_ARGS_true
 #undef TARGET_MUST_PASS_IN_STACK
 #define TARGET_MUST_PASS_IN_STACK must_pass_in_stack_var_size
+#undef TARGET_GET_RAW_RESULT_MODE
+#define TARGET_GET_RAW_RESULT_MODE ia64_get_reg_raw_mode
+#undef TARGET_GET_RAW_ARG_MODE
+#define TARGET_GET_RAW_ARG_MODE ia64_get_reg_raw_mode
 
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR ia64_gimplify_va_arg
@@ -536,6 +581,11 @@ static const struct attribute_spec ia64_attribute_table[] =
 #define TARGET_ASM_EMIT_EXCEPT_PERSONALITY  ia64_asm_emit_except_personality
 #undef TARGET_ASM_INIT_SECTIONS
 #define TARGET_ASM_INIT_SECTIONS  ia64_asm_init_sections
+
+#undef TARGET_DEBUG_UNWIND_INFO
+#define TARGET_DEBUG_UNWIND_INFO  ia64_debug_unwind_info
+#undef TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO  ia64_except_unwind_info
 
 #undef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P ia64_scalar_mode_supported_p
@@ -579,6 +629,9 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE
 #define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE ia64_override_options_after_change
+
+#undef TARGET_PREFERRED_RELOAD_CLASS
+#define TARGET_PREFERRED_RELOAD_CLASS ia64_preferred_reload_class
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -1918,6 +1971,44 @@ ia64_expand_vecint_minmax (enum rtx_code code, enum machine_mode mode,
   return true;
 }
 
+/* Emit an integral vector unpack operation.  */
+
+void
+ia64_expand_unpack (rtx operands[3], bool unsignedp, bool highp)
+{
+  enum machine_mode mode = GET_MODE (operands[1]);
+  rtx (*gen) (rtx, rtx, rtx);
+  rtx x;
+
+  switch (mode)
+    {
+    case V8QImode:
+      gen = highp ? gen_vec_interleave_highv8qi : gen_vec_interleave_lowv8qi;
+      break;
+    case V4HImode:
+      gen = highp ? gen_vec_interleave_highv4hi : gen_vec_interleave_lowv4hi;
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  /* Fill in x with the sign extension of each element in op1.  */
+  if (unsignedp)
+    x = CONST0_RTX (mode);
+  else
+    {
+      bool neg;
+
+      x = gen_reg_rtx (mode);
+
+      neg = ia64_expand_vecint_compare (LT, mode, x, operands[1],
+					CONST0_RTX (mode));
+      gcc_assert (!neg);
+    }
+
+  emit_insn (gen (gen_lowpart (mode, operands[0]), operands[1], x));
+}
+
 /* Emit an integral vector widening sum operations.  */
 
 void
@@ -1935,13 +2026,13 @@ ia64_expand_widen_sum (rtx operands[3], bool unsignedp)
   switch (mode)
     {
     case V8QImode:
-      unpack_l = gen_unpack1_l;
-      unpack_h = gen_unpack1_h;
+      unpack_l = gen_vec_interleave_lowv8qi;
+      unpack_h = gen_vec_interleave_highv8qi;
       plus = gen_addv4hi3;
       break;
     case V4HImode:
-      unpack_l = gen_unpack2_l;
-      unpack_h = gen_unpack2_h;
+      unpack_l = gen_vec_interleave_lowv4hi;
+      unpack_h = gen_vec_interleave_highv4hi;
       plus = gen_addv2si3;
       break;
     default:
@@ -1970,6 +2061,27 @@ ia64_expand_widen_sum (rtx operands[3], bool unsignedp)
   emit_insn (unpack_h (gen_lowpart (mode, h), operands[1], x));
   emit_insn (plus (s, l, operands[2]));
   emit_insn (plus (operands[0], h, s));
+}
+
+void
+ia64_expand_widen_mul_v4hi (rtx operands[3], bool unsignedp, bool highp)
+{
+  rtx l = gen_reg_rtx (V4HImode);
+  rtx h = gen_reg_rtx (V4HImode);
+  rtx (*mulhigh)(rtx, rtx, rtx, rtx);
+  rtx (*interl)(rtx, rtx, rtx);
+
+  emit_insn (gen_mulv4hi3 (l, operands[1], operands[2]));
+
+  /* For signed, pmpy2.r would appear to more closely match this operation.
+     However, the vectorizer is more likely to use the LO and HI patterns
+     in pairs. At which point, with this formulation, the first two insns
+     of each can be CSEd.  */
+  mulhigh = unsignedp ? gen_pmpyshr2_u : gen_pmpyshr2;
+  emit_insn (mulhigh (h, operands[1], operands[2], GEN_INT (16)));
+
+  interl = highp ? gen_vec_interleave_highv4hi : gen_vec_interleave_lowv4hi;
+  emit_insn (interl (gen_lowpart (V4HImode, operands[0]), l, h));
 }
 
 /* Emit a signed or unsigned V8QI dot product operation.  */
@@ -2002,10 +2114,14 @@ ia64_expand_dot_prod_v8qi (rtx operands[4], bool unsignedp)
   h1 = gen_reg_rtx (V4HImode);
   h2 = gen_reg_rtx (V4HImode);
 
-  emit_insn (gen_unpack1_l (gen_lowpart (V8QImode, l1), operands[1], x1));
-  emit_insn (gen_unpack1_l (gen_lowpart (V8QImode, l2), operands[2], x2));
-  emit_insn (gen_unpack1_h (gen_lowpart (V8QImode, h1), operands[1], x1));
-  emit_insn (gen_unpack1_h (gen_lowpart (V8QImode, h2), operands[2], x2));
+  emit_insn (gen_vec_interleave_lowv8qi
+	     (gen_lowpart (V8QImode, l1), operands[1], x1));
+  emit_insn (gen_vec_interleave_lowv8qi
+	     (gen_lowpart (V8QImode, l2), operands[2], x2));
+  emit_insn (gen_vec_interleave_highv8qi
+	     (gen_lowpart (V8QImode, h1), operands[1], x1));
+  emit_insn (gen_vec_interleave_highv8qi
+	     (gen_lowpart (V8QImode, h2), operands[2], x2));
 
   p1 = gen_reg_rtx (V2SImode);
   p2 = gen_reg_rtx (V2SImode);
@@ -3903,7 +4019,7 @@ ia64_output_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 	     current_frame_info.n_output_regs,
 	     current_frame_info.n_rotate_regs);
 
-  if (!flag_unwind_tables && (!flag_exceptions || USING_SJLJ_EXCEPTIONS))
+  if (ia64_except_unwind_info (&global_options) != UI_TARGET)
     return;
 
   /* Emit the .prologue directive.  */
@@ -3961,7 +4077,7 @@ ia64_output_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 static void
 ia64_output_function_end_prologue (FILE *file)
 {
-  if (!flag_unwind_tables && (!flag_exceptions || USING_SJLJ_EXCEPTIONS))
+  if (ia64_except_unwind_info (&global_options) != UI_TARGET)
     return;
 
   fputs ("\t.body\n", file);
@@ -4221,7 +4337,7 @@ hfa_element_mode (const_tree type, bool nested)
 /* Return the number of words required to hold a quantity of TYPE and MODE
    when passed as an argument.  */
 static int
-ia64_function_arg_words (tree type, enum machine_mode mode)
+ia64_function_arg_words (const_tree type, enum machine_mode mode)
 {
   int words;
 
@@ -4247,7 +4363,8 @@ ia64_function_arg_words (tree type, enum machine_mode mode)
    all as if they had 16 byte alignment.  Such aggregates can occur
    only if gcc extensions are used.  */
 static int
-ia64_function_arg_offset (CUMULATIVE_ARGS *cum, tree type, int words)
+ia64_function_arg_offset (const CUMULATIVE_ARGS *cum,
+			  const_tree type, int words)
 {
   /* No registers are skipped on VMS.  */
   if (TARGET_ABI_OPEN_VMS || (cum->words & 1) == 0)
@@ -4266,9 +4383,9 @@ ia64_function_arg_offset (CUMULATIVE_ARGS *cum, tree type, int words)
 /* ??? 128-bit quad-precision floats are always passed in general
    registers.  */
 
-rtx
-ia64_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
-		   int named, int incoming)
+static rtx
+ia64_function_arg_1 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		     const_tree type, bool named, bool incoming)
 {
   int basereg = (incoming ? GR_ARG_FIRST : AR_ARG_FIRST);
   int words = ia64_function_arg_words (type, mode);
@@ -4457,6 +4574,25 @@ ia64_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
     }
 }
 
+/* Implement TARGET_FUNCION_ARG target hook.  */
+
+static rtx
+ia64_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		   const_tree type, bool named)
+{
+  return ia64_function_arg_1 (cum, mode, type, named, false);
+}
+
+/* Implement TARGET_FUNCION_INCOMING_ARG target hook.  */
+
+static rtx
+ia64_function_incoming_arg (CUMULATIVE_ARGS *cum,
+			    enum machine_mode mode,
+			    const_tree type, bool named)
+{
+  return ia64_function_arg_1 (cum, mode, type, named, true);
+}
+
 /* Return number of bytes, at the beginning of the argument, that must be
    put in registers.  0 is the argument is entirely in registers or entirely
    in memory.  */
@@ -4502,9 +4638,9 @@ ia64_arg_type (enum machine_mode mode)
 /* Update CUM to point after this argument.  This is patterned after
    ia64_function_arg.  */
 
-void
+static void
 ia64_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-			   tree type, int named)
+			   const_tree type, bool named)
 {
   int words = ia64_function_arg_words (type, mode);
   int offset = ia64_function_arg_offset (cum, type, words);
@@ -4598,10 +4734,9 @@ ia64_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
    boundary.  On ILP32 HPUX, TFmode arguments start on next even boundary
    even though their normal alignment is 8 bytes.  See ia64_function_arg.  */
 
-int
-ia64_function_arg_boundary (enum machine_mode mode, tree type)
+static unsigned int
+ia64_function_arg_boundary (enum machine_mode mode, const_tree type)
 {
-
   if (mode == TFmode && TARGET_HPUX && TARGET_ILP32)
     return PARM_BOUNDARY * 2;
 
@@ -5205,13 +5340,18 @@ ia64_rtx_costs (rtx x, int code, int outer_code, int *total,
       *total = COSTS_N_INSNS (3);
       return true;
 
+    case FMA:
+      *total = COSTS_N_INSNS (4);
+      return true;
+
     case MULT:
       /* For multiplies wider than HImode, we have to go to the FPU,
          which normally involves copies.  Plus there's the latency
          of the multiply itself, and the latency of the instructions to
          transfer integer regs to FP regs.  */
-      /* ??? Check for FP mode.  */
-      if (GET_MODE_SIZE (GET_MODE (x)) > 2)
+      if (FLOAT_MODE_P (GET_MODE (x)))
+	*total = COSTS_N_INSNS (4);
+      else if (GET_MODE_SIZE (GET_MODE (x)) > 2)
         *total = COSTS_N_INSNS (10);
       else
 	*total = COSTS_N_INSNS (2);
@@ -5219,6 +5359,13 @@ ia64_rtx_costs (rtx x, int code, int outer_code, int *total,
 
     case PLUS:
     case MINUS:
+      if (FLOAT_MODE_P (GET_MODE (x)))
+	{
+	  *total = COSTS_N_INSNS (4);
+	  return true;
+	}
+      /* FALLTHRU */
+
     case ASHIFT:
     case ASHIFTRT:
     case LSHIFTRT:
@@ -5331,11 +5478,11 @@ ia64_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
     return 10;
 }
 
-/* Implement PREFERRED_RELOAD_CLASS.  Place additional restrictions on RCLASS
-   to use when copying X into that class.  */
+/* Implement TARGET_PREFERRED_RELOAD_CLASS.  Place additional restrictions
+   on RCLASS to use when copying X into that class.  */
 
-enum reg_class
-ia64_preferred_reload_class (rtx x, enum reg_class rclass)
+static reg_class_t
+ia64_preferred_reload_class (rtx x, reg_class_t rclass)
 {
   switch (rclass)
     {
@@ -5554,11 +5701,6 @@ ia64_handle_option (size_t code, const char *arg, int value)
 {
   switch (code)
     {
-    case OPT_G:
-      g_switch_value = value;
-      g_switch_set = true;
-      return true;
-
     case OPT_mfixed_range_:
       fix_range (arg);
       return true;
@@ -5615,7 +5757,9 @@ ia64_option_override (void)
     flag_ira_loop_pressure = 1;
 
 
-  ia64_section_threshold = g_switch_set ? g_switch_value : IA64_DEFAULT_GVALUE;
+  ia64_section_threshold = (global_options_set.x_g_switch_value
+			    ? g_switch_value
+			    : IA64_DEFAULT_GVALUE);
 
   init_machine_status = ia64_init_machine_status;
 
@@ -5638,7 +5782,8 @@ ia64_override_options_after_change (void)
   flag_schedule_insns_after_reload = 0;
 
   if (optimize >= 3
-      && ! sel_sched_switch_set)
+      && !global_options_set.x_flag_selective_scheduling
+      && !global_options_set.x_flag_selective_scheduling2)
     {
       flag_selective_scheduling2 = 1;
       flag_sel_sched_pipelining = 1;
@@ -5862,15 +6007,14 @@ rws_access_regno (int regno, struct reg_flags flags, int pred)
 	  break;
 
 	case 1:
-	  /* The register has been written via a predicate.  If this is
-	     not a complementary predicate, then we need a barrier.  */
-	  /* ??? This assumes that P and P+1 are always complementary
-	     predicates for P even.  */
+	  /* The register has been written via a predicate.  Treat
+	     it like a unconditional write and do not try to check
+	     for complementary pred reg in earlier write.  */
 	  if (flags.is_and && rws_sum[regno].written_by_and)
 	    ;
 	  else if (flags.is_or && rws_sum[regno].written_by_or)
 	    ;
-	  else if ((rws_sum[regno].first_pred ^ 1) != pred)
+	  else
 	    need_barrier = 1;
 	  if (!in_safe_group_barrier)
 	    rws_update (regno, flags, pred);
@@ -5931,12 +6075,9 @@ rws_access_regno (int regno, struct reg_flags flags, int pred)
 	  break;
 
 	case 1:
-	  /* The register has been written via a predicate.  If this is
-	     not a complementary predicate, then we need a barrier.  */
-	  /* ??? This assumes that P and P+1 are always complementary
-	     predicates for P even.  */
-	  if ((rws_sum[regno].first_pred ^ 1) != pred)
-	    need_barrier = 1;
+	  /* The register has been written via a predicate, assume we
+	     need a barrier (don't check for complementary regs).  */
+	  need_barrier = 1;
 	  break;
 
 	case 2:
@@ -6179,6 +6320,17 @@ rtx_needs_barrier (rtx x, struct reg_flags flags, int pred)
 	      break;
 
 	    case CLOBBER:
+	      if (REG_P (XEXP (pat, 0))
+		  && extract_asm_operands (x) != NULL_RTX
+		  && REGNO (XEXP (pat, 0)) != AR_UNAT_REGNUM)
+		{
+		  new_flags.is_write = 1;
+		  need_barrier |= rtx_needs_barrier (XEXP (pat, 0),
+						     new_flags, pred);
+		  new_flags = flags;
+		}
+	      break;
+
 	    case RETURN:
 	      break;
 
@@ -8558,7 +8710,7 @@ ia64_add_bundle_selector_before (int template0, rtx insn)
   ia64_emit_insn_before (b, insn);
 #if NR_BUNDLES == 10
   if ((template0 == 4 || template0 == 5)
-      && (flag_unwind_tables || (flag_exceptions && !USING_SJLJ_EXCEPTIONS)))
+      && ia64_except_unwind_info (&global_options) == UI_TARGET)
     {
       int i;
       rtx note = NULL_RTX;
@@ -9399,7 +9551,7 @@ ia64_reorg (void)
   /* A call must not be the last instruction in a function, so that the
      return address is still within the function, so that unwinding works
      properly.  Note that IA-64 differs from dwarf2 on this point.  */
-  if (flag_unwind_tables || (flag_exceptions && !USING_SJLJ_EXCEPTIONS))
+  if (ia64_except_unwind_info (&global_options) == UI_TARGET)
     {
       rtx insn;
       int saw_stop = 0;
@@ -9865,8 +10017,7 @@ process_cfa_offset (FILE *asm_out_file, rtx pat, bool unwind)
 static void
 ia64_asm_unwind_emit (FILE *asm_out_file, rtx insn)
 {
-  bool unwind = (flag_unwind_tables
-		 || (flag_exceptions && !USING_SJLJ_EXCEPTIONS));
+  bool unwind = ia64_except_unwind_info (&global_options) == UI_TARGET;
   bool frame = dwarf2out_do_frame ();
   rtx note, pat;
   bool handled_one;
@@ -9991,6 +10142,33 @@ ia64_asm_init_sections (void)
   exception_section = get_unnamed_section (0, output_section_asm_op,
 					   "\t.handlerdata");
 }
+
+/* Implement TARGET_DEBUG_UNWIND_INFO.  */
+
+static enum unwind_info_type
+ia64_debug_unwind_info (void)
+{
+  return UI_TARGET;
+}
+
+/* Implement TARGET_EXCEPT_UNWIND_INFO.  */
+
+static enum unwind_info_type
+ia64_except_unwind_info (struct gcc_options *opts)
+{
+  /* Honor the --enable-sjlj-exceptions configure switch.  */
+#ifdef CONFIG_UNWIND_EXCEPTIONS
+  if (CONFIG_UNWIND_EXCEPTIONS)
+    return UI_SJLJ;
+#endif
+
+  /* For simplicity elsewhere in this file, indicate that all unwind
+     info is disabled if we're not emitting unwind tables.  */
+  if (!opts->x_flag_exceptions && !opts->x_flag_unwind_tables)
+    return UI_NONE;
+
+  return UI_TARGET;
+}
 
 enum ia64_builtins
 {
@@ -9999,14 +10177,18 @@ enum ia64_builtins
   IA64_BUILTIN_FABSQ,
   IA64_BUILTIN_FLUSHRS,
   IA64_BUILTIN_INFQ,
-  IA64_BUILTIN_HUGE_VALQ
+  IA64_BUILTIN_HUGE_VALQ,
+  IA64_BUILTIN_max
 };
+
+static GTY(()) tree ia64_builtins[(int) IA64_BUILTIN_max];
 
 void
 ia64_init_builtins (void)
 {
   tree fpreg_type;
   tree float80_type;
+  tree decl;
 
   /* The __fpreg type.  */
   fpreg_type = make_node (REAL_TYPE);
@@ -10023,7 +10205,7 @@ ia64_init_builtins (void)
   /* The __float128 type.  */
   if (!TARGET_HPUX)
     {
-      tree ftype, decl;
+      tree ftype;
       tree float128_type = make_node (REAL_TYPE);
 
       TYPE_PRECISION (float128_type) = 128;
@@ -10032,13 +10214,15 @@ ia64_init_builtins (void)
 
       /* TFmode support builtins.  */
       ftype = build_function_type (float128_type, void_list_node);
-      add_builtin_function ("__builtin_infq", ftype,
-			    IA64_BUILTIN_INFQ, BUILT_IN_MD,
-			    NULL, NULL_TREE);
+      decl = add_builtin_function ("__builtin_infq", ftype,
+				   IA64_BUILTIN_INFQ, BUILT_IN_MD,
+				   NULL, NULL_TREE);
+      ia64_builtins[IA64_BUILTIN_INFQ] = decl;
 
-      add_builtin_function ("__builtin_huge_valq", ftype,
-			    IA64_BUILTIN_HUGE_VALQ, BUILT_IN_MD,
-			    NULL, NULL_TREE);
+      decl = add_builtin_function ("__builtin_huge_valq", ftype,
+				   IA64_BUILTIN_HUGE_VALQ, BUILT_IN_MD,
+				   NULL, NULL_TREE);
+      ia64_builtins[IA64_BUILTIN_HUGE_VALQ] = decl;
 
       ftype = build_function_type_list (float128_type,
 					float128_type,
@@ -10047,6 +10231,7 @@ ia64_init_builtins (void)
 				   IA64_BUILTIN_FABSQ, BUILT_IN_MD,
 				   "__fabstf2", NULL_TREE);
       TREE_READONLY (decl) = 1;
+      ia64_builtins[IA64_BUILTIN_FABSQ] = decl;
 
       ftype = build_function_type_list (float128_type,
 					float128_type,
@@ -10056,6 +10241,7 @@ ia64_init_builtins (void)
 				   IA64_BUILTIN_COPYSIGNQ, BUILT_IN_MD,
 				   "__copysigntf3", NULL_TREE);
       TREE_READONLY (decl) = 1;
+      ia64_builtins[IA64_BUILTIN_COPYSIGNQ] = decl;
     }
   else
     /* Under HPUX, this is a synonym for "long double".  */
@@ -10073,13 +10259,15 @@ ia64_init_builtins (void)
   add_builtin_function ((name), (type), (code), BUILT_IN_MD,	\
 		       NULL, NULL_TREE)
 
-  def_builtin ("__builtin_ia64_bsp",
+  decl = def_builtin ("__builtin_ia64_bsp",
 	       build_function_type (ptr_type_node, void_list_node),
 	       IA64_BUILTIN_BSP);
+  ia64_builtins[IA64_BUILTIN_BSP] = decl;
 
-  def_builtin ("__builtin_ia64_flushrs",
+  decl = def_builtin ("__builtin_ia64_flushrs",
 	       build_function_type (void_type_node, void_list_node),
 	       IA64_BUILTIN_FLUSHRS);
+  ia64_builtins[IA64_BUILTIN_FLUSHRS] = decl;
 
 #undef def_builtin
 
@@ -10123,16 +10311,17 @@ ia64_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
     case IA64_BUILTIN_INFQ:
     case IA64_BUILTIN_HUGE_VALQ:
       {
+        enum machine_mode target_mode = TYPE_MODE (TREE_TYPE (exp));
 	REAL_VALUE_TYPE inf;
 	rtx tmp;
 
 	real_inf (&inf);
-	tmp = CONST_DOUBLE_FROM_REAL_VALUE (inf, mode);
+	tmp = CONST_DOUBLE_FROM_REAL_VALUE (inf, target_mode);
 
-	tmp = validize_mem (force_const_mem (mode, tmp));
+	tmp = validize_mem (force_const_mem (target_mode, tmp));
 
 	if (target == 0)
-	  target = gen_reg_rtx (mode);
+	  target = gen_reg_rtx (target_mode);
 
 	emit_move_insn (target, tmp);
 	return target;
@@ -10147,6 +10336,17 @@ ia64_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
     }
 
   return NULL_RTX;
+}
+
+/* Return the ia64 builtin for CODE.  */
+
+static tree
+ia64_builtin_decl (unsigned code, bool initialize_p ATTRIBUTE_UNUSED)
+{
+  if (code >= IA64_BUILTIN_max)
+    return error_mark_node;
+
+  return ia64_builtins[code];
 }
 
 /* For the HP-UX IA64 aggregate parameters are passed stored in the
@@ -10774,23 +10974,18 @@ ia64_invalid_binary_op (int op ATTRIBUTE_UNUSED, const_tree type1, const_tree ty
   return NULL;
 }
 
-/* Implement overriding of the optimization options.  */
+/* Implement TARGET_OPTION_DEFAULT_PARAMS.  */
 static void
-ia64_option_optimization (int level ATTRIBUTE_UNUSED,
-			  int size ATTRIBUTE_UNUSED)
+ia64_option_default_params (void)
 {
-#ifdef SUBTARGET_OPTIMIZATION_OPTIONS
-  SUBTARGET_OPTIMIZATION_OPTIONS;
-#endif
-
   /* Let the scheduler form additional regions.  */
-  set_param_value ("max-sched-extend-regions-iters", 2);
+  set_default_param_value (PARAM_MAX_SCHED_EXTEND_REGIONS_ITERS, 2);
 
   /* Set the default values for cache-related parameters.  */
-  set_param_value ("simultaneous-prefetches", 6);
-  set_param_value ("l1-cache-line-size", 32);
+  set_default_param_value (PARAM_SIMULTANEOUS_PREFETCHES, 6);
+  set_default_param_value (PARAM_L1_CACHE_LINE_SIZE, 32);
 
-  set_param_value("sched-mem-true-dep-cost", 4);
+  set_default_param_value (PARAM_SCHED_MEM_TRUE_DEP_COST, 4);
 }
 
 /* HP-UX version_id attribute.
@@ -10894,5 +11089,23 @@ ia64_dconst_0_375 (void)
   return ia64_dconst_0_375_rtx;
 }
 
+static enum machine_mode
+ia64_get_reg_raw_mode (int regno)
+{
+  if (FR_REGNO_P (regno))
+    return XFmode;
+  return default_get_reg_raw_mode(regno);
+}
+
+/* Always default to .text section until HP-UX linker is fixed.  */
+
+ATTRIBUTE_UNUSED static section *
+ia64_hpux_function_section (tree decl ATTRIBUTE_UNUSED,
+			    enum node_frequency freq ATTRIBUTE_UNUSED,
+			    bool startup ATTRIBUTE_UNUSED,
+			    bool exit ATTRIBUTE_UNUSED)
+{
+  return NULL;
+}
 
 #include "gt-ia64.h"

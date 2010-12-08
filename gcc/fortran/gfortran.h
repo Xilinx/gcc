@@ -38,24 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "input.h"
 #include "splay-tree.h"
-/* The following ifdefs are recommended by the autoconf documentation
-   for any code using alloca.  */
-
-/* AIX requires this to be the first thing in the file.  */
-#ifdef __GNUC__
-#else /* not __GNUC__ */
-#ifdef HAVE_ALLOCA_H
-#include <alloca.h>
-#else /* do not HAVE_ALLOCA_H */
-#ifdef _AIX
-#pragma alloca
-#else
-#ifndef alloca			/* predefined by HP cc +Olibcalls */
-char *alloca ();
-#endif /* not predefined */
-#endif /* not _AIX */
-#endif /* do not HAVE_ALLOCA_H */
-#endif /* not __GNUC__ */
 
 /* Major control parameters.  */
 
@@ -69,10 +51,6 @@ char *alloca ();
 
 #define free(x) Use_gfc_free_instead_of_free()
 #define gfc_is_whitespace(c) ((c==' ') || (c=='\t'))
-
-#ifndef NULL
-#define NULL ((void *) 0)
-#endif
 
 /* Stringization.  */
 #define stringize(x) expand_macro(x)
@@ -138,14 +116,6 @@ match;
 typedef enum
 { FORM_FREE, FORM_FIXED, FORM_UNKNOWN }
 gfc_source_form;
-
-/* Basic types.  BT_VOID is used by ISO C Binding so funcs like c_f_pointer
-   can take any arg with the pointer attribute as a param.  */
-typedef enum
-{ BT_UNKNOWN = 1, BT_INTEGER, BT_REAL, BT_COMPLEX, BT_LOGICAL, BT_CHARACTER,
-  BT_DERIVED, BT_CLASS, BT_PROCEDURE, BT_HOLLERITH, BT_VOID
-}
-bt;
 
 /* Expression node types.  */
 typedef enum
@@ -343,6 +313,8 @@ enum gfc_isym_id
   GFC_ISYM_CHMOD,
   GFC_ISYM_CMPLX,
   GFC_ISYM_COMMAND_ARGUMENT_COUNT,
+  GFC_ISYM_COMPILER_OPTIONS,
+  GFC_ISYM_COMPILER_VERSION,
   GFC_ISYM_COMPLEX,
   GFC_ISYM_CONJG,
   GFC_ISYM_CONVERSION,
@@ -614,6 +586,7 @@ gfc_reverse;
 
 #define NAMED_INTCST(a,b,c,d) a,
 #define NAMED_KINDARRAY(a,b,c,d) a,
+#define NAMED_FUNCTION(a,b,c,d) a,
 typedef enum
 {
   ISOFORTRANENV_INVALID = -1,
@@ -621,7 +594,9 @@ typedef enum
   ISOFORTRANENV_LAST, ISOFORTRANENV_NUMBER = ISOFORTRANENV_LAST
 }
 iso_fortran_env_symbol;
+#undef NAMED_INTCST
 #undef NAMED_KINDARRAY
+#undef NAMED_FUNCTION
 
 #define NAMED_INTCST(a,b,c,d) a,
 #define NAMED_REALCST(a,b,c) a,
@@ -631,6 +606,7 @@ iso_fortran_env_symbol;
 #define NAMED_CHARCST(a,b,c) a,
 #define DERIVED_TYPE(a,b,c) a,
 #define PROCEDURE(a,b) a,
+#define NAMED_FUNCTION(a,b,c,d) a,
 typedef enum
 {
   ISOCBINDING_INVALID = -1, 
@@ -647,6 +623,7 @@ iso_c_binding_symbol;
 #undef NAMED_CHARCST
 #undef DERIVED_TYPE
 #undef PROCEDURE
+#undef NAMED_FUNCTION
 
 typedef enum
 {
@@ -886,7 +863,7 @@ typedef struct gfc_charlen
   struct gfc_charlen *next;
   bool length_from_typespec; /* Length from explicit array ctor typespec?  */
   tree backend_decl;
-  tree passed_length; /* Length argument explicitelly passed.  */
+  tree passed_length; /* Length argument explicitly passed.  */
 
   int resolved;
 }
@@ -911,7 +888,8 @@ typedef struct
   struct gfc_symbol *interface;	/* For PROCEDURE declarations.  */
   int is_c_interop;
   int is_iso_c;
-  bt f90_type; 
+  bt f90_type;
+  bool deferred;
 }
 gfc_typespec;
 
@@ -1645,7 +1623,8 @@ typedef struct gfc_intrinsic_sym
   gfc_intrinsic_arg *formal;
   gfc_typespec ts;
   unsigned elemental:1, inquiry:1, transformational:1, pure:1, 
-    generic:1, specific:1, actual_ok:1, noreturn:1, conversion:1;
+    generic:1, specific:1, actual_ok:1, noreturn:1, conversion:1,
+    from_module:1;
 
   int standard;
 
@@ -2000,7 +1979,7 @@ typedef struct
 {
   gfc_expr *io_unit, *format_expr, *rec, *advance, *iostat, *size, *iomsg,
 	   *id, *pos, *asynchronous, *blank, *decimal, *delim, *pad, *round,
-	   *sign, *extra_comma;
+	   *sign, *extra_comma, *dt_io_kind;
 
   gfc_symbol *namelist;
   /* A format_label of `format_asterisk' indicates the "*" format */
@@ -2178,11 +2157,12 @@ typedef struct
   int max_continue_fixed;
   int max_continue_free;
   int max_identifier_length;
-  int dump_parse_tree;
+  int dump_fortran_original;
+  int dump_fortran_optimized;
 
   int warn_aliasing;
   int warn_ampersand;
-  int warn_conversion;
+  int gfc_warn_conversion;
   int warn_conversion_extra;
   int warn_implicit_interface;
   int warn_implicit_procedure;
@@ -2222,7 +2202,7 @@ typedef struct
   int blas_matmul_limit;
   int flag_cray_pointer;
   int flag_d_lines;
-  int flag_openmp;
+  int gfc_flag_openmp;
   int flag_sign_zero;
   int flag_module_private;
   int flag_recursive;
@@ -2236,6 +2216,7 @@ typedef struct
   int flag_align_commons;
   int flag_whole_file;
   int flag_protect_parens;
+  int flag_realloc_lhs;
 
   int fpe;
   int rtcheck;
@@ -2390,11 +2371,13 @@ int get_c_kind (const char *, CInteropKind_t *);
 
 /* options.c */
 unsigned int gfc_option_lang_mask (void);
+void gfc_init_options_struct (struct gcc_options *);
 void gfc_init_options (unsigned int,
 		       struct cl_decoded_option *);
-bool gfc_handle_option (size_t, const char *, int, int,
+bool gfc_handle_option (size_t, const char *, int, int, location_t,
 			const struct cl_option_handlers *);
 bool gfc_post_options (const char **);
+char *gfc_get_option_string (void);
 
 /* f95-lang.c */
 void gfc_maybe_initialize_eh (void);
@@ -2638,6 +2621,7 @@ bool gfc_is_intrinsic (gfc_symbol*, int, locus);
 int gfc_intrinsic_actual_ok (const char *, const bool);
 gfc_intrinsic_sym *gfc_find_function (const char *);
 gfc_intrinsic_sym *gfc_find_subroutine (const char *);
+gfc_intrinsic_sym *gfc_intrinsic_function_by_id (gfc_isym_id);
 
 match gfc_intrinsic_func_interface (gfc_expr *, int);
 match gfc_intrinsic_sub_interface (gfc_code *, int);
@@ -2872,6 +2856,11 @@ gfc_try gfc_check_same_strlen (const gfc_expr*, const gfc_expr*, const char*);
 
 /* class.c */
 void gfc_add_component_ref (gfc_expr *, const char *);
+#define gfc_add_data_component(e)     gfc_add_component_ref(e,"_data")
+#define gfc_add_vptr_component(e)     gfc_add_component_ref(e,"_vptr")
+#define gfc_add_hash_component(e)     gfc_add_component_ref(e,"_hash")
+#define gfc_add_size_component(e)     gfc_add_component_ref(e,"_size")
+#define gfc_add_def_init_component(e) gfc_add_component_ref(e,"_def_init")
 gfc_expr *gfc_class_null_initializer (gfc_typespec *);
 gfc_try gfc_build_class_symbol (gfc_typespec *, symbol_attribute *,
 				gfc_array_spec **, bool);

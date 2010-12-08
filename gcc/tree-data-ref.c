@@ -1233,154 +1233,20 @@ object_address_invariant_in_loop_p (const struct loop *loop, const_tree obj)
 						  loop->num);
 }
 
-/* Returns true if A and B are accesses to different objects, or to different
-   fields of the same object.  */
-
-static bool
-disjoint_objects_p (tree a, tree b)
-{
-  tree base_a, base_b;
-  VEC (tree, heap) *comp_a = NULL, *comp_b = NULL;
-  bool ret;
-
-  base_a = get_base_address (a);
-  base_b = get_base_address (b);
-
-  if (DECL_P (base_a)
-      && DECL_P (base_b)
-      && base_a != base_b)
-    return true;
-
-  if (!operand_equal_p (base_a, base_b, 0))
-    return false;
-
-  /* Compare the component references of A and B.  We must start from the inner
-     ones, so record them to the vector first.  */
-  while (handled_component_p (a))
-    {
-      VEC_safe_push (tree, heap, comp_a, a);
-      a = TREE_OPERAND (a, 0);
-    }
-  while (handled_component_p (b))
-    {
-      VEC_safe_push (tree, heap, comp_b, b);
-      b = TREE_OPERAND (b, 0);
-    }
-
-  ret = false;
-  while (1)
-    {
-      if (VEC_length (tree, comp_a) == 0
-	  || VEC_length (tree, comp_b) == 0)
-	break;
-
-      a = VEC_pop (tree, comp_a);
-      b = VEC_pop (tree, comp_b);
-
-      /* Real and imaginary part of a variable do not alias.  */
-      if ((TREE_CODE (a) == REALPART_EXPR
-	   && TREE_CODE (b) == IMAGPART_EXPR)
-	  || (TREE_CODE (a) == IMAGPART_EXPR
-	      && TREE_CODE (b) == REALPART_EXPR))
-	{
-	  ret = true;
-	  break;
-	}
-
-      if (TREE_CODE (a) != TREE_CODE (b))
-	break;
-
-      /* Nothing to do for ARRAY_REFs, as the indices of array_refs in
-	 DR_BASE_OBJECT are always zero.  */
-      if (TREE_CODE (a) == ARRAY_REF)
-	continue;
-      else if (TREE_CODE (a) == COMPONENT_REF)
-	{
-	  if (operand_equal_p (TREE_OPERAND (a, 1), TREE_OPERAND (b, 1), 0))
-	    continue;
-
-	  /* Different fields of unions may overlap.  */
-	  base_a = TREE_OPERAND (a, 0);
-	  if (TREE_CODE (TREE_TYPE (base_a)) == UNION_TYPE)
-	    break;
-
-	  /* Different fields of structures cannot.  */
-	  ret = true;
-	  break;
-	}
-      else
-	break;
-    }
-
-  VEC_free (tree, heap, comp_a);
-  VEC_free (tree, heap, comp_b);
-
-  return ret;
-}
-
 /* Returns false if we can prove that data references A and B do not alias,
    true otherwise.  */
 
 bool
 dr_may_alias_p (const struct data_reference *a, const struct data_reference *b)
 {
-  const_tree addr_a = DR_BASE_ADDRESS (a);
-  const_tree addr_b = DR_BASE_ADDRESS (b);
-  const_tree type_a, type_b;
-  const_tree decl_a = NULL_TREE, decl_b = NULL_TREE;
+  tree addr_a = DR_BASE_OBJECT (a);
+  tree addr_b = DR_BASE_OBJECT (b);
 
-  /* If the accessed objects are disjoint, the memory references do not
-     alias.  */
-  if (disjoint_objects_p (DR_BASE_OBJECT (a), DR_BASE_OBJECT (b)))
-    return false;
-
-  /* Query the alias oracle.  */
   if (DR_IS_WRITE (a) && DR_IS_WRITE (b))
-    {
-      if (!refs_output_dependent_p (DR_REF (a), DR_REF (b)))
-	return false;
-    }
+    return refs_output_dependent_p (addr_a, addr_b);
   else if (DR_IS_READ (a) && DR_IS_WRITE (b))
-    {
-      if (!refs_anti_dependent_p (DR_REF (a), DR_REF (b)))
-	return false;
-    }
-  else if (!refs_may_alias_p (DR_REF (a), DR_REF (b)))
-    return false;
-
-  if (!addr_a || !addr_b)
-    return true;
-
-  /* If the references are based on different static objects, they cannot
-     alias (PTA should be able to disambiguate such accesses, but often
-     it fails to).  */
-  if (TREE_CODE (addr_a) == ADDR_EXPR
-      && TREE_CODE (addr_b) == ADDR_EXPR)
-    return TREE_OPERAND (addr_a, 0) == TREE_OPERAND (addr_b, 0);
-
-  /* An instruction writing through a restricted pointer is "independent" of any
-     instruction reading or writing through a different restricted pointer,
-     in the same block/scope.  */
-
-  type_a = TREE_TYPE (addr_a);
-  type_b = TREE_TYPE (addr_b);
-  gcc_assert (POINTER_TYPE_P (type_a) && POINTER_TYPE_P (type_b));
-
-  if (TREE_CODE (addr_a) == SSA_NAME)
-    decl_a = SSA_NAME_VAR (addr_a);
-  if (TREE_CODE (addr_b) == SSA_NAME)
-    decl_b = SSA_NAME_VAR (addr_b);
-
-  if (TYPE_RESTRICT (type_a) && TYPE_RESTRICT (type_b)
-      && (DR_IS_WRITE (a) || DR_IS_WRITE (b))
-      && decl_a && DECL_P (decl_a)
-      && decl_b && DECL_P (decl_b)
-      && decl_a != decl_b
-      && TREE_CODE (DECL_CONTEXT (decl_a)) == FUNCTION_DECL
-      && DECL_CONTEXT (decl_a) == DECL_CONTEXT (decl_b))
-    return false;
-
-  return true;
+    return refs_anti_dependent_p (addr_a, addr_b);
+  return refs_may_alias_p (addr_a, addr_b);
 }
 
 static void compute_self_dependence (struct data_dependence_relation *);
@@ -3616,6 +3482,7 @@ omega_setup_subscript (tree access_fun_a, tree access_fun_b,
   tree fun_a = chrec_convert (type, access_fun_a, NULL);
   tree fun_b = chrec_convert (type, access_fun_b, NULL);
   tree difference = chrec_fold_minus (type, fun_a, fun_b);
+  tree minus_one;
 
   /* When the fun_a - fun_b is not constant, the dependence is not
      captured by the classic distance vector representation.  */
@@ -3630,7 +3497,8 @@ omega_setup_subscript (tree access_fun_a, tree access_fun_b,
       return true;
     }
 
-  fun_b = chrec_fold_multiply (type, fun_b, integer_minus_one_node);
+  minus_one = build_int_cst (type, -1);
+  fun_b = chrec_fold_multiply (type, fun_b, minus_one);
 
   eq = omega_add_zero_eq (pb, omega_black);
   if (!init_omega_eq_with_af (pb, eq, DDR_NB_LOOPS (ddr), fun_a, ddr)
@@ -5108,6 +4976,27 @@ stores_from_loop (struct loop *loop, VEC (gimple, heap) **stmts)
   free (bbs);
 }
 
+/* Returns true when STMT is an assignment that contains a data
+   reference on its LHS with a stride of the same size as its unit
+   type.  */
+
+static bool
+mem_write_stride_of_same_size_as_unit_type_p (gimple stmt)
+{
+  struct data_reference *dr = XCNEW (struct data_reference);
+  tree op0 = gimple_assign_lhs (stmt);
+  bool res;
+
+  DR_STMT (dr) = stmt;
+  DR_REF (dr) = op0;
+
+  res = dr_analyze_innermost (dr)
+    && stride_of_unit_type_p (DR_STEP (dr), TREE_TYPE (op0));
+
+  free_data_ref (dr);
+  return res;
+}
+
 /* Initialize STMTS with all the statements of LOOP that contain a
    store to memory of the form "A[i] = 0".  */
 
@@ -5128,7 +5017,8 @@ stores_zero_from_loop (struct loop *loop, VEC (gimple, heap) **stmts)
 	  && is_gimple_assign (stmt)
 	  && gimple_assign_rhs_code (stmt) == INTEGER_CST
 	  && (op = gimple_assign_rhs1 (stmt))
-	  && (integer_zerop (op) || real_zerop (op)))
+	  && (integer_zerop (op) || real_zerop (op))
+	  && mem_write_stride_of_same_size_as_unit_type_p (stmt))
 	VEC_safe_push (gimple, heap, *stmts, gsi_stmt (si));
 
   free (bbs);

@@ -1,7 +1,7 @@
 /* Prototypes for exported functions defined in picochip.c
 
    Copyright (C) 2000, 2001, 2008, 2009, 2010 Free Software Foundation, Inc.
-   Contributed by picoChip Designs Ltd. (http://www.picochip.com)
+   Contributed by Picochip Ltd. (http://www.picochip.com)
    Maintained by Daniel Towner (daniel.towner@picochip.com) and
    Hariharan Sandanagobalane (hariharan@picochip.com).
 
@@ -21,7 +21,6 @@
    along with GCC; see the file COPYING3.  If not, see
    <http://www.gnu.org/licenses/>. */
 
-#include "target.h"
 extern void picochip_function_prologue (FILE *, HOST_WIDE_INT);
 extern void picochip_function_epilogue (FILE *, HOST_WIDE_INT);
 
@@ -54,13 +53,6 @@ extern bool ok_to_peephole_ldw(rtx opnd0, rtx opnd1, rtx opnd2, rtx opnd3);
 
 extern rtx gen_min_reg(rtx opnd1,rtx opnd2);
 
-extern rtx picochip_function_arg (CUMULATIVE_ARGS cum, int mode, tree type,
-			   int named);
-
-extern rtx picochip_incoming_function_arg (CUMULATIVE_ARGS, int, tree, int);
-extern CUMULATIVE_ARGS picochip_arg_advance (CUMULATIVE_ARGS cum, int mode,
-				      tree type, int named);
-
 extern int picochip_regno_nregs (int regno, int mode);
 extern int picochip_class_max_nregs (int klass, int mode);
 
@@ -72,14 +64,6 @@ extern int picochip_absolute_memory_operand (rtx op, enum machine_mode mode);
 
 extern rtx picochip_function_value (const_tree valtype, const_tree func, bool outgoing);
 extern int picochip_symbol_offset (rtx operand);
-
-extern int picochip_get_function_arg_boundary (enum machine_mode mode);
-
-extern reg_class_t picochip_secondary_reload(bool in_p,
-                                 rtx x,
-                                 reg_class_t cla,
-                                 enum machine_mode mode,
-                                 secondary_reload_info *sri);
 
 extern void picochip_get_hi_aligned_mem (rtx ref, rtx * paligned_mem, rtx * pbitnum);
 

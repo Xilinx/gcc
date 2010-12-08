@@ -822,6 +822,13 @@ rx_function_arg_advance (Fargs * cum, Mmode mode, const_tree type,
   *cum += rx_function_arg_size (mode, type);
 }
 
+static unsigned int
+rx_function_arg_boundary (Mmode mode ATTRIBUTE_UNUSED,
+			  const_tree type ATTRIBUTE_UNUSED)
+{
+  return 32;
+}
+
 /* Return an RTL describing where a function return value of type RET_TYPE
    is held.  */
 
@@ -830,7 +837,32 @@ rx_function_value (const_tree ret_type,
 		   const_tree fn_decl_or_type ATTRIBUTE_UNUSED,
 		   bool       outgoing ATTRIBUTE_UNUSED)
 {
-  return gen_rtx_REG (TYPE_MODE (ret_type), FUNC_RETURN_REGNUM);
+  enum machine_mode mode = TYPE_MODE (ret_type);
+
+  /* RX ABI specifies that small integer types are
+     promoted to int when returned by a function.  */
+  if (GET_MODE_SIZE (mode) > 0 && GET_MODE_SIZE (mode) < 4)
+    return gen_rtx_REG (SImode, FUNC_RETURN_REGNUM);
+    
+  return gen_rtx_REG (mode, FUNC_RETURN_REGNUM);
+}
+
+/* TARGET_PROMOTE_FUNCTION_MODE must behave in the same way with
+   regard to function returns as does TARGET_FUNCTION_VALUE.  */
+
+static enum machine_mode
+rx_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
+			  enum machine_mode mode,
+			  int * punsignedp ATTRIBUTE_UNUSED,
+			  const_tree funtype ATTRIBUTE_UNUSED,
+			  int for_return)
+{
+  if (for_return != 1
+      || GET_MODE_SIZE (mode) >= 4
+      || GET_MODE_SIZE (mode) < 1)
+    return mode;
+
+  return SImode;
 }
 
 static bool
@@ -901,7 +933,7 @@ is_naked_func (const_tree decl)
 
 static bool use_fixed_regs = false;
 
-void
+static void
 rx_conditional_register_usage (void)
 {
   static bool using_fixed_regs = false;
@@ -1975,7 +2007,7 @@ rx_expand_builtin_round (rtx arg, rtx target)
 }
 
 static int
-valid_psw_flag (rtx op, char *which)
+valid_psw_flag (rtx op, const char *which)
 {
   static int mvtc_inform_done = 0;
 
@@ -2181,7 +2213,7 @@ rx_handle_option (size_t code, const char *  arg ATTRIBUTE_UNUSED, int value)
       
     case OPT_fpu:
       if (rx_cpu_type == RX200)
-	error ("The RX200 cpu does not have FPU hardware");
+	error ("the RX200 cpu does not have FPU hardware");
       break;
 
     default:
@@ -2191,29 +2223,21 @@ rx_handle_option (size_t code, const char *  arg ATTRIBUTE_UNUSED, int value)
   return true;
 }
 
-/* Implement TARGET_OPTION_OPTIMIZATION.  */
+/* Implement TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE.  */
 
 static void
-rx_option_optimization (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
+rx_override_options_after_change (void)
 {
   static bool first_time = TRUE;
-  static bool saved_allow_rx_fpu = TRUE;
 
   if (first_time)
     {
       /* If this is the first time through and the user has not disabled
-	 the use of RX FPU hardware then enable unsafe math optimizations,
-	 since the FPU instructions themselves are unsafe.  */
+	 the use of RX FPU hardware then enable -ffinite-math-only,
+	 since the FPU instructions do not support NaNs and infinities.  */
       if (TARGET_USE_FPU)
-	set_fast_math_flags (true);
+	flag_finite_math_only = 1;
 
-      /* FIXME: For some unknown reason LTO compression is not working,
-	 at least on my local system.  So set the default compression
-	 level to none, for now.  */
-      if (flag_lto_compression_level == -1)
-        flag_lto_compression_level = 0;
-
-      saved_allow_rx_fpu = ALLOW_RX_FPU_INSNS;
       first_time = FALSE;
     }
   else
@@ -2221,11 +2245,8 @@ rx_option_optimization (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
       /* Alert the user if they are changing the optimization options
 	 to use IEEE compliant floating point arithmetic with RX FPU insns.  */
       if (TARGET_USE_FPU
-	  && ! fast_math_flags_set_p ())
-	warning (0, "RX FPU instructions are not IEEE compliant");
-
-      if (saved_allow_rx_fpu != ALLOW_RX_FPU_INSNS)
-	error ("Changing the FPU insns/math optimizations pairing is not supported");
+	  && !flag_finite_math_only)
+	warning (0, "RX FPU instructions do not support NaNs and infinities");
     }
 }
 
@@ -2235,7 +2256,16 @@ rx_option_override (void)
   /* This target defaults to strict volatile bitfields.  */
   if (flag_strict_volatile_bitfields < 0)
     flag_strict_volatile_bitfields = 1;
+
+  rx_override_options_after_change ();
 }
+
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options rx_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 
 static bool
@@ -2283,7 +2313,8 @@ rx_file_start (void)
 static bool
 rx_is_ms_bitfield_layout (const_tree record_type ATTRIBUTE_UNUSED)
 {
-  return TRUE;
+  /* The packed attribute overrides the MS behaviour.  */
+  return ! TYPE_PACKED (record_type);
 }
 
 /* Try to generate code for the "isnv" pattern which inserts bits
@@ -2721,7 +2752,7 @@ rx_compare_redundant (rtx cmp)
 }
 
 static int
-rx_memory_move_cost (enum machine_mode mode, enum reg_class regclass, bool in)
+rx_memory_move_cost (enum machine_mode mode, reg_class_t regclass, bool in)
 {
   return 2 + memory_move_secondary_cost (mode, regclass, in);
 }
@@ -2792,6 +2823,9 @@ rx_memory_move_cost (enum machine_mode mode, enum reg_class regclass, bool in)
 #undef  TARGET_FUNCTION_ARG_ADVANCE
 #define TARGET_FUNCTION_ARG_ADVANCE     	rx_function_arg_advance
 
+#undef	TARGET_FUNCTION_ARG_BOUNDARY
+#define	TARGET_FUNCTION_ARG_BOUNDARY		rx_function_arg_boundary
+
 #undef  TARGET_SET_CURRENT_FUNCTION
 #define TARGET_SET_CURRENT_FUNCTION		rx_set_current_function
 
@@ -2812,6 +2846,9 @@ rx_memory_move_cost (enum machine_mode mode, enum reg_class regclass, bool in)
 
 #undef  TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE			rx_can_eliminate
+
+#undef  TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE	rx_conditional_register_usage
 
 #undef  TARGET_ASM_TRAMPOLINE_TEMPLATE
 #define TARGET_ASM_TRAMPOLINE_TEMPLATE		rx_trampoline_template
@@ -2834,8 +2871,17 @@ rx_memory_move_cost (enum machine_mode mode, enum reg_class regclass, bool in)
 #undef  TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE			rx_option_override
 
-#undef  TARGET_OPTION_OPTIMIZATION
-#define TARGET_OPTION_OPTIMIZATION		rx_option_optimization
+#undef  TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE	rx_option_optimization_table
+
+#undef  TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE		rx_promote_function_mode
+
+#undef  TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE
+#define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE	rx_override_options_after_change
+
+#undef  TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO		sjlj_except_unwind_info
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

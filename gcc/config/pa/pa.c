@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "integrate.h"
 #include "function.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "ggc.h"
 #include "recog.h"
 #include "predict.h"
@@ -160,6 +159,11 @@ static bool pa_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 				  const_tree, bool);
 static int pa_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				 tree, bool);
+static void pa_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+				     const_tree, bool);
+static rtx pa_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+			    const_tree, bool);
+static unsigned int pa_function_arg_boundary (enum machine_mode, const_tree);
 static struct machine_function * pa_init_machine_status (void);
 static reg_class_t pa_secondary_reload (bool, rtx, reg_class_t,
 					enum machine_mode,
@@ -176,6 +180,8 @@ static rtx pa_delegitimize_address (rtx);
 static bool pa_print_operand_punct_valid_p (unsigned char);
 static rtx pa_internal_arg_pointer (void);
 static bool pa_can_eliminate (const int, const int);
+static void pa_conditional_register_usage (void);
+static section *pa_function_section (tree, enum node_frequency, bool, bool);
 
 /* The following extra sections are only used for SOM.  */
 static GTY(()) section *som_readonly_data_section;
@@ -218,11 +224,20 @@ static GTY((length ("n_deferred_plabels"))) struct deferred_plabel *
   deferred_plabels;
 static size_t n_deferred_plabels = 0;
 
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options pa_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
+
 
 /* Initialize the GCC target structure.  */
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE pa_option_override
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE pa_option_optimization_table
 
 #undef TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.half\t"
@@ -334,6 +349,12 @@ static size_t n_deferred_plabels = 0;
 #define TARGET_CALLEE_COPIES hook_bool_CUMULATIVE_ARGS_mode_tree_bool_true
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES pa_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG pa_function_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE pa_function_arg_advance
+#undef TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY pa_function_arg_boundary
 
 #undef TARGET_EXPAND_BUILTIN_SAVEREGS
 #define TARGET_EXPAND_BUILTIN_SAVEREGS hppa_builtin_saveregs
@@ -366,6 +387,10 @@ static size_t n_deferred_plabels = 0;
 #define TARGET_INTERNAL_ARG_POINTER pa_internal_arg_pointer
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE pa_can_eliminate
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE pa_conditional_register_usage
+#undef TARGET_ASM_FUNCTION_SECTION
+#define TARGET_ASM_FUNCTION_SECTION pa_function_section
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -520,7 +545,8 @@ pa_option_override (void)
      call frame information.  There is no benefit in using this optimization
      on PA8000 and later processors.  */
   if (pa_cpu >= PROCESSOR_8000
-      || (! USING_SJLJ_EXCEPTIONS && flag_exceptions)
+      || (targetm.except_unwind_info (&global_options) == UI_DWARF2
+	  && flag_exceptions)
       || flag_unwind_tables)
     target_flags &= ~MASK_JUMP_IN_DELAY;
 
@@ -1657,7 +1683,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
 
      Use scratch_reg to hold the address of the memory location.
 
-     The proper fix is to change PREFERRED_RELOAD_CLASS to return
+     The proper fix is to change TARGET_PREFERRED_RELOAD_CLASS to return
      NO_REGS when presented with a const_int and a register class
      containing only FP registers.  Doing so unfortunately creates
      more problems than it solves.   Fix this for 2.5.  */
@@ -5762,7 +5788,7 @@ static reg_class_t
 pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 		     enum machine_mode mode, secondary_reload_info *sri)
 {
-  int is_symbolic, regno;
+  int regno;
   enum reg_class rclass = (enum reg_class) rclass_i;
 
   /* Handle the easy stuff first.  */
@@ -5794,6 +5820,23 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
       sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
 		    : CODE_FOR_reload_indi_r1);
       return NO_REGS;
+    }
+
+  /* Secondary reloads of symbolic operands require %r1 as a scratch
+     register when we're generating PIC code and when the operand isn't
+     readonly.  */
+  if (symbolic_expression_p (x))
+    {
+      if (GET_CODE (x) == HIGH)
+	x = XEXP (x, 0);
+
+      if (flag_pic || !read_only_operand (x, VOIDmode))
+	{
+	  gcc_assert (mode == SImode || mode == DImode);
+	  sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
+			: CODE_FOR_reload_indi_r1);
+	  return NO_REGS;
+	}
     }
 
   /* Profiling showed the PA port spends about 1.3% of its compilation
@@ -5858,51 +5901,9 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
   if (regno >= 0 && regno < FIRST_PSEUDO_REGISTER
       && (REGNO_REG_CLASS (regno) == SHIFT_REGS
       && FP_REG_CLASS_P (rclass)))
-    {
-      sri->icode = (in_p
-		    ? direct_optab_handler (reload_in_optab, mode)
-		    : direct_optab_handler (reload_out_optab, mode));
-      return NO_REGS;
-    }
-
-  /* Secondary reloads of symbolic operands require %r1 as a scratch
-     register when we're generating PIC code and when the operand isn't
-     readonly.  */
-  if (GET_CODE (x) == HIGH)
-    x = XEXP (x, 0);
-
-  /* Profiling has showed GCC spends about 2.6% of its compilation
-     time in symbolic_operand from calls inside pa_secondary_reload_class.
-     So, we use an inline copy to avoid useless work.  */
-  switch (GET_CODE (x))
-    {
-      rtx op;
-
-      case SYMBOL_REF:
-        is_symbolic = !SYMBOL_REF_TLS_MODEL (x);
-        break;
-      case LABEL_REF:
-        is_symbolic = 1;
-        break;
-      case CONST:
-	op = XEXP (x, 0);
-	is_symbolic = (GET_CODE (op) == PLUS
-		       && ((GET_CODE (XEXP (op, 0)) == SYMBOL_REF
-			    && !SYMBOL_REF_TLS_MODEL (XEXP (op, 0)))
-			   || GET_CODE (XEXP (op, 0)) == LABEL_REF)
-		       && GET_CODE (XEXP (op, 1)) == CONST_INT);
-        break;
-      default:
-        is_symbolic = 0;
-        break;
-    }
-
-  if (is_symbolic && (flag_pic || !read_only_operand (x, VOIDmode)))
-    {
-      gcc_assert (mode == SImode || mode == DImode);
-      sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
-		    : CODE_FOR_reload_indi_r1);
-    }
+    sri->icode = (in_p
+		  ? direct_optab_handler (reload_in_optab, mode)
+		  : direct_optab_handler (reload_out_optab, mode));
 
   return NO_REGS;
 }
@@ -9390,6 +9391,23 @@ pa_function_value_regno_p (const unsigned int regno)
   return false;
 }
 
+/* Update the data in CUM to advance over an argument
+   of mode MODE and data type TYPE.
+   (TYPE is null for libcalls where that information may not be available.)  */
+
+static void
+pa_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			 const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  int arg_size = FUNCTION_ARG_SIZE (mode, type);
+
+  cum->nargs_prototype--;
+  cum->words += (arg_size
+		 + ((cum->words & 01)
+		    && type != NULL_TREE
+		    && arg_size > 1));
+}
+
 /* Return the location of a parameter that is passed in a register or NULL
    if the parameter has any component that is passed in memory.
 
@@ -9398,9 +9416,9 @@ pa_function_value_regno_p (const unsigned int regno)
 
    ??? We might want to restructure this so that it looks more like other
    ports.  */
-rtx
-function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
-	      int named ATTRIBUTE_UNUSED)
+static rtx
+pa_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		 const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   int max_arg_words = (TARGET_64BIT ? 8 : 4);
   int alignment = 0;
@@ -9591,6 +9609,19 @@ function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
   return retval;
 }
 
+/* Arguments larger than one word are double word aligned.  */
+
+static unsigned int
+pa_function_arg_boundary (enum machine_mode mode, const_tree type)
+{
+  bool singleword = (type
+		     ? (integer_zerop (TYPE_SIZE (type))
+			|| !TREE_CONSTANT (TYPE_SIZE (type))
+			|| int_size_in_bytes (type) <= UNITS_PER_WORD)
+		     : GET_MODE_SIZE (mode) <= UNITS_PER_WORD);
+
+  return singleword ? PARM_BOUNDARY : MAX_PARM_BOUNDARY;
+}
 
 /* If this arg would be passed totally in registers or totally on the stack,
    then this routine should return zero.  */
@@ -10149,6 +10180,50 @@ pa_initial_elimination_offset (int from, int to)
     gcc_unreachable ();
 
   return offset;
+}
+
+static void
+pa_conditional_register_usage (void)
+{
+  int i;
+
+  if (!TARGET_64BIT && !TARGET_PA_11)
+    {
+      for (i = 56; i <= FP_REG_LAST; i++)
+	fixed_regs[i] = call_used_regs[i] = 1;
+      for (i = 33; i < 56; i += 2)
+	fixed_regs[i] = call_used_regs[i] = 1;
+    }
+  if (TARGET_DISABLE_FPREGS || TARGET_SOFT_FLOAT)
+    {
+      for (i = FP_REG_FIRST; i <= FP_REG_LAST; i++)
+	fixed_regs[i] = call_used_regs[i] = 1;
+    }
+  if (flag_pic)
+    fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;
+}
+
+/* Target hook for function_section.  */
+
+static section *
+pa_function_section (tree decl, enum node_frequency freq,
+		     bool startup, bool exit)
+{
+  /* Put functions in text section if target doesn't have named sections.  */
+  if (!targetm.have_named_sections)
+    return text_section;
+
+  /* Force nested functions into the same section as the containing
+     function.  */
+  if (decl
+      && DECL_SECTION_NAME (decl) == NULL_TREE
+      && DECL_CONTEXT (decl) != NULL_TREE
+      && TREE_CODE (DECL_CONTEXT (decl)) == FUNCTION_DECL
+      && DECL_SECTION_NAME (DECL_CONTEXT (decl)) == NULL_TREE)
+    return function_section (DECL_CONTEXT (decl));
+
+  /* Otherwise, use the default function section.  */
+  return default_function_section (decl, freq, startup, exit);
 }
 
 #include "gt-pa.h"

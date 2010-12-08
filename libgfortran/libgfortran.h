@@ -46,6 +46,12 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include <float.h>
 #include <stdarg.h>
 
+/* If we're support quad-precision floating-point type, include the
+   header to our support library.  */
+#ifdef HAVE_FLOAT128
+#  include "quadmath_weak.h"
+#endif
+
 #ifdef __MINGW32__
 extern float __strtof (const char *, char **);
 #define gfc_strtof __strtof
@@ -309,7 +315,11 @@ internal_proto(big_endian);
 #  define GFC_REAL_10_INFINITY __builtin_infl ()
 # endif
 # ifdef HAVE_GFC_REAL_16
-#  define GFC_REAL_16_INFINITY __builtin_infl ()
+#  ifdef GFC_REAL_16_IS_LONG_DOUBLE
+#   define GFC_REAL_16_INFINITY __builtin_infl ()
+#  else
+#   define GFC_REAL_16_INFINITY __builtin_infq ()
+#  endif
 # endif
 #endif
 #ifdef __FLT_HAS_QUIET_NAN__
@@ -323,7 +333,11 @@ internal_proto(big_endian);
 #  define GFC_REAL_10_QUIET_NAN __builtin_nanl ("")
 # endif
 # ifdef HAVE_GFC_REAL_16
-#  define GFC_REAL_16_QUIET_NAN __builtin_nanl ("")
+#  ifdef GFC_REAL_16_IS_LONG_DOUBLE
+#   define GFC_REAL_16_QUIET_NAN __builtin_nanl ("")
+#  else
+#   define GFC_REAL_16_QUIET_NAN nanq ("")
+#  endif
 # endif
 #endif
 
@@ -421,68 +435,68 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_16) gfc_array_l16;
 
 #define GFC_DTYPE_TYPE_SIZE(desc) ((desc)->dtype & GFC_DTYPE_TYPE_SIZE_MASK)
 
-#define GFC_DTYPE_INTEGER_1 ((GFC_DTYPE_INTEGER << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_INTEGER_1 ((BT_INTEGER << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_INTEGER_1) << GFC_DTYPE_SIZE_SHIFT))
-#define GFC_DTYPE_INTEGER_2 ((GFC_DTYPE_INTEGER << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_INTEGER_2 ((BT_INTEGER << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_INTEGER_2) << GFC_DTYPE_SIZE_SHIFT))
-#define GFC_DTYPE_INTEGER_4 ((GFC_DTYPE_INTEGER << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_INTEGER_4 ((BT_INTEGER << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_INTEGER_4) << GFC_DTYPE_SIZE_SHIFT))
-#define GFC_DTYPE_INTEGER_8 ((GFC_DTYPE_INTEGER << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_INTEGER_8 ((BT_INTEGER << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_INTEGER_8) << GFC_DTYPE_SIZE_SHIFT))
 #ifdef HAVE_GFC_INTEGER_16
-#define GFC_DTYPE_INTEGER_16 ((GFC_DTYPE_INTEGER << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_INTEGER_16 ((BT_INTEGER << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_INTEGER_16) << GFC_DTYPE_SIZE_SHIFT))
 #endif
 
-#define GFC_DTYPE_LOGICAL_1 ((GFC_DTYPE_LOGICAL << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_LOGICAL_1 ((BT_LOGICAL << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_LOGICAL_1) << GFC_DTYPE_SIZE_SHIFT))
-#define GFC_DTYPE_LOGICAL_2 ((GFC_DTYPE_LOGICAL << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_LOGICAL_2 ((BT_LOGICAL << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_LOGICAL_2) << GFC_DTYPE_SIZE_SHIFT))
-#define GFC_DTYPE_LOGICAL_4 ((GFC_DTYPE_LOGICAL << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_LOGICAL_4 ((BT_LOGICAL << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_LOGICAL_4) << GFC_DTYPE_SIZE_SHIFT))
-#define GFC_DTYPE_LOGICAL_8 ((GFC_DTYPE_LOGICAL << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_LOGICAL_8 ((BT_LOGICAL << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_LOGICAL_8) << GFC_DTYPE_SIZE_SHIFT))
 #ifdef HAVE_GFC_LOGICAL_16
-#define GFC_DTYPE_LOGICAL_16 ((GFC_DTYPE_LOGICAL << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_LOGICAL_16 ((BT_LOGICAL << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_LOGICAL_16) << GFC_DTYPE_SIZE_SHIFT))
 #endif
 
-#define GFC_DTYPE_REAL_4 ((GFC_DTYPE_REAL << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_REAL_4 ((BT_REAL << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_REAL_4) << GFC_DTYPE_SIZE_SHIFT))
-#define GFC_DTYPE_REAL_8 ((GFC_DTYPE_REAL << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_REAL_8 ((BT_REAL << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_REAL_8) << GFC_DTYPE_SIZE_SHIFT))
 #ifdef HAVE_GFC_REAL_10
-#define GFC_DTYPE_REAL_10  ((GFC_DTYPE_REAL << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_REAL_10  ((BT_REAL << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_REAL_10) << GFC_DTYPE_SIZE_SHIFT))
 #endif
 #ifdef HAVE_GFC_REAL_16
-#define GFC_DTYPE_REAL_16 ((GFC_DTYPE_REAL << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_REAL_16 ((BT_REAL << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_REAL_16) << GFC_DTYPE_SIZE_SHIFT))
 #endif
 
-#define GFC_DTYPE_COMPLEX_4 ((GFC_DTYPE_COMPLEX << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_COMPLEX_4 ((BT_COMPLEX << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_COMPLEX_4) << GFC_DTYPE_SIZE_SHIFT))
-#define GFC_DTYPE_COMPLEX_8 ((GFC_DTYPE_COMPLEX << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_COMPLEX_8 ((BT_COMPLEX << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_COMPLEX_8) << GFC_DTYPE_SIZE_SHIFT))
 #ifdef HAVE_GFC_COMPLEX_10
-#define GFC_DTYPE_COMPLEX_10 ((GFC_DTYPE_COMPLEX << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_COMPLEX_10 ((BT_COMPLEX << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_COMPLEX_10) << GFC_DTYPE_SIZE_SHIFT))
 #endif
 #ifdef HAVE_GFC_COMPLEX_16
-#define GFC_DTYPE_COMPLEX_16 ((GFC_DTYPE_COMPLEX << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_COMPLEX_16 ((BT_COMPLEX << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_COMPLEX_16) << GFC_DTYPE_SIZE_SHIFT))
 #endif
 
-#define GFC_DTYPE_DERIVED_1 ((GFC_DTYPE_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_DERIVED_1 ((BT_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_INTEGER_1) << GFC_DTYPE_SIZE_SHIFT))
-#define GFC_DTYPE_DERIVED_2 ((GFC_DTYPE_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_DERIVED_2 ((BT_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_INTEGER_2) << GFC_DTYPE_SIZE_SHIFT))
-#define GFC_DTYPE_DERIVED_4 ((GFC_DTYPE_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_DERIVED_4 ((BT_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_INTEGER_4) << GFC_DTYPE_SIZE_SHIFT))
-#define GFC_DTYPE_DERIVED_8 ((GFC_DTYPE_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_DERIVED_8 ((BT_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_INTEGER_8) << GFC_DTYPE_SIZE_SHIFT))
 #ifdef HAVE_GFC_INTEGER_16
-#define GFC_DTYPE_DERIVED_16 ((GFC_DTYPE_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
+#define GFC_DTYPE_DERIVED_16 ((BT_DERIVED << GFC_DTYPE_TYPE_SHIFT) \
    | (sizeof(GFC_INTEGER_16) << GFC_DTYPE_SIZE_SHIFT))
 #endif
 
@@ -735,6 +749,9 @@ internal_proto(translate_error);
 
 extern void generate_error (st_parameter_common *, int, const char *);
 iexport_proto(generate_error);
+
+extern void generate_warning (st_parameter_common *, const char *);
+internal_proto(generate_warning);
 
 extern try notify_std (st_parameter_common *, int, const char *);
 internal_proto(notify_std);

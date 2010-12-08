@@ -1590,7 +1590,6 @@ extern bool sel_remove_insn (insn_t, bool, bool);
 extern bool bb_header_p (insn_t);
 extern void sel_init_invalid_data_sets (insn_t);
 extern bool insn_at_boundary_p (insn_t);
-extern bool jump_leads_only_to_bb_p (insn_t, basic_block);
 
 /* Basic block and CFG functions.  */
 
@@ -1618,11 +1617,9 @@ extern bool in_same_ebb_p (insn_t, insn_t);
 extern bool tidy_control_flow (basic_block, bool);
 extern void free_bb_note_pool (void);
 
-extern void sel_remove_empty_bb (basic_block, bool, bool);
 extern void purge_empty_blocks (void);
 extern basic_block sel_split_edge (edge);
 extern basic_block sel_create_recovery_block (insn_t);
-extern void sel_merge_blocks (basic_block, basic_block);
 extern bool sel_redirect_edge_and_branch (edge, basic_block);
 extern void sel_redirect_edge_and_branch_force (edge, basic_block);
 extern void sel_init_pipelining (void);
