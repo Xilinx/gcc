@@ -322,6 +322,9 @@ cpp_destroy (cpp_reader *pfile)
       while (pfile->pushed_macros);
     }
 
+  if (pfile->lookaside_table)
+    cpp_lt_destroy (pfile->lookaside_table);
+
   free (pfile);
 }
 

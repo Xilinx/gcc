@@ -1,3 +1,11 @@
+2010-12-09  Lawrence Crowl  <crowl@google.com>
+
+	* pph.c (pth_lexer_to_image): Remove call to cpp_lt_statistics.
+	This call is now handled in libcpp.
+	(cpp_lt_order): New constant for lookaside table size.
+	Table reduced from 32768 slots to 512 slots.
+	(pth_init): Use above constant in call to cpp_lt_create.
+
 2010-12-02  Diego Novillo  <dnovillo@google.com>
 
 	* pph.c: New file.

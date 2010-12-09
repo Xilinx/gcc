@@ -365,31 +365,26 @@ approx_sqrt (double x)
 
 /* Lookaside Identifier Hash Table */
 
+/* This table is implemented as an extensible linear open hash table.
+   See http://en.wikipedia.org/wiki/Open_addressing.  */
+
+
+/* Exchange the DESIRED lookaside table with the existing table in the
+   READER.  This operation is an information-preserving assignment. */
+
 cpp_lookaside *
-cpp_lt_exchange (cpp_reader *pfile, cpp_lookaside *desired)
+cpp_lt_exchange (cpp_reader *reader, cpp_lookaside *desired)
 {
-  cpp_lookaside *current = pfile->lookaside_table;
-  pfile->lookaside_table = desired;
+  cpp_lookaside *current = reader->lookaside_table;
+  reader->lookaside_table = desired;
   return current;
 }
 
-cpp_lookaside *
-cpp_lt_create (unsigned int order, unsigned int debug)
+/* Clear the lookaside TABLE statistics.  */
+
+static void
+lt_clear_stats (struct cpp_lookaside *table)
 {
-  unsigned int slots = 1 << order;
-  cpp_lookaside *table = XCNEW (cpp_lookaside);
-  table->entries = XCNEWVEC (struct lae, slots);
-  table->order = order;
-  table->active = 0;
-
-  table->max_length = 0;
-  table->strings = XCNEW (struct obstack);
-  /* Strings need no alignment.  */
-  _obstack_begin (table->strings, 0, 0,
-		  (void *(*) (long)) xmalloc,
-		  (void (*) (void *)) free);
-  obstack_alignment_mask (table->strings) = 0;
-
   table->searches = 0;
   table->comparisons = 0;
   table->strcmps = 0;
@@ -401,16 +396,40 @@ cpp_lt_create (unsigned int order, unsigned int debug)
   table->bumps = 0;
   table->iterations = 0;
   table->empties = 0;
+}
+
+/* Create a lookaside table of pow(2,ORDER) entries and set the DEBUG
+   level.  This function is a constructor.  */
+
+cpp_lookaside *
+cpp_lt_create (unsigned int order, unsigned int debug)
+{
+  unsigned int slots = 1 << order;
+  cpp_lookaside *table = XCNEW (cpp_lookaside);
+  table->entries = XCNEWVEC (struct lae, slots);
+  table->order = order;
+  table->sticky_order = order;
+  table->active = 0;
+
+  table->max_length = 0;
+  table->strings = XCNEW (struct obstack);
+  /* Strings need no alignment.  */
+  _obstack_begin (table->strings, 0, 0,
+		  (void *(*) (long)) xmalloc,
+		  (void (*) (void *)) free);
+  obstack_alignment_mask (table->strings) = 0;
 
   table->flag_pth_debug = debug;
+  lt_clear_stats (table);
 
   return table;
 }
 
-void
-cpp_lt_statistics (cpp_reader *pfile)
+/* Print the statistics for the lookaside TABLE.  */
+
+static void
+lt_statistics (struct cpp_lookaside *table)
 {
-  struct cpp_lookaside *table = pfile->lookaside_table;
   fprintf (stderr, "lookaside ");
   fprintf (stderr, "order=%u, ",	table->order);
   fprintf (stderr, "active=%u, ",	table->active);
@@ -425,22 +444,15 @@ cpp_lt_statistics (cpp_reader *pfile)
   fprintf (stderr, "bump=%llu, ",	table->bumps);
   fprintf (stderr, "iterations=%llu, ",	table->iterations);
   fprintf (stderr, "empties=%llu\n",	table->empties);
-  table->searches = 0;
-  table->comparisons = 0;
-  table->strcmps = 0;
-  table->collisions = 0;
-  table->misses = 0;
-  table->insertions = 0;
-  table->macrovalue = 0;
-  table->resizes = 0;
-  table->bumps = 0;
-  table->iterations = 0;
-  table->empties = 0;
 }
+
+/* Destroy (deallocate) a lookaside TABLE.  This function is a destructor.  */
 
 void 
 cpp_lt_destroy (cpp_lookaside *table)
 {
+  if (table->flag_pth_debug >= 2)
+    lt_statistics (table);
   if (table->strings)
     {
       obstack_free (table->strings, NULL);
@@ -450,26 +462,15 @@ cpp_lt_destroy (cpp_lookaside *table)
   free (table);
 }
 
-unsigned int
-cpp_lt_num_entries (cpp_lookaside *table)
-{
-  return table->active;
-}
-
-unsigned int
-cpp_lt_max_length (cpp_lookaside *table)
-{
-  return table->max_length;
-}
-
-struct obstack *
-cpp_lt_take_strings (cpp_lookaside *table)
-{
-  struct obstack *strings = table->strings;
-  table->strings = NULL;
-  return strings;
-}
-
+/* Call the GROK function for all the entries in the lookaside TABLE.
+   The cpp_lt_forall function passes PASSTHRU to each invocation of GROK,
+   in addition to the STR characters and their LEN
+   for each IDENT and MACRO value. */
+/* FIXME pph: This code is presently unused, but may prove useful later.  */
+#if 0
+typedef void (*cpp_lookback) (void *passthru,
+                              const char *ident_str, unsigned int ident_len,
+                              const char *macro_str, unsigned int macro_len);
 void
 cpp_lt_forall (cpp_lookaside *table, cpp_lookback grok, void *passthru)
 {
@@ -484,11 +485,12 @@ cpp_lt_forall (cpp_lookaside *table, cpp_lookback grok, void *passthru)
               entries[index].value, entries[index].length);
     }
 }
+#endif
 
-/* Query a CPP_NODE for its macro value from PFILE.  */
+/* Query a CPP_NODE for its macro value from READER.  */
 
 static const char *
-lt_query_macro (cpp_reader *pfile, cpp_hashnode *cpp_node)
+lt_query_macro (cpp_reader *reader, cpp_hashnode *cpp_node)
 {
   const char *definition = NULL;
   if (cpp_node->flags & NODE_BUILTIN)
@@ -506,7 +508,7 @@ lt_query_macro (cpp_reader *pfile, cpp_hashnode *cpp_node)
           unsigned int front, back, needed;
           const char *value;
 
-          value = (const char *)_cpp_builtin_macro_text (pfile, cpp_node);
+          value = (const char *)_cpp_builtin_macro_text (reader, cpp_node);
           front = strlen (str);
           back = strlen (value);
           needed = front + 1 + back + 1;
@@ -525,9 +527,9 @@ lt_query_macro (cpp_reader *pfile, cpp_hashnode *cpp_node)
         }
     }
   else
-    definition = (const char *) cpp_macro_definition (pfile, cpp_node);
+    definition = (const char *) cpp_macro_definition (reader, cpp_node);
 
-  if (pfile->lookaside_table->flag_pth_debug >= 3)
+  if (reader->lookaside_table->flag_pth_debug >= 3)
     fprintf (stderr, "PTH: macro %s is %s\n",
                      (const char *)cpp_node->ident.str,
                      definition);
@@ -536,13 +538,13 @@ lt_query_macro (cpp_reader *pfile, cpp_hashnode *cpp_node)
 }
 
 /* Capture the current STRING definition of a macro for the
-   libcpp NODE and store it in the look ASIDE table of the PFILE. */
+   libcpp CPP_NODE and store it in the look ASIDE table of the READER. */
 
 static unsigned int
 lt_macro_value (const char** string, cpp_lookaside *aside,
-                cpp_reader *pfile, cpp_hashnode *cpp_node)
+                cpp_reader *reader, cpp_hashnode *cpp_node)
 {
-  const char *definition = lt_query_macro (pfile, cpp_node);
+  const char *definition = lt_query_macro (reader, cpp_node);
   size_t macro_len = strlen (definition);
   *string = (const char *) obstack_copy0 (aside->strings, definition, macro_len);
   if (macro_len > aside->max_length)
@@ -551,14 +553,14 @@ lt_macro_value (const char** string, cpp_lookaside *aside,
   return macro_len;
 }
 
-/* Capture the identifier state in the lookaside table of PFILE
+/* Capture the identifier state in the lookaside table of READER
    and then empty the lookaside table.  */
 
 cpp_idents_used
-cpp_lt_capture (cpp_reader *pfile)
+cpp_lt_capture (cpp_reader *reader)
 {
   cpp_idents_used used;
-  cpp_lookaside *aside = pfile->lookaside_table;
+  cpp_lookaside *aside = reader->lookaside_table;
   unsigned int num_entries = aside->active;
   unsigned int slots = 1 << aside->order;
   unsigned int table_index;
@@ -567,6 +569,7 @@ cpp_lt_capture (cpp_reader *pfile)
   used.num_entries = aside->active;
   used.entries = XCNEWVEC (cpp_ident_use, num_entries);
 
+  /* Copy the entry information into used identifiers table.  */
   for (table_index = 0; table_index < slots ; ++table_index)
     {
       struct lae *table_entry = aside->entries + table_index;
@@ -586,31 +589,52 @@ cpp_lt_capture (cpp_reader *pfile)
           cpp_node = CPP_HASHNODE (node);
           if (cpp_node->type == NT_MACRO)
               summary_entry->after_len = lt_macro_value
-                  (&summary_entry->after_str, aside, pfile, cpp_node);
+                  (&summary_entry->after_str, aside, reader, cpp_node);
           /* else .after_str and .after_len are still zero initialized.  */
         }
     }
-
-  /* Now empty out the lookaside table. */
-  memset (aside->entries, 0, slots * sizeof (struct lae));
-  aside->active = 0;
 
   /* Take the strings from the table and give to the summary.  */
   used.strings = aside->strings;
   aside->strings = NULL;
   used.max_length = aside->max_length;
 
-  /* Create a new string table.  */
-  aside->max_length = 0;
-  aside->strings = XCNEW (struct obstack);
-  /* Strings need no alignment.  */
-  _obstack_begin (aside->strings, 0, 0,
-		  (void *(*) (long)) xmalloc,
-		  (void (*) (void *)) free);
-  obstack_alignment_mask (aside->strings) = 0;
-
   aside->iterations += slots;
   ++aside->empties;
+
+  /* Do we need to reallocate the table?  */
+  if (aside->sticky_order < aside->order - 1)
+    {
+      /* Allocate a new table.  */
+      reader->lookaside_table = cpp_lt_create (aside->sticky_order,
+                                              aside->flag_pth_debug);
+      cpp_lt_destroy (aside);  /* May also dump statistics.  */
+    }
+  else
+    {
+      /* Reuse the old table.  */
+
+      /* Dump out the statistics.  */
+      if (aside->flag_pth_debug >= 2)
+        {
+          lt_statistics (aside);
+          lt_clear_stats (aside);
+        }
+
+      /* Empty out the entries.  */
+      memset (aside->entries, 0, slots * sizeof (struct lae));
+      aside->active = 0;
+
+      /* Create a new string table.  */
+      aside->max_length = 0;
+      aside->strings = XCNEW (struct obstack);
+      /* Strings need no alignment.  */
+      _obstack_begin (aside->strings, 0, 0,
+		      (void *(*) (long)) xmalloc,
+		      (void (*) (void *)) free);
+      obstack_alignment_mask (aside->strings) = 0;
+
+    }
 
   return used;
 }
@@ -797,11 +821,23 @@ cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers)
   free (buffer);
 }
 
+/* Destroy IDENTIFIERS captured.  */
+
+void
+cpp_lt_idents_destroy (cpp_idents_used *identifiers)
+{
+  obstack_free (identifiers->strings, NULL);
+  XDELETEVEC (identifiers);
+}
+
 /* Mappings from hash to index.  */
 #define LT_MASK(order) (~(~0 << (order)))
 #define LT_FIRST(hash, order, mask) (((hash) ^ ((hash) >> (order))) & (mask))
 #define LT_NEXT(index, mask) (((index) + 1) & (mask))
 /* Linear probing.  */
+
+/* Resize the look ASIDE table from its OLD_ORDER to a NEW_ORDER.
+   The NEW_ORDER must hold twice the number of active elements.  */
 
 static void
 lt_resize (cpp_lookaside *aside, unsigned int old_order, unsigned int new_order)
@@ -838,13 +874,17 @@ lt_resize (cpp_lookaside *aside, unsigned int old_order, unsigned int new_order)
   ++aside->resizes;
 }
 
+/* Lookup the IDENTIFER of the given LENGTH and HASH value
+   in the READER's lookaside table.
+   The lookup does not compute a hash.  */
+
 cpp_hashnode *
-lt_lookup (cpp_reader *pfile,
+lt_lookup (cpp_reader *reader,
            const unsigned char *identifier,
            size_t length,
            unsigned int hash)
 {
-  cpp_lookaside *aside = pfile->lookaside_table;
+  cpp_lookaside *aside = reader->lookaside_table;
   /* Compress the hash to an index.
      Assume there is sufficient entropy in the lowest 2*order bits.  */
   unsigned int order = aside->order;
@@ -880,7 +920,7 @@ lt_lookup (cpp_reader *pfile,
   ++aside->misses;
 
   node = ht_lookup_with_hash
-	(pfile->hash_table, identifier, length, hash, HT_ALLOC);
+	(reader->hash_table, identifier, length, hash, HT_ALLOC);
   cpp_node = CPP_HASHNODE(node);
 
   /* Do not save macro parameter names; they don't affect verification.  */
@@ -899,7 +939,7 @@ lt_lookup (cpp_reader *pfile,
   /* Capture any macro value.  */
   if (cpp_node->type == NT_MACRO)
     entries[index].length = lt_macro_value
-            (&entries[index].value, aside, pfile, cpp_node);
+            (&entries[index].value, aside, reader, cpp_node);
   /* else .value and .length are still zero from initialization.  */
 
   /* Check table load factor.  */

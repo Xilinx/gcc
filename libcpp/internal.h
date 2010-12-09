@@ -338,6 +338,7 @@ struct lae {
 struct cpp_lookaside {
   struct lae *entries;		/* The entry storage.  */
   unsigned int order;		/* 2^order slots in the entries array.  */
+  unsigned int sticky_order;	/* For resizing when capturing the entries.  */
   unsigned int active;		/* Number of active entries.  */
   struct obstack *strings;	/* For macro value storage.  */
   unsigned int max_length;	/* Largest string encountered.  */

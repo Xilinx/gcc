@@ -1,3 +1,44 @@
+2010-12-09  Lawrence Crowl  <crowl@google.com>
+
+	* include/symtab.h (cpp_lt_exchange): Change parameter name.
+	(cpp_lt_create): Clarify lead comment.
+	(cpp_lt_destroy): Clarify lead comment.
+	(cpp_lt_capture): Change parameter name.
+	(cpp_lt_verify): Clarify lead comment.
+	(cpp_lt_replay): Clarify lead comment.
+	(cpp_lt_num_entries): Unused.  Removed.
+	(cpp_lt_max_length): Unused.  Removed.
+	(cpp_lt_take_strings): Unused.  Removed.
+	(typedef cpp_lookback): Unused.  Removed.
+	(cpp_lt_forall): Unused.  Removed.
+	(cpp_lt_idents_destroy): New.
+	(cpp_lt_statistics): Functionality move to internal.
+
+        * symtab.c: Add comment on the lookaside table.
+	(cpp_lt_exchange): Add lead comment.  Change parameter name.
+	(lt_clear_stats): New.
+	(cpp_lt_create): Add lead comment.  Save original table size order.
+	Refactor clear stats.
+	(lt_statistics): Rename from cpp_lt_statistics for use only internally.
+	Add lead comment.  Change parameter type.  Refactor clear stats.
+	(cpp_lt_destroy): Add lead comment.  Add statistics printing.
+	(cpp_lt_num_entries): Unused.  Remove.
+	(cpp_lt_max_length): Unused.  Remove.
+	(cpp_lt_take_strings): Unused.  Remove.
+	(cpp_lt_forall): Add lead comment.  Unused.  Disable.
+	(lt_query_macro): Change parameter name.
+	(lt_macro_value): Change parameter name.
+	(cpp_lt_capture): Change parameter name.
+	Reuse existing table if it is close enough to the existing size.
+	Otherwise, allocate a new table.  Add internal comments.
+	(cpp_lt_idents_destroy): New.
+	(lt_resize): Add lead comment.
+	(lt_lookup): Change parameter name.
+
+	* internal.h (struct cpp_lookaside): Added sticky_order field.
+
+	* initi.c (cpp_destroy): Add call to cpp_lt_destroy.
+
 2010-11-02  Lawrence Crowl  <crowl@google.com>
 	    Diego Novillo  <dnovillo@google.com>
 

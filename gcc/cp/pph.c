@@ -1775,8 +1775,6 @@ pth_lexer_to_image (pth_image *image, cp_lexer *lexer, cpp_reader *reader)
   VEC_safe_push (char, gc, image->ih_sequence, 'H');
 
   /* The identifiers that may conflict with macros.  */
-  if (flag_pth_debug >= 2)
-    cpp_lt_statistics (reader);
   hunk->identifiers = cpp_lt_capture (reader);
 
   /* Remember the text offset where this hunk started and its length.  */
@@ -2050,6 +2048,12 @@ pth_include_handler (cpp_reader *reader ATTRIBUTE_UNUSED,
 }
 
 
+/* The initial order of the size of the lexical lookaside table,
+   which will accomodate as many as half of its slots in use.  */
+
+static const unsigned int cpp_lt_order = /* 2 to the power of */ 9;
+
+
 /* Initialize PTH support.  LEXER is the main lexer object used for
    pre-processing.  */
 
@@ -2064,8 +2068,8 @@ pth_init (cp_lexer *lexer)
 
   gcc_assert (flag_pth);
 
-  table = cpp_lt_exchange (parse_in, cpp_lt_create (/*2 to the power*/15,
-			   flag_pth_debug));
+  table = cpp_lt_exchange (parse_in,
+                           cpp_lt_create (cpp_lt_order, flag_pth_debug));
   gcc_assert (table == NULL);
 
   memset (&pth_stats, 0, sizeof (pth_stats));
