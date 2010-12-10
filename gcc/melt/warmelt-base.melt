@@ -994,6 +994,85 @@ significant iff ENABLE_CHECKING.}# #{(melt_application_depth() <
   :doc #{$MELT_MODE_CONTAINER is a container dedicated to share data at the mode level.}#)
 
 
+;;; a private container for the list of closures for PLUGIN_PASS_EXECUTION
+(definstance pass_execution_container class_container
+  :container_value ()
+  )
+
+;;; private function to run all pass execution hooks
+(defun run_all_pass_execution_hooks (hooklist passname :long passnum)
+  ;; can't use debug_msg here!
+  (foreach_in_list
+   (hooklist)
+   (curpair curhook)
+   (curhook passname passnum)
+   )
+  (return)
+)
+
+;;; register a pass execution hook
+(defun register_pass_execution_hook (fun)
+  :doc #{Register closure $FUN as the hook for pass execution using
+PLUGIN_PASS_EXECUTION. These hooks are called in order of
+registrration.  Their first argument is the boxed pass name string,
+their second argument is the raw pass number stuff.  See also
+$UNREGISTER_PASS_EXECUTION_HOOK.}#
+  (if (is_closure fun)
+      (let ( (hooklist (unsafe_get_field :container_value 
+					 pass_execution_container))
+	     )
+	(if (null hooklist)
+	    (progn
+	      (setq hooklist (list))
+	      (put_fields pass_execution_container :container_value hooklist)))
+	(assert_msg "check hooklist" (is_list hooklist))
+	;; check that the fun is not already registered
+	(foreach_in_list
+	 (hooklist)
+	 (curpair curhook)
+	 (if (== curhook fun)
+	     (return))
+	 )
+	(list_append hooklist fun)
+	(put_fields initial_system_data
+		   :sysdata_passexec_hook 
+		   (lambda (passname :long passnum)
+		     (run_all_pass_execution_hooks hooklist passname passnum)))
+	(code_chunk regpassxechook 
+		    #{ /*$REGPASSXECHOOK*/
+		       meltgc_notify_sysdata_passexec_hook (); 
+		       }#)
+	(return)
+	)))
+
+;;; unregister a pass execution hook 
+(defun unregister_pass_execution_hook (fun)
+  :doc #{Unregister a pass execution hook function $FUN previously
+registered with $REGISTER_PASS_EXECUTION_HOOK.}#
+  (if (is_closure fun)
+      (let ( (oldhooklist (unsafe_get_field :container_value 
+					    pass_execution_container))
+	     (newhooklist (list))
+	     )
+	(foreach_in_list
+	 (oldhooklist)
+	 (curpair curhook)
+	 (if (!= curhook fun)
+	     (list_append newhooklist curhook))
+	 )
+	(if (is_non_empty_list newhooklist)
+	    (put_fields initial_system_data
+		       :sysdata_passexec_hook ())
+	  (put_fields initial_system_data
+		     :sysdata_passexec_hook 
+		     (lambda (passname :long passnum)
+		       (run_all_pass_execution_hooks newhooklist passname passnum))))
+	(code_chunk unregpassxechook 
+		    #{ /*$UNREGPASSXECHOOK*/
+		       meltgc_notify_sysdata_passexec_hook (); 
+		       }#)
+)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  ignore
@@ -1163,6 +1242,9 @@ significant iff ENABLE_CHECKING.}# #{(melt_application_depth() <
  melt_application_shallower
 
  melt_mode_container
+
+ register_pass_execution_hook
+ unregister_pass_execution_hook
  )
 
 

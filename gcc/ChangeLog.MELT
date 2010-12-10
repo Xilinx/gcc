@@ -1,4 +1,7 @@
 
+2010-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (register_pass_execution_hook)
+	(unregister_pass_execution_hook): New public functions.
 
 2010-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: outpucod_objputclosurout is numbering
