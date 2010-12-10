@@ -1,3 +1,39 @@
+2010-12-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* testsuite/lib/libstdc++.exp (v3-build_support): Delete
+	libtestc++.a before creation.
+
+2010-12-10  Jack Howarth  <howarth@bromo.med.uc.edu>
+	    Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR 43751/target
+	* testsuite/lib/prune.exp: Prune dsymutil warnings.
+
+2010-12-08  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR testsuite/46860
+	* testsuite/20_util/auto_ptr/assign_neg.cc: Adjust.
+	* testsuite/20_util/unique_ptr/assign/assign_neg.cc: Adjust.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust.
+
+2010-12-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/bitset (_Base_bitset<>::_Base_bitset(),
+	_Base_bitset(unsigned long)): Simplify.
+
+2010-12-07  François Dumont  <francois.cppdevs@free.fr>
+
+	* include/bits/stl_iterator.h: Add move_iterator operators overloads
+	to make it robust to template abuses.
+	* testsuite/util/testsuite_greedy_ops.h: New.
+	* testsuite/23_containers/vector/types/1.cc: Use latter.
+	* testsuite/23_containers/deque/types/1.cc: Likewise.
+	* testsuite/24_iterators/move_iterator/greedy_ops.cc: New.
+	* testsuite/24_iterators/normal_iterator/greedy_ops.cc: New.
+	* testsuite/24_iterators/reverse_iterator/greedy_ops.cc: New.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust dg-error
+	line numbers.
+
 2010-12-06  Paul Pluzhnikov  <ppluzhnikov@google.com>
 
 	PR libstdc++/46830

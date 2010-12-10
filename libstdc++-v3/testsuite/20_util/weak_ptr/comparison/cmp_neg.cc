@@ -31,6 +31,7 @@ test01()
 {
   std::weak_ptr<A> p1;
   p1 < p1;  // { dg-error "no match" }
+  // { dg-error "candidate" "candidate note" { target *-*-* } 33 }
   return 0;
 }
 
@@ -45,7 +46,8 @@ main()
 // { dg-warning "note" "" { target *-*-* } 1085 }
 // { dg-warning "note" "" { target *-*-* } 465 }
 // { dg-warning "note" "" { target *-*-* } 585 }
-// { dg-warning "note" "" { target *-*-* } 1027 }
+// { dg-warning "note" "" { target *-*-* } 1048 }
+// { dg-warning "note" "" { target *-*-* } 1042 }
 // { dg-warning "note" "" { target *-*-* } 340 }
 // { dg-warning "note" "" { target *-*-* } 290 }
 // { dg-warning "note" "" { target *-*-* } 205 }

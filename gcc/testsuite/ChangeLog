@@ -1,3 +1,342 @@
+2010-12-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/43023
+	* gfortran.dg/ldist-1.f90: Adjust pattern.
+	* gfortran.dg/ldist-pr43023.f90: New.
+
+2010-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/46804
+	* gfortran.dg/pr46804.f90: New test.
+
+2010-12-10  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR middle-end/46674
+	PR lto/43157
+	* gcc.dg/pr43157.c: New file.
+
+2010-12-10  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.dg/dfp/struct-union.c: Adjust.
+	* gcc.dg/lvalue-2.c: Adjust.
+	* gcc.dg/pr21419.c: Adjust.
+	* gcc.dg/qual-component-1.c: Adjust.
+	* g++.dg/other/const1.C: Adjust.
+
+2010-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/46865
+	* gcc.target/i386/pr46865-1.c: New test.
+	* gcc.target/i386/pr46865-2.c: New test.
+
+	PR tree-optimization/46864
+	* g++.dg/opt/pr46864.C: New test.
+
+2010-12-10  Jack Howarth  <howarth@bromo.med.uc.edu>
+	    Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR 43751/target
+	* lib/prune.exp: Prune dsymutil warnings.
+
+2010-12-10  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/class-extension-1.m: New.
+	* objc.dg/class-extension-2.m: New.
+	* objc.dg/class-extension-3.m: New.
+	* objc.dg/property/at-property-26.m: New.
+	* objc.dg/property/at-property-27.m: New.
+	* objc.dg/property/at-property-28.m: New.
+	* obj-c++.dg/class-extension-1.mm: New.
+	* obj-c++.dg/class-extension-2.mm: New.
+	* obj-c++.dg/class-extension-3.mm: New.
+	* obj-c++.dg/property/at-property-26.mm: New.
+	* obj-c++.dg/property/at-property-27.mm: New.
+	* obj-c++.dg/property/at-property-28.mm: New.
+
+2010-12-09  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/46057
+	* gcc.dg/torture/stackalign/nested-1.c: Skip on hppa*-*-hpux*.
+	* gcc.dg/torture/stackalign/vararg-1.c: Likewise.
+	* gcc.dg/torture/stackalign/nested-2.c: Likewise.
+	* gcc.dg/torture/stackalign/vararg-2.c: Likewise.
+	* gcc.dg/torture/stackalign/nested-3.c: Likewise.
+	* gcc.dg/torture/stackalign/nested-4.c: Likewise.
+	* gcc.dg/torture/stackalign/global-1.c: Likewise.
+	* gcc.dg/torture/stackalign/ret-struct-1.c: Likewise.
+	* gcc.dg/torture/stackalign/inline-1.c: Likewise.
+	* gcc.dg/torture/stackalign/inline-2.c: Likewise.
+	* gcc.dg/torture/stackalign/struct-1.c: Likewise.
+	* gcc.dg/torture/stackalign/pr16660-1.c: Likewise.
+	* gcc.dg/torture/stackalign/alloca-1.c: Likewise.
+	* g++.dg/torture/stackalign/throw-1.C: Likewise.
+	* g++.dg/torture/stackalign/throw-2.C: Likewise.
+	* g++.dg/torture/stackalign/throw-4.C: Likewise.
+	* g++.dg/torture/stackalign/eh-inline-1.C: Likewise.
+	* g++.dg/torture/stackalign/eh-inline-2.C: Likewise.
+	* g++.dg/torture/stackalign/eh-vararg-1.C: Likewise.
+	* g++.dg/torture/stackalign/eh-vararg-2.C: Likewise.
+	* g++.dg/torture/stackalign/eh-alloca-1.C: Likewise.
+	* g++.dg/torture/stackalign/eh-global-1.C: Likewise.
+
+	PR tree-optimization/46021
+	gcc.dg/tree-ssa/20040204-1.c: Remove XFAIL for hppa*-*.*.
+
+2010-12-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/46844
+	* gcc.c-torture/compile/pr46866.c: New testcase.
+
+2010-12-09  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/45068
+	* g++.dg/debug/dwarf2/nested-2.C: Also match comments starting with ';'.
+
+2010-12-09  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/46734
+	* g++.dg/tree-ssa/pr46734.C: New test.
+
+2010-12-09  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR c++/44641
+	* lib/scanasm.exp (dg-function-on-line): Add match pattern for
+	hppa*-*-*.
+
+2010-12-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46348
+	* g++.dg/cpp0x/constexpr-array2.C: New.
+
+2010-12-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/sse2-init-v2di-2.c: Add "-dp" and update
+	expected scan.
+
+2010-12-08  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/exceptions-7.m: New.
+	* obj-c++.dg/exceptions-7.mm: New.
+	* obj-c++.dg/exceptions-3.mm: Adjust for new C++ messages.
+	* obj-c++.dg/exceptions-5.mm: Same change.
+
+2010-12-08  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/foreach-6.m: Updated location of error messages.
+	* objc.dg/foreach-7.m: Same change.
+
+2010-12-08  Richard Guenther  <rguenther@suse.de>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/45230
+	PR tree-optimization/45231
+	PR tree-optimization/45370
+	* gcc.dg/graphite/id-pr45230-1.c: New.
+	* gcc.dg/graphite/id-pr45231.c: New.
+	* gfortran.dg/graphite/id-pr45370.f90: New.
+
+2010-12-08  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/45329
+	* testsuite/g++.dg/conversion/ambig1.C: Adjust.
+	* testsuite/g++.dg/conversion/op1.C: Adjust.
+	* testsuite/g++.dg/conversion/simd1.C: Adjust.
+	* testsuite/g++.dg/cpp0x/defaulted14.C: Adjust.
+	* testsuite/g++.dg/cpp0x/defaulted18.C: Adjust.
+	* testsuite/g++.dg/cpp0x/defaulted20.C: Adjust.
+	* testsuite/g++.dg/cpp0x/explicit3.C: Adjust.
+	* testsuite/g++.dg/cpp0x/explicit4.C: Adjust.
+	* testsuite/g++.dg/cpp0x/implicit4.C: Adjust.
+	* testsuite/g++.dg/cpp0x/nullptr15.C: Adjust.
+	* testsuite/g++.dg/cpp0x/nullptr19.C: Adjust.
+	* testsuite/g++.dg/cpp0x/pr31431-2.C: Adjust.
+	* testsuite/g++.dg/cpp0x/pr31431.C: Adjust.
+	* testsuite/g++.dg/cpp0x/pr31434.C: Adjust.
+	* testsuite/g++.dg/cpp0x/pr31437.C: Adjust.
+	* testsuite/g++.dg/cpp0x/rv2n.C: Adjust.
+	* testsuite/g++.dg/cpp0x/rv3n.C: Adjust.
+	* testsuite/g++.dg/cpp0x/rv4n.C: Adjust.
+	* testsuite/g++.dg/cpp0x/rv5n.C: Adjust.
+	* testsuite/g++.dg/cpp0x/rv6n.C: Adjust.
+	* testsuite/g++.dg/cpp0x/rv7n.C: Adjust.
+	* testsuite/g++.dg/cpp0x/temp_default2.C: Adjust.
+	* testsuite/g++.dg/cpp0x/trailing4.C: Adjust.
+	* testsuite/g++.dg/cpp0x/variadic-ex3.C: Adjust.
+	* testsuite/g++.dg/cpp0x/variadic-ex4.C: Adjust.
+	* testsuite/g++.dg/cpp0x/variadic35.C: Adjust.
+	* testsuite/g++.dg/cpp0x/vt-35147.C: Adjust.
+	* testsuite/g++.dg/cpp0x/vt-37737-2.C: Adjust.
+	* testsuite/g++.dg/expr/cond9.C: Adjust.
+	* testsuite/g++.dg/expr/pmf-1.C: Adjust.
+	* testsuite/g++.dg/ext/label5.C: Adjust.
+	* testsuite/g++.dg/ext/visibility/anon8.C: Adjust.
+	* testsuite/g++.dg/ext/vla2.C: Adjust.
+	* testsuite/g++.dg/gomp/pr26690-1.C: Adjust.
+	* testsuite/g++.dg/gomp/pr26690-2.C: Adjust.
+	* testsuite/g++.dg/init/synth2.C: Adjust.
+	* testsuite/g++.dg/lookup/conv-1.C: Adjust.
+	* testsuite/g++.dg/lookup/new1.C: Adjust.
+	* testsuite/g++.dg/lookup/using9.C: Adjust.
+	* testsuite/g++.dg/other/error13.C: Adjust.
+	* testsuite/g++.dg/other/error20.C: Adjust.
+	* testsuite/g++.dg/other/error31.C: Adjust.
+	* testsuite/g++.dg/other/pr28114.C: Adjust.
+	* testsuite/g++.dg/other/ptrmem10.C: Adjust.
+	* testsuite/g++.dg/other/ptrmem11.C: Adjust.
+	* testsuite/g++.dg/overload/ambig1.C: Adjust.
+	* testsuite/g++.dg/overload/arg3.C: Adjust.
+	* testsuite/g++.dg/overload/builtin1.C: Adjust.
+	* testsuite/g++.dg/overload/copy1.C: Adjust.
+	* testsuite/g++.dg/overload/new1.C: Adjust.
+	* testsuite/g++.dg/overload/template4.C: Adjust.
+	* testsuite/g++.dg/overload/unknown1.C: Adjust.
+	* testsuite/g++.dg/overload/using2.C: Adjust.
+	* testsuite/g++.dg/parse/crash5.C: Adjust.
+	* testsuite/g++.dg/parse/error19.C: Adjust.
+	* testsuite/g++.dg/parse/error28.C: Adjust.
+	* testsuite/g++.dg/parse/template7.C: Adjust.
+	* testsuite/g++.dg/parse/typename7.C: Adjust.
+	* testsuite/g++.dg/rtti/typeid6.C: Adjust.
+	* testsuite/g++.dg/tc1/dr152.C: Adjust.
+	* testsuite/g++.dg/template/conv11.C: Adjust.
+	* testsuite/g++.dg/template/copy1.C: Adjust.
+	* testsuite/g++.dg/template/crash37.C: Adjust.
+	* testsuite/g++.dg/template/deduce3.C: Adjust.
+	* testsuite/g++.dg/template/dependent-expr5.C: Adjust.
+	* testsuite/g++.dg/template/error38.C: Adjust.
+	* testsuite/g++.dg/template/error40.C: Adjust.
+	* testsuite/g++.dg/template/friend.C: Adjust.
+	* testsuite/g++.dg/template/incomplete2.C: Adjust.
+	* testsuite/g++.dg/template/instantiate5.C: Adjust.
+	* testsuite/g++.dg/template/local4.C: Adjust.
+	* testsuite/g++.dg/template/local6.C: Adjust.
+	* testsuite/g++.dg/template/new3.C: Adjust.
+	* testsuite/g++.dg/template/operator9.C: Adjust.
+	* testsuite/g++.dg/template/overload6.C: Adjust.
+	* testsuite/g++.dg/template/ptrmem2.C: Adjust.
+	* testsuite/g++.dg/template/ptrmem20.C: Adjust.
+	* testsuite/g++.dg/template/ptrmem4.C: Adjust.
+	* testsuite/g++.dg/template/ptrmem8.C: Adjust.
+	* testsuite/g++.dg/template/qualttp5.C: Adjust.
+	* testsuite/g++.dg/template/sfinae2.C: Adjust.
+	* testsuite/g++.dg/template/spec22.C: Adjust.
+	* testsuite/g++.dg/template/spec23.C: Adjust.
+	* testsuite/g++.dg/template/ttp25.C: Adjust.
+	* testsuite/g++.dg/template/typedef4.C: Adjust.
+	* testsuite/g++.dg/template/unify10.C: Adjust.
+	* testsuite/g++.dg/template/unify11.C: Adjust.
+	* testsuite/g++.dg/template/unify6.C: Adjust.
+	* testsuite/g++.dg/template/unify7.C: Adjust.
+	* testsuite/g++.dg/template/unify9.C: Adjust.
+	* testsuite/g++.dg/template/varmod1.C: Adjust.
+	* testsuite/g++.old-deja/g++.benjamin/15799.C: Adjust.
+	* testsuite/g++.old-deja/g++.benjamin/15800-1.C: Adjust.
+	* testsuite/g++.old-deja/g++.brendan/ambiguity1.C: Adjust.
+	* testsuite/g++.old-deja/g++.brendan/crash29.C: Adjust.
+	* testsuite/g++.old-deja/g++.brendan/crash48.C: Adjust.
+	* testsuite/g++.old-deja/g++.brendan/crash56.C: Adjust.
+	* testsuite/g++.old-deja/g++.brendan/cvt3.C: Adjust.
+	* testsuite/g++.old-deja/g++.brendan/overload1.C: Adjust.
+	* testsuite/g++.old-deja/g++.brendan/overload4.C: Adjust.
+	* testsuite/g++.old-deja/g++.brendan/overload9.C: Adjust.
+	* testsuite/g++.old-deja/g++.bugs/900127_01.C: Adjust.
+	* testsuite/g++.old-deja/g++.bugs/900205_04.C: Adjust.
+	* testsuite/g++.old-deja/g++.bugs/900330_02.C: Adjust.
+	* testsuite/g++.old-deja/g++.bugs/900404_03.C: Adjust.
+	* testsuite/g++.old-deja/g++.bugs/900514_03.C: Adjust.
+	* testsuite/g++.old-deja/g++.eh/ctor1.C: Adjust.
+	* testsuite/g++.old-deja/g++.jason/conversion11.C: Adjust.
+	* testsuite/g++.old-deja/g++.jason/crash3.C: Adjust.
+	* testsuite/g++.old-deja/g++.jason/overload16.C: Adjust.
+	* testsuite/g++.old-deja/g++.jason/overload28.C: Adjust.
+	* testsuite/g++.old-deja/g++.jason/scoping10.C: Adjust.
+	* testsuite/g++.old-deja/g++.jason/template30.C: Adjust.
+	* testsuite/g++.old-deja/g++.jason/temporary2.C: Adjust.
+	* testsuite/g++.old-deja/g++.law/arg1.C: Adjust.
+	* testsuite/g++.old-deja/g++.law/arg11.C: Adjust.
+	* testsuite/g++.old-deja/g++.law/arm9.C: Adjust.
+	* testsuite/g++.old-deja/g++.law/ctors11.C: Adjust.
+	* testsuite/g++.old-deja/g++.law/ctors17.C: Adjust.
+	* testsuite/g++.old-deja/g++.law/ctors5.C: Adjust.
+	* testsuite/g++.old-deja/g++.law/ctors9.C: Adjust.
+	* testsuite/g++.old-deja/g++.law/enum4.C: Adjust.
+	* testsuite/g++.old-deja/g++.law/missed-error2.C: Adjust.
+	* testsuite/g++.old-deja/g++.law/operators32.C: Adjust.
+	* testsuite/g++.old-deja/g++.law/operators9.C: Adjust.
+	* testsuite/g++.old-deja/g++.mike/net2.C: Adjust.
+	* testsuite/g++.old-deja/g++.mike/net22.C: Adjust.
+	* testsuite/g++.old-deja/g++.mike/p11110.C: Adjust.
+	* testsuite/g++.old-deja/g++.mike/p1989.C: Adjust.
+	* testsuite/g++.old-deja/g++.mike/p2431.C: Adjust.
+	* testsuite/g++.old-deja/g++.mike/p438.C: Adjust.
+	* testsuite/g++.old-deja/g++.mike/p807a.C: Adjust.
+	* testsuite/g++.old-deja/g++.mike/p9068.C: Adjust.
+	* testsuite/g++.old-deja/g++.niklas/t120.C: Adjust.
+	* testsuite/g++.old-deja/g++.niklas/t121.C: Adjust.
+	* testsuite/g++.old-deja/g++.niklas/t128.C: Adjust.
+	* testsuite/g++.old-deja/g++.ns/overload2.C: Adjust.
+	* testsuite/g++.old-deja/g++.ns/using12.C: Adjust.
+	* testsuite/g++.old-deja/g++.other/crash24.C: Adjust.
+	* testsuite/g++.old-deja/g++.other/expr1.C: Adjust.
+	* testsuite/g++.old-deja/g++.other/overload11.C: Adjust.
+	* testsuite/g++.old-deja/g++.other/pmf3.C: Adjust.
+	* testsuite/g++.old-deja/g++.other/volatile1.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/auto_ptr.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/crash28.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/crash60.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/explicit38.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/explicit39.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/explicit41.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/explicit67.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/explicit77.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/expr2.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/ptrmem10.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/ptrmem6.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/spec35.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/spec5.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/spec6.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/t05.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/t24.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/unify4.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/unify6.C: Adjust.
+	* testsuite/g++.old-deja/g++.pt/unify8.C: Adjust.
+	* testsuite/g++.old-deja/g++.robertl/eb109.C: Adjust.
+	* testsuite/g++.old-deja/g++.robertl/eb119.C: Adjust.
+	* testsuite/g++.old-deja/g++.robertl/eb131.C: Adjust.
+	* testsuite/g++.old-deja/g++.robertl/eb22.C: Adjust.
+	* testsuite/g++.old-deja/g++.robertl/eb69.C: Adjust.
+	* testsuite/g++.old-deja/g++.robertl/eb98.C: Adjust.
+
+2010-12-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45822
+	* g++.dg/init/synth4.C: New.
+
+	PR c++/46736
+	* g++.dg/cpp0x/defaulted21.C: New.
+
+2010-12-08  Wei Guozhi  <carrot@google.com>
+
+	PR target/46631
+	* gcc.target/arm/pr46631: New testcase.
+
+2010-12-08  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR middle-end/42694
+	* gcc.target/powerpc/ppc-pow.c: New file to make sure pow (x,
+	0.75) is not optimized if the machine has no sqrt instruction.
+
+2010-12-07  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR target/43603
+	* gcc.target/ia64/pr43603.c: New.
+	* gcc/testsuite/g++.dg/opt/pr46640.C: New.
+
+2010-12-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44352
+	* gfortran.dg/string_4.f90: New.
+
 2010-12-07  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR tree-optimization/44676

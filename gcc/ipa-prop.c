@@ -460,11 +460,15 @@ compute_complex_ancestor_jump_func (struct ipa_node_params *info,
   tree tmp, parm, expr;
   int index, i;
 
-  if (gimple_phi_num_args (phi) != 2
-      || !integer_zerop (PHI_ARG_DEF (phi, 1)))
+  if (gimple_phi_num_args (phi) != 2)
     return;
 
-  tmp = PHI_ARG_DEF (phi, 0);
+  if (integer_zerop (PHI_ARG_DEF (phi, 1)))
+    tmp = PHI_ARG_DEF (phi, 0);
+  else if (integer_zerop (PHI_ARG_DEF (phi, 0)))
+    tmp = PHI_ARG_DEF (phi, 1);
+  else
+    return;
   if (TREE_CODE (tmp) != SSA_NAME
       || SSA_NAME_IS_DEFAULT_DEF (tmp)
       || !POINTER_TYPE_P (TREE_TYPE (tmp))
@@ -2210,13 +2214,10 @@ ipa_modify_call_arguments (struct cgraph_edge *cs, gimple stmt,
 	  base = gimple_call_arg (stmt, adj->base_index);
 	  loc = EXPR_LOCATION (base);
 
-	  if (TREE_CODE (base) == ADDR_EXPR
-	      && DECL_P (TREE_OPERAND (base, 0)))
-	    off = build_int_cst (TREE_TYPE (base),
+	  if (TREE_CODE (base) != ADDR_EXPR
+	      && POINTER_TYPE_P (TREE_TYPE (base)))
+	    off = build_int_cst (adj->alias_ptr_type,
 				 adj->offset / BITS_PER_UNIT);
-	  else if (TREE_CODE (base) != ADDR_EXPR
-		   && POINTER_TYPE_P (TREE_TYPE (base)))
-	    off = build_int_cst (TREE_TYPE (base), adj->offset / BITS_PER_UNIT);
 	  else
 	    {
 	      HOST_WIDE_INT base_offset;
@@ -2230,12 +2231,12 @@ ipa_modify_call_arguments (struct cgraph_edge *cs, gimple stmt,
 	      if (!base)
 		{
 		  base = build_fold_addr_expr (prev_base);
-		  off = build_int_cst (reference_alias_ptr_type (prev_base),
+		  off = build_int_cst (adj->alias_ptr_type,
 				       adj->offset / BITS_PER_UNIT);
 		}
 	      else if (TREE_CODE (base) == MEM_REF)
 		{
-		  off = build_int_cst (TREE_TYPE (TREE_OPERAND (base, 1)),
+		  off = build_int_cst (adj->alias_ptr_type,
 				       base_offset
 				       + adj->offset / BITS_PER_UNIT);
 		  off = int_const_binop (PLUS_EXPR, TREE_OPERAND (base, 1),
@@ -2244,7 +2245,7 @@ ipa_modify_call_arguments (struct cgraph_edge *cs, gimple stmt,
 		}
 	      else
 		{
-		  off = build_int_cst (reference_alias_ptr_type (prev_base),
+		  off = build_int_cst (adj->alias_ptr_type,
 				       base_offset
 				       + adj->offset / BITS_PER_UNIT);
 		  base = build_fold_addr_expr (base);
