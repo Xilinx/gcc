@@ -28445,9 +28445,9 @@ lab_endgetargs:;
   
   
   MELT_LOCATION("warmelt-normatch.melt:2753:/ putclosurout");
-  /*putclosurout*/
-  melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VARPATSCANNER__V12*/ meltfptr[11])) == MELTOBMAG_CLOSURE);
-  melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)((/*!konst_6*/ meltfrout->tabval[6]))) == MELTOBMAG_ROUTINE);
+  /*putclosurout#1*/
+  melt_assertmsg("putclosrout#1 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VARPATSCANNER__V12*/ meltfptr[11])) == MELTOBMAG_CLOSURE);
+  melt_assertmsg("putclosrout#1 checkrout", melt_magic_discr((melt_ptr_t)((/*!konst_6*/ meltfrout->tabval[6]))) == MELTOBMAG_ROUTINE);
   ((meltclosure_ptr_t)/*_.VARPATSCANNER__V12*/ meltfptr[11])->rout = (meltroutine_ptr_t) ((/*!konst_6*/ meltfrout->tabval[6]));
   ;
   /*^touch*/

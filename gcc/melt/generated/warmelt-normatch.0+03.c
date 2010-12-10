@@ -15461,9 +15461,9 @@ lab_endgetargs:;
   
   
   MELT_LOCATION("warmelt-normatch.melt:5679:/ putclosurout");
-  /*putclosurout*/
-  melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.SCANDATA__V19*/ meltfptr[18])) == MELTOBMAG_CLOSURE);
-  melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)((/*!konst_12*/ meltfrout->tabval[12]))) == MELTOBMAG_ROUTINE);
+  /*putclosurout#2*/
+  melt_assertmsg("putclosrout#2 checkclo", melt_magic_discr((melt_ptr_t)(/*_.SCANDATA__V19*/ meltfptr[18])) == MELTOBMAG_CLOSURE);
+  melt_assertmsg("putclosrout#2 checkrout", melt_magic_discr((melt_ptr_t)((/*!konst_12*/ meltfrout->tabval[12]))) == MELTOBMAG_ROUTINE);
   ((meltclosure_ptr_t)/*_.SCANDATA__V19*/ meltfptr[18])->rout = (meltroutine_ptr_t) ((/*!konst_12*/ meltfrout->tabval[12]));
   ;
   /*^putclosedv*/
@@ -15488,9 +15488,9 @@ lab_endgetargs:;
   meltgc_touch(/*_.SCANDATA__V19*/ meltfptr[18]);
   ;
   MELT_LOCATION("warmelt-normatch.melt:5713:/ putclosurout");
-  /*putclosurout*/
-  melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.SCANSTEP__V20*/ meltfptr[19])) == MELTOBMAG_CLOSURE);
-  melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)((/*!konst_24*/ meltfrout->tabval[24]))) == MELTOBMAG_ROUTINE);
+  /*putclosurout#3*/
+  melt_assertmsg("putclosrout#3 checkclo", melt_magic_discr((melt_ptr_t)(/*_.SCANSTEP__V20*/ meltfptr[19])) == MELTOBMAG_CLOSURE);
+  melt_assertmsg("putclosrout#3 checkrout", melt_magic_discr((melt_ptr_t)((/*!konst_24*/ meltfrout->tabval[24]))) == MELTOBMAG_ROUTINE);
   ((meltclosure_ptr_t)/*_.SCANSTEP__V20*/ meltfptr[19])->rout = (meltroutine_ptr_t) ((/*!konst_24*/ meltfrout->tabval[24]));
   ;
   /*^putclosedv*/
@@ -15521,9 +15521,9 @@ lab_endgetargs:;
   meltgc_touch(/*_.SCANSTEP__V20*/ meltfptr[19]);
   ;
   MELT_LOCATION("warmelt-normatch.melt:5748:/ putclosurout");
-  /*putclosurout*/
-  melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.SCANFLAG__V21*/ meltfptr[20])) == MELTOBMAG_CLOSURE);
-  melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)((/*!konst_28*/ meltfrout->tabval[28]))) == MELTOBMAG_ROUTINE);
+  /*putclosurout#4*/
+  melt_assertmsg("putclosrout#4 checkclo", melt_magic_discr((melt_ptr_t)(/*_.SCANFLAG__V21*/ meltfptr[20])) == MELTOBMAG_CLOSURE);
+  melt_assertmsg("putclosrout#4 checkrout", melt_magic_discr((melt_ptr_t)((/*!konst_28*/ meltfrout->tabval[28]))) == MELTOBMAG_ROUTINE);
   ((meltclosure_ptr_t)/*_.SCANFLAG__V21*/ meltfptr[20])->rout = (meltroutine_ptr_t) ((/*!konst_28*/ meltfrout->tabval[28]));
   ;
   /*^putclosedv*/

@@ -3,11 +3,11 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[]=
- "4.6.0 20101210 (experimental) [melt-branch revision 167700]";
+ "4.6.0 20101210 (experimental) [melt-branch revision 167701]";
 
 
 /* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[]="cebd594484b2c19743b55958b8d885af";
+const char md5prepromeltrun_melt[]="872751d9422031f658f3838e35ca89dd";
 
 #endif /*MELTGCC_DYNAMIC_OBJSTRUCT*/
 
@@ -34396,9 +34396,9 @@ MELT_LOCATION("warmelt-normal.melt:542:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1049*/ meltfptr[1048]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1050*/ meltfptr[1049])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1049*/ meltfptr[1048])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#1*/
+ melt_assertmsg("putclosrout#1 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1050*/ meltfptr[1049])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#1 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1049*/ meltfptr[1048])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1050*/ meltfptr[1049])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1049*/ meltfptr[1048]);
  
  /*touch:DATACLOSURE_*/
@@ -36108,9 +36108,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1055*/ meltfptr[1054]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1250*/ meltfptr[1249])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1055*/ meltfptr[1054])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#2*/
+ melt_assertmsg("putclosrout#2 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1250*/ meltfptr[1249])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#2 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1055*/ meltfptr[1054])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1250*/ meltfptr[1249])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1055*/ meltfptr[1054]);
  
  /*touch:DATACLOSURE_*/
@@ -36260,9 +36260,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1258*/ meltfptr[1257]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1259*/ meltfptr[1258])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1258*/ meltfptr[1257])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#3*/
+ melt_assertmsg("putclosrout#3 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1259*/ meltfptr[1258])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#3 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1258*/ meltfptr[1257])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1259*/ meltfptr[1258])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1258*/ meltfptr[1257]);
  
  /*touch:DATACLOSURE_*/
@@ -36338,9 +36338,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1268*/ meltfptr[1267]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1269*/ meltfptr[1268])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1268*/ meltfptr[1267])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#4*/
+ melt_assertmsg("putclosrout#4 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1269*/ meltfptr[1268])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#4 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1268*/ meltfptr[1267])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1269*/ meltfptr[1268])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1268*/ meltfptr[1267]);
  
  /*touch:DATACLOSURE_*/
@@ -36399,9 +36399,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1274*/ meltfptr[1273]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1275*/ meltfptr[1274])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1274*/ meltfptr[1273])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#5*/
+ melt_assertmsg("putclosrout#5 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1275*/ meltfptr[1274])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#5 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1274*/ meltfptr[1273])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1275*/ meltfptr[1274])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1274*/ meltfptr[1273]);
  
  /*touch:DATACLOSURE_*/
@@ -36433,9 +36433,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1276*/ meltfptr[1275]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1277*/ meltfptr[1276])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1276*/ meltfptr[1275])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#6*/
+ melt_assertmsg("putclosrout#6 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1277*/ meltfptr[1276])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#6 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1276*/ meltfptr[1275])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1277*/ meltfptr[1276])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1276*/ meltfptr[1275]);
  
  /*touch:DATACLOSURE_*/
@@ -36511,9 +36511,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1288*/ meltfptr[1287]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1289*/ meltfptr[1288])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1288*/ meltfptr[1287])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#7*/
+ melt_assertmsg("putclosrout#7 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1289*/ meltfptr[1288])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#7 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1288*/ meltfptr[1287])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1289*/ meltfptr[1288])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1288*/ meltfptr[1287]);
  
  /*touch:DATACLOSURE_*/
@@ -36531,9 +36531,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1290*/ meltfptr[1289]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1291*/ meltfptr[1290])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1290*/ meltfptr[1289])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#8*/
+ melt_assertmsg("putclosrout#8 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1291*/ meltfptr[1290])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#8 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1290*/ meltfptr[1289])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1291*/ meltfptr[1290])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1290*/ meltfptr[1289]);
  
  /*touch:DATACLOSURE_*/
@@ -36558,9 +36558,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1292*/ meltfptr[1291]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1293*/ meltfptr[1292])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1292*/ meltfptr[1291])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#9*/
+ melt_assertmsg("putclosrout#9 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1293*/ meltfptr[1292])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#9 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1292*/ meltfptr[1291])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1293*/ meltfptr[1292])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1292*/ meltfptr[1291]);
  
  /*touch:DATACLOSURE_*/
@@ -36578,9 +36578,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1294*/ meltfptr[1293]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1295*/ meltfptr[1294])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1294*/ meltfptr[1293])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#10*/
+ melt_assertmsg("putclosrout#10 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1295*/ meltfptr[1294])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#10 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1294*/ meltfptr[1293])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1295*/ meltfptr[1294])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1294*/ meltfptr[1293]);
  
  /*touch:DATACLOSURE_*/
@@ -36727,9 +36727,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1296*/ meltfptr[1295]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1299*/ meltfptr[1298])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1296*/ meltfptr[1295])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#11*/
+ melt_assertmsg("putclosrout#11 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1299*/ meltfptr[1298])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#11 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1296*/ meltfptr[1295])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1299*/ meltfptr[1298])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1296*/ meltfptr[1295]);
  
  /*touch:DATACLOSURE_*/
@@ -36821,9 +36821,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1304*/ meltfptr[1303]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1306*/ meltfptr[1305])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1304*/ meltfptr[1303])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#12*/
+ melt_assertmsg("putclosrout#12 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1306*/ meltfptr[1305])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#12 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1304*/ meltfptr[1303])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1306*/ meltfptr[1305])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1304*/ meltfptr[1303]);
  
  /*touch:DATACLOSURE_*/
@@ -36915,9 +36915,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1311*/ meltfptr[1310]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1313*/ meltfptr[1312])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1311*/ meltfptr[1310])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#13*/
+ melt_assertmsg("putclosrout#13 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1313*/ meltfptr[1312])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#13 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1311*/ meltfptr[1310])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1313*/ meltfptr[1312])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1311*/ meltfptr[1310]);
  
  /*touch:DATACLOSURE_*/
@@ -36975,9 +36975,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1314*/ meltfptr[1313]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1316*/ meltfptr[1315])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1314*/ meltfptr[1313])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#14*/
+ melt_assertmsg("putclosrout#14 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1316*/ meltfptr[1315])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#14 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1314*/ meltfptr[1313])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1316*/ meltfptr[1315])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1314*/ meltfptr[1313]);
  
  /*touch:DATACLOSURE_*/
@@ -37229,9 +37229,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1339*/ meltfptr[1338]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1340*/ meltfptr[1339])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1339*/ meltfptr[1338])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#15*/
+ melt_assertmsg("putclosrout#15 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1340*/ meltfptr[1339])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#15 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1339*/ meltfptr[1338])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1340*/ meltfptr[1339])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1339*/ meltfptr[1338]);
  
  /*touch:DATACLOSURE_*/
@@ -37284,9 +37284,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1341*/ meltfptr[1340]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1342*/ meltfptr[1341])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1341*/ meltfptr[1340])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#16*/
+ melt_assertmsg("putclosrout#16 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1342*/ meltfptr[1341])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#16 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1341*/ meltfptr[1340])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1342*/ meltfptr[1341])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1341*/ meltfptr[1340]);
  
  /*touch:DATACLOSURE_*/
@@ -37325,9 +37325,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1343*/ meltfptr[1342]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1344*/ meltfptr[1343])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1343*/ meltfptr[1342])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#17*/
+ melt_assertmsg("putclosrout#17 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1344*/ meltfptr[1343])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#17 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1343*/ meltfptr[1342])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1344*/ meltfptr[1343])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1343*/ meltfptr[1342]);
  
  /*touch:DATACLOSURE_*/
@@ -37366,9 +37366,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1345*/ meltfptr[1344]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1346*/ meltfptr[1345])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1345*/ meltfptr[1344])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#18*/
+ melt_assertmsg("putclosrout#18 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1346*/ meltfptr[1345])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#18 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1345*/ meltfptr[1344])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1346*/ meltfptr[1345])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1345*/ meltfptr[1344]);
  
  /*touch:DATACLOSURE_*/
@@ -37424,9 +37424,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1349*/ meltfptr[1348]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1350*/ meltfptr[1349])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1349*/ meltfptr[1348])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#19*/
+ melt_assertmsg("putclosrout#19 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1350*/ meltfptr[1349])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#19 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1349*/ meltfptr[1348])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1350*/ meltfptr[1349])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1349*/ meltfptr[1348]);
  
  /*touch:DATACLOSURE_*/
@@ -37496,9 +37496,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_8 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1353*/ meltfptr[1352]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1354*/ meltfptr[1353])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1353*/ meltfptr[1352])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#20*/
+ melt_assertmsg("putclosrout#20 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1354*/ meltfptr[1353])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#20 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1353*/ meltfptr[1352])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1354*/ meltfptr[1353])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1353*/ meltfptr[1352]);
  
  /*touch:DATACLOSURE_*/
@@ -37608,9 +37608,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_9 (struct frame_star
 #define meltfram__ (*meltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
-/*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1358*/ meltfptr[1357])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1359*/ meltfptr[1358])) == MELTOBMAG_ROUTINE);
+/*putclosurout#21*/
+ melt_assertmsg("putclosrout#21 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1358*/ meltfptr[1357])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#21 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1359*/ meltfptr[1358])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1358*/ meltfptr[1357])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1359*/ meltfptr[1358]);
  
  /*touch:DATACLOSURE_*/
@@ -37670,9 +37670,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_9 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1357*/ meltfptr[1356]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1356*/ meltfptr[1355])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1357*/ meltfptr[1356])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#22*/
+ melt_assertmsg("putclosrout#22 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1356*/ meltfptr[1355])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#22 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1357*/ meltfptr[1356])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1356*/ meltfptr[1355])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1357*/ meltfptr[1356]);
  
  /*touch:DATACLOSURE_*/
@@ -37929,9 +37929,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_9 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1355*/ meltfptr[1354]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1366*/ meltfptr[1365])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1355*/ meltfptr[1354])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#23*/
+ melt_assertmsg("putclosrout#23 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1366*/ meltfptr[1365])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#23 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1355*/ meltfptr[1354])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1366*/ meltfptr[1365])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1355*/ meltfptr[1354]);
  
  /*touch:DATACLOSURE_*/
@@ -37969,9 +37969,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_9 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1371*/ meltfptr[1370]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1372*/ meltfptr[1371])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1371*/ meltfptr[1370])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#24*/
+ melt_assertmsg("putclosrout#24 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1372*/ meltfptr[1371])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#24 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1371*/ meltfptr[1370])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1372*/ meltfptr[1371])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1371*/ meltfptr[1370]);
  
  /*touch:DATACLOSURE_*/
@@ -38059,9 +38059,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_9 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1373*/ meltfptr[1372]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1374*/ meltfptr[1373])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1373*/ meltfptr[1372])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#25*/
+ melt_assertmsg("putclosrout#25 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1374*/ meltfptr[1373])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#25 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1373*/ meltfptr[1372])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1374*/ meltfptr[1373])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1373*/ meltfptr[1372]);
  
  /*touch:DATACLOSURE_*/
@@ -38326,9 +38326,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_9 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1379*/ meltfptr[1378]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1382*/ meltfptr[1381])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1379*/ meltfptr[1378])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#26*/
+ melt_assertmsg("putclosrout#26 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1382*/ meltfptr[1381])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#26 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1379*/ meltfptr[1378])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1382*/ meltfptr[1381])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1379*/ meltfptr[1378]);
  
  /*touch:DATACLOSURE_*/
@@ -38497,9 +38497,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_9 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1387*/ meltfptr[1386]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1389*/ meltfptr[1388])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1387*/ meltfptr[1386])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#27*/
+ melt_assertmsg("putclosrout#27 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1389*/ meltfptr[1388])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#27 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1387*/ meltfptr[1386])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1389*/ meltfptr[1388])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1387*/ meltfptr[1386]);
  
  /*touch:DATACLOSURE_*/
@@ -38764,9 +38764,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_9 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1394*/ meltfptr[1393]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1397*/ meltfptr[1396])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1394*/ meltfptr[1393])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#28*/
+ melt_assertmsg("putclosrout#28 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1397*/ meltfptr[1396])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#28 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1394*/ meltfptr[1393])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1397*/ meltfptr[1396])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1394*/ meltfptr[1393]);
  
  /*touch:DATACLOSURE_*/
@@ -38920,9 +38920,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_9 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1400*/ meltfptr[1399]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1401*/ meltfptr[1400])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1400*/ meltfptr[1399])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#29*/
+ melt_assertmsg("putclosrout#29 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1401*/ meltfptr[1400])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#29 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1400*/ meltfptr[1399])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1401*/ meltfptr[1400])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1400*/ meltfptr[1399]);
  
  /*touch:DATACLOSURE_*/
@@ -39092,9 +39092,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_9 (struct frame_star
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1408*/ meltfptr[1407]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1411*/ meltfptr[1410])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1408*/ meltfptr[1407])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#30*/
+ melt_assertmsg("putclosrout#30 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1411*/ meltfptr[1410])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#30 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1408*/ meltfptr[1407])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1411*/ meltfptr[1410])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1408*/ meltfptr[1407]);
  
  /*touch:DATACLOSURE_*/
@@ -39298,9 +39298,9 @@ MELT_LOCATION("warmelt-normal.melt:1784:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1414*/ meltfptr[1413]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1415*/ meltfptr[1414])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1414*/ meltfptr[1413])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#31*/
+ melt_assertmsg("putclosrout#31 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1415*/ meltfptr[1414])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#31 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1414*/ meltfptr[1413])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1415*/ meltfptr[1414])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1414*/ meltfptr[1413]);
  
  /*touch:DATACLOSURE_*/
@@ -39463,9 +39463,9 @@ MELT_LOCATION("warmelt-normal.melt:1784:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1422*/ meltfptr[1421]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1426*/ meltfptr[1425])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1422*/ meltfptr[1421])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#32*/
+ melt_assertmsg("putclosrout#32 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1426*/ meltfptr[1425])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#32 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1422*/ meltfptr[1421])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1426*/ meltfptr[1425])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1422*/ meltfptr[1421]);
  
  /*touch:DATACLOSURE_*/
@@ -39634,9 +39634,9 @@ MELT_LOCATION("warmelt-normal.melt:1784:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1429*/ meltfptr[1428]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1433*/ meltfptr[1432])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1429*/ meltfptr[1428])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#33*/
+ melt_assertmsg("putclosrout#33 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1433*/ meltfptr[1432])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#33 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1429*/ meltfptr[1428])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1433*/ meltfptr[1432])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1429*/ meltfptr[1428]);
  
  /*touch:DATACLOSURE_*/
@@ -39858,9 +39858,9 @@ MELT_LOCATION("warmelt-normal.melt:1784:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1440*/ meltfptr[1439]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1445*/ meltfptr[1444])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1440*/ meltfptr[1439])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#34*/
+ melt_assertmsg("putclosrout#34 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1445*/ meltfptr[1444])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#34 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1440*/ meltfptr[1439])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1445*/ meltfptr[1444])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1440*/ meltfptr[1439]);
  
  /*touch:DATACLOSURE_*/
@@ -40062,9 +40062,9 @@ MELT_LOCATION("warmelt-normal.melt:1784:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1448*/ meltfptr[1447]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1453*/ meltfptr[1452])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1448*/ meltfptr[1447])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#35*/
+ melt_assertmsg("putclosrout#35 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1453*/ meltfptr[1452])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#35 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1448*/ meltfptr[1447])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1453*/ meltfptr[1452])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1448*/ meltfptr[1447]);
  
  /*touch:DATACLOSURE_*/
@@ -40385,9 +40385,9 @@ MELT_LOCATION("warmelt-normal.melt:1784:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1456*/ meltfptr[1455]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1461*/ meltfptr[1460])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1456*/ meltfptr[1455])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#36*/
+ melt_assertmsg("putclosrout#36 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1461*/ meltfptr[1460])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#36 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1456*/ meltfptr[1455])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1461*/ meltfptr[1460])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1456*/ meltfptr[1455]);
  
  /*touch:DATACLOSURE_*/
@@ -40533,9 +40533,9 @@ MELT_LOCATION("warmelt-normal.melt:1784:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1466*/ meltfptr[1465]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1469*/ meltfptr[1468])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1466*/ meltfptr[1465])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#37*/
+ melt_assertmsg("putclosrout#37 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1469*/ meltfptr[1468])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#37 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1466*/ meltfptr[1465])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1469*/ meltfptr[1468])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1466*/ meltfptr[1465]);
  
  /*touch:DATACLOSURE_*/
@@ -40925,9 +40925,9 @@ MELT_LOCATION("warmelt-normal.melt:2351:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1473*/ meltfptr[1472]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1480*/ meltfptr[1479])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1473*/ meltfptr[1472])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#38*/
+ melt_assertmsg("putclosrout#38 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1480*/ meltfptr[1479])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#38 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1473*/ meltfptr[1472])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1480*/ meltfptr[1479])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1473*/ meltfptr[1472]);
  
  /*touch:DATACLOSURE_*/
@@ -41061,9 +41061,9 @@ MELT_LOCATION("warmelt-normal.melt:2351:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1486*/ meltfptr[1485]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1487*/ meltfptr[1486])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1486*/ meltfptr[1485])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#39*/
+ melt_assertmsg("putclosrout#39 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1487*/ meltfptr[1486])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#39 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1486*/ meltfptr[1485])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1487*/ meltfptr[1486])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1486*/ meltfptr[1485]);
  
  /*touch:DATACLOSURE_*/
@@ -41175,9 +41175,9 @@ MELT_LOCATION("warmelt-normal.melt:2351:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1490*/ meltfptr[1489]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1491*/ meltfptr[1490])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1490*/ meltfptr[1489])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#40*/
+ melt_assertmsg("putclosrout#40 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1491*/ meltfptr[1490])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#40 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1490*/ meltfptr[1489])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1491*/ meltfptr[1490])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1490*/ meltfptr[1489]);
  
  /*touch:DATACLOSURE_*/
@@ -41451,9 +41451,9 @@ MELT_LOCATION("warmelt-normal.melt:2351:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1494*/ meltfptr[1493]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1498*/ meltfptr[1497])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1494*/ meltfptr[1493])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#41*/
+ melt_assertmsg("putclosrout#41 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1498*/ meltfptr[1497])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#41 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1494*/ meltfptr[1493])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1498*/ meltfptr[1497])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1494*/ meltfptr[1493]);
  
  /*touch:DATACLOSURE_*/
@@ -41660,9 +41660,9 @@ MELT_LOCATION("warmelt-normal.melt:2351:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1504*/ meltfptr[1503]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1507*/ meltfptr[1506])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1504*/ meltfptr[1503])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#42*/
+ melt_assertmsg("putclosrout#42 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1507*/ meltfptr[1506])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#42 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1504*/ meltfptr[1503])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1507*/ meltfptr[1506])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1504*/ meltfptr[1503]);
  
  /*touch:DATACLOSURE_*/
@@ -41798,9 +41798,9 @@ MELT_LOCATION("warmelt-normal.melt:2351:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1510*/ meltfptr[1509]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1513*/ meltfptr[1512])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1510*/ meltfptr[1509])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#43*/
+ melt_assertmsg("putclosrout#43 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1513*/ meltfptr[1512])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#43 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1510*/ meltfptr[1509])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1513*/ meltfptr[1512])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1510*/ meltfptr[1509]);
  
  /*touch:DATACLOSURE_*/
@@ -42107,9 +42107,9 @@ MELT_LOCATION("warmelt-normal.melt:2351:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1517*/ meltfptr[1516]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1521*/ meltfptr[1520])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1517*/ meltfptr[1516])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#44*/
+ melt_assertmsg("putclosrout#44 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1521*/ meltfptr[1520])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#44 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1517*/ meltfptr[1516])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1521*/ meltfptr[1520])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1517*/ meltfptr[1516]);
  
  /*touch:DATACLOSURE_*/
@@ -42278,9 +42278,9 @@ MELT_LOCATION("warmelt-normal.melt:2351:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1525*/ meltfptr[1524]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1528*/ meltfptr[1527])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1525*/ meltfptr[1524])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#45*/
+ melt_assertmsg("putclosrout#45 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1528*/ meltfptr[1527])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#45 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1525*/ meltfptr[1524])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1528*/ meltfptr[1527])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1525*/ meltfptr[1524]);
  
  /*touch:DATACLOSURE_*/
@@ -42436,9 +42436,9 @@ MELT_LOCATION("warmelt-normal.melt:2351:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1535*/ meltfptr[1534]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1538*/ meltfptr[1537])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1535*/ meltfptr[1534])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#46*/
+ melt_assertmsg("putclosrout#46 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1538*/ meltfptr[1537])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#46 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1535*/ meltfptr[1534])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1538*/ meltfptr[1537])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1535*/ meltfptr[1534]);
  
  /*touch:DATACLOSURE_*/
@@ -42494,9 +42494,9 @@ MELT_LOCATION("warmelt-normal.melt:2351:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1541*/ meltfptr[1540]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1542*/ meltfptr[1541])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1541*/ meltfptr[1540])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#47*/
+ melt_assertmsg("putclosrout#47 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1542*/ meltfptr[1541])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#47 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1541*/ meltfptr[1540])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1542*/ meltfptr[1541])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1541*/ meltfptr[1540]);
  
  /*touch:DATACLOSURE_*/
@@ -42614,9 +42614,9 @@ MELT_LOCATION("warmelt-normal.melt:3067:/ initchunk");
  if (MELT_HAS_INITIAL_ENVIRONMENT) melt_checkmsg("putroutconst constnull.drout_1381__REPLACE_LAST_BY_RETURN#9", NULL != (/*_.VALROUT___V1547*/ meltfptr[1546]));
  ((meltroutine_ptr_t)/*_.VALROUT___V1546*/ meltfptr[1545])->tabval[9] = (melt_ptr_t)(/*_.VALROUT___V1547*/ meltfptr[1546]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1548*/ meltfptr[1547])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1546*/ meltfptr[1545])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#48*/
+ melt_assertmsg("putclosrout#48 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1548*/ meltfptr[1547])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#48 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1546*/ meltfptr[1545])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1548*/ meltfptr[1547])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1546*/ meltfptr[1545]);
  
  /*touch:DATACLOSURE_*/
@@ -42951,9 +42951,9 @@ MELT_LOCATION("warmelt-normal.melt:3067:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1551*/ meltfptr[1550]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1555*/ meltfptr[1554])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1551*/ meltfptr[1550])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#49*/
+ melt_assertmsg("putclosrout#49 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1555*/ meltfptr[1554])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#49 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1551*/ meltfptr[1550])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1555*/ meltfptr[1554])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1551*/ meltfptr[1550]);
  
  /*touch:DATACLOSURE_*/
@@ -43261,9 +43261,9 @@ MELT_LOCATION("warmelt-normal.melt:3067:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1560*/ meltfptr[1559]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1566*/ meltfptr[1565])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1560*/ meltfptr[1559])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#50*/
+ melt_assertmsg("putclosrout#50 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1566*/ meltfptr[1565])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#50 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1560*/ meltfptr[1559])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1566*/ meltfptr[1565])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1560*/ meltfptr[1559]);
  
  /*touch:DATACLOSURE_*/
@@ -43354,9 +43354,9 @@ MELT_LOCATION("warmelt-normal.melt:3067:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1569*/ meltfptr[1568]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1570*/ meltfptr[1569])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1569*/ meltfptr[1568])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#51*/
+ melt_assertmsg("putclosrout#51 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1570*/ meltfptr[1569])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#51 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1569*/ meltfptr[1568])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1570*/ meltfptr[1569])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1569*/ meltfptr[1568]);
  
  /*touch:DATACLOSURE_*/
@@ -43604,9 +43604,9 @@ MELT_LOCATION("warmelt-normal.melt:3067:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1571*/ meltfptr[1570]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1577*/ meltfptr[1576])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1571*/ meltfptr[1570])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#52*/
+ melt_assertmsg("putclosrout#52 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1577*/ meltfptr[1576])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#52 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1571*/ meltfptr[1570])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1577*/ meltfptr[1576])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1571*/ meltfptr[1570]);
  
  /*touch:DATACLOSURE_*/
@@ -43762,9 +43762,9 @@ MELT_LOCATION("warmelt-normal.melt:3067:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1582*/ meltfptr[1581]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1587*/ meltfptr[1586])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1582*/ meltfptr[1581])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#53*/
+ melt_assertmsg("putclosrout#53 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1587*/ meltfptr[1586])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#53 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1582*/ meltfptr[1581])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1587*/ meltfptr[1586])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1582*/ meltfptr[1581]);
  
  /*touch:DATACLOSURE_*/
@@ -44090,9 +44090,9 @@ MELT_LOCATION("warmelt-normal.melt:3067:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1599*/ meltfptr[1598]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1598*/ meltfptr[1597])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1599*/ meltfptr[1598])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#54*/
+ melt_assertmsg("putclosrout#54 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1598*/ meltfptr[1597])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#54 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1599*/ meltfptr[1598])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1598*/ meltfptr[1597])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1599*/ meltfptr[1598]);
  
  /*touch:DATACLOSURE_*/
@@ -44110,9 +44110,9 @@ MELT_LOCATION("warmelt-normal.melt:3067:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1590*/ meltfptr[1589]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1600*/ meltfptr[1599])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1590*/ meltfptr[1589])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#55*/
+ melt_assertmsg("putclosrout#55 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1600*/ meltfptr[1599])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#55 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1590*/ meltfptr[1589])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1600*/ meltfptr[1599])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1590*/ meltfptr[1589]);
  
  /*touch:DATACLOSURE_*/
@@ -44300,9 +44300,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1614*/ meltfptr[1613]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1615*/ meltfptr[1614])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1614*/ meltfptr[1613])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#56*/
+ melt_assertmsg("putclosrout#56 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1615*/ meltfptr[1614])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#56 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1614*/ meltfptr[1613])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1615*/ meltfptr[1614])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1614*/ meltfptr[1613]);
  
  /*touch:DATACLOSURE_*/
@@ -44542,9 +44542,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1631*/ meltfptr[1630]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1632*/ meltfptr[1631])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1631*/ meltfptr[1630])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#57*/
+ melt_assertmsg("putclosrout#57 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1632*/ meltfptr[1631])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#57 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1631*/ meltfptr[1630])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1632*/ meltfptr[1631])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1631*/ meltfptr[1630]);
  
  /*touch:DATACLOSURE_*/
@@ -44590,9 +44590,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1633*/ meltfptr[1632]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1634*/ meltfptr[1633])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1633*/ meltfptr[1632])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#58*/
+ melt_assertmsg("putclosrout#58 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1634*/ meltfptr[1633])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#58 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1633*/ meltfptr[1632])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1634*/ meltfptr[1633])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1633*/ meltfptr[1632]);
  
  /*touch:DATACLOSURE_*/
@@ -44638,9 +44638,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1635*/ meltfptr[1634]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1636*/ meltfptr[1635])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1635*/ meltfptr[1634])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#59*/
+ melt_assertmsg("putclosrout#59 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1636*/ meltfptr[1635])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#59 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1635*/ meltfptr[1634])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1636*/ meltfptr[1635])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1635*/ meltfptr[1634]);
  
  /*touch:DATACLOSURE_*/
@@ -44700,9 +44700,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1637*/ meltfptr[1636]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1638*/ meltfptr[1637])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1637*/ meltfptr[1636])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#60*/
+ melt_assertmsg("putclosrout#60 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1638*/ meltfptr[1637])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#60 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1637*/ meltfptr[1636])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1638*/ meltfptr[1637])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1637*/ meltfptr[1636]);
  
  /*touch:DATACLOSURE_*/
@@ -44786,9 +44786,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1641*/ meltfptr[1640]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1642*/ meltfptr[1641])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1641*/ meltfptr[1640])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#61*/
+ melt_assertmsg("putclosrout#61 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1642*/ meltfptr[1641])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#61 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1641*/ meltfptr[1640])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1642*/ meltfptr[1641])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1641*/ meltfptr[1640]);
  
  /*touch:DATACLOSURE_*/
@@ -44900,9 +44900,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1643*/ meltfptr[1642]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1646*/ meltfptr[1645])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1643*/ meltfptr[1642])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#62*/
+ melt_assertmsg("putclosrout#62 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1646*/ meltfptr[1645])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#62 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1643*/ meltfptr[1642])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1646*/ meltfptr[1645])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1643*/ meltfptr[1642]);
  
  /*touch:DATACLOSURE_*/
@@ -44997,9 +44997,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1647*/ meltfptr[1646]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1648*/ meltfptr[1647])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1647*/ meltfptr[1646])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#63*/
+ melt_assertmsg("putclosrout#63 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1648*/ meltfptr[1647])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#63 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1647*/ meltfptr[1646])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1648*/ meltfptr[1647])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1647*/ meltfptr[1646]);
  
  /*touch:DATACLOSURE_*/
@@ -45059,9 +45059,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1649*/ meltfptr[1648]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1650*/ meltfptr[1649])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1649*/ meltfptr[1648])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#64*/
+ melt_assertmsg("putclosrout#64 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1650*/ meltfptr[1649])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#64 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1649*/ meltfptr[1648])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1650*/ meltfptr[1649])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1649*/ meltfptr[1648]);
  
  /*touch:DATACLOSURE_*/
@@ -45266,9 +45266,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1651*/ meltfptr[1650]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1653*/ meltfptr[1652])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1651*/ meltfptr[1650])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#65*/
+ melt_assertmsg("putclosrout#65 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1653*/ meltfptr[1652])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#65 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1651*/ meltfptr[1650])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1653*/ meltfptr[1652])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1651*/ meltfptr[1650]);
  
  /*touch:DATACLOSURE_*/
@@ -45492,9 +45492,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1654*/ meltfptr[1653]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1657*/ meltfptr[1656])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1654*/ meltfptr[1653])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#66*/
+ melt_assertmsg("putclosrout#66 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1657*/ meltfptr[1656])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#66 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1654*/ meltfptr[1653])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1657*/ meltfptr[1656])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1654*/ meltfptr[1653]);
  
  /*touch:DATACLOSURE_*/
@@ -45605,9 +45605,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1664*/ meltfptr[1663]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1665*/ meltfptr[1664])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1664*/ meltfptr[1663])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#67*/
+ melt_assertmsg("putclosrout#67 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1665*/ meltfptr[1664])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#67 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1664*/ meltfptr[1663])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1665*/ meltfptr[1664])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1664*/ meltfptr[1663]);
  
  /*touch:DATACLOSURE_*/
@@ -45639,9 +45639,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1666*/ meltfptr[1665]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1667*/ meltfptr[1666])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1666*/ meltfptr[1665])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#68*/
+ melt_assertmsg("putclosrout#68 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1667*/ meltfptr[1666])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#68 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1666*/ meltfptr[1665])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1667*/ meltfptr[1666])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1666*/ meltfptr[1665]);
  
  /*touch:DATACLOSURE_*/
@@ -45666,9 +45666,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1668*/ meltfptr[1667]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1669*/ meltfptr[1668])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1668*/ meltfptr[1667])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#69*/
+ melt_assertmsg("putclosrout#69 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1669*/ meltfptr[1668])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#69 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1668*/ meltfptr[1667])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1669*/ meltfptr[1668])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1668*/ meltfptr[1667]);
  
  /*touch:DATACLOSURE_*/
@@ -45777,9 +45777,9 @@ MELT_LOCATION("warmelt-normal.melt:3715:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1670*/ meltfptr[1669]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1671*/ meltfptr[1670])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1670*/ meltfptr[1669])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#70*/
+ melt_assertmsg("putclosrout#70 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1671*/ meltfptr[1670])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#70 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1670*/ meltfptr[1669])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1671*/ meltfptr[1670])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1670*/ meltfptr[1669]);
  
  /*touch:DATACLOSURE_*/
@@ -45895,9 +45895,9 @@ MELT_LOCATION("warmelt-normal.melt:4480:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1674*/ meltfptr[1673]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1677*/ meltfptr[1676])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1674*/ meltfptr[1673])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#71*/
+ melt_assertmsg("putclosrout#71 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1677*/ meltfptr[1676])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#71 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1674*/ meltfptr[1673])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1677*/ meltfptr[1676])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1674*/ meltfptr[1673]);
  
  /*touch:DATACLOSURE_*/
@@ -45974,9 +45974,9 @@ MELT_LOCATION("warmelt-normal.melt:4480:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1680*/ meltfptr[1679]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1681*/ meltfptr[1680])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1680*/ meltfptr[1679])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#72*/
+ melt_assertmsg("putclosrout#72 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1681*/ meltfptr[1680])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#72 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1680*/ meltfptr[1679])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1681*/ meltfptr[1680])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1680*/ meltfptr[1679]);
  
  /*touch:DATACLOSURE_*/
@@ -46064,9 +46064,9 @@ MELT_LOCATION("warmelt-normal.melt:4480:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1682*/ meltfptr[1681]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1683*/ meltfptr[1682])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1682*/ meltfptr[1681])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#73*/
+ melt_assertmsg("putclosrout#73 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1683*/ meltfptr[1682])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#73 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1682*/ meltfptr[1681])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1683*/ meltfptr[1682])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1682*/ meltfptr[1681]);
  
  /*touch:DATACLOSURE_*/
@@ -46118,9 +46118,9 @@ MELT_LOCATION("warmelt-normal.melt:4480:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1688*/ meltfptr[1687]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1689*/ meltfptr[1688])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1688*/ meltfptr[1687])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#74*/
+ melt_assertmsg("putclosrout#74 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1689*/ meltfptr[1688])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#74 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1688*/ meltfptr[1687])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1689*/ meltfptr[1688])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1688*/ meltfptr[1687]);
  
  /*touch:DATACLOSURE_*/
@@ -46248,9 +46248,9 @@ MELT_LOCATION("warmelt-normal.melt:4480:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1690*/ meltfptr[1689]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1692*/ meltfptr[1691])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1690*/ meltfptr[1689])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#75*/
+ melt_assertmsg("putclosrout#75 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1692*/ meltfptr[1691])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#75 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1690*/ meltfptr[1689])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1692*/ meltfptr[1691])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1690*/ meltfptr[1689]);
  
  /*touch:DATACLOSURE_*/
@@ -46429,9 +46429,9 @@ MELT_LOCATION("warmelt-normal.melt:4480:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1693*/ meltfptr[1692]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1694*/ meltfptr[1693])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1693*/ meltfptr[1692])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#76*/
+ melt_assertmsg("putclosrout#76 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1694*/ meltfptr[1693])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#76 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1693*/ meltfptr[1692])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1694*/ meltfptr[1693])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1693*/ meltfptr[1692]);
  
  /*touch:DATACLOSURE_*/
@@ -46674,9 +46674,9 @@ MELT_LOCATION("warmelt-normal.melt:4480:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1705*/ meltfptr[1704]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1706*/ meltfptr[1705])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1705*/ meltfptr[1704])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#77*/
+ melt_assertmsg("putclosrout#77 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1706*/ meltfptr[1705])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#77 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1705*/ meltfptr[1704])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1706*/ meltfptr[1705])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1705*/ meltfptr[1704]);
  
  /*touch:DATACLOSURE_*/
@@ -47186,9 +47186,9 @@ MELT_LOCATION("warmelt-normal.melt:4480:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1721*/ meltfptr[1720]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1729*/ meltfptr[1728])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1721*/ meltfptr[1720])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#78*/
+ melt_assertmsg("putclosrout#78 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1729*/ meltfptr[1728])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#78 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1721*/ meltfptr[1720])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1729*/ meltfptr[1728])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1721*/ meltfptr[1720]);
  
  /*touch:DATACLOSURE_*/
@@ -47422,9 +47422,9 @@ MELT_LOCATION("warmelt-normal.melt:4480:/ initchunk");
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1734*/ meltfptr[1733]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1735*/ meltfptr[1734])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1734*/ meltfptr[1733])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#79*/
+ melt_assertmsg("putclosrout#79 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1735*/ meltfptr[1734])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#79 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1734*/ meltfptr[1733])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1735*/ meltfptr[1734])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1734*/ meltfptr[1733]);
  
  /*touch:DATACLOSURE_*/
@@ -47743,9 +47743,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_15 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1754*/ meltfptr[1753]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1755*/ meltfptr[1754])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1754*/ meltfptr[1753])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#80*/
+ melt_assertmsg("putclosrout#80 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1755*/ meltfptr[1754])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#80 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1754*/ meltfptr[1753])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1755*/ meltfptr[1754])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1754*/ meltfptr[1753]);
  
  /*touch:DATACLOSURE_*/
@@ -48026,9 +48026,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_15 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1766*/ meltfptr[1765]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1769*/ meltfptr[1768])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1766*/ meltfptr[1765])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#81*/
+ melt_assertmsg("putclosrout#81 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1769*/ meltfptr[1768])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#81 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1766*/ meltfptr[1765])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1769*/ meltfptr[1768])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1766*/ meltfptr[1765]);
  
  /*touch:DATACLOSURE_*/
@@ -48342,9 +48342,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_15 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1782*/ meltfptr[1781]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1784*/ meltfptr[1783])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1782*/ meltfptr[1781])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#82*/
+ melt_assertmsg("putclosrout#82 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1784*/ meltfptr[1783])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#82 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1782*/ meltfptr[1781])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1784*/ meltfptr[1783])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1782*/ meltfptr[1781]);
  
  /*touch:DATACLOSURE_*/
@@ -48646,9 +48646,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_15 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1789*/ meltfptr[1788]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1791*/ meltfptr[1790])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1789*/ meltfptr[1788])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#83*/
+ melt_assertmsg("putclosrout#83 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1791*/ meltfptr[1790])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#83 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1789*/ meltfptr[1788])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1791*/ meltfptr[1790])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1789*/ meltfptr[1788]);
  
  /*touch:DATACLOSURE_*/
@@ -48756,9 +48756,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_15 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1794*/ meltfptr[1793]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1797*/ meltfptr[1796])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1794*/ meltfptr[1793])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#84*/
+ melt_assertmsg("putclosrout#84 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1797*/ meltfptr[1796])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#84 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1794*/ meltfptr[1793])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1797*/ meltfptr[1796])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1794*/ meltfptr[1793]);
  
  /*touch:DATACLOSURE_*/
@@ -48915,9 +48915,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_15 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1800*/ meltfptr[1799]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1803*/ meltfptr[1802])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1800*/ meltfptr[1799])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#85*/
+ melt_assertmsg("putclosrout#85 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1803*/ meltfptr[1802])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#85 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1800*/ meltfptr[1799])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1803*/ meltfptr[1802])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1800*/ meltfptr[1799]);
  
  /*touch:DATACLOSURE_*/
@@ -49084,9 +49084,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
 #define meltfram__ (*meltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
-/*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1808*/ meltfptr[1807])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1806*/ meltfptr[1805])) == MELTOBMAG_ROUTINE);
+/*putclosurout#86*/
+ melt_assertmsg("putclosrout#86 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1808*/ meltfptr[1807])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#86 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1806*/ meltfptr[1805])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1808*/ meltfptr[1807])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1806*/ meltfptr[1805]);
  
  /*touch:DATACLOSURE_*/
@@ -49184,9 +49184,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1811*/ meltfptr[1810]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1812*/ meltfptr[1811])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1811*/ meltfptr[1810])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#87*/
+ melt_assertmsg("putclosrout#87 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1812*/ meltfptr[1811])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#87 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1811*/ meltfptr[1810])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1812*/ meltfptr[1811])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1811*/ meltfptr[1810]);
  
  /*touch:DATACLOSURE_*/
@@ -49553,9 +49553,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1815*/ meltfptr[1814]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1818*/ meltfptr[1817])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1815*/ meltfptr[1814])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#88*/
+ melt_assertmsg("putclosrout#88 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1818*/ meltfptr[1817])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#88 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1815*/ meltfptr[1814])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1818*/ meltfptr[1817])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1815*/ meltfptr[1814]);
  
  /*touch:DATACLOSURE_*/
@@ -49670,9 +49670,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1821*/ meltfptr[1820]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1824*/ meltfptr[1823])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1821*/ meltfptr[1820])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#89*/
+ melt_assertmsg("putclosrout#89 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1824*/ meltfptr[1823])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#89 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1821*/ meltfptr[1820])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1824*/ meltfptr[1823])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1821*/ meltfptr[1820]);
  
  /*touch:DATACLOSURE_*/
@@ -49787,9 +49787,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1827*/ meltfptr[1826]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1830*/ meltfptr[1829])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1827*/ meltfptr[1826])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#90*/
+ melt_assertmsg("putclosrout#90 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1830*/ meltfptr[1829])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#90 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1827*/ meltfptr[1826])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1830*/ meltfptr[1829])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1827*/ meltfptr[1826]);
  
  /*touch:DATACLOSURE_*/
@@ -49939,9 +49939,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1833*/ meltfptr[1832]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1836*/ meltfptr[1835])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1833*/ meltfptr[1832])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#91*/
+ melt_assertmsg("putclosrout#91 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1836*/ meltfptr[1835])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#91 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1833*/ meltfptr[1832])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1836*/ meltfptr[1835])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1833*/ meltfptr[1832]);
  
  /*touch:DATACLOSURE_*/
@@ -50029,9 +50029,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1837*/ meltfptr[1836]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1838*/ meltfptr[1837])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1837*/ meltfptr[1836])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#92*/
+ melt_assertmsg("putclosrout#92 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1838*/ meltfptr[1837])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#92 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1837*/ meltfptr[1836])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1838*/ meltfptr[1837])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1837*/ meltfptr[1836]);
  
  /*touch:DATACLOSURE_*/
@@ -50181,9 +50181,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1841*/ meltfptr[1840]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1844*/ meltfptr[1843])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1841*/ meltfptr[1840])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#93*/
+ melt_assertmsg("putclosrout#93 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1844*/ meltfptr[1843])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#93 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1841*/ meltfptr[1840])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1844*/ meltfptr[1843])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1841*/ meltfptr[1840]);
  
  /*touch:DATACLOSURE_*/
@@ -50271,9 +50271,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1845*/ meltfptr[1844]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1846*/ meltfptr[1845])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1845*/ meltfptr[1844])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#94*/
+ melt_assertmsg("putclosrout#94 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1846*/ meltfptr[1845])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#94 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1845*/ meltfptr[1844])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1846*/ meltfptr[1845])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1845*/ meltfptr[1844]);
  
  /*touch:DATACLOSURE_*/
@@ -50343,9 +50343,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1849*/ meltfptr[1848]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1850*/ meltfptr[1849])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1849*/ meltfptr[1848])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#95*/
+ melt_assertmsg("putclosrout#95 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1850*/ meltfptr[1849])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#95 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1849*/ meltfptr[1848])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1850*/ meltfptr[1849])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1849*/ meltfptr[1848]);
  
  /*touch:DATACLOSURE_*/
@@ -50405,9 +50405,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1851*/ meltfptr[1850]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1852*/ meltfptr[1851])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1851*/ meltfptr[1850])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#96*/
+ melt_assertmsg("putclosrout#96 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1852*/ meltfptr[1851])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#96 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1851*/ meltfptr[1850])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1852*/ meltfptr[1851])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1851*/ meltfptr[1850]);
  
  /*touch:DATACLOSURE_*/
@@ -50592,9 +50592,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1855*/ meltfptr[1854]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1858*/ meltfptr[1857])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1855*/ meltfptr[1854])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#97*/
+ melt_assertmsg("putclosrout#97 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1858*/ meltfptr[1857])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#97 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1855*/ meltfptr[1854])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1858*/ meltfptr[1857])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1855*/ meltfptr[1854]);
  
  /*touch:DATACLOSURE_*/
@@ -50698,9 +50698,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_16 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1865*/ meltfptr[1864]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1867*/ meltfptr[1866])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1865*/ meltfptr[1864])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#98*/
+ melt_assertmsg("putclosrout#98 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1867*/ meltfptr[1866])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#98 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1865*/ meltfptr[1864])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1867*/ meltfptr[1866])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1865*/ meltfptr[1864]);
  
  /*touch:DATACLOSURE_*/
@@ -50851,9 +50851,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_17 (struct frame_sta
  /*touch:IROUTVAL_*/
  meltgc_touch(/*_.VALROUT___V1870*/ meltfptr[1869]);
  
- /*putclosurout*/
- melt_assertmsg("putclosrout checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1874*/ meltfptr[1873])) == MELTOBMAG_CLOSURE);
- melt_assertmsg("putclosrout checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1870*/ meltfptr[1869])) == MELTOBMAG_ROUTINE);
+ /*putclosurout#99*/
+ melt_assertmsg("putclosrout#99 checkclo", melt_magic_discr((melt_ptr_t)(/*_.VALCLO___V1874*/ meltfptr[1873])) == MELTOBMAG_CLOSURE);
+ melt_assertmsg("putclosrout#99 checkrout", melt_magic_discr((melt_ptr_t)(/*_.VALROUT___V1870*/ meltfptr[1869])) == MELTOBMAG_ROUTINE);
  ((meltclosure_ptr_t)/*_.VALCLO___V1874*/ meltfptr[1873])->rout = (meltroutine_ptr_t) (/*_.VALROUT___V1870*/ meltfptr[1869]);
  
  /*touch:DATACLOSURE_*/

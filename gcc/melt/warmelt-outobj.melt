@@ -3193,15 +3193,30 @@
   (debug_msg opclor "outpucod_objputclosurout opclor")
   (let ( (oloc (unsafe_get_field :obi_loc opclor))
 	 (oclos (unsafe_get_field :opclor_clos opclor))
-	 (orout (unsafe_get_field :opclor_rout opclor)) )
+	 (orout (unsafe_get_field :opclor_rout opclor)) 
+	 (:long cnt 0)
+	 )
+    (code_chunk 
+     getcntchk
+     #{ /* $GETCNTCHK in outpucod_objputclosurout */
+     static long $GETCNTCHK#_cnt;
+     $GETCNTCHK#_cnt++;
+     $CNT = $GETCNTCHK#_cnt;
+     }#)
     (output_location oloc implbuf depth "putclosurout")
-    (add2sbuf_strconst implbuf "/*putclosurout*/")
+    (add2sbuf_strconst implbuf "/*putclosurout#")    
+    (add2sbuf_longdec implbuf cnt)
+    (add2sbuf_strconst implbuf "*/")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "melt_assertmsg(\"putclosrout checkclo\", melt_magic_discr((melt_ptr_t)(")
+    (add2sbuf_strconst implbuf "melt_assertmsg(\"putclosrout#")
+    (add2sbuf_longdec implbuf cnt)
+    (add2sbuf_strconst implbuf " checkclo\", melt_magic_discr((melt_ptr_t)(")
     (output_c_code oclos declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")) == MELTOBMAG_CLOSURE);")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "melt_assertmsg(\"putclosrout checkrout\", melt_magic_discr((melt_ptr_t)(")
+    (add2sbuf_strconst implbuf "melt_assertmsg(\"putclosrout#")
+    (add2sbuf_longdec implbuf cnt)
+    (add2sbuf_strconst implbuf " checkrout\", melt_magic_discr((melt_ptr_t)(")
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")) == MELTOBMAG_ROUTINE);")
     (add2sbuf_indentnl implbuf depth)
