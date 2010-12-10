@@ -3319,6 +3319,7 @@ enum
   FSYSDAT_UNIT_STARTER,		/* closure for start of compilation unit */
   FSYSDAT_UNIT_FINISHER,        /* closure for start of compilation unit */
   FSYSDAT_OPTION_SET,		/* closure to set options */
+  FSYSDAT_PASSEXEC_HOOK,	/* closure for PLUGIN_PASS_EXECUTION */
   FSYSDAT__LAST
 };
 
@@ -3589,6 +3590,10 @@ extern melt_ptr_t melt_jmpval;
 } while(0)
 ***/
 
+
+/*Function to be called by MELT code when the :sysdata_passexec_hook
+   is changed. */
+void meltgc_notify_sysdata_passexec_hook (void);
 
 /* ====== safer output routines ===== */
 

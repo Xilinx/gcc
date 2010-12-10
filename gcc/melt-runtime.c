@@ -10013,7 +10013,50 @@ melt_finishunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
 #undef finclosv
 }
 
-
+/* The plugin callback for pass execution.  */
+static void
+melt_passexec_callback (void *gcc_data,
+			void* user_data ATTRIBUTE_UNUSED) 
+{
+  struct opt_pass* pass = (struct opt_pass*) gcc_data;
+  MELT_ENTERFRAME (4, NULL);
+#define passxhv   meltfram__.mcfr_varptr[0]
+#define passnamev meltfram__.mcfr_varptr[1]
+  passxhv = melt_get_inisysdata (FSYSDAT_PASSEXEC_HOOK);
+  gcc_assert (pass != NULL);
+  if (melt_magic_discr((melt_ptr_t) passxhv) == MELTOBMAG_CLOSURE)
+    {
+      union meltparam_un pararg[1];
+      memset (&pararg, 0, sizeof (pararg));
+      pararg[0].bp_long = pass->static_pass_number;
+      if (pass->name)
+	passnamev = meltgc_new_stringdup 
+	  ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), pass->name);
+#if ENABLE_CHECKING
+      {
+	static char locbuf[80];
+	memset (locbuf, 0, sizeof (locbuf));
+	snprintf (locbuf, sizeof (locbuf) - 1,
+		  "%s:%d:melt_passexec_callback [pass %s #%d] before apply",
+		  lbasename (__FILE__), __LINE__, 
+		  pass->name, pass->static_pass_number);
+	meltfram__.mcfr_flocs = locbuf;
+      }
+#endif 
+      debugeprintf ("melt_passexec_callback before apply pass @ %p %s #%d", 
+		    (void*)pass, 
+		    pass->name, pass->static_pass_number);
+      (void) melt_apply ((meltclosure_ptr_t) passxhv,
+			 (melt_ptr_t) passnamev,
+			 BPARSTR_LONG, pararg, "", NULL);
+      debugeprintf ("melt_passexec_callback after apply pass @ %p %s #%d", 
+		    (void*)pass, 
+		    pass->name, pass->static_pass_number);
+    }
+#undef passxhv
+#undef passnamev
+  MELT_EXITFRAME ();
+}
 
 static void do_finalize_melt (void);
 
@@ -12811,7 +12854,37 @@ meltgc_register_pass (melt_ptr_t pass_p,
 
 
 
+/*****
+ * Support for PLUGIN_PASS_EXECUTION
+ *****/
 
+/* Function to be called by MELT code when the :sysdata_passexec_hook
+   is changed. */
+void meltgc_notify_sysdata_passexec_hook (void)
+{
+  MELT_ENTERFRAME (4, NULL);
+#define pxhookv      meltfram__.mcfr_varptr[0]
+  pxhookv =  melt_get_inisysdata (FSYSDAT_PASSEXEC_HOOK);
+  if (pxhookv == NULL) 
+    {
+      unregister_callback (melt_plugin_name, PLUGIN_PASS_EXECUTION);
+    }
+  else if (melt_magic_discr ((melt_ptr_t) pxhookv) == MELTOBMAG_CLOSURE)
+    {
+      register_callback (melt_plugin_name, PLUGIN_PASS_EXECUTION,
+			 melt_passexec_callback,
+			 NULL);
+    }
+  else 
+    {
+      /* This should never happen. The calling MELT code should test that 
+	 the :sysdata_passexec_hook is either a closure or null. */
+      melt_fatal_error ("sysdata_passexec_hook has invalid kind magic #%d",
+		        melt_magic_discr ((melt_ptr_t)pxhookv));
+    }
+  MELT_EXITFRAME ();
+#undef passxhv
+}
 
 
 

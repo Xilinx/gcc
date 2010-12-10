@@ -1,5 +1,38 @@
 
 
+2010-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl (melt-sources/[+includeload+]): Better.
+
+	* melt-build.mk: Regenerate.
+
+	* melt-runtime.h: Add FSYSDAT_PASSEXEC_HOOK.
+	(meltgc_notify_sysdata_passexec_hook): New declaration.
+
+	* melt-runtime.c (melt_passexec_callback): New function.
+	(meltgc_notify_sysdata_passexec_hook): New function.
+
+	* melt/warmelt-first.melt: Add field :sysdata_passexec_hook to
+	class_initial_system_data.
+
+	{{regenerated}}
+	* melt/generated/warmelt-normatch.0+01.c: Regenerate.
+	* melt/generated/warmelt-first.0.c: Regenerate.
+	* melt/generated/warmelt-normal.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0+03.c: Regenerate.
+	* melt/generated/warmelt-macro.0.c: Regenerate.
+	* melt/generated/warmelt-outobj.0.c: Regenerate.
+	* melt/generated/warmelt-first.0+01.c: Regenerate.
+	* melt/generated/warmelt-first.0+02.c: Regenerate.
+	* melt/generated/warmelt-genobj.0.c: Regenerate.
+	* melt/generated/warmelt-normal.0+01.c: Regenerate.
+	* melt/generated/warmelt-normal.0+02.c: Regenerate.
+	* melt/generated/warmelt-base.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+04.c: Regenerate.
+	* melt/generated/warmelt-debug.0.c: Regenerate.
+
 2010-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build.tpl (melt-sources/[+includeload+]): copy it properly.

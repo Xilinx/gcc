@@ -419,11 +419,11 @@ SYSDATA_, for various system facilities.  It is very magical, and
 should be kept in sync with the MELT runtime.  Only for gurus! So
 don't instanciate this class!}#
   :fields (sysdata_mode_dict			;stringmap for commands
-	   sysdata_cont_fresh_env			;closure to make a fresh environment
-	   sysdata_value_exporter		;closure to export a value
-	   sysdata_macro_exporter		;closure to export a macro
+	   sysdata_cont_fresh_env	       	;closure to make a fresh environment
+	   sysdata_value_exporter      	;closure to export a value
+	   sysdata_macro_exporter	;closure to export a macro
 	   sysdata_symboldict 		; stringmap for symbols
-	   sysdata_keywdict 			;stringmap for keywords
+	   sysdata_keywdict 		;stringmap for keywords
 	   sysdata_addsymbol 		;closure to add a symbol of given name
 	   sysdata_addkeyw		;closure to add a keyword of given name
 	   sysdata_internsymbol		;closure to intern a symbol
@@ -442,6 +442,8 @@ don't instanciate this class!}#
 	   sysdata_unit_finisher	;closure to be called at
 					;compilation unit end
 	   sysdata_option_set 		;closure to set a MELT option
+	   sysdata_passexec_hook	;internal closure if any to be
+					;called using PLUGIN_PASS_EXECUTION
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -2951,10 +2953,11 @@ accessed or updated but is intenally useful to many MELT mechanisms.}#
   :sysdata_debugmsg ()
   :sysdata_stdout ()			;initialized later
   :sysdata_stderr ()			;initialized later
-  :sysdata_dumpfile ()			;initialized late
+  :sysdata_dumpfile ()			;initialized later
   :sysdata_unit_starter init_unitstarter
   :sysdata_unit_finisher init_unitfinisher
   :sysdata_option_set init_optionsetter
+  :sysdata_passexec_hook ()		;initialized later, lazily
   )
 
 
