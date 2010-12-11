@@ -5835,7 +5835,7 @@ meltgc_new_string_nakedbasename (meltobject_ptr_t discr_p,
   else
     strcop = strcpy ((char *) xcalloc (1, slen + 1), str);
   basestr = (const char *) lbasename (strcop);
-  dot = strchr (basestr, '.');
+  dot = strrchr (basestr, '.');
   if (dot)
     *dot = 0;
   strv =

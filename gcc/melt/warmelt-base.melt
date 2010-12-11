@@ -330,6 +330,13 @@ number $NUM opaque location number $LOC.}#
   #{inform(UNKNOWN_LOCATION, "MELT INFORM [#%ld]: %s",  melt_dbgcounter, ($cmsg))}#
   )
 
+(defprimitive informsg_strv (:cstring cmsg :value strv) :void
+  :doc #{Show a plain notice with raw message string $CMSG and string value $STRV.}#
+  #{inform(UNKNOWN_LOCATION, "MELT INFORM [#%ld]: %s - %s",  
+			     melt_dbgcounter, ($cmsg), 
+			     melt_string_str ($STRV))}#
+  )
+
 ;;; citerator on integers
 (defciterator foreach_long_upto
   (:long imin imax)			;start formals
@@ -1136,6 +1143,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
  inform_strv
  inform_plain
  informsg_plain
+ informsg_strv
 
 
  foreach_long_upto

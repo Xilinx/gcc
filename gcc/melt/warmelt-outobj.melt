@@ -1,7 +1,7 @@
 ;; file warmelt-outobj.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
+    Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -5342,16 +5342,231 @@
 
 ;;;;;;;;;;;;;;;;
 
+(defun generate_gplv3plus_copyright_notice_c_comment (sbuf name)
+  :doc #{Generate into stringbuffer $SBUF a C comment with GPLv3+
+notice for file named $NAME.}#
+  (assert_msg "check sbuf" (is_strbuf sbuf))
+  (add2sbuf_strconst sbuf "/** Copyright (C) ")
+  (let ( (:long year 0)
+	 )
+    (code_chunk  getyear
+     #{ /*+ $GETYEAR*/
+        time_t $GETYEAR#_now = 0;
+	struct tm* $GETYEAR#_tm = NULL;
+        $YEAR = atol (__DATE__ + 7);
+	time (&$GETYEAR#_now);
+	if ($GETYEAR#_now > 0)
+	   $GETYEAR#_tm = localtime (&$GETYEAR#_now);
+        if ($GETYEAR#_tm) 
+	   $YEAR = $GETYEAR#_tm->tm_year + 1900;
+        /*- $GETYEAR*/}#)
+    (add2sbuf_longdec sbuf year)
+    )
+  (add2sbuf_strconst sbuf " Free Software Foundation, Inc.")
+  (add2sbuf_indentnl sbuf 0)
+  (add2sbuf_strconst sbuf "  This generated file ")
+  (if (is_string name)
+      (code_chunk 
+       addbasename
+       #{ /*$ADDBASENAME +*/
+       meltgc_add_strbuf( (melt_ptr_t)($SBUF), 
+			  lbasename (melt_string_str((melt_ptr_t)($NAME))));
+       /*$ADDBASENAME -*/ }#)
+   )
+  (add2sbuf_strconst sbuf " is part of GCC.")
+  (add2sbuf_indentnl sbuf 0)
+  (add2sbuf_indentnl sbuf 0)
+  (add2sbuf_strconst sbuf "                  [DON'T EDIT THIS GENERATED FILE]
+
+    GCC is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3, or (at your option)
+    any later version.
+
+    GCC is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.
+**/")
+  (add2sbuf_indentnl sbuf 0)
+  (add2sbuf_indentnl sbuf 0)
+)
+
+;;; internal function to generate ctype support. 
+;;; apply fun to the ctype tuple...
+(defun generate_ctypesupport (fun ctygtytup outarg :cstring suffix)
+  (debug_msg ctygtytup "generate_ctypesupport tuple")
+  (debugcstring suffix "generate_ctypesupport suffix")
+  (assert_msg "check fun" (is_closure fun))
+  (assert_msg "check ctygtytup" (is_multiple ctygtytup))
+  (assert_msg "check outarg" (is_string outarg))
+  (let ( (sbuf (make_strbuf discr_strbuf))
+	 (outname (let ( (nambuf (make_strbuf discr_strbuf)) )
+		    (add2sbuf_string nambuf outarg)
+		    (add2sbuf_strconst nambuf suffix)
+		    (strbuf2string discr_string nambuf)
+		    ))
+	 )
+    (assert_msg "check outname string" (is_string outname))
+    (generate_gplv3plus_copyright_notice_c_comment sbuf outname)
+    (debug_msg outname "generate_ctypesupport before call outname")
+    (fun sbuf outname ctygtytup)
+    (debug_msg outname "generate_ctypesupport after call outname")
+    (code_chunk 
+     enddate
+     #{ /* $ENDDATE + */
+        time_t $ENDDATE#_now = 0;
+	time (&$ENDDATE#_now);
+	meltgc_out_printf 
+	  ($SBUF, 
+	   "\n\n/" 
+	   "** end of %s generated [ctypesupport]\n* on %s" 
+	   "** using GCC %s with MELT"
+	   "**" "/\n",
+	   lbasename (melt_string_str ((melt_ptr_t)$OUTNAME)),
+	   ctime (&$ENDDATE#_now), melt_gccversionstr);
+        /* $ENDDATE - */ }#)
+  (output_sbuf_strval sbuf outname)
+  (informsg_strv "ctype support generated file " outname)
+  ))
+
+;; internal function to generate the magic enum
+(defun ctypesupport_enumagic (sbuf outname ctygtytup)
+  (debug_msg outname "ctypesupport_enumagic outname start")
+  (add2sbuf_indentnl sbuf 0)
+  (add2sbuf_strconst sbuf "/* ctype gty enumeration magic */")
+  (foreach_in_multiple
+   (ctygtytup)
+   (curctyp :long ix)
+   (debug_msg curctyp "ctypesupport_enumagic curctyp")
+   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_strconst sbuf "/*gtyctype #")
+   (add2sbuf_longdec sbuf (+i 1 ix))
+   (add2sbuf_strconst sbuf " ")
+   (add2sbuf_ccomstring sbuf (get_field :named_name curctyp))
+   (add2sbuf_strconst sbuf "*/")
+   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_string sbuf (get_field :ctypg_boxedmagic curctyp))
+   (add2sbuf_strconst sbuf " /*boxedmagic*/ =")
+   (add2sbuf_longdec sbuf (+i 30020 (*i 2 ix)))
+   (add2sbuf_strconst sbuf ",")
+   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_string sbuf (get_field :ctypg_mapmagic curctyp))
+   (add2sbuf_strconst sbuf " /*mapmagic*/ =")
+   (add2sbuf_longdec sbuf (+i 30021 (*i 2 ix)))
+   (add2sbuf_strconst sbuf ",")
+   )
+  (debug_msg outname "ctypesupport_enumagic outname end")
+  )
+
+
+;; internal function to generate the gty struct
+(defun ctypesupport_gtystruct  (sbuf outname ctygtytup)
+  (debug_msg outname "ctypesupport_gtystruct outname start")
+  (add2sbuf_indentnl sbuf 0)
+  (add2sbuf_strconst sbuf "/* ctype gty structures */")
+  (foreach_in_multiple
+   (ctygtytup)
+   (curctyp :long ix)
+   (debug_msg curctyp "ctypesupport_docmd/lambda/gtystruct curctyp")
+   (add2sbuf_indentnl sbuf 0)
+   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_strconst sbuf "/*gtyctype #")
+   (add2sbuf_longdec sbuf (+i 1 ix))
+   (add2sbuf_strconst sbuf " ")
+   (add2sbuf_ccomstring sbuf (get_field :named_name curctyp))
+   (add2sbuf_strconst sbuf "*/")
+   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_strconst sbuf "struct GTY (()) ")
+   (add2sbuf_string sbuf (get_field :ctypg_boxedstruct curctyp))
+   (add2sbuf_strconst sbuf " { /* when ")
+   (add2sbuf_string sbuf (get_field :ctypg_boxedmagic curctyp))
+   (add2sbuf_strconst sbuf "*/")
+   (add2sbuf_indentnl sbuf 3)
+   (add2sbuf_strconst sbuf "meltobject_ptr_t discr;")
+   (add2sbuf_indentnl sbuf 3)
+   (add2sbuf_string sbuf (get_field :ctype_cname curctyp))
+   (add2sbuf_strconst sbuf " val;")
+   (add2sbuf_indentnl sbuf 3)
+   (add2sbuf_strconst sbuf "};")
+   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_strconst sbuf "struct GTY (()) ")
+   (add2sbuf_string sbuf (get_field :ctypg_entrystruct curctyp))
+   (add2sbuf_strconst sbuf " { /* for ")
+   (add2sbuf_string sbuf (get_field :ctypg_mapmagic curctyp))
+   (add2sbuf_strconst sbuf "*/")
+   (add2sbuf_indentnl sbuf 3)
+   (add2sbuf_string sbuf (get_field :ctype_cname curctyp))
+   (add2sbuf_strconst sbuf " e_at;")
+   (add2sbuf_indentnl sbuf 3)
+   (add2sbuf_strconst sbuf " melt_ptr_t e_va;")
+   (add2sbuf_strconst sbuf "};")
+   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_strconst sbuf "struct GTY (()) ")
+   (add2sbuf_string sbuf (get_field :ctypg_mapstruct curctyp))
+   (add2sbuf_strconst sbuf " { /* when ")
+   (add2sbuf_string sbuf (get_field :ctypg_mapmagic curctyp))
+   (add2sbuf_strconst sbuf "*/")
+   (add2sbuf_indentnl sbuf 3)
+   (add2sbuf_strconst sbuf "/* keep in sync with meltmappointers_st */")
+   (add2sbuf_indentnl sbuf 3)
+   (add2sbuf_strconst sbuf "meltobject_ptr_t discr;")
+   (add2sbuf_indentnl sbuf 3)
+   (add2sbuf_strconst sbuf "unsigned count;")
+   (add2sbuf_indentnl sbuf 3)
+   (add2sbuf_strconst sbuf "unsigned char lenix;")
+   (add2sbuf_indentnl sbuf 3)
+   (add2sbuf_strconst sbuf "struct ")
+   (add2sbuf_string sbuf (get_field :ctypg_entrystruct curctyp))
+   (add2sbuf_strconst sbuf "* GTY ((length (\"melt_primtab[%h.lenix]\"))) entab;")
+   (add2sbuf_indentnl sbuf 3)
+   (add2sbuf_strconst sbuf "};")
+   (add2sbuf_indentnl sbuf 2)
+   )
+  (debug_msg outname "ctypesupport_gtystruct outname end")
+  )
+
+
+
 (defun ctypesupport_docmd (cmd moduldata)
   (debug_msg cmd "start ctypesupport_docmd cmd")
   (debug_msg moduldata "start ctypesupport_docmd moduldata")
   (let (
 	(outarg (or (make_stringconst discr_string (melt_argument "output"))
-		    '"meltctype-"
+		    '"meltctype"
 		    ))
+	(dictypgty (retrieve_dictionnary_ctype_gty))
+	(rawctypgtylist (list))
 	)
-    (assert_msg "$@$unimplemented ctypesupport_docmd")
-))
+    (debug_msg dictypgty "ctypesupport_docmd dictypgty")
+    (debug_msg outarg "ctypesupport_docmd outarg")
+    (foreach_in_mapstring
+     (dictypgty)
+     (curstr curcty)
+     (list_append rawctypgtylist curcty)
+     )
+    (debug_msg rawctypgtylist "ctypesupport_docmd rawctypgtylist")
+    (let ( (sortedctygtytuple 
+	    (multiple_sort (list_to_multiple rawctypgtylist discr_multiple)
+			   compare_named_alpha discr_multiple))
+	   )
+      (debug_msg sortedctygtytuple "ctypesupport_docmd sortedctygtytuple")
+      ;; generate the enummagic ie the MELTOBMAG_* enumeration
+      (generate_ctypesupport 
+       ctypesupport_enumagic
+       sortedctygtytuple outarg "-enumagic.h")
+      ;; generate the GTY structures
+      (generate_ctypesupport
+       ctypesupport_gtystruct
+       sortedctygtytuple outarg "-gtystruct.h")
+      ;;
+      (debug_msg sortedctygtytuple "ctypesupport_docmd done sortedctygtytuple")
+      (assert_msg "$@$unimplemented ctypesupport_docmd")
+      )))
 
 ;;;;;;;;;;;;;;;;
 (definstance ctypesupport_mode
@@ -5368,6 +5583,7 @@
  compile_list_sexpr
  install_melt_mode
  melt_argument
+ generate_gplv3plus_copyright_notice_c_comment 
  )
 
 ;;if we don't export these the warmelt-outobj.0.d.so cannot be dlopened!

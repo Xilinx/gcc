@@ -1,4 +1,16 @@
 
+2010-12-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_new_string_nakedbasename): Get the last
+	dot with strrchr!
+
+	* melt/warmelt-base.melt (informsg_strv): New function.
+
+	* melt/warmelt-outobj.melt
+	(generate_gplv3plus_copyright_notice_c_comment): New function.
+	(generate_ctypesupport, ctypesupport_enumagic)
+	(ctypesupport_gtystruct): New internal functions.
+	(ctypesupport_docmd): Use them, but still incomplete.
+
 2010-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (register_pass_execution_hook)
 	(unregister_pass_execution_hook): New public functions.
