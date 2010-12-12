@@ -1,5 +1,9 @@
 
 2010-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (gt-melt-runtime-plugin.h): Run twice gengtype to
+	save the state into gtype-no-melt.state and to generate it.
+
+2010-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: Add melt-tempbuild.
 	* melt-build.mk: Regenerate.
 
