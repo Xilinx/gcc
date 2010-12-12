@@ -7500,6 +7500,12 @@ static struct obstack bstring_obstack;
 	      lbasename(__FILE__), __LINE__);				\
 } while(0)
 
+#define READ_WARNING(Fmt,...)	do {					\
+  if (rd->rcol>0)							\
+    LINEMAP_POSITION_FOR_COLUMN (rd->rsrcloc, line_table, rd->rcol);	\
+  warning_at (rd->rsrcloc, 0, "MELT read warning: " Fmt, ##__VA_ARGS__); \
+} while(0)
+
 /* readval returns the read value and sets *PGOT to true if something
    was read */
 static melt_ptr_t readval (struct reading_st *rd, bool * pgot);
@@ -8210,6 +8216,7 @@ meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimap_p)
     lexv = readmacrostringsequence (rd);
     goto end;
   }
+    
   /* two characters delimiters found in the map */
   else if (ISPUNCT(c) && ISPUNCT(rdfollowc(1))
 	   && ((delimbuf[0]=c),(delimbuf[1]=rdfollowc(1)),
@@ -8640,6 +8647,7 @@ readmacrostringsequence (struct reading_st *rd)
 {
   int lineno = rd->rlineno;
   int escaped = 0;
+  int quoted = 0;
   location_t loc = 0;
   MELT_ENTERFRAME (6, NULL);
 #define readv    meltfram__.mcfr_varptr[0]
@@ -8650,6 +8658,15 @@ readmacrostringsequence (struct reading_st *rd)
   LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
+  if (rdcurc() == '$' && rdfollowc(1)=='\'') 
+    {
+      symbv = meltgc_named_symbol ("quote", MELT_CREATE);
+      quoted = 1;
+      meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) symbv);
+      symbv = NULL;
+      rdnext ();
+      rdnext ();
+    }
   for(;;) {
     if (rdeof()) 
       READ_ERROR("reached end of file in macrostring sequence started line %d; a }# is probably missing.", lineno);
@@ -8659,8 +8676,8 @@ readmacrostringsequence (struct reading_st *rd)
       continue;
     }
     if (rdcurc()=='}' && rdfollowc(1)=='#') {
-      rdnext(); 
-      rdnext();
+      rdnext (); 
+      rdnext ();
       if (sbufv && melt_strbuf_usedlength((melt_ptr_t)sbufv)>0) {
 	strv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
 					melt_strbuf_str((melt_ptr_t) sbufv));
@@ -8695,6 +8712,8 @@ readmacrostringsequence (struct reading_st *rd)
 	  memset(tinybuf, 0, sizeof(tinybuf));
 	  memcpy(tinybuf, &rdfollowc(1), lnam-1);
 	  tinybuf[lnam] = (char)0;
+	  if (quoted) 
+	    READ_WARNING ("quoted macro string with $%s symbol", tinybuf);
 	  symbv = meltgc_named_symbol(tinybuf, MELT_CREATE);
 	}
 	else {
@@ -8702,6 +8721,8 @@ readmacrostringsequence (struct reading_st *rd)
 	  memcpy(nambuf, &rdfollowc(1), lnam-1);
 	  nambuf[lnam] = (char)0;
 	  symbv = meltgc_named_symbol(nambuf, MELT_CREATE);
+	  if (quoted) 
+	    READ_WARNING ("quoted macro string with $%s symbol", nambuf);
 	  free(nambuf);
 	}
 	rd->rcol += lnam;
@@ -8919,10 +8940,11 @@ readhashescape (struct reading_st *rd)
       occurrence of $ followed by alphanum char is considered as a
       MELT symbol, the other caracters are considered as string
       chunks; the entire read is a sequence */
-  else if (c == '{') {
+  else if (c == '{') 
+    {
       rdnext ();
       readv = readmacrostringsequence(rd);
-  }
+    }
   else
     READ_ERROR ("MELT: invalid escape %.20s starting line %d", &rdcurc (), lineno);
   MELT_EXITFRAME ();

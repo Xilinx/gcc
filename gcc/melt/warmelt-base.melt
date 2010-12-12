@@ -1081,6 +1081,485 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; the descriptions of values which are not ctype related.
+(defclass class_value_descriptor
+  :doc #{The $CLASS_VALUE_DESCRIPTOR describes MELT values which are
+  not ctype renated. $VALDESC_OBJMAGIC is the symbol MELTOBMAG_* of
+  its magic number. $VALDESC_STRUCT is the GTY-ed struct
+  name. $VALDESC_UNIONMEM is the union member name inside union
+  melt_un. $VALDESC_CHUNK is the code chunk of the structure members
+  after the discriminant. $VALDESC_GTY is the optional GTY argument}#
+  :super class_named
+  :fields (
+	   valdesc_objmagic
+	   valdesc_struct
+	   valdesc_unionmem
+	   valdesc_gty
+	   valdesc_chunk
+	   )
+)
+
+(defclass class_varisized_value_descriptor
+  :doc #{The $CLASS_VARISIZED_VALUE_DESCRIPTOR describes variable
+  sized MELT values.}#
+  :super class_value_descriptor
+  :fields (
+	   ))
+
+(export_class 
+ class_value_descriptor 
+ class_varisized_value_descriptor)
+
+;;;;;;;;;;;;;;;;
+(definstance value_descriptor_list_container
+  class_container
+  :container_value (make_list discr_list)
+)
+
+(defun install_value_descriptor (vd)
+  (assert_msg "check vd" (is_a vd class_value_descriptor))
+  (list_append (get_field :container_value value_descriptor_list_container) 
+	       vd))
+
+(defun retrieve_value_descriptor_list ()
+  (get_field  :container_value value_descriptor_list_container))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;; object value
+(definstance valdesc_object class_varisized_value_descriptor
+  :doc #{$VALDESC_OBJECT describes object values.}#
+  :named_name '"VALDESC_OBJECT"
+  :valdesc_objmagic '"MELTOBMAG_OBJECT"
+  :valdesc_struct '"meltobject_st"
+  :valdesc_unionmem '"u_object"
+  :valdesc_chunk #{$' /* from VALDESC_OBJECT */
+#define meltobj_class discr
+  unsigned obj_hash;		/* hash code of the object */
+  unsigned short obj_num;
+#define meltobj_magic obj_num
+  unsigned short obj_len;
+  melt_ptr_t GTY ((length ("%h.obj_len"))) obj_vartab[FLEXIBLE_DIM];
+#define MELT_OBJECT_STRUCT(N) {			\
+  meltobject_ptr_t meltobj_class;		\
+  unsigned obj_hash;				\
+  unsigned short obj_num;			\
+  unsigned short obj_len;			\
+  melt_ptr_t* obj_vartab[N];			\
+  long _gap; }
+  }#
+)
+(install_value_descriptor valdesc_object)
+
+;;;;;;;;;;;;;;;; decaying value
+(definstance valdesc_decay class_value_descriptor
+  :doc #{$VALDESC_DECAY describes decaying values.}#
+  :named_name '"VALDESC_DECAY"
+  :valdesc_objmagic '"MELTOBMAG_DECAY"
+  :valdesc_struct '"meltdecay_st"
+  :valdesc_unionmem '"u_decay"
+  :valdesc_gty #{$' mark_hook ("melt_mark_decay")}#
+  :valdesc_chunk #{$' /* from VALDESC_DECAY */
+  melt_ptr_t val;
+  unsigned remain;		/* remaining number of marking */
+  }#
+)
+(install_value_descriptor valdesc_decay)
+  
+;;;;;;;;;;;;;;;; boxed value (boxing another value)
+(definstance valdesc_box class_value_descriptor
+  :doc #{$VALDESC_BOX describes boxing values.}#
+  :named_name '"VALDESC_BOX"
+  :valdesc_objmagic '"MELTOBMAG_BOX"
+  :valdesc_struct '"meltbox_st"
+  :valdesc_unionmem '"u_box"
+  :valdesc_chunk #{$' /* from VALDESC_BOX */
+  melt_ptr_t val;
+  }#
+)
+(install_value_descriptor valdesc_box)
+
+;;;;;;;;;;;;;;;; multiple value
+(definstance valdesc_multiple class_varisized_value_descriptor
+  :doc #{$VALDESC_MULTIPLE describes multiple values, i.e. tuples.}#
+  :named_name '"VALDESC_MULTIPLE"
+  :valdesc_objmagic '"MELTOBMAG_MULTIPLE"
+  :valdesc_struct '"meltmultiple_st"
+  :valdesc_unionmem '"u_multiple"
+  :valdesc_chunk #{$' /* from VALDESC_MULTIPLE */
+  unsigned nbval;
+  melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
+#define MELT_MULTIPLE_STRUCT(N) {		\
+  meltobject_ptr_t discr;			\
+  unsigned nbval;				\
+  melt_ptr_t tabval[N];				\
+  long _gap; }
+  }#
+)
+(install_value_descriptor valdesc_multiple)
+
+;;;;;;;;;;;;;;;; closure value
+(definstance valdesc_closure class_varisized_value_descriptor
+  :doc #{$VALDESC_CLOSURE describes closure values, i.e. functions.}#
+  :named_name '"VALDESC_CLOSURE"
+  :valdesc_objmagic '"MELTOBMAG_CLOSURE"
+  :valdesc_struct '"meltclosure_st"
+  :valdesc_unionmem '"u_closure"
+  :valdesc_chunk #{$' /* from VALDESC_CLOSURE */
+  meltroutine_ptr_t rout;
+  unsigned nbval;
+  melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
+#define MELT_CLOSURE_STRUCT(N) {		\
+  meltobject_ptr_t discr;			\
+  unsigned nbval;				\
+  melt_ptr_t tabval[N];				\
+  long _gap; }
+  }#
+)
+(install_value_descriptor valdesc_closure)
+
+;;;;;;;;;;;;;;;; routine value
+(definstance valdesc_routine class_varisized_value_descriptor
+  :doc #{$VALDESC_ROUTINE describes routine values.}#
+  :named_name '"VALDESC_ROUTINE"
+  :valdesc_objmagic '"MELTOBMAG_ROUTINE"
+  :valdesc_struct '"meltroutine_st"
+  :valdesc_unionmem '"u_routine"
+  :valdesc_chunk #{$' /* from VALDESC_ROUTINE */
+  char routdescr[MELT_ROUTDESCR_LEN];
+  meltroutfun_t* GTY ((skip)) routfunad;
+  melt_ptr_t routdata;
+  unsigned nbval;
+  melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
+/* unsafely set inside the meltroutine_st pointed by Rptr the
+   routine function pointer to Rout */
+#define MELT_ROUTINE_SET_ROUTCODE(Rptr,Rout) do {	\
+  ((struct meltroutine_st*)(Rptr))->routfunad		\
+     = (Rout);						\
+} while(0)
+
+#define MELT_ROUTINE_STRUCT(N) {		\
+  meltobject_ptr_t discr;			\
+  char routdescr[MELT_ROUTDESCR_LEN];		\
+  meltroutfun_t* routfunad;			\
+  melt_ptr_t routdata;				\
+  unsigned nbval;				\
+  melt_ptr_t tabval[N];				\
+  long _gap; }
+  }#
+)
+(install_value_descriptor valdesc_routine)
+
+;;;;;;;;;;;;;;;; string value
+(definstance valdesc_string class_varisized_value_descriptor
+  :doc #{$VALDESC_STRING describes string values.}#
+  :named_name '"VALDESC_STRING"
+  :valdesc_objmagic '"MELTOBMAG_STRING"
+  :valdesc_struct '"meltstring_st"
+  :valdesc_unionmem '"u_string"
+  :valdesc_chunk #{$' /* from VALDESC_STRING */  
+  char val[FLEXIBLE_DIM];	/* null terminated */
+#define MELT_STRING_STRUCT(N) {			\
+  meltobject_ptr_t discr;			\
+  char val[(N)+1];	/* null terminated */	\
+  long _gap; 
+}#
+)
+(install_value_descriptor valdesc_string)
+
+;;;;;;;;;;;;;;;; string buffer value
+(definstance valdesc_strbuf class_value_descriptor
+  :doc #{$VALDESC_STRBUF describes string buffers values}#
+  :named_name '"VALDESC_STRBUF"
+  :valdesc_objmagic '"MELTOBMAG_STRBUF"
+  :valdesc_struct '"meltstrbuf_st"
+  :valdesc_unionmem '"u_strbuf"
+  :valdesc_chunk #{$' /* from VALDESC_STRBUF */  
+  char *GTY ((length ("1+melt_primtab[%h.buflenix]"))) bufzn;
+  unsigned char buflenix;	/* allocated length index of
+				   buffer */
+  unsigned bufstart;
+  unsigned bufend;		/* start & end useful positions */
+  /* the following field is usually the value of buf (for
+     objects in the young zone), to allocate the object and its fields
+     at once; hence its GTY-ed length is zero */
+  char GTY ((length ("0"))) buf_space[FLEXIBLE_DIM];
+  }#
+)
+(install_value_descriptor valdesc_strbuf)
+
+
+;;;;;;;;;;;;;;;; pair value
+(definstance valdesc_pair class_value_descriptor
+  :doc #{$VALDESC_PAIR describes pair values inside lists.}#
+  :named_name '"VALDESC_PAIR"
+  :valdesc_objmagic '"MELTOBMAG_PAIR"
+  :valdesc_struct '"meltpair_st"
+  :valdesc_unionmem '"u_pair"
+  :valdesc_gty #{$' chain_next ("%h.tl")}#
+  :valdesc_chunk #{$' /* from VALDESC_PAIR */
+  melt_ptr_t hd;
+  struct meltpair_st *tl;
+  }#
+)
+(install_value_descriptor valdesc_pair)
+  
+
+;;;;;;;;;;;;;;;; list value
+(definstance valdesc_list class_value_descriptor
+  :doc #{$VALDESC_LIST describes list values containing pairs.}#
+  :named_name '"VALDESC_LIST"
+  :valdesc_objmagic '"MELTOBMAG_LIST"
+  :valdesc_struct '"meltlist_st"
+  :valdesc_unionmem '"u_list"
+  :valdesc_chunk #{$' /* from VALDESC_LIST */
+  struct meltpair_st *first;
+  struct meltpair_st *last;
+  }#
+)
+(install_value_descriptor valdesc_list)
+
+;;;;;;;;;;;;;;;; int value
+(definstance valdesc_int class_value_descriptor
+  :doc #{$VALDESC_INT describes int values boxing long integers.}#
+  :named_name '"VALDESC_INT"
+  :valdesc_objmagic '"MELTOBMAG_INT"
+  :valdesc_struct '"meltint_st"
+  :valdesc_unionmem '"u_int"
+  :valdesc_chunk #{$' /* from VALDESC_INT */
+  long val;
+  }#
+)
+(install_value_descriptor valdesc_int)
+
+;;;;;;;;;;;;;;;; mixint value
+(definstance valdesc_mixint class_value_descriptor
+  :doc #{$VALDESC_MIXINT describes mixint values mixing integers with a value.}#
+  :named_name '"VALDESC_MIXINT"
+  :valdesc_objmagic '"MELTOBMAG_MIXINT"
+  :valdesc_struct '"meltmixint_st"
+  :valdesc_unionmem '"u_mixint"
+  :valdesc_chunk #{$' /* from VALDESC_MIXINT */
+  melt_ptr_t ptrval;
+  long intval;
+  }#
+)
+(install_value_descriptor valdesc_mixint)
+
+;;;;;;;;;;;;;;;; mixloc value
+(definstance valdesc_mixloc class_value_descriptor
+  :doc #{$VALDESC_MIXLOC describes mixloc values mixing locations with a value.}#
+  :named_name '"VALDESC_MIXLOC"
+  :valdesc_objmagic '"MELTOBMAG_MIXLOC"
+  :valdesc_struct '"meltmixloc_st"
+  :valdesc_unionmem '"u_mixloc"
+  :valdesc_chunk #{$' /* from VALDESC_MIXLOC */
+  melt_ptr_t ptrval;
+  long intval;
+  location_t locval;
+  }#
+)
+(install_value_descriptor valdesc_mixloc)
+
+;;;;;;;;;;;;;;;; mixbigint value
+(definstance valdesc_mixbigint class_varisized_value_descriptor
+  :doc #{$VALDESC_MIXBIGINT describes mixbigint values.}#
+  :named_name '"VALDESC_MIXBIGINT"
+  :valdesc_objmagic '"MELTOBMAG_MIXBIGINT"
+  :valdesc_struct '"meltmixbigint_st"
+  :valdesc_unionmem '"u_mixbigint"
+  :valdesc_chunk #{$' /* from VALDESC_MIXBIGINT */
+/* an exported array mpz compatible; since we use an exported mpz format, 
+   the value can be copied and trashed by MELT garbage collector without 
+   harm. */
+  melt_ptr_t ptrval;
+  bool negative;
+  unsigned biglen;
+  long GTY ((length ("%h.biglen"))) tabig[FLEXIBLE_DIM];
+  }#
+)
+(install_value_descriptor valdesc_mixbigint)
+
+;;;;;;;;;;;;;;;; real value
+(definstance valdesc_real class_value_descriptor
+  :doc #{$VALDESC_REAL describes real values.}#
+  :named_name '"VALDESC_REAL"
+  :valdesc_objmagic '"MELTOBMAG_REAL"
+  :valdesc_struct '"meltreal_st"
+  :valdesc_unionmem '"u_real"
+  :valdesc_chunk #{$' /* from VALDESC_REAL */
+  REAL_VALUE_TYPE val;
+  }#
+)
+(install_value_descriptor valdesc_real)
+
+;;;;;;;;;;;;;;;; ****************** SPECIAL VALUES
+;;;;;;;;;;;;;;;; special file value
+(definstance valdesc_special_file class_value_descriptor
+  :doc #{$VALDESC_SPECIAL_FILE describes special file values.}#
+  :named_name '"VALDESC_SPECIAL_FILE"
+  :valdesc_objmagic '"MELTOBMAG_SPEC_FILE"
+  :valdesc_struct '"meltspecialfile_st"
+  :valdesc_unionmem '"u_special_file"
+  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_FILE */
+  int mark;
+  struct meltspecial_st *GTY ((skip)) nextspec;
+  union special_melt_un GTY ((skip)) val;
+  }#
+)
+(install_value_descriptor valdesc_special_file)
+
+;;;;;;;;;;;;;;;; special raw file value
+(definstance valdesc_special_raw_file class_value_descriptor
+  :doc #{$VALDESC_SPECIAL_RAW_FILE describes special raw file values.}#
+  :named_name '"VALDESC_SPECIAL_RAW_FILE"
+  :valdesc_objmagic '"MELTOBMAG_SPEC_RAWFILE"
+  :valdesc_struct '"meltspecialrawfile_st"
+  :valdesc_unionmem '"u_special_rawfile"
+  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_RAW_FILE */
+  int mark;
+  struct meltspecial_st *GTY ((skip)) nextspec;
+  union special_melt_un GTY ((skip)) val;
+  }#
+)
+(install_value_descriptor valdesc_special_raw_file)
+
+;;;;;;;;;;;;;;;; special mpfr value
+(definstance valdesc_special_mpfr class_value_descriptor
+  :doc #{$VALDESC_SPECIAL_MPFR describes special MPFR values.}#
+  :named_name '"VALDESC_SPECIAL_MPFR"
+  :valdesc_objmagic '"MELTOBMAG_SPEC_MPFR"
+  :valdesc_struct '"meltspecialmpfr_st"
+  :valdesc_unionmem '"u_special_mpfr"
+  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_MPFR */
+  int mark;
+  struct meltspecial_st *GTY ((skip)) nextspec;
+  union special_melt_un GTY ((skip)) val;
+  }#
+)
+(install_value_descriptor valdesc_special_mpfr)
+
+;;;;;;;;;;;;;;;; special PPL coefficient value
+(definstance valdesc_special_ppl_coefficient class_value_descriptor
+  :doc #{$VALDESC_SPECIAL_PPL_COEFFICIENT describes special PPL coefficient values.}#
+  :named_name '"VALDESC_SPECIAL_PPL_COEFFICIENT"
+  :valdesc_objmagic '"MELTOBMAG_SPECPPL_COEFFICIENT"
+  :valdesc_struct '"meltspecialpplcoefficient_st"
+  :valdesc_unionmem '"u_special_ppl_coefficient"
+  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_COEFFICIENT */
+  int mark;
+  struct meltspecial_st *GTY ((skip)) nextspec;
+  union special_melt_un GTY ((skip)) val;
+  }#
+)
+(install_value_descriptor valdesc_special_ppl_coefficient)
+
+;;;;;;;;;;;;;;;; special PPL linear expression value
+(definstance valdesc_special_ppl_linear_expression class_value_descriptor
+  :doc #{$VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION describes special PPL 
+linear expression values.}#
+  :named_name '"VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION"
+  :valdesc_objmagic '"MELTOBMAG_SPECPPL_LINEAR_EXPRESSION"
+  :valdesc_struct '"meltspecialppllinearexpression_st"
+  :valdesc_unionmem '"u_special_ppl_linear_expression"
+  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
+  int mark;
+  struct meltspecial_st *GTY ((skip)) nextspec;
+  union special_melt_un GTY ((skip)) val;
+  }#
+)
+(install_value_descriptor valdesc_special_ppl_linear_expression)
+
+;;;;;;;;;;;;;;;; special PPL constraint value
+(definstance valdesc_special_ppl_constraint class_value_descriptor
+  :doc #{$VALDESC_SPECIAL_PPL_CONSTRAINT describes special PPL 
+constraints values.}#
+  :named_name '"VALDESC_SPECIAL_PPL_CONSTRAINT"
+  :valdesc_objmagic '"MELTOBMAG_SPECPPL_CONSTRAINT"
+  :valdesc_struct '"meltspecialpplconstraint_st"
+  :valdesc_unionmem '"u_special_ppl_constraint"
+  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
+  int mark;
+  struct meltspecial_st *GTY ((skip)) nextspec;
+  union special_melt_un GTY ((skip)) val;
+  }#
+)
+(install_value_descriptor valdesc_special_ppl_constraint)
+
+;;;;;;;;;;;;;;;; special PPL constraint system value
+(definstance valdesc_special_ppl_constraint_system class_value_descriptor
+  :doc #{$VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM describes special PPL 
+constraint systems values.}#
+  :named_name '"VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM"
+  :valdesc_objmagic '"MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM"
+  :valdesc_struct '"meltspecialpplconstaintsystem_st"
+  :valdesc_unionmem '"u_special_ppl_constraint_system"
+  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
+  int mark;
+  struct meltspecial_st *GTY ((skip)) nextspec;
+  union special_melt_un GTY ((skip)) val;
+  }#
+)
+(install_value_descriptor valdesc_special_ppl_constraint_system)
+
+;;;;;;;;;;;;;;;; special PPL generator value
+(definstance valdesc_special_ppl_generator class_value_descriptor
+  :doc #{$VALDESC_SPECIAL_PPL_GENERATOR describes special PPL 
+generators values.}#
+  :named_name '"VALDESC_SPECIAL_PPL_GENERATOR"
+  :valdesc_objmagic '"MELTOBMAG_SPECPPL_GENERATOR"
+  :valdesc_struct '"meltspecialpplgenerator_st"
+  :valdesc_unionmem '"u_special_ppl_generator"
+  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR */
+  int mark;
+  struct meltspecial_st *GTY ((skip)) nextspec;
+  union special_melt_un GTY ((skip)) val;
+  }#
+)
+(install_value_descriptor valdesc_special_ppl_generator)
+
+;;;;;;;;;;;;;;;; special PPL generator system value
+(definstance valdesc_special_ppl_generator_system class_value_descriptor
+  :doc #{$VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM describes special PPL 
+generator systems values.}#
+  :named_name '"VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM"
+  :valdesc_objmagic '"MELTOBMAG_SPECPPL_GENERATOR_SYSTEM"
+  :valdesc_struct '"meltspecialpplconstaintsystem_st"
+  :valdesc_unionmem '"u_special_ppl_generator_system"
+  :valdesc_gty #{$'mark_hook ("melt_mark_special"}#
+  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR */
+  int mark;
+  struct meltspecial_st *GTY ((skip)) nextspec;
+  union special_melt_un GTY ((skip)) val;
+  }#
+)
+(install_value_descriptor valdesc_special_ppl_generator_system)
+
+;;;;;;;;;;;;;;;; special PPL polyhedron value
+(definstance valdesc_special_ppl_polyhedron class_value_descriptor
+  :doc #{$VALDESC_SPECIAL_PPL_POLYHEDRON describes special PPL 
+polyhedron values.}#
+  :named_name '"VALDESC_SPECIAL_PPL_POLYHEDRON"
+  :valdesc_objmagic '"MELTOBMAG_SPECPPL_POLYHEDRON"
+  :valdesc_struct '"meltspecialpplpolyhedron_st"
+  :valdesc_unionmem '"u_special_ppl_polyhedron"
+  :valdesc_gty #{$'mark_hook ("melt_mark_special"}#
+  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_POLYHEDRON */
+  int mark;
+  struct meltspecial_st *GTY ((skip)) nextspec;
+  union special_melt_un GTY ((skip)) val;
+  }#
+)
+(install_value_descriptor valdesc_special_ppl_polyhedron)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  ignore
  void
@@ -1253,6 +1732,35 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 
  register_pass_execution_hook
  unregister_pass_execution_hook
+
+ retrieve_value_descriptor_list
+ valdesc_object
+ valdesc_decay
+ valdesc_box
+ valdesc_multiple
+ valdesc_closure
+ valdesc_routine
+ valdesc_string
+ valdesc_strbuf
+ valdesc_pair
+ valdesc_list
+ valdesc_int
+ valdesc_mixint
+ valdesc_mixloc
+ valdesc_mixbigint
+ valdesc_real
+ valdesc_special_file
+ valdesc_special_file
+ valdesc_special_raw_file
+ valdesc_special_mpfr
+ valdesc_special_ppl_coefficient
+ valdesc_special_ppl_linear_expression
+ valdesc_special_ppl_constraint
+ valdesc_special_ppl_constraint_system
+ valdesc_special_ppl_generator
+ valdesc_special_ppl_generator_system
+ valdesc_special_ppl_polyhedron
+
  )
 
 

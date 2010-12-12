@@ -114,7 +114,7 @@ melt-stage0-dynamic/[+base+]-0.d.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/[+base+]-0
 
 melt-stage0-dynamic/[+base+]-0.so: melt-stage0-dynamic/[+base+]-0.d.so
-	cd melt-stage0-dynamic/ ; $(LN_S) [+base+]-0.d.so [+base+]-0.so
+	cd melt-stage0-dynamic/ ; rm -f [+base+]-0.so; $(LN_S) [+base+]-0.d.so [+base+]-0.so
 
 [+ENDFOR melt_translator_file+]
 
@@ -261,6 +261,10 @@ melt-modules:
 melt-sources: 
 	test -d melt-sources/ || mkdir  melt-sources/
 
+### the final temporary build directory
+melt-tempbuild: 
+	test -d melt-tempbuild/ || mkdir  melt-tempbuild/
+
 melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
               melt-run.h melt-runtime.h melt-predef.h melt-sources \
               $(melt_make_cc1_dependency) \
@@ -292,7 +296,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 +]melt-sources/[+includeload+] [+ENDFOR includeload+] \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
-                    $(melt_make_cc1_dependency)
+                    $(melt_make_cc1_dependency) melt-tempbuild 
 [+IF (= transindex 0)+]
 	$(MELTCCINIT1) \[+ELSE+]
 	$(MELTCCFILE1) \[+ENDIF+]
@@ -304,9 +308,10 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 
 melt-modules/[+base+].so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-tempbuild melt-run.h melt-runtime.h 
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=melt-modules/[+base+]
 
@@ -316,6 +321,7 @@ melt-modules/[+base+].n.so: melt-sources/[+base+].c \
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/[+base+]
 # end translator [+base+]
 
@@ -345,18 +351,20 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 
 melt-modules/[+base+].so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-run.h melt-runtime.h melt-tempbuild
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/[+base+]
 
 melt-modules/[+base+].n.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-run.h melt-runtime.h  melt-tempbuild
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/[+base+]
 
 [+ (define prevapplbase (cons (get "base") prevapplbase)) +]

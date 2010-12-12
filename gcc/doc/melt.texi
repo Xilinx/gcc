@@ -18,7 +18,8 @@ analyzers and passes.  This chapter describes the dialect and how to use
 it.  A working knowledge of Scheme or Lisp is presupposed.
 
 
-See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page}
+See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page} and 
+the @uref{http://gcc-melt.org,,GCC MELT site} 
 
 @menu
 * MELT Prerequisites::       Prerequisites and topics not yet covered in this MELT chapter.
@@ -874,7 +875,7 @@ To avoid escaping many C-like caracters in C code chunks used for
 primitives, c-iterators, c-matchers etc.. an alternative multi-line
 lexical construct exist: the macro string started with @code{#@{} and
 ending with @code{@}#} possibly on a different line with @code{$}
-escapes like in C. For example, the @code{ #@{if ($A>0) printf("%s",
+escapes like in C. For example, the @code{#@{if ($A>0) printf("%s",
 $B);@}# } macrostring is parsed exactly as the 5-elements s-expression
 @code{ ("if (" A ">0) printf(\"%s\", " B ");")}. In a macrostring, all
 caracters are taken as is, except the dollar sign @code{$}; the
@@ -885,6 +886,13 @@ identifier, it is parsed as a symbol. If it is followed by an hash
 symbol. The @code{$.} sequence is skipped and ignored, the
 double-dollar @code{$$} is read as a single dollar, the @code{$#} is
 read as a single hash @code{#}.
+
+A macro-string starting with the four characters @code{#@{$'} is
+expanded into a @code{(quote @var{...})} expression and should
+preferably not contain symbols like @code{$@var{symb}}. This special
+meaning of @code{$'} is only relevant when appearing at the very start
+of the macro-string.
+
 
 @item braces 
 @code{@{} and @code{@}} are special.

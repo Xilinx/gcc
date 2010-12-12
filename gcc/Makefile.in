@@ -5483,7 +5483,7 @@ melt_installed_cflags= $(MELTHERE_CFLAGS) -I $(plugin_includedir)
 ## leave melt_is_plugin as empty 
 melt_is_plugin=
 
-MELT_STAGE_ZERO?=melt-stage0-static
+MELT_STAGE_ZERO?=melt-stage0-dynamic
 AUTOGEN= autogen
 $(srcdir)/melt-build.mk: @MAINT@ $(srcdir)/melt-build.def $(srcdir)/melt-build.tpl
 	cd $(srcdir) && $(AUTOGEN) melt-build.def

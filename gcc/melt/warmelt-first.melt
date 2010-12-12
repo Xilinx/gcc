@@ -2193,7 +2193,7 @@ Keyword is :rtx.}#
 (install_ctype_descr ctype_rtx "GCC rtx")
 
 ;; the C type for gcc bitmap-s
-(definstance ctype_bitmap class_ctype
+(definstance ctype_bitmap class_ctype_gty
   :doc #{The $CTYPE_BITMAP is the c-type of raw GCC bitmap stuff. See also $DISCR_BITMAP.
 Keyword is :bitmap.}#
   :predef CTYPE_BITMAP
@@ -2205,11 +2205,29 @@ Keyword is :bitmap.}#
   :ctype_argfield '"bp_bitmap"
   :ctype_resfield '"bp_bitmapptr"
   :ctype_marker '"gt_ggc_mx_bitmap"
+;; GTY ctype
+  :ctypg_boxedmagic '"MELTOBMAG_BITMAP"
+  :ctypg_mapmagic '"MELTOBMAG_MAPBITMAPS"
+  :ctypg_boxedstruct '"meltbitmap_st"
+  :ctypg_entrystruct '"entrybitmapmelt_st"
+  :ctypg_mapstruct '"meltmapbitmaps_st"
+  :ctypg_boxdiscr  discr_bitmap
+  :ctypg_mapdiscr  discr_map_bitmaps
+  :ctypg_boxfun        '"meltgc_new_bitmap"
+  :ctypg_unboxfun      '"melt_bitmap_content"
+  :ctypg_newmapfun     '"meltgc_new_mapbitmaps"
+  :ctypg_mapgetfun     '"melt_get_mapbitmaps"
+  :ctypg_mapputfun     '"melt_put_mapbitmaps"
+  :ctypg_mapremovefun  '"melt_remove_mapbitmaps"
+  :ctypg_mapcountfun   '"melt_count_mapbitmaps"
+  :ctypg_mapsizefun    '"melt_size_mapbitmaps"
+  :ctypg_mapnattfun    '"melt_nthattr_mapbitmaps"
+  :ctypg_mapnvalfun    '"melt_nthval_mapbitmaps"	
   )
 (install_ctype_descr ctype_bitmap "GCC bitmap")
 
 ;; the C type for gcc rtvec-s
-(definstance ctype_rtvec class_ctype
+(definstance ctype_rtvec class_ctype_gty
   :doc #{The $CTYPE_RTVEC is the c-type of raw GCC rtvec stuff. See also $DISCR_RTVEC.
 Keyword is :rtvec.}#
   :predef CTYPE_RTVEC
@@ -2221,6 +2239,24 @@ Keyword is :rtvec.}#
   :ctype_argfield '"bp_rtvec"
   :ctype_resfield '"bp_rtvecptr"
   :ctype_marker '"gt_ggc_mx_rtvec"
+;; GTY ctype
+  :ctypg_boxedmagic '"MELTOBMAG_RTVEC"
+  :ctypg_mapmagic '"MELTOBMAG_MAPRTVECS"
+  :ctypg_boxedstruct '"meltrtvec_st"
+  :ctypg_entrystruct '"entryrtvecmelt_st"
+  :ctypg_mapstruct '"meltmaprtvecs_st"
+  :ctypg_boxdiscr  discr_rtvec
+  :ctypg_mapdiscr  discr_map_rtvecs
+  :ctypg_boxfun        '"meltgc_new_rtvec"
+  :ctypg_unboxfun      '"melt_rtvec_content"
+  :ctypg_newmapfun     '"meltgc_new_maprtvecs"
+  :ctypg_mapgetfun     '"melt_get_maprtvecs"
+  :ctypg_mapputfun     '"melt_put_maprtvecs"
+  :ctypg_mapremovefun  '"melt_remove_maprtvecs"
+  :ctypg_mapcountfun   '"melt_count_maprtvecs"
+  :ctypg_mapsizefun    '"melt_size_maprtvecs"
+  :ctypg_mapnattfun    '"melt_nthattr_maprtvecs"
+  :ctypg_mapnvalfun    '"melt_nthval_maprtvecs"
   )
 (install_ctype_descr ctype_rtvec "GCC rtvec")
 

@@ -1,4 +1,62 @@
 
+2010-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Add melt-tempbuild.
+	* melt-build.mk: Regenerate.
+
+	* Makefile.in (MELT_STAGE_ZERO): Defaults to melt-stage0-dynamic.
+
+	* melt-runtime.h (meltobj_class, meltobj_magic): New field-like
+	macros.
+	Reformat some code (spacing issue).
+
+	* melt-runtime.c (READ_WARNING): New macro.
+	(readmacrostringsequence): Handle specially $' at start of
+	macrostrings.
+
+	* melt/warmelt-first.melt
+	(ctype_bitmap, ctype_rtvec): Become instances of class_ctype_gty.
+
+	* melt/warmelt-base.melt: Adding description of MELT values GTY-ed
+	datatypes.
+	(class_value_descriptor, class_varisized_value_descriptor): New classes.
+	(retrieve_value_descriptor_list, valdesc_object, valdesc_decay)
+	(valdesc_box, valdesc_multiple, valdesc_closure valdesc_routine)
+	(valdesc_string, valdesc_strbuf, valdesc_pair valdesc_list)
+	(valdesc_int, valdesc_mixint, valdesc_mixloc, valdesc_mixbigint)
+	(valdesc_real, valdesc_special_file, valdesc_special_file)
+	(valdesc_special_raw_file, valdesc_special_mpfr)
+	(valdesc_special_ppl_coefficient)
+	(valdesc_special_ppl_linear_expression)
+	(valdesc_special_ppl_constraint, valdesc_special_ppl_constraint_system)
+	(valdesc_special_ppl_generator, valdesc_special_ppl_generator_system)
+	(valdesc_special_ppl_polyhedron): New values.
+
+	* melt/warmelt-outobj.melt: Use meltobj_magic & meltobj_class in
+	generated code.
+
+	{{regenerated all}}
+	* melt/generated/warmelt-first.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0+01.c: Regenerate.
+	* melt/generated/warmelt-normal.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0+03.c: Regenerate.
+	* melt/generated/warmelt-macro.0.c: Regenerate.
+	* melt/generated/warmelt-outobj.0.c: Regenerate.
+	* melt/generated/warmelt-first.0+01.c: Regenerate.
+	* melt/generated/warmelt-normal.0+01.c: Regenerate.
+	* melt/generated/warmelt-genobj.0.c: Regenerate.
+	* melt/generated/warmelt-first.0+02.c: Regenerate.
+	* melt/generated/warmelt-normal.0+02.c: Regenerate.
+	* melt/generated/warmelt-base.0.c: Regenerate.
+	* melt/generated/warmelt-normatch.0.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+01.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+02.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+01.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+03.c: Regenerate.
+	* melt/generated/warmelt-outobj.0+04.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+03.c: Regenerate.
+	* melt/generated/warmelt-genobj.0+04.c: Regenerate.
+	* melt/generated/warmelt-debug.0.c: Regenerate.
+
 2010-12-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_new_string_nakedbasename): Get the last
 	dot with strrchr!

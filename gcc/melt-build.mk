@@ -171,7 +171,7 @@ melt-stage0-dynamic/warmelt-first-0.d.so: $(MELT_GENERATED_FIRST_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-first-0
 
 melt-stage0-dynamic/warmelt-first-0.so: melt-stage0-dynamic/warmelt-first-0.d.so
-	cd melt-stage0-dynamic/ ; $(LN_S) warmelt-first-0.d.so warmelt-first-0.so
+	cd melt-stage0-dynamic/ ; rm -f warmelt-first-0.so; $(LN_S) warmelt-first-0.d.so warmelt-first-0.so
 
 
 ## using static object fields offsets for warmelt-base
@@ -195,7 +195,7 @@ melt-stage0-dynamic/warmelt-base-0.d.so: $(MELT_GENERATED_BASE_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-base-0
 
 melt-stage0-dynamic/warmelt-base-0.so: melt-stage0-dynamic/warmelt-base-0.d.so
-	cd melt-stage0-dynamic/ ; $(LN_S) warmelt-base-0.d.so warmelt-base-0.so
+	cd melt-stage0-dynamic/ ; rm -f warmelt-base-0.so; $(LN_S) warmelt-base-0.d.so warmelt-base-0.so
 
 
 ## using static object fields offsets for warmelt-debug
@@ -219,7 +219,7 @@ melt-stage0-dynamic/warmelt-debug-0.d.so: $(MELT_GENERATED_DEBUG_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-debug-0
 
 melt-stage0-dynamic/warmelt-debug-0.so: melt-stage0-dynamic/warmelt-debug-0.d.so
-	cd melt-stage0-dynamic/ ; $(LN_S) warmelt-debug-0.d.so warmelt-debug-0.so
+	cd melt-stage0-dynamic/ ; rm -f warmelt-debug-0.so; $(LN_S) warmelt-debug-0.d.so warmelt-debug-0.so
 
 
 ## using static object fields offsets for warmelt-macro
@@ -243,7 +243,7 @@ melt-stage0-dynamic/warmelt-macro-0.d.so: $(MELT_GENERATED_MACRO_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-macro-0
 
 melt-stage0-dynamic/warmelt-macro-0.so: melt-stage0-dynamic/warmelt-macro-0.d.so
-	cd melt-stage0-dynamic/ ; $(LN_S) warmelt-macro-0.d.so warmelt-macro-0.so
+	cd melt-stage0-dynamic/ ; rm -f warmelt-macro-0.so; $(LN_S) warmelt-macro-0.d.so warmelt-macro-0.so
 
 
 ## using static object fields offsets for warmelt-normal
@@ -267,7 +267,7 @@ melt-stage0-dynamic/warmelt-normal-0.d.so: $(MELT_GENERATED_NORMAL_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-normal-0
 
 melt-stage0-dynamic/warmelt-normal-0.so: melt-stage0-dynamic/warmelt-normal-0.d.so
-	cd melt-stage0-dynamic/ ; $(LN_S) warmelt-normal-0.d.so warmelt-normal-0.so
+	cd melt-stage0-dynamic/ ; rm -f warmelt-normal-0.so; $(LN_S) warmelt-normal-0.d.so warmelt-normal-0.so
 
 
 ## using static object fields offsets for warmelt-normatch
@@ -291,7 +291,7 @@ melt-stage0-dynamic/warmelt-normatch-0.d.so: $(MELT_GENERATED_NORMATCH_C_FILES) 
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-normatch-0
 
 melt-stage0-dynamic/warmelt-normatch-0.so: melt-stage0-dynamic/warmelt-normatch-0.d.so
-	cd melt-stage0-dynamic/ ; $(LN_S) warmelt-normatch-0.d.so warmelt-normatch-0.so
+	cd melt-stage0-dynamic/ ; rm -f warmelt-normatch-0.so; $(LN_S) warmelt-normatch-0.d.so warmelt-normatch-0.so
 
 
 ## using static object fields offsets for warmelt-genobj
@@ -315,7 +315,7 @@ melt-stage0-dynamic/warmelt-genobj-0.d.so: $(MELT_GENERATED_GENOBJ_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-genobj-0
 
 melt-stage0-dynamic/warmelt-genobj-0.so: melt-stage0-dynamic/warmelt-genobj-0.d.so
-	cd melt-stage0-dynamic/ ; $(LN_S) warmelt-genobj-0.d.so warmelt-genobj-0.so
+	cd melt-stage0-dynamic/ ; rm -f warmelt-genobj-0.so; $(LN_S) warmelt-genobj-0.d.so warmelt-genobj-0.so
 
 
 ## using static object fields offsets for warmelt-outobj
@@ -339,7 +339,7 @@ melt-stage0-dynamic/warmelt-outobj-0.d.so: $(MELT_GENERATED_OUTOBJ_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-outobj-0
 
 melt-stage0-dynamic/warmelt-outobj-0.so: melt-stage0-dynamic/warmelt-outobj-0.d.so
-	cd melt-stage0-dynamic/ ; $(LN_S) warmelt-outobj-0.d.so warmelt-outobj-0.so
+	cd melt-stage0-dynamic/ ; rm -f warmelt-outobj-0.so; $(LN_S) warmelt-outobj-0.d.so warmelt-outobj-0.so
 
 
 
@@ -1723,6 +1723,10 @@ melt-modules:
 melt-sources: 
 	test -d melt-sources/ || mkdir  melt-sources/
 
+### the final temporary build directory
+melt-tempbuild: 
+	test -d melt-tempbuild/ || mkdir  melt-tempbuild/
+
 melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
               melt-run.h melt-runtime.h melt-predef.h melt-sources \
               $(melt_make_cc1_dependency) \
@@ -1768,7 +1772,7 @@ melt-sources/warmelt-first.melt: $(melt_make_source_dir)/warmelt-first.melt
 melt-sources/warmelt-first.c: melt-sources/warmelt-first.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
-                    $(melt_make_cc1_dependency)
+                    $(melt_make_cc1_dependency) melt-tempbuild 
 
 	$(MELTCCINIT1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -1779,9 +1783,10 @@ melt-sources/warmelt-first.c: melt-sources/warmelt-first.melt  \
 
 melt-modules/warmelt-first.so: melt-sources/warmelt-first.c \
         $(wildcard  melt-sources/warmelt-first+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-tempbuild melt-run.h melt-runtime.h 
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-first
 
@@ -1791,6 +1796,7 @@ melt-modules/warmelt-first.n.so: melt-sources/warmelt-first.c \
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-first
 # end translator warmelt-first
 
@@ -1806,7 +1812,7 @@ melt-sources/warmelt-base.melt: $(melt_make_source_dir)/warmelt-base.melt
 melt-sources/warmelt-base.c: melt-sources/warmelt-base.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
-                    $(melt_make_cc1_dependency)
+                    $(melt_make_cc1_dependency) melt-tempbuild 
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -1817,9 +1823,10 @@ melt-sources/warmelt-base.c: melt-sources/warmelt-base.melt  \
 
 melt-modules/warmelt-base.so: melt-sources/warmelt-base.c \
         $(wildcard  melt-sources/warmelt-base+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-tempbuild melt-run.h melt-runtime.h 
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-base
 
@@ -1829,6 +1836,7 @@ melt-modules/warmelt-base.n.so: melt-sources/warmelt-base.c \
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-base
 # end translator warmelt-base
 
@@ -1844,7 +1852,7 @@ melt-sources/warmelt-debug.melt: $(melt_make_source_dir)/warmelt-debug.melt
 melt-sources/warmelt-debug.c: melt-sources/warmelt-debug.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
-                    $(melt_make_cc1_dependency)
+                    $(melt_make_cc1_dependency) melt-tempbuild 
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -1855,9 +1863,10 @@ melt-sources/warmelt-debug.c: melt-sources/warmelt-debug.melt  \
 
 melt-modules/warmelt-debug.so: melt-sources/warmelt-debug.c \
         $(wildcard  melt-sources/warmelt-debug+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-tempbuild melt-run.h melt-runtime.h 
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-debug
 
@@ -1867,6 +1876,7 @@ melt-modules/warmelt-debug.n.so: melt-sources/warmelt-debug.c \
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-debug
 # end translator warmelt-debug
 
@@ -1882,7 +1892,7 @@ melt-sources/warmelt-macro.melt: $(melt_make_source_dir)/warmelt-macro.melt
 melt-sources/warmelt-macro.c: melt-sources/warmelt-macro.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
-                    $(melt_make_cc1_dependency)
+                    $(melt_make_cc1_dependency) melt-tempbuild 
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -1893,9 +1903,10 @@ melt-sources/warmelt-macro.c: melt-sources/warmelt-macro.melt  \
 
 melt-modules/warmelt-macro.so: melt-sources/warmelt-macro.c \
         $(wildcard  melt-sources/warmelt-macro+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-tempbuild melt-run.h melt-runtime.h 
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-macro
 
@@ -1905,6 +1916,7 @@ melt-modules/warmelt-macro.n.so: melt-sources/warmelt-macro.c \
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-macro
 # end translator warmelt-macro
 
@@ -1926,7 +1938,7 @@ melt-sources/warmelt-predef.melt: warmelt-predef.melt
 melt-sources/warmelt-normal.c: melt-sources/warmelt-normal.melt melt-sources/warmelt-predef.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
-                    $(melt_make_cc1_dependency)
+                    $(melt_make_cc1_dependency) melt-tempbuild 
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -1937,9 +1949,10 @@ melt-sources/warmelt-normal.c: melt-sources/warmelt-normal.melt melt-sources/war
 
 melt-modules/warmelt-normal.so: melt-sources/warmelt-normal.c \
         $(wildcard  melt-sources/warmelt-normal+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-tempbuild melt-run.h melt-runtime.h 
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-normal
 
@@ -1949,6 +1962,7 @@ melt-modules/warmelt-normal.n.so: melt-sources/warmelt-normal.c \
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-normal
 # end translator warmelt-normal
 
@@ -1964,7 +1978,7 @@ melt-sources/warmelt-normatch.melt: $(melt_make_source_dir)/warmelt-normatch.mel
 melt-sources/warmelt-normatch.c: melt-sources/warmelt-normatch.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
-                    $(melt_make_cc1_dependency)
+                    $(melt_make_cc1_dependency) melt-tempbuild 
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -1975,9 +1989,10 @@ melt-sources/warmelt-normatch.c: melt-sources/warmelt-normatch.melt  \
 
 melt-modules/warmelt-normatch.so: melt-sources/warmelt-normatch.c \
         $(wildcard  melt-sources/warmelt-normatch+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-tempbuild melt-run.h melt-runtime.h 
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-normatch
 
@@ -1987,6 +2002,7 @@ melt-modules/warmelt-normatch.n.so: melt-sources/warmelt-normatch.c \
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-normatch
 # end translator warmelt-normatch
 
@@ -2002,7 +2018,7 @@ melt-sources/warmelt-genobj.melt: $(melt_make_source_dir)/warmelt-genobj.melt
 melt-sources/warmelt-genobj.c: melt-sources/warmelt-genobj.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
-                    $(melt_make_cc1_dependency)
+                    $(melt_make_cc1_dependency) melt-tempbuild 
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -2013,9 +2029,10 @@ melt-sources/warmelt-genobj.c: melt-sources/warmelt-genobj.melt  \
 
 melt-modules/warmelt-genobj.so: melt-sources/warmelt-genobj.c \
         $(wildcard  melt-sources/warmelt-genobj+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-tempbuild melt-run.h melt-runtime.h 
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-genobj
 
@@ -2025,6 +2042,7 @@ melt-modules/warmelt-genobj.n.so: melt-sources/warmelt-genobj.c \
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-genobj
 # end translator warmelt-genobj
 
@@ -2040,7 +2058,7 @@ melt-sources/warmelt-outobj.melt: $(melt_make_source_dir)/warmelt-outobj.melt
 melt-sources/warmelt-outobj.c: melt-sources/warmelt-outobj.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
-                    $(melt_make_cc1_dependency)
+                    $(melt_make_cc1_dependency) melt-tempbuild 
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -2051,9 +2069,10 @@ melt-sources/warmelt-outobj.c: melt-sources/warmelt-outobj.melt  \
 
 melt-modules/warmelt-outobj.so: melt-sources/warmelt-outobj.c \
         $(wildcard  melt-sources/warmelt-outobj+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-tempbuild melt-run.h melt-runtime.h 
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-outobj
 
@@ -2063,6 +2082,7 @@ melt-modules/warmelt-outobj.n.so: melt-sources/warmelt-outobj.c \
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/warmelt-outobj
 # end translator warmelt-outobj
 
@@ -2091,18 +2111,20 @@ melt-sources/xtramelt-parse-infix-syntax.c: melt-sources/xtramelt-parse-infix-sy
 
 melt-modules/xtramelt-parse-infix-syntax.so: melt-sources/xtramelt-parse-infix-syntax.c \
         $(wildcard  melt-sources/xtramelt-parse-infix-syntax+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-run.h melt-runtime.h melt-tempbuild
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-parse-infix-syntax
 
 melt-modules/xtramelt-parse-infix-syntax.n.so: melt-sources/xtramelt-parse-infix-syntax.c \
         $(wildcard  melt-sources/xtramelt-parse-infix-syntax+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-run.h melt-runtime.h  melt-tempbuild
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-parse-infix-syntax
 
 
@@ -2129,18 +2151,20 @@ melt-sources/xtramelt-ana-base.c: melt-sources/xtramelt-ana-base.melt  \
 
 melt-modules/xtramelt-ana-base.so: melt-sources/xtramelt-ana-base.c \
         $(wildcard  melt-sources/xtramelt-ana-base+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-run.h melt-runtime.h melt-tempbuild
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-ana-base
 
 melt-modules/xtramelt-ana-base.n.so: melt-sources/xtramelt-ana-base.c \
         $(wildcard  melt-sources/xtramelt-ana-base+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-run.h melt-runtime.h  melt-tempbuild
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-ana-base
 
 
@@ -2167,18 +2191,20 @@ melt-sources/xtramelt-ana-simple.c: melt-sources/xtramelt-ana-simple.melt  \
 
 melt-modules/xtramelt-ana-simple.so: melt-sources/xtramelt-ana-simple.c \
         $(wildcard  melt-sources/xtramelt-ana-simple+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-run.h melt-runtime.h melt-tempbuild
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-ana-simple
 
 melt-modules/xtramelt-ana-simple.n.so: melt-sources/xtramelt-ana-simple.c \
         $(wildcard  melt-sources/xtramelt-ana-simple+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-run.h melt-runtime.h  melt-tempbuild
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-ana-simple
 
 
@@ -2205,18 +2231,20 @@ melt-sources/xtramelt-c-generator.c: melt-sources/xtramelt-c-generator.melt  \
 
 melt-modules/xtramelt-c-generator.so: melt-sources/xtramelt-c-generator.c \
         $(wildcard  melt-sources/xtramelt-c-generator+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-run.h melt-runtime.h melt-tempbuild
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-c-generator
 
 melt-modules/xtramelt-c-generator.n.so: melt-sources/xtramelt-c-generator.c \
         $(wildcard  melt-sources/xtramelt-c-generator+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-run.h melt-runtime.h  melt-tempbuild
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-c-generator
 
 
@@ -2243,18 +2271,20 @@ melt-sources/xtramelt-opengpu.c: melt-sources/xtramelt-opengpu.melt  \
 
 melt-modules/xtramelt-opengpu.so: melt-sources/xtramelt-opengpu.c \
         $(wildcard  melt-sources/xtramelt-opengpu+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-run.h melt-runtime.h melt-tempbuild
 	$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-opengpu
 
 melt-modules/xtramelt-opengpu.n.so: melt-sources/xtramelt-opengpu.c \
         $(wildcard  melt-sources/xtramelt-opengpu+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-run.h melt-runtime.h  melt-tempbuild
 	$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-opengpu
 
 

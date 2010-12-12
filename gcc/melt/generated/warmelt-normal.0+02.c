@@ -8957,16 +8957,16 @@ lab_endgetargs:;
  /*iniobj rinst_0__CONSTUPBIND*/
   /*_.CONSTUPBIND__V30*/ meltfptr[29] = (void*)&meltletrec_1_ptr->rinst_0__CONSTUPBIND;
    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj rinst_0__CONSTUPBIND", melt_magic_discr ((/*!CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING*/ meltfrout->tabval[10])) == MELTOBMAG_OBJECT);
-    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_0__CONSTUPBIND", ((meltobject_ptr_t) ((/*!CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING*/ meltfrout->tabval[10])))->object_magic == MELTOBMAG_OBJECT);
-   meltletrec_1_ptr->rinst_0__CONSTUPBIND.obj_class = (meltobject_ptr_t)((/*!CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING*/ meltfrout->tabval[10]));
+    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_0__CONSTUPBIND", ((meltobject_ptr_t) ((/*!CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING*/ meltfrout->tabval[10])))->meltobj_magic == MELTOBMAG_OBJECT);
+   meltletrec_1_ptr->rinst_0__CONSTUPBIND.meltobj_class = (meltobject_ptr_t)((/*!CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING*/ meltfrout->tabval[10]));
    meltletrec_1_ptr->rinst_0__CONSTUPBIND.obj_hash = melt_nonzerohash ();
    meltletrec_1_ptr->rinst_0__CONSTUPBIND.obj_len = 5;
   
   /*iniobj rinst_1__CLOCC*/
   /*_.CLOCC__V31*/ meltfptr[30] = (void*)&meltletrec_1_ptr->rinst_1__CLOCC;
    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj rinst_1__CLOCC", melt_magic_discr ((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[11])) == MELTOBMAG_OBJECT);
-    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_1__CLOCC", ((meltobject_ptr_t) ((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[11])))->object_magic == MELTOBMAG_OBJECT);
-   meltletrec_1_ptr->rinst_1__CLOCC.obj_class = (meltobject_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[11]));
+    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_1__CLOCC", ((meltobject_ptr_t) ((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[11])))->meltobj_magic == MELTOBMAG_OBJECT);
+   meltletrec_1_ptr->rinst_1__CLOCC.meltobj_class = (meltobject_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[11]));
    meltletrec_1_ptr->rinst_1__CLOCC.obj_hash = melt_nonzerohash ();
    meltletrec_1_ptr->rinst_1__CLOCC.obj_len = 4;
   
@@ -8985,24 +8985,24 @@ lab_endgetargs:;
   /*iniobj rinst_5__NLETREC*/
   /*_.NLETREC__V35*/ meltfptr[34] = (void*)&meltletrec_1_ptr->rinst_5__NLETREC;
    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj rinst_5__NLETREC", melt_magic_discr ((/*!CLASS_NREP_LETREC*/ meltfrout->tabval[12])) == MELTOBMAG_OBJECT);
-    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_5__NLETREC", ((meltobject_ptr_t) ((/*!CLASS_NREP_LETREC*/ meltfrout->tabval[12])))->object_magic == MELTOBMAG_OBJECT);
-   meltletrec_1_ptr->rinst_5__NLETREC.obj_class = (meltobject_ptr_t)((/*!CLASS_NREP_LETREC*/ meltfrout->tabval[12]));
+    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_5__NLETREC", ((meltobject_ptr_t) ((/*!CLASS_NREP_LETREC*/ meltfrout->tabval[12])))->meltobj_magic == MELTOBMAG_OBJECT);
+   meltletrec_1_ptr->rinst_5__NLETREC.meltobj_class = (meltobject_ptr_t)((/*!CLASS_NREP_LETREC*/ meltfrout->tabval[12]));
    meltletrec_1_ptr->rinst_5__NLETREC.obj_hash = melt_nonzerohash ();
    meltletrec_1_ptr->rinst_5__NLETREC.obj_len = 6;
   
   /*iniobj rinst_6__CTUPBIND*/
   /*_.CTUPBIND__V36*/ meltfptr[35] = (void*)&meltletrec_1_ptr->rinst_6__CTUPBIND;
    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj rinst_6__CTUPBIND", melt_magic_discr ((/*!CLASS_NORMAL_LET_BINDING*/ meltfrout->tabval[13])) == MELTOBMAG_OBJECT);
-    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_6__CTUPBIND", ((meltobject_ptr_t) ((/*!CLASS_NORMAL_LET_BINDING*/ meltfrout->tabval[13])))->object_magic == MELTOBMAG_OBJECT);
-   meltletrec_1_ptr->rinst_6__CTUPBIND.obj_class = (meltobject_ptr_t)((/*!CLASS_NORMAL_LET_BINDING*/ meltfrout->tabval[13]));
+    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_6__CTUPBIND", ((meltobject_ptr_t) ((/*!CLASS_NORMAL_LET_BINDING*/ meltfrout->tabval[13])))->meltobj_magic == MELTOBMAG_OBJECT);
+   meltletrec_1_ptr->rinst_6__CTUPBIND.meltobj_class = (meltobject_ptr_t)((/*!CLASS_NORMAL_LET_BINDING*/ meltfrout->tabval[13]));
    meltletrec_1_ptr->rinst_6__CTUPBIND.obj_hash = melt_nonzerohash ();
    meltletrec_1_ptr->rinst_6__CTUPBIND.obj_len = 4;
   
   /*iniobj rinst_7__CTUPLOCC*/
   /*_.CTUPLOCC__V37*/ meltfptr[36] = (void*)&meltletrec_1_ptr->rinst_7__CTUPLOCC;
    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj rinst_7__CTUPLOCC", melt_magic_discr ((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[11])) == MELTOBMAG_OBJECT);
-    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_7__CTUPLOCC", ((meltobject_ptr_t) ((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[11])))->object_magic == MELTOBMAG_OBJECT);
-   meltletrec_1_ptr->rinst_7__CTUPLOCC.obj_class = (meltobject_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[11]));
+    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_7__CTUPLOCC", ((meltobject_ptr_t) ((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[11])))->meltobj_magic == MELTOBMAG_OBJECT);
+   meltletrec_1_ptr->rinst_7__CTUPLOCC.meltobj_class = (meltobject_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[11]));
    meltletrec_1_ptr->rinst_7__CTUPLOCC.obj_hash = melt_nonzerohash ();
    meltletrec_1_ptr->rinst_7__CTUPLOCC.obj_len = 4;
   
@@ -9175,7 +9175,7 @@ lab_endgetargs:;
   ;
   MELT_LOCATION("warmelt-normal.melt:3565:/ putpairhead");
   /*putpairhead*/
-  melt_assertmsg("putpairhead /e6ac0cf checkpair", melt_magic_discr((melt_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /327d47e4 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CTUPBIND__V38*/ meltfptr[37]))->hd = (melt_ptr_t) (/*_.CTUPBIND__V36*/ meltfptr[35]);
   ;
   /*^touch*/
@@ -10256,8 +10256,8 @@ lab_endgetargs:;
  /*iniobj rinst_0__CRECLOCC*/
   /*_.CRECLOCC__V50*/ meltfptr[49] = (void*)&meltletrec_1_ptr->rinst_0__CRECLOCC;
    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj rinst_0__CRECLOCC", melt_magic_discr ((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[22])) == MELTOBMAG_OBJECT);
-    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_0__CRECLOCC", ((meltobject_ptr_t) ((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[22])))->object_magic == MELTOBMAG_OBJECT);
-   meltletrec_1_ptr->rinst_0__CRECLOCC.obj_class = (meltobject_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[22]));
+    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_0__CRECLOCC", ((meltobject_ptr_t) ((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[22])))->meltobj_magic == MELTOBMAG_OBJECT);
+   meltletrec_1_ptr->rinst_0__CRECLOCC.meltobj_class = (meltobject_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[22]));
    meltletrec_1_ptr->rinst_0__CRECLOCC.obj_hash = melt_nonzerohash ();
    meltletrec_1_ptr->rinst_0__CRECLOCC.obj_len = 4;
   
@@ -10268,24 +10268,24 @@ lab_endgetargs:;
   /*iniobj rinst_2__NLETREC*/
   /*_.NLETREC__V52*/ meltfptr[51] = (void*)&meltletrec_1_ptr->rinst_2__NLETREC;
    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj rinst_2__NLETREC", melt_magic_discr ((/*!CLASS_NREP_LETREC*/ meltfrout->tabval[23])) == MELTOBMAG_OBJECT);
-    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_2__NLETREC", ((meltobject_ptr_t) ((/*!CLASS_NREP_LETREC*/ meltfrout->tabval[23])))->object_magic == MELTOBMAG_OBJECT);
-   meltletrec_1_ptr->rinst_2__NLETREC.obj_class = (meltobject_ptr_t)((/*!CLASS_NREP_LETREC*/ meltfrout->tabval[23]));
+    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_2__NLETREC", ((meltobject_ptr_t) ((/*!CLASS_NREP_LETREC*/ meltfrout->tabval[23])))->meltobj_magic == MELTOBMAG_OBJECT);
+   meltletrec_1_ptr->rinst_2__NLETREC.meltobj_class = (meltobject_ptr_t)((/*!CLASS_NREP_LETREC*/ meltfrout->tabval[23]));
    meltletrec_1_ptr->rinst_2__NLETREC.obj_hash = melt_nonzerohash ();
    meltletrec_1_ptr->rinst_2__NLETREC.obj_len = 6;
   
   /*iniobj rinst_3__CLISTBIND*/
   /*_.CLISTBIND__V53*/ meltfptr[52] = (void*)&meltletrec_1_ptr->rinst_3__CLISTBIND;
    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj rinst_3__CLISTBIND", melt_magic_discr ((/*!CLASS_NORMAL_LET_BINDING*/ meltfrout->tabval[24])) == MELTOBMAG_OBJECT);
-    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_3__CLISTBIND", ((meltobject_ptr_t) ((/*!CLASS_NORMAL_LET_BINDING*/ meltfrout->tabval[24])))->object_magic == MELTOBMAG_OBJECT);
-   meltletrec_1_ptr->rinst_3__CLISTBIND.obj_class = (meltobject_ptr_t)((/*!CLASS_NORMAL_LET_BINDING*/ meltfrout->tabval[24]));
+    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_3__CLISTBIND", ((meltobject_ptr_t) ((/*!CLASS_NORMAL_LET_BINDING*/ meltfrout->tabval[24])))->meltobj_magic == MELTOBMAG_OBJECT);
+   meltletrec_1_ptr->rinst_3__CLISTBIND.meltobj_class = (meltobject_ptr_t)((/*!CLASS_NORMAL_LET_BINDING*/ meltfrout->tabval[24]));
    meltletrec_1_ptr->rinst_3__CLISTBIND.obj_hash = melt_nonzerohash ();
    meltletrec_1_ptr->rinst_3__CLISTBIND.obj_len = 4;
   
   /*iniobj rinst_4__CLISTLOCC*/
   /*_.CLISTLOCC__V54*/ meltfptr[53] = (void*)&meltletrec_1_ptr->rinst_4__CLISTLOCC;
    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj rinst_4__CLISTLOCC", melt_magic_discr ((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[22])) == MELTOBMAG_OBJECT);
-    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_4__CLISTLOCC", ((meltobject_ptr_t) ((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[22])))->object_magic == MELTOBMAG_OBJECT);
-   meltletrec_1_ptr->rinst_4__CLISTLOCC.obj_class = (meltobject_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[22]));
+    if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic rinst_4__CLISTLOCC", ((meltobject_ptr_t) ((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[22])))->meltobj_magic == MELTOBMAG_OBJECT);
+   meltletrec_1_ptr->rinst_4__CLISTLOCC.meltobj_class = (meltobject_ptr_t)((/*!CLASS_NREP_LOCSYMOCC*/ meltfrout->tabval[22]));
    meltletrec_1_ptr->rinst_4__CLISTLOCC.obj_hash = melt_nonzerohash ();
    meltletrec_1_ptr->rinst_4__CLISTLOCC.obj_len = 4;
   
@@ -10412,7 +10412,7 @@ lab_endgetargs:;
   ;
   MELT_LOCATION("warmelt-normal.melt:3650:/ putpairhead");
   /*putpairhead*/
-  melt_assertmsg("putpairhead /14637188 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CLISTBIND__V55*/ meltfptr[54]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /37db5354 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CLISTBIND__V55*/ meltfptr[54]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CLISTBIND__V55*/ meltfptr[54]))->hd = (melt_ptr_t) (/*_.CLISTBIND__V53*/ meltfptr[52]);
   ;
   /*^touch*/

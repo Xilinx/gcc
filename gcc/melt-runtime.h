@@ -485,6 +485,8 @@ meltobject_st
   unsigned short obj_len;
   melt_ptr_t GTY ((length ("%h.obj_len"))) obj_vartab[FLEXIBLE_DIM];
 };
+#define meltobj_class obj_class
+#define meltobj_magic obj_num
 
 
 #define MELT_OBJECT_STRUCT(N) {			\
@@ -1318,7 +1320,7 @@ meltgc_raw_remove_mappointers (void *mappointer_p, const void *attr);
 static inline melt_ptr_t						\
 Newf (meltobject_ptr_t discr, unsigned len)				\
 {									\
-  if (melt_magic_discr ((melt_ptr_t) discr) != MELTOBMAG_OBJECT)		\
+  if (melt_magic_discr ((melt_ptr_t) discr) != MELTOBMAG_OBJECT)       	\
     return NULL;							\
   if (discr->object_magic != Meltobmag)					\
     return NULL;							\
@@ -1328,7 +1330,7 @@ Newf (meltobject_ptr_t discr, unsigned len)				\
 static inline melt_ptr_t						\
 Getf (melt_ptr_t map_p, Ptyp attr)					\
 {									\
-  if (melt_magic_discr ((melt_ptr_t) map_p) != Meltobmag || !attr)		\
+  if (melt_magic_discr ((melt_ptr_t) map_p) != Meltobmag || !attr)     	\
     return NULL;							\
   return melt_raw_get_mappointers (map_p, attr);			\
 }									\
@@ -1337,7 +1339,7 @@ static inline void							\
 Putf (struct Mapstruct *map_p,						\
 	Ptyp attr, melt_ptr_t valu_p)					\
 {									\
-  if (melt_magic_discr ((melt_ptr_t) map_p) != Meltobmag			\
+  if (melt_magic_discr ((melt_ptr_t) map_p) != Meltobmag	       	\
       || !attr || !valu_p)						\
     return;								\
   meltgc_raw_put_mappointers (map_p, attr, valu_p);			\
@@ -1346,7 +1348,7 @@ Putf (struct Mapstruct *map_p,						\
 static inline melt_ptr_t						\
 Removef (struct Mapstruct *map, Ptyp attr)				\
 {									\
-  if (melt_magic_discr ((melt_ptr_t) map) != Meltobmag || !attr)		\
+  if (melt_magic_discr ((melt_ptr_t) map) != Meltobmag || !attr)	\
     return NULL;							\
   return meltgc_raw_remove_mappointers (map, attr);			\
 }									\
@@ -1354,7 +1356,7 @@ Removef (struct Mapstruct *map, Ptyp attr)				\
 static inline unsigned							\
 Countf (struct Mapstruct* map_p)					\
 {									\
-  if (!map_p || map_p->discr->obj_num != Meltobmag)				\
+  if (!map_p || map_p->discr->obj_num != Meltobmag)	       		\
     return 0;								\
   return map_p->count;							\
 }									\
@@ -1362,7 +1364,7 @@ Countf (struct Mapstruct* map_p)					\
 static inline int							\
 Sizef (struct Mapstruct* map_p)						\
 {									\
-  if (!map_p || map_p->discr->obj_num != Meltobmag)				\
+  if (!map_p || map_p->discr->obj_num != Meltobmag)	       		\
     return 0;								\
   return melt_primtab[map_p->lenix];					\
 }									\
@@ -1371,7 +1373,7 @@ static inline Ptyp							\
 Nthattrf(struct Mapstruct* map_p, int ix)				\
 {									\
   Ptyp at = 0;								\
-  if (!map_p || map_p->discr->obj_num != Meltobmag)				\
+  if (!map_p || map_p->discr->obj_num != Meltobmag)	       		\
     return 0;								\
   if (ix < 0 || ix >= melt_primtab[map_p->lenix])			\
     return 0;								\
@@ -1385,7 +1387,7 @@ static inline melt_ptr_t						\
 Nthvalf(struct Mapstruct* map_p, int ix)				\
 {									\
   Ptyp at = 0;								\
-  if (!map_p || map_p->discr->obj_num != Meltobmag)				\
+  if (!map_p || map_p->discr->obj_num != Meltobmag)	       		\
     return 0;								\
   if (ix < 0 || ix >= melt_primtab[map_p->lenix])			\
     return 0;								\
@@ -2071,7 +2073,7 @@ melt_field_object (melt_ptr_t ob, unsigned off)
 
 /* allocate a new raw object of given KLASS (unchecked) with LEN slots */
 meltobject_ptr_t meltgc_new_raw_object (meltobject_ptr_t klass_p,
-					      unsigned len);
+					unsigned len);
 
 
 /* melt diagnostic routine */
