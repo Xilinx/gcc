@@ -1,7 +1,7 @@
 
 2010-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (upgrade-warmelt): Remove temporary quirk for
-	gt-melt-runtime-plugin.h which builds again.
+	gt-melt-runtime-plugin.h which builds again. Remove $(warning).
 
 2010-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (gt-melt-runtime-plugin.h): Run twice gengtype to
