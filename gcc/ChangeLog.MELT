@@ -1,5 +1,9 @@
 
 2010-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (upgrade-warmelt): Remove temporary quirk for
+	gt-melt-runtime-plugin.h which builds again.
+
+2010-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (gt-melt-runtime-plugin.h): Run twice gengtype to
 	save the state into gtype-no-melt.state and to generate it.
 
@@ -8,6 +12,8 @@
 	* melt-build.mk: Regenerate.
 
 	* Makefile.in (MELT_STAGE_ZERO): Defaults to melt-stage0-dynamic.
+
+	* doc/melt.texi (Lexical MELT convention): Mention $' macrostrings.
 
 	* melt-runtime.h (meltobj_class, meltobj_magic): New field-like
 	macros.

@@ -5558,8 +5558,7 @@ $(warning upgrade-warmelt discard gengtype error)
 upgrade-warmelt: gtyp-real-meltplugin-input.list 
 	$(MAKE) Makefile $(melt_default_modules_list).modlis
 	$(MAKE) warmelt-upgrade-translator
-## temporary quirk.... when gengtype is buggy in plugin mode...
-	-$(MAKE) -k gt-melt-runtime-plugin.h
+	$(MAKE) gt-melt-runtime-plugin.h
 ## copy gt-melt-runtime-plugin.h
 	cp gt-melt-runtime-plugin.h $(srcdir)/melt/generated/
 ## rebuild warmelt1 to be sure
