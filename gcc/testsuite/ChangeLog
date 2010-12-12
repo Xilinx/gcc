@@ -1,3 +1,42 @@
+2010-12-11  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/46705
+	* gfortran.dg/continuation_12.f90: New test.
+
+2010-12-11  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46370
+	* gfortran.dg/coarray_14.f90: New.
+
+2010-12-11  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/46842
+	* gfortran.dg/array_function_6.f90: New test.
+
+2010-12-11  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-resolve-method.m: New.
+	* obj-c++.dg/gnu-api-2-resolve-method.mm: New.	
+
+2010-12-10 Ahmad Sharif <asharif@google.com>
+
+	* gcc.target/i386/max-stack-align.c: New testcase.
+
+2010-12-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* gcc.dg/funcorder.c: Remove XFAIL for hppa*64*-*-*.
+
+2010-12-10  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/fobjc-std-1.m: Updated to test that class extensions
+	produce an error with -fobjc-std=objc1.
+	* obj-c++.dg/fobjc-std-1.mm: Same change.
+
+2010-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/46001
+	* g++.dg/diagnostic/bitfld1.C: New test.
+
 2010-12-10  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR tree-optimization/43023
