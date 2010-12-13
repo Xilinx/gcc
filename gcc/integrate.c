@@ -72,6 +72,15 @@ static void set_block_abstract_flags (tree, int);
 bool
 function_attribute_inlinable_p (const_tree fndecl)
 {
+  /* TM pure functions should not get inlined if the outer function is
+     a TM safe function.
+
+     FIXME: In the meantime, prevent pure functions from being
+     inlined.  */
+  if (flag_tm
+      && is_tm_pure (fndecl))
+    return false;
+
   if (targetm.attribute_table)
     {
       const_tree a;

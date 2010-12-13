@@ -1,3 +1,18 @@
+2010-12-13  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR/45940
+        * tree.h: Remove prototypes for is_tm_callable, is_tm_irrevocable.
+	(is_tm_safe_or_pure): New.
+        * trans-mem.c (is_tm_irrevocable): Make static.
+        (is_tm_callable): Same.
+        (diagnose_tm_1): Use is_tm_safe_or_pure.
+        (ipa_tm_note_irrevocable): Same.
+        (ipa_tm_mayenterirr_function): Same.
+        (ipa_tm_execute): Same.
+	(diagnose_tm_blocks): Change is_tm_safe to is_tm_safe_or_pure.
+	* integrate.c (function_attribute_inlinable_p): Do not inline TM
+	pure functions.
+
 2010-11-29  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR/46653

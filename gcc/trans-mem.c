@@ -184,7 +184,7 @@ is_tm_pure (tree x)
 
 /* Return true if X has been marked TM_IRREVOCABLE.  */
 
-bool
+static bool
 is_tm_irrevocable (tree x)
 {
   tree attrs = get_attrs_for (x);
@@ -247,7 +247,7 @@ is_tm_pure_call (gimple call)
 
 /* Return true if X has been marked TM_CALLABLE.  */
 
-bool
+static bool
 is_tm_callable (tree x)
 {
   tree attrs = get_attrs_for (x);
@@ -587,7 +587,7 @@ diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 		replacement = NULL_TREE;
 	      }
 
-	    if (is_tm_safe (fn) || is_tm_pure (fn))
+	    if (is_tm_safe_or_pure (fn))
 	      is_safe = true;
 	    else if (is_tm_callable (fn) || is_tm_irrevocable (fn))
 	      {
@@ -736,7 +736,7 @@ diagnose_tm_blocks (void)
 
   /* If we saw something other than a call that makes this function
      unsafe, remember it so that the IPA pass only needs to scan calls.  */
-  if (d.saw_unsafe && !is_tm_safe (current_function_decl))
+  if (d.saw_unsafe && !is_tm_safe_or_pure (current_function_decl))
     cgraph_local_info (current_function_decl)->tm_may_enter_irr = 1;
 
   return 0;
@@ -3515,8 +3515,7 @@ ipa_tm_note_irrevocable (struct cgraph_node *node,
 	continue;
       /* Even if we think we can go irrevocable, believe the user
 	 above all.  */
-      if (is_tm_safe (e->caller->decl)
-	  || is_tm_pure (e->caller->decl))
+      if (is_tm_safe_or_pure (e->caller->decl))
 	continue;
       if (gimple_call_in_transaction_p (e->call_stmt))
 	d->want_irr_scan_normal = true;
@@ -3812,9 +3811,9 @@ ipa_tm_mayenterirr_function (struct cgraph_node *node)
   tree decl = node->decl;
 
   /* Filter out all functions that are marked.  */
-  if (is_tm_safe (decl))
+  if (is_tm_safe_or_pure (decl))
     return false;
-  if (is_tm_pure (decl) || (flags_from_decl_or_type (decl) & ECF_CONST) != 0)
+  if ((flags_from_decl_or_type (decl) & ECF_CONST) != 0)
     return false;
   if (is_tm_irrevocable (decl))
     return true;
@@ -4463,8 +4462,7 @@ ipa_tm_execute (void)
       if (is_tm_irrevocable (node->decl))
 	ipa_tm_note_irrevocable (node, &worklist);
       else if (a <= AVAIL_NOT_AVAILABLE
-	       && !is_tm_safe (node->decl)
-	       && !is_tm_pure (node->decl))
+	       && !is_tm_safe_or_pure (node->decl))
 	ipa_tm_note_irrevocable (node, &worklist);
       else if (a >= AVAIL_OVERWRITABLE)
 	{
@@ -4532,8 +4530,7 @@ ipa_tm_execute (void)
       node->local.tm_may_enter_irr = true;
 
       for (e = node->callers; e ; e = e->next_caller)
-	if (!is_tm_safe (e->caller->decl)
-	    && !is_tm_pure (e->caller->decl)
+	if (!is_tm_safe_or_pure (e->caller->decl)
 	    && !e->caller->local.tm_may_enter_irr)
 	  maybe_push_queue (e->caller, &worklist, &d->in_worklist);
     }

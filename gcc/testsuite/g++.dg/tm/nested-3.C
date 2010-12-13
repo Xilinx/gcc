@@ -14,7 +14,7 @@ class HashTree
 {
 public:
    __attribute__((transaction_safe))
-   void *operator new(long unsigned int);
+   void *operator new(__SIZE_TYPE__);
    __attribute__((transaction_safe))
    int add_element();
 private:
