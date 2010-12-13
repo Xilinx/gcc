@@ -586,6 +586,7 @@ do_allocate_exception (tree type)
 	  if (!get_global_value_if_present (fn2, &fn2))
 	    fn2 = declare_nothrow_library_fn (fn2, ptr_type_node,
 					      size_type_node);
+	  apply_tm_attr (fn2, get_identifier ("transaction_pure"));
 	  record_tm_replacement (fn, fn2);
 	}
     }
@@ -729,6 +730,7 @@ build_throw (tree exp)
 	      tree fn2 = get_identifier ("_ITM_cxa_throw");
 	      if (!get_global_value_if_present (fn2, &fn2))
 		fn2 = push_throw_library_fn (fn2, tmp);
+	      apply_tm_attr (fn2, get_identifier ("transaction_pure"));
 	      record_tm_replacement (fn, fn2);
 	    }
 	}

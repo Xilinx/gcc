@@ -1,5 +1,12 @@
 2010-12-13  Aldy Hernandez  <aldyh@redhat.com>
 
+	PR/46300
+	* cp/except.c (do_allocate_exception): Set transaction_pure
+	attribute for _ITM_cxa_allocate_exception.
+	(build_throw): Set transaction_pure attribute for _ITM_cxa_throw.
+
+2010-12-13  Aldy Hernandez  <aldyh@redhat.com>
+
 	PR/45940
         * tree.h: Remove prototypes for is_tm_callable, is_tm_irrevocable.
 	(is_tm_safe_or_pure): New.
