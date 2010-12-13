@@ -1,4 +1,9 @@
 
+2010-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: Rename ctypesupport mode and routines
+	as runtypesupport. Adding generation of GTY value types.
+	(runtypesupport_gtyvaldesc): New function.
+
 2010-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (upgrade-warmelt): Remove temporary quirk for
 	gt-melt-runtime-plugin.h which builds again. Remove $(warning).

@@ -5396,11 +5396,12 @@ notice for file named $NAME.}#
   (add2sbuf_indentnl sbuf 0)
 )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; internal function to generate ctype support. 
 ;;; apply fun to the ctype tuple...
-(defun generate_ctypesupport (fun ctygtytup outarg :cstring suffix)
-  (debug_msg ctygtytup "generate_ctypesupport tuple")
-  (debugcstring suffix "generate_ctypesupport suffix")
+(defun generate_runtypesupport (fun ctygtytup outarg :cstring suffix)
+  (debug_msg ctygtytup "generate_runtypesupport tuple")
+  (debugcstring suffix "generate_runtypesupport suffix")
   (assert_msg "check fun" (is_closure fun))
   (assert_msg "check ctygtytup" (is_multiple ctygtytup))
   (assert_msg "check outarg" (is_string outarg))
@@ -5413,9 +5414,9 @@ notice for file named $NAME.}#
 	 )
     (assert_msg "check outname string" (is_string outname))
     (generate_gplv3plus_copyright_notice_c_comment sbuf outname)
-    (debug_msg outname "generate_ctypesupport before call outname")
+    (debug_msg outname "generate_runtypesupport before call outname")
     (fun sbuf outname ctygtytup)
-    (debug_msg outname "generate_ctypesupport after call outname")
+    (debug_msg outname "generate_runtypesupport after call outname")
     (code_chunk 
      enddate
      #{ /* $ENDDATE + */
@@ -5424,7 +5425,7 @@ notice for file named $NAME.}#
 	meltgc_out_printf 
 	  ($SBUF, 
 	   "\n\n/" 
-	   "** end of %s generated [ctypesupport]\n* on %s" 
+	   "** end of %s generated [runtypesupport]\n* on %s" 
 	   "** using GCC %s with MELT"
 	   "**" "/\n",
 	   lbasename (melt_string_str ((melt_ptr_t)$OUTNAME)),
@@ -5435,14 +5436,15 @@ notice for file named $NAME.}#
   ))
 
 ;; internal function to generate the magic enum
-(defun ctypesupport_enumagic (sbuf outname ctygtytup)
-  (debug_msg outname "ctypesupport_enumagic outname start")
+(defun runtypesupport_enumagic (sbuf outname ctygtytup)
+  (debug_msg outname "runtypesupport_enumagic outname start")
   (add2sbuf_indentnl sbuf 0)
   (add2sbuf_strconst sbuf "/* ctype gty enumeration magic */")
   (foreach_in_multiple
    (ctygtytup)
    (curctyp :long ix)
-   (debug_msg curctyp "ctypesupport_enumagic curctyp")
+   (debug_msg curctyp "runtypesupport_enumagic curctyp")
+   (assert_msg "check curctyp" (is_a curctyp class_ctype_gty))
    (add2sbuf_indentnl sbuf 2)
    (add2sbuf_strconst sbuf "/*gtyctype #")
    (add2sbuf_longdec sbuf (+i 1 ix))
@@ -5460,27 +5462,28 @@ notice for file named $NAME.}#
    (add2sbuf_longdec sbuf (+i 30021 (*i 2 ix)))
    (add2sbuf_strconst sbuf ",")
    )
-  (debug_msg outname "ctypesupport_enumagic outname end")
+  (debug_msg outname "runtypesupport_enumagic outname end")
   )
 
 
-;; internal function to generate the gty struct
-(defun ctypesupport_gtystruct  (sbuf outname ctygtytup)
-  (debug_msg outname "ctypesupport_gtystruct outname start")
+;; internal function to generate the gty struct for ctypes
+(defun runtypesupport_gtystruct  (sbuf outname ctygtytup)
+  (debug_msg outname "runtypesupport_gtystruct outname start")
   (add2sbuf_indentnl sbuf 0)
   (add2sbuf_strconst sbuf "/* ctype gty structures */")
   (foreach_in_multiple
    (ctygtytup)
    (curctyp :long ix)
-   (debug_msg curctyp "ctypesupport_docmd/lambda/gtystruct curctyp")
+   (debug_msg curctyp "runtypesupport_gtystruct curctyp")
+   (assert_msg "check curctyp" (is_a curctyp class_ctype_gty))
    (add2sbuf_indentnl sbuf 0)
-   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_indentnl sbuf 0)
    (add2sbuf_strconst sbuf "/*gtyctype #")
    (add2sbuf_longdec sbuf (+i 1 ix))
    (add2sbuf_strconst sbuf " ")
    (add2sbuf_ccomstring sbuf (get_field :named_name curctyp))
    (add2sbuf_strconst sbuf "*/")
-   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_indentnl sbuf 0)
    (add2sbuf_strconst sbuf "struct GTY (()) ")
    (add2sbuf_string sbuf (get_field :ctypg_boxedstruct curctyp))
    (add2sbuf_strconst sbuf " { /* when ")
@@ -5493,7 +5496,7 @@ notice for file named $NAME.}#
    (add2sbuf_strconst sbuf " val;")
    (add2sbuf_indentnl sbuf 3)
    (add2sbuf_strconst sbuf "};")
-   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_indentnl sbuf 0)
    (add2sbuf_strconst sbuf "struct GTY (()) ")
    (add2sbuf_string sbuf (get_field :ctypg_entrystruct curctyp))
    (add2sbuf_strconst sbuf " { /* for ")
@@ -5505,7 +5508,7 @@ notice for file named $NAME.}#
    (add2sbuf_indentnl sbuf 3)
    (add2sbuf_strconst sbuf " melt_ptr_t e_va;")
    (add2sbuf_strconst sbuf "};")
-   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_indentnl sbuf 0)
    (add2sbuf_strconst sbuf "struct GTY (()) ")
    (add2sbuf_string sbuf (get_field :ctypg_mapstruct curctyp))
    (add2sbuf_strconst sbuf " { /* when ")
@@ -5519,7 +5522,7 @@ notice for file named $NAME.}#
    (add2sbuf_strconst sbuf "unsigned count;")
    (add2sbuf_indentnl sbuf 3)
    (add2sbuf_strconst sbuf "unsigned char lenix;")
-   (add2sbuf_indentnl sbuf 3)
+   (add2sbuf_indentnl sbuf 0)
    (add2sbuf_strconst sbuf "struct ")
    (add2sbuf_string sbuf (get_field :ctypg_entrystruct curctyp))
    (add2sbuf_strconst sbuf "* GTY ((length (\"melt_primtab[%h.lenix]\"))) entab;")
@@ -5527,14 +5530,71 @@ notice for file named $NAME.}#
    (add2sbuf_strconst sbuf "};")
    (add2sbuf_indentnl sbuf 2)
    )
-  (debug_msg outname "ctypesupport_gtystruct outname end")
+  (debug_msg outname "runtypesupport_gtystruct outname end")
   )
 
 
 
-(defun ctypesupport_docmd (cmd moduldata)
-  (debug_msg cmd "start ctypesupport_docmd cmd")
-  (debug_msg moduldata "start ctypesupport_docmd moduldata")
+
+;; internal function to generate the gty struct for value descriptors
+(defun runtypesupport_gtyvaldesc  (sbuf outname valdesctup)
+  (debug_msg outname "runtypesupport_gtyvaldesc outname start")
+  (add2sbuf_indentnl sbuf 0)
+  (add2sbuf_strconst sbuf "/* value GTY types */")
+  (foreach_in_multiple
+   (valdesctup)
+   (curvaldesc :long ix)
+   (debug_msg curvaldesc "runtypesupport_gtyvaldesc curvaldesc")
+   (assert_msg "check curvaldesc" (is_a curvaldesc class_value_descriptor))
+   (add2sbuf_indentnl sbuf 0)
+   (add2sbuf_indentnl sbuf 0)
+   (add2sbuf_strconst sbuf "/*gtyvaldesc #")
+   (add2sbuf_longdec sbuf (+i 1 ix))
+   (add2sbuf_strconst sbuf " ")
+   (add2sbuf_ccomstring sbuf (get_field :named_name curvaldesc))
+   (add2sbuf_strconst sbuf "*/")
+   (add2sbuf_indentnl sbuf 0)
+   (add2sbuf_strconst sbuf "struct GTY((")
+   (cond 
+    ( (is_a curvaldesc class_varisized_value_descriptor)
+      (assert_msg "check null valdescgty" 
+		  (null (get_field :valdesc_gty curvaldesc)))
+      (compile_warning 
+       "we should provide a user option to disable variable GTY for GCC 4.5")
+      (add2sbuf_strconst sbuf "variable")
+      )
+    ( (is_a curvaldesc class_value_descriptor)
+      (let ( (sgty (get_field :valdesc_gty curvaldesc)) 
+	     )
+	(if (is_string sgty)
+	    (add2sbuf_string sbuf sgty))))
+    (:else
+     (assert_msg "invalid value descriptor" ()))
+    )
+   (add2sbuf_strconst sbuf ")) ")
+   (add2sbuf_string sbuf (get_field :valdesc_struct curvaldesc))
+   (add2sbuf_strconst sbuf " /* when ")
+   (add2sbuf_string sbuf (get_field :valdesc_objmagic curvaldesc))
+   (add2sbuf_strconst sbuf " */ {")
+   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_strconst sbuf "meltobject_ptr_t discr;")
+   (add2sbuf_indentnl sbuf 2)
+   (add2sbuf_string sbuf (get_field :valdesc_chunk curvaldesc))
+   (add2sbuf_indentnl sbuf 0)
+   (add2sbuf_strconst sbuf "}; /* end ")
+   (add2sbuf_string sbuf (get_field :valdesc_struct curvaldesc))
+   (add2sbuf_strconst sbuf " */")
+   (add2sbuf_indentnl sbuf 0)
+   )
+  (add2sbuf_indentnl sbuf 0)
+  (debug_msg outname "runtypesupport_gtyvaldesc outname end")
+  )
+
+
+
+(defun runtypesupport_docmd (cmd moduldata)
+  (debug_msg cmd "start runtypesupport_docmd cmd")
+  (debug_msg moduldata "start runtypesupport_docmd moduldata")
   (let (
 	(outarg (or (make_stringconst discr_string (melt_argument "output"))
 		    '"meltctype"
@@ -5542,41 +5602,52 @@ notice for file named $NAME.}#
 	(dictypgty (retrieve_dictionnary_ctype_gty))
 	(rawctypgtylist (list))
 	)
-    (debug_msg dictypgty "ctypesupport_docmd dictypgty")
-    (debug_msg outarg "ctypesupport_docmd outarg")
+    (debug_msg dictypgty "runtypesupport_docmd dictypgty")
+    (debug_msg outarg "runtypesupport_docmd outarg")
     (foreach_in_mapstring
      (dictypgty)
      (curstr curcty)
      (list_append rawctypgtylist curcty)
      )
-    (debug_msg rawctypgtylist "ctypesupport_docmd rawctypgtylist")
+    (debug_msg rawctypgtylist "runtypesupport_docmd rawctypgtylist")
     (let ( (sortedctygtytuple 
 	    (multiple_sort (list_to_multiple rawctypgtylist discr_multiple)
 			   compare_named_alpha discr_multiple))
+	   (rawvaldesctuple  
+	    (list_to_multiple (retrieve_value_descriptor_list)))
+	   (sortedvaldesctuple
+	    (multiple_sort rawvaldesctuple
+			   compare_named_alpha discr_multiple))
 	   )
-      (debug_msg sortedctygtytuple "ctypesupport_docmd sortedctygtytuple")
+      (debug_msg sortedctygtytuple "runtypesupport_docmd sortedctygtytuple")
       ;; generate the enummagic ie the MELTOBMAG_* enumeration
-      (generate_ctypesupport 
-       ctypesupport_enumagic
-       sortedctygtytuple outarg "-enumagic.h")
+      (generate_runtypesupport 
+       runtypesupport_enumagic
+       sortedctygtytuple outarg "-ctymagic.h")
       ;; generate the GTY structures
-      (generate_ctypesupport
-       ctypesupport_gtystruct
-       sortedctygtytuple outarg "-gtystruct.h")
+      (generate_runtypesupport
+       runtypesupport_gtystruct
+       sortedctygtytuple outarg "-ctystruct.h")
       ;;
-      (debug_msg sortedctygtytuple "ctypesupport_docmd done sortedctygtytuple")
-      (assert_msg "$@$unimplemented ctypesupport_docmd")
+      (debug_msg sortedvaldesctuple "runtypesupport_docmd sortedvaldesctuple")
+      ;; generate the value descriptor GTY
+      (generate_runtypesupport
+       runtypesupport_gtyvaldesc
+       sortedvaldesctuple outarg "-valstruct.h")
+      ;;
+      (debug_msg sortedctygtytuple "runtypesupport_docmd done sortedctygtytuple")
+      (assert_msg "$@$unimplemented runtypesupport_docmd")
       )))
 
 ;;;;;;;;;;;;;;;;
-(definstance ctypesupport_mode
+(definstance runtypesupport_mode
   class_melt_mode
-  :named_name '"ctypesupport"
-  :meltmode_help '"generate runtime support for GTY-ed ctypes;\n
+  :named_name '"runtypesupport"
+  :meltmode_help '"generate runtime support for our GTY types (ctypes, values);\n
 \t OUTPUT=generated file prefix"
-  :meltmode_fun ctypesupport_docmd
+  :meltmode_fun runtypesupport_docmd
 )
-(install_melt_mode ctypesupport_mode)
+(install_melt_mode runtypesupport_mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values 
