@@ -5463,7 +5463,7 @@ melt.encap: melt-run.d
 	rm -rf _tempmeltdir*
 	echo melt.encap done
 
-.PHONY: install-all-melt install-melt-headers upgrade-warmelt upgrade-bigmelt diff-warm-1-2 diff-warm-2-  diff-warmelt-2- install-melt-dynlib install-melt-cfiles install-melt-meltfiles install-melt-otherfiles 
+.PHONY: install-all-melt install-melt-headers generate-meltrun upgrade-warmelt upgrade-bigmelt diff-warm-1-2 diff-warm-2-  diff-warmelt-2- install-melt-dynlib install-melt-cfiles install-melt-meltfiles install-melt-otherfiles 
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR)
 
@@ -5556,6 +5556,7 @@ gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c $(srcdir)/melt-runtime.h gtyp
 upgrade-warmelt: gtyp-real-meltplugin-input.list 
 	$(MAKE) Makefile $(melt_default_modules_list).modlis
 	$(MAKE) warmelt-upgrade-translator
+	$(MAKE) generate-meltrun
 	$(MAKE) gt-melt-runtime-plugin.h
 ## copy gt-melt-runtime-plugin.h
 	cp gt-melt-runtime-plugin.h $(srcdir)/melt/generated/

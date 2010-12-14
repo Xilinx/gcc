@@ -436,11 +436,24 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 
 
 vpath %.so $(melt_make_module_dir) . 
-vpath %.c $(melt_make_source_dir)/generated . $(melt_source_dir)
+vpath %.c $(melt_make_source_dir)/generated . $(melt_source_dir) 
+vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 
 
 
 
+.PHONY: generate-meltrun
+generate-meltrun: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
+                  melt-all-sources melt-all-modules  $(melt_make_cc1_dependency)
+
+	$(melt_make_cc1)  $(melt_make_cc1flags) \
+	      $(meltarg_mode)=runtypesupport  \
+	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
+	      $(meltarg_init)=@$(melt_default_modules_list) \
+	      $(meltarg_module_path)=melt-modules:. \
+	      $(meltarg_source_path)=melt-sources:. \
+	      $(meltarg_output)=meltrunsup  \
+	      empty-file-for-melt.c
 
 ### MELT cleanup
 .PHONY: melt-clean

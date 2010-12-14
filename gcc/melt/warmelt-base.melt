@@ -1087,15 +1087,18 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   not ctype renated. $VALDESC_OBJMAGIC is the symbol MELTOBMAG_* of
   its magic number. $VALDESC_STRUCT is the GTY-ed struct
   name. $VALDESC_UNIONMEM is the union member name inside union
-  melt_un. $VALDESC_CHUNK is the code chunk of the structure members
-  after the discriminant. $VALDESC_GTY is the optional GTY argument}#
+  melt_un. $VALDESC_MEMBCHUNK is the code chunk of the structure members
+  after the discriminant. $VALDESC_GTY is the optional GTY
+  argument. $VALDESC_COPYCHUNK is the code chunk copying src to an
+  allocated dst.}#
   :super class_named
   :fields (
 	   valdesc_objmagic
 	   valdesc_struct
 	   valdesc_unionmem
 	   valdesc_gty
-	   valdesc_chunk
+	   valdesc_membchunk
+	   valdesc_copychunk
 	   )
 )
 
@@ -1132,7 +1135,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_OBJECT"
   :valdesc_struct '"meltobject_st"
   :valdesc_unionmem '"u_object"
-  :valdesc_chunk #{$' /* from VALDESC_OBJECT */
+  :valdesc_membchunk #{$' /* from VALDESC_OBJECT */
 #define meltobj_class discr
   unsigned obj_hash;		/* hash code of the object */
   unsigned short obj_num;
@@ -1147,6 +1150,22 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   melt_ptr_t* obj_vartab[N];			\
   long _gap; }
   }#
+  :valdesc_copychunk #{$' /* from VALDESC_OBJECT */
+    int ix = 0;
+    int oblen = (int) (src->obj_len);
+    /* We don't need to clear at allocation, since the object is
+       explicitly filled here! */
+    dst = ggc_alloc_meltobject_st
+      (oblen*sizeof(void*)
+       + offsetof(struct meltobject_st, obj_vartab));
+    /* we cannot copy the whole src, because FLEXIBLE_DIM might be 1 */
+    dst->obj_class = src->obj_class;
+    dst->obj_hash = src->obj_hash;
+    dst->obj_num = src->obj_num;
+    dst->obj_len = oblen;
+    for (ix = 0; ix < oblen; ix++)
+        dst->obj_vartab[ix] = src->obj_vartab[ix];
+  }#
 )
 (install_value_descriptor valdesc_object)
 
@@ -1158,9 +1177,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_struct '"meltdecay_st"
   :valdesc_unionmem '"u_decay"
   :valdesc_gty #{$' mark_hook ("melt_mark_decay")}#
-  :valdesc_chunk #{$' /* from VALDESC_DECAY */
+  :valdesc_membchunk #{$' /* from VALDESC_DECAY */
   melt_ptr_t val;
   unsigned remain;		/* remaining number of marking */
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_DECAY */
+     dst = ggc_alloc_meltdecay_st ();
+     *dst = *src;
   }#
 )
 (install_value_descriptor valdesc_decay)
@@ -1172,8 +1195,12 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_BOX"
   :valdesc_struct '"meltbox_st"
   :valdesc_unionmem '"u_box"
-  :valdesc_chunk #{$' /* from VALDESC_BOX */
+  :valdesc_membchunk #{$' /* from VALDESC_BOX */
   melt_ptr_t val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_BOX */
+     dst = ggc_alloc_meltbox_st ();
+     *dst = *src;
   }#
 )
 (install_value_descriptor valdesc_box)
@@ -1185,14 +1212,14 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_MULTIPLE"
   :valdesc_struct '"meltmultiple_st"
   :valdesc_unionmem '"u_multiple"
-  :valdesc_chunk #{$' /* from VALDESC_MULTIPLE */
-  unsigned nbval;
-  melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
-#define MELT_MULTIPLE_STRUCT(N) {		\
-  meltobject_ptr_t discr;			\
-  unsigned nbval;				\
-  melt_ptr_t tabval[N];				\
-  long _gap; }
+  :valdesc_membchunk #{$' /* from VALDESC_MULTIPLE */
+    unsigned nbval;
+    melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
+#define MELT_MULTIPLE_STRUCT(N) {               \
+    meltobject_ptr_t discr;                     \
+    unsigned nbval;                             \
+    melt_ptr_t tabval[N];                       \
+    long _gap; }
   }#
 )
 (install_value_descriptor valdesc_multiple)
@@ -1204,15 +1231,28 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_CLOSURE"
   :valdesc_struct '"meltclosure_st"
   :valdesc_unionmem '"u_closure"
-  :valdesc_chunk #{$' /* from VALDESC_CLOSURE */
-  meltroutine_ptr_t rout;
-  unsigned nbval;
-  melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
-#define MELT_CLOSURE_STRUCT(N) {		\
-  meltobject_ptr_t discr;			\
-  unsigned nbval;				\
-  melt_ptr_t tabval[N];				\
-  long _gap; }
+  :valdesc_membchunk #{$' /* from VALDESC_CLOSURE */
+    meltroutine_ptr_t rout;
+    unsigned nbval;
+    melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
+#define MELT_CLOSURE_STRUCT(N) {                \
+    meltobject_ptr_t discr;                     \
+    unsigned nbval;                             \
+    melt_ptr_t tabval[N];                       \
+    long _gap; }
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_CLOSURE */
+     int nbv = (int) src->nbval;
+     int ix = 0;
+     dst = 
+   /* Don't need a cleared allocation!  */
+       ggc_alloc_meltclosure_st 
+         (nbv*sizeof(void*) + offsetof(struct meltclosure_st, tabval));
+     dst->discr = src->discr;
+     dst->rout = src->rout;
+     dst->nbval = (unsigned) nbv;
+     for (ix = 0; ix < nbv; ix++)
+       dst->tabval[ix] = src->tabval[ix];
   }#
 )
 (install_value_descriptor valdesc_closure)
@@ -1224,12 +1264,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_ROUTINE"
   :valdesc_struct '"meltroutine_st"
   :valdesc_unionmem '"u_routine"
-  :valdesc_chunk #{$' /* from VALDESC_ROUTINE */
-  char routdescr[MELT_ROUTDESCR_LEN];
-  meltroutfun_t* GTY ((skip)) routfunad;
-  melt_ptr_t routdata;
-  unsigned nbval;
-  melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
+  :valdesc_membchunk #{$' /* from VALDESC_ROUTINE */
+    char routdescr[MELT_ROUTDESCR_LEN];
+    meltroutfun_t* GTY ((skip)) routfunad;
+    melt_ptr_t routdata;
+    unsigned nbval;
+    melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
+
 /* unsafely set inside the meltroutine_st pointed by Rptr the
    routine function pointer to Rout */
 #define MELT_ROUTINE_SET_ROUTCODE(Rptr,Rout) do {	\
@@ -1246,6 +1287,22 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   melt_ptr_t tabval[N];				\
   long _gap; }
   }#
+  :valdesc_copychunk #{$' /* from VALDESC_ROUTINE */
+     int nbv = (int) src->nbval;
+     int ix = 0;
+     dst =
+       /* Don't need a cleared allocation!  */
+       ggc_alloc_meltroutine_st
+       (nbv*sizeof(void*) + offsetof(struct meltroutine_st, tabval));
+     dst->discr = src->discr;
+     strncpy (dst->routdescr, src->routdescr, MELT_ROUTDESCR_LEN);
+     dst->routdescr[MELT_ROUTDESCR_LEN - 1] = 0;
+     dst->nbval = (unsigned) nbv;
+     dst->routfunad = src->routfunad;
+     for (ix = 0; ix < nbv; ix++)
+       dst->tabval[ix] = src->tabval[ix];
+     dst->routdata = src->routdata;
+  }#
 )
 (install_value_descriptor valdesc_routine)
 
@@ -1256,13 +1313,23 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_STRING"
   :valdesc_struct '"meltstring_st"
   :valdesc_unionmem '"u_string"
-  :valdesc_chunk #{$' /* from VALDESC_STRING */  
-  char val[FLEXIBLE_DIM];	/* null terminated */
+  :valdesc_membchunk #{$' /* from VALDESC_STRING */  
+    char val[FLEXIBLE_DIM];	/* null terminated */
 #define MELT_STRING_STRUCT(N) {			\
   meltobject_ptr_t discr;			\
   char val[(N)+1];	/* null terminated */	\
   long _gap; 
-}#
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_STRING */  
+     int srclen = (src->val)?strlen (src->val):0;
+     dst = 
+       /* Don't need a cleared allocation.  */
+       ggc_alloc_meltstring_st 
+         (offsetof(struct meltstring_st, val) + (srclen+1));
+     dst->discr = src->discr;
+     memcpy (dst->val, src->val, srclen);
+     dst->val[srclen] = (char)0;
+  }#
 )
 (install_value_descriptor valdesc_string)
 
@@ -1273,7 +1340,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_STRBUF"
   :valdesc_struct '"meltstrbuf_st"
   :valdesc_unionmem '"u_strbuf"
-  :valdesc_chunk #{$' /* from VALDESC_STRBUF */  
+  :valdesc_membchunk #{$' /* from VALDESC_STRBUF */  
   char *GTY ((length ("1+melt_primtab[%h.buflenix]"))) bufzn;
   unsigned char buflenix;	/* allocated length index of
 				   buffer */
@@ -1283,6 +1350,28 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
      objects in the young zone), to allocate the object and its fields
      at once; hence its GTY-ed length is zero */
   char GTY ((length ("0"))) buf_space[FLEXIBLE_DIM];
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_STRBUF */
+     unsigned blen = melt_primtab[src->buflenix];
+     struct meltstrbuf_st *dst = 
+       /* Don't need a cleared allocation.  */
+       ggc_alloc_meltstrbuf_st ();
+     dst->discr = src->discr;
+     dst->bufstart = src->bufstart;
+     dst->bufend = src->bufend;
+     dst->buflenix = src->buflenix;
+     if (blen > 0)
+        {
+#if BUILDING_GCC_VERSION > 4005
+          dst->bufzn = CONST_CAST (char *, ggc_alloc_string (src->bufzn, blen+1));
+#else /*GCC 4.5*/ 
+          dst->bufzn = (char *) ggc_alloc_cleared (1 + blen);
+          memcpy (dst->bufzn, src->bufzn, blen);
+#endif  /*!GCC 4.5*/
+          dst->bufzn[blen] = (char)0;
+        }
+      else
+        dst->bufzn = NULL;
   }#
 )
 (install_value_descriptor valdesc_strbuf)
@@ -1296,9 +1385,14 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_struct '"meltpair_st"
   :valdesc_unionmem '"u_pair"
   :valdesc_gty #{$' chain_next ("%h.tl")}#
-  :valdesc_chunk #{$' /* from VALDESC_PAIR */
-  melt_ptr_t hd;
-  struct meltpair_st *tl;
+  :valdesc_membchunk #{$' /* from VALDESC_PAIR */
+    melt_ptr_t hd;
+    struct meltpair_st *tl;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_PAIR */
+    dst = /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltpair_st ();
+    *dst = *src;
   }#
 )
 (install_value_descriptor valdesc_pair)
@@ -1311,9 +1405,15 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_LIST"
   :valdesc_struct '"meltlist_st"
   :valdesc_unionmem '"u_list"
-  :valdesc_chunk #{$' /* from VALDESC_LIST */
-  struct meltpair_st *first;
-  struct meltpair_st *last;
+  :valdesc_membchunk #{$' /* from VALDESC_LIST */
+    struct meltpair_st *first;
+    struct meltpair_st *last;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_LIST */
+     dst = 
+	  /* Don't need a cleared allocation!  */
+	 ggc_alloc_meltlist_st ();
+     *dst = *src;
   }#
 )
 (install_value_descriptor valdesc_list)
@@ -1325,8 +1425,14 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_INT"
   :valdesc_struct '"meltint_st"
   :valdesc_unionmem '"u_int"
-  :valdesc_chunk #{$' /* from VALDESC_INT */
-  long val;
+  :valdesc_membchunk #{$' /* from VALDESC_INT */
+    long val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_INT */
+     dst = 
+        /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltint_st ();
+     *dst = *src;
   }#
 )
 (install_value_descriptor valdesc_int)
@@ -1338,9 +1444,15 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_MIXINT"
   :valdesc_struct '"meltmixint_st"
   :valdesc_unionmem '"u_mixint"
-  :valdesc_chunk #{$' /* from VALDESC_MIXINT */
-  melt_ptr_t ptrval;
-  long intval;
+  :valdesc_membchunk #{$' /* from VALDESC_MIXINT */
+    melt_ptr_t ptrval;
+    long intval;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_MIXINT */
+    dst = 
+      /* Don't need a cleared allocation.  */
+        ggc_alloc_meltmixint_st ();
+    *dst = *src;
   }#
 )
 (install_value_descriptor valdesc_mixint)
@@ -1352,10 +1464,16 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_MIXLOC"
   :valdesc_struct '"meltmixloc_st"
   :valdesc_unionmem '"u_mixloc"
-  :valdesc_chunk #{$' /* from VALDESC_MIXLOC */
-  melt_ptr_t ptrval;
-  long intval;
-  location_t locval;
+  :valdesc_membchunk #{$' /* from VALDESC_MIXLOC */
+    melt_ptr_t ptrval;
+    long intval;
+    location_t locval;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_MIXLOC */
+    dst = 
+       /* Don't need a cleared allocation.  */
+       ggc_alloc_meltmixloc_st ();
+    *dst = *src;
   }#
 )
 (install_value_descriptor valdesc_mixloc)
@@ -1367,14 +1485,26 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_MIXBIGINT"
   :valdesc_struct '"meltmixbigint_st"
   :valdesc_unionmem '"u_mixbigint"
-  :valdesc_chunk #{$' /* from VALDESC_MIXBIGINT */
+  :valdesc_membchunk #{$' /* from VALDESC_MIXBIGINT */
 /* an exported array mpz compatible; since we use an exported mpz format, 
    the value can be copied and trashed by MELT garbage collector without 
    harm. */
-  melt_ptr_t ptrval;
-  bool negative;
-  unsigned biglen;
-  long GTY ((length ("%h.biglen"))) tabig[FLEXIBLE_DIM];
+    melt_ptr_t ptrval;
+    bool negative;
+    unsigned biglen;
+    long GTY ((length ("%h.biglen"))) tabig[FLEXIBLE_DIM];
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_MIXBIGINT */
+     unsigned blen = src->biglen;
+     dst = 
+       /* Don't need a cleared allocation.  */
+       ggc_alloc_meltmixbigint_st 
+       (blen*sizeof(long) + offsetof(struct meltmixbigint_st, tabig));
+     dst->discr = src->discr;
+     dst->ptrval = src->ptrval;
+     dst->negative = src->negative;
+     dst->biglen = blen;
+     memcpy (dst->tabig, src->tabig, blen*sizeof(dst->tabig[0]));
   }#
 )
 (install_value_descriptor valdesc_mixbigint)
@@ -1386,8 +1516,14 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_REAL"
   :valdesc_struct '"meltreal_st"
   :valdesc_unionmem '"u_real"
-  :valdesc_chunk #{$' /* from VALDESC_REAL */
-  REAL_VALUE_TYPE val;
+  :valdesc_membchunk #{$' /* from VALDESC_REAL */
+    REAL_VALUE_TYPE val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_REAL */
+    dst =
+        /* Don't need a cleared allocation.  */
+	ggc_alloc_meltreal_st ();
+    *dst = *src;
   }#
 )
 (install_value_descriptor valdesc_real)
@@ -1401,10 +1537,19 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_struct '"meltspecialfile_st"
   :valdesc_unionmem '"u_special_file"
   :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
-  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_FILE */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union special_melt_un GTY ((skip)) val;
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_FILE */
+    int mark;
+    struct meltspecial_st *GTY ((skip)) nextspec;
+    union special_melt_un GTY ((skip)) val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_FILE */
+    dst = ggc_alloc_meltspecialfile_st ();
+    *dst = *src;
+    /* mark the new copy! */
+    dst->mark = 1;
+    /* add the new copy to the old (major) special list */
+    dst->nextspec = melt_oldspeclist;
+    melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
 )
 (install_value_descriptor valdesc_special_file)
@@ -1417,10 +1562,19 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_struct '"meltspecialrawfile_st"
   :valdesc_unionmem '"u_special_rawfile"
   :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
-  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_RAW_FILE */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union special_melt_un GTY ((skip)) val;
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_RAW_FILE */
+    int mark;
+    struct meltspecial_st *GTY ((skip)) nextspec;
+    union special_melt_un GTY ((skip)) val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_RAW_FILE */
+    dst = ggc_alloc_meltspecialrawfile_st ();
+    *dst = *src;
+    /* mark the new copy! */
+    dst->mark = 1;
+    /* add the new copy to the old (major) special list */
+    dst->nextspec = melt_oldspeclist;
+    melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
 )
 (install_value_descriptor valdesc_special_raw_file)
@@ -1433,10 +1587,19 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_struct '"meltspecialmpfr_st"
   :valdesc_unionmem '"u_special_mpfr"
   :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
-  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_MPFR */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union special_melt_un GTY ((skip)) val;
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_MPFR */
+    int mark;
+    struct meltspecial_st *GTY ((skip)) nextspec;
+    union special_melt_un GTY ((skip)) val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_MPFR */
+    dst = ggc_alloc_meltspecialmpfr_st ();
+    *dst = *src;
+    /* mark the new copy! */
+    dst->mark = 1;
+    /* add the new copy to the old (major) special list */
+    dst->nextspec = melt_oldspeclist;
+    melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
 )
 (install_value_descriptor valdesc_special_mpfr)
@@ -1449,10 +1612,19 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_struct '"meltspecialpplcoefficient_st"
   :valdesc_unionmem '"u_special_ppl_coefficient"
   :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
-  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_COEFFICIENT */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union special_melt_un GTY ((skip)) val;
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_COEFFICIENT */
+    int mark;
+    struct meltspecial_st *GTY ((skip)) nextspec;
+    union special_melt_un GTY ((skip)) val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_COEFFICIENT */
+    dst = ggc_alloc_meltspecialpplcoefficient_st ();
+    *dst = *src;
+    /* mark the new copy! */
+    dst->mark = 1;
+    /* add the new copy to the old (major) special list */
+    dst->nextspec = melt_oldspeclist;
+    melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
 )
 (install_value_descriptor valdesc_special_ppl_coefficient)
@@ -1466,10 +1638,19 @@ linear expression values.}#
   :valdesc_struct '"meltspecialppllinearexpression_st"
   :valdesc_unionmem '"u_special_ppl_linear_expression"
   :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
-  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union special_melt_un GTY ((skip)) val;
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
+    int mark;
+    struct meltspecial_st *GTY ((skip)) nextspec;
+    union special_melt_un GTY ((skip)) val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
+    dst = ggc_alloc_meltspecialppllinearexpression_st ();
+    *dst = *src;
+    /* mark the new copy! */
+    dst->mark = 1;
+    /* add the new copy to the old (major) special list */
+    dst->nextspec = melt_oldspeclist;
+    melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
 )
 (install_value_descriptor valdesc_special_ppl_linear_expression)
@@ -1483,10 +1664,19 @@ constraints values.}#
   :valdesc_struct '"meltspecialpplconstraint_st"
   :valdesc_unionmem '"u_special_ppl_constraint"
   :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
-  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union special_melt_un GTY ((skip)) val;
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
+    int mark;
+    struct meltspecial_st *GTY ((skip)) nextspec;
+    union special_melt_un GTY ((skip)) val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
+    dst = ggc_alloc_meltspecialpplconstraint_st ();
+    *dst = *src;
+    /* mark the new copy! */
+    dst->mark = 1;
+    /* add the new copy to the old (major) special list */
+    dst->nextspec = melt_oldspeclist;
+    melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
 )
 (install_value_descriptor valdesc_special_ppl_constraint)
@@ -1500,10 +1690,19 @@ constraint systems values.}#
   :valdesc_struct '"meltspecialpplconstaintsystem_st"
   :valdesc_unionmem '"u_special_ppl_constraint_system"
   :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
-  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union special_melt_un GTY ((skip)) val;
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
+    int mark;
+    struct meltspecial_st *GTY ((skip)) nextspec;
+    union special_melt_un GTY ((skip)) val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
+    dst = ggc_alloc_meltspecialpplconstraintsystem_st ();
+    *dst = *src;
+    /* mark the new copy! */
+    dst->mark = 1;
+    /* add the new copy to the old (major) special list */
+    dst->nextspec = melt_oldspeclist;
+    melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
 )
 (install_value_descriptor valdesc_special_ppl_constraint_system)
@@ -1517,10 +1716,19 @@ generators values.}#
   :valdesc_struct '"meltspecialpplgenerator_st"
   :valdesc_unionmem '"u_special_ppl_generator"
   :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
-  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union special_melt_un GTY ((skip)) val;
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR */
+    int mark;
+    struct meltspecial_st *GTY ((skip)) nextspec;
+    union special_melt_un GTY ((skip)) val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR */
+    dst = ggc_alloc_meltspecialpplgenerator_st ();
+    *dst = *src;
+    /* mark the new copy! */
+    dst->mark = 1;
+    /* add the new copy to the old (major) special list */
+    dst->nextspec = melt_oldspeclist;
+    melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
 )
 (install_value_descriptor valdesc_special_ppl_generator)
@@ -1534,10 +1742,19 @@ generator systems values.}#
   :valdesc_struct '"meltspecialpplconstaintsystem_st"
   :valdesc_unionmem '"u_special_ppl_generator_system"
   :valdesc_gty #{$'mark_hook ("melt_mark_special"}#
-  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union special_melt_un GTY ((skip)) val;
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM */
+    int mark;
+    struct meltspecial_st *GTY ((skip)) nextspec;
+    union special_melt_un GTY ((skip)) val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM */
+    dst = ggc_alloc_meltspecialpplgeneratorsystem_st ();
+    *dst = *src;
+    /* mark the new copy! */
+    dst->mark = 1;
+    /* add the new copy to the old (major) special list */
+    dst->nextspec = melt_oldspeclist;
+    melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
 )
 (install_value_descriptor valdesc_special_ppl_generator_system)
@@ -1551,10 +1768,19 @@ polyhedron values.}#
   :valdesc_struct '"meltspecialpplpolyhedron_st"
   :valdesc_unionmem '"u_special_ppl_polyhedron"
   :valdesc_gty #{$'mark_hook ("melt_mark_special"}#
-  :valdesc_chunk #{$' /* from VALDESC_SPECIAL_PPL_POLYHEDRON */
-  int mark;
-  struct meltspecial_st *GTY ((skip)) nextspec;
-  union special_melt_un GTY ((skip)) val;
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_POLYHEDRON */
+    int mark;
+    struct meltspecial_st *GTY ((skip)) nextspec;
+    union special_melt_un GTY ((skip)) val;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_POLYHEDRON */
+    dst = ggc_alloc_meltspecialpplpolyhedron_st ();
+    *dst = *src;
+    /* mark the new copy! */
+    dst->mark = 1;
+    /* add the new copy to the old (major) special list */
+    dst->nextspec = melt_oldspeclist;
+    melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
 )
 (install_value_descriptor valdesc_special_ppl_polyhedron)

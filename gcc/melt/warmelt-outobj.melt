@@ -5579,7 +5579,7 @@ notice for file named $NAME.}#
    (add2sbuf_indentnl sbuf 2)
    (add2sbuf_strconst sbuf "meltobject_ptr_t discr;")
    (add2sbuf_indentnl sbuf 2)
-   (add2sbuf_string sbuf (get_field :valdesc_chunk curvaldesc))
+   (add2sbuf_string sbuf (get_field :valdesc_membchunk curvaldesc))
    (add2sbuf_indentnl sbuf 0)
    (add2sbuf_strconst sbuf "}; /* end ")
    (add2sbuf_string sbuf (get_field :valdesc_struct curvaldesc))
