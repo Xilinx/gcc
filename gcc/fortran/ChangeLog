@@ -1,3 +1,69 @@
+2010-12-12  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* dump-parse-tree.c (show_expr):  Add space for parens.
+
+2010-12-12  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46809
+	* resolve.c (resolve_select_type): Set the location of the first
+	argument when generating the EXTENDS_TYPE_OF call.
+
+2010-12-11  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/46705
+	* gfortran.h: New enum gfc_instring.
+	(gfc_next_char_literal): Update prototype.
+	* scanner.c (gfc_next_char_literal): Use new enum. Only give missing
+	'&' warning for INSTRING_WARN. (gfc_next_char): Use new enum.
+	(gfc_gobble_whitespace): Likewise.
+	* io.c (next_char): Use new enum. (next_char_not_space): Likewise.
+	(format_lex): Likewise.
+	* match.c (gfc_match_parens): Likewise.
+	(gfc_match_special_char): Likewise. (gfc_match_name_C): Likewise.
+	* parse.c (next_fixed): Likewise.
+	* primary.c (match_hollerith_constant): Likewise.
+	(next_string_char): Likewise.
+
+2010-12-11  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46370
+	* primary.c (gfc_match_varspec): Pass information about codimension
+	to gfc_match_array_ref also for BT_CLASS.
+	* resolve.c (resolve_procedure): Correct check for C612.
+
+2010-12-11  Mikael Morin   <mikael@gcc.gnu.org>
+	    Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/46842
+	* trans-array.c (dim_ok): New helper function.
+	(gfc_conv_expr_descriptor): Use new helper function to check
+	function array is full.
+
+2010-12-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46540
+	* trans-types.c (gfc_init_kinds): Handle
+	--disable-libquadmath-support.
+
+2010-12-09  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* check.c (gfc_check_sngl): Insert missing space in error message.
+
+2010-12-09  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* check.c (gfc_check_float): Insert missing space in error message.
+
+2010-12-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44352
+	* trans-expr.c (gfc_string_to_single_character): Return if not
+	POINTER_TYPE_P.
+	(gfc_trans_string_copy): gfc_build_addr_expr if src or dest is
+	not a pointer.
+	(gfc_trans_string_copy): Make sure the argument string type
+	has a string length, fix indention, and remove not needed
+	gfc_build_addr_expr.
+
 2010-12-04  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/46794

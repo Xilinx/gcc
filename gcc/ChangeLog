@@ -1,3 +1,755 @@
+2010-12-13  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/46576
+	* jump.c (mark_all_labels): Skip debug insns.
+
+2010-12-13  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/46782
+	* cfgcleanup.c (try_forward_edges): Skip debug insns.
+
+2010-12-12  Jan Hubicka  <jh@suse.cz>
+	    Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* varasm.c (default_function_section): Check flag_reorder_functions
+	and targetm.have_named_sections.
+	* config/darwin.c (darwin_function_section): Check
+	flag_reorder_functions.
+
+2010-12-12  Finn Thain  <fthain@telegraphics.com.au>
+
+	PR target/46179
+	* config/m68k/m68k.c (handle_move_double): Insert calls to
+	m68k_final_prescan_insn to clean up @TLS operand syntax.
+
+2010-12-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/43023
+	* tree-data-ref.c (mem_write_stride_of_same_size_as_unit_type_p):
+	Removed.
+	(stores_zero_from_loop): Call stmt_stores_zero.
+	* tree-data-ref.h (stmt_stores_zero): New.
+	* tree-loop-distribution.c (generate_memset_zero): Do not return a
+	boolean.  Call gcc_assert on stride_of_unit_type_p.
+	(generate_builtin): Call stmt_stores_zero.
+	(rdg_flag_all_uses): Removed.
+	(rdg_flag_similar_memory_accesses): Removed.
+	(build_rdg_partition_for_component): Removed parameter
+	other_stores.  Removed call to rdg_flag_similar_memory_accesses.
+	(can_generate_builtin): New.
+	(similar_memory_accesses): New.
+	(fuse_partitions_with_similar_memory_accesses): New.
+	(rdg_build_partitions): Call
+	fuse_partitions_with_similar_memory_accesses.
+
+2010-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/46804
+	* regmove.c (optimize_reg_copy_3): Look for REG_EQUAL note
+	on the setter of src_reg rather than on insn.  If it is
+	equal to the setter's original SET_SRC, replace it with its
+	zero or sign extension instead of dropping it.
+
+2010-12-10  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/46808
+	* lto-symtab.c (lto_symtab_merge_decls_2): Avoid type warnings
+	after errors.
+	(lto_symtab_merge_decls_1): Adjust.
+
+2010-12-10  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR middle-end/46674
+	PR lto/43157
+	* target.def (mangle_assembler_name): New target asm_out hook.
+	* targhooks.c (default_mangle_assembler_name): Add default hook
+	implementation.
+	* targhooks.h (default_mangle_assembler_name): Add prototype.
+	* lto-symtab.c (lto_symtab_register_decl): Use new hook when
+	processing DECL_ASSEMBLER_NAMEs for lto symtabs.
+	(lto_symtab_get_resolution): Likewise.
+	(lto_cgraph_replace_node): Likewise.
+	(lto_symtab_prevailing_decl): Likewise.
+	* lto-streamer-out.c (write_symbol): Likewise.
+	* doc/tm.texi.in (TARGET_MANGLE_ASSEMBLER_NAME): Add @hook directive.
+	* doc/tm.texi: Regenerate.
+	* config/i386/cygming.h (TARGET_MANGLE_ASSEMBLER_NAME): Define to
+	point at i386_pe_mangle_assembler_name.
+	* config/i386/winnt.c (i386_pe_mangle_assembler_name): New function.
+	* config/i386/i386-protos.h (i386_pe_mangle_assembler_name): Add
+	prototype.
+
+2010-12-10  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-typeck.c (readonly_error): Delete.
+
+2010-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/46865
+	* rtl.c (rtx_equal_p_cb, rtx_equal_p): For last operand of
+	ASM_OPERANDS and ASM_INPUT if integers are different,
+	call locator_eq.
+	* jump.c (rtx_renumbered_equal_p): Likewise.
+
+	PR tree-optimization/46864
+	* tree-ssa-loop-im.c (loop_suitable_for_sm): Return false even
+	when there are EDGE_EH exit edges.
+
+2010-12-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46540
+	* configure.ac: Handle --disable-libquadmath-support.
+	* doc/install.texi: Document --disable-libquadmath and
+	--disable-libquadmath-support
+	* configure: Regenerate.
+	* config.in: Regenerate.
+
+2010-12-10  Jack Howarth  <howarth@bromo.med.uc.edu>
+	    Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR 43751/target
+	* config/darwin9.h (DSYMUTIL_SPEC): Add fortran source types.
+
+2010-12-10  Iain Sandoe <iains@gcc.gnu.org>
+
+	* config/rs6000/rs6000.c
+	(rs6000_darwin64_record_arg_advance_recurse): Name register increment
+	explicitly.  (rs6000_darwin64_record_arg_recurse): Make sure we split
+	long doubles when we run out of regs.   Also flag that this requires
+	stack and therefore cannot be returned by value.
+	(rs6000_darwin64_record_arg): Update comment.
+	(rs6000_function_value): Likewise.
+
+2010-12-10  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-parser.c (c_parser_objc_class_definition): Recognize
+	Objective-C 2.0 class extensions.
+
+2010-12-10  Iain Sandoe <iains@gcc.gnu.org>
+
+	* config/darwin.c: Remove c-tree.h and c-lang.h
+	* config/t-darwin: Remove dependencies on c-tree.h and c-lang.h.
+
+2010-12-10  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR target/46881
+	* doc/tm.texi: Regenerate.
+	* target.def: Fix "preferred" spelling.  Refer to rclass by its
+	exact name.
+	* config/arm/arm.c (arm_preferred_rename_class): Rename parameter class
+	to rclass.
+
+2010-12-09  Paul Koning  <ni1d@arrl.net>
+
+	* config/pdp11/pdp11-protos.h (output_move_double,
+	output_move_quad): Delete.
+	(output_move_multiple, pdp11_expand_operands): New functions.
+	(pdp11_action, pdp11_partorder): New enums.
+	* config/pdp11/pdp11.md (movdi, movsi, movdf, movsf): Use
+	output_move_multiple.
+	(adddi3, subdi3, negdi2): New patterns.
+	(addsi3, subsi3, negsi2): Use pdp11_expand_operands.
+	(abshi2): Delete.
+	(neghi2, negqi2): Use PDPint iterator.
+	* config/pdp11/pdp11.c (find_addr_reg, output_move_double,
+	output_move_quad): Delete.
+	(pdp11_expand_operands, output_move_multiple): New functions.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/vax/linux.h (WCHAR_TYPE, WCHAR_TYPE_SIZE): Define.
+	* config.gcc (vax-*-linux*): Don't use svr4.h.
+
+2010-12-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-typeck.c (build_indirect_ref): Call invalid_indirection_error.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* doc/extend.texi (Attribute Syntax): Correct description of
+	attributes in pointer declarators.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/mips/vxworks.h (DBX_REGISTER_NUMBER): Undefine.
+	* config.gcc (mips64*-*-linux* | mipsisa64*-*-linux*,
+	mips*-*-linux*, mips-wrs-vxworks): Don't use svr4.h.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/mep/mep.h (SIZE_TYPE, PTRDIFF_TYPE, WCHAR_TYPE,
+	WCHAR_TYPE_SIZE): Define.
+	* config.gcc (mep-*-*): Don't use svr4.h.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/mcore/mcore.h (PTRDIFF_TYPE, WCHAR_TYPE,
+	WCHAR_TYPE_SIZE): Define.
+	* config/svr3.h (SIZE_TYPE, PTRDIFF_TYPE, WCHAR_TYPE,
+	WCHAR_TYPE_SIZE): Don't define.
+	* config.gcc (mcore-*-elf): Don't use svr4.h.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (m32r-*-elf*, m32rle-*-elf*, m32r-*-rtems*,
+	m32r-*-linux*, m32rle-*-linux*): Don't use svr4.h.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/iq2000/iq2000.h (LINK_SPEC, SIZE_TYPE, PTRDIFF_TYPE,
+	WCHAR_TYPE, WCHAR_TYPE_SIZE): Define.
+	* config.gcc (iq2000*-*-elf*): Don't use svr4.h.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (ia64*-*-linux*, ia64*-*-hpux*): Don't use svr4.h.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/pa/pa32-linux.h (WCHAR_TYPE, WCHAR_TYPE_SIZE): Define.
+	* config.gcc (hppa*64*-*-linux*, hppa*-*-linux*): Don't use
+	svr4.h.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/moxie/moxie.h (LINK_SPEC, SIZE_TYPE, PTRDIFF_TYPE,
+	WCHAR_TYPE, WCHAR_TYPE_SIZE): Define.
+	* config/moxie/rtems.h (LINK_SPEC, SIZE_TYPE, PTRDIFF_TYPE,
+	WCHAR_TYPE, WCHAR_TYPE_SIZE): Undefine.
+	* config.gcc (moxie-*-elf, moxie-*-uclinux*): Don't use svr4.h.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/frv/frv.h (SIZE_TYPE, PTRDIFF_TYPE, WCHAR_TYPE,
+	WCHAR_TYPE_SIZE): Define.
+	* config.gcc (frv-*-elf, frv-*-*linux*): Don't use svr4.h.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/fr30/fr30.h (LIB_SPEC, LINK_SPEC, SIZE_TYPE,
+	PTRDIFF_TYPE, WCHAR_TYPE, WCHAR_TYPE_SIZE): Define.
+	* config.gcc (fr30-*-elf): Don't use svr4.h.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/cris/linux.h (SIZE_TYPE, PTRDIFF_TYPE): Define.
+	* config.gcc (crisv32-*-linux* | cris-*-linux*): Don't use svr4.h.
+
+2010-12-09  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/46844
+	* gimple-fold.c (canonicalize_constructor_val): Canonicalize
+	addresses.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/netware.h (TARGET_POSIX_IO): Define.
+	* config/i386/nto.h (TARGET_POSIX_IO): Define.
+	* config/ia64/hpux.h (TARGET_POSIX_IO): Define.
+	* config/moxie/moxie.h (TARGET_POSIX_IO): Don't undefine.
+	* config/openbsd.h (TARGET_POSIX_IO): Define.
+	* config/rtems.h (TARGET_POSIX_IO): Define.
+	* config/sh/embed-elf.h (TARGET_POSIX_IO): Don't undefine.
+	* config/sol2.h (TARGET_POSIX_IO): Define.
+	* config/svr4.h (TARGET_POSIX_IO): Don't define.
+	* config/vxworksae.h (TARGET_POSIX_IO): Define.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/nto.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX): Define.
+	* config/ia64/hpux.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX):
+	Define.
+	* config/linux.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX): Don't
+	undefine.
+	* config/mips/linux.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX): Don't
+	undefine.
+	* config/mips/netbsd.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX):
+	Don't undefine.
+	* config/rs6000/linux.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX):
+	Don't undefine.
+	* config/rs6000/linux64.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX):
+	Don't undefine.
+	* config/sol2.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX): Define.
+	* config/sparc/netbsd-elf.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX):
+	Don't undefine.
+	* config/sparc/openbsd64.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX):
+	Don't undefine.
+	* config/sparc/sp64-elf.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX):
+	Don't undefine.
+	* config/svr4.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX): Don't
+	define.
+	* config/xtensa/elf.h (MD_EXEC_PREFIX, MD_STARTFILE_PREFIX): Don't
+	undefine.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/ia64/hpux.h (AS_NEEDS_DASH_FOR_PIPED_INPUT): Define for
+	non-GNU assembler.
+	* config/m68k/netbsd-elf.h (AS_NEEDS_DASH_FOR_PIPED_INPUT):
+	Remove.
+	* config/m68k/openbsd.h (AS_NEEDS_DASH_FOR_PIPED_INPUT): Remove.
+	* config/mips/openbsd.h (AS_NEEDS_DASH_FOR_PIPED_INPUT): Remove.
+	* config/sol2.h (AS_NEEDS_DASH_FOR_PIPED_INPUT): Define for
+	non-GNU assembler.
+	* config/sparc/sparc.h (AS_NEEDS_DASH_FOR_PIPED_INPUT): Remove.
+	* config/svr4.h (AS_NEEDS_DASH_FOR_PIPED_INPUT): Remove.
+
+2010-12-09  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-prop.c (compute_complex_ancestor_jump_func): Work also if the
+	zero is the first phi parameter.
+
+2010-12-09  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-prop.h (struct ipa_parm_adjustment): New field alias_ptr_type.
+	* ipa-prop.c (ipa_modify_call_arguments): Use it.
+	* tree-sra.c (splice_param_accesses): Test that all accesses have the
+	same alias reference type.
+	(turn_representatives_into_adjustments): Set alias_ptr_type of the
+	adjustment.
+
+2010-12-09  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/46734
+	* tree-sra.c (splice_param_accesses): Check that there are not
+	multiple ADDRESSABLE types.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arc/arc.h (ASM_SPEC): Remove %{v}.
+	* config/bfin/bfin.h (ASM_SPEC): Remove %{v}.
+	* config/cris/cris.h (ASM_SPEC): Remove %{v:-v}.
+	* config/fr30/fr30.h (ASM_SPEC): Remove %{v}.
+	* config/frv/frv.h (ASM_SPEC): Remove %{v}.
+	* config/i386/linux.h (ASM_SPEC): Remove %{v}.
+	* config/i386/linux64.h (ASM_SPEC): Remove %{v}.
+	* config/i386/mingw-w64.h (ASM_SPEC): Remove %{v}.
+	* config/i386/sol2-10.h (ASM_SPEC): Remove %{v}.
+	* config/i386/vxworks.h (ASM_SPEC): Remove %{v}.
+	* config/i386/x86-64.h (ASM_SPEC): Remove %{v}.
+	* config/lm32/lm32.h (ASM_SPEC): Remove %{v}.
+	* config/m32r/m32r.h (ASM_SPEC): Remove %{v}.
+	* config/m68k/linux.h (ASM_SPEC): Remove %{v:-V}.
+	* config/microblaze/microblaze.h (ASM_SPEC): Remove %{v}.
+	* config/mips/mips.h (ASM_SPEC): Remove %{v}.
+	* config/mips/vxworks.h (ASM_SPEC): Remove %{v}.
+	* config/pa/pa-linux.h (ASM_SPEC): Remove %{v:-V}.
+	* config/rs6000/freebsd.h (SVR4_ASM_SPEC): Remove %{v}.
+	* config/rs6000/linux64.h (ASM_SPEC): Remove %{v:-V}.
+	* config/rs6000/vxworks.h (ASM_SPEC): Remove %{v:-v}.
+	* config/sparc/openbsd64.h (ASM_SPEC): Remove %{v:-V}.
+	* config/svr4.h (SVR4_ASM_SPEC): Remove %{v:-V}.
+	* config/xtensa/elf.h (ASM_SPEC): Remove %{v}.
+	* config/xtensa/linux.h (ASM_SPEC): Remove %{v}.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/openbsdelf.h (LINK_SPEC): Use %{r:} not %{r*:}.
+	* config/mips/openbsd.h (LINK_SPEC): Use %{r:} not %{r*:}.
+	* config/netbsd-aout.h (NETBSD_LINK_SPEC_AOUT): Use %{r:} not
+	%{r*:}.
+	* config/netbsd-elf.h (NETBSD_LINK_SPEC_ELF): Use %{r:} not
+	%{r*:}.
+	* config/sparc/openbsd64.h (LINK_SPEC): Use %{r:} not %{r*:}.
+	* config/vax/netbsd-elf.h (LINK_SPEC): Use %{r:} not %{r*:}.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/alpha/freebsd.h (LINK_SPEC): Don't use
+	%{!dynamic-linker:}.
+	* config/alpha/linux-elf.h (LINK_SPEC): Likewise.
+	* config/arm/freebsd.h (LINK_SPEC): Likewise.
+	* config/arm/linux-elf.h (LINUX_TARGET_LINK_SPEC): Likewise.
+	* config/bfin/linux.h (LINK_SPEC): Likewise.
+	* config/cris/linux.h (CRIS_LINK_SUBTARGET_SPEC): Likewise.
+	* config/frv/linux.h (LINK_SPEC): Likewise.
+	* config/i386/freebsd.h (LINK_SPEC): Likewise.
+	* config/i386/freebsd64.h (LINK_SPEC): Likewise.
+	* config/i386/linux.h (LINK_SPEC): Likewise.
+	* config/i386/linux64.h (LINK_SPEC): Likewise.
+	* config/i386/openbsdelf.h (LINK_SPEC): Likewise.
+	* config/ia64/freebsd.h (LINK_SPEC): Likewise.
+	* config/ia64/linux.h (LINK_SPEC): Likewise.
+	* config/lm32/uclinux-elf.h (LINK_SPEC): Likewise.
+	* config/m32r/linux.h (LINK_SPEC): Likewise.
+	* config/m68k/linux.h (LINK_SPEC): Likewise.
+	* config/microblaze/linux.h (LINK_SPEC): Likewise.
+	* config/mips/linux.h (LINK_SPEC): Likewise.
+	* config/mips/linux64.h (LINK_SPEC): Likewise.
+	* config/mips/openbsd.h (LINK_SPEC): Likewise.
+	* config/mn10300/linux.h (LINK_SPEC): Likewise.
+	* config/netbsd-elf.h (LINK_SPEC): Likewise.
+	* config/pa/pa-linux.h (LINK_SPEC): Likewise.
+	* config/rs6000/linux64.h (LINK_OS_LINUX_SPEC32,
+	LINK_OS_LINUX_SPEC64): Likewise.
+	* config/rs6000/sysv4.h (LINK_OS_FREEBSD_SPEC,
+	LINK_OS_LINUX_SPEC, LINK_OS_GNU_SPEC, LINK_OS_NETBSD_SPEC):
+	Likewise.
+	* config/s390/linux.h (LINK_SPEC): Likewise.
+	* config/sh/linux.h (SUBTARGET_LINK_SPEC): Likewise.
+	* config/sparc/freebsd.h (LINK_SPEC): Likewise.
+	* config/sparc/linux.h (LINK_SPEC): Likewise.
+	* config/sparc/linux64.h (LINK_ARCH32_SPEC, LINK_ARCH64_SPEC,
+	LINK_SPEC): Likewise.
+	* config/sparc/openbsd64.h (LINK_SPEC): Likewise.
+	* config/vax/linux.h (LINK_SPEC): Likewise.
+	* config/xtensa/linux.h (LINK_SPEC): Likewise.
+
+2010-12-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/bfin/bfin.h (ASM_SPEC): Remove %{n} and %{T}.
+	* config/frv/frv.h (ASM_SPEC): Likewise.
+	* config/i386/sol2-10.h (ASM_SPEC): Likewise.
+	* config/i386/sol2.h (ASM_SPEC): Likewise.
+	* config/m68k/linux.h (ASM_SPEC): Likewise.
+	* config/pa/pa-linux.h (ASM_SPEC): Likewise.
+	* config/rs6000/linux64.h (ASM_SPEC32): Likewise.
+	* config/rs6000/vxworks.h (ASM_SPEC): Likewise.
+	* config/sol2.h (ASM_SPEC): Likewise.
+	* config/sparc/linux.h (ASM_SPEC): Likewise.
+	* config/sparc/linux64.h (ASM_SPEC): Likewise.
+	* config/sparc/sp-elf.h (ASM_SPEC): Likewise.
+	* config/sparc/sysv4.h (ASM_SPEC): Likewise.
+	* config/svr4.h (SVR4_ASM_SPEC): Likewise.
+
+2010-12-09  Richard Guenther  <rguenther@suse.de>
+
+	* reginfo.c (struct subregs_of_mode_node): Remove.
+	(subregs_of_mode): Likewise.
+	(som_hash): Likewise.
+	(som_eq): Likewise.
+	(invalid_mode_changes): New bitmap.
+	(record_subregs_of_mode): Get subregs_of_mode argument.
+	Fill in invalid_mode_changes bitmap.
+	(find_subregs_of_mode): Get subregs_of_mode argument and pass
+	it through.
+	(init_subregs_of_mode): Adjust.
+	(finish_subregs_of_mode): Likewise.
+	(invalid_mode_change_p): Query invalid_mode_changes bitmap.
+
+2010-12-09  Richard Guenther  <rguenther@suse.de>
+
+	* ira.c (ira): Do not call finish_subregs_of_mode.
+	* ira-costs.c (finish_costs): Call finish_subregs_of_mode.
+
+2010-12-09  Richard Guenther  <rguenther@suse.de>
+
+	* rtl.h (invalid_mode_change_p): Adjust prototype.
+	* reginfo.c (invalid_mode_change_p): Remove from argument.
+	* ira-costs.c (print_allocno_costs): Adjust callers.
+	(find_costs_and_classes): Likewise.
+
+2010-12-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/s390/s390.md (*mov<mode>cc): Change lgoc and stgoc to
+	locg and stocg even in comment.
+	(sync_old_<atomic><mode>): Give mode to UNSPEC_VOLATILE.
+
+	PR target/41082
+	* config/rs6000/rs6000.c (rs6000_expand_vector_extract): Use stvx
+	instead of stve*x.
+	(altivec_expand_stv_builtin): For op0 use mode of operand 1 instead
+	of operand 0.
+	* config/rs6000/altivec.md (VI_scalar): New mode attr.
+	(altivec_stve<VI_char>x, *altivec_stvesfx): Use scalar instead of
+	vector mode for operand 0, put operand 1 into UNSPEC.
+
+2010-12-09  Yao Qi  <yao@codesourcery.com>
+
+	* config/arm/arm.c (arm_preferred_rename_class): Implement targethook
+	PREFERRED_RENAME_CLASS.
+
+2010-12-08  Ian Lance Taylor  <iant@google.com>
+
+	* doc/sourcebuild.texi (Front End): Remove reference to
+	snapshot-README and snapshot-index.html.
+
+2010-12-08  Ian Lance Taylor  <iant@google.com>
+
+	* doc/sourcebuild.texi (Texinfo Manuals): Change update_web_docs
+	to update_web_docs_svn.
+	(Front End): Likewise.
+
+2010-12-08  Iain Sandoe <iains@gcc.gnu.org>
+
+	gcc/config.gcc (with_cpu): Default i[34567]86-*-darwin* and
+	x86_64-*-darwin* to with_cpu:-core2.
+	gcc/config/i386/mmx.md (*mov<mode>_internal_rex64): Replace movq
+	with movd for darwin assembler.
+	gcc/config/i386/sse.md (*vec_concatv2di_rex64_sse4_1): Ditto.
+	(*vec_concatv2di_rex64_sse): Ditto.
+
+2010-12-08  Richard Guenther  <rguenther@suse.de>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/45230
+	PR tree-optimization/45231
+	PR tree-optimization/45370
+	* sese.c (rename_uses): Returns a bool.  Call
+	recompute_tree_invariant_for_addr_expr only on the RHS of a
+	GIMPLE_ASSIGN.
+	(graphite_copy_stmts_from_block): Call fold_stmt_inplace when
+	rename_uses returns true.
+	* tree-ssa-copy.c (replace_exp): Add a comment about calling
+	fold_stmt_inplace after replace_exp.
+
+2010-12-08  Mike Stump  <mikestump@comcast.net>
+
+	PR debug/46749
+	* config/darwin.h (COLLECT_RUN_DSYMUTIL): Add.
+	(DSYMUTIL_SPEC): Use `linker' flags instead to handle lto better.
+	* config/darwin9.h (COLLECT_RUN_DSYMUTIL): Add.
+	(DSYMUTIL_SPEC): Use `linker' flags instead to handle lto better.
+	* collect2.c (post_ld_pass): Add.
+	(process_args): Add.
+	(maybe_run_lto_and_relink): Call post_ld_pass after ld.
+	(main): Likewise.  Call process_args.
+
+2010-12-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/46844
+	* regrename.c (check_new_reg_p): Add ATTRIBUTE_UNUSED to reg
+	parameter.
+
+2010-12-08  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/46631
+	* arm.c (thumb2_reorg): Also try to reduce <commutative_op> Rd, Rn, Rd
+	into a 16-bit instruction.
+
+2010-12-08  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR middle-end/42694
+	* builtins.c (expand_builtin_pow_root): Don't optimize pow(x,y)
+	where y is 0.25, 1./6., or 0.75 if the target does not have a sqrt
+	instruction, but do optimize if y is 0.5 or 1./3. since that
+	changes an expensive call into a cheaper one.
+
+2010-12-08  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-sccvn.c (copy_reference_ops_from_ref): Use a shift
+	instead of a division to divide by BITS_PER_UNIT.
+
+2010-12-08  Richard Guenther  <rguenther@suse.de>
+
+	* gimplify.c (gimple_tree_eq): Assert hashes are equal only
+	when checking is enabled.
+
+2010-12-07  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR target/43603
+	* haifa-sched.c (sched_create_recovery_edges): Update
+	dominator info.
+	* sel-sched-ir.c (maybe_tidy_empty_bb): Update dominator info
+	after deleting an empty block.
+	(tidy_control_flow): Also verify dominators.
+	(sel_remove_bb): Update dominator info after removing a block.
+	(sel_redirect_edge_and_branch_force): Assert that no unreachable
+	blocks will be created. Update dominator info.
+	(sel_redirect_edge_and_branch): Update dominator info when
+	basic blocks do not become unreachable.
+	(sel_remove_loop_preheader): Update dominator info.
+
+2010-12-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-data-refs.c (vect_create_addr_base_for_vector_ref):
+	Reset alignment information.
+	(bump_vector_ptr): Likewise.
+
+2010-12-07  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR middle-end/46671
+	PR target/46685
+	* config/pa/pa.c (pa_function_section): New function.
+	(TARGET_ASM_FUNCTION_SECTION): Define.
+
+2010-12-07  Ian Lance Taylor  <iant@google.com>
+	    Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/46810
+	* configure.ac: Disable AC_MSG_ERROR while looking for the C++
+	preprocessor.
+	* configure: Rebuild.
+
+2010-12-07  Paul Koning  <ni1d@arrl.net>
+
+	* config/pdp11/pdp11.c (output_addr_const_pdp11): Output negative
+	values with sign rather than as unsigned.
+
+2010-12-07  Paul Koning  <ni1d@arrl.net>
+
+	* config/pdp11/pdp11.c (TARGET_ASM_FUNCTION_SECTION): Define.
+	(pdp11_function_section): New function.
+
+2010-12-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/mcore/mcore.c Don't include assert.h.
+	(layout_mcore_frame, handle_structs_in_regs): Use gcc_assert.
+	* config/spu/spu.c: Don't include assert.h.
+	(spu_sms_res_mii): Use gcc_assert.
+
+2010-12-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/42327
+	* tree-data-ref.c (omega_setup_subscript): Call build_int_cst
+	instead of using integer_minus_one_node.
+
+2010-12-07  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/45330
+	* params.def (CXX_MAX_NAMESPACES_FOR_DIAGNOSTIC_HELP): New parameter.
+	* doc/invoke.texi (cxx-max-namespaces-for-diagnostic-help): Document.
+
+2010-12-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46832
+	* tree-ssa-math-opts.c (execute_optimize_widening_mul): Check
+	that the call has a lhs.
+
+2010-12-07  Yao Qi  <yao@codesourcery.com>
+
+	* Makefile.in: Add $(TARGET_H) to the regrename.o rule.
+	* regrename.c (struct du_head): Add new element length.
+	(sort_du_head, get_element, merge, merge_sort_comparison):
+	New functions of merge sort implementation to du_head list.
+	(regrename_optimize): Sort du_head linked list by length.
+	Iterate registers in a preferred-register-first order.
+	Move some code to ...
+	(check_new_reg_p): here.  New function.
+	(create_new_chain):  Initialize length.
+	(scan_rtx_reg): Increase length for non-debug insns.
+	* target.def: New hook preferred_rename_class.
+	* targhook.c (default_preferred_rename_class): New.
+	* targhook.h: Declare it.
+	* doc/tm.texi.in: New hook TARGET_PREFERRED_RENAME_CLASS.
+	* doc/tm.texi: Regenerate.
+
+2010-12-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46799
+	* tree-parloops.c (separate_decls_in_region): Use UNKNOWN_LOCATION
+	instead of BUILTINS_LOCATION.
+	(create_loop_fn): Add LOC argument, pass it to build_decl instead of
+	BUILTINS_LOCATION.
+	(create_parallel_loop): Add LOC argument, use it for OMP clauses
+	and GIMPLE_*OMP* statements.
+	(gen_parallel_loop): Determine locus for the parallel loop, pass it
+	to create_loop_fn and create_parallel_loop.
+	* cfgexpand.c (gimple_expand_cfg): For builtin functions, call
+	set_curr_insn_source_location (UNKNOWN_LOCATION).
+
+2010-12-07  Joern Rennecke  <amylaar@spamcop.net>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR target/46737
+	* config/bfin/bfin.c (BB_AUX_INDEX): Cast to intptr_t.
+	(bfin_reorder_loops): Change type of index to intptr_t.
+
+2010-12-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46726
+	* tree-inline.c (estimate_num_insns): Special case pow (x, 2.0).
+
+2010-12-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-math-opts.c (execute_optimize_widening_mul): Unlink
+	virtual operands.
+
+2010-12-07  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-parser.c (c_parser_typeof_specifier): Removed special
+	treatment of objc_volatilized attribute for Objective-C.
+
+2010-12-06  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* ira.c (update_equiv_regs): Prohibit move insns if
+	pressure-sensitive scheduling was done.
+
+2010-12-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-parser.c (c_parser_for_statement): Use c_fully_fold() instead
+	of c_process_expr_stmt() for the iterating and collection
+	expressions of an Objective-C fast enumeration loop.
+
+2010-12-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/45997
+	* dwarf2out.c (modified_type_die): If both is_const_type and
+	is_volatile_type is set, start with DW_TAG_const_type or
+	DW_TAG_volatile_type depending on where we get qualified type
+	in the recursive call.
+
+	PR target/43897
+	* config/ia64/ia64.c (rtx_needs_barrier): Handle asm CLOBBER
+	as a store into that register.
+
+	PR tree-optimization/46528
+	PR debug/46338
+	* profile.c (branch_prob): Make sure last is never set to a debug
+	stmt.
+
+	PR debug/46771
+	* reginfo.c (init_subregs_of_mode): Don't call find_subregs_of_mode
+	on DEBUG_INSNs.
+
+	PR rtl-optimization/46777
+	* cfglayout.c (duplicate_insn_chain): Avoid duplicating
+	also barrier after tablejump.
+
+2010-12-06  Joern Rennecke  <amylaar@spamcop.net>
+	    Richard Henderson  <rth@redhat.com>
+
+	PR target/46740
+	* config/vax/vax.c (vax_output_int_move): Fold #if into if.
+
+2010-12-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sol2.h (PUSHSECTION_FORMAT): Redefine unconditionally.
+	* config/sparc/sol2-gas.h (PUSHSECTION_FORMAT): Redefine.
+
+2010-12-06  Joern Rennecke  <amylaar@spamcop.net>
+
+	PR target/46735
+	* config/frv/predicates.md (gpr_or_int12_operand): Use IN_RANGE.
+	(gpr_fpr_or_int12_operand, gpr_or_int10_operand): Likewise.
+	(int12_operand, int_2word_operand, uint16_operand): Likewise.
+	(fpr_or_int6_operand, int6_operand, int5_operand): Likewise.
+	(uint5_operand, uint4_operand): Likewise.
+	* config/frv/frv.h (IN_RANGE_P): Delete.
+	(GPR_P, FPR_P, CC_P, ICC_P, FCC_P, CR_P, ICR_P, FCR_P): Use IN_RANGE.
+	(ACC_P, ACCG_P, SPR_P, CONST_OK_FOR_I, CONST_OK_FOR_J): Likewise.
+	(CONST_OK_FOR_L, CONST_OK_FOR_M, CONST_OK_FOR_N): Likewise.
+	(CONST_OK_FOR_P): Likewise.
+	* config/frv/frv.md (*movqicc_internal2_int): Likewise.
+	(*movqicc_internal2_float, *movhicc_internal2_int): Likewise.
+	(*movhicc_internal2_float, *movsicc_internal2_int): Likewise.
+	(*movsicc_internal2_float, casesi): Likewise.
+	* config/frv/frv.c (frv_frame_offset_rtx): Likewise.
+	(frv_asm_output_mi_thunk, frv_legitimate_address_p_1): Likewise.
+	(frv_emit_movsi, output_move_single, frv_emit_cond_move): Likewise.
+	(frv_split_cond_move, frv_rtx_costs): Likewise.
+
+	PR target/46739
+	* config/mmix/mmix.c (mmix_intval): Split shift count.
+
+2010-12-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (m_COREI7): New.
+	(initial_ix86_tune_features): Turn on
+	X86_TUNE_SSE_UNALIGNED_LOAD_OPTIMAL and
+	X86_TUNE_SSE_UNALIGNED_STORE_OPTIMAL for Core i7.
+
+2010-12-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Allow corei7-avx for --with-arch/--with-cpu.
+
+	* config/i386/driver-i386.c (host_detect_local_cpu): Support
+	Sandy Bridge.
+
+	* config/i386/i386.c (override_options): Handle "corei7-avx".
+
+	* doc/invoke.texi: Document corei7-avx.
+
 2010-12-06  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/46806
@@ -30,7 +782,7 @@
 	* c-family/c-format.c: Same change.
 	* c-family/stub-objc.c: Same change.
 	* c-decl.c: Include c-family/c-objc.h.
-	* c-parser.c: Same change.	
+	* c-parser.c: Same change.
 	* c-typeck.c: Same change.
 	* c-config-lang.in (gtfiles): Added c-family/c-objc.h.
 	* Makefile.in (c-decl.o): Depend on c-family/c-objc.h.
@@ -40,7 +792,7 @@
 	(c-family/stub-objc.o): Same change.
 	(c-family/c-common.o): Same change.
 	(PLUGIN_HEADERS): Added c-family/c-objc.h.
-	
+
 2010-12-05  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	* config.gcc [hppa[12]*-*-hpux10*, hppa[12]*-*-hpux11*]:  Ignore

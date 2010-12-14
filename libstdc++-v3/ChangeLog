@@ -1,3 +1,83 @@
+2010-12-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/util/testsuite_abi.cc (check_version): Don't push back
+	GLIBCXX_3.4.16, unused.
+
+2010-12-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* testsuite/lib/libstdc++.exp (v3-build_support): Delete
+	libtestc++.a before creation.
+
+2010-12-10  Jack Howarth  <howarth@bromo.med.uc.edu>
+	    Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR 43751/target
+	* testsuite/lib/prune.exp: Prune dsymutil warnings.
+
+2010-12-08  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR testsuite/46860
+	* testsuite/20_util/auto_ptr/assign_neg.cc: Adjust.
+	* testsuite/20_util/unique_ptr/assign/assign_neg.cc: Adjust.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust.
+
+2010-12-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/bitset (_Base_bitset<>::_Base_bitset(),
+	_Base_bitset(unsigned long)): Simplify.
+
+2010-12-07  François Dumont  <francois.cppdevs@free.fr>
+
+	* include/bits/stl_iterator.h: Add move_iterator operators overloads
+	to make it robust to template abuses.
+	* testsuite/util/testsuite_greedy_ops.h: New.
+	* testsuite/23_containers/vector/types/1.cc: Use latter.
+	* testsuite/23_containers/deque/types/1.cc: Likewise.
+	* testsuite/24_iterators/move_iterator/greedy_ops.cc: New.
+	* testsuite/24_iterators/normal_iterator/greedy_ops.cc: New.
+	* testsuite/24_iterators/reverse_iterator/greedy_ops.cc: New.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust dg-error
+	line numbers.
+
+2010-12-06  Paul Pluzhnikov  <ppluzhnikov@google.com>
+
+	PR libstdc++/46830
+	* include/ext/sso_string_base.h (__sso_string_base<>::_M_swap):
+	Early return when this == &__rcs.
+
+2010-12-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/shared_ptr.h (shared_ptr<>::shared_ptr(_Tp1*, _Deleter,
+	const _Alloc&), shared_ptr(nullptr_t, _Deleter, const _Alloc&)): Take
+	the allocator by value, per N3225.
+	(shared_ptr<>::shared_ptr(_Sp_make_shared_tag, _Alloc, _Args&&...),
+	allocate_shared(_Alloc, _Args&&...): Viceversa, take the allocator
+	by const lvalue ref.
+	* include/bits/shared_ptr_base.h (__shared_count<>::
+	__shared_count(_Sp_make_shared_tag, _Tp*, _Alloc, _Args&&...),
+	__shared_ptr<>::__shared_ptr(_Sp_make_shared_tag, _Alloc, _Args&&...),
+	__allocate_shared(_Alloc, _Args&&...)): Likewise.
+	(__shared_ptr<>::__shared_ptr(_Tp1*, _Deleter, const _Alloc&),
+	__shared_ptr(nullptr_t, _Deleter, const _Alloc&), reset(_Tp1*,
+	_Deleter, const _Alloc&)): Take the allocator by value.
+	* testsuite/20_util/shared_ptr/cons/43820.cc: Adjust dg-error line
+	numbers.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Likewise.
+
+2010-12-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* acinclude.m4 (symvers_renaming): Also set if enable_symvers = no.
+	* configure: Regenerate.
+
+2010-12-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/46821
+	* include/std/tuple (_Head_base<,, true>::_M_swap_impl):
+	Swap the empty bases.
+	(_Head_base<,, false>::_M_swap_impl): Minor tweak.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust dg-error
+	line number.
+
 2010-12-06  Dave Korn  <dave.korn.cygwin@gmail.com>
 
 	PR target/40125
@@ -54,7 +134,7 @@
 	* testsuite/23_containers/deque/cons/2.cc: Fix to explicitly invoke
 	the copy constructor with or without C++0x mode.
 	* testsuite/23_containers/vector/cons/4.cc: Likewise.
-			
+
 2010-12-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* scripts/extract_symvers.pl: New file.

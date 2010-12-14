@@ -96,7 +96,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef  ASM_SPEC
 #define ASM_SPEC \
-  "%{v} --32 %{!mno-sse2avx:%{mavx:-msse2avx}} %{msse2avx:%{!mavx:-msse2avx}}"
+  "--32 %{!mno-sse2avx:%{mavx:-msse2avx}} %{msse2avx:%{!mavx:-msse2avx}}"
 
 #undef  SUBTARGET_EXTRA_SPECS
 #define SUBTARGET_EXTRA_SPECS \
@@ -109,7 +109,7 @@ along with GCC; see the file COPYING3.  If not see
     %{!ibcs: \
       %{!static: \
 	%{rdynamic:-export-dynamic} \
-	%{!dynamic-linker:-dynamic-linker %(dynamic_linker)}} \
+	-dynamic-linker %(dynamic_linker)} \
 	%{static:-static}}}"
 
 /* Similar to standard Linux, but adding -ffast-math support.  */
