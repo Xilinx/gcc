@@ -1,4 +1,15 @@
 
+2010-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (class_value_descriptor): Add field
+	:valdesc_forwchunk.
+	(valdesc_*) Fill it appropriately in every value descriptor.
+
+	* melt/warmelt-outobj.melt: Update runtypesupport.
+
+	* melt/melt-build.tpl (generate-meltrun): Remove the old
+	meltrunsup*.h files.
+	* melt/melt-build.mk: Regenerate.
+
 2010-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-/warmelt-base.melt (class_value_descriptor): Rename
 	:valdesc_chunk as :valdesc_membchunk field. Add :valdesc_copychunk

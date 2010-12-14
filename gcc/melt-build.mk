@@ -2514,7 +2514,7 @@ vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 .PHONY: generate-meltrun
 generate-meltrun: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
                   melt-all-sources melt-all-modules  $(melt_make_cc1_dependency)
-
+	rm -f $(wildcard meltrunsup*)
 	$(melt_make_cc1)  $(melt_make_cc1flags) \
 	      $(meltarg_mode)=runtypesupport  \
 	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \

@@ -1087,10 +1087,11 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   not ctype renated. $VALDESC_OBJMAGIC is the symbol MELTOBMAG_* of
   its magic number. $VALDESC_STRUCT is the GTY-ed struct
   name. $VALDESC_UNIONMEM is the union member name inside union
-  melt_un. $VALDESC_MEMBCHUNK is the code chunk of the structure members
-  after the discriminant. $VALDESC_GTY is the optional GTY
+  melt_un. $VALDESC_MEMBCHUNK is the code chunk of the structure
+  members after the discriminant. $VALDESC_GTY is the optional GTY
   argument. $VALDESC_COPYCHUNK is the code chunk copying src to an
-  allocated dst.}#
+  allocated dst. $VALDESC_FORWCHUNK is the code chunk formarding
+  internal pointers.}#
   :super class_named
   :fields (
 	   valdesc_objmagic
@@ -1099,6 +1100,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 	   valdesc_gty
 	   valdesc_membchunk
 	   valdesc_copychunk
+	   valdesc_forwchunk
 	   )
 )
 
@@ -1166,6 +1168,12 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     for (ix = 0; ix < oblen; ix++)
         dst->obj_vartab[ix] = src->obj_vartab[ix];
   }#
+  :valdesc_forwchunk #{$' /* from VALDESC_OBJECT */
+    int ix = 0;
+    int oblen = (int) (src->obj_len);
+    for (ix = 0; ix < oblen; ix++)
+      MELT_FORWARDED (src->obj_vartab[ix]);
+  }#
 )
 (install_value_descriptor valdesc_object)
 
@@ -1185,6 +1193,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
      dst = ggc_alloc_meltdecay_st ();
      *dst = *src;
   }#
+  :valdesc_forwchunk #{$' /* from VALDESC_DECAY */
+     MELT_FORWARDED (src->val);
+  }#
 )
 (install_value_descriptor valdesc_decay)
   
@@ -1201,6 +1212,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_copychunk #{$' /* from VALDESC_BOX */
      dst = ggc_alloc_meltbox_st ();
      *dst = *src;
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_BOX */
+     MELT_FORWARDED (src->val);
   }#
 )
 (install_value_descriptor valdesc_box)
@@ -1220,6 +1234,26 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     unsigned nbval;                             \
     melt_ptr_t tabval[N];                       \
     long _gap; }
+  }#
+  :valdesc_copychunk #{$'  /* from VALDESC_MULTIPLE */
+    int nbv = (int) src->nbval;
+    int ix = 0;
+    dst = 
+      /* Don't need a cleared allocation!  */
+      ggc_alloc_meltmultiple_st 
+      (nbv*sizeof(void*) + offsetof(struct meltmultiple_st, tabval));
+    /* we cannot copy the whole src, because FLEXIBLE_DIM might be
+       1 and nbval could be 0 */
+    dst->discr = src->discr;
+    dst->nbval = src->nbval;
+    for (ix = 0; ix < nbv; ix++)
+      dst->tabval[ix] = src->tabval[ix];
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_MULTIPLE */
+     int nbval = (int) src->nbval;
+     int ix = 0;
+     for (ix = 0; ix < nbval; ix++)
+       MELT_FORWARDED (src->tabval[ix]);
   }#
 )
 (install_value_descriptor valdesc_multiple)
@@ -1253,6 +1287,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
      dst->nbval = (unsigned) nbv;
      for (ix = 0; ix < nbv; ix++)
        dst->tabval[ix] = src->tabval[ix];
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_CLOSURE */
+     int nbval = (int) src->nbval;
+     int ix = 0;
+     MELT_FORWARDED (src->rout);
+     for (ix = 0; ix < nbval; ix++)
+       MELT_FORWARDED (src->tabval[ix]);
   }#
 )
 (install_value_descriptor valdesc_closure)
@@ -1302,6 +1343,12 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
      for (ix = 0; ix < nbv; ix++)
        dst->tabval[ix] = src->tabval[ix];
      dst->routdata = src->routdata;
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_ROUTINE */
+     int nbval = (int) src->nbval;
+     int ix = 0;
+     for (ix = 0; ix < nbval; ix++)
+       MELT_FORWARDED (src->tabval[ix]);
   }#
 )
 (install_value_descriptor valdesc_routine)
@@ -1394,6 +1441,10 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 	  ggc_alloc_meltpair_st ();
     *dst = *src;
   }#
+  :valdesc_forwchunk #{$' /* from VALDESC_PAIR */
+     MELT_FORWARDED (src->hd);
+     MELT_FORWARDED (src->tl);
+  }#
 )
 (install_value_descriptor valdesc_pair)
   
@@ -1415,6 +1466,11 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 	 ggc_alloc_meltlist_st ();
      *dst = *src;
   }#
+  :valdesc_forwchunk #{$' /* from VALDESC_LIST */
+     MELT_FORWARDED (src->first);
+     MELT_FORWARDED (src->last);
+  }#
+
 )
 (install_value_descriptor valdesc_list)
 
@@ -1454,6 +1510,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
         ggc_alloc_meltmixint_st ();
     *dst = *src;
   }#
+  :valdesc_forwchunk #{$' /* from VALDESC_MIXINT */
+    MELT_FORWARDED (src->ptrval);
+  }#
 )
 (install_value_descriptor valdesc_mixint)
 
@@ -1474,6 +1533,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
        /* Don't need a cleared allocation.  */
        ggc_alloc_meltmixloc_st ();
     *dst = *src;
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_MIXLOC */
+    MELT_FORWARDED (src->ptrval);
   }#
 )
 (install_value_descriptor valdesc_mixloc)
@@ -1505,6 +1567,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
      dst->negative = src->negative;
      dst->biglen = blen;
      memcpy (dst->tabig, src->tabig, blen*sizeof(dst->tabig[0]));
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_MIXBIGINT */
+    MELT_FORWARDED (src->ptrval);
   }#
 )
 (install_value_descriptor valdesc_mixbigint)
@@ -1551,6 +1616,10 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     dst->nextspec = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
+  :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_FILE */
+    src->mark = 1;
+  }#
+
 )
 (install_value_descriptor valdesc_special_file)
 
@@ -1575,6 +1644,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     /* add the new copy to the old (major) special list */
     dst->nextspec = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_RAW_FILE */
+    src->mark = 1;
   }#
 )
 (install_value_descriptor valdesc_special_raw_file)
@@ -1601,6 +1673,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     dst->nextspec = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
+  :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_MPFR */
+    src->mark = 1;
+  }#
 )
 (install_value_descriptor valdesc_special_mpfr)
 
@@ -1625,6 +1700,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     /* add the new copy to the old (major) special list */
     dst->nextspec = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_PPL_COEFFICIENT */
+    src->mark = 1;
   }#
 )
 (install_value_descriptor valdesc_special_ppl_coefficient)
@@ -1652,6 +1730,9 @@ linear expression values.}#
     dst->nextspec = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
+  :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
+    src->mark = 1;
+  }#
 )
 (install_value_descriptor valdesc_special_ppl_linear_expression)
 
@@ -1677,6 +1758,9 @@ constraints values.}#
     /* add the new copy to the old (major) special list */
     dst->nextspec = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
+    src->mark = 1;
   }#
 )
 (install_value_descriptor valdesc_special_ppl_constraint)
@@ -1704,6 +1788,9 @@ constraint systems values.}#
     dst->nextspec = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
+  :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
+    src->mark = 1;
+  }#
 )
 (install_value_descriptor valdesc_special_ppl_constraint_system)
 
@@ -1729,6 +1816,9 @@ generators values.}#
     /* add the new copy to the old (major) special list */
     dst->nextspec = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR */
+    src->mark = 1;
   }#
 )
 (install_value_descriptor valdesc_special_ppl_generator)
@@ -1756,6 +1846,9 @@ generator systems values.}#
     dst->nextspec = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
   }#
+  :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM */
+    src->mark = 1;
+  }#
 )
 (install_value_descriptor valdesc_special_ppl_generator_system)
 
@@ -1781,6 +1874,9 @@ polyhedron values.}#
     /* add the new copy to the old (major) special list */
     dst->nextspec = melt_oldspeclist;
     melt_oldspeclist = (struct meltspecial_st*)dst;
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_SPECIAL_PPL_POLYHEDRON */
+    src->mark = 1;
   }#
 )
 (install_value_descriptor valdesc_special_ppl_polyhedron)
