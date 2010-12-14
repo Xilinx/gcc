@@ -4021,6 +4021,15 @@ ipa_tm_create_version (struct cgraph_node *old_node)
 
   old_decl = old_node->decl;
   new_decl = copy_node (old_decl);
+
+  /* DECL_ASSEMBLER_NAME needs to be set before we call
+     cgraph_copy_node_for_versioning below, because cgraph_node will
+     fill the assembler_name_hash.  */
+  tm_name = tm_mangle (old_decl);
+  SET_DECL_ASSEMBLER_NAME (new_decl, get_identifier (tm_name));
+  SET_DECL_RTL (new_decl, NULL);
+  free (tm_name);
+
   new_node = cgraph_copy_node_for_versioning (old_node, new_decl, NULL);
   get_cg_data (old_node)->clone = new_node;
 
@@ -4030,11 +4039,6 @@ ipa_tm_create_version (struct cgraph_node *old_node)
   /* ?? We should be able to remove DECL_IS_TM_CLONE.  We have enough
      bits in cgraph to calculate all this.  */
   DECL_IS_TM_CLONE (new_decl) = 1;
-
-  tm_name = tm_mangle (old_decl);
-  SET_DECL_ASSEMBLER_NAME (new_decl, get_identifier (tm_name));
-  SET_DECL_RTL (new_decl, NULL);
-  free (tm_name);
 
   record_tm_clone_pair (old_decl, new_decl);
 

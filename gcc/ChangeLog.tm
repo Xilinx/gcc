@@ -1,5 +1,11 @@
 2010-12-14  Aldy Hernandez  <aldyh@redhat.com>
 
+	PR/46714
+	* trans-mem.c (ipa_tm_create_version): Set DECL_ASSEMBLER_NAME
+	before creating new node.
+
+2010-12-14  Aldy Hernandez  <aldyh@redhat.com>
+
 	* tree.h (is_tm_safe): Constify.
 	(is_tm_pure): Same.
 	* trans-mem.c (get_attrs_for): Same.
