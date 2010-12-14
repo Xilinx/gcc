@@ -4169,15 +4169,6 @@ clone_constructors_and_destructors (tree t)
     clone_function_decl (OVL_CURRENT (fns), /*update_method_vec_p=*/1);
 }
 
-/* Subroutine of set_method_tm_attributes.  Apply TM attribute ATTR
-   to the method FNDECL.  */
-
-void
-apply_tm_attr (tree fndecl, tree attr)
-{
-  decl_attributes (&TREE_TYPE (fndecl), tree_cons (attr, NULL, NULL), 0);
-}
-
 /* Subroutine of set_one_vmethod_tm_attributes.  Search base classes
    of TYPE for virtual functions which FNDECL overrides.  Return a
    mask of the tm attributes found therein.  */

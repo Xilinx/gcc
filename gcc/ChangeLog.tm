@@ -1,5 +1,16 @@
 2010-12-14  Aldy Hernandez  <aldyh@redhat.com>
 
+	PR/46646
+	* tree.c (build_common_builtin_nodes): Set __builtin_eh_pointer to
+	transaction_pure.
+	* tree.h (apply_tm_attr): Protoize.
+	* cp/cp-tree.h (apply_tm_attr): Remove.
+	* cp/except.c (build_throw): Make __cxa_rethrow pure.
+	(apply_tm_attr): Move to...
+	* attribs.c: ...here.
+
+2010-12-14  Aldy Hernandez  <aldyh@redhat.com>
+
 	PR/46714
 	* trans-mem.c (ipa_tm_create_version): Set DECL_ASSEMBLER_NAME
 	before creating new node.

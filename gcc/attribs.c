@@ -468,3 +468,12 @@ decl_attributes (tree *node, tree attributes, int flags)
 
   return returned_attrs;
 }
+
+/* Subroutine of set_method_tm_attributes.  Apply TM attribute ATTR
+   to the method FNDECL.  */
+
+void
+apply_tm_attr (tree fndecl, tree attr)
+{
+  decl_attributes (&TREE_TYPE (fndecl), tree_cons (attr, NULL, NULL), 0);
+}

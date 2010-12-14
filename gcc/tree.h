@@ -5172,6 +5172,8 @@ extern const struct attribute_spec *lookup_attribute_spec (tree);
    a decl attribute to the declaration rather than to its type).  */
 extern tree decl_attributes (tree *, tree, int);
 
+extern void apply_tm_attr (tree, tree);
+
 /* In integrate.c */
 extern void set_decl_abstract_flags (tree, int);
 extern void set_decl_origin_self (tree);

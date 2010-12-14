@@ -9132,6 +9132,9 @@ build_common_builtin_nodes (void)
   ftype = build_function_type (ptr_type_node, tmp);
   local_define_builtin ("__builtin_eh_pointer", ftype, BUILT_IN_EH_POINTER,
 			"__builtin_eh_pointer", ECF_PURE | ECF_NOTHROW);
+  if (flag_tm)
+    apply_tm_attr (built_in_decls [BUILT_IN_EH_POINTER],
+		   get_identifier ("transaction_pure"));
 
   tmp2 = lang_hooks.types.type_for_mode (targetm.eh_return_filter_mode (), 0);
   ftype = build_function_type (tmp2, tmp);

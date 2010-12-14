@@ -891,6 +891,9 @@ build_throw (tree exp)
 	    (fn, build_function_type (void_type_node, void_list_node));
 	}
 
+      if (flag_tm)
+	apply_tm_attr (fn, get_identifier ("transaction_pure"));
+
       /* ??? Indicate that this function call allows exceptions of the type
 	 of the enclosing catch block (if known).  */
       exp = cp_build_function_call (fn, NULL_TREE, tf_warning_or_error);
