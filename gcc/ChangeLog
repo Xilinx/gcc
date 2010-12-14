@@ -1,3 +1,153 @@
+2010-12-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46885
+	* tree-ssa-loop-manip.c (canonicalize_loop_ivs): Use gsi_last_bb
+	instead of gsi_last_nondebug_bb if bump_in_latch.
+
+	PR tree-optimization/46909
+	* gimple-fold.c (and_var_with_comparison_1): Save partial
+	result even in the is_and case, if both partial results
+	are the same, return it.
+	(or_var_with_comparison_1): Use is_or predicate instead of
+	innercode == TRUTH_OR_EXPR test.  Save partial result
+	even in the is_or case, if both partial results are the
+	same, return it.  In the !is_or case when both partial
+	results are the same, return the partial result instead
+	of boolean_true_node.
+
+2010-12-14  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/46667
+	* varasm.c (assemble_start_function): Do not call resolve_unique_section.
+	* cfgexpand.c (gimple_expand_cfg): Resolve it here.
+
+2010-12-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/46875
+	* sched-vis.c (print_pattern): Dump "sequence" for ADDR_VECs.
+	* sel-sched-ir.c (bb_has_removable_jump_to_p): Forbid table jumps.
+
+2010-12-14  Kaushik Phatak <kaushik.phatak@kpitcummins.com>
+
+	* config/h8300/h8300.md (define_split) : Add condition for
+	"and with single_zero" splitter to handle 16-bit const operands.
+	* config/h8300/h8300.md (define_split) : Add condition for
+	"ior with single_one" splitter to handle 16-bit const operands.
+	* config/h8300/h8300.md (define_split) : Add condition for
+	"xor with single_one" splitter to handle 16-bit const operands.	
+	* testsuite/gcc.dg/h8300-bit-insn-ice.c: New.
+
+2010-12-13  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/45388
+	* ipa.c (cgraph_build_static_cdtor_1): Break out from ... ; add FINAL parameter.
+	(cgraph_build_static_cdtor): ... here.
+	(build_cdtor): Use cgraph_build_static_cdtor_1.
+
+2010-12-13  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/m32c/m32c.h (ENDFILE_SPEC, LINK_SPEC, SIZE_TYPE,
+	PTRDIFF_TYPE, WCHAR_TYPE, WCHAR_TYPE_SIZE): Define.
+	* config.gcc (m32c-*-rtems*, m32c-*-elf*): Don't use svr4.h.
+
+2010-12-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR rtl-optimization/44374
+	Reapply patch with fixes.
+	* basic-block.h (enum bb_flags): Add BB_MODIFIED.
+	* df-core.c (df_set_bb_dirty): Set it.
+	* ifcvt.c (find_memory): Remove function.
+	(dead_or_predicable): Use can_move_insns_across.
+	* df.h (can_move_insns_across): Declare function.
+	* cfgcleanup.c (block_was_dirty): New static variable.
+	(flow_find_head_matching_sequence): Test for epilogue notes.
+	(try_crossjump_bb, try_forward_edges): Test BB_MODIFIED flag rather
+	than df_get_bb_dirty.
+	(try_head_merge_bb): New static function.
+	(try_optimize_cfg): Call it.  Call df_analyze if block_was_dirty
+	is set.
+	* df-problems.c: Include "target.h"
+	(df_simulate_find_uses): New static function.
+	(MEMREF_NORMAL, MEMREF_VOLATILE): New macros.
+	(find_memory, find_memory_store): New static functions.
+	(can_move_insns_across): New function.
+	* Makefile.in (df-problems.o): Update dependencies.
+
+2010-12-13  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/xtensa/elf.h (SIZE_TYPE, PTRDIFF_TYPE): Define.
+	(DBX_REGISTER_NUMBER): Undefine.
+	* config/xtensa/linux.h (SIZE_TYPE, PTRDIFF_TYPE): Define.
+	(DBX_REGISTER_NUMBER): Undefine.
+	* config.gcc (xtensa*-*-elf*, xtensa*-*-linux*): Don't use svr4.h.
+
+2010-12-13  Jack Howarth <howarth@bromo.med.uc.edu>
+	    Joseph Myers <joseph@codesourcery.com>
+
+	PR bootstrap/46650
+	* system.h: Include cstring for cxx bootstrap.
+
+2010-12-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR lto/46879
+	* lto-streamer-out.c (output_gimple_stmt): Never replace first
+	GIMPLE_DEBUG argument with MEM_REF.
+
+	PR debug/46867
+	* var-tracking.c (emitted_notes, string_pointer_flags): Removed.
+	(emit_note_insn_var_location): Remove ENABLE_RTL_CHECKING verification.
+	(vt_emit_notes): Don't initialize and destroy emitted_notes.
+
+2010-12-13  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR target/46040
+	* config.gcc (arm*-*-linux-*eabi): Use bpabi-lib.h.
+	(arm*-*-uclinux*eabi, arm*-*-eabi*): Likewise.
+
+2010-12-13  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/v850/v850.h (SIZE_TYPE, PTRDIFF_TYPE, WCHAR_TYPE,
+	WCHAR_TYPE_SIZE): Define.
+	* config.gcc (v850e1-*-*, v850e-*-*, v850-*-*): Don't use svr4.h.
+
+2010-12-13  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (s390-*-linux*, s390x-*-linux*, s390x-ibm-tpf*):
+	Don't use svr4.h.
+
+2010-12-13  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/mn10300/linux.h (SIZE_TYPE, PTRDIFF_TYPE, WCHAR_TYPE,
+	WCHAR_TYPE_SIZE): Undefine.
+	* config/mn10300/mn10300.h (SIZE_TYPE, PTRDIFF_TYPE, WCHAR_TYPE,
+	WCHAR_TYPE_SIZE): Define.
+	* config.gcc (mn10300-*-*): Don't use svr4.h.
+
+2010-12-13  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/m68k/linux.h (DBX_REGISTER_NUMBER): Undefine and
+	redefine.
+	(SIZE_TYPE, PTRDIFF_TYPE, WCHAR_TYPE, WCHAR_TYPE_SIZE): Define.
+	* config.gcc (m68k-*-uclinux*, m68k-*-linux*): Don't use svr4.h.
+
+2010-12-13  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/46576
+	* jump.c (mark_all_labels): Skip debug insns.
+
+2010-12-13  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/46782
+	* cfgcleanup.c (try_forward_edges): Skip debug insns.
+
+2010-12-12  Jan Hubicka  <jh@suse.cz>
+	    Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* varasm.c (default_function_section): Check flag_reorder_functions
+	and targetm.have_named_sections.
+	* config/darwin.c (darwin_function_section): Check
+	flag_reorder_functions.
+
 2010-12-12  Finn Thain  <fthain@telegraphics.com.au>
 
 	PR target/46179

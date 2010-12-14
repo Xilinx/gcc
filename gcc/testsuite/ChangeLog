@@ -1,3 +1,83 @@
+2010-12-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46885
+	* gcc.dg/autopar/pr46885.c: New test.
+
+	PR tree-optimization/46909
+	* gcc.c-torture/execute/pr46909-1.c: New test.
+	* gcc.c-torture/execute/pr46909-2.c: New test.
+	* gcc.dg/pr46909.c: New test.
+
+2010-12-14  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/46875
+	* gcc.dg/pr46875.c: New.
+
+2010-12-14  Jan Hubicka  <jh@suse.cz>
+
+	* g++.dg/other/first-global.C: Update regexp to match new
+	names of ctors.
+
+2010-12-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR rtl-optimization/44374
+	Reapply patch with fixes.
+	* gcc.target/arm/headmerge-1.c: New test.
+	* gcc.target/arm/headmerge-2.c: New test.
+	* gcc.target/i386/headmerge-1.c: New test.
+	* gcc.target/i386/headmerge-2.c: New test.
+
+2010-12-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46873
+	PR c++/46877
+	* g++.dg/cpp0x/constexpr-ctor4.C: New.
+	* g++.dg/cpp0x/constexpr-ctor5.C: New.
+
+2010-12-13  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46201
+	* gfortran.dg/proc_ptr_comp_27.f90: New.
+
+2010-12-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46867
+	* gcc.dg/pr46867.c: New test.
+
+2010-12-13  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46841
+	* gfortran.dg/proc_ptr_comp_26.f90: New.
+
+2010-12-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/pack9.adb: XFAIL everywhere.
+
+2010-12-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/46884
+	* gfortran.dg/pr46884.f: New test.
+
+2010-12-13  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/gnu-encoding/struct-layout-encoding-1_generate.c:
+	Adjust XFAILs.
+
+2010-12-13  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/46576
+	* gfortran.dg/debug/pr46576.f: New.
+
+2010-12-13  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/46782
+	* gcc.dg/debug/pr46782.c: New.
+
+2010-12-12  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46809
+	* gfortran.dg/pointer_check_8.f90: New.
+
 2010-12-11  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR fortran/46705
@@ -17,10 +97,6 @@
 
 	* objc.dg/gnu-api-2-resolve-method.m: New.
 	* obj-c++.dg/gnu-api-2-resolve-method.mm: New.	
-
-2010-12-10 Ahmad Sharif <asharif@google.com>
-
-	* gcc.target/i386/max-stack-align.c: New testcase.
 
 2010-12-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
