@@ -1432,6 +1432,8 @@ requires_barrier (basic_block entry_block, tree x, gimple stmt)
       gcc_assert (TREE_CODE (x) == VAR_DECL);
       /* FALLTHRU */
 
+    case PARM_DECL:
+    case RESULT_DECL:
     case VAR_DECL:
       if (is_global_var (x))
 	return !TREE_READONLY (x);

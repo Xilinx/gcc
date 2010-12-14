@@ -1,5 +1,11 @@
 2010-12-14  Aldy Hernandez  <aldyh@redhat.com>
 
+	PR/46923
+	* trans-mem.c (requires_barrier): Handle PARM_DECL and
+	RESULT_DECL.
+
+2010-12-14  Aldy Hernandez  <aldyh@redhat.com>
+
 	PR/46646
 	* tree.c (build_common_builtin_nodes): Set __builtin_eh_pointer to
 	transaction_pure.
