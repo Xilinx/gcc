@@ -45,10 +45,6 @@ extern void gt_ggc_mx_melt_un (void *);
   if (X != NULL) gt_ggc_mx_interface_tuple (X);\
   } while (0)
 extern void gt_ggc_mx_interface_tuple (void *);
-#define gt_ggc_m_16volatilized_type(X) do { \
-  if (X != NULL) gt_ggc_mx_volatilized_type (X);\
-  } while (0)
-extern void gt_ggc_mx_volatilized_type (void *);
 #define gt_ggc_m_17string_descriptor(X) do { \
   if (X != NULL) gt_ggc_mx_string_descriptor (X);\
   } while (0)
@@ -185,6 +181,14 @@ extern void gt_ggc_mx_cp_lexer (void *);
   if (X != NULL) gt_ggc_mx_tree_check (X);\
   } while (0)
 extern void gt_ggc_mx_tree_check (void *);
+#define gt_ggc_m_14constexpr_call(X) do { \
+  if (X != NULL) gt_ggc_mx_constexpr_call (X);\
+  } while (0)
+extern void gt_ggc_mx_constexpr_call (void *);
+#define gt_ggc_m_16constexpr_fundef(X) do { \
+  if (X != NULL) gt_ggc_mx_constexpr_fundef (X);\
+  } while (0)
+extern void gt_ggc_mx_constexpr_fundef (void *);
 #define gt_ggc_m_22VEC_deferred_access_gc(X) do { \
   if (X != NULL) gt_ggc_mx_VEC_deferred_access_gc (X);\
   } while (0)
@@ -321,6 +325,10 @@ extern void gt_ggc_mx_scev_info_str (void *);
   if (X != NULL) gt_ggc_mx_VEC_mem_addr_template_gc (X);\
   } while (0)
 extern void gt_ggc_mx_VEC_mem_addr_template_gc (void *);
+#define gt_ggc_m_26gimple_type_leader_entry_s(X) do { \
+  if (X != NULL) gt_ggc_mx_gimple_type_leader_entry_s (X);\
+  } while (0)
+extern void gt_ggc_mx_gimple_type_leader_entry_s (void *);
 #define gt_ggc_m_17gimple_seq_node_d(X) do { \
   if (X != NULL) gt_ggc_mx_gimple_seq_node_d (X);\
   } while (0)
@@ -389,6 +397,10 @@ extern void gt_ggc_mx_VEC_die_arg_entry_gc (void *);
   if (X != NULL) gt_ggc_mx_limbo_die_struct (X);\
   } while (0)
 extern void gt_ggc_mx_limbo_die_struct (void *);
+#define gt_ggc_m_20VEC_macinfo_entry_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_macinfo_entry_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_macinfo_entry_gc (void *);
 #define gt_ggc_m_20VEC_pubname_entry_gc(X) do { \
   if (X != NULL) gt_ggc_mx_VEC_pubname_entry_gc (X);\
   } while (0)
@@ -789,12 +801,13 @@ extern void gt_ggc_m_II17splay_tree_node_s (void *);
 extern void gt_ggc_m_SP9tree_node17splay_tree_node_s (void *);
 extern void gt_ggc_m_P9tree_nodeP9tree_node17splay_tree_node_s (void *);
 extern void gt_ggc_m_P15interface_tuple4htab (void *);
-extern void gt_ggc_m_P16volatilized_type4htab (void *);
 extern void gt_ggc_m_P17string_descriptor4htab (void *);
 extern void gt_ggc_m_P14type_assertion4htab (void *);
 extern void gt_ggc_m_P18treetreehash_entry4htab (void *);
 extern void gt_ggc_m_P17module_htab_entry4htab (void *);
 extern void gt_ggc_m_P21pending_abstract_type4htab (void *);
+extern void gt_ggc_m_P14constexpr_call4htab (void *);
+extern void gt_ggc_m_P16constexpr_fundef4htab (void *);
 extern void gt_ggc_m_P10spec_entry4htab (void *);
 extern void gt_ggc_m_P16cxx_int_tree_map4htab (void *);
 extern void gt_ggc_m_P17named_label_entry4htab (void *);
@@ -1222,8 +1235,8 @@ EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
-/* gt-melt-runtime-plugin.h file generated Sun 17 Oct 2010 02:13:05 PM CEST
+/* gt-melt-runtime-plugin.h file generated Tue Dec 14 20:25:26 2010
 
-702dce15e49005351cce1e8d9f639055  melt-runtime.h
-df51eeba1d8fd4d2e19a14f9f24cda91  melt-runtime.c
+b6ddc8f3ca71ee99f8d698dda3a4cb0a  melt-runtime.h
+ed70397680a22cfab74a8d863d8c173e  melt-runtime.c
 */
