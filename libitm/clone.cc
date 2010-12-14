@@ -1,4 +1,4 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -26,8 +26,6 @@
 
 using namespace GTM;
 
-static gtm_rwlock table_lock;
-
 struct clone_entry
 {
   void *orig, *clone;
@@ -46,9 +44,6 @@ static void *
 find_clone (void *ptr)
 {
   clone_table *table;
-  void *ret = NULL;
-
-  table_lock.read_lock ();
 
   for (table = all_tables; table ; table = table->next)
     {
@@ -68,10 +63,7 @@ find_clone (void *ptr)
 	  else if (ptr > t[i].orig)
 	    lo = i + 1;
 	  else
-	    {
-	      ret = t[i].clone;
-	      goto found;
-	    }
+	    return t[i].clone;
 	}
 
       /* Given the quick test above, if we don't find the entry in
@@ -79,9 +71,7 @@ find_clone (void *ptr)
       break;
     }
 
- found:
-  table_lock.read_unlock ();
-  return ret;
+  return NULL;
 }
 
 
@@ -120,11 +110,43 @@ clone_entry_compare (const void *a, const void *b)
     return 0;
 }
 
+namespace {
+
+// Within find_clone, we know that we are inside a transaction.  Because
+// of that, we have already synchronized with serial_lock.  By taking the
+// serial_lock for write, we exclude all transactions while we make this
+// change to the clone tables, without having to synchronize on a separate
+// lock.  Do be careful not to attempt a recursive write lock.
+
+class ExcludeTransaction
+{
+  bool do_lock;
+
+ public:
+  ExcludeTransaction()
+  { 
+    gtm_transaction *tx = gtm_tx();
+    do_lock = !(tx && (tx->state & gtm_transaction::STATE_SERIAL));
+
+    if (do_lock)
+      gtm_transaction::serial_lock.write_lock ();
+  }
+
+  ~ExcludeTransaction()
+  {
+    if (do_lock)
+      gtm_transaction::serial_lock.write_unlock ();
+  }
+};
+
+} // end anon namespace
+
+
 void
 _ITM_registerTMCloneTable (void *xent, size_t size)
 {
   clone_entry *ent = static_cast<clone_entry *>(xent);
-  clone_table *old, *table;
+  clone_table *table;
 
   table = (clone_table *) xmalloc (sizeof (clone_table));
   table->table = ent;
@@ -132,31 +154,31 @@ _ITM_registerTMCloneTable (void *xent, size_t size)
 
   qsort (ent, size, sizeof (clone_entry), clone_entry_compare);
 
-  old = all_tables;
-  do
-    {
-      table->next = old;
-      old = __sync_val_compare_and_swap (&all_tables, old, table);
-    }
-  while (old != table);
+  // Hold the serial_lock while we update the ALL_TABLES datastructure.
+  {
+    ExcludeTransaction exclude;
+    table->next = all_tables;
+    all_tables = table;
+  }
 }
 
 void
 _ITM_deregisterTMCloneTable (void *xent)
 {
   clone_entry *ent = static_cast<clone_entry *>(xent);
-  clone_table **pprev = &all_tables;
   clone_table *tab;
 
-  table_lock.write_lock ();
+  // Hold the serial_lock while we update the ALL_TABLES datastructure.
+  {
+    ExcludeTransaction exclude;
+    clone_table **pprev;
 
-  for (pprev = &all_tables;
-       tab = *pprev, tab->table != ent;
-       pprev = &tab->next)
-    continue;
-  *pprev = tab->next;
-
-  table_lock.write_unlock ();
+    for (pprev = &all_tables;
+         tab = *pprev, tab->table != ent;
+         pprev = &tab->next)
+      continue;
+    *pprev = tab->next;
+  }
 
   free (tab);
 }

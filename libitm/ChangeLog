@@ -1,5 +1,13 @@
 2010-12-14  Richard Henderson  <rth@redhat.com>
 
+	* clone.cc (table_lock): Remove.
+	(find_clone): Don't take it.
+	(ExcludeTransaction): New helper class.
+	(_ITM_registerTMCloneTable): Use it.
+	(_ITM_deregisterTMCloneTable): Likewise.
+
+2010-12-14  Richard Henderson  <rth@redhat.com>
+
 	* config/x86/tls.h: New file.
 
 2010-07-15  Richard Henderson  <rth@redhat.com>
