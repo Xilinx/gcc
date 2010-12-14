@@ -1,5 +1,13 @@
 2010-12-14  Richard Henderson  <rth@redhat.com>
 
+	* beginend.cc (GTM::gtm_transaction::begin_transaction): Allocate
+	blocks of TIDs per thread.
+	* config/generic/tls.h (struct gtm_thread): Add local_tid member.
+	(setup_gtm_thr): Return the thread structure.
+	* config/x86/tls.h (setup_gtm_thr): Likewise.
+
+2010-12-14  Richard Henderson  <rth@redhat.com>
+
 	* clone.cc (table_lock): Remove.
 	(find_clone): Don't take it.
 	(ExcludeTransaction): New helper class.

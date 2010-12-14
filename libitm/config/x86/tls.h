@@ -65,10 +65,15 @@ static inline struct gtm_thread *gtm_thr(void)
   return r;
 }
 
-static inline void setup_gtm_thr(void)
+static inline struct gtm_thread *setup_gtm_thr(void)
 {
-  if (gtm_thr() == NULL)
-    asm volatile (SEG_WRITE(10) : : "r"(&_gtm_thr));
+  gtm_thread *thr = gtm_thr();
+  if (thr == NULL)
+    {
+      thr = &_gtm_thr;
+      asm volatile (SEG_WRITE(10) : : "r"(thr));
+    }
+  return thr;
 }
 
 static inline struct gtm_transaction * gtm_tx(void)

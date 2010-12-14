@@ -91,11 +91,13 @@ static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
 uint32_t
 GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 {
+  static const _ITM_transactionId_t tid_block_size = 1 << 16;
+
   gtm_transaction *tx;
   gtm_dispatch *disp;
   uint32_t ret;
 
-  setup_gtm_thr ();
+  gtm_thread *thr = setup_gtm_thr ();
 
   tx = new gtm_transaction;
 
@@ -103,13 +105,25 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
   tx->prev = gtm_tx();
   if (tx->prev)
     tx->nesting = tx->prev->nesting + 1;
+
+  // As long as we have not exhausted a previously allocated block of TIDs,
+  // we can avoid an atomic operation on a shared cacheline.
+  if (thr->local_tid & (tid_block_size - 1))
+    tx->id = thr->local_tid++;
+  else
+    {
 #ifdef HAVE_64BIT_SYNC_BUILTINS
-  tx->id = __sync_add_and_fetch (&global_tid, 1);
+      tx->id = __sync_add_and_fetch (&global_tid, tid_block_size);
+      thr->local_tid = tx->id + 1;
 #else
-  pthread_mutex_lock (&global_tid_lock);
-  tx->id = ++global_tid;
-  pthread_mutex_unlock (&global_tid_lock);
+      pthread_mutex_lock (&global_tid_lock);
+      global_tid += tid_block_size;
+      tx->id = global_tid;
+      thr->local_tid = tx->id + 1;
+      pthread_mutex_unlock (&global_tid_lock);
 #endif
+    }
+
   tx->jb = *jb;
 
   set_gtm_tx (tx);
