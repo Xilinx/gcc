@@ -1,3 +1,11 @@
+2010-12-14  Aldy Hernandez  <aldyh@redhat.com>
+
+	* tree.h (is_tm_safe): Constify.
+	(is_tm_pure): Same.
+	* trans-mem.c (get_attrs_for): Same.
+	(is_tm_pure): Same.
+	(is_tm_safe): Same.
+
 2010-12-13  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR/46300

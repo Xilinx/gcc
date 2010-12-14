@@ -143,7 +143,7 @@
    to function types and function decls and peek through.  */
 
 static tree
-get_attrs_for (tree x)
+get_attrs_for (const_tree x)
 {
   switch (TREE_CODE (x))
     {
@@ -174,7 +174,7 @@ get_attrs_for (tree x)
 /* Return true if X has been marked TM_PURE.  */
 
 bool
-is_tm_pure (tree x)
+is_tm_pure (const_tree x)
 {
   tree attrs = get_attrs_for (x);
   if (attrs)
@@ -207,7 +207,7 @@ is_tm_irrevocable (tree x)
 /* Return true if X has been marked TM_SAFE.  */
 
 bool
-is_tm_safe (tree x)
+is_tm_safe (const_tree x)
 {
   tree attrs = get_attrs_for (x);
 
