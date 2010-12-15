@@ -1313,14 +1313,19 @@ Function::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 	      push_struct_function(decl);
 
 	      tree closure_decl = this->closure_var_->get_tree(gogo, no);
+	      if (closure_decl == error_mark_node)
+		this->fndecl_ = error_mark_node;
+	      else
+		{
+		  DECL_ARTIFICIAL(closure_decl) = 1;
+		  DECL_IGNORED_P(closure_decl) = 1;
+		  TREE_USED(closure_decl) = 1;
+		  DECL_ARG_TYPE(closure_decl) = TREE_TYPE(closure_decl);
+		  TREE_READONLY(closure_decl) = 1;
 
-	      DECL_ARTIFICIAL(closure_decl) = 1;
-	      DECL_IGNORED_P(closure_decl) = 1;
-	      TREE_USED(closure_decl) = 1;
-	      DECL_ARG_TYPE(closure_decl) = TREE_TYPE(closure_decl);
-	      TREE_READONLY(closure_decl) = 1;
+		  DECL_STRUCT_FUNCTION(decl)->static_chain_decl = closure_decl;
+		}
 
-	      DECL_STRUCT_FUNCTION(decl)->static_chain_decl = closure_decl;
 	      pop_cfun();
 	    }
 	}
@@ -1388,6 +1393,8 @@ Function_declaration::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 tree
 Function::make_receiver_parm_decl(Gogo* gogo, Named_object* no, tree var_decl)
 {
+  if (var_decl == error_mark_node)
+    return error_mark_node;
   // If the function takes the address of a receiver which is passed
   // by value, then we will have an INDIRECT_REF here.  We need to get
   // the real variable.
@@ -1402,6 +1409,8 @@ Function::make_receiver_parm_decl(Gogo* gogo, Named_object* no, tree var_decl)
     {
       gcc_assert(is_in_heap);
       var_decl = TREE_OPERAND(var_decl, 0);
+      if (var_decl == error_mark_node)
+	return error_mark_node;
       gcc_assert(POINTER_TYPE_P(TREE_TYPE(var_decl)));
       val_type = TREE_TYPE(TREE_TYPE(var_decl));
     }
@@ -1460,9 +1469,14 @@ Function::make_receiver_parm_decl(Gogo* gogo, Named_object* no, tree var_decl)
 tree
 Function::copy_parm_to_heap(Gogo* gogo, Named_object* no, tree ref)
 {
+  if (ref == error_mark_node)
+    return error_mark_node;
+
   gcc_assert(TREE_CODE(ref) == INDIRECT_REF);
 
   tree var_decl = TREE_OPERAND(ref, 0);
+  if (var_decl == error_mark_node)
+    return error_mark_node;
   gcc_assert(TREE_CODE(var_decl) == VAR_DECL);
   source_location loc = DECL_SOURCE_LOCATION(var_decl);
 
@@ -1523,9 +1537,12 @@ Function::build_tree(Gogo* gogo, Named_object* named_function)
 	      tree var = *pp;
 	      if (TREE_CODE(var) == INDIRECT_REF)
 		var = TREE_OPERAND(var, 0);
-	      gcc_assert(TREE_CODE(var) == VAR_DECL);
-	      DECL_CHAIN(var) = declare_vars;
-	      declare_vars = var;
+	      if (var != error_mark_node)
+		{
+		  gcc_assert(TREE_CODE(var) == VAR_DECL);
+		  DECL_CHAIN(var) = declare_vars;
+		  declare_vars = var;
+		}
 	      *pp = parm_decl;
 	    }
 	  else if ((*p)->var_value()->is_in_heap())
@@ -1533,11 +1550,17 @@ Function::build_tree(Gogo* gogo, Named_object* named_function)
 	      // If we take the address of a parameter, then we need
 	      // to copy it into the heap.
 	      tree parm_decl = this->copy_parm_to_heap(gogo, *p, *pp);
-	      gcc_assert(TREE_CODE(*pp) == INDIRECT_REF);
-	      tree var_decl = TREE_OPERAND(*pp, 0);
-	      gcc_assert(TREE_CODE(var_decl) == VAR_DECL);
-	      DECL_CHAIN(var_decl) = declare_vars;
-	      declare_vars = var_decl;
+	      if (*pp != error_mark_node)
+		{
+		  gcc_assert(TREE_CODE(*pp) == INDIRECT_REF);
+		  tree var_decl = TREE_OPERAND(*pp, 0);
+		  if (var_decl != error_mark_node)
+		    {
+		      gcc_assert(TREE_CODE(var_decl) == VAR_DECL);
+		      DECL_CHAIN(var_decl) = declare_vars;
+		      declare_vars = var_decl;
+		    }
+		}
 	      *pp = parm_decl;
 	    }
 

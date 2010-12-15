@@ -3824,29 +3824,28 @@ Unary_expression::do_determine_type(const Type_context* context)
 void
 Unary_expression::do_check_types(Gogo*)
 {
+  Type* type = this->expr_->type();
+  if (type->is_error_type())
+    {
+      this->set_is_error();
+      return;
+    }
+
   switch (this->op_)
     {
     case OPERATOR_PLUS:
     case OPERATOR_MINUS:
-      {
-	Type* type = this->expr_->type();
-	if (type->integer_type() == NULL
-	    && type->float_type() == NULL
-	    && type->complex_type() == NULL
-	    && !type->is_error_type())
-	  this->report_error(_("expected numeric type"));
-      }
+      if (type->integer_type() == NULL
+	  && type->float_type() == NULL
+	  && type->complex_type() == NULL)
+	this->report_error(_("expected numeric type"));
       break;
 
     case OPERATOR_NOT:
     case OPERATOR_XOR:
-      {
-	Type* type = this->expr_->type();
-	if (type->integer_type() == NULL
-	    && !type->is_boolean_type()
-	    && !type->is_error_type())
-	  this->report_error(_("expected integer or boolean type"));
-      }
+      if (type->integer_type() == NULL
+	  && !type->is_boolean_type())
+	this->report_error(_("expected integer or boolean type"));
       break;
 
     case OPERATOR_AND:
@@ -3858,12 +3857,8 @@ Unary_expression::do_check_types(Gogo*)
 
     case OPERATOR_MULT:
       // Indirecting through a pointer.
-      {
-	Type* type = this->expr_->type();
-	if (type->points_to() == NULL
-	    && !type->is_error_type())
-	  this->report_error(_("expected pointer"));
-      }
+      if (type->points_to() == NULL)
+	this->report_error(_("expected pointer"));
       break;
 
     default:
@@ -5474,7 +5469,10 @@ Binary_expression::do_check_types(Gogo*)
   Type* left_type = this->left_->type();
   Type* right_type = this->right_->type();
   if (left_type->is_error_type() || right_type->is_error_type())
-    return;
+    {
+      this->set_is_error();
+      return;
+    }
 
   if (this->op_ == OPERATOR_EQEQ
       || this->op_ == OPERATOR_NOTEQ
@@ -5940,9 +5938,8 @@ Expression::comparison_tree(Translate_context* context, Operator op,
       gcc_unreachable();
     }
 
-  if (left_type->is_string_type())
+  if (left_type->is_string_type() && right_type->is_string_type())
     {
-      gcc_assert(right_type->is_string_type());
       tree string_type = Type::make_string_type()->get_tree(context->gogo());
       static tree string_compare_decl;
       left_tree = Gogo::call_builtin(&string_compare_decl,
@@ -5956,13 +5953,12 @@ Expression::comparison_tree(Translate_context* context, Operator op,
 				     right_tree);
       right_tree = build_int_cst_type(integer_type_node, 0);
     }
-
-  if ((left_type->interface_type() != NULL
-       && right_type->interface_type() == NULL
-       && !right_type->is_nil_type())
-      || (left_type->interface_type() == NULL
-	  && !left_type->is_nil_type()
-	  && right_type->interface_type() != NULL))
+  else if ((left_type->interface_type() != NULL
+	    && right_type->interface_type() == NULL
+	    && !right_type->is_nil_type())
+	   || (left_type->interface_type() == NULL
+	       && !left_type->is_nil_type()
+	       && right_type->interface_type() != NULL))
     {
       // Comparing an interface value to a non-interface value.
       if (left_type->interface_type() == NULL)
@@ -8662,8 +8658,7 @@ Call_result_expression::do_check_types(Gogo*)
       ok = false;
     }
   if (!ok)
-    error_at(this->location(),
-	     "number of results does not match number of values");
+    this->report_error(_("number of results does not match number of values"));
 }
 
 // Determine the type.  We have nothing to do here, but the 0 result
@@ -8982,6 +8977,8 @@ Array_index_expression::do_get_tree(Translate_context* context)
   gcc_assert(array_type != NULL);
 
   tree type_tree = array_type->get_tree(gogo);
+  if (type_tree == error_mark_node)
+    return error_mark_node;
 
   tree array_tree = this->array_->get_tree(context);
   if (array_tree == error_mark_node)
@@ -8990,6 +8987,8 @@ Array_index_expression::do_get_tree(Translate_context* context)
   if (array_type->length() == NULL && !DECL_P(array_tree))
     array_tree = save_expr(array_tree);
   tree length_tree = array_type->length_tree(gogo, array_tree);
+  if (length_tree == error_mark_node)
+    return error_mark_node;
   length_tree = save_expr(length_tree);
   tree length_type = TREE_TYPE(length_tree);
 
@@ -9045,6 +9044,8 @@ Array_index_expression::do_get_tree(Translate_context* context)
 	  // Open array.
 	  tree values = array_type->value_pointer_tree(gogo, array_tree);
 	  tree element_type_tree = array_type->element_type()->get_tree(gogo);
+	  if (element_type_tree == error_mark_node)
+	    return error_mark_node;
 	  tree element_size = TYPE_SIZE_UNIT(element_type_tree);
 	  tree offset = fold_build2_loc(loc, MULT_EXPR, sizetype,
 					start_tree, element_size);
@@ -9057,6 +9058,8 @@ Array_index_expression::do_get_tree(Translate_context* context)
   // Array slice.
 
   tree capacity_tree = array_type->capacity_tree(gogo, array_tree);
+  if (capacity_tree == error_mark_node)
+    return error_mark_node;
   capacity_tree = fold_convert_loc(loc, length_type, capacity_tree);
 
   tree end_tree;
@@ -9090,6 +9093,8 @@ Array_index_expression::do_get_tree(Translate_context* context)
     }
 
   tree element_type_tree = array_type->element_type()->get_tree(gogo);
+  if (element_type_tree == error_mark_node)
+    return error_mark_node;
   tree element_size = TYPE_SIZE_UNIT(element_type_tree);
 
   tree offset = fold_build2_loc(loc, MULT_EXPR, sizetype,
@@ -9097,6 +9102,8 @@ Array_index_expression::do_get_tree(Translate_context* context)
 				element_size);
 
   tree value_pointer = array_type->value_pointer_tree(gogo, array_tree);
+  if (value_pointer == error_mark_node)
+    return error_mark_node;
 
   value_pointer = fold_build2_loc(loc, POINTER_PLUS_EXPR,
 				  TREE_TYPE(value_pointer),
@@ -10714,6 +10721,9 @@ Open_array_construction_expression::do_get_tree(Translate_context* context)
 {
   Type* element_type = this->type()->array_type()->element_type();
   tree element_type_tree = element_type->get_tree(context->gogo());
+  if (element_type_tree == error_mark_node)
+    return error_mark_node;
+
   tree values;
   tree length_tree;
   if (this->vals() == NULL || this->vals()->empty())
@@ -10797,6 +10807,8 @@ Open_array_construction_expression::do_get_tree(Translate_context* context)
   // Build a constructor for the open array.
 
   tree type_tree = this->type()->get_tree(context->gogo());
+  if (type_tree == error_mark_node)
+    return error_mark_node;
   gcc_assert(TREE_CODE(type_tree) == RECORD_TYPE);
 
   VEC(constructor_elt,gc)* init = VEC_alloc(constructor_elt, gc, 3);
@@ -10820,6 +10832,8 @@ Open_array_construction_expression::do_get_tree(Translate_context* context)
   elt->value = fold_convert(TREE_TYPE(field), length_tree);
 
   tree constructor = build_constructor(type_tree, init);
+  if (constructor == error_mark_node)
+    return error_mark_node;
   if (!is_in_function && is_constant_initializer)
     TREE_CONSTANT(constructor) = 1;
 
@@ -11162,7 +11176,7 @@ class Composite_literal_expression : public Parser_expression
   make_array(Type*, Expression_list*);
 
   Expression*
-  lower_map(Type*);
+  lower_map(Gogo*, Named_object*, Type*);
 
   // The type of the composite literal.
   Type* type_;
@@ -11191,7 +11205,7 @@ Composite_literal_expression::do_traverse(Traverse* traverse)
 // the type.
 
 Expression*
-Composite_literal_expression::do_lower(Gogo*, Named_object*, int)
+Composite_literal_expression::do_lower(Gogo* gogo, Named_object* function, int)
 {
   Type* type = this->type_;
 
@@ -11218,7 +11232,7 @@ Composite_literal_expression::do_lower(Gogo*, Named_object*, int)
   else if (type->array_type() != NULL)
     return this->lower_array(type);
   else if (type->map_type() != NULL)
-    return this->lower_map(type);
+    return this->lower_map(gogo, function, type);
   else
     {
       error_at(this->location(),
@@ -11477,7 +11491,8 @@ Composite_literal_expression::make_array(Type* type, Expression_list* vals)
 // Lower a map composite literal.
 
 Expression*
-Composite_literal_expression::lower_map(Type* type)
+Composite_literal_expression::lower_map(Gogo* gogo, Named_object* function,
+					Type* type)
 {
   source_location location = this->location();
   if (this->vals_ != NULL)
@@ -11488,7 +11503,7 @@ Composite_literal_expression::lower_map(Type* type)
 	  return Expression::make_error(location);
 	}
 
-      for (Expression_list::const_iterator p = this->vals_->begin();
+      for (Expression_list::iterator p = this->vals_->begin();
 	   p != this->vals_->end();
 	   p += 2)
 	{
@@ -11497,6 +11512,16 @@ Composite_literal_expression::lower_map(Type* type)
 	      ++p;
 	      error_at((*p)->location(),
 		       "map composite literal must have keys for every value");
+	      return Expression::make_error(location);
+	    }
+	  // Make sure we have lowered the key; it may not have been
+	  // lowered in order to handle keys for struct composite
+	  // literals.  Lower it now to get the right error message.
+	  if ((*p)->unknown_expression() != NULL)
+	    {
+	      (*p)->unknown_expression()->clear_is_composite_literal_key();
+	      gogo->lower_expression(function, &*p);
+	      gcc_assert((*p)->is_error_expression());
 	      return Expression::make_error(location);
 	    }
 	}

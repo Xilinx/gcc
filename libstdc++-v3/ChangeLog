@@ -1,3 +1,39 @@
+2010-12-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/ext/vstring.h (operator+(__versa_string<>&&,
+	const __versa_string<>&), operator+(const __versa_string<>&,
+	__versa_string<>&&), operator+(__versa_string<>&&,
+	__versa_string<>&&), operator+(const _CharT*,
+	__versa_string<>&&), operator+(_CharT, __versa_string<>&&),
+	operator+(__versa_string<>&&, const _CharT*),
+	operator+(__versa_string<>&&, _CharT)): Add.
+	* testsuite/ext/vstring/operators/1.cc: New.
+
+2010-12-15  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/46951
+	* testsuite/30_threads/future/members/45133.cc: Fix dg-options.
+	* testsuite/30_threads/shared_future/members/45133.cc: Likewise.
+
+2010-12-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/45133
+	* include/std/future (__basic_future::wait): Throw if not valid.
+	(__basic_future::wait_for): Likewise.
+	(__basic_future::wait_until): Likewise.
+	(__basic_future::_M_get_result): Likewise.
+	* testsuite/30_threads/future/members/45133.cc: New.
+	* testsuite/30_threads/shared_future/members/45133.cc: New.
+
+2010-12-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/46910
+	* include/bits/shared_ptr_base.h (_Sp_counted_deleter): Do not
+	derive from _Sp_counted_ptr.
+	* testsuite/20_util/shared_ptr/cons/46910.cc: New.
+	* testsuite/20_util/shared_ptr/cons/43820.cc: Adjust.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust.
+
 2010-12-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* config/abi/post/solaris2.8/baseline_symbols.txt: Regenerate.

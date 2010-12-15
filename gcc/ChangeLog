@@ -1,3 +1,114 @@
+2010-12-14  Jan Hubicka  <jh@suse.cz>
+
+	* tree.c (get_file_function_name): Avoid using random seed on GLOBAL_sub_I
+	and GLOBAL_sub_D.
+
+2010-12-15  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/46053
+	PR middle-end/46287
+	PR middle-end/46242
+	* cgraph.h (cgraph_indirect_call_info): New field thunk_delta.
+	* gimple.h (gimple_fold_obj_type_ref): Declaration removed.
+	(gimple_fold_call): Declare.
+	(gimple_adjust_this_by_delta): Likewise.
+	* cgraph.c (cgraph_make_edge_direct): New parameter delta.  Updated
+	all users.
+	(cgraph_clone_edge): Create a copy of indirect_info also for direct
+	edges.
+	* cgraphunit.c (cgraph_redirect_edge_call_stmt_to_callee): Adjust this
+	parameters.
+	* gimple-fold.c (gimple_fold_obj_type_ref_known_binfo): Renamed to
+	gimple_get_virt_mehtod_for_binfo, new parameter delta.  Do not search
+	through thunks, in fact bail out if we encounter one, check that
+	BINFO_VIRTUALS is not NULL.
+	(gimple_adjust_this_by_delta): New function.
+	(gimple_fold_obj_type_ref): Removed.
+	(gimple_fold_obj_type_ref_call): New function.
+	(fold_gimple_call): Renamed to gimple_fold_call, made external.
+	Updated users.  Call gimple_fold_obj_type_ref_call instead of
+	gimple_fold_obj_type_ref.
+	* ipa-cp.c (ipcp_process_devirtualization_opportunities): Process
+	thunk deltas.
+	(ipcp_discover_new_direct_edges): Likewise.
+	* ipa-prop.c (ipa_make_edge_direct_to_target): New parameter delta.
+	Updated callers.
+	(ipa_write_indirect_edge_info): Stream thunk_delta.
+	(ipa_read_indirect_edge_info): Likewise.
+	* tree-ssa-ccp.c (ccp_fold_stmt): Use gimple_fold_call instead of
+	gimple_fold_obj_type_ref.
+
+2010-12-15  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/46649
+	* sel-sched-ir.c (purge_empty_blocks): Unconditionally skip the first
+	basic block in the region.
+
+2010-12-15  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/stormy16/stormy16.h (LINK_SPEC, WCHAR_TYPE): Define.
+	* config.gcc (xstormy16-*-elf): Don't use svr4.h.
+
+2010-12-15  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/rx/rx.h (WCHAR_TYPE, WCHAR_TYPE_SIZE): Define.
+	* config.gcc (rx-*-elf*): Don't use svr4.h.
+
+2010-12-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46845
+	* sese.c (scalar_evolution_in_region): Handle scop parameters
+	before scev analysis.
+
+2010-12-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46928
+	* tree-data-ref.c (analyze_overlapping_iterations): Handle "A[p] == A[p]"
+	in data dependence analysis with p a parameter of the loop.
+
+2010-12-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/45948
+	* tree-loop-distribution.c (ssa_name_has_uses_outside_loop_p): New.
+	(stmt_has_scalar_dependences_outside_loop): New.
+	(stmt_generated_in_another_partition): New.
+	(add_scalar_computations_to_partition): New.
+	(rdg_build_partitions): Call add_scalar_computations_to_partition.
+
+2010-12-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arc/arc.h (LIB_SPEC): Define.
+	* config.gcc (arc-*-elf*): Don't use svr4.h.
+
+2010-12-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sh/elf.h (LIB_SPEC): Define.
+	* config.gcc (sh-*-elf* | sh[12346l]*-*-elf* | sh-*-symbianelf* |
+	sh[12346l]*-*-symbianelf* | sh-*-linux* | sh[2346lbe]*-*-linux* |
+	sh-*-netbsdelf* | shl*-*-netbsdelf* | sh5-*-netbsd* |
+	sh5l*-*-netbsd* | sh64-*-netbsd* | sh64l*-*-netbsd*, sh-*-rtems*,
+	sh-wrs-vxworks): Don't use svr4.h.
+
+2010-12-14  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/46940
+	PR lto/44463
+	* lto-symtab.c (lto_symtab_merge_cgraph_nodes_1): Construct nodes
+	for aliases when they are used.
+
+2010-12-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (sparc-*-elf*, sparc-*-rtems*, sparc-*-linux*,
+	sparc-*-netbsdelf*, sparc*-*-solaris2*, sparc-wrs-vxworks,
+	sparc64-*-elf*, sparc64-*-rtems*, sparc64-*-linux*,
+	sparc64-*-netbsd*, sparc64-*-openbsd*): Don't use svr4.h.
+
+2010-12-14  Thomas Klein  <th.r.klein@web.de>
+
+	* config/arm/arm.c (arm_expand_prologue): Report the static stack
+	size if -fstack-usage is used.
+	(thumb1_expand_prologue): Likewise.
+
 2010-12-14  Jakub Jelinek  <jakub@redhat.com>
 
 	PR debug/46885
@@ -132,7 +243,7 @@
 
 2010-12-13  Alexandre Oliva  <aoliva@redhat.com>
 
-	PR debug/46576
+	PR debug/46756
 	* jump.c (mark_all_labels): Skip debug insns.
 
 2010-12-13  Alexandre Oliva  <aoliva@redhat.com>

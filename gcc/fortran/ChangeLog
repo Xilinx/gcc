@@ -1,3 +1,23 @@
+2010-12-15  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* trans.c (gfc_allocate_with_status): Better error message for
+	malloc() failure.
+	(gfc_call_realloc): Likewise.
+	* misc.c (gfc_getmem): Likewise.
+
+2010-12-15  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/28105
+	* trans.c (gfc_call_malloc): Improve comment.
+	(gfc_allocate_with_status): Remove size < 0 check.
+	(gfc_call_realloc): Likewise.
+
+2010-12-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46937
+	* trans-types.c (create_fn_spec): "."-annotate derived types
+	with (proc-)pointer components.
+
 2010-12-14  Jakub Jelinek  <jakub@redhat.com>
 
 	PR fortran/46874

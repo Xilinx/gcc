@@ -1,3 +1,78 @@
+2010-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46815
+	* g++.dg/guality/pr46815.C: New test.
+
+2010-12-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42083
+	* g++.dg/cpp0x/lambda/lambda-ice2.C: New.
+
+2010-12-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gfortran.dg/debug/pr46756.f: Correct PR number.
+
+2010-12-15  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/46053
+	PR middle-end/46287
+	PR middle-end/46242
+	* g++.dg/ipa/pr46053.C: New test.
+	* g++.dg/ipa/pr46287-1.C: Likewise.
+	* g++.dg/ipa/pr46287-2.C: Likewise.
+	* g++.dg/ipa/pr46287-3.C: Likewise.
+	* g++.dg/torture/covariant-1.C: Likewise.
+	* g++.dg/torture/pr46287.C: Likewise.
+
+2010-12-15  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/46649
+	* g++.dg/opt/pr46649.C: New.
+
+2010-12-15  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR testsuite/46938
+	* gcc.dg/pr43157.c: Add dg-require-linker-plugin  directive.
+
+2010-12-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46845
+	* gcc.dg/graphite/id-pr46845.c: New.
+
+2010-12-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46928
+	* gcc.dg/tree-ssa/ldist-17.c: New.
+
+2010-12-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/45948
+	* gcc.dg/tree-ssa/ldist-pr45948.c: New.
+
+2010-12-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46930
+	* g++.dg/cpp0x/constexpr-decl.C: New.
+	* g++.dg/cpp0x/constexpr-ex1.C: Fix.
+	* g++.dg/cpp0x/constexpr-static5.C: Fix.
+
+2010-12-14  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/46940
+	PR lto/44463
+	* gcc.dg/lto/pr46940_0.c: New testcase.
+	* gcc.dg/lto/pr46940_1.c: New testcase.
+
+2010-12-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/45330
+	* g++.dg/lookup/suggestions1.C: New test.
+
+2010-12-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46937
+	* gfortran.dg/pointer_intent_4.f90: New.
+
 2010-12-14  Jakub Jelinek  <jakub@redhat.com>
 
 	PR debug/46885
@@ -65,8 +140,8 @@
 
 2010-12-13  Alexandre Oliva  <aoliva@redhat.com>
 
-	PR debug/46576
-	* gfortran.dg/debug/pr46576.f: New.
+	PR debug/46756
+	* gfortran.dg/debug/pr46756.f: New.
 
 2010-12-13  Alexandre Oliva  <aoliva@redhat.com>
 
