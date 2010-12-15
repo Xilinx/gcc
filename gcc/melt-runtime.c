@@ -749,7 +749,7 @@ void *melt_checkedp_ptr2;
 
 
 
-static void scanning (melt_ptr_t);
+static void melt_scanning (melt_ptr_t);
 
 
 
@@ -1131,7 +1131,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
        (char *) storp < (char *) melt_endalz; storp++)
     {
       if (*storp)
-	scanning (*storp);
+	melt_scanning (*storp);
     }
   melt_debuggc_eprintf ("melt_garbcoll %ld scanned store list", 
 			melt_nb_garbcoll);
@@ -1146,7 +1146,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
       melt_ptr_t p = VEC_pop (melt_ptr_t, bscanvec);
       if (!p)
 	continue;
-      scanning (p);
+      melt_scanning (p);
     }
   VEC_free (melt_ptr_t, gc, bscanvec);
   bscanvec = NULL;
@@ -2100,12 +2100,12 @@ melt_forwarded_copy (melt_ptr_t p)
 
 
 
-/* the scanning routine is mostly chesney like; however some types,
+/* the melt_scanning routine is mostly chesney like; however some types,
    including objects, strbuf, stringmaps, objectmaps, all the other
    *maps, contain a pointer to a non value; this pointer should be
    carefully updated if it was young */
 static void
-scanning (melt_ptr_t p)
+melt_scanning (melt_ptr_t p)
 {
   unsigned omagic = 0;
   if (!p)
@@ -2183,7 +2183,7 @@ scanning (melt_ptr_t p)
     case ALL_MELTOBMAG_SPECIAL_CASES:
       {
 	struct meltspecial_st *src = (struct meltspecial_st *) p;
-	melt_debuggc_eprintf ("scanning & marking special case src %p magic %d", 
+	melt_debuggc_eprintf ("melt_scanning & marking special case src %p magic %d", 
 			      (void*)src, omagic);
 	src->mark = 1;
 	break;
@@ -2569,7 +2569,7 @@ scanning (melt_ptr_t p)
       break;
     default:
       /* gcc_unreachable (); */
-      fatal_error ("melt scanning GC: corrupted heap, p=%p omagic=%d\n",
+      fatal_error ("melt melt_scanning GC: corrupted heap, p=%p omagic=%d\n",
 		   (void *) p, (int) omagic);
     }
 }
