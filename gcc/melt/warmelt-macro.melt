@@ -4312,11 +4312,21 @@ condition is a string such as "4.5." or a list of strings.}#)
 		 )))
 	     (setq ix (-i ix 1)))
     (debug_msg caselist "mexpand_match caselist")
-    (let ( (smat (instance class_source_match
+    (let (
+	  (casetupl  (list_to_multiple caselist discr_multiple))
+	  (lastcase (multiple_nth casetupl -1))
+	  (smat (instance class_source_match
 			   :loca_location loc
 			   :smat_matchedx matsx
-			   :smat_cases (list_to_multiple caselist discr_multiple)) 
-		 ))
+			   :smat_cases casetupl) 
+		 )
+	  )
+      ;; inform the user if the last match clause is not a joker
+      (if (is_not_a 
+	   (get_field :scam_patt lastcase) 
+	   class_source_pattern_joker_variable)
+	  (inform_plain loc "last (MATCH ...) clause is not a joker"))
+      ;;;
       (debug_msg smat "mexpand_match result smat")
       (return smat)
       )))

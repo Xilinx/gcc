@@ -1,4 +1,10 @@
 
+2010-12-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-macro.melt: workaround a match bug. Shows an
+	informative message for match expressions without default joker
+	clause.
+
 2010-12-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated}}
 	* melt/generated/warmelt-first.0.c: Regenerate.
