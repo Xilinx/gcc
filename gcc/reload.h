@@ -204,21 +204,50 @@ extern struct target_reload *this_target_reload;
 #define caller_save_initialized_p \
   (this_target_reload->x_caller_save_initialized_p)
 
-extern GTY (()) VEC(rtx,gc) *reg_equiv_memory_loc_vec;
-extern rtx *reg_equiv_constant;
-extern rtx *reg_equiv_invariant;
-extern rtx *reg_equiv_memory_loc;
-extern rtx *reg_equiv_address;
-extern rtx *reg_equiv_mem;
-extern rtx *reg_equiv_alt_mem_list;
 extern unsigned int *reg_max_ref_width;
 
-/* Element N is the list of insns that initialized reg N from its equivalent
-   constant or memory slot.  */
-extern GTY((length("reg_equiv_init_size"))) rtx *reg_equiv_init;
+/* Register equivalences.  Indexed by register number.  */
+typedef struct reg_equivs
+{
+  /* The constant value to which pseudo reg N is equivalent,
+     or zero if pseudo reg N is not equivalent to a constant.
+     find_reloads looks at this in order to replace pseudo reg N
+     with the constant it stands for.  */
+  rtx constant;
 
-/* The size of the previous array, for GC purposes.  */
-extern GTY(()) int reg_equiv_init_size;
+  /* An invariant value to which pseudo reg N is equivalent.
+     eliminate_regs_in_insn uses this to replace pseudos in particular
+     contexts.  */
+  rtx invariant;
+
+  /* A memory location to which pseudo reg N is equivalent,
+     prior to any register elimination (such as frame pointer to stack
+     pointer).  Depending on whether or not it is a valid address, this value
+     is transferred to either equiv_address or equiv_mem.  */
+  rtx memory_loc;
+
+  /* The address of stack slot to which pseudo reg N is equivalent.
+     This is used when the address is not valid as a memory address
+     (because its displacement is too big for the machine.)  */
+  rtx address;
+
+  /* The memory slot to which pseudo reg N is equivalent,
+     or zero if pseudo reg N is not equivalent to a memory slot.  */
+  rtx mem;
+
+  /* An EXPR_LIST of REG_EQUIVs containing MEMs with
+     alternate representations of the location of pseudo reg N.  */
+  rtx alt_mem_list;
+
+  /* The list of insns that initialized reg N from its equivalent
+     constant or memory slot.  */
+  rtx init;
+} reg_equivs_t;
+
+DEF_VEC_O(reg_equivs_t);
+DEF_VEC_ALLOC_O(reg_equivs_t, gc);
+extern VEC(reg_equivs_t,gc) *reg_equivs;
+
 
 /* All the "earlyclobber" operands of the current insn
    are recorded here.  */
@@ -428,3 +457,12 @@ extern void alter_reg (int, int, bool);
 /* Record memory and constant equivalences for pseudos which did not get hard
    registers.  */
 extern void record_equivalences_for_reload (void);
+
+
+/* Ideally this function would be in ira.c or reload, but due to dependencies
+   on integrate.h, it's part of integrate.c.  */
+extern void allocate_initial_values (VEC (reg_equivs_t, gc) *);
+
+/* Allocate or grow the reg_equiv tables, initializing new entries to 0.  */
+extern void grow_reg_equivs (void);
+ 

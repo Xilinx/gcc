@@ -67,8 +67,8 @@ localize_pseudo_p (unsigned int regno)
   /* Avoid localizing a pseudo which can be rematerialized.
      ?!? I think this is a holdover from ancient code and may no longer
      be necessary.  */
-  if ((reg_equiv_constant && reg_equiv_constant[regno])
-      || (reg_equiv_invariant && reg_equiv_invariant[regno]))
+  if ((reg_equivs && VEC_index (reg_equivs_t, reg_equivs, regno)->constant)
+      || (reg_equivs && VEC_index (reg_equivs_t, reg_equivs, regno)->invariant))
     return false;
 
   /* If we don't know what register class to use for the psuedo, then
@@ -221,11 +221,13 @@ emit_localizing_loads (rtx use, rtx insn)
       if (bitmap_bit_p (regs_to_load, REGNO (use)))
 	{
 	  rtx insns, temp;
-	  rtx mem = copy_rtx (reg_equiv_memory_loc[REGNO (use)]);
+	  rtx mem = VEC_index (reg_equivs_t, reg_equivs, REGNO (use))->memory_loc;
 	  int nuses = pseudo_nuses[REGNO (use)];
 	  int nsets = pseudo_nsets[REGNO (use)];
 	  int occurrences = count_occurrences (PATTERN (insn), use, 0);
 
+	  mem = copy_rtx (mem);
+	    
 	  /* validate_replace_rtx internally calls df_insn_rescan, which is
 	     unsafe as our caller is iterating over the existing DF info.  So
 	     we have to turn off insn rescanning temporarily.  */
@@ -255,7 +257,9 @@ emit_localizing_loads (rtx use, rtx insn)
 
 	      /* Inform the DF framework about the new insns.  */
 	      for (temp = insns; temp != insn; temp = NEXT_INSN (temp))
-	        df_insn_rescan (temp);
+		{
+	          df_insn_rescan (temp);
+		}
 
 	      /* Note it is no longer necessary to load this pseudo.  */
 	      bitmap_clear_bit (regs_to_load, REGNO (use));
@@ -355,7 +359,9 @@ emit_localizing_stores (rtx dest, rtx insn, rtx tail)
       int occurrences = count_occurrences (PATTERN (insn), dest, 0);
 
       /* We must copy the memory location to avoid incorrect RTL sharing.  */
-      rtx mem = copy_rtx (reg_equiv_memory_loc[regno]);
+      rtx mem = VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc;
+
+      mem = copy_rtx (mem);
 
       /* Note that we have stored this register so that we don't try to
          store it again.  */
@@ -435,19 +441,11 @@ emit_localizing_stores (rtx dest, rtx insn, rtx tail)
   return retval;
 }
 
-static void
+static ira_allocno_t
 create_new_allocno_for_spilling (int nreg, int oreg)
 {
   ira_allocno_t to, from, a;
-  ira_object_t o;
   ira_allocno_iterator ai;
-  ira_object_conflict_iterator oci;
-  unsigned int conflicts, n, i;
-  live_range_t prev, range, r;
-
-  if (ira_dump_file != NULL)
-    fprintf (ira_dump_file, "Splitting range for %d using new reg %d.\n",
-	     oreg, nreg);
 
   /* Update IRA's datastructures.  */
 
@@ -473,6 +471,25 @@ create_new_allocno_for_spilling (int nreg, int oreg)
       ira_regno_allocno_map[regno] = a;
     }
 
+  return to;
+}
+
+
+static void
+copy_allocno_for_spilling (int nreg, int oreg)
+{
+  ira_allocno_t to, from;
+  unsigned int conflicts, n, i;
+  live_range_t prev, range, r;
+  ira_object_conflict_iterator oci;
+  ira_object_t o;
+
+  if (ira_dump_file != NULL)
+    fprintf (ira_dump_file, "Splitting range for %d using new reg %d.\n",
+	     oreg, nreg);
+
+  to = create_new_allocno_for_spilling (nreg, oreg);
+  from = ira_regno_allocno_map [oreg];
 
   /* Copy various fields from the original allocno to the new one.  */
 #ifdef STACK_REGS
@@ -921,25 +938,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
       /* First expand various data structures.  */
       regstat_reallocate_ri (max_regno);
       expand_reg_info (max_regno - 1);
-      reg_equiv_invariant = (rtx *) xrealloc (reg_equiv_invariant,
-					      max_regno * sizeof (rtx));
-      memset (&reg_equiv_invariant[orig_max_reg_num], 0, nregs * sizeof (rtx));
-      reg_equiv_constant = (rtx *) xrealloc (reg_equiv_constant,
-					     max_regno * sizeof (rtx));
-      memset (&reg_equiv_constant[orig_max_reg_num], 0, nregs * sizeof (rtx));
-      reg_equiv_mem = (rtx *) xrealloc (reg_equiv_mem, max_regno * sizeof (rtx));
-      memset (&reg_equiv_mem[orig_max_reg_num], 0, nregs * sizeof (rtx));
-      reg_equiv_alt_mem_list = (rtx *) xrealloc (reg_equiv_alt_mem_list,
-					         max_regno * sizeof (rtx));
-      memset (&reg_equiv_alt_mem_list[orig_max_reg_num], 0, nregs * sizeof (rtx));
-      reg_equiv_address = (rtx *) xrealloc (reg_equiv_address,
-					    max_regno * sizeof (rtx));
-      memset (&reg_equiv_address[orig_max_reg_num], 0, nregs * sizeof (rtx));
-      VEC_safe_grow_cleared (rtx, gc, reg_equiv_memory_loc_vec, max_regno);
-      reg_equiv_memory_loc = VEC_address (rtx, reg_equiv_memory_loc_vec);
-      reg_equiv_init
-	= (rtx *) ggc_realloc_stat (reg_equiv_init, max_regno * sizeof (rtx) PASS_MEM_STAT);
-      memset (&reg_equiv_init[orig_max_reg_num], 0, nregs * sizeof (rtx));
+      grow_reg_equivs ();
       regstat_n_sets_and_refs
 	 = ((struct regstat_n_sets_and_refs_t *)
 	    xrealloc (regstat_n_sets_and_refs,
@@ -961,16 +960,25 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 
 	  nregno = REGNO (reg_map[i]);
 	  setup_reg_classes (nregno, reg_preferred_class (i), reg_alternate_class (i), ira_class_translate [reg_preferred_class (i)]);
-	  reg_equiv_invariant[nregno] = reg_equiv_invariant[i];
-	  reg_equiv_constant[nregno] = reg_equiv_constant[i];
-	  reg_equiv_mem[nregno] = reg_equiv_mem[i];
-	  reg_equiv_alt_mem_list[nregno] = reg_equiv_alt_mem_list[i];
-	  reg_equiv_address[nregno] = reg_equiv_address[i];
-	  reg_equiv_memory_loc[nregno] = reg_equiv_memory_loc[i];
-	  /* ?!? I don't recall why this was originally necessary.  Definitely need
-	     to retest and understand or make it go away.  */
-          reg_equiv_init[i] = NULL;
-	  reg_equiv_init[nregno] = reg_equiv_init[i];
+	  VEC_index (reg_equivs_t, reg_equivs, nregno)->invariant
+	    = VEC_index (reg_equivs_t, reg_equivs, i)->invariant;
+	  VEC_index (reg_equivs_t, reg_equivs, nregno)->constant
+	    = VEC_index (reg_equivs_t, reg_equivs, i)->constant;
+	  VEC_index (reg_equivs_t, reg_equivs, nregno)->mem
+	    = VEC_index (reg_equivs_t, reg_equivs, i)->mem;
+	  VEC_index (reg_equivs_t, reg_equivs, nregno)->alt_mem_list
+	    = VEC_index (reg_equivs_t, reg_equivs, i)->alt_mem_list;
+	  VEC_index (reg_equivs_t, reg_equivs, nregno)->address
+	    = VEC_index (reg_equivs_t, reg_equivs, i)->address;
+	  VEC_index (reg_equivs_t, reg_equivs, nregno)->memory_loc
+	    = VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc;
+	  /* ?!? I don't recall why this was originally necessary.  Definitely
+	     need to retest and understand or make it go away.  */
+	  VEC_index (reg_equivs_t, reg_equivs, i)->init = NULL;
+#if 0
+	  VEC_index (reg_equivs_t, reg_equivs, nregno)->init
+	    = VEC_index (reg_equivs_t, reg_equivs, i)->init;
+#endif
 	  reg_max_ref_width[nregno] = reg_max_ref_width[i];
 	  reg_renumber[nregno] = reg_renumber[i];
 	  REG_N_CALLS_CROSSED (nregno) = REG_N_CALLS_CROSSED (i);
@@ -984,7 +992,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 	  REG_BASIC_BLOCK (nregno) = REG_BLOCK_GLOBAL;
 
 	  /* Create a new allocno for the new register.  */
-	  create_new_allocno_for_spilling (nregno, i);
+	  copy_allocno_for_spilling (nregno, i);
 	}
 
       /* Now look for any pseudos >= orig_max_reg_num which do not have
@@ -1136,6 +1144,11 @@ ira_reload (void)
       ira_costs (orig_max_reg_num);
       ira_tune_allocno_costs_and_cover_classes ();
 
+      /* We may have allocated additional pseudos during spilling, so update
+         max_regno.  ?!? Updating max_regno should really occur when we
+         allocate new regs.  Or better yet, max it go away completely.  */
+      max_regno = max_reg_num ();
+
       /* Now we want to remove each allocnos associated with the pseudos we
 	 localized from the conflicts of every other allocno.  Do this once
 	 after localizing in all blocks rather than in each block.  */
@@ -1151,11 +1164,6 @@ ira_reload (void)
 	  SET_REG_N_REFS (i, 0);
 	  SET_REG_N_SETS (i, 0);
 	}
-
-      /* We may have allocated additional pseudos during spilling, so update
-         max_regno.  ?!? Updating max_regno should really occur when we
-         allocate new regs.  Or better yet, max it go away completely.  */
-      max_regno = max_reg_num ();
 
       /* Try to assign hard regs to pseudos that didn't get them the
          first time through the allocator.  */
