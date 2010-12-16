@@ -313,15 +313,15 @@ melt_trace_start("DBGOUT_MULTIPLE_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -514,10 +514,10 @@ lab_endgetargs:;
       union meltparam_un argtab[2];
       memset(&argtab, 0, sizeof(argtab));
       /*^apply.arg*/
-      argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+      argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
       /*^apply.arg*/
-      argtab[1].bp_long = /*_#I__L9*/ meltfnum[8];
-      /*_.DBG_OUT__V14*/ meltfptr[13] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.MULTIPLE_NTH__V13*/ meltfptr[12]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+      argtab[1].meltbp_long = /*_#I__L9*/ meltfnum[8];
+      /*_.DBG_OUT__V14*/ meltfptr[13] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.MULTIPLE_NTH__V13*/ meltfptr[12]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
       }
      ;
      /*_#STRBUF_USEDLENGTH__L10*/ meltfnum[9] = 
@@ -730,15 +730,15 @@ melt_trace_start("DBGOUT_ROUTINE_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -904,8 +904,8 @@ lab_endgetargs:;
     union meltparam_un argtab[1];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.LAMBDA___V11*/ meltfptr[10];
-    /*_.ROUTINE_EVERY__V13*/ meltfptr[12] =  melt_apply ((meltclosure_ptr_t)((/*!ROUTINE_EVERY*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.LAMBDA___V11*/ meltfptr[10];
+    /*_.ROUTINE_EVERY__V13*/ meltfptr[12] =  melt_apply ((meltclosure_ptr_t)((/*!ROUTINE_EVERY*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.IF___V10*/ meltfptr[8] = /*_.ROUTINE_EVERY__V13*/ meltfptr[12];;
@@ -1014,8 +1014,8 @@ melt_trace_start("LAMBDA_", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_LONG) goto lab_endgetargs;
- /*_#IX__L1*/ meltfnum[0] = xargtab_[0].bp_long;
+ if (xargdescr_[0] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#IX__L1*/ meltfnum[0] = xargtab_[0].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -1037,10 +1037,10 @@ lab_endgetargs:;
   union meltparam_un argtab[2];
   memset(&argtab, 0, sizeof(argtab));
   /*^apply.arg*/
-  argtab[0].bp_aptr = (melt_ptr_t*) &(/*~DBGI*/ meltfclos->tabval[2]);
+  argtab[0].meltbp_aptr = (melt_ptr_t*) &(/*~DBGI*/ meltfclos->tabval[2]);
   /*^apply.arg*/
-  argtab[1].bp_long = /*_#GET_INT__L3*/ meltfnum[2];
-  /*_.DBG_OUT__V3*/ meltfptr[2] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[0])), (melt_ptr_t)(/*_.COMP__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+  argtab[1].meltbp_long = /*_#GET_INT__L3*/ meltfnum[2];
+  /*_.DBG_OUT__V3*/ meltfptr[2] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[0])), (melt_ptr_t)(/*_.COMP__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
   }
  ;
  MELT_LOCATION("warmelt-debug.melt:459:/ quasiblock");
@@ -1127,15 +1127,15 @@ melt_trace_start("DBGOUT_CLOSURE_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -1271,10 +1271,10 @@ lab_endgetargs:;
   union meltparam_un argtab[2];
   memset(&argtab, 0, sizeof(argtab));
   /*^apply.arg*/
-  argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+  argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
   /*^apply.arg*/
-  argtab[1].bp_long = /*_#DEPTH__L1*/ meltfnum[0];
-  /*_.DBG_OUT__V12*/ meltfptr[11] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.CLOSURE_ROUTINE__V11*/ meltfptr[10]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+  argtab[1].meltbp_long = /*_#DEPTH__L1*/ meltfnum[0];
+  /*_.DBG_OUT__V12*/ meltfptr[11] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.CLOSURE_ROUTINE__V11*/ meltfptr[10]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
   }
  ;
  MELT_LOCATION("warmelt-debug.melt:484:/ getslot");
@@ -1375,10 +1375,10 @@ lab_endgetargs:;
       union meltparam_un argtab[2];
       memset(&argtab, 0, sizeof(argtab));
       /*^apply.arg*/
-      argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+      argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
       /*^apply.arg*/
-      argtab[1].bp_long = /*_#I__L12*/ meltfnum[11];
-      /*_.DBG_OUT__V20*/ meltfptr[19] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.CLOSURE_NTH__V19*/ meltfptr[18]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+      argtab[1].meltbp_long = /*_#I__L12*/ meltfnum[11];
+      /*_.DBG_OUT__V20*/ meltfptr[19] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.CLOSURE_NTH__V19*/ meltfptr[18]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
       }
      ;
      /*_#STRBUF_USEDLENGTH__L13*/ meltfnum[12] = 
@@ -1574,15 +1574,15 @@ melt_trace_start("DBGOUT_LIST_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -1808,10 +1808,10 @@ lab_endgetargs:;
       union meltparam_un argtab[2];
       memset(&argtab, 0, sizeof(argtab));
       /*^apply.arg*/
-      argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+      argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
       /*^apply.arg*/
-      argtab[1].bp_long = /*_#I__L11*/ meltfnum[10];
-      /*_.DBG_OUT__V15*/ meltfptr[14] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.PAIR_HEAD__V14*/ meltfptr[13]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+      argtab[1].meltbp_long = /*_#I__L11*/ meltfnum[10];
+      /*_.DBG_OUT__V15*/ meltfptr[14] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.PAIR_HEAD__V14*/ meltfptr[13]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
       }
      ;
      /*_.PAIR_TAIL__V16*/ meltfptr[15] = 
@@ -2027,15 +2027,15 @@ melt_trace_start("DBGOUT_PAIR_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -2177,10 +2177,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#I__L6*/ meltfnum[5];
-    /*_.DBG_OUT__V12*/ meltfptr[11] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.PAIR_HEAD__V11*/ meltfptr[10]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = /*_#I__L6*/ meltfnum[5];
+    /*_.DBG_OUT__V12*/ meltfptr[11] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.PAIR_HEAD__V11*/ meltfptr[10]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    
@@ -2199,10 +2199,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#I__L7*/ meltfnum[6];
-    /*_.DBG_OUT__V14*/ meltfptr[13] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.PAIR_TAIL__V13*/ meltfptr[12]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = /*_#I__L7*/ meltfnum[6];
+    /*_.DBG_OUT__V14*/ meltfptr[13] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.PAIR_TAIL__V13*/ meltfptr[12]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    MELT_LOCATION("warmelt-debug.melt:558:/ quasiblock");
@@ -2327,15 +2327,15 @@ melt_trace_start("DBGOUT_BOX_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -2477,10 +2477,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#I__L6*/ meltfnum[5];
-    /*_.DBG_OUT__V12*/ meltfptr[11] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.BOX_CONTENT__V11*/ meltfptr[10]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = /*_#I__L6*/ meltfnum[5];
+    /*_.DBG_OUT__V12*/ meltfptr[11] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.BOX_CONTENT__V11*/ meltfptr[10]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.IF___V10*/ meltfptr[9] = /*_.DBG_OUT__V12*/ meltfptr[11];;
@@ -2591,15 +2591,15 @@ melt_trace_start("DBGOUT_MAPOBJECT_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -2859,8 +2859,8 @@ lab_endgetargs:;
     union meltparam_un argtab[1];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.LAMBDA___V20*/ meltfptr[19];
-    /*_.MAPOBJECT_EVERY__V22*/ meltfptr[21] =  melt_apply ((meltclosure_ptr_t)((/*!MAPOBJECT_EVERY*/ meltfrout->tabval[4])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.LAMBDA___V20*/ meltfptr[19];
+    /*_.MAPOBJECT_EVERY__V22*/ meltfptr[21] =  melt_apply ((meltclosure_ptr_t)((/*!MAPOBJECT_EVERY*/ meltfrout->tabval[4])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    
@@ -3021,8 +3021,8 @@ lab_endgetargs:;
     union meltparam_un argtab[1];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.LAMBDA___V31*/ meltfptr[29];
-    /*_.MULTIPLE_EVERY__V33*/ meltfptr[32] =  melt_apply ((meltclosure_ptr_t)((/*!MULTIPLE_EVERY*/ meltfrout->tabval[9])), (melt_ptr_t)(/*_.SORTUPL__V28*/ meltfptr[27]), (BPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.LAMBDA___V31*/ meltfptr[29];
+    /*_.MULTIPLE_EVERY__V33*/ meltfptr[32] =  melt_apply ((meltclosure_ptr_t)((/*!MULTIPLE_EVERY*/ meltfrout->tabval[9])), (melt_ptr_t)(/*_.SORTUPL__V28*/ meltfptr[27]), (MELTBPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.LET___V25*/ meltfptr[23] = /*_.MULTIPLE_EVERY__V33*/ meltfptr[32];;
@@ -3173,8 +3173,8 @@ melt_trace_start("LAMBDA_", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.VA__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.VA__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.VA__V3*/ meltfptr[2])) != NULL);
  
  ;
@@ -3326,8 +3326,8 @@ melt_trace_start("LAMBDA_", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.E2__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.E2__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.E2__V3*/ meltfptr[2])) != NULL);
  
  ;
@@ -3367,18 +3367,18 @@ lab_endgetargs:;
   union meltparam_un argtab[6];
   memset(&argtab, 0, sizeof(argtab));
   /*^apply.arg*/
-  argtab[0].bp_aptr = (melt_ptr_t*) &/*_.E1RK__V7*/ meltfptr[6];
+  argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.E1RK__V7*/ meltfptr[6];
   /*^apply.arg*/
-  argtab[1].bp_aptr = (melt_ptr_t*) &/*_.E2AT__V8*/ meltfptr[7];
+  argtab[1].meltbp_aptr = (melt_ptr_t*) &/*_.E2AT__V8*/ meltfptr[7];
   /*^apply.arg*/
-  argtab[2].bp_aptr = (melt_ptr_t*) &/*_.E2RK__V10*/ meltfptr[9];
+  argtab[2].meltbp_aptr = (melt_ptr_t*) &/*_.E2RK__V10*/ meltfptr[9];
   /*^apply.arg*/
-  argtab[3].bp_aptr = (melt_ptr_t*) &(/*~BOXEDMINUSONE*/ meltfclos->tabval[0]);
+  argtab[3].meltbp_aptr = (melt_ptr_t*) &(/*~BOXEDMINUSONE*/ meltfclos->tabval[0]);
   /*^apply.arg*/
-  argtab[4].bp_aptr = (melt_ptr_t*) &(/*~BOXEDZERO*/ meltfclos->tabval[1]);
+  argtab[4].meltbp_aptr = (melt_ptr_t*) &(/*~BOXEDZERO*/ meltfclos->tabval[1]);
   /*^apply.arg*/
-  argtab[5].bp_aptr = (melt_ptr_t*) &(/*~BOXEDONE*/ meltfclos->tabval[2]);
-  /*_.COMPARE_OBJ_RANKED__V11*/ meltfptr[10] =  melt_apply ((meltclosure_ptr_t)((/*!COMPARE_OBJ_RANKED*/ meltfrout->tabval[0])), (melt_ptr_t)(/*_.E1AT__V5*/ meltfptr[4]), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
+  argtab[5].meltbp_aptr = (melt_ptr_t*) &(/*~BOXEDONE*/ meltfclos->tabval[2]);
+  /*_.COMPARE_OBJ_RANKED__V11*/ meltfptr[10] =  melt_apply ((meltclosure_ptr_t)((/*!COMPARE_OBJ_RANKED*/ meltfrout->tabval[0])), (melt_ptr_t)(/*_.E1AT__V5*/ meltfptr[4]), (MELTBPARSTR_PTR MELTBPARSTR_PTR MELTBPARSTR_PTR MELTBPARSTR_PTR MELTBPARSTR_PTR MELTBPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
   }
  ;
  /*_.LET___V4*/ meltfptr[3] = /*_.COMPARE_OBJ_RANKED__V11*/ meltfptr[10];;
@@ -3477,8 +3477,8 @@ melt_trace_start("LAMBDA_", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_LONG) goto lab_endgetargs;
- /*_#IX__L1*/ meltfnum[0] = xargtab_[0].bp_long;
+ if (xargdescr_[0] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#IX__L1*/ meltfnum[0] = xargtab_[0].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -3577,10 +3577,10 @@ lab_endgetargs:;
   union meltparam_un argtab[2];
   memset(&argtab, 0, sizeof(argtab));
   /*^apply.arg*/
-  argtab[0].bp_aptr = (melt_ptr_t*) &(/*~DBGI*/ meltfclos->tabval[1]);
+  argtab[0].meltbp_aptr = (melt_ptr_t*) &(/*~DBGI*/ meltfclos->tabval[1]);
   /*^apply.arg*/
-  argtab[1].bp_long = /*_#NEXTDEPTH__L2*/ meltfnum[1];
-  /*_.DBG_OUTOBJECT__V9*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUTOBJECT*/ meltfrout->tabval[0])), (melt_ptr_t)(/*_.ELAT__V3*/ meltfptr[2]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+  argtab[1].meltbp_long = /*_#NEXTDEPTH__L2*/ meltfnum[1];
+  /*_.DBG_OUTOBJECT__V9*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUTOBJECT*/ meltfrout->tabval[0])), (melt_ptr_t)(/*_.ELAT__V3*/ meltfptr[2]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
   }
  ;
  MELT_LOCATION("warmelt-debug.melt:653:/ getslot");
@@ -3611,10 +3611,10 @@ lab_endgetargs:;
   union meltparam_un argtab[2];
   memset(&argtab, 0, sizeof(argtab));
   /*^apply.arg*/
-  argtab[0].bp_aptr = (melt_ptr_t*) &(/*~DBGI*/ meltfclos->tabval[1]);
+  argtab[0].meltbp_aptr = (melt_ptr_t*) &(/*~DBGI*/ meltfclos->tabval[1]);
   /*^apply.arg*/
-  argtab[1].bp_long = /*_#I__L6*/ meltfnum[5];
-  /*_.DBG_OUT__V11*/ meltfptr[10] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[1])), (melt_ptr_t)(/*_.ELVA__V4*/ meltfptr[3]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+  argtab[1].meltbp_long = /*_#I__L6*/ meltfnum[5];
+  /*_.DBG_OUT__V11*/ meltfptr[10] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[1])), (melt_ptr_t)(/*_.ELVA__V4*/ meltfptr[3]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
   }
  ;
  
@@ -3719,15 +3719,15 @@ melt_trace_start("DBGOUT_MAPSTRING_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -3923,8 +3923,8 @@ lab_endgetargs:;
     union meltparam_un argtab[1];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.LAMBDA___V16*/ meltfptr[15];
-    /*_.MAPSTRING_EVERY__V18*/ meltfptr[17] =  melt_apply ((meltclosure_ptr_t)((/*!MAPSTRING_EVERY*/ meltfrout->tabval[4])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.LAMBDA___V16*/ meltfptr[15];
+    /*_.MAPSTRING_EVERY__V18*/ meltfptr[17] =  melt_apply ((meltclosure_ptr_t)((/*!MAPSTRING_EVERY*/ meltfrout->tabval[4])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    MELT_LOCATION("warmelt-debug.melt:699:/ quasiblock");
@@ -4038,8 +4038,8 @@ lab_endgetargs:;
     union meltparam_un argtab[1];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.LAMBDA___V25*/ meltfptr[23];
-    /*_.MULTIPLE_EVERY__V27*/ meltfptr[26] =  melt_apply ((meltclosure_ptr_t)((/*!MULTIPLE_EVERY*/ meltfrout->tabval[9])), (melt_ptr_t)(/*_.SORTUPL__V22*/ meltfptr[21]), (BPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.LAMBDA___V25*/ meltfptr[23];
+    /*_.MULTIPLE_EVERY__V27*/ meltfptr[26] =  melt_apply ((meltclosure_ptr_t)((/*!MULTIPLE_EVERY*/ meltfrout->tabval[9])), (melt_ptr_t)(/*_.SORTUPL__V22*/ meltfptr[21]), (MELTBPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.LET___V19*/ meltfptr[18] = /*_.MULTIPLE_EVERY__V27*/ meltfptr[26];;
@@ -4186,8 +4186,8 @@ melt_trace_start("LAMBDA_", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.VAL__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.VAL__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.VAL__V3*/ meltfptr[2])) != NULL);
  
  ;
@@ -4339,8 +4339,8 @@ melt_trace_start("LAMBDA_", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.E2__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.E2__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.E2__V3*/ meltfptr[2])) != NULL);
  
  ;
@@ -4380,18 +4380,18 @@ lab_endgetargs:;
   union meltparam_un argtab[6];
   memset(&argtab, 0, sizeof(argtab));
   /*^apply.arg*/
-  argtab[0].bp_aptr = (melt_ptr_t*) &/*_.E1RK__V7*/ meltfptr[6];
+  argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.E1RK__V7*/ meltfptr[6];
   /*^apply.arg*/
-  argtab[1].bp_aptr = (melt_ptr_t*) &/*_.E2AT__V8*/ meltfptr[7];
+  argtab[1].meltbp_aptr = (melt_ptr_t*) &/*_.E2AT__V8*/ meltfptr[7];
   /*^apply.arg*/
-  argtab[2].bp_aptr = (melt_ptr_t*) &/*_.E2RK__V10*/ meltfptr[9];
+  argtab[2].meltbp_aptr = (melt_ptr_t*) &/*_.E2RK__V10*/ meltfptr[9];
   /*^apply.arg*/
-  argtab[3].bp_aptr = (melt_ptr_t*) &(/*~BOXEDMINUSONE*/ meltfclos->tabval[0]);
+  argtab[3].meltbp_aptr = (melt_ptr_t*) &(/*~BOXEDMINUSONE*/ meltfclos->tabval[0]);
   /*^apply.arg*/
-  argtab[4].bp_aptr = (melt_ptr_t*) &(/*~BOXEDZERO*/ meltfclos->tabval[1]);
+  argtab[4].meltbp_aptr = (melt_ptr_t*) &(/*~BOXEDZERO*/ meltfclos->tabval[1]);
   /*^apply.arg*/
-  argtab[5].bp_aptr = (melt_ptr_t*) &(/*~BOXEDONE*/ meltfclos->tabval[2]);
-  /*_.COMPARE_OBJ_RANKED__V11*/ meltfptr[10] =  melt_apply ((meltclosure_ptr_t)((/*!COMPARE_OBJ_RANKED*/ meltfrout->tabval[0])), (melt_ptr_t)(/*_.E1AT__V5*/ meltfptr[4]), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
+  argtab[5].meltbp_aptr = (melt_ptr_t*) &(/*~BOXEDONE*/ meltfclos->tabval[2]);
+  /*_.COMPARE_OBJ_RANKED__V11*/ meltfptr[10] =  melt_apply ((meltclosure_ptr_t)((/*!COMPARE_OBJ_RANKED*/ meltfrout->tabval[0])), (melt_ptr_t)(/*_.E1AT__V5*/ meltfptr[4]), (MELTBPARSTR_PTR MELTBPARSTR_PTR MELTBPARSTR_PTR MELTBPARSTR_PTR MELTBPARSTR_PTR MELTBPARSTR_PTR ""), argtab, "", (union meltparam_un*)0);
   }
  ;
  /*_.LET___V4*/ meltfptr[3] = /*_.COMPARE_OBJ_RANKED__V11*/ meltfptr[10];;
@@ -4490,8 +4490,8 @@ melt_trace_start("LAMBDA_", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_LONG) goto lab_endgetargs;
- /*_#IX__L1*/ meltfnum[0] = xargtab_[0].bp_long;
+ if (xargdescr_[0] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#IX__L1*/ meltfnum[0] = xargtab_[0].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -4558,10 +4558,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &(/*~DBGI*/ meltfclos->tabval[2]);
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &(/*~DBGI*/ meltfclos->tabval[2]);
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#NEXTDEPTH__L2*/ meltfnum[1];
-    /*_.DBG_OUT__V7*/ meltfptr[6] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[0])), (melt_ptr_t)(/*_.CURSTR__V4*/ meltfptr[3]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = /*_#NEXTDEPTH__L2*/ meltfnum[1];
+    /*_.DBG_OUT__V7*/ meltfptr[6] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[0])), (melt_ptr_t)(/*_.CURSTR__V4*/ meltfptr[3]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    
@@ -4581,10 +4581,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &(/*~DBGI*/ meltfclos->tabval[2]);
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &(/*~DBGI*/ meltfclos->tabval[2]);
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#I__L6*/ meltfnum[4];
-    /*_.DBG_OUT__V8*/ meltfptr[7] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[0])), (melt_ptr_t)(/*_.CURVAL__V5*/ meltfptr[4]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = /*_#I__L6*/ meltfnum[4];
+    /*_.DBG_OUT__V8*/ meltfptr[7] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[0])), (melt_ptr_t)(/*_.CURVAL__V5*/ meltfptr[4]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    MELT_LOCATION("warmelt-debug.melt:724:/ quasiblock");
@@ -4706,15 +4706,15 @@ melt_trace_start("DBGOUT_ANYOBJECT_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -4867,14 +4867,14 @@ lab_endgetargs:;
     union meltparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#I__L8*/ meltfnum[7];
+    argtab[1].meltbp_long = /*_#I__L8*/ meltfnum[7];
     /*^apply.arg*/
-    argtab[2].bp_long = 0;
+    argtab[2].meltbp_long = 0;
     /*^apply.arg*/
-    argtab[3].bp_long = 0;
-    /*_.DBGOUT_FIELDS__V10*/ meltfptr[9] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_FIELDS*/ meltfrout->tabval[1])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG BPARSTR_LONG BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[3].meltbp_long = 0;
+    /*_.DBGOUT_FIELDS__V10*/ meltfptr[9] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_FIELDS*/ meltfrout->tabval[1])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG MELTBPARSTR_LONG MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    
@@ -4984,15 +4984,15 @@ melt_trace_start("DBGOUT_ANYRECV_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -5170,15 +5170,15 @@ melt_trace_start("DBGOUTAGAIN_ANYOBJECT_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -5378,15 +5378,15 @@ melt_trace_start("DBGOUT_NAMEDOBJECT_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -5610,10 +5610,10 @@ lab_endgetargs:;
       union meltparam_un argtab[2];
       memset(&argtab, 0, sizeof(argtab));
       /*^apply.arg*/
-      argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+      argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
       /*^apply.arg*/
-      argtab[1].bp_long = /*_#I__L8*/ meltfnum[7];
-      /*_.DBG_OUT__V15*/ meltfptr[14] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[1])), (melt_ptr_t)(/*_.OPROP__V9*/ meltfptr[8]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+      argtab[1].meltbp_long = /*_#I__L8*/ meltfnum[7];
+      /*_.DBG_OUT__V15*/ meltfptr[14] =  melt_apply ((meltclosure_ptr_t)((/*!DBG_OUT*/ meltfrout->tabval[1])), (melt_ptr_t)(/*_.OPROP__V9*/ meltfptr[8]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
       }
      ;
      MELT_LOCATION("warmelt-debug.melt:815:/ quasiblock");
@@ -5646,14 +5646,14 @@ lab_endgetargs:;
     union meltparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#I__L9*/ meltfnum[7];
+    argtab[1].meltbp_long = /*_#I__L9*/ meltfnum[7];
     /*^apply.arg*/
-    argtab[2].bp_long = 2;
+    argtab[2].meltbp_long = 2;
     /*^apply.arg*/
-    argtab[3].bp_long = 0;
-    /*_.DBGOUT_FIELDS__V17*/ meltfptr[14] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_FIELDS*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG BPARSTR_LONG BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[3].meltbp_long = 0;
+    /*_.DBGOUT_FIELDS__V17*/ meltfptr[14] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_FIELDS*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG MELTBPARSTR_LONG MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    
@@ -5769,15 +5769,15 @@ melt_trace_start("DBGOUTAGAIN_NAMEDOBJECT_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -5965,15 +5965,15 @@ melt_trace_start("DBGOUT_SYMBOL_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -6090,10 +6090,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = 0;
-    /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_NAMEDOBJECT_METHOD*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = 0;
+    /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_NAMEDOBJECT_METHOD*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.IFELSE___V8*/ meltfptr[6] = /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8];;
@@ -6112,10 +6112,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#DEPTH__L1*/ meltfnum[0];
-    /*_.DBGOUTAGAIN_SYMBOL_METHOD__V10*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUTAGAIN_SYMBOL_METHOD*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = /*_#DEPTH__L1*/ meltfnum[0];
+    /*_.DBGOUTAGAIN_SYMBOL_METHOD__V10*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUTAGAIN_SYMBOL_METHOD*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.IFELSE___V8*/ meltfptr[6] = /*_.DBGOUTAGAIN_SYMBOL_METHOD__V10*/ meltfptr[8];;
@@ -6212,15 +6212,15 @@ melt_trace_start("DBGOUTAGAIN_SYMBOL_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -6465,15 +6465,15 @@ melt_trace_start("DBGOUT_CLASS_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -6590,10 +6590,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = 0;
-    /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_NAMEDOBJECT_METHOD*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = 0;
+    /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_NAMEDOBJECT_METHOD*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.IFELSE___V8*/ meltfptr[6] = /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8];;
@@ -6612,10 +6612,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#DEPTH__L1*/ meltfnum[0];
-    /*_.DBGOUTAGAIN_NAMEDOBJECT_METHOD__V10*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUTAGAIN_NAMEDOBJECT_METHOD*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = /*_#DEPTH__L1*/ meltfnum[0];
+    /*_.DBGOUTAGAIN_NAMEDOBJECT_METHOD__V10*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUTAGAIN_NAMEDOBJECT_METHOD*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.IFELSE___V8*/ meltfptr[6] = /*_.DBGOUTAGAIN_NAMEDOBJECT_METHOD__V10*/ meltfptr[8];;
@@ -6712,15 +6712,15 @@ melt_trace_start("DBGOUT_KEYWORD_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -6837,10 +6837,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = 0;
-    /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_NAMEDOBJECT_METHOD*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = 0;
+    /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_NAMEDOBJECT_METHOD*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.IFELSE___V8*/ meltfptr[6] = /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8];;
@@ -6859,10 +6859,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#DEPTH__L1*/ meltfnum[0];
-    /*_.DBGOUTAGAIN_KEYWORD_METHOD__V10*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUTAGAIN_KEYWORD_METHOD*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = /*_#DEPTH__L1*/ meltfnum[0];
+    /*_.DBGOUTAGAIN_KEYWORD_METHOD__V10*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUTAGAIN_KEYWORD_METHOD*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.IFELSE___V8*/ meltfptr[6] = /*_.DBGOUTAGAIN_KEYWORD_METHOD__V10*/ meltfptr[8];;
@@ -6959,15 +6959,15 @@ melt_trace_start("DBGOUTAGAIN_KEYWORD_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -7184,15 +7184,15 @@ melt_trace_start("DBGOUT_CLONED_SYMBOL_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -7309,10 +7309,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = 0;
-    /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_NAMEDOBJECT_METHOD*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = 0;
+    /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_NAMEDOBJECT_METHOD*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.IFELSE___V8*/ meltfptr[6] = /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8];;
@@ -7331,10 +7331,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#DEPTH__L1*/ meltfnum[0];
-    /*_.DBGOUTAGAIN_CLONED_SYMBOL_METHOD__V10*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUTAGAIN_CLONED_SYMBOL_METHOD*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = /*_#DEPTH__L1*/ meltfnum[0];
+    /*_.DBGOUTAGAIN_CLONED_SYMBOL_METHOD__V10*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUTAGAIN_CLONED_SYMBOL_METHOD*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.IFELSE___V8*/ meltfptr[6] = /*_.DBGOUTAGAIN_CLONED_SYMBOL_METHOD__V10*/ meltfptr[8];;
@@ -7431,15 +7431,15 @@ melt_trace_start("DBGOUTAGAIN_CLONED_SYMBOL_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -7582,15 +7582,15 @@ melt_trace_start("DBGOUT_ENVIRONMENT_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -7890,14 +7890,14 @@ lab_endgetargs:;
     union meltparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#I__L17*/ meltfnum[15];
+    argtab[1].meltbp_long = /*_#I__L17*/ meltfnum[15];
     /*^apply.arg*/
-    argtab[2].bp_long = 0;
+    argtab[2].meltbp_long = 0;
     /*^apply.arg*/
-    argtab[3].bp_long = /*_#OFFPREV__L7*/ meltfnum[6];
-    /*_.DBGOUT_FIELDS__V13*/ meltfptr[11] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_FIELDS*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG BPARSTR_LONG BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[3].meltbp_long = /*_#OFFPREV__L7*/ meltfnum[6];
+    /*_.DBGOUT_FIELDS__V13*/ meltfptr[11] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_FIELDS*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG MELTBPARSTR_LONG MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_#I__L18*/ meltfnum[17] = 
@@ -7920,14 +7920,14 @@ lab_endgetargs:;
       union meltparam_un argtab[4];
       memset(&argtab, 0, sizeof(argtab));
       /*^apply.arg*/
-      argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+      argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
       /*^apply.arg*/
-      argtab[1].bp_long = /*_#I__L20*/ meltfnum[19];
+      argtab[1].meltbp_long = /*_#I__L20*/ meltfnum[19];
       /*^apply.arg*/
-      argtab[2].bp_long = /*_#OFFPREV__L7*/ meltfnum[6];
+      argtab[2].meltbp_long = /*_#OFFPREV__L7*/ meltfnum[6];
       /*^apply.arg*/
-      argtab[3].bp_long = 0;
-      /*_.DBGOUTAGAIN_FIELDS__V15*/ meltfptr[14] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUTAGAIN_FIELDS*/ meltfrout->tabval[4])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG BPARSTR_LONG BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+      argtab[3].meltbp_long = 0;
+      /*_.DBGOUTAGAIN_FIELDS__V15*/ meltfptr[14] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUTAGAIN_FIELDS*/ meltfrout->tabval[4])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG MELTBPARSTR_LONG MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
       }
      ;
      /*_.IFELSE___V14*/ meltfptr[13] = /*_.DBGOUTAGAIN_FIELDS__V15*/ meltfptr[14];;
@@ -8095,15 +8095,15 @@ melt_trace_start("DBGOUT_CTYPE_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -8220,10 +8220,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = 0;
-    /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_NAMEDOBJECT_METHOD*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = 0;
+    /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_NAMEDOBJECT_METHOD*/ meltfrout->tabval[2])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.IFELSE___V8*/ meltfptr[6] = /*_.DBGOUT_NAMEDOBJECT_METHOD__V9*/ meltfptr[8];;
@@ -8242,10 +8242,10 @@ lab_endgetargs:;
     union meltparam_un argtab[2];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#DEPTH__L1*/ meltfnum[0];
-    /*_.DBGOUTAGAIN_CTYPE_METHOD__V10*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUTAGAIN_CTYPE_METHOD*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[1].meltbp_long = /*_#DEPTH__L1*/ meltfnum[0];
+    /*_.DBGOUTAGAIN_CTYPE_METHOD__V10*/ meltfptr[8] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUTAGAIN_CTYPE_METHOD*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    /*_.IFELSE___V8*/ meltfptr[6] = /*_.DBGOUTAGAIN_CTYPE_METHOD__V10*/ meltfptr[8];;
@@ -8342,15 +8342,15 @@ melt_trace_start("DBGOUTAGAIN_CTYPE_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -8473,15 +8473,15 @@ melt_trace_start("DBGOUT_ANYBINDING_METHOD", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_PTR) goto lab_endgetargs;
- /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].bp_aptr) ? (*(xargtab_[0].bp_aptr)) : NULL;
+ if (xargdescr_[0] != MELTBPAR_PTR) goto lab_endgetargs;
+ /*_.DBGI__V3*/ meltfptr[2] = (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
  gcc_assert(melt_discr((melt_ptr_t)(/*_.DBGI__V3*/ meltfptr[2])) != NULL);
  
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#DEPTH__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -8665,10 +8665,10 @@ lab_endgetargs:;
   union meltparam_un argtab[2];
   memset(&argtab, 0, sizeof(argtab));
   /*^ojbmsend.arg*/
-  argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+  argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
   /*^ojbmsend.arg*/
-  argtab[1].bp_long = /*_#I__L6*/ meltfnum[5];
-  /*_.DBG_OUTPUTAGAIN__V12*/ meltfptr[11] = meltgc_send((melt_ptr_t)(/*_.BINDERV__V10*/ meltfptr[9]), (melt_ptr_t)((/*!DBG_OUTPUTAGAIN*/ meltfrout->tabval[2])), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+  argtab[1].meltbp_long = /*_#I__L6*/ meltfnum[5];
+  /*_.DBG_OUTPUTAGAIN__V12*/ meltfptr[11] = meltgc_send((melt_ptr_t)(/*_.BINDERV__V10*/ meltfptr[9]), (melt_ptr_t)((/*!DBG_OUTPUTAGAIN*/ meltfrout->tabval[2])), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
   }
  ;
  MELT_LOCATION("warmelt-debug.melt:1011:/ getslot");
@@ -8700,14 +8700,14 @@ lab_endgetargs:;
     union meltparam_un argtab[4];
     memset(&argtab, 0, sizeof(argtab));
     /*^apply.arg*/
-    argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
+    argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V3*/ meltfptr[2];
     /*^apply.arg*/
-    argtab[1].bp_long = /*_#I__L9*/ meltfnum[8];
+    argtab[1].meltbp_long = /*_#I__L9*/ meltfnum[8];
     /*^apply.arg*/
-    argtab[2].bp_long = 1;
+    argtab[2].meltbp_long = 1;
     /*^apply.arg*/
-    argtab[3].bp_long = 0;
-    /*_.DBGOUT_FIELDS__V15*/ meltfptr[14] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_FIELDS*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (BPARSTR_PTR BPARSTR_LONG BPARSTR_LONG BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+    argtab[3].meltbp_long = 0;
+    /*_.DBGOUT_FIELDS__V15*/ meltfptr[14] =  melt_apply ((meltclosure_ptr_t)((/*!DBGOUT_FIELDS*/ meltfrout->tabval[3])), (melt_ptr_t)(/*_.SELF__V2*/ meltfptr[1]), (MELTBPARSTR_PTR MELTBPARSTR_LONG MELTBPARSTR_LONG MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
     }
    ;
    MELT_LOCATION("warmelt-debug.melt:1012:/ quasiblock");
@@ -8837,13 +8837,13 @@ melt_trace_start("DISPLAY_DEBUG_MESSAGE", meltcallcount);
  
  /*getarg#1*/
  /*^getarg*/
- if (xargdescr_[0] != BPAR_CSTRING) goto lab_endgetargs;
- /*_?*/ meltfram__.loc_CSTRING__o0 = xargtab_[0].bp_cstring;
+ if (xargdescr_[0] != MELTBPAR_CSTRING) goto lab_endgetargs;
+ /*_?*/ meltfram__.loc_CSTRING__o0 = xargtab_[0].meltbp_cstring;
  
  /*getarg#2*/
  /*^getarg*/
- if (xargdescr_[1] != BPAR_LONG) goto lab_endgetargs;
- /*_#COUNT__L1*/ meltfnum[0] = xargtab_[1].bp_long;
+ if (xargdescr_[1] != MELTBPAR_LONG) goto lab_endgetargs;
+ /*_#COUNT__L1*/ meltfnum[0] = xargtab_[1].meltbp_long;
  ;
  goto lab_endgetargs;
 lab_endgetargs:;
@@ -8941,10 +8941,10 @@ lab_endgetargs:;
   union meltparam_un argtab[2];
   memset(&argtab, 0, sizeof(argtab));
   /*^ojbmsend.arg*/
-  argtab[0].bp_aptr = (melt_ptr_t*) &/*_.DBGI__V6*/ meltfptr[5];
+  argtab[0].meltbp_aptr = (melt_ptr_t*) &/*_.DBGI__V6*/ meltfptr[5];
   /*^ojbmsend.arg*/
-  argtab[1].bp_long = 0;
-  /*_.DBG_OUTPUT__V8*/ meltfptr[7] = meltgc_send((melt_ptr_t)(/*_.VAL__V2*/ meltfptr[1]), (melt_ptr_t)((/*!DBG_OUTPUT*/ meltfrout->tabval[4])), (BPARSTR_PTR BPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
+  argtab[1].meltbp_long = 0;
+  /*_.DBG_OUTPUT__V8*/ meltfptr[7] = meltgc_send((melt_ptr_t)(/*_.VAL__V2*/ meltfptr[1]), (melt_ptr_t)((/*!DBG_OUTPUT*/ meltfrout->tabval[4])), (MELTBPARSTR_PTR MELTBPARSTR_LONG ""), argtab, "", (union meltparam_un*)0);
   }
  ;
  
