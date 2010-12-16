@@ -1,4 +1,11 @@
 
+2010-12-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h: Rename every meltparam_un field from bp_* to
+	meltbp_*. Temporarily add backward compatibility macro.
+	* melt-runtime.c: Ditto.
+	* melt/warmelt-first.melt: Ditto, so generate meltbp_*.
+	* melt/warmelt-outobj.melt: Ditto.
+
 2010-12-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c: Rename scanning as melt_scanning.
 	(melt_garbcoll): Ditto.

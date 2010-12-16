@@ -3687,8 +3687,8 @@ mulsort_cmp (const void *p1, const void *p2)
     }
   memset (argtab, 0, sizeof (argtab));
   memset (restab, 0, sizeof (restab));
-  argtab[0].bp_aptr = (melt_ptr_t *) & val2v;
-  restab[0].bp_longptr = & cmplg;
+  argtab[0].meltbp_aptr = (melt_ptr_t *) & val2v;
+  restab[0].meltbp_longptr = & cmplg;
   rescmpv =
     melt_apply ((meltclosure_ptr_t) clov, (melt_ptr_t) val1v,
 		   BPARSTR_PTR, argtab, BPARSTR_LONG, restab);
@@ -6102,7 +6102,7 @@ meltgc_send (melt_ptr_t recv_p,
 	  if (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE)
 	    {
 	      union meltparam_un pararg[1];
-	      pararg[0].bp_aptr = (melt_ptr_t *) & selv;
+	      pararg[0].meltbp_aptr = (melt_ptr_t *) & selv;
 	      resv =
 		melt_apply ((meltclosure_ptr_t) closv,
 			       (melt_ptr_t) recv, BPARSTR_PTR, pararg, "",
@@ -7949,7 +7949,7 @@ meltgc_named_symbol (const char *nam, int create)
 	  union meltparam_un pararg[1];
 	  memset (&pararg, 0, sizeof (pararg));
 	  nstrv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), namdup);
-	  pararg[0].bp_aptr = (melt_ptr_t *) & nstrv;
+	  pararg[0].meltbp_aptr = (melt_ptr_t *) & nstrv;
 	  symbv =
 	    melt_apply ((meltclosure_ptr_t) closv,
 			   (melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
@@ -7994,7 +7994,7 @@ meltgc_intern_symbol (melt_ptr_t symb_p)
     {
       union meltparam_un pararg[1];
       memset (&pararg, 0, sizeof (pararg));
-      pararg[0].bp_aptr = (melt_ptr_t *) & symbv;
+      pararg[0].meltbp_aptr = (melt_ptr_t *) & symbv;
       MELT_LOCATION_HERE ("intern symbol before apply");
       resv =
 	melt_apply ((meltclosure_ptr_t) closv,
@@ -8364,7 +8364,7 @@ meltgc_intern_keyword (melt_ptr_t keyw_p)
     {
       union meltparam_un pararg[1];
       memset (&pararg, 0, sizeof (pararg));
-      pararg[0].bp_aptr = (melt_ptr_t *) & keywv;
+      pararg[0].meltbp_aptr = (melt_ptr_t *) & keywv;
       MELT_LOCATION_HERE ("intern keyword before apply");
       resv =
 	melt_apply ((meltclosure_ptr_t) closv,
@@ -8436,7 +8436,7 @@ meltgc_named_keyword (const char *nam, int create)
 	  union meltparam_un pararg[1];
 	  memset (&pararg, 0, sizeof (pararg));
 	  nstrv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), namdup);
-	  pararg[0].bp_aptr = (melt_ptr_t *) & nstrv;
+	  pararg[0].meltbp_aptr = (melt_ptr_t *) & nstrv;
 	  keywv =
 	    melt_apply ((meltclosure_ptr_t) closv,
 			   (melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
@@ -9691,7 +9691,7 @@ do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 	memset (pararg, 0, sizeof (pararg));
 	{
 	  /* apply the closure to the mode & the module data */
-	  pararg[0].bp_aptr = (melt_ptr_t *) & modatav;
+	  pararg[0].meltbp_aptr = (melt_ptr_t *) & modatav;
 	  debugeprintf ("do_initial_mode before apply closv %p", closv);
 	  MELT_LOCATION_HERE ("do_initial_mode before apply");
 	  resv = melt_apply ((meltclosure_ptr_t) closv,
@@ -9880,7 +9880,7 @@ load_melt_modules_and_do_mode (void)
 	{
 	  union meltparam_un pararg[1];
 	  memset (&pararg, 0, sizeof (pararg));
-	  pararg[0].bp_cstring = optvalue;
+	  pararg[0].meltbp_cstring = optvalue;
 	  MELT_LOCATION_HERE ("option set before apply");
 	  debugeprintf ("MELT option %s value %s", optname,
 			optvalue?optvalue:"_");
@@ -10050,7 +10050,7 @@ melt_passexec_callback (void *gcc_data,
     {
       union meltparam_un pararg[1];
       memset (&pararg, 0, sizeof (pararg));
-      pararg[0].bp_long = pass->static_pass_number;
+      pararg[0].meltbp_long = pass->static_pass_number;
       if (pass->name)
 	passnamev = meltgc_new_stringdup 
 	  ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), pass->name);
@@ -10844,8 +10844,8 @@ void meltgc_debugmsgval(void* val_p, const char*msg, long count)
   {
     union meltparam_un argtab[2];
     memset(argtab, 0, sizeof(argtab));
-    argtab[0].bp_cstring = msg;
-    argtab[1].bp_long = count;
+    argtab[0].meltbp_cstring = msg;
+    argtab[1].meltbp_long = count;
     (void) melt_apply ((meltclosure_ptr_t) dbgfv, (melt_ptr_t)valv, 
 			  BPARSTR_CSTRING BPARSTR_LONG, argtab, "", NULL);
   }
@@ -12321,7 +12321,7 @@ meltgc_gimple_execute(void)
     meltfram__.mcfr_flocs = locbuf;
   }
 #endif
-    restab[0].bp_longptr = &todol;
+    restab[0].meltbp_longptr = &todol;
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
 		  (melt_ptr_t) passv, "",
@@ -12469,7 +12469,7 @@ meltgc_rtl_execute(void)
 	((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
       }
     memset (&restab, 0, sizeof (restab));
-    restab[0].bp_longptr = &todol;
+    restab[0].meltbp_longptr = &todol;
     debugeprintf
       ("rtl_execute passname %s dbgcounter %ld",
        current_pass->name, melt_dbgcounter);
@@ -12635,7 +12635,7 @@ meltgc_simple_ipa_execute(void)
     long todol = 0;
     union meltparam_un restab[1];
     memset (&restab, 0, sizeof (restab));
-    restab[0].bp_longptr = &todol;
+    restab[0].meltbp_longptr = &todol;
     debugeprintf
       ("simple_ipa_execute passname %s dbgcounter %ld",
        current_pass->name, melt_dbgcounter);
@@ -12939,8 +12939,8 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
 	meltgc_new_tree ((meltobject_ptr_t) MELT_PREDEF (DISCR_TREE),
 			    name);
       memset (argtab, 0, sizeof (argtab));
-      argtab[0].bp_aptr = (melt_ptr_t *) & namev;
-      argtab[1].bp_aptr = (melt_ptr_t *) & seqv;
+      argtab[0].meltbp_aptr = (melt_ptr_t *) & namev;
+      argtab[1].meltbp_aptr = (melt_ptr_t *) & seqv;
 #if ENABLE_CHECKING
   {
     static char locbuf[80];

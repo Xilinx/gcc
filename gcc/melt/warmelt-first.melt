@@ -356,10 +356,10 @@ $INITIAL_SYSTEM_DATA.}#
   :fields (
 	   ctype_keyword ;the keyword associated to the ctype (e.g. :long)
 	   ctype_cname	 ;the name for C of the type (eg long)
-	   ctype_parchar ;the name of the melt parameter char (eg BPAR_LONG)
-	   ctype_parstring ;the name of the melt parameter string (eg BPARSTR_LONG)
-	   ctype_argfield ;the name of the melt argument union field (eg bp_long)
-	   ctype_resfield ;the name of the melt result union field (eg bp_longptr)
+	   ctype_parchar ;the name of the melt parameter char (eg MELTBPAR_LONG)
+	   ctype_parstring ;the name of the melt parameter string (eg MELTBPARSTR_LONG)
+	   ctype_argfield ;the name of the melt argument union field (eg meltbp_long)
+	   ctype_resfield ;the name of the melt result union field (eg meltbp_longptr)
 	   ctype_marker	  ;the name of the marker routine
 	   ctype_descr	  ;descriptive string
 	   ctype_altkeyword ;the alternate keyword associated to the ctype (e.g. :longinteger)
@@ -1931,11 +1931,11 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :named_name  '"CTYPE_VALUE"
   :ctype_keyword ':value
   :ctype_cname  '"melt_ptr_t"
-  :ctype_parchar '"BPAR_PTR"
-  :ctype_parstring '"BPARSTR_PTR"
+  :ctype_parchar '"MELTBPAR_PTR"
+  :ctype_parstring '"MELTBPARSTR_PTR"
   ;; value have to be passed specially, we need to pass the address of the pointer
-  :ctype_argfield '"bp_aptr"
-  :ctype_resfield '"bp_aptr"
+  :ctype_argfield '"meltbp_aptr"
+  :ctype_resfield '"meltbp_aptr"
   :ctype_marker '"gt_ggc_mx_melt_un"
   )
 (install_ctype_descr ctype_value "any melt value pointer")
@@ -1947,10 +1947,10 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :named_name  '"CTYPE_LONG"
   :ctype_keyword ':long
   :ctype_cname  '"long"
-  :ctype_parchar '"BPAR_LONG"
-  :ctype_parstring '"BPARSTR_LONG"
-  :ctype_argfield '"bp_long"
-  :ctype_resfield '"bp_longptr"
+  :ctype_parchar '"MELTBPAR_LONG"
+  :ctype_parstring '"MELTBPARSTR_LONG"
+  :ctype_argfield '"meltbp_long"
+  :ctype_resfield '"meltbp_longptr"
   )
 (install_ctype_descr ctype_long "C long unboxed integer")
 
@@ -1961,10 +1961,10 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :named_name  '"CTYPE_TREE"
   :ctype_keyword ':tree
   :ctype_cname  '"tree"
-  :ctype_parchar '"BPAR_TREE"
-  :ctype_parstring '"BPARSTR_TREE"
-  :ctype_argfield '"bp_tree"
-  :ctype_resfield '"bp_treeptr"
+  :ctype_parchar '"MELTBPAR_TREE"
+  :ctype_parstring '"MELTBPARSTR_TREE"
+  :ctype_argfield '"meltbp_tree"
+  :ctype_resfield '"meltbp_treeptr"
   :ctype_marker '"gt_ggc_mx_tree_node"
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_TREE"
@@ -1994,10 +1994,10 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :named_name  '"CTYPE_GIMPLE"
   :ctype_keyword ':gimple
   :ctype_cname '"gimple"
-  :ctype_parchar '"BPAR_GIMPLE"
-  :ctype_parstring '"BPARSTR_GIMPLE"
-  :ctype_argfield '"bp_gimple"
-  :ctype_resfield '"bp_gimpleptr"
+  :ctype_parchar '"MELTBPAR_GIMPLE"
+  :ctype_parstring '"MELTBPARSTR_GIMPLE"
+  :ctype_argfield '"meltbp_gimple"
+  :ctype_resfield '"meltbp_gimpleptr"
   :ctype_marker '"gt_ggc_mx_gimple_statement_d"
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_GIMPLE"
@@ -2029,10 +2029,10 @@ Keyword is :gimple_seq.}#
   :ctype_keyword ':gimple_seq
   ; :ctype_altkeyword ':gimpleseq
   :ctype_cname  '"gimple_seq"
-  :ctype_parchar '"BPAR_GIMPLESEQ"
-  :ctype_parstring '"BPARSTR_GIMPLESEQ"
-  :ctype_argfield '"bp_gimpleseq"
-  :ctype_resfield '"bp_gimpleseqptr"
+  :ctype_parchar '"MELTBPAR_GIMPLESEQ"
+  :ctype_parstring '"MELTBPARSTR_GIMPLESEQ"
+  :ctype_argfield '"meltbp_gimpleseq"
+  :ctype_resfield '"meltbp_gimpleseqptr"
   :ctype_marker '"gt_ggc_mx_gimple_seq_d"
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_GIMPLESEQ"
@@ -2064,10 +2064,10 @@ Keyword is :basic_block.}#
   :ctype_keyword ':basic_block
   ; :ctype_altkeyword ':basicblock
   :ctype_cname  '"basic_block"
-  :ctype_parchar '"BPAR_BB"
-  :ctype_parstring '"BPARSTR_BB"
-  :ctype_argfield '"bp_bb"
-  :ctype_resfield '"bp_bbptr"
+  :ctype_parchar '"MELTBPAR_BB"
+  :ctype_parstring '"MELTBPARSTR_BB"
+  :ctype_argfield '"meltbp_bb"
+  :ctype_resfield '"meltbp_bbptr"
   :ctype_marker '"gt_ggc_mx_basic_block_def"
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_BASICBLOCK"
@@ -2098,10 +2098,10 @@ Keyword is :edge.}#
   :named_name  '"CTYPE_EDGE"
   :ctype_keyword ':edge
   :ctype_cname '"edge"
-  :ctype_parchar '"BPAR_EDGE"
-  :ctype_parstring '"BPARSTR_EDGE"
-  :ctype_argfield '"bp_edge"
-  :ctype_resfield '"bp_edgeptr"
+  :ctype_parchar '"MELTBPAR_EDGE"
+  :ctype_parstring '"MELTBPARSTR_EDGE"
+  :ctype_argfield '"meltbp_edge"
+  :ctype_resfield '"meltbp_edgeptr"
   :ctype_marker '"gt_ggc_mx_edge_def"
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_EDGE"
@@ -2132,10 +2132,10 @@ Keyword is :loop.}#
   :named_name  '"CTYPE_LOOP"
   :ctype_keyword ':loop
   :ctype_cname '"loop"
-  :ctype_parchar '"BPAR_LOOP"
-  :ctype_parstring '"BPARSTR_LOOP"
-  :ctype_argfield '"bp_loop"
-  :ctype_resfield '"bp_loopptr"
+  :ctype_parchar '"MELTBPAR_LOOP"
+  :ctype_parstring '"MELTBPARSTR_LOOP"
+  :ctype_argfield '"meltbp_loop"
+  :ctype_resfield '"meltbp_loopptr"
   :ctype_marker '"gt_ggc_mx_loop"
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_LOOP"
@@ -2166,10 +2166,10 @@ Keyword is :rtx.}#
   :named_name  '"CTYPE_RTX"
   :ctype_keyword ':rtx
   :ctype_cname '"rtx"
-  :ctype_parchar '"BPAR_RTX"
-  :ctype_parstring '"BPARSTR_RTX"
-  :ctype_argfield '"bp_rtx"
-  :ctype_resfield '"bp_rtxptr"
+  :ctype_parchar '"MELTBPAR_RTX"
+  :ctype_parstring '"MELTBPARSTR_RTX"
+  :ctype_argfield '"meltbp_rtx"
+  :ctype_resfield '"meltbp_rtxptr"
   :ctype_marker '"gt_ggc_mx_rtx"
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_RTX"
@@ -2200,10 +2200,10 @@ Keyword is :bitmap.}#
   :named_name  '"CTYPE_BITMAP"
   :ctype_keyword ':bitmap
   :ctype_cname '"bitmap"
-  :ctype_parchar '"BPAR_BITMAP"
-  :ctype_parstring '"BPARSTR_BITMAP"
-  :ctype_argfield '"bp_bitmap"
-  :ctype_resfield '"bp_bitmapptr"
+  :ctype_parchar '"MELTBPAR_BITMAP"
+  :ctype_parstring '"MELTBPARSTR_BITMAP"
+  :ctype_argfield '"meltbp_bitmap"
+  :ctype_resfield '"meltbp_bitmapptr"
   :ctype_marker '"gt_ggc_mx_bitmap"
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_BITMAP"
@@ -2234,10 +2234,10 @@ Keyword is :rtvec.}#
   :named_name  '"CTYPE_RTVEC"
   :ctype_keyword ':rtvec
   :ctype_cname '"rtvec"
-  :ctype_parchar '"BPAR_RTVEC"
-  :ctype_parstring '"BPARSTR_RTVEC"
-  :ctype_argfield '"bp_rtvec"
-  :ctype_resfield '"bp_rtvecptr"
+  :ctype_parchar '"MELTBPAR_RTVEC"
+  :ctype_parstring '"MELTBPARSTR_RTVEC"
+  :ctype_argfield '"meltbp_rtvec"
+  :ctype_resfield '"meltbp_rtvecptr"
   :ctype_marker '"gt_ggc_mx_rtvec"
 ;; GTY ctype
   :ctypg_boxedmagic '"MELTOBMAG_RTVEC"
@@ -2268,10 +2268,10 @@ Keyword is :ppl_coefficient.}#
   :named_name '"CTYPE_PPL_COEFFICIENT"
   :ctype_keyword ':ppl_coefficient
   :ctype_cname  '"ppl_Coefficient_t"
-  :ctype_parchar '"BPAR_PPL_COEFFICIENT"
-  :ctype_parstring '"BPARSTR_PPL_COEFFICIENT"
-  :ctype_argfield '"bp_ppl_coefficient"
-  :ctype_resfield '"bp_ppl_coefficientptr"
+  :ctype_parchar '"MELTBPAR_PPL_COEFFICIENT"
+  :ctype_parstring '"MELTBPARSTR_PPL_COEFFICIENT"
+  :ctype_argfield '"meltbp_ppl_coefficient"
+  :ctype_resfield '"meltbp_ppl_coefficientptr"
 )
 (install_ctype_descr ctype_ppl_coefficient "PPL coefficient")
 
@@ -2283,10 +2283,10 @@ Keyword is :ppl_linear_expression.}#
   :named_name '"CTYPE_PPL_LINEAR_EXPRESSION"
   :ctype_keyword ':ppl_linear_expression
   :ctype_cname  '"ppl_Linear_Expression_t"
-  :ctype_parchar '"BPAR_PPL_LINEAR_EXPRESSION"
-  :ctype_parstring '"BPARSTR_PPL_LINEAR_EXPRESSION"
-  :ctype_argfield '"bp_ppl_linear_expression"
-  :ctype_resfield '"bp_ppl_linear_expressionptr"
+  :ctype_parchar '"MELTBPAR_PPL_LINEAR_EXPRESSION"
+  :ctype_parstring '"MELTBPARSTR_PPL_LINEAR_EXPRESSION"
+  :ctype_argfield '"meltbp_ppl_linear_expression"
+  :ctype_resfield '"meltbp_ppl_linear_expressionptr"
 )
 (install_ctype_descr ctype_ppl_linear_expression "PPL linear expression")
 
@@ -2298,10 +2298,10 @@ Keyword is :ppl_constraint.}#
   :named_name '"CTYPE_PPL_CONSTRAINT"
   :ctype_keyword ':ppl_constraint
   :ctype_cname  '"ppl_Constraint_t"
-  :ctype_parchar '"BPAR_PPL_CONSTRAINT"
-  :ctype_parstring '"BPARSTR_PPL_CONSTRAINT"
-  :ctype_argfield '"bp_ppl_constraint"
-  :ctype_resfield '"bp_ppl_constraintptr"
+  :ctype_parchar '"MELTBPAR_PPL_CONSTRAINT"
+  :ctype_parstring '"MELTBPARSTR_PPL_CONSTRAINT"
+  :ctype_argfield '"meltbp_ppl_constraint"
+  :ctype_resfield '"meltbp_ppl_constraintptr"
 )
 (install_ctype_descr ctype_ppl_constraint "PPL constraint")
 
@@ -2313,10 +2313,10 @@ Keyword is :ppl_constraint_system.}#
   :named_name '"CTYPE_PPL_CONSTRAINT_SYSTEM"
   :ctype_keyword ':ppl_constraint_system
   :ctype_cname  '"ppl_Constraint_System_t"
-  :ctype_parchar '"BPAR_PPL_CONSTRAINT_SYSTEM"
-  :ctype_parstring '"BPARSTR_PPL_CONSTRAINT_SYSTEM"
-  :ctype_argfield '"bp_ppl_constraint_system"
-  :ctype_resfield '"bp_ppl_constraint_systemptr"
+  :ctype_parchar '"MELTBPAR_PPL_CONSTRAINT_SYSTEM"
+  :ctype_parstring '"MELTBPARSTR_PPL_CONSTRAINT_SYSTEM"
+  :ctype_argfield '"meltbp_ppl_constraint_system"
+  :ctype_resfield '"meltbp_ppl_constraint_systemptr"
 )
 (install_ctype_descr ctype_ppl_constraint_system "PPL constraint_system")
 
@@ -2328,10 +2328,10 @@ Keyword is :ppl_constraint_system.}#
 Keyword is :ppl_polyhedron.}#
   :ctype_keyword ':ppl_polyhedron
   :ctype_cname  '"ppl_Polyhedron_t"
-  :ctype_parchar '"BPAR_PPL_POLYHEDRON"
-  :ctype_parstring '"BPARSTR_PPL_POLYHEDRON"
-  :ctype_argfield '"bp_ppl_polyhedron"
-  :ctype_resfield '"bp_ppl_polyhedronptr"
+  :ctype_parchar '"MELTBPAR_PPL_POLYHEDRON"
+  :ctype_parstring '"MELTBPARSTR_PPL_POLYHEDRON"
+  :ctype_argfield '"meltbp_ppl_polyhedron"
+  :ctype_resfield '"meltbp_ppl_polyhedronptr"
 )
 (install_ctype_descr ctype_ppl_polyhedron "PPL polyhedron")
 
@@ -2356,9 +2356,9 @@ Keyword is :cstring.}#
   :named_name  '"CTYPE_CSTRING"
   :ctype_keyword ':cstring
   :ctype_cname  (stringconst2val discr_name_string "const char*")
-  :ctype_parchar '"BPAR_CSTRING"
-  :ctype_parstring '"BPARSTR_CSTRING"
-  :ctype_argfield '"bp_cstring"
+  :ctype_parchar '"MELTBPAR_CSTRING"
+  :ctype_parstring '"MELTBPARSTR_CSTRING"
+  :ctype_argfield '"meltbp_cstring"
   )
 (install_ctype_descr ctype_cstring "C constant strings (statically allocated outside of any heap)")
 

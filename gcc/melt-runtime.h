@@ -187,103 +187,191 @@ union meltparam_un
 {
   /* for melt value pointers, we pass the address of a local, to be
      compatible with our copying garbage collector */
-  melt_ptr_t *bp_aptr;	/* letter p */
-#define BPAR_PTR          'p'
-#define BPARSTR_PTR       "p"
+  melt_ptr_t *meltbp_aptr;	/* letter p */
+#define MELTBPAR_PTR          'p'
+#define MELTBPARSTR_PTR       "p"
+  /* backward compatibility */
+#define BPAR_PTR MELTBPAR_PTR
+#define BPARSTR_PTR MELTBPARSTR_PTR
+#define bp_aptr meltbp_aptr
 
 /* we no longer have BPAR_RESTPTR as 'R' */
 
-  tree bp_tree;			/* letter t */
-  tree *bp_treeptr;		/* for extra results */
-#define BPAR_TREE         't'
-#define BPARSTR_TREE      "t"
+  tree meltbp_tree;			/* letter t */
+  tree *meltbp_treeptr;		/* for extra results */
+#define MELTBPAR_TREE         't'
+#define MELTBPARSTR_TREE      "t"
+  /* backward compatibility */
+#define BPAR_TREE MELTBPAR_TREE
+#define BPARSTR_TREE MELTBPARSTR_TREE
+#define bp_tree meltbp_tree
+#define bp_treeptr meltbp_treeptr
 
-  gimple bp_gimple;			/* letter g */
-  gimple *bp_gimpleptr;		/* for extra results */
-#define BPAR_GIMPLE       'g'
-#define BPARSTR_GIMPLE    "g"
+  gimple meltbp_gimple;			/* letter g */
+  gimple *meltbp_gimpleptr;		/* for extra results */
+#define MELTBPAR_GIMPLE       'g'
+#define MELTBPARSTR_GIMPLE    "g"
+  /* backward compatibity */
+#define BPAR_GIMPLE MELTBPAR_GIMPLE
+#define BPARSTR_GIMPLE MELTBPARSTR_GIMPLE
+#define bp_gimple meltbp_gimple
+#define bp_gimpleptr meltbp_gimpleptr
 
-  gimple_seq bp_gimpleseq;			/* letter g */
-  gimple_seq *bp_gimpleseqptr;		/* for extra results */
-#define BPAR_GIMPLESEQ       'G'
-#define BPARSTR_GIMPLESEQ    "G"
+  gimple_seq meltbp_gimpleseq;			/* letter g */
+  gimple_seq *meltbp_gimpleseqptr;		/* for extra results */
+#define MELTBPAR_GIMPLESEQ       'G'
+#define MELTBPARSTR_GIMPLESEQ    "G"
+  /* backward compatibility */
+#define BPAR_GIMPLE MELTBPAR_GIMPLE
+#define BPARSTR_GIMPLE MELTBPARSTR_GIMPLE
+#define bp_gimpleseq meltbp_gimpleseq
+#define bp_gimpleseqptr meltbp_gimpleseqptr
 
-  long bp_long;			/* letter l */
-  long *bp_longptr;		/* for results */
-#define BPAR_LONG         'l'
-#define BPARSTR_LONG      "l"
+  long meltbp_long;			/* letter l */
+  long *meltbp_longptr;		/* for results */
+#define MELTBPAR_LONG         'l'
+#define MELTBPARSTR_LONG      "l"
+  /* backward compatibility */
+#define BPAR_LONG MELTBPAR_LONG
+#define BPARSTR_LONG MELTBPARSTR_LONG
+#define bp_long meltbp_long
+#define bp_longptr meltbp_longptr
 
-  edge bp_edge;			/* letter e */
-  edge *bp_edgeptr;		/* for results */
-#define BPAR_EDGE         'e'
-#define BPARSTR_EDGE      "e"
+  edge meltbp_edge;			/* letter e */
+  edge *meltbp_edgeptr;		/* for results */
+#define MELTBPAR_EDGE         'e'
+#define MELTBPARSTR_EDGE      "e"
+  /* backward compatibility */
+#define BPAR_EDGE MELTBPAR_EDGE
+#define BPARSTR_EDGE MELTBPARSTR_EDGE
+#define bp_edge meltbp_edge
+#define bp_edgeptr meltbp_edgeptr
 
-  basic_block bp_bb;		/* letter b */
-  basic_block *bp_bbptr;	/* for results */
-#define BPAR_BB           'b'
-#define BPARSTR_BB        "b"
+  basic_block meltbp_bb;		/* letter b */
+  basic_block *meltbp_bbptr;	/* for results */
+#define MELTBPAR_BB           'b'
+#define MELTBPARSTR_BB        "b"
+  /* backward compatibility */
+#define BPAR_BB MELTBPAR_BB
+#define BPARSTR_BB MELTBPARSTR_BB
+#define bp_bb meltbp_bb
+#define bp_bbptr meltbp_bbptr
 
   /* readonly constant strings - not in GP nor in heap */
-  const char *bp_cstring;			/* letter s */
-  const char **bp_cstringptr;		/* for results */
-#define BPAR_CSTRING         's'
-#define BPARSTR_CSTRING      "s"
+  const char *meltbp_cstring;			/* letter s */
+  const char **meltbp_cstringptr;		/* for results */
+#define MELTBPAR_CSTRING         's'
+#define MELTBPARSTR_CSTRING      "s"
+  /* backward compatibility */
+#define BPAR_CSTRING MELTBPAR_CSTRING
+#define BPARSTR_CSTRING MELTBPARSTR_CSTRING
+#define bp_cstring meltbp_cstring
+#define bp_cstringptr meltbp_cstringptr
 
   /* PPL and special stuff are getting the upper case letters */
   /* PPL coefficients */
-  ppl_Coefficient_t bp_ppl_coefficient;
-  ppl_Coefficient_t* bp_ppl_coefficientptr;
-#define BPAR_PPL_COEFFICIENT 'A'
-#define BPARSTR_PPL_COEFFICIENT "A"
+  ppl_Coefficient_t  meltbp_ppl_coefficient;
+  ppl_Coefficient_t* meltbp_ppl_coefficientptr;
+#define MELTBPAR_PPL_COEFFICIENT 'A'
+#define MELTBPARSTR_PPL_COEFFICIENT "A"
+  /* backward compatibility */
+#define BPAR_PPL_COEFFICIENT MELTBPAR_PPL_COEFFICIENT
+#define BPARSTR_PPL_COEFFICIENT MELTBPARSTR_PPL_COEFFICIENT
+#define bp_ppl_coefficient    meltbp_ppl_coefficient
+#define bp_ppl_coefficientptr    meltbp_ppl_coefficientptr
 
   /* PPL constraints */
-  ppl_Constraint_t bp_ppl_constraint;
-  ppl_Constraint_t* bp_ppl_constraintptr;
-#define BPAR_PPL_CONSTRAINT 'B'
-#define BPARSTR_PPL_CONSTRAINT "B"
+  ppl_Constraint_t meltbp_ppl_constraint;
+  ppl_Constraint_t* meltbp_ppl_constraintptr;
+#define MELTBPAR_PPL_CONSTRAINT 'B'
+#define MELTBPARSTR_PPL_CONSTRAINT "B"
+  /* backward compatibility */
+#define BPAR_PPL_CONSTRAINT MELTBPAR_PPL_CONSTRAINT
+#define BPARSTR_PPL_CONSTRAINT MELTBPARSTR_PPL_CONSTRAINT
+#define bp_ppl_constraint       meltbp_ppl_constraint
+#define bp_ppl_constraintptr    meltbp_ppl_constraintptr
 
   /* PPL constraint systems */
-  ppl_Constraint_System_t bp_ppl_constraint_system;
-  ppl_Constraint_System_t* bp_ppl_constraint_systemptr;
-#define BPAR_PPL_CONSTRAINT_SYSTEM 'C'
-#define BPARSTR_PPL_CONSTRAINT_SYSTEM "C"
+  ppl_Constraint_System_t  meltbp_ppl_constraint_system;
+  ppl_Constraint_System_t* meltbp_ppl_constraint_systemptr;
+#define MELTBPAR_PPL_CONSTRAINT_SYSTEM 'C'
+#define MELTBPARSTR_PPL_CONSTRAINT_SYSTEM "C"
+  /* backward compatibility */
+#define BPAR_PPL_CONSTRAINT_SYSTEM MELTBPAR_PPL_CONSTRAINT_SYSTEM
+#define BPARSTR_PPL_CONSTRAINT_SYSTEM MELTBPARSTR_PPL_CONSTRAINT_SYSTEM
+#define bp_ppl_constraint_system       meltbp_ppl_constraint_system
+#define bp_ppl_constraint_systemptr    meltbp_ppl_constraint_systemptr
 
   /* PPL linear expressions */
-  ppl_Linear_Expression_t bp_ppl_linear_expression;
-  ppl_Linear_Expression_t* bp_ppl_linear_expressionptr;
-#define BPAR_PPL_LINEAR_EXPRESSION 'D'
-#define BPARSTR_PPL_LINEAR_EXPRESSION "D"
+  ppl_Linear_Expression_t  meltbp_ppl_linear_expression;
+  ppl_Linear_Expression_t* meltbp_ppl_linear_expressionptr;
+#define MELTBPAR_PPL_LINEAR_EXPRESSION 'D'
+#define MELTBPARSTR_PPL_LINEAR_EXPRESSION "D"
+  /* backward compatibility */
+#define BPAR_PPL_LINEAR_EXPRESSION MELTBPAR_PPL_LINEAR_EXPRESSION
+#define BPARSTR_PPL_LINEAR_EXPRESSION MELTBPARSTR_PPL_LINEAR_EXPRESSION
+#define  bp_ppl_linear_expression     meltbp_ppl_linear_expression
+#define  bp_ppl_linear_expressionptr  meltbp_ppl_linear_expressionptr
 
   /* PPL polyhedrons */
-  ppl_Polyhedron_t bl_ppl_polyhedron;
-  ppl_Polyhedron_t* bp_ppl_polyhedronptr;
-#define BPAR_PPL_POLYHEDRON            'E'
-#define BPARSTR_PPL_POLYHEDRON         "E"
+  ppl_Polyhedron_t meltbl_ppl_polyhedron;
+  ppl_Polyhedron_t* meltbp_ppl_polyhedronptr;
+#define MELTBPAR_PPL_POLYHEDRON            'E'
+#define MELTBPARSTR_PPL_POLYHEDRON         "E"
+  /* backward compatibility */
+#define BPAR_PPL_POLYHEDRON MELTBPAR_PPL_POLYHEDRON
+#define BPARSTR_PPL_POLYHEDRON MELTBPARSTR_PPL_POLYHEDRON
+#define bp_ppl_polyhedron       meltbp_ppl_polyhedron
+#define bp_ppl_polyhedronptr    meltbp_ppl_polyhedronptr
+
+
 
   /* bitmap-s */
-  bitmap bp_bitmap;			/* letter I */
-  bitmap *bp_bitmapptr;		/* for results */
-#define BPAR_BITMAP         'I'
-#define BPARSTR_BITMAP      "I"
+  bitmap meltbp_bitmap;			/* letter I */
+  bitmap *meltbp_bitmapptr;		/* for results */
+#define MELTBPAR_BITMAP         'I'
+#define MELTBPARSTR_BITMAP      "I"
+  /* backward compatibility */
+#define BPAR_BITMAP        MELTBPAR_BITMAP         
+#define BPARSTR_BITMAP     MELTBPARSTR_BITMAP      
+#define bp_bitmap          meltbp_bitmap
+#define bp_bitmapptr       meltbp_bitmapptr
 
   /* loop-s */
-  struct loop *bp_loop;			/* letter L */
-  struct loop **bp_loopptr;		/* for results */
-#define BPAR_LOOP         'L'
-#define BPARSTR_LOOP      "L"
+  struct loop *meltbp_loop;			/* letter L */
+  struct loop **meltbp_loopptr;		/* for results */
+#define MELTBPAR_LOOP         'L'
+#define MELTBPARSTR_LOOP      "L"
+  /* backward compatibility */
+#define BPAR_LOOP        MELTBPAR_LOOP         
+#define BPARSTR_LOOP     MELTBPARSTR_LOOP     
+#define bp_loop          meltbp_loop
+#define bp_loopptr       meltbp_loopptr   
+
 
   /* rtx-s */
-  rtx bp_rtx;			/* letter X */
-  rtx* bp_rtxptr;
-#define BPAR_RTX         'X'
-#define BPARSTR_RTX      "X"
+  rtx  meltbp_rtx;			/* letter X */
+  rtx* meltbp_rtxptr;
+#define MELTBPAR_RTX         'X'
+#define MELTBPARSTR_RTX      "X"
+  /* backward compatibility */
+#define BPAR_RTX        MELTBPAR_RTX         
+#define BPARSTR_RTX     MELTBPARSTR_RTX   
+#define bp_rtx          meltbp_rtx
+#define bp_rtxptr       meltbp_rtxptr   
+
 
 
   /* rtvec-s */
-  rtvec bp_rtvec;			/* letter Y */
-  rtvec* bp_rtvecptr;
-#define BPAR_RTVEC         'Y'
-#define BPARSTR_RTVEC      "Y"
+  rtvec meltbp_rtvec;			/* letter Y */
+  rtvec* meltbp_rtvecptr;
+#define MELTBPAR_RTVEC         'Y'
+#define MELTBPARSTR_RTVEC      "Y"
+  /* backward compatibility */
+#define BPAR_RTVEC        MELTBPAR_RTVEC    
+#define BPARSTR_RTVEC     MELTBPARSTR_RTVEC 
+#define bp_rtvec          meltbp_rtvec
+#define bp_rtvecptr       meltbp_rtvecptr   
 };
 
 /*** the closures contain routines which are called by applying
