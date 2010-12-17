@@ -1,5 +1,12 @@
 2010-12-17  Diego Novillo  <dnovillo@google.com>
 
+	Fix broken bootstrap.
+
+	* BASE-VER: Move trunk revision suffix...
+	* DATESTAMP: ... here.
+
+2010-12-17  Diego Novillo  <dnovillo@google.com>
+
 	Mainline merge r167963.
 
 	* BASE-VER: Update revision stamp.
