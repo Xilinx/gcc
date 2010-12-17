@@ -23,8 +23,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "intl.h"
 #include "coretypes.h"
-#include "tm.h" /* Needed by rtl.h and used for DWARF2_DEBUGGING_INFO
-		   and DBX_DEBUGGING_INFO.  */
+#include "tm.h" /* Needed by rtl.h and used for STACK_CHECK_BUILTIN,
+		   STACK_CHECK_STATIC_BUILTIN, DEFAULT_GDB_EXTENSIONS,
+		   DWARF2_DEBUGGING_INFO and DBX_DEBUGGING_INFO.  */
 #include "rtl.h" /* Needed by insn-attr.h.  */
 #include "opts.h"
 #include "options.h"
@@ -34,11 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts-diagnostic.h"
 #include "insn-attr.h"		/* For INSN_SCHEDULING and DELAY_SLOTS.  */
 #include "target.h"
-
-/* Run the second compilation of -fcompare-debug.  Not defined using
-   Var in common.opt because this is used in Ada code and so must be
-   an actual variable not a macro.  */
-int flag_compare_debug;
 
 /* Parse the -femit-struct-debug-detailed option value
    and set the flag variables. */
@@ -1454,10 +1450,6 @@ common_handle_option (struct gcc_options *opts,
       /* Deferred.  */
       break;
 
-    case OPT_fcompare_debug_second:
-      flag_compare_debug = value;
-      break;
-
     case OPT_fdbg_cnt_:
     case OPT_fdbg_cnt_list:
       /* Deferred.  */
@@ -1609,15 +1601,15 @@ common_handle_option (struct gcc_options *opts,
 
     case OPT_fstack_check_:
       if (!strcmp (arg, "no"))
-	flag_stack_check = NO_STACK_CHECK;
+	opts->x_flag_stack_check = NO_STACK_CHECK;
       else if (!strcmp (arg, "generic"))
 	/* This is the old stack checking method.  */
-	flag_stack_check = STACK_CHECK_BUILTIN
+	opts->x_flag_stack_check = STACK_CHECK_BUILTIN
 			   ? FULL_BUILTIN_STACK_CHECK
 			   : GENERIC_STACK_CHECK;
       else if (!strcmp (arg, "specific"))
 	/* This is the new stack checking method.  */
-	flag_stack_check = STACK_CHECK_BUILTIN
+	opts->x_flag_stack_check = STACK_CHECK_BUILTIN
 			   ? FULL_BUILTIN_STACK_CHECK
 			   : STACK_CHECK_STATIC_BUILTIN
 			     ? STATIC_BUILTIN_STACK_CHECK

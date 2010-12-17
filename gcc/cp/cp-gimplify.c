@@ -1,6 +1,6 @@
 /* C++-specific tree lowering bits; see also c-gimplify.c and tree-gimple.c.
 
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Jason Merrill <jason@redhat.com>
 
@@ -27,7 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cp-tree.h"
 #include "c-family/c-common.h"
-#include "toplev.h"
 #include "tree-iterator.h"
 #include "gimple.h"
 #include "hashtab.h"
@@ -959,6 +958,23 @@ cp_genericize (tree fndecl)
       DECL_BY_REFERENCE (t) = 1;
       TREE_ADDRESSABLE (t) = 0;
       relayout_decl (t);
+      if (DECL_NAME (t))
+	{
+	  /* Adjust DECL_VALUE_EXPR of the original var.  */
+	  tree outer = outer_curly_brace_block (current_function_decl);
+	  tree var;
+
+	  if (outer)
+	    for (var = BLOCK_VARS (outer); var; var = DECL_CHAIN (var))
+	      if (DECL_NAME (t) == DECL_NAME (var)
+		  && DECL_HAS_VALUE_EXPR_P (var)
+		  && DECL_VALUE_EXPR (var) == t)
+		{
+		  tree val = convert_from_reference (t);
+		  SET_DECL_VALUE_EXPR (var, val);
+		  break;
+		}
+	}
     }
 
   /* If we're a clone, the body is already GIMPLE.  */

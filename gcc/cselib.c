@@ -34,7 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "emit-rtl.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "output.h"
 #include "ggc.h"
 #include "hashtab.h"
@@ -44,6 +43,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 #include "target.h"
 #include "bitmap.h"
+
+/* A list of cselib_val structures.  */
+struct elt_list {
+    struct elt_list *next;
+    cselib_val *elt;
+};
 
 static bool cselib_record_memory;
 static bool cselib_preserve_constants;

@@ -31,7 +31,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "tm_p.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "hashtab.h"
 #include "langhooks.h"
 #include "ggc.h"
@@ -243,6 +242,20 @@ i386_pe_mangle_decl_assembler_name (tree decl, tree id)
   tree new_id = i386_pe_maybe_mangle_decl_assembler_name (decl, id);   
 
   return (new_id ? new_id : id);
+}
+
+/* This hook behaves the same as varasm.c/assemble_name(), but
+   generates the name into memory rather than outputting it to
+   a file stream.  */
+
+tree
+i386_pe_mangle_assembler_name (const char *name ATTRIBUTE_UNUSED)
+{
+  const char *skipped = name + (*name == '*' ? 1 : 0);
+  const char *stripped = targetm.strip_name_encoding (skipped);
+  if (*name != '*' && *user_label_prefix && *stripped != FASTCALL_PREFIX)
+    stripped = ACONCAT ((user_label_prefix, stripped, NULL));
+  return get_identifier (stripped);
 }
 
 void

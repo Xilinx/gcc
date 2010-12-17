@@ -1,5 +1,5 @@
 /* IRA hard register and memory cost calculation for allocnos or pseudos.
-   Copyright (C) 2006, 2007, 2008, 2009
+   Copyright (C) 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Vladimir Makarov <vmakarov@redhat.com>.
 
@@ -35,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "reload.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "target.h"
 #include "params.h"
 #include "ira-int.h"
@@ -1094,8 +1093,7 @@ print_allocno_costs (FILE *f)
 	      && (! in_inc_dec[i] || ! forbidden_inc_dec_class[rclass])
 #endif
 #ifdef CANNOT_CHANGE_MODE_CLASS
-	      && ! invalid_mode_change_p (regno, (enum reg_class) rclass,
-					  PSEUDO_REGNO_MODE (regno))
+	      && ! invalid_mode_change_p (regno, (enum reg_class) rclass)
 #endif
 	      )
 	    {
@@ -1132,8 +1130,7 @@ print_pseudo_costs (FILE *f)
 	      && (! in_inc_dec[regno] || ! forbidden_inc_dec_class[rclass])
 #endif
 #ifdef CANNOT_CHANGE_MODE_CLASS
-	      && ! invalid_mode_change_p (regno, (enum reg_class) rclass,
-					  PSEUDO_REGNO_MODE (regno))
+	      && ! invalid_mode_change_p (regno, (enum reg_class) rclass)
 #endif
 	      )
 	    fprintf (f, " %s:%d", reg_class_names[rclass],
@@ -1337,8 +1334,7 @@ find_costs_and_classes (FILE *dump_file)
 		  || (inc_dec_p && forbidden_inc_dec_class[rclass])
 #endif
 #ifdef CANNOT_CHANGE_MODE_CLASS
-		  || invalid_mode_change_p (i, (enum reg_class) rclass,
-					    PSEUDO_REGNO_MODE (i))
+		  || invalid_mode_change_p (i, (enum reg_class) rclass)
 #endif
 		  )
 		continue;
@@ -1413,8 +1409,7 @@ find_costs_and_classes (FILE *dump_file)
 			  || (inc_dec_p && forbidden_inc_dec_class[rclass])
 #endif
 #ifdef CANNOT_CHANGE_MODE_CLASS
-			  || invalid_mode_change_p (i, (enum reg_class) rclass,
-						    PSEUDO_REGNO_MODE (i))
+			  || invalid_mode_change_p (i, (enum reg_class) rclass)
 #endif
 			  )
 			;
@@ -1700,6 +1695,7 @@ init_costs (void)
 static void
 finish_costs (void)
 {
+  finish_subregs_of_mode ();
   ira_free (regno_equiv_gains);
   ira_free (regno_cover_class);
   ira_free (pref_buffer);
