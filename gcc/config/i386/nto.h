@@ -1,5 +1,5 @@
 /* Definitions for Intel 386 running QNX/Neutrino.
-   Copyright (C) 2002, 2003, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2007, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -46,6 +46,14 @@ along with GCC; see the file COPYING3.  If not see
 #define SYSROOT_SUFFIX_SPEC "x86"
 #endif
 
+#ifndef CROSS_DIRECTORY_STRUCTURE
+#undef MD_EXEC_PREFIX
+#define MD_EXEC_PREFIX "/usr/ccs/bin/"
+
+#undef MD_STARTFILE_PREFIX
+#define MD_STARTFILE_PREFIX "/usr/ccs/lib/"
+#endif
+
 #undef STARTFILE_SPEC
 #define STARTFILE_SPEC \
 "%{!shared: \
@@ -64,7 +72,6 @@ crti.o%s \
 #undef LINK_SPEC
 #define LINK_SPEC \
   "%{h*} %{v:-V} \
-   %{b} \
    %{static:-dn -Bstatic} \
    %{shared:-G -dy -z text} \
    %{symbolic:-Bsymbolic -G -dy -z text} \
@@ -91,3 +98,4 @@ crti.o%s \
 
 #define NO_IMPLICIT_EXTERN_C 1
 
+#define TARGET_POSIX_IO

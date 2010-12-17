@@ -28,6 +28,10 @@
 #undef STARTFILE_SPEC
 #undef ENDFILE_SPEC
 
+#undef  LINK_SPEC
+#define LINK_SPEC "%{h*} %{v:-V} \
+		   %{static:-Bstatic} %{shared:-shared} %{symbolic:-Bsymbolic}"
+
 
 /* Run-time target specifications.  */
 
@@ -132,6 +136,18 @@
 #define DOUBLE_TYPE_SIZE 	64
 #define LONG_DOUBLE_TYPE_SIZE	64
 #define DEFAULT_SIGNED_CHAR	1
+
+#undef  SIZE_TYPE
+#define SIZE_TYPE "unsigned int"
+
+#undef  PTRDIFF_TYPE
+#define PTRDIFF_TYPE "int"
+
+#undef  WCHAR_TYPE
+#define WCHAR_TYPE "long int"
+
+#undef  WCHAR_TYPE_SIZE
+#define WCHAR_TYPE_SIZE BITS_PER_WORD
 
 
 /* Register Basics.  */
@@ -390,15 +406,6 @@ typedef struct iq2000_args
 	  && (GET_MODE_CLASS (MODE) == MODE_INT)))			\
       ? downward : upward))
 
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE)				\
-  (((TYPE) != 0)							\
-	? ((TYPE_ALIGN(TYPE) <= PARM_BOUNDARY)				\
-		? PARM_BOUNDARY						\
-		: TYPE_ALIGN(TYPE))					\
-	: ((GET_MODE_ALIGNMENT(MODE) <= PARM_BOUNDARY)			\
-		? PARM_BOUNDARY						\
-		: GET_MODE_ALIGNMENT(MODE)))
-
 #define FUNCTION_ARG_REGNO_P(N)						\
   (((N) >= GP_ARG_FIRST && (N) <= GP_ARG_LAST))			
 
@@ -509,7 +516,7 @@ typedef struct iq2000_args
  "%8",   "%9",   "%10",  "%11",  "%12",  "%13",  "%14",  "%15",		\
  "%16",  "%17",  "%18",  "%19",  "%20",  "%21",  "%22",  "%23",		\
  "%24",  "%25",  "%26",  "%27",  "%28",  "%29",  "%30",  "%31",  "%rap"	\
-};
+}
 
 #define ADDITIONAL_REGISTER_NAMES					\
 {									\
@@ -832,7 +839,7 @@ enum processor_type
   (((regno) >= FIRST_PSEUDO_REGISTER) || (BASE_REG_P ((regno), (mode))))
 
 #define REGNO_MODE_OK_FOR_BASE_P(regno, mode) \
-  GP_REG_OR_PSEUDO_STRICT_P ((regno), (mode))
+  GP_REG_OR_PSEUDO_STRICT_P ((int) (regno), (mode))
 
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx
    and check its validity for a certain class.

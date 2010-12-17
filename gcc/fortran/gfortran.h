@@ -38,24 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "input.h"
 #include "splay-tree.h"
-/* The following ifdefs are recommended by the autoconf documentation
-   for any code using alloca.  */
-
-/* AIX requires this to be the first thing in the file.  */
-#ifdef __GNUC__
-#else /* not __GNUC__ */
-#ifdef HAVE_ALLOCA_H
-#include <alloca.h>
-#else /* do not HAVE_ALLOCA_H */
-#ifdef _AIX
-#pragma alloca
-#else
-#ifndef alloca			/* predefined by HP cc +Olibcalls */
-char *alloca ();
-#endif /* not predefined */
-#endif /* not _AIX */
-#endif /* do not HAVE_ALLOCA_H */
-#endif /* not __GNUC__ */
 
 /* Major control parameters.  */
 
@@ -69,10 +51,6 @@ char *alloca ();
 
 #define free(x) Use_gfc_free_instead_of_free()
 #define gfc_is_whitespace(c) ((c==' ') || (c=='\t'))
-
-#ifndef NULL
-#define NULL ((void *) 0)
-#endif
 
 /* Stringization.  */
 #define stringize(x) expand_macro(x)
@@ -118,6 +96,13 @@ typedef enum
 { SUCCESS = 1, FAILURE }
 gfc_try;
 
+/* These are flags for identifying whether we are reading a character literal
+   between quotes or normal source code.  */
+   
+typedef enum
+{ NONSTRING = 0, INSTRING_WARN, INSTRING_NOWARN }
+gfc_instring;
+
 /* This is returned by gfc_notification_std to know if, given the flags
    that were given (-std=, -pedantic) we should issue an error, a warning
    or nothing.  */
@@ -135,6 +120,7 @@ typedef enum
 { MATCH_NO = 1, MATCH_YES, MATCH_ERROR }
 match;
 
+/* Used for different Fortran source forms in places like scanner.c.  */
 typedef enum
 { FORM_FREE, FORM_FIXED, FORM_UNKNOWN }
 gfc_source_form;
@@ -182,7 +168,6 @@ typedef enum
 }
 gfc_intrinsic_op;
 
-
 /* This macro is the number of intrinsic operators that exist.
    Assumptions are made about the numbering of the interface_op enums.  */
 #define GFC_INTRINSIC_OPS GFC_INTRINSIC_END
@@ -227,7 +212,6 @@ typedef enum
   ST_GET_FCN_CHARACTERISTICS, ST_NONE
 }
 gfc_statement;
-
 
 /* Types of interfaces that we can have.  Assignment interfaces are
    considered to be intrinsic operators.  */
@@ -885,7 +869,7 @@ typedef struct gfc_charlen
   struct gfc_charlen *next;
   bool length_from_typespec; /* Length from explicit array ctor typespec?  */
   tree backend_decl;
-  tree passed_length; /* Length argument explicitelly passed.  */
+  tree passed_length; /* Length argument explicitly passed.  */
 
   int resolved;
 }
@@ -910,7 +894,8 @@ typedef struct
   struct gfc_symbol *interface;	/* For PROCEDURE declarations.  */
   int is_c_interop;
   int is_iso_c;
-  bt f90_type; 
+  bt f90_type;
+  bool deferred;
 }
 gfc_typespec;
 
@@ -2178,7 +2163,8 @@ typedef struct
   int max_continue_fixed;
   int max_continue_free;
   int max_identifier_length;
-  int dump_parse_tree;
+  int dump_fortran_original;
+  int dump_fortran_optimized;
 
   int warn_aliasing;
   int warn_ampersand;
@@ -2236,6 +2222,7 @@ typedef struct
   int flag_align_commons;
   int flag_whole_file;
   int flag_protect_parens;
+  int flag_realloc_lhs;
 
   int fpe;
   int rtcheck;
@@ -2351,7 +2338,7 @@ gfc_char_t *gfc_char_to_widechar (const char *);
 #define gfc_get_wide_string(n) XCNEWVEC (gfc_char_t, n)
 
 void gfc_skip_comments (void);
-gfc_char_t gfc_next_char_literal (int);
+gfc_char_t gfc_next_char_literal (gfc_instring);
 gfc_char_t gfc_next_char (void);
 char gfc_next_ascii_char (void);
 gfc_char_t gfc_peek_char (void);
@@ -2393,7 +2380,7 @@ unsigned int gfc_option_lang_mask (void);
 void gfc_init_options_struct (struct gcc_options *);
 void gfc_init_options (unsigned int,
 		       struct cl_decoded_option *);
-bool gfc_handle_option (size_t, const char *, int, int,
+bool gfc_handle_option (size_t, const char *, int, int, location_t,
 			const struct cl_option_handlers *);
 bool gfc_post_options (const char **);
 char *gfc_get_option_string (void);
@@ -2875,6 +2862,11 @@ gfc_try gfc_check_same_strlen (const gfc_expr*, const gfc_expr*, const char*);
 
 /* class.c */
 void gfc_add_component_ref (gfc_expr *, const char *);
+#define gfc_add_data_component(e)     gfc_add_component_ref(e,"_data")
+#define gfc_add_vptr_component(e)     gfc_add_component_ref(e,"_vptr")
+#define gfc_add_hash_component(e)     gfc_add_component_ref(e,"_hash")
+#define gfc_add_size_component(e)     gfc_add_component_ref(e,"_size")
+#define gfc_add_def_init_component(e) gfc_add_component_ref(e,"_def_init")
 gfc_expr *gfc_class_null_initializer (gfc_typespec *);
 gfc_try gfc_build_class_symbol (gfc_typespec *, symbol_attribute *,
 				gfc_array_spec **, bool);

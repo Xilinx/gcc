@@ -31,7 +31,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
 #include "tree-flow.h"
-#include "toplev.h"
 #include "tree-dump.h"
 #include "timevar.h"
 #include "cfgloop.h"
@@ -606,7 +605,7 @@ graphite_read_scop_file (FILE *file, scop_p scop)
 
   if (strcmp (tmp, "SCoP 1"))
     {
-      error ("The file is not in OpenScop format.\n");
+      error ("the file is not in OpenScop format");
       return false;
     }
 
@@ -617,7 +616,7 @@ graphite_read_scop_file (FILE *file, scop_p scop)
 
   if (strcmp (language, "Gimple"))
     {
-      error ("The language is not recognized\n");
+      error ("the language is not recognized");
       return false;
     }
 
@@ -628,8 +627,8 @@ graphite_read_scop_file (FILE *file, scop_p scop)
 
   if ((size_t) params != scop->nb_params)
     {
-      error ("Parameters number in the scop file is different from the"
-	     " internal scop parameter number.");
+      error ("parameters number in the scop file is different from the"
+	     " internal scop parameter number");
       return false;
     }
 
@@ -641,8 +640,8 @@ graphite_read_scop_file (FILE *file, scop_p scop)
 
   if (nb_statements != VEC_length (poly_bb_p, SCOP_BBS (scop)))
     {
-      error ("Number of statements in the OpenScop file does not match"
-	     " the graphite internal statements number.");
+      error ("number of statements in the OpenScop file does not match"
+	     " the graphite internal statements number");
       return false;
     }
 
@@ -777,7 +776,7 @@ apply_poly_transforms (scop_p scop)
   else
     {
       if (flag_loop_strip_mine)
-	transform_done |= scop_do_strip_mine (scop);
+	transform_done |= scop_do_strip_mine (scop, 0);
 
       if (flag_loop_interchange)
 	transform_done |= scop_do_interchange (scop);
@@ -875,8 +874,8 @@ free_poly_dr (poly_dr_p pdr)
 
 /* Create a new polyhedral black box.  */
 
-void
-new_poly_bb (scop_p scop, void *black_box, bool reduction)
+poly_bb_p
+new_poly_bb (scop_p scop, void *black_box)
 {
   poly_bb_p pbb = XNEW (struct poly_bb);
 
@@ -887,9 +886,11 @@ new_poly_bb (scop_p scop, void *black_box, bool reduction)
   PBB_SAVED (pbb) = NULL;
   PBB_ORIGINAL (pbb) = NULL;
   PBB_DRS (pbb) = VEC_alloc (poly_dr_p, heap, 3);
-  PBB_IS_REDUCTION (pbb) = reduction;
+  PBB_IS_REDUCTION (pbb) = false;
   PBB_PDR_DUPLICATES_REMOVED (pbb) = false;
-  VEC_safe_push (poly_bb_p, heap, SCOP_BBS (scop), pbb);
+  GBB_PBB ((gimple_bb_p) black_box) = pbb;
+
+  return pbb;
 }
 
 /* Free polyhedral black box.  */

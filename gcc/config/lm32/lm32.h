@@ -55,7 +55,6 @@
 %{mbarrel-shift-enabled} \
 %{msign-extend-enabled} \
 %{muser-extend-enabled} \
-%{v} \
 "
 
 /* Let link script define all link options. 
@@ -67,12 +66,6 @@
 #define ENDFILE_SPEC ""
 #undef  LIB_SPEC
 #define LIB_SPEC "%{!T*:-T sim.ld}"
-
-/* Add -G xx support.  */
-
-#undef  SWITCH_TAKES_ARG
-#define SWITCH_TAKES_ARG(CHAR) \
-(DEFAULT_SWITCH_TAKES_ARG (CHAR) || (CHAR) == 'G')
 
 #undef  CC1_SPEC
 #define CC1_SPEC "%{G*}"
@@ -356,7 +349,7 @@ enum reg_class
 #define REG_OK_FOR_BASE_P(X) NONSTRICT_REG_OK_FOR_BASE_P(X)
 #endif
 
-#define LEGITIMATE_CONSTANT_P(X) lm32_legitimate_constant_p
+#define LEGITIMATE_CONSTANT_P(X) lm32_legitimate_constant_p (X)
 
 /*-------------------------*/
 /* Condition Code Status.  */

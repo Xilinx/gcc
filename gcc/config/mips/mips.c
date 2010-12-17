@@ -27,7 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include <signal.h>
 #include "rtl.h"
 #include "regs.h"
 #include "hard-reg-set.h"
@@ -35,7 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "conditions.h"
 #include "insn-attr.h"
 #include "recog.h"
-#include "toplev.h"
 #include "output.h"
 #include "tree.h"
 #include "function.h"
@@ -346,7 +344,7 @@ struct GTY(())  machine_function {
 
   /* How many instructions it takes to load a label into $AT, or 0 if
      this property hasn't yet been calculated.  */
-  unsigned int load_label_length;
+  unsigned int load_label_num_insns;
 
   /* True if mips_adjust_insn_length should ignore an instruction's
      hazard attribute.  */
@@ -373,10 +371,6 @@ struct GTY(())  machine_function {
      clobber.  This value is only meaningful during the first post-epilogue
      split_insns pass; see mips_must_initialize_gp_p () for details.  */
   bool must_restore_gp_when_clobbered_p;
-
-  /* True if we have emitted an instruction to initialize
-     mips16_gp_pseudo_rtx.  */
-  bool initialized_mips16_gp_pseudo_p;
 
   /* True if this is an interrupt handler.  */
   bool interrupt_handler_p;
@@ -779,6 +773,7 @@ static const struct mips_cpu_info mips_cpu_info_table[] = {
   { "sb1a", PROCESSOR_SB1A, 64, PTF_AVOID_BRANCHLIKELY },
   { "sr71000", PROCESSOR_SR71000, 64, PTF_AVOID_BRANCHLIKELY },
   { "xlr", PROCESSOR_XLR, 64, 0 },
+  { "loongson3a", PROCESSOR_LOONGSON_3A, 64, PTF_AVOID_BRANCHLIKELY },
 
   /* MIPS64 Release 2 processors.  */
   { "octeon", PROCESSOR_OCTEON, 65, PTF_AVOID_BRANCHLIKELY }
@@ -977,6 +972,9 @@ static const struct mips_rtx_cost_data
     DEFAULT_COSTS
   },
   { /* Loongson-2F */
+    DEFAULT_COSTS
+  },
+  { /* Loongson-3A */
     DEFAULT_COSTS
   },
   { /* M4k */
@@ -1190,6 +1188,7 @@ static const struct mips_rtx_cost_data
 static rtx mips_find_pic_call_symbol (rtx, rtx);
 static int mips_register_move_cost (enum machine_mode, reg_class_t,
 				    reg_class_t);
+static unsigned int mips_function_arg_boundary (enum machine_mode, const_tree);
 
 /* This hash table keeps track of implicit "mips16" and "nomips16" attributes
    for -mflip_mips16.  It maps decl names onto a boolean mode setting.  */
@@ -2650,15 +2649,10 @@ static rtx
 mips16_gp_pseudo_reg (void)
 {
   if (cfun->machine->mips16_gp_pseudo_rtx == NULL_RTX)
-    cfun->machine->mips16_gp_pseudo_rtx = gen_reg_rtx (Pmode);
-
-  /* Don't emit an instruction to initialize the pseudo register if
-     we are being called from the tree optimizers' cost-calculation
-     routines.  */
-  if (!cfun->machine->initialized_mips16_gp_pseudo_p
-      && (current_ir_type () != IR_GIMPLE || currently_expanding_to_rtl))
     {
       rtx insn, scan;
+
+      cfun->machine->mips16_gp_pseudo_rtx = gen_reg_rtx (Pmode);
 
       push_topmost_sequence ();
 
@@ -2670,8 +2664,6 @@ mips16_gp_pseudo_reg (void)
       emit_insn_after (insn, scan);
 
       pop_topmost_sequence ();
-
-      cfun->machine->initialized_mips16_gp_pseudo_p = true;
     }
 
   return cfun->machine->mips16_gp_pseudo_rtx;
@@ -2686,8 +2678,11 @@ mips_pic_base_register (rtx temp)
   if (!TARGET_MIPS16)
     return pic_offset_table_rtx;
 
-  if (can_create_pseudo_p ())
+  if (currently_expanding_to_rtl)
     return mips16_gp_pseudo_reg ();
+
+  if (can_create_pseudo_p ())
+    temp = gen_reg_rtx (Pmode);
 
   if (TARGET_USE_GOT)
     /* The first post-reload split exposes all references to $gp
@@ -4787,7 +4782,8 @@ mips_get_arg_info (struct mips_arg_info *info, const CUMULATIVE_ARGS *cum,
     }
 
   /* See whether the argument has doubleword alignment.  */
-  doubleword_aligned_p = FUNCTION_ARG_BOUNDARY (mode, type) > BITS_PER_WORD;
+  doubleword_aligned_p = (mips_function_arg_boundary (mode, type)
+			  > BITS_PER_WORD);
 
   /* Set REG_OFFSET to the register count we're interested in.
      The EABI allocates the floating-point registers separately,
@@ -5012,11 +5008,11 @@ mips_arg_partial_bytes (CUMULATIVE_ARGS *cum,
   return info.stack_words > 0 ? info.reg_words * UNITS_PER_WORD : 0;
 }
 
-/* Implement FUNCTION_ARG_BOUNDARY.  Every parameter gets at least
-   PARM_BOUNDARY bits of alignment, but will be given anything up
+/* Implement TARGET_FUNCTION_ARG_BOUNDARY.  Every parameter gets at
+   least PARM_BOUNDARY bits of alignment, but will be given anything up
    to STACK_BOUNDARY bits if the type requires it.  */
 
-int
+static unsigned int
 mips_function_arg_boundary (enum machine_mode mode, const_tree type)
 {
   unsigned int alignment;
@@ -6516,11 +6512,7 @@ mips_expand_call (enum mips_call_type type, rtx result, rtx addr,
 void
 mips_split_call (rtx insn, rtx call_pattern)
 {
-  rtx new_insn;
-
-  new_insn = emit_call_insn (call_pattern);
-  CALL_INSN_FUNCTION_USAGE (new_insn)
-    = copy_rtx (CALL_INSN_FUNCTION_USAGE (insn));
+  emit_call_insn (call_pattern);
   if (!find_reg_note (insn, REG_NORETURN, 0))
     /* Pick a temporary register that is suitable for both MIPS16 and
        non-MIPS16 code.  $4 and $5 are used for returning complex double
@@ -11157,8 +11149,6 @@ mips_preferred_simd_mode (enum machine_mode mode ATTRIBUTE_UNUSED)
 
 /* Implement TARGET_INIT_LIBFUNCS.  */
 
-#include "config/gofast.h"
-
 static void
 mips_init_libfuncs (void)
 {
@@ -11217,9 +11207,6 @@ mips_init_libfuncs (void)
 			    "__mips16_floatunsidf");
 	}
     }
-  else
-    /* Register the gofast functions if selected using --enable-gofast.  */
-    gofast_maybe_init_libfuncs ();
 
   /* The MIPS16 ISA does not have an encoding for "sync", so we rely
      on an external non-MIPS16 routine to implement __sync_synchronize.  */
@@ -11281,14 +11268,14 @@ mips_process_load_label (rtx target)
 /* Return the number of instructions needed to load a label into $AT.  */
 
 static unsigned int
-mips_load_label_length (void)
+mips_load_label_num_insns (void)
 {
-  if (cfun->machine->load_label_length == 0)
+  if (cfun->machine->load_label_num_insns == 0)
     {
       mips_process_load_label (pc_rtx);
-      cfun->machine->load_label_length = mips_multi_num_insns;
+      cfun->machine->load_label_num_insns = mips_multi_num_insns;
     }
-  return cfun->machine->load_label_length;
+  return cfun->machine->load_label_num_insns;
 }
 
 /* Emit an asm sequence to start a noat block and load the address
@@ -11330,7 +11317,7 @@ mips_adjust_insn_length (rtx insn, int length)
 
       /* Load the label into $AT and jump to it.  Ignore the delay
 	 slot of the jump.  */
-      length += mips_load_label_length () + 4;
+      length += 4 * mips_load_label_num_insns() + 4;
     }
 
   /* A unconditional jump has an unfilled delay slot if it is not part
@@ -12040,6 +12027,7 @@ mips_issue_rate (void)
 
     case PROCESSOR_LOONGSON_2E:
     case PROCESSOR_LOONGSON_2F:
+    case PROCESSOR_LOONGSON_3A:
       return 4;
 
     default:
@@ -12730,6 +12718,8 @@ AVAIL_NON_MIPS16 (cache, TARGET_CACHE_BUILTIN)
 #define CODE_FOR_mips_subq_ph CODE_FOR_subv2hi3
 #define CODE_FOR_mips_subu_qb CODE_FOR_subv4qi3
 #define CODE_FOR_mips_mul_ph CODE_FOR_mulv2hi3
+#define CODE_FOR_mips_mult CODE_FOR_mulsidi3_32bit
+#define CODE_FOR_mips_multu CODE_FOR_umulsidi3_32bit
 
 #define CODE_FOR_loongson_packsswh CODE_FOR_vec_pack_ssat_v2si
 #define CODE_FOR_loongson_packsshb CODE_FOR_vec_pack_ssat_v4hi
@@ -12928,17 +12918,17 @@ static const struct mips_builtin_description mips_builtins[] = {
   DIRECT_BUILTIN (extpdp, MIPS_SI_FTYPE_DI_SI, dsp_32),
   DIRECT_BUILTIN (shilo, MIPS_DI_FTYPE_DI_SI, dsp_32),
   DIRECT_BUILTIN (mthlip, MIPS_DI_FTYPE_DI_SI, dsp_32),
+  DIRECT_BUILTIN (madd, MIPS_DI_FTYPE_DI_SI_SI, dsp_32),
+  DIRECT_BUILTIN (maddu, MIPS_DI_FTYPE_DI_USI_USI, dsp_32),
+  DIRECT_BUILTIN (msub, MIPS_DI_FTYPE_DI_SI_SI, dsp_32),
+  DIRECT_BUILTIN (msubu, MIPS_DI_FTYPE_DI_USI_USI, dsp_32),
+  DIRECT_BUILTIN (mult, MIPS_DI_FTYPE_SI_SI, dsp_32),
+  DIRECT_BUILTIN (multu, MIPS_DI_FTYPE_USI_USI, dsp_32),
 
   /* The following are for the MIPS DSP ASE REV 2 (32-bit only).  */
   DIRECT_BUILTIN (dpa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
   DIRECT_BUILTIN (dps_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
-  DIRECT_BUILTIN (madd, MIPS_DI_FTYPE_DI_SI_SI, dspr2_32),
-  DIRECT_BUILTIN (maddu, MIPS_DI_FTYPE_DI_USI_USI, dspr2_32),
-  DIRECT_BUILTIN (msub, MIPS_DI_FTYPE_DI_SI_SI, dspr2_32),
-  DIRECT_BUILTIN (msubu, MIPS_DI_FTYPE_DI_USI_USI, dspr2_32),
   DIRECT_BUILTIN (mulsa_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
-  DIRECT_BUILTIN (mult, MIPS_DI_FTYPE_SI_SI, dspr2_32),
-  DIRECT_BUILTIN (multu, MIPS_DI_FTYPE_USI_USI, dspr2_32),
   DIRECT_BUILTIN (dpax_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
   DIRECT_BUILTIN (dpsx_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
   DIRECT_BUILTIN (dpaqx_s_w_ph, MIPS_DI_FTYPE_DI_V2HI_V2HI, dspr2_32),
@@ -15929,9 +15919,9 @@ mips_swap_registers (unsigned int i)
 #undef SWAP_INT
 }
 
-/* Implement CONDITIONAL_REGISTER_USAGE.  */
+/* Implement TARGET_CONDITIONAL_REGISTER_USAGE.  */
 
-void
+static void
 mips_conditional_register_usage (void)
 {
 
@@ -16173,10 +16163,8 @@ mips_mulsidi3_gen_fn (enum rtx_code ext_code)
     }
   else
     {
-      if (TARGET_FIX_R4000)
+      if (TARGET_FIX_R4000 && !ISA_HAS_DSP)
 	return signed_p ? gen_mulsidi3_32bit_r4000 : gen_umulsidi3_32bit_r4000;
-      if (ISA_HAS_DSPR2)
-	return signed_p ? gen_mips_mult : gen_mips_multu;
       return signed_p ? gen_mulsidi3_32bit : gen_umulsidi3_32bit;
     }
 }
@@ -16549,6 +16537,8 @@ mips_shift_truncation_mask (enum machine_mode mode)
 #define TARGET_FUNCTION_ARG mips_function_arg
 #undef TARGET_FUNCTION_ARG_ADVANCE
 #define TARGET_FUNCTION_ARG_ADVANCE mips_function_arg_advance
+#undef TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY mips_function_arg_boundary
 
 #undef TARGET_MODE_REP_EXTENDED
 #define TARGET_MODE_REP_EXTENDED mips_mode_rep_extended
@@ -16617,6 +16607,9 @@ mips_shift_truncation_mask (enum machine_mode mode)
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE mips_can_eliminate
+
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE mips_conditional_register_usage
 
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT mips_trampoline_init

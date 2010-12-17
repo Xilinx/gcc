@@ -26,6 +26,7 @@
 
 /* Linux64.h wants to redefine TARGET_AIX based on -m64, but it can't be used
    in the #if conditional in options-default.h, so provide another macro.  */
+#undef  TARGET_AIX_OS
 #define TARGET_AIX_OS 1
 
 /* AIX always has a TOC.  */
@@ -54,9 +55,6 @@
    a link with garbage collection activated.  */
 #define ASM_OUTPUT_DWARF_TABLE_REF rs6000_aix_asm_output_dwarf_table_ref
 #endif
-
-/* Handle #pragma weak and #pragma pack.  */
-#define HANDLE_SYSV_PRAGMA 1
 
 /* This is the only version of nm that collect2 can work with.  */
 #define REAL_NM_FILE_NAME "/usr/ucb/nm"

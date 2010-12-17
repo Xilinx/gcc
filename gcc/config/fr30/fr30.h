@@ -22,19 +22,10 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 /*}}}*/ 
-/*{{{  Driver configuration.  */ 
-
-/* Defined in svr4.h.  */
-#undef SWITCH_TAKES_ARG
-
-/* Defined in svr4.h.  */
-#undef WORD_SWITCH_TAKES_ARG
-
-/*}}}*/ 
 /*{{{  Run-time target specifications.  */ 
 
 #undef  ASM_SPEC
-#define ASM_SPEC "%{v}"
+#define ASM_SPEC ""
 
 /* Define this to be a string constant containing `-D' options to define the
    predefined macros that identify this machine and system.  These macros will
@@ -59,6 +50,13 @@ along with GCC; see the file COPYING3.  If not see
    to specify the location of a linker script in a gcc command line yet... */
 #undef  ENDFILE_SPEC
 #define ENDFILE_SPEC  "%{!mno-lsim:-lsim} crtend.o%s crtn.o%s"
+
+#undef  LIB_SPEC
+#define LIB_SPEC "-lc"
+
+#undef  LINK_SPEC
+#define LINK_SPEC "%{h*} %{v:-V} \
+		   %{static:-Bstatic} %{shared:-shared} %{symbolic:-Bsymbolic}"
 
 /*}}}*/ 
 /*{{{  Storage Layout.  */ 
@@ -114,6 +112,18 @@ along with GCC; see the file COPYING3.  If not see
 #define LONG_DOUBLE_TYPE_SIZE 	64
 
 #define DEFAULT_SIGNED_CHAR 1
+
+#undef  SIZE_TYPE
+#define SIZE_TYPE "unsigned int"
+
+#undef  PTRDIFF_TYPE
+#define PTRDIFF_TYPE "int"
+
+#undef  WCHAR_TYPE
+#define WCHAR_TYPE "long int"
+
+#undef  WCHAR_TYPE_SIZE
+#define WCHAR_TYPE_SIZE BITS_PER_WORD
 
 /*}}}*/ 
 /*{{{  REGISTER BASICS.  */ 
@@ -189,8 +199,9 @@ along with GCC; see the file COPYING3.  If not see
 
    The table initialized from this macro, and the table initialized by the
    following one, may be overridden at run time either automatically, by the
-   actions of the macro `CONDITIONAL_REGISTER_USAGE', or by the user with the
-   command options `-ffixed-REG', `-fcall-used-REG' and `-fcall-saved-REG'.  */
+   actions of the macro `TARGET_CONDITIONAL_REGISTER_USAGE', or by the user
+   with the command options `-ffixed-REG', `-fcall-used-REG' and
+   `-fcall-saved-REG'.  */
 #define FIXED_REGISTERS 			\
   { 1, 0, 0, 0, 0, 0, 0, 0, 	/*  0 -  7 */ 	\
     0, 0, 0, 0, 0, 0, 0, 1,	/*  8 - 15 */ 	\
@@ -595,31 +606,6 @@ enum reg_class
    function arguments are pushed on the stack.  */
 #define FUNCTION_ARG_REGNO_P(REGNO) \
   ((REGNO) >= FIRST_ARG_REGNUM && ((REGNO) < FIRST_ARG_REGNUM + FR30_NUM_ARG_REGS))
-
-/*}}}*/ 
-/*{{{  How Scalar Function Values are Returned.  */ 
-
-#define FUNCTION_VALUE(VALTYPE, FUNC) \
-     gen_rtx_REG (TYPE_MODE (VALTYPE), RETURN_VALUE_REGNUM)
-
-/* A C expression to create an RTX representing the place where a library
-   function returns a value of mode MODE.  If the precise function being called
-   is known, FUNC is a tree node (`FUNCTION_DECL') for it; otherwise, FUNC is a
-   null pointer.  This makes it possible to use a different value-returning
-   convention for specific functions when all their calls are known.
-
-   Note that "library function" in this context means a compiler support
-   routine, used to perform arithmetic, whose name is known specially by the
-   compiler and was not mentioned in the C code being compiled.
-
-   The definition of `LIBRARY_VALUE' need not be concerned aggregate data
-   types, because none of the library functions returns such types.  */
-#define LIBCALL_VALUE(MODE) gen_rtx_REG (MODE, RETURN_VALUE_REGNUM)
-
-/* A C expression that is nonzero if REGNO is the number of a hard register in
-   which the values of called function may come back.  */
-
-#define FUNCTION_VALUE_REGNO_P(REGNO) ((REGNO) == RETURN_VALUE_REGNUM)
 
 /*}}}*/ 
 /*{{{  How Large Values are Returned.  */ 

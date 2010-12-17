@@ -341,7 +341,11 @@ rhs_to_tree (tree type, gimple stmt)
 {
   location_t loc = gimple_location (stmt);
   enum tree_code code = gimple_assign_rhs_code (stmt);
-  if (get_gimple_rhs_class (code) == GIMPLE_BINARY_RHS)
+  if (get_gimple_rhs_class (code) == GIMPLE_TERNARY_RHS)
+    return fold_build3_loc (loc, code, type, gimple_assign_rhs1 (stmt),
+			    gimple_assign_rhs2 (stmt),
+			    gimple_assign_rhs3 (stmt));
+  else if (get_gimple_rhs_class (code) == GIMPLE_BINARY_RHS)
     return fold_build2_loc (loc, code, type, gimple_assign_rhs1 (stmt),
 			gimple_assign_rhs2 (stmt));
   else if (get_gimple_rhs_class (code) == GIMPLE_UNARY_RHS)
@@ -1590,6 +1594,9 @@ simplify_builtin_call (gimple_stmt_iterator *gsi_p, tree callee2)
 		 memcpy call.  */
 	      gimple_stmt_iterator gsi = gsi_for_stmt (stmt1);
 
+	      if (!is_gimple_val (ptr1))
+		ptr1 = force_gimple_operand_gsi (gsi_p, ptr1, true, NULL_TREE,
+						 true, GSI_SAME_STMT);
 	      gimple_call_set_fndecl (stmt2, built_in_decls [BUILT_IN_MEMCPY]);
 	      gimple_call_set_arg (stmt2, 0, ptr1);
 	      gimple_call_set_arg (stmt2, 1, new_str_cst);
@@ -1983,7 +1990,8 @@ tree_ssa_forward_propagate_single_use_vars (void)
 		  else
 		    gsi_next (&gsi);
 		}
-	      else if (gimple_assign_rhs_code (stmt) == POINTER_PLUS_EXPR)
+	      else if (gimple_assign_rhs_code (stmt) == POINTER_PLUS_EXPR
+		       && can_propagate_from (stmt))
 		{
 		  if (TREE_CODE (gimple_assign_rhs2 (stmt)) == INTEGER_CST
 		      /* ???  Better adjust the interface to that function

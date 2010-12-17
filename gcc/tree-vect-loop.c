@@ -38,7 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "optabs.h"
 #include "params.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "tree-chrec.h"
 #include "tree-scalar-evolution.h"
 #include "tree-vectorizer.h"
@@ -479,6 +478,8 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
 
       /* Analyze the evolution function.  */
       access_fn = analyze_scalar_evolution (loop, def);
+      if (access_fn)
+	STRIP_NOPS (access_fn);
       if (access_fn && vect_print_dump_info (REPORT_DETAILS))
 	{
 	  fprintf (vect_dump, "Access function of PHI: ");
@@ -1800,7 +1801,11 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
      simply rewriting this into "res += -x[i]".  Avoid changing
      gimple instruction for the first simple tests and only do this
      if we're allowed to change code at all.  */
-  if (code == MINUS_EXPR && modify)
+  if (code == MINUS_EXPR
+      && modify
+      && (op1 = gimple_assign_rhs1 (def_stmt))
+      && TREE_CODE (op1) == SSA_NAME
+      && SSA_NAME_DEF_STMT (op1) == phi)
     code = PLUS_EXPR;
 
   if (check_reduction
@@ -1965,6 +1970,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
       && (code == COND_EXPR
           || (def1 && flow_bb_inside_loop_p (loop, gimple_bb (def1))
               && (is_gimple_assign (def1)
+		  || is_gimple_call (def1)
   	          || STMT_VINFO_DEF_TYPE (vinfo_for_stmt (def1))
                       == vect_induction_def
    	          || (gimple_code (def1) == GIMPLE_PHI
@@ -1980,6 +1986,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
 	   && (code == COND_EXPR
                || (def2 && flow_bb_inside_loop_p (loop, gimple_bb (def2))
  	           && (is_gimple_assign (def2)
+		       || is_gimple_call (def2)
 	               || STMT_VINFO_DEF_TYPE (vinfo_for_stmt (def2))
                            == vect_induction_def
  	               || (gimple_code (def2) == GIMPLE_PHI
@@ -2591,7 +2598,7 @@ get_initial_def_for_induction (gimple iv_phi)
   stmt_vec_info stmt_vinfo = vinfo_for_stmt (iv_phi);
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_vinfo);
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
-  tree scalar_type = TREE_TYPE (gimple_phi_result (iv_phi));
+  tree scalar_type;
   tree vectype;
   int nunits;
   edge pe = loop_preheader_edge (loop);
@@ -2620,24 +2627,7 @@ get_initial_def_for_induction (gimple iv_phi)
   gimple_stmt_iterator si;
   basic_block bb = gimple_bb (iv_phi);
   tree stepvectype;
-
-  vectype = get_vectype_for_scalar_type (scalar_type);
-  gcc_assert (vectype);
-  nunits = TYPE_VECTOR_SUBPARTS (vectype);
-  ncopies = vf / nunits;
-
-  gcc_assert (phi_info);
-  gcc_assert (ncopies >= 1);
-
-  /* Find the first insertion point in the BB.  */
-  si = gsi_after_labels (bb);
-
-  if (INTEGRAL_TYPE_P (scalar_type))
-    step_expr = build_int_cst (scalar_type, 0);
-  else if (POINTER_TYPE_P (scalar_type))
-    step_expr = size_zero_node;
-  else
-    step_expr = build_real (scalar_type, dconst0);
+  tree resvectype;
 
   /* Is phi in an inner-loop, while vectorizing an enclosing outer-loop?  */
   if (nested_in_vect_loop_p (loop, iv_phi))
@@ -2654,10 +2644,24 @@ get_initial_def_for_induction (gimple iv_phi)
 
   access_fn = analyze_scalar_evolution (iv_loop, PHI_RESULT (iv_phi));
   gcc_assert (access_fn);
+  STRIP_NOPS (access_fn);
   ok = vect_is_simple_iv_evolution (iv_loop->num, access_fn,
                                     &init_expr, &step_expr);
   gcc_assert (ok);
   pe = loop_preheader_edge (iv_loop);
+
+  scalar_type = TREE_TYPE (init_expr);
+  vectype = get_vectype_for_scalar_type (scalar_type);
+  resvectype = get_vectype_for_scalar_type (TREE_TYPE (PHI_RESULT (iv_phi)));
+  gcc_assert (vectype);
+  nunits = TYPE_VECTOR_SUBPARTS (vectype);
+  ncopies = vf / nunits;
+
+  gcc_assert (phi_info);
+  gcc_assert (ncopies >= 1);
+
+  /* Find the first insertion point in the BB.  */
+  si = gsi_after_labels (bb);
 
   /* Create the vector that holds the initial_value of the induction.  */
   if (nested_in_vect_loop)
@@ -2684,7 +2688,7 @@ get_initial_def_for_induction (gimple iv_phi)
 	}
 
       t = NULL_TREE;
-      t = tree_cons (NULL_TREE, init_expr, t);
+      t = tree_cons (NULL_TREE, new_name, t);
       for (i = 1; i < nunits; i++)
 	{
 	  /* Create: new_name_i = new_name + step_expr  */
@@ -2725,13 +2729,11 @@ get_initial_def_for_induction (gimple iv_phi)
 			      expr, step_expr);
     }
 
-  t = NULL_TREE;
-  for (i = 0; i < nunits; i++)
-    t = tree_cons (NULL_TREE, unshare_expr (new_name), t);
+  t = unshare_expr (new_name);
   gcc_assert (CONSTANT_CLASS_P (new_name));
   stepvectype = get_vectype_for_scalar_type (TREE_TYPE (new_name));
   gcc_assert (stepvectype);
-  vec = build_vector (stepvectype, t);
+  vec = build_vector_from_val (stepvectype, t);
   vec_step = vect_init_vector (iv_phi, vec, stepvectype, NULL);
 
 
@@ -2785,11 +2787,9 @@ get_initial_def_for_induction (gimple iv_phi)
       expr = build_int_cst (TREE_TYPE (step_expr), nunits);
       new_name = fold_build2 (MULT_EXPR, TREE_TYPE (step_expr),
 			      expr, step_expr);
-      t = NULL_TREE;
-      for (i = 0; i < nunits; i++)
-	t = tree_cons (NULL_TREE, unshare_expr (new_name), t);
+      t = unshare_expr (new_name);
       gcc_assert (CONSTANT_CLASS_P (new_name));
-      vec = build_vector (stepvectype, t);
+      vec = build_vector_from_val (stepvectype, t);
       vec_step = vect_init_vector (iv_phi, vec, stepvectype, NULL);
 
       vec_def = induc_def;
@@ -2803,6 +2803,19 @@ get_initial_def_for_induction (gimple iv_phi)
 	  gimple_assign_set_lhs (new_stmt, vec_def);
 
 	  gsi_insert_before (&si, new_stmt, GSI_SAME_STMT);
+	  if (!useless_type_conversion_p (resvectype, vectype))
+	    {
+	      new_stmt = gimple_build_assign_with_ops
+		  (VIEW_CONVERT_EXPR,
+		   vect_get_new_vect_var (resvectype, vect_simple_var,
+					  "vec_iv_"),
+		   build1 (VIEW_CONVERT_EXPR, resvectype,
+			   gimple_assign_lhs (new_stmt)), NULL_TREE);
+	      gimple_assign_set_lhs (new_stmt,
+				     make_ssa_name
+				       (gimple_assign_lhs (new_stmt), new_stmt));
+	      gsi_insert_before (&si, new_stmt, GSI_SAME_STMT);
+	    }
 	  set_vinfo_for_stmt (new_stmt,
 			      new_stmt_vec_info (new_stmt, loop_vinfo, NULL));
 	  STMT_VINFO_RELATED_STMT (prev_stmt_vinfo) = new_stmt;
@@ -2850,6 +2863,18 @@ get_initial_def_for_induction (gimple iv_phi)
     }
 
   STMT_VINFO_VEC_STMT (phi_info) = induction_phi;
+  if (!useless_type_conversion_p (resvectype, vectype))
+    {
+      new_stmt = gimple_build_assign_with_ops
+	 (VIEW_CONVERT_EXPR,
+	  vect_get_new_vect_var (resvectype, vect_simple_var, "vec_iv_"),
+	  build1 (VIEW_CONVERT_EXPR, resvectype, induc_def), NULL_TREE);
+      induc_def = make_ssa_name (gimple_assign_lhs (new_stmt), new_stmt);
+      gimple_assign_set_lhs (new_stmt, induc_def);
+      si = gsi_start_bb (bb);
+      gsi_insert_before (&si, new_stmt, GSI_SAME_STMT);
+    }
+
   return induc_def;
 }
 
@@ -3021,14 +3046,7 @@ get_initial_def_for_reduction (gimple stmt, tree init_val,
             break;
           }
 
-        for (i = nunits - 1; i >= 0; --i)
-          t = tree_cons (NULL_TREE, init_value, t);
-
-        if (TREE_CONSTANT (init_val))
-          init_def = build_vector (vectype, t);
-        else
-          init_def = build_constructor_from_list (vectype, t);
-
+	init_def = build_vector_from_val (vectype, init_value);
         break;
 
       default:
@@ -3919,7 +3937,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
   VEC (tree, heap) *vec_oprnds0 = NULL, *vec_oprnds1 = NULL, *vect_defs = NULL;
   VEC (gimple, heap) *phis = NULL;
   int vec_num;
-  tree def0, def1;
+  tree def0, def1, tem;
 
   if (nested_in_vect_loop_p (loop, stmt))
     {
@@ -4010,8 +4028,6 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
      reduction variable.  */
   for (i = 0; i < op_type-1; i++)
     {
-      tree tem;
-
       /* The condition of COND_EXPR is checked in vectorizable_condition().  */
       if (i == 0 && code == COND_EXPR)
         continue;
@@ -4036,8 +4052,10 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
         }
     }
 
-  is_simple_use = vect_is_simple_use (ops[i], loop_vinfo, NULL, &def_stmt,
-				      &def, &dt);
+  is_simple_use = vect_is_simple_use_1 (ops[i], loop_vinfo, NULL, &def_stmt,
+					&def, &dt, &tem);
+  if (!vectype_in)
+    vectype_in = tem;
   gcc_assert (is_simple_use);
   gcc_assert (dt == vect_reduction_def
               || dt == vect_nested_cycle

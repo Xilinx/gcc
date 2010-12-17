@@ -200,6 +200,14 @@ DEFHOOKPOD
  be called afterward.",
  bool, true)
 
+/* Generate an internal label.
+   For now this is just a wrapper for ASM_GENERATE_INTERNAL_LABEL.  */
+DEFHOOK_UNDOC
+(generate_internal_label,
+ "",
+ void, (char *buf, const char *prefix, unsigned long labelno),
+ default_generate_internal_label)
+
 /* Output an internal label.  */
 DEFHOOK
 (internal_label,
@@ -272,6 +280,19 @@ DEFHOOK
  "",
  void, (const char *name, unsigned int flags, tree decl),
  default_no_named_section)
+
+/* Return preferred text (sub)section for function DECL.
+   Main purpose of this function is to separate cold, normal and hot
+   functions. STARTUP is true when function is known to be used only 
+   at startup (from static constructors or it is main()).
+   EXIT is true when function is known to be used only at exit
+   (from static destructors).
+   Return NULL if function should go to default text section.  */
+DEFHOOK
+(function_section,
+ "",
+ section *, (tree decl, enum node_frequency freq, bool startup, bool exit),
+ default_function_section)
 
 /* Return a mask describing how relocations should be treated when
    selecting sections.  Bit 1 should be set if global relocations
@@ -503,6 +524,18 @@ DEFHOOK_UNDOC
  bool ,(unsigned char code),
  default_print_operand_punct_valid_p)
 
+/* Given a symbol name, perform same mangling as assemble_name and
+   ASM_OUTPUT_LABELREF, returning result as an IDENTIFIER_NODE.  */
+DEFHOOK
+(mangle_assembler_name,
+ "Given a symbol @var{name}, perform same mangling as @code{varasm.c}'s\
+ @code{assemble_name}, but in memory rather than to a file stream, returning\
+ result as an @code{IDENTIFIER_NODE}.  Required for correct LTO symtabs.  The\
+ default implementation calls the @code{TARGET_STRIP_NAME_ENCODING} hook and\
+ then prepends the @code{USER_LABEL_PREFIX}, if any.",
+ tree, (const char *name),
+ default_mangle_assembler_name)
+
 HOOK_VECTOR_END (asm_out)
 
 /* Functions relating to instruction scheduling.  All of these
@@ -649,6 +682,84 @@ DEFHOOK
 (first_cycle_multipass_dfa_lookahead_guard,
  "",
  int, (rtx insn), NULL)
+
+/* This hook prepares the target for a new round of multipass
+   scheduling.
+   DATA is a pointer to target-specific data used for multipass scheduling.
+   READY_TRY and N_READY represent the current state of search in the
+   optimization space.  The target can filter out instructions that
+   should not be tried during current round by setting corresponding
+   elements in READY_TRY to non-zero.
+   FIRST_CYCLE_INSN_P is true if this is the first round of multipass
+   scheduling on current cycle.  */
+DEFHOOK
+(first_cycle_multipass_begin,
+ "",
+ void, (void *data, char *ready_try, int n_ready, bool first_cycle_insn_p),
+ NULL)
+
+/* This hook is called when multipass scheduling evaluates instruction INSN.
+   DATA is a pointer to target-specific data that can be used to record effects
+   of INSN on CPU that are not described in DFA.
+   READY_TRY and N_READY represent the current state of search in the
+   optimization space.  The target can filter out instructions that
+   should not be tried after issueing INSN by setting corresponding
+   elements in READY_TRY to non-zero.
+   INSN is the instruction being evaluated.
+   PREV_DATA is a pointer to target-specific data corresponding
+   to a state before issueing INSN.  */
+DEFHOOK
+(first_cycle_multipass_issue,
+ "",
+ void, (void *data, char *ready_try, int n_ready, rtx insn,
+	const void *prev_data), NULL)
+
+/* This hook is called when multipass scheduling backtracks from evaluation of
+   instruction corresponding to DATA.
+   DATA is a pointer to target-specific data that stores the effects
+   of instruction from which the algorithm backtracks on CPU that are not
+   described in DFA.
+   READY_TRY and N_READY represent the current state of search in the
+   optimization space.  The target can filter out instructions that
+   should not be tried after issueing INSN by setting corresponding
+   elements in READY_TRY to non-zero.  */
+DEFHOOK
+(first_cycle_multipass_backtrack,
+ "",
+ void, (const void *data, char *ready_try, int n_ready), NULL)
+
+/* This hook notifies the target about the result of the concluded current
+   round of multipass scheduling.
+   DATA is a pointer.
+   If DATA is non-NULL it points to target-specific data used for multipass
+   scheduling which corresponds to instruction at the start of the chain of
+   the winning solution.  DATA is NULL when multipass scheduling cannot find
+   a good enough solution on current cycle and decides to retry later,
+   usually after advancing the cycle count.  */
+DEFHOOK
+(first_cycle_multipass_end,
+ "",
+ void, (const void *data), NULL)
+
+/* This hook is called to initialize target-specific data for multipass
+   scheduling after it has been allocated.
+   DATA is a pointer to target-specific data that stores the effects
+   of instruction from which the algorithm backtracks on CPU that are not
+   described in DFA.  */
+DEFHOOK
+(first_cycle_multipass_init,
+ "",
+ void, (void *data), NULL)
+
+/* This hook is called to finalize target-specific data for multipass
+   scheduling before it is deallocated.
+   DATA is a pointer to target-specific data that stores the effects
+   of instruction from which the algorithm backtracks on CPU that are not
+   described in DFA.  */
+DEFHOOK
+(first_cycle_multipass_fini,
+ "",
+ void, (void *data), NULL)
 
 /* The following member value is pointer to a function called by
    the insn scheduler before issuing insn passed as the third
@@ -1062,6 +1173,22 @@ DEFHOOK
  "",
  bool, (const_tree record_type),
  hook_bool_const_tree_false)
+
+/* For now this is only an interface to WORDS_BIG_ENDIAN for
+   target-independent code like the front ends, need performance testing
+   before switching completely to the target hook.  */
+DEFHOOK_UNDOC
+(words_big_endian,
+ "",
+ bool, (void),
+ targhook_words_big_endian)
+
+/* Likewise for FLOAT_WORDS_BIG_ENDIAN.  */
+DEFHOOK_UNDOC
+(float_words_big_endian,
+ "",
+ bool, (void),
+ targhook_float_words_big_endian)
 
 /* True if the target supports decimal floating point.  */
 DEFHOOK
@@ -1716,13 +1843,14 @@ DEFHOOK
 
 DEFHOOK
 (supports_split_stack,
- "Whether this target supports splitting the stack.  This is called\
+ "Whether this target supports splitting the stack when the options\
+ described in @var{opts} have been passed.  This is called\
  after options have been parsed, so the target may reject splitting\
  the stack in some configurations.  The default version of this hook\
  returns false.  If @var{report} is true, this function may issue a warning\
  or error; if @var{report} is false, it must simply return a value",
- bool, (bool),
- hook_bool_bool_false)
+ bool, (bool report, struct gcc_options *opts),
+ hook_bool_bool_gcc_optionsp_false)
 
 /* Returns NULL if target supports the insn within a doloop block,
    otherwise it returns an error message.  */
@@ -1888,6 +2016,12 @@ DEFHOOK_UNDOC
  rtx, (CUMULATIVE_ARGS *ca, enum machine_mode mode, const_tree type,
        bool named),
  default_function_incoming_arg)
+
+DEFHOOK
+(function_arg_boundary,
+ "",
+ unsigned int, (enum machine_mode mode, const_tree type),
+ default_function_arg_boundary)
 
 /* Return the diagnostic message string if function without a prototype
    is not allowed for this 'val' argument; NULL otherwise. */
@@ -2102,6 +2236,21 @@ DEFHOOK
  bool, (reg_class_t rclass),
  default_class_likely_spilled_p)
 
+DEFHOOK
+(preferred_rename_class,
+ "A target hook that places additional preference on the register\
+ class to use when it is necessary to rename a register in class\
+ @var{rclass} to another class, or perhaps @var{NO_REGS}, if no\
+ preferred register class is found or hook @code{preferred_rename_class}\
+ is not implemented.\
+ Sometimes returning a more restrictive class makes better code.  For\
+ example, on ARM, thumb-2 instructions using @code{LO_REGS} may be\
+ smaller than instructions using @code{GENERIC_REGS}.  By returning\
+ @code{LO_REGS} from @code{preferred_rename_class}, code size can\
+ be reduced.",
+ reg_class_t, (reg_class_t rclass),
+ default_preferred_rename_class)
+
 /* This target hook allows the backend to perform additional
    processing while initializing for variable expansion.  */
 DEFHOOK
@@ -2149,6 +2298,15 @@ DEFHOOK
  "",
  bool, (const int from_reg, const int to_reg),
  hook_bool_const_int_const_int_true)
+
+/* Modify any or all of fixed_regs, call_used_regs, global_regs,
+   reg_names, and reg_class_contents to account of the vagaries of the
+   target.  */
+DEFHOOK
+(conditional_register_usage,
+ "",
+ void, (void),
+ hook_void_void)
 
 /* Functions specific to the C family of frontends.  */
 #undef HOOK_PREFIX
@@ -2446,7 +2604,7 @@ DEFHOOK
 DEFHOOK
 (except_unwind_info,
  "",
- enum unwind_info_type, (void),
+ enum unwind_info_type, (struct gcc_options *opts),
  default_except_unwind_info)
 
 /* Leave the boolean fields at the end.  */
@@ -2554,10 +2712,40 @@ DEFHOOK
  bool, (size_t code, const char *arg, int value),
  default_handle_c_option)
 
+/* Targets may provide a string object type that can be used within
+   and between C, C++, and Objective-C dialects.  */
+
 DEFHOOK
-(objc_construct_string,
- "Construct a constant string representation for @var{string}",
+(objc_construct_string_object,
+ "Targets may provide a string object type that can be used within\
+ and between C, C++ and their respective Objective-C dialects.\
+ A string object might, for example, embed encoding and length information.\
+ These objects are considered opaque to the compiler and handled as references.\
+ An ideal implementation makes the composition of the string object\
+ match that of the Objective-C @code{NSString} (@code{NXString} for GNUStep),\
+ allowing efficient interworking between C-only and Objective-C code.\
+ If a target implements string objects then this hook should return a\
+ reference to such an object constructed from the normal `C' string\
+ representation provided in @var{string}.\
+ At present, the hook is used by Objective-C only, to obtain a\
+ common-format string object when the target provides one.",
  tree, (tree string),
  NULL)
+ 
+DEFHOOK
+(string_object_ref_type_p,
+ "If a target implements string objects then this hook should return\
+ @code{true} if @var{stringref} is a valid reference to such an object.",
+ bool, (const_tree stringref),
+ hook_bool_const_tree_false)
 
+DEFHOOK
+(check_string_object_format_arg,
+ "If a target implements string objects then this hook should should\
+  provide a facility to check the function arguments in @var{args_list}\
+  against the format specifiers in @var{format_arg} where the type of\
+  @var{format_arg} is one recognized as a valid string reference type.",
+ void, (tree format_arg, tree args_list),
+ NULL)
+ 
 HOOK_VECTOR_END (C90_EMPTY_HACK)

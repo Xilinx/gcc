@@ -866,6 +866,91 @@ gfc_trans_critical (gfc_code *code)
 }
 
 
+/* Do proper initialization for ASSOCIATE names.  */
+
+static void
+trans_associate_var (gfc_symbol *sym, gfc_wrapped_block *block)
+{
+  gfc_expr *e;
+  tree tmp;
+
+  gcc_assert (sym->assoc);
+  e = sym->assoc->target;
+
+  /* Do a `pointer assignment' with updated descriptor (or assign descriptor
+     to array temporary) for arrays with either unknown shape or if associating
+     to a variable.  */
+  if (sym->attr.dimension
+      && (sym->as->type == AS_DEFERRED || sym->assoc->variable))
+    {
+      gfc_se se;
+      gfc_ss *ss;
+      tree desc;
+
+      desc = sym->backend_decl;
+
+      /* If association is to an expression, evaluate it and create temporary.
+	 Otherwise, get descriptor of target for pointer assignment.  */
+      gfc_init_se (&se, NULL);
+      ss = gfc_walk_expr (e);
+      if (sym->assoc->variable)
+	{
+	  se.direct_byref = 1;
+	  se.expr = desc;
+	}
+      gfc_conv_expr_descriptor (&se, e, ss);
+
+      /* If we didn't already do the pointer assignment, set associate-name
+	 descriptor to the one generated for the temporary.  */
+      if (!sym->assoc->variable)
+	{
+	  int dim;
+
+	  gfc_add_modify (&se.pre, desc, se.expr);
+
+	  /* The generated descriptor has lower bound zero (as array
+	     temporary), shift bounds so we get lower bounds of 1.  */
+	  for (dim = 0; dim < e->rank; ++dim)
+	    gfc_conv_shift_descriptor_lbound (&se.pre, desc,
+					      dim, gfc_index_one_node);
+	}
+
+      /* Done, register stuff as init / cleanup code.  */
+      gfc_add_init_cleanup (block, gfc_finish_block (&se.pre),
+			    gfc_finish_block (&se.post));
+    }
+
+  /* Do a scalar pointer assignment; this is for scalar variable targets.  */
+  else if (gfc_is_associate_pointer (sym))
+    {
+      gfc_se se;
+
+      gcc_assert (!sym->attr.dimension);
+
+      gfc_init_se (&se, NULL);
+      gfc_conv_expr (&se, e);
+
+      tmp = TREE_TYPE (sym->backend_decl);
+      tmp = gfc_build_addr_expr (tmp, se.expr);
+      gfc_add_modify (&se.pre, sym->backend_decl, tmp);
+      
+      gfc_add_init_cleanup (block, gfc_finish_block( &se.pre),
+			    gfc_finish_block (&se.post));
+    }
+
+  /* Do a simple assignment.  This is for scalar expressions, where we
+     can simply use expression assignment.  */
+  else
+    {
+      gfc_expr *lhs;
+
+      lhs = gfc_lval_expr_from_sym (sym);
+      tmp = gfc_trans_assignment (lhs, e, false, true);
+      gfc_add_init_cleanup (block, tmp, NULL_TREE);
+    }
+}
+
+
 /* Translate a BLOCK construct.  This is basically what we would do for a
    procedure body.  */
 
@@ -877,6 +962,7 @@ gfc_trans_block_construct (gfc_code* code)
   gfc_wrapped_block block;
   tree exit_label;
   stmtblock_t body;
+  gfc_association_list *ass;
 
   ns = code->ext.block.ns;
   gcc_assert (ns);
@@ -886,7 +972,7 @@ gfc_trans_block_construct (gfc_code* code)
   /* Process local variables.  */
   gcc_assert (!sym->tlink);
   sym->tlink = sym;
-  gfc_process_block_locals (ns, code->ext.block.assoc);
+  gfc_process_block_locals (ns);
 
   /* Generate code including exit-label.  */
   gfc_init_block (&body);
@@ -898,7 +984,9 @@ gfc_trans_block_construct (gfc_code* code)
   /* Finish everything.  */
   gfc_start_wrapped_block (&block, gfc_finish_block (&body));
   gfc_trans_deferred_vars (sym, &block);
-
+  for (ass = code->ext.block.assoc; ass; ass = ass->next)
+    trans_associate_var (ass->st->n.sym, &block);
+    
   return gfc_finish_wrapped_block (&block);
 }
 
@@ -1126,7 +1214,7 @@ gfc_trans_do (gfc_code * code, tree exit_cond)
   if (gfc_option.rtcheck & GFC_RTCHECK_DO)
     {
       tmp = fold_build2_loc (input_location, EQ_EXPR, boolean_type_node, step,
-			     fold_convert (type, integer_zero_node));
+			     build_zero_cst (type));
       gfc_trans_runtime_check (true, false, tmp, &block, &code->loc,
 			       "DO step value is zero");
     }
@@ -1138,7 +1226,7 @@ gfc_trans_do (gfc_code * code, tree exit_cond)
     return gfc_trans_simple_do (code, &block, dovar, from, to, step, exit_cond);
 
   pos_step = fold_build2_loc (loc, GT_EXPR, boolean_type_node, step,
-			      fold_convert (type, integer_zero_node));
+			      build_zero_cst (type));
 
   if (TREE_CODE (type) == INTEGER_TYPE)
     utype = unsigned_type_for (type);
@@ -4388,7 +4476,7 @@ gfc_trans_allocate (gfc_code * code)
       expr = gfc_copy_expr (al->expr);
 
       if (expr->ts.type == BT_CLASS)
-	gfc_add_component_ref (expr, "$data");
+	gfc_add_data_component (expr);
 
       gfc_init_se (&se, NULL);
       gfc_start_block (&se.pre);
@@ -4409,8 +4497,8 @@ gfc_trans_allocate (gfc_code * code)
 		  gfc_expr *sz;
 		  gfc_se se_sz;
 		  sz = gfc_copy_expr (code->expr3);
-		  gfc_add_component_ref (sz, "$vptr");
-		  gfc_add_component_ref (sz, "$size");
+		  gfc_add_vptr_component (sz);
+		  gfc_add_size_component (sz);
 		  gfc_init_se (&se_sz, NULL);
 		  gfc_conv_expr (&se_sz, sz);
 		  gfc_free_expr (sz);
@@ -4487,21 +4575,33 @@ gfc_trans_allocate (gfc_code * code)
 	  /* Initialization via SOURCE block
 	     (or static default initializer).  */
 	  gfc_expr *rhs = gfc_copy_expr (code->expr3);
-	  if (al->expr->ts.type == BT_CLASS && rhs->expr_type == EXPR_VARIABLE
-	      && rhs->ts.type != BT_CLASS)
-	    tmp = gfc_trans_assignment (expr, rhs, false, false);
-	  else if (al->expr->ts.type == BT_CLASS)
+	  if (al->expr->ts.type == BT_CLASS)
 	    {
-	      /* TODO: One needs to do a deep-copy for BT_CLASS; cf. PR 46174.  */
-	      gfc_se dst,src;
+	      gfc_se call;
+	      gfc_actual_arglist *actual;
+	      gfc_expr *ppc;
+	      gfc_init_se (&call, NULL);
+	      /* Do a polymorphic deep copy.  */
+	      actual = gfc_get_actual_arglist ();
+	      actual->expr = gfc_copy_expr (rhs);
 	      if (rhs->ts.type == BT_CLASS)
-		gfc_add_component_ref (rhs, "$data");
-	      gfc_init_se (&dst, NULL);
-	      gfc_init_se (&src, NULL);
-	      gfc_conv_expr (&dst, expr);
-	      gfc_conv_expr (&src, rhs);
-	      gfc_add_block_to_block (&block, &src.pre);
-	      tmp = gfc_build_memcpy_call (dst.expr, src.expr, memsz);
+		gfc_add_data_component (actual->expr);
+	      actual->next = gfc_get_actual_arglist ();
+	      actual->next->expr = gfc_copy_expr (al->expr);
+	      gfc_add_data_component (actual->next->expr);
+	      if (rhs->ts.type == BT_CLASS)
+		{
+		  ppc = gfc_copy_expr (rhs);
+		  gfc_add_vptr_component (ppc);
+		}
+	      else
+		ppc = gfc_lval_expr_from_sym (gfc_find_derived_vtab (rhs->ts.u.derived));
+	      gfc_add_component_ref (ppc, "_copy");
+	      gfc_conv_procedure_call (&call, ppc->symtree->n.sym, actual,
+					ppc, NULL);
+	      gfc_add_expr_to_block (&call.pre, call.expr);
+	      gfc_add_block_to_block (&call.pre, &call.post);
+	      tmp = gfc_finish_block (&call.pre);
 	    }
 	  else
 	    tmp = gfc_trans_assignment (gfc_expr_to_initialize (expr),
@@ -4515,8 +4615,8 @@ gfc_trans_allocate (gfc_code * code)
 	  /* Default-initialization via MOLD (polymorphic).  */
 	  gfc_expr *rhs = gfc_copy_expr (code->expr3);
 	  gfc_se dst,src;
-	  gfc_add_component_ref (rhs, "$vptr");
-	  gfc_add_component_ref (rhs, "$def_init");
+	  gfc_add_vptr_component (rhs);
+	  gfc_add_def_init_component (rhs);
 	  gfc_init_se (&dst, NULL);
 	  gfc_init_se (&src, NULL);
 	  gfc_conv_expr (&dst, expr);
@@ -4537,13 +4637,13 @@ gfc_trans_allocate (gfc_code * code)
 
 	  /* Initialize VPTR for CLASS objects.  */
 	  lhs = gfc_expr_to_initialize (expr);
-	  gfc_add_component_ref (lhs, "$vptr");
+	  gfc_add_vptr_component (lhs);
 	  rhs = NULL;
 	  if (code->expr3 && code->expr3->ts.type == BT_CLASS)
 	    {
 	      /* Polymorphic SOURCE: VPTR must be determined at run time.  */
 	      rhs = gfc_copy_expr (code->expr3);
-	      gfc_add_component_ref (rhs, "$vptr");
+	      gfc_add_vptr_component (rhs);
 	      tmp = gfc_trans_pointer_assignment (lhs, rhs);
 	      gfc_add_expr_to_block (&block, tmp);
 	      gfc_free_expr (rhs);

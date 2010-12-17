@@ -169,6 +169,7 @@
 (define_mode_iterator VM2 [V4SI V8HI V16QI V4SF V2DF V2DI])
 
 (define_mode_attr VI_char [(V4SI "w") (V8HI "h") (V16QI "b")])
+(define_mode_attr VI_scalar [(V4SI "SI") (V8HI "HI") (V16QI "QI")])
 
 ;; Vector move instructions.
 (define_insn "*altivec_mov<mode>"
@@ -512,35 +513,9 @@
   "vsel %0,%3,%2,%1"
   [(set_attr "type" "vecperm")])
 
-;; Fused multiply add.  By default expand the FMA into (plus (mult)) to help
-;; loop unrolling.  Don't do negate multiply ops, because of complications with
-;; honoring signed zero and fused-madd.
+;; Fused multiply add.
 
-(define_expand "altivec_vmaddfp"
-  [(set (match_operand:V4SF 0 "register_operand" "")
-	(plus:V4SF (mult:V4SF (match_operand:V4SF 1 "register_operand" "")
-			      (match_operand:V4SF 2 "register_operand" ""))
-	  	   (match_operand:V4SF 3 "register_operand" "")))]
-  "VECTOR_UNIT_ALTIVEC_P (V4SFmode)"
-{
-  if (!TARGET_FUSED_MADD)
-    {
-      emit_insn (gen_altivec_vmaddfp_2 (operands[0], operands[1], operands[2],
-					operands[3]));
-      DONE;
-    }
-})
-
-(define_insn "*altivec_vmaddfp_1"
-  [(set (match_operand:V4SF 0 "register_operand" "=v")
-	(plus:V4SF (mult:V4SF (match_operand:V4SF 1 "register_operand" "v")
-			      (match_operand:V4SF 2 "register_operand" "v"))
-	  	   (match_operand:V4SF 3 "register_operand" "v")))]
-  "VECTOR_UNIT_ALTIVEC_P (V4SFmode) && TARGET_FUSED_MADD"
-  "vmaddfp %0,%1,%2,%3"
-  [(set_attr "type" "vecfloat")])
-
-(define_insn "altivec_vmaddfp_2"
+(define_insn "*altivec_fmav4sf4"
   [(set (match_operand:V4SF 0 "register_operand" "=v")
 	(fma:V4SF (match_operand:V4SF 1 "register_operand" "v")
 		  (match_operand:V4SF 2 "register_operand" "v")
@@ -552,11 +527,11 @@
 ;; We do multiply as a fused multiply-add with an add of a -0.0 vector.
 
 (define_expand "altivec_mulv4sf3"
-  [(use (match_operand:V4SF 0 "register_operand" ""))
-   (use (match_operand:V4SF 1 "register_operand" ""))
-   (use (match_operand:V4SF 2 "register_operand" ""))]
+  [(set (match_operand:V4SF 0 "register_operand" "")
+	(fma:V4SF (match_operand:V4SF 1 "register_operand" "")
+		  (match_operand:V4SF 2 "register_operand" "")
+		  (match_dup 3)))]
   "VECTOR_UNIT_ALTIVEC_P (V4SFmode)"
-  "
 {
   rtx neg0;
 
@@ -565,11 +540,8 @@
   emit_insn (gen_altivec_vspltisw (neg0, constm1_rtx));
   emit_insn (gen_vashlv4si3 (neg0, neg0, neg0));
 
-  /* Use the multiply-add.  */
-  emit_insn (gen_altivec_vmaddfp (operands[0], operands[1], operands[2],
-				  gen_lowpart (V4SFmode, neg0)));
-  DONE;
-}")
+  operands[3] = gen_lowpart (V4SFmode, neg0);
+})
 
 ;; 32-bit integer multiplication
 ;; A_high = Operand_0 & 0xFFFF0000 >> 16
@@ -653,7 +625,7 @@
 }")
 
 ;; Fused multiply subtract 
-(define_insn "altivec_vnmsubfp"
+(define_insn "*altivec_vnmsubfp"
   [(set (match_operand:V4SF 0 "register_operand" "=v")
 	(neg:V4SF
 	 (fma:V4SF (match_operand:V4SF 1 "register_operand" "v")
@@ -661,31 +633,6 @@
 		   (neg:V4SF
 		    (match_operand:V4SF 3 "register_operand" "v")))))]
   "VECTOR_UNIT_ALTIVEC_P (V4SFmode)"
-  "vnmsubfp %0,%1,%2,%3"
-  [(set_attr "type" "vecfloat")])
-
-(define_insn "*altivec_vnmsubfp_1"
-  [(set (match_operand:V4SF 0 "register_operand" "=v")
-	(neg:V4SF
-	 (minus:V4SF
-	  (mult:V4SF
-	   (match_operand:V4SF 1 "register_operand" "v")
-	   (match_operand:V4SF 2 "register_operand" "v"))
-	  (match_operand:V4SF 3 "register_operand" "v"))))]
-  "VECTOR_UNIT_ALTIVEC_P (V4SFmode) && TARGET_FUSED_MADD
-   && HONOR_SIGNED_ZEROS (SFmode)"
-  "vnmsubfp %0,%1,%2,%3"
-  [(set_attr "type" "vecfloat")])
-
-(define_insn "*altivec_vnmsubfp_2"
-  [(set (match_operand:V4SF 0 "register_operand" "=v")
-	(minus:V4SF
-	 (match_operand:V4SF 3 "register_operand" "v")
-	 (mult:V4SF
-	  (match_operand:V4SF 1 "register_operand" "v")
-	  (match_operand:V4SF 2 "register_operand" "v"))))]
-  "VECTOR_UNIT_ALTIVEC_P (V4SFmode) && TARGET_FUSED_MADD
-   && !HONOR_SIGNED_ZEROS (SFmode)"
   "vnmsubfp %0,%1,%2,%3"
   [(set_attr "type" "vecfloat")])
 
@@ -1829,19 +1776,15 @@
   [(set_attr "type" "vecstore")])
 
 (define_insn "altivec_stve<VI_char>x"
-  [(parallel
-    [(set (match_operand:VI 0 "memory_operand" "=Z")
-	  (match_operand:VI 1 "register_operand" "v"))
-     (unspec [(const_int 0)] UNSPEC_STVE)])]
+  [(set (match_operand:<VI_scalar> 0 "memory_operand" "=Z")
+	(unspec:<VI_scalar> [(match_operand:VI 1 "register_operand" "v")] UNSPEC_STVE))]
   "TARGET_ALTIVEC"
   "stve<VI_char>x %1,%y0"
   [(set_attr "type" "vecstore")])
 
 (define_insn "*altivec_stvesfx"
-  [(parallel
-    [(set (match_operand:V4SF 0 "memory_operand" "=Z")
-	  (match_operand:V4SF 1 "register_operand" "v"))
-     (unspec [(const_int 0)] UNSPEC_STVE)])]
+  [(set (match_operand:SF 0 "memory_operand" "=Z")
+	(unspec:SF [(match_operand:V4SF 1 "register_operand" "v")] UNSPEC_STVE))]
   "TARGET_ALTIVEC"
   "stvewx %1,%y0"
   [(set_attr "type" "vecstore")])

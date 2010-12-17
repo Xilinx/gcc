@@ -23,7 +23,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "toplev.h" /* floor_log2 */
 #include "diagnostic-core.h"
 #include "tree.h"
 #include "tree-inline.h"
@@ -242,10 +241,9 @@ remap_ssa_name (tree name, copy_body_data *id)
 	    {
 	      gimple_stmt_iterator gsi = gsi_last_bb (id->entry_bb);
 	      gimple init_stmt;
+	      tree zero = build_zero_cst (TREE_TYPE (new_tree));
 
-	      init_stmt = gimple_build_assign (new_tree,
-		                               fold_convert (TREE_TYPE (new_tree),
-					       		    integer_zero_node));
+	      init_stmt = gimple_build_assign (new_tree, zero);
 	      gsi_insert_after (&gsi, init_stmt, GSI_NEW_STMT);
 	      SSA_NAME_IS_DEFAULT_DEF (new_tree) = 0;
 	    }
@@ -3250,6 +3248,16 @@ estimate_move_cost (tree type)
 
   gcc_assert (!VOID_TYPE_P (type));
 
+  if (TREE_CODE (type) == VECTOR_TYPE)
+    {
+      enum machine_mode inner = TYPE_MODE (TREE_TYPE (type));
+      enum machine_mode simd
+	= targetm.vectorize.preferred_simd_mode (inner);
+      int simd_mode_size = GET_MODE_SIZE (simd);
+      return ((GET_MODE_SIZE (TYPE_MODE (type)) + simd_mode_size - 1)
+	      / simd_mode_size);
+    }
+
   size = int_size_in_bytes (type);
 
   if (size < 0 || size > MOVE_MAX_PIECES * MOVE_RATIO (!optimize_size))
@@ -3284,6 +3292,7 @@ estimate_operator_cost (enum tree_code code, eni_weights *weights,
     case POINTER_PLUS_EXPR:
     case MINUS_EXPR:
     case MULT_EXPR:
+    case FMA_EXPR:
 
     case ADDR_SPACE_CONVERT_EXPR:
     case FIXED_CONVERT_EXPR:
@@ -3484,13 +3493,40 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
 	if (POINTER_TYPE_P (funtype))
 	  funtype = TREE_TYPE (funtype);
 
-	if (is_simple_builtin (decl))
+	/* Do not special case builtins where we see the body.
+	   This just confuse inliner.  */
+	if (!decl || cgraph_node (decl)->analyzed)
+	  ;
+	/* For buitins that are likely expanded to nothing or
+	   inlined do not account operand costs.  */
+	else if (is_simple_builtin (decl))
 	  return 0;
 	else if (is_inexpensive_builtin (decl))
-	  cost = weights->target_builtin_call_cost;
-	else
-	  cost = weights->call_cost;
+	  return weights->target_builtin_call_cost;
+	else if (DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL)
+	  {
+	    /* We canonicalize x * x to pow (x, 2.0) with -ffast-math, so
+	       specialize the cheap expansion we do here.
+	       ???  This asks for a more general solution.  */
+	    switch (DECL_FUNCTION_CODE (decl))
+	      {
+		case BUILT_IN_POW:
+		case BUILT_IN_POWF:
+		case BUILT_IN_POWL:
+		  if (TREE_CODE (gimple_call_arg (stmt, 1)) == REAL_CST
+		      && REAL_VALUES_EQUAL
+			   (TREE_REAL_CST (gimple_call_arg (stmt, 1)), dconst2))
+		    return estimate_operator_cost (MULT_EXPR, weights,
+						   gimple_call_arg (stmt, 0),
+						   gimple_call_arg (stmt, 0));
+		  break;
 
+		default:
+		  break;
+	      }
+	  }
+
+	cost = weights->call_cost;
 	if (decl)
 	  funtype = TREE_TYPE (decl);
 
@@ -3536,11 +3572,13 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
 	break;
       }
 
+    case GIMPLE_RETURN:
+      return weights->return_cost;
+
     case GIMPLE_GOTO:
     case GIMPLE_LABEL:
     case GIMPLE_NOP:
     case GIMPLE_PHI:
-    case GIMPLE_RETURN:
     case GIMPLE_PREDICT:
     case GIMPLE_DEBUG:
       return 0;
@@ -3640,16 +3678,18 @@ init_inline_once (void)
   eni_size_weights.div_mod_cost = 1;
   eni_size_weights.omp_cost = 40;
   eni_size_weights.time_based = false;
+  eni_size_weights.return_cost = 1;
 
   /* Estimating time for call is difficult, since we have no idea what the
      called function does.  In the current uses of eni_time_weights,
      underestimating the cost does less harm than overestimating it, so
      we choose a rather small value here.  */
   eni_time_weights.call_cost = 10;
-  eni_time_weights.target_builtin_call_cost = 10;
+  eni_time_weights.target_builtin_call_cost = 1;
   eni_time_weights.div_mod_cost = 10;
   eni_time_weights.omp_cost = 40;
   eni_time_weights.time_based = true;
+  eni_time_weights.return_cost = 2;
 }
 
 /* Estimate the number of instructions in a gimple_seq. */

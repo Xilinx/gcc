@@ -31,7 +31,11 @@ BEGIN {
 	n_langs = 0
 	n_target_save = 0
 	n_extra_vars = 0
-        quote = "\042"
+	n_extra_target_vars = 0
+	n_extra_c_includes = 0
+	n_extra_h_includes = 0
+	n_enums = 0
+	quote = "\042"
 	comma = ","
 	FS=SUBSEP
 	# Default the name of header created from opth-gen.awk to options.h
@@ -52,6 +56,55 @@ BEGIN {
 		else if ($1 == "Variable") {
 			extra_vars[n_extra_vars] = $2
 			n_extra_vars++
+		}
+		else if ($1 == "TargetVariable") {
+			# Combination of TargetSave and Variable
+			extra_vars[n_extra_vars] = $2
+			n_extra_vars++
+
+			var = $2
+			sub(" *=.*", "", var)
+			orig_var = var
+			name = var
+			type = var
+			sub("^.*[ *]", "", name)
+			sub(" *" name "$", "", type)
+			target_save_decl[n_target_save] = type " x_" name
+			n_target_save++
+
+			extra_target_vars[n_extra_target_vars] = name
+			n_extra_target_vars++;
+		}
+		else if ($1 == "HeaderInclude") {
+			extra_h_includes[n_extra_h_includes++] = $2;
+		}
+		else if ($1 == "SourceInclude")  {
+			extra_c_includes[n_extra_c_includes++] = $2;
+		}
+		else if ($1 == "Enum") {
+			props = $2
+			name = opt_args("Name", props)
+			type = opt_args("Type", props)
+			unknown_error = opt_args("UnknownError", props)
+			enum_names[n_enums] = name
+			enum_type[name] = type
+			enum_index[name] = n_enums
+			enum_unknown_error[name] = unknown_error
+			enum_help[name] = $3
+			n_enums++
+		}
+		else if ($1 == "EnumValue")  {
+			props = $2
+			enum_name = opt_args("Enum", props)
+			string = opt_args("String", props)
+			value = opt_args("Value", props)
+			val_flags = "0"
+			val_flags = val_flags \
+			  test_flag("Canonical", props, "| CL_ENUM_CANONICAL") \
+			  test_flag("DriverOnly", props, "| CL_ENUM_DRIVER_ONLY")
+			enum_data[enum_name] = enum_data[enum_name] \
+			  "  { " quote string quote ", " value ", " val_flags \
+			  " },\n"
 		}
 		else {
 			name = opt_args("Mask", $1)
@@ -82,7 +135,67 @@ print "#include " quote "target.h" quote
 print "#endif /* GCC_DRIVER */"
 print ""
 
+if (n_extra_c_includes > 0) {
+	for (i = 0; i < n_extra_c_includes; i++) {
+		print "#include " quote extra_c_includes[i] quote
+	}
+	print ""
+}
+
+for (i = 0; i < n_enums; i++) {
+	name = enum_names[i]
+	type = enum_type[name]
+	print "static const struct cl_enum_arg cl_enum_" name \
+	    "_data[] = "
+	print "{"
+	print enum_data[name] "  { NULL, 0, 0 }"
+	print "};"
+	print ""
+	print "static void"
+	print "cl_enum_" name "_set (void *var, int value)"
+	print "{"
+	print "  *((" type " *) var) = (" type ") value;"
+	print "}"
+	print ""
+	print "static int"
+	print "cl_enum_" name "_get (const void *var)"
+	print "{"
+	print "  return (int) *((const " type " *) var);"
+	print "}"
+	print ""
+}
+
+print "const struct cl_enum cl_enums[] ="
+print "{"
+for (i = 0; i < n_enums; i++) {
+	name = enum_names[i]
+	ehelp = enum_help[name]
+	if (ehelp == "")
+		ehelp = "NULL"
+	else
+		ehelp = quote ehelp quote
+	unknown_error = enum_unknown_error[name]
+	if (unknown_error == "")
+		unknown_error = "NULL"
+	else
+		unknown_error = quote unknown_error quote
+	print "  {"
+	print "    " ehelp ","
+	print "    " unknown_error ","
+	print "    cl_enum_" name "_data,"
+	print "    sizeof (" enum_type[name] "),"
+	print "    cl_enum_" name "_set,"
+	print "    cl_enum_" name "_get"
+	print "  },"
+}
+print "};"
+print "const unsigned int cl_enums_count = " n_enums ";"
+print ""
+
 have_save = 0;
+if (n_extra_target_vars)
+	have_save = 1
+
 print "const struct gcc_options global_options_init =\n{"
 for (i = 0; i < n_extra_vars; i++) {
 	var = extra_vars[i]
@@ -91,6 +204,7 @@ for (i = 0; i < n_extra_vars; i++) {
 		sub(".*= *", "", init)
 		sub(" *=.*", "", var)
 		sub("^.*[ *]", "", var)
+		sub("\\[.*\\]$", "", var)
 	} else {
 		init = "0"
 	}
@@ -304,11 +418,13 @@ print "{";
 n_opt_char = 2;
 n_opt_short = 0;
 n_opt_int = 0;
+n_opt_enum = 1;
 n_opt_other = 0;
 var_opt_char[0] = "optimize";
 var_opt_char[1] = "optimize_size";
 var_opt_range["optimize"] = "0, 255";
 var_opt_range["optimize_size"] = "0, 255";
+var_opt_enum[0] = "flag_fp_contract_mode";
 
 # Sort by size to mimic how the structure is laid out to be friendlier to the
 # cache.
@@ -329,6 +445,9 @@ for (i = 0; i < n_opts; i++) {
 
 		else if (otype ~ "^((un)?signed +)?short *$")
 			var_opt_short[n_opt_short++] = name;
+
+		else if (otype ~ ("^enum +[_" alnum "]+ *"))
+			var_opt_enum[n_opt_enum++] = name;
 
 		else if (otype ~ "^((un)?signed +)?char *$") {
 			var_opt_char[n_opt_char++] = name;
@@ -357,6 +476,10 @@ for (i = 0; i < n_opt_int; i++) {
 	print "  ptr->x_" var_opt_int[i] " = opts->x_" var_opt_int[i] ";";
 }
 
+for (i = 0; i < n_opt_enum; i++) {
+	print "  ptr->x_" var_opt_enum[i] " = opts->x_" var_opt_enum[i] ";";
+}
+
 for (i = 0; i < n_opt_short; i++) {
 	print "  ptr->x_" var_opt_short[i] " = opts->x_" var_opt_short[i] ";";
 }
@@ -379,6 +502,10 @@ for (i = 0; i < n_opt_other; i++) {
 
 for (i = 0; i < n_opt_int; i++) {
 	print "  opts->x_" var_opt_int[i] " = ptr->x_" var_opt_int[i] ";";
+}
+
+for (i = 0; i < n_opt_enum; i++) {
+	print "  opts->x_" var_opt_enum[i] " = ptr->x_" var_opt_enum[i] ";";
 }
 
 for (i = 0; i < n_opt_short; i++) {
@@ -419,6 +546,14 @@ for (i = 0; i < n_opt_int; i++) {
 	print "";
 }
 
+for (i = 0; i < n_opt_enum; i++) {
+	print "  fprintf (file, \"%*s%s (%#x)\\n\",";
+	print "           indent_to, \"\",";
+	print "           \"" var_opt_enum[i] "\",";
+	print "           (int) ptr->x_" var_opt_enum[i] ");";
+	print "";
+}
+
 for (i = 0; i < n_opt_short; i++) {
 	print "  if (ptr->x_" var_opt_short[i] ")";
 	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
@@ -448,6 +583,7 @@ print "{";
 n_target_char = 0;
 n_target_short = 0;
 n_target_int = 0;
+n_target_enum = 0;
 n_target_other = 0;
 
 if (have_save) {
@@ -467,6 +603,9 @@ if (have_save) {
 
 			else if (otype ~ "^((un)?signed +)?short *$")
 				var_target_short[n_target_short++] = name;
+
+			else if (otype ~ ("^enum +[_" alnum "]+ *$"))
+				var_target_enum[n_target_enum++] = name;
 
 			else if (otype ~ "^((un)?signed +)?char *$") {
 				var_target_char[n_target_char++] = name;
@@ -499,8 +638,16 @@ print "  if (targetm.target_option.save)";
 print "    targetm.target_option.save (ptr);";
 print "";
 
+for (i = 0; i < n_extra_target_vars; i++) {
+	print "  ptr->x_" extra_target_vars[i] " = opts->x_" extra_target_vars[i] ";";
+}
+
 for (i = 0; i < n_target_other; i++) {
 	print "  ptr->x_" var_target_other[i] " = opts->x_" var_target_other[i] ";";
+}
+
+for (i = 0; i < n_target_enum; i++) {
+	print "  ptr->x_" var_target_enum[i] " = opts->x_" var_target_enum[i] ";";
 }
 
 for (i = 0; i < n_target_int; i++) {
@@ -523,8 +670,16 @@ print "void";
 print "cl_target_option_restore (struct gcc_options *opts, struct cl_target_option *ptr)";
 print "{";
 
+for (i = 0; i < n_extra_target_vars; i++) {
+	print "  opts->x_" extra_target_vars[i] " = ptr->x_" extra_target_vars[i] ";";
+}
+
 for (i = 0; i < n_target_other; i++) {
 	print "  opts->x_" var_target_other[i] " = ptr->x_" var_target_other[i] ";";
+}
+
+for (i = 0; i < n_target_enum; i++) {
+	print "  opts->x_" var_target_enum[i] " = ptr->x_" var_target_enum[i] ";";
 }
 
 for (i = 0; i < n_target_int; i++) {
@@ -562,6 +717,15 @@ for (i = 0; i < n_target_other; i++) {
 	print "             indent, \"\",";
 	print "             \"" var_target_other[i] "\",";
 	print "             (unsigned long)ptr->x_" var_target_other[i] ");";
+	print "";
+}
+
+for (i = 0; i < n_target_enum; i++) {
+	print "  if (ptr->x_" var_target_enum[i] ")";
+	print "    fprintf (file, \"%*s%s (%#x)\\n\",";
+	print "             indent, \"\",";
+	print "             \"" var_target_enum[i] "\",";
+	print "             ptr->x_" var_target_enum[i] ");";
 	print "";
 }
 

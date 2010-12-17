@@ -24,12 +24,21 @@
 #elif defined (__ia64__)
 #  define SIZE 272
 #elif defined(__mips__)
-#  define SIZE 240
+#  if defined (__mips_abicalls) \
+      || (defined _MIPS_SIM && (_MIPS_SIM ==_ABIN32 || _MIPS_SIM==_ABI64))
+#    define SIZE 240
+#  else
+#    define SIZE 248
+#  endif
 #elif defined (__powerpc__) || defined (__PPC__) || defined (__ppc__) \
       || defined (__POWERPC__) || defined (PPC) || defined (_IBMR2)
 #  define SIZE 240
 #elif defined (__AVR__)
 #  define SIZE 254
+#elif defined (__s390x__)
+#  define SIZE 96  /* 256 - 160 bytes for register save area */
+#elif defined (__s390__)
+#  define SIZE 160 /* 256 -  96 bytes for register save area */
 #else
 #  define SIZE 256
 #endif

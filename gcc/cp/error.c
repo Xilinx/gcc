@@ -24,7 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "cp-tree.h"
-#include "toplev.h"
 #include "flags.h"
 #include "diagnostic.h"
 #include "tree-diagnostic.h"
@@ -33,6 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cxx-pretty-print.h"
 #include "tree-pretty-print.h"
 #include "pointer-set.h"
+#include "c-family/c-objc.h"
 
 #define pp_separate_with_comma(PP) pp_cxx_separate_with (PP, ',')
 
@@ -86,6 +86,7 @@ static void dump_scope (tree, int);
 static void dump_template_parms (tree, int, int);
 static int get_non_default_template_args_count (tree, int);
 static const char *function_category (tree);
+static void maybe_print_constexpr_context (diagnostic_context *);
 static void maybe_print_instantiation_context (diagnostic_context *);
 static void print_instantiation_full_context (diagnostic_context *);
 static void print_instantiation_partial_context (diagnostic_context *,
@@ -97,7 +98,6 @@ static void cp_print_error_function (diagnostic_context *, diagnostic_info *);
 
 static bool cp_printer (pretty_printer *, text_info *, const char *,
 			int, bool, bool, bool);
-static location_t location_of (tree);
 
 void
 init_error (void)
@@ -1027,7 +1027,7 @@ dump_decl (tree t, int flags)
 	      dump_type (DECL_CONTEXT (t), flags);
 	      pp_cxx_colon_colon (cxx_pp);
 	    }
-	  else if (DECL_CONTEXT (t))
+	  else if (!DECL_FILE_SCOPE_P (t))
 	    {
 	      dump_decl (DECL_CONTEXT (t), flags);
 	      pp_cxx_colon_colon (cxx_pp);
@@ -1699,6 +1699,7 @@ dump_expr (tree t, int flags)
     case NAMESPACE_DECL:
     case LABEL_DECL:
     case OVERLOAD:
+    case TYPE_DECL:
     case IDENTIFIER_NODE:
       dump_decl (t, (flags & ~TFF_DECL_SPECIFIERS) | TFF_NO_FUNCTION_ARGUMENTS);
       break;
@@ -1925,6 +1926,34 @@ dump_expr (tree t, int flags)
 	    dump_expr (TREE_OPERAND (t, 0), flags);
 	  else
 	    dump_unary_op ("*", t, flags);
+	}
+      break;
+
+    case MEM_REF:
+      if (TREE_CODE (TREE_OPERAND (t, 0)) == ADDR_EXPR
+	  && integer_zerop (TREE_OPERAND (t, 1)))
+	dump_expr (TREE_OPERAND (TREE_OPERAND (t, 0), 0), flags);
+      else
+	{
+	  pp_cxx_star (cxx_pp);
+	  if (!integer_zerop (TREE_OPERAND (t, 1)))
+	    {
+	      pp_cxx_left_paren (cxx_pp);
+	      if (!integer_onep (TYPE_SIZE_UNIT
+				 (TREE_TYPE (TREE_TYPE (TREE_OPERAND (t, 0))))))
+		{
+		  pp_cxx_left_paren (cxx_pp);
+		  dump_type (ptr_type_node, flags);
+		  pp_cxx_right_paren (cxx_pp);
+		}
+	    }
+	  dump_expr (TREE_OPERAND (t, 0), flags);
+	  if (!integer_zerop (TREE_OPERAND (t, 1)))
+	    {
+	      pp_cxx_ws_string (cxx_pp, "+");
+	      dump_expr (fold_convert (ssizetype, TREE_OPERAND (t, 1)), flags);
+	      pp_cxx_right_paren (cxx_pp);
+	    }
 	}
       break;
 
@@ -2458,7 +2487,7 @@ lang_decl_name (tree decl, int v, bool translate)
 
 /* Return the location of a tree passed to %+ formats.  */
 
-static location_t
+location_t
 location_of (tree t)
 {
   if (TREE_CODE (t) == PARM_DECL && DECL_CONTEXT (t))
@@ -2468,7 +2497,9 @@ location_of (tree t)
   else if (TREE_CODE (t) == OVERLOAD)
     t = OVL_FUNCTION (t);
 
-  return DECL_SOURCE_LOCATION (t);
+  if (DECL_P (t))
+    return DECL_SOURCE_LOCATION (t);
+  return EXPR_LOC_OR_HERE (t);
 }
 
 /* Now the interfaces from error et al to dump_type et al. Each takes an
@@ -2635,6 +2666,7 @@ cp_diagnostic_starter (diagnostic_context *context,
   diagnostic_report_current_module (context);
   cp_print_error_function (context, diagnostic);
   maybe_print_instantiation_context (context);
+  maybe_print_constexpr_context (context);
   pp_base_set_prefix (context->printer, diagnostic_build_prefix (context,
 								 diagnostic));
 }
@@ -2955,6 +2987,31 @@ print_instantiation_context (void)
   diagnostic_flush_buffer (global_dc);
 }
 
+/* Report what constexpr call(s) we're trying to expand, if any.  */
+
+void
+maybe_print_constexpr_context (diagnostic_context *context)
+{
+  VEC(tree,heap) *call_stack = cx_error_context ();
+  unsigned ix;
+  tree t;
+
+  FOR_EACH_VEC_ELT (tree, call_stack, ix, t)
+    {
+      expanded_location xloc = expand_location (EXPR_LOCATION (t));
+      const char *s = expr_as_string (t, 0);
+      if (context->show_column)
+	pp_verbatim (context->printer,
+		     _("%s:%d:%d:   in constexpr expansion of %qs"),
+		     xloc.file, xloc.line, xloc.column, s);
+      else
+	pp_verbatim (context->printer,
+		     _("%s:%d:   in constexpr expansion of %qs"),
+		     xloc.file, xloc.line, s);
+      pp_base_newline (context->printer);
+    }
+}
+
 /* Called from output_format -- during diagnostic message processing --
    to handle C++ specific format specifier with the following meanings:
    %A   function argument-list.
@@ -3109,4 +3166,40 @@ pedwarn_cxx98 (location_t location, int opt, const char *gmsgid, ...)
   diagnostic.option_index = opt;
   va_end (ap);
   return report_diagnostic (&diagnostic);
+}
+
+/* Issue a diagnostic that NAME cannot be found in SCOPE.  DECL is what
+   we found when we tried to do the lookup.  LOCATION is the location of
+   the NAME identifier.  */
+
+void
+qualified_name_lookup_error (tree scope, tree name,
+			     tree decl, location_t location)
+{
+  if (scope == error_mark_node)
+    ; /* We already complained.  */
+  else if (TYPE_P (scope))
+    {
+      if (!COMPLETE_TYPE_P (scope))
+	error_at (location, "incomplete type %qT used in nested name specifier",
+		  scope);
+      else if (TREE_CODE (decl) == TREE_LIST)
+	{
+	  error_at (location, "reference to %<%T::%D%> is ambiguous",
+		    scope, name);
+	  print_candidates (decl);
+	}
+      else
+	error_at (location, "%qD is not a member of %qT", name, scope);
+    }
+  else if (scope != global_namespace)
+    {
+      error_at (location, "%qD is not a member of %qD", name, scope);
+      suggest_alternatives_for (location, name);
+    }
+  else
+    {
+      error_at (location, "%<::%D%> has not been declared", name);
+      suggest_alternatives_for (location, name);
+    }
 }

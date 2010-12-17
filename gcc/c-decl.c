@@ -46,6 +46,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "timevar.h"
 #include "c-family/c-common.h"
+#include "c-family/c-objc.h"
 #include "c-family/c-pragma.h"
 #include "c-lang.h"
 #include "langhooks.h"
@@ -3013,7 +3014,7 @@ lookup_label (tree name)
   tree label;
   struct c_label_vars *label_vars;
 
-  if (current_function_decl == 0)
+  if (current_function_scope == 0)
     {
       error ("label %qE referenced outside of any function", name);
       return 0;
@@ -3634,7 +3635,8 @@ shadow_tag_warned (const struct c_declspecs *declspecs, int warned)
 		  warned = 1;
 		}
 	    }
-	  else if (!declspecs->tag_defined_p
+	  else if (declspecs->typespec_kind != ctsk_tagdef
+                   && declspecs->typespec_kind != ctsk_tagfirstref
 		   && declspecs->storage_class != csc_none)
 	    {
 	      if (warned != 1)
@@ -3644,7 +3646,8 @@ shadow_tag_warned (const struct c_declspecs *declspecs, int warned)
 	      warned = 1;
 	      pending_xref_error ();
 	    }
-	  else if (!declspecs->tag_defined_p
+	  else if (declspecs->typespec_kind != ctsk_tagdef
+                   && declspecs->typespec_kind != ctsk_tagfirstref
 		   && (declspecs->const_p
 		       || declspecs->volatile_p
 		       || declspecs->restrict_p
@@ -4580,7 +4583,9 @@ build_compound_literal (location_t loc, tree type, tree init, bool non_const)
 void
 check_compound_literal_type (location_t loc, struct c_type_name *type_name)
 {
-  if (warn_cxx_compat && type_name->specs->tag_defined_p)
+  if (warn_cxx_compat
+      && (type_name->specs->typespec_kind == ctsk_tagdef
+          || type_name->specs->typespec_kind == ctsk_tagfirstref))
     warning_at (loc, OPT_Wc___compat,
 		"defining a type in a compound literal is invalid in C++");
 }
@@ -6127,9 +6132,13 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
   else if (arg_types && TREE_CODE (TREE_VALUE (arg_types)) == IDENTIFIER_NODE)
     {
       if (!funcdef_flag)
-	pedwarn (input_location, 0, "parameter names (without types) in function declaration");
+	{
+	  pedwarn (input_location, 0, "parameter names (without types) in function declaration");
+	  arg_info->parms = NULL_TREE;
+	}
+      else
+	arg_info->parms = arg_info->types;
 
-      arg_info->parms = arg_info->types;
       arg_info->types = 0;
       return 0;
     }
@@ -6877,7 +6886,8 @@ warn_cxx_compat_finish_struct (tree fieldlist)
 
       for (x = fieldlist; x != NULL_TREE; x = DECL_CHAIN (x))
 	{
-	  if (pointer_set_contains (tset, DECL_NAME (x)))
+	  if (DECL_NAME (x) != NULL_TREE
+	      && pointer_set_contains (tset, DECL_NAME (x)))
 	    {
 	      warning_at (DECL_SOURCE_LOCATION (x), OPT_Wc___compat,
 			  ("using %qD as both field and typedef name is "
@@ -7499,9 +7509,8 @@ build_enumerator (location_t decl_loc, location_t loc,
 
   /* Set basis for default for next value.  */
   the_enum->enum_next_value
-    = build_binary_op
-         (EXPR_HAS_LOCATION (value) ? EXPR_LOCATION (value) : input_location,
-	 PLUS_EXPR, value, integer_one_node, 0);
+    = build_binary_op (EXPR_LOC_OR_HERE (value),
+		       PLUS_EXPR, value, integer_one_node, 0);
   the_enum->enum_overflow = tree_int_cst_lt (the_enum->enum_next_value, value);
 
   /* Now create a declaration for the enum value name.  */
@@ -7847,6 +7856,9 @@ store_parm_decls_oldstyle (tree fndecl, const struct c_arg_info *arg_info)
       if (b && B_IN_CURRENT_SCOPE (b))
 	{
 	  decl = b->decl;
+	  /* Skip erroneous parameters.  */
+	  if (decl == error_mark_node)
+	    continue;
 	  /* If we got something other than a PARM_DECL it is an error.  */
 	  if (TREE_CODE (decl) != PARM_DECL)
 	    error_at (DECL_SOURCE_LOCATION (decl),
@@ -8177,6 +8189,9 @@ void
 finish_function (void)
 {
   tree fndecl = current_function_decl;
+  
+  if (c_dialect_objc ())
+    objc_finish_function ();
 
   if (TREE_CODE (fndecl) == FUNCTION_DECL
       && targetm.calls.promote_prototypes (TREE_TYPE (fndecl)))
@@ -8613,10 +8628,9 @@ build_null_declspecs (void)
   ret->storage_class = csc_none;
   ret->expr_const_operands = true;
   ret->declspecs_seen_p = false;
-  ret->type_seen_p = false;
+  ret->typespec_kind = ctsk_none;
   ret->non_sc_seen_p = false;
   ret->typedef_p = false;
-  ret->tag_defined_p = false;
   ret->explicit_signed_p = false;
   ret->deprecated_p = false;
   ret->default_int_p = false;
@@ -8700,7 +8714,7 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
   tree type = spec.spec;
   specs->non_sc_seen_p = true;
   specs->declspecs_seen_p = true;
-  specs->type_seen_p = true;
+  specs->typespec_kind = spec.kind;
   if (TREE_DEPRECATED (type))
     specs->deprecated_p = true;
 
@@ -9303,8 +9317,6 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
     }
   else if (TREE_CODE (type) != ERROR_MARK)
     {
-      if (spec.kind == ctsk_tagdef || spec.kind == ctsk_tagfirstref)
-	specs->tag_defined_p = true;
       if (spec.kind == ctsk_typeof)
 	{
 	  specs->typedef_p = true;
@@ -9319,6 +9331,11 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
 	    }
 	}
       specs->type = type;
+    }
+  else
+    {
+      /* Set a dummy type here to avoid warning about implicit 'int'.  */
+      specs->type = integer_type_node;
     }
 
   return specs;

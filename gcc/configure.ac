@@ -304,6 +304,8 @@ AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CPP
 AC_C_INLINE
 
+AC_SYS_LARGEFILE
+
 # sizeof(char) is 1 by definition.
 AC_CHECK_SIZEOF(void *)
 AC_CHECK_SIZEOF(short)
@@ -587,6 +589,10 @@ AC_ARG_ENABLE(build-with-cxx,
 ENABLE_BUILD_WITH_CXX=$enableval,
 ENABLE_BUILD_WITH_CXX=no)
 AC_SUBST(ENABLE_BUILD_WITH_CXX)
+if test "$ENABLE_BUILD_WITH_CXX" = "yes"; then
+  AC_DEFINE(ENABLE_BUILD_WITH_CXX, 1,
+	    [Define if building with C++.])
+fi
 
 # With stabs
 AC_ARG_WITH(stabs,
@@ -903,6 +909,24 @@ AC_CHECK_HEADER(pthread.h, [have_pthread_h=yes], [have_pthread_h=])
 gcc_AC_C_CHAR_BIT
 AC_C_BIGENDIAN
 
+# ----------------------
+# Checks for C++ headers
+# ----------------------
+
+dnl Autoconf will give an error in the configure script if there is no
+dnl C++ preprocessor.  Hack to prevent that.
+m4_pushdef([AC_MSG_ERROR], m4_defn([AC_MSG_WARN]))[]dnl
+AC_PROG_CXXCPP
+m4_popdef([AC_MSG_ERROR])[]dnl
+
+AC_LANG_PUSH(C++)
+
+AC_CHECK_HEADERS(unordered_map)
+AC_CHECK_HEADERS(tr1/unordered_map)
+AC_CHECK_HEADERS(ext/hash_map)
+
+AC_LANG_POP(C++)
+
 # --------
 # UNSORTED
 # --------
@@ -972,24 +996,8 @@ define(gcc_UNLOCKED_FUNCS, clearerr_unlocked feof_unlocked dnl
   putchar_unlocked putc_unlocked)
 AC_CHECK_FUNCS(times clock kill getrlimit setrlimit atoll atoq \
 	sysconf strsignal getrusage nl_langinfo \
-	gettimeofday mbstowcs wcswidth mmap mincore setlocale \
+	gettimeofday mbstowcs wcswidth mmap setlocale \
 	gcc_UNLOCKED_FUNCS)
-
-save_CPPFLAGS="$CPPFLAGS"
-save_LIBS="$LIBS"
-LIBS="$LIBS $LIBELFLIBS"
-AC_CHECK_FUNCS(elf_getshdrstrndx,,
-  [AC_CHECK_FUNCS(elf_getshstrndx,
-    [AC_RUN_IFELSE([AC_LANG_SOURCE([[#include <stdlib.h>
-#include <libelf.h>
-int main()
-{
-  return elf_getshstrndx (NULL, 0) == 0;
-}]])], AC_DEFINE(HAVE_ELF_GETSHSTRNDX_GABI, 1,
-        [Define if elf_getshstrndx has gABI conformant return values.]))])]
-  )
-LIBS="$save_LIBS"
-CPPFLAGS="$save_CPPFLAGS"
 
 if test x$ac_cv_func_mbstowcs = xyes; then
   AC_CACHE_CHECK(whether mbstowcs works, gcc_cv_func_mbstowcs_works,
@@ -1396,8 +1404,10 @@ fi
 
 # Convert extra_options into a form suitable for Makefile use.
 extra_opt_files=
+all_opt_files=
 for f in $extra_options; do
   extra_opt_files="$extra_opt_files \$(srcdir)/config/$f"
+  all_opt_files="$all_opt_files $srcdir/config/$f"
 done
 AC_SUBST(extra_opt_files)
 
@@ -1866,7 +1876,7 @@ elif test -f $gcc_cv_as_gas_srcdir/configure.in \
 elif test -x as$build_exeext; then
 	# Build using assembler in the current directory.
 	gcc_cv_as=./as$build_exeext
-elif test -x $AS_FOR_TARGET; then
+elif ( set dummy $AS_FOR_TARGET; test -x $[2] ); then
         gcc_cv_as="$AS_FOR_TARGET"
 else
         AC_PATH_PROG(gcc_cv_as, $AS_FOR_TARGET)
@@ -1921,7 +1931,7 @@ elif test -f $gcc_cv_ld_gld_srcdir/configure.in \
 elif test -x collect-ld$build_exeext; then
 	# Build using linker in the current directory.
 	gcc_cv_ld=./collect-ld$build_exeext
-elif test -x $LD_FOR_TARGET; then
+elif ( set dummy $LD_FOR_TARGET; test -x $[2] ); then
         gcc_cv_ld="$LD_FOR_TARGET"
 else
         AC_PATH_PROG(gcc_cv_ld, $LD_FOR_TARGET)
@@ -1994,7 +2004,7 @@ if test -f $gcc_cv_binutils_srcdir/configure.in \
 	gcc_cv_nm=../binutils/nm-new$build_exeext
 elif test -x nm$build_exeext; then
 	gcc_cv_nm=./nm$build_exeext
-elif test -x $NM_FOR_TARGET; then
+elif ( set dummy $NM_FOR_TARGET; test -x $[2] ); then
         gcc_cv_nm="$NM_FOR_TARGET"
 else
         AC_PATH_PROG(gcc_cv_nm, $NM_FOR_TARGET)
@@ -2027,7 +2037,7 @@ if test -f $gcc_cv_binutils_srcdir/configure.in \
 	gcc_cv_objdump=../binutils/objdump$build_exeext
 elif test -x objdump$build_exeext; then
 	gcc_cv_objdump=./objdump$build_exeext
-elif test -x $OBJDUMP_FOR_TARGET; then
+elif ( set dummy $OBJDUMP_FOR_TARGET; test -x $[2] ); then
         gcc_cv_objdump="$OBJDUMP_FOR_TARGET"
 else
         AC_PATH_PROG(gcc_cv_objdump, $OBJDUMP_FOR_TARGET)
@@ -2998,6 +3008,16 @@ else
   [set_have_as_tls=yes])
 fi
 case "$target" in
+  *-*-irix6*)
+    # IRIX 6.5 rld and libc.so lack TLS support, so even if gas and gld
+    # with TLS support are in use, native TLS cannot work.
+    set_have_as_tls=no
+    ;;
+  *-*-osf*)
+    # Tru64 UNIX loader and libc.so lack TLS support, so even if gas and
+    # gld with TLS support are in use, native TLS cannot work.
+    set_have_as_tls=no
+    ;;
   # TLS was introduced in the Solaris 9 FCS release and backported to
   # Solaris 8 patches.  Support for GNU-style TLS on x86 was only
   # introduced in Solaris 9 4/04, replacing the earlier Sun style that Sun
@@ -3658,6 +3678,20 @@ x:
       [AC_DEFINE(HAVE_AS_DTPRELWORD, 1,
 	  [Define if your assembler supports .dtprelword.])])
 
+    gcc_GAS_CHECK_FEATURE([DSPR1 mult with four accumulators support],
+      gcc_cv_as_mips_dspr1_mult,,,
+[	.set	mips32r2
+	.set	nodspr2
+	.set	dsp
+	madd	$ac3,$4,$5
+	maddu	$ac3,$4,$5
+	msub	$ac3,$4,$5
+	msubu	$ac3,$4,$5
+	mult	$ac3,$4,$5
+	multu	$ac3,$4,$5],,
+      [AC_DEFINE(HAVE_AS_DSPR1_MULT, 1,
+	  [Define if your assembler supports DSPR1 mult.])])
+
     AC_MSG_CHECKING(assembler and linker for explicit JALR relocation)
     gcc_cv_as_ld_jalr_reloc=no
     if test $gcc_cv_as_mips_explicit_relocs = yes; then
@@ -3839,8 +3873,8 @@ gcc_GAS_CHECK_FEATURE([.lcomm with alignment], gcc_cv_as_lcomm_with_alignment,
   [Define if your assembler supports .lcomm with an alignment field.])])
 
 AC_ARG_ENABLE(gnu-unique-object,
- [  --enable-gnu-unique-object	enable the use of the @gnu_unique_object ELF extension on
-				glibc systems],
+ [AS_HELP_STRING([--enable-gnu-unique-object],
+   [enable the use of the @gnu_unique_object ELF extension on glibc systems])],
  [case $enable_gnu_unique_object in
     yes | no) ;;
     *) AC_MSG_ERROR(['$enable_gnu_unique_object' is an invalid value for --enable-gnu-unique-object.
@@ -4448,6 +4482,7 @@ changequote([,])dnl
 	all_lang_makefrags="$all_lang_makefrags \$(srcdir)/$gcc_subdir/Make-lang.in"
 	if test -f $srcdir/$gcc_subdir/lang.opt; then
 	    lang_opt_files="$lang_opt_files $srcdir/$gcc_subdir/lang.opt"
+	    all_opt_files="$all_opt_files $srcdir/$gcc_subdir/lang.opt"
 	fi
 	if test -f $srcdir/$gcc_subdir/$subdir-tree.def; then
 	    lang_tree_files="$lang_tree_files $srcdir/$gcc_subdir/$subdir-tree.def"
@@ -4461,17 +4496,6 @@ changequote([,])dnl
 		    AC_DEFINE(ENABLE_LTO, 1, [Define to enable LTO support.])
 		    enable_lto=yes
 		    AC_SUBST(enable_lto)
-		    # LTO needs to speak the platform's object file format, and has a
-		    # number of implementations of the required binary file access APIs.
-		    # ELF is the most common, and default.  We only link libelf if ELF
-		    # is indeed the selected format.
-		    LTO_BINARY_READER=${lto_binary_reader}
-		    LTO_USE_LIBELF=-lelf
-		    if test "x$lto_binary_reader" != "xlto-elf" ; then
-		      LTO_USE_LIBELF=
-		    fi
-		    AC_SUBST(LTO_BINARY_READER)
-		    AC_SUBST(LTO_USE_LIBELF)
 		    ;;
 		*) ;;
 	esac
@@ -4507,6 +4531,14 @@ do
 	done
 	echo "lang.$t: $x" >> Make-hooks
 done
+
+# --------
+# Option include files
+# --------
+
+${AWK} -f $srcdir/opt-include.awk $all_opt_files > option-includes.mk
+option_includes="option-includes.mk"
+AC_SUBST_FILE(option_includes)
 
 # --------
 # UNSORTED
@@ -4644,12 +4676,6 @@ if test "x${CLOOGLIBS}" != "x" ; then
    AC_DEFINE(HAVE_cloog, 1, [Define if cloog is in use.])
 fi
 
-AC_ARG_VAR(LIBELFLIBS,[How to link libelf])
-AC_ARG_VAR(LIBELFINC,[How to find libelf include files])
-if test "x${LIBELFLIBS}" != "x" ; then 
-   AC_DEFINE(HAVE_libelf, 1, [Define if libelf is in use.])
-fi
-
 # Check for plugin support
 AC_ARG_ENABLE(plugin,
 [  --enable-plugin         enable plugin support],
@@ -4715,11 +4741,15 @@ if test x"$enable_plugin" = x"yes"; then
 
   # Check that we can build shared objects with -fPIC -shared
   saved_LDFLAGS="$LDFLAGS"
+  saved_CFLAGS="$CFLAGS"
   case "${host}" in
     *-*-darwin*)
-      LDFLAGS="$LDFLAGS -fPIC -shared -undefined dynamic_lookup"
+      CFLAGS=`echo $CFLAGS | sed s/-mdynamic-no-pic//g`
+      CFLAGS="$CFLAGS -fPIC"
+      LDFLAGS="$LDFLAGS -shared -undefined dynamic_lookup"
     ;;
     *)
+      CFLAGS="$CFLAGS -fPIC"
       LDFLAGS="$LDFLAGS -fPIC -shared"
     ;;
   esac
@@ -4733,6 +4763,7 @@ if test x"$enable_plugin" = x"yes"; then
     enable_plugin=no
   fi
   LDFLAGS="$saved_LDFLAGS"
+  CFLAGS="$saved_CFLAGS"
 
   # If plugin support had been requested but not available, fail.
   if test x"$enable_plugin" = x"no" ; then
@@ -4749,6 +4780,18 @@ AC_SUBST(enable_plugin)
 if test x"$enable_plugin" = x"yes"; then
   AC_DEFINE(ENABLE_PLUGIN, 1, [Define to enable plugin support.])
 fi
+
+
+AC_ARG_ENABLE(libquadmath-support,
+[AS_HELP_STRING([--disable-libquadmath-support],
+  [disable libquadmath support for Fortran])],
+ENABLE_LIBQUADMATH_SUPPORT=$enableval,
+ENABLE_LIBQUADMATH_SUPPORT=yes)
+if test "${ENABLE_LIBQUADMATH_SUPPORT}" != "no" ; then
+  AC_DEFINE(ENABLE_LIBQUADMATH_SUPPORT, 1,
+            [Define to 1 to enable libquadmath support])
+fi
+
 
 # Configure the subdirectories
 # AC_CONFIG_SUBDIRS($subdirs)
@@ -4771,3 +4814,4 @@ done
 ], 
 [subdirs='$subdirs'])
 AC_OUTPUT
+

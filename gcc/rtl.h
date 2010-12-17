@@ -1892,6 +1892,7 @@ extern rtx alloc_reg_note (enum reg_note, rtx, rtx);
 extern void add_reg_note (rtx, enum reg_note, rtx);
 extern void remove_note (rtx, const_rtx);
 extern void remove_reg_equal_equiv_notes (rtx);
+extern void remove_reg_equal_equiv_notes_for_regno (unsigned int);
 extern int side_effects_p (const_rtx);
 extern int volatile_refs_p (const_rtx);
 extern int volatile_insn_p (const_rtx);
@@ -2386,9 +2387,6 @@ extern void schedule_insns (void);
 /* In sched-ebb.c.  */
 extern void schedule_ebbs (void);
 
-/* In haifa-sched.c.  */
-extern void fix_sched_param (const char *, const char *);
-
 /* In sel-sched-dump.c.  */
 extern void sel_sched_fix_param (const char *param, const char *val);
 
@@ -2410,7 +2408,7 @@ extern int prologue_epilogue_contains (const_rtx);
 extern int sibcall_epilogue_contains (const_rtx);
 extern void mark_temp_addr_taken (rtx);
 extern void update_temp_slot_address (rtx, rtx);
-extern void maybe_copy_epilogue_insn (rtx, rtx);
+extern void maybe_copy_prologue_epilogue_insn (rtx, rtx);
 
 /* In stmt.c */
 extern void expand_null_return (void);
@@ -2457,8 +2455,7 @@ extern void init_reg_sets (void);
 extern void regclass (rtx, int);
 extern void reg_scan (rtx, unsigned int);
 extern void fix_register (const char *, int, int);
-extern bool invalid_mode_change_p (unsigned int, enum reg_class,
-				   enum machine_mode);
+extern bool invalid_mode_change_p (unsigned int, enum reg_class);
 
 /* In reorg.c */
 extern void dbr_schedule (rtx);
@@ -2503,11 +2500,13 @@ extern int may_alias_p (const_rtx, const_rtx);
 extern void init_alias_target (void);
 extern void init_alias_analysis (void);
 extern void end_alias_analysis (void);
+extern void vt_equate_reg_base_value (const_rtx, const_rtx);
 extern bool memory_modified_in_insn_p (const_rtx, const_rtx);
 extern rtx find_base_term (rtx);
 extern rtx gen_hard_reg_clobber (enum machine_mode, unsigned int);
 extern rtx get_reg_known_value (unsigned int);
 extern bool get_reg_known_equiv_p (unsigned int);
+extern rtx get_reg_base_value (unsigned int);
 
 #ifdef STACK_REGS
 extern int stack_regs_mentioned (const_rtx insn);

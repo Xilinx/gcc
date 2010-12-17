@@ -25,6 +25,10 @@
 #undef  ASM_SPEC
 #define ASM_SPEC ""
 
+#undef  LINK_SPEC
+#define LINK_SPEC "%{h*} %{v:-V} \
+		   %{static:-Bstatic} %{shared:-shared} %{symbolic:-Bsymbolic}"
+
 /* For xstormy16:
    - If -msim is specified, everything is built and linked as for the sim.
    - If -T is specified, that linker script is used, and it should provide
@@ -115,6 +119,9 @@
 #define SIZE_TYPE "unsigned int"
 
 #define PTRDIFF_TYPE "int"
+
+#undef  WCHAR_TYPE
+#define WCHAR_TYPE "long int"
 
 #undef  WCHAR_TYPE_SIZE
 #define WCHAR_TYPE_SIZE 32
@@ -587,5 +594,3 @@ enum reg_class
 #define FUNCTION_MODE HImode
 
 #define NO_IMPLICIT_EXTERN_C
-
-#define HANDLE_SYSV_PRAGMA 1

@@ -87,7 +87,6 @@ extern bool bfin_longcall_p (rtx, int);
 extern bool bfin_dsp_memref_p (rtx);
 extern bool bfin_expand_movmem (rtx, rtx, rtx, rtx);
 
-extern void conditional_register_usage (void);
 extern int bfin_register_move_cost (enum machine_mode, enum reg_class,
 				    enum reg_class);
 extern int bfin_memory_move_cost (enum machine_mode, enum reg_class, int in);
@@ -105,7 +104,7 @@ extern void emit_pic_move (rtx *, Mmode);
 extern void asm_conditional_branch (rtx, rtx *, int, int);
 extern rtx bfin_gen_compare (rtx, Mmode);
 
-extern int bfin_local_alignment (tree, int);
+extern unsigned bfin_local_alignment (tree, unsigned);
 extern rtx bfin_va_arg (tree, tree);
 
 extern void bfin_expand_prologue (void);

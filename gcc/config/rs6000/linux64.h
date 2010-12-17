@@ -65,10 +65,9 @@ extern int dot_symbols;
 
 #define TARGET_USES_LINUX64_OPT 1
 #ifdef HAVE_LD_LARGE_TOC
-extern enum rs6000_cmodel cmodel;
 #undef TARGET_CMODEL
-#define TARGET_CMODEL cmodel
-#define SET_CMODEL(opt) cmodel = opt
+#define TARGET_CMODEL rs6000_current_cmodel
+#define SET_CMODEL(opt) rs6000_current_cmodel = opt
 #else
 #define SET_CMODEL(opt) do {} while (0)
 #endif
@@ -127,7 +126,7 @@ extern enum rs6000_cmodel cmodel;
 	  if ((target_flags_explicit & MASK_MINIMAL_TOC) != 0)	\
 	    {							\
 	      if (rs6000_explicit_options.cmodel		\
-		  && cmodel != CMODEL_SMALL)			\
+		  && rs6000_current_cmodel != CMODEL_SMALL)	\
 		error ("-mcmodel incompatible with other toc options"); \
 	      SET_CMODEL (CMODEL_SMALL);			\
 	    }							\
@@ -135,7 +134,7 @@ extern enum rs6000_cmodel cmodel;
 	    {							\
 	      if (!rs6000_explicit_options.cmodel)		\
 		SET_CMODEL (CMODEL_MEDIUM);			\
-	      if (cmodel != CMODEL_SMALL)			\
+	      if (rs6000_current_cmodel != CMODEL_SMALL)	\
 		{						\
 		  TARGET_NO_FP_IN_TOC = 0;			\
 		  TARGET_NO_SUM_IN_TOC = 0;			\
@@ -193,7 +192,7 @@ extern enum rs6000_cmodel cmodel;
 #endif
 #endif
 
-#define ASM_SPEC32 "-a32 %{n} %{T} %{Ym,*} %{Yd,*} \
+#define ASM_SPEC32 "-a32 %{Ym,*} %{Yd,*} \
 %{mrelocatable} %{mrelocatable-lib} %{fpic:-K PIC} %{fPIC:-K PIC} \
 %{memb} %{!memb: %{msdata=eabi: -memb}} \
 %{!mlittle: %{!mlittle-endian: %{!mbig: %{!mbig-endian: \
@@ -208,7 +207,7 @@ extern enum rs6000_cmodel cmodel;
 
 #define ASM_SPEC_COMMON "%(asm_cpu) \
 %{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}} \
-%{v:-V} %{Qy:} %{!Qn:-Qy} %{Wa,*:%*} \
+%{Qy:} %{!Qn:-Qy} \
 %{mlittle} %{mlittle-endian} %{mbig} %{mbig-endian}"
 
 #undef	SUBSUBTARGET_EXTRA_SPECS
@@ -305,10 +304,6 @@ extern enum rs6000_cmodel cmodel;
 #define BLOCK_REG_PADDING(MODE, TYPE, FIRST) \
   (!(FIRST) ? upward : FUNCTION_ARG_PADDING (MODE, TYPE))
 
-/* Override svr4.h  */
-#undef MD_EXEC_PREFIX
-#undef MD_STARTFILE_PREFIX
-
 /* Linux doesn't support saving and restoring 64-bit regs in a 32-bit
    process.  */
 #define OS_MISSING_POWERPC64 !TARGET_64BIT
@@ -393,11 +388,11 @@ extern enum rs6000_cmodel cmodel;
 
 #define LINK_OS_LINUX_SPEC32 "-m elf32ppclinux %{!shared: %{!static: \
   %{rdynamic:-export-dynamic} \
-  %{!dynamic-linker:-dynamic-linker " LINUX_DYNAMIC_LINKER32 "}}}"
+  -dynamic-linker " LINUX_DYNAMIC_LINKER32 "}}"
 
 #define LINK_OS_LINUX_SPEC64 "-m elf64ppc %{!shared: %{!static: \
   %{rdynamic:-export-dynamic} \
-  %{!dynamic-linker:-dynamic-linker " LINUX_DYNAMIC_LINKER64 "}}}"
+  -dynamic-linker " LINUX_DYNAMIC_LINKER64 "}}"
 
 #undef  TOC_SECTION_ASM_OP
 #define TOC_SECTION_ASM_OP \

@@ -252,7 +252,7 @@ make_alias_for_thunk (tree function)
   tree alias;
   char buf[256];
 
-  ASM_GENERATE_INTERNAL_LABEL (buf, "LTHUNK", thunk_labelno);
+  targetm.asm_out.generate_internal_label (buf, "LTHUNK", thunk_labelno);
   thunk_labelno++;
 
   alias = make_alias_for (function, get_identifier (buf));
@@ -583,6 +583,7 @@ do_build_copy_assign (tree fndecl)
   tree compound_stmt;
   bool move_p = move_fn_p (fndecl);
   bool trivial = trivial_fn_p (fndecl);
+  int flags = LOOKUP_NORMAL | LOOKUP_NONVIRTUAL | LOOKUP_DEFAULTED;
 
   compound_stmt = begin_compound_stmt (0);
   parm = convert_from_reference (parm);
@@ -622,7 +623,7 @@ do_build_copy_assign (tree fndecl)
 					ansi_assopname (NOP_EXPR),
 					&parmvec,
 					base_binfo,
-					LOOKUP_NORMAL | LOOKUP_NONVIRTUAL,
+					flags,
                                         tf_warning_or_error));
 	  release_tree_vector (parmvec);
 	}
@@ -645,13 +646,13 @@ do_build_copy_assign (tree fndecl)
 
 	  if (CP_TYPE_CONST_P (expr_type))
 	    {
-	      error ("non-static const member %q#D, can't use default "
+	      error ("non-static const member %q#D, can%'t use default "
 		     "assignment operator", field);
 	      continue;
 	    }
 	  else if (TREE_CODE (expr_type) == REFERENCE_TYPE)
 	    {
-	      error ("non-static reference member %q#D, can't use "
+	      error ("non-static reference member %q#D, can%'t use "
 		     "default assignment operator", field);
 	      continue;
 	    }
@@ -849,8 +850,12 @@ get_dtor (tree type)
 tree
 locate_ctor (tree type)
 {
-  tree fn = locate_fn_flags (type, complete_ctor_identifier, NULL_TREE,
-			     LOOKUP_SPECULATIVE, tf_none);
+  tree fn;
+
+  push_deferring_access_checks (dk_no_check);
+  fn = locate_fn_flags (type, complete_ctor_identifier, NULL_TREE,
+			LOOKUP_SPECULATIVE, tf_none);
+  pop_deferring_access_checks ();
   if (fn == error_mark_node)
     return NULL_TREE;
   return fn;
@@ -972,13 +977,13 @@ walk_field_subobs (tree fields, tree fnname, special_function_kind sfk,
 	  if (CP_TYPE_CONST_P (mem_type) && !CLASS_TYPE_P (mem_type))
 	    {
 	      if (msg)
-		error ("non-static const member %q#D, can't use default "
+		error ("non-static const member %q#D, can%'t use default "
 		       "assignment operator", field);
 	    }
 	  else if (TREE_CODE (mem_type) == REFERENCE_TYPE)
 	    {
 	      if (msg)
-		error ("non-static reference member %q#D, can't use "
+		error ("non-static reference member %q#D, can%'t use "
 		       "default assignment operator", field);
 	    }
 	  else
@@ -1157,7 +1162,11 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
      methods in C++0x.  */
   if (expected_trivial
       && (!copy_arg_p || cxx_dialect < cxx0x))
-    return;
+    {
+      if (constexpr_p && sfk == sfk_constructor)
+	*constexpr_p = synthesized_default_constructor_is_constexpr (ctype);
+      return;
+    }
 #endif
 
   ++cp_unevaluated_operand;
@@ -1167,12 +1176,12 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 
   if (diag)
     {
-      flags = LOOKUP_NORMAL|LOOKUP_SPECULATIVE;
+      flags = LOOKUP_NORMAL|LOOKUP_SPECULATIVE|LOOKUP_DEFAULTED;
       complain = tf_warning_or_error;
     }
   else
     {
-      flags = LOOKUP_PROTECT|LOOKUP_SPECULATIVE;
+      flags = LOOKUP_PROTECT|LOOKUP_SPECULATIVE|LOOKUP_DEFAULTED;
       complain = tf_none;
     }
 
@@ -1310,8 +1319,7 @@ maybe_explain_implicit_delete (tree decl)
   /* If decl is a clone, get the primary variant.  */
   decl = DECL_ORIGIN (decl);
   gcc_assert (DECL_DELETED_FN (decl));
-  if (DECL_DEFAULTED_FN (decl)
-      && DECL_INITIAL (decl) == NULL_TREE)
+  if (DECL_DEFAULTED_FN (decl))
     {
       /* Not marked GTY; it doesn't need to be GC'd or written to PCH.  */
       static htab_t explained_htab;
@@ -1620,12 +1628,6 @@ defaultable_fn_check (tree fn)
 	  }
       if (TYPE_BEING_DEFINED (DECL_CONTEXT (fn)))
 	{
-	  if (DECL_NONCONVERTING_P (fn))
-	    error ("%qD declared explicit cannot be defaulted in the class "
-		   "body", fn);
-	  if (current_access_specifier != access_public_node)
-	    error ("%qD declared with non-public access cannot be defaulted "
-		   "in the class body", fn);
 	  if (TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn)))
 	    error ("function %q+D defaulted on its first declaration "
 		   "must not have an exception-specification", fn);

@@ -2845,7 +2845,7 @@ pph_find_exposed_for (tree t, bool *body)
               bool defined = DECL_INITIAL (t) != NULL;
                              /* FIXME pph: DECL_INITIALIZED_P (t)  */
               if (defined && (in_class || !DECL_THIS_EXTERN (t))
-                  && DECL_INTEGRAL_CONSTANT_VAR_P (t))
+                  && decl_constant_var_p (t))
                 *body = true;
 
               container = DECL_CONTEXT (t);
@@ -3455,7 +3455,7 @@ pph_get_decl_exposure (tree t)
       defined = DECL_INITIAL (t) != NULL /* FIXME pph: DECL_INITIALIZED_P (t)  */;
       type = TREE_TYPE (t);
       needed = !((!defined && (in_class || DECL_THIS_EXTERN (t)))
-                 || DECL_INTEGRAL_CONSTANT_VAR_P (t));
+                 || decl_constant_var_p (t));
       if (in_class)
         {
           tmpl_info = DECL_TEMPLATE_INFO (t);

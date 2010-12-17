@@ -344,6 +344,9 @@ typedef struct GTY(()) cp_parser {
      a local class.  */
   bool in_function_body;
 
+  /* TRUE if we can auto-correct a colon to a scope operator.  */
+  bool colon_corrects_to_scope_p;
+
   /* If non-NULL, then we are parsing a construct where new type
      definitions are not permitted.  The string stored here will be
      issued as an error message if a type is defined.  */

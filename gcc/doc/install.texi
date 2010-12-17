@@ -355,17 +355,6 @@ not installed in your default library search path.
 
 Necessary to build libgcj, the GCJ runtime.
 
-@item libelf version 0.8.12 (or later)
-
-Necessary to build link-time optimization (LTO) support.  It can be
-downloaded from @uref{http://www.mr511.de/software/libelf-0.8.12.tar.gz},
-though it is commonly available in several systems.  The version in
-IRIX 6.5 doesn't work since it lacks @file{gelf.h}.  The version in
-Solaris 2 does work.
-
-The @option{--with-libelf} configure option should be used if libelf is
-not installed in your default library search patch.
-
 @end table
 
 @heading Tools/packages necessary for modifying GCC
@@ -895,7 +884,7 @@ only for the listed packages.  For other packages, only static libraries
 will be built.  Package names currently recognized in the GCC tree are
 @samp{libgcc} (also known as @samp{gcc}), @samp{libstdc++} (not
 @samp{libstdc++-v3}), @samp{libffi}, @samp{zlib}, @samp{boehm-gc},
-@samp{ada}, @samp{libada}, @samp{libjava} and @samp{libobjc}.
+@samp{ada}, @samp{libada}, @samp{libjava}, @samp{libgo}, and @samp{libobjc}.
 Note @samp{libiberty} does not support shared libraries at all.
 
 Use @option{--disable-shared} to build only static libraries.  Note that
@@ -1177,10 +1166,11 @@ of the arguments depend on the target.
 Specify if the compiler should default to @option{-marm} or @option{-mthumb}.
 This option is only supported on ARM targets.
 
-@item --with-fpmath=sse
-Specify if the compiler should default to @option{-msse2} and
-@option{-mfpmath=sse}.  This option is only supported on i386 and
-x86-64 targets.
+@item --with-fpmath=@var{isa}
+This options sets @option{-mfpmath=sse} by default and specifies the default
+ISA for floating-point arithmetics.  You can select either @samp{sse} which
+enables @option{-msse2} or @samp{avx} which enables @option{-mavx} by default.
+This option is only supported on i386 and x86-64 targets.
 
 @item --with-divide=@var{type}
 Specify how the compiler should generate code for checking for
@@ -1315,15 +1305,12 @@ their runtime libraries should be built.  For a list of valid values for
 grep language= */config-lang.in
 @end smallexample
 Currently, you can use any of the following:
-@code{all}, @code{ada}, @code{c}, @code{c++}, @code{fortran}, @code{java},
-@code{objc}, @code{obj-c++}.
+@code{all}, @code{ada}, @code{c}, @code{c++}, @code{fortran},
+@code{go}, @code{java}, @code{objc}, @code{obj-c++}.
 Building the Ada compiler has special requirements, see below.
 If you do not pass this flag, or specify the option @code{all}, then all
 default languages available in the @file{gcc} sub-tree will be configured.
-Ada and Objective-C++ are not default languages; the rest are.
-Re-defining @code{LANGUAGES} when calling @samp{make} @strong{does not}
-work anymore, as those language sub-directories might not have been
-configured!
+Ada, Go and Objective-C++ are not default languages; the rest are.
 
 @item --enable-stage1-languages=@var{lang1},@var{lang2},@dots{}
 Specify that a particular subset of compilers and their runtime
@@ -1349,6 +1336,16 @@ do a @samp{make -C gcc gnatlib_and_tools}.
 @item --disable-libssp
 Specify that the run-time libraries for stack smashing protection
 should not be built.
+
+@item --disable-libquadmath
+Specify that the GCC quad-precision math library should not be built.
+On some systems, the library is required to be linkable when building
+the Fortran front end, unless @option{--disable-libquadmath-support}
+is used.
+
+@item --disable-libquadmath-support
+Specify that the Fortran front end and @code{libgfortran} do not add
+support for @code{libquadmath} on systems supporting it.
 
 @item --disable-libgomp
 Specify that the run-time libraries used by GOMP should not be built.
@@ -1621,8 +1618,9 @@ of GCC.  These are also used when linking GCC if configured with
 
 @item --with-boot-ldflags=@var{flags}
 This option may be used to set linker flags to be used when linking
-stage 2 and later when bootstrapping GCC.  By default no special flags
-are used.
+stage 2 and later when bootstrapping GCC.  If neither --with-boot-libs
+nor --with-host-libstdcxx is set to a value, then the default is
+@samp{-static-libstdc++ -static-libgcc}.
 
 @item --with-boot-libs=@var{libs}
 This option may be used to set libraries to be used when linking stage 2
@@ -1650,20 +1648,9 @@ default for a native toolchain with an assembler that accepts it and
 GLIBC 2.11 or above, otherwise disabled.
 
 @item --enable-lto
+@itemx --disable-lto
 Enable support for link-time optimization (LTO).  This is enabled by
-default if a working libelf implementation is found (see
-@option{--with-libelf}).
-
-@item --with-libelf=@var{pathname}
-@itemx --with-libelf-include=@var{pathname}
-@itemx --with-libelf-lib=@var{pathname}
-If you do not have libelf installed in a standard location and you
-want to enable support for link-time optimization (LTO), you can
-explicitly specify the directory where libelf is installed
-(@samp{--with-libelf=@var{libelfinstalldir}}).  The
-@option{--with-libelf=@var{libelfinstalldir}} option is shorthand for
-@option{--with-libelf-include=@var{libelfinstalldir}/include}
-@option{--with-libelf-lib=@var{libelfinstalldir}/lib}.
+default, and may be disabled using @option{--disable-lto}.
 
 @item --enable-gold
 Enable support for using @command{gold} as the linker.  If gold support is
@@ -2638,7 +2625,7 @@ messages may be automatically processed.
 
 Now that GCC has been built (and optionally tested), you can install it with
 @smallexample
-cd @var{objdir}; make install
+cd @var{objdir} && make install
 @end smallexample
 
 We strongly recommend to install into a target directory where there is
@@ -2674,7 +2661,8 @@ jail can be achieved with the command
 make DESTDIR=@var{path-to-rootdir} install
 @end smallexample
 
-@noindent where @var{path-to-rootdir} is the absolute path of
+@noindent
+where @var{path-to-rootdir} is the absolute path of
 a directory relative to which all installation paths will be
 interpreted.  Note that the directory specified by @code{DESTDIR}
 need not exist yet; it will be created if necessary.
@@ -2687,6 +2675,12 @@ be filled with duplicated GCC executables only if it already exists,
 it will not be created otherwise.  This is regarded as a feature,
 not as a bug, because it gives slightly more control to the packagers
 using the @code{DESTDIR} feature.
+
+You can install stripped programs and libraries with
+
+@smallexample
+make install-strip
+@end smallexample
 
 If you are bootstrapping a released version of GCC then please
 quickly review the build status page for your release, available from

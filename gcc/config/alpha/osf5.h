@@ -127,12 +127,11 @@ along with GCC; see the file COPYING3.  If not see
    it always means that we get slightly larger than necessary object files
    if the user does not specify -g.  If we don't pass -g, then mips-tfile
    will need to be fixed to work in this case.  Pass -O0 since some
-   optimization are broken and don't help us anyway.  Pass -nocpp because
-   there's no point in running CPP on our assembler output.  */
+   optimization are broken and don't help us anyway.  */
 #if ((TARGET_DEFAULT | TARGET_CPU_DEFAULT) & MASK_GAS) != 0
-#define ASM_SPEC "%{malpha-as:-g " ASM_OLDAS_SPEC " -nocpp %{pg} -O0}"
+#define ASM_SPEC "%{malpha-as:-g " ASM_OLDAS_SPEC " %{pg} -O0}"
 #else
-#define ASM_SPEC "%{!mgas:-g " ASM_OLDAS_SPEC " -nocpp %{pg} -O0}"
+#define ASM_SPEC "%{!mgas:-g " ASM_OLDAS_SPEC " %{pg} -O0}"
 #endif
 
 /* Specify to run a post-processor, mips-tfile after the assembler
@@ -268,9 +267,6 @@ __enable_execute_stack (void *addr)					\
 /* The native assembler doesn't understand parenthesis.  */
 #define TARGET_ASM_OPEN_PAREN ""
 #define TARGET_ASM_CLOSE_PAREN ""
-
-/* Handle #pragma weak and #pragma pack.  */
-#define HANDLE_SYSV_PRAGMA 1
 
 /* Handle #pragma extern_prefix.  */
 #define TARGET_HANDLE_PRAGMA_EXTERN_PREFIX 1

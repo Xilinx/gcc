@@ -1,5 +1,5 @@
 /* Definitions of target machine for GCC, for SPARC64, ELF.
-   Copyright (C) 1994, 1995, 1996, 1997, 1998, 2000, 2004, 2005, 2007
+   Copyright (C) 1994, 1995, 1996, 1997, 1998, 2000, 2004, 2005, 2007, 2010
    Free Software Foundation, Inc.
    Contributed by Doug Evans, dje@cygnus.com.
 
@@ -38,9 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef CPP_SUBTARGET_SPEC
 #define CPP_SUBTARGET_SPEC "-D__svr4__"
 
-#undef MD_EXEC_PREFIX
-#undef MD_STARTFILE_PREFIX
-
 #undef ASM_SPEC
 #define ASM_SPEC "\
 %{v:-V} -s %{fpic|fPIC|fpie|fPIE:-K PIC} \
@@ -70,15 +67,6 @@ crtbegin.o%s \
 
 /* Use the default (for now).  */
 #undef LIB_SPEC
-
-/* This defines which switch letters take arguments.
-   It is as in svr4.h but with -R added.  */
-#undef SWITCH_TAKES_ARG
-#define SWITCH_TAKES_ARG(CHAR) \
-  (DEFAULT_SWITCH_TAKES_ARG(CHAR) \
-   || (CHAR) == 'R' \
-   || (CHAR) == 'h' \
-   || (CHAR) == 'z')
 
 #undef BYTES_BIG_ENDIAN
 #define BYTES_BIG_ENDIAN (! TARGET_LITTLE_ENDIAN)

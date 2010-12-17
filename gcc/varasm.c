@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "output.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "hashtab.h"
 #include "ggc.h"
 #include "langhooks.h"
@@ -53,6 +52,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfglayout.h"
 #include "basic-block.h"
 #include "tree-iterator.h"
+#include "pointer-set.h"
 
 #ifdef XCOFF_DEBUGGING_INFO
 #include "xcoffout.h"		/* Needed for external data
@@ -367,69 +367,6 @@ create_block_symbol (const char *label, struct object_block *block,
   return symbol;
 }
 
-static void
-initialize_cold_section_name (void)
-{
-  const char *stripped_name;
-  char *name, *buffer;
-  tree dsn;
-
-  gcc_assert (cfun && current_function_decl);
-  if (crtl->subsections.unlikely_text_section_name)
-    return;
-
-  dsn = DECL_SECTION_NAME (current_function_decl);
-  if (flag_function_sections && dsn)
-    {
-      name = (char *) alloca (TREE_STRING_LENGTH (dsn) + 1);
-      memcpy (name, TREE_STRING_POINTER (dsn), TREE_STRING_LENGTH (dsn) + 1);
-
-      stripped_name = targetm.strip_name_encoding (name);
-
-      buffer = ACONCAT ((stripped_name, "_unlikely", NULL));
-      crtl->subsections.unlikely_text_section_name = ggc_strdup (buffer);
-    }
-  else
-    crtl->subsections.unlikely_text_section_name =  UNLIKELY_EXECUTED_TEXT_SECTION_NAME;
-}
-
-/* Tell assembler to switch to unlikely-to-be-executed text section.  */
-
-section *
-unlikely_text_section (void)
-{
-  if (cfun)
-    {
-      if (!crtl->subsections.unlikely_text_section_name)
-	initialize_cold_section_name ();
-
-      return get_named_section (NULL, crtl->subsections.unlikely_text_section_name, 0);
-    }
-  else
-    return get_named_section (NULL, UNLIKELY_EXECUTED_TEXT_SECTION_NAME, 0);
-}
-
-/* When called within a function context, return true if the function
-   has been assigned a cold text section and if SECT is that section.
-   When called outside a function context, return true if SECT is the
-   default cold section.  */
-
-bool
-unlikely_text_section_p (section *sect)
-{
-  const char *name;
-
-  if (cfun)
-    name = crtl->subsections.unlikely_text_section_name;
-  else
-    name = UNLIKELY_EXECUTED_TEXT_SECTION_NAME;
-
-  return (name
-	  && sect
-	  && SECTION_STYLE (sect) == SECTION_NAMED
-	  && strcmp (name, sect->named.name) == 0);
-}
-
 /* Return a section with a particular name and with whatever SECTION_*
    flags section_type_flags deems appropriate.  The name of the section
    is taken from NAME if nonnull, otherwise it is taken from DECL's
@@ -461,7 +398,10 @@ resolve_unique_section (tree decl, int reloc ATTRIBUTE_UNUSED,
       && targetm.have_named_sections
       && (flag_function_or_data_sections
 	  || DECL_ONE_ONLY (decl)))
-    targetm.asm_out.unique_section (decl, reloc);
+    {
+      targetm.asm_out.unique_section (decl, reloc);
+      DECL_HAS_IMPLICIT_SECTION_NAME_P (decl) = true;
+    }
 }
 
 #ifdef BSS_SECTION_ASM_OP
@@ -473,7 +413,7 @@ resolve_unique_section (tree decl, int reloc ATTRIBUTE_UNUSED,
    ??? It is believed that this function will work in most cases so such
    support is localized here.  */
 
-static void
+static void ATTRIBUTE_UNUSED
 asm_output_bss (FILE *file, tree decl ATTRIBUTE_UNUSED,
 		const char *name,
 		unsigned HOST_WIDE_INT size ATTRIBUTE_UNUSED,
@@ -538,6 +478,136 @@ hot_function_section (tree decl)
 }
 #endif
 
+/* Return section for TEXT_SECTION_NAME if DECL or DECL_SECTION_NAME (DECL)
+   is NULL.
+
+   When DECL_SECTION_NAME is non-NULL and it is implicit section and
+   NAMED_SECTION_SUFFIX is non-NULL, then produce section called
+   concatenate the name with NAMED_SECTION_SUFFIX.
+   Otherwise produce "TEXT_SECTION_NAME.IMPLICIT_NAME".  */
+
+section *
+get_named_text_section (tree decl,
+		        const char *text_section_name,
+		        const char *named_section_suffix)
+{
+  if (decl && DECL_SECTION_NAME (decl))
+    {
+      if (named_section_suffix)
+	{
+	  tree dsn = DECL_SECTION_NAME (decl);
+	  const char *stripped_name;
+	  char *name, *buffer;
+
+	  name = (char *) alloca (TREE_STRING_LENGTH (dsn) + 1);
+	  memcpy (name, TREE_STRING_POINTER (dsn),
+		  TREE_STRING_LENGTH (dsn) + 1);
+
+	  stripped_name = targetm.strip_name_encoding (name);
+
+	  buffer = ACONCAT ((stripped_name, named_section_suffix, NULL));
+	  return get_named_section (decl, buffer, 0);
+	}
+      else if (DECL_HAS_IMPLICIT_SECTION_NAME_P (decl))
+	{
+	  const char *name;
+
+	  /* Do not try to split gnu_linkonce functions.  This gets somewhat
+	     slipperly.  */
+	  if (DECL_ONE_ONLY (decl) && !HAVE_COMDAT_GROUP)
+	    return NULL;
+	  name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+	  name = targetm.strip_name_encoding (name);
+	  return get_named_section (decl, ACONCAT ((text_section_name, ".",
+				                   name, NULL)), 0);
+	}
+      else
+	return NULL;
+    }
+  return get_named_section (decl, text_section_name, 0);
+}
+
+/* Choose named function section based on its frequency.  */
+
+section *
+default_function_section (tree decl, enum node_frequency freq,
+			  bool startup, bool exit)
+{
+  if (!flag_reorder_functions
+      || !targetm.have_named_sections)
+    return NULL;
+  /* Startup code should go to startup subsection unless it is
+     unlikely executed (this happens especially with function splitting
+     where we can split away unnecesary parts of static constructors.  */
+  if (startup && freq != NODE_FREQUENCY_UNLIKELY_EXECUTED)
+    return get_named_text_section (decl, ".text.startup", NULL);
+
+  /* Similarly for exit.  */
+  if (exit && freq != NODE_FREQUENCY_UNLIKELY_EXECUTED)
+    return get_named_text_section (decl, ".text.exit", NULL);
+
+  /* Group cold functions together, similarly for hot code.  */
+  switch (freq)
+    {
+      case NODE_FREQUENCY_UNLIKELY_EXECUTED:
+	return get_named_text_section (decl, ".text.unlikely", NULL);
+      case NODE_FREQUENCY_HOT:
+	return get_named_text_section (decl, ".text.hot", NULL);
+      default:
+	return NULL;
+    }
+}
+
+/* Return the section for function DECL.
+
+   If DECL is NULL_TREE, return the text section.  We can be passed
+   NULL_TREE under some circumstances by dbxout.c at least. 
+
+   If FORCE_COLD is true, return cold function section ignoring
+   the frequency info of cgraph_node.  */
+
+static section *
+function_section_1 (tree decl, bool force_cold)
+{
+  section *section = NULL;
+  enum node_frequency freq = NODE_FREQUENCY_NORMAL;
+  bool startup = false, exit = false;
+
+  if (decl)
+    {
+      struct cgraph_node *node = cgraph_node (decl);
+
+      freq = node->frequency;
+      startup = node->only_called_at_startup;
+      exit = node->only_called_at_exit;
+    }
+  if (force_cold)
+    freq = NODE_FREQUENCY_UNLIKELY_EXECUTED;
+
+#ifdef USE_SELECT_SECTION_FOR_FUNCTIONS
+  if (decl != NULL_TREE
+      && DECL_SECTION_NAME (decl) != NULL_TREE)
+    {
+      if (targetm.asm_out.function_section)
+	section = targetm.asm_out.function_section (decl, freq,
+						    startup, exit);
+      if (section)
+	return section;
+      return get_named_section (decl, NULL, 0);
+    }
+  else
+    return targetm.asm_out.select_section
+	    (decl, freq == NODE_FREQUENCY_UNLIKELY_EXECUTED,
+	     DECL_ALIGN (decl));
+#else
+  if (targetm.asm_out.function_section)
+    section = targetm.asm_out.function_section (decl, freq, startup, exit);
+  if (section)
+    return section;
+  return hot_function_section (decl);
+#endif
+}
+
 /* Return the section for function DECL.
 
    If DECL is NULL_TREE, return the text section.  We can be passed
@@ -546,41 +616,41 @@ hot_function_section (tree decl)
 section *
 function_section (tree decl)
 {
-  int reloc = 0;
-
-  if (first_function_block_is_cold)
-    reloc = 1;
-
-#ifdef USE_SELECT_SECTION_FOR_FUNCTIONS
-  if (decl != NULL_TREE
-      && DECL_SECTION_NAME (decl) != NULL_TREE)
-    return reloc ? unlikely_text_section ()
-		 : get_named_section (decl, NULL, 0);
-  else
-    return targetm.asm_out.select_section (decl, reloc, DECL_ALIGN (decl));
-#else
-  return reloc ? unlikely_text_section () : hot_function_section (decl);
-#endif
+  /* Handle cases where function splitting code decides
+     to put function entry point into unlikely executed section
+     despite the fact that the function itself is not cold
+     (i.e. it is called rarely but contains a hot loop that is
+     better to live in hot subsection for the code locality).  */
+  return function_section_1 (decl,
+			     first_function_block_is_cold);
 }
+
+/* Return the section for the current function, take IN_COLD_SECTION_P
+   into account.  */
 
 section *
 current_function_section (void)
 {
-#ifdef USE_SELECT_SECTION_FOR_FUNCTIONS
-  if (current_function_decl != NULL_TREE
-      && DECL_SECTION_NAME (current_function_decl) != NULL_TREE)
-    return in_cold_section_p ? unlikely_text_section ()
-			     : get_named_section (current_function_decl,
-						  NULL, 0);
-  else
-    return targetm.asm_out.select_section (current_function_decl,
-					   in_cold_section_p,
-					   DECL_ALIGN (current_function_decl));
-#else
-  return (in_cold_section_p
-	  ? unlikely_text_section ()
-	  : hot_function_section (current_function_decl));
-#endif
+  return function_section_1 (current_function_decl, in_cold_section_p);
+}
+
+/* Tell assembler to switch to unlikely-to-be-executed text section.  */
+
+section *
+unlikely_text_section (void)
+{
+  return function_section_1 (current_function_decl, true);
+}
+
+/* When called within a function context, return true if the function
+   has been assigned a cold text section and if SECT is that section.
+   When called outside a function context, return true if SECT is the
+   default cold section.  */
+
+bool
+unlikely_text_section_p (section *sect)
+{
+  return sect == function_section_1 (current_function_decl, true);
 }
 
 /* Return the read-only data section associated with function DECL.  */
@@ -763,8 +833,11 @@ set_user_assembler_name (tree decl, const char *name)
    Prefixes such as % are optional.  */
 
 int
-decode_reg_name (const char *asmspec)
+decode_reg_name_and_count (const char *asmspec, int *pnregs)
 {
+  /* Presume just one register is clobbered.  */
+  *pnregs = 1;
+
   if (asmspec != 0)
     {
       int i;
@@ -790,6 +863,25 @@ decode_reg_name (const char *asmspec)
 	    && ! strcmp (asmspec, strip_reg_name (reg_names[i])))
 	  return i;
 
+#ifdef OVERLAPPING_REGISTER_NAMES
+      {
+	static const struct
+	{
+	  const char *const name;
+	  const int number;
+	  const int nregs;
+	} table[] = OVERLAPPING_REGISTER_NAMES;
+
+	for (i = 0; i < (int) ARRAY_SIZE (table); i++)
+	  if (table[i].name[0]
+	      && ! strcmp (asmspec, table[i].name))
+	    {
+	      *pnregs = table[i].nregs;
+	      return table[i].number;
+	    }
+      }
+#endif /* OVERLAPPING_REGISTER_NAMES */
+
 #ifdef ADDITIONAL_REGISTER_NAMES
       {
 	static const struct { const char *const name; const int number; } table[]
@@ -813,6 +905,14 @@ decode_reg_name (const char *asmspec)
 
   return -1;
 }
+
+int
+decode_reg_name (const char *name)
+{
+  int count;
+  return decode_reg_name_and_count (name, &count);
+}
+
 
 /* Return true if DECL's initializer is suitable for a BSS section.  */
 
@@ -1423,8 +1523,6 @@ assemble_start_function (tree decl, const char *fnname)
   char tmp_label[100];
   bool hot_label_written = false;
 
-  crtl->subsections.unlikely_text_section_name = NULL;
-
   first_function_block_is_cold = false;
   if (flag_reorder_blocks_and_partition)
     {
@@ -1453,8 +1551,6 @@ assemble_start_function (tree decl, const char *fnname)
   if (CONSTANT_POOL_BEFORE_FUNCTION)
     output_constant_pool (fnname, decl);
 
-  resolve_unique_section (decl, 0, flag_function_sections);
-
   /* Make sure the not and cold text (code) sections are properly
      aligned.  This is necessary here in the case where the function
      has both hot and cold sections, because we don't want to re-set
@@ -1482,16 +1578,10 @@ assemble_start_function (tree decl, const char *fnname)
   else if (DECL_SECTION_NAME (decl))
     {
       /* Calls to function_section rely on first_function_block_is_cold
-	 being accurate.  The first block may be cold even if we aren't
-	 doing partitioning, if the entire function was decided by
-	 choose_function_section (predict.c) to be cold.  */
-
-      initialize_cold_section_name ();
-
-      if (crtl->subsections.unlikely_text_section_name
-	  && strcmp (TREE_STRING_POINTER (DECL_SECTION_NAME (decl)),
-		     crtl->subsections.unlikely_text_section_name) == 0)
-	first_function_block_is_cold = true;
+	 being accurate.  */
+      first_function_block_is_cold
+	 = (cgraph_node (current_function_decl)->frequency
+	    == NODE_FREQUENCY_UNLIKELY_EXECUTED);
     }
 
   in_cold_section_p = first_function_block_is_cold;
@@ -2451,7 +2541,7 @@ assemble_real (REAL_VALUE_TYPE d, enum machine_mode mode, unsigned int align)
    Store them both in the structure *VALUE.
    EXP must be reducible.  */
 
-struct GTY(()) addr_const {
+struct addr_const {
   rtx base;
   HOST_WIDE_INT offset;
 };
@@ -5415,17 +5505,66 @@ do_assemble_alias (tree decl, tree target)
 }
 
 
+/* Compute the set of indentifier nodes that is generated by aliases
+   whose targets are reachable.  */
+
+static struct pointer_set_t *
+compute_visible_aliases (void)
+{
+  struct pointer_set_t *visible;
+  unsigned i;
+  alias_pair *p;
+  bool changed;
+
+  /* We have to compute the set of visible nodes including aliases
+     themselves.  */
+  visible = pointer_set_create ();
+  do
+    {
+      changed = false;
+      for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); ++i)
+	{
+	  struct cgraph_node *fnode = NULL;
+	  struct varpool_node *vnode = NULL;
+	  tree asmname = DECL_ASSEMBLER_NAME (p->decl);
+	  const char *str = IDENTIFIER_POINTER (asmname);
+
+	  if (str[0] == '*')
+	    {
+	      str ++;
+	      asmname = get_identifier (str);
+	    }
+
+	  fnode = cgraph_node_for_asm (p->target);
+	  vnode = (fnode == NULL) ? varpool_node_for_asm (p->target) : NULL;
+	  if ((fnode
+	       || vnode
+	       || pointer_set_contains (visible, p->target))
+	      && !pointer_set_insert (visible, asmname))
+	    changed = true;
+	}
+    }
+  while (changed);
+
+  return visible;
+}
+
 /* Remove the alias pairing for functions that are no longer in the call
    graph.  */
 
 void
 remove_unreachable_alias_pairs (void)
 {
+  struct pointer_set_t *visible;
   unsigned i;
   alias_pair *p;
 
   if (alias_pairs == NULL)
     return;
+
+  /* We have to compute the set of visible nodes including aliases
+     themselves.  */
+  visible = compute_visible_aliases ();
 
   for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p); )
     {
@@ -5435,7 +5574,9 @@ remove_unreachable_alias_pairs (void)
 	  struct varpool_node *vnode = NULL;
 	  fnode = cgraph_node_for_asm (p->target);
 	  vnode = (fnode == NULL) ? varpool_node_for_asm (p->target) : NULL;
-	  if (fnode == NULL && vnode == NULL)
+	  if (!fnode
+	      && !vnode
+	      && !pointer_set_contains (visible, p->target))
 	    {
 	      VEC_unordered_remove (alias_pair, alias_pairs, i);
 	      continue;
@@ -5444,6 +5585,8 @@ remove_unreachable_alias_pairs (void)
 
       i++;
     }
+
+  pointer_set_destroy (visible);
 }
 
 
@@ -5453,8 +5596,16 @@ remove_unreachable_alias_pairs (void)
 void
 finish_aliases_1 (void)
 {
+  struct pointer_set_t *visible;
   unsigned i;
   alias_pair *p;
+
+  if (alias_pairs == NULL)
+    return;
+
+  /* We have to compute the set of visible nodes including aliases
+     themselves.  */
+  visible = compute_visible_aliases ();
 
   FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
     {
@@ -5463,6 +5614,9 @@ finish_aliases_1 (void)
       target_decl = find_decl_and_mark_needed (p->decl, p->target);
       if (target_decl == NULL)
 	{
+	  if (pointer_set_contains (visible, p->target))
+	    continue;
+
 	  if (! (p->emitted_diags & ALIAS_DIAG_TO_UNDEF)
 	      && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
 	    {
@@ -5485,6 +5639,8 @@ finish_aliases_1 (void)
 	  p->emitted_diags |= ALIAS_DIAG_TO_EXTERN;
 	}
     }
+
+  pointer_set_destroy (visible);
 }
 
 /* Second pass of completing pending aliases.  Emit the actual assembly.
@@ -5783,15 +5939,6 @@ default_section_type_flags (tree decl, const char *name, int reloc)
     flags = SECTION_CODE;
   else if (decl && decl_readonly_section (decl, reloc))
     flags = 0;
-  else if (current_function_decl
-	   && cfun
-	   && crtl->subsections.unlikely_text_section_name
-	   && strcmp (name, crtl->subsections.unlikely_text_section_name) == 0)
-    flags = SECTION_CODE;
-  else if (!decl
-	   && (!current_function_decl || !cfun)
-	   && strcmp (name, UNLIKELY_EXECUTED_TEXT_SECTION_NAME) == 0)
-    flags = SECTION_CODE;
   else
     flags = SECTION_WRITE;
 
@@ -6014,13 +6161,17 @@ categorize_decl_for_section (const_tree decl, int reloc)
 	  /* Here the reloc_rw_mask is not testing whether the section should
 	     be read-only or not, but whether the dynamic link will have to
 	     do something.  If so, we wish to segregate the data in order to
-	     minimize cache misses inside the dynamic linker.  */
-	  if (reloc & targetm.asm_out.reloc_rw_mask ())
+	     minimize cache misses inside the dynamic linker.  If the data
+	     has a section attribute, ignore reloc_rw_mask() so that all data
+             in a given named section is catagorized in the same way.  */
+	  if (reloc & targetm.asm_out.reloc_rw_mask ()
+	      && !lookup_attribute ("section", DECL_ATTRIBUTES (decl)))
 	    ret = reloc == 1 ? SECCAT_DATA_REL_LOCAL : SECCAT_DATA_REL;
 	  else
 	    ret = SECCAT_DATA;
 	}
-      else if (reloc & targetm.asm_out.reloc_rw_mask ())
+      else if (reloc & targetm.asm_out.reloc_rw_mask ()
+	       && !lookup_attribute ("section", DECL_ATTRIBUTES (decl)))
 	ret = reloc == 1 ? SECCAT_DATA_REL_RO_LOCAL : SECCAT_DATA_REL_RO;
       else if (reloc || flag_merge_constants < 2)
 	/* C and C++ don't allow different variables to share the same
@@ -6611,6 +6762,16 @@ default_emit_except_table_label (FILE * stream ATTRIBUTE_UNUSED)
    the class of label and LABELNO is the number within the class.  */
 
 void
+default_generate_internal_label (char *buf, const char *prefix,
+				 unsigned long labelno)
+{
+  ASM_GENERATE_INTERNAL_LABEL (buf, prefix, labelno);
+}
+
+/* This is how to output an internal numbered label where PREFIX is
+   the class of label and LABELNO is the number within the class.  */
+
+void
 default_internal_label (FILE *stream, const char *prefix,
 			unsigned long labelno)
 {
@@ -6708,12 +6869,6 @@ switch_to_section (section *new_section)
   switch (SECTION_STYLE (new_section))
     {
     case SECTION_NAMED:
-      if (cfun
-	  && !crtl->subsections.unlikely_text_section_name
-	  && strcmp (new_section->named.name,
-		     UNLIKELY_EXECUTED_TEXT_SECTION_NAME) == 0)
-	crtl->subsections.unlikely_text_section_name = UNLIKELY_EXECUTED_TEXT_SECTION_NAME;
-
       targetm.asm_out.named_section (new_section->named.name,
 				     new_section->named.common.flags,
 				     new_section->named.decl);

@@ -96,14 +96,6 @@ extern int cris_cpu_version;
 
 /* Node: Driver */
 
-/* When using make with defaults.mak for Sun this will handily remove
-   any "-target sun*" switches.  */
-/* We need to override any previous definitions (linux.h) */
-#undef WORD_SWITCH_TAKES_ARG
-#define WORD_SWITCH_TAKES_ARG(STR)		\
- (DEFAULT_WORD_SWITCH_TAKES_ARG (STR)		\
-  || !strcmp (STR, "target"))
-
 /* Also provide canonical vN definitions when user specifies an alias.
    Note that -melf overrides -maout.  */
 
@@ -168,12 +160,10 @@ extern int cris_cpu_version;
     " -D__CRIS_arch_tune=" CRIS_DEFAULT_TUNE "}}}}}"\
  CRIS_ARCH_CPP_DEFAULT
 
-/* Remove those Sun-make "target" switches.  */
 /* Override previous definitions (linux.h).  */
 #undef CC1_SPEC
 #define CC1_SPEC \
- "%{target*:}\
-  %{metrax4:-march=v3}\
+ "%{metrax4:-march=v3}\
   %{metrax100:-march=v8}\
   %(cc1_subtarget)"
 
@@ -202,9 +192,8 @@ extern int cris_cpu_version;
 #undef ASM_SPEC
 #define ASM_SPEC \
  MAYBE_AS_NO_MUL_BUG_ABORT \
- "%{v:-v}\
- %(asm_subtarget)\
- %{march=*:%{cpu=*:%eDo not specify both -march=... and -mcpu=...}}\
+ "%(asm_subtarget)\
+ %{march=*:%{cpu=*:%edo not specify both -march=... and -mcpu=...}}\
  %{march=v32:--march=v32} %{mcpu=v32:--march=v32}"
 
 /* For the cris-*-elf subtarget.  */
@@ -440,9 +429,6 @@ extern int cris_cpu_version;
    r10- for return values.  */
 #define CALL_USED_REGISTERS \
  {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1}
-
-#define CONDITIONAL_REGISTER_USAGE cris_conditional_register_usage ()
-
 
 /* Node: Allocation Order */
 
@@ -1343,9 +1329,6 @@ enum cris_pic_symbol_type
 #define FUNCTION_MODE QImode
 
 #define NO_IMPLICIT_EXTERN_C
-
-/* No specific purpose other than warningless compatibility.  */
-#define HANDLE_PRAGMA_PACK_PUSH_POP 1
 
 /*
  * Local variables:

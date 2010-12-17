@@ -415,11 +415,14 @@ gfc_init_kinds (void)
 
       /* Only let float, double, long double and __float128 go through.
 	 Runtime support for others is not provided, so they would be
-	 useless.  TODO: TFmode support should be enabled once libgfortran
-	 support is done.  */
+	 useless.  */
 	if (mode != TYPE_MODE (float_type_node)
-	  && (mode != TYPE_MODE (double_type_node))
-          && (mode != TYPE_MODE (long_double_type_node)))
+	    && (mode != TYPE_MODE (double_type_node))
+	    && (mode != TYPE_MODE (long_double_type_node))
+#if defined(LIBGCC2_HAS_TF_MODE) && defined(ENABLE_LIBQUADMATH_SUPPORT)
+	    && (mode != TFmode)
+#endif
+	   )
 	continue;
 
       /* Let the kind equal the precision divided by 8, rounding up.  Again,
@@ -915,8 +918,6 @@ gfc_init_types (void)
   gfc_max_array_element_size
     = build_int_cst_wide (long_unsigned_type_node, lo, hi);
 
-  size_type_node = gfc_array_index_type;
-
   boolean_type_node = gfc_get_logical_type (gfc_default_logical_kind);
   boolean_true_node = build_int_cst (boolean_type_node, 1);
   boolean_false_node = build_int_cst (boolean_type_node, 0);
@@ -1046,7 +1047,12 @@ gfc_typenode_for_spec (gfc_typespec * spec)
       break;
 
     case BT_CHARACTER:
-      basetype = gfc_get_character_type (spec->kind, spec->u.cl);
+#if 0
+      if (spec->deferred)
+	basetype = gfc_get_character_type (spec->kind, NULL);
+      else
+#endif
+	basetype = gfc_get_character_type (spec->kind, spec->u.cl);
       break;
 
     case BT_DERIVED:
@@ -1936,10 +1942,12 @@ gfc_copy_dt_decls_ifequal (gfc_symbol *from, gfc_symbol *to,
   for (; to_cm; to_cm = to_cm->next, from_cm = from_cm->next)
     {
       to_cm->backend_decl = from_cm->backend_decl;
-      if ((!from_cm->attr.pointer || from_gsym)
-	      && from_cm->ts.type == BT_DERIVED)
+      if (from_cm->ts.type == BT_DERIVED
+	  && (!from_cm->attr.pointer || from_gsym))
 	gfc_get_derived_type (to_cm->ts.u.derived);
-
+      else if (from_cm->ts.type == BT_CLASS
+	       && (!CLASS_DATA (from_cm)->attr.class_pointer || from_gsym))
+	gfc_get_derived_type (to_cm->ts.u.derived);
       else if (from_cm->ts.type == BT_CHARACTER)
 	to_cm->ts.u.cl->backend_decl = from_cm->ts.u.cl->backend_decl;
     }
@@ -2317,7 +2325,13 @@ create_fn_spec (gfc_symbol *sym, tree fntype)
     if (spec_len < sizeof (spec))
       {
 	if (!f->sym || f->sym->attr.pointer || f->sym->attr.target
-	    || f->sym->attr.external || f->sym->attr.cray_pointer)
+	    || f->sym->attr.external || f->sym->attr.cray_pointer
+	    || (f->sym->ts.type == BT_DERIVED
+		&& (f->sym->ts.u.derived->attr.proc_pointer_comp
+		    || f->sym->ts.u.derived->attr.pointer_comp))
+	    || (f->sym->ts.type == BT_CLASS
+		&& (CLASS_DATA (f->sym)->ts.u.derived->attr.proc_pointer_comp
+		    || CLASS_DATA (f->sym)->ts.u.derived->attr.pointer_comp)))
 	  spec[spec_len++] = '.';
 	else if (f->sym->attr.intent == INTENT_IN)
 	  spec[spec_len++] = 'r';

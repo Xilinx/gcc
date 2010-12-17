@@ -92,6 +92,7 @@
 #include "tm.h"
 #include "rtl.h"
 #include "tree.h"
+#include "tm_p.h"
 #include "hard-reg-set.h"
 #include "basic-block.h"
 #include "flags.h"
@@ -109,7 +110,6 @@
 #include "tree-flow.h"
 #include "cselib.h"
 #include "target.h"
-#include "toplev.h"
 #include "params.h"
 #include "diagnostic.h"
 #include "tree-pretty-print.h"
@@ -408,7 +408,6 @@ static void stack_adjust_offset_pre_post (rtx, HOST_WIDE_INT *,
 static void insn_stack_adjust_offset_pre_post (rtx, HOST_WIDE_INT *,
 					       HOST_WIDE_INT *);
 static bool vt_stack_adjustments (void);
-static rtx compute_cfa_pointer (HOST_WIDE_INT);
 static hashval_t variable_htab_hash (const void *);
 static int variable_htab_eq (const void *, const void *);
 static void variable_htab_free (void *);
@@ -695,22 +694,17 @@ vt_stack_adjustments (void)
   return true;
 }
 
+/* arg_pointer_rtx resp. frame_pointer_rtx if stack_pointer_rtx or
+   hard_frame_pointer_rtx is being mapped to it and offset for it.  */
+static rtx cfa_base_rtx;
+static HOST_WIDE_INT cfa_base_offset;
+
 /* Compute a CFA-based value for the stack pointer.  */
 
-static rtx
+static inline rtx
 compute_cfa_pointer (HOST_WIDE_INT adjustment)
 {
-  rtx cfa;
-
-#ifdef FRAME_POINTER_CFA_OFFSET
-  adjustment -= FRAME_POINTER_CFA_OFFSET (current_function_decl);
-  cfa = plus_constant (frame_pointer_rtx, adjustment);
-#else
-  adjustment -= ARG_POINTER_CFA_OFFSET (current_function_decl);
-  cfa = plus_constant (arg_pointer_rtx, adjustment);
-#endif
-
-  return cfa;
+  return plus_constant (cfa_base_rtx, adjustment + cfa_base_offset);
 }
 
 /* Adjustment for hard_frame_pointer_rtx to cfa base reg,
@@ -803,11 +797,13 @@ adjust_mems (rtx loc, const_rtx old_rtx, void *data)
       if (amd->mem_mode == VOIDmode && amd->store)
 	return loc;
       if (loc == stack_pointer_rtx
-	  && !frame_pointer_needed)
+	  && !frame_pointer_needed
+	  && cfa_base_rtx)
 	return compute_cfa_pointer (amd->stack_adjust);
       else if (loc == hard_frame_pointer_rtx
 	       && frame_pointer_needed
-	       && hard_frame_pointer_adjustment != -1)
+	       && hard_frame_pointer_adjustment != -1
+	       && cfa_base_rtx)
 	return compute_cfa_pointer (hard_frame_pointer_adjustment);
       return loc;
     case MEM:
@@ -4757,10 +4753,6 @@ var_lowpart (enum machine_mode mode, rtx loc)
   return gen_rtx_REG_offset (loc, mode, regno, offset);
 }
 
-/* arg_pointer_rtx resp. frame_pointer_rtx if stack_pointer_rtx or
-   hard_frame_pointer_rtx is being mapped to it.  */
-static rtx cfa_base_rtx;
-
 /* Carry information about uses and stores while walking rtx.  */
 
 struct count_use_info
@@ -7103,24 +7095,6 @@ vt_expand_loc_dummy (rtx loc, htab_t vars, bool *pcur_loc_changed)
   return ret;
 }
 
-#ifdef ENABLE_RTL_CHECKING
-/* Used to verify that cur_loc_changed updating is safe.  */
-static struct pointer_map_t *emitted_notes;
-
-/* Strip REG_POINTER from REGs and MEM_POINTER from MEMs in order to
-   avoid differences in commutative operand simplification.  */
-static rtx
-strip_pointer_flags (rtx x, const_rtx old_rtx ATTRIBUTE_UNUSED,
-		     void *data ATTRIBUTE_UNUSED)
-{
-  if (REG_P (x) && REG_POINTER (x))
-    return gen_rtx_REG (GET_MODE (x), REGNO (x));
-  if (MEM_P (x) && MEM_POINTER (x))
-    return gen_rtx_MEM (GET_MODE (x), XEXP (x, 0));
-  return NULL_RTX;
-}
-#endif
-
 /* Emit the NOTE_INSN_VAR_LOCATION for variable *VARP.  DATA contains
    additional parameters: WHERE specifies whether the note shall be emitted
    before or after instruction INSN.  */
@@ -7165,10 +7139,8 @@ emit_note_insn_var_location (void **varp, void *data)
       if (var->n_var_parts == 0)
 	var->cur_loc_changed = true;
     }
-#ifndef ENABLE_RTL_CHECKING
   if (!var->cur_loc_changed)
     goto clear;
-#endif
   for (i = 0; i < var->n_var_parts; i++)
     {
       enum machine_mode mode, wider_mode;
@@ -7310,36 +7282,6 @@ emit_note_insn_var_location (void **varp, void *data)
 				      parallel, (int) initialized);
     }
 
-#ifdef ENABLE_RTL_CHECKING
-  if (note_vl)
-    {
-      void **note_slot = pointer_map_insert (emitted_notes, decl);
-      rtx pnote = (rtx) *note_slot;
-      if (!var->cur_loc_changed && (pnote || PAT_VAR_LOCATION_LOC (note_vl)))
-	{
-	  rtx old_vl, new_vl;
-	  gcc_assert (pnote);
-	  old_vl = PAT_VAR_LOCATION_LOC (pnote);
-	  new_vl = PAT_VAR_LOCATION_LOC (note_vl);
-	  if (!rtx_equal_p (old_vl, new_vl))
-	    {
-	      /* There might be differences caused by REG_POINTER
-		 differences.  REG_POINTER affects
-		 swap_commutative_operands_p.  */
-	      old_vl = simplify_replace_fn_rtx (old_vl, NULL_RTX,
-						strip_pointer_flags, NULL);
-	      new_vl = simplify_replace_fn_rtx (new_vl, NULL_RTX,
-						strip_pointer_flags, NULL);
-	      gcc_assert (rtx_equal_p (old_vl, new_vl));
-	      PAT_VAR_LOCATION_LOC (note_vl) = new_vl;
-	    }
-	}
-      *note_slot = (void *) note_vl;
-    }
-  if (!var->cur_loc_changed)
-    goto clear;
-#endif
-
   if (where != EMIT_NOTE_BEFORE_INSN)
     {
       note = emit_note_after (NOTE_INSN_VAR_LOCATION, insn);
@@ -7347,7 +7289,17 @@ emit_note_insn_var_location (void **varp, void *data)
 	NOTE_DURING_CALL_P (note) = true;
     }
   else
-    note = emit_note_before (NOTE_INSN_VAR_LOCATION, insn);
+    {
+      /* Make sure that the call related notes come first.  */
+      while (NEXT_INSN (insn)
+	     && NOTE_P (insn)
+	     && NOTE_DURING_CALL_P (insn))
+	insn = NEXT_INSN (insn);
+      if (NOTE_P (insn) && NOTE_DURING_CALL_P (insn))
+	note = emit_note_after (NOTE_INSN_VAR_LOCATION, insn);
+      else
+	note = emit_note_before (NOTE_INSN_VAR_LOCATION, insn);
+    }
   NOTE_VAR_LOCATION (note) = note_vl;
 
  clear:
@@ -7958,9 +7910,6 @@ vt_emit_notes (void)
   basic_block bb;
   dataflow_set cur;
 
-#ifdef ENABLE_RTL_CHECKING
-  emitted_notes = pointer_map_create ();
-#endif
   gcc_assert (!htab_elements (changed_variables));
 
   /* Free memory occupied by the out hash tables, as they aren't used
@@ -8020,9 +7969,6 @@ vt_emit_notes (void)
       VEC_free (rtx, heap, changed_values_stack);
     }
 
-#ifdef ENABLE_RTL_CHECKING
-  pointer_map_destroy (emitted_notes);
-#endif
   emit_notes = false;
 }
 
@@ -8213,8 +8159,10 @@ vt_init_cfa_base (void)
 
 #ifdef FRAME_POINTER_CFA_OFFSET
   cfa_base_rtx = frame_pointer_rtx;
+  cfa_base_offset = -FRAME_POINTER_CFA_OFFSET (current_function_decl);
 #else
   cfa_base_rtx = arg_pointer_rtx;
+  cfa_base_offset = -ARG_POINTER_CFA_OFFSET (current_function_decl);
 #endif
   if (cfa_base_rtx == hard_frame_pointer_rtx
       || !fixed_regs[REGNO (cfa_base_rtx)])
@@ -8225,6 +8173,11 @@ vt_init_cfa_base (void)
   if (!MAY_HAVE_DEBUG_INSNS)
     return;
 
+  /* Tell alias analysis that cfa_base_rtx should share
+     find_base_term value with stack pointer or hard frame pointer.  */
+  vt_equate_reg_base_value (cfa_base_rtx,
+			    frame_pointer_needed
+			    ? hard_frame_pointer_rtx : stack_pointer_rtx);
   val = cselib_lookup_from_insn (cfa_base_rtx, GET_MODE (cfa_base_rtx), 1,
 				 get_insns ());
   preserve_value (val);

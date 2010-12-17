@@ -180,7 +180,7 @@ extern int fprintf_unlocked (FILE *, const char *, ...);
 /* There are an extraordinary number of issues with <ctype.h>.
    The last straw is that it varies with the locale.  Use libiberty's
    replacement instead.  */
-#include <safe-ctype.h>
+#include "safe-ctype.h"
 
 #include <sys/types.h>
 
@@ -188,6 +188,10 @@ extern int fprintf_unlocked (FILE *, const char *, ...);
 
 #if !defined (errno) && defined (HAVE_DECL_ERRNO) && !HAVE_DECL_ERRNO
 extern int errno;
+#endif
+
+#ifdef __cplusplus
+# include <cstring>
 #endif
 
 /* Some of glibc's string inlines cause warnings.  Plus we'd rather
@@ -314,6 +318,9 @@ extern int errno;
 #ifndef O_WRONLY
 # define O_WRONLY 1
 #endif
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
 
 /* Some systems define these in, e.g., param.h.  We undefine these names
    here to avoid the warnings.  We prefer to use our definitions since we
@@ -351,6 +358,31 @@ extern int errno;
 #endif
 #ifndef WCOREFLG
 #define WCOREFLG 0200
+#endif
+
+#include <signal.h>
+#if !defined (SIGCHLD) && defined (SIGCLD)
+# define SIGCHLD SIGCLD
+#endif
+
+#ifdef HAVE_SYS_MMAN_H
+# include <sys/mman.h>
+#endif
+
+#ifndef MAP_FAILED
+# define MAP_FAILED ((void *)-1)
+#endif
+
+#if !defined (MAP_ANONYMOUS) && defined (MAP_ANON)
+# define MAP_ANONYMOUS MAP_ANON
+#endif
+
+#ifdef HAVE_SYS_RESOURCE_H
+# include <sys/resource.h>
+#endif
+
+#ifdef HAVE_SYS_TIMES_H
+# include <sys/times.h>
 #endif
 
 /* The HAVE_DECL_* macros are three-state, undefined, 0 or 1.  If they
@@ -526,6 +558,10 @@ extern int vsnprintf(char *, size_t, const char *, va_list);
 # define mkdir(a,b) mkdir(a)
 #endif
 
+#ifndef HAVE_KILL
+# define kill(p,s) raise(s)
+#endif
+
 /* Provide a way to print an address via printf.  */
 #ifndef HOST_PTR_PRINTF
 #define HOST_PTR_PRINTF "%p"
@@ -684,6 +720,12 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
  #pragma GCC poison malloc realloc
 #endif
 
+/* The %m format should be used when GCC's main diagnostic functions
+   supporting %m are available, and xstrerror from libiberty
+   otherwise.  */
+#undef strerror
+ #pragma GCC poison strerror
+
 /* Old target macros that have moved to the target hooks structure.  */
  #pragma GCC poison ASM_OPEN_PAREN ASM_CLOSE_PAREN			\
 	FUNCTION_PROLOGUE FUNCTION_EPILOGUE				\
@@ -719,8 +761,9 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	OPTIMIZATION_OPTIONS CLASS_LIKELY_SPILLED_P			\
 	USING_SJLJ_EXCEPTIONS TARGET_UNWIND_INFO			\
 	LABEL_ALIGN_MAX_SKIP LOOP_ALIGN_MAX_SKIP			\
-	LABEL_ALIGN_AFTER_BARRIER_MAX_SKIP JUMP_ALIGN_MAX_SKIP \
-	CAN_DEBUG_WITHOUT_FP
+	LABEL_ALIGN_AFTER_BARRIER_MAX_SKIP JUMP_ALIGN_MAX_SKIP 		\
+	CAN_DEBUG_WITHOUT_FP UNLIKELY_EXECUTED_TEXT_SECTION_NAME	\
+	HOT_TEXT_SECTION_NAME
 
 /* Other obsolete target macros, or macros that used to be in target
    headers and were not used, and may be obsolete or may never have
@@ -776,7 +819,10 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	STACK_CHECK_PROBE_INTERVAL STACK_CHECK_PROBE_LOAD		   \
 	ORDER_REGS_FOR_LOCAL_ALLOC FUNCTION_OUTGOING_VALUE		   \
 	ASM_DECLARE_CONSTANT_NAME MODIFY_TARGET_NAME SWITCHES_NEED_SPACES  \
-	SWITCH_CURTAILS_COMPILATION
+	SWITCH_CURTAILS_COMPILATION SWITCH_TAKES_ARG WORD_SWITCH_TAKES_ARG \
+	TARGET_OPTION_TRANSLATE_TABLE HANDLE_PRAGMA_PACK_PUSH_POP	   \
+	HANDLE_SYSV_PRAGMA HANDLE_PRAGMA_WEAK CONDITIONAL_REGISTER_USAGE   \
+	FUNCTION_ARG_BOUNDARY MUST_USE_SJLJ_EXCEPTIONS US_SOFTWARE_GOFAST
 
 /* Hooks that are no longer used.  */
  #pragma GCC poison LANG_HOOKS_FUNCTION_MARK LANG_HOOKS_FUNCTION_FREE	\
@@ -790,10 +836,11 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	TARGET_HANDLE_OFAST TARGET_OPTION_OPTIMIZATION
 
 /* Hooks into libgcc2.  */
- #pragma GCC poison LIBGCC2_DOUBLE_TYPE_SIZE LIBGCC2_WORDS_BIG_ENDIAN
+ #pragma GCC poison LIBGCC2_DOUBLE_TYPE_SIZE LIBGCC2_WORDS_BIG_ENDIAN \
+   LIBGCC2_FLOAT_WORDS_BIG_ENDIAN
 
 /* Miscellaneous macros that are no longer used.  */
- #pragma GCC poison USE_MAPPED_LOCATION
+ #pragma GCC poison USE_MAPPED_LOCATION GET_ENVIRONMENT
 
 /* Libiberty macros that are no longer used in GCC.  */
 #undef ANSI_PROTOTYPES

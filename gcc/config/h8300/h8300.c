@@ -39,12 +39,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "optabs.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "c-family/c-pragma.h"	/* ??? */
 #include "tm_p.h"
 #include "ggc.h"
 #include "target.h"
 #include "target-def.h"
+#include "df.h"
 
 /* Classifies a h8300_src_operand or h8300_dst_operand.
 
@@ -639,7 +639,7 @@ push (int rn)
   else
     x = gen_push_h8300hs_normal (reg);
   x = F (emit_insn (x), true);
-  REG_NOTES (x) = gen_rtx_EXPR_LIST (REG_INC, stack_pointer_rtx, 0);
+  add_reg_note (x, REG_INC, stack_pointer_rtx);
 }
 
 /* Emit an insn to pop register RN.  */
@@ -657,7 +657,7 @@ pop (int rn)
   else
     x = gen_pop_h8300hs_normal (reg);
   x = emit_insn (x);
-  REG_NOTES (x) = gen_rtx_EXPR_LIST (REG_INC, stack_pointer_rtx, 0);
+  add_reg_note (x, REG_INC, stack_pointer_rtx);
 }
 
 /* Emit an instruction to push or pop NREGS consecutive registers
@@ -1918,6 +1918,15 @@ h8300_can_eliminate (const int from ATTRIBUTE_UNUSED, const int to)
   return (to == STACK_POINTER_REGNUM ? ! frame_pointer_needed : true);
 }
 
+/* Conditionally modify register usage based on target flags.  */
+
+static void
+h8300_conditional_register_usage (void)
+{
+  if (!TARGET_MAC)
+    fixed_regs[MAC_REG] = call_used_regs[MAC_REG] = 1;
+}
+
 /* Function for INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET).
    Define the offset between two registers, one to be eliminated, and
    the other its replacement, at the start of a routine.  */
@@ -3134,7 +3143,7 @@ compute_plussi_length (rtx *operands)
 
 /* Compute which flag bits are valid after an addition insn.  */
 
-int
+enum attr_cc
 compute_plussi_cc (rtx *operands)
 {
   enum machine_mode mode = GET_MODE (operands[0]);
@@ -3518,7 +3527,7 @@ compute_logical_op_length (enum machine_mode mode, rtx *operands)
 
 /* Compute which flag bits are valid after a logical insn.  */
 
-int
+enum attr_cc
 compute_logical_op_cc (enum machine_mode mode, rtx *operands)
 {
   /* Figure out the logical op that we need to perform.  */
@@ -3769,7 +3778,7 @@ output_h8sx_shift (rtx *operands, int suffix, int optype)
 /* Emit code to do shifts.  */
 
 bool
-expand_a_shift (enum machine_mode mode, int code, rtx operands[])
+expand_a_shift (enum machine_mode mode, enum rtx_code code, rtx operands[])
 {
   switch (h8sx_classify_shift (mode, code, operands[2]))
     {
@@ -3814,7 +3823,7 @@ enum shift_mode
 struct shift_insn
 {
   const char *const assembler;
-  const int cc_valid;
+  const enum attr_cc cc_valid;
 };
 
 /* Assembler instruction shift table.
@@ -3982,10 +3991,10 @@ struct shift_info {
   const char *shift2;
 
   /* CC status for SHIFT_INLINE.  */
-  int cc_inline;
+  enum attr_cc cc_inline;
 
   /* CC status  for SHIFT_SPECIAL.  */
-  int cc_special;
+  enum attr_cc cc_special;
 };
 
 static void get_shift_alg (enum shift_type,
@@ -4815,7 +4824,7 @@ compute_a_shift_length (rtx insn ATTRIBUTE_UNUSED, rtx *operands)
 
 /* Compute which flag bits are valid after a shift insn.  */
 
-int
+enum attr_cc
 compute_a_shift_cc (rtx insn ATTRIBUTE_UNUSED, rtx *operands)
 {
   rtx shift = operands[3];
@@ -5953,6 +5962,9 @@ h8300_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE h8300_can_eliminate
 
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE h8300_conditional_register_usage
+
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT h8300_trampoline_init
 
@@ -5961,5 +5973,8 @@ h8300_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
 
 #undef TARGET_OPTION_OPTIMIZATION_TABLE
 #define TARGET_OPTION_OPTIMIZATION_TABLE h8300_option_optimization_table
+
+#undef TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO sjlj_except_unwind_info
 
 struct gcc_target targetm = TARGET_INITIALIZER;

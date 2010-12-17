@@ -241,7 +241,7 @@ build_size_arg_loc (location_t loc, tree nb_iter, tree op,
 
 /* Generate a call to memset.  Return true when the operation succeeded.  */
 
-static bool
+static void
 generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
 		      gimple_stmt_iterator bsi)
 {
@@ -255,45 +255,27 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
 
   DR_STMT (dr) = stmt;
   DR_REF (dr) = op0;
-  if (!dr_analyze_innermost (dr))
-    goto end;
+  res = dr_analyze_innermost (dr);
+  gcc_assert (res && stride_of_unit_type_p (DR_STEP (dr), TREE_TYPE (op0)));
 
-  /* Test for a positive stride, iterating over every element.  */
-  if (integer_zerop (size_binop (MINUS_EXPR,
-				 fold_convert (sizetype, DR_STEP (dr)),
-				 TYPE_SIZE_UNIT (TREE_TYPE (op0)))))
-    {
-      addr_base = fold_convert_loc (loc, sizetype,
-				    size_binop_loc (loc, PLUS_EXPR,
-						    DR_OFFSET (dr),
-						    DR_INIT (dr)));
-      addr_base = fold_build2_loc (loc, POINTER_PLUS_EXPR,
-				   TREE_TYPE (DR_BASE_ADDRESS (dr)),
-				   DR_BASE_ADDRESS (dr), addr_base);
-
-      nb_bytes = build_size_arg_loc (loc, nb_iter, op0, &stmt_list);
-    }
+  nb_bytes = build_size_arg_loc (loc, nb_iter, op0, &stmt_list);
+  addr_base = size_binop_loc (loc, PLUS_EXPR, DR_OFFSET (dr), DR_INIT (dr));
+  addr_base = fold_convert_loc (loc, sizetype, addr_base);
 
   /* Test for a negative stride, iterating over every element.  */
-  else if (integer_zerop (size_binop (PLUS_EXPR,
-				      TYPE_SIZE_UNIT (TREE_TYPE (op0)),
-				      fold_convert (sizetype, DR_STEP (dr)))))
+  if (integer_zerop (size_binop (PLUS_EXPR,
+				 TYPE_SIZE_UNIT (TREE_TYPE (op0)),
+				 fold_convert (sizetype, DR_STEP (dr)))))
     {
-      nb_bytes = build_size_arg_loc (loc, nb_iter, op0, &stmt_list);
-
-      addr_base = size_binop_loc (loc, PLUS_EXPR, DR_OFFSET (dr), DR_INIT (dr));
-      addr_base = fold_convert_loc (loc, sizetype, addr_base);
       addr_base = size_binop_loc (loc, MINUS_EXPR, addr_base,
 				  fold_convert_loc (loc, sizetype, nb_bytes));
       addr_base = size_binop_loc (loc, PLUS_EXPR, addr_base,
 				  TYPE_SIZE_UNIT (TREE_TYPE (op0)));
-      addr_base = fold_build2_loc (loc, POINTER_PLUS_EXPR,
-				   TREE_TYPE (DR_BASE_ADDRESS (dr)),
-				   DR_BASE_ADDRESS (dr), addr_base);
     }
-  else
-    goto end;
 
+  addr_base = fold_build2_loc (loc, POINTER_PLUS_EXPR,
+			       TREE_TYPE (DR_BASE_ADDRESS (dr)),
+			       DR_BASE_ADDRESS (dr), addr_base);
   mem = force_gimple_operand (addr_base, &stmts, true, NULL);
   gimple_seq_add_seq (&stmt_list, stmts);
 
@@ -301,46 +283,11 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
   fn_call = gimple_build_call (fn, 3, mem, integer_zero_node, nb_bytes);
   gimple_seq_add_stmt (&stmt_list, fn_call);
   gsi_insert_seq_after (&bsi, stmt_list, GSI_CONTINUE_LINKING);
-  res = true;
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "generated memset zero\n");
 
- end:
   free_data_ref (dr);
-  return res;
-}
-
-/* Propagate phis in BB b to their uses and remove them.  */
-
-static void
-prop_phis (basic_block b)
-{
-  gimple_stmt_iterator psi;
-  gimple_seq phis = phi_nodes (b);
-
-  for (psi = gsi_start (phis); !gsi_end_p (psi); )
-    {
-      gimple phi = gsi_stmt (psi);
-      tree def = gimple_phi_result (phi), use = gimple_phi_arg_def (phi, 0);
-
-      gcc_assert (gimple_phi_num_args (phi) == 1);
-
-      if (!is_gimple_reg (def))
-	{
-	  imm_use_iterator iter;
-	  use_operand_p use_p;
-	  gimple stmt;
-
-	  FOR_EACH_IMM_USE_STMT (stmt, iter, def)
-	    FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
-	      SET_USE (use_p, use);
-	}
-      else
-	replace_uses_by (def, use);
-
-      remove_phi_node (&psi, true);
-    }
 }
 
 /* Tries to generate a builtin function for the instructions of LOOP
@@ -354,7 +301,6 @@ generate_builtin (struct loop *loop, bitmap partition, bool copy_p)
   unsigned i, x = 0;
   basic_block *bbs;
   gimple write = NULL;
-  tree op0, op1;
   gimple_stmt_iterator bsi;
   tree nb_iter = number_of_exit_cond_executions (loop);
 
@@ -390,33 +336,26 @@ generate_builtin (struct loop *loop, bitmap partition, bool copy_p)
 	}
     }
 
-  if (!write)
-    goto end;
-
-  op0 = gimple_assign_lhs (write);
-  op1 = gimple_assign_rhs1 (write);
-
-  if (!(TREE_CODE (op0) == ARRAY_REF
-	|| TREE_CODE (op0) == MEM_REF))
+  if (!stmt_with_adjacent_zero_store_dr_p (write))
     goto end;
 
   /* The new statements will be placed before LOOP.  */
   bsi = gsi_last_bb (loop_preheader_edge (loop)->src);
-
-  if (gimple_assign_rhs_code (write) == INTEGER_CST
-      && (integer_zerop (op1) || real_zerop (op1)))
-    res = generate_memset_zero (write, op0, nb_iter, bsi);
+  generate_memset_zero (write, gimple_assign_lhs (write), nb_iter, bsi);
+  res = true;
 
   /* If this is the last partition for which we generate code, we have
      to destroy the loop.  */
-  if (res && !copy_p)
+  if (!copy_p)
     {
       unsigned nbbs = loop->num_nodes;
-      basic_block src = loop_preheader_edge (loop)->src;
-      basic_block dest = single_exit (loop)->dest;
-      prop_phis (dest);
-      make_edge (src, dest, EDGE_FALLTHRU);
+      edge exit = single_exit (loop);
+      basic_block src = loop_preheader_edge (loop)->src, dest = exit->dest;
+      redirect_edge_pred (exit, src);
+      exit->flags &= ~(EDGE_TRUE_VALUE|EDGE_FALSE_VALUE);
+      exit->flags |= EDGE_FALLTHRU;
       cancel_loop_tree (loop);
+      rescan_loop_exit (exit, false, true);
 
       for (i = 0; i < nbbs; i++)
 	delete_basic_block (bbs[i]);
@@ -548,24 +487,6 @@ has_upstream_mem_writes (int u)
 
 static void rdg_flag_vertex_and_dependent (struct graph *, int, bitmap, bitmap,
 					   bitmap, bool *);
-
-/* Flag all the uses of U.  */
-
-static void
-rdg_flag_all_uses (struct graph *rdg, int u, bitmap partition, bitmap loops,
-		   bitmap processed, bool *part_has_writes)
-{
-  struct graph_edge *e;
-
-  for (e = rdg->vertices[u].succ; e; e = e->succ_next)
-    if (!bitmap_bit_p (processed, e->dest))
-      {
-	rdg_flag_vertex_and_dependent (rdg, e->dest, partition, loops,
-				       processed, part_has_writes);
-	rdg_flag_all_uses (rdg, e->dest, partition, loops, processed,
-			   part_has_writes);
-      }
-}
 
 /* Flag the uses of U stopping following the information from
    upstream_mem_writes.  */
@@ -734,68 +655,13 @@ rdg_flag_loop_exits (struct graph *rdg, bitmap loops, bitmap partition,
     }
 }
 
-/* Flag all the nodes of RDG containing memory accesses that could
-   potentially belong to arrays already accessed in the current
-   PARTITION.  */
-
-static void
-rdg_flag_similar_memory_accesses (struct graph *rdg, bitmap partition,
-				  bitmap loops, bitmap processed,
-				  VEC (int, heap) **other_stores)
-{
-  bool foo;
-  unsigned i, n;
-  int j, k, kk;
-  bitmap_iterator ii;
-  struct graph_edge *e;
-
-  EXECUTE_IF_SET_IN_BITMAP (partition, 0, i, ii)
-    if (RDG_MEM_WRITE_STMT (rdg, i)
-	|| RDG_MEM_READS_STMT (rdg, i))
-      {
-	for (j = 0; j < rdg->n_vertices; j++)
-	  if (!bitmap_bit_p (processed, j)
-	      && (RDG_MEM_WRITE_STMT (rdg, j)
-		  || RDG_MEM_READS_STMT (rdg, j))
-	      && rdg_has_similar_memory_accesses (rdg, i, j))
-	    {
-	      /* Flag first the node J itself, and all the nodes that
-		 are needed to compute J.  */
-	      rdg_flag_vertex_and_dependent (rdg, j, partition, loops,
-					     processed, &foo);
-
-	      /* When J is a read, we want to coalesce in the same
-		 PARTITION all the nodes that are using J: this is
-		 needed for better cache locality.  */
-	      rdg_flag_all_uses (rdg, j, partition, loops, processed, &foo);
-
-	      /* Remove from OTHER_STORES the vertex that we flagged.  */
-	      if (RDG_MEM_WRITE_STMT (rdg, j))
-		FOR_EACH_VEC_ELT (int, *other_stores, k, kk)
-		  if (kk == j)
-		    {
-		      VEC_unordered_remove (int, *other_stores, k);
-		      break;
-		    }
-	    }
-
-	/* If the node I has two uses, then keep these together in the
-	   same PARTITION.  */
-	for (n = 0, e = rdg->vertices[i].succ; e; e = e->succ_next, n++);
-
-	if (n > 1)
-	  rdg_flag_all_uses (rdg, i, partition, loops, processed, &foo);
-      }
-}
-
 /* Returns a bitmap in which all the statements needed for computing
    the strongly connected component C of the RDG are flagged, also
    including the loop exit conditions.  */
 
 static bitmap
 build_rdg_partition_for_component (struct graph *rdg, rdgc c,
-				   bool *part_has_writes,
-				   VEC (int, heap) **other_stores)
+				   bool *part_has_writes)
 {
   int i, v;
   bitmap partition = BITMAP_ALLOC (NULL);
@@ -806,13 +672,6 @@ build_rdg_partition_for_component (struct graph *rdg, rdgc c,
     if (!already_processed_vertex_p (processed, v))
       rdg_flag_vertex_and_dependent (rdg, v, partition, loops, processed,
 				     part_has_writes);
-
-  /* Also iterate on the array of stores not in the starting vertices,
-     and determine those vertices that have some memory affinity with
-     the current nodes in the component: these are stores to the same
-     arrays, i.e. we're taking care of cache locality.  */
-  rdg_flag_similar_memory_accesses (rdg, partition, loops, processed,
-				    other_stores);
 
   rdg_flag_loop_exits (rdg, loops, partition, processed, part_has_writes);
 
@@ -876,6 +735,175 @@ rdg_build_components (struct graph *rdg, VEC (int, heap) *starting_vertices,
   BITMAP_FREE (saved_components);
 }
 
+/* Returns true when it is possible to generate a builtin pattern for
+   the PARTITION of RDG.  For the moment we detect only the memset
+   zero pattern.  */
+
+static bool
+can_generate_builtin (struct graph *rdg, bitmap partition)
+{
+  unsigned i;
+  bitmap_iterator bi;
+  int nb_reads = 0;
+  int nb_writes = 0;
+  int stores_zero = 0;
+
+  EXECUTE_IF_SET_IN_BITMAP (partition, 0, i, bi)
+    if (RDG_MEM_READS_STMT (rdg, i))
+      nb_reads++;
+    else if (RDG_MEM_WRITE_STMT (rdg, i))
+      {
+	nb_writes++;
+	if (stmt_with_adjacent_zero_store_dr_p (RDG_STMT (rdg, i)))
+	  stores_zero++;
+      }
+
+  return stores_zero == 1 && nb_writes == 1 && nb_reads == 0;
+}
+
+/* Returns true when PARTITION1 and PARTITION2 have similar memory
+   accesses in RDG.  */
+
+static bool
+similar_memory_accesses (struct graph *rdg, bitmap partition1,
+			 bitmap partition2)
+{
+  unsigned i, j;
+  bitmap_iterator bi, bj;
+
+  EXECUTE_IF_SET_IN_BITMAP (partition1, 0, i, bi)
+    if (RDG_MEM_WRITE_STMT (rdg, i)
+	|| RDG_MEM_READS_STMT (rdg, i))
+      EXECUTE_IF_SET_IN_BITMAP (partition2, 0, j, bj)
+	if (RDG_MEM_WRITE_STMT (rdg, j)
+	    || RDG_MEM_READS_STMT (rdg, j))
+	  if (rdg_has_similar_memory_accesses (rdg, i, j))
+	    return true;
+
+  return false;
+}
+
+/* Fuse all the partitions from PARTITIONS that contain similar memory
+   references, i.e., we're taking care of cache locality.  This
+   function does not fuse those partitions that contain patterns that
+   can be code generated with builtins.  */
+
+static void
+fuse_partitions_with_similar_memory_accesses (struct graph *rdg,
+					      VEC (bitmap, heap) **partitions)
+{
+  int p1, p2;
+  bitmap partition1, partition2;
+
+  FOR_EACH_VEC_ELT (bitmap, *partitions, p1, partition1)
+    if (!can_generate_builtin (rdg, partition1))
+      FOR_EACH_VEC_ELT (bitmap, *partitions, p2, partition2)
+	if (p1 != p2
+	    && !can_generate_builtin (rdg, partition2)
+	    && similar_memory_accesses (rdg, partition1, partition2))
+	  {
+	    bitmap_ior_into (partition1, partition2);
+	    VEC_ordered_remove (bitmap, *partitions, p2);
+	    p2--;
+	  }
+}
+
+/* Returns true when DEF is an SSA_NAME defined in LOOP and used after
+   the LOOP.  */
+
+static bool
+ssa_name_has_uses_outside_loop_p (tree def, loop_p loop)
+{
+  imm_use_iterator imm_iter;
+  use_operand_p use_p;
+
+  FOR_EACH_IMM_USE_FAST (use_p, imm_iter, def)
+    if (loop != loop_containing_stmt (USE_STMT (use_p)))
+      return true;
+
+  return false;
+}
+
+/* Returns true when STMT defines a scalar variable used after the
+   loop.  */
+
+static bool
+stmt_has_scalar_dependences_outside_loop (gimple stmt)
+{
+  tree name;
+
+  switch (gimple_code (stmt))
+    {
+    case GIMPLE_ASSIGN:
+      name = gimple_assign_lhs (stmt);
+      break;
+
+    case GIMPLE_PHI:
+      name = gimple_phi_result (stmt);
+      break;
+
+    default:
+      return false;
+    }
+
+  return TREE_CODE (name) == SSA_NAME
+    && ssa_name_has_uses_outside_loop_p (name, loop_containing_stmt (stmt));
+}
+
+/* Returns true when STMT will be code generated in a partition of RDG
+   different than PART and that will not be code generated as a
+   builtin.  */
+
+static bool
+stmt_generated_in_another_partition (struct graph *rdg, gimple stmt, int part,
+				     VEC (bitmap, heap) *partitions)
+{
+  int p;
+  bitmap pp;
+  unsigned i;
+  bitmap_iterator bi;
+
+  FOR_EACH_VEC_ELT (bitmap, partitions, p, pp)
+    if (p != part
+	&& !can_generate_builtin (rdg, pp))
+      EXECUTE_IF_SET_IN_BITMAP (pp, 0, i, bi)
+	if (stmt == RDG_STMT (rdg, i))
+	  return true;
+
+  return false;
+}
+
+/* For each partition in PARTITIONS that will be code generated using
+   a builtin, add its scalar computations used after the loop to
+   PARTITION.  */
+
+static void
+add_scalar_computations_to_partition (struct graph *rdg,
+				      VEC (bitmap, heap) *partitions,
+				      bitmap partition)
+{
+  int p;
+  bitmap pp;
+  unsigned i;
+  bitmap_iterator bi;
+  bitmap l = BITMAP_ALLOC (NULL);
+  bitmap pr = BITMAP_ALLOC (NULL);
+  bool f = false;
+
+  FOR_EACH_VEC_ELT (bitmap, partitions, p, pp)
+    if (can_generate_builtin (rdg, pp))
+      EXECUTE_IF_SET_IN_BITMAP (pp, 0, i, bi)
+	if (stmt_has_scalar_dependences_outside_loop (RDG_STMT (rdg, i))
+	    && !stmt_generated_in_another_partition (rdg, RDG_STMT (rdg, i), p,
+						     partitions))
+	  rdg_flag_vertex_and_dependent (rdg, i, partition, l, pr, &f);
+
+  rdg_flag_loop_exits (rdg, l, partition, pr, &f);
+
+  BITMAP_FREE (pr);
+  BITMAP_FREE (l);
+}
+
 /* Aggregate several components into a useful partition that is
    registered in the PARTITIONS vector.  Partitions will be
    distributed in different loops.  */
@@ -898,8 +926,7 @@ rdg_build_partitions (struct graph *rdg, VEC (rdgc, heap) *components,
       if (bitmap_bit_p (processed, v))
 	continue;
 
-      np = build_rdg_partition_for_component (rdg, x, &part_has_writes,
-					      other_stores);
+      np = build_rdg_partition_for_component (rdg, x, &part_has_writes);
       bitmap_ior_into (partition, np);
       bitmap_ior_into (processed, np);
       BITMAP_FREE (np);
@@ -940,11 +967,15 @@ rdg_build_partitions (struct graph *rdg, VEC (rdgc, heap) *components,
       free_rdg_components (comps);
     }
 
+  add_scalar_computations_to_partition (rdg, *partitions, partition);
+
   /* If there is something left in the last partition, save it.  */
   if (bitmap_count_bits (partition) > 0)
     VEC_safe_push (bitmap, heap, *partitions, partition);
   else
     BITMAP_FREE (partition);
+
+  fuse_partitions_with_similar_memory_accesses (rdg, partitions);
 }
 
 /* Dump to FILE the PARTITIONS.  */
@@ -1175,7 +1206,12 @@ tree_loop_distribution (void)
 
   FOR_EACH_LOOP (li, loop, 0)
     {
-      VEC (gimple, heap) *work_list = VEC_alloc (gimple, heap, 3);
+      VEC (gimple, heap) *work_list = NULL;
+
+      /* If the loop doesn't have a single exit we will fail anyway,
+	 so do that early.  */
+      if (!single_exit (loop))
+	continue;
 
       /* If both flag_tree_loop_distribute_patterns and
 	 flag_tree_loop_distribution are set, then only

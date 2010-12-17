@@ -99,7 +99,6 @@ extern const struct gcov_ctr_summary *profile_info;
 struct loop;
 
 /* Declared in tree-flow.h.  */
-struct edge_prediction;
 struct rtl_bb_info;
 
 /* A basic block is a sequence of instructions with only entry and
@@ -880,9 +879,6 @@ extern void set_bb_copy (basic_block, basic_block);
 extern basic_block get_bb_copy (basic_block);
 void set_loop_copy (struct loop *, struct loop *);
 struct loop *get_loop_copy (struct loop *);
-
-
-extern rtx insert_insn_end_bb_new (rtx, basic_block);
 
 #include "cfghooks.h"
 

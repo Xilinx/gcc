@@ -41,7 +41,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "function.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "optabs.h"
 #include "libfuncs.h"
 #include "ggc.h"
@@ -148,6 +147,8 @@ static rtx xtensa_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
 static rtx xtensa_function_incoming_arg (CUMULATIVE_ARGS *,
 					 enum machine_mode, const_tree, bool);
 static rtx xtensa_function_value (const_tree, const_tree, bool);
+static unsigned int xtensa_function_arg_boundary (enum machine_mode,
+						  const_tree);
 static void xtensa_init_builtins (void);
 static tree xtensa_fold_builtin (tree, int, tree *, bool);
 static rtx xtensa_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
@@ -193,7 +194,7 @@ static const struct default_options xtensa_option_optimization_table[] =
 #define TARGET_ASM_SELECT_RTX_SECTION  xtensa_select_rtx_section
 
 #undef TARGET_DEFAULT_TARGET_FLAGS
-#define TARGET_DEFAULT_TARGET_FLAGS (TARGET_DEFAULT | MASK_FUSED_MADD)
+#define TARGET_DEFAULT_TARGET_FLAGS (TARGET_DEFAULT)
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS xtensa_legitimize_address
@@ -228,6 +229,8 @@ static const struct default_options xtensa_option_optimization_table[] =
 #define TARGET_FUNCTION_ARG xtensa_function_arg
 #undef TARGET_FUNCTION_INCOMING_ARG
 #define TARGET_FUNCTION_INCOMING_ARG xtensa_function_incoming_arg
+#undef TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY xtensa_function_arg_boundary
 
 #undef TARGET_EXPAND_BUILTIN_SAVEREGS
 #define TARGET_EXPAND_BUILTIN_SAVEREGS xtensa_builtin_saveregs
@@ -1305,7 +1308,7 @@ xtensa_expand_nonlocal_goto (rtx *operands)
     containing_fp = force_reg (Pmode, containing_fp);
 
   emit_library_call (gen_rtx_SYMBOL_REF (Pmode, "__xtensa_nonlocal_goto"),
-		     0, VOIDmode, 2,
+		     LCT_NORMAL, VOIDmode, 2,
 		     containing_fp, Pmode,
 		     goto_handler, Pmode);
 }
@@ -1583,7 +1586,7 @@ xtensa_setup_frame_addresses (void)
 
   emit_library_call
     (gen_rtx_SYMBOL_REF (Pmode, "__xtensa_libgcc_window_spill"),
-     0, VOIDmode, 0);
+     LCT_NORMAL, VOIDmode, 0);
 }
 
 
@@ -2043,7 +2046,7 @@ xtensa_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
    if this is an incoming argument to the current function.  */
 
 static rtx
-xtensa_function_arg_1 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
+xtensa_function_arg_1 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 		       const_tree type, bool incoming_p)
 {
   int regbase, words, max;
@@ -2093,8 +2096,8 @@ xtensa_function_incoming_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
   return xtensa_function_arg_1 (cum, mode, type, true);
 }
 
-int
-function_arg_boundary (enum machine_mode mode, tree type)
+static unsigned int
+xtensa_function_arg_boundary (enum machine_mode mode, const_tree type)
 {
   unsigned int alignment;
 
@@ -2637,8 +2640,7 @@ xtensa_expand_prologue (void)
 				     : stack_pointer_rtx),
 			  plus_constant (stack_pointer_rtx, -total_size));
   RTX_FRAME_RELATED_P (insn) = 1;
-  REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-					note_rtx, REG_NOTES (insn));
+  add_reg_note (insn, REG_FRAME_RELATED_EXPR, note_rtx);
 }
 
 
@@ -3590,7 +3592,7 @@ xtensa_trampoline_init (rtx m_tramp, tree fndecl, rtx chain)
   emit_move_insn (adjust_address (m_tramp, SImode, chain_off), chain);
   emit_move_insn (adjust_address (m_tramp, SImode, func_off), func);
   emit_library_call (gen_rtx_SYMBOL_REF (Pmode, "__xtensa_sync_caches"),
-		     0, VOIDmode, 1, XEXP (m_tramp, 0), Pmode);
+		     LCT_NORMAL, VOIDmode, 1, XEXP (m_tramp, 0), Pmode);
 }
 
 

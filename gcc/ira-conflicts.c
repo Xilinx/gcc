@@ -33,7 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-config.h"
 #include "recog.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "params.h"
 #include "df.h"
 #include "sparseset.h"
@@ -907,6 +906,23 @@ ira_build_conflicts (void)
 				no_caller_save_reg_set);
 	      IOR_HARD_REG_SET (OBJECT_CONFLICT_HARD_REGS (obj),
 				temp_hard_reg_set);
+	    }
+
+	  if (ALLOCNO_CALLS_CROSSED_NUM (a) != 0)
+	    {
+	      int regno;
+
+	      /* Allocnos bigger than the saved part of call saved
+		 regs must conflict with them.  */
+	      for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
+		if (!TEST_HARD_REG_BIT (call_used_reg_set, regno)
+		    && HARD_REGNO_CALL_PART_CLOBBERED (regno,
+						       obj->allocno->mode))
+		  {
+		    SET_HARD_REG_BIT (OBJECT_CONFLICT_HARD_REGS (obj), regno);
+		    SET_HARD_REG_BIT (OBJECT_TOTAL_CONFLICT_HARD_REGS (obj),
+				      regno);
+		  }
 	    }
 	}
     }

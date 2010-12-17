@@ -44,7 +44,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "recog.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "cselib.h"
 #include "params.h"
 #include "tm_p.h"
@@ -492,11 +491,17 @@ try_forward_edges (int mode, basic_block b)
 		    new_target = NULL;
 		  else
 		    {
+		      rtx last;
+
 		      if (new_locus)
 			locus = new_locus;
 
-		      new_locus = INSN_P (BB_END (target))
-				  ? INSN_LOCATOR (BB_END (target)) : 0;
+		      last = BB_END (target);
+		      if (DEBUG_INSN_P (last))
+			last = prev_nondebug_insn (last);
+
+		      new_locus = last && INSN_P (last)
+				  ? INSN_LOCATOR (last) : 0;
 
 		      if (new_locus && locus && !locator_eq (new_locus, locus))
 			new_target = NULL;
@@ -1183,12 +1188,20 @@ flow_find_head_matching_sequence (basic_block bb1, basic_block bb2, rtx *f1,
 
   while (true)
     {
-      /* Ignore notes.  */
+      /* Ignore notes, except NOTE_INSN_EPILOGUE_BEG.  */
       while (!NONDEBUG_INSN_P (i1) && i1 != BB_END (bb1))
-	i1 = NEXT_INSN (i1);
+	{
+	  if (NOTE_P (i1) && NOTE_KIND (i1) == NOTE_INSN_EPILOGUE_BEG)
+	    break;
+	  i1 = NEXT_INSN (i1);
+	}
 
       while (!NONDEBUG_INSN_P (i2) && i2 != BB_END (bb2))
-	i2 = NEXT_INSN (i2);
+	{
+	  if (NOTE_P (i2) && NOTE_KIND (i2) == NOTE_INSN_EPILOGUE_BEG)
+	    break;
+	  i2 = NEXT_INSN (i2);
+	}
 
       if ((i1 == BB_END (bb1) && !NONDEBUG_INSN_P (i1))
 	  || (i2 == BB_END (bb2) && !NONDEBUG_INSN_P (i2)))
@@ -2101,7 +2114,17 @@ try_head_merge_bb (basic_block bb)
 				       jump, e0->dest, live_union,
 				       NULL, &move_upto);
       if (!moveall)
-	e0_last_head = move_upto;
+	{
+	  if (move_upto == NULL_RTX)
+	    goto out;
+
+	  while (e0_last_head != move_upto)
+	    {
+	      df_simulate_one_insn_backwards (e0->dest, e0_last_head,
+					      live_union);
+	      e0_last_head = PREV_INSN (e0_last_head);
+	    }
+	}
       if (e0_last_head == NULL_RTX)
 	goto out;
 

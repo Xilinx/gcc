@@ -25,7 +25,10 @@
       builtin_define ("__RX__"); 		\
       builtin_assert ("cpu=RX"); 		\
       if (rx_cpu_type == RX610)			\
-        builtin_assert ("machine=RX610");	\
+	{					\
+          builtin_define ("__RX610__");		\
+          builtin_assert ("machine=RX610");	\
+	}					\
      else					\
         builtin_assert ("machine=RX600");	\
       						\
@@ -122,8 +125,6 @@ extern enum rx_cpu_types  rx_cpu_type;
 #define STACK_BOUNDARY 			32
 #define PARM_BOUNDARY 			8
 
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE) 32
-
 #define STACK_GROWS_DOWNWARD		1
 #define FRAME_GROWS_DOWNWARD		0
 #define FIRST_PARM_OFFSET(FNDECL) 	0
@@ -136,6 +137,10 @@ extern enum rx_cpu_types  rx_cpu_type;
 #define SIZE_TYPE			"long unsigned int"
 #undef  PTRDIFF_TYPE
 #define PTRDIFF_TYPE			"long int"
+#undef  WCHAR_TYPE
+#define WCHAR_TYPE			"long int"
+#undef  WCHAR_TYPE_SIZE
+#define WCHAR_TYPE_SIZE			BITS_PER_WORD
 #define POINTERS_EXTEND_UNSIGNED	1
 #define FUNCTION_MODE 			QImode
 #define CASE_VECTOR_MODE		Pmode
@@ -149,8 +154,6 @@ extern enum rx_cpu_types  rx_cpu_type;
 #define TRULY_NOOP_TRUNCATION(OUTPREC, INPREC)   1
 
 #define LEGITIMATE_CONSTANT_P(X) 	rx_is_legitimate_constant (X)
-
-#define HANDLE_PRAGMA_PACK_PUSH_POP	1
 
 #define HAVE_PRE_DECCREMENT		1
 #define HAVE_POST_INCREMENT		1
@@ -246,9 +249,6 @@ enum reg_class
   1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1	\
 }
 
-#define CONDITIONAL_REGISTER_USAGE			\
-  rx_conditional_register_usage ()
-
 #define LIBCALL_VALUE(MODE)				\
   gen_rtx_REG (((GET_MODE_CLASS (MODE) != MODE_INT	\
 		 || GET_MODE_SIZE (MODE) >= 4)		\
@@ -338,7 +338,7 @@ typedef unsigned int CUMULATIVE_ARGS;
   {								\
     "r0",  "r1",  "r2",   "r3",   "r4",   "r5",   "r6",   "r7",	\
       "r8",  "r9",  "r10",  "r11",  "r12",  "r13",  "r14",  "r15", "cc"	\
-  };
+  }
 
 #define ADDITIONAL_REGISTER_NAMES	\
 {					\
@@ -616,10 +616,6 @@ extern int rx_float_compare_mode;
 #define ARG_POINTER_CFA_OFFSET(FNDECL)		4
 #define FRAME_POINTER_CFA_OFFSET(FNDECL)	4
 
-/* Translate -nofpu into -mnofpu so that it gets passed from gcc to cc1.  */
-#define TARGET_OPTION_TRANSLATE_TABLE \
-  {"-nofpu", "-mnofpu" }
-
 #define TARGET_USE_FPU		(! TARGET_NO_USE_FPU)
 
 /* This macro is used to decide when RX FPU instructions can be used.  */

@@ -38,7 +38,12 @@
       builtin_assert ("cpu=mn10300");		\
       builtin_assert ("machine=mn10300");	\
 						\
-      if (TARGET_AM33_2)			\
+      if (TARGET_AM34)				\
+        { 					\
+          builtin_define ("__AM33__=4");	\
+          builtin_define ("__AM34__");		\
+        }					\
+      else if (TARGET_AM33_2)			\
         { 					\
           builtin_define ("__AM33__=2");	\
           builtin_define ("__AM33_2__");	\
@@ -54,13 +59,16 @@ enum processor_type
 {
   PROCESSOR_MN10300,
   PROCESSOR_AM33,
-  PROCESSOR_AM33_2
+  PROCESSOR_AM33_2,
+  PROCESSOR_AM34
 };
 
 extern enum processor_type mn10300_processor;
+extern enum processor_type mn10300_tune_cpu;
 
 #define TARGET_AM33	(mn10300_processor >= PROCESSOR_AM33)
-#define TARGET_AM33_2	(mn10300_processor == PROCESSOR_AM33_2)
+#define TARGET_AM33_2	(mn10300_processor >= PROCESSOR_AM33_2)
+#define TARGET_AM34	(mn10300_processor >= PROCESSOR_AM34)
 
 #ifndef PROCESSOR_DEFAULT
 #define PROCESSOR_DEFAULT PROCESSOR_MN10300
@@ -113,6 +121,18 @@ extern enum processor_type mn10300_processor;
 
 /* Define this as 1 if `char' should by default be signed; else as 0.  */
 #define DEFAULT_SIGNED_CHAR 0
+
+#undef  SIZE_TYPE
+#define SIZE_TYPE "unsigned int"
+
+#undef  PTRDIFF_TYPE
+#define PTRDIFF_TYPE "int"
+
+#undef  WCHAR_TYPE
+#define WCHAR_TYPE "long int"
+
+#undef  WCHAR_TYPE_SIZE
+#define WCHAR_TYPE_SIZE BITS_PER_WORD
 
 /* Standard register usage.  */
 
@@ -194,27 +214,6 @@ extern enum processor_type mn10300_processor;
   , 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 51 \
   }
 
-#define CONDITIONAL_REGISTER_USAGE \
-{						\
-  unsigned int i;				\
-						\
-  if (!TARGET_AM33)				\
-    {						\
-      for (i = FIRST_EXTENDED_REGNUM; 		\
-	   i <= LAST_EXTENDED_REGNUM; i++) 	\
-	fixed_regs[i] = call_used_regs[i] = 1; 	\
-    }						\
-  if (!TARGET_AM33_2)				\
-    {						\
-      for (i = FIRST_FP_REGNUM;			\
-	   i <= LAST_FP_REGNUM; i++) 		\
-	fixed_regs[i] = call_used_regs[i] = 1;	\
-    }						\
-  if (flag_pic)					\
-    fixed_regs[PIC_OFFSET_TABLE_REGNUM] =       \
-    call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;\
-}
-
 /* Return number of consecutive hard regs needed starting at reg REGNO
    to hold something of mode MODE.
 
@@ -274,7 +273,7 @@ enum reg_class
 
 /* Give names of register classes as strings for dump file.  */
 
-#define REG_CLASS_NAMES						\
+#define REG_CLASS_NAMES					   	\
 { "NO_REGS", "DATA_REGS", "ADDRESS_REGS",			\
   "SP_REGS", "DATA_OR_ADDRESS_REGS", "SP_OR_ADDRESS_REGS",	\
   "EXTENDED_REGS",						\
@@ -289,7 +288,7 @@ enum reg_class
    of length N_REG_CLASSES.  */
 
 #define REG_CLASS_CONTENTS					\
-{ { 0,	        0 },	  /* No regs      */			\
+{ { 0,	        0 },	  /* No regs */				\
   { 0x0000000f, 0 },	  /* DATA_REGS */			\
   { 0x000001f0, 0 },	  /* ADDRESS_REGS */			\
   { 0x00000200, 0 },	  /* SP_REGS */				\
@@ -304,7 +303,7 @@ enum reg_class
   { 0x03fc0000, 0 },	  /* FP_ACC_REGS */			\
   { 0x00000000, 0x80000 },/* CC_REGS */				\
   { 0x0003fdff, 0 }, 	  /* GENERAL_REGS */			\
-  { 0xffffffff, 0xfffff } /* ALL_REGS 	*/			\
+  { 0xffffffff, 0xfffff } /* ALL_REGS */			\
 }
 
 /* The following macro defines cover classes for Integrated Register
@@ -413,27 +412,6 @@ enum reg_class
   (REGNO_STRICT_OK_FOR_INDEX_P ((regno), REG_STRICT))
 #define REG_OK_FOR_INDEX_P(X) \
   (REGNO_OK_FOR_INDEX_P (REGNO (X)))
-
-/* Given an rtx X being reloaded into a reg required to be
-   in class CLASS, return the class of reg to actually use.
-   In general this is just CLASS; but on some machines
-   in some cases it is preferable to use a more restrictive class.  */
-
-#define PREFERRED_RELOAD_CLASS(X,CLASS)				\
-  ((X) == stack_pointer_rtx && (CLASS) != SP_REGS		\
-   ? ADDRESS_OR_EXTENDED_REGS					\
-   : (MEM_P (X)							\
-      || (REG_P (X)						\
-	  && REGNO (X) >= FIRST_PSEUDO_REGISTER)		\
-      || (GET_CODE (X) == SUBREG				\
-	  && REG_P (SUBREG_REG (X))				\
-	  && REGNO (SUBREG_REG (X)) >= FIRST_PSEUDO_REGISTER)	\
-      ? LIMIT_RELOAD_CLASS (GET_MODE (X), CLASS)		\
-      : (CLASS)))
-
-#define PREFERRED_OUTPUT_RELOAD_CLASS(X,CLASS) \
-  (X == stack_pointer_rtx && CLASS != SP_REGS \
-   ? ADDRESS_OR_EXTENDED_REGS : CLASS)
 
 #define LIMIT_RELOAD_CLASS(MODE, CLASS) \
   (!TARGET_AM33 && (MODE == QImode || MODE == HImode) ? DATA_REGS : CLASS)
@@ -612,49 +590,6 @@ struct cum_arg
 
 /* Non-global SYMBOL_REFs have SYMBOL_REF_FLAG enabled.  */
 #define MN10300_GLOBAL_P(X) (! SYMBOL_REF_FLAG (X))
-
-/* Recognize machine-specific patterns that may appear within
-   constants.  Used for PIC-specific UNSPECs.  */
-#define OUTPUT_ADDR_CONST_EXTRA(STREAM, X, FAIL) \
-  do									\
-    if (GET_CODE (X) == UNSPEC)						\
-      {									\
-	switch (XINT ((X), 1))						\
-	  {								\
-	  case UNSPEC_INT_LABEL:					\
-	    asm_fprintf ((STREAM), ".%LLIL" HOST_WIDE_INT_PRINT_DEC,	\
- 			 INTVAL (XVECEXP ((X), 0, 0)));			\
-	    break;							\
-	  case UNSPEC_PIC:						\
-	    /* GLOBAL_OFFSET_TABLE or local symbols, no suffix.  */	\
-	    output_addr_const ((STREAM), XVECEXP ((X), 0, 0));		\
-	    break;							\
-	  case UNSPEC_GOT:						\
-	    output_addr_const ((STREAM), XVECEXP ((X), 0, 0));		\
-	    fputs ("@GOT", (STREAM));					\
-	    break;							\
-	  case UNSPEC_GOTOFF:						\
-	    output_addr_const ((STREAM), XVECEXP ((X), 0, 0));		\
-	    fputs ("@GOTOFF", (STREAM));				\
-	    break;							\
-	  case UNSPEC_PLT:						\
-	    output_addr_const ((STREAM), XVECEXP ((X), 0, 0));		\
-	    fputs ("@PLT", (STREAM));					\
-	    break;							\
-	  case UNSPEC_GOTSYM_OFF:					\
-	    assemble_name (STREAM, GOT_SYMBOL_NAME);			\
-	    fputs ("-(", STREAM);					\
-	    output_addr_const (STREAM, XVECEXP (X, 0, 0));		\
-	    fputs ("-.)", STREAM);					\
-	    break;							\
-	  default:							\
-	    goto FAIL;							\
-	  }								\
-	break;								\
-      }									\
-    else								\
-      goto FAIL;							\
-  while (0)
 
 #define SELECT_CC_MODE(OP, X, Y)  mn10300_select_cc_mode (X)
 #define REVERSIBLE_CC_MODE(MODE)  0

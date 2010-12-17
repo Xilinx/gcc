@@ -314,10 +314,12 @@ loop_has_blocks_with_irreducible_flag (struct loop *loop)
 /* Assigns the address of OBJ in TYPE to an ssa name, and returns this name.
    The assignment statement is placed on edge ENTRY.  DECL_ADDRESS maps decls
    to their addresses that can be reused.  The address of OBJ is known to
-   be invariant in the whole function.  */
+   be invariant in the whole function.  Other needed statements are placed
+   right before GSI.  */
 
 static tree
-take_address_of (tree obj, tree type, edge entry, htab_t decl_address)
+take_address_of (tree obj, tree type, edge entry, htab_t decl_address,
+		 gimple_stmt_iterator *gsi)
 {
   int uid;
   void **dslot;
@@ -346,6 +348,8 @@ take_address_of (tree obj, tree type, edge entry, htab_t decl_address)
   dslot = htab_find_slot_with_hash (decl_address, &ielt, uid, INSERT);
   if (!*dslot)
     {
+      if (gsi == NULL)
+	return NULL;
       addr = TREE_OPERAND (*var_p, 0);
       bvar = create_tmp_var (TREE_TYPE (addr),
 			     get_name (TREE_OPERAND
@@ -366,17 +370,20 @@ take_address_of (tree obj, tree type, edge entry, htab_t decl_address)
 
   /* Express the address in terms of the canonical SSA name.  */
   TREE_OPERAND (*var_p, 0) = name;
+  if (gsi == NULL)
+    return build_fold_addr_expr_with_type (obj, type);
+
   name = force_gimple_operand (build_addr (obj, current_function_decl),
 			       &stmts, true, NULL_TREE);
   if (!gimple_seq_empty_p (stmts))
-    gsi_insert_seq_on_edge_immediate (entry, stmts);
+    gsi_insert_seq_before (gsi, stmts, GSI_SAME_STMT);
 
   if (!useless_type_conversion_p (type, TREE_TYPE (name)))
     {
       name = force_gimple_operand (fold_convert (type, name), &stmts, true,
 				   NULL_TREE);
       if (!gimple_seq_empty_p (stmts))
-	gsi_insert_seq_on_edge_immediate (entry, stmts);
+	gsi_insert_seq_before (gsi, stmts, GSI_SAME_STMT);
     }
 
   return name;
@@ -438,7 +445,9 @@ struct elv_data
   struct walk_stmt_info info;
   edge entry;
   htab_t decl_address;
+  gimple_stmt_iterator *gsi;
   bool changed;
+  bool reset;
 };
 
 /* Eliminates references to local variables in *TP out of the single
@@ -462,7 +471,14 @@ eliminate_local_variables_1 (tree *tp, int *walk_subtrees, void *data)
 
       type = TREE_TYPE (t);
       addr_type = build_pointer_type (type);
-      addr = take_address_of (t, addr_type, dta->entry, dta->decl_address);
+      addr = take_address_of (t, addr_type, dta->entry, dta->decl_address,
+			      dta->gsi);
+      if (dta->gsi == NULL && addr == NULL_TREE)
+	{
+	  dta->reset = true;
+	  return NULL_TREE;
+	}
+
       *tp = build_simple_mem_ref (addr);
 
       dta->changed = true;
@@ -492,7 +508,13 @@ eliminate_local_variables_1 (tree *tp, int *walk_subtrees, void *data)
 	return NULL_TREE;
 
       addr_type = TREE_TYPE (t);
-      addr = take_address_of (obj, addr_type, dta->entry, dta->decl_address);
+      addr = take_address_of (obj, addr_type, dta->entry, dta->decl_address,
+			      dta->gsi);
+      if (dta->gsi == NULL && addr == NULL_TREE)
+	{
+	  dta->reset = true;
+	  return NULL_TREE;
+	}
       *tp = addr;
 
       dta->changed = true;
@@ -505,27 +527,40 @@ eliminate_local_variables_1 (tree *tp, int *walk_subtrees, void *data)
   return NULL_TREE;
 }
 
-/* Moves the references to local variables in STMT out of the single
+/* Moves the references to local variables in STMT at *GSI out of the single
    entry single exit region starting at ENTRY.  DECL_ADDRESS contains
    addresses of the references that had their address taken
    already.  */
 
 static void
-eliminate_local_variables_stmt (edge entry, gimple stmt,
+eliminate_local_variables_stmt (edge entry, gimple_stmt_iterator *gsi,
 				htab_t decl_address)
 {
   struct elv_data dta;
+  gimple stmt = gsi_stmt (*gsi);
 
   memset (&dta.info, '\0', sizeof (dta.info));
   dta.entry = entry;
   dta.decl_address = decl_address;
   dta.changed = false;
+  dta.reset = false;
 
   if (gimple_debug_bind_p (stmt))
-    walk_tree (gimple_debug_bind_get_value_ptr (stmt),
-	       eliminate_local_variables_1, &dta.info, NULL);
+    {
+      dta.gsi = NULL;
+      walk_tree (gimple_debug_bind_get_value_ptr (stmt),
+		 eliminate_local_variables_1, &dta.info, NULL);
+      if (dta.reset)
+	{
+	  gimple_debug_bind_reset_value (stmt);
+	  dta.changed = true;
+	}
+    }
   else
-    walk_gimple_op (stmt, eliminate_local_variables_1, &dta.info);
+    {
+      dta.gsi = gsi;
+      walk_gimple_op (stmt, eliminate_local_variables_1, &dta.info);
+    }
 
   if (dta.changed)
     update_stmt (stmt);
@@ -549,6 +584,7 @@ eliminate_local_variables (edge entry, edge exit)
   VEC (basic_block, heap) *body = VEC_alloc (basic_block, heap, 3);
   unsigned i;
   gimple_stmt_iterator gsi;
+  bool has_debug_stmt = false;
   htab_t decl_address = htab_create (10, int_tree_map_hash, int_tree_map_eq,
 				     free);
   basic_block entry_bb = entry->src;
@@ -559,8 +595,17 @@ eliminate_local_variables (edge entry, edge exit)
   FOR_EACH_VEC_ELT (basic_block, body, i, bb)
     if (bb != entry_bb && bb != exit_bb)
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-	eliminate_local_variables_stmt (entry, gsi_stmt (gsi),
-					decl_address);
+	if (gimple_debug_bind_p (gsi_stmt (gsi)))
+	  has_debug_stmt = true;
+	else
+	  eliminate_local_variables_stmt (entry, &gsi, decl_address);
+
+  if (has_debug_stmt)
+    FOR_EACH_VEC_ELT (basic_block, body, i, bb)
+      if (bb != entry_bb && bb != exit_bb)
+	for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	  if (gimple_debug_bind_p (gsi_stmt (gsi)))
+	    eliminate_local_variables_stmt (entry, &gsi, decl_address);
 
   htab_delete (decl_address);
   VEC_free (basic_block, heap, body);
@@ -1157,7 +1202,7 @@ separate_decls_in_region (edge entry, edge exit, htab_t reduction_list,
     {
       /* Create the type for the structure to store the ssa names to.  */
       type = lang_hooks.types.make_type (RECORD_TYPE);
-      type_name = build_decl (BUILTINS_LOCATION,
+      type_name = build_decl (UNKNOWN_LOCATION,
 			      TYPE_DECL, create_tmp_var_name (".paral_data"),
 			      type);
       TYPE_NAME (type) = type_name;
@@ -1224,7 +1269,7 @@ parallelized_function_p (tree fn)
    a parallelized loop.  */
 
 static tree
-create_loop_fn (void)
+create_loop_fn (location_t loc)
 {
   char buf[100];
   char *tname;
@@ -1238,8 +1283,7 @@ create_loop_fn (void)
   name = get_identifier (tname);
   type = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
 
-  decl = build_decl (BUILTINS_LOCATION,
-		     FUNCTION_DECL, name, type);
+  decl = build_decl (loc, FUNCTION_DECL, name, type);
   if (!parallelized_functions)
     parallelized_functions = BITMAP_GGC_ALLOC ();
   bitmap_set_bit (parallelized_functions, DECL_UID (decl));
@@ -1254,14 +1298,12 @@ create_loop_fn (void)
   DECL_CONTEXT (decl) = NULL_TREE;
   DECL_INITIAL (decl) = make_node (BLOCK);
 
-  t = build_decl (BUILTINS_LOCATION,
-		  RESULT_DECL, NULL_TREE, void_type_node);
+  t = build_decl (loc, RESULT_DECL, NULL_TREE, void_type_node);
   DECL_ARTIFICIAL (t) = 1;
   DECL_IGNORED_P (t) = 1;
   DECL_RESULT (decl) = t;
 
-  t = build_decl (BUILTINS_LOCATION,
-		  PARM_DECL, get_identifier (".paral_data_param"),
+  t = build_decl (loc, PARM_DECL, get_identifier (".paral_data_param"),
 		  ptr_type_node);
   DECL_ARTIFICIAL (t) = 1;
   DECL_ARG_TYPE (t) = ptr_type_node;
@@ -1403,7 +1445,7 @@ transform_to_exit_first_loop (struct loop *loop, htab_t reduction_list, tree nit
 
 static basic_block
 create_parallel_loop (struct loop *loop, tree loop_fn, tree data,
-		      tree new_data, unsigned n_threads)
+		      tree new_data, unsigned n_threads, location_t loc)
 {
   gimple_stmt_iterator gsi;
   basic_block bb, paral_bb, for_bb, ex_bb;
@@ -1417,10 +1459,11 @@ create_parallel_loop (struct loop *loop, tree loop_fn, tree data,
   paral_bb = single_pred (bb);
   gsi = gsi_last_bb (paral_bb);
 
-  t = build_omp_clause (BUILTINS_LOCATION, OMP_CLAUSE_NUM_THREADS);
+  t = build_omp_clause (loc, OMP_CLAUSE_NUM_THREADS);
   OMP_CLAUSE_NUM_THREADS_EXPR (t)
     = build_int_cst (integer_type_node, n_threads);
   stmt = gimple_build_omp_parallel (NULL, t, loop_fn, data);
+  gimple_set_location (stmt, loc);
 
   gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
 
@@ -1443,7 +1486,9 @@ create_parallel_loop (struct loop *loop, tree loop_fn, tree data,
   /* Emit GIMPLE_OMP_RETURN for GIMPLE_OMP_PARALLEL.  */
   bb = split_loop_exit_edge (single_dom_exit (loop));
   gsi = gsi_last_bb (bb);
-  gsi_insert_after (&gsi, gimple_build_omp_return (false), GSI_NEW_STMT);
+  stmt = gimple_build_omp_return (false);
+  gimple_set_location (stmt, loc);
+  gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
 
   /* Extract data for GIMPLE_OMP_FOR.  */
   gcc_assert (loop->header == single_dom_exit (loop)->src);
@@ -1493,10 +1538,11 @@ create_parallel_loop (struct loop *loop, tree loop_fn, tree data,
   /* Emit GIMPLE_OMP_FOR.  */
   gimple_cond_set_lhs (cond_stmt, cvar_base);
   type = TREE_TYPE (cvar);
-  t = build_omp_clause (BUILTINS_LOCATION, OMP_CLAUSE_SCHEDULE);
+  t = build_omp_clause (loc, OMP_CLAUSE_SCHEDULE);
   OMP_CLAUSE_SCHEDULE_KIND (t) = OMP_CLAUSE_SCHEDULE_STATIC;
 
   for_stmt = gimple_build_omp_for (NULL, t, 1, NULL);
+  gimple_set_location (for_stmt, loc);
   gimple_omp_for_set_index (for_stmt, 0, initvar);
   gimple_omp_for_set_initial (for_stmt, 0, cvar_init);
   gimple_omp_for_set_final (for_stmt, 0, gimple_cond_rhs (cond_stmt));
@@ -1512,12 +1558,15 @@ create_parallel_loop (struct loop *loop, tree loop_fn, tree data,
   /* Emit GIMPLE_OMP_CONTINUE.  */
   gsi = gsi_last_bb (loop->latch);
   stmt = gimple_build_omp_continue (cvar_next, cvar);
+  gimple_set_location (stmt, loc);
   gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
   SSA_NAME_DEF_STMT (cvar_next) = stmt;
 
   /* Emit GIMPLE_OMP_RETURN for GIMPLE_OMP_FOR.  */
   gsi = gsi_last_bb (ex_bb);
-  gsi_insert_after (&gsi, gimple_build_omp_return (true), GSI_NEW_STMT);
+  stmt = gimple_build_omp_return (true);
+  gimple_set_location (stmt, loc);
+  gsi_insert_after (&gsi, stmt, GSI_NEW_STMT);
 
   return paral_bb;
 }
@@ -1540,6 +1589,8 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
   edge entry, exit;
   struct clsn_data clsn_data;
   unsigned prob;
+  location_t loc;
+  gimple cond_stmt;
 
   /* From
 
@@ -1651,8 +1702,12 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
 			    &new_arg_struct, &clsn_data);
 
   /* Create the parallel constructs.  */
-  parallel_head = create_parallel_loop (loop, create_loop_fn (), arg_struct,
-					new_arg_struct, n_threads);
+  loc = UNKNOWN_LOCATION;
+  cond_stmt = last_stmt (loop->header);
+  if (cond_stmt)
+    loc = gimple_location (cond_stmt);
+  parallel_head = create_parallel_loop (loop, create_loop_fn (loc), arg_struct,
+					new_arg_struct, n_threads, loc);
   if (htab_elements (reduction_list) > 0)
     create_call_for_reduction (loop, reduction_list, &clsn_data);
 
@@ -1825,7 +1880,8 @@ try_create_reduction_list (loop_p loop, htab_t reduction_list)
 	  reduc_phi = NULL;
 	  FOR_EACH_IMM_USE_FAST (use_p, imm_iter, val)
 	    {
-	      if (flow_bb_inside_loop_p (loop, gimple_bb (USE_STMT (use_p))))
+	      if (!gimple_debug_bind_p (USE_STMT (use_p))
+		  && flow_bb_inside_loop_p (loop, gimple_bb (USE_STMT (use_p))))
 		{
 		  reduc_phi = USE_STMT (use_p);
 		  break;

@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "rtl.h"
 #include "tree.h"
 #include "tm_p.h"
@@ -1800,11 +1799,11 @@ extract_fixed_bit_field (enum machine_mode tmode, rtx op0,
 		{
 		  informed_about_misalignment = true;
 		  inform (input_location,
-			  "When a volatile object spans multiple type-sized locations,"
+			  "when a volatile object spans multiple type-sized locations,"
 			  " the compiler must choose between using a single mis-aligned access to"
 			  " preserve the volatility, or using multiple aligned accesses to avoid"
-			  " runtime faults.  This code may fail at runtime if the hardware does"
-			  " not allow this access.");
+			  " runtime faults; this code may fail at runtime if the hardware does"
+			  " not allow this access");
 		}
 	    }
 	}

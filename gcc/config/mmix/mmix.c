@@ -36,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "expr.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "recog.h"
 #include "ggc.h"
 #include "dwarf2.h"
@@ -45,6 +44,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "integrate.h"
 #include "target.h"
 #include "target-def.h"
+#include "df.h"
 
 /* First some local helper definitions.  */
 #define MMIX_FIRST_GLOBAL_REGNUM 32
@@ -158,6 +158,7 @@ static bool mmix_pass_by_reference (CUMULATIVE_ARGS *,
 static bool mmix_frame_pointer_required (void);
 static void mmix_asm_trampoline_template (FILE *);
 static void mmix_trampoline_init (rtx, tree, rtx);
+static void mmix_conditional_register_usage (void);
 
 /* TARGET_OPTION_OPTIMIZATION_TABLE.  */
 
@@ -210,6 +211,9 @@ static const struct default_options mmix_option_optimization_table[] =
 #define TARGET_ASM_FILE_END mmix_file_end
 #undef TARGET_ASM_OUTPUT_SOURCE_FILENAME
 #define TARGET_ASM_OUTPUT_SOURCE_FILENAME mmix_asm_output_source_filename
+
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE mmix_conditional_register_usage
 
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS mmix_rtx_costs
@@ -327,8 +331,8 @@ mmix_constant_alignment (tree constant ATTRIBUTE_UNUSED, int basic_align)
 
 /* LOCAL_ALIGNMENT.  */
 
-int
-mmix_local_alignment (tree type ATTRIBUTE_UNUSED, int basic_align)
+unsigned
+mmix_local_alignment (tree type ATTRIBUTE_UNUSED, unsigned basic_align)
 {
   if (basic_align < 32)
     return 32;
@@ -336,9 +340,9 @@ mmix_local_alignment (tree type ATTRIBUTE_UNUSED, int basic_align)
   return basic_align;
 }
 
-/* CONDITIONAL_REGISTER_USAGE.  */
+/* TARGET_CONDITIONAL_REGISTER_USAGE.  */
 
-void
+static void
 mmix_conditional_register_usage (void)
 {
   int i;
@@ -1901,8 +1905,8 @@ mmix_asm_output_align (FILE *stream, int power)
 
 /* DBX_REGISTER_NUMBER.  */
 
-int
-mmix_dbx_register_number (int regno)
+unsigned
+mmix_dbx_register_number (unsigned regno)
 {
   /* Adjust the register number to the one it will be output as, dammit.
      It'd be nice if we could check the assumption that we're filling a
@@ -2110,14 +2114,12 @@ mmix_expand_prologue (void)
 							 offset)),
 			     tmpreg);
       RTX_FRAME_RELATED_P (insn) = 1;
-      REG_NOTES (insn)
-	= gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-			     gen_rtx_SET (VOIDmode,
-					  gen_rtx_MEM (DImode,
-						       plus_constant (stack_pointer_rtx,
-								      offset)),
-					  retreg),
-			     REG_NOTES (insn));
+      add_reg_note (insn, REG_FRAME_RELATED_EXPR,
+		    gen_rtx_SET (VOIDmode,
+				 gen_rtx_MEM (DImode,
+					      plus_constant (stack_pointer_rtx,
+							     offset)),
+				 retreg));
 
       offset -= 8;
     }
@@ -2745,7 +2747,7 @@ mmix_intval (rtx x)
 
 	  retval |=
 	    (unsigned HOST_WIDEST_INT) CONST_DOUBLE_HIGH (x)
-	      << (HOST_BITS_PER_LONG);
+	      << (HOST_BITS_PER_LONG)/2 << (HOST_BITS_PER_LONG)/2;
 	}
       else
 	retval = CONST_DOUBLE_HIGH (x);

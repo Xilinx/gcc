@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "langhooks.h"
 #include "flags.h"
-#include "toplev.h"
 #include "function.h"
 #include "tree-pretty-print.h"
 #include "tree-dump.h"
@@ -1000,21 +999,23 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
      *D.1663_44 = VIEW_CONVERT_EXPR<struct DB_LSN>(__tmp$B0F64_59);
      which is seen as a struct copy.  */
   if (TREE_CODE (base1) == SSA_NAME
-      || TREE_CODE (base2) == SSA_NAME
       || TREE_CODE (base1) == CONST_DECL
+      || TREE_CODE (base1) == CONSTRUCTOR
+      || TREE_CODE (base1) == ADDR_EXPR
+      || CONSTANT_CLASS_P (base1)
+      || TREE_CODE (base2) == SSA_NAME
       || TREE_CODE (base2) == CONST_DECL
-      || TREE_CODE (base1) == STRING_CST
-      || TREE_CODE (base2) == STRING_CST
-      || is_gimple_min_invariant (base1)
-      || is_gimple_min_invariant (base2))
+      || TREE_CODE (base2) == CONSTRUCTOR
+      || TREE_CODE (base2) == ADDR_EXPR
+      || CONSTANT_CLASS_P (base2))
     return false;
 
   /* We can end up refering to code via function and label decls.
      As we likely do not properly track code aliases conservatively
      bail out.  */
   if (TREE_CODE (base1) == FUNCTION_DECL
-      || TREE_CODE (base2) == FUNCTION_DECL
       || TREE_CODE (base1) == LABEL_DECL
+      || TREE_CODE (base2) == FUNCTION_DECL
       || TREE_CODE (base2) == LABEL_DECL)
     return true;
 
@@ -1209,6 +1210,28 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_SINCOSF:
 	case BUILT_IN_SINCOSL:
 	  return false;
+	/* __sync_* builtins and some OpenMP builtins act as threading
+	   barriers.  */
+#undef DEF_SYNC_BUILTIN
+#define DEF_SYNC_BUILTIN(ENUM, NAME, TYPE, ATTRS) case ENUM:
+#include "sync-builtins.def"
+#undef DEF_SYNC_BUILTIN
+	case BUILT_IN_GOMP_ATOMIC_START:
+	case BUILT_IN_GOMP_ATOMIC_END:
+	case BUILT_IN_GOMP_BARRIER:
+	case BUILT_IN_GOMP_TASKWAIT:
+	case BUILT_IN_GOMP_CRITICAL_START:
+	case BUILT_IN_GOMP_CRITICAL_END:
+	case BUILT_IN_GOMP_CRITICAL_NAME_START:
+	case BUILT_IN_GOMP_CRITICAL_NAME_END:
+	case BUILT_IN_GOMP_LOOP_END:
+	case BUILT_IN_GOMP_ORDERED_START:
+	case BUILT_IN_GOMP_ORDERED_END:
+	case BUILT_IN_GOMP_PARALLEL_END:
+	case BUILT_IN_GOMP_SECTIONS_END:
+	case BUILT_IN_GOMP_SINGLE_COPY_START:
+	case BUILT_IN_GOMP_SINGLE_COPY_END:
+	  return true;
 
 	default:
 	  /* Fallthru to general call handling.  */;
@@ -1465,6 +1488,28 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	    return (ptr_deref_may_alias_ref_p_1 (sin, ref)
 		    || ptr_deref_may_alias_ref_p_1 (cos, ref));
 	  }
+	/* __sync_* builtins and some OpenMP builtins act as threading
+	   barriers.  */
+#undef DEF_SYNC_BUILTIN
+#define DEF_SYNC_BUILTIN(ENUM, NAME, TYPE, ATTRS) case ENUM:
+#include "sync-builtins.def"
+#undef DEF_SYNC_BUILTIN
+	case BUILT_IN_GOMP_ATOMIC_START:
+	case BUILT_IN_GOMP_ATOMIC_END:
+	case BUILT_IN_GOMP_BARRIER:
+	case BUILT_IN_GOMP_TASKWAIT:
+	case BUILT_IN_GOMP_CRITICAL_START:
+	case BUILT_IN_GOMP_CRITICAL_END:
+	case BUILT_IN_GOMP_CRITICAL_NAME_START:
+	case BUILT_IN_GOMP_CRITICAL_NAME_END:
+	case BUILT_IN_GOMP_LOOP_END:
+	case BUILT_IN_GOMP_ORDERED_START:
+	case BUILT_IN_GOMP_ORDERED_END:
+	case BUILT_IN_GOMP_PARALLEL_END:
+	case BUILT_IN_GOMP_SECTIONS_END:
+	case BUILT_IN_GOMP_SINGLE_COPY_START:
+	case BUILT_IN_GOMP_SINGLE_COPY_END:
+	  return true;
 	default:
 	  /* Fallthru to general call handling.  */;
       }
@@ -1528,7 +1573,7 @@ stmt_may_clobber_ref_p_1 (gimple stmt, ao_ref *ref)
     {
       tree lhs = gimple_call_lhs (stmt);
       if (lhs
-	  && !is_gimple_reg (lhs))
+	  && TREE_CODE (lhs) != SSA_NAME)
 	{
 	  ao_ref r;
 	  ao_ref_init (&r, lhs);
@@ -1541,10 +1586,10 @@ stmt_may_clobber_ref_p_1 (gimple stmt, ao_ref *ref)
   else if (gimple_assign_single_p (stmt))
     {
       tree lhs = gimple_assign_lhs (stmt);
-      if (!is_gimple_reg (lhs))
+      if (TREE_CODE (lhs) != SSA_NAME)
 	{
 	  ao_ref r;
-	  ao_ref_init (&r, gimple_assign_lhs (stmt));
+	  ao_ref_init (&r, lhs);
 	  return refs_may_alias_p_1 (ref, &r, true);
 	}
     }

@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "diagnostic-core.h"
 #include "tm.h"
-#include "libiberty.h"
 #include "cgraph.h"
 #include "ggc.h"
 #include "tree-ssa-operands.h"
@@ -45,20 +44,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "lto-streamer.h"
 #include "splay-tree.h"
 #include "params.h"
-
-/* This needs to be included after config.h.  Otherwise, _GNU_SOURCE will not
-   be defined in time to set __USE_GNU in the system headers, and strsignal
-   will not be declared.  */
-#if HAVE_MMAP_FILE
-#include <sys/mman.h>
-#endif
-
-/* Handle opening elf files on hosts, such as Windows, that may use 
-   text file handling that will break binary access.  */
-
-#ifndef O_BINARY
-# define O_BINARY 0
-#endif
 
 static GTY(()) tree first_personality_decl;
 
@@ -392,7 +377,7 @@ lto_resolution_read (splay_tree file_ids, FILE *resolution, lto_file *file)
 
       t = fscanf (resolution, "%u %x %26s %*[^\n]\n", &index, &id, r_str);
       if (t != 3)
-        internal_error ("Invalid line in the resolution file.");
+        internal_error ("invalid line in the resolution file");
       if (index > max_index)
 	max_index = index;
 
@@ -405,13 +390,13 @@ lto_resolution_read (splay_tree file_ids, FILE *resolution, lto_file *file)
 	    }
 	}
       if (j == lto_resolution_str_len)
-	internal_error ("Invalid resolution in the resolution file.");
+	internal_error ("invalid resolution in the resolution file");
 
       if (!(nd && nd->key == id))
 	{
 	  nd = splay_tree_lookup (file_ids, id);
 	  if (nd == NULL)
-	    internal_error ("Resolution sub id %x not in object file", id);
+	    internal_error ("resolution sub id %x not in object file", id);
 	}
 
       file_data = (struct lto_file_decl_data *)nd->value;
@@ -496,7 +481,7 @@ lto_file_finalize (struct lto_file_decl_data *file_data, lto_file *file)
   data = lto_get_section_data (file_data, LTO_section_decls, NULL, &len);
   if (data == NULL)
     {
-      internal_error ("Cannot read LTO decls from %s", file_data->file_name);
+      internal_error ("cannot read LTO decls from %s", file_data->file_name);
       return;
     }
   lto_read_decls (file_data, data, file_data->resolutions);
@@ -2195,6 +2180,11 @@ read_cgraph_and_symbols (unsigned nfiles, const char **fnames)
   /* Merge global decls.  */
   lto_symtab_merge_decls ();
 
+  /* If there were errors during symbol merging bail out, we have no
+     good way to recover here.  */
+  if (seen_error ())
+    fatal_error ("errors during merging of translation units");
+
   /* Fixup all decls and types and free the type hash tables.  */
   lto_fixup_decls (all_file_decl_data);
   free_gimple_type_tables ();
@@ -2437,7 +2427,7 @@ lto_process_name (void)
      simply applies them.  */
 
 void
-lto_main (int debug_p ATTRIBUTE_UNUSED)
+lto_main (void)
 {
   lto_process_name ();
 

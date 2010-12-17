@@ -1,6 +1,6 @@
 /* Language-dependent node constructors for parse phase of GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -27,7 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cp-tree.h"
 #include "flags.h"
-#include "toplev.h"
 #include "tree-inline.h"
 #include "debug.h"
 #include "convert.h"
@@ -67,7 +66,8 @@ lvalue_kind (const_tree ref)
 	  == REFERENCE_TYPE)
     return lvalue_kind (TREE_OPERAND (ref, 0));
 
-  if (TREE_CODE (TREE_TYPE (ref)) == REFERENCE_TYPE)
+  if (TREE_TYPE (ref)
+      && TREE_CODE (TREE_TYPE (ref)) == REFERENCE_TYPE)
     {
       /* unnamed rvalue references are rvalues */
       if (TYPE_REF_IS_RVALUE (TREE_TYPE (ref))
@@ -146,9 +146,12 @@ lvalue_kind (const_tree ref)
 	return clk_ordinary;
       break;
 
-      /* A currently unresolved scope ref.  */
+      /* A scope ref in a template, left as SCOPE_REF to support later
+	 access checking.  */
     case SCOPE_REF:
-      gcc_unreachable ();
+      gcc_assert (!type_dependent_expression_p (CONST_CAST_TREE(ref)));
+      return lvalue_kind (TREE_OPERAND (ref, 1));
+
     case MAX_EXPR:
     case MIN_EXPR:
       /* Disallow <? and >? as lvalues if either argument side-effects.  */
@@ -462,34 +465,54 @@ build_vec_init_expr (tree type, tree init)
 {
   tree slot;
   tree inner_type = strip_array_types (type);
-
-  gcc_assert (init == NULL_TREE
-	      || (same_type_ignoring_top_level_qualifiers_p
-		  (type, TREE_TYPE (init))));
+  tree elt_init = integer_zero_node;
+  bool value_init = false;
 
   /* Since we're deferring building the actual constructor calls until
      gimplification time, we need to build one now and throw it away so
      that the relevant constructor gets mark_used before cgraph decides
      what functions are needed.  Here we assume that init is either
-     NULL_TREE or another array to copy.  */
-  if (CLASS_TYPE_P (inner_type))
+     NULL_TREE, void_type_node (indicating value-initialization), or
+     another array to copy.  */
+  if (init == void_type_node)
     {
-      VEC(tree,gc) *argvec = make_tree_vector ();
-      if (init)
+      elt_init = build_value_init (inner_type, tf_warning_or_error);
+      value_init = true;
+      init = NULL_TREE;
+    }
+  else
+    {
+      gcc_assert (init == NULL_TREE
+		  || (same_type_ignoring_top_level_qualifiers_p
+		      (type, TREE_TYPE (init))));
+
+      if (CLASS_TYPE_P (inner_type))
 	{
-	  tree dummy = build_dummy_object (inner_type);
-	  if (!real_lvalue_p (init))
-	    dummy = move (dummy);
-	  VEC_quick_push (tree, argvec, dummy);
+	  VEC(tree,gc) *argvec = make_tree_vector ();
+	  if (init)
+	    {
+	      tree dummy = build_dummy_object (inner_type);
+	      if (!real_lvalue_p (init))
+		dummy = move (dummy);
+	      VEC_quick_push (tree, argvec, dummy);
+	    }
+	  elt_init
+	    = build_special_member_call (NULL_TREE, complete_ctor_identifier,
+					 &argvec, inner_type, LOOKUP_NORMAL,
+					 tf_warning_or_error);
 	}
-      build_special_member_call (NULL_TREE, complete_ctor_identifier,
-				 &argvec, inner_type, LOOKUP_NORMAL,
-				 tf_warning_or_error);
     }
 
   slot = build_local_temp (type);
   init = build2 (VEC_INIT_EXPR, type, slot, init);
   SET_EXPR_LOCATION (init, input_location);
+
+  if (current_function_decl
+      && DECL_DECLARED_CONSTEXPR_P (current_function_decl)
+      && potential_constant_expression (elt_init, tf_warning_or_error))
+    VEC_INIT_EXPR_IS_CONSTEXPR (init) = true;
+  VEC_INIT_EXPR_VALUE_INIT (init) = value_init;
+
   init = build_target_expr (slot, init);
   TARGET_EXPR_IMPLICIT_P (init) = 1;
 
@@ -1096,22 +1119,6 @@ strip_typedefs (tree t)
   return cp_build_qualified_type (result, cp_type_quals (t));
 }
 
-/* Setup a TYPE_DECL node as a typedef representation.
-   See comments of set_underlying_type in c-common.c.  */
-
-void
-cp_set_underlying_type (tree t)
-{
-  set_underlying_type (t);
-  /* If T is a template type parm, make it require structural equality.
-     This is useful when comparing two template type parms,
-     because it forces the comparison of the template parameters of their
-     decls.  */
-  if (TREE_CODE (TREE_TYPE (t)) == TEMPLATE_TYPE_PARM)
-    SET_TYPE_STRUCTURAL_EQUALITY (TREE_TYPE (t));
-}
-
-
 /* Makes a copy of BINFO and TYPE, which is to be inherited into a
    graph dominated by T.  If BINFO is NULL, TYPE is a dependent base,
    and we do a shallow copy.  If BINFO is non-NULL, we do a deep copy.
@@ -1759,11 +1766,10 @@ bot_manip (tree* tp, int* walk_subtrees, void* data)
   splay_tree target_remap = ((splay_tree) data);
   tree t = *tp;
 
-  if (!TYPE_P (t) && TREE_CONSTANT (t))
+  if (!TYPE_P (t) && TREE_CONSTANT (t) && !TREE_SIDE_EFFECTS (t))
     {
       /* There can't be any TARGET_EXPRs or their slot variables below
-	 this point.  We used to check !TREE_SIDE_EFFECTS, but then we
-	 failed to copy an ADDR_EXPR of the slot VAR_DECL.  */
+	 this point.  */
       *walk_subtrees = 0;
       return NULL_TREE;
     }
@@ -3235,6 +3241,7 @@ bool
 cast_valid_in_integral_constant_expression_p (tree type)
 {
   return (INTEGRAL_OR_ENUMERATION_TYPE_P (type)
+	  || cxx_dialect >= cxx0x
 	  || dependent_type_p (type)
 	  || type == error_mark_node);
 }

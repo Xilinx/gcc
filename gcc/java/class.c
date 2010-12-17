@@ -38,16 +38,11 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "parse.h"
 #include "function.h"
 #include "ggc.h"
-#include "stdio.h"
 #include "cgraph.h"
 #include "tree-iterator.h"
 #include "vecprim.h"
 #include "tm.h"         /* FIXME: For gcc_obstack_init from defaults.h.  */
-
-/* DOS brain-damage */
-#ifndef O_BINARY
-#define O_BINARY 0 /* MS-DOS brain-damage */
-#endif
+#include "target.h"
 
 static tree make_method_value (tree);
 static tree build_java_method_type (tree, tree, int);
@@ -1399,7 +1394,7 @@ make_local_function_alias (tree method)
   *name = 'L';
   strcpy (name + 1, method_name);
 
-  ASM_GENERATE_INTERNAL_LABEL (buf, name, alias_labelno++);  
+  targetm.asm_out.generate_internal_label (buf, name, alias_labelno++);  
   alias = build_decl (input_location,
 		      FUNCTION_DECL, get_identifier (buf),
 		      TREE_TYPE (method));

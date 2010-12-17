@@ -1,3 +1,13 @@
+2010-11-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* make_sunver.pl: Use elfdump -s to extract symbols if possible,
+	readelf -s otherwise.
+
+2010-11-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* make_sunver.pl: Ignore entries without symbol name first.  Then do
+	not ignore symbols marked as 'R'.
+
 2010-10-18  Andi Kleen  <ak@linux.intel.com>
 
 	* gccbug.el: Remove.

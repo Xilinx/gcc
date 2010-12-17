@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "ggc.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "target.h"
 #include "pointer-set.h"
 #include "splay-tree.h"
@@ -146,9 +145,11 @@ gimple_tree_eq (const void *p1, const void *p2)
   if (!operand_equal_p (t1, t2, 0))
     return 0;
 
+#ifdef ENABLE_CHECKING
   /* Only allow them to compare equal if they also hash equal; otherwise
      results are nondeterminate, and we fail bootstrap comparison.  */
   gcc_assert (gimple_tree_hash (p1) == gimple_tree_hash (p2));
+#endif
 
   return 1;
 }
@@ -587,10 +588,7 @@ internal_get_tmp_var (tree val, gimple_seq *pre_p, gimple_seq *post_p,
 
   mod = build2 (INIT_EXPR, TREE_TYPE (t), t, unshare_expr (val));
 
-  if (EXPR_HAS_LOCATION (val))
-    SET_EXPR_LOCATION (mod, EXPR_LOCATION (val));
-  else
-    SET_EXPR_LOCATION (mod, input_location);
+  SET_EXPR_LOCATION (mod, EXPR_LOC_OR_HERE (val));
 
   /* gimplify_modify_expr might want to reduce this further.  */
   gimplify_and_add (mod, pre_p);
@@ -2620,8 +2618,7 @@ shortcut_cond_expr (tree expr)
       while (TREE_CODE (pred) == TRUTH_ANDIF_EXPR)
 	{
 	  /* Keep the original source location on the first 'if'.  */
-	  location_t locus = EXPR_HAS_LOCATION (expr)
-			     ? EXPR_LOCATION (expr) : input_location;
+	  location_t locus = EXPR_LOC_OR_HERE (expr);
 	  TREE_OPERAND (expr, 0) = TREE_OPERAND (pred, 1);
 	  /* Set the source location of the && on the second 'if'.  */
 	  if (EXPR_HAS_LOCATION (pred))
@@ -2643,8 +2640,7 @@ shortcut_cond_expr (tree expr)
       while (TREE_CODE (pred) == TRUTH_ORIF_EXPR)
 	{
 	  /* Keep the original source location on the first 'if'.  */
-	  location_t locus = EXPR_HAS_LOCATION (expr)
-			     ? EXPR_LOCATION (expr) : input_location;
+	  location_t locus = EXPR_LOC_OR_HERE (expr);
 	  TREE_OPERAND (expr, 0) = TREE_OPERAND (pred, 1);
 	  /* Set the source location of the || on the second 'if'.  */
 	  if (EXPR_HAS_LOCATION (pred))
@@ -2708,8 +2704,7 @@ shortcut_cond_expr (tree expr)
   /* If there was nothing else in our arms, just forward the label(s).  */
   if (!then_se && !else_se)
     return shortcut_cond_r (pred, true_label_p, false_label_p,
-			    EXPR_HAS_LOCATION (expr)
-			    ? EXPR_LOCATION (expr) : input_location);
+			    EXPR_LOC_OR_HERE (expr));
 
   /* If our last subexpression already has a terminal label, reuse it.  */
   if (else_se)
@@ -2741,8 +2736,7 @@ shortcut_cond_expr (tree expr)
   jump_over_else = block_may_fallthru (then_);
 
   pred = shortcut_cond_r (pred, true_label_p, false_label_p,
-			  EXPR_HAS_LOCATION (expr)
-			  ? EXPR_LOCATION (expr) : input_location);
+			  EXPR_LOC_OR_HERE (expr));
 
   expr = NULL;
   append_to_statement_list (pred, &expr);
@@ -3892,7 +3886,7 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	i = VEC_index (constructor_elt, elts, 1)->value;
 	if (r == NULL || i == NULL)
 	  {
-	    tree zero = fold_convert (TREE_TYPE (type), integer_zero_node);
+	    tree zero = build_zero_cst (TREE_TYPE (type));
 	    if (r == NULL)
 	      r = zero;
 	    if (i == NULL)
@@ -5073,6 +5067,13 @@ gimplify_asm_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       /* If the operand is a memory input, it should be an lvalue.  */
       if (!allows_reg && allows_mem)
 	{
+	  tree inputv = TREE_VALUE (link);
+	  STRIP_NOPS (inputv);
+	  if (TREE_CODE (inputv) == PREDECREMENT_EXPR
+	      || TREE_CODE (inputv) == PREINCREMENT_EXPR
+	      || TREE_CODE (inputv) == POSTDECREMENT_EXPR
+	      || TREE_CODE (inputv) == POSTINCREMENT_EXPR)
+	    TREE_VALUE (link) = error_mark_node;
 	  tret = gimplify_expr (&TREE_VALUE (link), pre_p, post_p,
 				is_gimple_lvalue, fb_lvalue | fb_mayfail);
 	  mark_addressable (TREE_VALUE (link));
@@ -7177,6 +7178,16 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  ret = gimplify_omp_atomic (expr_p, pre_p);
 	  break;
 
+	case TRUTH_AND_EXPR:
+	case TRUTH_OR_EXPR:
+	case TRUTH_XOR_EXPR:
+	  /* Classified as tcc_expression.  */
+	  goto expr_2;
+
+	case FMA_EXPR:
+	  /* Classified as tcc_expression.  */
+	  goto expr_3;
+
 	case POINTER_PLUS_EXPR:
           /* Convert ((type *)A)+offset into &A->field_of_type_and_offset.
 	     The second is gimple immediate saving a need for extra statement.
@@ -7256,16 +7267,28 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 		break;
 	      }
 
+	    expr_3:
+	      {
+		enum gimplify_status r0, r1, r2;
+
+		r0 = gimplify_expr (&TREE_OPERAND (*expr_p, 0), pre_p,
+		                    post_p, is_gimple_val, fb_rvalue);
+		r1 = gimplify_expr (&TREE_OPERAND (*expr_p, 1), pre_p,
+				    post_p, is_gimple_val, fb_rvalue);
+		r2 = gimplify_expr (&TREE_OPERAND (*expr_p, 2), pre_p,
+				    post_p, is_gimple_val, fb_rvalue);
+
+		ret = MIN (MIN (r0, r1), r2);
+		break;
+	      }
+
 	    case tcc_declaration:
 	    case tcc_constant:
 	      ret = GS_ALL_DONE;
 	      goto dont_recalculate;
 
 	    default:
-	      gcc_assert (TREE_CODE (*expr_p) == TRUTH_AND_EXPR
-			  || TREE_CODE (*expr_p) == TRUTH_OR_EXPR
-			  || TREE_CODE (*expr_p) == TRUTH_XOR_EXPR);
-	      goto expr_2;
+	      gcc_unreachable ();
 	    }
 
 	  recalculate_side_effects (*expr_p);
@@ -7638,10 +7661,7 @@ gimplify_one_sizepos (tree *expr_p, gimple_seq *stmt_p)
       *expr_p = create_tmp_var (type, NULL);
       tmp = build1 (NOP_EXPR, type, expr);
       stmt = gimplify_assign (*expr_p, tmp, stmt_p);
-      if (EXPR_HAS_LOCATION (expr))
-	gimple_set_location (stmt, EXPR_LOCATION (expr));
-      else
-	gimple_set_location (stmt, input_location);
+      gimple_set_location (stmt, EXPR_LOC_OR_HERE (expr));
     }
 }
 
@@ -7743,6 +7763,46 @@ gimplify_body (tree *body_p, tree fndecl, bool do_parms)
   return outer_bind;
 }
 
+typedef char *char_p; /* For DEF_VEC_P.  */
+DEF_VEC_P(char_p);
+DEF_VEC_ALLOC_P(char_p,heap);
+
+/* Return whether we should exclude FNDECL from instrumentation.  */
+
+static bool
+flag_instrument_functions_exclude_p (tree fndecl)
+{
+  VEC(char_p,heap) *vec;
+
+  vec = (VEC(char_p,heap) *) flag_instrument_functions_exclude_functions;
+  if (VEC_length (char_p, vec) > 0)
+    {
+      const char *name;
+      int i;
+      char *s;
+
+      name = lang_hooks.decl_printable_name (fndecl, 0);
+      FOR_EACH_VEC_ELT (char_p, vec, i, s)
+	if (strstr (name, s) != NULL)
+	  return true;
+    }
+
+  vec = (VEC(char_p,heap) *) flag_instrument_functions_exclude_files;
+  if (VEC_length (char_p, vec) > 0)
+    {
+      const char *name;
+      int i;
+      char *s;
+
+      name = DECL_SOURCE_FILE (fndecl);
+      FOR_EACH_VEC_ELT (char_p, vec, i, s)
+	if (strstr (name, s) != NULL)
+	  return true;
+    }
+
+  return false;
+}
+
 /* Entry point to the gimplification pass.  FNDECL is the FUNCTION_DECL
    node for the function we want to gimplify.
 
@@ -7803,13 +7863,31 @@ gimplify_function_tree (tree fndecl)
       gimple new_bind;
       gimple tf;
       gimple_seq cleanup = NULL, body = NULL;
+      tree tmp_var;
+      gimple call;
 
+      x = implicit_built_in_decls[BUILT_IN_RETURN_ADDRESS];
+      call = gimple_build_call (x, 0);
+      tmp_var = create_tmp_var (ptr_type_node, "return_addr");
+      gimple_call_set_lhs (call, tmp_var);
+      gimplify_seq_add_stmt (&cleanup, call);
       x = implicit_built_in_decls[BUILT_IN_PROFILE_FUNC_EXIT];
-      gimplify_seq_add_stmt (&cleanup, gimple_build_call (x, 0));
+      call = gimple_build_call (x, 2,
+				build_fold_addr_expr (current_function_decl),
+				tmp_var);
+      gimplify_seq_add_stmt (&cleanup, call);
       tf = gimple_build_try (seq, cleanup, GIMPLE_TRY_FINALLY);
 
+      x = implicit_built_in_decls[BUILT_IN_RETURN_ADDRESS];
+      call = gimple_build_call (x, 0);
+      tmp_var = create_tmp_var (ptr_type_node, "return_addr");
+      gimple_call_set_lhs (call, tmp_var);
+      gimplify_seq_add_stmt (&body, call);
       x = implicit_built_in_decls[BUILT_IN_PROFILE_FUNC_ENTER];
-      gimplify_seq_add_stmt (&body, gimple_build_call (x, 0));
+      call = gimple_build_call (x, 2,
+				build_fold_addr_expr (current_function_decl),
+				tmp_var);
+      gimplify_seq_add_stmt (&body, call);
       gimplify_seq_add_stmt (&body, tf);
       new_bind = gimple_build_bind (NULL, body, gimple_bind_block (bind));
       /* Clear the block for BIND, since it is no longer directly inside
@@ -8035,7 +8113,11 @@ force_gimple_operand_1 (tree expr, gimple_seq *stmts,
 
   *stmts = NULL;
 
-  if (is_gimple_val (expr))
+  /* gimple_test_f might be more strict than is_gimple_val, make
+     sure we pass both.  Just checking gimple_test_f doesn't work
+     because most gimple predicates do not work recursively.  */
+  if (is_gimple_val (expr)
+      && (*gimple_test_f) (expr))
     return expr;
 
   push_gimplify_context (&gctx);

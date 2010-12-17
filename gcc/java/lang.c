@@ -32,7 +32,6 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "input.h"
 #include "java-tree.h"
 #include "jcf.h"
-#include "toplev.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "flags.h"
@@ -52,7 +51,7 @@ static void java_init_options_struct (struct gcc_options *);
 static void java_init_options (unsigned int, struct cl_decoded_option *);
 static bool java_post_options (const char **);
 
-static bool java_handle_option (size_t, const char *, int, int,
+static bool java_handle_option (size_t, const char *, int, int, location_t,
 				const struct cl_option_handlers *);
 static void put_decl_string (const char *, int);
 static void put_decl_node (tree, int);
@@ -183,7 +182,7 @@ struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
  */
 static bool
 java_handle_option (size_t scode, const char *arg, int value,
-		    int kind ATTRIBUTE_UNUSED,
+		    int kind ATTRIBUTE_UNUSED, location_t loc ATTRIBUTE_UNUSED,
 		    const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
 {
   enum opt_code code = (enum opt_code) scode;
@@ -403,7 +402,9 @@ put_decl_node (tree node, int verbosity)
                  if verbosity is higher than 1.  */
               && verbosity >= 1)
 	    {
-	      put_decl_node (TYPE_NAME (DECL_CONTEXT (node)),
+	      put_decl_node (TREE_CODE (DECL_CONTEXT (node)) == FUNCTION_DECL
+			     ? DECL_CONTEXT (node)
+			     : TYPE_NAME (DECL_CONTEXT (node)),
                                verbosity);
 	      put_decl_string (".", 1);
 	    }
@@ -599,7 +600,7 @@ java_post_options (const char **pfilename)
       filename = "stdin";
 
       if (dependency_tracking)
-	error ("can't do dependency tracking with input from stdin");
+	error ("can%'t do dependency tracking with input from stdin");
     }
   else
     {
@@ -615,7 +616,7 @@ java_post_options (const char **pfilename)
 	    {
 	      dot = strrchr (filename, '.');
 	      if (dot == NULL)
-		error ("couldn't determine target name for dependency tracking");
+		error ("couldn%'t determine target name for dependency tracking");
 	      else
 		{
 		  char *buf = XNEWVEC (char, dot - filename +

@@ -1,3 +1,8 @@
+2010-12-17  Diego Novillo  <dnovillo@google.com>
+
+	* internal.h (struct cpp_lookaside): Rename field
+	flag_pth_debug to pth_debug_level.
+
 2010-12-09  Lawrence Crowl  <crowl@google.com>
 
 	* include/symtab.h (cpp_lt_exchange): Change parameter name.

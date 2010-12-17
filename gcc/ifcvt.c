@@ -36,7 +36,6 @@
 #include "output.h"
 #include "optabs.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "tm_p.h"
 #include "cfgloop.h"
 #include "target.h"
@@ -1332,8 +1331,8 @@ static rtx
 noce_emit_cmove (struct noce_if_info *if_info, rtx x, enum rtx_code code,
 		 rtx cmp_a, rtx cmp_b, rtx vfalse, rtx vtrue)
 {
-  rtx target;
-  int unsignedp;
+  rtx target ATTRIBUTE_UNUSED;
+  int unsignedp ATTRIBUTE_UNUSED;
 
   /* If earliest == jump, try to build the cmove insn directly.
      This is helpful when combine has created some complex condition
@@ -3988,6 +3987,7 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
 		    basic_block other_bb, basic_block new_dest, int reversep)
 {
   rtx head, end, jump, earliest = NULL_RTX, old_dest, new_label = NULL_RTX;
+  bitmap merge_set = NULL;
   /* Number of pending changes.  */
   int n_validated_changes = 0;
 
@@ -4076,6 +4076,7 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
       earliest = jump;
     }
 #endif
+
   /* If we allocated new pseudos (e.g. in the conditional move
      expander called from noce_emit_cmove), we must resize the
      array first.  */
@@ -4085,7 +4086,7 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
   /* Try the NCE path if the CE path did not result in any changes.  */
   if (n_validated_changes == 0)
     {
-      rtx cond;
+      rtx cond, insn;
       regset live;
       bool success;
 
@@ -4109,6 +4110,13 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
       BITMAP_FREE (live);
       if (!success)
 	return FALSE;
+
+      /* Collect the set of registers set in MERGE_BB.  */
+      merge_set = BITMAP_ALLOC (&reg_obstack);
+
+      FOR_BB_INSNS (merge_bb, insn)
+	if (NONDEBUG_INSN_P (insn))
+	  df_simulate_find_defs (insn, merge_set);
     }
 
  no_body:
@@ -4158,8 +4166,8 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
       if (end == BB_END (merge_bb))
 	BB_END (merge_bb) = PREV_INSN (head);
 
-      /* PR 21767: When moving insns above a conditional branch, REG_EQUAL
-	 notes might become invalid.  */
+      /* PR 21767: when moving insns above a conditional branch, the REG_EQUAL
+	 notes being moved might become invalid.  */
       insn = head;
       do
 	{
@@ -4175,6 +4183,19 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
 	      || !function_invariant_p (XEXP (note, 0)))
 	    remove_note (insn, note);
 	} while (insn != end && (insn = NEXT_INSN (insn)));
+
+      /* PR46315: when moving insns above a conditional branch, the REG_EQUAL
+	 notes referring to the registers being set might become invalid.  */
+      if (merge_set)
+	{
+	  unsigned i;
+	  bitmap_iterator bi;
+
+	  EXECUTE_IF_SET_IN_BITMAP (merge_set, 0, i, bi)
+	    remove_reg_equal_equiv_notes_for_regno (i);
+
+	  BITMAP_FREE (merge_set);
+	}
 
       reorder_insns (head, end, PREV_INSN (earliest));
     }
@@ -4192,6 +4213,10 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
 
  cancel:
   cancel_changes (0);
+
+  if (merge_set)
+    BITMAP_FREE (merge_set);
+
   return FALSE;
 }
 

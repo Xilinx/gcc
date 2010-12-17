@@ -38,7 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-scalar-evolution.h"
 #include "tree-vectorizer.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 
 /* Need to include rtl.h, expr.h, etc. for optabs.  */
 #include "expr.h"
@@ -1518,7 +1517,8 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
               mis = DR_MISALIGNMENT (dr) / GET_MODE_SIZE (TYPE_MODE (
                                                 TREE_TYPE (DR_REF (dr))));
               npeel_tmp = (negative
-			   ? (mis - nelements) : (nelements - mis)) & (vf - 1);
+			   ? (mis - nelements) : (nelements - mis))
+		  & (nelements - 1);
 
               /* For multiple types, it is possible that the bigger type access
                  will have more than one peeling option.  E.g., a loop with two
@@ -1722,7 +1722,8 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
                  count.  */
               mis = DR_MISALIGNMENT (dr0);
               mis /= GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (DR_REF (dr0))));
-              npeel = (negative ? mis - nelements : nelements - mis) & (vf - 1);
+              npeel = ((negative ? mis - nelements : nelements - mis)
+		       & (nelements - 1));
             }
 
 	  /* For interleaved data access every iteration accesses all the
@@ -2917,7 +2918,14 @@ vect_create_addr_base_for_vector_ref (gimple stmt,
 
   if (DR_PTR_INFO (dr)
       && TREE_CODE (vec_stmt) == SSA_NAME)
-    duplicate_ssa_name_ptr_info (vec_stmt, DR_PTR_INFO (dr));
+    {
+      duplicate_ssa_name_ptr_info (vec_stmt, DR_PTR_INFO (dr));
+      if (offset)
+	{
+	  SSA_NAME_PTR_INFO (vec_stmt)->align = 1;
+	  SSA_NAME_PTR_INFO (vec_stmt)->misalign = 0;
+	}
+    }
 
   if (vect_print_dump_info (REPORT_DETAILS))
     {
@@ -3307,7 +3315,11 @@ bump_vector_ptr (tree dataref_ptr, gimple ptr_incr, gimple_stmt_iterator *gsi,
 
   /* Copy the points-to information if it exists. */
   if (DR_PTR_INFO (dr))
-    duplicate_ssa_name_ptr_info (new_dataref_ptr, DR_PTR_INFO (dr));
+    {
+      duplicate_ssa_name_ptr_info (new_dataref_ptr, DR_PTR_INFO (dr));
+      SSA_NAME_PTR_INFO (new_dataref_ptr)->align = 1;
+      SSA_NAME_PTR_INFO (new_dataref_ptr)->misalign = 0;
+    }
 
   if (!ptr_incr)
     return new_dataref_ptr;

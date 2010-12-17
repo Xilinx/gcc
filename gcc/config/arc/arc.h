@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef ASM_SPEC
 #undef LINK_SPEC
+#undef LIB_SPEC
 #undef STARTFILE_SPEC
 #undef ENDFILE_SPEC
 #undef SIZE_TYPE
@@ -62,9 +63,11 @@ along with GCC; see the file COPYING3.  If not see
 %{EB:-mbig-endian} %{EL:-mlittle-endian} \
 "
 
-#define ASM_SPEC "%{v} %{EB} %{EL}"
+#define ASM_SPEC "%{EB} %{EL}"
 
 #define LINK_SPEC "%{v} %{EB} %{EL}"
+
+#define LIB_SPEC "-lc"
 
 #define STARTFILE_SPEC "%{!shared:crt0.o%s} crtinit.o%s"
 
@@ -259,16 +262,6 @@ if (GET_MODE_CLASS (MODE) == MODE_INT		\
   32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,	\
   48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,		\
   27, 28, 29, 30 }
-
-/* Macro to conditionally modify fixed_regs/call_used_regs.  */
-#define CONDITIONAL_REGISTER_USAGE			\
-do {							\
-  if (PIC_OFFSET_TABLE_REGNUM != INVALID_REGNUM)	\
-    {							\
-      fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;		\
-      call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;	\
-    }							\
-} while (0)
 
 /* Return number of consecutive hard regs needed starting at reg REGNO
    to hold something of mode MODE.
@@ -520,13 +513,6 @@ extern enum reg_class arc_regno_reg_class[FIRST_PSEUDO_REGISTER];
 #define FUNCTION_ARG_REGNO_P(N) \
 ((unsigned) (N) < MAX_ARC_PARM_REGS)
 
-/* If defined, a C expression that gives the alignment boundary, in bits,
-   of an argument with the specified mode and type.  If it is not defined, 
-   PARM_BOUNDARY is used for all arguments.  */
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE) \
-(((TYPE) ? TYPE_ALIGN (TYPE) : GET_MODE_BITSIZE (MODE)) <= PARM_BOUNDARY \
- ? PARM_BOUNDARY \
- : 2 * PARM_BOUNDARY)
 
 /* Function results.  */
 

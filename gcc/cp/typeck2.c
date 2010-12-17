@@ -35,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "cp-tree.h"
 #include "flags.h"
-#include "toplev.h"
 #include "output.h"
 #include "diagnostic-core.h"
 
@@ -71,7 +70,7 @@ binfo_or_else (tree base, tree type)
    value may not be changed thereafter.  */
 
 void
-readonly_error (tree arg, readonly_error_kind errstring)
+cxx_readonly_error (tree arg, enum lvalue_use errstring)
 {
  
 /* This macro is used to emit diagnostics to ensure that all format
@@ -82,16 +81,16 @@ readonly_error (tree arg, readonly_error_kind errstring)
   do {                                                                  \
     switch (errstring)                                                  \
       {                                                                 \
-      case REK_ASSIGNMENT:                                              \
+      case lv_assign:							\
         error(AS, ARG);                                                 \
         break;                                                          \
-      case REK_ASSIGNMENT_ASM:                                          \
+      case lv_asm:							\
         error(ASM, ARG);                                                \
         break;                                                          \
-      case REK_INCREMENT:                                               \
+      case lv_increment:						\
         error (IN, ARG);                                                \
         break;                                                          \
-      case REK_DECREMENT:                                               \
+      case lv_decrement:                                               \
         error (DE, ARG);                                                \
         break;                                                          \
       default:                                                          \
@@ -99,108 +98,36 @@ readonly_error (tree arg, readonly_error_kind errstring)
       }                                                                 \
   } while (0)
 
-  if (TREE_CODE (arg) == COMPONENT_REF)
-    {
-      if (TYPE_READONLY (TREE_TYPE (TREE_OPERAND (arg, 0))))
-        ERROR_FOR_ASSIGNMENT (G_("assignment of "
-                                 "data-member %qD in read-only structure"),
-                              G_("assignment (via 'asm' output) of "
-                                 "data-member %qD in read-only structure"),
-                              G_("increment of "
-                                 "data-member %qD in read-only structure"),
-                              G_("decrement of "
-                                 "data-member %qD in read-only structure"),
-                              TREE_OPERAND (arg, 1));
-      else
-        ERROR_FOR_ASSIGNMENT (G_("assignment of "
-                                 "read-only data-member %qD"),
-                              G_("assignment (via 'asm' output) of "
-                                 "read-only data-member %qD"),
-                              G_("increment of "
-                                 "read-only data-member %qD"),
-                              G_("decrement of "
-                                 "read-only data-member %qD"),
-                              TREE_OPERAND (arg, 1));
-    }
-  else if (TREE_CODE (arg) == VAR_DECL)
-    {
-      if (DECL_LANG_SPECIFIC (arg)
-	  && DECL_IN_AGGR_P (arg)
-	  && !TREE_STATIC (arg))
-        ERROR_FOR_ASSIGNMENT (G_("assignment of "
-                              "constant field %qD"),
-                              G_("assignment (via 'asm' output) of "
-                              "constant field %qD"),
-                              G_("increment of "
-                              "constant field %qD"),
-                              G_("decrement of "
-                              "constant field %qD"),
-                              arg);
-      else
-        ERROR_FOR_ASSIGNMENT (G_("assignment of "
-                              "read-only variable %qD"),
-                              G_("assignment (via 'asm' output) of "
-                              "read-only variable %qD"),
-                              G_("increment of "
-                              "read-only variable %qD"),
-                              G_("decrement of "
-                              "read-only variable %qD"),
-                              arg);
+  /* Handle C++-specific things first.  */
 
-    }
-  else if (TREE_CODE (arg) == PARM_DECL)
+  if (TREE_CODE (arg) == VAR_DECL
+      && DECL_LANG_SPECIFIC (arg)
+      && DECL_IN_AGGR_P (arg)
+      && !TREE_STATIC (arg))
     ERROR_FOR_ASSIGNMENT (G_("assignment of "
-                             "read-only parameter %qD"),
-                          G_("assignment (via 'asm' output) of "
-                             "read-only parameter %qD"),
-                          G_("increment of "
-                             "read-only parameter %qD"),
-                          G_("decrement of "
-                             "read-only parameter %qD"),
-                          arg);  
+			     "constant field %qD"),
+			  G_("constant field %qD "
+			     "used as %<asm%> output"),
+			  G_("increment of "
+			     "constant field %qD"),
+			  G_("decrement of "
+			     "constant field %qD"),
+			  arg);
   else if (TREE_CODE (arg) == INDIRECT_REF
 	   && TREE_CODE (TREE_TYPE (TREE_OPERAND (arg, 0))) == REFERENCE_TYPE
 	   && (TREE_CODE (TREE_OPERAND (arg, 0)) == VAR_DECL
 	       || TREE_CODE (TREE_OPERAND (arg, 0)) == PARM_DECL))
     ERROR_FOR_ASSIGNMENT (G_("assignment of "
                              "read-only reference %qD"),
-                          G_("assignment (via 'asm' output) of "
-                             "read-only reference %qD"), 
+                          G_("read-only reference %qD "
+			     "used as %<asm%> output"), 
                           G_("increment of "
                              "read-only reference %qD"),
                           G_("decrement of "
                              "read-only reference %qD"),
                           TREE_OPERAND (arg, 0));
-  else if (TREE_CODE (arg) == RESULT_DECL)
-    ERROR_FOR_ASSIGNMENT (G_("assignment of "
-                             "read-only named return value %qD"),
-                          G_("assignment (via 'asm' output) of "
-                             "read-only named return value %qD"),
-                          G_("increment of "
-                             "read-only named return value %qD"),
-                          G_("decrement of "
-                             "read-only named return value %qD"),
-                          arg);
-  else if (TREE_CODE (arg) == FUNCTION_DECL)
-    ERROR_FOR_ASSIGNMENT (G_("assignment of "
-                             "function %qD"),
-                          G_("assignment (via 'asm' output) of "
-                             "function %qD"),
-                          G_("increment of "
-                             "function %qD"),
-                          G_("decrement of "
-                             "function %qD"),
-                          arg);
   else
-    ERROR_FOR_ASSIGNMENT (G_("assignment of "
-                             "read-only location %qE"),
-                          G_("assignment (via 'asm' output) of "
-                             "read-only location %qE"),
-                          G_("increment of "
-                             "read-only location %qE"),
-                          G_("decrement of "
-                             "read-only location %qE"),
-                          arg);
+    readonly_error (arg, errstring);
 }
 
 
@@ -714,9 +641,6 @@ store_init_value (tree decl, tree init, int flags)
 
   if (MAYBE_CLASS_TYPE_P (type))
     {
-      gcc_assert (!type_has_nontrivial_copy_init (type)
-		  || TREE_CODE (init) == CONSTRUCTOR);
-
       if (TREE_CODE (init) == TREE_LIST)
 	{
 	  error ("constructor syntax used, but no constructor declared "
@@ -743,8 +667,32 @@ store_init_value (tree decl, tree init, int flags)
 
   /* End of special C++ code.  */
 
-  /* Digest the specified initializer into an expression.  */
-  value = digest_init_flags (type, init, flags);
+  if (flags & LOOKUP_ALREADY_DIGESTED)
+    value = init;
+  else
+    /* Digest the specified initializer into an expression.  */
+    value = digest_init_flags (type, init, flags);
+
+  /* In C++0x constant expression is a semantic, not syntactic, property.
+     In C++98, make sure that what we thought was a constant expression at
+     template definition time is still constant.  */
+  if ((cxx_dialect >= cxx0x
+       || DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl))
+      && (decl_maybe_constant_var_p (decl)
+	  || TREE_STATIC (decl)))
+    {
+      bool const_init;
+      value = fold_non_dependent_expr (value);
+      value = maybe_constant_init (value);
+      if (DECL_DECLARED_CONSTEXPR_P (decl))
+	/* Diagnose a non-constant initializer for constexpr.  */
+	value = cxx_constant_value (value);
+      const_init = (reduced_constant_expression_p (value)
+		    || error_operand_p (value));
+      DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl) = const_init;
+      TREE_CONSTANT (decl) = const_init && decl_maybe_constant_var_p (decl);
+    }
+
   /* If the initializer is not a constant, fill in DECL_INITIAL with
      the bits that are constant, and then return an expression that
      will perform the dynamic initialization.  */
@@ -769,8 +717,7 @@ check_narrowing (tree type, tree init)
   bool ok = true;
   REAL_VALUE_TYPE d;
 
-  if (DECL_P (init))
-    init = decl_constant_value (init);
+  init = maybe_constant_value (init);
 
   if (TREE_CODE (type) == INTEGER_TYPE
       && TREE_CODE (ftype) == REAL_TYPE)
@@ -1632,7 +1579,11 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
       && !TYPE_HAS_USER_CONSTRUCTOR (type))
     {
       exp = build_value_init (type, complain);
-      return get_target_expr (exp);
+      exp = get_target_expr (exp);
+      /* FIXME this is wrong */
+      if (literal_type_p (type))
+	TREE_CONSTANT (exp) = true;
+      return exp;
     }
 
   /* Call the constructor.  */

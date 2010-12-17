@@ -48,7 +48,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
    For other sorts of data transfer, there are zero or more data
    transfer statement that depend on the format of the data transfer
-   statement.
+   statement. For READ (and for backwards compatibily: for WRITE), one has
 
       transfer_integer
       transfer_logical
@@ -56,8 +56,22 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
       transfer_character_wide
       transfer_real
       transfer_complex
+      transfer_real128
+      transfer_complex128
+   
+    and for WRITE
 
-    These subroutines do not return status.
+      transfer_integer_write
+      transfer_logical_write
+      transfer_character_write
+      transfer_character_wide_write
+      transfer_real_write
+      transfer_complex_write
+      transfer_real128_write
+      transfer_complex128_write
+
+    These subroutines do not return status. The *128 functions
+    are in the file transfer128.c.
 
     The last call is a call to st_[read|write]_done().  While
     something can easily go wrong with the initial st_read() or
@@ -2646,7 +2660,8 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
     }
 
   /* Bugware for badly written mixed C-Fortran I/O.  */
-  flush_if_preconnected(dtp->u.p.current_unit->s);
+  if (!is_internal_unit (dtp))
+    flush_if_preconnected(dtp->u.p.current_unit->s);
 
   dtp->u.p.current_unit->mode = dtp->u.p.mode;
 
@@ -2666,7 +2681,10 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
       else
 	{
 	  if ((cf & IOPARM_DT_LIST_FORMAT) != 0)
-	    dtp->u.p.transfer = list_formatted_read;
+	    {
+	        dtp->u.p.last_char = EOF - 1;
+		dtp->u.p.transfer = list_formatted_read;
+	    }
 	  else
 	    dtp->u.p.transfer = formatted_transfer;
 	}
@@ -3362,7 +3380,6 @@ next_record (st_parameter_dt *dtp, int done)
 static void
 finalize_transfer (st_parameter_dt *dtp)
 {
-  jmp_buf eof_jump;
   GFC_INTEGER_4 cf = dtp->common.flags;
 
   if ((dtp->common.flags & IOPARM_DT_HAS_SIZE) != 0)
@@ -3393,13 +3410,6 @@ finalize_transfer (st_parameter_dt *dtp)
   dtp->u.p.transfer = NULL;
   if (dtp->u.p.current_unit == NULL)
     return;
-
-  dtp->u.p.eof_jump = &eof_jump;
-  if (setjmp (eof_jump))
-    {
-      generate_error (&dtp->common, LIBERROR_END, NULL);
-      return;
-    }
 
   if ((cf & IOPARM_DT_LIST_FORMAT) != 0 && dtp->u.p.mode == READING)
     {

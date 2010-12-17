@@ -45,7 +45,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "timevar.h"
 #include "tree-pass.h"
-#include "toplev.h"
 #include "pointer-set.h"
 
 static struct value_prof_hooks *value_prof_hooks;
@@ -375,7 +374,7 @@ visit_hist (void **slot, void *data)
   histogram_value hist = *(histogram_value *) slot;
   if (!pointer_set_contains (visited, hist))
     {
-      error ("Dead histogram");
+      error ("dead histogram");
       dump_histogram_value (stderr, hist);
       debug_gimple_stmt (hist->hvalue.stmt);
       error_found = true;
@@ -466,7 +465,7 @@ check_counter (gimple stmt, const char * name,
               : DECL_SOURCE_LOCATION (current_function_decl);
       if (flag_profile_correction)
         {
-	  inform (locus, "Correcting inconsistent value profile: "
+	  inform (locus, "correcting inconsistent value profile: "
 		  "%s profiler overall count (%d) does not match BB count "
                   "(%d)", name, (int)*all, (int)bb_count);
 	  *all = bb_count;
@@ -476,7 +475,7 @@ check_counter (gimple stmt, const char * name,
 	}
       else
 	{
-	  error_at (locus, "Corrupted value profile: %s "
+	  error_at (locus, "corrupted value profile: %s "
 		    "profiler overall count (%d) does not match BB count (%d)",
 		    name, (int)*all, (int)bb_count);
 	  return true;
@@ -702,6 +701,7 @@ gimple_divmod_fixed_value_transform (gimple_stmt_iterator *si)
     }
 
   gimple_assign_set_rhs_from_tree (si, result);
+  update_stmt (gsi_stmt (*si));
 
   return true;
 }
@@ -851,6 +851,7 @@ gimple_mod_pow2_value_transform (gimple_stmt_iterator *si)
   result = gimple_mod_pow2 (stmt, prob, count, all);
 
   gimple_assign_set_rhs_from_tree (si, result);
+  update_stmt (gsi_stmt (*si));
 
   return true;
 }
@@ -1051,6 +1052,7 @@ gimple_mod_subtract_transform (gimple_stmt_iterator *si)
   result = gimple_mod_subtract (stmt, prob1, prob2, i, count1, count2, all);
 
   gimple_assign_set_rhs_from_tree (si, result);
+  update_stmt (gsi_stmt (*si));
 
   return true;
 }
@@ -1143,7 +1145,16 @@ gimple_ic (gimple icall_stmt, struct cgraph_node *direct_call,
   icall_bb = e_di->dest;
   icall_bb->count = all - count;
 
-  e_ij = split_block (icall_bb, icall_stmt);
+  /* Do not disturb existing EH edges from the indirect call.  */
+  if (!stmt_ends_bb_p (icall_stmt))
+    e_ij = split_block (icall_bb, icall_stmt);
+  else
+    {
+      e_ij = find_fallthru_edge (icall_bb->succs);
+      e_ij->probability = REG_BR_PROB_BASE;
+      e_ij->count = all - count;
+      e_ij = single_pred_edge (split_edge (e_ij));
+    }
   join_bb = e_ij->dest;
   join_bb->count = all;
 
@@ -1179,21 +1190,27 @@ gimple_ic (gimple icall_stmt, struct cgraph_node *direct_call,
       add_phi_arg (phi, gimple_call_lhs (dcall_stmt), e_dj, UNKNOWN_LOCATION);
     }
 
-  /* Fix eh edges */
+  /* Build an EH edge for the direct call if necessary.  */
   lp_nr = lookup_stmt_eh_lp (icall_stmt);
-  if (lp_nr != 0)
+  if (lp_nr != 0
+      && stmt_could_throw_p (dcall_stmt))
     {
-      if (stmt_could_throw_p (dcall_stmt))
+      edge e_eh, e;
+      edge_iterator ei;
+      gimple_stmt_iterator psi;
+
+      add_stmt_to_eh_lp (dcall_stmt, lp_nr);
+      FOR_EACH_EDGE (e_eh, ei, icall_bb->succs)
+	if (e_eh->flags & EDGE_EH)
+	  break;
+      e = make_edge (dcall_bb, e_eh->dest, EDGE_EH);
+      for (psi = gsi_start_phis (e_eh->dest);
+	   !gsi_end_p (psi); gsi_next (&psi))
 	{
-	  add_stmt_to_eh_lp (dcall_stmt, lp_nr);
-	  make_eh_edges (dcall_stmt);
+	  gimple phi = gsi_stmt (psi);
+	  SET_USE (PHI_ARG_DEF_PTR_FROM_EDGE (phi, e),
+		   PHI_ARG_DEF_FROM_EDGE (phi, e_eh));
 	}
-
-      gcc_assert (stmt_could_throw_p (icall_stmt));
-      make_eh_edges (icall_stmt);
-
-      /* The old EH edges are sill on the join BB, purge them.  */
-      gimple_purge_dead_eh_edges (join_bb);
     }
 
   return dcall_stmt;

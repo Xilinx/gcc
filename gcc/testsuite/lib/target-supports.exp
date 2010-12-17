@@ -34,7 +34,8 @@
 # "// C++" for c++,
 # "! Fortran" for Fortran code,
 # "/* ObjC", for ObjC
-# and "// ObjC++" for ObjC++
+# "// ObjC++" for ObjC++
+# and "// Go" for Go
 # If the tool is ObjC/ObjC++ then we overide the extension to .m/.mm to 
 # allow for ObjC/ObjC++ specific flags.
 proc check_compile {basename type contents args} {
@@ -51,6 +52,7 @@ proc check_compile {basename type contents args} {
 	"*// C++*" { set src ${basename}[pid].cc }
 	"*// ObjC++*" { set src ${basename}[pid].mm }
 	"*/* ObjC*" { set src ${basename}[pid].m }
+	"*// Go*" { set src ${basename}[pid].go }
 	default {
 	    switch -- $tool {
 		"objc" { set src ${basename}[pid].m }
@@ -613,6 +615,11 @@ proc check_effective_target_pcc_bitfield_type_matters { } {
 # Add to FLAGS all the target-specific flags needed to use thread-local storage.
 
 proc add_options_for_tls { flags } {
+    # Tru64 UNIX uses emutls, which relies on a couple of pthread functions
+    # which only live in libpthread, so always pass -pthread for TLS.
+    if { [istarget *-*-osf*] } {
+	return "$flags -pthread"
+    }
     # On Solaris 8 and 9, __tls_get_addr/___tls_get_addr only lives in
     # libthread, so always pass -pthread for native TLS.
     # Need to duplicate native TLS check from
@@ -1361,7 +1368,7 @@ proc check_function_available { function } {
 	#endif
 	char $function ();
 	int main () { $function (); }
-    }]]
+    }] "-fno-builtin" ]
 }
 
 # Returns true iff "fork" is available on the target system.
@@ -2253,6 +2260,27 @@ proc check_effective_target_vect_shift { } {
     return $et_vect_shift_saved
 }
 
+# Return 1 if the target supports hardware vector shift operation with
+# scalar shift argument.
+
+proc check_effective_target_vect_shift_scalar { } {
+    global et_vect_shift_scalar_saved
+
+    if [info exists et_vect_shift_scalar_saved] {
+        verbose "check_effective_target_vect_shift_scalar: using cached result" 2
+    } else {
+        set et_vect_shift_scalar_saved 0
+        if { [istarget x86_64-*-*]
+             || [istarget i?86-*-*] } {
+           set et_vect_shift_scalar_saved 1
+        }
+    }
+
+    verbose "check_effective_target_vect_shift_scalar: returning $et_vect_shift_scalar_saved" 2
+    return $et_vect_shift_scalar_saved
+}
+
+
 # Return 1 if the target supports hardware vectors of long, 0 otherwise.
 #
 # This can change for different subtargets so do not cache the result.
@@ -2492,7 +2520,8 @@ proc check_effective_target_vect_widen_sum_hi_to_si_pattern { } {
         verbose "check_effective_target_vect_widen_sum_hi_to_si_pattern: using cached result" 2
     } else {
         set et_vect_widen_sum_hi_to_si_pattern_saved 0
-        if { [istarget powerpc*-*-*] } {
+        if { [istarget powerpc*-*-*]
+             || [istarget ia64-*-*] } {
             set et_vect_widen_sum_hi_to_si_pattern_saved 1
         }
     }
@@ -2618,6 +2647,7 @@ proc check_effective_target_vect_widen_mult_hi_to_si { } {
         }
         if { [istarget powerpc*-*-*]
 	      || [istarget spu-*-*]
+	      || [istarget ia64-*-*]
 	      || [istarget i?86-*-*]
 	      || [istarget x86_64-*-*] } {
             set et_vect_widen_mult_hi_to_si_saved 1
@@ -2639,6 +2669,9 @@ proc check_effective_target_vect_sdot_qi { } {
         verbose "check_effective_target_vect_sdot_qi: using cached result" 2
     } else {
         set et_vect_sdot_qi_saved 0
+        if { [istarget ia64-*-*] } {
+            set et_vect_udot_qi_saved 1
+        }
     }
     verbose "check_effective_target_vect_sdot_qi: returning $et_vect_sdot_qi_saved" 2
     return $et_vect_sdot_qi_saved
@@ -2656,7 +2689,8 @@ proc check_effective_target_vect_udot_qi { } {
         verbose "check_effective_target_vect_udot_qi: using cached result" 2
     } else {
         set et_vect_udot_qi_saved 0
-        if { [istarget powerpc*-*-*] } {
+        if { [istarget powerpc*-*-*]
+             || [istarget ia64-*-*] } {
             set et_vect_udot_qi_saved 1
         }
     }
@@ -2677,6 +2711,7 @@ proc check_effective_target_vect_sdot_hi { } {
     } else {
         set et_vect_sdot_hi_saved 0
         if { ([istarget powerpc*-*-*] && ![istarget powerpc-*-linux*paired*])
+	     || [istarget ia64-*-*]
 	     || [istarget i?86-*-*]
              || [istarget x86_64-*-*] } {
             set et_vect_sdot_hi_saved 1
@@ -2748,6 +2783,7 @@ proc check_effective_target_vect_unpack { } {
              || [istarget i?86-*-*]
              || [istarget x86_64-*-*] 
              || [istarget spu-*-*]
+             || [istarget ia64-*-*]
              || ([istarget arm*-*-*] && [check_effective_target_arm_neon]) } {
             set et_vect_unpack_saved 1
         }
@@ -3024,6 +3060,7 @@ proc check_effective_target_vect_int_mult { } {
 	     || [istarget spu-*-*]
 	     || [istarget i?86-*-*]
 	     || [istarget x86_64-*-*]
+	     || [istarget ia64-*-*]
 	     || [check_effective_target_arm32] } {
 	   set et_vect_int_mult_saved 1
 	}
@@ -3045,6 +3082,7 @@ proc check_effective_target_vect_extract_even_odd { } {
         if { [istarget powerpc*-*-*] 
              || [istarget i?86-*-*]
              || [istarget x86_64-*-*]
+             || [istarget ia64-*-*]
              || [istarget spu-*-*] } {
            set et_vect_extract_even_odd_saved 1
         }
@@ -3067,6 +3105,7 @@ proc check_effective_target_vect_extract_even_odd_wide { } {
         if { [istarget powerpc*-*-*] 
              || [istarget i?86-*-*]
              || [istarget x86_64-*-*]
+             || [istarget ia64-*-*]
              || [istarget spu-*-*] } {
            set et_vect_extract_even_odd_wide_saved 1
         }
@@ -3088,6 +3127,7 @@ proc check_effective_target_vect_interleave { } {
         if { [istarget powerpc*-*-*]
              || [istarget i?86-*-*]
              || [istarget x86_64-*-*]
+             || [istarget ia64-*-*]
              || [istarget spu-*-*] } {
            set et_vect_interleave_saved 1
         }
@@ -3551,8 +3591,15 @@ proc check_effective_target_4byte_wchar_t { } {
 # Return 1 if the target supports automatic stack alignment.
 
 proc check_effective_target_automatic_stack_alignment  { } {
-    # Not "stack alignment" per se, but proper stack alignment of decls.
-    return 1;
+    # Ordinarily x86 supports automatic stack alignment ...
+    if { [istarget i?86*-*-*] || [istarget x86_64-*-*] } then {
+        if { [istarget *-*-mingw*] || [istarget *-*-cygwin*] } {
+	    # ... except Win64 SEH doesn't.  Succeed for Win32 though.
+	    return [check_effective_target_ilp32];
+	}
+	return 1;
+    }
+    return 0;
 }
 
 # Return 1 if avx instructions can be compiled.
@@ -3729,3 +3776,104 @@ proc check_effective_target_run_expensive_tests { } {
     }
     return 0
 }
+
+# Returns 1 if "mempcpy" is available on the target system.
+
+proc check_effective_target_mempcpy {} {
+    return [check_function_available "mempcpy"]
+}
+
+# Check whether the vectorizer tests are supported by the target and
+# append additional target-dependent compile flags to DEFAULT_VECTCFLAGS.
+# Set dg-do-what-default to either compile or run, depending on target
+# capabilities.  Return 1 if vectorizer tests are supported by
+# target, 0 otherwise.
+
+proc check_vect_support_and_set_flags { } {
+    global DEFAULT_VECTCFLAGS
+    global dg-do-what-default
+
+    if  [istarget "powerpc-*paired*"]  {
+        lappend DEFAULT_VECTCFLAGS "-mpaired"
+        if [check_750cl_hw_available] {
+            set dg-do-what-default run
+        } else {
+            set dg-do-what-default compile
+        }
+    } elseif [istarget "powerpc*-*-*"] {
+        # Skip targets not supporting -maltivec.
+        if ![is-effective-target powerpc_altivec_ok] {
+            return 0
+        }
+
+        lappend DEFAULT_VECTCFLAGS "-maltivec"
+        if [check_vsx_hw_available]  {
+            lappend DEFAULT_VECTCFLAGS "-mvsx" "-mno-allow-movmisalign"
+        }
+
+        if [check_vmx_hw_available] {
+            set dg-do-what-default run
+        } else {
+            if [is-effective-target ilp32] {
+                # Specify a cpu that supports VMX for compile-only tests.
+                lappend DEFAULT_VECTCFLAGS "-mcpu=970"
+            }
+            set dg-do-what-default compile
+        }
+    } elseif { [istarget  "spu-*-*"] } {
+        set dg-do-what-default run
+    } elseif { [istarget "i?86-*-*"] || [istarget "x86_64-*-*"] } {
+        lappend DEFAULT_VECTCFLAGS "-msse2"
+        if { [check_effective_target_sse2_runtime] } {
+            set dg-do-what-default run
+        } else {
+            set dg-do-what-default compile
+        }
+    } elseif { [istarget "mips*-*-*"]
+               && ([check_effective_target_mpaired_single]
+                    || [check_effective_target_mips_loongson])
+               && [check_effective_target_nomips16] } {
+        if { [check_effective_target_mpaired_single] } {
+            lappend DEFAULT_VECTCFLAGS "-mpaired-single"
+        }
+        set dg-do-what-default run
+    } elseif [istarget "sparc*-*-*"] {
+        lappend DEFAULT_VECTCFLAGS "-mcpu=ultrasparc" "-mvis"
+        if [check_effective_target_ultrasparc_hw] {
+            set dg-do-what-default run
+        } else {
+            set dg-do-what-default compile
+        }
+    } elseif [istarget "alpha*-*-*"] {
+        # Alpha's vectorization capabilities are extremely limited.
+        # It's more effort than its worth disabling all of the tests
+        # that it cannot pass.  But if you actually want to see what
+        # does work, command out the return.
+        return 0
+
+        lappend DEFAULT_VECTCFLAGS "-mmax"
+        if [check_alpha_max_hw_available] {
+            set dg-do-what-default run
+        } else {
+            set dg-do-what-default compile
+        }
+    } elseif [istarget "ia64-*-*"] {
+        set dg-do-what-default run
+    } elseif [is-effective-target arm_neon_ok] {
+        eval lappend DEFAULT_VECTCFLAGS [add_options_for_arm_neon ""]
+        # NEON does not support denormals, so is not used for vectorization by
+        # default to avoid loss of precision.  We must pass -ffast-math to test
+        # vectorization of float operations.
+        lappend DEFAULT_VECTCFLAGS "-ffast-math"
+        if [is-effective-target arm_neon_hw] {
+            set dg-do-what-default run
+        } else {
+            set dg-do-what-default compile
+        }
+    } else {
+        return 0
+    }
+
+    return 1
+}
+

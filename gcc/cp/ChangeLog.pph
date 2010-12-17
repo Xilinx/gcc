@@ -1,3 +1,9 @@
+2010-12-16  Diego Novillo  <dnovillo@google.com>
+
+	* pph.c (pph_find_exposed_for, pph_get_decl_exposure):
+	Replace uses of DECL_INTEGRAL_CONSTANT_VAR_P with
+	decl_constant_var_p.
+
 2010-12-09  Lawrence Crowl  <crowl@google.com>
 
 	* pph.c (pth_lexer_to_image): Remove call to cpp_lt_statistics.

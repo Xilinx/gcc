@@ -152,7 +152,7 @@ suitable_for_tail_call_opt_p (void)
   /* If we are using sjlj exceptions, we may need to add a call to
      _Unwind_SjLj_Unregister at exit of the function.  Which means
      that we cannot do any sibcall transformations.  */
-  if (targetm.except_unwind_info () == UI_SJLJ
+  if (targetm.except_unwind_info (&global_options) == UI_SJLJ
       && current_function_has_exception_handlers ())
     return false;
 
@@ -532,20 +532,22 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
 
       if (tmp_a)
 	{
+	  tree type = TREE_TYPE (tmp_a);
 	  if (a)
-	    a = fold_build2 (PLUS_EXPR, TREE_TYPE (tmp_a), a, tmp_a);
+	    a = fold_build2 (PLUS_EXPR, type, fold_convert (type, a), tmp_a);
 	  else
 	    a = tmp_a;
 	}
       if (tmp_m)
 	{
+	  tree type = TREE_TYPE (tmp_m);
 	  if (m)
-	    m = fold_build2 (MULT_EXPR, TREE_TYPE (tmp_m), m, tmp_m);
+	    m = fold_build2 (MULT_EXPR, type, fold_convert (type, m), tmp_m);
 	  else
 	    m = tmp_m;
 
 	  if (a)
-	    a = fold_build2 (MULT_EXPR, TREE_TYPE (tmp_m), a, tmp_m);
+	    a = fold_build2 (MULT_EXPR, type, fold_convert (type, a), tmp_m);
 	}
     }
 

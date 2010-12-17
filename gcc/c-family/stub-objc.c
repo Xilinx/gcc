@@ -2,7 +2,7 @@
    that are called from within the C and C++ front-ends,
    respectively.
    Copyright (C) 1991, 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2007, 2009 Free Software Foundation, Inc.
+   2004, 2005, 2007, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tree.h"
 #include "c-common.h"
+#include "c-objc.h"
 
 tree
 objc_is_class_name (tree ARG_UNUSED (arg))
@@ -67,12 +68,6 @@ objc_check_global_decl (tree ARG_UNUSED (decl))
 }
 
 tree
-objc_non_volatilized_type (tree type)
-{
-  return type;
-}
-
-tree
 objc_common_type (tree ARG_UNUSED (type1), tree ARG_UNUSED (type2))
 {
   return 0;
@@ -95,12 +90,6 @@ objc_have_common_type (tree ARG_UNUSED (ltyp), tree ARG_UNUSED (rtyp),
 void
 objc_volatilize_decl (tree ARG_UNUSED (decl))
 {
-}
-
-bool
-objc_type_quals_match (tree ARG_UNUSED (ltyp), tree ARG_UNUSED (rtyp))
-{
-  return false;
 }
 
 tree
@@ -126,7 +115,7 @@ objc_declare_class (tree ARG_UNUSED (list))
 }
 
 void
-objc_declare_protocols (tree ARG_UNUSED (list))
+objc_declare_protocols (tree ARG_UNUSED (list), tree ARG_UNUSED (attributes))
 {
 }
 
@@ -333,20 +322,39 @@ objc_add_property_declaration (location_t ARG_UNUSED (location),
 			       bool ARG_UNUSED (parsed_property_copy),
 			       bool ARG_UNUSED (parsed_property_nonatomic),
 			       tree ARG_UNUSED (parsed_property_getter_ident),
-			       tree ARG_UNUSED (parsed_property_setter_ident),
-			       bool ARG_UNUSED (parsed_property_copies),
-			       tree ARG_UNUSED (parsed_property_ivar_ident))
+			       tree ARG_UNUSED (parsed_property_setter_ident))
 {
 }
 
-tree
-objc_build_getter_call (tree ARG_UNUSED (datum), tree ARG_UNUSED (component))
+bool
+objc_is_property_ref (tree ARG_UNUSED (node))
 {
   return 0;
 }
 
 tree
-objc_build_setter_call (tree ARG_UNUSED (lhs), tree ARG_UNUSED (rhs))
+objc_maybe_build_component_ref (tree ARG_UNUSED (datum), tree ARG_UNUSED (component))
+{
+  return 0;
+}
+
+tree
+objc_build_class_component_ref (tree ARG_UNUSED (datum), tree ARG_UNUSED (component))
+{
+  return 0;
+}
+
+tree
+objc_maybe_build_modify_expr (tree ARG_UNUSED (lhs), tree ARG_UNUSED (rhs))
+{
+  return 0;
+}
+
+tree
+objc_build_incr_expr_for_property_ref (location_t ARG_UNUSED (location),
+				       enum tree_code ARG_UNUSED (code),
+				       tree ARG_UNUSED (argument),
+				       tree ARG_UNUSED (increment))
 {
   return 0;
 }
@@ -428,5 +436,22 @@ objc_finish_foreach_loop (location_t ARG_UNUSED (location), tree ARG_UNUSED (obj
 
 void
 objc_write_global_declarations (void)
+{
+}
+
+bool
+objc_string_ref_type_p (tree ARG_UNUSED (strp))
+{
+   return false;
+}
+
+void
+objc_check_format_arg (tree ARG_UNUSED (format_arg), 
+		       tree ARG_UNUSED (args_list))
+{
+}
+
+void
+objc_finish_function (void)
 {
 }

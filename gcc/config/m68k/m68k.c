@@ -34,7 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-attr.h"
 #include "recog.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "expr.h"
 #include "reload.h"
 #include "tm_p.h"
@@ -133,6 +132,7 @@ static void m68k_sched_dfa_post_advance_cycle (void);
 static int m68k_sched_first_cycle_multipass_dfa_lookahead (void);
 
 static bool m68k_can_eliminate (const int, const int);
+static void m68k_conditional_register_usage (void);
 static bool m68k_legitimate_address_p (enum machine_mode, rtx, bool);
 static bool m68k_handle_option (size_t, const char *, int);
 static void m68k_option_override (void);
@@ -277,6 +277,9 @@ const char *m68k_library_id_string = "_current_shared_library_a5_offset_";
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE m68k_can_eliminate
+
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE m68k_conditional_register_usage
 
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT m68k_trampoline_init
@@ -3509,6 +3512,7 @@ handle_move_double (rtx operands[2],
 
   /* Normal case: do the two words, low-numbered first.  */
 
+  m68k_final_prescan_insn (NULL, operands, 2);
   handle_movsi (operands);
 
   /* Do the middle one of the three words for long double */
@@ -3519,6 +3523,7 @@ handle_move_double (rtx operands[2],
       if (addreg1)
 	handle_reg_adjust (addreg1, 4);
 
+      m68k_final_prescan_insn (NULL, middlehalf, 2);
       handle_movsi (middlehalf);
     }
 
@@ -3529,6 +3534,7 @@ handle_move_double (rtx operands[2],
     handle_reg_adjust (addreg1, 4);
 
   /* Do that word.  */
+  m68k_final_prescan_insn (NULL, latehalf, 2);
   handle_movsi (latehalf);
 
   /* Undo the adds we just did.  */
@@ -4659,49 +4665,46 @@ m68k_output_dwarf_dtprel (FILE *file, int size, rtx x)
 static rtx
 m68k_delegitimize_address (rtx orig_x)
 {
-  rtx x, y;
-  rtx addend = NULL_RTX;
-  rtx result;
+  rtx x;
+  struct m68k_address addr;
+  rtx unspec;
 
   orig_x = delegitimize_mem_from_attrs (orig_x);
-  if (! MEM_P (orig_x))
+  x = orig_x;
+  if (MEM_P (x))
+    x = XEXP (x, 0);
+
+  if (GET_CODE (x) != PLUS || GET_MODE (x) != Pmode)
     return orig_x;
 
-  x = XEXP (orig_x, 0);
+  if (!m68k_decompose_address (GET_MODE (x), x, false, &addr)
+      || addr.offset == NULL_RTX
+      || GET_CODE (addr.offset) != CONST)
+    return orig_x;
 
-  if (GET_CODE (x) == PLUS
-      && GET_CODE (XEXP (x, 1)) == CONST
-      && REG_P (XEXP (x, 0))
-      && REGNO (XEXP (x, 0)) == PIC_REG)
+  unspec = XEXP (addr.offset, 0);
+  if (GET_CODE (unspec) == PLUS && CONST_INT_P (XEXP (unspec, 1)))
+    unspec = XEXP (unspec, 0);
+  if (GET_CODE (unspec) != UNSPEC 
+      || (XINT (unspec, 1) != UNSPEC_RELOC16
+	  && XINT (unspec, 1) != UNSPEC_RELOC32))
+    return orig_x;
+  x = XVECEXP (unspec, 0, 0);
+  gcc_assert (GET_CODE (x) == SYMBOL_REF || GET_CODE (x) == LABEL_REF);
+  if (unspec != XEXP (addr.offset, 0))
+    x = gen_rtx_PLUS (Pmode, x, XEXP (XEXP (addr.offset, 0), 1));
+  if (addr.index)
     {
-      y = x = XEXP (XEXP (x, 1), 0);
-
-      /* Handle an addend.  */
-      if ((GET_CODE (x) == PLUS || GET_CODE (x) == MINUS)
-	  && CONST_INT_P (XEXP (x, 1)))
-	{
-	  addend = XEXP (x, 1);
-	  x = XEXP (x, 0);
-	}
-
-      if (GET_CODE (x) == UNSPEC
-	  && (XINT (x, 1) == UNSPEC_RELOC16
-	      || XINT (x, 1) == UNSPEC_RELOC32))
-	{
-	  result = XVECEXP (x, 0, 0);
-	  if (addend)
-	    {
-	      if (GET_CODE (y) == PLUS)
-		result = gen_rtx_PLUS (Pmode, result, addend);
-	      else
-		result = gen_rtx_MINUS (Pmode, result, addend);
-	      result = gen_rtx_CONST (Pmode, result);
-	    }
-	  return result;
-	}
+      rtx idx = addr.index;
+      if (addr.scale != 1)
+	idx = gen_rtx_MULT (Pmode, idx, GEN_INT (addr.scale));
+      x = gen_rtx_PLUS (Pmode, idx, x);
     }
-
-  return orig_x;
+  if (addr.base)
+    x = gen_rtx_PLUS (Pmode, addr.base, x);
+  if (MEM_P (orig_x))
+    x = replace_equiv_address_nv (orig_x, x);
+  return x;
 }
   
 
@@ -6569,6 +6572,27 @@ m68k_return_pops_args (tree fundecl, tree funtype, int size)
 	       || TREE_CODE (fundecl) != IDENTIFIER_NODE)
 	   && (!stdarg_p (funtype)))
 	  ? size : 0);
+}
+
+/* Make sure everything's fine if we *don't* have a given processor.
+   This assumes that putting a register in fixed_regs will keep the
+   compiler's mitts completely off it.  We don't bother to zero it out
+   of register classes.  */
+
+static void
+m68k_conditional_register_usage (void)
+{
+  int i;
+  HARD_REG_SET x;
+  if (!TARGET_HARD_FLOAT)
+    {
+      COPY_HARD_REG_SET (x, reg_class_contents[(int)FP_REGS]);
+      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
+        if (TEST_HARD_REG_BIT (x, i))
+	  fixed_regs[i] = call_used_regs[i] = 1;
+    }
+  if (flag_pic)
+    fixed_regs[PIC_REG] = call_used_regs[PIC_REG] = 1;
 }
 
 #include "gt-m68k.h"

@@ -77,7 +77,7 @@ extern void _ada_gnat1drv (void);
 /* The parser for the language.  For us, we process the GNAT tree.  */
 
 static void
-gnat_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
+gnat_parse_file (void)
 {
   int seh[2];
 
@@ -102,7 +102,7 @@ gnat_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 
 static bool
 gnat_handle_option (size_t scode, const char *arg ATTRIBUTE_UNUSED, int value,
-		    int kind ATTRIBUTE_UNUSED,
+		    int kind ATTRIBUTE_UNUSED, location_t loc ATTRIBUTE_UNUSED,
 		    const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
 {
   enum opt_code code = (enum opt_code) scode;
@@ -221,8 +221,12 @@ gnat_init_options (unsigned int decoded_options_count,
    of the global_options structure.  */
 #undef optimize
 #undef optimize_size
+#undef flag_compare_debug
+#undef flag_stack_check
 int optimize;
 int optimize_size;
+int flag_compare_debug;
+enum stack_check_type flag_stack_check = NO_STACK_CHECK;
 
 /* Post-switch processing.  */
 
@@ -252,6 +256,8 @@ gnat_post_options (const char **pfilename ATTRIBUTE_UNUSED)
 
   optimize = global_options.x_optimize;
   optimize_size = global_options.x_optimize_size;
+  flag_compare_debug = global_options.x_flag_compare_debug;
+  flag_stack_check = global_options.x_flag_stack_check;
 
   return false;
 }
