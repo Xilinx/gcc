@@ -188,13 +188,27 @@ namespace __profile
 					 __res.second);
       }
 
-      iterator
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-      insert(const_iterator __position, const value_type& __x)
-#else
-      insert(iterator __position, const value_type& __x)
+      std::pair<iterator, bool>
+      insert(value_type&& __x)
+      {
+	typedef typename _Base::iterator _Base_iterator;
+	std::pair<_Base_iterator, bool> __res
+	  = _Base::insert(std::move(__x));
+	return std::pair<iterator, bool>(iterator(__res.first),
+					 __res.second);
+      }
 #endif
+
+      iterator
+      insert(const_iterator __position, const value_type& __x)
       { return iterator(_Base::insert(__position, __x)); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      iterator
+      insert(const_iterator __position, value_type&& __x)
+      { return iterator(_Base::insert(__position, std::move(__x))); }
+#endif
 
       template <typename _InputIterator>
         void

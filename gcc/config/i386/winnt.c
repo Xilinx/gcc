@@ -31,7 +31,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "tm_p.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "hashtab.h"
 #include "langhooks.h"
 #include "ggc.h"
@@ -144,7 +143,7 @@ i386_pe_determine_dllimport_p (tree decl)
 	 an error as long as we don't try to import it too.  */
       && !DECL_VIRTUAL_P (decl))
 	error ("definition of static data member %q+D of "
-	       "dllimport'd class", decl);
+	       "dllimport%'d class", decl);
 
   return false;
 }
@@ -243,6 +242,20 @@ i386_pe_mangle_decl_assembler_name (tree decl, tree id)
   tree new_id = i386_pe_maybe_mangle_decl_assembler_name (decl, id);   
 
   return (new_id ? new_id : id);
+}
+
+/* This hook behaves the same as varasm.c/assemble_name(), but
+   generates the name into memory rather than outputting it to
+   a file stream.  */
+
+tree
+i386_pe_mangle_assembler_name (const char *name ATTRIBUTE_UNUSED)
+{
+  const char *skipped = name + (*name == '*' ? 1 : 0);
+  const char *stripped = targetm.strip_name_encoding (skipped);
+  if (*name != '*' && *user_label_prefix && *stripped != FASTCALL_PREFIX)
+    stripped = ACONCAT ((user_label_prefix, stripped, NULL));
+  return get_identifier (stripped);
 }
 
 void
@@ -414,15 +427,6 @@ i386_pe_section_type_flags (tree decl, const char *name, int reloc)
     flags = SECTION_CODE;
   else if (decl && decl_readonly_section (decl, reloc))
     flags = 0;
-  else if (current_function_decl
-	   && cfun
-	   && crtl->subsections.unlikely_text_section_name
-	   && strcmp (name, crtl->subsections.unlikely_text_section_name) == 0)
-    flags = SECTION_CODE;
-  else if (!decl
-	   && (!current_function_decl || !cfun)
-	   && strcmp (name, UNLIKELY_EXECUTED_TEXT_SECTION_NAME) == 0)
-    flags = SECTION_CODE;
   else
     {
       flags = SECTION_WRITE;

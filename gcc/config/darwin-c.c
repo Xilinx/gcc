@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-family/c-pragma.h"
 #include "c-family/c-format.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "flags.h"
 #include "tm_p.h"
 #include "cppdefault.h"
@@ -590,7 +589,7 @@ version_as_macro (void)
   return result;
 
  fail:
-  error ("Unknown value %qs of -mmacosx-version-min",
+  error ("unknown value %qs of -mmacosx-version-min",
 	 darwin_macosx_version_min);
   return "1000";
 }
@@ -706,7 +705,7 @@ darwin_check_cfstring_format_arg (tree ARG_UNUSED (format_arg),
 }
 
 /* The extra format types we recognize.  */
-const format_kind_info darwin_additional_format_types[] = {
+EXPORTED_CONST format_kind_info darwin_additional_format_types[] = {
   { "CFString",   NULL,  NULL, NULL, NULL, 
     NULL, NULL, 
     FMT_FLAG_ARG_CONVERT|FMT_FLAG_PARSE_ARG_CONVERT_EXTERNAL, 0, 0, 0, 0, 0, 0,

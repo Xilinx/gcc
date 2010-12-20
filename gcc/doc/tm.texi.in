@@ -99,26 +99,6 @@ from being defined in the @file{.h} file to being part of the
 @c prevent bad page break with this line
 You can control the compilation driver.
 
-@defmac TARGET_OPTION_TRANSLATE_TABLE
-If defined, a list of pairs of strings, the first of which is a
-potential command line target to the @file{gcc} driver program, and the
-second of which is a space-separated (tabs and other whitespace are not
-supported) list of options with which to replace the first option.  The
-target defining this list is responsible for assuring that the results
-are valid.  Replacement options may not be the @code{--opt} style, they
-must be the @code{-opt} style.  It is the intention of this macro to
-provide a mechanism for substitution that affects the multilibs chosen,
-such as one option that enables many options, some of which select
-multilibs.  Example nonsensical definition, where @option{-malt-abi},
-@option{-EB}, and @option{-mspoo} cause different multilibs to be chosen:
-
-@smallexample
-#define TARGET_OPTION_TRANSLATE_TABLE \
-@{ "-fast",   "-march=fast-foo -malt-abi -I/usr/fast-foo" @}, \
-@{ "-compat", "-EB -malign=4 -mspoo" @}
-@end smallexample
-@end defmac
-
 @defmac DRIVER_SELF_SPECS
 A list of specs for the driver itself.  It should be a suitable
 initializer for an array of strings, with no surrounding braces.
@@ -1124,6 +1104,8 @@ If this macro is not defined, then @var{basic-align} is used.
 
 One use of this macro is to increase alignment of medium-size data to
 make it all fit in fewer cache lines.
+
+If the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
 @defmac STACK_SLOT_ALIGNMENT (@var{type}, @var{mode}, @var{basic-align})
@@ -1139,6 +1121,8 @@ be used.
 
 This macro is to set alignment of stack slot to the maximum alignment
 of all possible modes which the slot may have.
+
+If the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
 @defmac LOCAL_DECL_ALIGNMENT (@var{decl})
@@ -1151,6 +1135,8 @@ is used.
 
 One use of this macro is to increase alignment of medium-size data to
 make it all fit in fewer cache lines.
+
+If the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
 @defmac MINIMUM_ALIGNMENT (@var{exp}, @var{mode}, @var{align})
@@ -1920,8 +1906,8 @@ preserve the entire contents of a register across a call.
 @findex global_regs
 @findex reg_names
 @findex reg_class_contents
-@defmac CONDITIONAL_REGISTER_USAGE
-Zero or more C statements that may conditionally modify five variables
+@hook TARGET_CONDITIONAL_REGISTER_USAGE
+This hook may conditionally modify five variables
 @code{fixed_regs}, @code{call_used_regs}, @code{global_regs},
 @code{reg_names}, and @code{reg_class_contents}, to take into account
 any dependence of these register sets on target flags.  The first three
@@ -1935,8 +1921,6 @@ from @code{FIXED_REGISTERS}, @code{CALL_USED_REGISTERS},
 @code{global_regs} has been cleared, and any @option{-ffixed-@var{reg}},
 @option{-fcall-used-@var{reg}} and @option{-fcall-saved-@var{reg}}
 command options have been applied.
-
-You need not define this macro if it has no work to do.
 
 @cindex disabling certain registers
 @cindex controlling register usage
@@ -1952,7 +1936,7 @@ is called with a letter for a class that shouldn't be used.
 of the insn patterns whose constraints permit this class are
 controlled by target switches, then GCC will automatically avoid using
 these registers when the target switches are opposed to them.)
-@end defmac
+@end deftypefn
 
 @defmac INCOMING_REGNO (@var{out})
 Define this macro if the target machine has register windows.  This C
@@ -2510,6 +2494,8 @@ looking for one that is valid, and will reload one or both registers
 only if neither labeling works.
 @end defmac
 
+@hook TARGET_PREFERRED_RENAME_CLASS
+
 @hook TARGET_PREFERRED_RELOAD_CLASS
 A target hook that places additional restrictions on the register class
 to use when it is necessary to copy value @var{x} into a register in class
@@ -2878,6 +2864,9 @@ otherwise there is no default implementation.  You must define either this
 macro or @code{IRA_COVER_CLASSES} in order to use the integrated register
 allocator with Chaitin-Briggs coloring. If the macro is not defined,
 the only available coloring algorithm is Chow's priority coloring.
+
+This hook must not be modified from @code{NULL} to non-@code{NULL} or
+vice versa by command-line option processing.
 @end deftypefn
 
 @defmac IRA_COVER_CLASSES
@@ -3861,6 +3850,8 @@ alignment.  Then the definition should be
 @smallexample
 #define PUSH_ROUNDING(BYTES) (((BYTES) + 1) & ~1)
 @end smallexample
+
+If the value of this macro has a type, it should be an unsigned type.
 @end defmac
 
 @findex current_function_outgoing_args_size
@@ -4192,8 +4183,8 @@ to pad out an argument with extra space.  The value should be of type
 @code{downward} to pad below, or @code{none} to inhibit padding.
 
 The @emph{amount} of padding is always just enough to reach the next
-multiple of @code{FUNCTION_ARG_BOUNDARY}; this macro does not control
-it.
+multiple of @code{TARGET_FUNCTION_ARG_BOUNDARY}; this macro does not
+control it.
 
 This macro has a default definition which is right for most systems.
 For little-endian machines, the default is to pad upward.  For
@@ -4220,11 +4211,11 @@ a three byte aggregate may be passed in the high part of a register if so
 required.
 @end defmac
 
-@defmac FUNCTION_ARG_BOUNDARY (@var{mode}, @var{type})
-If defined, a C expression that gives the alignment boundary, in bits,
-of an argument with the specified mode and type.  If it is not defined,
-@code{PARM_BOUNDARY} is used for all arguments.
-@end defmac
+@hook TARGET_FUNCTION_ARG_BOUNDARY
+This hook returns the the alignment boundary, in bits, of an argument
+with the specified mode and type.  The default hook returns
+@code{PARM_BOUNDARY} for all arguments.
+@end deftypefn
 
 @defmac FUNCTION_ARG_REGNO_P (@var{regno})
 A C expression that is nonzero if @var{regno} is the number of a hard
@@ -5259,26 +5250,6 @@ If this macro evaluates to @code{false} the comparison functions return
 in @file{libgcc.a}, you do not need to define this macro.
 @end defmac
 
-@cindex US Software GOFAST, floating point emulation library
-@cindex floating point emulation library, US Software GOFAST
-@cindex GOFAST, floating point emulation library
-@findex gofast_maybe_init_libfuncs
-@defmac US_SOFTWARE_GOFAST
-Define this macro if your system C library uses the US Software GOFAST
-library to provide floating point emulation.
-
-In addition to defining this macro, your architecture must set
-@code{TARGET_INIT_LIBFUNCS} to @code{gofast_maybe_init_libfuncs}, or
-else call that function from its version of that hook.  It is defined
-in @file{config/gofast.h}, which must be included by your
-architecture's @file{@var{cpu}.c} file.  See @file{sparc/sparc.c} for
-an example.
-
-If this macro is defined, the
-@code{TARGET_FLOAT_LIB_COMPARE_RETURNS_BOOL} target hook must return
-false for @code{SFmode} and @code{DFmode} comparisons.
-@end defmac
-
 @cindex @code{EDOM}, implicit usage
 @findex matherr
 @defmac TARGET_EDOM
@@ -5847,7 +5818,7 @@ interested in most macros in this section.
 @menu
 * CC0 Condition Codes::      Old style representation of condition codes.
 * MODE_CC Condition Codes::  Modern representation of condition codes.
-* Cond. Exec. Macros::       Macros to control conditional execution.
+* Cond Exec Macros::         Macros to control conditional execution.
 @end menu
 
 @node CC0 Condition Codes
@@ -6055,7 +6026,7 @@ same.  If they are, it returns that mode.  If they are different, it
 returns @code{VOIDmode}.
 @end deftypefn
 
-@node Cond. Exec. Macros
+@node Cond Exec Macros
 @subsection Macros to control conditional execution
 @findex conditional execution
 @findex predication
@@ -7317,8 +7288,19 @@ is non-NULL, it is the @code{VAR_DECL} or @code{FUNCTION_DECL} with which
 this section is associated.
 @end deftypefn
 
+@hook TARGET_ASM_FUNCTION_SECTION
+Return preferred text (sub)section for function @var{decl}.
+Main purpose of this function is to separate cold, normal and hot
+functions. @var{startup} is true when function is known to be used only 
+at startup (from static constructors or it is @code{main()}).
+@var{exit} is true when function is known to be used only at exit
+(from static destructors).
+Return NULL if function should go to default text section.
+@end deftypefn
+
 @hook TARGET_HAVE_NAMED_SECTIONS
 This flag is true if the target supports @code{TARGET_ASM_NAMED_SECTION}.
+It must not be modified by command-line option processing.
 @end deftypevr
 
 @anchor{TARGET_HAVE_SWITCHABLE_BSS_SECTIONS}
@@ -8011,6 +7993,8 @@ is customary on your operating system, as it is in most Berkeley Unix
 systems.  This macro is used in @code{assemble_name}.
 @end defmac
 
+@hook TARGET_MANGLE_ASSEMBLER_NAME
+
 @defmac ASM_OUTPUT_SYMBOL_REF (@var{stream}, @var{sym})
 A C statement (sans semicolon) to output a reference to
 @code{SYMBOL_REF} @var{sym}.  If not defined, @code{assemble_name}
@@ -8417,16 +8401,24 @@ part of a cross compiler always uses @command{nm} for the target machine.
 Define this macro as a C string constant containing the file name to use
 to execute @command{nm}.  The default is to search the path normally for
 @command{nm}.
+@end defmac
+
+@defmac NM_FLAGS
+@command{collect2} calls @command{nm} to scan object files for static
+constructors and destructors and LTO info.  By default, @option{-n} is
+passed.  Define @code{NM_FLAGS} to a C string constant if other options
+are needed to get the same output formut as GNU @command{nm -n}
+produces.
+@end defmac
 
 If your system supports shared libraries and has a program to list the
 dynamic dependencies of a given library or executable, you can define
 these macros to enable support for running initialization and
 termination functions in shared libraries:
-@end defmac
 
 @defmac LDD_SUFFIX
 Define this macro to a C string constant containing the name of the program
-which lists dynamic dependencies, like @command{"ldd"} under SunOS 4.
+which lists dynamic dependencies, like @command{ldd} under SunOS 4.
 @end defmac
 
 @defmac PARSE_LDD_OUTPUT (@var{ptr})
@@ -8463,6 +8455,22 @@ If defined, a C initializer for an array of structures containing a name
 and a register number.  This macro defines additional names for hard
 registers, thus allowing the @code{asm} option in declarations to refer
 to registers using alternate names.
+@end defmac
+
+@defmac OVERLAPPING_REGISTER_NAMES
+If defined, a C initializer for an array of structures containing a
+name, a register number and a count of the number of consecutive
+machine registers the name overlaps.  This macro defines additional
+names for hard registers, thus allowing the @code{asm} option in
+declarations to refer to registers using alternate names.  Unlike
+@code{ADDITIONAL_REGISTER_NAMES}, this macro should be used when the
+register name implies multiple underlying registers.
+
+This macro should be used when it is important that a clobber in an
+@code{asm} statement clobbers all the underlying values implied by the
+register name.  For example, on ARM, clobbering the double-precision
+VFP register ``d0'' implies clobbering both single-precision registers
+``s0'' and ``s1''.
 @end defmac
 
 @defmac ASM_OUTPUT_OPCODE (@var{stream}, @var{ptr})
@@ -8823,27 +8831,24 @@ This may end up simplifying other parts of target-specific code.  The
 default implementation of this hook never returns @code{UI_NONE}.
 
 Note that the value returned by this hook should be constant.  It should
-not depend on anything except command-line switches.  In particular, the
+not depend on anything except the command-line switches described by
+@var{opts}.  In particular, the
 setting @code{UI_SJLJ} must be fixed at compiler start-up as C pre-processor
 macros and builtin functions related to exception handling are set up
 depending on this setting.
 
 The default implementation of the hook first honors the
 @option{--enable-sjlj-exceptions} configure option, then
-@code{DWARF2_UNWIND_INFO}, and finally defaults to @code{UI_SJLJ}.
+@code{DWARF2_UNWIND_INFO}, and finally defaults to @code{UI_SJLJ}.  If
+@code{DWARF2_UNWIND_INFO} depends on command-line options, the target
+must define this hook so that @var{opts} is used correctly.
 @end deftypefn
 
 @hook TARGET_UNWIND_TABLES_DEFAULT
 This variable should be set to @code{true} if the target ABI requires unwinding
-tables even when exceptions are not used.
+tables even when exceptions are not used.  It must not be modified by
+command-line option processing.
 @end deftypevr
-
-@defmac MUST_USE_SJLJ_EXCEPTIONS
-This macro need only be defined if @code{DWARF2_UNWIND_INFO} is
-runtime-variable.  In that case, @file{except.h} cannot correctly
-determine the corresponding definition of @code{MUST_USE_SJLJ_EXCEPTIONS},
-so the target must provide it directly.
-@end defmac
 
 @defmac DONT_USE_BUILTIN_SETJMP
 Define this macro to 1 if the @code{setjmp}/@code{longjmp}-based scheme
@@ -10616,55 +10621,8 @@ rule to the makefile fragment pointed to by @code{tmake_file} that shows
 how to build this object file.
 @end deftypefun
 
-@findex #pragma
-@findex pragma
-@defmac HANDLE_SYSV_PRAGMA
-Define this macro (to a value of 1) if you want the System V style
-pragmas @samp{#pragma pack(<n>)} and @samp{#pragma weak <name>
-[=<value>]} to be supported by gcc.
-
-The pack pragma specifies the maximum alignment (in bytes) of fields
-within a structure, in much the same way as the @samp{__aligned__} and
-@samp{__packed__} @code{__attribute__}s do.  A pack value of zero resets
-the behavior to the default.
-
-A subtlety for Microsoft Visual C/C++ style bit-field packing
-(e.g.@: -mms-bitfields) for targets that support it:
-When a bit-field is inserted into a packed record, the whole size
-of the underlying type is used by one or more same-size adjacent
-bit-fields (that is, if its long:3, 32 bits is used in the record,
-and any additional adjacent long bit-fields are packed into the same
-chunk of 32 bits.  However, if the size changes, a new field of that
-size is allocated).
-
-If both MS bit-fields and @samp{__attribute__((packed))} are used,
-the latter will take precedence.  If @samp{__attribute__((packed))} is
-used on a single field when MS bit-fields are in use, it will take
-precedence for that field, but the alignment of the rest of the structure
-may affect its placement.
-
-The weak pragma only works if @code{SUPPORTS_WEAK} and
-@code{ASM_WEAKEN_LABEL} are defined.  If enabled it allows the creation
-of specifically named weak labels, optionally with a value.
-@end defmac
-
-@findex #pragma
-@findex pragma
-@defmac HANDLE_PRAGMA_PACK_PUSH_POP
-Define this macro (to a value of 1) if you want to support the Win32
-style pragmas @samp{#pragma pack(push[,@var{n}])} and @samp{#pragma
-pack(pop)}.  The @samp{pack(push,[@var{n}])} pragma specifies the maximum
-alignment (in bytes) of fields within a structure, in much the same way as
-the @samp{__aligned__} and @samp{__packed__} @code{__attribute__}s do.  A
-pack value of zero resets the behavior to the default.  Successive
-invocations of this pragma cause the previous values to be stacked, so
-that invocations of @samp{#pragma pack(pop)} will return to the previous
-value.
-@end defmac
-
 @defmac HANDLE_PRAGMA_PACK_WITH_EXPANSION
-Define this macro, as well as
-@code{HANDLE_SYSV_PRAGMA}, if macros should be expanded in the
+Define this macro if macros should be expanded in the
 arguments of @samp{#pragma pack}.
 @end defmac
 

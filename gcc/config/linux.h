@@ -34,9 +34,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #undef ASM_APP_OFF
 #define ASM_APP_OFF "#NO_APP\n"
 
-#undef MD_EXEC_PREFIX
-#undef MD_STARTFILE_PREFIX
-
 /* Provide a STARTFILE_SPEC appropriate for GNU/Linux.  Here we add
    the GNU/Linux magical crtbegin.o file (see crtstuff.c) which
    provides part of the support for getting C++ file-scope static
@@ -101,9 +98,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #if defined(HAVE_LD_EH_FRAME_HDR)
 #define LINK_EH_SPEC "%{!static:--eh-frame-hdr} "
 #endif
-
-/* Define this so we can compile MS code for use with WINE.  */
-#define HANDLE_PRAGMA_PACK_PUSH_POP
 
 #undef LINK_GCC_C_SEQUENCE_SPEC
 #define LINK_GCC_C_SEQUENCE_SPEC \

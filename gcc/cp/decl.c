@@ -45,6 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "target.h"
 #include "c-family/c-common.h"
+#include "c-family/c-objc.h"
 #include "c-family/c-pragma.h"
 #include "diagnostic.h"
 #include "intl.h"
@@ -475,7 +476,11 @@ poplevel_named_label_1 (void **slot, void *data)
     {
       tree decl;
 
-      for (decl = ent->names_in_scope; decl; decl = DECL_CHAIN (decl))
+      /* ENT->NAMES_IN_SCOPE may contain a mixture of DECLs and
+	 TREE_LISTs representing OVERLOADs, so be careful.  */
+      for (decl = ent->names_in_scope; decl; decl = (DECL_P (decl)
+						     ? DECL_CHAIN (decl)
+						     : TREE_CHAIN (decl)))
 	if (decl_jump_unsafe (decl))
 	  VEC_safe_push (tree, gc, ent->bad_decls, decl);
 
@@ -3223,6 +3228,9 @@ make_unbound_class_template (tree context, tree name, tree parm_list,
       if (MAYBE_CLASS_TYPE_P (context))
 	tmpl = lookup_field (context, name, 0, false);
 
+      if (tmpl && TREE_CODE (tmpl) == TYPE_DECL)
+	tmpl = maybe_get_template_decl_from_type_decl (tmpl);
+
       if (!tmpl || !DECL_CLASS_TEMPLATE_P (tmpl))
 	{
 	  if (complain & tf_error)
@@ -3322,17 +3330,22 @@ record_builtin_java_type (const char* name, int size)
 {
   tree type, decl;
   if (size > 0)
-    type = build_nonstandard_integer_type (size, 0);
+    {
+      type = build_nonstandard_integer_type (size, 0);
+      type = build_distinct_type_copy (type);
+    }
   else if (size > -32)
     {
       tree stype;
       /* "__java_char" or ""__java_boolean".  */
       type = build_nonstandard_integer_type (-size, 1);
+      type = build_distinct_type_copy (type);
       /* Get the signed type cached and attached to the unsigned type,
 	 so it doesn't get garbage-collected at "random" times,
 	 causing potential codegen differences out of different UIDs
 	 and different alias set numbers.  */
       stype = build_nonstandard_integer_type (-size, 0);
+      stype = build_distinct_type_copy (stype);
       TREE_CHAIN (type) = stype;
       /*if (size == -1)	TREE_SET_CODE (type, BOOLEAN_TYPE);*/
     }
@@ -3680,6 +3693,8 @@ cp_make_fname_decl (location_t loc, tree id, int type_dep)
   if (current_function_decl)
     {
       struct cp_binding_level *b = current_binding_level;
+      if (b->kind == sk_function_parms)
+	return error_mark_node;
       while (b->level_chain->kind != sk_function_parms)
 	b = b->level_chain;
       pushdecl_with_scope (decl, b, /*is_friend=*/false);
@@ -4687,7 +4702,7 @@ layout_var_decl (tree decl)
       /* An automatic variable with an incomplete type: that is an error.
 	 Don't talk about array types here, since we took care of that
 	 message in grokdeclarator.  */
-      error ("storage size of %qD isn't known", decl);
+      error ("storage size of %qD isn%'t known", decl);
       TREE_TYPE (decl) = error_mark_node;
     }
 #if 0
@@ -4710,7 +4725,7 @@ layout_var_decl (tree decl)
 	constant_expression_warning (DECL_SIZE (decl));
       else
 	{
-	  error ("storage size of %qD isn't constant", decl);
+	  error ("storage size of %qD isn%'t constant", decl);
 	  TREE_TYPE (decl) = error_mark_node;
 	}
     }
@@ -4757,7 +4772,7 @@ maybe_commonize_var (tree decl)
 	      DECL_COMMON (decl) = 0;
 	      warning_at (input_location, 0,
 			  "sorry: semantics of inline function static "
-			  "data %q+#D are wrong (you'll wind up "
+			  "data %q+#D are wrong (you%'ll wind up "
 			  "with multiple copies)", decl);
 	      warning_at (DECL_SOURCE_LOCATION (decl), 0, 
 			  "  you can work around this by removing "
@@ -5757,6 +5772,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
       if (TREE_CODE (d_init) == TREE_LIST)
 	d_init = build_x_compound_expr_from_list (d_init, ELK_INIT,
 						  tf_warning_or_error);
+      d_init = resolve_nondeduced_context (d_init);
       if (describable_type (d_init))
 	{
 	  type = TREE_TYPE (decl) = do_auto_deduction (type, d_init,
@@ -6083,7 +6099,9 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 		{
 		  /* An out-of-class default definition is defined at
 		     the point where it is explicitly defaulted.  */
-		  if (DECL_INITIAL (decl) == error_mark_node)
+		  if (DECL_DELETED_FN (decl))
+		    maybe_explain_implicit_delete (decl);
+		  else if (DECL_INITIAL (decl) == error_mark_node)
 		    synthesize_method (decl);
 		}
 	      else
@@ -8786,7 +8804,7 @@ grokdeclarator (const cp_declarator *declarator,
 	    else if (friendp)
 	      {
 		if (initialized)
-		  error ("can't initialize friend function %qs", name);
+		  error ("can%'t initialize friend function %qs", name);
 		if (virtualp)
 		  {
 		    /* Cannot be both friend and virtual.  */
@@ -8796,7 +8814,7 @@ grokdeclarator (const cp_declarator *declarator,
 		if (decl_context == NORMAL)
 		  error ("friend declaration not in class definition");
 		if (current_function_decl && funcdef_flag)
-		  error ("can't define friend function %qs in a local "
+		  error ("can%'t define friend function %qs in a local "
 			 "class definition",
 			 name);
 	      }
@@ -9521,7 +9539,21 @@ grokdeclarator (const cp_declarator *declarator,
 
 	    if (friendp == 0)
 	      {
-		gcc_assert (ctype);
+		/* This should never happen in pure C++ (the check
+		   could be an assert).  It could happen in
+		   Objective-C++ if someone writes invalid code that
+		   uses a function declaration for an instance
+		   variable or property (instance variables and
+		   properties are parsed as FIELD_DECLs, but they are
+		   part of an Objective-C class, not a C++ class).
+		   That code is invalid and is caught by this
+		   check.  */
+		if (!ctype)
+		  {
+		    error ("declaration of function %qD in invalid context",
+			   unqualified_id);
+		    return error_mark_node;
+		  }
 
 		/* ``A union may [ ... ] not [ have ] virtual functions.''
 		   ARM 9.5 */
@@ -9731,6 +9763,13 @@ grokdeclarator (const cp_declarator *declarator,
 
 		if (thread_p)
 		  DECL_TLS_MODEL (decl) = decl_default_tls_model (decl);
+
+		if (constexpr_p && !initialized)
+		  {
+		    error ("constexpr static data member %qD must have an "
+			   "initializer", decl);
+		    constexpr_p = false;
+		  }
 	      }
 	    else
 	      {
@@ -12787,6 +12826,9 @@ finish_function (int flags)
   if (fndecl == NULL_TREE)
     return error_mark_node;
 
+  if (c_dialect_objc ())
+    objc_finish_function ();
+
   gcc_assert (!defer_mark_used_calls);
   defer_mark_used_calls = true;
 
@@ -13068,8 +13110,7 @@ grokmethod (cp_decl_specifier_seq *declspecs,
 
   if (DECL_IN_AGGR_P (fndecl))
     {
-      if (DECL_CONTEXT (fndecl)
-	  && TREE_CODE (DECL_CONTEXT (fndecl)) != NAMESPACE_DECL)
+      if (DECL_CLASS_SCOPE_P (fndecl))
 	error ("%qD is already defined in class %qT", fndecl,
 	       DECL_CONTEXT (fndecl));
       return error_mark_node;

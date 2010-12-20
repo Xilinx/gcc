@@ -228,21 +228,25 @@ extern enum cmodel sparc_cmodel;
 /* Note that TARGET_CPU_v9 is assumed to start the list of 64-bit
    capable cpu's.  */
 #define TARGET_CPU_sparc	0
-#define TARGET_CPU_v7		0	/* alias for previous */
-#define TARGET_CPU_sparclet	1
-#define TARGET_CPU_sparclite	2
-#define TARGET_CPU_v8		3	/* generic v8 implementation */
-#define TARGET_CPU_supersparc	4
-#define TARGET_CPU_hypersparc   5
-#define TARGET_CPU_sparc86x	6
+#define TARGET_CPU_v7		0	/* alias */
+#define TARGET_CPU_cypress	0       /* alias */
+#define TARGET_CPU_v8		1	/* generic v8 implementation */
+#define TARGET_CPU_supersparc	2
+#define TARGET_CPU_hypersparc	3
+#define TARGET_CPU_leon		4
+#define TARGET_CPU_sparclite	5
+#define TARGET_CPU_f930		5       /* alias */
+#define TARGET_CPU_f934		5       /* alias */
 #define TARGET_CPU_sparclite86x	6
-#define TARGET_CPU_v9		7	/* generic v9 implementation */
-#define TARGET_CPU_sparcv9	7	/* alias */
-#define TARGET_CPU_sparc64	7	/* alias */
-#define TARGET_CPU_ultrasparc	8
-#define TARGET_CPU_ultrasparc3	9
-#define TARGET_CPU_niagara	10
-#define TARGET_CPU_niagara2	11
+#define TARGET_CPU_sparclet	7
+#define TARGET_CPU_tsc701	7       /* alias */
+#define TARGET_CPU_v9		8	/* generic v9 implementation */
+#define TARGET_CPU_sparcv9	8	/* alias */
+#define TARGET_CPU_sparc64	8	/* alias */
+#define TARGET_CPU_ultrasparc	9
+#define TARGET_CPU_ultrasparc3	10
+#define TARGET_CPU_niagara	11
+#define TARGET_CPU_niagara2	12
 
 #if TARGET_CPU_DEFAULT == TARGET_CPU_v9 \
  || TARGET_CPU_DEFAULT == TARGET_CPU_ultrasparc \
@@ -299,6 +303,11 @@ extern enum cmodel sparc_cmodel;
 #define ASM_CPU32_DEFAULT_SPEC "-Asparclite"
 #endif
 
+#if TARGET_CPU_DEFAULT == TARGET_CPU_sparclite86x
+#define CPP_CPU32_DEFAULT_SPEC "-D__sparclite86x__"
+#define ASM_CPU32_DEFAULT_SPEC "-Asparclite"
+#endif
+
 #if TARGET_CPU_DEFAULT == TARGET_CPU_supersparc
 #define CPP_CPU32_DEFAULT_SPEC "-D__supersparc__ -D__sparc_v8__"
 #define ASM_CPU32_DEFAULT_SPEC ""
@@ -309,9 +318,9 @@ extern enum cmodel sparc_cmodel;
 #define ASM_CPU32_DEFAULT_SPEC ""
 #endif
 
-#if TARGET_CPU_DEFAULT == TARGET_CPU_sparclite86x
-#define CPP_CPU32_DEFAULT_SPEC "-D__sparclite86x__"
-#define ASM_CPU32_DEFAULT_SPEC "-Asparclite"
+#if TARGET_CPU_DEFAULT == TARGET_CPU_leon
+#define CPP_CPU32_DEFAULT_SPEC "-D__leon__ -D__sparc_v8__"
+#define ASM_CPU32_DEFAULT_SPEC ""
 #endif
 
 #endif
@@ -360,10 +369,11 @@ extern enum cmodel sparc_cmodel;
 %{mcpu=sparclet:-D__sparclet__} %{mcpu=tsc701:-D__sparclet__} \
 %{mcpu=sparclite:-D__sparclite__} \
 %{mcpu=f930:-D__sparclite__} %{mcpu=f934:-D__sparclite__} \
+%{mcpu=sparclite86x:-D__sparclite86x__} \
 %{mcpu=v8:-D__sparc_v8__} \
 %{mcpu=supersparc:-D__supersparc__ -D__sparc_v8__} \
 %{mcpu=hypersparc:-D__hypersparc__ -D__sparc_v8__} \
-%{mcpu=sparclite86x:-D__sparclite86x__} \
+%{mcpu=leon:-D__leon__ -D__sparc_v8__} \
 %{mcpu=v9:-D__sparc_v9__} \
 %{mcpu=ultrasparc:-D__sparc_v9__} \
 %{mcpu=ultrasparc3:-D__sparc_v9__} \
@@ -453,8 +463,6 @@ extern enum cmodel sparc_cmodel;
 %{!pg:%{!p:%{fpic|fPIC|fpie|fPIE:-k}}} %{keep-local-as-symbols:-L} \
 %(asm_cpu) %(asm_relax)"
 
-#define AS_NEEDS_DASH_FOR_PIPED_INPUT
-
 /* This macro defines names of additional specifications to put in the specs
    that can be used in various specifications like CC1_SPEC.  Its definition
    is an initializer with a subgrouping for each command option.
@@ -517,7 +525,8 @@ extern enum cmodel sparc_cmodel;
 
 /* MASK_APP_REGS must always be the default because that's what
    FIXED_REGISTERS is set to and -ffixed- is processed before
-   CONDITIONAL_REGISTER_USAGE is called (where we process -mno-app-regs).  */
+   TARGET_CONDITIONAL_REGISTER_USAGE is called (where we process
+   -mno-app-regs).  */
 #define TARGET_DEFAULT (MASK_APP_REGS + MASK_FPU)
 
 /* Processor type.
@@ -527,10 +536,11 @@ enum processor_type {
   PROCESSOR_CYPRESS,
   PROCESSOR_V8,
   PROCESSOR_SUPERSPARC,
+  PROCESSOR_HYPERSPARC,
+  PROCESSOR_LEON,
   PROCESSOR_SPARCLITE,
   PROCESSOR_F930,
   PROCESSOR_F934,
-  PROCESSOR_HYPERSPARC,
   PROCESSOR_SPARCLITE86X,
   PROCESSOR_SPARCLET,
   PROCESSOR_TSC701,
@@ -756,7 +766,7 @@ extern struct sparc_cpu_select sparc_select[];
    stack frames.
 
    Registers fixed in arch32 and not arch64 (or vice-versa) are marked in
-   CONDITIONAL_REGISTER_USAGE in order to properly handle -ffixed-.
+   TARGET_CONDITIONAL_REGISTER_USAGE in order to properly handle -ffixed-.
 */
 
 #define FIXED_REGISTERS  \
@@ -801,57 +811,6 @@ extern struct sparc_cpu_select sparc_select[];
   1, 1, 1, 1, 1, 1, 1, 1,	\
 				\
   1, 1, 1, 1, 1, 1}
-
-/* If !TARGET_FPU, then make the fp registers and fp cc regs fixed so that
-   they won't be allocated.  */
-
-#define CONDITIONAL_REGISTER_USAGE				\
-do								\
-  {								\
-    if (PIC_OFFSET_TABLE_REGNUM != INVALID_REGNUM)		\
-      {								\
-	fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;		\
-	call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;		\
-      }								\
-    /* If the user has passed -f{fixed,call-{used,saved}}-g5 */	\
-    /* then honor it.  */					\
-    if (TARGET_ARCH32 && fixed_regs[5])				\
-      fixed_regs[5] = 1;					\
-    else if (TARGET_ARCH64 && fixed_regs[5] == 2)		\
-      fixed_regs[5] = 0;					\
-    if (! TARGET_V9)						\
-      {								\
-	int regno;						\
-	for (regno = SPARC_FIRST_V9_FP_REG;			\
-	     regno <= SPARC_LAST_V9_FP_REG;			\
-	     regno++)						\
-	  fixed_regs[regno] = 1;				\
-	/* %fcc0 is used by v8 and v9.  */			\
-	for (regno = SPARC_FIRST_V9_FCC_REG + 1;		\
-	     regno <= SPARC_LAST_V9_FCC_REG;			\
-	     regno++)						\
-	  fixed_regs[regno] = 1;				\
-      }								\
-    if (! TARGET_FPU)						\
-      {								\
-	int regno;						\
-	for (regno = 32; regno < SPARC_LAST_V9_FCC_REG; regno++) \
-	  fixed_regs[regno] = 1;				\
-      }								\
-    /* If the user has passed -f{fixed,call-{used,saved}}-g2 */	\
-    /* then honor it.  Likewise with g3 and g4.  */		\
-    if (fixed_regs[2] == 2)					\
-      fixed_regs[2] = ! TARGET_APP_REGS;			\
-    if (fixed_regs[3] == 2)					\
-      fixed_regs[3] = ! TARGET_APP_REGS;			\
-    if (TARGET_ARCH32 && fixed_regs[4] == 2)			\
-      fixed_regs[4] = ! TARGET_APP_REGS;			\
-    else if (TARGET_CM_EMBMEDANY)				\
-      fixed_regs[4] = 1;					\
-    else if (fixed_regs[4] == 2)				\
-      fixed_regs[4] = 0;					\
-  }								\
-while (0)
 
 /* Return number of consecutive hard regs needed starting at reg REGNO
    to hold something of mode MODE.
@@ -947,10 +906,15 @@ extern int sparc_mode_class[];
    not be a register used by the prologue.  */
 #define STATIC_CHAIN_REGNUM (TARGET_ARCH64 ? 5 : 2)
 
+/* Register which holds the global offset table, if any.  */
+
+#define GLOBAL_OFFSET_TABLE_REGNUM 23
+
 /* Register which holds offset table for position-independent
    data references.  */
 
-#define PIC_OFFSET_TABLE_REGNUM (flag_pic ? 23 : INVALID_REGNUM)
+#define PIC_OFFSET_TABLE_REGNUM \
+  (flag_pic ? GLOBAL_OFFSET_TABLE_REGNUM : INVALID_REGNUM)
 
 /* Pick a default value we can notice from override_options:
    !v9: Default is on.
@@ -1440,17 +1404,6 @@ init_cumulative_args (& (CUM), (FNTYPE), (LIBNAME), (FNDECL));
 
 #define FUNCTION_ARG_PADDING(MODE, TYPE) \
 function_arg_padding ((MODE), (TYPE))
-
-/* If defined, a C expression that gives the alignment boundary, in bits,
-   of an argument with the specified mode and type.  If it is not defined,
-   PARM_BOUNDARY is used for all arguments.
-   For sparc64, objects requiring 16 byte alignment are passed that way.  */
-
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE) \
-((TARGET_ARCH64					\
-  && (GET_MODE_ALIGNMENT (MODE) == 128		\
-      || ((TYPE) && TYPE_ALIGN (TYPE) == 128)))	\
- ? 128 : PARM_BOUNDARY)
 
 
 /* Generate the special assembly code needed to tell the assembler whatever
@@ -2023,13 +1976,6 @@ do {									\
 #define ASM_OUTPUT_ALIGN(FILE,LOG)	\
   if ((LOG) != 0)			\
     fprintf (FILE, "\t.align %d\n", (1<<(LOG)))
-
-/* This is how to output an assembler line that says to advance
-   the location counter to a multiple of 2**LOG bytes using the
-   "nop" instruction as padding.  */
-#define ASM_OUTPUT_ALIGN_WITH_NOP(FILE,LOG)   \
-  if ((LOG) != 0)                             \
-    fprintf (FILE, "\t.align %d,0x1000000\n", (1<<(LOG)))
 
 #define ASM_OUTPUT_SKIP(FILE,SIZE)  \
   fprintf (FILE, "\t.skip "HOST_WIDE_INT_PRINT_UNSIGNED"\n", (SIZE))

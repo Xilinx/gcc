@@ -1,3 +1,184 @@
+2010-12-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-objc.h (objc_maybe_warn_exceptions): New.
+	* stub-objc.c (objc_maybe_warn_exceptions): New.	
+
+2010-12-10  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-common.h (readonly_error): Declare.
+	* c-common.c (readonly_error): Define.
+
+2010-12-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-common.h (invalid_indirection_error): Declare.
+	* c-common.c (invalid_indirection_error): Define.
+
+2010-12-03  Richard Guenther  <rguenther@suse.de>
+
+	PR c/46745
+	* c-pretty-print.c (pp_c_postfix_expression): Handle MEM_REF.
+	(pp_c_unary_expression): Likewise.
+	(pp_c_expression): Likewise.
+
+2010-11-30  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-common.h (objc_finish_function): New.
+	(objc_non_volatilized_type): Removed.
+	(objc_type_quals_match): Removed.
+	* stub-objc.c (objc_finish_function): New.
+	(objc_non_volatilized_type): Removed.
+	(objc_type_quals_match): Removed.
+	
+2010-11-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (parse_optimize_options): Declare.
+	* c-cppbuiltin.c, c-format.c, c-gimplify.c, c-lex.c, c-omp.c,
+	c-pch.c, c-pragma.c, c-semantics.c: Don't include toplev.h.
+
+2010-11-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-opts.c (check_deps_environment_vars): Use getenv instead of
+	GET_ENVIRONMENT.
+	* c-pch.c (O_BINARY): Don't define here.
+	* c-pragma.h: Include "cpplib.h" instead of <cpplib.h>.
+
+2010-11-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-cppbuiltin.c (c_cpp_builtins): Pass &global_options to
+	targetm.except_unwind_info.
+
+2010-11-23  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-opts.c (c_common_handle_option): Pass location to
+	set_struct_debug_option.
+
+2010-11-23  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (visibility_options): Move from ../opts.c.
+	* c-common.h (struct visibility_flags, visibility_options):
+	Declare here.
+	* c-opts.c (finish_options): Rename to c_finish_options.
+	(c_common_init): Update call to finish_options.
+
+2010-11-22  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/34033
+	* c-lex.c (lex_string): Check that each string in an Objective-C
+	string concat sequence starts with either one or zero '@', and
+	that there are no spurious '@' signs at the end.
+
+2010-11-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-pragma.c: Remove conditionals on HANDLE_PRAGMA_PACK,
+	HANDLE_PRAGMA_PACK_PUSH_POP, HANDLE_PRAGMA_WEAK and
+	HANDLE_PRAGMA_VISIBILITY.
+	* c-pragma.h (HANDLE_PRAGMA_WEAK, HANDLE_PRAGMA_PACK,
+	HANDLE_PRAGMA_VISIBILITY): Don't define.
+	(HANDLE_SYSV_PRAGMA, HANDLE_PRAGMA_PACK_PUSH_POP): Don't test.
+
+2010-11-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/16189
+	PR c++/36888
+	PR c++/45331
+	* c-common.h (keyword_begins_type_specifier): Declare.
+	(keyword_is_storage_class_specifier): Declare.
+	(keyword_is_type_qualifier): Declare.
+	* c-common.c (keyword_begins_type_specifier): New function.
+	(keyword_is_storage_class_specifier): New function.
+	(keyword_is_type_qualifier): Declare.
+
+2010-11-19  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/46547
+	* c-common.c (in_late_binary_op): Define.
+	(c_common_truthvalue_conversion): Check in_late_binary_op before
+	calling c_save_expr.
+	* c-common.h (in_late_binary_op): Declare.
+
+2010-11-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-opts.c (c_common_handle_option): Update calls to
+	set_struct_debug_option.
+
+2010-11-19  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-common.h (objc_declare_protocols): Added additional argument.
+	* stub-objc.c (objc_declare_protocol): Same change.
+	
+2010-11-18  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c/33193
+	* c-common.h (build_real_imag_expr): Declare.
+	* c-semantics.c (build_real_imag_expr): Define.
+
+2010-11-17  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-opts.c (c_common_parse_file): Take no arguments.
+	* c-common.h (c_common_parse_file): Update prototype.
+
+2010-11-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/46401
+	* c-common.c (warning_candidate_p): Don't track non-const calls
+	or STRING_CSTs.
+
+2010-11-15  Ian Lance Taylor  <iant@google.com>
+
+	* c-lex.c (init_c_lex): Set macro debug callbacks if
+	flag_dump_go_spec is set.
+
+2010-11-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-common.h (objc_build_incr_expr_for_property_ref): New.
+	* stub-objc.c (objc_build_incr_expr_for_property_ref): New.
+
+2010-11-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR preprocessor/45038
+	* c-cppbuiltin.c (c_cpp_builtins): Use different format for C++
+	dialects.
+
+2010-11-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.h (c_family_lang_mask): Declare.
+	* c-opts.c (c_family_lang_mask): Make extern.
+	* c-pragma.c (handle_pragma_diagnostic): Use
+	control_warning_option.
+
+2010-11-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (parse_optimize_options): Update call to
+	decode_options.
+	* c-common.h (c_common_handle_option): Update prototype.
+	* c-opts.c (c_common_handle_option): Take location_t parameter and
+	pass it to other functions.
+
+2010-11-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-opts.c (warning_as_error_callback): Remove.
+	(c_common_initialize_diagnostics): Don't call
+	register_warning_as_error_callback.
+	(c_common_handle_option): Handle -Werror=normalized= here.
+
+2010-11-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (handle_mode_attribute): Use %' and word "signedness"
+	in diagnostic.
+	* c-opts.c (c_common_parse_file): Start diagnostics with lowercase
+	letter.
+	* c-pragma.c (handle_pragma_target, handle_pragma_optimize):
+	Remove trailing '.' from diagnostics.
+	* c.opt (Wwrite-strings_: Avoid '`' in help text.
+
+2010-11-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (parse_optimize_options): Pass global_dc to
+	decode_options.
+	* c-opts.c (c_common_handle_option): Pass &global_options to
+	set_Wstrict_aliasing.
+	* c.opt (v): Don't mark Common or document here.
+
 2010-11-06  Iain Sandoe  <iains@gcc.gnu.org>
 
 	PR target/44981

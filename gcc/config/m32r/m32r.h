@@ -22,7 +22,6 @@
 - longlong.h?
 */
 
-#undef HANDLE_SYSV_PRAGMA
 #undef SIZE_TYPE
 #undef PTRDIFF_TYPE
 #undef WCHAR_TYPE
@@ -169,7 +168,7 @@
 
 /* Options to pass on to the assembler.  */
 #undef  ASM_SPEC
-#define ASM_SPEC "%{v} %(asm_cpu) %(relax) %{fpic|fpie:-K PIC} %{fPIC|fPIE:-K PIC}"
+#define ASM_SPEC "%(asm_cpu) %(relax) %{fpic|fpie:-K PIC} %{fPIC|fPIE:-K PIC}"
 
 #define LINK_SPEC "%{v} %(link_cpu) %(relax)"
 
@@ -456,30 +455,6 @@ extern enum m32r_sdata m32r_sdata;
 }
 
 #define CALL_REALLY_USED_REGISTERS CALL_USED_REGISTERS
-
-/* Zero or more C statements that may conditionally modify two variables
-   `fixed_regs' and `call_used_regs' (both of type `char []') after they
-   have been initialized from the two preceding macros.
-
-   This is necessary in case the fixed or call-clobbered registers depend
-   on target flags.
-
-   You need not define this macro if it has no work to do.  */
-
-#ifdef SUBTARGET_CONDITIONAL_REGISTER_USAGE
-#define CONDITIONAL_REGISTER_USAGE SUBTARGET_CONDITIONAL_REGISTER_USAGE
-#else
-#define CONDITIONAL_REGISTER_USAGE			 \
-  do							 \
-    {							 \
-      if (flag_pic)					 \
-       {						 \
-         fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;	 \
-         call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;	 \
-       }						 \
-    }							 \
-  while (0)
-#endif
 
 /* If defined, an initializer for a vector of integers, containing the
    numbers of hard registers in the order in which GCC should
@@ -780,15 +755,6 @@ extern enum reg_class m32r_regno_reg_class[FIRST_PSEUDO_REGISTER];
 #define FUNCTION_ARG_REGNO_P(N) \
   ((unsigned) (N) < M32R_MAX_PARM_REGS)
 
-/* If defined, a C expression that gives the alignment boundary, in bits,
-   of an argument with the specified mode and type.  If it is not defined, 
-   PARM_BOUNDARY is used for all arguments.  */
-#if 0
-/* We assume PARM_BOUNDARY == UNITS_PER_WORD here.  */
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE) \
-  (((TYPE) ? TYPE_ALIGN (TYPE) : GET_MODE_BITSIZE (MODE)) <= PARM_BOUNDARY \
-   ? PARM_BOUNDARY : 2 * PARM_BOUNDARY)
-#endif
 
 /* Function results.  */
 

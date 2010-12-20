@@ -36,7 +36,6 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "java-except.h"
 #include "parse.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "ggc.h"
 #include "tree-iterator.h"
 #include "target.h"
@@ -2920,7 +2919,7 @@ expand_java_field_op (int is_static, int is_putting, int field_ref_index)
       if (FIELD_FINAL (field_decl))
 	{
 	  if (DECL_CONTEXT (field_decl) != current_class)
-            error ("assignment to final field %q+D not in field's class",
+            error ("assignment to final field %q+D not in field%'s class",
                    field_decl);
 	  /* We used to check for assignments to final fields not
 	     occurring in the class initializer or in a constructor

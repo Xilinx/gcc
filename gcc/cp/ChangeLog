@@ -1,3 +1,430 @@
+2010-12-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_parser_objc_try_catch_finally_statement): Call
+	objc_maybe_warn_exceptions.
+	(cp_parser_objc_synchronized_statement): Same change.
+	
+2010-12-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* pt.c (most_specialized_class): Use ngettext to determine
+	"candidates are:" / "candidate is" message.
+
+2010-12-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46670
+	* pt.c (value_dependent_expression_p) [ARRAY_REF]: Handle
+	properly.
+
+2010-12-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/39859
+	PR c++/44522
+	PR c++/44523
+	* parser.c (struct cp_parser): Add colon_corrects_to_scope_p field.
+	(cp_parser_new): Initialize it.
+	(cp_parser_nested_name_specifier_opt): Auto-correct colons to
+	scopes if we are able to.
+	(cp_parser_question_colon_clause): Disallow colon correction.
+	(cp_parser_label_for_labeled_statement): Likewise.
+	(cp_parser_range_for): Likewise.
+	(cp_parser_enum_specifier): Likewise.
+	(cp_parser_class_head): Likewise.
+	(cp_parser_member_declaration): Likewise.
+
+2010-12-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/46852
+	* parser.c (cp_parser_class_specifier): Check for TYPE_P.
+
+2010-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46815
+	* cp-gimplify.c (cp_genericize): When changing RESULT_DECL
+	into invisible reference, change also DECL_VALUE_EXPR of
+	NRV optimized variable.
+
+2010-12-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42083
+	* init.c (build_value_init): Check build_special_member_call return
+	value for error_mark_node.
+
+2010-12-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46930
+	* decl.c (grokdeclarator): Reject uninitialized constexpr
+	static data member.
+
+2010-12-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/45330
+	* cp-tree.h (suggest_alternatives_for): Add location_t parameter.
+	* name-lookup.c (suggest_alternatives_for): Likewise.  Adjust.
+	* lex.c (unqualified_name_lookup_error): Adjust call to it.
+	* semantics.c (qualified_name_lookup_error): Move to...
+	* error.c (qualified_name_lookup_error): ...here.  Call.
+	suggest_alternatives_for.
+
+2010-12-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46873
+	PR c++/46877
+	* semantics.c (build_data_member_initialization): Handle
+	cv-qualified data member.
+
+2010-12-13  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/45388
+	* decl2.c (start_objects): Do not generate collect2 recognicable name
+	for static ctor.
+
+2010-12-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/46901
+	* typeck.c (convert_for_assignment): Fix typo in warning message.
+
+2010-12-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/46001
+	* decl.c (record_builtin_java_type): Call build_distinct_type_copy
+	on build_nonstandard_integer_type result for __java_* types.
+
+2010-12-10  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* decl.c (grokmethod): Test DECL_CLASS_SCOPE_P.
+	* error.c (dump_decl): Test DECL_FILE_SCOPE_P.
+
+2010-12-10  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cp-tree.h (readonly_error_kind): Delete.
+	(readonly_error): Rename to...
+	(cxx_readonly_error): ...this.  Change second argument to be an
+	enum lvalue_use.
+	* semantics.c (finish_asm_stmt): Call cxx_readonly_error.
+	* typeck.c (cp_build_unary_op): Likewise.
+	(cp_build_modify_expr): Likewise.
+	* typeck2.c (readonly_error): Rename to...
+	(cxx_readonly_error): ...this.  Delegate to readonly_error for
+	most cases.
+
+2010-12-10  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_parser_objc_superclass_or_category): Recognize
+	Objective-C 2.0 class extensions.  Added iface_p and
+	is_class_extension arguments.
+	(cp_parser_objc_class_interface): Updated call to
+	cp_parser_objc_superclass_or_category.
+	(cp_parser_objc_class_implementation): Same change.
+
+2010-12-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* call.c (print_conversion_rejection): Indent messages two spaces.
+
+2010-12-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* typeck.c (cp_build_indirect_ref): Call invalid_indirection_error.
+
+2010-12-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* typeck.c (composite_pointer_error): New function.
+	(composite_pointer_type_r, composite_pointer_type): Call it.
+
+2010-12-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46348
+	* semantics.c (cxx_eval_vec_init_1): Handle value-init.
+	(cxx_eval_vec_init): Pass value_init arg.
+
+2010-12-08  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/45329
+	* call.c (struct conversion): Document bad_p field.
+	(enum rejection_reason_code): Define.
+	(struct conversion_info): Define.
+	(struct rejection_reason): Define.
+	(struct z_candidate): Add `reason' field.
+	(add_candidate): Add `reason' parameter.  Store it in CAND.
+	(alloc_rejection, arity_rejection, arg_conversion_rejection):
+	New functions.
+	(bad_arg_conversion_rejection): New function.
+	(convert_class_to_reference): Add comment.
+	(remaining_arguments): New function.
+	(add_function_candidate): Record rejection reason and pass it to
+	add_candidate.
+	(add_conv_candidate, build_builtin_candidate): Likewise.
+	(add_template_candidate_real): Likewise.
+	(print_conversion_rejection): New function.
+	(print_z_candidate): Print CAND->REASON if it exists.  Adjust
+	diagnostic strings.
+	(print_z_candidates): Add location_t argument.  Adjust calling
+	sequence for print_z_candidate. Print header line directly.
+	(build_user_type_conversion_1): Add reason for rejection to
+	CAND.  Adjust call to print_z_candidates.
+	(print_error_for_call_failure): New function.
+	(build_new_function_call): Call it.  Adjust call to
+	print_z_candidates.
+	(build_operator_new_call): Likewise.
+	(build_op_call): Likewise.
+	(build_conditional_expr): Likewise.
+	(build_new_op): Likewise.
+	(build_new_method_call): Likewise.
+
+2010-12-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45822
+	* cp-tree.h (LOOKUP_DEFAULTED): New.
+	* call.c (add_function_candidate): Check it.
+	* method.c (synthesized_method_walk): Set it.
+	(do_build_copy_assign): Likewise.
+	* init.c (perform_member_init): Likewise.
+	(emit_mem_initializers): Likewise.
+
+	PR c++/46736
+	* decl.c (cp_finish_decl): Complain about an implicitly deleted
+	method defaulted outside the class.
+	* method.c (maybe_explain_implicit_delete): Don't check DECL_INITIAL.
+
+2010-12-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* rtti.c: Don't include assert.h.
+
+2010-12-07  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/45330
+	* cp-tree.h (suggest_alternatives_for, location_of): Declare.
+	* error.c (dump_expr): Handle TYPE_DECL.
+	(location_of): Unstaticize.
+	* name-lookup.c (suggest_alternatives_for): New function.
+	* lex.c (unqualified_name_lookup_error): Call it.
+
+2010-12-06  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* call.c: Include c-family/c-objc.h.
+	* decl.c: Same change.
+	* decl2.c: Same change.
+	* error.c: Same change.
+	* lex.c: Same change.
+	* parser.c: Same change.
+	* pt.c: Same change.
+	* semantics.c: Same change.
+	* typeck.c: Same change.
+	* Make-lang.in (cp/decl.o): Depend on c-family/c-objc.h.
+	(cp/decl2.o): Same change.
+	(cp/call.o): Same change.
+	(cp/error.o): Same change.
+	(cp/lex.o): Same change.
+	(cp/parser.o): Same change.
+	(cp/pt.o): Same change.
+	(cp/semantics.o): Same change.
+	(cp/typeck.o): Same change.
+	* config-lang.in (gtfiles): Added c-family/c-objc.h.
+
+2010-12-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46645
+	* semantics.c (build_data_member_initialization): Remove assert.
+
+	PR c++/46058
+	* tree.c (lvalue_kind) [SCOPE_REF]: Handle non-dependent case.
+
+2010-12-03  Richard Guenther  <rguenther@suse.de>
+
+	PR c/46745
+	* error.c (dump_expr): Handle MEM_REF.
+
+2010-12-03  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* cp-tree.h (struct aggr_init_expr_arg_iterator_d): Remove GTY
+	tag.
+
+2010-12-02  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_parser_objc_throw_statement): Use
+	cp_parser_expression, not cp_parser_assignment_expression, to
+	parse the argument of a @throw.
+
+2010-12-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* cp-objcp-common.c, lex.c, typeck.c: Don't include toplev.h.
+	* Make-lang.in (cp/lex.o, cp/cp-objcp-common.o, cp/typeck2.o):
+	Update dependencies.
+
+2010-11-30  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* decl.c (finish_function): Call objc_finish_function when
+	compiling Objective-C++.
+	* call.c (standard_conversion): Do not call
+	objc_non_volatilized_type().
+	(implicit_conversion): Same change.
+	* typeck.c (comp_ptr_ttypes_real): Same change.
+
+2010-11-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* cp-gimplify.c, cp-lang.c, cvt.c, cxx-pretty-print.c, error.c,
+	except.c, expr.c, friend.c, init.c, mangle.c, name-lookup.c,
+	optimize.c, parser.c, rtti.c, tree.c, typeck2.c: Don't include
+	toplev.h.
+	* Make-lang.in: Dependencies for above files changed to remove
+	toplev.h.
+
+2010-11-29  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/42260
+	* call.c (add_builtin_candidate): At this point the resulting type
+    	of an indirection operator should be complete.
+
+2010-11-29  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/45383
+	Reverted patch for PR c++/42260
+	* cp-tree.h (lookup_conversions): Reverted "Add new bool parameter to
+	declarationE."
+	* search.c (lookup_conversion): Reverted "Use new bool parameter in
+	definition".
+	* call.c (add_builtin_candidates): Reverted "Don't lookup template
+	conversion"
+	(convert_class_to_reference, build_user_type_conversion_1,
+	 build_op_call): Reverted "Adjust".
+	* cvt.c (build_expr_type_conversion): Reverted "Likewise".
+
+2010-11-29  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_parser_objc_try_catch_finally_statement): Parse
+	@catch(...)  and pass NULL_TREE to objc_begin_catch_clause() in
+	that case.  Improved error recovery.  Reorganized code to be
+	almost identical to c_parser_objc_try_catch_finally_statement.
+
+2010-11-27  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc++/46222
+	* decl.c (grokdeclarator): Replaced an assert (for a case that can
+	never happen in C++, but could happen in ObjC++ for invalid code)
+	with a check that prints an error message and returns
+	error_mark_node.
+
+2010-11-23  Jeffrey Yasskin <jyasskin@google.com>
+
+	PR c++/46527
+	* pt.c (instantiate_decl): Propagate the template's location to
+	its instance.
+
+2010-11-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* name-lookup.c (handle_namespace_attrs): Don't check
+	HANDLE_PRAGMA_VISIBILITY.
+	* parser.c (cp_parser_namespace_definition): Don't check
+	HANDLE_PRAGMA_VISIBILITY.
+
+2010-11-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/16189
+	PR c++/36888
+	PR c++/45331
+	* parser.c (cp_lexer_set_token_position): New function.
+	(cp_lexer_previous_token_position): New function.
+	(cp_lexer_previous_token): Call it.
+	(cp_parser_class_specifier): Try to gracefully handle a missing
+	semicolon.
+
+2010-11-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/46538
+	* decl.c (cp_make_fname_decl): Return error_mark_node if
+	current_binding_level has already sk_function_parms kind.
+
+	PR c++/46526
+	* semantics.c (cxx_eval_call_expression): Unshare the result.
+
+2010-11-19  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_parser_objc_protocol_declaration): Pass attributes
+	to objc_declare_protocols.
+
+2010-11-18  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c/33193
+	* typeck.c (cp_build_unary_op): Call build_real_imag_expr for
+	REALPART_EXPR and IMAGPART_EXPR.
+
+2010-11-16  Jason Merrill  <jason@redhat.com>
+
+	* call.c (convert_like_real): Don't make a temp for copy-list-init.
+	(build_over_call): Don't handle that here.
+	(build_new_method_call): Use COMPLETE_OR_OPEN_TYPE_P for error.
+
+	PR c++/46497
+	* call.c (build_over_call): Check for =delete even when trivial.
+
+	DR 1004
+	* decl.c (make_unbound_class_template): Handle using
+	injected-type-name as template.
+
+2010-11-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* typeck.c (cp_build_unary_op): Use
+	objc_build_incr_expr_for_property_ref to build the pre/post
+	increment/decrement of an Objective-C property ref.
+
+2010-11-13  Jason Merrill  <jason@redhat.com>
+
+	* decl.c (cp_finish_decl): Use resolve_nondeduced_context for auto.
+	* init.c (build_new): Likewise.
+	* pt.c (tsubst_decl): Likewise.
+	(do_auto_deduction): Likewise.
+	(resolve_nondeduced_context): Use build_offset_ref and
+	cp_build_addr_expr.
+
+2010-11-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (g++spec.o): Use $(OPTS_H).
+
+2010-11-13  Ville Voutilainen <ville.voutilainen@gmail.com> <ville.voutilainen@symbio.com>
+
+	Core 1135, 1136, 1145, 1149
+	* method.c (defaultable_fn_check): Do not disallow defaulting a
+	non-public or explicit special member function on its first
+	declaration.
+
+2010-11-12  James Dennett <jdennett@google.com>
+
+	PR/39415
+	* typeck.c (build_static_cast_1): Convert to the target type
+	when doing static_cast<cv Derived*>(Base*).
+
+2010-11-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46420
+	* pt.c (tsubst_copy_and_build) [TARGET_EXPR]: New case.
+	[CONSTRUCTOR]: Use the tsubsted type.
+
+	PR c++/46369
+	* semantics.c (cxx_eval_bit_field_ref): New.
+	(cxx_eval_constant_expression): Call it.
+
+2010-11-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* cvt.c (cp_convert_to_pointer): Use %' in diagnostic.
+	* decl.c (layout_var_decl, maybe_commonize_var, grokdeclarator):
+	Use %' in diagnostics.
+	* decl2.c (check_classfn): Use %' in diagnostic.
+	* init.c (build_java_class_ref): Use %' in diagnostic.
+	(build_delete): Remove trailing '.' from diagnostic.
+	* method.c (do_build_copy_assign, walk_field_subobs): Use %' in
+	diagnostics.
+	* name-lookup.c (pushdecl_maybe_friend): Use %' in diagnostic.
+	* parser.c (cp_parser_exception_specification_opt): Remove
+	trailing '.' from diagnostic.
+	(cp_parser_objc_interstitial_code): Use %qs for quoting in
+	diagnostic.
+	* pt.c (check_valid_ptrmem_cst_expr): Use %< and %> for quoting in
+	diagnostic.
+	* repo.c (reopen_repo_file_for_write): Use %' in diagnostic.
+
+2010-11-10  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/46065
+	* decl.c (poplevel_named_label_1): Use TREE_CHAIN if necessary.
+
 2010-11-09  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/45894
@@ -76,14 +503,14 @@
 
 2010-11-04  Nicola Pero  <nicola.pero@meta-innovation.com>
 
-	Fixed using the Objective-C 2.0 dot-syntax with class names.	
+	Fixed using the Objective-C 2.0 dot-syntax with class names.
 	* parser.c (cp_parser_primary_expression): Recognize Objective-C
 	2.0 dot-syntax with class names and process it.
 	(cp_parser_nonclass_name): Recognize Objective-C 2.0 dot-syntax
 	with class names.
 	(cp_parser_class_name): Same change.
 	(cp_parser_simple_type_specifier): Tidied comments.
-	
+
 2010-11-04  Jason Merrill  <jason@redhat.com>
 
 	PR c++/46298
@@ -736,7 +1163,7 @@
 	(type_dependent_expression_p): Added case for AT_ENCODE_EXPR.
 	* parser.c (cp_parser_objc_encode_expression): Updated comment.
 
-2010-10-07  Nicola Pero  <nicola@nicola.brainstorm.co.uk>
+2010-10-07  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	Merge from apple/trunk branch on FSF servers.
 

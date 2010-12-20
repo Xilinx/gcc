@@ -56,6 +56,7 @@ enum availability
 struct lto_file_decl_data;
 
 extern const char * const cgraph_availability_names[];
+extern const char * const ld_plugin_symbol_resolution_names[];
 
 /* Function inlining information.  */
 
@@ -179,20 +180,6 @@ struct GTY(()) cgraph_clone_info
   bitmap combined_args_to_skip;
 };
 
-enum node_frequency {
-  /* This function most likely won't be executed at all.
-     (set only when profile feedback is available or via function attribute). */
-  NODE_FREQUENCY_UNLIKELY_EXECUTED,
-  /* For functions that are known to be executed once (i.e. constructors, destructors
-     and main function.  */
-  NODE_FREQUENCY_EXECUTED_ONCE,
-  /* The default value.  */
-  NODE_FREQUENCY_NORMAL,
-  /* Optimize this function hard
-     (set only when profile feedback is available or via function attribute). */
-  NODE_FREQUENCY_HOT
-};
-
 
 /* The cgraph data structure.
    Each function decl has assigned cgraph_node listing callees and callers.  */
@@ -246,6 +233,9 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
 
   /* Expected number of executions: calculated in profile.c.  */
   gcov_type count;
+  /* How to scale counts at materialization time; used to merge
+     LTO units with different number of profile runs.  */
+  int count_materialization_scale;
   /* Unique id of the node.  */
   int uid;
   /* Ordering of all cgraph nodes.  */
@@ -398,6 +388,9 @@ struct GTY(()) cgraph_indirect_call_info
   HOST_WIDE_INT otr_token;
   /* Type of the object from OBJ_TYPE_REF_OBJECT. */
   tree otr_type;
+  /* Delta by which must be added to this parameter.  For polymorphic calls
+     only.  */
+  tree thunk_delta;
   /* Index of the parameter that is called.  */
   int param_index;
   /* ECF flags determined from the caller.  */
@@ -585,7 +578,7 @@ struct cgraph_node * cgraph_clone_node (struct cgraph_node *, tree, gcov_type, i
 					int, bool, VEC(cgraph_edge_p,heap) *);
 
 void cgraph_redirect_edge_callee (struct cgraph_edge *, struct cgraph_node *);
-void cgraph_make_edge_direct (struct cgraph_edge *, struct cgraph_node *);
+void cgraph_make_edge_direct (struct cgraph_edge *, struct cgraph_node *, tree);
 
 struct cgraph_asm_node *cgraph_add_asm_node (tree);
 
@@ -695,6 +688,7 @@ void varpool_node_set_remove (varpool_node_set, struct varpool_node *);
 void dump_varpool_node_set (FILE *, varpool_node_set);
 void debug_varpool_node_set (varpool_node_set);
 void ipa_discover_readonly_nonaddressable_vars (void);
+bool cgraph_comdat_can_be_unshared_p (struct cgraph_node *);
 
 /* In predict.c  */
 bool cgraph_maybe_hot_edge_p (struct cgraph_edge *e);
@@ -926,6 +920,18 @@ cgraph_can_remove_if_no_direct_calls_p (struct cgraph_node *node)
   if (DECL_EXTERNAL (node->decl))
     return true;
   return !node->address_taken && cgraph_can_remove_if_no_direct_calls_and_refs_p (node);
+}
+
+/* Return true when function NODE can be removed from callgraph
+   if all direct calls are eliminated.  */
+
+static inline bool
+varpool_can_remove_if_no_refs (struct varpool_node *node)
+{
+  return (!node->force_output && !node->used_from_other_partition
+	  && (flag_toplevel_reorder || DECL_COMDAT (node->decl)
+	      || DECL_ARTIFICIAL (node->decl))
+  	  && (DECL_COMDAT (node->decl) || !node->externally_visible));
 }
 
 /* Return true when all references to VNODE must be visible in ipa_ref_list.

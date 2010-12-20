@@ -1,3 +1,73 @@
+2010-12-15  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* decl.c (java_init_decl_processing): Initialise integer_three_node.
+	* lang.c (put_decl_node): Handle nested function decls.
+
+2010-12-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* jcf-parse.c: Don't include assert.h.
+	(java_parse_file): Use gcc_assert.
+
+2010-12-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang.opt (static-libgcj): New option.
+
+2010-12-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* jcf-parse.c: Don't include toplev.h.
+	* Make-lang.in (java/jcf-parse.o): Don't depend on toplev.h.
+
+2010-11-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* boehm.c: Don't include toplev.h.
+	* Make-lang.in (java/boehm.o): Don't depend on toplev.h.
+
+2010-11-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* expr.c, lang.c, mangle.c, mangle_name.c, typeck.c,
+	verify-glue.c: Don't include toplev.h.
+	* Make-lang.in: Dependencies for above files changed to remove
+	toplev.h.
+
+2010-11-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* boehm.c: Include "config.h" instead of <config.h>.
+	* builtins.c: Don't include <stdarg.h>.
+	* class.c: Don't include "stdio.h".
+	(O_BINARY): Don't define here.
+	* jcf-depend.c: Don't include <assert.h>.
+	(jcf_dependency_set_dep_file, jcf_dependency_init,
+	jcf_dependency_write): Use gcc_assert.
+	* jcf-io.c (O_BINARY): Don't define here.
+	* jcf-path.c: Don't include "tm.h".
+	(jcf_path_init): Use getenv instead of GET_ENVIRONMENT.
+	* resource.c: Don't include "stdio.h".
+	(O_BINARY): Don't define here.
+	* verify-impl.c: Don't include <stdio.h>.
+
+2010-11-17  Joseph Myers  <joseph@codesourcery.com>
+
+	* jcf-parse.c (java_parse_file): Take no arguments.
+	* java-tree.h (java_parse_file): Update prototype.
+
+2010-11-09  Joern Rennecke  <amylaar@spamcop.net>
+	    Andrew Haley  <aph@redhat.com>
+
+	PR java/46386
+	* config/pdp11/t-pdp11 (java/constants.o-warn): Remove.
+
+2010-11-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (jvspec.o, java/lang.o): Use $(OPTS_H).
+	* lang.c (java_handle_option): Take location_t parameter.
+
+2010-11-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* expr.c (expand_java_field_op): Use %' in diagnostic.
+	* jcf-parse.c (java_parse_file): Use %' in diagnostics.
+	* jvspec.c (lang_specific_driver): Use %' in diagnostic.
+	* lang.c (java_post_options): Use %' in diagnostics.
+
 2010-11-06  Joern Rennecke  <amylaar@spamcop.net>
 
 	PR middle-end/46314

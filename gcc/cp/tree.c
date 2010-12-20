@@ -1,6 +1,6 @@
 /* Language-dependent node constructors for parse phase of GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -27,7 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cp-tree.h"
 #include "flags.h"
-#include "toplev.h"
 #include "tree-inline.h"
 #include "debug.h"
 #include "convert.h"
@@ -147,9 +146,12 @@ lvalue_kind (const_tree ref)
 	return clk_ordinary;
       break;
 
-      /* A currently unresolved scope ref.  */
+      /* A scope ref in a template, left as SCOPE_REF to support later
+	 access checking.  */
     case SCOPE_REF:
-      gcc_unreachable ();
+      gcc_assert (!type_dependent_expression_p (CONST_CAST_TREE(ref)));
+      return lvalue_kind (TREE_OPERAND (ref, 1));
+
     case MAX_EXPR:
     case MIN_EXPR:
       /* Disallow <? and >? as lvalues if either argument side-effects.  */

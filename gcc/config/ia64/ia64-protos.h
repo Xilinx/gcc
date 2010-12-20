@@ -39,7 +39,9 @@ extern bool ia64_expand_movxf_movrf (enum machine_mode, rtx[]);
 extern void ia64_expand_compare (rtx *, rtx *, rtx *);
 extern void ia64_expand_vecint_cmov (rtx[]);
 extern bool ia64_expand_vecint_minmax (enum rtx_code, enum machine_mode, rtx[]);
+extern void ia64_expand_unpack (rtx [], bool, bool);
 extern void ia64_expand_widen_sum (rtx[], bool);
+extern void ia64_expand_widen_mul_v4hi (rtx [], bool, bool);
 extern void ia64_expand_dot_prod_v8qi (rtx[], bool);
 extern void ia64_expand_call (rtx, rtx, rtx, int);
 extern void ia64_split_call (rtx, rtx, rtx, rtx, rtx, int, int);
@@ -67,7 +69,6 @@ extern rtx ia64_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
 extern rtx ia64_va_arg (tree, tree);
 #endif /* RTX_CODE */
 
-extern int ia64_function_arg_boundary (enum machine_mode, tree);
 extern void ia64_asm_output_external (FILE *, tree, const char *);
 extern void ia64_vms_output_aligned_decl_common (FILE *, tree, const char *,
 						 unsigned HOST_WIDE_INT,

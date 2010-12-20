@@ -2653,7 +2653,8 @@ analyze_overlapping_iterations (tree chrec_a,
   /* If they are the same chrec, and are affine, they overlap
      on every iteration.  */
   else if (eq_evolutions_p (chrec_a, chrec_b)
-	   && evolution_function_is_affine_multivariate_p (chrec_a, lnn))
+	   && (evolution_function_is_affine_multivariate_p (chrec_a, lnn)
+	       || operand_equal_p (chrec_a, chrec_b, 0)))
     {
       dependence_stats.num_same_subscript_function++;
       *overlap_iterations_a = conflict_fn (1, affine_fn_cst (integer_zero_node));
@@ -2662,7 +2663,7 @@ analyze_overlapping_iterations (tree chrec_a,
     }
 
   /* If they aren't the same, and aren't affine, we can't do anything
-     yet. */
+     yet.  */
   else if ((chrec_contains_symbols (chrec_a)
 	    || chrec_contains_symbols (chrec_b))
 	   && (!evolution_function_is_affine_multivariate_p (chrec_a, lnn)
@@ -3482,6 +3483,7 @@ omega_setup_subscript (tree access_fun_a, tree access_fun_b,
   tree fun_a = chrec_convert (type, access_fun_a, NULL);
   tree fun_b = chrec_convert (type, access_fun_b, NULL);
   tree difference = chrec_fold_minus (type, fun_a, fun_b);
+  tree minus_one;
 
   /* When the fun_a - fun_b is not constant, the dependence is not
      captured by the classic distance vector representation.  */
@@ -3496,7 +3498,8 @@ omega_setup_subscript (tree access_fun_a, tree access_fun_b,
       return true;
     }
 
-  fun_b = chrec_fold_multiply (type, fun_b, integer_minus_one_node);
+  minus_one = build_int_cst (type, -1);
+  fun_b = chrec_fold_multiply (type, fun_b, minus_one);
 
   eq = omega_add_zero_eq (pb, omega_black);
   if (!init_omega_eq_with_af (pb, eq, DDR_NB_LOOPS (ddr), fun_a, ddr)
@@ -4507,7 +4510,7 @@ dump_rdg_vertex (FILE *file, struct graph *rdg, int i)
     for (e = v->succ; e; e = e->succ_next)
       fprintf (file, " %d", e->dest);
 
-  fprintf (file, ") \n");
+  fprintf (file, ")\n");
   print_gimple_stmt (file, RDGV_STMT (v), 0, TDF_VOPS|TDF_MEMSYMS);
   fprintf (file, ")\n");
 }
@@ -4974,6 +4977,38 @@ stores_from_loop (struct loop *loop, VEC (gimple, heap) **stmts)
   free (bbs);
 }
 
+/* Returns true when the statement at STMT is of the form "A[i] = 0"
+   that contains a data reference on its LHS with a stride of the same
+   size as its unit type.  */
+
+bool
+stmt_with_adjacent_zero_store_dr_p (gimple stmt)
+{
+  tree op0, op1;
+  bool res;
+  struct data_reference *dr;
+
+  if (!stmt
+      || !gimple_vdef (stmt)
+      || !is_gimple_assign (stmt)
+      || !gimple_assign_single_p (stmt)
+      || !(op1 = gimple_assign_rhs1 (stmt))
+      || !(integer_zerop (op1) || real_zerop (op1)))
+    return false;
+
+  dr = XCNEW (struct data_reference);
+  op0 = gimple_assign_lhs (stmt);
+
+  DR_STMT (dr) = stmt;
+  DR_REF (dr) = op0;
+
+  res = dr_analyze_innermost (dr)
+    && stride_of_unit_type_p (DR_STEP (dr), TREE_TYPE (op0));
+
+  free_data_ref (dr);
+  return res;
+}
+
 /* Initialize STMTS with all the statements of LOOP that contain a
    store to memory of the form "A[i] = 0".  */
 
@@ -4984,17 +5019,12 @@ stores_zero_from_loop (struct loop *loop, VEC (gimple, heap) **stmts)
   basic_block bb;
   gimple_stmt_iterator si;
   gimple stmt;
-  tree op;
   basic_block *bbs = get_loop_body_in_dom_order (loop);
 
   for (i = 0; i < loop->num_nodes; i++)
     for (bb = bbs[i], si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
       if ((stmt = gsi_stmt (si))
-	  && gimple_vdef (stmt)
-	  && is_gimple_assign (stmt)
-	  && gimple_assign_rhs_code (stmt) == INTEGER_CST
-	  && (op = gimple_assign_rhs1 (stmt))
-	  && (integer_zerop (op) || real_zerop (op)))
+	  && stmt_with_adjacent_zero_store_dr_p (stmt))
 	VEC_safe_push (gimple, heap, *stmts, gsi_stmt (si));
 
   free (bbs);

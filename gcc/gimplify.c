@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "ggc.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "target.h"
 #include "pointer-set.h"
 #include "splay-tree.h"
@@ -146,9 +145,11 @@ gimple_tree_eq (const void *p1, const void *p2)
   if (!operand_equal_p (t1, t2, 0))
     return 0;
 
+#ifdef ENABLE_CHECKING
   /* Only allow them to compare equal if they also hash equal; otherwise
      results are nondeterminate, and we fail bootstrap comparison.  */
   gcc_assert (gimple_tree_hash (p1) == gimple_tree_hash (p2));
+#endif
 
   return 1;
 }
@@ -7762,6 +7763,46 @@ gimplify_body (tree *body_p, tree fndecl, bool do_parms)
   return outer_bind;
 }
 
+typedef char *char_p; /* For DEF_VEC_P.  */
+DEF_VEC_P(char_p);
+DEF_VEC_ALLOC_P(char_p,heap);
+
+/* Return whether we should exclude FNDECL from instrumentation.  */
+
+static bool
+flag_instrument_functions_exclude_p (tree fndecl)
+{
+  VEC(char_p,heap) *vec;
+
+  vec = (VEC(char_p,heap) *) flag_instrument_functions_exclude_functions;
+  if (VEC_length (char_p, vec) > 0)
+    {
+      const char *name;
+      int i;
+      char *s;
+
+      name = lang_hooks.decl_printable_name (fndecl, 0);
+      FOR_EACH_VEC_ELT (char_p, vec, i, s)
+	if (strstr (name, s) != NULL)
+	  return true;
+    }
+
+  vec = (VEC(char_p,heap) *) flag_instrument_functions_exclude_files;
+  if (VEC_length (char_p, vec) > 0)
+    {
+      const char *name;
+      int i;
+      char *s;
+
+      name = DECL_SOURCE_FILE (fndecl);
+      FOR_EACH_VEC_ELT (char_p, vec, i, s)
+	if (strstr (name, s) != NULL)
+	  return true;
+    }
+
+  return false;
+}
+
 /* Entry point to the gimplification pass.  FNDECL is the FUNCTION_DECL
    node for the function we want to gimplify.
 
@@ -7822,13 +7863,31 @@ gimplify_function_tree (tree fndecl)
       gimple new_bind;
       gimple tf;
       gimple_seq cleanup = NULL, body = NULL;
+      tree tmp_var;
+      gimple call;
 
+      x = implicit_built_in_decls[BUILT_IN_RETURN_ADDRESS];
+      call = gimple_build_call (x, 0);
+      tmp_var = create_tmp_var (ptr_type_node, "return_addr");
+      gimple_call_set_lhs (call, tmp_var);
+      gimplify_seq_add_stmt (&cleanup, call);
       x = implicit_built_in_decls[BUILT_IN_PROFILE_FUNC_EXIT];
-      gimplify_seq_add_stmt (&cleanup, gimple_build_call (x, 0));
+      call = gimple_build_call (x, 2,
+				build_fold_addr_expr (current_function_decl),
+				tmp_var);
+      gimplify_seq_add_stmt (&cleanup, call);
       tf = gimple_build_try (seq, cleanup, GIMPLE_TRY_FINALLY);
 
+      x = implicit_built_in_decls[BUILT_IN_RETURN_ADDRESS];
+      call = gimple_build_call (x, 0);
+      tmp_var = create_tmp_var (ptr_type_node, "return_addr");
+      gimple_call_set_lhs (call, tmp_var);
+      gimplify_seq_add_stmt (&body, call);
       x = implicit_built_in_decls[BUILT_IN_PROFILE_FUNC_ENTER];
-      gimplify_seq_add_stmt (&body, gimple_build_call (x, 0));
+      call = gimple_build_call (x, 2,
+				build_fold_addr_expr (current_function_decl),
+				tmp_var);
+      gimplify_seq_add_stmt (&body, call);
       gimplify_seq_add_stmt (&body, tf);
       new_bind = gimple_build_bind (NULL, body, gimple_bind_block (bind));
       /* Clear the block for BIND, since it is no longer directly inside

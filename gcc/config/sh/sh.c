@@ -38,7 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "insn-attr.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "recog.h"
 #include "integrate.h"
 #include "dwarf2.h"
@@ -205,6 +204,7 @@ static tree sh_handle_renesas_attribute (tree *, tree, tree, int, bool *);
 static void sh_print_operand (FILE *, rtx, int);
 static void sh_print_operand_address (FILE *, rtx);
 static bool sh_print_operand_punct_valid_p (unsigned char code);
+static bool sh_asm_output_addr_const_extra (FILE *file, rtx x);
 static void sh_output_function_epilogue (FILE *, HOST_WIDE_INT);
 static void sh_insert_attributes (tree, tree *);
 static const char *sh_check_pch_target_flags (int);
@@ -298,6 +298,7 @@ static void sh_encode_section_info (tree, rtx, int);
 static int sh2a_function_vector_p (tree);
 static void sh_trampoline_init (rtx, tree, rtx);
 static rtx sh_trampoline_adjust_address (rtx);
+static void sh_conditional_register_usage (void);
 
 static const struct attribute_spec sh_attribute_table[] =
 {
@@ -372,7 +373,9 @@ static const struct default_options sh_option_optimization_table[] =
 #define TARGET_PRINT_OPERAND_ADDRESS sh_print_operand_address
 #undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
 #define TARGET_PRINT_OPERAND_PUNCT_VALID_P sh_print_operand_punct_valid_p
-
+#undef TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA
+#define TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA sh_asm_output_addr_const_extra
+ 
 #undef TARGET_ASM_FUNCTION_EPILOGUE
 #define TARGET_ASM_FUNCTION_EPILOGUE sh_output_function_epilogue
 
@@ -587,6 +590,9 @@ static const struct default_options sh_option_optimization_table[] =
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD sh_secondary_reload
+
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE sh_conditional_register_usage
 
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P	sh_legitimate_address_p
@@ -1449,6 +1455,115 @@ sh_print_operand_punct_valid_p (unsigned char code)
 {
   return (code == '.' || code == '#' || code == '@' || code == ','
           || code == '$' || code == '\'' || code == '>');
+}
+
+/* Implement TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA.  */
+
+static bool
+sh_asm_output_addr_const_extra (FILE *file, rtx x)
+{
+  if (GET_CODE (x) == UNSPEC)
+    {
+      switch (XINT (x, 1))
+	{
+	case UNSPEC_DATALABEL:
+	  fputs ("datalabel ", file);
+	  output_addr_const (file, XVECEXP (x, 0, 0));
+	  break;
+	case UNSPEC_PIC:
+	  /* GLOBAL_OFFSET_TABLE or local symbols, no suffix.  */
+	  output_addr_const (file, XVECEXP (x, 0, 0));
+	  break;
+	case UNSPEC_GOT:
+	  output_addr_const (file, XVECEXP (x, 0, 0));
+	  fputs ("@GOT", file);
+	  break;
+	case UNSPEC_GOTOFF:
+	  output_addr_const (file, XVECEXP (x, 0, 0));
+	  fputs ("@GOTOFF", file);
+	  break;
+	case UNSPEC_PLT:
+	  output_addr_const (file, XVECEXP (x, 0, 0));
+	  fputs ("@PLT", file);
+	  break;
+	case UNSPEC_GOTPLT:
+	  output_addr_const (file, XVECEXP (x, 0, 0));
+	  fputs ("@GOTPLT", file);
+	  break;
+	case UNSPEC_DTPOFF:
+	  output_addr_const (file, XVECEXP (x, 0, 0));
+	  fputs ("@DTPOFF", file);
+	  break;
+	case UNSPEC_GOTTPOFF:
+	  output_addr_const (file, XVECEXP (x, 0, 0));
+	  fputs ("@GOTTPOFF", file);
+	  break;
+	case UNSPEC_TPOFF:
+	  output_addr_const (file, XVECEXP (x, 0, 0));
+	  fputs ("@TPOFF", file);
+	  break;
+	case UNSPEC_CALLER:
+	  {
+	    char name[32];
+	    /* LPCS stands for Label for PIC Call Site.  */
+	    targetm.asm_out.generate_internal_label (name, "LPCS",
+						     INTVAL (XVECEXP (x, 0, 0)));
+	    assemble_name (file, name);
+	  }
+	  break;
+	case UNSPEC_EXTRACT_S16:
+	case UNSPEC_EXTRACT_U16:
+	  {
+	    rtx val, shift;
+
+	    val = XVECEXP (x, 0, 0);
+	    shift = XVECEXP (x, 0, 1);
+	    fputc ('(', file);
+	    if (shift != const0_rtx)
+	        fputc ('(', file);
+	    if (GET_CODE (val) == CONST
+	        || GET_RTX_CLASS (GET_CODE (val)) != RTX_OBJ)
+	      {
+		fputc ('(', file);
+		output_addr_const (file, val);
+		fputc (')', file);
+	      }
+	    else
+	      output_addr_const (file, val);
+	    if (shift != const0_rtx)
+	      {
+		fputs (" >> ", file);
+		output_addr_const (file, shift);
+		fputc (')', file);
+	      }
+	    fputs (" & 65535)", file);
+	  }
+	  break;
+	case UNSPEC_SYMOFF:
+	  output_addr_const (file, XVECEXP (x, 0, 0));
+	  fputc ('-', file);
+	  if (GET_CODE (XVECEXP (x, 0, 1)) == CONST)
+	    {
+	      fputc ('(', file);
+	      output_addr_const (file, XVECEXP (x, 0, 1));
+	      fputc (')', file);
+	    }
+	  else
+	    output_addr_const (file, XVECEXP (x, 0, 1));
+	  break;
+	case UNSPEC_PCREL_SYMOFF:
+	  output_addr_const (file, XVECEXP (x, 0, 0));
+	  fputs ("-(", file);
+	  output_addr_const (file, XVECEXP (x, 0, 1));
+	  fputs ("-.)", file);
+	  break;
+	default:
+	  return false;
+	}
+      return true;
+    }
+  else
+    return false;
 }
 
 
@@ -11605,7 +11720,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 	    break;
 	  }
       if (scratch1 == scratch0)
-	error ("Need a second call-clobbered general purpose register");
+	error ("need a second call-clobbered general purpose register");
       for (i = FIRST_TARGET_REG; i <= LAST_TARGET_REG; i++)
 	if (call_used_regs[i] && ! fixed_regs[i])
 	  {
@@ -11613,7 +11728,7 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
 	    break;
 	  }
       if (scratch2 == scratch0)
-	error ("Need a call-clobbered target register");
+	error ("need a call-clobbered target register");
     }
 
   this_value = plus_constant (this_rtx, delta);
@@ -12414,6 +12529,54 @@ sh_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
     return GENERAL_REGS;
   return NO_REGS;
 }
+
+static void
+sh_conditional_register_usage (void)
+{
+  int regno;
+  for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno ++)
+    if (! VALID_REGISTER_P (regno))
+      fixed_regs[regno] = call_used_regs[regno] = 1;
+  /* R8 and R9 are call-clobbered on SH5, but not on earlier SH ABIs.  */
+  if (TARGET_SH5)
+    {
+      call_used_regs[FIRST_GENERAL_REG + 8]
+	= call_used_regs[FIRST_GENERAL_REG + 9] = 1;
+      call_really_used_regs[FIRST_GENERAL_REG + 8]
+	= call_really_used_regs[FIRST_GENERAL_REG + 9] = 1;
+    }
+  if (TARGET_SHMEDIA)
+    {
+      regno_reg_class[FIRST_GENERAL_REG] = GENERAL_REGS;
+      CLEAR_HARD_REG_SET (reg_class_contents[FP0_REGS]);
+      regno_reg_class[FIRST_FP_REG] = FP_REGS;
+    }
+  if (flag_pic)
+    {
+      fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;
+      call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;
+    }
+  /* Renesas saves and restores mac registers on call.  */
+  if (TARGET_HITACHI && ! TARGET_NOMACSAVE)
+    {
+      call_really_used_regs[MACH_REG] = 0;
+      call_really_used_regs[MACL_REG] = 0;
+    }
+  for (regno = FIRST_FP_REG + (TARGET_LITTLE_ENDIAN != 0);
+       regno <= LAST_FP_REG; regno += 2)
+    SET_HARD_REG_BIT (reg_class_contents[DF_HI_REGS], regno);
+  if (TARGET_SHMEDIA)
+    {
+      for (regno = FIRST_TARGET_REG; regno <= LAST_TARGET_REG; regno ++)
+	if (! fixed_regs[regno] && call_really_used_regs[regno])
+	  SET_HARD_REG_BIT (reg_class_contents[SIBCALL_REGS], regno);
+    }
+  else
+    for (regno = FIRST_GENERAL_REG; regno <= LAST_GENERAL_REG; regno++)
+      if (! fixed_regs[regno] && call_really_used_regs[regno])
+	SET_HARD_REG_BIT (reg_class_contents[SIBCALL_REGS], regno);
+}
+
 
 enum sh_divide_strategy_e sh_div_strategy = SH_DIV_STRATEGY_DEFAULT;
 

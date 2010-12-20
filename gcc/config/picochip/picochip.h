@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler for picoChip
    Copyright (C) 2001, 2008, 2009, 2010 Free Software Foundation, Inc.
 
-   Contributed by picoChip Designs Ltd. (http://www.picochip.com)
+   Contributed by Picochip Ltd. (http://www.picochip.com)
    Maintained by Daniel Towner (daniel.towner@picochip.com) and
    Hariharan Sandanagobalane (hariharan@picochip.com).
 
@@ -60,19 +60,19 @@ extern enum picochip_dfa_type picochip_schedule_type;
 
 /* Translate requests for particular AEs into their respective ISA
    options. Note that byte access is enabled by default. */
-#define TARGET_OPTION_TRANSLATE_TABLE			      \
-  { "-mae=ANY",   "-mmul-type=none -mno-byte-access" },	      \
-  { "-mae=ANY2",  "-mmul-type=none -mno-byte-access" },	      \
-  { "-mae=ANY3",  "-mmul-type=none" },			      \
-  { "-mae=STAN",  "-mmul-type=none -mno-byte-access" },	      \
-  { "-mae=STAN2", "-mmul-type=mac -mno-byte-access" },	      \
-  { "-mae=STAN3", "-mmul-type=mac " },			      \
-  { "-mae=MAC",   "-mmul-type=mac -mno-byte-access" },	      \
-  { "-mae=MUL",   "-mmul-type=mul" },			      \
-  { "-mae=MEM",   "-mmul-type=mul" },			      \
-  { "-mae=MEM2",  "-mmul-type=mul" },			      \
-  { "-mae=CTRL",  "-mmul-type=mul" },			      \
-  { "-mae=CTRL2", "-mmul-type=mul" }
+#define DRIVER_SELF_SPECS					\
+  "%{mae=ANY:-mmul-type=none -mno-byte-access} %<mae=ANY",	\
+  "%{mae=ANY2:-mmul-type=none -mno-byte-access} %<mae=ANY2",	\
+  "%{mae=ANY3:-mmul-type=none} %<mae=ANY3",			\
+  "%{mae=STAN:-mmul-type=none -mno-byte-access} %<mae=STAN",	\
+  "%{mae=STAN2:-mmul-type=mac -mno-byte-access} %<mae=STAN2",	\
+  "%{mae=STAN3:-mmul-type=mac} %<mae=STAN3",			\
+  "%{mae=MAC:-mmul-type=mac -mno-byte-access} %<mae=MAC",	\
+  "%{mae=MUL:-mmul-type=mul} %<mae=MUL",			\
+  "%{mae=MEM:-mmul-type=mul} %<mae=MEM",			\
+  "%{mae=MEM2:-mmul-type=mul} %<mae=MEM2",			\
+  "%{mae=CTRL:-mmul-type=mul} %<mae=CTRL",			\
+  "%{mae=CTRL2:-mmul-type=mul} %<mae=CTRL2"
 
 /* Specify the default options, so that the multilib build doesn't
    need to provide special cases for the defaults. */
@@ -403,13 +403,6 @@ extern const enum reg_class picochip_regno_reg_class[FIRST_PSEUDO_REGISTER];
 
 #define INIT_CUMULATIVE_ARGS(CUM,FNTYPE,LIBNAME,INDIRECT,N_NAMED_ARGS) \
   ((CUM) = 0)
-
-/* Originally this used TYPE_ALIGN to determine the
-   alignment.  Unfortunately, this fails in some cases, because the
-   type is unknown (e.g., libcall's). Instead, use GET_MODE_ALIGNMENT
-   since the mode is always present. */
-#define FUNCTION_ARG_BOUNDARY(MODE,TYPE) \
-  picochip_get_function_arg_boundary(MODE)
 
 /* The first 6 registers can hold parameters.  */
 #define FUNCTION_ARG_REGNO_P(REGNO) ((REGNO) < 6)

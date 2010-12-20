@@ -716,10 +716,9 @@ gl_init (gimple_parser *p)
 /* Initialize the parser data structures.  */
 
 static gimple_parser *
-gp_init (int debug_p)
+gp_init (void)
 {
   gimple_parser *p = ggc_alloc_cleared_gimple_parser ();
-  p->debug_p = debug_p;
   line_table = p->line_table = ggc_alloc_cleared_line_maps ();
   p->ident_hash = ident_hash;
   linemap_init (p->line_table);
@@ -790,11 +789,11 @@ gp_finish (gimple_parser *parser)
 /* Main entry point for the GIMPLE front end.  */
 
 void
-gimple_main (int debug_p)
+gimple_main (void)
 {
   gimple_parser *parser;
 
-  parser_gc_root__ = parser = gp_init (debug_p);
+  parser_gc_root__ = parser = gp_init ();
 
   if (parser->lexer->filename == NULL)
     return;

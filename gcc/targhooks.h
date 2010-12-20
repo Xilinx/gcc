@@ -65,6 +65,8 @@ extern bool hook_callee_copies_named
 extern void default_print_operand (FILE *, rtx, int);
 extern void default_print_operand_address (FILE *, rtx);
 extern bool default_print_operand_punct_valid_p (unsigned char);
+extern tree default_mangle_assembler_name (const char *);
+
 extern bool default_asm_output_addr_const_extra (FILE *, rtx);
 
 extern bool default_scalar_mode_supported_p (enum machine_mode);
@@ -111,6 +113,8 @@ extern rtx default_function_arg
   (CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
 extern rtx default_function_incoming_arg
   (CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
+extern unsigned int default_function_arg_boundary (enum machine_mode,
+						   const_tree);
 extern bool hook_bool_const_rtx_commutative_p (const_rtx, int);
 extern rtx default_function_value (const_tree, const_tree, bool);
 extern rtx default_libcall_value (enum machine_mode, const_rtx);
@@ -158,18 +162,23 @@ extern int default_register_move_cost (enum machine_mode, reg_class_t,
 extern bool default_profile_before_prologue (void);
 extern reg_class_t default_preferred_reload_class (rtx, reg_class_t);
 extern reg_class_t default_preferred_output_reload_class (rtx, reg_class_t);
+extern reg_class_t default_preferred_rename_class (reg_class_t rclass);
 extern bool default_class_likely_spilled_p (reg_class_t);
 
 extern enum unwind_info_type default_debug_unwind_info (void);
-extern enum unwind_info_type default_except_unwind_info (void);
-extern enum unwind_info_type dwarf2_except_unwind_info (void);
-extern enum unwind_info_type sjlj_except_unwind_info (void);
+extern enum unwind_info_type default_except_unwind_info (struct gcc_options *);
+extern enum unwind_info_type dwarf2_except_unwind_info (struct gcc_options *);
+extern enum unwind_info_type sjlj_except_unwind_info (struct gcc_options *);
 
 extern int default_label_align_after_barrier_max_skip (rtx);
 extern int default_loop_align_max_skip (rtx);
 extern int default_label_align_max_skip (rtx);
 extern int default_jump_align_max_skip (rtx);
-
+extern section * default_function_section(tree decl, enum node_frequency freq,
+					  bool startup, bool exit);
 extern enum machine_mode default_get_reg_raw_mode(int);
 
 extern const struct default_options empty_optimization_table[];
+
+extern void *default_get_pch_validity (size_t *);
+extern const char *default_pch_valid_p (const void *, size_t);

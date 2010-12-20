@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "flags.h"
 #include "output.h"
-#include "toplev.h"
 #include "target.h"
 
 static bool begin_init_stmts (tree *, tree *);
@@ -315,9 +314,11 @@ build_value_init (tree type, tsubst_flags_t complain)
 	  tree ctor = build_special_member_call
 	    (NULL_TREE, complete_ctor_identifier,
 	     NULL, type, LOOKUP_NORMAL, complain);
-
-	  ctor = build_aggr_init_expr (type, ctor);
-	  AGGR_INIT_ZERO_FIRST (ctor) = 1;
+	  if (ctor != error_mark_node)
+	    {
+	      ctor = build_aggr_init_expr (type, ctor);
+	      AGGR_INIT_ZERO_FIRST (ctor) = 1;
+	    }
 	  return ctor;
 	}
     }
@@ -504,6 +505,9 @@ perform_member_init (tree member, tree init)
 	}
       else
 	{
+	  int flags = LOOKUP_NORMAL;
+	  if (DECL_DEFAULTED_FN (current_function_decl))
+	    flags |= LOOKUP_DEFAULTED;
 	  if (CP_TYPE_CONST_P (type)
 	      && init == NULL_TREE
 	      && !type_has_user_provided_default_constructor (type))
@@ -512,7 +516,7 @@ perform_member_init (tree member, tree init)
 	    permerror (DECL_SOURCE_LOCATION (current_function_decl),
 		       "uninitialized member %qD with %<const%> type %qT",
 		       member, type);
-	  finish_expr_stmt (build_aggr_init (decl, init, 0, 
+	  finish_expr_stmt (build_aggr_init (decl, init, flags,
 					     tf_warning_or_error));
 	}
     }
@@ -853,10 +857,15 @@ sort_mem_initializers (tree t, tree mem_inits)
 void
 emit_mem_initializers (tree mem_inits)
 {
+  int flags = LOOKUP_NORMAL;
+
   /* We will already have issued an error message about the fact that
      the type is incomplete.  */
   if (!COMPLETE_TYPE_P (current_class_type))
     return;
+
+  if (DECL_DEFAULTED_FN (current_function_decl))
+    flags |= LOOKUP_DEFAULTED;
 
   /* Sort the mem-initializers into the order in which the
      initializations should be performed.  */
@@ -909,7 +918,7 @@ emit_mem_initializers (tree mem_inits)
 			      cp_build_indirect_ref (base_addr, RO_NULL,
                                                      tf_warning_or_error),
 			      arguments,
-			      LOOKUP_NORMAL,
+			      flags,
                               tf_warning_or_error);
 	  expand_cleanup_for_base (subobject, NULL_TREE);
 	}
@@ -2516,8 +2525,13 @@ build_new (VEC(tree,gc) **placement, tree type, tree nelts,
   if (nelts == NULL_TREE && VEC_length (tree, *init) == 1)
     {
       tree auto_node = type_uses_auto (type);
-      if (auto_node && describable_type (VEC_index (tree, *init, 0)))
-	type = do_auto_deduction (type, VEC_index (tree, *init, 0), auto_node);
+      if (auto_node)
+	{
+	  tree d_init = VEC_index (tree, *init, 0);
+	  d_init = resolve_nondeduced_context (d_init);
+	  if (describable_type (d_init))
+	    type = do_auto_deduction (type, d_init, auto_node);
+	}
     }
 
   if (processing_template_decl)
@@ -2629,7 +2643,7 @@ build_java_class_ref (tree type)
 	}
     if (!field)
       {
-	error ("can't find %<class$%> in %qT", type);
+	error ("can%'t find %<class$%> in %qT", type);
 	return error_mark_node;
       }
   }
@@ -3307,7 +3321,7 @@ build_delete (tree type, tree addr, special_function_kind auto_delete,
 		  cxx_incomplete_type_diagnostic (addr, type, DK_WARNING);
 		  inform (input_location, "neither the destructor nor the class-specific "
 			  "operator delete will be called, even if they are "
-			  "declared when the class is defined.");
+			  "declared when the class is defined");
 		}
 	      complete_p = false;
 	    }

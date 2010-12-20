@@ -125,10 +125,8 @@ extern const char * const *h8_reg_names;
 #define TARGET_DEFAULT (MASK_QUICKCALL)
 #endif
 
-/* We want dwarf2 info available to gdb...  */
+/* We want dwarf2 info available to gdb.  */
 #define DWARF2_DEBUGGING_INFO        1
-/* ... but we don't actually support full dwarf2 EH.  */
-#define MUST_USE_SJLJ_EXCEPTIONS 1
 
 /* The return address is pushed on the stack.  */
 #define INCOMING_RETURN_ADDR_RTX   gen_rtx_MEM (Pmode, gen_rtx_REG (Pmode, STACK_POINTER_REGNUM))
@@ -243,12 +241,6 @@ extern const char * const *h8_reg_names;
 #define REG_ALLOC_ORDER				\
 /* r0 r1 r2 r3 r4 r5 r6 r7 mac ap rap  fp */	\
   { 2, 3, 0, 1, 4, 5, 6, 8,  7, 9, 10, 11 }
-
-#define CONDITIONAL_REGISTER_USAGE			\
-{							\
-  if (!TARGET_MAC)					\
-    fixed_regs[MAC_REG] = call_used_regs[MAC_REG] = 1;	\
-}
 
 #define HARD_REGNO_NREGS(REGNO, MODE)		\
   h8300_hard_regno_nregs ((REGNO), (MODE))

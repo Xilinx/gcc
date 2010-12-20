@@ -149,6 +149,7 @@ gfc_init_options (unsigned int decoded_options_count,
   gfc_option.flag_init_character_value = (char)0;
   gfc_option.flag_align_commons = 1;
   gfc_option.flag_protect_parens = 1;
+  gfc_option.flag_realloc_lhs = -1;
   
   gfc_option.fpe = 0;
   gfc_option.rtcheck = 0;
@@ -258,7 +259,7 @@ gfc_post_options (const char **pfilename)
     gfc_option.flag_whole_file = 1;
 
   /* Enable whole-file mode if LTO is in effect.  */
-  if (flag_lto || flag_whopr)
+  if (flag_lto)
     gfc_option.flag_whole_file = 1;
 
   /* Fortran allows associative math - but we cannot reassociate if
@@ -266,12 +267,26 @@ gfc_post_options (const char **pfilename)
   if (flag_associative_math == -1)
     flag_associative_math = (!flag_trapping_math && !flag_signed_zeros);
 
+  /* By default, disable (re)allocation during assignment for -std=f95,
+     and enable it for F2003/F2008/GNU/Legacy. */
+  if (gfc_option.flag_realloc_lhs == -1)
+    {
+      if (gfc_option.allow_std & GFC_STD_F2003)
+	gfc_option.flag_realloc_lhs = 1;
+      else
+	gfc_option.flag_realloc_lhs = 0;
+    }
+
   /* -fbounds-check is equivalent to -fcheck=bounds */
   if (flag_bounds_check)
     gfc_option.rtcheck |= GFC_RTCHECK_BOUNDS;
 
   if (flag_compare_debug)
     gfc_option.dump_fortran_original = 0;
+
+  /* Make -fmax-errors visible to gfortran's diagnostic machinery.  */
+  if (global_options_set.x_flag_max_errors)
+    gfc_option.max_errors = flag_max_errors;
 
   /* Verify the input file name.  */
   if (!filename || strcmp (filename, "-") == 0)
@@ -548,7 +563,7 @@ gfc_handle_runtime_check_option (const char *arg)
 
 bool
 gfc_handle_option (size_t scode, const char *arg, int value,
-		   int kind ATTRIBUTE_UNUSED,
+		   int kind ATTRIBUTE_UNUSED, location_t loc ATTRIBUTE_UNUSED,
 		   const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
 {
   bool result = true;
@@ -760,10 +775,6 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       gfc_option.flag_max_array_constructor = value > 65535 ? value : 65535;
       break;
 
-    case OPT_fmax_errors_:
-      gfc_option.max_errors = value;
-      break;
-
     case OPT_fmax_stack_var_size_:
       gfc_option.flag_max_stack_var_size = value;
       break;
@@ -962,6 +973,10 @@ gfc_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_fprotect_parens:
       gfc_option.flag_protect_parens = value;
+      break;
+
+    case OPT_frealloc_lhs:
+      gfc_option.flag_realloc_lhs = value;
       break;
 
     case OPT_fcheck_:

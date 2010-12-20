@@ -218,6 +218,7 @@ enum mips_code_readable_setting {
 #define TARGET_LOONGSON_2E          (mips_arch == PROCESSOR_LOONGSON_2E)
 #define TARGET_LOONGSON_2F          (mips_arch == PROCESSOR_LOONGSON_2F)
 #define TARGET_LOONGSON_2EF         (TARGET_LOONGSON_2E || TARGET_LOONGSON_2F)
+#define TARGET_LOONGSON_3A          (mips_arch == PROCESSOR_LOONGSON_3A)
 #define TARGET_MIPS3900             (mips_arch == PROCESSOR_R3900)
 #define TARGET_MIPS4000             (mips_arch == PROCESSOR_R4000)
 #define TARGET_MIPS4120             (mips_arch == PROCESSOR_R4120)
@@ -242,6 +243,7 @@ enum mips_code_readable_setting {
 				     || mips_tune == PROCESSOR_74KF3_2)
 #define TUNE_LOONGSON_2EF           (mips_tune == PROCESSOR_LOONGSON_2E	\
 				     || mips_tune == PROCESSOR_LOONGSON_2F)
+#define TUNE_LOONGSON_3A            (mips_tune == PROCESSOR_LOONGSON_3A)
 #define TUNE_MIPS3000               (mips_tune == PROCESSOR_R3000)
 #define TUNE_MIPS3900               (mips_tune == PROCESSOR_R3900)
 #define TUNE_MIPS4000               (mips_tune == PROCESSOR_R4000)
@@ -261,7 +263,8 @@ enum mips_code_readable_setting {
    Loongson-2E/2F processors should be enabled.  In o32 pairs of
    floating-point registers provide 64-bit values.  */
 #define TARGET_LOONGSON_VECTORS	    (TARGET_HARD_FLOAT_ABI		\
-				     && TARGET_LOONGSON_2EF)
+				     && (TARGET_LOONGSON_2EF		\
+					 || TARGET_LOONGSON_3A))
 
 /* True if the pre-reload scheduler should try to create chains of
    multiply-add or multiply-subtract instructions.  For example,
@@ -716,7 +719,7 @@ enum mips_code_readable_setting {
      %{march=mips32r2|march=m4k|march=4ke*|march=4ksd|march=24k* \
        |march=34k*|march=74k*|march=1004k*: -mips32r2} \
      %{march=mips64|march=5k*|march=20k*|march=sb1*|march=sr71000 \
-       |march=xlr: -mips64} \
+       |march=xlr|march=loongson3a: -mips64} \
      %{march=mips64r2|march=octeon: -mips64r2} \
      %{!march=*: -" MULTILIB_ISA_DEFAULT "}}"
 
@@ -1082,8 +1085,6 @@ enum mips_code_readable_setting {
 /* The CACHE instruction is available.  */
 #define ISA_HAS_CACHE (TARGET_CACHE_BUILTIN && !TARGET_MIPS16)
 
-#define CONDITIONAL_REGISTER_USAGE mips_conditional_register_usage ()
-
 /* Tell collect what flags to pass to nm.  */
 #ifndef NM_FLAGS
 #define NM_FLAGS "-Bn"
@@ -1140,7 +1141,7 @@ enum mips_code_readable_setting {
 %{mfp32} %{mfp64} \
 %{mshared} %{mno-shared} \
 %{msym32} %{mno-sym32} \
-%{mtune=*} %{v} \
+%{mtune=*} \
 %(subtarget_asm_spec)"
 
 /* Extra switches sometimes passed to the linker.  */
@@ -1515,8 +1516,8 @@ enum mips_code_readable_setting {
    Regarding coprocessor registers: without evidence to the contrary,
    it's best to assume that each coprocessor register has a unique
    use.  This can be overridden, in, e.g., mips_option_override or
-   CONDITIONAL_REGISTER_USAGE should the assumption be inappropriate
-   for a particular target.  */
+   TARGET_CONDITIONAL_REGISTER_USAGE should the assumption be
+   inappropriate for a particular target.  */
 
 #define FIXED_REGISTERS							\
 {									\
@@ -2246,8 +2247,6 @@ typedef struct mips_args {
 
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
   mips_init_cumulative_args (&CUM, FNTYPE)
-
-#define FUNCTION_ARG_BOUNDARY mips_function_arg_boundary
 
 #define FUNCTION_ARG_PADDING(MODE, TYPE) \
   (mips_pad_arg_upward (MODE, TYPE) ? upward : downward)

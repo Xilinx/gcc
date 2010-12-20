@@ -22,9 +22,9 @@
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-/** @file move.h
+/** @file bits/move.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{utility}
  */
 
 #ifndef _MOVE_H
@@ -51,29 +51,20 @@ _GLIBCXX_END_NAMESPACE
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
   
-  /// forward (as per N2835)
-  /// Forward lvalues as rvalues.
+  /// forward (as per N3143)
   template<typename _Tp>
-    inline typename enable_if<!is_lvalue_reference<_Tp>::value, _Tp&&>::type
-    forward(typename std::common_type<_Tp>::type& __t)
+    inline _Tp&&
+    forward(typename std::remove_reference<_Tp>::type& __t) 
     { return static_cast<_Tp&&>(__t); }
 
-  /// Forward rvalues as rvalues.
   template<typename _Tp>
-    inline typename enable_if<!is_lvalue_reference<_Tp>::value, _Tp&&>::type
-    forward(typename std::common_type<_Tp>::type&& __t)
-    { return static_cast<_Tp&&>(__t); }
-
-  // Forward lvalues as lvalues.
-  template<typename _Tp>
-    inline typename enable_if<is_lvalue_reference<_Tp>::value, _Tp>::type
-    forward(typename std::common_type<_Tp>::type __t)
-    { return __t; }
-
-  // Prevent forwarding rvalues as const lvalues.
-  template<typename _Tp>
-    inline typename enable_if<is_lvalue_reference<_Tp>::value, _Tp>::type
-    forward(typename std::remove_reference<_Tp>::type&& __t) = delete;
+    inline _Tp&&
+    forward(typename std::remove_reference<_Tp>::type&& __t) 
+    {
+      static_assert(!std::is_lvalue_reference<_Tp>::value, "template argument"
+		    " substituting _Tp is an lvalue reference type");
+      return static_cast<_Tp&&>(__t);
+    }
 
   /**
    *  @brief Move a value.

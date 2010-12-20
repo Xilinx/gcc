@@ -46,6 +46,7 @@ am__aclocal_m4_deps = $(top_srcdir)/../config/enable.m4 \
 	$(top_srcdir)/../config/lib-ld.m4 \
 	$(top_srcdir)/../config/lib-link.m4 \
 	$(top_srcdir)/../config/lib-prefix.m4 \
+	$(top_srcdir)/../config/lthostflags.m4 \
 	$(top_srcdir)/../config/multi.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
 	$(top_srcdir)/../config/override.m4 \
@@ -277,6 +278,7 @@ libexecdir = @libexecdir@
 libtool_VERSION = @libtool_VERSION@
 localedir = @localedir@
 localstatedir = @localstatedir@
+lt_host_flags = @lt_host_flags@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 multi_basedir = @multi_basedir@
@@ -925,6 +927,11 @@ future.lo: future.cc
 future.o: future.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
+debug.lo: debug.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+debug.o: debug.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
 # Use special rules for compatibility-ldbl.cc compilation, as we need to
 # pass -mlong-double-64.
 @GLIBCXX_LDBL_COMPAT_TRUE@compatibility-ldbl.lo: compatibility-ldbl.cc
@@ -947,6 +954,7 @@ stamp-debug:
 	  sed -e 's/top_builddir = \.\./top_builddir = ..\/../' \
 	      -e 's/top_build_prefix = \.\./top_build_prefix = ..\/../' \
 	      -e 's/srcdir = \.\./srcdir = ..\/../' \
+	      -e 's/VPATH = \.\./VPATH = ..\/../' \
 	      -e 's/glibcxx_basedir = \.\./glibcxx_basedir = ..\/../' \
 	      -e 's/MKDIR_P = \.\./MKDIR_P = ..\/../' \
 	      -e 's/all-local: build_debug/all-local:/' \

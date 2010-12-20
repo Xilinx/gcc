@@ -176,6 +176,7 @@ resolve_procedure_interface (gfc_symbol *sym)
       sym->attr.recursive = ifc->attr.recursive;
       sym->attr.always_explicit = ifc->attr.always_explicit;
       sym->attr.ext_attr |= ifc->attr.ext_attr;
+      sym->attr.is_bind_c = ifc->attr.is_bind_c;
       /* Copy array spec.  */
       sym->as = gfc_copy_array_spec (ifc->as);
       if (sym->as)
@@ -5026,13 +5027,6 @@ resolve_procedure:
     {
       gfc_ref *ref, *ref2 = NULL;
 
-      if (e->ts.type == BT_CLASS)
-	{
-	  gfc_error ("Polymorphic subobject of coindexed object at %L",
-		     &e->where);
-	  t = FAILURE;
-	}
-
       for (ref = e->ref; ref; ref = ref->next)
 	{
 	  if (ref->type == REF_COMPONENT)
@@ -5044,6 +5038,14 @@ resolve_procedure:
       for ( ; ref; ref = ref->next)
 	if (ref->type == REF_COMPONENT)
 	  break;
+
+      /* Expression itself is not coindexed object.  */
+      if (ref && e->ts.type == BT_CLASS)
+	{
+	  gfc_error ("Polymorphic subobject of coindexed object at %L",
+		     &e->where);
+	  t = FAILURE;
+	}
 
       /* Expression itself is coindexed object.  */
       if (ref == NULL)
@@ -5382,9 +5384,18 @@ update_ppc_arglist (gfc_expr* e)
   if (!po)
     return FAILURE;
 
+  /* F08:R739.  */
   if (po->rank > 0)
     {
       gfc_error ("Passed-object at %L must be scalar", &e->where);
+      return FAILURE;
+    }
+
+  /* F08:C611.  */
+  if (po->ts.type == BT_DERIVED && po->ts.u.derived->attr.abstract)
+    {
+      gfc_error ("Base object for procedure-pointer component call at %L is of"
+		 " ABSTRACT type '%s'", &e->where, po->ts.u.derived->name);
       return FAILURE;
     }
 
@@ -5412,6 +5423,7 @@ check_typebound_baseobject (gfc_expr* e)
 
   gcc_assert (base->ts.type == BT_DERIVED || base->ts.type == BT_CLASS);
 
+  /* F08:C611.  */
   if (base->ts.type == BT_DERIVED && base->ts.u.derived->attr.abstract)
     {
       gfc_error ("Base object for type-bound procedure call at %L is of"
@@ -5419,7 +5431,8 @@ check_typebound_baseobject (gfc_expr* e)
       goto cleanup;
     }
 
-  /* If the procedure called is NOPASS, the base object must be scalar.  */
+  /* F08:C1230. If the procedure called is NOPASS,
+     the base object must be scalar.  */
   if (e->value.compcall.tbp->nopass && base->rank > 0)
     {
       gfc_error ("Base object for NOPASS type-bound procedure call at %L must"
@@ -5427,7 +5440,7 @@ check_typebound_baseobject (gfc_expr* e)
       goto cleanup;
     }
 
-  /* FIXME: Remove once PR 41177 (this problem) is fixed completely.  */
+  /* FIXME: Remove once PR 43214 is fixed (TBP with non-scalar PASS).  */
   if (base->rank > 0)
     {
       gfc_error ("Non-scalar base object at %L currently not implemented",
@@ -7880,6 +7893,7 @@ resolve_select_type (gfc_code *code, gfc_namespace *old_ns)
 	  /* Set up arguments.  */
 	  new_st->expr1->value.function.actual = gfc_get_actual_arglist ();
 	  new_st->expr1->value.function.actual->expr = gfc_get_variable_expr (code->expr1->symtree);
+	  new_st->expr1->value.function.actual->expr->where = code->loc;
 	  gfc_add_vptr_component (new_st->expr1->value.function.actual->expr);
 	  vtab = gfc_find_derived_vtab (body->ext.case_list->ts.u.derived);
 	  st = gfc_find_symtree (vtab->ns->sym_root, vtab->name);
@@ -7947,6 +7961,15 @@ resolve_transfer (gfc_code *code)
   for (ref = exp->ref; ref; ref = ref->next)
     if (ref->type == REF_COMPONENT)
       ts = &ref->u.c.component->ts;
+
+  if (ts->type == BT_CLASS)
+    {
+      /* FIXME: Test for defined input/output.  */
+      gfc_error ("Data transfer element at %L cannot be polymorphic unless "
+                "it is processed by a defined input/output procedure",
+                &code->loc);
+      return;
+    }
 
   if (ts->type == BT_DERIVED)
     {
@@ -9098,8 +9121,9 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	case EXEC_FORALL:
 	  resolve_forall_iterators (code->ext.forall_iterator);
 
-	  if (code->expr1 != NULL && code->expr1->ts.type != BT_LOGICAL)
-	    gfc_error ("FORALL mask clause at %L requires a LOGICAL "
+	  if (code->expr1 != NULL
+	      && (code->expr1->ts.type != BT_LOGICAL || code->expr1->rank))
+	    gfc_error ("FORALL mask clause at %L requires a scalar LOGICAL "
 		       "expression", &code->expr1->where);
 	  break;
 
@@ -11491,6 +11515,13 @@ resolve_fl_derived (gfc_symbol *sym)
 			     sym->name, &sym->declared_at) == FAILURE)
 	return FAILURE;
 
+      if ((sym->attr.sequence || sym->attr.is_bind_c) && c->ts.type == BT_CLASS)
+	{
+	  gfc_error ("Polymorphic component %s at %L in SEQUENCE or BIND(C) "
+		     "type %s", c->name, &c->loc, sym->name);
+	  return FAILURE;
+	}
+
       if (sym->attr.sequence)
 	{
 	  if (c->ts.type == BT_DERIVED && c->ts.u.derived->attr.sequence == 0)
@@ -11753,7 +11784,9 @@ resolve_symbol (gfc_symbol *sym)
       for (ns = gfc_current_ns->parent; ns; ns = ns->parent)
 	{
 	  symtree = gfc_find_symtree (ns->sym_root, sym->name);
-	  if (symtree && symtree->n.sym->generic)
+	  if (symtree && (symtree->n.sym->generic ||
+			  (symtree->n.sym->attr.flavor == FL_PROCEDURE
+			   && sym->ns->construct_entities)))
 	    {
 	      this_symtree = gfc_find_symtree (gfc_current_ns->sym_root,
 					       sym->name);

@@ -22,9 +22,9 @@
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-/** @file unique_ptr.h
+/** @file bits/unique_ptr.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{memory}
  */
 
 #ifndef _UNIQUE_PTR_H
@@ -109,7 +109,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       // Constructors.
       constexpr unique_ptr()
       : _M_t()
-      { }
+      { static_assert(!std::is_pointer<deleter_type>::value,
+		     "constructed with null function pointer deleter"); }
 
       explicit
       unique_ptr(pointer __p)
@@ -130,7 +131,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       constexpr unique_ptr(nullptr_t)
       : _M_t()
-      { }
+      { static_assert(!std::is_pointer<deleter_type>::value,
+		     "constructed with null function pointer deleter"); }
 
       // Move constructors.
       unique_ptr(unique_ptr&& __u)
@@ -269,7 +271,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       // Constructors.
       constexpr unique_ptr()
       : _M_t()
-      { }
+      { static_assert(!std::is_pointer<deleter_type>::value,
+		     "constructed with null function pointer deleter"); }
 
       explicit
       unique_ptr(pointer __p)
@@ -288,10 +291,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       { static_assert(!std::is_reference<deleter_type>::value,
 		      "rvalue deleter bound to reference"); }
 
-      /* TODO: use delegating constructor */
       constexpr unique_ptr(nullptr_t)
       : _M_t()
-      { }
+      { static_assert(!std::is_pointer<deleter_type>::value,
+		     "constructed with null function pointer deleter"); }
 
       // Move constructors.
       unique_ptr(unique_ptr&& __u)

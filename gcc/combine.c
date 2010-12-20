@@ -93,7 +93,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-attr.h"
 #include "recog.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "target.h"
 #include "optabs.h"
 #include "insn-codes.h"
@@ -2460,7 +2459,25 @@ update_cfg_for_uncondjump (rtx insn)
 
   delete_insn (insn);
   if (at_end && EDGE_COUNT (bb->succs) == 1)
-    single_succ_edge (bb)->flags |= EDGE_FALLTHRU;
+    {
+      rtx insn;
+
+      single_succ_edge (bb)->flags |= EDGE_FALLTHRU;
+
+      /* Remove barriers from the footer if there are any.  */
+      for (insn = bb->il.rtl->footer; insn; insn = NEXT_INSN (insn))
+	if (BARRIER_P (insn))
+	  {
+	    if (PREV_INSN (insn))
+	      NEXT_INSN (PREV_INSN (insn)) = NEXT_INSN (insn);
+	    else
+	      bb->il.rtl->footer = NEXT_INSN (insn);
+	    if (NEXT_INSN (insn))
+	      PREV_INSN (NEXT_INSN (insn)) = PREV_INSN (insn);
+	  }
+	else if (LABEL_P (insn))
+	  break;
+    }
 }
 
 /* Try to combine the insns I0, I1 and I2 into I3.
@@ -3078,10 +3095,12 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p)
       /* If I1 feeds into I2 and I1DEST is in I1SRC, we need to make a unique
 	 copy of I2SRC each time we substitute it, in order to avoid creating
 	 self-referential RTL when we will be substituting I1SRC for I1DEST
-	 later.  Likewise if I0 feeds into I2 and I0DEST is in I0SRC.  */
+	 later.  Likewise if I0 feeds into I2, either directly or indirectly
+	 through I1, and I0DEST is in I0SRC.  */
       newpat = subst (PATTERN (i3), i2dest, i2src, 0,
 		      (i1_feeds_i2_n && i1dest_in_i1src)
-		      || (i0_feeds_i2_n && i0dest_in_i0src));
+		      || ((i0_feeds_i2_n || (i0_feeds_i1_n && i1_feeds_i2_n))
+			  && i0dest_in_i0src));
       substed_i2 = 1;
 
       /* Record whether I2's body now appears within I3's body.  */
@@ -6761,11 +6780,11 @@ expand_compound_operation (rtx x)
      count.  This can happen in a case like (x >> 31) & 255 on machines
      that can't shift by a constant.  On those machines, we would first
      combine the shift with the AND to produce a variable-position
-     extraction.  Then the constant of 31 would be substituted in to produce
-     a such a position.  */
+     extraction.  Then the constant of 31 would be substituted in
+     to produce such a position.  */
 
   modewidth = GET_MODE_BITSIZE (GET_MODE (x));
-  if (modewidth + len >= pos)
+  if (modewidth >= pos + len)
     {
       enum machine_mode mode = GET_MODE (x);
       tem = gen_lowpart (mode, XEXP (x, 0));

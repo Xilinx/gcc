@@ -192,9 +192,8 @@ extern int cris_cpu_version;
 #undef ASM_SPEC
 #define ASM_SPEC \
  MAYBE_AS_NO_MUL_BUG_ABORT \
- "%{v:-v}\
- %(asm_subtarget)\
- %{march=*:%{cpu=*:%eDo not specify both -march=... and -mcpu=...}}\
+ "%(asm_subtarget)\
+ %{march=*:%{cpu=*:%edo not specify both -march=... and -mcpu=...}}\
  %{march=v32:--march=v32} %{mcpu=v32:--march=v32}"
 
 /* For the cris-*-elf subtarget.  */
@@ -430,9 +429,6 @@ extern int cris_cpu_version;
    r10- for return values.  */
 #define CALL_USED_REGISTERS \
  {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1}
-
-#define CONDITIONAL_REGISTER_USAGE cris_conditional_register_usage ()
-
 
 /* Node: Allocation Order */
 
@@ -1333,9 +1329,6 @@ enum cris_pic_symbol_type
 #define FUNCTION_MODE QImode
 
 #define NO_IMPLICIT_EXTERN_C
-
-/* No specific purpose other than warningless compatibility.  */
-#define HANDLE_PRAGMA_PACK_PUSH_POP 1
 
 /*
  * Local variables:

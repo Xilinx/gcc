@@ -897,7 +897,6 @@ extern void df_simple_dataflow (enum df_flow_dir, df_init_function,
 extern void df_mark_solutions_dirty (void);
 extern bool df_get_bb_dirty (basic_block);
 extern void df_set_bb_dirty (basic_block);
-extern void df_set_bb_dirty_nonlr (basic_block);
 extern void df_compact_blocks (void);
 extern void df_bb_replace (int, basic_block);
 extern void df_bb_delete (int);
@@ -971,7 +970,9 @@ extern void df_simulate_one_insn_backwards (basic_block, rtx, bitmap);
 extern void df_simulate_finalize_backwards (basic_block, bitmap);
 extern void df_simulate_initialize_forwards (basic_block, bitmap);
 extern void df_simulate_one_insn_forwards (basic_block, rtx, bitmap);
-
+extern void simulate_backwards_to_point (basic_block, regset, rtx);
+extern bool can_move_insns_across (rtx, rtx, rtx, rtx, basic_block, regset,
+				   regset, rtx *);
 /* Functions defined in df-scan.c.  */
 
 extern void df_scan_alloc (bitmap);
@@ -981,6 +982,7 @@ extern void df_grow_insn_info (void);
 extern void df_scan_blocks (void);
 extern df_ref df_ref_create (rtx, rtx *, rtx,basic_block,
 			     enum df_ref_type, int ref_flags);
+extern void df_uses_create (rtx *, rtx, int);
 extern void df_ref_remove (df_ref);
 extern struct df_insn_info * df_insn_create_insn_record (rtx);
 extern void df_insn_delete (basic_block, unsigned int);

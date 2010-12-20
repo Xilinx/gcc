@@ -3274,21 +3274,21 @@
    (set_attr "type" "fsmul")])
 
 ;; Multiplication with addition/subtraction
-(define_insn "*muladdsf4"
+(define_insn "fmasf4"
   [(set (match_operand:SF 0 "fpr_operand" "=f")
-	(plus:SF (mult:SF (match_operand:SF 1 "fpr_operand" "%f")
-			  (match_operand:SF 2 "fpr_operand" "f"))
-		 (match_operand:SF 3 "fpr_operand" "0")))]
+	(fma:SF (match_operand:SF 1 "fpr_operand" "f")
+		(match_operand:SF 2 "fpr_operand" "f")
+		(match_operand:SF 3 "fpr_operand" "0")))]
   "TARGET_HARD_FLOAT && TARGET_MULADD"
   "fmadds %1,%2,%0"
   [(set_attr "length" "4")
    (set_attr "type" "fsmadd")])
 
-(define_insn "*mulsubsf4"
+(define_insn "fmssf4"
   [(set (match_operand:SF 0 "fpr_operand" "=f")
-	(minus:SF (mult:SF (match_operand:SF 1 "fpr_operand" "%f")
-			   (match_operand:SF 2 "fpr_operand" "f"))
-		  (match_operand:SF 3 "fpr_operand" "0")))]
+	(fma:SF (match_operand:SF 1 "fpr_operand" "f")
+		(match_operand:SF 2 "fpr_operand" "f")
+		(neg:SF (match_operand:SF 3 "fpr_operand" "0"))))]
   "TARGET_HARD_FLOAT && TARGET_MULADD"
   "fmsubs %1,%2,%0"
   [(set_attr "length" "4")
@@ -4628,8 +4628,8 @@
    (clobber (match_operand:CC_CCR 5 "icr_operand" "=v,v,v,v,v"))]
   "(INTVAL (operands[3]) == 0
     || INTVAL (operands[4]) == 0
-    || (IN_RANGE_P (INTVAL (operands[3]), -2048, 2047)
-        && IN_RANGE_P (INTVAL (operands[4]) - INTVAL (operands[3]), -2048, 2047)))"
+    || (IN_RANGE (INTVAL (operands[3]), -2048, 2047)
+        && IN_RANGE (INTVAL (operands[4]) - INTVAL (operands[3]), -2048, 2047)))"
   "#"
   [(set_attr "length" "8,12,8,12,12")
    (set_attr "type" "multi")])
@@ -4645,8 +4645,8 @@
   "TARGET_HARD_FLOAT
    && (INTVAL (operands[3]) == 0
        || INTVAL (operands[4]) == 0
-       || (IN_RANGE_P (INTVAL (operands[3]), -2048, 2047)
-	   && IN_RANGE_P (INTVAL (operands[4]) - INTVAL (operands[3]), -2048, 2047)))"
+       || (IN_RANGE (INTVAL (operands[3]), -2048, 2047)
+	   && IN_RANGE (INTVAL (operands[4]) - INTVAL (operands[3]), -2048, 2047)))"
   "#"
   [(set_attr "length" "8,12,8,12,12")
    (set_attr "type" "multi")])
@@ -4713,8 +4713,8 @@
    (clobber (match_operand:CC_CCR 5 "icr_operand" "=v,v,v,v,v"))]
   "(INTVAL (operands[3]) == 0
     || INTVAL (operands[4]) == 0
-    || (IN_RANGE_P (INTVAL (operands[3]), -2048, 2047)
-        && IN_RANGE_P (INTVAL (operands[4]) - INTVAL (operands[3]), -2048, 2047)))"
+    || (IN_RANGE (INTVAL (operands[3]), -2048, 2047)
+        && IN_RANGE (INTVAL (operands[4]) - INTVAL (operands[3]), -2048, 2047)))"
   "#"
   [(set_attr "length" "8,12,8,12,12")
    (set_attr "type" "multi")])
@@ -4730,8 +4730,8 @@
   "TARGET_HARD_FLOAT
    && (INTVAL (operands[3]) == 0
        || INTVAL (operands[4]) == 0
-       || (IN_RANGE_P (INTVAL (operands[3]), -2048, 2047)
-	   && IN_RANGE_P (INTVAL (operands[4]) - INTVAL (operands[3]), -2048, 2047)))"
+       || (IN_RANGE (INTVAL (operands[3]), -2048, 2047)
+	   && IN_RANGE (INTVAL (operands[4]) - INTVAL (operands[3]), -2048, 2047)))"
   "#"
   [(set_attr "length" "8,12,8,12,12")
    (set_attr "type" "multi")])
@@ -4798,8 +4798,8 @@
    (clobber (match_operand:CC_CCR 5 "icr_operand" "=v,v,v,v,v"))]
   "(INTVAL (operands[3]) == 0
     || INTVAL (operands[4]) == 0
-    || (IN_RANGE_P (INTVAL (operands[3]), -2048, 2047)
-        && IN_RANGE_P (INTVAL (operands[4]) - INTVAL (operands[3]), -2048, 2047)))"
+    || (IN_RANGE (INTVAL (operands[3]), -2048, 2047)
+        && IN_RANGE (INTVAL (operands[4]) - INTVAL (operands[3]), -2048, 2047)))"
   "#"
   [(set_attr "length" "8,12,8,12,12")
    (set_attr "type" "multi")])
@@ -4815,8 +4815,8 @@
   "TARGET_HARD_FLOAT
    && (INTVAL (operands[3]) == 0
        || INTVAL (operands[4]) == 0
-       || (IN_RANGE_P (INTVAL (operands[3]), -2048, 2047)
-	   && IN_RANGE_P (INTVAL (operands[4]) - INTVAL (operands[3]), -2048, 2047)))"
+       || (IN_RANGE (INTVAL (operands[3]), -2048, 2047)
+	   && IN_RANGE (INTVAL (operands[4]) - INTVAL (operands[3]), -2048, 2047)))"
   "#"
   [(set_attr "length" "8,12,8,12,12")
    (set_attr "type" "multi")])
@@ -5564,7 +5564,7 @@
   gcc_assert (GET_CODE (operands[2]) == CONST_INT);
 
   /* If we can't generate an immediate instruction, promote to register.  */
-  if (! IN_RANGE_P (INTVAL (range), -2048, 2047))
+  if (! IN_RANGE (INTVAL (range), -2048, 2047))
     range = force_reg (SImode, range);
 
   /* If low bound is 0, we don't have to subtract it.  */
@@ -5573,7 +5573,7 @@
   else
     {
       indx = gen_reg_rtx (SImode);
-      if (IN_RANGE_P (INTVAL (low), -2047, 2048))
+      if (IN_RANGE (INTVAL (low), -2047, 2048))
 	emit_insn (gen_addsi3 (indx, operands[0], GEN_INT (- INTVAL (low))));
       else
 	emit_insn (gen_subsi3 (indx, operands[0], force_reg (SImode, low)));

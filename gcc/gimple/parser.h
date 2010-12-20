@@ -57,10 +57,6 @@ typedef struct GTY(()) gimple_parser {
   /* Reader we use for lexing.  */
   gimple_lexer *lexer;
 
-  /* Non-zero if '-dy' is enabled (dump debugging information during
-     parsing).  */
-  unsigned int debug_p : 1;
-
   /* Line table.  */
   struct line_maps *line_table;
 
@@ -70,6 +66,6 @@ typedef struct GTY(()) gimple_parser {
 
 
 /* In parser.c  */
-extern void gimple_main (int);
+extern void gimple_main (void);
  
 #endif /* GIMPLE_PARSER_H  */

@@ -33,7 +33,6 @@
 #include "tree-flow.h"
 #include "tree-inline.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "gimple.h"
 #include "hashtab.h"
 #include "function.h"
@@ -3541,11 +3540,15 @@ do_structure_copy (tree lhsop, tree rhsop)
 	  lhsv = get_varinfo (lhsp->var);
 	  rhsv = get_varinfo (rhsp->var);
 	  if (lhsv->may_have_pointers
-	      && ranges_overlap_p (lhsv->offset + rhsoffset, lhsv->size,
-				   rhsv->offset + lhsoffset, rhsv->size))
+	      && (lhsv->is_full_var
+		  || rhsv->is_full_var
+		  || ranges_overlap_p (lhsv->offset + rhsoffset, lhsv->size,
+				       rhsv->offset + lhsoffset, rhsv->size)))
 	    process_constraint (new_constraint (*lhsp, *rhsp));
-	  if (lhsv->offset + rhsoffset + lhsv->size
-	      > rhsv->offset + lhsoffset + rhsv->size)
+	  if (!rhsv->is_full_var
+	      && (lhsv->is_full_var
+		  || (lhsv->offset + rhsoffset + lhsv->size
+		      > rhsv->offset + lhsoffset + rhsv->size)))
 	    {
 	      ++k;
 	      if (k >= VEC_length (ce_s, rhsc))
@@ -5883,7 +5886,7 @@ pt_solution_set_var (struct pt_solution *pt, tree var)
 {
   memset (pt, 0, sizeof (struct pt_solution));
   pt->vars = BITMAP_GGC_ALLOC ();
-  bitmap_set_bit (pt->vars, DECL_UID (var));
+  bitmap_set_bit (pt->vars, DECL_PT_UID (var));
   pt->vars_contains_global = is_global_var (var);
 }
 

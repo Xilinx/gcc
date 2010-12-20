@@ -25,109 +25,11 @@
 #include "double-int.h"
 #include "version.h"		/* for version_string & pkgversion_string.  */
 #include "hashtab.h"
+#include "xregex.h"
+#include "obstack.h"
 #include "gengtype.h"
 
 /* Data types, macros, etc. used only in this file.  */
-
-/* Kinds of types we can understand.  */
-enum typekind
-{
-  TYPE_SCALAR,
-  TYPE_STRING,
-  TYPE_STRUCT,
-  TYPE_UNION,
-  TYPE_POINTER,
-  TYPE_ARRAY,
-  TYPE_LANG_STRUCT,
-  TYPE_PARAM_STRUCT
-};
-
-
-/* A way to pass data through to the output end.  */
-struct options
-{
-  struct options *next;
-  const char *name;
-  const char *info;
-};
-
-/* Option data for the 'nested_ptr' option.  */
-struct nested_ptr_data
-{
-  type_p type;
-  const char *convert_to;
-  const char *convert_from;
-};
-
-/* A name and a type.  */
-struct pair
-{
-  pair_p next;
-  const char *name;
-  type_p type;
-  struct fileloc line;
-  options_p opt;
-};
-
-#define NUM_PARAM 10
-
-/* A description of a type.  */
-enum gc_used_enum
-{
-  GC_UNUSED = 0,
-  GC_USED,
-  /* Used for structures whose definitions we haven't seen so far when
-     we encounter a pointer to it that is annotated with ``maybe_undef''.
-     If after reading in everything we don't have source file
-     information for it, we assume that it never has been defined. */
-  GC_MAYBE_POINTED_TO,
-  GC_POINTED_TO
-};
-
-struct type
-{
-  enum typekind kind;
-  type_p next;
-  type_p pointer_to;
-  enum gc_used_enum gc_used;
-  union
-  {
-    type_p p;
-    struct
-    {
-      const char *tag;
-      struct fileloc line;
-      pair_p fields;
-      options_p opt;
-      lang_bitmap bitmap;
-      type_p lang_struct;
-    } s;
-    bool scalar_is_char;
-    struct
-    {
-      type_p p;
-      const char *len;
-    } a;
-    struct
-    {
-      type_p stru;
-      type_p param[NUM_PARAM];
-      struct fileloc line;
-    } param_struct;
-  } u;
-};
-
-#define UNION_P(x)					\
- ((x)->kind == TYPE_UNION || 				\
-  ((x)->kind == TYPE_LANG_STRUCT 			\
-   && (x)->u.s.lang_struct->kind == TYPE_UNION))
-#define UNION_OR_STRUCT_P(x)			\
- ((x)->kind == TYPE_UNION 			\
-  || (x)->kind == TYPE_STRUCT 			\
-  || (x)->kind == TYPE_LANG_STRUCT)
-
-
-
 
 
 /* The list of output files.  */
@@ -164,6 +66,10 @@ int do_debug;
 
 /* Level for verbose messages.  */
 int verbosity_level;
+
+/* We have a type count and use it to set the state_number of newly
+   allocated types to some unique negative number.  */
+static int type_count;
 
 /* The backup directory should be in the same file system as the
    generated files, otherwise the rename(2) system call would fail.
@@ -552,27 +458,27 @@ read_input_list (const char *listname)
 
 /* The one and only TYPE_STRING.  */
 
-static struct type string_type = {
-  TYPE_STRING, 0, 0, GC_USED, {0}
+struct type string_type = {
+  TYPE_STRING, 0, 0, 0, GC_USED, {0}
 };
 
 /* The two and only TYPE_SCALARs.  Their u.scalar_is_char flags are
-   set to appropriate values at the beginning of main.  */
+   set early in main.  */
 
-static struct type scalar_nonchar = {
-  TYPE_SCALAR, 0, 0, GC_USED, {0}
+struct type scalar_nonchar = {
+  TYPE_SCALAR, 0, 0, 0, GC_USED, {0}
 };
 
-static struct type scalar_char = {
-  TYPE_SCALAR, 0, 0, GC_USED, {0}
+struct type scalar_char = {
+  TYPE_SCALAR, 0, 0, 0, GC_USED, {0}
 };
 
 /* Lists of various things.  */
 
-static pair_p typedefs;
-static type_p structures;
-static type_p param_structs;
-static pair_p variables;
+pair_p typedefs;
+type_p structures;
+type_p param_structs;
+pair_p variables;
 
 static type_p find_param_structure (type_p t, type_p param[NUM_PARAM]);
 static type_p adjust_field_tree_exp (type_p t, options_p opt);
@@ -661,12 +567,14 @@ new_structure (const char *name, int isunion, struct fileloc *pos,
 	else if (si->u.s.line.file != NULL && si->u.s.bitmap != bitmap)
 	  {
 	    ls = si;
+	    type_count++;
 	    si = XCNEW (struct type);
 	    memcpy (si, ls, sizeof (struct type));
 	    ls->kind = TYPE_LANG_STRUCT;
 	    ls->u.s.lang_struct = si;
 	    ls->u.s.fields = NULL;
 	    si->next = NULL;
+	    si->state_number = -type_count;
 	    si->pointer_to = NULL;
 	    si->u.s.lang_struct = ls;
 	  }
@@ -675,7 +583,9 @@ new_structure (const char *name, int isunion, struct fileloc *pos,
 
 	if (ls != NULL && s == NULL)
 	  {
+	    type_count++;
 	    s = XCNEW (struct type);
+	    s->state_number = -type_count;
 	    s->next = ls->u.s.lang_struct;
 	    ls->u.s.lang_struct = s;
 	    s->u.s.lang_struct = ls;
@@ -685,7 +595,9 @@ new_structure (const char *name, int isunion, struct fileloc *pos,
 
   if (s == NULL)
     {
+      type_count++;
       s = XCNEW (struct type);
+      s->state_number = -type_count;
       s->next = structures;
       structures = s;
     }
@@ -723,8 +635,10 @@ find_structure (const char *name, int isunion)
     if (strcmp (name, s->u.s.tag) == 0 && UNION_P (s) == isunion)
       return s;
 
+  type_count++;
   s = XCNEW (struct type);
   s->next = structures;
+  s->state_number = -type_count;
   structures = s;
   s->kind = isunion ? TYPE_UNION : TYPE_STRUCT;
   s->u.s.tag = name;
@@ -748,9 +662,11 @@ find_param_structure (type_p t, type_p param[NUM_PARAM])
       break;
   if (res == NULL)
     {
+      type_count++;
       res = XCNEW (struct type);
       res->kind = TYPE_PARAM_STRUCT;
       res->next = param_structs;
+      res->state_number = -type_count;
       param_structs = res;
       res->u.param_struct.stru = t;
       memcpy (res->u.param_struct.param, param, sizeof (type_p) * NUM_PARAM);
@@ -777,6 +693,8 @@ create_pointer (type_p t)
   if (!t->pointer_to)
     {
       type_p r = XCNEW (struct type);
+      type_count++;
+      r->state_number = -type_count;
       r->kind = TYPE_POINTER;
       r->u.p = t;
       t->pointer_to = r;
@@ -791,23 +709,53 @@ create_array (type_p t, const char *len)
 {
   type_p v;
 
+  type_count++;
   v = XCNEW (struct type);
   v->kind = TYPE_ARRAY;
+  v->state_number = -type_count;
   v->u.a.p = t;
   v->u.a.len = len;
   return v;
 }
 
-/* Return an options structure with name NAME and info INFO.  NEXT is the
-   next option in the chain.  */
-
+/* Return a string options structure with name NAME and info INFO.
+   NEXT is the next option in the chain.  */
 options_p
-create_option (options_p next, const char *name, const void *info)
+create_string_option (options_p next, const char *name, const char *info)
+{
+  options_p o = XNEW (struct options);
+  o->kind = OPTION_STRING;
+  o->next = next;
+  o->name = name;
+  o->info.string = info;
+  return o;
+}
+
+/* Create a type options structure with name NAME and info INFO.  NEXT
+   is the next option in the chain.  */
+options_p
+create_type_option (options_p next, const char* name, type_p info)
 {
   options_p o = XNEW (struct options);
   o->next = next;
   o->name = name;
-  o->info = (const char *) info;
+  o->kind = OPTION_TYPE;
+  o->info.type = info;
+  return o;
+}
+
+/* Create a nested pointer options structure with name NAME and info
+   INFO.  NEXT is the next option in the chain.  */
+options_p
+create_nested_option (options_p next, const char* name,
+                      struct nested_ptr_data* info)
+{
+  options_p o;
+  o = XNEW (struct options);
+  o->next = next;
+  o->name = name;
+  o->kind = OPTION_NESTED;
+  o->info.nested = info;
   return o;
 }
 
@@ -821,12 +769,11 @@ create_nested_ptr_option (options_p next, type_p t,
   d->type = adjust_field_type (t, 0);
   d->convert_to = to;
   d->convert_from = from;
-  return create_option (next, "nested_ptr", d);
+  return create_nested_option (next, "nested_ptr", d);
 }
 
 /* Add a variable named S of type T with options O defined at POS,
    to `variables'.  */
-
 void
 note_variable (const char *s, type_p t, options_p o, struct fileloc *pos)
 {
@@ -888,15 +835,19 @@ create_optional_field_ (pair_p next, type_p type, const char *name,
      The field has a tag of "1".  This allows us to make the presence
      of a field of type TYPE depend on some boolean "desc" being true.  */
   union_fields = create_field (NULL, type, "");
-  union_fields->opt = create_option (union_fields->opt, "dot", "");
-  union_fields->opt = create_option (union_fields->opt, "tag", "1");
-  union_type = new_structure (xasprintf ("%s_%d", "fake_union", id++), 1,
-			      &lexer_line, union_fields, NULL);
+  union_fields->opt = 
+    create_string_option (union_fields->opt, "dot", "");
+  union_fields->opt = 
+    create_string_option (union_fields->opt, "tag", "1");
+  union_type = 
+    new_structure (xasprintf ("%s_%d", "fake_union", id++), 1,
+                   &lexer_line, union_fields, NULL);
 
   /* Create the field and give it the new fake union type.  Add a "desc"
      tag that specifies the condition under which the field is valid.  */
   return create_field_all (next, union_type, name,
-			   create_option (0, "desc", cond), this_file, line);
+			   create_string_option (0, "desc", cond), 
+			   this_file, line);
 }
 
 #define create_optional_field(next,type,name,cond)	\
@@ -1029,14 +980,16 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
       return &string_type;
     }
 
-  nodot = create_option (NULL, "dot", "");
+  nodot = create_string_option (NULL, "dot", "");
 
   rtx_tp = create_pointer (find_structure ("rtx_def", 0));
   rtvec_tp = create_pointer (find_structure ("rtvec_def", 0));
   tree_tp = create_pointer (find_structure ("tree_node", 1));
   mem_attrs_tp = create_pointer (find_structure ("mem_attrs", 0));
-  reg_attrs_tp = create_pointer (find_structure ("reg_attrs", 0));
-  basic_block_tp = create_pointer (find_structure ("basic_block_def", 0));
+  reg_attrs_tp = 
+    create_pointer (find_structure ("reg_attrs", 0));
+  basic_block_tp = 
+    create_pointer (find_structure ("basic_block_def", 0));
   constant_tp =
     create_pointer (find_structure ("constant_descriptor_rtx", 0));
   scalar_tp = &scalar_nonchar;	/* rtunion int */
@@ -1070,9 +1023,11 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
 	/* NOTE_INSN_MAX is used as the default field for line
 	   number notes.  */
 	if (c == NOTE_INSN_MAX)
-	  note_flds->opt = create_option (nodot, "default", "");
+	  note_flds->opt = 
+	    create_string_option (nodot, "default", "");
 	else
-	  note_flds->opt = create_option (nodot, "tag", note_insn_name[c]);
+	  note_flds->opt = 
+	    create_string_option (nodot, "tag", note_insn_name[c]);
       }
     note_union_tp = new_structure ("rtx_def_note_subunion", 1,
 				   &lexer_line, note_flds, NULL);
@@ -1080,13 +1035,10 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
   /* Create a type to represent the various forms of SYMBOL_REF_DATA.  */
   {
     pair_p sym_flds;
-
     sym_flds = create_field (NULL, tree_tp, "rt_tree");
-    sym_flds->opt = create_option (nodot, "default", "");
-
+    sym_flds->opt = create_string_option (nodot, "default", "");
     sym_flds = create_field (sym_flds, constant_tp, "rt_constant");
-    sym_flds->opt = create_option (nodot, "tag", "1");
-
+    sym_flds->opt = create_string_option (nodot, "tag", "1");
     symbol_union_tp = new_structure ("rtx_def_symbol_subunion", 1,
 				     &lexer_line, sym_flds, NULL);
   }
@@ -1150,9 +1102,10 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
 		t = scalar_tp, subname = "rt_int";
 	      else
 		{
-		  error_at_line (&lexer_line,
-				 "rtx type `%s' has `0' in position %lu, can't handle",
-				 rtx_name[i], (unsigned long) aindex);
+		  error_at_line 
+		    (&lexer_line,
+		     "rtx type `%s' has `0' in position %lu, can't handle",
+		     rtx_name[i], (unsigned long) aindex);
 		  t = &string_type;
 		  subname = "rt_int";
 		}
@@ -1188,10 +1141,11 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
 	      break;
 
 	    default:
-	      error_at_line (&lexer_line,
-			     "rtx type `%s' has `%c' in position %lu, can't handle",
-			     rtx_name[i], rtx_format[i][aindex],
-			     (unsigned long) aindex);
+	      error_at_line
+		(&lexer_line,
+		 "rtx type `%s' has `%c' in position %lu, can't handle",
+		 rtx_name[i], rtx_format[i][aindex],
+		 (unsigned long) aindex);
 	      t = &string_type;
 	      subname = "rt_int";
 	      break;
@@ -1203,16 +1157,19 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
 					       subname));
 	  subfields->opt = nodot;
 	  if (t == note_union_tp)
-	    subfields->opt = create_option (subfields->opt, "desc",
-					    "NOTE_KIND (&%0)");
+	    subfields->opt =
+	      create_string_option (subfields->opt, "desc",
+				    "NOTE_KIND (&%0)");
 	  if (t == symbol_union_tp)
-	    subfields->opt = create_option (subfields->opt, "desc",
-					    "CONSTANT_POOL_ADDRESS_P (&%0)");
+	    subfields->opt = 
+	      create_string_option (subfields->opt, "desc",
+				    "CONSTANT_POOL_ADDRESS_P (&%0)");
 	}
 
       if (i == SYMBOL_REF)
 	{
-	  /* Add the "block_sym" field if SYMBOL_REF_HAS_BLOCK_INFO_P holds.  */
+	  /* Add the "block_sym" field if SYMBOL_REF_HAS_BLOCK_INFO_P
+	     holds.  */
 	  type_p field_tp = find_structure ("block_symbol", 0);
 	  subfields
 	    = create_optional_field (subfields, field_tp, "block_sym",
@@ -1225,11 +1182,9 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
       ftag = xstrdup (rtx_name[i]);
       for (nmindex = 0; nmindex < strlen (ftag); nmindex++)
 	ftag[nmindex] = TOUPPER (ftag[nmindex]);
-
       flds = create_field (flds, substruct, "");
-      flds->opt = create_option (nodot, "tag", ftag);
+      flds->opt = create_string_option (nodot, "tag", ftag);
     }
-
   return new_structure ("rtx_def_subunion", 1, &lexer_line, flds, nodot);
 }
 
@@ -1252,12 +1207,12 @@ adjust_field_tree_exp (type_p t, options_p opt ATTRIBUTE_UNUSED)
       return &string_type;
     }
 
-  nodot = create_option (NULL, "dot", "");
+  nodot = create_string_option (NULL, "dot", "");
 
   flds = create_field (NULL, t, "");
-  flds->opt = create_option (nodot, "length",
-			     "TREE_OPERAND_LENGTH ((tree) &%0)");
-  flds->opt = create_option (flds->opt, "default", "");
+  flds->opt = create_string_option (nodot, "length",
+				    "TREE_OPERAND_LENGTH ((tree) &%0)");
+  flds->opt = create_string_option (flds->opt, "default", "");
 
   return new_structure ("tree_exp_subunion", 1, &lexer_line, flds, nodot);
 }
@@ -1287,10 +1242,11 @@ adjust_field_type (type_p t, options_p opt)
   for (; opt; opt = opt->next)
     if (strcmp (opt->name, "length") == 0)
       length_p = 1;
-    else if (strcmp (opt->name, "param_is") == 0
-	     || (strncmp (opt->name, "param", 5) == 0
-		 && ISDIGIT (opt->name[5])
-		 && strcmp (opt->name + 6, "_is") == 0))
+    else if ((strcmp (opt->name, "param_is") == 0
+	      || (strncmp (opt->name, "param", 5) == 0
+		  && ISDIGIT (opt->name[5])
+		  && strcmp (opt->name + 6, "_is") == 0))
+	     && opt->kind == OPTION_TYPE)
       {
 	int num = ISDIGIT (opt->name[5]) ? opt->name[5] - '0' : 0;
 
@@ -1307,14 +1263,14 @@ adjust_field_type (type_p t, options_p opt)
 	if (params[num] != NULL)
 	  error_at_line (&lexer_line, "duplicate `%s' option", opt->name);
 	if (!ISDIGIT (opt->name[5]))
-	  params[num] =
-	    create_pointer (CONST_CAST2 (type_p, const char *, opt->info));
+	  params[num] = create_pointer (opt->info.type);
 	else
-	  params[num] = CONST_CAST2 (type_p, const char *, opt->info);
+	  params[num] = opt->info.type;
       }
-    else if (strcmp (opt->name, "special") == 0)
+    else if (strcmp (opt->name, "special") == 0
+	     && opt->kind == OPTION_STRING)
       {
-	const char *special_name = opt->info;
+	const char *special_name = opt->info.string;
 	if (strcmp (special_name, "tree_exp") == 0)
 	  t = adjust_field_tree_exp (t, opt);
 	else if (strcmp (special_name, "rtx_def") == 0)
@@ -1357,8 +1313,9 @@ process_gc_options (options_p opt, enum gc_used_enum level, int *maybe_undef,
 {
   options_p o;
   for (o = opt; o; o = o->next)
-    if (strcmp (o->name, "ptr_alias") == 0 && level == GC_POINTED_TO)
-      set_gc_used_type (CONST_CAST2 (type_p, const char *, o->info),
+    if (strcmp (o->name, "ptr_alias") == 0 && level == GC_POINTED_TO
+	&& o->kind == OPTION_TYPE)
+      set_gc_used_type (o->info.type,
 			GC_POINTED_TO, NULL);
     else if (strcmp (o->name, "maybe_undef") == 0)
       *maybe_undef = 1;
@@ -1368,12 +1325,13 @@ process_gc_options (options_p opt, enum gc_used_enum level, int *maybe_undef,
       *length = 1;
     else if (strcmp (o->name, "skip") == 0)
       *skip = 1;
-    else if (strcmp (o->name, "nested_ptr") == 0)
-      *nested_ptr = ((const struct nested_ptr_data *) o->info)->type;
+    else if (strcmp (o->name, "nested_ptr") == 0
+	     && o->kind == OPTION_NESTED)
+      *nested_ptr = ((const struct nested_ptr_data *) o->info.nested)->type;
 }
 
-/* Set the gc_used field of T to LEVEL, and handle the types it references.  */
 
+/* Set the gc_used field of T to LEVEL, and handle the types it references.  */
 static void
 set_gc_used_type (type_p t, enum gc_used_enum level, type_p param[NUM_PARAM])
 {
@@ -1727,6 +1685,253 @@ get_file_gtfilename (const input_file *inpf)
   return result;
 }
 
+/* Each input_file has its associated output file outf_p.  The
+   association is computed by the function
+   get_output_file_with_visibility.  The associated file is cached
+   inside input_file in its inpoutf field, so is really computed only
+   once.  Associated output file paths (i.e. output_name-s) are
+   computed by a rule based regexp machinery, using the files_rules
+   array of struct file_rule_st.  A for_name is also computed, giving
+   the source file name for which the output_file is generated; it is
+   often the last component of the input_file path.  */
+
+
+/*
+ Regexpr machinery to compute the output_name and for_name-s of each
+ input_file.  We have a sequence of file rules which gives the POSIX
+ extended regular expression to match an input file path, and two
+ transformed strings for the corresponding output_name and the
+ corresponding for_name.  The transformed string contain dollars: $0
+ is replaced by the entire match, $1 is replaced by the substring
+ matching the first parenthesis in the regexp, etc.  And $$ is replaced
+ by a single verbatim dollar.  The rule order is important.  The
+ general case is last, and the particular cases should come before.
+ An action routine can, when needed, update the out_name & for_name
+ and/or return the appropriate output file.  It is invoked only when a
+ rule is triggered.  When a rule is triggered, the output_name and
+ for_name are computed using their transform string in while $$, $0,
+ $1, ... are suitably replaced.  If there is an action, it is called.
+ In some few cases, the action can directly return the outf_p, but
+ usually it just updates the output_name and for_name so should free
+ them before replacing them.  The get_output_file_with_visibility
+ function creates an outf_p only once per each output_name, so it
+ scans the output_files list for previously seen output file names.
+ */
+
+/* Signature of actions in file rules.  */
+typedef outf_p (frul_actionrout_t) (input_file*, char**, char**);
+
+
+struct file_rule_st {
+  const char* frul_srcexpr;	/* Source string for regexp.  */
+  int frul_rflags;		/* Flags passed to regcomp, usually
+				 * REG_EXTENDED.  */
+  regex_t* frul_re;		/* Compiled regular expression
+				   obtained by regcomp.  */
+  const char* frul_tr_out;	/* Transformation string for making
+				 * the output_name, with $1 ... $9 for
+				 * subpatterns and $0 for the whole
+				 * matched filename.  */
+  const char* frul_tr_for;	/* Tranformation string for making the
+				   for_name.  */
+  frul_actionrout_t* frul_action; /* The action, if non null, is
+				   * called once the rule matches, on
+				   * the transformed out_name &
+				   * for_name.  It could change them
+				   * and/or give the output file.  */
+};
+
+/* File rule action handling *.h files.  */
+static outf_p header_dot_h_frul (input_file*, char**, char**);
+
+/* File rule action handling *.c files.  */
+static outf_p source_dot_c_frul (input_file*, char**, char**);
+
+#define NULL_REGEX (regex_t*)0
+
+/* The prefix in our regexp-s matching the directory.  */
+#define DIR_PREFIX_REGEX "^(([^/]*/)*)"
+
+#define NULL_FRULACT (frul_actionrout_t*)0
+
+/* The array of our rules governing file name generation.  Rules order
+   matters, so change with extreme care!  */
+
+struct file_rule_st files_rules[] = {
+  /* the c-family/ source directory is special.  */
+  { DIR_PREFIX_REGEX "c-family/([[:alnum:]_-]*)\\.c$",
+    REG_EXTENDED, NULL_REGEX,
+    "gt-c-family-$3.h", "c-family/$3.c", NULL_FRULACT},
+
+  { DIR_PREFIX_REGEX "c-family/([[:alnum:]_-]*)\\.h$",
+    REG_EXTENDED, NULL_REGEX,
+    "gt-c-family-$3.h", "c-family/$3.h", NULL_FRULACT},
+
+  /* Both c-lang.h & c-tree.h gives gt-c-decl.h for c-decl.c !  */
+  { DIR_PREFIX_REGEX "c-lang\\.h$",
+    REG_EXTENDED, NULL_REGEX, "gt-c-decl.h", "c-decl.c", NULL_FRULACT},
+
+  { DIR_PREFIX_REGEX "c-tree\\.h$",
+    REG_EXTENDED, NULL_REGEX, "gt-c-decl.h", "c-decl.c", NULL_FRULACT},
+
+  /* cp/cp-tree.h gives gt-cp-tree.h for cp/tree.c !  */
+  { DIR_PREFIX_REGEX "cp/cp-tree\\.h$",
+    REG_EXTENDED, NULL_REGEX,
+    "gt-cp-tree.h", "cp/tree.c", NULL_FRULACT },
+
+  /* cp/decl.h & cp/decl.c gives gt-cp-decl.h for cp/decl.c !  */
+  { DIR_PREFIX_REGEX "cp/decl\\.[ch]$",
+    REG_EXTENDED, NULL_REGEX,
+    "gt-cp-decl.h", "cp/decl.c", NULL_FRULACT },
+
+  /* cp/name-lookup.h gives gt-cp-name-lookup.h for cp/name-lookup.c !  */
+  { DIR_PREFIX_REGEX "cp/name-lookup\\.h$",
+    REG_EXTENDED, NULL_REGEX,
+    "gt-cp-name-lookup.h", "cp/name-lookup.c", NULL_FRULACT },
+
+  /* objc/objc-act.h fives gt-objc-objc-act.h for objc/objc-act.c !  */
+  { DIR_PREFIX_REGEX "objc/objc-act\\.h$",
+    REG_EXTENDED, NULL_REGEX,
+    "gt-objc-objc-act.h", "objc/objc-act.c", NULL_FRULACT },
+
+  /* General cases.  For header *.h and source *.c files, we need
+   * special actions to handle the language.  */
+
+  /* Source *.c files are using get_file_gtfilename to compute their
+     output_name and get_file_basename to compute their for_name
+     thru the source_dot_c_frul action.  */
+  { DIR_PREFIX_REGEX "([[:alnum:]_-]*)\\.c$",
+    REG_EXTENDED, NULL_REGEX, "gt-$3.h", "$3.c", source_dot_c_frul},
+  /* Common header files get "gtype-desc.c" as their output_name,
+   * while language specific header files are handled specially.  So
+   * we need the header_dot_h_frul action.  */
+  { DIR_PREFIX_REGEX "([[:alnum:]_-]*)\\.h$",
+    REG_EXTENDED, NULL_REGEX, "gt-$3.h", "$3.h", header_dot_h_frul},
+
+  { DIR_PREFIX_REGEX "([[:alnum:]_-]*)\\.in$",
+    REG_EXTENDED, NULL_REGEX, "gt-$3.h", "$3.in", NULL_FRULACT},
+
+  /* Mandatory null last entry signaling end of rules.  */
+  {NULL, 0, NULL_REGEX, NULL, NULL, NULL_FRULACT}
+};
+
+/* Special file rules action for handling *.h header files.  It gives
+   "gtype-desc.c" for common headers and corresponding output
+   files for language-specific header files.  */
+static outf_p
+header_dot_h_frul (input_file* inpf, char**poutname,
+		   char**pforname ATTRIBUTE_UNUSED)
+{
+  const char *basename = 0;
+  int lang_index = 0;
+  DBGPRINTF ("inpf %p inpname %s outname %s forname %s",
+	     (void*) inpf, get_input_file_name (inpf),
+	     *poutname, *pforname);
+  basename = get_file_basename (inpf);
+  lang_index = get_prefix_langdir_index (basename);
+  DBGPRINTF ("basename %s lang_index %d", basename, lang_index);
+
+  if (lang_index >= 0)
+    {
+      /* The header is language specific.  Given output_name &
+	 for_name remains unchanged.  The base_files array gives the
+	 outf_p.  */
+      DBGPRINTF ("header_dot_h found language specific @ %p '%s'",
+		 (void*) base_files[lang_index],
+		 (base_files[lang_index])->name);
+      return base_files[lang_index];
+    }
+  else
+    {
+      /* The header is common to all front-end languages.  So
+	 output_name is "gtype-desc.c" file.  The calling function
+	 get_output_file_with_visibility will find its outf_p.  */
+      free (*poutname);
+      *poutname = xstrdup ("gtype-desc.c");
+      DBGPRINTF ("special 'gtype-desc.c' for inpname %s",
+		 get_input_file_name (inpf));
+      return NULL;
+    }
+}
+
+
+/* Special file rules action for handling *.c source files using
+ * get_file_gtfilename to compute their output_name and
+ * get_file_basename to compute their for_name.  The output_name is
+ * gt-<LANG>-<BASE>.h for language specific source files, and
+ * gt-<BASE>.h for common source files.  */
+static outf_p
+source_dot_c_frul (input_file* inpf, char**poutname, char**pforname)
+{
+  char *newbasename = CONST_CAST (char*, get_file_basename (inpf));
+  char *newoutname = CONST_CAST (char*, get_file_gtfilename (inpf));
+  DBGPRINTF ("inpf %p inpname %s original outname %s forname %s",
+	     (void*) inpf, get_input_file_name (inpf),
+	     *poutname, *pforname);
+  DBGPRINTF ("newoutname %s", newoutname);
+  DBGPRINTF ("newbasename %s", newbasename);
+  free (*poutname);
+  free (*pforname);
+  *poutname = newoutname;
+  *pforname = newbasename;
+  return NULL;
+}
+
+/* Utility function for get_output_file_with_visibility which returns
+ * a malloc-ed substituted string using TRS on matching of the FILNAM
+ * file name, using the PMATCH array.  */
+static char*
+matching_file_name_substitute (const char *filnam, regmatch_t pmatch[10],
+			       const char *trs)
+{
+  struct obstack str_obstack;
+  char *str = NULL;
+  char *rawstr = NULL;
+  const char *pt = NULL;
+  DBGPRINTF ("filnam %s", filnam);
+  obstack_init (&str_obstack);
+  for (pt = trs; *pt; pt++) {
+    char c = *pt;
+    if (c == '$')
+      {
+	if (pt[1] == '$')
+	  {
+	    /* A double dollar $$ is substituted by a single verbatim
+	       dollar, but who really uses dollar signs in file
+	       paths? */
+	    obstack_1grow (&str_obstack, '$');
+	  }
+	else if (ISDIGIT (pt[1]))
+	  {
+	    /* Handle $0 $1 ... $9 by appropriate substitution.  */
+	    int dolnum = pt[1] - '0';
+	    int so = pmatch[dolnum].rm_so;
+	    int eo = pmatch[dolnum].rm_eo;
+	    DBGPRINTF ("so=%d eo=%d dolnum=%d", so, eo, dolnum);
+	    if (so>=0 && eo>=so)
+	      obstack_grow (&str_obstack, filnam + so, eo - so);
+	  }
+	else
+	  {
+	    /* This can happen only when files_rules is buggy! */
+	    gcc_unreachable();
+	  }
+	/* Always skip the character after the dollar.  */
+	pt++;
+      }
+    else
+      obstack_1grow (&str_obstack, c);
+  }
+  obstack_1grow (&str_obstack, '\0');
+  rawstr = XOBFINISH (&str_obstack, char *);
+  str = xstrdup (rawstr);
+  obstack_free (&str_obstack, rawstr);
+  DBGPRINTF ("matched replacement %s", str);
+  rawstr = NULL;
+  return str;
+}
+
+
 /* An output file, suitable for definitions, that can see declarations
    made in INPF and is linked into every language that uses INPF.
    Since the the result is cached inside INPF, that argument cannot be
@@ -1736,10 +1941,9 @@ outf_p
 get_output_file_with_visibility (input_file *inpf)
 {
   outf_p r;
-  size_t len;
-  const char *basename;
-  const char *for_name;
-  const char *output_name;
+  char *for_name = NULL;
+  char *output_name = NULL;
+  const char* inpfname;
 
   /* This can happen when we need a file with visibility on a
      structure that we've never seen.  We have to just hope that it's
@@ -1747,76 +1951,140 @@ get_output_file_with_visibility (input_file *inpf)
   if (inpf == NULL)
     inpf = system_h_file;
 
+  /* The result is cached in INPF, so return it if already known.  */
+  if (inpf->inpoutf)
+    return inpf->inpoutf;
+
   /* In plugin mode, return NULL unless the input_file is one of the
      plugin_files.  */
   if (plugin_files)
     {
       size_t i;
       for (i = 0; i < nb_plugin_files; i++)
-	if (inpf == plugin_files[i])
-	  return plugin_output;
+	if (inpf == plugin_files[i]) 
+	  {
+	    inpf->inpoutf = plugin_output;
+	    return plugin_output;
+	  }
 
       return NULL;
     }
 
-  /* Determine the output file name.  */
-  basename = get_file_basename (inpf);
+  inpfname = get_input_file_name (inpf);
 
-  len = strlen (basename);
-  if ((len > 2 && memcmp (basename + len - 2, ".c", 2) == 0)
-      || (len > 2 && memcmp (basename + len - 2, ".y", 2) == 0)
-      || (len > 3 && memcmp (basename + len - 3, ".in", 3) == 0))
+  /* Try each rule in sequence in files_rules until one is triggered. */
+  {
+    int rulix = 0;
+    DBGPRINTF ("passing input file @ %p named %s thru the files_rules",
+	       (void*) inpf, inpfname);
+
+    for (; files_rules[rulix].frul_srcexpr != NULL; rulix++)
+      {
+	DBGPRINTF ("rulix#%d srcexpr %s",
+		   rulix, files_rules[rulix].frul_srcexpr);
+
+	if (!files_rules[rulix].frul_re)
+	  {
+	    /* Compile the regexpr lazily.  */
+	    int err = 0;
+	    files_rules[rulix].frul_re = XCNEW (regex_t);
+	    err = regcomp (files_rules[rulix].frul_re,
+			   files_rules[rulix].frul_srcexpr,
+			   files_rules[rulix].frul_rflags);
+	    if (err)
+	      {
+		/* The regular expression compilation fails only when
+		   file_rules is buggy.  */
+		gcc_unreachable ();
+	      }
+	  }
+
+	output_name = NULL;
+	for_name = NULL;
+
+	/* Match the regexpr and trigger the rule if matched.  */
+	{
+	  /* We have exactly ten pmatch-s, one for each $0, $1, $2,
+	     $3, ... $9.  */
+	  regmatch_t pmatch[10];
+	  memset (pmatch, 0, sizeof (pmatch));
+	  if (!regexec (files_rules[rulix].frul_re,
+			inpfname, 10, pmatch, 0))
+	    {
+	      DBGPRINTF ("input @ %p filename %s matched rulix#%d pattern %s",
+			 (void*) inpf, inpfname, rulix,
+			 files_rules[rulix].frul_srcexpr);
+	      for_name =
+		matching_file_name_substitute (inpfname, pmatch,
+					       files_rules[rulix].frul_tr_for);
+	      DBGPRINTF ("for_name %s", for_name);
+	      output_name =
+		matching_file_name_substitute (inpfname, pmatch,
+					       files_rules[rulix].frul_tr_out);
+	      DBGPRINTF ("output_name %s", output_name);
+	      if (files_rules[rulix].frul_action)
+		{
+		  /* Invoke our action routine.  */
+		  outf_p of = NULL;
+		  DBGPRINTF ("before action rulix#%d output_name %s for_name %s",
+			     rulix, output_name, for_name);
+		  of =
+		    (files_rules[rulix].frul_action) (inpf,
+						      &output_name, &for_name);
+		  DBGPRINTF ("after action rulix#%d of=%p output_name %s for_name %s",
+			     rulix, (void*)of, output_name, for_name);
+		  /* If the action routine returned something, give it back
+		     immediately and cache it in inpf.  */
+		  if (of)
+		    {
+		      inpf->inpoutf = of;
+		      return of;
+		    }
+		}
+	      /* The rule matched, and had no action, or that action did
+		 not return any output file but could have changed the
+		 output_name or for_name.  We break out of the loop on the
+		 files_rules.  */
+	      break;
+	    }
+	  else
+	    {
+	      /* The regexpr did not match.  */
+	      DBGPRINTF ("rulix#%d did not match %s pattern %s",
+			 rulix, inpfname, files_rules[rulix].frul_srcexpr);
+	      continue;
+	    }
+	}
+      }
+  }
+  if (!output_name || !for_name)
     {
-      output_name = get_file_gtfilename (inpf);
-      for_name = basename;
-    }
-  /* Some headers get used by more than one front-end; hence, it
-     would be inappropriate to spew them out to a single gtype-<lang>.h
-     (and gengtype doesn't know how to direct spewage into multiple
-     gtype-<lang>.h headers at this time).  Instead, we pair up these
-     headers with source files (and their special purpose gt-*.h headers).  */
-  else if (strncmp (basename, "c-family", 8) == 0
-	   && IS_DIR_SEPARATOR (basename[8])
-	   && strcmp (basename + 9, "c-common.h") == 0)
-    output_name = "gt-c-family-c-common.h", for_name = "c-family/c-common.c";
-  else if (strcmp (basename, "c-lang.h") == 0)
-    output_name = "gt-c-decl.h", for_name = "c-decl.c";
-  else if (strcmp (basename, "c-tree.h") == 0)
-    output_name = "gt-c-decl.h", for_name = "c-decl.c";
-  else if (strncmp (basename, "cp", 2) == 0 && IS_DIR_SEPARATOR (basename[2])
-	   && strcmp (basename + 3, "cp-tree.h") == 0)
-    output_name = "gt-cp-tree.h", for_name = "cp/tree.c";
-  else if (strncmp (basename, "cp", 2) == 0 && IS_DIR_SEPARATOR (basename[2])
-	   && strcmp (basename + 3, "decl.h") == 0)
-    output_name = "gt-cp-decl.h", for_name = "cp/decl.c";
-  else if (strncmp (basename, "cp", 2) == 0 && IS_DIR_SEPARATOR (basename[2])
-	   && strcmp (basename + 3, "name-lookup.h") == 0)
-    output_name = "gt-cp-name-lookup.h", for_name = "cp/name-lookup.c";
-  else if (strncmp (basename, "objc", 4) == 0
-	   && IS_DIR_SEPARATOR (basename[4])
-	   && strcmp (basename + 5, "objc-act.h") == 0)
-    output_name = "gt-objc-objc-act.h", for_name = "objc/objc-act.c";
-  else
-    {
-      int lang_index = get_prefix_langdir_index (basename);
-
-      if (lang_index >= 0)
-	return base_files[lang_index];
-
-      output_name = "gtype-desc.c";
-      for_name = NULL;
+      /* This is impossible, and could only happen if the files_rules is
+	 incomplete or buggy.  */
+      gcc_unreachable ();
     }
 
-  /* Look through to see if we've ever seen this output filename before.  */
+  /* Look through to see if we've ever seen this output filename
+     before.  If found, cache the result in inpf.  */
   for (r = output_files; r; r = r->next)
     if (strcmp (r->name, output_name) == 0)
-      return r;
+      {
+	inpf->inpoutf = r;
+	DBGPRINTF ("found r @ %p for output_name %s for_name %s", (void*)r,
+		   output_name, for_name);
+	return r;
+      }
 
-  /* If not, create it.  */
+  /* If not found, create it, and cache it in inpf.  */
   r = create_file (for_name, output_name);
 
   gcc_assert (r && r->name);
+  DBGPRINTF ("created r @ %p for output_name %s for_name %s", (void*) r,
+	     output_name, for_name);
+  inpf->inpoutf = r;
   return r;
+
+
 }
 
 /* The name of an output file, suitable for definitions, that can see
@@ -2006,6 +2274,9 @@ output_mangled_typename (outf_p of, const_type_p t)
   else
     switch (t->kind)
       {
+      case TYPE_NONE:
+	gcc_unreachable ();
+	break;
       case TYPE_POINTER:
 	oprintf (of, "P");
 	output_mangled_typename (of, t->u.p);
@@ -2101,8 +2372,8 @@ walk_type (type_p t, struct walk_type_data *d)
 
   d->needs_cast_p = false;
   for (oo = d->opt; oo; oo = oo->next)
-    if (strcmp (oo->name, "length") == 0)
-      length = oo->info;
+    if (strcmp (oo->name, "length") == 0 && oo->kind == OPTION_STRING)
+      length = oo->info.string;
     else if (strcmp (oo->name, "maybe_undef") == 0)
       maybe_undef_p = 1;
     else if (strncmp (oo->name, "use_param", 9) == 0
@@ -2110,12 +2381,13 @@ walk_type (type_p t, struct walk_type_data *d)
       use_param_num = oo->name[9] == '\0' ? 0 : oo->name[9] - '0';
     else if (strcmp (oo->name, "use_params") == 0)
       use_params_p = 1;
-    else if (strcmp (oo->name, "desc") == 0)
-      desc = oo->info;
+    else if (strcmp (oo->name, "desc") == 0 && oo->kind == OPTION_STRING)
+      desc = oo->info.string;
     else if (strcmp (oo->name, "mark_hook") == 0)
       ;
-    else if (strcmp (oo->name, "nested_ptr") == 0)
-      nested_ptr_d = (const struct nested_ptr_data *) oo->info;
+    else if (strcmp (oo->name, "nested_ptr") == 0 
+	     && oo->kind == OPTION_NESTED)
+      nested_ptr_d = (const struct nested_ptr_data *) oo->info.nested;
     else if (strcmp (oo->name, "dot") == 0)
       ;
     else if (strcmp (oo->name, "tag") == 0)
@@ -2363,8 +2635,9 @@ walk_type (type_p t, struct walk_type_data *d)
 
 	/* Some things may also be defined in the structure's options.  */
 	for (o = t->u.s.opt; o; o = o->next)
-	  if (!desc && strcmp (o->name, "desc") == 0)
-	    desc = o->info;
+	  if (!desc && strcmp (o->name, "desc") == 0
+	      && o->kind == OPTION_STRING)
+	    desc = o->info.string;
 
 	d->prev_val[2] = oldval;
 	d->prev_val[1] = oldprevval2;
@@ -2395,16 +2668,19 @@ walk_type (type_p t, struct walk_type_data *d)
 
 	    d->reorder_fn = NULL;
 	    for (oo = f->opt; oo; oo = oo->next)
-	      if (strcmp (oo->name, "dot") == 0)
-		dot = oo->info;
-	      else if (strcmp (oo->name, "tag") == 0)
-		tagid = oo->info;
+	      if (strcmp (oo->name, "dot") == 0
+		  && oo->kind == OPTION_STRING)
+		dot = oo->info.string;
+	      else if (strcmp (oo->name, "tag") == 0
+		       && oo->kind == OPTION_STRING)
+		tagid = oo->info.string;
 	      else if (strcmp (oo->name, "skip") == 0)
 		skip_p = 1;
 	      else if (strcmp (oo->name, "default") == 0)
 		default_p = 1;
-	      else if (strcmp (oo->name, "reorder") == 0)
-		d->reorder_fn = oo->info;
+	      else if (strcmp (oo->name, "reorder") == 0
+		  && oo->kind == OPTION_STRING)
+		d->reorder_fn = oo->info.string;
 	      else if (strncmp (oo->name, "use_param", 9) == 0
 		       && (oo->name[9] == '\0' || ISDIGIT (oo->name[9])))
 		use_param_p = 1;
@@ -2518,6 +2794,8 @@ write_types_process_field (type_p f, const struct walk_type_data *d)
 
   switch (f->kind)
     {
+    case TYPE_NONE:
+      gcc_unreachable ();
     case TYPE_POINTER:
       oprintf (d->of, "%*s%s (%s%s", d->indent, "",
 	       wtd->subfield_marker_routine, cast, d->val);
@@ -2570,7 +2848,7 @@ write_types_process_field (type_p f, const struct walk_type_data *d)
     case TYPE_SCALAR:
       break;
 
-    default:
+    case TYPE_ARRAY:
       gcc_unreachable ();
     }
 }
@@ -2638,17 +2916,19 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
 
   memset (&d, 0, sizeof (d));
   d.of = get_output_file_for_structure (s, param);
-
   for (opt = s->u.s.opt; opt; opt = opt->next)
-    if (strcmp (opt->name, "chain_next") == 0)
-      chain_next = opt->info;
-    else if (strcmp (opt->name, "chain_prev") == 0)
-      chain_prev = opt->info;
-    else if (strcmp (opt->name, "chain_circular") == 0)
-      chain_circular = opt->info;
-    else if (strcmp (opt->name, "mark_hook") == 0)
-      mark_hook_name = opt->info;
-
+    if (strcmp (opt->name, "chain_next") == 0
+	&& opt->kind == OPTION_STRING)
+      chain_next = opt->info.string;
+    else if (strcmp (opt->name, "chain_prev") == 0
+	     && opt->kind == OPTION_STRING)
+      chain_prev = opt->info.string;
+    else if (strcmp (opt->name, "chain_circular") == 0
+	     && opt->kind == OPTION_STRING)
+      chain_circular = opt->info.string;
+    else if (strcmp (opt->name, "mark_hook") == 0
+	     && opt->kind == OPTION_STRING)
+      mark_hook_name = opt->info.string;
   if (chain_prev != NULL && chain_next == NULL)
     error_at_line (&s->u.s.line, "chain_prev without chain_next");
   if (chain_circular != NULL && chain_next != NULL)
@@ -2815,9 +3095,10 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 	oprintf (output_header, "  } while (0)\n");
 
 	for (opt = s->u.s.opt; opt; opt = opt->next)
-	  if (strcmp (opt->name, "ptr_alias") == 0)
+	  if (strcmp (opt->name, "ptr_alias") == 0
+	      && opt->kind == OPTION_TYPE)
 	    {
-	      const_type_p const t = (const_type_p) opt->info;
+	      const_type_p const t = (const_type_p) opt->info.type;
 	      if (t->kind == TYPE_STRUCT
 		  || t->kind == TYPE_UNION || t->kind == TYPE_LANG_STRUCT)
 		oprintf (output_header,
@@ -3040,11 +3321,11 @@ write_local (outf_p output_header, type_p structures, type_p param_structs)
 
 	if (s->u.s.line.file == NULL)
 	  continue;
-
-	for (opt = s->u.s.opt; opt; opt = opt->next)
-	  if (strcmp (opt->name, "ptr_alias") == 0)
+ 	for (opt = s->u.s.opt; opt; opt = opt->next)
+	  if (strcmp (opt->name, "ptr_alias") == 0
+	      && opt->kind == OPTION_TYPE)
 	    {
-	      const_type_p const t = (const_type_p) opt->info;
+	      const_type_p const t = (const_type_p) opt->info.type;
 	      if (t->kind == TYPE_STRUCT
 		  || t->kind == TYPE_UNION || t->kind == TYPE_LANG_STRUCT)
 		{
@@ -3367,8 +3648,9 @@ write_root (outf_p f, pair_p v, type_p type, const char *name, int has_length,
 	    for (o = fld->opt; o; o = o->next)
 	      if (strcmp (o->name, "skip") == 0)
 		skip_p = 1;
-	      else if (strcmp (o->name, "desc") == 0)
-		desc = o->info;
+	      else if (strcmp (o->name, "desc") == 0
+		       && o->kind == OPTION_STRING)
+		desc = o->info.string;
 	      else if (strcmp (o->name, "param_is") == 0)
 		;
 	      else
@@ -3387,10 +3669,10 @@ write_root (outf_p f, pair_p v, type_p type, const char *name, int has_length,
 		  {
 		    const char *tag = NULL;
 		    options_p oo;
-
-		    for (oo = ufld->opt; oo; oo = oo->next)
-		      if (strcmp (oo->name, "tag") == 0)
-			tag = oo->info;
+ 		    for (oo = ufld->opt; oo; oo = oo->next)
+		      if (strcmp (oo->name, "tag") == 0
+			  && oo->kind == OPTION_STRING)
+			tag = oo->info.string;
 		    if (tag == NULL || strcmp (tag, desc) != 0)
 		      continue;
 		    if (validf != NULL)
@@ -3561,10 +3843,10 @@ write_roots (pair_p variables, bool emit_pch)
       const char *length = NULL;
       int deletable_p = 0;
       options_p o;
-
       for (o = v->opt; o; o = o->next)
-	if (strcmp (o->name, "length") == 0)
-	  length = o->info;
+	if (strcmp (o->name, "length") == 0
+	    && o->kind == OPTION_STRING)
+	  length = o->info.string;
 	else if (strcmp (o->name, "deletable") == 0)
 	  deletable_p = 1;
 	else if (strcmp (o->name, "param_is") == 0)
@@ -3691,12 +3973,11 @@ write_roots (pair_p variables, bool emit_pch)
       for (o = v->opt; o; o = o->next)
 	if (strcmp (o->name, "length") == 0)
 	  length_p = 1;
-	else if (strcmp (o->name, "if_marked") == 0)
-	  if_marked = o->info;
-
-      if (if_marked == NULL)
+	else if (strcmp (o->name, "if_marked") == 0
+		       && o->kind == OPTION_STRING)
+	  if_marked = o->info.string;
+       if (if_marked == NULL)
 	continue;
-
       if (v->type->kind != TYPE_POINTER
 	  || v->type->u.p->kind != TYPE_PARAM_STRUCT
 	  || v->type->u.p->u.param_struct.stru != find_structure ("htab", 0))
@@ -3831,9 +4112,8 @@ note_def_vec (const char *type_name, bool is_scalar, struct fileloc *pos)
   else
     {
       t = resolve_typedef (type_name, pos);
-      o = create_option (0, "length", "%h.num");
+      o = create_string_option (0, "length", "%h.num");
     }
-
   /* We assemble the field list in reverse order.  */
   fields = create_field_at (0, create_array (t, "1"), "vec", o, pos);
   fields = create_field_at (fields, len_ty, "alloc", 0, pos);
@@ -4151,7 +4431,21 @@ dump_options (int indent, options_p opt)
   o = opt;
   while (o)
     {
-      printf ("%s:%s ", o->name, o->info);
+      switch (o->kind)
+	{
+	case OPTION_STRING:
+	  printf ("%s:string %s ", o->name, o->info.string);
+	  break;
+	case OPTION_TYPE:
+	  printf ("%s:type ", o->name);
+	  dump_type (indent+1, o->info.type);
+	  break;
+	case OPTION_NESTED:
+	  printf ("%s:nested ", o->name);
+	  break;
+	case OPTION_NONE:
+	  gcc_unreachable ();
+	}
       o = o->next;
     }
   printf ("\n");
@@ -4324,7 +4618,9 @@ dump_structures (const char *name, type_p structures)
   printf ("End of %s\n\n", name);
 }
 
-/* Dumps the internal structures of gengtype.  */
+/* Dumps the internal structures of gengtype.  This is useful to debug
+   gengtype itself, or to understand what it does, e.g. for plugin
+   developers.  */
 
 static void
 dump_everything (void)
@@ -4560,8 +4856,12 @@ main (int argc, char **argv)
   DBGPRINTF ("inputlist %s", inputlist);
   if (read_state_filename)
     {
-      fatal ("read state %s not implemented yet", read_state_filename);
-      /* TODO: implement read state.  */
+      if (inputlist)
+	fatal ("input list %s cannot be given with a read state file %s",
+	       inputlist, read_state_filename);
+      read_state (read_state_filename);
+      DBGPRINT_COUNT_TYPE ("structures after read_state", structures);
+      DBGPRINT_COUNT_TYPE ("param_structs after read_state", param_structs);
     }
   else if (inputlist)
     {
@@ -4591,7 +4891,8 @@ main (int argc, char **argv)
 		     (int) i, get_input_file_name (gt_files[i]));
 	}
       if (verbosity_level >= 1)
-	printf ("%s parsed %d files\n", progname, (int) num_gt_files);
+	printf ("%s parsed %d files with %d GTY types\n", 
+		progname, (int) num_gt_files, type_count);
 
       DBGPRINT_COUNT_TYPE ("structures after parsing", structures);
       DBGPRINT_COUNT_TYPE ("param_structs after parsing", param_structs);
@@ -4616,7 +4917,7 @@ main (int argc, char **argv)
 	fatal ("No plugin files given in plugin mode for %s",
 	       plugin_output_filename);
 
-      /* Parse our plugin files.  */
+      /* Parse our plugin files and augment the state.  */
       for (ix = 0; ix < nb_plugin_files; ix++)
 	parse_file (get_input_file_name (plugin_files[ix]));
 
@@ -4641,11 +4942,30 @@ main (int argc, char **argv)
      hence enlarge the param_structs list of types.  */
   set_gc_used (variables);
 
-  /* We should write the state here, but it is not yet implemented.  */
+ /* The state at this point is read from the state input file or by
+    parsing source files and optionally augmented by parsing plugin
+    source files.  Write it now.  */
   if (write_state_filename)
     {
-      fatal ("write state %s in not yet implemented", write_state_filename);
-      /* TODO: implement write state.  */
+      DBGPRINT_COUNT_TYPE ("structures before write_state", structures);
+      DBGPRINT_COUNT_TYPE ("param_structs before write_state", param_structs);
+
+      if (hit_error)
+	fatal ("didn't write state file %s after errors", 
+	       write_state_filename);
+
+      DBGPRINTF ("before write_state %s", write_state_filename);
+      write_state (write_state_filename);
+
+      if (do_dump)
+	dump_everything ();
+
+      /* After having written the state file we return immediately to
+	 avoid generating any output file.  */
+      if (hit_error)
+	return 1;
+      else
+	return 0;
     }
 
 

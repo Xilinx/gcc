@@ -118,8 +118,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #define TARGET_EXECUTABLE_SUFFIX ".exe"
 
-#include <stdio.h>
-
 #define TARGET_OS_CPP_BUILTINS()					\
   do									\
     {									\
@@ -178,9 +176,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef LONG_TYPE_SIZE
 #define LONG_TYPE_SIZE 32
 
-/* Enable parsing of #pragma pack(push,<n>) and #pragma pack(pop).  */
-#define HANDLE_PRAGMA_PACK_PUSH_POP 1
-
 union tree_node;
 #define TREE union tree_node *
 
@@ -256,6 +251,10 @@ do {						\
     fputs (user_label_prefix, (STREAM));	\
   fputs ((NAME), (STREAM));			\
 } while (0)
+
+/* This does much the same in memory rather than to a stream.  */
+#undef TARGET_MANGLE_ASSEMBLER_NAME
+#define TARGET_MANGLE_ASSEMBLER_NAME i386_pe_mangle_assembler_name
 
 
 /* Emit code to check the stack when allocating more than 4000

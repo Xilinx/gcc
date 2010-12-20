@@ -191,7 +191,10 @@ propagate_value (use_operand_p op_p, tree val)
 
    Use this version when not const/copy propagating values.  For example,
    PRE uses this version when building expressions as they would appear
-   in specific blocks taking into account actions of PHI nodes.  */
+   in specific blocks taking into account actions of PHI nodes.
+
+   The statement in which an expression has been replaced should be
+   folded using fold_stmt_inplace.  */
 
 void
 replace_exp (use_operand_p op_p, tree val)
@@ -775,7 +778,9 @@ fini_copy_prop (void)
 	duplicate_ssa_name_ptr_info (copy_of[i].value, SSA_NAME_PTR_INFO (var));
     }
 
-  substitute_and_fold (get_value, NULL, true);
+  /* Don't do DCE if we have loops.  That's the simplest way to not
+     destroy the scev cache.  */
+  substitute_and_fold (get_value, NULL, !current_loops);
 
   free (copy_of);
 }

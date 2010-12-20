@@ -589,6 +589,10 @@ AC_ARG_ENABLE(build-with-cxx,
 ENABLE_BUILD_WITH_CXX=$enableval,
 ENABLE_BUILD_WITH_CXX=no)
 AC_SUBST(ENABLE_BUILD_WITH_CXX)
+if test "$ENABLE_BUILD_WITH_CXX" = "yes"; then
+  AC_DEFINE(ENABLE_BUILD_WITH_CXX, 1,
+	    [Define if building with C++.])
+fi
 
 # With stabs
 AC_ARG_WITH(stabs,
@@ -905,6 +909,24 @@ AC_CHECK_HEADER(pthread.h, [have_pthread_h=yes], [have_pthread_h=])
 gcc_AC_C_CHAR_BIT
 AC_C_BIGENDIAN
 
+# ----------------------
+# Checks for C++ headers
+# ----------------------
+
+dnl Autoconf will give an error in the configure script if there is no
+dnl C++ preprocessor.  Hack to prevent that.
+m4_pushdef([AC_MSG_ERROR], m4_defn([AC_MSG_WARN]))[]dnl
+AC_PROG_CXXCPP
+m4_popdef([AC_MSG_ERROR])[]dnl
+
+AC_LANG_PUSH(C++)
+
+AC_CHECK_HEADERS(unordered_map)
+AC_CHECK_HEADERS(tr1/unordered_map)
+AC_CHECK_HEADERS(ext/hash_map)
+
+AC_LANG_POP(C++)
+
 # --------
 # UNSORTED
 # --------
@@ -974,7 +996,7 @@ define(gcc_UNLOCKED_FUNCS, clearerr_unlocked feof_unlocked dnl
   putchar_unlocked putc_unlocked)
 AC_CHECK_FUNCS(times clock kill getrlimit setrlimit atoll atoq \
 	sysconf strsignal getrusage nl_langinfo \
-	gettimeofday mbstowcs wcswidth mmap mincore setlocale \
+	gettimeofday mbstowcs wcswidth mmap setlocale \
 	gcc_UNLOCKED_FUNCS)
 
 if test x$ac_cv_func_mbstowcs = xyes; then
@@ -1382,8 +1404,10 @@ fi
 
 # Convert extra_options into a form suitable for Makefile use.
 extra_opt_files=
+all_opt_files=
 for f in $extra_options; do
   extra_opt_files="$extra_opt_files \$(srcdir)/config/$f"
+  all_opt_files="$all_opt_files $srcdir/config/$f"
 done
 AC_SUBST(extra_opt_files)
 
@@ -1852,7 +1876,7 @@ elif test -f $gcc_cv_as_gas_srcdir/configure.in \
 elif test -x as$build_exeext; then
 	# Build using assembler in the current directory.
 	gcc_cv_as=./as$build_exeext
-elif test -x $AS_FOR_TARGET; then
+elif ( set dummy $AS_FOR_TARGET; test -x $[2] ); then
         gcc_cv_as="$AS_FOR_TARGET"
 else
         AC_PATH_PROG(gcc_cv_as, $AS_FOR_TARGET)
@@ -1907,7 +1931,7 @@ elif test -f $gcc_cv_ld_gld_srcdir/configure.in \
 elif test -x collect-ld$build_exeext; then
 	# Build using linker in the current directory.
 	gcc_cv_ld=./collect-ld$build_exeext
-elif test -x $LD_FOR_TARGET; then
+elif ( set dummy $LD_FOR_TARGET; test -x $[2] ); then
         gcc_cv_ld="$LD_FOR_TARGET"
 else
         AC_PATH_PROG(gcc_cv_ld, $LD_FOR_TARGET)
@@ -1980,7 +2004,7 @@ if test -f $gcc_cv_binutils_srcdir/configure.in \
 	gcc_cv_nm=../binutils/nm-new$build_exeext
 elif test -x nm$build_exeext; then
 	gcc_cv_nm=./nm$build_exeext
-elif test -x $NM_FOR_TARGET; then
+elif ( set dummy $NM_FOR_TARGET; test -x $[2] ); then
         gcc_cv_nm="$NM_FOR_TARGET"
 else
         AC_PATH_PROG(gcc_cv_nm, $NM_FOR_TARGET)
@@ -2013,7 +2037,7 @@ if test -f $gcc_cv_binutils_srcdir/configure.in \
 	gcc_cv_objdump=../binutils/objdump$build_exeext
 elif test -x objdump$build_exeext; then
 	gcc_cv_objdump=./objdump$build_exeext
-elif test -x $OBJDUMP_FOR_TARGET; then
+elif ( set dummy $OBJDUMP_FOR_TARGET; test -x $[2] ); then
         gcc_cv_objdump="$OBJDUMP_FOR_TARGET"
 else
         AC_PATH_PROG(gcc_cv_objdump, $OBJDUMP_FOR_TARGET)
@@ -3849,8 +3873,8 @@ gcc_GAS_CHECK_FEATURE([.lcomm with alignment], gcc_cv_as_lcomm_with_alignment,
   [Define if your assembler supports .lcomm with an alignment field.])])
 
 AC_ARG_ENABLE(gnu-unique-object,
- [  --enable-gnu-unique-object	enable the use of the @gnu_unique_object ELF extension on
-				glibc systems],
+ [AS_HELP_STRING([--enable-gnu-unique-object],
+   [enable the use of the @gnu_unique_object ELF extension on glibc systems])],
  [case $enable_gnu_unique_object in
     yes | no) ;;
     *) AC_MSG_ERROR(['$enable_gnu_unique_object' is an invalid value for --enable-gnu-unique-object.
@@ -4458,6 +4482,7 @@ changequote([,])dnl
 	all_lang_makefrags="$all_lang_makefrags \$(srcdir)/$gcc_subdir/Make-lang.in"
 	if test -f $srcdir/$gcc_subdir/lang.opt; then
 	    lang_opt_files="$lang_opt_files $srcdir/$gcc_subdir/lang.opt"
+	    all_opt_files="$all_opt_files $srcdir/$gcc_subdir/lang.opt"
 	fi
 	if test -f $srcdir/$gcc_subdir/$subdir-tree.def; then
 	    lang_tree_files="$lang_tree_files $srcdir/$gcc_subdir/$subdir-tree.def"
@@ -4506,6 +4531,14 @@ do
 	done
 	echo "lang.$t: $x" >> Make-hooks
 done
+
+# --------
+# Option include files
+# --------
+
+${AWK} -f $srcdir/opt-include.awk $all_opt_files > option-includes.mk
+option_includes="option-includes.mk"
+AC_SUBST_FILE(option_includes)
 
 # --------
 # UNSORTED
@@ -4748,6 +4781,18 @@ if test x"$enable_plugin" = x"yes"; then
   AC_DEFINE(ENABLE_PLUGIN, 1, [Define to enable plugin support.])
 fi
 
+
+AC_ARG_ENABLE(libquadmath-support,
+[AS_HELP_STRING([--disable-libquadmath-support],
+  [disable libquadmath support for Fortran])],
+ENABLE_LIBQUADMATH_SUPPORT=$enableval,
+ENABLE_LIBQUADMATH_SUPPORT=yes)
+if test "${ENABLE_LIBQUADMATH_SUPPORT}" != "no" ; then
+  AC_DEFINE(ENABLE_LIBQUADMATH_SUPPORT, 1,
+            [Define to 1 to enable libquadmath support])
+fi
+
+
 # Configure the subdirectories
 # AC_CONFIG_SUBDIRS($subdirs)
 
@@ -4769,3 +4814,4 @@ done
 ], 
 [subdirs='$subdirs'])
 AC_OUTPUT
+

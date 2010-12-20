@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "integrate.h"
 #include "function.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "ggc.h"
 #include "recog.h"
 #include "predict.h"
@@ -164,6 +163,7 @@ static void pa_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 				     const_tree, bool);
 static rtx pa_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
 			    const_tree, bool);
+static unsigned int pa_function_arg_boundary (enum machine_mode, const_tree);
 static struct machine_function * pa_init_machine_status (void);
 static reg_class_t pa_secondary_reload (bool, rtx, reg_class_t,
 					enum machine_mode,
@@ -180,6 +180,8 @@ static rtx pa_delegitimize_address (rtx);
 static bool pa_print_operand_punct_valid_p (unsigned char);
 static rtx pa_internal_arg_pointer (void);
 static bool pa_can_eliminate (const int, const int);
+static void pa_conditional_register_usage (void);
+static section *pa_function_section (tree, enum node_frequency, bool, bool);
 
 /* The following extra sections are only used for SOM.  */
 static GTY(()) section *som_readonly_data_section;
@@ -351,6 +353,8 @@ static const struct default_options pa_option_optimization_table[] =
 #define TARGET_FUNCTION_ARG pa_function_arg
 #undef TARGET_FUNCTION_ARG_ADVANCE
 #define TARGET_FUNCTION_ARG_ADVANCE pa_function_arg_advance
+#undef TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY pa_function_arg_boundary
 
 #undef TARGET_EXPAND_BUILTIN_SAVEREGS
 #define TARGET_EXPAND_BUILTIN_SAVEREGS hppa_builtin_saveregs
@@ -383,6 +387,10 @@ static const struct default_options pa_option_optimization_table[] =
 #define TARGET_INTERNAL_ARG_POINTER pa_internal_arg_pointer
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE pa_can_eliminate
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE pa_conditional_register_usage
+#undef TARGET_ASM_FUNCTION_SECTION
+#define TARGET_ASM_FUNCTION_SECTION pa_function_section
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -537,7 +545,8 @@ pa_option_override (void)
      call frame information.  There is no benefit in using this optimization
      on PA8000 and later processors.  */
   if (pa_cpu >= PROCESSOR_8000
-      || (targetm.except_unwind_info () == UI_DWARF2 && flag_exceptions)
+      || (targetm.except_unwind_info (&global_options) == UI_DWARF2
+	  && flag_exceptions)
       || flag_unwind_tables)
     target_flags &= ~MASK_JUMP_IN_DELAY;
 
@@ -6179,35 +6188,92 @@ pa_scalar_mode_supported_p (enum machine_mode mode)
 }
 
 /* Return TRUE if INSN, a jump insn, has an unfilled delay slot and
-   it branches to the next real instruction.  Otherwise, return FALSE.  */
+   it branches into the delay slot.  Otherwise, return FALSE.  */
 
 static bool
 branch_to_delay_slot_p (rtx insn)
 {
+  rtx jump_insn;
+
   if (dbr_sequence_length ())
     return FALSE;
 
-  return next_real_insn (JUMP_LABEL (insn)) == next_real_insn (insn);
+  jump_insn = next_active_insn (JUMP_LABEL (insn));
+  while (insn)
+    {
+      insn = next_active_insn (insn);
+      if (jump_insn == insn)
+	return TRUE;
+
+      /* We can't rely on the length of asms.  So, we return FALSE when
+	 the branch is followed by an asm.  */
+      if (!insn
+	  || GET_CODE (PATTERN (insn)) == ASM_INPUT
+	  || extract_asm_operands (PATTERN (insn)) != NULL_RTX
+	  || get_attr_length (insn) > 0)
+	break;
+    }
+
+  return FALSE;
 }
 
-/* Return TRUE if INSN, a jump insn, needs a nop in its delay slot.
+/* Return TRUE if INSN, a forward jump insn, needs a nop in its delay slot.
 
    This occurs when INSN has an unfilled delay slot and is followed
-   by an ASM_INPUT.  Disaster can occur if the ASM_INPUT is empty and
-   the jump branches into the delay slot.  So, we add a nop in the delay
-   slot just to be safe.  This messes up our instruction count, but we
-   don't know how big the ASM_INPUT insn is anyway.  */
+   by an asm.  Disaster can occur if the asm is empty and the jump
+   branches into the delay slot.  So, we add a nop in the delay slot
+   when this occurs.  */
 
 static bool
 branch_needs_nop_p (rtx insn)
 {
-  rtx next_insn;
+  rtx jump_insn;
 
   if (dbr_sequence_length ())
     return FALSE;
 
-  next_insn = next_real_insn (insn);
-  return GET_CODE (PATTERN (next_insn)) == ASM_INPUT;
+  jump_insn = next_active_insn (JUMP_LABEL (insn));
+  while (insn)
+    {
+      insn = next_active_insn (insn);
+      if (!insn || jump_insn == insn)
+	return TRUE;
+
+      if (!(GET_CODE (PATTERN (insn)) == ASM_INPUT
+	   || extract_asm_operands (PATTERN (insn)) != NULL_RTX)
+	  && get_attr_length (insn) > 0)
+	break;
+    }
+
+  return FALSE;
+}
+
+/* Return TRUE if INSN, a forward jump insn, can use nullification
+   to skip the following instruction.  This avoids an extra cycle due
+   to a mis-predicted branch when we fall through.  */
+
+static bool
+use_skip_p (rtx insn)
+{
+  rtx jump_insn = next_active_insn (JUMP_LABEL (insn));
+
+  while (insn)
+    {
+      insn = next_active_insn (insn);
+
+      /* We can't rely on the length of asms, so we can't skip asms.  */
+      if (!insn
+	  || GET_CODE (PATTERN (insn)) == ASM_INPUT
+	  || extract_asm_operands (PATTERN (insn)) != NULL_RTX)
+	break;
+      if (get_attr_length (insn) == 4
+	  && jump_insn == next_active_insn (insn))
+	return TRUE;
+      if (get_attr_length (insn) > 0)
+	break;
+    }
+
+  return FALSE;
 }
 
 /* This routine handles all the normal conditional branch sequences we
@@ -6221,7 +6287,7 @@ const char *
 output_cbranch (rtx *operands, int negated, rtx insn)
 {
   static char buf[100];
-  int useskip = 0;
+  bool useskip;
   int nullify = INSN_ANNULLED_BRANCH_P (insn);
   int length = get_attr_length (insn);
   int xdelay;
@@ -6259,12 +6325,7 @@ output_cbranch (rtx *operands, int negated, rtx insn)
   /* A forward branch over a single nullified insn can be done with a
      comclr instruction.  This avoids a single cycle penalty due to
      mis-predicted branch if we fall through (branch not taken).  */
-  if (length == 4
-      && next_real_insn (insn) != 0
-      && get_attr_length (next_real_insn (insn)) == 4
-      && JUMP_LABEL (insn) == next_nonnote_insn (next_real_insn (insn))
-      && nullify)
-    useskip = 1;
+  useskip = (length == 4 && nullify) ? use_skip_p (insn) : FALSE;
 
   switch (length)
     {
@@ -6552,7 +6613,7 @@ const char *
 output_bb (rtx *operands ATTRIBUTE_UNUSED, int negated, rtx insn, int which)
 {
   static char buf[100];
-  int useskip = 0;
+  bool useskip;
   int nullify = INSN_ANNULLED_BRANCH_P (insn);
   int length = get_attr_length (insn);
   int xdelay;
@@ -6578,13 +6639,7 @@ output_bb (rtx *operands ATTRIBUTE_UNUSED, int negated, rtx insn, int which)
   /* A forward branch over a single nullified insn can be done with a
      extrs instruction.  This avoids a single cycle penalty due to
      mis-predicted branch if we fall through (branch not taken).  */
-
-  if (length == 4
-      && next_real_insn (insn) != 0
-      && get_attr_length (next_real_insn (insn)) == 4
-      && JUMP_LABEL (insn) == next_nonnote_insn (next_real_insn (insn))
-      && nullify)
-    useskip = 1;
+  useskip = (length == 4 && nullify) ? use_skip_p (insn) : FALSE;
 
   switch (length)
     {
@@ -6743,7 +6798,7 @@ const char *
 output_bvb (rtx *operands ATTRIBUTE_UNUSED, int negated, rtx insn, int which)
 {
   static char buf[100];
-  int useskip = 0;
+  bool useskip;
   int nullify = INSN_ANNULLED_BRANCH_P (insn);
   int length = get_attr_length (insn);
   int xdelay;
@@ -6769,13 +6824,7 @@ output_bvb (rtx *operands ATTRIBUTE_UNUSED, int negated, rtx insn, int which)
   /* A forward branch over a single nullified insn can be done with a
      extrs instruction.  This avoids a single cycle penalty due to
      mis-predicted branch if we fall through (branch not taken).  */
-
-  if (length == 4
-      && next_real_insn (insn) != 0
-      && get_attr_length (next_real_insn (insn)) == 4
-      && JUMP_LABEL (insn) == next_nonnote_insn (next_real_insn (insn))
-      && nullify)
-    useskip = 1;
+  useskip = (length == 4 && nullify) ? use_skip_p (insn) : FALSE;
 
   switch (length)
     {
@@ -9600,6 +9649,19 @@ pa_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
   return retval;
 }
 
+/* Arguments larger than one word are double word aligned.  */
+
+static unsigned int
+pa_function_arg_boundary (enum machine_mode mode, const_tree type)
+{
+  bool singleword = (type
+		     ? (integer_zerop (TYPE_SIZE (type))
+			|| !TREE_CONSTANT (TYPE_SIZE (type))
+			|| int_size_in_bytes (type) <= UNITS_PER_WORD)
+		     : GET_MODE_SIZE (mode) <= UNITS_PER_WORD);
+
+  return singleword ? PARM_BOUNDARY : MAX_PARM_BOUNDARY;
+}
 
 /* If this arg would be passed totally in registers or totally on the stack,
    then this routine should return zero.  */
@@ -10158,6 +10220,50 @@ pa_initial_elimination_offset (int from, int to)
     gcc_unreachable ();
 
   return offset;
+}
+
+static void
+pa_conditional_register_usage (void)
+{
+  int i;
+
+  if (!TARGET_64BIT && !TARGET_PA_11)
+    {
+      for (i = 56; i <= FP_REG_LAST; i++)
+	fixed_regs[i] = call_used_regs[i] = 1;
+      for (i = 33; i < 56; i += 2)
+	fixed_regs[i] = call_used_regs[i] = 1;
+    }
+  if (TARGET_DISABLE_FPREGS || TARGET_SOFT_FLOAT)
+    {
+      for (i = FP_REG_FIRST; i <= FP_REG_LAST; i++)
+	fixed_regs[i] = call_used_regs[i] = 1;
+    }
+  if (flag_pic)
+    fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;
+}
+
+/* Target hook for function_section.  */
+
+static section *
+pa_function_section (tree decl, enum node_frequency freq,
+		     bool startup, bool exit)
+{
+  /* Put functions in text section if target doesn't have named sections.  */
+  if (!targetm.have_named_sections)
+    return text_section;
+
+  /* Force nested functions into the same section as the containing
+     function.  */
+  if (decl
+      && DECL_SECTION_NAME (decl) == NULL_TREE
+      && DECL_CONTEXT (decl) != NULL_TREE
+      && TREE_CODE (DECL_CONTEXT (decl)) == FUNCTION_DECL
+      && DECL_SECTION_NAME (DECL_CONTEXT (decl)) == NULL_TREE)
+    return function_section (DECL_CONTEXT (decl));
+
+  /* Otherwise, use the default function section.  */
+  return default_function_section (decl, freq, startup, exit);
 }
 
 #include "gt-pa.h"

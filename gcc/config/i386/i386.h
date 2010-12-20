@@ -59,6 +59,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_LWP	OPTION_ISA_LWP
 #define TARGET_ROUND	OPTION_ISA_ROUND
 #define TARGET_ABM	OPTION_ISA_ABM
+#define TARGET_BMI	OPTION_ISA_BMI
+#define TARGET_TBM	OPTION_ISA_TBM
 #define TARGET_POPCNT	OPTION_ISA_POPCNT
 #define TARGET_SAHF	OPTION_ISA_SAHF
 #define TARGET_MOVBE	OPTION_ISA_MOVBE
@@ -238,7 +240,9 @@ extern const struct processor_costs ix86_size_cost;
 #define TARGET_K8 (ix86_tune == PROCESSOR_K8)
 #define TARGET_ATHLON_K8 (TARGET_K8 || TARGET_ATHLON)
 #define TARGET_NOCONA (ix86_tune == PROCESSOR_NOCONA)
-#define TARGET_CORE2 (ix86_tune == PROCESSOR_CORE2)
+#define TARGET_CORE2_32 (ix86_tune == PROCESSOR_CORE2_32)
+#define TARGET_CORE2_64 (ix86_tune == PROCESSOR_CORE2_64)
+#define TARGET_CORE2 (TARGET_CORE2_32 || TARGET_CORE2_64)
 #define TARGET_COREI7_32 (ix86_tune == PROCESSOR_COREI7_32)
 #define TARGET_COREI7_64 (ix86_tune == PROCESSOR_COREI7_64)
 #define TARGET_COREI7 (TARGET_COREI7_32 || TARGET_COREI7_64)
@@ -550,7 +554,7 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #ifndef CC1_CPU_SPEC
 #define CC1_CPU_SPEC_1 "\
 %{msse5:-mavx \
-%n'-msse5' was removed.\n}"
+%n'-msse5' was removed\n}"
 
 #ifndef HAVE_LOCAL_CPU_DETECT
 #define CC1_CPU_SPEC CC1_CPU_SPEC_1
@@ -842,13 +846,6 @@ enum target_cpu_default
   ix86_minimum_alignment (EXP, MODE, ALIGN)
 
 
-/* If defined, a C expression that gives the alignment boundary, in
-   bits, of an argument with the specified mode and type.  If it is
-   not defined, `PARM_BOUNDARY' is used for all arguments.  */
-
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE) \
-  ix86_function_arg_boundary ((MODE), (TYPE))
-
 /* Set this nonzero if move instructions will actually fail to work
    when given unaligned data.  */
 #define STRICT_ALIGNMENT 0
@@ -904,7 +901,7 @@ enum target_cpu_default
    64 bit targets, one if the register if fixed on both 32 and 64
    bit targets, two if it is only fixed on 32bit targets and three
    if its only fixed on 64bit targets.
-   Proper values are computed in the CONDITIONAL_REGISTER_USAGE.
+   Proper values are computed in TARGET_CONDITIONAL_REGISTER_USAGE.
  */
 #define FIXED_REGISTERS						\
 /*ax,dx,cx,bx,si,di,bp,sp,st,st1,st2,st3,st4,st5,st6,st7*/	\
@@ -932,7 +929,7 @@ enum target_cpu_default
    64 bit targets, one if the register if call used on both 32 and 64
    bit targets, two if it is only call used on 32bit targets and three
    if its only call used on 64bit targets.
-   Proper values are computed in the CONDITIONAL_REGISTER_USAGE.
+   Proper values are computed in TARGET_CONDITIONAL_REGISTER_USAGE.
 */
 #define CALL_USED_REGISTERS					\
 /*ax,dx,cx,bx,si,di,bp,sp,st,st1,st2,st3,st4,st5,st6,st7*/	\
@@ -971,9 +968,6 @@ enum target_cpu_default
 
 
 #define OVERRIDE_ABI_FORMAT(FNDECL) ix86_call_abi_override (FNDECL)
-
-/* Macro to conditionally modify fixed_regs/call_used_regs.  */
-#define CONDITIONAL_REGISTER_USAGE  ix86_conditional_register_usage ()
 
 /* Return number of consecutive hard regs needed starting at reg REGNO
    to hold something of mode MODE.
@@ -1256,7 +1250,8 @@ enum reg_class
    for a vector of HARD_REG_SET of length N_REG_CLASSES.
 
    Note that the default setting of CLOBBERED_REGS is for 32-bit; this
-   is adjusted by CONDITIONAL_REGISTER_USAGE for the 64-bit ABI in effect.  */
+   is adjusted by TARGET_CONDITIONAL_REGISTER_USAGE for the 64-bit ABI
+   in effect.  */
 
 #define REG_CLASS_CONTENTS						\
 {     { 0x00,     0x0 },						\
@@ -2057,7 +2052,8 @@ enum processor_type
   PROCESSOR_PENTIUM4,
   PROCESSOR_K8,
   PROCESSOR_NOCONA,
-  PROCESSOR_CORE2,
+  PROCESSOR_CORE2_32,
+  PROCESSOR_CORE2_64,
   PROCESSOR_COREI7_32,
   PROCESSOR_COREI7_64,
   PROCESSOR_GENERIC32,
@@ -2301,12 +2297,6 @@ struct GTY(()) machine_function {
      stack below the return address.  */
   BOOL_BITFIELD static_chain_on_stack : 1;
 
-  /* Nonzero if the current function uses vzeroupper.  */
-  BOOL_BITFIELD use_vzeroupper_p : 1;
-
-  /* Nonzero if the current function uses 256bit AVX regisers.  */
-  BOOL_BITFIELD use_avx256_p : 1;
-
   /* Nonzero if caller passes 256bit AVX modes.  */
   BOOL_BITFIELD caller_pass_avx256_p : 1;
 
@@ -2318,6 +2308,9 @@ struct GTY(()) machine_function {
 
   /* Nonzero if the current callee returns 256bit AVX modes.  */
   BOOL_BITFIELD callee_return_avx256_p : 1;
+
+  /* Nonzero if rescan vzerouppers in the current function is needed.  */
+  BOOL_BITFIELD rescan_vzeroupper_p : 1;
 
   /* During prologue/epilogue generation, the current frame state.
      Otherwise, the frame state at the end of the prologue.  */
@@ -2365,6 +2358,14 @@ struct GTY(()) machine_function {
 
 extern void debug_ready_dispatch (void);
 extern void debug_dispatch_window (int);
+
+/* The value at zero is only defined for the BMI instructions
+   LZCNT and TZCNT, not the BSR/BSF insns in the original isa.  */
+#define CTZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE) \
+	((VALUE) = GET_MODE_BITSIZE (MODE), TARGET_BMI)
+#define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE) \
+	((VALUE) = GET_MODE_BITSIZE (MODE), TARGET_BMI)
+
 
 /*
 Local variables:

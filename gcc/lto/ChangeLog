@@ -1,3 +1,57 @@
+2010-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/46796
+	* lto-lang.c (lto_init): Give names to basic types.
+
+2010-11-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* lto-object.c: Don't include toplev.h.
+	* Make-lang.in (lto/lto-object.o): Don't depend on toplev.h.
+
+2010-11-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (lto/lto-object.o): Depend on toplev.h instead of
+	$(TOPLEV_H).
+
+2010-11-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* lto-endian.h: Delete.
+	* lto-object.c: Don't include "libiberty.h".
+	(O_BINARY): Don't define.
+	* lto.c: Don't include "libiberty.h" or <sys/mman.h>.
+	(O_BINARY): Don't define.
+
+2010-11-23  Richard Guenther  <rguenther@suse.de>
+
+	* lto.c (read_cgraph_and_symbols): Remove newline from diagnostic.
+
+2010-11-23  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/46605
+	* lto.c (read_cgraph_and_symbols): Bail out after errors.
+
+2010-11-17  Joseph Myers  <joseph@codesourcery.com>
+
+	* lto.c (lto_main): Take no arguments.
+	* lto.h (lto_main): Update prototype.
+
+2010-11-16  Ian Lance Taylor  <iant@google.com>
+
+	* lto-object.c (lto_obj_file_open): Call
+	simple_object_attributes_merge rather than
+	simple_object_attributes_compare.
+
+2010-11-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (lto/lto.o): Use $(OPTS_H).
+	* lto-lang.c (lto_handle_option): Take location_t parameter.
+
+2010-11-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* lto.c (lto_resolution_read): Start diagnostics with lowercase
+	letters and remove trailing '.'.
+	(lto_file_finalize): Start diagnostic with a lowercase letter.
+
 2010-11-02  Ian Lance Taylor  <iant@google.com>
 
 	* lto-object.c: New file.

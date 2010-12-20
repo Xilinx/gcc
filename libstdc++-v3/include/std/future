@@ -22,7 +22,7 @@
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-/** @file future
+/** @file include/future
  *  This is a Standard C++ Library header.
  */
 
@@ -508,23 +508,34 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       valid() const { return static_cast<bool>(_M_state); }
 
       void 
-      wait() const { _M_state->wait(); }
+      wait() const
+      {
+        _State::_S_check(_M_state);
+        _M_state->wait();
+      }
 
       template<typename _Rep, typename _Period>
         bool
         wait_for(const chrono::duration<_Rep, _Period>& __rel) const
-        { return _M_state->wait_for(__rel); }
+        {
+          _State::_S_check(_M_state);
+          return _M_state->wait_for(__rel);
+        }
 
       template<typename _Clock, typename _Duration>
         bool
         wait_until(const chrono::time_point<_Clock, _Duration>& __abs) const
-        { return _M_state->wait_until(__abs); }
+        {
+          _State::_S_check(_M_state);
+          return _M_state->wait_until(__abs);
+        }
 
     protected:
       /// Wait for the state to be ready and rethrow any stored exception
       __result_type
       _M_get_result()
       {
+        _State::_S_check(_M_state);
         _Result_base& __res = _M_state->wait();
         if (!(__res._M_error == 0))
           rethrow_exception(__res._M_error);
@@ -556,7 +567,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       explicit
       __basic_future(future<_Res>&&);
 
-      __basic_future() { }
+      constexpr __basic_future() : _M_state() { }
 
       struct _Reset
       {
@@ -584,7 +595,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       future(const __state_type& __state) : _Base_type(__state) { }
 
     public:
-      future() : _Base_type() { }
+      constexpr future() : _Base_type() { }
 
       /// Move constructor
       future(future&& __uf) : _Base_type(std::move(__uf)) { }
@@ -625,7 +636,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       future(const __state_type& __state) : _Base_type(__state) { }
 
     public:
-      future() : _Base_type() { }
+      constexpr future() : _Base_type() { }
 
       /// Move constructor
       future(future&& __uf) : _Base_type(std::move(__uf)) { }
@@ -666,7 +677,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       future(const __state_type& __state) : _Base_type(__state) { }
 
     public:
-      future() : _Base_type() { }
+      constexpr future() : _Base_type() { }
 
       /// Move constructor
       future(future&& __uf) : _Base_type(std::move(__uf)) { }
@@ -698,7 +709,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef __basic_future<_Res> _Base_type;
 
     public:
-      shared_future() : _Base_type() { }
+      constexpr shared_future() : _Base_type() { }
 
       /// Copy constructor
       shared_future(const shared_future& __sf) : _Base_type(__sf) { }
@@ -742,7 +753,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef __basic_future<_Res&>           _Base_type;
 
     public:
-      shared_future() : _Base_type() { }
+      constexpr shared_future() : _Base_type() { }
 
       /// Copy constructor
       shared_future(const shared_future& __sf) : _Base_type(__sf) { }
@@ -781,7 +792,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef __basic_future<void> _Base_type;
 
     public:
-      shared_future() : _Base_type() { }
+      constexpr shared_future() : _Base_type() { }
 
       /// Copy constructor
       shared_future(const shared_future& __sf) : _Base_type(__sf) { }

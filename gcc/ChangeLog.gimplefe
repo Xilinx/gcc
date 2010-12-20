@@ -1,3 +1,10 @@
+2010-12-20  Diego Novillo  <dnovillo@google.com>
+
+	Merge with mainline rev 168092.
+
+	* BASE-VER: Add -gimplefe suffix to version string.
+	* DATESTAMP: Indicate latest trunk revision merged.
+
 2010-11-10  Diego Novillo  <dnovillo@google.com>
 
 	Merge with mainline rev 166509.

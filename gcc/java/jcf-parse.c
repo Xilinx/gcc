@@ -35,11 +35,9 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "javaop.h"
 #include "java-tree.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "parse.h"
 #include "ggc.h"
 #include "debug.h"
-#include "assert.h"
 #include "cgraph.h"
 #include "vecprim.h"
 #include "bitmap.h"
@@ -1732,7 +1730,7 @@ java_emit_static_constructor (void)
 
 
 void
-java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
+java_parse_file (void)
 {
   int filename_count = 0;
   location_t save_location = input_location;
@@ -1750,7 +1748,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
       int avail = 2000;
       finput = fopen (main_input_filename, "r");
       if (finput == NULL)
-	fatal_error ("can't open %s: %m", input_filename);
+	fatal_error ("can%'t open %s: %m", input_filename);
       list = XNEWVEC (char, avail);
       next = list;
       for (;;)
@@ -1856,7 +1854,7 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
       const char *resource_filename;
       
       /* Only one resource file may be compiled at a time.  */
-      assert (VEC_length (tree, all_translation_units) == 1);
+      gcc_assert (VEC_length (tree, all_translation_units) == 1);
 
       resource_filename
 	= IDENTIFIER_POINTER
@@ -1885,11 +1883,11 @@ java_parse_file (int set_yydebug ATTRIBUTE_UNUSED)
 
       /* Close previous descriptor, if any */
       if (finput && fclose (finput))
-	fatal_error ("can't close input file %s: %m", main_input_filename);
+	fatal_error ("can%'t close input file %s: %m", main_input_filename);
       
       finput = fopen (filename, "rb");
       if (finput == NULL)
-	fatal_error ("can't open %s: %m", filename);
+	fatal_error ("can%'t open %s: %m", filename);
 
 #ifdef IO_BUFFER_SIZE
       setvbuf (finput, xmalloc (IO_BUFFER_SIZE),

@@ -27,7 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "output.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "flags.h"
 #include "function.h"
 #include "ggc.h"
@@ -36,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "tree-dump.h"
 #include "tree-pass.h"
-#include "toplev.h"
 #include "except.h"
 #include "cfgloop.h"
 #include "cfglayout.h"
@@ -777,7 +775,10 @@ cleanup_tree_cfg_noloop (void)
 static void
 repair_loop_structures (void)
 {
-  bitmap changed_bbs = BITMAP_ALLOC (NULL);
+  bitmap changed_bbs;
+
+  timevar_push (TV_REPAIR_LOOPS);
+  changed_bbs = BITMAP_ALLOC (NULL);
   fix_loop_structure (changed_bbs);
 
   /* This usually does nothing.  But sometimes parts of cfg that originally
@@ -794,6 +795,7 @@ repair_loop_structures (void)
   scev_reset ();
 
   loops_state_clear (LOOPS_NEED_FIXUP);
+  timevar_pop (TV_REPAIR_LOOPS);
 }
 
 /* Cleanup cfg and repair loop structures.  */

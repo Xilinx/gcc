@@ -644,10 +644,11 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
 		  {
 		    double_int off
 		      = double_int_add (tree_to_double_int (this_offset),
-					double_int_sdiv
+					double_int_rshift
 					  (tree_to_double_int (bit_offset),
-					   uhwi_to_double_int (BITS_PER_UNIT),
-					   TRUNC_DIV_EXPR));
+					   BITS_PER_UNIT == 8
+					   ? 3 : exact_log2 (BITS_PER_UNIT),
+					   HOST_BITS_PER_DOUBLE_INT, true));
 		    if (double_int_fits_in_shwi_p (off))
 		      temp.off = off.low;
 		  }
@@ -1288,21 +1289,25 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
   tree fndecl;
   tree base;
   HOST_WIDE_INT offset, maxsize;
+  static VEC (vn_reference_op_s, heap) *lhs_ops = NULL;
+  ao_ref lhs_ref;
+  bool lhs_ref_ok = false;
 
   /* First try to disambiguate after value-replacing in the definitions LHS.  */
   if (is_gimple_assign (def_stmt))
     {
+      VEC (vn_reference_op_s, heap) *tem;
       tree lhs = gimple_assign_lhs (def_stmt);
-      ao_ref ref1;
-      VEC (vn_reference_op_s, heap) *operands = NULL;
-      bool res = true;
-      copy_reference_ops_from_ref (lhs, &operands);
-      operands = valueize_refs (operands);
-      if (ao_ref_init_from_vn_reference (&ref1, get_alias_set (lhs),
-					 TREE_TYPE (lhs), operands))
-	res = refs_may_alias_p_1 (ref, &ref1, true);
-      VEC_free (vn_reference_op_s, heap, operands);
-      if (!res)
+      /* Avoid re-allocation overhead.  */
+      VEC_truncate (vn_reference_op_s, lhs_ops, 0);
+      copy_reference_ops_from_ref (lhs, &lhs_ops);
+      tem = lhs_ops;
+      lhs_ops = valueize_refs (lhs_ops);
+      gcc_assert (lhs_ops == tem);
+      lhs_ref_ok = ao_ref_init_from_vn_reference (&lhs_ref, get_alias_set (lhs),
+						  TREE_TYPE (lhs), lhs_ops);
+      if (lhs_ref_ok
+	  && !refs_may_alias_p_1 (ref, &lhs_ref, true))
 	return NULL;
     }
 
@@ -1334,6 +1339,7 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
       size2 = TREE_INT_CST_LOW (gimple_call_arg (def_stmt, 2)) * 8;
       if ((unsigned HOST_WIDE_INT)size2 / 8
 	  == TREE_INT_CST_LOW (gimple_call_arg (def_stmt, 2))
+	  && maxsize2 != -1
 	  && operand_equal_p (base, base2, 0)
 	  && offset2 <= offset
 	  && offset2 + size2 >= offset + maxsize)
@@ -1357,7 +1363,8 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
       HOST_WIDE_INT offset2, size2, maxsize2;
       base2 = get_ref_base_and_extent (gimple_assign_lhs (def_stmt),
 				       &offset2, &size2, &maxsize2);
-      if (operand_equal_p (base, base2, 0)
+      if (maxsize2 != -1
+	  && operand_equal_p (base, base2, 0)
 	  && offset2 <= offset
 	  && offset2 + size2 >= offset + maxsize)
 	{
@@ -1380,32 +1387,37 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
       tree base2;
       HOST_WIDE_INT offset2, size2, maxsize2;
       int i, j;
-      VEC (vn_reference_op_s, heap) *lhs = NULL, *rhs = NULL;
+      VEC (vn_reference_op_s, heap) *rhs = NULL;
       vn_reference_op_t vro;
       ao_ref r;
 
+      if (!lhs_ref_ok)
+	return (void *)-1;
+
       /* See if the assignment kills REF.  */
-      base2 = get_ref_base_and_extent (gimple_assign_lhs (def_stmt),
-				       &offset2, &size2, &maxsize2);
-      if (!operand_equal_p (base, base2, 0)
+      base2 = ao_ref_base (&lhs_ref);
+      offset2 = lhs_ref.offset;
+      size2 = lhs_ref.size;
+      maxsize2 = lhs_ref.max_size;
+      if (maxsize2 == -1
+	  || (base != base2 && !operand_equal_p (base, base2, 0))
 	  || offset2 > offset
 	  || offset2 + size2 < offset + maxsize)
 	return (void *)-1;
 
-      /* Find the common base of ref and the lhs.  */
-      copy_reference_ops_from_ref (gimple_assign_lhs (def_stmt), &lhs);
+      /* Find the common base of ref and the lhs.  lhs_ops already
+         contains valueized operands for the lhs.  */
       i = VEC_length (vn_reference_op_s, vr->operands) - 1;
-      j = VEC_length (vn_reference_op_s, lhs) - 1;
+      j = VEC_length (vn_reference_op_s, lhs_ops) - 1;
       while (j >= 0 && i >= 0
 	     && vn_reference_op_eq (VEC_index (vn_reference_op_s,
 					       vr->operands, i),
-				    VEC_index (vn_reference_op_s, lhs, j)))
+				    VEC_index (vn_reference_op_s, lhs_ops, j)))
 	{
 	  i--;
 	  j--;
 	}
 
-      VEC_free (vn_reference_op_s, heap, lhs);
       /* i now points to the first additional op.
 	 ???  LHS may not be completely contained in VR, one or more
 	 VIEW_CONVERT_EXPRs could be in its way.  We could at least
@@ -2167,41 +2179,17 @@ visit_copy (tree lhs, tree rhs)
   return set_ssa_val_to (lhs, rhs);
 }
 
-/* Visit a unary operator RHS, value number it, and return true if the
+/* Visit a nary operator RHS, value number it, and return true if the
    value number of LHS has changed as a result.  */
 
 static bool
-visit_unary_op (tree lhs, gimple stmt)
+visit_nary_op (tree lhs, gimple stmt)
 {
   bool changed = false;
   tree result = vn_nary_op_lookup_stmt (stmt, NULL);
 
   if (result)
-    {
-      changed = set_ssa_val_to (lhs, result);
-    }
-  else
-    {
-      changed = set_ssa_val_to (lhs, lhs);
-      vn_nary_op_insert_stmt (stmt, lhs);
-    }
-
-  return changed;
-}
-
-/* Visit a binary operator RHS, value number it, and return true if the
-   value number of LHS has changed as a result.  */
-
-static bool
-visit_binary_op (tree lhs, gimple stmt)
-{
-  bool changed = false;
-  tree result = vn_nary_op_lookup_stmt (stmt, NULL);
-
-  if (result)
-    {
-      changed = set_ssa_val_to (lhs, result);
-    }
+    changed = set_ssa_val_to (lhs, result);
   else
     {
       changed = set_ssa_val_to (lhs, lhs);
@@ -2909,10 +2897,9 @@ visit_use (tree use)
 		  switch (get_gimple_rhs_class (gimple_assign_rhs_code (stmt)))
 		    {
 		    case GIMPLE_UNARY_RHS:
-		      changed = visit_unary_op (lhs, stmt);
-		      break;
 		    case GIMPLE_BINARY_RHS:
-		      changed = visit_binary_op (lhs, stmt);
+		    case GIMPLE_TERNARY_RHS:
+		      changed = visit_nary_op (lhs, stmt);
 		      break;
 		    case GIMPLE_SINGLE_RHS:
 		      switch (TREE_CODE_CLASS (gimple_assign_rhs_code (stmt)))
@@ -2921,10 +2908,10 @@ visit_use (tree use)
 			  /* VOP-less references can go through unary case.  */
 			  if ((gimple_assign_rhs_code (stmt) == REALPART_EXPR
 			       || gimple_assign_rhs_code (stmt) == IMAGPART_EXPR
-			       || gimple_assign_rhs_code (stmt) == VIEW_CONVERT_EXPR )
+			       || gimple_assign_rhs_code (stmt) == VIEW_CONVERT_EXPR)
 			      && TREE_CODE (TREE_OPERAND (gimple_assign_rhs1 (stmt), 0)) == SSA_NAME)
 			    {
-			      changed = visit_unary_op (lhs, stmt);
+			      changed = visit_nary_op (lhs, stmt);
 			      break;
 			    }
 			  /* Fallthrough.  */
@@ -2935,7 +2922,7 @@ visit_use (tree use)
 			case tcc_expression:
 			  if (gimple_assign_rhs_code (stmt) == ADDR_EXPR)
 			    {
-			      changed = visit_unary_op (lhs, stmt);
+			      changed = visit_nary_op (lhs, stmt);
 			      break;
 			    }
 			  /* Fallthrough.  */
@@ -3108,9 +3095,20 @@ process_scc (VEC (tree, heap) *scc)
   if (VEC_length (tree, scc) == 1)
     {
       tree use = VEC_index (tree, scc, 0);
-      if (!VN_INFO (use)->use_processed)
-	visit_use (use);
-      return;
+      if (VN_INFO (use)->use_processed)
+	return;
+      /* We need to make sure it doesn't form a cycle itself, which can
+	 happen for self-referential PHI nodes.  In that case we would
+	 end up inserting an expression with VN_TOP operands into the
+	 valid table which makes us derive bogus equivalences later.
+	 The cheapest way to check this is to assume it for all PHI nodes.  */
+      if (gimple_code (SSA_NAME_DEF_STMT (use)) == GIMPLE_PHI)
+	/* Fallthru to iteration.  */ ;
+      else
+	{
+	  visit_use (use);
+	  return;
+	}
     }
 
   /* Iterate over the SCC with the optimistic table until it stops

@@ -27,6 +27,13 @@
 #undef  STARTFILE_SPEC
 #define STARTFILE_SPEC "crt0.o%s crtbegin.o%s"
 
+#undef  ENDFILE_SPEC
+#define ENDFILE_SPEC "crtend.o%s crtn.o%s"
+
+#undef  LINK_SPEC
+#define LINK_SPEC "%{h*} %{v:-V} \
+		   %{static:-Bstatic} %{shared:-shared} %{symbolic:-Bsymbolic}"
+
 /* There are four CPU series we support, but they basically break down
    into two families - the R8C/M16C families, with 16-bit address
    registers and one set of opcodes, and the M32CM/M32C group, with
@@ -190,6 +197,18 @@ machine_function;
 #undef UINTPTR_TYPE
 #define UINTPTR_TYPE (TARGET_A16 ? "unsigned int" : "long unsigned int")
 
+#undef  SIZE_TYPE
+#define SIZE_TYPE "unsigned int"
+
+#undef  PTRDIFF_TYPE
+#define PTRDIFF_TYPE "int"
+
+#undef  WCHAR_TYPE
+#define WCHAR_TYPE "long int"
+
+#undef  WCHAR_TYPE_SIZE
+#define WCHAR_TYPE_SIZE BITS_PER_WORD
+
 /* REGISTER USAGE */
 
 /* Register Basics */
@@ -227,8 +246,6 @@ machine_function;
 			      1, 1, 1, 0, \
 			      1, 1, 1, 1, \
 			      1, 1, 1, 1, 1, 1, 1, 1 }
-
-#define CONDITIONAL_REGISTER_USAGE m32c_conditional_register_usage ();
 
 /* The *_REGNO theme matches m32c.md and most register number
    arguments; the PC_REGNUM is the odd one out.  */
@@ -520,7 +537,6 @@ typedef struct m32c_cumulative_args
 #define CUMULATIVE_ARGS m32c_cumulative_args
 #define INIT_CUMULATIVE_ARGS(CA,FNTYPE,LIBNAME,FNDECL,N_NAMED_ARGS) \
 	m32c_init_cumulative_args (&(CA),FNTYPE,LIBNAME,FNDECL,N_NAMED_ARGS)
-#define FUNCTION_ARG_BOUNDARY(MODE,TYPE) (TARGET_A16 ? 8 : 16)
 #define FUNCTION_ARG_REGNO_P(r) m32c_function_arg_regno_p (r)
 
 /* How Large Values Are Returned */

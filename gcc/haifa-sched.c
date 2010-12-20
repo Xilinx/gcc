@@ -129,7 +129,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "rtl.h"
 #include "tm_p.h"
 #include "hard-reg-set.h"
@@ -167,24 +166,11 @@ int issue_rate;
    N=3: rtl at abort point, control-flow, regions info.
    N=5: dependences info.  */
 
-static int sched_verbose_param = 0;
 int sched_verbose = 0;
 
 /* Debugging file.  All printouts are sent to dump, which is always set,
    either to stderr, or to the dump listing file (-dRS).  */
 FILE *sched_dump = 0;
-
-/* fix_sched_param() is called from toplev.c upon detection
-   of the -fsched-verbose=N option.  */
-
-void
-fix_sched_param (const char *param, const char *val)
-{
-  if (!strcmp (param, "verbose"))
-    sched_verbose_param = atoi (val);
-  else
-    warning (0, "fix_sched_param: unknown param: %s", param);
-}
 
 /* This is a placeholder for the scheduler parameters common
    to all schedulers.  */
@@ -4481,6 +4467,8 @@ sched_create_recovery_edges (basic_block first_bb, basic_block rec,
     edge_flags = 0;
 
   make_single_succ_edge (rec, second_bb, edge_flags);
+  if (dom_info_available_p (CDI_DOMINATORS))
+    set_immediate_dominator (CDI_DOMINATORS, rec, first_bb);
 }
 
 /* This function creates recovery code for INSN.  If MUTATE_P is nonzero,

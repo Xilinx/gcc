@@ -210,7 +210,8 @@ const struct gcc_debug_hooks vmsdbg_debug_hooks
    debug_nothing_rtx_rtx,	  /* copy_call_info */
    debug_nothing_uid,		  /* virtual_call */
    debug_nothing_tree_tree,	  /* set_name */
-   0                              /* start_end_main_source_file */
+   0,                             /* start_end_main_source_file */
+   TYPE_SYMTAB_IS_ADDRESS         /* tree_type_symtab_field */
 };
 
 /* Definitions of defaults for assembler-dependent names of various
@@ -1624,9 +1625,7 @@ vmsdbgout_finish (const char *main_input_filename ATTRIBUTE_UNUSED)
 #include <vms/stsdef.h>
 #include <vms/iodef.h>
 #include <vms/fatdef.h>
-#include <errno.h>
 #include <vms/descrip.h>
-#include <string.h>
 #include <unixlib.h>
 
 #define MAXPATH 256

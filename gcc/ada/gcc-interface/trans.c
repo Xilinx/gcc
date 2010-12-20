@@ -399,8 +399,6 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
     (get_identifier ("system__soft_links__get_jmpbuf_address_soft"),
      NULL_TREE, build_function_type (jmpbuf_ptr_type, NULL_TREE),
      NULL_TREE, false, true, true, NULL, Empty);
-  /* Avoid creating superfluous edges to __builtin_setjmp receivers.  */
-  DECL_PURE_P (get_jmpbuf_decl) = 1;
   DECL_IGNORED_P (get_jmpbuf_decl) = 1;
 
   set_jmpbuf_decl
@@ -502,8 +500,6 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
      NULL_TREE,
      build_function_type (build_pointer_type (except_type_node), NULL_TREE),
      NULL_TREE, false, true, true, NULL, Empty);
-  /* Avoid creating superfluous edges to __builtin_setjmp receivers.  */
-  DECL_PURE_P (get_excptr_decl) = 1;
 
   raise_nodefer_decl
     = create_subprog_decl
@@ -829,29 +825,25 @@ lvalue_required_p (Node_Id gnat_node, tree gnu_type, bool constant,
 	      || (Is_Composite_Type (Underlying_Type (Etype (gnat_node)))
 		  && Is_Atomic (Entity (Name (gnat_parent)))));
 
-    case N_Type_Conversion:
-    case N_Qualified_Expression:
-      /* We must look through all conversions for composite types because we
-	 may need to bypass an intermediate conversion to a narrower record
-	 type that is generated for a formal conversion, e.g. the conversion
-	 to the root type of a hierarchy of tagged types generated for the
-	 formal conversion to the class-wide type.  */
-      if (!Is_Composite_Type (Underlying_Type (Etype (gnat_node))))
-	return 0;
+    case N_Unchecked_Type_Conversion:
+	if (!constant)
+	  return 1;
 
       /* ... fall through ... */
 
-    case N_Unchecked_Type_Conversion:
-      return (!constant
-	      || lvalue_required_p (gnat_parent,
-				    get_unpadded_type (Etype (gnat_parent)),
-				    constant, address_of_constant, aliased));
+    case N_Type_Conversion:
+    case N_Qualified_Expression:
+      /* We must look through all conversions because we may need to bypass
+	 an intermediate conversion that is meant to be purely formal.  */
+     return lvalue_required_p (gnat_parent,
+			       get_unpadded_type (Etype (gnat_parent)),
+			       constant, address_of_constant, aliased);
 
     case N_Allocator:
-      /* We should only reach here through the N_Qualified_Expression case
-	 and, therefore, only for composite types.  Force an lvalue since
-	 a block-copy to the newly allocated area of memory is made.  */
-      return 1;
+      /* We should only reach here through the N_Qualified_Expression case.
+	 Force an lvalue for composite types since a block-copy to the newly
+	 allocated area of memory is made.  */
+      return Is_Composite_Type (Underlying_Type (Etype (gnat_node)));
 
    case N_Explicit_Dereference:
       /* We look through dereferences for address of constant because we need
@@ -964,7 +956,7 @@ Identifier_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p)
      required if this is a static expression because it might be used
      in a context where a dereference is inappropriate, such as a case
      statement alternative or a record discriminant.  There is no possible
-     volatile-ness short-circuit here since Volatile constants must bei
+     volatile-ness short-circuit here since Volatile constants must be
      imported per C.6.  */
   if (Ekind (gnat_temp) == E_Constant
       && Is_Scalar_Type (gnat_temp_type)
@@ -2138,6 +2130,26 @@ can_equal_max_val_p (tree val, tree type, bool reverse)
   return can_equal_min_or_max_val_p (val, type, !reverse);
 }
 
+/* Return true if VAL1 can be lower than VAL2.  */
+
+static bool
+can_be_lower_p (tree val1, tree val2)
+{
+  if (TREE_CODE (val1) == NOP_EXPR)
+    val1 = TYPE_MIN_VALUE (TREE_TYPE (TREE_OPERAND (val1, 0)));
+
+  if (TREE_CODE (val1) != INTEGER_CST)
+    return true;
+
+  if (TREE_CODE (val2) == NOP_EXPR)
+    val2 = TYPE_MAX_VALUE (TREE_TYPE (TREE_OPERAND (val2, 0)));
+
+  if (TREE_CODE (val2) != INTEGER_CST)
+    return true;
+
+  return tree_int_cst_lt (val1, val2);
+}
+
 /* Subroutine of gnat_to_gnu to translate gnat_node, an N_Loop_Statement,
    to a GCC tree, which is returned.  */
 
@@ -2305,16 +2317,19 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
 	LOOP_STMT_BOTTOM_COND_P (gnu_loop_stmt) = 1;
 
       /* If we use the BOTTOM_COND, we can turn the test into an inequality
-	 test but we have to add an ENTRY_COND to protect the empty loop.  */
+	 test but we may have to add ENTRY_COND to protect the empty loop.  */
       if (LOOP_STMT_BOTTOM_COND_P (gnu_loop_stmt))
 	{
 	  test_code = NE_EXPR;
-	  gnu_cond_expr
-	    = build3 (COND_EXPR, void_type_node,
-		      build_binary_op (LE_EXPR, boolean_type_node,
-				       gnu_low, gnu_high),
-		      NULL_TREE, alloc_stmt_list ());
-	  set_expr_location_from_node (gnu_cond_expr, gnat_loop_spec);
+	  if (can_be_lower_p (gnu_high, gnu_low))
+	    {
+	      gnu_cond_expr
+		= build3 (COND_EXPR, void_type_node,
+			  build_binary_op (LE_EXPR, boolean_type_node,
+					   gnu_low, gnu_high),
+			  NULL_TREE, alloc_stmt_list ());
+	      set_expr_location_from_node (gnu_cond_expr, gnat_loop_spec);
+	    }
 	}
 
       /* Open a new nesting level that will surround the loop to declare the
@@ -5781,6 +5796,7 @@ gnat_to_gnu (Node_Id gnat_node)
      so that the code just below can put the location information of the
      reference to B on the inequality operator for better debug info.  */
   if (!optimize
+      && TREE_CODE (gnu_result) != INTEGER_CST
       && (kind == N_Identifier
 	  || kind == N_Expanded_Name
 	  || kind == N_Explicit_Dereference
@@ -6869,7 +6885,7 @@ build_binary_op_trapv (enum tree_code code, tree gnu_type, tree left,
     case MULT_EXPR:
       /* The check here is designed to be efficient if the rhs is constant,
 	 but it will work for any rhs by using integer division.
-	 Four different check expressions determine wether X * C overflows,
+	 Four different check expressions determine whether X * C overflows,
 	 depending on C.
 	   C ==  0  =>  false
 	   C  >  0  =>  X > type_max / C || X < type_min / C
@@ -7294,10 +7310,11 @@ smaller_form_type_p (tree type, tree orig_type)
    that Gigi must make sure that such operations cannot be applied to
    non-BLKmode bit-fields.
 
-   The second goal is achieved by means of the addressable_p predicate
-   and by inserting SAVE_EXPRs around trees deemed non-addressable.
-   They will be turned during gimplification into proper temporaries
-   whose address will be used in lieu of that of the original tree.  */
+   The second goal is achieved by means of the addressable_p predicate,
+   which computes whether a temporary must be inserted by Gigi when the
+   address of a tree is requested; if so, the address of the temporary
+   will be used in lieu of that of the original tree and some glue code
+   generated to connect everything together.  */
 
 static bool
 addressable_p (tree gnu_expr, tree gnu_type)

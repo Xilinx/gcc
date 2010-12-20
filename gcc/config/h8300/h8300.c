@@ -39,7 +39,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "optabs.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "c-family/c-pragma.h"	/* ??? */
 #include "tm_p.h"
 #include "ggc.h"
@@ -1917,6 +1916,15 @@ static bool
 h8300_can_eliminate (const int from ATTRIBUTE_UNUSED, const int to)
 {
   return (to == STACK_POINTER_REGNUM ? ! frame_pointer_needed : true);
+}
+
+/* Conditionally modify register usage based on target flags.  */
+
+static void
+h8300_conditional_register_usage (void)
+{
+  if (!TARGET_MAC)
+    fixed_regs[MAC_REG] = call_used_regs[MAC_REG] = 1;
 }
 
 /* Function for INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET).
@@ -5954,6 +5962,9 @@ h8300_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE h8300_can_eliminate
 
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE h8300_conditional_register_usage
+
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT h8300_trampoline_init
 
@@ -5962,5 +5973,8 @@ h8300_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
 
 #undef TARGET_OPTION_OPTIMIZATION_TABLE
 #define TARGET_OPTION_OPTIMIZATION_TABLE h8300_option_optimization_table
+
+#undef TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO sjlj_except_unwind_info
 
 struct gcc_target targetm = TARGET_INITIALIZER;

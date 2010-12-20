@@ -113,6 +113,11 @@ typedef enum objc_property_assign_semantics {
    setter, it is set to 1.  */
 #define PROPERTY_HAS_NO_SETTER(DECL) DECL_LANG_FLAG_4 (DECL)
 
+/* PROPERTY_OPTIONAL can be 0 or 1.  Normally it is 0, but if this is
+   a property declared as @optional in a @protocol, then it is set to
+   1.  */
+#define PROPERTY_OPTIONAL(DECL) DECL_LANG_FLAG_5 (DECL)
+
 /* PROPERTY_REF.  A PROPERTY_REF represents an 'object.property'
    expression.  It is normally used for property access, but when
    the Objective-C 2.0 "dot-syntax" (object.component) is used
@@ -166,10 +171,15 @@ typedef enum objc_property_assign_semantics {
 #define PROTOCOL_OPTIONAL_CLS_METHODS(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 2)
 #define PROTOCOL_OPTIONAL_NST_METHODS(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 3)
 
+
 /* For CATEGORY_INTERFACE_TYPE, CLASS_INTERFACE_TYPE or PROTOCOL_INTERFACE_TYPE */
 #define CLASS_PROPERTY_DECL(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 6)
 /* For CLASS_IMPLEMENTATION_TYPE or CATEGORY_IMPLEMENTATION_TYPE. */
 #define IMPL_PROPERTY_DECL(CLASS) TREE_VEC_ELT (TYPE_LANG_SLOT_1 (CLASS), 6)
+
+/* TREE_DEPRECATED is used for a CLASS_INTERFACE_TYPE or PROTOCOL_INTERFACE_TYPE.  */
+
+/* TYPE_ATTRIBUTES is used for a CLASS_INTERFACE_TYPE or PROTOCOL_INTERFACE_TYPE.  */
 
 /* ObjC-specific information pertaining to RECORD_TYPEs are stored in
    the LANG_SPECIFIC structures, which may itself need allocating first.  */
@@ -242,6 +252,10 @@ extern GTY ((length ("SIZEHASHTABLE"))) hash *cls_name_hash_list;
 extern GTY ((length ("SIZEHASHTABLE"))) hash *als_name_hash_list;
 
 #define SIZEHASHTABLE		257
+
+/* An array of all the local variables in the current function that
+   need to be marked as volatile.  */
+extern GTY(()) VEC(tree,gc) *local_variables_to_volatilize;
 
 /* Objective-C/Objective-C++ @implementation list.  */
 

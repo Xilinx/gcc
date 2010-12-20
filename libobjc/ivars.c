@@ -27,7 +27,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "objc-private/module-abi-8.h" /* For runtime structures  */
 #include "objc/thr.h"
 #include "objc-private/runtime.h"      /* the kitchen sink */
-#include <string.h>                    /* For strcmp */
+#include <string.h>                    /* For strcmp.  */
+#include <stdlib.h>                    /* For malloc.  */
 
 struct objc_ivar *
 class_getInstanceVariable (Class class_, const char *name)
@@ -46,9 +47,7 @@ class_getInstanceVariable (Class class_, const char *name)
 		  struct objc_ivar *ivar = &(ivars->ivar_list[i]);
 		  
 		  if (!strcmp (ivar->ivar_name, name))
-		    {
-		      return ivar;
-		    }
+		    return ivar;
 		}
 	    }
 	  class_ = class_getSuperclass (class_);
@@ -82,10 +81,8 @@ object_getIndexedIvars (id object)
   if (object == nil)
     return NULL;
   else
-    {
-      return (void *)(((char *)object) 
-		      + object->class_pointer->instance_size);
-    }
+    return (void *)(((char *)object) 
+		    + object->class_pointer->instance_size);
 }
 
 struct objc_ivar *
@@ -202,9 +199,7 @@ struct objc_ivar ** class_copyIvarList (Class class_, unsigned int *numberOfRetu
       
       /* Copy the ivars.  */
       for (i = 0; i < count; i++)
-	{
-	  returnValue[i] = &(ivar_list->ivar_list[i]);
-	}
+	returnValue[i] = &(ivar_list->ivar_list[i]);
       
       returnValue[i] = NULL;
     }
@@ -242,9 +237,7 @@ class_addIvar (Class class_, const char * ivar_name, size_t size,
 	  struct objc_ivar *ivar = &(ivars->ivar_list[i]);
 	  
 	  if (strcmp (ivar->ivar_name, ivar_name) == 0)
-	    {
-	      return NO;
-	    }
+	    return NO;
 	}
     }
 
@@ -295,7 +288,7 @@ class_addIvar (Class class_, const char * ivar_name, size_t size,
     else
       ivar->ivar_offset = class_->instance_size - misalignment + alignment;
     
-    class_->instance_size = ivar->ivar_offset + objc_sizeof_type (ivar->ivar_type);
+    class_->instance_size = ivar->ivar_offset + size;
   }
   
   return YES;

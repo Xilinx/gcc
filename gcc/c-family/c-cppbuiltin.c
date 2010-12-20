@@ -29,7 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-pragma.h"
 #include "output.h"
 #include "debug.h"		/* For dwarf2out_do_cfi_asm.  */
-#include "toplev.h"
 #include "tm_p.h"		/* For TARGET_CPU_CPP_BUILTINS & friends.  */
 #include "target.h"
 #include "cpp-id-data.h"
@@ -627,7 +626,7 @@ c_cpp_builtins (cpp_reader *pfile)
 				   1000 + flag_abi_version);
 
   /* libgcc needs to know this.  */
-  if (targetm.except_unwind_info () == UI_SJLJ)
+  if (targetm.except_unwind_info (&global_options) == UI_SJLJ)
     cpp_define (pfile, "__USING_SJLJ_EXCEPTIONS__");
 
   /* limits.h and stdint.h need to know these.  */
@@ -657,9 +656,13 @@ c_cpp_builtins (cpp_reader *pfile)
   /* Cast the double precision constants.  This is needed when single
      precision constants are specified or when pragma FLOAT_CONST_DECIMAL64
      is used.  The correct result is computed by the compiler when using
-     macros that include a cast.  */
-  builtin_define_float_constants ("DBL", "L", "((double)%s)", "",
-				  double_type_node);
+     macros that include a cast.  We use a different cast for C++ to avoid
+     problems with -Wold-style-cast.  */
+  builtin_define_float_constants ("DBL", "L",
+				  (c_dialect_cxx ()
+				   ? "double(%s)"
+				   : "((double)%s)"),
+				  "", double_type_node);
   builtin_define_float_constants ("LDBL", "L", "%s", "L",
 				  long_double_type_node);
 

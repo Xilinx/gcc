@@ -39,6 +39,7 @@
   74kf3_2
   loongson_2e
   loongson_2f
+  loongson_3a
   m4k
   octeon
   r3900
@@ -1323,9 +1324,9 @@
 		  (match_operand:GPR 2 "register_operand")))]
   ""
 {
-  if (TARGET_LOONGSON_2EF)
-    emit_insn (gen_mul<mode>3_mul3_ls2ef (operands[0], operands[1],
-                                          operands[2]));
+  if (TARGET_LOONGSON_2EF || TARGET_LOONGSON_3A)
+    emit_insn (gen_mul<mode>3_mul3_loongson (operands[0], operands[1],
+                                             operands[2]));
   else if (ISA_HAS_<D>MUL3)
     emit_insn (gen_mul<mode>3_mul3 (operands[0], operands[1], operands[2]));
   else if (TARGET_FIX_R4000)
@@ -1336,12 +1337,17 @@
   DONE;
 })
 
-(define_insn "mul<mode>3_mul3_ls2ef"
+(define_insn "mul<mode>3_mul3_loongson"
   [(set (match_operand:GPR 0 "register_operand" "=d")
         (mult:GPR (match_operand:GPR 1 "register_operand" "d")
                   (match_operand:GPR 2 "register_operand" "d")))]
-  "TARGET_LOONGSON_2EF"
-  "<d>multu.g\t%0,%1,%2"
+  "TARGET_LOONGSON_2EF || TARGET_LOONGSON_3A"
+{
+  if (TARGET_LOONGSON_2EF)
+    return "<d>multu.g\t%0,%1,%2";
+  else
+    return "gs<d>multu\t%0,%1,%2";
+}
   [(set_attr "type" "imul3nc")
    (set_attr "mode" "<MODE>")])
 
@@ -6050,18 +6056,16 @@
 ;;     But once we generate the separate insns, it becomes obvious that
 ;;     $gp is not live on entry to the call.
 ;;
-;; ??? The operands[2] = insn check is a hack to make the original insn
-;; available to the splitter.
 (define_insn_and_split "call_internal"
   [(call (mem:SI (match_operand 0 "call_insn_operand" "c,S"))
 	 (match_operand 1 "" ""))
    (clobber (reg:SI RETURN_ADDR_REGNUM))]
   ""
   { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 0, 1); }
-  "reload_completed && TARGET_SPLIT_CALLS && (operands[2] = insn)"
+  "reload_completed && TARGET_SPLIT_CALLS"
   [(const_int 0)]
 {
-  mips_split_call (operands[2], gen_call_split (operands[0], operands[1]));
+  mips_split_call (curr_insn, gen_call_split (operands[0], operands[1]));
   DONE;
 }
   [(set_attr "jal" "indirect,direct")])
@@ -6086,10 +6090,10 @@
    (clobber (reg:SI RETURN_ADDR_REGNUM))]
   ""
   { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 0, -1); }
-  "reload_completed && TARGET_SPLIT_CALLS && (operands[2] = insn)"
+  "reload_completed && TARGET_SPLIT_CALLS"
   [(const_int 0)]
 {
-  mips_split_call (operands[2],
+  mips_split_call (curr_insn,
 		   gen_call_direct_split (operands[0], operands[1]));
   DONE;
 }
@@ -6125,10 +6129,10 @@
    (clobber (reg:SI RETURN_ADDR_REGNUM))]
   ""
   { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 1, 2); }
-  "reload_completed && TARGET_SPLIT_CALLS && (operands[3] = insn)"
+  "reload_completed && TARGET_SPLIT_CALLS"
   [(const_int 0)]
 {
-  mips_split_call (operands[3],
+  mips_split_call (curr_insn,
 		   gen_call_value_split (operands[0], operands[1],
 					 operands[2]));
   DONE;
@@ -6154,10 +6158,10 @@
    (clobber (reg:SI RETURN_ADDR_REGNUM))]
   ""
   { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 1, -1); }
-  "reload_completed && TARGET_SPLIT_CALLS && (operands[3] = insn)"
+  "reload_completed && TARGET_SPLIT_CALLS"
   [(const_int 0)]
 {
-  mips_split_call (operands[3],
+  mips_split_call (curr_insn,
 		   gen_call_value_direct_split (operands[0], operands[1],
 						operands[2]));
   DONE;
@@ -6186,10 +6190,10 @@
    (clobber (reg:SI RETURN_ADDR_REGNUM))]
   ""
   { return TARGET_SPLIT_CALLS ? "#" : MIPS_CALL ("jal", operands, 1, 2); }
-  "reload_completed && TARGET_SPLIT_CALLS && (operands[4] = insn)"
+  "reload_completed && TARGET_SPLIT_CALLS"
   [(const_int 0)]
 {
-  mips_split_call (operands[4],
+  mips_split_call (curr_insn,
 		   gen_call_value_multiple_split (operands[0], operands[1],
 						  operands[2], operands[3]));
   DONE;
@@ -6247,8 +6251,8 @@
 	     (match_operand 2 "const_int_operand" "n"))]
   "ISA_HAS_PREFETCH && TARGET_EXPLICIT_RELOCS"
 {
-  if (TARGET_LOONGSON_2EF)
-    /* Loongson 2[ef] use load to $0 to perform prefetching.  */
+  if (TARGET_LOONGSON_2EF || TARGET_LOONGSON_3A)
+    /* Loongson 2[ef] and Loongson 3a use load to $0 to perform prefetching.  */
     return "ld\t$0,%a0";
   operands[1] = mips_prefetch_cookie (operands[1], operands[2]);
   return "pref\t%1,%a0";

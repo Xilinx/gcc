@@ -1,3 +1,9 @@
+2010-12-20  Diego Novillo  <dnovillo@google.com>
+
+	* parser.h (gimple_parser): Remove field debug_p.
+	* parser.c (gimple_main): Remove argument debug_p.
+	Update all users.
+
 2010-11-22  Diego Novillo  <dnovillo@google.com>
 
 	* Make-lang.in (GIMPLE_PARSER_H): Add CPPLIB_H and VEC_H

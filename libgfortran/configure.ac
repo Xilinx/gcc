@@ -12,7 +12,8 @@ GCC_TOPLEV_SUBDIRS
 
 AC_MSG_CHECKING([for --enable-version-specific-runtime-libs])
 AC_ARG_ENABLE(version-specific-runtime-libs,
-[  --enable-version-specific-runtime-libs    Specify that runtime libraries should be installed in a compiler-specific directory ],
+AS_HELP_STRING([--enable-version-specific-runtime-libs],
+  [specify that runtime libraries should be installed in a compiler-specific directory]),
 [case "$enableval" in
  yes) version_specific_libs=yes ;;
  no)  version_specific_libs=no ;;
@@ -24,7 +25,7 @@ AC_MSG_RESULT($version_specific_libs)
 # Build with intermodule optimisations
 AC_MSG_CHECKING([for --enable-intermodule])
 AC_ARG_ENABLE(intermodule,
-[  --enable-intermodule    build the library in one step],
+AS_HELP_STRING([--enable-intermodule],[build the library in one step]),
 [case "$enable_intermodule" in
   yes) onestep="-onestep";;
     *) onestep="";;
@@ -110,6 +111,9 @@ case ${version_specific_libs} in
 esac
 AC_SUBST(toolexecdir)
 AC_SUBST(toolexeclibdir)
+
+# Create a spec file, so that compile/link tests don't fail
+test -f libgfortran.spec || touch libgfortran.spec
 
 # Check the compiler.
 # The same as in boehm-gc and libstdc++. Have to borrow it from there.
@@ -199,6 +203,7 @@ AC_PROG_INSTALL
 #AC_MSG_NOTICE([====== Starting libtool configuration])
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
+ACX_LT_HOST_FLAGS
 AC_SUBST(enable_shared)
 AC_SUBST(enable_static)
 #AC_MSG_NOTICE([====== Finished libtool configuration]) ; sleep 10
@@ -459,6 +464,20 @@ LIBGFOR_CHECK_MINGW_SNPRINTF
 # Check for a broken powf implementation
 LIBGFOR_CHECK_FOR_BROKEN_POWF
 
+# Check whether libquadmath should be used
+AC_ARG_ENABLE(libquadmath-support,
+AS_HELP_STRING([--disable-libquadmath-support],
+  [disable libquadmath support for Fortran]),
+ENABLE_LIBQUADMATH_SUPPORT=$enableval,
+ENABLE_LIBQUADMATH_SUPPORT=yes)
+enable_libquadmath_support=
+if test "${ENABLE_LIBQUADMATH_SUPPORT}" = "no" ; then
+  enable_libquadmath_support=no
+fi
+
+# Check whether we have a __float128 type, depends on enable_libquadmath_support
+LIBGFOR_CHECK_FLOAT128
+
 # Check for GNU libc feenableexcept
 AC_CHECK_LIB([m],[feenableexcept],[have_feenableexcept=yes AC_DEFINE([HAVE_FEENABLEEXCEPT],[1],[libm includes feenableexcept])])
 
@@ -509,6 +528,9 @@ else
   multilib_arg=
 fi
 
-# Write our Makefile.
-AC_CONFIG_FILES(Makefile)
+# Write our Makefile and spec file.
+AC_CONFIG_FILES([
+Makefile
+libgfortran.spec
+])
 AC_OUTPUT

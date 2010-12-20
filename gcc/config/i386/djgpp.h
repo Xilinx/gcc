@@ -24,11 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 /* Don't assume anything about the header files.  */
 #define NO_IMPLICIT_EXTERN_C
 
-#define HANDLE_SYSV_PRAGMA 1
-
-/* Enable parsing of #pragma pack(push,<n>) and #pragma pack(pop).  */
-#define HANDLE_PRAGMA_PACK_PUSH_POP 1
-
 /* If defined, a C expression whose value is a string containing the
    assembler operation to identify the following data as
    uninitialized global data.  If not defined, and neither
@@ -101,12 +96,12 @@ along with GCC; see the file COPYING3.  If not see
 #undef LINK_COMMAND_SPEC
 #define LINK_COMMAND_SPEC \
 "%{!fsyntax-only: \
-%{!c:%{!M:%{!MM:%{!E:%{!S:%(linker) %l %X %{o*} %{A} %{d} %{e*} %{m} %{N} %{n} \
+%{!c:%{!M:%{!MM:%{!E:%{!S:%(linker) %l %X %{o*} %{e*} %{N} %{n} \
 \t%{r} %{s} %{t} %{u*} %{z} %{Z}\
-\t%{!A:%{!nostdlib:%{!nostartfiles:%S}}}\
+\t%{!nostdlib:%{!nostartfiles:%S}}\
 \t%{static:} %{L*} %D %o\
 \t%{!nostdlib:%{!nodefaultlibs:%G %L %G}}\
-\t%{!A:%{!nostdlib:%{!nostartfiles:%E}}}\
+\t%{!nostdlib:%{!nostartfiles:%E}}\
 \t-Tdjgpp.djl %{T*}}}}}}}\n\
 %{!c:%{!M:%{!MM:%{!E:%{!S:stubify %{v} %{o*:%*} %{!o*:a.out} }}}}}"
 

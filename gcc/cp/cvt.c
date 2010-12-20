@@ -35,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "intl.h"
 #include "convert.h"
-#include "toplev.h"
 #include "decl.h"
 #include "target.h"
 
@@ -88,7 +87,7 @@ cp_convert_to_pointer (tree type, tree expr)
       intype = complete_type (intype);
       if (!COMPLETE_TYPE_P (intype))
 	{
-	  error ("can't convert from incomplete type %qT to %qT",
+	  error ("can%'t convert from incomplete type %qT to %qT",
 		 intype, type);
 	  return error_mark_node;
 	}
@@ -1503,9 +1502,7 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
   if (!TYPE_HAS_CONVERSION (basetype))
     return NULL_TREE;
 
-  for (conv = lookup_conversions (basetype, /*lookup_template_convs_p=*/true);
-       conv;
-       conv = TREE_CHAIN (conv))
+  for (conv = lookup_conversions (basetype); conv; conv = TREE_CHAIN (conv))
     {
       int win = 0;
       tree candidate;

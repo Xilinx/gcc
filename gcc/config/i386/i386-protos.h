@@ -20,8 +20,6 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 /* Functions in i386.c */
-extern void ix86_conditional_register_usage (void);
-
 extern bool ix86_target_stack_probe (void);
 extern bool ix86_can_use_return_insn_p (void);
 extern void ix86_setup_frame_addresses (void);
@@ -140,7 +138,6 @@ extern enum machine_mode ix86_fp_compare_mode (enum rtx_code);
 extern rtx ix86_libcall_value (enum machine_mode);
 extern bool ix86_function_arg_regno_p (int);
 extern void ix86_asm_output_function_label (FILE *, const char *, tree);
-extern int ix86_function_arg_boundary (enum machine_mode, const_tree);
 extern rtx ix86_force_to_memory (enum machine_mode, rtx);
 extern void ix86_free_from_memory (enum machine_mode);
 extern void ix86_call_abi_override (const_tree);
@@ -229,6 +226,7 @@ extern void i386_pe_file_end (void);
 extern void i386_pe_start_function (FILE *, const char *, tree);
 extern void i386_pe_end_function (FILE *, const char *, tree);
 extern tree i386_pe_mangle_decl_assembler_name (tree, tree);
+extern tree i386_pe_mangle_assembler_name (const char *);
 
 extern void i386_pe_seh_init (FILE *);
 extern void i386_pe_seh_end_prologue (FILE *);

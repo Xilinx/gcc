@@ -155,7 +155,6 @@ extern unsigned int arm_sync_loop_insns (rtx , rtx *);
 extern void arm_init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree);
 extern bool arm_pad_arg_upward (enum machine_mode, const_tree);
 extern bool arm_pad_reg_upward (enum machine_mode, tree, int);
-extern bool arm_needs_doubleword_align (enum machine_mode, const_tree);
 #endif
 extern int arm_apply_result_size (void);
 extern rtx aapcs_libcall_value (enum machine_mode);
@@ -219,6 +218,9 @@ struct tune_params
   bool (*rtx_costs) (rtx, RTX_CODE, RTX_CODE, int *, bool);
   bool (*sched_adjust_cost) (rtx, rtx, rtx, int *);
   int constant_limit;
+  int num_prefetch_slots;
+  int l1_cache_size;
+  int l1_cache_line_size;
 };
 
 extern const struct tune_params *current_tune;

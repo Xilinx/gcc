@@ -335,6 +335,11 @@ gfc_conv_string_length (gfc_charlen * cl, gfc_expr * expr, stmtblock_t * pblock)
 
   gfc_init_se (&se, NULL);
 
+  if (!cl->length
+	&& cl->backend_decl
+	&& TREE_CODE (cl->backend_decl) == VAR_DECL)
+    return;
+
   /* If cl->length is NULL, use gfc_conv_expr to obtain the string length but
      "flatten" array constructors by taking their first element; all elements
      should be the same length or a cl->length should be present.  */
@@ -342,7 +347,6 @@ gfc_conv_string_length (gfc_charlen * cl, gfc_expr * expr, stmtblock_t * pblock)
     {
       gfc_expr* expr_flat;
       gcc_assert (expr);
-
       expr_flat = gfc_copy_expr (expr);
       flatten_array_ctors_without_strlen (expr_flat);
       gfc_resolve_expr (expr_flat);
@@ -972,6 +976,7 @@ gfc_conv_power_op (gfc_se * se, gfc_expr * expr)
   tree gfc_int4_type_node;
   int kind;
   int ikind;
+  int res_ikind_1, res_ikind_2;
   gfc_se lse;
   gfc_se rse;
   tree fndecl = NULL;
@@ -992,6 +997,13 @@ gfc_conv_power_op (gfc_se * se, gfc_expr * expr)
 
   gfc_int4_type_node = gfc_get_int_type (4);
 
+  /* In case of integer operands with kinds 1 or 2, we call the integer kind 4
+     library routine.  But in the end, we have to convert the result back
+     if this case applies -- with res_ikind_K, we keep track whether operand K
+     falls into this case.  */
+  res_ikind_1 = -1;
+  res_ikind_2 = -1;
+
   kind = expr->value.op.op1->ts.kind;
   switch (expr->value.op.op2->ts.type)
     {
@@ -1002,6 +1014,7 @@ gfc_conv_power_op (gfc_se * se, gfc_expr * expr)
 	case 1:
 	case 2:
 	  rse.expr = convert (gfc_int4_type_node, rse.expr);
+	  res_ikind_2 = ikind;
 	  /* Fall through.  */
 
 	case 4:
@@ -1024,7 +1037,10 @@ gfc_conv_power_op (gfc_se * se, gfc_expr * expr)
 	case 1:
 	case 2:
 	  if (expr->value.op.op1->ts.type == BT_INTEGER)
-	    lse.expr = convert (gfc_int4_type_node, lse.expr);
+	    {
+	      lse.expr = convert (gfc_int4_type_node, lse.expr);
+	      res_ikind_1 = kind;
+	    }
 	  else
 	    gcc_unreachable ();
 	  /* Fall through.  */
@@ -1117,6 +1133,15 @@ gfc_conv_power_op (gfc_se * se, gfc_expr * expr)
 
   se->expr = build_call_expr_loc (input_location,
 			      fndecl, 2, lse.expr, rse.expr);
+
+  /* Convert the result back if it is of wrong integer kind.  */
+  if (res_ikind_1 != -1 && res_ikind_2 != -1)
+    {
+      /* We want the maximum of both operand kinds as result.  */
+      if (res_ikind_1 < res_ikind_2)
+	res_ikind_1 = res_ikind_2;
+      se->expr = convert (gfc_get_int_type (res_ikind_1), se->expr);
+    }
 }
 
 
@@ -1413,9 +1438,9 @@ gfc_conv_expr_op (gfc_se * se, gfc_expr * expr)
 tree
 gfc_string_to_single_character (tree len, tree str, int kind)
 {
-  gcc_assert (POINTER_TYPE_P (TREE_TYPE (str)));
 
-  if (!INTEGER_CST_P (len) || TREE_INT_CST_HIGH (len) != 0)
+  if (!INTEGER_CST_P (len) || TREE_INT_CST_HIGH (len) != 0
+      || !POINTER_TYPE_P (TREE_TYPE (str)))
     return NULL_TREE;
 
   if (TREE_INT_CST_LOW (len) == 1)
@@ -3121,8 +3146,10 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	      && ((e->rank > 0 && sym->attr.elemental)
 		  || e->representation.length || e->ts.type == BT_CHARACTER
 		  || (e->rank > 0
-		      && (fsym == NULL || fsym->as->type == AS_ASSUMED_SHAPE
-			  || fsym->as->type == AS_DEFERRED))))
+		      && (fsym == NULL 
+			  || (fsym-> as
+			      && (fsym->as->type == AS_ASSUMED_SHAPE
+			      	  || fsym->as->type == AS_DEFERRED))))))
 	    gfc_conv_missing_dummy (&parmse, e, fsym ? fsym->ts : e->ts,
 				    e->representation.length);
 	}
@@ -3353,8 +3380,30 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	    se->expr = build_fold_indirect_ref_loc (input_location,
 						se->expr);
 
-	  result = build_fold_indirect_ref_loc (input_location,
-						se->expr);
+	  /* If the lhs of an assignment x = f(..) is allocatable and
+	     f2003 is allowed, we must do the automatic reallocation.
+	     TODO - deal with instrinsics, without using a temporary.  */
+	  if (gfc_option.flag_realloc_lhs
+		&& se->ss && se->ss->loop_chain
+		&& se->ss->loop_chain->is_alloc_lhs
+		&& !expr->value.function.isym
+		&& sym->result->as != NULL)
+	    {
+	      /* Evaluate the bounds of the result, if known.  */
+	      gfc_set_loop_bounds_from_array_spec (&mapping, se,
+						   sym->result->as);
+
+	      /* Perform the automatic reallocation.  */
+	      tmp = gfc_alloc_allocatable_for_assignment (se->loop,
+							  expr, NULL);
+	      gfc_add_expr_to_block (&se->pre, tmp);
+
+	      /* Pass the temporary as the first argument.  */
+	      result = info->descriptor;
+	    }
+	  else
+	    result = build_fold_indirect_ref_loc (input_location,
+						  se->expr);
 	  VEC_safe_push (tree, gc, retargs, se->expr);
 	}
       else if (comp && comp->attr.dimension)
@@ -3367,6 +3416,17 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
 	  /* Evaluate the bounds of the result, if known.  */
 	  gfc_set_loop_bounds_from_array_spec (&mapping, se, comp->as);
+
+	  /* If the lhs of an assignment x = f(..) is allocatable and
+	     f2003 is allowed, we must not generate the function call
+	     here but should just send back the results of the mapping.
+	     This is signalled by the function ss being flagged.  */
+	  if (gfc_option.flag_realloc_lhs
+		&& se->ss && se->ss->is_alloc_lhs)
+	    {
+	      gfc_free_interface_mapping (&mapping);
+	      return has_alternate_specifier;
+	    }
 
 	  /* Create a temporary to store the result.  In case the function
 	     returns a pointer, the temporary will be a shallow copy and
@@ -3391,6 +3451,17 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
 	  /* Evaluate the bounds of the result, if known.  */
 	  gfc_set_loop_bounds_from_array_spec (&mapping, se, sym->result->as);
+
+	  /* If the lhs of an assignment x = f(..) is allocatable and
+	     f2003 is allowed, we must not generate the function call
+	     here but should just send back the results of the mapping.
+	     This is signalled by the function ss being flagged.  */
+	  if (gfc_option.flag_realloc_lhs
+		&& se->ss && se->ss->is_alloc_lhs)
+	    {
+	      gfc_free_interface_mapping (&mapping);
+	      return has_alternate_specifier;
+	    }
 
 	  /* Create a temporary to store the result.  In case the function
 	     returns a pointer, the temporary will be a shallow copy and
@@ -3523,7 +3594,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
       if (!se->direct_byref)
 	{
-	  if (sym->attr.dimension || (comp && comp->attr.dimension))
+	  if ((sym->attr.dimension && !comp) || (comp && comp->attr.dimension))
 	    {
 	      if (gfc_option.rtcheck & GFC_RTCHECK_BOUNDS)
 		{
@@ -3755,12 +3826,12 @@ gfc_trans_string_copy (stmtblock_t * block, tree dlength, tree dest,
 			  fold_convert (size_type_node,
 					TYPE_SIZE_UNIT (chartype)));
 
-  if (dlength)
+  if (dlength && POINTER_TYPE_P (TREE_TYPE (dest)))
     dest = fold_convert (pvoid_type_node, dest);
   else
     dest = gfc_build_addr_expr (pvoid_type_node, dest);
 
-  if (slength)
+  if (slength && POINTER_TYPE_P (TREE_TYPE (src)))
     src = fold_convert (pvoid_type_node, src);
   else
     src = gfc_build_addr_expr (pvoid_type_node, src);
@@ -3835,35 +3906,42 @@ gfc_conv_statement_function (gfc_se * se, gfc_expr * expr)
       gcc_assert (fargs->sym->attr.dimension == 0);
       fsym = fargs->sym;
 
-      /* Create a temporary to hold the value.  */
-      type = gfc_typenode_for_spec (&fsym->ts);
-      temp_vars[n] = gfc_create_var (type, fsym->name);
-
       if (fsym->ts.type == BT_CHARACTER)
         {
 	  /* Copy string arguments.  */
-          tree arglen;
+	  tree arglen;
 
-          gcc_assert (fsym->ts.u.cl && fsym->ts.u.cl->length
+	  gcc_assert (fsym->ts.u.cl && fsym->ts.u.cl->length
 		      && fsym->ts.u.cl->length->expr_type == EXPR_CONSTANT);
 
-          arglen = TYPE_MAX_VALUE (TYPE_DOMAIN (type));
-          tmp = gfc_build_addr_expr (build_pointer_type (type),
-				     temp_vars[n]);
+	  /* Create a temporary to hold the value.  */
+          if (fsym->ts.u.cl->backend_decl == NULL_TREE)
+	     fsym->ts.u.cl->backend_decl
+		= gfc_conv_constant_to_tree (fsym->ts.u.cl->length);
 
-          gfc_conv_expr (&rse, args->expr);
-          gfc_conv_string_parameter (&rse);
-          gfc_add_block_to_block (&se->pre, &lse.pre);
-          gfc_add_block_to_block (&se->pre, &rse.pre);
+	  type = gfc_get_character_type (fsym->ts.kind, fsym->ts.u.cl);
+	  temp_vars[n] = gfc_create_var (type, fsym->name);
 
-	  gfc_trans_string_copy (&se->pre, arglen, tmp, fsym->ts.kind,
+	  arglen = TYPE_MAX_VALUE (TYPE_DOMAIN (type));
+
+	  gfc_conv_expr (&rse, args->expr);
+	  gfc_conv_string_parameter (&rse);
+	  gfc_add_block_to_block (&se->pre, &lse.pre);
+	  gfc_add_block_to_block (&se->pre, &rse.pre);
+
+	  gfc_trans_string_copy (&se->pre, arglen, temp_vars[n], fsym->ts.kind,
 				 rse.string_length, rse.expr, fsym->ts.kind);
-          gfc_add_block_to_block (&se->pre, &lse.post);
-          gfc_add_block_to_block (&se->pre, &rse.post);
+	  gfc_add_block_to_block (&se->pre, &lse.post);
+	  gfc_add_block_to_block (&se->pre, &rse.post);
         }
       else
         {
           /* For everything else, just evaluate the expression.  */
+
+	  /* Create a temporary to hold the value.  */
+	  type = gfc_typenode_for_spec (&fsym->ts);
+	  temp_vars[n] = gfc_create_var (type, fsym->name);
+
           gfc_conv_expr (&lse, args->expr);
 
           gfc_add_block_to_block (&se->pre, &lse.pre);
@@ -4374,7 +4452,7 @@ gfc_trans_subcomponent_assign (tree dest, gfc_component * cm, gfc_expr * expr)
 					gfc_class_null_initializer (&cm->ts));
       gfc_add_expr_to_block (&block, tmp);
     }
-  else if (cm->attr.dimension)
+  else if (cm->attr.dimension && !cm->attr.proc_pointer)
     {
       if (cm->attr.allocatable && expr->expr_type == EXPR_NULL)
  	gfc_conv_descriptor_data_set (&block, dest, null_pointer_node);
@@ -4436,26 +4514,30 @@ gfc_trans_structure_assign (tree dest, gfc_expr * expr)
 
   gfc_start_block (&block);
   cm = expr->ts.u.derived->components;
+
+  if (expr->ts.u.derived->from_intmod == INTMOD_ISO_C_BINDING
+      && (expr->ts.u.derived->intmod_sym_id == ISOCBINDING_PTR
+          || expr->ts.u.derived->intmod_sym_id == ISOCBINDING_FUNPTR))
+    {
+      gfc_se se, lse;
+
+      gcc_assert (cm->backend_decl == NULL);
+      gfc_init_se (&se, NULL);
+      gfc_init_se (&lse, NULL);
+      gfc_conv_expr (&se, gfc_constructor_first (expr->value.constructor)->expr);
+      lse.expr = dest;
+      gfc_add_modify (&block, lse.expr,
+		      fold_convert (TREE_TYPE (lse.expr), se.expr));
+
+      return gfc_finish_block (&block);
+    } 
+
   for (c = gfc_constructor_first (expr->value.constructor);
        c; c = gfc_constructor_next (c), cm = cm->next)
     {
       /* Skip absent members in default initializers.  */
       if (!c->expr)
 	continue;
-
-      /* Handle c_null_(fun)ptr.  */
-      if (c && c->expr && c->expr->ts.is_iso_c)
-	{
-	  field = cm->backend_decl;
-	  tmp = fold_build3_loc (input_location, COMPONENT_REF,
-				 TREE_TYPE (field),
-				 dest, field, NULL_TREE);
-	  tmp = fold_build2_loc (input_location, MODIFY_EXPR, TREE_TYPE (tmp),
-				 tmp, fold_convert (TREE_TYPE (tmp),
-						    null_pointer_node));
-	  gfc_add_expr_to_block (&block, tmp);
-	  continue;
-	}
 
       field = cm->backend_decl;
       tmp = fold_build3_loc (input_location, COMPONENT_REF, TREE_TYPE (field),
@@ -4586,8 +4668,10 @@ gfc_conv_expr (gfc_se * se, gfc_expr * expr)
   if (expr->ts.type == BT_DERIVED && expr->ts.u.derived
       && expr->ts.u.derived->attr.is_iso_c)
     {
-      if (expr->symtree->n.sym->intmod_sym_id == ISOCBINDING_NULL_PTR
-          || expr->symtree->n.sym->intmod_sym_id == ISOCBINDING_NULL_FUNPTR)
+      if (expr->expr_type == EXPR_VARIABLE
+	  && (expr->symtree->n.sym->intmod_sym_id == ISOCBINDING_NULL_PTR
+	      || expr->symtree->n.sym->intmod_sym_id
+		 == ISOCBINDING_NULL_FUNPTR))
         {
 	  /* Set expr_type to EXPR_NULL, which will result in
 	     null_pointer_node being used below.  */
@@ -5329,6 +5413,81 @@ arrayfunc_assign_needs_temporary (gfc_expr * expr1, gfc_expr * expr2)
 }
 
 
+/* Provide the loop info so that the lhs descriptor can be built for
+   reallocatable assignments from extrinsic function calls.  */
+
+static void
+realloc_lhs_loop_for_fcn_call (gfc_se *se, locus *where, gfc_ss **ss)
+{
+  gfc_loopinfo loop;
+  /* Signal that the function call should not be made by
+     gfc_conv_loop_setup. */
+  se->ss->is_alloc_lhs = 1;
+  gfc_init_loopinfo (&loop);
+  gfc_add_ss_to_loop (&loop, *ss);
+  gfc_add_ss_to_loop (&loop, se->ss);
+  gfc_conv_ss_startstride (&loop);
+  gfc_conv_loop_setup (&loop, where);
+  gfc_copy_loopinfo_to_se (se, &loop);
+  gfc_add_block_to_block (&se->pre, &loop.pre);
+  gfc_add_block_to_block (&se->pre, &loop.post);
+  se->ss->is_alloc_lhs = 0;
+}
+
+
+static void
+realloc_lhs_bounds_for_intrinsic_call (gfc_se *se, int rank)
+{
+  tree desc;
+  tree tmp;
+  tree offset;
+  int n;
+
+  /* Use the allocation done by the library.  */
+  desc = build_fold_indirect_ref_loc (input_location, se->expr);
+  tmp = gfc_conv_descriptor_data_get (desc);
+  tmp = gfc_call_free (fold_convert (pvoid_type_node, tmp));
+  gfc_add_expr_to_block (&se->pre, tmp);
+  gfc_conv_descriptor_data_set (&se->pre, desc, null_pointer_node);
+  /* Unallocated, the descriptor does not have a dtype.  */
+  tmp = gfc_conv_descriptor_dtype (desc);
+  gfc_add_modify (&se->pre, tmp, gfc_get_dtype (TREE_TYPE (desc)));
+
+  offset = gfc_index_zero_node;
+  tmp = gfc_index_one_node;
+  /* Now reset the bounds from zero based to unity based.  */
+  for (n = 0 ; n < rank; n++)
+    {
+      /* Accumulate the offset.  */
+      offset = fold_build2_loc (input_location, MINUS_EXPR,
+				gfc_array_index_type,
+				offset, tmp);
+      /* Now do the bounds.  */
+      gfc_conv_descriptor_offset_set (&se->post, desc, tmp);
+      tmp = gfc_conv_descriptor_ubound_get (desc, gfc_rank_cst[n]);
+      tmp = fold_build2_loc (input_location, PLUS_EXPR,
+			     gfc_array_index_type,
+			     tmp, gfc_index_one_node);
+      gfc_conv_descriptor_lbound_set (&se->post, desc,
+				      gfc_rank_cst[n],
+				      gfc_index_one_node);
+      gfc_conv_descriptor_ubound_set (&se->post, desc,
+				      gfc_rank_cst[n], tmp);
+
+      /* The extent for the next contribution to offset.  */
+      tmp = fold_build2_loc (input_location, MINUS_EXPR,
+			     gfc_array_index_type,
+			     gfc_conv_descriptor_ubound_get (desc, gfc_rank_cst[n]),
+			     gfc_conv_descriptor_lbound_get (desc, gfc_rank_cst[n]));
+      tmp = fold_build2_loc (input_location, PLUS_EXPR,
+			     gfc_array_index_type,
+			     tmp, gfc_index_one_node);
+    }
+  gfc_conv_descriptor_offset_set (&se->post, desc, offset);
+}
+
+
+
 /* Try to translate array(:) = func (...), where func is a transformational
    array function, without using a temporary.  Returns NULL if this isn't the
    case.  */
@@ -5371,6 +5530,31 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
   se.direct_byref = 1;
   se.ss = gfc_walk_expr (expr2);
   gcc_assert (se.ss != gfc_ss_terminator);
+
+  /* Reallocate on assignment needs the loopinfo for extrinsic functions.
+     This is signalled to gfc_conv_procedure_call by setting is_alloc_lhs.
+     Clearly, this cannot be done for an allocatable function result, since
+     the shape of the result is unknown and, in any case, the function must
+     correctly take care of the reallocation internally. For intrinsic
+     calls, the array data is freed and the library takes care of allocation.
+     TODO: Add logic of trans-array.c: gfc_alloc_allocatable_for_assignment
+     to the library.  */    
+  if (gfc_option.flag_realloc_lhs
+	&& gfc_is_reallocatable_lhs (expr1)
+	&& !gfc_expr_attr (expr1).codimension
+	&& !gfc_is_coindexed (expr1)
+	&& !(expr2->value.function.esym
+	    && expr2->value.function.esym->result->attr.allocatable))
+    {
+      if (!expr2->value.function.isym)
+	{
+	  realloc_lhs_loop_for_fcn_call (&se, &expr1->where, &ss);
+	  ss->is_alloc_lhs = 1;
+	}
+      else
+	realloc_lhs_bounds_for_intrinsic_call (&se, expr1->rank);
+    }
+
   gfc_conv_function_expr (&se, expr2);
   gfc_add_block_to_block (&se.pre, &se.post);
 
@@ -5601,6 +5785,10 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
 
   /* Walk the lhs.  */
   lss = gfc_walk_expr (expr1);
+  if (gfc_is_reallocatable_lhs (expr1)
+	&& !(expr2->expr_type == EXPR_FUNCTION
+	     && expr2->value.function.isym != NULL))
+    lss->is_alloc_lhs = 1;
   rss = NULL;
   if (lss != gfc_ss_terminator)
     {
@@ -5746,6 +5934,17 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
 	  gfc_add_expr_to_block (&body, tmp);
 	}
 
+      /* Allocate or reallocate lhs of allocatable array.  */
+      if (gfc_option.flag_realloc_lhs
+	    && gfc_is_reallocatable_lhs (expr1)
+	    && !gfc_expr_attr (expr1).codimension
+	    && !gfc_is_coindexed (expr1))
+	{
+	  tmp = gfc_alloc_allocatable_for_assignment (&loop, expr1, expr2);
+	  if (tmp != NULL_TREE)
+	    gfc_add_expr_to_block (&loop.code[expr1->rank - 1], tmp);
+	}
+
       /* Generate the copying loops.  */
       gfc_trans_scalarizing_loops (&loop, &body);
 
@@ -5804,6 +6003,13 @@ gfc_trans_assignment (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
 		      bool dealloc)
 {
   tree tmp;
+  
+  if (expr1->ts.type == BT_CHARACTER && expr1->ts.deferred)
+    {
+      gfc_error ("Assignment to deferred-length character variable at %L "
+		 "not implemented", &expr1->where);
+      return NULL_TREE;
+    }
 
   /* Special case a single function returning an array.  */
   if (expr2->expr_type == EXPR_FUNCTION && expr2->rank > 0)

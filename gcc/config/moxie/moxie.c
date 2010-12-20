@@ -34,7 +34,6 @@
 #include "recog.h"
 #include "reload.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "obstack.h"
 #include "tree.h"
 #include "expr.h"
@@ -317,7 +316,7 @@ void
 moxie_expand_epilogue (void)
 {
   int regno;
-  rtx insn, reg, cfa_restores = NULL;
+  rtx reg;
 
   if (cfun->machine->callee_saved_reg_size != 0)
     {
@@ -340,7 +339,7 @@ moxie_expand_epilogue (void)
 	    && df_regs_ever_live_p (regno))
 	  {
 	    rtx preg = gen_rtx_REG (Pmode, regno);
-	    insn = emit_insn (gen_movsi_pop (reg, preg));
+	    emit_insn (gen_movsi_pop (reg, preg));
 	  }
     }
 

@@ -35,12 +35,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-lang.h"
 #include "flags.h"
 #include "output.h"
-#include "toplev.h"
 #include "intl.h"
 #include "target.h"
 #include "tree-iterator.h"
 #include "bitmap.h"
 #include "gimple.h"
+#include "c-family/c-objc.h"
 
 /* Possible cases of implicit bad conversions.  Used to select
    diagnostic messages in convert_for_assignment.  */
@@ -50,13 +50,6 @@ enum impl_conv {
   ic_init,
   ic_return
 };
-
-/* Whether we are building a boolean conversion inside
-   convert_for_assignment, or some other late binary operation.  If
-   build_binary_op is called (from code shared with C++) in this case,
-   then the operands have already been folded and the result will not
-   be folded again, so C_MAYBE_CONST_EXPR should not be generated.  */
-bool in_late_binary_op;
 
 /* The level of nesting inside "__alignof__".  */
 int in_alignof;
@@ -104,7 +97,6 @@ static void add_pending_init (tree, tree, tree, bool, struct obstack *);
 static void set_nonincremental_init (struct obstack *);
 static void set_nonincremental_init_from_string (tree, struct obstack *);
 static tree find_init_member (tree, struct obstack *);
-static void readonly_error (tree, enum lvalue_use);
 static void readonly_warning (tree, enum lvalue_use);
 static int lvalue_or_else (const_tree, enum lvalue_use);
 static void record_maybe_used_decl (tree);
@@ -2274,26 +2266,8 @@ build_indirect_ref (location_t loc, tree ptr, ref_operator errstring)
 	}
     }
   else if (TREE_CODE (pointer) != ERROR_MARK)
-    switch (errstring)
-      {
-         case RO_ARRAY_INDEXING:
-           error_at (loc,
-                     "invalid type argument of array indexing (have %qT)",
-                     type);
-           break;
-         case RO_UNARY_STAR:
-           error_at (loc,
-                     "invalid type argument of unary %<*%> (have %qT)",
-                     type);
-           break;
-         case RO_ARROW:
-           error_at (loc,
-                     "invalid type argument of %<->%> (have %qT)",
-                     type);
-           break;
-         default:
-           gcc_unreachable ();
-      }
+    invalid_indirection_error (loc, type, errstring);
+
   return error_mark_node;
 }
 
@@ -3561,26 +3535,10 @@ build_unary_op (location_t location,
       goto return_build_unary_op;
 
     case REALPART_EXPR:
-      if (TREE_CODE (arg) == COMPLEX_CST)
-	ret = TREE_REALPART (arg);
-      else if (TREE_CODE (TREE_TYPE (arg)) == COMPLEX_TYPE)
-	ret = fold_build1_loc (location,
-			       REALPART_EXPR, TREE_TYPE (TREE_TYPE (arg)), arg);
-      else
-	ret = arg;
-      if (eptype && TREE_CODE (eptype) == COMPLEX_TYPE)
-	eptype = TREE_TYPE (eptype);
-      goto return_build_unary_op;
-
     case IMAGPART_EXPR:
-      if (TREE_CODE (arg) == COMPLEX_CST)
-	ret = TREE_IMAGPART (arg);
-      else if (TREE_CODE (TREE_TYPE (arg)) == COMPLEX_TYPE)
-	ret = fold_build1_loc (location,
-			       IMAGPART_EXPR, TREE_TYPE (TREE_TYPE (arg)), arg);
-      else
-	ret = omit_one_operand_loc (location, TREE_TYPE (arg),
-				integer_zero_node, arg);
+      ret = build_real_imag_expr (location, code, arg);
+      if (ret == error_mark_node)
+	return error_mark_node;
       if (eptype && TREE_CODE (eptype) == COMPLEX_TYPE)
 	eptype = TREE_TYPE (eptype);
       goto return_build_unary_op;
@@ -3603,11 +3561,13 @@ build_unary_op (location_t location,
 	  goto return_build_unary_op;
 	}
 
-      /* Complain about anything that is not a true lvalue.  */
-      if (!lvalue_or_else (arg, ((code == PREINCREMENT_EXPR
-				  || code == POSTINCREMENT_EXPR)
-				 ? lv_increment
-				 : lv_decrement)))
+      /* Complain about anything that is not a true lvalue.  In
+	 Objective-C, skip this check for property_refs.  */
+      if (!objc_is_property_ref (arg) 
+	  && !lvalue_or_else (arg, ((code == PREINCREMENT_EXPR
+				     || code == POSTINCREMENT_EXPR)
+				    ? lv_increment
+				    : lv_decrement)))
 	return error_mark_node;
 
       if (warn_cxx_compat && TREE_CODE (TREE_TYPE (arg)) == ENUMERAL_TYPE)
@@ -3714,6 +3674,13 @@ build_unary_op (location_t location,
 	    inc = integer_one_node;
 	    inc = convert (argtype, inc);
 	  }
+
+	/* If 'arg' is an Objective-C PROPERTY_REF expression, then we
+	   need to ask Objective-C to build the increment or decrement
+	   expression for it.  */
+	if (objc_is_property_ref (arg))
+	  return objc_build_incr_expr_for_property_ref (location, code, 
+							arg, inc);
 
 	/* Report a read-only lvalue.  */
 	if (TYPE_READONLY (argtype))
@@ -3912,44 +3879,6 @@ lvalue_p (const_tree ref)
     }
 }
 
-/* Give an error for storing in something that is 'const'.  */
-
-static void
-readonly_error (tree arg, enum lvalue_use use)
-{
-  gcc_assert (use == lv_assign || use == lv_increment || use == lv_decrement
-	      || use == lv_asm);
-  /* Using this macro rather than (for example) arrays of messages
-     ensures that all the format strings are checked at compile
-     time.  */
-#define READONLY_MSG(A, I, D, AS) (use == lv_assign ? (A)		\
-				   : (use == lv_increment ? (I)		\
-				   : (use == lv_decrement ? (D) : (AS))))
-  if (TREE_CODE (arg) == COMPONENT_REF)
-    {
-      if (TYPE_READONLY (TREE_TYPE (TREE_OPERAND (arg, 0))))
-	readonly_error (TREE_OPERAND (arg, 0), use);
-      else
-	error (READONLY_MSG (G_("assignment of read-only member %qD"),
-			     G_("increment of read-only member %qD"),
-			     G_("decrement of read-only member %qD"),
-			     G_("read-only member %qD used as %<asm%> output")),
-	       TREE_OPERAND (arg, 1));
-    }
-  else if (TREE_CODE (arg) == VAR_DECL)
-    error (READONLY_MSG (G_("assignment of read-only variable %qD"),
-			 G_("increment of read-only variable %qD"),
-			 G_("decrement of read-only variable %qD"),
-			 G_("read-only variable %qD used as %<asm%> output")),
-	   arg);
-  else
-    error (READONLY_MSG (G_("assignment of read-only location %qE"),
-			 G_("increment of read-only location %qE"),
-			 G_("decrement of read-only location %qE"),
-			 G_("read-only location %qE used as %<asm%> output")),
-	   arg);
-}
-
 /* Give a warning for storing in something that is read-only in GCC
    terms but not const in ISO C terms.  */
 
@@ -4831,8 +4760,9 @@ c_cast_expr (location_t loc, struct c_type_name *type_name, tree expr)
   if (CAN_HAVE_LOCATION_P (ret) && !EXPR_HAS_LOCATION (ret))
     SET_EXPR_LOCATION (ret, loc);
 
-  /* C++ does not permits types to be defined in a cast.  */
-  if (warn_cxx_compat && type_name->specs->tag_defined_p)
+  /* C++ does not permits types to be defined in a cast, but it
+     allows references to incomplete types.  */
+  if (warn_cxx_compat && type_name->specs->typespec_kind == ctsk_tagdef)
     warning_at (loc, OPT_Wc___compat,
 		"defining a type in a cast is invalid in C++");
 
@@ -5618,20 +5548,16 @@ convert_for_assignment (location_t location, tree type, tree rhs,
 	      if (TYPE_QUALS_NO_ADDR_SPACE (ttr)
 		  & ~TYPE_QUALS_NO_ADDR_SPACE (ttl))
 		{
-		  /* Types differing only by the presence of the 'volatile'
-		     qualifier are acceptable if the 'volatile' has been added
-		     in by the Objective-C EH machinery.  */
-		  if (!objc_type_quals_match (ttl, ttr))
-		    WARN_FOR_QUALIFIERS (location, 0,
-					 G_("passing argument %d of %qE discards "
-					    "%qv qualifier from pointer target type"),
-					 G_("assignment discards %qv qualifier "
-					    "from pointer target type"),
-					 G_("initialization discards %qv qualifier "
-					    "from pointer target type"),
-					 G_("return discards %qv qualifier from "
-					    "pointer target type"),
-					 TYPE_QUALS (ttr) & ~TYPE_QUALS (ttl));
+		  WARN_FOR_QUALIFIERS (location, 0,
+				       G_("passing argument %d of %qE discards "
+					  "%qv qualifier from pointer target type"),
+				       G_("assignment discards %qv qualifier "
+					  "from pointer target type"),
+				       G_("initialization discards %qv qualifier "
+					  "from pointer target type"),
+				       G_("return discards %qv qualifier from "
+					  "pointer target type"),
+				       TYPE_QUALS (ttr) & ~TYPE_QUALS (ttl));
 		}
 	      /* If this is not a case of ignoring a mismatch in signedness,
 		 no warning.  */

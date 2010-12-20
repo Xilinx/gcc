@@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "cp-tree.h"
 #include "c-family/c-common.h"
+#include "c-family/c-objc.h"
 #include "cp-objcp-common.h"
 #include "tree-inline.h"
 #include "decl.h"
@@ -5234,7 +5235,7 @@ check_valid_ptrmem_cst_expr (tree type, tree expr,
     {
       error ("%qE is not a valid template argument for type %qT",
 	     expr, type);
-      error ("it must be a pointer-to-member of the form `&X::Y'");
+      error ("it must be a pointer-to-member of the form %<&X::Y%>");
     }
   return false;
 }
@@ -10035,10 +10036,14 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	      = tsubst_expr (DECL_INITIAL (t), args, complain, in_decl,
 			     /*constant_expression_p=*/false);
 
-	    if (auto_node && init && describable_type (init))
+	    if (auto_node && init)
 	      {
-		type = do_auto_deduction (type, init, auto_node);
-		TREE_TYPE (r) = type;
+		init = resolve_nondeduced_context (init);
+		if (describable_type (init))
+		  {
+		    type = do_auto_deduction (type, init, auto_node);
+		    TREE_TYPE (r) = type;
+		  }
 	      }
 	  }
 	else
@@ -13197,6 +13202,7 @@ tsubst_copy_and_build (tree t,
 	if (TREE_HAS_CONSTRUCTOR (t))
 	  return finish_compound_literal (type, r);
 
+	TREE_TYPE (r) = type;
 	return r;
       }
 
@@ -13315,6 +13321,12 @@ tsubst_copy_and_build (tree t,
 
 	return build_lambda_object (r);
       }
+
+    case TARGET_EXPR:
+      /* We can get here for a constant initializer of non-dependent type.
+         FIXME stop folding in cp_parser_initializer_clause.  */
+      gcc_assert (TREE_CONSTANT (t));
+      return get_target_expr (RECUR (TARGET_EXPR_INITIAL (t)));
 
     default:
       /* Handle Objective-C++ constructs, if appropriate.  */
@@ -14331,10 +14343,13 @@ resolve_nondeduced_context (tree orig_expr)
 				   BASELINK_ACCESS_BINFO (baselink),
 				   expr, BASELINK_OPTYPE (baselink));
 	  if (offset)
-	    expr = build2 (OFFSET_REF, TREE_TYPE (expr),
-			   TREE_OPERAND (offset, 0), expr);
+	    {
+	      tree base
+		= TYPE_MAIN_VARIANT (TREE_TYPE (TREE_OPERAND (offset, 0)));
+	      expr = build_offset_ref (base, expr, addr);
+	    }
 	  if (addr)
-	    expr = build_address (expr);
+	    expr = cp_build_addr_expr (expr, tf_warning_or_error);
 	  return expr;
 	}
       else if (good == 0 && badargs)
@@ -16497,7 +16512,7 @@ most_specialized_class (tree type, tree tmpl, tsubst_flags_t complain)
       if (!(complain & tf_error))
 	return error_mark_node;
       error ("ambiguous class template instantiation for %q#T", type);
-      str = TREE_CHAIN (list) ? _("candidates are:") : _("candidate is:");
+      str = ngettext ("candidate is:", "candidates are:", list_length (list));
       for (t = list; t; t = TREE_CHAIN (t))
         {
           error ("%s %+#T", spaces ? spaces : str, TREE_TYPE (t));
@@ -17138,6 +17153,8 @@ instantiate_decl (tree d, int defer_ok,
       && !DECL_NOT_REALLY_EXTERN (d))
     mark_definable (d);
 
+  DECL_SOURCE_LOCATION (td) = DECL_SOURCE_LOCATION (code_pattern);
+  DECL_SOURCE_LOCATION (d) = DECL_SOURCE_LOCATION (code_pattern);
   input_location = DECL_SOURCE_LOCATION (d);
 
   /* If D is a member of an explicitly instantiated class template,
@@ -18091,6 +18108,10 @@ value_dependent_expression_p (tree expression)
       return ((value_dependent_expression_p (TREE_OPERAND (expression, 0)))
 	      || (value_dependent_expression_p (TREE_OPERAND (expression, 2))));
 
+    case ARRAY_REF:
+      return ((value_dependent_expression_p (TREE_OPERAND (expression, 0)))
+	      || (value_dependent_expression_p (TREE_OPERAND (expression, 1))));
+
     case ADDR_EXPR:
       {
 	tree op = TREE_OPERAND (expression, 0);
@@ -18882,6 +18903,8 @@ do_auto_deduction (tree type, tree init, tree auto_node)
      std::initializer_list<U>.  */
   if (BRACE_ENCLOSED_INITIALIZER_P (init))
     type = listify_autos (type, auto_node);
+
+  init = resolve_nondeduced_context (init);
 
   parms = build_tree_list (NULL_TREE, type);
   args[0] = init;

@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "output.h"
 #include "typeclass.h"
-#include "toplev.h"
 #include "predict.h"
 #include "tm_p.h"
 #include "target.h"
@@ -630,11 +629,11 @@ target_char_cast (tree cst, char *p)
 {
   unsigned HOST_WIDE_INT val, hostval;
 
-  if (!host_integerp (cst, 1)
+  if (TREE_CODE (cst) != INTEGER_CST
       || CHAR_TYPE_SIZE > HOST_BITS_PER_WIDE_INT)
     return 1;
 
-  val = tree_low_cst (cst, 1);
+  val = TREE_INT_CST_LOW (cst);
   if (CHAR_TYPE_SIZE < HOST_BITS_PER_WIDE_INT)
     val &= (((unsigned HOST_WIDE_INT) 1) << CHAR_TYPE_SIZE) - 1;
 
@@ -2039,7 +2038,8 @@ expand_builtin_mathfn (tree exp, rtx target, rtx subtarget)
     errno_set = false;
 
   /* Before working hard, check whether the instruction is available.  */
-  if (optab_handler (builtin_optab, mode) != CODE_FOR_nothing)
+  if (optab_handler (builtin_optab, mode) != CODE_FOR_nothing
+      && (!errno_set || !optimize_insn_for_size_p ()))
     {
       target = gen_reg_rtx (mode);
 
@@ -2148,6 +2148,9 @@ expand_builtin_mathfn_2 (tree exp, rtx target, rtx subtarget)
 
   if (! flag_errno_math || ! HONOR_NANS (mode))
     errno_set = false;
+
+  if (errno_set && optimize_insn_for_size_p ())
+    return 0;
 
   /* Always stabilize the argument list.  */
   CALL_EXPR_ARG (exp, 0) = arg0 = builtin_save_expr (arg0);
@@ -3065,7 +3068,8 @@ expand_builtin_pow_root (location_t loc, tree arg0, tree arg1, tree type,
 	  if (REAL_VALUES_EQUAL (c, dconsthalf))
 	    op = build_call_nofold_loc (loc, sqrtfn, 1, arg0);
 
-	  else
+	  /* Don't do this optimization if we don't have a sqrt insn.  */
+	  else if (optab_handler (sqrt_optab, mode) != CODE_FOR_nothing)
 	    {
 	      REAL_VALUE_TYPE dconst1_4 = dconst1;
 	      REAL_VALUE_TYPE dconst3_4;
@@ -3111,7 +3115,8 @@ expand_builtin_pow_root (location_t loc, tree arg0, tree arg1, tree type,
 	    op = build_call_nofold_loc (loc, cbrtfn, 1, arg0);
 
 	      /* Now try 1/6.  */
-	  else if (optimize_insn_for_speed_p ())
+	  else if (optimize_insn_for_speed_p ()
+		   && optab_handler (sqrt_optab, mode) != CODE_FOR_nothing)
 	    {
 	      REAL_VALUE_TYPE dconst1_6 = dconst1_3;
 	      SET_REAL_EXP (&dconst1_6, REAL_EXP (&dconst1_6) - 1);
@@ -4698,7 +4703,7 @@ std_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
     type = build_pointer_type (type);
 
   align = PARM_BOUNDARY / BITS_PER_UNIT;
-  boundary = FUNCTION_ARG_BOUNDARY (TYPE_MODE (type), type);
+  boundary = targetm.calls.function_arg_boundary (TYPE_MODE (type), type);
 
   /* When we align parameter on stack for caller, if the parameter
      alignment is beyond MAX_SUPPORTED_STACK_ALIGNMENT, it will be
@@ -5197,30 +5202,6 @@ build_string_literal (int len, const char *str)
 	      build4 (ARRAY_REF, elem,
 		      t, integer_zero_node, NULL_TREE, NULL_TREE));
   return t;
-}
-
-/* Expand a call to either the entry or exit function profiler.  */
-
-static rtx
-expand_builtin_profile_func (bool exitp)
-{
-  rtx this_rtx, which;
-
-  this_rtx = DECL_RTL (current_function_decl);
-  gcc_assert (MEM_P (this_rtx));
-  this_rtx = XEXP (this_rtx, 0);
-
-  if (exitp)
-    which = profile_function_exit_libfunc;
-  else
-    which = profile_function_entry_libfunc;
-
-  emit_library_call (which, LCT_NORMAL, VOIDmode, 2, this_rtx, Pmode,
-		     expand_builtin_return_addr (BUILT_IN_RETURN_ADDRESS,
-						 0),
-		     Pmode);
-
-  return const0_rtx;
 }
 
 /* Expand a call to __builtin___clear_cache.  */
@@ -6360,11 +6341,6 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_PREFETCH:
       expand_builtin_prefetch (exp);
       return const0_rtx;
-
-    case BUILT_IN_PROFILE_FUNC_ENTER:
-      return expand_builtin_profile_func (false);
-    case BUILT_IN_PROFILE_FUNC_EXIT:
-      return expand_builtin_profile_func (true);
 
     case BUILT_IN_INIT_TRAMPOLINE:
       return expand_builtin_init_trampoline (exp);
@@ -8341,7 +8317,7 @@ fold_builtin_memset (location_t loc, tree dest, tree c, tree len,
   if (integer_zerop (len))
     return omit_one_operand_loc (loc, type, dest, c);
 
-  if (! host_integerp (c, 1) || TREE_SIDE_EFFECTS (dest))
+  if (TREE_CODE (c) != INTEGER_CST || TREE_SIDE_EFFECTS (dest))
     return NULL_TREE;
 
   var = dest;
@@ -8380,7 +8356,7 @@ fold_builtin_memset (location_t loc, tree dest, tree c, tree len,
       if (CHAR_BIT != 8 || BITS_PER_UNIT != 8 || HOST_BITS_PER_WIDE_INT > 64)
 	return NULL_TREE;
 
-      cval = tree_low_cst (c, 1);
+      cval = TREE_INT_CST_LOW (c);
       cval &= 0xff;
       cval |= cval << 8;
       cval |= cval << 16;
@@ -12888,15 +12864,28 @@ fold_builtin_printf (location_t loc, tree fndecl, tree fmt,
 	{
 	  /* If the string was "string\n", call puts("string").  */
 	  size_t len = strlen (str);
-	  if ((unsigned char)str[len - 1] == target_newline)
+	  if ((unsigned char)str[len - 1] == target_newline
+	      && (size_t) (int) len == len
+	      && (int) len > 0)
 	    {
+	      char *newstr;
+	      tree offset_node, string_cst;
+
 	      /* Create a NUL-terminated string that's one char shorter
 		 than the original, stripping off the trailing '\n'.  */
-	      char *newstr = XALLOCAVEC (char, len);
-	      memcpy (newstr, str, len - 1);
-	      newstr[len - 1] = 0;
-
-	      newarg = build_string_literal (len, newstr);
+	      newarg = build_string_literal (len, str);
+	      string_cst = string_constant (newarg, &offset_node);
+	      gcc_checking_assert (string_cst
+				   && (TREE_STRING_LENGTH (string_cst)
+				       == (int) len)
+				   && integer_zerop (offset_node)
+				   && (unsigned char)
+				      TREE_STRING_POINTER (string_cst)[len - 1]
+				      == target_newline);
+	      /* build_string_literal creates a new STRING_CST,
+		 modify it in place to avoid double copying.  */
+	      newstr = CONST_CAST (char *, TREE_STRING_POINTER (string_cst));
+	      newstr[len - 1] = '\0';
 	      if (fn_puts)
 		call = build_call_expr_loc (loc, fn_puts, 1, newarg);
 	    }

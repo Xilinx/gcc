@@ -99,6 +99,19 @@ The callgraph:
 #include "ipa-utils.h"
 #include "lto-streamer.h"
 
+const char * const ld_plugin_symbol_resolution_names[]=
+{
+  "",
+  "undef",
+  "prevailing_def",
+  "prevailing_def_ironly",
+  "preempted_reg",
+  "preempted_ir",
+  "resolved_ir",
+  "resolved_exec",
+  "resolved_dyn"
+};
+
 static void cgraph_node_remove_callers (struct cgraph_node *node);
 static inline void cgraph_edge_remove_caller (struct cgraph_edge *e);
 static inline void cgraph_edge_remove_callee (struct cgraph_edge *e);
@@ -465,6 +478,7 @@ cgraph_create_node (void)
   node->previous = NULL;
   node->global.estimated_growth = INT_MIN;
   node->frequency = NODE_FREQUENCY_NORMAL;
+  node->count_materialization_scale = REG_BR_PROB_BASE;
   ipa_empty_ref_list (&node->ref_list);
   cgraph_nodes = node;
   cgraph_n_nodes++;
@@ -846,7 +860,7 @@ cgraph_set_call_stmt (struct cgraph_edge *e, gimple new_stmt)
 	 indirect call into a direct one.  */
       struct cgraph_node *new_callee = cgraph_node (decl);
 
-      cgraph_make_edge_direct (e, new_callee);
+      cgraph_make_edge_direct (e, new_callee, NULL);
     }
 
   push_cfun (DECL_STRUCT_FUNCTION (e->caller->decl));
@@ -1181,12 +1195,15 @@ cgraph_redirect_edge_callee (struct cgraph_edge *e, struct cgraph_node *n)
 }
 
 /* Make an indirect EDGE with an unknown callee an ordinary edge leading to
-   CALLEE.  */
+   CALLEE.  DELTA, if non-NULL, is an integer constant that is to be added to
+   the this pointer (first parameter).  */
 
 void
-cgraph_make_edge_direct (struct cgraph_edge *edge, struct cgraph_node *callee)
+cgraph_make_edge_direct (struct cgraph_edge *edge, struct cgraph_node *callee,
+			 tree delta)
 {
   edge->indirect_unknown_callee = 0;
+  edge->indirect_info->thunk_delta = delta;
 
   /* Get the edge out of the indirect edge list. */
   if (edge->prev_callee)
@@ -1866,6 +1883,9 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
     fprintf (f, " local");
   if (node->local.externally_visible)
     fprintf (f, " externally_visible");
+  if (node->resolution != LDPR_UNKNOWN)
+    fprintf (f, " %s",
+ 	     ld_plugin_symbol_resolution_names[(int)node->resolution]);
   if (node->local.finalized)
     fprintf (f, " finalized");
   if (node->local.disregard_inline_limits)
@@ -2099,12 +2119,23 @@ cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
 	}
     }
   else
-    new_edge = cgraph_create_edge (n, e->callee, call_stmt, count, freq,
-				   e->loop_nest + loop_nest);
+    {
+      new_edge = cgraph_create_edge (n, e->callee, call_stmt, count, freq,
+				     e->loop_nest + loop_nest);
+      if (e->indirect_info)
+	{
+	  new_edge->indirect_info
+	    = ggc_alloc_cleared_cgraph_indirect_call_info ();
+	  *new_edge->indirect_info = *e->indirect_info;
+	}
+    }
 
   new_edge->inline_failed = e->inline_failed;
   new_edge->indirect_inlining_edge = e->indirect_inlining_edge;
   new_edge->lto_stmt_uid = stmt_uid;
+  /* Clone flags that depend on call_stmt availability manually.  */
+  new_edge->can_throw_external = e->can_throw_external;
+  new_edge->call_stmt_cannot_inline_p = e->call_stmt_cannot_inline_p;
   if (update_original)
     {
       e->count -= new_edge->count;
@@ -2728,7 +2759,7 @@ cgraph_propagate_frequency (struct cgraph_node *node)
 		 cgraph_node_name (node));
       changed = true;
     }
-  if (maybe_executed_once && node->frequency != NODE_FREQUENCY_EXECUTED_ONCE)
+  else if (maybe_executed_once && node->frequency != NODE_FREQUENCY_EXECUTED_ONCE)
     {
       node->frequency = NODE_FREQUENCY_EXECUTED_ONCE;
       if (dump_file)

@@ -153,7 +153,7 @@ dwarf2out_do_frame (void)
     return true;
 
   if ((flag_unwind_tables || flag_exceptions)
-      && targetm.except_unwind_info () == UI_DWARF2)
+      && targetm.except_unwind_info (&global_options) == UI_DWARF2)
     return true;
 
   return false;
@@ -189,7 +189,7 @@ dwarf2out_do_cfi_asm (void)
      dwarf2 unwind info for exceptions, then emit .debug_frame by hand.  */
   if (!HAVE_GAS_CFI_SECTIONS_DIRECTIVE
       && !flag_unwind_tables && !flag_exceptions
-      && targetm.except_unwind_info () != UI_DWARF2)
+      && targetm.except_unwind_info (&global_options) != UI_DWARF2)
     return false;
 
   saved_do_cfi_asm = true;
@@ -282,7 +282,7 @@ dw_cfi_node;
    It can now be either REG + CFA_OFFSET or *(REG + BASE_OFFSET) + CFA_OFFSET.
    Instead of passing around REG and OFFSET, we pass a copy
    of this structure.  */
-typedef struct GTY(()) cfa_loc {
+typedef struct cfa_loc {
   HOST_WIDE_INT offset;
   HOST_WIDE_INT base_offset;
   unsigned int reg;
@@ -545,6 +545,89 @@ static struct dw_loc_descr_struct *mem_loc_descriptor
 #ifndef DWARF_FRAME_REGNUM
 #define DWARF_FRAME_REGNUM(REG) DBX_REGISTER_NUMBER (REG)
 #endif
+
+/* Match the base name of a file to the base name of a compilation unit. */
+
+static int
+matches_main_base (const char *path)
+{
+  /* Cache the last query. */
+  static const char *last_path = NULL;
+  static int last_match = 0;
+  if (path != last_path)
+    {
+      const char *base;
+      int length = base_of_path (path, &base);
+      last_path = path;
+      last_match = (length == main_input_baselength
+                    && memcmp (base, main_input_basename, length) == 0);
+    }
+  return last_match;
+}
+
+#ifdef DEBUG_DEBUG_STRUCT
+
+static int
+dump_struct_debug (tree type, enum debug_info_usage usage,
+		   enum debug_struct_file criterion, int generic,
+		   int matches, int result)
+{
+  /* Find the type name. */
+  tree type_decl = TYPE_STUB_DECL (type);
+  tree t = type_decl;
+  const char *name = 0;
+  if (TREE_CODE (t) == TYPE_DECL)
+    t = DECL_NAME (t);
+  if (t)
+    name = IDENTIFIER_POINTER (t);
+
+  fprintf (stderr, "	struct %d %s %s %s %s %d %p %s\n",
+	   criterion,
+           DECL_IN_SYSTEM_HEADER (type_decl) ? "sys" : "usr",
+           matches ? "bas" : "hdr",
+           generic ? "gen" : "ord",
+           usage == DINFO_USAGE_DFN ? ";" :
+             usage == DINFO_USAGE_DIR_USE ? "." : "*",
+           result,
+           (void*) type_decl, name);
+  return result;
+}
+#define DUMP_GSTRUCT(type, usage, criterion, generic, matches, result) \
+  dump_struct_debug (type, usage, criterion, generic, matches, result)
+
+#else
+
+#define DUMP_GSTRUCT(type, usage, criterion, generic, matches, result) \
+  (result)
+
+#endif
+
+static bool
+should_emit_struct_debug (tree type, enum debug_info_usage usage)
+{
+  enum debug_struct_file criterion;
+  tree type_decl;
+  bool generic = lang_hooks.types.generic_p (type);
+
+  if (generic)
+    criterion = debug_struct_generic[usage];
+  else
+    criterion = debug_struct_ordinary[usage];
+
+  if (criterion == DINFO_STRUCT_FILE_NONE)
+    return DUMP_GSTRUCT (type, usage, criterion, generic, false, false);
+  if (criterion == DINFO_STRUCT_FILE_ANY)
+    return DUMP_GSTRUCT (type, usage, criterion, generic, false, true);
+
+  type_decl = TYPE_STUB_DECL (type);
+
+  if (criterion == DINFO_STRUCT_FILE_SYS && DECL_IN_SYSTEM_HEADER (type_decl))
+    return DUMP_GSTRUCT (type, usage, criterion, generic, false, true);
+
+  if (matches_main_base (DECL_SOURCE_FILE (type_decl)))
+    return DUMP_GSTRUCT (type, usage, criterion, generic, true, true);
+  return DUMP_GSTRUCT (type, usage, criterion, generic, false, false);
+}
 
 /* Hook used by __throw.  */
 
@@ -3989,7 +4072,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
      call-site information.  We must emit this label if it might be used.  */
   if (!do_frame
       && (!flag_exceptions
-	  || targetm.except_unwind_info () != UI_TARGET))
+	  || targetm.except_unwind_info (&global_options) != UI_TARGET))
     return;
 
   fnsec = function_section (current_function_decl);
@@ -4173,7 +4256,7 @@ dwarf2out_frame_init (void)
   dwarf2out_def_cfa (NULL, STACK_POINTER_REGNUM, INCOMING_FRAME_SP_OFFSET);
 
   if (targetm.debug_unwind_info () == UI_DWARF2
-      || targetm.except_unwind_info () == UI_DWARF2)
+      || targetm.except_unwind_info (&global_options) == UI_DWARF2)
     initial_return_save (INCOMING_RETURN_ADDR_RTX);
 }
 
@@ -4186,7 +4269,7 @@ dwarf2out_frame_finish (void)
 
   /* Output another copy for the unwinder.  */
   if ((flag_unwind_tables || flag_exceptions)
-      && targetm.except_unwind_info () == UI_DWARF2)
+      && targetm.except_unwind_info (&global_options) == UI_DWARF2)
     output_call_frame_info (1);
 }
 
@@ -5648,7 +5731,8 @@ const struct gcc_debug_hooks dwarf2_debug_hooks =
   dwarf2out_copy_call_info,
   dwarf2out_virtual_call,
   dwarf2out_set_name,
-  1                             /* start_end_main_source_file */
+  1,                            /* start_end_main_source_file */
+  TYPE_SYMTAB_IS_DIE            /* tree_type_symtab_field */
 };
 
 /* NOTE: In the comments in this file, many references are made to
@@ -5760,6 +5844,18 @@ struct GTY(()) dw_ranges_struct {
   int num;
 };
 
+/* A structure to hold a macinfo entry.  */
+
+typedef struct GTY(()) macinfo_struct {
+  unsigned HOST_WIDE_INT code;
+  unsigned HOST_WIDE_INT lineno;
+  const char *info;
+}
+macinfo_entry;
+
+DEF_VEC_O(macinfo_entry);
+DEF_VEC_ALLOC_O(macinfo_entry, gc);
+
 struct GTY(()) dw_ranges_by_label_struct {
   const char *begin;
   const char *end;
@@ -5783,7 +5879,7 @@ typedef struct GTY(()) limbo_die_struct {
 }
 limbo_die_node;
 
-typedef struct GTY(()) skeleton_chain_struct
+typedef struct skeleton_chain_struct
 {
   dw_die_ref old_die;
   dw_die_ref new_die;
@@ -5989,6 +6085,10 @@ static GTY(()) unsigned separate_line_info_table_in_use;
    line_info_table.  */
 #define LINE_INFO_TABLE_INCREMENT 1024
 
+/* A flag to tell pubnames/types export if there is an info section to
+   refer to.  */
+static bool info_section_emitted;
+
 /* A pointer to the base of a table that contains a list of publicly
    accessible names.  */
 static GTY (()) VEC (pubname_entry, gc) *  pubname_table;
@@ -5996,6 +6096,10 @@ static GTY (()) VEC (pubname_entry, gc) *  pubname_table;
 /* A pointer to the base of a table that contains a list of publicly
    accessible types.  */
 static GTY (()) VEC (pubname_entry, gc) * pubtype_table;
+
+/* A pointer to the base of a table that contains a list of macro
+   defines/undefines (and file start/end markers).  */
+static GTY (()) VEC (macinfo_entry, gc) * macinfo_table;
 
 /* Array of dies for which we should generate .debug_arange info.  */
 static GTY((length ("arange_table_allocated"))) dw_die_ref *arange_table;
@@ -6160,6 +6264,7 @@ static void remove_child_TAG (dw_die_ref, enum dwarf_tag);
 static void add_child_die (dw_die_ref, dw_die_ref);
 static dw_die_ref new_die (enum dwarf_tag, dw_die_ref, tree);
 static dw_die_ref lookup_type_die (tree);
+static dw_die_ref lookup_type_die_strip_naming_typedef (tree);
 static void equate_type_number_to_die (tree, dw_die_ref);
 static hashval_t decl_die_table_hash (const void *);
 static int decl_die_table_eq (const void *, const void *);
@@ -7341,6 +7446,15 @@ add_AT_die_ref (dw_die_ref die, enum dwarf_attribute attr_kind, dw_die_ref targ_
 {
   dw_attr_node attr;
 
+#ifdef ENABLE_CHECKING
+  gcc_assert (targ_die != NULL);
+#else
+  /* With LTO we can end up trying to reference something we didn't create
+     a DIE for.  Avoid crashing later on a NULL referenced DIE.  */
+  if (targ_die == NULL)
+    return;
+#endif
+
   attr.dw_attr = attr_kind;
   attr.dw_attr_val.val_class = dw_val_class_die_ref;
   attr.dw_attr_val.v.val_die_ref.die = targ_die;
@@ -7920,6 +8034,27 @@ lookup_type_die (tree type)
   return TYPE_SYMTAB_DIE (type);
 }
 
+/* Like lookup_type_die, but if type is an anonymous type named by a
+   typedef[1], return the DIE of the anonymous type instead the one of
+   the naming typedef.  This is because in gen_typedef_die, we did
+   equate the anonymous struct named by the typedef with the DIE of
+   the naming typedef. So by default, lookup_type_die on an anonymous
+   struct yields the DIE of the naming typedef.
+
+   [1]: Read the comment of is_naming_typedef_decl to learn about what
+   a naming typedef is.  */
+
+static inline dw_die_ref
+lookup_type_die_strip_naming_typedef (tree type)
+{
+  dw_die_ref die = lookup_type_die (type);
+  if (TREE_CODE (type) == RECORD_TYPE
+      && die->die_tag == DW_TAG_typedef
+      && is_naming_typedef_decl (TYPE_NAME (type)))
+    die = get_AT_ref (die, DW_AT_type);
+  return die;
+}
+
 /* Equate a DIE to a given type specifier.  */
 
 static inline void
@@ -8315,11 +8450,14 @@ print_die (dw_die_ref die, FILE *outfile)
   unsigned ix;
 
   print_spaces (outfile);
-  fprintf (outfile, "DIE %4ld: %s\n",
-	   die->die_offset, dwarf_tag_name (die->die_tag));
+  fprintf (outfile, "DIE %4ld: %s (%p)\n",
+	   die->die_offset, dwarf_tag_name (die->die_tag),
+	   (void*) die);
   print_spaces (outfile);
   fprintf (outfile, "  abbrev id: %lu", die->die_abbrev);
-  fprintf (outfile, " offset: %ld\n", die->die_offset);
+  fprintf (outfile, " offset: %ld", die->die_offset);
+  fprintf (outfile, " mark: %d\n", die->die_mark);
+
   if (dwarf_version >= 4 && die->die_id.die_type_node)
     {
       print_spaces (outfile);
@@ -8383,6 +8521,7 @@ print_die (dw_die_ref die, FILE *outfile)
 		         AT_ref (a)->die_id.die_symbol);
 	      else
 		fprintf (outfile, "die -> %ld", AT_ref (a)->die_offset);
+	      fprintf (outfile, " (%p)", (void *) AT_ref (a));
 	    }
 	  else
 	    fprintf (outfile, "die -> <null>");
@@ -11263,7 +11402,11 @@ output_comp_unit (dw_die_ref die, int output_if_empty)
       switch_to_section (get_section (secname, SECTION_DEBUG, NULL));
     }
   else
-    switch_to_section (debug_info_section);
+    {
+      switch_to_section (debug_info_section);
+      ASM_OUTPUT_LABEL (asm_out_file, debug_info_section_label);
+      info_section_emitted = true;
+    }
 
   /* Output debugging information.  */
   output_compilation_unit_header ();
@@ -12764,7 +12907,12 @@ modified_type_die (tree type, int is_const_type, int is_volatile_type,
       /* Else cv-qualified version of named type; fall through.  */
     }
 
-  if (is_const_type)
+  if (is_const_type
+      /* If both is_const_type and is_volatile_type, prefer the path
+	 which leads to a qualified type.  */
+      && (!is_volatile_type
+	  || get_qualified_type (type, TYPE_QUAL_CONST) == NULL_TREE
+	  || get_qualified_type (type, TYPE_QUAL_VOLATILE) != NULL_TREE))
     {
       mod_type_die = new_die (DW_TAG_const_type, comp_unit_die (), type);
       sub_die = modified_type_die (type, 0, is_volatile_type, context_die);
@@ -12772,7 +12920,7 @@ modified_type_die (tree type, int is_const_type, int is_volatile_type,
   else if (is_volatile_type)
     {
       mod_type_die = new_die (DW_TAG_volatile_type, comp_unit_die (), type);
-      sub_die = modified_type_die (type, 0, 0, context_die);
+      sub_die = modified_type_die (type, is_const_type, 0, context_die);
     }
   else if (code == POINTER_TYPE)
     {
@@ -13469,11 +13617,18 @@ const_ok_for_output_1 (rtx *rtlp, void *data ATTRIBUTE_UNUSED)
       /* If delegitimize_address couldn't do anything with the UNSPEC, assume
 	 we can't express it in the debug info.  */
 #ifdef ENABLE_CHECKING
-      inform (current_function_decl
-	      ? DECL_SOURCE_LOCATION (current_function_decl)
-	      : UNKNOWN_LOCATION,
-	      "non-delegitimized UNSPEC %d found in variable location",
-	      XINT (rtl, 1));
+      /* Don't complain about TLS UNSPECs, those are just too hard to
+	 delegitimize.  */
+      if (XVECLEN (rtl, 0) != 1
+	  || GET_CODE (XVECEXP (rtl, 0, 0)) != SYMBOL_REF
+	  || SYMBOL_REF_DECL (XVECEXP (rtl, 0, 0)) == NULL
+	  || TREE_CODE (SYMBOL_REF_DECL (XVECEXP (rtl, 0, 0))) != VAR_DECL
+	  || !DECL_THREAD_LOCAL_P (SYMBOL_REF_DECL (XVECEXP (rtl, 0, 0))))
+	inform (current_function_decl
+		? DECL_SOURCE_LOCATION (current_function_decl)
+		: UNKNOWN_LOCATION,
+		"non-delegitimized UNSPEC %d found in variable location",
+		XINT (rtl, 1));
 #endif
       expansion_failed (NULL_TREE, rtl,
 			"UNSPEC hasn't been delegitimized.\n");
@@ -17763,7 +17918,7 @@ scope_die_for (tree t, dw_die_ref context_die)
 	    scope_die = comp_unit_die ();
 	}
       else
-	scope_die = lookup_type_die (containing_scope);
+	scope_die = lookup_type_die_strip_naming_typedef (containing_scope);
     }
   else
     scope_die = context_die;
@@ -18590,7 +18745,7 @@ gen_type_die_for_member (tree type, tree member, dw_die_ref context_die)
       gcc_assert (!decl_ultimate_origin (member));
 
       push_decl_scope (type);
-      type_die = lookup_type_die (type);
+      type_die = lookup_type_die_strip_naming_typedef (type);
       if (TREE_CODE (member) == FUNCTION_DECL)
 	gen_subprogram_die (member, type_die);
       else if (TREE_CODE (member) == FIELD_DECL)
@@ -20062,6 +20217,10 @@ gen_tagged_type_die (tree type,
 	 out yet, use a NULL context for now; it will be fixed up in
 	 decls_for_scope.  */
       context_die = lookup_decl_die (TYPE_CONTEXT (type));
+      /* A declaration DIE doesn't count; nested types need to go in the
+	 specification.  */
+      if (context_die && is_declaration_die (context_die))
+	context_die = NULL;
       need_pop = 0;
     }
   else
@@ -20092,12 +20251,22 @@ gen_tagged_type_die (tree type,
 
 static void
 gen_type_die_with_usage (tree type, dw_die_ref context_die,
-				enum debug_info_usage usage)
+			 enum debug_info_usage usage)
 {
   struct array_descr_info info;
 
   if (type == NULL_TREE || type == error_mark_node)
     return;
+
+  if (TYPE_NAME (type) != NULL_TREE
+      && TREE_CODE (TYPE_NAME (type)) == TYPE_DECL
+      && is_redundant_typedef (TYPE_NAME (type))
+      && DECL_ORIGINAL_TYPE (TYPE_NAME (type)))
+    /* The DECL of this type is a typedef we don't want to emit debug
+       info for but we want debug info for its underlying typedef.
+       This can happen for e.g, the injected-class-name of a C++
+       type.  */
+    type = DECL_ORIGINAL_TYPE (TYPE_NAME (type));
 
   /* If TYPE is a typedef type variant, let's generate debug info
      for the parent typedef which TYPE is a type of.  */
@@ -21552,6 +21721,14 @@ dwarf2out_begin_function (tree fun)
 {
   if (function_section (fun) != text_section)
     have_multiple_function_sections = true;
+  else if (flag_reorder_blocks_and_partition && !cold_text_section)
+    {
+      gcc_assert (current_function_decl == fun);
+      cold_text_section = unlikely_text_section ();
+      switch_to_section (cold_text_section);
+      ASM_OUTPUT_LABEL (asm_out_file, cold_text_section_label);
+      switch_to_section (current_function_section ());
+    }
 
   dwarf2out_note_section_used ();
 }
@@ -21666,14 +21843,11 @@ dwarf2out_start_source_file (unsigned int lineno, const char *filename)
 
   if (debug_info_level >= DINFO_LEVEL_VERBOSE)
     {
-      int file_num = maybe_emit_file (lookup_filename (filename));
-
-      switch_to_section (debug_macinfo_section);
-      dw2_asm_output_data (1, DW_MACINFO_start_file, "Start new file");
-      dw2_asm_output_data_uleb128 (lineno, "Included from line number %d",
-				   lineno);
-
-      dw2_asm_output_data_uleb128 (file_num, "file %s", filename);
+      macinfo_entry e;
+      e.code = DW_MACINFO_start_file;
+      e.lineno = lineno;
+      e.info = xstrdup (filename);
+      VEC_safe_push (macinfo_entry, gc, macinfo_table, &e);
     }
 }
 
@@ -21688,8 +21862,11 @@ dwarf2out_end_source_file (unsigned int lineno ATTRIBUTE_UNUSED)
 
   if (debug_info_level >= DINFO_LEVEL_VERBOSE)
     {
-      switch_to_section (debug_macinfo_section);
-      dw2_asm_output_data (1, DW_MACINFO_end_file, "End file");
+      macinfo_entry e;
+      e.code = DW_MACINFO_end_file;
+      e.lineno = lineno;
+      e.info = NULL;
+      VEC_safe_push (macinfo_entry, gc, macinfo_table, &e);
     }
 }
 
@@ -21703,10 +21880,11 @@ dwarf2out_define (unsigned int lineno ATTRIBUTE_UNUSED,
 {
   if (debug_info_level >= DINFO_LEVEL_VERBOSE)
     {
-      switch_to_section (debug_macinfo_section);
-      dw2_asm_output_data (1, DW_MACINFO_define, "Define macro");
-      dw2_asm_output_data_uleb128 (lineno, "At line number %d", lineno);
-      dw2_asm_output_nstring (buffer, -1, "The macro");
+      macinfo_entry e;
+      e.code = DW_MACINFO_define;
+      e.lineno = lineno;
+      e.info = xstrdup (buffer);;
+      VEC_safe_push (macinfo_entry, gc, macinfo_table, &e);
     }
 }
 
@@ -21720,10 +21898,58 @@ dwarf2out_undef (unsigned int lineno ATTRIBUTE_UNUSED,
 {
   if (debug_info_level >= DINFO_LEVEL_VERBOSE)
     {
-      switch_to_section (debug_macinfo_section);
-      dw2_asm_output_data (1, DW_MACINFO_undef, "Undefine macro");
-      dw2_asm_output_data_uleb128 (lineno, "At line number %d", lineno);
-      dw2_asm_output_nstring (buffer, -1, "The macro");
+      macinfo_entry e;
+      e.code = DW_MACINFO_undef;
+      e.lineno = lineno;
+      e.info = xstrdup (buffer);;
+      VEC_safe_push (macinfo_entry, gc, macinfo_table, &e);
+    }
+}
+
+static void
+output_macinfo (void)
+{
+  unsigned i;
+  unsigned long length = VEC_length (macinfo_entry, macinfo_table);
+  macinfo_entry *ref;
+
+  if (! length)
+    return;
+
+  for (i = 0; VEC_iterate (macinfo_entry, macinfo_table, i, ref); i++)
+    {
+      switch (ref->code)
+	{
+	  case DW_MACINFO_start_file:
+	    {
+	      int file_num = maybe_emit_file (lookup_filename (ref->info));
+	      dw2_asm_output_data (1, DW_MACINFO_start_file, "Start new file");
+	      dw2_asm_output_data_uleb128 
+			(ref->lineno, "Included from line number %lu", 
+			 			(unsigned long)ref->lineno);
+	      dw2_asm_output_data_uleb128 (file_num, "file %s", ref->info);
+	    }
+	    break;
+	  case DW_MACINFO_end_file:
+	    dw2_asm_output_data (1, DW_MACINFO_end_file, "End file");
+	    break;
+	  case DW_MACINFO_define:
+	    dw2_asm_output_data (1, DW_MACINFO_define, "Define macro");
+	    dw2_asm_output_data_uleb128 (ref->lineno, "At line number %lu", 
+			 			(unsigned long)ref->lineno);
+	    dw2_asm_output_nstring (ref->info, -1, "The macro");
+	    break;
+	  case DW_MACINFO_undef:
+	    dw2_asm_output_data (1, DW_MACINFO_undef, "Undefine macro");
+	    dw2_asm_output_data_uleb128 (ref->lineno, "At line number %lu",
+			 			(unsigned long)ref->lineno);
+	    dw2_asm_output_nstring (ref->info, -1, "The macro");
+	    break;
+	  default:
+	   fprintf (asm_out_file, "%s unrecognized macinfo code %lu\n",
+	     ASM_COMMENT_START, (unsigned long)ref->code);
+	  break;
+	}
     }
 }
 
@@ -21815,30 +22041,14 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
 			       DEBUG_LINE_SECTION_LABEL, 0);
   ASM_GENERATE_INTERNAL_LABEL (ranges_section_label,
 			       DEBUG_RANGES_SECTION_LABEL, 0);
-  switch_to_section (debug_abbrev_section);
-  ASM_OUTPUT_LABEL (asm_out_file, abbrev_section_label);
-  switch_to_section (debug_info_section);
-  ASM_OUTPUT_LABEL (asm_out_file, debug_info_section_label);
-  switch_to_section (debug_line_section);
-  ASM_OUTPUT_LABEL (asm_out_file, debug_line_section_label);
+  ASM_GENERATE_INTERNAL_LABEL (macinfo_section_label,
+			       DEBUG_MACINFO_SECTION_LABEL, 0);
 
   if (debug_info_level >= DINFO_LEVEL_VERBOSE)
-    {
-      switch_to_section (debug_macinfo_section);
-      ASM_GENERATE_INTERNAL_LABEL (macinfo_section_label,
-				   DEBUG_MACINFO_SECTION_LABEL, 0);
-      ASM_OUTPUT_LABEL (asm_out_file, macinfo_section_label);
-    }
+    macinfo_table = VEC_alloc (macinfo_entry, gc, 64);
 
   switch_to_section (text_section);
   ASM_OUTPUT_LABEL (asm_out_file, text_section_label);
-  if (flag_reorder_blocks_and_partition)
-    {
-      cold_text_section = unlikely_text_section ();
-      switch_to_section (cold_text_section);
-      ASM_OUTPUT_LABEL (asm_out_file, cold_text_section_label);
-    }
-
 }
 
 /* Called before cgraph_optimize starts outputtting functions, variables
@@ -21850,7 +22060,7 @@ dwarf2out_assembly_start (void)
   if (HAVE_GAS_CFI_SECTIONS_DIRECTIVE
       && dwarf2out_do_cfi_asm ()
       && (!(flag_unwind_tables || flag_exceptions)
-	  || targetm.except_unwind_info () != UI_DWARF2))
+	  || targetm.except_unwind_info (&global_options) != UI_DWARF2))
     fprintf (asm_out_file, "\t.cfi_sections\t.debug_frame\n");
 }
 
@@ -22801,7 +23011,6 @@ dwarf2out_finish (const char *filename)
   limbo_die_node *node, *next_node;
   comdat_type_node *ctnode;
   htab_t comdat_type_table;
-  dw_die_ref die = 0;
   unsigned int i;
 
   gen_remaining_tmpl_value_param_die_attribute ();
@@ -22834,8 +23043,8 @@ dwarf2out_finish (const char *filename)
      instance.  */
   for (node = limbo_die_list; node; node = next_node)
     {
+      dw_die_ref die = node->die;
       next_node = node->next;
-      die = node->die;
 
       if (die->die_parent == NULL)
 	{
@@ -22944,9 +23153,9 @@ dwarf2out_finish (const char *filename)
   /* Output a terminator label for the .text section.  */
   switch_to_section (text_section);
   targetm.asm_out.internal_label (asm_out_file, TEXT_END_LABEL, 0);
-  if (flag_reorder_blocks_and_partition)
+  if (cold_text_section)
     {
-      switch_to_section (unlikely_text_section ());
+      switch_to_section (cold_text_section);
       targetm.asm_out.internal_label (asm_out_file, COLD_END_LABEL, 0);
     }
 
@@ -23013,7 +23222,7 @@ dwarf2out_finish (const char *filename)
     add_AT_macptr (comp_unit_die (), DW_AT_macro_info, macinfo_section_label);
 
   if (have_location_lists)
-    optimize_location_lists (die);
+    optimize_location_lists (comp_unit_die ());
 
   /* Output all of the compilation units.  We put the main one last so that
      the offsets are available to output_pubnames.  */
@@ -23042,11 +23251,12 @@ dwarf2out_finish (const char *filename)
   htab_delete (comdat_type_table);
 
   /* Output the main compilation unit if non-empty or if .debug_macinfo
-     has been emitted.  */
+     will be emitted.  */
   output_comp_unit (comp_unit_die (), debug_info_level >= DINFO_LEVEL_VERBOSE);
 
   /* Output the abbreviation table.  */
   switch_to_section (debug_abbrev_section);
+  ASM_OUTPUT_LABEL (asm_out_file, abbrev_section_label);
   output_abbrev_section ();
 
   /* Output location list section if necessary.  */
@@ -23057,12 +23267,13 @@ dwarf2out_finish (const char *filename)
       ASM_GENERATE_INTERNAL_LABEL (loc_section_label,
 				   DEBUG_LOC_SECTION_LABEL, 0);
       ASM_OUTPUT_LABEL (asm_out_file, loc_section_label);
-      output_location_lists (die);
+      output_location_lists (comp_unit_die ());
     }
 
   /* Output public names table if necessary.  */
   if (!VEC_empty (pubname_entry, pubname_table))
     {
+      gcc_assert (info_section_emitted);
       switch_to_section (debug_pubnames_section);
       output_pubnames (pubname_table);
     }
@@ -23073,8 +23284,27 @@ dwarf2out_finish (const char *filename)
      simply won't look for the section.  */
   if (!VEC_empty (pubname_entry, pubtype_table))
     {
-      switch_to_section (debug_pubtypes_section);
-      output_pubnames (pubtype_table);
+      bool empty = false;
+      
+      if (flag_eliminate_unused_debug_types)
+	{
+	  /* The pubtypes table might be emptied by pruning unused items.  */
+	  unsigned i;
+	  pubname_ref p;
+	  empty = true;
+	  FOR_EACH_VEC_ELT (pubname_entry, pubtype_table, i, p)
+	    if (p->die->die_offset != 0)
+	      {
+		empty = false;
+		break;
+	      }
+	}
+      if (!empty)
+	{
+	  gcc_assert (info_section_emitted);
+	  switch_to_section (debug_pubtypes_section);
+	  output_pubnames (pubtype_table);
+	}
     }
 
   /* Output direct and virtual call tables if necessary.  */
@@ -23111,16 +23341,18 @@ dwarf2out_finish (const char *filename)
      .debug_info section.  IRIX 6.5 `nm' will then complain when
      examining the file.  This is done late so that any filenames
      used by the debug_info section are marked as 'used'.  */
+  switch_to_section (debug_line_section);
+  ASM_OUTPUT_LABEL (asm_out_file, debug_line_section_label);
   if (! DWARF2_ASM_LINE_DEBUG_INFO)
-    {
-      switch_to_section (debug_line_section);
-      output_line_info ();
-    }
+    output_line_info ();
 
   /* Have to end the macro section.  */
   if (debug_info_level >= DINFO_LEVEL_VERBOSE)
     {
       switch_to_section (debug_macinfo_section);
+      ASM_OUTPUT_LABEL (asm_out_file, macinfo_section_label);
+      if (!VEC_empty (macinfo_entry, macinfo_table))
+        output_macinfo ();
       dw2_asm_output_data (1, 0, "End compilation unit");
     }
 

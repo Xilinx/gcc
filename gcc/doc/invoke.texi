@@ -165,7 +165,7 @@ in the following sections.
 -pipe  -pass-exit-codes  @gol
 -x @var{language}  -v  -###  --help@r{[}=@var{class}@r{[},@dots{}@r{]]}  --target-help  @gol
 --version -wrapper @@@var{file} -fplugin=@var{file} -fplugin-arg-@var{name}=@var{arg}  @gol
--fdump-ada-spec@r{[}-slim@r{]}}
+-fdump-ada-spec@r{[}-slim@r{]}} -fdump-go-spec=@var{file}
 
 @item C Language Options
 @xref{C Dialect Options,,Options Controlling C Dialect}.
@@ -229,7 +229,8 @@ Objective-C and Objective-C++ Dialects}.
 
 @item Warning Options
 @xref{Warning Options,,Options to Request or Suppress Warnings}.
-@gccoptlist{-fsyntax-only  -pedantic  -pedantic-errors @gol
+@gccoptlist{-fsyntax-only  fmax-errors=@var{n}  -pedantic @gol
+-pedantic-errors @gol
 -w  -Wextra  -Wall  -Waddress  -Waggregate-return  -Warray-bounds @gol
 -Wno-attributes -Wno-builtin-macro-redefined @gol
 -Wc++-compat -Wc++0x-compat -Wcast-align  -Wcast-qual  @gol
@@ -355,8 +356,8 @@ Objective-C and Objective-C++ Dialects}.
 -fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
 -fivopts -fkeep-inline-functions -fkeep-static-consts @gol
 -floop-block -floop-flatten -floop-interchange -floop-strip-mine @gol
--floop-parallelize-all -flto -flto-compression-level -flto-partition=@var{alg} @gol
--flto-report -fltrans -fltrans-output-list -fmerge-all-constants @gol
+-floop-parallelize-all -flto -flto-compression-level
+-flto-partition=@var{alg} -flto-report -fmerge-all-constants @gol
 -fmerge-constants -fmodulo-sched -fmodulo-sched-allow-regmoves @gol
 -fmove-loop-invariants fmudflap -fmudflapir -fmudflapth -fno-branch-count-reg @gol
 -fno-default-inline @gol
@@ -398,7 +399,7 @@ Objective-C and Objective-C++ Dialects}.
 -funit-at-a-time -funroll-all-loops -funroll-loops @gol
 -funsafe-loop-optimizations -funsafe-math-optimizations -funswitch-loops @gol
 -fvariable-expansion-in-unroller -fvect-cost-model -fvpt -fweb @gol
--fwhole-program -fwhopr[=@var{n}] -fwpa -fuse-linker-plugin @gol
+-fwhole-program -fwpa -fuse-linker-plugin @gol
 --param @var{name}=@var{value}
 -O  -O0  -O1  -O2  -O3  -Os -Ofast}
 
@@ -598,7 +599,7 @@ Objective-C and Objective-C++ Dialects}.
 -mcld -mcx16 -msahf -mmovbe -mcrc32 -mrecip -mvzeroupper @gol
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
 -maes -mpclmul -mfsgsbase -mrdrnd -mf16c -mfused-madd @gol
--msse4a -m3dnow -mpopcnt -mabm -mfma4 -mxop -mlwp @gol
+-msse4a -m3dnow -mpopcnt -mabm -mbmi -mtbm -mfma4 -mxop -mlwp @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
 -minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
@@ -779,7 +780,7 @@ See RS/6000 and PowerPC Options.
 -mstrict-align  -mno-strict-align  -mrelocatable @gol
 -mno-relocatable  -mrelocatable-lib  -mno-relocatable-lib @gol
 -mtoc  -mno-toc  -mlittle  -mlittle-endian  -mbig  -mbig-endian @gol
--mdynamic-no-pic  -maltivec -mswdiv @gol
+-mdynamic-no-pic  -maltivec -mswdiv  -msingle-pic-base @gol
 -mprioritize-restricted-insns=@var{priority} @gol
 -msched-costly-dep=@var{dependence_type} @gol
 -minsert-sched-nops=@var{scheme} @gol
@@ -1069,6 +1070,9 @@ Free form Fortran source code which should not be preprocessed.
 Free form Fortran source code which must be preprocessed (with the
 traditional preprocessor).
 
+@item @var{file}.go
+Go source code.
+
 @c FIXME: Descriptions of Java file types.
 @c @var{file}.java
 @c @var{file}.class
@@ -1122,6 +1126,7 @@ objective-c++ objective-c++-header objective-c++-cpp-output
 assembler  assembler-with-cpp
 ada
 f77  f77-cpp-input f95  f95-cpp-input
+go
 java
 @end smallexample
 
@@ -1383,6 +1388,13 @@ for the plugin called @var{name}.
 For C and C++ source and include files, generate corresponding Ada
 specs. @xref{Generating Ada Bindings for C and C++ headers,,, gnat_ugn,
 GNAT User's Guide}, which provides detailed documentation on this feature.
+
+@item -fdump-go-spec=@var{file}
+For input files in any language, generate corresponding Go
+declarations in @var{file}.  This generates Go @code{const},
+@code{type}, @code{var}, and @code{func} declarations which may be a
+useful way to start writing a Go interface to code written in some
+other language.
 
 @include @value{srcdir}/../libiberty/at-file.texi
 @end table
@@ -2774,6 +2786,15 @@ warnings but control the kinds of diagnostics produced by GCC.
 @item -fsyntax-only
 @opindex fsyntax-only
 Check the code for syntax errors, but don't do anything beyond that.
+
+@item -fmax-errors=@var{n}
+@opindex fmax-errors
+Limits the maximum number of error messages to @var{n}, at which point
+GCC bails out rather than attempting to continue processing the source
+code.  If @var{n} is 0 (the default), there is no limit on the number
+of error messages produced.  If @option{-Wfatal-errors} is also
+specified, then @option{-Wfatal-errors} takes precedence over this
+option.
 
 @item -w
 @opindex w
@@ -4951,11 +4972,15 @@ Says to make debugging dumps during compilation at times specified by
 @var{letters}.  This is used for debugging the RTL-based passes of the
 compiler.  The file names for most of the dumps are made by appending
 a pass number and a word to the @var{dumpname}, and the files are
-created in the directory of the output file.  @var{dumpname} is
-generated from the name of the output file, if explicitly specified
-and it is not an executable, otherwise it is the basename of the
-source file. These switches may have different effects when
-@option{-E} is used for preprocessing.
+created in the directory of the output file.  Note that the pass
+number is computed statically as passes get registered into the pass
+manager.  Thus the numbering is not related to the dynamic order of
+execution of passes.  In particular, a pass installed by a plugin
+could have a number over 200 even if it executed quite early.
+@var{dumpname} is generated from the name of the output file, if
+explicitly specified and it is not an executable, otherwise it is the
+basename of the source file. These switches may have different effects
+when @option{-E} is used for preprocessing.
 
 Debug dumps can be enabled with a @option{-fdump-rtl} switch or some
 @option{-d} option @var{letters}.  Here are the possible
@@ -5258,10 +5283,6 @@ to @file{@var{file}.@var{pass}.vcg}.
 @opindex dx
 Just generate RTL for a function instead of compiling it.  Usually used
 with @option{-fdump-rtl-expand}.
-
-@item -dy
-@opindex dy
-Dump debugging information during parsing, to standard error.
 @end table
 
 @item -fdump-noaddr
@@ -7429,14 +7450,14 @@ and those merged by attribute @code{externally_visible} become static functions
 and in effect are optimized more aggressively by interprocedural optimizers. If @command{gold} is used as the linker plugin, @code{externally_visible} attributes are automatically added to functions (not variable yet due to a current @command{gold} issue) that are accessed outside of LTO objects according to resolution file produced by @command{gold}.  For other linkers that cannot generate resolution file, explicit @code{externally_visible} attributes are still necessary.
 While this option is equivalent to proper use of the @code{static} keyword for
 programs consisting of a single file, in combination with option
-@option{-flto} or @option{-fwhopr} this flag can be used to
+@option{-flto} this flag can be used to
 compile many smaller scale programs since the functions and variables become
 local for the whole combined compilation unit, not for the single source file
 itself.
 
 This option implies @option{-fwhole-file} for Fortran programs.
 
-@item -flto
+@item -flto[=@var{n}]
 @opindex flto
 This option runs the standard link-time optimizer.  When invoked
 with source code, it generates GIMPLE (one of GCC's internal
@@ -7478,6 +7499,16 @@ them as usual to produce @file{myprog}.
 The only important thing to keep in mind is that to enable link-time
 optimizations the @option{-flto} flag needs to be passed to both the
 compile and the link commands.
+
+To make whole program optimization effective, it is necesary to make
+certain whole program assumptions.  The compiler needs to know
+what functions and variables can be accessed by libraries and runtime
+outside of the link time optimized unit.  When supported by the linker,
+the linker plugin (see @option{-fuse-linker-plugin}) passes to the
+compiler information about used and externally visible symbols.  When
+the linker plugin is not available, @option{-fwhole-program} should be
+used to allow the compiler to make these assumptions, which will lead
+to more aggressive optimization decisions.
 
 Note that when a file is compiled with @option{-flto}, the generated
 object file will be larger than a regular object file because it will
@@ -7575,12 +7606,13 @@ If you are not using @command{gold} and/or do not specify
 will be extracted and linked as usual, but they will not participate
 in the LTO optimization process.
 
-Link time optimizations do not require the presence of the whole
-program to operate.  If the program does not require any symbols to
-be exported, it is possible to combine @option{-flto} and
-@option{-fwhopr} with @option{-fwhole-program} to allow the
-interprocedural optimizers to use more aggressive assumptions which
-may lead to improved optimization opportunities.
+Link time optimizations do not require the presence of the whole program to
+operate.  If the program does not require any symbols to be exported, it is
+possible to combine @option{-flto} and with @option{-fwhole-program} to allow
+the interprocedural optimizers to use more aggressive assumptions which may
+lead to improved optimization opportunities. 
+Use of @option{-fwhole-program} is not needed when linker plugin is
+active (see @option{-fuse-linker-plugin}).
 
 Regarding portability: the current implementation of LTO makes no
 attempt at generating bytecode that can be ported between different
@@ -7589,84 +7621,38 @@ strict version check, so bytecode files generated in one version of
 GCC will not work with an older/newer version of GCC.
 
 Link time optimization does not play well with generating debugging
-information.  Combining @option{-flto} or @option{-fwhopr} with
-@option{-g} is experimental.
+information.  Combining @option{-flto} with
+@option{-g} is currently experimental and expected to produce wrong
+results.
 
-This option is disabled by default.
+If you specify the optional @var{n}, the optimization and code
+generation done at link time is executed in parallel using @var{n}
+parallel jobs by utilizing an installed @command{make} program.  The
+environment variable @env{MAKE} may be used to override the program
+used.  The default value for @var{n} is 1.
 
-@item -fwhopr[=@var{n}]
-@opindex fwhopr
-This option is identical in functionality to @option{-flto} but it
-differs in how the final link stage is executed.  Instead of loading
-all the function bodies in memory, the callgraph is analyzed and
-optimization decisions are made (whole program analysis or WPA). Once
-optimization decisions are made, the callgraph is partitioned and the
-different sections are compiled separately (local transformations or
-LTRANS)@.  This process allows optimizations on very large programs
-that otherwise would not fit in memory.  This option enables
-@option{-fwpa} and @option{-fltrans} automatically.
-
-If you specify the optional @var{n} the link stage is executed in
-parallel using @var{n} parallel jobs by utilizing an installed
-@command{make} program.  The environment variable @env{MAKE} may be
-used to override the program used.
-
-You can also specify @option{-fwhopr=jobserver} to use GNU make's 
+You can also specify @option{-flto=jobserver} to use GNU make's 
 job server mode to determine the number of parallel jobs. This 
-is useful when the Makefile calling GCC is already parallel.
+is useful when the Makefile calling GCC is already executing in parallel.
 The parent Makefile will need a @samp{+} prepended to the command recipe
 for this to work. This will likely only work if @env{MAKE} is 
 GNU make.
 
-Disabled by default.
+This option is disabled by default.
 
 @item -flto-partition=@var{alg}
 @opindex flto-partition
-Specify partitioning algorithm used by @option{-fwhopr} mode.  The value is
-either @code{1to1} to specify partitioning corresponding to source files
-or @code{balanced} to specify partitioning into, if possible, equally sized
-chunks.  The default value is @code{balanced}.
-
-@item -fwpa
-@opindex fwpa
-This is an internal option used by GCC when compiling with
-@option{-fwhopr}.  You should never need to use it.
-
-This option runs the link-time optimizer in the whole-program-analysis
-(WPA) mode, which reads in summary information from all inputs and
-performs a whole-program analysis based on summary information only.
-It generates object files for subsequent runs of the link-time
-optimizer where individual object files are optimized using both
-summary information from the WPA mode and the actual function bodies.
-It then drives the LTRANS phase.
-
-Disabled by default.
-
-@item -fltrans
-@opindex fltrans
-This is an internal option used by GCC when compiling with
-@option{-fwhopr}.  You should never need to use it.
-
-This option runs the link-time optimizer in the local-transformation (LTRANS)
-mode, which reads in output from a previous run of the LTO in WPA mode.
-In the LTRANS mode, LTO optimizes an object and produces the final assembly.
-
-Disabled by default.
-
-@item -fltrans-output-list=@var{file}
-@opindex fltrans-output-list
-This is an internal option used by GCC when compiling with
-@option{-fwhopr}.  You should never need to use it.
-
-This option specifies a file to which the names of LTRANS output files are
-written.  This option is only meaningful in conjunction with @option{-fwpa}.
-
-Disabled by default.
+Specify the partitioning algorithm used by the link time optimizer.
+The value is either @code{1to1} to specify a partitioning mirroring
+the original source files or @code{balanced} to specify partitioning
+into equally sized chunks (whenever possible).  Specifying @code{none}
+as an algorithm disables partitioning and streaming completely. The
+default value is @code{balanced}.
 
 @item -flto-compression-level=@var{n}
 This option specifies the level of compression used for intermediate
 language written to LTO object files, and is only meaningful in
-conjunction with LTO mode (@option{-fwhopr}, @option{-flto}).  Valid
+conjunction with LTO mode (@option{-flto}).  Valid
 values are 0 (no compression) to 9 (maximum compression).  Values
 outside this range are clamped to either 0 or 9.  If the option is not
 given, a default balanced compression setting is used.
@@ -7675,7 +7661,7 @@ given, a default balanced compression setting is used.
 Prints a report with internal details on the workings of the link-time
 optimizer.  The contents of this report vary from version to version,
 it is meant to be useful to GCC developers when processing object
-files in LTO mode (via @option{-fwhopr} or @option{-flto}).
+files in LTO mode (via @option{-flto}).
 
 Disabled by default.
 
@@ -8335,13 +8321,18 @@ whose probability exceeds given threshold (in percents).  The default value is
 
 @item early-inlining-insns
 Specify growth that early inliner can make.  In effect it increases amount of
-inlining for code having large abstraction penalty.  The default value is 8.
+inlining for code having large abstraction penalty.  The default value is 10.
 
 @item max-early-inliner-iterations
 @itemx max-early-inliner-iterations
 Limit of iterations of early inliner.  This basically bounds number of nested
 indirect calls early inliner can resolve.  Deeper chains are still handled by
 late inlining.
+
+@item comdat-sharing-probability
+@itemx comdat-sharing-probability
+Probability (in percent) that C++ inline function with comdat visibility
+will be shared acroess multiple compilation units.  The default value is 20.
 
 @item min-vect-loop-bound
 The minimum number of iterations under which a loop will not get vectorized
@@ -8829,6 +8820,10 @@ Default value is 32.
 Size of minimal paritition for WHOPR (in estimated instructions).
 This prevents expenses of splitting very small programs into too many
 partitions.
+
+@item cxx-max-namespaces-for-diagnostic-help
+The maximum number of namespaces to consult for suggestions when C++
+name lookup fails for an identifier.  The default is 1000.
 
 @end table
 @end table
@@ -9707,6 +9702,18 @@ its usage:
 %:remove-outfile(-lm)
 @end smallexample
 
+@item @code{pass-through-libs}
+The @code{pass-through-libs} spec function takes any number of arguments.  It
+finds any @option{-l} options and any non-options ending in ".a" (which it
+assumes are the names of linker input library archive files) and returns a
+result containing all the found arguments each prepended by
+@option{-plugin-opt=-pass-through=} and joined by spaces.  This list is
+intended to be passed to the LTO linker plugin.
+
+@smallexample
+%:pass-through-libs(%G %L %G)
+@end smallexample
+
 @item @code{print-asm-header}
 The @code{print-asm-header} function takes no arguments and simply
 prints a banner like:
@@ -9849,10 +9856,10 @@ proper position among the other output files.
 @cindex compiler version, specifying
 @cindex target machine, specifying
 
-The usual way to run GCC is to run the executable called @file{gcc}, or
-@file{<machine>-gcc} when cross-compiling, or
-@file{<machine>-gcc-<version>} to run a version other than the one that
-was installed last.
+The usual way to run GCC is to run the executable called @command{gcc}, or
+@command{@var{machine}-gcc} when cross-compiling, or
+@command{@var{machine}-gcc-@var{version}} to run a version other than the
+one that was installed last.
 
 @node Submodel Options
 @section Hardware Models and Configurations
@@ -12078,6 +12085,9 @@ instruction set support.
 @item corei7
 Intel Core i7 CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1
 and SSE4.2 instruction set support.
+@item corei7-avx
+Intel Core i7 CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3, SSSE3,
+SSE4.1, SSE4.2, AVX, AES and PCLMUL instruction set support.
 @item atom
 Intel Atom CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3 and SSSE3
 instruction set support.
@@ -12445,6 +12455,10 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-popcnt
 @itemx -mabm
 @itemx -mno-abm
+@itemx -mbmi
+@itemx -mno-bmi
+@itemx -mtbm
+@itemx -mno-tbm
 @opindex mmmx
 @opindex mno-mmx
 @opindex msse
@@ -12453,7 +12467,7 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX,
 SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, FSGSBASE, RDRND,
-F16C, SSE4A, FMA4, XOP, LWP, ABM or 3DNow!@: extended instruction sets.
+F16C, SSE4A, FMA4, XOP, LWP, ABM, BMI, or 3DNow!@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
 disabled by these switches.
@@ -14027,7 +14041,7 @@ The processor names are:
 @samp{34kc}, @samp{34kf2_1}, @samp{34kf1_1},
 @samp{74kc}, @samp{74kf2_1}, @samp{74kf1_1}, @samp{74kf3_2},
 @samp{1004kc}, @samp{1004kf2_1}, @samp{1004kf1_1},
-@samp{loongson2e}, @samp{loongson2f},
+@samp{loongson2e}, @samp{loongson2f}, @samp{loongson3a},
 @samp{m4k},
 @samp{octeon},
 @samp{orion},
@@ -15627,8 +15641,11 @@ is enabled by default when targetting Power6 and disabled otherwise.
 @opindex mfused-madd
 @opindex mno-fused-madd
 Generate code that uses (does not use) the floating point multiply and
-accumulate instructions.  These instructions are generated by default if
-hardware floating is used.
+accumulate instructions.  These instructions are generated by default
+if hardware floating point is used.  The machine dependent
+@option{-mfused-madd} option is now mapped to the machine independent
+@option{-ffp-contract=fast} option, and @option{-mno-fused-madd} is
+mapped to @option{-ffp-contract=off}.
 
 @item -mmulhw
 @itemx -mno-mulhw
@@ -15722,6 +15739,13 @@ On Darwin and Mac OS X systems, compile code so that it is not
 relocatable, but that its external references are relocatable.  The
 resulting code is suitable for applications, but not shared
 libraries.
+
+@item -msingle-pic-base
+@opindex msingle-pic-base
+Treat the register used for PIC addressing as read-only, rather than
+loading it in the prologue for each function.  The run-time system is
+responsible for initializing this register with an appropriate value
+before execution begins.
 
 @item -mprioritize-restricted-insns=@var{priority}
 @opindex mprioritize-restricted-insns
@@ -16927,8 +16951,8 @@ the rules of the ABI@.
 @opindex mcpu
 Set the instruction set, register set, and instruction scheduling parameters
 for machine type @var{cpu_type}.  Supported values for @var{cpu_type} are
-@samp{v7}, @samp{cypress}, @samp{v8}, @samp{supersparc}, @samp{sparclite},
-@samp{f930}, @samp{f934}, @samp{hypersparc}, @samp{sparclite86x},
+@samp{v7}, @samp{cypress}, @samp{v8}, @samp{supersparc}, @samp{hypersparc},
+@samp{leon}, @samp{sparclite}, @samp{f930}, @samp{f934}, @samp{sparclite86x},
 @samp{sparclet}, @samp{tsc701}, @samp{v9}, @samp{ultrasparc},
 @samp{ultrasparc3}, @samp{niagara} and @samp{niagara2}.
 
@@ -16941,7 +16965,7 @@ implementations.
 
 @smallexample
     v7:             cypress
-    v8:             supersparc, hypersparc
+    v8:             supersparc, hypersparc, leon
     sparclite:      f930, f934, sparclite86x
     sparclet:       tsc701
     v9:             ultrasparc, ultrasparc3, niagara, niagara2
@@ -16994,9 +17018,9 @@ option @option{-mcpu=@var{cpu_type}} would.
 The same values for @option{-mcpu=@var{cpu_type}} can be used for
 @option{-mtune=@var{cpu_type}}, but the only useful values are those
 that select a particular cpu implementation.  Those are @samp{cypress},
-@samp{supersparc}, @samp{hypersparc}, @samp{f930}, @samp{f934},
-@samp{sparclite86x}, @samp{tsc701}, @samp{ultrasparc},
-@samp{ultrasparc3}, @samp{niagara}, and @samp{niagara2}.
+@samp{supersparc}, @samp{hypersparc}, @samp{leon}, @samp{f930}, @samp{f934},
+@samp{sparclite86x}, @samp{tsc701}, @samp{ultrasparc}, @samp{ultrasparc3},
+@samp{niagara}, and @samp{niagara2}.
 
 @item -mv8plus
 @itemx -mno-v8plus
@@ -18455,7 +18479,7 @@ precompiled header.  The following are known to be safe:
 
 @gccoptlist{-fmessage-length=  -fpreprocessed  -fsched-interblock @gol
 -fsched-spec  -fsched-spec-load  -fsched-spec-load-dangerous @gol
--fsched-verbose=<number>  -fschedule-insns  -fvisibility= @gol
+-fsched-verbose=@var{number}  -fschedule-insns  -fvisibility= @gol
 -pedantic-errors}
 
 @end itemize

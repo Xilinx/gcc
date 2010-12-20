@@ -155,6 +155,7 @@ libdecnumber		Ben Elliston		bje@gnu.org
 libgcc			Ian Lance Taylor	ian@airs.com
 libgcj			Tom Tromey		tromey@redhat.com
 libgcj			Bryce McKinlay		mckinlay@redhat.com
+libgo			Ian Lance Taylor	ian@airs.com
 libgomp			Richard Henderson	rth@redhat.com
 libgomp			Jakub Jelinek		jakub@redhat.com
 libiberty		DJ Delorie		dj@redhat.com
@@ -199,6 +200,7 @@ build machinery (*.in)	Paolo Bonzini		bonzini@gnu.org
 build machinery (*.in)	DJ Delorie		dj@redhat.com
 build machinery (*.in)	Nathanael Nerode	neroden@gcc.gnu.org
 build machinery (*.in)	Alexandre Oliva		aoliva@redhat.com
+build machinery (*.in)	Ralf Wildenhues		Ralf.Wildenhues@gmx.de
 docs co-maintainer	Gerald Pfeifer		gerald@pfeifer.com
 docs co-maintainer	Joseph Myers		joseph@codesourcery.com
 predict.def		Jan Hubicka		jh@suse.cz
@@ -238,9 +240,7 @@ check in changes outside of the parts of the compiler they maintain.
 
 			Non-Algorithmic Maintainers
 
-loop optimizer		Zdenek Dvorak		ook@ucw.cz
 loop optimizer		Daniel Berlin		dberlin@dberlin.org
-libcpp			Tom Tromey		tromey@redhat.com
 
 Note that individuals who maintain parts of the compiler as non-algorithmic
 maintainers need approval to check in algorithmic changes or changes
@@ -270,6 +270,8 @@ gengtype/GTY		Laurynas Biveinis       laurynas.biveinis@gmail.com
 Graphite		Daniel Berlin		dberlin@dberlin.org
 Graphite 		Tobias Grosser		grosser@fim.uni-passau.de
 Graphite		Sebastian Pop		sebastian.pop@amd.com
+libcpp			Tom Tromey		tromey@redhat.com
+loop optimizer		Zdenek Dvorak		ook@ucw.cz
 Plugin			Diego Novillo		dnovillo@google.com
 Plugin			Le-Chun Wu		lcwu@google.com
 register allocation	Peter Bergner		bergner@vnet.ibm.com
@@ -329,6 +331,7 @@ Ian Dall					ian@beware.dropbear.id.au
 David Daney					david.daney@caviumnetworks.com
 Bud Davis					jmdavis@link.com
 Chris Demetriou					cgd@google.com
+François Dumont					fdumont@gcc.gnu.org
 Benoit Dupont de Dinechin			benoit.dupont-de-dinechin@st.com
 Michael Eager					eager@eagercon.com
 Phil Edwards					pme@gcc.gnu.org
@@ -347,7 +350,7 @@ John Freeman					jfreeman08@gmail.com
 Nathan Froyd					froydnj@codesourcery.com
 Chao-ying Fu					fu@mips.com
 Gary Funck					gary@intrepid.com
-Kaveh Ghazi					ghazi@caip.rutgers.edu
+Kaveh Ghazi					ghazi@gcc.gnu.org
 Matthew Gingell					gingell@gnat.com
 Tristan Gingold					gingold@adacore.com
 Anthony Green					green@redhat.com
@@ -424,6 +427,7 @@ Catherine Moore					clm@codesourcery.com
 James A. Morrison				phython@gcc.gnu.org
 Dirk Mueller					dmueller@suse.de
 Phil Muldoon					pmuldoon@redhat.com
+Quentin Neill					quentin.neill.gnu@gmail.com
 Adam Nemet					adambnemet@gmail.com
 Thomas Neumann					tneumann@users.sourceforge.net
 Dan Nicolaescu					dann@ics.uci.edu
@@ -435,6 +439,7 @@ Andrea Ornstein					andrea.ornstein@st.com
 Seongbae Park					seongbae.park@gmail.com
 Devang Patel					dpatel@apple.com
 Fernando Pereira				pronesto@gmail.com
+Kaushik Phatak					kaushik.phatak@kpitcummins.com
 Nicolas Pitre					nico@cam.org
 Antoniu Pop					antoniu.pop@gmail.com
 Vladimir Prus					vladimir@codesourcery.com
@@ -488,7 +493,6 @@ Florian Weimer					fw@deneb.enyo.de
 Zack Weinberg					zackw@panix.com
 Mark Wielaard					mark@gcc.gnu.org
 Ollie Wild					aaw@google.com
-Ralf Wildenhues					Ralf.Wildenhues@gmx.de
 Kevin Williams					kevin.williams@inria.fr
 Carlo Wood					carlo@alinoe.com
 Le-Chun Wu					lcwu@google.com

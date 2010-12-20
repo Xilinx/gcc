@@ -41,7 +41,6 @@
 #include "expr.h"
 #include "optabs.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "recog.h"
 #include "cgraph.h"
 #include "ggc.h"
@@ -65,6 +64,7 @@ typedef struct minipool_fixup   Mfix;
 void (*arm_lang_output_object_attributes_hook)(void);
 
 /* Forward function declarations.  */
+static bool arm_needs_doubleword_align (enum machine_mode, const_tree);
 static int arm_compute_static_chain_stack_bytes (void);
 static arm_stack_offsets *arm_get_frame_offsets (void);
 static void arm_add_gc_roots (void);
@@ -168,6 +168,7 @@ static rtx arm_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
 			     const_tree, bool);
 static void arm_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 				      const_tree, bool);
+static unsigned int arm_function_arg_boundary (enum machine_mode, const_tree);
 static rtx aapcs_allocate_return_reg (enum machine_mode, const_tree,
 				      const_tree);
 static int aapcs_select_return_coproc (const_tree, const_tree);
@@ -199,7 +200,7 @@ static bool arm_output_ttype (rtx);
 static void arm_asm_emit_except_personality (rtx);
 static void arm_asm_init_sections (void);
 #endif
-static enum unwind_info_type arm_except_unwind_info (void);
+static enum unwind_info_type arm_except_unwind_info (struct gcc_options *);
 static void arm_dwarf_handle_frame_unspec (const char *, rtx, int);
 static rtx arm_dwarf_register_span (rtx);
 
@@ -239,6 +240,7 @@ static rtx arm_trampoline_adjust_address (rtx);
 static rtx arm_pic_static_addr (rtx orig, rtx reg);
 static bool cortex_a9_sched_adjust_cost (rtx, rtx, rtx, int *);
 static bool xscale_sched_adjust_cost (rtx, rtx, rtx, int *);
+static bool fa726te_sched_adjust_cost (rtx, rtx, rtx, int *);
 static enum machine_mode arm_preferred_simd_mode (enum machine_mode);
 static bool arm_class_likely_spilled_p (reg_class_t);
 static bool arm_vector_alignment_reachable (const_tree type, bool is_packed);
@@ -246,6 +248,8 @@ static bool arm_builtin_support_vector_misalignment (enum machine_mode mode,
 						     const_tree type,
 						     int misalignment,
 						     bool is_packed);
+static void arm_conditional_register_usage (void);
+static reg_class_t arm_preferred_rename_class (reg_class_t rclass);
 
 
 /* Table of machine attributes.  */
@@ -415,6 +419,8 @@ static const struct default_options arm_option_optimization_table[] =
 #define TARGET_FUNCTION_ARG arm_function_arg
 #undef TARGET_FUNCTION_ARG_ADVANCE
 #define TARGET_FUNCTION_ARG_ADVANCE arm_function_arg_advance
+#undef TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY arm_function_arg_boundary
 
 #undef  TARGET_SETUP_INCOMING_VARARGS
 #define TARGET_SETUP_INCOMING_VARARGS arm_setup_incoming_varargs
@@ -567,6 +573,9 @@ static const struct default_options arm_option_optimization_table[] =
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE arm_can_eliminate
 
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE arm_conditional_register_usage
+
 #undef TARGET_CLASS_LIKELY_SPILLED_P
 #define TARGET_CLASS_LIKELY_SPILLED_P arm_class_likely_spilled_p
 
@@ -577,6 +586,10 @@ static const struct default_options arm_option_optimization_table[] =
 #undef TARGET_VECTORIZE_SUPPORT_VECTOR_MISALIGNMENT
 #define TARGET_VECTORIZE_SUPPORT_VECTOR_MISALIGNMENT \
   arm_builtin_support_vector_misalignment
+
+#undef TARGET_PREFERRED_RENAME_CLASS
+#define TARGET_PREFERRED_RENAME_CLASS \
+  arm_preferred_rename_class
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -827,39 +840,59 @@ struct processors
   const struct tune_params *const tune;
 };
 
+
+#define ARM_PREFETCH_NOT_BENEFICIAL 0, -1, -1
+#define ARM_PREFETCH_BENEFICIAL(prefetch_slots,l1_size,l1_line_size) \
+  prefetch_slots, \
+  l1_size, \
+  l1_line_size
+
 const struct tune_params arm_slowmul_tune =
 {
   arm_slowmul_rtx_costs,
   NULL,
-  3
+  3,
+  ARM_PREFETCH_NOT_BENEFICIAL
 };
 
 const struct tune_params arm_fastmul_tune =
 {
   arm_fastmul_rtx_costs,
   NULL,
-  1
+  1,
+  ARM_PREFETCH_NOT_BENEFICIAL
 };
 
 const struct tune_params arm_xscale_tune =
 {
   arm_xscale_rtx_costs,
   xscale_sched_adjust_cost,
-  2
+  2,
+  ARM_PREFETCH_NOT_BENEFICIAL
 };
 
 const struct tune_params arm_9e_tune =
 {
   arm_9e_rtx_costs,
   NULL,
-  1
+  1,
+  ARM_PREFETCH_NOT_BENEFICIAL
 };
 
 const struct tune_params arm_cortex_a9_tune =
 {
   arm_9e_rtx_costs,
   cortex_a9_sched_adjust_cost,
-  1
+  1,
+  ARM_PREFETCH_BENEFICIAL(4,32,32)
+};
+
+const struct tune_params arm_fa726te_tune =
+{
+  arm_9e_rtx_costs,
+  fa726te_sched_adjust_cost,
+  1,
+  ARM_PREFETCH_NOT_BENEFICIAL
 };
 
 
@@ -1344,7 +1377,7 @@ arm_target_help (void)
     {
       const char *p;
 
-      GET_ENVIRONMENT (p, "COLUMNS");
+      p = getenv ("COLUMNS");
       if (p != NULL)
 	{
 	  int value = atoi (p);
@@ -1975,6 +2008,32 @@ arm_option_override (void)
   if (TARGET_AAPCS_BASED && flag_strict_volatile_bitfields < 0)
     flag_strict_volatile_bitfields = 1;
 
+  /* Enable sw prefetching at -O3 for CPUS that have prefetch, and we have deemed
+     it beneficial (signified by setting num_prefetch_slots to 1 or more.)  */
+  if (flag_prefetch_loop_arrays < 0
+      && HAVE_prefetch
+      && optimize >= 3
+      && current_tune->num_prefetch_slots > 0)
+    flag_prefetch_loop_arrays = 1;
+
+  /* Set up parameters to be used in prefetching algorithm.  Do not override the
+     defaults unless we are tuning for a core we have researched values for.  */
+  if (current_tune->num_prefetch_slots > 0)
+    maybe_set_param_value (PARAM_SIMULTANEOUS_PREFETCHES,
+                           current_tune->num_prefetch_slots,
+                           global_options.x_param_values,
+                           global_options_set.x_param_values);
+  if (current_tune->l1_cache_line_size >= 0)
+    maybe_set_param_value (PARAM_L1_CACHE_LINE_SIZE,
+                           current_tune->l1_cache_line_size,
+                           global_options.x_param_values,
+                           global_options_set.x_param_values);
+  if (current_tune->l1_cache_size >= 0)
+    maybe_set_param_value (PARAM_L1_CACHE_SIZE,
+                           current_tune->l1_cache_size,
+                           global_options.x_param_values,
+                           global_options_set.x_param_values);
+
   /* Register global variables with the garbage collector.  */
   arm_add_gc_roots ();
 }
@@ -2063,7 +2122,8 @@ arm_compute_func_type (void)
   if (optimize > 0
       && (TREE_NOTHROW (current_function_decl)
           || !(flag_unwind_tables
-               || (flag_exceptions && arm_except_unwind_info () != UI_SJLJ)))
+               || (flag_exceptions
+		   && arm_except_unwind_info (&global_options) != UI_SJLJ)))
       && TREE_THIS_VOLATILE (current_function_decl))
     type |= ARM_FT_VOLATILE;
 
@@ -3797,9 +3857,9 @@ arm_get_pcs_model (const_tree type, const_tree decl)
       if (user_convention)
 	{
 	  if (user_pcs > ARM_PCS_AAPCS_LOCAL)
-	    sorry ("Non-AAPCS derived PCS variant");
+	    sorry ("non-AAPCS derived PCS variant");
 	  else if (base_rules && user_pcs != ARM_PCS_AAPCS)
-	    error ("Variadic functions must use the base AAPCS variant");
+	    error ("variadic functions must use the base AAPCS variant");
 	}
 
       if (base_rules)
@@ -4527,7 +4587,7 @@ arm_init_cumulative_args (CUMULATIVE_ARGS *pcum, tree fntype,
 
 
 /* Return true if mode/type need doubleword alignment.  */
-bool
+static bool
 arm_needs_doubleword_align (enum machine_mode mode, const_tree type)
 {
   return (GET_MODE_ALIGNMENT (mode) > PARM_BOUNDARY
@@ -4604,6 +4664,14 @@ arm_function_arg (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
     return NULL_RTX;
 
   return gen_rtx_REG (mode, pcum->nregs);
+}
+
+static unsigned int
+arm_function_arg_boundary (enum machine_mode mode, const_tree type)
+{
+  return (ARM_DOUBLEWORD_ALIGN && arm_needs_doubleword_align (mode, type)
+	  ? DOUBLEWORD_ALIGNMENT
+	  : PARM_BOUNDARY);
 }
 
 static int
@@ -5588,17 +5656,29 @@ arm_legitimate_index_p (enum machine_mode mode, rtx index, RTX_CODE outer,
 
   /* Standard coprocessor addressing modes.  */
   if (TARGET_HARD_FLOAT
-      && (TARGET_FPA || TARGET_MAVERICK)
-      && (GET_MODE_CLASS (mode) == MODE_FLOAT
+      && (TARGET_VFP || TARGET_FPA || TARGET_MAVERICK)
+      && (mode == SFmode || mode == DFmode
 	  || (TARGET_MAVERICK && mode == DImode)))
     return (code == CONST_INT && INTVAL (index) < 1024
 	    && INTVAL (index) > -1024
 	    && (INTVAL (index) & 3) == 0);
 
-  if (TARGET_NEON
-      && (VALID_NEON_DREG_MODE (mode) || VALID_NEON_QREG_MODE (mode)))
+  /* For quad modes, we restrict the constant offset to be slightly less
+     than what the instruction format permits.  We do this because for
+     quad mode moves, we will actually decompose them into two separate
+     double-mode reads or writes.  INDEX must therefore be a valid
+     (double-mode) offset and so should INDEX+8.  */
+  if (TARGET_NEON && VALID_NEON_QREG_MODE (mode))
     return (code == CONST_INT
 	    && INTVAL (index) < 1016
+	    && INTVAL (index) > -1024
+	    && (INTVAL (index) & 3) == 0);
+
+  /* We have no such constraint on double mode offsets, so we permit the
+     full range of the instruction format.  */
+  if (TARGET_NEON && VALID_NEON_DREG_MODE (mode))
+    return (code == CONST_INT
+	    && INTVAL (index) < 1024
 	    && INTVAL (index) > -1024
 	    && (INTVAL (index) & 3) == 0);
 
@@ -5697,8 +5777,8 @@ thumb2_legitimate_index_p (enum machine_mode mode, rtx index, int strict_p)
   /* ??? Combine arm and thumb2 coprocessor addressing modes.  */
   /* Standard coprocessor addressing modes.  */
   if (TARGET_HARD_FLOAT
-      && (TARGET_FPA || TARGET_MAVERICK)
-      && (GET_MODE_CLASS (mode) == MODE_FLOAT
+      && (TARGET_VFP || TARGET_FPA || TARGET_MAVERICK)
+      && (mode == SFmode || mode == DFmode
 	  || (TARGET_MAVERICK && mode == DImode)))
     return (code == CONST_INT && INTVAL (index) < 1024
 	    && INTVAL (index) > -1024
@@ -5715,10 +5795,22 @@ thumb2_legitimate_index_p (enum machine_mode mode, rtx index, int strict_p)
 		&& (INTVAL (index) & 3) == 0);
     }
 
-  if (TARGET_NEON
-      && (VALID_NEON_DREG_MODE (mode) || VALID_NEON_QREG_MODE (mode)))
+  /* For quad modes, we restrict the constant offset to be slightly less
+     than what the instruction format permits.  We do this because for
+     quad mode moves, we will actually decompose them into two separate
+     double-mode reads or writes.  INDEX must therefore be a valid
+     (double-mode) offset and so should INDEX+8.  */
+  if (TARGET_NEON && VALID_NEON_QREG_MODE (mode))
     return (code == CONST_INT
 	    && INTVAL (index) < 1016
+	    && INTVAL (index) > -1024
+	    && (INTVAL (index) & 3) == 0);
+
+  /* We have no such constraint on double mode offsets, so we permit the
+     full range of the instruction format.  */
+  if (TARGET_NEON && VALID_NEON_DREG_MODE (mode))
+    return (code == CONST_INT
+	    && INTVAL (index) < 1024
 	    && INTVAL (index) > -1024
 	    && (INTVAL (index) & 3) == 0);
 
@@ -7908,6 +8000,36 @@ cortex_a9_sched_adjust_cost (rtx insn, rtx link, rtx dep, int * cost)
 
     default:
       gcc_unreachable ();
+    }
+
+  return true;
+}
+
+/* Adjust cost hook for FA726TE.  */
+static bool
+fa726te_sched_adjust_cost (rtx insn, rtx link, rtx dep, int * cost)
+{
+  /* For FA726TE, true dependency on CPSR (i.e. set cond followed by predicated)
+     have penalty of 3.  */
+  if (REG_NOTE_KIND (link) == REG_DEP_TRUE
+      && recog_memoized (insn) >= 0
+      && recog_memoized (dep) >= 0
+      && get_attr_conds (dep) == CONDS_SET)
+    {
+      /* Use of carry (e.g. 64-bit arithmetic) in ALU: 3-cycle latency.  */
+      if (get_attr_conds (insn) == CONDS_USE
+          && get_attr_type (insn) != TYPE_BRANCH)
+        {
+          *cost = 3;
+          return false;
+        }
+
+      if (GET_CODE (PATTERN (insn)) == COND_EXEC
+          || get_attr_conds (insn) == CONDS_USE)
+        {
+          *cost = 0;
+          return false;
+        }
     }
 
   return true;
@@ -10519,12 +10641,14 @@ arm_select_cc_mode (enum rtx_code op, rtx x, rtx y)
 
   /* Alternate canonicalizations of the above.  These are somewhat cleaner.  */
   if (GET_CODE (x) == AND
+      && (op == EQ || op == NE)
       && COMPARISON_P (XEXP (x, 0))
       && COMPARISON_P (XEXP (x, 1)))
     return arm_select_dominance_cc_mode (XEXP (x, 0), XEXP (x, 1),
 					 DOM_CC_X_AND_Y);
 
   if (GET_CODE (x) == IOR
+      && (op == EQ || op == NE)
       && COMPARISON_P (XEXP (x, 0))
       && COMPARISON_P (XEXP (x, 1)))
     return arm_select_dominance_cc_mode (XEXP (x, 0), XEXP (x, 1),
@@ -12105,6 +12229,7 @@ thumb2_reorg (void)
   FOR_EACH_BB (bb)
     {
       rtx insn;
+
       COPY_REG_SET (&live, DF_LR_OUT (bb));
       df_simulate_initialize_backwards (bb, &live);
       FOR_BB_INSNS_REVERSE (bb, insn)
@@ -12122,21 +12247,43 @@ thumb2_reorg (void)
 		  rtx dst = XEXP (pat, 0);
 		  rtx src = XEXP (pat, 1);
 		  rtx op0 = XEXP (src, 0);
+		  rtx op1 = (GET_RTX_CLASS (GET_CODE (src)) == RTX_COMM_ARITH
+			     ? XEXP (src, 1) : NULL);
+
 		  if (rtx_equal_p (dst, op0)
 		      || GET_CODE (src) == PLUS || GET_CODE (src) == MINUS)
 		    {
 		      rtx ccreg = gen_rtx_REG (CCmode, CC_REGNUM);
 		      rtx clobber = gen_rtx_CLOBBER (VOIDmode, ccreg);
 		      rtvec vec = gen_rtvec (2, pat, clobber);
+
+		      PATTERN (insn) = gen_rtx_PARALLEL (VOIDmode, vec);
+		      INSN_CODE (insn) = -1;
+		    }
+		  /* We can also handle a commutative operation where the
+		     second operand matches the destination.  */
+		  else if (op1 && rtx_equal_p (dst, op1))
+		    {
+		      rtx ccreg = gen_rtx_REG (CCmode, CC_REGNUM);
+		      rtx clobber = gen_rtx_CLOBBER (VOIDmode, ccreg);
+		      rtvec vec;
+
+		      src = copy_rtx (src);
+		      XEXP (src, 0) = op1;
+		      XEXP (src, 1) = op0;
+		      pat = gen_rtx_SET (VOIDmode, dst, src);
+		      vec = gen_rtvec (2, pat, clobber);
 		      PATTERN (insn) = gen_rtx_PARALLEL (VOIDmode, vec);
 		      INSN_CODE (insn) = -1;
 		    }
 		}
 	    }
+
 	  if (NONDEBUG_INSN_P (insn))
 	    df_simulate_one_insn_backwards (bb, insn, &live);
 	}
     }
+
   CLEAR_REG_SET (&live);
 }
 
@@ -15710,6 +15857,10 @@ arm_expand_prologue (void)
 	}
     }
 
+  if (flag_stack_usage)
+    current_function_static_stack_size
+      = offsets->outgoing_args - offsets->saved_args;
+
   if (offsets->outgoing_args != offsets->saved_args + saved_regs)
     {
       /* This add can produce multiple insns for a large constant, so we
@@ -15757,7 +15908,7 @@ arm_expand_prologue (void)
      using the EABI unwinder, to prevent faulting instructions from being
      swapped with a stack adjustment.  */
   if (crtl->profile || !TARGET_SCHED_PROLOG
-      || (arm_except_unwind_info () == UI_TARGET
+      || (arm_except_unwind_info (&global_options) == UI_TARGET
 	  && cfun->can_throw_non_call_exceptions))
     emit_insn (gen_blockage ());
 
@@ -19045,7 +19196,9 @@ neon_builtin_compare (const void *a, const void *b)
 static enum insn_code
 locate_neon_builtin_icode (int fcode, neon_itype *itype)
 {
-  neon_builtin_datum key, *found;
+  neon_builtin_datum key
+    = { NULL, (neon_itype) 0, 0, { CODE_FOR_nothing }, 0, 0 };
+  neon_builtin_datum *found;
   int idx;
 
   key.base_fcode = fcode;
@@ -19638,7 +19791,7 @@ thumb_pushpop (FILE *f, unsigned long mask, int push, int *cfa_offset,
       return;
     }
 
-  if (push && arm_except_unwind_info () == UI_TARGET)
+  if (push && arm_except_unwind_info (&global_options) == UI_TARGET)
     {
       fprintf (f, "\t.save\t{");
       for (regno = 0; regno < 15; regno++)
@@ -20520,6 +20673,10 @@ thumb1_expand_prologue (void)
     emit_move_insn (gen_rtx_REG (Pmode, ARM_HARD_FRAME_POINTER_REGNUM),
 		    stack_pointer_rtx);
 
+  if (flag_stack_usage)
+    current_function_static_stack_size
+      = offsets->outgoing_args - offsets->saved_args;
+
   amount = offsets->outgoing_args - offsets->saved_regs;
   amount -= 4 * thumb1_extra_regs_pushed (offsets, true);
   if (amount)
@@ -20578,7 +20735,7 @@ thumb1_expand_prologue (void)
      using the EABI unwinder, to prevent faulting instructions from being
      swapped with a stack adjustment.  */
   if (crtl->profile || !TARGET_SCHED_PROLOG
-      || (arm_except_unwind_info () == UI_TARGET
+      || (arm_except_unwind_info (&global_options) == UI_TARGET
 	  && cfun->can_throw_non_call_exceptions))
     emit_insn (gen_blockage ());
 
@@ -20692,7 +20849,7 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
   if (crtl->args.pretend_args_size)
     {
       /* Output unwind directive for the stack adjustment.  */
-      if (arm_except_unwind_info () == UI_TARGET)
+      if (arm_except_unwind_info (&global_options) == UI_TARGET)
 	fprintf (f, "\t.pad #%d\n",
 		 crtl->args.pretend_args_size);
 
@@ -20762,7 +20919,7 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 
       work_register = thumb_find_work_register (live_regs_mask);
 
-      if (arm_except_unwind_info () == UI_TARGET)
+      if (arm_except_unwind_info (&global_options) == UI_TARGET)
 	asm_fprintf (f, "\t.pad #16\n");
 
       asm_fprintf
@@ -22370,7 +22527,7 @@ arm_unwind_emit (FILE * asm_out_file, rtx insn)
 {
   rtx pat;
 
-  if (arm_except_unwind_info () != UI_TARGET)
+  if (arm_except_unwind_info (&global_options) != UI_TARGET)
     return;
 
   if (!(flag_unwind_tables || crtl->uses_eh_lsda)
@@ -22444,7 +22601,7 @@ arm_asm_init_sections (void)
 /* Implement TARGET_EXCEPT_UNWIND_INFO.  */
 
 static enum unwind_info_type
-arm_except_unwind_info (void)
+arm_except_unwind_info (struct gcc_options *opts)
 {
   /* Honor the --enable-sjlj-exceptions configure switch.  */
 #ifdef CONFIG_SJLJ_EXCEPTIONS
@@ -22457,7 +22614,7 @@ arm_except_unwind_info (void)
     {
       /* For simplicity elsewhere in this file, indicate that all unwind
 	 info is disabled if we're not emitting unwind tables.  */
-      if (!flag_exceptions && !flag_unwind_tables)
+      if (!opts->x_flag_exceptions && !opts->x_flag_unwind_tables)
 	return UI_NONE;
       else
 	return UI_TARGET;
@@ -22497,7 +22654,7 @@ arm_dwarf_handle_frame_unspec (const char *label, rtx pattern, int index)
 void
 arm_output_fn_unwind (FILE * f, bool prologue)
 {
-  if (arm_except_unwind_info () != UI_TARGET)
+  if (arm_except_unwind_info (&global_options) != UI_TARGET)
     return;
 
   if (prologue)
@@ -22722,6 +22879,7 @@ arm_issue_rate (void)
     case cortexa5:
     case cortexa8:
     case cortexa9:
+    case fa726te:
       return 2;
 
     default:
@@ -22900,7 +23058,7 @@ arm_count (int label,
    it to output_asm_insn.  Provides a mechanism to construct the
    output pattern on the fly.  Note the hard limit on the pattern
    buffer size.  */
-static void
+static void ATTRIBUTE_PRINTF_4
 arm_output_asm_insn (emit_f emit, int label, rtx *operands,
 		     const char *pattern, ...)
 {
@@ -23260,6 +23418,120 @@ arm_builtin_support_vector_misalignment (enum machine_mode mode,
   
   return default_builtin_support_vector_misalignment (mode, type, misalignment,
 						      is_packed);
+}
+
+static void
+arm_conditional_register_usage (void)
+{
+  int regno;
+
+  if (TARGET_SOFT_FLOAT || TARGET_THUMB1 || !TARGET_FPA)
+    {
+      for (regno = FIRST_FPA_REGNUM;
+	   regno <= LAST_FPA_REGNUM; ++regno)
+	fixed_regs[regno] = call_used_regs[regno] = 1;
+    }
+
+  if (TARGET_THUMB1 && optimize_size)
+    {
+      /* When optimizing for size on Thumb-1, it's better not
+        to use the HI regs, because of the overhead of
+        stacking them.  */
+      for (regno = FIRST_HI_REGNUM;
+	   regno <= LAST_HI_REGNUM; ++regno)
+	fixed_regs[regno] = call_used_regs[regno] = 1;
+    }
+
+  /* The link register can be clobbered by any branch insn,
+     but we have no way to track that at present, so mark
+     it as unavailable.  */
+  if (TARGET_THUMB1)
+    fixed_regs[LR_REGNUM] = call_used_regs[LR_REGNUM] = 1;
+
+  if (TARGET_32BIT && TARGET_HARD_FLOAT)
+    {
+      if (TARGET_MAVERICK)
+	{
+	  for (regno = FIRST_FPA_REGNUM;
+	       regno <= LAST_FPA_REGNUM; ++ regno)
+	    fixed_regs[regno] = call_used_regs[regno] = 1;
+	  for (regno = FIRST_CIRRUS_FP_REGNUM;
+	       regno <= LAST_CIRRUS_FP_REGNUM; ++ regno)
+	    {
+	      fixed_regs[regno] = 0;
+	      call_used_regs[regno] = regno < FIRST_CIRRUS_FP_REGNUM + 4;
+	    }
+	}
+      if (TARGET_VFP)
+	{
+	  /* VFPv3 registers are disabled when earlier VFP
+	     versions are selected due to the definition of
+	     LAST_VFP_REGNUM.  */
+	  for (regno = FIRST_VFP_REGNUM;
+	       regno <= LAST_VFP_REGNUM; ++ regno)
+	    {
+	      fixed_regs[regno] = 0;
+	      call_used_regs[regno] = regno < FIRST_VFP_REGNUM + 16
+	      	|| regno >= FIRST_VFP_REGNUM + 32;
+	    }
+	}
+    }
+
+  if (TARGET_REALLY_IWMMXT)
+    {
+      regno = FIRST_IWMMXT_GR_REGNUM;
+      /* The 2002/10/09 revision of the XScale ABI has wCG0
+         and wCG1 as call-preserved registers.  The 2002/11/21
+         revision changed this so that all wCG registers are
+         scratch registers.  */
+      for (regno = FIRST_IWMMXT_GR_REGNUM;
+	   regno <= LAST_IWMMXT_GR_REGNUM; ++ regno)
+	fixed_regs[regno] = 0;
+      /* The XScale ABI has wR0 - wR9 as scratch registers,
+	 the rest as call-preserved registers.  */
+      for (regno = FIRST_IWMMXT_REGNUM;
+	   regno <= LAST_IWMMXT_REGNUM; ++ regno)
+	{
+	  fixed_regs[regno] = 0;
+	  call_used_regs[regno] = regno < FIRST_IWMMXT_REGNUM + 10;
+	}
+    }
+
+  if ((unsigned) PIC_OFFSET_TABLE_REGNUM != INVALID_REGNUM)
+    {
+      fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;
+      call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;
+    }
+  else if (TARGET_APCS_STACK)
+    {
+      fixed_regs[10]     = 1;
+      call_used_regs[10] = 1;
+    }
+  /* -mcaller-super-interworking reserves r11 for calls to
+     _interwork_r11_call_via_rN().  Making the register global
+     is an easy way of ensuring that it remains valid for all
+     calls.  */
+  if (TARGET_APCS_FRAME || TARGET_CALLER_INTERWORKING
+      || TARGET_TPCS_FRAME || TARGET_TPCS_LEAF_FRAME)
+    {
+      fixed_regs[ARM_HARD_FRAME_POINTER_REGNUM] = 1;
+      call_used_regs[ARM_HARD_FRAME_POINTER_REGNUM] = 1;
+      if (TARGET_CALLER_INTERWORKING)
+	global_regs[ARM_HARD_FRAME_POINTER_REGNUM] = 1;
+    }
+  SUBTARGET_CONDITIONAL_REGISTER_USAGE
+}
+
+static reg_class_t
+arm_preferred_rename_class (reg_class_t rclass)
+{
+  /* Thumb-2 instructions using LO_REGS may be smaller than instructions
+     using GENERIC_REGS.  During register rename pass, we prefer LO_REGS,
+     and code size can be reduced.  */
+  if (TARGET_THUMB2 && rclass == GENERAL_REGS)
+    return LO_REGS;
+  else
+    return NO_REGS;
 }
 
 #include "gt-arm.h"
