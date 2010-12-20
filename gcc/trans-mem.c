@@ -543,7 +543,35 @@ struct diagnose_tm
   unsigned int block_flags : 8;
   unsigned int func_flags : 8;
   unsigned int saw_unsafe : 1;
+  unsigned int saw_volatile : 1;
+  gimple stmt;
 };
+
+/* Tree callback function for diagnose_tm pass.  */
+
+static tree
+diagnose_tm_1_op (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED,
+		  void *data)
+{
+  struct walk_stmt_info *wi = (struct walk_stmt_info *) data;
+  struct diagnose_tm *d = (struct diagnose_tm *) wi->info;
+  enum tree_code code = TREE_CODE (*tp);
+
+  if ((code == VAR_DECL
+       || code == RESULT_DECL
+       || code == PARM_DECL)
+      && d->block_flags & (DIAG_TM_SAFE | DIAG_TM_RELAXED)
+      && TREE_THIS_VOLATILE (TREE_TYPE (*tp))
+      && !d->saw_volatile)
+    {
+      d->saw_volatile = 1;
+      error_at (gimple_location (d->stmt),
+		"invalid volatile use of %qD inside transaction",
+		*tp);
+    }
+
+  return NULL_TREE;
+}
 
 static tree
 diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
@@ -552,8 +580,8 @@ diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
   gimple stmt = gsi_stmt (*gsi);
   struct diagnose_tm *d = (struct diagnose_tm *) wi->info;
 
-  /* We're not interested in (normal) operands.  */
-  *handled_ops_p = !gimple_has_substatements (stmt);
+  /* Save stmt for use in leaf analysis.  */
+  d->stmt = stmt;
 
   switch (gimple_code (stmt))
     {
@@ -701,7 +729,7 @@ diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 	    wi_inner.info = &d_inner;
 
 	    walk_gimple_seq (gimple_transaction_body (stmt),
-			     diagnose_tm_1, NULL, &wi_inner);
+			     diagnose_tm_1, diagnose_tm_1_op, &wi_inner);
 
 	    d->saw_unsafe |= d_inner.saw_unsafe;
 	  }
@@ -732,7 +760,7 @@ diagnose_tm_blocks (void)
   wi.info = &d;
 
   walk_gimple_seq (gimple_body (current_function_decl),
-		   diagnose_tm_1, NULL, &wi);
+		   diagnose_tm_1, diagnose_tm_1_op, &wi);
 
   /* If we saw something other than a call that makes this function
      unsafe, remember it so that the IPA pass only needs to scan calls.  */

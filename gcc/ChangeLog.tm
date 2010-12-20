@@ -1,5 +1,13 @@
 2010-12-14  Aldy Hernandez  <aldyh@redhat.com>
 
+	PR/46654
+	* trans-mem.c (struct diagnose_tm): Add saw_volatile and stmt
+	fields.
+	(diagnose_tm_1_op): New.
+	(diagnose_tm_1): Do not ignore operands.
+
+2010-12-14  Aldy Hernandez  <aldyh@redhat.com>
+
 	PR/46923
 	* trans-mem.c (requires_barrier): Handle PARM_DECL and
 	RESULT_DECL.
