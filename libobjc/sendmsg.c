@@ -33,24 +33,22 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "tconfig.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "objc/objc-api.h"
+#include "objc/runtime.h"
+#include "objc/message.h"          /* For objc_msg_lookup(), objc_msg_lookup_super().  */
 #include "objc/thr.h"
+#include "objc-private/module-abi-8.h"
 #include "objc-private/runtime.h"
 #include "objc-private/sarray.h"
-#include "objc/encoding.h"
+#include "objc-private/selector.h" /* For sel_is_mapped() */
 #include "runtime-info.h"
 #include <assert.h> /* For assert */
 #include <string.h> /* For strlen */
-
-/* Temporarily while we include objc/objc-api.h instead of objc-private/module-abi-8.h.  */
-#define _CLS_IN_CONSTRUCTION 0x10L
-#define CLS_IS_IN_CONSTRUCTION(cls) __CLS_ISINFO(cls, _CLS_IN_CONSTRUCTION)
 
 /* This is how we hack STRUCT_VALUE to be 1 or 0.   */
 #define gen_rtx(args...) 1
 #define gen_rtx_MEM(args...) 1
 #define gen_rtx_REG(args...) 1
-/* Alread defined in gcc/coretypes.h. So prevent double definition warning.  */
+/* Already defined in gcc/coretypes.h. So prevent double definition warning.  */
 #undef rtx
 #define rtx int
 
@@ -230,9 +228,6 @@ __objc_resolve_instance_method (Class class, SEL sel)
   return NULL;
 }
 
-/* Temporary definition until we include objc/runtime.h.  */
-objc_EXPORT Class objc_lookupClass (const char *name);
-
 /* Given a class and selector, return the selector's
    implementation.  */
 inline
@@ -294,7 +289,7 @@ get_imp (Class class, SEL sel)
 		     need to obtain the class from the meta class,
 		     which we do using the fact that both the class
 		     and the meta-class have the same name.  */
-		  Class realClass = objc_lookupClass (class->name);
+		  Class realClass = objc_lookUpClass (class->name);
 		  if (realClass)
 		    res = __objc_resolve_class_method (realClass, sel);
 		}
@@ -329,7 +324,8 @@ class_getMethodImplementation (Class class_, SEL selector)
   return get_imp (class_, selector);
 }
 
-/* Given a method, return its implementation.  */
+/* Given a method, return its implementation.  This has been replaced
+   by method_getImplementation() in the modern API.  */
 IMP
 method_get_imp (struct objc_method * method)
 {
@@ -445,20 +441,29 @@ objc_msg_lookup (id receiver, SEL op)
 }
 
 IMP
-objc_msg_lookup_super (Super_t super, SEL sel)
+objc_msg_lookup_super (struct objc_super *super, SEL sel)
 {
   if (super->self)
-    return get_imp (super->class, sel);
+    return get_imp (super->super_class, sel);
   else
     return (IMP)nil_method;
 }
 
-int method_get_sizeof_arguments (Method *);
+/* Temporarily defined here until objc_msg_sendv() goes away.  */
+char *method_get_first_argument (struct objc_method *,
+				 arglist_t argframe, 
+				 const char **type);
+char *method_get_next_argument (arglist_t argframe, 
+				const char **type);
+int method_get_sizeof_arguments (struct objc_method *);
+
+struct objc_method *
+class_get_instance_method (Class class, SEL op);
 
 retval_t
 objc_msg_sendv (id object, SEL op, arglist_t arg_frame)
 {
-  Method *m = class_get_instance_method (object->class_pointer, op);
+  struct objc_method *m = class_get_instance_method (object->class_pointer, op);
   const char *type;
   *((id *) method_get_first_argument (m, arg_frame, &type)) = object;
   *((SEL *) method_get_next_argument (arg_frame, &type)) = op;
@@ -473,8 +478,8 @@ __objc_init_dispatch_tables ()
   __objc_uninstalled_dtable = sarray_new (200, 0);
 
   /* TODO: It would be cool to register typed selectors here.  */
-  selector_resolveClassMethod = sel_register_name ("resolveClassMethod:");
-  selector_resolveInstanceMethod  =sel_register_name ("resolveInstanceMethod:");
+  selector_resolveClassMethod = sel_registerName ("resolveClassMethod:");
+  selector_resolveInstanceMethod  =sel_registerName ("resolveInstanceMethod:");
 }
 
 /* This function is called by objc_msg_lookup when the dispatch table
@@ -548,7 +553,7 @@ __objc_send_initialize (Class class)
 	__objc_send_initialize (class->super_class);
 
       {
-	SEL op = sel_register_name ("initialize");
+	SEL op = sel_registerName ("initialize");
 	IMP imp = 0;
         struct objc_method_list * method_list = class->class_pointer->methods;
 	
@@ -750,7 +755,7 @@ class_addMethod (Class class_, SEL selector, IMP implementation,
       || method_types == NULL  || (strcmp (method_types, "") == 0))
     return NO;
 
-  method_name = sel_get_name (selector);
+  method_name = sel_getName (selector);
   if (method_name == NULL)
     return NO;
 
@@ -784,10 +789,6 @@ class_addMethod (Class class_, SEL selector, IMP implementation,
 
   return YES;
 }
-
-/* Temporarily, until we include objc/runtime.h.  */
-extern IMP
-method_setImplementation (struct objc_method * method, IMP implementation);
 
 IMP
 class_replaceMethod (Class class_, SEL selector, IMP implementation,
@@ -953,14 +954,14 @@ __objc_forward (id object, SEL sel, arglist_t args)
   /* The object doesn't recognize the method.  Check for responding to
      error:.  If it does then sent it.  */
   {
-    char msg[256 + strlen ((const char *) sel_get_name (sel))
+    char msg[256 + strlen ((const char *) sel_getName (sel))
              + strlen ((const char *) object->class_pointer->name)];
 
     sprintf (msg, "(%s) %s does not recognize %s",
 	     (CLS_ISMETA (object->class_pointer)
 	      ? "class"
 	      : "instance" ),
-             object->class_pointer->name, sel_get_name (sel));
+             object->class_pointer->name, sel_getName (sel));
 
     /* TODO: support for error: is surely deprecated ? */
     err_sel = sel_get_any_uid ("error:");
@@ -979,7 +980,7 @@ __objc_forward (id object, SEL sel, arglist_t args)
 }
 
 void
-__objc_print_dtable_stats ()
+__objc_print_dtable_stats (void)
 {
   int total = 0;
 
@@ -1012,7 +1013,7 @@ __objc_print_dtable_stats ()
    dispatch table points to __objc_uninstalled_dtable then that means
    it needs its dispatch table to be installed.  */
 struct sarray *
-objc_get_uninstalled_dtable ()
+objc_get_uninstalled_dtable (void)
 {
   return __objc_uninstalled_dtable;
 }

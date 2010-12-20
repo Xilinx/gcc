@@ -1,4 +1,194 @@
+2010-12-19  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/45342
+	* gcc.dg/tls/thr-cse-1.c: Fix match on hppa*-*-hpux*.
+
+2010-12-19  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-objc.m: Fixed test to test objc_lookUpClass,
+	not objc_lookupClass.
+	* obj-c++.dg/gnu-api-2-objc.mm: Same change.
+	
+2010-12-19  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-objc_msg_lookup.m: New.
+	* obj-c++.dg/gnu-api-2-objc_msg_lookup.mm: New.	
+
+2010-12-19  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* gcc.target/arm/vfp-1.c (test_ldst): New test for VFP
+	load/store immediate indexes.
+
+2010-12-19  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-resolve-method.m: Include objc/message.h.
+	* obj-c++.dg/gnu-api-2-resolve-method.m: Include objc/message.h.
+
+2010-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/46969
+	* gcc.dg/autopar/pr46969.c: New test.
+
+2010-12-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/fobjc-exceptions-1.m: Updated.
+	* objc.dg/fobjc-exceptions-2.m: New.
+	* objc.dg/fobjc-exceptions-3.m: New.
+	* obj-c++.dg/fobjc-exceptions-1.mm: New.
+	* obj-c++.dg/fobjc-exceptions-2.mm: New.
+	* obj-c++.dg/fobjc-exceptions-3.mm: New.
+	
+2010-12-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46974
+	* gfortran.dg/c_ptr_tests_16.f90: New.
+
+2010-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/46985
+	* gfortran.dg/pr46985.f90: New test.
+
+2010-12-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/46232
+	* gcc.dg/tree-ssa/pr14814.c: Add -fno-tree-sra.
+
+2010-12-18  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/fobjc-exceptions.m: Update dg-error syntax.
+
+2010-12-18  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR target/36834
+	* gcc.target/i386/aggregate-ret1.c: New.
+	* gcc.target/i386/aggregate-ret2.c: New.
+
+2010-12-18  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* gcc.target/powerpc/darwin-split-ld-stret.c: New test.
+
+2010-12-17  Ahmad Sharif  <asharif@google.com>
+
+	* gcc.target/i386/max-stack-align.c: New testcase.
+
+2010-12-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/exceptions-4.m: Adjust for change in error message.
+
+2010-12-17  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR c/20385
+	* objc.dg/tls/init-2.m: Adjust.
+	* gcc.dg/noncompile/920923-1.c: Adjust.
+	* gcc.dg/noncompile/pr44517.c: Adjust.
+	* gcc.dg/declspec-18.c: New test.
+
+2010-12-17  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.dg/titype-1.c: Enable TImode on __SPU__.
+	* gcc.dg/torture/fp-int-convert.h: Likewise.
+	* gcc.dg/tree-ssa/ivopts-1.c: Likewise.
+	* gcc.dg/uninit-C.c: Likewise.
+	* gcc.dg/uninit-C-O0.c: Likewise.
+	* gcc.dg/format/unnamed-1.c: Likewise.
+	* gcc.dg/format/ms_unnamed-1.c: Likewise.
+
+2010-12-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46670
+	* g++.dg/cpp0x/constexpr-null1.C: New.
+
+2010-12-17  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* gcc.c-torture/compile/20101217-1.c: New test.
+
+2010-12-17  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR middle-end/46761
+	* gcc.dg/graphite/pr46761.c: New.
+
+2010-12-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46849
+	* gfortran.dg/block_9.f08: New.
+
+2010-12-17  Dodji Seketeli  <dodji@redhat.com>
+
+	* g++.dg/debug/dwarf2/self-ref-1.C: New test.
+	* g++.dg/debug/dwarf2/self-ref-2.C: Likewise.
+
+2010-12-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46924
+	* gcc.dg/graphite/pr46924.c: New.
+
+2010-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/46966
+	* gcc.dg/graphite/pr46966.c: New test.
+
+2010-12-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt13.adb: New test.
+	* gnat.dg/opt13_pkg.ad[sb]: New helper.
+
+2010-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/43655
+	* g++.dg/opt/pr43655.C: New test.
+
+2010-12-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46404
+	* gcc.dg/graphite/pr46404-1.c: New.
+
+2010-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46893
+	* gcc.dg/pr46893.c: New test.
+
+2010-12-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR lto/46976
+	* gcc.dg/lto/pr46940_1.c (main): Return 0.
+
+2010-12-16  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	PR target/46883
+	* gcc.target/arm/pr46883.c: New testcase.
+
+2010-12-16  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/46976
+	* gcc.dg/lto/pr46940_0.c: Fix commit.
+
+2010-12-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/39859
+	PR c++/44522
+	PR c++/44523
+	* g++.dg/parse/colon-autocorrect-1.C: New testcase.
+	* g++.dg/parse/colon-autocorrect-2.C: New testcase.
+
+2010-12-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/46852
+	* g++.dg/pr46852.C: New test.
+
+2010-12-16  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/46939
+	* gcc.target/i386/pr46939.c: New testcase.
+
+2010-12-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46404
+	* gcc.dg/graphite/pr46404.c: New.
+
 2010-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/46945
+	* gfortran.dg/pr46945.f90: New test.
 
 	PR debug/46815
 	* g++.dg/guality/pr46815.C: New test.

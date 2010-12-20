@@ -1,3 +1,25 @@
+2010-12-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46974
+	* target-memory.c (gfc_interpret_derived): Handle C_PTR/C_FUNPTR.
+	* trans-expr.c (gfc_trans_structure_assign): Ditto.
+	(gfc_conv_expr): Avoid crashes using non-C_NULL_(FUN)PTR const expr.
+
+2010-12-17  Janus Weil  <janus@gcc.gnu.org>
+	    Tobias Burnus <burnus@gcc.gnu.org>
+
+	PR fortran/46849
+	* resolve.c (resolve_symbol): Remove symbols that wrongly ended up
+	in a local BLOCK namespace.
+
+2010-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/46945
+	* trans-array.c (gfc_array_init_size): Perform stride overflow
+	checking and multiplication by element_size in size_type_node instead
+	of sizetype, return value with size_type_node type instead of
+	sometimes with sizetype and sometimes with gfc_array_index_type.
+
 2010-12-15  Janne Blomqvist  <jb@gcc.gnu.org>
 
 	* trans.c (gfc_allocate_with_status): Better error message for

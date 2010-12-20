@@ -53,20 +53,14 @@ extern "C" {
 #endif /* __cplusplus */
 
 extern void __objc_add_class_to_hash(Class);   /* (objc-class.c) */
-extern void __objc_init_selector_tables(void); /* (objc-sel.c) */
 extern void __objc_init_class_tables(void);    /* (objc-class.c) */
 extern void __objc_init_dispatch_tables(void); /* (objc-dispatch.c) */
 extern void __objc_install_premature_dtable(Class); /* (objc-dispatch.c) */
 extern void __objc_resolve_class_links(void);  /* (objc-class.c) */
-extern void __objc_register_selectors_from_class(Class); /* (objc-sel.c) */
-extern void __objc_register_selectors_from_list (struct objc_method_list *); /* (selector.c) */
-extern void __objc_register_selectors_from_description_list
-(struct objc_method_description_list *method_list); /* (selector.c) */
 extern void __objc_update_dispatch_table_for_class (Class);/* (objc-msg.c) */
 
 extern int  __objc_init_thread_system(void);    /* thread.c */
 extern int  __objc_fini_thread_system(void);    /* thread.c */
-extern void __objc_print_dtable_stats(void);    /* sendmsg.c */
 extern void __objc_init_class (Class class);  /* init.c */
 extern void class_add_method_list(Class, struct objc_method_list *);
 
@@ -76,12 +70,6 @@ extern struct objc_method * search_for_method_in_list(struct objc_method_list * 
 
 extern void
 __objc_update_classes_with_methods (struct objc_method *method_a, struct objc_method *method_b); /* class.c */
-
-/* True when class links has been resolved */     
-extern BOOL __objc_class_links_resolved;
-
-/* Number of selectors stored in each of the selector  tables */
-extern unsigned int __objc_selector_max_index;
 
 /* Mutex locking __objc_selector_max_index and its arrays. */
 extern objc_mutex_t __objc_runtime_mutex;
@@ -96,8 +84,6 @@ extern int __objc_runtime_threads_alive;
 #endif 
 
 BOOL __objc_responds_to (id object, SEL sel); /* for internal use only! */
-SEL  __sel_register_typed_name (const char*, const char*, 
-				struct objc_selector*, BOOL is_const);
 extern void __objc_generate_gc_type_description (Class);
 
 #ifdef __cplusplus

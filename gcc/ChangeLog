@@ -1,7 +1,609 @@
+2010-12-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/alpha/linux.h (OPTION_GLIBC): Define differently if
+	SINGLE_LIBC.
+	* config/linux.h (OPTION_GLIBC, OPTION_UCLIBC, OPTION_BIONIC):
+	Define differently if SINGLE_LIBC.
+	* config/rs6000/linux.h (OPTION_GLIBC): Define differently if
+	SINGLE_LIBC.
+	* config/rs6000/linux64.h (OPTION_GLIBC): Define differently if
+	SINGLE_LIBC.
+	* config.gcc (*-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu |
+	*-*-knetbsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu): Define
+	SINGLE_LIBC instead of OPTION_GLIBC.
+	(*-*-uclinux*): Define DEFAULT_LIBC and SINGLE_LIBC.
+	(bfin*-uclinux*, moxie-*-uclinux*, m68k-*-uclinux*): Don't define
+	DEFAULT_LIBC or use linux.opt.
+
+2010-12-20  Richard Henderson  <rth@redhat.com>
+
+	* config/mn10300/mn10300.c (mn10300_legitimize_pic_address): Generate
+	UNSPEC patterns by hand, with the proper mode; use gen_const_mem.
+	* config/mn10300/mn10300.md (call, call_value): Generate UNSPEC_PLT
+	by hand, with the proper mode.
+	(symGOT2reg, symGOT2reg_i, symGOTOFF2reg): Remove.
+	(symGOTOFF2reg_i, sym2PIC, sym2PLT): Remove.
+
+2010-12-20  Sanjin Liu	<scliu@faraday-tech.com>
+	Mingfeng Wu  <mingfeng@faraday-tech.com>
+
+	* config/arm/arm-cores.def: Add Faraday CPU support -
+	fa526/fa626/fa606te/fa626te/fmp626/fa726te.
+	* config/arm/arm-tune.md: Regenerate.
+	* config/arm/arm.c (arm_fa726te_tune): New tune_params for fa726te
+	(fa726te_sched_adjust_cost): New cost function for fa726te.
+	(arm_issue_rate): Add fa726te.
+	* config/arm/arm.md (generic_sched): Add Faraday cores to generic_sched
+	and include machine description files.
+	* config/arm/bpabi.h (TARGET_FIX_V4BX_SPEC): Add fa526 and fa626.
+	* config/arm/t-arm (MD_INCLUDES): Include machine description files for
+	Faraday cores.
+	* config/arm/t-arm-elf: Add multilib option for Faraday cores.
+	* config/arm/t-linux-eabi: Add multilib option for Faraday cores except
+	fa526 and fa626.
+	* doc/invoke.texi: Document -mcpu for Faraday cores.
+	* config/arm/fa526.md: New file.
+	* config/arm/fa606te.md: New file.
+	* config/arm/fa626te.md: New file.
+	* config/arm/fmp626.md: New file.
+	* config/arm/fa726te.md: New file.
+
+2010-12-20  Yvan Roux  <yvan.roux@st.com>
+
+	* config/arm/lib1funcs.asm (ARM_DIV_BODY case __OPTIMIZE_SIZE__): Fix
+	condition on IT instruction for early termination.
+
+2010-12-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/rs6000/freebsd.h (SVR4_ASM_SPEC): Don't define.
+	(DBX_REGISTER_NUMBER): Define.
+	* config/rs6000/lynx.h (DBX_REGISTER_NUMBER): Define.
+	* config/rs6000/netbsd.h (DBX_REGISTER_NUMBER): Define.
+	* config/rs6000/sysv4.h (SIZE_TYPE): Define.
+	(ASM_SPEC): Define without using SVR4_ASM_SPEC.
+	(DBX_REGISTER_NUMBER): Undefine.
+	* config.gcc (powerpc-*-eabispe*, powerpc-*-eabisimaltivec*,
+	powerpc-*-eabisim*, powerpc-*-elf*, powerpc-*-eabialtivec*,
+	powerpc-xilinx-eabi*, powerpc-*-eabi*, powerpc-*-rtems*,
+	powerpc-*-linux* | powerpc64-*-linux*, powerpc64-*-gnu*,
+	powerpc-*-gnu-gnualtivec*, powerpc-*-gnu*,
+	powerpc-wrs-vxworks|powerpc-wrs-vxworksae, powerpcle-*-elf*,
+	powerpcle-*-eabisim*, powerpcle-*-eabi*): Don't use svr4.h.
+
+2010-12-20  Iain Sandoe  <iains@gcc.gnu.org>
+	    Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/46916
+	* opts.c (finish_options): Enable -freorder-functions
+	when -freorder-blocks-and-partition is active.
+	
+2010-12-20  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR c++/46904
+	PR middle-end/46916
+	PR target/46950
+	* config/darwin.c (generating_for_darwin_version): New var.
+	(darwin_text_section): Remove.
+	(darwin_rodata_section): Do not check function section here.
+	(darwin_emit_unwind_label): Do not emit for Darwin >= 9.
+	Emit distinct labels for successive calls for the same decl.
+	(darwin_override_options): Set generating_for_darwin_version.
+	Add FIXME and disable -freorder-blocks-and-partition.
+	Suppress automatic asynchronous unwind tables for m32.
+	Switch off -freorder-blocks-and-partition when unwind tables
+	will be generated.  Update to use generating_for_darwin_version.
+	(darwin_function_section): Check for cases that need to be placed
+	in coalesced sections.
+	* config/darwin-sections.def: Define hot, cold, startup and exit sections
+	for both coalesced and regular code.
+	* config/darwin.h (USE_SELECT_SECTION_FOR_FUNCTIONS): Delete.
+	* config/darwin10.h (TARGET_ASM_EMIT_UNWIND_LABEL): Delete.
+	
+2010-12-20  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/cppopts.texi: Use @var when appropriate.
+	* doc/extend.texi (Structure-Packing Pragmas): Likewise.
+	* doc/gimple.texi (Logical Operators)
+	(Adding a new GIMPLE statement code): Likewise.
+	* doc/invoke.texi (Target Options, Precompiled Headers):
+	Likewise.
+	* doc/plugins.texi (Plugins): Likewise.
+
+	* doc/install.texi (Configuration, Building, Testing, Specific):
+	Remove leading whitespace from examples.
+
+2010-12-19  Andi Kleen  <ak@linux.intel.com>
+
+	PR lto/46905
+	* collect2.c (main): Handle -fno-lto.
+	* opts.c (common_handle_option): Handle -fno-lto.
+
+2010-12-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/46729
+	* config/sparc/sparc.h (GLOBAL_OFFSET_TABLE_REGNUM): New macro.
+	(PIC_OFFSET_TABLE_REGNUM): Rewrite in terms of above macro.
+	* config/sparc/sparc.c (pic_helper_needed): Delete.
+	(global_offset_table): Likewise.
+	(pic_helper_symbol): Rename to...
+	(got_helper_rtx): ...this.
+	(global_offset_table_rtx): New global variable.
+	(sparc_got_symbol): Likewise.
+	(sparc_got): New static function.
+	(check_pic): Use local variable and call sparc_got.
+	(sparc_tls_symbol): Initialize to NULL_RTX.
+	(sparc_tls_got): In non-PIC mode, reload the GOT register for Sun TLS
+	and 32-bit ABI and copy the GOT symbol to a new register otherwise.
+	(get_pc_thunk_name): Rename local variable.
+	(gen_load_pcrel_sym): New wrapper around load_pcrel_sym{si,di}.
+	(load_pic_register): Rename to...
+	(load_got_register): ...this.  Adjust and call gen_load_pcrel_sym.
+	(sparc_expand_prologue): Do not test flag_pic.
+	(sparc_output_mi_thunk): Use pic_offset_table_rtx directly.
+	(sparc_file_end): Test got_helper_rtx instead of pic_helper_needed.
+	Rename local variable and do not call get_pc_thunk_name again.
+	* config/sparc/sparc.md (load_pcrel_sym): Add operand #3.
+
+2010-12-19  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR middle-end/46674
+	PR middle-end/46221
+	* varasm.c (symbol_alias_set_t): New typedef for derived pointer_set
+	wrapper class.
+	(symbol_alias_set_create): New wrapper function.
+	(symbol_alias_set_destroy): Likewise.
+	(symbol_alias_set_contains): Likewise.
+	(symbol_alias_set_insert): Likewise.
+	(compute_visible_aliases): Use the above and return symbol_alias_set_t,
+	not a pointer_set.
+	(remove_unreachable_alias_pairs): Adjust likewise to match.
+	(finish_aliases_1): Likewise.
+
+2010-12-19  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* config/arm/arm.c (arm_legitimate_index_p): Add VFP load/store
+	index range case. Change to SF/DFmode tests to avoid capturing HFmode.
+	(thumb2_legitimate_index_p): Same.
+
+2010-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/46969
+	* tree-parloops.c (struct reduction_info): Add reduc_version.
+	(reduction_info_hash): Return reduc_version field.
+	(reduction_phi): Set reduc_version to gimple_uid (phi).
+	(build_new_reduction): Set reduc_version to SSA_NAME_VERSION of
+	phi result.
+	(set_reduc_phi_uids): New function.
+	(gather_scalar_reductions): Call it at the end through htab_traverse.
+
+2010-12-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-parser.c (c_parser_objc_try_catch_finally_statement): Call
+	objc_maybe_warn_exceptions.
+	(c_parser_objc_synchronized_statement): Call
+	objc_maybe_warn_exceptions.
+	
+2010-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/46985
+	* tree-scalar-evolution.c (instantiate_scev_r): If chrec is NULL,
+	return it immediately.
+
+2010-12-18  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/46915
+	* config/pa/pa.c (branch_to_delay_slot_p): Use next_active_insn instead
+	of next_real_insn.  Search forward checking for both ASM_INPUT and
+	ASM_OPERANDS asms until exit condition is found.
+	(branch_needs_nop_p): Likewise.
+	(use_skip_p): New function.
+	(output_cbranch): Use use_skip_p.
+	(output_bb, output_bvb): Likewise.
+
+2010-12-18  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR target/36834
+	* config/i386/i386.c (ix86_keep_aggregate_return_pointer):
+	New local function.
+	(ix86_return_pops_args): Use ix86_keep_aggregate_return_pointer
+	function instead of KEEP_AGGREGATE_RETURN_POINTER.
+	(ix86_handle_callee_pop_aggregate_return): New handler.
+	(ix86_attribute_table): Add new attribute
+	callee_pop_aggregate_return.
+	* doc/extend.texi (callee_pop_aggregate_return): Add
+	attribute documentation.
+
+2010-12-18  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/darwin.h (SUBTARGET_C_COMMON_OVERRIDE_OPTIONS):
+	Only set sjlj exceptions for NeXT/m32.
+
+2010-12-18  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/darwin.h (GCC_DRIVER_HOST_INITIALIZATION):
+	Only expose when not building for target.
+
+2010-12-17  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/netbsd.opt, config/netbsd-elf.opt: New files.
+	* config.gcc (alpha*-*-netbsd*, arm*-*-netbsdelf*, arm*-*-netbsd*,
+	i[34567]86-*-netbsdelf*, i[34567]86-*-netbsd*, x86_64-*-netbsd*,
+	m68k*-*-netbsdelf*, mips*-*-netbsd*, powerpc-*-netbsd*,
+	sh*-*-netbsd*, sparc-*-netbsdelf*, sparc64-*-netbsd*,
+	vax-*-netbsdelf*, vax-*-netbsd*): Use these .opt files.
+
+2010-12-17  Richard Henderson  <rth@redhat.com>
+
+	* regcprop.c (find_oldest_value_reg): Continue search instead of
+	failing if an element in the copy chain is of the wrong regclass.
+
+2010-12-17  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR c/20385
+	* function.c (used_types_insert): Handle ERROR_MARK.
+	* c-decl.c (grokdeclarator): Handle ERROR_MARK.
+	(declspecs_add_type): Leave error_mark_node in specs->type.
+	(finish_declspecs): Change it to integer_type_node here.
+	* c-parser.c (c_parser_peek_2nd_token): Move earlier.
+	(enum c_lookahead_kind): New.
+	(c_parser_next_token_starts_typename): New name of
+	c_parser_next_tokens_start_typename.  Accept lookahead enum
+	and handle it here instead of...
+	(c_parser_next_tokens_start_declaration): ... here.  Call it.
+	(c_parser_declspecs): Accept another argument.  Do not exit
+	on C_ID_ID if it is guessed to be an unknown typename.
+	(c_parser_parms_declarator): Use 2nd token to distinguish a K&R
+	declaration from an ANSI declaration starting with an unknown
+	typename.
+	(c_parser_struct_declaration, c_parser_objc_type_name,
+	c_parser_typeof_specifier, c_parser_declarator,
+	c_parser_direct_declarator_inner): Adjust calls.
+	(c_parser_parameter_declaration): Likewise.
+	(c_parser_type_name): Pass back an error_mark_node to the caller.
+	(c_parser_postfix_expression): Do error recovery when 
+	c_parser_type_name returns NULL.
+
+2010-12-17  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/netware.h (ASM_SPEC, SIZE_TYPE, PTRDIFF_TYPE):
+	Define.
+	* config/i386/nto.h (LIB_SPEC, ASM_SPEC): Define.
+	(DBX_REGISTER_NUMBER): Undefine.
+	* config/i386/sol2.h (SIZE_TYPE, PTRDIFF_TYPE): Define.
+	* config/i386/vxworksae.h (ASM_SPEC, SIZE_TYPE, PTRDIFF_TYPE):
+	Define.
+	* config.gcc (i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu |
+	i[34567]86-*-knetbsd*-gnu | i[34567]86-*-gnu* |
+	i[34567]86-*-kopensolaris*-gnu, x86_64-*-linux* |
+	x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu,
+	i[3456x]86-*-netware*, i[34567]86-*-nto-qnx*,
+	i[34567]86-*-solaris2*,
+	i[4567]86-wrs-vxworks|i[4567]86-wrs-vxworksae): Don't use svr4.h.
+
+2010-12-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (move_or_delete_vzeroupper_2): Replace
+	"BB [%i]" with "[bb %i]" in dump.
+	(move_or_delete_vzeroupper_1): Likewise.
+	(rescan_move_or_delete_vzeroupper): Likewise.  Always dump
+	upper 128bit state at exit.
+
+2010-12-17  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/interix.opt: New.
+	* config/interix.h (LINK_SPEC): Don't handle -soname*.
+	* config.gcc (i[34567]86-*-interix3*): Use interix.opt.
+
+2010-12-17  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/arm/arm.md (maddhisi4, *maddhidi4): Use the canonical
+	operand order for plus.
+	Drop redundant % from constraints.
+
+2010-12-17  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/t-spu-elf (LIB2FUNCS_EXCLUDE): Add _floattisf and
+	_floatunstisf.
+	* config/spu/spu.md ("floattisf2"): New expander.
+	("floatunstisf2"): New insn pattern and splitter.
+	("cgt_ti_m1"): New insn pattern.
+
+2010-12-17  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* config/arm/arm.c (arm_select_cc_mode): Before calling
+	arm_select_dominance_cc_mode for AND or IOR operations, ensure
+	that op is NE or EQ.
+
+2010-12-17  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR middle-end/46761
+	* graphite-clast-to-gimple.c (graphite_create_new_loop_guard): Prefer
+	to use unadjusted UB.
+
+2010-12-17  Dodji Seketeli  <dodji@redhat.com>
+
+	* dwarf2out.c (gen_type_die_with_usage): Do not try to emit debug
+	info for a redundant typedef that has DECL_ORIGINAL_TYPE set. Use
+	that underlying type instead.
+
+2010-12-16  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/44563 
+	* ipa-inline.c: Update doplevel comment.
+	(cgraph_estimate_size_after_inlining): Remove times attribute.
+	(cgraph_mark_inline_edge): Update.
+	(cgraph_mark_inline): Remove.
+	(cgraph_estimate_growth): Update.
+	(cgraph_check_inline_limits): Remove one only argument.
+	(cgraph_edge_badness): Update.
+	(cgraph_decide_recursive_inlining): Update.
+	(cgraph_decide_inlining_of_small_function): Fix handling of
+	tree_can_inline_p  and call_stmt_cannot_inline_p.
+	(cgraph_flatten): Likewise.
+	(cgraph_decide_inlining): Update.
+	(cgraph_decide_inlining_incrementally): Fix handling of
+	call_stmt_cannot_inline_p.
+
+2010-12-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/darwin.opt (dylinker, headerpad_max_install_names,
+	keep_private_externs, nofixprebinding, nomultidefs, noprebind,
+	noseglinkedit, object, prebind, prebind_all_twolevel_modules,
+	preload, private_bundle, pthread, seglinkedit, twolevel_namespace,
+	twolevel_namespace_hints, whatsloaded, whyload, y, Mach, X): New
+	Driver options.
+	* config/darwin.h (LINK_SPEC): Remove '*' after
+	headerpad_max_install_names.
+
+2010-12-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46924
+	* graphite-sese-to-poly.c (detect_commutative_reduction): Do not
+	detect reductions outside the current SESE region.
+	* sese.h (stmt_in_sese_p): New.
+	(defined_in_sese_p): Call stmt_in_sese_p.
+
+2010-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/46966
+	* graphite-sese-to-poly.c (build_scop_drs): Call free_gimple_bb for
+	for bbs that are removed from SCOP_BBS vector.
+
+2010-12-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-sccvn.c (vn_reference_lookup_3): Always punt if the call to
+	get_ref_base_and_extent returns -1 as the max size.
+
+2010-12-16  Konrad Eisele  <konrad@gaisler.com>
+            Eric Botcazou  <ebotcazou@adacore.com>
+
+	Support for LEON processor
+	* config.gcc (sparc-*-elf*): Deal with sparc-leon specifically.
+	(sparc-*-linux*): Likewise.
+	(sparc-*-rtems*): Remove Solaris left-overs.
+	(sparc*-*-*): Remove obsolete sparc86x setting.
+	(sparc-leon*): Default to --with-cpu=v8 and --with-tune=leon.
+	* doc/invoke.texi (SPARC Options): Document -mcpu/-mtune=leon.
+	* config/sparc/sparc.h (TARGET_CPU_leon): Define.
+	(TARGET_CPU_sparc86x): Delete.
+	(TARGET_CPU_cypress): Define as alias to TARGET_CPU_v7.
+	(TARGET_CPU_f930): Define as alias to TARGET_CPU_sparclite.
+	(TARGET_CPU_f934): Likewise.
+	(TARGET_CPU_tsc701): Define as alias to TARGET_CPU_sparclet.
+	(CPP_CPU_SPEC): Add entry for -mcpu=leon.
+	(enum processor_type): Add PROCESSOR_LEON.  Reorganize.
+	* config/sparc/sparc.c (leon_costs): New cost array.
+	(sparc_option_override): Add entry for TARGET_CPU_leon and -mcpu=leon.
+	Initialize cost array to leon_costs if -mtune=leon.
+	* config/sparc/sparc.md (cpu attribute): Add leon.  Reorganize.
+	Include leon.md scheduling description.
+	* config/sparc/leon.md: New file.
+	* config/sparc/t-elf: Do not assemble Solaris startup files.
+	* config/sparc/t-leon: New file.
+	* config/sparc/t-leon3: Likewise.
+
+2010-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/43655
+	* tree-ssa-ter.c (is_replaceable_p): Don't use
+	gimple_references_memory_p for -O0, instead check for load
+	by looking at rhs.
+
+2010-12-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46404
+	* graphite-clast-to-gimple.c (gloog): Call scev_reset.
+
+2010-12-16  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/sh/sh.h (OUTPUT_ADDR_CONST_EXTRA): Remove.
+	* config/sh/sh.c (sh_asm_output_addr_const_extra): New function.
+	(TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA): Define.
+
+2010-12-16  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/t-spu-elf (LIB2_SIDITI_CONV_FUNC): Define.
+	* config/spu/spu.h (MIN_UNITS_PER_WORD): Do not define.
+	(LIBGCC2_UNITS_PER_WORD): Define if not already defined.
+
+2010-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46893
+	* cfgexpand.c (expand_debug_expr): If GET_MODE (op0) is VOIDmode,
+	use TYPE_MODE (TREE_TYPE (tem)) instead of mode1.
+
+2010-12-16  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	PR target/46883
+	* config/arm/arm.md
+	(zero_extendhisi2 for register input splitter): Change
+	"register_operand" to "s_register_operand".
+	(zero_extendqisi2 for register input splitter): Same.
+
+2010-12-16  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/46939
+	* predic.c (predict_paths_leading_to_edge): New function.
+	(apply_return_prediction): Use it.
+	(predict_paths_for_bb): Do not special case abnormals.
+
+2010-12-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (powerpc-*-lynxos*): Don't add lynx.opt to
+	extra_options twice.
+
+2010-12-15  Joseph Myers  <joseph@codesourcery.com>
+
+	* doc/tm.texi.in (US_SOFTWARE_GOFAST): Don't document.
+	* doc/tm.texi: Regenerate.
+	* system.h (US_SOFTWARE_GOFAST): Poison.
+	* config.gcc (enable_gofast): Don't handle.
+	* config/gofast.h: Remove.
+	* config/mips/t-gofast: Remove.
+	* config/fp-bit.c (US_SOFTWARE_GOFAST): Don't handle.
+	* config/fp-bit.h (US_SOFTWARE_GOFAST): Don't handle.
+	* config/mips/elforion.h: Don't mention GOFAST in comment.
+	* config/mips/mips.c: Don't include gofast.h.
+	(mips_init_libfuncs): Don't call gofast_maybe_init_libfuncs.
+	* config/mips/t-sr71k (dp-bit.c, fp-bit.c): Don't define
+	US_SOFTWARE_GOFAST.
+	* config/sparc/sparc.c: Don't include gofast.h.
+	(sparc_init_libfuncs): Don't call gofast_maybe_init_libfuncs.
+	* config/spu/t-spu-elf (dp-bit.c, fp-bit.c): Don't undefine
+	US_SOFTWARE_GOFAST.
+
 2010-12-14  Jan Hubicka  <jh@suse.cz>
 
-	* tree.c (get_file_function_name): Avoid using random seed on GLOBAL_sub_I
-	and GLOBAL_sub_D.
+	* config/darwin.opt (dylinker, headerpad_max_install_names,
+	keep_private_externs, nofixprebinding, nomultidefs, noprebind,
+	noseglinkedit, object, prebind, prebind_all_twolevel_modules,
+	preload, private_bundle, pthread, seglinkedit, twolevel_namespace,
+	twolevel_namespace_hints, whatsloaded, whyload, y, Mach, X): New
+	Driver options.
+	* config/darwin.h (LINK_SPEC): Remove '*' after
+	headerpad_max_install_names.
+
+2010-12-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46924
+	* graphite-sese-to-poly.c (detect_commutative_reduction): Do not
+	detect reductions outside the current SESE region.
+	* sese.h (stmt_in_sese_p): New.
+	(defined_in_sese_p): Call stmt_in_sese_p.
+
+2010-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/46966
+	* graphite-sese-to-poly.c (build_scop_drs): Call free_gimple_bb for
+	for bbs that are removed from SCOP_BBS vector.
+
+2010-12-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-sccvn.c (vn_reference_lookup_3): Always punt if the call to
+	get_ref_base_and_extent returns -1 as the max size.
+
+2010-12-16  Konrad Eisele  <konrad@gaisler.com>
+            Eric Botcazou  <ebotcazou@adacore.com>
+
+	Support for LEON processor
+	* config.gcc (sparc-*-elf*): Deal with sparc-leon specifically.
+	(sparc-*-linux*): Likewise.
+	(sparc-*-rtems*): Remove Solaris left-overs.
+	(sparc*-*-*): Remove obsolete sparc86x setting.
+	(sparc-leon*): Default to --with-cpu=v8 and --with-tune=leon.
+	* doc/invoke.texi (SPARC Options): Document -mcpu/-mtune=leon.
+	* config/sparc/sparc.h (TARGET_CPU_leon): Define.
+	(TARGET_CPU_sparc86x): Delete.
+	(TARGET_CPU_cypress): Define as alias to TARGET_CPU_v7.
+	(TARGET_CPU_f930): Define as alias to TARGET_CPU_sparclite.
+	(TARGET_CPU_f934): Likewise.
+	(TARGET_CPU_tsc701): Define as alias to TARGET_CPU_sparclet.
+	(CPP_CPU_SPEC): Add entry for -mcpu=leon.
+	(enum processor_type): Add PROCESSOR_LEON.  Reorganize.
+	* config/sparc/sparc.c (leon_costs): New cost array.
+	(sparc_option_override): Add entry for TARGET_CPU_leon and -mcpu=leon.
+	Initialize cost array to leon_costs if -mtune=leon.
+	* config/sparc/sparc.md (cpu attribute): Add leon.  Reorganize.
+	Include leon.md scheduling description.
+	* config/sparc/leon.md: New file.
+	* config/sparc/t-elf: Do not assemble Solaris startup files.
+	* config/sparc/t-leon: New file.
+	* config/sparc/t-leon3: Likewise.
+
+2010-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/43655
+	* tree-ssa-ter.c (is_replaceable_p): Don't use
+	gimple_references_memory_p for -O0, instead check for load
+	by looking at rhs.
+
+2010-12-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46404
+	* graphite-clast-to-gimple.c (gloog): Call scev_reset.
+
+2010-12-16  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/sh/sh.h (OUTPUT_ADDR_CONST_EXTRA): Remove.
+	* config/sh/sh.c (sh_asm_output_addr_const_extra): New function.
+	(TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA): Define.
+
+2010-12-16  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/t-spu-elf (LIB2_SIDITI_CONV_FUNC): Define.
+	* config/spu/spu.h (MIN_UNITS_PER_WORD): Do not define.
+	(LIBGCC2_UNITS_PER_WORD): Define if not already defined.
+
+2010-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46893
+	* cfgexpand.c (expand_debug_expr): If GET_MODE (op0) is VOIDmode,
+	use TYPE_MODE (TREE_TYPE (tem)) instead of mode1.
+
+2010-12-16  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	PR target/46883
+	* config/arm/arm.md
+	(zero_extendhisi2 for register input splitter): Change
+	"register_operand" to "s_register_operand".
+	(zero_extendqisi2 for register input splitter): Same.
+
+2010-12-16  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/46939
+	* predic.c (predict_paths_leading_to_edge): New function.
+	(apply_return_prediction): Use it.
+	(predict_paths_for_bb): Do not special case abnormals.
+
+2010-12-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (powerpc-*-lynxos*): Don't add lynx.opt to
+	extra_options twice.
+
+2010-12-15  Joseph Myers  <joseph@codesourcery.com>
+
+	* doc/tm.texi.in (US_SOFTWARE_GOFAST): Don't document.
+	* doc/tm.texi: Regenerate.
+	* system.h (US_SOFTWARE_GOFAST): Poison.
+	* config.gcc (enable_gofast): Don't handle.
+	* config/gofast.h: Remove.
+	* config/mips/t-gofast: Remove.
+	* config/fp-bit.c (US_SOFTWARE_GOFAST): Don't handle.
+	* config/fp-bit.h (US_SOFTWARE_GOFAST): Don't handle.
+	* config/mips/elforion.h: Don't mention GOFAST in comment.
+	* config/mips/mips.c: Don't include gofast.h.
+	(mips_init_libfuncs): Don't call gofast_maybe_init_libfuncs.
+	* config/mips/t-sr71k (dp-bit.c, fp-bit.c): Don't define
+	US_SOFTWARE_GOFAST.
+	* config/sparc/sparc.c: Don't include gofast.h.
+	(sparc_init_libfuncs): Don't call gofast_maybe_init_libfuncs.
+	* config/spu/t-spu-elf (dp-bit.c, fp-bit.c): Don't undefine
+	US_SOFTWARE_GOFAST.
+
+2010-12-14  Jan Hubicka  <jh@suse.cz>
+
+	* tree.c (get_file_function_name): Avoid using random seed on
+	GLOBAL_sub_I and GLOBAL_sub_D.
 
 2010-12-15  Martin Jambor  <mjambor@suse.cz>
 
@@ -63,7 +665,7 @@
 2010-12-14  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR tree-optimization/46928
-	* tree-data-ref.c (analyze_overlapping_iterations): Handle "A[p] == A[p]"
+	* tree-data-ref.c (analyze_overlapping_iterations): Handle A[p] == A[p]
 	in data dependence analysis with p a parameter of the loop.
 
 2010-12-14  Sebastian Pop  <sebastian.pop@amd.com>
@@ -129,7 +731,8 @@
 2010-12-14  Jan Hubicka  <jh@suse.cz>
 
 	PR middle-end/46667
-	* varasm.c (assemble_start_function): Do not call resolve_unique_section.
+	* varasm.c (assemble_start_function): Do not call
+	resolve_unique_section.
 	* cfgexpand.c (gimple_expand_cfg): Resolve it here.
 
 2010-12-14  Alexander Monakov  <amonakov@ispras.ru>
@@ -151,7 +754,8 @@
 2010-12-13  Jan Hubicka  <jh@suse.cz>
 
 	PR middle-end/45388
-	* ipa.c (cgraph_build_static_cdtor_1): Break out from ... ; add FINAL parameter.
+	* ipa.c (cgraph_build_static_cdtor_1): Break out from ...  Add FINAL
+	parameter.
 	(cgraph_build_static_cdtor): ... here.
 	(build_cdtor): Use cgraph_build_static_cdtor_1.
 

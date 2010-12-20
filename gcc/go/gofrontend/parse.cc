@@ -2513,10 +2513,7 @@ Parse::function_lit()
 
   Function_type* type = this->signature(NULL, location);
   if (type == NULL)
-    {
-      this->block();
-      return Expression::make_error(location);
-    }
+    type = Type::make_function_type(NULL, NULL, NULL, location);
 
   // For a function literal, the next token must be a '{'.  If we
   // don't see that, then we may have a type expression.
@@ -3982,6 +3979,8 @@ Parse::type_case_clause(Named_object* switch_no, Type_case_clauses* clauses)
 	clauses->add(*p, true, false, NULL, location);
       clauses->add(types.back(), false, false, statements, location);
     }
+  else
+    clauses->add(Type::make_error_type(), false, false, statements, location);
 }
 
 // TypeSwitchCase  = "case" type | "default"

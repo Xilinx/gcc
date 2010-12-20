@@ -2823,6 +2823,19 @@ when targeting Windows.  On all other systems, the default is the AMD ABI.
 Note, the @code{ms_abi} attribute for Windows targets currently requires
 the @option{-maccumulate-outgoing-args} option.
 
+@item callee_pop_aggregate_return (@var{number})
+@cindex @code{callee_pop_aggregate_return} attribute
+
+On 32-bit i?86-*-* targets, you can control by those attribute for
+aggregate return in memory, if the caller is responsible to pop the hidden
+pointer together with the rest of the arguments - @var{number} equal to
+zero -, or if the callee is responsible to pop hidden pointer - @var{number}
+equal to one.
+
+For i?86-netware, the caller pops the stack for the hidden arguments pointing
+to aggregate return value.  This differs from the default i386 ABI which assumes
+that the callee pops the stack for hidden pointer.
+
 @item ms_hook_prologue
 @cindex @code{ms_hook_prologue} attribute
 
@@ -12976,7 +12989,7 @@ to be a small power of two and specifies the new alignment in bytes.
 @item @code{#pragma pack(@var{n})} simply sets the new alignment.
 @item @code{#pragma pack()} sets the alignment to the one that was in
 effect when compilation started (see also command-line option
-@option{-fpack-struct[=<n>]} @pxref{Code Gen Options}).
+@option{-fpack-struct[=@var{n}]} @pxref{Code Gen Options}).
 @item @code{#pragma pack(push[,@var{n}])} pushes the current alignment
 setting on an internal stack and then optionally sets the new alignment.
 @item @code{#pragma pack(pop)} restores the alignment setting to the one

@@ -782,6 +782,12 @@ Tuple_assignment_statement::do_lower(Gogo*, Block* enclosing)
     {
       gcc_assert(prhs != this->rhs_->end());
 
+      if ((*plhs)->is_error_expression()
+	  || (*plhs)->type()->is_error_type()
+	  || (*prhs)->is_error_expression()
+	  || (*prhs)->type()->is_error_type())
+	continue;
+
       if ((*plhs)->is_sink_expression())
 	{
 	  b->add_statement(Statement::make_statement(*prhs));
@@ -802,6 +808,12 @@ Tuple_assignment_statement::do_lower(Gogo*, Block* enclosing)
        plhs != this->lhs_->end();
        ++plhs, ++prhs)
     {
+      if ((*plhs)->is_error_expression()
+	  || (*plhs)->type()->is_error_type()
+	  || (*prhs)->is_error_expression()
+	  || (*prhs)->type()->is_error_type())
+	continue;
+
       if ((*plhs)->is_sink_expression())
 	continue;
 
@@ -1812,7 +1824,13 @@ Thunk_statement::simplify_statement(Gogo* gogo, Block* block)
 
   Call_expression* ce = this->call_->call_expression();
   Function_type* fntype = ce->get_function_type();
-  if (fntype == NULL || this->is_simple(fntype))
+  if (fntype == NULL)
+    {
+      gcc_assert(saw_errors());
+      this->set_is_error();
+      return false;
+    }
+  if (this->is_simple(fntype))
     return false;
 
   Expression* fn = ce->fn();
@@ -4210,6 +4228,8 @@ Select_clauses::get_tree(Translate_context* context,
 				 chans_arg,
 				 pointer_boolean_type_tree,
 				 is_sends_arg);
+  if (call == error_mark_node)
+    return error_mark_node;
 
   tree stmt_list = NULL_TREE;
 
