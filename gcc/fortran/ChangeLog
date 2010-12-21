@@ -1,6 +1,73 @@
+2010-12-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46974
+	* target-memory.c (gfc_interpret_derived): Handle C_PTR/C_FUNPTR.
+	* trans-expr.c (gfc_trans_structure_assign): Ditto.
+	(gfc_conv_expr): Avoid crashes using non-C_NULL_(FUN)PTR const expr.
+
+2010-12-17  Janus Weil  <janus@gcc.gnu.org>
+	    Tobias Burnus <burnus@gcc.gnu.org>
+
+	PR fortran/46849
+	* resolve.c (resolve_symbol): Remove symbols that wrongly ended up
+	in a local BLOCK namespace.
+
+2010-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/46945
+	* trans-array.c (gfc_array_init_size): Perform stride overflow
+	checking and multiplication by element_size in size_type_node instead
+	of sizetype, return value with size_type_node type instead of
+	sometimes with sizetype and sometimes with gfc_array_index_type.
+
+2010-12-15  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* trans.c (gfc_allocate_with_status): Better error message for
+	malloc() failure.
+	(gfc_call_realloc): Likewise.
+	* misc.c (gfc_getmem): Likewise.
+
+2010-12-15  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/28105
+	* trans.c (gfc_call_malloc): Improve comment.
+	(gfc_allocate_with_status): Remove size < 0 check.
+	(gfc_call_realloc): Likewise.
+
+2010-12-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46937
+	* trans-types.c (create_fn_spec): "."-annotate derived types
+	with (proc-)pointer components.
+
+2010-12-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/46874
+	* trans-openmp.c (gfc_trans_omp_array_reduction): Handle allocatable
+	dummy variables.
+
+2010-12-13  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46201
+	* trans-expr.c (gfc_conv_procedure_call): Handle procedure pointer
+	components called on a dimensionful base object.
+
+2010-12-13  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46841
+	* trans-expr.c (gfc_trans_subcomponent_assign): Handle array-valued
+	procedure pointer components.
+
+2010-12-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/46884
+	* symbol.c (gfc_new_charlen): If old_cl is non-NULL, put it
+	at the ns->old_cl_list spot in the chain rather than at
+	ns->cl_list.
+
 2010-12-12  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
-	* dump-parse-tree.c (show_expr):  Add space for parens.
+	* dump-parse-tree.c (show_expr): Add space for parens.
 
 2010-12-12  Janus Weil  <janus@gcc.gnu.org>
 

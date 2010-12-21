@@ -135,12 +135,14 @@ OBJC_DEPRECATED_H = \
   METHOD_NULL.h \
   MetaClass.h \
   Object.h \
+  Protocol.h \
   STR.h \
   hash.h \
   objc-list.h \
   objc_error.h \
   objc_get_uninstalled_dtable.h \
   objc_malloc.h \
+  objc_msg_sendv.h \
   objc_object_alloc.h \
   objc_unexpected_exception.h \
   objc_valloc.h \

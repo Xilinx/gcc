@@ -341,7 +341,8 @@ Gogo::register_gc_vars(const std::vector<Named_object*>& var_gc,
 				 void_type_node,
 				 build_pointer_type(root_list_type),
 				 build_fold_addr_expr(decl));
-  append_to_statement_list(call, init_stmt_list);
+  if (call != error_mark_node)
+    append_to_statement_list(call, init_stmt_list);
 }
 
 // Build the decl for the initialization function.
@@ -1313,14 +1314,19 @@ Function::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 	      push_struct_function(decl);
 
 	      tree closure_decl = this->closure_var_->get_tree(gogo, no);
+	      if (closure_decl == error_mark_node)
+		this->fndecl_ = error_mark_node;
+	      else
+		{
+		  DECL_ARTIFICIAL(closure_decl) = 1;
+		  DECL_IGNORED_P(closure_decl) = 1;
+		  TREE_USED(closure_decl) = 1;
+		  DECL_ARG_TYPE(closure_decl) = TREE_TYPE(closure_decl);
+		  TREE_READONLY(closure_decl) = 1;
 
-	      DECL_ARTIFICIAL(closure_decl) = 1;
-	      DECL_IGNORED_P(closure_decl) = 1;
-	      TREE_USED(closure_decl) = 1;
-	      DECL_ARG_TYPE(closure_decl) = TREE_TYPE(closure_decl);
-	      TREE_READONLY(closure_decl) = 1;
+		  DECL_STRUCT_FUNCTION(decl)->static_chain_decl = closure_decl;
+		}
 
-	      DECL_STRUCT_FUNCTION(decl)->static_chain_decl = closure_decl;
 	      pop_cfun();
 	    }
 	}
@@ -1388,6 +1394,8 @@ Function_declaration::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 tree
 Function::make_receiver_parm_decl(Gogo* gogo, Named_object* no, tree var_decl)
 {
+  if (var_decl == error_mark_node)
+    return error_mark_node;
   // If the function takes the address of a receiver which is passed
   // by value, then we will have an INDIRECT_REF here.  We need to get
   // the real variable.
@@ -1402,6 +1410,8 @@ Function::make_receiver_parm_decl(Gogo* gogo, Named_object* no, tree var_decl)
     {
       gcc_assert(is_in_heap);
       var_decl = TREE_OPERAND(var_decl, 0);
+      if (var_decl == error_mark_node)
+	return error_mark_node;
       gcc_assert(POINTER_TYPE_P(TREE_TYPE(var_decl)));
       val_type = TREE_TYPE(TREE_TYPE(var_decl));
     }
@@ -1460,9 +1470,14 @@ Function::make_receiver_parm_decl(Gogo* gogo, Named_object* no, tree var_decl)
 tree
 Function::copy_parm_to_heap(Gogo* gogo, Named_object* no, tree ref)
 {
+  if (ref == error_mark_node)
+    return error_mark_node;
+
   gcc_assert(TREE_CODE(ref) == INDIRECT_REF);
 
   tree var_decl = TREE_OPERAND(ref, 0);
+  if (var_decl == error_mark_node)
+    return error_mark_node;
   gcc_assert(TREE_CODE(var_decl) == VAR_DECL);
   source_location loc = DECL_SOURCE_LOCATION(var_decl);
 
@@ -1523,9 +1538,12 @@ Function::build_tree(Gogo* gogo, Named_object* named_function)
 	      tree var = *pp;
 	      if (TREE_CODE(var) == INDIRECT_REF)
 		var = TREE_OPERAND(var, 0);
-	      gcc_assert(TREE_CODE(var) == VAR_DECL);
-	      DECL_CHAIN(var) = declare_vars;
-	      declare_vars = var;
+	      if (var != error_mark_node)
+		{
+		  gcc_assert(TREE_CODE(var) == VAR_DECL);
+		  DECL_CHAIN(var) = declare_vars;
+		  declare_vars = var;
+		}
 	      *pp = parm_decl;
 	    }
 	  else if ((*p)->var_value()->is_in_heap())
@@ -1533,11 +1551,17 @@ Function::build_tree(Gogo* gogo, Named_object* named_function)
 	      // If we take the address of a parameter, then we need
 	      // to copy it into the heap.
 	      tree parm_decl = this->copy_parm_to_heap(gogo, *p, *pp);
-	      gcc_assert(TREE_CODE(*pp) == INDIRECT_REF);
-	      tree var_decl = TREE_OPERAND(*pp, 0);
-	      gcc_assert(TREE_CODE(var_decl) == VAR_DECL);
-	      DECL_CHAIN(var_decl) = declare_vars;
-	      declare_vars = var_decl;
+	      if (*pp != error_mark_node)
+		{
+		  gcc_assert(TREE_CODE(*pp) == INDIRECT_REF);
+		  tree var_decl = TREE_OPERAND(*pp, 0);
+		  if (var_decl != error_mark_node)
+		    {
+		      gcc_assert(TREE_CODE(var_decl) == VAR_DECL);
+		      DECL_CHAIN(var_decl) = declare_vars;
+		      declare_vars = var_decl;
+		    }
+		}
 	      *pp = parm_decl;
 	    }
 
@@ -1661,7 +1685,8 @@ Function::build_defer_wrapper(Gogo* gogo, Named_object* named_function,
 				 void_type_node,
 				 ptr_type_node,
 				 this->defer_stack(end_loc));
-  append_to_statement_list(call, &stmt_list);
+  if (call != error_mark_node)
+    append_to_statement_list(call, &stmt_list);
 
   tree retval = this->return_value(gogo, named_function, end_loc, &stmt_list);
   tree set;
@@ -1700,7 +1725,8 @@ Function::build_defer_wrapper(Gogo* gogo, Named_object* named_function,
 				    void_type_node,
 				    ptr_type_node,
 				    this->defer_stack(end_loc));
-  TREE_NOTHROW(undefer_fndecl) = 0;
+  if (undefer_fndecl != NULL_TREE)
+    TREE_NOTHROW(undefer_fndecl) = 0;
 
   tree defer = Gogo::call_builtin(&check_fndecl,
 				  end_loc,
@@ -2844,6 +2870,8 @@ Gogo::runtime_error(int code, source_location location)
 				void_type_node,
 				integer_type_node,
 				build_int_cst(integer_type_node, code));
+  if (ret == error_mark_node)
+    return error_mark_node;
   // The runtime error function panics and does not return.
   TREE_NOTHROW(runtime_error_fndecl) = 0;
   TREE_THIS_VOLATILE(runtime_error_fndecl) = 1;
@@ -2881,6 +2909,8 @@ Gogo::send_on_channel(tree channel, tree val, bool blocking, bool for_select,
 					(for_select
 					 ? boolean_true_node
 					 : boolean_false_node));
+	  if (ret == error_mark_node)
+	    return error_mark_node;
 	  // This can panic if there are too many operations on a
 	  // closed channel.
 	  TREE_NOTHROW(send_small_fndecl) = 0;
@@ -2899,6 +2929,8 @@ Gogo::send_on_channel(tree channel, tree val, bool blocking, bool for_select,
 					channel,
 					uint64_type_node,
 					val);
+	  if (ret == error_mark_node)
+	    return error_mark_node;
 	  // This can panic if there are too many operations on a
 	  // closed channel.
 	  TREE_NOTHROW(send_nonblocking_small_fndecl) = 0;
@@ -2944,6 +2976,8 @@ Gogo::send_on_channel(tree channel, tree val, bool blocking, bool for_select,
 				    (for_select
 				     ? boolean_true_node
 				     : boolean_false_node));
+	  if (call == error_mark_node)
+	    return error_mark_node;
 	  // This can panic if there are too many operations on a
 	  // closed channel.
 	  TREE_NOTHROW(send_big_fndecl) = 0;
@@ -2961,6 +2995,8 @@ Gogo::send_on_channel(tree channel, tree val, bool blocking, bool for_select,
 				    channel,
 				    ptr_type_node,
 				    val);
+	  if (call == error_mark_node)
+	    return error_mark_node;
 	  // This can panic if there are too many operations on a
 	  // closed channel.
 	  TREE_NOTHROW(send_nonblocking_big_fndecl) = 0;
@@ -3002,6 +3038,8 @@ Gogo::receive_from_channel(tree type_tree, tree channel, bool for_select,
 				     (for_select
 				      ? boolean_true_node
 				      : boolean_false_node));
+      if (call == error_mark_node)
+	return error_mark_node;
       // This can panic if there are too many operations on a closed
       // channel.
       TREE_NOTHROW(receive_small_fndecl) = 0;
@@ -3034,6 +3072,8 @@ Gogo::receive_from_channel(tree type_tree, tree channel, bool for_select,
 				     (for_select
 				      ? boolean_true_node
 				      : boolean_false_node));
+      if (call == error_mark_node)
+	return error_mark_node;
       // This can panic if there are too many operations on a closed
       // channel.
       TREE_NOTHROW(receive_big_fndecl) = 0;
@@ -3091,6 +3131,8 @@ Gogo::make_trampoline(tree fnaddr, tree closure, source_location location)
 			      ptr_type_node,
 			      fold_convert_loc(location, ptr_type_node,
 					       closure));
+  if (x == error_mark_node)
+    return error_mark_node;
 
   x = save_expr(x);
 

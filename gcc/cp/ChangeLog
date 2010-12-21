@@ -1,3 +1,83 @@
+2010-12-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_parser_objc_try_catch_finally_statement): Call
+	objc_maybe_warn_exceptions.
+	(cp_parser_objc_synchronized_statement): Same change.
+	
+2010-12-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* pt.c (most_specialized_class): Use ngettext to determine
+	"candidates are:" / "candidate is" message.
+
+2010-12-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46670
+	* pt.c (value_dependent_expression_p) [ARRAY_REF]: Handle
+	properly.
+
+2010-12-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/39859
+	PR c++/44522
+	PR c++/44523
+	* parser.c (struct cp_parser): Add colon_corrects_to_scope_p field.
+	(cp_parser_new): Initialize it.
+	(cp_parser_nested_name_specifier_opt): Auto-correct colons to
+	scopes if we are able to.
+	(cp_parser_question_colon_clause): Disallow colon correction.
+	(cp_parser_label_for_labeled_statement): Likewise.
+	(cp_parser_range_for): Likewise.
+	(cp_parser_enum_specifier): Likewise.
+	(cp_parser_class_head): Likewise.
+	(cp_parser_member_declaration): Likewise.
+
+2010-12-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/46852
+	* parser.c (cp_parser_class_specifier): Check for TYPE_P.
+
+2010-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/46815
+	* cp-gimplify.c (cp_genericize): When changing RESULT_DECL
+	into invisible reference, change also DECL_VALUE_EXPR of
+	NRV optimized variable.
+
+2010-12-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42083
+	* init.c (build_value_init): Check build_special_member_call return
+	value for error_mark_node.
+
+2010-12-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46930
+	* decl.c (grokdeclarator): Reject uninitialized constexpr
+	static data member.
+
+2010-12-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/45330
+	* cp-tree.h (suggest_alternatives_for): Add location_t parameter.
+	* name-lookup.c (suggest_alternatives_for): Likewise.  Adjust.
+	* lex.c (unqualified_name_lookup_error): Adjust call to it.
+	* semantics.c (qualified_name_lookup_error): Move to...
+	* error.c (qualified_name_lookup_error): ...here.  Call.
+	suggest_alternatives_for.
+
+2010-12-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46873
+	PR c++/46877
+	* semantics.c (build_data_member_initialization): Handle
+	cv-qualified data member.
+
+2010-12-13  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/45388
+	* decl2.c (start_objects): Do not generate collect2 recognicable name
+	for static ctor.
+
 2010-12-12  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/46901

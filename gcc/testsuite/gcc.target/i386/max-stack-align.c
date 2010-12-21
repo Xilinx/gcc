@@ -1,12 +1,14 @@
 /* { dg-do compile } */
 /* { dg-options "-fomit-frame-pointer" } */
+/* { dg-require-effective-target lp64 } */
 
 void foo()
 {
-  int a, b, c, e, f, g, h, i;
-       __asm__ volatile( " jb 1b \n\t"
-                         : : "c" (a), "d" (a), "S" (a), "D" (a),
-                         "r" (a), "a" (a) ,"r" (a), "r" (a)
-                         : "%""rbp" );
+  int a=0, b=0, c=0, e=0, f=0, g=0, h=0, i=0;
+    __asm__ __volatile__ (""
+    :
+    :
+    : "bp"
+  );
 }
 

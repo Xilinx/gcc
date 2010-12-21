@@ -3766,10 +3766,10 @@ tidy_control_flow (basic_block xbb, bool full_tidying)
 void
 purge_empty_blocks (void)
 {
-  /* Do not attempt to delete preheader.  */
-  int i = sel_is_loop_preheader_p (BASIC_BLOCK (BB_TO_BLOCK (0))) ? 1 : 0;
+  int i;
 
-  while (i < current_nr_blocks)
+  /* Do not attempt to delete the first basic block in the region.  */
+  for (i = 1; i < current_nr_blocks; )
     {
       basic_block b = BASIC_BLOCK (BB_TO_BLOCK (i));
 
@@ -6148,7 +6148,8 @@ sel_is_loop_preheader_p (basic_block bb)
 static bool
 bb_has_removable_jump_to_p (basic_block jump_bb, basic_block dest_bb)
 {
-  if (!onlyjump_p (BB_END (jump_bb)))
+  if (!onlyjump_p (BB_END (jump_bb))
+      || tablejump_p (BB_END (jump_bb), NULL, NULL))
     return false;
 
   /* Several outgoing edges, abnormal edge or destination of jump is

@@ -45,8 +45,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 # error You can not include both objc/objc-api.h and objc/runtime.h.  Include objc/objc-api.h for the traditional GNU Objective-C Runtime API and objc/runtime.h for the modern one.
 #endif
 
-/* TODO: This file is incomplete.  */
-
 #include "objc.h"
 #include "objc-decls.h"
 
@@ -319,11 +317,10 @@ objc_EXPORT Ivar * class_copyIvarList (Class class_, unsigned int *numberOfRetur
    instance variables to classes already registered with the runtime.
    'size' is the size of the instance variable, 'alignment' the
    alignment, and 'type' the type encoding of the variable type.  You
-   can use objc_sizeof_type() (or sizeof()), objc_alignof_type() (or
-   __alignof__()) and @encode() to determine the right 'size',
-   'alignment' and 'type' for your instance variable.  For example, to
-   add an instance variable name "my_variable" and of type 'id', you
-   can use:
+   can use sizeof(), __alignof__() and @encode() to determine the
+   right 'size', 'alignment' and 'type' for your instance variable.
+   For example, to add an instance variable name "my_variable" and of
+   type 'id', you can use:
 
    class_addIvar (class, "my_variable", sizeof (id), __alignof__ (id), 
                   @encode (id));
@@ -411,6 +408,7 @@ typedef Class (*objc_get_unknown_class_handler)(const char *class_name);
    This function is not safe to call in a multi-threaded environment
    because other threads may be trying to use the get unknown class
    handler while you change it!  */
+objc_EXPORT 
 objc_get_unknown_class_handler
 objc_setGetUnknownClassHandler (objc_get_unknown_class_handler new_handler);
 
@@ -427,7 +425,7 @@ objc_EXPORT Class objc_getClass (const char *name);
    the runtime.  Return Nil if not.  This function does not call the
    objc_get_unknown_class_handler function if the class is not
    found.  */
-objc_EXPORT Class objc_lookupClass (const char *name);
+objc_EXPORT Class objc_lookUpClass (const char *name);
 
 /* Return the meta class associated to the class with name 'name', if
    it is already registered with the runtime.  First, it finds the
@@ -875,7 +873,13 @@ objc_EXPORT Property *protocol_copyPropertyList (Protocol *protocol, unsigned in
 objc_EXPORT Protocol **protocol_copyProtocolList (Protocol *protocol, unsigned int *numberOfReturnedProtocols);
 
 
-/* TODO: Add all the other functions in the API.  */
+/** Implementation: the following hook is in init.c.  */
+
+/* This is a hook which is called by __objc_exec_class every time a
+   class or a category is loaded into the runtime.  This may e.g. help
+   a dynamic loader determine the classes that have been loaded when
+   an object file is dynamically linked in.  */
+objc_EXPORT void (*_objc_load_callback)(Class _class, struct objc_category *category);
 
 
 /** Implementation: the following functions are in objc-foreach.c.  */
@@ -929,6 +933,28 @@ struct __objcFastEnumerationState
 */
 
 
+/* Compatibility Note: The Apple/NeXT runtime has the functions
+   objc_copyImageNames (), class_getImageName () and
+   objc_copyClassNamesForImage () but they are undocumented.  The GNU
+   runtime does not have them at the moment.  */
+
+/* Compatibility Note: The Apple/NeXT runtime has the functions
+   objc_setAssociatedObject (), objc_getAssociatedObject (),
+   objc_removeAssociatedObjects () and the objc_AssociationPolicy type
+   and related enum.  The GNU runtime does not have them yet.
+   TODO: Implement them.  */
+
+/* Compatibility Note: The Apple/NeXT runtime has the function
+   objc_setForwardHandler ().  The GNU runtime does not have it
+   because messaging (and, in particular, forwarding) works in a
+   different (incompatible) way with the GNU runtime.  If you need to
+   customize message forwarding at the Objective-C runtime level (that
+   is, if you are implementing your own "Foundation" library such as
+   GNUstep Base on top of the Objective-C runtime), in objc/message.h
+   there are hooks (that work in the framework of the GNU runtime) to
+   do so.  */
+
+
 /** Implementation: the following functions are in memory.c.  */
 
 /* Traditional GNU Objective-C Runtime functions that are used for
@@ -954,6 +980,21 @@ objc_EXPORT void *objc_calloc(size_t nelem, size_t size);
 objc_EXPORT void objc_free(void *mem);
 
 
+/** Implementation: the following functions are in gc.c.  */
+
+/* The GNU Objective-C Runtime has a different implementation of
+   garbage collection.
+
+   Compatibility Note: these functions are not available with the
+   Apple/NeXT runtime.  */
+
+/* Mark the instance variable as inaccessible to the garbage
+   collector.  */
+objc_EXPORT void class_ivar_set_gcinvisible (Class _class,
+					     const char* ivarname,
+					     BOOL gcInvisible);
+
+
 /** Implementation: the following functions are in encoding.c.  */
 
 /* Traditional GNU Objective-C Runtime functions that are currently
@@ -964,21 +1005,21 @@ objc_EXPORT void objc_free(void *mem);
 
 /* Return the size of a variable which has the specified 'type'
    encoding.  */
-int objc_sizeof_type (const char *type);
+objc_EXPORT int objc_sizeof_type (const char *type);
 
 /* Return the align of a variable which has the specified 'type'
    encoding.  */
-int objc_alignof_type (const char *type);
+objc_EXPORT int objc_alignof_type (const char *type);
 
 /* Return the aligned size of a variable which has the specified
    'type' encoding.  The aligned size is the size rounded up to the
    nearest alignment.  */
-int objc_aligned_size (const char *type);
+objc_EXPORT int objc_aligned_size (const char *type);
 
 /* Return the promoted size of a variable which has the specified
    'type' encoding.  This is the size rounded up to the nearest
    integral of the wordsize, taken to be the size of a void *.  */
-int objc_promoted_size (const char *type);
+objc_EXPORT int objc_promoted_size (const char *type);
 
 
 /* The following functions are used when parsing the type encoding of
@@ -991,30 +1032,30 @@ int objc_promoted_size (const char *type);
 /* Skip some type qualifiers (_C_CONST, _C_IN, etc).  These may
   eventually precede typespecs occurring in method prototype
   encodings.  */
-const char *objc_skip_type_qualifiers (const char *type);
+objc_EXPORT const char *objc_skip_type_qualifiers (const char *type);
 
 /* Skip one typespec element (_C_CLASS, _C_SEL, etc).  If the typespec
   is prepended by type qualifiers, these are skipped as well.  */
-const char *objc_skip_typespec (const char *type);
+objc_EXPORT const char *objc_skip_typespec (const char *type);
 
 /* Skip an offset.  */
-const char *objc_skip_offset (const char *type);
+objc_EXPORT const char *objc_skip_offset (const char *type);
 
 /* Skip an argument specification (ie, skipping a typespec, which may
    include qualifiers, and an offset too).  */
-const char *objc_skip_argspec (const char *type);
+objc_EXPORT const char *objc_skip_argspec (const char *type);
 
 /* Read type qualifiers (_C_CONST, _C_IN, etc) from string 'type'
    (stopping at the first non-type qualifier found) and return an
    unsigned int which is the logical OR of all the corresponding flags
    (_F_CONST, _F_IN etc).  */
-unsigned objc_get_type_qualifiers (const char *type);
+objc_EXPORT unsigned objc_get_type_qualifiers (const char *type);
 
 
 /* Note that the following functions work for very simple structures,
    but get easily confused by more complicated ones (for example,
-   containing vectors).  A better solution is required.
-*/
+   containing vectors).  A better solution is required.  These
+   functions are likely to change in the next GCC release.  */
 
 /* The following three functions can be used to determine how a
    structure is laid out by the compiler. For example:
@@ -1047,16 +1088,16 @@ struct objc_struct_layout
   unsigned int record_align;
 };
 
-void objc_layout_structure (const char *type,
+objc_EXPORT void objc_layout_structure (const char *type,
                             struct objc_struct_layout *layout);
-BOOL  objc_layout_structure_next_member (struct objc_struct_layout *layout);
-void objc_layout_finish_structure (struct objc_struct_layout *layout,
-                                   unsigned int *size,
-                                   unsigned int *align);
-void objc_layout_structure_get_info (struct objc_struct_layout *layout,
-                                     unsigned int *offset,
-                                     unsigned int *align,
-                                     const char **type);
+objc_EXPORT BOOL  objc_layout_structure_next_member (struct objc_struct_layout *layout);
+objc_EXPORT void objc_layout_finish_structure (struct objc_struct_layout *layout,
+					       unsigned int *size,
+					       unsigned int *align);
+objc_EXPORT void objc_layout_structure_get_info (struct objc_struct_layout *layout,
+						 unsigned int *offset,
+						 unsigned int *align,
+						 const char **type);
 
 #ifdef __cplusplus
 }
