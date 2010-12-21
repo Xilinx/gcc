@@ -26,13 +26,13 @@ GCCPY_TARGET_INSTALL_NAME := $(target_noncanonical)-$(shell echo gccpy|sed '$(pr
 
 python: gccpy$(exeext) gpy1$(exeext)
 
-FLEX_C_FLAGS := -g -O2 -fomit-frame-pointer -gtoggle -DIN_GCC -W -Wall -Wwrite-strings -Wcast-qual \
+FLEX_C_FLAGS := -g -O2 -fomit-frame-pointer -DIN_GCC -W -Wall -Wwrite-strings -Wcast-qual \
 -Wstrict-prototypes -Wmissing-prototypes -Wmissing-format-attribute -pedantic -Wno-long-long \
 -Wno-variadic-macros -Wno-overlength-strings -Wold-style-definition -Wc++-compat -fno-common -DHAVE_CONFIG_H
 
 GPY_CFLAGS := -std=gnu99 -I${srcdir}/python
 
-py-lexer.o: $(srcdir)/python/py-lexer.l parser.o
+py-lexer.o: $(srcdir)/python/py-lexer.l py-parser.o
 	$(FLEX) --outfile=lex.py.c $(srcdir)/python/py-lexer.l
 	$(CC) $(GPY_CFLAGS) $(FLEX_C_FLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ lex.py.c
