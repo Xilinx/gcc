@@ -1,3 +1,8 @@
+2010-12-21  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (build_conflicts_for_new_allocnos): If the new
+	allocno crosses calls, then mark CALL_USED_REG_SET as conflicting.
+
 2010-12-14  Jeff Law <law@redhat.com>
 
 	* reload.h (reg_equiv_memory_loc_vec): Move into reg_equivs structure.

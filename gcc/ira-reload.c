@@ -751,8 +751,27 @@ build_conflicts_for_new_allocnos (rtx head, rtx tail,
 	  EXECUTE_IF_SET_IN_BITMAP (live, orig_max_reg_num, i, bi)
 	    {
 	      ira_allocno_t a = ira_regno_allocno_map[i];
+	      unsigned int n = ALLOCNO_NUM_OBJECTS (a);
+	      unsigned int j;
+
 	      ALLOCNO_CALLS_CROSSED_NUM (a)++;
 	      ALLOCNO_CALL_FREQ (a) += freq;
+
+	      /* We want to avoid caller-saves for the new pseudos as
+		 the new pseudos are already backed by a memory location.
+
+		 We could split these pseudos at call boundaries and remove
+		 this hack.  That would probably get us the best of both
+		 worlds in most cases.  */
+	      for (j = 0; j < n; j++)
+		{
+		  ira_object_t obj = ALLOCNO_OBJECT (a, j);
+	      
+		  IOR_HARD_REG_SET (OBJECT_TOTAL_CONFLICT_HARD_REGS (obj),
+				    call_used_reg_set);
+		  IOR_HARD_REG_SET (OBJECT_CONFLICT_HARD_REGS (obj),
+				    call_used_reg_set);
+		}
 	    }
 	}
 
