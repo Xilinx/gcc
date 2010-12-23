@@ -1,4 +1,8 @@
 
+2010-12-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_defunmatcher, defunmatcher):
+	Apply function argument is optional.
+
 2010-12-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated}}
 	* melt/generated/warmelt-base.0.c: Regenerate.

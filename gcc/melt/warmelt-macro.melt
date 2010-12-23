@@ -2193,7 +2193,7 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; probably (DEFUNMATCHER <symb> <informals> <outformals> [:doc documentation] <matchfun> <applyfun> [<data>])
+;;; probably (DEFUNMATCHER <symb> <informals> <outformals> [:doc documentation] <matchfun> [<applyfun> [<data>]])
 (defun mexpand_defunmatcher (sexpr env mexpander)
   (debug_msg sexpr "mexpand_defunmatcher sexpr")
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -2261,12 +2261,13 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 	(error_plain loc "bad matchfun for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_))
       )
     (debug_msg matchfunx "mexpand_defunmatcher matchfunx")
-    ;; parse & macroexpand the applyfun expr
+    ;; parse & macroexpand the applyfun expr if given
     (setq curpair (pair_tail curpair))
     (let ( (afa (pair_head curpair)) )
       (if afa
 	  (setq applyfunx (macroexpand_1 afa env mexpander))
-	(error_plain loc "bad applyfun for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_))
+	;; apply function is optional, can be missing.
+	)
       )
     (debug_msg applyfunx "mexpand_defunmatcher applyfunx")
     ;; parse & macroexpand the data expr
@@ -2280,7 +2281,7 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
     ;; check for no extra stuff
     (setq curpair (pair_tail curpair))
     (if curpair 
-	(error_plain loc "extra for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_))
+	(error_plain loc "extra for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> [<applyfun> [<data>]])"_))
     (let (
 	  ;; make a class_source_defunmatcher with :loca_location :sdef_name
 	  ;; :sformal_args :sfumatdef_matchf :sfumatdef_applyf
@@ -2323,7 +2324,7 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 (export_macro defunmatcher mexpand_defunmatcher
 :doc #{The $DEFUNMATCHER syntax defines a matcher thru a MELT
 function. Syntax is (DEFUNMATCHER <symbol> <in-formals> <out-formals>
-[:doc docum] <match-function> <apply-function> [<data>])}#)
+[:doc docum] <match-function> [<apply-function> [<data>]])}#)
 
 ;;;;;;;;;;;;;;;;;; the defun expander
 ;;;(DEFUN funame formals [:doc documentation] body...)
