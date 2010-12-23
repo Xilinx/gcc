@@ -1,3 +1,8 @@
+2010-12-23  Jeff Law <law@redhat.com>
+
+	* reload1.c (record_equivalences_for_reload): Mirror Bernd's change
+	#160947 for init_eliminable_invariants.
+
 2010-12-21  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (build_conflicts_for_new_allocnos): If the new
