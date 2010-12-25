@@ -37,6 +37,12 @@ typedef struct bb_pbb_def
   poly_bb_p pbb;
 }bb_pbb_def;
 
+/* From graphite-opencl.c  */
+extern void opencl_transform_clast (struct clast_stmt *, sese, edge,
+                                    scop_p, htab_t);
+extern void graphite_opencl_finalize (edge);
+extern void graphite_opencl_init (void);
+
 /* From graphite-clast-to-gimple.c  */
 extern bool gloog (scop_p, htab_t);
 extern cloog_prog_clast scop_to_clast (scop_p, CloogState *);

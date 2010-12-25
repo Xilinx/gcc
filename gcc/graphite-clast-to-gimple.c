@@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 #include "langhooks.h"
 #include "sese.h"
+#include "dbgcnt.h"
 
 #ifdef HAVE_cloog
 #include "cloog/cloog.h"
@@ -1517,10 +1518,15 @@ gloog (scop_p scop, htab_t bb_pbb_mapping)
 
   create_params_index (params_index, pc.prog);
 
-  translate_clast (region, context_loop, pc.stmt,
-		   if_region->true_region->entry,
-		   &newivs, newivs_index,
-		   bb_pbb_mapping, 1, params_index);
+  if (flag_graphite_opencl && dbg_cnt (opencl_scop_cnt))
+    opencl_transform_clast (pc.stmt, region, if_region->true_region->entry,
+                            scop, params_index);
+  else
+    translate_clast (region, context_loop, pc.stmt,
+                     if_region->true_region->entry,
+                     &newivs, newivs_index,
+                     bb_pbb_mapping, 1, params_index);
+
   graphite_verify ();
   scev_reset ();
   recompute_all_dominators ();

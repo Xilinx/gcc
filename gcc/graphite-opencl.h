@@ -1,0 +1,254 @@
+/* GRAPHITE-OpenCL pass.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+
+   This file is part of GCC.
+
+   GCC is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3, or (at your option)
+   any later version.
+
+   GCC is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with GCC; see the file COPYING3.  If not see
+   <http://www.gnu.org/licenses/>.  */
+#define OPENCL_INIT_BUFF_SIZE 40
+
+/* Data structure which holds information about single array or pointer
+   in current scop.  */
+struct opencl_data_def
+{
+  /* Base object.  In case of arrays base array replaced by pointer to this
+     array.  */
+  tree object;
+  /* Device object, corresponding to base object.  */
+  tree device_object;
+  /* Size of data references in scop.  */
+  tree size_value;
+
+  /* Variable to hold size_value.  */
+  tree size_variable;
+
+  /* Unique id.  */
+  int id;
+
+  /* If true, then given data represents static object.  */
+  bool is_static;
+
+  /* Exact object represented by given data.  */
+  tree exact_object;
+
+  /* If true, given data can be privatized in current context.  */
+  bool can_be_private;
+  /* Current state.  */
+  bool up_to_date_on_device;
+  bool up_to_date_on_host;
+
+  bool inited_in_current_loop_on_host;
+  bool inited_in_current_loop_on_device;
+
+  bool written_in_current_body;
+  bool read_in_current_body;
+
+  bool privatized;
+
+  /* Data dimension.  */
+  int data_dim;
+  int depth;
+
+  /* Access information.  */
+  bool used_on_device;
+  bool ever_read_on_device;
+  bool ever_written_on_device;
+
+  bool supported;
+};
+
+typedef struct opencl_data_def * opencl_data;
+typedef const char * char_p;
+
+DEF_VEC_P (opencl_data);
+DEF_VEC_ALLOC_P (opencl_data, heap);
+
+/* Data structure with meta information about clast statement.
+   |
+   |                         LOOP_1 {out_depth = 0, in_depth = 3}
+   |                         /  \
+   |                        /    \
+   |                       /      \
+   |                      /        \
+   |  {out_depth = 1, LOOP_2     STMT_1 {in_depth = 0,
+   |    in_depth = 2}                    out_depth = 1}
+   |         |
+   |         |
+   |         |
+   |       LOOP_3 {out_depth = 2, in_depth = 1}
+   |         |
+   |         |
+   |         |
+   |       STMT_2 {out_depth = 3, in_depth = 3}
+*/
+struct opencl_clast_meta_def
+{
+  /* Outer depth.  */
+  int out_depth;
+  /* Inner depth.  */
+  int in_depth;
+  /* True means, that statement will be executed on device.  */
+  bool on_device;
+  struct opencl_clast_meta_def * next;
+  struct opencl_clast_meta_def * body;
+  struct opencl_clast_meta_def * parent;
+
+  /* All init code for this statement will be placed on this edge.  */
+  edge init_edge;
+
+  /* Data modifications in this statement (including children).  */
+  bitmap modified_on_device;
+  bitmap modified_on_host;
+
+  /* Data, which can be private in current loop.  */
+  bitmap can_be_private;
+
+  /* Access information.  */
+  bool access_unsupported;
+  bitmap access;
+
+  VEC (opencl_data, heap) *post_pass_to_host;
+  VEC (opencl_data, heap) *post_pass_to_device;
+};
+
+typedef struct opencl_clast_meta_def *opencl_clast_meta;
+
+DEF_VEC_P (char_p);
+DEF_VEC_ALLOC_P (char_p, heap);
+
+/* Single opencl kernel.  */
+struct graphite_opencl_kernel_body
+{
+  /* Function body.  */
+  dyn_string_t body;
+
+  /* Function header.  */
+  dyn_string_t header;
+
+  /* Variables declarations.  */
+  dyn_string_t pre_header;
+
+  /* Number of executions for kernel.  */
+  tree num_of_exec;
+
+  dyn_string_t non_scalar_args;
+
+  /* Number of write data references in kernel.  */
+  int num_of_data_writes;
+
+
+  /* Clast_stmt corresponding to kernel.  */
+  struct clast_stmt *clast_body;
+
+  /*  First iterator (scat_i).  */
+  const char *first_iter;
+
+  /*  First iterator (scat_{i+n}).  */
+  const char *last_iter;
+
+  /* Kernel name.  All kernels have names opencl_auto_function_<num>.  */
+  char name[40];
+
+  /* Variables, which must be passed to kernel.  */
+  VEC (tree, heap) *function_args;
+  VEC (tree, heap) *function_args_to_pass;
+  VEC (opencl_data, heap) *data_refs;
+};
+
+typedef struct graphite_opencl_kernel_body *opencl_body;
+
+
+/*  Main data structure for translating clast to gimple with opencl
+    function calls.  */
+struct graphite_opencl_creator
+{
+  /* Array with scat_* (iterators from clast data structures) names.  */
+  CloogNames *root_names;
+
+  /* Current kernel.  */
+  opencl_body current_body;
+
+  /* Current region.  */
+  sese region;
+
+  /* Meta information for current scop.  */
+  opencl_clast_meta clast_meta;
+
+  /* Current meta statement.  */
+  opencl_clast_meta curr_meta;
+
+  /* Htab of all defined local vars (not tmp vars, generated by gimplify).  */
+  htab_t defined_vars;
+
+  /* Htab of all defined global vars.  */
+  htab_t global_defined_vars;
+
+  /* Current edge.  */
+  edge main_edge;
+
+  /* Edge with kernels executing.  */
+  edge kernel_edge;
+
+  /* Current opencl program.  */
+  dyn_string_t main_program;
+
+  /* Information from clast structures.  */
+  htab_t newivs_index;
+  htab_t params_index;
+  VEC (tree, heap) *newivs;
+
+  /* Current loop.  */
+  loop_p context_loop;
+
+  /* Basic block with init statements for data.  */
+  basic_block data_init_bb;
+
+  /* Data used in kernel.  */
+  VEC(opencl_data, heap) *opencl_function_data;
+
+  VEC(tree, heap) *iv_map;
+
+  htab_t ref_to_data;
+  htab_t tree_to_data;
+};
+
+typedef struct graphite_opencl_creator * opencl_main;
+
+extern opencl_body opencl_clast_to_kernel (struct clast_for *,
+                                           opencl_main, int);
+extern tree dr_outermost_base_object (data_reference_p);
+extern void dump_opencl_main (opencl_main, FILE *, bool);
+extern void dump_opencl_body (opencl_body, FILE *, bool);
+extern void dump_opencl_clast_meta (opencl_clast_meta, FILE *, bool, int);
+extern void dump_opencl_data (opencl_data, FILE *, bool);
+extern void debug_opencl_main (opencl_main, bool);
+extern void debug_opencl_program (void);
+extern void debug_opencl_body (opencl_body, bool);
+extern void debug_opencl_clast_meta (opencl_clast_meta, bool);
+extern void debug_opencl_data (opencl_data, bool);
+
+/* Find opencl_data object by host object.  */
+extern opencl_data opencl_get_data_by_data_ref (opencl_main, data_reference_p);
+extern opencl_data opencl_get_data_by_tree (opencl_main, tree);
+extern tree opencl_tree_to_var (basic_block, tree);
+extern opencl_clast_meta opencl_create_meta_from_clast (opencl_main,
+                                                        struct clast_stmt *,
+                                                        int, opencl_clast_meta);
+extern bool opencl_should_be_parallel_p (opencl_main, opencl_clast_meta, int);
+
+/* Create new basic block on main edge and update main_edge.  */
+extern basic_block opencl_create_bb (opencl_main);
+extern bool dependency_in_clast_loop_p (opencl_main, opencl_clast_meta,
+                                        struct clast_for *, int);
+extern tree opencl_get_base_object_by_tree (tree);

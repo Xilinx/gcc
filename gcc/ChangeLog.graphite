@@ -1,3 +1,30 @@
+2010-12-25  Alexey Kravets  <kayrick@ispras.ru>
+
+	* Makefile.in (OBJS-common): Add graphite-opencl-codegen.o,
+	graphite-opencl-meta-clast.o and graphite-opencl.o.
+	(graphite-opencl-codegen.o): New.
+	(graphite-opencl-meta-clast.o): New.
+	(graphite-opencl.o): New.
+	(GTFILES): Add graphite-opencl.c.
+	* common.opt (fgraphite-opencl): New.
+	(fgraphite-opencl-cpu): New.
+	(fgraphite-opencl-ignore-depth-heuristic): New.
+	(fgraphite-opencl-ignore-mem-heuristic): New.
+	(fgraphite-opencl-ignore-dep): New.
+	(fgraphite-opencl-ignore-types): New.
+	(fgraphite-opencl-depth-base): New.
+	(fgraphite-opencl-debug): New.
+	* graphite-opencl-codegen.c: New file.
+	* graphite-opencl-meta-clast.c: New file.
+	* graphite-opencl.c: New file.
+	* graphite-opencl.h: New file.
+	* graphite.c (graphite_transform_loops): Call graphite_opencl_init and
+	graphite_opencl_finalize.
+	* tree-ssa-loop.c (gate_graphite_transforms): Handle
+	flag_graphite_opencl.
+	* graphite-clast-to-gimple.c (gloog): Call opencl_transform_clast.
+	* dbgcnt.def (opencl_scop_cnt): New counter.
+
 2010-12-25  Alexander Monakov  <amonakov@ispras.ru>
 
 	* graphite-dependences.c (graphite_outer_subscript_bound): New.

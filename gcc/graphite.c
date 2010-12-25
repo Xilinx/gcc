@@ -281,10 +281,16 @@ graphite_transform_loops (void)
       {
 	build_poly_scop (scop);
 
+        if (flag_graphite_opencl)
+          graphite_opencl_init ();
+
 	if (POLY_SCOP_P (scop)
 	    && apply_poly_transforms (scop)
 	    && gloog (scop, bb_pbb_mapping))
 	  need_cfg_cleanup_p = true;
+
+        if (flag_graphite_opencl)
+          graphite_opencl_finalize (single_succ_edge (ENTRY_BLOCK_PTR));
       }
 
   htab_delete (bb_pbb_mapping);

@@ -1119,6 +1119,38 @@ floop-parallelize-all
 Common Report Var(flag_loop_parallelize_all) Optimization
 Mark all loops as parallel
 
+fgraphite-opencl
+Common Report Var(flag_graphite_opencl) Optimization
+Export OpenCL from graphite
+
+fgraphite-opencl-cpu
+Common Report Var(flag_graphite_opencl_cpu) Optimization
+Generate CPU oriented OpenCL code.
+
+fgraphite-opencl-ignore-depth-heuristic
+Common Report Var(flag_graphite_opencl_no_depth_check)
+Ignore depth heuristic in graphite-opencl pass.
+
+fgraphite-opencl-ignore-mem-heuristic
+Common Report Var(flag_graphite_opencl_no_memory_transfer_check)
+Ignore mem transfer heuristic in graphite-opencl pass.
+
+fgraphite-opencl-ignore-dep
+Common Report Var(flag_graphite_opencl_no_dep_check)
+Ignore dependency checking in graphite-opencl pass.
+
+fgraphite-opencl-ignore-types
+Common Report Var(flag_graphite_opencl_no_types_check)
+Ignore supported type checking in graphite-opencl pass.
+
+fgraphite-opencl-depth-base=
+Common RejectNegative Joined UInteger Init(0) Var(opencl_base_depth_const)
+Value for depth heuristic in graphite-opencl pass.
+
+fgraphite-opencl-debug
+Common Report Var(flag_graphite_opencl_debug)
+Add checks for opencl calls return values.
+
 floop-strip-mine
 Common Report Var(flag_loop_strip_mine) Optimization
 Enable Loop Strip Mining transformation
