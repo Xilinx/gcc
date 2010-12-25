@@ -1,3 +1,10 @@
+2010-12-25  Alexander Monakov  <amonakov@ispras.ru>
+
+	* graphite-dependences.c (graphite_outer_subscript_bound): New.
+	(graphite_carried_dependence_level_k): Export.
+	* graphite-dependences.h (graphite_outer_subscript_bound): Declare.
+	(graphite_carried_dependence_level_k): Ditto.
+
 2010-12-25  Alexey Kravets  <kayrick@ispras.ru>
 
 	* graphite-clast-to-gimple.c (struct clast_name_index): Move

@@ -47,6 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "graphite.h"
 #include "graphite-poly.h"
 #include "graphite-dependences.h"
+#include "graphite-cloog-util.h"
 
 /* Returns a new polyhedral Data Dependence Relation (DDR).  SOURCE is
    the source data reference, SINK is the sink data reference.  When
@@ -752,10 +753,137 @@ graphite_legal_transform (scop_p scop)
   return true;
 }
 
+/* Return a tree with upper bound on PDR's outermost index (if PDR's outermost
+   type is INDIRECT_REF), or NULL if the bound could not be found.  */
+
+tree
+graphite_outer_subscript_bound (poly_dr_p pdr,
+				bool minmax ATTRIBUTE_UNUSED)
+{
+  tree bound_tree = NULL_TREE;
+  poly_bb_p pbb = PDR_PBB (pdr);
+  graphite_dim_t tdim = pbb_nb_scattering_transform (pbb);
+  graphite_dim_t ddim = pbb_dim_iter_domain (pbb);
+
+  graphite_dim_t sdim = PDR_NB_SUBSCRIPTS (pdr) + 1;
+  graphite_dim_t dim1 = pdr_dim (pdr);
+
+  scop_p scop = PBB_SCOP (pbb);
+  graphite_dim_t gdim = scop_nb_params (scop);
+
+  graphite_dim_t dim = tdim + dim1;
+
+  ppl_Pointset_Powerset_C_Polyhedron_t isc, idr, res;
+
+  combine_context_id_scat (&isc, pbb, false);
+  ppl_insert_dimensions_pointset (isc, tdim + ddim, sdim);
+  idr = map_dr_into_dep_poly (dim, PDR_ACCESSES (pdr), ddim, ddim + gdim,
+			      tdim, 0);
+
+  ppl_new_Pointset_Powerset_C_Polyhedron_from_space_dimension (&res, dim, 0);
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, isc);
+  ppl_Pointset_Powerset_C_Polyhedron_intersection_assign (res, idr);
+
+  ppl_delete_Pointset_Powerset_C_Polyhedron (isc);
+  ppl_delete_Pointset_Powerset_C_Polyhedron (idr);
+
+  {
+    ppl_Linear_Expression_t le;
+    ppl_Coefficient_t coef;
+    mpz_t v;
+    unsigned i;
+
+    mpz_init (v);
+    mpz_set_si (v, 1);
+    ppl_new_Coefficient (&coef);
+    ppl_assign_Coefficient_from_mpz_t (coef, v);
+
+    ppl_new_Linear_Expression_with_dimension (&le, dim);
+
+    for (i = 0; i < dim - sdim + 1 - gdim; i++)
+      ppl_Pointset_Powerset_C_Polyhedron_affine_image (res, i, le, coef);
+  }
+
+  {
+    ppl_dimension_type *ds = XNEWVEC (ppl_dimension_type, dim - gdim - 1);
+    unsigned i, pos, sub1_dim = dim - sdim + 1 - gdim;
+    for (i = 0, pos = 0; i < dim - gdim; i++)
+      if (i != sub1_dim)
+	ds[pos++] = i;
+
+    ppl_Pointset_Powerset_C_Polyhedron_remove_space_dimensions (res, ds,
+								dim
+								- gdim
+								- 1);
+    XDELETEVEC (ds);
+  }
+
+  {
+    ppl_Pointset_Powerset_C_Polyhedron_iterator_t it, end;
+    ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&it);
+    ppl_new_Pointset_Powerset_C_Polyhedron_iterator (&end);
+
+    for (ppl_Pointset_Powerset_C_Polyhedron_iterator_begin (res, it),
+	   ppl_Pointset_Powerset_C_Polyhedron_iterator_end (res, end);
+	 !ppl_Pointset_Powerset_C_Polyhedron_iterator_equal_test (it, end);
+	 ppl_Pointset_Powerset_C_Polyhedron_iterator_increment (it))
+      {
+	ppl_const_Polyhedron_t ph;
+	CloogMatrix *mat;
+	int i;
+	unsigned j;
+
+	ppl_Pointset_Powerset_C_Polyhedron_iterator_dereference (it, &ph);
+	mat = new_Cloog_Matrix_from_ppl_Polyhedron (ph);
+
+	for (i = 0; i < (int) mat->NbRows; i++)
+	  if (mpz_cmp_si (mat->p[i][0], 0) == 0
+	      && mpz_cmp_si (mat->p[i][1], 0) != 0)
+	    {
+	      bound_tree = size_zero_node;
+	      break;
+	    }
+	  else if (mpz_cmp_si (mat->p[i][0], 1) == 0
+		   && mpz_cmp_si (mat->p[i][1], 0) < 0)
+	    {
+	      tree dt = gmp_cst_to_tree (sizetype, mat->p[i][1]);
+	      tree t = gmp_cst_to_tree (sizetype, mat->p[i][gdim+2]);
+
+	      for (j = 0; j < gdim; j++)
+		{
+		  tree p, vt = gmp_cst_to_tree (sizetype, mat->p[i][j+2]);
+
+		  p = VEC_index (tree, SESE_PARAMS (SCOP_REGION (scop)), j);
+		  p = fold_convert (sizetype, p);
+		  p = fold_build2 (MULT_EXPR, sizetype, vt, p);
+		  t = fold_build2 (PLUS_EXPR, sizetype, t, p);
+		}
+
+	      dt = fold_build1 (NEGATE_EXPR, sizetype, dt);
+	      t = fold_build2 (FLOOR_DIV_EXPR, sizetype, t, dt);
+
+	      if (!bound_tree)
+		bound_tree = t;
+	      else
+		bound_tree = fold_build2 (MIN_EXPR, sizetype,
+					  bound_tree, t);
+	    }
+
+	cloog_matrix_free (mat);
+      }
+
+    ppl_delete_Pointset_Powerset_C_Polyhedron_iterator (it);
+    ppl_delete_Pointset_Powerset_C_Polyhedron_iterator (end);
+  }
+
+  ppl_delete_Pointset_Powerset_C_Polyhedron (res);
+  return bound_tree;
+}
+
 /* Returns TRUE when the dependence polyhedron between PDR1 and
    PDR2 represents a loop carried dependence at level LEVEL.  */
 
-static bool
+bool
 graphite_carried_dependence_level_k (poly_dr_p pdr1, poly_dr_p pdr2,
 				     int level)
 {
