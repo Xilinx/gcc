@@ -70,13 +70,6 @@ graphite_verify (void)
 #endif
 }
 
-/* Stores the INDEX in a vector for a given clast NAME.  */
-
-typedef struct clast_name_index {
-  int index;
-  const char *name;
-} *clast_name_index_p;
-
 /* Returns a pointer to a new element of type clast_name_index_p built
    from NAME and INDEX.  */
 
@@ -90,34 +83,9 @@ new_clast_name_index (const char *name, int index)
   return res;
 }
 
-/* For a given clast NAME, returns -1 if it does not correspond to any
-   parameter, or otherwise, returns the index in the PARAMS or
-   SCATTERING_DIMENSIONS vector.  */
-
-static inline int
-clast_name_to_index (clast_name_p name, htab_t index_table)
-{
-  struct clast_name_index tmp;
-  PTR *slot;
-
-#ifdef CLOOG_ORG
-  gcc_assert (name->type == clast_expr_name);
-  tmp.name = ((const struct clast_name*) name)->name;
-#else
-  tmp.name = name;
-#endif
-
-  slot = htab_find_slot (index_table, &tmp, NO_INSERT);
-
-  if (slot && *slot)
-    return ((struct clast_name_index *) *slot)->index;
-
-  return -1;
-}
-
 /* Records in INDEX_TABLE the INDEX for NAME.  */
 
-static inline void
+void
 save_clast_name_index (htab_t index_table, const char *name, int index)
 {
   struct clast_name_index tmp;
@@ -135,25 +103,6 @@ save_clast_name_index (htab_t index_table, const char *name, int index)
     }
 }
 
-/* Computes a hash function for database element ELT.  */
-
-static inline hashval_t
-clast_name_index_elt_info (const void *elt)
-{
-  return htab_hash_pointer (((const struct clast_name_index *) elt)->name);
-}
-
-/* Compares database elements E1 and E2.  */
-
-static inline int
-eq_clast_name_indexes (const void *e1, const void *e2)
-{
-  const struct clast_name_index *elt1 = (const struct clast_name_index *) e1;
-  const struct clast_name_index *elt2 = (const struct clast_name_index *) e2;
-
-  return (elt1->name == elt2->name);
-}
-
 /* For a given scattering dimension, return the new induction variable
    associated to it.  */
 
@@ -168,7 +117,7 @@ newivs_to_depth_to_newiv (VEC (tree, heap) *newivs, int depth)
 /* Returns the tree variable from the name NAME that was given in
    Cloog representation.  */
 
-static tree
+tree
 clast_name_to_gcc (clast_name_p name, sese region, VEC (tree, heap) *newivs,
 		   htab_t newivs_index, htab_t params_index)
 {
@@ -243,10 +192,6 @@ max_precision_type (tree type1, tree type2)
   return TYPE_PRECISION (type1) > TYPE_PRECISION (type2) ? type1 : type2;
 }
 
-static tree
-clast_to_gcc_expression (tree, struct clast_expr *, sese, VEC (tree, heap) *,
-			 htab_t, htab_t);
-
 /* Converts a Cloog reduction expression R with reduction operation OP
    to a GCC expression tree of type TYPE.  */
 
@@ -274,7 +219,7 @@ clast_to_gcc_expression_red (tree type, enum tree_code op,
 /* Converts a Cloog AST expression E back to a GCC expression tree of
    type TYPE.  */
 
-static tree
+tree
 clast_to_gcc_expression (tree type, struct clast_expr *e,
 			 sese region, VEC (tree, heap) *newivs,
 			 htab_t newivs_index, htab_t params_index)
@@ -514,10 +459,6 @@ gcc_type_for_clast_term (struct clast_term *t,
 				       newivs_index, params_index));
 }
 
-static tree
-gcc_type_for_clast_expr (struct clast_expr *, sese,
-			 VEC (tree, heap) *, htab_t, htab_t);
-
 /* Return the type for the clast_reduction R used in STMT.  */
 
 static tree
@@ -570,7 +511,7 @@ gcc_type_for_clast_bin (struct clast_binary *b,
 /* Returns the type for the CLAST expression E when used in statement
    STMT.  */
 
-static tree
+tree
 gcc_type_for_clast_expr (struct clast_expr *e,
 			 sese region, VEC (tree, heap) *newivs,
 			 htab_t newivs_index, htab_t params_index)
@@ -665,7 +606,7 @@ graphite_create_guard_cond_expr (sese region, struct clast_guard *stmt,
 
 /* Creates a new if region corresponding to Cloog's guard.  */
 
-static edge
+edge
 graphite_create_new_guard (sese region, edge entry_edge,
 			   struct clast_guard *stmt,
 			   VEC (tree, heap) *newivs,
@@ -751,7 +692,7 @@ clast_get_body_of_loop (struct clast_stmt *stmt)
 /* Returns the type for the induction variable for the loop translated
    from STMT_FOR.  */
 
-static tree
+tree
 gcc_type_for_iv_of_clast_loop (struct clast_for *stmt_for, int level,
 			       tree lb_type, tree ub_type)
 {
@@ -773,7 +714,7 @@ gcc_type_for_iv_of_clast_loop (struct clast_for *stmt_for, int level,
    loop of STMT.  The new induction variable is inserted in the NEWIVS
    vector.  */
 
-static struct loop *
+struct loop *
 graphite_create_new_loop (sese region, edge entry_edge,
 			  struct clast_for *stmt,
 			  loop_p outer, VEC (tree, heap) **newivs,
@@ -806,7 +747,7 @@ graphite_create_new_loop (sese region, edge entry_edge,
 /* Inserts in iv_map a tuple (OLD_LOOP->num, NEW_NAME) for the
    induction variables of the loops around GBB in SESE.  */
 
-static void
+void
 build_iv_mapping (VEC (tree, heap) *iv_map, sese region,
 		  VEC (tree, heap) *newivs, htab_t newivs_index,
 		  struct clast_user_stmt *user_stmt,
@@ -958,7 +899,7 @@ translate_clast_user (sese region, struct clast_user_stmt *stmt, edge next_e,
 /* Creates a new if region protecting the loop to be executed, if the execution
    count is zero (lb > ub).  */
 
-static edge
+edge
 graphite_create_new_loop_guard (sese region, edge entry_edge,
 				struct clast_for *stmt,
 				VEC (tree, heap) *newivs,
@@ -1440,6 +1381,28 @@ debug_clast_stmt (struct clast_stmt *stmt)
 {
   print_clast_stmt (stderr, stmt);
 }
+
+/* Helper function for debug_clast_name_indices.  */
+
+static int
+debug_clast_name_index (void **slot, void *s ATTRIBUTE_UNUSED)
+{
+  struct clast_name_index *entry = (struct clast_name_index *) *slot;
+  fprintf (stderr, "(index = %d, name = %s)\n", entry->index, entry->name);
+  return 1;
+}
+
+extern void debug_clast_name_indices (htab_t);
+
+/* Print to stderr all the elements of MAP.  */
+
+DEBUG_FUNCTION void
+debug_clast_name_indices (htab_t map)
+{
+  htab_traverse (map, debug_clast_name_index, NULL);
+}
+
+
 
 /* Translate SCOP to a CLooG program and clast.  These two
    representations should be freed together: a clast cannot be used

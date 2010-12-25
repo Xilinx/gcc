@@ -77,6 +77,14 @@ typedef int matrix_num_type;
 #define cloog_program_dump_cloog(DUMPFILE, PROGRAM, SCATTERINGLIST)\
   cloog_program_dump_cloog (DUMPFILE, PROGRAM)
 
+/* Returns a string of characters for NAME.  */
+
+static inline const char *
+clast_name_to_str (clast_name_p name)
+{
+  return (const char *) name;
+}
+
 #endif
 
 /* Adapt CLooG accessors from CLooG legacy to
@@ -273,5 +281,15 @@ static inline int cloog_matrix_nrows (CloogMatrix * m)
 {
    return m->NbRows;
 }
+
+/* Returns a string of characters for NAME.  */
+
+static inline const char *
+clast_name_to_str (clast_name_p name)
+{
+  gcc_assert (name->type == clast_expr_name);
+  return ((const struct clast_name*) name)->name;
+}
+
 #endif /* CLOOG_ORG  */
 #endif /* GRAPHITE_CLOOG_COMPAT_H  */

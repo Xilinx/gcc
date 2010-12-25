@@ -1,3 +1,22 @@
+2010-12-25  Alexey Kravets  <kayrick@ispras.ru>
+
+	* graphite-clast-to-gimple.c (struct clast_name_index): Move
+	definition to graphite-clast-to-gimple.h.
+	(clast_name_to_index): Ditto.
+	(clast_name_index_elt_info): Ditto.
+	(eq_clast_name_indexes): Ditto.
+	(save_clast_name_index): Export.
+	(clast_name_to_gcc): Ditto.
+	(clast_to_gcc_expression): Ditto.
+	(gcc_type_for_clast_expr): Ditto.
+	(graphite_create_new_guard): Ditto.
+	(gcc_type_for_iv_of_clast_loop): Ditto.
+	(graphite_create_new_loop): Ditto.
+	(build_iv_mapping): Ditto.
+	(graphite_create_new_loop_guard): Ditto.
+	(debug_clast_name_index): New.
+	(debug_clast_name_indices): New debug function.
+
 2010-12-21  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR tree-optimization/47021
