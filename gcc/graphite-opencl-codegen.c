@@ -250,20 +250,22 @@ opencl_constant_expression_p (struct clast_expr *expr, const char *first_scat)
 {
   switch (expr->type)
     {
-    case expr_term:
+    case clast_expr_term:
       {
 	struct clast_term *term = (struct clast_term *) expr;
-	if (!(term->var))
+
+	if (!term->var)
 	  return true;
+
 	{
-	  const char *name = term->var;
+	  const char *name = clast_name_to_str (term->var);
 	  if (strstr (name, "scat_") != name)
             return true;
 
-          return (opencl_cmp_scat (first_scat, name) == 1);
+          return opencl_cmp_scat (first_scat, name) == 1;
 	}
       }
-    case expr_red:
+    case clast_expr_red:
       {
 	struct clast_reduction *red = (struct clast_reduction *) expr;
 	int i;
@@ -273,7 +275,7 @@ opencl_constant_expression_p (struct clast_expr *expr, const char *first_scat)
 
 	return true;
       }
-    case expr_bin:
+    case clast_expr_bin:
       {
 	struct clast_binary *bin = (struct clast_binary *) expr;
 	return opencl_constant_expression_p (bin->LHS, first_scat);
@@ -670,7 +672,7 @@ opencl_print_assignment (struct clast_assignment *a, opencl_main code_gen)
    CODE_GEN holds information related to OpenCL code generation.  */
 
 static tree
-opencl_clast_name_to_tree (opencl_main code_gen, const char *name)
+opencl_clast_name_to_tree (opencl_main code_gen, clast_name_p name)
 {
   return clast_name_to_gcc (name, code_gen->region, code_gen->newivs,
                             code_gen->newivs_index, code_gen->params_index);
@@ -682,14 +684,15 @@ opencl_clast_name_to_tree (opencl_main code_gen, const char *name)
    code generation.  */
 
 static const char *
-opencl_get_scat_real_name (opencl_main code_gen, const char *name)
+opencl_get_scat_real_name (opencl_main code_gen, clast_name_p name)
 {
-  /* NAME > FIRST_ITER */
-  if (opencl_cmp_scat (name, code_gen->current_body->first_iter) >= 0)
-    return name;
+  const char *str = clast_name_to_str (name);
 
-  return
-    opencl_get_var_name (opencl_clast_name_to_tree (code_gen, name));
+  /* NAME > FIRST_ITER */
+  if (opencl_cmp_scat (str, code_gen->current_body->first_iter) >= 0)
+    return str;
+
+  return opencl_get_var_name (opencl_clast_name_to_tree (code_gen, name));
 }
 
 /* Add clast variable (scat_i) as kernel argument.  NAME is a new name
@@ -698,12 +701,14 @@ opencl_get_scat_real_name (opencl_main code_gen, const char *name)
    generation.  */
 
 static void
-opencl_add_scat_as_arg (opencl_main code_gen, const char *name,
+opencl_add_scat_as_arg (opencl_main code_gen, clast_name_p name,
 			const char *real_name)
 {
   tree var;
+
   if (!check_and_mark_arg (code_gen, real_name, false))
     return;
+
   var = opencl_clast_name_to_tree (code_gen, name);
   opencl_add_function_arg (code_gen, var, real_name);
 }
@@ -1466,8 +1471,8 @@ static void
 opencl_print_local_vars (const char *fist, const char *last,
 			 const char *type, opencl_main code_gen)
 {
-  char ** names = code_gen->root_names->_scattering;
-  int len = code_gen->root_names->_nb_scattering;
+  char **names = cloog_names_scattering (code_gen->root_names);
+  int len = cloog_names_nb_scattering (code_gen->root_names);
   int i;
   for (i = 0; i < len; i++)
     {
@@ -1675,7 +1680,7 @@ opencl_print_for (struct clast_for *f, opencl_main code_gen, int level)
     }
   opencl_append_string_to_body (";", code_gen);
 
-  if (value_gt_si (f->stride, 1))
+  if (mpz_cmp_si (f->stride, 1) > 0)
     {
       opencl_append_string_to_body (f->iterator, code_gen);
       opencl_append_string_to_body ("+=", code_gen);
@@ -1759,13 +1764,13 @@ opencl_print_expr (struct clast_expr *e, opencl_main code_gen)
     return;
   switch (e->type)
     {
-    case expr_term:
+    case clast_expr_term:
       opencl_print_term ((struct clast_term*) e, code_gen);
       break;
-    case expr_red:
+    case clast_expr_red:
       opencl_print_reduction ((struct clast_reduction*) e, code_gen);
       break;
-    case expr_bin:
+    case clast_expr_bin:
       opencl_print_binary ((struct clast_binary*) e, code_gen);
       break;
     default:
@@ -1782,9 +1787,10 @@ opencl_print_term (struct clast_term *t, opencl_main code_gen)
   if (t->var)
     {
       const char *real_name = opencl_get_scat_real_name (code_gen, t->var);
-      if (value_one_p (t->val))
+
+      if (mpz_cmp_si (t->val, 1) == 0)
 	opencl_append_var_name (real_name, code_gen);
-      else if (value_mone_p (t->val))
+      else if (mpz_cmp_si (t->val, -1) == 0)
 	{
 	  opencl_append_string_to_body ("-", code_gen);
 	  opencl_append_var_name (real_name, code_gen);
@@ -1835,15 +1841,15 @@ opencl_print_sum (struct clast_reduction *r, opencl_main code_gen)
   int i;
   struct clast_term *t;
 
-  gcc_assert (r->n >= 1 && r->elts[0]->type == expr_term);
+  gcc_assert (r->n >= 1 && r->elts[0]->type == clast_expr_term);
   t = (struct clast_term *) r->elts[0];
   opencl_print_term (t, code_gen);
 
   for (i = 1; i < r->n; ++i)
     {
-      gcc_assert (r->elts[i]->type == expr_term);
+      gcc_assert (r->elts[i]->type == clast_expr_term);
       t = (struct clast_term *) r->elts[i];
-      if (value_pos_p (t->val))
+      if (mpz_sgn (t->val) > 0)
 	opencl_append_string_to_body ("+", code_gen);
       opencl_print_term (t, code_gen);
     }
@@ -1856,7 +1862,7 @@ static void
 opencl_print_binary (struct clast_binary *b, opencl_main code_gen)
 {
   const char *s1 = NULL, *s2 = NULL, *s3 = NULL;
-  bool group = (b->LHS->type == expr_red
+  bool group = (b->LHS->type == clast_expr_red
 		&& ((struct clast_reduction*) b->LHS)->n > 1);
 
   switch (b->type)

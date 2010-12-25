@@ -224,10 +224,22 @@ cloog_names_set_nb_scattering (CloogNames *names, int nb_scattering)
   names->nb_scattering = nb_scattering;
 }
 
+static inline int
+cloog_names_nb_scattering (CloogNames *names)
+{
+  return names->nb_scattering;
+}
+
 static inline void
 cloog_names_set_scattering (CloogNames *names, char **scattering)
 {
   names->scattering = scattering;
+}
+
+static inline char **
+cloog_names_scattering (CloogNames *names)
+{
+  return names->scattering;
 }
 
 static inline void

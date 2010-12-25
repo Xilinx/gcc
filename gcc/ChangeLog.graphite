@@ -1,3 +1,20 @@
+2010-12-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-cloog-compat.h (cloog_names_nb_scattering): New.
+	(cloog_names_scattering): New.
+	* graphite-opencl-codegen.c (opencl_constant_expression_p): Use
+	clast_expr_* instead of expr_*.  Call clast_name_to_str.
+	(opencl_clast_name_to_tree): Now takes a clast_name_p in parameter.
+	(opencl_get_scat_real_name): Same.  Call clast_name_to_str.
+	(opencl_add_scat_as_arg): Same.
+	(opencl_print_local_vars): Call cloog_names_scattering and
+	cloog_names_nb_scattering.
+	(opencl_print_for): Do not call value_*.
+	(opencl_print_term): Same.
+	(opencl_print_expr): Use clast_expr_* instead of expr_*.
+	(opencl_print_sum): Same.
+	(opencl_print_binary): Same.
+
 2010-12-25  Alexey Kravets  <kayrick@ispras.ru>
 
 	* Makefile.in (OBJS-common): Add graphite-opencl-codegen.o,
