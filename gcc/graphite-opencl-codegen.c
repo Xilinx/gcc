@@ -85,6 +85,7 @@ opencl_cmp_str (const void *str1, const void *str2)
 {
   const char *c_str1 = (const char *) str1;
   const char *c_str2 = (const char *) str2;
+
   return !strcmp (c_str1, c_str2);
 }
 
@@ -111,6 +112,7 @@ static void
 opencl_append_string_to_header (const char *str, opencl_main code_gen)
 {
   dyn_string_t tmp = opencl_get_current_header (code_gen);
+
   dyn_string_append_cstr (tmp, str);
 }
 
@@ -121,6 +123,7 @@ static void
 opencl_append_string_to_body (const char *str, opencl_main code_gen)
 {
   dyn_string_t tmp = opencl_get_current_body (code_gen);
+
   dyn_string_append_cstr (tmp, str);
 }
 
@@ -130,6 +133,7 @@ static void
 opencl_append_int_to_str (dyn_string_t str, long num, const char *format)
 {
   char tmp[100];
+
   sprintf (tmp, format, num);
   dyn_string_append_cstr (str, tmp);
 }
@@ -142,6 +146,7 @@ opencl_append_num_to_header (opencl_main code_gen, long num,
 			     const char *format)
 {
   dyn_string_t tmp = opencl_get_current_header (code_gen);
+
   opencl_append_int_to_str (tmp, num, format);
 }
 
@@ -152,6 +157,7 @@ static void
 opencl_append_num_to_body (opencl_main code_gen, long num, const char *format)
 {
   dyn_string_t tmp = opencl_get_current_body (code_gen);
+
   opencl_append_int_to_str (tmp, num, format);
 }
 
@@ -163,6 +169,7 @@ opencl_get_main_type (tree type)
   while (TREE_CODE (type) == ARRAY_TYPE
 	 || TREE_CODE (type) == POINTER_TYPE)
     type = TREE_TYPE (type);
+
   return build_pointer_type (type);
 }
 
@@ -174,6 +181,7 @@ opencl_create_function_code (opencl_body function)
 {
   static int opencl_function_counter = 0;
   dyn_string_t dest = function->header;
+
   dyn_string_append_cstr (dest, "__kernel void");
   dyn_string_append_cstr (dest, " ");
   dyn_string_append_cstr (dest, "opencl_auto_function_");
@@ -227,21 +235,26 @@ opencl_constant_expression_p (struct clast_expr *expr, const char *first_scat)
           return opencl_cmp_scat (first_scat, name) == 1;
 	}
       }
+
     case clast_expr_red:
       {
 	struct clast_reduction *red = (struct clast_reduction *) expr;
 	int i;
+
 	for (i = 0; i < red->n; i++)
           if (!opencl_constant_expression_p (red->elts [i], first_scat))
             return false;
 
 	return true;
       }
+
     case clast_expr_bin:
       {
 	struct clast_binary *bin = (struct clast_binary *) expr;
+
 	return opencl_constant_expression_p (bin->LHS, first_scat);
       }
+
     default:
       gcc_unreachable ();
       return false;
@@ -286,6 +299,7 @@ opencl_get_perfect_nested_loop_depth (opencl_main code_gen,
                                       int depth, const char *first_scat)
 {
   struct clast_for *child;
+
   if (dependency_in_clast_loop_p (code_gen, meta, loop, depth))
     return 0;
 
@@ -332,6 +346,7 @@ gen_type_1 (const char *ret_val, tree t)
     case POINTER_TYPE:
       if (TYPE_READONLY (t))
 	ret_val = concat ("const ", ret_val, NULL);
+
       if (TYPE_VOLATILE (t))
 	ret_val = concat ("volatile ", ret_val, NULL);
 
@@ -348,8 +363,10 @@ gen_type_1 (const char *ret_val, tree t)
     case ARRAY_TYPE:
       if (!COMPLETE_TYPE_P (t) || TREE_CODE (TYPE_SIZE (t)) != INTEGER_CST)
 	ret_val = gen_type_1 (concat (ret_val, "[]", NULL), TREE_TYPE (t));
+
       else if (int_size_in_bytes (t) == 0)
 	ret_val = gen_type_1 (concat (ret_val, "[0]", NULL), TREE_TYPE (t));
+
       else
 	{
 	  int size = int_size_in_bytes (t) / int_size_in_bytes (TREE_TYPE (t));
@@ -377,8 +394,10 @@ gen_type_1 (const char *ret_val, tree t)
 	case 64: data_type = "long"; break;
 	default: gcc_unreachable ();
 	}
+
       if (TYPE_UNSIGNED (t))
 	data_type = concat ("unsigned ", data_type, NULL);
+
       break;
 
     case REAL_TYPE:
@@ -400,10 +419,13 @@ gen_type_1 (const char *ret_val, tree t)
 
   if (TYPE_READONLY (t))
     ret_val = concat ("const ", ret_val, NULL);
+
   if (TYPE_VOLATILE (t))
     ret_val = concat ("volatile ", ret_val, NULL);
+
   if (TYPE_RESTRICT (t))
     ret_val = concat ("restrict ", ret_val, NULL);
+
   return ret_val;
 }
 
@@ -414,6 +436,7 @@ static const char *
 gen_type_with_name (const char *name, tree t)
 {
   const char *type_part = gen_type_1 (name, t);
+
   return concat (data_type, " ", type_part, NULL);
 }
 
@@ -423,15 +446,18 @@ gen_type_with_name (const char *name, tree t)
 static const char *
 opencl_get_var_name (tree node)
 {
-  bool ssa_name = TREE_CODE (node) == SSA_NAME;
+  bool ssa_name = (TREE_CODE (node) == SSA_NAME);
   tree name;
   int num = 0;
+
   if (ssa_name)
     {
       num = SSA_NAME_VERSION (node);
       node = SSA_NAME_VAR (node);
     }
+
   name = DECL_NAME (node);
+
   if (name)
     {
       if (!ssa_name)
@@ -440,6 +466,7 @@ opencl_get_var_name (tree node)
 	{
 	  const char *base = identifier_to_locale (IDENTIFIER_POINTER (name));
 	  char *buff = XNEWVEC (char, strlen (base) + 5);
+
 	  sprintf (buff, "%s_%d", base, num);
 	  return buff;
 	}
@@ -448,6 +475,7 @@ opencl_get_var_name (tree node)
     {
       int tmp_var_uid = DECL_UID (node);
       char *tmp = XNEWVEC (char, 30);
+
       sprintf (tmp, "opencl_var_%d_%d", tmp_var_uid, num);
       return tmp;
     }
@@ -459,9 +487,11 @@ static char *
 filter_dots (char *p)
 {
   char *s;
+
   for (s = p; *s; s++)
     if (*s == '.')
       *s = '_';
+
   return p;
 }
 
@@ -472,8 +502,8 @@ static const char *
 opencl_print_function_arg_with_type (const char *arg_name, tree type)
 {
   const char *decl = gen_type_with_name (arg_name, type);
-  char *ddecl;
-  ddecl = xstrdup (decl);
+  char *ddecl = xstrdup (decl);
+
   return filter_dots (ddecl);
 }
 
@@ -485,13 +515,16 @@ static bool
 check_and_mark_arg (opencl_main code_gen, const char *name, bool local)
 {
   const char **slot;
+
   gcc_assert (code_gen->defined_vars || !local);
+
   if (code_gen->defined_vars)
     {
       slot = (const char **) htab_find_slot (code_gen->defined_vars,
 					     name, INSERT);
       if (*slot)
         return false;
+
       if (local)
         *slot = name;
     }
@@ -500,8 +533,10 @@ check_and_mark_arg (opencl_main code_gen, const char *name, bool local)
 					 name, INSERT);
   if (*slot)
     return false;
+
   if (!local)
     *slot = name;
+
   return true;
 }
 
@@ -533,6 +568,7 @@ opencl_perfect_nested_to_kernel (opencl_main code_gen, struct clast_for *f,
   int counter = perfect_depth;
   tree curr_base = integer_one_node;
   basic_block calc_block = opencl_create_bb (code_gen);
+
   opencl_append_string_to_body
     ("size_t opencl_global_id = get_global_id (0);\n", code_gen);
 
@@ -672,9 +708,11 @@ opencl_print_local_vars (const char *fist, const char *last,
   char **names = cloog_names_scattering (code_gen->root_names);
   int len = cloog_names_nb_scattering (code_gen->root_names);
   int i;
+
   for (i = 0; i < len; i++)
     {
       const char *tmp = names[i];
+
       if (opencl_cmp_scat (fist, tmp) <= 0
 	  && opencl_cmp_scat (last, tmp) >= 0)
 	{
@@ -731,12 +769,10 @@ opencl_get_scat_real_name (opencl_main code_gen, clast_name_p name)
 static void
 opencl_add_function_arg (opencl_main code_gen, tree var, const char *name)
 {
-  opencl_body body;
-  const char *decl;
-  tree type;
-  type = TREE_TYPE (var);
-  body = code_gen->current_body;
-  decl = opencl_print_function_arg_with_type (name, type);
+  tree type = TREE_TYPE (var);
+  opencl_body body = code_gen->current_body;
+  const char *decl = opencl_print_function_arg_with_type (name, type);
+
   dyn_string_append_cstr (body->header, decl);
   dyn_string_append_cstr (body->header, ", ");
   VEC_safe_push (tree, heap, body->function_args, var);
@@ -770,13 +806,17 @@ opencl_append_var_name (const char *name, opencl_main code_gen)
   int len = strlen (name);
   char *tmp = XNEWVEC (char, len + 1);
   int i;
+
   for (i = 0; i <= len; i++)
     {
       char tt = name[i];
+
       if (tt == '.')
 	tt = '_';
+
       tmp[i] = tt;
     }
+
   opencl_append_string_to_body (tmp, code_gen);
   free (tmp);
 }
@@ -793,6 +833,7 @@ opencl_print_term (struct clast_term *t, opencl_main code_gen)
 
       if (mpz_cmp_si (t->val, 1) == 0)
 	opencl_append_var_name (real_name, code_gen);
+
       else if (mpz_cmp_si (t->val, -1) == 0)
 	{
 	  opencl_append_string_to_body ("-", code_gen);
@@ -804,6 +845,7 @@ opencl_print_term (struct clast_term *t, opencl_main code_gen)
 	  opencl_append_string_to_body ("*", code_gen);
 	  opencl_append_var_name (real_name, code_gen);
 	}
+
       opencl_add_scat_as_arg (code_gen, t->var, real_name);
     }
   else
@@ -827,8 +869,10 @@ opencl_print_sum (struct clast_reduction *r, opencl_main code_gen)
     {
       gcc_assert (r->elts[i]->type == clast_expr_term);
       t = (struct clast_term *) r->elts[i];
+
       if (mpz_sgn (t->val) > 0)
 	opencl_append_string_to_body ("+", code_gen);
+
       opencl_print_term (t, code_gen);
     }
 }
@@ -842,15 +886,18 @@ static void
 opencl_print_minmax_c ( struct clast_reduction *r, opencl_main code_gen)
 {
   int i;
+
   for (i = 1; i < r->n; ++i)
-    opencl_append_string_to_body (r->type == clast_red_max ? "max (" : "min (",
-				  code_gen);
+    opencl_append_string_to_body
+      (r->type == clast_red_max ? "max (" : "min (", code_gen);
+
   if (r->n > 0)
     {
       opencl_append_string_to_body ("(unsigned int)(", code_gen);
       opencl_print_expr (r->elts[0], code_gen);
       opencl_append_string_to_body (")", code_gen);
     }
+
   for (i = 1; i < r->n; ++i)
     {
       opencl_append_string_to_body (",", code_gen);
@@ -871,6 +918,7 @@ opencl_print_reduction (struct clast_reduction *r, opencl_main  code_gen)
     case clast_red_sum:
       opencl_print_sum (r, code_gen);
       break;
+
     case clast_red_min:
     case clast_red_max:
       if (r->n == 1)
@@ -878,8 +926,10 @@ opencl_print_reduction (struct clast_reduction *r, opencl_main  code_gen)
 	  opencl_print_expr (r->elts[0], code_gen);
 	  break;
 	}
+
       opencl_print_minmax_c (r, code_gen);
       break;
+
     default:
       gcc_unreachable ();
     }
@@ -900,15 +950,18 @@ opencl_print_binary (struct clast_binary *b, opencl_main code_gen)
     case clast_bin_fdiv:
       s1 = "floor ((", s2 = ")/(", s3 = "))";
       break;
+
     case clast_bin_cdiv:
       s1 = "ceil ((", s2 = ")/(", s3 = "))";
       break;
+
     case clast_bin_div:
       if (group)
 	s1 = "(", s2 = ")/", s3 = "";
       else
 	s1 = "", s2 = "/", s3 = "";
       break;
+
     case clast_bin_mod:
       if (group)
 	s1 = "(", s2 = ")%", s3 = "";
@@ -932,17 +985,21 @@ opencl_print_expr (struct clast_expr *e, opencl_main code_gen)
 {
   if (!e)
     return;
+
   switch (e->type)
     {
     case clast_expr_term:
       opencl_print_term ((struct clast_term*) e, code_gen);
       break;
+
     case clast_expr_red:
       opencl_print_reduction ((struct clast_reduction*) e, code_gen);
       break;
+
     case clast_expr_bin:
       opencl_print_binary ((struct clast_binary*) e, code_gen);
       break;
+
     default:
       gcc_unreachable ();
     }
@@ -1003,6 +1060,7 @@ opencl_add_non_scalar_type_decl (tree var, dyn_string_t dest,
   dyn_string_append_cstr (dest, type_name);
   dyn_string_append_cstr (dest, " *");
   dyn_string_append_cstr (dest, tmp_name);
+
   if (decl_name != NULL)
     {
       dyn_string_append_cstr (dest, " = (");
@@ -1011,6 +1069,7 @@ opencl_add_non_scalar_type_decl (tree var, dyn_string_t dest,
       dyn_string_append_cstr (dest, decl_name);
       dyn_string_append_cstr (dest, ";\n");
     }
+
   free (tmp_name);
 }
 
@@ -1024,6 +1083,7 @@ static void
 opencl_add_variable (const char *var_name, tree var, opencl_main code_gen)
 {
   const char **slot;
+
   if (htab_find (code_gen->global_defined_vars, var_name))
     {
       opencl_append_var_name (var_name, code_gen);
@@ -1033,11 +1093,12 @@ opencl_add_variable (const char *var_name, tree var, opencl_main code_gen)
   slot = (const char **) htab_find_slot
     (code_gen->defined_vars, var_name, INSERT);
 
-  if (! (*slot) && defined_in_sese_p (var, code_gen->region))
+  if (!(*slot) && defined_in_sese_p (var, code_gen->region))
     {
       const char *decl;
       tree type = TREE_TYPE (var);
       *slot = var_name;
+
       if (TREE_CODE (type) == POINTER_TYPE
           || TREE_CODE (type) == ARRAY_TYPE)
 	opencl_add_non_scalar_type_decl (var, code_gen->current_body->body,
@@ -1048,8 +1109,10 @@ opencl_add_variable (const char *var_name, tree var, opencl_main code_gen)
           decl = opencl_print_function_arg_with_type (var_name, type);
           opencl_append_string_to_body (decl, code_gen);
         }
+
       return;
     }
+
   opencl_append_var_name (var_name, code_gen);
 }
 
@@ -1061,6 +1124,7 @@ static void
 opencl_try_variable (opencl_main code_gen, tree var_decl)
 {
   const char *name = opencl_get_var_name (var_decl);
+
   gcc_assert (code_gen->defined_vars);
 
   if (check_and_mark_arg (code_gen, name, false))
@@ -1089,10 +1153,12 @@ opencl_print_operand (tree node, bool lhs, opencl_main code_gen)
     {
     case NOP_EXPR:
       return opencl_print_operand (TREE_OPERAND (node, 0), false, code_gen);
+
     case PLUS_EXPR:
       {
         if (lhs)
           return -1;
+
         opencl_append_string_to_body ("(", code_gen);
         opencl_print_operand (TREE_OPERAND (node, 0), false, code_gen);
         opencl_append_string_to_body (" + ", code_gen);
@@ -1100,10 +1166,12 @@ opencl_print_operand (tree node, bool lhs, opencl_main code_gen)
         opencl_append_string_to_body (")", code_gen);
         return 0;
       }
+
     case MULT_EXPR:
       {
         if (lhs)
           return -1;
+
         opencl_append_string_to_body ("(", code_gen);
         opencl_print_operand (TREE_OPERAND (node, 0), false, code_gen);
         opencl_append_string_to_body (" * ", code_gen);
@@ -1117,6 +1185,7 @@ opencl_print_operand (tree node, bool lhs, opencl_main code_gen)
 	/* If rhs just add variable name.  Otherwise
            it may be necessary to add variable definition.  */
 	const char *tmp = opencl_get_var_name (node);
+
 	if (lhs)
           opencl_add_variable (tmp, node, code_gen);
 	else
@@ -1127,62 +1196,77 @@ opencl_print_operand (tree node, bool lhs, opencl_main code_gen)
 	opencl_try_variable (code_gen, node);
 	return 0;
       }
+
     case ARRAY_REF:
       {
 	/* <operand>[<operand>].  */
 	tree arr = TREE_OPERAND (node, 0);
 	tree offset = TREE_OPERAND (node, 1);
-	opencl_print_operand (arr, false, code_gen);
 
+	opencl_print_operand (arr, false, code_gen);
         opencl_append_string_to_body ("[", code_gen);
         opencl_print_operand (offset, false, code_gen);
         opencl_append_string_to_body ("]", code_gen);
 	return 0;
       }
+
     case INTEGER_CST:
       {
 	/* Just print integer constant.  */
 	unsigned HOST_WIDE_INT low = TREE_INT_CST_LOW (node);
+
         if (lhs)
           return -1;
+
 	if (host_integerp (node, 0))
           opencl_append_num_to_body (code_gen, (long)low, "%ld");
 	else
 	  {
 	    HOST_WIDE_INT high = TREE_INT_CST_HIGH (node);
 	    char buff[100];
+
 	    buff[0] = ' ';
+
 	    if (tree_int_cst_sgn (node) < 0)
 	      {
 		buff[0] = '-';
 		high = ~high + !low;
 		low = -low;
 	      }
+
 	    sprintf (buff + 1, HOST_WIDE_INT_PRINT_DOUBLE_HEX,
 		     (unsigned HOST_WIDE_INT) high, low);
 	    opencl_append_string_to_body (buff, code_gen);
 	  }
+
 	return 0;
       }
+
     case REAL_CST:
       {
 	char buff[100];
 	REAL_VALUE_TYPE tmp = TREE_REAL_CST (node);
+
         if (lhs)
           return -1;
+
 	real_to_decimal (buff, &tmp, sizeof (buff), 0, 1);
 	opencl_append_string_to_body (buff, code_gen);
 	return 0;
       }
+
     case FIXED_CST:
       {
 	char buff[100];
+
         if (lhs)
           return -1;
+
 	fixed_to_decimal (buff, TREE_FIXED_CST_PTR (node), sizeof (buff));
 	opencl_append_string_to_body (buff, code_gen);
 	return 0;
       }
+
     case STRING_CST:
       {
 	opencl_append_string_to_body ("\"", code_gen);
@@ -1190,11 +1274,13 @@ opencl_print_operand (tree node, bool lhs, opencl_main code_gen)
 	opencl_append_string_to_body ("\"", code_gen);
 	return 0;
       }
+
     case VAR_DECL:
     case PARM_DECL:
       {
 	tree decl_name = DECL_NAME (node);
 	const char *tmp;
+
 	gcc_assert (decl_name);
 	tmp = IDENTIFIER_POINTER (decl_name);
 
@@ -1202,18 +1288,22 @@ opencl_print_operand (tree node, bool lhs, opencl_main code_gen)
 	opencl_try_variable (code_gen, node);
 	return 0;
       }
+
     case FIELD_DECL:
       {
 	tree decl_name = DECL_NAME (node);
 	const char *tmp;
+
 	gcc_assert (decl_name);
 	tmp = IDENTIFIER_POINTER (decl_name);
 	opencl_append_var_name (tmp, code_gen);
         return 0;
       }
+
     case LABEL_DECL:
       {
 	tree decl_name = DECL_NAME (node);
+
 	if (decl_name)
 	  {
 	    const char *tmp = IDENTIFIER_POINTER (decl_name);
@@ -1231,6 +1321,7 @@ opencl_print_operand (tree node, bool lhs, opencl_main code_gen)
 				   "D_%u");
 	return 0;
       }
+
     case INDIRECT_REF:
       {
 	opencl_append_string_to_body ("(*", code_gen);
@@ -1238,16 +1329,19 @@ opencl_print_operand (tree node, bool lhs, opencl_main code_gen)
 	opencl_append_string_to_body (")", code_gen);
 	return 0;
       }
+
     case ADDR_EXPR:
       {
 	opencl_append_string_to_body ("&", code_gen);
 	opencl_print_operand (TREE_OPERAND (node, 0), false, code_gen);
 	return 0;
       }
+
     case COMPONENT_REF:
       {
 	tree op1 = TREE_OPERAND (node, 0);
 	tree op2 = TREE_OPERAND (node, 1);
+
 	opencl_print_operand (op1, false, code_gen);
 
 	if (op1 && TREE_CODE (op1) == INDIRECT_REF)
@@ -1258,6 +1352,7 @@ opencl_print_operand (tree node, bool lhs, opencl_main code_gen)
 	opencl_print_operand (op2, false, code_gen);
 	return 0;
       }
+
     default:
       debug_tree (node);
       gcc_unreachable ();
@@ -1315,12 +1410,15 @@ opencl_print_unary (gimple gmp, opencl_main code_gen)
     case BIT_NOT_EXPR:
       opencl_append_string_to_body ("~", code_gen);
       return;
+
     case TRUTH_NOT_EXPR:
       opencl_append_string_to_body ("!", code_gen);
       return;
+
     case NEGATE_EXPR:
       opencl_append_string_to_body ("-", code_gen);
       return;
+
     case MODIFY_EXPR:
     default:
       return;
@@ -1347,18 +1445,22 @@ opencl_print_gimple_assign (gimple gmp, opencl_main code_gen)
       opencl_print_max_min_assign (gmp, code_gen);
       return;
     }
+
   gcc_assert (num_of_ops == 2 || num_of_ops == 3);
   lhs = gimple_assign_lhs (gmp);
 
   addr_expr = (TREE_CODE (TREE_TYPE (lhs)) == POINTER_TYPE);
+
   if (addr_expr)
     result_size = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (lhs)));
 
   rhs1 = gimple_assign_rhs1 (gmp);
   rhs2 = gimple_assign_rhs2 (gmp);
   result = opencl_print_operand (lhs, true, code_gen);
+
   if (result != 0)
     return;
+
   opencl_append_string_to_body (" = ", code_gen);
 
   if (addr_expr)
@@ -1367,16 +1469,20 @@ opencl_print_gimple_assign (gimple gmp, opencl_main code_gen)
     {
       if (rhs2 == NULL)
         opencl_print_unary (gmp, code_gen);
+
       opencl_print_operand (rhs1, false, code_gen);
     }
+
   if (rhs2 != NULL_TREE)
     {
       opencl_print_gimple_assign_operation (gmp, code_gen);
+
       if (addr_expr)
 	opencl_print_addr_operand (rhs2, result_size, code_gen);
       else
 	opencl_print_operand (rhs2, false, code_gen);
     }
+
   opencl_append_string_to_body (";\n",code_gen);
 }
 
@@ -1388,13 +1494,17 @@ opencl_print_gimple_call_args (opencl_main code_gen, gimple gmp)
 {
   size_t len = gimple_call_num_args (gmp);
   size_t i;
+
   opencl_append_string_to_body (" (",code_gen);
+
   for (i = 0; i < len; i++)
     {
       opencl_print_operand (gimple_call_arg (gmp, i), false, code_gen);
+
       if (i < len - 1)
 	opencl_append_string_to_body (", ",code_gen);
     }
+
   opencl_append_string_to_body (")",code_gen);
 }
 
@@ -1404,8 +1514,10 @@ static const char *
 opencl_get_function_name (tree function)
 {
   const char *gimple_name = IDENTIFIER_POINTER (DECL_NAME (function));
+
   if (!strcmp (gimple_name, "__builtin_powf"))
     return "pow";
+
   return gimple_name;
 }
 
@@ -1417,12 +1529,14 @@ opencl_print_gimple_call (opencl_main code_gen, gimple gmp)
 {
   tree lhs = gimple_call_lhs (gmp);
   tree function = gimple_call_fn (gmp);
+
   opencl_print_operand (lhs, true, code_gen);
   opencl_append_string_to_body (" = ", code_gen);
 
   while (TREE_CODE (function) == ADDR_EXPR
 	 || TREE_CODE (function) == INDIRECT_REF)
     function = TREE_OPERAND (function, 0);
+
   opencl_append_string_to_body (opencl_get_function_name (function), code_gen);
   opencl_print_gimple_call_args (code_gen, gmp);
   opencl_append_string_to_body (";\n",code_gen);
@@ -1445,15 +1559,20 @@ opencl_print_gimple (gimple gmp, opencl_main code_gen)
     case GIMPLE_ASSIGN:
       opencl_print_gimple_assign (gmp, code_gen);
       break;
+
     case GIMPLE_COND:
       break;
+
     case GIMPLE_PHI:
       break;
+
     case GIMPLE_CALL:
       opencl_print_gimple_call (code_gen, gmp);
       break;
+
     case GIMPLE_DEBUG:
       break;
+
     case GIMPLE_LABEL:
       {
 	tree label = gimple_label_label (gmp);
@@ -1461,6 +1580,7 @@ opencl_print_gimple (gimple gmp, opencl_main code_gen)
 	opencl_append_string_to_body (": ", code_gen);
       }
       break;
+
     default:
       debug_gimple_stmt (gmp);
       gcc_unreachable ();
@@ -1479,11 +1599,14 @@ opencl_expand_scalar_vars (opencl_main code_gen, gimple stmt)
 {
   ssa_op_iter iter;
   use_operand_p use_p;
+
   FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_ALL_USES)
     {
       tree use = USE_FROM_PTR (use_p);
+
       if (!is_gimple_reg (use))
 	continue;
+
       opencl_build_defines (use, code_gen);
     }
 }
@@ -1496,8 +1619,7 @@ opencl_expand_scalar_vars (opencl_main code_gen, gimple stmt)
 static void
 opencl_build_defines (tree node, opencl_main code_gen)
 {
-  enum tree_code code = TREE_CODE (node);
-  switch (code)
+  switch (TREE_CODE (node))
     {
     case SSA_NAME:
       {
@@ -1520,6 +1642,7 @@ opencl_build_defines (tree node, opencl_main code_gen)
 	opencl_print_gimple (def_stmt, code_gen);
 	return;
       }
+
     case ARRAY_REF:
       {
 	tree arr = TREE_OPERAND (node, 0);
@@ -1528,6 +1651,7 @@ opencl_build_defines (tree node, opencl_main code_gen)
 	opencl_build_defines (offset, code_gen);
 	return;
       }
+
     default:
       gcc_unreachable ();
     }
@@ -1540,6 +1664,7 @@ static void
 opencl_print_bb (basic_block bb, opencl_main code_gen)
 {
   gimple_stmt_iterator gsi;
+
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
@@ -1599,12 +1724,14 @@ opencl_try_data_ref (opencl_main code_gen, data_reference_p ref,
   tree var = dr_outermost_base_object (ref);
   const char *name = opencl_get_var_name (var);
   const char **slot;
+
   gcc_assert (code_gen->defined_vars);
 
   slot = (const char **) htab_find_slot (code_gen->global_defined_vars,
 					 name, INSERT);
   if (*slot)
     return;
+
   *slot = name;
   opencl_add_non_scalar_function_arg (code_gen, data);
 }
@@ -1618,6 +1745,7 @@ opencl_add_data_ref (opencl_main code_gen, data_reference_p d_ref)
   opencl_data tmp = opencl_get_data_by_data_ref (code_gen, d_ref);
 
   gcc_assert (tmp);
+
   if (!DR_IS_READ (d_ref))
     {
       bitmap_set_bit (code_gen->curr_meta->modified_on_device, tmp->id);
@@ -1630,6 +1758,7 @@ opencl_add_data_ref (opencl_main code_gen, data_reference_p d_ref)
       tmp->read_in_current_body = true;
       tmp->ever_read_on_device = true;
     }
+
   if (!tmp->privatized)
     tmp->used_on_device = true;
 
@@ -1668,10 +1797,12 @@ opencl_print_user_stmt (struct clast_user_stmt *u, opencl_main code_gen)
   basic_block bb;
   int i;
   int nb_loops = number_of_loops ();
+
   code_gen->iv_map = VEC_alloc (tree, heap, nb_loops);
 
   for (i = 0; i < nb_loops; i++)
     VEC_safe_push (tree, heap, code_gen->iv_map, NULL_TREE);
+
   build_iv_mapping (code_gen->iv_map, code_gen->region,
                     code_gen->newivs,
                     code_gen->newivs_index, u,
@@ -1707,13 +1838,16 @@ opencl_print_for (struct clast_for *f, opencl_main code_gen, int level)
   tree iv_type;
   const char *tmp;
   const char *decl;
+
   opencl_append_string_to_body ("for (", code_gen);
+
   if (f->LB)
     {
       opencl_append_string_to_body (f->iterator, code_gen);
       opencl_append_string_to_body ("=", code_gen);
       opencl_print_expr (f->LB, code_gen);
     }
+
   opencl_append_string_to_body (";", code_gen);
 
   if (f->UB)
@@ -1722,6 +1856,7 @@ opencl_print_for (struct clast_for *f, opencl_main code_gen, int level)
       opencl_append_string_to_body ("<=", code_gen);
       opencl_print_expr (f->UB, code_gen);
     }
+
   opencl_append_string_to_body (";", code_gen);
 
   if (mpz_cmp_si (f->stride, 1) > 0)
@@ -1736,6 +1871,7 @@ opencl_print_for (struct clast_for *f, opencl_main code_gen, int level)
       opencl_append_string_to_body ("++", code_gen);
       opencl_append_string_to_body (")\n{\n", code_gen);
     }
+
   iv_type = opencl_get_loop_iter_type (f, code_gen, level);
   iv = create_tmp_var (iv_type, "scat_tmp_iter");
 
@@ -1763,12 +1899,16 @@ static void
 opencl_print_equation (struct clast_equation *eq, opencl_main code_gen)
 {
   opencl_print_expr (eq->LHS, code_gen);
+
   if (eq->sign == 0)
     opencl_append_string_to_body (" == ", code_gen);
+
   else if (eq->sign > 0)
     opencl_append_string_to_body (" >= ", code_gen);
+
   else
     opencl_append_string_to_body (" <= ", code_gen);
+
   opencl_print_expr (eq->RHS, code_gen);
 }
 
@@ -1779,19 +1919,25 @@ static void
 opencl_print_guard (struct clast_guard *g, opencl_main code_gen, int depth)
 {
   int k;
+
   opencl_append_string_to_body ("if ", code_gen);
+
   if (g->n > 1)
     opencl_append_string_to_body ("(", code_gen);
+
   for (k = 0; k < g->n; ++k)
     {
       if (k > 0)
         opencl_append_string_to_body (" && ", code_gen);
+
       opencl_append_string_to_body ("(", code_gen);
       opencl_print_equation (&g->eq[k], code_gen);
       opencl_append_string_to_body (")", code_gen);
     }
+
   if (g->n > 1)
     opencl_append_string_to_body (")", code_gen);
+
   opencl_append_string_to_body (" {\n", code_gen);
   opencl_print_stmt_list (g->then, code_gen, depth);
   opencl_append_string_to_body ("}\n", code_gen);
@@ -1803,29 +1949,36 @@ opencl_print_guard (struct clast_guard *g, opencl_main code_gen, int depth)
 static void
 opencl_print_stmt_list (struct clast_stmt *s, opencl_main code_gen, int depth)
 {
-  for ( ; s; s = s->next) {
-    gcc_assert (!CLAST_STMT_IS_A (s, stmt_root));
-    if (CLAST_STMT_IS_A (s, stmt_ass))
-      {
-	opencl_print_assignment ((struct clast_assignment *) s, code_gen);
-	opencl_append_string_to_body (";\n", code_gen);
-      }
-    else if (CLAST_STMT_IS_A (s, stmt_user))
-      opencl_print_user_stmt ((struct clast_user_stmt *) s, code_gen);
-    else if (CLAST_STMT_IS_A (s, stmt_for))
-      opencl_print_for ((struct clast_for *) s, code_gen, depth);
-    else if (CLAST_STMT_IS_A (s, stmt_guard))
-      opencl_print_guard ((struct clast_guard *) s, code_gen, depth);
-    else if (CLAST_STMT_IS_A (s, stmt_block))
-      {
-	opencl_append_string_to_body ("{\n", code_gen);
-	opencl_print_stmt_list (((struct clast_block *) s)->body, code_gen,
-				depth);
-	opencl_append_string_to_body ("}\n", code_gen);
-      }
-    else
-      gcc_unreachable ();
-  }
+  for ( ; s; s = s->next)
+    {
+      gcc_assert (!CLAST_STMT_IS_A (s, stmt_root));
+
+      if (CLAST_STMT_IS_A (s, stmt_ass))
+	{
+	  opencl_print_assignment ((struct clast_assignment *) s, code_gen);
+	  opencl_append_string_to_body (";\n", code_gen);
+	}
+
+      else if (CLAST_STMT_IS_A (s, stmt_user))
+	opencl_print_user_stmt ((struct clast_user_stmt *) s, code_gen);
+
+      else if (CLAST_STMT_IS_A (s, stmt_for))
+	opencl_print_for ((struct clast_for *) s, code_gen, depth);
+
+      else if (CLAST_STMT_IS_A (s, stmt_guard))
+	opencl_print_guard ((struct clast_guard *) s, code_gen, depth);
+
+      else if (CLAST_STMT_IS_A (s, stmt_block))
+	{
+	  opencl_append_string_to_body ("{\n", code_gen);
+	  opencl_print_stmt_list (((struct clast_block *) s)->body, code_gen,
+				  depth);
+	  opencl_append_string_to_body ("}\n", code_gen);
+	}
+
+      else
+	gcc_unreachable ();
+    }
 }
 
 /* Generate code for loop statement F.  DEPTH is the depth of F in
@@ -1877,6 +2030,7 @@ opencl_clast_to_kernel (struct clast_for *f, opencl_main code_gen,
                         int depth)
 {
   opencl_body tmp = opencl_body_create ();
+
   code_gen->current_body = tmp;
   return opencl_print_loop (f, code_gen, depth);
 }

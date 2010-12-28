@@ -76,6 +76,7 @@ static hashval_t
 opencl_pair_to_hash (const void *data)
 {
   const struct opencl_pair_def *obj = (const struct opencl_pair_def *) data;
+
   return (hashval_t) (obj->id);
 }
 
@@ -96,6 +97,7 @@ static opencl_pair
 opencl_pair_create (int new_id, int new_val)
 {
   opencl_pair tmp = XNEW (struct opencl_pair_def);
+
   tmp->id = new_id;
   tmp->val = new_val;
   return tmp;
@@ -117,6 +119,7 @@ opencl_clast_meta_create (int depth, opencl_clast_meta parent,
                           bool access_init)
 {
   opencl_clast_meta tmp = XNEW (struct opencl_clast_meta_def);
+
   tmp->out_depth = depth;
   tmp->in_depth = 0;
   tmp->next = NULL;
@@ -126,6 +129,7 @@ opencl_clast_meta_create (int depth, opencl_clast_meta parent,
   tmp->modified_on_host = BITMAP_ALLOC (NULL);
   tmp->modified_on_device = BITMAP_ALLOC (NULL);
   tmp->access_unsupported = false;
+
   if (access_init)
     {
       tmp->can_be_private = BITMAP_ALLOC (NULL);
@@ -136,6 +140,7 @@ opencl_clast_meta_create (int depth, opencl_clast_meta parent,
       tmp->access = NULL;
       tmp->can_be_private = NULL;
     }
+
   return tmp;
 }
 
@@ -156,12 +161,14 @@ opencl_supported_type_p (tree type, bool ptr, bool array)
 	  return false;
 	return opencl_supported_type_p (TREE_TYPE (type), true, false);
       }
+
     case ARRAY_TYPE:
       {
 	if (ptr)
 	  return false;
 	return opencl_supported_type_p (TREE_TYPE (type), false, true);
       }
+
     case FUNCTION_DECL:
     case FUNCTION_TYPE:
     case COMPLEX_TYPE:
@@ -176,9 +183,9 @@ opencl_supported_type_p (tree type, bool ptr, bool array)
     case BOOLEAN_TYPE:
     case INTEGER_TYPE:
     case REAL_TYPE:
-      return true;
     case VOID_TYPE:
       return true;
+
     case OFFSET_TYPE:
     case FIXED_POINT_TYPE:
     case VECTOR_TYPE:
@@ -209,9 +216,10 @@ opencl_supported_arg_p (opencl_main code_gen, tree arg)
     case PARM_DECL:
       {
 	tree type = TREE_TYPE (arg);
-	if (TREE_CODE (type) == POINTER_TYPE)
-	  if (!opencl_get_data_by_tree (code_gen, arg))
-	    return false;
+
+	if (TREE_CODE (type) == POINTER_TYPE
+	    && !opencl_get_data_by_tree (code_gen, arg))
+	  return false;
 
 	return opencl_supported_type_p (type, false, false);
       }
@@ -246,23 +254,28 @@ opencl_gimple_assign_with_supported_types_p (opencl_main code_gen, gimple gmp)
 {
   tree curr_tree;
   int num_of_ops = gimple_num_ops (gmp);
-  gcc_assert (gimple_code (gmp) == GIMPLE_ASSIGN);
-  gcc_assert (num_of_ops == 2 || num_of_ops == 3);
+
+  gcc_assert (gimple_code (gmp) == GIMPLE_ASSIGN
+	      && (num_of_ops == 2 || num_of_ops == 3));
 
   curr_tree = gimple_assign_lhs (gmp);
+
   if (!opencl_supported_arg_p (code_gen, curr_tree))
     return false;
 
   curr_tree = gimple_assign_rhs1 (gmp);
+
   if (!opencl_supported_arg_p (code_gen, curr_tree))
     return false;
 
   if (num_of_ops == 3)
     {
       curr_tree = gimple_assign_rhs2 (gmp);
+
       if (!opencl_supported_arg_p (code_gen, curr_tree))
         return false;
     }
+
   return true;
 }
 
@@ -274,11 +287,14 @@ static bool
 opencl_supported_type_access_p (opencl_main code_gen, basic_block bb)
 {
   gimple_stmt_iterator gsi;
+
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
+
       if (!stmt)
         continue;
+
       switch (gimple_code (stmt))
         {
         case GIMPLE_DEBUG:
@@ -286,6 +302,7 @@ opencl_supported_type_access_p (opencl_main code_gen, basic_block bb)
         case GIMPLE_PHI:
         case GIMPLE_LABEL:
           continue;
+
         case GIMPLE_ASSIGN:
           if (!opencl_gimple_assign_with_supported_types_p (code_gen, stmt))
             {
@@ -298,13 +315,16 @@ opencl_supported_type_access_p (opencl_main code_gen, basic_block bb)
               return false;
             }
           continue;
+
         case GIMPLE_CALL:
           return false;
+
         default:
           debug_gimple_stmt (stmt);
           gcc_unreachable ();
         }
     }
+
   return true;
 }
 
@@ -318,8 +338,10 @@ opencl_def_use_data (opencl_main code_gen, tree obj, bitmap visited,
                      opencl_clast_meta meta, bool def)
 {
   opencl_data data;
+
   if (obj == NULL)
     return;
+
   data = opencl_get_data_by_tree (code_gen,
                                   opencl_get_base_object_by_tree (obj));
   if (data == NULL)
@@ -347,11 +369,14 @@ opencl_calc_bb_privatization (opencl_main code_gen, basic_block bb,
 {
   gimple_stmt_iterator gsi;
   bitmap visited = BITMAP_ALLOC (NULL);
+
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
+
       if (gimple_code (stmt) != GIMPLE_ASSIGN)
         continue;
+
       opencl_def_use_data (code_gen, gimple_assign_lhs (stmt),
                            visited, meta, true);
 
@@ -361,6 +386,7 @@ opencl_calc_bb_privatization (opencl_main code_gen, basic_block bb,
       opencl_def_use_data (code_gen, gimple_assign_rhs2 (stmt),
                            visited, meta, false);
     }
+
   BITMAP_FREE (visited);
 }
 
@@ -382,6 +408,7 @@ opencl_set_meta_rw_flags (opencl_clast_meta meta,
   basic_block bb = GBB_BB (gbb);
   int i;
   poly_dr_p curr;
+
   if (!opencl_supported_type_access_p (code_gen, bb))
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
@@ -394,7 +421,9 @@ opencl_set_meta_rw_flags (opencl_clast_meta meta,
 
       meta->access_unsupported = true;
     }
+
   opencl_calc_bb_privatization (code_gen, bb, meta);
+
   for (i = 0; VEC_iterate (poly_dr_p, drs, i, curr); i++)
     {
       data_reference_p d_ref = (data_reference_p) PDR_CDR (curr);
@@ -412,6 +441,7 @@ opencl_set_meta_rw_flags (opencl_clast_meta meta,
               dump_data_reference (dump_file, d_ref);
 
             }
+
           continue;
         }
 
@@ -424,6 +454,7 @@ opencl_set_meta_rw_flags (opencl_clast_meta meta,
       if (!graphite_outer_subscript_bound (curr, false))
         {
           meta->access_unsupported = true;
+
           if (dump_file && (dump_flags & TDF_DETAILS))
             {
               fprintf (dump_file, "Can not determine subscript bound "
@@ -438,6 +469,7 @@ opencl_set_meta_rw_flags (opencl_clast_meta meta,
       if (data->size_value == NULL)
         {
           meta->access_unsupported = true;
+
           if (dump_file && (dump_flags & TDF_DETAILS))
             {
               fprintf (dump_file,
@@ -445,6 +477,7 @@ opencl_set_meta_rw_flags (opencl_clast_meta meta,
               dump_data_reference (dump_file, d_ref);
             }
         }
+
       bitmap_set_bit (meta->access, data->id);
     }
 }
@@ -456,9 +489,11 @@ opencl_collect_definitions_info (opencl_clast_meta meta)
 {
   opencl_clast_meta curr = meta->body->next;
   bitmap tmp_access = BITMAP_ALLOC (NULL);
+
   bitmap_copy (tmp_access, meta->body->access);
   meta->can_be_private = BITMAP_ALLOC (NULL);
   bitmap_copy (meta->can_be_private, meta->body->can_be_private);
+
   while (curr)
     {
       bitmap new_defs = BITMAP_ALLOC (NULL);
@@ -468,6 +503,7 @@ opencl_collect_definitions_info (opencl_clast_meta meta)
       curr = curr->next;
       BITMAP_FREE (new_defs);
     }
+
   meta->access = tmp_access;
 }
 
@@ -486,12 +522,15 @@ opencl_create_meta_from_clast (opencl_main code_gen,
   int max_depth = 0;
   opencl_clast_meta result = NULL;
   opencl_clast_meta curr = NULL;
-  struct clast_stmt *curr_stmt = body;
-  for ( ; curr_stmt; curr_stmt = curr_stmt->next)
+  struct clast_stmt *curr_stmt;
+
+  for (curr_stmt = body; curr_stmt; curr_stmt = curr_stmt->next)
     {
       opencl_clast_meta tmp_result = NULL;
+
       if (CLAST_STMT_IS_A (curr_stmt, stmt_root))
         continue;
+
       if (CLAST_STMT_IS_A (curr_stmt, stmt_user))
         {
           tmp_result = opencl_clast_meta_create (depth, parent, true);
@@ -499,6 +538,7 @@ opencl_create_meta_from_clast (opencl_main code_gen,
                                     (struct clast_user_stmt*) curr_stmt,
                                     code_gen);
         }
+
       if (CLAST_STMT_IS_A (curr_stmt, stmt_guard))
         {
           struct clast_guard *if_stmt = (struct clast_guard *) curr_stmt;
@@ -507,15 +547,19 @@ opencl_create_meta_from_clast (opencl_main code_gen,
           tmp_result = opencl_create_meta_from_clast (code_gen, if_stmt->then,
                                                       depth, parent);
         }
+
       if (CLAST_STMT_IS_A (curr_stmt, stmt_block))
         {
           struct clast_block *bl_stmt = (struct clast_block *) curr_stmt;
+
           tmp_result = opencl_create_meta_from_clast (code_gen, bl_stmt->body,
                                                       depth, parent);
         }
+
       if (CLAST_STMT_IS_A (curr_stmt, stmt_for))
         {
           struct clast_for *for_stmt = (struct clast_for *) curr_stmt;
+
           tmp_result = opencl_clast_meta_create (depth, parent, false);
           tmp_result->body
 	    = opencl_create_meta_from_clast (code_gen, for_stmt->body,
@@ -525,12 +569,16 @@ opencl_create_meta_from_clast (opencl_main code_gen,
 	    ? max_depth : tmp_result->in_depth + 1;
           opencl_collect_definitions_info (tmp_result);
         }
+
       if (!result)
         curr = result = tmp_result;
       else
         curr->next = tmp_result;
-      while (curr->next != NULL) curr = curr->next;
+
+      while (curr->next)
+	curr = curr->next;
     }
+
   if (parent)
     parent->in_depth = max_depth;
 
@@ -578,19 +626,23 @@ opencl_calc_max_depth_tab (opencl_clast_meta meta, htab_t data, int depth)
           bitmap stmt_access = meta->access;
           unsigned i;
           bitmap_iterator bi;
+
           if (meta->access_unsupported)
             return false;
+
           EXECUTE_IF_SET_IN_BITMAP (stmt_access, 0, i, bi)
             {
               opencl_pair curr_pair = opencl_pair_create (i, depth);
               struct opencl_pair_def **slot
 		= (struct opencl_pair_def **) htab_find_slot (data, curr_pair,
 							      INSERT);
+
               if (*slot == NULL)
                 *slot = curr_pair;
               else
                 {
                   opencl_pair old_pair = *slot;
+
                   if (old_pair->val > curr_pair->val)
                     opencl_pair_delete (curr_pair);
                   else
@@ -601,8 +653,10 @@ opencl_calc_max_depth_tab (opencl_clast_meta meta, htab_t data, int depth)
                 }
             }
         }
+
       meta = meta->next;
     }
+
   return true;
 }
 
@@ -653,20 +707,23 @@ opencl_evaluate_data_access_p (opencl_data obj, opencl_clast_meta meta)
   int depth = obj->depth;
   int data_id = obj->id;
   opencl_clast_meta parent = meta->parent;
-  if (obj->privatized)
+
+  if (obj->privatized
+      || depth < obj->data_dim)
     return false;
-  if (depth < obj->data_dim)
-    return false;
+
   if (parent)
     {
       /* We have outer loop.  */
       bitmap curr_bitmap = parent->modified_on_host;
+
       /* Memory transfer for this statement has been placed outside
          outer loop, so for one memory transfer will be executing more
          then one kernel (first case).  */
       if (!bitmap_bit_p (curr_bitmap, data_id))
         return true;
     }
+
   /* Check max depth of memory access (second case).  */
   return (depth > obj->data_dim);
 }
@@ -678,6 +735,7 @@ opencl_get_data_by_id (opencl_main code_gen, int id)
 {
   VEC (opencl_data, heap) *main_data = code_gen->opencl_function_data;
   opencl_data res = VEC_index (opencl_data, main_data, id);
+
   gcc_assert (res->id == id);
   return res;
 }
@@ -705,9 +763,12 @@ opencl_analyse_data_access_p (opencl_main code_gen,
     {
       int id = curr->id;
       opencl_data obj = opencl_get_data_by_id (code_gen, id);
+
       VEC_safe_push (opencl_data, heap, data_objs, obj);
+
       if (max_dim < obj->data_dim)
         max_dim = obj->data_dim;
+
       obj->depth = curr->val;
     }
 
@@ -715,9 +776,11 @@ opencl_analyse_data_access_p (opencl_main code_gen,
     {
       if (curr_data->data_dim != max_dim)
         continue;
+
       if (opencl_evaluate_data_access_p (curr_data, meta))
         return true;
     }
+
   return false;
 }
 
@@ -738,28 +801,30 @@ opencl_should_be_parallel_p (opencl_main code_gen,
     fprintf (dump_file, "opencl_should_be_parallel_p: ");
 
   /* Avoid launching a lot of small kernels in a deep loop.  */
-  if (!flag_graphite_opencl_no_depth_check)
-    if (depth > i_depth + opencl_base_depth_const)
-      {
-        if (dump_p)
-          fprintf (dump_file, "avoiding small kernel in deep loop\n");
-        return false;
-      }
+  if (!flag_graphite_opencl_no_depth_check
+      && depth > i_depth + opencl_base_depth_const)
+    {
+      if (dump_p)
+	fprintf (dump_file, "avoiding small kernel in deep loop\n");
+
+      return false;
+    }
 
   max_access_depth = htab_create (OPENCL_INIT_BUFF_SIZE,
                                   opencl_pair_to_hash,
                                   opencl_pair_cmp, free);
 
   /* Can't parallelize if statements in loop contain unsupported types.  */
-  if (!flag_graphite_opencl_no_types_check)
-    if (!opencl_calc_max_depth_tab (meta, max_access_depth, 0))
-      {
-        htab_delete (max_access_depth);
-        if (dump_p)
-          fprintf (dump_file, "unsupported types\n");
+  if (!flag_graphite_opencl_no_types_check
+      && !opencl_calc_max_depth_tab (meta, max_access_depth, 0))
+    {
+      htab_delete (max_access_depth);
 
-        return false;
-      }
+      if (dump_p)
+	fprintf (dump_file, "unsupported types\n");
+
+      return false;
+    }
 
   /* Can't parallelize if memory transfer is not reasonable.  */
   if (!flag_graphite_opencl_no_memory_transfer_check
@@ -767,8 +832,10 @@ opencl_should_be_parallel_p (opencl_main code_gen,
       && !opencl_analyse_data_access_p (code_gen, max_access_depth, meta))
     {
       htab_delete (max_access_depth);
+
       if (dump_p)
 	fprintf (dump_file, "avoiding large memory transfer\n");
+
       return false;
     }
 

@@ -128,6 +128,7 @@ map_ref_to_data_to_hash (const void *data)
 {
   const struct map_ref_to_data_def *obj
     = (const struct map_ref_to_data_def *) data;
+
   return htab_hash_pointer (obj->key);
 }
 
@@ -151,6 +152,7 @@ map_ref_to_data_create (data_reference_p new_key,
                         opencl_data new_value)
 {
   map_ref_to_data tmp = XNEW (struct map_ref_to_data_def);
+
   tmp->key = new_key;
   tmp->value = new_value;
   return tmp;
@@ -173,6 +175,7 @@ map_tree_to_data_to_hash (const void *data)
 {
   const struct map_tree_to_data_def *obj
     = (const struct map_tree_to_data_def *) data;
+
   return htab_hash_pointer (obj->key);
 }
 
@@ -196,6 +199,7 @@ map_tree_to_data_create (tree new_key,
                          opencl_data new_value)
 {
   map_tree_to_data tmp = XNEW (struct map_tree_to_data_def);
+
   tmp->key = new_key;
   tmp->value = new_value;
   return tmp;
@@ -208,6 +212,7 @@ static tree
 opencl_create_tmp_var (tree type, const char *name)
 {
   tree tmp = create_tmp_var (type, name);
+
   TREE_ADDRESSABLE (tmp) = 1;
   return tmp;
 }
@@ -237,6 +242,7 @@ opencl_fflush_rw_flags (opencl_main code_gen)
   VEC (opencl_data, heap) *datas = code_gen->opencl_function_data;
   int i;
   opencl_data curr;
+
   for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
     {
       curr->written_in_current_body = false;
@@ -251,6 +257,7 @@ basic_block
 opencl_create_bb (opencl_main code_gen)
 {
   basic_block tmp = split_edge (code_gen->main_edge);
+
   code_gen->main_edge = single_succ_edge (tmp);
   return tmp;
 }
@@ -268,14 +275,18 @@ opencl_clast_meta_delete (opencl_clast_meta data)
 {
   if (!data)
     return;
+
   opencl_clast_meta_delete (data->body);
   opencl_clast_meta_delete (data->next);
   BITMAP_FREE (data->modified_on_device);
   BITMAP_FREE (data->modified_on_host);
+
   if (data->access != NULL)
     BITMAP_FREE (data->access);
+
   if (data->can_be_private)
     BITMAP_FREE (data->can_be_private);
+
   free (data);
 }
 
@@ -326,10 +337,11 @@ static const char *opencl_function_names[] =
   };
 
 #endif
+
 /* Variable, which holds OpenCL context.  */
 static GTY(()) tree h_context;
 
-/* Variable, which holds OpenCL comman queue.  */
+/* Variable, which holds OpenCL command queue.  */
 static GTY(()) tree h_cmd_queue;
 
 /* Variable, which holds OpenCL program for current function.  */
@@ -355,16 +367,16 @@ zero_dim_array_p (tree var)
   tree domain;
   tree up_bound;
 
-  if (TREE_CODE (type) != ARRAY_TYPE)
+  if (TREE_CODE (type) != ARRAY_TYPE
+      || TREE_CODE (TREE_TYPE (type)) == ARRAY_TYPE
+      || (domain = TYPE_DOMAIN (type)) == NULL)
     return false;
-  if (TREE_CODE (TREE_TYPE (type)) == ARRAY_TYPE)
-    return false;
-  domain = TYPE_DOMAIN (type);
-  if (domain == NULL)
-    return false;
-  up_bound =  TYPE_MAX_VALUE (domain);
+
+  up_bound = TYPE_MAX_VALUE (domain);
+
   if (TREE_CODE (up_bound) != INTEGER_CST)
     return false;
+
   return TREE_INT_CST_LOW (up_bound) == 0;
 }
 
@@ -378,8 +390,10 @@ opencl_private_var_name_p (const char *name)
   static const char *close_phi = "Close_Phi";
   static const char *cross_bb = "Cross_BB_scalar_dependence";
   static const char *commutative = "Commutative_Associative_Reduction";
+
   if (!name)
     return false;
+
   return
     ((strstr (name, general_reduction) == name)
      || (strstr (name, close_phi) == name)
@@ -393,13 +407,12 @@ static bool
 graphite_artificial_array_p (tree var)
 {
   tree name;
-  if (TREE_CODE (var) != VAR_DECL)
+
+  if (TREE_CODE (var) != VAR_DECL
+      || !zero_dim_array_p (var)
+      || !(name = DECL_NAME (var)))
     return false;
-  if (!zero_dim_array_p (var))
-    return false;
-  name = DECL_NAME (var);
-  if (!name)
-    return false;
+
   return opencl_private_var_name_p (IDENTIFIER_POINTER (name));
 }
 
@@ -409,12 +422,14 @@ static int
 opencl_get_non_scalar_type_depth (tree type)
 {
   int count = 0;
+
   while (TREE_CODE (type) == ARRAY_TYPE
          || TREE_CODE (type) == POINTER_TYPE)
     {
       count++;
       type = TREE_TYPE (type);
     }
+
   return count;
 }
 
@@ -462,6 +477,7 @@ opencl_main_create (CloogNames *names, sese region, edge main_edge,
                     htab_t params_index)
 {
   opencl_main tmp = XNEW (struct graphite_opencl_creator);
+
   tmp->root_names = names;
   tmp->defined_vars = NULL;
   tmp->global_defined_vars = NULL;
@@ -490,15 +506,18 @@ opencl_main_delete (opencl_main data)
 {
   int i;
   opencl_data curr;
+
   dyn_string_delete (data->main_program);
   htab_delete (data->newivs_index);
   htab_delete (data->ref_to_data);
   htab_delete (data->tree_to_data);
   opencl_clast_meta_delete (data->clast_meta);
+
   for (i = 0; VEC_iterate (opencl_data, data->opencl_function_data, i, curr);
        i++)
     if (!curr->is_static)
       opencl_data_delete (curr);
+
   VEC_free (tree, heap, data->newivs);
   VEC_free (opencl_data, heap, data->opencl_function_data);
   free (data);
@@ -520,6 +539,7 @@ opencl_add_safe_call_on_edge (tree call, bool zero_return, edge src)
     {
       basic_block bb = split_edge (src);
       gimple_stmt_iterator g_iter = gsi_last_bb (bb);
+
       force_gimple_operand_gsi (&g_iter, call, true, NULL, false,
                                 GSI_CONTINUE_LINKING);
       return single_succ_edge (bb);
@@ -532,6 +552,7 @@ opencl_add_safe_call_on_edge (tree call, bool zero_return, edge src)
       tree abort_funtion;
       tree abort_call;
       gimple_stmt_iterator g_iter;
+
       if (zero_return)
         {
           tree correct_result = build1 (CONVERT_EXPR, TREE_TYPE (call),
@@ -547,6 +568,7 @@ opencl_add_safe_call_on_edge (tree call, bool zero_return, edge src)
           cmp = build2 (NE_EXPR, boolean_type_node,
 			call, incorrect_result);
         }
+
       result = create_empty_if_region_on_edge (src, cmp);
       abort_bb =  get_false_edge_from_guard_bb (src->dest)->dest;
       abort_funtion = build_fn_decl ("abort", build_function_type_list
@@ -579,6 +601,7 @@ opencl_get_base_object_by_tree (tree obj)
   while (TREE_CODE (obj) == INDIRECT_REF
          || TREE_CODE (obj) == ARRAY_REF)
     obj = TREE_OPERAND (obj, 0);
+
   return obj;
 }
 
@@ -588,6 +611,7 @@ tree
 dr_outermost_base_object (data_reference_p dr)
 {
   tree addr = DR_BASE_ADDRESS (dr);
+
   if (!addr)
     {
       /* In case, we don't know base object.  For example:
@@ -600,11 +624,13 @@ dr_outermost_base_object (data_reference_p dr)
 
          Just return the innermost object when the base address is unknown.  */
       tree ref = DR_REF (dr);
+
       return opencl_get_base_object_by_tree (ref);
     }
 
   if (TREE_CODE (addr) == ADDR_EXPR)
     addr = TREE_OPERAND (addr, 0);
+
   return addr;
 }
 
@@ -617,6 +643,7 @@ static edge
 opencl_get_edge_for_init (opencl_main code_gen, int data_id, bool device)
 {
   opencl_clast_meta curr = code_gen->curr_meta;
+
   if (!curr)
     return NULL;
 
@@ -625,10 +652,13 @@ opencl_get_edge_for_init (opencl_main code_gen, int data_id, bool device)
       opencl_clast_meta parent = curr->parent;
       bitmap curr_bitmap
 	= device ? parent->modified_on_host : parent->modified_on_device;
+
       if (bitmap_bit_p (curr_bitmap, data_id))
         break;
+
       curr = curr->parent;
     }
+
   return curr->init_edge;
 }
 
@@ -656,6 +686,7 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
   static tree release_kernel_decl = NULL;
   static tree get_platform_ids_decl = NULL;
   static tree get_wait_for_events_decl = NULL;
+
   switch (id)
     {
     case STATIC_INIT:
@@ -977,24 +1008,61 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 
 	return NULL_TREE;
       }
-    case CREATE_CONTEXT_FROM_TYPE: return create_context_from_type_decl;
-    case GET_CONTEXT_INFO: return get_context_info_decl;
-    case CREATE_COMMAND_QUEUE: return create_command_queue_decl;
-    case CREATE_PROGRAM_WITH_SOURCE: return create_program_with_source_decl;
-    case BUILD_PROGRAM: return build_program_decl;
-    case CREATE_KERNEL: return create_kernel_decl;
-    case CREATE_BUFFER: return create_buffer_decl;
-    case SET_KERNEL_ARG: return set_kernel_arg_decl;
-    case ENQUEUE_ND_RANGE_KERNEL: return enqueue_nd_range_kernel_decl;
-    case ENQUEUE_READ_BUFFER: return enqueue_read_buffer_decl;
-    case ENQUEUE_WRITE_BUFFER: return enqueue_write_buffer_decl;
-    case RELEASE_MEMORY_OBJ: return release_memory_obj_decl;
-    case RELEASE_CONTEXT: return release_context_decl;
-    case RELEASE_COMMAND_QUEUE: return release_command_queue_decl;
-    case RELEASE_PROGRAM: return release_program_decl;
-    case RELEASE_KERNEL: return release_kernel_decl;
-    case GET_PLATFORM_IDS: return get_platform_ids_decl;
-    case WAIT_FOR_EVENTS: return get_wait_for_events_decl;
+
+    case CREATE_CONTEXT_FROM_TYPE:
+      return create_context_from_type_decl;
+
+    case GET_CONTEXT_INFO:
+      return get_context_info_decl;
+
+    case CREATE_COMMAND_QUEUE:
+      return create_command_queue_decl;
+
+    case CREATE_PROGRAM_WITH_SOURCE:
+      return create_program_with_source_decl;
+
+    case BUILD_PROGRAM:
+      return build_program_decl;
+
+    case CREATE_KERNEL:
+      return create_kernel_decl;
+
+    case CREATE_BUFFER:
+      return create_buffer_decl;
+
+    case SET_KERNEL_ARG:
+      return set_kernel_arg_decl;
+
+    case ENQUEUE_ND_RANGE_KERNEL:
+      return enqueue_nd_range_kernel_decl;
+
+    case ENQUEUE_READ_BUFFER:
+      return enqueue_read_buffer_decl;
+
+    case ENQUEUE_WRITE_BUFFER:
+      return enqueue_write_buffer_decl;
+
+    case RELEASE_MEMORY_OBJ:
+      return release_memory_obj_decl;
+
+    case RELEASE_CONTEXT:
+      return release_context_decl;
+
+    case RELEASE_COMMAND_QUEUE:
+      return release_command_queue_decl;
+
+    case RELEASE_PROGRAM:
+      return release_program_decl;
+
+    case RELEASE_KERNEL:
+      return release_kernel_decl;
+
+    case GET_PLATFORM_IDS:
+      return get_platform_ids_decl;
+
+    case WAIT_FOR_EVENTS:
+      return get_wait_for_events_decl;
+
     default: gcc_unreachable ();
     }
 }
@@ -1008,6 +1076,7 @@ opencl_wait_for_event (opencl_main code_gen, tree event_var)
   tree call = build_call_expr (function, 2,
                                integer_one_node,
                                event_var);
+
   opencl_add_safe_call (code_gen, call, true);
 }
 
@@ -1087,10 +1156,12 @@ opencl_pass_to_device (opencl_main code_gen, opencl_data data)
                           integer_zero_node,
                           null_pointer_node,
                           event_call);
+
   if (init_edge)
     opencl_add_safe_call_on_edge (call, true, init_edge);
   else
     opencl_add_safe_call (code_gen, call, true);
+
   data->up_to_date_on_device = true;
   opencl_wait_for_event (code_gen, event_call);
   return data->device_object;
@@ -1108,7 +1179,6 @@ opencl_pass_to_host (opencl_main code_gen, opencl_data data)
   tree curr_type;
   tree curr;
   tree call;
-
   tree index_type = build_index_type (build_int_cst (NULL_TREE, 2));
   tree array_type = build_array_type (ptr_type_node, index_type);
   tree var = opencl_create_tmp_var (array_type, "wait_event");
@@ -1116,8 +1186,10 @@ opencl_pass_to_host (opencl_main code_gen, opencl_data data)
 
   TREE_STATIC (var) = 1;
   assemble_variable (var, 1, 0, 1);
+
   if (data->written_in_current_body)
     data->up_to_date_on_device = false;
+
   if (data->up_to_date_on_host)
     {
       if (!data->inited_in_current_loop_on_host
@@ -1132,10 +1204,8 @@ opencl_pass_to_host (opencl_main code_gen, opencl_data data)
 
   data->inited_in_current_loop_on_host = true;
 
-  if (flag_graphite_opencl_cpu)
-    return;
-
-  if (data->privatized)
+  if (flag_graphite_opencl_cpu
+      || data->privatized)
     return;
 
   init_edge = opencl_get_edge_for_init (code_gen, data->id, false);
@@ -1151,7 +1221,6 @@ opencl_pass_to_host (opencl_main code_gen, opencl_data data)
                        integer_zero_node, NULL_TREE, NULL_TREE);
   event_call = build_addr (event_call, current_function_decl);
 
-
   call = build_call_expr (function, 9,
                           h_cmd_queue,
                           data->device_object,
@@ -1166,6 +1235,7 @@ opencl_pass_to_host (opencl_main code_gen, opencl_data data)
     opencl_add_safe_call_on_edge (call, true, init_edge);
   else
     opencl_add_safe_call (code_gen, call, true);
+
   opencl_wait_for_event (code_gen, event_call);
   data->up_to_date_on_host = true;
 }
@@ -1181,20 +1251,21 @@ opencl_fflush_all_device_buffers_to_host (opencl_main code_gen)
   int i;
   opencl_data curr;
   tree function = opencl_create_function_decl (RELEASE_MEMORY_OBJ);
+
   for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
     {
       curr->written_in_current_body = true;
       opencl_pass_to_host (code_gen, curr);
     }
+
   for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
-    {
-      if (curr->used_on_device && !curr->is_static)
-        {
-          tree var = curr->device_object;
-          tree call = build_call_expr (function, 1, var);
-          opencl_add_safe_call (code_gen, call, true);
-        }
-    }
+    if (curr->used_on_device && !curr->is_static)
+      {
+	tree var = curr->device_object;
+	tree call = build_call_expr (function, 1, var);
+
+	opencl_add_safe_call (code_gen, call, true);
+      }
 }
 
 /* Calculate correct flags for clCreateBuffer.  READ means, that
@@ -1206,7 +1277,9 @@ opencl_get_mem_flags (bool read, bool write)
 {
   int rw_flags;
   int location_flags;
+
   gcc_assert (read || write);
+
   if (write && read)
     rw_flags = CL_MEM_READ_WRITE;
   else
@@ -1216,10 +1289,12 @@ opencl_get_mem_flags (bool read, bool write)
       else
         rw_flags = CL_MEM_WRITE_ONLY;
     }
+
   if (flag_graphite_opencl_cpu)
     location_flags = CL_MEM_USE_HOST_PTR;
   else
     location_flags = CL_MEM_COPY_HOST_PTR;
+
   return location_flags | rw_flags;
 }
 
@@ -1269,9 +1344,11 @@ opencl_init_all_device_buffers (opencl_main code_gen)
   int i;
   opencl_data curr;
   edge data_init_edge = single_succ_edge (code_gen->data_init_bb);
+
   for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
     {
       tree tmp;
+
       if (!curr->used_on_device || curr->is_static)
         continue;
 
@@ -1402,6 +1479,7 @@ static tree
 opencl_get_indirect_size (tree ptr, poly_dr_p ref)
 {
   ptr = TREE_TYPE (ptr);
+
   switch (TREE_CODE (ptr))
     {
     case ARRAY_TYPE:
@@ -1412,6 +1490,7 @@ opencl_get_indirect_size (tree ptr, poly_dr_p ref)
 	tree inner_type = TREE_TYPE (ptr);
 	tree t = graphite_outer_subscript_bound (ref, false);
 	tree inner_type_size = TYPE_SIZE_UNIT (inner_type);
+
 	if (inner_type_size == NULL)
 	  return NULL;
 
@@ -1424,9 +1503,11 @@ opencl_get_indirect_size (tree ptr, poly_dr_p ref)
 	t = fold_build2 (MULT_EXPR, sizetype, t, inner_type_size);
 	return t;
       }
+
     default:
       return NULL_TREE;
     }
+
   gcc_unreachable ();
 }
 
@@ -1447,7 +1528,9 @@ opencl_init_local_device_memory (opencl_main code_gen, opencl_body kernel)
   int i;
   basic_block bb = opencl_create_bb (code_gen);
   basic_block kernel_bb = split_edge (code_gen->kernel_edge);
+
   code_gen->kernel_edge = single_succ_edge (kernel_bb);
+
   for (i = 0; VEC_iterate (tree, *args, i, curr); i ++)
     {
       gimple_stmt_iterator g_iter = gsi_last_bb (bb);
@@ -1457,6 +1540,7 @@ opencl_init_local_device_memory (opencl_main code_gen, opencl_body kernel)
       tree tmp_var;
       tree mov;
       tree curr_var = opencl_create_tmp_var (curr_type, "__ocl_iv");
+
       if (TREE_CODE (curr) != PARM_DECL
           && TREE_CODE (curr) != VAR_DECL)
         {
@@ -1480,13 +1564,13 @@ opencl_init_local_device_memory (opencl_main code_gen, opencl_body kernel)
                                 GSI_CONTINUE_LINKING);
       VEC_safe_push (tree, heap, *args_to_pass, tmp_var);
     }
+
   for (i = 0; VEC_iterate (opencl_data, *refs, i, curr_data); i++)
     {
       gimple_stmt_iterator kernel_g_iter = gsi_last_bb (kernel_bb);
       tree new_type;
       tree tmp_var;
       tree mov;
-
       tree curr = opencl_pass_to_device (code_gen, curr_data);
       tree curr_type = ptr_type_node;
 
@@ -1521,6 +1605,7 @@ opencl_pass_kernel_arguments (opencl_main code_gen, opencl_body kernel,
   tree arg;
   int i;
   tree function = opencl_create_function_decl (SET_KERNEL_ARG);
+
   for (i = 0; VEC_iterate (tree, args_to_pass, i, arg); i++)
     {
       tree call
@@ -1553,7 +1638,6 @@ opencl_execute_kernel (opencl_main code_gen, tree num_of_exec,
   assemble_variable (num_of_threads, 1, 0, 1);
 
   call = build2 (MODIFY_EXPR, integer_type_node, num_of_threads, num_of_exec);
-
 
   force_gimple_operand_gsi (&g_iter, call, true, NULL, false,
                             GSI_CONTINUE_LINKING);
@@ -1593,11 +1677,13 @@ opencl_create_function_call (edge base)
   dyn_string_prepend_cstr
     (main_program_src, "#pragma OPENCL EXTENSION cl_khr_fp64  : enable\n ");
   src = dyn_string_buf (main_program_src);
+
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "\nGenerated OpenCL code: \n");
       fprintf (dump_file, "%s", src);
     }
+
   new_edge = opencl_insert_create_program_with_source_call (src, base);
 
   return opencl_insert_build_program_call (new_edge);
@@ -1614,6 +1700,7 @@ opencl_mark_privatized_data (opencl_main code_gen)
   int i;
   opencl_data curr;
   bitmap can_be_private = code_gen->curr_meta->can_be_private;
+
   for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
     curr->privatized = bitmap_bit_p (can_be_private, curr->id);
 
@@ -1629,15 +1716,14 @@ opencl_set_data_size (opencl_main code_gen)
   int i;
   opencl_data curr;
   gimple_stmt_iterator g_iter = gsi_last_bb (code_gen->data_init_bb);
+
   for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
     {
       tree call;
-      if (curr->is_static)
-        continue;
-      if (!curr->used_on_device)
-        continue;
 
-      if (curr->size_value == NULL)
+      if (curr->is_static
+	  || !curr->used_on_device
+	  || curr->size_value == NULL)
         continue;
 
       call = build2 (MODIFY_EXPR, size_type_node,
@@ -1680,10 +1766,10 @@ opencl_data_init_object (opencl_data data)
       /* (TREE_CODE (TREE_TYPE (data->exact_object)) == ARRAY_TYPE) */
       map_tree_to_data tree_ptr
 	= map_tree_to_data_create (data->exact_object, data);
+      map_tree_to_data *tree_slot
+	= (map_tree_to_data *) htab_find_slot (array_data_to_tree,
+					       tree_ptr, INSERT);
 
-      map_tree_to_data *tree_slot =
-	(map_tree_to_data *) htab_find_slot (array_data_to_tree,
-					     tree_ptr, INSERT);
       gcc_assert (*tree_slot == NULL);
       *tree_slot = tree_ptr;
 
@@ -1709,12 +1795,10 @@ opencl_register_data (opencl_main code_gen, opencl_data data,
   map_ref_to_data *ref_slot;
   map_tree_to_data *tree_slot;
 
-
   ref_slot
     = (map_ref_to_data *) htab_find_slot (ref_to_data, ref_ptr, INSERT);
   gcc_assert (*ref_slot == NULL);
   *ref_slot = ref_ptr;
-
 
   tree_slot
     = (map_tree_to_data *) htab_find_slot (tree_to_data, tree_ptr, INSERT);
@@ -1731,11 +1815,9 @@ opencl_parse_single_data_ref (poly_dr_p ref, opencl_main code_gen)
 {
   data_reference_p d_ref = (data_reference_p) PDR_CDR (ref);
   tree data_ref_tree = dr_outermost_base_object (d_ref);
-  tree size = NULL_TREE;
-  opencl_data curr;
+  opencl_data curr = opencl_get_data_by_tree (code_gen, data_ref_tree);
+  tree size = opencl_get_indirect_size (data_ref_tree, ref);
 
-  curr = opencl_get_data_by_tree (code_gen, data_ref_tree);
-  size = opencl_get_indirect_size (data_ref_tree, ref);
   if (curr)
     {
       if (!curr->is_static)
@@ -1750,14 +1832,17 @@ opencl_parse_single_data_ref (poly_dr_p ref, opencl_main code_gen)
   else
     {
       curr = opencl_get_static_data_by_tree (data_ref_tree);
+
       if (!curr)
         {
           curr = opencl_data_create (data_ref_tree, size);
           opencl_data_init_object (curr);
         }
+
       curr->id = VEC_length (opencl_data, code_gen->opencl_function_data);
       VEC_safe_push (opencl_data, heap, code_gen->opencl_function_data, curr);
     }
+
   opencl_register_data (code_gen, curr, data_ref_tree, d_ref);
 }
 
@@ -1770,6 +1855,7 @@ opencl_parse_data_refs (poly_bb_p pbb, opencl_main code_gen)
   VEC (poly_dr_p, heap) *drs = PBB_DRS (pbb);
   int i;
   poly_dr_p curr;
+
   for (i = 0; VEC_iterate (poly_dr_p, drs, i, curr); i++)
     opencl_parse_single_data_ref (curr, code_gen);
 }
@@ -1783,6 +1869,7 @@ opencl_init_data (scop_p m_scop, opencl_main code_gen)
   VEC (poly_bb_p, heap) *bbs = SCOP_BBS (m_scop);
   int i;
   poly_bb_p curr;
+
   for (i = 0; VEC_iterate (poly_bb_p, bbs, i, curr); i++)
     opencl_parse_data_refs (curr, code_gen);
 }
@@ -1811,6 +1898,7 @@ opencl_create_gimple_for_body (opencl_body kernel, opencl_main code_gen)
   tree index_type = build_index_type (build_int_cst (NULL_TREE, 2));
   tree array_type = build_array_type (ptr_type_node, index_type);
   tree var = opencl_create_tmp_var (array_type, "wait_event");
+
   TREE_STATIC (var) = 1;
   assemble_variable (var, 1, 0, 1);
 
@@ -1835,6 +1923,7 @@ opencl_prepare_memory_for_gimple_stmt (poly_bb_p pbb, opencl_main code_gen)
   VEC (poly_dr_p, heap) *drs = PBB_DRS (pbb);
   int i;
   poly_dr_p curr;
+
   for (i = 0; VEC_iterate (poly_dr_p, drs, i, curr); i++)
     {
       data_reference_p d_ref = (data_reference_p) PDR_CDR (curr);
@@ -1843,9 +1932,11 @@ opencl_prepare_memory_for_gimple_stmt (poly_bb_p pbb, opencl_main code_gen)
 
       /* Scalar variables can be passed directly.  */
       data = opencl_get_data_by_data_ref (code_gen, d_ref);
+
       /* Private variables should not be passed from device to host.  */
       if (data->privatized)
         continue;
+
       is_read = DR_IS_READ (d_ref);
       gcc_assert (data);
 
@@ -1874,6 +1965,7 @@ opencl_add_gimple_for_user_stmt (struct clast_user_stmt *stmt,
   VEC (tree, heap) *iv_map = VEC_alloc (tree, heap, nb_loops);
   htab_t newivs_index = code_gen->newivs_index;
   VEC (tree, heap) *newivs = code_gen->newivs;
+
   /* Get basic block to add.  */
   gbb = PBB_BLACK_BOX (pbb);
 
@@ -1924,6 +2016,7 @@ opencl_init_new_loop (opencl_clast_meta meta, opencl_main code_gen)
 {
   opencl_data curr;
   unsigned i;
+
   meta->post_pass_to_host
     = VEC_alloc (opencl_data, heap, OPENCL_INIT_BUFF_SIZE);
   meta->post_pass_to_device
@@ -1948,6 +2041,7 @@ opencl_postpass_data (opencl_main code_gen, opencl_clast_meta meta)
 {
   opencl_data curr;
   unsigned i;
+
   for (i = 0;
        VEC_iterate (opencl_data, meta->post_pass_to_host, i, curr); i++)
     {
@@ -1962,6 +2056,7 @@ opencl_postpass_data (opencl_main code_gen, opencl_clast_meta meta)
         curr->written_in_current_body = false;
         opencl_pass_to_device (code_gen, curr);
       }
+
   if (meta->parent)
     {
       VEC (opencl_data, heap) *parent_vec_host
@@ -1977,6 +2072,7 @@ opencl_postpass_data (opencl_main code_gen, opencl_clast_meta meta)
 	   VEC_iterate (opencl_data, meta->post_pass_to_device, i, curr); i++)
 	VEC_safe_push (opencl_data, heap, parent_vec_device, curr);
     }
+
   VEC_free (opencl_data, heap, meta->post_pass_to_host);
   VEC_free (opencl_data, heap, meta->post_pass_to_device);
 }
@@ -1994,19 +2090,14 @@ opencl_add_gimple_for_loop (struct clast_for *s, opencl_main code_gen,
 			    int depth, bool dependency)
 {
   loop_p old_parent = code_gen->context_loop;
-  loop_p new_loop
-    = graphite_create_new_loop (code_gen->region,
-                                code_gen->main_edge,
-                                s, code_gen->context_loop,
-				& code_gen->newivs,
-				code_gen->newivs_index,
-				code_gen->params_index,
-				depth);
-
+  loop_p new_loop = graphite_create_new_loop
+    (code_gen->region, code_gen->main_edge, s, code_gen->context_loop,
+     &code_gen->newivs, code_gen->newivs_index, code_gen->params_index, depth);
   edge last_e = single_exit (new_loop);
   edge to_body = single_succ_edge (new_loop->header);
   basic_block after = to_body->dest;
   opencl_clast_meta parent = code_gen->curr_meta->parent;
+
   last_e = single_succ_edge (split_edge (last_e));
 
   code_gen->context_loop = new_loop;
@@ -2026,6 +2117,7 @@ opencl_add_gimple_for_loop (struct clast_for *s, opencl_main code_gen,
 
   if (flag_loop_parallelize_all && !dependency)
     new_loop->can_be_parallel = true;
+
   opencl_verify ();
 }
 
@@ -2043,10 +2135,9 @@ opencl_add_gimple_for_stmt_for (struct clast_for *s, opencl_main code_gen,
                                                 s, code_gen->newivs,
                                                 code_gen->newivs_index,
                                                 code_gen->params_index);
-
   edge true_e = get_true_edge_from_guard_bb (code_gen->main_edge->dest);
-  code_gen->main_edge = true_e;
 
+  code_gen->main_edge = true_e;
   opencl_add_gimple_for_loop (s, code_gen, depth, dependency);
   code_gen->main_edge = last_e;
 }
@@ -2060,6 +2151,7 @@ static void
 opencl_fix_meta_flags (opencl_clast_meta meta)
 {
   opencl_clast_meta curr = meta->body;
+
   while (curr)
     {
       bitmap_ior_into (meta->modified_on_host, curr->modified_on_host);
@@ -2080,8 +2172,8 @@ opencl_add_gimple_for_stmt_guard (struct clast_guard *s,
                                            code_gen->newivs,
                                            code_gen->newivs_index,
                                            code_gen->params_index);
-
   edge true_e = get_true_edge_from_guard_bb (code_gen->main_edge->dest);
+
   code_gen->main_edge = true_e;
   opencl_transform_stmt_list (s->then, code_gen, depth);
   code_gen->main_edge = last_e;
@@ -2100,11 +2192,14 @@ opencl_transform_stmt_list (struct clast_stmt *s, opencl_main code_gen,
 			    int depth)
 {
   bool dump_p = dump_file && (dump_flags & TDF_DETAILS);
+
   for ( ; s; s = s->next)
     {
       opencl_clast_meta tmp = code_gen->curr_meta;
+
       if (CLAST_STMT_IS_A (s, stmt_root))
         continue;
+
       else if (CLAST_STMT_IS_A (s, stmt_user))
         {
           code_gen->curr_meta->init_edge = code_gen->main_edge;
@@ -2118,6 +2213,7 @@ opencl_transform_stmt_list (struct clast_stmt *s, opencl_main code_gen,
           struct clast_for *for_stmt = (struct clast_for *) s;
           bool dependency = false;
           bool parallel = false;
+
           /* If there are dependencies in loop, it can't be parallelized.  */
           if (!flag_graphite_opencl_no_dep_check &&
               dependency_in_clast_loop_p (code_gen, current_clast,
@@ -2125,8 +2221,10 @@ opencl_transform_stmt_list (struct clast_stmt *s, opencl_main code_gen,
             {
 	      if (dump_p)
 		fprintf (dump_file, "dependency in loop\n");
+
 	      dependency = true;
             }
+
           if (!dependency)
             parallel = opencl_should_be_parallel_p (code_gen, current_clast,
                                                     depth);
@@ -2137,6 +2235,7 @@ opencl_transform_stmt_list (struct clast_stmt *s, opencl_main code_gen,
           if (parallel && !dependency)
             {
               opencl_body current_body;
+
               opencl_fflush_rw_flags (code_gen);
               opencl_mark_privatized_data (code_gen);
               current_clast->on_device = true;
@@ -2179,6 +2278,7 @@ opencl_transform_stmt_list (struct clast_stmt *s, opencl_main code_gen,
                                     code_gen, depth);
       else
         gcc_unreachable ();
+
       if (tmp->parent)
         opencl_fix_meta_flags (tmp->parent);
     }
@@ -2212,6 +2312,7 @@ opencl_transform_clast (struct clast_stmt *data, sese region,
   code_gen->curr_meta = code_gen->clast_meta;
 
   opencl_transform_stmt_list (data, code_gen, 1);
+
   if (dyn_string_length (code_gen->main_program) != 0)
     {
       dyn_string_append (main_program_src, code_gen->main_program);
@@ -2219,6 +2320,7 @@ opencl_transform_clast (struct clast_stmt *data, sese region,
       opencl_init_all_device_buffers (code_gen);
       opencl_fflush_all_device_buffers_to_host (code_gen);
     }
+
   recompute_all_dominators ();
   update_ssa (TODO_update_ssa);
   opencl_main_delete (code_gen);
@@ -2286,13 +2388,13 @@ opencl_create_clGetContextInfo_1 (tree pointer_to_size)
   tree zero_pointer = null_pointer_node;
   tree cl_contex_devices = build_int_cst (NULL_TREE, CL_CONTEXT_DEVICES);
   tree context_var = h_context;
-  tree call = build_call_expr (function, 5,
-                               context_var,
-                               cl_contex_devices,
-                               integer_zero_node,
-                               zero_pointer,
-                               pointer_to_size);
-  return call;
+
+  return build_call_expr (function, 5,
+			  context_var,
+			  cl_contex_devices,
+			  integer_zero_node,
+			  zero_pointer,
+			  pointer_to_size);
 }
 
 /* Create call
@@ -2308,13 +2410,13 @@ opencl_create_clGetContextInfo_2 (tree size, tree a_devices)
   tree zero_pointer = null_pointer_node;
   tree cl_contex_devices = build_int_cst (NULL_TREE, CL_CONTEXT_DEVICES);
   tree context_var = h_context;
-  tree call = build_call_expr (function, 5,
-                               context_var,
-                               cl_contex_devices,
-                               size,
-                               a_devices,
-                               zero_pointer);
-  return call;
+
+  return build_call_expr (function, 5,
+			  context_var,
+			  cl_contex_devices,
+			  size,
+			  a_devices,
+			  zero_pointer);
 }
 
 /* Create context_properties array variable.  */
@@ -2327,6 +2429,7 @@ opencl_create_context_properties (void)
   tree index_type = build_index_type (build_int_cst (NULL_TREE, 3));
   tree array_type = build_array_type (cl_context_properties_type,
                                       index_type);
+
   return opencl_create_tmp_var (array_type, "context_properties");
 }
 
@@ -2389,14 +2492,13 @@ opencl_create_clCreateContextFromType (tree properties)
   tree device
     = build_int_cst (NULL_TREE, flag_graphite_opencl_cpu
 		     ? CL_DEVICE_TYPE_CPU : CL_DEVICE_TYPE_GPU);
-  tree call;
-  call = build_call_expr (function, 5,
+
+  return build_call_expr (function, 5,
                           build_addr (properties, current_function_decl),
                           device,
                           zero_pointer,
                           zero_pointer,
                           zero_pointer);
-  return call;
 }
 
 /* Create call
@@ -2409,12 +2511,12 @@ opencl_create_clCreateCommandQueue (tree dev_id)
   tree function = opencl_create_function_decl (CREATE_COMMAND_QUEUE);
   tree zero_pointer = null_pointer_node;
   tree context = h_context;
-  tree call = build_call_expr (function, 4,
-                               context,
-                               dev_id,
-                               zero_pointer,
-                               zero_pointer);
-  return call;
+
+  return build_call_expr (function, 4,
+			  context,
+			  dev_id,
+			  zero_pointer,
+			  zero_pointer);
 }
 
 /* Create call malloc (ARG).  */
@@ -2422,14 +2524,12 @@ opencl_create_clCreateCommandQueue (tree dev_id)
 static tree
 opencl_create_malloc_call (tree arg)
 {
-  tree function_type =
-    build_function_type_list (ptr_type_node,
-			      integer_type_node,
-			      NULL_TREE);
+  tree function_type = build_function_type_list (ptr_type_node,
+						 integer_type_node,
+						 NULL_TREE);
   tree function = build_fn_decl ("malloc", function_type);
 
-  tree call = build_call_expr (function, 1, arg);
-  return call;
+  return build_call_expr (function, 1, arg);
 }
 
 /* Generate calls for opencl init functions and place them to INIT_EDGE.
@@ -2445,6 +2545,7 @@ opencl_create_init_context (edge init_edge)
   tree a_devices = opencl_create_tmp_var (build_pointer_type (ptr_type_node),
 					  "__ocl_a_devices");
   tree properties = opencl_create_context_properties ();
+
   init_edge = opencl_set_context_properties (init_edge, properties);
   call = opencl_create_clCreateContextFromType (properties);
   call = build2 (MODIFY_EXPR, TREE_TYPE (h_context),
@@ -2485,14 +2586,19 @@ build_poly_bb_vec (struct clast_stmt *root,
           poly_bb_p tmp
 	    = (poly_bb_p) cloog_statement_usr
 	    (((struct clast_user_stmt *) root)->statement);
+
           VEC_safe_push (poly_bb_p, heap, *vec, tmp);
         }
+
       else if (CLAST_STMT_IS_A (root, stmt_for))
         build_poly_bb_vec (((struct clast_for *) root)->body, vec);
+
       else if (CLAST_STMT_IS_A (root, stmt_guard))
         build_poly_bb_vec (((struct clast_guard *) root)->then, vec);
+
       else if (CLAST_STMT_IS_A (root, stmt_block))
         build_poly_bb_vec (((struct clast_block *) root)->body, vec);
+
       root = root->next;
     }
 }
@@ -2508,11 +2614,14 @@ opencl_dependency_between_pbbs_p (opencl_main code_gen, poly_bb_p pbb1,
 {
   int i, j;
   poly_dr_p pdr1, pdr2;
+
   timevar_push (TV_GRAPHITE_DATA_DEPS);
+
   for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb1), i, pdr1); i++)
     {
       data_reference_p ref1 = (data_reference_p)PDR_CDR (pdr1);
       opencl_data data_1 = opencl_get_data_by_data_ref (code_gen, ref1);
+
       if (bitmap_bit_p (can_be_private, data_1->id))
         continue;
 
@@ -2549,14 +2658,15 @@ dependency_in_clast_loop_p (opencl_main code_gen, opencl_clast_meta meta,
   int i;
   poly_bb_p pbb1;
   bitmap can_be_private;
-  build_poly_bb_vec (stmt->body, &pbbs);
 
+  build_poly_bb_vec (stmt->body, &pbbs);
   can_be_private = meta->can_be_private;
 
   for (i = 0; VEC_iterate (poly_bb_p, pbbs, i, pbb1); i++)
     {
       int j;
       poly_bb_p pbb2;
+
       for (j = 0; VEC_iterate (poly_bb_p, pbbs, j, pbb2); j++)
         if (opencl_dependency_between_pbbs_p (code_gen, pbb1, pbb1,
                                               level, can_be_private))
@@ -2565,6 +2675,7 @@ dependency_in_clast_loop_p (opencl_main code_gen, opencl_clast_meta meta,
             return true;
           }
     }
+
   VEC_free (poly_bb_p, heap, pbbs);
   return false;
 }
@@ -2599,9 +2710,11 @@ opencl_init_static_data (edge init_edge)
 {
   int i;
   opencl_data curr;
+
   for (i = 0; VEC_iterate (opencl_data, opencl_array_data, i, curr); i ++)
     {
       tree tmp;
+
       if (!curr->used_on_device)
         continue;
 
@@ -2609,6 +2722,7 @@ opencl_init_static_data (edge init_edge)
       tmp = build2 (MODIFY_EXPR, ptr_type_node, curr->device_object, tmp);
       init_edge = opencl_add_safe_call_on_edge (tmp, false, init_edge);
     }
+
   return init_edge;
 }
 
@@ -2621,6 +2735,7 @@ graphite_opencl_finalize (edge static_init_edge)
 {
   int i;
   opencl_data curr;
+
   if (dyn_string_length (main_program_src) != 0)
     {
       tree call = build2 (EQ_EXPR, boolean_type_node,
@@ -2644,7 +2759,9 @@ graphite_opencl_finalize (edge static_init_edge)
       init_edge = get_true_edge_from_guard_bb (before_init->dest);
       init_edge = opencl_create_init_context (init_edge);
     }
+
   dyn_string_delete (main_program_src);
+
   for (i = 0; VEC_iterate (opencl_data, opencl_array_data, i, curr); i++)
     opencl_data_delete (curr);
 
@@ -2810,6 +2927,7 @@ print_char_p_htab (void **h, void *v)
 {
   char **ptr = (char **) h;
   FILE *file = (FILE *) v;
+
   fprintf (file, "  %s\n", *ptr);
   return 1;
 }
@@ -2821,6 +2939,7 @@ print_tree_to_data_htab (void **h, void *v)
   FILE *file = (FILE *) v;
   tree key = (*map)->key;
   opencl_data data = (*map)->value;
+
   print_node_brief (file, "key = ", key, 2);
   fprintf (file, " data_id =  %d\n", data->id);
   return 1;
@@ -2833,6 +2952,7 @@ print_ref_to_data_htab (void **h, void *v)
   FILE *file = (FILE *) v;
   data_reference_p key = (*map)->key;
   opencl_data data = (*map)->value;
+
   fprintf (file, "key::\n");
   dump_data_reference (file, key);
   fprintf (file, "data_id =  %d\n\n", data->id);
@@ -2845,11 +2965,13 @@ dump_opencl_main (opencl_main code_gen, FILE *file, bool verbose)
   fprintf (file, "Current meta::\n");
   dump_opencl_clast_meta (code_gen->curr_meta, file, false, 2);
   fprintf (file, "\n");
+
   if (code_gen->current_body)
     {
       fprintf (file, "Current body::\n");
       dump_opencl_body (code_gen->current_body, file, verbose);
     }
+
   fprintf (file, "\n\nData init basic block::\n");
   dump_bb (code_gen->data_init_bb, stderr, 0);
 
@@ -2866,6 +2988,7 @@ dump_opencl_main (opencl_main code_gen, FILE *file, bool verbose)
       htab_traverse_noresize (code_gen->global_defined_vars,
                               print_char_p_htab, file);
     }
+
   fprintf (file, "Refs to data::\n");
   htab_traverse_noresize (code_gen->ref_to_data,
                           print_ref_to_data_htab, file);

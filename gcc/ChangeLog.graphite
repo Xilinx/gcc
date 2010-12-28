@@ -1,5 +1,11 @@
 2010-12-27  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-opencl-codegen.c: Fix formatting.
+	* graphite-opencl-meta-clast.c: Same.
+	* graphite-opencl.c: Same.
+
+2010-12-27  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-opencl-codegen.c: Fix formating problems.
 	* graphite-opencl-meta-clast.c: Same.
 	* graphite-opencl.c: Same.
