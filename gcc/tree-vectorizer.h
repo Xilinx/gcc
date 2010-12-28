@@ -70,22 +70,6 @@ enum vect_def_type {
                                    || ((D) == vect_double_reduction_def) \
                                    || ((D) == vect_nested_cycle))
 
-/* Define verbosity levels.  */
-enum verbosity_levels {
-  REPORT_NONE,
-  REPORT_VECTORIZED_LOCATIONS,
-  REPORT_UNVECTORIZED_LOCATIONS,
-  REPORT_COST,
-  REPORT_ALIGNMENT,
-  REPORT_DR_DETAILS,
-  REPORT_BAD_FORM_LOOPS,
-  REPORT_OUTER_LOOPS,
-  REPORT_SLP,
-  REPORT_DETAILS,
-  /* New verbosity levels should be added before this one.  */
-  MAX_VERBOSITY_LEVEL
-};
-
 /************************************************************************
   SLP
  ************************************************************************/
@@ -353,6 +337,7 @@ enum stmt_vec_info_type {
   undef_vec_info_type = 0,
   load_vec_info_type,
   store_vec_info_type,
+  shift_vec_info_type,
   op_vec_info_type,
   call_vec_info_type,
   assignment_vec_info_type,
@@ -779,6 +764,7 @@ extern LOC find_loop_location (struct loop *);
 extern bool vect_can_advance_ivs_p (loop_vec_info);
 
 /* In tree-vect-stmts.c.  */
+extern unsigned int current_vector_size;
 extern tree get_vectype_for_scalar_type (tree);
 extern tree get_same_sized_vectype (tree, tree);
 extern bool vect_is_simple_use (tree, loop_vec_info, bb_vec_info, gimple *,
@@ -883,7 +869,7 @@ extern void vect_update_slp_costs_according_to_vf (loop_vec_info);
 extern bool vect_analyze_slp (loop_vec_info, bb_vec_info);
 extern void vect_make_slp_decision (loop_vec_info);
 extern void vect_detect_hybrid_slp (loop_vec_info);
-extern void vect_get_slp_defs (slp_tree, VEC (tree,heap) **,
+extern void vect_get_slp_defs (tree, tree, slp_tree, VEC (tree,heap) **,
                                VEC (tree,heap) **, int);
 extern LOC find_bb_location (basic_block);
 extern bb_vec_info vect_slp_analyze_bb (basic_block);
@@ -900,6 +886,6 @@ void vect_pattern_recog (loop_vec_info);
 /* In tree-vectorizer.c.  */
 unsigned vectorize_loops (void);
 /* Vectorization debug information */
-extern bool vect_print_dump_info (enum verbosity_levels);
+extern bool vect_print_dump_info (enum vect_verbosity_levels);
 
 #endif  /* GCC_TREE_VECTORIZER_H  */

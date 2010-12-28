@@ -31,7 +31,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-dump.h"
 #include "tree-ssa-live.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "debug.h"
 #include "flags.h"
 #include "gimple.h"
@@ -695,6 +694,8 @@ remove_unused_locals (void)
   if (!optimize)
     return;
 
+  timevar_push (TV_REMOVE_UNUSED);
+
   mark_scope_block_unused (DECL_INITIAL (current_function_decl));
 
   /* Assume all locals are unused.  */
@@ -827,6 +828,8 @@ remove_unused_locals (void)
       fprintf (dump_file, "Scope blocks after cleanups:\n");
       dump_scope_blocks (dump_file, dump_flags);
     }
+
+  timevar_pop (TV_REMOVE_UNUSED);
 }
 
 
@@ -1256,9 +1259,7 @@ dump_enumerated_decls (FILE *file, int flags)
 	  walk_gimple_stmt (&gsi, NULL, dump_enumerated_decls_push, &wi);
     }
   decl_list = (VEC (numbered_tree, heap) *) wi.info;
-  qsort (VEC_address (numbered_tree, decl_list),
-	 VEC_length (numbered_tree, decl_list),
-	 sizeof (numbered_tree), compare_decls_by_uid);
+  VEC_qsort (numbered_tree, decl_list, compare_decls_by_uid);
   if (VEC_length (numbered_tree, decl_list))
     {
       unsigned ix;

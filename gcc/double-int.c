@@ -20,9 +20,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
+#include "tm.h"			/* For SHIFT_COUNT_TRUNCATED.  */
 #include "tree.h"
-#include "toplev.h"
 
 /* We know that A1 + B1 = SUM1, using 2's complement arithmetic and ignoring
    overflow.  Suppose A, B and SUM have the same respective signs as A1, B1,
@@ -715,6 +714,19 @@ double_int_mul (double_int a, double_int b)
 {
   double_int ret;
   mul_double (a.low, a.high, b.low, b.high, &ret.low, &ret.high);
+  return ret;
+}
+
+/* Returns A * B. If the operation overflows according to UNSIGNED_P,
+   *OVERFLOW is set to nonzero.  */
+
+double_int
+double_int_mul_with_sign (double_int a, double_int b,
+                          bool unsigned_p, int *overflow)
+{
+  double_int ret;
+  *overflow = mul_double_with_sign (a.low, a.high, b.low, b.high,
+                                    &ret.low, &ret.high, unsigned_p);
   return ret;
 }
 

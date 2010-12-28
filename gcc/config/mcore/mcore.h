@@ -106,12 +106,6 @@ extern char * mcore_current_function_name;
    numbered.  */
 #define WORDS_BIG_ENDIAN (! TARGET_LITTLE_END)
 
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#ifdef __MCORELE__
-#undef  LIBGCC2_WORDS_BIG_ENDIAN
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#endif
-
 #define MAX_BITS_PER_WORD 32
 
 /* Width of a word, in units (bytes).  */
@@ -125,16 +119,10 @@ extern char * mcore_current_function_name;
 /* Allocation boundary (in *bits*) for storing arguments in argument list.  */
 #define PARM_BOUNDARY  	32
 
-/* Doubles must be aligned to an 8 byte boundary.  */
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE) \
-  ((MODE != BLKmode && (GET_MODE_SIZE (MODE) == 8)) \
-   ? BIGGEST_ALIGNMENT : PARM_BOUNDARY)
-     
 /* Boundary (in *bits*) on which stack pointer should be aligned.  */
 #define STACK_BOUNDARY  (TARGET_8ALIGN ? 64 : 32)
 
 /* Largest increment in UNITS we allow the stack to grow in a single operation.  */
-extern int mcore_stack_increment;
 #define STACK_UNITS_MAXSTEP  4096
 
 /* Allocation boundary (in *bits*) for the code of a function.  */
@@ -566,18 +554,6 @@ extern const enum reg_class reg_class_from_letter[];
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
   ((CUM) = 0)
 
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be
-   available.)  */
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	   \
- ((CUM) = (ROUND_REG ((CUM), (MODE))			   \
-	   + ((NAMED) * mcore_num_arg_regs (MODE, TYPE)))) \
-
-/* Define where to put the arguments to a function.  */
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  mcore_function_arg (CUM, MODE, TYPE, NAMED)
-
 /* Call the function profiler with a given profile label.  */
 #define FUNCTION_PROFILER(STREAM,LABELNO)		\
 {							\
@@ -716,8 +692,17 @@ extern const enum reg_class reg_class_from_letter[];
 /* 'char' is signed by default.  */
 #define DEFAULT_SIGNED_CHAR  0
 
-/* The type of size_t unsigned int.  */
+#undef SIZE_TYPE
 #define SIZE_TYPE "unsigned int"
+
+#undef PTRDIFF_TYPE
+#define PTRDIFF_TYPE "int"
+
+#undef WCHAR_TYPE
+#define WCHAR_TYPE "long int"
+
+#undef WCHAR_TYPE_SIZE
+#define WCHAR_TYPE_SIZE BITS_PER_WORD
 
 /* Max number of bytes we can move from memory to memory
    in one reasonably fast instruction.  */
@@ -776,6 +761,8 @@ extern const enum reg_class reg_class_from_letter[];
 /* Switch into a generic section.  */
 #undef  TARGET_ASM_NAMED_SECTION
 #define TARGET_ASM_NAMED_SECTION  mcore_asm_named_section
+
+#define INCOMING_RETURN_ADDR_RTX gen_rtx_REG (SImode, LK_REG)
 
 /* This is how to output an insn to push a register on the stack.
    It need not be very fast code.  */

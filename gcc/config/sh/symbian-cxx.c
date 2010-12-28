@@ -1,5 +1,5 @@
 /* Routines for C++ support for GCC for a Symbian OS targeted SH backend.
-   Copyright (C) 2004, 2005, 2007, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2009, 2010 Free Software Foundation, Inc.
    Contributed by RedHat.
    Most of this code is stolen from i386/winnt.c.
 
@@ -31,7 +31,6 @@
 #include "tm_p.h"
 #include "cp/cp-tree.h"	/* We need access to the OVL_... macros.  */
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "sh-symbian.h"
 
 
@@ -118,7 +117,7 @@ sh_symbian_is_dllimported (tree decl)
 	   && !DECL_EXTERNAL (decl))
     {
       if (!DECL_VIRTUAL_P (decl))
-	error ("definition of static data member %q+D of dllimport'd class",
+	error ("definition of static data member %q+D of dllimport%'d class",
 	       decl);
       return false;
     }

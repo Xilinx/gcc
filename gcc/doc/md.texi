@@ -2101,8 +2101,32 @@ The @code{si} register.
 The @code{di} register.
 
 @item A
-The @code{a} and @code{d} registers, as a pair (for instructions that
-return half the result in one and half in the other).
+The @code{a} and @code{d} registers.  This class is used for instructions
+that return double word results in the @code{ax:dx} register pair.  Single
+word values will be allocated either in @code{ax} or @code{dx}.
+For example on i386 the following implements @code{rdtsc}:
+
+@smallexample
+unsigned long long rdtsc (void)
+@{
+  unsigned long long tick;
+  __asm__ __volatile__("rdtsc":"=A"(tick));
+  return tick;
+@}
+@end smallexample
+
+This is not correct on x86_64 as it would allocate tick in either @code{ax}
+or @code{dx}.  You have to use the following variant instead:
+
+@smallexample
+unsigned long long rdtsc (void)
+@{
+  unsigned int tickl, tickh;
+  __asm__ __volatile__("rdtsc":"=a"(tickl),"=d"(tickh));
+  return ((unsigned long long)tickh << 32)|tickl;
+@}
+@end smallexample
+
 
 @item f
 Any 80387 floating-point (stack) register.
@@ -2677,7 +2701,15 @@ A register indirect address without offset.
 @item Z
 Symbolic references to the control bus.
 
+@end table
 
+@item MicroBlaze---@file{config/microblaze/constraints.md}
+@table @code
+@item d
+A general register (@code{r0} to @code{r31}).
+
+@item z
+A status register (@code{rmsr}, @code{$fcc1} to @code{$fcc7}).
 
 @end table
 
@@ -2910,6 +2942,55 @@ A constant in the range of 0 to 255.
 
 @item N
 A constant in the range of 0 to @minus{}255.
+
+@end table
+
+@item PDP-11---@file{config/pdp11/constraints.md}
+@table @code
+@item a
+Floating point registers AC0 through AC3.  These can be loaded from/to
+memory with a single instruction.
+
+@item d
+Odd numbered general registers (R1, R3, R5).  These are used for
+16-bit multiply operations.
+
+@item f
+Any of the floating point registers (AC0 through AC5).
+
+@item G
+Floating point constant 0.
+
+@item I
+An integer constant that fits in 16 bits.
+
+@item J
+An integer constant whose low order 16 bits are zero.
+
+@item K
+An integer constant that does not meet the constraints for codes
+@samp{I} or @samp{J}.
+
+@item L
+The integer constant 1.
+
+@item M
+The integer constant @minus{}1.
+
+@item N
+The integer constant 0.
+
+@item O
+Integer constants @minus{}4 through @minus{}1 and 1 through 4; shifts by these
+amounts are handled as multiple single-bit shifts rather than a single
+variable-length shift.
+
+@item Q
+A memory reference which requires an additional word (address or
+offset) after the opcode.
+
+@item R
+A memory reference that is encoded within the opcode.
 
 @end table
 
@@ -3939,6 +4020,46 @@ means of constraints requiring operands 1 and 0 to be the same location.
 @itemx @samp{umin@var{m}3}, @samp{umax@var{m}3}
 @itemx @samp{and@var{m}3}, @samp{ior@var{m}3}, @samp{xor@var{m}3}
 Similar, for other arithmetic operations.
+
+@cindex @code{fma@var{m}4} instruction pattern
+@item @samp{fma@var{m}4}
+Multiply operand 2 and operand 1, then add operand 3, storing the
+result in operand 0.  All operands must have mode @var{m}.  This
+pattern is used to implement the @code{fma}, @code{fmaf}, and
+@code{fmal} builtin functions from the ISO C99 standard.  The
+@code{fma} operation may produce different results than doing the
+multiply followed by the add if the machine does not perform a
+rounding step between the operations.
+
+@cindex @code{fms@var{m}4} instruction pattern
+@item @samp{fms@var{m}4}
+Like @code{fma@var{m}4}, except operand 3 subtracted from the
+product instead of added to the product.  This is represented
+in the rtl as
+
+@smallexample
+(fma:@var{m} @var{op1} @var{op2} (neg:@var{m} @var{op3}))
+@end smallexample
+
+@cindex @code{fnma@var{m}4} instruction pattern
+@item @samp{fnma@var{m}4}
+Like @code{fma@var{m}4} except that the intermediate product
+is negated before being added to operand 3.  This is represented
+in the rtl as
+
+@smallexample
+(fma:@var{m} (neg:@var{m} @var{op1}) @var{op2} @var{op3})
+@end smallexample
+
+@cindex @code{fnms@var{m}4} instruction pattern
+@item @samp{fnms@var{m}4}
+Like @code{fms@var{m}4} except that the intermediate product
+is negated before subtracting operand 3.  This is represented
+in the rtl as
+
+@smallexample
+(fma:@var{m} (neg:@var{m} @var{op1}) @var{op2} (neg:@var{m} @var{op3}))
+@end smallexample
 
 @cindex @code{min@var{m}3} instruction pattern
 @cindex @code{max@var{m}3} instruction pattern

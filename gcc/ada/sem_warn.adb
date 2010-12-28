@@ -2055,7 +2055,7 @@ package body Sem_Warn is
          --  or a pragma, and a warning is worthwhile as well.
 
          function Check_System_Aux return Boolean;
-         --  Before giving a warning on a with_clause for System, check wheter
+         --  Before giving a warning on a with_clause for System, check whether
          --  a system extension is present.
 
          function Find_Package_Renaming
@@ -3068,7 +3068,9 @@ package body Sem_Warn is
             Elab_Warnings                       := True;
             Implementation_Unit_Warnings        := True;
             Ineffective_Inline_Warnings         := True;
+            List_Inherited_Aspects              := True;
             Warn_On_Ada_2005_Compatibility      := True;
+            Warn_On_Ada_2012_Compatibility      := True;
             Warn_On_All_Unread_Out_Parameters   := True;
             Warn_On_Assertion_Failure           := True;
             Warn_On_Assumed_Low_Bound           := True;
@@ -3111,6 +3113,12 @@ package body Sem_Warn is
 
          when 'I' =>
             Warn_On_Overlap                     := False;
+
+         when 'l' =>
+            List_Inherited_Aspects              := True;
+
+         when 'L' =>
+            List_Inherited_Aspects              := False;
 
          when 'm' =>
             Warn_On_Suspicious_Modulus_Value    := True;
@@ -3188,7 +3196,9 @@ package body Sem_Warn is
       Elab_Warnings                       := False;
       Implementation_Unit_Warnings        := False;
       Ineffective_Inline_Warnings         := True;
+      List_Inherited_Aspects              := False;
       Warn_On_Ada_2005_Compatibility      := True;
+      Warn_On_Ada_2012_Compatibility      := True;
       Warn_On_All_Unread_Out_Parameters   := False;
       Warn_On_Assertion_Failure           := True;
       Warn_On_Assumed_Low_Bound           := True;
@@ -3229,7 +3239,9 @@ package body Sem_Warn is
             Constant_Condition_Warnings         := True;
             Implementation_Unit_Warnings        := True;
             Ineffective_Inline_Warnings         := True;
+            List_Inherited_Aspects              := True;
             Warn_On_Ada_2005_Compatibility      := True;
+            Warn_On_Ada_2012_Compatibility      := True;
             Warn_On_Assertion_Failure           := True;
             Warn_On_Assumed_Low_Bound           := True;
             Warn_On_Bad_Fixed_Value             := True;
@@ -3258,7 +3270,9 @@ package body Sem_Warn is
             Elab_Warnings                       := False;
             Implementation_Unit_Warnings        := False;
             Ineffective_Inline_Warnings         := False;
+            List_Inherited_Aspects              := False;
             Warn_On_Ada_2005_Compatibility      := False;
+            Warn_On_Ada_2012_Compatibility      := False;
             Warn_On_All_Unread_Out_Parameters   := False;
             Warn_On_Assertion_Failure           := False;
             Warn_On_Assumed_Low_Bound           := False;
@@ -3424,9 +3438,11 @@ package body Sem_Warn is
 
          when 'y' =>
             Warn_On_Ada_2005_Compatibility      := True;
+            Warn_On_Ada_2012_Compatibility      := True;
 
          when 'Y' =>
             Warn_On_Ada_2005_Compatibility      := False;
+            Warn_On_Ada_2012_Compatibility      := False;
 
          when 'z' =>
             Warn_On_Unchecked_Conversion        := True;
@@ -3692,7 +3708,7 @@ package body Sem_Warn is
       Form1 := First_Formal (Subp);
       Act1  := First_Actual (N);
       while Present (Form1) and then Present (Act1) loop
-         if Ekind (Form1) = E_In_Out_Parameter then
+         if Ekind (Form1) /= E_In_Parameter then
             Form2 := First_Formal (Subp);
             Act2  := First_Actual (N);
             while Present (Form2) and then Present (Act2) loop
@@ -3723,11 +3739,11 @@ package body Sem_Warn is
                   elsif Nkind (Act2) = N_Function_Call then
                      null;
 
-                  --  If either type is elementary the aliasing is harmless.
+                  --  If type is not by-copy we can assume that the aliasing is
+                  --  intended.
 
-                  elsif Is_Elementary_Type (Underlying_Type (Etype (Form1)))
-                          or else
-                        Is_Elementary_Type (Underlying_Type (Etype (Form2)))
+                  elsif
+                    Is_By_Reference_Type (Underlying_Type (Etype (Form1)))
                   then
                      null;
 
@@ -3746,11 +3762,21 @@ package body Sem_Warn is
                            Next_Actual (Act);
                         end loop;
 
+                        if Is_Elementary_Type (Etype (Act1))
+                          and then Ekind (Form2) = E_In_Parameter
+                        then
+                           null;  --  no real aliasing.
+
+                        elsif Is_Elementary_Type (Etype (Act2))
+                          and then Ekind (Form2) = E_In_Parameter
+                        then
+                           null;  --  ditto
+
                         --  If the call was written in prefix notation, and
                         --  thus its prefix before rewriting was a selected
                         --  component, count only visible actuals in the call.
 
-                        if Is_Entity_Name (First_Actual (N))
+                        elsif Is_Entity_Name (First_Actual (N))
                           and then Nkind (Original_Node (N)) = Nkind (N)
                           and then Nkind (Name (Original_Node (N))) =
                                                          N_Selected_Component
@@ -3771,9 +3797,10 @@ package body Sem_Warn is
                            end if;
 
                         else
+                           Error_Msg_Node_2 := Form;
                            Error_Msg_FE
-                             ("writable actual overlaps with actual for&?",
-                              Act1, Form);
+                             ("writable actual for & overlaps with"
+                               & " actual for&?", Act1, Form1);
                         end if;
                      end;
                   end if;
@@ -4439,7 +4466,7 @@ package body Sem_Warn is
                      --  variable in question, or if the entity in question
                      --  is an OUT or IN OUT parameter, which which case
                      --  the caller can reference it after the exception
-                     --  hanlder completes
+                     --  handler completes.
 
                   else
                      if Is_Formal (Ent) then

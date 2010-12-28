@@ -177,7 +177,10 @@ class StdVectorPrinter:
                 if self.item == self.finish and self.so >= self.fo:
                     raise StopIteration
                 elt = self.item.dereference()
-                obit = 1 if elt & (1 << self.so) else 0
+                if elt & (1 << self.so):
+                    obit = 1
+                else:
+                    obit = 0
                 self.so = self.so + 1
                 if self.so >= self.isize:
                     self.item = self.item + 1
@@ -580,7 +583,9 @@ class StdStringPrinter:
         reptype = gdb.lookup_type (str (realtype) + '::_Rep').pointer ()
         header = ptr.cast(reptype) - 1
         len = header.dereference ()['_M_length']
-        return self.val['_M_dataplus']['_M_p'].lazy_string (length = len)
+        if hasattr(ptr, "lazy_string"):
+            return ptr.lazy_string (length = len)
+        return ptr.string (length = len)
 
     def display_hint (self):
         return 'string'

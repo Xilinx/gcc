@@ -1,5 +1,5 @@
 /* GNU Objective C Runtime initialization 
-   Copyright (C) 1993, 1995, 1996, 1997, 2002, 2009
+   Copyright (C) 1993, 1995, 1996, 1997, 2002, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Kresten Krab Thorup
    +load support contributed by Ovidiu Predescu <ovidiu@net-community.com>
@@ -26,57 +26,72 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #include "objc-private/common.h"
 #include "objc-private/error.h"
-#include "objc/objc.h"
-#include "objc/objc-api.h"
+#include "objc/runtime.h"
 #include "objc/thr.h"
 #include "objc-private/hash.h"
 #include "objc-private/objc-list.h" 
-#include "objc-private/runtime.h"
+#include "objc-private/module-abi-8.h" 
+#include "objc-private/runtime.h"   /* For __objc_resolve_class_links().  */
+#include "objc-private/selector.h"  /* For __sel_register_typed_name().  */
 #include "objc-private/objc-sync.h" /* For __objc_sync_init() */
+#include "objc-private/protocols.h" /* For __objc_protocols_init(),
+				       __objc_protocols_add_protocol()
+				       __objc_protocols_register_selectors() */
+#include "objc-private/accessors.h" /* For __objc_accessors_init() */
 
-/* The version number of this runtime.  This must match the number 
+/* The version number of this runtime.  This must match the number
    defined in gcc (objc-act.c).  */
 #define OBJC_VERSION 8
 #define PROTOCOL_VERSION 2
 
-/* This list contains all modules currently loaded into the runtime.  */
+/* This list contains modules currently loaded into the runtime and
+   for which the +load method (and the load callback, if any) has not
+   been called yet.  */
 static struct objc_list *__objc_module_list = 0; 	/* !T:MUTEX */
 
-/* This list contains all proto_list's not yet assigned class links.  */
+/* This list contains all proto_list's not yet assigned class
+   links.  */
 static struct objc_list *unclaimed_proto_list = 0; 	/* !T:MUTEX */
 
 /* List of unresolved static instances.  */
 static struct objc_list *uninitialized_statics = 0; 	/* !T:MUTEX */
 
-/* Global runtime "write" mutex.  */
+/* Global runtime "write" mutex.  Having a single mutex prevents
+   deadlocks, but reduces concurrency.  To improve concurrency, some
+   groups of functions in the runtime have their own separate mutex
+   (eg, __class_table_lock in class.c); to avoid deadlocks, these
+   routines must make sure that they never acquire any other lock
+   while holding their own local lock.  Ie, they should lock, execute
+   some C code that does not perform any calls to other runtime
+   functions which may potentially lock different locks, then unlock.
+   If they need to perform any calls to other runtime functions that
+   may potentially lock other locks, then they should use the global
+   __objc_runtime_mutex.  */
 objc_mutex_t __objc_runtime_mutex = 0;
 
 /* Number of threads that are alive.  */
 int __objc_runtime_threads_alive = 1;			/* !T:MUTEX */
 
 /* Check compiler vs runtime version.  */
-static void init_check_module_version (Module_t);
+static void init_check_module_version (struct objc_module *);
 
 /* Assign isa links to protos.  */
 static void __objc_init_protocols (struct objc_protocol_list *protos);
 
+/* Assign isa link to a protocol, and register it.  */
+static void __objc_init_protocol (struct objc_protocol *protocol);
+
 /* Add protocol to class.  */
 static void __objc_class_add_protocols (Class, struct objc_protocol_list *);
 
-/* This is a hook which is called by __objc_exec_class every time a
-   class or a category is loaded into the runtime.  This may e.g. help
-   a dynamic loader determine the classes that have been loaded when
-   an object file is dynamically linked in.  */
-void (*_objc_load_callback) (Class class, Category *category); /* !T:SAFE */
+/* Load callback hook.  */
+void (*_objc_load_callback) (Class class, struct objc_category *category) = 0; /* !T:SAFE */
 
-/* Is all categories/classes resolved?  */
+/* Are all categories/classes resolved?  */
 BOOL __objc_dangling_categories = NO;           /* !T:UNUSED */
 
-extern SEL
-__sel_register_typed_name (const char *name, const char *types, 
-			   struct objc_selector *orig, BOOL is_const);
-
-/* Sends +load to all classes and categories in certain situations.  */
+/* Sends +load to all classes and categories in certain
+   situations.  */
 static void objc_send_load (void);
 
 /* Inserts all the classes defined in module in a tree of classes that
@@ -85,9 +100,11 @@ static void objc_send_load (void);
    methods were not executed before. The algorithm ensures that when
    the +load method of a class is executed all the superclasses have
    been already received the +load message.  */
-static void __objc_create_classes_tree (Module_t module);
+static void __objc_create_classes_tree (struct objc_module *module);
 
-static void __objc_call_callback (Module_t module);
+/* Calls the _objc_load_callback for each class and category in the
+   module (if _objc_load_callback is not NULL).  */
+static void __objc_call_load_callback (struct objc_module *module);
 
 /* A special version that works only before the classes are completely
    installed in the runtime.  */
@@ -126,20 +143,19 @@ static cache_ptr __objc_load_methods = NULL;
 
    This function returns the superclass of a class in both cases, and
    can be used to build the determine the class relationships while
-   building the tree.
-*/
+   building the tree.  */
 static Class  class_superclass_of_class (Class class)
 {
   char *super_class_name;
 
   /* If the class links have been resolved, use the resolved
-   * links.  */
+     links.  */
   if (CLS_ISRESOLV (class))
     return class->super_class;
   
   /* Else, 'class' has not yet been resolved.  This means that its
-   * super_class pointer is really the name of the super class (rather
-   * than a pointer to the actual superclass).  */
+     super_class pointer is really the name of the super class (rather
+     than a pointer to the actual superclass).  */
   super_class_name = (char *)class->super_class;
 
   /* Return Nil for a root class.  */
@@ -147,7 +163,7 @@ static Class  class_superclass_of_class (Class class)
     return Nil;
 
   /* Lookup the superclass of non-root classes.  */
-  return objc_lookup_class (super_class_name);
+  return objc_getClass (super_class_name);
 }
 
 
@@ -156,15 +172,16 @@ static Class  class_superclass_of_class (Class class)
    `bottom_class'. The classes in this tree are super classes of
    `bottom_class'. `subclasses' member of each tree node point to the
    next subclass tree node.  */
-
 static objc_class_tree *
 create_tree_of_subclasses_inherited_from (Class bottom_class, Class upper)
 {
-  Class superclass = bottom_class->super_class ?
-			objc_lookup_class ((char *) bottom_class->super_class)
-		      : Nil;
-					
+  Class superclass;
   objc_class_tree *tree, *prev;
+
+  if (bottom_class->super_class)
+    superclass = objc_getClass ((char *) bottom_class->super_class);
+  else
+    superclass = Nil;
 
   DEBUG_PRINTF ("create_tree_of_subclasses_inherited_from:");
   DEBUG_PRINTF ("bottom_class = %s, upper = %s\n",
@@ -192,26 +209,25 @@ create_tree_of_subclasses_inherited_from (Class bottom_class, Class upper)
    part of the classes hierarchy described by `tree'. This function is
    private to objc_tree_insert_class (), you should not call it
    directly.  */
-
 static objc_class_tree *
 __objc_tree_insert_class (objc_class_tree *tree, Class class)
 {
-  DEBUG_PRINTF ("__objc_tree_insert_class: tree = %x, class = %s\n",
+  DEBUG_PRINTF ("__objc_tree_insert_class: tree = %p, class = %s\n",
 		tree, class->name);
 
   if (tree == NULL)
     return create_tree_of_subclasses_inherited_from (class, NULL);
   else if (class == tree->class)
     {
-      /* `class' has been already inserted */
+      /* `class' has been already inserted.  */
       DEBUG_PRINTF ("1. class %s was previously inserted\n", class->name);
       return tree;
     }
   else if (class_superclass_of_class (class) == tree->class)
     {
-      /* If class is a direct subclass of tree->class then add class to the
-	 list of subclasses. First check to see if it wasn't already
-	 inserted.  */
+      /* If class is a direct subclass of tree->class then add class
+	 to the list of subclasses. First check to see if it wasn't
+	 already inserted.  */
       struct objc_list *list = tree->subclasses;
       objc_class_tree *node;
 
@@ -228,7 +244,8 @@ __objc_tree_insert_class (objc_class_tree *tree, Class class)
 	  list = list->tail;
 	}
 
-      /* Create a new node class and insert it into the list of subclasses */
+      /* Create a new node class and insert it into the list of
+	 subclasses.  */
       node = objc_calloc (1, sizeof (objc_class_tree));
       node->class = class;
       tree->subclasses = list_cons (node, tree->subclasses);
@@ -237,8 +254,8 @@ __objc_tree_insert_class (objc_class_tree *tree, Class class)
     }
   else
     {
-      /* The class is not a direct subclass of tree->class. Search for
-         class's superclasses in the list of subclasses.  */
+      /* The class is not a direct subclass of tree->class.  Search
+         for class's superclasses in the list of subclasses.  */
       struct objc_list *subclasses = tree->subclasses;
 
       /* Precondition: the class must be a subclass of tree->class;
@@ -277,7 +294,6 @@ __objc_tree_insert_class (objc_class_tree *tree, Class class)
 }
 
 /* This function inserts `class' in the right tree hierarchy classes.  */
-
 static void
 objc_tree_insert_class (Class class)
 {
@@ -307,7 +323,6 @@ objc_tree_insert_class (Class class)
 }
 
 /* Traverse tree in preorder. Used to send +load.  */
-
 static void
 objc_preorder_traverse (objc_class_tree *tree,
 			int level,
@@ -321,7 +336,6 @@ objc_preorder_traverse (objc_class_tree *tree,
 }
 
 /* Traverse tree in postorder. Used to destroy a tree.  */
-
 static void
 objc_postorder_traverse (objc_class_tree *tree,
 			 int level,
@@ -335,7 +349,6 @@ objc_postorder_traverse (objc_class_tree *tree,
 }
 
 /* Used to print a tree class hierarchy.  */
-
 #ifdef DEBUG
 static void
 __objc_tree_print (objc_class_tree *tree, int level)
@@ -349,38 +362,49 @@ __objc_tree_print (objc_class_tree *tree, int level)
 #endif
 
 /* Walks on a linked list of methods in the reverse order and executes
-   all the methods corresponding to `op' selector. Walking in the
-   reverse order assures the +load of class is executed first and then
-   +load of categories because of the way in which categories are
-   added to the class methods.  */
-
+   all the methods corresponding to the `+load' selector.  Walking in
+   the reverse order assures the +load of class is executed first and
+   then +load of categories because of the way in which categories are
+   added to the class methods.  This function needs to be called with
+   the objc_runtime_mutex locked.  */
 static void
-__objc_send_message_in_list (MethodList_t method_list, Class class, SEL op)
+__objc_send_load_using_method_list (struct objc_method_list *method_list, Class class)
 {
+  static SEL load_selector = 0;
   int i;
 
-  if (! method_list)
+  if (!method_list)
     return;
 
-  /* First execute the `op' message in the following method lists */
-  __objc_send_message_in_list (method_list->method_next, class, op);
+  /* This needs no lock protection because we are called with the
+     objc_runtime_mutex locked.  */
+  if (!load_selector)
+    load_selector = sel_registerName ("load");
+
+  /* method_list is a linked list of method lists; since we're
+     executing in reverse order, we need to do the next list before we
+     do this one.  */
+  __objc_send_load_using_method_list (method_list->method_next, class);
 
   /* Search the method list.  */
   for (i = 0; i < method_list->method_count; i++)
     {
-      Method_t mth = &method_list->method_list[i];
+      struct objc_method *mth = &method_list->method_list[i];
 
-      if (mth->method_name && sel_eq (mth->method_name, op)
+      /* We are searching for +load methods that we haven't executed
+	 yet.  */
+      if (mth->method_name && sel_eq (mth->method_name, load_selector)
 	  && ! objc_hash_is_key_in_hash (__objc_load_methods, mth->method_imp))
 	{
-	  /* Add this method into the +load hash table */
+	  /* Add this method into the +load hash table, so we won't
+	     execute it again next time.  */
 	  objc_hash_add (&__objc_load_methods,
 			 mth->method_imp,
 			 mth->method_imp);
-
+	  
 	  DEBUG_PRINTF ("sending +load in class: %s\n", class->name);
-
-	  /* The method was found and wasn't previously executed.  */
+	  
+	  /* Call +load.  */
 	  (*mth->method_imp) ((id)class, mth->method_name);
 
 	  break;
@@ -388,18 +412,16 @@ __objc_send_message_in_list (MethodList_t method_list, Class class, SEL op)
     }
 }
 
+/* This function needs to be called with the objc_runtime_mutex
+   locked.  */
 static void
 __objc_send_load (objc_class_tree *tree,
 		  int level __attribute__ ((__unused__)))
 {
-  static SEL load_sel = 0;
   Class class = tree->class;
-  MethodList_t method_list = class->class_pointer->methods;
+  struct objc_method_list *method_list = class->class_pointer->methods;
 
-  if (! load_sel)
-    load_sel = sel_register_name ("load");
-
-  __objc_send_message_in_list (method_list, class, load_sel);
+  __objc_send_load_using_method_list (method_list, class);
 }
 
 static void
@@ -411,7 +433,6 @@ __objc_destroy_class_tree_node (objc_class_tree *tree,
 
 /* This is used to check if the relationship between two classes
    before the runtime completely installs the classes.  */
-
 static BOOL
 class_is_subclass_of_class (Class class, Class superclass)
 {
@@ -429,9 +450,7 @@ class_is_subclass_of_class (Class class, Class superclass)
    their superclasses are not yet known to the runtime.  */
 static struct objc_list *unresolved_classes = 0;
 
-/* Extern function used to reference the Object and NXConstantString
-   classes.  */
-
+/* Extern function used to reference the Object class.  */
 extern void __objc_force_linking (void);
 
 void
@@ -443,7 +462,6 @@ __objc_force_linking (void)
 
 /* Run through the statics list, removing modules as soon as all its
    statics have been initialized.  */
-
 static void
 objc_init_statics (void)
 {
@@ -460,30 +478,47 @@ objc_init_statics (void)
 	   *statics_in_module; statics_in_module++)
 	{
 	  struct objc_static_instances *statics = *statics_in_module;
-	  Class class = objc_lookup_class (statics->class_name);
+	  Class class = objc_getClass (statics->class_name);
 
 	  if (! class)
-	    module_initialized = 0;
-	  /* Actually, the static's class_pointer will be NULL when we
-             haven't been here before.  However, the comparison is to be
-             reminded of taking into account class posing and to think about
-             possible semantics...  */
-	  else if (class != statics->instances[0]->class_pointer)
 	    {
+	      /* It is unfortunate that this will cause all the
+		 statics initialization to be done again (eg, if we
+		 already initialized constant strings, and are now
+		 initializing protocols, setting module_initialized to
+		 0 would cause constant strings to be initialized
+		 again).  It would be good to be able to track if we
+		 have already initialized some of them.  */
+	      module_initialized = 0;
+	    }
+	  else
+	    {
+	      /* Note that if this is a list of Protocol objects, some
+		 of them may have been initialized already (because
+		 they were attached to classes or categories, and the
+		 class/category loading code automatically fixes them
+		 up), and some of them may not.  We really need to go
+		 through the whole list to be sure!  Protocols are
+		 also special because we want to register them and
+		 register all their selectors.  */
 	      id *inst;
 
-	      for (inst = &statics->instances[0]; *inst; inst++)
+	      if (strcmp (statics->class_name, "Protocol") == 0)
 		{
-		  (*inst)->class_pointer = class;
-
-		  /* ??? Make sure the object will not be freed.  With
-                     refcounting, invoke `-retain'.  Without refcounting, do
-                     nothing and hope that `-free' will never be invoked.  */
-
-		  /* ??? Send the object an `-initStatic' or something to
-                     that effect now or later on?  What are the semantics of
-                     statically allocated instances, besides the trivial
-                     NXConstantString, anyway?  */
+		  /* Protocols are special, because not only we want
+		     to fix up their class pointers, but we also want
+		     to register them and their selectors with the
+		     runtime.  */
+		  for (inst = &statics->instances[0]; *inst; inst++)
+		    __objc_init_protocol ((struct objc_protocol *)*inst);
+		}
+	      else
+		{
+		  /* Other static instances (typically constant
+		     strings) are easier as we just fix up their class
+		     pointers.  */
+		  for (inst = &statics->instances[0]; *inst; inst++)		  
+		    (*inst)->class_pointer = class;
 		}
 	    }
 	}
@@ -499,47 +534,48 @@ objc_init_statics (void)
     }
 
   objc_mutex_unlock (__objc_runtime_mutex);
-} /* objc_init_statics */
+}
 
 /* This function is called by constructor functions generated for each
    module compiled.  (_GLOBAL_$I$...) The purpose of this function is
    to gather the module pointers so that they may be processed by the
    initialization routines as soon as possible.  */
-
 void
-__objc_exec_class (Module_t module)
+__objc_exec_class (struct objc_module *module)
 {
-  /* Have we processed any constructors previously?  This flag is used to
-     indicate that some global data structures need to be built.  */
+  /* Have we processed any constructors previously?  This flag is used
+     to indicate that some global data structures need to be
+     built.  */
   static BOOL previous_constructors = 0;
 
   static struct objc_list *unclaimed_categories = 0;
 
-  /* The symbol table (defined in objc-api.h) generated by gcc */
-  Symtab_t symtab = module->symtab;
+  /* The symbol table (defined in objc-private/module-abi-8.h)
+     generated by gcc.  */
+  struct objc_symtab *symtab = module->symtab;
 
-  /* The statics in this module */
+  /* The statics in this module.  */
   struct objc_static_instances **statics
     = symtab->defs[symtab->cls_def_cnt + symtab->cat_def_cnt];
 
-  /* Entry used to traverse hash lists */
+  /* Entry used to traverse hash lists.  */
   struct objc_list **cell;
 
-  /* The table of selector references for this module */
-  SEL selectors = symtab->refs; 
+  /* The table of selector references for this module.  */
+  struct objc_selector *selectors = symtab->refs;
 
-  /* dummy counter */
   int i;
 
   DEBUG_PRINTF ("received module: %s\n", module->name);
 
-  /* check gcc version */
+  /* Check gcc version.  */
   init_check_module_version (module);
 
-  /* On the first call of this routine, initialize some data structures.  */
+  /* On the first call of this routine, initialize some data
+     structures.  */
   if (! previous_constructors)
     {
-	/* Initialize thread-safe system */
+	/* Initialize thread-safe system.  */
       __objc_init_thread_system ();
       __objc_runtime_threads_alive = 1;
       __objc_runtime_mutex = objc_mutex_allocate ();
@@ -551,31 +587,23 @@ __objc_exec_class (Module_t module)
       __objc_load_methods = objc_hash_new (128, 
 					   (hash_func_type)objc_hash_ptr,
 					   objc_compare_ptrs);
+      __objc_protocols_init ();
+      __objc_accessors_init ();
       __objc_sync_init ();
       previous_constructors = 1;
     }
 
-  /* Save the module pointer for later processing. (not currently used) */
+  /* Save the module pointer so that later we remember to call +load
+     on all classes and categories on it.  */
   objc_mutex_lock (__objc_runtime_mutex);
   __objc_module_list = list_cons (module, __objc_module_list);
 
-  /* Replace referenced selectors from names to SEL's.  */
+  /* Replace referenced selectors from names to SELs.  */
   if (selectors)
-    {
-      for (i = 0; selectors[i].sel_id; ++i)
-	{
-	  const char *name, *type;
-	  name = (char *) selectors[i].sel_id;
-	  type = (char *) selectors[i].sel_types;
-	  /* Constructors are constant static data so we can safely store
-	     pointers to them in the runtime structures. is_const == YES */
-	  __sel_register_typed_name (name, type, 
-				     (struct objc_selector *) &(selectors[i]),
-				     YES);
-	}
-    }
+    __objc_register_selectors_from_module (selectors);
 
-  /* Parse the classes in the load module and gather selector information.  */
+  /* Parse the classes in the load module and gather selector
+     information.  */
   DEBUG_PRINTF ("gathering selectors from module: %s\n", module->name);
   for (i = 0; i < symtab->cls_def_cnt; ++i)
     {
@@ -587,41 +615,26 @@ __objc_exec_class (Module_t module)
       assert (CLS_ISMETA (class->class_pointer));
       DEBUG_PRINTF ("phase 1, processing class: %s\n", class->name);
 
-      /* Initialize the subclass list to be NULL.
-	 In some cases it isn't and this crashes the program.  */
+      /* Initialize the subclass list to be NULL.  In some cases it
+	 isn't and this crashes the program.  */
       class->subclass_list = NULL;
 
-      /* Store the class in the class table and assign class numbers.  */
-      __objc_add_class_to_hash (class);
+      __objc_init_class (class);
 
-      /* Register all of the selectors in the class and meta class.  */
-      __objc_register_selectors_from_class (class);
-      __objc_register_selectors_from_class ((Class) class->class_pointer);
-
-      /* Install the fake dispatch tables */
-      __objc_install_premature_dtable (class);
-      __objc_install_premature_dtable (class->class_pointer);
-
-      /* Register the instance methods as class methods, this is
-	 only done for root classes.  */
-      __objc_register_instance_methods_to_class (class);
-
-      if (class->protocols)
-	__objc_init_protocols (class->protocols);
-
-      /* Check to see if the superclass is known in this point. If it's not
-	 add the class to the unresolved_classes list.  */
-      if (superclass && ! objc_lookup_class (superclass))
+      /* Check to see if the superclass is known in this point. If
+	 it's not add the class to the unresolved_classes list.  */
+      if (superclass && ! objc_getClass (superclass))
 	unresolved_classes = list_cons (class, unresolved_classes);
    }
 
   /* Process category information from the module.  */
   for (i = 0; i < symtab->cat_def_cnt; ++i)
     {
-      Category_t category = symtab->defs[i + symtab->cls_def_cnt];
-      Class class = objc_lookup_class (category->class_name);
+      struct objc_category *category = symtab->defs[i + symtab->cls_def_cnt];
+      Class class = objc_getClass (category->class_name);
       
-      /* If the class for the category exists then append its methods.  */
+      /* If the class for the category exists then append its
+	 methods.  */
       if (class)
 	{
 
@@ -650,8 +663,8 @@ __objc_exec_class (Module_t module)
 	}
       else
 	{
-	  /* The object to which the category methods belong can't be found.
-	     Save the information.  */
+	  /* The object to which the category methods belong can't be
+	     found.  Save the information.  */
 	  unclaimed_categories = list_cons (category, unclaimed_categories);
 	}
     }
@@ -661,12 +674,12 @@ __objc_exec_class (Module_t module)
   if (uninitialized_statics)
     objc_init_statics ();
 
-  /* Scan the unclaimed category hash.  Attempt to attach any unclaimed
-     categories to objects.  */
+  /* Scan the unclaimed category hash.  Attempt to attach any
+     unclaimed categories to objects.  */
   for (cell = &unclaimed_categories; *cell; )
     {
-      Category_t category = (*cell)->head;
-      Class class = objc_lookup_class (category->class_name);
+      struct objc_category *category = (*cell)->head;
+      Class class = objc_getClass (category->class_name);
       
       if (class)
 	{
@@ -696,7 +709,7 @@ __objc_exec_class (Module_t module)
 	cell = &(*cell)->tail;
     }
   
-  if (unclaimed_proto_list && objc_lookup_class ("Protocol"))
+  if (unclaimed_proto_list && objc_getClass ("Protocol"))
     {
       list_mapcar (unclaimed_proto_list,
 		   (void (*) (void *))__objc_init_protocols);
@@ -706,24 +719,34 @@ __objc_exec_class (Module_t module)
 
   objc_send_load ();
 
+  /* Check if there are no unresolved classes (ie, classes whose
+     superclass has not been loaded yet) and that the 'Object' class,
+     used as the class of classes, exist.  If so, it is worth
+     "resolving the class links" at this point, which will setup all
+     the class/superclass pointers.  */
+  if (!unresolved_classes && objc_getClass ("Object"))
+    __objc_resolve_class_links ();
+
   objc_mutex_unlock (__objc_runtime_mutex);
 }
 
+/* This function needs to be called with the objc_runtime_mutex
+   locked.  */
 static void
 objc_send_load (void)
 {
-  if (! __objc_module_list)
+  if (!__objc_module_list)
     return;
  
   /* Try to find out if all the classes loaded so far also have their
-     superclasses known to the runtime. We suppose that the objects
+     superclasses known to the runtime.  We suppose that the objects
      that are allocated in the +load method are in general of a class
      declared in the same module.  */
   if (unresolved_classes)
     {
       Class class = unresolved_classes->head;
 
-      while (objc_lookup_class ((char *) class->super_class))
+      while (objc_getClass ((char *) class->super_class))
 	{
 	  list_remove_head (&unresolved_classes);
 	  if (unresolved_classes)
@@ -734,20 +757,18 @@ objc_send_load (void)
 
       /* If we still have classes for whom we don't have yet their
          super classes known to the runtime we don't send the +load
-         messages.  */
+         messages (and call the load callback) yet.  */
       if (unresolved_classes)
 	return;
     }
 
-  /* Special check to allow creating and sending messages to constant
-     strings in +load methods. If these classes are not yet known,
-     even if all the other classes are known, delay sending of +load.  */
-  if (! objc_lookup_class ("NXConstantString") ||
-      ! objc_lookup_class ("Object"))
+  /* Special check.  If 'Object', which is used by meta-classes, has
+     not been loaded yet, delay sending of +load.  */
+  if (! objc_getClass ("Object"))
     return;
 
   /* Iterate over all modules in the __objc_module_list and call on
-     them the __objc_create_classes_tree function. This function
+     them the __objc_create_classes_tree function.  This function
      creates a tree of classes that resembles the class hierarchy.  */
   list_mapcar (__objc_module_list,
 	       (void (*) (void *)) __objc_create_classes_tree);
@@ -765,17 +786,20 @@ objc_send_load (void)
       list_remove_head (&__objc_class_tree_list);
     }
 
-  list_mapcar (__objc_module_list, (void (*) (void *)) __objc_call_callback);
+  /* For each module, call the _objc_load_callback if any is
+     defined.  */
+  list_mapcar (__objc_module_list, (void (*) (void *)) __objc_call_load_callback);
+
+  /* Empty the list of modules.  */
   list_free (__objc_module_list);
   __objc_module_list = NULL;
 }
 
 static void
-__objc_create_classes_tree (Module_t module)
+__objc_create_classes_tree (struct objc_module *module)
 {
-  /* The runtime mutex is locked in this point */
-
-  Symtab_t symtab = module->symtab;
+  /* The runtime mutex is locked at this point */
+  struct objc_symtab *symtab = module->symtab;
   int i;
 
   /* Iterate thru classes defined in this module and insert them in
@@ -786,49 +810,137 @@ __objc_create_classes_tree (Module_t module)
 
       objc_tree_insert_class (class);
     }
+
+  /* Now iterate over "claimed" categories too (ie, categories that
+     extend a class that has already been loaded by the runtime), and
+     insert them in the classes tree hiearchy too.  Otherwise, if you
+     add a category, its +load method would not be called if the class
+     is already loaded in the runtime.  It the category is
+     "unclaimed", ie, we haven't loaded the main class yet, postpone
+     sending +load as we want to execute +load from the class before
+     we execute the one from the category.  */
+  for (i = 0; i < symtab->cat_def_cnt; ++i)
+    {
+      struct objc_category *category = symtab->defs[i + symtab->cls_def_cnt];
+      Class class = objc_getClass (category->class_name);
+      
+      /* If the class for the category exists then append its
+	 methods.  */
+      if (class)
+	objc_tree_insert_class (class);
+    }
 }
 
 static void
-__objc_call_callback (Module_t module)
+__objc_call_load_callback (struct objc_module *module)
 {
-  /* The runtime mutex is locked in this point.  */
-
-  Symtab_t symtab = module->symtab;
-  int i;
-
-  /* Iterate thru classes defined in this module and call the callback
-     for each one.  */
-  for (i = 0; i < symtab->cls_def_cnt; i++)
+  if (_objc_load_callback)
     {
-      Class class = (Class) symtab->defs[i];
-
-      /* Call the _objc_load_callback for this class.  */
-      if (_objc_load_callback)
-	_objc_load_callback (class, 0);
-    }
-
-  /* Call the _objc_load_callback for categories. Don't register the
-     instance methods as class methods for categories to root classes
-     since they were already added in the class.  */
-  for (i = 0; i < symtab->cat_def_cnt; i++)
-    {
-      Category_t category = symtab->defs[i + symtab->cls_def_cnt];
-      Class class = objc_lookup_class (category->class_name);
+      /* The runtime mutex is locked at this point.  */
+      struct objc_symtab *symtab = module->symtab;
+      int i;
       
-      if (_objc_load_callback)
-	_objc_load_callback (class, category);
+      /* Iterate thru classes defined in this module and call the callback
+	 for each one.  */
+      for (i = 0; i < symtab->cls_def_cnt; i++)
+	{
+	  Class class = (Class) symtab->defs[i];
+	  
+	  /* Call the _objc_load_callback for this class.  */
+	  _objc_load_callback (class, 0);
+	}
+      
+      /* Call the _objc_load_callback for categories.  Don't register
+	 the instance methods as class methods for categories to root
+	 classes since they were already added in the class.  */
+      for (i = 0; i < symtab->cat_def_cnt; i++)
+	{
+	  struct objc_category *category = symtab->defs[i + symtab->cls_def_cnt];
+	  Class class = objc_getClass (category->class_name);
+	  
+	  _objc_load_callback (class, category);
+	}
     }
 }
 
 /* Sanity check the version of gcc used to compile `module'.  */
-
 static void
-init_check_module_version (Module_t module)
+init_check_module_version (struct objc_module *module)
 {
-  if ((module->version != OBJC_VERSION) || (module->size != sizeof (Module)))
+  if ((module->version != OBJC_VERSION) || (module->size != sizeof (struct objc_module)))
     {
       _objc_abort ("Module %s version %d doesn't match runtime %d\n",
 		   module->name, (int)module->version, OBJC_VERSION);
+    }
+}
+
+/* __objc_init_class must be called with __objc_runtime_mutex already locked.  */
+void
+__objc_init_class (Class class)
+{
+  /* Store the class in the class table and assign class numbers.  */
+  if (__objc_add_class_to_hash (class))
+    {
+      /* Register all of the selectors in the class and meta class.  */
+      __objc_register_selectors_from_class (class);
+      __objc_register_selectors_from_class ((Class) class->class_pointer);
+      
+      /* Install the fake dispatch tables.  */
+      __objc_install_premature_dtable (class);
+      __objc_install_premature_dtable (class->class_pointer);
+      
+      /* Register the instance methods as class methods, this is only
+	 done for root classes.  */
+      __objc_register_instance_methods_to_class (class);
+      
+      if (class->protocols)
+	__objc_init_protocols (class->protocols);
+    }
+  else
+    _objc_abort ("Module contains duplicate class '%s'\n",
+		 class->name);
+}
+
+/* __objc_init_protocol must be called with __objc_runtime_mutex
+   already locked, and the "Protocol" class already registered.  */
+static void
+__objc_init_protocol (struct objc_protocol *protocol)
+{
+  static Class proto_class = 0;
+
+  if (! proto_class)
+    proto_class = objc_getClass ("Protocol");
+
+  if (((size_t)protocol->class_pointer) == PROTOCOL_VERSION)
+    {
+      /* Assign class pointer.  */
+      protocol->class_pointer = proto_class;
+      
+      /* Register all the selectors in the protocol with the runtime.
+	 This both registers the selectors with the right types, and
+	 it also fixes up the 'struct objc_method' structures inside
+	 the protocol so that each method_name (a char * as compiled
+	 by the compiler) is replaced with the appropriate runtime
+	 SEL.  */
+      if (protocol->class_methods)
+	__objc_register_selectors_from_description_list (protocol->class_methods);
+
+      if (protocol->instance_methods)
+	__objc_register_selectors_from_description_list (protocol->instance_methods);
+
+      /* Register the protocol in the hashtable or protocols by
+	 name.  */
+      __objc_protocols_add_protocol (protocol->protocol_name, protocol);
+      
+      /* Init super protocols.  */
+      __objc_init_protocols (protocol->protocol_list);
+    }
+  else if (protocol->class_pointer != proto_class)
+    {
+      _objc_abort ("Version %d doesn't match runtime protocol version %d\n",
+		   (int) ((char *) protocol->class_pointer
+			  - (char *) 0),
+		   PROTOCOL_VERSION);
     }
 }
 
@@ -844,7 +956,7 @@ __objc_init_protocols (struct objc_protocol_list *protos)
   objc_mutex_lock (__objc_runtime_mutex);
 
   if (! proto_class)
-    proto_class = objc_lookup_class ("Protocol");
+    proto_class = objc_getClass ("Protocol");
 
   if (! proto_class)
     {
@@ -854,27 +966,13 @@ __objc_init_protocols (struct objc_protocol_list *protos)
     }
 
 #if 0
-  assert (protos->next == 0);	/* only single ones allowed */
+  assert (protos->next == 0); /* Only single ones allowed.  */
 #endif
 
   for (i = 0; i < protos->count; i++)
     {
       struct objc_protocol *aProto = protos->list[i];
-      if (((size_t)aProto->class_pointer) == PROTOCOL_VERSION)
-	{
-	  /* assign class pointer */
-	  aProto->class_pointer = proto_class;
-
-	  /* init super protocols */
-	  __objc_init_protocols (aProto->protocol_list);
-	}
-      else if (protos->list[i]->class_pointer != proto_class)
-	{
-	  _objc_abort ("Version %d doesn't match runtime protocol version %d\n",
-		       (int) ((char *) protos->list[i]->class_pointer
-			      - (char *) 0),
-		       PROTOCOL_VERSION);
-	}
+      __objc_init_protocol (aProto);
     }
 
   objc_mutex_unlock (__objc_runtime_mutex);
@@ -883,11 +981,9 @@ __objc_init_protocols (struct objc_protocol_list *protos)
 static void
 __objc_class_add_protocols (Class class, struct objc_protocol_list *protos)
 {
-  /* Well...  */
   if (! protos)
     return;
 
-  /* Add it...  */
   protos->next = class->protocols;
   class->protocols = protos;
 }

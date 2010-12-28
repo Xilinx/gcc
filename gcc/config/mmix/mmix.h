@@ -140,18 +140,12 @@ struct GTY(()) machine_function
     }								\
   while (0)
 
-extern int target_flags;
-
 #define TARGET_DEFAULT \
  (MASK_BRANCH_PREDICT | MASK_BASE_ADDRESSES | MASK_USE_RETURN_INSN)
 
 /* Unfortunately, this must not reference anything in "mmix.c".  */
 #define TARGET_VERSION \
   fprintf (stderr, " (MMIX)")
-
-/* This one will have to wait a little bit; right now we can't debug
-   neither with or without a frame-pointer.  */
-/* #define CAN_DEBUG_WITHOUT_FP */
 
 
 /* Node: Per-Function Data */
@@ -280,8 +274,6 @@ extern int target_flags;
    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, \
    1, 1, 1, 1, 1, 1, 1 \
  }
-
-#define CONDITIONAL_REGISTER_USAGE mmix_conditional_register_usage ()
 
 #define INCOMING_REGNO(OUT) mmix_opposite_regno (OUT, 0)
 
@@ -573,24 +565,11 @@ enum reg_class
 
 
 /* Node: Register Arguments */
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED)	\
- mmix_function_arg (&(CUM), MODE, TYPE, NAMED, 0)
-
-#define FUNCTION_INCOMING_ARG(CUM, MODE, TYPE, NAMED)	\
- mmix_function_arg (&(CUM), MODE, TYPE, NAMED, 1)
 
 typedef struct { int regs; int lib; } CUMULATIVE_ARGS;
 
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
  ((CUM).regs = 0, (CUM).lib = ((LIBNAME) != 0))
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)		\
- ((CUM).regs							\
-  = ((targetm.calls.must_pass_in_stack (MODE, TYPE))		\
-     || (MMIX_FUNCTION_ARG_SIZE (MODE, TYPE) > 8		\
-	 && !TARGET_LIBFUNC && !(CUM).lib))			\
-  ? (MMIX_MAX_ARGS_IN_REGS) + 1					\
-  : (CUM).regs + (7 + (MMIX_FUNCTION_ARG_SIZE (MODE, TYPE))) / 8)
 
 #define FUNCTION_ARG_REGNO_P(REGNO)		\
  mmix_function_arg_regno_p (REGNO, 0)
@@ -905,8 +884,6 @@ typedef struct { int regs; int lib; } CUMULATIVE_ARGS;
 #define FUNCTION_MODE QImode
 
 #define NO_IMPLICIT_EXTERN_C
-
-#define HANDLE_SYSV_PRAGMA 1
 
 /* These are checked.  */
 #define DOLLARS_IN_IDENTIFIERS 0

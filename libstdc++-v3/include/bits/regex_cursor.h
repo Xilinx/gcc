@@ -23,13 +23,13 @@
 // <http://www.gnu.org/licenses/>.
 
 /**
- * @file bits/regex_cursor.h
- * This is an internal header file, included by other library headers.
- * You should not attempt to use it directly.
+ *  @file bits/regex_cursor.h
+ *  This is an internal header file, included by other library headers.
+ *  Do not attempt to use it directly. @headername{regex}
  */
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
 namespace __regex
 {
   // ABC for pattern matching
@@ -87,6 +87,5 @@ namespace __regex
     { return _SpecializedCursor<_FwdIterT>(__b, __e); }
 
 } // namespace __regex
-} // namespace std
 
-/* vim: set ts=8 sw=2 sts=2: */
+_GLIBCXX_END_NAMESPACE

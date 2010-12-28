@@ -1,6 +1,6 @@
 /* RunTime Type Identification
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008, 2009
+   2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Mostly written by Jason Merrill (jason@cygnus.com).
 
@@ -29,8 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "flags.h"
 #include "output.h"
-#include "assert.h"
-#include "toplev.h"
 #include "convert.h"
 #include "target.h"
 #include "c-family/c-pragma.h"
@@ -328,6 +326,8 @@ build_typeid (tree exp)
   if (processing_template_decl)
     return build_min (TYPEID_EXPR, const_type_info_type_node, exp);
 
+  /* FIXME when integrating with c_fully_fold, mark
+     resolves_to_fixed_type_p case as a non-constant expression.  */
   if (TREE_CODE (exp) == INDIRECT_REF
       && TREE_CODE (TREE_TYPE (TREE_OPERAND (exp, 0))) == POINTER_TYPE
       && TYPE_POLYMORPHIC_P (TREE_TYPE (exp))
@@ -1051,12 +1051,11 @@ typeinfo_in_lib_p (tree type)
     case BOOLEAN_TYPE:
     case REAL_TYPE:
     case VOID_TYPE:
+    case NULLPTR_TYPE:
       return true;
 
     case LANG_TYPE:
-      if (NULLPTR_TYPE_P (type))
-	return true;
-      /* else fall through.  */
+      /* fall through.  */
 
     default:
       return false;

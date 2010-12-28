@@ -588,7 +588,7 @@ replace_pseudos_in (rtx *loc, enum machine_mode mem_mode, rtx usage)
       if (regno < FIRST_PSEUDO_REGISTER)
 	return;
 
-      x = eliminate_regs (x, mem_mode, usage);
+      x = eliminate_regs_1 (x, mem_mode, usage, true, false);
       if (x != *loc)
 	{
 	  *loc = x;
@@ -598,6 +598,8 @@ replace_pseudos_in (rtx *loc, enum machine_mode mem_mode, rtx usage)
 
       if (reg_equiv_constant[regno])
 	*loc = reg_equiv_constant[regno];
+      else if (reg_equiv_invariant[regno])
+	*loc = reg_equiv_invariant[regno];
       else if (reg_equiv_mem[regno])
 	*loc = reg_equiv_mem[regno];
       else if (reg_equiv_address[regno])
@@ -673,10 +675,8 @@ has_nonexceptional_receiver (void)
   /* Now see if there's a reachable block with an exceptional incoming
      edge.  */
   FOR_EACH_BB (bb)
-    if (bb->flags & BB_REACHABLE)
-      FOR_EACH_EDGE (e, ei, bb->preds)
-	if (e->flags & EDGE_ABNORMAL)
-	  return true;
+    if (bb->flags & BB_REACHABLE && bb_has_abnormal_pred (bb))
+      return true;
 
   /* No exceptional block reached exit unexceptionally.  */
   return false;
@@ -831,7 +831,7 @@ reload (rtx first, int global)
 	spill_hard_reg (from, 1);
     }
 
-#if HARD_FRAME_POINTER_REGNUM != FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
   if (frame_pointer_needed)
     spill_hard_reg (HARD_FRAME_POINTER_REGNUM, 1);
 #endif
@@ -1315,6 +1315,8 @@ reload (rtx first, int global)
 #endif
 
   VEC_free (rtx_p, heap, substitute_stack);
+
+  gcc_assert (bitmap_empty_p (&spilled_pseudos));
 
   return failure;
 }
@@ -2087,7 +2089,7 @@ static void
 spill_failure (rtx insn, enum reg_class rclass)
 {
   if (asm_noperands (PATTERN (insn)) >= 0)
-    error_for_asm (insn, "can't find a register in class %qs while "
+    error_for_asm (insn, "can%'t find a register in class %qs while "
 		   "reloading %<asm%>",
 		   reg_class_names[rclass]);
   else
@@ -2110,7 +2112,7 @@ spill_failure (rtx insn, enum reg_class rclass)
 static void
 delete_dead_insn (rtx insn)
 {
-  rtx prev = prev_real_insn (insn);
+  rtx prev = prev_active_insn (insn);
   rtx prev_dest;
 
   /* If the previous insn sets a register that dies in our insn, delete it
@@ -2878,10 +2880,10 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
       return x;
 
     case CLOBBER:
+    case ASM_OPERANDS:
       gcc_assert (insn && DEBUG_INSN_P (insn));
       break;
 
-    case ASM_OPERANDS:
     case SET:
       gcc_unreachable ();
 
@@ -3232,7 +3234,7 @@ eliminate_regs_in_insn (rtx insn, int replace)
       for (ep = reg_eliminate; ep < &reg_eliminate[NUM_ELIMINABLE_REGS]; ep++)
 	if (ep->from_rtx == SET_DEST (old_set) && ep->can_eliminate)
 	  {
-#if HARD_FRAME_POINTER_REGNUM != FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
 	    /* If this is setting the frame pointer register to the
 	       hardware frame pointer register and this is an elimination
 	       that will be done (tested above), this insn is really
@@ -6023,7 +6025,9 @@ failed_reload (rtx insn, int r)
 static int
 set_reload_reg (int i, int r)
 {
-  int regno;
+  /* regno is 'set but not used' if HARD_REGNO_MODE_OK doesn't use its first
+     parameter.  */
+  int regno ATTRIBUTE_UNUSED;
   rtx reg = spill_reg_rtx[i];
 
   if (reg == 0 || GET_MODE (reg) != rld[r].mode)
@@ -7496,8 +7500,8 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 		  || (reg_equiv_constant
 		      [REGNO (SUBREG_REG (oldequiv))] != 0)))
 	  || (CONSTANT_P (oldequiv)
-	      && (PREFERRED_RELOAD_CLASS (oldequiv,
-					  REGNO_REG_CLASS (REGNO (reloadreg)))
+	      && (targetm.preferred_reload_class (oldequiv,
+						  REGNO_REG_CLASS (REGNO (reloadreg)))
 		  == NO_REGS)))
 	real_oldequiv = rl->in;
       gen_reload (reloadreg, real_oldequiv, rl->opnum,
@@ -8611,7 +8615,7 @@ gen_reload (rtx out, rtx in, int opnum, enum reload_type type)
 	  return insn;
 	}
 
-      fatal_insn ("Failure trying to reload:", set);
+      fatal_insn ("failure trying to reload:", set);
     }
   /* If IN is a simple operand, use gen_move_insn.  */
   else if (OBJECT_P (in) || GET_CODE (in) == SUBREG)
@@ -9157,9 +9161,7 @@ fixup_abnormal_edges (void)
 	      BB_END (bb) = insn;
 	      insn = NEXT_INSN (insn);
 
-	      FOR_EACH_EDGE (e, ei, bb->succs)
-		if (e->flags & EDGE_FALLTHRU)
-		  break;
+	      e = find_fallthru_edge (bb->succs);
 
 	      while (insn && insn != stop)
 		{

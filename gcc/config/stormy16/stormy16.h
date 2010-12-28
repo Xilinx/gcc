@@ -25,6 +25,10 @@
 #undef  ASM_SPEC
 #define ASM_SPEC ""
 
+#undef  LINK_SPEC
+#define LINK_SPEC "%{h*} %{v:-V} \
+		   %{static:-Bstatic} %{shared:-shared} %{symbolic:-Bsymbolic}"
+
 /* For xstormy16:
    - If -msim is specified, everything is built and linked as for the sim.
    - If -T is specified, that linker script is used, and it should provide
@@ -53,8 +57,6 @@
   while (0)
 
 #define TARGET_VERSION fprintf (stderr, " (xstormy16 cpu core)");
-
-#define CAN_DEBUG_WITHOUT_FP
 
 /* Storage Layout.  */
 
@@ -117,6 +119,9 @@
 #define SIZE_TYPE "unsigned int"
 
 #define PTRDIFF_TYPE "int"
+
+#undef  WCHAR_TYPE
+#define WCHAR_TYPE "long int"
 
 #undef  WCHAR_TYPE_SIZE
 #define WCHAR_TYPE_SIZE 32
@@ -339,18 +344,12 @@ enum reg_class
     + 1) 							\
    / 2)
 
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-	xstormy16_function_arg (CUM, MODE, TYPE, NAMED)
-
 /* For this platform, the value of CUMULATIVE_ARGS is the number of words
    of arguments that have been passed in registers so far.  */
 #define CUMULATIVE_ARGS int
 
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
   (CUM) = 0
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)			\
-  ((CUM) = xstormy16_function_arg_advance (CUM, MODE, TYPE, NAMED))
 
 #define FUNCTION_ARG_REGNO_P(REGNO)					\
   ((REGNO) >= FIRST_ARGUMENT_REGISTER 					\
@@ -595,5 +594,3 @@ enum reg_class
 #define FUNCTION_MODE HImode
 
 #define NO_IMPLICIT_EXTERN_C
-
-#define HANDLE_SYSV_PRAGMA 1

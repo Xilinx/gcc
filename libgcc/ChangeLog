@@ -1,3 +1,67 @@
+2010-12-13  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR target/46040
+	* config/arm/bpabi.h: Rename to...
+	* config/arm/bpabi-lib.h: ...this.
+
+2010-12-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac: Use i386/t-crtstuff on i?86-*-solaris2* if
+	appropriate.
+	* configure: Regenerate.
+
+2010-11-24  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/libbid/bid_conf.h (BID_BIG_ENDIAN): Define in terms of
+	__FLOAT_WORD_ORDER__.
+	* config/libbid/bid_gcc_intrinsics.h (LIBGCC2_FLOAT_WORDS_BIG_ENDIAN):
+	Delete.
+
+2010-11-20  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR other/46202
+	* Makefile.in (install-strip): New phony target.
+
+2010-11-07  Ian Lance Taylor  <iant@google.com>
+
+	PR target/46089
+	* config/i386/morestack.S (__morestack_large_model): New
+	function.
+
+2010-10-23  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/libbid/bid_gcc_intrinsics.h (LIBGCC2_WORDS_BIG_ENDIAN):
+	Delete.
+	(LIBGCC2_FLOAT_WORDS_BIG_ENDIAN): Test __BYTE_ORDER__.
+
+2010-10-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/arm/bpabi.h: New file.
+	* config/frv/frv-abi.h: New file.
+
+2010-10-01  Ian Lance Taylor  <iant@google.com>
+
+	* config/t-stack(LIB2ADD_ST): Set instead of LIB2ADD.
+	* config/i386/t-stack-i386 (LIB2ADD_ST): Likewise.
+
+2010-10-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/45858
+	* config.host: Add the missing `$'.
+
+2010-09-30  Michael Eager  <eager@eagercon.com>
+
+	* config.host: Add microblaze*-*-*.
+	* config/microblaze/{divsi3.asm,divsi3_table.c,moddi3.asm,modsi3.asm,
+	muldi3_hard.asm,mulsi3.asm,stack_overflow_exit.asm,t-microblaze,
+	udivsi3.asm,umodsi3.asm}:  New.
+
+2010-09-28  Ian Lance Taylor  <iant@google.com>
+
+	* configure.ac: Adjust CFI test to test assembler directly rather
+	than checking gcc preprocessor macro.
+	* configure: Rebuild.
+
 2010-09-27  Ian Lance Taylor  <iant@google.com>
 
 	* configure.ac: Test whether assembler supports CFI directives.

@@ -168,8 +168,6 @@ along with GCC; see the file COPYING3.  If not see
        process.  It is done in each region on top-down traverse of the
        region tree (file ira-color.c).  There are following subpasses:
 
-       * Optional aggressive coalescing of allocnos in the region.
-
        * Putting allocnos onto the coloring stack.  IRA uses Briggs
          optimistic coloring which is a major improvement over
          Chaitin's coloring.  Therefore IRA does not spill allocnos at
@@ -399,8 +397,8 @@ setup_class_hard_regs (void)
       CLEAR_HARD_REG_SET (processed_hard_reg_set);
       for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
 	{
-	  ira_non_ordered_class_hard_regs[cl][0] = -1;
-	  ira_class_hard_reg_index[cl][0] = -1;
+	  ira_non_ordered_class_hard_regs[cl][i] = -1;
+	  ira_class_hard_reg_index[cl][i] = -1;
 	}
       for (n = 0, i = 0; i < FIRST_PSEUDO_REGISTER; i++)
 	{
@@ -1389,7 +1387,7 @@ ira_setup_eliminable_regset (void)
       else
 	df_set_regs_ever_live (eliminables[i].from, true);
     }
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
   if (!TEST_HARD_REG_BIT (crtl->asm_clobbers, HARD_FRAME_POINTER_REGNUM))
     {
       SET_HARD_REG_BIT (eliminable_regset, HARD_FRAME_POINTER_REGNUM);
@@ -1917,8 +1915,12 @@ validate_equiv_mem (rtx start, rtx reg, rtx memref)
       if (find_reg_note (insn, REG_DEAD, reg))
 	return 1;
 
-      if (CALL_P (insn) && ! MEM_READONLY_P (memref)
-	  && ! RTL_CONST_OR_PURE_CALL_P (insn))
+      /* This used to ignore readonly memory and const/pure calls.  The problem
+	 is the equivalent form may reference a pseudo which gets assigned a
+	 call clobbered hard reg.  When we later replace REG with its
+	 equivalent form, the value in the call-clobbered reg has been
+	 changed and all hell breaks loose.  */
+      if (CALL_P (insn))
 	return 0;
 
       note_stores (PATTERN (insn), validate_equiv_mem_from_store, NULL);
@@ -2583,7 +2585,13 @@ update_equiv_regs (void)
 		  rtx equiv_insn;
 
 		  if (! reg_equiv[regno].replace
-		      || reg_equiv[regno].loop_depth < loop_depth)
+		      || reg_equiv[regno].loop_depth < loop_depth
+		      /* There is no sense to move insns if we did
+			 register pressure-sensitive scheduling was
+			 done because it will not improve allocation
+			 but worsen insn schedule with a big
+			 probability.  */
+		      || (flag_sched_pressure && flag_schedule_insns))
 		    continue;
 
 		  /* reg_equiv[REGNO].replace gets set only when
@@ -3150,7 +3158,8 @@ ira (FILE *f)
 	{
 	  timevar_push (TV_JUMP);
 	  rebuild_jump_labels (get_insns ());
-	  purge_all_dead_edges ();
+	  if (purge_all_dead_edges ())
+	    delete_unreachable_blocks ();
 	  timevar_pop (TV_JUMP);
 	}
     }
@@ -3270,8 +3279,6 @@ ira (FILE *f)
   build_insn_chain ();
 
   reload_completed = !reload (get_insns (), ira_conflicts_p);
-
-  finish_subregs_of_mode ();
 
   timevar_pop (TV_RELOAD);
 

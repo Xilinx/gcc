@@ -1,14 +1,18 @@
-! { dg-do run }
+! { dg-do run { xfail *-*-mingw* } }
 !
 ! PR fortran/36158
 ! PR fortran/33197
+!
+! For mingw targets this test is disabled as the MS implementation
+! of BESSEL_YN(n,x) has different results.  It returns NAN rather than
+! -INF for "x=0.0" and all "n".
 !
 ! Run-time tests for transformations BESSEL_YN
 !
 implicit none
 real,parameter :: values(*) = [0.0, 0.5, 1.0, 0.9, 1.8,2.0,3.0,4.0,4.25,8.0,34.53, 475.78] 
 real,parameter :: myeps(size(values)) = epsilon(0.0) &
-                  * [2, 3, 4, 5, 8, 2, 12, 6, 7, 6, 30, 168 ]
+                  * [2, 3, 4, 5, 8, 2, 12, 6, 7, 6, 31, 168 ]
 ! The following is sufficient for me - the values above are a bit
 ! more tolerant
 !                  * [0, 0, 0, 3, 3, 0, 9, 0, 2, 1, 22, 130 ]

@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler.  Vxworks PowerPC version.
-   Copyright (C) 1996, 2000, 2002, 2003, 2004, 2005, 2007, 2009
+   Copyright (C) 1996, 2000, 2002, 2003, 2004, 2005, 2007, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by CodeSourcery, LLC.
 
@@ -37,8 +37,6 @@ along with GCC; see the file COPYING3.  If not see
       builtin_define ("__PPC__");		\
       builtin_define ("__EABI__");		\
       builtin_define ("__ELF__");		\
-      builtin_define ("__vxworks");		\
-      builtin_define ("__VXWORKS__");		\
       if (!TARGET_SOFT_FLOAT)			\
 	builtin_define ("__hardfp");		\
 						\
@@ -89,7 +87,7 @@ VXWORKS_ADDITIONAL_CPP_SPEC
 #define ASM_SPEC \
 "%(asm_cpu) \
  %{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}} \
- %{v:-v} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
+ %{Qy:} %{!Qn:-Qy} %{Ym,*} %{Yd,*} \
  %{mrelocatable} %{mrelocatable-lib} %{fpic:-K PIC} %{fPIC:-K PIC} -mbig"
 
 #undef  LIB_SPEC
@@ -141,7 +139,7 @@ VXWORKS_ADDITIONAL_CPP_SPEC
 	rs6000_float_gprs = 1;			\
       }						\
 						\
-  if (!g_switch_set)				\
+  if (!global_options_set.x_g_switch_value)	\
     g_switch_value = SDATA_DEFAULT_SIZE;	\
   VXWORKS_OVERRIDE_OPTIONS;			\
   } while (0)

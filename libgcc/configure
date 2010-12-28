@@ -3715,7 +3715,11 @@ if test "${libgcc_cv_cfi+set}" = set; then :
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-int i = __GCC_HAVE_DWARF2_CFI_ASM;
+asm("\n\
+	.text\n\
+	.cfi_startproc\n\
+	.cfi_personality 0, symbol\n\
+	.cfi_endproc");
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"; then :
   libgcc_cv_cfi=yes
@@ -3750,7 +3754,7 @@ esac
 # Link with -nostartfiles -nodefaultlibs since neither are present while
 # building libgcc.
 case ${host} in
-i?86-*-solaris2.1[0-9]*)
+i?86-*-solaris2*)
   cat > conftest.s <<EOF
 	.section	.eh_frame,"a",@unwind
 	.zero	4

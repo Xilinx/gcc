@@ -23,9 +23,9 @@
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-/** @file cpp_type_traits.h
+/** @file bits/cpp_type_traits.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{ext/type_traits}
  */
 
 // Written by Gabriel Dos Reis <dosreis@cmla.ens-cachan.fr>
@@ -413,34 +413,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef __true_type __type;
     };
 #endif
-
-  template<typename _Tp>
-    class __has_iterator_category
-    {
-      typedef char __one;
-      typedef struct { char __arr[2]; } __two;
-
-      template<typename _Up>
-        struct _Wrap_type
-	{ };
-
-      template<typename _Up>
-        static __one __test(_Wrap_type<typename _Up::iterator_category>*);
-
-      template<typename _Up>
-        static __two __test(...);
-
-    public:
-      static const bool __value = sizeof(__test<_Tp>(0)) == 1;
-    };
-
-  template<typename _Tp>
-    struct __is_iterator
-    {
-      enum { __value = (__has_iterator_category<_Tp>::__value
-			|| __is_pointer<_Tp>::__value) };
-      typedef typename __truth_type<__value>::__type __type;
-    };
 
 _GLIBCXX_END_NAMESPACE
 

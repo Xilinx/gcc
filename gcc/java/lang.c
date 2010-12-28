@@ -32,7 +32,6 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "input.h"
 #include "java-tree.h"
 #include "jcf.h"
-#include "toplev.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "flags.h"
@@ -43,14 +42,16 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "tree-dump.h"
 #include "opts.h"
 #include "options.h"
+#include "target.h"
 
 static bool java_init (void);
 static void java_finish (void);
 static unsigned int java_option_lang_mask (void);
+static void java_init_options_struct (struct gcc_options *);
 static void java_init_options (unsigned int, struct cl_decoded_option *);
 static bool java_post_options (const char **);
 
-static bool java_handle_option (size_t, const char *, int, int,
+static bool java_handle_option (size_t, const char *, int, int, location_t,
 				const struct cl_option_handlers *);
 static void put_decl_string (const char *, int);
 static void put_decl_node (tree, int);
@@ -125,6 +126,8 @@ struct GTY(()) language_function {
 #define LANG_HOOKS_FINISH java_finish
 #undef LANG_HOOKS_OPTION_LANG_MASK
 #define LANG_HOOKS_OPTION_LANG_MASK java_option_lang_mask
+#undef LANG_HOOKS_INIT_OPTIONS_STRUCT
+#define LANG_HOOKS_INIT_OPTIONS_STRUCT java_init_options_struct
 #undef LANG_HOOKS_INIT_OPTIONS
 #define LANG_HOOKS_INIT_OPTIONS java_init_options
 #undef LANG_HOOKS_HANDLE_OPTION
@@ -179,7 +182,7 @@ struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
  */
 static bool
 java_handle_option (size_t scode, const char *arg, int value,
-		    int kind ATTRIBUTE_UNUSED,
+		    int kind ATTRIBUTE_UNUSED, location_t loc ATTRIBUTE_UNUSED,
 		    const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
 {
   enum opt_code code = (enum opt_code) scode;
@@ -399,7 +402,9 @@ put_decl_node (tree node, int verbosity)
                  if verbosity is higher than 1.  */
               && verbosity >= 1)
 	    {
-	      put_decl_node (TYPE_NAME (DECL_CONTEXT (node)),
+	      put_decl_node (TREE_CODE (DECL_CONTEXT (node)) == FUNCTION_DECL
+			     ? DECL_CONTEXT (node)
+			     : TYPE_NAME (DECL_CONTEXT (node)),
                                verbosity);
 	      put_decl_string (".", 1);
 	    }
@@ -534,23 +539,29 @@ java_option_lang_mask (void)
   return CL_Java;
 }
 
+/* Initialize options structure OPTS.  */
+
+static void
+java_init_options_struct (struct gcc_options *opts)
+{
+  opts->x_flag_bounds_check = 1;
+  opts->x_flag_exceptions = 1;
+  opts->x_flag_non_call_exceptions = 1;
+
+  /* In Java floating point operations never trap.  */
+  opts->x_flag_trapping_math = 0;
+
+  /* In Java arithmetic overflow always wraps around.  */
+  opts->x_flag_wrapv = 1;
+
+  /* Java requires left-to-right evaluation of subexpressions.  */
+  opts->x_flag_evaluation_order = 1;
+}
+
 static void
 java_init_options (unsigned int decoded_options_count ATTRIBUTE_UNUSED,
 		   struct cl_decoded_option *decoded_options ATTRIBUTE_UNUSED)
 {
-  flag_bounds_check = 1;
-  flag_exceptions = 1;
-  flag_non_call_exceptions = 1;
-
-  /* In Java floating point operations never trap.  */
-  flag_trapping_math = 0;
-
-  /* In Java arithmetic overflow always wraps around.  */
-  flag_wrapv = 1;
-
-  /* Java requires left-to-right evaluation of subexpressions.  */
-  flag_evaluation_order = 1;
-
   jcf_path_init ();
 }
 
@@ -589,7 +600,7 @@ java_post_options (const char **pfilename)
       filename = "stdin";
 
       if (dependency_tracking)
-	error ("can't do dependency tracking with input from stdin");
+	error ("can%'t do dependency tracking with input from stdin");
     }
   else
     {
@@ -605,7 +616,7 @@ java_post_options (const char **pfilename)
 	    {
 	      dot = strrchr (filename, '.');
 	      if (dot == NULL)
-		error ("couldn't determine target name for dependency tracking");
+		error ("couldn%'t determine target name for dependency tracking");
 	      else
 		{
 		  char *buf = XNEWVEC (char, dot - filename +
@@ -901,11 +912,7 @@ static tree
 java_eh_personality (void)
 {
   if (!java_eh_personality_decl)
-    java_eh_personality_decl
-      = build_personality_function (USING_SJLJ_EXCEPTIONS
-				    ? "__gcj_personality_sj0"
-				    : "__gcj_personality_v0");
-
+    java_eh_personality_decl = build_personality_function ("gcj");
   return java_eh_personality_decl;
 }
 

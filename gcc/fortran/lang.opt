@@ -358,9 +358,17 @@ fdump-core
 Fortran
 Dump a core file when a runtime error occurs
 
-fdump-parse-tree
+fdump-fortran-original
 Fortran
 Display the code tree after parsing
+
+fdump-fortran-optimized
+Fortran
+Display the code tree after front end optimization
+
+fdump-parse-tree
+Fortran
+Display the code tree after parsing; deprecated option
 
 fexternal-blas
 Fortran
@@ -430,10 +438,6 @@ fmax-array-constructor=
 Fortran RejectNegative Joined UInteger
 -fmax-array-constructor=<n>	Maximum number of objects in an array constructor
 
-fmax-errors=
-Fortran RejectNegative Joined UInteger
--fmax-errors=<n>	Maximum number of errors to report
-
 fmax-identifier-length=
 Fortran RejectNegative Joined UInteger
 -fmax-identifier-length=<n>	Maximum identifier length
@@ -470,6 +474,10 @@ frange-check
 Fortran
 Enable range checking during compilation
 
+frealloc-lhs
+Fortran
+Reallocate the LHS in assignments
+
 frecord-marker=4
 Fortran RejectNegative
 Use a 4-byte record marker for unformatted files
@@ -499,7 +507,7 @@ Fortran
 Append a second underscore if the name already contains an underscore
 
 fshort-enums
-Fortran Var(flag_short_enums) VarExists
+Fortran Var(flag_short_enums)
 ; Documented in C
 
 fsign-zero

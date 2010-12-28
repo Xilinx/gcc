@@ -23,13 +23,13 @@
 // <http://www.gnu.org/licenses/>.
 
 /**
- * @file bits/regex_nfa.h
- * This is an internal header file, included by other library headers.
- * You should not attempt to use it directly.
+ *  @file bits/regex_nfa.h
+ *  This is an internal header file, included by other library headers.
+ *  Do not attempt to use it directly. @headername{regex}
  */
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
 namespace __regex
 {
 
@@ -397,7 +397,8 @@ namespace __regex
   };
 
 } // namespace __regex
-} // namespace std
+
+_GLIBCXX_END_NAMESPACE
 
 #include <bits/regex_nfa.tcc>
 

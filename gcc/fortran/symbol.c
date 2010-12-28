@@ -2049,6 +2049,9 @@ free_components (gfc_component *p)
       gfc_free_array_spec (p->as);
       gfc_free_expr (p->initializer);
 
+      gfc_free_formal_arglist (p->formal);
+      gfc_free_namespace (p->formal_ns);
+
       gfc_free (p);
     }
 }
@@ -3216,18 +3219,28 @@ gfc_new_charlen (gfc_namespace *ns, gfc_charlen *old_cl)
   gfc_charlen *cl;
   cl = gfc_get_charlen ();
 
-  /* Put into namespace.  */
-  cl->next = ns->cl_list;
-  ns->cl_list = cl;
-
   /* Copy old_cl.  */
   if (old_cl)
     {
+      /* Put into namespace, but don't allow reject_statement
+	 to free it if old_cl is given.  */
+      gfc_charlen **prev = &ns->cl_list;
+      cl->next = ns->old_cl_list;
+      while (*prev != ns->old_cl_list)
+	prev = &(*prev)->next;
+      *prev = cl;
+      ns->old_cl_list = cl;
       cl->length = gfc_copy_expr (old_cl->length);
       cl->length_from_typespec = old_cl->length_from_typespec;
       cl->backend_decl = old_cl->backend_decl;
       cl->passed_length = old_cl->passed_length;
       cl->resolved = old_cl->resolved;
+    }
+  else
+    {
+      /* Put into namespace.  */
+      cl->next = ns->cl_list;
+      ns->cl_list = cl;
     }
 
   return cl;
@@ -3249,6 +3262,22 @@ void gfc_free_charlen (gfc_charlen *cl, gfc_charlen *end)
       gfc_free_expr (cl->length);
       gfc_free (cl);
     }
+}
+
+
+/* Free entry list structs.  */
+
+static void
+free_entry_list (gfc_entry_list *el)
+{
+  gfc_entry_list *next;
+
+  if (el == NULL)
+    return;
+
+  next = el->next;
+  gfc_free (el);
+  free_entry_list (next);
 }
 
 
@@ -3281,6 +3310,7 @@ gfc_free_namespace (gfc_namespace *ns)
   gfc_free_charlen (ns->cl_list, NULL);
   free_st_labels (ns->st_labels);
 
+  free_entry_list (ns->entries);
   gfc_free_equiv (ns->equiv);
   gfc_free_equiv_lists (ns->equiv_lists);
   gfc_free_use_stmts (ns->use_stmts);
@@ -3572,13 +3602,24 @@ verify_bind_c_derived_type (gfc_symbol *derived_sym)
   
   curr_comp = derived_sym->components;
 
-  /* TODO: is this really an error?  */
+  /* Fortran 2003 allows an empty derived type.  C99 appears to disallow an
+     empty struct.  Section 15.2 in Fortran 2003 states:  "The following
+     subclauses define the conditions under which a Fortran entity is
+     interoperable.  If a Fortran entity is interoperable, an equivalent
+     entity may be defined by means of C and the Fortran entity is said
+     to be interoperable with the C entity.  There does not have to be such
+     an interoperating C entity."
+  */
   if (curr_comp == NULL)
     {
-      gfc_error ("Derived type '%s' at %L is empty",
-		 derived_sym->name, &(derived_sym->declared_at));
-      return FAILURE;
+      gfc_warning ("Derived type '%s' with BIND(C) attribute at %L is empty, "
+		   "and may be inaccessible by the C companion processor",
+		   derived_sym->name, &(derived_sym->declared_at));
+      derived_sym->ts.is_c_interop = 1;
+      derived_sym->attr.is_bind_c = 1;
+      return SUCCESS;
     }
+
 
   /* Initialize the derived type as being C interoperable.
      If we find an error in the components, this will be set false.  */
@@ -3948,7 +3989,6 @@ gen_shape_param (gfc_formal_arglist **head,
   gfc_symtree *param_symtree = NULL;
   gfc_formal_arglist *formal_arg = NULL;
   const char *shape_param = "gfc_shape_array__";
-  int i;
 
   if (shape_param_name != NULL)
     shape_param = shape_param_name;
@@ -3974,15 +4014,9 @@ gen_shape_param (gfc_formal_arglist **head,
   /* Initialize the kind to default integer.  However, it will be overridden
      during resolution to match the kind of the SHAPE parameter given as
      the actual argument (to allow for any valid integer kind).  */
-  param_sym->ts.kind = gfc_default_integer_kind;   
+  param_sym->ts.kind = gfc_default_integer_kind;
   param_sym->as = gfc_get_array_spec ();
 
-  /* Clear out the dimension info for the array.  */
-  for (i = 0; i < GFC_MAX_DIMENSIONS; i++)
-    {
-      param_sym->as->lower[i] = NULL;
-      param_sym->as->upper[i] = NULL;
-    }
   param_sym->as->rank = 1;
   param_sym->as->lower[0] = gfc_get_int_expr (gfc_default_integer_kind,
 					      NULL, 1);
@@ -4190,6 +4224,7 @@ gfc_copy_formal_args_ppc (gfc_component *dest, gfc_symbol *src)
     }
 
   /* Add the interface to the symbol.  */
+  gfc_free_formal_arglist (dest->formal);
   dest->formal = head;
   dest->attr.if_source = IFSRC_DECL;
 

@@ -102,7 +102,7 @@ package body Checks is
    --  how we ensure that this condition is met.
 
    --  First, we need to know for certain that the previous expression has
-   --  been executed. This is done principly by the mechanism of calling
+   --  been executed. This is done principally by the mechanism of calling
    --  Conditional_Statements_Begin at the start of any statement sequence
    --  and Conditional_Statements_End at the end. The End call causes all
    --  checks remembered since the Begin call to be discarded. This does
@@ -159,7 +159,7 @@ package body Checks is
       Target_Type : Entity_Id;
       --  Used only if Do_Range_Check is set. Records the target type for
       --  the check. We need this, because a check is a duplicate only if
-      --  it has a the same target type (or more accurately one with a
+      --  it has the same target type (or more accurately one with a
       --  range that is smaller or equal to the stored target type of a
       --  saved check).
    end record;
@@ -650,10 +650,11 @@ package body Checks is
          return;
       end if;
 
-      --  Here we do not know if the value is acceptable. Stricly we don't have
-      --  to do anything, since if the alignment is bad, we have an erroneous
-      --  program. However we are allowed to check for erroneous conditions and
-      --  we decide to do this by default if the check is not suppressed.
+      --  Here we do not know if the value is acceptable. Strictly we don't
+      --  have to do anything, since if the alignment is bad, we have an
+      --  erroneous program. However we are allowed to check for erroneous
+      --  conditions and we decide to do this by default if the check is not
+      --  suppressed.
 
       --  However, don't do the check if elaboration code is unwanted
 
@@ -818,15 +819,6 @@ package body Checks is
                      --  Rewrite the conversion operand so that the original
                      --  node is retained, in order to avoid the warning for
                      --  redundant conversions in Resolve_Type_Conversion.
-
-                     --  The above comment is uncomfortable. This seems like
-                     --  an awkward covert channel, since there isno general
-                     --  requirement in sinfo.ads or einfo.ads that requires
-                     --  this rewrite. Instead, the issue seems to be that in
-                     --  the old code, some node was incorrectly marked as
-                     --  coming from source when it should not have been and/or
-                     --  the warning code did not properly test the appropriate
-                     --  Comes_From_Soure flag. ???
 
                      Rewrite (N, Relocate_Node (N));
 
@@ -1006,10 +998,15 @@ package body Checks is
       Desig_Typ : Entity_Id;
 
    begin
+      --  No checks inside a generic (check the instantiations)
+
       if Inside_A_Generic then
          return;
+      end if;
 
-      elsif Is_Scalar_Type (Typ) then
+      --  Apply required constraint checks
+
+      if Is_Scalar_Type (Typ) then
          Apply_Scalar_Range_Check (N, Typ);
 
       elsif Is_Array_Type (Typ) then
@@ -1202,11 +1199,11 @@ package body Checks is
 
       if Present (Lhs)
         and then (Present (Param_Entity (Lhs))
-                   or else (Ada_Version < Ada_05
+                   or else (Ada_Version < Ada_2005
                              and then not Is_Constrained (T_Typ)
                              and then Is_Aliased_View (Lhs)
                              and then not Is_Aliased_Unconstrained_Component)
-                   or else (Ada_Version >= Ada_05
+                   or else (Ada_Version >= Ada_2005
                              and then not Is_Constrained (T_Typ)
                              and then Denotes_Explicit_Dereference (Lhs)
                              and then Nkind (Original_Node (Lhs)) /=
@@ -1225,7 +1222,7 @@ package body Checks is
       --  Ada 2005: nothing to do if the type is one for which there is a
       --  partial view that is constrained.
 
-      elsif Ada_Version >= Ada_05
+      elsif Ada_Version >= Ada_2005
         and then Has_Constrained_Partial_View (Base_Type (T_Typ))
       then
          return;
@@ -1568,8 +1565,8 @@ package body Checks is
       Truncate  : constant Boolean := Float_Truncate (Par);
       Max_Bound : constant Uint :=
                     UI_Expon
-                      (Machine_Radix (Expr_Type),
-                       Machine_Mantissa (Expr_Type) - 1) - 1;
+                      (Machine_Radix_Value (Expr_Type),
+                       Machine_Mantissa_Value (Expr_Type) - 1) - 1;
 
       --  Largest bound, so bound plus or minus half is a machine number of F
 
@@ -1756,6 +1753,18 @@ package body Checks is
       Apply_Selected_Length_Checks
         (Ck_Node, Target_Typ, Source_Typ, Do_Static => False);
    end Apply_Length_Check;
+
+   ---------------------------
+   -- Apply_Predicate_Check --
+   ---------------------------
+
+   procedure Apply_Predicate_Check (N : Node_Id; Typ : Entity_Id) is
+   begin
+      if Present (Predicate_Function (Typ)) then
+         Insert_Action (N,
+           Make_Predicate_Check (Typ, Duplicate_Subexpr (N)));
+      end if;
+   end Apply_Predicate_Check;
 
    -----------------------
    -- Apply_Range_Check --
@@ -2140,7 +2149,7 @@ package body Checks is
 
                --  If checks are off, then analyze the length check after
                --  temporarily attaching it to the tree in case the relevant
-               --  condition can be evaluted at compile time. We still want a
+               --  condition can be evaluated at compile time. We still want a
                --  compile time warning in this case.
 
                else
@@ -2411,14 +2420,14 @@ package body Checks is
                      --  one of the stored discriminants, this will provide the
                      --  required consistency check.
 
-                     Append_Elmt (
-                        Make_Selected_Component (Loc,
-                          Prefix =>
+                     Append_Elmt
+                       (Make_Selected_Component (Loc,
+                          Prefix        =>
                             Duplicate_Subexpr_No_Checks
                               (Expr, Name_Req => True),
                           Selector_Name =>
                             Make_Identifier (Loc, Chars (Discr))),
-                                New_Constraints);
+                        New_Constraints);
 
                   else
                      --  Discriminant of more remote ancestor ???
@@ -2762,7 +2771,7 @@ package body Checks is
               ("use `OR ELSE` instead of OR?", P);
          end if;
 
-         --  If not short-circuited, we need the ckeck
+         --  If not short-circuited, we need the check
 
          return True;
 
@@ -3741,6 +3750,15 @@ package body Checks is
          return;
       end if;
 
+      --  Do not set range check flag if parent is assignment statement or
+      --  object declaration with Suppress_Assignment_Checks flag set
+
+      if Nkind_In (Parent (N), N_Assignment_Statement, N_Object_Declaration)
+        and then Suppress_Assignment_Checks (Parent (N))
+      then
+         return;
+      end if;
+
       --  Check for various cases where we should suppress the range check
 
       --  No check if range checks suppressed for type of node
@@ -4012,7 +4030,7 @@ package body Checks is
       then
          return;
 
-      --  No check on a univeral real constant. The context will eventually
+      --  No check on a universal real constant. The context will eventually
       --  convert it to a machine number for some target type, or report an
       --  illegality.
 
@@ -4021,7 +4039,7 @@ package body Checks is
       then
          return;
 
-      --  If the expression denotes a component of a packed boolean arrray,
+      --  If the expression denotes a component of a packed boolean array,
       --  no possible check applies. We ignore the old ACATS chestnuts that
       --  involve Boolean range True..True.
 
@@ -4108,13 +4126,13 @@ package body Checks is
          end if;
       end if;
 
-      --  If this is a boolean expression, only its elementary consituents need
+      --  If this is a boolean expression, only its elementary operands need
       --  checking: if they are valid, a boolean or short-circuit operation
       --  with them will be valid as well.
 
       if Base_Type (Typ) = Standard_Boolean
         and then
-          (Nkind (Expr) in N_Op or else Nkind (Expr) in N_Short_Circuit)
+         (Nkind (Expr) in N_Op or else Nkind (Expr) in N_Short_Circuit)
       then
          return;
       end if;
@@ -5209,7 +5227,7 @@ package body Checks is
               Reason => CE_Invalid_Data),
             Suppress => Validity_Check);
 
-         --  If the expression is a a reference to an element of a bit-packed
+         --  If the expression is a reference to an element of a bit-packed
          --  array, then it is rewritten as a renaming declaration. If the
          --  expression is an actual in a call, it has not been expanded,
          --  waiting for the proper point at which to do it. The same happens
@@ -5253,7 +5271,7 @@ package body Checks is
    ----------------------------------
 
    procedure Install_Null_Excluding_Check (N : Node_Id) is
-      Loc : constant Source_Ptr := Sloc (N);
+      Loc : constant Source_Ptr := Sloc (Parent (N));
       Typ : constant Entity_Id  := Etype (N);
 
       function Safe_To_Capture_In_Parameter_Value return Boolean;
@@ -5326,7 +5344,7 @@ package body Checks is
                   return False;
                end if;
 
-               --  If we are in a case eexpression, and not part of the
+               --  If we are in a case expression, and not part of the
                --  expression, then we return False, since a particular
                --  branch may not always be elaborated
 
@@ -6056,7 +6074,7 @@ package body Checks is
             --  The checking code to be generated will freeze the
             --  corresponding array type. However, we must freeze the
             --  type now, so that the freeze node does not appear within
-            --  the generated condional expression, but ahead of it.
+            --  the generated conditional expression, but ahead of it.
 
             Freeze_Before (Ck_Node, T_Typ);
 

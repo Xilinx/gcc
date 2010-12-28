@@ -114,7 +114,7 @@ Java
 ; Documented for C
 
 Wdeprecated
-Java Var(warn_deprecated) VarExists
+Java Var(warn_deprecated)
 ; Documented for C
 
 Wextraneous-semicolon
@@ -281,6 +281,9 @@ Java Joined
 Set the target VM version
 
 s-bc-abi
+Driver
+
+static-libgcj
 Driver
 
 version

@@ -86,7 +86,7 @@ package body Ada.Strings.Unbounded is
          Reference (Empty_Shared_String'Access);
          DR := Empty_Shared_String'Access;
 
-      --  Left string is empty, return Rigth string
+      --  Left string is empty, return Right string
 
       elsif LR.Last = 0 then
          Reference (RR);
@@ -98,7 +98,7 @@ package body Ada.Strings.Unbounded is
          Reference (LR);
          DR := LR;
 
-      --  Overwise, allocate new shared string and fill data
+      --  Otherwise, allocate new shared string and fill data
 
       else
          DR := Allocate (LR.Last + RR.Last);
@@ -815,6 +815,19 @@ package body Ada.Strings.Unbounded is
    ----------------
    -- Find_Token --
    ----------------
+
+   procedure Find_Token
+     (Source : Unbounded_String;
+      Set    : Maps.Character_Set;
+      From   : Positive;
+      Test   : Strings.Membership;
+      First  : out Positive;
+      Last   : out Natural)
+   is
+      SR : constant Shared_String_Access := Source.Reference;
+   begin
+      Search.Find_Token (SR.Data (From .. SR.Last), Set, Test, First, Last);
+   end Find_Token;
 
    procedure Find_Token
      (Source : Unbounded_String;

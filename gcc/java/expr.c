@@ -36,7 +36,6 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "java-except.h"
 #include "parse.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "ggc.h"
 #include "tree-iterator.h"
 #include "target.h"
@@ -1763,7 +1762,8 @@ lookup_label (int pc)
   char buf[32];
   if (pc > highest_label_pc_this_method)
     highest_label_pc_this_method = pc;
-  ASM_GENERATE_INTERNAL_LABEL(buf, "LJpc=", start_label_pc_this_method + pc);
+  targetm.asm_out.generate_internal_label (buf, "LJpc=",
+					   start_label_pc_this_method + pc);
   name = get_identifier (buf);
   if (IDENTIFIER_LOCAL_VALUE (name))
     return IDENTIFIER_LOCAL_VALUE (name);
@@ -1783,7 +1783,7 @@ generate_name (void)
 {
   static int l_number = 0;
   char buff [32];
-  ASM_GENERATE_INTERNAL_LABEL(buff, "LJv", l_number);
+  targetm.asm_out.generate_internal_label (buff, "LJv", l_number);
   l_number++;
   return get_identifier (buff);
 }
@@ -2919,7 +2919,7 @@ expand_java_field_op (int is_static, int is_putting, int field_ref_index)
       if (FIELD_FINAL (field_decl))
 	{
 	  if (DECL_CONTEXT (field_decl) != current_class)
-            error ("assignment to final field %q+D not in field's class",
+            error ("assignment to final field %q+D not in field%'s class",
                    field_decl);
 	  /* We used to check for assignments to final fields not
 	     occurring in the class initializer or in a constructor

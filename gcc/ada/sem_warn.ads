@@ -49,8 +49,8 @@ package Sem_Warn is
 
    Warn_On_Overridden_Size : Boolean := False;
    --  Warn when explicit record component clause or array component_size
-   --  clause specifies a size that overrides a size for the typen which was
-   --  set with an explicit size clause. Off by default, set by -gnatw.sn (but
+   --  clause specifies a size that overrides a size for the type which was
+   --  set with an explicit size clause. Off by default, set by -gnatw.s (but
    --  not -gnatwa).
 
    ------------------------

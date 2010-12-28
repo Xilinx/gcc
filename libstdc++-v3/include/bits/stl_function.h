@@ -49,9 +49,9 @@
  * purpose.  It is provided "as is" without express or implied warranty.
  */
 
-/** @file stl_function.h
+/** @file bits/stl_function.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{functional}
  */
 
 #ifndef _STL_FUNCTION_H
@@ -99,10 +99,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _Arg, typename _Result>
     struct unary_function
     {
-      typedef _Arg argument_type;   ///< @c argument_type is the type of the
-                                    ///     argument (no surprises here)
+      /// @c argument_type is the type of the argument
+      typedef _Arg 	argument_type;   
 
-      typedef _Result result_type;  ///< @c result_type is the return type
+      /// @c result_type is the return type
+      typedef _Result 	result_type;  
     };
 
   /**
@@ -111,11 +112,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _Arg1, typename _Arg2, typename _Result>
     struct binary_function
     {
-      typedef _Arg1 first_argument_type;   ///< the type of the first argument
-                                           ///  (no surprises here)
+      /// @c first_argument_type is the type of the first argument
+      typedef _Arg1 	first_argument_type; 
 
-      typedef _Arg2 second_argument_type;  ///< the type of the second argument
-      typedef _Result result_type;         ///< type of the return type
+      /// @c second_argument_type is the type of the second argument
+      typedef _Arg2 	second_argument_type;
+
+      /// @c result_type is the return type
+      typedef _Result 	result_type;
     };
   /** @}  */
 
@@ -487,6 +491,18 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       const typename _Pair::first_type&
       operator()(const _Pair& __x) const
       { return __x.first; }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename _Pair2>
+        typename _Pair2::first_type&
+        operator()(_Pair2& __x) const
+        { return __x.first; }
+
+      template<typename _Pair2>
+        const typename _Pair2::first_type&
+        operator()(const _Pair2& __x) const
+        { return __x.first; }
+#endif
     };
 
   template<typename _Pair>

@@ -57,16 +57,18 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "output.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "function.h"
 #include "target.h"
 #include "tm_p.h"
 #include "target-def.h"
 #include "ggc.h"
 #include "hard-reg-set.h"
+#include "regs.h"
 #include "reload.h"
 #include "optabs.h"
 #include "recog.h"
+#include "intl.h"
+#include "opts.h"
 
 
 bool
@@ -356,6 +358,17 @@ default_print_operand_punct_valid_p (unsigned char code ATTRIBUTE_UNUSED)
 #endif
 }
 
+/* The default implementation of TARGET_MANGLE_ASSEMBLER_NAME.  */
+tree
+default_mangle_assembler_name (const char *name ATTRIBUTE_UNUSED)
+{
+  const char *skipped = name + (*name == '*' ? 1 : 0);
+  const char *stripped = targetm.strip_name_encoding (skipped);
+  if (*name != '*' && user_label_prefix[0])
+    stripped = ACONCAT ((user_label_prefix, stripped, NULL));
+  return get_identifier (stripped);
+}
+
 /* The default implementation of TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA.  */
 
 bool
@@ -422,6 +435,19 @@ default_scalar_mode_supported_p (enum machine_mode mode)
     default:
       gcc_unreachable ();
     }
+}
+
+/* Make some target macros useable by target-independent code.  */
+bool
+targhook_words_big_endian (void)
+{
+  return !!WORDS_BIG_ENDIAN;
+}
+
+bool
+targhook_float_words_big_endian (void)
+{
+  return !!FLOAT_WORDS_BIG_ENDIAN;
 }
 
 /* True if the target supports decimal floating point.  */
@@ -591,6 +617,13 @@ default_function_incoming_arg (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 #else
   gcc_unreachable ();
 #endif
+}
+
+unsigned int
+default_function_arg_boundary (enum machine_mode mode ATTRIBUTE_UNUSED,
+			       const_tree type ATTRIBUTE_UNUSED)
+{
+  return PARM_BOUNDARY;
 }
 
 void
@@ -979,10 +1012,19 @@ default_builtin_support_vector_misalignment (enum machine_mode mode,
 /* By default, only attempt to parallelize bitwise operations, and
    possibly adds/subtracts using bit-twiddling.  */
 
-unsigned int
-default_units_per_simd_word (enum machine_mode mode ATTRIBUTE_UNUSED)
+enum machine_mode
+default_preferred_simd_mode (enum machine_mode mode ATTRIBUTE_UNUSED)
 {
-  return UNITS_PER_WORD;
+  return word_mode;
+}
+
+/* By default only the size derived from the preferred vector mode
+   is tried.  */
+
+unsigned int
+default_autovectorize_vector_sizes (void)
+{
+  return 0;
 }
 
 /* Determine whether or not a pointer mode is valid. Assume defaults
@@ -1221,16 +1263,231 @@ default_profile_before_prologue (void)
 #endif
 }
 
+/* The default implementation of TARGET_PREFERRED_RELOAD_CLASS.  */
+
+reg_class_t
+default_preferred_reload_class (rtx x ATTRIBUTE_UNUSED,
+			        reg_class_t rclass)
+{
+#ifdef PREFERRED_RELOAD_CLASS 
+  return (reg_class_t) PREFERRED_RELOAD_CLASS (x, (enum reg_class) rclass);
+#else
+  return rclass;
+#endif
+}
+
+/* The default implementation of TARGET_OUTPUT_PREFERRED_RELOAD_CLASS.  */
+
+reg_class_t
+default_preferred_output_reload_class (rtx x ATTRIBUTE_UNUSED,
+				       reg_class_t rclass)
+{
+#ifdef PREFERRED_OUTPUT_RELOAD_CLASS
+  return PREFERRED_OUTPUT_RELOAD_CLASS (x, (enum reg_class) rclass);
+#else
+  return rclass;
+#endif
+}
+
+/* The default implementation of TARGET_PREFERRED_RENAME_CLASS.  */
+reg_class_t
+default_preferred_rename_class (reg_class_t rclass ATTRIBUTE_UNUSED)
+{
+  return NO_REGS;
+}
+
 /* The default implementation of TARGET_CLASS_LIKELY_SPILLED_P.  */
 
 bool
 default_class_likely_spilled_p (reg_class_t rclass)
 {
-#ifndef CLASS_LIKELY_SPILLED_P
   return (reg_class_size[(int) rclass] == 1);
-#else
-  return CLASS_LIKELY_SPILLED_P ((enum reg_class) rclass);
-#endif
 }
+
+/* Determine the debugging unwind mechanism for the target.  */
+
+enum unwind_info_type
+default_debug_unwind_info (void)
+{
+  /* If the target wants to force the use of dwarf2 unwind info, let it.  */
+  /* ??? Change all users to the hook, then poison this.  */
+#ifdef DWARF2_FRAME_INFO
+  if (DWARF2_FRAME_INFO)
+    return UI_DWARF2;
+#endif
+
+  /* Otherwise, only turn it on if dwarf2 debugging is enabled.  */
+#ifdef DWARF2_DEBUGGING_INFO
+  if (write_symbols == DWARF2_DEBUG || write_symbols == VMS_AND_DWARF2_DEBUG)
+    return UI_DWARF2;
+#endif
+
+  return UI_NONE;
+}
+
+/* Determine the exception handling mechanism for the target.  */
+
+enum unwind_info_type
+default_except_unwind_info (struct gcc_options *opts ATTRIBUTE_UNUSED)
+{
+  /* Obey the configure switch to turn on sjlj exceptions.  */
+#ifdef CONFIG_SJLJ_EXCEPTIONS
+  if (CONFIG_SJLJ_EXCEPTIONS)
+    return UI_SJLJ;
+#endif
+
+  /* ??? Change all users to the hook, then poison this.  */
+#ifdef DWARF2_UNWIND_INFO
+  if (DWARF2_UNWIND_INFO)
+    return UI_DWARF2;
+#endif
+
+  return UI_SJLJ;
+}
+
+/* To be used by targets that force dwarf2 unwind enabled.  */
+
+enum unwind_info_type
+dwarf2_except_unwind_info (struct gcc_options *opts ATTRIBUTE_UNUSED)
+{
+  /* Obey the configure switch to turn on sjlj exceptions.  */
+#ifdef CONFIG_SJLJ_EXCEPTIONS
+  if (CONFIG_SJLJ_EXCEPTIONS)
+    return UI_SJLJ;
+#endif
+
+  return UI_DWARF2;
+}
+
+/* To be used by targets that force sjlj unwind enabled.  */
+
+enum unwind_info_type
+sjlj_except_unwind_info (struct gcc_options *opts ATTRIBUTE_UNUSED)
+{
+  return UI_SJLJ;
+}
+
+/* To be used by targets where reg_raw_mode doesn't return the right
+   mode for registers used in apply_builtin_return and apply_builtin_arg.  */
+
+enum machine_mode
+default_get_reg_raw_mode(int regno)
+{
+  return reg_raw_mode[regno];
+}
+
+/* Return true if the state of option OPTION should be stored in PCH files
+   and checked by default_pch_valid_p.  Store the option's current state
+   in STATE if so.  */
+
+static inline bool
+option_affects_pch_p (int option, struct cl_option_state *state)
+{
+  if ((cl_options[option].flags & CL_TARGET) == 0)
+    return false;
+  if (option_flag_var (option, &global_options) == &target_flags)
+    if (targetm.check_pch_target_flags)
+      return false;
+  return get_option_state (&global_options, option, state);
+}
+
+/* Default version of get_pch_validity.
+   By default, every flag difference is fatal; that will be mostly right for
+   most targets, but completely right for very few.  */
+
+void *
+default_get_pch_validity (size_t *sz)
+{
+  struct cl_option_state state;
+  size_t i;
+  char *result, *r;
+
+  *sz = 2;
+  if (targetm.check_pch_target_flags)
+    *sz += sizeof (target_flags);
+  for (i = 0; i < cl_options_count; i++)
+    if (option_affects_pch_p (i, &state))
+      *sz += state.size;
+
+  result = r = XNEWVEC (char, *sz);
+  r[0] = flag_pic;
+  r[1] = flag_pie;
+  r += 2;
+  if (targetm.check_pch_target_flags)
+    {
+      memcpy (r, &target_flags, sizeof (target_flags));
+      r += sizeof (target_flags);
+    }
+
+  for (i = 0; i < cl_options_count; i++)
+    if (option_affects_pch_p (i, &state))
+      {
+	memcpy (r, state.data, state.size);
+	r += state.size;
+      }
+
+  return result;
+}
+
+/* Return a message which says that a PCH file was created with a different
+   setting of OPTION.  */
+
+static const char *
+pch_option_mismatch (const char *option)
+{
+  char *r;
+
+  asprintf (&r, _("created and used with differing settings of '%s'"), option);
+  if (r == NULL)
+    return _("out of memory");
+  return r;
+}
+
+/* Default version of pch_valid_p.  */
+
+const char *
+default_pch_valid_p (const void *data_p, size_t len)
+{
+  struct cl_option_state state;
+  const char *data = (const char *)data_p;
+  size_t i;
+
+  /* -fpic and -fpie also usually make a PCH invalid.  */
+  if (data[0] != flag_pic)
+    return _("created and used with different settings of -fpic");
+  if (data[1] != flag_pie)
+    return _("created and used with different settings of -fpie");
+  data += 2;
+
+  /* Check target_flags.  */
+  if (targetm.check_pch_target_flags)
+    {
+      int tf;
+      const char *r;
+
+      memcpy (&tf, data, sizeof (target_flags));
+      data += sizeof (target_flags);
+      len -= sizeof (target_flags);
+      r = targetm.check_pch_target_flags (tf);
+      if (r != NULL)
+	return r;
+    }
+
+  for (i = 0; i < cl_options_count; i++)
+    if (option_affects_pch_p (i, &state))
+      {
+	if (memcmp (data, state.data, state.size) != 0)
+	  return pch_option_mismatch (cl_options[i].opt_text);
+	data += state.size;
+	len -= state.size;
+      }
+
+  return NULL;
+}
+
+const struct default_options empty_optimization_table[] =
+  {
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 #include "gt-targhooks.h"

@@ -28,8 +28,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 /* __USE_FIXED_PROTOTYPES__ used to be required to get prototypes for
    malloc, free, etc. on some platforms.  It is unclear if we still
-   need it, but it can't hurt.
-*/
+   need it, but it can't hurt.  */
 #define __USE_FIXED_PROTOTYPES__
 #include <stdlib.h>
 #include <stdio.h>
@@ -48,8 +47,7 @@ _objc_abort (const char *fmt, ...)
 }
 
 /* The rest of the file is deprecated.  */
-#include "objc/objc.h"
-#include "objc/objc-api.h"
+#include "objc/objc-api.h" /* For objc_error_handler.  */
 
 /*
 ** Error handler function

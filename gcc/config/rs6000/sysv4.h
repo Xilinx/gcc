@@ -41,16 +41,6 @@
 #undef	ASM_DEFAULT_SPEC
 #define	ASM_DEFAULT_SPEC "-mppc"
 
-/* Small data support types.  */
-enum rs6000_sdata_type {
-  SDATA_NONE,			/* No small data support.  */
-  SDATA_DATA,			/* Just put data in .sbss/.sdata, don't use relocs.  */
-  SDATA_SYSV,			/* Use r13 to point to .sdata/.sbss.  */
-  SDATA_EABI			/* Use r13 like above, r2 points to .sdata2/.sbss2.  */
-};
-
-extern enum rs6000_sdata_type rs6000_sdata;
-
 #define	TARGET_TOC		((target_flags & MASK_64BIT)		\
 				 || ((target_flags & (MASK_RELOCATABLE	\
 						      | MASK_MINIMAL_TOC)) \
@@ -70,10 +60,6 @@ extern enum rs6000_sdata_type rs6000_sdata;
 #define TARGET_SECURE_PLT	secure_plt
 #endif
 
-extern const char *rs6000_abi_name;
-extern const char *rs6000_sdata_name;
-extern const char *rs6000_tls_size_string; /* For -mtls-size= */
-
 #define SDATA_DEFAULT_SIZE 8
 
 /* The macro SUBTARGET_OVERRIDE_OPTIONS is provided for subtargets, to
@@ -81,7 +67,7 @@ extern const char *rs6000_tls_size_string; /* For -mtls-size= */
 
 #define SUBTARGET_OVERRIDE_OPTIONS					\
 do {									\
-  if (!g_switch_set)							\
+  if (!global_options_set.x_g_switch_value)				\
     g_switch_value = SDATA_DEFAULT_SIZE;				\
 									\
   if (rs6000_abi_name == NULL)						\
@@ -223,7 +209,8 @@ do {									\
     }									\
 									\
   else if (TARGET_RELOCATABLE)						\
-    flag_pic = 2;							\
+    if (!flag_pic)							\
+      flag_pic = 2;							\
 } while (0)
 
 #ifndef RS6000_BI_ARCH
@@ -258,14 +245,6 @@ do {									\
 #define	BYTES_BIG_ENDIAN (TARGET_BIG_ENDIAN)
 #define	WORDS_BIG_ENDIAN (TARGET_BIG_ENDIAN)
 
-/* Define this to set the endianness to use in libgcc2.c, which can
-   not depend on target_flags.  */
-#if !defined(__LITTLE_ENDIAN__) && !defined(__sun__)
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#else
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#endif
-
 /* Define cutoff for using external functions to save floating point.
    When optimizing for size, use external functions when profitable.  */
 #define FP_SAVE_INLINE(FIRST_REG) (optimize_size			\
@@ -286,6 +265,10 @@ do {									\
 /* Prefix and suffix to use to restoring floating point.  */
 #define	RESTORE_FP_PREFIX "_restfpr_"
 #define RESTORE_FP_SUFFIX ""
+
+/* Type used for size_t, as a string used in a declaration.  */
+#undef  SIZE_TYPE
+#define SIZE_TYPE "unsigned int"
 
 /* Type used for ptrdiff_t, as a string used in a declaration.  */
 #define PTRDIFF_TYPE "int"
@@ -410,8 +393,6 @@ do {									\
    Some svr4 assemblers need to also have something extra said about the
    function's return value.  We allow for that here.  */
 
-extern int rs6000_pic_labelno;
-
 /* Override elfos.h definition.  */
 #undef	ASM_DECLARE_FUNCTION_NAME
 #define ASM_DECLARE_FUNCTION_NAME(FILE, NAME, DECL)			\
@@ -510,13 +491,6 @@ do {									\
 		 reg_names[1]);						\
 } while (0)
 
-/* Switch  Recognition by gcc.c.  Add -G xx support.  */
-
-/* Override svr4.h definition.  */
-#undef	SWITCH_TAKES_ARG
-#define SWITCH_TAKES_ARG(CHAR)						\
-  (DEFAULT_SWITCH_TAKES_ARG (CHAR) || (CHAR) == 'G')
-
 extern int fixuplabelno;
 
 /* Handle constructors specially for -mrelocatable.  */
@@ -580,9 +554,8 @@ extern int fixuplabelno;
 /* Override svr4.h definition.  */
 #undef	ASM_SPEC
 #define	ASM_SPEC "%(asm_cpu) \
-%{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}}" \
-SVR4_ASM_SPEC \
-"%{mrelocatable} %{mrelocatable-lib} %{fpic|fpie|fPIC|fPIE:-K PIC} \
+%{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}} \
+%{mrelocatable} %{mrelocatable-lib} %{fpic|fpie|fPIC|fPIE:-K PIC} \
 %{memb|msdata=eabi: -memb} \
 %{mlittle|mlittle-endian:-mlittle; \
   mbig|mbig-endian      :-mbig;    \
@@ -674,7 +647,7 @@ SVR4_ASM_SPEC \
 %{YP,*} %{R*} \
 %{Qy:} %{!Qn:-Qy} \
 %(link_shlib) \
-%{!Wl,-T*: %{!T*: %(link_start) }} \
+%{!T*: %(link_start) } \
 %(link_target) \
 %(link_os)"
 
@@ -857,14 +830,14 @@ SVR4_ASM_SPEC \
 #define LINK_START_FREEBSD_SPEC	""
 
 #define LINK_OS_FREEBSD_SPEC "\
-  %{p:%nconsider using `-pg' instead of `-p' with gprof(1)} \
+  %{p:%nconsider using '-pg' instead of '-p' with gprof(1)} \
   %{v:-V} \
   %{assert*} %{R*} %{rpath*} %{defsym*} \
   %{shared:-Bshareable %{h*} %{soname*}} \
   %{!shared: \
     %{!static: \
       %{rdynamic: -export-dynamic} \
-      %{!dynamic-linker:-dynamic-linker %(fbsd_dynamic_linker) }} \
+      -dynamic-linker %(fbsd_dynamic_linker) } \
     %{static:-Bstatic}} \
   %{symbolic:-Bsymbolic}"
 
@@ -905,7 +878,7 @@ SVR4_ASM_SPEC \
 
 #define LINK_OS_LINUX_SPEC "-m elf32ppclinux %{!shared: %{!static: \
   %{rdynamic:-export-dynamic} \
-  %{!dynamic-linker:-dynamic-linker " LINUX_DYNAMIC_LINKER "}}}"
+  -dynamic-linker " LINUX_DYNAMIC_LINKER "}}"
 
 #if defined(HAVE_LD_EH_FRAME_HDR)
 # define LINK_EH_SPEC "%{!static:--eh-frame-hdr} "
@@ -936,7 +909,7 @@ SVR4_ASM_SPEC \
 
 #define LINK_OS_GNU_SPEC "-m elf32ppclinux %{!shared: %{!static: \
   %{rdynamic:-export-dynamic} \
-  %{!dynamic-linker:-dynamic-linker /lib/ld.so.1}}}"
+  -dynamic-linker /lib/ld.so.1}}"
 
 #define CPP_OS_GNU_SPEC "-D__unix__ -D__gnu_hurd__ -D__GNU__	\
 %{!undef:					                \
@@ -961,7 +934,7 @@ ncrtn.o%s"
 #define LINK_OS_NETBSD_SPEC "\
 %{!shared: %{!static: \
   %{rdynamic:-export-dynamic} \
-  %{!dynamic-linker:-dynamic-linker /usr/libexec/ld.elf_so}}}"
+  -dynamic-linker /usr/libexec/ld.elf_so}}"
 
 #define CPP_OS_NETBSD_SPEC "\
 -D__powerpc__ -D__NetBSD__ -D__KPRINTF_ATTRIBUTE__"
@@ -1092,18 +1065,6 @@ ncrtn.o%s"
 /* Function name to call to do profiling.  */
 #define RS6000_MCOUNT "_mcount"
 
-/* Define this macro (to a value of 1) if you want to support the
-   Win32 style pragmas #pragma pack(push,<n>)' and #pragma
-   pack(pop)'.  The pack(push,<n>) pragma specifies the maximum
-   alignment (in bytes) of fields within a structure, in much the
-   same way as the __aligned__' and __packed__' __attribute__'s
-   do.  A pack value of zero resets the behavior to the default.
-   Successive invocations of this pragma cause the previous values to
-   be stacked, so that invocations of #pragma pack(pop)' will return
-   to the previous value.  */
-
-#define HANDLE_PRAGMA_PACK_PUSH_POP 1
-
 /* Select a format to encode pointers in exception handling data.  CODE
    is 0 for data, 1 for code labels, 2 for function pointers.  GLOBAL is
    true if the symbol may be affected by dynamic relocations.  */
@@ -1119,3 +1080,5 @@ ncrtn.o%s"
 
 /* This target uses the sysv4.opt file.  */
 #define TARGET_USES_SYSV4_OPT 1
+
+#undef DBX_REGISTER_NUMBER

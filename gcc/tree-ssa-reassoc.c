@@ -467,8 +467,7 @@ eliminate_duplicate_pair (enum tree_code opcode,
 	    {
 	      VEC_free (operand_entry_t, heap, *ops);
 	      *ops = NULL;
-	      add_to_ops_vec (ops, fold_convert (TREE_TYPE (last->op),
-						 integer_zero_node));
+	      add_to_ops_vec (ops, build_zero_cst (TREE_TYPE (last->op)));
 	      *all_done = true;
 	    }
 	  else
@@ -535,8 +534,7 @@ eliminate_plus_minus_pair (enum tree_code opcode,
 	    }
 
 	  VEC_ordered_remove (operand_entry_t, *ops, i);
-	  add_to_ops_vec (ops, fold_convert(TREE_TYPE (oe->op),
-					    integer_zero_node));
+	  add_to_ops_vec (ops, build_zero_cst (TREE_TYPE (oe->op)));
 	  VEC_ordered_remove (operand_entry_t, *ops, currindex);
 	  reassociate_stats.ops_eliminated ++;
 
@@ -623,7 +621,7 @@ eliminate_not_pairs (enum tree_code opcode,
 	    }
 
 	  if (opcode == BIT_AND_EXPR)
-	    oe->op = fold_convert (TREE_TYPE (oe->op), integer_zero_node);
+	    oe->op = build_zero_cst (TREE_TYPE (oe->op));
 	  else if (opcode == BIT_IOR_EXPR)
 	    oe->op = build_low_bits_mask (TREE_TYPE (oe->op),
 					  TYPE_PRECISION (TREE_TYPE (oe->op)));
@@ -1093,8 +1091,7 @@ undistribute_ops_list (enum tree_code opcode,
   htab_delete (ctable);
 
   /* Sort the counting table.  */
-  qsort (VEC_address (oecount, cvec), VEC_length (oecount, cvec),
-	 sizeof (oecount), oecount_cmp);
+  VEC_qsort (oecount, cvec, oecount_cmp);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
@@ -1178,7 +1175,7 @@ undistribute_ops_list (enum tree_code opcode,
 		}
 	      zero_one_operation (&oe2->op, c->oecode, c->op);
 	      sum = build_and_add_sum (tmpvar, oe1->op, oe2->op, opcode);
-	      oe2->op = fold_convert (TREE_TYPE (oe2->op), integer_zero_node);
+	      oe2->op = build_zero_cst (TREE_TYPE (oe2->op));
 	      oe2->rank = 0;
 	      oe1->op = gimple_get_lhs (sum);
 	    }
@@ -1789,13 +1786,15 @@ linearize_expr_tree (VEC(operand_entry_t, heap) **ops, gimple stmt,
   if (TREE_CODE (binlhs) == SSA_NAME)
     {
       binlhsdef = SSA_NAME_DEF_STMT (binlhs);
-      binlhsisreassoc = is_reassociable_op (binlhsdef, rhscode, loop);
+      binlhsisreassoc = (is_reassociable_op (binlhsdef, rhscode, loop)
+			 && !stmt_could_throw_p (binlhsdef));
     }
 
   if (TREE_CODE (binrhs) == SSA_NAME)
     {
       binrhsdef = SSA_NAME_DEF_STMT (binrhs);
-      binrhsisreassoc = is_reassociable_op (binrhsdef, rhscode, loop);
+      binrhsisreassoc = (is_reassociable_op (binrhsdef, rhscode, loop)
+			 && !stmt_could_throw_p (binrhsdef));
     }
 
   /* If the LHS is not reassociable, but the RHS is, we need to swap
@@ -2030,7 +2029,8 @@ reassociate_bb (basic_block bb)
     {
       gimple stmt = gsi_stmt (gsi);
 
-      if (is_gimple_assign (stmt))
+      if (is_gimple_assign (stmt)
+	  && !stmt_could_throw_p (stmt))
 	{
 	  tree lhs, rhs1, rhs2;
 	  enum tree_code rhs_code = gimple_assign_rhs_code (stmt);
@@ -2093,18 +2093,12 @@ reassociate_bb (basic_block bb)
 
 	      gimple_set_visited (stmt, true);
 	      linearize_expr_tree (&ops, stmt, true, true);
-	      qsort (VEC_address (operand_entry_t, ops),
-		     VEC_length (operand_entry_t, ops),
-		     sizeof (operand_entry_t),
-		     sort_by_operand_rank);
+	      VEC_qsort (operand_entry_t, ops, sort_by_operand_rank);
 	      optimize_ops_list (rhs_code, &ops);
 	      if (undistribute_ops_list (rhs_code, &ops,
 					 loop_containing_stmt (stmt)))
 		{
-		  qsort (VEC_address (operand_entry_t, ops),
-			 VEC_length (operand_entry_t, ops),
-			 sizeof (operand_entry_t),
-			 sort_by_operand_rank);
+		  VEC_qsort (operand_entry_t, ops, sort_by_operand_rank);
 		  optimize_ops_list (rhs_code, &ops);
 		}
 

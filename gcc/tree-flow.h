@@ -286,16 +286,6 @@ static inline var_ann_t get_var_ann (tree);
 static inline void update_stmt (gimple);
 static inline int get_lineno (const_gimple);
 
-/*---------------------------------------------------------------------------
-                  Structure representing predictions in tree level.
----------------------------------------------------------------------------*/
-struct GTY((chain_next ("%h.ep_next"))) edge_prediction {
-  struct edge_prediction *ep_next;
-  edge ep_edge;
-  enum br_predictor ep_predictor;
-  int ep_probability;
-};
-
 /* Accessors for basic block annotations.  */
 static inline gimple_seq phi_nodes (const_basic_block);
 static inline void set_phi_nodes (basic_block, gimple_seq);
@@ -303,8 +293,7 @@ static inline void set_phi_nodes (basic_block, gimple_seq);
 /*---------------------------------------------------------------------------
 			      Global declarations
 ---------------------------------------------------------------------------*/
-struct GTY(()) int_tree_map {
-
+struct int_tree_map {
   unsigned int uid;
   tree to;
 };
@@ -450,9 +439,10 @@ extern void gather_blocks_in_sese_region (basic_block entry, basic_block exit,
 					  VEC(basic_block,heap) **bbs_p);
 extern void add_phi_args_after_copy_bb (basic_block);
 extern void add_phi_args_after_copy (basic_block *, unsigned, edge);
-extern bool gimple_purge_dead_abnormal_call_edges (basic_block);
 extern bool gimple_purge_dead_eh_edges (basic_block);
 extern bool gimple_purge_all_dead_eh_edges (const_bitmap);
+extern bool gimple_purge_dead_abnormal_call_edges (basic_block);
+extern bool gimple_purge_all_dead_abnormal_call_edges (const_bitmap);
 extern tree gimplify_build1 (gimple_stmt_iterator *, enum tree_code,
 			     tree, tree);
 extern tree gimplify_build2 (gimple_stmt_iterator *, enum tree_code,
@@ -532,7 +522,7 @@ extern bool gimple_check_call_args (gimple);
 /* In tree-ssa.c  */
 
 /* Mapping for redirected edges.  */
-struct GTY(()) _edge_var_map {
+struct _edge_var_map {
   tree result;			/* PHI result.  */
   tree def;			/* PHI arg definition.  */
   source_location locus;        /* PHI arg location.  */

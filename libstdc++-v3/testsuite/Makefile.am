@@ -67,7 +67,7 @@ site.exp: Makefile
 	@mv site.tmp site.exp
 
 
-extract_symvers = $(glibcxx_srcdir)/scripts/extract_symvers
+extract_symvers = $(glibcxx_builddir)/scripts/extract_symvers
 
 baseline_subdir := $(shell $(CXX) --print-multi-dir)
 
@@ -80,7 +80,7 @@ baseline_symbols:
 	  fi; true)
 
 new-abi-baseline:
-	-@$(mkinstalldirs) ${baseline_dir}${baseline_subdir}
+	-@$(mkinstalldirs) ${baseline_dir}/${baseline_subdir}
 	-@(output=${baseline_dir}/${baseline_subdir}/baseline_symbols.txt; \
 	  if test -f $${output}; then \
 	    output=$${output}.new; \

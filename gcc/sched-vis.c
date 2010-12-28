@@ -428,6 +428,11 @@ print_value (char *buf, const_rtx x, int verbose)
   char t[BUF_LEN];
   char *cur = buf;
 
+  if (!x)
+    {
+      safe_concat (buf, buf, "(nil)");
+      return;
+    }
   switch (GET_CODE (x))
     {
     case CONST_INT:
@@ -599,7 +604,7 @@ print_pattern (char *buf, const_rtx x, int verbose)
       sprintf (buf, "asm {%s}", XSTR (x, 0));
       break;
     case ADDR_VEC:
-      break;
+      /* Fall through.  */
     case ADDR_DIFF_VEC:
       print_value (buf, XEXP (x, 0), verbose);
       break;

@@ -557,6 +557,10 @@ Wpragmas
 C ObjC C++ ObjC++ Var(warn_pragmas) Init(1) Warning
 Warn about misuses of pragmas
 
+Wproperty-assign-default
+ObjC ObjC++ Var(warn_property_assign_default) Init(1) Warning
+Warn if a property for an Objective-C object has no assign semantics specified
+
 Wprotocol
 ObjC ObjC++ Var(warn_protocol) Init(1) Warning
 Warn if inherited methods are unimplemented
@@ -663,7 +667,7 @@ Warn when a register variable is declared volatile
 
 Wwrite-strings
 C ObjC C++ ObjC++ Var(warn_write_strings) Warning
-In C++, nonzero means warn about deprecated conversion from string literals to `char *'.  In C, similar warning, except that the conversion is of course not deprecated by the ISO C standard.
+In C++, nonzero means warn about deprecated conversion from string literals to 'char *'.  In C, similar warning, except that the conversion is of course not deprecated by the ISO C standard.
 
 Wpointer-sign
 C ObjC Var(warn_pointer_sign) Init(-1) Warning
@@ -870,6 +874,10 @@ fobjc-sjlj-exceptions
 ObjC ObjC++ Var(flag_objc_sjlj_exceptions) Init(-1)
 Enable Objective-C setjmp exception handling runtime
 
+fobjc-std=objc1
+ObjC ObjC++ Var(flag_objc1_only)
+Conform to the Objective-C 1.0 language as implemented in GCC 4.0
+
 fopenmp
 C ObjC C++ ObjC++ Var(flag_openmp)
 Enable OpenMP (implies -frecursive in Fortran)
@@ -892,6 +900,10 @@ Look for and use PCH files even when preprocessing
 fpermissive
 C++ ObjC++
 Downgrade conformance errors to warnings
+
+fplan9-extensions
+C ObjC Var(flag_plan9_extensions)
+Enable Plan 9 language extensions
 
 fpreprocessed
 C ObjC C++ ObjC++
@@ -966,11 +978,11 @@ C++ ObjC++ Optimization Var(flag_threadsafe_statics) Init(1)
 -fno-threadsafe-statics	Do not generate thread-safe code for initializing local statics
 
 funsigned-bitfields
-C ObjC C++ ObjC++ Var(flag_signed_bitfields, 0) VarExists
+C ObjC C++ ObjC++ Var(flag_signed_bitfields, 0)
 When \"signed\" or \"unsigned\" is not given make the bitfield unsigned
 
 funsigned-char
-C ObjC C++ ObjC++ LTO Var(flag_signed_char, 0) VarExists
+C ObjC C++ ObjC++ LTO Var(flag_signed_char, 0)
 Make \"char\" unsigned by default
 
 fuse-cxa-atexit
@@ -1201,8 +1213,8 @@ C ObjC C++ ObjC++ Var(flag_undef)
 Do not predefine system-specific and GCC-specific macros
 
 v
-Common C ObjC C++ ObjC++
-Enable verbose output
+C ObjC C++ ObjC++
+; Documented in common.opt
 
 w
 C ObjC C++ ObjC++

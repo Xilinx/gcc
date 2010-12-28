@@ -28,6 +28,7 @@
 extern bool hook_bool_void_false (void);
 extern bool hook_bool_void_true (void);
 extern bool hook_bool_bool_false (bool);
+extern bool hook_bool_bool_gcc_optionsp_false (bool, struct gcc_options *);
 extern bool hook_bool_const_int_const_int_true (const int, const int);
 extern bool hook_bool_mode_false (enum machine_mode);
 extern bool hook_bool_mode_true (enum machine_mode);
@@ -61,6 +62,7 @@ extern void hook_void_FILEptr_constcharptr (FILE *, const char *);
 extern void hook_void_tree (tree);
 extern void hook_void_tree_treeptr (tree, tree *);
 extern void hook_void_int_int (int, int);
+extern void hook_void_gcc_optionsp (struct gcc_options *);
 
 extern int hook_int_const_tree_0 (const_tree);
 extern int hook_int_const_tree_const_tree_1 (const_tree, const_tree);

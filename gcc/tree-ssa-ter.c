@@ -296,9 +296,7 @@ add_to_partition_kill_list (temp_expr_table_p tab, int p, int ver)
 static inline void
 remove_from_partition_kill_list (temp_expr_table_p tab, int p, int version)
 {
-#ifdef ENABLE_CHECKING
-  gcc_assert (tab->kill_list[p]);
-#endif
+  gcc_checking_assert (tab->kill_list[p]);
   bitmap_clear_bit (tab->kill_list[p], version);
   if (bitmap_empty_p (tab->kill_list[p]))
     {
@@ -345,10 +343,8 @@ add_dependence (temp_expr_table_p tab, int version, tree var)
   else
     {
       i = var_to_partition (tab->map, var);
-#ifdef ENABLE_CHECKING
-      gcc_assert (i != NO_PARTITION);
-      gcc_assert (tab->num_in_part[i] != 0);
-#endif
+      gcc_checking_assert (i != NO_PARTITION);
+      gcc_checking_assert (tab->num_in_part[i] != 0);
       /* Only dependencies on ssa_names which are coalesced with something need
          to be tracked.  Partitions with containing only a single SSA_NAME
 	 *cannot* have their value changed.  */
@@ -420,7 +416,9 @@ is_replaceable_p (gimple stmt)
     return false;
 
   /* Without alias info we can't move around loads.  */
-  if (gimple_references_memory_p (stmt) && !optimize)
+  if (!optimize
+      && gimple_assign_single_p (stmt)
+      && !is_gimple_val (gimple_assign_rhs1 (stmt)))
     return false;
 
   /* Float expressions must go through memory if float-store is on.  */
@@ -479,9 +477,7 @@ process_replaceable (temp_expr_table_p tab, gimple stmt, int call_cnt)
   ssa_op_iter iter;
   bitmap def_vars, use_vars;
 
-#ifdef ENABLE_CHECKING
-  gcc_assert (is_replaceable_p (stmt));
-#endif
+  gcc_checking_assert (is_replaceable_p (stmt));
 
   def = SINGLE_SSA_TREE_OPERAND (stmt, SSA_OP_DEF);
   version = SSA_NAME_VERSION (def);
@@ -534,9 +530,7 @@ kill_expr (temp_expr_table_p tab, int partition)
       finished_with_expr (tab, version, true);
     }
 
-#ifdef ENABLE_CHECKING
-  gcc_assert (!tab->kill_list[partition]);
-#endif
+  gcc_checking_assert (!tab->kill_list[partition]);
 }
 
 
@@ -644,8 +638,10 @@ find_replaceable_in_bb (temp_expr_table_p tab, basic_block bb)
 		 def variable has the same root variable as something in the
 		 substitution list, or the def and use span a call such that
 		 we'll expand lifetimes across a call.  */
-	      if (gimple_has_volatile_ops (stmt) || same_root_var ||
-		  tab->call_cnt[ver] != cur_call_cnt)
+	      if (gimple_has_volatile_ops (stmt) || same_root_var
+		  || (tab->call_cnt[ver] != cur_call_cnt
+		      && SINGLE_SSA_USE_OPERAND (SSA_NAME_DEF_STMT (use), SSA_OP_USE)
+			 == NULL_USE_OPERAND_P))
 		finished_with_expr (tab, ver, true);
 	      else
 		mark_replaceable (tab, use, stmt_replaceable);
@@ -702,9 +698,7 @@ find_replaceable_exprs (var_map map)
   FOR_EACH_BB (bb)
     {
       find_replaceable_in_bb (table, bb);
-#ifdef ENABLE_CHECKING
-      gcc_assert (bitmap_empty_p (table->partition_in_use));
-#endif
+      gcc_checking_assert (bitmap_empty_p (table->partition_in_use));
     }
 
   ret = free_temp_expr_table (table);

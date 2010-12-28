@@ -1002,7 +1002,36 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
 
       if (!bad_permutation)
         {
-          /* This permutaion is valid for reduction.  Since the order of the
+          /* Check that the loads in the first sequence are different and there
+             are no gaps between them.  */
+          load_index = sbitmap_alloc (group_size);
+          sbitmap_zero (load_index);
+          for (k = 0; k < group_size; k++)
+            {
+              first_group_load_index = VEC_index (int, load_permutation, k);
+              if (TEST_BIT (load_index, first_group_load_index))
+                {
+                  bad_permutation = true;
+                  break;
+                }
+
+              SET_BIT (load_index, first_group_load_index);
+            }
+
+          if (!bad_permutation)
+            for (k = 0; k < group_size; k++)
+              if (!TEST_BIT (load_index, k))
+                {
+                  bad_permutation = true;
+                  break;
+                }
+
+          sbitmap_free (load_index);
+        }
+
+      if (!bad_permutation)
+        {
+          /* This permutation is valid for reduction.  Since the order of the
              statements in the nodes is not important unless they are memory
              accesses, we can rearrange the statements in all the nodes 
              according to the order of the loads.  */
@@ -1643,6 +1672,7 @@ vect_slp_analyze_bb (basic_block bb)
   int max_vf = MAX_VECTORIZATION_FACTOR;
   bool data_dependence_in_bb = false;
 
+  current_vector_size = 0;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "===vect_slp_analyze_bb===\n");
@@ -1810,13 +1840,14 @@ vect_update_slp_costs_according_to_vf (loop_vec_info loop_vinfo)
 
 /* For constant and loop invariant defs of SLP_NODE this function returns
    (vector) defs (VEC_OPRNDS) that will be used in the vectorized stmts.
-   OP_NUM determines if we gather defs for operand 0 or operand 1 of the scalar
-   stmts. NUMBER_OF_VECTORS is the number of vector defs to create.  
+   OP_NUM determines if we gather defs for operand 0 or operand 1 of the RHS of
+   scalar stmts.  NUMBER_OF_VECTORS is the number of vector defs to create.
    REDUC_INDEX is the index of the reduction operand in the statements, unless
    it is -1.  */
 
 static void
-vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
+vect_get_constant_vectors (tree op, slp_tree slp_node,
+                           VEC (tree, heap) **vec_oprnds,
 			   unsigned int op_num, unsigned int number_of_vectors,
                            int reduc_index)
 {
@@ -1828,17 +1859,17 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
   tree t = NULL_TREE;
   int j, number_of_places_left_in_vector;
   tree vector_type;
-  tree op, vop;
+  tree vop;
   int group_size = VEC_length (gimple, stmts);
   unsigned int vec_num, i;
   int number_of_copies = 1;
   VEC (tree, heap) *voprnds = VEC_alloc (tree, heap, number_of_vectors);
   bool constant_p, is_store;
   tree neutral_op = NULL;
+  enum tree_code code = gimple_assign_rhs_code (stmt);
 
   if (STMT_VINFO_DEF_TYPE (stmt_vinfo) == vect_reduction_def)
     {
-      enum tree_code code = gimple_assign_rhs_code (stmt);
       if (reduc_index == -1)
         {
           VEC_free (tree, heap, *vec_oprnds);
@@ -1846,7 +1877,7 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
         }
 
       op_num = reduc_index - 1;
-      op = gimple_op (stmt, op_num + 1);
+      op = gimple_op (stmt, reduc_index);
       /* For additional copies (see the explanation of NUMBER_OF_COPIES below)
          we need either neutral operands or the original operands.  See
          get_initial_def_for_reduction() for details.  */
@@ -1888,10 +1919,9 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
       op = gimple_assign_rhs1 (stmt);
     }
   else
-    {
-      is_store = false;
-      op = gimple_op (stmt, op_num + 1);
-    }
+    is_store = false;
+
+  gcc_assert (op);
 
   if (CONSTANT_CLASS_P (op))
     constant_p = true;
@@ -1900,7 +1930,6 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
 
   vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
   gcc_assert (vector_type);
-
   nunits = TYPE_VECTOR_SUBPARTS (vector_type);
 
   /* NUMBER_OF_COPIES is the number of times we need to use the same values in
@@ -1986,12 +2015,7 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
       if (neutral_op)
         {
           if (!neutral_vec)
-            {
-              t = NULL;
-              for (i = 0; i < (unsigned) nunits; i++)
-                 t = tree_cons (NULL_TREE, neutral_op, t);
-              neutral_vec = build_vector (vector_type, t);
-            }
+	    neutral_vec = build_vector_from_val (vector_type, neutral_op);
 
           VEC_quick_push (tree, *vec_oprnds, neutral_vec);
         }
@@ -2035,7 +2059,8 @@ vect_get_slp_vect_defs (slp_tree slp_node, VEC (tree,heap) **vec_oprnds)
    the right node. This is used when the second operand must remain scalar.  */
 
 void
-vect_get_slp_defs (slp_tree slp_node, VEC (tree,heap) **vec_oprnds0,
+vect_get_slp_defs (tree op0, tree op1, slp_tree slp_node,
+                   VEC (tree,heap) **vec_oprnds0,
                    VEC (tree,heap) **vec_oprnds1, int reduc_index)
 {
   gimple first_stmt;
@@ -2075,7 +2100,7 @@ vect_get_slp_defs (slp_tree slp_node, VEC (tree,heap) **vec_oprnds0,
     vect_get_slp_vect_defs (SLP_TREE_LEFT (slp_node), vec_oprnds0);
   else
     /* Build vectors from scalar defs.  */
-    vect_get_constant_vectors (slp_node, vec_oprnds0, 0, number_of_vects,
+    vect_get_constant_vectors (op0, slp_node, vec_oprnds0, 0, number_of_vects,
                                reduc_index);
 
   if (STMT_VINFO_DATA_REF (vinfo_for_stmt (first_stmt)))
@@ -2105,7 +2130,8 @@ vect_get_slp_defs (slp_tree slp_node, VEC (tree,heap) **vec_oprnds0,
     vect_get_slp_vect_defs (SLP_TREE_RIGHT (slp_node), vec_oprnds1);
   else
     /* Build vectors from scalar defs.  */
-    vect_get_constant_vectors (slp_node, vec_oprnds1, 1, number_of_vects, -1);
+    vect_get_constant_vectors (op1, slp_node, vec_oprnds1, 1, number_of_vects,
+                               -1);
 }
 
 
@@ -2177,20 +2203,18 @@ static bool
 vect_get_mask_element (gimple stmt, int first_mask_element, int m,
                        int mask_nunits, bool only_one_vec, int index,
                        int *mask, int *current_mask_element,
-                       bool *need_next_vector)
+                       bool *need_next_vector, int *number_of_mask_fixes,
+                       bool *mask_fixed, bool *needs_first_vector)
 {
   int i;
-  static int number_of_mask_fixes = 1;
-  static bool mask_fixed = false;
-  static bool needs_first_vector = false;
 
   /* Convert to target specific representation.  */
   *current_mask_element = first_mask_element + m;
   /* Adjust the value in case it's a mask for second and third vectors.  */
-  *current_mask_element -= mask_nunits * (number_of_mask_fixes - 1);
+  *current_mask_element -= mask_nunits * (*number_of_mask_fixes - 1);
 
   if (*current_mask_element < mask_nunits)
-    needs_first_vector = true;
+    *needs_first_vector = true;
 
   /* We have only one input vector to permute but the mask accesses values in
      the next vector as well.  */
@@ -2208,7 +2232,7 @@ vect_get_mask_element (gimple stmt, int first_mask_element, int m,
   /* The mask requires the next vector.  */
   if (*current_mask_element >= mask_nunits * 2)
     {
-      if (needs_first_vector || mask_fixed)
+      if (*needs_first_vector || *mask_fixed)
         {
           /* We either need the first vector too or have already moved to the
              next vector. In both cases, this permutation needs three
@@ -2226,23 +2250,23 @@ vect_get_mask_element (gimple stmt, int first_mask_element, int m,
       /* We move to the next vector, dropping the first one and working with
          the second and the third - we need to adjust the values of the mask
          accordingly.  */
-      *current_mask_element -= mask_nunits * number_of_mask_fixes;
+      *current_mask_element -= mask_nunits * *number_of_mask_fixes;
 
       for (i = 0; i < index; i++)
-        mask[i] -= mask_nunits * number_of_mask_fixes;
+        mask[i] -= mask_nunits * *number_of_mask_fixes;
 
-      (number_of_mask_fixes)++;
-      mask_fixed = true;
+      (*number_of_mask_fixes)++;
+      *mask_fixed = true;
     }
 
-  *need_next_vector = mask_fixed;
+  *need_next_vector = *mask_fixed;
 
   /* This was the last element of this mask. Start a new one.  */
   if (index == mask_nunits - 1)
     {
-      number_of_mask_fixes = 1;
-      mask_fixed = false;
-      needs_first_vector = false;
+      *number_of_mask_fixes = 1;
+      *mask_fixed = false;
+      *needs_first_vector = false;
     }
 
   return true;
@@ -2268,6 +2292,9 @@ vect_transform_slp_perm_load (gimple stmt, VEC (tree, heap) *dr_chain,
   int index, unroll_factor, *mask, current_mask_element, ncopies;
   bool only_one_vec = false, need_next_vector = false;
   int first_vec_index, second_vec_index, orig_vec_stmts_num, vect_stmts_counter;
+  int number_of_mask_fixes = 1;
+  bool mask_fixed = false;
+  bool needs_first_vector = false;
 
   if (!targetm.vectorize.builtin_vec_perm)
     {
@@ -2351,7 +2378,9 @@ vect_transform_slp_perm_load (gimple stmt, VEC (tree, heap) *dr_chain,
                 {
                   if (!vect_get_mask_element (stmt, first_mask_element, m,
                                    mask_nunits, only_one_vec, index, mask,
-                                   &current_mask_element, &need_next_vector))
+                                   &current_mask_element, &need_next_vector,
+                                   &number_of_mask_fixes, &mask_fixed,
+                                   &needs_first_vector))
                     return false;
 
                   mask[index++] = current_mask_element;

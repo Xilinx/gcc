@@ -1163,7 +1163,7 @@ package body Osint is
       begin
          --  If we are looking for a config file, look only in the current
          --  directory, i.e. return input argument unchanged. Also look only in
-         --  the curren directory if we are looking for a .dg file (happens in
+         --  the current directory if we are looking for a .dg file (happens in
          --  -gnatD mode).
 
          if T = Config
@@ -2508,6 +2508,13 @@ package body Osint is
 
                return null;
             end if;
+
+         elsif Current_Full_Obj_Stamp < Current_Full_Lib_Stamp then
+            Close (Lib_FD, Status);
+
+            --  No need to check the status, we return null anyway
+
+            return null;
          end if;
       end if;
 

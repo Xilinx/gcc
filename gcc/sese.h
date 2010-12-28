@@ -94,10 +94,6 @@ bb_in_region (basic_block bb, basic_block entry, basic_block exit)
        predecessors of EXIT are dominated by ENTRY.  */
     FOR_EACH_EDGE (e, ei, exit->preds)
       dominated_by_p (CDI_DOMINATORS, e->src, entry);
-
-    /* Check that there are no edges going out of the region: the
-       entry is post-dominated by the exit.  FIXME: This cannot be
-       checked right now as the CDI_POST_DOMINATORS are needed.  */
   }
 #endif
 
@@ -118,15 +114,22 @@ bb_in_sese_p (basic_block bb, sese region)
   return bb_in_region (bb, entry, exit);
 }
 
+/* Returns true when STMT is defined in REGION.  */
+
+static inline bool
+stmt_in_sese_p (gimple stmt, sese region)
+{
+  basic_block bb = gimple_bb (stmt);
+  return bb && bb_in_sese_p (bb, region);
+}
+
 /* Returns true when NAME is defined in REGION.  */
 
 static inline bool
 defined_in_sese_p (tree name, sese region)
 {
   gimple stmt = SSA_NAME_DEF_STMT (name);
-  basic_block bb = gimple_bb (stmt);
-
-  return bb && bb_in_sese_p (bb, region);
+  return stmt_in_sese_p (stmt, region);
 }
 
 /* Returns true when LOOP is in REGION.  */
@@ -310,14 +313,13 @@ recompute_all_dominators (void)
 {
   mark_irreducible_loops ();
   free_dominance_info (CDI_DOMINATORS);
-  free_dominance_info (CDI_POST_DOMINATORS);
   calculate_dominance_info (CDI_DOMINATORS);
-  calculate_dominance_info (CDI_POST_DOMINATORS);
 }
 
 typedef struct gimple_bb
 {
   basic_block bb;
+  struct poly_bb *pbb;
 
   /* Lists containing the restrictions of the conditional statements
      dominating this bb.  This bb can only be executed, if all conditions
@@ -344,10 +346,11 @@ typedef struct gimple_bb
   VEC (data_reference_p, heap) *data_refs;
 } *gimple_bb_p;
 
-#define GBB_BB(GBB) GBB->bb
-#define GBB_DATA_REFS(GBB) GBB->data_refs
-#define GBB_CONDITIONS(GBB) GBB->conditions
-#define GBB_CONDITION_CASES(GBB) GBB->condition_cases
+#define GBB_BB(GBB) (GBB)->bb
+#define GBB_PBB(GBB) (GBB)->pbb
+#define GBB_DATA_REFS(GBB) (GBB)->data_refs
+#define GBB_CONDITIONS(GBB) (GBB)->conditions
+#define GBB_CONDITION_CASES(GBB) (GBB)->condition_cases
 
 /* Return the innermost loop that contains the basic block GBB.  */
 
@@ -392,9 +395,22 @@ nb_common_loops (sese region, gimple_bb_p gbb1, gimple_bb_p gbb2)
 static inline bool
 scev_analyzable_p (tree def, sese region)
 {
-  gimple stmt = SSA_NAME_DEF_STMT (def);
-  loop_p loop = loop_containing_stmt (stmt);
-  tree scev = scalar_evolution_in_region (region, loop, def);
+  loop_p loop;
+  tree scev;
+  tree type = TREE_TYPE (def);
+
+  /* When Graphite generates code for a scev, the code generator
+     expresses the scev in function of a single induction variable.
+     This is unsafe for floating point computations, as it may replace
+     a floating point sum reduction with a multiplication.  The
+     following test returns false for non integer types to avoid such
+     problems.  */
+  if (!INTEGRAL_TYPE_P (type)
+      && !POINTER_TYPE_P (type))
+    return false;
+
+  loop = loop_containing_stmt (SSA_NAME_DEF_STMT (def));
+  scev = scalar_evolution_in_region (region, loop, def);
 
   return !chrec_contains_undetermined (scev)
     && TREE_CODE (scev) != SSA_NAME

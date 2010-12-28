@@ -34,10 +34,11 @@ The original list was:
 
 but can almost certainly be shrinked down.
 
-*/
+Note that you can use this file both with objc/objc-api.h and with
+objc/runtime.h.  */
 
-#ifndef __objc_runtime_INCLUDE_GNU
-#define __objc_runtime_INCLUDE_GNU
+#ifndef __objc_private_runtime_INCLUDE_GNU
+#define __objc_private_runtime_INCLUDE_GNU
 
 #include <stdarg.h>		/* for varargs and va_list's */
 
@@ -51,31 +52,24 @@ but can almost certainly be shrinked down.
 extern "C" {
 #endif /* __cplusplus */
 
-extern void __objc_add_class_to_hash(Class);   /* (objc-class.c) */
-extern void __objc_init_selector_tables(void); /* (objc-sel.c) */
-extern void __objc_init_class_tables(void);    /* (objc-class.c) */
-extern void __objc_init_dispatch_tables(void); /* (objc-dispatch.c) */
-extern void __objc_install_premature_dtable(Class); /* (objc-dispatch.c) */
-extern void __objc_resolve_class_links(void);  /* (objc-class.c) */
-extern void __objc_register_selectors_from_class(Class); /* (objc-sel.c) */
-extern void __objc_register_selectors_from_list (MethodList_t); /* (selector.c) */
+extern BOOL __objc_add_class_to_hash (Class);   /* (objc-class.c) */
+extern void __objc_init_class_tables (void);    /* (objc-class.c) */
+extern void __objc_init_dispatch_tables (void); /* (objc-dispatch.c) */
+extern void __objc_install_premature_dtable (Class); /* (objc-dispatch.c) */
+extern void __objc_resolve_class_links (void);  /* (objc-class.c) */
 extern void __objc_update_dispatch_table_for_class (Class);/* (objc-msg.c) */
 
-extern int  __objc_init_thread_system(void);    /* thread.c */
-extern int  __objc_fini_thread_system(void);    /* thread.c */
-extern void __objc_print_dtable_stats(void);    /* sendmsg.c */
-
-extern void class_add_method_list(Class, MethodList_t);
+extern int  __objc_init_thread_system (void);    /* thread.c */
+extern int  __objc_fini_thread_system (void);    /* thread.c */
+extern void __objc_init_class (Class class);  /* init.c */
+extern void class_add_method_list (Class, struct objc_method_list *);
 
 /* Registering instance methods as class methods for root classes */
 extern void __objc_register_instance_methods_to_class(Class);
-extern Method_t search_for_method_in_list(MethodList_t list, SEL op);
+extern struct objc_method * search_for_method_in_list(struct objc_method_list * list, SEL op);
 
-/* True when class links has been resolved */     
-extern BOOL __objc_class_links_resolved;
-
-/* Number of selectors stored in each of the selector  tables */
-extern unsigned int __objc_selector_max_index;
+extern void
+__objc_update_classes_with_methods (struct objc_method *method_a, struct objc_method *method_b); /* class.c */
 
 /* Mutex locking __objc_selector_max_index and its arrays. */
 extern objc_mutex_t __objc_runtime_mutex;
@@ -83,19 +77,11 @@ extern objc_mutex_t __objc_runtime_mutex;
 /* Number of threads which are alive. */
 extern int __objc_runtime_threads_alive;
 
-#ifdef DEBUG
-#define DEBUG_PRINTF(format, args...) printf (format, ## args)
-#else
-#define DEBUG_PRINTF(format, args...)
-#endif 
-
 BOOL __objc_responds_to (id object, SEL sel); /* for internal use only! */
-SEL  __sel_register_typed_name (const char*, const char*, 
-				struct objc_selector*, BOOL is_const);
 extern void __objc_generate_gc_type_description (Class);
 
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
 
-#endif /* not __objc_runtime_INCLUDE_GNU */
+#endif /* not __objc_private_runtime_INCLUDE_GNU */

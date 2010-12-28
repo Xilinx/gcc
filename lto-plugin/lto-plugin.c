@@ -1,5 +1,5 @@
-/* LTO plugin for gold.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+/* LTO plugin for gold and/or GNU ld.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Rafael Avila de Espindola (espindola@google.com).
 
 This program is free software; you can redistribute it and/or modify
@@ -32,6 +32,12 @@ along with this program; see the file COPYING3.  If not see
    -nop: Instead of running lto-wrapper, pass the original to the plugin. This
    only works if the input files are hybrid.  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+#if HAVE_STDINT_H
+#include <stdint.h>
+#endif
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
@@ -41,16 +47,36 @@ along with this program; see the file COPYING3.  If not see
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
-#include <stdbool.h>
+#endif
+#ifndef WIFEXITED
+#define WIFEXITED(S) (((S) & 0xff) == 0)
+#endif
+#ifndef WEXITSTATUS
+#define WEXITSTATUS(S) (((S) & 0xff00) >> 8)
+#endif
 #include <libiberty.h>
 #include <hashtab.h>
-
-/* The presence of gelf.h is checked by the toplevel configure script.  */
-#include <gelf.h>
-
-#include "plugin-api.h"
 #include "../gcc/lto/common.h"
+#include "simple-object.h"
+#include "plugin-api.h"
+
+/* Handle opening elf files on hosts, such as Windows, that may use
+   text file handling that will break binary access.  */
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
+
+/* Segment name for LTO sections.  This is only used for Mach-O.
+   FIXME: This needs to be kept in sync with darwin.c.  */
+
+#define LTO_SEGMENT_NAME "__GNU_LTO"
+
+/* LTO magic section name.  */
+
+#define LTO_SECTION_PREFIX	".gnu.lto_.symtab"
+#define LTO_SECTION_PREFIX_LEN	(sizeof (LTO_SECTION_PREFIX) - 1)
 
 /* The part of the symbol table the plugin has to keep track of. Note that we
    must keep SYMS until all_symbols_read is called to give the linker time to
@@ -71,6 +97,15 @@ struct plugin_symtab
   unsigned id;
 };
 
+/* Encapsulates object file data during symbol scan.  */
+struct plugin_objfile
+{
+  int found;
+  simple_object_read *objfile;
+  struct plugin_symtab *out;
+  const struct ld_plugin_input_file *file;
+};
+
 /* All that we have to remember about a file. */
 
 struct plugin_file_info
@@ -81,16 +116,25 @@ struct plugin_file_info
   struct plugin_symtab conflicts;
 };
 
+/* Until ASM_OUTPUT_LABELREF can be hookized and decoupled from
+   stdio file streams, we do simple label translation here.  */
+
+enum symbol_style
+{
+  ss_none,	/* No underscore prefix. */
+  ss_win32,	/* Underscore prefix any symbol not beginning with '@'.  */
+  ss_uscore,	/* Underscore prefix all symbols.  */
+};
 
 static char *arguments_file_name;
 static ld_plugin_register_claim_file register_claim_file;
-static ld_plugin_add_symbols add_symbols;
 static ld_plugin_register_all_symbols_read register_all_symbols_read;
 static ld_plugin_get_symbols get_symbols;
 static ld_plugin_register_cleanup register_cleanup;
 static ld_plugin_add_input_file add_input_file;
 static ld_plugin_add_input_library add_input_library;
 static ld_plugin_message message;
+static ld_plugin_add_symbols add_symbols;
 
 static struct plugin_file_info *claimed_files = NULL;
 static unsigned int num_claimed_files = 0;
@@ -104,12 +148,17 @@ static int lto_wrapper_num_args;
 static char **pass_through_items = NULL;
 static unsigned int num_pass_through_items;
 
-static bool debug;
-static bool nop;
+static char debug;
+static char nop;
 static char *resolution_file = NULL;
 
+/* Not used by default, but can be overridden at runtime
+   by using -plugin-opt=-sym-style={none,win32,underscore|uscore}
+   (in fact, only first letter of style arg is checked.)  */
+static enum symbol_style sym_style = ss_none;
+
 static void
-check (bool gate, enum ld_plugin_level level, const char *text)
+check_1 (int gate, enum ld_plugin_level level, const char *text)
 {
   if (gate)
     return;
@@ -124,6 +173,11 @@ check (bool gate, enum ld_plugin_level level, const char *text)
 	abort ();
     }
 }
+
+/* This little wrapper allows check to be called with a non-integer
+   first argument, such as a pointer that must be non-NULL.  We can't
+   use c99 bool type to coerce it into range, so we explicitly test.  */
+#define check(GATE, LEVEL, TEXT) check_1 (((GATE) != 0), (LEVEL), (TEXT))
 
 /* Parse an entry of the IL symbol table. The data to be parsed is pointed
    by P and the result is written in ENTRY. The slot number is stored in SLOT.
@@ -151,7 +205,24 @@ parse_table_entry (char *p, struct ld_plugin_symbol *entry,
       LDPV_HIDDEN
     };
 
-  entry->name = xstrdup (p);
+  switch (sym_style)
+    {
+    case ss_win32:
+      if (p[0] == '@')
+	{
+    /* cf. Duff's device.  */
+    case ss_none:
+	  entry->name = xstrdup (p);
+	  break;
+	}
+    /* FALL-THROUGH.  */
+    case ss_uscore:
+      entry->name = concat ("_", p, NULL);
+      break;
+    default:
+      check (0, LDPL_FATAL, "invalid symbol style requested");
+      break;
+    }
   while (*p)
     p++;
   p++;
@@ -191,16 +262,13 @@ parse_table_entry (char *p, struct ld_plugin_symbol *entry,
   return p;
 }
 
-#define LTO_SECTION_PREFIX ".gnu.lto_.symtab"
-
-/* Translate the IL symbol table SYMTAB. Append the slots and symbols to OUT. */
+/* Translate the IL symbol table located between DATA and END. Append the
+   slots and symbols to OUT. */
 
 static void
-translate (Elf_Data *symtab, struct plugin_symtab *out)
+translate (char *data, char *end, struct plugin_symtab *out)
 {
   struct sym_aux *aux;
-  char *data = symtab->d_buf;
-  char *end = data + symtab->d_size;
   struct ld_plugin_symbol *syms = NULL;
   int n, len;
 
@@ -222,39 +290,6 @@ translate (Elf_Data *symtab, struct plugin_symtab *out)
   out->nsyms = n;
   out->syms = syms;
   out->aux = aux;
-}
-
-/* Process all lto symtabs of file ELF. */
-
-static int
-process_symtab (Elf *elf, struct plugin_symtab *out)
-{
-  int found = 0;
-  Elf_Scn *section = 0;
-  GElf_Ehdr header;
-  GElf_Ehdr *t = gelf_getehdr (elf, &header);
-  if (t == NULL)
-    return 0;
-  assert (t == &header);
-
-  while ((section = elf_nextscn(elf, section)) != 0)
-    {
-      GElf_Shdr shdr;
-      GElf_Shdr *tshdr = gelf_getshdr (section, &shdr);
-      const char *t;
-      assert (tshdr == &shdr);
-      t = elf_strptr (elf, header.e_shstrndx, shdr.sh_name);
-      assert (t != NULL);
-      if (strncmp (t, LTO_SECTION_PREFIX, strlen (LTO_SECTION_PREFIX)) == 0) 
-	{
-	  char *s = strrchr (t, '.');
-	  if (s)
-	      sscanf (s, ".%x", &out->id);
-	  translate (elf_getdata (section, NULL), out);
-	  found++;
-	}
-    }
-  return found;
 }
 
 /* Free all memory that is no longer needed after writing the symbol
@@ -322,7 +357,7 @@ dump_symtab (FILE *f, struct plugin_symtab *symtab)
       
       assert (resolution != LDPR_UNKNOWN);
 
-      fprintf (f, "%d %x %s %s\n", slot, symtab->aux[j].id,
+      fprintf (f, "%u %x %s %s\n", (unsigned int) slot, symtab->aux[j].id,
 	       lto_resolution_str[resolution], 
 	       symtab->syms[j].name);
     }
@@ -342,7 +377,7 @@ finish_conflict_resolution (struct plugin_symtab *symtab,
 
   for (i = 0; i < symtab->nsyms; i++)
     { 
-      int resolution;
+      int resolution = LDPR_UNKNOWN;
 
       if (symtab->aux[i].next_conflict == -1)
 	continue;
@@ -434,7 +469,10 @@ add_output_files (FILE *f)
       buf = s;
 cont:
       if (!fgets (buf, piece, f))
-	break;
+	{
+	  free (s);
+	  break;
+	}
       len = strlen (s);
       if (s[len - 1] != '\n')
 	{
@@ -754,6 +792,40 @@ resolve_conflicts (struct plugin_symtab *t, struct plugin_symtab *conflicts)
   htab_delete (symtab);
 }
 
+/* Process one section of an object file.  */
+
+static int 
+process_symtab (void *data, const char *name, off_t offset, off_t length)
+{
+  struct plugin_objfile *obj = (struct plugin_objfile *)data;
+  char *s;
+  char *secdata;
+
+  if (strncmp (name, LTO_SECTION_PREFIX, LTO_SECTION_PREFIX_LEN) != 0)
+    return 1;
+
+  s = strrchr (name, '.');
+  if (s)
+    sscanf (s, ".%x", &obj->out->id);
+  secdata = xmalloc (length);
+  offset += obj->file->offset;
+  if (offset != lseek (obj->file->fd, offset, SEEK_SET)
+	|| length != read (obj->file->fd, secdata, length))
+    {
+      if (message)
+	message (LDPL_FATAL, "%s: corrupt object file", obj->file->name);
+      /* Force claim_file_handler to abandon this file.  */
+      obj->found = 0;
+      free (secdata);
+      return 0;
+    }
+
+  translate (secdata, secdata + length, obj->out);
+  obj->found++;
+  free (secdata);
+  return 1;
+}
+
 /* Callback used by gold to check if the plugin will claim FILE. Writes
    the result in CLAIMED. */
 
@@ -761,55 +833,61 @@ static enum ld_plugin_status
 claim_file_handler (const struct ld_plugin_input_file *file, int *claimed)
 {
   enum ld_plugin_status status;
-  Elf *elf;
+  struct plugin_objfile obj;
   struct plugin_file_info lto_file;
-  int n;
+  int err;
+  const char *errmsg;
 
   memset (&lto_file, 0, sizeof (struct plugin_file_info));
 
   if (file->offset != 0)
     {
       char *objname;
-      Elf *archive;
-      off_t offset;
-      /* We pass the offset of the actual file, not the archive header. */
-      int t = asprintf (&objname, "%s@0x%" PRIx64, file->name,
-                        (int64_t) file->offset);
+      /* We pass the offset of the actual file, not the archive header.
+         Can't use PRIx64, because that's C99, so we have to print the
+	 64-bit hex int as two 32-bit ones. */
+      int lo, hi;
+      lo = file->offset & 0xffffffff;
+      hi = ((int64_t)file->offset >> 32) & 0xffffffff;
+      int t = hi ? asprintf (&objname, "%s@0x%x%08x", file->name, lo, hi)
+		: asprintf (&objname, "%s@0x%x", file->name, lo);
       check (t >= 0, LDPL_FATAL, "asprintf failed");
       lto_file.name = objname;
-
-      archive = elf_begin (file->fd, ELF_C_READ, NULL);
-      check (elf_kind (archive) == ELF_K_AR, LDPL_FATAL,
-             "Not an archive and offset not 0");
-
-      /* elf_rand expects the offset to point to the ar header, not the
-         object itself. Subtract the size of the ar header (60 bytes).
-         We don't uses sizeof (struct ar_hd) to avoid including ar.h */
-
-      offset = file->offset - 60;
-      check (offset == elf_rand (archive, offset), LDPL_FATAL,
-             "could not seek in archive");
-      elf = elf_begin (file->fd, ELF_C_READ, archive);
-      check (elf != NULL, LDPL_FATAL, "could not find archive member");
-      elf_end (archive);
     }
   else
     {
       lto_file.name = xstrdup (file->name);
-      elf = elf_begin (file->fd, ELF_C_READ, NULL);
     }
   lto_file.handle = file->handle;
 
   *claimed = 0;
-
-  if (!elf)
+  obj.file = file;
+  obj.found = 0;
+  obj.out = &lto_file.symtab;
+  errmsg = NULL;
+  obj.objfile = simple_object_start_read (file->fd, file->offset, LTO_SEGMENT_NAME,
+			&errmsg, &err);
+  /* No file, but also no error code means unrecognized format; just skip it.  */
+  if (!obj.objfile && !err)
     goto err;
 
-  n = process_symtab (elf, &lto_file.symtab);
-  if (n == 0)
+  if (obj.objfile)
+    errmsg = simple_object_find_sections (obj.objfile, process_symtab, &obj, &err);
+
+  if (!obj.objfile || errmsg)
+    {
+      if (err && message)
+	message (LDPL_FATAL, "%s: %s: %s", file->name, errmsg,
+		xstrerror (err));
+      else if (message)
+	message (LDPL_FATAL, "%s: %s", file->name, errmsg);
+      goto err;
+    }
+
+  if (obj.found == 0)
     goto err;
 
-  if (n > 1)
+  if (obj.found > 1)
     resolve_conflicts (&lto_file.symtab, &lto_file.conflicts);
 
   status = add_symbols (file->handle, lto_file.symtab.nsyms,
@@ -829,8 +907,8 @@ claim_file_handler (const struct ld_plugin_input_file *file, int *claimed)
   free (lto_file.name);
 
  cleanup:
-  if (elf)
-    elf_end (elf);
+  if (obj.objfile)
+    simple_object_release_read (obj.objfile);
 
   return LDPS_OK;
 }
@@ -852,6 +930,21 @@ process_option (const char *option)
       pass_through_items[num_pass_through_items - 1] =
           xstrdup (option + strlen ("-pass-through="));
     }
+  else if (!strncmp (option, "-sym-style=", sizeof ("-sym-style=") - 1))
+    {
+      switch (option[sizeof ("-sym-style=") - 1])
+	{
+	case 'w':
+	  sym_style = ss_win32;
+	  break;
+	case 'u':
+	  sym_style = ss_uscore;
+	  break;
+	default:
+	  sym_style = ss_none;
+	  break;
+	}
+    }
   else
     {
       int size;
@@ -872,9 +965,6 @@ onload (struct ld_plugin_tv *tv)
 {
   struct ld_plugin_tv *p;
   enum ld_plugin_status status;
-
-  unsigned version = elf_version (EV_CURRENT);
-  check (version != EV_NONE, LDPL_FATAL, "invalid ELF version");
 
   p = tv;
   while (p->tv_tag)

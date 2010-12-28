@@ -431,8 +431,7 @@ build_base_path (enum tree_code code,
  out:
   if (null_test)
     expr = fold_build3_loc (input_location, COND_EXPR, target_type, null_test, expr,
-			fold_build1_loc (input_location, NOP_EXPR, target_type,
-				     integer_zero_node));
+			    build_zero_cst (target_type));
 
   return expr;
 }
@@ -1269,6 +1268,10 @@ check_bases (tree t,
 
       gcc_assert (COMPLETE_TYPE_P (basetype));
 
+      /* If any base class is non-literal, so is the derived class.  */
+      if (!CLASSTYPE_LITERAL_P (basetype))
+        CLASSTYPE_LITERAL_P (t) = false;
+
       /* Effective C++ rule 14.  We only need to check TYPE_POLYMORPHIC_P
 	 here because the case of virtual functions but non-virtual
 	 dtor is handled in finish_struct_1.  */
@@ -1515,12 +1518,31 @@ fixup_type_variants (tree t)
       TYPE_VFIELD (variants) = TYPE_VFIELD (t);
       TYPE_METHODS (variants) = TYPE_METHODS (t);
       TYPE_FIELDS (variants) = TYPE_FIELDS (t);
-
-      /* All variants of a class have the same attributes.  */
-      TYPE_ATTRIBUTES (variants) = TYPE_ATTRIBUTES (t);
     }
 }
 
+/* Early variant fixups: we apply attributes at the beginning of the class
+   definition, and we need to fix up any variants that have already been
+   made via elaborated-type-specifier so that check_qualified_type works.  */
+
+void
+fixup_attribute_variants (tree t)
+{
+  tree variants;
+
+  if (!t)
+    return;
+
+  for (variants = TYPE_NEXT_VARIANT (t);
+       variants;
+       variants = TYPE_NEXT_VARIANT (variants))
+    {
+      /* These are the two fields that check_qualified_type looks at and
+	 are affected by attributes.  */
+      TYPE_ATTRIBUTES (variants) = TYPE_ATTRIBUTES (t);
+      TYPE_ALIGN (variants) = TYPE_ALIGN (t);
+    }
+}
 
 /* Set memoizing fields and bits of T (and its variants) for later
    use.  */
@@ -1835,8 +1857,7 @@ layout_vtable_decl (tree binfo, int n)
   tree atype;
   tree vtable;
 
-  atype = build_cplus_array_type (vtable_entry_type,
-				  build_index_type (size_int (n - 1)));
+  atype = build_array_of_n_type (vtable_entry_type, n);
   layout_type (atype);
 
   /* We may have to grow the vtable.  */
@@ -2650,6 +2671,9 @@ add_implicitly_declared_members (tree t,
     {
       TYPE_HAS_DEFAULT_CONSTRUCTOR (t) = 1;
       CLASSTYPE_LAZY_DEFAULT_CTOR (t) = 1;
+      if (cxx_dialect >= cxx0x)
+	TYPE_HAS_CONSTEXPR_CTOR (t)
+	  = synthesized_default_constructor_is_constexpr (t);
     }
 
   /* [class.ctor]
@@ -2773,11 +2797,14 @@ check_bitfield_decl (tree field)
     }
   else
     {
+      location_t loc = input_location;
       /* Avoid the non_lvalue wrapper added by fold for PLUS_EXPRs.  */
       STRIP_NOPS (w);
 
       /* detect invalid field size.  */
-      w = integral_constant_value (w);
+      input_location = DECL_SOURCE_LOCATION (field);
+      w = cxx_constant_value (w);
+      input_location = loc;
 
       if (TREE_CODE (w) != INTEGER_CST)
 	{
@@ -3031,6 +3058,11 @@ check_field_decls (tree t, tree *access_decls,
 
       if (TREE_PRIVATE (x) || TREE_PROTECTED (x))
 	CLASSTYPE_NON_AGGREGATE (t) = 1;
+
+      /* If at least one non-static data member is non-literal, the whole
+         class becomes non-literal.  */
+      if (!literal_type_p (type))
+        CLASSTYPE_LITERAL_P (t) = false;
 
       /* A standard-layout class is a class that:
 	 ...
@@ -4297,6 +4329,33 @@ type_has_user_provided_default_constructor (tree t)
   return false;
 }
 
+/* Returns true iff for class T, a synthesized default constructor
+   would be constexpr.  */
+
+bool
+synthesized_default_constructor_is_constexpr (tree t)
+{
+  /* A defaulted default constructor is constexpr
+     if there is nothing to initialize.  */
+  /* FIXME adjust for non-static data member initializers.  */
+  return is_really_empty_class (t);
+}
+
+/* Returns true iff class T has a constexpr default constructor.  */
+
+bool
+type_has_constexpr_default_constructor (tree t)
+{
+  tree fns;
+
+  if (!CLASS_TYPE_P (t))
+    return false;
+  if (CLASSTYPE_LAZY_DEFAULT_CTOR (t))
+    return synthesized_default_constructor_is_constexpr (t);
+  fns = locate_ctor (t);
+  return (fns && DECL_DECLARED_CONSTEXPR_P (fns));
+}
+
 /* Returns true iff class TYPE has a virtual destructor.  */
 
 bool
@@ -4434,6 +4493,41 @@ type_requires_array_cookie (tree type)
     }
 
   return has_two_argument_delete_p;
+}
+
+/* Finish computing the `literal type' property of class type T.
+
+   At this point, we have already processed base classes and
+   non-static data members.  We need to check whether the copy
+   constructor is trivial, the destructor is trivial, and there
+   is a trivial default constructor or at least one constexpr
+   constructor other than the copy constructor.  */
+
+static void
+finalize_literal_type_property (tree t)
+{
+  if (cxx_dialect < cxx0x
+      || TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t)
+      /* FIXME These constraints seem unnecessary; remove from standard.
+	 || !TYPE_HAS_TRIVIAL_COPY_CTOR (t)
+	 || TYPE_HAS_COMPLEX_MOVE_CTOR (t)*/ )
+    CLASSTYPE_LITERAL_P (t) = false;
+  else if (CLASSTYPE_LITERAL_P (t) && !TYPE_HAS_TRIVIAL_DFLT (t)
+	   && !TYPE_HAS_CONSTEXPR_CTOR (t))
+    CLASSTYPE_LITERAL_P (t) = false;
+
+  if (!CLASSTYPE_LITERAL_P (t) && !CLASSTYPE_TEMPLATE_INSTANTIATION (t))
+    {
+      tree fn;
+      for (fn = TYPE_METHODS (t); fn; fn = DECL_CHAIN (fn))
+	if (DECL_DECLARED_CONSTEXPR_P (fn)
+	    && DECL_NONSTATIC_MEMBER_FUNCTION_P (fn)
+	    && !DECL_CONSTRUCTOR_P (fn))
+	  {
+	    error ("enclosing class of %q+D is not a literal type", fn);
+	    DECL_DECLARED_CONSTEXPR_P (fn) = false;
+	  }
+    }
 }
 
 /* Check the validity of the bases and members declared in T.  Add any
@@ -4591,6 +4685,10 @@ check_bases_and_members (tree t)
       /* "This class type is not an aggregate."  */
       CLASSTYPE_NON_AGGREGATE (t) = 1;
     }
+
+  /* Compute the 'literal type' property before we
+     do anything with non-static member functions.  */
+  finalize_literal_type_property (t);
 
   /* Create the in-charge and not-in-charge variants of constructors
      and destructors.  */
@@ -5426,6 +5524,7 @@ finish_struct_1 (tree t)
   CLASSTYPE_EMPTY_P (t) = 1;
   CLASSTYPE_NEARLY_EMPTY_P (t) = 1;
   CLASSTYPE_CONTAINS_EMPTY_CLASS_P (t) = 0;
+  CLASSTYPE_LITERAL_P (t) = true;
 
   /* Do end-of-class semantic processing: checking the validity of the
      bases and members and add implicitly generated methods.  */
@@ -6671,7 +6770,7 @@ build_self_reference (void)
   DECL_CONTEXT (value) = current_class_type;
   DECL_ARTIFICIAL (value) = 1;
   SET_DECL_SELF_REFERENCE_P (value);
-  cp_set_underlying_type (value);
+  set_underlying_type (value);
 
   if (processing_template_decl)
     value = push_template_decl (value);
@@ -6731,19 +6830,22 @@ contains_empty_class_p (tree type)
 }
 
 /* Returns true if TYPE contains no actual data, just various
-   possible combinations of empty classes.  */
+   possible combinations of empty classes and possibly a vptr.  */
 
 bool
 is_really_empty_class (tree type)
 {
-  if (is_empty_class (type))
-    return true;
   if (CLASS_TYPE_P (type))
     {
       tree field;
       tree binfo;
       tree base_binfo;
       int i;
+
+      /* CLASSTYPE_EMPTY_P isn't set properly until the class is actually laid
+	 out, but we'd like to be able to check this before then.  */
+      if (COMPLETE_TYPE_P (type) && is_empty_class (type))
+	return true;
 
       for (binfo = TYPE_BINFO (type), i = 0;
 	   BINFO_BASE_ITERATE (binfo, i, base_binfo); ++i)
@@ -7201,8 +7303,8 @@ build_vtt (tree t)
     return;
 
   /* Figure out the type of the VTT.  */
-  type = build_index_type (size_int (VEC_length (constructor_elt, inits) - 1));
-  type = build_cplus_array_type (const_ptr_type_node, type);
+  type = build_array_of_n_type (const_ptr_type_node,
+				VEC_length (constructor_elt, inits));
 
   /* Now, build the VTT object itself.  */
   vtt = build_vtable (t, mangle_vtt_for_type (t), type);
@@ -7457,8 +7559,8 @@ build_ctor_vtbl_group (tree binfo, tree t)
     }
 
   /* Figure out the type of the construction vtable.  */
-  type = build_index_type (size_int (VEC_length (constructor_elt, v) - 1));
-  type = build_cplus_array_type (vtable_entry_type, type);
+  type = build_array_of_n_type (vtable_entry_type,
+				VEC_length (constructor_elt, v));
   layout_type (type);
   TREE_TYPE (vtbl) = type;
   DECL_SIZE (vtbl) = DECL_SIZE_UNIT (vtbl) = NULL_TREE;
@@ -8167,8 +8269,7 @@ add_vcall_offset (tree orig_fn, tree binfo, vtbl_init_data *vid)
       /* Find the overriding function.  */
       fn = find_final_overrider (vid->rtti_binfo, binfo, orig_fn);
       if (fn == error_mark_node)
-	vcall_offset = build1 (NOP_EXPR, vtable_entry_type,
-			       integer_zero_node);
+	vcall_offset = build_zero_cst (vtable_entry_type);
       else
 	{
 	  base = TREE_VALUE (fn);

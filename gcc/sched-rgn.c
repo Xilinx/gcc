@@ -50,7 +50,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "rtl.h"
 #include "tm_p.h"
 #include "hard-reg-set.h"
@@ -60,7 +59,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-config.h"
 #include "insn-attr.h"
 #include "except.h"
-#include "toplev.h"
 #include "recog.h"
 #include "cfglayout.h"
 #include "params.h"
@@ -487,7 +485,6 @@ find_single_block_region (bool ebbs_p)
         for (bb = ebb_start; ; bb = bb->next_bb)
           {
             edge e;
-            edge_iterator ei;
 
             rgn_bb_table[i] = bb->index;
             RGN_NR_BLOCKS (nr_regions)++;
@@ -499,9 +496,7 @@ find_single_block_region (bool ebbs_p)
                 || LABEL_P (BB_HEAD (bb->next_bb)))
               break;
 
-            FOR_EACH_EDGE (e, ei, bb->succs)
-             if ((e->flags & EDGE_FALLTHRU) != 0)
-               break;
+	    e = find_fallthru_edge (bb->succs);
             if (! e)
               break;
             if (e->probability <= probability_cutoff)
@@ -2577,7 +2572,10 @@ concat_INSN_LIST (rtx copy, rtx old)
 {
   rtx new_rtx = old;
   for (; copy ; copy = XEXP (copy, 1))
-    new_rtx = alloc_INSN_LIST (XEXP (copy, 0), new_rtx);
+    {
+      new_rtx = alloc_INSN_LIST (XEXP (copy, 0), new_rtx);
+      PUT_REG_NOTE_KIND (new_rtx, REG_NOTE_KIND (copy));
+    }
   return new_rtx;
 }
 

@@ -1,6 +1,6 @@
 /* Xstormy16 target functions.
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
    This file is part of GCC.
@@ -34,7 +34,6 @@
 #include "flags.h"
 #include "recog.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "obstack.h"
 #include "tree.h"
 #include "expr.h"
@@ -1109,9 +1108,7 @@ xstormy16_expand_prologue (void)
 	XVECEXP (dwarf, 0, 1) = gen_rtx_SET (Pmode, stack_pointer_rtx,
 					     plus_constant (stack_pointer_rtx,
 							    GET_MODE_SIZE (Pmode)));
-	REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-					      dwarf,
-					      REG_NOTES (insn));
+	add_reg_note (insn, REG_FRAME_RELATED_EXPR, dwarf);
 	RTX_FRAME_RELATED_P (XVECEXP (dwarf, 0, 0)) = 1;
 	RTX_FRAME_RELATED_P (XVECEXP (dwarf, 0, 1)) = 1;
       }
@@ -1134,9 +1131,7 @@ xstormy16_expand_prologue (void)
 	XVECEXP (dwarf, 0, 1) = gen_rtx_SET (Pmode, stack_pointer_rtx,
 					     plus_constant (stack_pointer_rtx,
 							    GET_MODE_SIZE (Pmode)));
-	REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-					      dwarf,
-					      REG_NOTES (insn));
+	add_reg_note (insn, REG_FRAME_RELATED_EXPR, dwarf);
 	RTX_FRAME_RELATED_P (XVECEXP (dwarf, 0, 0)) = 1;
 	RTX_FRAME_RELATED_P (XVECEXP (dwarf, 0, 1)) = 1;
       }
@@ -1179,7 +1174,8 @@ int
 direct_return (void)
 {
   return (reload_completed
-	  && xstormy16_compute_stack_layout ().frame_size == 0);
+	  && xstormy16_compute_stack_layout ().frame_size == 0
+	  && ! xstormy16_interrupt_function_p ());
 }
 
 /* Called after register allocation to add any instructions needed for
@@ -1247,11 +1243,10 @@ xstormy16_function_profiler (void)
   sorry ("function_profiler support");
 }
 
-/* Return an updated summarizer variable CUM to advance past an
-   argument in the argument list.  The values MODE, TYPE and NAMED
-   describe that argument.  Once this is done, the variable CUM is
-   suitable for analyzing the *following* argument with
-   `FUNCTION_ARG', etc.
+/* Update CUM to advance past an argument in the argument list.  The
+   values MODE, TYPE and NAMED describe that argument.  Once this is
+   done, the variable CUM is suitable for analyzing the *following*
+   argument with `TARGET_FUNCTION_ARG', etc.
 
    This function need not do anything if the argument in question was
    passed on the stack.  The compiler knows how to track the amount of
@@ -1259,32 +1254,30 @@ xstormy16_function_profiler (void)
    it makes life easier for xstormy16_build_va_list if it does update
    the word count.  */
 
-CUMULATIVE_ARGS
-xstormy16_function_arg_advance (CUMULATIVE_ARGS cum, enum machine_mode mode,
-				tree type, int named ATTRIBUTE_UNUSED)
+static void
+xstormy16_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+				const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   /* If an argument would otherwise be passed partially in registers,
      and partially on the stack, the whole of it is passed on the
      stack.  */
-  if (cum < NUM_ARGUMENT_REGISTERS
-      && cum + XSTORMY16_WORD_SIZE (type, mode) > NUM_ARGUMENT_REGISTERS)
-    cum = NUM_ARGUMENT_REGISTERS;
+  if (*cum < NUM_ARGUMENT_REGISTERS
+      && *cum + XSTORMY16_WORD_SIZE (type, mode) > NUM_ARGUMENT_REGISTERS)
+    *cum = NUM_ARGUMENT_REGISTERS;
 
-  cum += XSTORMY16_WORD_SIZE (type, mode);
-
-  return cum;
+  *cum += XSTORMY16_WORD_SIZE (type, mode);
 }
 
-rtx
-xstormy16_function_arg (CUMULATIVE_ARGS cum, enum machine_mode mode,
-			tree type, int named ATTRIBUTE_UNUSED)
+static rtx
+xstormy16_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   if (mode == VOIDmode)
     return const0_rtx;
   if (targetm.calls.must_pass_in_stack (mode, type)
-      || cum + XSTORMY16_WORD_SIZE (type, mode) > NUM_ARGUMENT_REGISTERS)
+      || *cum + XSTORMY16_WORD_SIZE (type, mode) > NUM_ARGUMENT_REGISTERS)
     return NULL_RTX;
-  return gen_rtx_REG (mode, cum + FIRST_ARGUMENT_REGISTER);
+  return gen_rtx_REG (mode, *cum + FIRST_ARGUMENT_REGISTER);
 }
 
 /* Build the va_list type.
@@ -1314,7 +1307,7 @@ xstormy16_build_builtin_va_list (void)
   DECL_FIELD_CONTEXT (f_1) = record;
   DECL_FIELD_CONTEXT (f_2) = record;
 
-  TREE_CHAIN (record) = type_decl;
+  TYPE_STUB_DECL (record) = type_decl;
   TYPE_NAME (record) = type_decl;
   TYPE_FIELDS (record) = f_1;
   DECL_CHAIN (f_1) = f_2;
@@ -2335,7 +2328,7 @@ xstormy16_expand_builtin (tree exp, rtx target,
 
   for (a = 0; a < 10 && argtree; a++)
     {
-      args[a] = expand_expr (TREE_VALUE (argtree), NULL_RTX, VOIDmode, 0);
+      args[a] = expand_normal (TREE_VALUE (argtree));
       argtree = TREE_CHAIN (argtree);
     }
 
@@ -2343,11 +2336,11 @@ xstormy16_expand_builtin (tree exp, rtx target,
     {
       char ao = s16builtins[i].arg_ops[o];
       char c = insn_data[code].operand[o].constraint[0];
-      int omode;
+      enum machine_mode omode;
 
       copyto[o] = 0;
 
-      omode = insn_data[code].operand[o].mode;
+      omode = (enum machine_mode) insn_data[code].operand[o].mode;
       if (ao == 'r')
 	op[o] = target ? target : gen_reg_rtx (omode);
       else if (ao == 't')
@@ -2394,7 +2387,7 @@ combine_bnp (rtx insn)
 {
   int insn_code, regno, need_extend;
   unsigned int mask;
-  rtx cond, reg, and, load, qireg, mem;
+  rtx cond, reg, and_insn, load, qireg, mem;
   enum machine_mode load_mode = QImode;
   enum machine_mode and_mode = QImode;
   rtx shift = NULL_RTX;
@@ -2435,50 +2428,52 @@ combine_bnp (rtx insn)
     {
       /* LT and GE conditionals should have a sign extend before
 	 them.  */
-      for (and = prev_real_insn (insn); and; and = prev_real_insn (and))
+      for (and_insn = prev_real_insn (insn); and_insn;
+	   and_insn = prev_real_insn (and_insn))
 	{
-	  int and_code = recog_memoized (and);
+	  int and_code = recog_memoized (and_insn);
 
 	  if (and_code == CODE_FOR_extendqihi2
-	      && rtx_equal_p (SET_DEST (PATTERN (and)), reg)
-	      && rtx_equal_p (XEXP (SET_SRC (PATTERN (and)), 0), qireg))
+	      && rtx_equal_p (SET_DEST (PATTERN (and_insn)), reg)
+	      && rtx_equal_p (XEXP (SET_SRC (PATTERN (and_insn)), 0), qireg))
 	    break;
 
 	  if (and_code == CODE_FOR_movhi_internal
-	      && rtx_equal_p (SET_DEST (PATTERN (and)), reg))
+	      && rtx_equal_p (SET_DEST (PATTERN (and_insn)), reg))
 	    {
 	      /* This is for testing bit 15.  */
-	      and = insn;
+	      and_insn = insn;
 	      break;
 	    }
 
-	  if (reg_mentioned_p (reg, and))
+	  if (reg_mentioned_p (reg, and_insn))
 	    return;
 
-	  if (GET_CODE (and) != NOTE
-	      && GET_CODE (and) != INSN)
+	  if (GET_CODE (and_insn) != NOTE
+	      && GET_CODE (and_insn) != INSN)
 	    return;
 	}
     }
   else
     {
       /* EQ and NE conditionals have an AND before them.  */
-      for (and = prev_real_insn (insn); and; and = prev_real_insn (and))
+      for (and_insn = prev_real_insn (insn); and_insn;
+	   and_insn = prev_real_insn (and_insn))
 	{
-	  if (recog_memoized (and) == CODE_FOR_andhi3
-	      && rtx_equal_p (SET_DEST (PATTERN (and)), reg)
-	      && rtx_equal_p (XEXP (SET_SRC (PATTERN (and)), 0), reg))
+	  if (recog_memoized (and_insn) == CODE_FOR_andhi3
+	      && rtx_equal_p (SET_DEST (PATTERN (and_insn)), reg)
+	      && rtx_equal_p (XEXP (SET_SRC (PATTERN (and_insn)), 0), reg))
 	    break;
 
-	  if (reg_mentioned_p (reg, and))
+	  if (reg_mentioned_p (reg, and_insn))
 	    return;
 
-	  if (GET_CODE (and) != NOTE
-	      && GET_CODE (and) != INSN)
+	  if (GET_CODE (and_insn) != NOTE
+	      && GET_CODE (and_insn) != INSN)
 	    return;
 	}
 
-      if (and)
+      if (and_insn)
 	{
 	  /* Some mis-optimizations by GCC can generate a RIGHT-SHIFT
 	     followed by an AND like this:
@@ -2489,7 +2484,8 @@ combine_bnp (rtx insn)
                (set (reg:HI r7) (and:HI (reg:HI r7) (const_int 1)))
 
 	     Attempt to detect this here.  */
-	  for (shift = prev_real_insn (and); shift; shift = prev_real_insn (shift))
+	  for (shift = prev_real_insn (and_insn); shift;
+	       shift = prev_real_insn (shift))
 	    {
 	      if (recog_memoized (shift) == CODE_FOR_lshrhi3
 		  && rtx_equal_p (SET_DEST (XVECEXP (PATTERN (shift), 0, 0)), reg)
@@ -2506,10 +2502,10 @@ combine_bnp (rtx insn)
 	    }
 	}
     }
-  if (!and)
+  if (!and_insn)
     return;
 
-  for (load = shift ? prev_real_insn (shift) : prev_real_insn (and);
+  for (load = shift ? prev_real_insn (shift) : prev_real_insn (and_insn);
        load;
        load = prev_real_insn (load))
     {
@@ -2565,10 +2561,11 @@ combine_bnp (rtx insn)
     }
   else
     {
-      if (!xstormy16_onebit_set_operand (XEXP (SET_SRC (PATTERN (and)), 1), load_mode))
+      if (!xstormy16_onebit_set_operand (XEXP (SET_SRC (PATTERN (and_insn)), 1),
+					 load_mode))
 	return;
 
-      mask = (int) INTVAL (XEXP (SET_SRC (PATTERN (and)), 1));
+      mask = (int) INTVAL (XEXP (SET_SRC (PATTERN (and_insn)), 1));
 
       if (shift)
 	mask <<= INTVAL (XEXP (SET_SRC (XVECEXP (PATTERN (shift), 0, 0)), 1));
@@ -2594,8 +2591,8 @@ combine_bnp (rtx insn)
   INSN_CODE (insn) = -1;
   delete_insn (load);
 
-  if (and != insn)
-    delete_insn (and);
+  if (and_insn != insn)
+    delete_insn (and_insn);
 
   if (shift != NULL_RTX)
     delete_insn (shift);
@@ -2622,6 +2619,13 @@ xstormy16_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
   const HOST_WIDE_INT size = int_size_in_bytes (type);
   return (size == -1 || size > UNITS_PER_WORD * NUM_ARGUMENT_REGISTERS);
 }
+
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options xstorym16_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
 
 #undef  TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.hword\t"
@@ -2656,6 +2660,11 @@ xstormy16_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 #undef  TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_true
 
+#undef  TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG xstormy16_function_arg
+#undef  TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE xstormy16_function_arg_advance
+
 #undef  TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY xstormy16_return_in_memory
 
@@ -2670,6 +2679,9 @@ xstormy16_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT xstormy16_trampoline_init
+
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE xstorym16_option_optimization_table
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

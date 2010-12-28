@@ -24,24 +24,22 @@ a copy of the GCC Runtime Library Exception along with this program;
 see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
-/*
-  This file includes the standard functions for memory allocation and
-  disposal.  Users should use these functions in their ObjC programs
-  so that they work properly with garbage collectors.
-*/
+/* This file includes the standard functions for memory allocation and
+   disposal.  Users should use these functions in their ObjC programs
+   so that they work properly with garbage collectors.  */
+
+/* TODO: Turn these into macros or inline functions.  */
 
 #include "objc-private/common.h"
 #include "objc-private/error.h"
 
 /* __USE_FIXED_PROTOTYPES__ used to be required to get prototypes for
    malloc, free, etc. on some platforms.  It is unclear if we still
-   need it, but it can't hurt.
-*/
+   need it, but it can't hurt.  */
 #define __USE_FIXED_PROTOTYPES__
 #include <stdlib.h>
 
-#include "objc/objc.h"
-#include "objc/objc-api.h"
+#include "objc/runtime.h"
 
 #if OBJC_WITH_GC
 #include <gc.h>
@@ -85,7 +83,7 @@ objc_calloc (size_t nelem, size_t size)
 }
 
 void
-objc_free (void *mem)
+objc_free (void *mem __attribute__ ((__unused__)))
 {
   return;
 }
@@ -162,11 +160,8 @@ objc_valloc (size_t size)
 
 #endif	/* !OBJC_WITH_GC */
 
-/*
-  Hook functions for memory allocation and disposal.  Deprecated
-  and currently unused.
-*/
-
+/* Hook functions for memory allocation and disposal.  Deprecated and
+   currently unused.  */
 void *(*_objc_malloc) (size_t) = malloc;
 void *(*_objc_atomic_malloc) (size_t) = malloc;
 void *(*_objc_valloc) (size_t) = malloc;

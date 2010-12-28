@@ -43,6 +43,7 @@ toolexeclibdir = @toolexeclibdir@
 includedirname = @includedirname@
 libsuffix = @libsuffix@
 
+lt_host_flags = @lt_host_flags@
 extra_ldflags_libobjc = @extra_ldflags_libobjc@
 
 top_builddir = .
@@ -120,6 +121,7 @@ OBJC_H = \
   message.h \
   objc-api.h \
   objc-decls.h \
+  runtime.h \
   thr.h \
   \
   hash.h \
@@ -130,19 +132,33 @@ OBJC_H = \
 # User-visible header files containing deprecated APIs, from the
 # objc/deprecated directory
 OBJC_DEPRECATED_H = \
+  METHOD_NULL.h \
   MetaClass.h \
   Object.h \
+  Protocol.h \
   STR.h \
   hash.h \
   objc-list.h \
   objc_error.h \
+  objc_get_uninstalled_dtable.h \
   objc_malloc.h \
+  objc_msg_sendv.h \
+  objc_object_alloc.h \
   objc_unexpected_exception.h \
   objc_valloc.h \
   sarray.h \
+  struct_objc_category.h \
   struct_objc_class.h \
+  struct_objc_ivar.h \
+  struct_objc_ivar_list.h \
+  struct_objc_method.h \
+  struct_objc_method_list.h \
+  struct_objc_module.h \
   struct_objc_protocol.h \
+  struct_objc_protocol_list.h \
   struct_objc_selector.h \
+  struct_objc_static_instances.h \
+  struct_objc_symtab.h \
   typedstream.h 
 
 # Objective-C source files to compile
@@ -150,6 +166,7 @@ OBJC_SOURCE_FILES = \
    NXConstStr.m \
    Object.m \
    Protocol.m \
+   accessors.m \
    linking.m
 
 # C source files to compile
@@ -161,10 +178,14 @@ C_SOURCE_FILES = \
    gc.c \
    hash.c \
    init.c \
+   ivars.c \
    memory.c \
+   methods.c \
    nil_method.c \
+   objc-foreach.c \
    objc-sync.c \
    objects.c \
+   protocols.c \
    sarray.c \
    selector.c \
    sendmsg.c \

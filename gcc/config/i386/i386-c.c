@@ -1,5 +1,5 @@
 /* Subroutines used for macro/preprocessor support on the ia-32.
-   Copyright (C) 2008, 2009
+   Copyright (C) 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -118,9 +118,15 @@ ix86_target_macros_internal (int isa_flag,
       def_or_undef (parse_in, "__nocona");
       def_or_undef (parse_in, "__nocona__");
       break;
-    case PROCESSOR_CORE2:
+    case PROCESSOR_CORE2_32:
+    case PROCESSOR_CORE2_64:
       def_or_undef (parse_in, "__core2");
       def_or_undef (parse_in, "__core2__");
+      break;
+    case PROCESSOR_COREI7_32:
+    case PROCESSOR_COREI7_64:
+      def_or_undef (parse_in, "__corei7");
+      def_or_undef (parse_in, "__corei7__");
       break;
     case PROCESSOR_ATOM:
       def_or_undef (parse_in, "__atom");
@@ -194,8 +200,13 @@ ix86_target_macros_internal (int isa_flag,
     case PROCESSOR_NOCONA:
       def_or_undef (parse_in, "__tune_nocona__");
       break;
-    case PROCESSOR_CORE2:
+    case PROCESSOR_CORE2_32:
+    case PROCESSOR_CORE2_64:
       def_or_undef (parse_in, "__tune_core2__");
+      break;
+    case PROCESSOR_COREI7_32:
+    case PROCESSOR_COREI7_64:
+      def_or_undef (parse_in, "__tune_corei7__");
       break;
     case PROCESSOR_ATOM:
       def_or_undef (parse_in, "__tune_atom__");
@@ -244,6 +255,10 @@ ix86_target_macros_internal (int isa_flag,
     def_or_undef (parse_in, "__LWP__");
   if (isa_flag & OPTION_MASK_ISA_ABM)
     def_or_undef (parse_in, "__ABM__");
+  if (isa_flag & OPTION_MASK_ISA_BMI)
+    def_or_undef (parse_in, "__BMI__");
+  if (isa_flag & OPTION_MASK_ISA_TBM)
+    def_or_undef (parse_in, "__TBM__");
   if (isa_flag & OPTION_MASK_ISA_POPCNT)
     def_or_undef (parse_in, "__POPCNT__");
   if (isa_flag & OPTION_MASK_ISA_FSGSBASE)
@@ -283,7 +298,8 @@ ix86_pragma_target_parse (tree args, tree pop_target)
       cur_tree = ((pop_target)
 		  ? pop_target
 		  : target_option_default_node);
-      cl_target_option_restore (TREE_TARGET_OPTION (cur_tree));
+      cl_target_option_restore (&global_options,
+				TREE_TARGET_OPTION (cur_tree));
     }
   else
     {
@@ -297,8 +313,8 @@ ix86_pragma_target_parse (tree args, tree pop_target)
   /* Figure out the previous/current isa, arch, tune and the differences.  */
   prev_opt  = TREE_TARGET_OPTION (prev_tree);
   cur_opt   = TREE_TARGET_OPTION (cur_tree);
-  prev_isa  = prev_opt->ix86_isa_flags;
-  cur_isa   = cur_opt->ix86_isa_flags;
+  prev_isa  = prev_opt->x_ix86_isa_flags;
+  cur_isa   = cur_opt->x_ix86_isa_flags;
   diff_isa  = (prev_isa ^ cur_isa);
   prev_arch = (enum processor_type) prev_opt->arch;
   prev_tune = (enum processor_type) prev_opt->tune;

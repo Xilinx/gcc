@@ -202,7 +202,7 @@ package body Make is
       --  extracted.
 
       function Processed return Natural;
-      --  Return the number of source in the queue that have aready been
+      --  Return the number of source in the queue that have already been
       --  processed.
 
       procedure Set_Obj_Dir_Busy (Obj_Dir : Path_Name_Type);
@@ -432,6 +432,9 @@ package body Make is
    --  with the switches -c, -b and -l. These flags are reset to True for
    --  each invocation of procedure Gnatmake.
 
+   Do_Codepeer_Globalize_Step : Boolean := False;
+   --  Flag to indicate whether the CodePeer globalizer should be called
+
    Shared_String           : aliased String := "-shared";
    Force_Elab_Flags_String : aliased String := "-F";
 
@@ -654,19 +657,26 @@ package body Make is
    Gnatlink : String_Access := Program_Name ("gnatlink", "gnatmake");
    --  Default compiler, binder, linker programs
 
+   Globalizer : constant String := "codepeer_globalizer";
+   --  CodePeer globalizer executable name
+
    Saved_Gcc      : String_Access := null;
    Saved_Gnatbind : String_Access := null;
    Saved_Gnatlink : String_Access := null;
    --  Given by the command line. Will be used, if non null
 
    Gcc_Path      : String_Access :=
-                       GNAT.OS_Lib.Locate_Exec_On_Path (Gcc.all);
+                     GNAT.OS_Lib.Locate_Exec_On_Path (Gcc.all);
    Gnatbind_Path : String_Access :=
-                       GNAT.OS_Lib.Locate_Exec_On_Path (Gnatbind.all);
+                     GNAT.OS_Lib.Locate_Exec_On_Path (Gnatbind.all);
    Gnatlink_Path : String_Access :=
-                       GNAT.OS_Lib.Locate_Exec_On_Path (Gnatlink.all);
+                     GNAT.OS_Lib.Locate_Exec_On_Path (Gnatlink.all);
    --  Path for compiler, binder, linker programs, defaulted now for gnatdist.
    --  Changed later if overridden on command line.
+
+   Globalizer_Path : constant String_Access :=
+                       GNAT.OS_Lib.Locate_Exec_On_Path (Globalizer);
+   --  Path for CodePeer globalizer
 
    Comp_Flag         : constant String_Access := new String'("-c");
    Output_Flag       : constant String_Access := new String'("-o");
@@ -789,8 +799,8 @@ package body Make is
    type Temp_Path_Names is array (Positive range <>) of Path_Name_Type;
    type Temp_Path_Ptr is access Temp_Path_Names;
 
-   type Free_File_Indices is array (Positive range <>) of Positive;
-   type Free_Indices_Ptr is access Free_File_Indices;
+   type Free_File_Indexes is array (Positive range <>) of Positive;
+   type Free_Indexes_Ptr is access Free_File_Indexes;
 
    type Project_Compilation_Data is record
       Mapping_File_Names : Temp_Path_Ptr;
@@ -801,11 +811,11 @@ package body Make is
       Last_Mapping_File_Names : Natural;
       --  Index of the last mapping file created for this project
 
-      Free_Mapping_File_Indices : Free_Indices_Ptr;
-      --  Indices in Mapping_File_Names of the mapping file names that can be
+      Free_Mapping_File_Indexes : Free_Indexes_Ptr;
+      --  Indexes in Mapping_File_Names of the mapping file names that can be
       --  reused for subsequent compilations.
 
-      Last_Free_Indices : Natural;
+      Last_Free_Indexes : Natural;
       --  Number of mapping files that can be reused
    end record;
    --  Information necessary when compiling a project
@@ -1006,6 +1016,10 @@ package body Make is
    --  the main unit. Likewise the withed units in a generic body needed
    --  during a compilation are also transitively included in the W section
    --  of the originally compiled file.
+
+   procedure Globalize (Success : out Boolean);
+   --  Call the CodePeer globalizer on all the project's object directories,
+   --  or on the current directory if no projects.
 
    procedure Initialize (Project_Node_Tree : out Project_Node_Tree_Ref);
    --  Performs default and package initialization. Therefore,
@@ -1658,6 +1672,32 @@ package body Make is
             return;
          end if;
 
+         --  When compiling with -gnatc, don't take ALI file into account if
+         --  it has not been generated for the current source, for example if
+         --  it has been generated for the spec, but we are compiling the body.
+
+         if Operating_Mode = Check_Semantics then
+            declare
+               File_Name : constant String := Get_Name_String (Source_File);
+               OK        : Boolean := False;
+
+            begin
+               for U in ALIs.Table (ALI).First_Unit ..
+                 ALIs.Table (ALI).Last_Unit
+               loop
+                  OK := Get_Name_String (Units.Table (U).Sfile) = File_Name;
+                  exit when OK;
+               end loop;
+
+               if not OK then
+                  Verbose_Msg
+                    (Full_Lib_File, "not generated for the same source");
+                  ALI := No_ALI_Id;
+                  return;
+               end if;
+            end;
+         end if;
+
          --  Check for matching compiler switches if needed
 
          if Check_Switches then
@@ -1816,8 +1856,7 @@ package body Make is
                end if;
 
             elsif not Read_Only and then Main_Project /= No_Project then
-
-               if not Check_Source_Info_In_ALI (ALI) then
+               if not Check_Source_Info_In_ALI (ALI, Project_Tree) then
                   ALI := No_ALI_Id;
                   return;
                end if;
@@ -1891,8 +1930,7 @@ package body Make is
                if ALI_Project = No_Project then
                   ALI := No_ALI_Id;
 
-                  Verbose_Msg
-                    (Lib_File, " wrong object directory");
+                  Verbose_Msg (Lib_File, " wrong object directory");
                   return;
                end if;
 
@@ -2631,10 +2669,10 @@ package body Make is
                      Comp_Data :=
                        Project_Compilation_Htable.Get
                          (Project_Compilation, Project);
-                     Comp_Data.Last_Free_Indices :=
-                       Comp_Data.Last_Free_Indices + 1;
-                     Comp_Data.Free_Mapping_File_Indices
-                       (Comp_Data.Last_Free_Indices) :=
+                     Comp_Data.Last_Free_Indexes :=
+                       Comp_Data.Last_Free_Indexes + 1;
+                     Comp_Data.Free_Mapping_File_Indexes
+                       (Comp_Data.Last_Free_Indexes) :=
                          Running_Compile (J).Mapping_File;
                   end if;
 
@@ -2861,6 +2899,13 @@ package body Make is
                Do_Bind_Step := False;
                Do_Link_Step := False;
                Syntax_Only  := False;
+
+            elsif Args (J).all = "-gnatC"
+              or else Args (J).all = "-gnatcC"
+            then
+               --  If we compile with -gnatC, enable CodePeer globalize step
+
+               Do_Codepeer_Globalize_Step := True;
             end if;
          end loop;
 
@@ -3137,9 +3182,9 @@ package body Make is
 
          --  If there is a mapping file ready to be reused, reuse it
 
-         if Data.Last_Free_Indices > 0 then
-            Mfile := Data.Free_Mapping_File_Indices (Data.Last_Free_Indices);
-            Data.Last_Free_Indices := Data.Last_Free_Indices - 1;
+         if Data.Last_Free_Indexes > 0 then
+            Mfile := Data.Free_Mapping_File_Indexes (Data.Last_Free_Indexes);
+            Data.Last_Free_Indexes := Data.Last_Free_Indexes - 1;
 
          --  Otherwise, create and initialize a new one
 
@@ -4087,6 +4132,53 @@ package body Make is
       Obsoleted.Set (F2, True);
    end Enter_Into_Obsoleted;
 
+   ---------------
+   -- Globalize --
+   ---------------
+
+   procedure Globalize (Success : out Boolean) is
+      Quiet_Str       : aliased String := "-quiet";
+      Globalizer_Args : constant Argument_List :=
+                          (1 => Quiet_Str'Unchecked_Access);
+      Previous_Dir    : String_Access;
+
+      procedure Globalize_Dir (Dir : String);
+      --  Call CodePeer globalizer on Dir
+
+      -------------------
+      -- Globalize_Dir --
+      -------------------
+
+      procedure Globalize_Dir (Dir : String) is
+         Result : Boolean;
+      begin
+         if Previous_Dir = null or else Dir /= Previous_Dir.all then
+            Free (Previous_Dir);
+            Previous_Dir := new String'(Dir);
+            Change_Dir (Dir);
+            GNAT.OS_Lib.Spawn (Globalizer_Path.all, Globalizer_Args, Result);
+            Success := Success and Result;
+         end if;
+      end Globalize_Dir;
+
+      procedure Globalize_Dirs is new
+        Prj.Env.For_All_Object_Dirs (Globalize_Dir);
+
+   begin
+      Success := True;
+      Display (Globalizer, Globalizer_Args);
+
+      if Globalizer_Path = null then
+         Make_Failed ("error, unable to locate " & Globalizer);
+      end if;
+
+      if Main_Project = No_Project then
+         GNAT.OS_Lib.Spawn (Globalizer_Path.all, Globalizer_Args, Success);
+      else
+         Globalize_Dirs (Main_Project);
+      end if;
+   end Globalize;
+
    --------------
    -- Gnatmake --
    --------------
@@ -4468,29 +4560,41 @@ package body Make is
                      --  language, all the Ada mains.
 
                      while Value /= Prj.Nil_String loop
-                        Get_Name_String
-                          (Project_Tree.String_Elements.Table (Value).Value);
-
                         --  To know if a main is an Ada main, get its project.
                         --  It should be the project specified on the command
                         --  line.
 
-                        if (not Foreign_Language) or else
-                            Prj.Env.Project_Of
-                              (Name_Buffer (1 .. Name_Len),
-                               Main_Project,
-                               Project_Tree) =
-                             Main_Project
-                        then
-                           At_Least_One_Main := True;
-                           Osint.Add_File
-                             (Get_Name_String
-                                (Project_Tree.String_Elements.Table
-                                   (Value).Value),
-                              Index =>
-                                Project_Tree.String_Elements.Table
-                                  (Value).Index);
-                        end if;
+                        Get_Name_String
+                          (Project_Tree.String_Elements.Table (Value).Value);
+
+                        declare
+                           Main_Name : constant String :=
+                              Get_Name_String
+                               (Project_Tree.String_Elements.Table
+                                    (Value).Value);
+                           Proj : constant Project_Id :=
+                             Prj.Env.Project_Of
+                              (Main_Name, Main_Project, Project_Tree);
+                        begin
+
+                           if Proj = Main_Project then
+
+                              At_Least_One_Main := True;
+                              Osint.Add_File
+                                (Get_Name_String
+                                   (Project_Tree.String_Elements.Table
+                                      (Value).Value),
+                                 Index =>
+                                   Project_Tree.String_Elements.Table
+                                     (Value).Index);
+
+                           elsif not Foreign_Language then
+                              Make_Failed
+                                ("""" & Main_Name &
+                                 """ is not a source of project " &
+                                 Get_Name_String (Main_Project.Display_Name));
+                           end if;
+                        end;
 
                         Value := Project_Tree.String_Elements.Table
                                    (Value).Next;
@@ -5217,6 +5321,11 @@ package body Make is
          Saved_Maximum_Processes := Maximum_Processes;
       end if;
 
+      if Debug.Debug_Flag_M then
+         Write_Line ("Maximum number of simultaneous compilations =" &
+                     Saved_Maximum_Processes'Img);
+      end if;
+
       --  Allocate as many temporary mapping file names as the maximum number
       --  of compilations processed, for each possible project.
 
@@ -5229,9 +5338,9 @@ package body Make is
               (Mapping_File_Names        => new Temp_Path_Names
                                               (1 .. Saved_Maximum_Processes),
                Last_Mapping_File_Names   => 0,
-               Free_Mapping_File_Indices => new Free_File_Indices
+               Free_Mapping_File_Indexes => new Free_File_Indexes
                                               (1 .. Saved_Maximum_Processes),
-               Last_Free_Indices         => 0);
+               Last_Free_Indexes         => 0);
 
             Project_Compilation_Htable.Set
               (Project_Compilation, Proj.Project, Data);
@@ -5242,9 +5351,9 @@ package body Make is
            (Mapping_File_Names        => new Temp_Path_Names
                                            (1 .. Saved_Maximum_Processes),
             Last_Mapping_File_Names   => 0,
-            Free_Mapping_File_Indices => new Free_File_Indices
+            Free_Mapping_File_Indexes => new Free_File_Indexes
                                            (1 .. Saved_Maximum_Processes),
-            Last_Free_Indices         => 0);
+            Last_Free_Indexes         => 0);
 
          Project_Compilation_Htable.Set
            (Project_Compilation, No_Project, Data);
@@ -6080,8 +6189,8 @@ package body Make is
                   end;
                end if;
 
-               --  Add switch -M to gnatlink if buider switch --create-map-file
-               --  has been specified.
+               --  Add switch -M to gnatlink if builder switch
+               --  --create-map-file has been specified.
 
                if Map_File /= null then
                   Linker_Switches.Increment_Last;
@@ -6351,6 +6460,23 @@ package body Make is
          Delete_All_Marks;
       end loop Multiple_Main_Loop;
 
+      if Do_Codepeer_Globalize_Step then
+         declare
+            Success : Boolean := False;
+         begin
+            Globalize (Success);
+
+            if not Success then
+               Set_Standard_Error;
+               Write_Str ("*** globalize failed.");
+
+               if Commands_To_Stdout then
+                  Set_Standard_Output;
+               end if;
+            end if;
+         end;
+      end if;
+
       if Failed_Links.Last > 0 then
          for Index in 1 .. Successful_Links.Last loop
             Write_Str ("Linking of """);
@@ -6384,6 +6510,10 @@ package body Make is
       --  using project files.
 
       Delete_All_Temp_Files;
+
+      --  Output Namet statistics
+
+      Namet.Finalize;
 
    exception
       when X : others =>
@@ -6873,7 +7003,7 @@ package body Make is
             --  If Put_In_Q is False, we add the source as if it were specified
             --  on the command line, and we set Put_In_Q to True, so that the
             --  following sources will only be put in the queue. The source is
-            --  aready in the Q, but we need at least one fake main to call
+            --  already in the Q, but we need at least one fake main to call
             --  Compile_Sources.
 
             if Verbose_Mode then
@@ -7950,6 +8080,12 @@ package body Make is
                end;
             end if;
 
+         elsif Argv'Length > Source_Info_Option'Length and then
+           Argv (1 .. Source_Info_Option'Length) = Source_Info_Option
+         then
+            Project_Tree.Source_Info_File_Name :=
+              new String'(Argv (Source_Info_Option'Length + 1 .. Argv'Last));
+
          elsif Argv'Length >= 8 and then
            Argv (1 .. 8) = "--param="
          then
@@ -8060,12 +8196,12 @@ package body Make is
          elsif Argv (2) = 'L' then
             Add_Switch (Argv, Linker, And_Save => And_Save);
 
-         --  For -gxxxxx, -pg, -mxxx, -fxxx: give the switch to both the
+         --  For -gxxx, -pg, -mxxx, -fxxx, -Oxxx, pass the switch to both the
          --  compiler and the linker (except for -gnatxxx which is only for the
          --  compiler). Some of the -mxxx (for example -m64) and -fxxx (for
          --  example -ftest-coverage for gcov) need to be used when compiling
          --  the binder generated files, and using all these gcc switches for
-         --  the binder generated files should not be a problem.
+         --  them should not be a problem. Pass -Oxxx to the linker for LTO.
 
          elsif
            (Argv (2) = 'g' and then (Argv'Last < 5
@@ -8073,6 +8209,7 @@ package body Make is
              or else Argv (2 .. Argv'Last) = "pg"
              or else (Argv (2) = 'm' and then Argv'Last > 2)
              or else (Argv (2) = 'f' and then Argv'Last > 2)
+             or else Argv (2) = 'O'
          then
             Add_Switch (Argv, Compiler, And_Save => And_Save);
             Add_Switch (Argv, Linker,   And_Save => And_Save);
@@ -8316,10 +8453,11 @@ package body Make is
 
       Switches :=
         Prj.Util.Value_Of
-          (Index     => Name_Id (Source_File),
-           Src_Index => Source_Index,
-           In_Array  => Switches_Array,
-           In_Tree   => Project_Tree);
+          (Index           => Name_Id (Source_File),
+           Src_Index       => Source_Index,
+           In_Array        => Switches_Array,
+           In_Tree         => Project_Tree,
+           Allow_Wildcards => True);
 
       --  Check also without the suffix
 
@@ -8330,13 +8468,13 @@ package body Make is
             Naming      : Lang_Naming_Data renames Lang.Config.Naming_Data;
             Name        : String (1 .. Source_File_Name'Length + 3);
             Last        : Positive := Source_File_Name'Length;
-            Spec_Suffix : constant String :=
-                            Get_Name_String (Naming.Spec_Suffix);
-            Body_Suffix : constant String :=
-                            Get_Name_String (Naming.Body_Suffix);
-            Truncated   : Boolean := False;
+            Spec_Suffix : String   := Get_Name_String (Naming.Spec_Suffix);
+            Body_Suffix : String   := Get_Name_String (Naming.Body_Suffix);
+            Truncated   : Boolean  := False;
 
          begin
+            Canonical_Case_File_Name (Spec_Suffix);
+            Canonical_Case_File_Name (Body_Suffix);
             Name (1 .. Last) := Source_File_Name;
 
             if Last > Body_Suffix'Length
@@ -8361,10 +8499,11 @@ package body Make is
                Add_Str_To_Name_Buffer (Name (1 .. Last));
                Switches :=
                  Prj.Util.Value_Of
-                   (Index     => Name_Find,
-                    Src_Index => 0,
-                    In_Array  => Switches_Array,
-                    In_Tree   => Project_Tree);
+                   (Index           => Name_Find,
+                    Src_Index       => 0,
+                    In_Array        => Switches_Array,
+                    In_Tree         => Project_Tree,
+                    Allow_Wildcards => True);
 
                if Switches = Nil_Variable_Value and then Allow_ALI then
                   Last := Source_File_Name'Length;

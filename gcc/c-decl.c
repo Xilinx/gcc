@@ -46,6 +46,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "timevar.h"
 #include "c-family/c-common.h"
+#include "c-family/c-objc.h"
 #include "c-family/c-pragma.h"
 #include "c-lang.h"
 #include "langhooks.h"
@@ -2961,7 +2962,8 @@ undeclared_variable (location_t loc, tree id)
     }
   else
     {
-      error_at (loc, "%qE undeclared (first use in this function)", id);
+      if (!objc_diagnose_private_ivar (id))
+        error_at (loc, "%qE undeclared (first use in this function)", id);
       if (!already)
 	{
           inform (loc, "each undeclared identifier is reported only"
@@ -3012,7 +3014,7 @@ lookup_label (tree name)
   tree label;
   struct c_label_vars *label_vars;
 
-  if (current_function_decl == 0)
+  if (current_function_scope == 0)
     {
       error ("label %qE referenced outside of any function", name);
       return 0;
@@ -3633,7 +3635,8 @@ shadow_tag_warned (const struct c_declspecs *declspecs, int warned)
 		  warned = 1;
 		}
 	    }
-	  else if (!declspecs->tag_defined_p
+	  else if (declspecs->typespec_kind != ctsk_tagdef
+                   && declspecs->typespec_kind != ctsk_tagfirstref
 		   && declspecs->storage_class != csc_none)
 	    {
 	      if (warned != 1)
@@ -3643,7 +3646,8 @@ shadow_tag_warned (const struct c_declspecs *declspecs, int warned)
 	      warned = 1;
 	      pending_xref_error ();
 	    }
-	  else if (!declspecs->tag_defined_p
+	  else if (declspecs->typespec_kind != ctsk_tagdef
+                   && declspecs->typespec_kind != ctsk_tagfirstref
 		   && (declspecs->const_p
 		       || declspecs->volatile_p
 		       || declspecs->restrict_p
@@ -4071,6 +4075,11 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
       && DECL_EXTERNAL (current_function_decl))
     record_inline_static (input_location, current_function_decl,
 			  decl, csi_modifiable);
+
+  if (c_dialect_objc () 
+      && (TREE_CODE (decl) == VAR_DECL
+          || TREE_CODE (decl) == FUNCTION_DECL))
+      objc_check_global_decl (decl);
 
   /* Add this decl to the current scope.
      TEM may equal DECL or it may be a previous decl of the same name.  */
@@ -4574,7 +4583,9 @@ build_compound_literal (location_t loc, tree type, tree init, bool non_const)
 void
 check_compound_literal_type (location_t loc, struct c_type_name *type_name)
 {
-  if (warn_cxx_compat && type_name->specs->tag_defined_p)
+  if (warn_cxx_compat
+      && (type_name->specs->typespec_kind == ctsk_tagdef
+          || type_name->specs->typespec_kind == ctsk_tagfirstref))
     warning_at (loc, OPT_Wc___compat,
 		"defining a type in a compound literal is invalid in C++");
 }
@@ -4854,6 +4865,8 @@ grokdeclarator (const struct c_declarator *declarator,
   tree expr_dummy;
   bool expr_const_operands_dummy;
 
+  if (TREE_CODE (type) == ERROR_MARK)
+    return error_mark_node;
   if (expr == NULL)
     expr = &expr_dummy;
   if (expr_const_operands == NULL)
@@ -6121,9 +6134,13 @@ grokparms (struct c_arg_info *arg_info, bool funcdef_flag)
   else if (arg_types && TREE_CODE (TREE_VALUE (arg_types)) == IDENTIFIER_NODE)
     {
       if (!funcdef_flag)
-	pedwarn (input_location, 0, "parameter names (without types) in function declaration");
+	{
+	  pedwarn (input_location, 0, "parameter names (without types) in function declaration");
+	  arg_info->parms = NULL_TREE;
+	}
+      else
+	arg_info->parms = arg_info->types;
 
-      arg_info->parms = arg_info->types;
       arg_info->types = 0;
       return 0;
     }
@@ -6609,15 +6626,15 @@ grokfield (location_t loc,
 	 is the anonymous union extension.  Similarly for struct.
 
 	 If this is something of the form "struct foo;", then
-	   If MS extensions are enabled, this is handled as an
-	     anonymous struct.
+	   If MS or Plan 9 extensions are enabled, this is handled as
+	     an anonymous struct.
 	   Otherwise this is a forward declaration of a structure tag.
 
 	 If this is something of the form "foo;" and foo is a TYPE_DECL, then
 	   If foo names a structure or union without a tag, then this
 	     is an anonymous struct (this is permitted by C1X).
-	   If MS extensions are enabled and foo names a structure, then
-	     again this is an anonymous struct.
+	   If MS or Plan 9 extensions are enabled and foo names a
+	     structure, then again this is an anonymous struct.
 	   Otherwise this is an error.
 
 	 Oh what a horrid tangled web we weave.  I wonder if MS consciously
@@ -6631,7 +6648,7 @@ grokfield (location_t loc,
 
       if (type_ok)
 	{
-	  if (flag_ms_extensions)
+	  if (flag_ms_extensions || flag_plan9_extensions)
 	    ok = true;
 	  else if (TYPE_NAME (TYPE_MAIN_VARIANT (type)) == NULL)
 	    ok = true;
@@ -6683,6 +6700,50 @@ grokfield (location_t loc,
   return value;
 }
 
+/* Subroutine of detect_field_duplicates: return whether X and Y,
+   which are both fields in the same struct, have duplicate field
+   names.  */
+
+static bool
+is_duplicate_field (tree x, tree y)
+{
+  if (DECL_NAME (x) != NULL_TREE && DECL_NAME (x) == DECL_NAME (y))
+    return true;
+
+  /* When using -fplan9-extensions, an anonymous field whose name is a
+     typedef can duplicate a field name.  */
+  if (flag_plan9_extensions
+      && (DECL_NAME (x) == NULL_TREE || DECL_NAME (y) == NULL_TREE))
+    {
+      tree xt, xn, yt, yn;
+
+      xt = TREE_TYPE (x);
+      if (DECL_NAME (x) != NULL_TREE)
+	xn = DECL_NAME (x);
+      else if ((TREE_CODE (xt) == RECORD_TYPE || TREE_CODE (xt) == UNION_TYPE)
+	       && TYPE_NAME (xt) != NULL_TREE
+	       && TREE_CODE (TYPE_NAME (xt)) == TYPE_DECL)
+	xn = DECL_NAME (TYPE_NAME (xt));
+      else
+	xn = NULL_TREE;
+
+      yt = TREE_TYPE (y);
+      if (DECL_NAME (y) != NULL_TREE)
+	yn = DECL_NAME (y);
+      else if ((TREE_CODE (yt) == RECORD_TYPE || TREE_CODE (yt) == UNION_TYPE)
+	       && TYPE_NAME (yt) != NULL_TREE
+	       && TREE_CODE (TYPE_NAME (yt)) == TYPE_DECL)
+	yn = DECL_NAME (TYPE_NAME (yt));
+      else
+	yn = NULL_TREE;
+
+      if (xn != NULL_TREE && xn == yn)
+	return true;
+    }
+
+  return false;
+}
+
 /* Subroutine of detect_field_duplicates: add the fields of FIELDLIST
    to HTAB, giving errors for any duplicates.  */
 
@@ -6705,7 +6766,22 @@ detect_field_duplicates_hash (tree fieldlist, htab_t htab)
       }
     else if (TREE_CODE (TREE_TYPE (x)) == RECORD_TYPE
 	     || TREE_CODE (TREE_TYPE (x)) == UNION_TYPE)
-      detect_field_duplicates_hash (TYPE_FIELDS (TREE_TYPE (x)), htab);
+      {
+	detect_field_duplicates_hash (TYPE_FIELDS (TREE_TYPE (x)), htab);
+
+	/* When using -fplan9-extensions, an anonymous field whose
+	   name is a typedef can duplicate a field name.  */
+	if (flag_plan9_extensions
+	    && TYPE_NAME (TREE_TYPE (x)) != NULL_TREE
+	    && TREE_CODE (TYPE_NAME (TREE_TYPE (x))) == TYPE_DECL)
+	  {
+	    tree xn = DECL_NAME (TYPE_NAME (TREE_TYPE (x)));
+	    slot = htab_find_slot (htab, xn, INSERT);
+	    if (*slot)
+	      error ("duplicate member %q+D", TYPE_NAME (TREE_TYPE (x)));
+	    *slot = xn;
+	  }
+      }
 }
 
 /* Generate an error for any duplicate field names in FIELDLIST.  Munge
@@ -6750,10 +6826,18 @@ detect_field_duplicates (tree fieldlist)
   if (timeout > 0)
     {
       for (x = DECL_CHAIN (fieldlist); x; x = DECL_CHAIN (x))
-	if (DECL_NAME (x))
+	/* When using -fplan9-extensions, we can have duplicates
+	   between typedef names and fields.  */
+	if (DECL_NAME (x)
+	    || (flag_plan9_extensions
+		&& DECL_NAME (x) == NULL_TREE
+		&& (TREE_CODE (TREE_TYPE (x)) == RECORD_TYPE
+		    || TREE_CODE (TREE_TYPE (x)) == UNION_TYPE)
+		&& TYPE_NAME (TREE_TYPE (x)) != NULL_TREE
+		&& TREE_CODE (TYPE_NAME (TREE_TYPE (x))) == TYPE_DECL))
 	  {
 	    for (y = fieldlist; y != x; y = TREE_CHAIN (y))
-	      if (DECL_NAME (y) == DECL_NAME (x))
+	      if (is_duplicate_field (y, x))
 		{
 		  error ("duplicate member %q+D", x);
 		  DECL_NAME (x) = NULL_TREE;
@@ -6804,7 +6888,8 @@ warn_cxx_compat_finish_struct (tree fieldlist)
 
       for (x = fieldlist; x != NULL_TREE; x = DECL_CHAIN (x))
 	{
-	  if (pointer_set_contains (tset, DECL_NAME (x)))
+	  if (DECL_NAME (x) != NULL_TREE
+	      && pointer_set_contains (tset, DECL_NAME (x)))
 	    {
 	      warning_at (DECL_SOURCE_LOCATION (x), OPT_Wc___compat,
 			  ("using %qD as both field and typedef name is "
@@ -7426,9 +7511,8 @@ build_enumerator (location_t decl_loc, location_t loc,
 
   /* Set basis for default for next value.  */
   the_enum->enum_next_value
-    = build_binary_op
-         (EXPR_HAS_LOCATION (value) ? EXPR_LOCATION (value) : input_location,
-	 PLUS_EXPR, value, integer_one_node, 0);
+    = build_binary_op (EXPR_LOC_OR_HERE (value),
+		       PLUS_EXPR, value, integer_one_node, 0);
   the_enum->enum_overflow = tree_int_cst_lt (the_enum->enum_next_value, value);
 
   /* Now create a declaration for the enum value name.  */
@@ -7774,6 +7858,9 @@ store_parm_decls_oldstyle (tree fndecl, const struct c_arg_info *arg_info)
       if (b && B_IN_CURRENT_SCOPE (b))
 	{
 	  decl = b->decl;
+	  /* Skip erroneous parameters.  */
+	  if (decl == error_mark_node)
+	    continue;
 	  /* If we got something other than a PARM_DECL it is an error.  */
 	  if (TREE_CODE (decl) != PARM_DECL)
 	    error_at (DECL_SOURCE_LOCATION (decl),
@@ -8104,6 +8191,9 @@ void
 finish_function (void)
 {
   tree fndecl = current_function_decl;
+  
+  if (c_dialect_objc ())
+    objc_finish_function ();
 
   if (TREE_CODE (fndecl) == FUNCTION_DECL
       && targetm.calls.promote_prototypes (TREE_TYPE (fndecl)))
@@ -8238,16 +8328,23 @@ finish_function (void)
 
 /* Check the declarations given in a for-loop for satisfying the C99
    constraints.  If exactly one such decl is found, return it.  LOC is
-   the location of the opening parenthesis of the for loop.  */
+   the location of the opening parenthesis of the for loop.  The last
+   parameter allows you to control the "for loop initial declarations
+   are only allowed in C99 mode".  Normally, you should pass
+   flag_isoc99 as that parameter.  But in some cases (Objective-C
+   foreach loop, for example) we want to run the checks in this
+   function even if not in C99 mode, so we allow the caller to turn
+   off the error about not being in C99 mode.
+*/
 
 tree
-check_for_loop_decls (location_t loc)
+check_for_loop_decls (location_t loc, bool turn_off_iso_c99_error)
 {
   struct c_binding *b;
   tree one_decl = NULL_TREE;
   int n_decls = 0;
 
-  if (!flag_isoc99)
+  if (!turn_off_iso_c99_error)
     {
       static bool hint = true;
       /* If we get here, declarations have been used in a for loop without
@@ -8533,10 +8630,9 @@ build_null_declspecs (void)
   ret->storage_class = csc_none;
   ret->expr_const_operands = true;
   ret->declspecs_seen_p = false;
-  ret->type_seen_p = false;
+  ret->typespec_kind = ctsk_none;
   ret->non_sc_seen_p = false;
   ret->typedef_p = false;
-  ret->tag_defined_p = false;
   ret->explicit_signed_p = false;
   ret->deprecated_p = false;
   ret->default_int_p = false;
@@ -8620,7 +8716,7 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
   tree type = spec.spec;
   specs->non_sc_seen_p = true;
   specs->declspecs_seen_p = true;
-  specs->type_seen_p = true;
+  specs->typespec_kind = spec.kind;
   if (TREE_DEPRECATED (type))
     specs->deprecated_p = true;
 
@@ -9221,11 +9317,9 @@ declspecs_add_type (location_t loc, struct c_declspecs *specs,
       else
 	specs->type = TREE_TYPE (t);
     }
-  else if (TREE_CODE (type) != ERROR_MARK)
+  else
     {
-      if (spec.kind == ctsk_tagdef || spec.kind == ctsk_tagfirstref)
-	specs->tag_defined_p = true;
-      if (spec.kind == ctsk_typeof)
+      if (TREE_CODE (type) != ERROR_MARK && spec.kind == ctsk_typeof)
 	{
 	  specs->typedef_p = true;
 	  if (spec.expr)
@@ -9355,6 +9449,10 @@ finish_declspecs (struct c_declspecs *specs)
       gcc_assert (!specs->long_p && !specs->long_long_p && !specs->short_p
 		  && !specs->signed_p && !specs->unsigned_p
 		  && !specs->complex_p);
+
+      /* Set a dummy type.  */
+      if (TREE_CODE (specs->type) == ERROR_MARK)
+        specs->type = integer_type_node;
       return specs;
     }
 
@@ -9701,6 +9799,12 @@ c_write_global_declarations (void)
   /* We don't want to do this if generating a PCH.  */
   if (pch_file)
     return;
+
+  /* Do the Objective-C stuff.  This is where all the Objective-C
+     module stuff gets generated (symtab, class/protocol/selector
+     lists etc).  */
+  if (c_dialect_objc ())
+    objc_write_global_declarations ();
 
   /* Close the external scope.  */
   ext_block = pop_scope ();

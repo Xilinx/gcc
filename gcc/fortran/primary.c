@@ -28,6 +28,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "parse.h"
 #include "constructor.h"
 
+int matching_actual_arglist = 0;
+
 /* Matches a kind-parameter expression, which is either a named
    symbolic constant or a nonnegative integer constant.  If
    successful, sets the kind value to the correct integer.  */
@@ -286,7 +288,7 @@ match_hollerith_constant (gfc_expr **result)
 
 	  for (i = 0; i < num; i++)
 	    {
-	      gfc_char_t c = gfc_next_char_literal (1);
+	      gfc_char_t c = gfc_next_char_literal (INSTRING_WARN);
 	      if (! gfc_wide_fits_in_byte (c))
 		{
 		  gfc_error ("Invalid Hollerith constant at %L contains a "
@@ -759,7 +761,7 @@ next_string_char (gfc_char_t delimiter, int *ret)
   locus old_locus;
   gfc_char_t c;
 
-  c = gfc_next_char_literal (1);
+  c = gfc_next_char_literal (INSTRING_WARN);
   *ret = 0;
 
   if (c == '\n')
@@ -783,7 +785,7 @@ next_string_char (gfc_char_t delimiter, int *ret)
     return c;
 
   old_locus = gfc_current_locus;
-  c = gfc_next_char_literal (0);
+  c = gfc_next_char_literal (NONSTRING);
 
   if (c == delimiter)
     return c;
@@ -1610,6 +1612,8 @@ gfc_match_actual_arglist (int sub_flag, gfc_actual_arglist **argp)
     return MATCH_YES;
   head = NULL;
 
+  matching_actual_arglist++;
+
   for (;;)
     {
       if (head == NULL)
@@ -1684,6 +1688,7 @@ gfc_match_actual_arglist (int sub_flag, gfc_actual_arglist **argp)
     }
 
   *argp = head;
+  matching_actual_arglist--;
   return MATCH_YES;
 
 syntax:
@@ -1692,7 +1697,7 @@ syntax:
 cleanup:
   gfc_free_actual_arglist (head);
   gfc_current_locus = old_loc;
-
+  matching_actual_arglist--;
   return MATCH_ERROR;
 }
 
@@ -1778,7 +1783,11 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
       tail->type = REF_ARRAY;
 
       m = gfc_match_array_ref (&tail->u.ar, equiv_flag ? NULL : sym->as,
-			       equiv_flag, sym->as ? sym->as->corank : 0);
+			       equiv_flag,
+			       sym->ts.type == BT_CLASS
+			       ? (CLASS_DATA (sym)->as
+				  ? CLASS_DATA (sym)->as->corank : 0)
+			       : (sym->as ? sym->as->corank : 0));
       if (m != MATCH_YES)
 	return m;
 
@@ -1883,10 +1892,20 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
       if (component->attr.proc_pointer && ppc_arg
 	  && !gfc_matching_procptr_assignment)
 	{
+	  /* Procedure pointer component call: Look for argument list.  */
 	  m = gfc_match_actual_arglist (sub_flag,
 					&primary->value.compcall.actual);
 	  if (m == MATCH_ERROR)
 	    return MATCH_ERROR;
+
+	  if (m == MATCH_NO && !gfc_matching_ptr_assignment
+	      && !matching_actual_arglist)
+	    {
+	      gfc_error ("Procedure pointer component '%s' requires an "
+			 "argument list at %C", component->name);
+	      return MATCH_ERROR;
+	    }
+
 	  if (m == MATCH_YES)
 	    primary->expr_type = EXPR_PPC;
 
@@ -2164,6 +2183,7 @@ gfc_free_structure_ctor_component (gfc_structure_ctor_component *comp)
 {
   gfc_free (comp->name);
   gfc_free_expr (comp->val);
+  gfc_free (comp);
 }
 
 
@@ -2413,8 +2433,9 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result,
   /* No component should be left, as this should have caused an error in the
      loop constructing the component-list (name that does not correspond to any
      component in the structure definition).  */
-  if (comp_head && sym->attr.extension)
+  if (comp_head)
     {
+      gcc_assert (sym->attr.extension);
       for (comp_iter = comp_head; comp_iter; comp_iter = comp_iter->next)
 	{
 	  gfc_error ("component '%s' at %L has already been set by a "
@@ -2423,8 +2444,6 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result,
 	}
       goto cleanup;
     }
-  else
-    gcc_assert (!comp_head);
 
   e = gfc_get_structure_constructor_expr (BT_DERIVED, 0, &where);
   e->ts.u.derived = sym;

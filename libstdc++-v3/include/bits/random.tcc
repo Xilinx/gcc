@@ -24,7 +24,7 @@
 
 /** @file bits/random.tcc
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{random}
  */
 
 #ifndef _RANDOM_TCC
@@ -32,8 +32,8 @@
 
 #include <numeric> // std::accumulate and std::partial_sum
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
   /*
    * (Further) implementation-space details.
    */
@@ -104,19 +104,19 @@ namespace std
 
 
   template<typename _UIntType, _UIntType __a, _UIntType __c, _UIntType __m>
-    const _UIntType
+    constexpr _UIntType
     linear_congruential_engine<_UIntType, __a, __c, __m>::multiplier;
 
   template<typename _UIntType, _UIntType __a, _UIntType __c, _UIntType __m>
-    const _UIntType
+    constexpr _UIntType
     linear_congruential_engine<_UIntType, __a, __c, __m>::increment;
 
   template<typename _UIntType, _UIntType __a, _UIntType __c, _UIntType __m>
-    const _UIntType
+    constexpr _UIntType
     linear_congruential_engine<_UIntType, __a, __c, __m>::modulus;
 
   template<typename _UIntType, _UIntType __a, _UIntType __c, _UIntType __m>
-    const _UIntType
+    constexpr _UIntType
     linear_congruential_engine<_UIntType, __a, __c, __m>::default_seed;
 
   /**
@@ -205,7 +205,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const size_t
+    constexpr size_t
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::word_size;
 
@@ -214,7 +214,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const size_t
+    constexpr size_t
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::state_size;
 
@@ -223,7 +223,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const size_t
+    constexpr size_t
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::shift_size;
 
@@ -232,7 +232,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const size_t
+    constexpr size_t
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::mask_bits;
 
@@ -241,7 +241,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const _UIntType
+    constexpr _UIntType
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::xor_mask;
 
@@ -250,7 +250,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const size_t
+    constexpr size_t
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::tempering_u;
    
@@ -259,7 +259,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const _UIntType
+    constexpr _UIntType
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::tempering_d;
 
@@ -268,7 +268,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const size_t
+    constexpr size_t
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::tempering_s;
 
@@ -277,7 +277,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const _UIntType
+    constexpr _UIntType
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::tempering_b;
 
@@ -286,7 +286,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const size_t
+    constexpr size_t
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::tempering_t;
 
@@ -295,7 +295,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const _UIntType
+    constexpr _UIntType
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::tempering_c;
 
@@ -304,7 +304,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const size_t
+    constexpr size_t
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::tempering_l;
 
@@ -313,7 +313,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const _UIntType
+    constexpr _UIntType
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::
                                               initialization_multiplier;
@@ -323,7 +323,7 @@ namespace std
 	   _UIntType __a, size_t __u, _UIntType __d, size_t __s,
 	   _UIntType __b, size_t __t, _UIntType __c, size_t __l,
 	   _UIntType __f>
-    const _UIntType
+    constexpr _UIntType
     mersenne_twister_engine<_UIntType, __w, __n, __m, __r, __a, __u, __d,
 			    __s, __b, __t, __c, __l, __f>::default_seed;
 
@@ -500,19 +500,19 @@ namespace std
 
 
   template<typename _UIntType, size_t __w, size_t __s, size_t __r>
-    const size_t
+    constexpr size_t
     subtract_with_carry_engine<_UIntType, __w, __s, __r>::word_size;
 
   template<typename _UIntType, size_t __w, size_t __s, size_t __r>
-    const size_t
+    constexpr size_t
     subtract_with_carry_engine<_UIntType, __w, __s, __r>::short_lag;
 
   template<typename _UIntType, size_t __w, size_t __s, size_t __r>
-    const size_t
+    constexpr size_t
     subtract_with_carry_engine<_UIntType, __w, __s, __r>::long_lag;
 
   template<typename _UIntType, size_t __w, size_t __s, size_t __r>
-    const _UIntType
+    constexpr _UIntType
     subtract_with_carry_engine<_UIntType, __w, __s, __r>::default_seed;
 
   template<typename _UIntType, size_t __w, size_t __s, size_t __r>
@@ -651,11 +651,11 @@ namespace std
 
 
   template<typename _RandomNumberEngine, size_t __p, size_t __r>
-    const size_t
+    constexpr size_t
     discard_block_engine<_RandomNumberEngine, __p, __r>::block_size;
 
   template<typename _RandomNumberEngine, size_t __p, size_t __r>
-    const size_t
+    constexpr size_t
     discard_block_engine<_RandomNumberEngine, __p, __r>::used_block;
 
   template<typename _RandomNumberEngine, size_t __p, size_t __r>
@@ -761,7 +761,7 @@ namespace std
 
 
   template<typename _RandomNumberEngine, size_t __k>
-    const size_t
+    constexpr size_t
     shuffle_order_engine<_RandomNumberEngine, __k>::table_size;
 
   template<typename _RandomNumberEngine, size_t __k>
@@ -2217,7 +2217,6 @@ namespace std
       if (_M_prob.size() < 2)
 	{
 	  _M_prob.clear();
-	  _M_prob.push_back(1.0);
 	  return;
 	}
 
@@ -2257,6 +2256,9 @@ namespace std
       operator()(_UniformRandomNumberGenerator& __urng,
 		 const param_type& __param)
       {
+	if (__param._M_cp.empty())
+	  return result_type(0);
+
 	__detail::_Adaptor<_UniformRandomNumberGenerator, double>
 	  __aurng(__urng);
 
@@ -2330,16 +2332,13 @@ namespace std
     piecewise_constant_distribution<_RealType>::param_type::
     _M_initialize()
     {
-      if (_M_int.size() < 2)
+      if (_M_int.size() < 2
+	  || (_M_int.size() == 2
+	      && _M_int[0] == _RealType(0)
+	      && _M_int[1] == _RealType(1)))
 	{
 	  _M_int.clear();
-	  _M_int.reserve(2);
-	  _M_int.push_back(_RealType(0));
-	  _M_int.push_back(_RealType(1));
-
 	  _M_den.clear();
-	  _M_den.push_back(1.0);
-
 	  return;
 	}
 
@@ -2433,6 +2432,9 @@ namespace std
 	  __aurng(__urng);
 
 	const double __p = __aurng();
+	if (__param._M_cp.empty())
+	  return __p;
+
 	auto __pos = std::lower_bound(__param._M_cp.begin(),
 				      __param._M_cp.end(), __p);
 	const size_t __i = __pos - __param._M_cp.begin();
@@ -2519,18 +2521,14 @@ namespace std
     piecewise_linear_distribution<_RealType>::param_type::
     _M_initialize()
     {
-      if (_M_int.size() < 2)
+      if (_M_int.size() < 2
+	  || (_M_int.size() == 2
+	      && _M_int[0] == _RealType(0)
+	      && _M_int[1] == _RealType(1)
+	      && _M_den[0] == _M_den[1]))
 	{
 	  _M_int.clear();
-	  _M_int.reserve(2);
-	  _M_int.push_back(_RealType(0));
-	  _M_int.push_back(_RealType(1));
-
 	  _M_den.clear();
-	  _M_den.reserve(2);
-	  _M_den.push_back(1.0);
-	  _M_den.push_back(1.0);
-
 	  return;
 	}
 
@@ -2623,6 +2621,9 @@ namespace std
 	  __aurng(__urng);
 
 	const double __p = __aurng();
+	if (__param._M_cp.empty())
+	  return __p;
+
 	auto __pos = std::lower_bound(__param._M_cp.begin(),
 				      __param._M_cp.end(), __p);
 	const size_t __i = __pos - __param._M_cp.begin();
@@ -2817,6 +2818,6 @@ namespace std
 	}
       return __sum / __tmp;
     }
-}
+_GLIBCXX_END_NAMESPACE
 
 #endif

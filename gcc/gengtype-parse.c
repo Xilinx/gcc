@@ -135,7 +135,8 @@ parse_error (const char *msg, ...)
 {
   va_list ap;
 
-  fprintf (stderr, "%s:%d: parse error: ", lexer_line.file, lexer_line.line);
+  fprintf (stderr, "%s:%d: parse error: ", 
+	   get_input_file_name (lexer_line.file), lexer_line.line);
 
   va_start (ap, msg);
   vfprintf (stderr, msg, ap);
@@ -371,7 +372,7 @@ str_optvalue_opt (options_p prev)
       value = string_seq ();
       require (')');
     }
-  return create_option (prev, name, value);
+  return create_string_option (prev, name, value);
 }
 
 /* absdecl: type '*'*
@@ -409,7 +410,7 @@ type_optvalue (options_p prev, const char *name)
   require ('(');
   ty = absdecl ();
   require (')');
-  return create_option (prev, name, ty);
+  return create_type_option (prev, name, ty);
 }
 
 /* Nested pointer data: '(' type '*'* ',' string_seq ',' string_seq ')' */
@@ -458,7 +459,7 @@ option (options_p prev)
     default:
       parse_error ("expected an option keyword, have %s", print_cur_token ());
       advance ();
-      return create_option (prev, "", "");
+      return create_string_option (prev, "", "");
     }
 }
 
@@ -750,7 +751,9 @@ type (options_p *optsp, bool nested)
 	if (token () == ID)
 	  s = advance ();
 	else
-	  s = xasprintf ("anonymous:%s:%d", lexer_line.file, lexer_line.line);
+	  s = xasprintf ("anonymous:%s:%d",
+			 get_input_file_name (lexer_line.file),
+			 lexer_line.line);
 
 	/* Unfortunately above GTY_TOKEN check does not capture the
 	   typedef struct_type GTY case.  */
@@ -787,7 +790,9 @@ type (options_p *optsp, bool nested)
       if (token () == ID)
 	s = advance ();
       else
-	s = xasprintf ("anonymous:%s:%d", lexer_line.file, lexer_line.line);
+	s = xasprintf ("anonymous:%s:%d",
+		       get_input_file_name (lexer_line.file),
+		       lexer_line.line);
 
       if (token () == '{')
 	consume_balanced ('{', '}');

@@ -271,7 +271,7 @@ package body Exp_Ch8 is
       --  eventually we plan to expand the functions that are treated as
       --  build-in-place to include other composite result types.
 
-      if Ada_Version >= Ada_05
+      if Ada_Version >= Ada_2005
         and then Is_Build_In_Place_Function_Call (Nam)
       then
          Make_Build_In_Place_Call_In_Anonymous_Context (Nam);
@@ -409,15 +409,14 @@ package body Exp_Ch8 is
                    Statements => New_List (
                      Make_Simple_Return_Statement (Loc,
                        Expression =>
-                          Expand_Record_Equality (
-                            Id,
+                         Expand_Record_Equality
+                           (Id,
                             Typ => Typ,
                             Lhs =>
-                              Make_Identifier (Loc,
-                                Chars (First_Formal (Id))),
+                              Make_Identifier (Loc, Chars (First_Formal (Id))),
                             Rhs =>
-                              Make_Identifier (Loc,
-                                Chars (Next_Formal (First_Formal (Id)))),
+                              Make_Identifier
+                                (Loc, Chars (Next_Formal (First_Formal (Id)))),
                             Bodies => Declarations (Decl))))));
 
                Append (Decl, List_Containing (N));

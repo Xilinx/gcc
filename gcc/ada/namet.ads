@@ -70,7 +70,7 @@ package Namet is
 --                       followed by an upper case letter or an underscore.
 
 --    Character literals Character literals have names that are used only for
---                       debugging and error message purposes. The form is a
+--                       debugging and error message purposes. The form is an
 --                       upper case Q followed by a single lower case letter,
 --                       or by a Uxx/Wxxxx/WWxxxxxxx encoding as described for
 --                       identifiers. The Set_Character_Literal_Name procedure
@@ -139,8 +139,8 @@ package Namet is
    -----------------------------
 
    --  Name_Id values are used to identify entries in the names table. Except
-   --  for the special values No_Name, and Error_Name, they are subscript
-   --  values for the Names table defined in package Namet.
+   --  for the special values No_Name and Error_Name, they are subscript values
+   --  for the Names table defined in this package.
 
    --  Note that with only a few exceptions, which are clearly documented, the
    --  type Name_Id should be regarded as a private type. In particular it is
@@ -244,7 +244,7 @@ package Namet is
    --  initialization is performed automatically during package elaboration.
    --  Note that this change fixes problems which existed prior to the change
    --  of Initialize being called more than once. See also Reinitialize which
-   --  allows reinitialiation of the tables.
+   --  allows reinitialization of the tables.
 
    procedure Lock;
    --  Lock name tables before calling back end. We reserve some extra space
@@ -349,6 +349,11 @@ package Namet is
    procedure Add_Str_To_Name_Buffer (S : String);
    --  Add characters of string S to the end of the string currently stored
    --  in the Name_Buffer, incrementing Name_Len by the length of the string.
+
+   procedure Insert_Str_In_Name_Buffer (S : String; Index : Positive);
+   --  Inserts given string in name buffer, starting at Index. Any existing
+   --  characters at or past this location get moved beyond the inserted string
+   --  and Name_Len is incremented by the length of the string.
 
    procedure Set_Character_Literal_Name (C : Char_Code);
    --  This procedure sets the proper encoded name for the character literal

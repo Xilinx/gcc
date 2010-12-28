@@ -1935,6 +1935,11 @@ look_for_overrides (tree type, tree fndecl)
   int ix;
   int found = 0;
 
+  /* A constructor for a class T does not override a function T
+     in a base class.  */
+  if (DECL_CONSTRUCTOR_P (fndecl))
+    return 0;
+
   for (ix = 0; BINFO_BASE_ITERATE (binfo, ix, base_binfo); ix++)
     {
       tree basetype = BINFO_TYPE (base_binfo);
@@ -2435,13 +2440,10 @@ lookup_conversions_r (tree binfo,
    functions in this node were selected.  This function is effectively
    performing a set of member lookups as lookup_fnfield does, but
    using the type being converted to as the unique key, rather than the
-   field name.
-   If LOOKUP_TEMPLATE_CONVS_P is TRUE, the returned TREE_LIST contains
-   the non-hidden user-defined template conversion functions too.  */
+   field name.  */
 
 tree
-lookup_conversions (tree type,
-		    bool lookup_template_convs_p)
+lookup_conversions (tree type)
 {
   tree convs, tpl_convs;
   tree list = NULL_TREE;
@@ -2467,9 +2469,6 @@ lookup_conversions (tree type,
 	  list = probe;
 	}
     }
-
-  if (lookup_template_convs_p == false)
-    tpl_convs = NULL_TREE;
 
   for (; tpl_convs; tpl_convs = TREE_CHAIN (tpl_convs))
     {

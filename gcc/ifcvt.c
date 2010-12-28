@@ -36,7 +36,6 @@
 #include "output.h"
 #include "optabs.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "tm_p.h"
 #include "cfgloop.h"
 #include "target.h"
@@ -88,6 +87,8 @@ static int count_bb_insns (const_basic_block);
 static bool cheap_bb_rtx_cost_p (const_basic_block, int);
 static rtx first_active_insn (basic_block);
 static rtx last_active_insn (basic_block, int);
+static rtx find_active_insn_before (basic_block, rtx);
+static rtx find_active_insn_after (basic_block, rtx);
 static basic_block block_fallthru (basic_block);
 static int cond_exec_process_insns (ce_if_block_t *, rtx, rtx, rtx, rtx, int);
 static rtx cond_exec_get_condition (rtx);
@@ -229,17 +230,54 @@ last_active_insn (basic_block bb, int skip_use_p)
   return insn;
 }
 
+/* Return the active insn before INSN inside basic block CURR_BB. */
+
+static rtx
+find_active_insn_before (basic_block curr_bb, rtx insn)
+{
+  if (!insn || insn == BB_HEAD (curr_bb))
+    return NULL_RTX;
+
+  while ((insn = PREV_INSN (insn)) != NULL_RTX)
+    {
+      if (NONJUMP_INSN_P (insn) || JUMP_P (insn) || CALL_P (insn))
+        break;
+
+      /* No other active insn all the way to the start of the basic block. */
+      if (insn == BB_HEAD (curr_bb))
+        return NULL_RTX;
+    }
+
+  return insn;
+}
+
+/* Return the active insn after INSN inside basic block CURR_BB. */
+
+static rtx
+find_active_insn_after (basic_block curr_bb, rtx insn)
+{
+  if (!insn || insn == BB_END (curr_bb))
+    return NULL_RTX;
+
+  while ((insn = NEXT_INSN (insn)) != NULL_RTX)
+    {
+      if (NONJUMP_INSN_P (insn) || JUMP_P (insn) || CALL_P (insn))
+        break;
+
+      /* No other active insn all the way to the end of the basic block. */
+      if (insn == BB_END (curr_bb))
+        return NULL_RTX;
+    }
+
+  return insn;
+}
+
 /* Return the basic block reached by falling though the basic block BB.  */
 
 static basic_block
 block_fallthru (basic_block bb)
 {
-  edge e;
-  edge_iterator ei;
-
-  FOR_EACH_EDGE (e, ei, bb->succs)
-    if (e->flags & EDGE_FALLTHRU)
-      break;
+  edge e = find_fallthru_edge (bb->succs);
 
   return (e) ? e->dest : NULL_BLOCK;
 }
@@ -447,9 +485,9 @@ cond_exec_process_if_block (ce_if_block_t * ce_info,
       if (n_matching > 0)
 	{
 	  if (then_end)
-	    then_end = prev_active_insn (then_first_tail);
+	    then_end = find_active_insn_before (then_bb, then_first_tail);
 	  if (else_end)
-	    else_end = prev_active_insn (else_first_tail);
+	    else_end = find_active_insn_before (else_bb, else_first_tail);
 	  n_insns -= 2 * n_matching;
 	}
 
@@ -487,9 +525,9 @@ cond_exec_process_if_block (ce_if_block_t * ce_info,
 	  if (n_matching > 0)
 	    {
 	      if (then_start)
-		then_start = next_active_insn (then_last_head);
+		then_start = find_active_insn_after (then_bb, then_last_head);
 	      if (else_start)
-		else_start = next_active_insn (else_last_head);
+		else_start = find_active_insn_after (else_bb, else_last_head);
 	      n_insns -= 2 * n_matching;
 	    }
 	}
@@ -645,7 +683,7 @@ cond_exec_process_if_block (ce_if_block_t * ce_info,
     {
       rtx from = then_first_tail;
       if (!INSN_P (from))
-	from = next_active_insn (from);
+	from = find_active_insn_after (then_bb, from);
       delete_insn_chain (from, BB_END (then_bb), false);
     }
   if (else_last_head)
@@ -1293,6 +1331,9 @@ static rtx
 noce_emit_cmove (struct noce_if_info *if_info, rtx x, enum rtx_code code,
 		 rtx cmp_a, rtx cmp_b, rtx vfalse, rtx vtrue)
 {
+  rtx target ATTRIBUTE_UNUSED;
+  int unsignedp ATTRIBUTE_UNUSED;
+
   /* If earliest == jump, try to build the cmove insn directly.
      This is helpful when combine has created some complex condition
      (like for alpha's cmovlbs) that we can't hope to regenerate
@@ -1327,10 +1368,62 @@ noce_emit_cmove (struct noce_if_info *if_info, rtx x, enum rtx_code code,
     return NULL_RTX;
 
 #if HAVE_conditional_move
-  return emit_conditional_move (x, code, cmp_a, cmp_b, VOIDmode,
-				vtrue, vfalse, GET_MODE (x),
-			        (code == LTU || code == GEU
-				 || code == LEU || code == GTU));
+  unsignedp = (code == LTU || code == GEU
+	       || code == LEU || code == GTU);
+
+  target = emit_conditional_move (x, code, cmp_a, cmp_b, VOIDmode,
+				  vtrue, vfalse, GET_MODE (x),
+				  unsignedp);
+  if (target)
+    return target;
+
+  /* We might be faced with a situation like:
+
+     x = (reg:M TARGET)
+     vtrue = (subreg:M (reg:N VTRUE) BYTE)
+     vfalse = (subreg:M (reg:N VFALSE) BYTE)
+
+     We can't do a conditional move in mode M, but it's possible that we
+     could do a conditional move in mode N instead and take a subreg of
+     the result.
+
+     If we can't create new pseudos, though, don't bother.  */
+  if (reload_completed)
+    return NULL_RTX;
+
+  if (GET_CODE (vtrue) == SUBREG && GET_CODE (vfalse) == SUBREG)
+    {
+      rtx reg_vtrue = SUBREG_REG (vtrue);
+      rtx reg_vfalse = SUBREG_REG (vfalse);
+      unsigned int byte_vtrue = SUBREG_BYTE (vtrue);
+      unsigned int byte_vfalse = SUBREG_BYTE (vfalse);
+      rtx promoted_target;
+
+      if (GET_MODE (reg_vtrue) != GET_MODE (reg_vfalse)
+	  || byte_vtrue != byte_vfalse
+	  || (SUBREG_PROMOTED_VAR_P (vtrue)
+	      != SUBREG_PROMOTED_VAR_P (vfalse))
+	  || (SUBREG_PROMOTED_UNSIGNED_P (vtrue)
+	      != SUBREG_PROMOTED_UNSIGNED_P (vfalse)))
+	return NULL_RTX;
+
+      promoted_target = gen_reg_rtx (GET_MODE (reg_vtrue));
+
+      target = emit_conditional_move (promoted_target, code, cmp_a, cmp_b,
+				      VOIDmode, reg_vtrue, reg_vfalse,
+				      GET_MODE (reg_vtrue), unsignedp);
+      /* Nope, couldn't do it in that mode either.  */
+      if (!target)
+	return NULL_RTX;
+
+      target = gen_rtx_SUBREG (GET_MODE (vtrue), promoted_target, byte_vtrue);
+      SUBREG_PROMOTED_VAR_P (target) = SUBREG_PROMOTED_VAR_P (vtrue);
+      SUBREG_PROMOTED_UNSIGNED_SET (target, SUBREG_PROMOTED_UNSIGNED_P (vtrue));
+      emit_move_insn (x, target);
+      return x;
+    }
+  else
+    return NULL_RTX;
 #else
   /* We'll never get here, as noce_process_if_block doesn't call the
      functions involved.  Ifdef code, however, should be discouraged
@@ -3894,6 +3987,7 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
 		    basic_block other_bb, basic_block new_dest, int reversep)
 {
   rtx head, end, jump, earliest = NULL_RTX, old_dest, new_label = NULL_RTX;
+  bitmap merge_set = NULL;
   /* Number of pending changes.  */
   int n_validated_changes = 0;
 
@@ -3982,6 +4076,7 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
       earliest = jump;
     }
 #endif
+
   /* If we allocated new pseudos (e.g. in the conditional move
      expander called from noce_emit_cmove), we must resize the
      array first.  */
@@ -3991,7 +4086,7 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
   /* Try the NCE path if the CE path did not result in any changes.  */
   if (n_validated_changes == 0)
     {
-      rtx cond;
+      rtx cond, insn;
       regset live;
       bool success;
 
@@ -4015,6 +4110,13 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
       BITMAP_FREE (live);
       if (!success)
 	return FALSE;
+
+      /* Collect the set of registers set in MERGE_BB.  */
+      merge_set = BITMAP_ALLOC (&reg_obstack);
+
+      FOR_BB_INSNS (merge_bb, insn)
+	if (NONDEBUG_INSN_P (insn))
+	  df_simulate_find_defs (insn, merge_set);
     }
 
  no_body:
@@ -4064,8 +4166,8 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
       if (end == BB_END (merge_bb))
 	BB_END (merge_bb) = PREV_INSN (head);
 
-      /* PR 21767: When moving insns above a conditional branch, REG_EQUAL
-	 notes might become invalid.  */
+      /* PR 21767: when moving insns above a conditional branch, the REG_EQUAL
+	 notes being moved might become invalid.  */
       insn = head;
       do
 	{
@@ -4081,6 +4183,19 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
 	      || !function_invariant_p (XEXP (note, 0)))
 	    remove_note (insn, note);
 	} while (insn != end && (insn = NEXT_INSN (insn)));
+
+      /* PR46315: when moving insns above a conditional branch, the REG_EQUAL
+	 notes referring to the registers being set might become invalid.  */
+      if (merge_set)
+	{
+	  unsigned i;
+	  bitmap_iterator bi;
+
+	  EXECUTE_IF_SET_IN_BITMAP (merge_set, 0, i, bi)
+	    remove_reg_equal_equiv_notes_for_regno (i);
+
+	  BITMAP_FREE (merge_set);
+	}
 
       reorder_insns (head, end, PREV_INSN (earliest));
     }
@@ -4098,6 +4213,10 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
 
  cancel:
   cancel_changes (0);
+
+  if (merge_set)
+    BITMAP_FREE (merge_set);
+
   return FALSE;
 }
 

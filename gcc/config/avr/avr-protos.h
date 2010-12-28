@@ -33,7 +33,7 @@ extern int avr_simple_epilogue (void);
 extern void gas_output_limited_string (FILE *file, const char *str);
 extern void gas_output_ascii (FILE *file, const char *str, size_t length);
 extern int avr_hard_regno_rename_ok (unsigned int, unsigned int);
-extern rtx avr_return_addr_rtx (int count, const_rtx tem);
+extern rtx avr_return_addr_rtx (int count, rtx tem);
 
 #ifdef TREE_CODE
 extern void asm_output_external (FILE *file, tree decl, char *name);
@@ -42,15 +42,8 @@ extern int avr_progmem_p (tree decl, tree attributes);
 #ifdef RTX_CODE /* inside TREE_CODE */
 extern void init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype,
 				  rtx libname, tree fndecl);
-extern rtx function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
-			 tree type, int named);
 #endif /* RTX_CODE inside TREE_CODE */
 
-#ifdef HAVE_MACHINE_MODES /* inside TREE_CODE */
-extern void function_arg_advance (CUMULATIVE_ARGS *cum,
-				  enum machine_mode mode, tree type,
-				  int named);
-#endif /* HAVE_MACHINE_MODES inside TREE_CODE*/
 #endif /* TREE_CODE */
 
 #ifdef RTX_CODE
@@ -90,7 +83,6 @@ extern void avr_output_bld (rtx operands[], int bit_nr);
 extern void avr_output_addr_vec_elt (FILE *stream, int value);
 extern const char *avr_out_sbxx_branch (rtx insn, rtx operands[]);
 
-extern enum reg_class preferred_reload_class (rtx x, enum reg_class rclass);
 extern int extra_constraint_Q (rtx x);
 extern int adjust_insn_length (rtx insn, int len);
 extern rtx avr_libcall_value (enum machine_mode mode);

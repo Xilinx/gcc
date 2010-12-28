@@ -274,10 +274,7 @@ add_sym (const char *name, gfc_isym_id id, enum klass cl, int actual_ok, bt type
       strcat (buf, name);
       next_sym->lib_name = gfc_get_string (buf);
 
-      /* There are no IMPURE ELEMENTAL intrinsics, thus the ELEMENTAL class
-	 also implies PURE.  Additionally, there's the PURE class itself.  */
-      next_sym->pure = (cl == CLASS_ELEMENTAL || cl == CLASS_PURE);
-
+      next_sym->pure = (cl != CLASS_IMPURE);
       next_sym->elemental = (cl == CLASS_ELEMENTAL);
       next_sym->inquiry = (cl == CLASS_INQUIRY);
       next_sym->transformational = (cl == CLASS_TRANSFORMATIONAL);
@@ -2644,13 +2641,13 @@ add_functions (void)
   make_from_module();
 
   /* COMPILER_OPTIONS and COMPILER_VERSION are part of ISO_FORTRAN_ENV.  */  
-  add_sym_0 ("compiler_options", GFC_ISYM_COMPILER_OPTIONS, CLASS_IMPURE,
-	     ACTUAL_NO, BT_CHARACTER, 1, GFC_STD_F2008,
+  add_sym_0 ("compiler_options", GFC_ISYM_COMPILER_OPTIONS, CLASS_INQUIRY,
+	     ACTUAL_NO, BT_CHARACTER, dc, GFC_STD_F2008,
 	     NULL, gfc_simplify_compiler_options, NULL);
   make_from_module();
 
-  add_sym_0 ("compiler_version", GFC_ISYM_COMPILER_VERSION, CLASS_IMPURE,
-	     ACTUAL_NO, BT_CHARACTER, 1, GFC_STD_F2008,
+  add_sym_0 ("compiler_version", GFC_ISYM_COMPILER_VERSION, CLASS_INQUIRY,
+	     ACTUAL_NO, BT_CHARACTER, dc, GFC_STD_F2008,
 	     NULL, gfc_simplify_compiler_version, NULL);
   make_from_module();
 
@@ -3370,8 +3367,6 @@ add_char_conversions (void)
 void
 gfc_intrinsic_init_1 (void)
 {
-  int i;
-
   nargs = nfunc = nsub = nconv = 0;
 
   /* Create a namespace to hold the resolved intrinsic symbols.  */
@@ -3404,15 +3399,6 @@ gfc_intrinsic_init_1 (void)
 
   /* Character conversion intrinsics need to be treated separately.  */
   add_char_conversions ();
-
-  /* Set the pure flag.  All intrinsic functions are pure, and
-     intrinsic subroutines are pure if they are elemental.  */
-
-  for (i = 0; i < nfunc; i++)
-    functions[i].pure = 1;
-
-  for (i = 0; i < nsub; i++)
-    subroutines[i].pure = subroutines[i].elemental;
 }
 
 
@@ -4207,7 +4193,7 @@ gfc_intrinsic_sub_interface (gfc_code *c, int error_flag)
       c->resolved_sym->attr.elemental = isym->elemental;
     }
 
-  if (gfc_pure (NULL) && !isym->elemental)
+  if (gfc_pure (NULL) && !isym->pure)
     {
       gfc_error ("Subroutine call to intrinsic '%s' at %L is not PURE", name,
 		 &c->loc);
@@ -4320,7 +4306,7 @@ gfc_convert_type_warn (gfc_expr *expr, gfc_typespec *ts, int eflag, int wflag)
 	    gfc_warning_now ("Conversion from %s to %s at %L",
 			     gfc_typename (&from_ts), gfc_typename (ts),
 			     &expr->where);
-	  else if (gfc_option.warn_conversion
+	  else if (gfc_option.gfc_warn_conversion
 		   && from_ts.kind > ts->kind)
 	    gfc_warning_now ("Possible change of value in conversion "
 			     "from %s to %s at %L", gfc_typename (&from_ts),
@@ -4333,7 +4319,7 @@ gfc_convert_type_warn (gfc_expr *expr, gfc_typespec *ts, int eflag, int wflag)
 	  /* Conversion from REAL/COMPLEX to INTEGER or COMPLEX to REAL
 	     usually comes with a loss of information, regardless of kinds.  */
 	  if (gfc_option.warn_conversion_extra
-	      || gfc_option.warn_conversion)
+	      || gfc_option.gfc_warn_conversion)
 	    gfc_warning_now ("Possible change of value in conversion "
 			     "from %s to %s at %L", gfc_typename (&from_ts),
 			     gfc_typename (ts), &expr->where);
@@ -4342,7 +4328,7 @@ gfc_convert_type_warn (gfc_expr *expr, gfc_typespec *ts, int eflag, int wflag)
 	{
 	  /* If HOLLERITH is involved, all bets are off.  */
 	  if (gfc_option.warn_conversion_extra
-	      || gfc_option.warn_conversion)
+	      || gfc_option.gfc_warn_conversion)
 	    gfc_warning_now ("Conversion from %s to %s at %L",
 			     gfc_typename (&from_ts), gfc_typename (ts),
 			     &expr->where);

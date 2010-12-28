@@ -27,8 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "vecprim.h"
 #include "vecir.h"
 #include "ggc.h"
-#include "tm.h"
-#include "hard-reg-set.h"
 #include "basic-block.h"
 #include "tree-ssa-operands.h"
 #include "tree-ssa-alias.h"
@@ -869,7 +867,6 @@ int gimple_call_arg_flags (const_gimple, unsigned);
 void gimple_call_reset_alias_info (gimple);
 bool gimple_assign_copy_p (gimple);
 bool gimple_assign_ssa_name_copy_p (gimple);
-bool gimple_assign_single_p (gimple);
 bool gimple_assign_unary_nop_p (gimple);
 void gimple_set_bb (gimple, struct basic_block_def *);
 void gimple_assign_set_rhs_from_tree (gimple_stmt_iterator *, tree);
@@ -894,10 +891,10 @@ unsigned get_gimple_rhs_num_ops (enum tree_code);
 #define gimple_alloc(c, n) gimple_alloc_stat (c, n MEM_STAT_INFO)
 gimple gimple_alloc_stat (enum gimple_code, unsigned MEM_STAT_DECL);
 const char *gimple_decl_printable_name (tree, int);
-tree gimple_fold_obj_type_ref (tree, tree);
+bool gimple_fold_call (gimple_stmt_iterator *gsi, bool inplace);
 tree gimple_get_relevant_ref_binfo (tree ref, tree known_binfo);
-tree gimple_fold_obj_type_ref_known_binfo (HOST_WIDE_INT, tree);
-
+tree gimple_get_virt_mehtod_for_binfo (HOST_WIDE_INT, tree, tree *, bool);
+void gimple_adjust_this_by_delta (gimple_stmt_iterator *, tree);
 /* Returns true iff T is a valid GIMPLE statement.  */
 extern bool is_gimple_stmt (tree);
 
@@ -944,8 +941,6 @@ extern bool is_gimple_mem_rhs (tree);
 /* Returns true iff T is a valid if-statement condition.  */
 extern bool is_gimple_condexpr (tree);
 
-/* Returns true iff T is a type conversion.  */
-extern bool is_gimple_cast (tree);
 /* Returns true iff T is a variable that does not need to live in memory.  */
 extern bool is_gimple_non_addressable (tree t);
 
@@ -957,6 +952,7 @@ extern tree get_call_expr_in (tree t);
 extern void recalculate_side_effects (tree);
 extern bool gimple_compare_field_offset (tree, tree);
 extern tree gimple_register_type (tree);
+extern tree gimple_register_canonical_type (tree);
 enum gtc_mode { GTC_MERGE = 0, GTC_DIAG = 1 };
 extern bool gimple_types_compatible_p (tree, tree, enum gtc_mode);
 extern void print_gimple_types_stats (void);
@@ -1903,7 +1899,10 @@ gimple_assign_rhs_code (const_gimple gs)
   enum tree_code code;
   GIMPLE_CHECK (gs, GIMPLE_ASSIGN);
 
-  code = gimple_expr_code (gs);
+  code = (enum tree_code) gs->gsbase.subcode;
+  /* While we initially set subcode to the TREE_CODE of the rhs for
+     GIMPLE_SINGLE_RHS assigns we do not update that subcode to stay
+     in sync when we rewrite stmts into SSA form or do SSA propagations.  */
   if (get_gimple_rhs_class (code) == GIMPLE_SINGLE_RHS)
     code = TREE_CODE (gimple_assign_rhs1 (gs));
 
@@ -1930,6 +1929,19 @@ static inline enum gimple_rhs_class
 gimple_assign_rhs_class (const_gimple gs)
 {
   return get_gimple_rhs_class (gimple_assign_rhs_code (gs));
+}
+
+/* Return true if GS is an assignment with a singleton RHS, i.e.,
+   there is no operator associated with the assignment itself.
+   Unlike gimple_assign_copy_p, this predicate returns true for
+   any RHS operand, including those that perform an operation
+   and do not have the semantics of a copy, such as COND_EXPR.  */
+
+static inline bool
+gimple_assign_single_p (gimple gs)
+{
+  return (is_gimple_assign (gs)
+          && gimple_assign_rhs_class (gs) == GIMPLE_SINGLE_RHS);
 }
 
 

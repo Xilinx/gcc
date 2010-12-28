@@ -27,6 +27,13 @@
 #undef  STARTFILE_SPEC
 #define STARTFILE_SPEC "crt0.o%s crtbegin.o%s"
 
+#undef  ENDFILE_SPEC
+#define ENDFILE_SPEC "crtend.o%s crtn.o%s"
+
+#undef  LINK_SPEC
+#define LINK_SPEC "%{h*} %{v:-V} \
+		   %{static:-Bstatic} %{shared:-shared} %{symbolic:-Bsymbolic}"
+
 /* There are four CPU series we support, but they basically break down
    into two families - the R8C/M16C families, with 16-bit address
    registers and one set of opcodes, and the M32CM/M32C group, with
@@ -190,6 +197,18 @@ machine_function;
 #undef UINTPTR_TYPE
 #define UINTPTR_TYPE (TARGET_A16 ? "unsigned int" : "long unsigned int")
 
+#undef  SIZE_TYPE
+#define SIZE_TYPE "unsigned int"
+
+#undef  PTRDIFF_TYPE
+#define PTRDIFF_TYPE "int"
+
+#undef  WCHAR_TYPE
+#define WCHAR_TYPE "long int"
+
+#undef  WCHAR_TYPE_SIZE
+#define WCHAR_TYPE_SIZE BITS_PER_WORD
+
 /* REGISTER USAGE */
 
 /* Register Basics */
@@ -227,8 +246,6 @@ machine_function;
 			      1, 1, 1, 0, \
 			      1, 1, 1, 1, \
 			      1, 1, 1, 1, 1, 1, 1, 1 }
-
-#define CONDITIONAL_REGISTER_USAGE m32c_conditional_register_usage ();
 
 /* The *_REGNO theme matches m32c.md and most register number
    arguments; the PC_REGNUM is the odd one out.  */
@@ -408,16 +425,18 @@ enum reg_class
 	 : (CHAR) == 'A' ? 2 \
 	 : DEFAULT_CONSTRAINT_LEN(CHAR,STR))
 #define REG_CLASS_FROM_CONSTRAINT(CHAR,STR) \
-	m32c_reg_class_from_constraint (CHAR, STR)
+	(enum reg_class) m32c_reg_class_from_constraint (CHAR, STR)
 
 #define REGNO_OK_FOR_BASE_P(NUM) m32c_regno_ok_for_base_p (NUM)
 #define REGNO_OK_FOR_INDEX_P(NUM) 0
 
 #define PREFERRED_RELOAD_CLASS(X,CLASS) m32c_preferred_reload_class (X, CLASS)
 #define PREFERRED_OUTPUT_RELOAD_CLASS(X,CLASS) m32c_preferred_output_reload_class (X, CLASS)
-#define LIMIT_RELOAD_CLASS(MODE,CLASS) m32c_limit_reload_class (MODE, CLASS)
+#define LIMIT_RELOAD_CLASS(MODE,CLASS) \
+  (enum reg_class) m32c_limit_reload_class (MODE, CLASS)
 
-#define SECONDARY_RELOAD_CLASS(CLASS,MODE,X) m32c_secondary_reload_class (CLASS, MODE, X)
+#define SECONDARY_RELOAD_CLASS(CLASS,MODE,X) \
+  (enum reg_class) m32c_secondary_reload_class (CLASS, MODE, X)
 
 #define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
 
@@ -518,7 +537,6 @@ typedef struct m32c_cumulative_args
 #define CUMULATIVE_ARGS m32c_cumulative_args
 #define INIT_CUMULATIVE_ARGS(CA,FNTYPE,LIBNAME,FNDECL,N_NAMED_ARGS) \
 	m32c_init_cumulative_args (&(CA),FNTYPE,LIBNAME,FNDECL,N_NAMED_ARGS)
-#define FUNCTION_ARG_BOUNDARY(MODE,TYPE) (TARGET_A16 ? 8 : 16)
 #define FUNCTION_ARG_REGNO_P(r) m32c_function_arg_regno_p (r)
 
 /* How Large Values Are Returned */
@@ -566,6 +584,10 @@ typedef struct m32c_cumulative_args
 	  goto WIN;
 
 #define LEGITIMATE_CONSTANT_P(X) m32c_legitimate_constant_p (X)
+
+/* Address spaces.  */
+#define ADDR_SPACE_FAR	1
+
 
 /* Condition Code Status */
 

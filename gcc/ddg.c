@@ -1,5 +1,5 @@
 /* DDG - Data Dependence Graph implementation.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Ayal Zaks and Mustafa Hagog <zaks,mustafa@il.ibm.com>
 
@@ -25,7 +25,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "rtl.h"
 #include "tm_p.h"
 #include "hard-reg-set.h"
@@ -264,7 +263,8 @@ add_cross_iteration_register_deps (ddg_ptr g, df_ref last_def)
 
 #ifdef ENABLE_CHECKING
   if (DF_REF_ID (last_def) != DF_REF_ID (first_def))
-    gcc_assert (!bitmap_bit_p (&bb_info->gen, DF_REF_ID (first_def)));
+    gcc_assert (!bitmap_bit_p (&bb_info->gen,
+			       DF_REF_ID (first_def)));
 #endif
 
   /* Create inter-loop true dependences and anti dependences.  */
