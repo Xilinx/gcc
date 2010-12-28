@@ -424,7 +424,7 @@ opencl_set_meta_rw_flags (opencl_clast_meta meta,
 
   opencl_calc_bb_privatization (code_gen, bb, meta);
 
-  for (i = 0; VEC_iterate (poly_dr_p, drs, i, curr); i++)
+  FOR_EACH_VEC_ELT (poly_dr_p, drs, i, curr)
     {
       data_reference_p d_ref = (data_reference_p) PDR_CDR (curr);
       tree data_ref_tree = dr_outermost_base_object (d_ref);
@@ -772,7 +772,7 @@ opencl_analyse_data_access_p (opencl_main code_gen,
       obj->depth = curr->val;
     }
 
-  for (i = 0; VEC_iterate (opencl_data, data_objs, i, curr_data); i++)
+  FOR_EACH_VEC_ELT (opencl_data, data_objs, i, curr_data)
     {
       if (curr_data->data_dim != max_dim)
         continue;

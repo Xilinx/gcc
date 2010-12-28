@@ -1775,7 +1775,7 @@ opencl_add_data_refs_pbb (poly_bb_p pbb, opencl_main code_gen)
   int i;
   poly_dr_p curr;
 
-  for (i = 0; VEC_iterate (poly_dr_p, drs, i, curr); i++)
+  FOR_EACH_VEC_ELT (poly_dr_p, drs, i, curr)
     {
       data_reference_p d_ref = (data_reference_p) PDR_CDR (curr);
       opencl_add_data_ref (code_gen, d_ref);

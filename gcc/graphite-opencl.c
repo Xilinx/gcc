@@ -226,7 +226,7 @@ opencl_fflush_rw_flags (opencl_main code_gen)
   int i;
   opencl_data curr;
 
-  for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
+  FOR_EACH_VEC_ELT (opencl_data, datas, i, curr)
     {
       curr->written_in_current_body = false;
       curr->read_in_current_body = false;
@@ -480,8 +480,7 @@ opencl_main_delete (opencl_main data)
   htab_delete (data->tree_to_data);
   opencl_clast_meta_delete (data->clast_meta);
 
-  for (i = 0; VEC_iterate (opencl_data, data->opencl_function_data, i, curr);
-       i++)
+  FOR_EACH_VEC_ELT (opencl_data, data->opencl_function_data, i, curr)
     if (!curr->is_static)
       opencl_data_delete (curr);
 
@@ -1237,13 +1236,13 @@ opencl_fflush_all_device_buffers_to_host (opencl_main code_gen)
   opencl_data curr;
   tree function = opencl_create_function_decl (RELEASE_MEMORY_OBJ);
 
-  for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
+  FOR_EACH_VEC_ELT (opencl_data, datas, i, curr)
     {
       curr->written_in_current_body = true;
       opencl_pass_to_host (code_gen, curr);
     }
 
-  for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
+  FOR_EACH_VEC_ELT (opencl_data, datas, i, curr)
     if (curr->used_on_device && !curr->is_static)
       {
 	tree var = curr->device_object;
@@ -1330,7 +1329,7 @@ opencl_init_all_device_buffers (opencl_main code_gen)
   opencl_data curr;
   edge data_init_edge = single_succ_edge (code_gen->data_init_bb);
 
-  for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
+  FOR_EACH_VEC_ELT (opencl_data, datas, i, curr)
     {
       tree tmp;
 
@@ -1516,7 +1515,7 @@ opencl_init_local_device_memory (opencl_main code_gen, opencl_body kernel)
 
   code_gen->kernel_edge = single_succ_edge (kernel_bb);
 
-  for (i = 0; VEC_iterate (tree, *args, i, curr); i ++)
+  FOR_EACH_VEC_ELT (tree, *args, i, curr)
     {
       gimple_stmt_iterator g_iter = gsi_last_bb (bb);
       gimple_stmt_iterator kernel_g_iter = gsi_last_bb (kernel_bb);
@@ -1550,7 +1549,7 @@ opencl_init_local_device_memory (opencl_main code_gen, opencl_body kernel)
       VEC_safe_push (tree, heap, *args_to_pass, tmp_var);
     }
 
-  for (i = 0; VEC_iterate (opencl_data, *refs, i, curr_data); i++)
+  FOR_EACH_VEC_ELT (opencl_data, *refs, i, curr_data)
     {
       gimple_stmt_iterator kernel_g_iter = gsi_last_bb (kernel_bb);
       tree new_type;
@@ -1591,7 +1590,7 @@ opencl_pass_kernel_arguments (opencl_main code_gen, opencl_body kernel,
   int i;
   tree function = opencl_create_function_decl (SET_KERNEL_ARG);
 
-  for (i = 0; VEC_iterate (tree, args_to_pass, i, arg); i++)
+  FOR_EACH_VEC_ELT (tree, args_to_pass, i, arg)
     {
       tree call
 	= build_call_expr (function, 4, kernel_var,
@@ -1686,9 +1685,8 @@ opencl_mark_privatized_data (opencl_main code_gen)
   opencl_data curr;
   bitmap can_be_private = code_gen->curr_meta->can_be_private;
 
-  for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
+  FOR_EACH_VEC_ELT (opencl_data, datas, i, curr)
     curr->privatized = bitmap_bit_p (can_be_private, curr->id);
-
 }
 
 /* Store calculated sizes of all pointers or arrays to variables.
@@ -1702,7 +1700,7 @@ opencl_set_data_size (opencl_main code_gen)
   opencl_data curr;
   gimple_stmt_iterator g_iter = gsi_last_bb (code_gen->data_init_bb);
 
-  for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
+  FOR_EACH_VEC_ELT (opencl_data, datas, i, curr)
     {
       tree call;
 
@@ -1841,7 +1839,7 @@ opencl_parse_data_refs (poly_bb_p pbb, opencl_main code_gen)
   int i;
   poly_dr_p curr;
 
-  for (i = 0; VEC_iterate (poly_dr_p, drs, i, curr); i++)
+  FOR_EACH_VEC_ELT (poly_dr_p, drs, i, curr)
     opencl_parse_single_data_ref (curr, code_gen);
 }
 
@@ -1855,7 +1853,7 @@ opencl_init_data (scop_p m_scop, opencl_main code_gen)
   int i;
   poly_bb_p curr;
 
-  for (i = 0; VEC_iterate (poly_bb_p, bbs, i, curr); i++)
+  FOR_EACH_VEC_ELT (poly_bb_p, bbs, i, curr)
     opencl_parse_data_refs (curr, code_gen);
 }
 
@@ -1909,7 +1907,7 @@ opencl_prepare_memory_for_gimple_stmt (poly_bb_p pbb, opencl_main code_gen)
   int i;
   poly_dr_p curr;
 
-  for (i = 0; VEC_iterate (poly_dr_p, drs, i, curr); i++)
+  FOR_EACH_VEC_ELT (poly_dr_p, drs, i, curr)
     {
       data_reference_p d_ref = (data_reference_p) PDR_CDR (curr);
       opencl_data data;
@@ -2007,9 +2005,7 @@ opencl_init_new_loop (opencl_clast_meta meta, opencl_main code_gen)
   meta->post_pass_to_device
     = VEC_alloc (opencl_data, heap, OPENCL_INIT_BUFF_SIZE);
 
-  for (i = 0;
-       VEC_iterate (opencl_data, code_gen->opencl_function_data, i, curr);
-       i++)
+  FOR_EACH_VEC_ELT (opencl_data, code_gen->opencl_function_data, i, curr)
     {
       curr->inited_in_current_loop_on_host = false;
       curr->inited_in_current_loop_on_device = false;
@@ -2027,16 +2023,14 @@ opencl_postpass_data (opencl_main code_gen, opencl_clast_meta meta)
   opencl_data curr;
   unsigned i;
 
-  for (i = 0;
-       VEC_iterate (opencl_data, meta->post_pass_to_host, i, curr); i++)
+  FOR_EACH_VEC_ELT (opencl_data, meta->post_pass_to_host, i, curr)
     {
       curr->written_in_current_body = false;
       opencl_pass_to_host (code_gen, curr);
     }
 
   if (!flag_graphite_opencl_cpu)
-    for (i = 0;
-	 VEC_iterate (opencl_data, meta->post_pass_to_device, i, curr); i++)
+    FOR_EACH_VEC_ELT (opencl_data, meta->post_pass_to_device, i, curr)
       {
         curr->written_in_current_body = false;
         opencl_pass_to_device (code_gen, curr);
@@ -2049,12 +2043,10 @@ opencl_postpass_data (opencl_main code_gen, opencl_clast_meta meta)
       VEC (opencl_data, heap) *parent_vec_device
 	= meta->parent->post_pass_to_device;
 
-      for (i = 0;
-	   VEC_iterate (opencl_data, meta->post_pass_to_host, i, curr); i++)
+      FOR_EACH_VEC_ELT (opencl_data, meta->post_pass_to_host, i, curr)
 	VEC_safe_push (opencl_data, heap, parent_vec_host, curr);
 
-      for (i = 0;
-	   VEC_iterate (opencl_data, meta->post_pass_to_device, i, curr); i++)
+      FOR_EACH_VEC_ELT (opencl_data, meta->post_pass_to_device, i, curr)
 	VEC_safe_push (opencl_data, heap, parent_vec_device, curr);
     }
 
@@ -2602,7 +2594,7 @@ opencl_dependency_between_pbbs_p (opencl_main code_gen, poly_bb_p pbb1,
 
   timevar_push (TV_GRAPHITE_DATA_DEPS);
 
-  for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb1), i, pdr1); i++)
+  FOR_EACH_VEC_ELT (poly_dr_p, PBB_DRS (pbb1), i, pdr1)
     {
       data_reference_p ref1 = (data_reference_p)PDR_CDR (pdr1);
       opencl_data data_1 = opencl_get_data_by_data_ref (code_gen, ref1);
@@ -2610,7 +2602,7 @@ opencl_dependency_between_pbbs_p (opencl_main code_gen, poly_bb_p pbb1,
       if (bitmap_bit_p (can_be_private, data_1->id))
         continue;
 
-      for (j = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb2), j, pdr2); j++)
+      FOR_EACH_VEC_ELT (poly_dr_p, PBB_DRS (pbb2), j, pdr2)
         {
           data_reference_p ref2 = (data_reference_p)PDR_CDR (pdr2);
 
@@ -2647,12 +2639,12 @@ dependency_in_clast_loop_p (opencl_main code_gen, opencl_clast_meta meta,
   build_poly_bb_vec (stmt->body, &pbbs);
   can_be_private = meta->can_be_private;
 
-  for (i = 0; VEC_iterate (poly_bb_p, pbbs, i, pbb1); i++)
+  FOR_EACH_VEC_ELT (poly_bb_p, pbbs, i, pbb1)
     {
       int j;
       poly_bb_p pbb2;
 
-      for (j = 0; VEC_iterate (poly_bb_p, pbbs, j, pbb2); j++)
+      FOR_EACH_VEC_ELT (poly_bb_p, pbbs, j, pbb2)
         if (opencl_dependency_between_pbbs_p (code_gen, pbb1, pbb1,
                                               level, can_be_private))
           {
@@ -2696,7 +2688,7 @@ opencl_init_static_data (edge init_edge)
   int i;
   opencl_data curr;
 
-  for (i = 0; VEC_iterate (opencl_data, opencl_array_data, i, curr); i ++)
+  FOR_EACH_VEC_ELT (opencl_data, opencl_array_data, i, curr)
     {
       tree tmp;
 
@@ -2747,7 +2739,7 @@ graphite_opencl_finalize (edge static_init_edge)
 
   dyn_string_delete (main_program_src);
 
-  for (i = 0; VEC_iterate (opencl_data, opencl_array_data, i, curr); i++)
+  FOR_EACH_VEC_ELT (opencl_data, opencl_array_data, i, curr)
     opencl_data_delete (curr);
 
   VEC_free (tree, heap, opencl_function_kernels);
