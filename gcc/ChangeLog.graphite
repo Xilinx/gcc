@@ -1,5 +1,10 @@
 2010-12-27  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-opencl.c (h_context, h_cmd_queue, h_program): Moved
+	out of ifdef HAVE_cloog section.
+
+2010-12-27  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* Makefile.in (graphite-opencl.o): Depends on
 	graphite-opencl-functions.def.
 	* graphite-opencl-functions.def: New.

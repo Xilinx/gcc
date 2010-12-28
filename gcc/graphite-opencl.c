@@ -74,6 +74,15 @@
 #include "hashtab.h"
 #include "tree.h"
 
+/* Variable, which holds OpenCL context.  */
+static GTY(()) tree h_context;
+
+/* Variable, which holds OpenCL command queue.  */
+static GTY(()) tree h_cmd_queue;
+
+/* Variable, which holds OpenCL program for current function.  */
+static GTY(()) tree h_program;
+
 #ifdef HAVE_cloog
 #include "cloog/cloog.h"
 #include "ppl_c.h"
@@ -307,19 +316,6 @@ static const char *opencl_function_names[] =
   };
 
 #undef DEFOPENCLCODE
-
-#endif
-
-/* Variable, which holds OpenCL context.  */
-static GTY(()) tree h_context;
-
-/* Variable, which holds OpenCL command queue.  */
-static GTY(()) tree h_cmd_queue;
-
-/* Variable, which holds OpenCL program for current function.  */
-static GTY(()) tree h_program;
-
-#ifdef HAVE_cloog
 
 /* This vector holds opencl_data, which represents arrays.
    Arrays have constant sizes, so buffers for each of them can
