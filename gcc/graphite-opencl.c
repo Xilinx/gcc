@@ -86,31 +86,6 @@
 #include "dyn-string.h"
 #include "graphite-opencl.h"
 
-/* Enum for all OpenCL functions used in GRAPHITE-OpenCL.  */
-
-enum OPENCL_FUNCTIONS
-  {
-    STATIC_INIT = 0,
-    CREATE_CONTEXT_FROM_TYPE = 1,
-    GET_CONTEXT_INFO = 2,
-    CREATE_COMMAND_QUEUE = 3,
-    CREATE_PROGRAM_WITH_SOURCE = 4,
-    BUILD_PROGRAM = 5,
-    CREATE_KERNEL = 6,
-    CREATE_BUFFER = 7,
-    SET_KERNEL_ARG = 8,
-    ENQUEUE_ND_RANGE_KERNEL = 9,
-    ENQUEUE_READ_BUFFER = 10,
-    ENQUEUE_WRITE_BUFFER = 11,
-    RELEASE_MEMORY_OBJ = 12,
-    RELEASE_CONTEXT = 13,
-    RELEASE_COMMAND_QUEUE = 14,
-    RELEASE_PROGRAM = 15,
-    RELEASE_KERNEL = 16,
-    GET_PLATFORM_IDS = 17,
-    WAIT_FOR_EVENTS = 18
-  };
-
 /* Data structure to be used in data_reference_p to opencl_data hash
    table.  */
 struct map_ref_to_data_def
@@ -312,29 +287,26 @@ opencl_verify (void)
 #define CL_MEM_READ_ONLY (1 << 2)
 #define CL_TRUE 1
 
-/* Names of all OpenCL functions, used in GRAPHITE-OpenCL.  */
+#define DEFOPENCLCODE(CODE, FN_NAME) CODE,
 
+/* Enum for all OpenCL functions used in GRAPHITE-OpenCL.  */
+enum OPENCL_FUNCTIONS
+  {
+#include "graphite-opencl-functions.def"
+    STATIC_INIT
+  };
+
+#undef DEFOPENCLCODE
+
+#define DEFOPENCLCODE(CODE, FN_NAME) FN_NAME,
+
+/* Names of all OpenCL functions, used in GRAPHITE-OpenCL.  */
 static const char *opencl_function_names[] =
   {
-    "clCreateContextFromType",
-    "clGetContextInfo",
-    "clCreateCommandQueue",
-    "clCreateProgramWithSource",
-    "clBuildProgram",
-    "clCreateKernel",
-    "clCreateBuffer",
-    "clSetKernelArg",
-    "clEnqueueNDRangeKernel",
-    "clEnqueueReadBuffer",
-    "clEnqueueWriteBuffer",
-    "clReleaseMemObject",
-    "clReleaseContext",
-    "clReleaseCommandQueue",
-    "clReleaseProgram",
-    "clReleaseKernel",
-    "clGetPlatformIDs",
-    "clWaitForEvents"
+#include "graphite-opencl-functions.def"
   };
+
+#undef DEFOPENCLCODE
 
 #endif
 
@@ -746,7 +718,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      integer_ptr_type_node,
 				      NULL_TREE);
 	create_context_from_type_decl
-	  = build_fn_decl (opencl_function_names[0], function_type);
+	  = build_fn_decl (opencl_function_names[CREATE_CONTEXT_FROM_TYPE],
+			   function_type);
 
 	/* | cl_int clGetContextInfo (cl_context context,
 	   |                          cl_context_info param_name,
@@ -762,7 +735,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      size_t_ptr,
 				      NULL_TREE);
 	get_context_info_decl
-	  = build_fn_decl (opencl_function_names[1], function_type);
+	  = build_fn_decl (opencl_function_names[GET_CONTEXT_INFO],
+			   function_type);
 
 	/* | cl_command_queue
 	   | clCreateCommandQueue (cl_context context,
@@ -777,7 +751,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      integer_ptr_type_node,
 				      NULL_TREE);
 	create_command_queue_decl
-	  = build_fn_decl (opencl_function_names[2], function_type);
+	  = build_fn_decl (opencl_function_names[CREATE_COMMAND_QUEUE],
+			   function_type);
 
 	/* | cl_program clCreateProgramWithSource (cl_context context,
 	   |                                       cl_uint count,
@@ -793,7 +768,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      integer_ptr_type_node,
 				      NULL_TREE);
 	create_program_with_source_decl
-	  = build_fn_decl (opencl_function_names[3], function_type);
+	  = build_fn_decl (opencl_function_names[CREATE_PROGRAM_WITH_SOURCE],
+			   function_type);
 
 	/* | cl_int
 	   | clBuildProgram (cl_program program,
@@ -812,7 +788,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      ptr_type_node,
 				      NULL_TREE);
 	build_program_decl
-	  = build_fn_decl (opencl_function_names[4], function_type);
+	  = build_fn_decl (opencl_function_names[BUILD_PROGRAM],
+			   function_type);
 
 	/* | cl_kernel clCreateKernel (cl_program program,
 	   |                           const char *kernel_name,
@@ -825,7 +802,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      NULL_TREE);
 
 	create_kernel_decl
-	  = build_fn_decl (opencl_function_names[5], function_type);
+	  = build_fn_decl (opencl_function_names[CREATE_KERNEL],
+			   function_type);
 
 	/* | cl_mem clCreateBuffer (cl_context context,
 	   |                        cl_mem_flags flags,
@@ -842,7 +820,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      integer_ptr_type_node,
 				      NULL_TREE);
 	create_buffer_decl
-	  = build_fn_decl (opencl_function_names[6], function_type);
+	  = build_fn_decl (opencl_function_names[CREATE_BUFFER],
+			   function_type);
 
 
 	/* | cl_int clSetKernelArg (cl_kernel kernel,
@@ -858,7 +837,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      const_ptr_type_node,
 				      NULL_TREE);
 	set_kernel_arg_decl
-	  = build_fn_decl (opencl_function_names[7], function_type);
+	  = build_fn_decl (opencl_function_names[SET_KERNEL_ARG],
+			   function_type);
 
 	/* | cl_int clEnqueueNDRangeKernel (cl_command_queue command_queue,
 	   |                                cl_kernel kernel,
@@ -884,7 +864,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      NULL_TREE);
 
 	enqueue_nd_range_kernel_decl
-	  = build_fn_decl (opencl_function_names[8], function_type);
+	  = build_fn_decl (opencl_function_names[ENQUEUE_ND_RANGE_KERNEL],
+			   function_type);
 
 	/* | cl_int clEnqueueReadBuffer (cl_command_queue command_queue,
 	   |                             cl_mem buffer,
@@ -910,7 +891,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      NULL_TREE);
 
 	enqueue_read_buffer_decl
-	  = build_fn_decl (opencl_function_names[9], function_type);
+	  = build_fn_decl (opencl_function_names[ENQUEUE_READ_BUFFER],
+			   function_type);
 
 	/* | cl_int clEnqueueWriteBuffer (cl_command_queue command_queue,
 	   |                              cl_mem buffer,
@@ -936,7 +918,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      NULL_TREE);
 
 	enqueue_write_buffer_decl
-	  = build_fn_decl (opencl_function_names[10], function_type);
+	  = build_fn_decl (opencl_function_names[ENQUEUE_WRITE_BUFFER],
+			   function_type);
 
 
 	/* cl_int clReleaseMemObject (cl_mem memobj)  */
@@ -945,7 +928,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 	  = build_function_type_list (integer_type_node, cl_mem, NULL_TREE);
 
 	release_memory_obj_decl
-	  = build_fn_decl (opencl_function_names[11], function_type);
+	  = build_fn_decl (opencl_function_names[RELEASE_MEMORY_OBJ],
+			   function_type);
 
 
 	/* cl_int clReleaseContext (cl_context context)  */
@@ -954,7 +938,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      NULL_TREE);
 
 	release_context_decl
-	  = build_fn_decl (opencl_function_names[12], function_type);
+	  = build_fn_decl (opencl_function_names[RELEASE_CONTEXT],
+			   function_type);
 
 	/* cl_int clReleaseCommandQueue (cl_command_queue command_queue)  */
 	function_type
@@ -962,7 +947,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      NULL_TREE);
 
 	release_command_queue_decl
-	  = build_fn_decl (opencl_function_names[13], function_type);
+	  = build_fn_decl (opencl_function_names[RELEASE_COMMAND_QUEUE],
+			   function_type);
 
 	/* cl_int clReleaseProgram (cl_program program)  */
 	function_type
@@ -970,14 +956,16 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      NULL_TREE);
 
 	release_program_decl
-	  = build_fn_decl (opencl_function_names[14], function_type);
+	  = build_fn_decl (opencl_function_names[RELEASE_PROGRAM],
+			   function_type);
 
 	/* cl_int clReleaseKernel (cl_kernel kernel)  */
 	function_type
 	  = build_function_type_list (integer_type_node, cl_kernel, NULL_TREE);
 
 	release_kernel_decl
-	  = build_fn_decl (opencl_function_names[15], function_type);
+	  = build_fn_decl (opencl_function_names[RELEASE_KERNEL],
+			   function_type);
 
 	/* | cl_int clGetPlatformIDs (cl_uint num_entries,
 	   |                          cl_platform_id *platforms,
@@ -991,7 +979,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      build_pointer_type (unsigned_type_node),
 				      NULL_TREE);
 	get_platform_ids_decl
-	  = build_fn_decl (opencl_function_names [16], function_type);
+	  = build_fn_decl (opencl_function_names [GET_PLATFORM_IDS],
+			   function_type);
 
 
 	/* | cl_int clWaitForEvents (cl_uint num_events,
@@ -1004,7 +993,8 @@ opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 				      NULL_TREE);
 
 	get_wait_for_events_decl
-	  = build_fn_decl (opencl_function_names [17], function_type);
+	  = build_fn_decl (opencl_function_names [WAIT_FOR_EVENTS],
+			   function_type);
 
 	return NULL_TREE;
       }

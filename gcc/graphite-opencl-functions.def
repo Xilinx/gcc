@@ -1,0 +1,41 @@
+/* This file contains the OpenCL function definitions used in Graphite-OpenCL.
+
+   Copyright (C) 2010 Free Software Foundation, Inc.
+
+This file is part of GCC.
+
+GCC is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 3, or (at your option) any later
+version.
+
+GCC is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
+
+/* The format of this file is
+   DEFOPENCLCODE(code, "function_name").  */
+
+DEFOPENCLCODE (CREATE_CONTEXT_FROM_TYPE, "clCreateContextFromType")
+DEFOPENCLCODE (GET_CONTEXT_INFO, "clGetContextInfo")
+DEFOPENCLCODE (CREATE_COMMAND_QUEUE, "clCreateCommandQueue")
+DEFOPENCLCODE (CREATE_PROGRAM_WITH_SOURCE, "clCreateProgramWithSource")
+DEFOPENCLCODE (BUILD_PROGRAM, "clBuildProgram")
+DEFOPENCLCODE (CREATE_KERNEL, "clCreateKernel")
+DEFOPENCLCODE (CREATE_BUFFER, "clCreateBuffer")
+DEFOPENCLCODE (SET_KERNEL_ARG, "clSetKernelArg")
+DEFOPENCLCODE (ENQUEUE_ND_RANGE_KERNEL, "clEnqueueNDRangeKernel")
+DEFOPENCLCODE (ENQUEUE_READ_BUFFER, "clEnqueueReadBuffer")
+DEFOPENCLCODE (ENQUEUE_WRITE_BUFFER, "clEnqueueWriteBuffer")
+DEFOPENCLCODE (RELEASE_MEMORY_OBJ, "clReleaseMemObject")
+DEFOPENCLCODE (RELEASE_CONTEXT, "clReleaseContext")
+DEFOPENCLCODE (RELEASE_COMMAND_QUEUE, "clReleaseCommandQueue")
+DEFOPENCLCODE (RELEASE_PROGRAM, "clReleaseProgram")
+DEFOPENCLCODE (RELEASE_KERNEL, "clReleaseKernel")
+DEFOPENCLCODE (GET_PLATFORM_IDS, "clGetPlatformIDs")
+DEFOPENCLCODE (WAIT_FOR_EVENTS, "clWaitForEvents")

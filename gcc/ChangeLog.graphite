@@ -1,5 +1,16 @@
 2010-12-27  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* Makefile.in (graphite-opencl.o): Depends on
+	graphite-opencl-functions.def.
+	* graphite-opencl-functions.def: New.
+	* graphite-opencl.c (enum OPENCL_FUNCTIONS): Read data from
+	graphite-opencl-functions.def.
+	(opencl_function_names): Same.
+	(opencl_create_function_decl): Use the enum OPENCL_FUNCTIONS
+	as indices of opencl_function_names.
+
+2010-12-27  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-opencl-codegen.c: Fix formatting.
 	* graphite-opencl-meta-clast.c: Same.
 	* graphite-opencl.c: Same.

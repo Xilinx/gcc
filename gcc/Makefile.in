@@ -2711,7 +2711,7 @@ graphite-opencl-meta-clast.o: graphite-opencl-meta-clast.c $(CONFIG_H) \
    pointer-set.h value-prof.h graphite-ppl.h sese.h \
    graphite-scop-detection.h graphite-clast-to-gimple.h graphite-poly.h \
    graphite-dependences.h
-graphite-opencl.o: graphite-opencl.c $(CONFIG_H) \
+graphite-opencl.o: graphite-opencl.c graphite-opencl-functions.def $(CONFIG_H) \
    $(SYSTEM_H) coretypes.h $(TM_H) \
    $(GGC_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) $(TOPLEV_H) \
    $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H) \
