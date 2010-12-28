@@ -61,43 +61,6 @@
 #include "dyn-string.h"
 #include "graphite-opencl.h"
 
-
-/* These functions implement code generation from different clast
-   structures.  */
-static void opencl_print_stmt_list (struct clast_stmt *, opencl_main, int);
-static void opencl_print_for (struct clast_for *, opencl_main, int);
-static void opencl_print_guard (struct clast_guard *, opencl_main, int);
-static void opencl_print_equation (struct clast_equation *, opencl_main);
-static void opencl_print_expr (struct clast_expr *, opencl_main);
-static void opencl_add_variable (const char *, tree,  opencl_main);
-static void opencl_print_term (struct clast_term *, opencl_main);
-static void opencl_print_reduction (struct clast_reduction *, opencl_main);
-static void opencl_print_sum (struct clast_reduction *, opencl_main);
-static void opencl_print_binary (struct clast_binary *, opencl_main);
-static void opencl_print_minmax_c (struct clast_reduction *, opencl_main);
-
-/* These function implement code generation from different gimple
-   objects.  */
-static void opencl_print_bb (basic_block, opencl_main);
-static void opencl_print_gimple_assign_operation (gimple, opencl_main);
-static void opencl_print_gimple_assign (gimple, opencl_main);
-static void opencl_print_gimple (gimple, opencl_main);
-static int opencl_print_operand (tree, bool, opencl_main);
-
-
-static void opencl_print_local_vars (const char *, const char *, const char *,
-                                     opencl_main);
-static void opencl_try_variable (opencl_main, tree);
-static const char *opencl_get_var_name (tree);
-static void opencl_build_defines (tree, opencl_main);
-static void opencl_expand_scalar_vars (opencl_main, gimple);
-static void opencl_add_function_arg (opencl_main, tree, const char *);
-static void opencl_add_data_refs_pbb (poly_bb_p, opencl_main);
-static void opencl_add_non_scalar_type_decl (tree, dyn_string_t, const char *);
-static const char *opencl_print_function_arg_with_type (const char *, tree);
-static bool check_and_mark_arg (opencl_main, const char *, bool);
-
-
 /* Compare two clast names based on their indexes.  */
 
 static int
@@ -202,7 +165,6 @@ opencl_get_main_type (tree type)
     type = TREE_TYPE (type);
   return build_pointer_type (type);
 }
-
 
 /* Create the base part of FUNCTION declaration, similar to this:
    "__global void __opencl_function_0".  */
@@ -455,6 +417,94 @@ gen_type_with_name (const char *name, tree t)
   return concat (data_type, " ", type_part, NULL);
 }
 
+/* Get name of the variable, represented by tree NODE.  If variable is
+   temporary, generate name for it.  */
+
+static const char *
+opencl_get_var_name (tree node)
+{
+  bool ssa_name = TREE_CODE (node) == SSA_NAME;
+  tree name;
+  int num = 0;
+  if (ssa_name)
+    {
+      num = SSA_NAME_VERSION (node);
+      node = SSA_NAME_VAR (node);
+    }
+  name = DECL_NAME (node);
+  if (name)
+    {
+      if (!ssa_name)
+	return identifier_to_locale (IDENTIFIER_POINTER (name));
+      else
+	{
+	  const char *base = identifier_to_locale (IDENTIFIER_POINTER (name));
+	  char *buff = XNEWVEC (char, strlen (base) + 5);
+	  sprintf (buff, "%s_%d", base, num);
+	  return buff;
+	}
+    }
+  else
+    {
+      int tmp_var_uid = DECL_UID (node);
+      char *tmp = XNEWVEC (char, 30);
+      sprintf (tmp, "opencl_var_%d_%d", tmp_var_uid, num);
+      return tmp;
+    }
+}
+
+/*  Replace all dots to underscores in string pointed to by P.  Return P.  */
+
+static char *
+filter_dots (char *p)
+{
+  char *s;
+  for (s = p; *s; s++)
+    if (*s == '.')
+      *s = '_';
+  return p;
+}
+
+/* Return string with varibale definition.  ARG_NAME is the name of
+   the variable and TYPE is it's type.  */
+
+static const char *
+opencl_print_function_arg_with_type (const char *arg_name, tree type)
+{
+  const char *decl = gen_type_with_name (arg_name, type);
+  char *ddecl;
+  ddecl = xstrdup (decl);
+  return filter_dots (ddecl);
+}
+
+/* Check whether variable with name NAME has been defined as global or
+   local variable and mark it as defined.  This function returns false
+   if variable has already been defined, otherwise it returns true.  */
+
+static bool
+check_and_mark_arg (opencl_main code_gen, const char *name, bool local)
+{
+  const char **slot;
+  gcc_assert (code_gen->defined_vars || !local);
+  if (code_gen->defined_vars)
+    {
+      slot = (const char **)htab_find_slot (code_gen->defined_vars,
+                                            name, INSERT);
+      if (*slot)
+        return false;
+      if (local)
+        *slot = name;
+    }
+
+  slot = (const char **)htab_find_slot (code_gen->global_defined_vars,
+                                        name, INSERT);
+  if (*slot)
+    return false;
+  if (!local)
+    *slot = name;
+  return true;
+}
+
 /* Replace perfect nested loop nest represented by F with opencl kernel.
    For example, loop nest like this
 
@@ -611,61 +661,40 @@ opencl_perfect_nested_to_kernel (opencl_main code_gen, struct clast_for *f,
   VEC_free (tree, heap, mod);
 }
 
-/* Generate code for loop statement F.  DEPTH is the depth of F in
-   current loop nest.  CODE_GEN holds information related to OpenCL
-   code generation.  */
-
-static opencl_body
-opencl_print_loop (struct clast_for *f, opencl_main code_gen, int depth)
-{
-  opencl_body current_body = code_gen->current_body;
-
-  code_gen->global_defined_vars
-    = htab_create (10, htab_hash_string, opencl_cmp_str, NULL);
-
-  opencl_perfect_nested_to_kernel (code_gen, f, current_body, depth);
-
-  /* Define local loop iterators.  */
-  opencl_print_local_vars (current_body->first_iter,
-			   current_body->last_iter,
-			   "unsigned int", code_gen);
-
-  /* Generate code for kernel body.  */
-  opencl_print_stmt_list (current_body->clast_body, code_gen, depth + 1);
-  opencl_append_string_to_body ("}\n", code_gen);
-
-  if (current_body->num_of_data_writes)
-    {
-      dyn_string_t header = current_body->header;
-      int offset;
-
-      dyn_string_append (header, current_body->non_scalar_args);
-      offset = dyn_string_length (header) - 2;
-
-      if (*(dyn_string_buf (header) + offset) == ',')
-        *(dyn_string_buf (header) + offset) = ' ';
-
-      opencl_append_string_to_header (")\n{\n", code_gen);
-    }
-
-  return current_body;
-}
-
-/* Generate OpenCL code for clast_assignment A.
-   CODE_GEN holds information related to OpenCL code generation.  */
+/* Append list of names of loop iterators from CODE_GEN with same type
+   TYPE to current kernel.  FIRST and LAST define outermost and
+   innermost iterators to append respectively.  */
 
 static void
-opencl_print_assignment (struct clast_assignment *a, opencl_main code_gen)
+opencl_print_local_vars (const char *fist, const char *last,
+			 const char *type, opencl_main code_gen)
 {
-  /* Real assignment.  */
-  if (a->LHS)
+  char **names = cloog_names_scattering (code_gen->root_names);
+  int len = cloog_names_nb_scattering (code_gen->root_names);
+  int i;
+  for (i = 0; i < len; i++)
     {
-      opencl_append_string_to_body (a->LHS, code_gen);
-      opencl_append_string_to_body (" = ", code_gen);
-    }
+      const char *tmp = names[i];
+      if (opencl_cmp_scat (fist, tmp) <= 0
+	  && opencl_cmp_scat (last, tmp) >= 0)
+	{
+	  const char **slot =
+	    (const char **) htab_find_slot (code_gen->global_defined_vars,
+					    tmp, INSERT);
+	  *slot = tmp;
+	  continue;
+	}
 
-  /* Just expression.  */
-  opencl_print_expr (a->RHS, code_gen);
+      if (opencl_cmp_scat (fist, tmp) > 0)
+	continue;
+
+      opencl_append_string_to_body (type, code_gen);
+      opencl_append_string_to_body (" ", code_gen);
+      opencl_append_string_to_body (tmp, code_gen);
+      opencl_append_string_to_body (";\n", code_gen);
+      *((const char **)htab_find_slot (code_gen->global_defined_vars,
+                                       tmp, INSERT)) = tmp;
+    }
 }
 
 /* Return tree with variable, corresponging to given clast name NAME.
@@ -695,6 +724,24 @@ opencl_get_scat_real_name (opencl_main code_gen, clast_name_p name)
   return opencl_get_var_name (opencl_clast_name_to_tree (code_gen, name));
 }
 
+/* Add variable VAR with name NAME as function argument.  Append it's
+   declaration in finction header and add it as function parameter.
+   CODE_GEN holds information related to OpenCL code generation.  */
+
+static void
+opencl_add_function_arg (opencl_main code_gen, tree var, const char *name)
+{
+  opencl_body body;
+  const char *decl;
+  tree type;
+  type = TREE_TYPE (var);
+  body = code_gen->current_body;
+  decl = opencl_print_function_arg_with_type (name, type);
+  dyn_string_append_cstr (body->header, decl);
+  dyn_string_append_cstr (body->header, ", ");
+  VEC_safe_push (tree, heap, body->function_args, var);
+}
+
 /* Add clast variable (scat_i) as kernel argument.  NAME is a new name
    of loop iterator (scat_*), REAL_NAME is an old (origin) name of
    loop iterator.  CODE_GEN holds information related to OpenCL code
@@ -711,375 +758,6 @@ opencl_add_scat_as_arg (opencl_main code_gen, clast_name_p name,
 
   var = opencl_clast_name_to_tree (code_gen, name);
   opencl_add_function_arg (code_gen, var, real_name);
-}
-
-/* Generate OpenCL code for user statement U.  Code will be generated
-   from basic block, related to U.  Also induction variables mapping
-   to old variables must be calculated to process basic block.
-   CODE_GEN holds information related to OpenCL code generation.  */
-
-static void
-opencl_print_user_stmt (struct clast_user_stmt *u, opencl_main code_gen)
-{
-  CloogStatement * cs;
-  poly_bb_p pbb;
-  gimple_bb_p gbbp;
-  basic_block bb;
-  int i;
-  int nb_loops = number_of_loops ();
-  code_gen->iv_map = VEC_alloc (tree, heap, nb_loops);
-
-  for (i = 0; i < nb_loops; i++)
-    VEC_safe_push (tree, heap, code_gen->iv_map, NULL_TREE);
-  build_iv_mapping (code_gen->iv_map, code_gen->region,
-                    code_gen->newivs,
-                    code_gen->newivs_index, u,
-                    code_gen->params_index);
-
-  code_gen->defined_vars
-    = htab_create (10, htab_hash_string, opencl_cmp_str, NULL);
-  opencl_append_string_to_body ("{\n", code_gen);
-
-  cs = u->statement;
-  pbb = (poly_bb_p) cloog_statement_usr (cs);
-  gbbp = PBB_BLACK_BOX (pbb);
-  bb = GBB_BB (gbbp);
-  code_gen->context_loop = bb->loop_father;
-
-  opencl_add_data_refs_pbb (pbb, code_gen);
-  opencl_print_bb (bb, code_gen);
-  opencl_append_string_to_body ("}\n", code_gen);
-  htab_delete (code_gen->defined_vars);
-  code_gen->defined_vars = NULL;
-  VEC_free (tree, heap, code_gen->iv_map);
-}
-
-/* If tree node NODE defined in current sese build and insert define
-   statements for it, otherwise mark node as external (parameter for
-   kernel).  If tree defined in current sese, also recursively build
-   defines for all trees in definition expression.  */
-
-static void
-opencl_build_defines (tree node, opencl_main code_gen)
-{
-  enum tree_code code = TREE_CODE (node);
-  switch (code)
-    {
-    case SSA_NAME:
-      {
-	const char *tmp = opencl_get_var_name (node);
-	gimple def_stmt;
-
-	/* If name defined in other sese it is kernel's parameter.  */
-	if (!defined_in_sese_p (node, code_gen->region))
-          return;
-
-	/*  Bail out if this name was defined earlier either in this
-            or other region.  */
-        if (*(const char **)htab_find_slot (code_gen->defined_vars,
-                                            tmp, INSERT))
-          return;
-
-        /* Get definition statement.  */
-	def_stmt = SSA_NAME_DEF_STMT (node);
-	opencl_expand_scalar_vars (code_gen, def_stmt);
-	opencl_print_gimple (def_stmt, code_gen);
-	return;
-      }
-    case ARRAY_REF:
-      {
-	tree arr = TREE_OPERAND (node, 0);
-	tree offset = TREE_OPERAND (node, 1);
-	opencl_build_defines (arr, code_gen);
-	opencl_build_defines (offset, code_gen);
-	return;
-      }
-    default:
-      gcc_unreachable ();
-    }
-}
-
-/* For a given gimple statement STMT build definition for all names,
-   used in this stament.  If name has been defined in other sese, mark
-   it as kernel parameter.  CODE_GEN holds information related to
-   OpenCL code generation.  */
-
-static void
-opencl_expand_scalar_vars (opencl_main code_gen, gimple stmt)
-{
-  ssa_op_iter iter;
-  use_operand_p use_p;
-  FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_ALL_USES)
-    {
-      tree use = USE_FROM_PTR (use_p);
-      if (!is_gimple_reg (use))
-	continue;
-      opencl_build_defines (use, code_gen);
-    }
-}
-
-/* Generate code for a single basic block BB.  CODE_GEN holds
-   information related to OpenCL code generation.  */
-
-static void
-opencl_print_bb (basic_block bb, opencl_main code_gen)
-{
-  gimple_stmt_iterator gsi;
-  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-    {
-      gimple stmt = gsi_stmt (gsi);
-      opencl_expand_scalar_vars (code_gen, stmt);
-      opencl_print_gimple (stmt, code_gen);
-    }
-}
-
-/* Print operation simbol (`+' `-' `*') for assignment operation GMA.
-   CODE_GEN holds information related to OpenCL code generation.  */
-
-static void
-opencl_print_gimple_assign_operation (gimple gmp, opencl_main code_gen)
-{
-  opencl_append_string_to_body
-    (op_symbol_code (gimple_assign_rhs_code (gmp)), code_gen);
-}
-
-/* Print pointer expression represented by EXPR.  TYPE_SIZE represents
-   size of the base type for EXPR.  CODE_GEN holds information related
-   to OpenCL code generation.  */
-
-static void
-opencl_print_addr_operand (tree expr, tree type_size, opencl_main code_gen)
-{
-  if (TREE_CODE (TREE_TYPE (expr)) != POINTER_TYPE)
-    {
-      opencl_append_string_to_body ("(", code_gen);
-      opencl_print_operand (expr, false, code_gen);
-      opencl_append_string_to_body ("/", code_gen);
-      opencl_print_operand (type_size, false, code_gen);
-      opencl_append_string_to_body (")", code_gen);
-    }
-  else
-    opencl_print_operand (expr, false, code_gen);
-
-}
-
-/* Print unary gimple operation GMP.  CODE_GEN holds information
-   related to OpenCL code generation.  */
-
-static void
-opencl_print_unary (gimple gmp, opencl_main code_gen)
-{
-  switch (gimple_assign_rhs_code (gmp))
-    {
-    case BIT_NOT_EXPR:
-      opencl_append_string_to_body ("~", code_gen);
-      return;
-    case TRUTH_NOT_EXPR:
-      opencl_append_string_to_body ("!", code_gen);
-      return;
-    case NEGATE_EXPR:
-      opencl_append_string_to_body ("-", code_gen);
-      return;
-    case MODIFY_EXPR:
-    default:
-      return;
-    }
-}
-
-/* Generate code for min or max gimple operand GMP.  CODE_GEN holds
-   information related to OpenCL code generation.  */
-
-static void
-opencl_print_max_min_assign (gimple gmp, opencl_main code_gen)
-{
-  tree lhs = gimple_assign_lhs (gmp);
-  tree rhs1 = gimple_assign_rhs1 (gmp);
-  tree rhs2 = gimple_assign_rhs2 (gmp);
-  bool max = gimple_assign_rhs_code (gmp) == MAX_EXPR;
-
-  opencl_print_operand (lhs, true, code_gen);
-  opencl_append_string_to_body (max?" = fmax (":"= fmin (", code_gen);
-  opencl_print_operand (rhs1, false, code_gen);
-  opencl_append_string_to_body (",", code_gen);
-  opencl_print_operand (rhs2, false, code_gen);
-  opencl_append_string_to_body (");\n", code_gen);
-
-}
-
-/* Generate code for gimple assignment statement GMP.  CODE_GEN holds
-   information related to OpenCL code generation.  */
-
-static void
-opencl_print_gimple_assign (gimple gmp, opencl_main code_gen)
-{
-  int num_of_ops = gimple_num_ops (gmp);
-  tree lhs;
-  tree rhs1;
-  tree rhs2;
-  bool addr_expr;
-  int result;
-  tree result_size = NULL;
-
-  if (gimple_assign_rhs_code (gmp) == MAX_EXPR
-      || gimple_assign_rhs_code (gmp) == MIN_EXPR)
-    {
-      opencl_print_max_min_assign (gmp, code_gen);
-      return;
-    }
-  gcc_assert (num_of_ops == 2 || num_of_ops == 3);
-  lhs = gimple_assign_lhs (gmp);
-
-  addr_expr = (TREE_CODE (TREE_TYPE (lhs)) == POINTER_TYPE);
-  if (addr_expr)
-    result_size = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (lhs)));
-
-  rhs1 = gimple_assign_rhs1 (gmp);
-  rhs2 = gimple_assign_rhs2 (gmp);
-  result = opencl_print_operand (lhs, true, code_gen);
-  if (result != 0)
-    return;
-  opencl_append_string_to_body (" = ", code_gen);
-
-  if (addr_expr)
-    opencl_print_addr_operand (rhs1, result_size, code_gen);
-  else
-    {
-      if (rhs2 == NULL)
-        opencl_print_unary (gmp, code_gen);
-      opencl_print_operand (rhs1, false, code_gen);
-    }
-  if (rhs2 != NULL_TREE)
-    {
-      opencl_print_gimple_assign_operation (gmp, code_gen);
-      if (addr_expr)
-	opencl_print_addr_operand (rhs2, result_size, code_gen);
-      else
-	opencl_print_operand (rhs2, false, code_gen);
-    }
-  opencl_append_string_to_body (";\n",code_gen);
-}
-
-/* Generate code for arguments for gimple call statement GMP.
-   CODE_GEN hold information related to OpenCL code generation.  */
-
-static void
-opencl_print_gimple_call_args (opencl_main code_gen, gimple gmp)
-{
-  size_t len = gimple_call_num_args (gmp);
-  size_t i;
-  opencl_append_string_to_body (" (",code_gen);
-  for (i = 0; i < len; i++)
-    {
-      opencl_print_operand (gimple_call_arg (gmp, i), false, code_gen);
-      if (i < len - 1)
-	opencl_append_string_to_body (", ",code_gen);
-    }
-  opencl_append_string_to_body (")",code_gen);
-}
-
-/* Replace some function names.  */
-
-static const char *
-opencl_get_function_name (tree function)
-{
-  const char *gimple_name = IDENTIFIER_POINTER (DECL_NAME (function));
-  if (!strcmp (gimple_name, "__builtin_powf"))
-    return "pow";
-  return gimple_name;
-}
-
-/* Generate code for gimple call statement GMP.  CODE_GEN holds information
-   related to OpenCL code generation.  */
-
-static void
-opencl_print_gimple_call (opencl_main code_gen, gimple gmp)
-{
-  tree lhs = gimple_call_lhs (gmp);
-  tree function = gimple_call_fn (gmp);
-  opencl_print_operand (lhs, true, code_gen);
-  opencl_append_string_to_body (" = ", code_gen);
-
-  while (TREE_CODE (function) == ADDR_EXPR
-	 || TREE_CODE (function) == INDIRECT_REF)
-    function = TREE_OPERAND (function, 0);
-  opencl_append_string_to_body (opencl_get_function_name (function), code_gen);
-  opencl_print_gimple_call_args (code_gen, gmp);
-  opencl_append_string_to_body (";\n",code_gen);
-}
-
-/* Generate code for gimple statment SMP.  Now only assignment
-   operation are supported, but it seems enough for clast translation.
-   GIMPLE_COND statements are loop bound conditions and can be safely
-   ignored.  CODE_GEN holds information related to OpenCL code
-   generation.  */
-
-static void
-opencl_print_gimple (gimple gmp, opencl_main code_gen)
-{
-  if (!gmp)
-    return;
-
-  switch (gimple_code (gmp))
-    {
-    case GIMPLE_ASSIGN:
-      opencl_print_gimple_assign (gmp, code_gen);
-      break;
-    case GIMPLE_COND:
-      break;
-    case GIMPLE_PHI:
-      break;
-    case GIMPLE_CALL:
-      opencl_print_gimple_call (code_gen, gmp);
-      break;
-    case GIMPLE_DEBUG:
-      break;
-    case GIMPLE_LABEL:
-      {
-	tree label = gimple_label_label (gmp);
-	opencl_print_operand (label, false, code_gen);
-	opencl_append_string_to_body (": ", code_gen);
-      }
-      break;
-    default:
-      debug_gimple_stmt (gmp);
-      gcc_unreachable ();
-    }
-}
-
-/* Get name of the variable, represented by tree NODE.  If variable is
-   temporary, generate name for it.  */
-
-static const char *
-opencl_get_var_name (tree node)
-{
-  bool ssa_name = TREE_CODE (node) == SSA_NAME;
-  tree name;
-  int num = 0;
-  if (ssa_name)
-    {
-      num = SSA_NAME_VERSION (node);
-      node = SSA_NAME_VAR (node);
-    }
-  name = DECL_NAME (node);
-  if (name)
-    {
-      if (!ssa_name)
-	return identifier_to_locale (IDENTIFIER_POINTER (name));
-      else
-	{
-	  const char *base = identifier_to_locale (IDENTIFIER_POINTER (name));
-	  char *buff = XNEWVEC (char, strlen (base) + 5);
-	  sprintf (buff, "%s_%d", base, num);
-	  return buff;
-	}
-    }
-  else
-    {
-      int tmp_var_uid = DECL_UID (node);
-      char *tmp = XNEWVEC (char, 30);
-      sprintf (tmp, "opencl_var_%d_%d", tmp_var_uid, num);
-      return tmp;
-    }
 }
 
 /* Append variable name NAME to function body.  Differs from appending
@@ -1103,6 +781,278 @@ opencl_append_var_name (const char *name, opencl_main code_gen)
   free (tmp);
 }
 
+/* Generate code for clast term T.  CODE_GEN holds information
+   related to OpenCL code generation.  */
+
+static void
+opencl_print_term (struct clast_term *t, opencl_main code_gen)
+{
+  if (t->var)
+    {
+      const char *real_name = opencl_get_scat_real_name (code_gen, t->var);
+
+      if (mpz_cmp_si (t->val, 1) == 0)
+	opencl_append_var_name (real_name, code_gen);
+      else if (mpz_cmp_si (t->val, -1) == 0)
+	{
+	  opencl_append_string_to_body ("-", code_gen);
+	  opencl_append_var_name (real_name, code_gen);
+	}
+      else
+	{
+	  opencl_append_num_to_body (code_gen, mpz_get_si (t->val), "%d");
+	  opencl_append_string_to_body ("*", code_gen);
+	  opencl_append_var_name (real_name, code_gen);
+	}
+      opencl_add_scat_as_arg (code_gen, t->var, real_name);
+    }
+  else
+    opencl_append_num_to_body (code_gen, mpz_get_si (t->val), "%d");
+}
+
+/* Generate code for clast sum statement R.  CODE_GEN holds information
+   related to OpenCL code generation.  */
+
+static void
+opencl_print_sum (struct clast_reduction *r, opencl_main code_gen)
+{
+  int i;
+  struct clast_term *t;
+
+  gcc_assert (r->n >= 1 && r->elts[0]->type == clast_expr_term);
+  t = (struct clast_term *) r->elts[0];
+  opencl_print_term (t, code_gen);
+
+  for (i = 1; i < r->n; ++i)
+    {
+      gcc_assert (r->elts[i]->type == clast_expr_term);
+      t = (struct clast_term *) r->elts[i];
+      if (mpz_sgn (t->val) > 0)
+	opencl_append_string_to_body ("+", code_gen);
+      opencl_print_term (t, code_gen);
+    }
+}
+
+static void opencl_print_expr (struct clast_expr *, opencl_main);
+
+/* Generate code for clast min/max operation R.  CODE_GEN holds
+   information related to OpenCL code generation.  */
+
+static void
+opencl_print_minmax_c ( struct clast_reduction *r, opencl_main code_gen)
+{
+  int i;
+  for (i = 1; i < r->n; ++i)
+    opencl_append_string_to_body (r->type == clast_red_max ? "max (" : "min (",
+				  code_gen);
+  if (r->n > 0)
+    {
+      opencl_append_string_to_body ("(unsigned int)(", code_gen);
+      opencl_print_expr (r->elts[0], code_gen);
+      opencl_append_string_to_body (")", code_gen);
+    }
+  for (i = 1; i < r->n; ++i)
+    {
+      opencl_append_string_to_body (",", code_gen);
+      opencl_append_string_to_body ("(unsigned int)(", code_gen);
+      opencl_print_expr (r->elts[i], code_gen);
+      opencl_append_string_to_body ("))", code_gen);
+    }
+}
+
+/* Generate code for clast reduction statement R.  CODE_GEN holds
+   information related to OpenCL code generation.  */
+
+static void
+opencl_print_reduction (struct clast_reduction *r, opencl_main  code_gen)
+{
+  switch (r->type)
+    {
+    case clast_red_sum:
+      opencl_print_sum (r, code_gen);
+      break;
+    case clast_red_min:
+    case clast_red_max:
+      if (r->n == 1)
+	{
+	  opencl_print_expr (r->elts[0], code_gen);
+	  break;
+	}
+      opencl_print_minmax_c (r, code_gen);
+      break;
+    default:
+      gcc_unreachable ();
+    }
+}
+
+/* Generate code for clast binary operation B.  CODE_GEN holds
+   information related to OpenCL code generation.  */
+
+static void
+opencl_print_binary (struct clast_binary *b, opencl_main code_gen)
+{
+  const char *s1 = NULL, *s2 = NULL, *s3 = NULL;
+  bool group = (b->LHS->type == clast_expr_red
+		&& ((struct clast_reduction*) b->LHS)->n > 1);
+
+  switch (b->type)
+    {
+    case clast_bin_fdiv:
+      s1 = "floor ((", s2 = ")/(", s3 = "))";
+      break;
+    case clast_bin_cdiv:
+      s1 = "ceil ((", s2 = ")/(", s3 = "))";
+      break;
+    case clast_bin_div:
+      if (group)
+	s1 = "(", s2 = ")/", s3 = "";
+      else
+	s1 = "", s2 = "/", s3 = "";
+      break;
+    case clast_bin_mod:
+      if (group)
+	s1 = "(", s2 = ")%", s3 = "";
+      else
+	s1 = "", s2 = "%", s3 = "";
+      break;
+    }
+
+  opencl_append_string_to_body (s1, code_gen);
+  opencl_print_expr (b->LHS, code_gen);
+  opencl_append_string_to_body (s2, code_gen);
+  opencl_append_num_to_body (code_gen, mpz_get_si (b->RHS), "%d");
+  opencl_append_string_to_body (s3, code_gen);
+}
+
+/* Generate code for clast expression E.  CODE_GEN holds information
+   related to OpenCL code generation.  */
+
+static void
+opencl_print_expr (struct clast_expr *e, opencl_main code_gen)
+{
+  if (!e)
+    return;
+  switch (e->type)
+    {
+    case clast_expr_term:
+      opencl_print_term ((struct clast_term*) e, code_gen);
+      break;
+    case clast_expr_red:
+      opencl_print_reduction ((struct clast_reduction*) e, code_gen);
+      break;
+    case clast_expr_bin:
+      opencl_print_binary ((struct clast_binary*) e, code_gen);
+      break;
+    default:
+      gcc_unreachable ();
+    }
+}
+
+/* Generate OpenCL code for clast_assignment A.
+   CODE_GEN holds information related to OpenCL code generation.  */
+
+static void
+opencl_print_assignment (struct clast_assignment *a, opencl_main code_gen)
+{
+  /* Real assignment.  */
+  if (a->LHS)
+    {
+      opencl_append_string_to_body (a->LHS, code_gen);
+      opencl_append_string_to_body (" = ", code_gen);
+    }
+
+  /* Just expression.  */
+  opencl_print_expr (a->RHS, code_gen);
+}
+
+/* Print operation simbol (`+' `-' `*') for assignment operation GMA.
+   CODE_GEN holds information related to OpenCL code generation.  */
+
+static void
+opencl_print_gimple_assign_operation (gimple gmp, opencl_main code_gen)
+{
+  opencl_append_string_to_body
+    (op_symbol_code (gimple_assign_rhs_code (gmp)), code_gen);
+}
+
+/* Generate definition for non scalar variable VAR and place it to
+   string DEST.  Use DECL_NAME as variable name.  */
+
+static void
+opencl_add_non_scalar_type_decl (tree var, dyn_string_t dest,
+                                 const char *decl_name)
+{
+  tree type = TREE_TYPE (var);
+  const char *name = opencl_get_var_name (var);
+  static int counter = 0;
+  char type_name [30];
+  char *tmp_name = xstrdup (name);
+  const char *new_type;
+  tree inner_type = TREE_TYPE (type);
+
+  filter_dots (tmp_name);
+
+  sprintf (type_name, "oclFTmpType%d", counter++);
+
+  new_type = opencl_print_function_arg_with_type (type_name, inner_type);
+
+  dyn_string_append_cstr (dest, "typedef __global ");
+  dyn_string_append_cstr (dest, new_type);
+  dyn_string_append_cstr (dest, ";\n");
+
+  dyn_string_append_cstr (dest, type_name);
+  dyn_string_append_cstr (dest, " *");
+  dyn_string_append_cstr (dest, tmp_name);
+  if (decl_name != NULL)
+    {
+      dyn_string_append_cstr (dest, " = (");
+      dyn_string_append_cstr (dest, type_name);
+      dyn_string_append_cstr (dest, "*)");
+      dyn_string_append_cstr (dest, decl_name);
+      dyn_string_append_cstr (dest, ";\n");
+    }
+  free (tmp_name);
+}
+
+/* Append variable VAR with name VAR_NAME to current function body.
+   If variable has been defined in current scope, but definition for
+   it has not been generated - then generate it's definition and mark
+   variable as defined.  CODE_GEN holds information related to OpenCL
+   code generation.  */
+
+static void
+opencl_add_variable (const char *var_name, tree var, opencl_main code_gen)
+{
+  const char **slot;
+  if (htab_find (code_gen->global_defined_vars, var_name))
+    {
+      opencl_append_var_name (var_name, code_gen);
+      return;
+    }
+
+  slot = (const char **) htab_find_slot
+    (code_gen->defined_vars, var_name, INSERT);
+
+  if (! (*slot) && defined_in_sese_p (var, code_gen->region))
+    {
+      const char *decl;
+      tree type = TREE_TYPE (var);
+      *slot = var_name;
+      if (TREE_CODE (type) == POINTER_TYPE
+          || TREE_CODE (type) == ARRAY_TYPE)
+	opencl_add_non_scalar_type_decl (var, code_gen->current_body->body,
+					 NULL);
+      else
+        {
+          var = SSA_NAME_VAR (var);
+          decl = opencl_print_function_arg_with_type (var_name, type);
+          opencl_append_string_to_body (decl, code_gen);
+        }
+      return;
+    }
+  opencl_append_var_name (var_name, code_gen);
+}
+
 /* If variable VAR_DECL is not defined and it is not marked as a
    parameter, mark it as a parameter and add it to parameters list.
    CODE_GEN holds information related to OpenCL code generation.  */
@@ -1115,112 +1065,6 @@ opencl_try_variable (opencl_main code_gen, tree var_decl)
 
   if (check_and_mark_arg (code_gen, name, false))
     opencl_add_function_arg (code_gen, var_decl, name);
-}
-
-/* Define non scalar variable, represented be DATA as either local
-   variable or kernel argument.  CODE_GEN holds information related to
-   OpenCL code generation.  */
-
-static void
-opencl_add_non_scalar_function_arg (opencl_main code_gen,
-                                    opencl_data data)
-{
-  const char *decl;
-  static int counter = 0;
-  opencl_body body = code_gen->current_body;
-  tree var = data->exact_object;
-  const char *name = opencl_get_var_name (var);
-  tree type = TREE_TYPE (var);
-
-  /* Check whether given variable can be privatized.  */
-  if (data->privatized)
-    {
-      /* Define variable as local variable.  */
-      gcc_assert (TREE_CODE (type) == ARRAY_TYPE);
-      decl = opencl_print_function_arg_with_type (name, type);
-      dyn_string_append_cstr (body->pre_header, decl);
-      dyn_string_append_cstr (body->pre_header, ";\n");
-      return;
-    }
-  else
-    {
-      /* Define variable as kernel argument.  */
-      char decl_name [30];
-      tree main_type = opencl_get_main_type (type);
-      sprintf (decl_name, "oclFTmpArg%d", counter++);
-      decl = opencl_print_function_arg_with_type (decl_name, main_type);
-      dyn_string_append_cstr (body->non_scalar_args, "__global ");
-      opencl_add_non_scalar_type_decl (var, body->pre_header, decl_name);
-      dyn_string_append_cstr (body->non_scalar_args, decl);
-      dyn_string_append_cstr (body->non_scalar_args, ", ");
-      VEC_safe_push (opencl_data, heap, body->data_refs, data);
-    }
-}
-
-/* Register data reference REF to variable DATA.  Do nothing, if it
-   has already been registered.  CODE_GEN holds information related to
-   OpenCL code generation.  */
-
-static void
-opencl_try_data_ref (opencl_main code_gen, data_reference_p ref,
-                     opencl_data data)
-{
-  tree var = dr_outermost_base_object (ref);
-  const char *name = opencl_get_var_name (var);
-  const char ** slot;
-  gcc_assert (code_gen->defined_vars);
-
-  slot = (const char **)htab_find_slot (code_gen->global_defined_vars,
-                                        name, INSERT);
-  if (*slot)
-    return;
-  *slot = name;
-  opencl_add_non_scalar_function_arg (code_gen, data);
-}
-
-/* Register data reference D_REF in current kernel.  CODE_GEN hold
-   information related to OpenCL code generation.  */
-
-static void
-opencl_add_data_ref (opencl_main code_gen, data_reference_p d_ref)
-{
-  opencl_data tmp = opencl_get_data_by_data_ref (code_gen, d_ref);
-
-  gcc_assert (tmp);
-  if (!DR_IS_READ (d_ref))
-    {
-      bitmap_set_bit (code_gen->curr_meta->modified_on_device, tmp->id);
-      tmp->written_in_current_body = true;
-      tmp->ever_written_on_device = true;
-      code_gen->current_body->num_of_data_writes ++;
-    }
-  else
-    {
-      tmp->read_in_current_body = true;
-      tmp->ever_read_on_device = true;
-    }
-  if (!tmp->privatized)
-    tmp->used_on_device = true;
-
-  opencl_try_data_ref (code_gen, d_ref, tmp);
-}
-
-/* Add base objects of all data references in PBB as arguments to
-   current kernel.  CODE_GEN holds information related to OpenCL code
-   generation.  */
-
-static void
-opencl_add_data_refs_pbb (poly_bb_p pbb, opencl_main code_gen)
-{
-  VEC (poly_dr_p, heap) *drs = PBB_DRS (pbb);
-  int i;
-  poly_dr_p curr;
-
-  for (i = 0; VEC_iterate (poly_dr_p, drs, i, curr); i++)
-    {
-      data_reference_p d_ref = (data_reference_p) PDR_CDR (curr);
-      opencl_add_data_ref (code_gen, d_ref);
-    }
 }
 
 /* Generate operand for tree node NODE.  If LSH is true, generated
@@ -1422,236 +1266,436 @@ opencl_print_operand (tree node, bool lhs, opencl_main code_gen)
   return 0;
 }
 
-/* Append variable VAR with name VAR_NAME to current function body.
-   If variable has been defined in current scope, but definition for
-   it has not been generated - then generate it's definition and mark
-   variable as defined.  CODE_GEN holds information related to OpenCL
-   code generation.  */
+/* Generate code for min or max gimple operand GMP.  CODE_GEN holds
+   information related to OpenCL code generation.  */
 
 static void
-opencl_add_variable (const char *var_name, tree var, opencl_main code_gen)
+opencl_print_max_min_assign (gimple gmp, opencl_main code_gen)
 {
-  const char ** slot;
-  if (htab_find (code_gen->global_defined_vars, var_name))
-    {
-      opencl_append_var_name (var_name, code_gen);
-      return;
-    }
+  tree lhs = gimple_assign_lhs (gmp);
+  tree rhs1 = gimple_assign_rhs1 (gmp);
+  tree rhs2 = gimple_assign_rhs2 (gmp);
+  bool max = gimple_assign_rhs_code (gmp) == MAX_EXPR;
 
-  slot = (const char **) htab_find_slot
-    (code_gen->defined_vars, var_name, INSERT);
-
-  if (! (*slot) && defined_in_sese_p (var, code_gen->region))
-    {
-      const char *decl;
-      tree type = TREE_TYPE (var);
-      *slot = var_name;
-      if (TREE_CODE (type) == POINTER_TYPE
-          || TREE_CODE (type) == ARRAY_TYPE)
-        {
-          opencl_add_non_scalar_type_decl (var, code_gen->current_body->body,
-                                           NULL);
-        }
-      else
-        {
-          var = SSA_NAME_VAR (var);
-          decl = opencl_print_function_arg_with_type (var_name, type);
-          opencl_append_string_to_body (decl, code_gen);
-        }
-      return;
-    }
-  opencl_append_var_name (var_name, code_gen);
+  opencl_print_operand (lhs, true, code_gen);
+  opencl_append_string_to_body (max?" = fmax (":"= fmin (", code_gen);
+  opencl_print_operand (rhs1, false, code_gen);
+  opencl_append_string_to_body (",", code_gen);
+  opencl_print_operand (rhs2, false, code_gen);
+  opencl_append_string_to_body (");\n", code_gen);
 }
 
-/* Append list of names of loop iterators from CODE_GEN with same type
-   TYPE to current kernel.  FIRST and LAST define outermost and
-   innermost iterators to append respectively.  */
+/* Print pointer expression represented by EXPR.  TYPE_SIZE represents
+   size of the base type for EXPR.  CODE_GEN holds information related
+   to OpenCL code generation.  */
 
 static void
-opencl_print_local_vars (const char *fist, const char *last,
-			 const char *type, opencl_main code_gen)
+opencl_print_addr_operand (tree expr, tree type_size, opencl_main code_gen)
 {
-  char **names = cloog_names_scattering (code_gen->root_names);
-  int len = cloog_names_nb_scattering (code_gen->root_names);
-  int i;
+  if (TREE_CODE (TREE_TYPE (expr)) != POINTER_TYPE)
+    {
+      opencl_append_string_to_body ("(", code_gen);
+      opencl_print_operand (expr, false, code_gen);
+      opencl_append_string_to_body ("/", code_gen);
+      opencl_print_operand (type_size, false, code_gen);
+      opencl_append_string_to_body (")", code_gen);
+    }
+  else
+    opencl_print_operand (expr, false, code_gen);
+}
+
+/* Print unary gimple operation GMP.  CODE_GEN holds information
+   related to OpenCL code generation.  */
+
+static void
+opencl_print_unary (gimple gmp, opencl_main code_gen)
+{
+  switch (gimple_assign_rhs_code (gmp))
+    {
+    case BIT_NOT_EXPR:
+      opencl_append_string_to_body ("~", code_gen);
+      return;
+    case TRUTH_NOT_EXPR:
+      opencl_append_string_to_body ("!", code_gen);
+      return;
+    case NEGATE_EXPR:
+      opencl_append_string_to_body ("-", code_gen);
+      return;
+    case MODIFY_EXPR:
+    default:
+      return;
+    }
+}
+
+/* Generate code for gimple assignment statement GMP.  CODE_GEN holds
+   information related to OpenCL code generation.  */
+
+static void
+opencl_print_gimple_assign (gimple gmp, opencl_main code_gen)
+{
+  int num_of_ops = gimple_num_ops (gmp);
+  tree lhs;
+  tree rhs1;
+  tree rhs2;
+  bool addr_expr;
+  int result;
+  tree result_size = NULL;
+
+  if (gimple_assign_rhs_code (gmp) == MAX_EXPR
+      || gimple_assign_rhs_code (gmp) == MIN_EXPR)
+    {
+      opencl_print_max_min_assign (gmp, code_gen);
+      return;
+    }
+  gcc_assert (num_of_ops == 2 || num_of_ops == 3);
+  lhs = gimple_assign_lhs (gmp);
+
+  addr_expr = (TREE_CODE (TREE_TYPE (lhs)) == POINTER_TYPE);
+  if (addr_expr)
+    result_size = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (lhs)));
+
+  rhs1 = gimple_assign_rhs1 (gmp);
+  rhs2 = gimple_assign_rhs2 (gmp);
+  result = opencl_print_operand (lhs, true, code_gen);
+  if (result != 0)
+    return;
+  opencl_append_string_to_body (" = ", code_gen);
+
+  if (addr_expr)
+    opencl_print_addr_operand (rhs1, result_size, code_gen);
+  else
+    {
+      if (rhs2 == NULL)
+        opencl_print_unary (gmp, code_gen);
+      opencl_print_operand (rhs1, false, code_gen);
+    }
+  if (rhs2 != NULL_TREE)
+    {
+      opencl_print_gimple_assign_operation (gmp, code_gen);
+      if (addr_expr)
+	opencl_print_addr_operand (rhs2, result_size, code_gen);
+      else
+	opencl_print_operand (rhs2, false, code_gen);
+    }
+  opencl_append_string_to_body (";\n",code_gen);
+}
+
+/* Generate code for arguments for gimple call statement GMP.
+   CODE_GEN hold information related to OpenCL code generation.  */
+
+static void
+opencl_print_gimple_call_args (opencl_main code_gen, gimple gmp)
+{
+  size_t len = gimple_call_num_args (gmp);
+  size_t i;
+  opencl_append_string_to_body (" (",code_gen);
   for (i = 0; i < len; i++)
     {
-      const char *tmp = names[i];
-      if (opencl_cmp_scat (fist, tmp) <= 0
-	  && opencl_cmp_scat (last, tmp) >= 0)
-	{
-	  const char ** slot =
-	    (const char **) htab_find_slot (code_gen->global_defined_vars,
-					    tmp, INSERT);
-	  *slot = tmp;
-	  continue;
-	}
-
-      if (opencl_cmp_scat (fist, tmp) > 0)
-	continue;
-
-      opencl_append_string_to_body (type, code_gen);
-      opencl_append_string_to_body (" ", code_gen);
-      opencl_append_string_to_body (tmp, code_gen);
-      opencl_append_string_to_body (";\n", code_gen);
-      *((const char **)htab_find_slot (code_gen->global_defined_vars,
-                                       tmp, INSERT)) = tmp;
+      opencl_print_operand (gimple_call_arg (gmp, i), false, code_gen);
+      if (i < len - 1)
+	opencl_append_string_to_body (", ",code_gen);
     }
+  opencl_append_string_to_body (")",code_gen);
 }
 
-/*  Replace all dots to underscores in string pointed to by P.  Return P.  */
-
-static char *
-filter_dots (char *p)
-{
-  char *s;
-  for (s = p; *s; s++)
-    if (*s == '.')
-      *s = '_';
-  return p;
-}
-
-/* Return string with varibale definition.  ARG_NAME is the name of
-   the variable and TYPE is it's type.  */
+/* Replace some function names.  */
 
 static const char *
-opencl_print_function_arg_with_type (const char *arg_name, tree type)
+opencl_get_function_name (tree function)
 {
-  const char *decl = gen_type_with_name (arg_name, type);
-  char *ddecl;
-  ddecl = xstrdup (decl);
-  return filter_dots (ddecl);
+  const char *gimple_name = IDENTIFIER_POINTER (DECL_NAME (function));
+  if (!strcmp (gimple_name, "__builtin_powf"))
+    return "pow";
+  return gimple_name;
 }
 
-/* Generate definition for non scalar variable VAR and place it to
-   string DEST.  Use DECL_NAME as variable name.  */
+/* Generate code for gimple call statement GMP.  CODE_GEN holds information
+   related to OpenCL code generation.  */
 
 static void
-opencl_add_non_scalar_type_decl (tree var, dyn_string_t dest,
-                                 const char *decl_name)
+opencl_print_gimple_call (opencl_main code_gen, gimple gmp)
 {
-  tree type = TREE_TYPE (var);
-  const char *name = opencl_get_var_name (var);
-  static int counter = 0;
-  char type_name [30];
-  char *tmp_name = xstrdup (name);
-  const char *new_type;
-  tree inner_type = TREE_TYPE (type);
+  tree lhs = gimple_call_lhs (gmp);
+  tree function = gimple_call_fn (gmp);
+  opencl_print_operand (lhs, true, code_gen);
+  opencl_append_string_to_body (" = ", code_gen);
 
-  filter_dots (tmp_name);
-
-  sprintf (type_name, "oclFTmpType%d", counter++);
-
-  new_type = opencl_print_function_arg_with_type (type_name, inner_type);
-
-  dyn_string_append_cstr (dest, "typedef __global ");
-  dyn_string_append_cstr (dest, new_type);
-  dyn_string_append_cstr (dest, ";\n");
-
-  dyn_string_append_cstr (dest, type_name);
-  dyn_string_append_cstr (dest, " *");
-  dyn_string_append_cstr (dest, tmp_name);
-  if (decl_name != NULL)
-    {
-      dyn_string_append_cstr (dest, " = (");
-      dyn_string_append_cstr (dest, type_name);
-      dyn_string_append_cstr (dest, "*)");
-      dyn_string_append_cstr (dest, decl_name);
-      dyn_string_append_cstr (dest, ";\n");
-    }
-  free (tmp_name);
-
+  while (TREE_CODE (function) == ADDR_EXPR
+	 || TREE_CODE (function) == INDIRECT_REF)
+    function = TREE_OPERAND (function, 0);
+  opencl_append_string_to_body (opencl_get_function_name (function), code_gen);
+  opencl_print_gimple_call_args (code_gen, gmp);
+  opencl_append_string_to_body (";\n",code_gen);
 }
 
-/* Check whether variable with name NAME has been defined as global or
-   local variable and mark it as defined.  This function returns false
-   if variable has already been defined, otherwise it returns true.  */
+/* Generate code for gimple statment SMP.  Now only assignment
+   operation are supported, but it seems enough for clast translation.
+   GIMPLE_COND statements are loop bound conditions and can be safely
+   ignored.  CODE_GEN holds information related to OpenCL code
+   generation.  */
 
-static bool
-check_and_mark_arg (opencl_main code_gen, const char *name, bool local)
+static void
+opencl_print_gimple (gimple gmp, opencl_main code_gen)
 {
-  const char ** slot;
-  gcc_assert (code_gen->defined_vars || !local);
-  if (code_gen->defined_vars)
+  if (!gmp)
+    return;
+
+  switch (gimple_code (gmp))
     {
-      slot = (const char **)htab_find_slot (code_gen->defined_vars,
-                                            name, INSERT);
-      if (*slot)
-        return false;
-      if (local)
-        *slot = name;
+    case GIMPLE_ASSIGN:
+      opencl_print_gimple_assign (gmp, code_gen);
+      break;
+    case GIMPLE_COND:
+      break;
+    case GIMPLE_PHI:
+      break;
+    case GIMPLE_CALL:
+      opencl_print_gimple_call (code_gen, gmp);
+      break;
+    case GIMPLE_DEBUG:
+      break;
+    case GIMPLE_LABEL:
+      {
+	tree label = gimple_label_label (gmp);
+	opencl_print_operand (label, false, code_gen);
+	opencl_append_string_to_body (": ", code_gen);
+      }
+      break;
+    default:
+      debug_gimple_stmt (gmp);
+      gcc_unreachable ();
     }
+}
+
+static void opencl_build_defines (tree, opencl_main);
+
+/* For a given gimple statement STMT build definition for all names,
+   used in this stament.  If name has been defined in other sese, mark
+   it as kernel parameter.  CODE_GEN holds information related to
+   OpenCL code generation.  */
+
+static void
+opencl_expand_scalar_vars (opencl_main code_gen, gimple stmt)
+{
+  ssa_op_iter iter;
+  use_operand_p use_p;
+  FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_ALL_USES)
+    {
+      tree use = USE_FROM_PTR (use_p);
+      if (!is_gimple_reg (use))
+	continue;
+      opencl_build_defines (use, code_gen);
+    }
+}
+
+/* If tree node NODE defined in current sese build and insert define
+   statements for it, otherwise mark node as external (parameter for
+   kernel).  If tree defined in current sese, also recursively build
+   defines for all trees in definition expression.  */
+
+static void
+opencl_build_defines (tree node, opencl_main code_gen)
+{
+  enum tree_code code = TREE_CODE (node);
+  switch (code)
+    {
+    case SSA_NAME:
+      {
+	const char *tmp = opencl_get_var_name (node);
+	gimple def_stmt;
+
+	/* If name defined in other sese it is kernel's parameter.  */
+	if (!defined_in_sese_p (node, code_gen->region))
+          return;
+
+	/*  Bail out if this name was defined earlier either in this
+            or other region.  */
+        if (*(const char **)htab_find_slot (code_gen->defined_vars,
+                                            tmp, INSERT))
+          return;
+
+        /* Get definition statement.  */
+	def_stmt = SSA_NAME_DEF_STMT (node);
+	opencl_expand_scalar_vars (code_gen, def_stmt);
+	opencl_print_gimple (def_stmt, code_gen);
+	return;
+      }
+    case ARRAY_REF:
+      {
+	tree arr = TREE_OPERAND (node, 0);
+	tree offset = TREE_OPERAND (node, 1);
+	opencl_build_defines (arr, code_gen);
+	opencl_build_defines (offset, code_gen);
+	return;
+      }
+    default:
+      gcc_unreachable ();
+    }
+}
+
+/* Generate code for a single basic block BB.  CODE_GEN holds
+   information related to OpenCL code generation.  */
+
+static void
+opencl_print_bb (basic_block bb, opencl_main code_gen)
+{
+  gimple_stmt_iterator gsi;
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    {
+      gimple stmt = gsi_stmt (gsi);
+      opencl_expand_scalar_vars (code_gen, stmt);
+      opencl_print_gimple (stmt, code_gen);
+    }
+}
+
+/* Define non scalar variable, represented be DATA as either local
+   variable or kernel argument.  CODE_GEN holds information related to
+   OpenCL code generation.  */
+
+static void
+opencl_add_non_scalar_function_arg (opencl_main code_gen,
+                                    opencl_data data)
+{
+  const char *decl;
+  static int counter = 0;
+  opencl_body body = code_gen->current_body;
+  tree var = data->exact_object;
+  const char *name = opencl_get_var_name (var);
+  tree type = TREE_TYPE (var);
+
+  /* Check whether given variable can be privatized.  */
+  if (data->privatized)
+    {
+      /* Define variable as local variable.  */
+      gcc_assert (TREE_CODE (type) == ARRAY_TYPE);
+      decl = opencl_print_function_arg_with_type (name, type);
+      dyn_string_append_cstr (body->pre_header, decl);
+      dyn_string_append_cstr (body->pre_header, ";\n");
+      return;
+    }
+  else
+    {
+      /* Define variable as kernel argument.  */
+      char decl_name [30];
+      tree main_type = opencl_get_main_type (type);
+      sprintf (decl_name, "oclFTmpArg%d", counter++);
+      decl = opencl_print_function_arg_with_type (decl_name, main_type);
+      dyn_string_append_cstr (body->non_scalar_args, "__global ");
+      opencl_add_non_scalar_type_decl (var, body->pre_header, decl_name);
+      dyn_string_append_cstr (body->non_scalar_args, decl);
+      dyn_string_append_cstr (body->non_scalar_args, ", ");
+      VEC_safe_push (opencl_data, heap, body->data_refs, data);
+    }
+}
+
+/* Register data reference REF to variable DATA.  Do nothing, if it
+   has already been registered.  CODE_GEN holds information related to
+   OpenCL code generation.  */
+
+static void
+opencl_try_data_ref (opencl_main code_gen, data_reference_p ref,
+                     opencl_data data)
+{
+  tree var = dr_outermost_base_object (ref);
+  const char *name = opencl_get_var_name (var);
+  const char **slot;
+  gcc_assert (code_gen->defined_vars);
 
   slot = (const char **)htab_find_slot (code_gen->global_defined_vars,
                                         name, INSERT);
   if (*slot)
-    return false;
-  if (!local)
-    *slot = name;
-  return true;
+    return;
+  *slot = name;
+  opencl_add_non_scalar_function_arg (code_gen, data);
 }
 
-/* Add variable VAR with name NAME as function argument.  Append it's
-   declaration in finction header and add it as function parameter.
-   CODE_GEN holds information related to OpenCL code generation.  */
+/* Register data reference D_REF in current kernel.  CODE_GEN hold
+   information related to OpenCL code generation.  */
 
 static void
-opencl_add_function_arg (opencl_main code_gen, tree var, const char *name)
+opencl_add_data_ref (opencl_main code_gen, data_reference_p d_ref)
 {
-  opencl_body body;
-  const char *decl;
-  tree type;
-  type = TREE_TYPE (var);
-  body = code_gen->current_body;
-  decl = opencl_print_function_arg_with_type (name, type);
-  dyn_string_append_cstr (body->header, decl);
-  dyn_string_append_cstr (body->header, ", ");
-  VEC_safe_push (tree, heap, body->function_args, var);
+  opencl_data tmp = opencl_get_data_by_data_ref (code_gen, d_ref);
+
+  gcc_assert (tmp);
+  if (!DR_IS_READ (d_ref))
+    {
+      bitmap_set_bit (code_gen->curr_meta->modified_on_device, tmp->id);
+      tmp->written_in_current_body = true;
+      tmp->ever_written_on_device = true;
+      code_gen->current_body->num_of_data_writes ++;
+    }
+  else
+    {
+      tmp->read_in_current_body = true;
+      tmp->ever_read_on_device = true;
+    }
+  if (!tmp->privatized)
+    tmp->used_on_device = true;
+
+  opencl_try_data_ref (code_gen, d_ref, tmp);
 }
 
-/* Generate kernel function code for clast for statement F, located on
-   depth DEPTH.  CODE_GEN holds information related to OpenCL code
+/* Add base objects of all data references in PBB as arguments to
+   current kernel.  CODE_GEN holds information related to OpenCL code
    generation.  */
 
-opencl_body
-opencl_clast_to_kernel (struct clast_for * f, opencl_main code_gen,
-                        int depth)
+static void
+opencl_add_data_refs_pbb (poly_bb_p pbb, opencl_main code_gen)
 {
-  opencl_body tmp = opencl_body_create ();
-  code_gen->current_body = tmp;
-  return opencl_print_loop (f, code_gen, depth);
+  VEC (poly_dr_p, heap) *drs = PBB_DRS (pbb);
+  int i;
+  poly_dr_p curr;
+
+  for (i = 0; VEC_iterate (poly_dr_p, drs, i, curr); i++)
+    {
+      data_reference_p d_ref = (data_reference_p) PDR_CDR (curr);
+      opencl_add_data_ref (code_gen, d_ref);
+    }
 }
 
-/* Generate code for clast statement S, located on depth DEPTH.
+/* Generate OpenCL code for user statement U.  Code will be generated
+   from basic block, related to U.  Also induction variables mapping
+   to old variables must be calculated to process basic block.
    CODE_GEN holds information related to OpenCL code generation.  */
 
 static void
-opencl_print_stmt_list (struct clast_stmt *s, opencl_main code_gen, int depth)
+opencl_print_user_stmt (struct clast_user_stmt *u, opencl_main code_gen)
 {
-  for ( ; s; s = s->next) {
-    gcc_assert (!CLAST_STMT_IS_A (s, stmt_root));
-    if (CLAST_STMT_IS_A (s, stmt_ass))
-      {
-	opencl_print_assignment ((struct clast_assignment *) s, code_gen);
-	opencl_append_string_to_body (";\n", code_gen);
-      }
-    else if (CLAST_STMT_IS_A (s, stmt_user))
-      opencl_print_user_stmt ((struct clast_user_stmt *) s, code_gen);
-    else if (CLAST_STMT_IS_A (s, stmt_for))
-      opencl_print_for ((struct clast_for *) s, code_gen, depth);
-    else if (CLAST_STMT_IS_A (s, stmt_guard))
-      opencl_print_guard ((struct clast_guard *) s, code_gen, depth);
-    else if (CLAST_STMT_IS_A (s, stmt_block))
-      {
-	opencl_append_string_to_body ("{\n", code_gen);
-	opencl_print_stmt_list (((struct clast_block *)s)->body, code_gen,
-				depth);
-	opencl_append_string_to_body ("}\n", code_gen);
-      }
-    else
-      gcc_unreachable ();
-  }
+  CloogStatement *cs;
+  poly_bb_p pbb;
+  gimple_bb_p gbbp;
+  basic_block bb;
+  int i;
+  int nb_loops = number_of_loops ();
+  code_gen->iv_map = VEC_alloc (tree, heap, nb_loops);
+
+  for (i = 0; i < nb_loops; i++)
+    VEC_safe_push (tree, heap, code_gen->iv_map, NULL_TREE);
+  build_iv_mapping (code_gen->iv_map, code_gen->region,
+                    code_gen->newivs,
+                    code_gen->newivs_index, u,
+                    code_gen->params_index);
+
+  code_gen->defined_vars
+    = htab_create (10, htab_hash_string, opencl_cmp_str, NULL);
+  opencl_append_string_to_body ("{\n", code_gen);
+
+  cs = u->statement;
+  pbb = (poly_bb_p) cloog_statement_usr (cs);
+  gbbp = PBB_BLACK_BOX (pbb);
+  bb = GBB_BB (gbbp);
+  code_gen->context_loop = bb->loop_father;
+
+  opencl_add_data_refs_pbb (pbb, code_gen);
+  opencl_print_bb (bb, code_gen);
+  opencl_append_string_to_body ("}\n", code_gen);
+  htab_delete (code_gen->defined_vars);
+  code_gen->defined_vars = NULL;
+  VEC_free (tree, heap, code_gen->iv_map);
 }
+
+static void opencl_print_stmt_list (struct clast_stmt *, opencl_main, int);
 
 /* Generate code for clast for statement F, locate on depth LEVEL.
    CODE_GEN holds information related to OpenCL code generation.  */
@@ -1712,6 +1756,22 @@ opencl_print_for (struct clast_for *f, opencl_main code_gen, int level)
   opencl_append_string_to_body ("}\n", code_gen);
 }
 
+/* Generate code for clast equation EQ.  CODE_GEN holds information
+   related to OpenCL code generation.  */
+
+static void
+opencl_print_equation (struct clast_equation *eq, opencl_main code_gen)
+{
+  opencl_print_expr (eq->LHS, code_gen);
+  if (eq->sign == 0)
+    opencl_append_string_to_body (" == ", code_gen);
+  else if (eq->sign > 0)
+    opencl_append_string_to_body (" >= ", code_gen);
+  else
+    opencl_append_string_to_body (" <= ", code_gen);
+  opencl_print_expr (eq->RHS, code_gen);
+}
+
 /* Generate code for clast conditional statement G, locate on depth DEPTH.
    CODE_GEN holds information related to OpenCL code generation.  */
 
@@ -1737,186 +1797,88 @@ opencl_print_guard (struct clast_guard *g, opencl_main code_gen, int depth)
   opencl_append_string_to_body ("}\n", code_gen);
 }
 
-
-/* Generate code for clast equation EQ.  CODE_GEN holds information
-   related to OpenCL code generation.  */
-
-static void
-opencl_print_equation (struct clast_equation *eq, opencl_main code_gen)
-{
-  opencl_print_expr (eq->LHS, code_gen);
-  if (eq->sign == 0)
-    opencl_append_string_to_body (" == ", code_gen);
-  else if (eq->sign > 0)
-    opencl_append_string_to_body (" >= ", code_gen);
-  else
-    opencl_append_string_to_body (" <= ", code_gen);
-  opencl_print_expr (eq->RHS, code_gen);
-}
-
-/* Generate code for clast expression E.  CODE_GEN holds information
-   related to OpenCL code generation.  */
+/* Generate code for clast statement S, located on depth DEPTH.
+   CODE_GEN holds information related to OpenCL code generation.  */
 
 static void
-opencl_print_expr (struct clast_expr *e, opencl_main code_gen)
+opencl_print_stmt_list (struct clast_stmt *s, opencl_main code_gen, int depth)
 {
-  if (!e)
-    return;
-  switch (e->type)
-    {
-    case clast_expr_term:
-      opencl_print_term ((struct clast_term*) e, code_gen);
-      break;
-    case clast_expr_red:
-      opencl_print_reduction ((struct clast_reduction*) e, code_gen);
-      break;
-    case clast_expr_bin:
-      opencl_print_binary ((struct clast_binary*) e, code_gen);
-      break;
-    default:
+  for ( ; s; s = s->next) {
+    gcc_assert (!CLAST_STMT_IS_A (s, stmt_root));
+    if (CLAST_STMT_IS_A (s, stmt_ass))
+      {
+	opencl_print_assignment ((struct clast_assignment *) s, code_gen);
+	opencl_append_string_to_body (";\n", code_gen);
+      }
+    else if (CLAST_STMT_IS_A (s, stmt_user))
+      opencl_print_user_stmt ((struct clast_user_stmt *) s, code_gen);
+    else if (CLAST_STMT_IS_A (s, stmt_for))
+      opencl_print_for ((struct clast_for *) s, code_gen, depth);
+    else if (CLAST_STMT_IS_A (s, stmt_guard))
+      opencl_print_guard ((struct clast_guard *) s, code_gen, depth);
+    else if (CLAST_STMT_IS_A (s, stmt_block))
+      {
+	opencl_append_string_to_body ("{\n", code_gen);
+	opencl_print_stmt_list (((struct clast_block *)s)->body, code_gen,
+				depth);
+	opencl_append_string_to_body ("}\n", code_gen);
+      }
+    else
       gcc_unreachable ();
-    }
+  }
 }
 
-/* Generate code for clast term T.  CODE_GEN holds information
-   related to OpenCL code generation.  */
+/* Generate code for loop statement F.  DEPTH is the depth of F in
+   current loop nest.  CODE_GEN holds information related to OpenCL
+   code generation.  */
 
-static void
-opencl_print_term (struct clast_term *t, opencl_main code_gen)
+static opencl_body
+opencl_print_loop (struct clast_for *f, opencl_main code_gen, int depth)
 {
-  if (t->var)
-    {
-      const char *real_name = opencl_get_scat_real_name (code_gen, t->var);
+  opencl_body current_body = code_gen->current_body;
 
-      if (mpz_cmp_si (t->val, 1) == 0)
-	opencl_append_var_name (real_name, code_gen);
-      else if (mpz_cmp_si (t->val, -1) == 0)
-	{
-	  opencl_append_string_to_body ("-", code_gen);
-	  opencl_append_var_name (real_name, code_gen);
-	}
-      else
-	{
-	  opencl_append_num_to_body (code_gen, mpz_get_si (t->val), "%d");
-	  opencl_append_string_to_body ("*", code_gen);
-	  opencl_append_var_name (real_name, code_gen);
-	}
-      opencl_add_scat_as_arg (code_gen, t->var, real_name);
+  code_gen->global_defined_vars
+    = htab_create (10, htab_hash_string, opencl_cmp_str, NULL);
+
+  opencl_perfect_nested_to_kernel (code_gen, f, current_body, depth);
+
+  /* Define local loop iterators.  */
+  opencl_print_local_vars (current_body->first_iter,
+			   current_body->last_iter,
+			   "unsigned int", code_gen);
+
+  /* Generate code for kernel body.  */
+  opencl_print_stmt_list (current_body->clast_body, code_gen, depth + 1);
+  opencl_append_string_to_body ("}\n", code_gen);
+
+  if (current_body->num_of_data_writes)
+    {
+      dyn_string_t header = current_body->header;
+      int offset;
+
+      dyn_string_append (header, current_body->non_scalar_args);
+      offset = dyn_string_length (header) - 2;
+
+      if (*(dyn_string_buf (header) + offset) == ',')
+        *(dyn_string_buf (header) + offset) = ' ';
+
+      opencl_append_string_to_header (")\n{\n", code_gen);
     }
-  else
-    opencl_append_num_to_body (code_gen, mpz_get_si (t->val), "%d");
+
+  return current_body;
 }
 
-/* Generate code for clast reduction statement R.  CODE_GEN holds
-   information related to OpenCL code generation.  */
+/* Generate kernel function code for clast for statement F, located on
+   depth DEPTH.  CODE_GEN holds information related to OpenCL code
+   generation.  */
 
-static void
-opencl_print_reduction (struct clast_reduction *r, opencl_main  code_gen)
+opencl_body
+opencl_clast_to_kernel (struct clast_for *f, opencl_main code_gen,
+                        int depth)
 {
-  switch (r->type)
-    {
-    case clast_red_sum:
-      opencl_print_sum (r, code_gen);
-      break;
-    case clast_red_min:
-    case clast_red_max:
-      if (r->n == 1)
-	{
-	  opencl_print_expr (r->elts[0], code_gen);
-	  break;
-	}
-      opencl_print_minmax_c (r, code_gen);
-      break;
-    default:
-      gcc_unreachable ();
-    }
-}
-
-/* Generate code for clast sum statement R.  CODE_GEN holds information
-   related to OpenCL code generation.  */
-
-static void
-opencl_print_sum (struct clast_reduction *r, opencl_main code_gen)
-{
-  int i;
-  struct clast_term *t;
-
-  gcc_assert (r->n >= 1 && r->elts[0]->type == clast_expr_term);
-  t = (struct clast_term *) r->elts[0];
-  opencl_print_term (t, code_gen);
-
-  for (i = 1; i < r->n; ++i)
-    {
-      gcc_assert (r->elts[i]->type == clast_expr_term);
-      t = (struct clast_term *) r->elts[i];
-      if (mpz_sgn (t->val) > 0)
-	opencl_append_string_to_body ("+", code_gen);
-      opencl_print_term (t, code_gen);
-    }
-}
-
-/* Generate code for clast binary operation B.  CODE_GEN holds
-   information related to OpenCL code generation.  */
-
-static void
-opencl_print_binary (struct clast_binary *b, opencl_main code_gen)
-{
-  const char *s1 = NULL, *s2 = NULL, *s3 = NULL;
-  bool group = (b->LHS->type == clast_expr_red
-		&& ((struct clast_reduction*) b->LHS)->n > 1);
-
-  switch (b->type)
-    {
-    case clast_bin_fdiv:
-      s1 = "floor ((", s2 = ")/(", s3 = "))";
-      break;
-    case clast_bin_cdiv:
-      s1 = "ceil ((", s2 = ")/(", s3 = "))";
-      break;
-    case clast_bin_div:
-      if (group)
-	s1 = "(", s2 = ")/", s3 = "";
-      else
-	s1 = "", s2 = "/", s3 = "";
-      break;
-    case clast_bin_mod:
-      if (group)
-	s1 = "(", s2 = ")%", s3 = "";
-      else
-	s1 = "", s2 = "%", s3 = "";
-      break;
-    }
-
-  opencl_append_string_to_body (s1, code_gen);
-  opencl_print_expr (b->LHS, code_gen);
-  opencl_append_string_to_body (s2, code_gen);
-  opencl_append_num_to_body (code_gen, mpz_get_si (b->RHS), "%d");
-  opencl_append_string_to_body (s3, code_gen);
-}
-
-/* Generate code for clast min/max operation R.  CODE_GEN holds
-   information related to OpenCL code generation.  */
-
-static void
-opencl_print_minmax_c ( struct clast_reduction *r, opencl_main code_gen)
-{
-  int i;
-  for (i = 1; i < r->n; ++i)
-    opencl_append_string_to_body (r->type == clast_red_max ? "max (" : "min (",
-				  code_gen);
-  if (r->n > 0)
-    {
-      opencl_append_string_to_body ("(unsigned int)(", code_gen);
-      opencl_print_expr (r->elts[0], code_gen);
-      opencl_append_string_to_body (")", code_gen);
-    }
-  for (i = 1; i < r->n; ++i)
-    {
-      opencl_append_string_to_body (",", code_gen);
-      opencl_append_string_to_body ("(unsigned int)(", code_gen);
-      opencl_print_expr (r->elts[i], code_gen);
-      opencl_append_string_to_body ("))", code_gen);
-    }
+  opencl_body tmp = opencl_body_create ();
+  code_gen->current_body = tmp;
+  return opencl_print_loop (f, code_gen, depth);
 }
 
 #endif

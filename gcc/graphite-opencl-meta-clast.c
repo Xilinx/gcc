@@ -308,7 +308,6 @@ opencl_supported_type_access_p (opencl_main code_gen, basic_block bb)
   return true;
 }
 
-
 /* Mark variable, represented by tree OBJ as visited in bitmap VISITED.
    If DEF is true and given variable can be privatized, mark it as
    privatized in META.  CODE_GEN holds information about non

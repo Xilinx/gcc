@@ -1,3 +1,8 @@
+2010-12-27  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-opencl-codegen.c: Sort topologically static functions.
+	* graphite-opencl.c: Same.
+
 2010-12-25  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-cloog-compat.h (cloog_names_nb_scattering): New.
