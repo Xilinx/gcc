@@ -1,5 +1,10 @@
 2010-12-27  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-opencl-codegen.c: Do not include sys/time.h.
+	* graphite-opencl.c: Same.
+
+2010-12-27  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-opencl.c (h_context, h_cmd_queue, h_program): Moved
 	out of ifdef HAVE_cloog section.
 

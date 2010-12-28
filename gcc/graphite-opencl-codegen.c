@@ -44,7 +44,6 @@
 #include "gimple.h"
 #include "sese.h"
 #include "output.h"
-#include <sys/time.h>
 #include "hashtab.h"
 #include "gimple-pretty-print.h"
 #include "tree.h"
