@@ -68,8 +68,8 @@ struct opencl_data_def
   bool supported;
 };
 
-typedef struct opencl_data_def * opencl_data;
-typedef const char * char_p;
+typedef struct opencl_data_def *opencl_data;
+typedef const char *char_p;
 
 DEF_VEC_P (opencl_data);
 DEF_VEC_ALLOC_P (opencl_data, heap);
@@ -100,9 +100,9 @@ struct opencl_clast_meta_def
   int in_depth;
   /* True means, that statement will be executed on device.  */
   bool on_device;
-  struct opencl_clast_meta_def * next;
-  struct opencl_clast_meta_def * body;
-  struct opencl_clast_meta_def * parent;
+  struct opencl_clast_meta_def *next;
+  struct opencl_clast_meta_def *body;
+  struct opencl_clast_meta_def *parent;
 
   /* All init code for this statement will be placed on this edge.  */
   edge init_edge;
@@ -223,7 +223,7 @@ struct graphite_opencl_creator
   htab_t tree_to_data;
 };
 
-typedef struct graphite_opencl_creator * opencl_main;
+typedef struct graphite_opencl_creator *opencl_main;
 
 extern opencl_body opencl_clast_to_kernel (struct clast_for *,
                                            opencl_main, int);

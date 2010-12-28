@@ -488,16 +488,16 @@ check_and_mark_arg (opencl_main code_gen, const char *name, bool local)
   gcc_assert (code_gen->defined_vars || !local);
   if (code_gen->defined_vars)
     {
-      slot = (const char **)htab_find_slot (code_gen->defined_vars,
-                                            name, INSERT);
+      slot = (const char **) htab_find_slot (code_gen->defined_vars,
+					     name, INSERT);
       if (*slot)
         return false;
       if (local)
         *slot = name;
     }
 
-  slot = (const char **)htab_find_slot (code_gen->global_defined_vars,
-                                        name, INSERT);
+  slot = (const char **) htab_find_slot (code_gen->global_defined_vars,
+					 name, INSERT);
   if (*slot)
     return false;
   if (!local)
@@ -692,8 +692,8 @@ opencl_print_local_vars (const char *fist, const char *last,
       opencl_append_string_to_body (" ", code_gen);
       opencl_append_string_to_body (tmp, code_gen);
       opencl_append_string_to_body (";\n", code_gen);
-      *((const char **)htab_find_slot (code_gen->global_defined_vars,
-                                       tmp, INSERT)) = tmp;
+      *((const char **) htab_find_slot (code_gen->global_defined_vars,
+					tmp, INSERT)) = tmp;
     }
 }
 
@@ -1510,8 +1510,8 @@ opencl_build_defines (tree node, opencl_main code_gen)
 
 	/*  Bail out if this name was defined earlier either in this
             or other region.  */
-        if (*(const char **)htab_find_slot (code_gen->defined_vars,
-                                            tmp, INSERT))
+        if (*(const char **) htab_find_slot (code_gen->defined_vars,
+					     tmp, INSERT))
           return;
 
         /* Get definition statement.  */
@@ -1601,8 +1601,8 @@ opencl_try_data_ref (opencl_main code_gen, data_reference_p ref,
   const char **slot;
   gcc_assert (code_gen->defined_vars);
 
-  slot = (const char **)htab_find_slot (code_gen->global_defined_vars,
-                                        name, INSERT);
+  slot = (const char **) htab_find_slot (code_gen->global_defined_vars,
+					 name, INSERT);
   if (*slot)
     return;
   *slot = name;
@@ -1819,7 +1819,7 @@ opencl_print_stmt_list (struct clast_stmt *s, opencl_main code_gen, int depth)
     else if (CLAST_STMT_IS_A (s, stmt_block))
       {
 	opencl_append_string_to_body ("{\n", code_gen);
-	opencl_print_stmt_list (((struct clast_block *)s)->body, code_gen,
+	opencl_print_stmt_list (((struct clast_block *) s)->body, code_gen,
 				depth);
 	opencl_append_string_to_body ("}\n", code_gen);
       }

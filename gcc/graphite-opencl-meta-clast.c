@@ -68,24 +68,24 @@ struct opencl_pair_def
   int val;
 };
 
-typedef struct opencl_pair_def * opencl_pair;
+typedef struct opencl_pair_def *opencl_pair;
 
 /* Hash function for opencl_pair.  */
 
 static hashval_t
-opencl_pair_to_hash (const void * data)
+opencl_pair_to_hash (const void *data)
 {
-  const struct opencl_pair_def * obj = (const struct opencl_pair_def *)data;
+  const struct opencl_pair_def *obj = (const struct opencl_pair_def *) data;
   return (hashval_t) (obj->id);
 }
 
 /* Compare function for opencl_pair.  */
 
 static int
-opencl_pair_cmp (const void * e1, const void * e2)
+opencl_pair_cmp (const void *e1, const void *e2)
 {
-  const struct opencl_pair_def * obj1 = (const struct opencl_pair_def *)e1;
-  const struct opencl_pair_def * obj2 = (const struct opencl_pair_def *)e2;
+  const struct opencl_pair_def *obj1 = (const struct opencl_pair_def *) e1;
+  const struct opencl_pair_def *obj2 = (const struct opencl_pair_def *) e2;
 
   return obj1->id == obj2->id;
 }
@@ -480,13 +480,13 @@ opencl_collect_definitions_info (opencl_clast_meta meta)
 
 opencl_clast_meta
 opencl_create_meta_from_clast (opencl_main code_gen,
-                               struct clast_stmt * body, int depth,
+                               struct clast_stmt *body, int depth,
                                opencl_clast_meta parent)
 {
   int max_depth = 0;
   opencl_clast_meta result = NULL;
   opencl_clast_meta curr = NULL;
-  struct clast_stmt * curr_stmt = body;
+  struct clast_stmt *curr_stmt = body;
   for ( ; curr_stmt; curr_stmt = curr_stmt->next)
     {
       opencl_clast_meta tmp_result = NULL;
@@ -501,7 +501,7 @@ opencl_create_meta_from_clast (opencl_main code_gen,
         }
       if (CLAST_STMT_IS_A (curr_stmt, stmt_guard))
         {
-          struct clast_guard * if_stmt = (struct clast_guard *)curr_stmt;
+          struct clast_guard *if_stmt = (struct clast_guard *) curr_stmt;
           /* For guard (if) statement create meta for it's body and just
              append it to current list.  */
           tmp_result = opencl_create_meta_from_clast (code_gen, if_stmt->then,
@@ -509,13 +509,13 @@ opencl_create_meta_from_clast (opencl_main code_gen,
         }
       if (CLAST_STMT_IS_A (curr_stmt, stmt_block))
         {
-          struct clast_block * bl_stmt = (struct clast_block *)curr_stmt;
+          struct clast_block *bl_stmt = (struct clast_block *) curr_stmt;
           tmp_result = opencl_create_meta_from_clast (code_gen, bl_stmt->body,
                                                       depth, parent);
         }
       if (CLAST_STMT_IS_A (curr_stmt, stmt_for))
         {
-          struct clast_for * for_stmt = (struct clast_for *) curr_stmt;
+          struct clast_for *for_stmt = (struct clast_for *) curr_stmt;
           tmp_result = opencl_clast_meta_create (depth, parent, false);
           tmp_result->body
 	    = opencl_create_meta_from_clast (code_gen, for_stmt->body,
@@ -583,9 +583,9 @@ opencl_calc_max_depth_tab (opencl_clast_meta meta, htab_t data, int depth)
           EXECUTE_IF_SET_IN_BITMAP (stmt_access, 0, i, bi)
             {
               opencl_pair curr_pair = opencl_pair_create (i, depth);
-              struct opencl_pair_def ** slot
-		= (struct opencl_pair_def **)htab_find_slot (data, curr_pair,
-							     INSERT);
+              struct opencl_pair_def **slot
+		= (struct opencl_pair_def **) htab_find_slot (data, curr_pair,
+							      INSERT);
               if (*slot == NULL)
                 *slot = curr_pair;
               else
@@ -676,7 +676,7 @@ opencl_evaluate_data_access_p (opencl_data obj, opencl_clast_meta meta)
 static opencl_data
 opencl_get_data_by_id (opencl_main code_gen, int id)
 {
-  VEC (opencl_data, heap) * main_data = code_gen->opencl_function_data;
+  VEC (opencl_data, heap) *main_data = code_gen->opencl_function_data;
   opencl_data res = VEC_index (opencl_data, main_data, id);
   gcc_assert (res->id == id);
   return res;
@@ -698,8 +698,8 @@ opencl_analyse_data_access_p (opencl_main code_gen,
   int max_dim = 1;
   int i;
   opencl_data curr_data;
-  VEC (opencl_data, heap) * data_objs = VEC_alloc (opencl_data, heap,
-                                                   OPENCL_INIT_BUFF_SIZE);
+  VEC (opencl_data, heap) *data_objs = VEC_alloc (opencl_data, heap,
+						  OPENCL_INIT_BUFF_SIZE);
 
   FOR_EACH_HTAB_ELEMENT (access, curr, opencl_pair, h_iter)
     {

@@ -88,7 +88,7 @@
 
 /* Enum for all OpenCL functions used in GRAPHITE-OpenCL.  */
 
-enum OPENCL_FUNCTUONS
+enum OPENCL_FUNCTIONS
   {
     STATIC_INIT = 0,
     CREATE_CONTEXT_FROM_TYPE = 1,
@@ -119,27 +119,27 @@ struct map_ref_to_data_def
   opencl_data value;
 };
 
-typedef struct map_ref_to_data_def * map_ref_to_data;
+typedef struct map_ref_to_data_def *map_ref_to_data;
 
 /* Calculate hash value from map_ref_to_data.  */
 
 static hashval_t
-map_ref_to_data_to_hash (const void * data)
+map_ref_to_data_to_hash (const void *data)
 {
-  const struct map_ref_to_data_def * obj
-    = (const struct map_ref_to_data_def *)data;
+  const struct map_ref_to_data_def *obj
+    = (const struct map_ref_to_data_def *) data;
   return htab_hash_pointer (obj->key);
 }
 
 /* Compare to map_ref_to_data pointers.  */
 
 static int
-map_ref_to_data_cmp (const void * v1, const void * v2)
+map_ref_to_data_cmp (const void *v1, const void *v2)
 {
-  const struct map_ref_to_data_def * obj_1
-    = (const struct map_ref_to_data_def *)v1;
-  const struct map_ref_to_data_def * obj_2
-    = (const struct map_ref_to_data_def *)v2;
+  const struct map_ref_to_data_def *obj_1
+    = (const struct map_ref_to_data_def *) v1;
+  const struct map_ref_to_data_def *obj_2
+    = (const struct map_ref_to_data_def *) v2;
 
   return (obj_1->key == obj_2->key);
 }
@@ -164,27 +164,27 @@ struct map_tree_to_data_def
   opencl_data value;
 };
 
-typedef struct map_tree_to_data_def * map_tree_to_data;
+typedef struct map_tree_to_data_def *map_tree_to_data;
 
 /* Calculate hash value from map_tree_to_data.  */
 
 static hashval_t
-map_tree_to_data_to_hash (const void * data)
+map_tree_to_data_to_hash (const void *data)
 {
-  const struct map_tree_to_data_def * obj
-    = (const struct map_tree_to_data_def *)data;
+  const struct map_tree_to_data_def *obj
+    = (const struct map_tree_to_data_def *) data;
   return htab_hash_pointer (obj->key);
 }
 
 /* Compare to map_tree_to_data pointers.  */
 
 static int
-map_tree_to_data_cmp (const void * v1, const void * v2)
+map_tree_to_data_cmp (const void *v1, const void *v2)
 {
-  const struct map_tree_to_data_def * obj_1
-    = (const struct map_tree_to_data_def *)v1;
-  const struct map_tree_to_data_def * obj_2
-    = (const struct map_tree_to_data_def *)v2;
+  const struct map_tree_to_data_def *obj_1
+    = (const struct map_tree_to_data_def *) v1;
+  const struct map_tree_to_data_def *obj_2
+    = (const struct map_tree_to_data_def *) v2;
 
   return (obj_1->key == obj_2->key);
 }
@@ -205,7 +205,7 @@ map_tree_to_data_create (tree new_key,
    type TYPE.  */
 
 static tree
-opencl_create_tmp_var (tree type, const char * name)
+opencl_create_tmp_var (tree type, const char *name)
 {
   tree tmp = create_tmp_var (type, name);
   TREE_ADDRESSABLE (tmp) = 1;
@@ -234,7 +234,7 @@ opencl_tree_to_var (basic_block dest, tree expr)
 static void
 opencl_fflush_rw_flags (opencl_main code_gen)
 {
-  VEC (opencl_data, heap) * datas = code_gen->opencl_function_data;
+  VEC (opencl_data, heap) *datas = code_gen->opencl_function_data;
   int i;
   opencl_data curr;
   for (i = 0; VEC_iterate (opencl_data, datas, i, curr); i ++)
@@ -303,7 +303,7 @@ opencl_verify (void)
 
 /* Names of all OpenCL functions, used in GRAPHITE-OpenCL.  */
 
-static const char * opencl_function_names[] =
+static const char *opencl_function_names[] =
   {
     "clCreateContextFromType",
     "clGetContextInfo",
@@ -340,7 +340,7 @@ static GTY(()) tree h_program;
 /* This vector holds opencl_data, which represents arrays.
    Arrays have constant sizes, so buffers for each of them can
    be created only once.  */
-static VEC (opencl_data, heap) * opencl_array_data;
+static VEC (opencl_data, heap) *opencl_array_data;
 
 /* Hash table, which maps opencl_data, related to arrays, to
 	  trees, which represents corresponding array.  */
@@ -372,12 +372,12 @@ zero_dim_array_p (tree var)
    privatized.  */
 
 static bool
-opencl_private_var_name_p (const char * name)
+opencl_private_var_name_p (const char *name)
 {
-  static const char * general_reduction = "General_Reduction";
-  static const char * close_phi = "Close_Phi";
-  static const char * cross_bb = "Cross_BB_scalar_dependence";
-  static const char * commutative = "Commutative_Associative_Reduction";
+  static const char *general_reduction = "General_Reduction";
+  static const char *close_phi = "Close_Phi";
+  static const char *cross_bb = "Cross_BB_scalar_dependence";
+  static const char *commutative = "Commutative_Associative_Reduction";
   if (!name)
     return false;
   return
@@ -458,7 +458,7 @@ opencl_data_delete (opencl_data data)
 }
 
 static opencl_main
-opencl_main_create (CloogNames * names, sese region, edge main_edge,
+opencl_main_create (CloogNames *names, sese region, edge main_edge,
                     htab_t params_index)
 {
   opencl_main tmp = XNEW (struct graphite_opencl_creator);
@@ -592,9 +592,9 @@ dr_outermost_base_object (data_reference_p dr)
     {
       /* In case, we don't know base object.  For example:
 
-         | void foo (int * a)
+         | void foo (int *a)
          | {
-         |   int * b = a + 1;
+         |   int *b = a + 1;
          |   *b = 0;
          | }
 
@@ -636,7 +636,7 @@ opencl_get_edge_for_init (opencl_main code_gen, int data_id, bool device)
    If ID is STATIC_INIT, init all required data.  */
 
 static tree
-opencl_create_function_decl (enum OPENCL_FUNCTUONS id)
+opencl_create_function_decl (enum OPENCL_FUNCTIONS id)
 {
   static tree create_context_from_type_decl = NULL;
   static tree get_context_info_decl = NULL;
@@ -1177,7 +1177,7 @@ opencl_pass_to_host (opencl_main code_gen, opencl_data data)
 static void
 opencl_fflush_all_device_buffers_to_host (opencl_main code_gen)
 {
-  VEC (opencl_data, heap) * datas = code_gen->opencl_function_data;
+  VEC (opencl_data, heap) *datas = code_gen->opencl_function_data;
   int i;
   opencl_data curr;
   tree function = opencl_create_function_decl (RELEASE_MEMORY_OBJ);
@@ -1265,7 +1265,7 @@ opencl_create_memory_for_pointer (opencl_data data)
 static void
 opencl_init_all_device_buffers (opencl_main code_gen)
 {
-  VEC (opencl_data, heap) * datas = code_gen->opencl_function_data;
+  VEC (opencl_data, heap) *datas = code_gen->opencl_function_data;
   int i;
   opencl_data curr;
   edge data_init_edge = single_succ_edge (code_gen->data_init_bb);
@@ -1285,9 +1285,9 @@ opencl_init_all_device_buffers (opencl_main code_gen)
 /* Create new static void * variable with name __ocl_ + NAME.  */
 
 static tree
-opencl_create_static_ptr_variable (const char * name)
+opencl_create_static_ptr_variable (const char *name)
 {
-  const char * id_name = concat ("__ocl_",name,  NULL);
+  const char *id_name = concat ("__ocl_",name,  NULL);
   tree var =  build_decl (UNKNOWN_LOCATION, VAR_DECL,
                           create_tmp_var_name (id_name), ptr_type_node);
   TREE_STATIC (var) = 1;
@@ -1311,7 +1311,7 @@ opencl_create_static_ptr_variable (const char * name)
    call must be inserted.  */
 
 static edge
-opencl_insert_create_program_with_source_call (const char * src, edge base)
+opencl_insert_create_program_with_source_call (const char *src, edge base)
 {
   /* Get tree with function definition.  */
   tree function = opencl_create_function_decl (CREATE_PROGRAM_WITH_SOURCE);
@@ -1439,9 +1439,9 @@ opencl_get_indirect_size (tree ptr, poly_dr_p ref)
 static void
 opencl_init_local_device_memory (opencl_main code_gen, opencl_body kernel)
 {
-  VEC (tree, heap) ** args = &kernel->function_args;
-  VEC (tree, heap) ** args_to_pass = &kernel->function_args_to_pass;
-  VEC (opencl_data, heap) ** refs = &kernel->data_refs;
+  VEC (tree, heap) **args = &kernel->function_args;
+  VEC (tree, heap) **args_to_pass = &kernel->function_args_to_pass;
+  VEC (opencl_data, heap) **refs = &kernel->data_refs;
   tree curr;
   opencl_data curr_data;
   int i;
@@ -1517,7 +1517,7 @@ static void
 opencl_pass_kernel_arguments (opencl_main code_gen, opencl_body kernel,
                               tree kernel_var)
 {
-  VEC (tree, heap) * args_to_pass = kernel->function_args_to_pass;
+  VEC (tree, heap) *args_to_pass = kernel->function_args_to_pass;
   tree arg;
   int i;
   tree function = opencl_create_function_decl (SET_KERNEL_ARG);
@@ -1583,7 +1583,7 @@ static edge
 opencl_create_function_call (edge base)
 {
   edge new_edge;
-  const char * src;
+  const char *src;
 
   /* Required for addressing types with size less then 4 bytes.  */
   dyn_string_prepend_cstr
@@ -1610,7 +1610,7 @@ opencl_create_function_call (edge base)
 static void
 opencl_mark_privatized_data (opencl_main code_gen)
 {
-  VEC (opencl_data, heap) * datas = code_gen->opencl_function_data;
+  VEC (opencl_data, heap) *datas = code_gen->opencl_function_data;
   int i;
   opencl_data curr;
   bitmap can_be_private = code_gen->curr_meta->can_be_private;
@@ -1625,7 +1625,7 @@ opencl_mark_privatized_data (opencl_main code_gen)
 static void
 opencl_set_data_size (opencl_main code_gen)
 {
-  VEC (opencl_data, heap) * datas = code_gen->opencl_function_data;
+  VEC (opencl_data, heap) *datas = code_gen->opencl_function_data;
   int i;
   opencl_data curr;
   gimple_stmt_iterator g_iter = gsi_last_bb (code_gen->data_init_bb);
@@ -1654,7 +1654,7 @@ static opencl_data
 opencl_get_static_data_by_tree (tree var)
 {
   map_tree_to_data tmp = map_tree_to_data_create (var, NULL);
-  map_tree_to_data * slot
+  map_tree_to_data *slot
     = (map_tree_to_data *) htab_find_slot (array_data_to_tree,
 					   tmp, INSERT);
   if (*slot == NULL)
@@ -1681,7 +1681,7 @@ opencl_data_init_object (opencl_data data)
       map_tree_to_data tree_ptr
 	= map_tree_to_data_create (data->exact_object, data);
 
-      map_tree_to_data * tree_slot =
+      map_tree_to_data *tree_slot =
 	(map_tree_to_data *) htab_find_slot (array_data_to_tree,
 					     tree_ptr, INSERT);
       gcc_assert (*tree_slot == NULL);
@@ -1706,8 +1706,8 @@ opencl_register_data (opencl_main code_gen, opencl_data data,
   htab_t tree_to_data = code_gen->tree_to_data;
   map_ref_to_data ref_ptr = map_ref_to_data_create (ref_key, data);
   map_tree_to_data tree_ptr = map_tree_to_data_create (tree_key, data);
-  map_ref_to_data * ref_slot;
-  map_tree_to_data * tree_slot;
+  map_ref_to_data *ref_slot;
+  map_tree_to_data *tree_slot;
 
 
   ref_slot
@@ -1780,7 +1780,7 @@ opencl_parse_data_refs (poly_bb_p pbb, opencl_main code_gen)
 static void
 opencl_init_data (scop_p m_scop, opencl_main code_gen)
 {
-  VEC (poly_bb_p, heap) * bbs = SCOP_BBS (m_scop);
+  VEC (poly_bb_p, heap) *bbs = SCOP_BBS (m_scop);
   int i;
   poly_bb_p curr;
   for (i = 0; VEC_iterate (poly_bb_p, bbs, i, curr); i++)
@@ -1806,7 +1806,7 @@ opencl_create_gimple_for_body (opencl_body kernel, opencl_main code_gen)
   tree call;
 
   tree kernel_var
-    = opencl_insert_create_kernel_call (code_gen, (const char *)kernel->name);
+    = opencl_insert_create_kernel_call (code_gen, (const char *) kernel->name);
 
   tree index_type = build_index_type (build_int_cst (NULL_TREE, 2));
   tree array_type = build_array_type (ptr_type_node, index_type);
@@ -1862,7 +1862,7 @@ opencl_prepare_memory_for_gimple_stmt (poly_bb_p pbb, opencl_main code_gen)
    CODE_GEN holds information related to code generation.  */
 
 static void
-opencl_add_gimple_for_user_stmt (struct clast_user_stmt * stmt,
+opencl_add_gimple_for_user_stmt (struct clast_user_stmt *stmt,
 				 opencl_main code_gen)
 {
   gimple_bb_p gbb;
@@ -1871,9 +1871,9 @@ opencl_add_gimple_for_user_stmt (struct clast_user_stmt * stmt,
   sese region = code_gen->region;
   int nb_loops = number_of_loops ();
   int i;
-  VEC (tree, heap) * iv_map = VEC_alloc (tree, heap, nb_loops);
+  VEC (tree, heap) *iv_map = VEC_alloc (tree, heap, nb_loops);
   htab_t newivs_index = code_gen->newivs_index;
-  VEC (tree, heap) * newivs = code_gen->newivs;
+  VEC (tree, heap) *newivs = code_gen->newivs;
   /* Get basic block to add.  */
   gbb = PBB_BLACK_BOX (pbb);
 
@@ -1990,7 +1990,7 @@ static void opencl_transform_stmt_list (struct clast_stmt *, opencl_main, int);
    CODE_GEN holds information related to code generation.  */
 
 static void
-opencl_add_gimple_for_loop (struct clast_for * s, opencl_main code_gen,
+opencl_add_gimple_for_loop (struct clast_for *s, opencl_main code_gen,
 			    int depth, bool dependency)
 {
   loop_p old_parent = code_gen->context_loop;
@@ -2035,7 +2035,7 @@ opencl_add_gimple_for_loop (struct clast_for * s, opencl_main code_gen,
    CODE_GEN holds information related to code generation.  */
 
 static void
-opencl_add_gimple_for_stmt_for (struct clast_for * s, opencl_main code_gen,
+opencl_add_gimple_for_stmt_for (struct clast_for *s, opencl_main code_gen,
 				int depth, bool dependency)
 {
   edge last_e = graphite_create_new_loop_guard (code_gen->region,
@@ -2072,7 +2072,7 @@ opencl_fix_meta_flags (opencl_clast_meta meta)
    CODE_GEN holds information related to code generation.  */
 
 static void
-opencl_add_gimple_for_stmt_guard (struct clast_guard * s,
+opencl_add_gimple_for_stmt_guard (struct clast_guard *s,
                                   opencl_main code_gen, int depth)
 {
   edge last_e = graphite_create_new_guard (code_gen->region,
@@ -2096,7 +2096,7 @@ opencl_add_gimple_for_stmt_guard (struct clast_guard * s,
    CODE_GEN holds information related to code generation.  */
 
 static void
-opencl_transform_stmt_list (struct clast_stmt * s, opencl_main code_gen,
+opencl_transform_stmt_list (struct clast_stmt *s, opencl_main code_gen,
 			    int depth)
 {
   bool dump_p = dump_file && (dump_flags & TDF_DETAILS);
@@ -2175,7 +2175,7 @@ opencl_transform_stmt_list (struct clast_stmt * s, opencl_main code_gen,
         opencl_add_gimple_for_stmt_guard ((struct clast_guard *) s,
                                           code_gen, depth);
       else if (CLAST_STMT_IS_A (s, stmt_block))
-        opencl_transform_stmt_list (((struct clast_block *)s)->body,
+        opencl_transform_stmt_list (((struct clast_block *) s)->body,
                                     code_gen, depth);
       else
         gcc_unreachable ();
@@ -2189,7 +2189,7 @@ opencl_transform_stmt_list (struct clast_stmt * s, opencl_main code_gen,
    holds external scop params.  */
 
 void
-opencl_transform_clast (struct clast_stmt * data, sese region,
+opencl_transform_clast (struct clast_stmt *data, sese region,
                         edge main, scop_p scop, htab_t params_index)
 {
   opencl_main code_gen;
@@ -2201,7 +2201,7 @@ opencl_transform_clast (struct clast_stmt * data, sese region,
       print_scop (dump_file, scop, 0);
     }
 
-  code_gen = opencl_main_create (((struct clast_root *)data)->names,
+  code_gen = opencl_main_create (((struct clast_root *) data)->names,
                                  region, main, params_index);
 
   opencl_init_basic_blocks (code_gen);
@@ -2230,7 +2230,7 @@ opencl_data
 opencl_get_data_by_tree (opencl_main code_gen, tree obj)
 {
   map_tree_to_data tmp = map_tree_to_data_create (obj, NULL);
-  map_tree_to_data * slot
+  map_tree_to_data *slot
     = (map_tree_to_data *) htab_find_slot (code_gen->tree_to_data,
 					   tmp, INSERT);
   if (*slot == NULL)
@@ -2245,7 +2245,7 @@ opencl_data
 opencl_get_data_by_data_ref (opencl_main code_gen, data_reference_p ref)
 {
   map_ref_to_data tmp = map_ref_to_data_create (ref, NULL);
-  map_ref_to_data * slot
+  map_ref_to_data *slot
     = (map_ref_to_data *) htab_find_slot (code_gen->ref_to_data,
 					  tmp, INSERT);
   if (*slot == NULL)
@@ -2260,10 +2260,12 @@ static void
 opencl_create_gimple_variables (void)
 {
   static bool opencl_var_created = false;
+
   if (opencl_var_created)
     return;
 
   opencl_var_created = true;
+
   /* cl_context h_context */
   h_context = opencl_create_static_ptr_variable ("__ocl_h_context");
 
@@ -2473,8 +2475,8 @@ opencl_create_init_context (edge init_edge)
 /* Fill array VEC with all poly basic blocks in clast statement ROOT.  */
 
 static void
-build_poly_bb_vec (struct clast_stmt * root,
-                   VEC (poly_bb_p, heap) ** vec)
+build_poly_bb_vec (struct clast_stmt *root,
+                   VEC (poly_bb_p, heap) **vec)
 {
   while (root)
     {
@@ -2540,9 +2542,9 @@ opencl_dependency_between_pbbs_p (opencl_main code_gen, poly_bb_p pbb1,
 
 bool
 dependency_in_clast_loop_p (opencl_main code_gen, opencl_clast_meta meta,
-                            struct clast_for * stmt, int depth)
+                            struct clast_for *stmt, int depth)
 {
-  VEC (poly_bb_p, heap) * pbbs = VEC_alloc (poly_bb_p, heap, 10);
+  VEC (poly_bb_p, heap) *pbbs = VEC_alloc (poly_bb_p, heap, 10);
   int level = get_scattering_level (depth);
   int i;
   poly_bb_p pbb1;
@@ -2655,15 +2657,15 @@ graphite_opencl_finalize (edge static_init_edge)
 /* Debug functions for deined data structures.  */
 
 static void
-dump_flag_to_file (const char * name, bool cond,
-                   FILE * file, int indent)
+dump_flag_to_file (const char *name, bool cond,
+                   FILE *file, int indent)
 {
   indent_to (file, indent);
   fprintf (file, "%s = %s", name, cond? "true" : "false");
 }
 
 void
-dump_opencl_data (opencl_data data, FILE * file, bool verbose)
+dump_opencl_data (opencl_data data, FILE *file, bool verbose)
 {
   fprintf (file, "Data id = %d\n", data->id);
   fprintf (file, "Data dimension = %d\n", data->data_dim);
@@ -2730,7 +2732,7 @@ debug_opencl_data (opencl_data data, bool verbose)
 }
 
 void
-dump_opencl_body (opencl_body body, FILE * file, bool verbose)
+dump_opencl_body (opencl_body body, FILE *file, bool verbose)
 {
   fprintf (file, "\n%s\n\n", body->name);
   fprintf (file, "First iterator: %s\n", body->first_iter);
@@ -2759,7 +2761,7 @@ debug_opencl_body (opencl_body body, bool verbose)
 }
 
 void
-dump_opencl_clast_meta (opencl_clast_meta meta, FILE * file,
+dump_opencl_clast_meta (opencl_clast_meta meta, FILE *file,
                         bool verbose, int indent)
 {
   if (!verbose)
@@ -2804,19 +2806,19 @@ debug_opencl_clast_meta (opencl_clast_meta meta, bool verbose)
 }
 
 static int
-print_char_p_htab (void ** h, void * v)
+print_char_p_htab (void **h, void *v)
 {
-  char ** ptr = (char **)h;
-  FILE * file = (FILE *)v;
+  char **ptr = (char **) h;
+  FILE *file = (FILE *) v;
   fprintf (file, "  %s\n", *ptr);
   return 1;
 }
 
 static int
-print_tree_to_data_htab (void ** h, void * v)
+print_tree_to_data_htab (void **h, void *v)
 {
-  map_tree_to_data * map = (map_tree_to_data *)h;
-  FILE * file = (FILE *)v;
+  map_tree_to_data *map = (map_tree_to_data *) h;
+  FILE *file = (FILE *) v;
   tree key = (*map)->key;
   opencl_data data = (*map)->value;
   print_node_brief (file, "key = ", key, 2);
@@ -2825,10 +2827,10 @@ print_tree_to_data_htab (void ** h, void * v)
 }
 
 static int
-print_ref_to_data_htab (void ** h, void * v)
+print_ref_to_data_htab (void **h, void *v)
 {
-  map_ref_to_data * map = (map_ref_to_data *)h;
-  FILE * file = (FILE *)v;
+  map_ref_to_data *map = (map_ref_to_data *) h;
+  FILE *file = (FILE *) v;
   data_reference_p key = (*map)->key;
   opencl_data data = (*map)->value;
   fprintf (file, "key::\n");
@@ -2838,7 +2840,7 @@ print_ref_to_data_htab (void ** h, void * v)
 }
 
 void
-dump_opencl_main (opencl_main code_gen, FILE * file, bool verbose)
+dump_opencl_main (opencl_main code_gen, FILE *file, bool verbose)
 {
   fprintf (file, "Current meta::\n");
   dump_opencl_clast_meta (code_gen->curr_meta, file, false, 2);
