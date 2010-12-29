@@ -415,6 +415,9 @@ Gogo::current_block()
 Named_object*
 Gogo::lookup(const std::string& name, Named_object** pfunction) const
 {
+  if (pfunction != NULL)
+    *pfunction = NULL;
+
   if (Gogo::is_sink_name(name))
     return Named_object::make_sink();
 
@@ -430,9 +433,6 @@ Gogo::lookup(const std::string& name, Named_object** pfunction) const
 	  return ret;
 	}
     }
-
-  if (pfunction != NULL)
-    *pfunction = NULL;
 
   if (this->package_ != NULL)
     {
@@ -659,7 +659,13 @@ Gogo::start_function(const std::string& name, Function_type* type,
 
   Named_object* ret;
   if (Gogo::is_sink_name(*pname))
-    ret = Named_object::make_sink();
+    {
+      static int sink_count;
+      char buf[30];
+      snprintf(buf, sizeof buf, ".$sink%d", sink_count);
+      ++sink_count;
+      ret = Named_object::make_function(buf, NULL, function);
+    }
   else if (!type->is_method())
     {
       ret = this->package_->bindings()->add_function(*pname, NULL, function);
@@ -881,7 +887,7 @@ Gogo::add_type(const std::string& name, Type* type, source_location location)
 {
   Named_object* no = this->current_bindings()->add_type(name, NULL, type,
 							location);
-  if (!this->in_global_scope())
+  if (!this->in_global_scope() && no->is_type())
     no->type_value()->set_in_function(this->functions_.back().function);
 }
 
@@ -901,7 +907,7 @@ Gogo::declare_type(const std::string& name, source_location location)
 {
   Bindings* bindings = this->current_bindings();
   Named_object* no = bindings->add_type_declaration(name, NULL, location);
-  if (!this->in_global_scope())
+  if (!this->in_global_scope() && no->is_type_declaration())
     {
       Named_object* f = this->functions_.back().function;
       no->type_declaration_value()->set_in_function(f);
@@ -1157,8 +1163,8 @@ Lower_parse_tree::constant(Named_object* no, bool)
 {
   Named_constant* nc = no->const_value();
 
-  // We can recursively a constant if the initializer expression
-  // manages to refer to itself.
+  // Don't get into trouble if the constant's initializer expression
+  // refers to the constant itself.
   if (nc->lowering())
     return TRAVERSE_CONTINUE;
   nc->set_lowering();
@@ -1378,7 +1384,11 @@ Gogo::determine_types()
 
 	  // If this is a global variable which requires runtime
 	  // initialization, we need an initialization function.
-	  if (!variable->is_global() || variable->init() == NULL)
+	  if (!variable->is_global())
+	    ;
+	  else if (variable->has_pre_init())
+	    this->need_init_fn_ = true;
+	  else if (variable->init() == NULL)
 	    ;
 	  else if (variable->type()->interface_type() != NULL)
 	    this->need_init_fn_ = true;
@@ -2093,14 +2103,6 @@ Build_recover_thunks::function(Named_object* orig_no)
   Expression* fn = Expression::make_func_reference(new_no, closure, location);
 
   Expression_list* args = new Expression_list();
-  if (orig_fntype->is_method())
-    {
-      Named_object* rec_no = gogo->lookup(receiver_name, NULL);
-      gcc_assert(rec_no != NULL
-		 && rec_no->is_variable()
-		 && rec_no->var_value()->is_parameter());
-      args->push_back(Expression::make_var_reference(rec_no, location));
-    }
   if (new_params != NULL)
     {
       // Note that we skip the last parameter, which is the boolean
@@ -2153,10 +2155,11 @@ Build_recover_thunks::function(Named_object* orig_no)
 		 && !orig_rec_no->var_value()->is_receiver());
       orig_rec_no->var_value()->set_is_receiver();
 
-      Named_object* new_rec_no = new_bindings->lookup_local(receiver_name);
+      const std::string& new_receiver_name(orig_fntype->receiver()->name());
+      Named_object* new_rec_no = new_bindings->lookup_local(new_receiver_name);
       gcc_assert(new_rec_no != NULL
 		 && new_rec_no->is_variable()
-		 && !new_rec_no->var_value()->is_receiver());
+		 && new_rec_no->var_value()->is_receiver());
       new_rec_no->var_value()->set_is_not_receiver();
     }
 
@@ -2177,6 +2180,10 @@ Build_recover_thunks::function(Named_object* orig_no)
 					      can_recover_var);
   Convert_recover convert_recover(can_recover_no);
   new_func->traverse(&convert_recover);
+
+  // Update the function pointers in any named results.
+  new_func->update_named_result_variables();
+  orig_func->update_named_result_variables();
 
   return TRAVERSE_CONTINUE;
 }
@@ -2506,6 +2513,21 @@ Function::create_named_result_variables(Gogo* gogo)
     }
 }
 
+// Update the named result variables when cloning a function which
+// calls recover.
+
+void
+Function::update_named_result_variables()
+{
+  if (this->named_results_ == NULL)
+    return;
+
+  for (Named_results::iterator p = this->named_results_->begin();
+       p != this->named_results_->end();
+       ++p)
+    (*p)->result_var_value()->set_function(this);
+}
+
 // Return the closure variable, creating it if necessary.
 
 Named_object*
@@ -2629,7 +2651,7 @@ void
 Function::swap_for_recover(Function *x)
 {
   gcc_assert(this->enclosing_ == x->enclosing_);
-  gcc_assert(this->named_results_ == x->named_results_);
+  std::swap(this->named_results_, x->named_results_);
   std::swap(this->closure_var_, x->closure_var_);
   std::swap(this->block_, x->block_);
   gcc_assert(this->location_ == x->location_);
@@ -2643,6 +2665,14 @@ int
 Function::traverse(Traverse* traverse)
 {
   unsigned int traverse_mask = traverse->traverse_mask();
+
+  if ((traverse_mask
+       & (Traverse::traverse_types | Traverse::traverse_expressions))
+      != 0)
+    {
+      if (Type::traverse(this->type_, traverse) == TRAVERSE_EXIT)
+	return TRAVERSE_EXIT;
+    }
 
   // FIXME: We should check traverse_functions here if nested
   // functions are stored in block bindings.
@@ -3056,7 +3086,7 @@ Variable::Variable(Type* type, Expression* init, bool is_global,
   : type_(type), init_(init), preinit_(NULL), location_(location),
     is_global_(is_global), is_parameter_(is_parameter),
     is_receiver_(is_receiver), is_varargs_parameter_(false),
-    is_address_taken_(false), init_is_lowered_(false),
+    is_address_taken_(false), seen_(false), init_is_lowered_(false),
     type_from_init_tuple_(false), type_from_range_index_(false),
     type_from_range_value_(false), type_from_chan_element_(false),
     is_type_switch_var_(false)
@@ -3090,7 +3120,18 @@ Variable::lower_init_expression(Gogo* gogo, Named_object* function)
 {
   if (this->init_ != NULL && !this->init_is_lowered_)
     {
+      if (this->seen_)
+	{
+	  // We will give an error elsewhere, this is just to prevent
+	  // an infinite loop.
+	  return;
+	}
+      this->seen_ = true;
+
       gogo->lower_expression(function, &this->init_);
+
+      this->seen_ = false;
+
       this->init_is_lowered_ = true;
     }
 }
@@ -3123,12 +3164,17 @@ Type*
 Variable::type_from_tuple(Expression* expr, bool report_error) const
 {
   if (expr->map_index_expression() != NULL)
-    return expr->map_index_expression()->get_map_type()->val_type();
+    {
+      Map_type* mt = expr->map_index_expression()->get_map_type();
+      if (mt == NULL)
+	return Type::make_error_type();
+      return mt->val_type();
+    }
   else if (expr->receive_expression() != NULL)
     {
       Expression* channel = expr->receive_expression()->channel();
       Type* channel_type = channel->type();
-      if (channel_type->is_error_type())
+      if (channel_type->channel_type() == NULL)
 	return Type::make_error_type();
       return channel_type->channel_type()->element_type();
     }
@@ -3209,7 +3255,7 @@ Variable::type_from_chan_element(Expression* expr, bool report_error) const
 // with type determination, then this should be unnecessary.
 
 Type*
-Variable::type() const
+Variable::type()
 {
   // A variable in a type switch with a nil case will have the wrong
   // type here.  This gets fixed up in determine_type, below.
@@ -3224,14 +3270,26 @@ Variable::type() const
       type = NULL;
     }
 
+  if (this->seen_)
+    {
+      if (this->type_ == NULL || !this->type_->is_error_type())
+	{
+	  error_at(this->location_, "variable initializer refers to itself");
+	  this->type_ = Type::make_error_type();
+	}
+      return this->type_;
+    }
+
+  this->seen_ = true;
+
   if (type != NULL)
-    return type;
+    ;
   else if (this->type_from_init_tuple_)
-    return this->type_from_tuple(init, false);
+    type = this->type_from_tuple(init, false);
   else if (this->type_from_range_index_ || this->type_from_range_value_)
-    return this->type_from_range(init, this->type_from_range_index_, false);
+    type = this->type_from_range(init, this->type_from_range_index_, false);
   else if (this->type_from_chan_element_)
-    return this->type_from_chan_element(init, false);
+    type = this->type_from_chan_element(init, false);
   else
     {
       gcc_assert(init != NULL);
@@ -3244,9 +3302,21 @@ Variable::type() const
 
       if (type->is_void_type())
 	type = Type::make_error_type();
-
-      return type;
     }
+
+  this->seen_ = false;
+
+  return type;
+}
+
+// Fetch the type from a const pointer, in which case it should have
+// been set already.
+
+Type*
+Variable::type() const
+{
+  gcc_assert(this->type_ != NULL);
+  return this->type_;
 }
 
 // Set the type if necessary.
@@ -3665,6 +3735,18 @@ Named_object::set_function_value(Function* function)
   this->classification_ = NAMED_OBJECT_FUNC;
   // FIXME: We should free the old value.
   this->u_.func_value = function;
+}
+
+// Declare an unknown object as a type declaration.
+
+void
+Named_object::declare_as_type()
+{
+  gcc_assert(this->classification_ == NAMED_OBJECT_UNKNOWN);
+  Unknown_name* unk = this->u_.unknown_value;
+  this->classification_ = NAMED_OBJECT_TYPE_DECLARATION;
+  this->u_.type_declaration = new Type_declaration(unk->location());
+  delete unk;
 }
 
 // Return the location of a named object.

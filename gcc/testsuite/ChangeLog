@@ -1,3 +1,335 @@
+2010-12-28  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47068
+	* g++.dg/cpp0x/decltype24.C: New.
+
+2010-12-28  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/47076
+	* objc.dg/protocol-forward-1.m: New.
+	* obj-c++.dg/protocol-forward-1.mm: New.
+	* objc.dg/attributes/proto-attribute-2.m: Updated.
+	* objc.dg/class-protocol-1.m: Updated.
+	* obj-c++.dg/attributes/proto-attribute-2.mm: Updated.
+	* obj-c++.dg/class-protocol-1.mm: Updated.
+	
+2010-12-28  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45827
+	* gfortran.dg/class_32.f90: New.
+
+2010-12-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/rdrand-1.c: Updated.
+	* gcc.target/i386/rdrand-2.c: Likewise.
+	* gcc.target/i386/rdrand-3.c: Likewise.
+
+2010-12-28  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/class-extension-4.m: New.
+	* obj-c++.dg/class-extension-4.mm: New.
+
+2010-12-28  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/47073
+	* objc.dg/incomplete-type-1.m: New test.
+
+2010-12-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/46626
+	* g++.dg/cpp0x/constexpr-base4.C: New test.
+
+2010-12-26  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-class.m: Xfail the test on Apple Darwin m64.
+	* objc.dg/gnu-api-2-ivar.m: Same.
+	* objc.dg/gnu-api-2-method.m: Same.
+	* objc.dg/gnu-api-2-objc.m: Same.
+	* objc.dg/gnu-api-2-object.m: Same.
+	* objc.dg/gnu-api-2-protocol.m: Same.
+	* obj-c++.dg/gnu-api-2-class.mm: Same.
+	* obj-c++.dg/gnu-api-2-ivar.mm: Same.
+	* obj-c++.dg/gnu-api-2-method.mm: Same.
+	* obj-c++.dg/gnu-api-2-objc.mm: Same.
+	* obj-c++.dg/gnu-api-2-object.mm: Same.
+	* obj-c++.dg/gnu-api-2-protocol.mm: Same.
+	
+2010-12-26  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/pr44509.m: New.
+
+2010-12-26  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-class.m: Updated the test to work with the
+	Apple runtime as well.
+	* obj-c++.dg/gnu-api-2-class.mm: Same change.
+	* objc.dg/gnu-api-2-ivar.m: Same change.
+	* obj-c++.dg/gnu-api-2-ivar.mm: Same change.
+	* objc.dg/gnu-api-2-method.m: Same change.
+	* obj-c++.dg/gnu-api-2-method.mm: Same change.
+	* objc.dg/gnu-api-2-objc.m: Same change.
+	* obj-c++.dg/gnu-api-2-objc.mm: Same change.
+	* objc.dg/gnu-api-2-object.m: Same change.
+	* obj-c++.dg/gnu-api-2-object.mm: Same change.
+	* objc.dg/gnu-api-2-property.m: Same change.
+	* obj-c++.dg/gnu-api-2-property.mm: Same change.
+	* objc.dg/gnu-api-2-protocol.m: Same change.
+	* obj-c++.dg/gnu-api-2-protocol.mm: Same change.
+
+	* objc.dg/gnu-api-2-objc.m: Also, fixed test for
+	objc_disposeClassPair not to create a new class pair with the same
+	name as an existing class, and to test that the class pair is
+	created correctly.
+	* obj-c++.dg/gnu-api-2-objc.mm: Same change.
+	
+2010-12-26  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/special/special.exp: Added load-category-2 and
+	load-category-3 tests.
+	* objc.dg/special/load-category-2.h: New.
+	* objc.dg/special/load-category-2.m: New.
+	* objc.dg/special/load-category-2a.m: New.
+	* objc.dg/special/load-category-3.h: New.
+	* objc.dg/special/load-category-3.m: New.
+	* objc.dg/special/load-category-3a.m: New.
+
+2010-12-25  Ira Rosen  <irar@il.ibm.com>
+
+	PR testsuite/47057
+	* gcc.dg/vect/costmodel/ppc/costmodel-vect-outer-fir.c: Change comment.
+	Expect two outer loops to get vectorized.
+
+2010-12-25  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR c++/15774
+	* g++.dg/warn/pr15774-1.C: New test.
+	* g++.dg/warn/pr15774-2.C: New test.
+
+2010-12-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-sel.m: Test calling sel_getUid,
+	sel_registerName and sel_registerTypedName with NULL arguments.
+	Updated the test to work with the Apple runtime as well.
+	* obj-c++.dg/gnu-api-2-sel.mm: Same change.
+
+2010-12-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-class.m: Updated test to pass log_2 of the
+	alignment to class_addIvar, instead of the alignment itself.
+	* obj-c++.dg/gnu-api-2-class.mm: Same change.
+
+2010-12-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-sel.m: Updated for renaming of sel_getType to
+	sel_getTypeEncoding.  Test that sel_getTypeEncoding returns NULL
+	when called with a NULL argument.  Added test for
+	sel_copyTypedSelectorList and sel_getTypedSelector.
+	* obj-c++.dg/gnu-api-2-sel.mm: Same changes.
+
+2010-12-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt13_pkg.ad[sb]: Fix line ending.
+
+2010-12-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* obj-c.dg/gnu-api-2-class.m: Test that class_conformsToProtocol()
+	does not check the superclasses.
+	* obj-c++.dg/gnu-api-2-class.mm: Same change.
+
+2010-12-24  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/47036
+	* g++.dg/opt/pr47036.C: New.
+
+2010-12-24  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/31821
+	* gfortran.dg/char_pointer_assign_6.f90:  New test.
+
+2010-12-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46758
+	* gcc.dg/graphite/run-id-pr46758.c: New.
+
+2010-12-23  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/46978
+	* gfortran.dg/transpose_intrinsic_func_call_1.f90: New test.
+
+2010-12-23  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* obj-c.dg/gnu-api-2-class.m: Test that class_addMethod() returns
+	NO if the method is already implemented in the class.
+	* obj-c++.dg/gnu-api-2-class.mm: Same change.
+
+2010-12-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/47019
+	* gfortran.dg/graphite/pr47019.f: New.
+
+2010-12-22  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/init/volatile2.C: New.
+
+2010-12-22  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
+
+	* g++.dg/cpp0x/alignof2.C: New.
+
+2010-12-22  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/45934
+	PR tree-optimization/46302
+	PR tree-optimization/46987
+	* g++.dg/ipa/ipcp-ivi-1.C: Removed.
+	* g++.dg/ipa/ivinline-6.C: Likewise.
+	* g++.dg/otr-fold-1.C: Likewise.
+	* g++.dg/otr-fold-2.C: Likewise.
+	* g++.dg/tree-ssa/pr43411.C: Xfail dump scan.
+	* g++.dg/tree-ssa/pr45605.C: Likewise.
+	* g++.dg/tree-ssa/pr46987.C: New test.
+
+2010-12-22  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* gfortran.dg/pr46755.f: Fix test case.
+
+2010-12-22  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/45352
+	PR rtl-optimization/46521
+	PR rtl-optimization/46522
+	* gcc.dg/pr46521.c: New.
+	* gcc.dg/pr46522.c: New.
+
+2010-12-21  Ian Lance Taylor  <iant@google.com>
+
+	* go.test/go-test.exp: Clear runtests around invocation of
+	go-dg-runtest from errchk and go-execute-xfail.
+
+2010-12-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/46880
+	* gcc.target/i386/pr46880.c: New test.
+
+2010-12-21  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/47001
+	* gcc.dg/vect/pr47001.c: New.
+
+2010-12-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR libobjc/16110
+	* objc.dg/special/special.exp: Added new test.
+	* objc.dg/special/load-category-1.m: New.
+	* objc.dg/special/load-category-1a.m: New.
+	* objc.dg/special/load-category-1.h: New.
+
+2010-12-21  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR middle-end/45310
+	* g++.dg/pr45310.C: New test.
+
+2010-12-21  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR rtl-optimization/46755
+	* gfortran.dg/pr46755.f: New test.
+
+2010-12-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/47008
+	* gfortran.dg/pr47008.f03: New test.
+
+2010-12-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR libobjc/45953
+	* objc.dg/libobjc-selector-1.m: New test.
+
+2010-12-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/45852
+	* gcc.target/i386/pr45852.c: New test.
+
+2010-12-20  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46974
+	* gfortran.dg/c_ptr_tests_16.f90: Fix endian issue.
+
+2010-12-19  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/45342
+	* gcc.dg/tls/thr-cse-1.c: Fix match on hppa*-*-hpux*.
+
+2010-12-19  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-objc.m: Fixed test to test objc_lookUpClass,
+	not objc_lookupClass.
+	* obj-c++.dg/gnu-api-2-objc.mm: Same change.
+
+2010-12-19  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-objc_msg_lookup.m: New.
+	* obj-c++.dg/gnu-api-2-objc_msg_lookup.mm: New.
+
+2010-12-19  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* gcc.target/arm/vfp-1.c (test_ldst): New test for VFP
+	load/store immediate indexes.
+
+2010-12-19  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-resolve-method.m: Include objc/message.h.
+	* obj-c++.dg/gnu-api-2-resolve-method.m: Include objc/message.h.
+
+2010-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/46969
+	* gcc.dg/autopar/pr46969.c: New test.
+
+2010-12-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/fobjc-exceptions-1.m: Updated.
+	* objc.dg/fobjc-exceptions-2.m: New.
+	* objc.dg/fobjc-exceptions-3.m: New.
+	* obj-c++.dg/fobjc-exceptions-1.mm: New.
+	* obj-c++.dg/fobjc-exceptions-2.mm: New.
+	* obj-c++.dg/fobjc-exceptions-3.mm: New.
+
+2010-12-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46974
+	* gfortran.dg/c_ptr_tests_16.f90: New.
+
+2010-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/46985
+	* gfortran.dg/pr46985.f90: New test.
+
+2010-12-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/46232
+	* gcc.dg/tree-ssa/pr14814.c: Add -fno-tree-sra.
+
+2010-12-18  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/fobjc-exceptions.m: Update dg-error syntax.
+
+2010-12-18  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR target/36834
+	* gcc.target/i386/aggregate-ret1.c: New.
+	* gcc.target/i386/aggregate-ret2.c: New.
+
+2010-12-18  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* gcc.target/powerpc/darwin-split-ld-stret.c: New test.
+
+2010-12-17  Ahmad Sharif  <asharif@google.com>
+
+	* gcc.target/i386/max-stack-align.c: New testcase.
+
+2010-12-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/exceptions-4.m: Adjust for change in error message.
+
 2010-12-17  Paolo Bonzini  <bonzini@gnu.org>
 
 	PR c/20385
@@ -284,7 +616,7 @@
 2010-12-11  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc.dg/gnu-api-2-resolve-method.m: New.
-	* obj-c++.dg/gnu-api-2-resolve-method.mm: New.	
+	* obj-c++.dg/gnu-api-2-resolve-method.mm: New.
 
 2010-12-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
@@ -811,7 +1143,7 @@
 	* g++.dg/lto/20101126-1_1.c: Likewise.
 
 2010-12-02  Richard Guenther  <rguenther@suse.de>
-            Ira Rosen  <irar@il.ibm.com>
+	    Ira Rosen  <irar@il.ibm.com>
 
 	PR tree-optimization/46663
 	* gcc.dg/vect/pr46663.c: New test.

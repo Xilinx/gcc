@@ -791,7 +791,8 @@ class Type
 
   // Return true if NAME is an unexported field or method of TYPE.
   static bool
-  is_unexported_field_or_method(Gogo*, const Type*, const std::string&);
+  is_unexported_field_or_method(Gogo*, const Type*, const std::string&,
+				std::vector<const Named_type*>*);
 
   // This type was passed to the builtin function make.  ARGS are the
   // arguments passed to make after the type; this may be NULL if
@@ -1067,8 +1068,8 @@ class Type
   static bool
   find_field_or_method(const Type* type, const std::string& name,
 		       bool receiver_can_be_pointer,
-		       int* level, bool* is_method,
-		       bool* found_pointer_method,
+		       std::vector<const Named_type*>*, int* level,
+		       bool* is_method, bool* found_pointer_method,
 		       std::string* ambig1, std::string* ambig2);
 
   // Get a tree for a type without looking in the hash table for
@@ -2387,7 +2388,7 @@ class Named_type : public Type
       local_methods_(NULL), all_methods_(NULL),
       interface_method_tables_(NULL), pointer_interface_method_tables_(NULL),
       location_(location), named_tree_(NULL), is_visible_(true),
-      is_error_(false), seen_(false)
+      is_error_(false), seen_(0)
   { }
 
   // Return the associated Named_object.  This holds the actual name.
@@ -2551,8 +2552,7 @@ class Named_type : public Type
   do_verify();
 
   bool
-  do_has_pointer() const
-  { return this->type_->has_pointer(); }
+  do_has_pointer() const;
 
   unsigned int
   do_hash_for_method(Gogo*) const;
@@ -2626,7 +2626,7 @@ class Named_type : public Type
   // used to prevent infinite recursion when a type refers to itself.
   // This is mutable because it is always reset to false when the
   // function exits.
-  mutable bool seen_;
+  mutable int seen_;
 };
 
 // A forward declaration.  This handles a type which has been declared
@@ -2676,7 +2676,7 @@ class Forward_declaration_type : public Type
 
   bool
   do_has_pointer() const
-  { return this->base()->has_pointer(); }
+  { return this->real_type()->has_pointer(); }
 
   unsigned int
   do_hash_for_method(Gogo* gogo) const

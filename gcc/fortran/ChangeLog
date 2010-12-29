@@ -1,3 +1,34 @@
+2010-12-28  Janus Weil  <janus@gcc.gnu.org>
+	    Daniel Franke  <dfranke@gcc.gnu.org>
+
+	PR fortran/45827
+	* module.c (mio_component_ref): Handle components of CLASS variables.
+
+2010-12-27  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* dump-parse-tree.c (show_typespec):  Also show character kind.
+
+2010-12-24  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/31821
+	* check.c (gfc_var_strlen):  New function, also including
+	substring references.
+	(gfc_check_same_strlen):  Use gfc_var_strlen.
+
+2010-12-23  Mikael Morin  <mikael.morin@gcc.gnu.org>
+
+	PR fortran/46978
+	Revert part of revision 164112
+	* trans-array.c (gfc_trans_create_temp_array):
+	Set loop n'th upper bound from (possibly transposed) array's dim bounds.
+
+2010-12-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46974
+	* target-memory.c (gfc_interpret_derived): Handle C_PTR/C_FUNPTR.
+	* trans-expr.c (gfc_trans_structure_assign): Ditto.
+	(gfc_conv_expr): Avoid crashes using non-C_NULL_(FUN)PTR const expr.
+
 2010-12-17  Janus Weil  <janus@gcc.gnu.org>
 	    Tobias Burnus <burnus@gcc.gnu.org>
 

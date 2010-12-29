@@ -1,3 +1,37 @@
+2010-12-19  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR libstdc++/46869
+	* testsuite/20_util/enable_shared_from_this/cons/constexpr.cc:
+	Compile with -g0.
+	* testsuite/20_util/shared_ptr/cons/constexpr.cc: Likewise.
+	* testsuite/20_util/unique_ptr/cons/constexpr.cc: Likewise.
+	* testsuite/20_util/weak_ptr/cons/constexpr.cc: Likewise.
+
+2010-12-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/basic_string.h (operator+(basic_string<>&&,
+	basic_string<>&&)): Optimize better.
+	* include/ext/vstring.h (operator+(__versa_string<>&&,
+	__versa_string<>&)): Likewise.
+
+2010-12-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/21_strings/basic_string/operators/char/4.cc: New.
+	* testsuite/21_strings/basic_string/operators/wchar_t/4.cc: Likewise.
+	* testsuite/ext/vstring/operators/2.cc: Likewise.
+
+2010-11-18  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* config/*/*: Use headername alias to associate private includes
+	to public includes.
+	* include/*/*: Same.
+
+	* scripts/run_doxygen: Update for doxygen 1.7.2.
+	* doc/doxygen/user.cfg.in: Same.
+	* doc/doxygen/TODO: Remove.
+
+	* testsuite/*/std_c++0x_neg.cc: Adjust line number.
+
 2010-12-17  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/bits/basic_string.h (operator+(basic_string<>&&,
