@@ -1,3 +1,14 @@
+2010-12-29  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Makefile.in (graphite-opencl-codegen.o): Update dependences.
+	(graphite-opencl-meta-clast.o): Same.
+	(graphite-opencl.o): Same.
+	(refined-regions.o): Same.
+	* graphite-opencl-codegen.c: Do not include unnecessary .h files.
+	* graphite-opencl-meta-clast.c: Same.
+	* graphite-opencl.c: Same.
+	* refined-regions.c: Same.
+
 2010-12-27  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-opencl-codegen.c: Use FOR_EACH_VEC_ELT.

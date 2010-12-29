@@ -2709,33 +2709,19 @@ graphite-sese-to-poly.o : graphite-sese-to-poly.c $(CONFIG_H) \
    $(SYSTEM_H) coretypes.h $(TREE_FLOW_H) $(TREE_DUMP_H) $(CFGLOOP_H) \
    $(TREE_DATA_REF_H) domwalk.h sese.h graphite-ppl.h graphite-poly.h \
    graphite-sese-to-poly.h
-refined-regions.o: refined-regions.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
-   $(TM_H) $(BASIC_BLOCK_H) $(TIMEVAR_H) $(BITMAP_H) domwalk.h $(TREE_PASS_H) \
-   refined-regions.h
-graphite-opencl-codegen.o: graphite-opencl-codegen.c $(CONFIG_H) \
-   $(SYSTEM_H) coretypes.h $(TM_H) \
-   $(GGC_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) $(TOPLEV_H) \
-   $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H) \
-   $(TREE_DATA_REF_H) tree-pass.h graphite.h graphite-opencl.h\
-   pointer-set.h value-prof.h graphite-ppl.h sese.h \
-   graphite-scop-detection.h graphite-clast-to-gimple.h graphite-poly.h \
-   graphite-dependences.h
-graphite-opencl-meta-clast.o: graphite-opencl-meta-clast.c $(CONFIG_H) \
-   $(SYSTEM_H) coretypes.h $(TM_H) \
-   $(GGC_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) $(TOPLEV_H) \
-   $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H) \
-   $(TREE_DATA_REF_H) tree-pass.h graphite.h graphite-opencl.h\
-   pointer-set.h value-prof.h graphite-ppl.h sese.h \
-   graphite-scop-detection.h graphite-clast-to-gimple.h graphite-poly.h \
-   graphite-dependences.h
-graphite-opencl.o: graphite-opencl.c graphite-opencl-functions.def $(CONFIG_H) \
-   $(SYSTEM_H) coretypes.h $(TM_H) \
-   $(GGC_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) $(TOPLEV_H) \
-   $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H) \
-   $(TREE_DATA_REF_H) tree-pass.h graphite.h graphite-opencl.h\
-   pointer-set.h value-prof.h graphite-ppl.h sese.h \
-   graphite-scop-detection.h graphite-clast-to-gimple.h graphite-poly.h \
-   graphite-dependences.h
+refined-regions.o : refined-regions.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+   $(BASIC_BLOCK_H) $(BITMAP_H) domwalk.h $(TREE_PASS_H) refined-regions.h
+graphite-opencl-codegen.o : graphite-opencl-codegen.c $(CONFIG_H) \
+   $(SYSTEM_H) coretypes.h $(TREE_FLOW_H) $(CFGLOOP_H) $(TREE_DATA_REF_H) \
+   $(TREE_PASS_H) sese.h gimple-pretty-print.h graphite-ppl.h graphite-poly.h \
+   graphite-clast-to-gimple.h graphite-opencl.h
+graphite-opencl-meta-clast.o : graphite-opencl-meta-clast.c $(CONFIG_H) \
+   $(SYSTEM_H) coretypes.h $(TREE_FLOW_H) $(CFGLOOP_H) $(TREE_DATA_REF_H) \
+   $(TREE_PASS_H) sese.h gimple-pretty-print.h graphite-ppl.h graphite-poly.h \
+   graphite-clast-to-gimple.h graphite-dependences.h graphite-opencl.h
+graphite-opencl.o : graphite-opencl.c graphite-opencl-functions.def $(CONFIG_H) \
+   $(SYSTEM_H) coretypes.h $(TREE_FLOW_H) $(CFGLOOP_H) $(TREE_DATA_REF_H) \
+   $(TREE_PASS_H) sese.h output.h
 tree-vect-loop.o: tree-vect-loop.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TM_H) $(GGC_H) $(TREE_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) $(TREE_FLOW_H) \
    $(TREE_DUMP_H) $(CFGLOOP_H) $(CFGLAYOUT_H) $(EXPR_H) $(RECOG_H) $(OPTABS_H) \
