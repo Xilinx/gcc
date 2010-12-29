@@ -1667,7 +1667,7 @@ fi
 if test "x$with_cloog" != "xno"; then
   dnl Version check for CLooG-Org
   dnl As long as there is no new release of CLooG,
-  dnl we will check for 0.14.0.
+  dnl we will check for 0.16.0.
   dnl
   dnl The first git revision that will work with
   dnl GCC is: bd91b845a65805c290d43fc1bef8139864a163fb
@@ -1677,7 +1677,7 @@ if test "x$with_cloog" != "xno"; then
   dnl
   dnl If we're using CLooG-Legacy, the provided version information
   dnl will be ignored.
-  CLOOG_CHECK_VERSION(0,14,0)
+  CLOOG_CHECK_VERSION(0,16,0)
 
   dnl Only execute fail-action, if CLooG has been
   dnl requested.

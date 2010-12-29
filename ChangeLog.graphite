@@ -1,5 +1,10 @@
 2010-12-29  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* configure: Regenerated.
+	* configure.ac: Use CLOOG_CHECK_VERSION(0,16,0).
+
+2010-12-29  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* Merge from mainline (168000:168310).
 
 2010-12-17  Sebastian Pop  <sebastian.pop@amd.com>
