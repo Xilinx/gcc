@@ -962,11 +962,8 @@ configure-target:  \
     maybe-configure-target-libquadmath \
     maybe-configure-target-libgfortran \
     maybe-configure-target-libobjc \
-<<<<<<< HEAD
-    maybe-configure-target-libgpython \
-=======
     maybe-configure-target-libgo \
->>>>>>> master
+    maybe-configure-target-libgpython \
     maybe-configure-target-libtermcap \
     maybe-configure-target-winsup \
     maybe-configure-target-libgloss \
@@ -1150,11 +1147,8 @@ all-target: maybe-all-target-libgcc
 all-target: maybe-all-target-libquadmath
 all-target: maybe-all-target-libgfortran
 all-target: maybe-all-target-libobjc
-<<<<<<< HEAD
-all-target: maybe-all-target-libgpython
-=======
 all-target: maybe-all-target-libgo
->>>>>>> master
+all-target: maybe-all-target-libgpython
 all-target: maybe-all-target-libtermcap
 all-target: maybe-all-target-winsup
 all-target: maybe-all-target-libgloss
@@ -1277,11 +1271,8 @@ info-target: maybe-info-target-libgcc
 info-target: maybe-info-target-libquadmath
 info-target: maybe-info-target-libgfortran
 info-target: maybe-info-target-libobjc
-<<<<<<< HEAD
-info-target: maybe-info-target-libgpython
-=======
 info-target: maybe-info-target-libgo
->>>>>>> master
+info-target: maybe-info-target-libgpython
 info-target: maybe-info-target-libtermcap
 info-target: maybe-info-target-winsup
 info-target: maybe-info-target-libgloss
@@ -1397,11 +1388,8 @@ dvi-target: maybe-dvi-target-libgcc
 dvi-target: maybe-dvi-target-libquadmath
 dvi-target: maybe-dvi-target-libgfortran
 dvi-target: maybe-dvi-target-libobjc
-<<<<<<< HEAD
-dvi-target: maybe-dvi-target-libgpython
-=======
 dvi-target: maybe-dvi-target-libgo
->>>>>>> master
+dvi-target: maybe-dvi-target-libgpython
 dvi-target: maybe-dvi-target-libtermcap
 dvi-target: maybe-dvi-target-winsup
 dvi-target: maybe-dvi-target-libgloss
@@ -1517,11 +1505,8 @@ pdf-target: maybe-pdf-target-libgcc
 pdf-target: maybe-pdf-target-libquadmath
 pdf-target: maybe-pdf-target-libgfortran
 pdf-target: maybe-pdf-target-libobjc
-<<<<<<< HEAD
-pdf-target: maybe-pdf-target-libgpython
-=======
 pdf-target: maybe-pdf-target-libgo
->>>>>>> master
+pdf-target: maybe-pdf-target-libgpython
 pdf-target: maybe-pdf-target-libtermcap
 pdf-target: maybe-pdf-target-winsup
 pdf-target: maybe-pdf-target-libgloss
@@ -1637,11 +1622,8 @@ html-target: maybe-html-target-libgcc
 html-target: maybe-html-target-libquadmath
 html-target: maybe-html-target-libgfortran
 html-target: maybe-html-target-libobjc
-<<<<<<< HEAD
-html-target: maybe-html-target-libgpython
-=======
 html-target: maybe-html-target-libgo
->>>>>>> master
+html-target: maybe-html-target-libgpython
 html-target: maybe-html-target-libtermcap
 html-target: maybe-html-target-winsup
 html-target: maybe-html-target-libgloss
@@ -1757,11 +1739,8 @@ TAGS-target: maybe-TAGS-target-libgcc
 TAGS-target: maybe-TAGS-target-libquadmath
 TAGS-target: maybe-TAGS-target-libgfortran
 TAGS-target: maybe-TAGS-target-libobjc
-<<<<<<< HEAD
-TAGS-target: maybe-TAGS-target-libgpython
-=======
 TAGS-target: maybe-TAGS-target-libgo
->>>>>>> master
+TAGS-target: maybe-TAGS-target-libgpython
 TAGS-target: maybe-TAGS-target-libtermcap
 TAGS-target: maybe-TAGS-target-winsup
 TAGS-target: maybe-TAGS-target-libgloss
@@ -1877,11 +1856,8 @@ install-info-target: maybe-install-info-target-libgcc
 install-info-target: maybe-install-info-target-libquadmath
 install-info-target: maybe-install-info-target-libgfortran
 install-info-target: maybe-install-info-target-libobjc
-<<<<<<< HEAD
-install-info-target: maybe-install-info-target-libgpython
-=======
 install-info-target: maybe-install-info-target-libgo
->>>>>>> master
+install-info-target: maybe-install-info-target-libgpython
 install-info-target: maybe-install-info-target-libtermcap
 install-info-target: maybe-install-info-target-winsup
 install-info-target: maybe-install-info-target-libgloss
@@ -1997,11 +1973,8 @@ install-pdf-target: maybe-install-pdf-target-libgcc
 install-pdf-target: maybe-install-pdf-target-libquadmath
 install-pdf-target: maybe-install-pdf-target-libgfortran
 install-pdf-target: maybe-install-pdf-target-libobjc
-<<<<<<< HEAD
-install-pdf-target: maybe-install-pdf-target-libgpython
-=======
 install-pdf-target: maybe-install-pdf-target-libgo
->>>>>>> master
+install-pdf-target: maybe-install-pdf-target-libgpython
 install-pdf-target: maybe-install-pdf-target-libtermcap
 install-pdf-target: maybe-install-pdf-target-winsup
 install-pdf-target: maybe-install-pdf-target-libgloss
@@ -2117,11 +2090,8 @@ install-html-target: maybe-install-html-target-libgcc
 install-html-target: maybe-install-html-target-libquadmath
 install-html-target: maybe-install-html-target-libgfortran
 install-html-target: maybe-install-html-target-libobjc
-<<<<<<< HEAD
-install-html-target: maybe-install-html-target-libgpython
-=======
 install-html-target: maybe-install-html-target-libgo
->>>>>>> master
+install-html-target: maybe-install-html-target-libgpython
 install-html-target: maybe-install-html-target-libtermcap
 install-html-target: maybe-install-html-target-winsup
 install-html-target: maybe-install-html-target-libgloss
@@ -2237,11 +2207,8 @@ installcheck-target: maybe-installcheck-target-libgcc
 installcheck-target: maybe-installcheck-target-libquadmath
 installcheck-target: maybe-installcheck-target-libgfortran
 installcheck-target: maybe-installcheck-target-libobjc
-<<<<<<< HEAD
-installcheck-target: maybe-installcheck-target-libgpython
-=======
 installcheck-target: maybe-installcheck-target-libgo
->>>>>>> master
+installcheck-target: maybe-installcheck-target-libgpython
 installcheck-target: maybe-installcheck-target-libtermcap
 installcheck-target: maybe-installcheck-target-winsup
 installcheck-target: maybe-installcheck-target-libgloss
@@ -2357,11 +2324,8 @@ mostlyclean-target: maybe-mostlyclean-target-libgcc
 mostlyclean-target: maybe-mostlyclean-target-libquadmath
 mostlyclean-target: maybe-mostlyclean-target-libgfortran
 mostlyclean-target: maybe-mostlyclean-target-libobjc
-<<<<<<< HEAD
-mostlyclean-target: maybe-mostlyclean-target-libgpython
-=======
 mostlyclean-target: maybe-mostlyclean-target-libgo
->>>>>>> master
+mostlyclean-target: maybe-mostlyclean-target-libgpython
 mostlyclean-target: maybe-mostlyclean-target-libtermcap
 mostlyclean-target: maybe-mostlyclean-target-winsup
 mostlyclean-target: maybe-mostlyclean-target-libgloss
@@ -2477,11 +2441,8 @@ clean-target: maybe-clean-target-libgcc
 clean-target: maybe-clean-target-libquadmath
 clean-target: maybe-clean-target-libgfortran
 clean-target: maybe-clean-target-libobjc
-<<<<<<< HEAD
-clean-target: maybe-clean-target-libgpython
-=======
 clean-target: maybe-clean-target-libgo
->>>>>>> master
+clean-target: maybe-clean-target-libgpython
 clean-target: maybe-clean-target-libtermcap
 clean-target: maybe-clean-target-winsup
 clean-target: maybe-clean-target-libgloss
@@ -2597,11 +2558,8 @@ distclean-target: maybe-distclean-target-libgcc
 distclean-target: maybe-distclean-target-libquadmath
 distclean-target: maybe-distclean-target-libgfortran
 distclean-target: maybe-distclean-target-libobjc
-<<<<<<< HEAD
-distclean-target: maybe-distclean-target-libgpython
-=======
 distclean-target: maybe-distclean-target-libgo
->>>>>>> master
+distclean-target: maybe-distclean-target-libgpython
 distclean-target: maybe-distclean-target-libtermcap
 distclean-target: maybe-distclean-target-winsup
 distclean-target: maybe-distclean-target-libgloss
@@ -2717,11 +2675,8 @@ maintainer-clean-target: maybe-maintainer-clean-target-libgcc
 maintainer-clean-target: maybe-maintainer-clean-target-libquadmath
 maintainer-clean-target: maybe-maintainer-clean-target-libgfortran
 maintainer-clean-target: maybe-maintainer-clean-target-libobjc
-<<<<<<< HEAD
-maintainer-clean-target: maybe-maintainer-clean-target-libgpython
-=======
 maintainer-clean-target: maybe-maintainer-clean-target-libgo
->>>>>>> master
+maintainer-clean-target: maybe-maintainer-clean-target-libgpython
 maintainer-clean-target: maybe-maintainer-clean-target-libtermcap
 maintainer-clean-target: maybe-maintainer-clean-target-winsup
 maintainer-clean-target: maybe-maintainer-clean-target-libgloss
@@ -2892,11 +2847,8 @@ check-target:  \
     maybe-check-target-libquadmath \
     maybe-check-target-libgfortran \
     maybe-check-target-libobjc \
-<<<<<<< HEAD
-    maybe-check-target-libgpython \
-=======
     maybe-check-target-libgo \
->>>>>>> master
+    maybe-check-target-libgpython \
     maybe-check-target-libtermcap \
     maybe-check-target-winsup \
     maybe-check-target-libgloss \
@@ -3119,11 +3071,8 @@ install-target:  \
     maybe-install-target-libquadmath \
     maybe-install-target-libgfortran \
     maybe-install-target-libobjc \
-<<<<<<< HEAD
-    maybe-install-target-libgpython \
-=======
     maybe-install-target-libgo \
->>>>>>> master
+    maybe-install-target-libgpython \
     maybe-install-target-libtermcap \
     maybe-install-target-winsup \
     maybe-install-target-libgloss \
@@ -3259,6 +3208,7 @@ install-strip-target:  \
     maybe-install-strip-target-libgfortran \
     maybe-install-strip-target-libobjc \
     maybe-install-strip-target-libgo \
+    maybe-install-strip-target-libgpython \
     maybe-install-strip-target-libtermcap \
     maybe-install-strip-target-winsup \
     maybe-install-strip-target-libgloss \
@@ -50883,44 +50833,6 @@ maintainer-clean-target-libobjc:
 
 
 
-<<<<<<< HEAD
-.PHONY: configure-target-libgpython maybe-configure-target-libgpython
-maybe-configure-target-libgpython:
-@if gcc-bootstrap
-configure-target-libgpython: stage_current
-@endif gcc-bootstrap
-@if target-libgpython
-maybe-configure-target-libgpython: configure-target-libgpython
-configure-target-libgpython: 
-	@: $(MAKE); $(unstage)
-	@r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	echo "Checking multilib configuration for libgpython..."; \
-	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libgpython ; \
-	$(CC_FOR_TARGET) --print-multi-lib > $(TARGET_SUBDIR)/libgpython/multilib.tmp 2> /dev/null ; \
-	if test -r $(TARGET_SUBDIR)/libgpython/multilib.out; then \
-	  if cmp -s $(TARGET_SUBDIR)/libgpython/multilib.tmp $(TARGET_SUBDIR)/libgpython/multilib.out; then \
-	    rm -f $(TARGET_SUBDIR)/libgpython/multilib.tmp; \
-	  else \
-	    rm -f $(TARGET_SUBDIR)/libgpython/Makefile; \
-	    mv $(TARGET_SUBDIR)/libgpython/multilib.tmp $(TARGET_SUBDIR)/libgpython/multilib.out; \
-	  fi; \
-	else \
-	  mv $(TARGET_SUBDIR)/libgpython/multilib.tmp $(TARGET_SUBDIR)/libgpython/multilib.out; \
-	fi; \
-	test ! -f $(TARGET_SUBDIR)/libgpython/Makefile || exit 0; \
-	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libgpython ; \
-	$(NORMAL_TARGET_EXPORTS)  \
-	echo Configuring in $(TARGET_SUBDIR)/libgpython; \
-	cd "$(TARGET_SUBDIR)/libgpython" || exit 1; \
-	case $(srcdir) in \
-	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
-	  *) topdir=`echo $(TARGET_SUBDIR)/libgpython/ | \
-		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
-	esac; \
-	srcdiroption="--srcdir=$${topdir}/libgpython"; \
-	libsrcdir="$$s/libgpython"; \
-=======
 .PHONY: configure-target-libgo maybe-configure-target-libgo
 maybe-configure-target-libgo:
 @if gcc-bootstrap
@@ -50957,33 +50869,17 @@ configure-target-libgo:
 	esac; \
 	srcdiroption="--srcdir=$${topdir}/libgo"; \
 	libsrcdir="$$s/libgo"; \
->>>>>>> master
 	rm -f no-such-file || : ; \
 	CONFIG_SITE=no-such-file $(SHELL) $${libsrcdir}/configure \
 	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
 	  --target=${target_alias} $${srcdiroption}  \
 	  || exit 1
-<<<<<<< HEAD
-@endif target-libgpython
-=======
 @endif target-libgo
->>>>>>> master
 
 
 
 
 
-<<<<<<< HEAD
-.PHONY: all-target-libgpython maybe-all-target-libgpython
-maybe-all-target-libgpython:
-@if gcc-bootstrap
-all-target-libgpython: stage_current
-@endif gcc-bootstrap
-@if target-libgpython
-TARGET-target-libgpython=all
-maybe-all-target-libgpython: all-target-libgpython
-all-target-libgpython: configure-target-libgpython
-=======
 .PHONY: all-target-libgo maybe-all-target-libgo
 maybe-all-target-libgo:
 @if gcc-bootstrap
@@ -50993,59 +50889,29 @@ all-target-libgo: stage_current
 TARGET-target-libgo=all
 maybe-all-target-libgo: all-target-libgo
 all-target-libgo: configure-target-libgo
->>>>>>> master
 	@: $(MAKE); $(unstage)
 	@r=`${PWD_COMMAND}`; export r; \
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(NORMAL_TARGET_EXPORTS)  \
-<<<<<<< HEAD
-	(cd $(TARGET_SUBDIR)/libgpython && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_TARGET_FLAGS)  \
-		$(TARGET-target-libgpython))
-@endif target-libgpython
-=======
 	(cd $(TARGET_SUBDIR)/libgo && \
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_TARGET_FLAGS)  \
 		$(TARGET-target-libgo))
 @endif target-libgo
->>>>>>> master
 
 
 
 
 
-<<<<<<< HEAD
-.PHONY: check-target-libgpython maybe-check-target-libgpython
-maybe-check-target-libgpython:
-@if target-libgpython
-maybe-check-target-libgpython: check-target-libgpython
-
-check-target-libgpython:
-=======
 .PHONY: check-target-libgo maybe-check-target-libgo
 maybe-check-target-libgo:
 @if target-libgo
 maybe-check-target-libgo: check-target-libgo
 
 check-target-libgo:
->>>>>>> master
 	@: $(MAKE); $(unstage)
 	@r=`${PWD_COMMAND}`; export r; \
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(NORMAL_TARGET_EXPORTS) \
-<<<<<<< HEAD
-	(cd $(TARGET_SUBDIR)/libgpython && \
-	  $(MAKE) $(TARGET_FLAGS_TO_PASS)   check)
-
-@endif target-libgpython
-
-.PHONY: install-target-libgpython maybe-install-target-libgpython
-maybe-install-target-libgpython:
-@if target-libgpython
-maybe-install-target-libgpython: install-target-libgpython
-
-install-target-libgpython: installdirs
-=======
 	(cd $(TARGET_SUBDIR)/libgo && \
 	  $(MAKE) $(TARGET_FLAGS_TO_PASS)   check)
 
@@ -51057,37 +50923,10 @@ maybe-install-target-libgo:
 maybe-install-target-libgo: install-target-libgo
 
 install-target-libgo: installdirs
->>>>>>> master
 	@: $(MAKE); $(unstage)
 	@r=`${PWD_COMMAND}`; export r; \
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(NORMAL_TARGET_EXPORTS) \
-<<<<<<< HEAD
-	(cd $(TARGET_SUBDIR)/libgpython && \
-	  $(MAKE) $(TARGET_FLAGS_TO_PASS)  install)
-
-@endif target-libgpython
-
-# Other targets (info, dvi, pdf, etc.)
-
-.PHONY: maybe-info-target-libgpython info-target-libgpython
-maybe-info-target-libgpython:
-@if target-libgpython
-maybe-info-target-libgpython: info-target-libgpython
-
-info-target-libgpython: \
-    configure-target-libgpython 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing info in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 	(cd $(TARGET_SUBDIR)/libgo && \
 	  $(MAKE) $(TARGET_FLAGS_TO_PASS)  install)
 
@@ -51127,7 +50966,6 @@ info-target-libgo: \
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51135,27 +50973,6 @@ info-target-libgo: \
 	           info) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-
-.PHONY: maybe-dvi-target-libgpython dvi-target-libgpython
-maybe-dvi-target-libgpython:
-@if target-libgpython
-maybe-dvi-target-libgpython: dvi-target-libgpython
-
-dvi-target-libgpython: \
-    configure-target-libgpython 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing dvi in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 @endif target-libgo
 
 .PHONY: maybe-dvi-target-libgo dvi-target-libgo
@@ -51175,7 +50992,6 @@ dvi-target-libgo: \
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51183,27 +50999,6 @@ dvi-target-libgo: \
 	           dvi) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-
-.PHONY: maybe-pdf-target-libgpython pdf-target-libgpython
-maybe-pdf-target-libgpython:
-@if target-libgpython
-maybe-pdf-target-libgpython: pdf-target-libgpython
-
-pdf-target-libgpython: \
-    configure-target-libgpython 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing pdf in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 @endif target-libgo
 
 .PHONY: maybe-pdf-target-libgo pdf-target-libgo
@@ -51223,7 +51018,6 @@ pdf-target-libgo: \
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51231,27 +51025,6 @@ pdf-target-libgo: \
 	           pdf) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-
-.PHONY: maybe-html-target-libgpython html-target-libgpython
-maybe-html-target-libgpython:
-@if target-libgpython
-maybe-html-target-libgpython: html-target-libgpython
-
-html-target-libgpython: \
-    configure-target-libgpython 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing html in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 @endif target-libgo
 
 .PHONY: maybe-html-target-libgo html-target-libgo
@@ -51271,7 +51044,6 @@ html-target-libgo: \
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51279,27 +51051,6 @@ html-target-libgo: \
 	           html) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-
-.PHONY: maybe-TAGS-target-libgpython TAGS-target-libgpython
-maybe-TAGS-target-libgpython:
-@if target-libgpython
-maybe-TAGS-target-libgpython: TAGS-target-libgpython
-
-TAGS-target-libgpython: \
-    configure-target-libgpython 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing TAGS in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 @endif target-libgo
 
 .PHONY: maybe-TAGS-target-libgo TAGS-target-libgo
@@ -51319,7 +51070,6 @@ TAGS-target-libgo: \
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51327,28 +51077,6 @@ TAGS-target-libgo: \
 	           TAGS) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-
-.PHONY: maybe-install-info-target-libgpython install-info-target-libgpython
-maybe-install-info-target-libgpython:
-@if target-libgpython
-maybe-install-info-target-libgpython: install-info-target-libgpython
-
-install-info-target-libgpython: \
-    configure-target-libgpython \
-    info-target-libgpython 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing install-info in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 @endif target-libgo
 
 .PHONY: maybe-install-info-target-libgo install-info-target-libgo
@@ -51369,7 +51097,6 @@ install-info-target-libgo: \
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51377,28 +51104,6 @@ install-info-target-libgo: \
 	           install-info) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-
-.PHONY: maybe-install-pdf-target-libgpython install-pdf-target-libgpython
-maybe-install-pdf-target-libgpython:
-@if target-libgpython
-maybe-install-pdf-target-libgpython: install-pdf-target-libgpython
-
-install-pdf-target-libgpython: \
-    configure-target-libgpython \
-    pdf-target-libgpython 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing install-pdf in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 @endif target-libgo
 
 .PHONY: maybe-install-pdf-target-libgo install-pdf-target-libgo
@@ -51419,7 +51124,6 @@ install-pdf-target-libgo: \
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51427,28 +51131,6 @@ install-pdf-target-libgo: \
 	           install-pdf) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-
-.PHONY: maybe-install-html-target-libgpython install-html-target-libgpython
-maybe-install-html-target-libgpython:
-@if target-libgpython
-maybe-install-html-target-libgpython: install-html-target-libgpython
-
-install-html-target-libgpython: \
-    configure-target-libgpython \
-    html-target-libgpython 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing install-html in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 @endif target-libgo
 
 .PHONY: maybe-install-html-target-libgo install-html-target-libgo
@@ -51469,7 +51151,6 @@ install-html-target-libgo: \
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51477,27 +51158,6 @@ install-html-target-libgo: \
 	           install-html) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-
-.PHONY: maybe-installcheck-target-libgpython installcheck-target-libgpython
-maybe-installcheck-target-libgpython:
-@if target-libgpython
-maybe-installcheck-target-libgpython: installcheck-target-libgpython
-
-installcheck-target-libgpython: \
-    configure-target-libgpython 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing installcheck in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 @endif target-libgo
 
 .PHONY: maybe-installcheck-target-libgo installcheck-target-libgo
@@ -51517,7 +51177,6 @@ installcheck-target-libgo: \
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51525,26 +51184,6 @@ installcheck-target-libgo: \
 	           installcheck) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-
-.PHONY: maybe-mostlyclean-target-libgpython mostlyclean-target-libgpython
-maybe-mostlyclean-target-libgpython:
-@if target-libgpython
-maybe-mostlyclean-target-libgpython: mostlyclean-target-libgpython
-
-mostlyclean-target-libgpython: 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing mostlyclean in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 @endif target-libgo
 
 .PHONY: maybe-mostlyclean-target-libgo mostlyclean-target-libgo
@@ -51563,7 +51202,6 @@ mostlyclean-target-libgo:
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51571,26 +51209,6 @@ mostlyclean-target-libgo:
 	           mostlyclean) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-
-.PHONY: maybe-clean-target-libgpython clean-target-libgpython
-maybe-clean-target-libgpython:
-@if target-libgpython
-maybe-clean-target-libgpython: clean-target-libgpython
-
-clean-target-libgpython: 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing clean in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 @endif target-libgo
 
 .PHONY: maybe-clean-target-libgo clean-target-libgo
@@ -51609,7 +51227,6 @@ clean-target-libgo:
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51617,26 +51234,6 @@ clean-target-libgo:
 	           clean) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-
-.PHONY: maybe-distclean-target-libgpython distclean-target-libgpython
-maybe-distclean-target-libgpython:
-@if target-libgpython
-maybe-distclean-target-libgpython: distclean-target-libgpython
-
-distclean-target-libgpython: 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing distclean in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 @endif target-libgo
 
 .PHONY: maybe-distclean-target-libgo distclean-target-libgo
@@ -51655,7 +51252,6 @@ distclean-target-libgo:
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51663,26 +51259,6 @@ distclean-target-libgo:
 	           distclean) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-
-.PHONY: maybe-maintainer-clean-target-libgpython maintainer-clean-target-libgpython
-maybe-maintainer-clean-target-libgpython:
-@if target-libgpython
-maybe-maintainer-clean-target-libgpython: maintainer-clean-target-libgpython
-
-maintainer-clean-target-libgpython: 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing maintainer-clean in $(TARGET_SUBDIR)/libgpython" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libgpython && \
-=======
 @endif target-libgo
 
 .PHONY: maybe-maintainer-clean-target-libgo maintainer-clean-target-libgo
@@ -51701,7 +51277,6 @@ maintainer-clean-target-libgo:
 	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
 	done; \
 	(cd $(TARGET_SUBDIR)/libgo && \
->>>>>>> master
 	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
 	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
 	          "RANLIB=$${RANLIB}" \
@@ -51709,11 +51284,464 @@ maintainer-clean-target-libgo:
 	           maintainer-clean) \
 	  || exit 1
 
-<<<<<<< HEAD
-@endif target-libgpython
-=======
 @endif target-libgo
->>>>>>> master
+
+
+
+
+
+.PHONY: configure-target-libgpython maybe-configure-target-libgpython
+maybe-configure-target-libgpython:
+@if gcc-bootstrap
+configure-target-libgpython: stage_current
+@endif gcc-bootstrap
+@if target-libgpython
+maybe-configure-target-libgpython: configure-target-libgpython
+configure-target-libgpython: 
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	echo "Checking multilib configuration for libgpython..."; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libgpython ; \
+	$(CC_FOR_TARGET) --print-multi-lib > $(TARGET_SUBDIR)/libgpython/multilib.tmp 2> /dev/null ; \
+	if test -r $(TARGET_SUBDIR)/libgpython/multilib.out; then \
+	  if cmp -s $(TARGET_SUBDIR)/libgpython/multilib.tmp $(TARGET_SUBDIR)/libgpython/multilib.out; then \
+	    rm -f $(TARGET_SUBDIR)/libgpython/multilib.tmp; \
+	  else \
+	    rm -f $(TARGET_SUBDIR)/libgpython/Makefile; \
+	    mv $(TARGET_SUBDIR)/libgpython/multilib.tmp $(TARGET_SUBDIR)/libgpython/multilib.out; \
+	  fi; \
+	else \
+	  mv $(TARGET_SUBDIR)/libgpython/multilib.tmp $(TARGET_SUBDIR)/libgpython/multilib.out; \
+	fi; \
+	test ! -f $(TARGET_SUBDIR)/libgpython/Makefile || exit 0; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libgpython ; \
+	$(NORMAL_TARGET_EXPORTS)  \
+	echo Configuring in $(TARGET_SUBDIR)/libgpython; \
+	cd "$(TARGET_SUBDIR)/libgpython" || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(TARGET_SUBDIR)/libgpython/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libgpython"; \
+	libsrcdir="$$s/libgpython"; \
+	rm -f no-such-file || : ; \
+	CONFIG_SITE=no-such-file $(SHELL) $${libsrcdir}/configure \
+	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
+	  --target=${target_alias} $${srcdiroption}  \
+	  || exit 1
+@endif target-libgpython
+
+
+
+
+
+.PHONY: all-target-libgpython maybe-all-target-libgpython
+maybe-all-target-libgpython:
+@if gcc-bootstrap
+all-target-libgpython: stage_current
+@endif gcc-bootstrap
+@if target-libgpython
+TARGET-target-libgpython=all
+maybe-all-target-libgpython: all-target-libgpython
+all-target-libgpython: configure-target-libgpython
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS)  \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_TARGET_FLAGS)  \
+		$(TARGET-target-libgpython))
+@endif target-libgpython
+
+
+
+
+
+.PHONY: check-target-libgpython maybe-check-target-libgpython
+maybe-check-target-libgpython:
+@if target-libgpython
+maybe-check-target-libgpython: check-target-libgpython
+
+check-target-libgpython:
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(TARGET_FLAGS_TO_PASS)   check)
+
+@endif target-libgpython
+
+.PHONY: install-target-libgpython maybe-install-target-libgpython
+maybe-install-target-libgpython:
+@if target-libgpython
+maybe-install-target-libgpython: install-target-libgpython
+
+install-target-libgpython: installdirs
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(TARGET_FLAGS_TO_PASS)  install)
+
+@endif target-libgpython
+
+.PHONY: install-strip-target-libgpython maybe-install-strip-target-libgpython
+maybe-install-strip-target-libgpython:
+@if target-libgpython
+maybe-install-strip-target-libgpython: install-strip-target-libgpython
+
+install-strip-target-libgpython: installdirs
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(TARGET_FLAGS_TO_PASS)  install-strip)
+
+@endif target-libgpython
+
+# Other targets (info, dvi, pdf, etc.)
+
+.PHONY: maybe-info-target-libgpython info-target-libgpython
+maybe-info-target-libgpython:
+@if target-libgpython
+maybe-info-target-libgpython: info-target-libgpython
+
+info-target-libgpython: \
+    configure-target-libgpython 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing info in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           info) \
+	  || exit 1
+
+@endif target-libgpython
+
+.PHONY: maybe-dvi-target-libgpython dvi-target-libgpython
+maybe-dvi-target-libgpython:
+@if target-libgpython
+maybe-dvi-target-libgpython: dvi-target-libgpython
+
+dvi-target-libgpython: \
+    configure-target-libgpython 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing dvi in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           dvi) \
+	  || exit 1
+
+@endif target-libgpython
+
+.PHONY: maybe-pdf-target-libgpython pdf-target-libgpython
+maybe-pdf-target-libgpython:
+@if target-libgpython
+maybe-pdf-target-libgpython: pdf-target-libgpython
+
+pdf-target-libgpython: \
+    configure-target-libgpython 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing pdf in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           pdf) \
+	  || exit 1
+
+@endif target-libgpython
+
+.PHONY: maybe-html-target-libgpython html-target-libgpython
+maybe-html-target-libgpython:
+@if target-libgpython
+maybe-html-target-libgpython: html-target-libgpython
+
+html-target-libgpython: \
+    configure-target-libgpython 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing html in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           html) \
+	  || exit 1
+
+@endif target-libgpython
+
+.PHONY: maybe-TAGS-target-libgpython TAGS-target-libgpython
+maybe-TAGS-target-libgpython:
+@if target-libgpython
+maybe-TAGS-target-libgpython: TAGS-target-libgpython
+
+TAGS-target-libgpython: \
+    configure-target-libgpython 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing TAGS in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           TAGS) \
+	  || exit 1
+
+@endif target-libgpython
+
+.PHONY: maybe-install-info-target-libgpython install-info-target-libgpython
+maybe-install-info-target-libgpython:
+@if target-libgpython
+maybe-install-info-target-libgpython: install-info-target-libgpython
+
+install-info-target-libgpython: \
+    configure-target-libgpython \
+    info-target-libgpython 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing install-info in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           install-info) \
+	  || exit 1
+
+@endif target-libgpython
+
+.PHONY: maybe-install-pdf-target-libgpython install-pdf-target-libgpython
+maybe-install-pdf-target-libgpython:
+@if target-libgpython
+maybe-install-pdf-target-libgpython: install-pdf-target-libgpython
+
+install-pdf-target-libgpython: \
+    configure-target-libgpython \
+    pdf-target-libgpython 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing install-pdf in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           install-pdf) \
+	  || exit 1
+
+@endif target-libgpython
+
+.PHONY: maybe-install-html-target-libgpython install-html-target-libgpython
+maybe-install-html-target-libgpython:
+@if target-libgpython
+maybe-install-html-target-libgpython: install-html-target-libgpython
+
+install-html-target-libgpython: \
+    configure-target-libgpython \
+    html-target-libgpython 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing install-html in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           install-html) \
+	  || exit 1
+
+@endif target-libgpython
+
+.PHONY: maybe-installcheck-target-libgpython installcheck-target-libgpython
+maybe-installcheck-target-libgpython:
+@if target-libgpython
+maybe-installcheck-target-libgpython: installcheck-target-libgpython
+
+installcheck-target-libgpython: \
+    configure-target-libgpython 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing installcheck in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           installcheck) \
+	  || exit 1
+
+@endif target-libgpython
+
+.PHONY: maybe-mostlyclean-target-libgpython mostlyclean-target-libgpython
+maybe-mostlyclean-target-libgpython:
+@if target-libgpython
+maybe-mostlyclean-target-libgpython: mostlyclean-target-libgpython
+
+mostlyclean-target-libgpython: 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing mostlyclean in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           mostlyclean) \
+	  || exit 1
+
+@endif target-libgpython
+
+.PHONY: maybe-clean-target-libgpython clean-target-libgpython
+maybe-clean-target-libgpython:
+@if target-libgpython
+maybe-clean-target-libgpython: clean-target-libgpython
+
+clean-target-libgpython: 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing clean in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           clean) \
+	  || exit 1
+
+@endif target-libgpython
+
+.PHONY: maybe-distclean-target-libgpython distclean-target-libgpython
+maybe-distclean-target-libgpython:
+@if target-libgpython
+maybe-distclean-target-libgpython: distclean-target-libgpython
+
+distclean-target-libgpython: 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing distclean in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           distclean) \
+	  || exit 1
+
+@endif target-libgpython
+
+.PHONY: maybe-maintainer-clean-target-libgpython maintainer-clean-target-libgpython
+maybe-maintainer-clean-target-libgpython:
+@if target-libgpython
+maybe-maintainer-clean-target-libgpython: maintainer-clean-target-libgpython
+
+maintainer-clean-target-libgpython: 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libgpython/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing maintainer-clean in $(TARGET_SUBDIR)/libgpython" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libgpython && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           maintainer-clean) \
+	  || exit 1
+
+@endif target-libgpython
 
 
 
@@ -60624,11 +60652,8 @@ configure-stagefeedback-target-libgcc: maybe-all-stagefeedback-gcc
 configure-target-libquadmath: stage_last
 configure-target-libgfortran: stage_last
 configure-target-libobjc: stage_last
-<<<<<<< HEAD
-configure-target-libgpython: stage_last
-=======
 configure-target-libgo: stage_last
->>>>>>> master
+configure-target-libgpython: stage_last
 configure-target-libtermcap: stage_last
 configure-target-winsup: stage_last
 configure-target-libgloss: stage_last
@@ -60659,11 +60684,8 @@ configure-target-libgcc: maybe-all-gcc
 configure-target-libquadmath: maybe-all-gcc
 configure-target-libgfortran: maybe-all-gcc
 configure-target-libobjc: maybe-all-gcc
-<<<<<<< HEAD
-configure-target-libgpython: maybe-all-gcc
-=======
 configure-target-libgo: maybe-all-gcc
->>>>>>> master
+configure-target-libgpython: maybe-all-gcc
 configure-target-libtermcap: maybe-all-gcc
 configure-target-winsup: maybe-all-gcc
 configure-target-libgloss: maybe-all-gcc
@@ -61420,15 +61442,12 @@ configure-target-boehm-gc: maybe-all-target-libstdc++-v3
 configure-target-fastjar: maybe-configure-target-zlib
 all-target-fastjar: maybe-all-target-zlib
 all-target-fastjar: maybe-all-target-libiberty
-<<<<<<< HEAD
-configure-target-libgpython: maybe-configure-target-libffi
-configure-target-libgpython: maybe-all-target-libstdc++-v3
-all-target-libgpython: maybe-all-target-libffi
-=======
 configure-target-libgo: maybe-configure-target-libffi
 configure-target-libgo: maybe-all-target-libstdc++-v3
 all-target-libgo: maybe-all-target-libffi
->>>>>>> master
+configure-target-libgpython: maybe-configure-target-libffi
+configure-target-libgpython: maybe-all-target-libstdc++-v3
+all-target-libgpython: maybe-all-target-libffi
 configure-target-libjava: maybe-configure-target-zlib
 configure-target-libjava: maybe-configure-target-boehm-gc
 configure-target-libjava: maybe-configure-target-qthreads
@@ -61496,11 +61515,8 @@ configure-target-newlib: maybe-all-target-libgcc
 configure-target-libquadmath: maybe-all-target-libgcc
 configure-target-libgfortran: maybe-all-target-libgcc
 configure-target-libobjc: maybe-all-target-libgcc
-<<<<<<< HEAD
-configure-target-libgpython: maybe-all-target-libgcc
-=======
 configure-target-libgo: maybe-all-target-libgcc
->>>>>>> master
+configure-target-libgpython: maybe-all-target-libgcc
 configure-target-libtermcap: maybe-all-target-libgcc
 configure-target-winsup: maybe-all-target-libgcc
 configure-target-libgloss: maybe-all-target-libgcc
@@ -61532,11 +61548,9 @@ configure-target-libgfortran: maybe-all-target-newlib maybe-all-target-libgloss
 
 configure-target-libobjc: maybe-all-target-newlib maybe-all-target-libgloss
 
-<<<<<<< HEAD
-configure-target-libgpython: maybe-all-target-newlib maybe-all-target-libgloss
-=======
 configure-target-libgo: maybe-all-target-newlib maybe-all-target-libgloss
->>>>>>> master
+
+configure-target-libgpython: maybe-all-target-newlib maybe-all-target-libgloss
 
 configure-target-libtermcap: maybe-all-target-newlib maybe-all-target-libgloss
 
