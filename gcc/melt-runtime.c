@@ -1,6 +1,7 @@
 /*** file melt-runtime.c
-     Middle End Lisp Translator
-     MELT Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+     Middle End Lisp Translator [MELT] runtime support.
+
+     Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
      Contributed by Basile Starynkevitch <basile@starynkevitch.net>
      Indented with GNU indent.
 
@@ -669,7 +670,7 @@ int melt_debug_depth (void)
 static inline void
 delete_special (struct meltspecial_st *sp)
 {
-  int magic = sp->discr->object_magic;
+  int magic = sp->discr->meltobj_magic;
   melt_debuggc_eprintf ("delete_special deleting sp %p magic %d %s", 
 			(void*) sp, magic, melt_obmag_string (magic));
   switch (magic)
@@ -768,7 +769,7 @@ check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
     melt_fatal_error
       ("<%s#%ld> corrupted pointer %p (at %p) without discr at %s:%d", msg,
        count, (void *) ptr, (void *) pptr, lbasename (filenam), lineno);
-  switch (ptr->u_discr->object_magic)
+  switch (ptr->u_discr->meltobj_magic)
     {
     case MELTOBMAG_OBJECT:
     case MELTOBMAG_DECAY:
@@ -810,7 +811,7 @@ check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
     default:
       melt_fatal_error ("<%s#%ld> bad pointer %p (at %p) bad magic %d at %s:%d",
 		   msg, count, (void *) ptr, (void *) pptr,
-		   (int) ptr->u_discr->object_magic, lbasename (filenam),
+		   (int) ptr->u_discr->meltobj_magic, lbasename (filenam),
 		   lineno);
     }
 }
@@ -853,7 +854,7 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
 	  check_pointer_at (msg, nbcheckcallframes,
 			    (melt_ptr_t *) (void *) &cfram->mcfr_closp, filenam,
 			    lineno);
-	  if (cfram->mcfr_closp->discr->object_magic != MELTOBMAG_CLOSURE)
+	  if (cfram->mcfr_closp->discr->meltobj_magic != MELTOBMAG_CLOSURE)
 	    fatal_error
 	      ("bad frame <%s#%ld> invalid closure %p in frame %p at %s:%d",
 	       msg, nbcheckcallframes,
@@ -914,7 +915,7 @@ meltgc_make_special (melt_ptr_t discr_p)
   discrv = discr_p;
   if (!discrv || melt_magic_discr((melt_ptr_t)discrv) != MELTOBMAG_OBJECT)
     goto end;
-  magic = ((meltobject_ptr_t)discrv)->object_magic;
+  magic = ((meltobject_ptr_t)discrv)->meltobj_magic;
   switch (magic) 
     {
     case ALL_MELTOBMAG_SPECIAL_CASES:
@@ -1513,12 +1514,12 @@ melt_forwarded_copy (melt_ptr_t p)
   int mag = 0;
   gcc_assert (melt_is_young (p));
   gcc_assert (p->u_discr && p->u_discr != MELT_FORWARDED_DISCR);
-  if (p->u_discr->obj_class == MELT_FORWARDED_DISCR)
+  if (p->u_discr->meltobj_class == MELT_FORWARDED_DISCR)
     mag =
       ((meltobject_ptr_t)
-       (((struct meltforward_st *) p->u_discr)->forward))->object_magic;
+       (((struct meltforward_st *) p->u_discr)->forward))->meltobj_magic;
   else
-    mag = p->u_discr->object_magic;
+    mag = p->u_discr->meltobj_magic;
   melt_forward_counter++;
   /***
    * we can copy *dst = *src only for structures which do not use
@@ -1543,7 +1544,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	  (oblen*sizeof(void*)
 	   + offsetof(struct meltobject_st, obj_vartab));
 	/* we cannot copy the whole src, because FLEXIBLE_DIM might be 1 */
-	dst->obj_class = src->obj_class;
+	dst->meltobj_class = src->meltobj_class;
 	dst->obj_hash = src->obj_hash;
 	dst->obj_num = src->obj_num;
 	dst->obj_len = oblen;
@@ -2114,7 +2115,7 @@ melt_scanning (melt_ptr_t p)
   gcc_assert (p->u_discr && p->u_discr != (meltobject_ptr_t) 1);
   MELT_FORWARDED (p->u_discr);
   gcc_assert (!melt_is_young (p));
-  omagic = p->u_discr->object_magic;
+  omagic = p->u_discr->meltobj_magic;
   switch (omagic)
     {
     case MELTOBMAG_OBJECT:
@@ -2625,7 +2626,7 @@ unsafe_index_mapobject (struct entryobjectsmelt_st *tab,
   unsigned h = 0;
   if (!tab)
     return -1;
-  da = attr->obj_class->object_magic;
+  da = attr->meltobj_class->meltobj_magic;
   if (da == MELTOBMAG_OBJECT)
     h = ((struct meltobject_st *) attr)->obj_hash;
   else
@@ -2684,7 +2685,7 @@ meltgc_new_int (meltobject_ptr_t discr_p, long num)
   discrv = (void *) discr_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_INT)
+  if (object_discrv->meltobj_magic != MELTOBMAG_INT)
     goto end;
   newintv = meltgc_allocate (sizeof (struct meltint_st), 0);
   int_newintv->discr = object_discrv;
@@ -2714,7 +2715,7 @@ meltgc_new_mixint (meltobject_ptr_t discr_p,
   valv = val_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MIXINT)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MIXINT)
     goto end;
   newmix = meltgc_allocate (sizeof (struct meltmixint_st), 0);
   mix_newmix->discr = object_discrv;
@@ -2746,7 +2747,7 @@ meltgc_new_mixloc (meltobject_ptr_t discr_p,
   valv = val_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MIXLOC)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MIXLOC)
     goto end;
   newmix = meltgc_allocate (sizeof (struct meltmixloc_st), 0);
   mix_newmix->discr = object_discrv;
@@ -2783,7 +2784,7 @@ meltgc_new_mixbigint_mpz (meltobject_ptr_t discr_p,
   valv = val_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MIXBIGINT)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MIXBIGINT)
     goto end;
   if (!mp) 
     goto end; 
@@ -2824,7 +2825,7 @@ meltgc_new_real (meltobject_ptr_t discr_p, REAL_VALUE_TYPE r)
     discrv = (void*) discr_p;
     if (!discrv)
        discrv = (meltobject_ptr_t) MELT_PREDEF (DISCR_REAL);
-    if (object_discrv->object_magic != MELTOBMAG_REAL)
+    if (object_discrv->meltobj_magic != MELTOBMAG_REAL)
        goto end;
     resv = meltgc_allocate (sizeof (struct meltreal_st), 0);
     real_resv->discr = object_discrv;
@@ -2853,7 +2854,7 @@ meltgc_new_routine (meltobject_ptr_t discr_p,
   newroutv = NULL;
   discrv = discr_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT
-      || obj_discrv->object_magic != MELTOBMAG_ROUTINE || !descr || !descr[0]
+      || obj_discrv->meltobj_magic != MELTOBMAG_ROUTINE || !descr || !descr[0]
       || !proc || len > MELT_MAXLEN)
     goto end;
   newroutv =
@@ -2906,7 +2907,7 @@ meltgc_new_closure (meltobject_ptr_t discr_p,
   routv = rout_p;
   newclosv = NULL;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT
-      || obj_discrv->object_magic != MELTOBMAG_CLOSURE
+      || obj_discrv->meltobj_magic != MELTOBMAG_CLOSURE
       || melt_magic_discr ((melt_ptr_t) (routv)) != MELTOBMAG_ROUTINE
       || len > MELT_MAXLEN)
     goto end;
@@ -2941,7 +2942,7 @@ meltgc_new_strbuf (meltobject_ptr_t discr_p, const char *str)
   newbufv = NULL;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
-  if (((meltobject_ptr_t) (discrv))->object_magic != MELTOBMAG_STRBUF)
+  if (((meltobject_ptr_t) (discrv))->meltobj_magic != MELTOBMAG_STRBUF)
     goto end;
   if (str)
     slen = strlen (str);
@@ -3522,13 +3523,13 @@ meltgc_new_raw_object (meltobject_ptr_t klass_p, unsigned len)
   newobjv = NULL;
   klassv = klass_p;
   if (melt_magic_discr ((melt_ptr_t) (klassv)) != MELTOBMAG_OBJECT
-      || obj_klassv->object_magic != MELTOBMAG_OBJECT || len >= SHRT_MAX)
+      || obj_klassv->meltobj_magic != MELTOBMAG_OBJECT || len >= SHRT_MAX)
     goto end;
   /* the sizeof below could be the offsetof obj__tabfields */
   newobjv =
     meltgc_allocate (sizeof (struct meltobject_st),
 			len * sizeof (void *));
-  obj_newobjv->obj_class = (meltobject_ptr_t) klassv;
+  obj_newobjv->meltobj_class = (meltobject_ptr_t) klassv;
   do
     {
       h = melt_lrand () & MELT_MAXHASH;
@@ -3561,7 +3562,7 @@ meltgc_new_multiple (meltobject_ptr_t discr_p, unsigned len)
   gcc_assert (len < MELT_MAXLEN);
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MULTIPLE)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MULTIPLE)
     goto end;
   newmul =
     meltgc_allocate (sizeof (struct meltmultiple_st),
@@ -3691,7 +3692,7 @@ mulsort_cmp (const void *p1, const void *p2)
   restab[0].meltbp_longptr = & cmplg;
   rescmpv =
     melt_apply ((meltclosure_ptr_t) clov, (melt_ptr_t) val1v,
-		   BPARSTR_PTR, argtab, BPARSTR_LONG, restab);
+		   MELTBPARSTR_PTR, argtab, MELTBPARSTR_LONG, restab);
   if (melt_magic_discr ((melt_ptr_t) rescmpv) == MELTOBMAG_INT)
     {
       ok = 1;
@@ -3793,7 +3794,7 @@ meltgc_new_box (meltobject_ptr_t discr_p, melt_ptr_t val_p)
   boxv = NULL;
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_BOX)
+  if (object_discrv->meltobj_magic != MELTOBMAG_BOX)
     goto end;
   boxv = meltgc_allocate (sizeof (struct meltbox_st), 0);
   ((struct meltbox_st *) (boxv))->discr = (meltobject_ptr_t) discrv;
@@ -3853,7 +3854,7 @@ meltgc_new_tree (meltobject_ptr_t discr_p, tree tr)
     discrv = MELT_PREDEF (DISCR_TREE);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_TREE)
+  if (object_discrv->meltobj_magic != MELTOBMAG_TREE)
     goto end;
   btreev = meltgc_allocate (sizeof (struct melttree_st), 0);
   ((struct melttree_st *) (btreev))->discr = (meltobject_ptr_t) discrv;
@@ -3882,7 +3883,7 @@ meltgc_new_gimple (meltobject_ptr_t discr_p, gimple g)
     discrv = MELT_PREDEF (DISCR_GIMPLE);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_GIMPLE)
+  if (object_discrv->meltobj_magic != MELTOBMAG_GIMPLE)
     goto end;
   bgimplev = meltgc_allocate (sizeof (struct meltgimple_st), 0);
   ((struct meltgimple_st *) (bgimplev))->discr =
@@ -3911,7 +3912,7 @@ meltgc_new_gimpleseq (meltobject_ptr_t discr_p, gimple_seq g)
     discrv = MELT_PREDEF (DISCR_GIMPLE_SEQ);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_GIMPLESEQ)
+  if (object_discrv->meltobj_magic != MELTOBMAG_GIMPLESEQ)
     goto end;
   bgimplev = meltgc_allocate (sizeof (struct meltgimpleseq_st), 0);
   ((struct meltgimpleseq_st *) (bgimplev))->discr =
@@ -3940,7 +3941,7 @@ meltgc_new_basicblock (meltobject_ptr_t discr_p, basic_block bb)
     discrv = MELT_PREDEF (DISCR_BASIC_BLOCK);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_BASICBLOCK)
+  if (object_discrv->meltobj_magic != MELTOBMAG_BASICBLOCK)
     goto end;
   bbbv = meltgc_allocate (sizeof (struct meltbasicblock_st), 0);
   ((struct meltbasicblock_st *) (bbbv))->discr =
@@ -3969,7 +3970,7 @@ meltgc_new_loop (meltobject_ptr_t discr_p, loop_p lo)
     discrv = MELT_PREDEF (DISCR_LOOP);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_LOOP)
+  if (object_discrv->meltobj_magic != MELTOBMAG_LOOP)
     goto end;
   loopv = meltgc_allocate (sizeof (struct meltloop_st), 0);
   ((struct meltloop_st *) (loopv))->discr =
@@ -3998,7 +3999,7 @@ meltgc_new_rtx (meltobject_ptr_t discr_p, rtx data)
     discrv = MELT_PREDEF (DISCR_RTX);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_RTX)
+  if (object_discrv->meltobj_magic != MELTOBMAG_RTX)
     goto end;
   rtxv = meltgc_allocate (sizeof (struct meltrtx_st), 0);
   ((struct meltrtx_st *) (rtxv))->discr =
@@ -4029,7 +4030,7 @@ meltgc_new_rtvec (meltobject_ptr_t discr_p, rtvec data)
     discrv = MELT_PREDEF (DISCR_RTVEC);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_RTVEC)
+  if (object_discrv->meltobj_magic != MELTOBMAG_RTVEC)
     goto end;
   rtvecv = meltgc_allocate (sizeof (struct meltrtvec_st), 0);
   ((struct meltrtvec_st *) (rtvecv))->discr =
@@ -4058,7 +4059,7 @@ meltgc_new_bitmap (meltobject_ptr_t discr_p, bitmap data)
     discrv = MELT_PREDEF (DISCR_BITMAP);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_BITMAP)
+  if (object_discrv->meltobj_magic != MELTOBMAG_BITMAP)
     goto end;
   bitmapv = meltgc_allocate (sizeof (struct meltbitmap_st), 0);
   ((struct meltbitmap_st *) (bitmapv))->discr =
@@ -4092,7 +4093,7 @@ meltgc_new_mult1 (meltobject_ptr_t discr_p, melt_ptr_t v0_p)
   newmul = NULL;
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MULTIPLE)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MULTIPLE)
     goto end;
   newmul =
     meltgc_allocate (sizeof (struct meltmultiple_st),
@@ -4127,7 +4128,7 @@ meltgc_new_mult2 (meltobject_ptr_t discr_p,
   newmul = NULL;
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MULTIPLE)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MULTIPLE)
     goto end;
   newmul =
     meltgc_allocate (sizeof (struct meltmultiple_st),
@@ -4167,7 +4168,7 @@ meltgc_new_mult3 (meltobject_ptr_t discr_p,
   newmul = NULL;
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MULTIPLE)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MULTIPLE)
     goto end;
   newmul =
     meltgc_allocate (sizeof (struct meltmultiple_st),
@@ -4211,7 +4212,7 @@ meltgc_new_mult4 (meltobject_ptr_t discr_p,
   newmul = NULL;
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MULTIPLE)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MULTIPLE)
     goto end;
   newmul =
     meltgc_allocate (sizeof (struct meltmultiple_st),
@@ -4261,7 +4262,7 @@ meltgc_new_mult5 (meltobject_ptr_t discr_p,
   newmul = NULL;
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MULTIPLE)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MULTIPLE)
     goto end;
   newmul =
     meltgc_allocate (sizeof (struct meltmultiple_st),
@@ -4315,7 +4316,7 @@ meltgc_new_mult6 (meltobject_ptr_t discr_p,
   newmul = NULL;
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MULTIPLE)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MULTIPLE)
     goto end;
   newmul =
     meltgc_allocate (sizeof (struct meltmultiple_st),
@@ -4373,7 +4374,7 @@ meltgc_new_mult7 (meltobject_ptr_t discr_p,
   newmul = NULL;
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MULTIPLE)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MULTIPLE)
     goto end;
   newmul =
     meltgc_allocate (sizeof (struct meltmultiple_st),
@@ -4416,7 +4417,7 @@ meltgc_new_list (meltobject_ptr_t discr_p)
   newlist = NULL;
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_LIST)
+  if (object_discrv->meltobj_magic != MELTOBMAG_LIST)
     goto end;
   newlist = meltgc_allocate (sizeof (struct meltlist_st), 0);
   list_newlist->discr = object_discrv;
@@ -4444,7 +4445,7 @@ meltgc_new_pair (meltobject_ptr_t discr_p, void *head_p, void *tail_p)
   headv = head_p;
   tailv = tail_p;
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT
-      || ((meltobject_ptr_t) (discrv))->object_magic != MELTOBMAG_PAIR)
+      || ((meltobject_ptr_t) (discrv))->meltobj_magic != MELTOBMAG_PAIR)
     goto end;
   if (melt_magic_discr ((melt_ptr_t) tailv) != MELTOBMAG_PAIR)
     tailv = NULL;
@@ -4630,9 +4631,9 @@ meltgc_new_mapobjects (meltobject_ptr_t discr_p, unsigned len)
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mapobject_newmapv ((struct meltmapobjects_st*)(newmapv))
   discrv = discr_p;
-  if (!discrv || object_discrv->obj_class->object_magic != MELTOBMAG_OBJECT)
+  if (!discrv || object_discrv->meltobj_class->meltobj_magic != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MAPOBJECTS)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MAPOBJECTS)
     goto end;
   if (len > 0)
     {
@@ -4669,9 +4670,9 @@ melt_get_mapobjects (meltmapobjects_ptr_t mapobject_p,
   long ix, len;
   melt_ptr_t val = NULL;
   if (!mapobject_p || !attrobject_p
-      || mapobject_p->discr->object_magic != MELTOBMAG_MAPOBJECTS
+      || mapobject_p->discr->meltobj_magic != MELTOBMAG_MAPOBJECTS
       || !mapobject_p->entab
-      || attrobject_p->obj_class->object_magic != MELTOBMAG_OBJECT)
+      || attrobject_p->meltobj_class->meltobj_magic != MELTOBMAG_OBJECT)
     return NULL;
   len = melt_primtab[mapobject_p->lenix];
   if (len <= 0)
@@ -4709,10 +4710,10 @@ meltgc_put_mapobjects (meltmapobjects_ptr_t
   if (!mapobjectv || !attrobjectv || !valuv)
     goto end;
   discrv = map_mapobjectv->discr;
-  if (!discrv || object_discrv->object_magic != MELTOBMAG_MAPOBJECTS)
+  if (!discrv || object_discrv->meltobj_magic != MELTOBMAG_MAPOBJECTS)
     goto end;
-  discrv = object_attrobjectv->obj_class;
-  if (!discrv || object_discrv->object_magic != MELTOBMAG_OBJECT)
+  discrv = object_attrobjectv->meltobj_class;
+  if (!discrv || object_discrv->meltobj_magic != MELTOBMAG_OBJECT)
     goto end;
   if (!map_mapobjectv->entab)
     {
@@ -4833,10 +4834,10 @@ meltgc_remove_mapobjects (meltmapobjects_ptr_t
   if (!mapobjectv || !attrobjectv)
     goto end;
   discrv = map_mapobjectv->discr;
-  if (!discrv || object_discrv->object_magic != MELTOBMAG_MAPOBJECTS)
+  if (!discrv || object_discrv->meltobj_magic != MELTOBMAG_MAPOBJECTS)
     goto end;
-  discrv = object_attrobjectv->obj_class;
-  if (!discrv || object_discrv->object_magic != MELTOBMAG_OBJECT)
+  discrv = object_attrobjectv->meltobj_class;
+  if (!discrv || object_discrv->meltobj_magic != MELTOBMAG_OBJECT)
     goto end;
   if (!map_mapobjectv->entab)
     goto end;
@@ -4971,9 +4972,9 @@ meltgc_new_mapstrings (meltobject_ptr_t discr_p, unsigned len)
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define mapstring_newmapv ((struct meltmapstrings_st*)(newmapv))
   discrv = discr_p;
-  if (!discrv || object_discrv->obj_class->object_magic != MELTOBMAG_OBJECT)
+  if (!discrv || object_discrv->meltobj_class->meltobj_magic != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_MAPSTRINGS)
+  if (object_discrv->meltobj_magic != MELTOBMAG_MAPSTRINGS)
     goto end;
   newmapv = meltgc_allocate (sizeof (struct meltmapstrings_st), 0);
   mapstring_newmapv->discr = object_discrv;
@@ -5020,7 +5021,7 @@ meltgc_put_mapstrings (struct meltmapstrings_st
   if (!mapstringv || !attr || !attr[0] || !valuv)
     goto end;
   discrv = map_mapstringv->discr;
-  if (!discrv || object_discrv->object_magic != MELTOBMAG_MAPSTRINGS)
+  if (!discrv || object_discrv->meltobj_magic != MELTOBMAG_MAPSTRINGS)
     goto end;
   atlen = strlen (attr);
   if (atlen < (int) sizeof (tinybuf) - 1)
@@ -5130,7 +5131,7 @@ melt_get_mapstrings (struct meltmapstrings_st
   const char *oldat = NULL;
   if (!mapstring_p || !attr)
     return NULL;
-  if (mapstring_p->discr->object_magic != MELTOBMAG_MAPSTRINGS)
+  if (mapstring_p->discr->meltobj_magic != MELTOBMAG_MAPSTRINGS)
     return NULL;
   if (!mapstring_p->entab)
     return NULL;
@@ -5164,7 +5165,7 @@ meltgc_remove_mapstrings (struct meltmapstrings_st *
     goto end;
   atlen = strlen (attr);
   discrv = map_mapstringv->discr;
-  if (!discrv || object_discrv->object_magic != MELTOBMAG_MAPSTRINGS)
+  if (!discrv || object_discrv->meltobj_magic != MELTOBMAG_MAPSTRINGS)
     goto end;
   if (!map_mapstringv->entab)
     goto end;
@@ -5585,9 +5586,9 @@ melt_is_subclass_of (meltobject_ptr_t subclass_p,
   struct meltmultiple_st *superanc = NULL;
   unsigned subdepth = 0, superdepth = 0;
   if (melt_magic_discr ((melt_ptr_t) subclass_p) !=
-      MELTOBMAG_OBJECT || subclass_p->object_magic != MELTOBMAG_OBJECT
+      MELTOBMAG_OBJECT || subclass_p->meltobj_magic != MELTOBMAG_OBJECT
       || melt_magic_discr ((melt_ptr_t) superclass_p) !=
-      MELTOBMAG_OBJECT || superclass_p->object_magic != MELTOBMAG_OBJECT)
+      MELTOBMAG_OBJECT || superclass_p->meltobj_magic != MELTOBMAG_OBJECT)
     {
       return FALSE;
     }
@@ -5642,7 +5643,7 @@ meltgc_new_string_raw_len (meltobject_ptr_t discr_p, const char *str, int slen)
     discrv = MELT_PREDEF (DISCR_STRING);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (obj_discrv->object_magic != MELTOBMAG_STRING)
+  if (obj_discrv->meltobj_magic != MELTOBMAG_STRING)
     goto end;
   strv = meltgc_allocate (sizeof (struct meltstring_st), slen + 1);
   str_strv->discr = obj_discrv;
@@ -5682,7 +5683,7 @@ meltgc_new_stringdup (meltobject_ptr_t discr_p, const char *str)
     discrv = MELT_PREDEF (DISCR_STRING);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (obj_discrv->object_magic != MELTOBMAG_STRING)
+  if (obj_discrv->meltobj_magic != MELTOBMAG_STRING)
     goto end;
   slen = strlen (str);
   if (slen < (int) sizeof (tinybuf) - 1)
@@ -5735,7 +5736,7 @@ meltgc_new_string_generated_c_filename  (meltobject_ptr_t discr_p,
     discrv = MELT_PREDEF (DISCR_STRING);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (obj_discrv->object_magic != MELTOBMAG_STRING)
+  if (obj_discrv->meltobj_magic != MELTOBMAG_STRING)
     goto end;
   slen += strlen (basepath);
   if (dirpath) 
@@ -5824,7 +5825,7 @@ meltgc_new_string_nakedbasename (meltobject_ptr_t discr_p,
     discrv = MELT_PREDEF (DISCR_STRING);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (obj_discrv->object_magic != MELTOBMAG_STRING)
+  if (obj_discrv->meltobj_magic != MELTOBMAG_STRING)
     goto end;
   slen = strlen (str);
   if (slen < (int) sizeof (tinybuf) - 1)
@@ -5888,7 +5889,7 @@ meltgc_new_string_tempname_suffixed (meltobject_ptr_t
     discrv = MELT_PREDEF (DISCR_STRING);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (obj_discrv->object_magic != MELTOBMAG_STRING)
+  if (obj_discrv->meltobj_magic != MELTOBMAG_STRING)
     goto end;
   slen = strlen (tempnampath);
   strv =
@@ -5927,7 +5928,7 @@ meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr_p)
     discrv = MELT_PREDEF (DISCR_STRING);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
-  if (obj_discrv->object_magic != MELTOBMAG_STRING)
+  if (obj_discrv->meltobj_magic != MELTOBMAG_STRING)
     goto end;
   dupstr = xstrdup (str);
   if (sep<0)
@@ -6105,7 +6106,7 @@ meltgc_send (melt_ptr_t recv_p,
 	      pararg[0].meltbp_aptr = (melt_ptr_t *) & selv;
 	      resv =
 		melt_apply ((meltclosure_ptr_t) closv,
-			       (melt_ptr_t) recv, BPARSTR_PTR, pararg, "",
+			       (melt_ptr_t) recv, MELTBPARSTR_PTR, pararg, "",
 			       NULL);
 	      closv = resv;
 	    }
@@ -7953,7 +7954,7 @@ meltgc_named_symbol (const char *nam, int create)
 	  symbv =
 	    melt_apply ((meltclosure_ptr_t) closv,
 			   (melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
-			   BPARSTR_PTR, pararg, "", NULL);
+			   MELTBPARSTR_PTR, pararg, "", NULL);
 	  goto end;
 	}
     }
@@ -7999,7 +8000,7 @@ meltgc_intern_symbol (melt_ptr_t symb_p)
       resv =
 	melt_apply ((meltclosure_ptr_t) closv,
 		       (melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
-		       BPARSTR_PTR, pararg, "", NULL);
+		       MELTBPARSTR_PTR, pararg, "", NULL);
       goto end;
     }
 fail:
@@ -8369,7 +8370,7 @@ meltgc_intern_keyword (melt_ptr_t keyw_p)
       resv =
 	melt_apply ((meltclosure_ptr_t) closv,
 		       (melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
-		       BPARSTR_PTR, pararg, "", NULL);
+		       MELTBPARSTR_PTR, pararg, "", NULL);
       goto end;
     }
 fail:
@@ -8440,7 +8441,7 @@ meltgc_named_keyword (const char *nam, int create)
 	  keywv =
 	    melt_apply ((meltclosure_ptr_t) closv,
 			   (melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
-			   BPARSTR_PTR, pararg, "", NULL);
+			   MELTBPARSTR_PTR, pararg, "", NULL);
 	  goto end;
 	}
     }
@@ -9696,7 +9697,7 @@ do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 	  MELT_LOCATION_HERE ("do_initial_mode before apply");
 	  resv = melt_apply ((meltclosure_ptr_t) closv,
 			     (melt_ptr_t) cmdv,
-			     BPARSTR_PTR, pararg, "",
+			     MELTBPARSTR_PTR, pararg, "",
 			     NULL);
 	  debugeprintf ("do_initial_mode after apply closv %p resv %p",
 			closv, resv);
@@ -9887,7 +9888,7 @@ load_melt_modules_and_do_mode (void)
 	  optresv =
 	    melt_apply ((meltclosure_ptr_t) optsetv,
 			(melt_ptr_t) optsymbv,
-			BPARSTR_CSTRING, pararg, "", NULL);
+			MELTBPARSTR_CSTRING, pararg, "", NULL);
 	  if (!optresv)
 	    warning (0, "unhandled MELT option %s", optname);
 	}
@@ -10070,7 +10071,7 @@ melt_passexec_callback (void *gcc_data,
 		    pass->name, pass->static_pass_number);
       (void) melt_apply ((meltclosure_ptr_t) passxhv,
 			 (melt_ptr_t) passnamev,
-			 BPARSTR_LONG, pararg, "", NULL);
+			 MELTBPARSTR_LONG, pararg, "", NULL);
       debugeprintf ("melt_passexec_callback after apply pass @ %p %s #%d", 
 		    (void*)pass, 
 		    pass->name, pass->static_pass_number);
@@ -10553,7 +10554,7 @@ melt_debug_out (struct debugprint_melt_st *dp,
 	struct meltobject_st *p = (struct meltobject_st *) ptr;
 	bool named = is_named_obj (p);
 	fputs ("%", dp->dfil);
-	discr_out (dp, p->obj_class);
+	discr_out (dp, p->meltobj_class);
 	fprintf (dp->dfil, "/L%dH%d", p->obj_len, p->obj_hash);
 	if (p->obj_num)
 	  fprintf (dp->dfil, "N%d", p->obj_num);
@@ -10847,7 +10848,7 @@ void meltgc_debugmsgval(void* val_p, const char*msg, long count)
     argtab[0].meltbp_cstring = msg;
     argtab[1].meltbp_long = count;
     (void) melt_apply ((meltclosure_ptr_t) dbgfv, (melt_ptr_t)valv, 
-			  BPARSTR_CSTRING BPARSTR_LONG, argtab, "", NULL);
+			  MELTBPARSTR_CSTRING MELTBPARSTR_LONG, argtab, "", NULL);
   }
   MELT_EXITFRAME();
 #undef valv
@@ -11263,8 +11264,8 @@ meltgc_new_file (melt_ptr_t discr_p, FILE* fil)
   discrv = (void *) discr_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_SPEC_FILE
-      && object_discrv->object_magic != MELTOBMAG_SPEC_RAWFILE)
+  if (object_discrv->meltobj_magic != MELTOBMAG_SPEC_FILE
+      && object_discrv->meltobj_magic != MELTOBMAG_SPEC_RAWFILE)
     goto end;
   resv = meltgc_make_special ((melt_ptr_t) discrv);
   spec_resv->val.sp_file = fil;
@@ -11340,7 +11341,7 @@ meltgc_new_ppl_constraint_system(melt_ptr_t discr_p, bool unsatisfiable)
   discrv = (void *) discr_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM)
+  if (object_discrv->meltobj_magic != MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM)
     goto end;
   resv = meltgc_make_special ((melt_ptr_t) discrv);
   spec_resv->val.sp_pointer = NULL;
@@ -11441,7 +11442,7 @@ meltgc_new_ppl_polyhedron(melt_ptr_t discr_p, ppl_Polyhedron_t poly, bool cloned
   discrv = (void *) discr_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_SPECPPL_POLYHEDRON)
+  if (object_discrv->meltobj_magic != MELTOBMAG_SPECPPL_POLYHEDRON)
     goto end;
   resv = meltgc_make_special ((melt_ptr_t) discrv);
   spec_resv->val.sp_pointer = NULL;
@@ -11517,7 +11518,7 @@ meltgc_new_ppl_linear_expression(melt_ptr_t discr_p)
   discrv = (void *) discr_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
-  if (object_discrv->object_magic != MELTOBMAG_SPECPPL_LINEAR_EXPRESSION)
+  if (object_discrv->meltobj_magic != MELTOBMAG_SPECPPL_LINEAR_EXPRESSION)
     goto end;
   resv = meltgc_make_special ((melt_ptr_t) discrv);
   spec_resv->val.sp_pointer = NULL;
@@ -12325,7 +12326,7 @@ meltgc_gimple_execute(void)
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
 		  (melt_ptr_t) passv, "",
-		  (union meltparam_un *) 0, BPARSTR_LONG "",
+		  (union meltparam_un *) 0, MELTBPARSTR_LONG "",
 		  restab);
     debugeprintf ("gimple_execute passname %s after apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
@@ -12489,7 +12490,7 @@ meltgc_rtl_execute(void)
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
 		  (melt_ptr_t) passv, "",
-		  (union meltparam_un *) 0, BPARSTR_LONG "",
+		  (union meltparam_un *) 0, MELTBPARSTR_LONG "",
 		  restab);
     debugeprintf ("rtl_execute passname %s after apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
@@ -12662,7 +12663,7 @@ meltgc_simple_ipa_execute(void)
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
 		  (melt_ptr_t) passv, "",
-		  (union meltparam_un *) 0, BPARSTR_LONG "",
+		  (union meltparam_un *) 0, MELTBPARSTR_LONG "",
 		  restab);
     if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
       {
@@ -12953,7 +12954,7 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
 #endif
       (void) melt_apply ((meltclosure_ptr_t) atclov,
 			    (melt_ptr_t) declv,
-			    BPARSTR_PTR BPARSTR_PTR, argtab, "", NULL);
+			    MELTBPARSTR_PTR MELTBPARSTR_PTR, argtab, "", NULL);
     }
 end:
   MELT_EXITFRAME ();

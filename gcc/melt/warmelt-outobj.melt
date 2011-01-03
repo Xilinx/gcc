@@ -5675,6 +5675,7 @@ notice for file named $NAME.}#
     (add2sbuf_indentnl sbuf 0)
     (add2sbuf_indentnl sbuf 0)
     (add2sbuf_strconst sbuf "/* gty ctype forward copy for melt_forwarded_copy */")
+    (add2sbuf_indentnl sbuf 0)
     (foreach_in_multiple
      (ctygtytup)
      (curctyp :long tix)

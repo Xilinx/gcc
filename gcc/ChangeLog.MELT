@@ -1,5 +1,15 @@
 
 2011-01-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h: Rename BPARSTR_* as MELTBPARSTR_* everywhere.
+	Remove old backward compatibility hacks.
+	Use meltobj_magic & meltobj_class.
+
+	* melt-runtime.c: Likewise.
+
+	* melt/warmelt-outobj.melt (runtypesupport_forwcopy): Add 
+	newline generation.
+
+2011-01-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated}}
 
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.

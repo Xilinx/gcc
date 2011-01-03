@@ -2,7 +2,7 @@
    MELT header melt-runtime.h
    [[middle end lisp translator, see http://gcc.gnu.org/wiki/MELT or
    www.gcc-melt.org ]]
-   Copyright (C)  2008, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C)  2008, 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
 This file is part of GCC.
@@ -45,7 +45,7 @@ extern void fatal_error (const char *, ...);
    compile without this include.  */
 #include "ppl_c.h"
 
-/* DYNAMIC_OBJSTRUCT is a cute hack to "dynamically" compute field
+/* MELTGCC_DYNAMIC_OBJSTRUCT is a cute hack to "dynamically" compute field
    positions; this is only used to compile warmelt-*-0.c files notably
    when new fields have been added in warmelt-first.melt. When
    enabled, slows down significantly MELT. */
@@ -190,10 +190,6 @@ union meltparam_un
   melt_ptr_t *meltbp_aptr;	/* letter p */
 #define MELTBPAR_PTR          'p'
 #define MELTBPARSTR_PTR       "p"
-  /* backward compatibility */
-#define BPAR_PTR MELTBPAR_PTR
-#define BPARSTR_PTR MELTBPARSTR_PTR
-#define bp_aptr meltbp_aptr
 
 /* we no longer have BPAR_RESTPTR as 'R' */
 
@@ -201,72 +197,37 @@ union meltparam_un
   tree *meltbp_treeptr;		/* for extra results */
 #define MELTBPAR_TREE         't'
 #define MELTBPARSTR_TREE      "t"
-  /* backward compatibility */
-#define BPAR_TREE MELTBPAR_TREE
-#define BPARSTR_TREE MELTBPARSTR_TREE
-#define bp_tree meltbp_tree
-#define bp_treeptr meltbp_treeptr
 
   gimple meltbp_gimple;			/* letter g */
   gimple *meltbp_gimpleptr;		/* for extra results */
 #define MELTBPAR_GIMPLE       'g'
 #define MELTBPARSTR_GIMPLE    "g"
-  /* backward compatibity */
-#define BPAR_GIMPLE MELTBPAR_GIMPLE
-#define BPARSTR_GIMPLE MELTBPARSTR_GIMPLE
-#define bp_gimple meltbp_gimple
-#define bp_gimpleptr meltbp_gimpleptr
 
   gimple_seq meltbp_gimpleseq;			/* letter g */
   gimple_seq *meltbp_gimpleseqptr;		/* for extra results */
 #define MELTBPAR_GIMPLESEQ       'G'
 #define MELTBPARSTR_GIMPLESEQ    "G"
-  /* backward compatibility */
-#define BPAR_GIMPLE MELTBPAR_GIMPLE
-#define BPARSTR_GIMPLE MELTBPARSTR_GIMPLE
-#define bp_gimpleseq meltbp_gimpleseq
-#define bp_gimpleseqptr meltbp_gimpleseqptr
 
   long meltbp_long;			/* letter l */
   long *meltbp_longptr;		/* for results */
 #define MELTBPAR_LONG         'l'
 #define MELTBPARSTR_LONG      "l"
-  /* backward compatibility */
-#define BPAR_LONG MELTBPAR_LONG
-#define BPARSTR_LONG MELTBPARSTR_LONG
-#define bp_long meltbp_long
-#define bp_longptr meltbp_longptr
 
   edge meltbp_edge;			/* letter e */
   edge *meltbp_edgeptr;		/* for results */
 #define MELTBPAR_EDGE         'e'
 #define MELTBPARSTR_EDGE      "e"
-  /* backward compatibility */
-#define BPAR_EDGE MELTBPAR_EDGE
-#define BPARSTR_EDGE MELTBPARSTR_EDGE
-#define bp_edge meltbp_edge
-#define bp_edgeptr meltbp_edgeptr
 
   basic_block meltbp_bb;		/* letter b */
   basic_block *meltbp_bbptr;	/* for results */
 #define MELTBPAR_BB           'b'
 #define MELTBPARSTR_BB        "b"
-  /* backward compatibility */
-#define BPAR_BB MELTBPAR_BB
-#define BPARSTR_BB MELTBPARSTR_BB
-#define bp_bb meltbp_bb
-#define bp_bbptr meltbp_bbptr
 
   /* readonly constant strings - not in GP nor in heap */
   const char *meltbp_cstring;			/* letter s */
   const char **meltbp_cstringptr;		/* for results */
 #define MELTBPAR_CSTRING         's'
 #define MELTBPARSTR_CSTRING      "s"
-  /* backward compatibility */
-#define BPAR_CSTRING MELTBPAR_CSTRING
-#define BPARSTR_CSTRING MELTBPARSTR_CSTRING
-#define bp_cstring meltbp_cstring
-#define bp_cstringptr meltbp_cstringptr
 
   /* PPL and special stuff are getting the upper case letters */
   /* PPL coefficients */
@@ -274,55 +235,30 @@ union meltparam_un
   ppl_Coefficient_t* meltbp_ppl_coefficientptr;
 #define MELTBPAR_PPL_COEFFICIENT 'A'
 #define MELTBPARSTR_PPL_COEFFICIENT "A"
-  /* backward compatibility */
-#define BPAR_PPL_COEFFICIENT MELTBPAR_PPL_COEFFICIENT
-#define BPARSTR_PPL_COEFFICIENT MELTBPARSTR_PPL_COEFFICIENT
-#define bp_ppl_coefficient    meltbp_ppl_coefficient
-#define bp_ppl_coefficientptr    meltbp_ppl_coefficientptr
 
   /* PPL constraints */
   ppl_Constraint_t meltbp_ppl_constraint;
   ppl_Constraint_t* meltbp_ppl_constraintptr;
 #define MELTBPAR_PPL_CONSTRAINT 'B'
 #define MELTBPARSTR_PPL_CONSTRAINT "B"
-  /* backward compatibility */
-#define BPAR_PPL_CONSTRAINT MELTBPAR_PPL_CONSTRAINT
-#define BPARSTR_PPL_CONSTRAINT MELTBPARSTR_PPL_CONSTRAINT
-#define bp_ppl_constraint       meltbp_ppl_constraint
-#define bp_ppl_constraintptr    meltbp_ppl_constraintptr
 
   /* PPL constraint systems */
   ppl_Constraint_System_t  meltbp_ppl_constraint_system;
   ppl_Constraint_System_t* meltbp_ppl_constraint_systemptr;
 #define MELTBPAR_PPL_CONSTRAINT_SYSTEM 'C'
 #define MELTBPARSTR_PPL_CONSTRAINT_SYSTEM "C"
-  /* backward compatibility */
-#define BPAR_PPL_CONSTRAINT_SYSTEM MELTBPAR_PPL_CONSTRAINT_SYSTEM
-#define BPARSTR_PPL_CONSTRAINT_SYSTEM MELTBPARSTR_PPL_CONSTRAINT_SYSTEM
-#define bp_ppl_constraint_system       meltbp_ppl_constraint_system
-#define bp_ppl_constraint_systemptr    meltbp_ppl_constraint_systemptr
 
   /* PPL linear expressions */
   ppl_Linear_Expression_t  meltbp_ppl_linear_expression;
   ppl_Linear_Expression_t* meltbp_ppl_linear_expressionptr;
 #define MELTBPAR_PPL_LINEAR_EXPRESSION 'D'
 #define MELTBPARSTR_PPL_LINEAR_EXPRESSION "D"
-  /* backward compatibility */
-#define BPAR_PPL_LINEAR_EXPRESSION MELTBPAR_PPL_LINEAR_EXPRESSION
-#define BPARSTR_PPL_LINEAR_EXPRESSION MELTBPARSTR_PPL_LINEAR_EXPRESSION
-#define  bp_ppl_linear_expression     meltbp_ppl_linear_expression
-#define  bp_ppl_linear_expressionptr  meltbp_ppl_linear_expressionptr
 
   /* PPL polyhedrons */
   ppl_Polyhedron_t meltbl_ppl_polyhedron;
   ppl_Polyhedron_t* meltbp_ppl_polyhedronptr;
 #define MELTBPAR_PPL_POLYHEDRON            'E'
 #define MELTBPARSTR_PPL_POLYHEDRON         "E"
-  /* backward compatibility */
-#define BPAR_PPL_POLYHEDRON MELTBPAR_PPL_POLYHEDRON
-#define BPARSTR_PPL_POLYHEDRON MELTBPARSTR_PPL_POLYHEDRON
-#define bp_ppl_polyhedron       meltbp_ppl_polyhedron
-#define bp_ppl_polyhedronptr    meltbp_ppl_polyhedronptr
 
 
 
@@ -331,22 +267,12 @@ union meltparam_un
   bitmap *meltbp_bitmapptr;		/* for results */
 #define MELTBPAR_BITMAP         'I'
 #define MELTBPARSTR_BITMAP      "I"
-  /* backward compatibility */
-#define BPAR_BITMAP        MELTBPAR_BITMAP         
-#define BPARSTR_BITMAP     MELTBPARSTR_BITMAP      
-#define bp_bitmap          meltbp_bitmap
-#define bp_bitmapptr       meltbp_bitmapptr
 
   /* loop-s */
   struct loop *meltbp_loop;			/* letter L */
   struct loop **meltbp_loopptr;		/* for results */
 #define MELTBPAR_LOOP         'L'
 #define MELTBPARSTR_LOOP      "L"
-  /* backward compatibility */
-#define BPAR_LOOP        MELTBPAR_LOOP         
-#define BPARSTR_LOOP     MELTBPARSTR_LOOP     
-#define bp_loop          meltbp_loop
-#define bp_loopptr       meltbp_loopptr   
 
 
   /* rtx-s */
@@ -354,12 +280,6 @@ union meltparam_un
   rtx* meltbp_rtxptr;
 #define MELTBPAR_RTX         'X'
 #define MELTBPARSTR_RTX      "X"
-  /* backward compatibility */
-#define BPAR_RTX        MELTBPAR_RTX         
-#define BPARSTR_RTX     MELTBPARSTR_RTX   
-#define bp_rtx          meltbp_rtx
-#define bp_rtxptr       meltbp_rtxptr   
-
 
 
   /* rtvec-s */
@@ -367,11 +287,6 @@ union meltparam_un
   rtvec* meltbp_rtvecptr;
 #define MELTBPAR_RTVEC         'Y'
 #define MELTBPARSTR_RTVEC      "Y"
-  /* backward compatibility */
-#define BPAR_RTVEC        MELTBPAR_RTVEC    
-#define BPARSTR_RTVEC     MELTBPARSTR_RTVEC 
-#define bp_rtvec          meltbp_rtvec
-#define bp_rtvecptr       meltbp_rtvecptr   
 };
 
 /*** the closures contain routines which are called by applying
@@ -439,6 +354,7 @@ typedef VEC (melt_ptr_t, gc) melt_valvec_t;
 
 enum meltobmag_en    {
   MELTOBMAG__NONE = 0,
+
   MELTOBMAG_OBJECT = 30000,
   
   /* keep these in alphabetical order */
@@ -568,8 +484,6 @@ meltobject_st
   meltobject_ptr_t obj_class;
   unsigned obj_hash;		/* hash code of the object */
   unsigned short obj_num;
-/* discriminate the melt_un containing it as discr */
-#define object_magic obj_num
   unsigned short obj_len;
   melt_ptr_t GTY ((length ("%h.obj_len"))) obj_vartab[FLEXIBLE_DIM];
 };
@@ -815,8 +729,8 @@ melt_mark_special (struct meltspecial_st *p)
 {
   p->mark = 1;
   melt_debuggc_eprintf ("marked special %p of magic %d %s", 
-			(void*)p, p->discr->object_magic, 
-			melt_obmag_string (p->discr->object_magic));
+			(void*)p, p->discr->meltobj_magic, 
+			melt_obmag_string (p->discr->meltobj_magic));
 }
 
 static inline void
@@ -1225,7 +1139,7 @@ meltmapedges_st
 /**** our union for everything ***/
 /* never use an array of melt_un, only array of pointers melt_ptr_t */
 typedef union
-GTY ((desc ("%0.u_discr->object_magic"))) 
+GTY ((desc ("%0.u_discr->meltobj_magic"))) 
 melt_un
 {
   meltobject_ptr_t GTY ((skip)) u_discr;
@@ -1288,14 +1202,14 @@ melt_magic_discr (melt_ptr_t p)
 {
   if (!p ||  !p->u_discr)
     return 0;
-  return p->u_discr->object_magic;
+  return p->u_discr->meltobj_magic;
 }
 
 /* likewise, but without testing for null */
 static inline int
 melt_unsafe_magic_discr (melt_ptr_t p)
 {
-  return p->u_discr->object_magic;
+  return p->u_discr->meltobj_magic;
 }
 
 /* test if a pointer is an output - either a string buffer or a file */
@@ -1319,7 +1233,7 @@ melt_is_file (melt_ptr_t p)
 static inline melt_ptr_t
 melt_multiple_nth (melt_ptr_t mul, int n)
 {
-  if (!mul || ((meltmultiple_ptr_t)mul)->discr->object_magic != MELTOBMAG_MULTIPLE)
+  if (!mul || ((meltmultiple_ptr_t)mul)->discr->meltobj_magic != MELTOBMAG_MULTIPLE)
     return NULL;
   if (n >= 0 && n < (int) ((meltmultiple_ptr_t)mul)->nbval)
     return ((meltmultiple_ptr_t)mul)->tabval[n];
@@ -1336,7 +1250,7 @@ void meltgc_multiple_put_nth (melt_ptr_t mul, int n,
 static inline int
 melt_multiple_length (melt_ptr_t mul)
 {
-  if (!mul || ((meltmultiple_ptr_t)mul)->discr->object_magic != MELTOBMAG_MULTIPLE)
+  if (!mul || ((meltmultiple_ptr_t)mul)->discr->meltobj_magic != MELTOBMAG_MULTIPLE)
     return 0;
   return ((meltmultiple_ptr_t)mul)->nbval;
 }
@@ -1345,7 +1259,7 @@ melt_multiple_length (melt_ptr_t mul)
 static inline bool
 melt_is_multiple_at_least(melt_ptr_t mul, int ln)
 {
-  if (!mul || ln<0 || ((meltmultiple_ptr_t)mul)->discr->object_magic != MELTOBMAG_MULTIPLE) return 0;
+  if (!mul || ln<0 || ((meltmultiple_ptr_t)mul)->discr->meltobj_magic != MELTOBMAG_MULTIPLE) return 0;
   return  (int)((meltmultiple_ptr_t)mul)->nbval >= (int)ln;
 }
 
@@ -1353,7 +1267,7 @@ melt_is_multiple_at_least(melt_ptr_t mul, int ln)
 static inline bool
 melt_is_multiple_of_length(melt_ptr_t mul, int ln)
 {
-  if (!mul || ln<0 || ((meltmultiple_ptr_t)mul)->discr->object_magic != MELTOBMAG_MULTIPLE) return 0;
+  if (!mul || ln<0 || ((meltmultiple_ptr_t)mul)->discr->meltobj_magic != MELTOBMAG_MULTIPLE) return 0;
   return  (int)((meltmultiple_ptr_t)mul)->nbval == (int)ln;
 }
 
@@ -1376,7 +1290,7 @@ melt_ptr_t meltgc_new_box (meltobject_ptr_t discr_p,
 static inline melt_ptr_t
 melt_box_content (meltbox_ptr_t box)
 {
-  if (!box || box->discr->object_magic != MELTOBMAG_BOX)
+  if (!box || box->discr->meltobj_magic != MELTOBMAG_BOX)
     return NULL;
   return box->val;
 }
@@ -1410,7 +1324,7 @@ Newf (meltobject_ptr_t discr, unsigned len)				\
 {									\
   if (melt_magic_discr ((melt_ptr_t) discr) != MELTOBMAG_OBJECT)       	\
     return NULL;							\
-  if (discr->object_magic != Meltobmag)					\
+  if (discr->meltobj_magic != Meltobmag)					\
     return NULL;							\
   return (melt_ptr_t) meltgc_raw_new_mappointers (discr, len);		\
 }									\
@@ -1592,7 +1506,7 @@ static inline tree
 melt_tree_content (melt_ptr_t box)
 {
   struct melttree_st* tr = (struct melttree_st*)box;
-  if (!tr || tr->discr->object_magic != MELTOBMAG_TREE)
+  if (!tr || tr->discr->meltobj_magic != MELTOBMAG_TREE)
     return NULL;
   return tr->val;
 }
@@ -1607,7 +1521,7 @@ static inline gimple
 melt_gimple_content (melt_ptr_t box)
 {
   struct meltgimple_st* g = (struct meltgimple_st*)box;
-  if (!g || g->discr->object_magic != MELTOBMAG_GIMPLE)
+  if (!g || g->discr->meltobj_magic != MELTOBMAG_GIMPLE)
     return NULL;
   return g->val;
 }
@@ -1622,7 +1536,7 @@ static inline gimple_seq
 melt_gimpleseq_content (melt_ptr_t box)
 {
   struct meltgimpleseq_st* g = (struct meltgimpleseq_st*)box;
-  if (!g || g->discr->object_magic != MELTOBMAG_GIMPLESEQ)
+  if (!g || g->discr->meltobj_magic != MELTOBMAG_GIMPLESEQ)
     return NULL;
   return g->val;
 }
@@ -1640,7 +1554,7 @@ static inline basic_block
 melt_basicblock_content (melt_ptr_t box)
 {
   struct meltbasicblock_st* b = (struct meltbasicblock_st*)box;
-  if (!b || b->discr->object_magic != MELTOBMAG_BASICBLOCK)
+  if (!b || b->discr->meltobj_magic != MELTOBMAG_BASICBLOCK)
     return NULL;
   return b->val;
 }
@@ -1650,7 +1564,7 @@ static inline gimple_seq
 melt_basicblock_gimpleseq(melt_ptr_t box)
 {
   struct meltbasicblock_st* b = (struct meltbasicblock_st*)box;
-  if (!b || b->discr->object_magic != MELTOBMAG_BASICBLOCK || !b->val)
+  if (!b || b->discr->meltobj_magic != MELTOBMAG_BASICBLOCK || !b->val)
     return NULL;
   return bb_seq(b->val);
 }
@@ -1660,7 +1574,7 @@ static inline gimple_seq
 melt_basicblock_phinodes(melt_ptr_t box)
 {
   struct meltbasicblock_st* b = (struct meltbasicblock_st*)box;
-  if (!b || b->discr->object_magic != MELTOBMAG_BASICBLOCK || !b->val)
+  if (!b || b->discr->meltobj_magic != MELTOBMAG_BASICBLOCK || !b->val)
     return NULL;
   return phi_nodes(b->val);
 }
@@ -1677,7 +1591,7 @@ static inline loop_p
 melt_loop_content (melt_ptr_t box)
 {
   struct meltloop_st* b = (struct meltloop_st*)box;
-  if (!b || b->discr->object_magic != MELTOBMAG_LOOP)
+  if (!b || b->discr->meltobj_magic != MELTOBMAG_LOOP)
     return NULL;
   return b->val;
 }
@@ -1694,7 +1608,7 @@ static inline bitmap
 melt_bitmap_content (melt_ptr_t box)
 {
   struct meltbitmap_st* b = (struct meltbitmap_st*)box;
-  if (!b || b->discr->object_magic != MELTOBMAG_BITMAP)
+  if (!b || b->discr->meltobj_magic != MELTOBMAG_BITMAP)
     return NULL;
   return b->val;
 }
@@ -1712,7 +1626,7 @@ static inline rtx
 melt_rtx_content (melt_ptr_t box)
 {
   struct meltrtx_st* b = (struct meltrtx_st*)box;
-  if (!b || b->discr->object_magic != MELTOBMAG_RTX)
+  if (!b || b->discr->meltobj_magic != MELTOBMAG_RTX)
     return NULL;
   return b->val;
 }
@@ -1729,7 +1643,7 @@ static inline rtvec
 melt_rtvec_content (melt_ptr_t box)
 {
   struct meltrtvec_st* b = (struct meltrtvec_st*)box;
-  if (!b || b->discr->object_magic != MELTOBMAG_RTVEC)
+  if (!b || b->discr->meltobj_magic != MELTOBMAG_RTVEC)
     return NULL;
   return b->val;
 }
@@ -3502,13 +3416,13 @@ melt_is_instance_of (melt_ptr_t inst_p, melt_ptr_t class_p)
   mag_inst = inst_p->u_discr->obj_num;
   if (mag_class != MELTOBMAG_OBJECT || !mag_inst)
     return FALSE;
-  if (((meltobject_ptr_t) inst_p)->obj_class ==
+  if (((meltobject_ptr_t) inst_p)->meltobj_class ==
       (meltobject_ptr_t) class_p)
     return TRUE;
-  if (mag_inst != ((meltobject_ptr_t) class_p)->object_magic)
+  if (mag_inst != ((meltobject_ptr_t) class_p)->meltobj_magic)
     return FALSE;
   if (mag_inst == MELTOBMAG_OBJECT)
-    return melt_is_subclass_of (((meltobject_ptr_t) inst_p)->obj_class,
+    return melt_is_subclass_of (((meltobject_ptr_t) inst_p)->meltobj_class,
 				   ((meltobject_ptr_t) class_p));
   /* the instance is not an object but something else and it has the
      good magic */
