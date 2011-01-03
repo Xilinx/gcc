@@ -647,6 +647,8 @@ verify_cgraph_node (struct cgraph_node *node)
 			  }
 			if (!e->indirect_unknown_callee)
 			  {
+			    struct cgraph_node *n;
+
 			    if (e->callee->same_body_alias)
 			      {
 				error ("edge points to same body alias:");
@@ -666,6 +668,15 @@ verify_cgraph_node (struct cgraph_node *node)
 				fprintf (stderr," Instead of:");
 				debug_tree (decl);
 				error_found = true;
+			      }
+			    else if (decl
+				     && (n = cgraph_get_node_or_alias (decl))
+				     && (n->same_body_alias
+					 && n->thunk.thunk_p))
+			      {
+				error ("a call to thunk improperly represented "
+				       "in the call graph:");
+				debug_gimple_stmt (stmt);
 			      }
 			  }
 			else if (decl)
@@ -2168,22 +2179,20 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
 	}
     }
 
-  if (e->indirect_info && e->indirect_info->thunk_delta
-      && integer_nonzerop (e->indirect_info->thunk_delta)
+  if (e->indirect_info &&
+      e->indirect_info->thunk_delta != 0
       && (!e->callee->clone.combined_args_to_skip
 	  || !bitmap_bit_p (e->callee->clone.combined_args_to_skip, 0)))
     {
       if (cgraph_dump_file)
-	{
-	  fprintf (cgraph_dump_file, "          Thunk delta is ");
-	  print_generic_expr (cgraph_dump_file,
-			      e->indirect_info->thunk_delta, 0);
-	  fprintf (cgraph_dump_file, "\n");
-	}
+	fprintf (cgraph_dump_file, "          Thunk delta is "
+		 HOST_WIDE_INT_PRINT_DEC "\n", e->indirect_info->thunk_delta);
       gsi = gsi_for_stmt (e->call_stmt);
       gsi_computed = true;
-      gimple_adjust_this_by_delta (&gsi, e->indirect_info->thunk_delta);
-      e->indirect_info->thunk_delta = NULL_TREE;
+      gimple_adjust_this_by_delta (&gsi,
+				   build_int_cst (sizetype,
+					       e->indirect_info->thunk_delta));
+      e->indirect_info->thunk_delta = 0;
     }
 
   if (e->callee->clone.combined_args_to_skip)
