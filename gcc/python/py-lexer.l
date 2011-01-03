@@ -117,12 +117,7 @@ static bool gen_indentation = true;
           return tk;                                            \
       } while (0);                                                
 
-#define UNPUT_TOKEN(yytext) do {                                \
-        char *yycopy = xstrdup( yytext );                       \
-        for (int i = yyleng - 1; i >= 0; --i )                  \
-          unput( yycopy[i] );                                   \
-        free( yycopy );                                         \
-      } while (0);
+#define UNPUT_TOKEN() yyless(0)
  
 %}
 
@@ -168,7 +163,7 @@ continue                { LANG_TOKEN_ACTION; return CONTINUE; }
 return                  { LANG_TOKEN_ACTION; return RETURN; }
 for                     { LANG_TOKEN_ACTION; return FOR; }
 while                   { LANG_TOKEN_ACTION; return WHILE; }
-print                   { LANG_TOKEN_ACTION; return PRINT; }
+print                   { LANG_TOKEN_ACTION; fprintf(stderr, "REALLY: print\n"); return PRINT; }
 
 if                      { LANG_TOKEN_ACTION; return IF; }
 elif                    { LANG_TOKEN_ACTION; return ELIF; }
@@ -354,7 +349,7 @@ int lang_token_action (char *yytext)
             {
               maybe_dedent = true;
               /* unput the space to re-match this rule */
-              UNPUT_TOKEN(yytext);
+              UNPUT_TOKEN();
               fprintf(stdout, "DEDENT: top(%u) - %u\n", top_len, indentation);
               VEC_pop(gpy_int, gpy_indent_stack);
               top_len = VEC_index( gpy_int, gpy_indent_stack,
@@ -382,6 +377,7 @@ int lang_token_action (char *yytext)
               top_len = indentation;
               gen_indentation = false;
 
+              UNPUT_TOKEN();
               fprintf(stdout, "DEBUG: INDENT\n");
               return INDENT;
             }
